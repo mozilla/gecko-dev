@@ -11,6 +11,7 @@ UNIFIED_SOURCES += [
     "Callbacks.cpp",
     "GeneratedScaffolding.cpp",
     "OwnedRustBuffer.cpp",
+    "ResultPromise.cpp",
     "UniFFIPointer.cpp",
     "UniFFIScaffolding.cpp",
 ]
@@ -29,6 +30,7 @@ EXPORTS.mozilla.uniffi += [
     "FfiValue.h",
     "OwnedRustBuffer.h",
     "PointerType.h",
+    "ResultPromise.h",
     "Rust.h",
 ]
 

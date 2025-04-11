@@ -12,6 +12,7 @@
 #include "mozilla/dom/UniFFIScaffolding.h"
 #include "mozilla/uniffi/OwnedRustBuffer.h"
 #include "mozilla/uniffi/FfiValue.h"
+#include "mozilla/uniffi/ResultPromise.h"
 #include "mozilla/uniffi/Rust.h"
 
 namespace mozilla::uniffi {
@@ -29,7 +30,7 @@ namespace mozilla::uniffi {
 // In all cases, a new instance is created each time the scaffolding function
 // is called.
 class UniffiCallHandlerBase {
- protected:
+ public:
   // Extract the call result when the status code is `RUST_CALL_SUCCESS`.
   //
   // On success, set aDest with the converted return value. If there is a
@@ -37,7 +38,7 @@ class UniffiCallHandlerBase {
   // value doesn't fit into a JS number.
   //
   // Called on the main thread.
-  virtual void ExtractSuccessfulCallResult(
+  virtual void LiftSuccessfulCallResult(
       JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest,
       ErrorResult& aError) = 0;
 
@@ -53,11 +54,14 @@ class UniffiCallHandlerBase {
   //     panic=abort.
   //   - If some other error happens in the C++ layer, then `aError` will be set
   //     to the error.
-  void ExtractCallResult(
+  void LiftCallResult(
       JSContext* aCx,
       dom::RootedDictionary<dom::UniFFIScaffoldingCallResult>& aDest,
       ErrorResult& aError);
 
+  virtual ~UniffiCallHandlerBase() = default;
+
+ protected:
   // Call status from the rust call
   int8_t mUniffiCallStatusCode = RUST_CALL_SUCCESS;
   FfiValueRustBuffer mUniffiCallStatusErrorBuf;
@@ -70,7 +74,7 @@ class UniffiSyncCallHandler : public UniffiCallHandlerBase {
 
   // Convert a sequence of JS arguments and store them in this
   // UniffiSyncCallHandler. Called on the main thread.
-  virtual void PrepareRustArgs(
+  virtual void LowerRustArgs(
       const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs,
       ErrorResult& aError) = 0;
 
@@ -117,9 +121,9 @@ class UniffiAsyncCallHandler : public UniffiCallHandlerBase {
   //
   // Always called on the main thread since async Rust calls don't block, they
   // return a future.  Because of this, there's no reason to split out the
-  // `PrepareRustArgs` and `PrepareArgs` and `MakeRustCall` like in the sync
+  // `LowerRustArgs` and `MakeRustCall` like in the sync
   // case.
-  virtual void PrepareArgsAndMakeRustCall(
+  virtual void LowerArgsAndMakeRustCall(
       const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs,
       ErrorResult& aError) = 0;
 
@@ -141,11 +145,6 @@ class UniffiAsyncCallHandler : public UniffiCallHandlerBase {
   // Call mPollFn to poll the future
   static void Poll(UniquePtr<UniffiAsyncCallHandler> aHandler);
 
-  // Complete the async call and resolve the promise returned by CallAsync
-  //
-  // Called in the main thread.
-  static void Finish(UniquePtr<UniffiAsyncCallHandler> aHandler);
-
  public:
   virtual ~UniffiAsyncCallHandler();
 
@@ -160,7 +159,7 @@ class UniffiAsyncCallHandler : public UniffiCallHandlerBase {
 
  private:
   // Promise created by CallAsync
-  RefPtr<dom::Promise> mPromise;
+  ResultPromise mPromise;
 
   // Callback function for Rust async calls
   //

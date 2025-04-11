@@ -10,11 +10,11 @@
 #include "mozilla/StaticPtr.h"
 #include "mozilla/UniquePtr.h"
 #include "mozilla/dom/Promise.h"
+#include "mozilla/dom/UniFFIScaffolding.h"
 #include "mozilla/uniffi/Call.h"
 #include "mozilla/uniffi/Callbacks.h"
 #include "mozilla/uniffi/FfiValue.h"
 #include "mozilla/uniffi/PointerType.h"
-#include "mozilla/dom/UniFFIScaffolding.h"
 #include "mozilla/uniffi/Rust.h"
 
 namespace mozilla::uniffi {
@@ -3804,13 +3804,13 @@ void DeregisterCallbackHandler(uint64_t aInterfaceId, ErrorResult& aError) {
 
 class ScaffoldingCallHandlerUniffiErrorSupportFnFuncSetApplicationErrorReporter : public UniffiSyncCallHandler {
 private:
-  // PrepareRustArgs stores the resulting arguments in these fields
+  // LowerRustArgs stores the resulting arguments in these fields
   FfiValueInt<uint64_t> mErrorReporter{};
 
   // MakeRustCall stores the result of the call in these fields
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void LowerRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     mErrorReporter.Lower(aArgs[0], aError);
     if (aError.Failed()) {
       return;
@@ -3824,17 +3824,17 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void LiftSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
   }
 };
 class ScaffoldingCallHandlerUniffiErrorSupportFnFuncUnsetApplicationErrorReporter : public UniffiSyncCallHandler {
 private:
-  // PrepareRustArgs stores the resulting arguments in these fields
+  // LowerRustArgs stores the resulting arguments in these fields
 
   // MakeRustCall stores the result of the call in these fields
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void LowerRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
   }
 
   void MakeRustCall(RustCallStatus* aOutStatus) override {
@@ -3843,12 +3843,12 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void LiftSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
   }
 };
 class ScaffoldingCallHandlerUniffiRelevancyFnFuncScore : public UniffiSyncCallHandler {
 private:
-  // PrepareRustArgs stores the resulting arguments in these fields
+  // LowerRustArgs stores the resulting arguments in these fields
   FfiValueRustBuffer mInterestVector{};
   FfiValueRustBuffer mContentCategories{};
 
@@ -3856,7 +3856,7 @@ private:
   FfiValueFloat<double> mUniffiReturnValue{};
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void LowerRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     mInterestVector.Lower(aArgs[0], aError);
     if (aError.Failed()) {
       return;
@@ -3877,7 +3877,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void LiftSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     mUniffiReturnValue.Lift(
       aCx,
       &aDest.Construct(),
@@ -3887,7 +3887,7 @@ public:
 };
 class ScaffoldingCallHandlerUniffiRelevancyFnMethodRelevancystoreBanditInit : public UniffiSyncCallHandler {
 private:
-  // PrepareRustArgs stores the resulting arguments in these fields
+  // LowerRustArgs stores the resulting arguments in these fields
   FfiValueObjectHandleRelevancyRelevancyStore mPtr{};
   FfiValueRustBuffer mBandit{};
   FfiValueRustBuffer mArms{};
@@ -3895,7 +3895,7 @@ private:
   // MakeRustCall stores the result of the call in these fields
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void LowerRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     mPtr.Lower(aArgs[0], aError);
     if (aError.Failed()) {
       return;
@@ -3919,12 +3919,12 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void LiftSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
   }
 };
 class ScaffoldingCallHandlerUniffiRelevancyFnMethodRelevancystoreBanditSelect : public UniffiSyncCallHandler {
 private:
-  // PrepareRustArgs stores the resulting arguments in these fields
+  // LowerRustArgs stores the resulting arguments in these fields
   FfiValueObjectHandleRelevancyRelevancyStore mPtr{};
   FfiValueRustBuffer mBandit{};
   FfiValueRustBuffer mArms{};
@@ -3933,7 +3933,7 @@ private:
   FfiValueRustBuffer mUniffiReturnValue{};
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void LowerRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     mPtr.Lower(aArgs[0], aError);
     if (aError.Failed()) {
       return;
@@ -3959,7 +3959,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void LiftSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     mUniffiReturnValue.Lift(
       aCx,
       &aDest.Construct(),
@@ -3969,7 +3969,7 @@ public:
 };
 class ScaffoldingCallHandlerUniffiRelevancyFnMethodRelevancystoreBanditUpdate : public UniffiSyncCallHandler {
 private:
-  // PrepareRustArgs stores the resulting arguments in these fields
+  // LowerRustArgs stores the resulting arguments in these fields
   FfiValueObjectHandleRelevancyRelevancyStore mPtr{};
   FfiValueRustBuffer mBandit{};
   FfiValueRustBuffer mArm{};
@@ -3978,7 +3978,7 @@ private:
   // MakeRustCall stores the result of the call in these fields
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void LowerRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     mPtr.Lower(aArgs[0], aError);
     if (aError.Failed()) {
       return;
@@ -4007,18 +4007,18 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void LiftSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
   }
 };
 class ScaffoldingCallHandlerUniffiRelevancyFnMethodRelevancystoreClose : public UniffiSyncCallHandler {
 private:
-  // PrepareRustArgs stores the resulting arguments in these fields
+  // LowerRustArgs stores the resulting arguments in these fields
   FfiValueObjectHandleRelevancyRelevancyStore mPtr{};
 
   // MakeRustCall stores the result of the call in these fields
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void LowerRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     mPtr.Lower(aArgs[0], aError);
     if (aError.Failed()) {
       return;
@@ -4032,18 +4032,18 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void LiftSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
   }
 };
 class ScaffoldingCallHandlerUniffiRelevancyFnMethodRelevancystoreEnsureInterestDataPopulated : public UniffiSyncCallHandler {
 private:
-  // PrepareRustArgs stores the resulting arguments in these fields
+  // LowerRustArgs stores the resulting arguments in these fields
   FfiValueObjectHandleRelevancyRelevancyStore mPtr{};
 
   // MakeRustCall stores the result of the call in these fields
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void LowerRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     mPtr.Lower(aArgs[0], aError);
     if (aError.Failed()) {
       return;
@@ -4057,12 +4057,12 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void LiftSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
   }
 };
 class ScaffoldingCallHandlerUniffiRelevancyFnMethodRelevancystoreGetBanditData : public UniffiSyncCallHandler {
 private:
-  // PrepareRustArgs stores the resulting arguments in these fields
+  // LowerRustArgs stores the resulting arguments in these fields
   FfiValueObjectHandleRelevancyRelevancyStore mPtr{};
   FfiValueRustBuffer mBandit{};
   FfiValueRustBuffer mArm{};
@@ -4071,7 +4071,7 @@ private:
   FfiValueRustBuffer mUniffiReturnValue{};
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void LowerRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     mPtr.Lower(aArgs[0], aError);
     if (aError.Failed()) {
       return;
@@ -4097,7 +4097,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void LiftSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     mUniffiReturnValue.Lift(
       aCx,
       &aDest.Construct(),
@@ -4107,7 +4107,7 @@ public:
 };
 class ScaffoldingCallHandlerUniffiRelevancyFnMethodRelevancystoreIngest : public UniffiSyncCallHandler {
 private:
-  // PrepareRustArgs stores the resulting arguments in these fields
+  // LowerRustArgs stores the resulting arguments in these fields
   FfiValueObjectHandleRelevancyRelevancyStore mPtr{};
   FfiValueRustBuffer mTopUrlsByFrecency{};
 
@@ -4115,7 +4115,7 @@ private:
   FfiValueRustBuffer mUniffiReturnValue{};
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void LowerRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     mPtr.Lower(aArgs[0], aError);
     if (aError.Failed()) {
       return;
@@ -4136,7 +4136,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void LiftSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     mUniffiReturnValue.Lift(
       aCx,
       &aDest.Construct(),
@@ -4146,13 +4146,13 @@ public:
 };
 class ScaffoldingCallHandlerUniffiRelevancyFnMethodRelevancystoreInterrupt : public UniffiSyncCallHandler {
 private:
-  // PrepareRustArgs stores the resulting arguments in these fields
+  // LowerRustArgs stores the resulting arguments in these fields
   FfiValueObjectHandleRelevancyRelevancyStore mPtr{};
 
   // MakeRustCall stores the result of the call in these fields
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void LowerRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     mPtr.Lower(aArgs[0], aError);
     if (aError.Failed()) {
       return;
@@ -4166,19 +4166,19 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void LiftSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
   }
 };
 class ScaffoldingCallHandlerUniffiRelevancyFnMethodRelevancystoreUserInterestVector : public UniffiSyncCallHandler {
 private:
-  // PrepareRustArgs stores the resulting arguments in these fields
+  // LowerRustArgs stores the resulting arguments in these fields
   FfiValueObjectHandleRelevancyRelevancyStore mPtr{};
 
   // MakeRustCall stores the result of the call in these fields
   FfiValueRustBuffer mUniffiReturnValue{};
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void LowerRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     mPtr.Lower(aArgs[0], aError);
     if (aError.Failed()) {
       return;
@@ -4194,7 +4194,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void LiftSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     mUniffiReturnValue.Lift(
       aCx,
       &aDest.Construct(),
@@ -4204,14 +4204,14 @@ public:
 };
 class ScaffoldingCallHandlerUniffiRelevancyFnConstructorRelevancystoreNew : public UniffiSyncCallHandler {
 private:
-  // PrepareRustArgs stores the resulting arguments in these fields
+  // LowerRustArgs stores the resulting arguments in these fields
   FfiValueRustBuffer mDbPath{};
 
   // MakeRustCall stores the result of the call in these fields
   FfiValueObjectHandleRelevancyRelevancyStore mUniffiReturnValue{};
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void LowerRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     mDbPath.Lower(aArgs[0], aError);
     if (aError.Failed()) {
       return;
@@ -4227,7 +4227,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void LiftSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     mUniffiReturnValue.Lift(
       aCx,
       &aDest.Construct(),
@@ -4237,7 +4237,7 @@ public:
 };
 class ScaffoldingCallHandlerUniffiRemoteSettingsFnMethodRemotesettingsDownloadAttachmentToPath : public UniffiSyncCallHandler {
 private:
-  // PrepareRustArgs stores the resulting arguments in these fields
+  // LowerRustArgs stores the resulting arguments in these fields
   FfiValueObjectHandleRemoteSettingsRemoteSettings mPtr{};
   FfiValueRustBuffer mAttachmentId{};
   FfiValueRustBuffer mPath{};
@@ -4245,7 +4245,7 @@ private:
   // MakeRustCall stores the result of the call in these fields
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void LowerRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     mPtr.Lower(aArgs[0], aError);
     if (aError.Failed()) {
       return;
@@ -4269,19 +4269,19 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void LiftSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
   }
 };
 class ScaffoldingCallHandlerUniffiRemoteSettingsFnMethodRemotesettingsGetRecords : public UniffiSyncCallHandler {
 private:
-  // PrepareRustArgs stores the resulting arguments in these fields
+  // LowerRustArgs stores the resulting arguments in these fields
   FfiValueObjectHandleRemoteSettingsRemoteSettings mPtr{};
 
   // MakeRustCall stores the result of the call in these fields
   FfiValueRustBuffer mUniffiReturnValue{};
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void LowerRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     mPtr.Lower(aArgs[0], aError);
     if (aError.Failed()) {
       return;
@@ -4297,7 +4297,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void LiftSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     mUniffiReturnValue.Lift(
       aCx,
       &aDest.Construct(),
@@ -4307,7 +4307,7 @@ public:
 };
 class ScaffoldingCallHandlerUniffiRemoteSettingsFnMethodRemotesettingsGetRecordsSince : public UniffiSyncCallHandler {
 private:
-  // PrepareRustArgs stores the resulting arguments in these fields
+  // LowerRustArgs stores the resulting arguments in these fields
   FfiValueObjectHandleRemoteSettingsRemoteSettings mPtr{};
   FfiValueInt<uint64_t> mTimestamp{};
 
@@ -4315,7 +4315,7 @@ private:
   FfiValueRustBuffer mUniffiReturnValue{};
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void LowerRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     mPtr.Lower(aArgs[0], aError);
     if (aError.Failed()) {
       return;
@@ -4336,7 +4336,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void LiftSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     mUniffiReturnValue.Lift(
       aCx,
       &aDest.Construct(),
@@ -4346,14 +4346,14 @@ public:
 };
 class ScaffoldingCallHandlerUniffiRemoteSettingsFnConstructorRemotesettingsNew : public UniffiSyncCallHandler {
 private:
-  // PrepareRustArgs stores the resulting arguments in these fields
+  // LowerRustArgs stores the resulting arguments in these fields
   FfiValueRustBuffer mRemoteSettingsConfig{};
 
   // MakeRustCall stores the result of the call in these fields
   FfiValueObjectHandleRemoteSettingsRemoteSettings mUniffiReturnValue{};
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void LowerRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     mRemoteSettingsConfig.Lower(aArgs[0], aError);
     if (aError.Failed()) {
       return;
@@ -4369,7 +4369,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void LiftSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     mUniffiReturnValue.Lift(
       aCx,
       &aDest.Construct(),
@@ -4379,14 +4379,14 @@ public:
 };
 class ScaffoldingCallHandlerUniffiRemoteSettingsFnMethodRemotesettingsclientCollectionName : public UniffiSyncCallHandler {
 private:
-  // PrepareRustArgs stores the resulting arguments in these fields
+  // LowerRustArgs stores the resulting arguments in these fields
   FfiValueObjectHandleRemoteSettingsRemoteSettingsClient mPtr{};
 
   // MakeRustCall stores the result of the call in these fields
   FfiValueRustBuffer mUniffiReturnValue{};
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void LowerRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     mPtr.Lower(aArgs[0], aError);
     if (aError.Failed()) {
       return;
@@ -4402,7 +4402,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void LiftSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     mUniffiReturnValue.Lift(
       aCx,
       &aDest.Construct(),
@@ -4412,7 +4412,7 @@ public:
 };
 class ScaffoldingCallHandlerUniffiRemoteSettingsFnMethodRemotesettingsclientGetAttachment : public UniffiSyncCallHandler {
 private:
-  // PrepareRustArgs stores the resulting arguments in these fields
+  // LowerRustArgs stores the resulting arguments in these fields
   FfiValueObjectHandleRemoteSettingsRemoteSettingsClient mPtr{};
   FfiValueRustBuffer mRecord{};
 
@@ -4420,7 +4420,7 @@ private:
   FfiValueRustBuffer mUniffiReturnValue{};
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void LowerRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     mPtr.Lower(aArgs[0], aError);
     if (aError.Failed()) {
       return;
@@ -4441,7 +4441,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void LiftSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     mUniffiReturnValue.Lift(
       aCx,
       &aDest.Construct(),
@@ -4451,7 +4451,7 @@ public:
 };
 class ScaffoldingCallHandlerUniffiRemoteSettingsFnMethodRemotesettingsclientGetRecords : public UniffiSyncCallHandler {
 private:
-  // PrepareRustArgs stores the resulting arguments in these fields
+  // LowerRustArgs stores the resulting arguments in these fields
   FfiValueObjectHandleRemoteSettingsRemoteSettingsClient mPtr{};
   FfiValueInt<int8_t> mSyncIfEmpty{};
 
@@ -4459,7 +4459,7 @@ private:
   FfiValueRustBuffer mUniffiReturnValue{};
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void LowerRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     mPtr.Lower(aArgs[0], aError);
     if (aError.Failed()) {
       return;
@@ -4480,7 +4480,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void LiftSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     mUniffiReturnValue.Lift(
       aCx,
       &aDest.Construct(),
@@ -4490,7 +4490,7 @@ public:
 };
 class ScaffoldingCallHandlerUniffiRemoteSettingsFnMethodRemotesettingsclientGetRecordsMap : public UniffiSyncCallHandler {
 private:
-  // PrepareRustArgs stores the resulting arguments in these fields
+  // LowerRustArgs stores the resulting arguments in these fields
   FfiValueObjectHandleRemoteSettingsRemoteSettingsClient mPtr{};
   FfiValueInt<int8_t> mSyncIfEmpty{};
 
@@ -4498,7 +4498,7 @@ private:
   FfiValueRustBuffer mUniffiReturnValue{};
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void LowerRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     mPtr.Lower(aArgs[0], aError);
     if (aError.Failed()) {
       return;
@@ -4519,7 +4519,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void LiftSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     mUniffiReturnValue.Lift(
       aCx,
       &aDest.Construct(),
@@ -4529,13 +4529,13 @@ public:
 };
 class ScaffoldingCallHandlerUniffiRemoteSettingsFnMethodRemotesettingsclientSync : public UniffiSyncCallHandler {
 private:
-  // PrepareRustArgs stores the resulting arguments in these fields
+  // LowerRustArgs stores the resulting arguments in these fields
   FfiValueObjectHandleRemoteSettingsRemoteSettingsClient mPtr{};
 
   // MakeRustCall stores the result of the call in these fields
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void LowerRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     mPtr.Lower(aArgs[0], aError);
     if (aError.Failed()) {
       return;
@@ -4549,12 +4549,12 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void LiftSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
   }
 };
 class ScaffoldingCallHandlerUniffiRemoteSettingsFnMethodRemotesettingsserviceMakeClient : public UniffiSyncCallHandler {
 private:
-  // PrepareRustArgs stores the resulting arguments in these fields
+  // LowerRustArgs stores the resulting arguments in these fields
   FfiValueObjectHandleRemoteSettingsRemoteSettingsService mPtr{};
   FfiValueRustBuffer mCollectionName{};
 
@@ -4562,7 +4562,7 @@ private:
   FfiValueObjectHandleRemoteSettingsRemoteSettingsClient mUniffiReturnValue{};
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void LowerRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     mPtr.Lower(aArgs[0], aError);
     if (aError.Failed()) {
       return;
@@ -4583,7 +4583,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void LiftSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     mUniffiReturnValue.Lift(
       aCx,
       &aDest.Construct(),
@@ -4593,14 +4593,14 @@ public:
 };
 class ScaffoldingCallHandlerUniffiRemoteSettingsFnMethodRemotesettingsserviceSync : public UniffiSyncCallHandler {
 private:
-  // PrepareRustArgs stores the resulting arguments in these fields
+  // LowerRustArgs stores the resulting arguments in these fields
   FfiValueObjectHandleRemoteSettingsRemoteSettingsService mPtr{};
 
   // MakeRustCall stores the result of the call in these fields
   FfiValueRustBuffer mUniffiReturnValue{};
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void LowerRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     mPtr.Lower(aArgs[0], aError);
     if (aError.Failed()) {
       return;
@@ -4616,7 +4616,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void LiftSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     mUniffiReturnValue.Lift(
       aCx,
       &aDest.Construct(),
@@ -4626,14 +4626,14 @@ public:
 };
 class ScaffoldingCallHandlerUniffiRemoteSettingsFnMethodRemotesettingsserviceUpdateConfig : public UniffiSyncCallHandler {
 private:
-  // PrepareRustArgs stores the resulting arguments in these fields
+  // LowerRustArgs stores the resulting arguments in these fields
   FfiValueObjectHandleRemoteSettingsRemoteSettingsService mPtr{};
   FfiValueRustBuffer mConfig{};
 
   // MakeRustCall stores the result of the call in these fields
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void LowerRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     mPtr.Lower(aArgs[0], aError);
     if (aError.Failed()) {
       return;
@@ -4652,12 +4652,12 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void LiftSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
   }
 };
 class ScaffoldingCallHandlerUniffiRemoteSettingsFnConstructorRemotesettingsserviceNew : public UniffiSyncCallHandler {
 private:
-  // PrepareRustArgs stores the resulting arguments in these fields
+  // LowerRustArgs stores the resulting arguments in these fields
   FfiValueRustBuffer mStorageDir{};
   FfiValueRustBuffer mConfig{};
 
@@ -4665,7 +4665,7 @@ private:
   FfiValueObjectHandleRemoteSettingsRemoteSettingsService mUniffiReturnValue{};
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void LowerRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     mStorageDir.Lower(aArgs[0], aError);
     if (aError.Failed()) {
       return;
@@ -4686,7 +4686,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void LiftSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     mUniffiReturnValue.Lift(
       aCx,
       &aDest.Construct(),
@@ -4696,13 +4696,13 @@ public:
 };
 class ScaffoldingCallHandlerUniffiSearchFnMethodSearchengineselectorClearSearchConfig : public UniffiSyncCallHandler {
 private:
-  // PrepareRustArgs stores the resulting arguments in these fields
+  // LowerRustArgs stores the resulting arguments in these fields
   FfiValueObjectHandleSearchSearchEngineSelector mPtr{};
 
   // MakeRustCall stores the result of the call in these fields
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void LowerRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     mPtr.Lower(aArgs[0], aError);
     if (aError.Failed()) {
       return;
@@ -4716,12 +4716,12 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void LiftSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
   }
 };
 class ScaffoldingCallHandlerUniffiSearchFnMethodSearchengineselectorFilterEngineConfiguration : public UniffiSyncCallHandler {
 private:
-  // PrepareRustArgs stores the resulting arguments in these fields
+  // LowerRustArgs stores the resulting arguments in these fields
   FfiValueObjectHandleSearchSearchEngineSelector mPtr{};
   FfiValueRustBuffer mUserEnvironment{};
 
@@ -4729,7 +4729,7 @@ private:
   FfiValueRustBuffer mUniffiReturnValue{};
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void LowerRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     mPtr.Lower(aArgs[0], aError);
     if (aError.Failed()) {
       return;
@@ -4750,7 +4750,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void LiftSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     mUniffiReturnValue.Lift(
       aCx,
       &aDest.Construct(),
@@ -4760,14 +4760,14 @@ public:
 };
 class ScaffoldingCallHandlerUniffiSearchFnMethodSearchengineselectorSetConfigOverrides : public UniffiSyncCallHandler {
 private:
-  // PrepareRustArgs stores the resulting arguments in these fields
+  // LowerRustArgs stores the resulting arguments in these fields
   FfiValueObjectHandleSearchSearchEngineSelector mPtr{};
   FfiValueRustBuffer mOverrides{};
 
   // MakeRustCall stores the result of the call in these fields
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void LowerRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     mPtr.Lower(aArgs[0], aError);
     if (aError.Failed()) {
       return;
@@ -4786,19 +4786,19 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void LiftSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
   }
 };
 class ScaffoldingCallHandlerUniffiSearchFnMethodSearchengineselectorSetSearchConfig : public UniffiSyncCallHandler {
 private:
-  // PrepareRustArgs stores the resulting arguments in these fields
+  // LowerRustArgs stores the resulting arguments in these fields
   FfiValueObjectHandleSearchSearchEngineSelector mPtr{};
   FfiValueRustBuffer mConfiguration{};
 
   // MakeRustCall stores the result of the call in these fields
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void LowerRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     mPtr.Lower(aArgs[0], aError);
     if (aError.Failed()) {
       return;
@@ -4817,12 +4817,12 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void LiftSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
   }
 };
 class ScaffoldingCallHandlerUniffiSearchFnMethodSearchengineselectorUseRemoteSettingsServer : public UniffiSyncCallHandler {
 private:
-  // PrepareRustArgs stores the resulting arguments in these fields
+  // LowerRustArgs stores the resulting arguments in these fields
   FfiValueObjectHandleSearchSearchEngineSelector mPtr{};
   FfiValueObjectHandleRemoteSettingsRemoteSettingsService mService{};
   FfiValueInt<int8_t> mApplyEngineOverrides{};
@@ -4830,7 +4830,7 @@ private:
   // MakeRustCall stores the result of the call in these fields
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void LowerRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     mPtr.Lower(aArgs[0], aError);
     if (aError.Failed()) {
       return;
@@ -4854,18 +4854,18 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void LiftSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
   }
 };
 class ScaffoldingCallHandlerUniffiSearchFnConstructorSearchengineselectorNew : public UniffiSyncCallHandler {
 private:
-  // PrepareRustArgs stores the resulting arguments in these fields
+  // LowerRustArgs stores the resulting arguments in these fields
 
   // MakeRustCall stores the result of the call in these fields
   FfiValueObjectHandleSearchSearchEngineSelector mUniffiReturnValue{};
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void LowerRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
   }
 
   void MakeRustCall(RustCallStatus* aOutStatus) override {
@@ -4876,7 +4876,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void LiftSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     mUniffiReturnValue.Lift(
       aCx,
       &aDest.Construct(),
@@ -4886,7 +4886,7 @@ public:
 };
 class ScaffoldingCallHandlerUniffiSuggestFnFuncRawSuggestionUrlMatches : public UniffiSyncCallHandler {
 private:
-  // PrepareRustArgs stores the resulting arguments in these fields
+  // LowerRustArgs stores the resulting arguments in these fields
   FfiValueRustBuffer mRawUrl{};
   FfiValueRustBuffer mCookedUrl{};
 
@@ -4894,7 +4894,7 @@ private:
   FfiValueInt<int8_t> mUniffiReturnValue{};
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void LowerRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     mRawUrl.Lower(aArgs[0], aError);
     if (aError.Failed()) {
       return;
@@ -4915,7 +4915,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void LiftSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     mUniffiReturnValue.Lift(
       aCx,
       &aDest.Construct(),
@@ -4925,13 +4925,13 @@ public:
 };
 class ScaffoldingCallHandlerUniffiSuggestFnMethodSuggeststoreClear : public UniffiSyncCallHandler {
 private:
-  // PrepareRustArgs stores the resulting arguments in these fields
+  // LowerRustArgs stores the resulting arguments in these fields
   FfiValueObjectHandleSuggestSuggestStore mPtr{};
 
   // MakeRustCall stores the result of the call in these fields
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void LowerRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     mPtr.Lower(aArgs[0], aError);
     if (aError.Failed()) {
       return;
@@ -4945,18 +4945,18 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void LiftSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
   }
 };
 class ScaffoldingCallHandlerUniffiSuggestFnMethodSuggeststoreClearDismissedSuggestions : public UniffiSyncCallHandler {
 private:
-  // PrepareRustArgs stores the resulting arguments in these fields
+  // LowerRustArgs stores the resulting arguments in these fields
   FfiValueObjectHandleSuggestSuggestStore mPtr{};
 
   // MakeRustCall stores the result of the call in these fields
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void LowerRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     mPtr.Lower(aArgs[0], aError);
     if (aError.Failed()) {
       return;
@@ -4970,19 +4970,19 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void LiftSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
   }
 };
 class ScaffoldingCallHandlerUniffiSuggestFnMethodSuggeststoreDismissSuggestion : public UniffiSyncCallHandler {
 private:
-  // PrepareRustArgs stores the resulting arguments in these fields
+  // LowerRustArgs stores the resulting arguments in these fields
   FfiValueObjectHandleSuggestSuggestStore mPtr{};
   FfiValueRustBuffer mSuggestionUrl{};
 
   // MakeRustCall stores the result of the call in these fields
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void LowerRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     mPtr.Lower(aArgs[0], aError);
     if (aError.Failed()) {
       return;
@@ -5001,12 +5001,12 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void LiftSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
   }
 };
 class ScaffoldingCallHandlerUniffiSuggestFnMethodSuggeststoreFetchGeonames : public UniffiSyncCallHandler {
 private:
-  // PrepareRustArgs stores the resulting arguments in these fields
+  // LowerRustArgs stores the resulting arguments in these fields
   FfiValueObjectHandleSuggestSuggestStore mPtr{};
   FfiValueRustBuffer mQuery{};
   FfiValueInt<int8_t> mMatchNamePrefix{};
@@ -5017,7 +5017,7 @@ private:
   FfiValueRustBuffer mUniffiReturnValue{};
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void LowerRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     mPtr.Lower(aArgs[0], aError);
     if (aError.Failed()) {
       return;
@@ -5053,7 +5053,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void LiftSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     mUniffiReturnValue.Lift(
       aCx,
       &aDest.Construct(),
@@ -5063,14 +5063,14 @@ public:
 };
 class ScaffoldingCallHandlerUniffiSuggestFnMethodSuggeststoreFetchGlobalConfig : public UniffiSyncCallHandler {
 private:
-  // PrepareRustArgs stores the resulting arguments in these fields
+  // LowerRustArgs stores the resulting arguments in these fields
   FfiValueObjectHandleSuggestSuggestStore mPtr{};
 
   // MakeRustCall stores the result of the call in these fields
   FfiValueRustBuffer mUniffiReturnValue{};
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void LowerRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     mPtr.Lower(aArgs[0], aError);
     if (aError.Failed()) {
       return;
@@ -5086,7 +5086,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void LiftSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     mUniffiReturnValue.Lift(
       aCx,
       &aDest.Construct(),
@@ -5096,7 +5096,7 @@ public:
 };
 class ScaffoldingCallHandlerUniffiSuggestFnMethodSuggeststoreFetchProviderConfig : public UniffiSyncCallHandler {
 private:
-  // PrepareRustArgs stores the resulting arguments in these fields
+  // LowerRustArgs stores the resulting arguments in these fields
   FfiValueObjectHandleSuggestSuggestStore mPtr{};
   FfiValueRustBuffer mProvider{};
 
@@ -5104,7 +5104,7 @@ private:
   FfiValueRustBuffer mUniffiReturnValue{};
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void LowerRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     mPtr.Lower(aArgs[0], aError);
     if (aError.Failed()) {
       return;
@@ -5125,7 +5125,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void LiftSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     mUniffiReturnValue.Lift(
       aCx,
       &aDest.Construct(),
@@ -5135,7 +5135,7 @@ public:
 };
 class ScaffoldingCallHandlerUniffiSuggestFnMethodSuggeststoreIngest : public UniffiSyncCallHandler {
 private:
-  // PrepareRustArgs stores the resulting arguments in these fields
+  // LowerRustArgs stores the resulting arguments in these fields
   FfiValueObjectHandleSuggestSuggestStore mPtr{};
   FfiValueRustBuffer mConstraints{};
 
@@ -5143,7 +5143,7 @@ private:
   FfiValueRustBuffer mUniffiReturnValue{};
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void LowerRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     mPtr.Lower(aArgs[0], aError);
     if (aError.Failed()) {
       return;
@@ -5164,7 +5164,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void LiftSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     mUniffiReturnValue.Lift(
       aCx,
       &aDest.Construct(),
@@ -5174,14 +5174,14 @@ public:
 };
 class ScaffoldingCallHandlerUniffiSuggestFnMethodSuggeststoreInterrupt : public UniffiSyncCallHandler {
 private:
-  // PrepareRustArgs stores the resulting arguments in these fields
+  // LowerRustArgs stores the resulting arguments in these fields
   FfiValueObjectHandleSuggestSuggestStore mPtr{};
   FfiValueRustBuffer mKind{};
 
   // MakeRustCall stores the result of the call in these fields
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void LowerRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     mPtr.Lower(aArgs[0], aError);
     if (aError.Failed()) {
       return;
@@ -5200,12 +5200,12 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void LiftSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
   }
 };
 class ScaffoldingCallHandlerUniffiSuggestFnMethodSuggeststoreQuery : public UniffiSyncCallHandler {
 private:
-  // PrepareRustArgs stores the resulting arguments in these fields
+  // LowerRustArgs stores the resulting arguments in these fields
   FfiValueObjectHandleSuggestSuggestStore mPtr{};
   FfiValueRustBuffer mQuery{};
 
@@ -5213,7 +5213,7 @@ private:
   FfiValueRustBuffer mUniffiReturnValue{};
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void LowerRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     mPtr.Lower(aArgs[0], aError);
     if (aError.Failed()) {
       return;
@@ -5234,7 +5234,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void LiftSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     mUniffiReturnValue.Lift(
       aCx,
       &aDest.Construct(),
@@ -5244,7 +5244,7 @@ public:
 };
 class ScaffoldingCallHandlerUniffiSuggestFnMethodSuggeststoreQueryWithMetrics : public UniffiSyncCallHandler {
 private:
-  // PrepareRustArgs stores the resulting arguments in these fields
+  // LowerRustArgs stores the resulting arguments in these fields
   FfiValueObjectHandleSuggestSuggestStore mPtr{};
   FfiValueRustBuffer mQuery{};
 
@@ -5252,7 +5252,7 @@ private:
   FfiValueRustBuffer mUniffiReturnValue{};
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void LowerRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     mPtr.Lower(aArgs[0], aError);
     if (aError.Failed()) {
       return;
@@ -5273,7 +5273,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void LiftSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     mUniffiReturnValue.Lift(
       aCx,
       &aDest.Construct(),
@@ -5283,7 +5283,7 @@ public:
 };
 class ScaffoldingCallHandlerUniffiSuggestFnConstructorSuggeststoreNew : public UniffiSyncCallHandler {
 private:
-  // PrepareRustArgs stores the resulting arguments in these fields
+  // LowerRustArgs stores the resulting arguments in these fields
   FfiValueRustBuffer mPath{};
   FfiValueObjectHandleRemoteSettingsRemoteSettingsService mRemoteSettingsService{};
 
@@ -5291,7 +5291,7 @@ private:
   FfiValueObjectHandleSuggestSuggestStore mUniffiReturnValue{};
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void LowerRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     mPath.Lower(aArgs[0], aError);
     if (aError.Failed()) {
       return;
@@ -5312,7 +5312,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void LiftSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     mUniffiReturnValue.Lift(
       aCx,
       &aDest.Construct(),
@@ -5322,14 +5322,14 @@ public:
 };
 class ScaffoldingCallHandlerUniffiSuggestFnMethodSuggeststorebuilderBuild : public UniffiSyncCallHandler {
 private:
-  // PrepareRustArgs stores the resulting arguments in these fields
+  // LowerRustArgs stores the resulting arguments in these fields
   FfiValueObjectHandleSuggestSuggestStoreBuilder mPtr{};
 
   // MakeRustCall stores the result of the call in these fields
   FfiValueObjectHandleSuggestSuggestStore mUniffiReturnValue{};
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void LowerRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     mPtr.Lower(aArgs[0], aError);
     if (aError.Failed()) {
       return;
@@ -5345,7 +5345,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void LiftSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     mUniffiReturnValue.Lift(
       aCx,
       &aDest.Construct(),
@@ -5355,7 +5355,7 @@ public:
 };
 class ScaffoldingCallHandlerUniffiSuggestFnMethodSuggeststorebuilderCachePath : public UniffiSyncCallHandler {
 private:
-  // PrepareRustArgs stores the resulting arguments in these fields
+  // LowerRustArgs stores the resulting arguments in these fields
   FfiValueObjectHandleSuggestSuggestStoreBuilder mPtr{};
   FfiValueRustBuffer mPath{};
 
@@ -5363,7 +5363,7 @@ private:
   FfiValueObjectHandleSuggestSuggestStoreBuilder mUniffiReturnValue{};
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void LowerRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     mPtr.Lower(aArgs[0], aError);
     if (aError.Failed()) {
       return;
@@ -5384,7 +5384,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void LiftSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     mUniffiReturnValue.Lift(
       aCx,
       &aDest.Construct(),
@@ -5394,7 +5394,7 @@ public:
 };
 class ScaffoldingCallHandlerUniffiSuggestFnMethodSuggeststorebuilderDataPath : public UniffiSyncCallHandler {
 private:
-  // PrepareRustArgs stores the resulting arguments in these fields
+  // LowerRustArgs stores the resulting arguments in these fields
   FfiValueObjectHandleSuggestSuggestStoreBuilder mPtr{};
   FfiValueRustBuffer mPath{};
 
@@ -5402,7 +5402,7 @@ private:
   FfiValueObjectHandleSuggestSuggestStoreBuilder mUniffiReturnValue{};
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void LowerRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     mPtr.Lower(aArgs[0], aError);
     if (aError.Failed()) {
       return;
@@ -5423,7 +5423,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void LiftSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     mUniffiReturnValue.Lift(
       aCx,
       &aDest.Construct(),
@@ -5433,7 +5433,7 @@ public:
 };
 class ScaffoldingCallHandlerUniffiSuggestFnMethodSuggeststorebuilderLoadExtension : public UniffiSyncCallHandler {
 private:
-  // PrepareRustArgs stores the resulting arguments in these fields
+  // LowerRustArgs stores the resulting arguments in these fields
   FfiValueObjectHandleSuggestSuggestStoreBuilder mPtr{};
   FfiValueRustBuffer mLibrary{};
   FfiValueRustBuffer mEntryPoint{};
@@ -5442,7 +5442,7 @@ private:
   FfiValueObjectHandleSuggestSuggestStoreBuilder mUniffiReturnValue{};
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void LowerRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     mPtr.Lower(aArgs[0], aError);
     if (aError.Failed()) {
       return;
@@ -5468,7 +5468,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void LiftSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     mUniffiReturnValue.Lift(
       aCx,
       &aDest.Construct(),
@@ -5478,7 +5478,7 @@ public:
 };
 class ScaffoldingCallHandlerUniffiSuggestFnMethodSuggeststorebuilderRemoteSettingsBucketName : public UniffiSyncCallHandler {
 private:
-  // PrepareRustArgs stores the resulting arguments in these fields
+  // LowerRustArgs stores the resulting arguments in these fields
   FfiValueObjectHandleSuggestSuggestStoreBuilder mPtr{};
   FfiValueRustBuffer mBucketName{};
 
@@ -5486,7 +5486,7 @@ private:
   FfiValueObjectHandleSuggestSuggestStoreBuilder mUniffiReturnValue{};
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void LowerRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     mPtr.Lower(aArgs[0], aError);
     if (aError.Failed()) {
       return;
@@ -5507,7 +5507,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void LiftSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     mUniffiReturnValue.Lift(
       aCx,
       &aDest.Construct(),
@@ -5517,7 +5517,7 @@ public:
 };
 class ScaffoldingCallHandlerUniffiSuggestFnMethodSuggeststorebuilderRemoteSettingsServer : public UniffiSyncCallHandler {
 private:
-  // PrepareRustArgs stores the resulting arguments in these fields
+  // LowerRustArgs stores the resulting arguments in these fields
   FfiValueObjectHandleSuggestSuggestStoreBuilder mPtr{};
   FfiValueRustBuffer mServer{};
 
@@ -5525,7 +5525,7 @@ private:
   FfiValueObjectHandleSuggestSuggestStoreBuilder mUniffiReturnValue{};
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void LowerRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     mPtr.Lower(aArgs[0], aError);
     if (aError.Failed()) {
       return;
@@ -5546,7 +5546,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void LiftSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     mUniffiReturnValue.Lift(
       aCx,
       &aDest.Construct(),
@@ -5556,7 +5556,7 @@ public:
 };
 class ScaffoldingCallHandlerUniffiSuggestFnMethodSuggeststorebuilderRemoteSettingsService : public UniffiSyncCallHandler {
 private:
-  // PrepareRustArgs stores the resulting arguments in these fields
+  // LowerRustArgs stores the resulting arguments in these fields
   FfiValueObjectHandleSuggestSuggestStoreBuilder mPtr{};
   FfiValueObjectHandleRemoteSettingsRemoteSettingsService mRsService{};
 
@@ -5564,7 +5564,7 @@ private:
   FfiValueObjectHandleSuggestSuggestStoreBuilder mUniffiReturnValue{};
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void LowerRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     mPtr.Lower(aArgs[0], aError);
     if (aError.Failed()) {
       return;
@@ -5585,7 +5585,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void LiftSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     mUniffiReturnValue.Lift(
       aCx,
       &aDest.Construct(),
@@ -5595,13 +5595,13 @@ public:
 };
 class ScaffoldingCallHandlerUniffiSuggestFnConstructorSuggeststorebuilderNew : public UniffiSyncCallHandler {
 private:
-  // PrepareRustArgs stores the resulting arguments in these fields
+  // LowerRustArgs stores the resulting arguments in these fields
 
   // MakeRustCall stores the result of the call in these fields
   FfiValueObjectHandleSuggestSuggestStoreBuilder mUniffiReturnValue{};
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void LowerRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
   }
 
   void MakeRustCall(RustCallStatus* aOutStatus) override {
@@ -5612,7 +5612,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void LiftSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     mUniffiReturnValue.Lift(
       aCx,
       &aDest.Construct(),
@@ -5622,7 +5622,7 @@ public:
 };
 class ScaffoldingCallHandlerUniffiTabsFnMethodRemotecommandstoreAddRemoteCommand : public UniffiSyncCallHandler {
 private:
-  // PrepareRustArgs stores the resulting arguments in these fields
+  // LowerRustArgs stores the resulting arguments in these fields
   FfiValueObjectHandleTabsRemoteCommandStore mPtr{};
   FfiValueRustBuffer mDeviceId{};
   FfiValueRustBuffer mCommand{};
@@ -5631,7 +5631,7 @@ private:
   FfiValueInt<int8_t> mUniffiReturnValue{};
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void LowerRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     mPtr.Lower(aArgs[0], aError);
     if (aError.Failed()) {
       return;
@@ -5657,7 +5657,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void LiftSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     mUniffiReturnValue.Lift(
       aCx,
       &aDest.Construct(),
@@ -5667,7 +5667,7 @@ public:
 };
 class ScaffoldingCallHandlerUniffiTabsFnMethodRemotecommandstoreAddRemoteCommandAt : public UniffiSyncCallHandler {
 private:
-  // PrepareRustArgs stores the resulting arguments in these fields
+  // LowerRustArgs stores the resulting arguments in these fields
   FfiValueObjectHandleTabsRemoteCommandStore mPtr{};
   FfiValueRustBuffer mDeviceId{};
   FfiValueRustBuffer mCommand{};
@@ -5677,7 +5677,7 @@ private:
   FfiValueInt<int8_t> mUniffiReturnValue{};
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void LowerRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     mPtr.Lower(aArgs[0], aError);
     if (aError.Failed()) {
       return;
@@ -5708,7 +5708,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void LiftSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     mUniffiReturnValue.Lift(
       aCx,
       &aDest.Construct(),
@@ -5718,14 +5718,14 @@ public:
 };
 class ScaffoldingCallHandlerUniffiTabsFnMethodRemotecommandstoreGetUnsentCommands : public UniffiSyncCallHandler {
 private:
-  // PrepareRustArgs stores the resulting arguments in these fields
+  // LowerRustArgs stores the resulting arguments in these fields
   FfiValueObjectHandleTabsRemoteCommandStore mPtr{};
 
   // MakeRustCall stores the result of the call in these fields
   FfiValueRustBuffer mUniffiReturnValue{};
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void LowerRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     mPtr.Lower(aArgs[0], aError);
     if (aError.Failed()) {
       return;
@@ -5741,7 +5741,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void LiftSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     mUniffiReturnValue.Lift(
       aCx,
       &aDest.Construct(),
@@ -5751,7 +5751,7 @@ public:
 };
 class ScaffoldingCallHandlerUniffiTabsFnMethodRemotecommandstoreRemoveRemoteCommand : public UniffiSyncCallHandler {
 private:
-  // PrepareRustArgs stores the resulting arguments in these fields
+  // LowerRustArgs stores the resulting arguments in these fields
   FfiValueObjectHandleTabsRemoteCommandStore mPtr{};
   FfiValueRustBuffer mDeviceId{};
   FfiValueRustBuffer mCommand{};
@@ -5760,7 +5760,7 @@ private:
   FfiValueInt<int8_t> mUniffiReturnValue{};
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void LowerRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     mPtr.Lower(aArgs[0], aError);
     if (aError.Failed()) {
       return;
@@ -5786,7 +5786,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void LiftSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     mUniffiReturnValue.Lift(
       aCx,
       &aDest.Construct(),
@@ -5796,7 +5796,7 @@ public:
 };
 class ScaffoldingCallHandlerUniffiTabsFnMethodRemotecommandstoreSetPendingCommandSent : public UniffiSyncCallHandler {
 private:
-  // PrepareRustArgs stores the resulting arguments in these fields
+  // LowerRustArgs stores the resulting arguments in these fields
   FfiValueObjectHandleTabsRemoteCommandStore mPtr{};
   FfiValueRustBuffer mCommand{};
 
@@ -5804,7 +5804,7 @@ private:
   FfiValueInt<int8_t> mUniffiReturnValue{};
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void LowerRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     mPtr.Lower(aArgs[0], aError);
     if (aError.Failed()) {
       return;
@@ -5825,7 +5825,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void LiftSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     mUniffiReturnValue.Lift(
       aCx,
       &aDest.Construct(),
@@ -5835,14 +5835,14 @@ public:
 };
 class ScaffoldingCallHandlerUniffiTabsFnMethodTabsbridgedengineApply : public UniffiSyncCallHandler {
 private:
-  // PrepareRustArgs stores the resulting arguments in these fields
+  // LowerRustArgs stores the resulting arguments in these fields
   FfiValueObjectHandleTabsTabsBridgedEngine mPtr{};
 
   // MakeRustCall stores the result of the call in these fields
   FfiValueRustBuffer mUniffiReturnValue{};
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void LowerRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     mPtr.Lower(aArgs[0], aError);
     if (aError.Failed()) {
       return;
@@ -5858,7 +5858,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void LiftSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     mUniffiReturnValue.Lift(
       aCx,
       &aDest.Construct(),
@@ -5868,7 +5868,7 @@ public:
 };
 class ScaffoldingCallHandlerUniffiTabsFnMethodTabsbridgedengineEnsureCurrentSyncId : public UniffiSyncCallHandler {
 private:
-  // PrepareRustArgs stores the resulting arguments in these fields
+  // LowerRustArgs stores the resulting arguments in these fields
   FfiValueObjectHandleTabsTabsBridgedEngine mPtr{};
   FfiValueRustBuffer mNewSyncId{};
 
@@ -5876,7 +5876,7 @@ private:
   FfiValueRustBuffer mUniffiReturnValue{};
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void LowerRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     mPtr.Lower(aArgs[0], aError);
     if (aError.Failed()) {
       return;
@@ -5897,7 +5897,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void LiftSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     mUniffiReturnValue.Lift(
       aCx,
       &aDest.Construct(),
@@ -5907,14 +5907,14 @@ public:
 };
 class ScaffoldingCallHandlerUniffiTabsFnMethodTabsbridgedengineLastSync : public UniffiSyncCallHandler {
 private:
-  // PrepareRustArgs stores the resulting arguments in these fields
+  // LowerRustArgs stores the resulting arguments in these fields
   FfiValueObjectHandleTabsTabsBridgedEngine mPtr{};
 
   // MakeRustCall stores the result of the call in these fields
   FfiValueInt<int64_t> mUniffiReturnValue{};
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void LowerRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     mPtr.Lower(aArgs[0], aError);
     if (aError.Failed()) {
       return;
@@ -5930,7 +5930,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void LiftSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     mUniffiReturnValue.Lift(
       aCx,
       &aDest.Construct(),
@@ -5940,14 +5940,14 @@ public:
 };
 class ScaffoldingCallHandlerUniffiTabsFnMethodTabsbridgedenginePrepareForSync : public UniffiSyncCallHandler {
 private:
-  // PrepareRustArgs stores the resulting arguments in these fields
+  // LowerRustArgs stores the resulting arguments in these fields
   FfiValueObjectHandleTabsTabsBridgedEngine mPtr{};
   FfiValueRustBuffer mClientData{};
 
   // MakeRustCall stores the result of the call in these fields
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void LowerRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     mPtr.Lower(aArgs[0], aError);
     if (aError.Failed()) {
       return;
@@ -5966,18 +5966,18 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void LiftSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
   }
 };
 class ScaffoldingCallHandlerUniffiTabsFnMethodTabsbridgedengineReset : public UniffiSyncCallHandler {
 private:
-  // PrepareRustArgs stores the resulting arguments in these fields
+  // LowerRustArgs stores the resulting arguments in these fields
   FfiValueObjectHandleTabsTabsBridgedEngine mPtr{};
 
   // MakeRustCall stores the result of the call in these fields
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void LowerRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     mPtr.Lower(aArgs[0], aError);
     if (aError.Failed()) {
       return;
@@ -5991,19 +5991,19 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void LiftSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
   }
 };
 class ScaffoldingCallHandlerUniffiTabsFnMethodTabsbridgedengineResetSyncId : public UniffiSyncCallHandler {
 private:
-  // PrepareRustArgs stores the resulting arguments in these fields
+  // LowerRustArgs stores the resulting arguments in these fields
   FfiValueObjectHandleTabsTabsBridgedEngine mPtr{};
 
   // MakeRustCall stores the result of the call in these fields
   FfiValueRustBuffer mUniffiReturnValue{};
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void LowerRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     mPtr.Lower(aArgs[0], aError);
     if (aError.Failed()) {
       return;
@@ -6019,7 +6019,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void LiftSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     mUniffiReturnValue.Lift(
       aCx,
       &aDest.Construct(),
@@ -6029,14 +6029,14 @@ public:
 };
 class ScaffoldingCallHandlerUniffiTabsFnMethodTabsbridgedengineSetLastSync : public UniffiSyncCallHandler {
 private:
-  // PrepareRustArgs stores the resulting arguments in these fields
+  // LowerRustArgs stores the resulting arguments in these fields
   FfiValueObjectHandleTabsTabsBridgedEngine mPtr{};
   FfiValueInt<int64_t> mLastSync{};
 
   // MakeRustCall stores the result of the call in these fields
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void LowerRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     mPtr.Lower(aArgs[0], aError);
     if (aError.Failed()) {
       return;
@@ -6055,12 +6055,12 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void LiftSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
   }
 };
 class ScaffoldingCallHandlerUniffiTabsFnMethodTabsbridgedengineSetUploaded : public UniffiSyncCallHandler {
 private:
-  // PrepareRustArgs stores the resulting arguments in these fields
+  // LowerRustArgs stores the resulting arguments in these fields
   FfiValueObjectHandleTabsTabsBridgedEngine mPtr{};
   FfiValueInt<int64_t> mNewTimestamp{};
   FfiValueRustBuffer mUploadedIds{};
@@ -6068,7 +6068,7 @@ private:
   // MakeRustCall stores the result of the call in these fields
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void LowerRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     mPtr.Lower(aArgs[0], aError);
     if (aError.Failed()) {
       return;
@@ -6092,19 +6092,19 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void LiftSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
   }
 };
 class ScaffoldingCallHandlerUniffiTabsFnMethodTabsbridgedengineStoreIncoming : public UniffiSyncCallHandler {
 private:
-  // PrepareRustArgs stores the resulting arguments in these fields
+  // LowerRustArgs stores the resulting arguments in these fields
   FfiValueObjectHandleTabsTabsBridgedEngine mPtr{};
   FfiValueRustBuffer mIncomingEnvelopesAsJson{};
 
   // MakeRustCall stores the result of the call in these fields
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void LowerRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     mPtr.Lower(aArgs[0], aError);
     if (aError.Failed()) {
       return;
@@ -6123,18 +6123,18 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void LiftSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
   }
 };
 class ScaffoldingCallHandlerUniffiTabsFnMethodTabsbridgedengineSyncFinished : public UniffiSyncCallHandler {
 private:
-  // PrepareRustArgs stores the resulting arguments in these fields
+  // LowerRustArgs stores the resulting arguments in these fields
   FfiValueObjectHandleTabsTabsBridgedEngine mPtr{};
 
   // MakeRustCall stores the result of the call in these fields
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void LowerRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     mPtr.Lower(aArgs[0], aError);
     if (aError.Failed()) {
       return;
@@ -6148,19 +6148,19 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void LiftSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
   }
 };
 class ScaffoldingCallHandlerUniffiTabsFnMethodTabsbridgedengineSyncId : public UniffiSyncCallHandler {
 private:
-  // PrepareRustArgs stores the resulting arguments in these fields
+  // LowerRustArgs stores the resulting arguments in these fields
   FfiValueObjectHandleTabsTabsBridgedEngine mPtr{};
 
   // MakeRustCall stores the result of the call in these fields
   FfiValueRustBuffer mUniffiReturnValue{};
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void LowerRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     mPtr.Lower(aArgs[0], aError);
     if (aError.Failed()) {
       return;
@@ -6176,7 +6176,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void LiftSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     mUniffiReturnValue.Lift(
       aCx,
       &aDest.Construct(),
@@ -6186,13 +6186,13 @@ public:
 };
 class ScaffoldingCallHandlerUniffiTabsFnMethodTabsbridgedengineSyncStarted : public UniffiSyncCallHandler {
 private:
-  // PrepareRustArgs stores the resulting arguments in these fields
+  // LowerRustArgs stores the resulting arguments in these fields
   FfiValueObjectHandleTabsTabsBridgedEngine mPtr{};
 
   // MakeRustCall stores the result of the call in these fields
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void LowerRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     mPtr.Lower(aArgs[0], aError);
     if (aError.Failed()) {
       return;
@@ -6206,18 +6206,18 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void LiftSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
   }
 };
 class ScaffoldingCallHandlerUniffiTabsFnMethodTabsbridgedengineWipe : public UniffiSyncCallHandler {
 private:
-  // PrepareRustArgs stores the resulting arguments in these fields
+  // LowerRustArgs stores the resulting arguments in these fields
   FfiValueObjectHandleTabsTabsBridgedEngine mPtr{};
 
   // MakeRustCall stores the result of the call in these fields
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void LowerRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     mPtr.Lower(aArgs[0], aError);
     if (aError.Failed()) {
       return;
@@ -6231,19 +6231,19 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void LiftSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
   }
 };
 class ScaffoldingCallHandlerUniffiTabsFnMethodTabsstoreBridgedEngine : public UniffiSyncCallHandler {
 private:
-  // PrepareRustArgs stores the resulting arguments in these fields
+  // LowerRustArgs stores the resulting arguments in these fields
   FfiValueObjectHandleTabsTabsStore mPtr{};
 
   // MakeRustCall stores the result of the call in these fields
   FfiValueObjectHandleTabsTabsBridgedEngine mUniffiReturnValue{};
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void LowerRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     mPtr.Lower(aArgs[0], aError);
     if (aError.Failed()) {
       return;
@@ -6259,7 +6259,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void LiftSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     mUniffiReturnValue.Lift(
       aCx,
       &aDest.Construct(),
@@ -6269,13 +6269,13 @@ public:
 };
 class ScaffoldingCallHandlerUniffiTabsFnMethodTabsstoreCloseConnection : public UniffiSyncCallHandler {
 private:
-  // PrepareRustArgs stores the resulting arguments in these fields
+  // LowerRustArgs stores the resulting arguments in these fields
   FfiValueObjectHandleTabsTabsStore mPtr{};
 
   // MakeRustCall stores the result of the call in these fields
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void LowerRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     mPtr.Lower(aArgs[0], aError);
     if (aError.Failed()) {
       return;
@@ -6289,19 +6289,19 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void LiftSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
   }
 };
 class ScaffoldingCallHandlerUniffiTabsFnMethodTabsstoreGetAll : public UniffiSyncCallHandler {
 private:
-  // PrepareRustArgs stores the resulting arguments in these fields
+  // LowerRustArgs stores the resulting arguments in these fields
   FfiValueObjectHandleTabsTabsStore mPtr{};
 
   // MakeRustCall stores the result of the call in these fields
   FfiValueRustBuffer mUniffiReturnValue{};
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void LowerRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     mPtr.Lower(aArgs[0], aError);
     if (aError.Failed()) {
       return;
@@ -6317,7 +6317,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void LiftSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     mUniffiReturnValue.Lift(
       aCx,
       &aDest.Construct(),
@@ -6327,14 +6327,14 @@ public:
 };
 class ScaffoldingCallHandlerUniffiTabsFnMethodTabsstoreNewRemoteCommandStore : public UniffiSyncCallHandler {
 private:
-  // PrepareRustArgs stores the resulting arguments in these fields
+  // LowerRustArgs stores the resulting arguments in these fields
   FfiValueObjectHandleTabsTabsStore mPtr{};
 
   // MakeRustCall stores the result of the call in these fields
   FfiValueObjectHandleTabsRemoteCommandStore mUniffiReturnValue{};
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void LowerRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     mPtr.Lower(aArgs[0], aError);
     if (aError.Failed()) {
       return;
@@ -6350,7 +6350,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void LiftSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     mUniffiReturnValue.Lift(
       aCx,
       &aDest.Construct(),
@@ -6360,13 +6360,13 @@ public:
 };
 class ScaffoldingCallHandlerUniffiTabsFnMethodTabsstoreRegisterWithSyncManager : public UniffiSyncCallHandler {
 private:
-  // PrepareRustArgs stores the resulting arguments in these fields
+  // LowerRustArgs stores the resulting arguments in these fields
   FfiValueObjectHandleTabsTabsStore mPtr{};
 
   // MakeRustCall stores the result of the call in these fields
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void LowerRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     mPtr.Lower(aArgs[0], aError);
     if (aError.Failed()) {
       return;
@@ -6380,19 +6380,19 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void LiftSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
   }
 };
 class ScaffoldingCallHandlerUniffiTabsFnMethodTabsstoreSetLocalTabs : public UniffiSyncCallHandler {
 private:
-  // PrepareRustArgs stores the resulting arguments in these fields
+  // LowerRustArgs stores the resulting arguments in these fields
   FfiValueObjectHandleTabsTabsStore mPtr{};
   FfiValueRustBuffer mRemoteTabs{};
 
   // MakeRustCall stores the result of the call in these fields
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void LowerRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     mPtr.Lower(aArgs[0], aError);
     if (aError.Failed()) {
       return;
@@ -6411,19 +6411,19 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void LiftSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
   }
 };
 class ScaffoldingCallHandlerUniffiTabsFnConstructorTabsstoreNew : public UniffiSyncCallHandler {
 private:
-  // PrepareRustArgs stores the resulting arguments in these fields
+  // LowerRustArgs stores the resulting arguments in these fields
   FfiValueRustBuffer mPath{};
 
   // MakeRustCall stores the result of the call in these fields
   FfiValueObjectHandleTabsTabsStore mUniffiReturnValue{};
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void LowerRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     mPath.Lower(aArgs[0], aError);
     if (aError.Failed()) {
       return;
@@ -6439,7 +6439,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void LiftSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     mUniffiReturnValue.Lift(
       aCx,
       &aDest.Construct(),
@@ -6449,14 +6449,14 @@ public:
 };
 class ScaffoldingCallHandlerUniffiWebextStorageFnMethodWebextstoragebridgedengineApply : public UniffiSyncCallHandler {
 private:
-  // PrepareRustArgs stores the resulting arguments in these fields
+  // LowerRustArgs stores the resulting arguments in these fields
   FfiValueObjectHandleWebextstorageWebExtStorageBridgedEngine mPtr{};
 
   // MakeRustCall stores the result of the call in these fields
   FfiValueRustBuffer mUniffiReturnValue{};
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void LowerRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     mPtr.Lower(aArgs[0], aError);
     if (aError.Failed()) {
       return;
@@ -6472,7 +6472,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void LiftSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     mUniffiReturnValue.Lift(
       aCx,
       &aDest.Construct(),
@@ -6482,7 +6482,7 @@ public:
 };
 class ScaffoldingCallHandlerUniffiWebextStorageFnMethodWebextstoragebridgedengineEnsureCurrentSyncId : public UniffiSyncCallHandler {
 private:
-  // PrepareRustArgs stores the resulting arguments in these fields
+  // LowerRustArgs stores the resulting arguments in these fields
   FfiValueObjectHandleWebextstorageWebExtStorageBridgedEngine mPtr{};
   FfiValueRustBuffer mNewSyncId{};
 
@@ -6490,7 +6490,7 @@ private:
   FfiValueRustBuffer mUniffiReturnValue{};
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void LowerRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     mPtr.Lower(aArgs[0], aError);
     if (aError.Failed()) {
       return;
@@ -6511,7 +6511,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void LiftSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     mUniffiReturnValue.Lift(
       aCx,
       &aDest.Construct(),
@@ -6521,14 +6521,14 @@ public:
 };
 class ScaffoldingCallHandlerUniffiWebextStorageFnMethodWebextstoragebridgedengineLastSync : public UniffiSyncCallHandler {
 private:
-  // PrepareRustArgs stores the resulting arguments in these fields
+  // LowerRustArgs stores the resulting arguments in these fields
   FfiValueObjectHandleWebextstorageWebExtStorageBridgedEngine mPtr{};
 
   // MakeRustCall stores the result of the call in these fields
   FfiValueInt<int64_t> mUniffiReturnValue{};
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void LowerRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     mPtr.Lower(aArgs[0], aError);
     if (aError.Failed()) {
       return;
@@ -6544,7 +6544,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void LiftSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     mUniffiReturnValue.Lift(
       aCx,
       &aDest.Construct(),
@@ -6554,14 +6554,14 @@ public:
 };
 class ScaffoldingCallHandlerUniffiWebextStorageFnMethodWebextstoragebridgedenginePrepareForSync : public UniffiSyncCallHandler {
 private:
-  // PrepareRustArgs stores the resulting arguments in these fields
+  // LowerRustArgs stores the resulting arguments in these fields
   FfiValueObjectHandleWebextstorageWebExtStorageBridgedEngine mPtr{};
   FfiValueRustBuffer mClientData{};
 
   // MakeRustCall stores the result of the call in these fields
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void LowerRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     mPtr.Lower(aArgs[0], aError);
     if (aError.Failed()) {
       return;
@@ -6580,18 +6580,18 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void LiftSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
   }
 };
 class ScaffoldingCallHandlerUniffiWebextStorageFnMethodWebextstoragebridgedengineReset : public UniffiSyncCallHandler {
 private:
-  // PrepareRustArgs stores the resulting arguments in these fields
+  // LowerRustArgs stores the resulting arguments in these fields
   FfiValueObjectHandleWebextstorageWebExtStorageBridgedEngine mPtr{};
 
   // MakeRustCall stores the result of the call in these fields
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void LowerRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     mPtr.Lower(aArgs[0], aError);
     if (aError.Failed()) {
       return;
@@ -6605,19 +6605,19 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void LiftSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
   }
 };
 class ScaffoldingCallHandlerUniffiWebextStorageFnMethodWebextstoragebridgedengineResetSyncId : public UniffiSyncCallHandler {
 private:
-  // PrepareRustArgs stores the resulting arguments in these fields
+  // LowerRustArgs stores the resulting arguments in these fields
   FfiValueObjectHandleWebextstorageWebExtStorageBridgedEngine mPtr{};
 
   // MakeRustCall stores the result of the call in these fields
   FfiValueRustBuffer mUniffiReturnValue{};
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void LowerRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     mPtr.Lower(aArgs[0], aError);
     if (aError.Failed()) {
       return;
@@ -6633,7 +6633,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void LiftSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     mUniffiReturnValue.Lift(
       aCx,
       &aDest.Construct(),
@@ -6643,14 +6643,14 @@ public:
 };
 class ScaffoldingCallHandlerUniffiWebextStorageFnMethodWebextstoragebridgedengineSetLastSync : public UniffiSyncCallHandler {
 private:
-  // PrepareRustArgs stores the resulting arguments in these fields
+  // LowerRustArgs stores the resulting arguments in these fields
   FfiValueObjectHandleWebextstorageWebExtStorageBridgedEngine mPtr{};
   FfiValueInt<int64_t> mLastSync{};
 
   // MakeRustCall stores the result of the call in these fields
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void LowerRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     mPtr.Lower(aArgs[0], aError);
     if (aError.Failed()) {
       return;
@@ -6669,12 +6669,12 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void LiftSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
   }
 };
 class ScaffoldingCallHandlerUniffiWebextStorageFnMethodWebextstoragebridgedengineSetUploaded : public UniffiSyncCallHandler {
 private:
-  // PrepareRustArgs stores the resulting arguments in these fields
+  // LowerRustArgs stores the resulting arguments in these fields
   FfiValueObjectHandleWebextstorageWebExtStorageBridgedEngine mPtr{};
   FfiValueInt<int64_t> mServerModifiedMillis{};
   FfiValueRustBuffer mGuids{};
@@ -6682,7 +6682,7 @@ private:
   // MakeRustCall stores the result of the call in these fields
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void LowerRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     mPtr.Lower(aArgs[0], aError);
     if (aError.Failed()) {
       return;
@@ -6706,19 +6706,19 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void LiftSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
   }
 };
 class ScaffoldingCallHandlerUniffiWebextStorageFnMethodWebextstoragebridgedengineStoreIncoming : public UniffiSyncCallHandler {
 private:
-  // PrepareRustArgs stores the resulting arguments in these fields
+  // LowerRustArgs stores the resulting arguments in these fields
   FfiValueObjectHandleWebextstorageWebExtStorageBridgedEngine mPtr{};
   FfiValueRustBuffer mIncoming{};
 
   // MakeRustCall stores the result of the call in these fields
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void LowerRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     mPtr.Lower(aArgs[0], aError);
     if (aError.Failed()) {
       return;
@@ -6737,18 +6737,18 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void LiftSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
   }
 };
 class ScaffoldingCallHandlerUniffiWebextStorageFnMethodWebextstoragebridgedengineSyncFinished : public UniffiSyncCallHandler {
 private:
-  // PrepareRustArgs stores the resulting arguments in these fields
+  // LowerRustArgs stores the resulting arguments in these fields
   FfiValueObjectHandleWebextstorageWebExtStorageBridgedEngine mPtr{};
 
   // MakeRustCall stores the result of the call in these fields
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void LowerRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     mPtr.Lower(aArgs[0], aError);
     if (aError.Failed()) {
       return;
@@ -6762,19 +6762,19 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void LiftSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
   }
 };
 class ScaffoldingCallHandlerUniffiWebextStorageFnMethodWebextstoragebridgedengineSyncId : public UniffiSyncCallHandler {
 private:
-  // PrepareRustArgs stores the resulting arguments in these fields
+  // LowerRustArgs stores the resulting arguments in these fields
   FfiValueObjectHandleWebextstorageWebExtStorageBridgedEngine mPtr{};
 
   // MakeRustCall stores the result of the call in these fields
   FfiValueRustBuffer mUniffiReturnValue{};
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void LowerRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     mPtr.Lower(aArgs[0], aError);
     if (aError.Failed()) {
       return;
@@ -6790,7 +6790,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void LiftSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     mUniffiReturnValue.Lift(
       aCx,
       &aDest.Construct(),
@@ -6800,13 +6800,13 @@ public:
 };
 class ScaffoldingCallHandlerUniffiWebextStorageFnMethodWebextstoragebridgedengineSyncStarted : public UniffiSyncCallHandler {
 private:
-  // PrepareRustArgs stores the resulting arguments in these fields
+  // LowerRustArgs stores the resulting arguments in these fields
   FfiValueObjectHandleWebextstorageWebExtStorageBridgedEngine mPtr{};
 
   // MakeRustCall stores the result of the call in these fields
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void LowerRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     mPtr.Lower(aArgs[0], aError);
     if (aError.Failed()) {
       return;
@@ -6820,18 +6820,18 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void LiftSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
   }
 };
 class ScaffoldingCallHandlerUniffiWebextStorageFnMethodWebextstoragebridgedengineWipe : public UniffiSyncCallHandler {
 private:
-  // PrepareRustArgs stores the resulting arguments in these fields
+  // LowerRustArgs stores the resulting arguments in these fields
   FfiValueObjectHandleWebextstorageWebExtStorageBridgedEngine mPtr{};
 
   // MakeRustCall stores the result of the call in these fields
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void LowerRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     mPtr.Lower(aArgs[0], aError);
     if (aError.Failed()) {
       return;
@@ -6845,19 +6845,19 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void LiftSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
   }
 };
 class ScaffoldingCallHandlerUniffiWebextStorageFnMethodWebextstoragestoreBridgedEngine : public UniffiSyncCallHandler {
 private:
-  // PrepareRustArgs stores the resulting arguments in these fields
+  // LowerRustArgs stores the resulting arguments in these fields
   FfiValueObjectHandleWebextstorageWebExtStorageStore mPtr{};
 
   // MakeRustCall stores the result of the call in these fields
   FfiValueObjectHandleWebextstorageWebExtStorageBridgedEngine mUniffiReturnValue{};
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void LowerRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     mPtr.Lower(aArgs[0], aError);
     if (aError.Failed()) {
       return;
@@ -6873,7 +6873,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void LiftSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     mUniffiReturnValue.Lift(
       aCx,
       &aDest.Construct(),
@@ -6883,7 +6883,7 @@ public:
 };
 class ScaffoldingCallHandlerUniffiWebextStorageFnMethodWebextstoragestoreClear : public UniffiSyncCallHandler {
 private:
-  // PrepareRustArgs stores the resulting arguments in these fields
+  // LowerRustArgs stores the resulting arguments in these fields
   FfiValueObjectHandleWebextstorageWebExtStorageStore mPtr{};
   FfiValueRustBuffer mExtId{};
 
@@ -6891,7 +6891,7 @@ private:
   FfiValueRustBuffer mUniffiReturnValue{};
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void LowerRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     mPtr.Lower(aArgs[0], aError);
     if (aError.Failed()) {
       return;
@@ -6912,7 +6912,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void LiftSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     mUniffiReturnValue.Lift(
       aCx,
       &aDest.Construct(),
@@ -6922,13 +6922,13 @@ public:
 };
 class ScaffoldingCallHandlerUniffiWebextStorageFnMethodWebextstoragestoreClose : public UniffiSyncCallHandler {
 private:
-  // PrepareRustArgs stores the resulting arguments in these fields
+  // LowerRustArgs stores the resulting arguments in these fields
   FfiValueObjectHandleWebextstorageWebExtStorageStore mPtr{};
 
   // MakeRustCall stores the result of the call in these fields
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void LowerRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     mPtr.Lower(aArgs[0], aError);
     if (aError.Failed()) {
       return;
@@ -6942,12 +6942,12 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void LiftSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
   }
 };
 class ScaffoldingCallHandlerUniffiWebextStorageFnMethodWebextstoragestoreGet : public UniffiSyncCallHandler {
 private:
-  // PrepareRustArgs stores the resulting arguments in these fields
+  // LowerRustArgs stores the resulting arguments in these fields
   FfiValueObjectHandleWebextstorageWebExtStorageStore mPtr{};
   FfiValueRustBuffer mExtId{};
   FfiValueRustBuffer mKeys{};
@@ -6956,7 +6956,7 @@ private:
   FfiValueRustBuffer mUniffiReturnValue{};
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void LowerRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     mPtr.Lower(aArgs[0], aError);
     if (aError.Failed()) {
       return;
@@ -6982,7 +6982,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void LiftSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     mUniffiReturnValue.Lift(
       aCx,
       &aDest.Construct(),
@@ -6992,7 +6992,7 @@ public:
 };
 class ScaffoldingCallHandlerUniffiWebextStorageFnMethodWebextstoragestoreGetBytesInUse : public UniffiSyncCallHandler {
 private:
-  // PrepareRustArgs stores the resulting arguments in these fields
+  // LowerRustArgs stores the resulting arguments in these fields
   FfiValueObjectHandleWebextstorageWebExtStorageStore mPtr{};
   FfiValueRustBuffer mExtId{};
   FfiValueRustBuffer mKeys{};
@@ -7001,7 +7001,7 @@ private:
   FfiValueInt<uint64_t> mUniffiReturnValue{};
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void LowerRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     mPtr.Lower(aArgs[0], aError);
     if (aError.Failed()) {
       return;
@@ -7027,7 +7027,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void LiftSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     mUniffiReturnValue.Lift(
       aCx,
       &aDest.Construct(),
@@ -7037,14 +7037,14 @@ public:
 };
 class ScaffoldingCallHandlerUniffiWebextStorageFnMethodWebextstoragestoreGetSyncedChanges : public UniffiSyncCallHandler {
 private:
-  // PrepareRustArgs stores the resulting arguments in these fields
+  // LowerRustArgs stores the resulting arguments in these fields
   FfiValueObjectHandleWebextstorageWebExtStorageStore mPtr{};
 
   // MakeRustCall stores the result of the call in these fields
   FfiValueRustBuffer mUniffiReturnValue{};
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void LowerRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     mPtr.Lower(aArgs[0], aError);
     if (aError.Failed()) {
       return;
@@ -7060,7 +7060,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void LiftSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     mUniffiReturnValue.Lift(
       aCx,
       &aDest.Construct(),
@@ -7070,7 +7070,7 @@ public:
 };
 class ScaffoldingCallHandlerUniffiWebextStorageFnMethodWebextstoragestoreRemove : public UniffiSyncCallHandler {
 private:
-  // PrepareRustArgs stores the resulting arguments in these fields
+  // LowerRustArgs stores the resulting arguments in these fields
   FfiValueObjectHandleWebextstorageWebExtStorageStore mPtr{};
   FfiValueRustBuffer mExtId{};
   FfiValueRustBuffer mKeys{};
@@ -7079,7 +7079,7 @@ private:
   FfiValueRustBuffer mUniffiReturnValue{};
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void LowerRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     mPtr.Lower(aArgs[0], aError);
     if (aError.Failed()) {
       return;
@@ -7105,7 +7105,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void LiftSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     mUniffiReturnValue.Lift(
       aCx,
       &aDest.Construct(),
@@ -7115,7 +7115,7 @@ public:
 };
 class ScaffoldingCallHandlerUniffiWebextStorageFnMethodWebextstoragestoreSet : public UniffiSyncCallHandler {
 private:
-  // PrepareRustArgs stores the resulting arguments in these fields
+  // LowerRustArgs stores the resulting arguments in these fields
   FfiValueObjectHandleWebextstorageWebExtStorageStore mPtr{};
   FfiValueRustBuffer mExtId{};
   FfiValueRustBuffer mVal{};
@@ -7124,7 +7124,7 @@ private:
   FfiValueRustBuffer mUniffiReturnValue{};
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void LowerRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     mPtr.Lower(aArgs[0], aError);
     if (aError.Failed()) {
       return;
@@ -7150,7 +7150,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void LiftSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     mUniffiReturnValue.Lift(
       aCx,
       &aDest.Construct(),
@@ -7160,14 +7160,14 @@ public:
 };
 class ScaffoldingCallHandlerUniffiWebextStorageFnConstructorWebextstoragestoreNew : public UniffiSyncCallHandler {
 private:
-  // PrepareRustArgs stores the resulting arguments in these fields
+  // LowerRustArgs stores the resulting arguments in these fields
   FfiValueRustBuffer mPath{};
 
   // MakeRustCall stores the result of the call in these fields
   FfiValueObjectHandleWebextstorageWebExtStorageStore mUniffiReturnValue{};
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void LowerRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     mPath.Lower(aArgs[0], aError);
     if (aError.Failed()) {
       return;
@@ -7183,7 +7183,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void LiftSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     mUniffiReturnValue.Lift(
       aCx,
       &aDest.Construct(),
@@ -7195,7 +7195,7 @@ public:
 #ifdef MOZ_UNIFFI_FIXTURES
 class ScaffoldingCallHandlerUniffiArithmeticalFnFuncAdd : public UniffiSyncCallHandler {
 private:
-  // PrepareRustArgs stores the resulting arguments in these fields
+  // LowerRustArgs stores the resulting arguments in these fields
   FfiValueInt<uint64_t> mA{};
   FfiValueInt<uint64_t> mB{};
 
@@ -7203,7 +7203,7 @@ private:
   FfiValueInt<uint64_t> mUniffiReturnValue{};
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void LowerRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     mA.Lower(aArgs[0], aError);
     if (aError.Failed()) {
       return;
@@ -7224,7 +7224,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void LiftSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     mUniffiReturnValue.Lift(
       aCx,
       &aDest.Construct(),
@@ -7234,7 +7234,7 @@ public:
 };
 class ScaffoldingCallHandlerUniffiArithmeticalFnFuncDiv : public UniffiSyncCallHandler {
 private:
-  // PrepareRustArgs stores the resulting arguments in these fields
+  // LowerRustArgs stores the resulting arguments in these fields
   FfiValueInt<uint64_t> mDividend{};
   FfiValueInt<uint64_t> mDivisor{};
 
@@ -7242,7 +7242,7 @@ private:
   FfiValueInt<uint64_t> mUniffiReturnValue{};
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void LowerRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     mDividend.Lower(aArgs[0], aError);
     if (aError.Failed()) {
       return;
@@ -7263,7 +7263,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void LiftSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     mUniffiReturnValue.Lift(
       aCx,
       &aDest.Construct(),
@@ -7273,7 +7273,7 @@ public:
 };
 class ScaffoldingCallHandlerUniffiArithmeticalFnFuncEqual : public UniffiSyncCallHandler {
 private:
-  // PrepareRustArgs stores the resulting arguments in these fields
+  // LowerRustArgs stores the resulting arguments in these fields
   FfiValueInt<uint64_t> mA{};
   FfiValueInt<uint64_t> mB{};
 
@@ -7281,7 +7281,7 @@ private:
   FfiValueInt<int8_t> mUniffiReturnValue{};
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void LowerRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     mA.Lower(aArgs[0], aError);
     if (aError.Failed()) {
       return;
@@ -7302,7 +7302,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void LiftSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     mUniffiReturnValue.Lift(
       aCx,
       &aDest.Construct(),
@@ -7312,7 +7312,7 @@ public:
 };
 class ScaffoldingCallHandlerUniffiArithmeticalFnFuncSub : public UniffiSyncCallHandler {
 private:
-  // PrepareRustArgs stores the resulting arguments in these fields
+  // LowerRustArgs stores the resulting arguments in these fields
   FfiValueInt<uint64_t> mA{};
   FfiValueInt<uint64_t> mB{};
 
@@ -7320,7 +7320,7 @@ private:
   FfiValueInt<uint64_t> mUniffiReturnValue{};
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void LowerRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     mA.Lower(aArgs[0], aError);
     if (aError.Failed()) {
       return;
@@ -7341,7 +7341,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void LiftSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     mUniffiReturnValue.Lift(
       aCx,
       &aDest.Construct(),
@@ -7351,14 +7351,14 @@ public:
 };
 class ScaffoldingCallHandlerUniffiUniffiCustomTypesFnFuncGetCustomTypesDemo : public UniffiSyncCallHandler {
 private:
-  // PrepareRustArgs stores the resulting arguments in these fields
+  // LowerRustArgs stores the resulting arguments in these fields
   FfiValueRustBuffer mDemo{};
 
   // MakeRustCall stores the result of the call in these fields
   FfiValueRustBuffer mUniffiReturnValue{};
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void LowerRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     mDemo.Lower(aArgs[0], aError);
     if (aError.Failed()) {
       return;
@@ -7374,7 +7374,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void LiftSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     mUniffiReturnValue.Lift(
       aCx,
       &aDest.Construct(),
@@ -7384,14 +7384,14 @@ public:
 };
 class ScaffoldingCallHandlerUniffiUniffiFixtureExternalTypesFnFuncGradient : public UniffiSyncCallHandler {
 private:
-  // PrepareRustArgs stores the resulting arguments in these fields
+  // LowerRustArgs stores the resulting arguments in these fields
   FfiValueRustBuffer mValue{};
 
   // MakeRustCall stores the result of the call in these fields
   FfiValueFloat<double> mUniffiReturnValue{};
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void LowerRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     mValue.Lower(aArgs[0], aError);
     if (aError.Failed()) {
       return;
@@ -7407,7 +7407,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void LiftSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     mUniffiReturnValue.Lift(
       aCx,
       &aDest.Construct(),
@@ -7417,7 +7417,7 @@ public:
 };
 class ScaffoldingCallHandlerUniffiUniffiFixtureExternalTypesFnFuncIntersection : public UniffiSyncCallHandler {
 private:
-  // PrepareRustArgs stores the resulting arguments in these fields
+  // LowerRustArgs stores the resulting arguments in these fields
   FfiValueRustBuffer mLn1{};
   FfiValueRustBuffer mLn2{};
 
@@ -7425,7 +7425,7 @@ private:
   FfiValueRustBuffer mUniffiReturnValue{};
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void LowerRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     mLn1.Lower(aArgs[0], aError);
     if (aError.Failed()) {
       return;
@@ -7446,7 +7446,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void LiftSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     mUniffiReturnValue.Lift(
       aCx,
       &aDest.Construct(),
@@ -7456,13 +7456,13 @@ public:
 };
 class ScaffoldingCallHandlerUniffiUniffiFixtureExternalTypesFnFuncMoveSpriteToOrigin : public UniffiSyncCallHandler {
 private:
-  // PrepareRustArgs stores the resulting arguments in these fields
+  // LowerRustArgs stores the resulting arguments in these fields
   FfiValueObjectHandleSpritesSprite mSprite{};
 
   // MakeRustCall stores the result of the call in these fields
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void LowerRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     mSprite.Lower(aArgs[0], aError);
     if (aError.Failed()) {
       return;
@@ -7476,12 +7476,12 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void LiftSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
   }
 };
 class ScaffoldingCallHandlerUniffiUniffiFixtureCallbacksFnFuncCallLogRepeat : public UniffiSyncCallHandler {
 private:
-  // PrepareRustArgs stores the resulting arguments in these fields
+  // LowerRustArgs stores the resulting arguments in these fields
   FfiValueInt<uint64_t> mLogger{};
   FfiValueRustBuffer mMessage{};
   FfiValueInt<uint32_t> mCount{};
@@ -7490,7 +7490,7 @@ private:
   // MakeRustCall stores the result of the call in these fields
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void LowerRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     mLogger.Lower(aArgs[0], aError);
     if (aError.Failed()) {
       return;
@@ -7519,19 +7519,19 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void LiftSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
   }
 };
 class ScaffoldingCallHandlerUniffiUniffiFixtureCallbacksFnFuncLogEvenNumbers : public UniffiSyncCallHandler {
 private:
-  // PrepareRustArgs stores the resulting arguments in these fields
+  // LowerRustArgs stores the resulting arguments in these fields
   FfiValueInt<uint64_t> mLogger{};
   FfiValueRustBuffer mItems{};
 
   // MakeRustCall stores the result of the call in these fields
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void LowerRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     mLogger.Lower(aArgs[0], aError);
     if (aError.Failed()) {
       return;
@@ -7550,19 +7550,19 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void LiftSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
   }
 };
 class ScaffoldingCallHandlerUniffiUniffiFixtureCallbacksFnFuncLogEvenNumbersMainThread : public UniffiSyncCallHandler {
 private:
-  // PrepareRustArgs stores the resulting arguments in these fields
+  // LowerRustArgs stores the resulting arguments in these fields
   FfiValueInt<uint64_t> mLogger{};
   FfiValueRustBuffer mItems{};
 
   // MakeRustCall stores the result of the call in these fields
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void LowerRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     mLogger.Lower(aArgs[0], aError);
     if (aError.Failed()) {
       return;
@@ -7581,7 +7581,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void LiftSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
   }
 };
 class ScaffoldingCallHandlerUniffiUniffiFixtureFuturesFnFuncExpensiveComputation : public UniffiAsyncCallHandler {
@@ -7596,7 +7596,7 @@ protected:
   // Convert a sequence of JS arguments and call the scaffolding function.
   // Always called on the main thread since async Rust calls don't block, they
   // return a future.
-  void PrepareArgsAndMakeRustCall(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void LowerArgsAndMakeRustCall(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
 
     mFutureHandle = uniffi_uniffi_fixture_futures_fn_func_expensive_computation(
     );
@@ -7608,7 +7608,7 @@ protected:
   }
 
 public:
-  void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  void LiftSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     mUniffiReturnValue.Lift(
       aCx,
       &aDest.Construct(),
@@ -7618,12 +7618,12 @@ public:
 };
 class ScaffoldingCallHandlerUniffiUniffiFixtureFuturesFnFuncInitializeGeckoGlobalWorkerQueue : public UniffiSyncCallHandler {
 private:
-  // PrepareRustArgs stores the resulting arguments in these fields
+  // LowerRustArgs stores the resulting arguments in these fields
 
   // MakeRustCall stores the result of the call in these fields
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void LowerRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
   }
 
   void MakeRustCall(RustCallStatus* aOutStatus) override {
@@ -7632,18 +7632,18 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void LiftSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
   }
 };
 class ScaffoldingCallHandlerUniffiUniffiFixtureFuturesFnFuncInitializeGlobalWorkerQueue : public UniffiSyncCallHandler {
 private:
-  // PrepareRustArgs stores the resulting arguments in these fields
+  // LowerRustArgs stores the resulting arguments in these fields
   FfiValueObjectHandleFuturesWorkerQueue mWorkerQueue{};
 
   // MakeRustCall stores the result of the call in these fields
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void LowerRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     mWorkerQueue.Lower(aArgs[0], aError);
     if (aError.Failed()) {
       return;
@@ -7657,7 +7657,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void LiftSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
   }
 };
 class ScaffoldingCallHandlerUniffiUniffiFixtureFuturesFnFuncRoundtripF32 : public UniffiAsyncCallHandler {
@@ -7672,7 +7672,7 @@ protected:
   // Convert a sequence of JS arguments and call the scaffolding function.
   // Always called on the main thread since async Rust calls don't block, they
   // return a future.
-  void PrepareArgsAndMakeRustCall(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void LowerArgsAndMakeRustCall(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     FfiValueFloat<float> mV{};
     mV.Lower(aArgs[0], aError);
     if (aError.Failed()) {
@@ -7690,7 +7690,7 @@ protected:
   }
 
 public:
-  void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  void LiftSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     mUniffiReturnValue.Lift(
       aCx,
       &aDest.Construct(),
@@ -7710,7 +7710,7 @@ protected:
   // Convert a sequence of JS arguments and call the scaffolding function.
   // Always called on the main thread since async Rust calls don't block, they
   // return a future.
-  void PrepareArgsAndMakeRustCall(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void LowerArgsAndMakeRustCall(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     FfiValueFloat<double> mV{};
     mV.Lower(aArgs[0], aError);
     if (aError.Failed()) {
@@ -7728,7 +7728,7 @@ protected:
   }
 
 public:
-  void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  void LiftSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     mUniffiReturnValue.Lift(
       aCx,
       &aDest.Construct(),
@@ -7748,7 +7748,7 @@ protected:
   // Convert a sequence of JS arguments and call the scaffolding function.
   // Always called on the main thread since async Rust calls don't block, they
   // return a future.
-  void PrepareArgsAndMakeRustCall(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void LowerArgsAndMakeRustCall(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     FfiValueInt<int16_t> mV{};
     mV.Lower(aArgs[0], aError);
     if (aError.Failed()) {
@@ -7766,7 +7766,7 @@ protected:
   }
 
 public:
-  void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  void LiftSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     mUniffiReturnValue.Lift(
       aCx,
       &aDest.Construct(),
@@ -7786,7 +7786,7 @@ protected:
   // Convert a sequence of JS arguments and call the scaffolding function.
   // Always called on the main thread since async Rust calls don't block, they
   // return a future.
-  void PrepareArgsAndMakeRustCall(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void LowerArgsAndMakeRustCall(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     FfiValueInt<int32_t> mV{};
     mV.Lower(aArgs[0], aError);
     if (aError.Failed()) {
@@ -7804,7 +7804,7 @@ protected:
   }
 
 public:
-  void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  void LiftSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     mUniffiReturnValue.Lift(
       aCx,
       &aDest.Construct(),
@@ -7824,7 +7824,7 @@ protected:
   // Convert a sequence of JS arguments and call the scaffolding function.
   // Always called on the main thread since async Rust calls don't block, they
   // return a future.
-  void PrepareArgsAndMakeRustCall(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void LowerArgsAndMakeRustCall(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     FfiValueInt<int64_t> mV{};
     mV.Lower(aArgs[0], aError);
     if (aError.Failed()) {
@@ -7842,7 +7842,7 @@ protected:
   }
 
 public:
-  void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  void LiftSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     mUniffiReturnValue.Lift(
       aCx,
       &aDest.Construct(),
@@ -7862,7 +7862,7 @@ protected:
   // Convert a sequence of JS arguments and call the scaffolding function.
   // Always called on the main thread since async Rust calls don't block, they
   // return a future.
-  void PrepareArgsAndMakeRustCall(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void LowerArgsAndMakeRustCall(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     FfiValueInt<int8_t> mV{};
     mV.Lower(aArgs[0], aError);
     if (aError.Failed()) {
@@ -7880,7 +7880,7 @@ protected:
   }
 
 public:
-  void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  void LiftSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     mUniffiReturnValue.Lift(
       aCx,
       &aDest.Construct(),
@@ -7900,7 +7900,7 @@ protected:
   // Convert a sequence of JS arguments and call the scaffolding function.
   // Always called on the main thread since async Rust calls don't block, they
   // return a future.
-  void PrepareArgsAndMakeRustCall(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void LowerArgsAndMakeRustCall(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     FfiValueRustBuffer mV{};
     mV.Lower(aArgs[0], aError);
     if (aError.Failed()) {
@@ -7918,7 +7918,7 @@ protected:
   }
 
 public:
-  void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  void LiftSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     mUniffiReturnValue.Lift(
       aCx,
       &aDest.Construct(),
@@ -7938,7 +7938,7 @@ protected:
   // Convert a sequence of JS arguments and call the scaffolding function.
   // Always called on the main thread since async Rust calls don't block, they
   // return a future.
-  void PrepareArgsAndMakeRustCall(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void LowerArgsAndMakeRustCall(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     FfiValueObjectHandleFuturesTraveller mV{};
     mV.Lower(aArgs[0], aError);
     if (aError.Failed()) {
@@ -7956,7 +7956,7 @@ protected:
   }
 
 public:
-  void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  void LiftSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     mUniffiReturnValue.Lift(
       aCx,
       &aDest.Construct(),
@@ -7976,7 +7976,7 @@ protected:
   // Convert a sequence of JS arguments and call the scaffolding function.
   // Always called on the main thread since async Rust calls don't block, they
   // return a future.
-  void PrepareArgsAndMakeRustCall(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void LowerArgsAndMakeRustCall(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     FfiValueRustBuffer mV{};
     mV.Lower(aArgs[0], aError);
     if (aError.Failed()) {
@@ -7994,7 +7994,7 @@ protected:
   }
 
 public:
-  void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  void LiftSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     mUniffiReturnValue.Lift(
       aCx,
       &aDest.Construct(),
@@ -8014,7 +8014,7 @@ protected:
   // Convert a sequence of JS arguments and call the scaffolding function.
   // Always called on the main thread since async Rust calls don't block, they
   // return a future.
-  void PrepareArgsAndMakeRustCall(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void LowerArgsAndMakeRustCall(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     FfiValueInt<uint16_t> mV{};
     mV.Lower(aArgs[0], aError);
     if (aError.Failed()) {
@@ -8032,7 +8032,7 @@ protected:
   }
 
 public:
-  void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  void LiftSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     mUniffiReturnValue.Lift(
       aCx,
       &aDest.Construct(),
@@ -8052,7 +8052,7 @@ protected:
   // Convert a sequence of JS arguments and call the scaffolding function.
   // Always called on the main thread since async Rust calls don't block, they
   // return a future.
-  void PrepareArgsAndMakeRustCall(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void LowerArgsAndMakeRustCall(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     FfiValueInt<uint32_t> mV{};
     mV.Lower(aArgs[0], aError);
     if (aError.Failed()) {
@@ -8070,7 +8070,7 @@ protected:
   }
 
 public:
-  void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  void LiftSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     mUniffiReturnValue.Lift(
       aCx,
       &aDest.Construct(),
@@ -8090,7 +8090,7 @@ protected:
   // Convert a sequence of JS arguments and call the scaffolding function.
   // Always called on the main thread since async Rust calls don't block, they
   // return a future.
-  void PrepareArgsAndMakeRustCall(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void LowerArgsAndMakeRustCall(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     FfiValueInt<uint64_t> mV{};
     mV.Lower(aArgs[0], aError);
     if (aError.Failed()) {
@@ -8108,7 +8108,7 @@ protected:
   }
 
 public:
-  void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  void LiftSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     mUniffiReturnValue.Lift(
       aCx,
       &aDest.Construct(),
@@ -8128,7 +8128,7 @@ protected:
   // Convert a sequence of JS arguments and call the scaffolding function.
   // Always called on the main thread since async Rust calls don't block, they
   // return a future.
-  void PrepareArgsAndMakeRustCall(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void LowerArgsAndMakeRustCall(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     FfiValueInt<uint8_t> mV{};
     mV.Lower(aArgs[0], aError);
     if (aError.Failed()) {
@@ -8146,7 +8146,7 @@ protected:
   }
 
 public:
-  void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  void LiftSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     mUniffiReturnValue.Lift(
       aCx,
       &aDest.Construct(),
@@ -8166,7 +8166,7 @@ protected:
   // Convert a sequence of JS arguments and call the scaffolding function.
   // Always called on the main thread since async Rust calls don't block, they
   // return a future.
-  void PrepareArgsAndMakeRustCall(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void LowerArgsAndMakeRustCall(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     FfiValueRustBuffer mV{};
     mV.Lower(aArgs[0], aError);
     if (aError.Failed()) {
@@ -8184,7 +8184,7 @@ protected:
   }
 
 public:
-  void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  void LiftSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     mUniffiReturnValue.Lift(
       aCx,
       &aDest.Construct(),
@@ -8194,7 +8194,7 @@ public:
 };
 class ScaffoldingCallHandlerUniffiUniffiFixtureFuturesFnMethodFuturetesterCompleteFutures : public UniffiSyncCallHandler {
 private:
-  // PrepareRustArgs stores the resulting arguments in these fields
+  // LowerRustArgs stores the resulting arguments in these fields
   FfiValueObjectHandleFuturesFutureTester mPtr{};
   FfiValueInt<uint8_t> mValue{};
 
@@ -8202,7 +8202,7 @@ private:
   FfiValueInt<uint32_t> mUniffiReturnValue{};
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void LowerRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     mPtr.Lower(aArgs[0], aError);
     if (aError.Failed()) {
       return;
@@ -8223,7 +8223,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void LiftSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     mUniffiReturnValue.Lift(
       aCx,
       &aDest.Construct(),
@@ -8243,7 +8243,7 @@ protected:
   // Convert a sequence of JS arguments and call the scaffolding function.
   // Always called on the main thread since async Rust calls don't block, they
   // return a future.
-  void PrepareArgsAndMakeRustCall(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void LowerArgsAndMakeRustCall(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     FfiValueObjectHandleFuturesFutureTester mPtr{};
     mPtr.Lower(aArgs[0], aError);
     if (aError.Failed()) {
@@ -8261,7 +8261,7 @@ protected:
   }
 
 public:
-  void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  void LiftSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     mUniffiReturnValue.Lift(
       aCx,
       &aDest.Construct(),
@@ -8271,13 +8271,13 @@ public:
 };
 class ScaffoldingCallHandlerUniffiUniffiFixtureFuturesFnMethodFuturetesterWakeFutures : public UniffiSyncCallHandler {
 private:
-  // PrepareRustArgs stores the resulting arguments in these fields
+  // LowerRustArgs stores the resulting arguments in these fields
   FfiValueObjectHandleFuturesFutureTester mPtr{};
 
   // MakeRustCall stores the result of the call in these fields
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void LowerRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     mPtr.Lower(aArgs[0], aError);
     if (aError.Failed()) {
       return;
@@ -8291,18 +8291,18 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void LiftSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
   }
 };
 class ScaffoldingCallHandlerUniffiUniffiFixtureFuturesFnConstructorFuturetesterInit : public UniffiSyncCallHandler {
 private:
-  // PrepareRustArgs stores the resulting arguments in these fields
+  // LowerRustArgs stores the resulting arguments in these fields
 
   // MakeRustCall stores the result of the call in these fields
   FfiValueObjectHandleFuturesFutureTester mUniffiReturnValue{};
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void LowerRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
   }
 
   void MakeRustCall(RustCallStatus* aOutStatus) override {
@@ -8313,7 +8313,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void LiftSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     mUniffiReturnValue.Lift(
       aCx,
       &aDest.Construct(),
@@ -8323,13 +8323,13 @@ public:
 };
 class ScaffoldingCallHandlerUniffiUniffiFixtureFuturesFnMethodRusttaskRun : public UniffiSyncCallHandler {
 private:
-  // PrepareRustArgs stores the resulting arguments in these fields
+  // LowerRustArgs stores the resulting arguments in these fields
   FfiValueObjectHandleFuturesRustTask mPtr{};
 
   // MakeRustCall stores the result of the call in these fields
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void LowerRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     mPtr.Lower(aArgs[0], aError);
     if (aError.Failed()) {
       return;
@@ -8343,19 +8343,19 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void LiftSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
   }
 };
 class ScaffoldingCallHandlerUniffiUniffiFixtureFuturesFnMethodTravellerName : public UniffiSyncCallHandler {
 private:
-  // PrepareRustArgs stores the resulting arguments in these fields
+  // LowerRustArgs stores the resulting arguments in these fields
   FfiValueObjectHandleFuturesTraveller mPtr{};
 
   // MakeRustCall stores the result of the call in these fields
   FfiValueRustBuffer mUniffiReturnValue{};
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void LowerRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     mPtr.Lower(aArgs[0], aError);
     if (aError.Failed()) {
       return;
@@ -8371,7 +8371,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void LiftSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     mUniffiReturnValue.Lift(
       aCx,
       &aDest.Construct(),
@@ -8381,14 +8381,14 @@ public:
 };
 class ScaffoldingCallHandlerUniffiUniffiFixtureFuturesFnConstructorTravellerNew : public UniffiSyncCallHandler {
 private:
-  // PrepareRustArgs stores the resulting arguments in these fields
+  // LowerRustArgs stores the resulting arguments in these fields
   FfiValueRustBuffer mName{};
 
   // MakeRustCall stores the result of the call in these fields
   FfiValueObjectHandleFuturesTraveller mUniffiReturnValue{};
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void LowerRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     mName.Lower(aArgs[0], aError);
     if (aError.Failed()) {
       return;
@@ -8404,7 +8404,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void LiftSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     mUniffiReturnValue.Lift(
       aCx,
       &aDest.Construct(),
@@ -8414,14 +8414,14 @@ public:
 };
 class ScaffoldingCallHandlerUniffiUniffiFixtureFuturesFnMethodWorkerqueueAddTask : public UniffiSyncCallHandler {
 private:
-  // PrepareRustArgs stores the resulting arguments in these fields
+  // LowerRustArgs stores the resulting arguments in these fields
   FfiValueObjectHandleFuturesWorkerQueue mPtr{};
   FfiValueObjectHandleFuturesRustTask mTask{};
 
   // MakeRustCall stores the result of the call in these fields
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void LowerRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     mPtr.Lower(aArgs[0], aError);
     if (aError.Failed()) {
       return;
@@ -8440,19 +8440,19 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void LiftSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
   }
 };
 class ScaffoldingCallHandlerUniffiUniffiGeometryFnFuncGradient : public UniffiSyncCallHandler {
 private:
-  // PrepareRustArgs stores the resulting arguments in these fields
+  // LowerRustArgs stores the resulting arguments in these fields
   FfiValueRustBuffer mLn{};
 
   // MakeRustCall stores the result of the call in these fields
   FfiValueFloat<double> mUniffiReturnValue{};
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void LowerRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     mLn.Lower(aArgs[0], aError);
     if (aError.Failed()) {
       return;
@@ -8468,7 +8468,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void LiftSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     mUniffiReturnValue.Lift(
       aCx,
       &aDest.Construct(),
@@ -8478,7 +8478,7 @@ public:
 };
 class ScaffoldingCallHandlerUniffiUniffiGeometryFnFuncIntersection : public UniffiSyncCallHandler {
 private:
-  // PrepareRustArgs stores the resulting arguments in these fields
+  // LowerRustArgs stores the resulting arguments in these fields
   FfiValueRustBuffer mLn1{};
   FfiValueRustBuffer mLn2{};
 
@@ -8486,7 +8486,7 @@ private:
   FfiValueRustBuffer mUniffiReturnValue{};
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void LowerRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     mLn1.Lower(aArgs[0], aError);
     if (aError.Failed()) {
       return;
@@ -8507,7 +8507,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void LiftSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     mUniffiReturnValue.Lift(
       aCx,
       &aDest.Construct(),
@@ -8517,13 +8517,13 @@ public:
 };
 class ScaffoldingCallHandlerUniffiUniffiFixtureRefcountsFnFuncGetJsRefcount : public UniffiSyncCallHandler {
 private:
-  // PrepareRustArgs stores the resulting arguments in these fields
+  // LowerRustArgs stores the resulting arguments in these fields
 
   // MakeRustCall stores the result of the call in these fields
   FfiValueInt<int32_t> mUniffiReturnValue{};
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void LowerRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
   }
 
   void MakeRustCall(RustCallStatus* aOutStatus) override {
@@ -8534,7 +8534,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void LiftSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     mUniffiReturnValue.Lift(
       aCx,
       &aDest.Construct(),
@@ -8544,13 +8544,13 @@ public:
 };
 class ScaffoldingCallHandlerUniffiUniffiFixtureRefcountsFnFuncGetSingleton : public UniffiSyncCallHandler {
 private:
-  // PrepareRustArgs stores the resulting arguments in these fields
+  // LowerRustArgs stores the resulting arguments in these fields
 
   // MakeRustCall stores the result of the call in these fields
   FfiValueObjectHandleRefcountsSingletonObject mUniffiReturnValue{};
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void LowerRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
   }
 
   void MakeRustCall(RustCallStatus* aOutStatus) override {
@@ -8561,7 +8561,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void LiftSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     mUniffiReturnValue.Lift(
       aCx,
       &aDest.Construct(),
@@ -8571,13 +8571,13 @@ public:
 };
 class ScaffoldingCallHandlerUniffiUniffiFixtureRefcountsFnMethodSingletonobjectMethod : public UniffiSyncCallHandler {
 private:
-  // PrepareRustArgs stores the resulting arguments in these fields
+  // LowerRustArgs stores the resulting arguments in these fields
   FfiValueObjectHandleRefcountsSingletonObject mPtr{};
 
   // MakeRustCall stores the result of the call in these fields
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void LowerRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     mPtr.Lower(aArgs[0], aError);
     if (aError.Failed()) {
       return;
@@ -8591,19 +8591,19 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void LiftSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
   }
 };
 class ScaffoldingCallHandlerUniffiUniffiRondpointFnFuncCopieCarte : public UniffiSyncCallHandler {
 private:
-  // PrepareRustArgs stores the resulting arguments in these fields
+  // LowerRustArgs stores the resulting arguments in these fields
   FfiValueRustBuffer mC{};
 
   // MakeRustCall stores the result of the call in these fields
   FfiValueRustBuffer mUniffiReturnValue{};
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void LowerRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     mC.Lower(aArgs[0], aError);
     if (aError.Failed()) {
       return;
@@ -8619,7 +8619,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void LiftSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     mUniffiReturnValue.Lift(
       aCx,
       &aDest.Construct(),
@@ -8629,14 +8629,14 @@ public:
 };
 class ScaffoldingCallHandlerUniffiUniffiRondpointFnFuncCopieDictionnaire : public UniffiSyncCallHandler {
 private:
-  // PrepareRustArgs stores the resulting arguments in these fields
+  // LowerRustArgs stores the resulting arguments in these fields
   FfiValueRustBuffer mD{};
 
   // MakeRustCall stores the result of the call in these fields
   FfiValueRustBuffer mUniffiReturnValue{};
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void LowerRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     mD.Lower(aArgs[0], aError);
     if (aError.Failed()) {
       return;
@@ -8652,7 +8652,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void LiftSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     mUniffiReturnValue.Lift(
       aCx,
       &aDest.Construct(),
@@ -8662,14 +8662,14 @@ public:
 };
 class ScaffoldingCallHandlerUniffiUniffiRondpointFnFuncCopieEnumeration : public UniffiSyncCallHandler {
 private:
-  // PrepareRustArgs stores the resulting arguments in these fields
+  // LowerRustArgs stores the resulting arguments in these fields
   FfiValueRustBuffer mE{};
 
   // MakeRustCall stores the result of the call in these fields
   FfiValueRustBuffer mUniffiReturnValue{};
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void LowerRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     mE.Lower(aArgs[0], aError);
     if (aError.Failed()) {
       return;
@@ -8685,7 +8685,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void LiftSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     mUniffiReturnValue.Lift(
       aCx,
       &aDest.Construct(),
@@ -8695,14 +8695,14 @@ public:
 };
 class ScaffoldingCallHandlerUniffiUniffiRondpointFnFuncCopieEnumerations : public UniffiSyncCallHandler {
 private:
-  // PrepareRustArgs stores the resulting arguments in these fields
+  // LowerRustArgs stores the resulting arguments in these fields
   FfiValueRustBuffer mE{};
 
   // MakeRustCall stores the result of the call in these fields
   FfiValueRustBuffer mUniffiReturnValue{};
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void LowerRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     mE.Lower(aArgs[0], aError);
     if (aError.Failed()) {
       return;
@@ -8718,7 +8718,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void LiftSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     mUniffiReturnValue.Lift(
       aCx,
       &aDest.Construct(),
@@ -8728,14 +8728,14 @@ public:
 };
 class ScaffoldingCallHandlerUniffiUniffiRondpointFnFuncSwitcheroo : public UniffiSyncCallHandler {
 private:
-  // PrepareRustArgs stores the resulting arguments in these fields
+  // LowerRustArgs stores the resulting arguments in these fields
   FfiValueInt<int8_t> mB{};
 
   // MakeRustCall stores the result of the call in these fields
   FfiValueInt<int8_t> mUniffiReturnValue{};
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void LowerRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     mB.Lower(aArgs[0], aError);
     if (aError.Failed()) {
       return;
@@ -8751,7 +8751,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void LiftSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     mUniffiReturnValue.Lift(
       aCx,
       &aDest.Construct(),
@@ -8761,7 +8761,7 @@ public:
 };
 class ScaffoldingCallHandlerUniffiUniffiRondpointFnMethodOptionneurSinonBoolean : public UniffiSyncCallHandler {
 private:
-  // PrepareRustArgs stores the resulting arguments in these fields
+  // LowerRustArgs stores the resulting arguments in these fields
   FfiValueObjectHandleRondpointOptionneur mPtr{};
   FfiValueInt<int8_t> mValue{};
 
@@ -8769,7 +8769,7 @@ private:
   FfiValueInt<int8_t> mUniffiReturnValue{};
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void LowerRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     mPtr.Lower(aArgs[0], aError);
     if (aError.Failed()) {
       return;
@@ -8790,7 +8790,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void LiftSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     mUniffiReturnValue.Lift(
       aCx,
       &aDest.Construct(),
@@ -8800,7 +8800,7 @@ public:
 };
 class ScaffoldingCallHandlerUniffiUniffiRondpointFnMethodOptionneurSinonEnum : public UniffiSyncCallHandler {
 private:
-  // PrepareRustArgs stores the resulting arguments in these fields
+  // LowerRustArgs stores the resulting arguments in these fields
   FfiValueObjectHandleRondpointOptionneur mPtr{};
   FfiValueRustBuffer mValue{};
 
@@ -8808,7 +8808,7 @@ private:
   FfiValueRustBuffer mUniffiReturnValue{};
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void LowerRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     mPtr.Lower(aArgs[0], aError);
     if (aError.Failed()) {
       return;
@@ -8829,7 +8829,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void LiftSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     mUniffiReturnValue.Lift(
       aCx,
       &aDest.Construct(),
@@ -8839,7 +8839,7 @@ public:
 };
 class ScaffoldingCallHandlerUniffiUniffiRondpointFnMethodOptionneurSinonF32 : public UniffiSyncCallHandler {
 private:
-  // PrepareRustArgs stores the resulting arguments in these fields
+  // LowerRustArgs stores the resulting arguments in these fields
   FfiValueObjectHandleRondpointOptionneur mPtr{};
   FfiValueFloat<float> mValue{};
 
@@ -8847,7 +8847,7 @@ private:
   FfiValueFloat<float> mUniffiReturnValue{};
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void LowerRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     mPtr.Lower(aArgs[0], aError);
     if (aError.Failed()) {
       return;
@@ -8868,7 +8868,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void LiftSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     mUniffiReturnValue.Lift(
       aCx,
       &aDest.Construct(),
@@ -8878,7 +8878,7 @@ public:
 };
 class ScaffoldingCallHandlerUniffiUniffiRondpointFnMethodOptionneurSinonF64 : public UniffiSyncCallHandler {
 private:
-  // PrepareRustArgs stores the resulting arguments in these fields
+  // LowerRustArgs stores the resulting arguments in these fields
   FfiValueObjectHandleRondpointOptionneur mPtr{};
   FfiValueFloat<double> mValue{};
 
@@ -8886,7 +8886,7 @@ private:
   FfiValueFloat<double> mUniffiReturnValue{};
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void LowerRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     mPtr.Lower(aArgs[0], aError);
     if (aError.Failed()) {
       return;
@@ -8907,7 +8907,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void LiftSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     mUniffiReturnValue.Lift(
       aCx,
       &aDest.Construct(),
@@ -8917,7 +8917,7 @@ public:
 };
 class ScaffoldingCallHandlerUniffiUniffiRondpointFnMethodOptionneurSinonI16Dec : public UniffiSyncCallHandler {
 private:
-  // PrepareRustArgs stores the resulting arguments in these fields
+  // LowerRustArgs stores the resulting arguments in these fields
   FfiValueObjectHandleRondpointOptionneur mPtr{};
   FfiValueInt<int16_t> mValue{};
 
@@ -8925,7 +8925,7 @@ private:
   FfiValueInt<int16_t> mUniffiReturnValue{};
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void LowerRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     mPtr.Lower(aArgs[0], aError);
     if (aError.Failed()) {
       return;
@@ -8946,7 +8946,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void LiftSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     mUniffiReturnValue.Lift(
       aCx,
       &aDest.Construct(),
@@ -8956,7 +8956,7 @@ public:
 };
 class ScaffoldingCallHandlerUniffiUniffiRondpointFnMethodOptionneurSinonI16Hex : public UniffiSyncCallHandler {
 private:
-  // PrepareRustArgs stores the resulting arguments in these fields
+  // LowerRustArgs stores the resulting arguments in these fields
   FfiValueObjectHandleRondpointOptionneur mPtr{};
   FfiValueInt<int16_t> mValue{};
 
@@ -8964,7 +8964,7 @@ private:
   FfiValueInt<int16_t> mUniffiReturnValue{};
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void LowerRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     mPtr.Lower(aArgs[0], aError);
     if (aError.Failed()) {
       return;
@@ -8985,7 +8985,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void LiftSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     mUniffiReturnValue.Lift(
       aCx,
       &aDest.Construct(),
@@ -8995,7 +8995,7 @@ public:
 };
 class ScaffoldingCallHandlerUniffiUniffiRondpointFnMethodOptionneurSinonI32Dec : public UniffiSyncCallHandler {
 private:
-  // PrepareRustArgs stores the resulting arguments in these fields
+  // LowerRustArgs stores the resulting arguments in these fields
   FfiValueObjectHandleRondpointOptionneur mPtr{};
   FfiValueInt<int32_t> mValue{};
 
@@ -9003,7 +9003,7 @@ private:
   FfiValueInt<int32_t> mUniffiReturnValue{};
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void LowerRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     mPtr.Lower(aArgs[0], aError);
     if (aError.Failed()) {
       return;
@@ -9024,7 +9024,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void LiftSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     mUniffiReturnValue.Lift(
       aCx,
       &aDest.Construct(),
@@ -9034,7 +9034,7 @@ public:
 };
 class ScaffoldingCallHandlerUniffiUniffiRondpointFnMethodOptionneurSinonI32Hex : public UniffiSyncCallHandler {
 private:
-  // PrepareRustArgs stores the resulting arguments in these fields
+  // LowerRustArgs stores the resulting arguments in these fields
   FfiValueObjectHandleRondpointOptionneur mPtr{};
   FfiValueInt<int32_t> mValue{};
 
@@ -9042,7 +9042,7 @@ private:
   FfiValueInt<int32_t> mUniffiReturnValue{};
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void LowerRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     mPtr.Lower(aArgs[0], aError);
     if (aError.Failed()) {
       return;
@@ -9063,7 +9063,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void LiftSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     mUniffiReturnValue.Lift(
       aCx,
       &aDest.Construct(),
@@ -9073,7 +9073,7 @@ public:
 };
 class ScaffoldingCallHandlerUniffiUniffiRondpointFnMethodOptionneurSinonI64Dec : public UniffiSyncCallHandler {
 private:
-  // PrepareRustArgs stores the resulting arguments in these fields
+  // LowerRustArgs stores the resulting arguments in these fields
   FfiValueObjectHandleRondpointOptionneur mPtr{};
   FfiValueInt<int64_t> mValue{};
 
@@ -9081,7 +9081,7 @@ private:
   FfiValueInt<int64_t> mUniffiReturnValue{};
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void LowerRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     mPtr.Lower(aArgs[0], aError);
     if (aError.Failed()) {
       return;
@@ -9102,7 +9102,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void LiftSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     mUniffiReturnValue.Lift(
       aCx,
       &aDest.Construct(),
@@ -9112,7 +9112,7 @@ public:
 };
 class ScaffoldingCallHandlerUniffiUniffiRondpointFnMethodOptionneurSinonI64Hex : public UniffiSyncCallHandler {
 private:
-  // PrepareRustArgs stores the resulting arguments in these fields
+  // LowerRustArgs stores the resulting arguments in these fields
   FfiValueObjectHandleRondpointOptionneur mPtr{};
   FfiValueInt<int64_t> mValue{};
 
@@ -9120,7 +9120,7 @@ private:
   FfiValueInt<int64_t> mUniffiReturnValue{};
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void LowerRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     mPtr.Lower(aArgs[0], aError);
     if (aError.Failed()) {
       return;
@@ -9141,7 +9141,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void LiftSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     mUniffiReturnValue.Lift(
       aCx,
       &aDest.Construct(),
@@ -9151,7 +9151,7 @@ public:
 };
 class ScaffoldingCallHandlerUniffiUniffiRondpointFnMethodOptionneurSinonI8Dec : public UniffiSyncCallHandler {
 private:
-  // PrepareRustArgs stores the resulting arguments in these fields
+  // LowerRustArgs stores the resulting arguments in these fields
   FfiValueObjectHandleRondpointOptionneur mPtr{};
   FfiValueInt<int8_t> mValue{};
 
@@ -9159,7 +9159,7 @@ private:
   FfiValueInt<int8_t> mUniffiReturnValue{};
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void LowerRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     mPtr.Lower(aArgs[0], aError);
     if (aError.Failed()) {
       return;
@@ -9180,7 +9180,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void LiftSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     mUniffiReturnValue.Lift(
       aCx,
       &aDest.Construct(),
@@ -9190,7 +9190,7 @@ public:
 };
 class ScaffoldingCallHandlerUniffiUniffiRondpointFnMethodOptionneurSinonI8Hex : public UniffiSyncCallHandler {
 private:
-  // PrepareRustArgs stores the resulting arguments in these fields
+  // LowerRustArgs stores the resulting arguments in these fields
   FfiValueObjectHandleRondpointOptionneur mPtr{};
   FfiValueInt<int8_t> mValue{};
 
@@ -9198,7 +9198,7 @@ private:
   FfiValueInt<int8_t> mUniffiReturnValue{};
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void LowerRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     mPtr.Lower(aArgs[0], aError);
     if (aError.Failed()) {
       return;
@@ -9219,7 +9219,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void LiftSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     mUniffiReturnValue.Lift(
       aCx,
       &aDest.Construct(),
@@ -9229,7 +9229,7 @@ public:
 };
 class ScaffoldingCallHandlerUniffiUniffiRondpointFnMethodOptionneurSinonNull : public UniffiSyncCallHandler {
 private:
-  // PrepareRustArgs stores the resulting arguments in these fields
+  // LowerRustArgs stores the resulting arguments in these fields
   FfiValueObjectHandleRondpointOptionneur mPtr{};
   FfiValueRustBuffer mValue{};
 
@@ -9237,7 +9237,7 @@ private:
   FfiValueRustBuffer mUniffiReturnValue{};
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void LowerRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     mPtr.Lower(aArgs[0], aError);
     if (aError.Failed()) {
       return;
@@ -9258,7 +9258,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void LiftSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     mUniffiReturnValue.Lift(
       aCx,
       &aDest.Construct(),
@@ -9268,7 +9268,7 @@ public:
 };
 class ScaffoldingCallHandlerUniffiUniffiRondpointFnMethodOptionneurSinonSequence : public UniffiSyncCallHandler {
 private:
-  // PrepareRustArgs stores the resulting arguments in these fields
+  // LowerRustArgs stores the resulting arguments in these fields
   FfiValueObjectHandleRondpointOptionneur mPtr{};
   FfiValueRustBuffer mValue{};
 
@@ -9276,7 +9276,7 @@ private:
   FfiValueRustBuffer mUniffiReturnValue{};
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void LowerRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     mPtr.Lower(aArgs[0], aError);
     if (aError.Failed()) {
       return;
@@ -9297,7 +9297,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void LiftSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     mUniffiReturnValue.Lift(
       aCx,
       &aDest.Construct(),
@@ -9307,7 +9307,7 @@ public:
 };
 class ScaffoldingCallHandlerUniffiUniffiRondpointFnMethodOptionneurSinonString : public UniffiSyncCallHandler {
 private:
-  // PrepareRustArgs stores the resulting arguments in these fields
+  // LowerRustArgs stores the resulting arguments in these fields
   FfiValueObjectHandleRondpointOptionneur mPtr{};
   FfiValueRustBuffer mValue{};
 
@@ -9315,7 +9315,7 @@ private:
   FfiValueRustBuffer mUniffiReturnValue{};
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void LowerRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     mPtr.Lower(aArgs[0], aError);
     if (aError.Failed()) {
       return;
@@ -9336,7 +9336,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void LiftSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     mUniffiReturnValue.Lift(
       aCx,
       &aDest.Construct(),
@@ -9346,7 +9346,7 @@ public:
 };
 class ScaffoldingCallHandlerUniffiUniffiRondpointFnMethodOptionneurSinonU16Dec : public UniffiSyncCallHandler {
 private:
-  // PrepareRustArgs stores the resulting arguments in these fields
+  // LowerRustArgs stores the resulting arguments in these fields
   FfiValueObjectHandleRondpointOptionneur mPtr{};
   FfiValueInt<uint16_t> mValue{};
 
@@ -9354,7 +9354,7 @@ private:
   FfiValueInt<uint16_t> mUniffiReturnValue{};
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void LowerRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     mPtr.Lower(aArgs[0], aError);
     if (aError.Failed()) {
       return;
@@ -9375,7 +9375,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void LiftSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     mUniffiReturnValue.Lift(
       aCx,
       &aDest.Construct(),
@@ -9385,7 +9385,7 @@ public:
 };
 class ScaffoldingCallHandlerUniffiUniffiRondpointFnMethodOptionneurSinonU16Hex : public UniffiSyncCallHandler {
 private:
-  // PrepareRustArgs stores the resulting arguments in these fields
+  // LowerRustArgs stores the resulting arguments in these fields
   FfiValueObjectHandleRondpointOptionneur mPtr{};
   FfiValueInt<uint16_t> mValue{};
 
@@ -9393,7 +9393,7 @@ private:
   FfiValueInt<uint16_t> mUniffiReturnValue{};
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void LowerRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     mPtr.Lower(aArgs[0], aError);
     if (aError.Failed()) {
       return;
@@ -9414,7 +9414,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void LiftSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     mUniffiReturnValue.Lift(
       aCx,
       &aDest.Construct(),
@@ -9424,7 +9424,7 @@ public:
 };
 class ScaffoldingCallHandlerUniffiUniffiRondpointFnMethodOptionneurSinonU32Dec : public UniffiSyncCallHandler {
 private:
-  // PrepareRustArgs stores the resulting arguments in these fields
+  // LowerRustArgs stores the resulting arguments in these fields
   FfiValueObjectHandleRondpointOptionneur mPtr{};
   FfiValueInt<uint32_t> mValue{};
 
@@ -9432,7 +9432,7 @@ private:
   FfiValueInt<uint32_t> mUniffiReturnValue{};
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void LowerRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     mPtr.Lower(aArgs[0], aError);
     if (aError.Failed()) {
       return;
@@ -9453,7 +9453,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void LiftSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     mUniffiReturnValue.Lift(
       aCx,
       &aDest.Construct(),
@@ -9463,7 +9463,7 @@ public:
 };
 class ScaffoldingCallHandlerUniffiUniffiRondpointFnMethodOptionneurSinonU32Hex : public UniffiSyncCallHandler {
 private:
-  // PrepareRustArgs stores the resulting arguments in these fields
+  // LowerRustArgs stores the resulting arguments in these fields
   FfiValueObjectHandleRondpointOptionneur mPtr{};
   FfiValueInt<uint32_t> mValue{};
 
@@ -9471,7 +9471,7 @@ private:
   FfiValueInt<uint32_t> mUniffiReturnValue{};
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void LowerRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     mPtr.Lower(aArgs[0], aError);
     if (aError.Failed()) {
       return;
@@ -9492,7 +9492,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void LiftSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     mUniffiReturnValue.Lift(
       aCx,
       &aDest.Construct(),
@@ -9502,7 +9502,7 @@ public:
 };
 class ScaffoldingCallHandlerUniffiUniffiRondpointFnMethodOptionneurSinonU32Oct : public UniffiSyncCallHandler {
 private:
-  // PrepareRustArgs stores the resulting arguments in these fields
+  // LowerRustArgs stores the resulting arguments in these fields
   FfiValueObjectHandleRondpointOptionneur mPtr{};
   FfiValueInt<uint32_t> mValue{};
 
@@ -9510,7 +9510,7 @@ private:
   FfiValueInt<uint32_t> mUniffiReturnValue{};
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void LowerRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     mPtr.Lower(aArgs[0], aError);
     if (aError.Failed()) {
       return;
@@ -9531,7 +9531,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void LiftSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     mUniffiReturnValue.Lift(
       aCx,
       &aDest.Construct(),
@@ -9541,7 +9541,7 @@ public:
 };
 class ScaffoldingCallHandlerUniffiUniffiRondpointFnMethodOptionneurSinonU64Dec : public UniffiSyncCallHandler {
 private:
-  // PrepareRustArgs stores the resulting arguments in these fields
+  // LowerRustArgs stores the resulting arguments in these fields
   FfiValueObjectHandleRondpointOptionneur mPtr{};
   FfiValueInt<uint64_t> mValue{};
 
@@ -9549,7 +9549,7 @@ private:
   FfiValueInt<uint64_t> mUniffiReturnValue{};
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void LowerRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     mPtr.Lower(aArgs[0], aError);
     if (aError.Failed()) {
       return;
@@ -9570,7 +9570,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void LiftSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     mUniffiReturnValue.Lift(
       aCx,
       &aDest.Construct(),
@@ -9580,7 +9580,7 @@ public:
 };
 class ScaffoldingCallHandlerUniffiUniffiRondpointFnMethodOptionneurSinonU64Hex : public UniffiSyncCallHandler {
 private:
-  // PrepareRustArgs stores the resulting arguments in these fields
+  // LowerRustArgs stores the resulting arguments in these fields
   FfiValueObjectHandleRondpointOptionneur mPtr{};
   FfiValueInt<uint64_t> mValue{};
 
@@ -9588,7 +9588,7 @@ private:
   FfiValueInt<uint64_t> mUniffiReturnValue{};
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void LowerRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     mPtr.Lower(aArgs[0], aError);
     if (aError.Failed()) {
       return;
@@ -9609,7 +9609,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void LiftSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     mUniffiReturnValue.Lift(
       aCx,
       &aDest.Construct(),
@@ -9619,7 +9619,7 @@ public:
 };
 class ScaffoldingCallHandlerUniffiUniffiRondpointFnMethodOptionneurSinonU8Dec : public UniffiSyncCallHandler {
 private:
-  // PrepareRustArgs stores the resulting arguments in these fields
+  // LowerRustArgs stores the resulting arguments in these fields
   FfiValueObjectHandleRondpointOptionneur mPtr{};
   FfiValueInt<uint8_t> mValue{};
 
@@ -9627,7 +9627,7 @@ private:
   FfiValueInt<uint8_t> mUniffiReturnValue{};
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void LowerRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     mPtr.Lower(aArgs[0], aError);
     if (aError.Failed()) {
       return;
@@ -9648,7 +9648,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void LiftSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     mUniffiReturnValue.Lift(
       aCx,
       &aDest.Construct(),
@@ -9658,7 +9658,7 @@ public:
 };
 class ScaffoldingCallHandlerUniffiUniffiRondpointFnMethodOptionneurSinonU8Hex : public UniffiSyncCallHandler {
 private:
-  // PrepareRustArgs stores the resulting arguments in these fields
+  // LowerRustArgs stores the resulting arguments in these fields
   FfiValueObjectHandleRondpointOptionneur mPtr{};
   FfiValueInt<uint8_t> mValue{};
 
@@ -9666,7 +9666,7 @@ private:
   FfiValueInt<uint8_t> mUniffiReturnValue{};
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void LowerRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     mPtr.Lower(aArgs[0], aError);
     if (aError.Failed()) {
       return;
@@ -9687,7 +9687,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void LiftSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     mUniffiReturnValue.Lift(
       aCx,
       &aDest.Construct(),
@@ -9697,7 +9697,7 @@ public:
 };
 class ScaffoldingCallHandlerUniffiUniffiRondpointFnMethodOptionneurSinonZero : public UniffiSyncCallHandler {
 private:
-  // PrepareRustArgs stores the resulting arguments in these fields
+  // LowerRustArgs stores the resulting arguments in these fields
   FfiValueObjectHandleRondpointOptionneur mPtr{};
   FfiValueRustBuffer mValue{};
 
@@ -9705,7 +9705,7 @@ private:
   FfiValueRustBuffer mUniffiReturnValue{};
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void LowerRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     mPtr.Lower(aArgs[0], aError);
     if (aError.Failed()) {
       return;
@@ -9726,7 +9726,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void LiftSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     mUniffiReturnValue.Lift(
       aCx,
       &aDest.Construct(),
@@ -9736,13 +9736,13 @@ public:
 };
 class ScaffoldingCallHandlerUniffiUniffiRondpointFnConstructorOptionneurNew : public UniffiSyncCallHandler {
 private:
-  // PrepareRustArgs stores the resulting arguments in these fields
+  // LowerRustArgs stores the resulting arguments in these fields
 
   // MakeRustCall stores the result of the call in these fields
   FfiValueObjectHandleRondpointOptionneur mUniffiReturnValue{};
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void LowerRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
   }
 
   void MakeRustCall(RustCallStatus* aOutStatus) override {
@@ -9753,7 +9753,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void LiftSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     mUniffiReturnValue.Lift(
       aCx,
       &aDest.Construct(),
@@ -9763,7 +9763,7 @@ public:
 };
 class ScaffoldingCallHandlerUniffiUniffiRondpointFnMethodRetourneurIdentiqueBoolean : public UniffiSyncCallHandler {
 private:
-  // PrepareRustArgs stores the resulting arguments in these fields
+  // LowerRustArgs stores the resulting arguments in these fields
   FfiValueObjectHandleRondpointRetourneur mPtr{};
   FfiValueInt<int8_t> mValue{};
 
@@ -9771,7 +9771,7 @@ private:
   FfiValueInt<int8_t> mUniffiReturnValue{};
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void LowerRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     mPtr.Lower(aArgs[0], aError);
     if (aError.Failed()) {
       return;
@@ -9792,7 +9792,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void LiftSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     mUniffiReturnValue.Lift(
       aCx,
       &aDest.Construct(),
@@ -9802,7 +9802,7 @@ public:
 };
 class ScaffoldingCallHandlerUniffiUniffiRondpointFnMethodRetourneurIdentiqueDouble : public UniffiSyncCallHandler {
 private:
-  // PrepareRustArgs stores the resulting arguments in these fields
+  // LowerRustArgs stores the resulting arguments in these fields
   FfiValueObjectHandleRondpointRetourneur mPtr{};
   FfiValueFloat<double> mValue{};
 
@@ -9810,7 +9810,7 @@ private:
   FfiValueFloat<double> mUniffiReturnValue{};
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void LowerRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     mPtr.Lower(aArgs[0], aError);
     if (aError.Failed()) {
       return;
@@ -9831,7 +9831,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void LiftSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     mUniffiReturnValue.Lift(
       aCx,
       &aDest.Construct(),
@@ -9841,7 +9841,7 @@ public:
 };
 class ScaffoldingCallHandlerUniffiUniffiRondpointFnMethodRetourneurIdentiqueFloat : public UniffiSyncCallHandler {
 private:
-  // PrepareRustArgs stores the resulting arguments in these fields
+  // LowerRustArgs stores the resulting arguments in these fields
   FfiValueObjectHandleRondpointRetourneur mPtr{};
   FfiValueFloat<float> mValue{};
 
@@ -9849,7 +9849,7 @@ private:
   FfiValueFloat<float> mUniffiReturnValue{};
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void LowerRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     mPtr.Lower(aArgs[0], aError);
     if (aError.Failed()) {
       return;
@@ -9870,7 +9870,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void LiftSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     mUniffiReturnValue.Lift(
       aCx,
       &aDest.Construct(),
@@ -9880,7 +9880,7 @@ public:
 };
 class ScaffoldingCallHandlerUniffiUniffiRondpointFnMethodRetourneurIdentiqueI16 : public UniffiSyncCallHandler {
 private:
-  // PrepareRustArgs stores the resulting arguments in these fields
+  // LowerRustArgs stores the resulting arguments in these fields
   FfiValueObjectHandleRondpointRetourneur mPtr{};
   FfiValueInt<int16_t> mValue{};
 
@@ -9888,7 +9888,7 @@ private:
   FfiValueInt<int16_t> mUniffiReturnValue{};
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void LowerRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     mPtr.Lower(aArgs[0], aError);
     if (aError.Failed()) {
       return;
@@ -9909,7 +9909,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void LiftSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     mUniffiReturnValue.Lift(
       aCx,
       &aDest.Construct(),
@@ -9919,7 +9919,7 @@ public:
 };
 class ScaffoldingCallHandlerUniffiUniffiRondpointFnMethodRetourneurIdentiqueI32 : public UniffiSyncCallHandler {
 private:
-  // PrepareRustArgs stores the resulting arguments in these fields
+  // LowerRustArgs stores the resulting arguments in these fields
   FfiValueObjectHandleRondpointRetourneur mPtr{};
   FfiValueInt<int32_t> mValue{};
 
@@ -9927,7 +9927,7 @@ private:
   FfiValueInt<int32_t> mUniffiReturnValue{};
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void LowerRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     mPtr.Lower(aArgs[0], aError);
     if (aError.Failed()) {
       return;
@@ -9948,7 +9948,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void LiftSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     mUniffiReturnValue.Lift(
       aCx,
       &aDest.Construct(),
@@ -9958,7 +9958,7 @@ public:
 };
 class ScaffoldingCallHandlerUniffiUniffiRondpointFnMethodRetourneurIdentiqueI64 : public UniffiSyncCallHandler {
 private:
-  // PrepareRustArgs stores the resulting arguments in these fields
+  // LowerRustArgs stores the resulting arguments in these fields
   FfiValueObjectHandleRondpointRetourneur mPtr{};
   FfiValueInt<int64_t> mValue{};
 
@@ -9966,7 +9966,7 @@ private:
   FfiValueInt<int64_t> mUniffiReturnValue{};
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void LowerRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     mPtr.Lower(aArgs[0], aError);
     if (aError.Failed()) {
       return;
@@ -9987,7 +9987,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void LiftSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     mUniffiReturnValue.Lift(
       aCx,
       &aDest.Construct(),
@@ -9997,7 +9997,7 @@ public:
 };
 class ScaffoldingCallHandlerUniffiUniffiRondpointFnMethodRetourneurIdentiqueI8 : public UniffiSyncCallHandler {
 private:
-  // PrepareRustArgs stores the resulting arguments in these fields
+  // LowerRustArgs stores the resulting arguments in these fields
   FfiValueObjectHandleRondpointRetourneur mPtr{};
   FfiValueInt<int8_t> mValue{};
 
@@ -10005,7 +10005,7 @@ private:
   FfiValueInt<int8_t> mUniffiReturnValue{};
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void LowerRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     mPtr.Lower(aArgs[0], aError);
     if (aError.Failed()) {
       return;
@@ -10026,7 +10026,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void LiftSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     mUniffiReturnValue.Lift(
       aCx,
       &aDest.Construct(),
@@ -10036,7 +10036,7 @@ public:
 };
 class ScaffoldingCallHandlerUniffiUniffiRondpointFnMethodRetourneurIdentiqueNombres : public UniffiSyncCallHandler {
 private:
-  // PrepareRustArgs stores the resulting arguments in these fields
+  // LowerRustArgs stores the resulting arguments in these fields
   FfiValueObjectHandleRondpointRetourneur mPtr{};
   FfiValueRustBuffer mValue{};
 
@@ -10044,7 +10044,7 @@ private:
   FfiValueRustBuffer mUniffiReturnValue{};
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void LowerRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     mPtr.Lower(aArgs[0], aError);
     if (aError.Failed()) {
       return;
@@ -10065,7 +10065,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void LiftSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     mUniffiReturnValue.Lift(
       aCx,
       &aDest.Construct(),
@@ -10075,7 +10075,7 @@ public:
 };
 class ScaffoldingCallHandlerUniffiUniffiRondpointFnMethodRetourneurIdentiqueNombresSignes : public UniffiSyncCallHandler {
 private:
-  // PrepareRustArgs stores the resulting arguments in these fields
+  // LowerRustArgs stores the resulting arguments in these fields
   FfiValueObjectHandleRondpointRetourneur mPtr{};
   FfiValueRustBuffer mValue{};
 
@@ -10083,7 +10083,7 @@ private:
   FfiValueRustBuffer mUniffiReturnValue{};
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void LowerRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     mPtr.Lower(aArgs[0], aError);
     if (aError.Failed()) {
       return;
@@ -10104,7 +10104,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void LiftSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     mUniffiReturnValue.Lift(
       aCx,
       &aDest.Construct(),
@@ -10114,7 +10114,7 @@ public:
 };
 class ScaffoldingCallHandlerUniffiUniffiRondpointFnMethodRetourneurIdentiqueOptionneurDictionnaire : public UniffiSyncCallHandler {
 private:
-  // PrepareRustArgs stores the resulting arguments in these fields
+  // LowerRustArgs stores the resulting arguments in these fields
   FfiValueObjectHandleRondpointRetourneur mPtr{};
   FfiValueRustBuffer mValue{};
 
@@ -10122,7 +10122,7 @@ private:
   FfiValueRustBuffer mUniffiReturnValue{};
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void LowerRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     mPtr.Lower(aArgs[0], aError);
     if (aError.Failed()) {
       return;
@@ -10143,7 +10143,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void LiftSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     mUniffiReturnValue.Lift(
       aCx,
       &aDest.Construct(),
@@ -10153,7 +10153,7 @@ public:
 };
 class ScaffoldingCallHandlerUniffiUniffiRondpointFnMethodRetourneurIdentiqueString : public UniffiSyncCallHandler {
 private:
-  // PrepareRustArgs stores the resulting arguments in these fields
+  // LowerRustArgs stores the resulting arguments in these fields
   FfiValueObjectHandleRondpointRetourneur mPtr{};
   FfiValueRustBuffer mValue{};
 
@@ -10161,7 +10161,7 @@ private:
   FfiValueRustBuffer mUniffiReturnValue{};
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void LowerRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     mPtr.Lower(aArgs[0], aError);
     if (aError.Failed()) {
       return;
@@ -10182,7 +10182,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void LiftSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     mUniffiReturnValue.Lift(
       aCx,
       &aDest.Construct(),
@@ -10192,7 +10192,7 @@ public:
 };
 class ScaffoldingCallHandlerUniffiUniffiRondpointFnMethodRetourneurIdentiqueU16 : public UniffiSyncCallHandler {
 private:
-  // PrepareRustArgs stores the resulting arguments in these fields
+  // LowerRustArgs stores the resulting arguments in these fields
   FfiValueObjectHandleRondpointRetourneur mPtr{};
   FfiValueInt<uint16_t> mValue{};
 
@@ -10200,7 +10200,7 @@ private:
   FfiValueInt<uint16_t> mUniffiReturnValue{};
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void LowerRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     mPtr.Lower(aArgs[0], aError);
     if (aError.Failed()) {
       return;
@@ -10221,7 +10221,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void LiftSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     mUniffiReturnValue.Lift(
       aCx,
       &aDest.Construct(),
@@ -10231,7 +10231,7 @@ public:
 };
 class ScaffoldingCallHandlerUniffiUniffiRondpointFnMethodRetourneurIdentiqueU32 : public UniffiSyncCallHandler {
 private:
-  // PrepareRustArgs stores the resulting arguments in these fields
+  // LowerRustArgs stores the resulting arguments in these fields
   FfiValueObjectHandleRondpointRetourneur mPtr{};
   FfiValueInt<uint32_t> mValue{};
 
@@ -10239,7 +10239,7 @@ private:
   FfiValueInt<uint32_t> mUniffiReturnValue{};
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void LowerRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     mPtr.Lower(aArgs[0], aError);
     if (aError.Failed()) {
       return;
@@ -10260,7 +10260,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void LiftSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     mUniffiReturnValue.Lift(
       aCx,
       &aDest.Construct(),
@@ -10270,7 +10270,7 @@ public:
 };
 class ScaffoldingCallHandlerUniffiUniffiRondpointFnMethodRetourneurIdentiqueU64 : public UniffiSyncCallHandler {
 private:
-  // PrepareRustArgs stores the resulting arguments in these fields
+  // LowerRustArgs stores the resulting arguments in these fields
   FfiValueObjectHandleRondpointRetourneur mPtr{};
   FfiValueInt<uint64_t> mValue{};
 
@@ -10278,7 +10278,7 @@ private:
   FfiValueInt<uint64_t> mUniffiReturnValue{};
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void LowerRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     mPtr.Lower(aArgs[0], aError);
     if (aError.Failed()) {
       return;
@@ -10299,7 +10299,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void LiftSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     mUniffiReturnValue.Lift(
       aCx,
       &aDest.Construct(),
@@ -10309,7 +10309,7 @@ public:
 };
 class ScaffoldingCallHandlerUniffiUniffiRondpointFnMethodRetourneurIdentiqueU8 : public UniffiSyncCallHandler {
 private:
-  // PrepareRustArgs stores the resulting arguments in these fields
+  // LowerRustArgs stores the resulting arguments in these fields
   FfiValueObjectHandleRondpointRetourneur mPtr{};
   FfiValueInt<uint8_t> mValue{};
 
@@ -10317,7 +10317,7 @@ private:
   FfiValueInt<uint8_t> mUniffiReturnValue{};
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void LowerRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     mPtr.Lower(aArgs[0], aError);
     if (aError.Failed()) {
       return;
@@ -10338,7 +10338,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void LiftSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     mUniffiReturnValue.Lift(
       aCx,
       &aDest.Construct(),
@@ -10348,13 +10348,13 @@ public:
 };
 class ScaffoldingCallHandlerUniffiUniffiRondpointFnConstructorRetourneurNew : public UniffiSyncCallHandler {
 private:
-  // PrepareRustArgs stores the resulting arguments in these fields
+  // LowerRustArgs stores the resulting arguments in these fields
 
   // MakeRustCall stores the result of the call in these fields
   FfiValueObjectHandleRondpointRetourneur mUniffiReturnValue{};
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void LowerRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
   }
 
   void MakeRustCall(RustCallStatus* aOutStatus) override {
@@ -10365,7 +10365,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void LiftSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     mUniffiReturnValue.Lift(
       aCx,
       &aDest.Construct(),
@@ -10375,7 +10375,7 @@ public:
 };
 class ScaffoldingCallHandlerUniffiUniffiRondpointFnMethodStringifierToStringBoolean : public UniffiSyncCallHandler {
 private:
-  // PrepareRustArgs stores the resulting arguments in these fields
+  // LowerRustArgs stores the resulting arguments in these fields
   FfiValueObjectHandleRondpointStringifier mPtr{};
   FfiValueInt<int8_t> mValue{};
 
@@ -10383,7 +10383,7 @@ private:
   FfiValueRustBuffer mUniffiReturnValue{};
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void LowerRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     mPtr.Lower(aArgs[0], aError);
     if (aError.Failed()) {
       return;
@@ -10404,7 +10404,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void LiftSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     mUniffiReturnValue.Lift(
       aCx,
       &aDest.Construct(),
@@ -10414,7 +10414,7 @@ public:
 };
 class ScaffoldingCallHandlerUniffiUniffiRondpointFnMethodStringifierToStringDouble : public UniffiSyncCallHandler {
 private:
-  // PrepareRustArgs stores the resulting arguments in these fields
+  // LowerRustArgs stores the resulting arguments in these fields
   FfiValueObjectHandleRondpointStringifier mPtr{};
   FfiValueFloat<double> mValue{};
 
@@ -10422,7 +10422,7 @@ private:
   FfiValueRustBuffer mUniffiReturnValue{};
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void LowerRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     mPtr.Lower(aArgs[0], aError);
     if (aError.Failed()) {
       return;
@@ -10443,7 +10443,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void LiftSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     mUniffiReturnValue.Lift(
       aCx,
       &aDest.Construct(),
@@ -10453,7 +10453,7 @@ public:
 };
 class ScaffoldingCallHandlerUniffiUniffiRondpointFnMethodStringifierToStringFloat : public UniffiSyncCallHandler {
 private:
-  // PrepareRustArgs stores the resulting arguments in these fields
+  // LowerRustArgs stores the resulting arguments in these fields
   FfiValueObjectHandleRondpointStringifier mPtr{};
   FfiValueFloat<float> mValue{};
 
@@ -10461,7 +10461,7 @@ private:
   FfiValueRustBuffer mUniffiReturnValue{};
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void LowerRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     mPtr.Lower(aArgs[0], aError);
     if (aError.Failed()) {
       return;
@@ -10482,7 +10482,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void LiftSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     mUniffiReturnValue.Lift(
       aCx,
       &aDest.Construct(),
@@ -10492,7 +10492,7 @@ public:
 };
 class ScaffoldingCallHandlerUniffiUniffiRondpointFnMethodStringifierToStringI16 : public UniffiSyncCallHandler {
 private:
-  // PrepareRustArgs stores the resulting arguments in these fields
+  // LowerRustArgs stores the resulting arguments in these fields
   FfiValueObjectHandleRondpointStringifier mPtr{};
   FfiValueInt<int16_t> mValue{};
 
@@ -10500,7 +10500,7 @@ private:
   FfiValueRustBuffer mUniffiReturnValue{};
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void LowerRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     mPtr.Lower(aArgs[0], aError);
     if (aError.Failed()) {
       return;
@@ -10521,7 +10521,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void LiftSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     mUniffiReturnValue.Lift(
       aCx,
       &aDest.Construct(),
@@ -10531,7 +10531,7 @@ public:
 };
 class ScaffoldingCallHandlerUniffiUniffiRondpointFnMethodStringifierToStringI32 : public UniffiSyncCallHandler {
 private:
-  // PrepareRustArgs stores the resulting arguments in these fields
+  // LowerRustArgs stores the resulting arguments in these fields
   FfiValueObjectHandleRondpointStringifier mPtr{};
   FfiValueInt<int32_t> mValue{};
 
@@ -10539,7 +10539,7 @@ private:
   FfiValueRustBuffer mUniffiReturnValue{};
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void LowerRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     mPtr.Lower(aArgs[0], aError);
     if (aError.Failed()) {
       return;
@@ -10560,7 +10560,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void LiftSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     mUniffiReturnValue.Lift(
       aCx,
       &aDest.Construct(),
@@ -10570,7 +10570,7 @@ public:
 };
 class ScaffoldingCallHandlerUniffiUniffiRondpointFnMethodStringifierToStringI64 : public UniffiSyncCallHandler {
 private:
-  // PrepareRustArgs stores the resulting arguments in these fields
+  // LowerRustArgs stores the resulting arguments in these fields
   FfiValueObjectHandleRondpointStringifier mPtr{};
   FfiValueInt<int64_t> mValue{};
 
@@ -10578,7 +10578,7 @@ private:
   FfiValueRustBuffer mUniffiReturnValue{};
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void LowerRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     mPtr.Lower(aArgs[0], aError);
     if (aError.Failed()) {
       return;
@@ -10599,7 +10599,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void LiftSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     mUniffiReturnValue.Lift(
       aCx,
       &aDest.Construct(),
@@ -10609,7 +10609,7 @@ public:
 };
 class ScaffoldingCallHandlerUniffiUniffiRondpointFnMethodStringifierToStringI8 : public UniffiSyncCallHandler {
 private:
-  // PrepareRustArgs stores the resulting arguments in these fields
+  // LowerRustArgs stores the resulting arguments in these fields
   FfiValueObjectHandleRondpointStringifier mPtr{};
   FfiValueInt<int8_t> mValue{};
 
@@ -10617,7 +10617,7 @@ private:
   FfiValueRustBuffer mUniffiReturnValue{};
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void LowerRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     mPtr.Lower(aArgs[0], aError);
     if (aError.Failed()) {
       return;
@@ -10638,7 +10638,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void LiftSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     mUniffiReturnValue.Lift(
       aCx,
       &aDest.Construct(),
@@ -10648,7 +10648,7 @@ public:
 };
 class ScaffoldingCallHandlerUniffiUniffiRondpointFnMethodStringifierToStringU16 : public UniffiSyncCallHandler {
 private:
-  // PrepareRustArgs stores the resulting arguments in these fields
+  // LowerRustArgs stores the resulting arguments in these fields
   FfiValueObjectHandleRondpointStringifier mPtr{};
   FfiValueInt<uint16_t> mValue{};
 
@@ -10656,7 +10656,7 @@ private:
   FfiValueRustBuffer mUniffiReturnValue{};
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void LowerRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     mPtr.Lower(aArgs[0], aError);
     if (aError.Failed()) {
       return;
@@ -10677,7 +10677,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void LiftSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     mUniffiReturnValue.Lift(
       aCx,
       &aDest.Construct(),
@@ -10687,7 +10687,7 @@ public:
 };
 class ScaffoldingCallHandlerUniffiUniffiRondpointFnMethodStringifierToStringU32 : public UniffiSyncCallHandler {
 private:
-  // PrepareRustArgs stores the resulting arguments in these fields
+  // LowerRustArgs stores the resulting arguments in these fields
   FfiValueObjectHandleRondpointStringifier mPtr{};
   FfiValueInt<uint32_t> mValue{};
 
@@ -10695,7 +10695,7 @@ private:
   FfiValueRustBuffer mUniffiReturnValue{};
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void LowerRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     mPtr.Lower(aArgs[0], aError);
     if (aError.Failed()) {
       return;
@@ -10716,7 +10716,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void LiftSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     mUniffiReturnValue.Lift(
       aCx,
       &aDest.Construct(),
@@ -10726,7 +10726,7 @@ public:
 };
 class ScaffoldingCallHandlerUniffiUniffiRondpointFnMethodStringifierToStringU64 : public UniffiSyncCallHandler {
 private:
-  // PrepareRustArgs stores the resulting arguments in these fields
+  // LowerRustArgs stores the resulting arguments in these fields
   FfiValueObjectHandleRondpointStringifier mPtr{};
   FfiValueInt<uint64_t> mValue{};
 
@@ -10734,7 +10734,7 @@ private:
   FfiValueRustBuffer mUniffiReturnValue{};
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void LowerRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     mPtr.Lower(aArgs[0], aError);
     if (aError.Failed()) {
       return;
@@ -10755,7 +10755,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void LiftSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     mUniffiReturnValue.Lift(
       aCx,
       &aDest.Construct(),
@@ -10765,7 +10765,7 @@ public:
 };
 class ScaffoldingCallHandlerUniffiUniffiRondpointFnMethodStringifierToStringU8 : public UniffiSyncCallHandler {
 private:
-  // PrepareRustArgs stores the resulting arguments in these fields
+  // LowerRustArgs stores the resulting arguments in these fields
   FfiValueObjectHandleRondpointStringifier mPtr{};
   FfiValueInt<uint8_t> mValue{};
 
@@ -10773,7 +10773,7 @@ private:
   FfiValueRustBuffer mUniffiReturnValue{};
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void LowerRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     mPtr.Lower(aArgs[0], aError);
     if (aError.Failed()) {
       return;
@@ -10794,7 +10794,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void LiftSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     mUniffiReturnValue.Lift(
       aCx,
       &aDest.Construct(),
@@ -10804,7 +10804,7 @@ public:
 };
 class ScaffoldingCallHandlerUniffiUniffiRondpointFnMethodStringifierWellKnownString : public UniffiSyncCallHandler {
 private:
-  // PrepareRustArgs stores the resulting arguments in these fields
+  // LowerRustArgs stores the resulting arguments in these fields
   FfiValueObjectHandleRondpointStringifier mPtr{};
   FfiValueRustBuffer mValue{};
 
@@ -10812,7 +10812,7 @@ private:
   FfiValueRustBuffer mUniffiReturnValue{};
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void LowerRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     mPtr.Lower(aArgs[0], aError);
     if (aError.Failed()) {
       return;
@@ -10833,7 +10833,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void LiftSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     mUniffiReturnValue.Lift(
       aCx,
       &aDest.Construct(),
@@ -10843,13 +10843,13 @@ public:
 };
 class ScaffoldingCallHandlerUniffiUniffiRondpointFnConstructorStringifierNew : public UniffiSyncCallHandler {
 private:
-  // PrepareRustArgs stores the resulting arguments in these fields
+  // LowerRustArgs stores the resulting arguments in these fields
 
   // MakeRustCall stores the result of the call in these fields
   FfiValueObjectHandleRondpointStringifier mUniffiReturnValue{};
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void LowerRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
   }
 
   void MakeRustCall(RustCallStatus* aOutStatus) override {
@@ -10860,7 +10860,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void LiftSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     mUniffiReturnValue.Lift(
       aCx,
       &aDest.Construct(),
@@ -10870,7 +10870,7 @@ public:
 };
 class ScaffoldingCallHandlerUniffiUniffiSpritesFnFuncTranslate : public UniffiSyncCallHandler {
 private:
-  // PrepareRustArgs stores the resulting arguments in these fields
+  // LowerRustArgs stores the resulting arguments in these fields
   FfiValueRustBuffer mP{};
   FfiValueRustBuffer mV{};
 
@@ -10878,7 +10878,7 @@ private:
   FfiValueRustBuffer mUniffiReturnValue{};
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void LowerRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     mP.Lower(aArgs[0], aError);
     if (aError.Failed()) {
       return;
@@ -10899,7 +10899,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void LiftSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     mUniffiReturnValue.Lift(
       aCx,
       &aDest.Construct(),
@@ -10909,14 +10909,14 @@ public:
 };
 class ScaffoldingCallHandlerUniffiUniffiSpritesFnMethodSpriteGetPosition : public UniffiSyncCallHandler {
 private:
-  // PrepareRustArgs stores the resulting arguments in these fields
+  // LowerRustArgs stores the resulting arguments in these fields
   FfiValueObjectHandleSpritesSprite mPtr{};
 
   // MakeRustCall stores the result of the call in these fields
   FfiValueRustBuffer mUniffiReturnValue{};
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void LowerRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     mPtr.Lower(aArgs[0], aError);
     if (aError.Failed()) {
       return;
@@ -10932,7 +10932,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void LiftSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     mUniffiReturnValue.Lift(
       aCx,
       &aDest.Construct(),
@@ -10942,14 +10942,14 @@ public:
 };
 class ScaffoldingCallHandlerUniffiUniffiSpritesFnMethodSpriteMoveBy : public UniffiSyncCallHandler {
 private:
-  // PrepareRustArgs stores the resulting arguments in these fields
+  // LowerRustArgs stores the resulting arguments in these fields
   FfiValueObjectHandleSpritesSprite mPtr{};
   FfiValueRustBuffer mDirection{};
 
   // MakeRustCall stores the result of the call in these fields
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void LowerRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     mPtr.Lower(aArgs[0], aError);
     if (aError.Failed()) {
       return;
@@ -10968,19 +10968,19 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void LiftSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
   }
 };
 class ScaffoldingCallHandlerUniffiUniffiSpritesFnMethodSpriteMoveTo : public UniffiSyncCallHandler {
 private:
-  // PrepareRustArgs stores the resulting arguments in these fields
+  // LowerRustArgs stores the resulting arguments in these fields
   FfiValueObjectHandleSpritesSprite mPtr{};
   FfiValueRustBuffer mPosition{};
 
   // MakeRustCall stores the result of the call in these fields
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void LowerRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     mPtr.Lower(aArgs[0], aError);
     if (aError.Failed()) {
       return;
@@ -10999,19 +10999,19 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void LiftSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
   }
 };
 class ScaffoldingCallHandlerUniffiUniffiSpritesFnConstructorSpriteNew : public UniffiSyncCallHandler {
 private:
-  // PrepareRustArgs stores the resulting arguments in these fields
+  // LowerRustArgs stores the resulting arguments in these fields
   FfiValueRustBuffer mInitialPosition{};
 
   // MakeRustCall stores the result of the call in these fields
   FfiValueObjectHandleSpritesSprite mUniffiReturnValue{};
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void LowerRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     mInitialPosition.Lower(aArgs[0], aError);
     if (aError.Failed()) {
       return;
@@ -11027,7 +11027,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void LiftSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     mUniffiReturnValue.Lift(
       aCx,
       &aDest.Construct(),
@@ -11037,7 +11037,7 @@ public:
 };
 class ScaffoldingCallHandlerUniffiUniffiSpritesFnConstructorSpriteNewRelativeTo : public UniffiSyncCallHandler {
 private:
-  // PrepareRustArgs stores the resulting arguments in these fields
+  // LowerRustArgs stores the resulting arguments in these fields
   FfiValueRustBuffer mReference{};
   FfiValueRustBuffer mDirection{};
 
@@ -11045,7 +11045,7 @@ private:
   FfiValueObjectHandleSpritesSprite mUniffiReturnValue{};
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void LowerRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     mReference.Lower(aArgs[0], aError);
     if (aError.Failed()) {
       return;
@@ -11066,7 +11066,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void LiftSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     mUniffiReturnValue.Lift(
       aCx,
       &aDest.Construct(),
@@ -11076,14 +11076,14 @@ public:
 };
 class ScaffoldingCallHandlerUniffiUniffiTodolistFnFuncCreateEntryWith : public UniffiSyncCallHandler {
 private:
-  // PrepareRustArgs stores the resulting arguments in these fields
+  // LowerRustArgs stores the resulting arguments in these fields
   FfiValueRustBuffer mTodo{};
 
   // MakeRustCall stores the result of the call in these fields
   FfiValueRustBuffer mUniffiReturnValue{};
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void LowerRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     mTodo.Lower(aArgs[0], aError);
     if (aError.Failed()) {
       return;
@@ -11099,7 +11099,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void LiftSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     mUniffiReturnValue.Lift(
       aCx,
       &aDest.Construct(),
@@ -11109,13 +11109,13 @@ public:
 };
 class ScaffoldingCallHandlerUniffiUniffiTodolistFnFuncGetDefaultList : public UniffiSyncCallHandler {
 private:
-  // PrepareRustArgs stores the resulting arguments in these fields
+  // LowerRustArgs stores the resulting arguments in these fields
 
   // MakeRustCall stores the result of the call in these fields
   FfiValueRustBuffer mUniffiReturnValue{};
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void LowerRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
   }
 
   void MakeRustCall(RustCallStatus* aOutStatus) override {
@@ -11126,7 +11126,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void LiftSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     mUniffiReturnValue.Lift(
       aCx,
       &aDest.Construct(),
@@ -11136,13 +11136,13 @@ public:
 };
 class ScaffoldingCallHandlerUniffiUniffiTodolistFnFuncSetDefaultList : public UniffiSyncCallHandler {
 private:
-  // PrepareRustArgs stores the resulting arguments in these fields
+  // LowerRustArgs stores the resulting arguments in these fields
   FfiValueObjectHandleTodolistTodoList mList{};
 
   // MakeRustCall stores the result of the call in these fields
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void LowerRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     mList.Lower(aArgs[0], aError);
     if (aError.Failed()) {
       return;
@@ -11156,19 +11156,19 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void LiftSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
   }
 };
 class ScaffoldingCallHandlerUniffiUniffiTodolistFnMethodTodolistAddEntries : public UniffiSyncCallHandler {
 private:
-  // PrepareRustArgs stores the resulting arguments in these fields
+  // LowerRustArgs stores the resulting arguments in these fields
   FfiValueObjectHandleTodolistTodoList mPtr{};
   FfiValueRustBuffer mEntries{};
 
   // MakeRustCall stores the result of the call in these fields
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void LowerRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     mPtr.Lower(aArgs[0], aError);
     if (aError.Failed()) {
       return;
@@ -11187,19 +11187,19 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void LiftSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
   }
 };
 class ScaffoldingCallHandlerUniffiUniffiTodolistFnMethodTodolistAddEntry : public UniffiSyncCallHandler {
 private:
-  // PrepareRustArgs stores the resulting arguments in these fields
+  // LowerRustArgs stores the resulting arguments in these fields
   FfiValueObjectHandleTodolistTodoList mPtr{};
   FfiValueRustBuffer mEntry{};
 
   // MakeRustCall stores the result of the call in these fields
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void LowerRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     mPtr.Lower(aArgs[0], aError);
     if (aError.Failed()) {
       return;
@@ -11218,19 +11218,19 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void LiftSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
   }
 };
 class ScaffoldingCallHandlerUniffiUniffiTodolistFnMethodTodolistAddItem : public UniffiSyncCallHandler {
 private:
-  // PrepareRustArgs stores the resulting arguments in these fields
+  // LowerRustArgs stores the resulting arguments in these fields
   FfiValueObjectHandleTodolistTodoList mPtr{};
   FfiValueRustBuffer mTodo{};
 
   // MakeRustCall stores the result of the call in these fields
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void LowerRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     mPtr.Lower(aArgs[0], aError);
     if (aError.Failed()) {
       return;
@@ -11249,19 +11249,19 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void LiftSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
   }
 };
 class ScaffoldingCallHandlerUniffiUniffiTodolistFnMethodTodolistAddItems : public UniffiSyncCallHandler {
 private:
-  // PrepareRustArgs stores the resulting arguments in these fields
+  // LowerRustArgs stores the resulting arguments in these fields
   FfiValueObjectHandleTodolistTodoList mPtr{};
   FfiValueRustBuffer mItems{};
 
   // MakeRustCall stores the result of the call in these fields
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void LowerRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     mPtr.Lower(aArgs[0], aError);
     if (aError.Failed()) {
       return;
@@ -11280,19 +11280,19 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void LiftSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
   }
 };
 class ScaffoldingCallHandlerUniffiUniffiTodolistFnMethodTodolistClearItem : public UniffiSyncCallHandler {
 private:
-  // PrepareRustArgs stores the resulting arguments in these fields
+  // LowerRustArgs stores the resulting arguments in these fields
   FfiValueObjectHandleTodolistTodoList mPtr{};
   FfiValueRustBuffer mTodo{};
 
   // MakeRustCall stores the result of the call in these fields
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void LowerRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     mPtr.Lower(aArgs[0], aError);
     if (aError.Failed()) {
       return;
@@ -11311,19 +11311,19 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void LiftSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
   }
 };
 class ScaffoldingCallHandlerUniffiUniffiTodolistFnMethodTodolistGetEntries : public UniffiSyncCallHandler {
 private:
-  // PrepareRustArgs stores the resulting arguments in these fields
+  // LowerRustArgs stores the resulting arguments in these fields
   FfiValueObjectHandleTodolistTodoList mPtr{};
 
   // MakeRustCall stores the result of the call in these fields
   FfiValueRustBuffer mUniffiReturnValue{};
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void LowerRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     mPtr.Lower(aArgs[0], aError);
     if (aError.Failed()) {
       return;
@@ -11339,7 +11339,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void LiftSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     mUniffiReturnValue.Lift(
       aCx,
       &aDest.Construct(),
@@ -11349,14 +11349,14 @@ public:
 };
 class ScaffoldingCallHandlerUniffiUniffiTodolistFnMethodTodolistGetFirst : public UniffiSyncCallHandler {
 private:
-  // PrepareRustArgs stores the resulting arguments in these fields
+  // LowerRustArgs stores the resulting arguments in these fields
   FfiValueObjectHandleTodolistTodoList mPtr{};
 
   // MakeRustCall stores the result of the call in these fields
   FfiValueRustBuffer mUniffiReturnValue{};
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void LowerRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     mPtr.Lower(aArgs[0], aError);
     if (aError.Failed()) {
       return;
@@ -11372,7 +11372,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void LiftSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     mUniffiReturnValue.Lift(
       aCx,
       &aDest.Construct(),
@@ -11382,14 +11382,14 @@ public:
 };
 class ScaffoldingCallHandlerUniffiUniffiTodolistFnMethodTodolistGetItems : public UniffiSyncCallHandler {
 private:
-  // PrepareRustArgs stores the resulting arguments in these fields
+  // LowerRustArgs stores the resulting arguments in these fields
   FfiValueObjectHandleTodolistTodoList mPtr{};
 
   // MakeRustCall stores the result of the call in these fields
   FfiValueRustBuffer mUniffiReturnValue{};
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void LowerRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     mPtr.Lower(aArgs[0], aError);
     if (aError.Failed()) {
       return;
@@ -11405,7 +11405,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void LiftSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     mUniffiReturnValue.Lift(
       aCx,
       &aDest.Construct(),
@@ -11415,14 +11415,14 @@ public:
 };
 class ScaffoldingCallHandlerUniffiUniffiTodolistFnMethodTodolistGetLast : public UniffiSyncCallHandler {
 private:
-  // PrepareRustArgs stores the resulting arguments in these fields
+  // LowerRustArgs stores the resulting arguments in these fields
   FfiValueObjectHandleTodolistTodoList mPtr{};
 
   // MakeRustCall stores the result of the call in these fields
   FfiValueRustBuffer mUniffiReturnValue{};
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void LowerRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     mPtr.Lower(aArgs[0], aError);
     if (aError.Failed()) {
       return;
@@ -11438,7 +11438,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void LiftSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     mUniffiReturnValue.Lift(
       aCx,
       &aDest.Construct(),
@@ -11448,14 +11448,14 @@ public:
 };
 class ScaffoldingCallHandlerUniffiUniffiTodolistFnMethodTodolistGetLastEntry : public UniffiSyncCallHandler {
 private:
-  // PrepareRustArgs stores the resulting arguments in these fields
+  // LowerRustArgs stores the resulting arguments in these fields
   FfiValueObjectHandleTodolistTodoList mPtr{};
 
   // MakeRustCall stores the result of the call in these fields
   FfiValueRustBuffer mUniffiReturnValue{};
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void LowerRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     mPtr.Lower(aArgs[0], aError);
     if (aError.Failed()) {
       return;
@@ -11471,7 +11471,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void LiftSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     mUniffiReturnValue.Lift(
       aCx,
       &aDest.Construct(),
@@ -11481,13 +11481,13 @@ public:
 };
 class ScaffoldingCallHandlerUniffiUniffiTodolistFnMethodTodolistMakeDefault : public UniffiSyncCallHandler {
 private:
-  // PrepareRustArgs stores the resulting arguments in these fields
+  // LowerRustArgs stores the resulting arguments in these fields
   FfiValueObjectHandleTodolistTodoList mPtr{};
 
   // MakeRustCall stores the result of the call in these fields
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void LowerRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     mPtr.Lower(aArgs[0], aError);
     if (aError.Failed()) {
       return;
@@ -11501,18 +11501,18 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void LiftSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
   }
 };
 class ScaffoldingCallHandlerUniffiUniffiTodolistFnConstructorTodolistNew : public UniffiSyncCallHandler {
 private:
-  // PrepareRustArgs stores the resulting arguments in these fields
+  // LowerRustArgs stores the resulting arguments in these fields
 
   // MakeRustCall stores the result of the call in these fields
   FfiValueObjectHandleTodolistTodoList mUniffiReturnValue{};
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void LowerRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
   }
 
   void MakeRustCall(RustCallStatus* aOutStatus) override {
@@ -11523,7 +11523,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void LiftSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     mUniffiReturnValue.Lift(
       aCx,
       &aDest.Construct(),
@@ -11533,13 +11533,13 @@ public:
 };
 class ScaffoldingCallHandlerUniffiUniffiTraitInterfacesFnFuncMakeBuggyCalculator : public UniffiSyncCallHandler {
 private:
-  // PrepareRustArgs stores the resulting arguments in these fields
+  // LowerRustArgs stores the resulting arguments in these fields
 
   // MakeRustCall stores the result of the call in these fields
   FfiValueObjectHandleUniffiTraitInterfacesCalc mUniffiReturnValue{};
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void LowerRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
   }
 
   void MakeRustCall(RustCallStatus* aOutStatus) override {
@@ -11550,7 +11550,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void LiftSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     mUniffiReturnValue.Lift(
       aCx,
       &aDest.Construct(),
@@ -11560,13 +11560,13 @@ public:
 };
 class ScaffoldingCallHandlerUniffiUniffiTraitInterfacesFnFuncMakeCalculator : public UniffiSyncCallHandler {
 private:
-  // PrepareRustArgs stores the resulting arguments in these fields
+  // LowerRustArgs stores the resulting arguments in these fields
 
   // MakeRustCall stores the result of the call in these fields
   FfiValueObjectHandleUniffiTraitInterfacesCalc mUniffiReturnValue{};
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void LowerRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
   }
 
   void MakeRustCall(RustCallStatus* aOutStatus) override {
@@ -11577,7 +11577,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void LiftSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     mUniffiReturnValue.Lift(
       aCx,
       &aDest.Construct(),
@@ -11587,7 +11587,7 @@ public:
 };
 class ScaffoldingCallHandlerUniffiUniffiTraitInterfacesFnMethodCalcAdd : public UniffiSyncCallHandler {
 private:
-  // PrepareRustArgs stores the resulting arguments in these fields
+  // LowerRustArgs stores the resulting arguments in these fields
   FfiValueObjectHandleUniffiTraitInterfacesCalc mPtr{};
   FfiValueInt<uint32_t> mA{};
   FfiValueInt<uint32_t> mB{};
@@ -11596,7 +11596,7 @@ private:
   FfiValueInt<uint32_t> mUniffiReturnValue{};
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void LowerRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     mPtr.Lower(aArgs[0], aError);
     if (aError.Failed()) {
       return;
@@ -11622,7 +11622,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void LiftSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     mUniffiReturnValue.Lift(
       aCx,
       &aDest.Construct(),

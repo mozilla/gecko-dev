@@ -8,8 +8,8 @@
 #include "js/GCAPI.h"
 #include "mozilla/EndianUtils.h"
 #include "mozilla/Logging.h"
-#include "mozilla/dom/UniFFIPointer.h"
 #include "mozilla/dom/UniFFIBinding.h"
+#include "mozilla/dom/UniFFIPointer.h"
 #include "mozilla/uniffi/Rust.h"
 
 namespace mozilla::uniffi {
