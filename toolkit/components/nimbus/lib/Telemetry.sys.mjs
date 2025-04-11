@@ -6,19 +6,9 @@ const lazy = {};
 
 ChromeUtils.defineESModuleGetters(lazy, {
   TelemetryEnvironment: "resource://gre/modules/TelemetryEnvironment.sys.mjs",
-  TelemetryEvents: "resource://normandy/lib/TelemetryEvents.sys.mjs",
 });
 
-const LEGACY_TELEMETRY_EVENT_OBJECT = "nimbus_experiment";
 const EXPERIMENT_ACTIVE_PREFIX = "nimbus-";
-
-const LegacyTelemetryEvents = Object.freeze({
-  ENROLL: "enroll",
-  ENROLL_FAILED: "enrollFailed",
-  UNENROLL: "unenroll",
-  UNENROLL_FAILED: "unenrollFailed",
-  VALIDATION_FAILED: "validationFailed",
-});
 
 const EnrollmentStatus = Object.freeze({
   ENROLLED: "Enrolled",
@@ -93,15 +83,11 @@ export const NimbusTelemetry = {
 
   recordEnrollment(enrollment) {
     this.setExperimentActive(enrollment);
-    lazy.TelemetryEvents.sendEvent(
-      LegacyTelemetryEvents.ENROLL,
-      LEGACY_TELEMETRY_EVENT_OBJECT,
-      enrollment.slug,
-      {
-        experimentType: enrollment.experimentType,
-        branch: enrollment.branch.slug,
-      }
-    );
+    Glean.normandy.enrollNimbusExperiment.record({
+      value: enrollment.slug,
+      experimentType: enrollment.experimentType,
+      branch: enrollment.branch.slug,
+    });
     Glean.nimbusEvents.enrollment.record({
       experiment: enrollment.slug,
       branch: enrollment.branch.slug,
@@ -120,14 +106,10 @@ export const NimbusTelemetry = {
   },
 
   recordEnrollmentFailure(slug, reason) {
-    lazy.TelemetryEvents.sendEvent(
-      LegacyTelemetryEvents.ENROLL_FAILED,
-      LEGACY_TELEMETRY_EVENT_OBJECT,
-      slug,
-      {
-        reason,
-      }
-    );
+    Glean.normandy.enrollFailedNimbusExperiment.record({
+      value: slug,
+      reason,
+    });
     Glean.nimbusEvents.enrollFailed.record({
       experiment: slug,
       reason,
@@ -181,7 +163,8 @@ export const NimbusTelemetry = {
     lazy.TelemetryEnvironment.setExperimentInactive(enrollment.slug);
     Services.fog.setExperimentInactive(enrollment.slug);
 
-    const legacyEventExtra = {
+    const legacyEvent = {
+      value: enrollment.slug,
       branch: enrollment.branch.slug,
       reason: cause.reason,
     };
@@ -193,31 +176,25 @@ export const NimbusTelemetry = {
 
     switch (cause.reason) {
       case UnenrollReason.CHANGED_PREF:
-        legacyEventExtra.changedPref = cause.changedPref.name;
+        legacyEvent.changedPref = cause.changedPref.name;
         gleanEvent.changed_pref = cause.changedPref.name;
         break;
 
       case UnenrollReason.PREF_FLIPS_CONFLICT:
-        legacyEventExtra.conflictingSlug = cause.conflictingSlug;
+        legacyEvent.conflictingSlug = cause.conflictingSlug;
         gleanEvent.conflicting_slug = cause.conflictingSlug;
         break;
 
       case UnenrollReason.PREF_FLIPS_FAILED:
-        legacyEventExtra.prefType = cause.prefType;
+        legacyEvent.prefType = cause.prefType;
         gleanEvent.pref_type = cause.prefType;
 
-        legacyEventExtra.prefName = cause.prefName;
+        legacyEvent.prefName = cause.prefName;
         gleanEvent.pref_name = cause.prefName;
         break;
     }
 
-    lazy.TelemetryEvents.sendEvent(
-      LegacyTelemetryEvents.UNENROLL,
-      LEGACY_TELEMETRY_EVENT_OBJECT,
-      enrollment.slug,
-      legacyEventExtra
-    );
-
+    Glean.normandy.unenrollNimbusExperiment.record(legacyEvent);
     Glean.nimbusEvents.unenrollment.record(gleanEvent);
 
     const enrollmentStatus = {
@@ -273,12 +250,10 @@ export const NimbusTelemetry = {
   },
 
   recordUnenrollmentFailure(slug, reason) {
-    lazy.TelemetryEvents.sendEvent(
-      LegacyTelemetryEvents.UNENROLL_FAILED,
-      LEGACY_TELEMETRY_EVENT_OBJECT,
-      slug,
-      { reason }
-    );
+    Glean.normandy.unenrollFailedNimbusExperiment({
+      value: slug,
+      reason,
+    });
     Glean.nimbusEvents.unenrollFailed.record({
       experiment: slug,
       reason,
@@ -316,12 +291,10 @@ export const NimbusTelemetry = {
         : {}
     );
 
-    lazy.TelemetryEvents.sendEvent(
-      LegacyTelemetryEvents.VALIDATION_FAILED,
-      LEGACY_TELEMETRY_EVENT_OBJECT,
-      slug,
-      extra
-    );
+    Glean.normandy.validationFailedNimbusExperiment.record({
+      value: slug,
+      ...extra,
+    });
 
     Glean.nimbusEvents.validationFailed.record({
       experiment: slug,
