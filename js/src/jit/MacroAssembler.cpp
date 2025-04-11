@@ -6988,13 +6988,12 @@ void MacroAssembler::branchWasmSTVIsSubtype(Register subSTV, Register superSTV,
   MOZ_ASSERT_IF(superDepth >= wasm::MinSuperTypeVectorLength,
                 scratch != Register::Invalid());
   Label fallthrough;
+  Label* successLabel = onSuccess ? label : &fallthrough;
   Label* failLabel = onSuccess ? &fallthrough : label;
 
-  // At this point, we could generate a fast success check which jumps to
-  // `success` if `subSTV == superSTV`.  However,
-  // profiling of Barista-3 seems to show this is hardly worth anything,
-  // whereas it is worth us generating smaller code and in particular one
-  // fewer conditional branch.
+  // Emit a fast success path for if subSTV == superSTV.
+  // If they are unequal, they still may be subtypes.
+  branchPtr(Assembler::Equal, subSTV, superSTV, successLabel);
 
   // Emit a bounds check if the super type depth may be out-of-bounds.
   if (superDepth >= wasm::MinSuperTypeVectorLength) {
@@ -7008,7 +7007,7 @@ void MacroAssembler::branchWasmSTVIsSubtype(Register subSTV, Register superSTV,
       Address(subSTV, wasm::SuperTypeVector::offsetOfSTVInVector(superDepth)),
       subSTV);
 
-  // We succeed iff the entries are equal
+  // We succeed iff the entries are equal.
   branchPtr(onSuccess ? Assembler::Equal : Assembler::NotEqual, subSTV,
             superSTV, label);
 
