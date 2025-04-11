@@ -15,6 +15,7 @@ namespace loader {
 
 void ScriptCacheChild::Init(const Maybe<FileDescriptor>& cacheFile,
                             bool wantCacheData) {
+  AssertIsOnMainThread();
   mWantCacheData = wantCacheData;
 
   auto& cache = ScriptPreloader::GetChildSingleton();

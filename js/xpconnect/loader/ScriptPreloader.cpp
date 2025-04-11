@@ -122,6 +122,7 @@ StaticAutoPtr<AutoMemMap> ScriptPreloader::gChildCacheData;
 
 ScriptPreloader& ScriptPreloader::GetSingleton() {
   if (!gScriptPreloader) {
+    AssertIsOnMainThread();
     if (XRE_IsParentProcess()) {
       gCacheData = new AutoMemMap();
       gScriptPreloader = new ScriptPreloader(gCacheData.get());
@@ -160,6 +161,7 @@ ScriptPreloader& ScriptPreloader::GetSingleton() {
 //  previous cache file, but I'd rather do that as a follow-up.
 ScriptPreloader& ScriptPreloader::GetChildSingleton() {
   if (!gChildScriptPreloader) {
+    AssertIsOnMainThread();
     gChildCacheData = new AutoMemMap();
     gChildScriptPreloader = new ScriptPreloader(gChildCacheData.get());
     if (XRE_IsParentProcess()) {
@@ -186,8 +188,10 @@ void ScriptPreloader::DeleteCacheDataSingleton() {
 }
 
 void ScriptPreloader::InitContentChild(ContentParent& parent) {
+  AssertIsOnMainThread();
+
   auto& cache = GetChildSingleton();
-  cache.mSaveMonitor.AssertOnWritingThread();
+  cache.mSaveMonitor.NoteOnMainThread();
 
   // We want startup script data from the first process of a given type.
   // That process sends back its script data before it executes any
@@ -231,7 +235,7 @@ ProcessType ScriptPreloader::GetChildProcessType(const nsACString& remoteType) {
 ScriptPreloader::ScriptPreloader(AutoMemMap* cacheData)
     : mCacheData(cacheData),
       mMonitor("[ScriptPreloader.mMonitor]"),
-      mSaveMonitor("[ScriptPreloader.mSaveMonitor]", this) {
+      mSaveMonitor("[ScriptPreloader.mSaveMonitor]") {
   // We do not set the process type for child processes here because the
   // remoteType in ContentChild is not ready yet.
   if (XRE_IsParentProcess()) {
@@ -299,18 +303,21 @@ void ScriptPreloader::InvalidateCache() {
   }
 
   {
-    MonitorSingleWriterAutoLock saveMonitorAutoLock(mSaveMonitor);
+    MonitorAutoLock saveMonitorAutoLock(mSaveMonitor.Lock());
+    mSaveMonitor.NoteExclusiveAccess();
 
     mCacheInvalidated = true;
   }
 
   // If we're waiting on a timeout to finish saving, interrupt it and just save
   // immediately.
-  mSaveMonitor.NotifyAll();
+  mSaveMonitor.Lock().NotifyAll();
 }
 
 nsresult ScriptPreloader::Observe(nsISupports* subject, const char* topic,
                                   const char16_t* data) {
+  AssertIsOnMainThread();
+
   nsCOMPtr<nsIObserverService> obs = services::GetObserverService();
   if (!strcmp(topic, STARTUP_COMPLETE_TOPIC)) {
     obs->RemoveObserver(this, STARTUP_COMPLETE_TOPIC);
@@ -442,7 +449,6 @@ Result<Ok, nsresult> ScriptPreloader::OpenCache() {
 // Opens the script cache file for this session, and initializes the script
 // cache based on its contents. See WriteCache for details of the cache file.
 Result<Ok, nsresult> ScriptPreloader::InitCache(const nsAString& basePath) {
-  mSaveMonitor.AssertOnWritingThread();
   mCacheInitialized = true;
   mBaseName = basePath;
 
@@ -468,7 +474,6 @@ Result<Ok, nsresult> ScriptPreloader::InitCache(const nsAString& basePath) {
 
 Result<Ok, nsresult> ScriptPreloader::InitCache(
     const Maybe<ipc::FileDescriptor>& cacheFile, ScriptCacheChild* cacheChild) {
-  mSaveMonitor.AssertOnWritingThread();
   MOZ_ASSERT(XRE_IsContentProcess());
 
   mCacheInitialized = true;
@@ -685,10 +690,9 @@ void ScriptPreloader::PrepareCacheWrite() {
 //   an offset from the start of the block, as specified above.
 Result<Ok, nsresult> ScriptPreloader::WriteCache() {
   MOZ_ASSERT(!NS_IsMainThread());
-  mSaveMonitor.AssertCurrentThreadOwns();
 
   if (!mDataPrepared && !mSaveComplete) {
-    MonitorSingleWriterAutoUnlock mau(mSaveMonitor);
+    MonitorAutoUnlock mau(mSaveMonitor.Lock());
 
     NS_DispatchAndSpinEventLoopUntilComplete(
         "ScriptPreloader::PrepareCacheWrite"_ns,
@@ -790,7 +794,8 @@ nsresult ScriptPreloader::GetName(nsACString& aName) {
 // Runs in the mSaveThread thread, and writes out the cache file for the next
 // session after a reasonable delay.
 nsresult ScriptPreloader::Run() {
-  MonitorSingleWriterAutoLock mal(mSaveMonitor);
+  MonitorAutoLock mal(mSaveMonitor.Lock());
+  mSaveMonitor.NoteLockHeld();
 
   // Ideally wait about 10 seconds before saving, to avoid unnecessary IO
   // during early startup. But only if the cache hasn't been invalidated,
@@ -807,7 +812,7 @@ nsresult ScriptPreloader::Run() {
   Unused << NS_WARN_IF(result.isErr());
 
   {
-    MonitorSingleWriterAutoLock lock(mChildCache->mSaveMonitor);
+    MonitorAutoLock lock(mChildCache->mSaveMonitor.Lock());
     result = mChildCache->WriteCache();
   }
   Unused << NS_WARN_IF(result.isErr());
@@ -1353,7 +1358,7 @@ nsresult ScriptPreloader::BlockShutdown(
     nsIAsyncShutdownClient* aBarrierClient) {
   // If we're waiting on a timeout to finish saving, interrupt it and just save
   // immediately.
-  mSaveMonitor.NotifyAll();
+  mSaveMonitor.Lock().NotifyAll();
   return NS_OK;
 }
 
