@@ -4628,3 +4628,16 @@ h1-in-section-styles:
       setPref:
         branch: user
         pref: layout.css.h1-in-section-ua-styles.enabled
+
+expandSignInButton:
+  description: "Add text next to the FxA avatar toolbar icon"
+  owner: skhamis@mozilla.com
+  hasExposure: false
+  variables:
+    ctaCopyVariant:
+      description: >-
+        One of the following values:
+          - fxa-avatar-sign-in
+          - fxa-avatar-sign-up
+        empty will be assumed default experience
+      type: string
