@@ -260,13 +260,17 @@ this.tabs = class extends ExtensionAPIPersistent {
     }),
     onMoved({ fire }) {
       let { tabManager } = this.extension;
+      /**
+       * @param {CustomEvent} event
+       */
       let moveListener = event => {
         let nativeTab = event.originalTarget;
+        let { previousTabState, currentTabState } = event.detail;
         if (tabManager.canAccessTab(nativeTab)) {
           fire.async(tabTracker.getId(nativeTab), {
             windowId: windowTracker.getId(nativeTab.ownerGlobal),
-            fromIndex: event.detail,
-            toIndex: nativeTab._tPos,
+            fromIndex: previousTabState.tabIndex,
+            toIndex: currentTabState.tabIndex,
           });
         }
       };

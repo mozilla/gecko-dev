@@ -18,8 +18,7 @@ ChromeUtils.defineESModuleGetters(lazy, {
     "moz-src:///browser/components/search/SearchSERPTelemetry.sys.mjs",
   SearchSERPTelemetryUtils:
     "moz-src:///browser/components/search/SearchSERPTelemetry.sys.mjs",
-  TabGroupMetrics:
-    "moz-src:///browser/components/tabbrowser/TabGroupMetrics.sys.mjs",
+  TabMetrics: "moz-src:///browser/components/tabbrowser/TabMetrics.sys.mjs",
   WindowsInstallsInfo:
     "resource://gre/modules/components-utils/WindowsInstallsInfo.sys.mjs",
 
@@ -467,6 +466,20 @@ export let BrowserUsageTelemetry = {
 
   _inited: false,
 
+  /**
+   * @typedef {object} TabMovementsRecord
+   * @property {DeferredTask} deferredTask
+   *   The `DeferredTask` that will report this record's metrics once all
+   *   tab movement events with the same `telemetrySource` have been received
+   *   in the current event loop.
+   * @property {number} numberAddedToTabGroup
+   *   The number of tabs from `tabs` which started out as ungrouped tabs but
+   *   moved into a tab group during the tab movement operation.
+   */
+
+  /** @type {Map<string, TabMovementsRecord>} */
+  _tabMovementsBySource: new Map(),
+
   init() {
     this._lastRecordTabCount = 0;
     this._lastRecordLoadedTabCount = 0;
@@ -597,6 +610,9 @@ export let BrowserUsageTelemetry = {
       case "TabGroupCollapse":
       case "TabGroupExpand":
         this._onTabGroupExpandOrCollapse();
+        break;
+      case "TabMove":
+        this._onTabMove(event);
         break;
       case "TabGroupRemoveRequested":
         this._onTabGroupRemoveRequested(event);
@@ -1143,11 +1159,13 @@ export let BrowserUsageTelemetry = {
 
   /**
    * Adds listeners to a single chrome window.
+   * @param {Window} win
    */
   _registerWindow(win) {
     this._addUsageListeners(win);
 
     win.addEventListener("unload", this);
+    win.addEventListener("TabMove", this);
     win.addEventListener("TabOpen", this, true);
     win.addEventListener("TabPinned", this, true);
     win.addEventListener("TabGroupCreate", this);
@@ -1167,6 +1185,7 @@ export let BrowserUsageTelemetry = {
    */
   _unregisterWindow(win) {
     win.removeEventListener("unload", this);
+    win.removeEventListener("TabMove", this);
     win.removeEventListener("TabOpen", this, true);
     win.removeEventListener("TabPinned", this, true);
     win.removeEventListener("TabGroupCreate", this);
@@ -1230,7 +1249,9 @@ export let BrowserUsageTelemetry = {
     if (event.detail.isUserTriggered) {
       Glean.tabgroup.createGroup.record({
         id: event.target.id,
-        layout: lazy.sidebarVerticalTabs ? "vertical" : "horizontal",
+        layout: lazy.sidebarVerticalTabs
+          ? lazy.TabMetrics.METRIC_TABS_LAYOUT.VERTICAL
+          : lazy.TabMetrics.METRIC_TABS_LAYOUT.HORIZONTAL,
         source: event.detail.telemetryUserCreateSource,
         tabs: event.target.tabs.length,
       });
@@ -1325,7 +1346,7 @@ export let BrowserUsageTelemetry = {
   _onTabGroupRemoveRequested(event) {
     let {
       isUserTriggered = false,
-      telemetrySource = lazy.TabGroupMetrics.METRIC_SOURCE.UNKNOWN,
+      telemetrySource = lazy.TabMetrics.METRIC_SOURCE.UNKNOWN,
     } = event.detail;
 
     if (isUserTriggered) {
@@ -1333,6 +1354,59 @@ export let BrowserUsageTelemetry = {
         id: event.target.id,
         source: telemetrySource,
       });
+    }
+  },
+
+  /**
+   * Accumulates `TabMove` events in order to record 1 metrics event per frame
+   * per telemetry source.
+   *
+   * For example, dragging and dropping 4 tabs should listen for 4 `TabMove`
+   * events but result in 1 metrics event being recorded with a source of
+   * `drag` and a tab count of 4.
+   *
+   * @param {CustomEvent} event
+   */
+  _onTabMove(event) {
+    let { isUserTriggered, telemetrySource } = event.detail;
+
+    if (!isUserTriggered) {
+      return;
+    }
+
+    let tabMovementsRecord = this._tabMovementsBySource.get(telemetrySource);
+    if (!tabMovementsRecord) {
+      let deferredTask = new lazy.DeferredTask(() => {
+        Glean.tabgroup.addTab.record({
+          source: telemetrySource,
+          tabs: tabMovementsRecord.numberAddedToTabGroup,
+          layout: lazy.sidebarVerticalTabs ? "vertical" : "horizontal",
+        });
+        this._tabMovementsBySource.delete(telemetrySource);
+      }, 0);
+      tabMovementsRecord = {
+        deferredTask,
+        numberAddedToTabGroup: 0,
+      };
+      this._tabMovementsBySource.set(telemetrySource, tabMovementsRecord);
+      this._updateTabMovementsRecord(tabMovementsRecord, event);
+      deferredTask.arm();
+    } else {
+      tabMovementsRecord.deferredTask.disarm();
+      this._updateTabMovementsRecord(tabMovementsRecord, event);
+      tabMovementsRecord.deferredTask.arm();
+    }
+  },
+
+  /**
+   * @param {TabMovementsRecord} record
+   * @param {CustomEvent} event
+   */
+  _updateTabMovementsRecord(record, event) {
+    let { previousTabState, currentTabState } = event.detail;
+
+    if (!previousTabState.tabGroupId && currentTabState.tabGroupId) {
+      record.numberAddedToTabGroup += 1;
     }
   },
 

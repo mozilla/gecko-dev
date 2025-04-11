@@ -12,8 +12,7 @@ ChromeUtils.defineESModuleGetters(lazy, {
   BrowserWindowTracker: "resource:///modules/BrowserWindowTracker.sys.mjs",
   UrlbarPrefs: "resource:///modules/UrlbarPrefs.sys.mjs",
   SessionStore: "resource:///modules/sessionstore/SessionStore.sys.mjs",
-  TabGroupMetrics:
-    "moz-src:///browser/components/tabbrowser/TabGroupMetrics.sys.mjs",
+  TabMetrics: "moz-src:///browser/components/tabbrowser/TabMetrics.sys.mjs",
 });
 
 const MIN_SEARCH_PREF = "tabGroups.minSearchLength";
@@ -77,7 +76,7 @@ class ProviderTabGroups extends ActionsProvider {
                 savedGroup.id,
                 window,
                 {
-                  source: lazy.TabGroupMetrics.METRIC_SOURCE.SUGGEST,
+                  source: lazy.TabMetrics.METRIC_SOURCE.SUGGEST,
                 }
               );
               this.#switchToGroup(group);
