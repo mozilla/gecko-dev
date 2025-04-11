@@ -71,6 +71,7 @@ gecko_metrics = [
     "startupcache/metrics.yaml",
     "toolkit/components/antitracking/bouncetrackingprotection/metrics.yaml",
     "toolkit/components/antitracking/metrics.yaml",
+    "toolkit/components/backgroundhangmonitor/metrics.yaml",
     "toolkit/components/captchadetection/metrics.yaml",
     "toolkit/components/cookiebanners/metrics.yaml",
     "toolkit/components/downloads/metrics.yaml",
@@ -197,6 +198,7 @@ metrics_yamls = sorted(
 gecko_pings = [
     "dom/pings.yaml",
     "toolkit/components/antitracking/bouncetrackingprotection/pings.yaml",
+    "toolkit/components/backgroundhangmonitor/pings.yaml",
     "toolkit/components/captchadetection/pings.yaml",
     "toolkit/components/glean/pings.yaml",
     "toolkit/components/resistfingerprinting/pings.yaml",

@@ -2,6 +2,9 @@
  http://creativecommons.org/publicdomain/zero/1.0/ */
 
 function ensureProfilerInitialized() {
+  if (Services.profiler.IsActive()) {
+    return;
+  }
   // Starting and stopping the profiler with the "stackwalk" flag will cause the
   // profiler's stackwalking features to be synchronously initialized. This
   // should prevent us from not initializing BHR quickly enough.

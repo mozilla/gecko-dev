@@ -1,0 +1,35 @@
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at https://mozilla.org/MPL/2.0/.
+
+---
+$schema: moz://mozilla.org/schemas/glean/pings/2-0-0
+
+hang-report:
+  description: |
+    This ping is used to report when BackgroundHangReporter has detected that
+    the browser was unresponsive.
+    BackgroundHangReporter is only enabled for pre-release channels (currently
+    only on Nightly), and only on specific threads (main, renderer).
+    Whenever a runnable starts being processed on the event loop, BHR starts a
+    128ms timer. If the runnable finishes quickly enough and execution returns
+    to the event loop before the timer fired, the timer is canceled.
+    When the timer fires, the execution is paused and a profiler stack is
+    captured. These stacks contain native frames (which need to be symbolicated
+    to become readable), label frames, and JavaScript frame, giving detailed
+    information about what was on the stack at the time the timer fired.
+    Once the stack has been recorded, execution resumes, and the total time it
+    took to finish the hanging task and return to the event loop is recorded.
+    If the execution didn't return to the event loop after 8 seconds, we assume
+    we have a 'perma-hang' that we will not be able to recover from, and record
+    the duration as 8 seconds.
+    Stack are sanitized to not reveal any information about remote content.
+    Pings are submitted daily when idle, during clean shutdowns or when 50
+    reports have been accumulated.
+  include_client_id: true
+  bugs:
+    - https://bugzilla.mozilla.org/show_bug.cgi?id=1959768
+  data_reviews:
+    - https://bugzilla.mozilla.org/show_bug.cgi?id=1959768
+  notification_emails:
+    - florian@mozilla.com

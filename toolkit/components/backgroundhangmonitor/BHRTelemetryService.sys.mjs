@@ -131,6 +131,21 @@ BHRTelemetryService.prototype = Object.freeze({
       lazy.TelemetryController.submitExternalPing("bhr", this.payload, {
         addEnvironment: true,
       });
+
+      Glean.hangs.modules.set(this.payload.modules);
+      let gleanHangs = this.payload.hangs.map(
+        ({ stack, duration, ...restOfHang }) => ({
+          stack: stack.map(frame =>
+            typeof frame == "string"
+              ? { frame }
+              : { module: frame[0], frame: frame[1] }
+          ),
+          duration: Math.round(duration),
+          ...restOfHang,
+        })
+      );
+      Glean.hangs.reports.set(gleanHangs);
+      GleanPings.hangReport.submit();
     }
     this.resetPayload();
   },

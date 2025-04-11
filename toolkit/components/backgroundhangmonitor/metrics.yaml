@@ -1,0 +1,105 @@
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
+
+# This file is for Internal Telemetry Use Only.
+# Please don't add anything here unless you have the permission of a
+# Telemetry Module Peer.
+
+---
+$schema: moz://mozilla.org/schemas/glean/metrics/2-0-0
+$tags:
+  - "Toolkit :: Telemetry"
+
+hangs:
+  reports:
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1959768
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1959768
+    expires: never
+    notification_emails:
+      - florian@mozilla.com
+    send_in_pings:
+      - hang-report
+    description: |
+      A set of hang reports from Background Hang Reporter.
+      The data is an array with one item per hang report.
+      Each hang report is an object with the following fields:
+       - duration: detected duration of the hang in milliseconds.
+       - thread: the name of the unresponsive thread.
+          (eg. "Gecko", "Gecko_Child", "Render")
+       - runnableName: the name of the runnable that was in the event
+                       loop at the time the stack was captured.
+       - process: the type of the process (eg. "default", "tab")
+       - remoteType: (optional) the type of remote process. Eg. "webIsolated".
+          Will be null for the parent process.
+       - annotations: (optional) an array of string pairs (array of 2 strings).
+          The first string of the pair will be the annotation name, the second
+          will be its value.
+       - stack: The frames of the stack that was recorded for the hang, stored
+           as an array of objects, one for each stack frame.
+           Stack frame objects contain the following fields:
+             - frame: either a plain text label or JS frame, or the hex offset
+                 in the module if the module field is set.
+             - module: (optional) Will only be set for native frames, and will
+                 be a module index (in the array of the 'modules' metric).
+    data_sensitivity:
+      - technical
+    type: object
+    structure:
+      type: array
+      items:
+        type: object
+        properties:
+          duration:
+            type: number
+          thread:
+            type: string
+          runnableName:
+            type: string
+          process:
+            type: string
+          remoteType:
+            type: string
+          annotations:
+            type: array
+            items:
+              type: array
+              items:
+                type: string
+          stack:
+            type: array
+            items:
+              type: object
+              properties:
+                frame:
+                  type: string
+                module:
+                  type: number
+
+  modules:
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1959768
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1959768
+    expires: never
+    notification_emails:
+      - florian@mozilla.com
+    send_in_pings:
+      - hang-report
+    description: >
+      A set of modules found in hang reports sent in the same ping.
+      The data is an array of string pairs (array of 2 strings).
+      The first string of the pair is the module name (eg. "libxul.so"),
+      the second string is the debug id (33 hexadecimal characters) which
+      can be used to fetch the symbols from the Mozilla symbol server.
+    data_sensitivity:
+      - technical
+    type: object
+    structure:
+      type: array
+      items:
+        type: array
+        items:
+          type: string
