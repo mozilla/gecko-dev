@@ -441,6 +441,32 @@
 - name: Compare
   gen_boilerplate: false
 
+- name: StrictConstantCompareInt32
+  operands:
+    value: Value
+  arguments:
+    constant: int32_t
+    jsop: JSOp
+  can_recover: true
+  movable: true
+  alias_set: none
+  result_type: Boolean
+  generate_lir: true
+  lir_temps: 2
+
+- name: StrictConstantCompareBoolean
+  operands:
+    value: Value
+  arguments:
+    constant: bool
+    jsop: JSOp
+  can_recover: true
+  movable: true
+  alias_set: none
+  result_type: Boolean
+  generate_lir: true
+  lir_temps: 1
+
 - name: SameValueDouble
   operands:
     left: Double
