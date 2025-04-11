@@ -47,6 +47,13 @@ async function getCurrentTabGroupId() {
         tabRepeated.groupId,
         "groupId should consistently return the same value"
       );
+      const tabs = await browser.tabs.query({ groupId: tab.groupId });
+      browser.test.assertEq(
+        tabs.length,
+        1,
+        "tabs.query({ groupId }) found the one and only tab in that group"
+      );
+      browser.test.assertEq(tab.id, tabs[0].id, "Got expected tab");
       browser.test.sendMessage("ext_groupId", tab.groupId);
     },
   });

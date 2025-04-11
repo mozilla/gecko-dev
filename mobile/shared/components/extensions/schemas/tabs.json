@@ -617,6 +617,12 @@
                 ],
                 "optional": true,
                 "description": "The CookieStoreId used for the tab."
+              },
+              "groupId": {
+                "type": "integer",
+                "minimum": -1,
+                "optional": true,
+                "description": "The ID of the group that the tabs are in, or $(ref:tabGroups.TAB_GROUP_ID_NONE) (-1) for ungrouped tabs."
               }
             }
           },
