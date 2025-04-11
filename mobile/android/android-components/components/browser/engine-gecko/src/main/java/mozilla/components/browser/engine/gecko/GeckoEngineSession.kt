@@ -609,13 +609,6 @@ class GeckoEngineSession(
     }
 
     /**
-     * See [EngineSession.onPipModeChanged].
-     */
-    override fun onPipModeChanged(enabled: Boolean) {
-        geckoSession.compositorController.onPipModeChanged(enabled)
-    }
-
-    /**
      * See [EngineSession.checkForFormData].
      */
     override fun checkForFormData(adjustPriority: Boolean) {
