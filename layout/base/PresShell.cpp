@@ -1360,11 +1360,6 @@ void PresShell::Destroy() {
   StopObservingRefreshDriver();
   mObservingStyleFlushes = false;
 
-  if (rd->GetPresContext() == GetPresContext()) {
-    rd->RevokeViewManagerFlush();
-    rd->ClearHasScheduleFlush();
-  }
-
   CancelAllPendingReflows();
   CancelPostedReflowCallbacks();
 
@@ -4172,13 +4167,12 @@ bool PresShell::ScrollFrameIntoView(
   return didScroll;
 }
 
-void PresShell::ScheduleViewManagerFlush() {
+void PresShell::SchedulePaint() {
   if (MOZ_UNLIKELY(mIsDestroying)) {
     return;
   }
-
   if (nsPresContext* presContext = GetPresContext()) {
-    presContext->RefreshDriver()->ScheduleViewManagerFlush();
+    presContext->RefreshDriver()->SchedulePaint();
   }
 }
 

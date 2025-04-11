@@ -179,8 +179,8 @@ class WebRenderLayerManager final : public WindowRenderer {
 
   void GetFrameUniformity(FrameUniformityData* aOutData) override;
 
-  void RegisterPayloads(const nsTArray<CompositionPayload>& aPayload) {
-    mPayload.AppendElements(aPayload);
+  void RegisterPayloads(nsTArray<CompositionPayload>&& aPayloads) {
+    mPayload.AppendElements(std::move(aPayloads));
     MOZ_ASSERT(mPayload.Length() < 10000);
   }
 

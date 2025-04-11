@@ -2303,11 +2303,11 @@ void nsDisplayList::PaintRoot(nsDisplayListBuilder* aBuilder, gfxContext* aCtx,
                                             aFlags & PAINT_COMPOSITE_OFFSCREEN);
     }
 
-    if (presContext->RefreshDriver()->HasScheduleFlush()) {
+    if (presContext->RefreshDriver()->IsInRefresh() ||
+        presContext->RefreshDriver()->IsPaintPending()) {
       presContext->NotifyInvalidation(layerManager->GetLastTransactionId(),
                                       frame->GetRect());
     }
-
     return;
   }
 

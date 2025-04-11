@@ -3687,7 +3687,7 @@ static void PrepareForFullscreenChange(nsIDocShell* aDocShell,
     // Since we are suppressing the resize reflow which would originally
     // be triggered by view manager, we need to ensure that the refresh
     // driver actually schedules a flush, otherwise it may get stuck.
-    rd->ScheduleViewManagerFlush();
+    rd->SchedulePaint();
   }
   if (!aSize.IsEmpty()) {
     nsCOMPtr<nsIDocumentViewer> viewer;

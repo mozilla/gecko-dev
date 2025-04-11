@@ -952,8 +952,6 @@ class nsPresContext : public nsISupports, public mozilla::SupportsWeakPtr {
   // be dispatched to MozAfterPaint events when NotifyDidPaintForSubtree is
   // called for the transaction id (or any higher id).
   void NotifyInvalidation(TransactionId aTransactionId, const nsRect& aRect);
-  // aRect is in device pixels
-  void NotifyInvalidation(TransactionId aTransactionId, const nsIntRect& aRect);
   void NotifyDidPaintForSubtree(
       TransactionId aTransactionId = TransactionId{0},
       const mozilla::TimeStamp& aTimeStamp = mozilla::TimeStamp());

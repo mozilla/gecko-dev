@@ -105,7 +105,6 @@ class nsRefreshDriver final : public mozilla::layers::TransactionIdAllocator,
   bool RemoveRefreshObserver(nsARefreshObserver* aObserver,
                              mozilla::FlushType aFlushType);
 
-
   MOZ_CAN_RUN_SCRIPT void FlushLayoutOnPendingDocsAndFixUpFocus();
 
   /**
@@ -167,16 +166,14 @@ class nsRefreshDriver final : public mozilla::layers::TransactionIdAllocator,
     EnsureTimerStarted();
   }
 
-  /**
-   * Remember whether our presshell's view manager needs a flush
-   */
-  void ScheduleViewManagerFlush();
-  void RevokeViewManagerFlush() { mViewManagerFlushIsPending = false; }
-  bool ViewManagerFlushIsPending() { return mViewManagerFlushIsPending; }
-  bool HasScheduleFlush() { return mHasScheduleFlush; }
-  void ClearHasScheduleFlush() { mHasScheduleFlush = false; }
+  // Remember whether our presshell's view manager needs a flush
+  void SchedulePaint();
+  bool IsPaintPending() const {
+    return mRenderingPhasesNeeded.contains(mozilla::RenderingPhase::Paint);
+  }
+
   // Returns true if a paint actually occurred.
-  MOZ_CAN_RUN_SCRIPT bool FlushViewManagerIfNeeded();
+  MOZ_CAN_RUN_SCRIPT bool PaintIfNeeded();
 
   /**
    * Schedule a frame visibility update "soon", subject to the heuristics and
@@ -448,7 +445,6 @@ class nsRefreshDriver final : public mozilla::layers::TransactionIdAllocator,
     eNone = 0,
     eForceAdjustTimer = 1 << 0,
     eAllowTimeToGoBackwards = 1 << 1,
-    eNeverAdjustTimer = 1 << 2,
   };
   void EnsureTimerStarted(EnsureTimerStartedFlags aFlags = eNone);
   void StopTimer();
@@ -530,21 +526,11 @@ class nsRefreshDriver final : public mozilla::layers::TransactionIdAllocator,
   // flush since the last time we did it.
   const mozilla::TimeDuration mMinRecomputeVisibilityInterval;
 
-  mozilla::UniquePtr<mozilla::ProfileChunkedBuffer> mViewManagerFlushCause;
+  mozilla::UniquePtr<mozilla::ProfileChunkedBuffer> mPaintCause;
 
   bool mThrottled : 1;
   bool mNeedToRecomputeVisibility : 1;
   bool mTestControllingRefreshes : 1;
-
-  // These two fields are almost the same, the only difference is that
-  // mViewManagerFlushIsPending gets cleared right before calling
-  // ProcessPendingUpdates, and mHasScheduleFlush gets cleared right after
-  // calling ProcessPendingUpdates. It is important that mHasScheduleFlush
-  // only gets cleared after, but it's not clear if mViewManagerFlushIsPending
-  // needs to be cleared before.
-  bool mViewManagerFlushIsPending : 1;
-  bool mHasScheduleFlush : 1;
-
   bool mInRefresh : 1;
 
   // True if the refresh driver is suspended waiting for transaction

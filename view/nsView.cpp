@@ -19,9 +19,7 @@
 #include "nsIWidget.h"
 #include "nsViewManager.h"
 #include "nsIFrame.h"
-#include "nsPresArena.h"
 #include "nsXULPopupManager.h"
-#include "nsIScreen.h"
 #include "nsIWidgetListener.h"
 #include "nsContentUtils.h"  // for nsAutoScriptBlocker
 #include "nsDocShell.h"
@@ -955,7 +953,7 @@ void nsView::DidCompositeWindow(mozilla::layers::TransactionId aTransactionId,
 
 void nsView::RequestRepaint() {
   if (PresShell* presShell = mViewManager->GetPresShell()) {
-    presShell->ScheduleViewManagerFlush();
+    presShell->SchedulePaint();
   }
 }
 

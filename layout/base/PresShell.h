@@ -1344,12 +1344,7 @@ class PresShell final : public nsStubDocumentObserver,
    * widget geometry.
    */
   MOZ_CAN_RUN_SCRIPT void WillPaint();
-
-  /**
-   * Ensures that the refresh driver is running, and schedules a view
-   * manager flush on the next tick.
-   */
-  void ScheduleViewManagerFlush();
+  void SchedulePaint();
 
   // caret handling
   NS_IMETHOD SetCaretEnabled(bool aInEnable) override;

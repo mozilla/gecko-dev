@@ -8028,7 +8028,7 @@ static void SchedulePaintInternal(
     return;
   }
 
-  pres->PresShell()->ScheduleViewManagerFlush();
+  pres->PresShell()->SchedulePaint();
 
   if (aType == nsIFrame::PAINT_DEFAULT) {
     aDisplayRoot->AddStateBits(NS_FRAME_UPDATE_LAYER_TREE);

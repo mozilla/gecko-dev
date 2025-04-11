@@ -32,7 +32,7 @@ enum class RenderingPhase : uint8_t {
   UpdateIntersectionObservations,
   // TODO: Record rendering time
   // TODO: Mark paint timing
-  // TODO: Paint.
+  Paint,
   // TODO: Process top layer removals.
   Count,
 };
@@ -51,6 +51,7 @@ inline constexpr RenderingPhases AllRenderingPhases() {
       RenderingPhase::ResizeObservers,
       RenderingPhase::ViewTransitionOperations,
       RenderingPhase::UpdateIntersectionObservations,
+      RenderingPhase::Paint,
   };
 }
 

@@ -434,7 +434,7 @@ void nsViewManager::PostPendingUpdate() {
   rootVM->mHasPendingWidgetGeometryChanges = true;
   if (rootVM->mPresShell) {
     rootVM->mPresShell->SetNeedLayoutFlush();
-    rootVM->mPresShell->ScheduleViewManagerFlush();
+    rootVM->mPresShell->SchedulePaint();
   }
 }
 
@@ -778,17 +778,10 @@ void nsViewManager::ProcessPendingUpdates() {
 
   // Flush things like reflows by calling WillPaint on observer presShells.
   if (mPresShell) {
-    mPresShell->GetPresContext()->RefreshDriver()->RevokeViewManagerFlush();
-
     RefPtr<nsViewManager> strongThis(this);
     CallWillPaintOnObservers();
 
     ProcessPendingUpdatesForView(mRootView, true);
-    if (mPresShell) {
-      if (nsPresContext* pc = mPresShell->GetPresContext()) {
-        pc->RefreshDriver()->ClearHasScheduleFlush();
-      }
-    }
   }
 }
 

@@ -133,7 +133,7 @@ bool nsPresContext::IsDOMPaintEventPending() {
   }
 
   nsRootPresContext* drpc = GetRootPresContext();
-  if (drpc && drpc->mRefreshDriver->ViewManagerFlushIsPending()) {
+  if (drpc && drpc->mRefreshDriver->IsPaintPending()) {
     // Since we're promising that there will be a MozAfterPaint event fired, we
     // record an empty invalidation in case display list invalidation doesn't
     // invalidate anything further.
@@ -2373,26 +2373,6 @@ void nsPresContext::FireDOMPaintEvent(
   event->SetTrusted(true);
   EventDispatcher::DispatchDOMEvent(dispatchTarget, nullptr,
                                     static_cast<Event*>(event), this, nullptr);
-}
-
-void nsPresContext::NotifyInvalidation(TransactionId aTransactionId,
-                                       const nsIntRect& aRect) {
-  // Prevent values from overflow after DevPixelsToAppUnits().
-  //
-  // DevPixelsTopAppUnits() will multiple a factor (60) to the value,
-  // it may make the result value over the edge (overflow) of max or
-  // min value of int32_t. Compute the max sized dev pixel rect that
-  // we can support and intersect with it.
-  nsIntRect clampedRect = nsIntRect::MaxIntRect();
-  clampedRect.ScaleInverseRoundIn(AppUnitsPerDevPixel());
-
-  clampedRect = clampedRect.Intersect(aRect);
-
-  nsRect rect(DevPixelsToAppUnits(clampedRect.x),
-              DevPixelsToAppUnits(clampedRect.y),
-              DevPixelsToAppUnits(clampedRect.width),
-              DevPixelsToAppUnits(clampedRect.height));
-  NotifyInvalidation(aTransactionId, rect);
 }
 
 nsPresContext::TransactionInvalidations* nsPresContext::GetInvalidations(
