@@ -25,6 +25,9 @@ const DISABLE_SHIM3_PREF = "extensions.webcompat.disabled_shims.MochitestShim3";
 const DISABLE_SHIM4_PREF = "extensions.webcompat.disabled_shims.MochitestShim4";
 const GLOBAL_PREF = "extensions.webcompat.enable_shims";
 const TRACKING_PREF = "privacy.trackingprotection.enabled";
+const SEC_DELAY_PREF = "security.notification_enable_delay";
+const SMARTBLOCK_EMBEDS_ENABLED_PREF =
+  "extensions.webcompat.smartblockEmbeds.enabled";
 
 const { UrlClassifierTestUtils } = ChromeUtils.importESModule(
   "resource://testing-common/UrlClassifierTestUtils.sys.mjs"
@@ -138,4 +141,97 @@ async function testShimDoesNotRun(
   );
 
   await BrowserTestUtils.removeTab(tab);
+}
+
+async function closeProtectionsPanel(win = window) {
+  let protectionsPopup = win.document.getElementById("protections-popup");
+  if (!protectionsPopup) {
+    return;
+  }
+  let popuphiddenPromise = BrowserTestUtils.waitForEvent(
+    protectionsPopup,
+    "popuphidden"
+  );
+
+  PanelMultiView.hidePopup(protectionsPopup);
+  await popuphiddenPromise;
+}
+
+async function openProtectionsPanel(win = window) {
+  let popupShownPromise = BrowserTestUtils.waitForEvent(
+    win,
+    "popupshown",
+    true,
+    e => e.target.id == "protections-popup"
+  );
+
+  win.gProtectionsHandler.showProtectionsPopup();
+
+  await popupShownPromise;
+}
+
+async function loadSmartblockPageOnTab(tab) {
+  let smartblockScriptFinished = BrowserTestUtils.waitForContentEvent(
+    tab.linkedBrowser,
+    "smartblockEmbedScriptFinished",
+    false,
+    null,
+    true
+  );
+
+  BrowserTestUtils.startLoadingURIString(
+    tab.linkedBrowser,
+    TEST_PAGE_WITH_SMARTBLOCK_COMPATIBLE_EMBED
+  );
+
+  return smartblockScriptFinished;
+}
+
+async function clickOnPagePlaceholder(tab) {
+  // Setup promise for listening for protections panel open
+  let popupShownPromise = BrowserTestUtils.waitForEvent(
+    window,
+    "popupshown",
+    true,
+    e => e.target.id == "protections-popup"
+  );
+
+  await SpecialPowers.spawn(tab.linkedBrowser, [], async () => {
+    // Check that the "embed" was replaced with a placeholder
+    let placeholder = content.document.querySelector(
+      ".shimmed-embedded-content"
+    );
+    ok(placeholder, "Embed is replaced with a placeholder");
+
+    // Get the button element from the placeholder
+    let shadowRoot = placeholder.openOrClosedShadowRoot;
+    ok(shadowRoot, "Shadow root exists");
+
+    // Check that all elements are present
+    let placeholderButton = shadowRoot.querySelector(
+      "#smartblock-placeholder-button"
+    );
+    ok(placeholderButton, "Placeholder button exists");
+
+    let placeholderTitle = shadowRoot.querySelector(
+      "#smartblock-placeholder-title"
+    );
+    ok(placeholderTitle, "Placeholder title exists");
+
+    let placeholderLabel = shadowRoot.querySelector(
+      "#smartblock-placeholder-desc"
+    );
+    ok(placeholderLabel, "Placeholder description exists");
+
+    let placeholderImage = shadowRoot.querySelector(
+      "#smartblock-placeholder-image"
+    );
+    ok(placeholderImage, "Placeholder image exists");
+
+    // Click button to open protections panel
+    await EventUtils.synthesizeMouseAtCenter(placeholderButton, {}, content);
+  });
+
+  // If this await finished, then protections panel is open
+  return popupShownPromise;
 }
