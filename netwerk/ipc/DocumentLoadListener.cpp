@@ -2297,6 +2297,17 @@ void DocumentLoadListener::TriggerRedirectToRealChannel(
   // the registrar and copy across any needed state to the replacing
   // IPDL parent object.
 
+  // If we've already called `DisconnectListeners`, and have no destination
+  // process we're switching to, abort early to skip the following checks.
+  if (mOpenPromiseResolved && !aDestinationProcess) {
+    LOG(
+        ("DocumentLoadListener::TriggerRedirectToRealChannel [this=%p] "
+         "Listeners already disconnected for non-switching redirect. Aborting.",
+         this));
+    RedirectToRealChannelFinished(NS_BINDING_ABORTED);
+    return;
+  }
+
   RefPtr<ContentParent> contentParent =
       aDestinationProcess.valueOr(mContentParent);
 
