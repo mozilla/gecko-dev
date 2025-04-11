@@ -1031,14 +1031,14 @@ newtabCustomWallpaper:
       type: boolean
       setPref:
         branch: user
-        pref: browser.newtabpage.activity-stream.newtabWallpapers.fileSize.enabled
+        pref: browser.newtabpage.activity-stream.newtabWallpapers.customWallpaper.fileSize.enabled
       description: >-
         Turns on and off maximum file size for uploaded images
     maxFileSize:
       type: int
       setPref:
         branch: user
-        pref: browser.newtabpage.activity-stream.newtabWallpapers.fileSize
+        pref: browser.newtabpage.activity-stream.newtabWallpapers.customWallpaper.fileSize
       description: >-
         Maximum file size (in MB) a user can upload
 
