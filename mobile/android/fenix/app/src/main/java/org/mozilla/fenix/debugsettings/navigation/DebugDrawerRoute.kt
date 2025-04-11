@@ -18,6 +18,7 @@ import org.mozilla.fenix.debugsettings.cfrs.CfrToolsStore
 import org.mozilla.fenix.debugsettings.gleandebugtools.GleanDebugToolsStore
 import org.mozilla.fenix.debugsettings.gleandebugtools.ui.GleanDebugToolsScreen
 import org.mozilla.fenix.debugsettings.logins.LoginsTools
+import org.mozilla.fenix.debugsettings.region.RegionTools
 import org.mozilla.fenix.debugsettings.store.DebugDrawerAction
 import org.mozilla.fenix.debugsettings.store.DebugDrawerStore
 import org.mozilla.fenix.debugsettings.cfrs.CfrTools as CfrToolsScreen
@@ -53,6 +54,10 @@ enum class DebugDrawerRoute(val route: String, @StringRes val title: Int) {
     GleanDebugTools(
         route = "glean_debug_tools",
         title = R.string.glean_debug_tools_title,
+    ),
+    RegionDebugTools(
+        route = "region_debug_tools",
+        title = R.string.debug_drawer_region_tools_title,
     ),
     ;
 
@@ -135,6 +140,17 @@ enum class DebugDrawerRoute(val route: String, @StringRes val title: Int) {
                         }
                         content = {
                             GleanDebugToolsScreen(gleanDebugToolsStore = gleanDebugToolsStore)
+                        }
+                    }
+
+                    RegionDebugTools -> {
+                        onClick = {
+                            debugDrawerStore.dispatch(DebugDrawerAction.NavigateTo.RegionDebugTools)
+                        }
+                        content = {
+                            RegionTools(
+                                browserStore = browserStore,
+                            )
                         }
                     }
                 }
