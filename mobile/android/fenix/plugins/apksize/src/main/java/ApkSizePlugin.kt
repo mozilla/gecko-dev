@@ -34,7 +34,7 @@ open class ApkSizeTask : DefaultTask() {
     @Input
     var apks: List<String>? = null
 
-    private val buildDir = project.buildDir
+    private val buildDir = project.layout.buildDirectory.get().asFile
 
     @TaskAction
     fun logApkSize() {
