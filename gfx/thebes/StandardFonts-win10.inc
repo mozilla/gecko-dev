@@ -76,6 +76,7 @@ static const char* kBaseFonts[] = {
   "Segoe UI Symbol",
   "SimSun",
   "SimSun-ExtB",
+  "SimSun-ExtG",
   "Sitka Banner",
   "Sitka Display",
   "Sitka Heading",
@@ -164,6 +165,16 @@ static const char* kLangPackFonts[] = {
   "MS Mincho",  // Japanese Supplemental Fonts
   "MS PMincho",  // Japanese Supplemental Fonts
   "Narkisim",  // Hebrew Supplemental Fonts
+  "Noto Sans HK",  // Chinese (Traditional, Hong Kong) Supplemental Fonts
+  "Noto Sans JP",  // Japanese Supplemental Fonts
+  "Noto Sans KR",  // Korean Supplemental Fonts
+  "Noto Sans SC",  // Chinese (Simplified) Supplemental Fonts
+  "Noto Sans TC",  // Chinese (Traditional) Supplemental Fonts
+  "Noto Serif HK",  // Chinese (Traditional, Hong Kong) Supplemental Fonts
+  "Noto Serif JP",  // Japanese Supplemental Fonts
+  "Noto Serif KR",  // Korean Supplemental Fonts
+  "Noto Serif SC",  // Chinese (Simplified) Supplemental Fonts
+  "Noto Serif TC",  // Chinese (Traditional) Supplemental Fonts
   "Nyala",  // Ethiopic Supplemental Fonts
   "Plantagenet Cherokee",  // Cherokee Supplemental Fonts
   "PMingLiU",  // Chinese (Traditional) Supplemental Fonts
