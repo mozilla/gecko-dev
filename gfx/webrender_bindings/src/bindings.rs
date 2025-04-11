@@ -1792,8 +1792,14 @@ impl PartialPresentCompositor for WrPartialPresentCompositor {
     }
 }
 
-/// A wrapper around a strong reference to a Shaders object.
-pub struct WrShaders(SharedShaders);
+/// A wrapper around a strong reference to a Shaders object, and around the
+/// Device object that was used to create the shaders.
+///
+/// We store the device to avoid repeated GL function lookups.
+pub struct WrShaders {
+    shaders: SharedShaders,
+    device: Device,
+}
 
 pub struct WrGlyphRasterThread(GlyphRasterThread);
 
@@ -4455,20 +4461,23 @@ pub extern "C" fn wr_shaders_new(
         },
     };
 
-    let shaders = WrShaders(Rc::new(RefCell::new(shaders)));
-
     device.end_frame();
+
+    let shaders = WrShaders {
+        shaders: Rc::new(RefCell::new(shaders)),
+        device,
+    };
+
     Box::into_raw(Box::new(shaders))
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn wr_shaders_delete(shaders: *mut WrShaders, gl_context: *mut c_void) {
-    let mut device = wr_device_new(gl_context, None);
-    let shaders = Box::from_raw(shaders);
-    if let Ok(shaders) = Rc::try_unwrap(shaders.0) {
+pub unsafe extern "C" fn wr_shaders_delete(shaders: *mut WrShaders) {
+    // Deallocate the box by moving the values out of it.
+    let WrShaders { shaders, mut device } = *Box::from_raw(shaders);
+    if let Ok(shaders) = Rc::try_unwrap(shaders) {
         shaders.into_inner().deinit(&mut device);
     }
-    // let shaders go out of scope and get dropped
 }
 
 #[no_mangle]

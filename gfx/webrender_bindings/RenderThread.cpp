@@ -1543,7 +1543,7 @@ WebRenderShaders::WebRenderShaders(gl::GLContext* gl,
 
 WebRenderShaders::~WebRenderShaders() {
   mGL->MakeCurrent();
-  wr_shaders_delete(mShaders, mGL.get());
+  wr_shaders_delete(mShaders);
 }
 
 WebRenderThreadPool::WebRenderThreadPool(bool low_priority) {
