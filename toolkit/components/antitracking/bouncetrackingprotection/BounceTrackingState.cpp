@@ -509,8 +509,6 @@ BounceTrackingState::OnStateChange(nsIWebProgress* aWebProgress,
     return NS_OK;
   }
 
-  // TODO: use MOZ_LOG_FMT with the x formatter (see matrix)
-
   MOZ_LOG_FMT(gBounceTrackingProtectionLog, LogLevel::Verbose,
               "{}: Top level window load: aStateFlags: {}, aStatus: {:#x}",
               __PRETTY_FUNCTION__, aStateFlags, static_cast<uint32_t>(aStatus));
