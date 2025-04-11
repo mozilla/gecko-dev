@@ -9,7 +9,7 @@
 
 #include "mozilla/ErrorResult.h"
 #include "mozilla/dom/TypedArray.h"
-#include "mozilla/dom/UniFFIRust.h"
+#include "mozilla/uniffi/Rust.h"
 
 namespace mozilla::uniffi {
 

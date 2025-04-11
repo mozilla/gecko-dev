@@ -12,14 +12,14 @@
 #include "mozilla/Maybe.h"
 #include "mozilla/UniquePtr.h"
 #include "mozilla/dom/Promise.h"
-#include "mozilla/dom/UniFFICall.h"
-#include "mozilla/dom/UniFFICallbacks.h"
+#include "mozilla/uniffi/Call.h"
+#include "mozilla/uniffi/Callbacks.h"
 #include "mozilla/dom/UniFFIScaffolding.h"
 
 // This file implements the UniFFI WebIDL interface by leveraging the generate
-// code in UniFFIScaffolding.cpp and UniFFIFixtureScaffolding.cpp.  It's main
-// purpose is to check if MOZ_UNIFFI_FIXTURES is set and only try calling the
-// scaffolding code if it is.
+// code in UniFFIScaffolding.cpp.  It's main purpose is to check if
+// MOZ_UNIFFI_FIXTURES is set and only try calling the scaffolding code if it
+// is.
 
 using mozilla::dom::ArrayBuffer;
 using mozilla::dom::GlobalObject;
@@ -35,7 +35,7 @@ using mozilla::uniffi::UniffiSyncCallHandler;
 
 namespace mozilla::uniffi {
 mozilla::LazyLogModule gUniffiLogger("uniffi");
-// Implemented in UniFFIGeneratedScaffolding.cpp
+// Implemented in GeneratedScaffolding.cpp
 UniquePtr<UniffiSyncCallHandler> GetSyncCallHandler(uint64_t aId);
 UniquePtr<UniffiAsyncCallHandler> GetAsyncCallHandler(uint64_t aId);
 Maybe<already_AddRefed<UniFFIPointer>> ReadPointer(

@@ -2524,6 +2524,7 @@ dependencies = [
 name = "gkrust-uniffi-components"
 version = "0.1.0"
 dependencies = [
+ "hashbrown 0.15.2",
  "relevancy",
  "search",
  "suggest",

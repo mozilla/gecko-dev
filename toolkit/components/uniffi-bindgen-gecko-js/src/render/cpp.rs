@@ -93,7 +93,7 @@ impl CPPScaffoldingTemplate {
                     arg_types: ffi_func
                         .arguments()
                         .iter()
-                        .map(|a| cpp_type(&a.type_()))
+                        .map(|a| ffi_type_name(&a.type_()))
                         .chain(
                             ffi_func
                                 .has_rust_call_status_arg()
@@ -108,7 +108,7 @@ impl CPPScaffoldingTemplate {
                         arg_types: ffi_callback
                             .arguments()
                             .into_iter()
-                            .map(|a| cpp_type(&a.type_()))
+                            .map(|a| ffi_type_name(&a.type_()))
                             .chain(
                                 ffi_callback
                                     .has_rust_call_status_arg()
@@ -125,7 +125,7 @@ impl CPPScaffoldingTemplate {
                         .into_iter()
                         .map(|f| FfiFieldCpp {
                             name: f.name().to_snake_case(),
-                            type_: cpp_type(&f.type_()),
+                            type_: ffi_type_name(&f.type_()),
                         })
                         .collect(),
                 }),
@@ -142,6 +142,7 @@ impl CPPScaffoldingTemplate {
                     .map(move |obj| PointerType {
                         object_id: object_ids.get(&c.ci, obj),
                         name: pointer_type(&c.ci.namespace(), obj.name()),
+                        ffi_value_class: pointer_ffi_value_class(&c.ci.namespace(), obj.name()),
                         label: format!("{}::{}", c.ci.namespace(), obj.name()),
                         clone_fn: obj.ffi_object_clone().name().to_string(),
                         free_fn: obj.ffi_object_free().name().to_string(),
@@ -182,7 +183,7 @@ impl CPPScaffoldingTemplate {
         let cbi_name_snake = cbi.name().to_snake_case();
 
         CallbackInterfaceVTable {
-            type_: cpp_type(&cbi.vtable()),
+            type_: ffi_type_name(&cbi.vtable()),
             var_name: format!("kCallbackInterfaceVtable{cbi_name}"),
             method_handlers: cbi
                 .vtable_methods()
@@ -196,13 +197,13 @@ impl CPPScaffoldingTemplate {
                         arguments: method
                             .arguments()
                             .iter()
-                            .map(|arg| CallbackMethodArgument {
-                                name: arg.name().to_snake_case(),
-                                type_: cpp_type(&arg.as_type().into()),
-                                scaffolding_converter: scaffolding_converter(
-                                    ci,
-                                    &arg.as_type().into(),
-                                ),
+                            .map(|arg| {
+                                let ffi_type = arg.as_type().into();
+                                CallbackMethodArgument {
+                                    name: arg.name().to_snake_case(),
+                                    ffi_type: ffi_type_name(&ffi_type),
+                                    ffi_value_class: ffi_value_class(ci, &ffi_type),
+                                }
                             })
                             .collect(),
                     }
@@ -297,6 +298,7 @@ struct FfiFieldCpp {
 struct PointerType {
     object_id: usize,
     name: String,
+    ffi_value_class: String,
     label: String,
     clone_fn: String,
     free_fn: String,
@@ -337,8 +339,8 @@ struct CallbackMethodHandler {
 
 struct CallbackMethodArgument {
     name: String,
-    type_: String,
-    scaffolding_converter: String,
+    ffi_type: String,
+    ffi_value_class: String,
 }
 
 struct ScaffoldingCall {
@@ -366,7 +368,7 @@ impl ScaffoldingCall {
             .into_iter()
             .map(|a| ScaffoldingCallArgument {
                 var_name: format!("m{}", a.name().to_upper_camel_case()),
-                scaffolding_converter: scaffolding_converter(ci, &a.type_()),
+                ffi_value_class: ffi_value_class(ci, &a.type_()),
             })
             .collect::<Vec<_>>();
 
@@ -384,8 +386,9 @@ impl ScaffoldingCall {
             // function always returns a handle.
             return_type: callable
                 .return_type()
+                .map(|return_type| FfiType::from(return_type))
                 .map(|return_type| ScaffoldingCallReturnType {
-                    scaffolding_converter: scaffolding_converter(ci, &return_type.into()),
+                    ffi_value_class: ffi_value_class(ci, &return_type),
                 }),
             arguments,
             async_info,
@@ -398,12 +401,12 @@ impl ScaffoldingCall {
 }
 
 struct ScaffoldingCallReturnType {
-    scaffolding_converter: String,
+    ffi_value_class: String,
 }
 
 struct ScaffoldingCallArgument {
     var_name: String,
-    scaffolding_converter: String,
+    ffi_value_class: String,
 }
 
 struct ScaffoldingCallAsyncInfo {
@@ -412,7 +415,7 @@ struct ScaffoldingCallAsyncInfo {
     free_fn: String,
 }
 
-fn scaffolding_converter(ci: &ComponentInterface, ffi_type: &FfiType) -> String {
+fn ffi_value_class(ci: &ComponentInterface, ffi_type: &FfiType) -> String {
     match ffi_type {
         FfiType::RustArcPtr(name) => {
             // Check if this is an external type
@@ -420,18 +423,24 @@ fn scaffolding_converter(ci: &ComponentInterface, ffi_type: &FfiType) -> String 
                 let external_ty_name = ty.name().expect("External type without name");
                 let crate_name = ty.module_path().expect("External type without module path");
                 if external_ty_name == name {
-                    return format!(
-                        "ScaffoldingObjectConverter<&{}>",
-                        pointer_type(crate_name_to_namespace(&crate_name), name),
-                    );
+                    return pointer_ffi_value_class(crate_name_to_namespace(&crate_name), name);
                 }
             }
-            format!(
-                "ScaffoldingObjectConverter<&{}>",
-                pointer_type(ci.namespace(), name),
-            )
+            pointer_ffi_value_class(ci.namespace(), name)
         }
-        _ => format!("ScaffoldingConverter<{}>", cpp_type(ffi_type)),
+        FfiType::UInt8
+        | FfiType::Int8
+        | FfiType::UInt16
+        | FfiType::Int16
+        | FfiType::UInt32
+        | FfiType::Int32
+        | FfiType::UInt64
+        | FfiType::Int64 => format!("FfiValueInt<{}>", ffi_type_name(ffi_type)),
+        FfiType::Float32 | FfiType::Float64 => {
+            format!("FfiValueFloat<{}>", ffi_type_name(ffi_type))
+        }
+        FfiType::RustBuffer(_) => "FfiValueRustBuffer".to_owned(),
+        _ => format!("FfiConverter<{}>", ffi_type_name(ffi_type)),
     }
 }
 
@@ -443,8 +452,16 @@ fn pointer_type(namespace: &str, name: &str) -> String {
     )
 }
 
-// Type for the Rust scaffolding code
-fn cpp_type(ffi_type: &FfiType) -> String {
+fn pointer_ffi_value_class(namespace: &str, name: &str) -> String {
+    format!(
+        "FfiValueObjectHandle{}{}",
+        namespace.to_upper_camel_case(),
+        name.to_upper_camel_case()
+    )
+}
+
+// C++ type for an FFI value
+fn ffi_type_name(ffi_type: &FfiType) -> String {
     match ffi_type {
         FfiType::UInt8 => "uint8_t".to_owned(),
         FfiType::Int8 => "int8_t".to_owned(),
@@ -464,14 +481,14 @@ fn cpp_type(ffi_type: &FfiType) -> String {
         FfiType::Callback(name) | FfiType::Struct(name) => name.to_owned(),
         FfiType::VoidPointer => "void*".to_owned(),
         FfiType::MutReference(inner) | FfiType::Reference(inner) => {
-            format!("{}*", cpp_type(inner.as_ref()))
+            format!("{}*", ffi_type_name(inner.as_ref()))
         }
     }
 }
 
 fn return_type(ffi_type: Option<&FfiType>) -> String {
     match ffi_type {
-        Some(t) => cpp_type(t),
+        Some(t) => ffi_type_name(t),
         None => "void".to_owned(),
     }
 }
