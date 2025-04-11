@@ -3305,7 +3305,7 @@ mfcdm:
       - firefox
     record_in_processes: ["all"]
     release_channel_collection: opt-out
-    expiry_version: "140"
+    expiry_version: "146"
     notification_emails:
       - media-alerts@mozilla.com
     extra_keys:
@@ -3325,7 +3325,7 @@ mfcdm:
       - firefox
     record_in_processes: ["all"]
     release_channel_collection: opt-out
-    expiry_version: "140"
+    expiry_version: "146"
     notification_emails:
       - media-alerts@mozilla.com
     extra_keys:
