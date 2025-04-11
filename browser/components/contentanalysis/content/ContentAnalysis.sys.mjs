@@ -109,6 +109,11 @@ export const ContentAnalysis = {
   requestTokenToRequestInfo: new Map(),
 
   /**
+   * @type {Set<string>}
+   */
+  warnDialogRequestTokens: new Set(),
+
+  /**
    * Registers for various messages/events that will indicate the
    * need for communicating something to the user.
    *
@@ -214,6 +219,17 @@ export const ContentAnalysis = {
         break;
       }
       case "quit-application": {
+        // We're quitting, so respond false to all WARN dialogs.
+        let requestTokensToCancel = this.warnDialogRequestTokens;
+        // Clear this first so the handler showing the dialog will know not
+        // to call respondToWarnDialog() again.
+        this.warnDialogRequestTokens = new Set();
+        for (let warnDialogRequestToken of requestTokensToCancel) {
+          lazy.gContentAnalysis.respondToWarnDialog(
+            warnDialogRequestToken,
+            false
+          );
+        }
         this.uninitialize();
         break;
       }
@@ -750,6 +766,7 @@ export const ContentAnalysis = {
       case Ci.nsIContentAnalysisResponse.eWarn: {
         let allow = false;
         try {
+          this.warnDialogRequestTokens.add(aRequestToken);
           const result = await Services.prompt.asyncConfirmEx(
             aBrowsingContext,
             Ci.nsIPromptService.MODAL_TYPE_TAB,
@@ -779,7 +796,13 @@ export const ContentAnalysis = {
           // the request is still active.
           allow = false;
         }
-        lazy.gContentAnalysis.respondToWarnDialog(aRequestToken, allow);
+        // Note that the shutdown code in the "quit-application" handler
+        // may have cleared out warnDialogRequestTokens and responded
+        // to the request already, so don't call respondToWarnDialog()
+        // if aRequestToken is not in warnDialogRequestTokens.
+        if (this.warnDialogRequestTokens.delete(aRequestToken)) {
+          lazy.gContentAnalysis.respondToWarnDialog(aRequestToken, allow);
+        }
         return null;
       }
       case Ci.nsIContentAnalysisResponse.eBlock: {
