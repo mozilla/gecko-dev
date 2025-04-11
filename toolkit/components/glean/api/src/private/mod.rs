@@ -612,19 +612,17 @@ pub(crate) mod profiler_utils {
 
     impl gecko_profiler::ProfilerMarker for PingMarker {
         fn marker_type_name() -> &'static str {
-            "Ping"
+            "GleanPing"
         }
 
         fn marker_type_display() -> gecko_profiler::MarkerSchema {
             use gecko_profiler::schema::*;
             let mut schema = MarkerSchema::new(&[Location::MarkerChart, Location::MarkerTable]);
-            schema.set_tooltip_label("{marker.data.cat}.{marker.data.id} {marker.data.reason}");
-            schema.set_table_label(
-                "{marker.name} -{marker.data.cat}.{marker.data.id} {marker.data.reason}",
-            );
+            schema.set_tooltip_label("{marker.data.id} {marker.data.reason}");
+            schema.set_table_label("{marker.data.id} {marker.data.reason}");
             schema.add_key_label_format_searchable(
                 "id",
-                "Ping",
+                "Ping name",
                 Format::UniqueString,
                 Searchable::Searchable,
             );

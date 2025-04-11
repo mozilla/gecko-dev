@@ -2019,7 +2019,7 @@ add_task(
   },
 
   async function test_fog_ping_markers() {
-    let markers = await runWithProfilerAndGetMarkers("Ping", () => {
+    let markers = await runWithProfilerAndGetMarkers("GleanPing", () => {
       // Do stuff that will generate Ping submissions:
       // From test_fog_custom_pings:
       Glean.testOnly.onePingOneBool.set(false);
@@ -2037,11 +2037,11 @@ add_task(
     });
 
     Assert.deepEqual(markers, [
-      { type: "Ping", id: "one-ping-only" },
-      { type: "Ping", id: "one-ping-only" },
-      { type: "Ping", id: "one-ping-only" },
-      { type: "Ping", id: "one-ping-only" },
-      { type: "Ping", id: "test-ping" },
+      { type: "GleanPing", id: "one-ping-only" },
+      { type: "GleanPing", id: "one-ping-only" },
+      { type: "GleanPing", id: "one-ping-only" },
+      { type: "GleanPing", id: "one-ping-only" },
+      { type: "GleanPing", id: "test-ping" },
     ]);
   }
 );
