@@ -89,12 +89,6 @@
     }
   }
 
-  &:checked {
-    border-color: transparent;
-    outline-color: var(--color-accent-primary-active);
-    padding: 2px;
-  }
-
   &:focus-visible {
     outline-color: var(--newtab-primary-action-background);
   }
@@ -102,6 +96,12 @@
   &:hover {
     filter: brightness(55%);
     outline-color: transparent;
+  }
+
+  &:focus {
+    border-color: transparent;
+    outline-color: var(--color-accent-primary-active);
+    padding: 2px;
   }
 }
 

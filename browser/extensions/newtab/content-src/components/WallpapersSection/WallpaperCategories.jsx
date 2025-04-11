@@ -518,10 +518,9 @@ export class _WallpaperCategories extends React.PureComponent {
                         this.categoryRef[index] = el;
                       }
                     }}
-                    name="wallpaper-category"
                     id={category}
                     style={style}
-                    type="radio"
+                    type="button"
                     onKeyDown={e => this.handleCategoryKeyDown(e, category)}
                     // Add overrides for custom wallpaper upload UI
                     onClick={
