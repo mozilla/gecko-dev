@@ -754,11 +754,6 @@ preonboarding:
       fallbackPref: datareporting.policy.firstRunURL
       description: >-
         URL of browser tab to be opened on first run instead of infobar.
-    onTrainRolloutEnabled:
-      type: boolean
-      fallbackPref: browser.preonboarding.onTrainRolloutEnabled
-      description: >-
-        If an on-train limited rollout is enabled for Mac, Linux, and Windows MSIX
     onTrainRolloutPopulation:
       type: int
       fallbackPref: browser.preonboarding.onTrainRolloutPopulation
