@@ -954,7 +954,8 @@ void Navigation::LogHistory() const {
 // https://html.spec.whatwg.org/#maybe-set-the-upcoming-non-traverse-api-method-tracker
 RefPtr<NavigationAPIMethodTracker>
 Navigation::MaybeSetUpcomingNonTraverseAPIMethodTracker(
-    const JS::Value& aInfo, nsIStructuredCloneContainer* aSerializedState) {
+    JS::Handle<JS::Value> aInfo,
+    nsIStructuredCloneContainer* aSerializedState) {
   // To maybe set the upcoming non-traverse API method tracker given a
   // Navigation navigation, a JavaScript value info, and a serialized
   // state-or-null serializedState:
@@ -987,7 +988,7 @@ Navigation::MaybeSetUpcomingNonTraverseAPIMethodTracker(
 // https://html.spec.whatwg.org/#add-an-upcoming-traverse-api-method-tracker
 RefPtr<NavigationAPIMethodTracker>
 Navigation::AddUpcomingTraverseAPIMethodTracker(const nsID& aKey,
-                                                const JS::Value& aInfo) {
+                                                JS::Handle<JS::Value> aInfo) {
   // To add an upcoming traverse API method tracker given a Navigation
   // navigation, a string destinationKey, and a JavaScript value info:
   // 1. Let committedPromise and finishedPromise be new promises created in

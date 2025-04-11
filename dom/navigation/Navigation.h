@@ -161,10 +161,11 @@ class Navigation final : public DOMEventTargetHelper {
 
   RefPtr<NavigationAPIMethodTracker>
   MaybeSetUpcomingNonTraverseAPIMethodTracker(
-      const JS::Value& aInfo, nsIStructuredCloneContainer* aSerializedState);
+      JS::Handle<JS::Value> aInfo,
+      nsIStructuredCloneContainer* aSerializedState);
 
   RefPtr<NavigationAPIMethodTracker> AddUpcomingTraverseAPIMethodTracker(
-      const nsID& aKey, const JS::Value& aInfo);
+      const nsID& aKey, JS::Handle<JS::Value> aInfo);
 
   static void CleanUp(NavigationAPIMethodTracker* aNavigationAPIMethodTracker);
 
