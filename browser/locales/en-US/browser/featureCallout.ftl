@@ -148,6 +148,9 @@ actions-callout-subtitle = Try typing an action like “print” to print a page
 
 ## Split Dismiss Button Labels
 
+# Accessibility label for dropdown menu button
+split-dismiss-button-default-label =
+    .title = More options
 # Blocks the message from showing again
 split-dismiss-button-dont-show-option =
     .label = Don’t show this recommendation again

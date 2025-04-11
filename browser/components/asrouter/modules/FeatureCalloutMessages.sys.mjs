@@ -1692,6 +1692,7 @@ const MESSAGES = () => {
                 style: "secondary",
                 label: {
                   marginBlock: "0 -8px",
+                  string_id: "split-dismiss-button-default-label",
                 },
               },
               tiles: {
@@ -1960,6 +1961,7 @@ const MESSAGES = () => {
                 style: "secondary",
                 label: {
                   marginBlock: "0 -8px",
+                  string_id: "split-dismiss-button-default-label",
                 },
               },
               tiles: {

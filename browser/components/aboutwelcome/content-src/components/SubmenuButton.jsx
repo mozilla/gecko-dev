@@ -142,12 +142,14 @@ const SubmenuButtonInner = ({ content, handleAction }) => {
   return (
     <Localized text={content.submenu_button.label ?? {}}>
       <button
+        id="submenu_button"
         className={`submenu-button ${isPrimary ? "primary" : "secondary"}`}
         value="submenu_button"
         onClick={onClick}
         ref={ref}
         aria-haspopup="menu"
         aria-expanded={isSubmenuExpanded}
+        aria-labelledby={`${content.submenu_button.attached_to} submenu_button`}
       />
     </Localized>
   );

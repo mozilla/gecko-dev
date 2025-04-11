@@ -468,6 +468,7 @@ const SecondaryCTA = props => {
   }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("span", null)), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(_MSLocalized__WEBPACK_IMPORTED_MODULE_1__.Localized, {
     text: props.content[targetElement].label
   }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("button", {
+    id: "secondary_button",
     className: buttonStyling,
     value: targetElement,
     disabled: isDisabled(props.content.secondary_button?.disabled),
@@ -1828,6 +1829,7 @@ const AdditionalCTA = ({
   }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(_MSLocalized__WEBPACK_IMPORTED_MODULE_1__.Localized, {
     text: content.additional_button?.label
   }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("button", {
+    id: "additional_button",
     className: `${buttonStyle} additional-cta`,
     onClick: handleAction,
     value: "additional_button",
@@ -1991,12 +1993,14 @@ const SubmenuButtonInner = ({
   return /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(_MSLocalized__WEBPACK_IMPORTED_MODULE_1__.Localized, {
     text: content.submenu_button.label ?? {}
   }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("button", {
+    id: "submenu_button",
     className: `submenu-button ${isPrimary ? "primary" : "secondary"}`,
     value: "submenu_button",
     onClick: onClick,
     ref: ref,
     "aria-haspopup": "menu",
-    "aria-expanded": isSubmenuExpanded
+    "aria-expanded": isSubmenuExpanded,
+    "aria-labelledby": `${content.submenu_button.attached_to} submenu_button`
   }));
 };
 

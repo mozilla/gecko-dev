@@ -28,6 +28,7 @@ export const AdditionalCTA = ({ content, handleAction }) => {
     <div className={className}>
       <Localized text={content.additional_button?.label}>
         <button
+          id="additional_button"
           className={`${buttonStyle} additional-cta`}
           onClick={handleAction}
           value="additional_button"

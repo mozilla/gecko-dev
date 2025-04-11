@@ -401,6 +401,7 @@ export const SecondaryCTA = props => {
       </Localized>
       <Localized text={props.content[targetElement].label}>
         <button
+          id="secondary_button"
           className={buttonStyling}
           value={targetElement}
           disabled={isDisabled(props.content.secondary_button?.disabled)}
