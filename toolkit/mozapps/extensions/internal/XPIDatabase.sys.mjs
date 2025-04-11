@@ -1490,6 +1490,9 @@ AddonWrapper = class {
     let perms = {
       origins: required.origins.concat(requested?.origins ?? []),
       permissions: required.permissions.concat(requested?.permissions ?? []),
+      data_collection: required.data_collection.concat(
+        requested?.data_collection ?? []
+      ),
     };
     return perms;
   }

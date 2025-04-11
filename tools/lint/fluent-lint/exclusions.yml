@@ -91,6 +91,8 @@ ID01:
         # The webext-perms-description-* IDs are generated programmatically
         # from permission names.
         - toolkit/locales/en-US/toolkit/global/extensionPermissions.ftl
+        # Same as above: IDs are generated.
+        - toolkit/locales-preview/dataCollectionPermissions.ftl
 ID02:
     messages:
         # browser/aboutDialog.ftl

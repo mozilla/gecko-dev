@@ -14,6 +14,7 @@ export const PERMISSION_L10N = new Localization(
     "toolkit/global/extensions.ftl",
     "toolkit/global/extensionPermissions.ftl",
     "branding/brand.ftl",
+    "locales-preview/dataCollectionPermissions.ftl",
   ],
   true
 );
@@ -58,6 +59,20 @@ export const PERMISSIONS_WITH_MESSAGE = new Set([
   "webNavigation",
 ]);
 
+export const DATA_COLLECTION_PERMISSIONS = new Set([
+  "authenticationInfo",
+  "bookmarksInfo",
+  "browsingHistory",
+  "financialAndPaymentInfo",
+  "healthInfo",
+  "locationInfo",
+  "personalCommunications",
+  "personallyIdentifyingInfo",
+  "technicalAndInteraction",
+  "websiteActivity",
+  "websiteContent",
+]);
+
 /**
  * Overrides for permission description l10n identifiers,
  * which by default use the pattern `webext-perms-description-${permission}`
@@ -76,9 +91,20 @@ export const PERMISSION_L10N_ID_OVERRIDES = new Map();
  * may be overridden by entries in `PERMISSION_L10N_ID_OVERRIDES`.
  *
  * @param {string} permission
+ *                 A permission name.
+ * @param {boolean} [short=false] short
+ *                                An optional parameter to indicate whether to
+ *                                get l10n IDs for short-form or long-form
+ *                                strings. The default is to return short-form
+ *                                string IDs.
  * @returns {string | null}
  */
-export function permissionToL10nId(permission) {
+export function permissionToL10nId(permission, short = false) {
+  if (DATA_COLLECTION_PERMISSIONS.has(permission)) {
+    const prefix = short ? "short" : "long";
+    return `webext-perms-description-data-${prefix}-${permission}`;
+  }
+
   if (!PERMISSIONS_WITH_MESSAGE.has(permission)) {
     return null;
   }

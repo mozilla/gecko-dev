@@ -8,6 +8,7 @@
   services                                         (%services/**/*.ftl)
   toolkit                                          (%toolkit/**/*.ftl)
   locales-preview/aboutTranslations.ftl            (../locales-preview/aboutTranslations.ftl)
+  locales-preview/dataCollectionPermissions.ftl         (../locales-preview/dataCollectionPermissions.ftl)
   locales-preview/localModelManagement.ftl         (../locales-preview/localModelManagement.ftl)
 #ifdef MOZ_LAYOUT_DEBUGGER
   layoutdebug/layoutdebug.ftl                      (../../layout/tools/layout-debug/ui/content/layoutdebug.ftl)

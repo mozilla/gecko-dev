@@ -108,6 +108,7 @@ add_task(async function test_permissions_removed() {
     {
       permissions: ["idle"],
       origins: [],
+      data_collection: [],
     },
     "Optional permission added to cache"
   );
@@ -116,6 +117,7 @@ add_task(async function test_permissions_removed() {
     {
       permissions: ["idle"],
       origins: [],
+      data_collection: [],
     },
     "Optional permission added to persistent file"
   );
@@ -194,7 +196,7 @@ add_task(async function test_simulate_slow_storage() {
   // granted via _setupStartupPermissions in Extension.sys.mjs).
   Assert.deepEqual(
     await getCachedPermissions(id),
-    { permissions: [], origins: [] },
+    { permissions: [], origins: [], data_collection: [] },
     "Cached permissions should be present despite simulated slow storage"
   );
   Assert.deepEqual(
@@ -267,6 +269,7 @@ add_task(async function test_simulate_slow_storage() {
         permissions: {
           permissions: [],
           origins: ["*://slow.example.com/*"],
+          data_collection: [],
         },
       },
     ],

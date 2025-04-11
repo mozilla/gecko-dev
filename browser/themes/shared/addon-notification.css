@@ -22,16 +22,27 @@ html|*.addon-webext-perm-list {
     list-style: none;
 
     &.webext-perm-granted {
+      /* NOTE: Insert line breaks on long permission strings (or domain name
+       * included in the localized string that ends up be overflowing */
+      overflow-wrap: break-word;
+    }
+
+    /* Required data collection permission shouldn't have a list style. */
+    &.webext-perm-granted:not(.webext-data-collection-perm-granted) {
       list-style-position: inside;
       list-style-type: disc;
-      /* NOTE: Insert line breaks on long permission strings (or domain name included
-       * in the localized string that ends up be overflowing */
-      overflow-wrap: break-word;
+    }
+
+    /* Add some space between the list of permissions and the data collection
+     * permissions since this is displayed as a single sentence. */
+    & + &.webext-data-collection-perm-granted,
+    & + &.webext-data-collection-perm-optional {
+      margin-top: var(--space-medium);
     }
 
     /* Add some space between the list of permissions and the private browsing
      * checkbox. */
-    & + &.webext-perm-privatebrowsing {
+    &:not(.webext-data-collection-perm-optional) + &.webext-perm-privatebrowsing {
       margin-top: var(--space-medium);
     }
   }

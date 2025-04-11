@@ -445,7 +445,12 @@ add_task(
     };
 
     // enable the permissions while the background is stopped
-    await ExtensionPermissions.add(extension.id, permObj, extension.extension);
+    await ExtensionPermissions.add(
+      extension.id,
+      // Prevent `permObj` from being mutated.
+      { ...permObj },
+      extension.extension
+    );
     let details = await extension.awaitMessage("added");
     Assert.deepEqual(permObj, details, "got added event");
 
@@ -462,7 +467,8 @@ add_task(
     // remove the permissions while the background is stopped
     await ExtensionPermissions.remove(
       extension.id,
-      permObj,
+      // Prevent `permObj` from being mutated.
+      { ...permObj },
       extension.extension
     );
 

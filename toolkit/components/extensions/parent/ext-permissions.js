@@ -16,6 +16,12 @@ XPCOMUtils.defineLazyPreferenceGetter(
   "promptsEnabled",
   "extensions.webextOptionalPermissionPrompts"
 );
+XPCOMUtils.defineLazyPreferenceGetter(
+  this,
+  "dataCollectionPermissionsEnabled",
+  "extensions.dataCollectionPermissions.enabled",
+  false
+);
 
 ChromeUtils.defineLazyGetter(this, "OPTIONAL_ONLY_PERMISSIONS", () => {
   // Schemas.getPermissionNames() depends on API schemas to have been loaded.
@@ -31,6 +37,11 @@ function normalizePermissions(perms) {
   perms.permissions = perms.permissions.filter(
     perm => !perm.startsWith("internal:") && perm !== "<all_urls>"
   );
+
+  if (!dataCollectionPermissionsEnabled) {
+    delete perms.data_collection;
+  }
+
   return perms;
 }
 

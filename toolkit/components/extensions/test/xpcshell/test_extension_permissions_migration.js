@@ -73,6 +73,7 @@ add_task(async function test_migrate_good_json() {
   let expected = {
     permissions: ["internal:privateBrowsingAllowed"],
     origins: [],
+    data_collection: [],
   };
 
   await test_file(
@@ -88,7 +89,7 @@ add_task(async function test_migrate_good_json() {
 });
 
 add_task(async function test_migrate_bad_json() {
-  let expected = { permissions: [], origins: [] };
+  let expected = { permissions: [], origins: [], data_collection: [] };
 
   await test_file(
     BAD_FILE,
@@ -100,7 +101,7 @@ add_task(async function test_migrate_bad_json() {
 });
 
 add_task(async function test_migrate_bad_file() {
-  let expected = { permissions: [], origins: [] };
+  let expected = { permissions: [], origins: [], data_collection: [] };
 
   await test_file(
     JSON.stringify(BAD_JSON_FILE),

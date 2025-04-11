@@ -2601,6 +2601,7 @@ export class ExtensionData {
    * @typedef {object} Permissions
    * @property {Array<string>} origins Origin permissions.
    * @property {Array<string>} permissions Regular (non-origin) permissions.
+   * @property {Array<string>} data_collection Data collection permissions.
    */
 
   /**
@@ -2634,14 +2635,16 @@ export class ExtensionData {
    *                   and it has the string "<>" as a placeholder for the
    *                   addon name.
    *
-   *                   "object.msgs" is an array of localized strings describing required permissions
+   *                   "object.msgs" is an array of localized strings
+   *                   describing required permissions
    *
-   *                   "object.optionalPermissions" is a map of permission name to localized
-   *                   strings describing the permission.
+   *                   "object.optionalPermissions" is a map of permission name
+   *                   to localized strings describing the permission.
    *
-   *                   "object.optionalOrigins" is a map of a host permission to localized strings
-   *                   describing the host permission, where appropriate.  Currently only
-   *                   all url style permissions are included.
+   *                   "object.optionalOrigins" is a map of a host permission
+   *                   to localized strings describing the host permission,
+   *                   where appropriate.  Currently only all url style
+   *                   permissions are included.
    *
    *                   "object.fullDomainsList" is an object with a Set of the
    *                   full domains list (with the property name "domainsSet")
@@ -2650,6 +2653,12 @@ export class ExtensionData {
    *                   expected to be set only if "options.fullDomainsList" is
    *                   passed as true and the extension doesn't include
    *                   allUrls origin permissions.
+   *
+   *                   "object.dataCollectionPermissions" is an object
+   *                   containing information about data permissions to be
+   *                   displayed. It contains a message string, and whether the
+   *                   extension collects technical and interaction data, which
+   *                   needs to be handled differently.
    */
   static formatPermissionStrings(
     {
@@ -2676,6 +2685,7 @@ export class ExtensionData {
       optionalOrigins: {},
       text: "",
       listIntro: "",
+      dataCollectionPermissions: {},
     };
 
     // To keep the label & accesskey in sync for localizations,
@@ -2833,6 +2843,7 @@ export class ExtensionData {
         }
         return a < b ? -1 : 1;
       });
+
       for (let permission of permissionsSorted) {
         const l10nId = lazy.permissionToL10nId(permission);
         // We deliberately do not include all permissions in the prompt.
@@ -2840,6 +2851,14 @@ export class ExtensionData {
         if (l10nId) {
           msgIds.push(l10nId);
         }
+      }
+
+      if (
+        lazy.dataCollectionPermissionsEnabled &&
+        permissions.data_collection?.length
+      ) {
+        result.dataCollectionPermissions =
+          this._formatDataCollectionPermissions(permissions.data_collection);
       }
     }
 
@@ -2902,6 +2921,11 @@ export class ExtensionData {
       }
     }
 
+    const hasDataCollectionOnly =
+      lazy.dataCollectionPermissionsEnabled &&
+      msgIds.length === 0 &&
+      result.dataCollectionPermissions.msg;
+
     let headerId;
     switch (type) {
       case "sideload":
@@ -2927,7 +2951,7 @@ export class ExtensionData {
         );
         break;
       default:
-        if (msgIds.length) {
+        if (msgIds.length && !hasDataCollectionOnly) {
           headerId = unsigned
             ? "webext-perms-header-unsigned-with-perms"
             : "webext-perms-header-with-perms";
@@ -2942,6 +2966,59 @@ export class ExtensionData {
     result.msgs = l10n.formatValuesSync(msgIds);
     setAcceptCancel(acceptId, cancelId);
     return result;
+  }
+
+  /**
+   * @param {Array<string>} dataPermissions An array of data collection permissions.
+   *
+   * @returns {{msg: string, collectsTechnicalAndInteractionData: boolean}} An
+   * object with information about data collection permissions for the UI.
+   */
+  static _formatDataCollectionPermissions(dataPermissions) {
+    const dataCollectionPermissions = {};
+    const permissions = new Set(dataPermissions);
+
+    // This data permission is opt-in by default, but users can opt-out, making
+    // it special compared to the other permissions.
+    if (permissions.delete("technicalAndInteraction")) {
+      dataCollectionPermissions.collectsTechnicalAndInteractionData = true;
+    }
+
+    if (permissions.has("none")) {
+      const [localizedMsg] = lazy.PERMISSION_L10N.formatValuesSync([
+        "webext-perms-description-data-none",
+      ]);
+      dataCollectionPermissions.msg = localizedMsg;
+    } else if (permissions.size) {
+      // When we have data collection permissions and it isn't the "no data
+      // collected" one, we build a list of localized permission strings that
+      // we can format with `Intl.ListFormat()` and append to a localized
+      // message.
+      const dataMsgIds = [];
+      for (const permission of permissions) {
+        const l10nId = lazy.permissionToL10nId(permission, /* short */ true);
+        // We deliberately do not include all permissions in the prompt. So
+        // if we don't find one then just skip it.
+        if (l10nId) {
+          dataMsgIds.push(l10nId);
+        }
+      }
+
+      const fluentIdAndArgs = {
+        id: "webext-perms-description-data-some",
+        args: {
+          permissions: new Intl.ListFormat(undefined, {
+            style: "narrow",
+          }).format(lazy.PERMISSION_L10N.formatValuesSync(dataMsgIds)),
+        },
+      };
+      const [localizedMsg] = lazy.PERMISSION_L10N.formatValuesSync([
+        fluentIdAndArgs,
+      ]);
+      dataCollectionPermissions.msg = localizedMsg;
+    }
+
+    return dataCollectionPermissions;
   }
 }
 
