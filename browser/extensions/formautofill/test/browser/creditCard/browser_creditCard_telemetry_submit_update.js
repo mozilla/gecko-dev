@@ -88,8 +88,6 @@ add_task(async function test_submit_creditCard_update() {
     await removeAllRecords();
   }
 
-  await clearTelemetry(CC_NUM_USES_HISTOGRAM);
-
   const expectedFormInteractionEvents = [
     ccFormArgsv2("detected", buildccFormv2Extra({ cc_exp: "false" }, "true")),
     ccFormArgsv2("popup_shown", { field_name: "cc-name" }),
