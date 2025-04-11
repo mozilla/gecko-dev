@@ -12,9 +12,9 @@
 #include "mozilla/Maybe.h"
 #include "mozilla/UniquePtr.h"
 #include "mozilla/dom/Promise.h"
+#include "mozilla/dom/UniFFIScaffolding.h"
 #include "mozilla/uniffi/Call.h"
 #include "mozilla/uniffi/Callbacks.h"
-#include "mozilla/dom/UniFFIScaffolding.h"
 
 // This file implements the UniFFI WebIDL interface by leveraging the generate
 // code in UniFFIScaffolding.cpp.  It's main purpose is to check if

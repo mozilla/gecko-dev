@@ -10,11 +10,11 @@
 #include "mozilla/StaticPtr.h"
 #include "mozilla/UniquePtr.h"
 #include "mozilla/dom/Promise.h"
+#include "mozilla/dom/UniFFIScaffolding.h"
 #include "mozilla/uniffi/Call.h"
 #include "mozilla/uniffi/Callbacks.h"
 #include "mozilla/uniffi/FfiValue.h"
 #include "mozilla/uniffi/PointerType.h"
-#include "mozilla/dom/UniFFIScaffolding.h"
 #include "mozilla/uniffi/Rust.h"
 
 namespace mozilla::uniffi {
@@ -220,7 +220,7 @@ void DeregisterCallbackHandler(uint64_t aInterfaceId, ErrorResult& aError) {
 {%- when None %}
 class {{ scaffolding_call.handler_class_name }} : public UniffiSyncCallHandler {
 private:
-  // PrepareRustArgs stores the resulting arguments in these fields
+  // LowerRustArgs stores the resulting arguments in these fields
   {%- for arg in scaffolding_call.arguments %}
   {{ arg.ffi_value_class }} {{ arg.var_name }}{};
   {%- endfor %}
@@ -233,7 +233,7 @@ private:
   {%- endmatch %}
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void LowerRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     {%- for arg in scaffolding_call.arguments %}
     {{ arg.var_name }}.Lower(aArgs[{{ loop.index0 }}], aError);
     if (aError.Failed()) {
@@ -263,7 +263,7 @@ public:
     {%- endmatch %}
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void LiftSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     {%- match scaffolding_call.return_type %}
     {%- when Some(return_type) %}
     mUniffiReturnValue.Lift(
@@ -292,7 +292,7 @@ protected:
   // Convert a sequence of JS arguments and call the scaffolding function.
   // Always called on the main thread since async Rust calls don't block, they
   // return a future.
-  void PrepareArgsAndMakeRustCall(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void LowerArgsAndMakeRustCall(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     {%- for arg in scaffolding_call.arguments %}
     {{ arg.ffi_value_class }} {{ arg.var_name }}{};
     {{ arg.var_name }}.Lower(aArgs[{{ loop.index0 }}], aError);
@@ -319,7 +319,7 @@ protected:
   }
 
 public:
-  void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  void LiftSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     {%- match scaffolding_call.return_type %}
     {%- when Some(return_type) %}
     mUniffiReturnValue.Lift(
