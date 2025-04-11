@@ -121,4 +121,4 @@ async function runTests(browser) {
 /**
  * Test events when a document loads.
  */
-addAccessibleTask("", runTests);
+addAccessibleTask("", runTests, { chrome: true, topLevel: true });

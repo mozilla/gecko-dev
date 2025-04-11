@@ -624,10 +624,8 @@ class DocAccessible : public HyperTextAccessible,
    * Return true if the document is a target of document loading events
    * (for example, state busy change or document reload events).
    *
-   * Rules: The root chrome document accessible is never an event target
-   * (for example, Firefox UI window). If the sub document is loaded within its
-   * parent document then the parent document is a target only (aka events
-   * coalescence).
+   * Rule: The root chrome document accessible is never an event target
+   * (for example, Firefox UI window).
    */
   bool IsLoadEventTarget() const;
 
