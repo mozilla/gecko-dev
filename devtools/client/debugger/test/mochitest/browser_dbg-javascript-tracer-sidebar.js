@@ -12,6 +12,12 @@ add_task(async function () {
 
   const dbg = await initDebugger("doc-scripts.html");
 
+  await SpecialPowers.spawn(gBrowser.selectedBrowser, [], async function () {
+    // Register a global event listener to cover listeners set to DOM Element as well as on the global
+    // This may regress the DOM Events panel to show more than one entry for the click event.
+    content.eval(`window.onclick = () => {};`);
+  });
+
   info("Force the log method to be the debugger sidebar");
   await toggleJsTracerMenuItem(dbg, "#jstracer-menu-item-debugger-sidebar");
 
@@ -193,21 +199,25 @@ add_task(async function () {
     gBrowser.selectedBrowser
   );
 
-  const clickTrace = await waitFor(() =>
-    tracerTree.querySelector(".tracer-dom-event")
-  );
-  is(clickTrace.textContent, "DOM | node.click");
-  is(
-    tracerTree.querySelectorAll(".trace-line").length,
-    6,
-    "The click event adds two elements in the tree. The DOM Event and its top frame"
-  );
+  const [nodeClickTrace, globalClickTrace] = await waitFor(() => {
+    const elts = tracerTree.querySelectorAll(".tracer-dom-event");
+    if (elts.length == 2) {
+      return elts;
+    }
+    return false;
+  });
+  // This is the listener set on the <button> element
+  is(nodeClickTrace.textContent, "DOM | node.click");
+  // This is the listener set on the window object
+  is(globalClickTrace.textContent, "DOM | global.click");
 
   await BrowserTestUtils.synthesizeKey("x", {}, gBrowser.selectedBrowser);
   const keyTrace = await waitFor(() => {
+    // Scroll to bottom to ensure rendering the last elements (otherwise they are not because of VirtualizedTree)
+    tracerTree.scrollTop = tracerTree.scrollHeight;
     const elts = tracerTree.querySelectorAll(".tracer-dom-event");
-    if (elts.length == 2) {
-      return elts[1];
+    if (elts.length == 3) {
+      return elts[2];
     }
     return false;
   });
@@ -271,7 +281,9 @@ add_task(async function () {
     dbg,
     "#tracer-tab-panel #tracer-events-tab"
   );
-  eventListToggleButton.click();
+  // Use synthesizeMouseAtCenter as calling click() method somehow triggers mouse over
+  // on the event categories...
+  EventUtils.synthesizeMouseAtCenter(eventListToggleButton, {}, dbg.win);
 
   let domEventCategories = findAllElementsWithSelector(
     dbg,
@@ -280,6 +292,31 @@ add_task(async function () {
   is(domEventCategories.length, 2);
   is(domEventCategories[0].textContent, "Keyboard");
   is(domEventCategories[1].textContent, "Mouse");
+
+  info("Expand the Mouse category");
+  domEventCategories[1]
+    .closest(".event-listener-header")
+    .querySelector(".event-listener-expand")
+    .click();
+  const clickEventName = await waitFor(() => {
+    const eventNames = domEventCategories[1]
+      .closest(".event-listener-group")
+      .querySelectorAll(".event-listener-name");
+    if (eventNames.length == 1) {
+      return eventNames[0];
+    }
+    return false;
+  }, "There is only one mouse event");
+  is(
+    clickEventName.textContent,
+    "click",
+    "and that one mouse event is 'click'"
+  );
+  info("Fold the Mouse category");
+  domEventCategories[1]
+    .closest(".event-listener-header")
+    .querySelector(".event-listener-expand")
+    .click();
 
   // Test event highlighting on mouse over
   is(
@@ -300,12 +337,13 @@ add_task(async function () {
     );
   }, "The setTimeout event is highlighted in the timeline");
 
-  // Before toggling some DOM events, assert that the two events are displayed in the timeline
-  is(findAllElementsWithSelector(dbg, ".tracer-slider-event").length, 2);
-  info("Toggle off the Mouse and then the Keyboard events");
+  // Before toggling some DOM events, assert that the three events are displayed in the timeline
+  // (node and global click, and node keypress)
+  is(findAllElementsWithSelector(dbg, ".tracer-slider-event").length, 3);
+  info("Toggle off the Keyboard and then the Mouse events");
   domEventCategories[0].click();
   await waitFor(
-    () => findAllElementsWithSelector(dbg, ".tracer-slider-event").length == 1
+    () => findAllElementsWithSelector(dbg, ".tracer-slider-event").length == 2
   );
   domEventCategories[1].click();
   // Now that all events are disabled, there is no more trace displayed in the timeline

@@ -505,7 +505,7 @@ function registerDOMEvent(state, eventName) {
     state.domEventCategories = [...state.domEventCategories];
     addSortedCategoryOrEvent(state.domEventCategories, newCategory);
   }
-  if (!newCategory.events.some(e => e.name == eventName)) {
+  if (!newCategory.events.some(e => e.name == name)) {
     // Register this new event in the category's event list
     addSortedCategoryOrEvent(newCategory.events, { id, name });
     // Clone the root object to force a re-render of EventListeners React component
