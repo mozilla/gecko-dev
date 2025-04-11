@@ -86,7 +86,7 @@ var _add_params = function (params) {
 };
 
 var _dumpLog = function (raw_msg) {
-  dump("\n" + JSON.stringify(raw_msg) + "\n");
+  dump(JSON.stringify(raw_msg) + "\n");
 };
 
 var { StructuredLogger: _LoggerClass } = ChromeUtils.importESModule(
