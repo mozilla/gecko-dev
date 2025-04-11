@@ -221,7 +221,7 @@ void Channel::ChannelImpl::SetOtherPid(base::ProcessId other_pid) {
 }
 
 bool Channel::ChannelImpl::ProcessIncomingMessages() {
-  chan_cap_.NoteOnIOThread();
+  chan_cap_.NoteOnTarget();
 
   struct msghdr msg = {0};
   struct iovec iov;
@@ -510,7 +510,7 @@ bool Channel::ChannelImpl::ProcessIncomingMessages() {
 
 bool Channel::ChannelImpl::ProcessOutgoingMessages() {
   // NOTE: This method may be called on threads other than `IOThread()`.
-  chan_cap_.NoteSendMutex();
+  chan_cap_.NoteLockHeld();
 
   DCHECK(!waiting_connect_);  // Why are we trying to send messages if there's
                               // no connection?
@@ -734,7 +734,7 @@ bool Channel::ChannelImpl::ProcessOutgoingMessages() {
 bool Channel::ChannelImpl::Send(mozilla::UniquePtr<Message> message) {
   // NOTE: This method may be called on threads other than `IOThread()`.
   mozilla::MutexAutoLock lock(SendMutex());
-  chan_cap_.NoteSendMutex();
+  chan_cap_.NoteLockHeld();
 
 #ifdef IPC_MESSAGE_DEBUG_EXTRA
   DLOG(INFO) << "sending message @" << message.get() << " on channel @" << this
@@ -768,7 +768,7 @@ bool Channel::ChannelImpl::Send(mozilla::UniquePtr<Message> message) {
 // Called by libevent when we can read from th pipe without blocking.
 void Channel::ChannelImpl::OnFileCanReadWithoutBlocking(int fd) {
   IOThread().AssertOnCurrentThread();
-  chan_cap_.NoteOnIOThread();
+  chan_cap_.NoteOnTarget();
 
   if (!waiting_connect_ && fd == pipe_ && pipe_ != -1) {
     if (!ProcessIncomingMessages()) {
@@ -798,7 +798,7 @@ void Channel::ChannelImpl::CloseDescriptors(uint32_t pending_fd_id) {
 #endif
 
 void Channel::ChannelImpl::OutputQueuePush(mozilla::UniquePtr<Message> msg) {
-  chan_cap_.NoteSendMutex();
+  chan_cap_.NoteLockHeld();
 
   mozilla::LogIPCMessage::LogDispatchWithPid(msg.get(), other_pid_);
 
@@ -1034,7 +1034,7 @@ static mozilla::Maybe<mach_port_name_t> BrokerTransferSendRight(
 // Process footer information attached to the message, and acquire owning
 // references to any transferred mach ports. See comment above for details.
 bool Channel::ChannelImpl::AcceptMachPorts(Message& msg) {
-  chan_cap_.NoteOnIOThread();
+  chan_cap_.NoteOnTarget();
 
   uint32_t num_send_rights = msg.header()->num_send_rights;
   if (num_send_rights == 0) {

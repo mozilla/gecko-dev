@@ -8,7 +8,6 @@
 #define CHROME_COMMON_IPC_CHANNEL_POSIX_H_
 
 #include "chrome/common/ipc_channel.h"
-#include "chrome/common/ipc_channel_capability.h"
 
 #include <sys/socket.h>  // for CMSG macros
 
@@ -21,7 +20,9 @@
 #include "base/process.h"
 #include "base/task.h"
 
+#include "mozilla/EventTargetAndLockCapability.h"
 #include "mozilla/Maybe.h"
+#include "mozilla/Mutex.h"
 #include "mozilla/Queue.h"
 #include "mozilla/UniquePtr.h"
 #include "mozilla/UniquePtrExtensions.h"
@@ -50,7 +51,7 @@ class Channel::ChannelImpl : public MessageLoopForIO::Watcher {
   // NOTE: `IsClosed` may be called on threads other than the I/O thread.
   bool IsClosed() MOZ_EXCLUDES(SendMutex()) {
     mozilla::MutexAutoLock lock(SendMutex());
-    chan_cap_.NoteSendMutex();
+    chan_cap_.NoteLockHeld();
     return pipe_ == -1;
   }
 
@@ -92,18 +93,18 @@ class Channel::ChannelImpl : public MessageLoopForIO::Watcher {
       MOZ_REQUIRES(SendMutex());
   void OutputQueuePop() MOZ_REQUIRES(SendMutex());
 
-  const ChannelCapability::Thread& IOThread() const
-      MOZ_RETURN_CAPABILITY(chan_cap_.IOThread()) {
-    return chan_cap_.IOThread();
+  const mozilla::EventTargetCapability<nsISerialEventTarget>& IOThread() const
+      MOZ_RETURN_CAPABILITY(chan_cap_.Target()) {
+    return chan_cap_.Target();
   }
 
-  ChannelCapability::Mutex& SendMutex()
-      MOZ_RETURN_CAPABILITY(chan_cap_.SendMutex()) {
-    return chan_cap_.SendMutex();
+  mozilla::Mutex& SendMutex() MOZ_RETURN_CAPABILITY(chan_cap_.Lock()) {
+    return chan_cap_.Lock();
   }
 
-  // Compound capability of a Mutex and the IO thread.
-  ChannelCapability chan_cap_;
+  // Compound capability of the IO thread and a Mutex.
+  mozilla::EventTargetAndLockCapability<nsISerialEventTarget, mozilla::Mutex>
+      chan_cap_;
 
   Mode mode_ MOZ_GUARDED_BY(IOThread());
 

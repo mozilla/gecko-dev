@@ -107,7 +107,7 @@ void Channel::ChannelImpl::Init(Mode mode) {
 }
 
 void Channel::ChannelImpl::OutputQueuePush(mozilla::UniquePtr<Message> msg) {
-  chan_cap_.NoteSendMutex();
+  chan_cap_.NoteLockHeld();
 
   mozilla::LogIPCMessage::LogDispatchWithPid(msg.get(), other_pid_);
 
@@ -165,7 +165,7 @@ void Channel::ChannelImpl::CloseLocked() {
 
 bool Channel::ChannelImpl::Send(mozilla::UniquePtr<Message> message) {
   mozilla::MutexAutoLock lock(SendMutex());
-  chan_cap_.NoteSendMutex();
+  chan_cap_.NoteLockHeld();
 
 #ifdef IPC_MESSAGE_DEBUG_EXTRA
   DLOG(INFO) << "sending message @" << message.get() << " on channel @" << this
@@ -262,7 +262,7 @@ void Channel::ChannelImpl::SetOtherPid(base::ProcessId other_pid) {
 
 bool Channel::ChannelImpl::ProcessIncomingMessages(
     MessageLoopForIO::IOContext* context, DWORD bytes_read, bool was_pending) {
-  chan_cap_.NoteOnIOThread();
+  chan_cap_.NoteOnTarget();
 
   DCHECK(!input_state_.is_pending);
 
@@ -405,7 +405,7 @@ bool Channel::ChannelImpl::ProcessIncomingMessages(
 bool Channel::ChannelImpl::ProcessOutgoingMessages(
     MessageLoopForIO::IOContext* context, DWORD bytes_written,
     bool was_pending) {
-  chan_cap_.NoteSendMutex();
+  chan_cap_.NoteLockHeld();
 
   DCHECK(!output_state_.is_pending);
   DCHECK(!waiting_connect_);  // Why are we trying to send messages if there's
@@ -500,7 +500,7 @@ void Channel::ChannelImpl::OnIOCompleted(MessageLoopForIO::IOContext* context,
   RefPtr<ChannelImpl> was_pending;
 
   IOThread().AssertOnCurrentThread();
-  chan_cap_.NoteOnIOThread();
+  chan_cap_.NoteOnTarget();
 
   bool ok;
   if (context == &input_state_.context) {
@@ -593,7 +593,7 @@ static HANDLE Uint32ToHandle(uint32_t h) {
 }
 
 bool Channel::ChannelImpl::AcceptHandles(Message& msg) {
-  chan_cap_.NoteOnIOThread();
+  chan_cap_.NoteOnTarget();
 
   MOZ_ASSERT(msg.num_handles() == 0);
 
@@ -674,7 +674,7 @@ bool Channel::ChannelImpl::AcceptHandles(Message& msg) {
 }
 
 bool Channel::ChannelImpl::TransferHandles(Message& msg) {
-  chan_cap_.NoteSendMutex();
+  chan_cap_.NoteLockHeld();
 
   MOZ_ASSERT(msg.header()->num_handles == 0);
 
