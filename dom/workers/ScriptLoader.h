@@ -181,8 +181,8 @@ class WorkerScriptLoader : public JS::loader::ScriptLoaderInterface,
   }
 
   // Ensure the worker and the main thread won't race to access |mCleanedUp|.
-  // Should be a MutexSingleWriter, but that causes a lot of issues when you
-  // expose the lock via Lock().
+  // This should perhaps be a EventTargetAndLockCapability to model the
+  // reader/writer behaviour on mCleanedUp better.
   Mutex mCleanUpLock;
 
  public:

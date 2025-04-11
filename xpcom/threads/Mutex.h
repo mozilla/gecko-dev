@@ -135,82 +135,6 @@ class Mutex : public OffTheBooksMutex {
   Mutex& operator=(const Mutex&) = delete;
 };
 
-/**
- * MutexSingleWriter
- *
- * Mutex where a single writer exists, so that reads from the same thread
- * will not generate data races or consistency issues.
- *
- * When possible, use MutexAutoLock/MutexAutoUnlock to lock/unlock this
- * mutex within a scope, instead of calling Lock/Unlock directly.
- *
- * This requires an object implementing Mutex's SingleWriterLockOwner, so
- * we can do correct-thread checks.
- */
-// Subclass this in the object owning the mutex
-class SingleWriterLockOwner {
- public:
-  SingleWriterLockOwner() = default;
-  ~SingleWriterLockOwner() = default;
-
-  virtual bool OnWritingThread() const = 0;
-};
-
-class MutexSingleWriter : public OffTheBooksMutex {
- public:
-  // aOwner should be the object that contains the mutex, typically.  We
-  // will use that object (which must have a lifetime the same or greater
-  // than this object) to verify that we're running on the correct thread,
-  // typically only in DEBUG builds
-  explicit MutexSingleWriter(const char* aName, SingleWriterLockOwner* aOwner)
-      : OffTheBooksMutex(aName)
-#ifdef DEBUG
-        ,
-        mOwner(aOwner)
-#endif
-  {
-    MOZ_COUNT_CTOR(MutexSingleWriter);
-    MOZ_ASSERT(mOwner);
-  }
-
-  MOZ_COUNTED_DTOR(MutexSingleWriter)
-
-  /**
-   * Statically assert that we're on the only thread that modifies data
-   * guarded by this Mutex.  This allows static checking for the pattern of
-   * having a single thread modify a set of data, and read it (under lock)
-   * on other threads, and reads on the thread that modifies it doesn't
-   * require a lock.  This doesn't solve the issue of some data under the
-   * Mutex following this pattern, and other data under the mutex being
-   * written from multiple threads.
-   *
-   * We could set the writing thread and dynamically check it in debug
-   * builds, but this doesn't.  We could also use thread-safety/capability
-   * system to provide direct thread assertions.
-   **/
-  void AssertOnWritingThread() const MOZ_ASSERT_CAPABILITY(this) {
-    MOZ_ASSERT(mOwner->OnWritingThread());
-  }
-  void AssertOnWritingThreadOrHeld() const MOZ_ASSERT_CAPABILITY(this) {
-#ifdef DEBUG
-    if (!mOwner->OnWritingThread()) {
-      AssertCurrentThreadOwns();
-    }
-#endif
-  }
-
- private:
-#ifdef DEBUG
-  SingleWriterLockOwner* mOwner MOZ_UNSAFE_REF(
-      "This is normally the object that contains the MonitorSingleWriter, so "
-      "we don't want to hold a reference to ourselves");
-#endif
-
-  MutexSingleWriter() = delete;
-  MutexSingleWriter(const MutexSingleWriter&) = delete;
-  MutexSingleWriter& operator=(const MutexSingleWriter&) = delete;
-};
-
 namespace detail {
 template <typename T>
 class MOZ_RAII BaseAutoUnlock;
@@ -285,7 +209,6 @@ BaseAutoLock(MutexType&) -> BaseAutoLock<MutexType&>;
 }  // namespace detail
 
 typedef detail::BaseAutoLock<Mutex&> MutexAutoLock;
-typedef detail::BaseAutoLock<MutexSingleWriter&> MutexSingleWriterAutoLock;
 typedef detail::BaseAutoLock<OffTheBooksMutex&> OffTheBooksMutexAutoLock;
 
 // Specialization of Maybe<*AutoLock> for space efficiency and to silence
@@ -319,16 +242,6 @@ class Maybe<detail::BaseAutoLock<MutexType&>> {
  private:
   MutexType* mLock;
 };
-
-// Use if we've done AssertOnWritingThread(), and then later need to take the
-// lock to write to a protected member. Instead of
-//    MutexSingleWriterAutoLock lock(mutex)
-// use
-//    MutexSingleWriterAutoLockOnThread(lock, mutex)
-#define MutexSingleWriterAutoLockOnThread(lock, mutex) \
-  MOZ_PUSH_IGNORE_THREAD_SAFETY                        \
-  MutexSingleWriterAutoLock lock(mutex);               \
-  MOZ_POP_THREAD_SAFETY
 
 namespace detail {
 /**
@@ -442,7 +355,6 @@ BaseAutoUnlock(MutexType&) -> BaseAutoUnlock<MutexType&>;
 }  // namespace detail
 
 typedef detail::BaseAutoUnlock<Mutex&> MutexAutoUnlock;
-typedef detail::BaseAutoUnlock<MutexSingleWriter&> MutexSingleWriterAutoUnlock;
 typedef detail::BaseAutoUnlock<OffTheBooksMutex&> OffTheBooksMutexAutoUnlock;
 
 namespace detail {
