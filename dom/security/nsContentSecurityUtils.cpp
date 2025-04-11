@@ -646,6 +646,13 @@ bool nsContentSecurityUtils::IsEvalAllowed(JSContext* cx,
     return true;
   }
 
+  if (StaticPrefs::
+          security_allow_unsafe_dangerous_privileged_evil_eval_AtStartup()) {
+    MOZ_LOG(sCSMLog, LogLevel::Debug,
+            ("Allowing eval() because security.allow_unsafe_dangerous_priviliged_evil_eval is enabled."));
+    return true;
+  }
+
   if (aIsSystemPrincipal &&
       StaticPrefs::security_allow_eval_with_system_principal()) {
     MOZ_LOG(sCSMLog, LogLevel::Debug,

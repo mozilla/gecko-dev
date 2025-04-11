@@ -506,6 +506,16 @@ nsCSPContext::GetAllowsEval(bool* outShouldReportViolation,
   *outShouldReportViolation = false;
   *outAllowsEval = true;
 
+  if (CSP_IsBrowserXHTML(mSelfURI)) {
+    // Allow eval in browser.xhtml, just like
+    // nsContentSecurityUtils::IsEvalAllowed allows it for other privileged
+    // contexts.
+    if (StaticPrefs::
+            security_allow_unsafe_dangerous_privileged_evil_eval_AtStartup()) {
+      return NS_OK;
+    }
+  }
+
   for (uint32_t i = 0; i < mPolicies.Length(); i++) {
     if (!mPolicies[i]->allows(SCRIPT_SRC_DIRECTIVE, CSP_UNSAFE_EVAL, u""_ns)) {
       // policy is violated: must report the violation and allow the inline

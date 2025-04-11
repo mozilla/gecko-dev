@@ -16175,6 +16175,14 @@
   value: false
   mirror: always
 
+# Allow unsafe eval usage with high privileges to. This should
+# not be activated without a very good reason.
+# This pref has to be set before starting Firefox!
+- name: security.allow_unsafe_dangerous_privileged_evil_eval
+  type: bool
+  value: false
+  mirror: once
+
 # Allowed by default so it doesn't affect Thunderbird/SeaMonkey, but
 # not allowed for Firefox Desktop in firefox.js
 - name: security.allow_parent_unrestricted_js_loads

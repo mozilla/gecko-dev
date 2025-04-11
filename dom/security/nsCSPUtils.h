@@ -210,6 +210,9 @@ bool CSP_ShouldResponseInheritCSP(nsIChannel* aChannel);
 void CSP_ApplyMetaCSPToDoc(mozilla::dom::Document& aDoc,
                            const nsAString& aPolicyStr);
 
+// Checks if the URI is "chrome://browser/content/browser.xhtml"
+bool CSP_IsBrowserXHTML(nsIURI* aURI);
+
 /* =============== nsCSPSrc ================== */
 
 class nsCSPBaseSrc {

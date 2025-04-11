@@ -1,0 +1,5 @@
+[DEFAULT]
+# Startup pref, needs to be set in [DEFAULT]
+prefs = ["security.allow_unsafe_dangerous_privileged_evil_eval=true"]
+
+["browser_csp_eval.js"]

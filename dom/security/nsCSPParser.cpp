@@ -1445,8 +1445,7 @@ nsCSPPolicy* nsCSPParser::parseContentSecurityPolicy(
     policy->setReportOnlyFlag(true);
     if (!policy->hasDirective(nsIContentSecurityPolicy::REPORT_TO_DIRECTIVE) &&
         !policy->hasDirective(nsIContentSecurityPolicy::REPORT_URI_DIRECTIVE) &&
-        !aSelfURI->GetSpecOrDefault().EqualsLiteral(
-            "chrome://browser/content/browser.xhtml")) {
+        !CSP_IsBrowserXHTML(aSelfURI)) {
       nsAutoCString prePath;
       nsresult rv = aSelfURI->GetPrePath(prePath);
       NS_ENSURE_SUCCESS(rv, policy);

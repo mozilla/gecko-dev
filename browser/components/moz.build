@@ -112,6 +112,7 @@ if CONFIG["MOZ_DEBUG"] or CONFIG["MOZ_DEV_EDITION"] or CONFIG["NIGHTLY_BUILD"]:
 BROWSER_CHROME_MANIFESTS += [
     "safebrowsing/content/test/browser.toml",
     "tests/browser/browser.toml",
+    "tests/browser/eval/browser.toml",
 ]
 
 if CONFIG["MOZ_UPDATER"]:
