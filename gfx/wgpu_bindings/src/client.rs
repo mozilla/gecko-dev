@@ -1375,10 +1375,34 @@ pub unsafe extern "C" fn wgpu_queue_write_texture(
     *bb = make_byte_buf(&action);
 }
 
-/// Returns the block size or zero if the format has multiple aspects (for example depth+stencil).
+#[repr(C)]
+pub struct TextureFormatBlockInfo {
+    copy_size: u32,
+    width: u32,
+    height: u32,
+}
+
+/// Obtain the block size and dimensions for a single aspect.
+///
+/// Populates `info` and returns true on success. Returns false if `format` has
+/// multiple aspects and `aspect` is `All`.
 #[no_mangle]
-pub extern "C" fn wgpu_texture_format_block_size_single_aspect(format: wgt::TextureFormat) -> u32 {
-    format.block_copy_size(None).unwrap_or(0)
+pub extern "C" fn wgpu_texture_format_get_block_info(
+    format: wgt::TextureFormat,
+    aspect: wgt::TextureAspect,
+    info: &mut TextureFormatBlockInfo,
+) -> bool {
+    let (width, height) = format.block_dimensions();
+    let (copy_size, ret) = match format.block_copy_size(Some(aspect)) {
+        Some(size) => (size, true),
+        None => (0, false),
+    };
+    *info = TextureFormatBlockInfo {
+        width,
+        height,
+        copy_size,
+    };
+    ret
 }
 
 #[no_mangle]

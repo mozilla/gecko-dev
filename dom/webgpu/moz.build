@@ -11,6 +11,7 @@ MOCHITEST_MANIFESTS += [
     "mochitest/mochitest-no-pref.toml",
     "mochitest/mochitest-resistfingerprinting.toml",
     "mochitest/mochitest.toml",
+    "mochitest/perftest.toml",
 ]
 
 DIRS += []

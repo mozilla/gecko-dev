@@ -139,6 +139,45 @@ void Queue::WriteBuffer(const Buffer& aBuffer, uint64_t aBufferOffset,
       });
 }
 
+static CheckedInt<size_t> ComputeApproxSize(
+    const dom::GPUTexelCopyTextureInfo& aDestination,
+    const dom::GPUTexelCopyBufferLayout& aDataLayout,
+    const ffi::WGPUExtent3d& extent,
+    const ffi::WGPUTextureFormatBlockInfo& info) {
+  // The spec's algorithm for [validating linear texture data][vltd] computes
+  // an exact size for the transfer. wgpu implements the algorithm and will
+  // fully validate the operation as described in the spec.
+  //
+  // Here, we just want to avoid copying excessive amounts of data in the case
+  // where the transfer will use only a small portion of the buffer. So we
+  // compute an approximation that will be at least the actual transfer size
+  // for any valid request. Then we copy the smaller of the approximated size
+  // or the remainder of the buffer.
+  //
+  // [vltd]:
+  // https://www.w3.org/TR/webgpu/#abstract-opdef-validating-linear-texture-data
+
+  // VLTD requires that width/height are multiples of the block size.
+  auto widthInBlocks = extent.width / info.width;
+  auto heightInBlocks = extent.height / info.height;
+  auto bytesInLastRow = CheckedInt<size_t>(widthInBlocks) * info.copy_size;
+
+  // VLTD requires bytesPerRow present if heightInBlocks > 1.
+  auto bytesPerRow = CheckedInt<size_t>(aDataLayout.mBytesPerRow.WasPassed()
+                                            ? aDataLayout.mBytesPerRow.Value()
+                                            : bytesInLastRow);
+
+  if (extent.depth_or_array_layers > 1) {
+    // VLTD requires rowsPerImage present if layers > 1
+    auto rowsPerImage = aDataLayout.mRowsPerImage.WasPassed()
+                            ? aDataLayout.mRowsPerImage.Value()
+                            : heightInBlocks;
+    return bytesPerRow * rowsPerImage * extent.depth_or_array_layers;
+  } else {
+    return bytesPerRow * heightInBlocks;
+  }
+}
+
 void Queue::WriteTexture(const dom::GPUTexelCopyTextureInfo& aDestination,
                          const dom::ArrayBufferViewOrArrayBuffer& aData,
                          const dom::GPUTexelCopyBufferLayout& aDataLayout,
@@ -151,14 +190,35 @@ void Queue::WriteTexture(const dom::GPUTexelCopyTextureInfo& aDestination,
   ffi::WGPUExtent3d extent = {};
   ConvertExtent3DToFFI(aSize, &extent);
 
+  auto format = ConvertTextureFormat(aDestination.mTexture->Format());
+  auto aspect = ConvertTextureAspect(aDestination.mAspect);
+  ffi::WGPUTextureFormatBlockInfo info = {};
+  bool valid = ffi::wgpu_texture_format_get_block_info(format, aspect, &info);
+  CheckedInt<size_t> approxSize;
+  if (valid) {
+    approxSize = ComputeApproxSize(aDestination, aDataLayout, extent, info);
+  } else {
+    // This happens when the caller does not indicate a single aspect to
+    // target in a multi-aspect texture. It needs to be validated on the
+    // device timeline, so proceed without an estimated size for now
+    approxSize = CheckedInt<size_t>(SIZE_MAX) + 1;
+  }
+
   dom::ProcessTypedArraysFixed(aData, [&](const Span<const uint8_t>& aData) {
     const auto checkedSize =
         CheckedInt<size_t>(aData.Length()) - aDataLayout.mOffset;
-    if (!checkedSize.isValid()) {
-      aRv.ThrowOperationError("Offset is higher than the size");
-      return;
+    size_t size;
+    if (checkedSize.isValid() && approxSize.isValid()) {
+      size = std::min(checkedSize.value(), approxSize.value());
+    } else if (checkedSize.isValid()) {
+      size = checkedSize.value();
+    } else {
+      // CheckedSize is invalid when the caller-provided offset was past the
+      // end of their buffer. Maintain that condition, and fail the operation
+      // on the device timeline.
+      dataLayout.offset = 1;
+      size = 0;
     }
-    const auto size = checkedSize.value();
 
     mozilla::ipc::MutableSharedMemoryHandle handle;
     if (size != 0) {

@@ -1,0 +1,102 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <script src="/tests/SimpleTest/SimpleTest.js"></script>
+    <link rel="stylesheet" href="/tests/SimpleTest/test.css" />
+  </head>
+
+  <body>
+    <script type="text/javascript">
+      "use strict";
+
+      var perfMetadata = {
+        owner: "Graphics Team",
+        name: "Queue Write",
+        description:
+          "Test the performance of Queue.writeBuffer and Queue.writeTexture",
+        test: "mochitest",
+        options: {
+          default: {
+            perfherder: true,
+            perfherder_metrics: [
+              { name: "writeBuffer Time", unit: "ms" },
+              { name: "writeTexture Time", unit: "ms" },
+            ],
+            manifest: "perftest.toml",
+            manifest_flavor: "plain",
+          },
+        },
+      };
+
+      const iters = 100;
+
+      ok(
+        SpecialPowers.getBoolPref("dom.webgpu.enabled"),
+        "WebGPU pref should be enabled."
+      );
+
+      async function runTest() {
+        const adapter = await navigator.gpu.requestAdapter();
+        const device = await adapter.requestDevice();
+        device.onuncapturederror = function (e) {
+          ok(false, "WebGPU error: " + e.error.message);
+        };
+        const buffer = device.createBuffer({
+          size: 1024 * 1024,
+          usage:
+            GPUBufferUsage.COPY_DST |
+            GPUBufferUsage.COPY_SRC |
+            GPUBufferUsage.VERTEX,
+        });
+        const arrayBuf = new ArrayBuffer(256 * 1024 * 1024);
+        new Int32Array(arrayBuf).fill(0x55);
+
+        performance.mark("start writeBuffer");
+        for (var i = 0; i < iters; i++) {
+          device.queue.writeBuffer(buffer, 0, arrayBuf, 0, 1024 * 1024);
+        }
+        const writeBufferTime = performance.measure(
+          "writeBuffer",
+          "start writeBuffer"
+        ).duration;
+
+        const texture = device.createTexture({
+          size: [512, 512, 1],
+          dimension: "2d",
+          format: "rgba8unorm",
+          usage: GPUTextureUsage.COPY_DST | GPUTextureUsage.COPY_SRC,
+        });
+
+        performance.mark("start writeTexture");
+        for (i = 0; i < iters; i++) {
+          device.queue.writeTexture(
+            { texture },
+            arrayBuf,
+            { bytesPerRow: 2048 },
+            [512, 512, 1]
+          );
+        }
+        const writeTextureTime = performance.measure(
+          "writeTexture",
+          "start writeTexture"
+        ).duration;
+
+        ok(device !== undefined, "");
+        info(
+          "perfMetrics",
+          JSON.stringify({
+            "writeBuffer Time": writeBufferTime,
+            "writeTexture Time": writeTextureTime,
+          })
+        );
+      }
+
+      SimpleTest.waitForExplicitFinish();
+
+      runTest()
+        .catch(e => ok(false, "Unhandled exception " + e))
+        .finally(() => SimpleTest.finish());
+    </script>
+  </body>
+</html>

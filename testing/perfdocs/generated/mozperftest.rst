@@ -125,6 +125,27 @@ test_update.html
 **Test updating.**
 
 
+dom/webgpu/mochitest
+--------------------
+Performance tests from the 'dom/webgpu/mochitest' folder.
+
+test_queue_write_perf.html
+==========================
+
+:owner: Graphics Team
+:name: Queue Write
+:Default options:
+
+::
+
+ --perfherder
+ --perfherder-metrics name:writeBuffer Time,unit:ms, name:writeTexture Time,unit:ms
+ --manifest perftest.toml
+ --manifest-flavor plain
+
+**Test the performance of Queue.writeBuffer and Queue.writeTexture**
+
+
 intl/benchmarks/test/xpcshell
 -----------------------------
 Performance tests running through XPCShell for Intl code
