@@ -987,10 +987,12 @@ bool DMABufSurfaceRGBA::Serialize(
     refCountFDs.AppendElement(ipc::FileDescriptor(GlobalRefCountExport()));
   }
 
+  // GCC needs it (Bug 1959653).
+  AutoTArray<uint32_t, 1> tmp;
   aOutDescriptor = SurfaceDescriptorDMABuf(
       mSurfaceType, mFOURCCFormat, modifiers, mGbmBufferFlags, fds, width,
-      height, width, height, nsTArray<uint32_t>(), strides, offsets,
-      GetYUVColorSpace(), mColorRange, mozilla::gfx::ColorSpace2::UNKNOWN,
+      height, width, height, tmp, strides, offsets, GetYUVColorSpace(),
+      mColorRange, mozilla::gfx::ColorSpace2::UNKNOWN,
       mozilla::gfx::TransferFunction::Default, fenceFDs, mUID, refCountFDs,
       /* semaphoreFd */ nullptr);
   return true;
