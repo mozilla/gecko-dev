@@ -77,9 +77,11 @@ XPCOMUtils.defineLazyPreferenceGetter(
  * where the JEXL expression evaluates into a falsy value.
  * @param {Object}            entry       The Remote Settings entry to be excluded or kept.
  * @param {ClientEnvironment} environment Information about version, language, platform etc.
+ * @param {string}            collectionName
+ *    Which collection includes this entry. This is used for error reporting.
  * @returns {?Object} the entry or null if excluded.
  */
-export async function jexlFilterFunc(entry, environment) {
+export async function jexlFilterFunc(entry, environment, collectionName) {
   const { filter_expression } = entry;
   if (!filter_expression) {
     return entry;
@@ -91,7 +93,7 @@ export async function jexlFilterFunc(entry, environment) {
     };
     result = await lazy.FilterExpressions.eval(filter_expression, context);
   } catch (e) {
-    console.error(e);
+    console.error(e, "Full expression: " + filter_expression, collectionName);
   }
   return result ? entry : null;
 }

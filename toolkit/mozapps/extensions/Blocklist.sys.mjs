@@ -376,17 +376,21 @@ const Utils = {
  *
  * Note that this is async because `jexlFilterFunc` is async.
  *
- * @param {Object} entry a Remote Settings record
- * @param {Object} environment the JEXL environment object.
+ * @param {Object} entry
+ *    A Remote Settings record. If it has a filter_expression, we'll pass it
+ *    straight to the default jexlFilterFunc. Otherwise, we'll do custom
+ *    version range processing for target apps.
+ * @param {...any} rest
+ *    Unused, or if we invoke the default jexl filter, forwarded as-is.
  * @returns {Object} The entry if it matches, `null` otherwise.
  */
-async function targetAppFilter(entry, environment) {
+async function targetAppFilter(entry, ...rest) {
   // If the entry has a JEXL filter expression, it should prevail.
   // The legacy target app mechanism will be kept in place for old entries.
   // See https://bugzilla.mozilla.org/show_bug.cgi?id=1463377
   const { filter_expression } = entry;
   if (filter_expression) {
-    return lazy.jexlFilterFunc(entry, environment);
+    return lazy.jexlFilterFunc(entry, ...rest);
   }
 
   // Keep entries without target information.
@@ -672,8 +676,8 @@ const ExtensionBlocklistRS = {
     BlocklistTelemetry.recordRSBlocklistLastModified("addons", this._client);
   },
 
-  async _filterItem(entry, environment) {
-    if (!(await targetAppFilter(entry, environment))) {
+  async _filterItem(entry, ...rest) {
+    if (!(await targetAppFilter(entry, ...rest))) {
       return null;
     }
     if (!Utils.matchesOSABI(entry)) {
