@@ -1256,9 +1256,10 @@ bool ValidatePrincipalCouldPotentiallyBeLoadedBy(
   nsDependentCSubstring typePrefix(aRemoteType, 0, equalIdx);
   nsDependentCSubstring typeOrigin(aRemoteType, equalIdx + 1);
 
-  // Only validate webIsolated remote types for now. This should be expanded in
-  // the future.
-  if (typePrefix != FISSION_WEB_REMOTE_TYPE) {
+  // Only validate webIsolated and webServiceWorker remote types for now. This
+  // should be expanded in the future.
+  if (typePrefix != FISSION_WEB_REMOTE_TYPE &&
+      typePrefix != SERVICEWORKER_REMOTE_TYPE) {
     return true;
   }
 
