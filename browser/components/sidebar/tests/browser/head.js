@@ -115,13 +115,24 @@ function waitForBrowserWindowActive(win) {
   });
 }
 
-function openAndWaitForContextMenu(popup, button, onShown) {
+function openAndWaitForContextMenu(popup, button, onShown, onHidden) {
   return new Promise(resolve => {
     function onPopupShown() {
       info("onPopupShown");
       popup.removeEventListener("popupshown", onPopupShown);
 
       onShown && onShown();
+
+      // Use setTimeout() to get out of the popupshown event.
+      popup.addEventListener("popuphidden", onPopupHidden);
+      setTimeout(() => popup.hidePopup(), 0);
+    }
+    function onPopupHidden() {
+      info("onPopupHidden");
+      popup.removeEventListener("popuphidden", onPopupHidden);
+
+      onHidden && onHidden();
+
       resolve(popup);
     }
 

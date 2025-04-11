@@ -253,7 +253,6 @@ add_task(async function test_close_remote_tab_context_menu() {
       "'Close Remote Tab' menu item is enabled."
     );
   });
-  contextMenu.hidePopup();
 
   SidebarController.hide();
   sandbox.restore();

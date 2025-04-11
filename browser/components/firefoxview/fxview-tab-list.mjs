@@ -400,7 +400,6 @@ export class FxviewTabRowBase extends MozLitElement {
     title: { type: String },
     timeMsPref: { type: Number },
     url: { type: String },
-    uri: { type: String },
     searchQuery: { type: String },
   };
 
@@ -422,11 +421,6 @@ export class FxviewTabRowBase extends MozLitElement {
       focusItem = this.renderRoot.getElementById("fxview-tab-row-main");
     }
     return focusItem;
-  }
-
-  connectedCallback() {
-    super.connectedCallback();
-    this.uri = this.url;
   }
 
   focus() {

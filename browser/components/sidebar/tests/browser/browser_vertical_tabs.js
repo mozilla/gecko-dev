@@ -167,7 +167,6 @@ add_task(async function test_toggle_vertical_tabs() {
   await openAndWaitForContextMenu(contextMenu, gBrowser.selectedTab, () => {
     document.getElementById("context_openANewTab").click();
   });
-  contextMenu.hidePopup();
 
   let keyedScalars = TelemetryTestUtils.getProcessScalars("parent", true);
   TelemetryTestUtils.assertKeyedScalar(
@@ -195,7 +194,6 @@ add_task(async function test_toggle_vertical_tabs() {
   await openAndWaitForContextMenu(contextMenu, gBrowser.selectedTab, () => {
     document.getElementById("context_pinTab").click();
   });
-  contextMenu.hidePopup();
 
   scalars = await getTelemetryScalars([
     "browser.engagement.max_concurrent_vertical_tab_pinned_count",
@@ -288,7 +286,6 @@ add_task(async function test_toggle_vertical_tabs() {
       );
     }
   );
-  toolbarContextMenu.hidePopup();
 
   await openAndWaitForContextMenu(
     toolbarContextMenu,
@@ -300,7 +297,6 @@ add_task(async function test_toggle_vertical_tabs() {
       );
     }
   );
-  toolbarContextMenu.hidePopup();
 
   await openAndWaitForContextMenu(
     toolbarContextMenu,
@@ -316,7 +312,6 @@ add_task(async function test_toggle_vertical_tabs() {
       );
     }
   );
-  toolbarContextMenu.hidePopup();
 
   await openAndWaitForContextMenu(
     toolbarContextMenu,
@@ -328,7 +323,6 @@ add_task(async function test_toggle_vertical_tabs() {
       );
     }
   );
-  toolbarContextMenu.hidePopup();
 
   let newTabButton = document.getElementById("tabs-newtab-button");
   info("Open a new tab using the new tab button.");

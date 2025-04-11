@@ -79,6 +79,12 @@ class SyncedTabsInSidebar extends SidebarPage {
 
   handleCommandEvent(e) {
     switch (e.target.id) {
+      case "sidebar-synced-tabs-context-bookmark-tab":
+        this.topWindow.PlacesCommandHook.bookmarkLink(
+          this.triggerNode.url,
+          this.triggerNode.title
+        );
+        break;
       case "sidebar-context-menu-close-remote-tab":
         this.requestOrRemoveTabToClose(
           this.triggerNode.url,
