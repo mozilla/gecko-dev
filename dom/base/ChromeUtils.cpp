@@ -2483,6 +2483,9 @@ bool ChromeUtils::ShouldResistFingerprinting(
     case JSRFPTarget::CSSPrefersColorScheme:
       target = RFPTarget::CSSPrefersColorScheme;
       break;
+    case JSRFPTarget::JSLocalePrompt:
+      target = RFPTarget::JSLocalePrompt;
+      break;
     default:
       MOZ_CRASH("Unhandled JSRFPTarget enum value");
   }

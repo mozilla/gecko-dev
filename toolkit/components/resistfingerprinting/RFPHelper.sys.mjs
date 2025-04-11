@@ -81,7 +81,7 @@ class _RFPHelper {
     Services.prefs.removeObserver(kPrefResistFingerprinting, this);
     Services.prefs.removeObserver(kPrefLetterboxing, this);
     // Remove the RFP observers, swallowing exceptions if they weren't present
-    this._removeRFPObservers();
+    this._removeLanguagePrefObservers();
   }
 
   observe(subject, topic, data) {
@@ -139,14 +139,14 @@ class _RFPHelper {
   // ============================================================================
   // Language Prompt
   // ============================================================================
-  _addRFPObservers() {
+  _addLanguagePrefObservers() {
     Services.prefs.addObserver(kPrefSpoofEnglish, this);
     if (this._shouldPromptForLanguagePref()) {
       Services.obs.addObserver(this, kTopicHttpOnModifyRequest);
     }
   }
 
-  _removeRFPObservers() {
+  _removeLanguagePrefObservers() {
     try {
       Services.prefs.removeObserver(kPrefSpoofEnglish, this);
     } catch (e) {
@@ -160,12 +160,11 @@ class _RFPHelper {
   }
 
   _handleResistFingerprintingChanged() {
-    if (
-      (this.rfpEnabled = Services.prefs.getBoolPref(kPrefResistFingerprinting))
-    ) {
-      this._addRFPObservers();
+    this.rfpEnabled = Services.prefs.getBoolPref(kPrefResistFingerprinting);
+    if (ChromeUtils.shouldResistFingerprinting("JSLocalePrompt", null)) {
+      this._addLanguagePrefObservers();
     } else {
-      this._removeRFPObservers();
+      this._removeLanguagePrefObservers();
     }
   }
 

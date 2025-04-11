@@ -1140,6 +1140,7 @@ enum JSRFPTarget {
   "RoundWindowSize",
   "SiteSpecificZoom",
   "CSSPrefersColorScheme",
+  "JSLocalePrompt",
 };
 
 #ifdef XP_UNIX
