@@ -8209,19 +8209,21 @@ fn get_surface_rects(
             spatial_tree,
         );
 
-        let clipped = (local_to_world.map(&clipped_local.cast_unit()).unwrap() * surface.device_pixel_scale).round_out();
+        let clipped = local_to_world.map(&clipped_local.cast_unit()).unwrap() * surface.device_pixel_scale;
         let unclipped = local_to_world.map(&unclipped_local).unwrap() * surface.device_pixel_scale;
-        let source = (local_to_world.map(&source_local.cast_unit()).unwrap() * surface.device_pixel_scale).round_out();
+        let source = local_to_world.map(&source_local.cast_unit()).unwrap() * surface.device_pixel_scale;
 
         (clipped, unclipped, source)
     } else {
         // Surface is already in the chosen raster spatial node
-        let clipped = (clipped_local.cast_unit() * surface.device_pixel_scale).round_out();
+        let clipped = clipped_local.cast_unit() * surface.device_pixel_scale;
         let unclipped = unclipped_local.cast_unit() * surface.device_pixel_scale;
-        let source = (source_local.cast_unit() * surface.device_pixel_scale).round_out();
+        let source = source_local.cast_unit() * surface.device_pixel_scale;
 
         (clipped, unclipped, source)
     };
+    let mut clipped_snapped = clipped.round_out();
+    let mut source_snapped = source.round_out();
 
     // We need to make sure the surface size does not exceed max_surface_size,
     // if it would exceed it we actually want to keep the surface in its local
@@ -8230,18 +8232,20 @@ fn get_surface_rects(
     // Since both clipped and source are subject to the same limit, we can just
     // pick the largest axis from all rects involved.
     //
+    // Importantly, surfaces that are exactly at max_surface_size are relatively
+    // common for some reason, so we don't want to use a conservative limit.
+    //
     // If you change this, test with:
     // ./mach crashtest layout/svg/crashtests/387290-1.svg
     let max_dimension =
-        clipped.width().max(
-            clipped.height().max(
-                source.width().max(
-                    source.height()
+        clipped_snapped.width().max(
+            clipped_snapped.height().max(
+                source_snapped.width().max(
+                    source_snapped.height()
                 ))).ceil();
     if max_dimension > max_surface_size {
         // We have to recalculate max_dimension for the local space we'll be
-        // using, and we want to make absolutely sure it is a sufficiently large
-        // value that the result does not exceed max_surface_size
+        // using as we're no longer rasterizing in the parent space
         let max_dimension =
             clipped_local.width().max(
                 clipped_local.height().max(
@@ -8264,15 +8268,18 @@ fn get_surface_rects(
                 Duration::from_secs_f32(new_clipped.width() * new_clipped.height() / 1000000000.0));
         }
 
-        clipped = (clipped_local.cast_unit() * surface.device_pixel_scale).round();
+        clipped = clipped_local.cast_unit() * surface.device_pixel_scale;
         unclipped = unclipped_local.cast_unit() * surface.device_pixel_scale;
-        source = (source_local.cast_unit() * surface.device_pixel_scale).round();
+        source = source_local.cast_unit() * surface.device_pixel_scale;
+        clipped_snapped = clipped.round();
+        source_snapped = source.round();
     }
 
-    let task_size = clipped.size().to_i32();
-    // Panics here cause the GPUProcess to repeatedly crash, making the whole
-    // browser largely non-functional until the tab is closed (or changes to no
-    // longer trigger this), so make sure we never actually hit the panic case.
+    let task_size = clipped_snapped.size().to_i32();
+    // We must avoid hitting the assert here at all costs because panics here
+    // will repeatedly crash the GPU Process, making the whole app unusable,
+    // so make sure task_size <= max_surface_size, it's possible that we lose a
+    // pixel here if the max_dimension threshold was not optimal.
     // See https://bugzilla.mozilla.org/show_bug.cgi?id=1948939 for more info.
     let task_size = task_size.min(DeviceIntSize::new(max_surface_size as i32, max_surface_size as i32));
     debug_assert!(
@@ -8284,7 +8291,7 @@ fn get_surface_rects(
         max_surface_size);
 
     let uv_rect_kind = calculate_uv_rect_kind(
-        clipped,
+        clipped_snapped,
         unclipped,
     );
 
@@ -8304,10 +8311,9 @@ fn get_surface_rects(
     Some(SurfaceAllocInfo {
         task_size,
         needs_scissor_rect,
-        clipped,
+        clipped: clipped_snapped,
         unclipped,
-        source,
-        // TODO - fix this again https://bugzilla.mozilla.org/show_bug.cgi?id=1918529
+        source: source_snapped,
         clipped_notsnapped: clipped,
         clipped_local,
         uv_rect_kind,
