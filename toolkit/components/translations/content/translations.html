@@ -16,8 +16,16 @@
     <link rel="localization" href="toolkit/branding/brandings.ftl"/>
     <link rel="localization" href="locales-preview/aboutTranslations.ftl"/>
     <script type="module" src="chrome://global/content/translations/translations.mjs"></script>
+    <script
+      type="module"
+      src="chrome://global/content/elements/moz-message-bar.mjs">
+    </script>
   </head>
   <body>
+    <moz-message-bar
+      id="messageBar"
+      hidden>
+    </moz-message-bar>
     <h1 data-l10n-id="about-translations-header"></h1>
     <main class="about-translations-contents">
 

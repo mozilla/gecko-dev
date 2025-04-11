@@ -403,6 +403,8 @@ class TranslationsUI {
   translationResultsPlaceholder = document.getElementById(
     "translation-results-placeholder"
   );
+  /** @type {HTMLElement} */
+  messageBar = document.getElementById("messageBar");
   /** @type {TranslationsState} */
   state;
 
@@ -435,7 +437,10 @@ class TranslationsUI {
       this.disableUI();
       return;
     }
-    this.setupDropdowns();
+    this.setupDropdowns().catch(error => {
+      console.error("Failed to set up dropdowns:", error);
+      this.showError("about-translations-language-load-error");
+    });
     this.setupTextarea();
     this.setupLanguageSwapButton();
   }
@@ -559,13 +564,25 @@ class TranslationsUI {
   }
 
   /**
+   * Show an error message to the user.
+   *
+   * @param {string} l10nId
+   */
+  showError(l10nId) {
+    document.l10n.setAttributes(this.messageBar, l10nId);
+    this.messageBar.hidden = false;
+    this.messageBar.setAttribute("type", "error");
+  }
+
+  /**
    * Show an info message to the user.
    *
    * @param {string} l10nId
    */
   showInfo(l10nId) {
-    document.l10n.setAttributes(this.translationInfoMessage, l10nId);
-    this.translationInfo.style.display = "flex";
+    document.l10n.setAttributes(this.messageBar, l10nId);
+    this.messageBar.hidden = false;
+    this.messageBar.setAttribute("type", "info");
   }
 
   /**
