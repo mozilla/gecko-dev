@@ -115,6 +115,11 @@ void SandboxBroker::Terminate() {
     shutdown(mFileDesc, SHUT_RD);
     // The thread will now get EOF even if the client hasn't exited.
     PlatformThread::Join(mThread);
+  } else {
+    // Nothing is waiting for this thread, so detach it to avoid
+    // memory leaks.
+    int rv = pthread_detach(pthread_self());
+    MOZ_ALWAYS_TRUE(rv == 0);
   }
 
   // Now that the thread has exited, the fd will no longer be accessed.
