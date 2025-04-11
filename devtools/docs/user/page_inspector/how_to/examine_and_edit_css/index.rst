@@ -317,10 +317,6 @@ Note that if the operating system mode is set to a particular mode, then simulat
   If ``privacy.resistFingerprinting`` has been set **true**, the `prefers-color-scheme <https://developer.mozilla.org/en-US/docs/Web/CSS/@media/prefers-color-scheme>`_ preference is forced to ``light``. You must set``privacy.resistFingerprinting`` to **false** in order to use this feature.
 
 
-.. note::
-  Before Firefox 87 this feature is behind the preference ``devtools.inspector.color-scheme-simulation.enabled``.
-
-
 .. _page_inspector_how_to_examine_and_edit_css_examine_computed_css:
 
 Examine computed CSS
