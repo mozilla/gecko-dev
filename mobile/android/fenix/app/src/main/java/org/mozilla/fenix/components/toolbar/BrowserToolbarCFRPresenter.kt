@@ -296,17 +296,8 @@ class BrowserToolbarCFRPresenter(
             text = {
                 FirefoxTheme {
                     Column {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            Text(
-                                text = context.getString(R.string.address_bar_swipe_cfr_title),
-                                color = FirefoxTheme.colors.textOnColorPrimary,
-                                style = FirefoxTheme.typography.subtitle2,
-                            )
-                        }
                         Text(
-                            text = context.getString(R.string.address_bar_swipe_cfr_message),
+                            text = context.getString(R.string.address_bar_swipe_cfr_message_2),
                             color = FirefoxTheme.colors.textOnColorPrimary,
                             style = FirefoxTheme.typography.body2,
                             modifier = Modifier.padding(top = 2.dp),
