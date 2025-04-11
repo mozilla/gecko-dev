@@ -1,0 +1,76 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>nsIHTMLEditor.insertElementAtSelection() shouldn't touch preceding blockquote content</title>
+<script src="/tests/SimpleTest/SimpleTest.js"></script>
+<link rel="stylesheet" href="/tests/SimpleTest/test.css"/>
+<script>
+"use strict";
+
+SimpleTest.waitForExplicitFinish();
+SimpleTest.waitForFocus(async () => {
+  // XXX If we use the legacy white-space normalizer, we'll see odd white-spaces after the last <p>.
+  await SpecialPowers.pushPrefEnv({
+    set: [["editor.white_space_normalization.blink_compatible", true]],
+  });
+  document.designMode = "on";
+  const htmlEditor = getHTMLEditor();
+  htmlEditor.enableUndo(false);
+  // https://searchfox.org/comm-central/rev/1016048a635bd062b826bfe767c86acaeadd004a/mailnews/compose/src/nsMsgCompose.cpp#529
+  const precedingDiv = SpecialPowers.unwrap(htmlEditor.createElementWithDefaults("div"));
+  precedingDiv.innerHTML = "Somebody wrote:";
+  precedingDiv.appendChild(SpecialPowers.unwrap(htmlEditor.createElementWithDefaults("br")));
+  htmlEditor.insertElementAtSelection(precedingDiv, true);
+  getSelection().collapse(document.body, 1); // Collapse selection after the <div>
+  const originalHTMLMailHead = `
+    <meta charset="utf-8">
+    <title>Original Email</title>
+  `;
+  const originalHTMLMailBody = `
+    First line<br>
+    You wrote:<br>
+    <blockquote type="cite">
+      Quoted first line
+    </blockquote>
+  `;
+  const originalHTMLMail = `<!doctype html>
+<html>
+  <head>${originalHTMLMailHead}</head>
+  <body>${originalHTMLMailBody}</body>
+</html>
+`;
+  // https://searchfox.org/comm-central/rev/1016048a635bd062b826bfe767c86acaeadd004a/mailnews/compose/src/nsMsgCompose.cpp#537-538
+  const blockquote = SpecialPowers.unwrap(htmlEditor.insertAsCitedQuotation(originalHTMLMail, "", true));
+  const expectedBlockquoteContent = `\n\n  ${originalHTMLMailHead}\n  ${originalHTMLMailBody}\n\n`;
+  is(
+    blockquote.innerHTML,
+    expectedBlockquoteContent,
+    "The original mail body should be inserted into the <blockquote>"
+  );
+  // https://searchfox.org/comm-central/rev/59abd448822dcbee815be6d599b19108d0d42c0b/mail/components/compose/content/MsgComposeCommands.js#740
+  getSelection().collapse(document.body, 2); // Collapse selection after the <blockquote>
+  const p = SpecialPowers.unwrap(htmlEditor.createElementWithDefaults("p"));
+  p.appendChild(SpecialPowers.unwrap(htmlEditor.createElementWithDefaults("br")));
+  htmlEditor.insertElementAtSelection(p, false);
+  getSelection().collapse(p, 0);
+  is(
+    document.body.innerHTML,
+    `<div>Somebody wrote:<br></div><blockquote type="cite">${expectedBlockquoteContent}</blockquote><p><br></p>`,
+    "The original mail should be quoted as expected when the initialization finished"
+  );
+  SimpleTest.finish();
+});
+
+
+function getHTMLEditor() {
+  var Ci = SpecialPowers.Ci;
+  var editingSession = SpecialPowers.wrap(window).docShell.editingSession;
+  return editingSession.getEditorForWindow(window)
+    .QueryInterface(Ci.nsIHTMLEditor)
+    .QueryInterface(Ci.nsIEditorMailSupport);
+}
+</script>
+</head>
+<body></body>
+</html>

@@ -2444,7 +2444,8 @@ WhiteSpaceVisibilityKeeper::EnsureNoInvisibleWhiteSpaces(
     return startOfTrailingWhiteSpaces;
   }
 
-  const auto atCollapsibleASCIISpace = [&]() -> EditorDOMPointInText {
+  const auto atCollapsibleASCIISpace =
+      [&]() MOZ_NEVER_INLINE_DEBUG -> EditorDOMPointInText {
     const auto point =
         textFragmentData.GetInclusiveNextCharPoint<EditorDOMPointInText>(
             textFragmentData.ScanStartRef(), IgnoreNonEditableNodes::Yes);
