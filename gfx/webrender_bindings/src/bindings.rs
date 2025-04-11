@@ -41,7 +41,7 @@ use webrender::{
     AsyncScreenshotHandle, Compositor, LayerCompositor, CompositorCapabilities, CompositorConfig, CompositorSurfaceTransform, Device,
     MappableCompositor, MappedTileInfo, NativeSurfaceId, NativeSurfaceInfo, NativeTileId, PartialPresentCompositor,
     PipelineInfo, ProfilerHooks, RecordedFrameHandle, RenderBackendHooks, Renderer, RendererStats,
-    SWGLCompositeSurfaceInfo, SceneBuilderHooks, ShaderPrecacheFlags, Shaders, SharedShaders, TextureCacheConfig,
+    SWGLCompositeSurfaceInfo, SceneBuilderHooks, ShaderPrecacheFlags, Shaders, ShaderError, SharedShaders, TextureCacheConfig,
     UploadMethod, WebRenderOptions, WindowVisibility, WindowProperties, ONE_TIME_USAGE_HINT, CompositorInputConfig, CompositorSurfaceUsage,
 };
 use wr_malloc_size_of::MallocSizeOfOps;
@@ -4427,21 +4427,23 @@ pub extern "C" fn wr_shaders_new(
 ) -> *mut WrShaders {
     let mut device = wr_device_new(gl_context, program_cache);
 
-    let precache_flags = if precache_shaders || env_var_to_bool("MOZ_WR_PRECACHE_SHADERS") {
-        ShaderPrecacheFlags::FULL_COMPILE
-    } else {
-        ShaderPrecacheFlags::ASYNC_COMPILE
-    };
-
-    let opts = WebRenderOptions {
-        precache_flags,
-        ..Default::default()
-    };
-
-    let gl_type = device.gl().get_type();
     device.begin_frame();
 
-    let shaders = Rc::new(RefCell::new(match Shaders::new(&mut device, gl_type, &opts) {
+    let mut create_shaders = || -> Result<Shaders, ShaderError> {
+        let gl_type = device.gl().get_type();
+        let mut shaders = Shaders::new(&mut device, gl_type, &WebRenderOptions::default())?;
+
+        let precache_flags = if precache_shaders || env_var_to_bool("MOZ_WR_PRECACHE_SHADERS") {
+            ShaderPrecacheFlags::FULL_COMPILE
+        } else {
+            ShaderPrecacheFlags::ASYNC_COMPILE
+        };
+        shaders.precache_all(&mut device, precache_flags)?;
+
+        Ok(shaders)
+    };
+
+    let shaders = match create_shaders() {
         Ok(shaders) => shaders,
         Err(e) => {
             warn!(" Failed to create a Shaders: {:?}", e);
@@ -4451,9 +4453,9 @@ pub extern "C" fn wr_shaders_new(
             }
             return ptr::null_mut();
         },
-    }));
+    };
 
-    let shaders = WrShaders(shaders);
+    let shaders = WrShaders(Rc::new(RefCell::new(shaders)));
 
     device.end_frame();
     Box::into_raw(Box::new(shaders))

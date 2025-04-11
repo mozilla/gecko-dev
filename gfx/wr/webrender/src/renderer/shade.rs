@@ -101,8 +101,6 @@ impl LazilyCompiledShader {
         kind: ShaderKind,
         name: &'static str,
         unsorted_features: &[&'static str],
-        device: &mut Device,
-        precache_flags: ShaderPrecacheFlags,
         shader_list: &ShaderFeatures,
     ) -> Result<Self, ShaderError> {
 
@@ -119,7 +117,7 @@ impl LazilyCompiledShader {
             config,
         );
 
-        let mut shader = LazilyCompiledShader {
+        let shader = LazilyCompiledShader {
             program: None,
             name,
             kind,
@@ -129,20 +127,25 @@ impl LazilyCompiledShader {
             features,
         };
 
-        if precache_flags.intersects(ShaderPrecacheFlags::ASYNC_COMPILE | ShaderPrecacheFlags::FULL_COMPILE) {
-            let t0 = precise_time_ns();
-            let timer_id = Telemetry::start_shaderload_time();
-            shader.get_internal(device, precache_flags, None)?;
-            Telemetry::stop_and_accumulate_shaderload_time(timer_id);
-            let t1 = precise_time_ns();
-            debug!("[C: {:.1} ms ] Precache {} {:?}",
-                (t1 - t0) as f64 / 1000000.0,
-                name,
-                unsorted_features
-            );
-        }
-
         Ok(shader)
+    }
+
+    pub fn precache(
+        &mut self,
+        device: &mut Device,
+        flags: ShaderPrecacheFlags,
+    ) -> Result<(), ShaderError> {
+        let t0 = precise_time_ns();
+        let timer_id = Telemetry::start_shaderload_time();
+        self.get_internal(device, flags, None)?;
+        Telemetry::stop_and_accumulate_shaderload_time(timer_id);
+        let t1 = precise_time_ns();
+        debug!("[C: {:.1} ms ] Precache {} {:?}",
+            (t1 - t0) as f64 / 1000000.0,
+            self.name,
+            self.features
+        );
+        Ok(())
     }
 
     pub fn bind(
@@ -351,9 +354,7 @@ struct BrushShader {
 impl BrushShader {
     fn new(
         name: &'static str,
-        device: &mut Device,
         features: &[&'static str],
-        precache_flags: ShaderPrecacheFlags,
         shader_list: &ShaderFeatures,
         use_advanced_blend: bool,
         use_dual_source: bool,
@@ -364,8 +365,6 @@ impl BrushShader {
             ShaderKind::Brush,
             name,
             &opaque_features,
-            device,
-            precache_flags,
             &shader_list,
         )?;
 
@@ -376,8 +375,6 @@ impl BrushShader {
             ShaderKind::Brush,
             name,
             &alpha_features,
-            device,
-            precache_flags,
             &shader_list,
         )?;
 
@@ -389,8 +386,6 @@ impl BrushShader {
                 ShaderKind::Brush,
                 name,
                 &advanced_blend_features,
-                device,
-                precache_flags,
                 &shader_list,
             )?;
 
@@ -407,8 +402,6 @@ impl BrushShader {
                 ShaderKind::Brush,
                 name,
                 &dual_source_features,
-                device,
-                precache_flags,
                 &shader_list,
             )?;
 
@@ -424,8 +417,6 @@ impl BrushShader {
             ShaderKind::Brush,
             name,
             &debug_overdraw_features,
-            device,
-            precache_flags,
             &shader_list,
         )?;
 
@@ -479,9 +470,7 @@ pub struct TextShader {
 impl TextShader {
     fn new(
         name: &'static str,
-        device: &mut Device,
         features: &[&'static str],
-        precache_flags: ShaderPrecacheFlags,
         shader_list: &ShaderFeatures,
         loader: &mut ShaderLoader,
     ) -> Result<Self, ShaderError> {
@@ -493,8 +482,6 @@ impl TextShader {
             ShaderKind::Text,
             name,
             &simple_features,
-            device,
-            precache_flags,
             &shader_list,
         )?;
 
@@ -507,8 +494,6 @@ impl TextShader {
             ShaderKind::Text,
             name,
             &glyph_transform_features,
-            device,
-            precache_flags,
             &shader_list,
         )?;
 
@@ -520,8 +505,6 @@ impl TextShader {
             ShaderKind::Text,
             name,
             &debug_overdraw_features,
-            device,
-            precache_flags,
             &shader_list,
         )?;
 
@@ -583,8 +566,6 @@ impl ShaderLoader {
         kind: ShaderKind,
         name: &'static str,
         unsorted_features: &[&'static str],
-        device: &mut Device,
-        precache_flags: ShaderPrecacheFlags,
         shader_list: &ShaderFeatures,
     ) -> Result<ShaderHandle, ShaderError> {
         let index = self.shaders.len();
@@ -592,12 +573,25 @@ impl ShaderLoader {
             kind,
             name,
             unsorted_features,
-            device,
-            precache_flags,
             shader_list,
         )?;
         self.shaders.push(shader);
         Ok(ShaderHandle(index))
+    }
+
+    pub fn precache_all(
+        &mut self,
+        device: &mut Device,
+        flags: ShaderPrecacheFlags,
+    ) -> Result<(), ShaderError> {
+        if !flags.intersects(ShaderPrecacheFlags::ASYNC_COMPILE | ShaderPrecacheFlags::FULL_COMPILE) {
+            return Ok(());
+        }
+
+        for shader in &mut self.shaders {
+            shader.precache(device, flags)?;
+        }
+        Ok(())
     }
 
     pub fn get(&mut self, handle: ShaderHandle) -> &mut LazilyCompiledShader {
@@ -699,9 +693,7 @@ impl Shaders {
 
         let brush_solid = BrushShader::new(
             "brush_solid",
-            device,
             &[],
-            options.precache_flags,
             &shader_list,
             false /* advanced blend */,
             false /* dual source */,
@@ -710,9 +702,7 @@ impl Shaders {
 
         let brush_blend = BrushShader::new(
             "brush_blend",
-            device,
             &[],
-            options.precache_flags,
             &shader_list,
             false /* advanced blend */,
             false /* dual source */,
@@ -721,9 +711,7 @@ impl Shaders {
 
         let brush_mix_blend = BrushShader::new(
             "brush_mix_blend",
-            device,
             &[],
-            options.precache_flags,
             &shader_list,
             false /* advanced blend */,
             false /* dual source */,
@@ -732,13 +720,11 @@ impl Shaders {
 
         let brush_linear_gradient = BrushShader::new(
             "brush_linear_gradient",
-            device,
             if options.enable_dithering {
                &[DITHERING_FEATURE]
             } else {
                &[]
             },
-            options.precache_flags,
             &shader_list,
             false /* advanced blend */,
             false /* dual source */,
@@ -747,9 +733,7 @@ impl Shaders {
 
         let brush_opacity_aa = BrushShader::new(
             "brush_opacity",
-            device,
             &["ANTIALIASING"],
-            options.precache_flags,
             &shader_list,
             false /* advanced blend */,
             false /* dual source */,
@@ -758,9 +742,7 @@ impl Shaders {
 
         let brush_opacity = BrushShader::new(
             "brush_opacity",
-            device,
             &[],
-            options.precache_flags,
             &shader_list,
             false /* advanced blend */,
             false /* dual source */,
@@ -771,8 +753,6 @@ impl Shaders {
             ShaderKind::Cache(VertexArrayKind::Blur),
             "cs_blur",
             &["ALPHA_TARGET"],
-            device,
-            options.precache_flags,
             &shader_list,
         )?;
 
@@ -780,8 +760,6 @@ impl Shaders {
             ShaderKind::Cache(VertexArrayKind::Blur),
             "cs_blur",
             &["COLOR_TARGET"],
-            device,
-            options.precache_flags,
             &shader_list,
         )?;
 
@@ -789,8 +767,6 @@ impl Shaders {
             ShaderKind::Cache(VertexArrayKind::SvgFilter),
             "cs_svg_filter",
             &[],
-            device,
-            options.precache_flags,
             &shader_list,
         )?;
 
@@ -798,8 +774,6 @@ impl Shaders {
             ShaderKind::Cache(VertexArrayKind::SvgFilterNode),
             "cs_svg_filter_node",
             &[],
-            device,
-            options.precache_flags,
             &shader_list,
         )?;
 
@@ -807,8 +781,6 @@ impl Shaders {
             ShaderKind::Cache(VertexArrayKind::Mask),
             "ps_quad_mask",
             &[],
-            device,
-            options.precache_flags,
             &shader_list,
         )?;
 
@@ -816,8 +788,6 @@ impl Shaders {
             ShaderKind::Cache(VertexArrayKind::Mask),
             "ps_quad_mask",
             &[FAST_PATH_FEATURE],
-            device,
-            options.precache_flags,
             &shader_list,
         )?;
 
@@ -825,8 +795,6 @@ impl Shaders {
             ShaderKind::ClipCache(VertexArrayKind::ClipRect),
             "cs_clip_rectangle",
             &[],
-            device,
-            options.precache_flags,
             &shader_list,
         )?;
 
@@ -834,8 +802,6 @@ impl Shaders {
             ShaderKind::ClipCache(VertexArrayKind::ClipRect),
             "cs_clip_rectangle",
             &[FAST_PATH_FEATURE],
-            device,
-            options.precache_flags,
             &shader_list,
         )?;
 
@@ -843,8 +809,6 @@ impl Shaders {
             ShaderKind::ClipCache(VertexArrayKind::ClipBoxShadow),
             "cs_clip_box_shadow",
             &["TEXTURE_2D"],
-            device,
-            options.precache_flags,
             &shader_list,
         )?;
 
@@ -870,8 +834,6 @@ impl Shaders {
                     ShaderKind::Cache(VertexArrayKind::Scale),
                     "cs_scale",
                     &features,
-                    device,
-                    options.precache_flags,
                     &shader_list,
                  )?;
 
@@ -887,9 +849,7 @@ impl Shaders {
         //           shader. Perhaps we can unify these in future?
 
         let ps_text_run = TextShader::new("ps_text_run",
-            device,
             &[],
-            options.precache_flags,
             &shader_list,
             &mut loader,
         )?;
@@ -897,9 +857,7 @@ impl Shaders {
         let ps_text_run_dual_source = if use_dual_source_blending {
             let dual_source_features = vec![DUAL_SOURCE_FEATURE];
             Some(TextShader::new("ps_text_run",
-                device,
                 &dual_source_features,
-                options.precache_flags,
                 &shader_list,
                 &mut loader,
             )?)
@@ -911,8 +869,6 @@ impl Shaders {
             ShaderKind::Primitive,
             "ps_quad_textured",
             &[],
-            device,
-            options.precache_flags,
             &shader_list,
         )?;
 
@@ -920,8 +876,6 @@ impl Shaders {
             ShaderKind::Primitive,
             "ps_quad_radial_gradient",
             &[],
-            device,
-            options.precache_flags,
             &shader_list,
         )?;
 
@@ -929,8 +883,6 @@ impl Shaders {
             ShaderKind::Primitive,
             "ps_quad_conic_gradient",
             &[],
-            device,
-            options.precache_flags,
             &shader_list,
         )?;
 
@@ -938,8 +890,6 @@ impl Shaders {
             ShaderKind::Primitive,
             "ps_split_composite",
             &[],
-            device,
-            options.precache_flags,
             &shader_list,
         )?;
 
@@ -947,8 +897,6 @@ impl Shaders {
             ShaderKind::Clear,
             "ps_clear",
             &[],
-            device,
-            options.precache_flags,
             &shader_list,
         )?;
 
@@ -956,8 +904,6 @@ impl Shaders {
             ShaderKind::Copy,
             "ps_copy",
             &[],
-            device,
-            options.precache_flags,
             &shader_list,
         )?;
 
@@ -989,9 +935,7 @@ impl Shaders {
 
             brush_fast_image[buffer_kind] = Some(BrushShader::new(
                 "brush_image",
-                device,
                 &image_features,
-                options.precache_flags,
                 &shader_list,
                 use_advanced_blend_equation,
                 use_dual_source_blending,
@@ -1003,9 +947,7 @@ impl Shaders {
 
             brush_image[buffer_kind] = Some(BrushShader::new(
                 "brush_image",
-                device,
                 &image_features,
-                options.precache_flags,
                 &shader_list,
                 use_advanced_blend_equation,
                 use_dual_source_blending,
@@ -1049,9 +991,7 @@ impl Shaders {
                     texture_external_version == TextureExternalVersion::ESSL3 {
                     let brush_shader = BrushShader::new(
                         "brush_yuv_image",
-                        device,
                         &yuv_features,
-                        options.precache_flags,
                         &shader_list,
                         false /* advanced blend */,
                         false /* dual source */,
@@ -1070,8 +1010,6 @@ impl Shaders {
             ShaderKind::Cache(VertexArrayKind::LineDecoration),
             "cs_line_decoration",
             &[],
-            device,
-            options.precache_flags,
             &shader_list,
         )?;
 
@@ -1079,8 +1017,6 @@ impl Shaders {
             ShaderKind::Cache(VertexArrayKind::FastLinearGradient),
             "cs_fast_linear_gradient",
             &[],
-            device,
-            options.precache_flags,
             &shader_list,
         )?;
 
@@ -1088,8 +1024,6 @@ impl Shaders {
             ShaderKind::Cache(VertexArrayKind::LinearGradient),
             "cs_linear_gradient",
             &[],
-            device,
-            options.precache_flags,
             &shader_list,
         )?;
 
@@ -1097,8 +1031,6 @@ impl Shaders {
             ShaderKind::Cache(VertexArrayKind::RadialGradient),
             "cs_radial_gradient",
             &[],
-            device,
-            options.precache_flags,
             &shader_list,
         )?;
 
@@ -1106,8 +1038,6 @@ impl Shaders {
             ShaderKind::Cache(VertexArrayKind::ConicGradient),
             "cs_conic_gradient",
             &[],
-            device,
-            options.precache_flags,
             &shader_list,
         )?;
 
@@ -1115,8 +1045,6 @@ impl Shaders {
             ShaderKind::Cache(VertexArrayKind::Border),
             "cs_border_segment",
              &[],
-             device,
-             options.precache_flags,
             &shader_list,
         )?;
 
@@ -1124,12 +1052,10 @@ impl Shaders {
             ShaderKind::Cache(VertexArrayKind::Border),
             "cs_border_solid",
             &[],
-            device,
-            options.precache_flags,
             &shader_list,
         )?;
 
-        let composite = CompositorShaders::new(device, options.precache_flags, gl_type, &mut loader)?;
+        let composite = CompositorShaders::new(device, gl_type, &mut loader)?;
 
         Ok(Shaders {
             loader,
@@ -1170,6 +1096,14 @@ impl Shaders {
             ps_copy,
             composite,
         })
+    }
+
+    pub fn precache_all(
+        &mut self,
+        device: &mut Device,
+        flags: ShaderPrecacheFlags,
+    ) -> Result<(), ShaderError> {
+        self.loader.precache_all(device, flags)
     }
 
     fn get_compositing_shader_index(buffer_kind: ImageBufferKind) -> usize {
@@ -1370,7 +1304,6 @@ pub struct CompositorShaders {
 impl CompositorShaders {
     pub fn new(
         device: &mut Device,
-        precache_flags: ShaderPrecacheFlags,
         gl_type: GlType,
         loader: &mut ShaderLoader,
     )  -> Result<Self, ShaderError>  {
@@ -1430,8 +1363,6 @@ impl CompositorShaders {
                     ShaderKind::Composite,
                     "composite",
                     &yuv_clip_features,
-                    device,
-                    precache_flags,
                     &shader_list,
                 )?);
 
@@ -1439,8 +1370,6 @@ impl CompositorShaders {
                     ShaderKind::Composite,
                     "composite",
                     &yuv_fast_features,
-                    device,
-                    precache_flags,
                     &shader_list,
                 )?);
             }
@@ -1449,8 +1378,6 @@ impl CompositorShaders {
                 ShaderKind::Composite,
                 "composite",
                 &rgba_features,
-                device,
-                precache_flags,
                 &shader_list,
             )?);
 
@@ -1458,8 +1385,6 @@ impl CompositorShaders {
                 ShaderKind::Composite,
                 "composite",
                 &fast_path_features,
-                device,
-                precache_flags,
                 &shader_list,
             )?);
 
