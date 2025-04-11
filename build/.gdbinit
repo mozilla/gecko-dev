@@ -192,11 +192,11 @@ define ct
 end
 
 define ft
-  call $arg0->DumpFrameTree(false)
+  call $arg0->DumpFrameTree()
 end
 
 define ftp
-  call $arg0->DumpFrameTreeInCSSPixels(false)
+  call $arg0->DumpFrameTreeInCSSPixels()
 end
 
 define ftl
