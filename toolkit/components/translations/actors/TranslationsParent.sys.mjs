@@ -1752,7 +1752,7 @@ export class TranslationsParent extends JSWindowActorParent {
     fallback = "code",
     languageDisplay = "standard",
   } = {}) {
-    return new Services.intl.DisplayNames(undefined, {
+    return new Services.intl.DisplayNames(Services.locale.appLocaleAsBCP47, {
       type: "language",
       languageDisplay,
       fallback,

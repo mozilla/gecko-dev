@@ -1314,6 +1314,12 @@ var gMainPane = {
           "command",
           this.handleDeleteAll
         );
+
+        Services.obs.addObserver(this, "intl:app-locales-changed");
+      }
+
+      destroy() {
+        Services.obs.removeObserver(this, "intl:app-locales-changed");
       }
 
       handleInstallAll = async () => {
@@ -1397,6 +1403,7 @@ var gMainPane = {
         for (const { langTag, displayName } of this.state.languageList) {
           const hboxRow = document.createXULElement("hbox");
           hboxRow.classList.add("translations-manage-language");
+          hboxRow.setAttribute("data-lang-tag", langTag);
 
           const languageLabel = document.createXULElement("label");
           languageLabel.textContent = displayName; // The display name is already localized.
@@ -1558,11 +1565,41 @@ var gMainPane = {
       hideError() {
         this.elements.error.hidden = true;
       }
+
+      observe(_subject, topic, _data) {
+        if (topic === "intl:app-locales-changed") {
+          this.refreshLanguageListDisplay();
+        }
+      }
+
+      refreshLanguageListDisplay() {
+        try {
+          const languageDisplayNames =
+            TranslationsParent.createLanguageDisplayNames();
+
+          for (const row of this.elements.installList.children) {
+            const rowLangTag = row.getAttribute("data-lang-tag");
+            if (!rowLangTag) {
+              continue;
+            }
+
+            const label = row.querySelector("label");
+            if (label) {
+              const newDisplayName = languageDisplayNames.of(rowLangTag);
+              if (label.textContent !== newDisplayName) {
+                label.textContent = newDisplayName;
+              }
+            }
+          }
+        } catch (error) {
+          console.error(error);
+        }
+      }
     }
 
     TranslationsState.create().then(
       state => {
-        new TranslationsView(state);
+        this._translationsView = new TranslationsView(state);
       },
       error => {
         // This error can happen when a user is not connected to the internet, or
@@ -2736,6 +2773,13 @@ var gMainPane = {
     Services.prefs.removeObserver(PREF_CONTAINERS_EXTENSION, this);
     Services.obs.removeObserver(this, AUTO_UPDATE_CHANGED_TOPIC);
     Services.obs.removeObserver(this, BACKGROUND_UPDATE_CHANGED_TOPIC);
+
+    // Clean up the TranslationsView instance if it exists
+    if (this._translationsView) {
+      this._translationsView.destroy();
+      this._translationsView = null;
+    }
+
     AppearanceChooser.destroy();
   },
 
