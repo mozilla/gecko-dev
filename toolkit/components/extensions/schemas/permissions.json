@@ -22,6 +22,12 @@
             "items": { "$ref": "manifest.MatchPattern" },
             "optional": true,
             "default": []
+          },
+          "data_collection": {
+            "type": "array",
+            "items": { "$ref": "manifest.OptionalDataCollectionPermission" },
+            "optional": true,
+            "default": []
           }
         }
       },
@@ -43,6 +49,12 @@
           "origins": {
             "type": "array",
             "items": { "$ref": "manifest.MatchPattern" },
+            "optional": true,
+            "default": []
+          },
+          "data_collection": {
+            "type": "array",
+            "items": { "$ref": "manifest.OptionalDataCollectionPermission" },
             "optional": true,
             "default": []
           }

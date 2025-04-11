@@ -52,7 +52,11 @@ this.permissions = class extends ExtensionAPIPersistent {
       let callback = (event, change) => {
         if (change.extensionId == extension.id && change.added) {
           let perms = normalizePermissions(change.added);
-          if (perms.permissions.length || perms.origins.length) {
+          if (
+            perms.permissions.length ||
+            perms.origins.length ||
+            (dataCollectionPermissionsEnabled && perms.data_collection.length)
+          ) {
             fire.async(perms);
           }
         }
@@ -73,7 +77,11 @@ this.permissions = class extends ExtensionAPIPersistent {
       let callback = (event, change) => {
         if (change.extensionId == extension.id && change.removed) {
           let perms = normalizePermissions(change.removed);
-          if (perms.permissions.length || perms.origins.length) {
+          if (
+            perms.permissions.length ||
+            perms.origins.length ||
+            (dataCollectionPermissionsEnabled && perms.data_collection.length)
+          ) {
             fire.async(perms);
           }
         }

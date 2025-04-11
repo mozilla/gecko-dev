@@ -536,3 +536,182 @@ add_task(
     await extension.unload();
   }
 );
+
+add_task(
+  { pref_set: [["extensions.dataCollectionPermissions.enabled", true]] },
+  async function test_getAll_with_data_collection() {
+    async function background() {
+      browser.test.onMessage.addListener(async msg => {
+        browser.test.assertEq("getAll", msg, "expected correct message");
+        const permissions = await browser.permissions.getAll();
+        browser.test.sendMessage("all", permissions);
+      });
+
+      browser.permissions.onAdded.addListener(details => {
+        browser.test.sendMessage("added", details);
+      });
+
+      browser.permissions.onRemoved.addListener(details => {
+        browser.test.sendMessage("removed", details);
+      });
+
+      browser.test.sendMessage("ready");
+    }
+
+    const extension = ExtensionTestUtils.loadExtension({
+      manifest: {
+        manifest_version: 3,
+        permissions: ["bookmarks"],
+        browser_specific_settings: {
+          gecko: {
+            data_collection_permissions: {
+              // "none" shouldn't be added to the list of data collection
+              // permissions returned by `getAll()`.
+              required: ["none"],
+              optional: ["technicalAndInteraction", "locationInfo"],
+            },
+          },
+        },
+      },
+      background,
+    });
+    await extension.startup();
+    await extension.awaitMessage("ready");
+
+    const getAllAndVerifyDataCollection = async expected => {
+      extension.sendMessage("getAll");
+      const permissions = await extension.awaitMessage("all");
+      Assert.deepEqual(
+        permissions,
+        {
+          permissions: ["bookmarks"],
+          origins: [],
+          data_collection: expected,
+        },
+        "expected permissions with data collection"
+      );
+    };
+
+    // Pretend the T&I permission was granted at install time.
+    let perms = {
+      permissions: [],
+      origins: [],
+      data_collection: ["technicalAndInteraction"],
+    };
+    await ExtensionPermissions.add(extension.id, perms, extension.extension);
+    let added = await extension.awaitMessage("added");
+    Assert.deepEqual(
+      added,
+      {
+        permissions: [],
+        origins: [],
+        data_collection: ["technicalAndInteraction"],
+      },
+      "expected new permissions granted"
+    );
+    await getAllAndVerifyDataCollection(["technicalAndInteraction"]);
+
+    // Grant another optional data collection permission.
+    perms = {
+      permissions: [],
+      origins: [],
+      data_collection: ["technicalAndInteraction", "locationInfo"],
+    };
+    await ExtensionPermissions.add(extension.id, perms, extension.extension);
+    added = await extension.awaitMessage("added");
+    Assert.deepEqual(
+      added,
+      {
+        permissions: [],
+        origins: [],
+        data_collection: ["locationInfo"],
+      },
+      "expected new permissions granted"
+    );
+    await getAllAndVerifyDataCollection([
+      "technicalAndInteraction",
+      "locationInfo",
+    ]);
+
+    // Revoke all optional data collection permissions.
+    await ExtensionPermissions.remove(extension.id, perms, extension.extension);
+    const removed = await extension.awaitMessage("removed");
+    Assert.deepEqual(
+      removed,
+      {
+        permissions: [],
+        origins: [],
+        data_collection: ["technicalAndInteraction", "locationInfo"],
+      },
+      "expected permissions revoked"
+    );
+    await getAllAndVerifyDataCollection([]);
+
+    await extension.unload();
+  }
+);
+
+add_task(
+  { pref_set: [["extensions.dataCollectionPermissions.enabled", true]] },
+  async function test_getAll_with_required_data_collection() {
+    async function background() {
+      browser.test.onMessage.addListener(async msg => {
+        browser.test.assertEq("getAll", msg, "expected correct message");
+        const permissions = await browser.permissions.getAll();
+        browser.test.sendMessage("all", permissions);
+      });
+
+      browser.test.sendMessage("ready");
+    }
+
+    const extension = ExtensionTestUtils.loadExtension({
+      manifest: {
+        manifest_version: 3,
+        permissions: ["bookmarks"],
+        browser_specific_settings: {
+          gecko: {
+            data_collection_permissions: {
+              required: ["bookmarksInfo"],
+              optional: ["technicalAndInteraction", "locationInfo"],
+            },
+          },
+        },
+      },
+      background,
+    });
+    await extension.startup();
+    await extension.awaitMessage("ready");
+
+    extension.sendMessage("getAll");
+    let permissions = await extension.awaitMessage("all");
+    Assert.deepEqual(
+      permissions,
+      {
+        permissions: ["bookmarks"],
+        origins: [],
+        data_collection: ["bookmarksInfo"],
+      },
+      "expected permissions with required data collection"
+    );
+
+    let perms = {
+      permissions: [],
+      origins: [],
+      data_collection: ["technicalAndInteraction"],
+    };
+    await ExtensionPermissions.add(extension.id, perms, extension.extension);
+    extension.sendMessage("getAll");
+    permissions = await extension.awaitMessage("all");
+    Assert.deepEqual(
+      permissions,
+      {
+        permissions: ["bookmarks"],
+        origins: [],
+        data_collection: ["bookmarksInfo", "technicalAndInteraction"],
+      },
+      "expected permissions with newly added data collection"
+    );
+
+    await extension.unload();
+  }
+);

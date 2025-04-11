@@ -1380,6 +1380,10 @@ export class ExtensionData {
       apis: [...this.apiNames],
     };
 
+    if (lazy.dataCollectionPermissionsEnabled) {
+      result.data_collection = Array.from(this.dataCollectionPermissions);
+    }
+
     const EXP_PATTERN = /^experiments\.\w+/;
     result.permissions = [...this.permissions].filter(
       p => !result.origins.includes(p) && !EXP_PATTERN.test(p)
@@ -2010,7 +2014,7 @@ export class ExtensionData {
       if (lazy.dataCollectionPermissionsEnabled) {
         const { required } = this.getDataCollectionPermissions(manifest);
 
-        for (const permission of required) {
+        for (const permission of required.filter(perm => perm !== "none")) {
           dataCollectionPermissions.add(permission);
         }
       }
@@ -2031,6 +2035,9 @@ export class ExtensionData {
         }
         for (let origin of perms.origins) {
           originPermissions.add(origin);
+        }
+        for (let perm of perms.data_collection) {
+          dataCollectionPermissions.add(perm);
         }
       }
 
@@ -3272,6 +3279,9 @@ export class Extension extends ExtensionData {
       for (let perm of permissions.permissions) {
         this.permissions.add(perm);
       }
+      for (let perm of permissions.data_collection) {
+        this.dataCollectionPermissions.add(perm);
+      }
       this.policy.permissions = Array.from(this.permissions);
 
       updateAllowedOrigins(this.policy, permissions.origins, /* isAdd */ true);
@@ -3295,6 +3305,9 @@ export class Extension extends ExtensionData {
     this.on("remove-permissions", (ignoreEvent, permissions) => {
       for (let perm of permissions.permissions) {
         this.permissions.delete(perm);
+      }
+      for (let perm of permissions.data_collection) {
+        this.dataCollectionPermissions.delete(perm);
       }
       this.policy.permissions = Array.from(this.permissions);
 
@@ -3478,6 +3491,7 @@ export class Extension extends ExtensionData {
       pat => pat.pattern
     );
     manifestData.permissions = this.permissions;
+    manifestData.dataCollectionPermissions = this.dataCollectionPermissions;
     return StartupCache.manifests.set(this.manifestCacheKey, manifestData);
   }
 
