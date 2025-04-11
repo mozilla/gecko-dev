@@ -1755,7 +1755,7 @@ var SidebarController = {
    *                                        hiding of the sidebar.
    * @param {boolean} options.dismissPanel -Only close the panel or close the whole sidebar (the default.)
    */
-  hide({ triggerNode, dismissPanel = true } = {}) {
+  hide({ triggerNode, dismissPanel = this.sidebarRevampEnabled } = {}) {
     if (!this.isOpen) {
       return;
     }
