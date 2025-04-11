@@ -1627,7 +1627,7 @@ bool CanvasRenderingContext2D::EnsureTarget(ErrorResult& aError,
   bool canDiscardContent =
       aCoveredRect &&
       (aSkipTransform ? *aCoveredRect
-                      : CurrentState().transform.TransformBounds(*aCoveredRect))
+                      : GetCurrentTransform().TransformBounds(*aCoveredRect))
           .Contains(canvasRect) &&
       !HasAnyClips();
 
