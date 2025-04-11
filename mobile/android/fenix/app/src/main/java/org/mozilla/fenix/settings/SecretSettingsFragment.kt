@@ -236,6 +236,12 @@ class SecretSettingsFragment : PreferenceFragmentCompat() {
             }
         }
 
+        requirePreference<SwitchPreference>(R.string.pref_key_use_remote_search_configuration).apply {
+            isVisible = true
+            isChecked = context.settings().useRemoteSearchConfiguration
+            onPreferenceChangeListener = SharedPreferenceUpdater()
+        }
+
         requirePreference<SwitchPreference>(R.string.pref_key_microsurvey_feature_enabled).apply {
             isVisible = true
             isChecked = context.settings().microsurveyFeatureEnabled

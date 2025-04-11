@@ -1915,6 +1915,14 @@ class Settings(private val appContext: Context) : PreferencesHolder {
     )
 
     /**
+     * Indicates whether or not to use remote server search configuration.
+     */
+    var useRemoteSearchConfiguration by booleanPreference(
+        key = appContext.getPreferenceKey(R.string.pref_key_use_remote_search_configuration),
+        default = FxNimbus.features.remoteSearchConfiguration.value().enabled,
+    )
+
+    /**
      * Indicates if the menu CFR should be displayed to the user.
      */
     var shouldShowMenuCFR by booleanPreference(

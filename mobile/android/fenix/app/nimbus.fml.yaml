@@ -770,6 +770,14 @@ features:
         description: The text to show in the CFR
         type: Text
         default: ""
+  remote-search-configuration:
+    description: Feature to use search configurations from remote servers.
+    variables:
+      enabled:
+        description: >
+          Uses search configuration from remote servers .
+        type: Boolean
+        default: false
 
 types:
   objects: {}
