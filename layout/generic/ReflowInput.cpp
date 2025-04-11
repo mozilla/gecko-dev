@@ -2400,7 +2400,7 @@ void ReflowInput::InitConstraints(
           return true;
         }
         if (!alignCB->IsGridContainerFrame() &&
-            mWritingMode.IsOrthogonalTo(GetCBWritingMode())) {
+            mWritingMode.IsOrthogonalTo(alignCB->GetWritingMode())) {
           // Shrink-wrap blocks that are orthogonal to their container (unless
           // we're in a grid?)
           return true;
