@@ -32,8 +32,7 @@ const nsCString& TRRProviderKey();
 class TRRService : public TRRServiceBase,
                    public nsIObserver,
                    public nsSupportsWeakReference,
-                   public AHostResolver,
-                   public SingleWriterLockOwner {
+                   public AHostResolver {
  public:
   NS_DECL_ISUPPORTS_INHERITED
   NS_DECL_NSIOBSERVER
@@ -41,8 +40,6 @@ class TRRService : public TRRServiceBase,
 
   TRRService();
   static TRRService* Get();
-
-  bool OnWritingThread() const override { return NS_IsMainThread(); }
 
   nsresult Init(bool aNativeHTTPSQueryEnabled);
   nsresult Start();
@@ -126,7 +123,7 @@ class TRRService : public TRRServiceBase,
 
   bool IsDomainBlocked(const nsACString& aHost, const nsACString& aOriginSuffix,
                        bool aPrivateBrowsing);
-  bool IsExcludedFromTRR_unlocked(const nsACString& aHost);
+  bool IsExcludedFromTRR_unlocked(const nsACString& aHost) MOZ_REQUIRES(mLock);
 
   void RebuildSuffixList(nsTArray<nsCString>&& aSuffixList);
 
@@ -144,7 +141,7 @@ class TRRService : public TRRServiceBase,
   void AddEtcHosts(const nsTArray<nsCString>&);
 
   bool mInitialized{false};
-  MutexSingleWriter mLock;
+  Mutex mLock;
 
   nsCString mPrivateCred;  // main thread only
   nsCString mConfirmationNS MOZ_GUARDED_BY(mLock){"example.com"_ns};
@@ -271,7 +268,7 @@ class TRRService : public TRRServiceBase,
    public:
     // Called when a confirmation completes successfully or when the
     // confirmation context changes.
-    void RecordEvent(const char* aReason, const MutexSingleWriterAutoLock&);
+    void RecordEvent(const char* aReason, const MutexAutoLock&);
 
     // Called when a confirmation request is completed. The status is recorded
     // in the results.
@@ -286,8 +283,7 @@ class TRRService : public TRRServiceBase,
     // Returns true when handling the event caused a new confirmation task to be
     // dispatched.
     bool HandleEvent(ConfirmationEvent aEvent);
-    bool HandleEvent(ConfirmationEvent aEvent,
-                     const MutexSingleWriterAutoLock&);
+    bool HandleEvent(ConfirmationEvent aEvent, const MutexAutoLock&);
 
     void SetCaptivePortalStatus(int32_t aStatus) {
       mCaptivePortalStatus = aStatus;
@@ -328,8 +324,7 @@ class TRRService : public TRRServiceBase,
    public:
     // Called when a confirmation completes successfully or when the
     // confirmation context changes.
-    void RecordEvent(const char* aReason,
-                     const MutexSingleWriterAutoLock& aLock) {
+    void RecordEvent(const char* aReason, const MutexAutoLock& aLock) {
       mConfirmation.RecordEvent(aReason, aLock);
     }
 
@@ -353,8 +348,7 @@ class TRRService : public TRRServiceBase,
       return mConfirmation.HandleEvent(aEvent);
     }
 
-    bool HandleEvent(ConfirmationEvent aEvent,
-                     const MutexSingleWriterAutoLock& lock) {
+    bool HandleEvent(ConfirmationEvent aEvent, const MutexAutoLock& lock) {
       return mConfirmation.HandleEvent(aEvent, lock);
     }
 
