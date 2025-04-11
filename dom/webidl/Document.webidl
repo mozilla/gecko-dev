@@ -388,7 +388,7 @@ partial interface Document {
   // Whether we're in android's Picture-in-Picture mode.
   // Top level document only (for now, if we want to deal with iframes, please
   // also fix bug 1959448 while at it).
-  [ChromeOnly]
+  [Func="Document::CallerIsSystemPrincipalOrWebCompatAddon"]
   readonly attribute boolean inAndroidPipMode;
 
   // The principal to use for the storage area of this document
@@ -559,7 +559,7 @@ partial interface Document {
 // webcompat extension the ability to request the storage access for a given
 // third party.
 partial interface Document {
-  [Func="Document::CallerCanAccessPrivilegeSSA", NewObject]
+  [Func="Document::CallerIsSystemPrincipalOrWebCompatAddon", NewObject]
   Promise<undefined> requestStorageAccessForOrigin(DOMString thirdPartyOrigin, optional boolean requireUserInteraction = true);
 };
 

@@ -3370,5 +3370,22 @@
         }
       }
     ]
+  },
+  "1956165": {
+    "label": "m.youtube.com picture-in-picture fix",
+    "bugs": {
+      "1956165": {
+        "issue": "broken-videos",
+        "matches": ["*://m.youtube.com/*"]
+      }
+    },
+    "interventions": [
+      {
+        "platforms": ["fenix"],
+        "content_scripts": {
+          "js": ["bug1956165-www.youtube.com-picture-in-picture-fix.js"]
+        }
+      }
+    ]
   }
 }

@@ -4,6 +4,13 @@
     "description": "experimental API to expose some app constants",
     "functions": [
       {
+        "name": "getAndroidPackageName",
+        "type": "function",
+        "description": "",
+        "async": true,
+        "parameters": []
+      },
+      {
         "name": "getEffectiveUpdateChannel",
         "type": "function",
         "description": "",
