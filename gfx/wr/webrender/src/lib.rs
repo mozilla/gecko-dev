@@ -176,7 +176,7 @@ pub use crate::device::Device;
 pub use crate::profiler::{ProfilerHooks, set_profiler_hooks};
 pub use crate::renderer::{
     CpuProfile, DebugFlags, GpuProfile, GraphicsApi,
-    GraphicsApiInfo, PipelineInfo, Renderer, RendererError, RenderResults,
+    GraphicsApiInfo, PendingShadersToPrecache, PipelineInfo, Renderer, RendererError, RenderResults,
     RendererStats, Shaders, SharedShaders, ShaderPrecacheFlags,
     MAX_VERTEX_TEXTURE_WIDTH,
 };

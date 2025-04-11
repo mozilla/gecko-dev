@@ -105,6 +105,9 @@ class WebRenderShaders final {
   WebRenderShaders(gl::GLContext* gl, WebRenderProgramCache* programCache);
   ~WebRenderShaders();
 
+  // Returns true if ResumeWarmup() should be called again
+  bool ResumeWarmup();
+
   wr::WrShaders* RawShaders() { return mShaders; }
 
  protected:
@@ -436,6 +439,8 @@ class RenderThread final {
   void DeferredRenderTextureHostDestroy();
   void ShutDownTask();
   void InitDeviceTask();
+  void PostResumeShaderWarmupRunnable();
+  void ResumeShaderWarmup();
   void HandleFrameOneDoc(wr::WindowId aWindowId, bool aRender,
                          bool aTrackedFrame, Maybe<FramePublishId> aPublishId);
   void RunEvent(wr::WindowId aWindowId, UniquePtr<RendererEvent> aEvent,

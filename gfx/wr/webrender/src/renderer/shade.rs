@@ -21,6 +21,7 @@ use gleam::gl::GlType;
 use time::precise_time_ns;
 
 use std::cell::RefCell;
+use std::collections::VecDeque;
 use std::rc::Rc;
 
 use webrender_build::shader::{ShaderFeatures, ShaderFeatureFlags, get_shader_features};
@@ -579,8 +580,9 @@ impl ShaderLoader {
         Ok(ShaderHandle(index))
     }
 
-    pub fn precache_all(
+    pub fn precache(
         &mut self,
+        shader: ShaderHandle,
         device: &mut Device,
         flags: ShaderPrecacheFlags,
     ) -> Result<(), ShaderError> {
@@ -588,10 +590,11 @@ impl ShaderLoader {
             return Ok(());
         }
 
-        for shader in &mut self.shaders {
-            shader.precache(device, flags)?;
-        }
-        Ok(())
+        self.shaders[shader.0].precache(device, flags)
+    }
+
+    pub fn all_handles(&self) -> Vec<ShaderHandle> {
+        self.shaders.iter().enumerate().map(|(index, _)| ShaderHandle(index)).collect()
     }
 
     pub fn get(&mut self, handle: ShaderHandle) -> &mut LazilyCompiledShader {
@@ -663,6 +666,11 @@ pub struct Shaders {
     ps_copy: ShaderHandle,
 
     composite: CompositorShaders,
+}
+
+pub struct PendingShadersToPrecache {
+    precache_flags: ShaderPrecacheFlags,
+    remaining_shaders: VecDeque<ShaderHandle>,
 }
 
 impl Shaders {
@@ -1098,12 +1106,29 @@ impl Shaders {
         })
     }
 
+    #[must_use]
     pub fn precache_all(
         &mut self,
+        precache_flags: ShaderPrecacheFlags,
+    ) -> PendingShadersToPrecache {
+        PendingShadersToPrecache {
+            precache_flags,
+            remaining_shaders: self.loader.all_handles().into(),
+        }
+    }
+
+    /// Returns true if another call is needed, false if precaching is finished.
+    pub fn resume_precache(
+        &mut self,
         device: &mut Device,
-        flags: ShaderPrecacheFlags,
-    ) -> Result<(), ShaderError> {
-        self.loader.precache_all(device, flags)
+        pending_shaders: &mut PendingShadersToPrecache,
+    ) -> Result<bool, ShaderError> {
+        let Some(next_shader) = pending_shaders.remaining_shaders.pop_front() else {
+            return Ok(false)
+        };
+
+        self.loader.precache(next_shader, device, pending_shaders.precache_flags)?;
+        Ok(true)
     }
 
     fn get_compositing_shader_index(buffer_kind: ImageBufferKind) -> usize {

@@ -126,7 +126,7 @@ mod upload;
 pub(crate) mod init;
 
 pub use debug::DebugRenderer;
-pub use shade::{Shaders, SharedShaders};
+pub use shade::{PendingShadersToPrecache, Shaders, SharedShaders};
 pub use vertex::{desc, VertexArrayKind, MAX_VERTEX_TEXTURE_WIDTH};
 pub use gpu_buffer::{GpuBuffer, GpuBufferF, GpuBufferBuilderF, GpuBufferI, GpuBufferBuilderI, GpuBufferAddress, GpuBufferBuilder};
 

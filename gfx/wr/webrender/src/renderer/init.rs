@@ -393,7 +393,10 @@ pub fn create_webrender_instance(
         Some(shaders) => Rc::clone(shaders),
         None => {
             let mut shaders = Shaders::new(&mut device, gl_type, &options)?;
-            shaders.precache_all(&mut device, options.precache_flags)?;
+            if options.precache_flags.intersects(ShaderPrecacheFlags::ASYNC_COMPILE | ShaderPrecacheFlags::FULL_COMPILE) {
+                let mut pending_shaders = shaders.precache_all(options.precache_flags);
+                while shaders.resume_precache(&mut device, &mut pending_shaders)? {}
+            }
             Rc::new(RefCell::new(shaders))
         }
     };

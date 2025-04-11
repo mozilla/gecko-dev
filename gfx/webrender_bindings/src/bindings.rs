@@ -40,8 +40,8 @@ use webrender::{
     api::units::*, api::*, create_webrender_instance, render_api::*, set_profiler_hooks, AsyncPropertySampler,
     AsyncScreenshotHandle, Compositor, LayerCompositor, CompositorCapabilities, CompositorConfig, CompositorSurfaceTransform, Device,
     MappableCompositor, MappedTileInfo, NativeSurfaceId, NativeSurfaceInfo, NativeTileId, PartialPresentCompositor,
-    PipelineInfo, ProfilerHooks, RecordedFrameHandle, RenderBackendHooks, Renderer, RendererStats,
-    SWGLCompositeSurfaceInfo, SceneBuilderHooks, ShaderPrecacheFlags, Shaders, ShaderError, SharedShaders, TextureCacheConfig,
+    PendingShadersToPrecache, PipelineInfo, ProfilerHooks, RecordedFrameHandle, RenderBackendHooks, Renderer, RendererStats,
+    SWGLCompositeSurfaceInfo, SceneBuilderHooks, ShaderPrecacheFlags, Shaders, SharedShaders, TextureCacheConfig,
     UploadMethod, WebRenderOptions, WindowVisibility, WindowProperties, ONE_TIME_USAGE_HINT, CompositorInputConfig, CompositorSurfaceUsage,
 };
 use wr_malloc_size_of::MallocSizeOfOps;
@@ -1798,6 +1798,7 @@ impl PartialPresentCompositor for WrPartialPresentCompositor {
 /// We store the device to avoid repeated GL function lookups.
 pub struct WrShaders {
     shaders: SharedShaders,
+    shaders_to_precache: PendingShadersToPrecache,
     device: Device,
 }
 
@@ -2037,7 +2038,7 @@ pub extern "C" fn wr_window_new(
 
     let window_size = DeviceIntSize::new(window_width, window_height);
     let notifier = Box::new(CppNotifier { window_id });
-    let (renderer, sender) = match create_webrender_instance(gl, notifier, opts, shaders.map(|sh| &sh.0)) {
+    let (renderer, sender) = match create_webrender_instance(gl, notifier, opts, shaders.map(|sh| &sh.shaders)) {
         Ok((renderer, sender)) => (renderer, sender),
         Err(e) => {
             warn!(" Failed to create a Renderer: {:?}", e);
@@ -4435,21 +4436,8 @@ pub extern "C" fn wr_shaders_new(
 
     device.begin_frame();
 
-    let mut create_shaders = || -> Result<Shaders, ShaderError> {
-        let gl_type = device.gl().get_type();
-        let mut shaders = Shaders::new(&mut device, gl_type, &WebRenderOptions::default())?;
-
-        let precache_flags = if precache_shaders || env_var_to_bool("MOZ_WR_PRECACHE_SHADERS") {
-            ShaderPrecacheFlags::FULL_COMPILE
-        } else {
-            ShaderPrecacheFlags::ASYNC_COMPILE
-        };
-        shaders.precache_all(&mut device, precache_flags)?;
-
-        Ok(shaders)
-    };
-
-    let shaders = match create_shaders() {
+    let gl_type = device.gl().get_type();
+    let mut shaders = match Shaders::new(&mut device, gl_type, &WebRenderOptions::default()) {
         Ok(shaders) => shaders,
         Err(e) => {
             warn!(" Failed to create a Shaders: {:?}", e);
@@ -4463,8 +4451,17 @@ pub extern "C" fn wr_shaders_new(
 
     device.end_frame();
 
+    let precache_flags = if precache_shaders || env_var_to_bool("MOZ_WR_PRECACHE_SHADERS") {
+        ShaderPrecacheFlags::FULL_COMPILE
+    } else {
+        ShaderPrecacheFlags::ASYNC_COMPILE
+    };
+
+    let shaders_to_precache = shaders.precache_all(precache_flags);
+
     let shaders = WrShaders {
         shaders: Rc::new(RefCell::new(shaders)),
+        shaders_to_precache,
         device,
     };
 
@@ -4474,10 +4471,38 @@ pub extern "C" fn wr_shaders_new(
 #[no_mangle]
 pub unsafe extern "C" fn wr_shaders_delete(shaders: *mut WrShaders) {
     // Deallocate the box by moving the values out of it.
-    let WrShaders { shaders, mut device } = *Box::from_raw(shaders);
+    let WrShaders { shaders, mut device, .. } = *Box::from_raw(shaders);
     if let Ok(shaders) = Rc::try_unwrap(shaders) {
         shaders.into_inner().deinit(&mut device);
     }
+}
+
+/// Perform one step of shader warmup.
+///
+/// Returns true if another call is needed, false if warmup is finished.
+#[no_mangle]
+pub extern "C" fn wr_shaders_resume_warmup(shaders: &mut WrShaders) -> bool {
+    shaders.device.begin_frame();
+
+    let need_another_call = match shaders.shaders.borrow_mut().resume_precache(&mut shaders.device, &mut shaders.shaders_to_precache) {
+        Ok(need_another_call) => need_another_call,
+        Err(e) => {
+            warn!(" Failed to create a shader during warmup: {:?}", e);
+            let msg = CString::new(format!("wr_shaders_resume_warmup: {:?}", e)).unwrap();
+            unsafe {
+                gfx_critical_note(msg.as_ptr());
+            }
+
+            // Don't ask for another call to resume warmup; if one shader failed
+            // to compile it's likely that we will run into similar errors with
+            // the rest of the shaders.
+            false
+        }
+    };
+
+    shaders.device.end_frame();
+
+    need_another_call
 }
 
 #[no_mangle]
