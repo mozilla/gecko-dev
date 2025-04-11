@@ -242,13 +242,20 @@ class ParentProcessDocumentOpenInfo final : public nsDocumentOpenInfo,
 
   NS_DECL_ISUPPORTS_INHERITED
 
-  // The default content listener is always a docshell, so this manually
-  // implements the same checks, and if it succeeds, uses the parent
-  // channel listener so that we forward onto DocumentLoadListener.
+  // The default content listener is always a docshell (potentially with an
+  // interstitial nsObjectLoadingContent), so this manually implements the same
+  // checks, and if it succeeds, uses the parent channel listener so that we
+  // forward onto DocumentLoadListener.
   bool TryDefaultContentListener(nsIChannel* aChannel,
                                  const nsCString& aContentType) {
     uint32_t canHandle = nsWebNavigationInfo::IsTypeSupported(aContentType);
-    if (canHandle != nsIWebNavigationInfo::UNSUPPORTED) {
+    // NOTE: We do not support the default content listener for `FALLBACK` on
+    // object/embed loads, as there's no need to send content to the content
+    // process in the fallback case. By rejecting the channel will be cancelled
+    // with NS_ERROR_WONT_HANDLE_CONTENT, which will lead to a fallback in
+    // content without sending the response data down.
+    if (canHandle != nsIWebNavigationInfo::UNSUPPORTED &&
+        (mIsDocumentLoad || canHandle != nsIWebNavigationInfo::FALLBACK)) {
       m_targetStreamListener = mListener;
       nsLoadFlags loadFlags = 0;
       aChannel->GetLoadFlags(&loadFlags);
@@ -324,7 +331,50 @@ class ParentProcessDocumentOpenInfo final : public nsDocumentOpenInfo,
     LOG(("ParentProcessDocumentOpenInfo OnDocumentStartRequest [this=%p]",
          this));
 
-    nsresult rv = nsDocumentOpenInfo::OnStartRequest(request);
+    return nsDocumentOpenInfo::OnStartRequest(request);
+  }
+
+  nsresult OnObjectStartRequest(nsIRequest* request) {
+    LOG(("ParentProcessDocumentOpenInfo OnObjectStartRequest [this=%p]", this));
+
+    // Respect the specified image MIME type if loading binary content type into
+    // an object/embed element.
+    if (nsCOMPtr<nsIChannel> channel = do_QueryInterface(request)) {
+      nsAutoCString channelType;
+      channel->GetContentType(channelType);
+      if (!mTypeHint.IsEmpty() &&
+          imgLoader::SupportImageWithMimeType(mTypeHint) &&
+          (channelType.EqualsASCII(APPLICATION_GUESS_FROM_EXT) ||
+           channelType.EqualsASCII(APPLICATION_OCTET_STREAM) ||
+           channelType.EqualsASCII(BINARY_OCTET_STREAM))) {
+        channel->SetContentType(mTypeHint);
+      }
+    }
+
+    // If the load is considered to have failed, we're going to display fallback
+    // content in the nsDocShellLoadingContent. Cancel the channel to reflect
+    // this.
+    nsresult status = NS_OK;
+    if (!nsObjectLoadingContent::IsSuccessfulRequest(request, &status)) {
+      LOG(("OnObjectStartRequest for unsuccessful request [this=%p, status=%s]",
+           this, GetStaticErrorName(status)));
+      return NS_ERROR_WONT_HANDLE_CONTENT;
+    }
+
+    // All successful object loads will be treated as document loads, so run
+    // through nsDocumentOpenInfo. This will check the MIME type to ensure it is
+    // supported, and attempt stream conversions where applicable.
+    //
+    // If the dom.navigation.object_embed.allow_retargeting pref is enabled,
+    // this may lead to the resource being downloaded.
+    return OnDocumentStartRequest(request);
+  }
+
+  NS_IMETHOD OnStartRequest(nsIRequest* request) override {
+    LOG(("ParentProcessDocumentOpenInfo OnStartRequest [this=%p]", this));
+
+    nsresult rv = mIsDocumentLoad ? OnDocumentStartRequest(request)
+                                  : OnObjectStartRequest(request);
 
     // If we didn't find a content handler, and we don't have a listener, then
     // just forward to our default listener. This happens when the channel is in
@@ -363,47 +413,8 @@ class ParentProcessDocumentOpenInfo final : public nsDocumentOpenInfo,
                                  rv);
       }
     }
+
     return rv;
-  }
-
-  nsresult OnObjectStartRequest(nsIRequest* request) {
-    LOG(("ParentProcessDocumentOpenInfo OnObjectStartRequest [this=%p]", this));
-
-    // If this load will be treated as a document load, run through
-    // nsDocumentOpenInfo for consistency with other document loads.
-    //
-    // If the dom.navigation.object_embed.allow_retargeting pref is enabled,
-    // this may lead to the resource being downloaded.
-    if (nsCOMPtr<nsIChannel> channel = do_QueryInterface(request);
-        channel && channel->IsDocument()) {
-      // Respect the specified image MIME type if loading binary content type
-      // into an object/embed element.
-      nsAutoCString channelType;
-      channel->GetContentType(channelType);
-      if (!mTypeHint.IsEmpty() &&
-          imgLoader::SupportImageWithMimeType(mTypeHint) &&
-          (channelType.EqualsASCII(APPLICATION_GUESS_FROM_EXT) ||
-           channelType.EqualsASCII(APPLICATION_OCTET_STREAM) ||
-           channelType.EqualsASCII(BINARY_OCTET_STREAM))) {
-        channel->SetContentType(mTypeHint);
-      }
-
-      return OnDocumentStartRequest(request);
-    }
-
-    // Just redirect to the nsObjectLoadingContent in the content process.
-    m_targetStreamListener = mListener;
-    return m_targetStreamListener->OnStartRequest(request);
-  }
-
-  NS_IMETHOD OnStartRequest(nsIRequest* request) override {
-    LOG(("ParentProcessDocumentOpenInfo OnStartRequest [this=%p]", this));
-
-    if (mIsDocumentLoad) {
-      return OnDocumentStartRequest(request);
-    }
-
-    return OnObjectStartRequest(request);
   }
 
   NS_IMETHOD OnAfterLastPart(nsresult aStatus) override {
@@ -1885,23 +1896,6 @@ bool DocumentLoadListener::MaybeTriggerProcessSwitch(
            "browserid=%" PRIx64 "]",
            this, GetChannelCreationURI()->GetSpecOrDefault().get(),
            GetLoadingBrowsingContext()->Top()->BrowserId()));
-
-  // If we're doing an <object>/<embed> load, we may be doing a document load at
-  // this point. We never need to do a process switch for a non-document
-  // <object> or <embed> load.
-  if (!mIsDocumentLoad) {
-    if (!mChannel->IsDocument()) {
-      MOZ_LOG(gProcessIsolationLog, LogLevel::Verbose,
-              ("Process Switch Abort: non-document load"));
-      return false;
-    }
-    nsresult status;
-    if (!nsObjectLoadingContent::IsSuccessfulRequest(mChannel, &status)) {
-      MOZ_LOG(gProcessIsolationLog, LogLevel::Verbose,
-              ("Process Switch Abort: error page"));
-      return false;
-    }
-  }
 
   // Check if we should handle this load in a different tab or window.
   int32_t where = GetWhereToOpen(mChannel, mIsDocumentLoad);
