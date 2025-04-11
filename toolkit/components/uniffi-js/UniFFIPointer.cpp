@@ -7,10 +7,10 @@
 #include "nsPrintfCString.h"
 #include "js/GCAPI.h"
 #include "mozilla/EndianUtils.h"
-#include "mozilla/Logging.h"
-#include "mozilla/dom/UniFFIBinding.h"
 #include "mozilla/dom/UniFFIPointer.h"
-#include "mozilla/uniffi/Rust.h"
+#include "mozilla/dom/UniFFIBinding.h"
+#include "mozilla/Logging.h"
+#include "UniFFIRust.h"
 
 namespace mozilla::uniffi {
 extern mozilla::LazyLogModule gUniffiLogger;

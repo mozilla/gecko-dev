@@ -12,7 +12,7 @@
 #include "nsString.h"
 #include "mozilla/ErrorResult.h"
 #include "mozilla/dom/TypedArray.h"
-#include "mozilla/uniffi/PointerType.h"
+#include "mozilla/dom/UniFFIPointerType.h"
 
 namespace mozilla::dom {
 

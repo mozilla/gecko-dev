@@ -10,12 +10,12 @@
 #include "mozilla/StaticPtr.h"
 #include "mozilla/UniquePtr.h"
 #include "mozilla/dom/Promise.h"
+#include "mozilla/dom/ScaffoldingConverter.h"
+#include "mozilla/dom/UniFFICall.h"
+#include "mozilla/dom/UniFFICallbacks.h"
+#include "mozilla/dom/UniFFIPointerType.h"
 #include "mozilla/dom/UniFFIScaffolding.h"
-#include "mozilla/uniffi/Call.h"
-#include "mozilla/uniffi/Callbacks.h"
-#include "mozilla/uniffi/FfiValue.h"
-#include "mozilla/uniffi/PointerType.h"
-#include "mozilla/uniffi/Rust.h"
+#include "mozilla/dom/UniFFIRust.h"
 
 namespace mozilla::uniffi {
 
@@ -78,15 +78,15 @@ static StaticRefPtr<dom::UniFFICallbackHandler> {{ cbi.js_handler_var }};
 
 class {{ handler.class_name }} : public UniffiCallbackMethodHandlerBase {
 private:
-  // Rust arguments
+  // Rust arguments, converted using ScaffoldingConverter::FromRust.
   {%- for a in handler.arguments %}
-  {{ a.ffi_value_class }} {{ a.name }}{};
+  typename {{ a.scaffolding_converter }}::IntermediateType {{ a.name }};
   {%- endfor %}
 
 public:
-  {{ handler.class_name }}(size_t aObjectHandle{%- for a in handler.arguments %}, {{ a.ffi_type }} {{ a.name }}{%- endfor %})
+  {{ handler.class_name }}(size_t aObjectHandle{%- for a in handler.arguments %}, {{ a.type_ }} {{ a.name }}{%- endfor %})
     : UniffiCallbackMethodHandlerBase("{{ cbi.name }}", aObjectHandle)
-    {%- for a in handler.arguments %}, {{ a.name }}({{ a.ffi_value_class }}::FromRust({{ a.name }})){% endfor %} {
+    {%- for a in handler.arguments %}, {{ a.name }}({{ a.scaffolding_converter }}::FromRust({{ a.name }})){% endfor %} {
   }
 
   MOZ_CAN_RUN_SCRIPT
@@ -102,8 +102,9 @@ public:
 
     // Convert each argument
     {%- for a in handler.arguments %}
-    {{ a.name }}.Lift(
+    {{ a.scaffolding_converter }}::IntoJs(
       aCx,
+      std::move(this->{{ a.name }}),
       &uniffiArgs[{{ loop.index0 }}],
       aError);
     if (aError.Failed()) {
@@ -122,7 +123,7 @@ public:
 
 extern "C" void {{ handler.fn_name }}(
     uint64_t uniffiHandle,
-    {% for a in handler.arguments %}{{ a.ffi_type }} {{ a.name }}, {% endfor %}
+    {% for a in handler.arguments %}{{ a.type_ }} {{ a.name }}, {% endfor %}
     void* uniffiOutReturn,
     RustCallStatus* uniffiCallStatus
 ) {
@@ -220,22 +221,22 @@ void DeregisterCallbackHandler(uint64_t aInterfaceId, ErrorResult& aError) {
 {%- when None %}
 class {{ scaffolding_call.handler_class_name }} : public UniffiSyncCallHandler {
 private:
-  // LowerRustArgs stores the resulting arguments in these fields
+  // PrepareRustArgs stores the resulting arguments in these fields
   {%- for arg in scaffolding_call.arguments %}
-  {{ arg.ffi_value_class }} {{ arg.var_name }}{};
+  typename {{ arg.scaffolding_converter }}::IntermediateType {{ arg.var_name }};
   {%- endfor %}
 
   // MakeRustCall stores the result of the call in these fields
   {%- match scaffolding_call.return_type %}
   {%- when Some(return_type) %}
-  {{ return_type.ffi_value_class }} mUniffiReturnValue{};
+  typename {{ return_type.scaffolding_converter }}::IntermediateType mUniffiReturnValue;
   {%- else %}
   {%- endmatch %}
 
 public:
-  void LowerRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     {%- for arg in scaffolding_call.arguments %}
-    {{ arg.var_name }}.Lower(aArgs[{{ loop.index0 }}], aError);
+    {{ arg.scaffolding_converter }}::FromJs(aArgs[{{ loop.index0 }}], &{{ arg.var_name }}, aError);
     if (aError.Failed()) {
       return;
     }
@@ -245,10 +246,10 @@ public:
   void MakeRustCall(RustCallStatus* aOutStatus) override {
     {%- match scaffolding_call.return_type %}
     {%- when Some(return_type) %}
-    mUniffiReturnValue = {{ return_type.ffi_value_class }}::FromRust(
+    mUniffiReturnValue = {{ return_type.scaffolding_converter }}::FromRust(
       {{ scaffolding_call.ffi_func_name }}(
         {%- for arg in scaffolding_call.arguments %}
-        {{ arg.var_name }}.IntoRust(),
+        {{ arg.scaffolding_converter }}::IntoRust(std::move({{ arg.var_name }})),
         {%- endfor %}
         aOutStatus
       )
@@ -256,18 +257,19 @@ public:
     {%- else %}
     {{ scaffolding_call.ffi_func_name }}(
       {%- for arg in scaffolding_call.arguments %}
-      {{ arg.var_name }}.IntoRust(),
+      {{ arg.scaffolding_converter }}::IntoRust(std::move({{ arg.var_name }})),
       {%- endfor %}
       aOutStatus
     );
     {%- endmatch %}
   }
 
-  virtual void LiftSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     {%- match scaffolding_call.return_type %}
     {%- when Some(return_type) %}
-    mUniffiReturnValue.Lift(
+    {{ return_type.scaffolding_converter }}::IntoJs(
       aCx,
+      std::move(mUniffiReturnValue),
       &aDest.Construct(),
       aError
     );
@@ -284,7 +286,7 @@ private:
   // Complete stores the result of the call in mUniffiReturnValue
   {%- match scaffolding_call.return_type %}
   {%- when Some(return_type) %}
-  {{ return_type.ffi_value_class }} mUniffiReturnValue{};
+  typename {{ return_type.scaffolding_converter }}::IntermediateType mUniffiReturnValue;
   {%- else %}
   {%- endmatch %}
 
@@ -292,10 +294,10 @@ protected:
   // Convert a sequence of JS arguments and call the scaffolding function.
   // Always called on the main thread since async Rust calls don't block, they
   // return a future.
-  void LowerArgsAndMakeRustCall(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void PrepareArgsAndMakeRustCall(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     {%- for arg in scaffolding_call.arguments %}
-    {{ arg.ffi_value_class }} {{ arg.var_name }}{};
-    {{ arg.var_name }}.Lower(aArgs[{{ loop.index0 }}], aError);
+    typename {{ arg.scaffolding_converter }}::IntermediateType {{ arg.var_name }};
+    {{ arg.scaffolding_converter }}::FromJs(aArgs[{{ loop.index0 }}], &{{ arg.var_name }}, aError);
     if (aError.Failed()) {
       return;
     }
@@ -303,7 +305,7 @@ protected:
 
     mFutureHandle = {{ scaffolding_call.ffi_func_name }}(
       {%- for arg in scaffolding_call.arguments %}
-      {{ arg.var_name }}.IntoRust(){% if !loop.last %},{% endif %}
+      {{ arg.scaffolding_converter }}::IntoRust(std::move({{ arg.var_name }})){% if !loop.last %},{% endif %}
       {%- endfor %}
     );
   }
@@ -311,7 +313,7 @@ protected:
   void CallCompleteFn(RustCallStatus* aOutStatus) override {
     {%- match scaffolding_call.return_type %}
     {%- when Some(return_type) %}
-    mUniffiReturnValue = {{ return_type.ffi_value_class }}::FromRust(
+    mUniffiReturnValue = {{ return_type.scaffolding_converter }}::FromRust(
       {{ async_info.complete_fn }}(mFutureHandle, aOutStatus));
     {%- else %}
     {{ async_info.complete_fn }}(mFutureHandle, aOutStatus);
@@ -319,11 +321,12 @@ protected:
   }
 
 public:
-  void LiftSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     {%- match scaffolding_call.return_type %}
     {%- when Some(return_type) %}
-    mUniffiReturnValue.Lift(
+    {{ return_type.scaffolding_converter }}::IntoJs(
       aCx,
+      std::move(mUniffiReturnValue),
       &aDest.Construct(),
       aError
     );

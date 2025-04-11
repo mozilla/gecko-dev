@@ -7,11 +7,10 @@
 FINAL_LIBRARY = "xul"
 
 UNIFIED_SOURCES += [
-    "Call.cpp",
-    "Callbacks.cpp",
-    "GeneratedScaffolding.cpp",
     "OwnedRustBuffer.cpp",
-    "ResultPromise.cpp",
+    "UniFFICall.cpp",
+    "UniFFICallbacks.cpp",
+    "UniFFIGeneratedScaffolding.cpp",
     "UniFFIPointer.cpp",
     "UniFFIScaffolding.cpp",
 ]
@@ -20,18 +19,14 @@ if CONFIG["MOZ_UNIFFI_FIXTURES"]:
     DEFINES["MOZ_UNIFFI_FIXTURES"] = True
 
 EXPORTS.mozilla.dom += [
-    "UniFFIPointer.h",
-    "UniFFIScaffolding.h",
-]
-
-EXPORTS.mozilla.uniffi += [
-    "Call.h",
-    "Callbacks.h",
-    "FfiValue.h",
     "OwnedRustBuffer.h",
-    "PointerType.h",
-    "ResultPromise.h",
-    "Rust.h",
+    "ScaffoldingConverter.h",
+    "UniFFICall.h",
+    "UniFFICallbacks.h",
+    "UniFFIPointer.h",
+    "UniFFIPointerType.h",
+    "UniFFIRust.h",
+    "UniFFIScaffolding.h",
 ]
 
 EXTRA_JS_MODULES += [

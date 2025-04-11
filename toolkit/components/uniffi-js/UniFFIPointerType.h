@@ -10,7 +10,7 @@
 #include "nsISupports.h"
 #include "nsWrapperCache.h"
 #include "nsLiteralString.h"
-#include "mozilla/uniffi/Rust.h"
+#include "UniFFIRust.h"
 
 namespace mozilla::uniffi {
 
