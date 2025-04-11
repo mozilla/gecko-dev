@@ -164,6 +164,19 @@ global.getExtTabGroupIdForInternalTabGroupId = groupIdStr => {
   }
   return fallbackGroupId;
 };
+global.getInternalTabGroupIdForExtTabGroupId = groupId => {
+  if (Number.isSafeInteger(groupId) && groupId >= 1e15) {
+    // 16 digits - this inverts getExtTabGroupIdForInternalTabGroupId.
+    const groupIdStr = `${Math.floor(groupId / 1000)}-${groupId % 1000}`;
+    return groupIdStr;
+  }
+  for (let [groupIdStr, fallbackGroupId] of fallbackTabGroupIdMap) {
+    if (fallbackGroupId === groupId) {
+      return groupIdStr;
+    }
+  }
+  return null;
+};
 
 /**
  * Manages tab-specific and window-specific context data, and dispatches
