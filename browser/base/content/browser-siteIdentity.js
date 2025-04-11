@@ -1185,8 +1185,12 @@ var gIdentityHandler = {
   },
 
   setURI(uri) {
-    if (uri instanceof Ci.nsINestedURI) {
-      uri = uri.QueryInterface(Ci.nsINestedURI).innermostURI;
+    // Unnest the URI, turning "view-source:https://example.com" into
+    // "https://example.com" for example. "about:" URIs are a special exception
+    // here, as some of them have a hidden moz-safe-about inner URI we do not
+    // want to unnest.
+    while (uri instanceof Ci.nsINestedURI && !uri.schemeIs("about")) {
+      uri = uri.QueryInterface(Ci.nsINestedURI).innerURI;
     }
     this._uri = uri;
 
@@ -1197,7 +1201,7 @@ var gIdentityHandler = {
       this._uriHasHost = false;
     }
 
-    if (uri.schemeIs("about") || uri.schemeIs("moz-safe-about")) {
+    if (uri.schemeIs("about")) {
       let module = E10SUtils.getAboutModule(uri);
       if (module) {
         let flags = module.getURIFlags(uri);
