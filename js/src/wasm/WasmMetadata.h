@@ -161,40 +161,10 @@ struct CodeMetadata : public ShareableBase<CodeMetadata> {
 
   // Statistics collection for lazy tiering and inlining.
   struct ProtectedOptimizationStats {
-    // ---- Stats for the complete tier ----
-    // number of funcs in the module
-    size_t completeNumFuncs = 0;
-    // total bytecode size for the module, excluding the body length fields
-    size_t completeBCSize = 0;
-    // ---- Stats for the partial tier ----
-    // number of funcs tiered up (that have completed tier-up)
-    size_t partialNumFuncs = 0;
-    // total bytecode size of tiered up funcs, excluding the body length fields
-    size_t partialBCSize = 0;
-    // number of direct-call / call-ref sites inlined
-    size_t partialNumFuncsInlinedDirect = 0;
-    size_t partialNumFuncsInlinedCallRef = 0;
-    // total extra bytecode size from direct-call / call-ref inlining
-    size_t partialBCInlinedSizeDirect = 0;
-    size_t partialBCInlinedSizeCallRef = 0;
-    // number of funcs for which inlining stopped due to budget overrun
-    size_t partialInlineBudgetOverruns = 0;
-    // total mapped addr space for p-tier code (a multiple of the page size)
-    size_t partialCodeBytesMapped = 0;
-    // total used space for p-tier code (will be less than the above)
-    size_t partialCodeBytesUsed = 0;
     // The remaining inlining budget (in bytecode bytes) for the module as a
     // whole.  Must be signed.  It will be negative if we have overrun the
     // budget.
     int64_t inliningBudget = 0;
-    WASM_CHECK_CACHEABLE_POD(completeNumFuncs, completeBCSize, partialNumFuncs,
-                             partialBCSize, partialNumFuncsInlinedDirect,
-                             partialNumFuncsInlinedCallRef,
-                             partialBCInlinedSizeDirect,
-                             partialBCInlinedSizeCallRef,
-                             partialInlineBudgetOverruns,
-                             partialCodeBytesMapped, partialCodeBytesUsed,
-                             inliningBudget);
   };
   using ReadGuard = RWExclusiveData<ProtectedOptimizationStats>::ReadGuard;
   using WriteGuard = RWExclusiveData<ProtectedOptimizationStats>::WriteGuard;
@@ -261,9 +231,6 @@ struct CodeMetadata : public ShareableBase<CodeMetadata> {
     types = js_new<TypeContext>();
     return types;
   }
-
-  void dumpStats() const;
-  ~CodeMetadata() { dumpStats(); }
 
   // Generates any new metadata necessary to compile this module. This must be
   // called after the 'module environment' (everything before the code section)

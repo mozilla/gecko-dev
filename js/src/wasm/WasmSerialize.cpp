@@ -1387,10 +1387,10 @@ CoderResult CodeSharedCode(Coder<MODE_DECODE>& coder, wasm::SharedCode* item,
   // Create and initialize the code
   MutableCode code =
       js_new<Code>(CompileMode::Once, codeMeta, /*codeMetaForAsmJS=*/nullptr);
-  if (!code || !code->initialize(std::move(funcImports), std::move(sharedStubs),
-                                 std::move(sharedStubsLinkData),
-                                 std::move(optimizedCode),
-                                 std::move(optimizedCodeLinkData))) {
+  if (!code || !code->initialize(
+                   std::move(funcImports), std::move(sharedStubs),
+                   std::move(sharedStubsLinkData), std::move(optimizedCode),
+                   std::move(optimizedCodeLinkData), TierStats())) {
     return Err(OutOfMemory());
   }
 

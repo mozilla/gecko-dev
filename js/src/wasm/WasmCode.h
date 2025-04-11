@@ -969,6 +969,10 @@ class Code : public ShareableBase<Code> {
 
     // A vector of code segments that we can lazily allocate functions into
     SharedCodeSegmentVector lazyFuncSegments;
+
+    // Statistics for tiers of code.
+    TierStats tier1Stats;
+    TierStats tier2Stats;
   };
   using ReadGuard = RWExclusiveData<ProtectedData>::ReadGuard;
   using WriteGuard = RWExclusiveData<ProtectedData>::WriteGuard;
@@ -1069,17 +1073,22 @@ class Code : public ShareableBase<Code> {
       const ExclusiveData<CacheableCharsVector>::Guard& labels,
       const CodeBlock& codeBlock) const;
 
+  void printStats() const;
+
  public:
   Code(CompileMode mode, const CodeMetadata& codeMeta,
        const CodeMetadataForAsmJS* codeMetaForAsmJS);
+  ~Code();
 
   [[nodiscard]] bool initialize(FuncImportVector&& funcImports,
                                 UniqueCodeBlock sharedStubs,
                                 UniqueLinkData sharedStubsLinkData,
                                 UniqueCodeBlock tier1CodeBlock,
-                                UniqueLinkData tier1LinkData);
+                                UniqueLinkData tier1LinkData,
+                                const TierStats& tier1Stats);
   [[nodiscard]] bool finishTier2(UniqueCodeBlock tier2CodeBlock,
-                                 UniqueLinkData tier2LinkData) const;
+                                 UniqueLinkData tier2LinkData,
+                                 const TierStats& tier2Stats) const;
 
   [[nodiscard]] bool getOrCreateInterpEntry(uint32_t funcIndex,
                                             const FuncExport** funcExport,

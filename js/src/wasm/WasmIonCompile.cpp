@@ -306,6 +306,9 @@ class RootCompiler {
   // A copy of the above stack for efficient sharing.
   SharedBytecodeOffsetVector inlinedCallerOffsetsVector_;
 
+  // Accumulated statistics about this tier.
+  TierStats tierStats_;
+
   // Accumulated inlining statistics for this function.
   InliningStats inliningStats_;
   // The remaining inlining budget, in terms of bytecode bytes. This may go
@@ -349,6 +352,7 @@ class RootCompiler {
   MIRGenerator& mirGen() { return mirGen_; }
   int64_t inliningBudget() const { return inliningBudget_; }
   FeatureUsage observedFeatures() const { return observedFeatures_; }
+  const TierStats& tierStats() const { return tierStats_; }
 
   uint32_t loopDepth() const { return loopDepth_; }
   void startLoop() { loopDepth_++; }
@@ -10516,10 +10520,10 @@ bool RootCompiler::generate() {
   // "[SMDOC] Per-function and per-module inlining limits" (WasmHeuristics.h)
   {
     auto guard = codeMeta_.stats.readLock();
-    inliningStats_.rootBytecodeSize = func_.end - func_.begin;
+
     if (guard->inliningBudget > 0) {
-      inliningBudget_ = int64_t(inliningStats_.rootBytecodeSize) *
-                        PerFunctionMaxInliningRatio;
+      inliningBudget_ =
+          int64_t(codeMeta_.codeSectionSize()) * PerFunctionMaxInliningRatio;
       inliningBudget_ =
           std::min<int64_t>(inliningBudget_, guard->inliningBudget);
     } else {
@@ -10539,18 +10543,17 @@ bool RootCompiler::generate() {
 
   MOZ_ASSERT(loopDepth_ == 0);
 
+  tierStats_.numFuncs += 1;
+  tierStats_.bytecodeSize += func_.end - func_.begin;
+  tierStats_.inlinedDirectCallCount += inliningStats_.inlinedDirectFunctions;
+  tierStats_.inlinedCallRefCount += inliningStats_.inlinedCallRefFunctions;
+  tierStats_.inlinedDirectCallBytecodeSize +=
+      inliningStats_.inlinedDirectBytecodeSize;
+  tierStats_.inlinedCallRefBytecodeSize +=
+      inliningStats_.inlinedCallRefBytecodeSize;
+
   {
     auto guard = codeMeta_.stats.writeLock();
-    guard->partialNumFuncs += 1;
-    guard->partialBCSize += inliningStats_.rootBytecodeSize;
-    guard->partialNumFuncsInlinedDirect +=
-        inliningStats_.inlinedDirectFunctions;
-    guard->partialBCInlinedSizeDirect +=
-        inliningStats_.inlinedDirectBytecodeSize;
-    guard->partialNumFuncsInlinedCallRef +=
-        inliningStats_.inlinedCallRefFunctions;
-    guard->partialBCInlinedSizeCallRef +=
-        inliningStats_.inlinedCallRefBytecodeSize;
     // Update the module's inlining budget accordingly.  If it is already
     // negative, no more inlining for the module can happen, so there's no
     // point in updating it further.
@@ -10569,7 +10572,7 @@ bool RootCompiler::generate() {
     // If this particular root function overran the function-level
     // limit, note that in the module too.
     if (inliningBudget_ < 0) {
-      guard->partialInlineBudgetOverruns++;
+      tierStats_.numInliningBudgetOverruns += 1;
     }
   }
 
@@ -10691,6 +10694,9 @@ bool wasm::IonCompileFunctions(const CodeMetadata& codeMeta,
     // Record observed feature usage
     FeatureUsage observedFeatures = rootCompiler.observedFeatures();
     code->featureUsage |= observedFeatures;
+
+    // Record our tier stats
+    code->tierStats.merge(rootCompiler.tierStats());
 
     // Compile MIR graph
     {

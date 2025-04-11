@@ -374,3 +374,43 @@ CalleeDesc CalleeDesc::wasmFuncRef() {
   c.which_ = FuncRef;
   return c;
 }
+
+void TierStats::print() const {
+  // To see the statistics printed here:
+  // * configure with --enable-jitspew or --enable-debug
+  // * run with MOZ_LOG=wasmPerf:3
+  // * this works for both JS builds and full browser builds
+  // #ifdef JS_JITSPEW
+  JS_LOG(wasmPerf, Info, "    %7zu functions compiled", numFuncs);
+  JS_LOG(wasmPerf, Info, "    %7zu bytecode bytes compiled", bytecodeSize);
+  JS_LOG(wasmPerf, Info, "    %7zu direct-calls inlined",
+         inlinedDirectCallCount);
+  JS_LOG(wasmPerf, Info, "    %7zu call_ref-calls inlined",
+         inlinedCallRefCount);
+  JS_LOG(wasmPerf, Info, "    %7zu direct-call bytecodes inlined",
+         inlinedDirectCallBytecodeSize);
+  JS_LOG(wasmPerf, Info, "    %7zu call_ref-call bytecodes inlined",
+         inlinedCallRefBytecodeSize);
+  JS_LOG(wasmPerf, Info, "    %7zu functions overran inlining budget",
+         numInliningBudgetOverruns);
+  JS_LOG(wasmPerf, Info, "    %7zu bytes mmap'd for code storage",
+         codeBytesMapped);
+  JS_LOG(wasmPerf, Info, "    %7zu bytes actually used for code storage",
+         codeBytesUsed);
+
+  // This value will be 0.0 if inlining did not cause any code expansion.  A
+  // value of 1.0 means inlining doubled the total amount of bytecode, 2.0
+  // means tripled it, etc.
+  float inliningExpansion =
+      float(inlinedDirectCallBytecodeSize + inlinedCallRefBytecodeSize) /
+      float(bytecodeSize);
+
+  // This is always between 0.0 and 1.0.
+  float codeSpaceUseRatio = float(codeBytesUsed) / float(codeBytesMapped);
+
+  JS_LOG(wasmPerf, Info, "     %5.1f%% bytecode expansion caused by inlining",
+         inliningExpansion * 100.0);
+  JS_LOG(wasmPerf, Info, "      %4.1f%% of mapped code space used",
+         codeSpaceUseRatio * 100.0);
+  // #endif
+}

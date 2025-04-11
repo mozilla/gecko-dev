@@ -173,9 +173,10 @@ void Module::startTier2(const ShareableBytes* codeSection,
 }
 
 bool Module::finishTier2(UniqueCodeBlock tier2CodeBlock,
-                         UniqueLinkData tier2LinkData) const {
-  if (!code_->finishTier2(std::move(tier2CodeBlock),
-                          std::move(tier2LinkData))) {
+                         UniqueLinkData tier2LinkData,
+                         const TierStats& tier2Stats) const {
+  if (!code_->finishTier2(std::move(tier2CodeBlock), std::move(tier2LinkData),
+                          tier2Stats)) {
     return false;
   }
 

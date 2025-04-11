@@ -1582,6 +1582,39 @@ using FuncBaselinePerfSpewerVector =
     Vector<FuncBaselinePerfSpewer, 8, SystemAllocPolicy>;
 using FuncBaselinePerfSpewerSpan = mozilla::Span<FuncBaselinePerfSpewer>;
 
+struct TierStats {
+  // number of functions compiled in this tier
+  size_t numFuncs = 0;
+  // bytecode size of the functions compiled in this tier
+  size_t bytecodeSize = 0;
+  // number of direct-call / call-ref sites inlined
+  size_t inlinedDirectCallCount = 0;
+  size_t inlinedCallRefCount = 0;
+  // total extra bytecode size from direct-call / call-ref inlining
+  size_t inlinedDirectCallBytecodeSize = 0;
+  size_t inlinedCallRefBytecodeSize = 0;
+  // number of funcs for which inlining stopped due to budget overrun
+  size_t numInliningBudgetOverruns = 0;
+  // total mapped addr space for optimized-tier code (a multiple of the page
+  // size)
+  size_t codeBytesMapped = 0;
+  // total used space for optimized-tier code (will be less than the above)
+  size_t codeBytesUsed = 0;
+
+  void merge(const TierStats& other) {
+    numFuncs += other.numFuncs;
+    bytecodeSize += other.bytecodeSize;
+    inlinedDirectCallCount += other.inlinedDirectCallCount;
+    inlinedCallRefCount += other.inlinedCallRefCount;
+    inlinedDirectCallBytecodeSize += other.inlinedDirectCallBytecodeSize;
+    inlinedCallRefBytecodeSize += other.inlinedCallRefBytecodeSize;
+    numInliningBudgetOverruns += other.numInliningBudgetOverruns;
+    codeBytesMapped += other.codeBytesMapped;
+    codeBytesUsed += other.codeBytesUsed;
+  }
+  void print() const;
+};
+
 }  // namespace wasm
 }  // namespace js
 

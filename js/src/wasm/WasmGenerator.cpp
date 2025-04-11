@@ -398,6 +398,9 @@ bool ModuleGenerator::linkCompiledCode(CompiledCode& code) {
   // Combine observed features from the compiled code into the metadata
   featureUsage_ |= code.featureUsage;
 
+  // Combine the tier stats from all compiled functions in this block
+  tierStats_.merge(code.tierStats);
+
   if (compilingTier1() && mode() == CompileMode::LazyTiering) {
     // All the CallRefMetrics from this batch of functions will start indexing
     // at our current length of metrics.
@@ -954,6 +957,10 @@ UniqueCodeBlock ModuleGenerator::finishCodeBlock(UniqueLinkData* linkData) {
     codeBlock_->segment = CodeSegment::allocate(codeSource, nullptr,
                                                 /* allowLastDitchGC */ true,
                                                 &codeStart, &allocationLength);
+
+    // Record the code usage for this tier.
+    tierStats_.codeBytesUsed += codeBlock_->codeLength;
+    tierStats_.codeBytesMapped = codeBlock_->segment->lengthBytes();
   }
 
   if (!codeBlock_->segment) {
@@ -1061,11 +1068,12 @@ bool ModuleGenerator::startCompleteTier() {
 #ifdef JS_JITSPEW
   completeTierStartTime_ = mozilla::TimeStamp::Now();
   JS_LOG(wasmPerf, Info,
-         "CM=..%06lx  MG::startCompleteTier (%s, %u imports, %u functions)",
+         "CM=..%06lx  ModuleGenerator::startCompleteTier (%s, %u imports, %u "
+         "functions)",
          (unsigned long)(uintptr_t(codeMeta_) & 0xFFFFFFL),
-         tier() == Tier::Baseline ? "BL" : "OPT",
+         tier() == Tier::Baseline ? "baseline" : "optimizing",
          (uint32_t)codeMeta_->numFuncImports,
-         (uint32_t)codeMeta_->numFuncs() - (uint32_t)codeMeta_->numFuncImports);
+         (uint32_t)codeMeta_->numFuncDefs());
 #endif
 
   if (!startCodeBlock(CodeBlock::kindFromTier(tier()))) {
@@ -1149,7 +1157,7 @@ bool ModuleGenerator::startPartialTier(uint32_t funcIndex) {
   }
   uint32_t bytecodeLength = codeMeta_->funcDefRange(funcIndex).size;
   JS_LOG(wasmPerf, Info,
-         "CM=..%06lx  MG::startPartialTier  fI=%-5u  sz=%-5u  %s",
+         "CM=..%06lx  ModuleGenerator::startPartialTier  fI=%-5u  sz=%-5u  %s",
          (unsigned long)(uintptr_t(codeMeta_) & 0xFFFFFFL), funcIndex,
          bytecodeLength, name.length() > 0 ? name.begin() : "(unknown-name)");
 #endif
@@ -1172,7 +1180,8 @@ bool ModuleGenerator::startPartialTier(uint32_t funcIndex) {
   return true;
 }
 
-UniqueCodeBlock ModuleGenerator::finishTier(UniqueLinkData* linkData) {
+UniqueCodeBlock ModuleGenerator::finishTier(UniqueLinkData* linkData,
+                                            TierStats* tierStats) {
   MOZ_ASSERT(finishedFuncDefs_);
 
   while (outstanding_ > 0) {
@@ -1201,6 +1210,10 @@ UniqueCodeBlock ModuleGenerator::finishTier(UniqueLinkData* linkData) {
     return nullptr;
   }
 
+  // Return the tier statistics and clear them
+  *tierStats = tierStats_;
+  tierStats_ = TierStats();
+
   return finishCodeBlock(linkData);
 }
 
@@ -1212,7 +1225,8 @@ SharedModule ModuleGenerator::finishModule(
   MOZ_ASSERT(compilingTier1());
 
   UniqueLinkData tier1LinkData;
-  UniqueCodeBlock tier1Code = finishTier(&tier1LinkData);
+  TierStats tier1Stats;
+  UniqueCodeBlock tier1Code = finishTier(&tier1LinkData, &tier1Stats);
   if (!tier1Code) {
     return nullptr;
   }
@@ -1339,23 +1353,15 @@ SharedModule ModuleGenerator::finishModule(
             .payload;
   }
 
-  // Update statistics in the CodeMeta.  Also remember the bytecode size for
-  // log printing below.
-  size_t completeBCSize = 0;
+  // Create an inlining budget using the information from tier1
   {
     auto guard = codeMeta->stats.writeLock();
-    guard->completeNumFuncs = codeMeta->numFuncDefs();
-    guard->completeBCSize = 0;
-    for (const BytecodeRange& range : codeMeta->funcDefRanges) {
-      guard->completeBCSize += range.size;
-    }
-    completeBCSize = guard->completeBCSize;
     // Now that we know the complete bytecode size for the module, we can set
     // the inlining budget for tiered-up compilation, if appropriate.  See
     // "[SMDOC] Per-function and per-module inlining limits" (WasmHeuristics.h)
     if (mode() == CompileMode::LazyTiering) {
       guard->inliningBudget =
-          int64_t(guard->completeBCSize) * PerModuleMaxInliningRatio;
+          int64_t(tier1Stats.bytecodeSize) * PerModuleMaxInliningRatio;
       // But don't be overly stingy for tiny modules.  Function-level inlining
       // limits will still protect us from excessive inlining.
       guard->inliningBudget = std::max<int64_t>(guard->inliningBudget, 1000);
@@ -1368,7 +1374,7 @@ SharedModule ModuleGenerator::finishModule(
   if (!code || !code->initialize(
                    std::move(funcImports_), std::move(sharedStubsCodeBlock_),
                    std::move(sharedStubsLinkData_), std::move(tier1Code),
-                   std::move(tier1LinkData))) {
+                   std::move(tier1LinkData), tier1Stats)) {
     return nullptr;
   }
 
@@ -1436,17 +1442,16 @@ SharedModule ModuleGenerator::finishModule(
   }
 
 #ifdef JS_JITSPEW
+  size_t bytecodeSize = codeMeta_->codeSectionSize();
   double wallclockSeconds =
       (mozilla::TimeStamp::Now() - completeTierStartTime_).ToSeconds();
   JS_LOG(wasmPerf, Info,
-         "CM=..%06lx  MG::finishModule      "
-         "(%s, complete tier, %.2f MB in %.3fs = %.2f MB/s)",
+         "CM=..%06lx  ModuleGenerator::finishModule      "
+         "(%s tier, %.2f MB in %.3fs = %.2f MB/s)",
          (unsigned long)(uintptr_t(codeMeta_) & 0xFFFFFFL),
-         tier() == Tier::Baseline ? "BL" : "OPT",
-         double(completeBCSize) / 1.0e6, wallclockSeconds,
-         double(completeBCSize) / 1.0e6 / wallclockSeconds);
-#else
-  (void)completeBCSize;  // Avoid unused-variable warnings
+         tier() == Tier::Baseline ? "baseline" : "optimizing",
+         double(bytecodeSize) / 1.0e6, wallclockSeconds,
+         double(bytecodeSize) / 1.0e6 / wallclockSeconds);
 #endif
 
   return module;
@@ -1465,7 +1470,8 @@ bool ModuleGenerator::finishTier2(const Module& module) {
   }
 
   UniqueLinkData tier2LinkData;
-  UniqueCodeBlock tier2Code = finishTier(&tier2LinkData);
+  TierStats tier2Stats;
+  UniqueCodeBlock tier2Code = finishTier(&tier2LinkData, &tier2Stats);
   if (!tier2Code) {
     return false;
   }
@@ -1476,7 +1482,8 @@ bool ModuleGenerator::finishTier2(const Module& module) {
     ThisThread::SleepMilliseconds(500);
   }
 
-  return module.finishTier2(std::move(tier2Code), std::move(tier2LinkData));
+  return module.finishTier2(std::move(tier2Code), std::move(tier2LinkData),
+                            tier2Stats);
 }
 
 bool ModuleGenerator::finishPartialTier2() {
@@ -1490,13 +1497,14 @@ bool ModuleGenerator::finishPartialTier2() {
   }
 
   UniqueLinkData tier2LinkData;
-  UniqueCodeBlock tier2Code = finishTier(&tier2LinkData);
+  TierStats tier2Stats;
+  UniqueCodeBlock tier2Code = finishTier(&tier2LinkData, &tier2Stats);
   if (!tier2Code) {
     return false;
   }
 
   return partialTieringCode_->finishTier2(std::move(tier2Code),
-                                          std::move(tier2LinkData));
+                                          std::move(tier2LinkData), tier2Stats);
 }
 
 void ModuleGenerator::warnf(const char* msg, ...) {

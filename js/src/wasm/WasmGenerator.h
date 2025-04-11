@@ -102,6 +102,7 @@ struct CompiledCode {
   FuncIonPerfSpewerVector funcIonSpewers;
   FuncBaselinePerfSpewerVector funcBaselineSpewers;
   FeatureUsage featureUsage;
+  TierStats tierStats;
 
   [[nodiscard]] bool swap(jit::MacroAssembler& masm);
 
@@ -257,6 +258,7 @@ class MOZ_STACK_CLASS ModuleGenerator {
   uint32_t startOfUnpatchedCallsites_;
   uint32_t numCallRefMetrics_;
   uint32_t numAllocSites_;
+  TierStats tierStats_;
 
   // Parallel compilation
   bool parallel_;
@@ -302,7 +304,7 @@ class MOZ_STACK_CLASS ModuleGenerator {
   [[nodiscard]] bool startPartialTier(uint32_t funcIndex);
   // Finishes a complete or partial tier of wasm code. Returns a `linkData`
   // through an out-param that can be serialized with the code block.
-  UniqueCodeBlock finishTier(UniqueLinkData* linkData);
+  UniqueCodeBlock finishTier(UniqueLinkData* linkData, TierStats* tierStats);
 
   bool isAsmJS() const { return codeMeta_->isAsmJS(); }
   Tier tier() const { return compilerEnv_->tier(); }

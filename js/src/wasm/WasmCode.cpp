@@ -684,7 +684,8 @@ bool Code::requestTierUp(uint32_t funcIndex) const {
 }
 
 bool Code::finishTier2(UniqueCodeBlock tier2CodeBlock,
-                       UniqueLinkData tier2LinkData) const {
+                       UniqueLinkData tier2LinkData,
+                       const TierStats& tier2Stats) const {
   MOZ_RELEASE_ASSERT(mode_ == CompileMode::EagerTiering ||
                      mode_ == CompileMode::LazyTiering);
   MOZ_RELEASE_ASSERT(hasCompleteTier2_ == false &&
@@ -694,6 +695,9 @@ bool Code::finishTier2(UniqueCodeBlock tier2CodeBlock,
   CodeBlock* tier2CodePointer;
   {
     auto guard = data_.writeLock();
+
+    // Record the tier2 stats.
+    guard->tier2Stats.merge(tier2Stats);
 
     // Borrow the tier2 pointer before moving it into the block vector. This
     // ensures we maintain the invariant that completeTier2_ is never read if
@@ -807,13 +811,10 @@ SharedCodeSegment Code::createFuncCodeSegmentFromPool(
     if (!segment) {
       return nullptr;
     }
-  }
 
-  // Update allocation statistics
-  {
-    auto guard = codeMeta().stats.writeLock();
-    guard->partialCodeBytesMapped += allocationLength;
-    guard->partialCodeBytesUsed += codeLength;
+    // This function is always used with tier-2
+    guard->tier2Stats.codeBytesMapped += allocationLength;
+    guard->tier2Stats.codeBytesUsed += codeLength;
   }
 
   *codeStartOut = codeStart;
@@ -1161,14 +1162,45 @@ Code::Code(CompileMode mode, const CodeMetadata& codeMeta,
       requestTierUpStubOffset_(0),
       updateCallRefMetricsStubOffset_(0) {}
 
+Code::~Code() { printStats(); }
+
+void Code::printStats() const {
+  auto guard = data_.readLock();
+
+  JS_LOG(wasmPerf, Info, "CM=..%06lx  Code::~Code <<<<",
+         0xFFFFFF & (unsigned long)uintptr_t(codeMeta_.get()));
+
+  // Module information
+  JS_LOG(wasmPerf, Info, "    %7zu functions in module", codeMeta_->numFuncs());
+  JS_LOG(wasmPerf, Info, "    %7zu bytecode bytes in module",
+         codeMeta_->codeSectionSize());
+  uint32_t numCallRefs = codeMeta_->numCallRefMetrics == UINT32_MAX
+                             ? 0
+                             : codeMeta_->numCallRefMetrics;
+  JS_LOG(wasmPerf, Info, "    %7u call_refs in module.", numCallRefs);
+
+  // Tier information
+  JS_LOG(wasmPerf, Info, "    Tier1:");
+  guard->tier1Stats.print();
+  if (mode() != CompileMode::Once) {
+    JS_LOG(wasmPerf, Info, "    Tier2:");
+    guard->tier2Stats.print();
+  }
+
+  JS_LOG(wasmPerf, Info, ">>>>");
+}
+
 bool Code::initialize(FuncImportVector&& funcImports,
                       UniqueCodeBlock sharedStubs,
                       UniqueLinkData sharedStubsLinkData,
                       UniqueCodeBlock tier1CodeBlock,
-                      UniqueLinkData tier1LinkData) {
+                      UniqueLinkData tier1LinkData,
+                      const TierStats& tier1Stats) {
   funcImports_ = std::move(funcImports);
 
   auto guard = data_.writeLock();
+
+  guard->tier1Stats = tier1Stats;
 
   sharedStubs_ = sharedStubs.get();
   completeTier1_ = tier1CodeBlock.get();
