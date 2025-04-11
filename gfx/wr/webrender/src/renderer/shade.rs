@@ -587,11 +587,11 @@ pub struct Shaders {
     // These are "cache shaders". These shaders are used to
     // draw intermediate results to cache targets. The results
     // of these shaders are then used by the primitive shaders.
-    pub cs_blur_a8: LazilyCompiledShader,
+    cs_blur_a8: LazilyCompiledShader,
     pub cs_blur_rgba8: LazilyCompiledShader,
     pub cs_border_segment: LazilyCompiledShader,
     pub cs_border_solid: LazilyCompiledShader,
-    pub cs_scale: Vec<Option<LazilyCompiledShader>>,
+    cs_scale: Vec<Option<LazilyCompiledShader>>,
     pub cs_line_decoration: LazilyCompiledShader,
     pub cs_fast_linear_gradient: LazilyCompiledShader,
     pub cs_linear_gradient: LazilyCompiledShader,
@@ -625,19 +625,19 @@ pub struct Shaders {
     // shadow primitive shader stretches the box shadow cache
     // output, and the cache_image shader blits the results of
     // a cache shader (e.g. blur) to the screen.
-    pub ps_text_run: TextShader,
-    pub ps_text_run_dual_source: Option<TextShader>,
+    ps_text_run: TextShader,
+    ps_text_run_dual_source: Option<TextShader>,
 
     ps_split_composite: LazilyCompiledShader,
     pub ps_quad_textured: LazilyCompiledShader,
-    pub ps_quad_radial_gradient: LazilyCompiledShader,
-    pub ps_quad_conic_gradient: LazilyCompiledShader,
+    ps_quad_radial_gradient: LazilyCompiledShader,
+    ps_quad_conic_gradient: LazilyCompiledShader,
     pub ps_mask: LazilyCompiledShader,
     pub ps_mask_fast: LazilyCompiledShader,
     pub ps_clear: LazilyCompiledShader,
     pub ps_copy: LazilyCompiledShader,
 
-    pub composite: CompositorShaders,
+    composite: CompositorShaders,
 }
 
 impl Shaders {
