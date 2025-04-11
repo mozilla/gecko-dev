@@ -3309,8 +3309,8 @@ int NS_main(int argc, NS_tchar** argv) {
               "Skipping update to avoid elevation prompt from silent update.");
     } else {
       UpdateServerThreadArgs threadArgs;
-      threadArgs.argc = argc;
-      threadArgs.argv = const_cast<const NS_tchar**>(argv);
+      threadArgs.argc = suiArgc;
+      threadArgs.argv = suiArgv.get();
 
       Thread t1;
       if (t1.Run(ServeElevatedUpdateThreadFunc, &threadArgs) == 0) {
