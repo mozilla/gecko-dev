@@ -36,6 +36,8 @@ firefox.ai.runtime:
       - webextension
       - wllamapreview
       - default-engine
+      - smart-tab-embedding-engine
+      - smart-tab-topic-engine
 
   engine_creation_failure:
     type: event
@@ -115,3 +117,5 @@ firefox.ai.runtime:
       - webextension
       - wllamapreview
       - default-engine
+      - smart-tab-embedding-engine
+      - smart-tab-topic-engine
