@@ -17,7 +17,6 @@ import com.android.tools.lint.detector.api.ResourceXmlDetector
 import com.android.tools.lint.detector.api.Scope
 import com.android.tools.lint.detector.api.Severity
 import com.android.tools.lint.detector.api.XmlContext
-import com.google.common.annotations.VisibleForTesting
 import org.w3c.dom.Element
 
 /**

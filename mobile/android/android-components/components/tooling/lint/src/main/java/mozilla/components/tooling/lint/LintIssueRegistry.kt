@@ -16,8 +16,6 @@ class LintIssueRegistry : IssueRegistry() {
     override val api: Int = com.android.tools.lint.detector.api.CURRENT_API
     override val issues: List<Issue> = listOf(
         ButtonStyleXmlDetector.ISSUE_XML_STYLE,
-        LicenseDetector.ISSUE_MISSING_LICENSE,
-        LicenseDetector.ISSUE_INVALID_LICENSE_FORMAT,
         LintLogChecks.ISSUE_LOG_USAGE,
         AndroidSrcXmlDetector.ISSUE_XML_SRC_USAGE,
         TextViewAndroidSrcXmlDetector.ISSUE_XML_SRC_USAGE,

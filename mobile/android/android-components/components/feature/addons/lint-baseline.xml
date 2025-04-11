@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<issues format="6" by="lint 8.9.1" type="baseline" client="gradle" dependencies="false" name="AGP (8.9.1)" variant="all" version="8.9.1">
+
+    <issue
+        id="ButtonStyleXmlDetector"
+        message="All buttons must have a style, try using NeutralButton or similar."
+        errorLine1="&lt;Button xmlns:android=&quot;http://schemas.android.com/apk/res/android&quot;"
+        errorLine2=" ~~~~~~">
+        <location
+            file="src/main/res/layout/mozac_feature_addons_footer_section_item.xml"
+            line="5"
+            column="2"/>
+    </issue>
+
+    <issue
+        id="ButtonStyleXmlDetector"
+        message="All buttons must have a style, try using NeutralButton or similar."
+        errorLine1="    &lt;Button"
+        errorLine2="     ~~~~~~">
+        <location
+            file="src/main/res/layout/mozac_feature_addons_fragment_dialog_addon_installed.xml"
+            line="56"
+            column="6"/>
+    </issue>
+
+    <issue
+        id="ButtonStyleXmlDetector"
+        message="All buttons must have a style, try using NeutralButton or similar."
+        errorLine1="        &lt;Button"
+        errorLine2="         ~~~~~~">
+        <location
+            file="src/main/res/layout/mozac_feature_addons_fragment_dialog_addon_permissions.xml"
+            line="110"
+            column="10"/>
+    </issue>
+
+    <issue
+        id="ButtonStyleXmlDetector"
+        message="All buttons must have a style, try using NeutralButton or similar."
+        errorLine1="        &lt;Button"
+        errorLine2="         ~~~~~~">
+        <location
+            file="src/main/res/layout/mozac_feature_addons_fragment_dialog_addon_permissions.xml"
+            line="122"
+            column="10"/>
+    </issue>
+
+    <issue
+        id="UnsafeCompatGetColorStateList"
+        message="This call can lead to crashes, replace with AppCompatResources.getColorStateList"
+        errorLine1="                ContextCompat.getColorStateList(requireContext(), confirmButtonBackgroundColor)"
+        errorLine2="                ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/mozilla/components/feature/addons/ui/AddonInstallationDialogFragment.kt"
+            line="161"
+            column="17"/>
+    </issue>
+
+    <issue
+        id="UnsafeCompatGetColorStateList"
+        message="This call can lead to crashes, replace with AppCompatResources.getColorStateList"
+        errorLine1="                ContextCompat.getColorStateList(requireContext(), backgroundColor)"
+        errorLine2="                ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/mozilla/components/feature/addons/ui/PermissionsDialogFragment.kt"
+            line="375"
+            column="17"/>
+    </issue>
+
+    <issue
+        id="UnsafeCompatGetDrawable"
+        message="This call can lead to crashes, replace with AppCompatResources.getDrawable"
+        errorLine1="                imageView.setImageDrawable(ContextCompat.getDrawable(imageView.context, it))"
+        errorLine2="                                           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/mozilla/components/feature/addons/ui/AddonsManagerAdapter.kt"
+            line="471"
+            column="44"/>
+    </issue>
+
+    <issue
+        id="UnsafeCompatGetDrawable"
+        message="This call can lead to crashes, replace with AppCompatResources.getDrawable"
+        errorLine1="        ContextCompat.getDrawable("
+        errorLine2="        ^">
+        <location
+            file="src/main/java/mozilla/components/feature/addons/ui/Extensions.kt"
+            line="156"
+            column="9"/>
+    </issue>
+
+</issues>

@@ -1,7 +1,10 @@
 <?xml version="1.0" ?>
 <SmellBaseline>
-  <ManuallySuppressedIssues></ManuallySuppressedIssues>
+  <ManuallySuppressedIssues/>
   <CurrentIssues>
+    <ID>MaxLineLength:ContextCompatDetector.kt$ContextCompatDetector.Companion$explanation = "Using this method can lead to crashes in older Android versions as newer features might not be available"</ID>
+    <ID>MayBeConst:ConstraintLayoutPerfDetector.kt$private val CUSTOM_VIEW_ISSUE_DESCRIPTION = "Caution regarding custom views extending `ConstraintLayout`"</ID>
+    <ID>MayBeConst:ConstraintLayoutPerfDetector.kt$private val CUSTOM_VIEW_ISSUE_MESSAGE = "Custom views extending `ConstraintLayout` are less " + "efficient because they cannot share other `ConstraintLayout` defined in file."</ID>
     <ID>UndocumentedPublicClass:AbstractAutofillUnlockActivity.kt$AbstractAutofillUnlockActivity$Companion</ID>
     <ID>UndocumentedPublicClass:AbstractFetchDownloadService.kt$AbstractFetchDownloadService$Companion</ID>
     <ID>UndocumentedPublicClass:AbstractMediaSessionService.kt$AbstractMediaSessionService$Companion</ID>
@@ -43,6 +46,7 @@
     <ID>UndocumentedPublicClass:BrowserToolbar.kt$BrowserToolbar$Companion</ID>
     <ID>UndocumentedPublicClass:Browsers.kt$Browsers$Companion</ID>
     <ID>UndocumentedPublicClass:BuildVersionProvider.kt$BuildVersionProvider$Companion</ID>
+    <ID>UndocumentedPublicClass:ButtonStyleXmlDetector.kt$ButtonStyleXmlDetector$Companion</ID>
     <ID>UndocumentedPublicClass:CFRPopup.kt$CFRPopup$Companion</ID>
     <ID>UndocumentedPublicClass:CFRPopupShape.kt$CFRPopupShape$Companion</ID>
     <ID>UndocumentedPublicClass:Choice.kt$Choice$CREATOR : Creator</ID>
@@ -52,7 +56,10 @@
     <ID>UndocumentedPublicClass:ConceptFetchDetector.kt$ConceptFetchDetector$Companion</ID>
     <ID>UndocumentedPublicClass:ConceptFetchHttpUploader.kt$ConceptFetchHttpUploader$Companion</ID>
     <ID>UndocumentedPublicClass:Constants.kt$Constants</ID>
+    <ID>UndocumentedPublicClass:ConstraintLayoutPerfDetector.kt$ConstraintLayoutPerfDetector$Companion</ID>
     <ID>UndocumentedPublicClass:Consumable.kt$Consumable$Companion</ID>
+    <ID>UndocumentedPublicClass:ContextCompatDetector.kt$ContextCompatDetector : DetectorSourceCodeScanner</ID>
+    <ID>UndocumentedPublicClass:ContextCompatDetector.kt$ContextCompatDetector$Companion</ID>
     <ID>UndocumentedPublicClass:ContextMenuCandidate.kt$ContextMenuCandidate$Companion</ID>
     <ID>UndocumentedPublicClass:ContextMenuFragment.kt$ContextMenuFragment$Companion</ID>
     <ID>UndocumentedPublicClass:ContextMenuUseCases.kt$ContextMenuUseCases$ConsumeHitResultUseCase</ID>
@@ -151,6 +158,10 @@
     <ID>UndocumentedPublicClass:LanguageSetting.kt$LanguageSetting$Companion</ID>
     <ID>UndocumentedPublicClass:LazyComponent.kt$LazyComponent$Companion</ID>
     <ID>UndocumentedPublicClass:LibrariesListFragment.kt$LibrariesListFragment$Companion</ID>
+    <ID>UndocumentedPublicClass:LicenseCommentChecker.kt$LicenseCommentChecker : UElementHandler</ID>
+    <ID>UndocumentedPublicClass:LicenseCommentChecker.kt$LicenseCommentChecker$Companion</ID>
+    <ID>UndocumentedPublicClass:LicenseDetector.kt$LicenseDetector : DetectorSourceCodeScanner</ID>
+    <ID>UndocumentedPublicClass:LicenseDetector.kt$LicenseDetector$Companion</ID>
     <ID>UndocumentedPublicClass:LintLogChecks.kt$LintLogChecks$Companion</ID>
     <ID>UndocumentedPublicClass:LocationService.kt$LocationService$Companion</ID>
     <ID>UndocumentedPublicClass:Logger.kt$Logger$Companion</ID>
@@ -291,7 +302,6 @@
     <ID>UndocumentedPublicClass:TextViewAndroidSrcXmlDetector.kt$TextViewAndroidSrcXmlDetector$Companion</ID>
     <ID>UndocumentedPublicClass:ThreadUtils.kt$ThreadUtils</ID>
     <ID>UndocumentedPublicClass:Token.kt$Token$Type</ID>
-    <ID>UndocumentedPublicClass:Toolbar.kt$Toolbar$SiteSecurity</ID>
     <ID>UndocumentedPublicClass:ToolbarActivity.kt$ToolbarActivity$Companion</ID>
     <ID>UndocumentedPublicClass:ToolbarFeature.kt$ToolbarFeature.RenderStyle$ColoredUrl : RenderStyle</ID>
     <ID>UndocumentedPublicClass:ToolbarFeature.kt$ToolbarFeature.RenderStyle$RegistrableDomain : RenderStyle</ID>
@@ -308,7 +318,6 @@
     <ID>UndocumentedPublicClass:WebExtension.kt$Incognito$Companion</ID>
     <ID>UndocumentedPublicClass:WebExtensionActionPopupActivity.kt$WebExtensionActionPopupActivity.WebExtensionActionPopupFragment$Companion</ID>
     <ID>UndocumentedPublicClass:WebExtensionBrowserMenu.kt$WebExtensionBrowserMenu$Companion</ID>
-    <ID>UndocumentedPublicClass:WebExtensionController.kt$WebExtensionController$Companion</ID>
     <ID>UndocumentedPublicClass:WebExtensionPlaceholderMenuItem.kt$WebExtensionPlaceholderMenuItem$Companion</ID>
     <ID>UndocumentedPublicClass:WebURLFinder.kt$WebURLFinder$Companion</ID>
     <ID>UndocumentedPublicFunction:AppLinksUseCases.kt$AppLinksUseCases.GetAppLinkRedirect$operator fun invoke(url: String): AppLinkRedirect</ID>
@@ -488,5 +497,6 @@
     <ID>UndocumentedPublicFunction:WebAppManifestParser.kt$WebAppManifestParser$fun serialize(manifest: WebAppManifest)</ID>
     <ID>UndocumentedPublicFunction:WorkManagerSyncManager.kt$fun getLastSynced(context: Context): Long</ID>
     <ID>UndocumentedPublicFunction:nodes.kt$AstNode$open fun toString(level: Int, isTopLevel: Boolean = true): String</ID>
+    <ID>WildcardImport:ContextCompatDetector.kt$import com.android.tools.lint.detector.api.*</ID>
   </CurrentIssues>
 </SmellBaseline>

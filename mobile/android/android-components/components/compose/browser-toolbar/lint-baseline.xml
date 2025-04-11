@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<issues format="6" by="lint 8.9.1" type="baseline" client="gradle" dependencies="false" name="AGP (8.9.1)" variant="all" version="8.9.1">
+
+    <issue
+        id="UnsafeCompatGetDrawable"
+        message="This call can lead to crashes, replace with AppCompatResources.getDrawable"
+        errorLine1="                    icon = ContextCompat.getDrawable(LocalContext.current, iconsR.drawable.mozac_ic_search_24)!!,"
+        errorLine2="                           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/mozilla/components/compose/browser/toolbar/ActionContainer.kt"
+            line="82"
+            column="28"/>
+    </issue>
+
+    <issue
+        id="UnsafeCompatGetDrawable"
+        message="This call can lead to crashes, replace with AppCompatResources.getDrawable"
+        errorLine1="                    icon = ContextCompat.getDrawable(LocalContext.current, iconsR.drawable.mozac_ic_search_24)!!,"
+        errorLine2="                           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/mozilla/components/compose/browser/toolbar/BrowserEditToolbar.kt"
+            line="189"
+            column="28"/>
+    </issue>
+
+    <issue
+        id="UnsafeCompatGetDrawable"
+        message="This call can lead to crashes, replace with AppCompatResources.getDrawable"
+        errorLine1="    drawable = icon ?: iconResource?.let { ContextCompat.getDrawable(context, it) },"
+        errorLine2="                                           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/mozilla/components/compose/browser/toolbar/ui/PopupToMenuItemsMapper.kt"
+            line="77"
+            column="44"/>
+    </issue>
+
+    <issue
+        id="UnsafeCompatGetDrawable"
+        message="This call can lead to crashes, replace with AppCompatResources.getDrawable"
+        errorLine1="                val drawable = icon ?: ContextCompat.getDrawable(context, iconResource)"
+        errorLine2="                                       ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/mozilla/components/compose/browser/toolbar/ui/SearchSelector.kt"
+            line="126"
+            column="40"/>
+    </issue>
+
+</issues>
