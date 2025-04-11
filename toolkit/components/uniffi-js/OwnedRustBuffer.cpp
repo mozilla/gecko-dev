@@ -5,7 +5,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "nsString.h"
-#include "mozilla/dom/OwnedRustBuffer.h"
+#include "mozilla/uniffi/OwnedRustBuffer.h"
 
 namespace mozilla::uniffi {
 

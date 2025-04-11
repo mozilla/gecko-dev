@@ -9,9 +9,10 @@
 
 #include "mozilla/RefPtr.h"
 #include "mozilla/UniquePtr.h"
-#include "mozilla/dom/OwnedRustBuffer.h"
-#include "mozilla/dom/UniFFIRust.h"
 #include "mozilla/dom/UniFFIScaffolding.h"
+#include "mozilla/uniffi/OwnedRustBuffer.h"
+#include "mozilla/uniffi/FfiValue.h"
+#include "mozilla/uniffi/Rust.h"
 
 namespace mozilla::uniffi {
 
@@ -59,7 +60,7 @@ class UniffiCallHandlerBase {
 
   // Call status from the rust call
   int8_t mUniffiCallStatusCode = RUST_CALL_SUCCESS;
-  OwnedRustBuffer mUniffiCallStatusErrorBuf;
+  FfiValueRustBuffer mUniffiCallStatusErrorBuf;
 };
 
 // Call scaffolding functions for synchronous Rust calls

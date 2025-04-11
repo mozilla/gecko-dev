@@ -9,8 +9,8 @@
 
 #include "mozilla/StaticPtr.h"
 #include "mozilla/UniquePtr.h"
-#include "mozilla/dom/UniFFIRust.h"
 #include "mozilla/dom/UniFFIScaffolding.h"
+#include "mozilla/uniffi/Rust.h"
 
 namespace mozilla::uniffi {
 

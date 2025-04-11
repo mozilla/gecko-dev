@@ -7,7 +7,7 @@
 #include "nsThreadUtils.h"
 #include "mozilla/dom/Promise.h"
 #include "mozilla/dom/RootedDictionary.h"
-#include "mozilla/dom/UniFFICall.h"
+#include "mozilla/uniffi/Call.h"
 
 namespace mozilla::uniffi {
 extern mozilla::LazyLogModule gUniffiLogger;
@@ -32,7 +32,8 @@ void UniffiSyncCallHandler::CallSync(
   aHandler->MakeRustCall(&callStatus);
   aHandler->mUniffiCallStatusCode = callStatus.code;
   if (callStatus.error_buf.data) {
-    aHandler->mUniffiCallStatusErrorBuf = OwnedRustBuffer(callStatus.error_buf);
+    aHandler->mUniffiCallStatusErrorBuf =
+        FfiValueRustBuffer(callStatus.error_buf);
   }
   aHandler->ExtractCallResult(aGlobal.Context(), aReturnValue, aError);
 }
@@ -71,7 +72,7 @@ already_AddRefed<dom::Promise> UniffiSyncCallHandler::CallAsyncWrapper(
             handler->mUniffiCallStatusCode = callStatus.code;
             if (callStatus.error_buf.data) {
               handler->mUniffiCallStatusErrorBuf =
-                  OwnedRustBuffer(callStatus.error_buf);
+                  FfiValueRustBuffer(callStatus.error_buf);
             }
             taskPromise->Resolve(std::move(handler), __func__);
           }),
@@ -125,13 +126,7 @@ void UniffiCallHandlerBase::ExtractCallResult(
       // Rust Err() value.  Populate data with the `RustBuffer` containing the
       // error
       aDest.mCode = dom::UniFFIScaffoldingCallCode::Error;
-
-      JS::Rooted<JSObject*> obj(aCx);
-      mUniffiCallStatusErrorBuf.IntoArrayBuffer(aCx, &obj, aError);
-      if (aError.Failed()) {
-        break;
-      }
-      aDest.mData.Construct().SetAsArrayBuffer().Init(obj);
+      mUniffiCallStatusErrorBuf.Lift(aCx, &aDest.mData.Construct(), aError);
       break;
     }
 
@@ -139,13 +134,8 @@ void UniffiCallHandlerBase::ExtractCallResult(
       // This indicates a RustError, which should rarely happen in practice.
       // The normal case is a Rust panic, but FF sets panic=abort.
       aDest.mCode = dom::UniFFIScaffoldingCallCode::Internal_error;
-      if (mUniffiCallStatusErrorBuf.IsValid()) {
-        JS::Rooted<JSObject*> obj(aCx);
-        mUniffiCallStatusErrorBuf.IntoArrayBuffer(aCx, &obj, aError);
-        if (aError.Failed()) {
-          break;
-        }
-        aDest.mData.Construct().SetAsArrayBuffer().Init(obj);
+      if (mUniffiCallStatusErrorBuf.IsSet()) {
+        mUniffiCallStatusErrorBuf.Lift(aCx, &aDest.mData.Construct(), aError);
       }
 
       break;
@@ -283,7 +273,8 @@ void UniffiAsyncCallHandler::Finish(
   aHandler->CallCompleteFn(&callStatus);
   aHandler->mUniffiCallStatusCode = callStatus.code;
   if (callStatus.error_buf.data) {
-    aHandler->mUniffiCallStatusErrorBuf = OwnedRustBuffer(callStatus.error_buf);
+    aHandler->mUniffiCallStatusErrorBuf =
+        FfiValueRustBuffer(callStatus.error_buf);
   }
   aHandler->ExtractCallResult(aes.cx(), returnValue, error);
   error.WouldReportJSException();
