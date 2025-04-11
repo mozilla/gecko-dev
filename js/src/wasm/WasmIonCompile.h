@@ -33,6 +33,7 @@ namespace wasm {
 
 // Generates very fast code at the expense of compilation time.
 [[nodiscard]] bool IonCompileFunctions(const CodeMetadata& codeMeta,
+                                       const CodeTailMetadata* codeTailMeta,
                                        const CompilerEnvironment& compilerEnv,
                                        LifoAlloc& lifo,
                                        const FuncCompileInputVector& inputs,

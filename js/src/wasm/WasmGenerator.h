@@ -167,6 +167,7 @@ struct CompileTaskState {
 
 struct CompileTask : public HelperThreadTask {
   const CodeMetadata& codeMeta;
+  const CodeTailMetadata* codeTailMeta;
   const CompilerEnvironment& compilerEnv;
   const CompileState compileState;
 
@@ -176,9 +177,11 @@ struct CompileTask : public HelperThreadTask {
   CompiledCode output;
 
   CompileTask(const CodeMetadata& codeMeta,
+              const CodeTailMetadata* codeTailMeta,
               const CompilerEnvironment& compilerEnv, CompileState compileState,
               CompileTaskState& state, size_t defaultChunkSize)
       : codeMeta(codeMeta),
+        codeTailMeta(codeTailMeta),
         compilerEnv(compilerEnv),
         compileState(compileState),
         state(state),
@@ -350,7 +353,7 @@ class MOZ_STACK_CLASS ModuleGenerator {
   // to being SharedModuleMetadata.
 
   SharedModule finishModule(
-      const BytecodeBufferOrSource& bytecode, MutableModuleMetadata moduleMeta,
+      const BytecodeBufferOrSource& bytecode, ModuleMetadata& moduleMeta,
       JS::OptimizedEncodingListener* maybeCompleteTier2Listener);
   [[nodiscard]] bool finishTier2(const Module& module);
   [[nodiscard]] bool finishPartialTier2();

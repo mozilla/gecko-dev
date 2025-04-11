@@ -24,8 +24,6 @@
   _(WellKnownParserAtomsInit, 100)    \
                                       \
   _(ExecutionTracerInstanceLock, 250) \
-  _(WasmCodeProtected, 250)           \
-  _(WasmInitBuiltinThunks, 251)       \
                                       \
   _(StoreBuffer, 275)                 \
                                       \
@@ -33,6 +31,9 @@
                                       \
   _(GlobalHelperThreadState, 400)     \
                                       \
+  _(WasmCodeProtected, 450)           \
+                                      \
+  _(WasmInitBuiltinThunks, 451)       \
   _(StringsCache, 500)                \
   _(FutexThread, 500)                 \
   _(GeckoProfilerStrings, 500)        \
@@ -66,10 +67,10 @@
   _(IrregexpLazyStatic, 600)          \
   _(ThreadId, 600)                    \
   _(WasmCodeBlockMap, 600)            \
+  _(WasmInliningBudget, 600)          \
   _(VTuneLock, 600)                   \
   _(ShellTelemetry, 600)              \
-  _(ShellUseCounters, 600)            \
-  _(WasmCodeMetaStats, 600)
+  _(ShellUseCounters, 600)
 
 namespace js {
 namespace mutexid {

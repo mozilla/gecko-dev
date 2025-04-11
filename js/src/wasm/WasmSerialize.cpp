@@ -1195,26 +1195,6 @@ CoderResult CodeCodeMetadata(Coder<mode>& coder,
   MOZ_TRY(CodePodVector(coder, &item->funcDefCallRefs));
   MOZ_TRY(CodePodVector(coder, &item->funcDefAllocSites));
 
-  // Serialize stats, taking care not to be holding the lock when the actual
-  // serialization/deserialization happens.
-  if constexpr (mode == MODE_DECODE) {
-    CodeMetadata::ProtectedOptimizationStats copy;
-    MOZ_TRY(CodePod(coder, &copy));
-    {
-      CodeMetadata::ProtectedOptimizationStats* stats =
-          &(item->stats.writeLock().get());
-      *stats = copy;
-    }
-  } else {
-    CodeMetadata::ProtectedOptimizationStats copy;
-    {
-      const CodeMetadata::ProtectedOptimizationStats* stats =
-          &(item->stats.readLock().get());
-      copy = *stats;
-    }
-    MOZ_TRY(CodePod(coder, &copy));
-  }
-
   MOZ_TRY(CodePod(coder, &item->funcDefsOffsetStart));
   MOZ_TRY(CodePod(coder, &item->funcImportsOffsetStart));
   MOZ_TRY(CodePod(coder, &item->funcExportsOffsetStart));
@@ -1236,6 +1216,22 @@ CoderResult CodeCodeMetadata(Coder<mode>& coder,
 }
 
 template <CoderMode mode>
+CoderResult CodeCodeTailMetadata(Coder<mode>& coder,
+                                 CoderArg<mode, wasm::CodeTailMetadata> item) {
+  WASM_VERIFY_SERIALIZATION_FOR_SIZE(wasm::CodeTailMetadata, 0);
+
+  if constexpr (mode == MODE_DECODE) {
+    int64_t inliningBudget;
+    MOZ_TRY(CodePod(coder, &inliningBudget));
+    item->inliningBudget.lock().get() = inliningBudget;
+  } else {
+    int64_t inliningBudget = item->inliningBudget.lock().get();
+    MOZ_TRY(CodePod(coder, &inliningBudget));
+  }
+  return Ok();
+}
+
+template <CoderMode mode>
 CoderResult CodeModuleMetadata(Coder<mode>& coder,
                                CoderArg<mode, wasm::ModuleMetadata> item) {
   // NOTE: keep the field sequence here in sync with the sequence in the
@@ -1246,6 +1242,8 @@ CoderResult CodeModuleMetadata(Coder<mode>& coder,
 
   MOZ_TRY((CodeRefPtr<mode, CodeMetadata, &CodeCodeMetadata>(coder,
                                                              &item->codeMeta)));
+  MOZ_TRY((CodeRefPtr<mode, CodeTailMetadata, CodeCodeTailMetadata>(
+      coder, &item->codeTailMeta)));
   MOZ_TRY(Magic(coder, Marker::Imports));
   MOZ_TRY((CodeVector<mode, Import, &CodeImport<mode>>(coder, &item->imports)));
   MOZ_TRY(Magic(coder, Marker::Exports));
@@ -1362,7 +1360,8 @@ CoderResult CodeCodeBlock(Coder<mode>& coder,
 }
 
 CoderResult CodeSharedCode(Coder<MODE_DECODE>& coder, wasm::SharedCode* item,
-                           const wasm::CodeMetadata& codeMeta) {
+                           const wasm::CodeMetadata& codeMeta,
+                           const wasm::CodeTailMetadata& codeTailMeta) {
   WASM_VERIFY_SERIALIZATION_FOR_SIZE(wasm::Code, 808);
 
   FuncImportVector funcImports;
@@ -1386,7 +1385,8 @@ CoderResult CodeSharedCode(Coder<MODE_DECODE>& coder, wasm::SharedCode* item,
 
   // Create and initialize the code
   MutableCode code =
-      js_new<Code>(CompileMode::Once, codeMeta, /*codeMetaForAsmJS=*/nullptr);
+      js_new<Code>(CompileMode::Once, codeMeta, codeTailMeta,
+                   /*codeMetaForAsmJS=*/nullptr);
   if (!code || !code->initialize(
                    std::move(funcImports), std::move(sharedStubs),
                    std::move(sharedStubsLinkData), std::move(optimizedCode),
@@ -1413,7 +1413,8 @@ CoderResult CodeSharedCode(Coder<mode>& coder,
                            CoderArg<mode, wasm::SharedCode> item) {
   WASM_VERIFY_SERIALIZATION_FOR_SIZE(wasm::Code, 808);
   STATIC_ASSERT_ENCODING_OR_SIZING;
-  // Don't encode the CodeMetadata, that is handled by wasm::Module
+  // Don't encode the CodeMetadata or CodeTailMetadata, that is handled by
+  // wasm::ModuleMetadata.
   MOZ_TRY(CodePodVector(coder, &(*item)->funcImports()));
   const CodeBlock& sharedStubsCodeBlock = (*item)->sharedStubs();
   const LinkData& sharedStubsLinkData =
@@ -1458,7 +1459,7 @@ CoderResult CodeModule(Coder<MODE_DECODE>& coder, MutableModule* item) {
 
   SharedCode code;
   MOZ_TRY(Magic(coder, Marker::Code));
-  MOZ_TRY(CodeSharedCode(coder, &code, *moduleMeta->codeMeta));
+  MOZ_TRY(CodeSharedCode(coder, &code, *moduleMeta->codeMeta, *moduleMeta->codeTailMeta));
 
   *item = js_new<Module>(*moduleMeta, *code,
                          /* loggingDeserialized = */ true);

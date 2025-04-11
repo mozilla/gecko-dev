@@ -1148,10 +1148,12 @@ bool JumpTables::initialize(CompileMode mode, const CodeMetadata& codeMeta,
 }
 
 Code::Code(CompileMode mode, const CodeMetadata& codeMeta,
+           const CodeTailMetadata& codeTailMeta,
            const CodeMetadataForAsmJS* codeMetaForAsmJS)
     : mode_(mode),
       data_(mutexid::WasmCodeProtected),
       codeMeta_(&codeMeta),
+      codeTailMeta_(&codeTailMeta),
       codeMetaForAsmJS_(codeMetaForAsmJS),
       completeTier1_(nullptr),
       completeTier2_(nullptr),

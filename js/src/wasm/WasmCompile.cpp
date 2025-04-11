@@ -1037,7 +1037,7 @@ SharedModule wasm::CompileBuffer(const CompileArgs& args,
     MOZ_RELEASE_ASSERT(envDecoder.done());
   }
 
-  return mg.finishModule(bytecode, moduleMeta, listener);
+  return mg.finishModule(bytecode, *moduleMeta, listener);
 }
 
 bool wasm::CompileCompleteTier2(const ShareableBytes* codeSection,
@@ -1221,7 +1221,7 @@ SharedModule wasm::CompileStreaming(
   }
 
   BytecodeBuffer bytecodeBuffer(&envBytes, &codeBytes, &tailBytes);
-  return mg.finishModule(BytecodeBufferOrSource(bytecodeBuffer), moduleMeta,
+  return mg.finishModule(BytecodeBufferOrSource(bytecodeBuffer), *moduleMeta,
                          streamEnd.completeTier2Listener);
 }
 

@@ -3997,7 +3997,7 @@ static JSFunction* WasmFunctionCreate(JSContext* cx, HandleObject func,
   if (!mg.finishFuncDefs()) {
     return nullptr;
   }
-  SharedModule module = mg.finishModule(BytecodeBufferOrSource(), moduleMeta,
+  SharedModule module = mg.finishModule(BytecodeBufferOrSource(), *moduleMeta,
                                         /*maybeCompleteTier2Listener=*/nullptr);
   if (!module) {
     return nullptr;

@@ -88,7 +88,7 @@ BEGIN_TEST(testWasmEncodeBasic) {
                                     bytecode.begin() + bytecode.length()));
   MOZ_ALWAYS_TRUE(mg.finishFuncDefs());
 
-  SharedModule module = mg.finishModule(BytecodeBufferOrSource(), moduleMeta,
+  SharedModule module = mg.finishModule(BytecodeBufferOrSource(), *moduleMeta,
                                         /*maybeTier2Listener=*/nullptr);
   MOZ_ALWAYS_TRUE(module);
 

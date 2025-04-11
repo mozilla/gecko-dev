@@ -1196,7 +1196,7 @@ class SuspendingFunctionModuleFactory {
       return nullptr;
     }
 
-    return mg.finishModule(BytecodeBufferOrSource(), moduleMeta,
+    return mg.finishModule(BytecodeBufferOrSource(), *moduleMeta,
                            /*maybeCompleteTier2Listener=*/nullptr);
   }
 };
@@ -1592,7 +1592,7 @@ class PromisingFunctionModuleFactory {
       return nullptr;
     }
 
-    return mg.finishModule(BytecodeBufferOrSource(), moduleMeta,
+    return mg.finishModule(BytecodeBufferOrSource(), *moduleMeta,
                            /*maybeCompleteTier2Listener=*/nullptr);
   }
 };

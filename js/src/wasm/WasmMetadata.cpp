@@ -264,6 +264,15 @@ size_t CodeMetadata::sizeOfExcludingThis(
          customSectionRanges.sizeOfExcludingThis(mallocSizeOf);
 }
 
+CodeTailMetadata::CodeTailMetadata()
+    : codeMeta(nullptr), inliningBudget(mutexid::WasmInliningBudget, 0) {}
+
+CodeTailMetadata::CodeTailMetadata(const CodeMetadata& codeMeta)
+    : codeMeta(&codeMeta),
+      inliningBudget(mutexid::WasmInliningBudget,
+                     InliningHeuristics::moduleInliningBudget(
+                         codeMeta.codeSectionSize())) {}
+
 // ModuleMetadata helpers -- memory accounting.
 
 size_t ModuleMetadata::sizeOfExcludingThis(

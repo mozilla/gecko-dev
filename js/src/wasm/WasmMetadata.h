@@ -159,19 +159,6 @@ struct CodeMetadata : public ShareableBase<CodeMetadata> {
   // available if we're debugging.
   ModuleHash debugHash;
 
-  // Statistics collection for lazy tiering and inlining.
-  struct ProtectedOptimizationStats {
-    // The remaining inlining budget (in bytecode bytes) for the module as a
-    // whole.  Must be signed.  It will be negative if we have overrun the
-    // budget.
-    int64_t inliningBudget = 0;
-  };
-  using ReadGuard = RWExclusiveData<ProtectedOptimizationStats>::ReadGuard;
-  using WriteGuard = RWExclusiveData<ProtectedOptimizationStats>::WriteGuard;
-
-  // Statistics.  These are not thread-safe and require a lock for access.
-  RWExclusiveData<ProtectedOptimizationStats> stats;
-
   // ==== Instance layout fields
   //
   // The start offset of the FuncDefInstanceData[] section of the instance
@@ -214,7 +201,6 @@ struct CodeMetadata : public ShareableBase<CodeMetadata> {
         callRefHints(nullptr),
         debugEnabled(false),
         debugHash(),
-        stats(mutexid::WasmCodeMetaStats),
         funcDefsOffsetStart(UINT32_MAX),
         funcImportsOffsetStart(UINT32_MAX),
         funcExportsOffsetStart(UINT32_MAX),
@@ -417,7 +403,27 @@ struct CodeMetadata : public ShareableBase<CodeMetadata> {
 using MutableCodeMetadata = RefPtr<CodeMetadata>;
 using SharedCodeMetadata = RefPtr<const CodeMetadata>;
 
-WASM_DECLARE_CACHEABLE_POD(CodeMetadata::ProtectedOptimizationStats);
+using InliningBudget = ExclusiveData<int64_t>;
+
+// wasm::CodeTailMetadata contains all metadata needed by wasm::Code that is
+// only after the whole module has been downloaded. It is sometimes available
+// for Ion compilation, and never available for baseline compilation.
+struct CodeTailMetadata : public ShareableBase<CodeTailMetadata> {
+  // Default initializer only used for serialization.
+  CodeTailMetadata();
+
+  // Initialize the metadata with a given wasm::CodeMetadata.
+  explicit CodeTailMetadata(const CodeMetadata& codeMeta);
+
+  // The code metadata for this module.
+  SharedCodeMetadata codeMeta;
+
+  // Shared and mutable inlining budget for this module.
+  mutable InliningBudget inliningBudget;
+};
+
+using MutableCodeTailMetadata = RefPtr<CodeTailMetadata>;
+using SharedCodeTailMetadata = RefPtr<const CodeTailMetadata>;
 
 // wasm::ModuleMetadata contains metadata whose lifetime ends at the same time
 // that the lifetime of wasm::Module ends.  In practice that means metadata
@@ -429,8 +435,15 @@ struct ModuleMetadata : public ShareableBase<ModuleMetadata> {
   // update CodeModuleMetadata() to keep it in sync.
 
   // The subset of module metadata that is shared between a module and
-  // instance.
+  // instance (i.e. wasm::Code), and is available for all compilation. It
+  // does not contain any data that is only available after the whole module
+  // has been downloaded.
   MutableCodeMetadata codeMeta;
+
+  // The subset of module metadata that is shared between a module and
+  // instance (i.e. wasm::Code), and is only available after the whole module
+  // has been downloaded.
+  MutableCodeTailMetadata codeTailMeta;
 
   // Module fields decoded from the module environment (or initialized while
   // validating an asm.js module) and immutable during compilation:
@@ -453,7 +466,7 @@ struct ModuleMetadata : public ShareableBase<ModuleMetadata> {
   CustomSectionVector customSections;
 
   // Which features were observed when compiling this module.
-  FeatureUsage featureUsage;
+  FeatureUsage featureUsage = FeatureUsage::None;
 
   explicit ModuleMetadata() = default;
 

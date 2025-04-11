@@ -168,17 +168,14 @@ bool ModuleGenerator::initializePartialTier(const Code& code,
   MOZ_ASSERT(compileState_ == CompileState::LazyTier2);
   MOZ_ASSERT(!isAsmJS());
 
-  // Initialize our task system
-  if (!initTasks()) {
-    return false;
-  }
-
   // The implied codeMeta must be consistent with the one we already have.
   MOZ_ASSERT(&code.codeMeta() == codeMeta_);
 
   MOZ_ASSERT(!partialTieringCode_);
   partialTieringCode_ = &code;
-  return startPartialTier(funcIndex);
+
+  // Initialize our task system and start this partial tier
+  return initTasks() && startPartialTier(funcIndex);
 }
 
 bool ModuleGenerator::funcIsCompiledInBlock(uint32_t funcIndex) const {
@@ -603,8 +600,9 @@ static bool ExecuteCompileTask(CompileTask* task, UniqueChars* error) {
 
   switch (task->compilerEnv.tier()) {
     case Tier::Optimized:
-      if (!IonCompileFunctions(task->codeMeta, task->compilerEnv, task->lifo,
-                               task->inputs, &task->output, error)) {
+      if (!IonCompileFunctions(task->codeMeta, task->codeTailMeta,
+                               task->compilerEnv, task->lifo, task->inputs,
+                               &task->output, error)) {
         return false;
       }
       break;
@@ -677,12 +675,17 @@ bool ModuleGenerator::initTasks() {
     numTasks = 2 * GetMaxWasmCompilationThreads();
   }
 
+  const CodeTailMetadata* codeTailMeta = nullptr;
+  if (partialTieringCode_) {
+    codeTailMeta = &partialTieringCode_->codeTailMeta();
+  }
+
   if (!tasks_.initCapacity(numTasks)) {
     return false;
   }
   for (size_t i = 0; i < numTasks; i++) {
-    tasks_.infallibleEmplaceBack(*codeMeta_, *compilerEnv_, compileState_,
-                                 taskState_,
+    tasks_.infallibleEmplaceBack(*codeMeta_, codeTailMeta, *compilerEnv_,
+                                 compileState_, taskState_,
                                  COMPILATION_LIFO_DEFAULT_CHUNK_SIZE);
   }
 
@@ -1220,7 +1223,7 @@ UniqueCodeBlock ModuleGenerator::finishTier(UniqueLinkData* linkData,
 // Complete all tier-1 construction and return the resulting Module.  For this
 // we will need both codeMeta_ (and maybe codeMetaForAsmJS_) and moduleMeta_.
 SharedModule ModuleGenerator::finishModule(
-    const BytecodeBufferOrSource& bytecode, MutableModuleMetadata moduleMeta,
+    const BytecodeBufferOrSource& bytecode, ModuleMetadata& moduleMeta,
     JS::OptimizedEncodingListener* maybeCompleteTier2Listener) {
   MOZ_ASSERT(compilingTier1());
 
@@ -1232,7 +1235,7 @@ SharedModule ModuleGenerator::finishModule(
   }
 
   // Record what features we encountered in this module
-  moduleMeta->featureUsage = featureUsage_;
+  moduleMeta.featureUsage = featureUsage_;
 
   // Copy over data from the Bytecode, which is going away at the end of
   // compilation.
@@ -1242,12 +1245,11 @@ SharedModule ModuleGenerator::finishModule(
   // data blocks.
 
   const BytecodeSource& bytecodeSource = bytecode.source();
-  MOZ_ASSERT(moduleMeta->dataSegments.empty());
-  if (!moduleMeta->dataSegments.reserve(
-          moduleMeta->dataSegmentRanges.length())) {
+  MOZ_ASSERT(moduleMeta.dataSegments.empty());
+  if (!moduleMeta.dataSegments.reserve(moduleMeta.dataSegmentRanges.length())) {
     return nullptr;
   }
-  for (const DataSegmentRange& srcRange : moduleMeta->dataSegmentRanges) {
+  for (const DataSegmentRange& srcRange : moduleMeta.dataSegmentRanges) {
     MutableDataSegment dstSeg = js_new<DataSegment>();
     if (!dstSeg) {
       return nullptr;
@@ -1255,11 +1257,11 @@ SharedModule ModuleGenerator::finishModule(
     if (!dstSeg->init(bytecodeSource, srcRange)) {
       return nullptr;
     }
-    moduleMeta->dataSegments.infallibleAppend(std::move(dstSeg));
+    moduleMeta.dataSegments.infallibleAppend(std::move(dstSeg));
   }
 
-  MOZ_ASSERT(moduleMeta->customSections.empty());
-  if (!moduleMeta->customSections.reserve(
+  MOZ_ASSERT(moduleMeta.customSections.empty());
+  if (!moduleMeta.customSections.reserve(
           codeMeta_->customSectionRanges.length())) {
     return nullptr;
   }
@@ -1278,10 +1280,10 @@ SharedModule ModuleGenerator::finishModule(
       return nullptr;
     }
     sec.payload = std::move(payload);
-    moduleMeta->customSections.infallibleAppend(std::move(sec));
+    moduleMeta.customSections.infallibleAppend(std::move(sec));
   }
 
-  MutableCodeMetadata codeMeta = moduleMeta->codeMeta;
+  MutableCodeMetadata codeMeta = moduleMeta.codeMeta;
 
   // Transfer the function definition ranges
   MOZ_ASSERT(funcDefRanges_.length() == codeMeta->numFuncDefs());
@@ -1349,28 +1351,18 @@ SharedModule ModuleGenerator::finishModule(
   // Store a reference to the name section on the code metadata
   if (codeMeta_->nameSection) {
     codeMeta->nameSection->payload =
-        moduleMeta->customSections[codeMeta_->nameSection->customSectionIndex]
+        moduleMeta.customSections[codeMeta_->nameSection->customSectionIndex]
             .payload;
   }
 
-  // Create an inlining budget using the information from tier1
-  {
-    auto guard = codeMeta->stats.writeLock();
-    // Now that we know the complete bytecode size for the module, we can set
-    // the inlining budget for tiered-up compilation, if appropriate.  See
-    // "[SMDOC] Per-function and per-module inlining limits" (WasmHeuristics.h)
-    if (mode() == CompileMode::LazyTiering) {
-      guard->inliningBudget =
-          int64_t(tier1Stats.bytecodeSize) * PerModuleMaxInliningRatio;
-      // But don't be overly stingy for tiny modules.  Function-level inlining
-      // limits will still protect us from excessive inlining.
-      guard->inliningBudget = std::max<int64_t>(guard->inliningBudget, 1000);
-    } else {
-      guard->inliningBudget = 0;
-    }
+  MutableCodeTailMetadata codeTailMeta = js_new<CodeTailMetadata>(*codeMeta);
+  if (!codeTailMeta) {
+    return nullptr;
   }
+  moduleMeta.codeTailMeta = codeTailMeta;
 
-  MutableCode code = js_new<Code>(mode(), *codeMeta_, codeMetaForAsmJS_);
+  MutableCode code =
+      js_new<Code>(mode(), *codeMeta_, *codeTailMeta, codeMetaForAsmJS_);
   if (!code || !code->initialize(
                    std::move(funcImports_), std::move(sharedStubsCodeBlock_),
                    std::move(sharedStubsLinkData_), std::move(tier1Code),
@@ -1386,7 +1378,7 @@ SharedModule ModuleGenerator::finishModule(
   // All the components are finished, so create the complete Module and start
   // tier-2 compilation if requested.
 
-  MutableModule module = js_new<Module>(*moduleMeta, *code);
+  MutableModule module = js_new<Module>(moduleMeta, *code);
   if (!module) {
     return nullptr;
   }

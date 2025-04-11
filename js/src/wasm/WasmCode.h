@@ -990,6 +990,10 @@ class Code : public ShareableBase<Code> {
   // Metadata for this module that is needed for the lifetime of Code. This is
   // always non-null.
   SharedCodeMetadata codeMeta_;
+  // Metadata for this module that is needed for the lifetime of Code, and is
+  // only available after the whole module has been decoded. This is always
+  // non-null.
+  SharedCodeTailMetadata codeTailMeta_;
   // This is null for a wasm module, non-null for asm.js
   SharedCodeMetadataForAsmJS codeMetaForAsmJS_;
 
@@ -1077,6 +1081,7 @@ class Code : public ShareableBase<Code> {
 
  public:
   Code(CompileMode mode, const CodeMetadata& codeMeta,
+       const CodeTailMetadata& codeTailMeta,
        const CodeMetadataForAsmJS* codeMetaForAsmJS);
   ~Code();
 
@@ -1149,6 +1154,7 @@ class Code : public ShareableBase<Code> {
   const CodeMetadataForAsmJS* codeMetaForAsmJS() const {
     return codeMetaForAsmJS_;
   }
+  const CodeTailMetadata& codeTailMeta() const { return *codeTailMeta_; }
 
   const CodeBlock& sharedStubs() const { return *sharedStubs_; }
   const CodeBlock& debugCodeBlock() const {

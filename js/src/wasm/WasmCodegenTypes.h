@@ -28,6 +28,7 @@
 
 #include "jit/IonTypes.h"
 #include "jit/PerfSpewer.h"
+#include "threading/ExclusiveData.h"
 #include "wasm/WasmBuiltins.h"
 #include "wasm/WasmCodegenConstants.h"
 #include "wasm/WasmConstants.h"
