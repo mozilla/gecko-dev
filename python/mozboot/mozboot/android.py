@@ -48,11 +48,11 @@ Looks like you have the Android SDK installed at:
 We will install all required Android packages.
 """
 
-ANDROID_SDK_TOO_OLD = """
+ANDROID_SDK_TOO_OLD_UPDATE_IN_PLACE = """
 Looks like you have an outdated Android SDK installed at:
 %s
-I can't update outdated Android SDKs to have the required 'sdkmanager'
-tool.  Move it out of the way (or remove it entirely) and then run
+I can update outdated Android SDKs to have the required 'sdkmanager' tool. If
+this fails, move it out of the way (or remove it entirely) and then run
 bootstrap again.
 """
 
@@ -437,9 +437,9 @@ def ensure_android_sdk_and_ndk(
     # the user may have already installed.
     if sdkmanager_tool(sdk_path).is_file():
         print(ANDROID_SDK_EXISTS % sdk_path)
-    elif sdk_path.is_dir():
-        raise NotImplementedError(ANDROID_SDK_TOO_OLD % sdk_path)
     else:
+        if sdk_path.is_dir():
+            print(ANDROID_SDK_TOO_OLD_UPDATE_IN_PLACE % sdk_path)
         # The SDK archive used to include a top-level
         # android-sdk-$OS_NAME directory; it no longer does so.  We
         # preserve the old convention to smooth detecting existing SDK
