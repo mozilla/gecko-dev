@@ -251,13 +251,6 @@ bool nsRFPService::IsRFPPrefEnabled(bool aIsPrivateMode) {
           StaticPrefs::privacy_resistFingerprinting_pbmode_DoNotUseDirectly());
 }
 
-enum FingerprintingProtectionType {
-  RFP,
-  FPP,
-  Baseline,
-  None,
-};
-
 /* static */
 bool IsBaselineFPPEnabled() {
   return StaticPrefs::
@@ -272,8 +265,8 @@ bool IsFPPEnabled(bool aIsPrivateMode) {
               privacy_fingerprintingProtection_pbmode_DoNotUseDirectly());
 }
 
-FingerprintingProtectionType GetEnabledFingeperprintingProtectionMode(
-    bool aIsPrivateMode) {
+nsRFPService::FingerprintingProtectionType
+nsRFPService::GetFingerprintingProtectionType(bool aIsPrivateMode) {
   if (nsRFPService::IsRFPPrefEnabled(aIsPrivateMode)) {
     return FingerprintingProtectionType::RFP;
   }
@@ -289,14 +282,23 @@ FingerprintingProtectionType GetEnabledFingeperprintingProtectionMode(
   return FingerprintingProtectionType::None;
 }
 
-Maybe<bool> HandleExeptionalRFPTargets(RFPTarget aTarget, bool aIsPrivateMode) {
-  MOZ_ASSERT(GetEnabledFingeperprintingProtectionMode(aIsPrivateMode) !=
+Maybe<bool> nsRFPService::HandleExeptionalRFPTargets(
+    RFPTarget aTarget, bool aIsPrivateMode,
+    FingerprintingProtectionType aMode) {
+  MOZ_ASSERT(GetFingerprintingProtectionType(aIsPrivateMode) !=
              FingerprintingProtectionType::None);
 
   // IsAlwaysEnabledForPrecompute is used to enable fingerprinting protections.
   // It isn't included in the RFPTargetSet.
   if (aTarget == RFPTarget::IsAlwaysEnabledForPrecompute) {
     return Some(true);
+  }
+
+  // We only spoof language if the user has explicitly agreed to the
+  // prompt we show when privacy.spoof_english is set to 0.
+  if (aTarget == RFPTarget::JSLocale) {
+    return Some(IsTargetActiveForMode(aTarget, aMode) &&
+                StaticPrefs::privacy_spoof_english() == 2);
   }
 
   // We don't spoof the pointerId on multi-touch devices.
@@ -309,6 +311,22 @@ Maybe<bool> HandleExeptionalRFPTargets(RFPTarget aTarget, bool aIsPrivateMode) {
   return Nothing();
 }
 
+bool nsRFPService::IsTargetActiveForMode(RFPTarget aTarget,
+                                         FingerprintingProtectionType aMode) {
+  StaticMutexAutoLock lock(sEnabledFingerprintingProtectionsMutex);
+  switch (aMode) {
+    case FingerprintingProtectionType::FPP:
+      return sEnabledFingerprintingProtections.contains(aTarget);
+    case FingerprintingProtectionType::Baseline:
+      return sEnabledFingerprintingProtectionsBase.contains(aTarget);
+    case FingerprintingProtectionType::RFP:
+      return true;
+    default:
+      MOZ_CRASH("Unexpected FingerprintingProtectionType");
+      return false;
+  }
+}
+
 /* static */
 bool nsRFPService::IsRFPEnabledFor(
     bool aIsPrivateMode, RFPTarget aTarget,
@@ -316,20 +334,17 @@ bool nsRFPService::IsRFPEnabledFor(
   MOZ_ASSERT(aTarget != RFPTarget::AllTargets);
 
   FingerprintingProtectionType mode =
-      GetEnabledFingeperprintingProtectionMode(aIsPrivateMode);
+      GetFingerprintingProtectionType(aIsPrivateMode);
   if (mode == FingerprintingProtectionType::None) {
     return false;
   }
 
   if (Maybe<bool> result =
-          HandleExeptionalRFPTargets(aTarget, aIsPrivateMode)) {
+          HandleExeptionalRFPTargets(aTarget, aIsPrivateMode, mode)) {
     return *result;
   }
 
   if (mode == FingerprintingProtectionType::RFP) {
-    if (aTarget == RFPTarget::JSLocale) {
-      return StaticPrefs::privacy_spoof_english() == 2;
-    }
     return true;
   }
 
@@ -337,16 +352,7 @@ bool nsRFPService::IsRFPEnabledFor(
     return aOverriddenFingerprintingSettings.ref().contains(aTarget);
   }
 
-  StaticMutexAutoLock lock(sEnabledFingerprintingProtectionsMutex);
-  switch (mode) {
-    case FingerprintingProtectionType::FPP:
-      return sEnabledFingerprintingProtections.contains(aTarget);
-    case FingerprintingProtectionType::Baseline:
-      return sEnabledFingerprintingProtectionsBase.contains(aTarget);
-    default:
-      MOZ_CRASH("Unexpected FingerprintingProtectionType");
-      return false;
-  }
+  return IsTargetActiveForMode(aTarget, mode);
 }
 
 void nsRFPService::UpdateFPPOverrideList() {
@@ -869,7 +875,7 @@ TimerPrecisionType nsRFPService::GetTimerPrecisionType(
   }
 
   if (aRTPCallerType == RTPCallerType::ResistFingerprinting) {
-    return RFP;
+    return TimerPrecisionType::RFP;
   }
 
   if (StaticPrefs::privacy_reduceTimerPrecision() &&
@@ -892,7 +898,7 @@ TimerPrecisionType nsRFPService::GetTimerPrecisionType(
 TimerPrecisionType nsRFPService::GetTimerPrecisionTypeRFPOnly(
     RTPCallerType aRTPCallerType) {
   if (aRTPCallerType == RTPCallerType::ResistFingerprinting) {
-    return RFP;
+    return TimerPrecisionType::RFP;
   }
 
   if (StaticPrefs::privacy_reduceTimerPrecision_unconditional() &&

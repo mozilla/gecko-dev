@@ -497,6 +497,23 @@ class nsRFPService final : public nsIObserver, public nsIRFPService {
       const nsString& aOverridesText,
       RFPTargetSet aBaseOverrides = RFPTargetSet());
 
+  enum FingerprintingProtectionType : uint8_t {
+    RFP,
+    FPP,
+    Baseline,
+    None,
+  };
+
+  static FingerprintingProtectionType GetFingerprintingProtectionType(
+      bool aIsPrivateMode);
+
+  static Maybe<bool> HandleExeptionalRFPTargets(
+      RFPTarget aTarget, bool aIsPrivateMode,
+      FingerprintingProtectionType aMode);
+
+  static bool IsTargetActiveForMode(RFPTarget aTarget,
+                                    FingerprintingProtectionType aMode);
+
   static nsCString* sExemptedDomainsLowercase;
 };
 

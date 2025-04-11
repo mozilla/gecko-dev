@@ -35,6 +35,8 @@ support-files = [
 
 ["browser_fpiServiceWorkers_fingerprinting.js"]
 
+["browser_js_locale.js"]
+
 ["browser_fpp_protections_matrix_1.js"]
 
 ["browser_fpp_protections_matrix_2.js"]
