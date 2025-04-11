@@ -810,11 +810,6 @@ class nsContentUtils {
                                                    bool aTrimTrailing = true);
 
   /**
-   * Returns true if aChar is of class Ps, Pi, Po, Pf, or Pe.
-   */
-  static bool IsFirstLetterPunctuation(uint32_t aChar);
-
-  /**
    * Returns true if aChar is of class Lu, Ll, Lt, Lm, Lo, Nd, Nl or No
    */
   static bool IsAlphanumeric(uint32_t aChar);
