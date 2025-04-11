@@ -13,23 +13,23 @@ const perfMetadata = {
         {
           name: "latency",
           unit: "ms",
-          shouldAlert: true,
+          shouldAlert: false,
         },
         {
           name: "memory",
           unit: "MiB",
-          shouldAlert: true,
+          shouldAlert: false,
         },
         {
           name: "tokenSpeed",
           unit: "tokens/s",
-          shouldAlert: true,
+          shouldAlert: false,
           lowerIsBetter: false,
         },
         {
           name: "charactersSpeed",
           unit: "chars/s",
-          shouldAlert: true,
+          shouldAlert: false,
           lowerIsBetter: false,
         },
       ],

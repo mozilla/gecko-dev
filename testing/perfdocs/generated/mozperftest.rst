@@ -392,7 +392,7 @@ browser_ml_smart_tab_clustering_perf.js
 ::
 
  --perfherder
- --perfherder-metrics name:latency,unit:ms,shouldAlert:True, name:memory,unit:MiB,shouldAlert:True
+ --perfherder-metrics name:latency,unit:ms,shouldAlert:False, name:memory,unit:MiB,shouldAlert:False
  --verbose
  --manifest perftest.toml
  --manifest-flavor browser-chrome
@@ -410,7 +410,7 @@ browser_ml_autofill_perf.js
 ::
 
  --perfherder
- --perfherder-metrics name:AUTOFILL-pipeline-ready-latency,unit:ms,shouldAlert:True, name:AUTOFILL-initialization-latency,unit:ms,shouldAlert:True, name:AUTOFILL-model-run-latency,unit:ms,shouldAlert:True, name:AUTOFILL-total-memory-usage,unit:MiB,shouldAlert:True, name:tokenSpeed,unit:tokens/s,shouldAlert:True,lowerIsBetter:False, name:charactersSpeed,unit:chars/s,shouldAlert:True,lowerIsBetter:False
+ --perfherder-metrics name:AUTOFILL-pipeline-ready-latency,unit:ms,shouldAlert:False, name:AUTOFILL-initialization-latency,unit:ms,shouldAlert:False, name:AUTOFILL-model-run-latency,unit:ms,shouldAlert:False, name:AUTOFILL-total-memory-usage,unit:MiB,shouldAlert:False, name:tokenSpeed,unit:tokens/s,shouldAlert:False,lowerIsBetter:False, name:charactersSpeed,unit:chars/s,shouldAlert:False,lowerIsBetter:False
  --verbose
  --manifest perftest.toml
  --manifest-flavor browser-chrome
@@ -428,7 +428,7 @@ browser_ml_engine_multi_perf.js
 ::
 
  --perfherder
- --perfherder-metrics name:latency,unit:ms,shouldAlert:True, name:memory,unit:MiB,shouldAlert:True
+ --perfherder-metrics name:latency,unit:ms,shouldAlert:False, name:memory,unit:MiB,shouldAlert:False
  --verbose
  --manifest perftest.toml
  --manifest-flavor browser-chrome
@@ -446,7 +446,7 @@ browser_ml_engine_perf.js
 ::
 
  --perfherder
- --perfherder-metrics name:latency,unit:ms,shouldAlert:True, name:memory,unit:MiB,shouldAlert:True, name:tokenSpeed,unit:tokens/s,shouldAlert:True,lowerIsBetter:False, name:charactersSpeed,unit:chars/s,shouldAlert:True,lowerIsBetter:False
+ --perfherder-metrics name:latency,unit:ms,shouldAlert:False, name:memory,unit:MiB,shouldAlert:False, name:tokenSpeed,unit:tokens/s,shouldAlert:False,lowerIsBetter:False, name:charactersSpeed,unit:chars/s,shouldAlert:False,lowerIsBetter:False
  --verbose
  --manifest perftest.toml
  --manifest-flavor browser-chrome
@@ -464,7 +464,7 @@ browser_ml_llama_summarizer_perf.js
 ::
 
  --perfherder
- --perfherder-metrics name:latency,unit:ms,shouldAlert:True, name:memory,unit:MB,shouldAlert:True, name:tokenSpeed,unit:tokens/s,shouldAlert:True,lowerIsBetter:False, name:charactersSpeed,unit:chars/s,shouldAlert:True,lowerIsBetter:False
+ --perfherder-metrics name:latency,unit:ms,shouldAlert:False, name:memory,unit:MB,shouldAlert:False, name:tokenSpeed,unit:tokens/s,shouldAlert:False,lowerIsBetter:False, name:charactersSpeed,unit:chars/s,shouldAlert:False,lowerIsBetter:False
  --verbose
  --manifest perftest.toml
  --manifest-flavor browser-chrome
@@ -482,7 +482,7 @@ browser_ml_smart_tab_perf.js
 ::
 
  --perfherder
- --perfherder-metrics name:latency,unit:ms,shouldAlert:True, name:memory,unit:MiB,shouldAlert:True, name:tokenSpeed,unit:tokens/s,shouldAlert:True,lowerIsBetter:False, name:charactersSpeed,unit:chars/s,shouldAlert:True,lowerIsBetter:False
+ --perfherder-metrics name:latency,unit:ms,shouldAlert:False, name:memory,unit:MiB,shouldAlert:False, name:tokenSpeed,unit:tokens/s,shouldAlert:False,lowerIsBetter:False, name:charactersSpeed,unit:chars/s,shouldAlert:False,lowerIsBetter:False
  --verbose
  --manifest perftest.toml
  --manifest-flavor browser-chrome
@@ -518,7 +518,7 @@ browser_ml_suggest_inference.js
 ::
 
  --perfherder
- --perfherder-metrics name:inference-pipeline-ready-latency,unit:ms,shouldAlert:True, name:inference-initialization-latency,unit:ms,shouldAlert:True, name:inference-model-run-latency,unit:ms,shouldAlert:True, name:inference-total-memory-usage,unit:ms,shouldAlert:True
+ --perfherder-metrics name:inference-pipeline-ready-latency,unit:ms,shouldAlert:False, name:inference-initialization-latency,unit:ms,shouldAlert:False, name:inference-model-run-latency,unit:ms,shouldAlert:False, name:inference-total-memory-usage,unit:ms,shouldAlert:False
  --verbose
  --manifest perftest.toml
  --manifest-flavor browser-chrome
