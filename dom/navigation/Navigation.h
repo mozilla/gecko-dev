@@ -124,7 +124,7 @@ class Navigation final : public DOMEventTargetHelper {
 
   bool FocusedChangedDuringOngoingNavigation() const;
   void SetFocusedChangedDuringOngoingNavigation(
-      bool aFocusChangedDUringOngoingNavigation);
+      bool aFocusChangedDuringOngoingNavigation);
 
  private:
   using UpcomingTraverseAPIMethodTrackers =
@@ -158,6 +158,13 @@ class Navigation final : public DOMEventTargetHelper {
       SessionHistoryInfo* aSessionHistoryInfo) const;
 
   void PromoteUpcomingAPIMethodTrackerToOngoing(Maybe<nsID>&& aDestinationKey);
+
+  RefPtr<NavigationAPIMethodTracker>
+  MaybeSetUpcomingNonTraverseAPIMethodTracker(
+      const JS::Value& aInfo, nsIStructuredCloneContainer* aSerializedState);
+
+  RefPtr<NavigationAPIMethodTracker> AddUpcomingTraverseAPIMethodTracker(
+      const nsID& aKey, const JS::Value& aInfo);
 
   static void CleanUp(NavigationAPIMethodTracker* aNavigationAPIMethodTracker);
 

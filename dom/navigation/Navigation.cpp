@@ -44,13 +44,28 @@ struct NavigationAPIMethodTracker final : public nsISupports {
   NS_DECL_CYCLE_COLLECTING_ISUPPORTS
   NS_DECL_CYCLE_COLLECTION_SCRIPT_HOLDER_CLASS(NavigationAPIMethodTracker)
 
-  NavigationAPIMethodTracker() { mozilla::HoldJSObjects(this); }
+  NavigationAPIMethodTracker(Navigation* aNavigationObject,
+                             const Maybe<nsID> aKey, const JS::Value& aInfo,
+                             nsIStructuredCloneContainer* aSerializedState,
+                             NavigationHistoryEntry* aCommittedToEntry,
+                             Promise* aCommittedPromise,
+                             Promise* aFinishedPromise)
+      : mNavigationObject(aNavigationObject),
+        mKey(aKey),
+        mInfo(aInfo),
+        mSerializedState(aSerializedState),
+        mCommittedToEntry(aCommittedToEntry),
+        mCommittedPromise(aCommittedPromise),
+        mFinishedPromise(aFinishedPromise) {
+    mozilla::HoldJSObjects(this);
+  }
 
   RefPtr<Navigation> mNavigationObject;
   Maybe<nsID> mKey;
   JS::Heap<JS::Value> mInfo;
-  RefPtr<nsStructuredCloneContainer> mSerializedState;
+  RefPtr<nsIStructuredCloneContainer> mSerializedState;
   RefPtr<NavigationHistoryEntry> mCommittedToEntry;
+  RefPtr<Promise> mCommittedPromise;
   RefPtr<Promise> mFinishedPromise;
 
  private:
@@ -59,7 +74,8 @@ struct NavigationAPIMethodTracker final : public nsISupports {
 
 NS_IMPL_CYCLE_COLLECTION_WITH_JS_MEMBERS(NavigationAPIMethodTracker,
                                          (mNavigationObject, mSerializedState,
-                                          mCommittedToEntry, mFinishedPromise),
+                                          mCommittedToEntry, mCommittedPromise,
+                                          mFinishedPromise),
                                          (mInfo))
 
 NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(NavigationAPIMethodTracker)
@@ -935,4 +951,64 @@ void Navigation::LogHistory() const {
   }
 }
 
+// https://html.spec.whatwg.org/#maybe-set-the-upcoming-non-traverse-api-method-tracker
+RefPtr<NavigationAPIMethodTracker>
+Navigation::MaybeSetUpcomingNonTraverseAPIMethodTracker(
+    const JS::Value& aInfo, nsIStructuredCloneContainer* aSerializedState) {
+  // To maybe set the upcoming non-traverse API method tracker given a
+  // Navigation navigation, a JavaScript value info, and a serialized
+  // state-or-null serializedState:
+  // 1. Let committedPromise and finishedPromise be new promises created in
+  //    navigation's relevant realm.
+  RefPtr committedPromise = Promise::CreateInfallible(GetOwnerGlobal());
+  RefPtr finishedPromise = Promise::CreateInfallible(GetOwnerGlobal());
+  // 2. Mark as handled finishedPromise.
+  MOZ_ALWAYS_TRUE(finishedPromise->SetAnyPromiseIsHandled());
+
+  // 3. Let apiMethodTracker be a new navigation API method tracker with:
+  RefPtr<NavigationAPIMethodTracker> apiMethodTracker =
+      MakeAndAddRef<NavigationAPIMethodTracker>(
+          this, /* aKey */ Nothing{}, aInfo, aSerializedState,
+          /* aCommittedToEntry */ nullptr, committedPromise, finishedPromise);
+
+  // 4. Assert: navigation's upcoming non-traverse API method tracker is null.
+  MOZ_DIAGNOSTIC_ASSERT(!mUpcomingNonTraverseAPIMethodTracker);
+
+  // 5. If navigation does not have entries and events disabled, then set
+  //    navigation's upcoming non-traverse API method tracker to
+  //    apiMethodTracker.
+  if (!HasEntriesAndEventsDisabled()) {
+    mUpcomingNonTraverseAPIMethodTracker = apiMethodTracker;
+  }
+  // 6. Return apiMethodTracker.
+  return apiMethodTracker;
+}
+
+// https://html.spec.whatwg.org/#add-an-upcoming-traverse-api-method-tracker
+RefPtr<NavigationAPIMethodTracker>
+Navigation::AddUpcomingTraverseAPIMethodTracker(const nsID& aKey,
+                                                const JS::Value& aInfo) {
+  // To add an upcoming traverse API method tracker given a Navigation
+  // navigation, a string destinationKey, and a JavaScript value info:
+  // 1. Let committedPromise and finishedPromise be new promises created in
+  //    navigation's relevant realm.
+  RefPtr committedPromise = Promise::CreateInfallible(GetOwnerGlobal());
+  RefPtr finishedPromise = Promise::CreateInfallible(GetOwnerGlobal());
+
+  // 2. Mark as handled finishedPromise.
+  MOZ_ALWAYS_TRUE(finishedPromise->SetAnyPromiseIsHandled());
+
+  // 3. Let apiMethodTracker be a new navigation API method tracker with:
+  RefPtr<NavigationAPIMethodTracker> apiMethodTracker =
+      MakeAndAddRef<NavigationAPIMethodTracker>(
+          this, Some(aKey), aInfo,
+          /* aSerializedState */ nullptr,
+          /* aCommittedToEntry */ nullptr, committedPromise, finishedPromise);
+
+  // 4. Set navigation's upcoming traverse API method trackers[destinationKey]
+  //    to apiMethodTracker.
+  // 5. Return apiMethodTracker.
+  return mUpcomingTraverseAPIMethodTrackers.InsertOrUpdate(aKey,
+                                                           apiMethodTracker);
+}
 }  // namespace mozilla::dom
