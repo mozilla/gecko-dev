@@ -419,7 +419,6 @@ const rollouts = [
       "browser/components/aboutwelcome/**",
       "browser/components/asrouter/**",
       "browser/components/attribution/**",
-      "browser/components/contentanalysis/content/ContentAnalysis.sys.mjs",
       "browser/components/customizableui/**",
       "browser/components/doh/TRRPerformance.sys.mjs",
       "browser/components/downloads/**",
