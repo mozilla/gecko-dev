@@ -48,9 +48,6 @@ run-if = ["os == 'win'"]
 reason = "Windows only test"
 
 ["marAppApplyUpdateStageOldVersionFailure.js"]
-skip-if = [
-  "os == 'mac' && os_version == '11.20' && arch == 'aarch64'", # Bug 1937434
-]
 
 ["marAppApplyUpdateStageSuccess.js"]
 skip-if = [
@@ -58,9 +55,6 @@ skip-if = [
 ]
 
 ["marAppApplyUpdateSuccess.js"]
-skip-if = [
-  "os == 'mac' && os_version == '11.20' && arch == 'aarch64'", # Bug 1937434
-]
 
 ["marAppInUseBackgroundTaskFailure_win.js"]
 run-if = ["os == 'win'"]
