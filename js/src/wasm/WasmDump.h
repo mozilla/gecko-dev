@@ -108,15 +108,12 @@ extern void DumpTypeContext(const TypeContext& typeContext);
 extern void DumpTypeContext(const TypeContext& typeContext,
                             StructuredPrinter& out);
 
-extern void DumpFunction(const CodeMetadata& codeMeta, uint32_t funcIndex);
-extern void DumpFunction(const CodeMetadata& codeMeta, uint32_t funcIndex,
-                         StructuredPrinter& out);
-
-extern void DumpFunction(const CodeMetadata& codeMeta, uint32_t funcIndex,
-                         const uint8_t* bodyStart, uint32_t bodySize);
-extern void DumpFunction(const CodeMetadata& codeMeta, uint32_t funcIndex,
-                         const uint8_t* bodyStart, uint32_t bodySize,
-                         StructuredPrinter& out);
+extern void DumpFunction(const CodeMetadata& codeMeta,
+                         const CodeTailMetadata& codeTailMeta,
+                         uint32_t funcIndex);
+extern void DumpFunction(const CodeMetadata& codeMeta,
+                         const CodeTailMetadata& codeTailMeta,
+                         uint32_t funcIndex, StructuredPrinter& out);
 
 extern void DumpFunctionBody(const CodeMetadata& codeMeta, uint32_t funcIndex,
                              const uint8_t* bodyStart, uint32_t bodySize);

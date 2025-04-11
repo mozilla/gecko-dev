@@ -54,7 +54,7 @@ static const Instance* ExtractCalleeInstanceFromFrameWithInstances(
       FrameWithInstances::calleeInstanceOffset());
 }
 
-static uint32_t FuncIndexForLineOrBytecode(const CodeMetadata& codeMeta,
+static uint32_t FuncIndexForLineOrBytecode(const Code& code,
                                            uint32_t lineOrBytecode,
                                            const CodeRange& codeRange) {
   // If this is asm.js, then this is a line number and we also will not be
@@ -62,11 +62,12 @@ static uint32_t FuncIndexForLineOrBytecode(const CodeMetadata& codeMeta,
   //
   // Or else if there is no bytecode offset in the call site, then this must be
   // something internal we've generated and no inlining should be involved.
-  if (codeMeta.isAsmJS() || lineOrBytecode == CallSite::NO_LINE_OR_BYTECODE) {
+  if (code.codeMeta().isAsmJS() ||
+      lineOrBytecode == CallSite::NO_LINE_OR_BYTECODE) {
     // Fall back to the physical function index of the code range.
     return codeRange.funcIndex();
   }
-  return codeMeta.findFuncIndex(lineOrBytecode);
+  return code.codeTailMeta().findFuncIndex(lineOrBytecode);
 }
 
 /*****************************************************************************/
@@ -92,8 +93,8 @@ WasmFrameIter::WasmFrameIter(JitActivation* activation, wasm::Frame* fp)
 
     const CodeRange* codeRange = code_->lookupFuncRange(unwoundPC);
     lineOrBytecode_ = trapData.trapSiteDesc.bytecodeOffset.offset();
-    funcIndex_ = FuncIndexForLineOrBytecode(code_->codeMeta(), lineOrBytecode_,
-                                            *codeRange);
+    funcIndex_ =
+        FuncIndexForLineOrBytecode(*code_, lineOrBytecode_, *codeRange);
     if (trapData.trapSiteDesc.inlinedCallerOffsets) {
       inlinedCallerOffsets_ =
           trapData.trapSiteDesc.inlinedCallerOffsets->span();
@@ -152,8 +153,8 @@ WasmFrameIter::WasmFrameIter(FrameWithInstances* fp, void* returnAddress)
 
   MOZ_ASSERT(code_ == &instance_->code());
   lineOrBytecode_ = site.lineOrBytecode();
-  funcIndex_ = FuncIndexForLineOrBytecode(code_->codeMeta(),
-                                          site.lineOrBytecode(), *codeRange);
+  funcIndex_ =
+      FuncIndexForLineOrBytecode(*code_, site.lineOrBytecode(), *codeRange);
   inlinedCallerOffsets_ = site.inlinedCallerOffsets();
 
   MOZ_ASSERT(!done());
@@ -206,7 +207,7 @@ void WasmFrameIter::popFrame() {
   // If we're visiting inlined frames, see if this frame was inlined.
   if (enableInlinedFrames_ && inlinedCallerOffsets_.size() > 0) {
     // We do not support inlining and debugging
-    MOZ_ASSERT(!code_->codeMeta().debugEnabled);
+    MOZ_ASSERT(!code_->debugEnabled());
 
     // The inlined callee offsets are ordered so that our immediate caller is
     // the last offset.
@@ -219,7 +220,7 @@ void WasmFrameIter::popFrame() {
     lineOrBytecode_ = last->offset();
     inlinedCallerOffsets_ = BytecodeOffsetSpan(first, last);
     MOZ_ASSERT(lineOrBytecode_ != CallSite::NO_LINE_OR_BYTECODE);
-    funcIndex_ = code_->codeMeta().findFuncIndex(lineOrBytecode_);
+    funcIndex_ = code_->codeTailMeta().findFuncIndex(lineOrBytecode_);
     // An inlined frame will never do a stack switch, nor fail a signature
     // mismatch.
     currentFrameStackSwitched_ = false;
@@ -350,8 +351,8 @@ void WasmFrameIter::popFrame() {
   MOZ_ASSERT(code_ == &instance_->code());
 
   lineOrBytecode_ = site.lineOrBytecode();
-  funcIndex_ = FuncIndexForLineOrBytecode(code_->codeMeta(),
-                                          site.lineOrBytecode(), *codeRange);
+  funcIndex_ =
+      FuncIndexForLineOrBytecode(*code_, site.lineOrBytecode(), *codeRange);
   inlinedCallerOffsets_ = site.inlinedCallerOffsets();
   failedUnwindSignatureMismatch_ = false;
 
@@ -361,7 +362,7 @@ void WasmFrameIter::popFrame() {
 bool WasmFrameIter::hasSourceInfo() const {
   // Source information is not available unless you're visiting inline frames,
   // or you're debugging and therefore no inlining is happening.
-  return enableInlinedFrames_ || code_->codeMeta().debugEnabled;
+  return enableInlinedFrames_ || code_->debugEnabled();
 }
 
 const char* WasmFrameIter::filename() const {
@@ -439,7 +440,7 @@ bool WasmFrameIter::debugEnabled() const {
   // Metadata::debugEnabled is only set if debugging is actually enabled (both
   // requested, and available via baseline compilation), and Tier::Debug code
   // will be available.
-  if (!code_->codeMeta().debugEnabled) {
+  if (!code_->debugEnabled()) {
     return false;
   }
 

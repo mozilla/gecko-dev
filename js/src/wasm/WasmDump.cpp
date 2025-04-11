@@ -329,7 +329,7 @@ void wasm::DumpModule(const Module& module, GenericPrinter& out) {
     // Code section
     for (size_t i = numFuncImports; i < module.codeMeta().numFuncs(); i++) {
       o.printf("\n");
-      DumpFunction(module.codeMeta(), i, o);
+      DumpFunction(module.codeMeta(), module.codeTailMeta(), i, o);
     }
     if (module.codeMeta().numFuncs() - numFuncImports > 0) {
       o.printf("\n");
@@ -855,15 +855,18 @@ void wasm::DumpTypeContext(const TypeContext& typeContext,
   }
 }
 
-void wasm::DumpFunction(const CodeMetadata& codeMeta, uint32_t funcIndex) {
+void wasm::DumpFunction(const CodeMetadata& codeMeta,
+                        const CodeTailMetadata& codeTailMeta,
+                        uint32_t funcIndex) {
   Fprinter fileOut(stdout);
   StructuredPrinter out(fileOut);
-  wasm::DumpFunction(codeMeta, funcIndex, out);
+  wasm::DumpFunction(codeMeta, codeTailMeta, funcIndex, out);
   out.printf("\n");
 }
 
-void wasm::DumpFunction(const CodeMetadata& codeMeta, uint32_t funcIndex,
-                        StructuredPrinter& out) {
+void wasm::DumpFunction(const CodeMetadata& codeMeta,
+                        const CodeTailMetadata& codeTailMeta,
+                        uint32_t funcIndex, StructuredPrinter& out) {
   const FuncDesc& f = codeMeta.funcs[funcIndex];
   const TypeDef& typeDef = codeMeta.getFuncTypeDef(funcIndex);
   const FuncType& funcType = typeDef.funcType();
@@ -889,9 +892,9 @@ void wasm::DumpFunction(const CodeMetadata& codeMeta, uint32_t funcIndex,
       out.expand();
     }
 
-    if (codeMeta.codeSectionBytecode) {
+    if (codeTailMeta.codeSectionBytecode) {
       UniqueChars error;
-      BytecodeSpan funcBytecode = codeMeta.funcDefBody(funcIndex);
+      BytecodeSpan funcBytecode = codeTailMeta.funcDefBody(funcIndex);
       DumpFunctionBody(codeMeta, funcIndex, funcBytecode.data(),
                        funcBytecode.size(), out);
     } else {

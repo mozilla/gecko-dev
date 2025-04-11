@@ -50,6 +50,7 @@ class StoreBuffer;
 
 namespace wasm {
 
+struct CodeTailMetadata;
 struct FuncDefInstanceData;
 class FuncImport;
 struct FuncImportInstanceData;
@@ -401,6 +402,7 @@ class alignas(16) Instance {
 
   const Code& code() const { return *code_; }
   inline const CodeMetadata& codeMeta() const;
+  inline const CodeTailMetadata& codeTailMeta() const;
   inline const CodeMetadataForAsmJS* codeMetaForAsmJS() const;
   inline bool isAsmJS() const;
 

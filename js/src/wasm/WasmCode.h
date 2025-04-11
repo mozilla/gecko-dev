@@ -619,6 +619,7 @@ class CodeBlock {
 
   bool initialize(const Code& code, size_t codeBlockIndex);
   void sendToProfiler(const CodeMetadata& codeMeta,
+                      const CodeTailMetadata& codeTailMeta,
                       const CodeMetadataForAsmJS* codeMetaForAsmJS,
                       FuncIonPerfSpewerSpan ionSpewers,
                       FuncBaselinePerfSpewerSpan baselineSpewers) const;
@@ -1155,10 +1156,11 @@ class Code : public ShareableBase<Code> {
     return codeMetaForAsmJS_;
   }
   const CodeTailMetadata& codeTailMeta() const { return *codeTailMeta_; }
+  bool debugEnabled() const { return codeTailMeta_->debugEnabled; }
 
   const CodeBlock& sharedStubs() const { return *sharedStubs_; }
   const CodeBlock& debugCodeBlock() const {
-    MOZ_ASSERT(codeMeta_->debugEnabled);
+    MOZ_ASSERT(debugEnabled());
     MOZ_ASSERT(completeTier1_->tier() == Tier::Debug);
     return *completeTier1_;
   }

@@ -885,13 +885,13 @@ bool ModuleGenerator::startCodeBlock(CodeBlockKind kind) {
   return !!linkData_ && !!codeBlock_;
 }
 
-UniqueCodeBlock ModuleGenerator::finishCodeBlock(UniqueLinkData* linkData) {
+bool ModuleGenerator::finishCodeBlock(CodeBlockResult* result) {
   // Now that all functions and stubs are generated and their CodeRanges
   // known, patch all calls (which can emit far jumps) and far jumps. Linking
   // can emit tiny far-jump stubs, so there is an ordering dependency here.
 
   if (!linkCallSites()) {
-    return nullptr;
+    return false;
   }
 
   for (CallFarJump far : callFarJumps_) {
@@ -900,7 +900,7 @@ UniqueCodeBlock ModuleGenerator::finishCodeBlock(UniqueLinkData* linkData) {
           jit::CodeOffset(far.jumpOffset),
           funcCodeRangeInBlock(far.targetFuncIndex).funcUncheckedCallEntry());
     } else if (!linkData_->callFarJumps.append(far)) {
-      return nullptr;
+      return false;
     }
   }
 
@@ -920,7 +920,7 @@ UniqueCodeBlock ModuleGenerator::finishCodeBlock(UniqueLinkData* linkData) {
 
   masm_->finish();
   if (masm_->oom()) {
-    return nullptr;
+    return false;
   }
 
   // The try notes also need to be sorted to simplify lookup.
@@ -960,15 +960,14 @@ UniqueCodeBlock ModuleGenerator::finishCodeBlock(UniqueLinkData* linkData) {
     codeBlock_->segment = CodeSegment::allocate(codeSource, nullptr,
                                                 /* allowLastDitchGC */ true,
                                                 &codeStart, &allocationLength);
-
     // Record the code usage for this tier.
-    tierStats_.codeBytesUsed += codeBlock_->codeLength;
-    tierStats_.codeBytesMapped = codeBlock_->segment->lengthBytes();
+    tierStats_.codeBytesUsed += codeLength;
+    tierStats_.codeBytesMapped += allocationLength;
   }
 
   if (!codeBlock_->segment) {
     warnf("failed to allocate executable memory for module");
-    return nullptr;
+    return false;
   }
 
   codeBlock_->codeBase = codeStart;
@@ -978,20 +977,15 @@ UniqueCodeBlock ModuleGenerator::finishCodeBlock(UniqueLinkData* linkData) {
   // linked, and loaded.
   CheckCodeBlock(*codeBlock_);
 
-  // Send the code to the profiler using the collected perf spewers that have
-  // precise IR/source information.
-  codeBlock_->sendToProfiler(*codeMeta_, codeMetaForAsmJS_,
-                             FuncIonPerfSpewerSpan(funcIonSpewers_),
-                             FuncBaselinePerfSpewerSpan(funcBaselineSpewers_));
-  funcIonSpewers_.clear();
-  funcBaselineSpewers_.clear();
-
   // Free the macro assembler scope, and reset our masm pointer
   masm_ = nullptr;
   masmScope_ = mozilla::Nothing();
 
-  *linkData = std::move(linkData_);
-  return std::move(codeBlock_);
+  result->codeBlock = std::move(codeBlock_);
+  result->linkData = std::move(linkData_);
+  result->funcIonSpewers = std::move(funcIonSpewers_);
+  result->funcBaselineSpewers = std::move(funcBaselineSpewers_);
+  return true;
 }
 
 bool ModuleGenerator::prepareTier1() {
@@ -1063,8 +1057,7 @@ bool ModuleGenerator::prepareTier1() {
   }
   stubCode.clear();
 
-  sharedStubsCodeBlock_ = finishCodeBlock(&sharedStubsLinkData_);
-  return !!sharedStubsCodeBlock_;
+  return finishCodeBlock(&sharedStubs_);
 }
 
 bool ModuleGenerator::startCompleteTier() {
@@ -1153,12 +1146,15 @@ bool ModuleGenerator::startCompleteTier() {
 bool ModuleGenerator::startPartialTier(uint32_t funcIndex) {
 #ifdef JS_JITSPEW
   UTF8Bytes name;
-  if (!codeMeta_->getFuncNameForWasm(NameContext::Standalone, funcIndex,
-                                     &name) ||
+  if (!codeMeta_->getFuncNameForWasm(
+          NameContext::Standalone, funcIndex,
+          partialTieringCode_->codeTailMeta().nameSectionPayload.get(),
+          &name) ||
       !name.append("\0", 1)) {
     return false;
   }
-  uint32_t bytecodeLength = codeMeta_->funcDefRange(funcIndex).size;
+  uint32_t bytecodeLength =
+      partialTieringCode_->codeTailMeta().funcDefRange(funcIndex).size;
   JS_LOG(wasmPerf, Info,
          "CM=..%06lx  ModuleGenerator::startPartialTier  fI=%-5u  sz=%-5u  %s",
          (unsigned long)(uintptr_t(codeMeta_) & 0xFFFFFFL), funcIndex,
@@ -1183,13 +1179,13 @@ bool ModuleGenerator::startPartialTier(uint32_t funcIndex) {
   return true;
 }
 
-UniqueCodeBlock ModuleGenerator::finishTier(UniqueLinkData* linkData,
-                                            TierStats* tierStats) {
+bool ModuleGenerator::finishTier(TierStats* tierStats,
+                                 CodeBlockResult* result) {
   MOZ_ASSERT(finishedFuncDefs_);
 
   while (outstanding_ > 0) {
     if (!finishOutstandingTask()) {
-      return nullptr;
+      return false;
     }
   }
 
@@ -1206,18 +1202,18 @@ UniqueCodeBlock ModuleGenerator::finishTier(UniqueLinkData* linkData,
   MOZ_ASSERT(stubCode.empty());
 
   if (!GenerateEntryStubs(*codeMeta_, codeBlock_->funcExports, &stubCode)) {
-    return nullptr;
+    return false;
   }
 
   if (!linkCompiledCode(stubCode)) {
-    return nullptr;
+    return false;
   }
 
   // Return the tier statistics and clear them
   *tierStats = tierStats_;
   tierStats_ = TierStats();
 
-  return finishCodeBlock(linkData);
+  return finishCodeBlock(result);
 }
 
 // Complete all tier-1 construction and return the resulting Module.  For this
@@ -1227,10 +1223,9 @@ SharedModule ModuleGenerator::finishModule(
     JS::OptimizedEncodingListener* maybeCompleteTier2Listener) {
   MOZ_ASSERT(compilingTier1());
 
-  UniqueLinkData tier1LinkData;
+  CodeBlockResult tier1Result;
   TierStats tier1Stats;
-  UniqueCodeBlock tier1Code = finishTier(&tier1LinkData, &tier1Stats);
-  if (!tier1Code) {
+  if (!finishTier(&tier1Stats, &tier1Result)) {
     return nullptr;
   }
 
@@ -1283,26 +1278,33 @@ SharedModule ModuleGenerator::finishModule(
     moduleMeta.customSections.infallibleAppend(std::move(sec));
   }
 
-  MutableCodeMetadata codeMeta = moduleMeta.codeMeta;
+  // Allocate and initialize the code tail metadata now that we have seen the
+  // entire module.
+  MutableCodeTailMetadata codeTailMeta =
+      js_new<CodeTailMetadata>(*moduleMeta.codeMeta);
+  if (!codeTailMeta) {
+    return nullptr;
+  }
+  moduleMeta.codeTailMeta = codeTailMeta;
 
   // Transfer the function definition ranges
-  MOZ_ASSERT(funcDefRanges_.length() == codeMeta->numFuncDefs());
-  codeMeta->funcDefRanges = std::move(funcDefRanges_);
+  MOZ_ASSERT(funcDefRanges_.length() == codeMeta_->numFuncDefs());
+  codeTailMeta->funcDefRanges = std::move(funcDefRanges_);
 
   // Transfer the function definition feature usages
-  codeMeta->funcDefFeatureUsages = std::move(funcDefFeatureUsages_);
-  codeMeta->funcDefCallRefs = std::move(funcDefCallRefMetrics_);
-  codeMeta->funcDefAllocSites = std::move(funcDefAllocSites_);
+  codeTailMeta->funcDefFeatureUsages = std::move(funcDefFeatureUsages_);
+  codeTailMeta->funcDefCallRefs = std::move(funcDefCallRefMetrics_);
+  codeTailMeta->funcDefAllocSites = std::move(funcDefAllocSites_);
   MOZ_ASSERT_IF(mode() != CompileMode::LazyTiering, numCallRefMetrics_ == 0);
-  codeMeta->numCallRefMetrics = numCallRefMetrics_;
+  codeTailMeta->numCallRefMetrics = numCallRefMetrics_;
 
   if (tier() == Tier::Baseline) {
-    codeMeta->numAllocSites = numAllocSites_;
+    codeTailMeta->numAllocSites = numAllocSites_;
   } else {
     MOZ_ASSERT(numAllocSites_ == 0);
     // Even if funcDefAllocSites were not created, e.g. single tier of
     // optimized compilation, the AllocSite array will exist.
-    codeMeta->numAllocSites = codeMeta->numTypes();
+    codeTailMeta->numAllocSites = codeMeta_->numTypes();
   }
 
   // Initialize debuggable module state
@@ -1311,20 +1313,21 @@ SharedModule ModuleGenerator::finishModule(
     MOZ_ASSERT(mode() == CompileMode::Once);
 
     // Mark the flag
-    codeMeta->debugEnabled = true;
+    codeTailMeta->debugEnabled = true;
 
     // Grab or allocate a full copy of the bytecode of this module
-    if (!bytecode.getOrCreateBuffer(&codeMeta->debugBytecode)) {
+    if (!bytecode.getOrCreateBuffer(&codeTailMeta->debugBytecode)) {
       return nullptr;
     }
-    codeMeta->codeSectionBytecode = codeMeta->debugBytecode.codeSection();
+    codeTailMeta->codeSectionBytecode =
+        codeTailMeta->debugBytecode.codeSection();
 
     // Compute the hash for this module
     static_assert(sizeof(ModuleHash) <= sizeof(mozilla::SHA1Sum::Hash),
                   "The ModuleHash size shall not exceed the SHA1 hash size.");
     mozilla::SHA1Sum::Hash hash;
     bytecodeSource.computeHash(&hash);
-    memcpy(codeMeta->debugHash, hash, sizeof(ModuleHash));
+    memcpy(codeTailMeta->debugHash, hash, sizeof(ModuleHash));
   }
 
   // Initialize lazy tiering module state
@@ -1334,39 +1337,46 @@ SharedModule ModuleGenerator::finishModule(
 
     // Grab or allocate a reference to the code section for this module
     if (bytecodeSource.hasCodeSection()) {
-      codeMeta->codeSectionBytecode = bytecode.getOrCreateCodeSection();
-      if (!codeMeta->codeSectionBytecode) {
+      codeTailMeta->codeSectionBytecode = bytecode.getOrCreateCodeSection();
+      if (!codeTailMeta->codeSectionBytecode) {
         return nullptr;
       }
     }
 
     // Create call_ref hints
-    codeMeta->callRefHints = MutableCallRefHints(
+    codeTailMeta->callRefHints = MutableCallRefHints(
         js_pod_calloc<MutableCallRefHint>(numCallRefMetrics_));
-    if (!codeMeta->callRefHints) {
+    if (!codeTailMeta->callRefHints) {
       return nullptr;
     }
   }
 
   // Store a reference to the name section on the code metadata
   if (codeMeta_->nameSection) {
-    codeMeta->nameSection->payload =
+    codeTailMeta->nameSectionPayload =
         moduleMeta.customSections[codeMeta_->nameSection->customSectionIndex]
             .payload;
+  } else {
+    MOZ_ASSERT(codeTailMeta->nameSectionPayload == nullptr);
   }
 
-  MutableCodeTailMetadata codeTailMeta = js_new<CodeTailMetadata>(*codeMeta);
-  if (!codeTailMeta) {
-    return nullptr;
-  }
-  moduleMeta.codeTailMeta = codeTailMeta;
+  // Now that we have the name section we can send our blocks to the profiler.
+  sharedStubs_.codeBlock->sendToProfiler(
+      *codeMeta_, *codeTailMeta, codeMetaForAsmJS_,
+      FuncIonPerfSpewerSpan(sharedStubs_.funcIonSpewers),
+      FuncBaselinePerfSpewerSpan(sharedStubs_.funcBaselineSpewers));
+  tier1Result.codeBlock->sendToProfiler(
+      *codeMeta_, *codeTailMeta, codeMetaForAsmJS_,
+      FuncIonPerfSpewerSpan(tier1Result.funcIonSpewers),
+      FuncBaselinePerfSpewerSpan(tier1Result.funcBaselineSpewers));
 
   MutableCode code =
       js_new<Code>(mode(), *codeMeta_, *codeTailMeta, codeMetaForAsmJS_);
-  if (!code || !code->initialize(
-                   std::move(funcImports_), std::move(sharedStubsCodeBlock_),
-                   std::move(sharedStubsLinkData_), std::move(tier1Code),
-                   std::move(tier1LinkData), tier1Stats)) {
+  if (!code || !code->initialize(std::move(funcImports_),
+                                 std::move(sharedStubs_.codeBlock),
+                                 std::move(sharedStubs_.linkData),
+                                 std::move(tier1Result.codeBlock),
+                                 std::move(tier1Result.linkData), tier1Stats)) {
     return nullptr;
   }
 
@@ -1461,10 +1471,9 @@ bool ModuleGenerator::finishTier2(const Module& module) {
     return false;
   }
 
-  UniqueLinkData tier2LinkData;
+  CodeBlockResult tier2Result;
   TierStats tier2Stats;
-  UniqueCodeBlock tier2Code = finishTier(&tier2LinkData, &tier2Stats);
-  if (!tier2Code) {
+  if (!finishTier(&tier2Stats, &tier2Result)) {
     return false;
   }
 
@@ -1474,8 +1483,14 @@ bool ModuleGenerator::finishTier2(const Module& module) {
     ThisThread::SleepMilliseconds(500);
   }
 
-  return module.finishTier2(std::move(tier2Code), std::move(tier2LinkData),
-                            tier2Stats);
+  // While we still have the func spewers, send the code block to the profiler.
+  tier2Result.codeBlock->sendToProfiler(
+      *codeMeta_, module.codeTailMeta(), codeMetaForAsmJS_,
+      FuncIonPerfSpewerSpan(tier2Result.funcIonSpewers),
+      FuncBaselinePerfSpewerSpan(tier2Result.funcBaselineSpewers));
+
+  return module.finishTier2(std::move(tier2Result.codeBlock),
+                            std::move(tier2Result.linkData), tier2Stats);
 }
 
 bool ModuleGenerator::finishPartialTier2() {
@@ -1488,15 +1503,21 @@ bool ModuleGenerator::finishPartialTier2() {
     return false;
   }
 
-  UniqueLinkData tier2LinkData;
+  CodeBlockResult tier2Result;
   TierStats tier2Stats;
-  UniqueCodeBlock tier2Code = finishTier(&tier2LinkData, &tier2Stats);
-  if (!tier2Code) {
+  if (!finishTier(&tier2Stats, &tier2Result)) {
     return false;
   }
 
-  return partialTieringCode_->finishTier2(std::move(tier2Code),
-                                          std::move(tier2LinkData), tier2Stats);
+  // While we still have the func spewers, send the code block to the profiler.
+  tier2Result.codeBlock->sendToProfiler(
+      *codeMeta_, partialTieringCode_->codeTailMeta(), codeMetaForAsmJS_,
+      FuncIonPerfSpewerSpan(tier2Result.funcIonSpewers),
+      FuncBaselinePerfSpewerSpan(tier2Result.funcBaselineSpewers));
+
+  return partialTieringCode_->finishTier2(std::move(tier2Result.codeBlock),
+                                          std::move(tier2Result.linkData),
+                                          tier2Stats);
 }
 
 void ModuleGenerator::warnf(const char* msg, ...) {

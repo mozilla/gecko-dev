@@ -38,7 +38,7 @@ DebugState::DebugState(const Code& code, const Module& module)
       module_(&module),
       enterFrameTrapsEnabled_(false),
       enterAndLeaveFrameTrapsCounter_(0) {
-  MOZ_RELEASE_ASSERT(code.codeMeta().debugEnabled);
+  MOZ_RELEASE_ASSERT(code.debugEnabled());
 }
 
 void DebugState::trace(JSTracer* trc) {
@@ -388,8 +388,8 @@ bool DebugState::debugGetLocalTypes(uint32_t funcIndex, ValTypeVector* locals,
   }
 
   // Decode local var types from wasm binary function body.
-  const BytecodeRange& funcRange = codeMeta().funcDefRange(funcIndex);
-  BytecodeSpan funcBytecode = codeMeta().funcDefBody(funcIndex);
+  const BytecodeRange& funcRange = codeTailMeta().funcDefRange(funcIndex);
+  BytecodeSpan funcBytecode = codeTailMeta().funcDefBody(funcIndex);
   Decoder d(funcBytecode.data(), funcBytecode.data() + funcBytecode.size(),
             funcRange.start,
             /* error = */ nullptr);

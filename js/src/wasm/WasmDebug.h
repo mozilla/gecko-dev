@@ -170,6 +170,7 @@ class DebugState {
     return *code_->debugCodeBlock().segment;
   }
   const CodeMetadata& codeMeta() const { return code_->codeMeta(); }
+  const CodeTailMetadata& codeTailMeta() const { return code_->codeTailMeta(); }
   const CodeMetadataForAsmJS* codeMetaForAsmJS() const {
     return code_->codeMetaForAsmJS();
   }

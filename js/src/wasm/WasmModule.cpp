@@ -923,7 +923,7 @@ bool Module::instantiate(JSContext* cx, ImportValues& imports,
   }
 
   UniqueDebugState maybeDebug;
-  if (codeMeta().debugEnabled) {
+  if (code().debugEnabled()) {
     maybeDebug = cx->make_unique<DebugState>(*code_, *this);
     if (!maybeDebug) {
       ReportOutOfMemory(cx);

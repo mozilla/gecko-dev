@@ -15,6 +15,9 @@ namespace js {
 namespace wasm {
 
 const CodeMetadata& Instance::codeMeta() const { return code_->codeMeta(); }
+const CodeTailMetadata& Instance::codeTailMeta() const {
+  return code_->codeTailMeta();
+}
 const CodeMetadataForAsmJS* Instance::codeMetaForAsmJS() const {
   return code_->codeMetaForAsmJS();
 }

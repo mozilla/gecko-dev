@@ -349,6 +349,7 @@ class RootCompiler {
 
   const CompilerEnvironment& compilerEnv() const { return compilerEnv_; }
   const CodeMetadata& codeMeta() const { return codeMeta_; }
+  const CodeTailMetadata* codeTailMeta() const { return codeTailMeta_; }
   TempAllocator& alloc() { return alloc_; }
   MIRGraph& mirGraph() { return mirGraph_; }
   MIRGenerator& mirGen() { return mirGen_; }
@@ -510,6 +511,9 @@ class FunctionCompiler {
 
   RootCompiler& rootCompiler() { return rootCompiler_; }
   const CodeMetadata& codeMeta() const { return rootCompiler_.codeMeta(); }
+  const CodeTailMetadata* codeTailMeta() const {
+    return rootCompiler_.codeTailMeta();
+  }
 
   IonOpIter& iter() { return iter_; }
   uint32_t relativeBytecodeOffset() {
@@ -661,10 +665,10 @@ class FunctionCompiler {
     MOZ_ASSERT(func_.callSiteLineNums.length() == lastReadCallSite_);
     MOZ_ASSERT_IF(
         compilerEnv().mode() == CompileMode::LazyTiering,
-        codeMeta().getFuncDefCallRefs(funcIndex()).length == numCallRefs_);
-    MOZ_ASSERT_IF(
-        compilerEnv().mode() != CompileMode::Once,
-        codeMeta().getFuncDefAllocSites(funcIndex()).length == numAllocSites_);
+        codeTailMeta()->getFuncDefCallRefs(funcIndex()).length == numCallRefs_);
+    MOZ_ASSERT_IF(codeTailMeta(),
+                  codeTailMeta()->getFuncDefAllocSites(funcIndex()).length ==
+                      numAllocSites_);
     MOZ_ASSERT_IF(!isInlined(),
                   pendingInlineReturns_.empty() && !pendingInlineCatchBlock_);
     MOZ_ASSERT(bodyRethrowPadPatches_.empty());
@@ -2639,14 +2643,15 @@ class FunctionCompiler {
       }
 
       // We do not support inlining a callee which uses tail calls
-      FeatureUsage funcFeatureUsage = codeMeta().funcDefFeatureUsage(funcIndex);
+      FeatureUsage funcFeatureUsage =
+          codeTailMeta()->funcDefFeatureUsage(funcIndex);
       if (funcFeatureUsage & FeatureUsage::ReturnCall) {
         continue;
       }
 
       // Ask the heuristics system if we're allowed to inline a function of
       // this size and kind at the current inlining depth.
-      uint32_t inlineeBodySize = codeMeta().funcDefRange(funcIndex).size;
+      uint32_t inlineeBodySize = codeTailMeta()->funcDefRange(funcIndex).size;
       if (!InliningHeuristics::isSmallEnoughToInline(kind, inliningDepth(),
                                                      inlineeBodySize)) {
         continue;
@@ -4970,13 +4975,13 @@ class FunctionCompiler {
   }
 
   uint32_t readAllocSiteIndex(uint32_t typeIndex) {
-    if (!codeMeta().hasFuncDefAllocSites()) {
+    if (!codeTailMeta() || !codeTailMeta()->hasFuncDefAllocSites()) {
       // For single tier of optimized compilation, there are no assigned alloc
       // sites, using type index as alloc site.
       return typeIndex;
     }
     AllocSitesRange rangeInModule =
-        codeMeta().getFuncDefAllocSites(funcIndex());
+        codeTailMeta()->getFuncDefAllocSites(funcIndex());
     uint32_t localIndex = numAllocSites_++;
     MOZ_RELEASE_ASSERT(localIndex < rangeInModule.length);
     return rangeInModule.begin + localIndex;
@@ -5743,11 +5748,11 @@ class FunctionCompiler {
     }
 
     CallRefMetricsRange rangeInModule =
-        codeMeta().getFuncDefCallRefs(funcIndex());
+        codeTailMeta()->getFuncDefCallRefs(funcIndex());
     uint32_t localIndex = numCallRefs_++;
     MOZ_RELEASE_ASSERT(localIndex < rangeInModule.length);
     uint32_t moduleIndex = rangeInModule.begin + localIndex;
-    return codeMeta().getCallRefHint(moduleIndex);
+    return codeTailMeta()->getCallRefHint(moduleIndex);
   }
 
 #if DEBUG
@@ -6452,8 +6457,8 @@ bool FunctionCompiler::emitInlineCall(const FuncType& funcType,
                                       const DefVector& args,
                                       DefVector* results) {
   UniqueChars error;
-  const BytecodeRange& funcRange = codeMeta().funcDefRange(funcIndex);
-  BytecodeSpan funcBytecode = codeMeta().funcDefBody(funcIndex);
+  const BytecodeRange& funcRange = codeTailMeta()->funcDefRange(funcIndex);
+  BytecodeSpan funcBytecode = codeTailMeta()->funcDefBody(funcIndex);
   FuncCompileInput func(funcIndex, funcRange.start, funcBytecode.data(),
                         funcBytecode.data() + funcBytecode.size(),
                         Uint32Vector());
@@ -10785,15 +10790,9 @@ bool wasm::IonDumpFunction(const CompilerEnvironment& compilerEnv,
     return false;
   }
 
-  // Create a basic optimizing code metadata so that inlining works.
-  SharedCodeTailMetadata codeTailMeta = js_new<CodeTailMetadata>(codeMeta);
-  if (!codeTailMeta) {
-    return false;
-  }
-
   TryNoteVector tryNotes;
-  RootCompiler rootCompiler(compilerEnv, codeMeta, codeTailMeta.get(), alloc,
-                            locals, func, d, tryNotes);
+  RootCompiler rootCompiler(compilerEnv, codeMeta, nullptr, alloc, locals, func,
+                            d, tryNotes);
   if (!rootCompiler.generate()) {
     return false;
   }

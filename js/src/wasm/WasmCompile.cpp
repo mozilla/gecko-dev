@@ -1088,8 +1088,8 @@ bool wasm::CompilePartialTier2(const Code& code, uint32_t funcIndex,
     return false;
   }
 
-  const BytecodeRange& funcRange = codeMeta.funcDefRange(funcIndex);
-  BytecodeSpan funcBytecode = codeMeta.funcDefBody(funcIndex);
+  const BytecodeRange& funcRange = code.codeTailMeta().funcDefRange(funcIndex);
+  BytecodeSpan funcBytecode = code.codeTailMeta().funcDefBody(funcIndex);
 
   // The following sequence will compile/finish this function, on this thread.
   // `error` (as stashed in `mg`) may get set to, for example, "stack frame too

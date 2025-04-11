@@ -2311,7 +2311,7 @@ bool Instance::init(JSContext* cx, const JSObjectVector& funcImports,
                     const WasmTagObjectVector& tagObjs,
                     const DataSegmentVector& dataSegments,
                     const ModuleElemSegmentVector& elemSegments) {
-  MOZ_ASSERT(!!maybeDebug_ == codeMeta().debugEnabled);
+  MOZ_ASSERT(!!maybeDebug_ == code().debugEnabled());
 
   MOZ_ASSERT(funcImports.length() == code().funcImports().length());
   MOZ_ASSERT(tables_.length() == codeMeta().tables.length());
@@ -2416,7 +2416,7 @@ bool Instance::init(JSContext* cx, const JSObjectVector& funcImports,
   }
 
   // Create and initialize alloc sites, they are all the same for Wasm.
-  uint32_t allocSitesCount = code().codeMeta().numAllocSites;
+  uint32_t allocSitesCount = codeTailMeta().numAllocSites;
   if (allocSitesCount > 0) {
     allocSites_ =
         (gc::AllocSite*)js_malloc(sizeof(gc::AllocSite) * allocSitesCount);
@@ -2612,7 +2612,7 @@ bool Instance::init(JSContext* cx, const JSObjectVector& funcImports,
   pendingExceptionTag_ = nullptr;
 
   // Add debug filtering table.
-  if (codeMeta().debugEnabled) {
+  if (code().debugEnabled()) {
     size_t numFuncs = codeMeta().numFuncs();
     size_t numWords = std::max<size_t>((numFuncs + 31) / 32, 1);
     debugFilter_ = (uint32_t*)js_calloc(numWords, sizeof(uint32_t));
@@ -2623,18 +2623,18 @@ bool Instance::init(JSContext* cx, const JSObjectVector& funcImports,
   }
 
   if (code().mode() == CompileMode::LazyTiering) {
-    callRefMetrics_ = (CallRefMetrics*)js_calloc(codeMeta().numCallRefMetrics,
-                                                 sizeof(CallRefMetrics));
+    callRefMetrics_ = (CallRefMetrics*)js_calloc(
+        codeTailMeta().numCallRefMetrics, sizeof(CallRefMetrics));
     if (!callRefMetrics_) {
       ReportOutOfMemory(cx);
       return false;
     }
     // A zeroed-out CallRefMetrics should satisfy
     // CallRefMetrics::checkInvariants.
-    MOZ_ASSERT_IF(codeMeta().numCallRefMetrics > 0,
+    MOZ_ASSERT_IF(codeTailMeta().numCallRefMetrics > 0,
                   callRefMetrics_[0].checkInvariants());
   } else {
-    MOZ_ASSERT(codeMeta().numCallRefMetrics == 0);
+    MOZ_ASSERT(codeTailMeta().numCallRefMetrics == 0);
   }
 
   // Add observers if our tables may grow
@@ -2737,7 +2737,7 @@ void Instance::resetTemporaryStackLimit(JSContext* cx) {
 
 int32_t Instance::computeInitialHotnessCounter(uint32_t funcIndex) {
   MOZ_ASSERT(code().mode() == CompileMode::LazyTiering);
-  uint32_t bodyLength = codeMeta().funcDefRange(funcIndex).size;
+  uint32_t bodyLength = codeTailMeta().funcDefRange(funcIndex).size;
   return LazyTieringHeuristics::estimateIonCompilationCost(bodyLength);
 }
 
@@ -2762,10 +2762,10 @@ void Instance::submitCallRefHints(uint32_t funcIndex) {
   MOZ_ASSERT(requiredHotnessFraction >= 0.1 - epsilon);
   MOZ_ASSERT(requiredHotnessFraction <= 1.0 + epsilon);
 
-  CallRefMetricsRange range = codeMeta().getFuncDefCallRefs(funcIndex);
+  CallRefMetricsRange range = codeTailMeta().getFuncDefCallRefs(funcIndex);
   for (uint32_t callRefIndex = range.begin;
        callRefIndex < range.begin + range.length; callRefIndex++) {
-    MOZ_RELEASE_ASSERT(callRefIndex < codeMeta().numCallRefMetrics);
+    MOZ_RELEASE_ASSERT(callRefIndex < codeTailMeta().numCallRefMetrics);
 
     // In this loop, for each CallRefMetrics, we create a corresponding
     // CallRefHint.  The CallRefHint is a recommendation of which function(s)
@@ -2868,7 +2868,7 @@ void Instance::submitCallRefHints(uint32_t funcIndex) {
       uint32_t totalTargetBodySize = 0;
       for (size_t i = 0; i < numCandidates; i++) {
         totalTargetBodySize +=
-            codeMeta().funcDefRange(candidates[i].funcIndex).size;
+            codeTailMeta().funcDefRange(candidates[i].funcIndex).size;
       }
       if (totalCount < 2 * totalTargetBodySize) {
         skipReason = "(callsite too cold)";
@@ -2911,10 +2911,10 @@ void Instance::submitCallRefHints(uint32_t funcIndex) {
     if (!skipReason) {
       // Success!
       MOZ_ASSERT(hints.length() > 0);
-      codeMeta().setCallRefHint(callRefIndex, hints);
+      codeTailMeta().setCallRefHint(callRefIndex, hints);
     } else {
       CallRefHint empty;
-      codeMeta().setCallRefHint(callRefIndex, empty);
+      codeTailMeta().setCallRefHint(callRefIndex, empty);
     }
 
 #ifdef JS_JITSPEW
@@ -3034,7 +3034,7 @@ void Instance::tracePrivate(JSTracer* trc) {
   }
 
   if (callRefMetrics_) {
-    for (uint32_t i = 0; i < codeMeta().numCallRefMetrics; i++) {
+    for (uint32_t i = 0; i < codeTailMeta().numCallRefMetrics; i++) {
       CallRefMetrics* metrics = &callRefMetrics_[i];
       MOZ_ASSERT(metrics->checkInvariants());
       for (size_t j = 0; j < CallRefMetrics::NUM_SLOTS; j++) {
@@ -3913,6 +3913,7 @@ JSAtom* Instance::getFuncDisplayAtom(JSContext* cx, uint32_t funcIndex) const {
     ok = codeMetaForAsmJS()->getFuncNameForAsmJS(funcIndex, &name);
   } else {
     ok = codeMeta().getFuncNameForWasm(NameContext::BeforeLocation, funcIndex,
+                                       codeTailMeta().nameSectionPayload.get(),
                                        &name);
   }
   if (!ok) {
@@ -4016,12 +4017,12 @@ JSString* Instance::createDisplayURL(JSContext* cx) {
     }
   }
 
-  if (codeMeta().debugEnabled) {
+  if (code().debugEnabled()) {
     if (!result.append(":")) {
       return nullptr;
     }
 
-    const ModuleHash& hash = codeMeta().debugHash;
+    const ModuleHash& hash = codeTailMeta().debugHash;
     for (unsigned char byte : hash) {
       unsigned char digit1 = byte / 16, digit2 = byte % 16;
       if (!result.append(

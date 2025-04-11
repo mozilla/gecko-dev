@@ -517,7 +517,7 @@ bool Code::createManyLazyEntryStubs(const WriteGuard& guard,
     }
   }
 
-  stubCodeBlock->sendToProfiler(*codeMeta_, codeMetaForAsmJS_,
+  stubCodeBlock->sendToProfiler(*codeMeta_, *codeTailMeta_, codeMetaForAsmJS_,
                                 FuncIonPerfSpewerSpan(),
                                 FuncBaselinePerfSpewerSpan());
   return addCodeBlock(guard, std::move(stubCodeBlock), nullptr);
@@ -876,6 +876,7 @@ bool CodeBlock::initialize(const Code& code, size_t codeBlockIndex) {
 
 static JS::UniqueChars DescribeCodeRangeForProfiler(
     const wasm::CodeMetadata& codeMeta,
+    const wasm::CodeTailMetadata& codeTailMeta,
     const CodeMetadataForAsmJS* codeMetaForAsmJS, const CodeRange& codeRange,
     CodeBlockKind codeBlockKind) {
   uint32_t funcIndex = codeRange.funcIndex();
@@ -884,7 +885,9 @@ static JS::UniqueChars DescribeCodeRangeForProfiler(
   if (codeMetaForAsmJS) {
     ok = codeMetaForAsmJS->getFuncNameForAsmJS(funcIndex, &name);
   } else {
-    ok = codeMeta.getFuncNameForWasm(NameContext::Standalone, funcIndex, &name);
+    ok = codeMeta.getFuncNameForWasm(NameContext::Standalone, funcIndex,
+                                     codeTailMeta.nameSectionPayload.get(),
+                                     &name);
   }
   if (!ok) {
     return nullptr;
@@ -915,7 +918,8 @@ static JS::UniqueChars DescribeCodeRangeForProfiler(
 }
 
 void CodeBlock::sendToProfiler(
-    const CodeMetadata& codeMeta, const CodeMetadataForAsmJS* codeMetaForAsmJS,
+    const CodeMetadata& codeMeta, const CodeTailMetadata& codeTailMeta,
+    const CodeMetadataForAsmJS* codeMetaForAsmJS,
     FuncIonPerfSpewerSpan ionSpewers,
     FuncBaselinePerfSpewerSpan baselineSpewers) const {
   bool enabled = false;
@@ -937,8 +941,8 @@ void CodeBlock::sendToProfiler(
   // Save the collected Ion perf spewers with their IR/source information.
   for (FuncIonPerfSpewer& funcIonSpewer : ionSpewers) {
     const CodeRange& codeRange = this->codeRange(funcIonSpewer.funcIndex);
-    UniqueChars desc = DescribeCodeRangeForProfiler(codeMeta, codeMetaForAsmJS,
-                                                    codeRange, kind);
+    UniqueChars desc = DescribeCodeRangeForProfiler(
+        codeMeta, codeTailMeta, codeMetaForAsmJS, codeRange, kind);
     if (!desc) {
       return;
     }
@@ -950,8 +954,8 @@ void CodeBlock::sendToProfiler(
   // Save the collected baseline perf spewers with their IR/source information.
   for (FuncBaselinePerfSpewer& funcBaselineSpewer : baselineSpewers) {
     const CodeRange& codeRange = this->codeRange(funcBaselineSpewer.funcIndex);
-    UniqueChars desc = DescribeCodeRangeForProfiler(codeMeta, codeMetaForAsmJS,
-                                                    codeRange, kind);
+    UniqueChars desc = DescribeCodeRangeForProfiler(
+        codeMeta, codeTailMeta, codeMetaForAsmJS, codeRange, kind);
     if (!desc) {
       return;
     }
@@ -972,8 +976,8 @@ void CodeBlock::sendToProfiler(
       continue;
     }
 
-    UniqueChars desc = DescribeCodeRangeForProfiler(codeMeta, codeMetaForAsmJS,
-                                                    codeRange, kind);
+    UniqueChars desc = DescribeCodeRangeForProfiler(
+        codeMeta, codeTailMeta, codeMetaForAsmJS, codeRange, kind);
     if (!desc) {
       return;
     }
@@ -1176,9 +1180,9 @@ void Code::printStats() const {
   JS_LOG(wasmPerf, Info, "    %7zu functions in module", codeMeta_->numFuncs());
   JS_LOG(wasmPerf, Info, "    %7zu bytecode bytes in module",
          codeMeta_->codeSectionSize());
-  uint32_t numCallRefs = codeMeta_->numCallRefMetrics == UINT32_MAX
+  uint32_t numCallRefs = codeTailMeta_->numCallRefMetrics == UINT32_MAX
                              ? 0
-                             : codeMeta_->numCallRefMetrics;
+                             : codeTailMeta_->numCallRefMetrics;
   JS_LOG(wasmPerf, Info, "    %7u call_refs in module.", numCallRefs);
 
   // Tier information
@@ -1329,7 +1333,7 @@ bool Code::appendProfilingLabels(
     Int32ToCStringBuf cbuf;
     size_t bytecodeStrLen;
     const char* bytecodeStr = Uint32ToCString(
-        &cbuf, codeMeta().funcBytecodeOffset(codeRange.funcIndex()),
+        &cbuf, codeTailMeta().funcBytecodeOffset(codeRange.funcIndex()),
         &bytecodeStrLen);
     MOZ_ASSERT(bytecodeStr);
 
@@ -1339,8 +1343,9 @@ bool Code::appendProfilingLabels(
       ok =
           codeMetaForAsmJS()->getFuncNameForAsmJS(codeRange.funcIndex(), &name);
     } else {
-      ok = codeMeta().getFuncNameForWasm(NameContext::Standalone,
-                                         codeRange.funcIndex(), &name);
+      ok = codeMeta().getFuncNameForWasm(
+          NameContext::Standalone, codeRange.funcIndex(),
+          codeTailMeta().nameSectionPayload.get(), &name);
     }
     if (!ok || !name.append(" (", 2)) {
       return false;
@@ -1462,8 +1467,9 @@ void CodeBlock::disassemble(JSContext* cx, int kindSelection,
           ok = code->codeMetaForAsmJS()->getFuncNameForAsmJS(range.funcIndex(),
                                                              &namebuf);
         } else {
-          ok = code->codeMeta().getFuncNameForWasm(NameContext::Standalone,
-                                                   range.funcIndex(), &namebuf);
+          ok = code->codeMeta().getFuncNameForWasm(
+              NameContext::Standalone, range.funcIndex(),
+              code->codeTailMeta().nameSectionPayload.get(), &namebuf);
         }
         if (ok && namebuf.append('\0')) {
           funcName = namebuf.begin();

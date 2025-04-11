@@ -155,11 +155,12 @@ class Module : public JS::WasmModule {
   const Code& code() const { return *code_; }
   const ModuleMetadata& moduleMeta() const { return *moduleMeta_; }
   const CodeMetadata& codeMeta() const { return code_->codeMeta(); }
+  const CodeTailMetadata& codeTailMeta() const { return code_->codeTailMeta(); }
   const CodeMetadataForAsmJS* codeMetaForAsmJS() const {
     return code_->codeMetaForAsmJS();
   }
   const BytecodeSource& debugBytecode() const {
-    return codeMeta().debugBytecode.source();
+    return codeTailMeta().debugBytecode.source();
   }
   uint32_t tier1CodeMemoryUsed() const { return code_->tier1CodeMemoryUsed(); }
 

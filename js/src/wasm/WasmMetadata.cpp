@@ -173,19 +173,6 @@ bool CodeMetadata::prepareForCompile(CompileMode mode) {
   return true;
 }
 
-uint32_t CodeMetadata::findFuncIndex(uint32_t bytecodeOffset) const {
-  size_t funcDefIndex;
-  if (!mozilla::BinarySearchIf(
-          funcDefRanges, 0, funcDefRanges.length(),
-          [bytecodeOffset](const BytecodeRange& range) {
-            return range.compareOffset(bytecodeOffset);
-          },
-          &funcDefIndex)) {
-    MOZ_CRASH("missing function definition");
-  }
-  return numFuncImports + funcDefIndex;
-}
-
 uint32_t CodeMetadata::findFuncExportIndex(uint32_t funcIndex) const {
   MOZ_ASSERT(funcs[funcIndex].isExported());
 
@@ -195,6 +182,19 @@ uint32_t CodeMetadata::findFuncExportIndex(uint32_t funcIndex) const {
     MOZ_CRASH("missing function export");
   }
   return (uint32_t)match;
+}
+
+uint32_t CodeTailMetadata::findFuncIndex(uint32_t bytecodeOffset) const {
+  size_t funcDefIndex;
+  if (!mozilla::BinarySearchIf(
+          funcDefRanges, 0, funcDefRanges.length(),
+          [bytecodeOffset](const BytecodeRange& range) {
+            return range.compareOffset(bytecodeOffset);
+          },
+          &funcDefIndex)) {
+    MOZ_CRASH("missing function definition");
+  }
+  return codeMeta->numFuncImports + funcDefIndex;
 }
 
 // CodeMetadata helpers -- getting function names.
@@ -224,9 +224,10 @@ static bool AppendFunctionIndexName(uint32_t funcIndex, UTF8Bytes* bytes) {
 }
 
 bool CodeMetadata::getFuncNameForWasm(NameContext ctx, uint32_t funcIndex,
+                                      const ShareableBytes* nameSectionPayload,
                                       UTF8Bytes* name) const {
   if (nameSection && nameSection->moduleName.length != 0) {
-    if (!AppendName(nameSection->payload->vector, nameSection->moduleName,
+    if (!AppendName(nameSectionPayload->vector, nameSection->moduleName,
                     name)) {
       return false;
     }
@@ -237,7 +238,7 @@ bool CodeMetadata::getFuncNameForWasm(NameContext ctx, uint32_t funcIndex,
 
   if (nameSection && funcIndex < nameSection->funcNames.length() &&
       nameSection->funcNames[funcIndex].length != 0) {
-    return AppendName(nameSection->payload->vector,
+    return AppendName(nameSectionPayload->vector,
                       nameSection->funcNames[funcIndex], name);
   }
 
@@ -265,13 +266,20 @@ size_t CodeMetadata::sizeOfExcludingThis(
 }
 
 CodeTailMetadata::CodeTailMetadata()
-    : codeMeta(nullptr), inliningBudget(mutexid::WasmInliningBudget, 0) {}
+    : codeMeta(nullptr),
+      debugEnabled(false),
+      debugHash(),
+      inliningBudget(mutexid::WasmInliningBudget, 0),
+      callRefHints(nullptr),
+      numCallRefMetrics(UINT32_MAX),
+      numAllocSites(UINT32_MAX) {}
 
 CodeTailMetadata::CodeTailMetadata(const CodeMetadata& codeMeta)
-    : codeMeta(&codeMeta),
-      inliningBudget(mutexid::WasmInliningBudget,
-                     InliningHeuristics::moduleInliningBudget(
-                         codeMeta.codeSectionSize())) {}
+    : js::wasm::CodeTailMetadata() {
+  this->codeMeta = &codeMeta;
+  inliningBudget.lock().get() =
+      InliningHeuristics::moduleInliningBudget(codeMeta.codeSectionSize());
+}
 
 // ModuleMetadata helpers -- memory accounting.
 
