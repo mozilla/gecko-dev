@@ -58,14 +58,16 @@ NS_IMPL_ISUPPORTS(ChannelMediaResource::Listener, nsIRequestObserver,
                   nsIThreadRetargetableStreamListener)
 
 nsresult ChannelMediaResource::Listener::OnStartRequest(nsIRequest* aRequest) {
-  mMutex.AssertOnWritingThread();  // Writing thread is MainThread
+  AssertIsOnMainThread();
+  mLock.NoteOnMainThread();
   if (!mResource) return NS_OK;
   return mResource->OnStartRequest(aRequest, mOffset);
 }
 
 nsresult ChannelMediaResource::Listener::OnStopRequest(nsIRequest* aRequest,
                                                        nsresult aStatus) {
-  mMutex.AssertOnWritingThread();
+  AssertIsOnMainThread();
+  mLock.NoteOnMainThread();
   if (!mResource) return NS_OK;
   return mResource->OnStopRequest(aRequest, aStatus);
 }
@@ -76,7 +78,8 @@ nsresult ChannelMediaResource::Listener::OnDataAvailable(
   // This might happen off the main thread.
   RefPtr<ChannelMediaResource> res;
   {
-    MutexSingleWriterAutoLock lock(mMutex);
+    MutexAutoLock lock(mLock.Lock());
+    mLock.NoteLockHeld();
     res = mResource;
   }
   // Note Rekove() might happen at the same time to reset mResource. We check
@@ -87,7 +90,8 @@ nsresult ChannelMediaResource::Listener::OnDataAvailable(
 nsresult ChannelMediaResource::Listener::AsyncOnChannelRedirect(
     nsIChannel* aOld, nsIChannel* aNew, uint32_t aFlags,
     nsIAsyncVerifyRedirectCallback* cb) {
-  mMutex.AssertOnWritingThread();
+  AssertIsOnMainThread();
+  mLock.NoteOnMainThread();
 
   nsresult rv = NS_OK;
   if (mResource) {
@@ -113,8 +117,10 @@ nsresult ChannelMediaResource::Listener::GetInterface(const nsIID& aIID,
 }
 
 void ChannelMediaResource::Listener::Revoke() {
-  MOZ_ASSERT(NS_IsMainThread());
-  MutexSingleWriterAutoLock lock(mMutex);
+  AssertIsOnMainThread();
+  MutexAutoLock lock(mLock.Lock());
+  mLock.NoteExclusiveAccess();
+
   mResource = nullptr;
 }
 
