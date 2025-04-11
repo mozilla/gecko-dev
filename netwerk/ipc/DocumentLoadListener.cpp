@@ -2762,6 +2762,16 @@ nsresult DocumentLoadListener::DoOnStartRequest(nsIRequest* aRequest) {
              "(status: %s) %s",
              GetStaticErrorName(status),
              GetChannelCreationURI()->GetSpecOrDefault().get()));
+
+    // If this load would not lead to the content docShell displaying any
+    // content, cancel it here to ensure that we don't spuriously succeed when
+    // finishing the load in the content process. We don't do this for HTTP
+    // channels, which may have extra information (e.g. navigation timing) which
+    // would be relevant to the content process.
+    if (!httpChannel) {
+      DisconnectListeners(status, status);
+      return NS_OK;
+    }
   }
 
   // Determine if a new process needs to be spawned. If it does, this will
