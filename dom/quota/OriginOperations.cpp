@@ -1299,7 +1299,7 @@ RefPtr<BoolPromise> SaveOriginAccessTimeOp::OpenDirectory() {
   return OpenStorageDirectory(
       PersistenceScope::CreateFromValue(mOriginMetadata.mPersistenceType),
       OriginScope::FromOrigin(mOriginMetadata),
-      ClientStorageScope::CreateFromNull(),
+      ClientStorageScope::CreateFromMetadata(),
       /* aExclusive */ false);
 }
 

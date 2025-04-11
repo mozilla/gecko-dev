@@ -2026,9 +2026,8 @@ TEST_F(TestQuotaManager, SaveOriginAccessTime_Simple) {
 // Test SaveOriginAccessTime when saving of origin access time already finished
 // with an exclusive client directory lock for a different client scope
 // acquired in between.
-TEST_F(
-    TestQuotaManager,
-    DISABLED_SaveOriginAccessTime_FinishedWithOtherExclusiveClientDirectoryLock) {
+TEST_F(TestQuotaManager,
+       SaveOriginAccessTime_FinishedWithOtherExclusiveClientDirectoryLock) {
   auto testOriginMetadata = GetTestOriginMetadata();
 
   ASSERT_NO_FATAL_FAILURE(ShutdownStorage());
@@ -2042,6 +2041,9 @@ TEST_F(
     QuotaManager* quotaManager = QuotaManager::Get();
     ASSERT_TRUE(quotaManager);
 
+    // Save origin access time first to ensure required initialization is
+    // complete. Otherwise, the exclusive directory lock below may not be
+    // acquirable.
     {
       int64_t timestamp = PR_Now();
 
@@ -2050,6 +2052,7 @@ TEST_F(
       ASSERT_TRUE(value.IsResolve());
     }
 
+    // Acquire an exclusive directory lock for the SimpleDB quota client.
     RefPtr<ClientDirectoryLock> directoryLock =
         quotaManager->CreateDirectoryLock(GetTestClientMetadata(),
                                           /* aExclusive */ true);
@@ -2059,6 +2062,9 @@ TEST_F(
       ASSERT_TRUE(value.IsResolve());
     }
 
+    // Save origin access time while the exclusive directory lock for SimpleDB
+    // is held. Verifies that saving origin access time uses a lock that does
+    // not overlap with quota client directory locks.
     {
       int64_t timestamp = PR_Now();
 
