@@ -710,8 +710,6 @@ AbortReasonOr<WarpScriptSnapshot*> WarpScriptOracle::createScriptSnapshot() {
       case JSOp::Try:
       case JSOp::Finally:
       case JSOp::NewPrivateName:
-      case JSOp::StrictConstantEq:
-      case JSOp::StrictConstantNe:
 #ifdef ENABLE_EXPLICIT_RESOURCE_MANAGEMENT
       case JSOp::AddDisposable:
       case JSOp::TakeDisposeCapability:

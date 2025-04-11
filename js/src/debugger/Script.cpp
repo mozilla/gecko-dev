@@ -1539,8 +1539,6 @@ static bool BytecodeIsEffectful(JSScript* script, size_t offset) {
     case JSOp::Ne:
     case JSOp::StrictEq:
     case JSOp::StrictNe:
-    case JSOp::StrictConstantEq:
-    case JSOp::StrictConstantNe:
     case JSOp::Lt:
     case JSOp::Le:
     case JSOp::Gt:

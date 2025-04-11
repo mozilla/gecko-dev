@@ -1513,24 +1513,6 @@ void LIRGenerator::visitCompare(MCompare* comp) {
   MOZ_CRASH("Unrecognized compare type.");
 }
 
-void LIRGenerator::visitStrictConstantCompareInt32(
-    MStrictConstantCompareInt32* ins) {
-  MDefinition* value = ins->value();
-
-  auto* lir = new (alloc())
-      LStrictConstantCompareInt32(useBox(value), tempDouble(), tempDouble());
-  define(lir, ins);
-}
-
-void LIRGenerator::visitStrictConstantCompareBoolean(
-    MStrictConstantCompareBoolean* ins) {
-  MDefinition* value = ins->value();
-
-  auto* lir =
-      new (alloc()) LStrictConstantCompareBoolean(useBox(value), temp());
-  define(lir, ins);
-}
-
 void LIRGenerator::visitSameValueDouble(MSameValueDouble* ins) {
   MDefinition* lhs = ins->lhs();
   MDefinition* rhs = ins->rhs();
