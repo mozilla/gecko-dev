@@ -2981,6 +2981,10 @@
       }
 
       if (!id) {
+        // Note: If this changes, make sure to also update the
+        // getExtTabGroupIdForInternalTabGroupId implementation in
+        // browser/components/extensions/parent/ext-browser.js.
+        // See: Bug 1960104 - Improve tab group ID generation in addTabGroup
         id = `${Date.now()}-${Math.round(Math.random() * 100)}`;
       }
       let group = this._createTabGroup(id, color, false, label);

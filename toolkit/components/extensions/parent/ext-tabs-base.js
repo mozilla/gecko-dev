@@ -525,6 +525,15 @@ class TabBase {
   }
 
   /**
+   * @property {integer} groupId
+   *        @readonly
+   *        @abstract
+   */
+  get groupId() {
+    throw new Error("Not implemented");
+  }
+
+  /**
    * Returns true if this tab matches the the given query info object. Omitted
    * or null have no effect on the match.
    *
@@ -665,6 +674,7 @@ class TabBase {
       isInReaderMode: this.isInReaderMode,
       sharingState: this.sharingState,
       successorTabId: this.successorTabId,
+      groupId: this.groupId,
       cookieStoreId: this.cookieStoreId,
     };
 

@@ -228,6 +228,12 @@
             "optional": true,
             "minimum": -1,
             "description": "The ID of this tab's successor, if any; $(ref:tabs.TAB_ID_NONE) otherwise."
+          },
+          "groupId": {
+            "type": "integer",
+            "optional": true,
+            "minimum": -1,
+            "description": "The ID of the group that the tab belongs to. $(ref:tabGroups.TAB_GROUP_ID_NONE) (-1) if the tab does not belong to a tab group."
           }
         }
       },
