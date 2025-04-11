@@ -26,9 +26,6 @@ class LinkPreviewCard extends MozLitElement {
   // Text for the link to visit the original URL when in error state
   static VISIT_LINK_TEXT = "Visit link";
 
-  // Number of placeholder rows to show when loading
-  static PLACEHOLDER_COUNT = 3;
-
   static properties = {
     generating: { type: Number }, // 0 = off, 1-4 = generating & dots state
     keyPoints: { type: Array },
@@ -163,35 +160,13 @@ class LinkPreviewCard extends MozLitElement {
         ${this.generating || this.keyPoints.length
           ? html`
               <div class="ai-content">
-                <h3>Key points</h3>
-                <ul class="keypoints-list">
-                  ${
-                    /* All populated content items */
-                    this.keyPoints.map(
-                      item => html`<li class="content-item">${item}</li>`
-                    )
-                  }
-                  ${
-                    /* Loading placeholders with three divs each */
-                    this.generating
-                      ? Array(
-                          Math.max(
-                            0,
-                            LinkPreviewCard.PLACEHOLDER_COUNT -
-                              this.keyPoints.length
-                          )
-                        )
-                          .fill()
-                          .map(
-                            () =>
-                              html` <li class="content-item loading">
-                                <div></div>
-                                <div></div>
-                                <div></div>
-                              </li>`
-                          )
-                      : []
-                  }
+                <h3>
+                  ${this.generating
+                    ? "Generating key points" + ".".repeat(this.generating - 1)
+                    : "Key points"}
+                </h3>
+                <ul>
+                  ${this.keyPoints.map(item => html`<li>${item}</li>`)}
                 </ul>
                 ${this.progress >= 0
                   ? html`
