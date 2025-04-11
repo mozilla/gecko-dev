@@ -157,7 +157,7 @@ class MediaDecoderStateMachine
   void InvokeSuspendMediaSink() override;
   void InvokeResumeMediaSink() override;
 
-  bool IsCDMProxySupported(CDMProxy* aProxy) override;
+  nsresult IsCDMProxySupported(CDMProxy* aProxy) override;
 
   RefPtr<SetCDMPromise> SetCDMProxy(CDMProxy* aProxy) override;
 

@@ -103,7 +103,7 @@ class ExternalEngineStateMachine final
 
   RefPtr<SetCDMPromise> SetCDMProxy(CDMProxy* aProxy) override;
 
-  bool IsCDMProxySupported(CDMProxy* aProxy) override;
+  nsresult IsCDMProxySupported(CDMProxy* aProxy) override;
 
   bool IsExternalEngineStateMachine() const override { return true; }
 
