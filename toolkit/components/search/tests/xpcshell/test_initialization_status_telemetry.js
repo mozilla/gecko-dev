@@ -5,9 +5,6 @@
  * Tests telemetry is captured when search service initialization has failed or
  * succeeded.
  */
-ChromeUtils.defineESModuleGetters(this, {
-  SearchUIUtils: "moz-src:///browser/components/search/SearchUIUtils.sys.mjs",
-});
 
 const searchService = Services.search.wrappedJSObject;
 
@@ -85,10 +82,11 @@ add_task(async function test_corrupt_settings() {
   consoleAllowList.push("get: Settings file empty or corrupt.");
   searchService.reset();
 
-  // Prevents unhandled error in promise because there is no window.
+  // Prevent `SearchUIUtils.searchSettingsResetNotificationBox` from
+  // running because it would fail since there is no window.
   let notificationBoxStub = sinon.stub(
-    SearchUIUtils,
-    "searchSettingsResetNotificationBox"
+    searchService,
+    "_showSearchSettingsResetNotificationBox"
   );
 
   await IOUtils.writeJSON(
