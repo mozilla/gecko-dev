@@ -608,6 +608,42 @@ TEST_F(FOGFixture, TestLabeledTimingDistWorks) {
   ASSERT_EQ(sampleCount, (uint64_t)2);
 }
 
+TEST_F(FOGFixture, TestLabeledTimingDistTruncateGet) {
+  // Note that bug 1959696 will up this limit to 111.
+  auto longKey =
+      "this is a key that is longer than the present limit of 71 characters ok?"_ns;
+
+  auto sec = TimeDuration::FromMilliseconds(1);
+  test_only::where_has_the_time_gone.MaybeTruncateAndGet(longKey)
+      .AccumulateRawDuration(sec);
+
+  DistributionData data =
+      test_only::where_has_the_time_gone.MaybeTruncateAndGet(longKey)
+          .TestGetValue()
+          .unwrap()
+          .ref();
+
+  const uint64_t NANOS_IN_MILLIS = 1e6;
+  ASSERT_EQ(data.sum, (uint64_t)(1 * NANOS_IN_MILLIS));
+
+  // Double-check that short labels aren't transformed.
+  auto shortKey = "some key"_ns;
+  test_only::where_has_the_time_gone.MaybeTruncateAndGet(shortKey)
+      .AccumulateRawDuration(sec);
+
+  data = test_only::where_has_the_time_gone.Get(shortKey)
+             .TestGetValue()
+             .unwrap()
+             .ref();
+  ASSERT_EQ(data.sum, (uint64_t)(1 * NANOS_IN_MILLIS));
+
+  // Let's make sure the long key correctly errors.
+  test_only::where_has_the_time_gone.Get(longKey).AccumulateRawDuration(sec);
+  ASSERT_TRUE(test_only::where_has_the_time_gone.MaybeTruncateAndGet(longKey)
+                  .TestGetValue()
+                  .isErr());
+}
+
 TEST_F(FOGFixture, TestLabeledQuantityWorks) {
   ASSERT_EQ(mozilla::Nothing(),
             test_only::button_jars.Get("shirt"_ns).TestGetValue().unwrap());

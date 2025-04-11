@@ -1493,7 +1493,8 @@ void PerformanceCounterState::MaybeReportAccumulatedTime(const nsCString& aName,
   TimeDuration duration = aNow - mCurrentTimeSliceStart;
 #ifdef MOZ_COLLECTING_RUNNABLE_TELEMETRY
   if (mIsMainThread && duration.ToMilliseconds() > LONGTASK_TELEMETRY_MS) {
-    glean::event::longtask.Get(aName).AccumulateRawDuration(duration);
+    glean::event::longtask.MaybeTruncateAndGet(aName).AccumulateRawDuration(
+        duration);
   }
 #endif
 
