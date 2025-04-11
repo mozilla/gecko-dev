@@ -2695,6 +2695,12 @@ class Document : public nsINode,
     return inner && inner->IsCurrentInnerWindow() && inner->GetDoc() == this;
   }
 
+  /*
+   * Return true if the documents current url can be re-written to `aTargetURL`.
+   * This implements https://html.spec.whatwg.org/#can-have-its-url-rewritten.
+   */
+  bool CanRewriteURL(nsIURI* aTargetURL) const;
+
   /**
    * Return true if this document is fully active as described by spec.
    * https://html.spec.whatwg.org/multipage/document-sequences.html#fully-active
