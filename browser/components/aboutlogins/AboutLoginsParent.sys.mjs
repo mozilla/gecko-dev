@@ -418,6 +418,13 @@ export class AboutLoginsParent extends JSWindowActorParent {
       return;
     }
 
+    if (!this.browsingContext.canOpenModalPicker) {
+      // Prompting for os auth removed the focus from about:logins.
+      // Waiting for about:logins window to re-gain the focus, because only
+      // active browsing contexts are allowed to open the file picker.
+      await this.sendQuery("AboutLogins:WaitForFocus");
+    }
+
     let fp = Cc["@mozilla.org/filepicker;1"].createInstance(Ci.nsIFilePicker);
     function fpCallback(aResult) {
       if (aResult != Ci.nsIFilePicker.returnCancel) {
