@@ -407,6 +407,10 @@ bool Navigation::FireDownloadRequestNavigateEvent(
       /* aClassicHistoryAPIState */ nullptr, aFilename);
 }
 
+// Implementation of this will be done in Bug 1948596.
+// https://html.spec.whatwg.org/#can-have-its-url-rewritten
+static bool CanBeRewritten(nsIURI* aURI, nsIURI* aOtherURI) { return false; }
+
 static bool HasHistoryActionActivation(
     Maybe<nsGlobalWindowInner&> aRelevantGlobalObject) {
   return aRelevantGlobalObject
@@ -531,10 +535,11 @@ bool Navigation::InnerFireNavigateEvent(
           .valueOr(nullptr);
 
   // Step 9
-  init.mCanIntercept = document &&
-                       document->CanRewriteURL(aDestination->GetURI()) &&
-                       (aDestination->SameDocument() ||
-                        aNavigationType != NavigationType::Traverse);
+  init.mCanIntercept =
+      document &&
+      CanBeRewritten(document->GetDocumentURI(), aDestination->GetURI()) &&
+      (aDestination->SameDocument() ||
+       aNavigationType != NavigationType::Traverse);
 
   // Step 10 and step 11
   init.mCancelable =

@@ -11179,8 +11179,7 @@ nsDocShell::AddState(JS::Handle<JS::Value> aData, const nsAString& aTitle,
 
   // Here's what we do, roughly in the order specified by HTML5.  The specific
   // steps we are executing are at
-  // <https://html.spec.whatwg.org/multipage/history.html#dom-history-pushstate>,
-  // <https://html.spec.whatwg.org/#shared-history-push/replace-state-steps>,
+  // <https://html.spec.whatwg.org/multipage/history.html#dom-history-pushstate>
   // and
   // <https://html.spec.whatwg.org/multipage/history.html#url-and-history-update-steps>.
   // This function basically implements #dom-history-pushstate and
@@ -11311,8 +11310,43 @@ nsDocShell::AddState(JS::Handle<JS::Value> aData, const nsAString& aTitle,
       return NS_ERROR_DOM_SECURITY_ERR;
     }
 
-    if (!document->CanRewriteURL(newURI)) {
-      return NS_ERROR_DOM_SECURITY_ERR;
+    // 7.4 and 7.5: Same-origin check.
+    if (!nsContentUtils::URIIsLocalFile(newURI)) {
+      // In addition to checking that the security manager says that
+      // the new URI has the same origin as our current URI, we also
+      // check that the two URIs have the same userpass. (The
+      // security manager says that |http://foo.com| and
+      // |http://me@foo.com| have the same origin.)  currentURI
+      // won't contain the password part of the userpass, so this
+      // means that it's never valid to specify a password in a
+      // pushState or replaceState URI.
+
+      nsCOMPtr<nsIScriptSecurityManager> secMan =
+          do_GetService(NS_SCRIPTSECURITYMANAGER_CONTRACTID);
+      NS_ENSURE_TRUE(secMan, NS_ERROR_FAILURE);
+
+      // It's very important that we check that newURI is of the same
+      // origin as currentURI, not docBaseURI, because a page can
+      // set docBaseURI arbitrarily to any domain.
+      nsAutoCString currentUserPass, newUserPass;
+      NS_ENSURE_SUCCESS(currentURI->GetUserPass(currentUserPass),
+                        NS_ERROR_FAILURE);
+      NS_ENSURE_SUCCESS(newURI->GetUserPass(newUserPass), NS_ERROR_FAILURE);
+      bool isPrivateWin =
+          document->NodePrincipal()->OriginAttributesRef().IsPrivateBrowsing();
+      if (NS_FAILED(secMan->CheckSameOriginURI(currentURI, newURI, true,
+                                               isPrivateWin)) ||
+          !currentUserPass.Equals(newUserPass)) {
+        return NS_ERROR_DOM_SECURITY_ERR;
+      }
+    } else {
+      // It's a file:// URI
+      nsCOMPtr<nsIPrincipal> principal = document->GetPrincipal();
+
+      if (!principal || NS_FAILED(principal->CheckMayLoadWithReporting(
+                            newURI, false, document->InnerWindowID()))) {
+        return NS_ERROR_DOM_SECURITY_ERR;
+      }
     }
 
     if (currentURI) {
