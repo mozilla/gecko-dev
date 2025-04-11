@@ -9762,7 +9762,7 @@
 # span more than one track.
 - name: layout.css.grid-flex-spanning-items-intrinsic-sizing.enabled
   type: bool
-  value: @IS_NIGHTLY_BUILD@
+  value: true
   mirror: always
 
 # Is support for :has() enabled?
