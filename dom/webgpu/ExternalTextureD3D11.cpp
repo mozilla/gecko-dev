@@ -37,7 +37,7 @@ UniquePtr<ExternalTextureD3D11> ExternalTextureD3D11::Create(
   }
 
   RefPtr<layers::FenceD3D11> fence =
-      layers::FenceD3D11::CreateFromHandle(fenceHandle);
+      layers::FenceD3D11::CreateFromHandle(fenceHandle, /* aDevice */ nullptr);
   if (!fence) {
     gfxCriticalNoteOnce << "Failed create FenceD3D11";
     return nullptr;
