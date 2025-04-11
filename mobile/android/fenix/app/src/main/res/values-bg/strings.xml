@@ -1382,6 +1382,8 @@
   <string name="tab_tray_multiselect_share_content_description">Споделяне на избраните раздели</string>
   <!-- Content description for tabs tray multiselect menu -->
   <string name="tab_tray_multiselect_menu_content_description">Меню избрани раздели</string>
+  <!-- Title text displayed for a homepage tab in the tabs tray. -->
+  <string name="tab_tray_homepage_tab">Начална страница</string>
   <!-- Content description (not visible, for screen readers etc.): Removes tab from collection button. Removes the selected tab from collection when pressed -->
   <string name="remove_tab_from_collection">Премахване на раздела от спъсъка</string>
   <!-- Text for button to enter multiselect mode in tabs tray -->
@@ -1522,6 +1524,8 @@
   <string name="download_search_placeholder" tools:ignore="UnusedResources">Търсене на изтегляния</string>
   <!-- Text to indicate that no downloads match the search query. -->
   <string name="download_search_no_results_found" tools:ignore="UnusedResources">Няма резултати</string>
+  <!-- Text for the "Select all" button, which selects all downloaded items in the downloads list. -->
+  <string name="download_select_all_items">Избиране на всичко</string>
   <!--
     Downloads Content Type Filters
 
@@ -3431,9 +3435,9 @@
 
     The default content description for the eye trailing icon button in TextField
   -->
-  <string name="text_field_eye_trailing_icon_default_content_description">Показване на скрит текст</string>
+  <string name="text_field_eye_trailing_icon_default_content_description" moz:removedIn="139" tools:ignore="UnusedResources">Показване на скрит текст</string>
   <!-- The default content description for the cross trailing icon button in TextField -->
-  <string name="text_field_cross_trailing_icon_default_content_description">Изчистване на текста</string>
+  <string name="text_field_cross_trailing_icon_default_content_description" moz:removedIn="139" tools:ignore="UnusedResources">Изчистване на текста</string>
   <!--
     Setup checklist feature
 

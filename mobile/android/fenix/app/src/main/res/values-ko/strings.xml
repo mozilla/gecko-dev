@@ -1385,6 +1385,8 @@
   <string name="tab_tray_multiselect_share_content_description">선택한 탭 공유</string>
   <!-- Content description for tabs tray multiselect menu -->
   <string name="tab_tray_multiselect_menu_content_description">선택한 탭 메뉴</string>
+  <!-- Title text displayed for a homepage tab in the tabs tray. -->
+  <string name="tab_tray_homepage_tab">홈페이지</string>
   <!-- Content description (not visible, for screen readers etc.): Removes tab from collection button. Removes the selected tab from collection when pressed -->
   <string name="remove_tab_from_collection">모음집에서 탭 삭제</string>
   <!-- Text for button to enter multiselect mode in tabs tray -->
@@ -1525,6 +1527,8 @@
   <string name="download_search_placeholder" tools:ignore="UnusedResources">다운로드 검색</string>
   <!-- Text to indicate that no downloads match the search query. -->
   <string name="download_search_no_results_found" tools:ignore="UnusedResources">결과 없음</string>
+  <!-- Text for the "Select all" button, which selects all downloaded items in the downloads list. -->
+  <string name="download_select_all_items">모두 선택</string>
   <!--
     Downloads Content Type Filters
 
@@ -3433,9 +3437,9 @@
 
     The default content description for the eye trailing icon button in TextField
   -->
-  <string name="text_field_eye_trailing_icon_default_content_description">숨긴 텍스트 표시</string>
+  <string name="text_field_eye_trailing_icon_default_content_description" moz:removedIn="139" tools:ignore="UnusedResources">숨긴 텍스트 표시</string>
   <!-- The default content description for the cross trailing icon button in TextField -->
-  <string name="text_field_cross_trailing_icon_default_content_description">텍스트 지우기</string>
+  <string name="text_field_cross_trailing_icon_default_content_description" moz:removedIn="139" tools:ignore="UnusedResources">텍스트 지우기</string>
   <!--
     Setup checklist feature
 
