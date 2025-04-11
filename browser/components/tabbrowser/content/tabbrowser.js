@@ -8797,11 +8797,7 @@ var TabContextMenu = {
           }
 
           item.classList.add("menuitem-iconic");
-          if (group.collapsed) {
-            item.classList.add("tab-group-icon-collapsed");
-          } else {
-            item.classList.add("tab-group-icon");
-          }
+          item.classList.add("tab-group-icon");
           item.style.setProperty(
             "--tab-group-color",
             group.style.getPropertyValue("--tab-group-color")
