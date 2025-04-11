@@ -12,6 +12,7 @@ import android.os.Build.VERSION.SDK_INT
 import androidx.annotation.RequiresApi
 import mozilla.components.browser.state.action.ContentAction
 import mozilla.components.browser.state.selector.findTabOrCustomTabOrSelectedTab
+import mozilla.components.browser.state.selector.selectedTab
 import mozilla.components.browser.state.store.BrowserStore
 import mozilla.components.concept.base.crash.CrashReporting
 import mozilla.components.concept.engine.mediasession.MediaSession
@@ -84,6 +85,7 @@ class PictureInPictureFeature(
      */
     fun onPictureInPictureModeChanged(enabled: Boolean) {
         val sessionId = tabId ?: store.state.selectedTabId ?: return
+        store.state.selectedTab?.engineState?.engineSession?.onPipModeChanged(enabled)
         store.dispatch(ContentAction.PictureInPictureChangedAction(sessionId, enabled))
     }
 }

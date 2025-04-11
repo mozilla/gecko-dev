@@ -407,6 +407,7 @@ package org.mozilla.geckoview {
     method public void addDrawCallback(@NonNull Runnable);
     method public int getClearColor();
     method @Nullable public Runnable getFirstPaintCallback();
+    method public void onPipModeChanged(boolean);
     method public void removeDrawCallback(@NonNull Runnable);
     method public void setClearColor(int);
     method public void setFirstPaintCallback(@Nullable Runnable);

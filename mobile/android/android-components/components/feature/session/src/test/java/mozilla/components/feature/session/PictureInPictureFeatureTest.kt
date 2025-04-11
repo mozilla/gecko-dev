@@ -9,6 +9,7 @@ import android.content.pm.PackageManager
 import android.os.Build
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import mozilla.components.browser.state.action.ContentAction
+import mozilla.components.browser.state.selector.selectedTab
 import mozilla.components.browser.state.state.BrowserState
 import mozilla.components.browser.state.state.MediaSessionState
 import mozilla.components.browser.state.state.SessionState
@@ -286,6 +287,10 @@ class PictureInPictureFeatureTest {
     @Test
     fun `on pip mode changed`() {
         val store = mock<BrowserStore>()
+        val browserState = mock<BrowserState>().apply {
+            whenever(selectedTab).thenReturn(null)
+        }
+        whenever(store.state).thenReturn(browserState)
         val pipFeature = PictureInPictureFeature(
             store,
             activity,
