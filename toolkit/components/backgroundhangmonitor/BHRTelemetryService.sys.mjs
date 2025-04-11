@@ -125,7 +125,8 @@ BHRTelemetryService.prototype = Object.freeze({
     // errors) while avoiding timeouts caused by invoking `pingsender` during
     // testing.
     if (
-      Services.prefs.getBoolPref("toolkit.telemetry.bhrPing.enabled", false)
+      Services.prefs.getBoolPref("toolkit.telemetry.bhrPing.enabled", false) &&
+      this.payload.hangs.length
     ) {
       this.payload.timeSinceLastPing = new Date() - this.startTime;
       lazy.TelemetryController.submitExternalPing("bhr", this.payload, {
