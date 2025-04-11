@@ -28,6 +28,7 @@
 #include "jsep/JsepSession.h"
 #include "jsep/JsepSessionImpl.h"
 #include "sdp/SdpMediaSection.h"
+#include "DefaultCodecPreferences.h"
 
 #include "mozilla/ErrorResult.h"
 #include "jsapi/PacketDumper.h"
@@ -195,6 +196,11 @@ class PeerConnectionImpl final
   static already_AddRefed<PeerConnectionImpl> Constructor(
       const mozilla::dom::GlobalObject& aGlobal);
 
+  static DefaultCodecPreferences GetDefaultCodecPreferences(
+      const OverrideRtxPreference aOverrideRtxPreference =
+          OverrideRtxPreference::NoOverride) {
+    return DefaultCodecPreferences(aOverrideRtxPreference);
+  }
   // DataConnection observers
   void NotifyDataChannel(already_AddRefed<mozilla::DataChannel> aChannel)
       // PeerConnectionImpl only inherits from mozilla::DataChannelConnection
@@ -577,7 +583,7 @@ class PeerConnectionImpl final
 
   static void GetDefaultVideoCodecs(
       std::vector<UniquePtr<JsepCodecDescription>>& aSupportedCodecs,
-      bool aUseRtx);
+      const OverrideRtxPreference aOverrideRtxPreference);
 
   static void GetDefaultAudioCodecs(
       std::vector<UniquePtr<JsepCodecDescription>>& aSupportedCodecs);

@@ -633,184 +633,27 @@ class CompareCodecPriority {
   nsCString mPreferredCodec;
 };
 
-class ConfigureCodec {
- public:
-  explicit ConfigureCodec(nsCOMPtr<nsIPrefBranch>& branch)
-      : mHardwareH264Enabled(false),
-        mSoftwareH264Enabled(false),
-        mH264Enabled(false),
-        mVP9Enabled(true),
-        mVP9Preferred(false),
-        mAV1Enabled(StaticPrefs::media_webrtc_codec_video_av1_enabled()),
-        mH264Level(13),   // minimum suggested for WebRTC spec
-        mH264MaxBr(0),    // Unlimited
-        mH264MaxMbps(0),  // Unlimited
-        mVP8MaxFs(0),
-        mVP8MaxFr(0),
-        mUseTmmbr(false),
-        mUseRemb(false),
-        mUseTransportCC(false),
-        mUseAudioFec(false),
-        mRedUlpfecEnabled(false) {
-#ifdef MOZ_WIDGET_ANDROID
-    // Although Play Store policy doesn't allow GMP plugin, Android has H.264 SW
-    // codec.
-    MOZ_ASSERT(!PeerConnectionCtx::GetInstance()->gmpHasH264(),
-               "GMP plugin not allowed on Android");
-    mSoftwareH264Enabled = true;
-#else
-    mSoftwareH264Enabled = PeerConnectionCtx::GetInstance()->gmpHasH264();
-#endif
-
-    if (WebrtcVideoConduit::HasH264Hardware()) {
-      glean::webrtc::has_h264_hardware
-          .EnumGet(glean::webrtc::HasH264HardwareLabel::eTrue)
-          .Add();
-      branch->GetBoolPref("media.webrtc.hw.h264.enabled",
-                          &mHardwareH264Enabled);
-    }
-
-    mH264Enabled = mHardwareH264Enabled || mSoftwareH264Enabled;
-    glean::webrtc::software_h264_enabled
-        .EnumGet(static_cast<glean::webrtc::SoftwareH264EnabledLabel>(
-            mSoftwareH264Enabled))
+void RecordCodecTelemetry() {
+  const auto prefs = PeerConnectionImpl::GetDefaultCodecPreferences();
+  if (WebrtcVideoConduit::HasH264Hardware()) {
+    glean::webrtc::has_h264_hardware
+        .EnumGet(glean::webrtc::HasH264HardwareLabel::eTrue)
         .Add();
-    glean::webrtc::hardware_h264_enabled
-        .EnumGet(static_cast<glean::webrtc::HardwareH264EnabledLabel>(
-            mHardwareH264Enabled))
-        .Add();
-    glean::webrtc::h264_enabled
-        .EnumGet(static_cast<glean::webrtc::H264EnabledLabel>(mH264Enabled))
-        .Add();
-
-    branch->GetIntPref("media.navigator.video.h264.level", &mH264Level);
-    mH264Level &= 0xFF;
-
-    branch->GetIntPref("media.navigator.video.h264.max_br", &mH264MaxBr);
-
-    branch->GetIntPref("media.navigator.video.h264.max_mbps", &mH264MaxMbps);
-
-    branch->GetBoolPref("media.peerconnection.video.vp9_enabled", &mVP9Enabled);
-
-    branch->GetBoolPref("media.peerconnection.video.vp9_preferred",
-                        &mVP9Preferred);
-
-    branch->GetIntPref("media.navigator.video.max_fs", &mVP8MaxFs);
-    if (mVP8MaxFs <= 0) {
-      mVP8MaxFs = 12288;  // We must specify something other than 0
-    }
-
-    branch->GetIntPref("media.navigator.video.max_fr", &mVP8MaxFr);
-    if (mVP8MaxFr <= 0) {
-      mVP8MaxFr = 60;  // We must specify something other than 0
-    }
-
-    // TMMBR is enabled from a pref in about:config
-    branch->GetBoolPref("media.navigator.video.use_tmmbr", &mUseTmmbr);
-
-    // REMB is enabled by default, but can be disabled from about:config
-    branch->GetBoolPref("media.navigator.video.use_remb", &mUseRemb);
-
-    branch->GetBoolPref("media.navigator.video.use_transport_cc",
-                        &mUseTransportCC);
-
-    branch->GetBoolPref("media.navigator.audio.use_fec", &mUseAudioFec);
-
-    branch->GetBoolPref("media.navigator.video.red_ulpfec_enabled",
-                        &mRedUlpfecEnabled);
   }
 
-  void operator()(UniquePtr<JsepCodecDescription>& codec) const {
-    switch (codec->Type()) {
-      case SdpMediaSection::kAudio: {
-        JsepAudioCodecDescription& audioCodec =
-            static_cast<JsepAudioCodecDescription&>(*codec);
-        if (audioCodec.mName == "opus") {
-          audioCodec.mFECEnabled = mUseAudioFec;
-        } else if (audioCodec.mName == "telephone-event") {
-          audioCodec.mEnabled = true;
-        }
-      } break;
-      case SdpMediaSection::kVideo: {
-        JsepVideoCodecDescription& videoCodec =
-            static_cast<JsepVideoCodecDescription&>(*codec);
-
-        if (videoCodec.mName == "H264") {
-          // Override level but not for the pure Baseline codec
-          if (JsepVideoCodecDescription::GetSubprofile(
-                  videoCodec.mProfileLevelId) ==
-              JsepVideoCodecDescription::kH264ConstrainedBaseline) {
-            videoCodec.mProfileLevelId &= 0xFFFF00;
-            videoCodec.mProfileLevelId |= mH264Level;
-          }
-
-          videoCodec.mConstraints.maxBr = mH264MaxBr;
-
-          videoCodec.mConstraints.maxMbps = mH264MaxMbps;
-
-          // Might disable it, but we set up other params anyway
-          videoCodec.mEnabled = mH264Enabled;
-
-          if (videoCodec.mPacketizationMode == 0 &&
-              !PeerConnectionCtx::GetInstance()->gmpHasH264()) {
-            // Packetization mode 0 is unsupported by MediaDataEncoder.
-            videoCodec.mEnabled = false;
-          }
-        } else if (videoCodec.mName == "red") {
-          videoCodec.mEnabled = mRedUlpfecEnabled;
-        } else if (videoCodec.mName == "ulpfec") {
-          videoCodec.mEnabled = mRedUlpfecEnabled;
-        } else if (videoCodec.mName == "VP8" || videoCodec.mName == "VP9") {
-          if (videoCodec.mName == "VP9") {
-            if (!mVP9Enabled) {
-              videoCodec.mEnabled = false;
-              break;
-            }
-            if (mVP9Preferred) {
-              videoCodec.mStronglyPreferred = true;
-            }
-          }
-          videoCodec.mConstraints.maxFs = mVP8MaxFs;
-          videoCodec.mConstraints.maxFps = Some(mVP8MaxFr);
-        } else if (videoCodec.mName == "AV1") {
-          videoCodec.mEnabled = mAV1Enabled;
-        }
-
-        if (mUseTmmbr) {
-          videoCodec.EnableTmmbr();
-        }
-        if (mUseRemb) {
-          videoCodec.EnableRemb();
-        }
-        if (mUseTransportCC) {
-          videoCodec.EnableTransportCC();
-        }
-      } break;
-      case SdpMediaSection::kText:
-      case SdpMediaSection::kApplication:
-      case SdpMediaSection::kMessage: {
-      }  // Nothing to configure for these.
-    }
-  }
-
- private:
-  bool mHardwareH264Enabled;
-  bool mSoftwareH264Enabled;
-  bool mH264Enabled;
-  bool mVP9Enabled;
-  bool mVP9Preferred;
-  bool mAV1Enabled;
-  int32_t mH264Level;
-  int32_t mH264MaxBr;
-  int32_t mH264MaxMbps;
-  int32_t mVP8MaxFs;
-  int32_t mVP8MaxFr;
-  bool mUseTmmbr;
-  bool mUseRemb;
-  bool mUseTransportCC;
-  bool mUseAudioFec;
-  bool mRedUlpfecEnabled;
-};
+  glean::webrtc::software_h264_enabled
+      .EnumGet(static_cast<glean::webrtc::SoftwareH264EnabledLabel>(
+          prefs.SoftwareH264Enabled()))
+      .Add();
+  glean::webrtc::hardware_h264_enabled
+      .EnumGet(static_cast<glean::webrtc::HardwareH264EnabledLabel>(
+          prefs.HardwareH264Enabled()))
+      .Add();
+  glean::webrtc::h264_enabled
+      .EnumGet(
+          static_cast<glean::webrtc::H264EnabledLabel>(prefs.H264Enabled()))
+      .Add();
+}
 
 nsresult PeerConnectionImpl::ConfigureJsepSessionCodecs() {
   nsresult res;
@@ -829,8 +672,7 @@ nsresult PeerConnectionImpl::ConfigureJsepSessionCodecs() {
     return NS_ERROR_FAILURE;
   }
 
-  ConfigureCodec configurer(branch);
-  mJsepSession->ForEachCodec(configurer);
+  RecordCodecTelemetry();
 
   // We use this to sort the list of codecs once everything is configured
   CompareCodecPriority comparator;
@@ -2204,17 +2046,18 @@ void PeerConnectionImpl::SendWarningToConsole(const nsCString& aWarning) {
 
 void PeerConnectionImpl::GetDefaultVideoCodecs(
     std::vector<UniquePtr<JsepCodecDescription>>& aSupportedCodecs,
-    bool aUseRtx) {
+    const OverrideRtxPreference aOverrideRtxPreference) {
+  const auto prefs = GetDefaultCodecPreferences(aOverrideRtxPreference);
   // Supported video codecs.
   // Note: order here implies priority for building offers!
   aSupportedCodecs.emplace_back(
-      JsepVideoCodecDescription::CreateDefaultVP8(aUseRtx));
+      JsepVideoCodecDescription::CreateDefaultVP8(prefs));
   aSupportedCodecs.emplace_back(
-      JsepVideoCodecDescription::CreateDefaultVP9(aUseRtx));
+      JsepVideoCodecDescription::CreateDefaultVP9(prefs));
   aSupportedCodecs.emplace_back(
-      JsepVideoCodecDescription::CreateDefaultH264_1(aUseRtx));
+      JsepVideoCodecDescription::CreateDefaultH264_1(prefs));
   aSupportedCodecs.emplace_back(
-      JsepVideoCodecDescription::CreateDefaultH264_0(aUseRtx));
+      JsepVideoCodecDescription::CreateDefaultH264_0(prefs));
 
   const bool disableBaseline = Preferences::GetBool(
       "media.navigator.video.disable_h264_baseline", false);
@@ -2222,22 +2065,23 @@ void PeerConnectionImpl::GetDefaultVideoCodecs(
   // Only add Baseline if it hasn't been disabled.
   if (!disableBaseline) {
     aSupportedCodecs.emplace_back(
-        JsepVideoCodecDescription::CreateDefaultH264Baseline_1(aUseRtx));
+        JsepVideoCodecDescription::CreateDefaultH264Baseline_1(prefs));
     aSupportedCodecs.emplace_back(
-        JsepVideoCodecDescription::CreateDefaultH264Baseline_0(aUseRtx));
+        JsepVideoCodecDescription::CreateDefaultH264Baseline_0(prefs));
   }
 
   if (WebrtcVideoConduit::HasAv1() &&
       StaticPrefs::media_webrtc_codec_video_av1_enabled()) {
     aSupportedCodecs.emplace_back(
-        JsepVideoCodecDescription::CreateDefaultAV1(aUseRtx));
+        JsepVideoCodecDescription::CreateDefaultAV1(prefs));
   }
 
   aSupportedCodecs.emplace_back(
-      JsepVideoCodecDescription::CreateDefaultUlpFec());
+      JsepVideoCodecDescription::CreateDefaultUlpFec(prefs));
   aSupportedCodecs.emplace_back(
       JsepApplicationCodecDescription::CreateDefault());
-  aSupportedCodecs.emplace_back(JsepVideoCodecDescription::CreateDefaultRed());
+  aSupportedCodecs.emplace_back(
+      JsepVideoCodecDescription::CreateDefaultRed(prefs));
 
   CompareCodecPriority comparator;
   if (StaticPrefs::media_webrtc_codec_video_av1_experimental_preferred()) {
@@ -2249,7 +2093,9 @@ void PeerConnectionImpl::GetDefaultVideoCodecs(
 
 void PeerConnectionImpl::GetDefaultAudioCodecs(
     std::vector<UniquePtr<JsepCodecDescription>>& aSupportedCodecs) {
-  aSupportedCodecs.emplace_back(JsepAudioCodecDescription::CreateDefaultOpus());
+  const auto prefs = GetDefaultCodecPreferences();
+  aSupportedCodecs.emplace_back(
+      JsepAudioCodecDescription::CreateDefaultOpus(prefs));
   aSupportedCodecs.emplace_back(JsepAudioCodecDescription::CreateDefaultG722());
   aSupportedCodecs.emplace_back(JsepAudioCodecDescription::CreateDefaultPCMU());
   aSupportedCodecs.emplace_back(JsepAudioCodecDescription::CreateDefaultPCMA());
@@ -2303,7 +2149,11 @@ void PeerConnectionImpl::GetCapabilities(
   auto mediaType = JsepMediaType::kNone;
 
   if (aKind.EqualsASCII("video")) {
-    GetDefaultVideoCodecs(codecs, true);
+    // Note to reviewers, this forced RTX to true.
+    // RTX is supported by default, so I am not sure if that was necessary.
+    // When it has been explicitly disabled by pref, is there a point in
+    // forcing it here?
+    GetDefaultVideoCodecs(codecs, OverrideRtxPreference::NoOverride);
     mediaType = JsepMediaType::kVideo;
   } else if (aKind.EqualsASCII("audio")) {
     GetDefaultAudioCodecs(codecs);
@@ -2369,10 +2219,7 @@ void PeerConnectionImpl::GetCapabilities(
 
 void PeerConnectionImpl::SetupPreferredCodecs(
     std::vector<UniquePtr<JsepCodecDescription>>& aPreferredCodecs) {
-  bool useRtx =
-      Preferences::GetBool("media.peerconnection.video.use_rtx", false);
-
-  GetDefaultVideoCodecs(aPreferredCodecs, useRtx);
+  GetDefaultVideoCodecs(aPreferredCodecs, OverrideRtxPreference::NoOverride);
   GetDefaultAudioCodecs(aPreferredCodecs);
 }
 

@@ -20,7 +20,6 @@
 #include "PeerConnectionImpl.h"
 #include "sdp/SdpMediaSection.h"
 #include "sdp/SipccSdpParser.h"
-#include "jsep/JsepCodecDescription.h"
 #include "jsep/JsepTrack.h"
 #include "jsep/JsepSession.h"
 #include "jsep/JsepSessionImpl.h"
@@ -66,8 +65,10 @@ class JsepSessionTest : public JsepSessionTestBase,
                             "never");
     Preferences::SetBool("media.peerconnection.video.use_rtx", true);
     Preferences::SetBool("media.navigator.video.use_transport_cc", true);
+    Preferences::SetBool("media.navigator.video.use_remb", true);
     Preferences::SetBool("media.navigator.video.disable_h264_baseline", false);
     Preferences::SetBool("media.webrtc.codec.video.av1.enabled", true);
+    Preferences::SetBool("media.navigator.audio.use_fec", false);
 
     mSessionOff =
         MakeUnique<JsepSessionImpl>("Offerer", MakeUnique<FakeUuidGenerator>());
@@ -6079,6 +6080,8 @@ TEST_F(JsepSessionTest, RtcpFbInOffer) {
   expected["nack"] = false;
   expected["nack pli"] = false;
   expected["ccm fir"] = false;
+  expected["goog-remb"] = false;
+  expected["transport-cc"] = false;
 
   size_t prev = 0;
   size_t found = 0;

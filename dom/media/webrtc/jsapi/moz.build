@@ -19,6 +19,7 @@ LOCAL_INCLUDES += [
 ]
 
 UNIFIED_SOURCES += [
+    "DefaultCodecPreferences.cpp",
     "MediaTransportHandler.cpp",
     "MediaTransportHandlerIPC.cpp",
     "MediaTransportParent.cpp",
