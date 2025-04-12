@@ -1233,8 +1233,7 @@ class FileListFinder(BaseFinder):
     """Finder for a literal list of file names."""
 
     def __init__(self, files):
-        """files must be a sorted list."""
-        self._files = files
+        self._files = sorted(files)
 
     @memoize
     def _match(self, pattern):
