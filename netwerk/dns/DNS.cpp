@@ -85,12 +85,7 @@ void NetAddrToPRNetAddr(const NetAddr* addr, PRNetAddr* prAddr) {
     memcpy(&prAddr->ipv6.ip, &addr->inet6.ip, sizeof(addr->inet6.ip.u8));
     prAddr->ipv6.scope_id = addr->inet6.scope_id;
   }
-#if defined(XP_UNIX)
-  else if (addr->raw.family == AF_LOCAL) {
-    prAddr->local.family = PR_AF_LOCAL;
-    memcpy(prAddr->local.path, addr->local.path, sizeof(addr->local.path));
-  }
-#elif defined(XP_WIN)
+#if defined(XP_UNIX) || defined(XP_WIN)
   else if (addr->raw.family == AF_LOCAL) {
     prAddr->local.family = PR_AF_LOCAL;
     memcpy(prAddr->local.path, addr->local.path, sizeof(addr->local.path));
