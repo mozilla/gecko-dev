@@ -57,20 +57,81 @@
         margin: 0;
     }
 
-    > ul {
-        font-size: var(--og-main-font-size);
-        padding-inline-start: var(--space-large);
-    }
+  > ul {
+      font-size: var(--og-main-font-size);
+      line-height: 1.15;  /* Design requires 18px line-height */
+      list-style-type: square;
+      padding-inline-start: var(--space-large);
+  }
 
-    li {
-        margin-block: var(--space-medium);
+  li {
+      margin-block: var(--space-medium);
+      padding-inline-start: 5px;
+      &::marker {
+        color: var(--border-color-deemphasized);
     }
+  }
 
-    > hr {
-        border-color: var(--border-color-card);
-    }
+  > hr {
+      border-color: var(--border-color-card);
+  }
 
     > p {
         margin-block: var(--space-medium) 0;
     }
+}
+
+/**
+ * Defines the animation for the loading state of link preview keypoints
+ * Creates a smooth gradient animation that moves from right to left
+ * to indicate content is being loaded
+ */
+@keyframes link-preview-keypoints-loading {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+.keypoints-list {
+  .content-item {
+    margin-bottom: var(--space-xlarge);
+    width: 100%;
+
+    &.loading {
+      div {
+        --skeleton-loader-background-color: var(--tab-group-suggestions-loading-animation-color-1);
+        --skeleton-loader-motion-element-color: var(--tab-group-suggestions-loading-animation-color-2);
+        animation: link-preview-keypoints-loading 3s infinite;
+        background: linear-gradient(
+          100deg,
+          var(--skeleton-loader-background-color) 30%,
+          var(--skeleton-loader-motion-element-color) 50%,
+          var(--skeleton-loader-background-color) 70%
+        );
+        background-size: 200% 100%;
+        border-radius: 5px;
+        height: var(--og-main-font-size);
+        margin-bottom: 4px;
+        width: 100%;
+         /* Add non-impactful references to the CSS variables to satisfy the test browser_parsable_css */
+        outline-color: var(--skeleton-loader-background-color);
+        border-color: var(--skeleton-loader-motion-element-color);
+      }
+
+      div:nth-of-type(1) {
+        max-width: 95%;
+      }
+
+      div:nth-of-type(2) {
+        max-width: 98%;
+      }
+
+      div:nth-of-type(3) {
+        max-width: 90%;
+      }
+    }
+  }
 }
