@@ -1304,8 +1304,6 @@ export class ExtensionData {
    * Returns additional permissions that extensions is requesting based on its
    * manifest. For now, this is host_permissions (and content scripts) in mv3,
    * and the "technicalAndInteraction" optional data collection permission.
-   *
-   * @returns {null | Permissions}
    */
   getRequestedPermissions() {
     if (this.type !== "extension") {
@@ -1338,9 +1336,7 @@ export class ExtensionData {
 
   /**
    * Returns optional permissions from the manifest, including host permissions
-   * if originControls is true, and optional data collection (if enabled).
-   *
-   * @returns {null | Permissions}
+   * if originControls is true.
    */
   get manifestOptionalPermissions() {
     if (this.type !== "extension") {
@@ -1357,14 +1353,11 @@ export class ExtensionData {
       }
     }
 
-    const data_collection = lazy.dataCollectionPermissionsEnabled
-      ? this.getDataCollectionPermissions().optional
-      : [];
+    // TODO: Bug 1955990 - add support for data collection permissions.
 
     return {
       permissions: Array.from(permissions),
       origins: Array.from(origins),
-      data_collection,
     };
   }
 
@@ -1420,9 +1413,6 @@ export class ExtensionData {
       permissions: newPermissions.permissions.filter(
         perm => !oldPermissions.permissions.includes(perm)
       ),
-      data_collection: newPermissions.data_collection.filter(
-        perm => newPermissions.data_collection.includes(perm) && perm !== "none"
-      ),
     };
   }
 
@@ -1440,9 +1430,6 @@ export class ExtensionData {
       ),
       permissions: oldPermissions.permissions.filter(perm =>
         newPermissions.permissions.includes(perm)
-      ),
-      data_collection: oldPermissions.data_collection.filter(
-        perm => newPermissions.data_collection.includes(perm) && perm !== "none"
       ),
     };
   }
@@ -2878,10 +2865,7 @@ export class ExtensionData {
         permissions.data_collection?.length
       ) {
         result.dataCollectionPermissions =
-          this._formatDataCollectionPermissions(
-            permissions.data_collection,
-            type
-          );
+          this._formatDataCollectionPermissions(permissions.data_collection);
       }
     }
 
@@ -2961,17 +2945,10 @@ export class ExtensionData {
             : "webext-perms-sideload-text-no-perms"
         );
         break;
-      case "update": {
-        if (!lazy.dataCollectionPermissionsEnabled) {
-          headerId = "webext-perms-update-text";
-        } else {
-          headerId = hasDataCollectionOnly
-            ? "webext-perms-update-data-collection-only-text"
-            : "webext-perms-update-data-collection-text";
-        }
+      case "update":
+        headerId = "webext-perms-update-text";
         acceptId = "webext-perms-update-accept";
         break;
-      }
       case "optional":
         headerId = "webext-perms-optional-perms-header";
         acceptId = "webext-perms-optional-perms-allow";
@@ -3004,7 +2981,7 @@ export class ExtensionData {
    * @returns {{msg: string, collectsTechnicalAndInteractionData: boolean}} An
    * object with information about data collection permissions for the UI.
    */
-  static _formatDataCollectionPermissions(dataPermissions, type) {
+  static _formatDataCollectionPermissions(dataPermissions) {
     const dataCollectionPermissions = {};
     const permissions = new Set(dataPermissions);
 
@@ -3034,17 +3011,8 @@ export class ExtensionData {
         }
       }
 
-      let id;
-      switch (type) {
-        case "update":
-          id = "webext-perms-description-data-some-update";
-          break;
-        default:
-          id = "webext-perms-description-data-some";
-      }
-
       const fluentIdAndArgs = {
-        id,
+        id: "webext-perms-description-data-some",
         args: {
           permissions: new Intl.ListFormat(undefined, {
             style: "narrow",

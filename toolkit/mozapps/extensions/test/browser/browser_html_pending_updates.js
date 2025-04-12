@@ -4,10 +4,6 @@ const { AddonTestUtils } = ChromeUtils.importESModule(
   "resource://testing-common/AddonTestUtils.sys.mjs"
 );
 
-ChromeUtils.defineESModuleGetters(this, {
-  PERMISSION_L10N: "resource://gre/modules/ExtensionPermissionMessages.sys.mjs",
-});
-
 AddonTestUtils.initMochitest(this);
 
 const server = AddonTestUtils.createHttpServer();
@@ -53,7 +49,6 @@ add_setup(async function () {
 function createTestExtension({
   id = "test-pending-update@test",
   newManifest = {},
-  oldManifest = {},
 }) {
   function background() {
     browser.runtime.onUpdateAvailable.addListener(() => {
@@ -69,7 +64,6 @@ function createTestExtension({
 
   const manifest = {
     name: "Test Pending Update",
-    ...oldManifest,
     browser_specific_settings: {
       gecko: { id, update_url },
     },
@@ -78,16 +72,7 @@ function createTestExtension({
 
   let extension = ExtensionTestUtils.loadExtension({
     background,
-    manifest: {
-      ...oldManifest,
-      ...manifest,
-      browser_specific_settings: {
-        gecko: {
-          ...(oldManifest.browser_specific_settings?.gecko ?? {}),
-          ...manifest.browser_specific_settings.gecko,
-        },
-      },
-    },
+    manifest,
     // Use permanent so the add-on can be updated.
     useAddonManager: "permanent",
   });
@@ -323,271 +308,4 @@ add_task(async function test_pending_update_no_prompted_permission() {
 
   await closeView(win);
   await extension.unload();
-});
-
-add_task(async function test_pending_update_with_prompted_permission() {
-  await SpecialPowers.pushPrefEnv({
-    set: [["extensions.dataCollectionPermissions.enabled", true]],
-  });
-
-  const TEST_CASES = [
-    {
-      title: "With data collection",
-      data_collection_permissions: {
-        required: ["locationInfo"],
-      },
-      verifyDialog(popupContentEl, { extensionId }) {
-        Assert.equal(
-          popupContentEl.querySelector(".popup-notification-description")
-            .textContent,
-          PERMISSION_L10N.formatValueSync(
-            "webext-perms-update-data-collection-only-text",
-            { extension: extensionId }
-          ),
-          "Expected header string without perms"
-        );
-        Assert.equal(
-          popupContentEl.permsListEl.childElementCount,
-          1,
-          "Expected a permission entry in the list"
-        );
-        Assert.ok(
-          popupContentEl.permsListEl.querySelector(
-            "li.webext-data-collection-perm-granted"
-          ),
-          "Expected data collection item"
-        );
-        Assert.equal(
-          popupContentEl.permsListEl.firstChild.textContent,
-          PERMISSION_L10N.formatValueSync(
-            "webext-perms-description-data-some-update",
-            {
-              permissions: "location",
-            }
-          ),
-          "Expected formatted data collection permission string"
-        );
-        Assert.ok(
-          popupContentEl.hasAttribute("learnmoreurl"),
-          "Expected a learn more link"
-        );
-      },
-    },
-    {
-      title: "With data collection and required permission",
-      permissions: ["bookmarks"],
-      data_collection_permissions: {
-        required: ["locationInfo", "healthInfo"],
-      },
-      verifyDialog(popupContentEl, { extensionId }) {
-        Assert.equal(
-          popupContentEl.querySelector(".popup-notification-description")
-            .textContent,
-          PERMISSION_L10N.formatValueSync(
-            "webext-perms-update-data-collection-text",
-            { extension: extensionId }
-          ),
-          "Expected header string with perms"
-        );
-        Assert.equal(
-          popupContentEl.permsListEl.childElementCount,
-          2,
-          "Expected two permission entries in the list"
-        );
-        Assert.equal(
-          popupContentEl.permsListEl.firstChild.textContent,
-          PERMISSION_L10N.formatValueSync("webext-perms-description-bookmarks"),
-          "Expected formatted permission string"
-        );
-        Assert.equal(
-          popupContentEl.permsListEl.lastChild.textContent,
-          PERMISSION_L10N.formatValueSync(
-            "webext-perms-description-data-some-update",
-            {
-              permissions: "location, health information",
-            }
-          ),
-          "Expected formatted data collection permission string"
-        );
-        Assert.ok(
-          popupContentEl.hasAttribute("learnmoreurl"),
-          "Expected a learn more link"
-        );
-      },
-    },
-    {
-      title: "With data collection changing from required to optional",
-      permissions: ["bookmarks"],
-      old_data_collection_permissions: {
-        required: ["bookmarksInfo"],
-      },
-      data_collection_permissions: {
-        required: ["locationInfo", "healthInfo"],
-        optional: ["bookmarksInfo"],
-      },
-      verifyDialog(popupContentEl, { extensionId }) {
-        Assert.equal(
-          popupContentEl.querySelector(".popup-notification-description")
-            .textContent,
-          PERMISSION_L10N.formatValueSync(
-            "webext-perms-update-data-collection-text",
-            { extension: extensionId }
-          ),
-          "Expected header string with perms"
-        );
-        Assert.equal(
-          popupContentEl.permsListEl.childElementCount,
-          2,
-          "Expected two permission entries in the list"
-        );
-        Assert.equal(
-          popupContentEl.permsListEl.childNodes[0].textContent,
-          PERMISSION_L10N.formatValueSync("webext-perms-description-bookmarks"),
-          "Expected formatted bookmarks permission string"
-        );
-        Assert.equal(
-          popupContentEl.permsListEl.childNodes[1].textContent,
-          PERMISSION_L10N.formatValueSync(
-            "webext-perms-description-data-some-update",
-            {
-              permissions: "location, health information",
-            }
-          ),
-          "Expected formatted data collection permission string"
-        );
-        Assert.ok(
-          popupContentEl.hasAttribute("learnmoreurl"),
-          "Expected a learn more link"
-        );
-      },
-    },
-  ];
-
-  for (const {
-    title,
-    permissions,
-    data_collection_permissions,
-    old_data_collection_permissions,
-    verifyDialog,
-  } of TEST_CASES) {
-    info(title);
-
-    const id = `@${title.toLowerCase().replaceAll(/[^\w]+/g, "-")}`;
-    const { extension } = createTestExtension({
-      id,
-      oldManifest: {
-        browser_specific_settings: {
-          gecko: {
-            ...(old_data_collection_permissions
-              ? { data_collection_permissions: old_data_collection_permissions }
-              : {}),
-          },
-        },
-      },
-      newManifest: {
-        name: id,
-        permissions,
-        browser_specific_settings: {
-          gecko: {
-            id,
-            data_collection_permissions,
-          },
-        },
-      },
-    });
-
-    await extension.startup();
-    await extension.awaitMessage("bgpage-ready");
-    const win = await loadInitialView("extension");
-
-    const dialogPromise = promisePopupNotificationShown(
-      "addon-webext-permissions"
-    );
-    // This `promptPromise` is retrieving data from the prompt internals, while
-    // the `dialogPromise` will return the actual dialog element.
-    const promptPromise = promisePermissionPrompt(id);
-    win.checkForUpdates();
-    const [popupContentEl, infoProps] = await Promise.all([
-      dialogPromise,
-      promptPromise,
-    ]);
-
-    verifyDialog(popupContentEl, { extensionId: id });
-
-    // Confirm the update, and proceed.
-    const waitForManagementUpdate = new Promise(resolve => {
-      const { Management } = ChromeUtils.importESModule(
-        "resource://gre/modules/Extension.sys.mjs"
-      );
-      Management.once("update", resolve);
-    });
-    infoProps.resolve();
-    await promiseUpdateAvailable(extension);
-    await completePostponedUpdate({ id, win });
-    // Ensure that the bootstrap scope update method has been executed
-    // successfully and emitted the update Management event.
-    info("Wait for the Management update to be emitted");
-    await waitForManagementUpdate;
-
-    await closeView(win);
-    await extension.unload();
-  }
-
-  await SpecialPowers.popPrefEnv();
-});
-
-add_task(async function test_pending_update_with_no_prompted_permission() {
-  await SpecialPowers.pushPrefEnv({
-    set: [["extensions.dataCollectionPermissions.enabled", true]],
-  });
-
-  const TEST_CASES = [
-    {
-      title: "No data collection",
-      data_collection_permissions: {},
-    },
-    {
-      title: "Explicit no data collection",
-      data_collection_permissions: {
-        required: ["none"],
-      },
-    },
-    {
-      title: "Optional data collection",
-      data_collection_permissions: {
-        optional: ["technicalAndInteraction"],
-      },
-    },
-  ];
-
-  for (const { title, data_collection_permissions } of TEST_CASES) {
-    info(title);
-
-    const id = `@${title.toLowerCase().replaceAll(/[^\w]+/g, "-")}`;
-    const { extension } = createTestExtension({
-      id,
-      newManifest: {
-        name: id,
-        browser_specific_settings: {
-          gecko: {
-            id,
-            data_collection_permissions,
-          },
-        },
-      },
-    });
-
-    await extension.startup();
-    await extension.awaitMessage("bgpage-ready");
-    let win = await loadInitialView("extension");
-
-    win.checkForUpdates();
-    await promiseUpdateAvailable(extension);
-    await completePostponedUpdate({ id, win });
-
-    await closeView(win);
-    await extension.unload();
-  }
-
-  await SpecialPowers.popPrefEnv();
 });

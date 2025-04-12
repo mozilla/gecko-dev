@@ -82,11 +82,7 @@ function installPromptHandler(info) {
   let difference = Extension.comparePermissions(oldPerms, newPerms);
 
   // If there are no new permissions, just proceed
-  if (
-    !difference.origins.length &&
-    !difference.permissions.length &&
-    !difference.data_collection.length
-  ) {
+  if (!difference.origins.length && !difference.permissions.length) {
     return Promise.resolve();
   }
 
