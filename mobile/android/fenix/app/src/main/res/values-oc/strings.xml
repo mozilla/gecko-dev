@@ -3436,7 +3436,7 @@ Exemple :\nhttps://suggestqueries.google.com/complete/search?client=firefox&amp
   <!-- The default content description for the cross trailing icon button in TextField -->
   <string name="text_field_cross_trailing_icon_default_content_description" moz:removedIn="139" tools:ignore="UnusedResources">Escafar lo tèxt</string>
   <!--
-    Setup checklist feature
+    ===== Setup checklist feature: Task titles =====
 
     The title of the default browser task for the setup checklist
   -->
@@ -3451,13 +3451,21 @@ Exemple :\nhttps://suggestqueries.google.com/complete/search?client=firefox&amp
   <string name="setup_checklist_task_explore_extensions">Percórrer las extensions</string>
   <!-- The title of the search widget task for the setup checklist -->
   <string name="setup_checklist_task_search_widget">Installar le widget de recèrca</string>
-  <!-- The title of the 'essentials' group in the setup checklist. %1$s is the name of the app (for example "Firefox"). -->
+  <!--
+    ===== Setup checklist feature: Group titles =====
+
+    The title of the 'essentials' group in the setup checklist. %1$s is the name of the app (for example "Firefox").
+  -->
   <string name="setup_checklist_group_essentials">Essencials de %1$s</string>
   <!-- The title of the 'customize' group in the setup checklist. %1$s is the name of the app (for example "Firefox"). -->
   <string name="setup_checklist_group_customize">Personalizatz vòstre %1$s</string>
   <!-- The title of the 'helpful tools' group in the setup checklist -->
   <string name="setup_checklist_group_helpful_tools">Aisinas utilas</string>
-  <!-- Accessibility description for a check mark on a completed task -->
+  <!--
+    ===== Setup checklist feature: Accessibility =====
+
+    Accessibility description for a check mark on a completed task
+  -->
   <string name="a11y_completed_task_description">Prètzfach acabat</string>
   <!-- Accessibility description for the task icon -->
   <string name="a11y_task_icon_description">Icòna del prètzfach</string>
