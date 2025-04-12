@@ -976,6 +976,8 @@
     Title of the Nimbus message for extension general availability
   -->
   <string name="addon_ga_message_title_2" tools:ignore="UnusedResources">പുതിയ വിപുലീകരണങ്ങൾ ഇപ്പോൾ ലഭ്യമാണ്</string>
+  <!-- Body of the Nimbus message for add-ons general availability. 'Firefox' intentionally hardcoded here -->
+  <string name="addon_ga_message_body" tools:ignore="BrandUsage,UnusedResources">ഫയൎഫോക്സു് ഇഷ്ടാനുസൃതമാക്കാൻ ഉപയോഗിക്കാവുന്ന 100+ പുതിയ വിപുലീകരണങ്ങൾ ആരായുക.</string>
   <!-- Button text of the Nimbus message for extensions general availability. -->
   <string name="addon_ga_message_button_2" tools:ignore="UnusedResources">വിപുലീകരണങ്ങൾ കാണുക</string>
   <!--
@@ -1304,6 +1306,8 @@
   <string name="tab_tray_multiselect_share_content_description">തിരഞ്ഞെടുത്ത ടാബുകൾ പങ്കിടുക</string>
   <!-- Content description for tabs tray multiselect menu -->
   <string name="tab_tray_multiselect_menu_content_description">തിരഞ്ഞെടുത്ത ടാബുകളുടെ കുറിപ്പടികട്ട</string>
+  <!-- Title text displayed for a homepage tab in the tabs tray. -->
+  <string name="tab_tray_homepage_tab">ആമുഖതാൾ</string>
   <!-- Content description (not visible, for screen readers etc.): Removes tab from collection button. Removes the selected tab from collection when pressed -->
   <string name="remove_tab_from_collection">ശേഖരത്തിൽ നിന്ന് ടാബ് നീക്കം ചെയ്യുക</string>
   <!-- Text for button to enter multiselect mode in tabs tray -->
@@ -1444,6 +1448,8 @@
   <string name="download_search_placeholder" tools:ignore="UnusedResources">ഇറക്കിവച്ചതിലു് തിരയുക</string>
   <!-- Text to indicate that no downloads match the search query. -->
   <string name="download_search_no_results_found" tools:ignore="UnusedResources">ഫലങ്ങളൊന്നും കിട്ടിയില്ല</string>
+  <!-- Text for the "Select all" button, which selects all downloaded items in the downloads list. -->
+  <string name="download_select_all_items">എല്ലാം തിരഞ്ഞെടുക്കുക</string>
   <!--
     Downloads Content Type Filters
 
@@ -2828,6 +2834,8 @@
   <string name="translation_option_bottom_sheet_never_translate_site">ഒരിക്കലും ഈ വെബ്സ്ഥാനിന്റെ വിവർത്തനം ചെയ്യരുതു്</string>
   <!-- Toggle switch description that will appear under the "Never translate these sites" settings toggle switch to provide more information on how this setting interacts with other settings. -->
   <string name="translation_option_bottom_sheet_switch_never_translate_site_description">മറ്റു എല്ലാ ക്രമീകരണങ്ങളെയും തള്ളാറുണ്ടു്</string>
+  <!-- Toggle switch description that will appear under the "Never translate" and "Always translate" toggle switch settings to provide more information on how these  settings interacts with other settings. -->
+  <string name="translation_option_bottom_sheet_switch_description">വിവൎത്തനം ചെയ്യാനുള്ള വാഗ്ദാനങ്ങളെയെല്ലാം തള്ളും</string>
   <!-- Button text for the button that will take the user to the translation settings dialog. -->
   <string name="translation_option_bottom_sheet_translation_settings">വിവർത്തന ക്രമീകരണങ്ങൾ</string>
   <!-- Button text for the button that will take the user to a website to learn more about how translations works in the given app. %1$s is the name of the app (for example "Firefox"). -->
@@ -3265,9 +3273,9 @@
 
     The default content description for the eye trailing icon button in TextField
   -->
-  <string name="text_field_eye_trailing_icon_default_content_description">മറഞ്ഞിരിക്കുന്ന വാചകം കാണിക്കുക</string>
+  <string name="text_field_eye_trailing_icon_default_content_description" moz:removedIn="139" tools:ignore="UnusedResources">മറഞ്ഞിരിക്കുന്ന വാചകം കാണിക്കുക</string>
   <!-- The default content description for the cross trailing icon button in TextField -->
-  <string name="text_field_cross_trailing_icon_default_content_description">എഴുത്തു് വേൎപ്പെടുത്തുക</string>
+  <string name="text_field_cross_trailing_icon_default_content_description" moz:removedIn="139" tools:ignore="UnusedResources">എഴുത്തു് വേൎപ്പെടുത്തുക</string>
   <!--
     Setup checklist feature
 
@@ -3278,6 +3286,8 @@
   <string name="setup_checklist_task_account_sync">അക്കൗണ്ടിലേക്കു് പ്രവേശിക്കുക</string>
   <!-- The title of the theme selection task for the setup checklist -->
   <string name="setup_checklist_task_theme_selection">അലങ്കാരം തിരഞ്ഞെടുക്കുക</string>
+  <!-- The title of the toolbar selection task for the setup checklist -->
+  <string name="setup_checklist_task_toolbar_selection">കരുപ്പട്ട ഇടം തിരഞ്ഞെടുക്കുക</string>
   <!-- The title of the explore extensions task for the setup checklist -->
   <string name="setup_checklist_task_explore_extensions">വിപുലീകരണങ്ങൾ കാണുക</string>
   <!-- The title of the 'essentials' group in the setup checklist. %1$s is the name of the app (for example "Firefox"). -->

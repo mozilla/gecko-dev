@@ -1385,6 +1385,8 @@
   <string name="tab_tray_multiselect_share_content_description">Ausgewählte Tabs teilen</string>
   <!-- Content description for tabs tray multiselect menu -->
   <string name="tab_tray_multiselect_menu_content_description">Menü „Ausgewählte Tabs“</string>
+  <!-- Title text displayed for a homepage tab in the tabs tray. -->
+  <string name="tab_tray_homepage_tab">Startseite</string>
   <!-- Content description (not visible, for screen readers etc.): Removes tab from collection button. Removes the selected tab from collection when pressed -->
   <string name="remove_tab_from_collection">Tab aus Sammlung entfernen</string>
   <!-- Text for button to enter multiselect mode in tabs tray -->
@@ -1525,6 +1527,8 @@
   <string name="download_search_placeholder" tools:ignore="UnusedResources">Downloads durchsuchen</string>
   <!-- Text to indicate that no downloads match the search query. -->
   <string name="download_search_no_results_found" tools:ignore="UnusedResources">Keine Ergebnisse gefunden</string>
+  <!-- Text for the "Select all" button, which selects all downloaded items in the downloads list. -->
+  <string name="download_select_all_items">Alle auswählen</string>
   <!--
     Downloads Content Type Filters
 
@@ -3433,9 +3437,9 @@
 
     The default content description for the eye trailing icon button in TextField
   -->
-  <string name="text_field_eye_trailing_icon_default_content_description">Versteckten Text anzeigen</string>
+  <string name="text_field_eye_trailing_icon_default_content_description" moz:removedIn="139" tools:ignore="UnusedResources">Versteckten Text anzeigen</string>
   <!-- The default content description for the cross trailing icon button in TextField -->
-  <string name="text_field_cross_trailing_icon_default_content_description">Text löschen</string>
+  <string name="text_field_cross_trailing_icon_default_content_description" moz:removedIn="139" tools:ignore="UnusedResources">Text löschen</string>
   <!--
     Setup checklist feature
 

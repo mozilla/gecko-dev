@@ -6,7 +6,7 @@
     Text shown on the second row of an in progress download notification.
     %1$s will be replaced with the percentage of download completed so far.
   -->
-  <string name="mozac_feature_downloads_percentage_notification_text">%1$s аяқталды</string>
+  <string name="mozac_feature_downloads_percentage_notification_text" moz:removedIn="139" tools:ignore="UnusedResources">%1$s аяқталды</string>
   <!-- Text shown on the second row of a paused download notification. -->
   <string name="mozac_feature_downloads_paused_notification_text">Жүктеп алу аялдатылды</string>
   <!-- Text shown on the second row of an completed download notification. The filename is shown on the first row. -->
@@ -36,6 +36,13 @@
     %1$s will be replaced with the name of the file.
   -->
   <string name="mozac_feature_downloads_already_exists_dialog_title" tools:ignore="UnusedResources">%1$s бар болып тұр.</string>
+  <!--
+    Alert dialog confirmation before downloading a file without network connection, this is the description.
+    %1$s will be replaced with the name of the file.
+  -->
+  <string name="mozac_feature_downloads_file_failure_no_connection" tools:ignore="UnusedResources">%1$s жүктелмеді.</string>
+  <!-- Alert dialog confirmation before downloading a file without network connection, this is the description. -->
+  <string name="mozac_feature_downloads_file_check_connection" tools:ignore="UnusedResources">Интернет байланысын тексеріп, әрекетті қайталаңыз.</string>
   <!-- Error shown when the user is trying to download a invalid file. %1$s will be replaced with the name of the app. -->
   <string name="mozac_feature_downloads_file_not_supported2">%1$s бұл файл түрін жүктей алмайды</string>
   <!-- Message that appears when the downloaded file could not be opened. -->

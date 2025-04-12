@@ -3073,5 +3073,5 @@ Tiktiwin tigejdanin yuzzlen ur nṣeḥḥi ara
   <!-- Homepage card title about old Firefox version. "Update" is a verb. Note: The word "Firefox" should NOT be translated. -->
   <string name="certificate_warning_homepage_card_hca1_title" tools:ignore="BrandUsage,UnusedResources">Leqqem iminig-ik Firefox</string>
   <!-- The default content description for the cross trailing icon button in TextField -->
-  <string name="text_field_cross_trailing_icon_default_content_description">Sfeḍ aḍṛis</string>
+  <string name="text_field_cross_trailing_icon_default_content_description" moz:removedIn="139" tools:ignore="UnusedResources">Sfeḍ aḍṛis</string>
 </resources>
