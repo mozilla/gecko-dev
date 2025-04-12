@@ -8,7 +8,7 @@
 #define DOM_FS_PARENT_FILESYSTEMACCESSHANDLEPARENT_H_
 
 #include "mozilla/dom/PFileSystemAccessHandleParent.h"
-#include "mozilla/dom/quota/DebugOnlyMacro.h"
+#include "mozilla/dom/quota/ConditionalCompilation.h"
 
 namespace mozilla::dom {
 
