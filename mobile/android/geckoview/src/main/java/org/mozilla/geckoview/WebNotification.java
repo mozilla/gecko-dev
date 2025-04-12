@@ -10,6 +10,7 @@ import android.os.Parcelable;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.annotation.UiThread;
+import java.util.Objects;
 import org.mozilla.gecko.GeckoAppShell;
 import org.mozilla.gecko.annotation.WrapForJNI;
 import org.mozilla.gecko.util.ThreadUtils;
@@ -80,7 +81,7 @@ public class WebNotification implements Parcelable {
    *     href="https://developer.mozilla.org/en-US/docs/Web/API/Notification/requireInteraction">Web
    *     Notification - requireInteraction</a>
    */
-  public final @NonNull boolean requireInteraction;
+  public final boolean requireInteraction;
 
   /**
    * This is the URL of the page or Service Worker that generated the notification. Null if this
@@ -121,7 +122,7 @@ public class WebNotification implements Parcelable {
       @Nullable final String imageUrl,
       @Nullable final String textDirection,
       @Nullable final String lang,
-      @NonNull final boolean requireInteraction,
+      final boolean requireInteraction,
       @NonNull final String source,
       final boolean silent,
       final boolean privateBrowsing,
@@ -134,7 +135,7 @@ public class WebNotification implements Parcelable {
     this.textDirection = textDirection;
     this.lang = lang;
     this.requireInteraction = requireInteraction;
-    this.source = "".equals(source) ? null : source;
+    this.source = source.isEmpty() ? null : source;
     this.silent = silent;
     this.vibrate = vibrate;
     this.privateBrowsing = privateBrowsing;
@@ -179,7 +180,7 @@ public class WebNotification implements Parcelable {
     dest.writeString(tag);
     dest.writeString(mCookie);
     dest.writeString(text);
-    if (imageUrl.length() < IMAGE_URL_LENGTH_MAX) {
+    if (imageUrl != null && imageUrl.length() < IMAGE_URL_LENGTH_MAX) {
       dest.writeString(imageUrl);
     } else {
       dest.writeString("");
@@ -195,7 +196,7 @@ public class WebNotification implements Parcelable {
 
   private WebNotification(final Parcel in) {
     title = in.readString();
-    tag = in.readString();
+    tag = Objects.requireNonNull(in.readString());
     mCookie = in.readString();
     text = in.readString();
     imageUrl = in.readString();
@@ -205,7 +206,7 @@ public class WebNotification implements Parcelable {
     source = in.readString();
     silent = in.readInt() == 1;
     privateBrowsing = in.readInt() == 1;
-    vibrate = in.createIntArray();
+    vibrate = Objects.requireNonNull(in.createIntArray());
   }
 
   public static final Creator<WebNotification> CREATOR =

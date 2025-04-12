@@ -2822,7 +2822,7 @@ package org.mozilla.geckoview {
     field @Nullable public final String imageUrl;
     field @Nullable public final String lang;
     field public final boolean privateBrowsing;
-    field @NonNull public final boolean requireInteraction;
+    field public final boolean requireInteraction;
     field public final boolean silent;
     field @Nullable public final String source;
     field @NonNull public final String tag;
