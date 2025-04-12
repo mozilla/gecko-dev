@@ -13,7 +13,12 @@
 #  define DEBUGONLY(expr) MOZ_REMOVE_PAREN(expr)
 #else
 #  define DEBUGONLY(expr)
+#endif
 
+#ifdef MOZ_DIAGNOSTIC_ASSERT_ENABLED
+#  define DIAGNOSTICONLY(expr) MOZ_REMOVE_PAREN(expr)
+#else
+#  define DIAGNOSTICONLY(expr)
 #endif
 
 #endif  // DOM_QUOTA_DEBUGONLYMACRO_H_
