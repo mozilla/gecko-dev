@@ -182,6 +182,7 @@ class FileSystemDataManager
   UniquePtr<FileSystemDatabaseManager> mDatabaseManager;
   MozPromiseHolder<BoolPromise> mOpenPromiseHolder;
   MozPromiseHolder<BoolPromise> mClosePromiseHolder;
+  int64_t mDirectoryLockId;
   uint32_t mRegCount;
   DatabaseVersion mVersion;
   State mState;

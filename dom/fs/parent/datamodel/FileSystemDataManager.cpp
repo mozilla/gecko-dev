@@ -167,6 +167,7 @@ FileSystemDataManager::FileSystemDataManager(
       mBackgroundTarget(WrapNotNull(GetCurrentSerialEventTarget())),
       mIOTarget(std::move(aIOTarget)),
       mIOTaskQueue(std::move(aIOTaskQueue)),
+      mDirectoryLockId(-1),
       mRegCount(0),
       mVersion(0),
       mState(State::Initial) {}
@@ -626,6 +627,9 @@ RefPtr<BoolPromise> FileSystemDataManager::BeginOpen() {
 
             self->mDirectoryLock = std::move(value.ResolveValue());
 
+            MOZ_ASSERT(self->mDirectoryLock->Id() >= 0);
+            self->mDirectoryLockId = self->mDirectoryLock->Id();
+
             if (self->mDirectoryLock->Invalidated()) {
               return BoolPromise::CreateAndReject(NS_ERROR_ABORT, __func__);
             }
@@ -663,7 +667,7 @@ RefPtr<BoolPromise> FileSystemDataManager::BeginOpen() {
 
             QM_TRY_UNWRAP(auto connection,
                           GetStorageConnection(self->mOriginMetadata,
-                                               self->mDirectoryLock->Id()),
+                                               self->mDirectoryLockId),
                           CreateAndRejectBoolPromiseFromQMResult);
 
             QM_TRY_UNWRAP(UniquePtr<FileSystemFileManager> fmPtr,
