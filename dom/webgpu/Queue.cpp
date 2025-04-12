@@ -61,11 +61,11 @@ already_AddRefed<dom::Promise> Queue::OnSubmittedWorkDone(ErrorResult& aRv) {
   return promise.forget();
 }
 
-void Queue::WriteBuffer(const Buffer& aBuffer, uint64_t aBufferOffset,
-                        const dom::ArrayBufferViewOrArrayBuffer& aData,
-                        uint64_t aDataOffset,
-                        const dom::Optional<uint64_t>& aSize,
-                        ErrorResult& aRv) {
+void Queue::WriteBuffer(
+    const Buffer& aBuffer, uint64_t aBufferOffset,
+    const dom::MaybeSharedArrayBufferOrMaybeSharedArrayBufferView& aData,
+    uint64_t aDataOffset, const dom::Optional<uint64_t>& aSize,
+    ErrorResult& aRv) {
   if (!aBuffer.mId) {
     // Invalid buffers are unknown to the parent -- don't try to write
     // to them.
@@ -178,10 +178,11 @@ static CheckedInt<size_t> ComputeApproxSize(
   }
 }
 
-void Queue::WriteTexture(const dom::GPUTexelCopyTextureInfo& aDestination,
-                         const dom::ArrayBufferViewOrArrayBuffer& aData,
-                         const dom::GPUTexelCopyBufferLayout& aDataLayout,
-                         const dom::GPUExtent3D& aSize, ErrorResult& aRv) {
+void Queue::WriteTexture(
+    const dom::GPUTexelCopyTextureInfo& aDestination,
+    const dom::MaybeSharedArrayBufferOrMaybeSharedArrayBufferView& aData,
+    const dom::GPUTexelCopyBufferLayout& aDataLayout,
+    const dom::GPUExtent3D& aSize, ErrorResult& aRv) {
   ffi::WGPUTexelCopyTextureInfo copyView = {};
   CommandEncoder::ConvertTextureCopyViewToFFI(aDestination, &copyView);
   ffi::WGPUTexelCopyBufferLayout dataLayout = {};

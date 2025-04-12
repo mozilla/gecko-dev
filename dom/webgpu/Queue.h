@@ -47,15 +47,17 @@ class Queue final : public ObjectBase, public ChildOf<Device> {
 
   already_AddRefed<dom::Promise> OnSubmittedWorkDone(ErrorResult& aRv);
 
-  void WriteBuffer(const Buffer& aBuffer, uint64_t aBufferOffset,
-                   const dom::ArrayBufferViewOrArrayBuffer& aData,
-                   uint64_t aDataOffset, const dom::Optional<uint64_t>& aSize,
-                   ErrorResult& aRv);
+  void WriteBuffer(
+      const Buffer& aBuffer, uint64_t aBufferOffset,
+      const dom::MaybeSharedArrayBufferOrMaybeSharedArrayBufferView& data,
+      uint64_t aDataOffset, const dom::Optional<uint64_t>& aSize,
+      ErrorResult& aRv);
 
-  void WriteTexture(const dom::GPUTexelCopyTextureInfo& aDestination,
-                    const dom::ArrayBufferViewOrArrayBuffer& aData,
-                    const dom::GPUTexelCopyBufferLayout& aDataLayout,
-                    const dom::GPUExtent3D& aSize, ErrorResult& aRv);
+  void WriteTexture(
+      const dom::GPUTexelCopyTextureInfo& aDestination,
+      const dom::MaybeSharedArrayBufferOrMaybeSharedArrayBufferView& data,
+      const dom::GPUTexelCopyBufferLayout& aDataLayout,
+      const dom::GPUExtent3D& aSize, ErrorResult& aRv);
 
   void CopyExternalImageToTexture(
       const dom::GPUCopyExternalImageSourceInfo& aSource,

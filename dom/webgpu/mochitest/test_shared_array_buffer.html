@@ -1,0 +1,54 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <script src="/tests/SimpleTest/SimpleTest.js"></script>
+    <link rel="stylesheet" href="/tests/SimpleTest/test.css" />
+  </head>
+  <body>
+    <script>
+      ok(
+        SpecialPowers.getBoolPref("dom.webgpu.enabled"),
+        "Pref should be enabled."
+      );
+
+      const set_bind_group_null = async function () {
+        const adapter = await navigator.gpu.requestAdapter();
+        ok(adapter !== undefined, "adapter !== undefined");
+        const device = await adapter.requestDevice();
+        ok(device !== undefined, "device !== undefined");
+
+        const sharedData = new WebAssembly.Memory({
+          initial: 1,
+          maximum: 1,
+          shared: true,
+        });
+
+        const buffer = device.createBuffer({
+          mappedAtCreation: true,
+          size: 128,
+          usage: GPUBufferUsage.COPY_DST,
+        });
+        device.queue.writeBuffer(buffer, 0, sharedData.buffer, 0, 128);
+        await device.queue.submit([]);
+        ok(true, "Could use a `SharedArrayBuffer` to write to a buffer.");
+
+        const texture = device.createTexture({
+          mappedAtCreation: true,
+          size: [128, 1],
+          format: "r8uint",
+          usage: GPUTextureUsage.COPY_DST,
+        });
+        device.queue.writeTexture({ texture }, sharedData.buffer, {}, [128, 1]);
+        await device.queue.submit([]);
+        ok(true, "Could use a `SharedArrayBuffer` to write to a texture.");
+      };
+
+      SimpleTest.waitForExplicitFinish();
+
+      set_bind_group_null()
+        .catch(e => ok(false, `Unhandled exception ${e}`))
+        .finally(() => SimpleTest.finish());
+    </script>
+  </body>
+</html>

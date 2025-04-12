@@ -1195,10 +1195,6 @@ dictionary GPUQueueDescriptor
          : GPUObjectDescriptorBase {
 };
 
-//TODO: use [AllowShared] on BufferSource
-// https://bugzilla.mozilla.org/show_bug.cgi?id=1696216
-// https://github.com/heycam/webidl/issues/961
-
 [Func="mozilla::webgpu::Instance::PrefEnabled",
  Exposed=(Window, Worker), SecureContext]
 interface GPUQueue {
@@ -1211,14 +1207,14 @@ interface GPUQueue {
     undefined writeBuffer(
         GPUBuffer buffer,
         GPUSize64 bufferOffset,
-        BufferSource data,
+        AllowSharedBufferSource data,
         optional GPUSize64 dataOffset = 0,
         optional GPUSize64 size);
 
     [Throws]
     undefined writeTexture(
         GPUTexelCopyTextureInfo destination,
-        BufferSource data,
+        AllowSharedBufferSource data,
         GPUTexelCopyBufferLayout dataLayout,
         GPUExtent3D size);
 
