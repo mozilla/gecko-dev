@@ -1419,7 +1419,8 @@ WhiteSpaceVisibilityKeeper::NormalizeWhiteSpacesToSplitTextNodeAt(
     if (NS_WARN_IF(nextSibling && nextSibling->GetParentNode() != parentNode)) {
       return Err(NS_ERROR_EDITOR_UNEXPECTED_DOM_TREE);
     }
-    return EditorDOMPoint(nextSibling);
+    return nextSibling ? EditorDOMPoint(nextSibling)
+                       : EditorDOMPoint::AtEndOf(*parentNode);
   }
 
   const HTMLEditor::ReplaceWhiteSpacesData replacePrecedingWhiteSpacesData =
@@ -1461,7 +1462,8 @@ WhiteSpaceVisibilityKeeper::NormalizeWhiteSpacesToSplitTextNodeAt(
     if (NS_WARN_IF(nextSibling && nextSibling->GetParentNode() != parentNode)) {
       return Err(NS_ERROR_EDITOR_UNEXPECTED_DOM_TREE);
     }
-    return EditorDOMPoint(nextSibling);
+    return nextSibling ? EditorDOMPoint(nextSibling)
+                       : EditorDOMPoint::AtEndOf(*parentNode);
   }
   Result<InsertTextResult, nsresult> replaceWhiteSpacesResultOrError =
       aHTMLEditor.ReplaceTextWithTransaction(textNode, replaceWhiteSpacesData);
