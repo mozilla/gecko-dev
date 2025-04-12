@@ -5338,12 +5338,6 @@
   value: @IS_NIGHTLY_BUILD@
   mirror: always
 
-# Are WebGPU indirect draws enabled?
-- name: dom.webgpu.indirect-draw.enabled
-  type: RelaxedAtomicBool
-  value: true
-  mirror: always
-
 # Comma-separated list of wgpu backend names to permit in WebGPU adapters.
 #
 # If non-empty, this is parsed by `wgpu_core::instance::parse_backends_from_comma_list` to
