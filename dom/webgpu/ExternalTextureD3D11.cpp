@@ -116,7 +116,15 @@ ExternalTextureD3D11::ExternalTextureD3D11(
   MOZ_ASSERT(mTexture);
 }
 
-ExternalTextureD3D11::~ExternalTextureD3D11() {}
+ExternalTextureD3D11::~ExternalTextureD3D11() {
+  auto* fencesHolderMap = layers::CompositeProcessD3D11FencesHolderMap::Get();
+  if (fencesHolderMap) {
+    fencesHolderMap->Unregister(mFencesHolderId);
+  } else {
+    gfxCriticalNoteOnce
+        << "CompositeProcessD3D11FencesHolderMap does not exist";
+  }
+}
 
 void* ExternalTextureD3D11::GetExternalTextureHandle() {
   RefPtr<ID3D11Device> device;

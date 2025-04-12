@@ -172,6 +172,16 @@ SharedSurface_ANGLEShareHandle::~SharedSurface_ANGLEShareHandle() {
   if (egl) {
     egl->fDestroySurface(mPBuffer);
   }
+
+  if (mFencesHolderId.isSome()) {
+    auto* fencesHolderMap = layers::CompositeProcessD3D11FencesHolderMap::Get();
+    if (fencesHolderMap) {
+      fencesHolderMap->Unregister(mFencesHolderId.ref());
+    } else {
+      gfxCriticalNoteOnce
+          << "CompositeProcessD3D11FencesHolderMap does not exist";
+    }
+  }
 }
 
 void SharedSurface_ANGLEShareHandle::LockProdImpl() {
