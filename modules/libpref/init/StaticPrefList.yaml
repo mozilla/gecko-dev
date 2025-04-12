@@ -5341,7 +5341,7 @@
 # Are WebGPU indirect draws enabled?
 - name: dom.webgpu.indirect-draw.enabled
   type: RelaxedAtomicBool
-  value: false
+  value: true
   mirror: always
 
 # Comma-separated list of wgpu backend names to permit in WebGPU adapters.
