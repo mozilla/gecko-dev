@@ -239,6 +239,31 @@ If a module need to be dynamically updated with the same URI, for example with
 privileged extensions getting updated, they can add query string to distinguish
 different versions.
 
+Lifetime of the Global Variables
+--------------------------------
+
+Unlike the classic scripts, the ECMAScript's module's global variables are not
+properties of any objects.
+
+If the all strong references to the document goes away, the objects held by
+the module global variables are ready to be GCed.  This means, the module global
+variables don't have the same lifetime as the module itself.
+
+In privileged scripts, there can be multiple usage of weak-references and
+similar things, such as XPCOM ``nsISupportsWeakReference``, or
+the window-less ``browser`` element and its content document.
+
+If those objects needs to be kept alive longer, for example, if they need to
+have the same lifetime as the module itself, there should be another strong
+reference to them.
+
+Possible options for those objects are the following:
+
+  * Export the variable that holds the object
+  * Store the object into the exported object's property
+  * Close over the variable from the function that's reachable from the exported objects
+  * Do not use weak reference
+
 Utility Functions
 -----------------
 
