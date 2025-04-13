@@ -9,7 +9,6 @@ from collections import defaultdict
 from operator import itemgetter
 
 import mozpack.path as mozpath
-import six
 from mozpack.chrome.manifest import parse_manifest_line
 
 from mozbuild.backend.base import BuildBackend
@@ -90,7 +89,7 @@ class XPIDLManager(object):
 
         The stem of an IDL file is the basename of the file with no .idl extension.
         """
-        return itertools.chain(*[m.stems() for m in six.itervalues(self.modules)])
+        return itertools.chain(*[m.stems() for m in self.modules.values()])
 
 
 class BinariesCollection(object):

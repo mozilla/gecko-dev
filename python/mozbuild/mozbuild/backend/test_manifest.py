@@ -5,7 +5,6 @@
 from collections import defaultdict
 
 import mozpack.path as mozpath
-import six
 import six.moves.cPickle as pickle
 
 from mozbuild.backend.base import PartialBackend
@@ -100,7 +99,7 @@ class TestManifestBackend(PartialBackend):
             self.manifest_defaults[sub_manifest] = defaults
 
     def add_installs(self, obj, topsrcdir):
-        for src, (dest, _) in six.iteritems(obj.installs):
+        for src, (dest, _) in obj.installs.items():
             key = src[len(topsrcdir) + 1 :]
             self.installs_by_path[key].append((src, dest))
         for src, pat, dest in obj.pattern_installs:

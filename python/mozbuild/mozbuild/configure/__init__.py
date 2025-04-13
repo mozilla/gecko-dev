@@ -328,7 +328,7 @@ class ConfigureSandbox(dict):
             )
         },
         __import__=forbidden_import,
-        str=six.text_type,
+        str=str,
     )
 
     # Expose a limited set of functions from os.path
@@ -434,7 +434,7 @@ class ConfigureSandbox(dict):
                 out_args = [
                     (
                         six.ensure_text(arg, encoding=encoding or "utf-8")
-                        if isinstance(arg, six.binary_type)
+                        if isinstance(arg, bytes)
                         else arg
                     )
                     for arg in args
@@ -514,7 +514,7 @@ class ConfigureSandbox(dict):
         if path:
             self.include_file(path)
 
-        for option in six.itervalues(self._options):
+        for option in self._options.values():
             # All options must be referenced by some @depends function
             if option not in self._seen:
                 raise ConfigureError(
@@ -705,7 +705,7 @@ class ConfigureSandbox(dict):
         return value
 
     def _dependency(self, arg, callee_name, arg_name=None):
-        if isinstance(arg, six.string_types):
+        if isinstance(arg, (str,)):
             prefix, name, values = Option.split_option(arg)
             if values != ():
                 raise ConfigureError("Option must not contain an '='")
@@ -773,7 +773,7 @@ class ConfigureSandbox(dict):
         """
         when = self._normalize_when(kwargs.get("when"), "option")
         args = [self._resolve(arg) for arg in args]
-        kwargs = {k: self._resolve(v) for k, v in six.iteritems(kwargs) if k != "when"}
+        kwargs = {k: self._resolve(v) for k, v in kwargs.items() if k != "when"}
         # The Option constructor needs to look up the stack to infer a category
         # for the Option, since the category is based on the filename where the
         # Option is defined. However, if the Option is defined in a template, we
@@ -870,7 +870,7 @@ class ConfigureSandbox(dict):
         with self.only_when_impl(when):
             what = self._resolve(what)
             if what:
-                if not isinstance(what, six.string_types):
+                if not isinstance(what, (str,)):
                     raise TypeError("Unexpected type: '%s'" % type(what).__name__)
                 self.include_file(what)
 
@@ -890,7 +890,7 @@ class ConfigureSandbox(dict):
                 for k in dir(self)
                 if k.endswith("_impl") and k != "template_impl"
             )
-            glob.update((k, v) for k, v in six.iteritems(self) if k not in glob)
+            glob.update((k, v) for k, v in self.items() if k not in glob)
 
         template = self._prepare_function(func, update_globals)
 
@@ -951,9 +951,7 @@ class ConfigureSandbox(dict):
             @imports(_from='mozpack', _import='path', _as='mozpath')
         """
         for value, required in ((_import, True), (_from, False), (_as, False)):
-            if not isinstance(value, six.string_types) and (
-                required or value is not None
-            ):
+            if not isinstance(value, (str,)) and (required or value is not None):
                 raise TypeError("Unexpected type: '%s'" % type(value).__name__)
             if value is not None and not self.RE_MODULE.match(value):
                 raise ValueError("Invalid argument to @imports: '%s'" % value)
@@ -1122,7 +1120,7 @@ class ConfigureSandbox(dict):
         name = self._resolve(name)
         if name is None:
             return
-        if not isinstance(name, six.string_types):
+        if not isinstance(name, (str,)):
             raise TypeError("Unexpected type: '%s'" % type(name).__name__)
         if name in data:
             raise ConfigureError(
@@ -1233,7 +1231,7 @@ class ConfigureSandbox(dict):
         line = frame.f_back.f_lineno
         filename = frame.f_back.f_code.co_filename
         if not reason and (
-            isinstance(value, (bool, tuple)) or isinstance(value, six.string_types)
+            isinstance(value, (bool, tuple)) or isinstance(value, (str,))
         ):
             # A reason can be provided automatically when imply_option
             # is called with an immediate value.
@@ -1272,7 +1270,7 @@ class ConfigureSandbox(dict):
 
         glob = SandboxedGlobal(
             (k, v)
-            for k, v in six.iteritems(func.__globals__)
+            for k, v in func.__globals__.items()
             if (isinstance(v, types.FunctionType) and v not in self._templates)
             or (isinstance(v, type) and issubclass(v, Exception))
         )

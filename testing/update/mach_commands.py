@@ -7,7 +7,6 @@ import sys
 from pathlib import Path
 from platform import uname
 
-import six
 from mach.decorators import Command, CommandArgument
 from marionette_harness.runtests import MarionetteHarness, MarionetteTestRunner
 from mozbuild.base import BinaryNotFoundException
@@ -62,7 +61,7 @@ def run_tests(binary=None, topsrcdir=None, **kwargs):
             "Update Tests", args, {"mach": sys.stdout}
         )
 
-    for k, v in six.iteritems(kwargs):
+    for k, v in kwargs.items():
         setattr(args, k, v)
 
     args.tests = [

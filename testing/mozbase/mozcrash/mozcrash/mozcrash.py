@@ -696,10 +696,10 @@ if mozinfo.isWin:
             log.warning("unable to get handle for pid %d: %d" % (pid, err))
             return
 
-        if not isinstance(file_name, six.text_type):
+        if not isinstance(file_name, str):
             # Convert to unicode explicitly so our path will be valid as input
             # to CreateFileW
-            file_name = six.text_type(file_name, sys.getfilesystemencoding())
+            file_name = str(file_name, sys.getfilesystemencoding())
 
         file_handle = kernel32.CreateFileW(
             file_name,

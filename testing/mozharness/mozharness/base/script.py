@@ -345,7 +345,7 @@ class ScriptMixin(PlatformMixin):
             str: in case `path` is a string. The result is the path with the new notation.
             type(path): `path` itself is returned in case `path` is not str type.
         """
-        if not isinstance(path, six.string_types):
+        if not isinstance(path, (str,)):
             return path
         path = path.replace("\\", "/")
 
@@ -1393,7 +1393,7 @@ class ScriptMixin(PlatformMixin):
                 del env[k]
         if os.name == "nt":
             pref_encoding = locale.getpreferredencoding()
-            for k, v in six.iteritems(env):
+            for k, v in env.items():
                 # When run locally on Windows machines, some environment
                 # variables may be unicode.
                 env[k] = six.ensure_str(v, pref_encoding)
@@ -1446,7 +1446,7 @@ class ScriptMixin(PlatformMixin):
         if isinstance(exe, dict):
             found = False
             # allow for searchable paths of the exe
-            for name, path in six.iteritems(exe):
+            for name, path in exe.items():
                 if isinstance(path, list) or isinstance(path, tuple):
                     path = [x % repl_dict for x in path]
                     if all([os.path.exists(section) for section in path]):

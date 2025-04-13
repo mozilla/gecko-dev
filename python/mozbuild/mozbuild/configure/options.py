@@ -7,8 +7,6 @@ import os
 import sys
 from collections import OrderedDict
 
-import six
-
 HELP_OPTIONS_CATEGORY = "Help options"
 # List of whitelisted option categories. If you want to add a new category,
 # simply add it to this list; however, exercise discretion as
@@ -33,9 +31,7 @@ def _infer_option_category(define_depth):
 
 def istupleofstrings(obj):
     return (
-        isinstance(obj, tuple)
-        and len(obj)
-        and all(isinstance(o, six.string_types) for o in obj)
+        isinstance(obj, tuple) and len(obj) and all(isinstance(o, (str,)) for o in obj)
     )
 
 
@@ -118,7 +114,7 @@ class OptionValue(tuple):
             return PositiveOptionValue()
         elif value is False or value == ():
             return NegativeOptionValue()
-        elif isinstance(value, six.string_types):
+        elif isinstance(value, (str,)):
             return PositiveOptionValue((value,))
         elif isinstance(value, tuple):
             return PositiveOptionValue(value)
@@ -161,7 +157,7 @@ class ConflictingOptionError(InvalidOptionError):
         if format_data:
             message = message.format(**format_data)
         super(ConflictingOptionError, self).__init__(message)
-        for k, v in six.iteritems(format_data):
+        for k, v in format_data.items():
             setattr(self, k, v)
 
 
@@ -230,7 +226,7 @@ class Option(object):
                 "be given"
             )
         if name:
-            if not isinstance(name, six.string_types):
+            if not isinstance(name, (str,)):
                 raise InvalidOptionError("Option must be a string")
             if not name.startswith("--"):
                 raise InvalidOptionError("Option must start with `--`")
@@ -239,7 +235,7 @@ class Option(object):
             if not name.islower():
                 raise InvalidOptionError("Option must be all lowercase")
         if env:
-            if not isinstance(env, six.string_types):
+            if not isinstance(env, (str,)):
                 raise InvalidOptionError("Environment variable name must be a string")
             if not env.isupper():
                 raise InvalidOptionError(
@@ -252,7 +248,7 @@ class Option(object):
                 "nargs must be a positive integer, '?', '*' or '+'"
             )
         if (
-            not isinstance(default, six.string_types)
+            not isinstance(default, (str,))
             and not isinstance(default, (bool, type(None)))
             and not istupleofstrings(default)
         ):
@@ -261,7 +257,7 @@ class Option(object):
             )
         if choices and not istupleofstrings(choices):
             raise InvalidOptionError("choices must be a tuple of strings")
-        if category and not isinstance(category, six.string_types):
+        if category and not isinstance(category, (str,)):
             raise InvalidOptionError("Category must be a string")
         if category and category not in _ALL_CATEGORIES:
             raise InvalidOptionError(
@@ -359,7 +355,7 @@ class Option(object):
         `values_separator`. If `values_separator` is None, there is at
         most one value.
         """
-        if not isinstance(option, six.string_types):
+        if not isinstance(option, (str,)):
             raise InvalidOptionError("Option must be a string")
 
         name, eq, values = option.partition("=")
@@ -632,5 +628,5 @@ class CommandLineHelper(object):
 
     def __iter__(self):
         for d in (self._args, self._extra_args):
-            for arg, pos in six.itervalues(d):
+            for arg, pos in d.values():
                 yield arg

@@ -293,7 +293,7 @@ class ProcessHandlerMixin(object):
                     errwrite,
                     *_,
                 ) = args_tuple
-                if not isinstance(args, six.string_types):
+                if not isinstance(args, (str,)):
                     args = subprocess.list2cmdline(args)
 
                 # Always or in the create new process group

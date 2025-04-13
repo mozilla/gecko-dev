@@ -5,8 +5,6 @@
 import os
 import sys
 
-import six
-
 
 class NullTerminal(object):
     """Replacement for `blessed.Terminal()` that does no formatting."""
@@ -22,11 +20,11 @@ class NullTerminal(object):
         except Exception:
             self.is_a_tty = False
 
-    class NullCallableString(six.text_type):
+    class NullCallableString(str):
         """A dummy callable Unicode stolen from blessings"""
 
         def __new__(cls):
-            new = six.text_type.__new__(cls, "")
+            new = str.__new__(cls, "")
             return new
 
         def __call__(self, *args):

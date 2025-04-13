@@ -18,7 +18,6 @@ structures.
 from collections import OrderedDict, defaultdict
 
 import mozpack.path as mozpath
-import six
 from mozpack.chrome.manifest import ManifestEntry
 
 from mozbuild.frontend.context import ObjDirPath, SourcePath
@@ -204,7 +203,7 @@ class BaseDefines(ContextDerived):
         self.defines = defines
 
     def get_defines(self):
-        for define, value in six.iteritems(self.defines):
+        for define, value in self.defines.items():
             if value is True:
                 yield ("-D%s" % define)
             elif value is False:

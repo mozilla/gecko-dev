@@ -12,7 +12,6 @@ import unittest
 import mozfile
 import mozlog.unstructured as mozlog
 import mozunit
-import six
 
 
 class ListHandler(mozlog.Handler):
@@ -80,7 +79,7 @@ class TestStructuredLogging(unittest.TestCase):
         The actual message should contain no fields other than the timestamp
         field and those present in expected."""
 
-        self.assertTrue(isinstance(actual["_time"], six.integer_types))
+        self.assertTrue(isinstance(actual["_time"], (int,)))
 
         for k, v in expected.items():
             self.assertEqual(v, actual[k])

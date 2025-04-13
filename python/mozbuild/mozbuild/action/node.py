@@ -122,7 +122,7 @@ def generate(output, node_script, *files):
         sys.exit(1)
 
     node_script = six.ensure_text(node_script)
-    if not isinstance(node_script, six.text_type):
+    if not isinstance(node_script, str):
         print(
             "moz.build file didn't pass a valid node script name to execute",
             file=sys.stderr,

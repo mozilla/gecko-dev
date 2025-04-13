@@ -154,7 +154,7 @@ class _TreeDiff(dircmp):
         rv["diff_files"] += map(lambda l: basepath.format(l), dc.diff_files)
         rv["funny"] += map(lambda l: basepath.format(l), dc.common_funny)
         rv["funny"] += map(lambda l: basepath.format(l), dc.funny_files)
-        for subdir, _dc in six.iteritems(dc.subdirs):
+        for subdir, _dc in dc.subdirs.items():
             self._fillDiff(_dc, rv, basepath.format(subdir + "/{0}"))
 
     def allResults(self, left, right):
@@ -337,7 +337,7 @@ class TestJarMaker(unittest.TestCase):
             ("hoge", "foo", "2"): ("qux", "foo", "2"),
             ("hoge", "baz"): ("qux", "baz"),
         }
-        for dest, src in six.iteritems(expected_symlinks):
+        for dest, src in expected_symlinks.items():
             srcpath = os.path.join(self.srcdir, *src)
             destpath = os.path.join(self.builddir, "chrome", "test", "dir", *dest)
             self.assertTrue(

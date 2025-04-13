@@ -8,8 +8,6 @@ import os
 import re
 from collections import defaultdict
 
-import six
-
 from mozharness.base.script import PostScriptAction
 from mozharness.base.transfer import TransferMixin
 
@@ -163,7 +161,7 @@ class TryToolsMixin(TransferMixin):
                 return label_dict[val]
             return "--%s" % val.replace("_", "-")
 
-        for label, (opts, _) in six.iteritems(self.known_try_arguments):
+        for label, (opts, _) in self.known_try_arguments.items():
             if "action" in opts and opts["action"] not in (
                 "append",
                 "store",
@@ -188,7 +186,7 @@ class TryToolsMixin(TransferMixin):
         # This is a pretty hacky way to echo arguments down to the harness.
         # Hopefully this can be improved once we have a configuration system
         # in tree for harnesses that relies less on a command line.
-        for arg, value in six.iteritems(vars(args)):
+        for arg, value in vars(args).items():
             if value:
                 label = label_from_val(arg)
                 _, flavors = self.known_try_arguments[label]

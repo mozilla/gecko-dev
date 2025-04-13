@@ -161,18 +161,18 @@ class TestHierarchicalStringList(unittest.TestCase):
     def test_exports_subdir(self):
         self.assertEqual(self.EXPORTS._children, {})
         self.EXPORTS.foo += ["foo.h"]
-        six.assertCountEqual(self, self.EXPORTS._children, {"foo": True})
+        self.assertCountEqual(self.EXPORTS._children, {"foo": True})
         self.assertEqual(self.EXPORTS.foo._strings, ["foo.h"])
         self.EXPORTS.bar += ["bar.h"]
-        six.assertCountEqual(self, self.EXPORTS._children, {"foo": True, "bar": True})
+        self.assertCountEqual(self.EXPORTS._children, {"foo": True, "bar": True})
         self.assertEqual(self.EXPORTS.foo._strings, ["foo.h"])
         self.assertEqual(self.EXPORTS.bar._strings, ["bar.h"])
 
     def test_exports_multiple_subdir(self):
         self.EXPORTS.foo.bar = ["foobar.h"]
-        six.assertCountEqual(self, self.EXPORTS._children, {"foo": True})
-        six.assertCountEqual(self, self.EXPORTS.foo._children, {"bar": True})
-        six.assertCountEqual(self, self.EXPORTS.foo.bar._children, {})
+        self.assertCountEqual(self.EXPORTS._children, {"foo": True})
+        self.assertCountEqual(self.EXPORTS.foo._children, {"bar": True})
+        self.assertCountEqual(self.EXPORTS.foo.bar._children, {})
         self.assertEqual(self.EXPORTS._strings, [])
         self.assertEqual(self.EXPORTS.foo._strings, [])
         self.assertEqual(self.EXPORTS.foo.bar._strings, ["foobar.h"])
@@ -180,8 +180,7 @@ class TestHierarchicalStringList(unittest.TestCase):
     def test_invalid_exports_append(self):
         with self.assertRaises(ValueError) as ve:
             self.EXPORTS += "foo.h"
-        six.assertRegex(
-            self,
+        self.assertRegex(
             str(ve.exception),
             "Expected a list of strings, not <(?:type|class) '%s'>" % str_type,
         )
@@ -190,8 +189,7 @@ class TestHierarchicalStringList(unittest.TestCase):
         with self.assertRaises(ValueError) as ve:
             self.EXPORTS.foo = "foo.h"
 
-        six.assertRegex(
-            self,
+        self.assertRegex(
             str(ve.exception),
             "Expected a list of strings, not <(?:type|class) '%s'>" % str_type,
         )
@@ -200,8 +198,7 @@ class TestHierarchicalStringList(unittest.TestCase):
         with self.assertRaises(ValueError) as ve:
             self.EXPORTS += "foo.h"
 
-        six.assertRegex(
-            self,
+        self.assertRegex(
             str(ve.exception),
             "Expected a list of strings, not <(?:type|class) '%s'>" % str_type,
         )
@@ -210,10 +207,9 @@ class TestHierarchicalStringList(unittest.TestCase):
         with self.assertRaises(ValueError) as ve:
             self.EXPORTS += [True]
 
-        six.assertRegex(
-            self,
+        self.assertRegex(
             str(ve.exception),
-            "Expected a list of strings, not an element of " "<(?:type|class) 'bool'>",
+            "Expected a list of strings, not an element of <(?:type|class) 'bool'>",
         )
 
     def test_del_exports(self):
@@ -493,17 +489,13 @@ class TestStrictOrderingOnAppendListWithFlagsFactory(unittest.TestCase):
             l["b"].update(xyz=1)
 
     def test_strict_ordering_on_append_list_with_flags_factory_extend(self):
-        FooList = StrictOrderingOnAppendListWithFlagsFactory(
-            {"foo": bool, "bar": six.text_type}
-        )
+        FooList = StrictOrderingOnAppendListWithFlagsFactory({"foo": bool, "bar": str})
         foo = FooList(["a", "b", "c"])
         foo["a"].foo = True
         foo["b"].bar = "bar"
 
         # Don't allow extending lists with different flag definitions.
-        BarList = StrictOrderingOnAppendListWithFlagsFactory(
-            {"foo": six.text_type, "baz": bool}
-        )
+        BarList = StrictOrderingOnAppendListWithFlagsFactory({"foo": str, "baz": bool})
         bar = BarList(["d", "e", "f"])
         bar["d"].foo = "foo"
         bar["e"].baz = True
@@ -723,11 +715,11 @@ class TestTypedList(unittest.TestCase):
 
 class TypedTestStrictOrderingOnAppendList(unittest.TestCase):
     def test_init(self):
-        class Unicode(six.text_type):
+        class Unicode(str):
             def __new__(cls, other):
-                if not isinstance(other, six.text_type):
+                if not isinstance(other, str):
                     raise ValueError()
-                return six.text_type.__new__(cls, other)
+                return str.__new__(cls, other)
 
         cls = TypedList(Unicode, StrictOrderingOnAppendList)
         l = cls()
@@ -747,7 +739,7 @@ class TypedTestStrictOrderingOnAppendList(unittest.TestCase):
 
 class TestTypedNamedTuple(unittest.TestCase):
     def test_simple(self):
-        FooBar = TypedNamedTuple("FooBar", [("foo", six.text_type), ("bar", int)])
+        FooBar = TypedNamedTuple("FooBar", [("foo", str), ("bar", int)])
 
         t = FooBar(foo="foo", bar=2)
         self.assertEqual(type(t), FooBar)

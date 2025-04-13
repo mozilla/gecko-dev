@@ -11,7 +11,6 @@ from collections import OrderedDict, defaultdict
 
 import mozinfo
 import mozpack.path as mozpath
-import six
 import toml
 from mach.mixin.logging import LoggingMixin
 from mozpack.chrome.manifest import Manifest
@@ -556,9 +555,9 @@ class TreeMetadataEmitter(LoggingMixin):
         self, context, crate_dir, crate_name, dependencies, description="Dependency"
     ):
         """Verify that a crate's dependencies all specify local paths."""
-        for dep_crate_name, values in six.iteritems(dependencies):
+        for dep_crate_name, values in dependencies.items():
             # A simple version number.
-            if isinstance(values, (six.binary_type, six.text_type)):
+            if isinstance(values, (bytes, str)):
                 raise SandboxValidationError(
                     "%s %s of crate %s does not list a path"
                     % (description, dep_crate_name, crate_name),
@@ -624,7 +623,7 @@ class TreeMetadataEmitter(LoggingMixin):
                 "crate-type %s is not permitted for %s" % (crate_type, libname), context
             )
 
-        dependencies = set(six.iterkeys(config.get("dependencies", {})))
+        dependencies = set(config.get("dependencies", {}).keys())
 
         features = context.get(cls.FEATURES_VAR, [])
         unique_features = set(features)
@@ -1086,7 +1085,7 @@ class TreeMetadataEmitter(LoggingMixin):
                 )
 
         no_pgo = context.get("NO_PGO")
-        no_pgo_sources = [f for f, flags in six.iteritems(all_flags) if flags.no_pgo]
+        no_pgo_sources = [f for f, flags in all_flags.items() if flags.no_pgo]
         if no_pgo:
             if no_pgo_sources:
                 raise SandboxValidationError(
@@ -1114,7 +1113,7 @@ class TreeMetadataEmitter(LoggingMixin):
 
         # The inverse of the above, mapping suffixes to their canonical suffix.
         canonicalized_suffix_map = {}
-        for suffix, alternatives in six.iteritems(suffix_map):
+        for suffix, alternatives in suffix_map.items():
             alternatives.add(suffix)
             for a in alternatives:
                 canonicalized_suffix_map[a] = suffix
@@ -1191,7 +1190,7 @@ class TreeMetadataEmitter(LoggingMixin):
                 for suffix, srcs in ctxt_sources["WASM_SOURCES"].items():
                     wasm_linkable.sources[suffix] += srcs
 
-        for f, flags in sorted(six.iteritems(all_flags)):
+        for f, flags in sorted(all_flags.items()):
             if flags.flags:
                 ext = mozpath.splitext(f)[1]
                 yield PerSourceFlag(context, f, flags.flags)
@@ -1693,7 +1692,7 @@ class TreeMetadataEmitter(LoggingMixin):
                 context,
                 script,
                 "process_define_file",
-                six.text_type(path),
+                str(path),
                 [Path(context, path + ".in")],
             )
 

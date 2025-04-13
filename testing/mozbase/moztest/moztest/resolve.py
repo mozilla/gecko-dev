@@ -565,7 +565,7 @@ class BuildBackendLoader(TestLoader):
         # self.topsrcdir was normalized to use /, revert back to \ if needed.
         topsrcdir = os.path.normpath(self.topsrcdir)
 
-        for path, tests in six.iteritems(test_data):
+        for path, tests in test_data.items():
             for metadata in tests:
                 defaults_manifests = [metadata["manifest"]]
 
@@ -604,7 +604,7 @@ class TestManifestLoader(TestLoader):
         self.finder = FileFinder(self.topsrcdir)
         self.reader = self.mozbuild_reader(config_mode="empty")
         self.variables = {
-            "{}_MANIFESTS".format(k): v[0] for k, v in six.iteritems(TEST_MANIFESTS)
+            "{}_MANIFESTS".format(k): v[0] for k, v in TEST_MANIFESTS.items()
         }
         self.variables.update(
             {"{}_MANIFESTS".format(f.upper()): f for f in REFTEST_FLAVORS}
@@ -1199,7 +1199,7 @@ class TestResolver(MozbuildObject):
             print("Loading wpt manifest failed")
             return
 
-        for manifest, data in six.iteritems(manifests):
+        for manifest, data in manifests.items():
             tests_root = data[
                 "tests_path"
             ]  # full path on disk until web-platform tests directory
@@ -1330,7 +1330,7 @@ class TestResolver(MozbuildObject):
                 run_suites.add(entry)
                 continue
             suitefound = False
-            for suite, v in six.iteritems(TEST_SUITES):
+            for suite, v in TEST_SUITES.items():
                 if entry.lower() in v.get("aliases", []):
                     run_suites.add(suite)
                     suitefound = True

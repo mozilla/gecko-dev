@@ -12,7 +12,6 @@ from datetime import datetime
 
 import compare
 import numpy
-import six
 
 sys.path.insert(1, os.path.join(sys.path[0], ".."))
 
@@ -84,7 +83,7 @@ def generate_report(tuple_list, filepath, mode="variance"):
                 week_avgs.append(average)
 
             outliers = is_normal(week_avgs)
-            for j in six.moves.range(7):
+            for j in range(7):
                 if j in outliers:
                     line[j + 1] = "**" + str(line[j + 1]) + "**"
 
@@ -106,7 +105,7 @@ def is_normal(y):
     outliers = []
     # find a baseline for the week
     if (min(y[0:4]) * limit) <= max(y[0:4]):
-        for i in six.moves.range(1, 5):
+        for i in range(1, 5):
             if y[i] > (y[i - 1] * limit) or y[i] > (y[i + 1] * limit):
                 outliers.append(i)
                 continue
@@ -117,7 +116,7 @@ def is_normal(y):
     # look at weekends now
     # pylint --py3k W1619
     avg = sum(clean_week) / len(clean_week)
-    for i in six.moves.range(5, 7):
+    for i in range(5, 7):
         # look for something outside of the 20% window
         if (y[i] * 1.2) < avg or y[i] > (avg * 1.2):
             outliers.append(i)

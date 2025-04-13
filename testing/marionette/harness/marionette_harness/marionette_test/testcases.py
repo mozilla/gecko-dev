@@ -381,7 +381,7 @@ class MarionetteTestCase(CommonTestCase):
 
         for name in dir(test_mod):
             obj = getattr(test_mod, name)
-            if isinstance(obj, six.class_types) and issubclass(obj, unittest.TestCase):
+            if isinstance(obj, type) and issubclass(obj, unittest.TestCase):
                 testnames = testloader.getTestCaseNames(obj)
                 for testname in testnames:
                     suite.addTest(

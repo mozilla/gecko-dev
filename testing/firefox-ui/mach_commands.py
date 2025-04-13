@@ -6,7 +6,6 @@ import logging
 import os
 import sys
 
-import six
 from mach.decorators import Command
 from mozbuild.base import BinaryNotFoundException
 from mozbuild.base import MachCommandConditions as conditions
@@ -53,7 +52,7 @@ def run_firefox_ui_test(topsrcdir=None, **kwargs):
 
     args = Namespace()
 
-    for k, v in six.iteritems(kwargs):
+    for k, v in kwargs.items():
         setattr(args, k, v)
 
     parser.verify_usage(args)

@@ -13,7 +13,6 @@ import tempfile
 import mozfile
 import mozinfo
 import mozrunner
-import six
 from mozlog import get_proxy_logger
 from mozprofile.profile import Profile
 
@@ -70,7 +69,7 @@ class FFSetup(object):
 
     def _init_env(self):
         self.env = dict(os.environ)
-        for k, v in six.iteritems(self.browser_config["env"]):
+        for k, v in self.browser_config["env"].items():
             self.env[k] = str(v)
         self.env["MOZ_CRASHREPORTER_NO_REPORT"] = "1"
         if self.browser_config["symbols_path"]:
@@ -156,14 +155,14 @@ class FFSetup(object):
         # installing webextensions
         webextensions_to_install = []
         webextensions_folder = self.test_config.get("webextensions_folder", None)
-        if isinstance(webextensions_folder, six.string_types):
+        if isinstance(webextensions_folder, (str,)):
             folder = utils.interpolate(webextensions_folder)
             for file in os.listdir(folder):
                 if file.endswith(".xpi"):
                     webextensions_to_install.append(os.path.join(folder, file))
 
         webextensions = self.test_config.get("webextensions", None)
-        if isinstance(webextensions, six.string_types):
+        if isinstance(webextensions, (str,)):
             webextensions_to_install.append(webextensions)
 
         if webextensions_to_install is not None:

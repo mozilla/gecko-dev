@@ -225,7 +225,7 @@ class WarningsDatabase(object):
         """
 
         # Need to calculate up front since we are mutating original object.
-        filenames = list(six.iterkeys(self._files))
+        filenames = list(self._files.keys())
         for filename in filenames:
             if not os.path.exists(filename):
                 del self._files[filename]
@@ -244,10 +244,10 @@ class WarningsDatabase(object):
         obj = {"files": {}}
 
         # All this hackery because JSON can't handle sets.
-        for k, v in six.iteritems(self._files):
+        for k, v in self._files.items():
             obj["files"][k] = {}
 
-            for k2, v2 in six.iteritems(v):
+            for k2, v2 in v.items():
                 normalized = v2
                 if isinstance(v2, set):
                     normalized = list(v2)
@@ -263,7 +263,7 @@ class WarningsDatabase(object):
         self._files = obj["files"]
 
         # Normalize data types.
-        for filename, value in six.iteritems(self._files):
+        for filename, value in self._files.items():
             if "warnings" in value:
                 normalized = set()
                 for d in value["warnings"]:

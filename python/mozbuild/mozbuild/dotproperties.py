@@ -7,8 +7,6 @@
 import codecs
 import re
 
-import six
-
 
 class DotProperties:
     r"""A thin representation of a key=value .properties file."""
@@ -46,7 +44,7 @@ class DotProperties:
         if not prefix.endswith("."):
             prefix = prefix + "."
         indexes = []
-        for k, v in six.iteritems(self._properties):
+        for k, v in self._properties.items():
             if not k.startswith(prefix):
                 continue
             key = k[len(prefix) :]
@@ -69,7 +67,7 @@ class DotProperties:
 
         D = dict(
             (k[len(prefix) :], v)
-            for k, v in six.iteritems(self._properties)
+            for k, v in self._properties.items()
             if k.startswith(prefix) and "." not in k[len(prefix) :]
         )
 

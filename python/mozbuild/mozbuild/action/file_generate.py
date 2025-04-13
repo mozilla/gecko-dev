@@ -25,36 +25,36 @@ def main(argv):
         "Generate a file from a Python script", add_help=False
     )
     parser.add_argument(
-        "--locale", metavar="locale", type=six.text_type, help="The locale in use."
+        "--locale", metavar="locale", type=str, help="The locale in use."
     )
     parser.add_argument(
         "python_script",
         metavar="python-script",
-        type=six.text_type,
+        type=str,
         help="The Python script to run",
     )
     parser.add_argument(
         "method_name",
         metavar="method-name",
-        type=six.text_type,
+        type=str,
         help="The method of the script to invoke",
     )
     parser.add_argument(
         "output_file",
         metavar="output-file",
-        type=six.text_type,
+        type=str,
         help="The file to generate",
     )
     parser.add_argument(
         "dep_file",
         metavar="dep-file",
-        type=six.text_type,
+        type=str,
         help="File to write any additional make dependencies to",
     )
     parser.add_argument(
         "dep_target",
         metavar="dep-target",
-        type=six.text_type,
+        type=str,
         help="Make target to use in the dependencies file",
     )
     parser.add_argument(

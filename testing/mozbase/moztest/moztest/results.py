@@ -6,7 +6,6 @@ import os
 import time
 
 import mozinfo
-import six
 
 
 class TestContext(object):
@@ -69,7 +68,7 @@ class TestContext(object):
         def get(attr):
             value = getattr(self, attr)
             if isinstance(value, dict):
-                value = frozenset(six.iteritems(value))
+                value = frozenset(value.items())
             return value
 
         return hash(frozenset([get(a) for a in self.attrs]))
@@ -111,7 +110,7 @@ class TestResult(object):
             result_expected,
             ", ".join(self.POSSIBLE_RESULTS),
         )
-        assert isinstance(name, six.string_types), "name has to be a string"
+        assert isinstance(name, (str,)), "name has to be a string"
         assert result_expected in self.POSSIBLE_RESULTS, msg
 
         self.name = name
@@ -203,7 +202,7 @@ class TestResult(object):
             raise ValueError(msg)
 
         # use lists instead of multiline strings
-        if isinstance(output, six.string_types):
+        if isinstance(output, (str,)):
             output = output.splitlines()
 
         self.time_end = time_end if time_end is not None else time.time()

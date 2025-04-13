@@ -774,7 +774,7 @@ class RecursiveMakeBackend(MakeBackend):
         # - nodes that are rust targets.
         compile_roots = [
             t
-            for t, deps in six.iteritems(self._compile_graph)
+            for t, deps in self._compile_graph.items()
             if t in self._rust_targets or t not in all_compile_deps
         ]
 
@@ -832,7 +832,7 @@ class RecursiveMakeBackend(MakeBackend):
                 self._no_skip["syms"].remove(dirname)
 
         add_category_rules("compile", compile_roots, self._compile_graph)
-        for category, graph in sorted(six.iteritems(non_default_graphs)):
+        for category, graph in sorted(non_default_graphs.items()):
             add_category_rules(category, non_default_roots[category], graph)
 
         for relobjdir, tier, input in self._post_process_dependencies:
@@ -870,7 +870,7 @@ class RecursiveMakeBackend(MakeBackend):
             "non_default_tiers := %s" % " ".join(sorted(non_default_roots.keys()))
         )
 
-        for category, graphs in sorted(six.iteritems(non_default_graphs)):
+        for category, graphs in sorted(non_default_graphs.items()):
             category_dirs = [mozpath.dirname(target) for target in graphs.keys()]
             root_mk.add_statement("%s_dirs := %s" % (category, " ".join(category_dirs)))
 

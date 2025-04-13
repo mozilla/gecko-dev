@@ -4,7 +4,6 @@
 import argparse
 import os
 
-import six
 from mozlog.commandline import add_logging_group
 
 (FIREFOX, CHROME, SAFARI, SAFARI_TP, CHROMIUM_RELEASE) = DESKTOP_APPS = [
@@ -722,7 +721,7 @@ class _PrintTests(_StopAction):
                         test_list[suite]["subtests"].append(subtest)
 
             # print the list in a nice, readable format
-            for key in sorted(six.iterkeys(test_list)):
+            for key in sorted(test_list.keys()):
                 print("\n%s" % key)
                 print("  type: %s" % test_list[key]["type"])
                 if len(test_list[key]["subtests"]) != 0:

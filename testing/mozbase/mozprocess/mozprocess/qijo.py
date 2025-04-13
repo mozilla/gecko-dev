@@ -16,8 +16,6 @@ from ctypes import (
 )
 from ctypes.wintypes import BOOL, BYTE, DWORD, HANDLE, LARGE_INTEGER
 
-import six
-
 LPVOID = c_void_p
 LPDWORD = POINTER(DWORD)
 SIZE_T = c_size_t
@@ -106,7 +104,7 @@ class JobObjectInfo(object):
     }
 
     def __init__(self, _class):
-        if isinstance(_class, six.string_types):
+        if isinstance(_class, (str,)):
             assert _class in self.mapping, "Class should be one of %s; you gave %s" % (
                 self.mapping,
                 _class,

@@ -910,12 +910,12 @@ class AndroidEmulator(object):
                     f.write(line)
 
     def _telnet_read_until(self, telnet, expected, timeout):
-        if six.PY3 and isinstance(expected, six.text_type):
+        if six.PY3 and isinstance(expected, str):
             expected = expected.encode("ascii")
         return telnet.read_until(expected, timeout)
 
     def _telnet_write(self, telnet, command):
-        if six.PY3 and isinstance(command, six.text_type):
+        if six.PY3 and isinstance(command, str):
             command = command.encode("ascii")
         telnet.write(command)
 
@@ -1144,7 +1144,7 @@ def _verify_kvm(substs):
     command = [emulator_path, "-accel-check"]
     try:
         out = subprocess.check_output(command)
-        if six.PY3 and not isinstance(out, six.text_type):
+        if six.PY3 and not isinstance(out, str):
             out = out.decode("utf-8")
         if "is installed and usable" in "".join(out):
             return

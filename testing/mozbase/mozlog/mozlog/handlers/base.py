@@ -114,7 +114,7 @@ class StreamHandler(BaseHandler):
                 except UnicodeEncodeError:
                     return
             else:
-                if isinstance(formatted, six.text_type):
+                if isinstance(formatted, str):
                     self.stream.write(formatted.encode("utf-8", "replace"))
                 elif isinstance(formatted, str):
                     self.stream.write(formatted)

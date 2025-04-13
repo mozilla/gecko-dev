@@ -818,7 +818,7 @@ class PerftestOutput(object):
 
         failed_tests = []
         for pagecycle in data:
-            for _sub, _value in six.iteritems(pagecycle[0]):
+            for _sub, _value in pagecycle[0].items():
                 if _value["decodedFrames"] == 0:
                     failed_tests.append(
                         "%s test Failed. decodedFrames %s droppedFrames %s."

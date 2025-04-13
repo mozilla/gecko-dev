@@ -16,7 +16,7 @@ from optparse import OptionParser
 import mozfile
 import mozinfo
 import requests
-from six import PY3, reraise
+from six import PY3
 
 try:
     import pefile
@@ -114,7 +114,7 @@ def install(src, dest):
             except Exception:
                 exc, val, tb = sys.exc_info()
                 error = InvalidSource("{} ({})".format(msg, val))
-                reraise(InvalidSource, error, tb)
+                raise error.with_traceback(tb)
         raise InvalidSource(msg)
 
     src = os.path.realpath(src)
@@ -154,9 +154,9 @@ def install(src, dest):
                     pass
         if issubclass(cls, Exception):
             error = InstallError('Failed to install "%s (%s)"' % (src, str(exc)))
-            reraise(InstallError, error, trbk)
+            raise error.with_traceback(trbk)
         # any other kind of exception like KeyboardInterrupt is just re-raised.
-        reraise(cls, exc, trbk)
+        raise exc.with_traceback(trbk)
 
     finally:
         # trbk won't get GC'ed due to circular reference
@@ -258,7 +258,7 @@ def uninstall(install_folder):
                 error = UninstallError(
                     "Failed to uninstall %s (%s)" % (install_folder, str(ex))
                 )
-                reraise(UninstallError, error, trbk)
+                raise error.with_traceback(trbk)
 
             finally:
                 # trbk won't get GC'ed due to circular reference

@@ -41,7 +41,7 @@ def useBaseTestDefaults(base, tests):
 def set_tp_preferences(test, browser_config):
     # sanity check pageloader values
     # mandatory options: tpmanifest, tpcycles
-    if test["tpcycles"] not in six.moves.range(1, 1000):
+    if test["tpcycles"] not in range(1, 1000):
         raise TalosError("pageloader cycles must be int 1 to 1,000")
     if "tpmanifest" not in test:
         raise TalosError("tpmanifest not found in test: %s" % test)

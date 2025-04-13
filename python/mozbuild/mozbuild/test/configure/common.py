@@ -92,9 +92,7 @@ class ConfigureTestSandbox(ConfigureSandbox):
     def __init__(self, paths, config, environ, *args, **kwargs):
         self._search_path = environ.get("PATH", "").split(os.pathsep)
 
-        self._subprocess_paths = {
-            mozpath.abspath(k): v for k, v in six.iteritems(paths) if v
-        }
+        self._subprocess_paths = {mozpath.abspath(k): v for k, v in paths.items() if v}
 
         paths = list(paths)
 

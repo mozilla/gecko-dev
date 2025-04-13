@@ -7,7 +7,6 @@ import os
 import re
 
 import mozpack.path as mozpath
-import six
 from mach.config import ConfigSettings
 from mach.logging import LoggingManager
 from mozpack.copier import FileRegistry
@@ -161,7 +160,7 @@ class ChromeMapBackend(CommonBackend):
             overrides = self.manifest_handler.overrides
             json.dump(
                 [
-                    {k: list(v) for k, v in six.iteritems(chrome_mapping)},
+                    {k: list(v) for k, v in chrome_mapping.items()},
                     overrides,
                     self._install_mapping,
                     {

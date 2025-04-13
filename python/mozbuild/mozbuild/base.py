@@ -296,7 +296,7 @@ class MozbuildObject(ProcessExecutionMixin):
                 args = tuple(
                     (
                         a
-                        if not isinstance(a, six.string_types) or a != "--help"
+                        if not isinstance(a, (str,)) or a != "--help"
                         else self._always.sandboxed
                     )
                     for a in args
@@ -372,12 +372,9 @@ class MozbuildObject(ProcessExecutionMixin):
                 config_status
             )
         except ConfigStatusFailure as e:
-            six.raise_from(
-                BuildEnvironmentNotFoundException(
-                    "config.status is outdated or broken. Run configure."
-                ),
-                e,
-            )
+            raise BuildEnvironmentNotFoundException(
+                "config.status is outdated or broken. Run configure."
+            ) from e
 
         return self._config_environment
 

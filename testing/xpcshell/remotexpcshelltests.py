@@ -20,7 +20,6 @@ import mozdevice
 import mozfile
 import mozinfo
 import runxpcshelltests as xpcshell
-import six
 from mozdevice import ADBDevice, ADBDeviceFactory, ADBTimeoutError
 from mozlog import commandline
 from xpcshellcommandline import parser_remote
@@ -507,7 +506,7 @@ class XPCShellRemote(xpcshell.XPCShellTests, object):
         localWrapper = tempfile.mktemp()
         with open(localWrapper, "w") as f:
             f.write("#!/system/bin/sh\n")
-            for envkey, envval in six.iteritems(self.env):
+            for envkey, envval in self.env.items():
                 f.write("export %s=%s\n" % (envkey, envval))
             f.writelines(
                 [

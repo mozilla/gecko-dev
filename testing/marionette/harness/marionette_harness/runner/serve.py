@@ -15,8 +15,6 @@ import os
 import sys
 from collections import defaultdict
 
-from six import iteritems
-
 from . import httpd
 
 __all__ = [
@@ -199,12 +197,12 @@ def where_is(uri, on="http"):
 
 
 def iter_proc(servers):
-    for _, (_, proc) in iteritems(servers):
+    for _, (_, proc) in servers.items():
         yield proc
 
 
 def iter_url(servers):
-    for _, (url, _) in iteritems(servers):
+    for _, (url, _) in servers.items():
         yield url
 
 

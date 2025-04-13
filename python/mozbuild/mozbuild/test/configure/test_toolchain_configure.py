@@ -5,7 +5,6 @@
 import logging
 import os
 
-import six
 from mozboot.util import MINIMUM_RUST_VERSION
 from mozpack import path as mozpath
 from mozunit import main
@@ -651,7 +650,7 @@ class LinuxToolchainTest(BaseToolchainTest):
         # count), find clang.
         paths = {
             k: v
-            for k, v in six.iteritems(self.PATHS)
+            for k, v in self.PATHS.items()
             if os.path.basename(k) not in ("gcc", "g++")
         }
         self.do_toolchain_test(
@@ -696,7 +695,7 @@ class LinuxToolchainTest(BaseToolchainTest):
         # don't try them. This could be considered something to improve.
         paths = {
             k: v
-            for k, v in six.iteritems(self.PATHS)
+            for k, v in self.PATHS.items()
             if os.path.basename(k) not in ("gcc", "g++", "clang", "clang++")
         }
         self.do_toolchain_test(
@@ -917,7 +916,7 @@ class OSXToolchainTest(BaseToolchainTest):
         # We won't pick GCC if it's the only thing available.
         paths = {
             k: v
-            for k, v in six.iteritems(self.PATHS)
+            for k, v in self.PATHS.items()
             if os.path.basename(k) not in ("clang", "clang++")
         }
         self.do_toolchain_test(
@@ -1044,9 +1043,7 @@ class MingwToolchainTest(BaseToolchainTest):
     def test_gcc(self):
         # GCC is unsupported, if you try it should find clang.
         paths = {
-            k: v
-            for k, v in six.iteritems(self.PATHS)
-            if os.path.basename(k) != "clang-cl"
+            k: v for k, v in self.PATHS.items() if os.path.basename(k) != "clang-cl"
         }
         self.do_toolchain_test(
             paths,
@@ -1077,7 +1074,7 @@ class MingwToolchainTest(BaseToolchainTest):
         # We'll pick clang if nothing else is found.
         paths = {
             k: v
-            for k, v in six.iteritems(self.PATHS)
+            for k, v in self.PATHS.items()
             if os.path.basename(k) not in ("clang-cl", "gcc")
         }
         self.do_toolchain_test(
@@ -1160,9 +1157,7 @@ class WindowsToolchainTest(BaseToolchainTest):
 
     def test_unsupported_gcc(self):
         paths = {
-            k: v
-            for k, v in six.iteritems(self.PATHS)
-            if os.path.basename(k) != "clang-cl"
+            k: v for k, v in self.PATHS.items() if os.path.basename(k) != "clang-cl"
         }
         self.do_toolchain_test(
             paths,
@@ -1179,7 +1174,7 @@ class WindowsToolchainTest(BaseToolchainTest):
     def test_unsupported_clang(self):
         paths = {
             k: v
-            for k, v in six.iteritems(self.PATHS)
+            for k, v in self.PATHS.items()
             if os.path.basename(k) not in ("clang-cl", "gcc")
         }
         self.do_toolchain_test(
@@ -1215,9 +1210,7 @@ class WindowsGnuToolchainTest(BaseToolchainTest):
 
     def test_unsupported_clang_cl(self):
         paths = {
-            k: v
-            for k, v in six.iteritems(self.PATHS)
-            if os.path.basename(k) == "clang-cl"
+            k: v for k, v in self.PATHS.items() if os.path.basename(k) == "clang-cl"
         }
         self.do_toolchain_test(
             paths,
@@ -1232,9 +1225,7 @@ class WindowsGnuToolchainTest(BaseToolchainTest):
         )
 
     def test_unsupported_gcc(self):
-        paths = {
-            k: v for k, v in six.iteritems(self.PATHS) if os.path.basename(k) == "gcc"
-        }
+        paths = {k: v for k, v in self.PATHS.items() if os.path.basename(k) == "gcc"}
         self.do_toolchain_test(
             paths,
             {"c_compiler": "Cannot find the target C compiler"},
@@ -1250,7 +1241,7 @@ class WindowsGnuToolchainTest(BaseToolchainTest):
     def test_clang(self):
         paths = {
             k: v
-            for k, v in six.iteritems(self.PATHS)
+            for k, v in self.PATHS.items()
             if os.path.basename(k) not in ("clang-cl", "gcc")
         }
         self.do_toolchain_test(

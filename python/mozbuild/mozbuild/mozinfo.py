@@ -9,8 +9,6 @@ import json
 import os
 import re
 
-import six
-
 
 def build_dict(config, env=os.environ):
     """
@@ -166,7 +164,7 @@ def write_mozinfo(file, config, env=os.environ):
     and what keys are produced.
     """
     build_conf = build_dict(config, env)
-    if isinstance(file, six.text_type):
+    if isinstance(file, str):
         file = open(file, "wt")
 
     json.dump(build_conf, file, sort_keys=True, indent=4)

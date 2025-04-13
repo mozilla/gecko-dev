@@ -5,7 +5,6 @@
 import json
 import os
 
-import six
 from mozunit import main
 
 from mozbuild.backend.clangd import ClangdBackend
@@ -54,7 +53,7 @@ class TestCompileDBBackends(BackendTester):
         ]
 
         # Verify item consistency against `expected_db`
-        six.assertCountEqual(self, compile_db, expected_db)
+        self.assertCountEqual(compile_db, expected_db)
 
     def test_database(self):
         """Ensure we can generate a `compile_commands.json` and that is correct."""

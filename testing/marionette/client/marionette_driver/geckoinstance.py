@@ -23,10 +23,8 @@ import traceback
 from copy import deepcopy
 
 import mozversion
-import six
 from mozprofile import Profile
 from mozrunner import FennecEmulatorRunner, Runner
-from six import reraise
 
 from . import errors
 
@@ -274,7 +272,7 @@ class GeckoInstance(object):
             profile_path = profile
 
             # If a path to a profile is given then clone it
-            if isinstance(profile_path, six.string_types):
+            if isinstance(profile_path, str):
                 profile_args["path_from"] = profile_path
                 profile_args["path_to"] = tempfile.mkdtemp(
                     suffix=".{}".format(profile_name or os.path.basename(profile_path)),
@@ -359,7 +357,7 @@ class GeckoInstance(object):
             msg = 'Application "{0}" unknown (should be one of {1})'.format(
                 app, list(apps.keys())
             )
-            reraise(NotImplementedError, NotImplementedError(msg), tb)
+            raise NotImplementedError(msg).with_traceback(tb)
 
         return instance_class(*args, **kwargs)
 
@@ -538,11 +536,9 @@ class FennecInstance(GeckoInstance):
             self.runner.start()
         except Exception:
             exc_cls, exc, tb = sys.exc_info()
-            reraise(
-                exc_cls,
-                exc_cls("Error possibly due to runner or device args: {}".format(exc)),
-                tb,
-            )
+            raise exc_cls(
+                "Error possibly due to runner or device args: {}".format(exc)
+            ).with_traceback(tb)
 
         # forward marionette port
         self.runner.device.device.forward(

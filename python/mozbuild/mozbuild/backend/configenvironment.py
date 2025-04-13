@@ -11,7 +11,6 @@ from pathlib import Path
 from types import ModuleType
 
 import mozpack.path as mozpath
-import six
 
 from mozbuild.shellutil import quote as shell_quote
 from mozbuild.util import (
@@ -159,7 +158,7 @@ class ConfigEnvironment(object):
         )
 
         def serialize(name, obj):
-            if isinstance(obj, six.string_types):
+            if isinstance(obj, (str,)):
                 return obj
             if isinstance(obj, Iterable):
                 return " ".join(obj)
@@ -241,7 +240,7 @@ class PartialConfigDict(object):
         existing_files = {Path(f) for f in existing_files}
 
         new_files = set()
-        for k, v in six.iteritems(values):
+        for k, v in values.items():
             new_files.add(Path(self._write_file(k, v)))
 
         for filename in existing_files - new_files:

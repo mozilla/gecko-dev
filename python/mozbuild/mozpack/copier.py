@@ -9,8 +9,6 @@ import stat
 import sys
 from collections import Counter, OrderedDict, defaultdict
 
-import six
-
 import mozpack.path as mozpath
 from mozpack.errors import errors
 from mozpack.files import BaseFile, Dest
@@ -135,7 +133,7 @@ class FileRegistry(object):
             for path, file in registry:
                 (...)
         """
-        return six.iteritems(self._files)
+        return iter(self._files.items())
 
     def required_directories(self):
         """
@@ -292,7 +290,7 @@ class FileCopier(FileRegistry):
 
         Returns a FileCopyResult that details what changed.
         """
-        assert isinstance(destination, six.string_types)
+        assert isinstance(destination, (str,))
         assert not os.path.exists(destination) or os.path.isdir(destination)
 
         result = FileCopyResult()
@@ -561,7 +559,7 @@ class Jarrer(FileRegistry, BaseFile):
             def exists(self):
                 return self.deflater is not None
 
-        if isinstance(dest, six.string_types):
+        if isinstance(dest, (str,)):
             dest = Dest(dest)
         assert isinstance(dest, Dest)
 

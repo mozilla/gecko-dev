@@ -12,9 +12,6 @@ import time
 import traceback
 from contextlib import contextmanager
 
-import six
-from six import reraise
-
 from . import errors, transport
 from .decorators import do_process_check
 from .geckoinstance import GeckoInstance
@@ -643,7 +640,7 @@ class Marionette(object):
         except OSError:
             _, value, tb = sys.exc_info()
             msg = "Port {}:{} is unavailable ({})".format(self.host, self.port, value)
-            reraise(IOError, OSError(msg), tb)
+            raise OSError(msg).with_traceback(tb)
 
         try:
             self.instance.start()
@@ -657,7 +654,7 @@ class Marionette(object):
                 "Process killed after {}s because no connection to Marionette "
                 "server could be established. Check gecko.log for errors"
             )
-            reraise(IOError, OSError(msg.format(timeout)), sys.exc_info()[2])
+            raise OSError(msg.format(timeout)).with_traceback(sys.exc_info()[2])
 
     def cleanup(self):
         if self.session is not None:
@@ -817,7 +814,7 @@ class Marionette(object):
         # If the application hasn't been launched by Marionette no further action can be done.
         # In such cases we simply re-throw the exception.
         if not self.instance:
-            reraise(exc_cls, exc, tb)
+            raise exc.with_traceback(tb)
 
         else:
             # Somehow the socket disconnected. Give the application some time to shutdown
@@ -850,9 +847,9 @@ class Marionette(object):
 
             message += " (Reason: {reason})"
 
-            reraise(
-                IOError, OSError(message.format(returncode=returncode, reason=exc)), tb
-            )
+            raise OSError(
+                message.format(returncode=returncode, reason=exc)
+            ).with_traceback(tb)
 
     @staticmethod
     def convert_keys(*string):
@@ -1015,7 +1012,7 @@ class Marionette(object):
             )
         pref_exists = True
         with self.using_context(self.CONTEXT_CHROME):
-            for pref, value in six.iteritems(prefs):
+            for pref, value in prefs.items():
                 if type(value) is not str:
                     value = json.dumps(value)
                 pref_exists = self.execute_script(
@@ -1281,17 +1278,15 @@ class Marionette(object):
                     self._send_message("Marionette:AcceptConnections", {"value": True})
 
                     message = "Process still running {}s after restart request"
-                    reraise(exc_cls, exc_cls(message.format(timeout_restart)), tb)
+                    raise exc_cls(message.format(timeout_restart)).with_traceback(tb)
 
                 else:
                     # The process shutdown but didn't start again.
                     self.cleanup()
                     msg = "Process unexpectedly quit without restarting (exit code: {})"
-                    reraise(
-                        exc_cls,
-                        exc_cls(msg.format(self.instance.runner.returncode)),
-                        tb,
-                    )
+                    raise exc_cls(
+                        msg.format(self.instance.runner.returncode)
+                    ).with_traceback(tb)
 
             self.is_shutting_down = False
 
@@ -1378,7 +1373,7 @@ class Marionette(object):
             exc_type, value, tb = sys.exc_info()
             if self.instance and self.instance.runner.is_running():
                 self.instance.close()
-            reraise(exc_type, exc_type(value.message), tb)
+            raise exc_type(value.message).with_traceback(tb)
 
         self.session_id = resp["sessionId"]
         self.session = resp["capabilities"]
@@ -1737,7 +1732,7 @@ class Marionette(object):
             wrapped = {WEB_FRAME_KEY: args.id}
         elif type(args) is WebWindow:
             wrapped = {WEB_WINDOW_KEY: args.id}
-        elif isinstance(args, (bool, int, float, six.string_types)) or args is None:
+        elif isinstance(args, (bool, int, float, str)) or args is None:
             wrapped = args
         return wrapped
 

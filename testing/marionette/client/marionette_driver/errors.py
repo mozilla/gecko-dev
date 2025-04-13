@@ -29,7 +29,7 @@ class MarionetteException(Exception):
         """
         self.cause = cause
         self.stacktrace = stacktrace
-        self._message = six.text_type(message)
+        self._message = str(message)
 
     def __str__(self):
         # pylint: disable=W1645
@@ -50,7 +50,7 @@ class MarionetteException(Exception):
         if tb:
             msg += ": " + "".join(traceback.format_tb(tb))
 
-        return six.text_type(msg)
+        return str(msg)
 
     @property
     def message(self):

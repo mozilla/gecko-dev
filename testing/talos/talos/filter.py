@@ -4,8 +4,6 @@
 
 import math
 
-import six
-
 """
 data filters:
 takes a series of run data and applies statistical transforms to it
@@ -166,7 +164,7 @@ def dromaeo(series):
 @register_filter
 @define_filter
 def dromaeo_chunks(series, size):
-    for i in six.moves.range(0, len(series), size):
+    for i in range(0, len(series), size):
         yield series[i : i + size]
 
 

@@ -167,7 +167,7 @@ def run_awsy(command_context, tests, binary=None, **kwargs):
         if bin_dir not in sys.path:
             sys.path.append(bin_dir)
 
-    for k, v in six.iteritems(kwargs):
+    for k, v in kwargs.items():
         setattr(args, k, v)
 
     parser.verify_usage(args)

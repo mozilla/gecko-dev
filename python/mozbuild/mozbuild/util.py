@@ -63,7 +63,7 @@ def hash_file(path, hasher=None):
     return h.hexdigest()
 
 
-class EmptyValue(six.text_type):
+class EmptyValue(str):
     """A dummy type that behaves like an empty string and sequence.
 
     This type exists in order to support
@@ -79,7 +79,7 @@ class ReadOnlyNamespace(object):
     """A class for objects with immutable attributes set at initialization."""
 
     def __init__(self, **kwargs):
-        for k, v in six.iteritems(kwargs):
+        for k, v in kwargs.items():
             super(ReadOnlyNamespace, self).__setattr__(k, v)
 
     def __delattr__(self, key):
@@ -612,7 +612,7 @@ def FlagsFactory(flags):
         _flags = flags
 
         def update(self, **kwargs):
-            for k, v in six.iteritems(kwargs):
+            for k, v in kwargs.items():
                 setattr(self, k, v)
 
         def __getattr__(self, name):
@@ -872,7 +872,7 @@ class HierarchicalStringList(object):
         if not isinstance(value, list):
             raise ValueError("Expected a list of strings, not %s" % type(value))
         for v in value:
-            if not isinstance(v, six.string_types):
+            if not isinstance(v, (str,)):
                 raise ValueError(
                     "Expected a list of strings, not an element of %s" % type(v)
                 )
@@ -1125,7 +1125,7 @@ def expand_variables(s, variables):
         value = variables.get(name)
         if not value:
             continue
-        if not isinstance(value, six.string_types):
+        if not isinstance(value, (str,)):
             value = " ".join(value)
         result += value
     return result
@@ -1180,7 +1180,7 @@ class EnumStringComparisonError(Exception):
     pass
 
 
-class EnumString(six.text_type):
+class EnumString(str):
     """A string type that only can have a limited set of values, similarly to
     an Enum, and can only be compared against that set of values.
 
@@ -1220,17 +1220,17 @@ def _escape_char(c):
     # quoting could be done with either ' or ".
     if c == "'":
         return "\\'"
-    return six.text_type(c.encode("unicode_escape"))
+    return str(c.encode("unicode_escape"))
 
 
 def ensure_bytes(value, encoding="utf-8"):
-    if isinstance(value, six.text_type):
+    if isinstance(value, str):
         return value.encode(encoding)
     return value
 
 
 def ensure_unicode(value, encoding="utf-8"):
-    if isinstance(value, six.binary_type):
+    if isinstance(value, bytes):
         return value.decode(encoding)
     return value
 

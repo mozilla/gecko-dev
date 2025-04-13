@@ -4,8 +4,6 @@
 
 import os
 
-import six
-
 
 def toolchain_task_definitions():
     # triggers override of the `graph_config_schema` noqa
@@ -22,7 +20,7 @@ def toolchain_task_definitions():
         aliases = t.attributes.get("toolchain-alias")
         if not aliases:
             aliases = []
-        if isinstance(aliases, six.text_type):
+        if isinstance(aliases, str):
             aliases = [aliases]
         for alias in aliases:
             aliased["toolchain-{}".format(alias)] = t

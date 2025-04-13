@@ -9,7 +9,6 @@ from abc import ABCMeta, abstractmethod
 from contextlib import contextmanager
 
 import mozpack.path as mozpath
-import six
 from mach.mixin.logging import LoggingMixin
 
 from mozbuild.base import ExecutionSummary
@@ -309,7 +308,7 @@ class BuildBackend(LoggingMixin):
         pp.context.update(
             {
                 k: " ".join(v) if isinstance(v, list) else v
-                for k, v in six.iteritems(obj.config.substs)
+                for k, v in obj.config.substs.items()
             }
         )
         pp.context.update(

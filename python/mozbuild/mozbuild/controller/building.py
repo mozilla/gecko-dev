@@ -595,7 +595,7 @@ class BuildProgressFooter(Footer):
 
     def __init__(self, terminal, monitor):
         Footer.__init__(self, terminal)
-        self.tiers = six.viewitems(monitor.tiers.tier_status)
+        self.tiers = monitor.tiers.tier_status.items()
 
     def draw(self):
         """Draws this footer in the terminal."""

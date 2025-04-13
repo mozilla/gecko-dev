@@ -310,7 +310,7 @@ class TcpTransport(object):
         except socket.timeout:
             exc_cls, exc, tb = sys.exc_info()
             msg = "Connection attempt failed because no data has been received over the socket: {}"
-            six.reraise(exc_cls, exc_cls(msg.format(exc)), tb)
+            raise exc_cls(msg.format(exc)).with_traceback(tb)
 
         hello = json.loads(raw)
         application_type = hello.get("applicationType")

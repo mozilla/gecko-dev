@@ -4,7 +4,6 @@
 import argparse
 import os
 
-import six
 from mozlog.commandline import add_logging_group
 
 
@@ -33,7 +32,7 @@ class _ListTests(_StopAction):
         print("================\n")
         test_class_names = [
             (test_class.name(), test_class.description())
-            for test_class in six.itervalues(test.test_dict())
+            for test_class in test.test_dict().values()
         ]
         test_class_names.sort()
         for name, description in test_class_names:

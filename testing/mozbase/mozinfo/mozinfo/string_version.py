@@ -4,10 +4,8 @@
 
 import re
 
-import six
 
-
-class StringVersion(six.text_type):
+class StringVersion(str):
     """
     A string version that can be compared with comparison operators.
     """

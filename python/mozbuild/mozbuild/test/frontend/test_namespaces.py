@@ -4,7 +4,6 @@
 
 import unittest
 
-import six
 from mozunit import main
 
 from mozbuild.frontend.context import (
@@ -27,7 +26,7 @@ class Fuga(object):
 
 class Piyo(ContextDerivedValue):
     def __init__(self, context, value):
-        if not isinstance(value, six.text_type):
+        if not isinstance(value, str):
             raise ValueError
         self.context = context
         self.value = value
@@ -39,28 +38,28 @@ class Piyo(ContextDerivedValue):
         return self.value
 
     def __eq__(self, other):
-        return self.value == six.text_type(other)
+        return self.value == str(other)
 
     def __lt__(self, other):
-        return self.value < six.text_type(other)
+        return self.value < str(other)
 
     def __le__(self, other):
-        return self.value <= six.text_type(other)
+        return self.value <= str(other)
 
     def __gt__(self, other):
-        return self.value > six.text_type(other)
+        return self.value > str(other)
 
     def __ge__(self, other):
-        return self.value >= six.text_type(other)
+        return self.value >= str(other)
 
     def __hash__(self):
         return hash(self.value)
 
 
 VARIABLES = {
-    "HOGE": (six.text_type, six.text_type, None),
-    "FUGA": (Fuga, six.text_type, None),
-    "PIYO": (Piyo, six.text_type, None),
+    "HOGE": (str, str, None),
+    "FUGA": (Fuga, str, None),
+    "PIYO": (Piyo, str, None),
     "HOGERA": (ContextDerivedTypedList(Piyo, StrictOrderingOnAppendList), list, None),
     "HOGEHOGE": (
         ContextDerivedTypedListWithItems(
@@ -121,7 +120,7 @@ class TestContext(unittest.TestCase):
         self.assertEqual(e[1], "set_type")
         self.assertEqual(e[2], "HOGE")
         self.assertEqual(e[3], True)
-        self.assertEqual(e[4], six.text_type)
+        self.assertEqual(e[4], str)
 
     def test_key_checking(self):
         # Checking for existence of a key should not populate the key if it
@@ -144,7 +143,7 @@ class TestContext(unittest.TestCase):
         self.assertEqual(e[1], "set_type")
         self.assertEqual(e[2], "FUGA")
         self.assertEqual(e[3], False)
-        self.assertEqual(e[4], six.text_type)
+        self.assertEqual(e[4], str)
 
         ns["FUGA"] = "fuga"
         self.assertIsInstance(ns["FUGA"], Fuga)
@@ -167,7 +166,7 @@ class TestContext(unittest.TestCase):
         self.assertEqual(e[1], "set_type")
         self.assertEqual(e[2], "PIYO")
         self.assertEqual(e[3], False)
-        self.assertEqual(e[4], six.text_type)
+        self.assertEqual(e[4], str)
 
         ns["PIYO"] = "piyo"
         self.assertIsInstance(ns["PIYO"], Piyo)

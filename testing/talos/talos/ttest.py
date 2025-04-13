@@ -21,7 +21,6 @@ import time
 
 import mozcrash
 import mozfile
-import six
 from mozlog import get_proxy_logger
 
 from talos import results, talosconfig, utils
@@ -106,7 +105,7 @@ class TTest(object):
             test_config, global_counters, browser_config.get("framework")
         )
 
-        for i in six.moves.range(test_config["cycles"]):
+        for i in range(test_config["cycles"]):
             time.sleep(0.25)
             LOG.info(
                 "Running cycle %d/%d for %s test..."

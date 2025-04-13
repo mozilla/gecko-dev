@@ -313,7 +313,7 @@ class BaseCompileFlags(ContextDerivedValue, dict):
 
         klass_name = self.__class__.__name__
         for k, v, build_vars in self.flag_variables:
-            if not isinstance(k, six.text_type):
+            if not isinstance(k, str):
                 raise ValueError("Flag %s for %s is not a string" % (k, klass_name))
             if not isinstance(build_vars, tuple):
                 raise ValueError(
@@ -332,7 +332,7 @@ class BaseCompileFlags(ContextDerivedValue, dict):
             dict.__init__(
                 self,
                 (
-                    (k, v if v is None else TypedList(six.text_type)(v))
+                    (k, v if v is None else TypedList(str)(v))
                     for k, v, _ in self.flag_variables
                 ),
             )
@@ -533,10 +533,7 @@ class TargetCompileFlags(BaseCompileFlags):
                 "`%s` may not be set in COMPILE_FLAGS from moz.build, this "
                 "value is resolved from the emitter." % key
             )
-        if not (
-            isinstance(value, list)
-            and all(isinstance(v, six.string_types) for v in value)
-        ):
+        if not (isinstance(value, list) and all(isinstance(v, (str,)) for v in value)):
             raise ValueError(
                 "A list of strings must be provided as a value for a compile "
                 "flags category."
@@ -767,7 +764,7 @@ class WasmFlags(TargetCompileFlags):
         return ["-Os"]
 
 
-class FinalTargetValue(ContextDerivedValue, six.text_type):
+class FinalTargetValue(ContextDerivedValue, str):
     def __new__(cls, context, value=""):
         if not value:
             value = "dist/"
@@ -777,7 +774,7 @@ class FinalTargetValue(ContextDerivedValue, six.text_type):
                 value += "bin"
             if context["DIST_SUBDIR"]:
                 value += "/" + context["DIST_SUBDIR"]
-        return six.text_type.__new__(cls, value)
+        return str.__new__(cls, value)
 
 
 def Enum(*values):
@@ -830,7 +827,7 @@ class PathMeta(type):
         return super(PathMeta, cls).__call__(context, value)
 
 
-class Path(six.with_metaclass(PathMeta, ContextDerivedValue, six.text_type)):
+class Path(six.with_metaclass(PathMeta, ContextDerivedValue, str)):
     """Stores and resolves a source path relative to a given context
 
     This class is used as a backing type for some of the sandbox variables.
@@ -862,7 +859,7 @@ class Path(six.with_metaclass(PathMeta, ContextDerivedValue, six.text_type)):
     def _cmp(self, other, op):
         if isinstance(other, Path) and self.srcdir != other.srcdir:
             return op(self.full_path, other.full_path)
-        return op(six.text_type(self), other)
+        return op(str(self), other)
 
     def __eq__(self, other):
         return self._cmp(other, operator.eq)
@@ -1167,15 +1164,15 @@ ManifestparserManifestList = OrderedPathListWithAction(read_manifestparser_manif
 ReftestManifestList = OrderedPathListWithAction(read_reftest_manifest)
 
 BugzillaComponent = TypedNamedTuple(
-    "BugzillaComponent", [("product", six.text_type), ("component", six.text_type)]
+    "BugzillaComponent", [("product", str), ("component", str)]
 )
 SchedulingComponents = ContextDerivedTypedRecord(
-    ("inclusive", TypedList(six.text_type, StrictOrderingOnAppendList)),
-    ("exclusive", TypedList(six.text_type, StrictOrderingOnAppendList)),
+    ("inclusive", TypedList(str, StrictOrderingOnAppendList)),
+    ("exclusive", TypedList(str, StrictOrderingOnAppendList)),
 )
 
 GeneratedFilesList = StrictOrderingOnAppendListWithFlagsFactory(
-    {"script": six.text_type, "inputs": list, "force": bool, "flags": list}
+    {"script": str, "inputs": list, "force": bool, "flags": list}
 )
 
 
@@ -1450,13 +1447,13 @@ VARIABLES = {
         """,
     ),
     "RUST_TESTS": (
-        TypedList(six.text_type),
+        TypedList(str),
         list,
         """Names of Rust tests to build and run via `cargo test`.
         """,
     ),
     "RUST_TEST_FEATURES": (
-        TypedList(six.text_type),
+        TypedList(str),
         list,
         """Cargo features to activate for RUST_TESTS.
         """,
@@ -1712,8 +1709,8 @@ VARIABLES = {
         """,
     ),
     "FINAL_LIBRARY": (
-        six.text_type,
-        six.text_type,
+        str,
+        str,
         """Library in which the objects of the current directory will be linked.
 
         This variable contains the name of a library, defined elsewhere with
@@ -1771,8 +1768,8 @@ VARIABLES = {
         """,
     ),
     "HOST_LIBRARY_NAME": (
-        six.text_type,
-        six.text_type,
+        str,
+        str,
         """Name of target library generated when cross compiling.
         """,
     ),
@@ -1786,8 +1783,8 @@ VARIABLES = {
         """,
     ),
     "LIBRARY_NAME": (
-        six.text_type,
-        six.text_type,
+        str,
+        str,
         """The code name of the library generated for a directory.
 
         By default STATIC_LIBRARY_NAME and SHARED_LIBRARY_NAME take this name.
@@ -1800,8 +1797,8 @@ VARIABLES = {
         """,
     ),
     "SHARED_LIBRARY_NAME": (
-        six.text_type,
-        six.text_type,
+        str,
+        str,
         """The name of the static library generated for a directory, if it needs to
         differ from the library code name.
 
@@ -1809,22 +1806,22 @@ VARIABLES = {
         """,
     ),
     "SANDBOXED_WASM_LIBRARY_NAME": (
-        six.text_type,
-        six.text_type,
+        str,
+        str,
         """The name of the static sandboxed wasm library generated for a directory.
         """,
     ),
     "SHARED_LIBRARY_OUTPUT_CATEGORY": (
-        six.text_type,
-        six.text_type,
+        str,
+        str,
         """The output category for this context's shared library. If set this will
         correspond to the build command that will build this shared library, and
         the library will not be built as part of the default build.
         """,
     ),
     "RUST_LIBRARY_OUTPUT_CATEGORY": (
-        six.text_type,
-        six.text_type,
+        str,
+        str,
         """The output category for this context's rust library. If set this will
         correspond to the build command that will build this rust library, and
         the library will not be built as part of the default build.
@@ -1840,8 +1837,8 @@ VARIABLES = {
         """,
     ),
     "STATIC_LIBRARY_NAME": (
-        six.text_type,
-        six.text_type,
+        str,
+        str,
         """The name of the static library generated for a directory, if it needs to
         differ from the library code name.
 
@@ -1888,7 +1885,7 @@ VARIABLES = {
     ),
     "RCFILE": (
         Path,
-        six.text_type,
+        str,
         """The program .rc file.
 
         This variable can only be used on Windows.
@@ -1896,7 +1893,7 @@ VARIABLES = {
     ),
     "RCINCLUDE": (
         Path,
-        six.text_type,
+        str,
         """The resource script file to be included in the default .res file.
 
         This variable can only be used on Windows.
@@ -1904,7 +1901,7 @@ VARIABLES = {
     ),
     "DEFFILE": (
         Path,
-        six.text_type,
+        str,
         """The program .def (module definition) file.
 
         This variable can only be used on Windows.
@@ -1912,7 +1909,7 @@ VARIABLES = {
     ),
     "SYMBOLS_FILE": (
         Path,
-        six.text_type,
+        str,
         """A file containing a list of symbols to export from a shared library.
 
         The given file contains a list of symbols to be exported, and is
@@ -1936,8 +1933,8 @@ VARIABLES = {
         """,
     ),
     "SONAME": (
-        six.text_type,
-        six.text_type,
+        str,
+        str,
         """The soname of the shared object currently being linked
 
         soname is the "logical name" of a shared object, often used to provide
@@ -2020,8 +2017,8 @@ VARIABLES = {
         """,
     ),
     "PROGRAM": (
-        six.text_type,
-        six.text_type,
+        str,
+        str,
         """Compiled executable name.
 
         If the configuration token ``BIN_SUFFIX`` is set, its value will be
@@ -2030,8 +2027,8 @@ VARIABLES = {
         """,
     ),
     "HOST_PROGRAM": (
-        six.text_type,
-        six.text_type,
+        str,
+        str,
         """Compiled host executable name.
 
         If the configuration token ``HOST_BIN_SUFFIX`` is set, its value will be
@@ -2076,8 +2073,8 @@ VARIABLES = {
         """,
     ),
     "XPIDL_MODULE": (
-        six.text_type,
-        six.text_type,
+        str,
+        str,
         """XPCOM Interface Definition Module Name.
 
         This is the name of the ``.xpt`` file that is created by linking
@@ -2263,8 +2260,8 @@ VARIABLES = {
     ),
     # The following variables are used to control the target of installed files.
     "XPI_NAME": (
-        six.text_type,
-        six.text_type,
+        str,
+        str,
         """The name of an extension XPI to generate.
 
         When this variable is present, the results of this directory will end up
@@ -2272,8 +2269,8 @@ VARIABLES = {
         """,
     ),
     "DIST_SUBDIR": (
-        six.text_type,
-        six.text_type,
+        str,
+        str,
         """The name of an alternate directory to install files to.
 
         When this variable is present, the results of this directory will end up
@@ -2283,7 +2280,7 @@ VARIABLES = {
     ),
     "FINAL_TARGET": (
         FinalTargetValue,
-        six.text_type,
+        str,
         """The name of the directory to install targets to.
 
         The directory is relative to the top of the object directory. The
@@ -2307,7 +2304,7 @@ VARIABLES = {
         StrictOrderingOnAppendListWithFlagsFactory(
             {
                 "variables": dict,
-                "input": six.text_type,
+                "input": str,
                 "sandbox_vars": dict,
                 "no_chromium": bool,
                 "no_unified": bool,

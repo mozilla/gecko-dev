@@ -5,7 +5,6 @@
 import unittest
 
 import mozunit
-import six
 
 from mozpack.chrome.manifest import Manifest, ManifestContent, ManifestLocale
 from mozpack.copier import FileRegistry
@@ -145,7 +144,7 @@ class TestL10NRepack(unittest.TestCase):
 
         self.assertEqual(
             dict((p, f.open().read()) for p, f in copier),
-            dict((p, f.open().read()) for p, f in six.iteritems(repacked)),
+            dict((p, f.open().read()) for p, f in repacked.items()),
         )
 
 

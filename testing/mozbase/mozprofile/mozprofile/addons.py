@@ -14,7 +14,7 @@ from xml.dom import minidom
 
 import mozfile
 from mozlog.unstructured import getLogger
-from six import reraise, string_types
+from six import string_types
 
 _SALT = binascii.hexlify(os.urandom(32))
 _TEMPORARY_ADDON_SUFFIX = "@temporary-addon"
@@ -295,7 +295,7 @@ class AddonManager(object):
                     "Add-on path is neither an XPI nor a directory: %s" % addon_path
                 )
         except (OSError, KeyError) as e:
-            reraise(AddonFormatError, AddonFormatError(str(e)), sys.exc_info()[2])
+            raise AddonFormatError(str(e)).with_traceback(sys.exc_info()[2])
 
         if is_webext:
             details["version"] = manifest["version"]
@@ -333,7 +333,7 @@ class AddonManager(object):
                     if entry in details.keys():
                         details.update({entry: get_text(node)})
             except Exception as e:
-                reraise(AddonFormatError, AddonFormatError(str(e)), sys.exc_info()[2])
+                raise AddonFormatError(str(e)).with_traceback(sys.exc_info()[2])
 
         # turn unpack into a true/false value
         if isinstance(details["unpack"], string_types):

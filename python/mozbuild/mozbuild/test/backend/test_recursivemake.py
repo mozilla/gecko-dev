@@ -6,7 +6,6 @@ import os
 import unittest
 
 import mozpack.path as mozpath
-import six
 import six.moves.cPickle as pickle
 from mozpack.manifests import InstallManifest
 from mozunit import main
@@ -1065,7 +1064,7 @@ class TestRecursiveMakeBackend(BackendTester):
         expected[mozpath.join(env.topobjdir, "final-target")] = [
             "FINAL_TARGET = $(DEPTH)/random-final-target"
         ]
-        for key, expected_rules in six.iteritems(expected):
+        for key, expected_rules in expected.items():
             backend_path = mozpath.join(key, "backend.mk")
             lines = [l.strip() for l in open(backend_path, "rt").readlines()[2:]]
             found = [

@@ -18,7 +18,6 @@ try:
     import mozcrash
 except ImportError:
     mozcrash = None
-from six import reraise
 
 from ..application import DefaultContext
 from ..errors import RunnerNotStartedError
@@ -143,11 +142,9 @@ class BaseRunner(object):
 
                 self.process_handler = process
             except Exception as e:
-                reraise(
-                    RunnerNotStartedError,
-                    RunnerNotStartedError("Failed to start the process: {}".format(e)),
-                    sys.exc_info()[2],
-                )
+                raise RunnerNotStartedError(
+                    "Failed to start the process: {}".format(e)
+                ).with_traceback(sys.exc_info()[2])
 
         self.crashed = 0
         return self.process_handler.pid

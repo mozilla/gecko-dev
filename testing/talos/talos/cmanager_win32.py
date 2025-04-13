@@ -15,8 +15,6 @@ from ctypes import (
 )
 from ctypes.wintypes import DWORD, HANDLE, LONG, LPCSTR, LPCWSTR, LPSTR
 
-import six
-
 from talos.cmanager_base import CounterManager
 from talos.utils import TalosError
 
@@ -69,7 +67,7 @@ def _getExpandedCounterPaths(processName, counterName):
     paths = []
     i = 0
     path = ""
-    for j in six.moves.range(0, pcchPathListLength.value):
+    for j in range(0, pcchPathListLength.value):
         c = struct.unpack_from("c", buffer, offset=j)[0]
         if c == "\0":
             if j == i:

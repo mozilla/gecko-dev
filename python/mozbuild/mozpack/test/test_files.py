@@ -153,7 +153,7 @@ class TestDest(TestWithTmpDir):
 
 rand = bytes(
     random.choice(b"abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
-    for i in six.moves.xrange(131597)
+    for i in range(131597)
 )
 samples = [
     b"",

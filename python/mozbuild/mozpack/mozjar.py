@@ -72,7 +72,7 @@ class JarStruct(object):
         """
         assert self.MAGIC and isinstance(self.STRUCT, OrderedDict)
         self.size_fields = set(
-            t for t in six.itervalues(self.STRUCT) if t not in JarStruct.TYPE_MAPPING
+            t for t in self.STRUCT.values() if t not in JarStruct.TYPE_MAPPING
         )
         self._values = {}
         if data:
@@ -94,7 +94,7 @@ class JarStruct(object):
         # For all fields used as other fields sizes, keep track of their value
         # separately.
         sizes = dict((t, 0) for t in self.size_fields)
-        for name, t in six.iteritems(self.STRUCT):
+        for name, t in self.STRUCT.items():
             if t in JarStruct.TYPE_MAPPING:
                 value, size = JarStruct.get_data(t, data[offset:])
             else:
@@ -113,7 +113,7 @@ class JarStruct(object):
         Initialize an instance with empty fields.
         """
         self.signature = self.MAGIC
-        for name, t in six.iteritems(self.STRUCT):
+        for name, t in self.STRUCT.items():
             if name in self.size_fields:
                 continue
             self._values[name] = 0 if t in JarStruct.TYPE_MAPPING else ""
@@ -140,10 +140,10 @@ class JarStruct(object):
         serialized = struct.pack(b"<I", self.signature)
         sizes = dict(
             (t, name)
-            for name, t in six.iteritems(self.STRUCT)
+            for name, t in self.STRUCT.items()
             if t not in JarStruct.TYPE_MAPPING
         )
-        for name, t in six.iteritems(self.STRUCT):
+        for name, t in self.STRUCT.items():
             if t in JarStruct.TYPE_MAPPING:
                 format, size = JarStruct.TYPE_MAPPING[t]
                 if name in sizes:
@@ -162,7 +162,7 @@ class JarStruct(object):
         variable length fields.
         """
         size = JarStruct.TYPE_MAPPING["uint32"][1]
-        for name, type in six.iteritems(self.STRUCT):
+        for name, type in self.STRUCT.items():
             if type in JarStruct.TYPE_MAPPING:
                 size += JarStruct.TYPE_MAPPING[type][1]
             else:
@@ -183,7 +183,7 @@ class JarStruct(object):
         return key in self._values
 
     def __iter__(self):
-        return six.iteritems(self._values)
+        return iter(self._values.items())
 
     def __repr__(self):
         return "<%s %s>" % (
@@ -403,7 +403,7 @@ class JarReader(object):
         entries = self.entries
         if not entries:
             return JAR_STORED
-        return max(f["compression"] for f in six.itervalues(entries))
+        return max(f["compression"] for f in entries.values())
 
     @property
     def entries(self):
@@ -419,7 +419,7 @@ class JarReader(object):
             preload = JarStruct.get_data("uint32", self._data)[0]
         entries = OrderedDict()
         offset = self._cdir_end["cdir_offset"]
-        for e in six.moves.xrange(self._cdir_end["cdir_entries"]):
+        for e in range(self._cdir_end["cdir_entries"]):
             entry = JarCdirEntry(self._data[offset:])
             offset += entry.size
             # Creator host system. 0 is MSDOS, 3 is Unix
@@ -480,7 +480,7 @@ class JarReader(object):
             for file in jarReader:
                 ...
         """
-        for entry in six.itervalues(self.entries):
+        for entry in self.entries.values():
             yield self._getreader(entry)
 
     def __getitem__(self, name):
@@ -575,7 +575,7 @@ class JarWriter(object):
         headers = {}
         preload_size = 0
         # Prepare central directory entries
-        for entry, content in six.itervalues(self._contents):
+        for entry, content in self._contents.values():
             header = JarLocalFileHeader()
             for name in entry.STRUCT:
                 if name in header:
@@ -599,12 +599,12 @@ class JarWriter(object):
             offset = end["cdir_size"] + end["cdir_offset"] + end.size
             preload_size += offset
             self._data.write(struct.pack("<I", preload_size))
-            for entry, _ in six.itervalues(self._contents):
+            for entry, _ in self._contents.values():
                 entry["offset"] += offset
                 self._data.write(entry.serialize())
             self._data.write(end.serialize())
         # Store local file entries followed by compressed data
-        for entry, content in six.itervalues(self._contents):
+        for entry, content in self._contents.values():
             self._data.write(headers[entry].serialize())
             if isinstance(content, memoryview):
                 self._data.write(content.tobytes())
@@ -613,7 +613,7 @@ class JarWriter(object):
         # On non optimized archives, store the central directory entries.
         if not preload_size:
             end["cdir_offset"] = offset
-            for entry, _ in six.itervalues(self._contents):
+            for entry, _ in self._contents.values():
                 self._data.write(entry.serialize())
         # Store the end of central directory.
         self._data.write(end.serialize())
@@ -653,7 +653,7 @@ class JarWriter(object):
             deflater = data
         else:
             deflater = Deflater(compress, compress_level=self._compress_level)
-            if isinstance(data, (six.binary_type, six.string_types)):
+            if isinstance(data, (bytes, (str,))):
                 deflater.write(data)
             elif hasattr(data, "read"):
                 try:

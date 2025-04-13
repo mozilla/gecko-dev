@@ -250,7 +250,7 @@ def _repack(app_finder, l10n_finder, copier, formatter, non_chrome=set()):
             formatter.add(p, f)
 
     # Transplant jar preloading information.
-    for path, log in six.iteritems(app_finder.jarlogs):
+    for path, log in app_finder.jarlogs.items():
         assert isinstance(copier[path], Jarrer)
         copier[path].preload([l.replace(locale, l10n_locale) for l in log])
 
@@ -284,7 +284,7 @@ def repack(
         finders = {
             "": l10n_finder,
         }
-        for base, path in six.iteritems(extra_l10n):
+        for base, path in extra_l10n.items():
             finders[base] = UnpackFinder(path, minify=minify)
         l10n_finder = ComposedFinder(finders)
     copier = FileCopier()

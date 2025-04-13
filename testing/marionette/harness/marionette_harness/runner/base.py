@@ -19,13 +19,12 @@ import mozinfo
 import moznetwork
 import mozprofile
 import mozversion
-import six
 from manifestparser import TestManifest
 from manifestparser.filters import tags
 from marionette_driver.marionette import Marionette
 from moztest.adapters.unit import StructuredTestResult, StructuredTestRunner
 from moztest.results import TestResult, TestResultCollection, relevant_line
-from six import MAXSIZE, reraise
+from six import MAXSIZE
 
 from . import serve
 
@@ -743,7 +742,7 @@ class BaseMarionetteTestRunner(object):
 
         def update(d, u):
             """Update a dictionary that may contain nested dictionaries."""
-            for k, v in six.iteritems(u):
+            for k, v in u.items():
                 o = d.get(k, {})
                 if isinstance(v, dict) and isinstance(o, dict):
                     d[k] = update(d.get(k, {}), v)
@@ -768,11 +767,9 @@ class BaseMarionetteTestRunner(object):
                         data.append(json.loads(f.read()))
                 except ValueError as e:
                     msg = "JSON file ({0}) is not properly formatted: {1}"
-                    reraise(
-                        ValueError,
-                        ValueError(msg.format(os.path.abspath(path), e)),
-                        sys.exc_info()[2],
-                    )
+                    raise ValueError(
+                        msg.format(os.path.abspath(path), e)
+                    ).with_traceback(sys.exc_info()[2])
         return data
 
     @property
@@ -894,7 +891,7 @@ class BaseMarionetteTestRunner(object):
                 except Exception as e:
                     exc_cls, _, tb = sys.exc_info()
                     msg = "Connection attempt to {0}:{1} failed with error: {2}"
-                    reraise(exc_cls, exc_cls(msg.format(host, port, e)), tb)
+                    raise exc_cls(msg.format(host, port, e)).with_traceback(tb)
         if self.workspace:
             kwargs["workspace"] = self.workspace_path
         if self.headless:
@@ -1048,7 +1045,7 @@ class BaseMarionetteTestRunner(object):
 
             # reraise previous interruption now
             if interrupted:
-                reraise(interrupted[0], interrupted[1], interrupted[2])
+                raise interrupted[1].with_traceback(interrupted[2])
 
     def _print_summary(self, tests):
         self.logger.info("\nSUMMARY\n-------")

@@ -9,8 +9,6 @@ import re
 import sys
 from multiprocessing.pool import ThreadPool
 
-import six
-
 sys.path.insert(1, os.path.dirname(os.path.dirname(sys.path[0])))
 
 from mozharness.base.python import VirtualenvMixin, virtualenv_config_options
@@ -195,7 +193,7 @@ class ChecksumsGenerator(BaseScript, VirtualenvMixin):
         pool.map(worker, find_checksums_files())
 
         for c in raw_checksums:
-            for f, info in six.iteritems(parse_checksums_file(c)):
+            for f, info in parse_checksums_file(c).items():
                 for pattern in self.config["includes"]:
                     if re.search(pattern, f):
                         if f in self.checksums:

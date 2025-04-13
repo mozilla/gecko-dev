@@ -6,8 +6,6 @@ import functools
 from collections import deque
 from functools import reduce
 
-import six
-
 from ..handlers import SummaryHandler
 from .base import BaseFormatter
 from .process import strstatus
@@ -159,7 +157,7 @@ class TbplFormatter(BaseFormatter):
 
     def suite_start(self, data):
         self.suite_start_time = data["time"]
-        num_tests = reduce(lambda x, y: x + len(y), six.itervalues(data["tests"]), 0)
+        num_tests = reduce(lambda x, y: x + len(y), data["tests"].values(), 0)
         return "SUITE-START | Running %i tests\n" % num_tests
 
     def test_start(self, data):
@@ -325,7 +323,7 @@ class TbplFormatter(BaseFormatter):
         return "SUITE-END | took %is\n" % time
 
     def test_id(self, test_id):
-        if isinstance(test_id, (str, six.text_type)):
+        if isinstance(test_id, (str, str)):
             return test_id
         else:
             return tuple(test_id)

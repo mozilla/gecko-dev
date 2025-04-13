@@ -6,7 +6,6 @@ from unittest import mock
 import conftest
 import mozunit
 import pytest
-import six
 
 from talos.config import (
     DEFAULTS,
@@ -324,7 +323,7 @@ class Test_get_config(object):
         assert bool(config) is True
 
         # no null values
-        null_keys = [key for key, val in six.iteritems(config) if val is None]
+        null_keys = [key for key, val in config.items() if val is None]
         assert len(null_keys) == 0
 
         # expected keys are there

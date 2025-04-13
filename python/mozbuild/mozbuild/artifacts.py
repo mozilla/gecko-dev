@@ -55,7 +55,6 @@ import mozinstall
 import mozpack.path as mozpath
 import pylru
 import requests
-import six
 from mach.util import UserError
 from mozpack import executables
 from mozpack.files import JarFinder, TarFinder
@@ -270,7 +269,7 @@ class ArtifactJob(object):
 
         with self.get_writer(file=processed_filename, compress_level=5) as writer:
             reader = JarReader(filename)
-            for filename, entry in six.iteritems(reader.entries):
+            for filename, entry in reader.entries.items():
                 for pattern, (src_prefix, dest_prefix) in self.test_artifact_patterns:
                     if not mozpath.match(filename, pattern):
                         continue
@@ -1253,7 +1252,7 @@ class Artifacts(object):
 
             candidate_pushheads = collections.defaultdict(list)
 
-            for tree, pushid in six.iteritems(found_pushids):
+            for tree, pushid in found_pushids.items():
                 end = pushid
                 start = pushid - NUM_PUSHHEADS_TO_QUERY_PER_PARENT
 

@@ -14,7 +14,6 @@ except ImportError:
 
 import mozpack.path as mozpath
 from mozpack.chrome.manifest import parse_manifest
-from six import viewitems
 
 from .manifest_handler import ChromeManifestHandler
 
@@ -48,15 +47,15 @@ class LcovRecord(object):
             self.test_name = other.test_name
         self.functions.update(other.functions)
 
-        for name, count in viewitems(other.function_exec_counts):
+        for name, count in other.function_exec_counts.items():
             self.function_exec_counts[name] = count + self.function_exec_counts.get(
                 name, 0
             )
 
-        for key, taken in viewitems(other.branches):
+        for key, taken in other.branches.items():
             self.branches[key] = taken + self.branches.get(key, 0)
 
-        for line, (exec_count, checksum) in viewitems(other.lines):
+        for line, (exec_count, checksum) in other.lines.items():
             new_exec_count = exec_count
             if line in self.lines:
                 old_exec_count, _ = self.lines[line]
@@ -72,7 +71,7 @@ class LcovRecord(object):
         # Function records may have moved between files, so filter here.
         self.function_exec_counts = {
             fn_name: count
-            for fn_name, count in viewitems(self.function_exec_counts)
+            for fn_name, count in self.function_exec_counts.items()
             if fn_name in self.functions.values()
         }
         self.covered_function_count = len(
@@ -115,7 +114,7 @@ class RecordRewriter(object):
 
     def _rewrite_lines(self, record):
         rewritten_lines = {}
-        for ln, line_info in viewitems(record.lines):
+        for ln, line_info in record.lines.items():
             r = self._get_range(ln)
             if r is None:
                 rewritten_lines[ln] = line_info
@@ -140,7 +139,7 @@ class RecordRewriter(object):
         # instance). It's not clear the records that result are well-formed, but
         # we act as though if a function has multiple FN's, the corresponding
         # FNDA's are all the same.
-        for ln, fn_name in viewitems(record.functions):
+        for ln, fn_name in record.functions.items():
             r = self._get_range(ln)
             if r is None:
                 rewritten_fns[ln] = fn_name
@@ -160,7 +159,7 @@ class RecordRewriter(object):
 
     def _rewrite_branches(self, record):
         rewritten_branches = {}
-        for (ln, block_number, branch_number), taken in viewitems(record.branches):
+        for (ln, block_number, branch_number), taken in record.branches.items():
             r = self._get_range(ln)
             if r is None:
                 rewritten_branches[ln, block_number, branch_number] = taken
@@ -337,13 +336,13 @@ class LcovFile(object):
         # Sorting results gives deterministic output (and is a lot faster than
         # using OrderedDict).
         fns = []
-        for start_lineno, fn_name in sorted(viewitems(record.functions)):
+        for start_lineno, fn_name in sorted(record.functions.items()):
             fns.append("FN:%s,%s" % (start_lineno, fn_name))
         return "\n".join(fns)
 
     def format_function_exec_counts(self, record):
         fndas = []
-        for name, exec_count in sorted(viewitems(record.function_exec_counts)):
+        for name, exec_count in sorted(record.function_exec_counts.items()):
             fndas.append("FNDA:%s,%s" % (exec_count, name))
         return "\n".join(fndas)
 
@@ -369,7 +368,7 @@ class LcovFile(object):
 
     def format_lines(self, record):
         das = []
-        for line_no, (exec_count, checksum) in sorted(viewitems(record.lines)):
+        for line_no, (exec_count, checksum) in sorted(record.lines.items()):
             s = "DA:%s,%s" % (line_no, exec_count)
             if checksum:
                 s += ",%s" % checksum
@@ -537,7 +536,7 @@ class UrlFinder(object):
             source_path, pp_info = self._abs_objdir_install_info(term)
             return source_path, pp_info
 
-        for prefix, dests in viewitems(self._url_prefixes):
+        for prefix, dests in self._url_prefixes.items():
             if term.startswith(prefix):
                 for dest in dests:
                     if not dest.endswith("/"):

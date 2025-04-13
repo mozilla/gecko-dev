@@ -9,8 +9,6 @@ import os
 import subprocess
 import time
 
-import six
-
 log = logging.getLogger(__name__)
 
 
@@ -26,7 +24,7 @@ def log_cmd(cmd, **kwargs):
         kwargs["cwd"] = os.getcwd()
     log.info("command: START")
     log.info("command: %s" % subprocess.list2cmdline(cmd))
-    for key, value in six.iteritems(kwargs):
+    for key, value in kwargs.items():
         log.info("command: %s: %s", key, str(value))
 
 

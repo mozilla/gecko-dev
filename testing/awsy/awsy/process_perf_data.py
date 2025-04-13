@@ -9,8 +9,6 @@ import math
 import os
 import sys
 
-import six
-
 AWSY_PATH = os.path.dirname(os.path.realpath(__file__))
 if AWSY_PATH not in sys.path:
     sys.path.append(AWSY_PATH)
@@ -151,7 +149,7 @@ def create_suite(
                 memory_report_path, "resident-unique"
             )
             value = list(totals_rss.values())[0] + sum(
-                [v for k, v in six.iteritems(totals_uss) if "Main" not in k]
+                [v for k, v in totals_uss.items() if "Main" not in k]
             )
 
         subtest = {

@@ -5,7 +5,6 @@
 import re
 from collections import OrderedDict
 
-import six
 from packaging.version import Version
 
 from mozpack.errors import errors
@@ -270,7 +269,7 @@ class Flags(OrderedDict):
             flags.match(application='foo', appversion='3.0') returns False
 
         """
-        for name, value in six.iteritems(filter):
+        for name, value in filter.items():
             if name not in self:
                 continue
             if not self[name].matches(value):
