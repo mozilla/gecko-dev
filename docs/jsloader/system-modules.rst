@@ -29,9 +29,9 @@ The system module uses the ``.sys.mjs`` filename extension.
 
 .. code:: JavaScript
 
-    // Utils.sys.mjs
+    // Test.sys.mjs
 
-    export const Utils = {
+    export const TestUtils = {
       hello() {
         console.log("hello");
       }
@@ -59,10 +59,10 @@ returned.
 
     // Privileged code.
 
-    const { Utils } =
-      ChromeUtils.importESModule("resource://gre/modules/Utils.sys.mjs");
+    const { TestUtils } =
+      ChromeUtils.importESModule("resource://gre/modules/Test.sys.mjs");
 
-    Utils.hello();
+    TestUtils.hello();
 
 Inside system modules, other system modules can be imported with the regular
 ``import`` declaration and the dynamic ``import()``.
@@ -71,17 +71,17 @@ Inside system modules, other system modules can be imported with the regular
 
     // System module top-level scope.
 
-    import { Utils } from "resource://gre/modules/Utils.sys.mjs";
+    import { TestUtils } from "resource://gre/modules/Test.sys.mjs";
 
-    Utils.hello();
+    TestUtils.hello();
 
 .. code:: JavaScript
 
     // A function inside a system module.
 
     async function f() {
-      const { Utils2 } = await import("resource://gre/modules/Utils2.sys.mjs");
-      Utils2.log();
+      const { TestUtils } = await import("resource://gre/modules/Test.sys.mjs");
+      TestUtils.hello();
     }
 
 .. note::
@@ -107,12 +107,12 @@ The convention for the target object's name is ``lazy``.
 
     const lazy = {}
     ChromeUtils.defineESModuleGetters(lazy, {
-      Utils: "resource://gre/modules/Utils.sys.mjs",
+      TestUtils: "resource://gre/modules/Test.sys.mjs",
     });
 
     function f() {
-      // Utils.sys.mjs is imported on the first access.
-      lazy.Utils.hello();
+      // Test.sys.mjs is imported on the first access.
+      lazy.TestUtils.hello();
     }
 
 See `ChromeUtils.webidl <https://searchfox.org/mozilla-central/source/dom/chrome-webidl/ChromeUtils.webidl>`_ for more details.
@@ -128,9 +128,9 @@ In unprivileged testing code such as mochitest plain,
 
     // Mochitest-plain testcase.
 
-    const { Utils } =
+    const { TestUtils } =
       SpecialPowers.ChromeUtils.importESModule(
-        "resource://gre/modules/Utils.sys.mjs"
+        "resource://gre/modules/Test.sys.mjs"
       );
 
 Importing from C++ Code
@@ -142,7 +142,7 @@ The exported object should follow the specified XPCOM interface.
 .. code:: c++
 
     nsCOMPtr<nsIUtils> utils = do_ImportESModule(
-      "resource://gre/modules/Utils.sys.mjs", "Utils");
+      "resource://gre/modules/Test.sys.mjs", "Utils");
 
 See `nsImportModule.h <https://searchfox.org/mozilla-central/source/js/xpconnect/loader/nsImportModule.h>`_ for more details.
 
@@ -165,7 +165,7 @@ imported to the shared system global.
 
 .. code:: JavaScript
 
-    if (Cu.isESmoduleLoaded("resource://gre/modules/Utils.sys.mjs")) {
+    if (Cu.isESmoduleLoaded("resource://gre/modules/Test.sys.mjs")) {
       // ...
     }
 
@@ -188,11 +188,11 @@ This is only for the debugging purpose.
 
     Services.prefs.setBoolPref("browser.startup.record", true);
 
-    const { Utils } =
-      ChromeUtils.importESModule("resource://gre/modules/Utils.sys.mjs");
+    const { TestUtils } =
+      ChromeUtils.importESModule("resource://gre/modules/Test.sys.mjs");
 
     console.log(
-      Cu.getModuleImportStack("resource://gre/modules/Utils.sys.mjs"));
+      Cu.getModuleImportStack("resource://gre/modules/Test.sys.mjs"));
 
 See `xpccomponents.idl <https://searchfox.org/mozilla-central/source/js/xpconnect/idl/xpccomponents.idl>`_ for more details.
 
@@ -219,16 +219,18 @@ global.
 
 .. code:: JavaScript
 
-    const { Utils } =
-      ChromeUtils.importESModule("resource://gre/modules/Utils.sys.mjs", {
+    const { TestUtils } =
+      ChromeUtils.importESModule("resource://gre/modules/Test.sys.mjs", {
         global: "devtools",
       });
 
-    Utils.hello();
+    TestUtils.hello();
+
+.. code:: JavaScript
 
     const lazy = {}
     ChromeUtils.defineESModuleGetters(lazy, {
-      Utils2: "resource://gre/modules/Utils2.sys.mjs",
+      TestUtils: "resource://gre/modules/Test.sys.mjs",
     }, {
       global: "devtools",
     });
