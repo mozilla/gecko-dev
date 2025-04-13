@@ -36,26 +36,15 @@ class nsLanguageAtomService final {
   already_AddRefed<nsAtom> LookupCharSet(NotNull<const Encoding*> aCharSet);
   nsAtom* GetLocaleLanguage();
 
-  // Returns the language group that the specified language is a part of.
-  //
-  // aNeedsToCache is used for two things.  If null, it indicates that
-  // the nsLanguageAtomService is safe to cache the result of the
-  // language group lookup, either because we're on the main thread,
-  // or because we're on a style worker thread but the font lock has
-  // been acquired.  If non-null, it indicates that it's not safe to
-  // cache the result of the language group lookup (because we're on
-  // a style worker thread without the lock acquired).  In this case,
-  // GetLanguageGroup will store true in *aNeedsToCache true if we
-  // would have cached the result of a new lookup, and false if we
-  // were able to use an existing cached result.  Thus, callers that
-  // get a true *aNeedsToCache outparam value should make an effort
-  // to re-call GetLanguageGroup when it is safe to cache, to avoid
-  // recomputing the language group again later.
-  nsStaticAtom* GetLanguageGroup(nsAtom* aLanguage,
-                                 bool* aNeedsToCache = nullptr);
-  nsStaticAtom* GetUncachedLanguageGroup(nsAtom* aLanguage) const;
+  // Returns the language group that the specified language is a part of,
+  // using a cache to avoid repeatedly doing full lookups.
+  nsStaticAtom* GetLanguageGroup(nsAtom* aLanguage);
 
  private:
+  // The core implementation of lang-tag to language-group lookup. (Now used
+  // only internally by GetLanguageGroup.)
+  nsStaticAtom* GetUncachedLanguageGroup(nsAtom* aLanguage) const;
+
   static mozilla::StaticAutoPtr<nsLanguageAtomService> sLangAtomService;
 
   nsTHashMap<RefPtr<nsAtom>, nsStaticAtom*> mLangToGroup MOZ_GUARDED_BY(mLock);

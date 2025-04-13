@@ -153,15 +153,12 @@ nsAtom* nsLanguageAtomService::GetLocaleLanguage() {
   return mLocaleLanguage;
 }
 
-nsStaticAtom* nsLanguageAtomService::GetLanguageGroup(nsAtom* aLanguage,
-                                                      bool* aNeedsToCache) {
-  if (aNeedsToCache) {
+nsStaticAtom* nsLanguageAtomService::GetLanguageGroup(nsAtom* aLanguage) {
+  {
     AutoReadLock lock(mLock);
     if (nsStaticAtom* atom = mLangToGroup.Get(aLanguage)) {
       return atom;
     }
-    *aNeedsToCache = true;
-    return nullptr;
   }
 
   AutoWriteLock lock(mLock);

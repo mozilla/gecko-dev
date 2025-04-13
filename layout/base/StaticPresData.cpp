@@ -199,17 +199,9 @@ void LangGroupFontPrefs::Initialize(nsStaticAtom* aLangGroupAtom) {
   }
 }
 
-nsStaticAtom* StaticPresData::GetLangGroup(nsAtom* aLanguage,
-                                           bool* aNeedsToCache) const {
-  nsStaticAtom* langGroupAtom =
-      mLangService->GetLanguageGroup(aLanguage, aNeedsToCache);
+nsStaticAtom* StaticPresData::GetLangGroup(nsAtom* aLanguage) const {
+  nsStaticAtom* langGroupAtom = mLangService->GetLanguageGroup(aLanguage);
   // Assume x-western is safe...
-  return langGroupAtom ? langGroupAtom : nsGkAtoms::x_western;
-}
-
-nsStaticAtom* StaticPresData::GetUncachedLangGroup(nsAtom* aLanguage) const {
-  nsStaticAtom* langGroupAtom =
-      mLangService->GetUncachedLanguageGroup(aLanguage);
   return langGroupAtom ? langGroupAtom : nsGkAtoms::x_western;
 }
 
@@ -219,10 +211,7 @@ const LangGroupFontPrefs* StaticPresData::GetFontPrefsForLang(
   MOZ_ASSERT(aLanguage);
   MOZ_ASSERT(mLangService);
 
-  nsStaticAtom* langGroupAtom = GetLangGroup(aLanguage, aNeedsToCache);
-  if (aNeedsToCache && *aNeedsToCache) {
-    return nullptr;
-  }
+  nsStaticAtom* langGroupAtom = GetLangGroup(aLanguage);
 
   if (!aNeedsToCache) {
     AssertIsMainThreadOrServoFontMetricsLocked();
