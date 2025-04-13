@@ -416,7 +416,9 @@ HttpTransactionChild::OnStartRequest(nsIRequest* aRequest) {
     }
   }
 
-  UniquePtr<nsHttpResponseHead> head(mTransaction->TakeResponseHead());
+  RefPtr<nsHttpConnectionInfo> connInfo;
+  UniquePtr<nsHttpResponseHead> head(
+      mTransaction->TakeResponseHeadAndConnInfo(getter_AddRefs(connInfo)));
   Maybe<nsHttpResponseHead> optionalHead;
   nsTArray<uint8_t> dataForSniffer;
   if (head) {
@@ -482,7 +484,6 @@ HttpTransactionChild::OnStartRequest(nsIRequest* aRequest) {
     }
   }
 
-  RefPtr<nsHttpConnectionInfo> connInfo = mTransaction->GetConnInfo();
   HttpConnectionInfoCloneArgs infoArgs;
   nsHttpConnectionInfo::SerializeHttpConnectionInfo(connInfo, infoArgs);
 

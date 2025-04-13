@@ -331,9 +331,10 @@ class nsHttpChannel final : public HttpBaseChannel,
   [[nodiscard]] nsresult DispatchTransaction(
       HttpTransactionShell* aTransWithStickyConn);
   [[nodiscard]] nsresult CallOnStartRequest();
-  [[nodiscard]] nsresult ProcessResponse();
-  void AsyncContinueProcessResponse();
-  [[nodiscard]] nsresult ContinueProcessResponse1();
+  [[nodiscard]] nsresult ProcessResponse(nsHttpConnectionInfo* aConnInfo);
+  void AsyncContinueProcessResponse(nsHttpConnectionInfo* aConnInfo);
+  [[nodiscard]] nsresult ContinueProcessResponse1(
+      nsHttpConnectionInfo* aConnInfo);
   [[nodiscard]] nsresult ContinueProcessResponse2(nsresult);
   nsresult HandleOverrideResponse();
 

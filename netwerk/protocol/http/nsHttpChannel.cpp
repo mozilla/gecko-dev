@@ -2535,7 +2535,7 @@ void nsHttpChannel::ProcessAltService(nsHttpConnectionInfo* aTransConnInfo) {
                                originAttributes, aTransConnInfo);
 }
 
-nsresult nsHttpChannel::ProcessResponse() {
+nsresult nsHttpChannel::ProcessResponse(nsHttpConnectionInfo* aConnInfo) {
   uint32_t httpStatus = mResponseHead->Status();
 
   LOG(("nsHttpChannel::ProcessResponse [this=%p httpStatus=%u]\n", this,
@@ -2690,12 +2690,13 @@ nsresult nsHttpChannel::ProcessResponse() {
   // notify "http-on-examine-response" observers
   gHttpHandler->OnExamineResponse(this);
 
-  return ContinueProcessResponse1();
+  return ContinueProcessResponse1(aConnInfo);
 }
 
-void nsHttpChannel::AsyncContinueProcessResponse() {
+void nsHttpChannel::AsyncContinueProcessResponse(
+    nsHttpConnectionInfo* aConnInfo) {
   nsresult rv;
-  rv = ContinueProcessResponse1();
+  rv = ContinueProcessResponse1(aConnInfo);
   if (NS_FAILED(rv)) {
     // A synchronous failure here would normally be passed as the return
     // value from OnStartRequest, which would in turn cancel the request.
@@ -2705,15 +2706,16 @@ void nsHttpChannel::AsyncContinueProcessResponse() {
   }
 }
 
-nsresult nsHttpChannel::ContinueProcessResponse1() {
+nsresult nsHttpChannel::ContinueProcessResponse1(
+    nsHttpConnectionInfo* aConnInfo) {
   MOZ_ASSERT(!mCallOnResume, "How did that happen?");
   nsresult rv = NS_OK;
 
   if (mSuspendCount) {
     LOG(("Waiting until resume to finish processing response [this=%p]\n",
          this));
-    mCallOnResume = [](nsHttpChannel* self) {
-      self->AsyncContinueProcessResponse();
+    mCallOnResume = [connInfo = RefPtr{aConnInfo}](nsHttpChannel* self) {
+      self->AsyncContinueProcessResponse(connInfo);
       return NS_OK;
     };
     return NS_OK;
@@ -2747,8 +2749,7 @@ nsresult nsHttpChannel::ContinueProcessResponse1() {
     }
 
     if ((httpStatus < 500) && (httpStatus != 421)) {
-      RefPtr<nsHttpConnectionInfo> connInfo = mTransaction->GetConnInfo();
-      ProcessAltService(connInfo);
+      ProcessAltService(aConnInfo);
     }
   }
 
@@ -8051,11 +8052,15 @@ nsHttpChannel::OnStartRequest(nsIRequest* request) {
     // mTransactionPump doesn't hit OnInputStreamReady and call this until
     // all of the response headers have been acquired, so we can take
     // ownership of them from the transaction.
-    mResponseHead = mTransaction->TakeResponseHead();
+    RefPtr<nsHttpConnectionInfo> connInfo;
+    mResponseHead =
+        mTransaction->TakeResponseHeadAndConnInfo(getter_AddRefs(connInfo));
     mSupportsHTTP3 = mTransaction->GetSupportsHTTP3();
     // the response head may be null if the transaction was cancelled.  in
     // which case we just need to call OnStartRequest/OnStopRequest.
-    if (mResponseHead) return ProcessResponse();
+    if (mResponseHead) {
+      return ProcessResponse(connInfo);
+    }
 
     NS_WARNING("No response head in OnStartRequest");
   }

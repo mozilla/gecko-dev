@@ -1025,7 +1025,7 @@ TRRServiceChannel::OnStartRequest(nsIRequest* request) {
     // mTransactionPump doesn't hit OnInputStreamReady and call this until
     // all of the response headers have been acquired, so we can take
     // ownership of them from the transaction.
-    mResponseHead = mTransaction->TakeResponseHead();
+    mResponseHead = mTransaction->TakeResponseHeadAndConnInfo(nullptr);
     if (mResponseHead) {
       uint32_t httpStatus = mResponseHead->Status();
       if (mTransaction->ProxyConnectFailed()) {
