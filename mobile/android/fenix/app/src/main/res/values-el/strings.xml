@@ -1385,6 +1385,8 @@
   <string name="tab_tray_multiselect_share_content_description">Κοινή χρήση επιλεγμένων καρτελών</string>
   <!-- Content description for tabs tray multiselect menu -->
   <string name="tab_tray_multiselect_menu_content_description">Μενού επιλεγμένων καρτελών</string>
+  <!-- Title text displayed for a homepage tab in the tabs tray. -->
+  <string name="tab_tray_homepage_tab">Αρχική σελίδα</string>
   <!-- Content description (not visible, for screen readers etc.): Removes tab from collection button. Removes the selected tab from collection when pressed -->
   <string name="remove_tab_from_collection">Αφαίρεση καρτέλας από τη συλλογή</string>
   <!-- Text for button to enter multiselect mode in tabs tray -->
@@ -1525,6 +1527,8 @@
   <string name="download_search_placeholder" tools:ignore="UnusedResources">Αναζήτηση λήψεων</string>
   <!-- Text to indicate that no downloads match the search query. -->
   <string name="download_search_no_results_found" tools:ignore="UnusedResources">Δεν βρέθηκαν αποτελέσματα</string>
+  <!-- Text for the "Select all" button, which selects all downloaded items in the downloads list. -->
+  <string name="download_select_all_items">Επιλογή όλων</string>
   <!--
     Downloads Content Type Filters
 
@@ -3437,7 +3441,7 @@
   <!-- The default content description for the cross trailing icon button in TextField -->
   <string name="text_field_cross_trailing_icon_default_content_description" moz:removedIn="139" tools:ignore="UnusedResources">Απαλοιφή κειμένου</string>
   <!--
-    Setup checklist feature
+    ===== Setup checklist feature: Task titles =====
 
     The title of the default browser task for the setup checklist
   -->
@@ -3452,13 +3456,21 @@
   <string name="setup_checklist_task_explore_extensions">Εξερεύνηση επεκτάσεων</string>
   <!-- The title of the search widget task for the setup checklist -->
   <string name="setup_checklist_task_search_widget">Εγκαταστήστε το widget αναζήτησης</string>
-  <!-- The title of the 'essentials' group in the setup checklist. %1$s is the name of the app (for example "Firefox"). -->
+  <!--
+    ===== Setup checklist feature: Group titles =====
+
+    The title of the 'essentials' group in the setup checklist. %1$s is the name of the app (for example "Firefox").
+  -->
   <string name="setup_checklist_group_essentials">Βασικά εργαλεία του %1$s</string>
   <!-- The title of the 'customize' group in the setup checklist. %1$s is the name of the app (for example "Firefox"). -->
   <string name="setup_checklist_group_customize">Προσαρμόστε το %1$s σας</string>
   <!-- The title of the 'helpful tools' group in the setup checklist -->
   <string name="setup_checklist_group_helpful_tools">Χρήσιμα εργαλεία</string>
-  <!-- Accessibility description for a check mark on a completed task -->
+  <!--
+    ===== Setup checklist feature: Accessibility =====
+
+    Accessibility description for a check mark on a completed task
+  -->
   <string name="a11y_completed_task_description">Ολοκληρωμένη εργασία</string>
   <!-- Accessibility description for the task icon -->
   <string name="a11y_task_icon_description">Εικονίδιο εργασίας</string>

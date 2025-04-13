@@ -1655,6 +1655,8 @@
   <string name="bookmark_menu_delete_button">ሰርዝ</string>
   <!-- Bookmark overflow menu save button -->
   <string name="bookmark_menu_save_button">አስቀምጥ</string>
+  <!-- Label for button to sort bookmarks by newest in the bookmark sorting overflow menu. -->
+  <string name="bookmark_sort_menu_newest">በአዲሱ ደርድር</string>
   <!--
     Bookmark multi select title in app bar
     %1$d is the number of bookmarks selected
@@ -3356,7 +3358,11 @@
   <string name="text_field_eye_trailing_icon_default_content_description" moz:removedIn="139" tools:ignore="UnusedResources">የተደበቀ ጽሑፍ አሳይ</string>
   <!-- The default content description for the cross trailing icon button in TextField -->
   <string name="text_field_cross_trailing_icon_default_content_description" moz:removedIn="139" tools:ignore="UnusedResources">ጽሑፍ አጽዳ</string>
-  <!-- Accessibility description for a check mark on a completed task -->
+  <!--
+    ===== Setup checklist feature: Accessibility =====
+
+    Accessibility description for a check mark on a completed task
+  -->
   <string name="a11y_completed_task_description">የተጠናቀቀ ተግባር</string>
   <!-- Accessibility description for the task icon -->
   <string name="a11y_task_icon_description">ተግባር አዶ</string>

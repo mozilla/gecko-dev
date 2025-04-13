@@ -1384,6 +1384,8 @@
   <string name="tab_tray_multiselect_share_content_description">Поделиться выбранными вкладками</string>
   <!-- Content description for tabs tray multiselect menu -->
   <string name="tab_tray_multiselect_menu_content_description">Меню выбранных вкладок</string>
+  <!-- Title text displayed for a homepage tab in the tabs tray. -->
+  <string name="tab_tray_homepage_tab">Домашняя страница</string>
   <!-- Content description (not visible, for screen readers etc.): Removes tab from collection button. Removes the selected tab from collection when pressed -->
   <string name="remove_tab_from_collection">Удалить вкладку из коллекции</string>
   <!-- Text for button to enter multiselect mode in tabs tray -->
@@ -1524,6 +1526,8 @@
   <string name="download_search_placeholder" tools:ignore="UnusedResources">Поиск в загрузках</string>
   <!-- Text to indicate that no downloads match the search query. -->
   <string name="download_search_no_results_found" tools:ignore="UnusedResources">Результатов не найдено</string>
+  <!-- Text for the "Select all" button, which selects all downloaded items in the downloads list. -->
+  <string name="download_select_all_items">Выбрать все</string>
   <!--
     Downloads Content Type Filters
 
@@ -3439,6 +3443,46 @@
   <!--
     Setup checklist feature
 
+    ===== Setup checklist feature: Title =====
+
+    Title for the setup checklist feature when the state is 'incomplete'. %1$s is the name of the app (for example "Firefox").
+  -->
+  <string name="setup_checklist_title_state_incomplete">Завершите настройку %1$s</string>
+  <!-- Title for the setup checklist feature when the state is 'completed' -->
+  <string name="setup_checklist_title_state_completed">Поздравляем!</string>
+  <!--
+    ===== Setup checklist feature: Subtitles for 3 steps =====
+
+    Subtitle for a setup checklist with 3 steps initial step. %1$s is the name of the app (for example "Firefox").
+  -->
+  <string name="setup_checklist_subtitle_3_steps_initial_state">Выполните эти 3 шага, чтобы настроить %1$s для наилучшей работы в интернете.</string>
+  <!-- Subtitle for a setup checklist with 3 steps when the first task is completed. -->
+  <string name="setup_checklist_subtitle_3_steps_first_step">Отличное начало! Вы завершили 1 из 3 шагов.</string>
+  <!-- Subtitle for a setup checklist with 3 steps when two of the tasks are completed. -->
+  <string name="setup_checklist_subtitle_3_steps_second_step">Почти готово! Выполнено 2 шага, остался 1.</string>
+  <!-- Subtitle for a setup checklist with 3 steps completed state. %1$s is the name of the app (for example "Firefox"). -->
+  <string name="setup_checklist_subtitle_3_steps_completed_state">Вы завершили все 3 шага. Наслаждайтесь скоростью, приватностью и безопасностью %1$s.</string>
+  <!--
+    ===== Setup checklist feature: Subtitles for 6 steps =====
+
+    Subtitle for a setup checklist with 6 steps initial state. %1$s is the name of the app (for example "Firefox").
+  -->
+  <string name="setup_checklist_subtitle_6_steps_initial_state">Выполните все 6 шагов по настройке %1$s для наилучшей работы в Интернете.</string>
+  <!-- Subtitle for a setup checklist with 6 steps when the first task is completed. -->
+  <string name="setup_checklist_subtitle_6_steps_first_step">Отличное начало! Вы завершили 1 из 6 шагов.</string>
+  <!-- Subtitle for the setup checklist when the second task is completed. -->
+  <string name="setup_checklist_subtitle_6_steps_second_step">Вы завершили 2 из 6 шагов. Отличный прогресс!</string>
+  <!-- Subtitle for a setup checklist with 6 steps when three of the tasks are completed. -->
+  <string name="setup_checklist_subtitle_6_steps_third_step">Вы на половине пути! Три шага закончены и 3 осталось.</string>
+  <!-- Subtitle for a setup checklist with 6 steps when the fourth task is completed. -->
+  <string name="setup_checklist_subtitle_6_steps_fourth_step">Вы сделали 4 шага. Осталось всего 2!</string>
+  <!-- Subtitle for a setup checklist with 6 steps when the fifth task is completed. -->
+  <string name="setup_checklist_subtitle_6_steps_fifth_step">Почти готово! Вы всего в 1 шаге от финишной черты.</string>
+  <!-- Subtitle for a setup checklist with 6 steps completed state. %1$s is the name of the app (for example "Firefox"). -->
+  <string name="setup_checklist_subtitle_6_steps_completed_state">Вы завершили все 6 шагов по настройке. Наслаждайтесь скоростью, приватностью и безопасностью %1$s.</string>
+  <!--
+    ===== Setup checklist feature: Task titles =====
+
     The title of the default browser task for the setup checklist
   -->
   <string name="setup_checklist_task_default_browser">Установить браузером по умолчанию</string>
@@ -3452,13 +3496,27 @@
   <string name="setup_checklist_task_explore_extensions">Откройте для себя расширения</string>
   <!-- The title of the search widget task for the setup checklist -->
   <string name="setup_checklist_task_search_widget">Установить виджет поиска</string>
-  <!-- The title of the 'essentials' group in the setup checklist. %1$s is the name of the app (for example "Firefox"). -->
+  <!--
+    ===== Setup checklist feature: Group titles =====
+
+    The title of the 'essentials' group in the setup checklist. %1$s is the name of the app (for example "Firefox").
+  -->
   <string name="setup_checklist_group_essentials">Основное для %1$s</string>
   <!-- The title of the 'customize' group in the setup checklist. %1$s is the name of the app (for example "Firefox"). -->
   <string name="setup_checklist_group_customize">Настройте свой %1$s</string>
   <!-- The title of the 'helpful tools' group in the setup checklist -->
   <string name="setup_checklist_group_helpful_tools">Полезные инструменты</string>
-  <!-- Accessibility description for a check mark on a completed task -->
+  <!--
+    ===== Setup checklist feature: Button =====
+
+    Text for the 'remove' button for the setup checklist
+  -->
+  <string name="setup_checklist_button_remove">Удалить контрольный список</string>
+  <!--
+    ===== Setup checklist feature: Accessibility =====
+
+    Accessibility description for a check mark on a completed task
+  -->
   <string name="a11y_completed_task_description">Выполненная задача</string>
   <!-- Accessibility description for the task icon -->
   <string name="a11y_task_icon_description">Значок задачи</string>

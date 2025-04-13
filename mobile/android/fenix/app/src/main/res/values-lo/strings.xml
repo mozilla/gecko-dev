@@ -1383,6 +1383,8 @@
   <string name="tab_tray_multiselect_share_content_description">ແບ່ງປັນແທັບທີ່ເລືອກໄວ້</string>
   <!-- Content description for tabs tray multiselect menu -->
   <string name="tab_tray_multiselect_menu_content_description">ເລືອກເມນູແທັບແລ້ວ</string>
+  <!-- Title text displayed for a homepage tab in the tabs tray. -->
+  <string name="tab_tray_homepage_tab">ຫນ້າທຳອິດ</string>
   <!-- Content description (not visible, for screen readers etc.): Removes tab from collection button. Removes the selected tab from collection when pressed -->
   <string name="remove_tab_from_collection">ລຶບແຖບອອກຈາກບ່ອນເກັບສະສົມ</string>
   <!-- Text for button to enter multiselect mode in tabs tray -->
@@ -1524,6 +1526,8 @@
   <!-- Text to indicate that no downloads match the search query. -->
   <string name="download_search_no_results_found" tools:ignore="UnusedResources">ບໍ່ພົບຜົນການຄົ້ນຫາ
 </string>
+  <!-- Text for the "Select all" button, which selects all downloaded items in the downloads list. -->
+  <string name="download_select_all_items">ເລືອກ​ທັງ​ຫມົດ</string>
   <!--
     Downloads Content Type Filters
 
@@ -2003,6 +2007,8 @@
   <string name="snackbar_private_tab_closed">ປິດແທັບສ່ວນໂຕແລ້ວ</string>
   <!-- Text shown in snackbar when user closes all private tabs -->
   <string name="snackbar_private_tabs_closed">ປິດແທັບສ່ວນໂຕແລ້ວ</string>
+  <!-- Text shown in snackbar when user erases their private browsing data -->
+  <string name="snackbar_private_data_deleted">ລຶບຂໍ້ມູນການຊອກຫາສ່ວນຕົວແລ້ວ</string>
   <!-- Text shown in snackbar to undo deleting a tab, top site or collection -->
   <string name="snackbar_deleted_undo">ເອົາກັບຄືນ</string>
   <!-- Text shown in snackbar when user removes a top site -->
@@ -2261,6 +2267,12 @@
   <string name="preference_doh_summary">ລະບົບ Domain Name (DNS) ຜ່ານ HTTPS ສົ່ງຄໍາຮ້ອງຂໍຂອງທ່ານສໍາລັບຊື່ໂດເມນໂດຍຜ່ານການເຊື່ອມຕໍ່ທີ່ຖືກເຂົ້າລະຫັດ, ສະຫນອງ DNS ທີ່ປອດໄພແລະເຮັດໃຫ້ມັນຍາກສໍາລັບຜູ້ອື່ນທີ່ຈະເບິ່ງວ່າເວັບໄຊທ໌ໃດທີ່ທ່ານກໍາລັງຈະເຂົ້າຫາ. %1$s</string>
   <!-- Used as text for the link in `preference_doh_title`, points to documentation about "DNS over HTTPS" -->
   <string name="preference_doh_learn_more">ຮຽນຮູ້ເພີ່ມເຕີມ</string>
+  <!-- Content description for the "Info" button -->
+  <string name="preference_doh_info_description">ຂໍ້ມູນ</string>
+  <!-- Content description for the "Add Site" button -->
+  <string name="preference_doh_add_site_description">ເພີ່ມເວັບໄຊ</string>
+  <!-- Title displayed for "Default Protection" option under "DNS over HTTPS" -->
+  <string name="preference_doh_default_protection">ການປົກປ້ອງເລີ່ມຕົ້ນ</string>
   <!-- Bullet point 2 for "Default Protection" information page under "DNS over HTTPS" -->
   <string name="preference_doh_default_protection_info_2">ໃຊ້ຕົວແກ້ໄຂ DNS ເລີ່ມຕົ້ນຂອງທ່ານຖ້າມີບັນຫາກັບຜູ້ໃຫ້ບໍລິການ DNS ທີ່ປອດໄພ</string>
   <!-- Title displayed for "Max Protection" option under "DNS over HTTPS" -->
@@ -2313,6 +2325,8 @@
   <string name="add_to_homescreen_description_2">ທ່ານສາມາດເພີ່ມເວັບໄຊທ໌ນີ້ໃສ່ໜ້າຈໍຫຼັກຂອງອຸປະກອນທ່ານໄດ້ຢ່າງງ່າຍດາຍເພື່ອໃຫ້ເຂົ້າເຖິງທັນທີ ແລະທ່ອງເວັບໄວຂຶ້ນດ້ວຍປະສົບການທີ່ຄ້າຍຄືກັບແອັບ.</string>
   <!-- Preference for managing the settings for logins and passwords in Fenix -->
   <string name="preferences_passwords_logins_and_passwords_2">ລະຫັດຜ່ານ</string>
+  <!-- Preference for managing the saving of logins and passwords in Fenix -->
+  <string name="preferences_passwords_save_logins_2">ບັນທຶກລະຫັດຜ່ານ</string>
   <!-- Preference option for asking to save passwords in Fenix -->
   <string name="preferences_passwords_save_logins_ask_to_save">ຖາມເພື່ອບັນທຶກ</string>
   <!-- Preference option for never saving passwords in Fenix -->
@@ -2325,6 +2339,10 @@
   <string name="preferences_android_autofill">ຕື່ມຂໍ້ມູນອັດຕະໂນມັດໃນແອັບຯອື່ນ</string>
   <!-- Description for the preference for autofilling logins from Fenix in other apps (e.g. autofilling the Twitter app) -->
   <string name="preferences_android_autofill_description">ຕື່ມຂໍ້ມູນຊື່ຜູ້ໃຊ້ ແລະ ລະຫັດຜ່ານໃນແອັບຯອື່ນໃນອຸປະກອນຂອງທ່ານ.</string>
+  <!-- Preference option for adding a password -->
+  <string name="preferences_logins_add_login_2">ເພີ່ມລະຫັດຜ່ານ</string>
+  <!-- Preference for syncing saved passwords in Fenix -->
+  <string name="preferences_passwords_sync_logins_2">ຊິ້ງຂໍ້ມູນລະຫັດຜ່ານ</string>
   <!-- Description of empty list of saved passwords. %s is the name of the app (for example "Firefox"). -->
   <string name="preferences_passwords_saved_logins_description_empty_text_2">ລະ​ຫັດ​ຜ່ານ​ທີ່​ທ່ານ​ບັນ​ທຶກ​ ຫຼື sync ກັບ %s ຈະ​ມີ​ລາຍ​ການ​ຢູ່​ທີ່​ນີ້​. ລະຫັດຜ່ານທັງໝົດທີ່ທ່ານບັນທຶກໄວ້ແມ່ນຖືກເຂົ້າລະຫັດໄວ້.</string>
   <!-- Clickable text for opening an external link for more information about Sync. -->

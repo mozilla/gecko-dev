@@ -3443,6 +3443,46 @@
   <!--
     Setup checklist feature
 
+    ===== Setup checklist feature: Title =====
+
+    Title for the setup checklist feature when the state is 'incomplete'. %1$s is the name of the app (for example "Firefox").
+  -->
+  <string name="setup_checklist_title_state_incomplete">Instalaciju %1$s dokónčić</string>
+  <!-- Title for the setup checklist feature when the state is 'completed' -->
+  <string name="setup_checklist_title_state_completed">Wutrobne zbožopřeće!</string>
+  <!--
+    ===== Setup checklist feature: Subtitles for 3 steps =====
+
+    Subtitle for a setup checklist with 3 steps initial step. %1$s is the name of the app (for example "Firefox").
+  -->
+  <string name="setup_checklist_subtitle_3_steps_initial_state">Dokónčće tute 3 kroki, zo byšće %1$s za najlěpše přehladowanske dožiwjenje instalował.</string>
+  <!-- Subtitle for a setup checklist with 3 steps when the first task is completed. -->
+  <string name="setup_checklist_subtitle_3_steps_first_step">Wulkotny start! Sće 1 z 3 krokow zakónčił.</string>
+  <!-- Subtitle for a setup checklist with 3 steps when two of the tasks are completed. -->
+  <string name="setup_checklist_subtitle_3_steps_second_step">Nimale dočinjeny! Dwaj krokaj zakónčenej a 1 dyrbi so činić.</string>
+  <!-- Subtitle for a setup checklist with 3 steps completed state. %1$s is the name of the app (for example "Firefox"). -->
+  <string name="setup_checklist_subtitle_3_steps_completed_state">Sće wšě 3 kroki zakónčił. Wužiwajće spěšnosć, priwatnosć a wěstotu %1$s.</string>
+  <!--
+    ===== Setup checklist feature: Subtitles for 6 steps =====
+
+    Subtitle for a setup checklist with 6 steps initial state. %1$s is the name of the app (for example "Firefox").
+  -->
+  <string name="setup_checklist_subtitle_6_steps_initial_state">Dokónčće wšě 6 krokow, zo byšće %1$s za najlěpše přehladowanske dožiwjenje instalował.</string>
+  <!-- Subtitle for a setup checklist with 6 steps when the first task is completed. -->
+  <string name="setup_checklist_subtitle_6_steps_first_step">Wulkotny start! Sće 1 z 6 krokow zakónčił.</string>
+  <!-- Subtitle for the setup checklist when the second task is completed. -->
+  <string name="setup_checklist_subtitle_6_steps_second_step">Sće 2 z 6 krokow zakónčił. Wulkotny postup!</string>
+  <!-- Subtitle for a setup checklist with 6 steps when three of the tasks are completed. -->
+  <string name="setup_checklist_subtitle_6_steps_third_step">Sće na poł puću! Tři kroki zakónčene a 3 dyrbja so činić.</string>
+  <!-- Subtitle for a setup checklist with 6 steps when the fourth task is completed. -->
+  <string name="setup_checklist_subtitle_6_steps_fourth_step">Sće 4 kroki zakónčił. Jenož hišće 2 krokaj!</string>
+  <!-- Subtitle for a setup checklist with 6 steps when the fifth task is completed. -->
+  <string name="setup_checklist_subtitle_6_steps_fifth_step">Nimale dočinjene! Sće 1 krok wot ciloweje linije prěč.</string>
+  <!-- Subtitle for a setup checklist with 6 steps completed state. %1$s is the name of the app (for example "Firefox"). -->
+  <string name="setup_checklist_subtitle_6_steps_completed_state">Sće wšě 6 krokow zakónčił. Wužiwajće spěšnosć, priwatnosć a wěstotu %1$s.</string>
+  <!--
+    ===== Setup checklist feature: Task titles =====
+
     The title of the default browser task for the setup checklist
   -->
   <string name="setup_checklist_task_default_browser">Jako standardny wobhladowak nastajić</string>
@@ -3456,13 +3496,27 @@
   <string name="setup_checklist_task_explore_extensions">Wuslědźće rozšěrjenja</string>
   <!-- The title of the search widget task for the setup checklist -->
   <string name="setup_checklist_task_search_widget">Pytanski asistent instalować</string>
-  <!-- The title of the 'essentials' group in the setup checklist. %1$s is the name of the app (for example "Firefox"). -->
+  <!--
+    ===== Setup checklist feature: Group titles =====
+
+    The title of the 'essentials' group in the setup checklist. %1$s is the name of the app (for example "Firefox").
+  -->
   <string name="setup_checklist_group_essentials">Zakładne nastajenja %1$s</string>
   <!-- The title of the 'customize' group in the setup checklist. %1$s is the name of the app (for example "Firefox"). -->
   <string name="setup_checklist_group_customize">Přiměrće swój %1$s</string>
   <!-- The title of the 'helpful tools' group in the setup checklist -->
   <string name="setup_checklist_group_helpful_tools">Wužitne nastroje</string>
-  <!-- Accessibility description for a check mark on a completed task -->
+  <!--
+    ===== Setup checklist feature: Button =====
+
+    Text for the 'remove' button for the setup checklist
+  -->
+  <string name="setup_checklist_button_remove">Čekowu lisćinu wotstronić</string>
+  <!--
+    ===== Setup checklist feature: Accessibility =====
+
+    Accessibility description for a check mark on a completed task
+  -->
   <string name="a11y_completed_task_description">Dokónčeny nadawk</string>
   <!-- Accessibility description for the task icon -->
   <string name="a11y_task_icon_description">Nadawkowy symbol</string>

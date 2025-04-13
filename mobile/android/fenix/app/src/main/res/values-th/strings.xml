@@ -671,6 +671,8 @@
   <!-- Onboarding toolbar selection card content description for the toolbar placement image. -->
   <string name="onboarding_customize_toolbar_placement_bottom_content_description">รูปภาพของแถบเครื่องมือด้านล่าง</string>
   <string name="onboarding_customize_toolbar_placement_top_content_description">รูปภาพของแถบเครื่องมือด้านบน</string>
+  <!-- Action label for toolbar options that can be selected. Talkback will append this to say "Double tap to select". -->
+  <string name="onboarding_customize_toolbar_a11y_action_label_select">เลือก</string>
   <!-- Onboarding header for the theme selection card, used by Nimbus experiments. -->
   <string name="onboarding_customize_theme_title" tools:ignore="UnusedResources">เลือกชุดตกแต่ง</string>
   <!-- Onboarding sub header for theme selection card, used by Nimbus experiments. -->
@@ -687,6 +689,8 @@
   <string name="onboarding_customize_theme_main_image_content_description">ภาพส่วนหัวขนาดใหญ่ของมุมมองการเลือกชุดตกแต่งที่แสดงศิลปินและเครื่องมือสำหรับผู้สร้างที่เป็นภาพประกอบ</string>
   <!-- Onboarding theme selection card content description for the theme selection image. %1$s is placeholder for either 'system', 'light' or 'dark'. -->
   <string name="onboarding_customize_theme_content_description">ภาพของชุดตกแต่ง %1$s</string>
+  <!-- Action label for options that can be selected. Talkback will append this to say "Double tap to select". -->
+  <string name="onboarding_customize_theme_a11y_action_label_select">เลือก</string>
   <!--
     Widget Picker
 
@@ -1374,6 +1378,8 @@
   <string name="tab_tray_multiselect_share_content_description">แบ่งปันแท็บที่เลือก</string>
   <!-- Content description for tabs tray multiselect menu -->
   <string name="tab_tray_multiselect_menu_content_description">เมนูแท็บที่เลือก</string>
+  <!-- Title text displayed for a homepage tab in the tabs tray. -->
+  <string name="tab_tray_homepage_tab">หน้าแรก</string>
   <!-- Content description (not visible, for screen readers etc.): Removes tab from collection button. Removes the selected tab from collection when pressed -->
   <string name="remove_tab_from_collection">เอาแท็บออกจากชุดสะสม</string>
   <!-- Text for button to enter multiselect mode in tabs tray -->
@@ -1439,8 +1445,18 @@
   <string name="download_delete_multiple_items_snackbar_1" moz:removedIn="138" tools:ignore="UnusedResources">การดาวน์โหลดถูกลบ</string>
   <!-- Text for the snackbar to confirm that a single download item has been removed. %1$s is the name of the download item. -->
   <string name="download_delete_single_item_snackbar" moz:removedIn="138" tools:ignore="UnusedResources">เอา %1$s ออกแล้ว</string>
+  <!-- Text for the snackbar action button to view in progress download details. -->
+  <string name="download_in_progress_snackbar_action_details" tools:ignore="UnusedResources">รายละเอียด</string>
+  <!-- Text for the snackbar to confirm that a download has completed. -->
+  <string name="download_completed_snackbar" tools:ignore="UnusedResources">การดาวน์โหลดเสร็จสมบูรณ์</string>
+  <!-- Text for the snackbar action button to open a completed download. -->
+  <string name="download_completed_snackbar_action_open" tools:ignore="UnusedResources">เปิด</string>
+  <!-- Text for the snackbar action button to undo deleting a download. -->
+  <string name="download_undo_delete_snackbar_action">เลิกทำ</string>
   <!-- Text shown when no download exists -->
   <string name="download_empty_message_1" moz:removedIn="138" tools:ignore="UnusedResources">ไม่มีไฟล์ที่ดาวน์โหลด</string>
+  <!-- Text shown when no download exists -->
+  <string name="download_empty_message_2">ยังไม่มีการดาวน์โหลด</string>
   <!--
     History multi select title in app bar
     %1$d is the number of downloads selected
@@ -1448,6 +1464,18 @@
   <string name="download_multi_select_title">เลือกอยู่ %1$d</string>
   <!-- Text for the button to remove a single download item -->
   <string name="download_delete_item_1" moz:removedIn="138" tools:ignore="UnusedResources">เอาออก</string>
+  <!-- Text for the button to delete a single downloaded file item -->
+  <string name="download_delete_item">ลบ</string>
+  <!-- Text for the button to share the download URL -->
+  <string name="download_share_url">แบ่งปัน URL</string>
+  <!-- Alert dialog confirmation before deleting multiple download items, this is the title. -->
+  <string name="download_delete_multi_select_dialog_confirmation" tools:ignore="UnusedResources">คุณแน่ใจหรือไม่ว่าต้องการลบรายการที่เลือก?</string>
+  <!-- Alert dialog confirmation before deleting multiple download items, this is the positive action. -->
+  <string name="download_delete_multi_select_dialog_confirm" tools:ignore="UnusedResources">ลบ</string>
+  <!-- Alert dialog confirmation before deleting multiple download items, this is the negative action. -->
+  <string name="download_delete_multi_select_dialog_cancel" tools:ignore="UnusedResources">ยกเลิก</string>
+  <!-- Text for the header of in progress downloads -->
+  <string name="download_header_in_progress" tools:ignore="UnusedResources">ดำเนินการอยู่</string>
   <!--
     Time period headers for downloads
 
@@ -1462,6 +1490,16 @@
   <string name="download_time_period_last_30_days">30 วันที่ผ่านมา</string>
   <!-- Text for the header that groups the downloads older than other groups -->
   <string name="download_time_period_older">เก่ากว่า</string>
+  <!-- Text to indicate that an in progress download is paused. -->
+  <string name="download_item_status_paused" tools:ignore="UnusedResources">ถูกหยุดชั่วคราว</string>
+  <!-- Text to indicate that the download speed of an in progress download is being calculated. -->
+  <string name="download_item_download_speed_pending" tools:ignore="UnusedResources">กำลังรอ</string>
+  <!-- Text to indicate that a download has failed to download. -->
+  <string name="download_item_status_failed" tools:ignore="UnusedResources">การดาวน์โหลดล้มเหลว</string>
+  <!-- Text to indicate that no downloads match the search query. -->
+  <string name="download_search_no_results_found" tools:ignore="UnusedResources">ไม่พบผลลัพธ์</string>
+  <!-- Text for the "Select all" button, which selects all downloaded items in the downloads list. -->
+  <string name="download_select_all_items">เลือกทั้งหมด</string>
   <!--
     Downloads Content Type Filters
 
@@ -1476,6 +1514,8 @@
   <string name="download_content_type_filter_document">เอกสาร</string>
   <!-- Text for the filter button to show all other file types in the downloads list -->
   <string name="download_content_type_filter_other" moz:removedIn="138" tools:ignore="UnusedResources">อื่น ๆ</string>
+  <!-- Text for the filter button to show all other file types in the downloads list -->
+  <string name="download_content_type_filter_other_1">อื่น ๆ</string>
   <!--
     Description of a downloaded item, displayed in the downloads list.
     %1$s: The size of the downloaded file.
@@ -3363,8 +3403,16 @@
   <string name="text_field_eye_trailing_icon_default_content_description" moz:removedIn="139" tools:ignore="UnusedResources">แสดงข้อความที่ซ่อนอยู่</string>
   <!-- The default content description for the cross trailing icon button in TextField -->
   <string name="text_field_cross_trailing_icon_default_content_description" moz:removedIn="139" tools:ignore="UnusedResources">ล้างข้อความ</string>
-  <!-- Accessibility description for a check mark on a completed task -->
+  <!-- The title of the 'helpful tools' group in the setup checklist -->
+  <string name="setup_checklist_group_helpful_tools">เครื่องมือที่มีประโยชน์</string>
+  <!--
+    ===== Setup checklist feature: Accessibility =====
+
+    Accessibility description for a check mark on a completed task
+  -->
   <string name="a11y_completed_task_description">งานที่เสร็จสมบูรณ์</string>
   <!-- Accessibility description for the task icon -->
   <string name="a11y_task_icon_description">ไอคอนงาน</string>
+  <!-- Label for the primary action button to unlock private tabs -->
+  <string name="pbm_authentication_unlock">ปลดล็อก</string>
 </resources>

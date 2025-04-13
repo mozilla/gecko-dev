@@ -99,7 +99,7 @@
   <!-- The last date that the add-on was updated. -->
   <string name="mozac_feature_addons_last_updated">ბოლო განახლება</string>
   <!-- The developer website (Homepage) of the add-on. -->
-  <string name="mozac_feature_addons_home_page">მთავარი გვერდი</string>
+  <string name="mozac_feature_addons_home_page">საწყისი გვერდი</string>
   <!-- A link where users can find more information about add-ons permissions. -->
   <string name="mozac_feature_addons_learn_more">ვრცლად ნებართვების შესახებ</string>
   <!-- The rating of the add-on. -->
