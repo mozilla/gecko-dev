@@ -37,11 +37,18 @@ The system module uses the ``.sys.mjs`` filename extension.
       }
     };
 
+    export function TestFunc() {
+      console.log("hi");
+    }
+
 System modules can use other extensions than ``.sys.mjs``, but in that case
 make sure the right ESLint rules are applied to them.
 
 Importing a Module
 ------------------
+
+Immediate Import
+^^^^^^^^^^^^^^^^
 
 Inside all privileged code, system modules can be imported with
 ``ChromeUtils.importESModule``.
@@ -92,12 +99,22 @@ Inside system modules, other system modules can be imported with the regular
     with these ways, the module is imported into that global instead of
     the shared system global, and it becomes a different instance.
 
+Lazy Import
+^^^^^^^^^^^
+
 Modules can be lazily imported with ``ChromeUtils.defineESModuleGetters``.
 ``ChromeUtils.defineESModuleGetters`` receives a target object, and a object
 that defines a map from the exported symbol name to the module URI.
 Those symbols are defined on the target object as a lazy getter.
 The module is imported on the first access, and the getter is replaced with
 a data property with the exported symbol's value.
+
+.. note::
+
+    ``ChromeUtils.defineESModuleGetters`` is applicable only to the exported
+    symbol, and not to the namespace object.
+    See the next section for how to define the lazy getter for the namespace
+    object.
 
 The convention for the target object's name is ``lazy``.
 
@@ -115,7 +132,72 @@ The convention for the target object's name is ``lazy``.
       lazy.TestUtils.hello();
     }
 
+In order to import multiple symbols from the same module, add the corresponding
+property with the symbol name and the module URI for each.
+
+.. code:: JavaScript
+
+    // Privileged code.
+
+    const lazy = {}
+    ChromeUtils.defineESModuleGetters(lazy, {
+      TestUtils: "resource://gre/modules/Test.sys.mjs",
+      TestFunc: "resource://gre/modules/Test.sys.mjs",
+    });
+
 See `ChromeUtils.webidl <https://searchfox.org/mozilla-central/source/dom/chrome-webidl/ChromeUtils.webidl>`_ for more details.
+
+Using the Namespace Object
+--------------------------
+
+The namespace object returned by the ``ChromeUtils.importESModule`` call
+can also be directly used.
+
+.. code:: JavaScript
+
+    // Privileged code.
+
+    const TestNS =
+      ChromeUtils.importESModule("resource://gre/modules/Test.sys.mjs");
+
+    TestNS.TestUtils.hello();
+
+This is almost same as the following normal ``import`` declaration.
+
+.. code:: JavaScript
+
+    // System module top-level scope.
+
+    import * as TestNS from "resource://gre/modules/Test.sys.mjs";
+
+    TestNS.TestUtils.hello();
+
+or the dynamic import without the destructuring assignment.
+
+.. code:: JavaScript
+
+    async function f() {
+      const TestNS = await import("resource://gre/modules/Test.sys.mjs");
+      TestNS.TestUtils.hello();
+    }
+
+
+``ChromeUtils.defineESModuleGetters`` does not support directly using
+the namespace object.
+Possible workaround is to use ``ChromeUtils.defineLazyGetter`` with
+``ChromeUtils.importESModule``.
+
+.. code:: JavaScript
+
+    const lazy = {}
+    ChromeUtils.defineLazyGetter(lazy, "TestNS", () =>
+      ChromeUtils.importESModule("resource://gre/modules/Test.sys.mjs"));
+
+    function f() {
+      // Test.sys.mjs is imported on the first access.
+      lazy.TestNS.TestUtils.hello();
+    }
+
 
 Importing from Unprivileged Testing Code
 ----------------------------------------
