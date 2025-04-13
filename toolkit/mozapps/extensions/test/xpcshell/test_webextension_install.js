@@ -709,6 +709,7 @@ add_task(async function test_normalized_optional_origins() {
     optionalPermissions: {
       permissions: [],
       origins: manifestV2.optional_permissions,
+      data_collection: [],
     },
     optionalOriginsNormalized: [
       "http://*.example.com/*",
@@ -757,6 +758,7 @@ add_task(async function test_normalized_optional_origins() {
     optionalPermissions: {
       permissions: [],
       origins: [...manifestV3.host_permissions, "*://*/*"],
+      data_collection: [],
     },
     optionalOriginsNormalized: [
       "http://*.example.com/*",
@@ -791,6 +793,7 @@ add_task(async function test_normalized_optional_origins() {
     optionalPermissions: {
       permissions: [],
       origins: manifestV2Privileged.optional_permissions,
+      data_collection: [],
     },
     optionalOriginsNormalized: [
       "http://*.example.com/*",

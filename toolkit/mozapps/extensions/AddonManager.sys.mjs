@@ -1248,7 +1248,11 @@ var AddonManagerInternal = {
     let difference = lazy.Extension.comparePermissions(oldPerms, newPerms);
 
     // If there are no new permissions, just go ahead with the update
-    if (!difference.origins.length && !difference.permissions.length) {
+    if (
+      !difference.origins.length &&
+      !difference.permissions.length &&
+      !difference.data_collection.length
+    ) {
       return Promise.resolve();
     }
 

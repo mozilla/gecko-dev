@@ -237,7 +237,11 @@ export var ExtensionsUI = {
       let strings = this._buildStrings(info);
 
       // If this is an update with no promptable permissions, just apply it
-      if (info.type == "update" && !strings.msgs.length) {
+      if (
+        info.type == "update" &&
+        !strings.msgs.length &&
+        !strings.dataCollectionPermissions?.msg
+      ) {
         info.resolve();
         return;
       }
@@ -283,7 +287,7 @@ export var ExtensionsUI = {
       let strings = this._buildStrings(info);
 
       // If we don't prompt for any new permissions, just apply it
-      if (!strings.msgs.length) {
+      if (!strings.msgs.length && !strings.dataCollectionPermissions?.msg) {
         info.resolve();
         return;
       }
