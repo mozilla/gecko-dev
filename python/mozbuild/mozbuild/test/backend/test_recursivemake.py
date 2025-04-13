@@ -2,7 +2,6 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-import io
 import os
 import unittest
 
@@ -1312,7 +1311,7 @@ class TestRecursiveMakeBackend(BackendTester):
         ]
         prefix = "PROGRAM = "
         for subdir, expected_program in expected:
-            with io.open(os.path.join(env.topobjdir, subdir, "backend.mk"), "r") as fh:
+            with open(os.path.join(env.topobjdir, subdir, "backend.mk"), "r") as fh:
                 lines = fh.readlines()
                 program = [
                     line.rstrip().split(prefix, 1)[1]
@@ -1334,7 +1333,7 @@ class TestRecursiveMakeBackend(BackendTester):
         ]
         prefix = "SHARED_LIBRARY := "
         for subdir, expected_shared_lib in expected:
-            with io.open(os.path.join(env.topobjdir, subdir, "backend.mk"), "r") as fh:
+            with open(os.path.join(env.topobjdir, subdir, "backend.mk"), "r") as fh:
                 lines = fh.readlines()
                 shared_lib = [
                     line.rstrip().split(prefix, 1)[1]

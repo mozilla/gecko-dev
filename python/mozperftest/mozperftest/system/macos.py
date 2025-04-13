@@ -82,7 +82,7 @@ class MacosDevice(Layer):
                     shutil.rmtree(str(mount))
         if not found:
             self.error(f"No app file found in {dmg}")
-            raise IOError(dmg)
+            raise OSError(dmg)
 
     def run(self, metadata):
         #  Each DMG is mounted, then we look for the .app

@@ -22,7 +22,7 @@ def do_process_check(func):
     def _(*args, **kwargs):
         try:
             return func(*args, **kwargs)
-        except (socket.error, socket.timeout):
+        except (OSError, socket.timeout):
             m = _find_marionette_in_args(*args, **kwargs)
 
             # In case of socket failures which will also include crashes of the

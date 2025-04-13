@@ -162,7 +162,7 @@ class ConfigureTestSandbox(ConfigureSandbox):
     @memoized_property
     def _wrapped__winreg(self):
         def OpenKey(*args, **kwargs):
-            raise WindowsError()
+            raise OSError()
 
         return ReadOnlyNamespace(HKEY_LOCAL_MACHINE=0, OpenKey=OpenKey)
 

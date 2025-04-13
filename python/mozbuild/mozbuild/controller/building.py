@@ -359,7 +359,7 @@ class BuildMonitor(MozbuildObject):
                 build_resources_profile_path = self._get_state_filename(
                     "profile_build_resources.json"
                 )
-            with io.open(
+            with open(
                 build_resources_profile_path, "w", encoding="utf-8", newline="\n"
             ) as fh:
                 to_write = six.ensure_text(
@@ -775,7 +775,7 @@ class StaticAnalysisOutputManager(OutputManager):
             self.monitor._warnings_database.save_to_file(path)
 
         else:
-            with io.open(path, "w", encoding="utf-8", newline="\n") as f:
+            with open(path, "w", encoding="utf-8", newline="\n") as f:
                 f.write(self.raw)
 
         self.log(
@@ -1422,9 +1422,9 @@ class BuildDriver(MozbuildObject):
             )
 
             if os.path.exists(pathToThirdparty):
-                with io.open(
-                    pathToThirdparty, encoding="utf-8", newline="\n"
-                ) as f, io.open(pathToGenerated, encoding="utf-8", newline="\n") as g:
+                with open(pathToThirdparty, encoding="utf-8", newline="\n") as f, open(
+                    pathToGenerated, encoding="utf-8", newline="\n"
+                ) as g:
                     # Normalize the path (no trailing /)
                     LOCAL_SUPPRESS_DIRS = tuple(
                         [line.strip("\n/") for line in f]

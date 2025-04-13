@@ -1256,7 +1256,7 @@ class MochitestDesktop(object):
             created += [d]
 
         if created != extraTestsDirs:
-            raise EnvironmentError(
+            raise OSError(
                 "Not all directories were created: extraTestsDirs={} -- created={}".format(
                     extraTestsDirs, created
                 )
@@ -2091,7 +2091,7 @@ toolbar#nav-bar {
             gmp_path = self.getGMPPluginPath(options)
             if gmp_path is not None:
                 browserEnv["MOZ_GMP_PATH"] = gmp_path
-        except EnvironmentError:
+        except OSError:
             self.log.error("Could not find path to gmp-fake plugin!")
             return None
 
@@ -2567,7 +2567,7 @@ toolbar#nav-bar {
 
         if not gmp_paths:
             # This is fatal for desktop environments.
-            raise EnvironmentError("Could not find test gmp plugins")
+            raise OSError("Could not find test gmp plugins")
 
         return os.pathsep.join(gmp_paths)
 
@@ -2940,7 +2940,7 @@ toolbar#nav-bar {
                 self.marionette.delete_session()
                 del self.marionette
 
-            except IOError as e:
+            except OSError as e:
                 # Any IOError as thrown by Marionette means that something is
                 # wrong with the process, like a crash or the socket is no
                 # longer open. We defer raising this specific error so that

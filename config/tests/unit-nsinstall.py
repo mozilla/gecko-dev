@@ -51,14 +51,14 @@ class TestNsinstall(unittest.TestCase):
         "Test nsinstall -D <dir>"
         testdir = os.path.join(self.tmpdir, "test")
         self.assertEqual(nsinstall(["-D", testdir]), 0)
-        self.assert_(os.path.isdir(testdir))
+        self.assertTrue(os.path.isdir(testdir))
 
     def test_nsinstall_basic(self):
         "Test nsinstall <file> <dir>"
         testfile = self.touch("testfile")
         testdir = self.mkdirs("testdir")
         self.assertEqual(nsinstall([testfile, testdir]), 0)
-        self.assert_(os.path.isfile(os.path.join(testdir, "testfile")))
+        self.assertTrue(os.path.isfile(os.path.join(testdir, "testfile")))
 
     def test_nsinstall_basic_recursive(self):
         "Test nsinstall <dir> <dest dir>"
@@ -75,12 +75,12 @@ class TestNsinstall(unittest.TestCase):
         self.assertEqual(nsinstall([sourcedir, destdir, "-X", Xfile, "-X", Xdir]), 0)
 
         testdir = os.path.join(destdir, "sourcedir")
-        self.assert_(os.path.isdir(testdir))
-        self.assert_(os.path.isfile(os.path.join(testdir, "testfile")))
-        self.assert_(not os.path.exists(os.path.join(testdir, "Xfile")))
-        self.assert_(os.path.isdir(os.path.join(testdir, "copieddir")))
-        self.assert_(os.path.isfile(os.path.join(testdir, "copieddir", "testfile2")))
-        self.assert_(not os.path.exists(os.path.join(testdir, "Xdir")))
+        self.assertTrue(os.path.isdir(testdir))
+        self.assertTrue(os.path.isfile(os.path.join(testdir, "testfile")))
+        self.assertTrue(not os.path.exists(os.path.join(testdir, "Xfile")))
+        self.assertTrue(os.path.isdir(os.path.join(testdir, "copieddir")))
+        self.assertTrue(os.path.isfile(os.path.join(testdir, "copieddir", "testfile2")))
+        self.assertTrue(not os.path.exists(os.path.join(testdir, "Xdir")))
 
     def test_nsinstall_multiple(self):
         "Test nsinstall <three files> <dest dir>"
@@ -92,14 +92,14 @@ class TestNsinstall(unittest.TestCase):
         testdir = self.mkdirs("testdir")
         self.assertEqual(nsinstall(testfiles + [testdir]), 0)
         for f in testfiles:
-            self.assert_(os.path.isfile(os.path.join(testdir, os.path.basename(f))))
+            self.assertTrue(os.path.isfile(os.path.join(testdir, os.path.basename(f))))
 
     def test_nsinstall_dir_exists(self):
         "Test nsinstall <dir> <dest dir>, where <dest dir>/<dir> already exists"
         srcdir = self.mkdirs("test")
         destdir = self.mkdirs("testdir/test")
         self.assertEqual(nsinstall([srcdir, os.path.dirname(destdir)]), 0)
-        self.assert_(os.path.isdir(destdir))
+        self.assertTrue(os.path.isdir(destdir))
 
     def test_nsinstall_t(self):
         "Test that nsinstall -t works (preserve timestamp)"
@@ -110,7 +110,7 @@ class TestNsinstall(unittest.TestCase):
         os.utime(testfile, (t, t))
         self.assertEqual(nsinstall(["-t", testfile, testdir]), 0)
         destfile = os.path.join(testdir, "testfile")
-        self.assert_(os.path.isfile(destfile))
+        self.assertTrue(os.path.isfile(destfile))
         self.assertEqual(os.stat(testfile).st_mtime, os.stat(destfile).st_mtime)
 
     @unittest.skipIf(sys.platform == "win32", "Windows doesn't have real file modes")
@@ -124,7 +124,7 @@ class TestNsinstall(unittest.TestCase):
             nsinstall(["-m", "{0:04o}".format(mode), testfile, testdir]), 0
         )
         destfile = os.path.join(testdir, "testfile")
-        self.assert_(os.path.isfile(destfile))
+        self.assertTrue(os.path.isfile(destfile))
         self.assertEqual(os.stat(testfile).st_mode, os.stat(destfile).st_mode)
 
     def test_nsinstall_d(self):
@@ -134,7 +134,7 @@ class TestNsinstall(unittest.TestCase):
         testdir = self.mkdirs("testdir")
         destdir = os.path.join(testdir, "subdir")
         self.assertEqual(nsinstall(["-d", testfile, destdir]), 0)
-        self.assert_(os.path.isdir(os.path.join(destdir, "testfile")))
+        self.assertTrue(os.path.isdir(os.path.join(destdir, "testfile")))
 
     @unittest.skipIf(not RUN_NON_ASCII_TESTS, "Skipping non ascii tests")
     def test_nsinstall_non_ascii(self):
@@ -147,7 +147,7 @@ class TestNsinstall(unittest.TestCase):
         )
 
         destfile = os.path.join(testdir, filename)
-        self.assert_(os.path.isfile(destfile))
+        self.assertTrue(os.path.isfile(destfile))
 
     # Executing nsinstall.py with python 2 is not supported.
     @unittest.skipIf(
@@ -163,7 +163,7 @@ class TestNsinstall(unittest.TestCase):
 
         self.assertEqual(rv, 0)
         destfile = os.path.join(testdir, filename)
-        self.assert_(os.path.isfile(destfile))
+        self.assertTrue(os.path.isfile(destfile))
 
     # TODO: implement -R, -l, -L and test them!
 

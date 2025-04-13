@@ -252,7 +252,7 @@ class RaptorRunner(MozbuildObject):
             config_file = open(self.config_file_path, "w")
             config_file.write(json.dumps(self.config))
             config_file.close()
-        except IOError as e:
+        except OSError as e:
             err_str = "Error writing to Raptor Mozharness config file {0}:{1}"
             print(err_str.format(self.config_file_path, str(e)))
             raise e

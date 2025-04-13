@@ -505,7 +505,7 @@ class Preprocessor:
             if dir:
                 os.makedirs(dir, exist_ok=True)
 
-            return io.open(path, "w", encoding=encoding, newline="\n")
+            return open(path, "w", encoding=encoding, newline="\n")
 
         p = self.getCommandLineParser()
         options, args = p.parse_args(args=args)
@@ -532,7 +532,7 @@ class Preprocessor:
         if args:
             for f in args:
                 if not isinstance(f, io.TextIOBase):
-                    f = io.open(f, "r", encoding="utf-8")
+                    f = open(f, "r", encoding="utf-8")
                 with f as input_:
                     self.processFile(input=input_, output=out)
             if depfile:
@@ -868,7 +868,7 @@ class Preprocessor:
                     args = self.applyFilters(args)
                 if not os.path.isabs(args):
                     args = os.path.join(self.curdir, args)
-                args = io.open(args, "r", encoding="utf-8")
+                args = open(args, "r", encoding="utf-8")
             except Preprocessor.Error:
                 raise
             except Exception:
@@ -922,7 +922,7 @@ class Preprocessor:
 def preprocess(includes=[sys.stdin], defines={}, output=sys.stdout, marker="#"):
     pp = Preprocessor(defines=defines, marker=marker)
     for f in includes:
-        with io.open(f, "r", encoding="utf-8") as input:
+        with open(f, "r", encoding="utf-8") as input:
             pp.processFile(input=input, output=output)
     return pp.includes
 

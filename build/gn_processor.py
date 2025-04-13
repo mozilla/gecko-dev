@@ -605,7 +605,7 @@ def write_mozbuild(
             ):
                 conditions = set()
                 for args in all_args:
-                    cond = tuple(((k, args.get(k) or "") for k in attrs))
+                    cond = tuple((k, args.get(k) or "") for k in attrs)
                     conditions.add(cond)
 
                 for cond in sorted(conditions):
@@ -649,7 +649,7 @@ def write_mozbuild(
         ):
             conditions = set()
             for args in dirs_by_config.keys():
-                cond = tuple(((k, dict(args).get(k) or "") for k in attrs))
+                cond = tuple((k, dict(args).get(k) or "") for k in attrs)
                 conditions.add(cond)
 
             for cond in sorted(conditions):

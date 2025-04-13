@@ -72,7 +72,7 @@ class AddonManager(object):
             # about the exception
             try:
                 self.remove_addon(addon)
-            except IOError:
+            except OSError:
                 pass
 
         # restore backups
@@ -105,7 +105,7 @@ class AddonManager(object):
             if os.path.exists(path):
                 return path
 
-        raise IOError("Add-on not found: %s" % addon_id)
+        raise OSError("Add-on not found: %s" % addon_id)
 
     @classmethod
     def is_addon(self, addon_path):
@@ -246,7 +246,7 @@ class AddonManager(object):
             return "".join(rc).strip()
 
         if not os.path.exists(addon_path):
-            raise IOError("Add-on path does not exist: %s" % addon_path)
+            raise OSError("Add-on path does not exist: %s" % addon_path)
 
         is_webext = False
         try:
@@ -286,15 +286,15 @@ class AddonManager(object):
                     try:
                         with open(os.path.join(addon_path, "install.rdf")) as f:
                             manifest = f.read()
-                    except IOError:
+                    except OSError:
                         with open(os.path.join(addon_path, "manifest.json")) as f:
                             manifest = json.loads(f.read())
                             is_webext = True
             else:
-                raise IOError(
+                raise OSError(
                     "Add-on path is neither an XPI nor a directory: %s" % addon_path
                 )
-        except (IOError, KeyError) as e:
+        except (OSError, KeyError) as e:
             reraise(AddonFormatError, AddonFormatError(str(e)), sys.exc_info()[2])
 
         if is_webext:

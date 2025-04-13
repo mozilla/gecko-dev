@@ -9,7 +9,7 @@ from setuptools import setup
 try:
     here = os.path.dirname(os.path.abspath(__file__))
     description = open(os.path.join(here, "README.md")).read()
-except IOError:
+except OSError:
     description = None
 
 PACKAGE_VERSION = "2.1.0"

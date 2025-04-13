@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 # Based upon makeunicodedata.py
 # (http://hg.python.org/cpython/file/c8192197d23d/Tools/unicode/makeunicodedata.py)
 # written by Fredrik Lundh (fredrik@pythonware.com)
@@ -118,7 +117,7 @@ def read_unicode_data(unicode_data):
       http://www.unicode.org/reports/tr44/
     """
 
-    reader = csv.reader(unicode_data, delimiter=str(";"))
+    reader = csv.reader(unicode_data, delimiter=";")
 
     while True:
         row = next(reader, None)
@@ -639,7 +638,7 @@ def process_special_casing(special_casing, table, index):
 
 def make_non_bmp_file(version, non_bmp_lower_map, non_bmp_upper_map, codepoint_table):
     file_name = "UnicodeNonBMP.h"
-    with io.open(file_name, mode="w", encoding="utf-8") as non_bmp_file:
+    with open(file_name, mode="w", encoding="utf-8") as non_bmp_file:
         non_bmp_file.write(mpl_license)
         non_bmp_file.write("\n")
         non_bmp_file.write(warning_message)
@@ -982,7 +981,7 @@ def make_bmp_mapping_test(
         return "\\u{:04X}".format(n)
 
     file_name = "../tests/non262/String/string-upper-lower-mapping.js"
-    with io.open(file_name, mode="w", encoding="utf-8") as output:
+    with open(file_name, mode="w", encoding="utf-8") as output:
         write = partial(print, file=output, sep="", end="")
         println = partial(print, file=output, sep="", end="\n")
 
@@ -1036,7 +1035,7 @@ def make_non_bmp_mapping_test(
     version, non_bmp_upper_map, non_bmp_lower_map, codepoint_table
 ):
     file_name = "../tests/non262/String/string-code-point-upper-lower-mapping.js"
-    with io.open(file_name, mode="w", encoding="utf-8") as test_non_bmp_mapping:
+    with open(file_name, mode="w", encoding="utf-8") as test_non_bmp_mapping:
         test_non_bmp_mapping.write(warning_message)
         test_non_bmp_mapping.write(unicode_version_message.format(version))
         test_non_bmp_mapping.write(public_domain)
@@ -1078,7 +1077,7 @@ def make_space_test(version, test_space_table, codepoint_table):
         return "    0x{:04X} /* {} */".format(c, codepoint_table.name(c))
 
     file_name = "../tests/non262/String/string-space-trim.js"
-    with io.open(file_name, mode="w", encoding="utf-8") as test_space:
+    with open(file_name, mode="w", encoding="utf-8") as test_space:
         test_space.write(warning_message)
         test_space.write(unicode_version_message.format(version))
         test_space.write(public_domain)
@@ -1103,7 +1102,7 @@ def make_regexp_space_test(version, test_space_table, codepoint_table):
         return "    0x{:04X} /* {} */".format(c, codepoint_table.name(c))
 
     file_name = "../tests/non262/RegExp/character-class-escape-s.js"
-    with io.open(file_name, mode="w", encoding="utf-8") as test_space:
+    with open(file_name, mode="w", encoding="utf-8") as test_space:
         test_space.write(warning_message)
         test_space.write(unicode_version_message.format(version))
         test_space.write(public_domain)
@@ -1140,7 +1139,7 @@ def make_icase_test(version, folding_tests, codepoint_table):
         return "0x{:04X}".format(c)
 
     file_name = "../tests/non262/RegExp/unicode-ignoreCase.js"
-    with io.open(file_name, mode="w", encoding="utf-8") as test_icase:
+    with open(file_name, mode="w", encoding="utf-8") as test_icase:
         test_icase.write("// |reftest| skip-if(!this.hasOwnProperty('Intl'))\n\n")
         test_icase.write(warning_message)
         test_icase.write(unicode_version_message.format(version))
@@ -1317,7 +1316,7 @@ def make_unicode_file(
         println("")
 
     file_name = "Unicode.cpp"
-    with io.open(file_name, "w", encoding="utf-8") as data_file:
+    with open(file_name, "w", encoding="utf-8") as data_file:
         write = partial(print, file=data_file, sep="", end="")
         println = partial(print, file=data_file, sep="", end="\n")
 
@@ -1483,13 +1482,13 @@ def update_unicode(args):
         pat_version = re.compile(r"# %s-(?P<version>\d+\.\d+\.\d+).txt" % fname)
         return pat_version.match(f.readline()).group("version")
 
-    with io.open(
+    with open(
         os.path.join(base_path, "UnicodeData.txt"), "r", encoding="utf-8"
-    ) as unicode_data, io.open(
+    ) as unicode_data, open(
         os.path.join(base_path, "CaseFolding.txt"), "r", encoding="utf-8"
-    ) as case_folding, io.open(
+    ) as case_folding, open(
         os.path.join(base_path, "DerivedCoreProperties.txt"), "r", encoding="utf-8"
-    ) as derived_core_properties, io.open(
+    ) as derived_core_properties, open(
         os.path.join(base_path, "SpecialCasing.txt"), "r", encoding="utf-8"
     ) as special_casing:
         unicode_version = version_from_file(

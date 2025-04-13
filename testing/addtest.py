@@ -1,4 +1,3 @@
-import io
 import os
 
 import manifestparser
@@ -339,7 +338,7 @@ def write_to_manifest_file(manifest_file, filename):
                 contents.insert(i, filename)
                 break
 
-    with io.open(manifest_file, "w", newline="\n") as f:
+    with open(manifest_file, "w", newline="\n") as f:
         f.write("".join(contents))
 
 

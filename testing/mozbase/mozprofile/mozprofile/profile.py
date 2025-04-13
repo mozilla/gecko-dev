@@ -9,7 +9,6 @@ import tempfile
 import time
 import uuid
 from abc import ABCMeta, abstractmethod, abstractproperty
-from io import open
 from shutil import copytree
 
 import mozfile
@@ -21,6 +20,8 @@ if six.PY3:
     def unicode(input):
         return input
 
+
+import builtins
 
 from .addons import AddonManager
 from .permissions import Permissions
@@ -308,7 +309,7 @@ class Profile(BaseProfile):
     def set_preferences(self, preferences, filename="user.js"):
         """Adds preferences dict to profile preferences"""
         prefs_file = os.path.join(self.profile, filename)
-        with open(prefs_file, "a") as f:
+        with builtins.open(prefs_file, "a") as f:
             if not preferences:
                 return
 
@@ -350,7 +351,7 @@ class Profile(BaseProfile):
         """
 
         path = os.path.join(self.profile, filename)
-        with open(path, "r", encoding="utf-8") as f:
+        with builtins.open(path, "r", encoding="utf-8") as f:
             lines = f.read().splitlines()
 
         def last_index(_list, value):
@@ -388,7 +389,7 @@ class Profile(BaseProfile):
 
         # write the prefs
         cleaned_prefs = "\n".join(lines[:s] + lines[e + 1 :])
-        with open(path, "w") as f:
+        with builtins.open(path, "w") as f:
             f.write(cleaned_prefs)
         return True
 
@@ -549,11 +550,11 @@ class ChromiumProfile(BaseProfile):
 
         prefs = {}
         if os.path.isfile(pref_file):
-            with open(pref_file, "r") as fh:
+            with builtins.open(pref_file, "r") as fh:
                 prefs.update(json.load(fh))
 
         prefs.update(preferences)
-        with open(pref_file, "w") as fh:
+        with builtins.open(pref_file, "w") as fh:
             prefstr = json.dumps(prefs)
             prefstr % values  # interpolate prefs with values
             if six.PY2:

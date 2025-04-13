@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 #
 # Marionette Python Client documentation build configuration file, created by
 # sphinx-quickstart on Tue Aug  6 13:54:46 2013.

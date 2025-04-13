@@ -141,8 +141,7 @@ def ssh(**kwargs) -> DoctorCheck:
         proc = subprocess.run(
             ["ssh", "hg.mozilla.org"],
             encoding="utf-8",
-            stderr=subprocess.PIPE,
-            stdout=subprocess.PIPE,
+            capture_output=True,
         )
 
         # Command output from a successful `pash` run.
@@ -451,7 +450,7 @@ def mozillabuild(**kwargs) -> DoctorCheck:
             status = CheckStatus.OK
             desc = "MozillaBuild %s in use" % local_version
 
-    except (IOError, ValueError):
+    except (OSError, ValueError):
         status = CheckStatus.FATAL
         desc = "MozillaBuild version not found"
 

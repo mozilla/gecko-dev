@@ -29,7 +29,7 @@ def _buildconfig_files_diff():
         "-I",
         "**/.buildconfig.yml",
     ]
-    p = subprocess.run(cmd, capture_output=True, universal_newlines=True)
+    p = subprocess.run(cmd, capture_output=True, text=True)
     return p.stdout
 
 

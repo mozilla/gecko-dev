@@ -149,7 +149,7 @@ class XPerfAttribute(six.with_metaclass(ABCMeta, object)):
         """
         if evt not in self.evtlist:
             raise Exception(
-                'Event mismatch: "{!s}" is not in this '.format((evt))
+                'Event mismatch: "{!s}" is not in this '.format(evt)
                 + "attribute's event list"
             )
 
@@ -246,9 +246,9 @@ class XPerfInterval(XPerfAttribute):
         if self.attrs_during_interval:
             msg += " Within this interval:"
             for attr in self.attrs_during_interval:
-                msg += " {!s}".format((attr))
-        msg += "\nStart: [{}]".format((start.get_timestamp()))
-        msg += " End: [{}]".format((end.get_timestamp()))
+                msg += " {!s}".format(attr)
+        msg += "\nStart: [{}]".format(start.get_timestamp())
+        msg += " End: [{}]".format(end.get_timestamp())
         return msg
 
     def get_results(self):
@@ -581,10 +581,10 @@ class EventSequence(EventExpression):
         return self.seen_events[-1].get_timestamp()
 
     def __str__(self):
-        result = str()
+        result = ""
         for e in self.seen_events[:-1]:
-            result += "When [{!s}], ".format((e))
-        result += "then [{!s}]".format((self.seen_events[-1]))
+            result += "When [{!s}], ".format(e)
+        result += "then [{!s}]".format(self.seen_events[-1])
         return result
 
 
@@ -653,7 +653,7 @@ class ClassicEvent(XPerfEvent):
         return guid.int == self.guid.int
 
     def __str__(self):
-        return "User event (classic): [{{{!s}}}]".format((self.guid))
+        return "User event (classic): [{{{!s}}}]".format(self.guid)
 
 
 class SessionStoreWindowRestored(ClassicEvent):
@@ -681,7 +681,7 @@ class ProcessStart(XPerfEvent):
     def tokenize_cmd_line(cmd_line_str):
         result = []
         quoted = False
-        current = str()
+        current = ""
 
         for c in cmd_line_str:
             if quoted:
@@ -692,7 +692,7 @@ class ProcessStart(XPerfEvent):
                     quoted = True
                 elif c == " ":
                     result.append(current)
-                    current = str()
+                    current = ""
                     continue
 
             current += c
@@ -736,7 +736,7 @@ class ProcessStart(XPerfEvent):
         return True
 
     def __str__(self):
-        return "Start of a [{!s}] process".format((self.leafname))
+        return "Start of a [{!s}] process".format(self.leafname)
 
 
 class ThreadStart(XPerfEvent):
@@ -770,7 +770,7 @@ class ThreadStart(XPerfEvent):
 
     def __str__(self):
         s = "Thread start in process [{}]".format(
-            (self.whiteboard[XPerfEvent.EVENT_DATA_PID])
+            self.whiteboard[XPerfEvent.EVENT_DATA_PID]
         )
         return s
 
@@ -804,7 +804,7 @@ class ReadyThread(XPerfEvent):
 
     def __str__(self):
         return "Thread [{!s}] is ready".format(
-            (self.whiteboard[XPerfEvent.EVENT_DATA_TID])
+            self.whiteboard[XPerfEvent.EVENT_DATA_TID]
         )
 
 
@@ -834,7 +834,7 @@ class ContextSwitchToThread(XPerfEvent):
 
     def __str__(self):
         return "Context switch to thread " + "[{!s}]".format(
-            (self.whiteboard[XPerfEvent.EVENT_DATA_TID])
+            self.whiteboard[XPerfEvent.EVENT_DATA_TID]
         )
 
 
@@ -889,7 +889,7 @@ class FileIOReadOrWrite(XPerfEvent):
         return True
 
     def __str__(self):
-        return "File I/O Bytes {}".format((self.strverb))
+        return "File I/O Bytes {}".format(self.strverb)
 
 
 class XPerfFile(object):
@@ -990,7 +990,7 @@ class XPerfFile(object):
         else:
             (base, leaf) = os.path.split(self.etlfile)
             (leaf, ext) = os.path.splitext(leaf)
-            abs_csv_name = os.path.join(base, "{}.csv".format((leaf)))
+            abs_csv_name = os.path.join(base, "{}.csv".format(leaf))
 
         xperf_cmd = [self.get_xperf_path(), "-i", self.etlfile, "-o", abs_csv_name]
         if self.debug:
@@ -1158,7 +1158,7 @@ if __name__ == "__main__":
                 pass
 
             def structured_output(attr):
-                print("Results: [{!r}]".format((attr.get_results())))
+                print("Results: [{!r}]".format(attr.get_results()))
 
             def test_filter_exclude_dll(file):
                 (base, ext) = os.path.splitext(file)

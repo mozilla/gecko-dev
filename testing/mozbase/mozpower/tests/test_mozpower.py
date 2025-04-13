@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 
 import subprocess
-import sys
 from unittest import mock
 
 import mozunit
@@ -36,10 +35,7 @@ def test_mozpower_processor_info_missing_error():
     """Tests that the error MissingProcessorInfoError is raised
     when failures occur during processor information parsing.
     """
-    # The builtins module name differs between python 2 and 3
-    builtins_name = "__builtin__"
-    if sys.version_info[0] == 3:
-        builtins_name = "builtins"
+    builtins_name = "builtins"
 
     def os_side_effect_true(*args, **kwargs):
         """Used as a passing side effect for os.path.exists calls."""
@@ -232,19 +228,19 @@ def test_mozpower_get_full_perfherder_data(mozpower_obj):
                 assert suite["unit"] == "mWh"
                 assert suite["name"] == "mozpower-power-usage"
                 assert not list(set(all_vals) - set(power_usage_vals))
-                assert suite["value"] == float(6.1)
+                assert suite["value"] == 6.1
             elif "frequency-cpu" in suite["name"]:
                 assert len(all_vals) == 3
                 assert suite["unit"] == "MHz"
                 assert suite["name"] == "mozpower-frequency-cpu"
                 assert not list(set(all_vals) - set(frequency_cpu_vals))
-                assert suite["value"] == float(2.0)
+                assert suite["value"] == 2.0
             elif "frequency-gpu" in suite["name"]:
                 assert len(all_vals) == 3
                 assert suite["unit"] == "MHz"
                 assert suite["name"] == "mozpower-frequency-gpu"
                 assert not list(set(all_vals) - set(frequency_gpu_vals))
-                assert suite["value"] == float(3.0)
+                assert suite["value"] == 3.0
             else:
                 assert False, "Unknown suite name %s" % suite["name"]
 

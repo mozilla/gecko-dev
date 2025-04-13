@@ -63,7 +63,7 @@ def read_annotations(annotations_filename):
     try:
         with open(annotations_filename, "r") as annotations_file:
             annotations = sort_annotations(yaml.safe_load(annotations_file))
-    except (IOError, ValueError) as e:
+    except (OSError, ValueError) as e:
         print("Error parsing " + annotations_filename + ":\n" + str(e) + "\n")
         sys.exit(1)
 
@@ -79,7 +79,7 @@ def read_template(template_filename):
     try:
         with open(template_filename, "r") as template_file:
             template = template_file.read()
-    except IOError as ex:
+    except OSError as ex:
         print("Error when reading " + template_filename + ":\n" + str(ex) + "\n")
         sys.exit(1)
 
@@ -223,7 +223,7 @@ def emit_header(output, template_filename, annotations_filename):
 
     try:
         output.write(generated_header)
-    except IOError as ex:
+    except OSError as ex:
         print("Error while writing out the generated file:\n" + str(ex) + "\n")
         sys.exit(1)
 
@@ -280,6 +280,6 @@ def emit_class(output, annotations_filename):
 
     try:
         output.write(generated_class)
-    except IOError as ex:
+    except OSError as ex:
         print("Error while writing out the generated file:\n" + str(ex) + "\n")
         sys.exit(1)

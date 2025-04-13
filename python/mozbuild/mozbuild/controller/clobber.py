@@ -226,7 +226,7 @@ class Clobberer(object):
             self.remove_objdir(False)
             print("Successfully completed auto clobber.", file=fh)
             return True, True, None
-        except IOError as error:
+        except OSError as error:
             return (
                 True,
                 False,

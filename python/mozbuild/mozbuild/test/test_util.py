@@ -1,4 +1,3 @@
-# coding: utf-8
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -40,10 +39,7 @@ from mozbuild.util import (
     resolve_target_to_make,
 )
 
-if sys.version_info[0] == 3:
-    str_type = "str"
-else:
-    str_type = "unicode"
+str_type = "str"
 
 data_path = os.path.abspath(os.path.dirname(__file__))
 data_path = os.path.join(data_path, "data")

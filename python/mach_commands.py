@@ -46,7 +46,7 @@ def python(
     command_context.log_manager.terminal_handler.setLevel(logging.CRITICAL)
 
     # Note: subprocess requires native strings in os.environ on Windows.
-    append_env = {"PYTHONDONTWRITEBYTECODE": str("1")}
+    append_env = {"PYTHONDONTWRITEBYTECODE": "1"}
 
     if virtualenv:
         command_context._virtualenv_name = virtualenv
@@ -330,7 +330,7 @@ def _run_python_test(command_context, test, jobs, verbose):
         env=env,
         stdout=subprocess.PIPE,
         stderr=subprocess.STDOUT,
-        universal_newlines=True,
+        text=True,
         encoding="UTF-8",
     )
 

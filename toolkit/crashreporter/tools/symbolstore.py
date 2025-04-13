@@ -377,13 +377,13 @@ def validate_install_manifests(install_manifest_args):
             )
         manifest_file, destination = [os.path.abspath(b) for b in bits]
         if not os.path.isfile(manifest_file):
-            raise IOError(errno.ENOENT, "Manifest file not found", manifest_file)
+            raise OSError(errno.ENOENT, "Manifest file not found", manifest_file)
         if not os.path.isdir(destination):
-            raise IOError(errno.ENOENT, "Install directory not found", destination)
+            raise OSError(errno.ENOENT, "Install directory not found", destination)
         try:
             manifest = InstallManifest(manifest_file)
         except UnreadableInstallManifest:
-            raise IOError(errno.EINVAL, "Error parsing manifest file", manifest_file)
+            raise OSError(errno.EINVAL, "Error parsing manifest file", manifest_file)
         args.append((manifest, destination))
     return args
 
@@ -1131,7 +1131,7 @@ to canonical locations in the source repository. Specify
 
     try:
         manifests = validate_install_manifests(options.install_manifests)
-    except (IOError, ValueError) as e:
+    except (OSError, ValueError) as e:
         parser.error(str(e))
         sys.exit(1)
     file_mapping = make_file_mapping(manifests)

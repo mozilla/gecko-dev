@@ -62,8 +62,7 @@ class NetworkBench(BasePythonSupport):
         try:
             result = subprocess.run(
                 ["caddy", "version"],
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
+                capture_output=True,
                 text=True,
             )
             if result.returncode == 0:
@@ -256,8 +255,7 @@ class NetworkBench(BasePythonSupport):
         try:
             result = subprocess.run(
                 ["sudo", "tc", "-help"],
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
+                capture_output=True,
                 text=True,
             )
             if result.returncode == 0:
@@ -275,8 +273,7 @@ class NetworkBench(BasePythonSupport):
                 command,
                 shell=True,
                 check=True,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
+                capture_output=True,
             )
             LOG.info(command)
             LOG.info(f"Output: {result.stdout.decode().strip()}")

@@ -22,7 +22,6 @@ import yaml
 from mach.decorators import Command, CommandArgument, SubCommand
 from mach.main import Mach
 from mozversioncontrol import get_repository_object
-from six.moves import input
 
 from mozbuild import build_commands
 from mozbuild.controller.clobber import Clobberer

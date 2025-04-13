@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 #
 # MozBase documentation build configuration file, created by
 # sphinx-quickstart on Mon Oct 22 14:02:17 2012.

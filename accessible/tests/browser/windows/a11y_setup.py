@@ -240,7 +240,7 @@ class WaitForWinEvent:
             ctypes.oledll.ole32.CoWaitForMultipleHandles(
                 COWAIT_DEFAULT, TIMEOUT, 1, handles, ctypes.byref(index)
             )
-        except WindowsError as e:
+        except OSError as e:
             if e.winerror == RPC_S_CALLPENDING:
                 raise TimeoutError("Timeout before desired event received")
             raise
@@ -382,7 +382,7 @@ class WaitForUiaEvent(comtypes.COMObject):
             ctypes.oledll.ole32.CoWaitForMultipleHandles(
                 COWAIT_DEFAULT, TIMEOUT, 1, handles, ctypes.byref(index)
             )
-        except WindowsError as e:
+        except OSError as e:
             if e.winerror == RPC_S_CALLPENDING:
                 raise TimeoutError("Timeout before desired event received")
             raise

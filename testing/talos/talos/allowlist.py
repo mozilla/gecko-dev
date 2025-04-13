@@ -45,7 +45,7 @@ class Allowlist:
             for allowlist_name in temp:
                 self.listmap[allowlist_name.lower()] = temp[allowlist_name]
 
-        except IOError as e:
+        except OSError as e:
             print("%s: %s" % (e.filename, e.strerror))
             return False
         return True
@@ -179,6 +179,6 @@ class Allowlist:
                 for lib in libs
             }
             return True
-        except IOError as e:
+        except OSError as e:
             print("%s: %s" % (e.filename, e.strerror))
             return False

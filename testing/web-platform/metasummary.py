@@ -144,7 +144,7 @@ def get_manifest(metadata_root, test_path, url_base):
                 test_path=test_path,
                 url_base=url_base,
             )
-    except IOError:
+    except OSError:
         return None
 
 
@@ -159,7 +159,7 @@ def get_dir_manifest(path):
     try:
         with open(path, "rb") as f:
             return compile(f, data_cls_getter=lambda x, y: DirectoryManifest)
-    except IOError:
+    except OSError:
         return None
 
 

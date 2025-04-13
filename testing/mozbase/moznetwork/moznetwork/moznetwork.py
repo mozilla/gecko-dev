@@ -64,7 +64,7 @@ def _get_interface_list():
             for i in range(0, outbytes, struct_size)
         ]
 
-    except IOError:
+    except OSError:
         raise NetworkError("Unable to call ioctl with SIOCGIFCONF")
 
 

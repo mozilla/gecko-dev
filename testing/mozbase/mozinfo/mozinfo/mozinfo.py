@@ -285,7 +285,7 @@ def find_and_update_from_json(*dirs, **kwargs):
     # by default, exceptions are suppressed. Set this to True if otherwise
     # desired.
     if kwargs.get("raise_exception", False):
-        raise IOError("mozinfo.json could not be found.")
+        raise OSError("mozinfo.json could not be found.")
     return None
 
 

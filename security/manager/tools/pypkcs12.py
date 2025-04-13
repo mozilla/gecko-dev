@@ -57,7 +57,7 @@ def runUtil(util, args):
     proc = subprocess.run(
         [util] + args,
         env=env,
-        universal_newlines=True,
+        text=True,
     )
     return proc.returncode
 

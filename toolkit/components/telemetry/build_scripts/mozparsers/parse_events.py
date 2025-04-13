@@ -428,7 +428,7 @@ def load_events(filename, strict_type_checks):
     try:
         with open(filename, "r") as f:
             events = yaml.safe_load(f)
-    except IOError as e:
+    except OSError as e:
         ParserError("Error opening " + filename + ": " + str(e) + ".").handle_now()
     except ParserError as e:
         ParserError(

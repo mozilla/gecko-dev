@@ -778,7 +778,7 @@ class MacArtifactJob(ArtifactJob):
             os.chdir(oldcwd)
             try:
                 shutil.rmtree(tempdir)
-            except (OSError, IOError):
+            except OSError:
                 self.log(
                     logging.WARN,
                     "artifact",

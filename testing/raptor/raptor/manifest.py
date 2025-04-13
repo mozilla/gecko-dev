@@ -332,7 +332,7 @@ def write_test_settings_json(args, test_details, oskey):
         with open(settings_file, "w") as out_file:
             json.dump(test_settings, out_file, indent=4, ensure_ascii=False)
             out_file.close()
-    except IOError:
+    except OSError:
         LOG.info("abort: exception writing test settings json!")
 
 

@@ -90,7 +90,7 @@ class ProcessLauncher(object):
         cfgparser = configparser.ConfigParser()
 
         if not cfgparser.read(manifest):
-            raise IOError("The manifest %s could not be found/opened", manifest)
+            raise OSError("The manifest %s could not be found/opened", manifest)
 
         sections = cfgparser.sections()
         for section in sections:
@@ -162,7 +162,7 @@ class ProcessLauncher(object):
         :param level: Depth of the current process in the tree.
         """
         if proc_name not in self.children:
-            raise IOError("%s is not a valid process" % proc_name)
+            raise OSError("%s is not a valid process" % proc_name)
 
         maxtime = self.children[proc_name].maxtime
         if self.verbose:

@@ -1,12 +1,10 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 #
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 import contextlib
-import io
 import os
 import shutil
 import sys
@@ -204,7 +202,7 @@ def writeTestFile(test262OutDir, testFileName, source):
     Writes the test source to |test262OutDir|.
     """
 
-    with io.open(os.path.join(test262OutDir, testFileName), "wb") as output:
+    with open(os.path.join(test262OutDir, testFileName), "wb") as output:
         output.write(source)
 
 
@@ -239,7 +237,7 @@ def writeShellAndBrowserFiles(
                 yield include
 
     def readIncludeFile(filePath):
-        with io.open(filePath, "rb") as includeFile:
+        with open(filePath, "rb") as includeFile:
             return b"// file: %s\n%s" % (
                 os.path.basename(filePath).encode("utf-8"),
                 includeFile.read(),
@@ -261,15 +259,13 @@ def writeShellAndBrowserFiles(
     )
 
     # Write the concatenated include sources to shell.js.
-    with io.open(os.path.join(test262OutDir, relPath, "shell.js"), "wb") as shellFile:
+    with open(os.path.join(test262OutDir, relPath, "shell.js"), "wb") as shellFile:
         if includeSource:
             shellFile.write(b"// GENERATED, DO NOT EDIT\n")
             shellFile.write(includeSource)
 
     # The browser.js file is always empty for test262 tests.
-    with io.open(
-        os.path.join(test262OutDir, relPath, "browser.js"), "wb"
-    ) as browserFile:
+    with open(os.path.join(test262OutDir, relPath, "browser.js"), "wb") as browserFile:
         browserFile.write(b"")
 
 
@@ -400,7 +396,7 @@ def convertTestFile(test262parser, testSource, testName, includeSet, strictTests
             if shellOptions:
                 refTestSkipIf.append(("!xulRuntime.shell", "requires shell-options"))
                 refTestOptions.extend(
-                    ("shell-option({})".format(opt) for opt in sorted(shellOptions))
+                    "shell-option({})".format(opt) for opt in sorted(shellOptions)
                 )
 
     # Optional shell options. Some tests use feature detection for additional
@@ -413,7 +409,7 @@ def convertTestFile(test262parser, testSource, testName, includeSet, strictTests
             if include in INCLUDE_FEATURE_DETECTED_OPTIONAL_SHELL_OPTIONS
         )
         refTestOptions.extend(
-            ("shell-option({})".format(opt) for opt in sorted(optionalShellOptions))
+            "shell-option({})".format(opt) for opt in sorted(optionalShellOptions)
         )
 
     # Includes for every test file in a directory is collected in a single
@@ -579,7 +575,7 @@ def process_test262(test262Dir, test262OutDir, strictTests, externManifests):
             isFixtureFile = fileName.endswith("_FIXTURE.js")
 
             # Read the original test source and preprocess it for the jstests harness.
-            with io.open(filePath, "rb") as testFile:
+            with open(filePath, "rb") as testFile:
                 testSource = testFile.read()
 
             if isFixtureFile:
@@ -765,9 +761,7 @@ def fetch_pr_files(inDir, outDir, prNumber, strictTests):
             if not os.path.isdir(filePathDirs):
                 os.makedirs(filePathDirs)
 
-            with io.open(
-                os.path.join(inDir, *filename.split("/")), "wb"
-            ) as output_file:
+            with open(os.path.join(inDir, *filename.split("/")), "wb") as output_file:
                 output_file.write(fileText.encode("utf8"))
 
         hasNext = False
@@ -849,7 +843,7 @@ def general_update(inDir, outDir, strictTests):
     shutil.copyfile(os.path.join(inDir, "LICENSE"), os.path.join(outDir, "LICENSE"))
 
     # Create the git info file.
-    with io.open(os.path.join(outDir, "GIT-INFO"), "w", encoding="utf-8") as info:
+    with open(os.path.join(outDir, "GIT-INFO"), "w", encoding="utf-8") as info:
         subprocess.check_call(["git", "-C", inDir, "log", "-1"], stdout=info)
 
     # Copy the test files.
@@ -857,7 +851,7 @@ def general_update(inDir, outDir, strictTests):
     process_test262(inDir, outDir, strictTests, externManifests)
 
     # Create the external reftest manifest file.
-    with io.open(os.path.join(outDir, "jstests.list"), "wb") as manifestFile:
+    with open(os.path.join(outDir, "jstests.list"), "wb") as manifestFile:
         manifestFile.write(b"# GENERATED, DO NOT EDIT\n\n")
         for externManifest in sorted(externManifests, key=itemgetter("name")):
             (terms, comments) = externManifest["reftest"]

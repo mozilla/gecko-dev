@@ -124,7 +124,7 @@ def load_results_file(filename):
             print(f"Error parsing {filename} file: {e}")
         finally:
             f.close()
-    except IOError as e:
+    except OSError as e:
         print(e)
 
     return ret

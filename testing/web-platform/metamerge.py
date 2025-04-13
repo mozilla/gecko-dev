@@ -105,7 +105,7 @@ def get_manifest(manifest_path):
                 f.seek(0)
                 sys.stderr.write("Error parsing:\n%s" % f.read().decode("utf8"))
                 raise
-    except IOError:
+    except OSError:
         return None
 
 

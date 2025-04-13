@@ -44,9 +44,8 @@ class BaseHost:
                     self.manifest["vendoring"]["url"],
                     self.manifest["origin"]["name"],
                 ],
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
-                universal_newlines=True,
+                capture_output=True,
+                text=True,
                 check=True,
             )
             os.chdir("/".join([temp_repo_clone, self.manifest["origin"]["name"]]))
@@ -58,9 +57,8 @@ class BaseHost:
                 tag = subprocess.run(
                     ["git", "--no-pager", "tag", "-l", "--sort=creatordate"]
                     + revision_arg,
-                    stdout=subprocess.PIPE,
-                    stderr=subprocess.PIPE,
-                    universal_newlines=True,
+                    capture_output=True,
+                    text=True,
                     check=True,
                 ).stdout.splitlines()[-1]
             except IndexError:  # 0 lines of output, the tag does not exist
@@ -78,9 +76,8 @@ class BaseHost:
                     "--format=%cd",
                     tag,
                 ],
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
-                universal_newlines=True,
+                capture_output=True,
+                text=True,
                 check=True,
             ).stdout.splitlines()[-1]
             os.chdir(starting_directory)

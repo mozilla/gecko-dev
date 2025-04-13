@@ -1443,7 +1443,7 @@ class XPCShellTests(object):
         if not os.path.exists(nodeBin) or not os.path.isfile(nodeBin):
             error = "node not found at MOZ_NODE_PATH %s" % (nodeBin)
             self.log.error(error)
-            raise IOError(error)
+            raise OSError(error)
 
         self.log.info("Found node at %s" % (nodeBin,))
 
@@ -1456,7 +1456,7 @@ class XPCShellTests(object):
             if not os.path.exists(serverJs):
                 error = "%s not found at %s" % (name, serverJs)
                 self.log.error(error)
-                raise IOError(error)
+                raise OSError(error)
 
             # OK, we found our server, let's try to get it running
             self.log.info("Found %s at %s" % (name, serverJs))

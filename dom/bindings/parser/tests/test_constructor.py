@@ -282,14 +282,12 @@ def WebIDLTest(parser, harness):
 
     parser = parser.reset()
     parser.parse(
-        (
-            "\n"
-            "    interface TestPrefChromeOnlySCFuncConstructor {\n"
-            '        [ChromeOnly, Pref="dom.webidl.test1", SecureContext, '
-            'Func="IsNotUAWidget"]\n'
-            "        constructor();\n"
-            "    };\n"
-        )
+        "\n"
+        "    interface TestPrefChromeOnlySCFuncConstructor {\n"
+        '        [ChromeOnly, Pref="dom.webidl.test1", SecureContext, '
+        'Func="IsNotUAWidget"]\n'
+        "        constructor();\n"
+        "    };\n"
     )
     results = parser.finish()
     harness.check(len(results), 1, "Should be one production")

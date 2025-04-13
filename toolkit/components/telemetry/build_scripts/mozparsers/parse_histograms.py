@@ -100,7 +100,7 @@ def load_allowlist():
                     allowlists[name] = set(allowlist)
             except ValueError:
                 ParserError("Error parsing allowlist: %s" % allowlist_path).handle_now()
-    except IOError:
+    except OSError:
         allowlists = None
         ParserError("Unable to parse allowlist: %s." % allowlist_path).handle_now()
 

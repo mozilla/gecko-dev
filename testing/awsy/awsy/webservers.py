@@ -36,7 +36,7 @@ class WebServers(object):
             )
             try:
                 self.servers[-1].start()
-            except socket.error as error:
+            except OSError as error:
                 if isinstance(error, socket.error):
                     if error.errno == 98:
                         print("port {} is in use.".format(port))

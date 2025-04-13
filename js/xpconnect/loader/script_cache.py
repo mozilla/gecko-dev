@@ -3,7 +3,6 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this file,
 # You can obtain one at http://mozilla.org/MPL/2.0/.
 
-import io
 import os
 import struct
 import sys
@@ -72,7 +71,7 @@ if len(sys.argv) < 2 or not os.path.exists(sys.argv[1]):
     usage()
 
 for filename in sys.argv[1:]:
-    with io.open(filename, "rb") as f:
+    with open(filename, "rb") as f:
         magic = f.read(len(MAGIC))
         if magic != MAGIC:
             raise Exception("Bad magic number")

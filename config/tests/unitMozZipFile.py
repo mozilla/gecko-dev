@@ -137,7 +137,7 @@ class TestExtensiveStored(unittest.TestCase):
     def _verifyZip(self):
         zf = zipfile.ZipFile(self.f)
         badEntry = zf.testzip()
-        self.failIf(badEntry, badEntry)
+        self.assertFalse(badEntry, badEntry)
         zlist = zf.namelist()
         zlist.sort()
         vlist = self.ref.keys()

@@ -435,7 +435,7 @@ class UrlFinder(object):
         try:
             with open(chrome_map_path, "r", encoding="utf-8") as fh:
                 url_prefixes, overrides, install_info, buildconfig = json.load(fh)
-        except IOError:
+        except OSError:
             print(
                 "Error reading %s. Run |./mach build-backend -b ChromeMap| to "
                 "populate the ChromeMap backend." % chrome_map_path

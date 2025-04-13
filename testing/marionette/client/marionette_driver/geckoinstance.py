@@ -354,7 +354,7 @@ class GeckoInstance(object):
                 app = app_ids[app_id]
 
             instance_class = apps[app]
-        except (IOError, KeyError):
+        except (OSError, KeyError):
             exc, val, tb = sys.exc_info()
             msg = 'Application "{0}" unknown (should be one of {1})'.format(
                 app, list(apps.keys())
@@ -466,7 +466,7 @@ class GeckoInstance(object):
             # The new process handler is only supported on MacOS yet
             returncode = self.runner.process_handler.update_process(pid, timeout)
             if returncode not in [0, UNKNOWN_RETURNCODE]:
-                raise IOError(
+                raise OSError(
                     f"Old process inappropriately quit with exit code: {returncode}"
                 )
 

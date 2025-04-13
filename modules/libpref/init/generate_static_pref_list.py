@@ -439,7 +439,7 @@ def emit_code(fd, pref_list_filename):
             os.environ.get("GECKO_PATH", os.environ.get("TOPSRCDIR")),
         )
         code = generate_code(pref_list, input_file)
-    except (IOError, ValueError) as e:
+    except (OSError, ValueError) as e:
         print("{}: error:\n  {}\n".format(pref_list_filename, e))
         sys.exit(1)
 

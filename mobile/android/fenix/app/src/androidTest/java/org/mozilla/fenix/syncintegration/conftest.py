@@ -1,4 +1,3 @@
-import io
 import json
 import os
 import time
@@ -178,7 +177,7 @@ def pytest_runtest_makereport(item, call):
             for f in files:
                 path = os.path.join(root, f)
                 if pytest_html is not None:
-                    with io.open(path, "r", encoding="utf8") as f:
+                    with open(path, "r", encoding="utf8") as f:
                         extra.append(pytest_html.extras.text(f.read(), "Sync"))
                 report.sections.append(("Sync", "Log: {}".format(path)))
     for log in ("Firefox", "TPS", "GradlewBuild"):
@@ -186,7 +185,7 @@ def pytest_runtest_makereport(item, call):
         path = getattr(item.config, attr, None)
         if path is not None and os.path.exists(path):
             if pytest_html is not None:
-                with io.open(path, "r", encoding="utf8") as f:
+                with open(path, "r", encoding="utf8") as f:
                     extra.append(pytest_html.extras.text(f.read(), log))
             report.sections.append((log, "Log: {}".format(path)))
     report.extra = extra

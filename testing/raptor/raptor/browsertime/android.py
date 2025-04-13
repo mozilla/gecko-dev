@@ -164,9 +164,7 @@ class BrowsertimeAndroid(PerftestAndroid, Browsertime):
                 )
 
                 args_list.extend(["--firefox.android.intentArgument=-d"])
-                args_list.extend(
-                    ["--firefox.android.intentArgument", str("about:blank")]
-                )
+                args_list.extend(["--firefox.android.intentArgument", "about:blank"])
 
         return args_list
 

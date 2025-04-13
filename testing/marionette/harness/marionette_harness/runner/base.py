@@ -762,7 +762,7 @@ class BaseMarionetteTestRunner(object):
             for path in list(self.testvars_paths):
                 path = os.path.abspath(os.path.expanduser(path))
                 if not os.path.exists(path):
-                    raise IOError("--testvars file {} does not exist".format(path))
+                    raise OSError("--testvars file {} does not exist".format(path))
                 try:
                     with open(path) as f:
                         data.append(json.loads(f.read()))
@@ -1139,7 +1139,7 @@ class BaseMarionetteTestRunner(object):
 
             for i in target_tests:
                 if not os.path.exists(i["path"]):
-                    raise IOError("test file: {} does not exist".format(i["path"]))
+                    raise OSError("test file: {} does not exist".format(i["path"]))
 
                 self.add_test(i["path"], i["expected"], group=group)
             return

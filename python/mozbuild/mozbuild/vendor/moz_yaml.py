@@ -87,7 +87,7 @@ def load_moz_yaml(filename, verify=True, require_license_file=True):
     try:
         with open(filename, "r") as f:
             manifest = yaml.load(f, Loader=yaml.BaseLoader)
-    except IOError as e:
+    except OSError as e:
         if e.errno == errno.ENOENT:
             raise MozYamlVerifyError(filename, "Failed to find manifest: %s" % filename)
         raise

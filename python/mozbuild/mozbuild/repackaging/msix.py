@@ -735,7 +735,7 @@ def repackage_msix(
     # provide more feedback, so we prefer invoking with these flags.  This will
     # also accommodate `wine makeappx.exe`.
     stdout = subprocess.run(
-        [makeappx], check=False, capture_output=True, universal_newlines=True
+        [makeappx], check=False, capture_output=True, text=True
     ).stdout
     is_makeappx = "MakeAppx Tool" in stdout
 
@@ -774,9 +774,7 @@ def _sign_msix_win(output, force, log, verbose):
         log(
             logging.INFO, "msix", {"args": args, "joined": joined}, "Invoking: {joined}"
         )
-        return subprocess.run(
-            args, check=check, universal_newlines=True, capture_output=True
-        ).stdout
+        return subprocess.run(args, check=check, text=True, capture_output=True).stdout
 
     signtool = find_sdk_tool("signtool.exe", log=log)
     if not signtool:
@@ -1013,7 +1011,7 @@ def _sign_msix_posix(output, force, log, verbose):
             full_args,
             check=check,
             capture_output=capture_output,
-            universal_newlines=True,
+            text=True,
         )
 
     # These are baked into enough places under `browser/` that we need not

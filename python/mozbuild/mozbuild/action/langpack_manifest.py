@@ -13,7 +13,6 @@
 
 import argparse
 import datetime
-import io
 import json
 import logging
 import os
@@ -34,7 +33,7 @@ from mozbuild.configure.util import Version
 
 
 def write_file(path, content):
-    with io.open(path, "w", encoding="utf-8") as out:
+    with open(path, "w", encoding="utf-8") as out:
         out.write(content + "\n")
 
 

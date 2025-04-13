@@ -289,7 +289,7 @@ class VisualStudioBackend(CommonBackend):
                 for line in sfh:
                     if line.startswith(b"VisualStudioVersion = "):
                         vs_version = line.split(b" = ", 1)[1].strip()
-        except IOError as e:
+        except OSError as e:
             if e.errno != errno.ENOENT:
                 raise
 

@@ -11,7 +11,6 @@ import copy
 import difflib
 import functools
 import hashlib
-import io
 import itertools
 import os
 import re
@@ -41,8 +40,8 @@ else:
 
 def _open(path, mode):
     if "b" in mode:
-        return io.open(path, mode)
-    return io.open(path, mode, encoding="utf-8", newline="\n")
+        return open(path, mode)
+    return open(path, mode, encoding="utf-8", newline="\n")
 
 
 def hash_file(path, hasher=None):
@@ -229,14 +228,14 @@ class FileAvoidWrite(BytesIO):
         try:
             existing = _open(self.name, self.mode)
             existed = True
-        except IOError:
+        except OSError:
             pass
         else:
             try:
                 old_content = existing.read()
                 if old_content == buf:
                     return True, False
-            except IOError:
+            except OSError:
                 pass
             finally:
                 existing.close()

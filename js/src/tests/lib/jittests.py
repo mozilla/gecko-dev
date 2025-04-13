@@ -644,7 +644,7 @@ def print_test_summary(num_tests, failures, complete, slow_tests, doing, options
                             out.write("Exit code: " + str(res.rc) + "\n")
                         written.add(res.test.path)
                 out.close()
-            except IOError:
+            except OSError:
                 sys.stderr.write(
                     "Exception thrown trying to write failure"
                     " file '{}'\n".format(options.write_failures)

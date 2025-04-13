@@ -16,7 +16,7 @@ def read_local_file(include):
 
     try:
         return file_path.read_bytes()
-    except IOError:
+    except OSError:
         return b""
 
 

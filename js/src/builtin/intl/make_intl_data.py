@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 #
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -2079,7 +2078,7 @@ def updateCLDRLangTags(args):
             readFiles(cldr_data)
 
     print("Writing Intl data...")
-    with io.open(out, mode="w", encoding="utf-8", newline="") as f:
+    with open(out, mode="w", encoding="utf-8", newline="") as f:
         println = partial(print, file=f)
 
         writeCLDRLanguageTagData(println, data, url)
@@ -2090,7 +2089,7 @@ def updateCLDRLangTags(args):
         js_src_builtin_intl_dir,
         "../../tests/non262/Intl/Locale/likely-subtags-generated.js",
     )
-    with io.open(test_file, mode="w", encoding="utf-8", newline="") as f:
+    with open(test_file, mode="w", encoding="utf-8", newline="") as f:
         println = partial(print, file=f)
 
         println("// |reftest| skip-if(!this.hasOwnProperty('Intl'))")
@@ -2099,7 +2098,7 @@ def updateCLDRLangTags(args):
 
 def flines(filepath, encoding="utf-8"):
     """Open filepath and iterate over its content."""
-    with io.open(filepath, mode="r", encoding=encoding) as f:
+    with open(filepath, mode="r", encoding=encoding) as f:
         for line in f:
             yield line
 
@@ -2666,7 +2665,7 @@ def readZoneTab(tzdataDir):
 def availableNamedTimeZoneIdentifiers(tzdataDir, ignoreFactory):
     js_src_builtin_intl_dir = os.path.dirname(os.path.abspath(__file__))
 
-    with io.open(
+    with open(
         os.path.join(js_src_builtin_intl_dir, "TimeZoneMapping.yaml"),
         mode="r",
         encoding="utf-8",
@@ -2807,7 +2806,7 @@ def processTimeZones(tzdataDir, icuDir, icuTzDir, version, ignoreFactory, out):
         print("<<< Maybe https://ssl.icu-project.org/trac/ticket/12044 was fixed? >>>")
 
     print("Writing Intl tzdata file...")
-    with io.open(out, mode="w", encoding="utf-8", newline="") as f:
+    with open(out, mode="w", encoding="utf-8", newline="") as f:
         println = partial(print, file=f)
 
         println(generatedFileWarning)
@@ -2872,7 +2871,7 @@ def generateTzDataTestLinks(tzdataDir, version, ignoreFactory, testDir):
     # Read zone and link infos.
     (_, links) = availableNamedTimeZoneIdentifiers(tzdataDir, ignoreFactory)
 
-    with io.open(
+    with open(
         os.path.join(testDir, fileName), mode="w", encoding="utf-8", newline=""
     ) as f:
         println = partial(print, file=f)
@@ -2922,7 +2921,7 @@ if (typeof reportCompare === "function")
 def generateTzDataTestVersion(tzdataDir, version, testDir):
     fileName = "timeZone_version.js"
 
-    with io.open(
+    with open(
         os.path.join(testDir, fileName), mode="w", encoding="utf-8", newline=""
     ) as f:
         println = partial(print, file=f)
@@ -2955,7 +2954,7 @@ def generateTzDataTestCanonicalZones(tzdataDir, version, ignoreFactory, testDir)
     # Read zone and link infos.
     (zones, _) = availableNamedTimeZoneIdentifiers(tzdataDir, ignoreFactory)
 
-    with io.open(
+    with open(
         os.path.join(testDir, fileName), mode="w", encoding="utf-8", newline=""
     ) as f:
         println = partial(print, file=f)
@@ -2988,7 +2987,7 @@ def generateTzDataTestZones(tzdataDir, version, ignoreFactory, testDir):
     # Read zone and link infos.
     (zones, links) = availableNamedTimeZoneIdentifiers(tzdataDir, ignoreFactory)
 
-    with io.open(
+    with open(
         os.path.join(testDir, fileName), mode="w", encoding="utf-8", newline=""
     ) as f:
         println = partial(print, file=f)
@@ -3189,7 +3188,7 @@ def readCurrencyFile(tree):
 
 
 def writeCurrencyFile(published, currencies, out):
-    with io.open(out, mode="w", encoding="utf-8", newline="") as f:
+    with open(out, mode="w", encoding="utf-8", newline="") as f:
         println = partial(print, file=f)
 
         println(generatedFileWarning)
@@ -3595,7 +3594,7 @@ def computeSupportedUnits(all_units, sanctioned_units):
 
 
 def readICUDataFilterForUnits(data_filter_file):
-    with io.open(data_filter_file, mode="r", encoding="utf-8") as f:
+    with open(data_filter_file, mode="r", encoding="utf-8") as f:
         data_filter = json.load(f)
 
     # Find the rule set for the "unit_tree".
@@ -3630,7 +3629,7 @@ def writeSanctionedSimpleUnitIdentifiersFiles(all_units, sanctioned_units):
     sanctioned_js_file = os.path.join(
         js_src_builtin_intl_dir, "SanctionedSimpleUnitIdentifiersGenerated.js"
     )
-    with io.open(sanctioned_js_file, mode="w", encoding="utf-8", newline="") as f:
+    with open(sanctioned_js_file, mode="w", encoding="utf-8", newline="") as f:
         println = partial(print, file=f)
 
         sanctioned_units_object = json.dumps(
@@ -3657,7 +3656,7 @@ def writeSanctionedSimpleUnitIdentifiersFiles(all_units, sanctioned_units):
         )
 
     sanctioned_h_file = os.path.join(intl_components_src_dir, "MeasureUnitGenerated.h")
-    with io.open(sanctioned_h_file, mode="w", encoding="utf-8", newline="") as f:
+    with open(sanctioned_h_file, mode="w", encoding="utf-8", newline="") as f:
         println = partial(print, file=f)
 
         println(generatedFileWarning)
@@ -3712,7 +3711,7 @@ def writeUnitTestFiles(all_units, sanctioned_units):
 
     def write_test(file_name, test_content, indent=4):
         file_path = os.path.join(test_dir, file_name)
-        with io.open(file_path, mode="w", encoding="utf-8", newline="") as f:
+        with open(file_path, mode="w", encoding="utf-8", newline="") as f:
             println = partial(print, file=f)
 
             println('// |reftest| skip-if(!this.hasOwnProperty("Intl"))')
@@ -3840,7 +3839,7 @@ def updateUnits(topsrcdir, args):
     icu_path = os.path.join(topsrcdir, "intl", "icu")
     icu_unit_path = os.path.join(icu_path, "source", "data", "unit")
 
-    with io.open(
+    with open(
         os.path.join(js_src_builtin_intl_dir, "SanctionedSimpleUnitIdentifiers.yaml"),
         mode="r",
         encoding="utf-8",
@@ -3987,9 +3986,7 @@ def writeNumberingSystemFiles(numbering_systems):
     numbering_systems_js_file = os.path.join(
         js_src_builtin_intl_dir, "NumberingSystemsGenerated.h"
     )
-    with io.open(
-        numbering_systems_js_file, mode="w", encoding="utf-8", newline=""
-    ) as f:
+    with open(numbering_systems_js_file, mode="w", encoding="utf-8", newline="") as f:
         println = partial(print, file=f)
 
         println(generatedFileWarning)
@@ -4030,7 +4027,7 @@ def writeNumberingSystemFiles(numbering_systems):
 
     intl_shell_js_file = os.path.join(test_dir, "shell.js")
 
-    with io.open(intl_shell_js_file, mode="w", encoding="utf-8", newline="") as f:
+    with open(intl_shell_js_file, mode="w", encoding="utf-8", newline="") as f:
         println = partial(print, file=f)
 
         println(generatedFileWarning)
@@ -4060,7 +4057,7 @@ def updateNumberingSystems(topsrcdir, args):
     icu_path = os.path.join(topsrcdir, "intl", "icu")
     icu_misc_path = os.path.join(icu_path, "source", "data", "misc")
 
-    with io.open(
+    with open(
         os.path.join(js_src_builtin_intl_dir, "NumberingSystems.yaml"),
         mode="r",
         encoding="utf-8",

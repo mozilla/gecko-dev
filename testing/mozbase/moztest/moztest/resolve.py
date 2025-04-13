@@ -767,7 +767,7 @@ class TestResolver(MozbuildObject):
                                 line.split("[")[1].split("]")[0].split(" ")
                             )
                             test_tags.extend(self.meta_tags[file_path])
-            except IOError:
+            except OSError:
                 pass
 
         return list(set(test_tags))

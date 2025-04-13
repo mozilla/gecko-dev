@@ -7,7 +7,6 @@ run talos tests in a virtualenv
 """
 
 import copy
-import io
 import json
 import multiprocessing
 import os
@@ -441,7 +440,7 @@ class Talos(
         iframe_pattern = re.compile(r'(iframe.*")(\.\./.*\.html)"')
         for encoding in encodings:
             try:
-                with io.open(path, "r", encoding=encoding) as f:
+                with open(path, "r", encoding=encoding) as f:
                     content = f.read()
 
                 def replace_iframe_src(match):
@@ -461,7 +460,7 @@ class Talos(
                     return match.group(1) + new_url
 
                 content = re.sub(iframe_pattern, replace_iframe_src, content)
-                with io.open(path, "w", encoding=encoding) as f:
+                with open(path, "w", encoding=encoding) as f:
                     f.write(content)
                 break
             except UnicodeDecodeError:

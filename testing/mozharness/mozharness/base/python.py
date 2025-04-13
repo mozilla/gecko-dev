@@ -756,7 +756,7 @@ class PerfherderResourceOptionsMixin(ScriptMixin):
                 with open("/etc/instance_metadata.json", "rb") as fh:
                     im = json.load(fh)
                     instance = im.get("aws_instance_type", "unknown").encode("ascii")
-            except IOError as e:
+            except OSError as e:
                 if e.errno != errno.ENOENT:
                     raise
                 self.info(
@@ -803,14 +803,6 @@ class ResourceMonitoringMixin(PerfherderResourceOptionsMixin):
     @PostScriptAction("create-virtualenv")
     def _start_resource_monitoring(self, action, success=None):
         self.activate_virtualenv()
-
-        # Resource Monitor requires Python 2.7, however it's currently optional.
-        # Remove when all machines have had their Python version updated (bug 711299).
-        if sys.version_info[:2] < (2, 7):
-            self.warning(
-                "Resource monitoring will not be enabled! Python 2.7+ required."
-            )
-            return
 
         try:
             from mozsystemmonitor.resourcemonitor import SystemResourceMonitor

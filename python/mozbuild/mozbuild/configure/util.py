@@ -151,7 +151,7 @@ class ConfigureOutputHandler(logging.Handler):
                 msg = "%s\n" % self.format(record)
             stream.write(msg)
             stream.flush()
-        except (KeyboardInterrupt, SystemExit, IOError):
+        except (OSError, KeyboardInterrupt, SystemExit):
             raise
         except Exception:
             self.handleError(record)

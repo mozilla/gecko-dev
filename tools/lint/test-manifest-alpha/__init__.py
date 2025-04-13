@@ -25,7 +25,7 @@ def lint(paths, config, fix=None, **lintargs):
     try:
         with open(ERROR_LEVEL_MANIFESTS_PATH) as f:
             error_level_manifests = yaml.safe_load(f)
-    except (IOError, ValueError) as e:
+    except (OSError, ValueError) as e:
         print("{}: error:\n  {}".format(ERROR_LEVEL_MANIFESTS_PATH, e), file=sys.stderr)
         sys.exit(1)
 

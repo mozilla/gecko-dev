@@ -640,10 +640,10 @@ class Marionette(object):
     def start_binary(self, timeout):
         try:
             self.check_port_available(self.port, host=self.host)
-        except socket.error:
+        except OSError:
             _, value, tb = sys.exc_info()
             msg = "Port {}:{} is unavailable ({})".format(self.host, self.port, value)
-            reraise(IOError, IOError(msg), tb)
+            reraise(IOError, OSError(msg), tb)
 
         try:
             self.instance.start()
@@ -657,13 +657,13 @@ class Marionette(object):
                 "Process killed after {}s because no connection to Marionette "
                 "server could be established. Check gecko.log for errors"
             )
-            reraise(IOError, IOError(msg.format(timeout)), sys.exc_info()[2])
+            reraise(IOError, OSError(msg.format(timeout)), sys.exc_info()[2])
 
     def cleanup(self):
         if self.session is not None:
             try:
                 self.delete_session()
-            except (errors.MarionetteException, IOError):
+            except (OSError, errors.MarionetteException):
                 # These exceptions get thrown if the Marionette server
                 # hit an exception/died or the connection died. We can
                 # do no further server-side cleanup in this case.
@@ -729,7 +729,7 @@ class Marionette(object):
             try:
                 client.connect()
                 return True
-            except socket.error:
+            except OSError:
                 pass
             finally:
                 client.close()
@@ -739,7 +739,7 @@ class Marionette(object):
         if not connected:
             # There might have been a startup crash of the application
             if runner is not None and self.check_for_crash() > 0:
-                raise IOError("Process crashed (Exit code: {})".format(runner.wait(0)))
+                raise OSError("Process crashed (Exit code: {})".format(runner.wait(0)))
 
             raise socket.timeout(
                 "Timed out waiting for connection on {0}:{1}!".format(
@@ -767,7 +767,7 @@ class Marionette(object):
 
         try:
             msg = self.client.request(name, params)
-        except IOError:
+        except OSError:
             self.delete_session(send_request=False)
             raise
 
@@ -851,7 +851,7 @@ class Marionette(object):
             message += " (Reason: {reason})"
 
             reraise(
-                IOError, IOError(message.format(returncode=returncode, reason=exc)), tb
+                IOError, OSError(message.format(returncode=returncode, reason=exc)), tb
             )
 
     @staticmethod
@@ -1138,7 +1138,7 @@ class Marionette(object):
                 else:
                     quit_details = self._request_in_app_shutdown()
 
-            except IOError:
+            except OSError:
                 # A possible IOError should be ignored at this point, given that
                 # quit() could have been called inside of `using_context`,
                 # which wants to reset the context but fails sending the message.
@@ -1160,7 +1160,7 @@ class Marionette(object):
                     self.cleanup()
 
                     message = "Process still running {}s after quit request"
-                    raise IOError(message.format(self.shutdown_timeout))
+                    raise OSError(message.format(self.shutdown_timeout))
 
             finally:
                 self.is_shutting_down = False
@@ -1258,7 +1258,7 @@ class Marionette(object):
                         )
                         raise e
 
-            except IOError:
+            except OSError:
                 # A possible IOError should be ignored at this point, given that
                 # restart() could have been called inside of `using_context`,
                 # which wants to reset the context but fails sending the message.

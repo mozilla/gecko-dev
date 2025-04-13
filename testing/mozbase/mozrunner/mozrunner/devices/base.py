@@ -32,7 +32,7 @@ class Device(object):
         """
         remote_ini = self.app_ctx.remote_profiles_ini
         if not self.device.is_file(remote_ini):
-            raise IOError("Remote file '%s' not found" % remote_ini)
+            raise OSError("Remote file '%s' not found" % remote_ini)
 
         local_ini = tempfile.NamedTemporaryFile()
         self.device.pull(remote_ini, local_ini.name)
@@ -150,7 +150,7 @@ class Device(object):
 
         online_devices = self._get_online_devices()
         if not online_devices:
-            raise IOError(
+            raise OSError(
                 "No devices connected. Ensure the device is on and "
                 "remote debugging via adb is enabled in the settings."
             )

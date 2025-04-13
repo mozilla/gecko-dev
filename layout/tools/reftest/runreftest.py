@@ -96,17 +96,12 @@ summaryLines = [
 ]
 
 
-if sys.version_info[0] == 3:
-
-    def reraise_(tp_, value_, tb_=None):
-        if value_ is None:
-            value_ = tp_()
-        if value_.__traceback__ is not tb_:
-            raise value_.with_traceback(tb_)
-        raise value_
-
-else:
-    exec("def reraise_(tp_, value_, tb_=None):\n    raise tp_, value_, tb_\n")
+def reraise_(tp_, value_, tb_=None):
+    if value_ is None:
+        value_ = tp_()
+    if value_.__traceback__ is not tb_:
+        raise value_.with_traceback(tb_)
+    raise value_
 
 
 def update_mozinfo():
@@ -964,7 +959,7 @@ class RefTest(object):
                 addons.install(options.reftestExtensionPath, temp=True)
 
                 marionette.delete_session()
-            except IOError as e:
+            except OSError as e:
                 # Any IOError as thrown by Marionette means that something is
                 # wrong with the process, like a crash or the socket is no
                 # longer open. We defer raising this specific error so that

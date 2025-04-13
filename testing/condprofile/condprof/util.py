@@ -293,7 +293,7 @@ def extract_from_dmg(dmg, target):
         os.system("hdiutil detach " + mount)
         shutil.rmtree(mount)
     if not found:
-        raise IOError("No app file found in %s" % dmg)
+        raise OSError("No app file found in %s" % dmg)
 
 
 @contextlib.contextmanager

@@ -211,7 +211,7 @@ def write_symbol_file(dest, filename, contents):
         os.makedirs(os.path.dirname(full_path))
         with open(full_path, "wb") as sym_file:
             sym_file.write(contents)
-    except os.error as e:
+    except OSError as e:
         if e.errno != errno.EEXIST:
             raise
 

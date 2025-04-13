@@ -139,7 +139,7 @@ def test_environment(
                 argstring = "(Get-CimInstance -ClassName Win32_ComputerSystem).TotalPhysicalMemory / 1024"
                 args = ["powershell.exe", "-c", argstring]
                 output = subprocess.run(
-                    args, universal_newlines=True, capture_output=True, check=True
+                    args, text=True, capture_output=True, check=True
                 ).stdout
 
                 totalMemory = int(output.strip())

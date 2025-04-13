@@ -8,7 +8,6 @@ import subprocess
 import sys
 import tempfile
 
-from six.moves import input
 from six.moves.urllib import parse as urlparse
 from wptrunner.update.base import Step, StepRunner, exit_clean, exit_unclean
 from wptrunner.update.tree import get_unique_name

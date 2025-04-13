@@ -475,5 +475,5 @@ class Mitmproxy(Playback):
             s.shutdown(socket.SHUT_RDWR)
             s.close()
             return True
-        except socket.error:
+        except OSError:
             return False

@@ -483,7 +483,7 @@ class IPGResultsHandler(object):
         clean_rows = []
         csv_header = None
         for c, row in enumerate(
-            csv.reader(tseries.split("\n"), quotechar=str('"'), delimiter=str(","))
+            csv.reader(tseries.split("\n"), quotechar='"', delimiter=",")
         ):
             if not row:
                 continue

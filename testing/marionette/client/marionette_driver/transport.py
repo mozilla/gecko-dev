@@ -226,7 +226,7 @@ class TcpTransport(object):
                     continue
 
                 if not chunk:
-                    raise socket.error("No data received over socket")
+                    raise OSError("No data received over socket")
 
                 body_part = None
                 if body_length > 0:
@@ -351,7 +351,7 @@ class TcpTransport(object):
             while totalsent < len(payload):
                 sent = sock.send(payload[totalsent:])
                 if sent == 0:
-                    raise IOError(
+                    raise OSError(
                         "Socket error after sending {0} of {1} bytes".format(
                             totalsent, len(payload)
                         )
@@ -393,7 +393,7 @@ class TcpTransport(object):
             with self._socket_context as sock:
                 try:
                     sock.shutdown(socket.SHUT_RDWR)
-                except IOError as exc:
+                except OSError as exc:
                     # If the socket is already closed, don't care about:
                     #   Errno  57: Socket not connected
                     #   Errno 107: Transport endpoint is not connected

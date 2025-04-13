@@ -44,7 +44,7 @@ def cpu_brand_windows():
         (brand, ty) = _winreg.QueryValueEx(h, "ProcessorNameString")
         if ty == _winreg.REG_SZ:
             return brand
-    except WindowsError:
+    except OSError:
         pass
     return None
 

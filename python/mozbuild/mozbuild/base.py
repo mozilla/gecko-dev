@@ -141,7 +141,7 @@ class MozbuildObject(ProcessExecutionMixin):
         mozconfig = MozconfigLoader.AUTODETECT
 
         def load_mozinfo(path):
-            info = json.load(io.open(path, "rt", encoding="utf-8"))
+            info = json.load(open(path, "rt", encoding="utf-8"))
             topsrcdir = info.get("topsrcdir")
             topobjdir = os.path.dirname(path)
             mozconfig = info.get("mozconfig")
@@ -207,7 +207,7 @@ class MozbuildObject(ProcessExecutionMixin):
             return True
 
         deps = []
-        with io.open(dep_file, "r", encoding="utf-8", newline="\n") as fh:
+        with open(dep_file, "r", encoding="utf-8", newline="\n") as fh:
             deps = fh.read().splitlines()
 
         mtime = os.path.getmtime(output)
@@ -232,7 +232,7 @@ class MozbuildObject(ProcessExecutionMixin):
         # we last built the backend, re-generate the backend if
         # so.
         outputs = []
-        with io.open(backend_file, "r", encoding="utf-8", newline="\n") as fh:
+        with open(backend_file, "r", encoding="utf-8", newline="\n") as fh:
             outputs = fh.read().splitlines()
         for output in outputs:
             if not os.path.isfile(mozpath.join(self.topobjdir, output)):

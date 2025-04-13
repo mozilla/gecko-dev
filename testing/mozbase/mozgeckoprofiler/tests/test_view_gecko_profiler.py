@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 
-import io
 import os
 import re
 import shutil
@@ -55,7 +54,7 @@ class TestViewGeckoProfile(unittest.TestCase):
         # Create a temporary fake performance profile.
         temp_dir = tempfile.mkdtemp()
         profile_path = os.path.join(temp_dir, "fakeprofile.json")
-        with io.open(profile_path, "w") as f:
+        with open(profile_path, "w") as f:
             f.write("FAKE_PROFILE")
 
         # Mock the open_new_tab function so that we know when the view_gecko_profile

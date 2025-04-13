@@ -69,7 +69,7 @@ def CopyFilesLocally(path, files, verbose=False, base_path=None):
     for file in files:
         file = os.path.abspath(file)
         if not os.path.isfile(file):
-            raise IOError("File not found: %s" % file)
+            raise OSError("File not found: %s" % file)
         # first ensure that path exists remotely
         target_path = GetBaseRelativePath(path, file, base_path)
         if not os.path.exists(target_path):
@@ -101,6 +101,6 @@ if __name__ == "__main__":
 
     try:
         CopyFilesLocally(path, args, base_path=options.base_path, verbose=True)
-    except IOError as strerror:
+    except OSError as strerror:
         print(strerror)
         sys.exit(1)

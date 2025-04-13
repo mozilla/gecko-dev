@@ -218,7 +218,7 @@ class PartialConfigDict(object):
         try:
             with open(self._config_track) as fh:
                 existing_files.update(fh.read().splitlines())
-        except IOError:
+        except OSError:
             pass
         return existing_files
 
@@ -268,7 +268,7 @@ class PartialConfigDict(object):
                 self._files.add(filename)
                 with open(filename) as f:
                     data = json.load(f)
-            except IOError:
+            except OSError:
                 pass
             self._dict[key] = data
 

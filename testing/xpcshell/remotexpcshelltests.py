@@ -759,13 +759,6 @@ class PathMapping:
 
 
 def main():
-    if sys.version_info < (2, 7):
-        print(
-            "Error: You must use python version 2.7 or newer but less than 3.0",
-            file=sys.stderr,
-        )
-        sys.exit(1)
-
     parser = parser_remote()
     options = parser.parse_args()
 

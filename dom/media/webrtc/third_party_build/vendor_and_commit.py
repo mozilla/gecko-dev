@@ -184,11 +184,9 @@ def vendor_and_commit(
     if len(resume_state) == 0:
         update_resume_state("resume2", resume_state_filename)
         error_help.set_help(
-            (
-                f"Running script '{script_dir}/vendor-libwebrtc.py' failed.\n"
-                f"Please manually confirm that all changes from git ({github_path})\n"
-                "are reflected in the output of 'hg diff'"
-            )
+            f"Running script '{script_dir}/vendor-libwebrtc.py' failed.\n"
+            f"Please manually confirm that all changes from git ({github_path})\n"
+            "are reflected in the output of 'hg diff'"
         )
         vendor_current_stack(github_branch, github_path, script_dir)
         error_help.set_help(None)

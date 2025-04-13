@@ -330,7 +330,7 @@ try:
 
         print_footer(html)
 
-except IOError as e:
+except OSError as e:
     print("Failed: %s" % str(e))
 
 if args.verbose:

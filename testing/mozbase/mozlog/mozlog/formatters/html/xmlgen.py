@@ -23,25 +23,16 @@ by holger krekel, holger at merlinux eu. 2009
 """
 
 import re
-import sys
 
-if sys.version_info >= (3, 0):
 
-    def u(s):
-        return s
+def u(s):
+    return s
 
-    def unicode(x):
-        if hasattr(x, "__unicode__"):
-            return x.__unicode__()
-        return str(x)
 
-else:
-
-    def u(s):
-        return unicode(s)
-
-    # pylint: disable=W1612
-    unicode = unicode
+def unicode(x):
+    if hasattr(x, "__unicode__"):
+        return x.__unicode__()
+    return str(x)
 
 
 class NamespaceMetaclass(type):

@@ -178,7 +178,7 @@ def generate_feature_manifest(fd, input_file):
         )
 
         fd.write(f"export const FeatureManifest = {json.dumps(manifest)};")
-    except IOError as e:
+    except OSError as e:
         print(f"{input_file}: error:\n  {e}\n")
         sys.exit(1)
 
@@ -223,6 +223,6 @@ def generate_platform_feature_manifest(fd, input_file):
         with open(input_file, "r", encoding="utf-8") as yaml_input:
             data = yaml.safe_load(yaml_input)
             fd.write(file_structure(data))
-    except IOError as e:
+    except OSError as e:
         print("{}: error:\n  {}\n".format(input_file, e))
         sys.exit(1)

@@ -132,7 +132,7 @@ def print_cpp_file(fd, conf, incdirs):
     includes = []
     for e in conf.simple_events:
         if e not in includes:
-            includes.append(("nsIAccessible%s" % e))
+            includes.append("nsIAccessible%s" % e)
 
     types = []
     for e in conf.simple_events:

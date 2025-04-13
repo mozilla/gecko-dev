@@ -28,7 +28,7 @@ paths = [here]
 
 for path in paths:
     if not os.path.exists(path):
-        raise IOError("%s does not exist. " % path)
+        raise OSError("%s does not exist. " % path)
     sys.path.insert(0, path)
 
 from chrome_trace import ChromeTrace

@@ -315,7 +315,7 @@ class CommonTestCase(unittest.TestCase):
         if self.marionette.session is not None:
             try:
                 self.marionette.delete_session()
-            except IOError:
+            except OSError:
                 # Gecko has crashed?
                 pass
         self.marionette = None

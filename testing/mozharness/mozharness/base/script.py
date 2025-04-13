@@ -477,7 +477,7 @@ class ScriptMixin(PlatformMixin):
         if parsed_url.scheme in ("", "file"):
             path = parsed_url.path
             if not os.path.isfile(path):
-                raise IOError("Could not find file to extract: {}".format(url))
+                raise OSError("Could not find file to extract: {}".format(url))
 
             content_length = os.stat(path).st_size
 
@@ -619,7 +619,7 @@ class ScriptMixin(PlatformMixin):
         except socket.timeout as e:
             self.warning("Timed out accessing %s: %s" % (url, str(e)))
             raise
-        except socket.error as e:
+        except OSError as e:
             self.warning("Socket error when accessing %s: %s" % (url, str(e)))
             raise
 
@@ -914,7 +914,7 @@ class ScriptMixin(PlatformMixin):
         try:
             shutil.move(src, dest)
         # http://docs.python.org/tutorial/errors.html
-        except IOError as e:
+        except OSError as e:
             self.log("IO error: %s" % str(e), level=error_level, exit_code=exit_code)
             return -1
         except shutil.Error as e:
@@ -973,7 +973,7 @@ class ScriptMixin(PlatformMixin):
                 outfile.writelines(infile)
                 outfile.close()
                 infile.close()
-            except IOError as e:
+            except OSError as e:
                 self.log(
                     "Can't compress %s to %s: %s!" % (src, dest, str(e)),
                     level=error_level,
@@ -983,7 +983,7 @@ class ScriptMixin(PlatformMixin):
             self.log("Copying %s to %s" % (src, dest), level=log_level)
             try:
                 shutil.copyfile(src, dest)
-            except (IOError, shutil.Error) as e:
+            except (OSError, shutil.Error) as e:
                 self.log(
                     "Can't copy %s to %s: %s!" % (src, dest, str(e)), level=error_level
                 )
@@ -992,7 +992,7 @@ class ScriptMixin(PlatformMixin):
         if copystat:
             try:
                 shutil.copystat(src, dest)
-            except (IOError, shutil.Error) as e:
+            except (OSError, shutil.Error) as e:
                 self.log(
                     "Can't copy attributes of %s to %s: %s!" % (src, dest, str(e)),
                     level=error_level,
@@ -1065,7 +1065,7 @@ class ScriptMixin(PlatformMixin):
                 self.fatal(
                     "%s is not a valid argument for param overwrite" % (overwrite)
                 )
-        except (IOError, shutil.Error):
+        except (OSError, shutil.Error):
             self.exception(
                 "There was an error while copying %s to %s!" % (src, dest),
                 level=error_level,
@@ -1114,7 +1114,7 @@ class ScriptMixin(PlatformMixin):
                 fh.write(contents.encode("utf-8", "replace"))
             fh.close()
             return file_path
-        except IOError:
+        except OSError:
             self.log("%s can't be opened for writing!" % file_path, level=error_level)
 
     @contextmanager
@@ -1139,7 +1139,7 @@ class ScriptMixin(PlatformMixin):
         self.info("Reading from file %s" % file_path)
         try:
             fh = open(file_path, open_mode)
-        except IOError as err:
+        except OSError as err:
             self.log(
                 "unable to open %s: %s" % (file_path, err.strerror), level=error_level
             )
@@ -1786,7 +1786,7 @@ class ScriptMixin(PlatformMixin):
         # TODO probably some more elegant solution than 2 similar passes
         try:
             tmp_stdout = open(tmp_stdout_filename, "w")
-        except IOError:
+        except OSError:
             level = ERROR
             if halt_on_failure:
                 level = FATAL
@@ -1797,7 +1797,7 @@ class ScriptMixin(PlatformMixin):
             return None
         try:
             tmp_stderr = open(tmp_stderr_filename, "w")
-        except IOError:
+        except OSError:
             level = ERROR
             if halt_on_failure:
                 level = FATAL
@@ -1903,7 +1903,7 @@ class ScriptMixin(PlatformMixin):
         except OSError:
             try:
                 open(file_name, "w").close()
-            except IOError as e:
+            except OSError as e:
                 msg = "I/O error(%s): %s" % (e.errno, e.strerror)
                 self.log(msg, error_level=error_level)
         os.utime(file_name, times)
@@ -1934,7 +1934,7 @@ class ScriptMixin(PlatformMixin):
 
         """
         if not os.path.isfile(filename):
-            raise IOError("Could not find file to extract: %s" % filename)
+            raise OSError("Could not find file to extract: %s" % filename)
 
         if zipfile.is_zipfile(filename):
             try:

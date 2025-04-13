@@ -3,7 +3,6 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 import gzip
-import io
 import json
 import logging
 import os
@@ -1053,7 +1052,7 @@ class Skipfails(object):
         )
         if kind == Kind.WPT:
             if os.path.exists(manifest_path):
-                manifest_str = io.open(manifest_path, "r", encoding="utf-8").read()
+                manifest_str = open(manifest_path, "r", encoding="utf-8").read()
             else:
                 # ensure parent directories exist
                 os.makedirs(os.path.dirname(manifest_path), exist_ok=True)
@@ -1064,7 +1063,7 @@ class Skipfails(object):
             mp = ManifestParser(use_toml=True, document=True)
             try:
                 mp.read(manifest_path)
-            except IOError:
+            except OSError:
                 raise Exception(f"Unable to find path: {manifest_path}")
 
             document = mp.source_documents[manifest_path]
@@ -1089,7 +1088,7 @@ class Skipfails(object):
             elif not os.path.exists(manifest_path):
                 self.error(f"manifest does not exist: {manifest_path}")
             else:
-                manifest_str = io.open(manifest_path, "r", encoding="utf-8").read()
+                manifest_str = open(manifest_path, "r", encoding="utf-8").read()
                 if status == PASS:
                     self.info(f"Unexpected status: {status}")
                 if (
@@ -1114,7 +1113,7 @@ class Skipfails(object):
         if additional_comment:
             comment += "\n" + additional_comment
         if len(manifest_str) > 0:
-            fp = io.open(manifest_path, "w", encoding="utf-8", newline="\n")
+            fp = open(manifest_path, "w", encoding="utf-8", newline="\n")
             fp.write(manifest_str)
             fp.close()
             self.info(f'Edited ["{filename}"] in manifest: "{manifest}"')
@@ -1148,7 +1147,7 @@ class Skipfails(object):
         if len(self.variants) == 0:
             variants_file = "taskcluster/kinds/test/variants.yml"
             variants_path = self.full_path(variants_file)
-            fp = io.open(variants_path, "r", encoding="utf-8")
+            fp = open(variants_path, "r", encoding="utf-8")
             raw_variants = load(fp, Loader=Loader)
             fp.close()
             for k, v in raw_variants.items():
@@ -1486,7 +1485,7 @@ class Skipfails(object):
     def read_json(self, filename):
         """read data as JSON from filename"""
 
-        fp = io.open(filename, "r", encoding="utf-8")
+        fp = open(filename, "r", encoding="utf-8")
         data = json.load(fp)
         fp.close()
         return data
@@ -1528,7 +1527,7 @@ class Skipfails(object):
 
     def write_json(self, filename, data):
         """saves data as JSON to filename"""
-        fp = io.open(filename, "w", encoding="utf-8")
+        fp = open(filename, "w", encoding="utf-8")
         json.dump(data, fp, indent=2, sort_keys=True)
         fp.close()
 
@@ -1860,7 +1859,7 @@ class Skipfails(object):
             else:
                 mods.append(modifiers[i])
         m = len(mods)
-        manifest_str = io.open(manifest, "r", encoding="utf-8").read()
+        manifest_str = open(manifest, "r", encoding="utf-8").read()
         lines = manifest_str.splitlines()
         defaults = []
         found = False

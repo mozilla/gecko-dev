@@ -13,12 +13,8 @@ import argparse
 import os
 import subprocess
 import sys
+from shlex import quote
 from subprocess import Popen
-
-try:
-    from shlex import quote
-except ImportError:
-    from pipes import quote
 
 
 def execfile(thefile, globals):

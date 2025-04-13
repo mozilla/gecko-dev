@@ -18,7 +18,7 @@ def describe_install_manifest(manifest, dest_dir):
     try:
         manifest = InstallManifest(manifest)
     except UnreadableInstallManifest:
-        raise IOError(errno.EINVAL, "Error parsing manifest file", manifest)
+        raise OSError(errno.EINVAL, "Error parsing manifest file", manifest)
 
     reg = FileRegistry()
 

@@ -363,7 +363,7 @@ def _run_activation_script(
             str(Path(__file__).parent / "script_site_activation.py"),
         ],
         stdout=subprocess.PIPE,
-        universal_newlines=True,
+        text=True,
         env={
             "TOPSRCDIR": str(context.topsrcdir),
             "COMMAND_SITE": site_name,
@@ -426,7 +426,7 @@ def _sys_path_of_virtualenv(virtualenv: PythonVirtualenv) -> List[Path]:
     output = subprocess.run(
         [virtualenv.python_path, "-c", "import sys; print(sys.path)"],
         stdout=subprocess.PIPE,
-        universal_newlines=True,
+        text=True,
         env={
             # Needed for python to initialize properly
             "SYSTEMROOT": os.environ.get("SYSTEMROOT", ""),

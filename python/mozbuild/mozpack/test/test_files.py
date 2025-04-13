@@ -71,7 +71,7 @@ class TestWithTmpDir(unittest.TestCase):
             try:
                 os.symlink(dummy_path, self.tmppath("dummy_symlink"))
                 os.remove(self.tmppath("dummy_symlink"))
-            except EnvironmentError:
+            except OSError:
                 pass
             finally:
                 os.remove(dummy_path)
@@ -86,7 +86,7 @@ class TestWithTmpDir(unittest.TestCase):
             try:
                 os.link(dummy_path, self.tmppath("dummy_hardlink"))
                 os.remove(self.tmppath("dummy_hardlink"))
-            except EnvironmentError:
+            except OSError:
                 pass
             finally:
                 os.remove(dummy_path)

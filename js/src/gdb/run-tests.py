@@ -123,7 +123,7 @@ class Summary(object):
                     with open(OPTIONS.worklist) as out:
                         for test in self.failures:
                             out.write(test.name + "\n")
-                except IOError as err:
+                except OSError as err:
                     sys.stderr.write(
                         "Error writing worklist file '%s': %s" % (OPTIONS.worklist, err)
                     )
@@ -134,7 +134,7 @@ class Summary(object):
                     with open(OPTIONS.write_failures, "w") as out:
                         for test in self.failures:
                             test.show(out)
-                except IOError as err:
+                except OSError as err:
                     sys.stderr.write(
                         "Error writing worklist file '%s': %s"
                         % (OPTIONS.write_failures, err)
@@ -407,7 +407,7 @@ def main(argv):
             with open(OPTIONS.worklist) as f:
                 for line in f:
                     test_set.update(os.path.join(OPTIONS.testdir, line.strip("\n")))
-        except IOError:
+        except OSError:
             # With worklist, a missing file means to start the process with
             # the complete list of tests.
             sys.stderr.write(
@@ -420,7 +420,7 @@ def main(argv):
             with open(OPTIONS.read_tests) as f:
                 for line in f:
                     test_set.update(os.path.join(OPTIONS.testdir, line.strip("\n")))
-        except IOError as err:
+        except OSError as err:
             sys.stderr.write(
                 "Error trying to read test file '%s': %s\n" % (OPTIONS.read_tests, err)
             )

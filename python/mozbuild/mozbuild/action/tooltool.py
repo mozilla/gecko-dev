@@ -44,7 +44,6 @@ import time
 import zipfile
 from contextlib import closing, contextmanager
 from functools import wraps
-from io import open
 from random import random
 from subprocess import PIPE, Popen
 
@@ -62,6 +61,7 @@ DEFAULT_MANIFEST_NAME = "manifest.tt"
 TOOLTOOL_PACKAGE_SUFFIX = ".TOOLTOOL-PACKAGE"
 HAWK_VER = 1
 
+import builtins
 import urllib.request as urllib2
 from http.client import HTTPConnection, HTTPSConnection
 from urllib.error import HTTPError, URLError
@@ -508,7 +508,7 @@ class FileRecord(object):
 
     def validate_digest(self):
         if self.present():
-            with open(self.filename, "rb") as f:
+            with builtins.open(self.filename, "rb") as f:
                 return self.digest == digest_file(f, self.algorithm)
         else:
             log.debug("trying to validate digest on a missing file, %s', self.filename")
@@ -530,7 +530,7 @@ class FileRecord(object):
 
 
 def create_file_record(filename, algorithm):
-    fo = open(filename, "rb")
+    fo = builtins.open(filename, "rb")
     stored_filename = os.path.split(filename)[1]
     fr = FileRecord(
         stored_filename,
@@ -741,7 +741,7 @@ def open_manifest(manifest_file):
     """I know how to take a filename and load it into a Manifest object"""
     if os.path.exists(manifest_file):
         manifest = Manifest()
-        with open(manifest_file, "r") as f:
+        with builtins.open(manifest_file, "r") as f:
             manifest.load(f)
             log.debug("loaded manifest from file '%s'" % manifest_file)
         return manifest
@@ -847,7 +847,7 @@ def add_files(manifest_file, algorithm, filenames, version, visibility, unpack):
         if old_fr.filename not in new_filenames:
             new_manifest.file_records.append(old_fr)
 
-    with open(manifest_file, mode="w") as output:
+    with builtins.open(manifest_file, mode="w") as output:
         new_manifest.dump(output, fmt="json")
 
     return all_files_added
@@ -895,7 +895,9 @@ def fetch_file(base_urls, file_record, grabchunk=1024 * 4, auth_file=None, regio
 
         # Well, the file doesn't exist locally.  Let's fetch it.
         try:
-            with request(url, auth_file) as f, open(temp_path, mode="wb") as out:
+            with request(url, auth_file) as f, builtins.open(
+                temp_path, mode="wb"
+            ) as out:
                 k = True
                 size = 0
                 while k:
@@ -917,7 +919,7 @@ def fetch_file(base_urls, file_record, grabchunk=1024 * 4, auth_file=None, regio
                 "...failed to fetch '%s' from %s" % (file_record.filename, base_url),
                 exc_info=True,
             )
-        except IOError:  # pragma: no cover
+        except OSError:  # pragma: no cover
             log.info(
                 "failed to write to temporary file for '%s'" % file_record.filename,
                 exc_info=True,
@@ -1048,7 +1050,7 @@ def unpack_file(filename):
         clean_path(base_file)
         log.info('untarring "%s"' % filename)
         dctx = zstandard.ZstdDecompressor()
-        with dctx.stream_reader(open(filename, "rb")) as fileobj:
+        with dctx.stream_reader(builtins.open(filename, "rb")) as fileobj:
             with TarFile.open(fileobj=fileobj, mode="r|") as tar:
                 safe_extract(tar)
     elif os.path.isfile(filename) and zipfile.is_zipfile(filename):
@@ -1143,7 +1145,7 @@ def fetch_files(
                     )
                     os.remove(os.path.join(os.getcwd(), f.filename))
                     os.remove(os.path.join(cache_folder, f.digest))
-            except IOError:
+            except OSError:
                 log.info(
                     "File %s not present in local cache folder %s"
                     % (f.filename, cache_folder)
@@ -1211,7 +1213,7 @@ def fetch_files(
                         % (cache_folder, localfile.filename)
                     )
                     touch(os.path.join(cache_folder, localfile.digest))
-                except (OSError, IOError):
+                except OSError:
                     log.warning(
                         "Impossible to add file %s to cache folder %s"
                         % (localfile.filename, cache_folder),
@@ -1304,7 +1306,7 @@ def _authorize(req, auth_file):
         except KeyError:
             return
     else:
-        with open(auth_file) as f:
+        with builtins.open(auth_file) as f:
             auth_content = f.read().strip()
             try:
                 auth_content = json.loads(auth_content)
@@ -1345,7 +1347,7 @@ def _s3_upload(filename, file):
     conn = cls(host, port)
     try:
         req_path = "%s?%s" % (url.path, url.query) if url.query else url.path
-        with open(filename, "rb") as f:
+        with builtins.open(filename, "rb") as f:
             content_length = file["size"]
             conn.request(
                 "PUT",

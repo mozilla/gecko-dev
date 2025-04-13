@@ -185,7 +185,7 @@ class ProcessHandlerMixin(object):
                         winprocess.TerminateProcess(
                             self._handle, winprocess.ERROR_CONTROL_C_EXIT
                         )
-                except WindowsError:
+                except OSError:
                     self._cleanup()
 
                     traceback.print_exc()
@@ -999,7 +999,7 @@ falling back to not using job objects for managing child processes""",
                 )
                 return winprocess.GetExitCodeProcess(process) == winprocess.STILL_ACTIVE
 
-            except WindowsError as e:
+            except OSError as e:
                 # no such process
                 if e.winerror == winprocess.ERROR_INVALID_PARAMETER:
                     return False

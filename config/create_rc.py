@@ -80,7 +80,7 @@ def preprocess(path, defines):
     pp.context.update(defines)
     pp.out = io.StringIO()
     pp.do_filter("substitution")
-    pp.do_include(io.open(path, "r", encoding="latin1"))
+    pp.do_include(open(path, "r", encoding="latin1"))
     pp.out.seek(0)
     return pp.out
 
@@ -305,7 +305,7 @@ def generate_module_rc(binary="", rcinclude=None):
             manifest_path = manifest_path.replace("\\", "\\\\")
             data += '\n{} RT_MANIFEST "{}"\n'.format(manifest_id, manifest_path)
 
-    with io.open("{}.rc".format(binary or "module"), "w", encoding="latin1") as fh:
+    with open("{}.rc".format(binary or "module"), "w", encoding="latin1") as fh:
         fh.write(data)
 
 

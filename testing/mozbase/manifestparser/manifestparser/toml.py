@@ -2,7 +2,6 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this file,
 # You can obtain one at http://mozilla.org/MPL/2.0/.
 
-import io
 import os
 import re
 from typing import Optional
@@ -112,7 +111,7 @@ def read_toml(
     sections = []
     if isinstance(fp, str):
         filename = fp
-        fp = io.open(fp, encoding="utf-8")
+        fp = open(fp, encoding="utf-8")
     elif hasattr(fp, "name"):
         filename = fp.name
     else:
@@ -125,7 +124,7 @@ def read_toml(
     else:
         error, manifest = parse_toml_str(contents)
     if error:
-        raise IOError(f"Error parsing TOML manifest file {filename}: {error}")
+        raise OSError(f"Error parsing TOML manifest file {filename}: {error}")
 
     # handle each section of the manifest
     for section in manifest.keys():

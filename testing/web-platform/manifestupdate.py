@@ -169,7 +169,7 @@ def ensure_manifest_directories(logger, test_paths):
                 if e.errno != errno.EEXIST:
                     raise
         elif not os.path.isdir(manifest_dir):
-            raise IOError("Manifest directory is a file")
+            raise OSError("Manifest directory is a file")
 
 
 def read_local_config(src_config_path):

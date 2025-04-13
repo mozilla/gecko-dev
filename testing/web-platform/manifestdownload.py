@@ -211,7 +211,7 @@ def download_manifest(logger, test_paths, commits_func, url_func, force=False):
                 with open(manifest_path, "wb") as dest:
                     dest.write(src.read())
                 src.close()
-            except IOError:
+            except OSError:
                 import traceback
 
                 logger.warning(

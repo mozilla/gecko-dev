@@ -2,7 +2,6 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-import io
 import json
 import os
 import shutil
@@ -81,7 +80,7 @@ class TestWebIDLCodegenManager(unittest.TestCase):
 
         p = args["state_path"]
 
-        with io.open(p, "w", newline="\n") as fh:
+        with open(p, "w", newline="\n") as fh:
             json.dump(
                 {
                     "version": WebIDLCodegenManagerState.VERSION + 1,
@@ -127,7 +126,7 @@ class TestWebIDLCodegenManager(unittest.TestCase):
 
         self.assertTrue(os.path.isfile(manager._state_path))
 
-        with io.open(manager._state_path, "r") as fh:
+        with open(manager._state_path, "r") as fh:
             state = json.load(fh)
             self.assertEqual(state["version"], 3)
             self.assertIn("webidls", state)
@@ -193,7 +192,7 @@ class TestWebIDLCodegenManager(unittest.TestCase):
                 break
 
         self.assertIsNotNone(child_path)
-        child_content = io.open(child_path, "r").read()
+        child_content = open(child_path, "r").read()
 
         with MockedOpen({child_path: child_content + "\n/* */"}):
             m2 = WebIDLCodegenManager(**args)
@@ -217,7 +216,7 @@ class TestWebIDLCodegenManager(unittest.TestCase):
                 child_path = p
 
         self.assertIsNotNone(parent_path)
-        parent_content = io.open(parent_path, "r").read()
+        parent_content = open(parent_path, "r").read()
 
         with MockedOpen({parent_path: parent_content + "\n/* */"}):
             m2 = WebIDLCodegenManager(**args)
@@ -254,7 +253,7 @@ class TestWebIDLCodegenManager(unittest.TestCase):
                     result = m1.generate_build_files(processes=1)
                     l = len(result.inputs)
 
-                    with io.open(fake_path, "wt", newline="\n") as fh:
+                    with open(fake_path, "wt", newline="\n") as fh:
                         fh.write("# Modified content")
 
                     m2 = WebIDLCodegenManager(**args)

@@ -192,7 +192,7 @@ class _MockBaseOpen(object):
         elif absname in self.files:
             content = self.files[absname]
             if content is None:
-                raise IOError(2, "No such file or directory")
+                raise OSError(2, "No such file or directory")
             file = self._mocked_file(absname, mode, content)
         elif "a" in mode:
             read_mode = "rb" if "b" in mode else "r"

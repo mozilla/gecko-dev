@@ -31,10 +31,7 @@ def test_profileprint(tmpdir):
 def test_str_cast():
     """Test casting to a string."""
     profile = mozprofile.Profile()
-    if sys.version_info[0] >= 3:
-        assert str(profile) == profile.summary()
-    else:
-        assert str(profile) == profile.summary().encode("utf-8")
+    assert str(profile) == profile.summary()
 
 
 @pytest.mark.skipif(

@@ -2,7 +2,6 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-import io
 import os
 import re
 
@@ -54,7 +53,7 @@ def lint(paths, config, fix=None, **lintargs):
             continue
 
         manifest = parser.source_documents[file_name]
-        manifest_str = io.open(file_name, "r", encoding="utf-8").read()
+        manifest_str = open(file_name, "r", encoding="utf-8").read()
 
         if not DEFAULT_SECTION in manifest:
             r = make_result(
@@ -128,7 +127,7 @@ def lint(paths, config, fix=None, **lintargs):
 
         if fix:
             manifest_str = alphabetize_toml_str(manifest)
-            fp = io.open(file_name, "w", encoding="utf-8", newline="\n")
+            fp = open(file_name, "w", encoding="utf-8", newline="\n")
             fp.write(manifest_str)
             fp.close()
 

@@ -482,7 +482,7 @@ def parse_args():
             options.show_output = True
         try:
             options.output_fp = open(options.output_file, "w")
-        except IOError as ex:
+        except OSError as ex:
             raise SystemExit("Failed to open output file: " + str(ex))
 
     # Hide the progress bar if it will get in the way of other output.

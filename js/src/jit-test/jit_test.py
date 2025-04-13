@@ -420,7 +420,7 @@ def main(argv):
             for line in f:
                 test_list.append(os.path.join(jittests.TEST_DIR, line.strip("\n")))
             f.close()
-        except IOError:
+        except OSError:
             if options.retest:
                 read_all = True
             else:
@@ -507,7 +507,7 @@ def main(argv):
                     path = line.strip("\n")
                     ignore.add(path)
                 options.ignore_timeouts = ignore
-        except IOError:
+        except OSError:
             sys.exit("Error reading file: " + options.ignore_timeouts)
     else:
         options.ignore_timeouts = set()

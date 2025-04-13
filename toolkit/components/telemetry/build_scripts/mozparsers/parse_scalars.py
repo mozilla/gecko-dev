@@ -3,7 +3,6 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 import atexit
-import io
 import re
 
 import yaml
@@ -465,9 +464,9 @@ def load_scalars(filename, strict_type_checks=True):
     # Parse the scalar definitions from the YAML file.
     scalars = None
     try:
-        with io.open(filename, "r", encoding="utf-8") as f:
+        with open(filename, "r", encoding="utf-8") as f:
             scalars = yaml.safe_load(f)
-    except IOError as e:
+    except OSError as e:
         ParserError("Error opening " + filename + ": " + str(e)).handle_now()
     except ValueError as e:
         ParserError(

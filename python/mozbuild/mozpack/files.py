@@ -405,14 +405,14 @@ class AbsoluteSymlinkFile(File):
             os.symlink(self.path, temp_dest)
         # TODO Figure out exactly how symlink creation fails and only trap
         # that.
-        except EnvironmentError:
+        except OSError:
             return File.copy(self, dest, skip_if_older=skip_if_older)
 
         # If removing the original file fails, don't forget to clean up the
         # temporary symlink.
         try:
             os.remove(dest)
-        except EnvironmentError:
+        except OSError:
             os.remove(temp_dest)
             raise
 

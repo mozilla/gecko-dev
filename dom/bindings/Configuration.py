@@ -2,7 +2,6 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this file,
 # You can obtain one at http://mozilla.org/MPL/2.0/.
 
-import io
 import itertools
 import os
 from collections import defaultdict
@@ -94,7 +93,7 @@ class Configuration(DescriptorProvider):
 
         # Read the configuration file.
         glbl = {}
-        exec(io.open(filename, encoding="utf-8").read(), glbl)
+        exec(open(filename, encoding="utf-8").read(), glbl)
         config = glbl["DOMInterfaces"]
 
         self.attributeTemplates = dict()

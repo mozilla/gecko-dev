@@ -489,7 +489,7 @@ def generate_cacheirops_header(c_out, yaml_path):
         assert isinstance(transpile, bool)
 
         # Unscored Ops default to UINT32_MAX
-        cost_estimate = op.get("cost_estimate", int(0xFFFFFFFF))
+        cost_estimate = op.get("cost_estimate", 0xFFFFFFFF)
         assert isinstance(cost_estimate, int)
 
         custom_writer = op.get("custom_writer", False)

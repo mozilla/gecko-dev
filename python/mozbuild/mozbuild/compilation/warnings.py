@@ -4,7 +4,6 @@
 
 # This modules provides functionality for dealing with compiler warnings.
 
-import io
 import json
 import os
 import re
@@ -276,14 +275,14 @@ class WarningsDatabase(object):
 
     def load_from_file(self, filename):
         """Load the database from a file."""
-        with io.open(filename, "r", encoding="utf-8") as fh:
+        with open(filename, "r", encoding="utf-8") as fh:
             self.deserialize(fh)
 
     def save_to_file(self, filename):
         """Save the database to a file."""
         # Ensure the directory exists
         os.makedirs(os.path.dirname(filename), exist_ok=True)
-        with io.open(filename, "w", encoding="utf-8", newline="\n") as fh:
+        with open(filename, "w", encoding="utf-8", newline="\n") as fh:
             self.serialize(fh)
 
 

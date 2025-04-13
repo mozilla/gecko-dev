@@ -120,7 +120,7 @@ def _do_watch(qWatch, timeout):
             # Timed out, force-kill the test.
             try:
                 proc.terminate()
-            except WindowsError as ex:
+            except OSError as ex:
                 # If the process finishes after we time out but before we
                 # terminate, the terminate call will fail. We can safely
                 # ignore this.

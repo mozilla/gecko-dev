@@ -582,7 +582,7 @@ _WPT_URL = "{0}/secrets/v1/secret/project/perftest/gecko/level-{1}/perftest-logi
 _DEFAULT_SERVER = "https://firefox-ci-tc.services.mozilla.com"
 
 
-@functools.lru_cache()
+@functools.lru_cache
 def get_tc_secret(wpt=False):
     """Returns the Taskcluster secret.
 
