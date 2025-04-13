@@ -3,7 +3,7 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 
-class FOGPingFilter(object):
+class FOGPingFilter:
     """Ping filter that accepts any FOG pings."""
 
     def __call__(self, ping):

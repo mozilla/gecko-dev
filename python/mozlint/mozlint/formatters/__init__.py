@@ -12,7 +12,7 @@ from .treeherder import TreeherderFormatter
 from .unix import UnixFormatter
 
 
-class JSONFormatter(object):
+class JSONFormatter:
     def __call__(self, result):
         return json.dumps(result.issues, cls=IssueEncoder)
 

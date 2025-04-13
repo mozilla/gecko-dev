@@ -53,7 +53,7 @@ class NamespaceMetaclass(type):
 
 
 class Tag(list):
-    class Attr(object):
+    class Attr:
         def __init__(self, **kwargs):
             self.__dict__.update(kwargs)
 
@@ -119,14 +119,14 @@ class html(Namespace):
         ]
     )
 
-    class Style(object):
+    class Style:
         def __init__(self, **kw):
             for x, y in kw.items():
                 x = x.replace("_", "-")
                 setattr(self, x, y)
 
 
-class raw(object):
+class raw:
     """just a box that can contain a unicode string that will be
     included directly in the output"""
 
@@ -134,7 +134,7 @@ class raw(object):
         self.uniobj = uniobj
 
 
-class SimpleUnicodeVisitor(object):
+class SimpleUnicodeVisitor:
     """recursive visitor to write unicode."""
 
     def __init__(self, write, indent=0, curindent=0, shortempty=True):

@@ -69,9 +69,7 @@ class SkipUnlessHasRelevantTests(OptimizationStrategy):
             for t in task.attributes["test_manifests"]:
                 if t.startswith(d):
                     logger.debug(
-                        "{} runs a test path ({}) contained by a modified file ({})".format(
-                            task.label, t, d
-                        )
+                        f"{task.label} runs a test path ({t}) contained by a modified file ({d})"
                     )
                     return False
         return True
@@ -99,9 +97,7 @@ class SkipUnlessChanged(OptimizationStrategy):
         changed = self.check(params["files_changed"], file_patterns)
         if not changed:
             logger.debug(
-                'no files found matching a pattern in `skip-unless-changed` for "{}"'.format(
-                    task.label
-                )
+                f'no files found matching a pattern in `skip-unless-changed` for "{task.label}"'
             )
             return True
         return False

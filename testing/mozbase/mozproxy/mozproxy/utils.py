@@ -142,9 +142,7 @@ def tooltool_download(manifest, run_local, raptor_dir):
         if proc.wait() != 0:
             raise Exception("Command failed")
     except Exception as e:
-        LOG.critical(
-            "Error while downloading {} from tooltool:{}".format(manifest, str(e))
-        )
+        LOG.critical(f"Error while downloading {manifest} from tooltool:{str(e)}")
         if proc.poll() is None:
             proc.kill(signal.SIGTERM)
         raise

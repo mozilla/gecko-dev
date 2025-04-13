@@ -62,10 +62,8 @@ class ScalarType:
         for n in [category_name, probe_name]:
             if len(n) > MAX_NAME_LENGTH:
                 ParserError(
-                    (
-                        "Name '{}' exceeds maximum name length of {} characters.\n"
-                        "See: {}#the-yaml-definition-file"
-                    ).format(n, MAX_NAME_LENGTH, BASE_DOC_URL)
+                    f"Name '{n}' exceeds maximum name length of {MAX_NAME_LENGTH} characters.\n"
+                    f"See: {BASE_DOC_URL}#the-yaml-definition-file"
                 ).handle_later()
 
         def check_name(name, error_msg_prefix, allowed_char_regexp):
@@ -150,7 +148,7 @@ class ScalarType:
                 self._name
                 + " - missing required fields: "
                 + ", ".join(missing_fields)
-                + ".\nSee: {}#required-fields".format(BASE_DOC_URL)
+                + f".\nSee: {BASE_DOC_URL}#required-fields"
             ).handle_later()
 
         # Do we have any unknown field?
@@ -160,12 +158,12 @@ class ScalarType:
                 self._name
                 + " - unknown fields: "
                 + ", ".join(unknown_fields)
-                + ".\nSee: {}#required-fields".format(BASE_DOC_URL)
+                + f".\nSee: {BASE_DOC_URL}#required-fields"
             ).handle_later()
 
         # Checks the type for all the fields.
         wrong_type_names = [
-            "{} must be {}".format(f, str(ALL_FIELDS[f]))
+            f"{f} must be {str(ALL_FIELDS[f])}"
             for f in definition.keys()
             if not isinstance(definition[f], ALL_FIELDS[f])
         ]
@@ -174,7 +172,7 @@ class ScalarType:
                 self._name
                 + " - "
                 + ", ".join(wrong_type_names)
-                + ".\nSee: {}#required-fields".format(BASE_DOC_URL)
+                + f".\nSee: {BASE_DOC_URL}#required-fields"
             ).handle_later()
 
         # Check that the email addresses doesn't contain spaces or commas
@@ -185,7 +183,7 @@ class ScalarType:
                     self._name
                     + " - invalid email address: "
                     + notification_email
-                    + ".\nSee: {}".format(BASE_DOC_URL)
+                    + f".\nSee: {BASE_DOC_URL}"
                 ).handle_later()
 
         # Check that the lists are not empty and that data in the lists
@@ -206,15 +204,8 @@ class ScalarType:
             ]
             if any(broken_types):
                 ParserError(
-                    (
-                        "Field '{}' for probe '{}' must only contain values of type {}"
-                        ".\nSee: {}#the-yaml-definition-file)"
-                    ).format(
-                        field,
-                        self._name,
-                        str(LIST_FIELDS_CONTENT[field]),
-                        BASE_DOC_URL,
-                    )
+                    f"Field '{field}' for probe '{self._name}' must only contain values of type {str(LIST_FIELDS_CONTENT[field])}"
+                    f".\nSee: {BASE_DOC_URL}#the-yaml-definition-file)"
                 ).handle_later()
 
         # Check that keys are only added to keyed scalars and that their values are valid
@@ -233,7 +224,7 @@ class ScalarType:
                 ParserError(
                     self._name
                     + " - exceeding key count: "
-                    + "\n`keys` values count  must not exceed {}".format(MAX_KEY_COUNT)
+                    + f"\n`keys` values count  must not exceed {MAX_KEY_COUNT}"
                 ).handle_later()
 
             invalid = list(filter(lambda k: len(k) > MAX_KEY_LENGTH, keys))
@@ -241,7 +232,7 @@ class ScalarType:
                 ParserError(
                     self._name
                     + " - invalid key value"
-                    + "\n `keys` values are exceeding length {}:".format(MAX_KEY_LENGTH)
+                    + f"\n `keys` values are exceeding length {MAX_KEY_LENGTH}:"
                     + ", ".join(invalid)
                 ).handle_later()
 
@@ -262,7 +253,7 @@ class ScalarType:
                 self._name
                 + " - unknown scalar kind: "
                 + scalar_kind
-                + ".\nSee: {}".format(BASE_DOC_URL)
+                + f".\nSee: {BASE_DOC_URL}"
             ).handle_later()
 
         # Validate the collection policy.
@@ -272,7 +263,7 @@ class ScalarType:
                 self._name
                 + " - unknown collection policy: "
                 + collection_policy
-                + ".\nSee: {}#optional-fields".format(BASE_DOC_URL)
+                + f".\nSee: {BASE_DOC_URL}#optional-fields"
             ).handle_later()
 
         # Validate operating_systems.
@@ -287,7 +278,7 @@ class ScalarType:
                     self._name
                     + " - invalid entry in operating_systems: "
                     + operating_system
-                    + ".\nSee: {}#optional-fields".format(BASE_DOC_URL)
+                    + f".\nSee: {BASE_DOC_URL}#optional-fields"
                 ).handle_later()
 
         # Validate record_in_processes.
@@ -298,7 +289,7 @@ class ScalarType:
                     self._name
                     + " - unknown value in record_in_processes: "
                     + proc
-                    + ".\nSee: {}".format(BASE_DOC_URL)
+                    + f".\nSee: {BASE_DOC_URL}"
                 ).handle_later()
 
         # Validate product.
@@ -309,7 +300,7 @@ class ScalarType:
                     self._name
                     + " - unknown value in products: "
                     + product
-                    + ".\nSee: {}".format(BASE_DOC_URL)
+                    + f".\nSee: {BASE_DOC_URL}"
                 ).handle_later()
 
         # Validate the expiration version.
@@ -319,9 +310,7 @@ class ScalarType:
         expires = definition.get("expires")
         if not utils.validate_expiration_version(expires) and self._strict_type_checks:
             ParserError(
-                "{} - invalid expires: {}.\nSee: {}#required-fields".format(
-                    self._name, expires, BASE_DOC_URL
-                )
+                f"{self._name} - invalid expires: {expires}.\nSee: {BASE_DOC_URL}#required-fields"
             ).handle_later()
 
     @property
@@ -464,14 +453,13 @@ def load_scalars(filename, strict_type_checks=True):
     # Parse the scalar definitions from the YAML file.
     scalars = None
     try:
-        with open(filename, "r", encoding="utf-8") as f:
+        with open(filename, encoding="utf-8") as f:
             scalars = yaml.safe_load(f)
     except OSError as e:
         ParserError("Error opening " + filename + ": " + str(e)).handle_now()
     except ValueError as e:
         ParserError(
-            "Error parsing scalars in {}: {}"
-            ".\nSee: {}".format(filename, e, BASE_DOC_URL)
+            f"Error parsing scalars in {filename}: {e}" f".\nSee: {BASE_DOC_URL}"
         ).handle_now()
 
     scalar_list = []
@@ -485,8 +473,8 @@ def load_scalars(filename, strict_type_checks=True):
         # Make sure that the category has at least one probe in it.
         if not category or len(category) == 0:
             ParserError(
-                'Category "{}" must have at least one probe in it'
-                ".\nSee: {}".format(category_name, BASE_DOC_URL)
+                f'Category "{category_name}" must have at least one probe in it'
+                f".\nSee: {BASE_DOC_URL}"
             ).handle_later()
 
         for probe_name in sorted(category):

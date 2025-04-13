@@ -8,7 +8,7 @@ from types import MappingProxyType
 from .transformer import get_transformers
 
 
-class Constant(object):
+class Constant:
     """A singleton class to store all constants."""
 
     __instance = None

@@ -61,7 +61,7 @@ ALLOWLIST_FILENAME = os.path.join(SCRIPT_DIR, "mtio-allowlist.json")
 
 def parse(logfilename, data):
     try:
-        with open(logfilename, "r") as logfile:
+        with open(logfilename) as logfile:
             if not logfile:
                 return False
             stage = STAGE_STARTUP

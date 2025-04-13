@@ -17,11 +17,7 @@ class UnifiedSymbolsFinder(UnifiedFinder):
             return file1
         if not file1:
             return file2
-        errors.error(
-            "{} is in both {} and {}".format(
-                path, self._finder1.base, self._finder2.base
-            )
-        )
+        errors.error(f"{path} is in both {self._finder1.base} and {self._finder2.base}")
 
 
 def main():

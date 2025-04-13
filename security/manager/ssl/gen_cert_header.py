@@ -8,7 +8,7 @@ from pyasn1_modules import pem
 
 
 def read_certificate(filename):
-    with open(filename, "r") as f:
+    with open(filename) as f:
         try:
             return pem.readPemFromFile(
                 f, "-----BEGIN CERTIFICATE-----", "-----END CERTIFICATE-----"

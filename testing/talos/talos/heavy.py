@@ -23,7 +23,7 @@ TC_LINK = (
 )
 
 
-class ProgressBar(object):
+class ProgressBar:
     def __init__(self, size, template="\r%d%%"):
         self.size = size
         self.current = 0

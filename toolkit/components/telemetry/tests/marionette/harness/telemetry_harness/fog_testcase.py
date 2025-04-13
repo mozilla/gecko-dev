@@ -40,7 +40,7 @@ class FOGTestCase(TelemetryTestCase):
         self.fog_ping_server.start()
 
         self._logger.info(
-            "Submitting to FOG ping server at {}".format(self.fog_ping_server.url)
+            f"Submitting to FOG ping server at {self.fog_ping_server.url}"
         )
 
         self.marionette.enforce_gecko_prefs(

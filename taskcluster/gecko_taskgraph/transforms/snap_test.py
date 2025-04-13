@@ -55,6 +55,6 @@ def fill_template(config, tasks):
             timeout = 60
             task["task"]["payload"]["env"]["BUILD_IS_DEBUG"] = "1"
 
-        task["task"]["payload"]["env"]["TEST_TIMEOUT"] = "{}".format(timeout)
+        task["task"]["payload"]["env"]["TEST_TIMEOUT"] = f"{timeout}"
 
         yield task

@@ -28,7 +28,7 @@ frameworks = {
 ALLOWED_STATIC_FILETYPES = ("rst", "png")
 
 
-class Gatherer(object):
+class Gatherer:
     """
     Gatherer produces the tree of the perfdoc's entries found
     and can obtain manifest-based test lists. Used by the Verifier.

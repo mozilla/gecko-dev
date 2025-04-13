@@ -12,7 +12,7 @@ from mozilla.prettyprinters import template_pretty_printer
 mozilla.prettyprinters.clear_module_printers(__name__)
 
 
-class Common(object):
+class Common:
     # Common base class for all the rooting template pretty-printers. All these
     # templates have one member holding the referent (or a pointer to it), so
     # there's not much to it.

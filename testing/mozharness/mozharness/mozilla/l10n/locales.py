@@ -11,7 +11,7 @@ from mozharness.base.config import parse_config_file
 
 
 # LocalesMixin {{{1
-class LocalesMixin(object):
+class LocalesMixin:
     def __init__(self, **kwargs):
         """Mixins generally don't have an __init__.
         This breaks super().__init__() for children.

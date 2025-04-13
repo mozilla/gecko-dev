@@ -5,7 +5,7 @@ import pytest
 from conftest import random_tcp_port
 
 
-@pytest.fixture(params=["tcp:{}".format(random_tcp_port()) for _ in range(5)])
+@pytest.fixture(params=[f"tcp:{random_tcp_port()}" for _ in range(5)])
 def select_test_port(request):
     """Generate a list of ports to be used for testing."""
     yield request.param
@@ -26,7 +26,7 @@ def test_list_socket_connections_forward(mock_adb_object):
 def test_create_socket_connection_reverse(
     mock_adb_object, select_test_port, redirect_stdout_and_assert
 ):
-    _expected = "['reverse', '{0}', '{0}']".format(select_test_port)
+    _expected = f"['reverse', '{select_test_port}', '{select_test_port}']"
     redirect_stdout_and_assert(
         mock_adb_object.create_socket_connection,
         direction="reverse",
@@ -39,7 +39,7 @@ def test_create_socket_connection_reverse(
 def test_create_socket_connection_forward(
     mock_adb_object, select_test_port, redirect_stdout_and_assert
 ):
-    _expected = "['forward', '{0}', '{0}']".format(select_test_port)
+    _expected = f"['forward', '{select_test_port}', '{select_test_port}']"
     redirect_stdout_and_assert(
         mock_adb_object.create_socket_connection,
         direction="forward",
@@ -73,7 +73,7 @@ def test_remove_socket_connections_forward(mock_adb_object, redirect_stdout_and_
 
 
 def test_legacy_forward(mock_adb_object, select_test_port, redirect_stdout_and_assert):
-    _expected = "['forward', '{0}', '{0}']".format(select_test_port)
+    _expected = f"['forward', '{select_test_port}', '{select_test_port}']"
     redirect_stdout_and_assert(
         mock_adb_object.forward,
         local=select_test_port,
@@ -88,7 +88,7 @@ def test_legacy_forward_adb_assigned_port(mock_adb_object, select_test_port):
 
 
 def test_legacy_reverse(mock_adb_object, select_test_port, redirect_stdout_and_assert):
-    _expected = "['reverse', '{0}', '{0}']".format(select_test_port)
+    _expected = f"['reverse', '{select_test_port}', '{select_test_port}']"
     redirect_stdout_and_assert(
         mock_adb_object.reverse,
         local=select_test_port,

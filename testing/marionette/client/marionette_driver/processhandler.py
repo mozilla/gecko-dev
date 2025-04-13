@@ -38,7 +38,7 @@ UNKNOWN_RETURNCODE = 8
 isPosix = os.name == "posix"  # includes MacOS X
 
 
-class ProcessHandlerMixin(object):
+class ProcessHandlerMixin:
     """
     A class for launching and manipulating local processes.
 
@@ -380,7 +380,7 @@ class CallableList(list):
         return CallableList(list.__add__(self, lst))
 
 
-class ProcessReader(object):
+class ProcessReader:
     def __init__(
         self,
         stdout_callback=None,
@@ -403,7 +403,7 @@ class ProcessReader(object):
         if not MOZPROCESS_DEBUG:
             return
 
-        print("DBG::MARIONETTE ProcessReader | {}".format(msg), file=sys.stdout)
+        print(f"DBG::MARIONETTE ProcessReader | {msg}", file=sys.stdout)
 
     def _create_stream_reader(self, name, stream, queue, callback):
         thread = threading.Thread(
@@ -511,7 +511,7 @@ class ProcessReader(object):
 # these should be callables that take the output line
 
 
-class StoreOutput(object):
+class StoreOutput:
     """accumulate stdout"""
 
     def __init__(self):
@@ -521,7 +521,7 @@ class StoreOutput(object):
         self.output.append(line)
 
 
-class StreamOutput(object):
+class StreamOutput:
     """pass output to a stream and flush"""
 
     def __init__(self, stream, text=True):

@@ -125,7 +125,7 @@ class GitTree(wptupdate.tree.GitTree):
         return get_unique_name(branches, prefix)
 
 
-class Patch(object):
+class Patch:
     def __init__(self, author, email, message, diff):
         self.author = author
         self.email = email

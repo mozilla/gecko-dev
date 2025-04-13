@@ -5,7 +5,7 @@
 from marionette_harness import BaseMarionetteArguments
 
 
-class FirefoxUIBaseArguments(object):
+class FirefoxUIBaseArguments:
     name = "Firefox UI Tests"
     args = []
 

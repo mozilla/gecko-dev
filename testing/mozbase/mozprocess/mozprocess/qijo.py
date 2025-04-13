@@ -91,7 +91,7 @@ JobObjectBasicAndIoAccountingInformation = 8
 JobObjectExtendedLimitInformation = 9
 
 
-class JobObjectInfo(object):
+class JobObjectInfo:
     mapping = {
         "JobObjectBasicAndIoAccountingInformation": 8,
         "JobObjectExtendedLimitInformation": 9,
@@ -140,7 +140,7 @@ _QueryInformationJobObject = QueryInformationJobObjectProto(
 )
 
 
-class SubscriptableReadOnlyStruct(object):
+class SubscriptableReadOnlyStruct:
     def __init__(self, struct):
         self._struct = struct
 

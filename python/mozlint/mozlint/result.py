@@ -11,7 +11,7 @@ import attr
 import mozpack.path as mozpath
 
 
-class ResultSummary(object):
+class ResultSummary:
     """Represents overall result state from an entire lint run."""
 
     root = None
@@ -79,7 +79,7 @@ class ResultSummary(object):
 
 
 @attr.s(slots=True, kw_only=True)
-class Issue(object):
+class Issue:
     """Represents a single lint issue and its related metadata.
 
     :param linter: name of the linter that flagged this error

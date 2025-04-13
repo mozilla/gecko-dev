@@ -54,14 +54,14 @@ class FasterBuildException(Exception):
         self.cause = cause
 
 
-class FasterBuildChange(object):
+class FasterBuildChange:
     def __init__(self):
         self.unrecognized = set()
         self.input_to_outputs = {}
         self.output_to_inputs = {}
 
 
-class Daemon(object):
+class Daemon:
     def __init__(self, config_environment):
         self.config_environment = config_environment
         self._client = None
@@ -218,19 +218,17 @@ class Daemon(object):
             if verbose:
                 print_line(
                     "watch",
-                    "Subscribing to {}".format(self.config_environment.topsrcdir),
+                    f"Subscribing to {self.config_environment.topsrcdir}",
                 )
             self.subscribe_to_topsrcdir()
             if verbose:
-                print_line(
-                    "watch", "Watching {}".format(self.config_environment.topsrcdir)
-                )
+                print_line("watch", f"Watching {self.config_environment.topsrcdir}")
 
             input_to_outputs = self.file_copier.input_to_outputs_tree()
             for input, outputs in input_to_outputs.items():
                 if not outputs:
                     raise Exception(
-                        "Refusing to watch input ({}) with no outputs".format(input)
+                        f"Refusing to watch input ({input}) with no outputs"
                     )
 
             while True:
@@ -267,18 +265,14 @@ class Daemon(object):
             # Abstract away pywatchman errors.
             raise FasterBuildException(
                 e,
-                "Command error using pywatchman to watch {}".format(
-                    self.config_environment.topsrcdir
-                ),
+                f"Command error using pywatchman to watch {self.config_environment.topsrcdir}",
             )
 
         except pywatchman.SocketTimeout as e:
             # Abstract away pywatchman errors.
             raise FasterBuildException(
                 e,
-                "Socket timeout using pywatchman to watch {}".format(
-                    self.config_environment.topsrcdir
-                ),
+                f"Socket timeout using pywatchman to watch {self.config_environment.topsrcdir}",
             )
 
         finally:
@@ -293,15 +287,15 @@ class Daemon(object):
             now = datetime.datetime.utcnow()
 
             for unrecognized in sorted(change.unrecognized):
-                print_line("watch", "! {}".format(unrecognized), now=now)
+                print_line("watch", f"! {unrecognized}", now=now)
 
             all_outputs = set()
             for input in sorted(change.input_to_outputs):
                 outputs = change.input_to_outputs[input]
 
-                print_line("watch", "< {}".format(input), now=now)
+                print_line("watch", f"< {input}", now=now)
                 for output in sorted(outputs):
-                    print_line("watch", "> {}".format(output), now=now)
+                    print_line("watch", f"> {output}", now=now)
                 all_outputs |= outputs
 
             if all_outputs:

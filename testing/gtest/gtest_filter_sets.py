@@ -17,7 +17,7 @@ def get(filter_set_name):
     Retrieve the gtest filter associated with a specific filter set name.
     """
 
-    with open(FILTER_SETS_FILE, "r") as file:
+    with open(FILTER_SETS_FILE) as file:
         filter_set_data = yaml.safe_load(file)
 
     if filter_set_name in filter_set_data:
@@ -30,10 +30,10 @@ def list():
     """
     Lists all available filter sets and their filters from the YAML file.
     """
-    with open(FILTER_SETS_FILE, "r") as file:
+    with open(FILTER_SETS_FILE) as file:
         filter_set_data = yaml.safe_load(file)
 
-    print("Filter sets from {}:".format(FILTER_SETS_FILE))
+    print(f"Filter sets from {FILTER_SETS_FILE}:")
     for key, value in filter_set_data.items():
         gtest_filter = value.get("gtest_filter", "No gtest filter defined")
         print(f"- {key}: {gtest_filter}")

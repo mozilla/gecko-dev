@@ -35,9 +35,7 @@ def get_extensions(component):
     ].get("artifact-type", "aar")
     if artifact_type not in EXTENSIONS:
         raise ValueError(
-            "For '{}', 'artifact-type' must be one of {}".format(
-                component, repr(EXTENSIONS.keys())
-            )
+            f"For '{component}', 'artifact-type' must be one of {repr(EXTENSIONS.keys())}"
         )
 
     return [
@@ -75,12 +73,10 @@ def get_variant(build_type, build_name):
     ]
     number_of_matching_variants = len(matching_variants)
     if number_of_matching_variants == 0:
-        raise ValueError('No variant found for build type "{}"'.format(build_type))
+        raise ValueError(f'No variant found for build type "{build_type}"')
     elif number_of_matching_variants > 1:
         raise ValueError(
-            'Too many variants found for build type "{}"": {}'.format(
-                build_type, matching_variants
-            )
+            f'Too many variants found for build type "{build_type}"": {matching_variants}'
         )
 
     return matching_variants.pop()

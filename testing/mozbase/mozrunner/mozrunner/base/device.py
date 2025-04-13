@@ -110,8 +110,8 @@ class DeviceRunner(BaseRunner):
             self.app_ctx.device.pkill(self.app_ctx.remote_process, sig=sig)
             if self.wait(timeout) is None and sig is not None:
                 print(
-                    "timed out waiting for '{}' process to exit, trying "
-                    "without signal {}".format(self.app_ctx.remote_process, sig)
+                    f"timed out waiting for '{self.app_ctx.remote_process}' process to exit, trying "
+                    f"without signal {sig}"
                 )
 
             # need to call adb stop otherwise the system will attempt to
@@ -119,9 +119,7 @@ class DeviceRunner(BaseRunner):
             self.app_ctx.stop_application()
             if self.wait(timeout) is None:
                 print(
-                    "timed out waiting for '{}' process to exit".format(
-                        self.app_ctx.remote_process
-                    )
+                    f"timed out waiting for '{self.app_ctx.remote_process}' process to exit"
                 )
 
     @property
@@ -183,7 +181,7 @@ class DeviceRunner(BaseRunner):
             dump_directory=dump_dir,
             dump_save_path=dump_save_path,
             test_name=test_name,
-            **kwargs
+            **kwargs,
         )
         mozfile.remove(dump_dir)
         return crashed

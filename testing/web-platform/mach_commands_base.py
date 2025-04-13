@@ -38,7 +38,7 @@ class CriticalLogBuffer(handlers.BaseHandler):
             self.log_entries.append(data)
 
 
-class WebPlatformTestsRunner(object):
+class WebPlatformTestsRunner:
     """Run web platform tests."""
 
     def __init__(self, setup):

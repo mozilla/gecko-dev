@@ -50,7 +50,7 @@ def generate_addon(addon_id, path=None, name=None, xpi=True):
         install_rdf = os.path.join(addon_dir, "install.rdf")
         with open(install_rdf, "w") as f:
             manifest = os.path.join(here, "install_manifests", stubs[addon_id])
-            f.write(open(manifest, "r").read())
+            f.write(open(manifest).read())
 
     if not xpi:
         return addon_dir

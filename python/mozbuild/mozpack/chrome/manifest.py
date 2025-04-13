@@ -13,7 +13,7 @@ from mozpack.chrome.flags import Flags
 from mozpack.errors import errors
 
 
-class ManifestEntry(object):
+class ManifestEntry:
     """
     Base class for all manifest entry types.
     Subclasses may define the following class or member variables:

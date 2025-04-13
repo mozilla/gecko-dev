@@ -40,11 +40,11 @@ def unzip(fileobj, dest):
 
 def writable_dir(path):
     if not os.path.isdir(path):
-        raise argparse.ArgumentTypeError("{0} is not a valid dir".format(path))
+        raise argparse.ArgumentTypeError(f"{path} is not a valid dir")
     if os.access(path, os.W_OK):
         return path
     else:
-        raise argparse.ArgumentTypeError("{0} is not a writable dir".format(path))
+        raise argparse.ArgumentTypeError(f"{path} is not a writable dir")
 
 
 def create_parser_interventions():
@@ -369,7 +369,7 @@ def webcompat_addon(command_context):
         def process_includes(path):
             fullpath = os.path.join(src_copy, path)
             in_lines = None
-            with open(fullpath, "r") as f:
+            with open(fullpath) as f:
                 in_lines = f.readlines()
             with open(fullpath, "w") as f:
                 for line in in_lines:
@@ -380,7 +380,7 @@ def webcompat_addon(command_context):
                     include_fullpath = os.path.join(
                         os.path.dirname(fullpath), include_path
                     )
-                    with open(include_fullpath, "r") as inc:
+                    with open(include_fullpath) as inc:
                         f.write(inc.read())
                     f.write("\n")
 

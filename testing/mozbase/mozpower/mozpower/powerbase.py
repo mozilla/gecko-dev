@@ -22,7 +22,7 @@ class PlatformUnsupportedError(Exception):
     pass
 
 
-class PowerBase(object):
+class PowerBase:
     """PowerBase provides an interface for power measurement objects
     that depend on the os and cpu. When using this class as a base class
     the `initialize_power_measurements`, `finalize_power_measurements`,

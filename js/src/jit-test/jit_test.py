@@ -61,16 +61,16 @@ def choose_item(jobs, max_items):
         flags = ""
         if len(job.jitflags) != 0:
             flags = "({})".format(" ".join(job.jitflags))
-        return "{} {}".format(job.path, flags)
+        return f"{job.path} {flags}"
 
     for i, job in enumerate(jobs, 1):
-        print("{}) {}".format(i, display_job(job)))
+        print(f"{i}) {display_job(job)}")
 
     item = read_input("Which one:\n")
     try:
         item = int(item)
         if item > job_count or item < 1:
-            raise Exception("Input isn't between 1 and {}".format(job_count))
+            raise Exception(f"Input isn't between 1 and {job_count}")
     except ValueError:
         raise Exception("Unrecognized input")
 
@@ -426,7 +426,7 @@ def main(argv):
             else:
                 sys.stderr.write(
                     "Exception thrown trying to read test file"
-                    " '{}'\n".format(options.read_tests)
+                    f" '{options.read_tests}'\n"
                 )
                 traceback.print_exc()
                 sys.stderr.write("---\n")
@@ -589,7 +589,7 @@ def main(argv):
     except OSError:
         if not os.path.exists(prefix[0]):
             print(
-                "JS shell argument: file does not exist:" " '{}'".format(prefix[0]),
+                "JS shell argument: file does not exist:" f" '{prefix[0]}'",
                 file=sys.stderr,
             )
             sys.exit(1)

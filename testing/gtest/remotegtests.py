@@ -25,7 +25,7 @@ LOGGER_NAME = "gtest"
 log = mozlog.unstructured.getLogger(LOGGER_NAME)
 
 
-class RemoteGTests(object):
+class RemoteGTests:
     """
     A test harness to run gtest on Android.
     """
@@ -110,7 +110,7 @@ class RemoteGTests(object):
         self.device.push(libxul_path, self.remote_libdir)
 
         for buildid in ["correct", "broken", "missing"]:
-            libxul_buildid_name = "libxul_{}_buildid.so".format(buildid)
+            libxul_buildid_name = f"libxul_{buildid}_buildid.so"
             libxul_buildid_path = os.path.join(
                 os.path.dirname(libxul_path), libxul_buildid_name
             )
@@ -240,7 +240,7 @@ class RemoteGTests(object):
             self.device.rm(self.remote_libdir, recursive=True, force=True)
 
 
-class AppWaiter(object):
+class AppWaiter:
     def __init__(
         self,
         device,

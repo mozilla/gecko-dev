@@ -312,7 +312,7 @@ class AndroidHardwareTest(
             if category in SUITE_REPEATABLE:
                 cmd.extend(["--repeat=%s" % c.get("repeat")])
             else:
-                self.log("--repeat not supported in {}".format(category), level=WARNING)
+                self.log(f"--repeat not supported in {category}", level=WARNING)
 
         if category not in SUITE_NO_E10S:
             if category in SUITE_DEFAULT_E10S and not c["e10s"]:
@@ -323,9 +323,9 @@ class AndroidHardwareTest(
         if self.disable_fission and category not in SUITE_NO_E10S:
             cmd.append("--disable-fission")
 
-        cmd.extend(["--setpref={}".format(p) for p in self.extra_prefs])
+        cmd.extend([f"--setpref={p}" for p in self.extra_prefs])
 
-        cmd.extend(["--tag={}".format(t) for t in self.test_tags])
+        cmd.extend([f"--tag={t}" for t in self.test_tags])
 
         try_options, try_tests = self.try_args(self.test_suite)
         if try_options:

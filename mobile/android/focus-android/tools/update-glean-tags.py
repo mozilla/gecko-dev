@@ -53,6 +53,6 @@ for label in labels:
         }
 
 open(TAGS_FILENAME, "w").write(
-    "{}\n{}\n\n".format(LICENSE_HEADER, GENERATED_HEADER)
+    f"{LICENSE_HEADER}\n{GENERATED_HEADER}\n\n"
     + yaml.dump(tags, width=78, explicit_start=True)
 )

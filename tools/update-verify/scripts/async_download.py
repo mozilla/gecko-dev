@@ -342,7 +342,7 @@ async def _download_from_config(verifyConfig):
 
     # Log cache
     log.info("Cache index urls.list contents:")
-    with open(cacheIndexPath, "r") as cache:
+    with open(cacheIndexPath) as cache:
         for ln, url in enumerate(cache.readlines()):
             line = url.replace("\n", "")
             log.info(f"Line {ln+1}: {line}")

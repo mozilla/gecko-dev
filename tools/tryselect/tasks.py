@@ -202,7 +202,7 @@ def filter_tasks_by_paths(tasks, paths=[], tag=""):
         if "task_regex" not in suite:
             print(
                 "warning: no tasks could be resolved from flavor '{}'{}".format(
-                    flavor, " and subsuite '{}'".format(subsuite) if subsuite else ""
+                    flavor, f" and subsuite '{subsuite}'" if subsuite else ""
                 )
             )
             continue

@@ -31,7 +31,7 @@ def ensure_dir(dir):
                 raise
 
 
-class AndroidMixin(object):
+class AndroidMixin:
     """
     Mixin class used by Android test scripts.
     """
@@ -164,7 +164,7 @@ class AndroidMixin(object):
             # The ini file points to the absolute path to the emulator folder,
             # which might be different, so we need to update it.
             old_config = ""
-            with open(avd_config_path, "r") as config_file:
+            with open(avd_config_path) as config_file:
                 old_config = config_file.readlines()
                 self.info("Old Config: %s" % old_config)
             with open(avd_config_path, "w") as config_file:

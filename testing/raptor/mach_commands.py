@@ -327,11 +327,7 @@ def setup_node(command_context):
         else:
             toolchain_job = toolchain_job.format("linux64")
 
-        print(
-            "Downloading Node v18 from Taskcluster toolchain {}...".format(
-                toolchain_job
-            )
-        )
+        print(f"Downloading Node v18 from Taskcluster toolchain {toolchain_job}...")
 
         if not os.path.exists(cache_path):
             os.makedirs(cache_path, exist_ok=True)

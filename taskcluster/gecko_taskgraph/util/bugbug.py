@@ -77,9 +77,7 @@ def push_schedules(branch, rev):
     if create.testing:
         return
 
-    url = BUGBUG_BASE_URL + "/push/{branch}/{rev}/schedules".format(
-        branch=branch, rev=rev
-    )
+    url = BUGBUG_BASE_URL + f"/push/{branch}/{rev}/schedules"
     start = monotonic()
     session = get_session()
 

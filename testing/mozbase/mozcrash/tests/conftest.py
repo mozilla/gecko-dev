@@ -55,10 +55,10 @@ def minidump_files(request, tmpdir):
     for i in range(getattr(request, "param", 1)):
         name = uuid.uuid4()
 
-        dmp = tmpdir.join("{}.dmp".format(name))
+        dmp = tmpdir.join(f"{name}.dmp")
         dmp.write("foo")
 
-        extra = tmpdir.join("{}.extra".format(name))
+        extra = tmpdir.join(f"{name}.extra")
 
         extra.write_text(
             """
@@ -114,7 +114,7 @@ def mock_popen(monkeypatch):
                     stdout of each process in turn.
     """
 
-    class MockPopen(object):
+    class MockPopen:
         def __init__(self, args, *args_rest, **kwargs):
             # all_popens.append(self)
             self.args = args

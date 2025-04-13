@@ -30,7 +30,7 @@ def iter_pkgs(part, all_pkgs, arch):
 
 def parse(yaml_file, arch):
     all_pkgs = []
-    with open(yaml_file, "r") as inp:
+    with open(yaml_file) as inp:
         snap = yaml.safe_load(inp)
         parts = snap["parts"]
         for p in parts:

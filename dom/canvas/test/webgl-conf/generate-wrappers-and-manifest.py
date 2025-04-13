@@ -66,7 +66,7 @@ def ChooseSubsuite(name):
         elif split[1] == "textures" and split[2] != "misc":
             category = "ext"
 
-    return "webgl{}-{}".format(version, category)
+    return f"webgl{version}-{category}"
 
 
 ########################################################################
@@ -133,7 +133,7 @@ def AccumTests(pathStr, listFile, allowWebGL1, allowWebGL2, out_testList):
     listPath = listPathStr.replace("/", os.sep)
     assert os.path.exists(listPath), "Bad `listPath`: " + listPath
 
-    with open(listPath, "r") as fIn:
+    with open(listPath) as fIn:
         lineNum = 0
         for line in fIn:
             lineNum += 1
@@ -164,9 +164,7 @@ def AccumTests(pathStr, listFile, allowWebGL1, allowWebGL2, out_testList):
                 elif flag == "--slow":
                     continue  # TODO
                 else:
-                    text = "Unknown flag '{}': {}:{}: {}".format(
-                        flag, listPath, lineNum, line
-                    )
+                    text = f"Unknown flag '{flag}': {listPath}:{lineNum}: {line}"
                     assert False, text
                 continue
 
@@ -210,7 +208,7 @@ def FillTemplate(inFilePath, templateDict, outFilePath):
 
 
 def ImportTemplate(inFilePath):
-    with open(inFilePath, "r") as f:
+    with open(inFilePath) as f:
         return TemplateShell(f)
 
 
@@ -379,7 +377,7 @@ def WriteWrappers(testEntryList):
             WriteWrapper(entry.path, True, templateShell, wrapperPathList)
         continue
 
-    print("{} wrappers written.\n".format(len(wrapperPathList)))
+    print(f"{len(wrapperPathList)} wrappers written.\n")
     return wrapperPathList
 
 
@@ -469,7 +467,7 @@ def LoadTOML(path):
     key = ""
     val = ""
 
-    with open(path, "r") as f:
+    with open(path) as f:
         for rawLine in f:
             lineNum += 1
             if multiLineVal:
@@ -484,11 +482,11 @@ def LoadTOML(path):
                 if line[0] in [";", "#"]:
                     continue
                 if line[0] == "[":
-                    assert line[-1] == "]", "{}:{}".format(path, lineNum)
+                    assert line[-1] == "]", f"{path}:{lineNum}"
                     curSectionName = line[1:-1].strip('"')
                     assert (
                         curSectionName not in ret
-                    ), "Line {}: Duplicate section: {}".format(lineNum, line)
+                    ), f"Line {lineNum}: Duplicate section: {line}"
                     curSectionMap = {}
                     ret[curSectionName] = (lineNum, curSectionMap)
                     continue
@@ -517,14 +515,14 @@ def LoadErrata():
             continue
         elif sectionName != "DEFAULT":
             path = sectionName.replace("/", os.sep)
-            assert os.path.exists(path), "Errata line {}: Invalid file: {}".format(
-                sectionLineNum, sectionName
-            )
+            assert os.path.exists(
+                path
+            ), f"Errata line {sectionLineNum}: Invalid file: {sectionName}"
 
         for key, (lineNum, val) in sectionMap.items():
-            assert key in ACCEPTABLE_ERRATA_KEYS, "Line {}: {}".format(lineNum, key)
+            assert key in ACCEPTABLE_ERRATA_KEYS, f"Line {lineNum}: {key}"
 
-            curLine = "{} = {}".format(key, val)
+            curLine = f"{key} = {val}"
             curLines.append(curLine)
             continue
 

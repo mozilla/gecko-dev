@@ -42,7 +42,7 @@ TBPL_WORST_LEVEL_TUPLE = (
 )
 
 
-class AutomationMixin(object):
+class AutomationMixin:
     worst_status = TBPL_SUCCESS
     properties = {}
 

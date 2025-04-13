@@ -54,7 +54,7 @@ def changedir(dirname):
         os.chdir(pwd)
 
 
-class PathOptions(object):
+class PathOptions:
     def __init__(self, location, requested_paths, excluded_paths):
         self.requested_paths = requested_paths
         self.excluded_files, self.excluded_dirs = PathOptions._split_files_and_dirs(
@@ -466,7 +466,7 @@ def parse_args():
     # excluded tests set.
     if options.exclude_file:
         for filename in options.exclude_file:
-            with open(filename, "r") as fp:
+            with open(filename) as fp:
                 for line in fp:
                     if line.startswith("#"):
                         continue
@@ -788,7 +788,7 @@ def main():
                 " debugger can only run one"
             )
             for tc in test_gen:
-                print("    {}".format(tc.path))
+                print(f"    {tc.path}")
             return 2
 
         with changedir(test_dir), change_env(
@@ -878,7 +878,7 @@ def run_test_remote(test, device, prefix, tempdir, options):
         returncode = e.adb_process.exitcode
         re_ignore = re.compile(r"error: (closed|device .* not found)")
         if returncode == 1 and re_ignore.search(out):
-            print("Skipping {} due to ignorable adb error {}".format(test.path, out))
+            print(f"Skipping {test.path} due to ignorable adb error {out}")
             test.skip_if_cond = "true"
             returncode = test.SKIPPED_EXIT_STATUS
 

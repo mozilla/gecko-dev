@@ -46,10 +46,10 @@ from mozbuild.jar import DeprecatedJarManifest, JarManifestParser
 from mozbuild.preprocessor import Preprocessor
 
 
-class XPIDLManager(object):
+class XPIDLManager:
     """Helps manage XPCOM IDLs in the context of the build system."""
 
-    class Module(object):
+    class Module:
         def __init__(self):
             self.idl_files = set()
             self.directories = set()
@@ -92,7 +92,7 @@ class XPIDLManager(object):
         return itertools.chain(*[m.stems() for m in self.modules.values()])
 
 
-class BinariesCollection(object):
+class BinariesCollection:
     """Tracks state of binaries produced by the build."""
 
     def __init__(self):

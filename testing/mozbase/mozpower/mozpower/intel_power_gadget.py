@@ -48,7 +48,7 @@ class IPGUnknownValueTypeError(Exception):
     pass
 
 
-class IntelPowerGadget(object):
+class IntelPowerGadget:
     """IntelPowerGadget provides methods for using Intel Power Gadget
     to measure power consumption.
 
@@ -265,7 +265,7 @@ class IntelPowerGadget(object):
         self._running = False
 
 
-class IPGResultsHandler(object):
+class IPGResultsHandler:
     """IPGResultsHandler provides methods for cleaning and formatting
     the files that were created by IntelPowerGadget.
 
@@ -454,7 +454,7 @@ class IPGResultsHandler(object):
 
         txt = ""
         if os.path.exists(file):
-            with open(file, "r") as f:
+            with open(file) as f:
                 txt = f.read()
         else:
             # This should never happen, so prevent IPGResultsHandler

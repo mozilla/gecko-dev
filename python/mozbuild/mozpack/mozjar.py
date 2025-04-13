@@ -27,7 +27,7 @@ class JarWriterError(Exception):
     """Error type for Jar writer errors."""
 
 
-class JarStruct(object):
+class JarStruct:
     """
     Helper used to define ZIP archive raw data structures. Data structures
     handled by this helper all start with a magic number, defined in
@@ -270,7 +270,7 @@ class JarLocalFileHeader(JarStruct):
     )
 
 
-class JarFileReader(object):
+class JarFileReader:
     """
     File-like class for use by JarReader to give access to individual files
     within a Jar archive.
@@ -364,7 +364,7 @@ class JarFileReader(object):
         return self._uncompressed_data
 
 
-class JarReader(object):
+class JarReader:
     """
     Class with methods to read Jar files. Can open standard jar files as well
     as Mozilla jar files (see further details in the JarWriter documentation).
@@ -496,7 +496,7 @@ class JarReader(object):
         return name in self.entries
 
 
-class JarWriter(object):
+class JarWriter:
     """
     Class with methods to write Jar files. Can write more-or-less standard jar
     archives as well as jar archives optimized for Gecko. See the documentation
@@ -711,7 +711,7 @@ class JarWriter(object):
         self._contents = new_contents
 
 
-class Deflater(object):
+class Deflater:
     """
     File-like interface to zlib compression. The data is actually not
     compressed unless the compressed form is smaller than the uncompressed
@@ -832,7 +832,7 @@ class JarLog(dict):
 
     def __init__(self, file=None, fileobj=None):
         if not fileobj:
-            fileobj = open(file, "r")
+            fileobj = open(file)
         for line in fileobj:
             jar, path = line.strip().split(None, 1)
             if not jar or not path:

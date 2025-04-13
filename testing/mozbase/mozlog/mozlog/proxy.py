@@ -7,7 +7,7 @@ from threading import Thread
 from .structuredlog import StructuredLogger, get_default_logger
 
 
-class ProxyLogger(object):
+class ProxyLogger:
     """
     A ProxyLogger behaves like a
     :class:`mozlog.structuredlog.StructuredLogger`.

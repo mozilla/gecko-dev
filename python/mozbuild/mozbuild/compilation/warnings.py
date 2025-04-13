@@ -103,7 +103,7 @@ class CompilerWarning(dict):
         return hash(tuple(sorted(self.items())))
 
 
-class WarningsDatabase(object):
+class WarningsDatabase:
     """Holds a collection of warnings.
 
     The warnings database is a semi-intelligent container that holds warnings
@@ -275,7 +275,7 @@ class WarningsDatabase(object):
 
     def load_from_file(self, filename):
         """Load the database from a file."""
-        with open(filename, "r", encoding="utf-8") as fh:
+        with open(filename, encoding="utf-8") as fh:
             self.deserialize(fh)
 
     def save_to_file(self, filename):
@@ -286,7 +286,7 @@ class WarningsDatabase(object):
             self.serialize(fh)
 
 
-class WarningsCollector(object):
+class WarningsCollector:
     """Collects warnings from text data.
 
     Instances of this class receive data (usually the output of compiler

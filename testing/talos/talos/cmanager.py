@@ -13,7 +13,7 @@ else:  # mac
     from talos.cmanager_mac import MacCounterManager as DefaultCounterManager
 
 
-class CounterManagement(object):
+class CounterManagement:
     def __init__(self, process_name, counters, resolution):
         """
         Public interface to manage counters.

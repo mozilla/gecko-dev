@@ -33,14 +33,14 @@ for product_id, product in products.items():
     try:
         title = product["title"]
     except KeyError:
-        print("Missing title in {}, skipping".format(product), file=sys.stderr)
+        print(f"Missing title in {product}, skipping", file=sys.stderr)
         continue
 
     try:
         major_version = int(product["version"].split(".")[0])
     except Exception:
         print(
-            "Cannot extract the major version number in {}, skipping".format(product),
+            f"Cannot extract the major version number in {product}, skipping",
             file=sys.stderr,
         )
         continue

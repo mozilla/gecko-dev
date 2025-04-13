@@ -18,7 +18,7 @@ class TestInstallManifest(TestWithTmpDir):
 
     def test_malformed(self):
         f = self.tmppath("manifest")
-        open(f, "wt").write("junk\n")
+        open(f, "w").write("junk\n")
         with self.assertRaises(UnreadableInstallManifest):
             InstallManifest(f)
 
@@ -91,7 +91,7 @@ class TestInstallManifest(TestWithTmpDir):
         m.write(path=p)
         self.assertTrue(os.path.isfile(p))
 
-        with open(p, "r") as fh:
+        with open(p) as fh:
             c = fh.read()
 
         self.assertEqual(c.count("\n"), 9)
@@ -106,7 +106,7 @@ class TestInstallManifest(TestWithTmpDir):
         p2 = self.tmppath("m2")
         m2.write(path=p2)
 
-        with open(p2, "r") as fh:
+        with open(p2) as fh:
             c2 = fh.read()
 
         self.assertEqual(c, c2)
@@ -186,13 +186,13 @@ class TestInstallManifest(TestWithTmpDir):
         with open(to_delete, "a"):
             pass
 
-        with open(self.tmppath("s_source"), "wt") as fh:
+        with open(self.tmppath("s_source"), "w") as fh:
             fh.write("symlink!")
 
-        with open(self.tmppath("c_source"), "wt") as fh:
+        with open(self.tmppath("c_source"), "w") as fh:
             fh.write("copy!")
 
-        with open(self.tmppath("p_source"), "wt") as fh:
+        with open(self.tmppath("p_source"), "w") as fh:
             fh.write("#define FOO 1\npreprocess!")
 
         with open(self.tmppath("dest/e_dest"), "a"):
@@ -214,13 +214,13 @@ class TestInstallManifest(TestWithTmpDir):
         self.assertTrue(os.path.exists(self.tmppath("dest/content")))
         self.assertFalse(os.path.exists(to_delete))
 
-        with open(self.tmppath("dest/s_dest"), "rt") as fh:
+        with open(self.tmppath("dest/s_dest")) as fh:
             self.assertEqual(fh.read(), "symlink!")
 
-        with open(self.tmppath("dest/c_dest"), "rt") as fh:
+        with open(self.tmppath("dest/c_dest")) as fh:
             self.assertEqual(fh.read(), "copy!")
 
-        with open(self.tmppath("dest/p_dest"), "rt") as fh:
+        with open(self.tmppath("dest/p_dest")) as fh:
             self.assertEqual(fh.read(), "preprocess!")
 
         self.assertEqual(
@@ -243,12 +243,12 @@ class TestInstallManifest(TestWithTmpDir):
         dest = self.tmppath("dest")
         include = self.tmppath("p_incl")
 
-        with open(include, "wt") as fh:
+        with open(include, "w") as fh:
             fh.write("#define INCL\n")
         time = os.path.getmtime(include) - 3
         os.utime(include, (time, time))
 
-        with open(self.tmppath("p_source"), "wt") as fh:
+        with open(self.tmppath("p_source"), "w") as fh:
             fh.write("#ifdef FOO\n#if BAZ == QUX\nPASS1\n#endif\n#endif\n")
             fh.write("#ifdef DEPTEST\nPASS2\n#endif\n")
             fh.write("#include p_incl\n#ifdef INCLTEST\nPASS3\n#endif\n")
@@ -270,7 +270,7 @@ class TestInstallManifest(TestWithTmpDir):
 
         self.assertTrue(os.path.exists(self.tmppath("dest/p_dest")))
 
-        with open(self.tmppath("dest/p_dest"), "rt") as fh:
+        with open(self.tmppath("dest/p_dest")) as fh:
             self.assertEqual(fh.read(), "PASS1\n")
 
         # Create a second manifest with the preprocessed file, then apply it.
@@ -300,7 +300,7 @@ class TestInstallManifest(TestWithTmpDir):
         m2.populate_registry(c)
         self.assertTrue(c.copy(dest))
 
-        with open(self.tmppath("dest/p_dest"), "rt") as fh:
+        with open(self.tmppath("dest/p_dest")) as fh:
             self.assertEqual(fh.read(), "PASS2\n")
 
         # Set the time on the manifest back, so it won't be picked up as
@@ -310,7 +310,7 @@ class TestInstallManifest(TestWithTmpDir):
 
         # Update the contents of a file included by the source file. This should
         # cause the destination to be regenerated.
-        with open(include, "wt") as fh:
+        with open(include, "w") as fh:
             fh.write("#define INCLTEST\n")
 
         time = os.path.getmtime(include) - 1
@@ -319,7 +319,7 @@ class TestInstallManifest(TestWithTmpDir):
         m2.populate_registry(c)
         self.assertTrue(c.copy(dest))
 
-        with open(self.tmppath("dest/p_dest"), "rt") as fh:
+        with open(self.tmppath("dest/p_dest")) as fh:
             self.assertEqual(fh.read(), "PASS2\nPASS3\n")
 
     def test_preprocessor_dependencies(self):
@@ -331,12 +331,12 @@ class TestInstallManifest(TestWithTmpDir):
         include = self.tmppath("p_incl")
         os.mkdir(dest)
 
-        with open(source, "wt") as fh:
+        with open(source, "w") as fh:
             fh.write("#define SRC\nSOURCE\n")
         time = os.path.getmtime(source) - 3
         os.utime(source, (time, time))
 
-        with open(include, "wt") as fh:
+        with open(include, "w") as fh:
             fh.write("INCLUDE\n")
         time = os.path.getmtime(source) - 3
         os.utime(include, (time, time))
@@ -356,11 +356,11 @@ class TestInstallManifest(TestWithTmpDir):
         m.populate_registry(c)
         self.assertTrue(c.copy(dest))
 
-        with open(destfile, "rt") as fh:
+        with open(destfile) as fh:
             self.assertEqual(fh.read(), "SOURCE\n")
 
         # Next, modify the source to #INCLUDE another file.
-        with open(source, "wt") as fh:
+        with open(source, "w") as fh:
             fh.write("SOURCE\n#include p_incl\n")
         time = os.path.getmtime(source) - 1
         os.utime(destfile, (time, time))
@@ -372,7 +372,7 @@ class TestInstallManifest(TestWithTmpDir):
         m.populate_registry(c)
         c.copy(dest)
 
-        with open(destfile, "rt") as fh:
+        with open(destfile) as fh:
             self.assertEqual(fh.read(), "SOURCE\nINCLUDE\n")
 
         # Set the time on the source file back, so it won't be picked up as
@@ -381,7 +381,7 @@ class TestInstallManifest(TestWithTmpDir):
         os.utime(source, (time, time))
 
         # Now, modify the include file (but not the original source).
-        with open(include, "wt") as fh:
+        with open(include, "w") as fh:
             fh.write("INCLUDE MODIFIED\n")
         time = os.path.getmtime(include) - 1
         os.utime(destfile, (time, time))
@@ -393,7 +393,7 @@ class TestInstallManifest(TestWithTmpDir):
         m.populate_registry(c)
         c.copy(dest)
 
-        with open(destfile, "rt") as fh:
+        with open(destfile) as fh:
             self.assertEqual(fh.read(), "SOURCE\nINCLUDE MODIFIED\n")
 
         # ORing an InstallManifest should copy file dependencies

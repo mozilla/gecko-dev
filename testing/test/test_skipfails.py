@@ -1029,9 +1029,9 @@ def test_reftest_add_fuzzy_if():
 
     sf = Skipfails(implicit_vars=True)
     manifest_path = DATA_PATH.joinpath("reftest-1-before.list")
-    manifest_str = open(manifest_path, "r", encoding="utf-8").read()
+    manifest_str = open(manifest_path, encoding="utf-8").read()
     after_path = DATA_PATH.joinpath("reftest-1-after.list")
-    after_str = open(after_path, "r", encoding="utf-8").read()
+    after_str = open(after_path, encoding="utf-8").read()
     manifest_str, additional_comment = sf.reftest_add_fuzzy_if(
         manifest_str,
         "fuzzy(0-11,0-7155) == blur-inside-clipPath.svg blur-inside-clipPath-ref.svg",
@@ -1051,9 +1051,9 @@ def test_reftest_add_fuzzy_if2():
 
     sf = Skipfails(implicit_vars=True)
     manifest_path = DATA_PATH.joinpath("reftest-2-before.list")
-    manifest_str = open(manifest_path, "r", encoding="utf-8").read()
+    manifest_str = open(manifest_path, encoding="utf-8").read()
     after_path = DATA_PATH.joinpath("reftest-2-after.list")
-    after_str = open(after_path, "r", encoding="utf-8").read()
+    after_str = open(after_path, encoding="utf-8").read()
     manifest_str, additional_comment = sf.reftest_add_fuzzy_if(
         manifest_str,
         "fuzzy(0-11,0-7155) HTTP(..) == blur-inside-clipPath.svg  blur-inside-clipPath-ref.svg",
@@ -1073,9 +1073,9 @@ def test_reftest_add_fuzzy_if3():
 
     sf = Skipfails(implicit_vars=True)
     manifest_path = DATA_PATH.joinpath("reftest-2-after.list")
-    manifest_str = open(manifest_path, "r", encoding="utf-8").read()
+    manifest_str = open(manifest_path, encoding="utf-8").read()
     after_path = DATA_PATH.joinpath("reftest-3-after.list")
-    after_str = open(after_path, "r", encoding="utf-8").read()
+    after_str = open(after_path, encoding="utf-8").read()
     manifest_str, additional_comment = sf.reftest_add_fuzzy_if(
         manifest_str,
         "fuzzy(0-11,0-7155) fuzzy-if(gtkWidget,10-12,7000-8400) HTTP(..) == blur-inside-clipPath.svg blur-inside-clipPath-ref.svg",
@@ -1099,9 +1099,9 @@ def test_reftest_add_fuzzy_if4():
 
     sf = Skipfails(implicit_vars=True)
     manifest_path = DATA_PATH.joinpath("reftest-4-before.list")
-    manifest_str = open(manifest_path, "r", encoding="utf-8").read()
+    manifest_str = open(manifest_path, encoding="utf-8").read()
     after_path = DATA_PATH.joinpath("reftest-4-after.list")
-    after_str = open(after_path, "r", encoding="utf-8").read()
+    after_str = open(after_path, encoding="utf-8").read()
     manifest_str, additional_comment = sf.reftest_add_fuzzy_if(
         manifest_str,
         "fuzzy-if(winWidget,0-177,0-1) == 23605-5.html 23605-5-ref.html",
@@ -1125,9 +1125,9 @@ def test_reftest_add_fuzzy_if5():
 
     sf = Skipfails(implicit_vars=True)
     manifest_path = DATA_PATH.joinpath("reftest-2-after.list")
-    manifest_str = open(manifest_path, "r", encoding="utf-8").read()
+    manifest_str = open(manifest_path, encoding="utf-8").read()
     after_path = DATA_PATH.joinpath("reftest-5-after.list")
-    after_str = open(after_path, "r", encoding="utf-8").read()
+    after_str = open(after_path, encoding="utf-8").read()
     manifest_str, additional_comment = sf.reftest_add_fuzzy_if(
         manifest_str,
         "fuzzy(0-11,0-7155) fuzzy-if(gtkWidget,10-12,7000-8400) HTTP(..) == blur-inside-clipPath.svg blur-inside-clipPath-ref.svg",
@@ -1147,9 +1147,9 @@ def test_reftest_add_fuzzy_if6():
 
     sf = Skipfails(implicit_vars=True)
     manifest_path = DATA_PATH.joinpath("reftest-6-before.list")
-    manifest_str = open(manifest_path, "r", encoding="utf-8").read()
+    manifest_str = open(manifest_path, encoding="utf-8").read()
     after_path = DATA_PATH.joinpath("reftest-6-after.list")
-    after_str = open(after_path, "r", encoding="utf-8").read()
+    after_str = open(after_path, encoding="utf-8").read()
     manifest_str, additional_comment = sf.reftest_add_fuzzy_if(
         manifest_str,
         "fuzzy(16-51,5234-5622) fuzzy-if(swgl,32-38,1600-91746) fuzzy-if(useDrawSnapshot,16-16,11600-11600) fuzzy-if(cocoaWidget,16-73,5212-5622) == ../reftest_video.html?src=color_quads/720p.png.bt709.bt709.tv.yuv420p.av1.webm ../reftest_img.html?src=color_quads/720p.png",
@@ -1169,9 +1169,9 @@ def test_reftest_add_fuzzy_if7():
 
     sf = Skipfails(implicit_vars=False)
     manifest_path = DATA_PATH.joinpath("reftest-7-before.list")
-    manifest_str = open(manifest_path, "r", encoding="utf-8").read()
+    manifest_str = open(manifest_path, encoding="utf-8").read()
     after_path = DATA_PATH.joinpath("reftest-7-after.list")
-    after_str = open(after_path, "r", encoding="utf-8").read()
+    after_str = open(after_path, encoding="utf-8").read()
     manifest_str, additional_comment = sf.reftest_add_fuzzy_if(
         manifest_str,
         "skip-if(winWidget&&isCoverageBuild) fuzzy(0-16,75-1941) fuzzy-if(Android,28-255,273680-359920) fuzzy-if(appleSilicon,30-48,1835-187409) fuzzy-if(cocoaWidget,30-32,187326-187407) == ../reftest_video.html?src=color_quads/720p.png.bt709.bt709.tv.yuv420p.h264.mp4 ../reftest_video.html?src=color_quads/720p.png.bt709.bt709.tv.yuv420p.av1.webm",
@@ -1191,9 +1191,9 @@ def test_reftest_add_fuzzy_if8():
 
     sf = Skipfails(implicit_vars=True)
     manifest_path = DATA_PATH.joinpath("reftest-6-after.list")
-    manifest_str = open(manifest_path, "r", encoding="utf-8").read()
+    manifest_str = open(manifest_path, encoding="utf-8").read()
     after_path = DATA_PATH.joinpath("reftest-8-after.list")
-    after_str = open(after_path, "r", encoding="utf-8").read()
+    after_str = open(after_path, encoding="utf-8").read()
     manifest_str, additional_comment = sf.reftest_add_fuzzy_if(
         manifest_str,
         "fuzzy(16-51,5234-5622) fuzzy-if(swgl,32-38,1600-91746) fuzzy-if(useDrawSnapshot,16-16,11600-11600) fuzzy-if(Android&&isDebugBuild&&!fission&&swgl,0-33,0-1848) fuzzy-if(cocoaWidget,16-73,5212-5622) == ../reftest_video.html?src=color_quads/720p.png.bt709.bt709.tv.yuv420p.av1.webm ../reftest_img.html?src=color_quads/720p.png",
@@ -1213,9 +1213,9 @@ def test_reftest_add_fuzzy_if9():
 
     sf = Skipfails(implicit_vars=True)
     manifest_path = DATA_PATH.joinpath("reftest-9-before.list")
-    manifest_str = open(manifest_path, "r", encoding="utf-8").read()
+    manifest_str = open(manifest_path, encoding="utf-8").read()
     after_path = DATA_PATH.joinpath("reftest-9-after.list")
-    after_str = open(after_path, "r", encoding="utf-8").read()
+    after_str = open(after_path, encoding="utf-8").read()
     manifest_str, additional_comment = sf.reftest_add_fuzzy_if(
         manifest_str,
         "fuzzy(0-201,0-1486) fuzzy-if(Android&&(fission||!fission),201-267,42-1560) fuzzy-if(Android&&!fission&&(swgl||!swgl),201-267,40-1560) fuzzy-if(Android&&isDebugBuild&&!fission&&swgl,198-207,1439-1510) fuzzy-if(cocoaWidget&&isDebugBuild&&swgl,198-267,40-1510) fuzzy-if(gtkWidget&&swgl,198-267,40-1510) fuzzy-if(gtkWidget&&!fission&&swgl,0-267,0-1510) fuzzy-if(gtkWidget&&!fission&&(swgl||!swgl),201-267,40-1560) == element-paint-transform-02.html element-paint-transform-02-ref.html",
@@ -1234,9 +1234,9 @@ def test_reftest_add_fuzzy_if10():
 
     sf = Skipfails(implicit_vars=False)
     manifest_path = DATA_PATH.joinpath("reftest-10-before.list")
-    manifest_str = open(manifest_path, "r", encoding="utf-8").read()
+    manifest_str = open(manifest_path, encoding="utf-8").read()
     after_path = DATA_PATH.joinpath("reftest-10-after.list")
-    after_str = open(after_path, "r", encoding="utf-8").read()
+    after_str = open(after_path, encoding="utf-8").read()
     manifest_str, additional_comment = sf.reftest_add_fuzzy_if(
         manifest_str,
         "skip-if(winWidget&&isCoverageBuild) fuzzy(0-16,75-1941) fuzzy-if(Android,28-255,273680-359920) fuzzy-if(appleSilicon,30-48,1835-187409) fuzzy-if(cocoaWidget,0-0,0-0) == ../reftest_video.html?src=color_quads/720p.png.bt709.bt709.tv.yuv420p.h264.mp4 ../reftest_video.html?src=color_quads/720p.png.bt709.bt709.tv.yuv420p.av1.webm",
@@ -1256,7 +1256,7 @@ def test_reftest_add_fuzzy_if11():
 
     sf = Skipfails(implicit_vars=False)
     manifest_path = DATA_PATH.joinpath("reftest-10-before.list")
-    manifest_str = open(manifest_path, "r", encoding="utf-8").read()
+    manifest_str = open(manifest_path, encoding="utf-8").read()
     manifest_str, additional_comment = sf.reftest_add_fuzzy_if(
         manifest_str,
         "skip-if(winWidget&&isCoverageBuild) fuzzy(0-16,75-1941) fuzzy-if(Android,28-255,273680-359920) fuzzy-if(cocoaWidget,30-32,187326-187407) fuzzy-if(appleSilicon,30-48,1835-187409) == ../reftest_video.html?src=color_quads/720p.png.bt709.bt709.tv.yuv420p.h264.mp4 ../reftest_video.html?src=color_quads/720p.png.bt709.bt709.tv.yuv420p.av1.webm",
@@ -1394,13 +1394,13 @@ def test_reftest_skip_failure_reorder(capsys):
     """Test reftest_skip_failure_reorder"""
 
     manifest_before_path = DATA_PATH.joinpath("reftest-reorder-before.list")
-    manifest_before = open(manifest_before_path, "r", encoding="utf-8").read()
+    manifest_before = open(manifest_before_path, encoding="utf-8").read()
     manifest_path = DATA_PATH.joinpath("reftest-reorder.list")
     manifest_fp = open(manifest_path, "w", encoding="utf-8")
     manifest_fp.write(manifest_before)
     manifest_fp.close()
     manifest_after_path = DATA_PATH.joinpath("reftest-reorder-after.list")
-    manifest_after = open(manifest_after_path, "r", encoding="utf-8").read()
+    manifest_after = open(manifest_after_path, encoding="utf-8").read()
     sf = Skipfails(verbose=True, bugzilla="disable", implicit_vars=True)
     manifest = "testing/test/data/reftest-reorder.list"
     kind = Kind.LIST
@@ -1451,7 +1451,7 @@ def test_reftest_skip_failure_reorder(capsys):
         meta_bug_id,
     )
     assert os.path.exists(manifest_path)
-    manifest_str = open(manifest_path, "r", encoding="utf-8").read()
+    manifest_str = open(manifest_path, encoding="utf-8").read()
     assert manifest_str == manifest_after
     os.remove(manifest_path)
     # captured = capsys.readouterr()

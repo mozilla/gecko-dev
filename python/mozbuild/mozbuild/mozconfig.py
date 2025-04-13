@@ -61,7 +61,7 @@ class MozconfigLoadException(Exception):
         Exception.__init__(self, message)
 
 
-class MozconfigLoader(object):
+class MozconfigLoader:
     """Handles loading and parsing of mozconfig files."""
 
     RE_MAKE_VARIABLE = re.compile(

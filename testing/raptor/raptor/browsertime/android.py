@@ -207,7 +207,7 @@ class BrowsertimeAndroid(PerftestAndroid, Browsertime):
         if self.config["app"] in FIREFOX_ANDROID_APPS:
             # Merge in the Android profile.
             path = os.path.join(self.profile_data_dir, "raptor-android")
-            LOG.info("Merging profile: {}".format(path))
+            LOG.info(f"Merging profile: {path}")
             self.profile.merge(path)
 
             # There's no great way to have "after" advice in Python, so we do this

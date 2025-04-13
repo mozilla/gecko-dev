@@ -8,7 +8,7 @@ from ..result import Issue
 from ..util.string import pluralize
 
 
-class StylishFormatter(object):
+class StylishFormatter:
     """Formatter based on the eslint default."""
 
     _indent_ = "  "
@@ -112,7 +112,7 @@ class StylishFormatter(object):
                     "lineno": str(err.lineno).rjust(self.max_lineno),
                     "column": col,
                     "level": err.level.ljust(self.max_level),
-                    "rule": "{} ".format(err.rule) if err.rule else "",
+                    "rule": f"{err.rule} " if err.rule else "",
                     "linter": err.linter.lower(),
                     "message": err.message.ljust(self.max_message),
                     "diff": self._get_colored_diff(err.diff).ljust(self.max_message),
@@ -146,7 +146,7 @@ class StylishFormatter(object):
                 failure=(
                     ", {}".format(pluralize("failure", len(failed))) if failed else ""
                 ),
-                fixed="{} fixed".format(num_fixed),
+                fixed=f"{num_fixed} fixed",
             )
         )
 

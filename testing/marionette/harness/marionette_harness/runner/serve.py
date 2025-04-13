@@ -29,7 +29,7 @@ __all__ = [
 here = os.path.abspath(os.path.dirname(__file__))
 
 
-class BlockingChannel(object):
+class BlockingChannel:
     def __init__(self, channel):
         self.chan = channel
         self.lock = multiprocessing.Lock()
@@ -144,16 +144,16 @@ class ServerProc(BlockingChannel):
 
 
 def http_server(doc_root, ssl_config, host="127.0.0.1", **kwargs):
-    return httpd.FixtureServer(doc_root, url="http://{}:0/".format(host), **kwargs)
+    return httpd.FixtureServer(doc_root, url=f"http://{host}:0/", **kwargs)
 
 
 def https_server(doc_root, ssl_config, host="127.0.0.1", **kwargs):
     return httpd.FixtureServer(
         doc_root,
-        url="https://{}:0/".format(host),
+        url=f"https://{host}:0/",
         ssl_key=ssl_config["key_path"],
         ssl_cert=ssl_config["cert_path"],
-        **kwargs
+        **kwargs,
     )
 
 
@@ -222,7 +222,7 @@ def main(args):
 
     servers = start(args.doc_root)
     for url in iter_url(servers):
-        print("{}: listening on {}".format(sys.argv[0], url), file=sys.stderr)
+        print(f"{sys.argv[0]}: listening on {url}", file=sys.stderr)
 
     try:
         while any(proc.is_alive for proc in iter_proc(servers)):

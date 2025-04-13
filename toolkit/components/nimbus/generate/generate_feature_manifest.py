@@ -66,7 +66,7 @@ def write_fm_headers(fd):
 def validate_feature_manifest(schema_path, manifest_path, manifest):
     TOPSRCDIR = Path(__file__).parent.parent.parent.parent.parent
 
-    with open(schema_path, "r") as f:
+    with open(schema_path) as f:
         schema = json.load(f)
 
     set_prefs = {}
@@ -170,7 +170,7 @@ def generate_feature_manifest(fd, input_file):
     write_fm_headers(fd)
 
     try:
-        with open(input_file, "r", encoding="utf-8") as f:
+        with open(input_file, encoding="utf-8") as f:
             manifest = yaml.safe_load(f)
 
         validate_feature_manifest(
@@ -220,9 +220,9 @@ def generate_platform_feature_manifest(fd, input_file):
         )
 
     try:
-        with open(input_file, "r", encoding="utf-8") as yaml_input:
+        with open(input_file, encoding="utf-8") as yaml_input:
             data = yaml.safe_load(yaml_input)
             fd.write(file_structure(data))
     except OSError as e:
-        print("{}: error:\n  {}\n".format(input_file, e))
+        print(f"{input_file}: error:\n  {e}\n")
         sys.exit(1)

@@ -145,7 +145,7 @@ class ReftestFormatter(TbplFormatter):
         return "INFO | Result summary:\n{}\n".format("\n".join(lines))
 
 
-class OutputHandler(object):
+class OutputHandler:
     """Process the output of a process during a test run and translate
     raw data logged from reftest.js to an appropriate structured log action,
     where applicable.

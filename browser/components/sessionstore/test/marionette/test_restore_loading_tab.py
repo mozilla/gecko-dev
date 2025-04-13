@@ -8,7 +8,7 @@ from marionette_harness import MarionetteTestCase, WindowManagerMixin
 
 
 def inline(doc):
-    return "data:text/html;charset=utf-8,{}".format(quote(doc))
+    return f"data:text/html;charset=utf-8,{quote(doc)}"
 
 
 class TestRestoreLoadingPage(WindowManagerMixin, MarionetteTestCase):

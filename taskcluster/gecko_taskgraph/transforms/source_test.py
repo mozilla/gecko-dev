@@ -149,7 +149,7 @@ def add_build_dependency(config, job):
     if not matches:
         raise Exception(
             "No build platform found. "
-            "Define 'require-build' for {} in the task config.".format(key)
+            f"Define 'require-build' for {key} in the task config."
         )
 
     if len(matches) > 1:

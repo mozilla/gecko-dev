@@ -7,7 +7,7 @@ from .terminal import Terminal
 DEFAULT = "\x1b(B\x1b[m"
 
 
-class BaseWidget(object):
+class BaseWidget:
     def __init__(self, terminal=None):
         self.term = terminal or Terminal()
         self.stream = self.term.stream

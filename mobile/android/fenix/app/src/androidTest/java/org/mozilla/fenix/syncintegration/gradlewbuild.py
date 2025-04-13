@@ -8,7 +8,7 @@ here = os.path.dirname(__file__)
 logging.getLogger(__name__).addHandler(logging.NullHandler())
 
 
-class GradlewBuild(object):
+class GradlewBuild:
     binary = "./gradlew"
     logger = logging.getLogger()
     adbrun = ADBrun()
@@ -23,12 +23,10 @@ class GradlewBuild(object):
         os.chdir("../../../../../../../..")
         cmd = (
             "./gradlew "
-            + "app:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=org.mozilla.fenix.syncintegration.SyncIntegrationTest#{}".format(
-                identifier
-            )
+            + f"app:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=org.mozilla.fenix.syncintegration.SyncIntegrationTest#{identifier}"
         )
 
-        self.logger.info("Running cmd: {}".format(cmd))
+        self.logger.info(f"Running cmd: {cmd}")
 
         out = ""
         try:

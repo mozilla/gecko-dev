@@ -160,11 +160,7 @@ class ProfileSymbolicator:
     def integrate_symbol_zip_from_url(self, symbol_zip_url):
         if self.have_integrated(symbol_zip_url):
             return
-        LOG.info(
-            "Retrieving symbol zip from {symbol_zip_url}...".format(
-                symbol_zip_url=symbol_zip_url
-            )
-        )
+        LOG.info(f"Retrieving symbol zip from {symbol_zip_url}...")
         try:
             io = urlopen(symbol_zip_url, None, 30)
             with zipfile.ZipFile(sio(io.read())) as zf:

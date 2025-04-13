@@ -165,9 +165,9 @@ def display_push_estimates(try_task_config):
     if "percentile" in durations:
         percentile = durations["percentile"]
         if percentile > 50:
-            print("estimates: In the longest {}% of durations".format(100 - percentile))
+            print(f"estimates: In the longest {100 - percentile}% of durations")
         else:
-            print("estimates: In the shortest {}% of durations".format(percentile))
+            print(f"estimates: In the shortest {percentile}% of durations")
     print(
         "estimates: Should take about {} (Finished around {})".format(
             durations["wall_duration_seconds"],
@@ -218,12 +218,7 @@ def push_to_try(
     closed_tree_string = " ON A CLOSED TREE" if closed_tree else ""
     the_cmdline = get_sys_argv()
     full_commandline_entry = f"mach try command: `{the_cmdline}`"
-    commit_message = "{}{}\n\n{}\n\nPushed via `mach try {}`".format(
-        msg,
-        closed_tree_string,
-        full_commandline_entry,
-        method,
-    )
+    commit_message = f"{msg}{closed_tree_string}\n\n{full_commandline_entry}\n\nPushed via `mach try {method}`"
 
     changed_files = {}
 

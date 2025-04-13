@@ -281,7 +281,7 @@ class TestAbsoluteSymlinkFile(TestWithTmpDir):
 
     def test_symlink_file(self):
         source = self.tmppath("test_path")
-        with open(source, "wt") as fh:
+        with open(source, "w") as fh:
             fh.write("Hello world")
 
         s = AbsoluteSymlinkFile(source)
@@ -301,7 +301,7 @@ class TestAbsoluteSymlinkFile(TestWithTmpDir):
         # If symlinks are supported, an existing file should be replaced by a
         # symlink.
         source = self.tmppath("test_path")
-        with open(source, "wt") as fh:
+        with open(source, "w") as fh:
             fh.write("source")
 
         dest = self.tmppath("dest")
@@ -368,7 +368,7 @@ class TestHardlinkFile(TestWithTmpDir):
 
     def test_hardlink_file(self):
         source = self.tmppath("test_path")
-        with open(source, "wt") as fh:
+        with open(source, "w") as fh:
             fh.write("Hello world")
 
         s = HardlinkFile(source)
@@ -390,7 +390,7 @@ class TestHardlinkFile(TestWithTmpDir):
         # If hardlink are supported, an existing file should be replaced by a
         # symlink.
         source = self.tmppath("test_path")
-        with open(source, "wt") as fh:
+        with open(source, "w") as fh:
             fh.write("source")
 
         dest = self.tmppath("dest")
@@ -932,7 +932,7 @@ class TestMinifiedJavaScript(TestWithTmpDir):
         self.assertEqual(mini_lines, orig_f.open().readlines())
 
 
-class MatchTestTemplate(object):
+class MatchTestTemplate:
     def prepare_match_test(self, with_dotfiles=False):
         self.add("bar")
         self.add("foo/bar")

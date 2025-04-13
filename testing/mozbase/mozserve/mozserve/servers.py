@@ -33,7 +33,7 @@ def popenCleanupHack(isWin):
             subprocess._cleanup = savedCleanup
 
 
-class Http3Server(object):
+class Http3Server:
     """
     Class which encapsulates the Http3 server
     """
@@ -153,7 +153,7 @@ class Http3Server(object):
         self._http3ServerProc = {}
 
 
-class NodeHttp2Server(object):
+class NodeHttp2Server:
     """
     Class which encapsulates a Node Http/2 server
     """
@@ -199,9 +199,9 @@ class NodeHttp2Server(object):
                     [
                         self._nodeBin,
                         self._serverPath,
-                        "serverPort={}".format(self._dstServerPort),
-                        "listeningPort={}".format(self._port),
-                        "alpn={}".format(self._alpn),
+                        f"serverPort={self._dstServerPort}",
+                        f"listeningPort={self._port}",
+                        f"alpn={self._alpn}",
                     ],
                     stdin=PIPE,
                     stdout=PIPE,
@@ -249,7 +249,7 @@ class NodeHttp2Server(object):
             self._nodeProc = None
 
 
-class DoHServer(object):
+class DoHServer:
     """
     Class which encapsulates the DoH server
     """
@@ -268,7 +268,7 @@ class DoHServer(object):
         self._server.stop()
 
 
-class Http2Server(object):
+class Http2Server:
     """
     Class which encapsulates the Http2 server
     """

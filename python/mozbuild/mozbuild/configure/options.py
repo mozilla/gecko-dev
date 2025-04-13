@@ -161,7 +161,7 @@ class ConflictingOptionError(InvalidOptionError):
             setattr(self, k, v)
 
 
-class Option(object):
+class Option:
     """Represents a configure option
 
     A configure option can be a command line flag or an environment variable
@@ -509,7 +509,7 @@ class Option(object):
         return "<%s [%s]>" % (self.__class__.__name__, self.option)
 
 
-class CommandLineHelper(object):
+class CommandLineHelper:
     """Helper class to handle the various ways options can be given either
     on the command line of through the environment.
 

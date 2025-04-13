@@ -10,7 +10,7 @@ from logger.logger import RaptorLogger
 LOG = RaptorLogger(component="raptor-output-handler")
 
 
-class OutputHandler(object):
+class OutputHandler:
     def __init__(self, verbose=False):
         self.proc = None
         self.verbose = verbose

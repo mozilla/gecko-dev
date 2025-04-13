@@ -13,7 +13,7 @@ mozilla.prettyprinters.clear_module_printers(__name__)
 
 
 @pretty_printer("JS::PropertyKey")
-class PropertyKey(object):
+class PropertyKey:
     # Since people don't always build with macro debugging info, I can't
     # think of any way to avoid copying these values here, short of using
     # inferior calls for every operation (which, I hear, is broken from

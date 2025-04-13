@@ -18,7 +18,7 @@ def resolve_keys(config, tasks):
                 item_name=task["name"],
                 **{
                     "level": config.params["level"],
-                }
+                },
             )
         yield task
 
@@ -40,7 +40,7 @@ def add_notify_email(config, tasks):
             routes = task.setdefault("routes", [])
             routes.extend(
                 [
-                    "notify.email.{}.on-{}".format(address, reason)
+                    f"notify.email.{address}.on-{reason}"
                     for address in email_config["to-addresses"]
                     for reason in email_config["on-reasons"]
                 ]

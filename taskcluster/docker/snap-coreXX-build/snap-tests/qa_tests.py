@@ -24,7 +24,7 @@ class QATests(SnapTestsBase):
 
         super(QATests, self).__init__(
             exp=os.path.join(
-                self._dir, "qa_expectations_{}.json".format(self._distro_release())
+                self._dir, f"qa_expectations_{self._distro_release()}.json"
             )
         )
 
@@ -41,7 +41,7 @@ class QATests(SnapTestsBase):
     def _test_audio_playback(
         self, url, iframe_selector=None, click_to_play=False, video_selector=None
     ):
-        self._logger.info("open url {}".format(url))
+        self._logger.info(f"open url {url}")
         if url:
             self.open_tab(url)
 
@@ -107,9 +107,7 @@ class QATests(SnapTestsBase):
         paused = video.get_property("paused")
         time.sleep(1)
         datum_after_sleep = video.get_property("currentTime")
-        self._logger.info(
-            "datum={} datum_after_sleep={}".format(datum, datum_after_sleep)
-        )
+        self._logger.info(f"datum={datum} datum_after_sleep={datum_after_sleep}")
         assert datum == datum_after_sleep, "<video> is sleeping"
         assert paused is True, "<video> is paused"
 
@@ -121,9 +119,7 @@ class QATests(SnapTestsBase):
         time.sleep(2)
         datum_after_resume = video.get_property("currentTime")
         self._logger.info(
-            "datum_after_resume={} datum_after_sleep={}".format(
-                datum_after_resume, datum_after_sleep
-            )
+            f"datum_after_resume={datum_after_resume} datum_after_sleep={datum_after_sleep}"
         )
         # we wait for 2s but it's not super accurate on CI (vbox VMs?),
         # observed values +/- 15% so check for more that should avoid
@@ -139,15 +135,13 @@ class QATests(SnapTestsBase):
         new_volume = video.get_property("volume")
         assert (
             new_volume == ref_volume * 0.25
-        ), "<video> sound volume increased from {} to {} but got {}".format(
-            ref_volume, ref_volume * 0.25, new_volume
-        )
+        ), f"<video> sound volume increased from {ref_volume} to {ref_volume * 0.25} but got {new_volume}"
 
         self._logger.info("find video: done")
 
     def _test_audio_video_playback(self, url):
         iframe_css_selector = "iframe[id*=ucc-]"
-        self._logger.info("open url {}".format(url))
+        self._logger.info(f"open url {url}")
         self.open_tab(url)
         self._logger.info("find thumbnail")
         thumbnail = self._longwait.until(
@@ -293,7 +287,7 @@ class QATests(SnapTestsBase):
         waiter = self._longwait if long is True else self._wait
         page = waiter.until(
             EC.visibility_of_element_located(
-                (By.CSS_SELECTOR, "div.page[data-page-number='{}'] canvas".format(page))
+                (By.CSS_SELECTOR, f"div.page[data-page-number='{page}'] canvas")
             )
         )
 
@@ -318,7 +312,7 @@ class QATests(SnapTestsBase):
             EC.visibility_of_element_located((By.ID, "pageNumber"))
         )
         pagenum.send_keys(Keys.BACKSPACE)
-        pagenum.send_keys("{}".format(page))
+        pagenum.send_keys(f"{page}")
 
     def test_pdf_navigation(self, exp):
         """
@@ -364,7 +358,7 @@ class QATests(SnapTestsBase):
             self.pdf_get_page(2)
             # give some time for rendering to update
             time.sleep(0.2)
-            self._logger.info("assert {}".format(ref))
+            self._logger.info(f"assert {ref}")
             self.assert_rendering(exp[ref], self._driver)
 
         # click Next/Previous page
@@ -401,23 +395,23 @@ class QATests(SnapTestsBase):
         ]
 
         for menu_id in menu_buttons:
-            self._logger.info("reset to page for {}".format(menu_id))
+            self._logger.info(f"reset to page for {menu_id}")
             if menu_id != "firstPage":
                 self.pdf_go_to_page(1)
             else:
                 self.pdf_go_to_page(2)
             time.sleep(0.2)
 
-            self._logger.info("click menu for {}".format(menu_id))
+            self._logger.info(f"click menu for {menu_id}")
             # open menu
             secondary_menu.click()
 
-            self._logger.info("find button for {}".format(menu_id))
+            self._logger.info(f"find button for {menu_id}")
             button_to_test = self._wait.until(
                 EC.visibility_of_element_located((By.ID, menu_id))
             )
 
-            self._logger.info("click button for {}".format(menu_id))
+            self._logger.info(f"click button for {menu_id}")
             button_to_test.click()
 
             try:
@@ -427,14 +421,14 @@ class QATests(SnapTestsBase):
             except TimeoutException:
                 # Menu does not close itself on those??
                 if menu_id in ("pageRotateCw", "pageRotateCcw"):
-                    self._logger.info("force close menu for {}".format(menu_id))
+                    self._logger.info(f"force close menu for {menu_id}")
                     secondary_menu.click()
-                    self._logger.info("wait menu disappear for {}".format(menu_id))
+                    self._logger.info(f"wait menu disappear for {menu_id}")
                     self._wait.until(
                         EC.invisibility_of_element_located((By.ID, "secondaryToolbar"))
                     )
 
-            self._logger.info("assert {}".format(menu_id))
+            self._logger.info(f"assert {menu_id}")
             self.assert_rendering(exp[menu_id], self._driver)
 
             if menu_id == "documentProperties":
@@ -516,7 +510,7 @@ class QATests(SnapTestsBase):
         for zoom, page, ref in zoom_levels:
             self.pdf_select_zoom(zoom)
             self.pdf_get_page(page, long=True)
-            self._logger.info("assert {}".format(ref))
+            self._logger.info(f"assert {ref}")
             self.assert_rendering(exp[ref], self._driver)
 
         return True
@@ -595,9 +589,7 @@ class QATests(SnapTestsBase):
         self._driver.set_context("content")
         assert (
             in_clipboard == should_be_present
-        ), "type {} should/should ({}) not be in clipboard".format(
-            mime_type, should_be_present
-        )
+        ), f"type {mime_type} should/should ({should_be_present}) not be in clipboard"
 
     def wait_for_element_in_clipboard(self, mime_type, context_change=False):
         if context_change:
@@ -765,7 +757,7 @@ class QATests(SnapTestsBase):
         return download_name
 
     def change_download_folder(self, previous=None, new=None):
-        self._logger.info("Download change folder: {} => {}".format(previous, new))
+        self._logger.info(f"Download change folder: {previous} => {new}")
         self._driver.set_context("chrome")
         self._driver.execute_script(
             "Services.prefs.setIntPref('browser.download.folderList', 2);"
@@ -777,7 +769,7 @@ class QATests(SnapTestsBase):
             "return Services.prefs.getCharPref('browser.download.dir', null);"
         )
         self._driver.set_context("content")
-        self._logger.info("Download folder pref: {}".format(download_dir_pref))
+        self._logger.info(f"Download folder pref: {download_dir_pref}")
         assert (
             download_dir_pref == new
         ), "download directory from pref should match new directory"
@@ -826,9 +818,7 @@ class QATests(SnapTestsBase):
             .replace("\u2066", "")
             .replace("\u2069", "")
         )
-        self._logger.info(
-            "Download folder from about:preferences: {}".format(previous_folder)
-        )
+        self._logger.info(f"Download folder from about:preferences: {previous_folder}")
         if not os.path.isabs(previous_folder):
             previous_folder = os.path.join(os.environ.get("HOME", ""), previous_folder)
         with tempfile.TemporaryDirectory(
@@ -837,7 +827,7 @@ class QATests(SnapTestsBase):
             assert os.path.isdir(tmpdir), "tmpdir download should exists"
 
             download_1 = os.path.abspath(os.path.join(previous_folder, download_name))
-            self._logger.info("Download 1 assert: {}".format(download_1))
+            self._logger.info(f"Download 1 assert: {download_1}")
             assert os.path.isfile(download_1), "downloaded file #1 should exists"
 
             self.change_download_folder(previous_folder, tmpdir)
@@ -848,7 +838,7 @@ class QATests(SnapTestsBase):
             download_name2 = self.wait_for_download()
             download_2 = os.path.join(tmpdir, download_name2)
 
-            self._logger.info("Download 2 assert: {}".format(download_2))
+            self._logger.info(f"Download 2 assert: {download_2}")
             assert os.path.isfile(download_2), "downloaded file #2 should exists"
 
         return True
@@ -872,7 +862,7 @@ class QATests(SnapTestsBase):
             self.accept_download()
             download_name = self.wait_for_download()
             download_file = os.path.join(tmpdir, download_name)
-            self._logger.info("Download assert: {}".format(download_file))
+            self._logger.info(f"Download assert: {download_file}")
             assert os.path.isdir(tmpdir), "tmpdir download should exists"
             assert os.path.isfile(download_file), "downloaded file should exists"
 

@@ -53,7 +53,7 @@ def lint(paths, config, fix=None, **lintargs):
             continue
 
         manifest = parser.source_documents[file_name]
-        manifest_str = open(file_name, "r", encoding="utf-8").read()
+        manifest_str = open(file_name, encoding="utf-8").read()
 
         if not DEFAULT_SECTION in manifest:
             r = make_result(

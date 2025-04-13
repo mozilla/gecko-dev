@@ -224,7 +224,7 @@ def test_collapse(paths, expected):
         else:
             inputs.append(path)
 
-    print("inputs: {}".format(inputs))
+    print(f"inputs: {inputs}")
     assert_paths(pathutils.collapse(inputs), expected)
 
 

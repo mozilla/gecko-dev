@@ -59,7 +59,7 @@ def valgrind_test(command_context, suppressions):
         profile_data_dir = os.path.join(
             command_context.topsrcdir, "testing", "profiles"
         )
-        with open(os.path.join(profile_data_dir, "profiles.json"), "r") as fh:
+        with open(os.path.join(profile_data_dir, "profiles.json")) as fh:
             base_profiles = json.load(fh)["valgrind"]
 
         prefpaths = [

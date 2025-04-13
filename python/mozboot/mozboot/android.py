@@ -216,7 +216,7 @@ def get_ndk_version(ndk_path: Union[str, Path]):
     minor, human).
     """
     ndk_path = Path(ndk_path)
-    with open(ndk_path / "source.properties", "r") as f:
+    with open(ndk_path / "source.properties") as f:
         revision = [line for line in f if line.startswith("Pkg.Revision")]
         if not revision:
             raise GetNdkVersionError(
@@ -331,13 +331,9 @@ def ensure_android(
     else:
         os_tag = os_name
 
-    sdk_url = "https://dl.google.com/android/repository/commandlinetools-{0}-{1}_latest.zip".format(  # NOQA: E501
-        os_tag, CMDLINE_TOOLS_VERSION
-    )
+    sdk_url = f"https://dl.google.com/android/repository/commandlinetools-{os_tag}-{CMDLINE_TOOLS_VERSION}_latest.zip"
     ndk_url = android_ndk_url(os_name)
-    bundletool_url = "https://github.com/google/bundletool/releases/download/{v}/bundletool-all-{v}.jar".format(  # NOQA: E501
-        v=BUNDLETOOL_VERSION
-    )
+    bundletool_url = f"https://github.com/google/bundletool/releases/download/{BUNDLETOOL_VERSION}/bundletool-all-{BUNDLETOOL_VERSION}.jar"
 
     ensure_android_sdk_and_ndk(
         mozbuild_path,
@@ -505,7 +501,7 @@ def ensure_android_avd(
     env = os.environ.copy()
     env["ANDROID_AVD_HOME"] = str(avd_home_path)
     proc = subprocess.Popen(args, stdin=subprocess.PIPE, env=env)
-    proc.communicate("no\n".encode("UTF-8"))
+    proc.communicate(b"no\n")
 
     retcode = proc.poll()
     if retcode:
@@ -760,7 +756,7 @@ def main(argv):
     else:
         raise NotImplementedError(
             "We don't support bootstrapping the Android SDK (or Android "
-            "NDK) on {0} yet!".format(platform.system())
+            f"NDK) on {platform.system()} yet!"
         )
 
     os_arch = platform.machine()
@@ -822,16 +818,9 @@ def ensure_java(os_name: str, os_arch: str):
         # e.g. https://github.com/adoptium/temurin17-binaries/releases/
         #      download/jdk-17.0.14%2B7/OpenJDK17U-jdk_x64_linux_hotspot_17.0.14_7.tar.gz
         java_url = (
-            "https://github.com/adoptium/temurin{major}-binaries/releases/"
-            "download/jdk-{major}.{minor}%2B{patch}/"
-            "OpenJDK{major}U-jdk_{arch}_{os}_hotspot_{major}.{minor}_{patch}.{ext}"
-        ).format(
-            major=JAVA_VERSION_MAJOR,
-            minor=JAVA_VERSION_MINOR,
-            patch=JAVA_VERSION_PATCH,
-            os=os_tag,
-            arch=arch,
-            ext=ext,
+            f"https://github.com/adoptium/temurin{JAVA_VERSION_MAJOR}-binaries/releases/"
+            f"download/jdk-{JAVA_VERSION_MAJOR}.{JAVA_VERSION_MINOR}%2B{JAVA_VERSION_PATCH}/"
+            f"OpenJDK{JAVA_VERSION_MAJOR}U-jdk_{arch}_{os_tag}_hotspot_{JAVA_VERSION_MAJOR}.{JAVA_VERSION_MINOR}_{JAVA_VERSION_PATCH}.{ext}"
         )
         install_mobile_android_sdk_or_ndk(java_url, mozbuild_path / "jdk")
     return java_path
@@ -839,9 +828,7 @@ def ensure_java(os_name: str, os_arch: str):
 
 def java_bin_path(os_name, toolchain_path: Path):
     # Like jdk-17.0.14+7
-    jdk_folder = "jdk-{major}.{minor}+{patch}".format(
-        major=JAVA_VERSION_MAJOR, minor=JAVA_VERSION_MINOR, patch=JAVA_VERSION_PATCH
-    )
+    jdk_folder = f"jdk-{JAVA_VERSION_MAJOR}.{JAVA_VERSION_MINOR}+{JAVA_VERSION_PATCH}"
 
     java_path = toolchain_path / "jdk" / jdk_folder
 

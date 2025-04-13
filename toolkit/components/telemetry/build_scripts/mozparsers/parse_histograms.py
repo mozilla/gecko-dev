@@ -93,7 +93,7 @@ def load_allowlist():
         allowlist_path = os.path.join(
             telemetry_module_path, "histogram-allowlists.json"
         )
-        with open(allowlist_path, "r") as f:
+        with open(allowlist_path) as f:
             try:
                 allowlists = json.load(f)
                 for name, allowlist in allowlists.items():
@@ -350,10 +350,8 @@ class Histogram:
             and self._strict_type_checks
         ):
             ParserError(
-                (
-                    "Error for histogram {} - invalid {}: {}."
-                    "\nSee: {}#expires-in-version"
-                ).format(name, field, expiration, HISTOGRAMS_DOC_URL)
+                f"Error for histogram {name} - invalid {field}: {expiration}."
+                f"\nSee: {HISTOGRAMS_DOC_URL}#expires-in-version"
             ).handle_later()
 
         expiration = utils.add_expiration_postfix(expiration)
@@ -594,17 +592,13 @@ class Histogram:
                 continue
             if not isinstance(definition[key], key_type):
                 ParserError(
-                    'Value for key "{0}" in histogram "{1}" should be {2}.'.format(
-                        key, name, nice_type_name(key_type)
-                    )
+                    f'Value for key "{key}" in histogram "{name}" should be {nice_type_name(key_type)}.'
                 ).handle_later()
 
         # Make sure the max range is lower than or equal to INT_MAX
         if "high" in definition and not c_int(definition["high"]).value > 0:
             ParserError(
-                'Value for high in histogram "{0}" should be lower or equal to INT_MAX.'.format(
-                    nice_type_name(c_int)
-                )
+                f'Value for high in histogram "{nice_type_name(c_int)}" should be lower or equal to INT_MAX.'
             ).handle_later()
 
         for key, key_type in type_checked_list_fields.items():
@@ -612,8 +606,8 @@ class Histogram:
                 continue
             if not all(isinstance(x, key_type) for x in definition[key]):
                 ParserError(
-                    'All values for list "{0}" in histogram "{1}" should be of type'
-                    " {2}.".format(key, name, nice_type_name(key_type))
+                    f'All values for list "{key}" in histogram "{name}" should be of type'
+                    f" {nice_type_name(key_type)}."
                 ).handle_later()
 
     def check_keys(self, name, definition, allowed_keys):
@@ -727,7 +721,7 @@ def load_histograms_into_dict(ordered_pairs, strict_type_checks):
 # routine to parse that file, and return a dictionary mapping histogram
 # names to histogram parameters.
 def from_json(filename, strict_type_checks):
-    with open(filename, "r") as f:
+    with open(filename) as f:
         try:
 
             def hook(ps):

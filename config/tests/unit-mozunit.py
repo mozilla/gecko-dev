@@ -25,26 +25,26 @@ class TestMozUnit(unittest.TestCase):
             self.assertFalse(os.path.exists("foo/file1"))
 
             # Check the contents of the files given at MockedOpen creation.
-            self.assertEqual(open("file1", "r").read(), "content1")
-            self.assertEqual(open("file2", "r").read(), "content2")
+            self.assertEqual(open("file1").read(), "content1")
+            self.assertEqual(open("file2").read(), "content2")
 
             # Check that overwriting these files alters their content.
             with open("file1", "w") as file:
                 file.write("foo")
             self.assertTrue(os.path.exists("file1"))
-            self.assertEqual(open("file1", "r").read(), "foo")
+            self.assertEqual(open("file1").read(), "foo")
 
             # ... but not until the file is closed.
             file = open("file2", "w")
             file.write("bar")
-            self.assertEqual(open("file2", "r").read(), "content2")
+            self.assertEqual(open("file2").read(), "content2")
             file.close()
-            self.assertEqual(open("file2", "r").read(), "bar")
+            self.assertEqual(open("file2").read(), "bar")
 
             # Check that appending to a file does append
             with open("file1", "a") as file:
                 file.write("bar")
-            self.assertEqual(open("file1", "r").read(), "foobar")
+            self.assertEqual(open("file1").read(), "foobar")
 
             self.assertFalse(os.path.exists("file3"))
 
@@ -55,27 +55,27 @@ class TestMozUnit(unittest.TestCase):
             # Check that writing a new file does create the file.
             with open("file3", "w") as file:
                 file.write("baz")
-            self.assertEqual(open("file3", "r").read(), "baz")
+            self.assertEqual(open("file3").read(), "baz")
             self.assertTrue(os.path.exists("file3"))
 
             # Check the content of the file created outside MockedOpen.
-            self.assertEqual(open(path, "r").read(), "foobar")
+            self.assertEqual(open(path).read(), "foobar")
 
             # Check that overwriting a file existing on the file system
             # does modify its content.
             with open(path, "w") as file:
                 file.write("bazqux")
-            self.assertEqual(open(path, "r").read(), "bazqux")
+            self.assertEqual(open(path).read(), "bazqux")
 
         with MockedOpen():
             # Check that appending to a file existing on the file system
             # does modify its content.
             with open(path, "a") as file:
                 file.write("bazqux")
-            self.assertEqual(open(path, "r").read(), "foobarbazqux")
+            self.assertEqual(open(path).read(), "foobarbazqux")
 
         # Check that the file was not actually modified on the file system.
-        self.assertEqual(open(path, "r").read(), "foobar")
+        self.assertEqual(open(path).read(), "foobar")
         os.remove(path)
 
         # Check that the file created inside MockedOpen wasn't actually

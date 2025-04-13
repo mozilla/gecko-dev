@@ -183,9 +183,7 @@ class TestResult:
             expected_rcs.append(3)
             if test.error not in err:
                 failures += 1
-                results.append(
-                    (cls.FAIL, "Expected uncaught error: {}".format(test.error))
-                )
+                results.append((cls.FAIL, f"Expected uncaught error: {test.error}"))
 
         if rc and rc not in expected_rcs:
             if rc == 3:
@@ -299,9 +297,7 @@ class ResultsSink:
 
                 if show_output:
                     print(
-                        "## {}: rc = {:d}, run time = {}".format(
-                            output.test.path, output.rc, output.dt
-                        ),
+                        f"## {output.test.path}: rc = {output.rc:d}, run time = {output.dt}",
                         file=self.fp,
                     )
 
@@ -316,9 +312,7 @@ class ResultsSink:
                         except UnicodeEncodeError as e:
                             # In case the data contains something not directly
                             # encodable, use \uXXXX.
-                            fp.write(
-                                "WARNING: Falling back from exception: {}\n".format(e)
-                            )
+                            fp.write(f"WARNING: Falling back from exception: {e}\n")
                             fp.write("WARNING: The following output is escaped, ")
                             fp.write("and may be different than original one.\n")
                             fp.write(
@@ -361,7 +355,7 @@ class ResultsSink:
                 def singular(label):
                     return "FIXED" if label == "FIXES" else label[:-1]
 
-                self.pb.message("{} - {}".format(singular(dev_label), output.test.path))
+                self.pb.message(f"{singular(dev_label)} - {output.test.path}")
 
         self.pb.update(self.n, self.counts)
 
@@ -433,16 +427,14 @@ class ResultsSink:
     def show_slow_tests(self):
         threshold = self.options.slow_test_threshold
         fraction_fast = 1 - len(self.slow_tests) / self.n
-        self.log_info(
-            "{:5.2f}% of tests ran in under {}s".format(fraction_fast * 100, threshold)
-        )
+        self.log_info(f"{fraction_fast * 100:5.2f}% of tests ran in under {threshold}s")
 
-        self.log_info("Slowest tests that took longer than {}s:".format(threshold))
+        self.log_info(f"Slowest tests that took longer than {threshold}s:")
         slow_tests = sorted(self.slow_tests, key=lambda x: x.duration, reverse=True)
         any = False
         for i in range(min(len(slow_tests), 20)):
             test = slow_tests[i]
-            self.log_info("  {:6.2f} {}".format(test.duration, test.test))
+            self.log_info(f"  {test.duration:6.2f} {test.test}")
             any = True
         if not any:
             self.log_info("None")
@@ -472,7 +464,7 @@ class ResultsSink:
             result += " | (SKIP)"
         if time > self.options.timeout:
             result += " | (TIMEOUT)"
-        result += " [{:.1f} s]".format(time)
+        result += f" [{time:.1f} s]"
         print(result)
 
         details = {"extra": extra.copy() if extra else {}}

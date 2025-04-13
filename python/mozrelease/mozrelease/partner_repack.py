@@ -326,7 +326,7 @@ def getBouncerProduct(partner, partner_distro):
     )
 
 
-class RepackBase(object):
+class RepackBase:
     def __init__(
         self,
         build: str,

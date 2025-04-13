@@ -58,7 +58,7 @@ def make_shell_cmd(l):
 
 # An instance of this class collects the lists of passing, failing, and
 # timing-out tests, runs the progress bar, and prints a summary at the end.
-class Summary(object):
+class Summary:
     class SummaryBar(progressbar.ProgressBar):
         def __init__(self, limit):
             super(Summary.SummaryBar, self).__init__("", limit, 24)

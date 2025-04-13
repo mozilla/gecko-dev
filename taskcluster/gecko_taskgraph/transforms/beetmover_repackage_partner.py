@@ -201,9 +201,7 @@ def generate_upstream_artifacts(
                     "taskId": {"task-reference": repackage_signing_task_ref},
                     "taskType": "repackage",
                     "paths": [
-                        "{}/{}/target.stub-installer.exe".format(
-                            artifact_prefix, repack_id
-                        )
+                        f"{artifact_prefix}/{repack_id}/target.stub-installer.exe"
                     ],
                     "locale": partner_path,
                 }
@@ -213,9 +211,7 @@ def generate_upstream_artifacts(
                     "taskId": {"task-reference": repackage_signing_task_ref},
                     "taskType": "repackage",
                     "paths": [
-                        "{}/{}/target.stub-installer.exe.asc".format(
-                            artifact_prefix, repack_id
-                        )
+                        f"{artifact_prefix}/{repack_id}/target.stub-installer.exe.asc"
                     ],
                     "locale": partner_path,
                 }

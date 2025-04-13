@@ -198,7 +198,7 @@ class ConfigureOutputHandler(logging.Handler):
         self._keep_if_debug = self.KEEP
 
 
-class LineIO(object):
+class LineIO:
     """File-like class that sends each line of the written data to a callback
     (without carriage returns).
     """

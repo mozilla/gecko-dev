@@ -10,7 +10,7 @@ from collections import OrderedDict, namedtuple
 from contextlib import contextmanager
 
 
-class PsutilStub(object):
+class PsutilStub:
     def __init__(self):
         self.sswap = namedtuple(
             "sswap", ["total", "used", "free", "percent", "sin", "sout"]
@@ -197,7 +197,7 @@ SystemResourceUsage = namedtuple(
 )
 
 
-class SystemResourceMonitor(object):
+class SystemResourceMonitor:
     """Measures system resources.
 
     Each instance measures system resources from the time it is started

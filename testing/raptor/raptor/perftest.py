@@ -65,7 +65,7 @@ POST_DELAY_DEFAULT = 30000
 
 
 @six.add_metaclass(ABCMeta)
-class Perftest(object):
+class Perftest:
     """Abstract base class for perftests that execute via a subharness,
     either Raptor or browsertime."""
 
@@ -350,9 +350,7 @@ class Perftest(object):
         # create a temp file to help ensure uniqueness
         temp_download_dir = self._get_temp_dir()
         LOG.info(
-            "Making temp_download_dir from inside get_conditioned_profile {}".format(
-                temp_download_dir
-            )
+            f"Making temp_download_dir from inside get_conditioned_profile {temp_download_dir}"
         )
         # call condprof's client API to yield our platform-specific
         # conditioned-profile binary
@@ -402,17 +400,13 @@ class Perftest(object):
         )
         if not os.path.exists(cond_prof_target_dir):
             LOG.critical(
-                "Can't find target_dir {}, from get_profile()"
-                "temp_download_dir {}, platform {}, scenario {}".format(
-                    cond_prof_target_dir, temp_download_dir, platform, profile_scenario
-                )
+                f"Can't find target_dir {cond_prof_target_dir}, from get_profile()"
+                f"temp_download_dir {temp_download_dir}, platform {platform}, scenario {profile_scenario}"
             )
             raise OSError
 
         LOG.info(
-            "Original self.conditioned_profile_dir is now set: {}".format(
-                self.conditioned_profile_dir
-            )
+            f"Original self.conditioned_profile_dir is now set: {self.conditioned_profile_dir}"
         )
         return self.conditioned_profile_copy
 
@@ -429,12 +423,12 @@ class Perftest(object):
             self.profile = None
             return
         # Merge extra profile data from testing/profiles
-        with open(os.path.join(self.profile_data_dir, "profiles.json"), "r") as fh:
+        with open(os.path.join(self.profile_data_dir, "profiles.json")) as fh:
             base_profiles = json.load(fh)["raptor"]
 
         for profile in base_profiles:
             path = os.path.join(self.profile_data_dir, profile)
-            LOG.info("Merging profile: {}".format(path))
+            LOG.info(f"Merging profile: {path}")
             self.profile.merge(path)
 
         LOG.info("Browser preferences: {}".format(self.config["extra_prefs"]))
@@ -442,7 +436,7 @@ class Perftest(object):
 
         # share the profile dir with the config and the control server
         self.config["local_profile_dir"] = self.profile.profile
-        LOG.info("Local browser profile: {}".format(self.profile.profile))
+        LOG.info(f"Local browser profile: {self.profile.profile}")
 
     @property
     def profile_data_dir(self):
@@ -568,7 +562,7 @@ class Perftest(object):
         for dir_to_rm in self._dirs_to_remove:
             if not os.path.exists(dir_to_rm):
                 continue
-            LOG.info("Removing temporary directory: {}".format(dir_to_rm))
+            LOG.info(f"Removing temporary directory: {dir_to_rm}")
             shutil.rmtree(dir_to_rm, ignore_errors=True)
         self._dirs_to_remove = []
 
@@ -741,7 +735,7 @@ class PerftestAndroid(Perftest):
         return (browser_name, browser_version)
 
     def set_reverse_port(self, port):
-        tcp_port = "tcp:{}".format(port)
+        tcp_port = f"tcp:{port}"
         self.device.create_socket_connection("reverse", tcp_port, tcp_port)
 
     def set_reverse_ports(self):
@@ -762,7 +756,7 @@ class PerftestAndroid(Perftest):
         if self.config["app"] in FIREFOX_ANDROID_APPS:
             # Merge in the Android profile.
             path = os.path.join(self.profile_data_dir, "raptor-android")
-            LOG.info("Merging profile: {}".format(path))
+            LOG.info(f"Merging profile: {path}")
             self.profile.merge(path)
 
     def clear_app_data(self):
@@ -802,9 +796,7 @@ class PerftestAndroid(Perftest):
         proxy_prefs["network.proxy.no_proxies_on"] = self.config["host"]
 
         LOG.info(
-            "setting profile prefs to turn on the android app proxy: {}".format(
-                proxy_prefs
-            )
+            f"setting profile prefs to turn on the android app proxy: {proxy_prefs}"
         )
         self.profile.set_preferences(proxy_prefs)
 

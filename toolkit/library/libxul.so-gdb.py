@@ -26,7 +26,7 @@ for relpath in ("../../..", "../.."):
     if objdir is not None:
         m = re.search(r"[\w ]+: (.*)", gdb.execute("show directories", False, True))
         if m and (objdir not in m.group(1).split(":")):
-            gdb.execute("set directories {}:{}".format(objdir, m.group(1)))
+            gdb.execute(f"set directories {objdir}:{m.group(1)}")
 else:
     gdb.write("Warning: Gecko objdir not found\n")
 

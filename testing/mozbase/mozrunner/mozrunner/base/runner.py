@@ -24,7 +24,7 @@ from ..errors import RunnerNotStartedError
 
 
 @six.add_metaclass(ABCMeta)
-class BaseRunner(object):
+class BaseRunner:
     """
     The base runner class for all mozrunner objects, both local and remote.
     """
@@ -143,7 +143,7 @@ class BaseRunner(object):
                 self.process_handler = process
             except Exception as e:
                 raise RunnerNotStartedError(
-                    "Failed to start the process: {}".format(e)
+                    f"Failed to start the process: {e}"
                 ).with_traceback(sys.exc_info()[2])
 
         self.crashed = 0

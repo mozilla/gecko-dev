@@ -7,7 +7,7 @@ import re
 
 def read_conf(conf_filename):
     # Can't read/write from a single StringIO, so make a new one for reading.
-    stream = open(conf_filename, "r")
+    stream = open(conf_filename)
 
     def parse_counters(stream):
         for line_num, full_line in enumerate(stream):

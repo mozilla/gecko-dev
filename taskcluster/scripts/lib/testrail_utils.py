@@ -60,7 +60,7 @@ def get_release_version():
         raise FileNotFoundError(f"{version_file_path} not found.")
 
     # Read the version from the file
-    with open(version_file_path, "r") as file:
+    with open(version_file_path) as file:
         version = file.readline().strip()
 
     return version
@@ -77,7 +77,7 @@ def get_release_type(version):
 
 def load_testrail_credentials(json_file_path):
     try:
-        with open(json_file_path, "r") as file:
+        with open(json_file_path) as file:
             credentials = json.load(file)
         return credentials
     except json.JSONDecodeError as e:

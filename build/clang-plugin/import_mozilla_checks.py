@@ -77,7 +77,7 @@ clang_target_link_libraries(clangTidyMozillaModule
 
 
 def add_moz_module(cmake_path):
-    with open(cmake_path, "r") as f:
+    with open(cmake_path) as f:
         lines = f.readlines()
     f.close()
 
@@ -89,7 +89,7 @@ def add_moz_module(cmake_path):
             for line in lines:
                 f.write(line)
     except ValueError:
-        raise Exception("Unable to find ALL_CLANG_TIDY_CHECKS in {}".format(cmake_path))
+        raise Exception(f"Unable to find ALL_CLANG_TIDY_CHECKS in {cmake_path}")
 
 
 def write_third_party_paths(mozilla_path, module_path):

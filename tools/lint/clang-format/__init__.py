@@ -81,7 +81,7 @@ def remove_ignored_path(paths, topsrcdir, log):
     path_to_third_party = os.path.join(topsrcdir, ".clang-format-ignore")
 
     ignored_dir = []
-    with open(path_to_third_party, "r") as fh:
+    with open(path_to_third_party) as fh:
         for l in fh:
             # In case it starts with a space
             line = l.strip()
@@ -98,7 +98,7 @@ def remove_ignored_path(paths, topsrcdir, log):
     for f in paths:
         if is_ignored_path(ignored_dir_re, topsrcdir, f):
             # Early exit if we have provided an ignored directory
-            log.debug("Ignored third party code '{0}'".format(f))
+            log.debug(f"Ignored third party code '{f}'")
             continue
         path_list.append(f)
 
@@ -131,7 +131,7 @@ def lint(paths, config, fix=None, **lintargs):
 
     base_command = cmd_args + ["--version"]
     version = run_process(config, base_command).rstrip("\r\n")
-    log.debug("Version: {}".format(version))
+    log.debug(f"Version: {version}")
 
     cmd_args.append("--output-replacements-xml")
     base_command = cmd_args + paths

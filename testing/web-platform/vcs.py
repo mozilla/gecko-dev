@@ -6,7 +6,7 @@ import os
 import subprocess
 
 
-class Mercurial(object):
+class Mercurial:
     def __init__(self, repo_root):
         self.root = os.path.abspath(repo_root)
         self.hg = Mercurial.get_func(repo_root)
@@ -35,7 +35,7 @@ class Mercurial(object):
         return True
 
 
-class Git(object):
+class Git:
     def __init__(self, repo_root, url_base):
         self.root = os.path.abspath(repo_root)
         self.git = Git.get_func(repo_root)

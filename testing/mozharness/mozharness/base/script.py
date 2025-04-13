@@ -135,7 +135,7 @@ def platform_name():
         return None
 
 
-class PlatformMixin(object):
+class PlatformMixin:
     def _is_windows(self):
         """check if the current operating system is Windows.
 
@@ -471,13 +471,13 @@ class ScriptMixin(PlatformMixin):
         Returns:
             BytesIO: contents of url
         """
-        self.info("Fetch {} into memory".format(url))
+        self.info(f"Fetch {url} into memory")
         parsed_url = urlparse.urlparse(url)
 
         if parsed_url.scheme in ("", "file"):
             path = parsed_url.path
             if not os.path.isfile(path):
-                raise OSError("Could not find file to extract: {}".format(url))
+                raise OSError(f"Could not find file to extract: {url}")
 
             content_length = os.stat(path).st_size
 
@@ -508,15 +508,13 @@ class ScriptMixin(PlatformMixin):
         response_body = response.read()
         response_body_size = len(response_body)
 
-        self.info("Content-Length response header: {}".format(content_length))
-        self.info("Bytes received: {}".format(response_body_size))
+        self.info(f"Content-Length response header: {content_length}")
+        self.info(f"Bytes received: {response_body_size}")
 
         if response_body_size != content_length:
             raise ContentLengthMismatch(
                 "The retrieved Content-Length header declares a body length "
-                "of {} bytes, while we actually retrieved {} bytes".format(
-                    content_length, response_body_size
-                )
+                f"of {content_length} bytes, while we actually retrieved {response_body_size} bytes"
             )
 
         if response.info().get("Content-Encoding") == "gzip":
@@ -694,7 +692,7 @@ class ScriptMixin(PlatformMixin):
 
             for entry in entries:
                 if verbose:
-                    self.info(" {}".format(entry))
+                    self.info(f" {entry}")
 
                 # Exception to be retried:
                 # Bug 1301645 - BadZipfile: Bad CRC-32 for file ...
@@ -714,7 +712,7 @@ class ScriptMixin(PlatformMixin):
                         os.chmod(fname, mode)
 
                 except KeyError:
-                    self.warning("{} was not found in the zip file".format(entry))
+                    self.warning(f"{entry} was not found in the zip file")
 
     def deflate(self, compressed_file, mode, extract_to=".", *args, **kwargs):
         """This method allows to extract a compressed file from a tar{,bz2,gz,xz} files.
@@ -779,7 +777,7 @@ class ScriptMixin(PlatformMixin):
             # XXX: bz2/gz/xz instead of tar.{bz2/gz/xz}
             extension = filename[filename.rfind(".") + 1 :]
             mimetype = EXTENSION_TO_MIMETYPE[extension]
-            self.debug("Mimetype: {}".format(mimetype))
+            self.debug(f"Mimetype: {mimetype}")
 
             function = MIMETYPES[mimetype]["function"]
             kwargs = {
@@ -814,7 +812,7 @@ class ScriptMixin(PlatformMixin):
             ),
             sleeptime=30,
             attempts=5,
-            error_message="Can't download from {}".format(url),
+            error_message=f"Can't download from {url}",
             error_level=FATAL,
         )
         compressed_file = self.retry(
@@ -1511,7 +1509,7 @@ class ScriptMixin(PlatformMixin):
         output_timeout=None,
         fatal_exit_code=2,
         error_level=ERROR,
-        **kwargs
+        **kwargs,
     ):
         """Run a command, with logging and error parsing.
         TODO: context_lines
@@ -1938,9 +1936,7 @@ class ScriptMixin(PlatformMixin):
 
         if zipfile.is_zipfile(filename):
             try:
-                self.info(
-                    "Using ZipFile to extract {} to {}".format(filename, extract_to)
-                )
+                self.info(f"Using ZipFile to extract {filename} to {extract_to}")
                 with zipfile.ZipFile(filename) as bundle:
                     for entry in self._filter_entries(bundle.namelist(), extract_dirs):
                         if verbose:
@@ -1965,9 +1961,7 @@ class ScriptMixin(PlatformMixin):
         # Bug 1211882 - is_tarfile cannot be trusted for dmg files
         elif tarfile.is_tarfile(filename) and not filename.lower().endswith(".dmg"):
             try:
-                self.info(
-                    "Using TarFile to extract {} to {}".format(filename, extract_to)
-                )
+                self.info(f"Using TarFile to extract {filename} to {extract_to}")
                 with tarfile.open(filename) as bundle:
                     for entry in self._filter_entries(bundle.getnames(), extract_dirs):
                         _validate_tar_member(bundle.getmember(entry), extract_to)
@@ -2075,13 +2069,13 @@ def PostScriptAction(action=None):
 
 
 # BaseScript {{{1
-class BaseScript(ScriptMixin, LogMixin, object):
+class BaseScript(ScriptMixin, LogMixin):
     def __init__(
         self,
         config_options=None,
         ConfigClass=BaseConfig,
         default_log_level="info",
-        **kwargs
+        **kwargs,
     ):
         self._return_code = 0
         super(BaseScript, self).__init__()
@@ -2154,7 +2148,7 @@ class BaseScript(ScriptMixin, LogMixin, object):
                 item = None
                 self.warning(
                     "BaseScript collecting decorated methods: "
-                    "failure to get attribute {}: {}".format(k, str(e))
+                    f"failure to get attribute {k}: {str(e)}"
                 )
             if not item:
                 continue

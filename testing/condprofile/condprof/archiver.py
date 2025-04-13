@@ -24,7 +24,7 @@ def _tarinfo2mem(tar, tarinfo):
     return metadata, data
 
 
-class Archiver(object):
+class Archiver:
     def __init__(self, scenario, profile_dir, archives_dir):
         self.profile_dir = profile_dir
         self.archives_dir = archives_dir

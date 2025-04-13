@@ -25,7 +25,7 @@ def save_file(file_content, path, extension="rst"):
     :param str data: Content to write into the file.
     :param str extension: Extension to save the file as.
     """
-    new_file = pathlib.Path("{}.{}".format(str(path), extension))
+    new_file = pathlib.Path(f"{str(path)}.{extension}")
     with new_file.open("wb") as f:
         f.write(file_content.encode("utf-8"))
 
@@ -53,9 +53,7 @@ def read_yaml(yaml_path):
         with yaml_path.open(encoding="utf-8") as f:
             contents = yaml.safe_load(f)
     except Exception as e:
-        logger.warning(
-            "Error opening file {}: {}".format(str(yaml_path), str(e)), str(yaml_path)
-        )
+        logger.warning(f"Error opening file {str(yaml_path)}: {str(e)}", str(yaml_path))
 
     return contents
 

@@ -3,7 +3,7 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 
-class PingFilter(object):
+class PingFilter:
     """Ping filter that accepts any pings."""
 
     def __call__(self, ping):

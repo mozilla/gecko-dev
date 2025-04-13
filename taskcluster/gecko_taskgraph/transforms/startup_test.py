@@ -15,9 +15,7 @@ def add_command(config, jobs):
         upstream_kind = extra_config["upstream_kind"]
         upstream_artifact = extra_config["upstream_artifact"]
         binary = extra_config["binary"]
-        package_to_test = "<{}/public/build/{}>".format(
-            upstream_kind, upstream_artifact
-        )
+        package_to_test = f"<{upstream_kind}/public/build/{upstream_artifact}>"
 
         if job["attributes"]["build_platform"].startswith("linux"):
             job["run"]["command"] = {

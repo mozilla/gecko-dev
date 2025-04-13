@@ -449,7 +449,7 @@ class AutoTry:
             if suite not in suites and (not intersection or suite in tests):
                 for job_name in self.flavor_jobs[flavor]:
                     for test in flavor_tests:
-                        paths.add("{}:{}".format(flavor, test))
+                        paths.add(f"{flavor}:{test}")
                     suites[job_name] = tests.get(suite, [])
 
         # intersection implies tests are expected

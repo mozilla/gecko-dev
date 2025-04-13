@@ -19,7 +19,7 @@ from perfdocs.utils import (
 logger = PerfDocLogger()
 
 
-class Generator(object):
+class Generator:
     """
     After each perfdocs directory was validated, the generator uses the templates
     for each framework, fills them with the test descriptions in config and saves
@@ -171,7 +171,7 @@ class Generator(object):
             perfdocs_tmpdir.mkdir(parents=True, exist_ok=True)
             perfdocs_tmpdir.chmod(0o766)
         except OSError as e:
-            logger.critical("Error creating temp file: {}".format(e))
+            logger.critical(f"Error creating temp file: {e}")
 
         if perfdocs_tmpdir.is_dir():
             return perfdocs_tmpdir
@@ -254,9 +254,7 @@ class Generator(object):
                     )
                 )
         except Exception as e:
-            logger.critical(
-                "There was an error while saving the documentation: {}".format(e)
-            )
+            logger.critical(f"There was an error while saving the documentation: {e}")
 
     def generate_perfdocs(self):
         """

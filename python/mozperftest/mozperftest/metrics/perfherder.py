@@ -156,8 +156,8 @@ class Perfherder(Layer):
 
         file = "perfherder-data.json"
         if prefix:
-            file = "{}-{}".format(prefix, file)
-        self.info("Writing perfherder results to {}".format(os.path.join(output, file)))
+            file = f"{prefix}-{file}"
+        self.info(f"Writing perfherder results to {os.path.join(output, file)}")
 
         # XXX "suites" key error occurs when using self.info so a print
         # is being done for now.
@@ -297,7 +297,7 @@ class Perfherder(Layer):
             allvals.extend(reps)
 
             if len(reps) == 0:
-                self.warning("No replicates found for {}, skipping".format(measurement))
+                self.warning(f"No replicates found for {measurement}, skipping")
                 continue
 
             # Gather extra settings specified from within a metric specification

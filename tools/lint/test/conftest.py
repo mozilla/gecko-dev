@@ -35,7 +35,7 @@ def pytest_generate_tests(metafunc):
             )
 
         name = metafunc.module.LINTER
-        config_path = path.join(lintdir, "{}.yml".format(name))
+        config_path = path.join(lintdir, f"{name}.yml")
         parser = Parser(build.topsrcdir)
         configs = parser.parse(config_path)
         config_names = {config["name"] for config in configs}

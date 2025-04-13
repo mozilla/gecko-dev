@@ -17,7 +17,7 @@ from mozbuild.backend.configenvironment import ConfigEnvironment
 from mozbuild.mozinfo import build_dict, write_mozinfo
 
 
-class Base(object):
+class Base:
     def _config(self, substs={}):
         d = os.path.dirname(__file__)
         return ConfigEnvironment(d, d, substs=substs)

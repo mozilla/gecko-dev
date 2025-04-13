@@ -57,7 +57,7 @@ CONDITIONS_JS_TO_MP = {  # Manifestparser expression grammar
 }
 
 
-class ReftestManifest(object):
+class ReftestManifest:
     """Represents a parsed reftest manifest."""
 
     def __init__(self, finder=None):
@@ -142,7 +142,7 @@ class ReftestManifest(object):
         if self.finder:
             lines = self.finder.get(path).read().splitlines()
         else:
-            with open(path, "r", encoding="utf-8") as fh:
+            with open(path, encoding="utf-8") as fh:
                 lines = fh.read().splitlines()
 
         urlprefix = ""
@@ -188,8 +188,8 @@ class ReftestManifest(object):
 
                 if j < len(defaults):
                     raise ValueError(
-                        "Error parsing manifest {}, line {}: "
-                        "Invalid defaults token '{}'".format(path, lineno, item)
+                        f"Error parsing manifest {path}, line {lineno}: "
+                        f"Invalid defaults token '{item}'"
                     )
 
                 if item == "url-prefix":

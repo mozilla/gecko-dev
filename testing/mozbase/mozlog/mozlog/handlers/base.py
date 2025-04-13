@@ -13,7 +13,7 @@ from mozlog.handlers.messagehandler import MessageHandler
 from mozlog.structuredlog import log_levels
 
 
-class BaseHandler(object):
+class BaseHandler:
     """A base handler providing message handling facilities to
     derived classes.
     """

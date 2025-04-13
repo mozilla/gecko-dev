@@ -19,7 +19,7 @@ class ValgrindHandler(BaseHandler):
             self.inner(tmp)
 
 
-class ValgrindFilter(object):
+class ValgrindFilter:
     """
     A class for handling Valgrind output.
 

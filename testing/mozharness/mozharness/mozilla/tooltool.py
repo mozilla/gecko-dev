@@ -24,7 +24,7 @@ _mozbuild_action_path = os.path.normpath(
 _mozbuild_action_abspath = os.path.join("python", "mozbuild", "mozbuild", "action")
 
 
-class TooltoolMixin(object):
+class TooltoolMixin:
     """Mixin class for handling tooltool manifests.
     To use a tooltool server other than the Mozilla server, set
     TOOLTOOL_HOST in the environment.

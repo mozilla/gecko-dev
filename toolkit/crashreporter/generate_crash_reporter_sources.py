@@ -61,7 +61,7 @@ def read_annotations(annotations_filename):
     If an error is encountered quit the program."""
 
     try:
-        with open(annotations_filename, "r") as annotations_file:
+        with open(annotations_filename) as annotations_file:
             annotations = sort_annotations(yaml.safe_load(annotations_file))
     except (OSError, ValueError) as e:
         print("Error parsing " + annotations_filename + ":\n" + str(e) + "\n")
@@ -77,7 +77,7 @@ def read_template(template_filename):
     If an error is encountered quit the program."""
 
     try:
-        with open(template_filename, "r") as template_file:
+        with open(template_filename) as template_file:
             template = template_file.read()
     except OSError as ex:
         print("Error when reading " + template_filename + ":\n" + str(ex) + "\n")

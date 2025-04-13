@@ -19,7 +19,7 @@ LOG = RaptorLogger(component="raptor-benchmark")
 here = pathlib.Path(__file__).parent.resolve()
 
 
-class Benchmark(object):
+class Benchmark:
     """utility class for running benchmarks in raptor"""
 
     def __init__(self, config, test, debug_mode=False):
@@ -267,7 +267,7 @@ class Benchmark(object):
             raise ex
 
         if not external_repo_path.is_dir():
-            LOG.info("Cloning the benchmarks to {}".format(external_repo_path))
+            LOG.info(f"Cloning the benchmarks to {external_repo_path}")
             # Bug 1804694 - Use sparse checkouts instead of full clones
             # Locally, we should always do a full clone
             self._full_clone(benchmark_repository, external_repo_path)

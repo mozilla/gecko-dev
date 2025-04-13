@@ -59,8 +59,8 @@ class AddDeterministic:
         """
 
         if nonce:
-            return '<script nonce="{}">{}</script>'.format(nonce, script)
-        return "<script>{}</script>".format(script)
+            return f'<script nonce="{nonce}">{script}</script>'
+        return f"<script>{script}</script>"
 
     def update_csp_script_src(self, test_header, headers, sha256):
         """
@@ -83,7 +83,7 @@ class AddDeterministic:
                 add_unsafe = False
                 ctx.log.info("Contains unsafe-inline")
             elif token.startswith("'sha"):
-                sources.append("'sha256-{}'".format(sha256))
+                sources.append(f"'sha256-{sha256}'")
                 add_unsafe = False
                 ctx.log.info("Add sha hash directive")
                 break
@@ -124,7 +124,7 @@ class AddDeterministic:
                 html = flow.response.text
 
                 with open(
-                    path.join(path.dirname(__file__), "catapult/deterministic.js"), "r"
+                    path.join(path.dirname(__file__), "catapult/deterministic.js")
                 ) as jsfile:
                     js = jsfile.read().replace(
                         "REPLACE_LOAD_TIMESTAMP", str(self.millis)
@@ -138,9 +138,7 @@ class AddDeterministic:
                             script_index = re.search("(?i).*?<!doctype html>", html)
                         if script_index is None:
                             ctx.log.info(
-                                "No start tags found in request {}. Skip injecting".format(
-                                    flow.request.url
-                                )
+                                f"No start tags found in request {flow.request.url}. Skip injecting"
                             )
                             return
                         script_index = script_index.end()
@@ -189,15 +187,11 @@ class AddDeterministic:
                         flow.response.text = new_html
 
                         ctx.log.info(
-                            "In request {} injected deterministic JS".format(
-                                flow.request.url
-                            )
+                            f"In request {flow.request.url} injected deterministic JS"
                         )
                     else:
                         ctx.log.info(
-                            "Script already injected in request {}".format(
-                                flow.request.url
-                            )
+                            f"Script already injected in request {flow.request.url}"
                         )
 
 

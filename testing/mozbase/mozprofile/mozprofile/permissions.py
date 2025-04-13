@@ -84,7 +84,7 @@ class LocationsSyntaxError(Exception):
         return s
 
 
-class Location(object):
+class Location:
     """Represents a location line in server-locations.txt."""
 
     attrs = ("scheme", "host", "port")
@@ -117,7 +117,7 @@ class Location(object):
         return "%s  %s" % (self.url(), ",".join(self.options))
 
 
-class ServerLocations(object):
+class ServerLocations:
     """Iterable collection of locations.
     Use provided functions to add new locations, rather that manipulating
     _locations directly, in order to check for errors and to ensure the
@@ -209,7 +209,7 @@ class ServerLocations(object):
             raise LocationsSyntaxError(lineno + 1, MissingPrimaryLocationError())
 
 
-class Permissions(object):
+class Permissions:
     """Allows handling of permissions for ``mozprofile``"""
 
     def __init__(self, locations=None):
@@ -240,7 +240,7 @@ class Permissions(object):
                 user_prefs = [("network.proxy.type", 0)]
                 # Use TRR_ONLY mode
                 user_prefs.append(("network.trr.mode", 3))
-                trrUri = "https://foo.example.com:{}/dns-query".format(dohServerPort)
+                trrUri = f"https://foo.example.com:{dohServerPort}/dns-query"
                 user_prefs.append(("network.trr.uri", trrUri))
                 user_prefs.append(("network.trr.bootstrapAddr", "127.0.0.1"))
                 user_prefs.append(("network.dns.force_use_https_rr", True))

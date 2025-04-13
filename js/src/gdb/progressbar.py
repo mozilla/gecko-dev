@@ -9,7 +9,7 @@ import sys
 import time
 
 
-class ProgressBar(object):
+class ProgressBar:
     def __init__(self, label, limit, label_width=12):
         self.label = label
         self.limit = limit

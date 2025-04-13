@@ -15,11 +15,11 @@ def fixture_httpd():
 def test_base_url(httpd):
     port = httpd.httpd.server_port
 
-    want = "http://127.0.0.1:{}/".format(port)
+    want = f"http://127.0.0.1:{port}/"
     got = httpd.get_url()
     assert got == want
 
-    want = "http://127.0.0.1:{}/cheezburgers.html".format(port)
+    want = f"http://127.0.0.1:{port}/cheezburgers.html"
     got = httpd.get_url(path="/cheezburgers.html")
     assert got == want
 

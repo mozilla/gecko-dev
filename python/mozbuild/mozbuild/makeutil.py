@@ -7,7 +7,7 @@ import re
 from collections.abc import Iterable
 
 
-class Makefile(object):
+class Makefile:
     """Provides an interface for writing simple makefiles
 
     Instances of this class are created, populated with rules, then
@@ -57,7 +57,7 @@ class Makefile(object):
             guard.dump(fh)
 
 
-class _SimpleOrderedSet(object):
+class _SimpleOrderedSet:
     """
     Simple ordered set, specialized for used in Rule below only.
     It doesn't expose a complete API, and normalizes path separators
@@ -94,7 +94,7 @@ class _SimpleOrderedSet(object):
         self._list.extend(added)
 
 
-class Rule(object):
+class Rule:
     """Class handling simple rules in the form:
     target1 target2 ... : dep1 dep2 ...
     command1 command2 ...

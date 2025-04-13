@@ -77,9 +77,7 @@ def _extract_applicable_action(actions_json, action_name, task_group_id, task_id
 
     available_actions = ", ".join(sorted({a["name"] for a in actions_json["actions"]}))
     raise LookupError(
-        "{} action is not available for this task. Available: {}".format(
-            action_name, available_actions
-        )
+        f"{action_name} action is not available for this task. Available: {available_actions}"
     )
 
 

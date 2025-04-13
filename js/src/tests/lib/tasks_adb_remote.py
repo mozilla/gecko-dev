@@ -95,7 +95,7 @@ def aggregate_script_stdout(stdout_lines, prefix, tempdir, uniq_tag, tests, opti
         assert ended
     except AssertionError as e:
         sys.stderr.write("Metadata history:\n{}\n".format("\n".join(meta_history)))
-        sys.stderr.write("Last line: {}\n".format(last_line))
+        sys.stderr.write(f"Last line: {last_line}\n")
         raise e
 
 
@@ -136,7 +136,7 @@ def script_preamble(tag, prefix, options):
     timeout = int(options.timeout)
     retry = int(options.timeout_retry)
     lib_path = os.path.dirname(prefix[0])
-    return """
+    return f"""
 export LD_LIBRARY_PATH={lib_path}
 
 do_test()
@@ -173,9 +173,7 @@ do_end()
 {{
     echo '\\n{tag}THE_END'
 }}
-""".format(
-        tag=tag, lib_path=lib_path, timeout=timeout, retry=retry
-    )
+"""
 
 
 def setup_script(device, prefix, tempdir, options, uniq_tag, tests):
@@ -208,7 +206,7 @@ def setup_script(device, prefix, tempdir, options, uniq_tag, tests):
                 env["TZ"] = "PST8PDT"
             envStr = "".join(key + "='" + val + "' " for key, val in env.items())
 
-            tmpf.write("{}do_test {} 0 {};\n".format(envStr, i, cmd))
+            tmpf.write(f"{envStr}do_test {i} 0 {cmd};\n")
             script_timeout += timeout
         tmpf.write("do_end;\n")
         tmpf.close()
@@ -238,7 +236,7 @@ def start_script(
     # output produced by each test, and queue TestOutput in the qResult queue.
     try:
         adb_process = device.shell(
-            "sh {}".format(script),
+            f"sh {script}",
             env=env,
             cwd=options.remote_test_root,
             timeout=script_timeout,
@@ -252,7 +250,7 @@ def start_script(
         # After a device error, the device is typically in a
         # state where all further tests will fail so there is no point in
         # continuing here.
-        sys.stderr.write("Error running remote tests: {}".format(repr(e)))
+        sys.stderr.write(f"Error running remote tests: {repr(e)}")
 
 
 def get_remote_results(tests, prefix, pb, options):

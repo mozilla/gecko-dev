@@ -1228,10 +1228,7 @@ class PerfParser(CompareParser):
         selected_categories_msg = ", ".join(selected_categories)
         if len(selected_categories_msg) > 200:
             selected_categories_msg = f"{selected_categories_msg[:200]}...\n...{selected_categories_msg[200:]}"
-        msg = "Perf selections={} \nQueries={}".format(
-            selected_categories_msg,
-            json.dumps(queries, indent=4),
-        )
+        msg = f"Perf selections={selected_categories_msg} \nQueries={json.dumps(queries, indent=4)}"
         if alert_summary_id:
             msg = f"Perf alert summary id={alert_summary_id}"
 
@@ -1276,7 +1273,7 @@ class PerfParser(CompareParser):
                     # XXX Fix up the again selector for the perf selector (if it makes sense to)
                     push_to_try(
                         "perf-again",
-                        "{msg}".format(msg=msg),
+                        f"{msg}",
                         try_task_config=generate_try_task_config(
                             "fuzzy", selected_tasks, params=base_try_config_params
                         ),
@@ -1304,7 +1301,7 @@ class PerfParser(CompareParser):
             with redirect_stdout(log_processor):
                 push_to_try(
                     "perf",
-                    "{msg}".format(msg=msg),
+                    f"{msg}",
                     # XXX Figure out if changing `fuzzy` to `perf` will break something
                     try_task_config=generate_try_task_config(
                         "fuzzy", selected_tasks, params=try_config_params

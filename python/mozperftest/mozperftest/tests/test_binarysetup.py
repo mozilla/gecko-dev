@@ -70,7 +70,7 @@ def test_binarysetup_desktop_chrome(mocked_subprocess):
     mach_cmd, metadata, env = get_running_env(**args)
     system = env.layers[SYSTEM]
 
-    mocked_subprocess.check_output.return_value = "/fake/path/chrome".encode()
+    mocked_subprocess.check_output.return_value = b"/fake/path/chrome"
     with system as layer, silence(system):
         layer(metadata)
 

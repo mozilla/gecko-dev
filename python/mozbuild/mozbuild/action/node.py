@@ -50,7 +50,7 @@ def execute_node_cmd(node_cmd_list):
 
     try:
         if os.environ.get("BUILD_VERBOSE_LOG"):
-            print('Executing "{}"'.format(shell_quote(*node_cmd_list)), file=sys.stderr)
+            print(f'Executing "{shell_quote(*node_cmd_list)}"', file=sys.stderr)
             sys.stderr.flush()
 
         # We need to redirect stderr to a pipe because

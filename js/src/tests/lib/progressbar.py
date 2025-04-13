@@ -10,7 +10,7 @@ else:
     from .terminal_unix import Terminal
 
 
-class NullProgressBar(object):
+class NullProgressBar:
     def update(self, current, data):
         pass
 
@@ -31,7 +31,7 @@ class NullProgressBar(object):
         return timedelta.max
 
 
-class ProgressBar(object):
+class ProgressBar:
     def __init__(self, limit, fmt):
         assert self.conservative_isatty()
 
@@ -81,7 +81,7 @@ class ProgressBar(object):
 
         # Build the bar.
         pct = int(100.0 * current / self.limit)
-        sys.stdout.write("{:3d}% ".format(pct))
+        sys.stdout.write(f"{pct:3d}% ")
 
         barlen = int(1.0 * self.barlen * current / self.limit) - 1
         bar = "=" * barlen + ">" + " " * (self.barlen - barlen - 1)
@@ -91,7 +91,7 @@ class ProgressBar(object):
         now = datetime.now()
         dt = now - self.t0
         dt = dt.seconds + dt.microseconds * 1e-6
-        sys.stdout.write("{:6.1f}s".format(dt))
+        sys.stdout.write(f"{dt:6.1f}s")
         Terminal.clear_right()
 
         # Force redisplay, since we didn't write a \n.

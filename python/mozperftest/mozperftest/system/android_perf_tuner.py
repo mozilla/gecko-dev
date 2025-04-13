@@ -37,12 +37,12 @@ class PerformanceTuner:
         self.log.info("android device performance tuning complete")
 
     def _set_value_and_check_exitcode(self, file_name, value):
-        self.log.info("setting {} to {}".format(file_name, value))
+        self.log.info(f"setting {file_name} to {value}")
         if self.device.shell_bool(
             " ".join(["echo", str(value), ">", str(file_name)]),
             timeout=self.timeout,
         ):
-            self.log.info("successfully set {} to {}".format(file_name, value))
+            self.log.info(f"successfully set {file_name} to {value}")
         else:
             self.log.warning("command failed")
 
@@ -99,9 +99,7 @@ class PerformanceTuner:
             )
 
         self.log.info(
-            "CPU for device with ro.product.model '{}' unknown, not scaling_governor".format(
-                device_name
-            )
+            f"CPU for device with ro.product.model '{device_name}' unknown, not scaling_governor"
         )
 
         for key, value in commands.items():
@@ -124,9 +122,7 @@ class PerformanceTuner:
             )
 
         self.log.info(
-            "GPU for device with ro.product.model '{}' unknown, not setting devfreq".format(
-                device_name
-            )
+            f"GPU for device with ro.product.model '{device_name}' unknown, not setting devfreq"
         )
 
         for key, value in commands.items():

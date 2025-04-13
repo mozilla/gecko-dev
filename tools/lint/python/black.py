@@ -44,8 +44,8 @@ def get_black_version(binary):
         # black, 21.11b1 (compiled: no)
         return re.match(r"black.*,( version)? (\S+)", output)[2]
     except TypeError as e:
-        print("Could not parse the version '{}'".format(output))
-        print("Error: {}".format(e))
+        print(f"Could not parse the version '{output}'")
+        print(f"Error: {e}")
 
 
 def parse_issues(config, output, paths, *, log):
@@ -97,7 +97,7 @@ def run_black(config, paths, fix=None, *, log, virtualenv_bin_path):
     fixed = 0
     binary = os.path.join(virtualenv_bin_path or default_bindir(), "black")
 
-    log.debug("Black version {}".format(get_black_version(binary)))
+    log.debug(f"Black version {get_black_version(binary)}")
 
     cmd_args = [binary]
     if not fix:

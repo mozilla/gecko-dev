@@ -164,7 +164,7 @@ def ssh(**kwargs) -> DoctorCheck:
                     name="ssh",
                     status=CheckStatus.FATAL,
                     display_text=[
-                        "SSH username `{}` is not an email address.".format(username),
+                        f"SSH username `{username}` is not an email address.",
                         "hg.mozilla.org logins should be in the form `user@domain.com`.",
                     ],
                 )
@@ -173,8 +173,8 @@ def ssh(**kwargs) -> DoctorCheck:
                 name="ssh",
                 status=CheckStatus.WARNING,
                 display_text=[
-                    "SSH username `{}` does not have permission to push to "
-                    "hg.mozilla.org.".format(username)
+                    f"SSH username `{username}` does not have permission to push to "
+                    "hg.mozilla.org."
                 ],
             )
 
@@ -429,7 +429,7 @@ def mozillabuild(**kwargs) -> DoctorCheck:
         )
 
     try:
-        with open(mozpath.join(MOZILLABUILD, "VERSION"), "r") as fh:
+        with open(mozpath.join(MOZILLABUILD, "VERSION")) as fh:
             local_version = fh.readline()
 
         if not local_version:

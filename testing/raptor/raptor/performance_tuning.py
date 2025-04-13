@@ -15,7 +15,7 @@ def tune_performance(device, log=None, timeout=None):
     PerformanceTuner(device, log=log, timeout=timeout).tune_performance()
 
 
-class PerformanceTuner(object):
+class PerformanceTuner:
     def __init__(self, device, log=None, timeout=None):
         self.device = device
         self.log = log or self.device._logger
@@ -39,17 +39,15 @@ class PerformanceTuner(object):
         self.log.info("android device performance tuning complete")
 
     def _set_value_and_check_exitcode(self, file_name, value):
-        self.log.info("setting {} to {}".format(file_name, value))
+        self.log.info(f"setting {file_name} to {value}")
         try:
             self.device.shell_output(
                 " ".join(["echo", str(value), ">", str(file_name)]),
                 timeout=self.timeout,
             )
-            self.log.info("successfully set {} to {}".format(file_name, value))
+            self.log.info(f"successfully set {file_name} to {value}")
         except ADBError as e:
-            self.log.info(
-                "Ignoring failure to set value {} to {}. {}".format(file_name, value, e)
-            )
+            self.log.info(f"Ignoring failure to set value {file_name} to {value}. {e}")
 
     def set_svc_power_stayon(self):
         self.log.info("set device to stay awake on usb")
@@ -75,9 +73,7 @@ class PerformanceTuner(object):
                 )
             except ADBError as e:
                 self.log.info(
-                    "Ignoring failure to stop service {}. Error: {}: {}".format(
-                        service, e.__class__.__name__, e
-                    )
+                    f"Ignoring failure to stop service {service}. Error: {e.__class__.__name__}: {e}"
                 )
 
         services_list_output = self.device.shell_output(
@@ -99,7 +95,7 @@ class PerformanceTuner(object):
 
         for key, value in commands.items():
             command = " ".join(["settings", "put", "global", key, str(value)])
-            self.log.info("setting {} to {}".format(key, value))
+            self.log.info(f"setting {key} to {value}")
             self.device.shell_bool(command, timeout=self.timeout)
 
     def restore_animations(self):
@@ -149,9 +145,7 @@ class PerformanceTuner(object):
             )
         else:
             self.log.info(
-                "CPU for device with ro.product.model '{}' unknown, not scaling_governor".format(
-                    device_name
-                )
+                f"CPU for device with ro.product.model '{device_name}' unknown, not scaling_governor"
             )
 
         for key, value in commands.items():
@@ -177,9 +171,7 @@ class PerformanceTuner(object):
         # Pixel 6 perf tuning: Bug 1876545
         # Samsung S21 perf tuning: Bug 1876546
         self.log.info(
-            "GPU for device with ro.product.model '{}' unknown, not setting devfreq".format(
-                device_name
-            )
+            f"GPU for device with ro.product.model '{device_name}' unknown, not setting devfreq"
         )
 
         for key, value in commands.items():

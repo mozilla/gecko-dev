@@ -3,7 +3,7 @@ import copy
 from qm_try_analysis.report import remove_duplicates
 
 
-class MockClient(object):
+class MockClient:
     def __init__(self, search_results, remote_bugs):
         self.search_results = copy.deepcopy(search_results)
         self.remote_bugs = copy.deepcopy(remote_bugs)

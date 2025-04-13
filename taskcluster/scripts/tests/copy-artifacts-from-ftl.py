@@ -82,7 +82,7 @@ def load_matrix_ids_artifact(matrix_file_path):
         dict: The contents of the matrix IDs artifact.
     """
     try:
-        with open(matrix_file_path, "r") as f:
+        with open(matrix_file_path) as f:
             return json.load(f)
     except FileNotFoundError:
         exit_with_error(f"Could not find matrix file: {matrix_file_path}")

@@ -25,7 +25,7 @@ class ConfigStatusFailure(Exception):
     """Error loading config.status"""
 
 
-class BuildConfig(object):
+class BuildConfig:
     """Represents the output of configure."""
 
     _CODE_CACHE = {}
@@ -53,7 +53,7 @@ class BuildConfig(object):
             mod.__file__ = path
             sys.modules["config.status"] = mod
 
-            with open(path, "rt") as fh:
+            with open(path) as fh:
                 source = fh.read()
                 code_cache[path] = (
                     mtime,
@@ -75,7 +75,7 @@ class BuildConfig(object):
         return config
 
 
-class ConfigEnvironment(object):
+class ConfigEnvironment:
     """Perform actions associated with a configured but bare objdir.
 
     The purpose of this class is to preprocess files from the source directory
@@ -197,7 +197,7 @@ class ConfigEnvironment(object):
         )
 
 
-class PartialConfigDict(object):
+class PartialConfigDict:
     """Facilitates mapping the config.statusd defines & substs with dict-like access.
 
     This allows a buildconfig client to use buildconfig.defines['FOO'] (and
@@ -296,7 +296,7 @@ class PartialConfigDict(object):
             yield var, self[var]
 
 
-class PartialConfigEnvironment(object):
+class PartialConfigEnvironment:
     """Allows access to individual config.status items via config.statusd/* files.
 
     This class is similar to the full ConfigEnvironment, which uses

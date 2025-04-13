@@ -79,7 +79,7 @@ class TestMozbuildObject(unittest.TestCase):
         d = os.path.realpath(tempfile.mkdtemp())
         try:
             mozconfig = os.path.join(d, "mozconfig")
-            with open(mozconfig, "wt") as fh:
+            with open(mozconfig, "w") as fh:
                 fh.write("mk_add_options MOZ_OBJDIR=@TOPSRCDIR@/foo/@CONFIG_GUESS@")
             print("Wrote mozconfig %s" % mozconfig)
 
@@ -90,7 +90,7 @@ class TestMozbuildObject(unittest.TestCase):
             prepare_tmp_topsrcdir(d)
 
             mozinfo = os.path.join(topobjdir, "mozinfo.json")
-            with open(mozinfo, "wt") as fh:
+            with open(mozinfo, "w") as fh:
                 json.dump(
                     dict(
                         topsrcdir=d,
@@ -114,14 +114,14 @@ class TestMozbuildObject(unittest.TestCase):
         d = os.path.realpath(tempfile.mkdtemp())
         try:
             mozconfig = os.path.join(d, "mozconfig")
-            with open(mozconfig, "wt") as fh:
+            with open(mozconfig, "w") as fh:
                 fh.write("mk_add_options MOZ_OBJDIR=./objdir")
 
             topobjdir = mozpath.join(d, "objdir")
             os.mkdir(topobjdir)
 
             mozinfo = os.path.join(topobjdir, "mozinfo.json")
-            with open(mozinfo, "wt") as fh:
+            with open(mozinfo, "w") as fh:
                 json.dump(
                     dict(
                         topsrcdir=d,
@@ -157,11 +157,11 @@ class TestMozbuildObject(unittest.TestCase):
             os.symlink(topobjdir_real, topobjdir_link)
 
             mozconfig = os.path.join(d, "mozconfig")
-            with open(mozconfig, "wt") as fh:
+            with open(mozconfig, "w") as fh:
                 fh.write("mk_add_options MOZ_OBJDIR=%s" % topobjdir_link)
 
             mozinfo = os.path.join(topobjdir_real, "mozinfo.json")
-            with open(mozinfo, "wt") as fh:
+            with open(mozinfo, "w") as fh:
                 json.dump(
                     dict(
                         topsrcdir=d,
@@ -195,7 +195,7 @@ class TestMozbuildObject(unittest.TestCase):
             prepare_tmp_topsrcdir(topsrcdir)
 
             mozinfo = os.path.join(topobjdir, "mozinfo.json")
-            with open(mozinfo, "wt") as fh:
+            with open(mozinfo, "w") as fh:
                 json.dump(
                     dict(
                         topsrcdir=topsrcdir,
@@ -205,7 +205,7 @@ class TestMozbuildObject(unittest.TestCase):
 
             os.chdir(topobjdir)
 
-            class MockMachContext(object):
+            class MockMachContext:
                 pass
 
             context = MockMachContext()
@@ -232,7 +232,7 @@ class TestMozbuildObject(unittest.TestCase):
             # The easiest way to do this is to create a mozinfo.json with data
             # that will never happen.
             mozinfo = os.path.join(d, "mozinfo.json")
-            with open(mozinfo, "wt") as fh:
+            with open(mozinfo, "w") as fh:
                 json.dump({"topsrcdir": d}, fh)
 
             os.chdir(d)
@@ -259,13 +259,13 @@ class TestMozbuildObject(unittest.TestCase):
             prepare_tmp_topsrcdir(topsrcdir)
 
             mozconfig = os.path.join(d, "mozconfig")
-            with open(mozconfig, "wt") as fh:
+            with open(mozconfig, "w") as fh:
                 fh.write(
                     "mk_add_options MOZ_OBJDIR=%s" % real_topobjdir.replace("\\", "/")
                 )
 
             mozinfo = os.path.join(topobjdir, "mozinfo.json")
-            with open(mozinfo, "wt") as fh:
+            with open(mozinfo, "w") as fh:
                 json.dump(
                     dict(
                         topsrcdir=topsrcdir,
@@ -276,7 +276,7 @@ class TestMozbuildObject(unittest.TestCase):
 
             os.chdir(topobjdir)
 
-            class MockMachContext(object):
+            class MockMachContext:
                 pass
 
             context = MockMachContext()

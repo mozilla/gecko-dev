@@ -19,7 +19,7 @@ except ValueError:  # yuck, we are in Python 2.x, so chr() is 8-bit
 mozilla.prettyprinters.clear_module_printers(__name__)
 
 
-class JSStringTypeCache(object):
+class JSStringTypeCache:
     # Cache information about the JSString type for this objfile.
     def __init__(self, cache):
         dummy = gdb.Value(0).cast(cache.JSString_ptr_t)

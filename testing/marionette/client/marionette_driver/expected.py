@@ -16,7 +16,7 @@ of times until they are either successfully met, or they time out.
 """
 
 
-class element_present(object):
+class element_present:
     """Checks that a web element is present in the DOM of the current
     context.  This does not necessarily mean that the element is
     visible.
@@ -72,7 +72,7 @@ class element_not_present(element_present):
         return not super(element_not_present, self).__call__(marionette)
 
 
-class element_stale(object):
+class element_stale:
     """Check that the given element is no longer attached to DOM of the
     current context.
 
@@ -105,7 +105,7 @@ class element_stale(object):
             return True
 
 
-class elements_present(object):
+class elements_present:
     """Checks that web elements are present in the DOM of the current
     context.  This does not necessarily mean that the elements are
     visible.
@@ -162,7 +162,7 @@ class elements_not_present(elements_present):
         return not super(elements_not_present, self).__call__(marionette)
 
 
-class element_displayed(object):
+class element_displayed:
     """An expectation for checking that an element is visible.
 
     Visibility means that the element is not only displayed, but also
@@ -241,7 +241,7 @@ class element_not_displayed(element_displayed):
         return not super(element_not_displayed, self).__call__(marionette)
 
 
-class element_selected(object):
+class element_selected:
     """An expectation for checking that the given element is selected.
 
     :param element: the element to be selected
@@ -272,7 +272,7 @@ class element_not_selected(element_selected):
         return not super(element_not_selected, self).__call__(marionette)
 
 
-class element_enabled(object):
+class element_enabled:
     """An expectation for checking that the given element is enabled.
 
     :param element: the element to check if enabled

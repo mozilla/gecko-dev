@@ -25,7 +25,7 @@ import textwrap
 from collections import namedtuple
 
 
-class PerfectHash(object):
+class PerfectHash:
     """PerfectHash objects represent a computed perfect hash function, which
     can be generated at compile time to provide highly efficient and compact
     static HashTables.
@@ -198,7 +198,7 @@ class PerfectHash(object):
         return "%s\n\n%s" % (entries, getter)
 
 
-class CGHelper(object):
+class CGHelper:
     """Helper object for generating C++ code for a PerfectHash.
     Created using PerfectHash.codegen()."""
 

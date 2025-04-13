@@ -360,7 +360,7 @@ class ConfigSettings(collections.abc.Mapping):
 
             if option in config_settings[section]:
                 raise ConfigException(
-                    "Setting has already been registered: {}.{}".format(section, option)
+                    f"Setting has already been registered: {section}.{option}"
                 )
 
             meta = self._format_metadata(*setting[1:])
@@ -372,7 +372,7 @@ class ConfigSettings(collections.abc.Mapping):
             for k, v in settings.items():
                 if k in section:
                     raise ConfigException(
-                        "Setting already registered: {}.{}".format(section_name, k)
+                        f"Setting already registered: {section_name}.{k}"
                     )
 
                 section[k] = v

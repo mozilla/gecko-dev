@@ -15,7 +15,7 @@ class GitHubError(Exception):
         self.data = data
 
 
-class GitHub(object):
+class GitHub:
     url_base = "https://api.github.com"
 
     def __init__(self, token):
@@ -63,7 +63,7 @@ class GitHub(object):
         return GitHubRepo.from_name(self, owner, name)
 
 
-class GitHubRepo(object):
+class GitHubRepo:
     def __init__(self, github, data):
         """Object representing a GitHub repository"""
         self.gh = github
@@ -102,7 +102,7 @@ class GitHubRepo(object):
         return urljoin(self.url_base, suffix)
 
 
-class PullRequest(object):
+class PullRequest:
     def __init__(self, repo, data):
         """Object representing a Pull Request"""
 
@@ -146,7 +146,7 @@ class PullRequest(object):
         )
 
 
-class Issue(object):
+class Issue:
     def __init__(self, repo, data):
         """Object representing a GitHub Issue"""
         self.repo = repo

@@ -29,22 +29,18 @@ def compare(current, baseline):
         if t_worst < base_t_best:
             # Worst takes less time (better) than baseline's best.
             speedup = -((t_worst - base_t_best) / base_t_best) * 100
-            result = "faster: {:6.2f}ms < baseline {:6.2f}ms ({:+6.2f}%)".format(
-                t_worst, base_t_best, speedup
-            )
+            result = f"faster: {t_worst:6.2f}ms < baseline {base_t_best:6.2f}ms ({speedup:+6.2f}%)"
             percent_speedups.append(speedup)
         elif t_best > base_t_worst:
             # Best takes more time (worse) than baseline's worst.
             slowdown = -((t_best - base_t_worst) / base_t_worst) * 100
-            result = "SLOWER: {:6.2f}ms > baseline {:6.2f}ms ({:+6.2f}%) ".format(
-                t_best, base_t_worst, slowdown
-            )
+            result = f"SLOWER: {t_best:6.2f}ms > baseline {base_t_worst:6.2f}ms ({slowdown:+6.2f}%) "
             percent_speedups.append(slowdown)
         else:
             result = "Meh."
-        print("{:30s}: {}".format(key, result))
+        print(f"{key:30s}: {result}")
     if percent_speedups:
-        print("Average speedup: {:.2f}%".format(avg(percent_speedups)))
+        print(f"Average speedup: {avg(percent_speedups):.2f}%")
 
 
 def compare_immediate(current_map, baseline_path):

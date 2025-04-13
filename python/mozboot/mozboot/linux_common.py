@@ -13,7 +13,7 @@ def is_non_x86_64():
     return platform.machine() != "x86_64"
 
 
-class MobileAndroidBootstrapper(object):
+class MobileAndroidBootstrapper:
     def __init__(self, **kwargs):
         pass
 

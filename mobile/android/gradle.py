@@ -18,7 +18,7 @@ def gradle_lock(topobjdir, max_wait_seconds=600):
     # Building the same Gradle root project with multiple concurrent processes
     # is not well supported, so we use a simple lock file to serialize build
     # steps.
-    lock_path = "{}/gradle/mach_android.lockfile".format(topobjdir)
+    lock_path = f"{topobjdir}/gradle/mach_android.lockfile"
     ensureParentDir(lock_path)
     with SoftFileLock(lock_path, timeout=max_wait_seconds):
         yield

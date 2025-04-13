@@ -382,7 +382,7 @@ def show_taskgraph(options):
             )
 
     if len(parameters) > 1:
-        print("See '{}' for logs".format(logdir), file=sys.stderr)
+        print(f"See '{logdir}' for logs", file=sys.stderr)
 
 
 @command("build-image", help="Build a Docker image")

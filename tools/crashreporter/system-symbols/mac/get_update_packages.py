@@ -38,7 +38,7 @@ OSX_RE = re.compile(r"10\.[0-9]+\.[0-9]+")
 
 
 def extract_dmg(dmg_path, dest):
-    logging.info("extract_dmg({}, {})".format(dmg_path, dest))
+    logging.info(f"extract_dmg({dmg_path}, {dest})")
     with tempfile.NamedTemporaryFile() as f:
         subprocess.check_call(
             ["dmg", "extract", dmg_path, f.name], stdout=subprocess.DEVNULL
@@ -74,11 +74,11 @@ def fetch_url_to_file(url, download_dir):
     filename = os.path.basename(urlparse.urlsplit(url).path)
     local_filename = os.path.join(download_dir, filename)
     if os.path.isfile(local_filename):
-        logging.info("{} already exists, skipping".format(local_filename))
+        logging.info(f"{local_filename} already exists, skipping")
         return None
     r = requests.get(url, stream=True)
     res_len = int(r.headers.get("content-length", "0"))
-    logging.info("Downloading {} -> {} ({} bytes)".format(url, local_filename, res_len))
+    logging.info(f"Downloading {url} -> {local_filename} ({res_len} bytes)")
     with open(local_filename, "wb") as f:
         for chunk in r.iter_content(chunk_size=1024):
             if chunk:  # filter out keep-alive new chunks
@@ -95,9 +95,7 @@ def fetch_and_extract_dmg(url, tmpdir):
     subdir = tempfile.mkdtemp(dir=tmpdir)
     extract_dmg(filename, subdir)
     packages = list(find_packages(subdir))
-    logging.info(
-        "fetch_and_extract_dmg({}): found packages: {}".format(url, str(packages))
-    )
+    logging.info(f"fetch_and_extract_dmg({url}): found packages: {str(packages)}")
     return packages
 
 
@@ -112,9 +110,7 @@ def find_update_packages(tmpdir):
         for future in concurrent.futures.as_completed(jobs):
             url = jobs[future]
             if future.exception() is not None:
-                logging.error(
-                    "exception downloading {}: {}".format(url, future.exception())
-                )
+                logging.error(f"exception downloading {url}: {future.exception()}")
             else:
                 for pkg in future.result():
                     yield pkg

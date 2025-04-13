@@ -32,7 +32,7 @@ from talos.utils import TalosCrash, TalosRegression, run_in_debug_mode
 LOG = get_proxy_logger()
 
 
-class TTest(object):
+class TTest:
     def check_for_crashes(self, browser_config, minidump_dir, test_name):
         # check for minidumps
         found = mozcrash.check_for_crashes(

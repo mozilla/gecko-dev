@@ -95,7 +95,7 @@ class SummaryHandler(LogHandler):
         return res
 
     def suite_start(self, data):
-        self.current_suite = data.get("name", "suite {}".format(len(self.summary) + 1))
+        self.current_suite = data.get("name", f"suite {len(self.summary) + 1}")
         if self.current_suite not in self.summary:
             self.summary[self.current_suite] = {
                 "counts": {

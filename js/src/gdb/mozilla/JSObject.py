@@ -16,7 +16,7 @@ from mozilla.prettyprinters import ptr_pretty_printer, ref_pretty_printer
 prettyprinters.clear_module_printers(__name__)
 
 
-class JSObjectTypeCache(object):
+class JSObjectTypeCache:
     def __init__(self):
         object_flag = gdb.lookup_type("js::ObjectFlag")
         self.objectflag_IsUsedAsPrototype = prettyprinters.enum_value(
@@ -65,7 +65,7 @@ class JSObjectPtrOrRef(prettyprinters.Pointer):
             class_name = m.group(1)
 
         if non_native:
-            return "[object {}]".format(class_name)
+            return f"[object {class_name}]"
         else:
             flags = shape["objectFlags_"]["flags_"]
             used_as_prototype = bool(flags & self.otc.objectflag_IsUsedAsPrototype)

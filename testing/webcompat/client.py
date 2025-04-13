@@ -203,7 +203,7 @@ class Client:
             return "\ue009"  # control
 
     def inline(self, doc):
-        return "data:text/html;charset=utf-8,{}".format(quote(doc))
+        return f"data:text/html;charset=utf-8,{quote(doc)}"
 
     async def top_context(self):
         contexts = await self.session.bidi_session.browsing_context.get_tree()

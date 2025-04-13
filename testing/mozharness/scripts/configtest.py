@@ -125,7 +125,7 @@ class ConfigTest(BaseScript):
                 global_dict = {}
                 local_dict = {}
                 try:
-                    with open(config_file, "r") as f:
+                    with open(config_file) as f:
                         exec(f.read(), global_dict, local_dict)
                 except Exception:
                     self.add_summary(

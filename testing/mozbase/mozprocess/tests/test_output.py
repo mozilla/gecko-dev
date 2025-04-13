@@ -59,7 +59,7 @@ class ProcTestOutput(proctest.ProcTest):
         p.run()
         p.wait()
         for i in range(5, 10):
-            stream.write(str(i).encode("utf8") + "\n".encode("utf8"))
+            stream.write(str(i).encode("utf8") + b"\n")
 
         buf.flush()
         self.assertEqual(stream.getvalue().strip().decode("utf8"), expected)

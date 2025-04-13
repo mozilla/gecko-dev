@@ -62,7 +62,7 @@ def getFunctionName(location):
     pieces = location.split("#l")
     src_url = pieces[0]
     line = int(pieces[1])
-    closest_name = "<Unknown {}>".format(line)
+    closest_name = f"<Unknown {line}>"
     closest_start = 0
     functions = getSourceFunctions(src_url)
     for fn in functions:

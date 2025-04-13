@@ -35,7 +35,7 @@ NON_FIREFOX_BROWSERS_MOBILE = ("chrome-m", "cstm-car-m")
 
 
 @six.add_metaclass(ABCMeta)
-class PerftestResultsHandler(object):
+class PerftestResultsHandler:
     """Abstract base class to handle perftest results"""
 
     def __init__(
@@ -921,7 +921,7 @@ class BrowsertimeResultsHandler(PerftestResultsHandler):
                 return False
 
             try:
-                with builtins.open(bt_res_json, "r", encoding="utf8") as f:
+                with builtins.open(bt_res_json, encoding="utf8") as f:
                     raw_btresults = json.load(f)
             except Exception as e:
                 LOG.error("Exception reading %s" % bt_res_json)
@@ -980,9 +980,7 @@ class BrowsertimeResultsHandler(PerftestResultsHandler):
                 ) and os.path.exists(bt_profiling_res_json)
                 if has_extra_profiler_run:
                     try:
-                        with builtins.open(
-                            bt_profiling_res_json, "r", encoding="utf8"
-                        ) as f:
+                        with builtins.open(bt_profiling_res_json, encoding="utf8") as f:
                             raw_profiling_btresults = json.load(f)
                             split_browsertime_results(
                                 bt_profiling_res_json, raw_profiling_btresults
@@ -1191,9 +1189,7 @@ class BrowsertimeResultsHandler(PerftestResultsHandler):
 
             jobs_file = os.path.join(self.result_dir(), "jobs.json")
             LOG.info(
-                "Writing video jobs and application data {} into {}".format(
-                    jobs_json, jobs_file
-                )
+                f"Writing video jobs and application data {jobs_json} into {jobs_file}"
             )
             with builtins.open(jobs_file, "w") as f:
                 f.write(json.dumps(jobs_json))

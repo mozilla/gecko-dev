@@ -12,13 +12,11 @@ def web_socket_transfer_data(request):
         expected_message = expected_message.encode("latin-1")
         message = msgutil.receive_message(request)
         if message == expected_message:
-            msgutil.send_message(request, "PASS: Message #{:d}.".format(test_number))
+            msgutil.send_message(request, f"PASS: Message #{test_number:d}.")
         else:
             msgutil.send_message(
                 request,
-                "FAIL: Message #{:d}: Received unexpected message: {!r}".format(
-                    test_number, message
-                ),
+                f"FAIL: Message #{test_number:d}: Received unexpected message: {message!r}",
             )
 
 

@@ -216,7 +216,7 @@ def readlink(path):
         FILE_FLAG_BACKUP_SEMANTICS,
         0,
     )
-    assert handle != 1, "Failed getting a handle to: {}".format(path)
+    assert handle != 1, f"Failed getting a handle to: {path}"
 
     MAX_PATH = 260
 
@@ -233,7 +233,7 @@ def readlink(path):
     FILE_NAME_NORMALIZED = 0x0
 
     rv = GetFinalPathNameByHandleW(handle, buf, MAX_PATH, FILE_NAME_NORMALIZED)
-    assert rv != 0 and rv <= MAX_PATH, "Failed getting final path for: {}".format(path)
+    assert rv != 0 and rv <= MAX_PATH, f"Failed getting final path for: {path}"
 
     CloseHandle = ctypes.windll.kernel32.CloseHandle
     CloseHandle.argtypes = [ctypes.wintypes.HANDLE]

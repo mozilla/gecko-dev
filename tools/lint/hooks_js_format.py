@@ -57,7 +57,7 @@ def run_js_format(hooktype, changedFiles):
         vcs.add_remove_files(*path_list)
 
         return False
-    print("warning: '{}' is not a valid js-format hooktype".format(hooktype))
+    print(f"warning: '{hooktype}' is not a valid js-format hooktype")
     return False
 
 

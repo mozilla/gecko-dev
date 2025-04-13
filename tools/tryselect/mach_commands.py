@@ -28,8 +28,8 @@ class get_parser:
         self.selector = selector
 
     def __call__(self):
-        mod = importlib.import_module("tryselect.selectors.{}".format(self.selector))
-        return getattr(mod, "{}Parser".format(self.selector.capitalize()))()
+        mod = importlib.import_module(f"tryselect.selectors.{self.selector}")
+        return getattr(mod, f"{self.selector.capitalize()}Parser")()
 
 
 def generic_parser():
@@ -101,13 +101,13 @@ def handle_presets(
         # Only save non-default values for simplicity.
         kwargs = {k: v for k, v in kwargs.items() if v != default(k)}
         user_presets.save(save, selector=selector, **kwargs)
-        print("preset saved, run with: --preset={}".format(save))
+        print(f"preset saved, run with: --preset={save}")
         sys.exit()
 
     if preset:
         if preset not in presets(command_context):
             command_context._mach_context.parser.error(
-                "preset '{}' does not exist".format(preset)
+                f"preset '{preset}' does not exist"
             )
 
         name = preset
@@ -119,8 +119,8 @@ def handle_presets(
             subcommand = selector
         elif subcommand != selector:
             print(
-                "error: preset '{}' exists for a different selector "
-                "(did you mean to run 'mach try {}' instead?)".format(name, selector)
+                f"error: preset '{name}' exists for a different selector "
+                f"(did you mean to run 'mach try {selector}' instead?)"
             )
             sys.exit(1)
 
@@ -167,9 +167,7 @@ def run(command_context, **kwargs):
         kwargs = handle_try_params(command_context, **kwargs)
 
     mod = importlib.import_module(
-        "tryselect.selectors.{}".format(
-            command_context._mach_context.handler.subcommand
-        )
+        f"tryselect.selectors.{command_context._mach_context.handler.subcommand}"
     )
     return mod.run(**kwargs)
 
@@ -201,7 +199,7 @@ def try_default(command_context, argv=None, **kwargs):
     if preset:
         if preset not in presets(command_context):
             command_context._mach_context.handler.parser.error(
-                "preset '{}' does not exist".format(preset)
+                f"preset '{preset}' does not exist"
             )
 
         subcommand = presets(command_context)[preset]["selector"]

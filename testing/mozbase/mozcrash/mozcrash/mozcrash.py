@@ -119,12 +119,10 @@ def check_for_crashes(
         crash_count += 1
         output = None
         if info.java_stack:
-            output = "PROCESS-CRASH | {name} | {stack}".format(
-                name=test_name, stack=info.java_stack
-            )
+            output = f"PROCESS-CRASH | {test_name} | {info.java_stack}"
         elif not quiet:
-            stackwalk_output = ["Crash dump filename: {}".format(info.minidump_path)]
-            stackwalk_output.append("Process type: {}".format(info.process_type))
+            stackwalk_output = [f"Crash dump filename: {info.minidump_path}"]
+            stackwalk_output.append(f"Process type: {info.process_type}")
             stackwalk_output.append("Process pid: {}".format(info.pid or "unknown"))
             if info.reason:
                 stackwalk_output.append("Mozilla crash reason: %s" % info.reason)
@@ -135,9 +133,7 @@ def check_for_crashes(
                 stackwalk_output.append(info.stackwalk_stdout)
             if info.stackwalk_retcode is not None and info.stackwalk_retcode != 0:
                 stackwalk_output.append(
-                    "minidump-stackwalk exited with return code {}".format(
-                        info.stackwalk_retcode
-                    )
+                    f"minidump-stackwalk exited with return code {info.stackwalk_retcode}"
                 )
             signature = info.signature if info.signature else "unknown top frame"
 
@@ -220,7 +216,7 @@ ABORT_SUBSTRINGS = (
 )
 
 
-class CrashInfo(object):
+class CrashInfo:
     """Get information about a crash based on dump files.
 
     Typical usage is to iterate over the CrashInfo object. This returns StackInfo
@@ -397,9 +393,9 @@ class CrashInfo(object):
 
             with tempfile.TemporaryDirectory() as json_dir:
                 crash_id = os.path.basename(path)[:-4]
-                json_output = os.path.join(json_dir, "{}.trace".format(crash_id))
+                json_output = os.path.join(json_dir, f"{crash_id}.trace")
                 # Specify the kind of output
-                command.append("--cyborg={}".format(json_output))
+                command.append(f"--cyborg={json_output}")
                 if self.brief_output:
                     command.append("--brief")
 
@@ -477,7 +473,7 @@ class CrashInfo(object):
         pid = None
 
         try:
-            json_file = open(json_path, "r")
+            json_file = open(json_path)
             crash_json = json.load(json_file)
             json_file.close()
 
@@ -486,7 +482,7 @@ class CrashInfo(object):
 
         except Exception as e:
             traceback.print_exc()
-            signature = "an error occurred while processing JSON output: {}".format(e)
+            signature = f"an error occurred while processing JSON output: {e}"
 
         return {
             "pid": pid,
@@ -523,7 +519,7 @@ class CrashInfo(object):
                     break
         except Exception as e:
             traceback.print_exc()
-            signature = "an error occurred while generating the signature: {}".format(e)
+            signature = f"an error occurred while generating the signature: {e}"
 
         # Strip parameters from signature
         if signature:
@@ -552,17 +548,13 @@ class CrashInfo(object):
 
         shutil.copy(path, self.dump_save_path)
         self.logger.info(
-            "Saved minidump as {}".format(
-                os.path.join(self.dump_save_path, os.path.basename(path))
-            )
+            f"Saved minidump as {os.path.join(self.dump_save_path, os.path.basename(path))}"
         )
 
         if os.path.isfile(extra):
             shutil.copy(extra, self.dump_save_path)
             self.logger.info(
-                "Saved app info as {}".format(
-                    os.path.join(self.dump_save_path, os.path.basename(extra))
-                )
+                f"Saved app info as {os.path.join(self.dump_save_path, os.path.basename(extra))}"
             )
 
 
@@ -619,16 +611,12 @@ def check_for_java_exception(logcat, test_name=None, quiet=False):
                 if m and m.group(1):
                     exception_location = m.group(1)
                 if not quiet:
-                    output = (
-                        "PROCESS-CRASH | {name} | java-exception {type} {loc}".format(
-                            name=test_name, type=exception_type, loc=exception_location
-                        )
-                    )
+                    output = f"PROCESS-CRASH | {test_name} | java-exception {exception_type} {exception_location}"
                     print(output.encode("utf-8"))
             else:
                 print(
                     "Automation Error: java exception in logcat at line "
-                    "{0} of {1}: {2}".format(i, len(logcat), line)
+                    f"{i} of {len(logcat)}: {line}"
                 )
             break
 
@@ -675,12 +663,10 @@ if mozinfo.isWin:
                 os.path.join(utility_path, "minidumpwriter.exe")
             )
             log.info(
-                "Using {} to write a dump to {} for [{}]".format(
-                    minidumpwriter, file_name, pid
-                )
+                f"Using {minidumpwriter} to write a dump to {file_name} for [{pid}]"
             )
             if not os.path.exists(minidumpwriter):
-                log.error("minidumpwriter not found in {}".format(utility_path))
+                log.error(f"minidumpwriter not found in {utility_path}")
                 return
 
             status = subprocess.Popen([minidumpwriter, str(pid), file_name]).wait()
@@ -688,7 +674,7 @@ if mozinfo.isWin:
                 log.error("minidumpwriter exited with status: %d" % status)
             return
 
-        log.info("Writing a dump to {} for [{}]".format(file_name, pid))
+        log.info(f"Writing a dump to {file_name} for [{pid}]")
 
         proc_handle = OpenProcess(PROCESS_QUERY_INFORMATION | PROCESS_VM_READ, 0, pid)
         if not proc_handle:

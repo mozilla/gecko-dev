@@ -86,7 +86,7 @@ MAX_CACHED_TASKS = 400  # Number of pushheads to cache Task Cluster task data fo
 PROCESSED_SUFFIX = ".processed.jar"
 
 
-class ArtifactJob(object):
+class ArtifactJob:
     trust_domain = "gecko"
     default_candidate_trees = [
         "releases/mozilla-release",
@@ -230,13 +230,13 @@ class ArtifactJob(object):
                 )
         if self._tests_re and not tests_artifact:
             raise ValueError(
-                'Expected tests archive matching "{re}", but '
-                "found none!".format(re=self._tests_re)
+                f'Expected tests archive matching "{self._tests_re}", but '
+                "found none!"
             )
         if self._maven_zip_re and not maven_zip_artifact:
             raise ValueError(
-                'Expected Maven zip archive matching "{re}", but '
-                "found none!".format(re=self._maven_zip_re)
+                f'Expected Maven zip archive matching "{self._maven_zip_re}", but '
+                "found none!"
             )
 
     @contextmanager
@@ -315,10 +315,8 @@ class ArtifactJob(object):
 
         if not added_entry:
             raise ValueError(
-                'Archive format changed! No pattern from "{patterns}"'
-                "matched an archive path.".format(
-                    patterns=LinuxArtifactJob.test_artifact_patterns
-                )
+                f'Archive format changed! No pattern from "{LinuxArtifactJob.test_artifact_patterns}"'
+                "matched an archive path."
             )
 
     def process_tests_tar_artifact(self, filename, processed_filename):
@@ -378,10 +376,8 @@ class ArtifactJob(object):
 
         if not added_entry:
             raise ValueError(
-                'Archive format changed! No pattern from "{patterns}"'
-                "matched an archive path.".format(
-                    patterns=LinuxArtifactJob.test_artifact_patterns
-                )
+                f'Archive format changed! No pattern from "{LinuxArtifactJob.test_artifact_patterns}"'
+                "matched an archive path."
             )
 
     def process_symbols_archive(
@@ -417,7 +413,7 @@ class ArtifactJob(object):
                 )
                 break
         else:
-            raise ValueError('"{}" is not a recognized extra archive!'.format(filename))
+            raise ValueError(f'"{filename}" is not a recognized extra archive!')
 
         src_prefix = extra_archive["src_prefix"]
         dest_prefix = extra_archive["dest_prefix"]
@@ -599,10 +595,8 @@ class LinuxArtifactJob(ArtifactJob):
 
         if not added_entry:
             raise ValueError(
-                'Archive format changed! No pattern from "{patterns}" '
-                "matched an archive path.".format(
-                    patterns=LinuxArtifactJob.package_artifact_patterns
-                )
+                f'Archive format changed! No pattern from "{LinuxArtifactJob.package_artifact_patterns}" '
+                "matched an archive path."
             )
 
 
@@ -726,9 +720,7 @@ class MacArtifactJob(ArtifactJob):
 
             bundle_dirs = glob.glob(mozpath.join(tempdir, "*.app"))
             if len(bundle_dirs) != 1:
-                raise ValueError(
-                    "Expected one source bundle, found: {}".format(bundle_dirs)
-                )
+                raise ValueError(f"Expected one source bundle, found: {bundle_dirs}")
             [source] = bundle_dirs
 
             # These get copied into dist/bin with the path, so "root/a/b/c" -> "dist/bin/a/b/c".
@@ -848,12 +840,12 @@ class WinArtifactJob(ArtifactJob):
 
         if not added_entry:
             raise ValueError(
-                'Archive format changed! No pattern from "{patterns}"'
-                "matched an archive path.".format(patterns=self.artifact_patterns)
+                f'Archive format changed! No pattern from "{self.artifact_patterns}"'
+                "matched an archive path."
             )
 
 
-class ThunderbirdMixin(object):
+class ThunderbirdMixin:
     trust_domain = "comm"
     product = "thunderbird"
     try_tree = "try-comm-central"
@@ -936,7 +928,7 @@ def cachedmethod(cachefunc):
     return decorator
 
 
-class CacheManager(object):
+class CacheManager:
     """Maintain an LRU cache.  Provide simple persistence, including support for
     loading and saving the state using a "with" block.  Allow clearing the cache
     and printing the cache for debugging.
@@ -1085,13 +1077,7 @@ class TaskCache(CacheManager):
         if job.endswith("-opt"):
             tree += ".shippable"
 
-        namespace = "{trust_domain}.v2.{tree}.revision.{rev}.{product}.{job}".format(
-            trust_domain=artifact_job_class.trust_domain,
-            rev=rev,
-            tree=tree,
-            product=artifact_job_class.product,
-            job=job,
-        )
+        namespace = f"{artifact_job_class.trust_domain}.v2.{tree}.revision.{rev}.{artifact_job_class.product}.{job}"
         self.log(
             logging.DEBUG,
             "artifact",
@@ -1103,14 +1089,12 @@ class TaskCache(CacheManager):
         except KeyError:
             # Not all revisions correspond to pushes that produce the job we
             # care about; and even those that do may not have completed yet.
-            raise ValueError(
-                "Task for {namespace} does not exist (yet)!".format(namespace=namespace)
-            )
+            raise ValueError(f"Task for {namespace} does not exist (yet)!")
 
         return taskId, list_artifacts(taskId)
 
 
-class Artifacts(object):
+class Artifacts:
     """Maintain state to efficiently fetch build artifacts from a Firefox tree."""
 
     def __init__(
@@ -1277,7 +1261,7 @@ class Artifacts(object):
                 self._git,
                 "rev-list",
                 "--topo-order",
-                "--max-count={num}".format(num=NUM_REVISIONS_TO_QUERY),
+                f"--max-count={NUM_REVISIONS_TO_QUERY}",
                 "HEAD",
             ],
             universal_newlines=True,
@@ -1345,7 +1329,7 @@ class Artifacts(object):
             "--template",
             "{rev}:{node}\n",
             "-r",
-            "last(public() and ::., {num})".format(num=NUM_REVISIONS_TO_QUERY),
+            f"last(public() and ::., {NUM_REVISIONS_TO_QUERY})",
             cwd=self._topsrcdir,
         ).splitlines()
 
@@ -1417,11 +1401,9 @@ https://firefox-source-docs.mozilla.org/contributing/vcs/mercurial_bundles.html
 
         if not count:
             raise Exception(
-                "Could not find any candidate pushheads in the last {num} revisions.\n"
-                "Search started with {rev}, which must be known to Mozilla automation.\n\n"
-                "see https://firefox-source-docs.mozilla.org/contributing/build/artifact_builds.html".format(  # noqa E501
-                    rev=last_revs[0], num=NUM_PUSHHEADS_TO_QUERY_PER_PARENT
-                )
+                f"Could not find any candidate pushheads in the last {NUM_PUSHHEADS_TO_QUERY_PER_PARENT} revisions.\n"
+                f"Search started with {last_revs[0]}, which must be known to Mozilla automation.\n\n"
+                f"see https://firefox-source-docs.mozilla.org/contributing/build/artifact_builds.html"
             )
 
     def find_pushhead_artifacts(self, task_cache, job, tree, pushhead):
@@ -1656,9 +1638,7 @@ https://firefox-source-docs.mozilla.org/contributing/vcs/mercurial_bundles.html
             url = get_artifact_url(taskId, artifact_name)
             urls.append(url)
         if not urls:
-            raise ValueError(
-                "Task {taskId} existed, but no artifacts found!".format(taskId=taskId)
-            )
+            raise ValueError(f"Task {taskId} existed, but no artifacts found!")
         for url in urls:
             if self.install_from_url(url, distdir):
                 return 1

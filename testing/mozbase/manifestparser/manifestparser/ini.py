@@ -16,7 +16,7 @@ class IniParseError(Exception):
             path = fp.name
         else:
             path = getattr(fp, "path", "unknown")
-        msg = "Error parsing manifest file '{}', line {}: {}".format(path, linenum, msg)
+        msg = f"Error parsing manifest file '{path}', line {linenum}: {msg}"
         super(IniParseError, self).__init__(msg)
 
 
@@ -121,7 +121,7 @@ def read_ini(
             raise IniParseError(
                 fp,
                 linenum,
-                "Expected a comment or section, " "instead found '{}'".format(stripped),
+                "Expected a comment or section, " f"instead found '{stripped}'",
             )
 
         # continuation line ?
@@ -134,9 +134,7 @@ def read_ini(
                     raise IniParseError(
                         fp,
                         linenum,
-                        "Should not assign in {} condition for {}".format(
-                            key, current_section_name
-                        ),
+                        f"Should not assign in {key} condition for {current_section_name}",
                     )
             current_section[key] = value
             continue
@@ -163,16 +161,14 @@ def read_ini(
                         raise IniParseError(
                             fp,
                             linenum,
-                            "Should not assign in {} condition for {}".format(
-                                key, current_section_name
-                            ),
+                            f"Should not assign in {key} condition for {current_section_name}",
                         )
 
                 current_section[key] = value
                 break
         else:
             # something bad happened!
-            raise IniParseError(fp, linenum, "Unexpected line '{}'".format(stripped))
+            raise IniParseError(fp, linenum, f"Unexpected line '{stripped}'")
 
     # merge global defaults with the DEFAULT section
     defaults = combine_fields(defaults, default_section)

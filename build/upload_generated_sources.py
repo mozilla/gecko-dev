@@ -77,14 +77,10 @@ def upload_worker(queue, event, bucket, session_args):
                 "ContentEncoding": "gzip",
                 "ContentType": "text/plain",
             }
-            log.info(
-                'Uploading "{}" ({} bytes)'.format(pathname, len(compressed.getvalue()))
-            )
+            log.info(f'Uploading "{pathname}" ({len(compressed.getvalue())} bytes)')
             with timed() as elapsed:
                 s3.upload_fileobj(compressed, bucket, pathname, ExtraArgs=extra_args)
-                log.info(
-                    'Finished uploading "{}" in {:0.3f}s'.format(pathname, elapsed())
-                )
+                log.info(f'Finished uploading "{pathname}" in {elapsed():0.3f}s')
             queue.task_done()
     except Exception:
         log.exception("Thread encountered exception:")
@@ -104,9 +100,7 @@ def do_work(artifact, region, bucket):
         secrets_url = "http://taskcluster/secrets/v1/secret/project/releng/gecko/build/level-{}/gecko-generated-sources-upload".format(  # noqa
             level
         )
-        log.info(
-            'Using AWS credentials from the secrets service: "{}"'.format(secrets_url)
-        )
+        log.info(f'Using AWS credentials from the secrets service: "{secrets_url}"')
         res = session.get(secrets_url)
         res.raise_for_status()
         secret = res.json()
@@ -118,19 +112,17 @@ def do_work(artifact, region, bucket):
         log.info("Trying to use your AWS credentials..")
 
     # First, fetch the artifact containing the sources.
-    log.info('Fetching generated sources artifact: "{}"'.format(artifact))
+    log.info(f'Fetching generated sources artifact: "{artifact}"')
     with timed() as elapsed:
         res = session.get(artifact)
         log.info(
-            "Fetch HTTP status: {}, {} bytes downloaded in {:0.3f}s".format(
-                res.status_code, len(res.content), elapsed()
-            )
+            f"Fetch HTTP status: {res.status_code}, {len(res.content)} bytes downloaded in {elapsed():0.3f}s"
         )
     res.raise_for_status()
     # Create a queue and worker threads for uploading.
     q = Queue()
     event = Event()
-    log.info("Creating {} worker threads".format(NUM_WORKER_THREADS))
+    log.info(f"Creating {NUM_WORKER_THREADS} worker threads")
     for i in range(NUM_WORKER_THREADS):
         t = Thread(target=upload_worker, args=(q, event, bucket, session_args))
         t.daemon = True
@@ -140,7 +132,7 @@ def do_work(artifact, region, bucket):
         for entry in tar:
             if event.is_set():
                 break
-            log.info('Queueing "{}"'.format(entry.name))
+            log.info(f'Queueing "{entry.name}"')
             q.put((entry.name, tar.extractfile(entry).read()))
     # Wait until all uploads are finished.
     # We don't use q.join() here because we want to also monitor event.
@@ -161,7 +153,7 @@ def main(argv):
 
     with timed() as elapsed:
         do_work(region=region, bucket=bucket, artifact=args.artifact)
-        log.info("Finished in {:.03f}s".format(elapsed()))
+        log.info(f"Finished in {elapsed():.03f}s")
     return 0
 
 

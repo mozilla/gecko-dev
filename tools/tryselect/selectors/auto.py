@@ -64,17 +64,15 @@ class AutoParser(BaseTryParser):
 
         if args.strategy:
             if ":" not in args.strategy:
-                args.strategy = "gecko_taskgraph.optimize:tryselect.{}".format(
-                    args.strategy
-                )
+                args.strategy = f"gecko_taskgraph.optimize:tryselect.{args.strategy}"
 
             try:
                 obj = find_object(args.strategy)
             except (ImportError, AttributeError):
-                self.error("invalid module path '{}'".format(args.strategy))
+                self.error(f"invalid module path '{args.strategy}'")
 
             if not isinstance(obj, dict):
-                self.error("object at '{}' must be a dict".format(args.strategy))
+                self.error(f"object at '{args.strategy}' must be a dict")
 
 
 def run(
@@ -88,7 +86,7 @@ def run(
     try_config_params=None,
     push_to_lando=False,
     push_to_vcs=False,
-    **ignored
+    **ignored,
 ):
     msg = message.format(msg="Tasks automatically selected.")
 

@@ -13,7 +13,7 @@ import sys
 import mozinfo
 
 
-class SingleTestMixin(object):
+class SingleTestMixin:
     """Utility functions for per-test testing like test verification and per-test coverage."""
 
     def __init__(self, **kwargs):
@@ -271,7 +271,7 @@ class SingleTestMixin(object):
         paths_file = os.path.join(
             dirs["abs_wpttest_dir"], "tests", "tools", "localpaths.py"
         )
-        with open(paths_file, "r") as f:
+        with open(paths_file) as f:
             exec(f.read(), {"__file__": paths_file})
         import manifest as wptmanifest
 

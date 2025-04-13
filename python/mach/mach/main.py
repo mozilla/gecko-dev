@@ -488,7 +488,7 @@ To see more help for a specific command, run:
         if not sentry_event_id:
             return
 
-        fh.write("\nSentry event ID: {}\n".format(sentry_event_id))
+        fh.write(f"\nSentry event ID: {sentry_event_id}\n")
 
     def load_settings(self):
         if not self.settings_loaded:

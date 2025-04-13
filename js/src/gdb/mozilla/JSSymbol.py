@@ -27,11 +27,11 @@ class JSSymbolPtr(mozilla.prettyprinters.Pointer):
         code = int(self.value["code_"]) & 0xFFFFFFFF
         desc = str(get_header_ptr(self.value, self.cache.JSString_ptr_t))
         if code == InSymbolRegistry:
-            return "Symbol.for({})".format(desc)
+            return f"Symbol.for({desc})"
         elif code == UniqueSymbol:
-            return "Symbol({})".format(desc)
+            return f"Symbol({desc})"
         elif code == PrivateNameSymbol:
-            return "#{}".format(desc)
+            return f"#{desc}"
         else:
             # Well-known symbol. Strip off the quotes added by the JSString *
             # pretty-printer.

@@ -93,9 +93,9 @@ def get_nightly_graph():
 def print_available_task_types():
     print("Available task types:")
     for task_type, tasks in TASK_TYPES.items():
-        print(" " * 4 + "{}:".format(task_type))
+        print(" " * 4 + f"{task_type}:")
         for task in tasks:
-            print(" " * 8 + "- {}".format(task))
+            print(" " * 8 + f"- {task}")
 
 
 def get_hg_file(parameters, path):
@@ -162,7 +162,7 @@ def run(
         if label in existing_tasks:
             del existing_tasks[label]
 
-    msg = "scriptworker tests: {}".format(task_type)
+    msg = f"scriptworker tests: {task_type}"
     return push_to_try(
         "scriptworker",
         message.format(msg=msg),

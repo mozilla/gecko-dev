@@ -15,7 +15,7 @@ from gdbpp import GeckoPrettyPrinter
 #   itself.  We do not want to start printing every item in the list whenever
 #   we run into a LinkedListElement<T>.
 @GeckoPrettyPrinter("mozilla::LinkedList", "^mozilla::LinkedList<.*>$")
-class linkedlist_printer(object):
+class linkedlist_printer:
     def __init__(self, value):
         self.value = value
         # mfbt's LinkedList has the elements of the linked list subclass from

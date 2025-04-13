@@ -26,15 +26,13 @@ def test_shell_script_metric_parsing():
     runner = ShellScriptRunner(env, mach_cmd)
     line_handler = runner.line_handler_wrapper()
 
-    line_handler(mock.MagicMock(), "don't parse line".encode())
+    line_handler(mock.MagicMock(), b"don't parse line")
     assert len(runner.metrics) == 0
 
     line_handler(
-        mock.MagicMock(), 'perfMetrics: [{{"name": "metric1", "values": []}}]'.encode()
+        mock.MagicMock(), b'perfMetrics: [{{"name": "metric1", "values": []}}]'
     )
-    line_handler(
-        mock.MagicMock(), 'perfMetrics: {{"name": "metric2", "values": [1]}}'.encode()
-    )
+    line_handler(mock.MagicMock(), b'perfMetrics: {{"name": "metric2", "values": [1]}}')
     assert len(runner.metrics) == 2
 
     parsed_metrics = runner.parse_metrics()

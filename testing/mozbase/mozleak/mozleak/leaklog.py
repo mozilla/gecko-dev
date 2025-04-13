@@ -58,7 +58,7 @@ def process_single_leak_file(
     header = []
     log.info("leakcheck | Processing leak log file %s" % leakLogFileName)
 
-    with open(leakLogFileName, "r") as leaks:
+    with open(leakLogFileName) as leaks:
         for line in leaks:
             if line.find("purposefully crash") > -1:
                 crashedOnPurpose = True

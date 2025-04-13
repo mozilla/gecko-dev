@@ -10,7 +10,7 @@ from gdbpp import GeckoPrettyPrinter
 
 
 @GeckoPrettyPrinter("mozilla::EnumSet", "^mozilla::EnumSet<.*>$")
-class enumset_printer(object):
+class enumset_printer:
     def __init__(self, value):
         self.value = value
         self.enum_type = value.type.template_argument(0)

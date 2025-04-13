@@ -46,7 +46,7 @@ __all__ = ["parse", "ParseError", "ExpressionParser"]
 # - rbp: right binding power
 
 
-class ident_token(object):
+class ident_token:
     def __init__(self, scanner, value):
         self.value = value
 
@@ -56,7 +56,7 @@ class ident_token(object):
         return parser.value(self.value)
 
 
-class literal_token(object):
+class literal_token:
     def __init__(self, scanner, value):
         self.value = value
 
@@ -64,56 +64,56 @@ class literal_token(object):
         return self.value
 
 
-class eq_op_token(object):
+class eq_op_token:
     "=="
 
     def led(self, parser, left):
         return left == parser.expression(self.lbp)
 
 
-class neq_op_token(object):
+class neq_op_token:
     "!="
 
     def led(self, parser, left):
         return left != parser.expression(self.lbp)
 
 
-class lt_op_token(object):
+class lt_op_token:
     "<"
 
     def led(self, parser, left):
         return left < parser.expression(self.lbp)
 
 
-class gt_op_token(object):
+class gt_op_token:
     ">"
 
     def led(self, parser, left):
         return left > parser.expression(self.lbp)
 
 
-class le_op_token(object):
+class le_op_token:
     "<="
 
     def led(self, parser, left):
         return left <= parser.expression(self.lbp)
 
 
-class ge_op_token(object):
+class ge_op_token:
     ">="
 
     def led(self, parser, left):
         return left >= parser.expression(self.lbp)
 
 
-class not_op_token(object):
+class not_op_token:
     "!"
 
     def nud(self, parser):
         return not parser.expression(100)
 
 
-class and_op_token(object):
+class and_op_token:
     "&&"
 
     def led(self, parser, left):
@@ -121,7 +121,7 @@ class and_op_token(object):
         return left and right
 
 
-class or_op_token(object):
+class or_op_token:
     "||"
 
     def led(self, parser, left):
@@ -129,7 +129,7 @@ class or_op_token(object):
         return left or right
 
 
-class lparen_token(object):
+class lparen_token:
     "("
 
     def nud(self, parser):
@@ -138,11 +138,11 @@ class lparen_token(object):
         return expr
 
 
-class rparen_token(object):
+class rparen_token:
     ")"
 
 
-class end_token(object):
+class end_token:
     """always ends parsing"""
 
 
@@ -181,7 +181,7 @@ class ParseError(Exception):
     """error parsing conditional expression"""
 
 
-class ExpressionParser(object):
+class ExpressionParser:
     r"""
     A parser for a simple expression language.
 

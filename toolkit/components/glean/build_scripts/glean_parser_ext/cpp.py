@@ -32,9 +32,7 @@ def type_name(obj):
                 # we always use the `extra` suffix,
                 # because we only expose the new event API
                 suffix = "Extra"
-                return "{}Metric<{}>".format(
-                    util.Camelize(obj.type), util.Camelize(obj.name) + suffix
-                )
+                return f"{util.Camelize(obj.type)}Metric<{util.Camelize(obj.name) + suffix}>"
     return util.Camelize(obj.type) + "Metric"
 
 

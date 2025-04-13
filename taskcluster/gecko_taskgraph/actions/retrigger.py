@@ -35,9 +35,7 @@ def _should_retrigger(task_graph, label):
     """
     if label not in task_graph:
         logger.info(
-            "Task {} not in full taskgraph, assuming task should not be retriggered.".format(
-                label
-            )
+            f"Task {label} not in full taskgraph, assuming task should not be retriggered."
         )
         return False
     return task_graph[label].attributes.get("retrigger", False)
@@ -158,8 +156,8 @@ def retrigger_action(parameters, graph_config, input, task_group_id, task_id):
 
     if not input.get("force", None) and not _should_retrigger(full_task_graph, label):
         logger.info(
-            "Not retriggering task {}, task should not be retrigged "
-            "and force not specified.".format(label)
+            f"Not retriggering task {label}, task should not be retrigged "
+            "and force not specified."
         )
         sys.exit(1)
 
@@ -211,9 +209,7 @@ def rerun_action(parameters, graph_config, input, task_group_id, task_id):
         # XXX the error message is wrong, we're also looking at label_to_taskid
         #     from action and cron tasks on that revision
         logger.error(
-            "Refusing to rerun {}: taskId {} not in decision task {} label_to_taskid!".format(
-                label, task_id, decision_task_id
-            )
+            f"Refusing to rerun {label}: taskId {task_id} not in decision task {decision_task_id} label_to_taskid!"
         )
 
     _rerun_task(task_id, label)
@@ -223,9 +219,7 @@ def _rerun_task(task_id, label):
     state = state_task(task_id)
     if state not in RERUN_STATES:
         logger.warning(
-            "No need to rerun {}: state '{}' not in {}!".format(
-                label, state, RERUN_STATES
-            )
+            f"No need to rerun {label}: state '{state}' not in {RERUN_STATES}!"
         )
         return
     rerun_task(task_id)

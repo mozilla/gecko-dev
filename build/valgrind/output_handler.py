@@ -6,7 +6,7 @@ import logging
 import re
 
 
-class OutputHandler(object):
+class OutputHandler:
     """
     A class for handling Valgrind output.
 

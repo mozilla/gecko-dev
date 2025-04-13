@@ -121,7 +121,7 @@ class TestExport(unittest.TestCase):
                     )
 
     def compareContents(self, output: bytes, filePath: str, folder: str):
-        with open(filePath, "r") as file:
+        with open(filePath) as file:
             expected = file.read()
 
         expected = expected.replace("{{folder}}", folder)

@@ -1668,7 +1668,7 @@ def task_name_from_label(config, tasks):
         if "label" not in task:
             if taskname is None:
                 raise Exception("task has neither a name nor a label")
-            task["label"] = "{}-{}".format(config.kind, taskname)
+            task["label"] = f"{config.kind}-{taskname}"
         yield task
 
 

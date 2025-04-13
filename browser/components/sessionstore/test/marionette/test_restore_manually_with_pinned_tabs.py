@@ -14,7 +14,7 @@ from session_store_test_case import SessionStoreTestCase
 
 
 def inline(doc):
-    return "data:text/html;charset=utf-8,{}".format(quote(doc))
+    return f"data:text/html;charset=utf-8,{quote(doc)}"
 
 
 class TestSessionRestoreWithPinnedTabs(SessionStoreTestCase):

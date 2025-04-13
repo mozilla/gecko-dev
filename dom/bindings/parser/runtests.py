@@ -12,7 +12,7 @@ import traceback
 import WebIDL
 
 
-class TestHarness(object):
+class TestHarness:
     def __init__(self, test, verbose):
         self.test = test
         self.verbose = verbose

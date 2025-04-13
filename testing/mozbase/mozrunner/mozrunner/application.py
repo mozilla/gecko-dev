@@ -34,12 +34,12 @@ def get_app_context(appname):
     return context_map[appname]
 
 
-class DefaultContext(object):
+class DefaultContext:
     profile_class = Profile
 
 
 @six.add_metaclass(ABCMeta)
-class RemoteContext(object):
+class RemoteContext:
     device = None
     _remote_profile = None
     _adb = None
@@ -140,17 +140,17 @@ class FennecContext(RemoteContext):
         return self._remote_profiles_ini
 
 
-class FirefoxContext(object):
+class FirefoxContext:
     profile_class = FirefoxProfile
 
 
-class ThunderbirdContext(object):
+class ThunderbirdContext:
     profile_class = ThunderbirdProfile
 
 
-class ChromeContext(object):
+class ChromeContext:
     profile_class = ChromeProfile
 
 
-class ChromiumContext(object):
+class ChromiumContext:
     profile_class = ChromiumProfile

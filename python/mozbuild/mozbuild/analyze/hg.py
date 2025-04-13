@@ -33,10 +33,8 @@ def get_pushlog_chunk(session, start, end):
     # returns pushes sorted by date
     res = session.get(
         URL
-        + "version=1&startID={0}&\
-        endID={1}&full=1".format(
-            start, end
-        )
+        + f"version=1&startID={start}&\
+        endID={end}&full=1"
     ).json()
     return sorted(res.items(), key=lambda x: x[1]["date"])
 
@@ -68,7 +66,7 @@ def get_data(epoch):
     return {k: v for sublist in data for (k, v) in sublist}
 
 
-class Pushlog(object):
+class Pushlog:
     def __init__(self, days):
         info = get_data(unix_from_date(days, datetime.today()))
         self.pushlog = info
@@ -89,14 +87,14 @@ class Pushlog(object):
         return keys
 
 
-class Push(object):
+class Push:
     def __init__(self, pid, p_dict):
         self.id = pid
         self.date = p_dict["date"]
         self.files = [f for x in p_dict["changesets"] for f in x["files"]]
 
 
-class Report(object):
+class Report:
     def __init__(self, days, path=None, cost_dict=None):
         obj = Pushlog(days)
         self.file_set = obj.file_set

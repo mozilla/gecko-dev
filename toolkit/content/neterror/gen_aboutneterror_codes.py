@@ -10,7 +10,7 @@ from fluent.syntax.ast import Message
 
 
 def find_error_ids(filename, known_strings):
-    with open(filename, "r", encoding="utf-8") as f:
+    with open(filename, encoding="utf-8") as f:
         known_strings += [
             m.id.name for m in parse(f.read()).body if isinstance(m, Message)
         ]
@@ -23,7 +23,7 @@ def main(output, *filenames):
 
     output.write("const KNOWN_ERROR_MESSAGE_IDS = new Set([\n")
     for known_string in known_strings:
-        output.write('  "{}",\n'.format(known_string))
+        output.write(f'  "{known_string}",\n')
     output.write("]);\n")
 
 

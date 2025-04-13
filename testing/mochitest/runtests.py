@@ -143,7 +143,7 @@ MOCHITEST_SERVER_LOGGING = False
 TBPL_RETRY = 4  # Defined in mozharness
 
 
-class MessageLogger(object):
+class MessageLogger:
     """File-like object for logging messages (structured logs)"""
 
     BUFFERING_THRESHOLD = 100
@@ -300,9 +300,9 @@ class MessageLogger(object):
                 snipped = len(self.buffered_messages) - self.BUFFERING_THRESHOLD
                 if snipped > 0:
                     self.logger.info(
-                        "<snipped {0} output lines - "
+                        f"<snipped {snipped} output lines - "
                         "if you need more context, please use "
-                        "SimpleTest.requestCompleteLog() in your test>".format(snipped)
+                        "SimpleTest.requestCompleteLog() in your test>"
                     )
                 # Dumping previously buffered messages
                 self.dump_buffered(limit=True)
@@ -353,7 +353,7 @@ class MessageLogger(object):
             # pylint --py3k W1619
             timestamp = datetime.fromtimestamp(buf["time"] / 1000).strftime("%H:%M:%S")
             if timestamp != last_timestamp:
-                self.logger.info("Buffered messages logged at {}".format(timestamp))
+                self.logger.info(f"Buffered messages logged at {timestamp}")
             last_timestamp = timestamp
 
             self.logger.log_raw(buf)
@@ -479,7 +479,7 @@ else:
 #######################
 
 
-class MochitestServer(object):
+class MochitestServer:
     "Web server used to serve Mochitests, for closer fidelity to the real web."
 
     instance_count = 0
@@ -640,7 +640,7 @@ class MochitestServer(object):
                 self._log.info("Web server killed.")
 
 
-class WebSocketServer(object):
+class WebSocketServer:
     "Class which encapsulates the mod_pywebsocket server"
 
     def __init__(self, options, scriptdir, logger, debuggerInfo=None):
@@ -945,7 +945,7 @@ def update_mozinfo():
     mozinfo.find_and_update_from_json(*dirs)
 
 
-class MochitestDesktop(object):
+class MochitestDesktop:
     """
     Mochitest class for desktop firefox.
     """
@@ -1246,8 +1246,8 @@ class MochitestDesktop(object):
         for d in extraTestsDirs:
             if os.path.exists(d):
                 raise FileExistsError(
-                    "Directory '{}' already exists. This is a member of "
-                    "test-directories in manifest {}.".format(d, manifest)
+                    f"Directory '{d}' already exists. This is a member of "
+                    f"test-directories in manifest {manifest}."
                 )
 
         created = []
@@ -1257,9 +1257,7 @@ class MochitestDesktop(object):
 
         if created != extraTestsDirs:
             raise OSError(
-                "Not all directories were created: extraTestsDirs={} -- created={}".format(
-                    extraTestsDirs, created
-                )
+                f"Not all directories were created: extraTestsDirs={extraTestsDirs} -- created={created}"
             )
 
     def getTestsByScheme(
@@ -1644,9 +1642,7 @@ toolbar#nav-bar {
 
     def logPreamble(self, tests):
         """Logs a suite_start message and test_start/test_end at the beginning of a run."""
-        self.log.suite_start(
-            self.tests_by_manifest, name="mochitest-{}".format(self.flavor)
-        )
+        self.log.suite_start(self.tests_by_manifest, name=f"mochitest-{self.flavor}")
         for test in tests:
             if "disabled" in test:
                 self.log.test_start(test["path"])
@@ -1663,10 +1659,10 @@ toolbar#nav-bar {
 
         # Using ":error" to ensure it shows up in the failure summary.
         self.log.warning(
-            "[runtests.py:error] Using {} to filter failures. If there "
+            f"[runtests.py:error] Using {pat_file} to filter failures. If there "
             "is any number mismatch below, you could have fixed "
             "something documented in that file. Please reduce the "
-            "failure count appropriately.".format(pat_file)
+            "failure count appropriately."
         )
         patternRE = re.compile(
             r"""
@@ -1750,7 +1746,7 @@ toolbar#nav-bar {
                     runtime_file = os.path.join(
                         SCRIPT_DIR,
                         "runtimes",
-                        "manifest-runtimes-{}.json".format(platkey),
+                        f"manifest-runtimes-{platkey}.json",
                     )
                     if not os.path.exists(runtime_file):
                         self.log.error("runtime file %s not found!" % runtime_file)
@@ -1758,7 +1754,7 @@ toolbar#nav-bar {
 
                     # Given the mochitest flavor, load the runtimes information
                     # for only that flavor due to manifest runtime format change in Bug 1637463.
-                    with open(runtime_file, "r") as f:
+                    with open(runtime_file) as f:
                         if "suite_name" in options:
                             runtimes = json.load(f).get(options.suite_name, {})
                         else:
@@ -1789,7 +1785,7 @@ toolbar#nav-bar {
                 filters=filters,
                 noDefaultFilters=noDefaultFilters,
                 strictExpressions=True,
-                **info
+                **info,
             )
 
             if len(tests) == 0:
@@ -2162,7 +2158,7 @@ toolbar#nav-bar {
             return
 
         if os.path.isfile(self.start_script):
-            with open(self.start_script, "r") as fh:
+            with open(self.start_script) as fh:
                 script = fh.read()
         else:
             script = self.start_script
@@ -2312,7 +2308,7 @@ toolbar#nav-bar {
             if os.path.isdir(path):
                 profile_data_dir = path
 
-        with open(os.path.join(profile_data_dir, "profiles.json"), "r") as fh:
+        with open(os.path.join(profile_data_dir, "profiles.json")) as fh:
             base_profiles = json.load(fh)[category]
 
         # values to use when interpolating preferences
@@ -2392,17 +2388,13 @@ toolbar#nav-bar {
         )
         if not os.path.exists(cond_prof_target_dir):
             self.log.critical(
-                "Can't find target_dir {}, from get_profile()"
-                "temp_download_dir {}, platform {}, scenario {}".format(
-                    cond_prof_target_dir, temp_download_dir, platform, profile_scenario
-                )
+                f"Can't find target_dir {cond_prof_target_dir}, from get_profile()"
+                f"temp_download_dir {temp_download_dir}, platform {platform}, scenario {profile_scenario}"
             )
             raise OSError
 
         self.log.info(
-            "Original self.conditioned_profile_dir is now set: {}".format(
-                self.conditioned_profile_dir
-            )
+            f"Original self.conditioned_profile_dir is now set: {self.conditioned_profile_dir}"
         )
         return self.conditioned_profile_copy
 
@@ -2507,17 +2499,13 @@ toolbar#nav-bar {
         if mozinfo.info["os"] == "win" and mozinfo.info["processor"] == "aarch64":
             test_timeout = self.DEFAULT_TIMEOUT * 4
             self.log.info(
-                "Increasing default timeout to {} seconds (win aarch64)".format(
-                    test_timeout
-                )
+                f"Increasing default timeout to {test_timeout} seconds (win aarch64)"
             )
 
         if "MOZ_CHAOSMODE=0xfb" in options.environment and test_timeout:
             test_timeout *= 2
             self.log.info(
-                "Increasing default timeout to {} seconds (MOZ_CHAOSMODE)".format(
-                    test_timeout
-                )
+                f"Increasing default timeout to {test_timeout} seconds (MOZ_CHAOSMODE)"
             )
 
         if test_timeout:
@@ -2605,9 +2593,7 @@ toolbar#nav-bar {
                 try:
                     subprocess.check_call([pactl, "unload-module", str(id)])
                 except subprocess.CalledProcessError:
-                    self.log.error(
-                        "Could not remove pulse module with id {}".format(id)
-                    )
+                    self.log.error(f"Could not remove pulse module with id {id}")
                     return None
 
             self.virtualDeviceIdList = []
@@ -3132,8 +3118,8 @@ toolbar#nav-bar {
             freq = i * DEVICES_BASE_FREQUENCY
             input_devices.append(
                 {
-                    "name": "sine-{}".format(freq),
-                    "description": "{}Hz Sine Source".format(freq),
+                    "name": f"sine-{freq}",
+                    "description": f"{freq}Hz Sine Source",
                     "frequency": freq,
                 }
             )
@@ -3160,9 +3146,7 @@ toolbar#nav-bar {
         for command in required_commands:
             cmd = which(command)
             if not cmd:
-                self.log.error(
-                    "Could not find required program {} on system".format(command)
-                )
+                self.log.error(f"Could not find required program {command} on system")
                 return
 
         # Create outputs
@@ -3245,7 +3229,7 @@ toolbar#nav-bar {
                 try:
                     subprocess.check_call([pactl, "unload-module", str(id)])
                 except subprocess.CalledProcessError:
-                    log.error("Could not remove pulse module with id {}".format(id))
+                    log.error(f"Could not remove pulse module with id {id}")
                     return None
 
         idList = []
@@ -3576,7 +3560,7 @@ toolbar#nav-bar {
                 "can be used to skip tests conditionally:"
             )
             for info in sorted(mozinfo.info.items(), key=lambda item: item[0]):
-                self.log.info("    {key}: {value}".format(key=info[0], value=info[1]))
+                self.log.info(f"    {info[0]}: {info[1]}")
         self.setTestRoot(options)
 
         # Despite our efforts to clean up servers started by this script, in practice
@@ -3614,7 +3598,7 @@ toolbar#nav-bar {
         origPrefs = self.extraPrefs.copy()
         for m in sorted(manifests):
             self.log.group_start(name=m)
-            self.log.info("Running manifest: {}".format(m))
+            self.log.info(f"Running manifest: {m}")
             self.message_logger.setManifest(m)
 
             args = list(self.args_by_manifest[m])[0]
@@ -3898,10 +3882,8 @@ toolbar#nav-bar {
                 if options.conditionedProfile:
                     testURL += "&conditionedProfile=true"
 
-                self.log.info("runtests.py | Running with scheme: {}".format(scheme))
-                self.log.info(
-                    "runtests.py | Running with e10s: {}".format(options.e10s)
-                )
+                self.log.info(f"runtests.py | Running with scheme: {scheme}")
+                self.log.info(f"runtests.py | Running with e10s: {options.e10s}")
                 self.log.info(
                     "runtests.py | Running with fission: {}".format(
                         mozinfo.info.get("fission", True)
@@ -4148,7 +4130,7 @@ toolbar#nav-bar {
                     os.remove(logfile)
                 logzip.close()
 
-    class OutputHandler(object):
+    class OutputHandler:
         """line output handler for mozrunner"""
 
         def __init__(

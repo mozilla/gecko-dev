@@ -227,7 +227,7 @@ def generate_config(logger, repo_root, wpt_dir, dest_path, force_rewrite=False):
     )
     parser.set("paths", "ws_extra", ws_extra_paths)
 
-    with open(dest_config_path, "wt") as config_file:
+    with open(dest_config_path, "w") as config_file:
         parser.write(config_file)
 
     return dest_config_path

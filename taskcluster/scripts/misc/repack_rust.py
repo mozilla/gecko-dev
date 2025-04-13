@@ -288,7 +288,7 @@ def chdir(path):
 
 def build_tar_package(name, base, directory):
     name = os.path.realpath(name)
-    log("tarring {} from {}/{}".format(name, base, directory))
+    log(f"tarring {name} from {base}/{directory}")
     assert name.endswith(".tar.zst")
 
     cctx = zstandard.ZstdCompressor()
@@ -325,24 +325,20 @@ def fetch_manifest(channel="stable", host=None, targets=()):
             manifest["pkg"][pkg] = {
                 "version": "bors",
                 "target": {
-                    host: target(
-                        "{}/{}/{}-nightly-{}.tar.xz".format(base_url, rev, pkg, host)
-                    ),
+                    host: target(f"{base_url}/{rev}/{pkg}-nightly-{host}.tar.xz"),
                 },
             }
         manifest["pkg"]["rust-src"] = {
             "version": "bors",
             "target": {
-                "*": target("{}/{}/rust-src-nightly.tar.xz".format(base_url, rev)),
+                "*": target(f"{base_url}/{rev}/rust-src-nightly.tar.xz"),
             },
         }
         for pkg in ("rust-std", "rust-analysis"):
             manifest["pkg"][pkg] = {
                 "version": "bors",
                 "target": {
-                    t: target(
-                        "{}/{}/{}-nightly-{}.tar.xz".format(base_url, rev, pkg, t)
-                    )
+                    t: target(f"{base_url}/{rev}/{pkg}-nightly-{t}.tar.xz")
                     for t in sorted(set(targets) | set([host]))
                 },
             }
@@ -364,7 +360,7 @@ def fetch_manifest(channel="stable", host=None, targets=()):
 
 
 def patch_src(patch, module):
-    log("Patching Rust src... {} with {}".format(module, patch))
+    log(f"Patching Rust src... {module} with {patch}")
     patch = os.path.realpath(patch)
     subprocess.check_call(["patch", "-d", module, "-p1", "-i", patch, "--fuzz=0", "-s"])
 
@@ -413,7 +409,7 @@ def build_src(install_dir, host, targets, patches):
     # This is the default of `install.sh`, but for whatever reason
     # `x.py install` has its own default of `/etc` which we don't want.
     base_config = textwrap.dedent(
-        """
+        f"""
         [build]
         docs = false
         sanitizers = true
@@ -427,15 +423,12 @@ def build_src(install_dir, host, targets, patches):
         use-lld = true
 
         [install]
-        prefix = "{prefix}"
+        prefix = "{install_dir}"
         sysconfdir = "etc"
 
         [llvm]
         download-ci-llvm = false
-        """.format(
-            prefix=install_dir,
-            omit_git_hash=omit_git_hash,
-        )
+        """
     )
 
     # Rust requires these to be specified per-target

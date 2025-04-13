@@ -19,7 +19,7 @@ def register_section(cls):
     SUPPORTED_KINDS.update(instance.kind.split(","))
 
 
-class Section(object):
+class Section:
     __metaclass__ = ABCMeta
 
     @abstractproperty
@@ -132,10 +132,10 @@ class Perf(Section):
 
     def labelfn(self, task):
         suite = task["unittest_suite"]
-        label = task["{}_try_name".format(suite)]
+        label = task[f"{suite}_try_name"]
 
         if not label.startswith(suite):
-            label = "{}-{}".format(suite, label)
+            label = f"{suite}-{label}"
 
         if label.endswith("-e10s"):
             label = label[: -len("-e10s")]

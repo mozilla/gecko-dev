@@ -70,7 +70,7 @@ class SrcRepository(Repository):
         list of the patterns to ignore
         """
         ignore = []
-        f = open(path + "/.gitignore", "r")
+        f = open(path + "/.gitignore")
         while True:
             line = f.readline()
             if not line:

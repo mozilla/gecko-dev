@@ -48,7 +48,7 @@ def test_expected_fail():
     assert_equals(2 + 2, 5)
 
 
-class TestRunner(object):
+class TestRunner:
     def __init__(self):
         self.logger = get_default_logger(component="TestRunner")
 

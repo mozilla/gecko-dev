@@ -197,7 +197,7 @@ allfiles = reduce(
 )
 
 for first in allfiles:
-    testbasename = "test{0}_".format(getid(first))
+    testbasename = f"test{getid(first)}_"
     test = [None, "_write" + getid(first), None]
     for second in atomics:
         test[0] = testbasename + getid([second])

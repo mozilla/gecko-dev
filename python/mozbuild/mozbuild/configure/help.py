@@ -9,7 +9,7 @@ from collections import defaultdict
 from mozbuild.configure.options import Option
 
 
-class HelpFormatter(object):
+class HelpFormatter:
     def __init__(self, argv0):
         self.intro = ["Usage: %s [options]" % os.path.basename(argv0)]
         self.options = []

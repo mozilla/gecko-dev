@@ -223,18 +223,14 @@ def run(
         base_cmd.extend(
             [
                 "--preview",
-                '{} {} -g {} -s -c {} -t "{{+f}}"'.format(
-                    str(PurePath(sys.executable)), PREVIEW_SCRIPT, dep_cache, cache_dir
-                ),
+                f'{str(PurePath(sys.executable))} {PREVIEW_SCRIPT} -g {dep_cache} -s -c {cache_dir} -t "{{+f}}"',
             ]
         )
     else:
         base_cmd.extend(
             [
                 "--preview",
-                '{} {} -t "{{+f}}"'.format(
-                    str(PurePath(sys.executable)), PREVIEW_SCRIPT
-                ),
+                f'{str(PurePath(sys.executable))} {PREVIEW_SCRIPT} -t "{{+f}}"',
             ]
         )
 
@@ -286,7 +282,7 @@ def run(
 
     # build commit message
     msg = "Fuzzy"
-    args = ["query={}".format(q) for q in queries]
+    args = [f"query={q}" for q in queries]
     if test_paths:
         args.append("paths={}".format(":".join(test_paths)))
     if args:

@@ -12,9 +12,7 @@ from session_store_test_case import SessionStoreTestCase
 
 
 def inline(title):
-    return "data:text/html;charset=utf-8,<html><head><title>{}</title></head><body></body></html>".format(
-        title
-    )
+    return f"data:text/html;charset=utf-8,<html><head><title>{title}</title></head><body></body></html>"
 
 
 class TestSessionStoreEnabledAllWindows(SessionStoreTestCase):

@@ -64,7 +64,7 @@ class BinaryNotFoundException(Exception):
         self.path = path
 
     def __str__(self):
-        return "Binary expected at {} does not exist.".format(self.path)
+        return f"Binary expected at {self.path} does not exist."
 
     def help(self):
         return "It looks like your program isn't built. You can run |./mach build| to build it."
@@ -141,7 +141,7 @@ class MozbuildObject(ProcessExecutionMixin):
         mozconfig = MozconfigLoader.AUTODETECT
 
         def load_mozinfo(path):
-            info = json.load(open(path, "rt", encoding="utf-8"))
+            info = json.load(open(path, encoding="utf-8"))
             topsrcdir = info.get("topsrcdir")
             topobjdir = os.path.dirname(path)
             mozconfig = info.get("mozconfig")
@@ -207,7 +207,7 @@ class MozbuildObject(ProcessExecutionMixin):
             return True
 
         deps = []
-        with open(dep_file, "r", encoding="utf-8", newline="\n") as fh:
+        with open(dep_file, encoding="utf-8", newline="\n") as fh:
             deps = fh.read().splitlines()
 
         mtime = os.path.getmtime(output)
@@ -232,7 +232,7 @@ class MozbuildObject(ProcessExecutionMixin):
         # we last built the backend, re-generate the backend if
         # so.
         outputs = []
-        with open(backend_file, "r", encoding="utf-8", newline="\n") as fh:
+        with open(backend_file, encoding="utf-8", newline="\n") as fh:
             outputs = fh.read().splitlines()
         for output in outputs:
             if not os.path.isfile(mozpath.join(self.topobjdir, output)):
@@ -936,7 +936,7 @@ class MachCommandBase(MozbuildObject):
             self._ensure_state_subdir_exists(".")
             logfile = self._get_state_filename("last_log.json")
             try:
-                fd = open(logfile, "wt")
+                fd = open(logfile, "w")
                 self.log_manager.add_json_handler(fd)
             except Exception as e:
                 self.log(
@@ -952,7 +952,7 @@ class MachCommandBase(MozbuildObject):
         )
 
 
-class MachCommandConditions(object):
+class MachCommandConditions:
     """A series of commonly used condition functions which can be applied to
     mach commands with providers deriving from MachCommandBase.
     """
@@ -1061,13 +1061,13 @@ class MachCommandConditions(object):
     def is_buildapp_in(cls, apps):
         """Must have a build for one of the given app"""
         for app in apps:
-            attr = getattr(MachCommandConditions, "is_{}".format(app), None)
+            attr = getattr(MachCommandConditions, f"is_{app}", None)
             if attr and attr(cls):
                 return True
         return False
 
 
-class PathArgument(object):
+class PathArgument:
     """Parse a filesystem path argument and transform it in various ways."""
 
     def __init__(self, arg, topsrcdir, topobjdir, cwd=None):

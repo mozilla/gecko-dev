@@ -180,7 +180,7 @@ def _parse_mach_env_requirements(
                 raise Exception(
                     "Expected pypi-optional package to have a repercussion "
                     'description in the format "package:fallback explanation", '
-                    'found "{}"'.format(params)
+                    f'found "{params}"'
                 )
             raw_requirement, repercussion = params.split(":")
             requirements_output.pypi_optional_requirements.append(

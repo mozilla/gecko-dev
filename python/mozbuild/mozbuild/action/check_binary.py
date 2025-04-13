@@ -135,9 +135,7 @@ def check_binary_compat(binary):
         error = []
         for lib, prefix, _ in checks:
             if prefix in unwanted:
-                error.append(
-                    "We do not want these {} symbol versions to be used:".format(lib)
-                )
+                error.append(f"We do not want these {lib} symbol versions to be used:")
                 error.extend(
                     " {} ({})".format(s["name"], s["version"]) for s in unwanted[prefix]
                 )
@@ -263,7 +261,7 @@ def check_networking(binary):
         )
         retcode = 1
     elif buildconfig.substs.get("MOZ_AUTOMATION"):
-        print("TEST-PASS | check_networking | {}".format(basename))
+        print(f"TEST-PASS | check_networking | {basename}")
     return retcode
 
 
@@ -289,12 +287,12 @@ def checks(binary):
             name = c.__name__
             c(binary)
             if buildconfig.substs.get("MOZ_AUTOMATION"):
-                print("TEST-PASS | {} | {}".format(name, basename))
+                print(f"TEST-PASS | {name} | {basename}")
         except Skip:
             pass
         except RuntimeError as e:
             print(
-                "TEST-UNEXPECTED-FAIL | {} | {} | {}".format(name, basename, str(e)),
+                f"TEST-UNEXPECTED-FAIL | {name} | {basename} | {str(e)}",
                 file=sys.stderr,
             )
             retcode = 1

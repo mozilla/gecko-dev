@@ -21,7 +21,7 @@ class TestTree(unittest.TestCase):
             with open(os.path.join(tmpdir, "file🍪"), "w") as f:
                 f.write("foo")
 
-            self.assertEqual("{}\n├file🍪\n└dir🍪".format(tmpdir), tree(tmpdir))
+            self.assertEqual(f"{tmpdir}\n├file🍪\n└dir🍪", tree(tmpdir))
         finally:
             shutil.rmtree(tmpdir)
 

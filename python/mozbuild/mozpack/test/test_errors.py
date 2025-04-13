@@ -11,7 +11,7 @@ import six
 from mozpack.errors import AccumulatedErrors, ErrorMessage, errors
 
 
-class TestErrors(object):
+class TestErrors:
     def setUp(self):
         errors.out = six.moves.cStringIO()
         errors.ignore_errors(False)

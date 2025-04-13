@@ -48,7 +48,7 @@ def copy_and_update_includes(src_path, dst_path):
         "special-case.h",
     ]
 
-    src = open(str(src_path), "r")
+    src = open(str(src_path))
     dst = open(str(dst_path), "w")
 
     # 1. Rewrite includes of V8 regexp headers:

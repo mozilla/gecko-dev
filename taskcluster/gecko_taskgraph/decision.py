@@ -365,9 +365,9 @@ def get_decision_parameters(graph_config, options):
         parameters.update(PER_PROJECT_PARAMETERS[project])
     except KeyError:
         logger.warning(
-            "using default project parameters; add {} to "
-            "PER_PROJECT_PARAMETERS in {} to customize behavior "
-            "for this project".format(project, __file__)
+            f"using default project parameters; add {project} to "
+            f"PER_PROJECT_PARAMETERS in {__file__} to customize behavior "
+            "for this project"
         )
         parameters.update(PER_PROJECT_PARAMETERS["default"])
 

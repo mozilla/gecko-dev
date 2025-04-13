@@ -164,9 +164,7 @@ def register_callback_action(
         assert not mem[
             "registered"
         ], "register_callback_action must be used as decorator"
-        assert cb_name not in callbacks, "callback name {} is not unique".format(
-            cb_name
-        )
+        assert cb_name not in callbacks, f"callback name {cb_name} is not unique"
 
         def action_builder(parameters, graph_config, decision_task_id):
             if not available(parameters):
@@ -237,9 +235,7 @@ def register_callback_action(
                 {
                     "kind": "hook",
                     "hookGroupId": f"project-{trustDomain}",
-                    "hookId": "in-tree-action-{}-{}/{}".format(
-                        level, permission, tcyml_hash
-                    ),
+                    "hookId": f"in-tree-action-{level}-{permission}/{tcyml_hash}",
                     "hookPayload": {
                         # provide the decision-task parameters as context for triggerHook
                         "decision": {
@@ -317,9 +313,7 @@ def sanity_check_task_scope(callback, parameters, graph_config):
     repo_param = "{}head_repository".format(graph_config["project-repo-param-prefix"])
     head_repository = parameters[repo_param]
     assert head_repository.startswith("https://hg.mozilla.org/")
-    expected_scope = "assume:repo:{}:action:{}".format(
-        head_repository[8:], action.permission
-    )
+    expected_scope = f"assume:repo:{head_repository[8:]}:action:{action.permission}"
 
     # the scope should appear literally; no need for a satisfaction check. The use of
     # get_current_scopes here calls the auth service through the Taskcluster Proxy, giving

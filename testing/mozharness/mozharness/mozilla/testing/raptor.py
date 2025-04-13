@@ -1082,13 +1082,9 @@ class Raptor(
         if self.config.get("verbose", False):
             options.extend(["--verbose"])
         if self.config.get("extra_prefs"):
-            options.extend(
-                ["--setpref={}".format(i) for i in self.config.get("extra_prefs")]
-            )
+            options.extend([f"--setpref={i}" for i in self.config.get("extra_prefs")])
         if self.config.get("environment"):
-            options.extend(
-                ["--setenv={}".format(i) for i in self.config.get("environment")]
-            )
+            options.extend([f"--setenv={i}" for i in self.config.get("environment")])
         if self.config.get("enable_marionette_trace", False):
             options.extend(["--enable-marionette-trace"])
         if self.config.get("browser_cycles"):
@@ -1102,7 +1098,7 @@ class Raptor(
         if self.config.get("extra_summary_methods"):
             options.extend(
                 [
-                    "--extra-summary-methods={}".format(method)
+                    f"--extra-summary-methods={method}"
                     for method in self.config.get("extra_summary_methods")
                 ]
             )

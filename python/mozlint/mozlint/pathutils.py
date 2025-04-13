@@ -11,7 +11,7 @@ from mozpack.files import FileFinder
 _is_windows = sys.platform == "cygwin" or (sys.platform == "win32" and os.sep == "\\")
 
 
-class FilterPath(object):
+class FilterPath:
     """Helper class to make comparing and matching file paths easier."""
 
     def __init__(self, path):
@@ -248,9 +248,7 @@ def findobject(path):
             return mod.<objectpath>
     """
     if path.count(":") != 1:
-        raise ValueError(
-            'python path {!r} does not have the form "module:object"'.format(path)
-        )
+        raise ValueError(f'python path {path!r} does not have the form "module:object"')
 
     modulepath, objectpath = path.split(":")
     obj = __import__(modulepath)
@@ -317,7 +315,7 @@ def expand_exclusions(paths, config, root):
     # return files that are passed explicitly and whose extensions are in the
     # exclusion set. If we don't put it in the ignore set, the FileFinder
     # would return files in (sub)directories passed to us.
-    base_ignore = ["**/*.{}".format(ext) for ext in exclude_extensions]
+    base_ignore = [f"**/*.{ext}" for ext in exclude_extensions]
     exclude += base_ignore
     for path in paths:
         path = mozpath.normsep(path)
@@ -350,7 +348,7 @@ def expand_exclusions(paths, config, root):
         finder = FileFinder(path, ignore=ignore, find_dotfiles=find_dotfiles)
         if extensions:
             for ext in extensions:
-                for p, f in finder.find("**/*.{}".format(ext)):
+                for p, f in finder.find(f"**/*.{ext}"):
                     yield os.path.join(path, p)
         else:
             for p, f in finder.find("**/*.*"):

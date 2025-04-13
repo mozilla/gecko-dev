@@ -53,7 +53,7 @@ def _kill_mozproxy(pid):
     os.kill(pid, kill_signal)
 
 
-class OutputHandler(object):
+class OutputHandler:
     def __init__(self):
         self.port = None
         self.port_event = threading.Event()

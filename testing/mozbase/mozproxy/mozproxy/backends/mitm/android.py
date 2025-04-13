@@ -63,7 +63,7 @@ class MitmproxyAndroid(Mitmproxy):
                 and os.access(self.certutil_path, os.X_OK)
             ):
                 raise Exception(
-                    "Abort: unable to execute certutil: {}".format(self.certutil_path)
+                    f"Abort: unable to execute certutil: {self.certutil_path}"
                 )
             self.certutil_path = os.environ["MOZ_HOST_BIN"]
             os.environ["LD_LIBRARY_PATH"] = self.certutil_path

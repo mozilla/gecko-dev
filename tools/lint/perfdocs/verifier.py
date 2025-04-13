@@ -77,7 +77,7 @@ CONFIG_SCHEMA = {
 }
 
 
-class Verifier(object):
+class Verifier:
     """
     Verifier is used for validating the perfdocs folders/tree. In the future,
     the generator will make use of this class to obtain a validated set of
@@ -139,9 +139,7 @@ class Verifier(object):
                     break
             if not foundtest:
                 logger.warning(
-                    "Could not find an existing test for {} - bad test name?".format(
-                        test_name
-                    ),
+                    f"Could not find an existing test for {test_name} - bad test name?",
                     framework_info["yml_path"],
                 )
                 return False
@@ -201,7 +199,7 @@ class Verifier(object):
             # test description
             for test_name in new_mtests:
                 logger.warning(
-                    "Could not find a test description for {}".format(test_name),
+                    f"Could not find a test description for {test_name}",
                     test_to_manifest[test_name],
                 )
 
@@ -289,9 +287,7 @@ class Verifier(object):
                 # Log a warning in all files that have this metric
                 for test in tests:
                     logger.warning(
-                        "Missing description for the metric `{}` in test `{}`".format(
-                            metric, test
-                        ),
+                        f"Missing description for the metric `{metric}` in test `{test}`",
                         test_list[test].get(
                             "path", test_list[test].get("manifest", "")
                         ),
@@ -335,9 +331,7 @@ class Verifier(object):
             # Find the suite, then check against the tests within it
             if framework_info["test_list"].get(suite, None) is None:
                 logger.warning(
-                    "Could not find an existing suite for {} - bad suite name?".format(
-                        suite
-                    ),
+                    f"Could not find an existing suite for {suite} - bad suite name?",
                     framework_info["yml_path"],
                 )
                 continue
@@ -373,7 +367,7 @@ class Verifier(object):
                 metric in unique_metrics or unique_metrics.add(metric)
             ) and metric not in warned:
                 logger.warning(
-                    "Duplicate definitions found for `{}`.".format(metric),
+                    f"Duplicate definitions found for `{metric}`.",
                     framework_info["yml_path"],
                 )
                 warned.add(metric)
@@ -386,7 +380,7 @@ class Verifier(object):
                 metric in unique_metrics or unique_metrics.add(metric)
             ) and metric not in warned:
                 logger.warning(
-                    "Duplicate definitions found for `{}`.".format(metric),
+                    f"Duplicate definitions found for `{metric}`.",
                     framework_info["yml_path"],
                 )
                 for alias in metric_info.get("aliases", []):
@@ -399,7 +393,7 @@ class Verifier(object):
             if not yaml_content["suites"].get(suite):
                 # Description doesn't exist for the suite
                 logger.warning(
-                    "Missing suite description for {}".format(suite),
+                    f"Missing suite description for {suite}",
                     [t.get("path") for _, t in test_list.items()],
                     False,
                 )
@@ -433,7 +427,7 @@ class Verifier(object):
 
             try:
                 if desc_path.exists() and desc_path.is_file():
-                    with open(desc_path, "r") as f:
+                    with open(desc_path) as f:
                         desc = f.readlines()
             except OSError:
                 pass
@@ -459,7 +453,7 @@ class Verifier(object):
             _parse_descriptions(yaml_content["suites"])
             valid = True
         except Exception as e:
-            logger.warning("YAML ValidationError: {}".format(str(e)), yaml_path)
+            logger.warning(f"YAML ValidationError: {str(e)}", yaml_path)
 
         return valid
 
@@ -530,7 +524,7 @@ class Verifier(object):
             # Log independently the errors found for the matched files
             for file_format, valid in _valid_files.items():
                 if not valid:
-                    logger.log("File validation error: {}".format(file_format))
+                    logger.log(f"File validation error: {file_format}")
             if not all(_valid_files.values()):
                 continue
             found_good += 1

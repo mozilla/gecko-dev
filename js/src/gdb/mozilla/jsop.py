@@ -14,7 +14,7 @@ from mozilla.prettyprinters import pretty_printer, ptr_pretty_printer
 mozilla.prettyprinters.clear_module_printers(__name__)
 
 
-class JSOpTypeCache(object):
+class JSOpTypeCache:
     # Cache information about the JSOp type for this objfile.
     def __init__(self, cache):
         self.tJSOp = gdb.lookup_type("JSOp")
@@ -27,7 +27,7 @@ class JSOpTypeCache(object):
 
 
 @pretty_printer("JSOp")
-class JSOp(object):
+class JSOp:
     def __init__(self, value, cache):
         self.value = value
         self.cache = cache
@@ -43,7 +43,7 @@ class JSOp(object):
         fields = self.jotc.tJSOp.fields()
         if idx < len(fields):
             return fields[idx].name
-        return "(JSOp) {:d}".format(idx)
+        return f"(JSOp) {idx:d}"
 
 
 @ptr_pretty_printer("jsbytecode")
@@ -57,4 +57,4 @@ class JSBytecodePtr(mozilla.prettyprinters.Pointer):
             opcode = str(self.value.dereference().cast(self.jotc.tJSOp))
         except Exception:
             opcode = "bad pc"
-        return "{} ({})".format(self.value.cast(self.cache.void_ptr_t), opcode)
+        return f"{self.value.cast(self.cache.void_ptr_t)} ({opcode})"

@@ -20,7 +20,7 @@ def terminal():
     try:
         term = Terminal(stream=StringIO(), force_styling=True, kind=kind)
     except blessed.curses.error:
-        pytest.skip("terminal '{}' not found".format(kind))
+        pytest.skip(f"terminal '{kind}' not found")
 
     return term
 

@@ -61,7 +61,7 @@ class TestSafeBrowsingInitialDownload(MarionetteTestCase):
             for ext in my_file_extensions:
                 files.extend(
                     [
-                        "{name}.{ext}".format(name=f, ext=ext)
+                        f"{f}.{ext}"
                         for f in base_names
                         if f and f.endswith("-proto") == is_v4
                     ]

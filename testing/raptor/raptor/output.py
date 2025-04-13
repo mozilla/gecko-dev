@@ -39,7 +39,7 @@ METRIC_BLOCKLIST = [
 
 
 @six.add_metaclass(ABCMeta)
-class PerftestOutput(object):
+class PerftestOutput:
     """Abstract base class to handle output of perftest results"""
 
     def __init__(
@@ -742,9 +742,7 @@ class PerftestOutput(object):
                         3,
                     )
                 except TypeError as e:
-                    LOG.warning(
-                        "[{}][{}] : {} - {}".format(suite, sub, e.__class__.__name__, e)
-                    )
+                    LOG.warning(f"[{suite}][{sub}] : {e.__class__.__name__} - {e}")
 
                 if sub not in _subtests:
                     # subtest not added yet, first pagecycle, so add new one
@@ -840,16 +838,12 @@ class PerftestOutput(object):
 
                 # build a list of subtests and append all related replicates
                 create_subtest_entry(
-                    "{}_decoded_frames".format(_sub),
+                    f"{_sub}_decoded_frames",
                     _value["decodedFrames"],
                     lower_is_better=False,
                 )
-                create_subtest_entry(
-                    "{}_dropped_frames".format(_sub), _value["droppedFrames"]
-                )
-                create_subtest_entry(
-                    "{}_%_dropped_frames".format(_sub), percent_dropped
-                )
+                create_subtest_entry(f"{_sub}_dropped_frames", _value["droppedFrames"])
+                create_subtest_entry(f"{_sub}_%_dropped_frames", percent_dropped)
 
         # Check if any youtube test failed and generate exception
         if len(failed_tests) > 0:

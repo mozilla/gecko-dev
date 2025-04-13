@@ -16,7 +16,7 @@ def dump_symbols(target, tracking_file, count_ctors=False):
     # symbols. Remove them in this case so we don't simply accumulate old symbols
     # during incremental builds.
     if os.path.isfile(os.path.normpath(tracking_file)):
-        with open(tracking_file, "r") as fh:
+        with open(tracking_file) as fh:
             files = fh.read().splitlines()
         dirs = set(os.path.dirname(f) for f in files)
         for d in dirs:

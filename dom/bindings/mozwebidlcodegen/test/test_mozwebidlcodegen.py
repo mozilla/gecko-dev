@@ -126,7 +126,7 @@ class TestWebIDLCodegenManager(unittest.TestCase):
 
         self.assertTrue(os.path.isfile(manager._state_path))
 
-        with open(manager._state_path, "r") as fh:
+        with open(manager._state_path) as fh:
             state = json.load(fh)
             self.assertEqual(state["version"], 3)
             self.assertIn("webidls", state)
@@ -192,7 +192,7 @@ class TestWebIDLCodegenManager(unittest.TestCase):
                 break
 
         self.assertIsNotNone(child_path)
-        child_content = open(child_path, "r").read()
+        child_content = open(child_path).read()
 
         with MockedOpen({child_path: child_content + "\n/* */"}):
             m2 = WebIDLCodegenManager(**args)
@@ -216,7 +216,7 @@ class TestWebIDLCodegenManager(unittest.TestCase):
                 child_path = p
 
         self.assertIsNotNone(parent_path)
-        parent_content = open(parent_path, "r").read()
+        parent_content = open(parent_path).read()
 
         with MockedOpen({parent_path: parent_content + "\n/* */"}):
             m2 = WebIDLCodegenManager(**args)
@@ -253,7 +253,7 @@ class TestWebIDLCodegenManager(unittest.TestCase):
                     result = m1.generate_build_files(processes=1)
                     l = len(result.inputs)
 
-                    with open(fake_path, "wt", newline="\n") as fh:
+                    with open(fake_path, "w", newline="\n") as fh:
                         fh.write("# Modified content")
 
                     m2 = WebIDLCodegenManager(**args)

@@ -42,7 +42,7 @@ def denormalize_path(path):
 # objects for parsing manifests
 
 
-class ManifestParser(object):
+class ManifestParser:
     """read .ini manifests"""
 
     def __init__(
@@ -855,7 +855,7 @@ class ManifestParser(object):
 
             # write to manifest
             write_content = "\n".join(
-                ["[{}]".format(denormalize_path(filename)) for filename in filenames]
+                [f"[{denormalize_path(filename)}]" for filename in filenames]
             )
             print(write_content, file=write)
 

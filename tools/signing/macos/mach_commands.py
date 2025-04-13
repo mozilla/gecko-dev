@@ -315,7 +315,7 @@ def macos_sign(
         "Reading build config file {yaml}",
     )
 
-    with open(buildconfigpath, "r") as buildconfigfile:
+    with open(buildconfigpath) as buildconfigfile:
         parsedconfig = yaml.safe_load(buildconfigfile)
 
     # Store all the mappings

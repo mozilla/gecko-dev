@@ -251,7 +251,7 @@ def check_for_hgrc_state_dir_mismatch(state_dir):
         raise Exception(hgrc_state_dir_mismatch_error_message)
 
 
-class Bootstrapper(object):
+class Bootstrapper:
     """Main class that performs system bootstrap."""
 
     def __init__(
@@ -388,8 +388,8 @@ class Bootstrapper(object):
             labels = [
                 "%s. %s" % (i, name) for i, name in enumerate(applications.keys(), 1)
             ]
-            choices = ["  {} [default]".format(labels[0])]
-            choices += ["  {}".format(label) for label in labels[1:]]
+            choices = [f"  {labels[0]} [default]"]
+            choices += [f"  {label}" for label in labels[1:]]
             prompt = APPLICATION_CHOICE % "\n".join(choices)
             prompt_choice = self.instance.prompt_int(
                 prompt=prompt, low=1, high=len(applications)
@@ -577,7 +577,7 @@ class Bootstrapper(object):
 
     def _read_default_mozconfig(self):
         path = self._default_mozconfig_path()
-        with open(path, "r") as mozconfig_file:
+        with open(path) as mozconfig_file:
             return mozconfig_file.read()
 
     def _write_default_mozconfig(self, raw_mozconfig):

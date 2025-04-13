@@ -427,13 +427,13 @@ def run_mochitest_general(
             apps = fobj["enabled_apps"]
             name = fobj["aliases"][0]
             if s:
-                name = "{} --subsuite {}".format(name, s)
+                name = f"{name} --subsuite {s}"
 
             if buildapp not in apps:
                 reason = "requires {}".format(" or ".join(apps))
             else:
                 reason = "excluded by the command line"
-            msg.append("    mochitest -f {} ({})".format(name, reason))
+            msg.append(f"    mochitest -f {name} ({reason})")
         print(SUPPORTED_TESTS_NOT_FOUND.format(buildapp, "\n".join(sorted(msg))))
         return 1
 

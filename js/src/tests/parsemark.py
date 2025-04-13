@@ -91,7 +91,7 @@ def bench(
     if not stfu:
         print("Runs:", [int(ms) for ms in milliseconds])
         print("Mean:", mean)
-        print("Stddev: {:.2f} ({:.2f}% of mean)".format(sigma, sigma / mean * 100))
+        print(f"Stddev: {sigma:.2f} ({sigma / mean * 100:.2f}% of mean)")
     return mean, sigma
 
 
@@ -101,7 +101,7 @@ def parsemark(filepaths, fbench, stfu=False):
     for filepath in filepaths:
         filename = os.path.split(filepath)[-1]
         if not stfu:
-            print("Parsemarking {}...".format(filename))
+            print(f"Parsemarking {filename}...")
         bench_map[filename] = fbench(filepath)
     print("{")
     for i, (filename, (avg, stddev)) in enumerate(iter(bench_map.items())):
@@ -109,7 +109,7 @@ def parsemark(filepaths, fbench, stfu=False):
         fmt = '    {:30s}: {{"average_ms": {:6.2f}, "stddev_ms": {:6.2f}}}'
         if i != len(bench_map) - 1:
             fmt += ","
-        filename_str = '"{}"'.format(filename)
+        filename_str = f'"{filename}"'
         print(fmt.format(filename_str, avg, stddev))
     print("}")
     return dict(

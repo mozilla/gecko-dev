@@ -27,7 +27,7 @@ mozilla.prettyprinters.clear_module_printers(__name__)
 # Cache information about the JSString type for this objfile.
 
 
-class jsvmPrinterCache(object):
+class jsvmPrinterCache:
     def __init__(self):
         self.d = None
 
@@ -45,13 +45,13 @@ class jsvmPrinterCache(object):
 # iongraph command, which uses the jsvmLSprinter.
 
 
-class ModuleCache(object):
+class ModuleCache:
     def __init__(self):
         self.mod_IonGraph = None
 
 
 @pretty_printer("js::vm::LSprinter")
-class jsvmLSprinter(object):
+class jsvmLSprinter:
     def __init__(self, value, cache):
         self.value = value
         if not cache.mod_IonGraph:

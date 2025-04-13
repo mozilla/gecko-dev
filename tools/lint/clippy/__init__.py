@@ -31,7 +31,7 @@ def handle_clippy_msg(config, line, log, base_path, files):
                         "Error outside of clippy."
                         "This means that the build failed. Therefore, skipping this"
                     )
-                    log.debug("File = {} / Detail = {}".format(p, detail))
+                    log.debug(f"File = {p} / Detail = {detail}")
                     return
                 # We are in a clippy warning
                 if len(detail["spans"]) == 0:
@@ -41,9 +41,7 @@ def handle_clippy_msg(config, line, log, base_path, files):
                     # [], 'code': None, 'level': 'warning', 'message':
                     # '5 warnings emitted', 'spans': []}
                     # if this is the case, skip it
-                    log.debug(
-                        "Skipping the summary line {} for file {}".format(detail, p)
-                    )
+                    log.debug(f"Skipping the summary line {detail} for file {p}")
                     return
 
                 l = detail["spans"][0]
@@ -61,7 +59,7 @@ def handle_clippy_msg(config, line, log, base_path, files):
                     "rule": detail["code"]["code"],
                     "lineoffset": l["line_end"] - l["line_start"],
                 }
-                log.debug("Identified an issue in {}:{}".format(p, line))
+                log.debug(f"Identified an issue in {p}:{line}")
                 return result.from_config(config, **res)
 
     except json.decoder.JSONDecodeError:

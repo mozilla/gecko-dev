@@ -33,7 +33,7 @@ def ensure_exe_extension(path):
     return path
 
 
-class ConfigureTestVFS(object):
+class ConfigureTestVFS:
     def __init__(self, paths):
         self._paths = set(mozpath.abspath(p) for p in paths)
 
@@ -140,7 +140,7 @@ class ConfigureTestSandbox(ConfigureSandbox):
 
     @memoized_property
     def _wrapped_ctypes(self):
-        class CTypesFunc(object):
+        class CTypesFunc:
             def __init__(self, func):
                 self._func = func
 
@@ -165,7 +165,7 @@ class ConfigureTestSandbox(ConfigureSandbox):
         return ReadOnlyNamespace(HKEY_LOCAL_MACHINE=0, OpenKey=OpenKey)
 
     def create_unicode_buffer(self, *args, **kwargs):
-        class Buffer(object):
+        class Buffer:
             def __init__(self):
                 self.value = ""
 
@@ -198,7 +198,7 @@ class ConfigureTestSandbox(ConfigureSandbox):
         else:
             retcode, stdout, stderr = func(stdin, args[1:])
 
-        class Process(object):
+        class Process:
             def communicate(self, stdin=None):
                 return stdout, stderr
 

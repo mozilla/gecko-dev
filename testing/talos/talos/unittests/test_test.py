@@ -21,11 +21,11 @@ class BasicTestC(Test):
     null_attrib = None
 
 
-class NotATest(object):
+class NotATest:
     pass
 
 
-class Test_register_test(object):
+class Test_register_test:
     def test_same_instance_returned(self):
         decorator = register_test()
         NewBasicTest = decorator(BasicTestA)
@@ -50,7 +50,7 @@ class Test_register_test(object):
             decorator(NotATest)
 
 
-class TestTest(object):
+class TestTest:
     def test_same_class_name(self):
         assert BasicTestA.name() == "BasicTestA"
 
@@ -123,7 +123,7 @@ class TestTest(object):
         assert test_instance.desktop is False
 
 
-class TestTsBase(object):
+class TestTsBase:
     ts_base_registered_keys = {
         "url",
         "url_timestamp",
@@ -178,7 +178,7 @@ class TestTsBase(object):
         }
 
 
-class Test_ts_paint(object):
+class Test_ts_paint:
     def test_test_nonnull_keys_show_up(self):
         test_instance = ts_paint()
         keys = {key for key, _ in test_instance.items()}

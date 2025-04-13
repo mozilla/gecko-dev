@@ -9,7 +9,7 @@ missing = object()
 no_default = object()
 
 
-class log_action(object):
+class log_action:
     def __init__(self, *args):
         self.args = {}
 
@@ -112,7 +112,7 @@ class log_action(object):
         return self.convert(**known_kwargs)
 
 
-class DataType(object):
+class DataType:
     def __init__(self, name, default=no_default, optional=False):
         self.name = name
         self.default = default

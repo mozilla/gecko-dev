@@ -7,7 +7,7 @@ import attr
 from ..result import Issue
 
 
-class UnixFormatter(object):
+class UnixFormatter:
     """Formatter that respects Unix output conventions frequently
     employed by preprocessors and compilers.  The format is
     `<FILENAME>:<LINE>[:<COL>]: <RULE> <LEVEL>: <MESSAGE>`.

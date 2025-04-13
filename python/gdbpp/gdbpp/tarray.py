@@ -11,7 +11,7 @@ from gdbpp import GeckoPrettyPrinter
 @GeckoPrettyPrinter("FallibleTArray", "^FallibleTArray<.*>$")
 @GeckoPrettyPrinter("AutoTArray", "^AutoTArray<.*>$")
 @GeckoPrettyPrinter("nsTArray", "^nsTArray<.*>$")
-class tarray_printer(object):
+class tarray_printer:
     def __init__(self, value):
         self.value = value
         self.elem_type = value.type.template_argument(0)

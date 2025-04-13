@@ -27,7 +27,7 @@ class AddonFormatError(Exception):
     """Exception for not well-formed add-on manifest files"""
 
 
-class AddonManager(object):
+class AddonManager:
     """
     Handles all operations regarding addons in a profile including:
     installing and cleaning addons

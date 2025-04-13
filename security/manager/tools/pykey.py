@@ -193,7 +193,7 @@ class PrivateKeyInfo(univ.Sequence):
     )
 
 
-class RSAKey(object):
+class RSAKey:
     # For reference, when encoded as a subject public key info, the
     # base64-encoded sha-256 hash of this key is
     # VCIlmPM9NkgFQtrs4Oa5TeFcDu6MWRTKSNdePEhOgD8=
@@ -784,7 +784,7 @@ def longToEvenLengthHexString(val):
     return h
 
 
-class ECCKey(object):
+class ECCKey:
     secp256k1KeyPair = (
         "35ee7c7289d8fef7a86afe5da66d8bc2ebb6a8543fd2fead089f45ce7acd0fa6"
         + "4382a9500c41dad770ffd4b511bf4b492eb1238800c32c4f76c73a3f3294e7c5",

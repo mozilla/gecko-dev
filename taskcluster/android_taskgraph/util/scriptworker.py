@@ -58,7 +58,7 @@ def generate_beetmover_upstream_artifacts(
         elif job.get("primary-dependency"):
             dependencies = [job["primary-dependency"].kind]
         else:
-            raise Exception("Unsupported type of dependency. Got job: {}".format(job))
+            raise Exception(f"Unsupported type of dependency. Got job: {job}")
 
     for locale, dep in itertools.product(locales, dependencies):
         paths = list()
@@ -114,7 +114,7 @@ def generate_beetmover_upstream_artifacts(
 
         upstream_artifacts.append(
             {
-                "taskId": {"task-reference": "<{}>".format(dep)},
+                "taskId": {"task-reference": f"<{dep}>"},
                 "taskType": map_config["tasktype_map"].get(dep),
                 "paths": sorted(paths),
                 "locale": locale,
@@ -275,7 +275,7 @@ def generate_beetmover_artifact_map(config, job, **kwargs):
         paths = jsone.render(paths, kwargs)
         artifacts.append(
             {
-                "taskId": {"task-reference": "<{}>".format(dep)},
+                "taskId": {"task-reference": f"<{dep}>"},
                 "locale": locale,
                 "paths": paths,
             }

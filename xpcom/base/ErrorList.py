@@ -1291,14 +1291,14 @@ def error_list_h(output):
 """
     )
 
-    output.write("#define NS_ERROR_MODULE_BASE_OFFSET {}\n".format(MODULE_BASE_OFFSET))
+    output.write(f"#define NS_ERROR_MODULE_BASE_OFFSET {MODULE_BASE_OFFSET}\n")
 
     for mod, val in modules.items():
-        output.write("#define NS_ERROR_MODULE_{} {}\n".format(mod, val.num))
+        output.write(f"#define NS_ERROR_MODULE_{mod} {val.num}\n")
 
     items = []
     for error, val in errors.items():
-        items.append("  {} = 0x{:X}".format(error, val))
+        items.append(f"  {error} = 0x{val:X}")
     output.write(
         """
 enum class nsresult : uint32_t
@@ -1313,7 +1313,7 @@ enum class nsresult : uint32_t
 
     items = []
     for error, val in errors.items():
-        items.append("  {0} = nsresult::{0}".format(error))
+        items.append(f"  {error} = nsresult::{error}")
 
     output.write(
         """
@@ -1357,7 +1357,7 @@ GetErrorNameInternal(nsresult rv)
     seen = set()
     for error, val in errors.items():
         if val not in seen:
-            output.write('  case nsresult::{0}: return "{0}";\n'.format(error))
+            output.write(f'  case nsresult::{error}: return "{error}";\n')
         seen.add(val)
 
     output.write(
@@ -1384,20 +1384,16 @@ use super::nsresult;
     )
 
     output.write(
-        "pub const NS_ERROR_MODULE_BASE_OFFSET: nsresult = nsresult({});\n".format(
-            MODULE_BASE_OFFSET
-        )
+        f"pub const NS_ERROR_MODULE_BASE_OFFSET: nsresult = nsresult({MODULE_BASE_OFFSET});\n"
     )
 
     for mod, val in modules.items():
         output.write(
-            "pub const NS_ERROR_MODULE_{}: nsresult = nsresult({});\n".format(
-                mod, val.num
-            )
+            f"pub const NS_ERROR_MODULE_{mod}: nsresult = nsresult({val.num});\n"
         )
 
     for error, val in errors.items():
-        output.write("pub const {}: nsresult = nsresult(0x{:X});\n".format(error, val))
+        output.write(f"pub const {error}: nsresult = nsresult(0x{val:X});\n")
 
 
 def gen_jinja(output, input_filename):

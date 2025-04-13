@@ -43,7 +43,7 @@ class ConfigureError(Exception):
     pass
 
 
-class SandboxDependsFunction(object):
+class SandboxDependsFunction:
     """Sandbox-visible representation of @depends functions."""
 
     def __init__(self, unsandboxed):
@@ -105,7 +105,7 @@ class SandboxDependsFunction(object):
         raise ConfigureError("Cannot do boolean operations on @depends functions.")
 
 
-class DependsFunction(object):
+class DependsFunction:
     __slots__ = (
         "_func",
         "_name",

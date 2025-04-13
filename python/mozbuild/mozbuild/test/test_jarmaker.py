@@ -281,7 +281,7 @@ class TestJarMaker(unittest.TestCase):
         destfoo = os.path.join(self.builddir, "chrome", "test", "dir", "foo")
         self.assertTrue(
             is_symlink_to(destfoo, srcbar),
-            "{0} is not a symlink to {1}".format(destfoo, srcbar),
+            f"{destfoo} is not a symlink to {srcbar}",
         )
 
     def _create_wildcard_setup(self):
@@ -342,7 +342,7 @@ class TestJarMaker(unittest.TestCase):
             destpath = os.path.join(self.builddir, "chrome", "test", "dir", *dest)
             self.assertTrue(
                 is_symlink_to(destpath, srcpath),
-                "{0} is not a symlink to {1}".format(destpath, srcpath),
+                f"{destpath} is not a symlink to {srcpath}",
             )
 
 
@@ -477,7 +477,7 @@ class Test_fluent(unittest.TestCase):
         srcpath = os.path.join(self.l10nbase, "app", "app", "test.ftl")
         self.assertTrue(
             is_symlink_to(destpath, srcpath),
-            "{0} should be a symlink to {1}".format(destpath, srcpath),
+            f"{destpath} should be a symlink to {srcpath}",
         )
 
         # test2.ftl on the other hand, is only present in en-US dir, and should

@@ -139,12 +139,12 @@ class BaseTryParser(ArgumentParser):
     def __init__(self, *args, **kwargs):
         ArgumentParser.__init__(self, *args, **kwargs)
 
-        group = self.add_argument_group("{} arguments".format(self.name))
+        group = self.add_argument_group(f"{self.name} arguments")
         for cli, kwargs in self.arguments:
             group.add_argument(*cli, **kwargs)
 
         for name in self.common_groups:
-            group = self.add_argument_group("{} arguments".format(name))
+            group = self.add_argument_group(f"{name} arguments")
             arguments = COMMON_ARGUMENT_GROUPS[name]
 
             # Preset arguments are all mutually exclusive.

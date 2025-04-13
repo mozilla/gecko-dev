@@ -115,7 +115,7 @@ def test_ipg_rh_clean_file(ipg_rh_obj):
     """
     file = ipg_rh_obj._output_files[0]
     linecount = 0
-    with open(file, "r") as f:
+    with open(file) as f:
         for line in f:
             linecount += 1
 
@@ -129,7 +129,7 @@ def test_ipg_rh_clean_file(ipg_rh_obj):
     assert os.path.exists(clean_file)
 
     clean_rows = []
-    with open(clean_file, "r") as f:
+    with open(clean_file) as f:
         for line in f:
             if line.strip():
                 clean_rows.append(line)
@@ -171,7 +171,7 @@ def test_ipg_rh_clean_ipg_data(ipg_rh_obj):
     # were added.
     expected_merged_line_count = 0
     for file in clean_files:
-        with open(file, "r") as f:
+        with open(file) as f:
             for count, line in enumerate(f):
                 if count == 0:
                     continue
@@ -179,7 +179,7 @@ def test_ipg_rh_clean_ipg_data(ipg_rh_obj):
                     expected_merged_line_count += 1
 
     merged_line_count = 0
-    with open(merged_output_path, "r") as f:
+    with open(merged_output_path) as f:
         for count, line in enumerate(f):
             if count == 0:
                 continue

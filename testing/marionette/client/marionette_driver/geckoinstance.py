@@ -33,7 +33,7 @@ if sys.platform.startswith("darwin"):
     from .processhandler import UNKNOWN_RETURNCODE, ProcessHandler
 
 
-class GeckoInstance(object):
+class GeckoInstance:
     required_prefs = {
         # Make sure Shield doesn't hit the network.
         "app.normandy.api_url": "",
@@ -232,7 +232,7 @@ class GeckoInstance(object):
             if path is None:
                 path = "gecko.log"
             elif os.path.isdir(path):
-                fname = "gecko-{}.log".format(time.time())
+                fname = f"gecko-{time.time()}.log"
                 path = os.path.join(path, fname)
 
             path = os.path.realpath(path)
@@ -275,7 +275,7 @@ class GeckoInstance(object):
             if isinstance(profile_path, str):
                 profile_args["path_from"] = profile_path
                 profile_args["path_to"] = tempfile.mkdtemp(
-                    suffix=".{}".format(profile_name or os.path.basename(profile_path)),
+                    suffix=f".{profile_name or os.path.basename(profile_path)}",
                     dir=self.workspace,
                 )
                 # The target must not exist yet
@@ -354,9 +354,7 @@ class GeckoInstance(object):
             instance_class = apps[app]
         except (OSError, KeyError):
             exc, val, tb = sys.exc_info()
-            msg = 'Application "{0}" unknown (should be one of {1})'.format(
-                app, list(apps.keys())
-            )
+            msg = f'Application "{app}" unknown (should be one of {list(apps.keys())})'
             raise NotImplementedError(msg).with_traceback(tb)
 
         return instance_class(*args, **kwargs)
@@ -537,13 +535,13 @@ class FennecInstance(GeckoInstance):
         except Exception:
             exc_cls, exc, tb = sys.exc_info()
             raise exc_cls(
-                "Error possibly due to runner or device args: {}".format(exc)
+                f"Error possibly due to runner or device args: {exc}"
             ).with_traceback(tb)
 
         # forward marionette port
         self.runner.device.device.forward(
-            local="tcp:{}".format(self.marionette_port),
-            remote="tcp:{}".format(self.marionette_port),
+            local=f"tcp:{self.marionette_port}",
+            remote=f"tcp:{self.marionette_port}",
         )
 
     def _get_runner_args(self):
@@ -584,9 +582,7 @@ class FennecInstance(GeckoInstance):
         super(FennecInstance, self).close(clean)
         if clean and self.runner and self.runner.device.connected:
             try:
-                self.runner.device.device.remove_forwards(
-                    "tcp:{}".format(self.marionette_port)
-                )
+                self.runner.device.device.remove_forwards(f"tcp:{self.marionette_port}")
                 self.unresponsive_count = 0
             except Exception:
                 self.unresponsive_count += 1
@@ -693,7 +689,7 @@ class ThunderbirdInstance(GeckoInstance):
         self.required_prefs.update(thunderbird_prefs)
 
 
-class NullOutput(object):
+class NullOutput:
     def __call__(self, line):
         pass
 

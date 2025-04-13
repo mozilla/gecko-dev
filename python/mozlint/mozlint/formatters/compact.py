@@ -7,7 +7,7 @@ import attr
 from ..result import Issue
 
 
-class CompactFormatter(object):
+class CompactFormatter:
     """Formatter for compact output.
 
     This formatter prints one error per line, mimicking the

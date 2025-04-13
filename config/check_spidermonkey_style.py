@@ -254,7 +254,7 @@ def error(filename, linenum, *lines):
     out("")
 
 
-class FileKind(object):
+class FileKind:
     C = 1
     CPP = 2
     INL_H = 3
@@ -436,7 +436,7 @@ def is_module_header(enclosing_inclname, header_inclname):
     return False
 
 
-class Include(object):
+class Include:
     """Important information for a single #include statement."""
 
     def __init__(self, include_prefix, inclname, line_suffix, linenum, is_system):
@@ -503,7 +503,7 @@ class Include(object):
         return self.include_prefix + self.quote() + self.line_suffix + "\n"
 
 
-class CppBlock(object):
+class CppBlock:
     """C preprocessor block: a whole file or a single #if/#elif/#else block.
 
     A #if/#endif block is the contents of a #if/#endif (or similar) section.
@@ -620,7 +620,7 @@ class CppBlock(object):
         return self.start + "".join(kid.to_source() for kid in self.kids) + self.end
 
 
-class OrdinaryCode(object):
+class OrdinaryCode:
     """A list of lines of code that aren't #include/#if/#else/#endif lines."""
 
     def __init__(self, lines=None):

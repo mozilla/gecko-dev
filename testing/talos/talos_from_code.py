@@ -133,7 +133,7 @@ def get_value(json_filename, key):
     """
     It loads up a JSON file and returns the value for the given string
     """
-    f = open(json_filename, "r")
+    f = open(json_filename)
     return json.load(f)[key]
 
 

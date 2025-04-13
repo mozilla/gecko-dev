@@ -696,7 +696,7 @@ class DesktopUnittest(TestingMixin, MercurialScript, MozbaseMixin, CodeCoverageM
                     base_cmd.extend(["--repeat=%s" % c.get("repeat")])
                 else:
                     self.log(
-                        "--repeat not supported in {}".format(suite_category),
+                        f"--repeat not supported in {suite_category}",
                         level=WARNING,
                     )
 
@@ -738,9 +738,7 @@ class DesktopUnittest(TestingMixin, MercurialScript, MozbaseMixin, CodeCoverageM
                             "reftest",
                             "reftest-qr",
                         ]:
-                            base_cmd.extend(
-                                ["--tag={}".format(t) for t in c["test_tags"]]
-                            )
+                            base_cmd.extend([f"--tag={t}" for t in c["test_tags"]])
                         else:
                             self.warning(
                                 "--tag does not currently work with the "
@@ -813,7 +811,7 @@ class DesktopUnittest(TestingMixin, MercurialScript, MozbaseMixin, CodeCoverageM
                 base_cmd.append("--setpref=layout.css.stylo-threads=4")
 
             if c["extra_prefs"]:
-                base_cmd.extend(["--setpref={}".format(p) for p in c["extra_prefs"]])
+                base_cmd.extend([f"--setpref={p}" for p in c["extra_prefs"]])
 
             if c["a11y_checks"]:
                 base_cmd.append("--enable-a11y-checks")
@@ -881,8 +879,8 @@ class DesktopUnittest(TestingMixin, MercurialScript, MozbaseMixin, CodeCoverageM
         Otherwise, do not run any suites and return a fatal error.
         """
         c = self.config
-        all_suites = c.get("all_{}_suites".format(category), None)
-        specified_suites = c.get("specified_{}_suites".format(category), None)
+        all_suites = c.get(f"all_{category}_suites", None)
+        specified_suites = c.get(f"specified_{category}_suites", None)
 
         # Bug 1603842 - disallow selection of more than 1 suite at at time
         if specified_suites is None:
@@ -1044,7 +1042,7 @@ class DesktopUnittest(TestingMixin, MercurialScript, MozbaseMixin, CodeCoverageM
     def stage_files(self):
         for category in SUITE_CATEGORIES:
             suites = self._query_specified_suites(category)
-            stage = getattr(self, "_stage_{}".format(category), None)
+            stage = getattr(self, f"_stage_{category}", None)
             if suites and stage:
                 stage(suites)
 
@@ -1281,15 +1279,15 @@ class DesktopUnittest(TestingMixin, MercurialScript, MozbaseMixin, CodeCoverageM
 
             target_file = os.path.join(
                 upload_dir,
-                "video_{}.webm".format(suite_name),
+                f"video_{suite_name}.webm",
             )
 
             tmp_file = os.path.join(
                 upload_dir,
-                "video_{}_tmp.webm".format(suite_name),
+                f"video_{suite_name}_tmp.webm",
             )
 
-            self.info("Recording suite {} to {}".format(suite_name, target_file))
+            self.info(f"Recording suite {suite_name} to {target_file}")
 
             session_bus = dbus.SessionBus()
             session_bus.call_blocking(
@@ -1338,9 +1336,9 @@ class DesktopUnittest(TestingMixin, MercurialScript, MozbaseMixin, CodeCoverageM
 
             target_file = os.path.join(
                 upload_dir,
-                "video_{}.mov".format(suite_name),
+                f"video_{suite_name}.mov",
             )
-            self.info("Recording suite {} to {}".format(suite_name, target_file))
+            self.info(f"Recording suite {suite_name} to {target_file}")
 
             process = subprocess.Popen(
                 ["/usr/sbin/screencapture", "-v", "-k", target_file],
@@ -1517,7 +1515,7 @@ class DesktopUnittest(TestingMixin, MercurialScript, MozbaseMixin, CodeCoverageM
                                     finish_video,
                                 ),
                             )
-                            self.info("Starting recording thread {}".format(suite))
+                            self.info(f"Starting recording thread {suite}")
                             video_recording_thread.start()
                         else:
                             self.warning(
@@ -1551,10 +1549,10 @@ class DesktopUnittest(TestingMixin, MercurialScript, MozbaseMixin, CodeCoverageM
                     # 3) checking to see if the return code is in success_codes
 
                     if video_recording_thread:
-                        self.info("Stopping recording thread {}".format(suite))
+                        self.info(f"Stopping recording thread {suite}")
                         finish_video.set()
                         video_recording_thread.join()
-                        self.info("Stopped recording thread {}".format(suite))
+                        self.info(f"Stopped recording thread {suite}")
 
                     success_codes = None
                     tbpl_status, log_level, summary = parser.evaluate_parser(

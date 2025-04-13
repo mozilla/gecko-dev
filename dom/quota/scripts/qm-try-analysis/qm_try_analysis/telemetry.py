@@ -12,7 +12,7 @@ TELEMETRY_BASE_URL = "https://sql.telemetry.mozilla.org/api/"
 
 
 def query(key, query, p_params):
-    headers = {"Authorization": "Key {}".format(key)}
+    headers = {"Authorization": f"Key {key}"}
     start_url = TELEMETRY_BASE_URL + f"queries/{query}/refresh?{p_params}"
     info(f"Starting job using url {start_url}")
     resp = requests.post(url=start_url, headers=headers)

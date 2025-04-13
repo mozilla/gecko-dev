@@ -16,6 +16,6 @@ import gdb
 devel_objdir = abspath(os.path.join(dirname(__file__), "..", ".."))
 m = re.search(r"[\w ]+: (.*)", gdb.execute("show directories", False, True))
 if m and devel_objdir not in m.group(1).split(":"):
-    gdb.execute("set directories {}:{}".format(devel_objdir, m.group(1)))
+    gdb.execute(f"set directories {devel_objdir}:{m.group(1)}")
 
 gdb.execute("source -s build/.gdbinit.loader")

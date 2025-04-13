@@ -80,7 +80,7 @@ def get_dt_from_hg(path):
             response = session.get(url)
             response.raise_for_status()
         except Exception as e:
-            msg = "Failed to retrieve push timestamp using {}\nError: {}".format(url, e)
+            msg = f"Failed to retrieve push timestamp using {url}\nError: {e}"
             raise Exception(msg)
 
         return response.json()
@@ -89,9 +89,7 @@ def get_dt_from_hg(path):
     try:
         date = data["pushdate"][0]
     except KeyError as exc:
-        msg = "{}\ndata is: {}".format(
-            str(exc), json.dumps(data, indent=2, sort_keys=True)
-        )
+        msg = f"{str(exc)}\ndata is: {json.dumps(data, indent=2, sort_keys=True)}"
         raise KeyError(msg)
 
     return datetime.datetime.utcfromtimestamp(date)
@@ -305,7 +303,7 @@ def convert_entry_flags_to_platform_codes(flags):
             elif value[1] == "WINNT":
                 ret.append("win")
             else:
-                raise Exception("Unknown flag value {0}".format(value[1]))
+                raise Exception(f"Unknown flag value {value[1]}")
 
     return ret
 
@@ -366,7 +364,7 @@ def parse_chrome_manifest(path, base_path, chrome_entries):
                 }
             )
         else:
-            raise Exception("Unknown type {0}".format(entry.name))
+            raise Exception(f"Unknown type {entry.name}")
 
 
 ###
@@ -578,10 +576,10 @@ def main(args):
         if args.app_name == "SeaMonkey":
             # SeaMonkey is odd in that <major> hasn't changed for many years.
             # So min is <major>.<minor>.0
-            min_app_version = "{}.{}.0".format(v.major, v.minor)
+            min_app_version = f"{v.major}.{v.minor}.0"
         else:
             # Language packs should be minversion of {major}.0
-            min_app_version = "{}.0".format(v.major)
+            min_app_version = f"{v.major}.0"
 
     res = create_webmanifest(
         args.locales,

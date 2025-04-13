@@ -10,7 +10,7 @@ import yaml
 from mozbuild.util import memoized_property
 
 
-class ClangTidyConfig(object):
+class ClangTidyConfig:
     def __init__(self, mozilla_src):
         self._clang_tidy_config = self._get_clang_tidy_config(mozilla_src)
 

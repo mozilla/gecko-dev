@@ -21,23 +21,21 @@ DEFAULT_CONTENT = "<div>Lorem ipsum dolor sit amet.</div>"
 def take_full_screenshot(session):
     return session.transport.send(
         "GET",
-        "/session/{session_id}/moz/screenshot/full".format(
-            session_id=session.session_id
-        ),
+        f"/session/{session.session_id}/moz/screenshot/full",
     )
 
 
 @pytest.mark.parametrize("domain", ["", "alt"], ids=["same_origin", "cross_origin"])
 def test_source_origin(session, url, domain, inline, iframe):
-    session.url = inline("""{0}{1}""".format(DEFAULT_CSS_STYLE, DEFAULT_CONTENT))
+    session.url = inline(f"""{DEFAULT_CSS_STYLE}{DEFAULT_CONTENT}""")
 
     response = take_full_screenshot(session)
     reference_screenshot = assert_success(response)
     assert png_dimensions(reference_screenshot) == document_dimensions(session)
 
-    iframe_content = "<style>body {{ margin: 0; }}</style>{}".format(DEFAULT_CONTENT)
+    iframe_content = f"<style>body {{ margin: 0; }}</style>{DEFAULT_CONTENT}"
     session.url = inline(
-        """{0}{1}""".format(DEFAULT_CSS_STYLE, iframe(iframe_content, domain=domain))
+        f"""{DEFAULT_CSS_STYLE}{iframe(iframe_content, domain=domain)}"""
     )
 
     response = take_full_screenshot(session)

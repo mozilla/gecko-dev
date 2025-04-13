@@ -107,13 +107,13 @@ def install(src, dest):
                  files the folder should not exist yet)
     """
     if not is_installer(src):
-        msg = "{} is not a valid installer file".format(src)
+        msg = f"{src} is not a valid installer file"
         if "://" in src:
             try:
                 return _install_url(src, dest)
             except Exception:
                 exc, val, tb = sys.exc_info()
-                error = InvalidSource("{} ({})".format(msg, val))
+                error = InvalidSource(f"{msg} ({val})")
                 raise error.with_traceback(tb)
         raise InvalidSource(msg)
 

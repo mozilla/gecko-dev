@@ -7,9 +7,7 @@ from . import document_dimensions
 def take_full_screenshot(session):
     return session.transport.send(
         "GET",
-        "/session/{session_id}/moz/screenshot/full".format(
-            session_id=session.session_id
-        ),
+        f"/session/{session.session_id}/moz/screenshot/full",
     )
 
 

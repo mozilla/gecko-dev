@@ -6,7 +6,7 @@
 def main(header, propFile):
     mappings = {}
 
-    with open(propFile, "r") as f:
+    with open(propFile) as f:
         for line in f:
             line = line.strip()
             if not line.startswith("#"):

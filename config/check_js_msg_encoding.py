@@ -25,11 +25,11 @@ ignore_files = [
 
 
 def log_pass(filename, text):
-    print("TEST-PASS | {} | {} | {}".format(scriptname, filename, text))
+    print(f"TEST-PASS | {scriptname} | {filename} | {text}")
 
 
 def log_fail(filename, text):
-    print("TEST-UNEXPECTED-FAIL | {} | {} | {}".format(scriptname, filename, text))
+    print(f"TEST-UNEXPECTED-FAIL | {scriptname} | {filename} | {text}")
 
 
 def check_single_file(filename):
@@ -38,7 +38,7 @@ def check_single_file(filename):
         try:
             data.decode(expected_encoding)
         except Exception:
-            log_fail(filename, "not in {} encoding".format(expected_encoding))
+            log_fail(filename, f"not in {expected_encoding} encoding")
 
     log_pass(filename, "ok")
     return True

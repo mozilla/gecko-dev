@@ -187,7 +187,7 @@ class ReftestThread(threading.Thread):
                 yield line
 
 
-class ReftestResolver(object):
+class ReftestResolver:
     def defaultManifest(self, suite):
         return {
             "reftest": "reftest.list",
@@ -281,7 +281,7 @@ class ReftestResolver(object):
         return manifests_by_url
 
 
-class RefTest(object):
+class RefTest:
     oldcwd = os.getcwd()
     resolver_cls = ReftestResolver
     use_marionette = True
@@ -428,7 +428,7 @@ class RefTest(object):
             if os.path.isdir(path):
                 profile_data_dir = path
 
-        with open(os.path.join(profile_data_dir, "profiles.json"), "r") as fh:
+        with open(os.path.join(profile_data_dir, "profiles.json")) as fh:
             base_profiles = json.load(fh)["reftest"]
 
         for name in base_profiles:
@@ -522,7 +522,7 @@ class RefTest(object):
 
         self.copyExtraFilesToProfile(options, profile)
 
-        self.log.info("Running with e10s: {}".format(options.e10s))
+        self.log.info(f"Running with e10s: {options.e10s}")
         self.log.info("Running with fission: {}".format(prefs["fission.autostart"]))
 
         return profile
@@ -857,7 +857,7 @@ class RefTest(object):
         valgrindPath=None,
         valgrindArgs=None,
         valgrindSuppFiles=None,
-        **profileArgs
+        **profileArgs,
     ):
         if cmdargs is None:
             cmdargs = []
@@ -932,7 +932,7 @@ class RefTest(object):
             debug_args=debug_args, interactive=interactive, outputTimeout=timeout
         )
         proc = runner.process_handler
-        self.outputHandler.proc_name = "GECKO({})".format(proc.pid)
+        self.outputHandler.proc_name = f"GECKO({proc.pid})"
 
         # Used to defer a possible IOError exception from Marionette
         marionette_exception = None
@@ -1029,7 +1029,7 @@ class RefTest(object):
             print("Error: parsing manifests failed!")
             sys.exit(1)
 
-        with open(self.testDumpFile, "r") as fh:
+        with open(self.testDumpFile) as fh:
             tests = json.load(fh)
 
         if os.path.isfile(self.testDumpFile):
@@ -1081,7 +1081,7 @@ class RefTest(object):
                 timeout=options.timeout + 70.0,
                 debuggerInfo=debuggerInfo,
                 symbolsPath=options.symbolsPath,
-                **kwargs
+                **kwargs,
             )
 
             # do not process leak log when we crash/assert
@@ -1120,7 +1120,7 @@ class RefTest(object):
                 )
                 return 1
 
-            self.log.info("Running tests in {}".format(manifest))
+            self.log.info(f"Running tests in {manifest}")
             self.currentManifest = manifest
             status = run(tests=tests)
             overall = overall or status

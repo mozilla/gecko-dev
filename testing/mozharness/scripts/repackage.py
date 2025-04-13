@@ -87,7 +87,7 @@ class Repackage(BaseScript):
             for arg, filename in repack_config["inputs"].items():
                 command.extend(
                     [
-                        "--{}".format(arg),
+                        f"--{arg}",
                         os.path.join(dirs["abs_input_dir"], filename),
                     ]
                 )

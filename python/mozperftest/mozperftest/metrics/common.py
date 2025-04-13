@@ -50,7 +50,7 @@ COMMON_ARGS = {
 }
 
 
-class MetricsStorage(object):
+class MetricsStorage:
     """Holds data that is commonly used across all metrics layers.
 
     An instance of this class represents data for a given and output
@@ -77,7 +77,7 @@ class MetricsStorage(object):
             # Expecting a single path or a directory
             p = Path(results)
             if not p.exists():
-                self.logger.warning("Given path does not exist: {}".format(results))
+                self.logger.warning(f"Given path does not exist: {results}")
             elif p.is_dir():
                 files = [f for f in p.glob("**/*.json") if not f.is_dir()]
                 res.extend(self._parse_results(files))
@@ -166,7 +166,7 @@ class MetricsStorage(object):
             tfm = transformer if transformer is not None else data_info["transformer"]
             prefix = data_type
             if self.prefix:
-                prefix = "{}-{}".format(self.prefix, data_type)
+                prefix = f"{self.prefix}-{data_type}"
 
             # Primarily used to store the transformer used on the data
             # so that it can also be used for generating things

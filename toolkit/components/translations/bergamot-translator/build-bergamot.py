@@ -116,7 +116,7 @@ def fetch_bergamot_source():
             "\n📄 MOZILLA_TRANSLATIONS_PATH not set. Cloning the repository as per moz.yaml."
         )
 
-        with open(MOZ_YAML_PATH, "r", encoding="utf8") as file:
+        with open(MOZ_YAML_PATH, encoding="utf8") as file:
             moz_yaml = yaml.safe_load(file)
 
         repo_url = moz_yaml["origin"]["url"]
@@ -189,7 +189,7 @@ def write_final_bergamot_js_file():
     Formats and writes the final JavaScript file for Bergamot by running ESLint on
     a temporary copy and moving it to the final destination.
     """
-    with open(JS_PATH, "r", encoding="utf8") as file:
+    with open(JS_PATH, encoding="utf8") as file:
         print("\n📐 Formatting the final Bergamot file")
 
         # Create the file outside of this directory so it's not ignored by ESLint.

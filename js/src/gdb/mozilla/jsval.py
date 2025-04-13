@@ -19,7 +19,7 @@ mozilla.prettyprinters.clear_module_printers(__name__)
 # formats handled below.
 
 
-class Box(object):
+class Box:
     def __init__(self, asBits, jtc):
         self.asBits = asBits
         self.jtc = jtc
@@ -90,7 +90,7 @@ class Nunbox(Box):
         return gdb.Value(self.asBits & Nunbox.PAYLOAD_MASK)
 
 
-class JSValueTypeCache(object):
+class JSValueTypeCache:
     # Cache information about the Value type for this objfile.
 
     def __init__(self, cache):
@@ -128,7 +128,7 @@ class JSValueTypeCache(object):
 
 
 @pretty_printer("JS::Value")
-class JSValue(object):
+class JSValue:
     def __init__(self, value, cache):
         # Save the generic typecache, and create our own, if we haven't already.
         self.cache = cache

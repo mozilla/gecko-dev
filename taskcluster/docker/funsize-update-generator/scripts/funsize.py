@@ -112,15 +112,13 @@ def validate_mar_channel_id(mar, channel_ids):
 
     product_info = MarReader(open(mar, "rb")).productinfo
     if not isinstance(product_info, tuple):
-        raise ValueError(
-            "Malformed product information in mar: {}".format(product_info)
-        )
+        raise ValueError(f"Malformed product information in mar: {product_info}")
 
     found_channel_ids = set(product_info[1].split(","))
 
     if not found_channel_ids.issubset(channel_ids):
         raise ValueError(
-            "MAR_CHANNEL_ID mismatch, {} not in {}".format(product_info[1], channel_ids)
+            f"MAR_CHANNEL_ID mismatch, {product_info[1]} not in {channel_ids}"
         )
 
     log.info("%s channel %s in %s", mar, product_info[1], channel_ids)
@@ -142,9 +140,7 @@ async def retry_download(*args, semaphore=None, **kwargs):  # noqa: E999
 def verify_allowed_url(mar, allowed_url_prefixes):
     if not any(mar.startswith(prefix) for prefix in allowed_url_prefixes):
         raise ValueError(
-            "{mar} is not in allowed URL prefixes: {p}".format(
-                mar=mar, p=allowed_url_prefixes
-            )
+            f"{mar} is not in allowed URL prefixes: {allowed_url_prefixes}"
         )
 
 
@@ -307,7 +303,7 @@ async def run_command(cmd, cwd="/", env=None, label=None, silent=False):
         env=env,
     )
     if label:
-        label = "{}: ".format(label)
+        label = f"{label}: "
     else:
         label = ""
 
@@ -479,7 +475,7 @@ def main():
     with open(manifest_file, "w") as fp:
         json.dump(manifest, fp, indent=2, sort_keys=True)
 
-    log.debug("{}".format(json.dumps(manifest, indent=2, sort_keys=True)))
+    log.debug(f"{json.dumps(manifest, indent=2, sort_keys=True)}")
 
 
 if __name__ == "__main__":

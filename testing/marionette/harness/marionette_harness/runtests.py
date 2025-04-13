@@ -25,7 +25,7 @@ class MarionetteArguments(BaseMarionetteArguments):
     pass
 
 
-class MarionetteHarness(object):
+class MarionetteHarness:
     def __init__(
         self,
         runner_class=MarionetteTestRunner,
@@ -46,10 +46,8 @@ class MarionetteHarness(object):
             "--version",
             action="version",
             help="Show version information.",
-            version="%(prog)s {version}"
-            " (using marionette-driver: {driver_version}, ".format(
-                version=__version__, driver_version=driver_version
-            ),
+            version=f"%(prog)s {__version__}"
+            f" (using marionette-driver: {driver_version}, ",
         )
         mozlog.commandline.add_logging_group(parser)
         args = parser.parse_args()

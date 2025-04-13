@@ -165,7 +165,7 @@ class TestNode(unittest.TestCase):
                 EXAMPLE_TEMPLATES,
                 EXAMPLE_XUL,
             )
-        with open(DUMMY_FILE, "r") as file:
+        with open(DUMMY_FILE) as file:
             contents = file.read()
             self.assertIn(
                 "<!ENTITY % exampleDTD SYSTEM",

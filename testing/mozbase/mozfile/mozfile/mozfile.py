@@ -522,7 +522,7 @@ def which(cmd, mode=os.F_OK | os.X_OK, path=None, exts=None, extra_search_dirs=(
 # utilities for temporary resources
 
 
-class NamedTemporaryFile(object):
+class NamedTemporaryFile:
     """
     Like tempfile.NamedTemporaryFile except it works on Windows
     in the case where you open the created file a second time.

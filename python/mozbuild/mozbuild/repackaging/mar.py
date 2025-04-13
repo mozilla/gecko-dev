@@ -31,9 +31,7 @@ def repackage_mar(topsrcdir, package, mar, output, arch=None, mar_channel_id=Non
         raise Exception("Package file %s is not a valid .zip or .tar file." % package)
     if arch and arch not in _BCJ_OPTIONS:
         raise Exception(
-            "Unknown architecture {}, available architectures: {}".format(
-                arch, list(_BCJ_OPTIONS.keys())
-            )
+            f"Unknown architecture {arch}, available architectures: {list(_BCJ_OPTIONS.keys())}"
         )
 
     ensureParentDir(output)

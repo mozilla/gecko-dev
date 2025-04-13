@@ -462,7 +462,7 @@ def generate_lir_header(c_out, yaml_path, mir_yaml_path):
                 )
             )
 
-        ops.append("_({})".format(name))
+        ops.append(f"_({name})")
 
     # Generate LIR instructions for MIR instructions with 'generate_lir': true
     mir_data = load_yaml(mir_yaml_path)
@@ -521,7 +521,7 @@ def generate_lir_header(c_out, yaml_path, mir_yaml_path):
                 )
             )
 
-            ops.append("_({})".format(name))
+            ops.append(f"_({name})")
 
     contents = "#define LIR_OPCODE_LIST(_)\\\n"
     contents += "\\\n".join(ops)

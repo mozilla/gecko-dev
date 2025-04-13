@@ -29,6 +29,6 @@ run the test suite again with `UPDATE_EXPECT=1` set to update the test files.
             file.write(actual)
 
     expected = None
-    with open(path, "r") as file:
+    with open(path) as file:
         expected = file.read()
     assert actual == expected, msg

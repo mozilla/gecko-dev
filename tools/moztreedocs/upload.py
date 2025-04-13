@@ -29,7 +29,7 @@ def create_aws_session():
         "3": "gecko-docs.mozilla.org",
     }[level]
     secrets_url = "http://taskcluster/secrets/v1/secret/"
-    secrets_url += "project/releng/gecko/build/level-{}/gecko-docs-upload".format(level)
+    secrets_url += f"project/releng/gecko/build/level-{level}/gecko-docs-upload"
 
     # Get the credentials from the TC secrets service.  Note that these
     # differ per SCM level

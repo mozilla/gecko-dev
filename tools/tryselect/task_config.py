@@ -156,14 +156,12 @@ class Pernosco(TryConfig):
                 if not address.endswith("@mozilla.com"):
                     print(
                         dedent(
-                            """\
+                            f"""\
                         Pernosco requires a Mozilla e-mail address to view its reports. Please
                         push to try with an @mozilla.com address to use --pernosco.
 
-                            Current user: {}
-                    """.format(
-                                address
-                            )
+                            Current user: {address}
+                    """
                         )
                     )
                     sys.exit(1)
@@ -217,7 +215,7 @@ class Path(TryConfig):
 
         for p in paths:
             if not os.path.exists(p):
-                print("error: '{}' is not a valid path.".format(p), file=sys.stderr)
+                print(f"error: '{p}' is not a valid path.", file=sys.stderr)
                 sys.exit(1)
 
         paths = [
@@ -345,15 +343,15 @@ class RangeAction(Action):
     def __init__(self, min, max, *args, **kwargs):
         self.min = min
         self.max = max
-        kwargs["metavar"] = "[{}-{}]".format(self.min, self.max)
+        kwargs["metavar"] = f"[{self.min}-{self.max}]"
         super().__init__(*args, **kwargs)
 
     def __call__(self, parser, namespace, values, option_string=None):
         name = option_string or self.dest
         if values < self.min:
-            parser.error("{} can not be less than {}".format(name, self.min))
+            parser.error(f"{name} can not be less than {self.min}")
         if values > self.max:
-            parser.error("{} can not be more than {}".format(name, self.max))
+            parser.error(f"{name} can not be more than {self.max}")
         setattr(namespace, self.dest, values)
 
 
@@ -627,10 +625,8 @@ class WorkerOverrides(TryConfig):
                 alias, worker_pool = override.split("=", 1)
                 if alias in overrides:
                     print(
-                        "Can't override worker alias {alias} more than once. "
-                        "Already set to use {previous}, but also asked to use {new}.".format(
-                            alias=alias, previous=overrides[alias], new=worker_pool
-                        )
+                        f"Can't override worker alias {alias} more than once. "
+                        f"Already set to use {overrides[alias]}, but also asked to use {worker_pool}."
                     )
                     sys.exit(1)
                 overrides[alias] = worker_pool
@@ -669,19 +665,15 @@ class WorkerOverrides(TryConfig):
                 alias, suffix = worker_suffix.split("=", 1)
                 if alias in overrides:
                     print(
-                        "Can't override worker alias {alias} more than once. "
-                        "Already set to use {previous}, but also asked "
-                        "to add suffix {suffix}.".format(
-                            alias=alias, previous=overrides[alias], suffix=suffix
-                        )
+                        f"Can't override worker alias {alias} more than once. "
+                        f"Already set to use {overrides[alias]}, but also asked "
+                        f"to add suffix {suffix}."
                     )
                     sys.exit(1)
                 provisioner, worker_type = get_worker_type(
                     graph_config, worker_type=alias, parameters={"level": "1"}
                 )
-                overrides[alias] = "{provisioner}/{worker_type}{suffix}".format(
-                    provisioner=provisioner, worker_type=worker_type, suffix=suffix
-                )
+                overrides[alias] = f"{provisioner}/{worker_type}{suffix}"
 
         retVal = {}
         if worker_types:

@@ -207,7 +207,7 @@ class AndroidWrench(TestingMixin, BaseScript, MozbaseMixin, AndroidMixin):
         """
         logfile = tempfile.NamedTemporaryFile()
         self.device.pull(self.wrench_dir + "/stdout", logfile.name)
-        with open(logfile.name, "r", encoding="utf-8") as f:
+        with open(logfile.name, encoding="utf-8") as f:
             self.info("=== scraped log output ===")
             for line in f:
                 if "UNEXPECTED-FAIL" in line or "panicked" in line:

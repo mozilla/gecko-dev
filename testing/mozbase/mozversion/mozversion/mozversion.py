@@ -16,7 +16,7 @@ from mozversion import errors
 INI_DATA_MAPPING = (("application", "App"), ("platform", "Build"))
 
 
-class Version(object):
+class Version:
     def __init__(self):
         self._info = {}
         self._logger = mozlog.get_default_logger(component="mozversion")

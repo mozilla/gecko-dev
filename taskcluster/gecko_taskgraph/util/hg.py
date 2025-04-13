@@ -41,9 +41,7 @@ def find_hg_revision_push_info(repository, revision):
 
     if len(pushes) != 1:
         raise RuntimeError(
-            "Found {} pushlog_ids, expected 1, for {} revision {}: {}".format(
-                len(pushes), repository, revision, pushes
-            )
+            f"Found {len(pushes)} pushlog_ids, expected 1, for {repository} revision {revision}: {pushes}"
         )
 
     pushid = list(pushes.keys())[0]

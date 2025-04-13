@@ -19,7 +19,7 @@ from mozpack.chrome.manifest import (
 )
 
 
-class ChromeManifestHandler(object):
+class ChromeManifestHandler:
     def __init__(self):
         self.overrides = {}
         self.chrome_mapping = defaultdict(set)

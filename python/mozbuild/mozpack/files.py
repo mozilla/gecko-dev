@@ -65,7 +65,7 @@ def _open(path, mode="r"):
     return open(path, mode)
 
 
-class Dest(object):
+class Dest:
     """
     Helper interface for BaseFile.copy. The interface works as follows:
       - read() and write() can be used to sequentially read/write from the underlying file.
@@ -105,7 +105,7 @@ class Dest(object):
             self.file = None
 
 
-class BaseFile(object):
+class BaseFile:
     """
     Base interface and helper for file copying. Derived class may implement
     their own copy function, or rely on BaseFile.copy using the open() member
@@ -805,7 +805,7 @@ class MinifiedJavaScript(BaseFile):
         return output
 
 
-class BaseFinder(object):
+class BaseFinder:
     def __init__(
         self, base, minify=False, minify_js=False, minify_js_verify_command=None
     ):

@@ -11,7 +11,7 @@ from mozprofile import Profile
 from mozrunner import FirefoxRunner
 
 
-class TPSFirefoxRunner(object):
+class TPSFirefoxRunner:
     PROCESS_TIMEOUT = 240
 
     def __init__(self, binary):
@@ -55,7 +55,7 @@ class TPSFirefoxRunner(object):
         self.download_url(self.url, pathToBuild)
 
         # install the build
-        print("installing {}".format(pathToBuild))
+        print(f"installing {pathToBuild}")
         mozfile.remove(self.installdir, True)
         binary = mozinstall.install(src=pathToBuild, dest=self.installdir)
 

@@ -148,7 +148,7 @@ class ArtifactPersistLimit(dlmanager.PersistLimit):
         self.files = []
 
 
-class ArtifactCache(object):
+class ArtifactCache:
     """Fetch artifacts from URLS and purge least recently used artifacts from disk."""
 
     def __init__(self, cache_dir, log=None, skip_cache=False):

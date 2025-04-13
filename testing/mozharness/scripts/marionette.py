@@ -208,7 +208,7 @@ class MarionetteTest(TestingMixin, MercurialScript, TransferMixin, CodeCoverageM
 
         self.test_suite = self._get_test_suite(c.get("emulator"))
         if self.test_suite not in self.config["suite_definitions"]:
-            self.fatal("{} is not defined in the config!".format(self.test_suite))
+            self.fatal(f"{self.test_suite} is not defined in the config!")
 
         if c.get("structured_output"):
             self.parser_class = StructuredOutputParser
@@ -270,9 +270,7 @@ class MarionetteTest(TestingMixin, MercurialScript, TransferMixin, CodeCoverageM
             dirs["abs_test_install_dir"], "config", "marionette_requirements.txt"
         )
         if not os.path.isfile(requirements):
-            self.fatal(
-                "Could not find marionette requirements file: {}".format(requirements)
-            )
+            self.fatal(f"Could not find marionette requirements file: {requirements}")
 
         self.register_virtualenv_module(requirements=[requirements])
 
@@ -285,7 +283,7 @@ class MarionetteTest(TestingMixin, MercurialScript, TransferMixin, CodeCoverageM
         # Currently running marionette on an emulator means webapi
         # tests. This method will need to change if this does.
         testsuite = "webapi" if is_emulator else "marionette"
-        return "{}_{}".format(testsuite, platform)
+        return f"{testsuite}_{platform}"
 
     def download_and_extract(self):
         super(MarionetteTest, self).download_and_extract()
@@ -356,7 +354,7 @@ class MarionetteTest(TestingMixin, MercurialScript, TransferMixin, CodeCoverageM
         if self.config.get("app_arg"):
             config_fmt_args["app_arg"] = self.config["app_arg"]
 
-        cmd.extend(["--setpref={}".format(p) for p in self.config["extra_prefs"]])
+        cmd.extend([f"--setpref={p}" for p in self.config["extra_prefs"]])
 
         cmd.append("--gecko-log=-")
 
@@ -425,11 +423,7 @@ class MarionetteTest(TestingMixin, MercurialScript, TransferMixin, CodeCoverageM
         try:
             cwd = self._query_tests_dir()
         except Exception as e:
-            self.fatal(
-                "Don't know how to run --test-suite '{0}': {1}!".format(
-                    self.test_suite, e
-                )
-            )
+            self.fatal(f"Don't know how to run --test-suite '{self.test_suite}': {e}!")
 
         marionette_parser = self.parser_class(
             config=self.config,

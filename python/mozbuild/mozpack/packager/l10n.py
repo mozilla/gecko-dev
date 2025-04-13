@@ -30,12 +30,12 @@ from mozpack.packager.formats import FlatFormatter, JarFormatter, OmniJarFormatt
 from mozpack.packager.unpack import UnpackFinder
 
 
-class LocaleManifestFinder(object):
+class LocaleManifestFinder:
     def __init__(self, finder):
         entries = self.entries = []
         bases = self.bases = []
 
-        class MockFormatter(object):
+        class MockFormatter:
             def add_interfaces(self, path, content):
                 pass
 
@@ -54,7 +54,7 @@ class LocaleManifestFinder(object):
         # Those type of entries are used by language packs to work as addons,
         # but are not necessary for the purpose of l10n repacking. So we wrap
         # the finder in order to remove those entries.
-        class WrapFinder(object):
+        class WrapFinder:
             def __init__(self, finder):
                 self._finder = finder
 
@@ -80,7 +80,7 @@ class LocaleManifestFinder(object):
         )
 
 
-class L10NRepackFormatterMixin(object):
+class L10NRepackFormatterMixin:
     def __init__(self, *args, **kwargs):
         super(L10NRepackFormatterMixin, self).__init__(*args, **kwargs)
         self._dictionaries = {}

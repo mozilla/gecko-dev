@@ -31,7 +31,7 @@ def test_dict():
     return _TESTS
 
 
-class Test(object):
+class Test:
     """abstract base class for a Talos test case"""
 
     __test__ = False  # not pytest

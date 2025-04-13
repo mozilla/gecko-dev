@@ -28,7 +28,7 @@ class MozconfigFindException(Exception):
     """Raised when a mozconfig location is not defined properly."""
 
 
-class MozconfigBuilder(object):
+class MozconfigBuilder:
     def __init__(self):
         self._lines = []
 

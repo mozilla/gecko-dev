@@ -18,7 +18,7 @@ decl_re = re.compile(
 
 def read_decls(filename):
     """Parse & yield C-style decls from an input file"""
-    with open(filename, "r") as fd:
+    with open(filename) as fd:
         # Strip comments from the source text.
         text = comment_re.sub("", fd.read())
 
@@ -37,7 +37,7 @@ def read_decls(filename):
 
 def generate(fd, consts_path, unicodes_path, template_path, compiler):
     # Parse the template
-    with open(template_path, "r") as template_fd:
+    with open(template_path) as template_fd:
         template = string.Template(template_fd.read())
 
     decls = ""
@@ -49,15 +49,13 @@ def generate(fd, consts_path, unicodes_path, template_path, compiler):
         assert args is None, "parameters in const decl!"
 
         decls += textwrap.dedent(
-            """
+            f"""
             #ifdef {name}
             constexpr {ty} _tmp_{name} = {name};
             #undef {name}
             constexpr {ty} {name} = _tmp_{name};
             #endif
-            """.format(
-                ty=ty, name=name
-            )
+            """
         )
 
     # Each unicode declaration defines a static inline function with the
@@ -72,7 +70,7 @@ def generate(fd, consts_path, unicodes_path, template_path, compiler):
         args = ", ".join("a%d" % i for i in range(len(args)))
 
         decls += textwrap.dedent(
-            """
+            f"""
             #ifdef {name}
             #undef {name}
             static inline {ty} WINAPI
@@ -85,9 +83,7 @@ def generate(fd, consts_path, unicodes_path, template_path, compiler):
             = delete;
             #endif
             #endif
-            """.format(
-                ty=ty, name=name, params=params, args=args
-            )
+            """
         )
 
     # Write out the resulting file

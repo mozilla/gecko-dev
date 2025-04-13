@@ -10,7 +10,7 @@ import mozpack.path as mozpath
 from ..util.string import pluralize
 
 
-class SummaryFormatter(object):
+class SummaryFormatter:
     def __init__(self, depth=None):
         self.depth = depth or int(os.environ.get("MOZLINT_SUMMARY_DEPTH", 1))
 

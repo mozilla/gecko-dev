@@ -75,7 +75,7 @@ def convert_to(size, from_unit, to_unit):
         raise DiskutilsError("conversion error: size (%s) is not a number" % size)
 
 
-class DiskInfo(object):
+class DiskInfo:
     """Stores basic information about the disk"""
 
     def __init__(self):
@@ -100,7 +100,7 @@ class DiskInfo(object):
         self.unit = unit
 
 
-class DiskSize(object):
+class DiskSize:
     """DiskSize object"""
 
     @staticmethod

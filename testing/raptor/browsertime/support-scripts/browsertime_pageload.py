@@ -107,7 +107,7 @@ class PageloadSupport(BasePythonSupport):
                 val = _get_raptor_val(cycle["timings"], raptor)
                 if not val:
                     raise MissingResultsError(
-                        "Browsertime cycle missing {} measurement".format(raptor)
+                        f"Browsertime cycle missing {raptor} measurement"
                     )
                 bt_result["measurements"][bt].append(val)
 

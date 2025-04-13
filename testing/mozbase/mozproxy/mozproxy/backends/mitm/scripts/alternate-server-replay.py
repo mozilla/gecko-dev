@@ -175,7 +175,7 @@ class AlternateServerPlayback:
                         _PROTO.update(recording_info["http_protocol"])
                     else:
                         ctx.log.warn(
-                            "Replaying file {} has no http_protocol info.".format(proto)
+                            f"Replaying file {proto} has no http_protocol info."
                         )
         except Exception as e:
             ctx.log.error("Could not load recording file! Stopping playback process!")
@@ -268,9 +268,7 @@ class AlternateServerPlayback:
                 else:
                     # returns 404 rather than dropping the whole HTTP/2 connection
                     ctx.log.warn(
-                        "server_playback: killed non-replay request {}".format(
-                            f.request.url
-                        )
+                        f"server_playback: killed non-replay request {f.request.url}"
                     )
                     f.response = http.HTTPResponse.make(
                         404, b"", {"content-type": "text/plain"}

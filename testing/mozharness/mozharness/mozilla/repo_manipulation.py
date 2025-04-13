@@ -18,7 +18,7 @@ from mozharness.base.log import FATAL, INFO
 from mozharness.base.vcs.mercurial import MercurialVCS
 
 
-class MercurialRepoManipulationMixin(object):
+class MercurialRepoManipulationMixin:
     def get_version(self, repo_root, version_file="browser/config/version.txt"):
         version_path = os.path.join(repo_root, version_file)
         contents = self.read_from_file(version_path, error_level=FATAL)
@@ -177,9 +177,7 @@ class MercurialRepoManipulationMixin(object):
                 # existing_tags = {TAG: REVISION, ...}
                 existing_tags[parts[0]] = parts[-1].split(":")[-1]
         self.info(
-            "existing_tags:\n{}".format(
-                json.dumps(existing_tags, sort_keys=True, indent=4)
-            )
+            f"existing_tags:\n{json.dumps(existing_tags, sort_keys=True, indent=4)}"
         )
         return existing_tags
 

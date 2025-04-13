@@ -108,9 +108,7 @@ def fill_template(config, tasks):
             if previous_artifact is not None and previous_artifact != artifact:
                 raise Exception("Cannot compare builds from different OSes")
             urls[k] = {
-                "artifact-reference": "<{}/{}>".format(
-                    dep_name, get_artifact_path(task, artifact)
-                ),
+                "artifact-reference": f"<{dep_name}/{get_artifact_path(task, artifact)}>",
             }
             previous_artifact = artifact
 

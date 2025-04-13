@@ -19,7 +19,7 @@ from mozbuild.util import (
 )
 
 
-class Fuga(object):
+class Fuga:
     def __init__(self, value):
         self.value = value
 

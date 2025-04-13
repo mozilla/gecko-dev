@@ -20,7 +20,7 @@ def test_crash_count_with_or_without_logger(runner, logger):
     else:
         fn = "log_crashes"
 
-    with patch("mozcrash.{}".format(fn), return_value=2) as mock:
+    with patch(f"mozcrash.{fn}", return_value=2) as mock:
         assert runner.crashed == 0
         assert runner.check_for_crashes() == 2
         assert runner.crashed == 2

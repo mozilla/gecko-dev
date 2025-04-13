@@ -3,7 +3,7 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 
-class EmulatorScreen(object):
+class EmulatorScreen:
     """Class for screen related emulator commands."""
 
     SO_PORTRAIT_PRIMARY = "portrait-primary"

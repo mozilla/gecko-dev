@@ -134,19 +134,19 @@ def make_task_worker(config, jobs):
             job,
             "worker-type",
             item_name=job["name"],
-            **{"release-level": release_level(config.params["project"])}
+            **{"release-level": release_level(config.params["project"])},
         )
         resolve_keyed_by(
             job,
             "scopes",
             item_name=job["name"],
-            **{"release-level": release_level(config.params["project"])}
+            **{"release-level": release_level(config.params["project"])},
         )
         resolve_keyed_by(
             job,
             "bouncer-products",
             item_name=job["name"],
-            **{"release-type": config.params["release_type"]}
+            **{"release-type": config.params["release_type"]},
         )
 
         # No need to filter out ja-JP-mac, we need to upload both; but we do
@@ -313,9 +313,7 @@ def craft_bouncer_product_name(
         )
     )
 
-    return "{product}-{version}{postfix}".format(
-        product=product.capitalize(), version=current_version, postfix=postfix
-    )
+    return f"{product.capitalize()}-{current_version}{postfix}"
 
 
 def craft_ssl_only(bouncer_product, project):

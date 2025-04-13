@@ -80,7 +80,7 @@ def preprocess(path, defines):
     pp.context.update(defines)
     pp.out = io.StringIO()
     pp.do_filter("substitution")
-    pp.do_include(open(path, "r", encoding="latin1"))
+    pp.do_include(open(path, encoding="latin1"))
     pp.out.seek(0)
     return pp.out
 
@@ -265,9 +265,7 @@ def generate_module_rc(binary="", rcinclude=None):
         overrides = {}
 
     if rcinclude:
-        include = "// From included resource {}\n{}".format(
-            rcinclude, preprocess(rcinclude, defines).read()
-        )
+        include = f"// From included resource {rcinclude}\n{preprocess(rcinclude, defines).read()}"
     else:
         include = ""
 
@@ -303,7 +301,7 @@ def generate_module_rc(binary="", rcinclude=None):
         manifest_path = os.path.join(srcdir, binary + ".manifest")
         if os.path.exists(manifest_path):
             manifest_path = manifest_path.replace("\\", "\\\\")
-            data += '\n{} RT_MANIFEST "{}"\n'.format(manifest_id, manifest_path)
+            data += f'\n{manifest_id} RT_MANIFEST "{manifest_path}"\n'
 
     with open("{}.rc".format(binary or "module"), "w", encoding="latin1") as fh:
         fh.write(data)

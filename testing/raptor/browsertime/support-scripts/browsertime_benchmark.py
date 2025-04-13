@@ -150,16 +150,12 @@ class BenchmarkSupport(PageloadSupport):
 
                 # build a list of subtests and append all related replicates
                 create_subtest_entry(
-                    "{}_decoded_frames".format(_sub),
+                    f"{_sub}_decoded_frames",
                     _value["decodedFrames"],
                     lower_is_better=False,
                 )
-                create_subtest_entry(
-                    "{}_dropped_frames".format(_sub), _value["droppedFrames"]
-                )
-                create_subtest_entry(
-                    "{}_%_dropped_frames".format(_sub), percent_dropped
-                )
+                create_subtest_entry(f"{_sub}_dropped_frames", _value["droppedFrames"])
+                create_subtest_entry(f"{_sub}_%_dropped_frames", percent_dropped)
 
         # Check if any youtube test failed and generate exception
         if len(self.failed_tests) > 0:

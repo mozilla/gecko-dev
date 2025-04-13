@@ -43,9 +43,7 @@ def ensure_wrapped_singlequote(regexes):
     for name, regex in regexes.items():
         if regex[0] != "'" or regex[-1] != "'":
             raise Exception(
-                "Regex {} is invalid: not wrapped with single quotes.\n{}".format(
-                    name, regex
-                )
+                f"Regex {name} is invalid: not wrapped with single quotes.\n{regex}"
             )
 
 

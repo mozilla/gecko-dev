@@ -754,7 +754,7 @@ def edit_moz_build_file_to_add_file(
     # line.
     did_replace = False
 
-    with open(normalized_mozbuild_filename, mode="r") as file:
+    with open(normalized_mozbuild_filename) as file:
         with open(normalized_mozbuild_filename + ".new", mode="wb") as output:
             for line in file:
                 if not did_replace and find_str in line:
@@ -817,7 +817,7 @@ def edit_moz_build_file_to_remove_file(
     )
     did_replace = False
 
-    with open(normalized_mozbuild_filename, mode="r") as file:
+    with open(normalized_mozbuild_filename) as file:
         with open(normalized_mozbuild_filename + ".new", mode="wb") as output:
             for line in file:
                 if not did_replace and unnormalized_filename_to_remove in line:

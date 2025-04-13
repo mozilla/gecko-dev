@@ -12,7 +12,7 @@ the JSON output file in firefox (or another browser of your choice if you pass t
 """
 
 ff_browser = "firefox"
-target_directory = "{cwd}/app/build/".format(cwd=os.getcwd())
+target_directory = f"{os.getcwd()}/app/build/"
 output_path = "/storage/emulated/0/benchmark/"
 output_file = "org.mozilla.fenix-benchmarkData.json"
 file_url = "file:///"
@@ -35,33 +35,27 @@ def run_benchmark(class_to_test):
     args = ["./gradlew", "-Pbenchmark", "app:connectedCheck"]
     if class_to_test:
         args.append(
-            "-Pandroid.testInstrumentationRunnerArguments.class={clazz}".format(
-                clazz=class_to_test
-            )
+            f"-Pandroid.testInstrumentationRunnerArguments.class={class_to_test}"
         )
     subprocess.run(args, check=True, text=True)
 
 
 def fetch_benchmark_results():
     subprocess.run(
-        ["adb", "pull", "{path}{file}".format(path=output_path, file=output_file)],
+        ["adb", "pull", f"{output_path}{output_file}"],
         cwd=target_directory,
         check=True,
         text=True,
     )
     print(
         "The benchmark results can be seen here: {file_path}".format(
-            file_path=os.path.abspath("./{file}".format(file=file_url))
+            file_path=os.path.abspath(f"./{file_url}")
         )
     )
 
 
 def open_in_browser():
-    abs_path = os.path.abspath(
-        "{target_directory}{file}".format(
-            target_directory=target_directory, file=output_file
-        )
-    )
+    abs_path = os.path.abspath(f"{target_directory}{output_file}")
     webbrowser.get(ff_browser).open_new(file_url + abs_path)
 
 

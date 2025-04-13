@@ -43,7 +43,7 @@ class UnreadableInstallManifest(Exception):
     """Raised when an invalid install manifest is parsed."""
 
 
-class InstallManifest(object):
+class InstallManifest:
     """Describes actions to be used with a copier.FileCopier instance.
 
     This class facilitates serialization and deserialization of data used to

@@ -24,7 +24,7 @@ WEB_SHADOW_ROOT_KEY = "shadow-6066-11e4-a52e-4f735466cecf"
 WEB_WINDOW_KEY = "window-fcc6-11e5-b4f8-330a88ab9d7f"
 
 
-class MouseButton(object):
+class MouseButton:
     """Enum-like class for mouse button constants."""
 
     LEFT = 0
@@ -32,7 +32,7 @@ class MouseButton(object):
     RIGHT = 2
 
 
-class ActionSequence(object):
+class ActionSequence:
     r"""API for creating and performing action sequences.
 
     Each action method adds one or more actions to a queue. When perform()
@@ -188,7 +188,7 @@ class ActionSequence(object):
         return self
 
 
-class Actions(object):
+class Actions:
     def __init__(self, marionette):
         self.marionette = marionette
 
@@ -213,7 +213,7 @@ class Actions(object):
         return ActionSequence(self.marionette, *args, **kwargs)
 
 
-class WebElement(object):
+class WebElement:
     """Represents a DOM Element."""
 
     identifiers = (WEB_ELEMENT_KEY,)
@@ -394,7 +394,7 @@ class WebElement(object):
         raise ValueError("Unrecognised web element")
 
 
-class ShadowRoot(object):
+class ShadowRoot:
     """A Class to handling Shadow Roots"""
 
     identifiers = (WEB_SHADOW_ROOT_KEY,)
@@ -449,7 +449,7 @@ class ShadowRoot(object):
         raise ValueError("Unrecognised shadow root")
 
 
-class WebFrame(object):
+class WebFrame:
     """A Class to handle frame windows"""
 
     identifiers = (WEB_FRAME_KEY,)
@@ -478,7 +478,7 @@ class WebFrame(object):
         raise ValueError("Unrecognised web frame")
 
 
-class WebWindow(object):
+class WebWindow:
     """A Class to handle top-level windows"""
 
     identifiers = (WEB_WINDOW_KEY,)
@@ -507,7 +507,7 @@ class WebWindow(object):
         raise ValueError("Unrecognised web window")
 
 
-class Alert(object):
+class Alert:
     """A class for interacting with alerts.
 
     ::
@@ -540,7 +540,7 @@ class Alert(object):
         )
 
 
-class Marionette(object):
+class Marionette:
     """Represents a Marionette connection to a browser or device."""
 
     CONTEXT_CHROME = "chrome"  # non-browser content: windows, dialogs, etc.
@@ -639,7 +639,7 @@ class Marionette(object):
             self.check_port_available(self.port, host=self.host)
         except OSError:
             _, value, tb = sys.exc_info()
-            msg = "Port {}:{} is unavailable ({})".format(self.host, self.port, value)
+            msg = f"Port {self.host}:{self.port} is unavailable ({value})"
             raise OSError(msg).with_traceback(tb)
 
         try:
@@ -736,12 +736,10 @@ class Marionette(object):
         if not connected:
             # There might have been a startup crash of the application
             if runner is not None and self.check_for_crash() > 0:
-                raise OSError("Process crashed (Exit code: {})".format(runner.wait(0)))
+                raise OSError(f"Process crashed (Exit code: {runner.wait(0)})")
 
             raise socket.timeout(
-                "Timed out waiting for connection on {0}:{1}!".format(
-                    self.host, self.port
-                )
+                f"Timed out waiting for connection on {self.host}:{self.port}!"
             )
 
     @do_process_check
@@ -1016,11 +1014,11 @@ class Marionette(object):
                 if type(value) is not str:
                     value = json.dumps(value)
                 pref_exists = self.execute_script(
-                    """
+                    f"""
                 let prefInterface = Components.classes["@mozilla.org/preferences-service;1"]
                                               .getService(Components.interfaces.nsIPrefBranch);
-                let pref = '{0}';
-                let value = '{1}';
+                let pref = '{pref}';
+                let value = '{value}';
                 let type = prefInterface.getPrefType(pref);
                 switch(type) {{
                     case prefInterface.PREF_STRING:
@@ -1032,9 +1030,7 @@ class Marionette(object):
                     case prefInterface.PREF_INVALID:
                         return false;
                 }}
-                """.format(
-                        pref, value
-                    )
+                """
                 )
                 if not pref_exists:
                     break
@@ -1120,9 +1116,7 @@ class Marionette(object):
                 )
 
             if callback is not None and not callable(callback):
-                raise ValueError(
-                    "Specified callback '{}' is not callable".format(callback)
-                )
+                raise ValueError(f"Specified callback '{callback}' is not callable")
 
             # Block Marionette from accepting new connections
             self._send_message("Marionette:AcceptConnections", {"value": False})
@@ -1228,9 +1222,7 @@ class Marionette(object):
                 )
 
             if callback is not None and not callable(callback):
-                raise ValueError(
-                    "Specified callback '{}' is not callable".format(callback)
-                )
+                raise ValueError(f"Specified callback '{callback}' is not callable")
 
             # Block Marionette from accepting new connections
             self._send_message("Marionette:AcceptConnections", {"value": False})
@@ -1319,7 +1311,7 @@ class Marionette(object):
 
         :param relative_url: The url of a static file, relative to Marionette's www directory.
         """
-        return "{0}{1}".format(self.baseurl, relative_url)
+        return f"{self.baseurl}{relative_url}"
 
     @do_process_check
     def start_session(self, capabilities=None, process_forked=False, timeout=None):
@@ -1572,7 +1564,7 @@ class Marionette(object):
             marionette.set_context(marionette.CONTEXT_CHROME)
         """
         if context not in [self.CONTEXT_CHROME, self.CONTEXT_CONTENT]:
-            raise ValueError("Unknown context: {}".format(context))
+            raise ValueError(f"Unknown context: {context}")
 
         self._send_message("Marionette:SetContext", {"value": context})
 
@@ -2111,7 +2103,7 @@ class Marionette(object):
         else:
             raise ValueError(
                 "format parameter must be either 'base64'"
-                " or 'binary', not {0}".format(repr(format))
+                f" or 'binary', not {repr(format)}"
             )
 
     @property

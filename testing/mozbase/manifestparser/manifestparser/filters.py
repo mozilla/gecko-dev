@@ -34,7 +34,7 @@ def skip_if(tests, values, strict=False):
     tag = "skip-if"
     for test in tests:
         if tag in test and _match(test[tag], strict, **values):
-            test.setdefault("disabled", "{}: {}".format(tag, test[tag]))
+            test.setdefault("disabled", f"{tag}: {test[tag]}")
         yield test
 
 
@@ -46,7 +46,7 @@ def run_if(tests, values, strict=False):
     tag = "run-if"
     for test in tests:
         if tag in test and not _match(test[tag], strict, **values):
-            test.setdefault("disabled", "{}: {}".format(tag, test[tag]))
+            test.setdefault("disabled", f"{tag}: {test[tag]}")
         yield test
 
 
@@ -86,7 +86,7 @@ def exists(tests, values, strict=False):
 # built-in instance filters
 
 
-class InstanceFilter(object):
+class InstanceFilter:
     """
     Generally only one instance of a class filter should be applied at a time.
     Two instances of `InstanceFilter` are considered equal if they have the
@@ -103,7 +103,7 @@ class InstanceFilter(object):
         self.fmt_args = ", ".join(
             itertools.chain(
                 [str(a) for a in args],
-                ["{}={}".format(k, v) for k, v in kwargs.items()],
+                [f"{k}={v}" for k, v in kwargs.items()],
             )
         )
 
@@ -113,7 +113,7 @@ class InstanceFilter(object):
         return self.__hash__() == other.__hash__()
 
     def __str__(self):
-        return "{}({})".format(self.__class__.__name__, self.fmt_args)
+        return f"{self.__class__.__name__}({self.fmt_args})"
 
 
 class subsuite(InstanceFilter):
@@ -380,10 +380,7 @@ class chunk_by_runtime(InstanceFilter):
         # pylint --py3k W1619
         # pylint: disable=W1633
         self.logger.debug(
-            "Cumulative test runtime is around {} minutes (average is {} minutes)".format(
-                round(runtime / 60),
-                round(sum([c[0] for c in chunks]) / (60 * len(chunks))),
-            )
+            f"Cumulative test runtime is around {round(runtime / 60)} minutes (average is {round(sum([c[0] for c in chunks]) / (60 * len(chunks)))} minutes)"
         )
         return (t for t in tests if self.get_manifest(t) in this_manifests)
 
@@ -537,7 +534,7 @@ class filterlist(MutableSequence):
         if not callable(item):
             raise TypeError("Filters must be callable!")
         if item in self:
-            raise ValueError("Filter {} is already applied!".format(item))
+            raise ValueError(f"Filter {item} is already applied!")
 
     def __getitem__(self, key):
         return self.items[key]

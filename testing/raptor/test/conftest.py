@@ -56,7 +56,7 @@ def get_prefs():
         import raptor
 
         prefs_dir = os.path.join(raptor.__file__, "preferences")
-        with open(os.path.join(prefs_dir, "{}.json".format(browser)), "r") as fh:
+        with open(os.path.join(prefs_dir, f"{browser}.json")) as fh:
             return json.load(fh)
 
 
@@ -71,11 +71,11 @@ def get_binary():
 
     def inner(app):
         if app != "firefox":
-            pytest.xfail(reason="{} support not implemented".format(app))
+            pytest.xfail(reason=f"{app} support not implemented")
 
         binary = fixtures.binary()
         if not binary:
-            pytest.skip("could not find a {} binary".format(app))
+            pytest.skip(f"could not find a {app} binary")
         return binary
 
     return inner

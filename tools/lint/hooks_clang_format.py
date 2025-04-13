@@ -63,7 +63,7 @@ def run_clang_format(hooktype, changedFiles):
         vcs.add_remove_files(*path_list)
 
         return False
-    print("warning: '{}' is not a valid clang-format hooktype".format(hooktype))
+    print(f"warning: '{hooktype}' is not a valid clang-format hooktype")
     return False
 
 

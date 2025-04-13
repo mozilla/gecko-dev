@@ -235,9 +235,7 @@ class BrowsertimeRunner(NodeRunner):
             expr = r"/tarball/[a-f0-9]{40}$"
             if not re.search(expr, install_url):
                 raise ValueError(
-                    "New upstream URL does not end with {}: '{}'".format(
-                        expr[:-1], install_url
-                    )
+                    f"New upstream URL does not end with {expr[:-1]}: '{install_url}'"
                 )
 
             with package_json_path.open() as f:
@@ -357,7 +355,7 @@ class BrowsertimeRunner(NodeRunner):
         msg = msg.replace("{", "{{").replace("}", "}}")
         level = level.lower()
         if "error" in level:
-            self.error("Mozperftest failed to run: {}".format(msg), msg)
+            self.error(f"Mozperftest failed to run: {msg}", msg)
         elif "warning" in level:
             self.warning(msg)
         else:

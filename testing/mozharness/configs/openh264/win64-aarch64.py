@@ -35,19 +35,19 @@ config = {
             "{_VSPATH}/DIA SDK/bin;%(PATH)s;"
         ).format(_VSPATH=VSPATH, MOZ_FETCHES_DIR=os.environ["MOZ_FETCHES_DIR"]),
         "INCLUDES": (
-            "-I{_VSPATH}\\VC\\include "
-            "-I{_VSPATH}\\VC\\atlmfc\\include "
-            "-I{_VSPATH}\\SDK\\Include\\10.0.17134.0\\ucrt "
-            "-I{_VSPATH}\\SDK\\Include\\10.0.17134.0\\shared "
-            "-I{_VSPATH}\\SDK\\Include\\10.0.17134.0\\um "
-            "-I{_VSPATH}\\SDK\\Include\\10.0.17134.0\\winrt "
-        ).format(_VSPATH=VSPATH),
+            f"-I{VSPATH}\\VC\\include "
+            f"-I{VSPATH}\\VC\\atlmfc\\include "
+            f"-I{VSPATH}\\SDK\\Include\\10.0.17134.0\\ucrt "
+            f"-I{VSPATH}\\SDK\\Include\\10.0.17134.0\\shared "
+            f"-I{VSPATH}\\SDK\\Include\\10.0.17134.0\\um "
+            f"-I{VSPATH}\\SDK\\Include\\10.0.17134.0\\winrt "
+        ),
         "LIB": (
-            "{_VSPATH}/VC/lib/arm64;"
-            "{_VSPATH}/VC/atlmfc/lib/arm64;"
-            "{_VSPATH}/SDK/lib/10.0.17134.0/ucrt/arm64;"
-            "{_VSPATH}/SDK/lib/10.0.17134.0/um/arm64;"
-        ).format(_VSPATH=VSPATH),
+            f"{VSPATH}/VC/lib/arm64;"
+            f"{VSPATH}/VC/atlmfc/lib/arm64;"
+            f"{VSPATH}/SDK/lib/10.0.17134.0/ucrt/arm64;"
+            f"{VSPATH}/SDK/lib/10.0.17134.0/um/arm64;"
+        ),
         "CFLAGS": ("--target=aarch64-windows-msvc"),
     },
 }

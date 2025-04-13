@@ -77,7 +77,7 @@ class CodeCoverageMixin(SingleTestMixin):
         elif mozinfo.os == "win":
             self.grcov_bin = "grcov.exe"
         else:
-            raise Exception("Unexpected OS: {}".format(mozinfo.os))
+            raise Exception(f"Unexpected OS: {mozinfo.os}")
 
         super(CodeCoverageMixin, self).__init__(**kwargs)
 
@@ -118,7 +118,7 @@ class CodeCoverageMixin(SingleTestMixin):
 
     def _setup_cpp_js_coverage_tools(self):
         fetches_dir = os.environ["MOZ_FETCHES_DIR"]
-        with open(os.path.join(fetches_dir, "target.mozinfo.json"), "r") as f:
+        with open(os.path.join(fetches_dir, "target.mozinfo.json")) as f:
             build_mozinfo = json.load(f)
 
         self.prefix = build_mozinfo["topsrcdir"]
@@ -161,9 +161,7 @@ class CodeCoverageMixin(SingleTestMixin):
         self.grcov_dir = os.path.join(os.environ["MOZ_FETCHES_DIR"], "grcov")
         if not os.path.isfile(os.path.join(self.grcov_dir, self.grcov_bin)):
             raise Exception(
-                "File not found: {}".format(
-                    os.path.join(self.grcov_dir, self.grcov_bin)
-                )
+                f"File not found: {os.path.join(self.grcov_dir, self.grcov_bin)}"
             )
 
         if self.code_coverage_enabled:
@@ -385,7 +383,7 @@ class CodeCoverageMixin(SingleTestMixin):
 
         # Log a warning if the test path is still an absolute path.
         if os.path.isabs(test):
-            self.warn("Found absolute path for test: {}".format(test))
+            self.warn(f"Found absolute path for test: {test}")
 
         if suite not in self.per_test_reports:
             self.per_test_reports[suite] = {}
@@ -448,7 +446,7 @@ class CodeCoverageMixin(SingleTestMixin):
                     # TODO: Optimize this part which loads JSONs
                     # with a size of about 40Mb into memory for diffing later.
                     # Bug 1460064 is filed for this.
-                    with open(grcov_file, "r") as f:
+                    with open(grcov_file) as f:
                         data = json.load(f)
 
                     if suite in os.path.split(test)[-1]:
@@ -468,7 +466,7 @@ class CodeCoverageMixin(SingleTestMixin):
                             continue
                         else:
                             # Get test coverage
-                            with open(grcov_file, "r") as f:
+                            with open(grcov_file) as f:
                                 report = json.load(f)
 
                             # Remove uncovered files, as they are unneeded for per-test

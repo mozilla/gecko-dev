@@ -93,7 +93,7 @@ gecko_parameters_schema = {
 
 
 def get_contents(path):
-    with open(path, "r") as fh:
+    with open(path) as fh:
         contents = fh.readline().rstrip()
     return contents
 

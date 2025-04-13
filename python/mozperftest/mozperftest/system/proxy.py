@@ -26,7 +26,7 @@ LOG = get_proxy_logger(component="proxy")
 HERE = os.path.dirname(__file__)
 
 
-class OutputHandler(object):
+class OutputHandler:
     def __init__(self):
         self.proc = None
         self.port = None

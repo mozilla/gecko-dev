@@ -123,7 +123,7 @@ def compare_listings(
     ignore_missing = ignore_missing or ()
 
     if ignore_missing:
-        logging.warning("ignoring paths: {}".format(ignore_missing))
+        logging.warning(f"ignoring paths: {ignore_missing}")
 
     left_diff = obj1 - obj2
     if left_diff:
@@ -134,15 +134,15 @@ def compare_listings(
             _log = logging.warning
             _log("Ignoring missing files due to ignore_missing")
 
-        _log("{} only in {}:".format(label, source_dir))
+        _log(f"{label} only in {source_dir}:")
         for d in sorted(left_diff):
-            _log("  {}".format(d))
+            _log(f"  {d}")
 
     right_diff = obj2 - obj1
     if right_diff:
-        logging.error("{} only in {}:".format(label, target_dir))
+        logging.error(f"{label} only in {target_dir}:")
         for d in sorted(right_diff):
-            logging.error("  {}".format(d))
+            logging.error(f"  {d}")
         difference_found = True
 
     return difference_found
@@ -165,12 +165,10 @@ def compare_common_files(files, channel, source_dir, target_dir):
         if os.stat(source_file).st_size != os.stat(target_file).st_size or hash_file(
             source_file
         ) != hash_file(target_file):
-            logging.info("Difference found in {}".format(filename))
+            logging.info(f"Difference found in {filename}")
             if filename in IGNORE_FILES:
                 logging.info(
-                    "Ignoring difference in {} because it is listed in IGNORE_FILES".format(
-                        filename
-                    )
+                    f"Ignoring difference in {filename} because it is listed in IGNORE_FILES"
                 )
                 continue
 
@@ -186,25 +184,21 @@ def compare_common_files(files, channel, source_dir, target_dir):
                 and channel.startswith(tuple(t["channel_prefix"]))
             ]
             logging.debug(
-                "Got {} transform(s) to consider for {}".format(
-                    len(transforms), filename
-                )
+                f"Got {len(transforms)} transform(s) to consider for {filename}"
             )
             for transform in transforms:
                 side = transform["side"]
 
                 if "deletion" in transform:
                     d = transform["deletion"]
-                    logging.debug(
-                        "Trying deleting lines starting {} from {}".format(d, side)
-                    )
+                    logging.debug(f"Trying deleting lines starting {d} from {side}")
                     file_contents[side] = [
                         l for l in file_contents[side] if not l.startswith(d)
                     ]
 
                 if "substitution" in transform:
                     r = transform["substitution"]
-                    logging.debug("Trying replacement for {} in {}".format(r, side))
+                    logging.debug(f"Trying replacement for {r} in {side}")
                     file_contents[side] = [
                         l.replace(r[0], r[1]) for l in file_contents[side]
                     ]
@@ -216,7 +210,7 @@ def compare_common_files(files, channel, source_dir, target_dir):
             if file_contents["source"] != file_contents["target"]:
                 difference_found = True
                 logging.error(
-                    "{} still differs after transforms, residual diff:".format(filename)
+                    f"{filename} still differs after transforms, residual diff:"
                 )
                 for l in difflib.unified_diff(
                     file_contents["source"], file_contents["target"]
@@ -255,7 +249,7 @@ if __name__ == "__main__":
         logging.error("Source and/or target directory doesn't exist")
         sys.exit(3)
 
-    logging.info("Comparing {} with {}...".format(source, target))
+    logging.info(f"Comparing {source} with {target}...")
     source_dirs, source_files = walk_dir(source)
     target_dirs, target_files = walk_dir(target)
 

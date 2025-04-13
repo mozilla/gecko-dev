@@ -66,7 +66,7 @@ def compare(command_context, **kwargs):
     """Run compare-locales."""
     from compare_locales.commands import CompareLocales
 
-    class ErrorHelper(object):
+    class ErrorHelper:
         """Dummy ArgumentParser to marshall compare-locales
         commandline errors to mach exceptions.
         """

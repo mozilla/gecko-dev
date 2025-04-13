@@ -8,7 +8,7 @@ from http.server import BaseHTTPRequestHandler, HTTPServer
 from .constant import Constant
 
 
-class PerftestNotebook(object):
+class PerftestNotebook:
     """Controller class for PerftestNotebook."""
 
     def __init__(self, data, logger, prefix):

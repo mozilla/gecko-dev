@@ -35,7 +35,7 @@ output as packages are built.
 NO_BREW_INSTALLED = "It seems you don't have Homebrew installed."
 
 
-class OSXAndroidBootstrapper(object):
+class OSXAndroidBootstrapper:
     def install_mobile_android_packages(self, mozconfig_builder, artifact_mode=False):
         os_arch = platform.machine()
         if os_arch != "x86_64" and os_arch != "arm64":

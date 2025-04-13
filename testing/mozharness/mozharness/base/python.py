@@ -105,7 +105,7 @@ virtualenv_config_options = [
 ]
 
 
-class VirtualenvMixin(object):
+class VirtualenvMixin:
     """BaseScript mixin, designed to create and use virtualenvs.
 
     Config items:
@@ -597,27 +597,21 @@ class VirtualenvMixin(object):
 
         self.info(self.platform_name())
         if self.platform_name().startswith("macos"):
-            tmp_path = "{}/bin/bak".format(venv_path)
+            tmp_path = f"{venv_path}/bin/bak"
             self.info(
-                "Copying venv python binaries to {} to clear for re-sign".format(
-                    tmp_path
-                )
+                f"Copying venv python binaries to {tmp_path} to clear for re-sign"
             )
-            subprocess.call("mkdir -p {}".format(tmp_path), shell=True)
-            subprocess.call(
-                "cp {}/bin/python* {}/".format(venv_path, tmp_path), shell=True
-            )
+            subprocess.call(f"mkdir -p {tmp_path}", shell=True)
+            subprocess.call(f"cp {venv_path}/bin/python* {tmp_path}/", shell=True)
             self.info("Replacing venv python binaries with reset copies")
-            subprocess.call(
-                "mv -f {}/* {}/bin/".format(tmp_path, venv_path), shell=True
-            )
+            subprocess.call(f"mv -f {tmp_path}/* {venv_path}/bin/", shell=True)
             self.info(
                 "codesign -s - --preserve-metadata=identifier,entitlements,flags,runtime "
-                "-f {}/bin/*".format(venv_path)
+                f"-f {venv_path}/bin/*"
             )
             subprocess.call(
                 "codesign -s - --preserve-metadata=identifier,entitlements,flags,runtime -f "
-                "{}/bin/python*".format(venv_path),
+                f"{venv_path}/bin/python*",
                 shell=True,
             )
 
@@ -1016,15 +1010,13 @@ class ResourceMonitoringMixin(PerfherderResourceOptionsMixin):
 
         # Print special messages so usage shows up in Treeherder.
         if cpu_percent:
-            self._tinderbox_print("CPU usage<br/>{:,.1f}%".format(cpu_percent))
+            self._tinderbox_print(f"CPU usage<br/>{cpu_percent:,.1f}%")
 
         self._tinderbox_print(
-            "I/O read bytes / time<br/>{:,} / {:,}".format(io.read_bytes, io.read_time)
+            f"I/O read bytes / time<br/>{io.read_bytes:,} / {io.read_time:,}"
         )
         self._tinderbox_print(
-            "I/O write bytes / time<br/>{:,} / {:,}".format(
-                io.write_bytes, io.write_time
-            )
+            f"I/O write bytes / time<br/>{io.write_bytes:,} / {io.write_time:,}"
         )
 
         # Print CPU components having >1%. "cpu_times" is a data structure
@@ -1047,15 +1039,11 @@ class ResourceMonitoringMixin(PerfherderResourceOptionsMixin):
             percent = value / cpu_total * 100.0 if cpu_total else 0.0
 
             if percent > 1.00:
-                self._tinderbox_print(
-                    "CPU {}<br/>{:,.1f} ({:,.1f}%)".format(attr, value, percent)
-                )
+                self._tinderbox_print(f"CPU {attr}<br/>{value:,.1f} ({percent:,.1f}%)")
 
         # Swap on Windows isn't reported by psutil.
         if not self._is_windows():
-            self._tinderbox_print(
-                "Swap in / out<br/>{:,} / {:,}".format(swap_in, swap_out)
-            )
+            self._tinderbox_print(f"Swap in / out<br/>{swap_in:,} / {swap_out:,}")
 
         for phase in rm.phases.keys():
             start_time, end_time = rm.phases[phase]
@@ -1067,7 +1055,7 @@ class ResourceMonitoringMixin(PerfherderResourceOptionsMixin):
 
 
 # This needs to be inherited only if you have already inherited ScriptMixin
-class Python3Virtualenv(object):
+class Python3Virtualenv:
     """Support Python3.5+ virtualenv creation."""
 
     py3_initialized_venv = False

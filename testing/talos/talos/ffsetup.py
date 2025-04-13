@@ -25,7 +25,7 @@ here = os.path.abspath(os.path.dirname(__file__))
 LOG = get_proxy_logger()
 
 
-class FFSetup(object):
+class FFSetup:
     """
     Initialize the browser environment before running a test.
 
@@ -122,12 +122,12 @@ class FFSetup(object):
         }
 
         # merge base profiles
-        with open(os.path.join(self.profile_data_dir, "profiles.json"), "r") as fh:
+        with open(os.path.join(self.profile_data_dir, "profiles.json")) as fh:
             base_profiles = json.load(fh)["talos"]
 
         for name in base_profiles:
             path = os.path.join(self.profile_data_dir, name)
-            LOG.info("Merging profile: {}".format(path))
+            LOG.info(f"Merging profile: {path}")
             profile.merge(path, interpolation=interpolation)
 
         # set test preferences

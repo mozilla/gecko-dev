@@ -32,7 +32,7 @@ def test_no_metrics_expired():
 
     (This also checks other lints, as a treat.)
     """
-    with open("browser/config/version.txt", "r") as version_file:
+    with open("browser/config/version.txt") as version_file:
         app_version = version_file.read().strip()
 
     options = run_glean_parser.get_parser_options(app_version, False)

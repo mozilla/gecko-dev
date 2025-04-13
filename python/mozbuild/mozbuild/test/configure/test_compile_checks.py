@@ -411,12 +411,10 @@ class TestWarningChecks(BaseCompileChecks):
             self.assertEqual(
                 out,
                 textwrap.dedent(
-                    """\
+                    f"""\
                 checking whether the C compiler supports {flag}... yes
                 checking whether the C++ compiler supports {flag}... yes
-            """.format(
-                        flag=flag
-                    )
+            """
                 ),
             )
 

@@ -172,11 +172,7 @@ def setup_vscode(command_context, interactive):
         with open(vscode_settings) as fh:
             old_settings_str = fh.read()
     except FileNotFoundError:
-        print(
-            "Configuration for {} will be created.{}".format(
-                vscode_settings, artifact_prefix
-            )
-        )
+        print(f"Configuration for {vscode_settings} will be created.{artifact_prefix}")
         old_settings_str = None
 
     if old_settings_str is None:
@@ -230,9 +226,7 @@ def setup_vscode(command_context, interactive):
                     )
                 )
                 choice = prompt_bool(
-                    "{}{}\nProceed with modifications to {}?".format(
-                        artifact_prefix, prompt_prefix, vscode_settings
-                    )
+                    f"{artifact_prefix}{prompt_prefix}\nProceed with modifications to {vscode_settings}?"
                 )
                 if not choice:
                     return 1
@@ -247,9 +241,7 @@ def setup_vscode(command_context, interactive):
     # binary was not found.
     if vscode_cmd is None:
         print(
-            "Please open VS Code manually and load directory: {}".format(
-                command_context.topsrcdir
-            )
+            f"Please open VS Code manually and load directory: {command_context.topsrcdir}"
         )
         return 0
 
@@ -261,7 +253,7 @@ def setup_vscode(command_context, interactive):
             "ide",
             {},
             "Unable to open VS Code. Please open VS Code manually and load "
-            "directory: {}".format(command_context.topsrcdir),
+            f"directory: {command_context.topsrcdir}",
         )
         return rc
 
@@ -287,7 +279,7 @@ def setup_clangd_rust_in_vscode(command_context):
             logging.ERROR,
             "ide",
             {},
-            "Unable to locate clangd in {}.".format(clang_tidy_bin),
+            f"Unable to locate clangd in {clang_tidy_bin}.",
         )
         rc = get_clang_tools(command_context, clang_tools_path)
 

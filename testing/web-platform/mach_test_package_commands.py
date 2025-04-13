@@ -9,7 +9,7 @@ from mach.decorators import Command
 from mach_commands_base import WebPlatformTestsRunner, create_parser_wpt
 
 
-class WebPlatformTestsRunnerSetup(object):
+class WebPlatformTestsRunnerSetup:
     default_log_type = "tbpl"
 
     def __init__(self, context):

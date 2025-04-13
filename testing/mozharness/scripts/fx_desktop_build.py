@@ -22,7 +22,7 @@ from mozharness.mozilla.building.buildbase import (
 )
 
 
-class FxDesktopBuild(BuildScript, object):
+class FxDesktopBuild(BuildScript):
     def __init__(self):
         buildscript_kwargs = {
             "config_options": BUILD_BASE_CONFIG_OPTIONS,

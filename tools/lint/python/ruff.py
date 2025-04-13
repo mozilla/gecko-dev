@@ -40,7 +40,7 @@ def get_ruff_version(binary):
     matches = re.match(r"ruff ([0-9\.]+)", output)
     if matches:
         return matches[1]
-    print("Error: Could not parse the version '{}'".format(output))
+    print(f"Error: Could not parse the version '{output}'")
 
 
 def run_process(config, cmd, **kwargs):

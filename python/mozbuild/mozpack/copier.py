@@ -14,7 +14,7 @@ from mozpack.errors import errors
 from mozpack.files import BaseFile, Dest
 
 
-class FileRegistry(object):
+class FileRegistry:
     """
     Generic container to keep track of a set of BaseFile instances. It
     preserves the order under which the files are added, but doesn't keep
@@ -173,7 +173,7 @@ class FileRegistry(object):
         return dict(tree)
 
 
-class FileRegistrySubtree(object):
+class FileRegistrySubtree:
     """A proxy class to give access to a subtree of an existing FileRegistry.
 
     Note this doesn't implement the whole FileRegistry interface."""
@@ -222,7 +222,7 @@ class FileRegistrySubtree(object):
                 yield mozpath.relpath(p, self._base), f
 
 
-class FileCopyResult(object):
+class FileCopyResult:
     """Represents results of a FileCopier.copy operation."""
 
     def __init__(self):

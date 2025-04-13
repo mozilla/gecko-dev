@@ -267,9 +267,7 @@ class Expression:
             self.content = expression.content[:3]
 
         def __str__(self):
-            return 'Unexpected content at offset {0}, "{1}"'.format(
-                self.offset, self.content
-            )
+            return f'Unexpected content at offset {self.offset}, "{self.content}"'
 
 
 class Context(dict):
@@ -366,7 +364,7 @@ class Preprocessor:
             msg = "no useful preprocessor directives found"
         if msg:
 
-            class Fake(object):
+            class Fake:
                 pass
 
             fake = Fake()
@@ -394,7 +392,7 @@ class Preprocessor:
             self.ambiguous_comment = re.compile(ambiguous_fmt.format(aMarker))
         else:
 
-            class NoMatch(object):
+            class NoMatch:
                 def match(self, *args):
                     return False
 
@@ -482,9 +480,7 @@ class Preprocessor:
                 or expected_file
                 and expected_file != next_file
             ):
-                self.out.write(
-                    '//@line {line} "{file}"\n'.format(line=next_line, file=next_file)
-                )
+                self.out.write(f'//@line {next_line} "{next_file}"\n')
         self.noteLineInfo()
 
         filteredLine = self.applyFilters(aLine)
@@ -532,7 +528,7 @@ class Preprocessor:
         if args:
             for f in args:
                 if not isinstance(f, io.TextIOBase):
-                    f = open(f, "r", encoding="utf-8")
+                    f = open(f, encoding="utf-8")
                 with f as input_:
                     self.processFile(input=input_, output=out)
             if depfile:
@@ -868,7 +864,7 @@ class Preprocessor:
                     args = self.applyFilters(args)
                 if not os.path.isabs(args):
                     args = os.path.join(self.curdir, args)
-                args = open(args, "r", encoding="utf-8")
+                args = open(args, encoding="utf-8")
             except Preprocessor.Error:
                 raise
             except Exception:
@@ -922,7 +918,7 @@ class Preprocessor:
 def preprocess(includes=[sys.stdin], defines={}, output=sys.stdout, marker="#"):
     pp = Preprocessor(defines=defines, marker=marker)
     for f in includes:
-        with open(f, "r", encoding="utf-8") as input:
+        with open(f, encoding="utf-8") as input:
             pp.processFile(input=input, output=output)
     return pp.includes
 

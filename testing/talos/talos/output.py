@@ -12,7 +12,7 @@ from talos import filter, utils
 LOG = get_proxy_logger()
 
 
-class Output(object):
+class Output:
     """abstract base class for Talos output"""
 
     @classmethod

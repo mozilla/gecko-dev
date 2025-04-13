@@ -80,13 +80,13 @@ class _MozTestResult(_TestResult):
     def addError(self, test, err):
         _TestResult.addError(self, test, err)
         self.printFail(test, err)
-        self.stream.writeln("ERROR: {0}".format(self.getDescription(test)))
+        self.stream.writeln(f"ERROR: {self.getDescription(test)}")
         self.stream.writeln(self.errors[-1][1])
 
     def addFailure(self, test, err):
         _TestResult.addFailure(self, test, err)
         self.printFail(test, err)
-        self.stream.writeln("FAIL: {0}".format(self.getDescription(test)))
+        self.stream.writeln(f"FAIL: {self.getDescription(test)}")
         self.stream.writeln(self.failures[-1][1])
 
     def printFail(self, test, err):
@@ -99,7 +99,7 @@ class _MozTestResult(_TestResult):
             tb = tb.tb_next
         if tb:
             _, ln, _ = inspect.getframeinfo(tb)[:3]
-            message = "line {0}: {1}".format(ln, message)
+            message = f"line {ln}: {message}"
         self.printStatus("TEST-UNEXPECTED-FAIL", test, message)
 
 
@@ -151,7 +151,7 @@ def normcase(path):
     return path
 
 
-class _MockBaseOpen(object):
+class _MockBaseOpen:
     """Callable that acts like the open() function; see MockedOpen for more
     info.
     """
@@ -221,7 +221,7 @@ class _MockOpen(_MockBaseOpen):
             return MockedStringFile(self, name, content)
 
 
-class MockedOpen(object):
+class MockedOpen:
     """
     Context manager diverting the open builtin such that opening files
     can open "virtual" file instances given when creating a MockedOpen.

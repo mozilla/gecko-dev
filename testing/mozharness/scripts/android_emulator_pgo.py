@@ -178,7 +178,7 @@ class AndroidProfileRun(TestingMixin, BaseScript, MozbaseMixin, AndroidMixin):
         httpd.start(block=False)
 
         profile_data_dir = os.path.join(topsrcdir, "testing", "profiles")
-        with open(os.path.join(profile_data_dir, "profiles.json"), "r") as fh:
+        with open(os.path.join(profile_data_dir, "profiles.json")) as fh:
             base_profiles = json.load(fh)["profileserver"]
 
         prefpaths = [

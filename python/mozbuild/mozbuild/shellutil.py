@@ -51,7 +51,7 @@ class MetaCharacterException(Exception):
         self.char = char
 
 
-class _ClineSplitter(object):
+class _ClineSplitter:
     """
     Parses a given command line string and creates a list of command
     and arguments, with wildcard expansion.

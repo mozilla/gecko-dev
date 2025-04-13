@@ -392,7 +392,7 @@ def get_bug_link(value):
         return "https://bugzilla.mozilla.org/show_bug.cgi?id=%s" % m.group(1)
 
 
-class WptMetaCollection(object):
+class WptMetaCollection:
     def __init__(self, root):
         self.root = root
         self.loaded = {}
@@ -412,7 +412,7 @@ class WptMetaCollection(object):
         return self.loaded[dir_path]
 
 
-class WptMeta(object):
+class WptMeta:
     def __init__(self, dir_path, data):
         assert "links" in data and isinstance(data["links"], list)
         self.dir_path = dir_path
@@ -433,7 +433,7 @@ class WptMeta(object):
 
     @classmethod
     def load(cls, meta_root, dir_path):
-        with open(cls.meta_path(meta_root, dir_path), "r") as f:
+        with open(cls.meta_path(meta_root, dir_path)) as f:
             data = yaml.safe_load(f)
         return cls(dir_path, data)
 

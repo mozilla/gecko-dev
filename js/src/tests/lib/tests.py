@@ -87,7 +87,7 @@ JITFLAGS = {
 
 def get_jitflags(variant, **kwargs):
     if variant not in JITFLAGS:
-        print('Invalid jitflag: "{}"'.format(variant))
+        print(f'Invalid jitflag: "{variant}"')
         sys.exit(1)
     if variant == "none" and "none" in kwargs:
         return kwargs["none"]
@@ -137,7 +137,7 @@ def change_env(env_overlay):
     for key, val in env_overlay.items():
         prior_env[key] = os.environ.get(key, None)
         if "PATH" in key and key in os.environ:
-            os.environ[key] = "{}{}{}".format(val, os.pathsep, os.environ[key])
+            os.environ[key] = f"{val}{os.pathsep}{os.environ[key]}"
         else:
             os.environ[key] = val
 
@@ -186,7 +186,7 @@ def get_cpu_count():
     return 1
 
 
-class RefTestCase(object):
+class RefTestCase:
     """A test case consisting of a test and an expected result."""
 
     def __init__(self, root, path, extra_helper_paths=None, wpt=None):

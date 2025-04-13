@@ -55,7 +55,7 @@ class UnknownDirectiveError(Error):
         return "Unknown directive %s" % repr(self.directive)
 
 
-class CMS(object):
+class CMS:
     """Utility class for reading a CMS specification and
     generating a CMS message"""
 

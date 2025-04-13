@@ -15,7 +15,7 @@ from . import result
 from .pathutils import expand_exclusions, filterpaths, findobject
 
 
-class BaseType(object):
+class BaseType:
     """Abstract base class for all types of linters."""
 
     __metaclass__ = ABCMeta
@@ -86,7 +86,7 @@ class BaseType(object):
         if not config.get("extensions"):
             patterns = ["**"]
         else:
-            patterns = ["**/*.{}".format(e) for e in config["extensions"]]
+            patterns = [f"**/*.{e}" for e in config["extensions"]]
 
         exclude = [os.path.relpath(e, path) for e in config.get("exclude", [])]
         finder = FileFinder(path, ignore=exclude)
@@ -120,7 +120,7 @@ class LineType(BaseType):
             return self._lint_dir(path, config, **lintargs)
 
         payload = config["payload"]
-        with open(path, "r", errors="replace") as fh:
+        with open(path, errors="replace") as fh:
             lines = fh.readlines()
 
         errors = []

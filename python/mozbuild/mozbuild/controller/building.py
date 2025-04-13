@@ -92,7 +92,7 @@ BuildOutputResult = namedtuple(
 )
 
 
-class TierStatus(object):
+class TierStatus:
     """Represents the state and progress of tier traversal.
 
     The build system is organized into linear phases called tiers. Each tier
@@ -766,9 +766,10 @@ class StaticAnalysisOutputManager(OutputManager):
                     self._handler.release()
 
     def write(self, path, output_format):
-        assert output_format in ("text", "json"), "Invalid output format {}".format(
-            output_format
-        )
+        assert output_format in (
+            "text",
+            "json",
+        ), f"Invalid output format {output_format}"
         path = mozpath.realpath(path)
 
         if output_format == "json":
@@ -786,7 +787,7 @@ class StaticAnalysisOutputManager(OutputManager):
         )
 
 
-class CCacheStats(object):
+class CCacheStats:
     """Holds statistics from ccache.
 
     Instances can be subtracted from each other to obtain differences.
@@ -1787,7 +1788,7 @@ class BuildDriver(MozbuildObject):
         # Copy the original mozconfig to the objdir.
         mozconfig_objdir = mozpath.join(self.topobjdir, ".mozconfig")
         if mozconfig["path"]:
-            with open(mozconfig["path"], "r") as ifh:
+            with open(mozconfig["path"]) as ifh:
                 with FileAvoidWrite(mozconfig_objdir) as ofh:
                     ofh.write(ifh.read())
         else:

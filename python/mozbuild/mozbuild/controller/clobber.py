@@ -42,7 +42,7 @@ Well, are ya? -- you can ignore this clobber requirement by running:
 )
 
 
-class Clobberer(object):
+class Clobberer:
     def __init__(self, topsrcdir, topobjdir, substs=None):
         """Create a new object to manage clobbering the tree.
 
@@ -87,7 +87,7 @@ class Clobberer(object):
         This returns a list of lines describing why the clobber was required.
         Each line is stripped of leading and trailing whitespace.
         """
-        with open(self.src_clobber, "rt") as fh:
+        with open(self.src_clobber) as fh:
             lines = [l.strip() for l in fh.readlines()]
             return [l for l in lines if l and not l.startswith("#")]
 

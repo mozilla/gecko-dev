@@ -118,11 +118,7 @@ class TelemetryTestCase(WindowManagerMixin, MarionetteTestCase):
 
             return len(filtered_pings) >= count
 
-        self.logger.info(
-            "wait_for_pings running action '{action}'.".format(
-                action=action_func.__name__
-            )
-        )
+        self.logger.info(f"wait_for_pings running action '{action_func.__name__}'.")
 
         # Call given action and wait for a ping
         action_func()
@@ -130,7 +126,7 @@ class TelemetryTestCase(WindowManagerMixin, MarionetteTestCase):
         try:
             Wait(self.marionette, 60).until(wait_func)
         except Exception as e:
-            self.fail("Error waiting for ping: {}".format(e))
+            self.fail(f"Error waiting for ping: {e}")
 
         return filtered_pings[:count]
 
@@ -182,7 +178,7 @@ class TelemetryTestCase(WindowManagerMixin, MarionetteTestCase):
             addons = Addons(self.marionette)
             addon_id = addons.install(addon_path, temp=temp)
         except MarionetteException as e:
-            self.fail("{} - Error installing addon: {} - ".format(e.cause, e))
+            self.fail(f"{e.cause} - Error installing addon: {e} - ")
         else:
             self.addon_ids.append(addon_id)
 

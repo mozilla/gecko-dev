@@ -129,7 +129,7 @@ class SymFileManager:
 
     def FetchSymbolsFromFile(self, path):
         try:
-            symFile = open(path, "r")
+            symFile = open(path)
         except Exception as e:
             LOG.debug("Error opening file " + path + ": " + str(e))
             return None

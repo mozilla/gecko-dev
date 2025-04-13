@@ -567,7 +567,7 @@ class TestMemoize(unittest.TestCase):
         self.assertEqual(self._count, 3)
 
     def test_memoize_method(self):
-        class foo(object):
+        class foo:
             def __init__(self):
                 self._count = 0
 
@@ -598,7 +598,7 @@ class TestMemoize(unittest.TestCase):
         self.assertEqual(refcount, sys.getrefcount(instance))
 
     def test_memoized_property(self):
-        class foo(object):
+        class foo:
             def __init__(self):
                 self._count = 0
 
@@ -679,7 +679,7 @@ class TestTypedList(unittest.TestCase):
     def test_add_coercion(self):
         objs = []
 
-        class Foo(object):
+        class Foo:
             def __init__(self, obj):
                 objs.append(obj)
 
@@ -841,7 +841,7 @@ class TestHexDump(unittest.TestCase):
     @unittest.skipUnless(six.PY3, "requires Python 3")
     def test_hexdump(self):
         self.assertEqual(
-            hexdump("abcdef123💩ZYXWVU".encode("utf-8")),
+            hexdump("abcdef123💩ZYXWVU".encode()),
             [
                 "00  61 62 63 64 65 66 31 32  33 f0 9f 92 a9 5a 59 58  |abcdef123....ZYX|\n",
                 "10  57 56 55                                          |WVU             |\n",

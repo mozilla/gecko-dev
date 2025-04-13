@@ -43,7 +43,7 @@ class MissingProcessorInfoError(Exception):
     pass
 
 
-class MozPower(object):
+class MozPower:
     """MozPower provides an OS and CPU independent interface
     for initializing, finalizing, and gathering power measurement
     data from OS+CPU combo-dependent measurement classes. The combo

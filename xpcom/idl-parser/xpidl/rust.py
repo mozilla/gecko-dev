@@ -40,7 +40,7 @@ import re
 from xpidl import xpidl
 
 
-class AutoIndent(object):
+class AutoIndent:
     """A small autoindenting wrapper around a fd.
     Used to make the code output more readable."""
 

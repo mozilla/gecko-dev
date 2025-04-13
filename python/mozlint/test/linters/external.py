@@ -23,7 +23,7 @@ def external(files, config, **lintargs):
         if os.path.isdir(path):
             continue
 
-        with open(path, "r") as fh:
+        with open(path) as fh:
             for i, line in enumerate(fh.readlines()):
                 if "foobar" in line:
                     results.append(
@@ -48,7 +48,7 @@ def structured(files, config, logger, **kwargs):
         if os.path.isdir(path):
             continue
 
-        with open(path, "r") as fh:
+        with open(path) as fh:
             for i, line in enumerate(fh.readlines()):
                 if "foobar" in line:
                     logger.lint_error(

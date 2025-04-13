@@ -18,7 +18,7 @@ from mozpack.chrome.manifest import parse_manifest
 from .manifest_handler import ChromeManifestHandler
 
 
-class LcovRecord(object):
+class LcovRecord:
     __slots__ = (
         "test_name",
         "source_file",
@@ -83,7 +83,7 @@ class LcovRecord(object):
         self.covered_branch_count = len([c for c in self.branches.values() if c])
 
 
-class RecordRewriter(object):
+class RecordRewriter:
     # Helper class for rewriting/spliting individual lcov records according
     # to what the preprocessor did.
     def __init__(self):
@@ -194,7 +194,7 @@ class RecordRewriter(object):
         return generated_records
 
 
-class LcovFile(object):
+class LcovFile:
     # Simple parser/pretty-printer for lcov format.
     # lcov parsing based on http://ltp.sourceforge.net/coverage/lcov/geninfo.1.php
 
@@ -234,7 +234,7 @@ class LcovFile(object):
         current_pp_info = None
         current_lines = []
         for lcov_path in self.lcov_paths:
-            with open(lcov_path, "r", encoding="utf-8") as lcov_fh:
+            with open(lcov_path, encoding="utf-8") as lcov_fh:
                 for line in lcov_fh:
                     line = line.rstrip()
                     if not line:
@@ -423,7 +423,7 @@ class UrlFinderError(Exception):
     pass
 
 
-class UrlFinder(object):
+class UrlFinder:
     # Given a "chrome://" or "resource://" url, uses data from the UrlMapBackend
     # and install manifests to find a path to the source file and the corresponding
     # (potentially pre-processed) file in the objdir.
@@ -432,7 +432,7 @@ class UrlFinder(object):
         self._final_mapping = {}
 
         try:
-            with open(chrome_map_path, "r", encoding="utf-8") as fh:
+            with open(chrome_map_path, encoding="utf-8") as fh:
                 url_prefixes, overrides, install_info, buildconfig = json.load(fh)
         except OSError:
             print(
@@ -643,7 +643,7 @@ class UrlFinder(object):
         return result
 
 
-class LcovFileRewriter(object):
+class LcovFileRewriter:
     # Class for partial parses of LCOV format and rewriting to resolve urls
     # and preprocessed file lines.
     def __init__(

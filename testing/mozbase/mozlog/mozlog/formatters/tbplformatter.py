@@ -439,24 +439,20 @@ class TbplFormatter(BaseFormatter):
         intermittents = sum(
             self.summary.aggregate("known_intermittent", counts).values()
         )
-        known = (
-            " ({} known intermittent tests)".format(intermittents)
-            if intermittents
-            else ""
-        )
-        status_str = "{}/{}{}".format(expected, total, known)
-        rv = ["{}: {}".format(suite, status_str)]
+        known = f" ({intermittents} known intermittent tests)" if intermittents else ""
+        status_str = f"{expected}/{total}{known}"
+        rv = [f"{suite}: {status_str}"]
 
         for results in logs.values():
             for data in results:
-                rv.append("  {}".format(self._format_status(data)))
+                rv.append(f"  {self._format_status(data)}")
 
         if intermittent_logs:
             rv.append("Known Intermittent tests:")
             for results in intermittent_logs.values():
                 for data in results:
                     data["subtest"] = data.get("subtest", "")
-                    rv.append("  {}".format(self._format_status(data)))
+                    rv.append(f"  {self._format_status(data)}")
 
         return "\n".join(rv)
 

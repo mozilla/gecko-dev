@@ -5,7 +5,7 @@
 import os
 
 
-class Logger(object):
+class Logger:
     """
     ManifestParser needs to ensure a singleton for mozlog as documented here:
 

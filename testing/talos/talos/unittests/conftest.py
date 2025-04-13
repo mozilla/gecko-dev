@@ -37,7 +37,7 @@ def patched_build_manifest(config, manifestName):
             raise (e)
 
     # read manifest lines
-    with open(manifestName, "r") as fHandle:
+    with open(manifestName) as fHandle:
         manifestLines = fHandle.readlines()
 
     # write modified manifest lines

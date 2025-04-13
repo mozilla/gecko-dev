@@ -603,12 +603,8 @@ class TestManifestLoader(TestLoader):
         super(TestManifestLoader, self).__init__(*args, **kwargs)
         self.finder = FileFinder(self.topsrcdir)
         self.reader = self.mozbuild_reader(config_mode="empty")
-        self.variables = {
-            "{}_MANIFESTS".format(k): v[0] for k, v in TEST_MANIFESTS.items()
-        }
-        self.variables.update(
-            {"{}_MANIFESTS".format(f.upper()): f for f in REFTEST_FLAVORS}
-        )
+        self.variables = {f"{k}_MANIFESTS": v[0] for k, v in TEST_MANIFESTS.items()}
+        self.variables.update({f"{f.upper()}_MANIFESTS": f for f in REFTEST_FLAVORS})
 
     def _load_manifestparser_manifest(self, mpath):
         mp = TestManifest(

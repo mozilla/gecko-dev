@@ -38,14 +38,14 @@ class MarionetteException(Exception):
 
         if self.cause:
             if type(self.cause) is tuple:
-                msg += ", caused by {0!r}".format(self.cause[0])
+                msg += f", caused by {self.cause[0]!r}"
                 tb = self.cause[2]
             else:
-                msg += ", caused by {}".format(self.cause)
+                msg += f", caused by {self.cause}"
 
         if self.stacktrace:
-            st = "".join(["\t{}\n".format(x) for x in self.stacktrace.splitlines()])
-            msg += "\nstacktrace:\n{}".format(st)
+            st = "".join([f"\t{x}\n" for x in self.stacktrace.splitlines()])
+            msg += f"\nstacktrace:\n{st}"
 
         if tb:
             msg += ": " + "".join(traceback.format_tb(tb))

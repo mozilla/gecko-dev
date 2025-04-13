@@ -24,9 +24,9 @@ def set_mac_label(config, jobs):
         if "mac-notarization" in config.kind:
             default_label = dep_job.label.replace("mac-signing", "mac-notarization")
             job.setdefault("label", default_label)
-        assert job["label"] != dep_job.label, "Unable to determine label for {}".format(
-            config.kind
-        )
+        assert (
+            job["label"] != dep_job.label
+        ), f"Unable to determine label for {config.kind}"
         yield job
 
 

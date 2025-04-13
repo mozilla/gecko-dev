@@ -113,7 +113,7 @@ def response(last_key, content, expire_version, writer, renewal):
             response(last_key + "." + key, value, expire_version, writer, renewal)
 
 
-with open(METRICS_FILENAME, "r") as f:
+with open(METRICS_FILENAME) as f:
     try:
         arg1 = sys.argv[1]
     except Exception:

@@ -124,7 +124,7 @@ def canonical_os(os):
 
 def product_name_to_enum(product):
     if not is_valid_product(product):
-        raise ParserError("Invalid product {}".format(product))
+        raise ParserError(f"Invalid product {product}")
     return PRODUCT_ENUM_PREFIX + SUPPORTED_PRODUCTS.get(product)
 
 
@@ -171,9 +171,9 @@ def add_expiration_postfix(expiration):
 def load_yaml_file(filename):
     """Load a YAML file from disk, throw a ParserError on failure."""
     try:
-        with open(filename, "r") as f:
+        with open(filename) as f:
             return yaml.safe_load(f)
     except OSError as e:
         raise ParserError("Error opening " + filename + ": " + str(e))
     except ValueError as e:
-        raise ParserError("Error parsing processes in {}: {}".format(filename, e))
+        raise ParserError(f"Error parsing processes in {filename}: {e}")

@@ -8,7 +8,7 @@ here = os.path.dirname(__file__)
 logging.getLogger(__name__).addHandler(logging.NullHandler())
 
 
-class GradlewBuild(object):
+class GradlewBuild:
     binary = "./gradlew"
     logger = logging.getLogger()
     adbrun = ADBrun()
@@ -24,7 +24,7 @@ class GradlewBuild(object):
         test_type = "ui" if smoke else "experimentintegration"
         cmd = f"adb shell am instrument -w -e class org.mozilla.fenix.{test_type}.{identifier} -e EXP_NAME '{os.getenv('EXP_NAME', '').replace('(', '').replace(')', '')}' org.mozilla.fenix.debug.test/androidx.test.runner.AndroidJUnitRunner"
 
-        self.logger.info("Running cmd: {}".format(cmd))
+        self.logger.info(f"Running cmd: {cmd}")
 
         out = ""
         try:

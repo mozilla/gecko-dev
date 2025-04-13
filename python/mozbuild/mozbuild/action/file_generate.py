@@ -86,7 +86,7 @@ def main(argv):
     method = args.method_name
     if not hasattr(module, method):
         print(
-            'Error: script "{0}" is missing a {1} method'.format(script, method),
+            f'Error: script "{script}" is missing a {method} method',
             file=sys.stderr,
         )
         return 1
@@ -144,7 +144,7 @@ def main(argv):
                 output.avoid_writing_to_file()
 
     except OSError as e:
-        print('Error opening file "{0}"'.format(e.filename), file=sys.stderr)
+        print(f'Error opening file "{e.filename}"', file=sys.stderr)
         traceback.print_exc()
         return 1
     return ret

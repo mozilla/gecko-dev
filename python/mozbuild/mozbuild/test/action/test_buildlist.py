@@ -36,20 +36,18 @@ class TestBuildList(unittest.TestCase):
         """Assert that the lines in the file |filename| are equal
         to the contents of the list |l|, in order."""
         l = l[:]
-        f = open(filename, "r")
+        f = open(filename)
         lines = [line.rstrip() for line in f.readlines()]
         f.close()
         for line in lines:
             self.assertTrue(
                 len(l) > 0,
-                "ran out of expected lines! (expected '{0}', got '{1}')".format(
-                    l, lines
-                ),
+                f"ran out of expected lines! (expected '{l}', got '{lines}')",
             )
             self.assertEqual(line, l.pop(0))
         self.assertTrue(
             len(l) == 0,
-            "not enough lines in file! (expected '{0}'," " got '{1}'".format(l, lines),
+            f"not enough lines in file! (expected '{l}'," f" got '{lines}'",
         )
 
     def test_basic(self):

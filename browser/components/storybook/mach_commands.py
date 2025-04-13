@@ -97,7 +97,7 @@ def build_storybook_manifest(command_context):
     config_environment = command_context.config_environment
     storybook_chrome_map_path = "browser/components/storybook/.storybook/chrome-map.js"
     chrome_map_path = mozpath.join(config_environment.topobjdir, "chrome-map.json")
-    with open(chrome_map_path, "r") as chrome_map_f:
+    with open(chrome_map_path) as chrome_map_f:
         with open(storybook_chrome_map_path, "w") as storybook_chrome_map_f:
             storybook_chrome_map_f.write("module.exports = ")
             storybook_chrome_map_f.write(chrome_map_f.read())

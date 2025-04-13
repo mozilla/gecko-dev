@@ -122,7 +122,7 @@ def make_quote(s):
     return s.replace("#", r"\#").replace("$", "$$")
 
 
-class BackendMakeFile(object):
+class BackendMakeFile:
     """Represents a generated backend.mk file.
 
     This is both a wrapper around a file handle as well as a container that
@@ -193,7 +193,7 @@ class BackendMakeFile(object):
         return self.fh.diff
 
 
-class RecursiveMakeTraversal(object):
+class RecursiveMakeTraversal:
     """
     Helper class to keep track of how the "traditional" recursive make backend
     recurses subdirectories. This is useful until all adhoc rules are removed
@@ -1751,7 +1751,7 @@ class RecursiveMakeBackend(MakeBackend):
             for manifest in sorted(manifests):
                 master.write('["include:%s"]\n' % manifest)
 
-    class Substitution(object):
+    class Substitution:
         """BaseConfigSubstitution-like class for use with _create_makefile."""
 
         __slots__ = ("input_path", "output_path", "topsrcdir", "topobjdir", "config")
@@ -1831,7 +1831,7 @@ class RecursiveMakeBackend(MakeBackend):
         )
 
         ipdl_srcs_path = mozpath.join(ipdl_dir, "ipdlsrcs.txt")
-        mk.add_statement("ALL_IPDLSRCS_FILE := {}".format(ipdl_srcs_path))
+        mk.add_statement(f"ALL_IPDLSRCS_FILE := {ipdl_srcs_path}")
 
         # Preprocessed ipdl files are generated in ipdl_dir.
         mk.add_statement(
@@ -1849,10 +1849,10 @@ class RecursiveMakeBackend(MakeBackend):
         # Windows (32768 bytes) if the checkout path is sufficiently long.
         with self._write_file(ipdl_srcs_path) as srcs:
             for filename in sorted_nonstatic_ipdl_basenames:
-                srcs.write("{}\n".format(filename))
+                srcs.write(f"{filename}\n")
 
             for filename in sorted_static_ipdl_sources:
-                srcs.write("{}\n".format(filename))
+                srcs.write(f"{filename}\n")
 
         with self._write_file(mozpath.join(ipdl_dir, "ipdlsrcs.mk")) as ipdls:
             mk.dump(ipdls, removal_guard=False)

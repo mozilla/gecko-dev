@@ -126,12 +126,7 @@ def main(header, fallback_table):
     header.write("\n")
     header.write("static const uint16_t BASE_CHAR_MAPPING_LIST[] = {\n")
     for char, base_char in mappings:
-        header.write(
-            "  /* {:#06x}".format(char)
-            + " */ "
-            + "{:#06x}".format(base_char & 0xFFFF)
-            + ","
-        )
+        header.write(f"  /* {char:#06x}" + " */ " + f"{base_char & 0xFFFF:#06x}" + ",")
         if char != base_char:
             header.write(" /* " + chr(char) + " → " + chr(base_char) + " */")
         header.write("\n")
@@ -143,20 +138,18 @@ def main(header, fallback_table):
     for block in blocks:
         header.write(
             "  {"
-            + "{:#04x}".format(block.first)
+            + f"{block.first:#04x}"
             + ", "
-            + "{:#04x}".format(block.last)
+            + f"{block.last:#04x}"
             + ", "
             + str(block.offset).rjust(4)
             + "}, // "
-            + "{:#04x}".format(mappings[block.offset].char >> 8)
+            + f"{mappings[block.offset].char >> 8:#04x}"
             + "xx\n"
         )
     header.write("};\n")
     header.write("\n")
     header.write("static const uint8_t BASE_CHAR_MAPPING_BLOCK_INDEX[] = {\n")
     for i, index in enumerate(indexes):
-        header.write(
-            "  " + str(index).rjust(3) + ", // " + "{:#04x}".format(i) + "xx\n"
-        )
+        header.write("  " + str(index).rjust(3) + ", // " + f"{i:#04x}" + "xx\n")
     header.write("};\n")

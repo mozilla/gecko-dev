@@ -33,7 +33,7 @@ class TestNoExpiredProbes(unittest.TestCase):
         """Ensure there are no expired histograms, events, or scalars
         in Histograms.json, Events.yaml, or Scalars.yaml, respectively."""
 
-        with open("browser/config/version.txt", "r") as version_file:
+        with open("browser/config/version.txt") as version_file:
             app_version = version_file.read().strip()
 
         app_version_major = app_version.split(".", 1)[0]

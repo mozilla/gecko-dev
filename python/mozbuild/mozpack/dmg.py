@@ -57,9 +57,9 @@ def generate_hfs_file(
         [
             "dd",
             "if=/dev/zero",
-            "of={}".format(hfs),
+            f"of={hfs}",
             "bs=1M",
-            "count={}".format(size),
+            f"count={size}",
         ]
     )
     subprocess.check_call([mkfshfs_tool, "-v", volume_name, hfs])

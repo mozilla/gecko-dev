@@ -13,7 +13,7 @@ class AddonInstallException(errors.MarionetteException):
     pass
 
 
-class Addons(object):
+class Addons:
     """An API for installing and inspecting addons during Gecko
     runtime. This is a partially implemented wrapper around Gecko's
     `AddonManager API`_.

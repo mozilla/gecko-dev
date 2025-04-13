@@ -132,7 +132,7 @@ def skip_unless_browser_pref(reason, pref, predicate=bool):
         def skip_wrapper(self, *args, **kwargs):
             value = self.marionette.get_pref(pref)
             if value is None:
-                self.fail("No such browser preference: {0!r}".format(pref))
+                self.fail(f"No such browser preference: {pref!r}")
             if not predicate(value):
                 raise SkipTest(reason)
             return test_item(self, *args, **kwargs)

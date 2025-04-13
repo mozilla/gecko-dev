@@ -15,11 +15,11 @@ topsrcdir = os.path.dirname(os.path.dirname(__file__))
 
 
 def log_pass(text):
-    print("TEST-PASS | {} | {}".format(scriptname, text))
+    print(f"TEST-PASS | {scriptname} | {text}")
 
 
 def log_fail(text):
-    print("TEST-UNEXPECTED-FAIL | {} | {}".format(scriptname, text))
+    print(f"TEST-UNEXPECTED-FAIL | {scriptname} | {text}")
 
 
 def check_opcode():

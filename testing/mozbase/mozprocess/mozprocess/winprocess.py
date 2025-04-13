@@ -179,7 +179,7 @@ class EnvironmentBlock:
                     k = k.decode(fs_encoding, "replace")
                 if isinstance(v, bytes):
                     v = v.decode(fs_encoding, "replace")
-                values.append("{}={}".format(k, v))
+                values.append(f"{k}={v}")
 
             # The lpEnvironment parameter of the 'CreateProcess' function expects a series
             # of null terminated strings followed by a final null terminator. We write this

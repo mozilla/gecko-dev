@@ -67,7 +67,7 @@ class WebIDLPool:
         return WebIDLPool.GeneratorState._generate_build_files_for_webidl(filename)
 
 
-class BuildResult(object):
+class BuildResult:
     """Represents the result of processing WebIDL files.
 
     This holds a summary of output file generation during code generation.
@@ -283,7 +283,7 @@ class WebIDLCodegenManager(LoggingMixin):
         self._state = WebIDLCodegenManagerState()
 
         if os.path.exists(state_path):
-            with open(state_path, "r") as fh:
+            with open(state_path) as fh:
                 try:
                     self._state = WebIDLCodegenManagerState(fh=fh)
                 except Exception as e:
@@ -442,7 +442,7 @@ class WebIDLCodegenManager(LoggingMixin):
         parser = WebIDL.Parser(self._cache_dir, lexer=None)
 
         for path in sorted(self._input_paths):
-            with open(path, "r", encoding="utf-8") as fh:
+            with open(path, encoding="utf-8") as fh:
                 data = fh.read()
                 hashes[path] = hashlib.sha1(data.encode()).hexdigest()
                 parser.parse(data, path)
@@ -716,7 +716,7 @@ def create_build_system_manager(topsrcdir=None, topobjdir=None, dist_dir=None):
     obj_dir = os.path.join(topobjdir, "dom", "bindings")
     webidl_root = os.path.join(topsrcdir, "dom", "webidl")
 
-    with open(os.path.join(obj_dir, "file-lists.json"), "r") as fh:
+    with open(os.path.join(obj_dir, "file-lists.json")) as fh:
         files = json.load(fh)
 
     inputs = (

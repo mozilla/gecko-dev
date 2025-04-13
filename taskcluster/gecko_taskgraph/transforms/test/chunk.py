@@ -230,8 +230,8 @@ def resolve_dynamic_chunks(config, tasks):
         matches = keymatch(DYNAMIC_CHUNK_MULTIPLIER, key)
         if len(matches) > 1:
             raise Exception(
-                "Multiple matching values for {} found while "
-                "determining dynamic chunk multiplier!".format(key)
+                f"Multiple matching values for {key} found while "
+                "determining dynamic chunk multiplier!"
             )
         elif matches:
             total = total * matches[0]

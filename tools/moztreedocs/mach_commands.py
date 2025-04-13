@@ -192,7 +192,7 @@ def build_docs(
         print("\nGenerated documentation:\n%s" % savedir)
 
     if not disable_warnings_check:
-        with open(os.path.join(DOC_ROOT, "config.yml"), "r") as fh:
+        with open(os.path.join(DOC_ROOT, "config.yml")) as fh:
             docs_config = yaml.safe_load(fh)
 
         [fatal_errors, known_errors] = _check_sphinx_warnings(warnings, docs_config)
@@ -274,9 +274,7 @@ def _dump_sphinx_backtrace():
         if fnmatch.fnmatch(name, pattern):
             pathFile = os.path.join(tmpdir, name)
             stat = os.stat(pathFile)
-            output += "Name: {0} / Creation date: {1}\n".format(
-                pathFile, time.ctime(stat.st_mtime)
-            )
+            output += f"Name: {pathFile} / Creation date: {time.ctime(stat.st_mtime)}\n"
             with open(pathFile) as f:
                 output += f.read()
     return output
@@ -311,7 +309,7 @@ def _run_sphinx(docdir, savedir, config=None, fmt="html", jobs=None, verbose=Non
         print("Run sphinx with:")
         print(args)
         status = sphinx.cmd.build.build_main(args)
-        with open(warn_path, "r", encoding="utf-8") as warn_file:
+        with open(warn_path, encoding="utf-8") as warn_file:
             warnings = warn_file.readlines()
         return status, warnings
     finally:
@@ -438,7 +436,7 @@ def _s3_upload(root, project, unique_id, version=None):
 
     key_prefixes.append(unique_id)
 
-    with open(os.path.join(DOC_ROOT, "config.yml"), "r") as fh:
+    with open(os.path.join(DOC_ROOT, "config.yml")) as fh:
         redirects = yaml.safe_load(fh)["redirects"]
 
     redirects = {k.strip("/"): v.strip("/") for k, v in redirects.items()}

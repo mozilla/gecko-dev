@@ -8,7 +8,7 @@ import gdb
 import gdb.printing
 
 
-class GeckoPrettyPrinter(object):
+class GeckoPrettyPrinter:
     pp = gdb.printing.RegexpCollectionPrettyPrinter("GeckoPrettyPrinters")
 
     def __init__(self, name, regexp):

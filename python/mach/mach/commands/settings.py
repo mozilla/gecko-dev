@@ -35,7 +35,7 @@ def run_settings(command_context, short=None):
             desc = meta["description"]
 
             if short:
-                print("{}.{} -- {}".format(section, option, desc.splitlines()[0]))
+                print(f"{section}.{option} -- {desc.splitlines()[0]}")
                 continue
 
             if option == "*":
@@ -47,4 +47,4 @@ def run_settings(command_context, short=None):
                 value = "<%s>" % types[meta["type_cls"]]
 
             print(wrapper.fill(desc))
-            print(";{}={}".format(option, value))
+            print(f";{option}={value}")

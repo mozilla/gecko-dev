@@ -27,7 +27,7 @@ class CommandInfo:
 
 
 def render_template(shell, context):
-    filename = "{}.template".format(shell)
+    filename = f"{shell}.template"
     with open(COMPLETION_TEMPLATES_DIR / filename) as fh:
         template = fh.read()
     return template % context
@@ -210,7 +210,7 @@ def _zsh_describe(value, description=None):
         if description.endswith('"') and not description.endswith(r"\""):
             description = description[:-1]
 
-        value += ":{}".format(description)
+        value += f":{description}"
 
     value += '"'
 
@@ -249,7 +249,7 @@ def completion_bash(command_context, outfile):
             case_options.append(
                 "\n".join(
                     [
-                        "            ({})".format(cmd.name),
+                        f"            ({cmd.name})",
                         '            opts="${{opts}} {}"'.format(" ".join(options)),
                         "            ;;",
                         "",
@@ -268,7 +268,7 @@ def completion_bash(command_context, outfile):
                 case_options.append(
                     "\n".join(
                         [
-                            '            ("{} {}")'.format(sub.name, sub.subcommand),
+                            f'            ("{sub.name} {sub.subcommand}")',
                             '            opts="${{opts}} {}"'.format(" ".join(options)),
                             "            ;;",
                             "",
@@ -283,8 +283,8 @@ def completion_bash(command_context, outfile):
             case_commands_subcommands.append(
                 "\n".join(
                     [
-                        "            ({})".format(cmd.name),
-                        '            comsubs=" {} "'.format(comsubs),
+                        f"            ({cmd.name})",
+                        f'            comsubs=" {comsubs} "',
                         "            ;;",
                         "",
                     ]
@@ -294,7 +294,7 @@ def completion_bash(command_context, outfile):
             case_subcommands.append(
                 "\n".join(
                     [
-                        "            ({})".format(cmd.name),
+                        f"            ({cmd.name})",
                         '            subs="${{subs}} {}"'.format(" ".join(subcommands)),
                         "            ;;",
                         "",
@@ -347,7 +347,7 @@ def completion_zsh(command_context, outfile):
             case_options.append(
                 "\n".join(
                     [
-                        "            ({})".format(cmd.name),
+                        f"            ({cmd.name})",
                         "            opts+=({})".format(" ".join(options)),
                         "            ;;",
                         "",
@@ -366,7 +366,7 @@ def completion_zsh(command_context, outfile):
                 case_options.append(
                     "\n".join(
                         [
-                            "            ({} {})".format(sub.name, sub.subcommand),
+                            f"            ({sub.name} {sub.subcommand})",
                             "            opts+=({})".format(" ".join(options)),
                             "            ;;",
                             "",
@@ -388,7 +388,7 @@ def completion_zsh(command_context, outfile):
             case_subcommands.append(
                 "\n".join(
                     [
-                        "            ({})".format(cmd.name),
+                        f"            ({cmd.name})",
                         "            subs+=({})".format(" ".join(subcommands)),
                         "            ;;",
                         "",
@@ -429,9 +429,9 @@ def completion_fish(command_context, outfile):
     def _append_opt_strs(comp, opt_strs):
         for opt in opt_strs:
             if opt.startswith("--"):
-                comp += " -l {}".format(opt[2:])
+                comp += f" -l {opt[2:]}"
             elif opt.startswith("-"):
-                comp += " -s {}".format(opt[1:])
+                comp += f" -s {opt[1:]}"
         return comp
 
     globalopts = []
@@ -451,7 +451,7 @@ def completion_fish(command_context, outfile):
             "-a {} -d '{}'".format(cmd.name, cmd.description.replace("'", "\\'"))
         )
 
-        cmds_opts += ["# {}".format(cmd.name)]
+        cmds_opts += [f"# {cmd.name}"]
 
         subcommands = " ".join([s.subcommand for s in cmd.subcommands])
         for opt_strs, description in cmd.options.items():
@@ -476,10 +476,8 @@ def completion_fish(command_context, outfile):
             description = sub.description or ""
             description = description.replace("'", "\\'")
             comp = (
-                "complete -c mach -A -n '__fish_mach_complete_command {} {}' "
-                "-d '{}' -a {}".format(
-                    cmd.name, subcommands, description, sub.subcommand
-                )
+                f"complete -c mach -A -n '__fish_mach_complete_command {cmd.name} {subcommands}' "
+                f"-d '{description}' -a {sub.subcommand}"
             )
             cmds_opts.append(comp)
 

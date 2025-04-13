@@ -64,7 +64,7 @@ logging.Formatter.converter = time.gmtime
 
 
 # LogMixin {{{1
-class LogMixin(object):
+class LogMixin:
     """This is a mixin for any object to access similar logging functionality
 
     The logging functionality described here is specially useful for those
@@ -370,7 +370,7 @@ class OutputParser(LogMixin):
 
 
 # BaseLogger {{{1
-class BaseLogger(object):
+class BaseLogger:
     """Base class in charge of logging handling logic such as creating logging
     files, dirs, attaching to the console output and managing its output.
 

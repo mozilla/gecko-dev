@@ -3,7 +3,7 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 
-class EmulatorGeo(object):
+class EmulatorGeo:
     def __init__(self, emulator):
         self.emulator = emulator
 

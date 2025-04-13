@@ -22,7 +22,7 @@ except ModuleNotFoundError:
 here = os.path.dirname(os.path.realpath(__file__))
 
 
-class Timer(object):
+class Timer:
     def __init__(self):
         self._start_time = 0
         self.start()

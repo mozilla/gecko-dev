@@ -6,7 +6,7 @@ import sys
 
 
 def main(output, filename):
-    file = open(filename, "r")
+    file = open(filename)
     output.write('R"(')  # insert literal start
     for line in file:
         output.write(line)

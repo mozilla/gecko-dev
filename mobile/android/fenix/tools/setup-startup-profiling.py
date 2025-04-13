@@ -72,7 +72,7 @@ def push(id, filename):
         with config.file as f:
             f.write(GV_CONFIG)
 
-        print("Pushing {} to device.".format(filename))
+        print(f"Pushing {filename} to device.")
         run(["adb", "push", config.name, os.path.join(PATH_PREFIX, filename)])
         run(["adb", "shell", "am", "set-debug-app", "--persistent", id])
         print(
@@ -89,7 +89,7 @@ def push(id, filename):
 
 
 def remove(filename):
-    print("Removing {} from device.".format(filename))
+    print(f"Removing {filename} from device.")
     run(["adb", "shell", "rm", PATH_PREFIX + "/" + filename])
     run(["adb", "shell", "am", "clear-debug-app"])
 

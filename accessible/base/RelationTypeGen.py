@@ -8,7 +8,7 @@ import re
 
 
 def generate(relH, relIdl):
-    input = open(relIdl, "rt").read()
+    input = open(relIdl).read()
     relations = re.findall(
         r"const unsigned long RELATION_([A-Z_]+) = ([x0-9a-f]+);", input
     )

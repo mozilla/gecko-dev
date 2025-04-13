@@ -3,7 +3,7 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 
-class EmulatorBattery(object):
+class EmulatorBattery:
     def __init__(self, emulator):
         self.emulator = emulator
 

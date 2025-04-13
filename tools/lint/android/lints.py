@@ -208,7 +208,7 @@ def report_gradlew(config, fix, subdir, **lintargs):
 
     excludes = []
     for path in EXCLUSION_FILES:
-        with open(os.path.join(topsrcdir, path), "r") as fh:
+        with open(os.path.join(topsrcdir, path)) as fh:
             for f in fh.readlines():
                 if "*" in f:
                     excludes.extend(glob.glob(f.strip()))
@@ -223,7 +223,6 @@ def report_gradlew(config, fix, subdir, **lintargs):
                     "detekt",
                     "detekt.xml",
                 ),
-                "rt",
             )
         )
         root = tree.getroot()
@@ -256,7 +255,6 @@ def report_gradlew(config, fix, subdir, **lintargs):
                     "ktlint",
                     ktlint_file,
                 ),
-                "rt",
             )
         )
 
@@ -385,7 +383,7 @@ def lint(config, **lintargs):
             lintargs["substs"]["GRADLE_ANDROID_GECKOVIEW_VARIANT_NAME"]
         ),
     )
-    tree = ET.parse(open(path, "rt"))
+    tree = ET.parse(open(path))
     root = tree.getroot()
 
     results = []
@@ -409,7 +407,7 @@ def lint(config, **lintargs):
 
 
 def _parse_checkstyle_output(config, topsrcdir=None, report_path=None):
-    tree = ET.parse(open(report_path, "rt"))
+    tree = ET.parse(open(report_path))
     root = tree.getroot()
 
     for file in root.findall("file"):
@@ -459,10 +457,10 @@ def _parse_android_test_results(config, topsrcdir=None, report_dir=None):
     finder = FileFinder(report_dir)
     reports = list(finder.find("TEST-*.xml"))
     if not reports:
-        raise RuntimeError("No reports found under {}".format(report_dir))
+        raise RuntimeError(f"No reports found under {report_dir}")
 
     for report, _ in reports:
-        tree = ET.parse(open(os.path.join(finder.base, report), "rt"))
+        tree = ET.parse(open(os.path.join(finder.base, report)))
         root = tree.getroot()
 
         class_name = root.get(
@@ -481,11 +479,7 @@ def _parse_android_test_results(config, topsrcdir=None, report_dir=None):
             ):
                 sourcepaths = list(sourcepath_finder.find(path))
                 if not sourcepaths:
-                    raise RuntimeError(
-                        "No sourcepath found for class {class_name}".format(
-                            class_name=class_name
-                        )
-                    )
+                    raise RuntimeError(f"No sourcepath found for class {class_name}")
 
                 for sourcepath, _ in sourcepaths:
                     lineno = 0
@@ -499,9 +493,7 @@ def _parse_android_test_results(config, topsrcdir=None, report_dir=None):
                     if match:
                         lineno = int(match.group(1))
                     else:
-                        msg = "No source line found for {class_name}.{function_name}".format(
-                            class_name=class_name, function_name=function_name
-                        )
+                        msg = f"No source line found for {class_name}.{function_name}"
                         raise RuntimeError(msg)
 
                     err = {
@@ -538,9 +530,7 @@ def test(config, **lintargs):
     for project, variant in pairs:
         report_dir = os.path.join(
             lintargs["topobjdir"],
-            "gradle/build/mobile/android/{}/test-results/test{}UnitTest".format(
-                project, capitalize(variant)
-            ),
+            f"gradle/build/mobile/android/{project}/test-results/test{capitalize(variant)}UnitTest",
         )
     results.extend(
         _parse_android_test_results(

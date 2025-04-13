@@ -357,7 +357,7 @@ def parse_gperf(infile):
 
 
 def main(outfile, infile):
-    with open(infile, "r") as infile:
+    with open(infile) as infile:
         preamble, words = parse_gperf(infile)
         outfile.write(words_to_cxx(words, preamble))
     return 0

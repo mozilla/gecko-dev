@@ -76,7 +76,7 @@ def parse_preferences(prefs, context="--setpref="):
     return {k: Preferences.cast(v) for k, v in prefs.items()}
 
 
-class MozProfileCLI(object):
+class MozProfileCLI:
     """The Command Line Interface for ``mozprofile``."""
 
     module = "mozprofile"

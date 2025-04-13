@@ -39,7 +39,7 @@ __all__ = [
 
 
 @six.add_metaclass(ABCMeta)
-class BaseProfile(object):
+class BaseProfile:
     def __init__(self, profile=None, addons=None, preferences=None, restore=True):
         """Create a new Profile.
 
@@ -198,7 +198,7 @@ class Profile(BaseProfile):
         proxy=None,
         restore=True,
         allowlistpaths=None,
-        **kwargs
+        **kwargs,
     ):
         """
         :param profile: Path to the profile
@@ -215,7 +215,7 @@ class Profile(BaseProfile):
             addons=addons,
             preferences=preferences,
             restore=restore,
-            **kwargs
+            **kwargs,
         )
 
         self._locations = locations
@@ -351,7 +351,7 @@ class Profile(BaseProfile):
         """
 
         path = os.path.join(self.profile, filename)
-        with builtins.open(path, "r", encoding="utf-8") as f:
+        with builtins.open(path, encoding="utf-8") as f:
             lines = f.read().splitlines()
 
         def last_index(_list, value):
@@ -550,7 +550,7 @@ class ChromiumProfile(BaseProfile):
 
         prefs = {}
         if os.path.isfile(pref_file):
-            with builtins.open(pref_file, "r") as fh:
+            with builtins.open(pref_file) as fh:
                 prefs.update(json.load(fh))
 
         prefs.update(preferences)
@@ -588,8 +588,6 @@ def create_profile(app, **kwargs):
     cls = profile_class.get(app)
 
     if not cls:
-        raise NotImplementedError(
-            "Profiles not supported for application '{}'".format(app)
-        )
+        raise NotImplementedError(f"Profiles not supported for application '{app}'")
 
     return cls(**kwargs)

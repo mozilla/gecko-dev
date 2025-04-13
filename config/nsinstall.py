@@ -42,7 +42,7 @@ def _nsinstall_internal(argv):
     # The remaining arguments are not used in our tree, thus they're not
     # implented.
     def BadArg(option, opt, value, parser):
-        parser.error("option not supported: {0}".format(opt))
+        parser.error(f"option not supported: {opt}")
 
     p.add_option(
         "-C", action="callback", metavar="CWD", callback=BadArg, help="NOT SUPPORTED"
@@ -69,7 +69,7 @@ def _nsinstall_internal(argv):
         try:
             options.m = int(options.m, 8)
         except Exception:
-            sys.stderr.write("nsinstall: {0} is not a valid mode\n".format(options.m))
+            sys.stderr.write(f"nsinstall: {options.m} is not a valid mode\n")
             return 1
 
     # just create one directory?
@@ -77,7 +77,7 @@ def _nsinstall_internal(argv):
         dir = os.path.abspath(dir)
         if os.path.exists(dir):
             if not os.path.isdir(dir):
-                print("nsinstall: {0} is not a directory".format(dir), file=sys.stderr)
+                print(f"nsinstall: {dir} is not a directory", file=sys.stderr)
                 return 1
             if mode:
                 os.chmod(dir, mode)
@@ -92,7 +92,7 @@ def _nsinstall_internal(argv):
             # We might have hit EEXIST due to a race condition (see bug 463411) -- try again once
             if try_again:
                 return maybe_create_dir(dir, mode, False)
-            print("nsinstall: failed to create directory {0}: {1}".format(dir, e))
+            print(f"nsinstall: failed to create directory {dir}: {e}")
             return 1
         else:
             return 0

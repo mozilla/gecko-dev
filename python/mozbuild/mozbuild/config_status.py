@@ -222,8 +222,8 @@ def config_status(
     untracked = wall_time - execution_time
 
     print(
-        "Total wall time: {:.2f}s; CPU time: {:.2f}s; Efficiency: "
-        "{:.0%}; Untracked: {:.2f}s".format(wall_time, cpu_time, efficiency, untracked),
+        f"Total wall time: {wall_time:.2f}s; CPU time: {cpu_time:.2f}s; Efficiency: "
+        f"{efficiency:.0%}; Untracked: {untracked:.2f}s",
         file=sys.stderr,
     )
 

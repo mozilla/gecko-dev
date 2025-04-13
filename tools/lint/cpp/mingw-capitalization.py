@@ -16,7 +16,7 @@ HEADERS_FILE = os.path.join(here, "mingw-headers.txt")
 class MinGWCapitalization(LineType):
     def __init__(self, *args, **kwargs):
         super(MinGWCapitalization, self).__init__(*args, **kwargs)
-        with open(HEADERS_FILE, "r") as fh:
+        with open(HEADERS_FILE) as fh:
             self.headers = fh.read().strip().splitlines()
         self.regex = re.compile(r"^#include\s*<(" + "|".join(self.headers) + ")>")
 

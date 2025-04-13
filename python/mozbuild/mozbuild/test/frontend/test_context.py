@@ -219,7 +219,7 @@ class TestContext(unittest.TestCase):
         self.assertEqual(test.source_stack, [foo, bar, bar, foo])
 
     def test_context_dirs(self):
-        class Config(object):
+        class Config:
             pass
 
         config = Config()
@@ -284,7 +284,7 @@ class TestSymbols(unittest.TestCase):
 class TestPaths(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        class Config(object):
+        class Config:
             pass
 
         cls.config = config = Config()

@@ -9,7 +9,7 @@ import time
 ProcessNode = collections.namedtuple("ProcessNode", ["maxtime", "children"])
 
 
-class ProcessLauncher(object):
+class ProcessLauncher:
     """Create and Launch process trees specified by a '.ini' file
 
     Typical .ini file accepted by this class :

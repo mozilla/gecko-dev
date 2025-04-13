@@ -70,7 +70,7 @@ def log(logger, level, action, params, formatter):
     logger.log(level, formatter, extra={"action": action, "params": params})
 
 
-class EmptyConfig(object):
+class EmptyConfig:
     """A config object that is empty.
 
     This config object is suitable for using with a BuildReader on a vanilla
@@ -379,7 +379,7 @@ class MozbuildSandbox(Sandbox):
         return template_wrapper
 
 
-class TemplateFunction(object):
+class TemplateFunction:
     def __init__(self, func, sandbox):
         self.path = func.__code__.co_filename
         self.name = func.__name__
@@ -817,7 +817,7 @@ class BuildReaderError(Exception):
         s.write("    %s\n" % traceback.format_exception_only(type(e), e))
 
 
-class BuildReader(object):
+class BuildReader:
     """Read a tree of mozbuild files into data structures.
 
     This is where the build system starts. You give it a tree configuration
@@ -1161,7 +1161,7 @@ class BuildReader(object):
             logging.DEBUG,
             "read_mozbuild",
             {"path": path},
-            "Reading file: {path}".format(path=path),
+            f"Reading file: {path}",
         )
 
         time_start = time.monotonic()
@@ -1179,7 +1179,7 @@ class BuildReader(object):
                     logging.WARNING,
                     "read_already",
                     {"path": path},
-                    "File already read. Skipping: {path}".format(path=path),
+                    f"File already read. Skipping: {path}",
                 )
                 return
 

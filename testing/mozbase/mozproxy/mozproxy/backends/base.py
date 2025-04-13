@@ -9,7 +9,7 @@ import six
 
 # abstract class for all playback tools
 @six.add_metaclass(ABCMeta)
-class Playback(object):
+class Playback:
     def __init__(self, config):
         self.config = config
         self.host = None

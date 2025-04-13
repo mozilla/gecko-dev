@@ -171,7 +171,7 @@ def write_with_overwrite_confirm(
         newcontent = newcontent + "\n"
 
     if os.path.exists(abspath):
-        with open(abspath, "r") as existingfile:
+        with open(abspath) as existingfile:
             existingcontent = existingfile.read()
         if existingcontent == newcontent:
             no_changes = True
@@ -197,7 +197,7 @@ def write_with_overwrite_confirm(
                         run_diff(
                             diff_command,
                             "%s--existing" % diff_prefix,
-                            "".join(open(abspath, "r").readlines()),
+                            "".join(open(abspath).readlines()),
                             "%s--updated" % diff_prefix,
                             newcontent,
                         )

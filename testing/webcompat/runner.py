@@ -222,7 +222,7 @@ class WDConfig:
         )
 
 
-class ResultRecorder(object):
+class ResultRecorder:
     def __init__(self, logger):
         self.logger = logger
 
@@ -273,7 +273,7 @@ class ResultRecorder(object):
         )
 
 
-class TemporaryDirectory(object):
+class TemporaryDirectory:
     def __enter__(self):
         self.path = tempfile.mkdtemp(prefix="pytest-")
         return self.path

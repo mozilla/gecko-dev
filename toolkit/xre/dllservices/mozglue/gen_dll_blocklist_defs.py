@@ -101,7 +101,7 @@ ALL_DEFINITION_LISTS = (
 )
 
 
-class BlocklistDescriptor(object):
+class BlocklistDescriptor:
     """This class encapsulates every file that is output from this script.
     Each instance has a name, an "input specification", and optional "flag
     specification" and "output specification" entries.
@@ -389,7 +389,7 @@ GENERATED_BLOCKLIST_FILES = [
 ]
 
 
-class PETimeStamp(object):
+class PETimeStamp:
     def __init__(self, ts):
         max_timestamp = (2**32) - 1
         if ts < 0 or ts > max_timestamp:
@@ -400,7 +400,7 @@ class PETimeStamp(object):
         return "0x%08XU" % self._value
 
 
-class Version(object):
+class Version:
     """Encapsulates a DLL version."""
 
     ALL_VERSIONS = 0xFFFFFFFFFFFFFFFF
@@ -471,7 +471,7 @@ class Version(object):
         return str(self._ver)
 
 
-class DllBlocklistEntry(object):
+class DllBlocklistEntry:
     TEST_CONDITION = "defined(ENABLE_TESTS)"
 
     def __init__(self, name, ver, flags=(), **kwargs):

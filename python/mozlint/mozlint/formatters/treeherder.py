@@ -7,7 +7,7 @@ import attr
 from ..result import Issue
 
 
-class TreeherderFormatter(object):
+class TreeherderFormatter:
     """Formatter for treeherder friendly output.
 
     This formatter looks ugly, but prints output such that

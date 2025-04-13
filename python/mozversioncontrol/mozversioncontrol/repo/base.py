@@ -32,7 +32,7 @@ def get_tool_path(tool: Optional[Union[str, Path]] = None):
     return str(path)
 
 
-class Repository(object):
+class Repository:
     """A class wrapping utility methods around version control repositories.
 
     This class is abstract and never instantiated. Obtain an instance by

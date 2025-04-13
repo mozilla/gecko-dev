@@ -96,9 +96,9 @@ def fetch_balrog_xml(
     for channel in results:
         print(", ".join(matching_channels[channel]))
         for target in targets:
-            print("\t{}".format(target))
+            print(f"\t{target}")
             for url in results[channel][target]:
-                print("\t\t{}".format(url))
+                print(f"\t\t{url}")
 
 
 def main():

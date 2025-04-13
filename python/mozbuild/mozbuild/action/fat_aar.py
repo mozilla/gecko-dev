@@ -36,10 +36,8 @@ def fat_aar(distdir, aars_paths, no_process=False, no_compatibility_check=False)
     for arch, aar_path in aars_paths.items():
         # Map old non-architecture-specific path to new architecture-specific path.
         old_rewrite_map = {
-            "greprefs.js": "{}/greprefs.js".format(arch),
-            "defaults/pref/geckoview-prefs.js": "defaults/pref/{}/geckoview-prefs.js".format(
-                arch
-            ),
+            "greprefs.js": f"{arch}/greprefs.js",
+            "defaults/pref/geckoview-prefs.js": f"defaults/pref/{arch}/geckoview-prefs.js",
         }
 
         # Architecture-specific preferences files.
@@ -64,7 +62,7 @@ def fat_aar(distdir, aars_paths, no_process=False, no_compatibility_check=False)
                 z = ZipFile(BytesIO(fileobj.open().read()))
                 for r in z.namelist():
                     fingerprint = sha1(z.open(r).read()).hexdigest()
-                    diffs["{}!/{}".format(path, r)][fingerprint].append(arch)
+                    diffs[f"{path}!/{r}"][fingerprint].append(arch)
 
             else:
                 fingerprint = sha1(six.ensure_binary(fileobj.open().read())).hexdigest()
@@ -109,9 +107,7 @@ def fat_aar(distdir, aars_paths, no_process=False, no_compatibility_check=False)
 
         if any(mozpath.match(p, pat) for pat in allow_pattern_list):
             print(
-                'Allowed: Path "{path}" has architecture-specific versions:\n{ds_repr}'.format(
-                    path=p, ds_repr=format_diffs(ds)
-                )
+                f'Allowed: Path "{p}" has architecture-specific versions:\n{format_diffs(ds)}'
             )
             continue
 
@@ -119,16 +115,12 @@ def fat_aar(distdir, aars_paths, no_process=False, no_compatibility_check=False)
 
     for p, ds in not_allowed.items():
         print(
-            'Disallowed: Path "{path}" has architecture-specific versions:\n{ds_repr}'.format(
-                path=p, ds_repr=format_diffs(ds)
-            )
+            f'Disallowed: Path "{p}" has architecture-specific versions:\n{format_diffs(ds)}'
         )
 
     for missing in sorted(missing_arch_prefs):
         print(
-            "Disallowed: Inputs missing expected architecture-specific input: {missing}".format(
-                missing=missing
-            )
+            f"Disallowed: Inputs missing expected architecture-specific input: {missing}"
         )
 
     if not no_compatibility_check and (missing_arch_prefs or not_allowed):
@@ -160,7 +152,7 @@ compatibility, and ready inputs to an Android multi-architecture fat AAR build."
 
     for arch in _ALL_ARCHS:
         command_line_flag = arch.replace("_", "-")
-        parser.add_argument("--{}".format(command_line_flag), dest=arch)
+        parser.add_argument(f"--{command_line_flag}", dest=arch)
 
     args = parser.parse_args(argv)
 

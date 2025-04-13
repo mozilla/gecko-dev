@@ -255,9 +255,7 @@ class TestRecursiveMakeBackend(BackendTester):
 
         p = mozpath.join(env.topobjdir, "Makefile")
 
-        lines = [
-            l.strip() for l in open(p, "rt").readlines()[1:] if not l.startswith("#")
-        ]
+        lines = [l.strip() for l in open(p).readlines()[1:] if not l.startswith("#")]
         self.assertEqual(
             lines,
             [
@@ -282,7 +280,7 @@ class TestRecursiveMakeBackend(BackendTester):
         p = mozpath.join(env.topobjdir, "dir2", "Makefile")
         self.assertTrue(os.path.exists(p))
 
-        lines = [l.strip() for l in open(p, "rt").readlines()]
+        lines = [l.strip() for l in open(p).readlines()]
         self.assertEqual(len(lines), 10)
 
         self.assertTrue(lines[0].startswith("# THIS FILE WAS AUTOMATICALLY"))
@@ -293,7 +291,7 @@ class TestRecursiveMakeBackend(BackendTester):
 
         p = mozpath.join(env.topobjdir, "backend.mk")
 
-        lines = [l.strip() for l in open(p, "rt").readlines()[2:]]
+        lines = [l.strip() for l in open(p).readlines()[2:]]
         self.assertEqual(lines, ["DIRS := dir1 dir2"])
 
         # Make env.substs writable to add ENABLE_TESTS
@@ -302,7 +300,7 @@ class TestRecursiveMakeBackend(BackendTester):
         self._consume("stub0", RecursiveMakeBackend, env=env)
         p = mozpath.join(env.topobjdir, "backend.mk")
 
-        lines = [l.strip() for l in open(p, "rt").readlines()[2:]]
+        lines = [l.strip() for l in open(p).readlines()[2:]]
         self.assertEqual(lines, ["DIRS := dir1 dir2 dir3"])
 
     def test_mtime_no_change(self):
@@ -329,7 +327,7 @@ class TestRecursiveMakeBackend(BackendTester):
 
         p = mozpath.join(env.topobjdir, "foo")
         self.assertTrue(os.path.exists(p))
-        lines = [l.strip() for l in open(p, "rt").readlines()]
+        lines = [l.strip() for l in open(p).readlines()]
         self.assertEqual(lines, ["TEST = foo"])
 
     def test_install_substitute_config_files(self):
@@ -337,7 +335,7 @@ class TestRecursiveMakeBackend(BackendTester):
         env = self._consume("install_substitute_config_files", RecursiveMakeBackend)
 
         root_deps_path = mozpath.join(env.topobjdir, "root-deps.mk")
-        lines = [l.strip() for l in open(root_deps_path, "rt").readlines()]
+        lines = [l.strip() for l in open(root_deps_path).readlines()]
 
         # Make sure we actually recurse into the sub directory during export to
         # install the subst file.
@@ -348,7 +346,7 @@ class TestRecursiveMakeBackend(BackendTester):
         env = self._consume("variable_passthru", RecursiveMakeBackend)
 
         backend_path = mozpath.join(env.topobjdir, "backend.mk")
-        lines = [l.strip() for l in open(backend_path, "rt").readlines()[2:]]
+        lines = [l.strip() for l in open(backend_path).readlines()[2:]]
 
         expected = {
             "RCFILE": ["RCFILE := $(srcdir)/foo.rc"],
@@ -366,7 +364,7 @@ class TestRecursiveMakeBackend(BackendTester):
         env = self._consume("sources", RecursiveMakeBackend)
 
         backend_path = mozpath.join(env.topobjdir, "backend.mk")
-        lines = [l.strip() for l in open(backend_path, "rt").readlines()[2:]]
+        lines = [l.strip() for l in open(backend_path).readlines()[2:]]
 
         expected = {
             "ASFILES": ["ASFILES += $(srcdir)/bar.s", "ASFILES += $(srcdir)/foo.asm"],
@@ -409,7 +407,7 @@ class TestRecursiveMakeBackend(BackendTester):
         env = self._consume("generated-files", RecursiveMakeBackend)
 
         backend_path = mozpath.join(env.topobjdir, "backend.mk")
-        lines = [l.strip() for l in open(backend_path, "rt").readlines()[2:]]
+        lines = [l.strip() for l in open(backend_path).readlines()[2:]]
 
         expected = [
             "include $(topsrcdir)/config/AB_rCD.mk",
@@ -442,7 +440,7 @@ class TestRecursiveMakeBackend(BackendTester):
         env = self._consume("generated-files-force", RecursiveMakeBackend)
 
         backend_path = mozpath.join(env.topobjdir, "backend.mk")
-        lines = [l.strip() for l in open(backend_path, "rt").readlines()[2:]]
+        lines = [l.strip() for l in open(backend_path).readlines()[2:]]
 
         expected = [
             "include $(topsrcdir)/config/AB_rCD.mk",
@@ -475,7 +473,7 @@ class TestRecursiveMakeBackend(BackendTester):
         env = self._consume("localized-generated-files", RecursiveMakeBackend)
 
         backend_path = mozpath.join(env.topobjdir, "backend.mk")
-        lines = [l.strip() for l in open(backend_path, "rt").readlines()[2:]]
+        lines = [l.strip() for l in open(backend_path).readlines()[2:]]
 
         expected = [
             "include $(topsrcdir)/config/AB_rCD.mk",
@@ -503,7 +501,7 @@ class TestRecursiveMakeBackend(BackendTester):
         env = self._consume("localized-generated-files-force", RecursiveMakeBackend)
 
         backend_path = mozpath.join(env.topobjdir, "backend.mk")
-        lines = [l.strip() for l in open(backend_path, "rt").readlines()[2:]]
+        lines = [l.strip() for l in open(backend_path).readlines()[2:]]
 
         expected = [
             "include $(topsrcdir)/config/AB_rCD.mk",
@@ -538,7 +536,7 @@ class TestRecursiveMakeBackend(BackendTester):
         env = self._consume("localized-generated-files-AB_CD", RecursiveMakeBackend)
 
         backend_path = mozpath.join(env.topobjdir, "backend.mk")
-        lines = [l.strip() for l in open(backend_path, "rt").readlines()[2:]]
+        lines = [l.strip() for l in open(backend_path).readlines()[2:]]
 
         expected = [
             "include $(topsrcdir)/config/AB_rCD.mk",
@@ -598,7 +596,7 @@ class TestRecursiveMakeBackend(BackendTester):
         # EXPORTS files that are also GENERATED_FILES should be handled as
         # INSTALL_TARGETS.
         backend_path = mozpath.join(env.topobjdir, "backend.mk")
-        lines = [l.strip() for l in open(backend_path, "rt").readlines()[2:]]
+        lines = [l.strip() for l in open(backend_path).readlines()[2:]]
         expected = [
             "include $(topsrcdir)/config/AB_rCD.mk",
             "dist_include_FILES += bar.h",
@@ -647,7 +645,7 @@ class TestRecursiveMakeBackend(BackendTester):
         self.assertTrue(os.path.exists(m_master))
         self.assertTrue(os.path.exists(x_master))
 
-        lines = [l.strip() for l in open(x_master, "rt").readlines()]
+        lines = [l.strip() for l in open(x_master).readlines()]
         self.assertEqual(
             lines,
             [
@@ -798,7 +796,7 @@ class TestRecursiveMakeBackend(BackendTester):
         self._consume("ipdl_sources", RecursiveMakeBackend, env)
 
         manifest_path = mozpath.join(ipdl_root, "ipdlsrcs.mk")
-        lines = [l.strip() for l in open(manifest_path, "rt").readlines()]
+        lines = [l.strip() for l in open(manifest_path).readlines()]
 
         # Handle Windows paths correctly
         topsrcdir = mozpath.normsep(env.topsrcdir)
@@ -881,7 +879,7 @@ class TestRecursiveMakeBackend(BackendTester):
             ),
         ):
             backend_path = mozpath.join(env.topobjdir, dir, "backend.mk")
-            lines = [l.strip() for l in open(backend_path, "rt").readlines()]
+            lines = [l.strip() for l in open(backend_path).readlines()]
 
             found = [str for str in lines if str.startswith("CPPSRCS")]
             self.assertEqual(found, expected)
@@ -891,7 +889,7 @@ class TestRecursiveMakeBackend(BackendTester):
         env = self._consume("defines", RecursiveMakeBackend)
 
         backend_path = mozpath.join(env.topobjdir, "backend.mk")
-        lines = [l.strip() for l in open(backend_path, "rt").readlines()[2:]]
+        lines = [l.strip() for l in open(backend_path).readlines()[2:]]
 
         var = "DEFINES"
         defines = [val for val in lines if val.startswith(var)]
@@ -904,7 +902,7 @@ class TestRecursiveMakeBackend(BackendTester):
         env = self._consume("local_includes", RecursiveMakeBackend)
 
         backend_path = mozpath.join(env.topobjdir, "backend.mk")
-        lines = [l.strip() for l in open(backend_path, "rt").readlines()[2:]]
+        lines = [l.strip() for l in open(backend_path).readlines()[2:]]
 
         expected = [
             "LOCAL_INCLUDES += -I$(srcdir)/bar/baz",
@@ -919,7 +917,7 @@ class TestRecursiveMakeBackend(BackendTester):
         env = self._consume("generated_includes", RecursiveMakeBackend)
 
         backend_path = mozpath.join(env.topobjdir, "backend.mk")
-        lines = [l.strip() for l in open(backend_path, "rt").readlines()[2:]]
+        lines = [l.strip() for l in open(backend_path).readlines()[2:]]
 
         expected = [
             "LOCAL_INCLUDES += -I$(CURDIR)/bar/baz",
@@ -936,7 +934,7 @@ class TestRecursiveMakeBackend(BackendTester):
         backend_path = mozpath.join(env.topobjdir, "backend.mk")
         lines = [
             l.strip()
-            for l in open(backend_path, "rt").readlines()[2:]
+            for l in open(backend_path).readlines()[2:]
             # Strip out computed flags, they're a PITA to test.
             if not l.startswith("COMPUTED_")
         ]
@@ -956,7 +954,7 @@ class TestRecursiveMakeBackend(BackendTester):
         backend_path = mozpath.join(env.topobjdir, "backend.mk")
         lines = [
             l.strip()
-            for l in open(backend_path, "rt").readlines()[2:]
+            for l in open(backend_path).readlines()[2:]
             # Strip out computed flags, they're a PITA to test.
             if not l.startswith("COMPUTED_")
         ]
@@ -976,7 +974,7 @@ class TestRecursiveMakeBackend(BackendTester):
         backend_path = mozpath.join(env.topobjdir, "backend.mk")
         lines = [
             l.strip()
-            for l in open(backend_path, "rt").readlines()[2:]
+            for l in open(backend_path).readlines()[2:]
             # Strip out computed flags, they're a PITA to test.
             if not l.startswith("COMPUTED_")
         ]
@@ -997,7 +995,7 @@ class TestRecursiveMakeBackend(BackendTester):
         backend_path = mozpath.join(env.topobjdir, "backend.mk")
         lines = [
             l.strip()
-            for l in open(backend_path, "rt").readlines()[2:]
+            for l in open(backend_path).readlines()[2:]
             # Strip out computed flags, they're a PITA to test.
             if not l.startswith("COMPUTED_")
         ]
@@ -1018,7 +1016,7 @@ class TestRecursiveMakeBackend(BackendTester):
         backend_path = mozpath.join(env.topobjdir, "code/backend.mk")
         lines = [
             l.strip()
-            for l in open(backend_path, "rt").readlines()[2:]
+            for l in open(backend_path).readlines()[2:]
             # Strip out computed flags, they're a PITA to test.
             if not l.startswith("COMPUTED_")
         ]
@@ -1035,7 +1033,7 @@ class TestRecursiveMakeBackend(BackendTester):
         self.assertEqual(lines, expected)
 
         root_deps_path = mozpath.join(env.topobjdir, "root-deps.mk")
-        lines = [l.strip() for l in open(root_deps_path, "rt").readlines()]
+        lines = [l.strip() for l in open(root_deps_path).readlines()]
 
         self.assertTrue(
             any(l == "recurse_compile: code/host code/target" for l in lines)
@@ -1066,7 +1064,7 @@ class TestRecursiveMakeBackend(BackendTester):
         ]
         for key, expected_rules in expected.items():
             backend_path = mozpath.join(key, "backend.mk")
-            lines = [l.strip() for l in open(backend_path, "rt").readlines()[2:]]
+            lines = [l.strip() for l in open(backend_path).readlines()[2:]]
             found = [
                 str
                 for str in lines
@@ -1081,7 +1079,7 @@ class TestRecursiveMakeBackend(BackendTester):
         env = self._consume("dist-files", RecursiveMakeBackend)
 
         backend_path = mozpath.join(env.topobjdir, "backend.mk")
-        lines = [l.strip() for l in open(backend_path, "rt").readlines()[2:]]
+        lines = [l.strip() for l in open(backend_path).readlines()[2:]]
 
         expected = [
             "DIST_FILES_0 += $(srcdir)/install.rdf",
@@ -1099,7 +1097,7 @@ class TestRecursiveMakeBackend(BackendTester):
         env = self._consume("localized-files", RecursiveMakeBackend)
 
         backend_path = mozpath.join(env.topobjdir, "backend.mk")
-        lines = [l.strip() for l in open(backend_path, "rt").readlines()[2:]]
+        lines = [l.strip() for l in open(backend_path).readlines()[2:]]
 
         expected = [
             "LOCALIZED_FILES_0_FILES += $(wildcard $(LOCALE_SRCDIR)/abc/*.abc)",
@@ -1118,7 +1116,7 @@ class TestRecursiveMakeBackend(BackendTester):
         env = self._consume("localized-pp-files", RecursiveMakeBackend)
 
         backend_path = mozpath.join(env.topobjdir, "backend.mk")
-        lines = [l.strip() for l in open(backend_path, "rt").readlines()[2:]]
+        lines = [l.strip() for l in open(backend_path).readlines()[2:]]
 
         expected = [
             "LOCALIZED_PP_FILES_0 += $(call MERGE_FILE,bar.ini)",
@@ -1137,7 +1135,7 @@ class TestRecursiveMakeBackend(BackendTester):
         env = self._consume("test_config", RecursiveMakeBackend)
 
         self.assertEqual(
-            open(os.path.join(env.topobjdir, "file"), "r").readlines(),
+            open(os.path.join(env.topobjdir, "file")).readlines(),
             ["#ifdef foo\n", "bar baz\n", "@bar@\n"],
         )
 
@@ -1146,13 +1144,13 @@ class TestRecursiveMakeBackend(BackendTester):
         env = self._consume("prog-lib-c-only", RecursiveMakeBackend)
 
         # PROGRAM C-onlyness.
-        with open(os.path.join(env.topobjdir, "c-program", "backend.mk"), "r") as fh:
+        with open(os.path.join(env.topobjdir, "c-program", "backend.mk")) as fh:
             lines = fh.readlines()
             lines = [line.rstrip() for line in lines]
 
             self.assertIn("PROG_IS_C_ONLY_c_test_program := 1", lines)
 
-        with open(os.path.join(env.topobjdir, "cxx-program", "backend.mk"), "r") as fh:
+        with open(os.path.join(env.topobjdir, "cxx-program", "backend.mk")) as fh:
             lines = fh.readlines()
             lines = [line.rstrip() for line in lines]
 
@@ -1162,16 +1160,14 @@ class TestRecursiveMakeBackend(BackendTester):
                 self.assertNotIn("PROG_IS_C_ONLY_cxx_test_program", line)
 
         # SIMPLE_PROGRAMS C-onlyness.
-        with open(
-            os.path.join(env.topobjdir, "c-simple-programs", "backend.mk"), "r"
-        ) as fh:
+        with open(os.path.join(env.topobjdir, "c-simple-programs", "backend.mk")) as fh:
             lines = fh.readlines()
             lines = [line.rstrip() for line in lines]
 
             self.assertIn("PROG_IS_C_ONLY_c_simple_program := 1", lines)
 
         with open(
-            os.path.join(env.topobjdir, "cxx-simple-programs", "backend.mk"), "r"
+            os.path.join(env.topobjdir, "cxx-simple-programs", "backend.mk")
         ) as fh:
             lines = fh.readlines()
             lines = [line.rstrip() for line in lines]
@@ -1180,13 +1176,13 @@ class TestRecursiveMakeBackend(BackendTester):
                 self.assertNotIn("PROG_IS_C_ONLY_cxx_simple_program", line)
 
         # Libraries C-onlyness.
-        with open(os.path.join(env.topobjdir, "c-library", "backend.mk"), "r") as fh:
+        with open(os.path.join(env.topobjdir, "c-library", "backend.mk")) as fh:
             lines = fh.readlines()
             lines = [line.rstrip() for line in lines]
 
             self.assertIn("LIB_IS_C_ONLY := 1", lines)
 
-        with open(os.path.join(env.topobjdir, "cxx-library", "backend.mk"), "r") as fh:
+        with open(os.path.join(env.topobjdir, "cxx-library", "backend.mk")) as fh:
             lines = fh.readlines()
             lines = [line.rstrip() for line in lines]
 
@@ -1219,7 +1215,7 @@ class TestRecursiveMakeBackend(BackendTester):
         }
         actual_linkage = {}
         for name in expected_linkage.keys():
-            with open(os.path.join(env.topobjdir, name, "backend.mk"), "r") as fh:
+            with open(os.path.join(env.topobjdir, name, "backend.mk")) as fh:
                 actual_linkage[name] = [line.rstrip() for line in fh.readlines()]
         for name in expected_linkage:
             for var in expected_linkage[name]:
@@ -1242,7 +1238,7 @@ class TestRecursiveMakeBackend(BackendTester):
         }
         actual_list_files = {}
         for name in expected_list_files.keys():
-            with open(os.path.join(env.topobjdir, name), "r") as fh:
+            with open(os.path.join(env.topobjdir, name)) as fh:
                 actual_list_files[name] = [line.rstrip() for line in fh.readlines()]
         for name in expected_list_files:
             self.assertEqual(
@@ -1252,7 +1248,7 @@ class TestRecursiveMakeBackend(BackendTester):
 
         # We don't produce a list file for a shared library composed only of
         # object files in its directory, but instead list them in a variable.
-        with open(os.path.join(env.topobjdir, "prog", "qux", "backend.mk"), "r") as fh:
+        with open(os.path.join(env.topobjdir, "prog", "qux", "backend.mk")) as fh:
             lines = [line.rstrip() for line in fh.readlines()]
 
         self.assertIn("qux.so_OBJS := qux1.o", lines)
@@ -1260,7 +1256,7 @@ class TestRecursiveMakeBackend(BackendTester):
     def test_jar_manifests(self):
         env = self._consume("jar-manifests", RecursiveMakeBackend)
 
-        with open(os.path.join(env.topobjdir, "backend.mk"), "r") as fh:
+        with open(os.path.join(env.topobjdir, "backend.mk")) as fh:
             lines = fh.readlines()
 
         lines = [line.rstrip() for line in lines]
@@ -1310,7 +1306,7 @@ class TestRecursiveMakeBackend(BackendTester):
         ]
         prefix = "PROGRAM = "
         for subdir, expected_program in expected:
-            with open(os.path.join(env.topobjdir, subdir, "backend.mk"), "r") as fh:
+            with open(os.path.join(env.topobjdir, subdir, "backend.mk")) as fh:
                 lines = fh.readlines()
                 program = [
                     line.rstrip().split(prefix, 1)[1]
@@ -1332,7 +1328,7 @@ class TestRecursiveMakeBackend(BackendTester):
         ]
         prefix = "SHARED_LIBRARY := "
         for subdir, expected_shared_lib in expected:
-            with open(os.path.join(env.topobjdir, subdir, "backend.mk"), "r") as fh:
+            with open(os.path.join(env.topobjdir, subdir, "backend.mk")) as fh:
                 lines = fh.readlines()
                 shared_lib = [
                     line.rstrip().split(prefix, 1)[1]

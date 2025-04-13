@@ -94,7 +94,7 @@ def activate_mozharness_venv(context):
     )
 
     if not os.path.isdir(venv):
-        print("No mozharness virtualenv detected at '{}'.".format(venv))
+        print(f"No mozharness virtualenv detected at '{venv}'.")
         return 1
 
     venv_bin = os.path.join(venv, "Scripts" if IS_WIN else "bin")

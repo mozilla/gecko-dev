@@ -39,7 +39,7 @@ class Allowlist:
             return False
 
         try:
-            with open(filename, "r") as fHandle:
+            with open(filename) as fHandle:
                 temp = json.load(fHandle)
 
             for allowlist_name in temp:
@@ -172,7 +172,7 @@ class Allowlist:
     def load_dependent_libs(self):
         filename = "%s%sdependentlibs.list" % (self.paths[KEY_XRE], os.path.sep)
         try:
-            with open(filename, "r") as f:
+            with open(filename) as f:
                 libs = f.readlines()
             self.dependent_libs = {
                 "%s%s%s" % (KEY_XRE, os.path.sep, lib.strip()): {"ignore": True}

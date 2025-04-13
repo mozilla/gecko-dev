@@ -132,7 +132,7 @@ def find_all_packages(paths):
     @param path: list of root paths to search for .pkg & .dmg files
     """
     for path in paths:
-        logging.info("find_all_packages: {}".format(path))
+        logging.info(f"find_all_packages: {path}")
         for pkg in find_packages(path):
             yield pkg
 
@@ -162,9 +162,7 @@ def extract_payload(payload_path, output_path):
             logging.info("Extracting bzip2 payload")
             extract = "bzip2"
             subprocess.check_call(
-                'cd {dest} && {extract} -dc {payload} | pax -r -k -s ":^/::"'.format(
-                    extract=extract, payload=payload_path, dest=output_path
-                ),
+                f'cd {output_path} && {extract} -dc {payload_path} | pax -r -k -s ":^/::"',
                 shell=True,
             )
             return True
@@ -172,9 +170,7 @@ def extract_payload(payload_path, output_path):
             logging.info("Extracting gzip payload")
             extract = "gzip"
             subprocess.check_call(
-                'cd {dest} && {extract} -dc {payload} | pax -r -k -s ":^/::"'.format(
-                    extract=extract, payload=payload_path, dest=output_path
-                ),
+                f'cd {output_path} && {extract} -dc {payload_path} | pax -r -k -s ":^/::"',
                 shell=True,
             )
             return True
@@ -192,9 +188,7 @@ def extract_payload(payload_path, output_path):
             return True
         else:
             # Unsupported format
-            logging.error(
-                "Unknown payload format: 0x{0:x}{1:x}".format(header[0], header[1])
-            )
+            logging.error(f"Unknown payload format: 0x{header[0]:x}{header[1]:x}")
             return False
 
     except Exception:
@@ -202,7 +196,7 @@ def extract_payload(payload_path, output_path):
 
 
 def shutil_error_handler(caller, path, excinfo):
-    logging.error('Could not remove "{path}": {info}'.format(path=path, info=excinfo))
+    logging.error(f'Could not remove "{path}": {excinfo}')
 
 
 def write_symbol_file(dest, filename, contents):
@@ -253,7 +247,7 @@ def dump_symbols_from_payload(executor, dump_syms, payload_path, dest):
     logging.info("Dumping symbols from payload: " + payload_path)
     try:
         temp_dir = tempfile.mkdtemp()
-        logging.info("Extracting payload to {path}.".format(path=temp_dir))
+        logging.info(f"Extracting payload to {temp_dir}.")
         if not extract_payload(payload_path, temp_dir):
             logging.error("Could not extract payload: " + payload_path)
             return False
@@ -305,7 +299,7 @@ def dump_symbols_from_package(executor, dump_syms, pkg, dest):
 
     except Exception as e:
         traceback.print_exc()
-        logging.error("Exception while dumping symbols from package: {}".format(e))
+        logging.error(f"Exception while dumping symbols from package: {e}")
         successful = False
 
     finally:
@@ -318,17 +312,15 @@ def dump_symbols_from_package(executor, dump_syms, pkg, dest):
 def read_processed_packages(tracking_file):
     if tracking_file is None or not os.path.exists(tracking_file):
         return set()
-    logging.info("Reading processed packages from {}".format(tracking_file))
-    return set(open(tracking_file, "r").read().splitlines())
+    logging.info(f"Reading processed packages from {tracking_file}")
+    return set(open(tracking_file).read().splitlines())
 
 
 def write_processed_packages(tracking_file, processed_packages):
     if tracking_file is None:
         return
     logging.info(
-        "Writing {} processed packages to {}".format(
-            len(processed_packages), tracking_file
-        )
+        f"Writing {len(processed_packages)} processed packages to {tracking_file}"
     )
     open(tracking_file, "w").write("\n".join(processed_packages))
 
@@ -338,7 +330,7 @@ def process_packages(package_finder, to, tracking_file, dump_syms):
     with concurrent.futures.ProcessPoolExecutor() as executor:
         for pkg in package_finder():
             if pkg in processed_packages:
-                logging.info("Skipping already-processed package: {}".format(pkg))
+                logging.info(f"Skipping already-processed package: {pkg}")
             else:
                 dump_symbols_from_package(executor, dump_syms, pkg, to)
                 processed_packages.add(pkg)

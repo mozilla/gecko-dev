@@ -75,7 +75,7 @@ class EmptyValue(str):
         super(EmptyValue, self).__init__()
 
 
-class ReadOnlyNamespace(object):
+class ReadOnlyNamespace:
     """A class for objects with immutable attributes set at initialization."""
 
     def __init__(self, **kwargs):
@@ -133,7 +133,7 @@ class ReadOnlyDict(dict):
         return (self.__class__, (dict(self),))
 
 
-class undefined_default(object):
+class undefined_default:
     """Represents an undefined argument value that isn't None."""
 
 
@@ -607,7 +607,7 @@ def FlagsFactory(flags):
     assert isinstance(flags, dict)
     assert all(isinstance(v, type) for v in flags.values())
 
-    class Flags(object):
+    class Flags:
         __slots__ = flags.keys()
         _flags = flags
 
@@ -754,7 +754,7 @@ def StrictOrderingOnAppendListWithFlagsFactory(flags):
     return StrictOrderingOnAppendListWithFlagsSpecialization
 
 
-class HierarchicalStringList(object):
+class HierarchicalStringList:
     """A hierarchy of lists of strings.
 
     Each instance of this object contains a list of strings, which can be set or
@@ -927,7 +927,7 @@ class memoize(dict):
         )
 
 
-class memoized_property(object):
+class memoized_property:
     """A specialized version of the memoize decorator that works for
     class instance properties.
     """
@@ -1240,7 +1240,7 @@ def hexdump(buf):
     Returns a list of hexdump-like lines corresponding to the given input buffer.
     """
     assert six.PY3
-    off_format = "%0{}x ".format(len(str(len(buf))))
+    off_format = f"%0{len(str(len(buf)))}x "
     lines = []
     for off in range(0, len(buf), 16):
         line = off_format % off

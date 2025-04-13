@@ -120,9 +120,7 @@ class TestNsinstall(unittest.TestCase):
         mode = 0o600
         os.chmod(testfile, mode)
         testdir = self.mkdirs("testdir")
-        self.assertEqual(
-            nsinstall(["-m", "{0:04o}".format(mode), testfile, testdir]), 0
-        )
+        self.assertEqual(nsinstall(["-m", f"{mode:04o}", testfile, testdir]), 0)
         destfile = os.path.join(testdir, "testfile")
         self.assertTrue(os.path.isfile(destfile))
         self.assertEqual(os.stat(testfile).st_mode, os.stat(destfile).st_mode)

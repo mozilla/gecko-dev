@@ -325,7 +325,7 @@ def gather_hazard_data(command_context, **kwargs):
 
     work_dir = get_work_dir(command_context, project, kwargs["work_dir"])
     ensure_dir_exists(work_dir)
-    with open(os.path.join(work_dir, "defaults.py"), "wt") as fh:
+    with open(os.path.join(work_dir, "defaults.py"), "w") as fh:
         data = textwrap.dedent(
             """\
             analysis_scriptdir = "{script_dir}"
@@ -545,7 +545,7 @@ def annotated_source(filename, query):
     line0 = int(line0)
     line1 = int(line1)
 
-    fh = open(filename, "rt")
+    fh = open(filename)
 
     out = "<pre>"
     for lineno, line in enumerate(fh, 1):

@@ -206,7 +206,7 @@ def main():
     import sys
 
     if len(sys.argv) != 2:
-        print("Usage: {} <commit hash>".format(sys.argv[0]), file=sys.stderr)
+        print(f"Usage: {sys.argv[0]} <commit hash>", file=sys.stderr)
         sys.exit(1)
 
     update_application_services(sys.argv[1])

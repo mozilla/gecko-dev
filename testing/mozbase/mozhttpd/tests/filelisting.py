@@ -56,11 +56,11 @@ def test_filelist(httpd, docroot, path):
             and not webline.startswith("Directory listing for")
             and not webline.startswith("<!DOCTYPE")
         ):
-            msg = "File {} in dir listing corresponds to a file".format(webline)
+            msg = f"File {webline} in dir listing corresponds to a file"
             assert webline in filelist, msg
             filelist.remove(webline)
 
-    msg = "Should have no items in filelist ({}) unaccounted for".format(filelist)
+    msg = f"Should have no items in filelist ({filelist}) unaccounted for"
     assert len(filelist) == 0, msg
 
 

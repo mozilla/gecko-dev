@@ -50,9 +50,7 @@ def repackage_msi(
     if locale is None:
         raise Exception("locale name must be provided.")
     if arch is None or arch not in _MSI_ARCH.keys():
-        raise Exception(
-            "arch name must be provided and one of {}.".format(_MSI_ARCH.keys())
-        )
+        raise Exception(f"arch name must be provided and one of {_MSI_ARCH.keys()}.")
     if not os.path.isfile(setupexe):
         raise Exception("%s does not exist." % setupexe)
     if candle is not None and not os.path.isfile(candle):

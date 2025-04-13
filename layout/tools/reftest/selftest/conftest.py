@@ -144,4 +144,4 @@ def skip_using_mozinfo(request, setup_test_harness):
     if skip_mozinfo:
         value = skip_mozinfo.args[0]
         if expression.parse(value, **mozinfo.info):
-            pytest.skip("skipped due to mozinfo match: \n{}".format(value))
+            pytest.skip(f"skipped due to mozinfo match: \n{value}")

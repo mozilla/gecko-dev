@@ -11,7 +11,7 @@ from .constant import Constant
 from .transformer import SimplePerfherderTransformer, Transformer, get_transformer
 
 
-class PerftestETL(object):
+class PerftestETL:
     """Controller class for the PerftestETL."""
 
     def __init__(

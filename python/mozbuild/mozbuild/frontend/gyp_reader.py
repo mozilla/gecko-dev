@@ -398,7 +398,7 @@ def load_gyp(*args):
     return flat_list, targets, data
 
 
-class GypProcessor(object):
+class GypProcessor:
     """Reads a gyp configuration in the background using the given executor and
     emits GypContexts for the backend to process.
 

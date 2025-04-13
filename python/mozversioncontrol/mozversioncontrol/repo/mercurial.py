@@ -165,7 +165,7 @@ class HgRepository(Repository):
         if rev is None:
             # Use --no-status to print just the filename.
             df = self._format_diff_filter(diff_filter, for_status=True)
-            return self._run("status", "--no-status", "-{}".format(df)).splitlines()
+            return self._run("status", "--no-status", f"-{df}").splitlines()
         else:
             template = self._files_template(diff_filter)
             return self._run("log", "-r", rev, "-T", template).splitlines()

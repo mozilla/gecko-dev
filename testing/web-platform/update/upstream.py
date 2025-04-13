@@ -205,7 +205,7 @@ class SelectCommits(Step):
         while True:
             commits = state.source_commits[:]
             for i, commit in enumerate(commits):
-                print("{}:\t{}".format(i, commit.message.summary))
+                print(f"{i}:\t{commit.message.summary}")
 
             remove = input(
                 "Provide a space-separated list of any commits numbers "
@@ -227,7 +227,7 @@ class SelectCommits(Step):
             # TODO: consider printed removed commits
             print("Selected the following commits to keep:")
             for i, commit in keep_commits:
-                print("{}:\t{}".format(i, commit.message.summary))
+                print(f"{i}:\t{commit.message.summary}")
             confirm = input("Keep the above commits? y/n\n").strip().lower()
 
             if confirm == "y":
@@ -275,10 +275,8 @@ class MovePatches(Step):
                 with tempfile.NamedTemporaryFile(delete=False, suffix=".diff") as f:
                     f.write(stripped_patch.diff)
                     print(
-                        """Patch failed to apply. Diff saved in {}
-Fix this file so it applies and run with --continue""".format(
-                            f.name
-                        )
+                        f"""Patch failed to apply. Diff saved in {f.name}
+Fix this file so it applies and run with --continue"""
                     )
                     state.patch = (f.name, stripped_patch)
                     print(state.patch)

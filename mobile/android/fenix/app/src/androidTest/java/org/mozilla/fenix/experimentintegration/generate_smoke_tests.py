@@ -29,7 +29,7 @@ def search_for_smoke_tests(tests_name):
             file_name = name
             break
 
-    with open(file_name, "r") as file:
+    with open(file_name) as file:
         code = file.read().split(" ")
         code = [item for item in code if item != ""]
 
@@ -90,7 +90,7 @@ if __name__ == "__main__":
     if args.test_files:
         test_modules = args.test_files
     else:
-        with open("variables.yaml", "r") as file:
+        with open("variables.yaml") as file:
             tests = yaml.safe_load(file)
             test_modules = [test for test in tests.get("smoke_tests")]
     create_test_file()

@@ -176,7 +176,7 @@ class LoggerShutdownError(Exception):
     """Raised when attempting to log after logger.shutdown() has been called."""
 
 
-class LoggerState(object):
+class LoggerState:
     def __init__(self):
         self.reset()
 
@@ -189,12 +189,12 @@ class LoggerState(object):
         self.has_shutdown = False
 
 
-class ComponentState(object):
+class ComponentState:
     def __init__(self):
         self.filter_ = None
 
 
-class StructuredLogger(object):
+class StructuredLogger:
     _lock = Lock()
     _logger_states = {}
     """Create a structured logger with the given name
@@ -351,7 +351,7 @@ class StructuredLogger(object):
                 # limit data to reduce unnecessary log bloat
                 self.error(
                     "Got second suite_start message before suite_end. "
-                    + "Logged with data: {}".format(json.dumps(data)[:100])
+                    + f"Logged with data: {json.dumps(data)[:100]}"
                 )
                 return False
             self._state.suite_started = True
@@ -359,7 +359,7 @@ class StructuredLogger(object):
             if not self._state.suite_started:
                 self.error(
                     "Got suite_end message before suite_start. "
-                    + "Logged with data: {}".format(json.dumps(data))
+                    + f"Logged with data: {json.dumps(data)}"
                 )
                 return False
             self._state.suite_started = False
@@ -787,7 +787,7 @@ for level_name in lint_levels:
     setattr(StructuredLogger, name, _lint_func(level_name))
 
 
-class StructuredLogFileLike(object):
+class StructuredLogFileLike:
     """Wrapper for file-like objects to redirect writes to logger
     instead. Each call to `write` becomes a single log entry of type `log`.
 

@@ -150,18 +150,18 @@ def check_pref_list(pref_list):
         # Check all given keys are known ones.
         for key in pref:
             if key not in VALID_KEYS:
-                error("invalid key `{}`".format(key))
+                error(f"invalid key `{key}`")
 
         # 'name' must be present, valid, and in the right section.
         if "name" not in pref:
             error("missing `name` key")
         name = pref["name"]
         if type(name) is not str:
-            error("non-string `name` value `{}`".format(name))
+            error(f"non-string `name` value `{name}`")
         if "." not in name:
-            error("`name` value `{}` lacks a '.'".format(name))
+            error(f"`name` value `{name}` lacks a '.'")
         if name in seen_names:
-            error("`{}` pref is defined more than once".format(name))
+            error(f"`{name}` pref is defined more than once")
         seen_names.add(name)
 
         # Prefs must be ordered appropriately.
@@ -175,41 +175,41 @@ def check_pref_list(pref_list):
 
         # 'type' must be present and valid.
         if "type" not in pref:
-            error("missing `type` key for pref `{}`".format(name))
+            error(f"missing `type` key for pref `{name}`")
         typ = pref["type"]
         if typ not in VALID_TYPES:
-            error("invalid `type` value `{}` for pref `{}`".format(typ, name))
+            error(f"invalid `type` value `{typ}` for pref `{name}`")
 
         # 'value' must be present and valid.
         if "value" not in pref:
-            error("missing `value` key for pref `{}`".format(name))
+            error(f"missing `value` key for pref `{name}`")
         value = pref["value"]
         if typ == "String" or typ == "DataMutexString":
             if type(value) is not str:
                 error(
-                    "non-string `value` value `{}` for `{}` pref `{}`; "
-                    "add double quotes".format(value, typ, name)
+                    f"non-string `value` value `{value}` for `{typ}` pref `{name}`; "
+                    "add double quotes"
                 )
         elif typ in VALID_BOOL_TYPES:
             if value not in (True, False):
-                error("invalid boolean value `{}` for pref `{}`".format(value, name))
+                error(f"invalid boolean value `{value}` for pref `{name}`")
 
         # 'mirror' must be present and valid.
         if "mirror" not in pref:
-            error("missing `mirror` key for pref `{}`".format(name))
+            error(f"missing `mirror` key for pref `{name}`")
         mirror = pref["mirror"]
         if typ.startswith("DataMutex"):
             mirror += "_datamutex"
         if mirror not in MIRROR_TEMPLATES:
-            error("invalid `mirror` value `{}` for pref `{}`".format(mirror, name))
+            error(f"invalid `mirror` value `{mirror}` for pref `{name}`")
 
         # Check 'do_not_use_directly' if present.
         if "do_not_use_directly" in pref:
             do_not_use_directly = pref["do_not_use_directly"]
             if type(do_not_use_directly) is not bool:
                 error(
-                    "non-boolean `do_not_use_directly` value `{}` for pref "
-                    "`{}`".format(do_not_use_directly, name)
+                    f"non-boolean `do_not_use_directly` value `{do_not_use_directly}` for pref "
+                    f"`{name}`"
                 )
             if do_not_use_directly and mirror == "never":
                 error(
@@ -221,22 +221,18 @@ def check_pref_list(pref_list):
         if "include" in pref:
             include = pref["include"]
             if type(include) is not str:
-                error(
-                    "non-string `include` value `{}` for pref `{}`".format(
-                        include, name
-                    )
-                )
+                error(f"non-string `include` value `{include}` for pref `{name}`")
             if include.startswith("<") and not include.endswith(">"):
                 error(
-                    "`include` value `{}` starts with `<` but does not "
-                    "end with `>` for pref `{}`".format(include, name)
+                    f"`include` value `{include}` starts with `<` but does not "
+                    f"end with `>` for pref `{name}`"
                 )
 
         # Check 'rust' if present.
         if "rust" in pref:
             rust = pref["rust"]
             if type(rust) is not bool:
-                error("non-boolean `rust` value `{}` for pref `{}`".format(rust, name))
+                error(f"non-boolean `rust` value `{rust}` for pref `{name}`")
             if rust and mirror == "never":
                 error(
                     "`rust` uselessly set with `mirror` value `never` for "
@@ -290,7 +286,7 @@ def generate_code(pref_list, input_filename):
         if include:
             if not include.startswith("<"):
                 # It's not a system header. Add double quotes.
-                include = '"{}"'.format(include)
+                include = f'"{include}"'
             includes[group].add(include)
 
         if typ == "String":
@@ -361,7 +357,7 @@ def generate_code(pref_list, input_filename):
     # line per pref group.
     static_pref_list_all_h = [first_line, ""]
     static_pref_list_all_h.extend(
-        '#include "mozilla/StaticPrefList_{}.h"'.format(group)
+        f'#include "mozilla/StaticPrefList_{group}.h"'
         for group in sorted(static_pref_list_group_h)
     )
     static_pref_list_all_h.append("")
@@ -370,7 +366,7 @@ def generate_code(pref_list, input_filename):
     # pref group.
     static_prefs_all_h = [first_line, ""]
     static_prefs_all_h.extend(
-        '#include "mozilla/StaticPrefs_{}.h"'.format(group)
+        f'#include "mozilla/StaticPrefs_{group}.h"'
         for group in sorted(static_pref_list_group_h)
     )
     static_prefs_all_h.append("")
@@ -386,7 +382,7 @@ def generate_code(pref_list, input_filename):
         if group in includes:
             # Add any necessary includes, from 'h_include' values.
             for include in sorted(includes[group]):
-                static_prefs_group_h[group].append("#include {}".format(include))
+                static_prefs_group_h[group].append(f"#include {include}")
             static_prefs_group_h[group].append("")
         static_prefs_group_h[group].append(
             STATIC_PREFS_GROUP_H_TEMPLATE2.format(group=group)
@@ -440,7 +436,7 @@ def emit_code(fd, pref_list_filename):
         )
         code = generate_code(pref_list, input_file)
     except (OSError, ValueError) as e:
-        print("{}: error:\n  {}\n".format(pref_list_filename, e))
+        print(f"{pref_list_filename}: error:\n  {e}\n")
         sys.exit(1)
 
     # When generating multiple files from a script, the build system treats the
@@ -458,12 +454,12 @@ def emit_code(fd, pref_list_filename):
         fd.write(code["static_prefs_all_h"])
 
     for group, text in sorted(code["static_pref_list_group_h"].items()):
-        filename = "StaticPrefList_{}.h".format(group)
+        filename = f"StaticPrefList_{group}.h"
         with FileAvoidWrite(os.path.join(init_dirname, filename)) as fd:
             fd.write(text)
 
     for group, text in sorted(code["static_prefs_group_h"].items()):
-        filename = "StaticPrefs_{}.h".format(group)
+        filename = f"StaticPrefs_{group}.h"
         with FileAvoidWrite(os.path.join(dirname, filename)) as fd:
             fd.write(text)
 

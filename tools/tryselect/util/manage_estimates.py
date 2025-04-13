@@ -70,11 +70,7 @@ def download_task_history_data(cache_dir):
         r.raise_for_status()
     except requests.exceptions.RequestException as exc:
         # This is fine, the durations just won't be in the preview window.
-        print(
-            "Error fetching task duration cache from {}: {}".format(
-                TASK_DURATION_URL, exc
-            )
-        )
+        print(f"Error fetching task duration cache from {TASK_DURATION_URL}: {exc}")
         return
 
     # The data retrieved from google storage is a newline-separated
@@ -95,9 +91,7 @@ def download_task_history_data(cache_dir):
     except requests.exceptions.RequestException as exc:
         # This is fine, the percentile just won't be in the preview window.
         print(
-            "Error fetching task group percentiles from {}: {}".format(
-                GRAPH_QUANTILES_URL, exc
-            )
+            f"Error fetching task group percentiles from {GRAPH_QUANTILES_URL}: {exc}"
         )
         return
 

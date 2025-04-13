@@ -102,8 +102,8 @@ class BlinkRuntimeRunner(BaseRunner):
 
         data_dir, name = os.path.split(self.profile.profile)
         profile_args = [
-            "--user-data-dir={}".format(data_dir),
-            "--profile-directory={}".format(name),
+            f"--user-data-dir={data_dir}",
+            f"--profile-directory={name}",
             "--no-first-run",
         ]
         self.cmdargs.extend(profile_args)

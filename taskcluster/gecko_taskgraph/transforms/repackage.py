@@ -756,9 +756,7 @@ def _generate_download_config(
     elif build_platform.startswith("linux") or build_platform.startswith("macosx"):
         signing_fetch = [
             {
-                "artifact": "{}target{}".format(
-                    locale_path, archive_format(build_platform)
-                ),
+                "artifact": f"{locale_path}target{archive_format(build_platform)}",
                 "extract": False,
             },
         ]

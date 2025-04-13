@@ -17,7 +17,7 @@ class TestMSRV(unittest.TestCase):
         """Ensure MSRV in mozboot and top-level Config.toml match."""
 
         cargo_toml = os.path.join(topsrcdir, "Cargo.toml")
-        with open(cargo_toml, "r") as f:
+        with open(cargo_toml) as f:
             content = toml.load(f)
         workspace = content.get("workspace", {})
         rust_version = workspace.get("package", {}).get("rust-version")

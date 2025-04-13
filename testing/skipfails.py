@@ -103,7 +103,7 @@ WPT_META2 = WPT2.replace("tests", "meta")
 WPT_MOZILLA = "/_mozilla"
 
 
-class Mock(object):
+class Mock:
     def __init__(self, data, defaults={}, inits=[]):
         self._data = data
         self._defaults = defaults
@@ -120,7 +120,7 @@ class Mock(object):
         return ""
 
 
-class Classification(object):
+class Classification:
     "Classification of the failure (not the task result)"
 
     DISABLE_INTERMITTENT = "disable_intermittent"  # reftest [40%, 80%)
@@ -134,7 +134,7 @@ class Classification(object):
     UNKNOWN = "unknown"
 
 
-class Kind(object):
+class Kind:
     "Kind of manifest"
 
     LIST = "list"
@@ -143,7 +143,7 @@ class Kind(object):
     WPT = "wpt"
 
 
-class Skipfails(object):
+class Skipfails:
     "mach manifest skip-fails implementation: Update manifests to skip failing tests"
 
     REPO = "repo"
@@ -1052,7 +1052,7 @@ class Skipfails(object):
         )
         if kind == Kind.WPT:
             if os.path.exists(manifest_path):
-                manifest_str = open(manifest_path, "r", encoding="utf-8").read()
+                manifest_str = open(manifest_path, encoding="utf-8").read()
             else:
                 # ensure parent directories exist
                 os.makedirs(os.path.dirname(manifest_path), exist_ok=True)
@@ -1088,7 +1088,7 @@ class Skipfails(object):
             elif not os.path.exists(manifest_path):
                 self.error(f"manifest does not exist: {manifest_path}")
             else:
-                manifest_str = open(manifest_path, "r", encoding="utf-8").read()
+                manifest_str = open(manifest_path, encoding="utf-8").read()
                 if status == PASS:
                     self.info(f"Unexpected status: {status}")
                 if (
@@ -1147,7 +1147,7 @@ class Skipfails(object):
         if len(self.variants) == 0:
             variants_file = "taskcluster/kinds/test/variants.yml"
             variants_path = self.full_path(variants_file)
-            fp = open(variants_path, "r", encoding="utf-8")
+            fp = open(variants_path, encoding="utf-8")
             raw_variants = load(fp, Loader=Loader)
             fp.close()
             for k, v in raw_variants.items():
@@ -1485,7 +1485,7 @@ class Skipfails(object):
     def read_json(self, filename):
         """read data as JSON from filename"""
 
-        fp = open(filename, "r", encoding="utf-8")
+        fp = open(filename, encoding="utf-8")
         data = json.load(fp)
         fp.close()
         return data
@@ -1859,7 +1859,7 @@ class Skipfails(object):
             else:
                 mods.append(modifiers[i])
         m = len(mods)
-        manifest_str = open(manifest, "r", encoding="utf-8").read()
+        manifest_str = open(manifest, encoding="utf-8").read()
         lines = manifest_str.splitlines()
         defaults = []
         found = False

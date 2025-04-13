@@ -76,7 +76,7 @@ class RemoteCPPUnitTests(cppunittests.CPPUnitTests):
         elif self.options.local_lib:
             for path in os.listdir(self.options.local_lib):
                 if path.endswith(".so"):
-                    print("Pushing {}..".format(path), file=sys.stderr)
+                    print(f"Pushing {path}..", file=sys.stderr)
                     remote_file = posixpath.join(self.remote_bin_dir, path)
                     local_file = os.path.join(self.options.local_lib, path)
                     self.device.push(local_file, remote_file)
@@ -88,7 +88,7 @@ class RemoteCPPUnitTests(cppunittests.CPPUnitTests):
                     for root, dirs, paths in os.walk(local_arm_lib):
                         for path in paths:
                             if path.endswith(".so"):
-                                print("Pushing {}..".format(path), file=sys.stderr)
+                                print(f"Pushing {path}..", file=sys.stderr)
                                 remote_file = posixpath.join(self.remote_bin_dir, path)
                                 local_file = os.path.join(root, path)
                                 self.device.push(local_file, remote_file)

@@ -62,7 +62,7 @@ def runUtil(util, args):
     return proc.returncode
 
 
-class PKCS12(object):
+class PKCS12:
     """Utility class for reading a specification and generating
     a PKCS12 file"""
 

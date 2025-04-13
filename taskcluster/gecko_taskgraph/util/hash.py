@@ -47,10 +47,7 @@ def hash_paths(base_path, patterns):
             if path.endswith((".pyc", ".pyd", ".pyo")):
                 continue
             h.update(
-                "{} {}\n".format(
-                    hash_path(mozpath.abspath(mozpath.join(base_path, path))),
-                    mozpath.normsep(path),
-                ).encode("utf-8")
+                f"{hash_path(mozpath.abspath(mozpath.join(base_path, path)))} {mozpath.normsep(path)}\n".encode()
             )
 
     return h.hexdigest()

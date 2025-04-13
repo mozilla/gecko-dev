@@ -134,7 +134,7 @@ def updated_env(env):
 
 def build_tar_package(name, base, directory):
     name = os.path.realpath(name)
-    print("tarring {} from {}/{}".format(name, base, directory), file=sys.stderr)
+    print(f"tarring {name} from {base}/{directory}", file=sys.stderr)
     assert name.endswith(".tar.zst")
 
     cctx = zstandard.ZstdCompressor()
@@ -559,16 +559,14 @@ def main():
                     del config[key]
             elif type(old_value) is not type(value):
                 raise Exception(
-                    "{} is overriding `{}` with a value of the wrong type".format(
-                        c.name, key
-                    )
+                    f"{c.name} is overriding `{key}` with a value of the wrong type"
                 )
             elif isinstance(old_value, list):
                 for v in value:
                     if v not in old_value:
                         old_value.append(v)
             elif isinstance(old_value, dict):
-                raise Exception("{} is setting `{}` to a dict?".format(c.name, key))
+                raise Exception(f"{c.name} is setting `{key}` to a dict?")
             else:
                 config[key] = value
 

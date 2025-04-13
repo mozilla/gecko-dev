@@ -94,9 +94,7 @@ def get_test_platforms(
         build_platform = cfg["build-platform"]
         if build_platform not in builds_by_platform:
             logger.warning(
-                "No build task with platform {}; ignoring test platform {}".format(
-                    build_platform, test_platform
-                )
+                f"No build task with platform {build_platform}; ignoring test platform {test_platform}"
             )
             continue
         test_platforms[test_platform] = {

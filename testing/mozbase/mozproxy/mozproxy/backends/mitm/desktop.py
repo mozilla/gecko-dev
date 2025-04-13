@@ -122,7 +122,7 @@ class MitmproxyDesktop(Mitmproxy):
         policies_file = os.path.join(location, "policies.json")
         LOG.info("reading: %s" % policies_file)
 
-        with open(policies_file, "r") as fd:
+        with open(policies_file) as fd:
             return fd.read()
 
     def is_mitmproxy_cert_installed(self):

@@ -22,7 +22,7 @@ class UpdatebotValidator:
             if "vendoring" in yaml and yaml["vendoring"].get("flavor", None) == "rust":
                 yaml_revision = yaml["origin"]["revision"]
 
-                with open("Cargo.lock", "r") as f:
+                with open("Cargo.lock") as f:
                     for line in f:
                         if yaml_revision in line:
                             return None

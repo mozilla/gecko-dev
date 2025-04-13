@@ -20,16 +20,14 @@ def test_no_abort_by_user_prompt_in_other_tab(session, inline, dialog_type):
     original_handles = session.handles
 
     session.url = inline(
-        """
+        f"""
       <a onclick="window.open();">open window</a>
       <script>
         window.addEventListener("message", function (event) {{
-          {}("foo");
+          {dialog_type}("foo");
         }});
       </script>
-    """.format(
-            dialog_type
-        )
+    """
     )
 
     session.find.css("a", all=False).click()

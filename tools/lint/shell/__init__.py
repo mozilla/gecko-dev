@@ -27,7 +27,7 @@ class ShellcheckProcess(LintProcess):
         try:
             data = json.loads(line)
         except JSONDecodeError as e:
-            print("Unable to load shellcheck output ({}): {}".format(e, line))
+            print(f"Unable to load shellcheck output ({e}): {line}")
             return
 
         for entry in data:
@@ -52,7 +52,7 @@ def determine_shell_from_script(path):
     #!/bin/bash
     #!/usr/bin/env bash
     """
-    with open(path, "r") as f:
+    with open(path) as f:
         head = f.readline()
 
         if not head.startswith("#!"):
@@ -143,6 +143,6 @@ def lint(paths, config, **lintargs):
     for f in files:
         cmd = list(base_command)
         cmd.extend(["-s", files[f], f])
-        log.debug("Command: {}".format(cmd))
+        log.debug(f"Command: {cmd}")
         run_process(config, cmd)
     return results

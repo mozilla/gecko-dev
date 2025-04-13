@@ -419,7 +419,7 @@ You can set this by specifying --test-url URL
         target_packages = []
         c = self.config
         for category in suite_categories:
-            specified_suites = c.get("specified_{}_suites".format(category))
+            specified_suites = c.get(f"specified_{category}_suites")
             if specified_suites:
                 found = False
                 for specified_suite in specified_suites:
@@ -455,9 +455,7 @@ You can set this by specifying --test-url URL
                 for req_file in required_files:
                     if req_file not in unpack_dirs:
                         self.info(
-                            "Adding '{}' for extraction from common.tests archive".format(
-                                req_file
-                            )
+                            f"Adding '{req_file}' for extraction from common.tests archive"
                         )
                         unpack_dirs.append(req_file)
 
@@ -495,7 +493,7 @@ You can set this by specifying --test-url URL
         suite_category,
         strict=False,
         fallback_parser_class=DesktopUnittestOutputParser,
-        **kwargs
+        **kwargs,
     ):
         """Derive and return an appropriate output parser, either the structured
         output parser or a fallback based on the type of logging in use as determined by

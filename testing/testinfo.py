@@ -33,7 +33,7 @@ class SetEncoder(json.JSONEncoder):
         return super().default(obj)
 
 
-class TestInfo(object):
+class TestInfo:
     """
     Support 'mach test-info'.
     """
@@ -387,7 +387,7 @@ class TestInfoReport(TestInfo):
         # TODO: use start/end properly
         if runcounts_input_file:
             try:
-                with open(runcounts_input_file, "r") as f:
+                with open(runcounts_input_file) as f:
                     runcounts = json.load(f)
             except:
                 print("Unable to load runcounts from path: %s" % runcounts_input_file)
@@ -645,9 +645,7 @@ class TestInfoReport(TestInfo):
                     manifest_path = "%s:%s" % (t["ancestor_manifest"], t["manifest"])
                 manifest_paths.add(manifest_path)
         manifest_count = len(manifest_paths)
-        print(
-            "Resolver found {} tests, {} manifests".format(len(tests), manifest_count)
-        )
+        print(f"Resolver found {len(tests)} tests, {manifest_count} manifests")
 
         if config_matrix_output_file:
             topsrcdir = self.build_obj.topsrcdir
@@ -690,9 +688,7 @@ class TestInfoReport(TestInfo):
                 if relpath in files_info:
                     bug_component = files_info[relpath].get("BUG_COMPONENT")
                     if bug_component:
-                        key = "{}::{}".format(
-                            bug_component.product, bug_component.component
-                        )
+                        key = f"{bug_component.product}::{bug_component.component}"
                     else:
                         key = "<unknown bug component>"
                     if (not components) or (key in components):
@@ -785,9 +781,7 @@ class TestInfoReport(TestInfo):
                 if relpath in files_info:
                     bug_component = files_info[relpath].get("BUG_COMPONENT")
                     if bug_component:
-                        key = "{}::{}".format(
-                            bug_component.product, bug_component.component
-                        )
+                        key = f"{bug_component.product}::{bug_component.component}"
                     else:
                         key = "<unknown bug component>"
                     if (not components) or (key in components):
@@ -998,7 +992,7 @@ class TestInfoReport(TestInfo):
         # this is an attempt to cache the .json for the duration of the task
         filename = "task-graph.json"
         if os.path.exists(filename):
-            with open(filename, "r") as f:
+            with open(filename) as f:
                 data = json.load(f)
         else:
             url = (

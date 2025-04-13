@@ -22,7 +22,7 @@ def options_from_config(options, config_file):
     - config_file: path to a json config file
     """
 
-    with open(config_file, "r") as config:
+    with open(config_file) as config:
         conf = json.load(config)
     for optname, value in options.items():
         options[optname] = conf.get(optname, value)

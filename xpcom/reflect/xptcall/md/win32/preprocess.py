@@ -21,7 +21,7 @@ def preprocess(out, asm_file):
         tool = cxx[0]
         cxx[0] = which(tool)
         if not cxx[0]:
-            raise OSError(errno.ENOENT, "Could not find {} on PATH.".format(tool))
+            raise OSError(errno.ENOENT, f"Could not find {tool} on PATH.")
 
     cppflags = buildconfig.substs["OS_CPPFLAGS"]
 

@@ -9,7 +9,7 @@ DEFAULT_PAGE_LOAD_TIMEOUT = 300
 DEFAULT_IMPLICIT_WAIT_TIMEOUT = 0
 
 
-class Timeouts(object):
+class Timeouts:
     """Manage timeout settings in the Marionette session.
 
     Usage::

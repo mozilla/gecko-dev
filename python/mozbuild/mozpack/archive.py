@@ -118,7 +118,7 @@ def create_tar_gz_from_files(fp, files, filename=None, compresslevel=9):
         create_tar_from_files(gf, files)
 
 
-class _BZ2Proxy(object):
+class _BZ2Proxy:
     """File object that proxies writes to a bz2 compressor."""
 
     def __init__(self, fp, compresslevel=9):

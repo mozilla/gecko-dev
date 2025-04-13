@@ -23,7 +23,7 @@ prefix = "PerftestNotebook"
 
 
 def test_init_failure():
-    class TempClass(object):
+    class TempClass:
         def temp_fun():
             return 1
 

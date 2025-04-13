@@ -70,9 +70,9 @@ def writeMappingHeader(println, description, source, url):
     if type(description) is not list:
         description = [description]
     for desc in description:
-        println("// {0}".format(desc))
-    println("// Derived from {0}.".format(source))
-    println("// {0}".format(url))
+        println(f"// {desc}")
+    println(f"// Derived from {source}.")
+    println(f"// {url}")
 
 
 def writeMappingsVar(println, mapping, name, description, source, url):
@@ -84,9 +84,9 @@ def writeMappingsVar(println, mapping, name, description, source, url):
     """
     println("")
     writeMappingHeader(println, description, source, url)
-    println("var {0} = {{".format(name))
+    println(f"var {name} = {{")
     for key, value in sorted(mapping.items(), key=itemgetter(0)):
-        println('    "{0}": "{1}",'.format(key, value))
+        println(f'    "{key}": "{value}",')
     println("};")
 
 
@@ -111,13 +111,11 @@ def writeMappingsBinarySearch(
     println("")
     writeMappingHeader(println, description, source, url)
     println(
-        """
-bool mozilla::intl::Locale::{0}({1} {2}) {{
-  MOZ_ASSERT({3}({2}.Span()));
-  MOZ_ASSERT({4}({2}.Span()));
-""".format(
-            fn_name, type_name, name, validate_fn, validate_case_fn
-        ).strip()
+        f"""
+bool mozilla::intl::Locale::{fn_name}({type_name} {name}) {{
+  MOZ_ASSERT({validate_fn}({name}.Span()));
+  MOZ_ASSERT({validate_case_fn}({name}.Span()));
+""".strip()
     )
     writeMappingsBinarySearchBody(println, name, name, mappings, tag_maxlength)
 
@@ -134,20 +132,14 @@ def writeMappingsBinarySearchBody(
 ):
     def write_array(subtags, name, length, fixed):
         if fixed:
-            println(
-                "    static const char {}[{}][{}] = {{".format(
-                    name, len(subtags), length + 1
-                )
-            )
+            println(f"    static const char {name}[{len(subtags)}][{length + 1}] = {{")
         else:
-            println("    static const char* {}[{}] = {{".format(name, len(subtags)))
+            println(f"    static const char* {name}[{len(subtags)}] = {{")
 
         # Group in pairs of ten to not exceed the 80 line column limit.
         for entries in grouper(subtags, 10):
             entries = (
-                '"{}"'.format(tag).rjust(length + 2)
-                for tag in entries
-                if tag is not None
+                f'"{tag}"'.rjust(length + 2) for tag in entries if tag is not None
             )
             println("      {},".format(", ".join(entries)))
 
@@ -163,11 +155,9 @@ def writeMappingsBinarySearchBody(
         # Omit the length check if the current length is the maximum length.
         if length != tag_maxlength:
             println(
-                """
-  if ({}.Length() == {}) {{
-""".format(
-                    source_name, length
-                ).rstrip(
+                f"""
+  if ({source_name}.Length() == {length}) {{
+""".rstrip(
                     "\n"
                 )
             )
@@ -185,31 +175,27 @@ def writeMappingsBinarySearchBody(
         subtags = sorted(subtags)
 
         def equals(subtag):
-            return """{}.EqualTo("{}")""".format(source_name, subtag)
+            return f"""{source_name}.EqualTo("{subtag}")"""
 
         # Don't emit a binary search for short lists.
         if len(subtags) == 1:
             if type(mappings) is dict:
                 println(
-                    """
-    if ({}) {{
-      {}.Set(mozilla::MakeStringSpan("{}"));
+                    f"""
+    if ({equals(subtags[0])}) {{
+      {target_name}.Set(mozilla::MakeStringSpan("{mappings[subtags[0]]}"));
       return true;
     }}
     return false;
-""".format(
-                        equals(subtags[0]), target_name, mappings[subtags[0]]
-                    ).strip(
+""".strip(
                         "\n"
                     )
                 )
             else:
                 println(
-                    """
-    return {};
-""".format(
-                        equals(subtags[0])
-                    ).strip(
+                    f"""
+    return {equals(subtags[0])};
+""".strip(
                         "\n"
                     )
                 )
@@ -217,14 +203,12 @@ def writeMappingsBinarySearchBody(
             if type(mappings) is dict:
                 for subtag in subtags:
                     println(
-                        """
-    if ({}) {{
-      {}.Set("{}");
+                        f"""
+    if ({equals(subtag)}) {{
+      {target_name}.Set("{mappings[subtag]}");
       return true;
     }}
-""".format(
-                            equals(subtag), target_name, mappings[subtag]
-                        ).strip(
+""".strip(
                             "\n"
                         )
                     )
@@ -240,11 +224,9 @@ def writeMappingsBinarySearchBody(
                 cond = (equals(subtag) for subtag in subtags)
                 cond = (" ||\n" + " " * (4 + len("return "))).join(cond)
                 println(
-                    """
-    return {};
-""".format(
-                        cond
-                    ).strip(
+                    f"""
+    return {cond};
+""".strip(
                         "\n"
                     )
                 )
@@ -255,23 +237,19 @@ def writeMappingsBinarySearchBody(
                 write_array([mappings[k] for k in subtags], "aliases", length, False)
 
                 println(
-                    """
-    if (const char* replacement = SearchReplacement({0}s, aliases, {0})) {{
-      {1}.Set(mozilla::MakeStringSpan(replacement));
+                    f"""
+    if (const char* replacement = SearchReplacement({source_name}s, aliases, {source_name})) {{
+      {target_name}.Set(mozilla::MakeStringSpan(replacement));
       return true;
     }}
     return false;
-""".format(
-                        source_name, target_name
-                    ).rstrip()
+""".rstrip()
                 )
             else:
                 println(
-                    """
-    return HasReplacement({0}s, {0});
-""".format(
-                        source_name
-                    ).rstrip()
+                    f"""
+    return HasReplacement({source_name}s, {source_name});
+""".rstrip()
                 )
 
         println(
@@ -325,48 +303,40 @@ void mozilla::intl::Locale::PerformComplexLanguageMappings() {
         first_language = False
 
         cond = (
-            'Language().EqualTo("{}")'.format(lang)
+            f'Language().EqualTo("{lang}")'
             for lang in [deprecated_language] + language_aliases[key]
         )
         cond = (" ||\n" + " " * (2 + len(if_kind) + 2)).join(cond)
 
         println(
-            """
-  {} ({}) {{""".format(
-                if_kind, cond
-            ).strip(
+            f"""
+  {if_kind} ({cond}) {{""".strip(
                 "\n"
             )
         )
 
         println(
-            """
-    SetLanguage("{}");""".format(
-                language
-            ).strip(
+            f"""
+    SetLanguage("{language}");""".strip(
                 "\n"
             )
         )
 
         if script is not None:
             println(
-                """
+                f"""
     if (Script().Missing()) {{
-      SetScript("{}");
-    }}""".format(
-                    script
-                ).strip(
+      SetScript("{script}");
+    }}""".strip(
                     "\n"
                 )
             )
         if region is not None:
             println(
-                """
+                f"""
     if (Region().Missing()) {{
-      SetRegion("{}");
-    }}""".format(
-                    region
-                ).strip(
+      SetRegion("{region}");
+    }}""".strip(
                     "\n"
                 )
             )
@@ -429,16 +399,14 @@ void mozilla::intl::Locale::PerformComplexRegionMappings() {
         first_region = False
 
         cond = (
-            'Region().EqualTo("{}")'.format(region)
+            f'Region().EqualTo("{region}")'
             for region in [deprecated_region] + region_aliases[key]
         )
         cond = (" ||\n" + " " * (2 + len(if_kind) + 2)).join(cond)
 
         println(
-            """
-  {} ({}) {{""".format(
-                if_kind, cond
-            ).strip(
+            f"""
+  {if_kind} ({cond}) {{""".strip(
                 "\n"
             )
         )
@@ -460,10 +428,8 @@ void mozilla::intl::Locale::PerformComplexRegionMappings() {
 
             def compare_tags(language, script):
                 if script is None:
-                    return 'Language().EqualTo("{}")'.format(language)
-                return '(Language().EqualTo("{}") && Script().EqualTo("{}"))'.format(
-                    language, script
-                )
+                    return f'Language().EqualTo("{language}")'
+                return f'(Language().EqualTo("{language}") && Script().EqualTo("{script}"))'
 
             cond = (
                 compare_tags(language, script)
@@ -472,26 +438,22 @@ void mozilla::intl::Locale::PerformComplexRegionMappings() {
             cond = (" ||\n" + " " * (4 + len(if_kind) + 2)).join(cond)
 
             println(
-                """
-    {} ({}) {{
-      SetRegion("{}");
-    }}""".format(
-                    if_kind, cond, replacement_region
+                f"""
+    {if_kind} ({cond}) {{
+      SetRegion("{replacement_region}");
+    }}""".rstrip().strip(
+                    "\n"
                 )
-                .rstrip()
-                .strip("\n")
             )
 
         println(
-            """
+            f"""
     else {{
-      SetRegion("{}");
+      SetRegion("{default}");
     }}
-  }}""".format(
-                default
+  }}""".rstrip().strip(
+                "\n"
             )
-            .rstrip()
-            .strip("\n")
         )
 
     println(
@@ -1485,7 +1447,7 @@ def readUnicodeExtensions(core_file):
             extension = keyword.get("extension", "u")
             assert (
                 extension == "u" or extension == "t"
-            ), "unknown extension type: {}".format(extension)
+            ), f"unknown extension type: {extension}"
 
             extension_name = keyword.get("name")
 
@@ -1517,7 +1479,7 @@ def readUnicodeExtensions(core_file):
                 # All other names should match the 'type' production.
                 assert (
                     typeRE.match(name) is not None
-                ), "{} matches the 'type' production".format(name)
+                ), f"{name} matches the 'type' production"
 
                 # <https://unicode.org/reports/tr35/#Unicode_Locale_Extension_Data_Files>:
                 #
@@ -1593,7 +1555,7 @@ def readUnicodeExtensions(core_file):
             type = alias.get("type")
             assert (
                 typeRE.match(type) is not None
-            ), "{} matches the 'type' production".format(type)
+            ), f"{type} matches the 'type' production"
 
             # Take the first replacement when multiple ones are present.
             replacement = alias.get("replacement").split(" ")[0].lower()
@@ -1605,7 +1567,7 @@ def readUnicodeExtensions(core_file):
             # Assert the replacement is syntactically correct.
             assert (
                 typeRE.match(replacement) is not None
-            ), "replacement {} matches the 'type' production".format(replacement)
+            ), f"replacement {replacement} matches the 'type' production"
 
             # 'subdivisionAlias' applies to 'rg' and 'sd' keys.
             mapping["u"].setdefault("rg", {})[type] = replacement
@@ -1630,7 +1592,7 @@ def writeCLDRLanguageTagData(println, data, url):
 
     println(generatedFileWarning)
     println("// Version: CLDR-{}".format(data["version"]))
-    println("// URL: {}".format(url))
+    println(f"// URL: {url}")
 
     println(
         """
@@ -1897,7 +1859,7 @@ def writeCLDRLanguageTagLikelySubtagsTest(println, data, url):
             # Assume no complex region mappings are needed for now.
             assert (
                 region not in complex_region_mappings
-            ), "unexpected region with complex mappings: {}".format(region)
+            ), f"unexpected region with complex mappings: {region}"
 
         return (language, script, region)
 
@@ -2020,7 +1982,7 @@ if (typeof reportCompare === "function")
 def readCLDRVersionFromICU():
     icuDir = os.path.join(topsrcdir, "intl/icu/source")
     if not os.path.isdir(icuDir):
-        raise RuntimeError("not a directory: {}".format(icuDir))
+        raise RuntimeError(f"not a directory: {icuDir}")
 
     reVersion = re.compile(r'\s*cldrVersion\{"(\d+(?:\.\d+)?)"\}')
 
@@ -2098,13 +2060,13 @@ def updateCLDRLangTags(args):
 
 def flines(filepath, encoding="utf-8"):
     """Open filepath and iterate over its content."""
-    with open(filepath, mode="r", encoding=encoding) as f:
+    with open(filepath, encoding=encoding) as f:
         for line in f:
             yield line
 
 
 @total_ordering
-class Zone(object):
+class Zone:
     """Time zone with optional file name."""
 
     def __init__(self, name, filename=""):
@@ -2127,7 +2089,7 @@ class Zone(object):
         return self.name
 
 
-class TzDataDir(object):
+class TzDataDir:
     """tzdata source from a directory."""
 
     def __init__(self, obj):
@@ -2139,7 +2101,7 @@ class TzDataDir(object):
         self.readlines = flines
 
 
-class TzDataFile(object):
+class TzDataFile:
     """tzdata source from a file (tar or gzipped)."""
 
     def __init__(self, obj):
@@ -2667,7 +2629,6 @@ def availableNamedTimeZoneIdentifiers(tzdataDir, ignoreFactory):
 
     with open(
         os.path.join(js_src_builtin_intl_dir, "TimeZoneMapping.yaml"),
-        mode="r",
         encoding="utf-8",
     ) as f:
         time_zone_mapping = yaml.safe_load(f)
@@ -2930,7 +2891,7 @@ def generateTzDataTestVersion(tzdataDir, version, testDir):
         println("")
         println(generatedFileWarning)
         println(tzdataVersionComment.format(version))
-        println("""const tzdata = "{0}";""".format(version))
+        println(f"""const tzdata = "{version}";""")
 
         println(
             """
@@ -3192,7 +3153,7 @@ def writeCurrencyFile(published, currencies, out):
         println = partial(print, file=f)
 
         println(generatedFileWarning)
-        println("// Version: {}".format(published))
+        println(f"// Version: {published}")
 
         println(
             """
@@ -3209,8 +3170,8 @@ def writeCurrencyFile(published, currencies, out):
             sorted(currencies, key=itemgetter(0)), itemgetter(0)
         ):
             for _, minorUnits, currencyName, countryName in entries:
-                println("  // {} ({})".format(currencyName, countryName))
-            println("  {}: {},".format(currency, minorUnits))
+                println(f"  // {currencyName} ({countryName})")
+            println(f"  {currency}: {minorUnits},")
         println("};")
 
 
@@ -3261,24 +3222,22 @@ def updateCurrency(topsrcdir, args):
 
 def writeUnicodeExtensionsMappings(println, mapping, extension):
     println(
-        """
+        f"""
 template <size_t Length>
-static inline bool Is{0}Key(mozilla::Span<const char> key, const char (&str)[Length]) {{
-  static_assert(Length == {0}KeyLength + 1,
-                "{0} extension key is two characters long");
+static inline bool Is{extension}Key(mozilla::Span<const char> key, const char (&str)[Length]) {{
+  static_assert(Length == {extension}KeyLength + 1,
+                "{extension} extension key is two characters long");
   return memcmp(key.data(), str, Length - 1) == 0;
 }}
 
 template <size_t Length>
-static inline bool Is{0}Type(mozilla::Span<const char> type, const char (&str)[Length]) {{
-  static_assert(Length > {0}KeyLength + 1,
-                "{0} extension type contains more than two characters");
+static inline bool Is{extension}Type(mozilla::Span<const char> type, const char (&str)[Length]) {{
+  static_assert(Length > {extension}KeyLength + 1,
+                "{extension} extension type contains more than two characters");
   return type.size() == (Length - 1) &&
          memcmp(type.data(), str, Length - 1) == 0;
 }}
-""".format(
-            extension
-        ).rstrip(
+""".rstrip(
             "\n"
         )
     )
@@ -3292,8 +3251,8 @@ static inline bool Is{0}Type(mozilla::Span<const char> type, const char (&str)[L
 
     if needs_binary_search:
         println(
-            """
-static int32_t Compare{0}Type(const char* a, mozilla::Span<const char> b) {{
+            f"""
+static int32_t Compare{extension}Type(const char* a, mozilla::Span<const char> b) {{
   MOZ_ASSERT(!std::char_traits<char>::find(b.data(), b.size(), '\\0'),
              "unexpected null-character in string");
 
@@ -3313,45 +3272,41 @@ static int32_t Compare{0}Type(const char* a, mozilla::Span<const char> b) {{
 }}
 
 template <size_t Length>
-static inline const char* Search{0}Replacement(
+static inline const char* Search{extension}Replacement(
   const char* (&types)[Length], const char* (&aliases)[Length],
   mozilla::Span<const char> type) {{
 
   auto p = std::lower_bound(std::begin(types), std::end(types), type,
                             [](const auto& a, const auto& b) {{
-                              return Compare{0}Type(a, b) < 0;
+                              return Compare{extension}Type(a, b) < 0;
                             }});
-  if (p != std::end(types) && Compare{0}Type(*p, type) == 0) {{
+  if (p != std::end(types) && Compare{extension}Type(*p, type) == 0) {{
     return aliases[std::distance(std::begin(types), p)];
   }}
   return nullptr;
 }}
-""".format(
-                extension
-            ).rstrip(
+""".rstrip(
                 "\n"
             )
         )
 
     println(
-        """
+        f"""
 /**
- * Mapping from deprecated BCP 47 {0} extension types to their preferred
+ * Mapping from deprecated BCP 47 {extension} extension types to their preferred
  * values.
  *
  * Spec: https://www.unicode.org/reports/tr35/#Unicode_Locale_Extension_Data_Files
  * Spec: https://www.unicode.org/reports/tr35/#t_Extension
  */
-const char* mozilla::intl::Locale::Replace{0}ExtensionType(
+const char* mozilla::intl::Locale::Replace{extension}ExtensionType(
     mozilla::Span<const char> key, mozilla::Span<const char> type) {{
-  MOZ_ASSERT(key.size() == {0}KeyLength);
-  MOZ_ASSERT(IsCanonicallyCased{0}Key(key));
+  MOZ_ASSERT(key.size() == {extension}KeyLength);
+  MOZ_ASSERT(IsCanonicallyCased{extension}Key(key));
 
-  MOZ_ASSERT(type.size() > {0}KeyLength);
-  MOZ_ASSERT(IsCanonicallyCased{0}Type(type));
-""".format(
-            extension
-        )
+  MOZ_ASSERT(type.size() > {extension}KeyLength);
+  MOZ_ASSERT(IsCanonicallyCased{extension}Type(type));
+"""
     )
 
     def to_hash_key(replacements):
@@ -3360,13 +3315,11 @@ const char* mozilla::intl::Locale::Replace{0}ExtensionType(
     def write_array(subtags, name, length):
         max_entries = (80 - len("    ")) // (length + len('"", '))
 
-        println("    static const char* {}[{}] = {{".format(name, len(subtags)))
+        println(f"    static const char* {name}[{len(subtags)}] = {{")
 
         for entries in grouper(subtags, max_entries):
             entries = (
-                '"{}"'.format(tag).center(length + 2)
-                for tag in entries
-                if tag is not None
+                f'"{tag}"'.center(length + 2) for tag in entries if tag is not None
             )
             println("        {},".format(", ".join(entries)))
 
@@ -3387,18 +3340,13 @@ const char* mozilla::intl::Locale::Replace{0}ExtensionType(
         if key in key_aliases[hash_key]:
             continue
 
-        cond = (
-            'Is{}Key(key, "{}")'.format(extension, k)
-            for k in [key] + key_aliases[hash_key]
-        )
+        cond = (f'Is{extension}Key(key, "{k}")' for k in [key] + key_aliases[hash_key])
 
         if_kind = "if" if first_key else "else if"
         cond = (" ||\n" + " " * (2 + len(if_kind) + 2)).join(cond)
         println(
-            """
-  {} ({}) {{""".format(
-                if_kind, cond
-            ).strip(
+            f"""
+  {if_kind} ({cond}) {{""".strip(
                 "\n"
             )
         )
@@ -3414,23 +3362,19 @@ const char* mozilla::intl::Locale::Replace{0}ExtensionType(
             write_array(types, "types", max_len)
             write_array(preferred, "aliases", max_len)
             println(
-                """
-    return Search{}Replacement(types, aliases, type);
-""".format(
-                    extension
-                ).strip(
+                f"""
+    return Search{extension}Replacement(types, aliases, type);
+""".strip(
                     "\n"
                 )
             )
         else:
             for type, replacement in replacements:
                 println(
-                    """
-    if (Is{}Type(type, "{}")) {{
-      return "{}";
-    }}""".format(
-                        extension, type, replacement
-                    ).strip(
+                    f"""
+    if (Is{extension}Type(type, "{type}")) {{
+      return "{replacement}";
+    }}""".strip(
                         "\n"
                     )
                 )
@@ -3540,7 +3484,7 @@ def readICUUnitResourceFile(filepath):
             table[entry_key] = entry_value
             continue
 
-        raise Exception("unexpected line: '{}' in {}".format(line, filepath))
+        raise Exception(f"unexpected line: '{line}' in {filepath}")
 
     assert len(parents) == 0, "Not all tables closed"
     assert len(table) == 1, "More than one root table"
@@ -3579,7 +3523,7 @@ def computeSupportedUnits(all_units, sanctioned_units):
     def compound_unit_identifiers():
         for numerator in sanctioned_units:
             for denominator in sanctioned_units:
-                yield "{}-per-{}".format(numerator, denominator)
+                yield f"{numerator}-per-{denominator}"
 
     supported_simple_units = {find_match(unit) for unit in sanctioned_units}
     assert None not in supported_simple_units
@@ -3594,7 +3538,7 @@ def computeSupportedUnits(all_units, sanctioned_units):
 
 
 def readICUDataFilterForUnits(data_filter_file):
-    with open(data_filter_file, mode="r", encoding="utf-8") as f:
+    with open(data_filter_file, encoding="utf-8") as f:
         data_filter = json.load(f)
 
     # Find the rule set for the "unit_tree".
@@ -3651,9 +3595,7 @@ def writeSanctionedSimpleUnitIdentifiersFiles(all_units, sanctioned_units):
         )
 
         println("// prettier-ignore")
-        println(
-            "var sanctionedSimpleUnitIdentifiers = {};".format(sanctioned_units_object)
-        )
+        println(f"var sanctionedSimpleUnitIdentifiers = {sanctioned_units_object};")
 
     sanctioned_h_file = os.path.join(intl_components_src_dir, "MeasureUnitGenerated.h")
     with open(sanctioned_h_file, mode="w", encoding="utf-8", newline="") as f:
@@ -3683,7 +3625,7 @@ inline constexpr SimpleMeasureUnit simpleMeasureUnits[] = {
         )
 
         for unit_name in sorted(sanctioned_units):
-            println('  {{"{}", "{}"}},'.format(find_unit_type(unit_name), unit_name))
+            println(f'  {{"{find_unit_type(unit_name)}", "{unit_name}"}},')
 
         println(
             """
@@ -3726,9 +3668,7 @@ def writeUnitTestFiles(all_units, sanctioned_units):
             )
 
             println(
-                "const sanctionedSimpleUnitIdentifiers = {};".format(
-                    sanctioned_units_array
-                )
+                f"const sanctionedSimpleUnitIdentifiers = {sanctioned_units_array};"
             )
 
             println(test_content)
@@ -3762,11 +3702,9 @@ for (const numerator of sanctionedSimpleUnitIdentifiers) {
 
     write_test(
         "unit-well-formed.js",
-        """
-const allUnits = {};
-""".format(
-            all_units_array
-        )
+        f"""
+const allUnits = {all_units_array};
+"""
         + r"""
 // Test only sanctioned unit identifiers are allowed.
 
@@ -3841,7 +3779,6 @@ def updateUnits(topsrcdir, args):
 
     with open(
         os.path.join(js_src_builtin_intl_dir, "SanctionedSimpleUnitIdentifiers.yaml"),
-        mode="r",
         encoding="utf-8",
     ) as f:
         sanctioned_units = yaml.safe_load(f)
@@ -3865,13 +3802,13 @@ def updateUnits(topsrcdir, args):
 
         missing = supported_units - filtered_units
         if missing:
-            raise RuntimeError("Missing units: {}".format(units_to_string(missing)))
+            raise RuntimeError(f"Missing units: {units_to_string(missing)}")
 
         # Not exactly an error, but we currently don't have a use case where we need to support
         # more units than required by ECMA-402.
         extra = filtered_units - supported_units
         if extra:
-            raise RuntimeError("Unnecessary units: {}".format(units_to_string(extra)))
+            raise RuntimeError(f"Unnecessary units: {units_to_string(extra)}")
 
     writeSanctionedSimpleUnitIdentifiersFiles(all_units, sanctioned_units)
 
@@ -3957,7 +3894,7 @@ def readICUNumberingSystemsResourceFile(filepath):
             table[entry_key] = entry_value
             continue
 
-        raise Exception("unexpected line: '{}' in {}".format(line, filepath))
+        raise Exception(f"unexpected line: '{line}' in {filepath}")
 
     assert len(parents) == 0, "Not all tables closed"
     assert len(table) == 1, "More than one root table"
@@ -4012,9 +3949,7 @@ def writeNumberingSystemFiles(numbering_systems):
         println("#define NUMBERING_SYSTEMS_WITH_SIMPLE_DIGIT_MAPPINGS \\")
         println(
             "{}".format(
-                ", \\\n".join(
-                    '  "{}"'.format(name) for name in simple_numbering_systems
-                )
+                ", \\\n".join(f'  "{name}"' for name in simple_numbering_systems)
             )
         )
         println("// clang-format on")
@@ -4033,13 +3968,11 @@ def writeNumberingSystemFiles(numbering_systems):
         println(generatedFileWarning)
 
         println(
-            """
-// source: CLDR file common/bcp47/number.xml; version CLDR {}.
+            f"""
+// source: CLDR file common/bcp47/number.xml; version CLDR {readCLDRVersionFromICU()}.
 // https://github.com/unicode-org/cldr/blob/master/common/bcp47/number.xml
 // https://github.com/unicode-org/cldr/blob/master/common/supplemental/numberingSystems.xml
-""".format(
-                readCLDRVersionFromICU()
-            ).rstrip()
+""".rstrip()
         )
 
         numbering_systems_object = json.dumps(
@@ -4049,7 +3982,7 @@ def writeNumberingSystemFiles(numbering_systems):
             sort_keys=True,
             ensure_ascii=False,
         )
-        println("const numberingSystems = {};".format(numbering_systems_object))
+        println(f"const numberingSystems = {numbering_systems_object};")
 
 
 def updateNumberingSystems(topsrcdir, args):
@@ -4059,7 +3992,6 @@ def updateNumberingSystems(topsrcdir, args):
 
     with open(
         os.path.join(js_src_builtin_intl_dir, "NumberingSystems.yaml"),
-        mode="r",
         encoding="utf-8",
     ) as f:
         numbering_systems = yaml.safe_load(f)
@@ -4078,14 +4010,14 @@ def updateNumberingSystems(topsrcdir, args):
     # something is broken in ICU.
     assert all_numbering_systems_simple_digits.issuperset(
         numbering_systems
-    ), "{}".format(numbering_systems.difference(all_numbering_systems_simple_digits))
+    ), f"{numbering_systems.difference(all_numbering_systems_simple_digits)}"
 
     # Assert the spec requires support for all numbering systems with simple digit mappings. If
     # this assertion fails, file a PR at <https://github.com/tc39/ecma402> to include any new
     # numbering systems.
-    assert all_numbering_systems_simple_digits.issubset(numbering_systems), "{}".format(
-        all_numbering_systems_simple_digits.difference(numbering_systems)
-    )
+    assert all_numbering_systems_simple_digits.issubset(
+        numbering_systems
+    ), f"{all_numbering_systems_simple_digits.difference(numbering_systems)}"
 
     writeNumberingSystemFiles(all_numbering_systems)
 

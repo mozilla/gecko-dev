@@ -17,7 +17,7 @@ from mozilla.prettyprinters import pretty_printer, ptr_pretty_printer
 mozilla.prettyprinters.clear_module_printers(__name__)
 
 
-class jsjitExecutableAllocatorCache(object):
+class jsjitExecutableAllocatorCache:
     """Cache information about the ExecutableAllocator type for this objfile."""
 
     def __init__(self):
@@ -36,7 +36,7 @@ class jsjitExecutableAllocatorCache(object):
 
 
 @pretty_printer("js::jit::ExecutableAllocator")
-class jsjitExecutableAllocator(object):
+class jsjitExecutableAllocator:
     def __init__(self, value, cache):
         if not cache.mod_ExecutableAllocator:
             cache.mod_ExecutableAllocator = jsjitExecutableAllocatorCache()
@@ -49,7 +49,7 @@ class jsjitExecutableAllocator(object):
     def __iter__(self):
         return self.PoolIterator(self)
 
-    class PoolIterator(object):
+    class PoolIterator:
         def __init__(self, allocator):
             self.allocator = allocator
             self.entryType = allocator.cache.ExecutablePool.pointer()

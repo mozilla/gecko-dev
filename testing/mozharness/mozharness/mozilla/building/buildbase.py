@@ -256,7 +256,7 @@ class BuildingConfig(BaseConfig):
 
 
 # noinspection PyUnusedLocal
-class BuildOptionParser(object):
+class BuildOptionParser:
     # TODO add nosetests for this class
     platform = None
     bits = None
@@ -725,7 +725,7 @@ items from that key's value."
             else:
                 self.fatal(e.msg)
 
-        self.info("Use mozconfig: {}".format(abs_mozconfig_path))
+        self.info(f"Use mozconfig: {abs_mozconfig_path}")
 
         # print its contents
         content = self.read_from_file(abs_mozconfig_path, error_level=FATAL)
@@ -1007,7 +1007,7 @@ items from that key's value."
             self.info("%s does not exist; not loading build profile data" % p)
             return None
 
-        with open(p, "r") as fh:
+        with open(p) as fh:
             profile = json.load(fh)
 
         try:
@@ -1064,7 +1064,7 @@ items from that key's value."
                 self.info(msg)
                 return
 
-        with open(stats_file, "r") as fh:
+        with open(stats_file) as fh:
             stats = json.load(fh)
 
         def get_stat(key):
@@ -1527,9 +1527,7 @@ items from that key's value."
         elif build_platform.startswith("ios"):
             return
         else:
-            err = "Build platform {} didn't start with 'mac', 'linux', 'win', 'android' or 'ios'".format(
-                build_platform
-            )
+            err = f"Build platform {build_platform} didn't start with 'mac', 'linux', 'win', 'android' or 'ios'"
             self.fatal(err)
         try:
             with open(artifact_yml_path) as artfile:

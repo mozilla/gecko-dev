@@ -595,7 +595,7 @@ const uint16_t sInterfacesSize = std::size(sInterfaces);
 def link_and_write(files, outfile, outheader):
     interfaces = []
     for file in files:
-        with open(file, "r") as fd:
+        with open(file) as fd:
             interfaces += json.load(fd)
 
     iids = set()

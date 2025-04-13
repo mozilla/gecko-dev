@@ -232,14 +232,12 @@ class LintSandbox(ConfigureSandbox):
             },
         }
         for prefix, replacement in table[default].items():
-            if name.startswith("--{}-".format(prefix)):
+            if name.startswith(f"--{prefix}-"):
                 frame = self._pretty_current_frame()
                 e = ConfigureError(
                     "{} should be used instead of "
                     "{} with default={}".format(
-                        name.replace(
-                            "--{}-".format(prefix), "--{}-".format(replacement)
-                        ),
+                        name.replace(f"--{prefix}-", f"--{replacement}-"),
                         name,
                         default,
                     )
@@ -280,7 +278,7 @@ class LintSandbox(ConfigureSandbox):
             rule = "{With|Without}"
 
         frame = self._pretty_current_frame()
-        e = ConfigureError('`help` should contain "{}" because {}'.format(rule, check))
+        e = ConfigureError(f'`help` should contain "{rule}" because {check}')
         self._raise_from(e, frame.f_back if frame else None)
 
     def _check_help_message(self, option, *args, **kwargs):
@@ -340,9 +338,7 @@ class LintSandbox(ConfigureSandbox):
                 what = _import.split(".")[0]
                 imports.add(what)
             if _from == "__builtin__" and _import in glob["__builtins__"]:
-                e = NameError(
-                    "builtin '{}' doesn't need to be imported".format(_import)
-                )
+                e = NameError(f"builtin '{_import}' doesn't need to be imported")
                 self._raise_from(e, func)
         for instr in Bytecode(func):
             code = func.__code__
@@ -355,7 +351,7 @@ class LintSandbox(ConfigureSandbox):
             ):
                 # Raise the same kind of error as what would happen during
                 # execution.
-                e = NameError("global name '{}' is not defined".format(instr.argval))
+                e = NameError(f"global name '{instr.argval}' is not defined")
                 if instr.starts_line is None:
                     self._raise_from(e, func)
                 else:

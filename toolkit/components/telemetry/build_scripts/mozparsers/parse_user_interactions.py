@@ -49,10 +49,8 @@ class UserInteractionType:
         for n in [category_name, user_interaction_name]:
             if len(n) > MAX_NAME_LENGTH:
                 ParserError(
-                    (
-                        "Name '{}' exceeds maximum name length of {} characters.\n"
-                        "See: {}#the-yaml-definition-file"
-                    ).format(n, MAX_NAME_LENGTH, BASE_DOC_URL)
+                    f"Name '{n}' exceeds maximum name length of {MAX_NAME_LENGTH} characters.\n"
+                    f"See: {BASE_DOC_URL}#the-yaml-definition-file"
                 ).handle_later()
 
         def check_name(name, error_msg_prefix, allowed_char_regexp):
@@ -112,7 +110,7 @@ class UserInteractionType:
                 self._name
                 + " - missing required fields: "
                 + ", ".join(missing_fields)
-                + ".\nSee: {}#required-fields".format(BASE_DOC_URL)
+                + f".\nSee: {BASE_DOC_URL}#required-fields"
             ).handle_later()
 
         # Do we have any unknown field?
@@ -122,12 +120,12 @@ class UserInteractionType:
                 self._name
                 + " - unknown fields: "
                 + ", ".join(unknown_fields)
-                + ".\nSee: {}#required-fields".format(BASE_DOC_URL)
+                + f".\nSee: {BASE_DOC_URL}#required-fields"
             ).handle_later()
 
         # Checks the type for all the fields.
         wrong_type_names = [
-            "{} must be {}".format(f, str(ALL_FIELDS[f]))
+            f"{f} must be {str(ALL_FIELDS[f])}"
             for f in definition.keys()
             if not isinstance(definition[f], ALL_FIELDS[f])
         ]
@@ -136,7 +134,7 @@ class UserInteractionType:
                 self._name
                 + " - "
                 + ", ".join(wrong_type_names)
-                + ".\nSee: {}#required-fields".format(BASE_DOC_URL)
+                + f".\nSee: {BASE_DOC_URL}#required-fields"
             ).handle_later()
 
         # Check that the lists are not empty and that data in the lists
@@ -157,15 +155,8 @@ class UserInteractionType:
             ]
             if any(broken_types):
                 ParserError(
-                    (
-                        "Field '{}' for probe '{}' must only contain values of type {}"
-                        ".\nSee: {}#the-yaml-definition-file)"
-                    ).format(
-                        field,
-                        self._name,
-                        str(LIST_FIELDS_CONTENT[field]),
-                        BASE_DOC_URL,
-                    )
+                    f"Field '{field}' for probe '{self._name}' must only contain values of type {str(LIST_FIELDS_CONTENT[field])}"
+                    f".\nSee: {BASE_DOC_URL}#the-yaml-definition-file)"
                 ).handle_later()
 
     @property
@@ -207,14 +198,14 @@ def load_user_interactions(filename):
     # Parse the UserInteraction definitions from the YAML file.
     user_interactions = None
     try:
-        with open(filename, "r", encoding="utf-8") as f:
+        with open(filename, encoding="utf-8") as f:
             user_interactions = yaml.safe_load(f)
     except OSError as e:
         ParserError("Error opening " + filename + ": " + str(e)).handle_now()
     except ValueError as e:
         ParserError(
-            "Error parsing UserInteractions in {}: {}"
-            ".\nSee: {}".format(filename, e, BASE_DOC_URL)
+            f"Error parsing UserInteractions in {filename}: {e}"
+            f".\nSee: {BASE_DOC_URL}"
         ).handle_now()
 
     user_interaction_list = []
@@ -229,8 +220,8 @@ def load_user_interactions(filename):
         # Make sure that the category has at least one UserInteraction in it.
         if not category or len(category) == 0:
             ParserError(
-                'Category "{}" must have at least one UserInteraction in it'
-                ".\nSee: {}".format(category_name, BASE_DOC_URL)
+                f'Category "{category_name}" must have at least one UserInteraction in it'
+                f".\nSee: {BASE_DOC_URL}"
             ).handle_later()
 
         for user_interaction_name in sorted(category):

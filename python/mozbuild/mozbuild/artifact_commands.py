@@ -303,9 +303,9 @@ def artifact_toolchain(
     tooltool_host = os.environ.get("TOOLTOOL_HOST", "tooltool.mozilla-releng.net")
     taskcluster_proxy_url = os.environ.get("TASKCLUSTER_PROXY_URL")
     if taskcluster_proxy_url:
-        tooltool_url = "{}/{}".format(taskcluster_proxy_url, tooltool_host)
+        tooltool_url = f"{taskcluster_proxy_url}/{tooltool_host}"
     else:
-        tooltool_url = "https://{}".format(tooltool_host)
+        tooltool_url = f"https://{tooltool_host}"
 
     cache = ArtifactCache(
         cache_dir=cache_dir, log=command_context.log, skip_cache=skip_cache
@@ -362,7 +362,7 @@ def artifact_toolchain(
     if tooltool_manifest:
         manifest = open_manifest(tooltool_manifest)
         for record in manifest.file_records:
-            url = "{}/{}/{}".format(tooltool_url, record.algorithm, record.digest)
+            url = f"{tooltool_url}/{record.algorithm}/{record.digest}"
             records[record.filename] = DownloadRecord(
                 url,
                 record.filename,
@@ -394,7 +394,7 @@ def artifact_toolchain(
             user_value = b
 
             if not b.startswith("toolchain-"):
-                b = "toolchain-{}".format(b)
+                b = f"toolchain-{b}"
 
             task = tasks.get(b)
             if not task:

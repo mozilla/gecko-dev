@@ -116,13 +116,13 @@ def get_full_group_name(test):
         ancestor_manifest = normsep(test["ancestor_manifest"])
         # Only change the group id if ancestor is not the generated root manifest.
         if "/" in ancestor_manifest:
-            group = "{}:{}".format(ancestor_manifest, group)
+            group = f"{ancestor_manifest}:{group}"
     return group
 
 
 def _cleanup_encoding_repl(m):
     c = m.group(0)
-    return "\\\\" if c == "\\" else "\\x{0:02X}".format(ord(c))
+    return "\\\\" if c == "\\" else f"\\x{ord(c):02X}"
 
 
 def cleanup_encoding(s):
@@ -178,7 +178,7 @@ class XPCShellTestThread(Thread):
         verbose=False,
         usingTSan=False,
         usingCrashReporter=False,
-        **kwargs
+        **kwargs,
     ):
         Thread.__init__(self)
         self.daemon = True
@@ -1076,7 +1076,7 @@ class XPCShellTestThread(Thread):
         self.keep_going = True
 
 
-class XPCShellTests(object):
+class XPCShellTests:
     def __init__(self, log=None):
         """Initializes node status and logger."""
         self.log = log
@@ -1206,7 +1206,7 @@ class XPCShellTests(object):
             else:
                 self.log.error(
                     "no tests to run using specified "
-                    "combination of filters: {}".format(mp.fmt_filters())
+                    f"combination of filters: {mp.fmt_filters()}"
                 )
                 sys.exit(1)
 
@@ -1274,7 +1274,7 @@ class XPCShellTests(object):
             if os.path.isdir(path):
                 profile_data_dir = path
 
-        with open(os.path.join(profile_data_dir, "profiles.json"), "r") as fh:
+        with open(os.path.join(profile_data_dir, "profiles.json")) as fh:
             base_profiles = json.load(fh)["xpcshell"]
 
         # values to use when interpolating preferences
@@ -1376,8 +1376,8 @@ class XPCShellTests(object):
                     self.env["ASAN_SYMBOLIZER_PATH"] = llvmsym
                 else:
                     oldTSanOptions = self.env.get("TSAN_OPTIONS", "")
-                    self.env["TSAN_OPTIONS"] = "external_symbolizer_path={} {}".format(
-                        llvmsym, oldTSanOptions
+                    self.env["TSAN_OPTIONS"] = (
+                        f"external_symbolizer_path={llvmsym} {oldTSanOptions}"
                     )
                 self.log.info("runxpcshelltests.py | using symbolizer at %s" % llvmsym)
             else:
@@ -1674,9 +1674,7 @@ class XPCShellTests(object):
         # create a temp file to help ensure uniqueness
         temp_download_dir = tempfile.mkdtemp()
         self.log.info(
-            "Making temp_download_dir from inside get_conditioned_profile {}".format(
-                temp_download_dir
-            )
+            f"Making temp_download_dir from inside get_conditioned_profile {temp_download_dir}"
         )
         # call condprof's client API to yield our platform-specific
         # conditioned-profile binary
@@ -1723,17 +1721,13 @@ class XPCShellTests(object):
         )
         if not os.path.exists(cond_prof_target_dir):
             self.log.critical(
-                "Can't find target_dir {}, from get_profile()"
-                "temp_download_dir {}, platform {}, scenario {}".format(
-                    cond_prof_target_dir, temp_download_dir, platform, profile_scenario
-                )
+                f"Can't find target_dir {cond_prof_target_dir}, from get_profile()"
+                f"temp_download_dir {temp_download_dir}, platform {platform}, scenario {profile_scenario}"
             )
             raise OSError
 
         self.log.info(
-            "Original self.conditioned_profile_dir is now set: {}".format(
-                self.conditioned_profile_dir
-            )
+            f"Original self.conditioned_profile_dir is now set: {self.conditioned_profile_dir}"
         )
         return self.conditioned_profile_copy
 
@@ -1897,7 +1891,7 @@ class XPCShellTests(object):
             "can be used to skip tests conditionally:"
         )
         for info in sorted(self.mozInfo.items(), key=lambda item: item[0]):
-            self.log.info("    {key}: {value}".format(key=info[0], value=info[1]))
+            self.log.info(f"    {info[0]}: {info[1]}")
 
         if options.get("self_test"):
             if not self.runSelfTest():

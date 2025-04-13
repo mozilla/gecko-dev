@@ -14,7 +14,7 @@ from .progressbar import ProgressBar
 from .results import NullTestOutput, TestOutput, escape_cmdline
 
 
-class Task(object):
+class Task:
     def __init__(self, test, prefix, tempdir, pid, stdout, stderr):
         self.test = test
         self.cmd = test.get_command(prefix, tempdir)
@@ -133,7 +133,7 @@ def remove_task(tasks, pid):
             index = i
             break
     else:
-        raise KeyError("No such pid: {}".format(pid))
+        raise KeyError(f"No such pid: {pid}")
 
     out = tasks[index]
     tasks.pop(index)

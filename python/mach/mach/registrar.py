@@ -196,10 +196,10 @@ class MachRegistrar:
 
             if unknown:
                 if subcommand:
-                    name = "{} {}".format(name, subcommand)
+                    name = f"{name} {subcommand}"
                 parser.error(
                     "unrecognized arguments for {}: {}".format(
-                        name, ", ".join(["'{}'".format(arg) for arg in unknown])
+                        name, ", ".join([f"'{arg}'" for arg in unknown])
                     )
                 )
 

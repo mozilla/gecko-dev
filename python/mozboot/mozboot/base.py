@@ -152,7 +152,7 @@ MODERN_MERCURIAL_VERSION = Version("4.9")
 MODERN_RUST_VERSION = Version(MINIMUM_RUST_VERSION)
 
 
-class BaseBootstrapper(object):
+class BaseBootstrapper:
     """Base class for system bootstrappers."""
 
     def __init__(self, no_interactive=False, no_system_changes=False):
@@ -372,7 +372,7 @@ class BaseBootstrapper(object):
 
         if self.no_interactive:
             print(prompt)
-            print('Selecting "{}" because context is not interactive.'.format(default))
+            print(f'Selecting "{default}" because context is not interactive.')
             return default
 
         while True:

@@ -133,7 +133,7 @@ class GitRepository(Repository):
         files = self._run(
             "log",
             "--name-only",
-            "--diff-filter={}".format(diff_filter.upper()),
+            f"--diff-filter={diff_filter.upper()}",
             "--oneline",
             "--topo-order",
             "--pretty=format:",

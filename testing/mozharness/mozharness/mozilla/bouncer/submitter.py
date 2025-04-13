@@ -24,7 +24,7 @@ except ImportError:
     from urllib.request import HTTPError, Request, URLError, urlopen
 
 
-class BouncerSubmitterMixin(object):
+class BouncerSubmitterMixin:
     def query_credentials(self):
         if self.credentials:
             return self.credentials

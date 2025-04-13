@@ -37,9 +37,7 @@ async def are_font_submenus_accessible(client):
     )
 
     # wait for the on-hover popup to actually be created and displayed
-    popup = client.await_xpath(
-        "//*[contains(@style, '{}')]".format(font), is_displayed=True
-    )
+    popup = client.await_xpath(f"//*[contains(@style, '{font}')]", is_displayed=True)
     assert popup
 
     return client.execute_script(

@@ -117,7 +117,7 @@ class TestSafeBrowsingWarningPages(WindowManagerMixin, MarionetteTestCase):
         expected_url = self.get_final_url(url)
         Wait(self.marionette, timeout=self.marionette.timeout.page_load).until(
             lambda mn: expected_url == mn.get_url(),
-            message="The expected URL '{}' has not been loaded".format(expected_url),
+            message=f"The expected URL '{expected_url}' has not been loaded",
         )
 
         topic = self.marionette.find_element(By.ID, "topic")

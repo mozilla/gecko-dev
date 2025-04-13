@@ -14,8 +14,6 @@ def install_addon(session, method, value, temp=False, allow_private_browsing=Fal
 def uninstall_addon(session, addon_id):
     return session.transport.send(
         "POST",
-        "/session/{session_id}/moz/addon/uninstall".format(
-            session_id=session.session_id
-        ),
+        f"/session/{session.session_id}/moz/addon/uninstall",
         {"id": addon_id},
     )

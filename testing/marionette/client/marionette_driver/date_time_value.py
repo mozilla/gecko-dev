@@ -3,7 +3,7 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 
-class DateTimeValue(object):
+class DateTimeValue:
     """
     Interface for setting the value of HTML5 "date" and "time" input elements.
 

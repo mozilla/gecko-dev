@@ -9,7 +9,7 @@ class LintException(Exception):
 
 class LinterNotFound(LintException):
     def __init__(self, path):
-        LintException.__init__(self, "Could not find lint file '{}'".format(path))
+        LintException.__init__(self, f"Could not find lint file '{path}'")
 
 
 class NoValidLinter(LintException):
@@ -22,7 +22,7 @@ class NoValidLinter(LintException):
 
 class LinterParseError(LintException):
     def __init__(self, path, message):
-        LintException.__init__(self, "{}: {}".format(path, message))
+        LintException.__init__(self, f"{path}: {message}")
 
 
 class LintersNotConfigured(LintException):

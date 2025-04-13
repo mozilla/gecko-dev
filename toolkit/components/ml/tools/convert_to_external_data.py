@@ -64,7 +64,7 @@ def main(base_path: Annotated[str, typer.Option()]):
     ):
         print("Modifying", config_path)
         # Load the JSON file
-        with open(config_path, "r") as infile:
+        with open(config_path) as infile:
             config_data = json.load(infile)
 
         config_data["transformers.js_config"] = config_data.get(

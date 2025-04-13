@@ -43,7 +43,7 @@ class EasyServer(ThreadingMixIn, HTTPServer):
             traceback.print_exc()
 
 
-class Request(object):
+class Request:
     """Details of a request."""
 
     # attributes from urlsplit that this class also sets
@@ -181,7 +181,7 @@ class RequestHandler(SimpleHTTPRequestHandler):
         pass
 
 
-class MozHttpd(object):
+class MozHttpd:
     """
     :param host: Host from which to serve (default 127.0.0.1)
     :param port: Port from which to serve (default 8888)

@@ -12,7 +12,7 @@ class MismatchedRowLengthsException(Exception):
     pass
 
 
-class TableBuilder(object):
+class TableBuilder:
     """
     Helper class for building tables.
     """

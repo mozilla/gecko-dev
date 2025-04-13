@@ -800,7 +800,7 @@ def find_files(archive):
             manifests.append(manifest)
         if manifests:
             dirs = find_manifest_dirs(os.path.join(source, base), manifests)
-            patterns.extend({"{}/**".format(d) for d in dirs})
+            patterns.extend({f"{d}/**" for d in dirs})
 
         ignore = list(entry.get("ignore", []))
         ignore.extend(["**/.flake8", "**/.mkdir.done", "**/*.pyc"])
@@ -844,9 +844,7 @@ def find_manifest_dirs(topsrcdir, manifests):
 
         else:
             raise Exception(
-                '"{}" is not a supported manifest format.'.format(
-                    os.path.splitext(p)[1]
-                )
+                f'"{os.path.splitext(p)[1]}" is not a supported manifest format.'
             )
 
     dirs = {mozpath.normpath(d[len(topsrcdir) :]).lstrip("/") for d in dirs}

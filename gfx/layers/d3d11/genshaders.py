@@ -78,10 +78,10 @@ def run_fxc(shader_model, shader_file, shader_name, output_fp):
     argv = [
         fxc_location,
         "-nologo",
-        "-T{0}".format(shader_model),
+        f"-T{shader_model}",
         os.path.relpath(shader_file),
-        "-E{0}".format(shader_name),
-        "-Vn{0}".format(shader_name),
+        f"-E{shader_name}",
+        f"-Vn{shader_name}",
         "-Vi",
     ]
     if "WINNT" not in buildconfig.substs["HOST_OS_ARCH"]:
@@ -93,7 +93,7 @@ def run_fxc(shader_model, shader_file, shader_name, output_fp):
 
     deps = None
     with ScopedTempFilename() as temp_filename:
-        argv += ["-Fh{0}".format(os.path.relpath(temp_filename))]
+        argv += [f"-Fh{os.path.relpath(temp_filename)}"]
 
         sys.stdout.write("{0}\n".format(" ".join(argv)))
         sys.stdout.flush()
@@ -102,10 +102,12 @@ def run_fxc(shader_model, shader_file, shader_name, output_fp):
         deps = find_dependencies(proc_stdout)
         assert "fxc2" in fxc_location or len(deps) > 0
 
-        with open(temp_filename, "r") as temp_fp:
+        with open(temp_filename) as temp_fp:
             output_fp.write(temp_fp.read())
 
-    output_fp.write("ShaderBytes s{0} = {{ {0}, sizeof({0}) }};\n".format(shader_name))
+    output_fp.write(
+        f"ShaderBytes s{shader_name} = {{ {shader_name}, sizeof({shader_name}) }};\n"
+    )
     return deps
 
 
@@ -154,7 +156,7 @@ def decode_console_text(pipe, text):
 # wrapper for this since TemporaryNamedFile holds the file open.
 
 
-class ScopedTempFilename(object):
+class ScopedTempFilename:
     def __init__(self):
         self.name = None
 

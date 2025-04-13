@@ -408,7 +408,7 @@ def get_generated_file_s3_path(filename, rel_path, bucket):
     GetVCSFilename but representing a file available in an s3 bucket."""
     with open(filename, "rb") as f:
         path = get_filename_with_digest(rel_path, f.read())
-        return "s3:{bucket}:{path}:".format(bucket=bucket, path=path)
+        return f"s3:{bucket}:{path}:"
 
 
 def GetPlatformSpecificDumper(**kwargs):

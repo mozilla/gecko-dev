@@ -142,9 +142,9 @@ def write_histogram_table(output, histograms):
 
     store_table_name = "gHistogramStoresTable"
     print("\n#if defined(_MSC_VER) && !defined(__clang__)", file=output)
-    print("const uint32_t {}[] = {{".format(store_table_name), file=output)
+    print(f"const uint32_t {store_table_name}[] = {{", file=output)
     print("#else", file=output)
-    print("constexpr uint32_t {}[] = {{".format(store_table_name), file=output)
+    print(f"constexpr uint32_t {store_table_name}[] = {{", file=output)
     print("#endif", file=output)
     for name, indexes in store_table:
         print("/* %s */ %s," % (name, ", ".join(map(str, indexes))), file=output)

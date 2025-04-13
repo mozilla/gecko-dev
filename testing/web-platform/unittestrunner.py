@@ -27,7 +27,7 @@ local_requirements = {
 requirements_re = re.compile(rb"(%s)[^\w]" % b"|".join(local_requirements.keys()))
 
 
-class ReplaceRequirements(object):
+class ReplaceRequirements:
     def __init__(self, top_src_path, tox_path):
         self.top_src_path = top_src_path
         self.tox_path = tox_path

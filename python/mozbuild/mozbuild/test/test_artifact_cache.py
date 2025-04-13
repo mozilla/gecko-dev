@@ -23,7 +23,7 @@ CONTENTS = {
 }
 
 
-class FakeResponse(object):
+class FakeResponse:
     def __init__(self, content):
         self._content = content
 
@@ -44,7 +44,7 @@ class FakeResponse(object):
         pass
 
 
-class FakeSession(object):
+class FakeSession:
     def get(self, url, stream=True):
         assert stream is True
         return FakeResponse(CONTENTS[url])

@@ -58,7 +58,7 @@ data.
 """
 
 
-class PiecemealFormatter(object):
+class PiecemealFormatter:
     """
     Generic formatter that dispatches across different sub-formatters
     according to paths.
@@ -121,7 +121,7 @@ class FlatFormatter(PiecemealFormatter):
         )
 
 
-class FlatSubFormatter(object):
+class FlatSubFormatter:
     """
     Sub-formatter for the flat package format.
     """

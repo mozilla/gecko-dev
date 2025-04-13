@@ -227,7 +227,7 @@ def download_config_file(url, file_name):
 
 
 # BaseConfig {{{1
-class BaseConfig(object):
+class BaseConfig:
     """Basic config setting/getting."""
 
     def __init__(

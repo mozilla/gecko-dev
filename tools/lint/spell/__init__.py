@@ -38,7 +38,7 @@ class CodespellProcess(LintProcess):
             abspath, line, typo, correct = match.groups()
         except AttributeError:
             if "FIXED: " not in line:
-                print("Unable to match regex against output: {}".format(line))
+                print(f"Unable to match regex against output: {line}")
             return
 
         if CodespellProcess._fix:
@@ -121,7 +121,7 @@ def lint(paths, config, fix=None, **lintargs):
         cmd_args.append("--skip=*.dic,{}".format(",".join(config["exclude"])))
 
     log.debug("Command: {}".format(" ".join(cmd_args)))
-    log.debug("Version: {}".format(get_codespell_version(binary)))
+    log.debug(f"Version: {get_codespell_version(binary)}")
 
     if fix:
         CodespellProcess._fix = True
@@ -134,7 +134,7 @@ def lint(paths, config, fix=None, **lintargs):
         results = []
         cmd_args.append("--write-changes")
         log.debug("Command: {}".format(" ".join(cmd_args)))
-        log.debug("Version: {}".format(get_codespell_version(binary)))
+        log.debug(f"Version: {get_codespell_version(binary)}")
         base_command = cmd_args + paths
         run_process(config, base_command)
         CodespellProcess.fixed = CodespellProcess.fixed - len(results)

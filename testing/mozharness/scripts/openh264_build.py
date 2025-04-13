@@ -170,22 +170,16 @@ class OpenH264Build(TransferMixin, VCSScript, TooltoolMixin):
                 suffix = ""
                 if self.config["arch"] != "x64":
                     suffix = "-" + self.config["arch"]
-                return "openh264-macosx{bits}{suffix}-{version}.zip".format(
-                    version=version, bits=bits, suffix=suffix
-                )
+                return f"openh264-macosx{bits}{suffix}-{version}.zip"
             elif self.config["arch"] == "aarch64":
-                return "openh264-linux64-aarch64-{version}.zip".format(version=version)
+                return f"openh264-linux64-aarch64-{version}.zip"
             else:
-                return "openh264-linux{bits}-{version}.zip".format(
-                    version=version, bits=bits
-                )
+                return f"openh264-linux{bits}-{version}.zip"
         elif sys.platform == "win32":
             if self.config["arch"] == "aarch64":
-                return "openh264-win64-aarch64-{version}.zip".format(version=version)
+                return f"openh264-win64-aarch64-{version}.zip"
             else:
-                return "openh264-win{bits}-{version}.zip".format(
-                    version=version, bits=bits
-                )
+                return f"openh264-win{bits}-{version}.zip"
         self.fatal("can't determine platform")
 
     def query_make_params(self):
@@ -365,7 +359,7 @@ class OpenH264Build(TransferMixin, VCSScript, TooltoolMixin):
             ):
                 # Don't package unnecessary zip bloat
                 # Blocks things like libgmpopenh264.2.dylib and libgmpopenh264.so.1
-                self.log("Skipping packaging of {package}".format(package=f))
+                self.log(f"Skipping packaging of {f}")
                 continue
             to_package.append(os.path.basename(f))
         self.log("Packaging files %s" % to_package)
@@ -394,7 +388,7 @@ class OpenH264Build(TransferMixin, VCSScript, TooltoolMixin):
         zip_package_name = self.query_package_name()
         if not zip_package_name[-4:] == ".zip":
             self.fatal("Unexpected zip_package_name")
-        symbol_package_name = "{base}.symbols.zip".format(base=zip_package_name[:-4])
+        symbol_package_name = f"{zip_package_name[:-4]}.symbols.zip"
         symbol_zip_path = os.path.join(srcdir, "artifacts", symbol_package_name)
         repo_dir = os.path.join(dirs["abs_work_dir"], "openh264")
         env = None

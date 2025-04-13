@@ -56,7 +56,5 @@ def run_missing_tests(parameters, graph_config, input, task_group_id, task_id):
     )
 
     logger.info(
-        "Out of {} test tasks, {} already existed and the action created {}".format(
-            already_run + len(to_run), already_run, len(to_run)
-        )
+        f"Out of {already_run + len(to_run)} test tasks, {already_run} already existed and the action created {len(to_run)}"
     )

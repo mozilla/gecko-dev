@@ -361,13 +361,13 @@ def serialBytesToString(serialBytes):
     the corresponding serial number string."""
     serialBytesLen = len(serialBytes)
     if serialBytesLen > 127:
-        raise InvalidSerialNumber("{} bytes is too long".format(serialBytesLen))
+        raise InvalidSerialNumber(f"{serialBytesLen} bytes is too long")
     # Prepend the ASN.1 INTEGER tag and length bytes.
     stringBytes = [getASN1Tag(univ.Integer), serialBytesLen] + serialBytes
     return bytes(stringBytes)
 
 
-class Certificate(object):
+class Certificate:
     """Utility class for reading a certificate specification and
     generating a signed x509 certificate"""
 

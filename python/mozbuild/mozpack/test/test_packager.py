@@ -54,7 +54,7 @@ class TestPreprocessManifest(unittest.TestCase):
     ]
 
     def setUp(self):
-        class MockSink(object):
+        class MockSink:
             def __init__(self):
                 self.log = []
 
@@ -98,7 +98,7 @@ class TestPreprocessManifest(unittest.TestCase):
         )
 
 
-class MockFinder(object):
+class MockFinder:
     def __init__(self, files):
         self.files = files
         self.log = []
@@ -113,7 +113,7 @@ class MockFinder(object):
         return self.find("")
 
 
-class MockFormatter(object):
+class MockFormatter:
     def __init__(self):
         self.log = []
 
@@ -540,7 +540,7 @@ class TestSimpleManifestSink(unittest.TestCase):
 
 class TestCallDeque(unittest.TestCase):
     def test_call_deque(self):
-        class Logger(object):
+        class Logger:
             def __init__(self):
                 self._log = []
 

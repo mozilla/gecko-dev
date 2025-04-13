@@ -1013,7 +1013,7 @@ class PythonVirtualenv:
         # thereby causing a build failure. To avoid this, we explicitly influence the
         # build to only target a single architecture - our current architecture.
         kwargs.setdefault("env", os.environ.copy()).setdefault(
-            "ARCHFLAGS", "-arch {}".format(platform.machine())
+            "ARCHFLAGS", f"-arch {platform.machine()}"
         )
         kwargs.setdefault("check", True)
         kwargs.setdefault("stdout", None if show_pip_output() else subprocess.PIPE)

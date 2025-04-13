@@ -287,14 +287,12 @@ def fzf_bootstrap(update=False):
             # Swap to os.path.commonpath when we're not on Py2
             if fzf_bin and update and not fzf_bin.startswith(fzf_path):
                 print(
-                    "fzf installed somewhere other than {}, please update manually".format(
-                        fzf_path
-                    )
+                    f"fzf installed somewhere other than {fzf_path}, please update manually"
                 )
                 sys.exit(1)
 
             download_and_install_fzf()
-            print("Updated fzf to {}".format(FZF_CURRENT_VERSION))
+            print(f"Updated fzf to {FZF_CURRENT_VERSION}")
         else:
             print("fzf is the recommended version and does not need an update")
 
@@ -308,7 +306,7 @@ def fzf_bootstrap(update=False):
         # Case 3a and 3b-fall-through
         download_and_install_fzf()
         fzf_bin = shutil.which("fzf", path=fzf_path)
-        print("Installed fzf to {}".format(fzf_path))
+        print(f"Installed fzf to {fzf_path}")
 
     return fzf_bin
 
@@ -317,9 +315,7 @@ def format_header():
     shortcuts = []
     for action, key in fzf_header_shortcuts:
         shortcuts.append(
-            "{t.white}{action}{t.normal}: {t.yellow}<{key}>{t.normal}".format(
-                t=terminal, action=action, key=key
-            )
+            f"{terminal.white}{action}{terminal.normal}: {terminal.yellow}<{key}>{terminal.normal}"
         )
     return FZF_HEADER.format(shortcuts=", ".join(shortcuts), t=terminal)
 
@@ -408,16 +404,14 @@ def build_base_cmd(
         base_cmd.extend(
             [
                 "--preview",
-                '{} {} -g {} -s -c {} -t "{{+f}}"'.format(
-                    sys.executable, preview_script, dep_cache, cache_dir
-                ),
+                f'{sys.executable} {preview_script} -g {dep_cache} -s -c {cache_dir} -t "{{+f}}"',
             ]
         )
     else:
         base_cmd.extend(
             [
                 "--preview",
-                '{} {} -t "{{+f}}"'.format(sys.executable, preview_script),
+                f'{sys.executable} {preview_script} -t "{{+f}}"',
             ]
         )
 

@@ -14,7 +14,7 @@ def process_file(template_js, kind):
     is_script_only = False
     exports = []
 
-    with open(template_js, "r") as f:
+    with open(template_js) as f:
         for line in f:
             if kind == "module":
                 if is_script_only:

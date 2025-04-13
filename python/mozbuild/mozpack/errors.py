@@ -14,7 +14,7 @@ class AccumulatedErrors(Exception):
     """Exception type raised from errors.accumulate()"""
 
 
-class ErrorCollector(object):
+class ErrorCollector:
     """
     Error handling/logging class. A global instance, errors, is provided for
     convenience.

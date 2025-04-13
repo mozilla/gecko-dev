@@ -89,7 +89,7 @@ def _run_worker(config, paths, **lintargs):
         return result
     finally:
         end_time = time.monotonic()
-        log.debug("Finished in {:.2f} seconds".format(end_time - start_time))
+        log.debug(f"Finished in {end_time - start_time:.2f} seconds")
         sys.stdout.flush()
 
     if not isinstance(res, (list, tuple)):
@@ -154,7 +154,7 @@ atexit.unregister(futures_atexit)
 atexit.register(wrap_futures_atexit)
 
 
-class LintRoller(object):
+class LintRoller:
     """Registers and runs linters.
 
     :param root: Path to which relative paths will be joined. If

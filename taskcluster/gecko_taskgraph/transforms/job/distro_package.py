@@ -121,8 +121,8 @@ def common_package(config, job, taskdesc, distro, version):
         resolver = (
             "aptitude -y --without-recommends -o "
             "Aptitude::ProblemResolver::Hints::KeepBuildDeps="
-            '"reject {}-build-deps :UNINST"'
-        ).format(package)
+            f'"reject {package}-build-deps :UNINST"'
+        )
     else:
         raise RuntimeError("Unreachable")
 

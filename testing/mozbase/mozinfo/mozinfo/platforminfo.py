@@ -143,7 +143,7 @@ class PlatformInfo:
         filename = (
             os.environ.get("GECKO_PATH", ".") + "/taskcluster/kinds/test/variants.yml"
         )
-        with open(filename, "r") as f:
+        with open(filename) as f:
             PlatformInfo.variant_data = yaml.safe_load(f.read())
 
         return PlatformInfo.variant_data

@@ -26,7 +26,7 @@ def lint(paths, config, fix=None, **lintargs):
         with open(ERROR_LEVEL_MANIFESTS_PATH) as f:
             error_level_manifests = yaml.safe_load(f)
     except (OSError, ValueError) as e:
-        print("{}: error:\n  {}".format(ERROR_LEVEL_MANIFESTS_PATH, e), file=sys.stderr)
+        print(f"{ERROR_LEVEL_MANIFESTS_PATH}: error:\n  {e}", file=sys.stderr)
         sys.exit(1)
 
     topsrcdir = lintargs["root"]

@@ -41,11 +41,9 @@ class TestDeletionRequestPing(FOGTestCase):
         self.restart_browser()
 
         debug_tag = "my-test-tag"
-        tagging_script = """\
-        Services.fog.setTagPings("{}");
-        """.format(
-            debug_tag
-        )
+        tagging_script = f"""\
+        Services.fog.setTagPings("{debug_tag}");
+        """
         with self.marionette.using_context(self.marionette.CONTEXT_CHROME):
             self.marionette.execute_script(textwrap.dedent(tagging_script))
         self.navigate_in_new_tab("about:glean")

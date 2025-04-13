@@ -160,9 +160,7 @@ def get_previous_tag_version(
 
     def _invalid_tag_filter(tag):
         """Filters by product and removes incorrect major version + base, end releases"""
-        prod_major_version_re = r"^{product}_{major_version}".format(
-            product=product.upper(), major_version=current_version.major_number
-        )
+        prod_major_version_re = rf"^{product.upper()}_{current_version.major_number}"
 
         return (
             "BASE" not in tag
@@ -196,12 +194,10 @@ def get_repo_by_version(version):
     elif version.is_release:
         return "https://hg.mozilla.org/releases/mozilla-release"
     elif version.is_esr:
-        return "https://hg.mozilla.org/releases/mozilla-esr{}".format(
-            version.major_number
-        )
+        return f"https://hg.mozilla.org/releases/mozilla-esr{version.major_number}"
     else:
         raise Exception(
-            "Unsupported version type {}: {}".format(version.version_type.name, version)
+            f"Unsupported version type {version.version_type.name}: {version}"
         )
 
 
@@ -239,9 +235,7 @@ Task group: [{task_group_id}]({root_url}/tasks/groups/{task_group_id})
     if product in {"firefox", "devedition"}:
         subject_prefix = "[desktop] "
 
-    subject = "{} Build of {} {} build {}".format(
-        subject_prefix, product, version, build_number
-    )
+    subject = f"{subject_prefix} Build of {product} {version} build {build_number}"
 
     # use proxy if configured, otherwise local credentials from env vars
     if "TASKCLUSTER_PROXY_URL" in os.environ:

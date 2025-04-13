@@ -63,7 +63,7 @@ def get_names(pref_list_filename):
     try:
         pref_list = yaml.safe_load(file)
     except (OSError, ValueError) as e:
-        print("{}: error:\n  {}".format(pref_list_filename, e), file=sys.stderr)
+        print(f"{pref_list_filename}: error:\n  {e}", file=sys.stderr)
         sys.exit(1)
 
     # Caveats on pref["value"]:

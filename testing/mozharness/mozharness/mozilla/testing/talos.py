@@ -439,7 +439,7 @@ class Talos(
         iframe_pattern = re.compile(r'(iframe.*")(\.\./.*\.html)"')
         for encoding in encodings:
             try:
-                with open(path, "r", encoding=encoding) as f:
+                with open(path, encoding=encoding) as f:
                     content = f.read()
 
                 def replace_iframe_src(match):
@@ -601,7 +601,7 @@ class Talos(
         if self.config["extra_prefs"]:
             extra_prefs.extend(self.config["extra_prefs"])
 
-        options.extend(["--setpref={}".format(p) for p in extra_prefs])
+        options.extend([f"--setpref={p}" for p in extra_prefs])
 
         # disabling fission can come from the --disable-fission cmd line argument; or in CI
         # it comes from a taskcluster transform which adds a --setpref for fission.autostart

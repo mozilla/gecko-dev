@@ -33,10 +33,8 @@ formats = {
 
 for rate in rates:
     for channel_count in channels:
-        wav_filename = "{}-{}ch-{}.wav".format(name, channel_count, rate)
-        wav_command = "sox -V -r {} -n -b 16 -c {} {}  synth {} sin {} vol {}".format(
-            rate, channel_count, wav_filename, duration, frequency, volume
-        )
+        wav_filename = f"{name}-{channel_count}ch-{rate}.wav"
+        wav_command = f"sox -V -r {rate} -n -b 16 -c {channel_count} {wav_filename}  synth {duration} sin {frequency} vol {volume}"
         print(wav_command)
         os.system(wav_command)
         for container, codecs in formats.items():

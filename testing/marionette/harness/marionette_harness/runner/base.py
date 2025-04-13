@@ -124,7 +124,7 @@ class MarionetteTestResult(StructuredTestResult, TestResultCollection):
         result_actual="PASS",
         output="",
         context=None,
-        **kwargs
+        **kwargs,
     ):
         def get_class(test):
             return test.__class__.__module__ + "." + test.__class__.__name__
@@ -141,7 +141,7 @@ class MarionetteTestResult(StructuredTestResult, TestResultCollection):
             time_start=test.start_time,
             result_expected=result_expected,
             context=context,
-            **kwargs
+            **kwargs,
         )
         # call any registered result modifiers
         for modifier in self.result_modifiers:
@@ -525,9 +525,7 @@ class BaseMarionetteArguments(ArgumentParser):
             if not 1 < args.total_chunks:
                 self.error("Total chunks must be greater than 1.")
             if not 1 <= args.this_chunk <= args.total_chunks:
-                self.error(
-                    "Chunk to run must be between 1 and {}.".format(args.total_chunks)
-                )
+                self.error(f"Chunk to run must be between 1 and {args.total_chunks}.")
 
         if args.jsdebugger:
             args.app_args.append("-jsdebugger")
@@ -542,7 +540,7 @@ class BaseMarionetteArguments(ArgumentParser):
         return args
 
 
-class RemoteMarionetteArguments(object):
+class RemoteMarionetteArguments:
     name = "Remote (Emulator/Device)"
     args = [
         [
@@ -594,12 +592,12 @@ class RemoteMarionetteArguments(object):
     ]
 
 
-class Fixtures(object):
+class Fixtures:
     def where_is(self, uri, on="http"):
         return serve.where_is(uri, on)
 
 
-class BaseMarionetteTestRunner(object):
+class BaseMarionetteTestRunner:
     textrunnerclass = MarionetteTextTestRunner
     driverclass = Marionette
 
@@ -633,7 +631,7 @@ class BaseMarionetteTestRunner(object):
         emulator=False,
         headless=False,
         disable_fission=False,
-        **kwargs
+        **kwargs,
     ):
         self._appName = None
         self._capabilities = None
@@ -700,9 +698,7 @@ class BaseMarionetteTestRunner(object):
                     with marionette.using_context(marionette.CONTEXT_CONTENT):
                         rv["source"] = marionette.page_source
                 except Exception as exc:
-                    self.logger.warning(
-                        "Failed to gather test failure debug: {}".format(exc)
-                    )
+                    self.logger.warning(f"Failed to gather test failure debug: {exc}")
             return rv
 
         self.result_callbacks.append(gather_debug)
@@ -716,7 +712,7 @@ class BaseMarionetteTestRunner(object):
         self.reset_test_stats()
 
         self.logger.info(
-            "Using workspace for temporary data: " '"{}"'.format(self.workspace_path)
+            "Using workspace for temporary data: " f'"{self.workspace_path}"'
         )
 
         if not gecko_log:
@@ -761,7 +757,7 @@ class BaseMarionetteTestRunner(object):
             for path in list(self.testvars_paths):
                 path = os.path.abspath(os.path.expanduser(path))
                 if not os.path.exists(path):
-                    raise OSError("--testvars file {} does not exist".format(path))
+                    raise OSError(f"--testvars file {path} does not exist")
                 try:
                     with open(path) as f:
                         data.append(json.loads(f.read()))
@@ -811,7 +807,7 @@ class BaseMarionetteTestRunner(object):
                 self._version_info = mozversion.get_version(binary=self.bin)
             except Exception:
                 self.logger.warning(
-                    "Failed to retrieve version information for {}".format(self.bin)
+                    f"Failed to retrieve version information for {self.bin}"
                 )
         return self._version_info
 
@@ -936,7 +932,7 @@ class BaseMarionetteTestRunner(object):
     def _fix_test_path(self, path):
         """Normalize a logged test path from the test package."""
         test_path_prefixes = [
-            "tests{}".format(os.path.sep),
+            f"tests{os.path.sep}",
         ]
 
         path = os.path.relpath(path)
@@ -1009,7 +1005,7 @@ class BaseMarionetteTestRunner(object):
             repeat_index = 0
             while repeat_index <= self.repeat:
                 if repeat_index > 0:
-                    self.logger.info("\nREPEAT {}\n-------".format(repeat_index))
+                    self.logger.info(f"\nREPEAT {repeat_index}\n-------")
                 self.run_test_sets()
                 if self.run_until_failure and self.failed > 0:
                     break
@@ -1049,24 +1045,22 @@ class BaseMarionetteTestRunner(object):
 
     def _print_summary(self, tests):
         self.logger.info("\nSUMMARY\n-------")
-        self.logger.info("passed: {}".format(self.passed))
+        self.logger.info(f"passed: {self.passed}")
         if self.unexpected_successes == 0:
-            self.logger.info("failed: {}".format(self.failed))
+            self.logger.info(f"failed: {self.failed}")
         else:
             self.logger.info(
-                "failed: {0} (unexpected sucesses: {1})".format(
-                    self.failed, self.unexpected_successes
-                )
+                f"failed: {self.failed} (unexpected sucesses: {self.unexpected_successes})"
             )
         if self.skipped == 0:
-            self.logger.info("todo: {}".format(self.todo))
+            self.logger.info(f"todo: {self.todo}")
         else:
-            self.logger.info("todo: {0} (skipped: {1})".format(self.todo, self.skipped))
+            self.logger.info(f"todo: {self.todo} (skipped: {self.skipped})")
 
         if self.failed > 0:
             self.logger.info("\nFAILED TESTS\n-------")
             for failed_test in self.failures:
-                self.logger.info("{}".format(failed_test[0]))
+                self.logger.info(f"{failed_test[0]}")
 
     def start_fixture_servers(self):
         root = self.server_root or os.path.join(os.path.dirname(here), "www")
@@ -1111,8 +1105,8 @@ class BaseMarionetteTestRunner(object):
                     "headless": self.headless,
                 }
             )
-            self.logger.info("mozinfo updated from: {}".format(json_path))
-            self.logger.info("mozinfo is: {}".format(mozinfo.info))
+            self.logger.info(f"mozinfo updated from: {json_path}")
+            self.logger.info(f"mozinfo is: {mozinfo.info}")
 
             filters = []
             if self.test_tags:
@@ -1124,7 +1118,7 @@ class BaseMarionetteTestRunner(object):
             if len(manifest_tests) == 0:
                 self.logger.error(
                     "No tests to run using specified "
-                    "combination of filters: {}".format(manifest.fmt_filters())
+                    f"combination of filters: {manifest.fmt_filters()}"
                 )
 
             target_tests = []
@@ -1158,7 +1152,7 @@ class BaseMarionetteTestRunner(object):
                     self.marionette,
                     self.fixtures,
                     self.testvars,
-                    **self.test_kwargs
+                    **self.test_kwargs,
                 )
                 break
 
@@ -1215,9 +1209,7 @@ class BaseMarionetteTestRunner(object):
             raise Exception("There are no tests to run.")
         elif self.total_chunks is not None and self.total_chunks > len(self.tests):
             raise ValueError(
-                "Total number of chunks must be between 1 and {}.".format(
-                    len(self.tests)
-                )
+                f"Total number of chunks must be between 1 and {len(self.tests)}."
             )
         if self.total_chunks is not None and self.total_chunks > 1:
             chunks = [[] for i in range(self.total_chunks)]
@@ -1226,13 +1218,8 @@ class BaseMarionetteTestRunner(object):
                 chunks[target_chunk].append(test)
 
             self.logger.info(
-                "Running chunk {0} of {1} ({2} tests selected from a "
-                "total of {3})".format(
-                    self.this_chunk,
-                    self.total_chunks,
-                    len(chunks[self.this_chunk - 1]),
-                    len(self.tests),
-                )
+                f"Running chunk {self.this_chunk} of {self.total_chunks} ({len(chunks[self.this_chunk - 1])} tests selected from a "
+                f"total of {len(self.tests)})"
             )
             self.tests = chunks[self.this_chunk - 1]
 

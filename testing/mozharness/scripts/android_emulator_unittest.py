@@ -341,7 +341,7 @@ class AndroidEmulatorTest(
             if category in SUITE_REPEATABLE:
                 cmd.extend(["--repeat=%s" % c.get("repeat")])
             else:
-                self.log("--repeat not supported in {}".format(category), level=WARNING)
+                self.log(f"--repeat not supported in {category}", level=WARNING)
 
         # do not add --disable fission if we don't have --disable-e10s
         if c["disable_fission"] and category not in ["gtest", "cppunittest"]:
@@ -352,14 +352,14 @@ class AndroidEmulatorTest(
                 "--web-content-isolation-strategy=%s"
                 % c["web_content_isolation_strategy"]
             )
-        cmd.extend(["--setpref={}".format(p) for p in self.extra_prefs])
+        cmd.extend([f"--setpref={p}" for p in self.extra_prefs])
 
         if not (self.verify_enabled or self.per_test_coverage):
             if user_paths or self.test_tags:
                 if user_paths:
                     cmd.extend(user_paths)
                 if self.test_tags:
-                    cmd.extend(["--tag={}".format(t) for t in self.test_tags])
+                    cmd.extend([f"--tag={t}" for t in self.test_tags])
             else:
                 if self.this_chunk is not None:
                     cmd.extend(["--this-chunk", self.this_chunk])

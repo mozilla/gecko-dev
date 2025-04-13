@@ -26,7 +26,7 @@ def main(output, input):
         "GCC_USE_GNU_LD"
     )
 
-    with open(input, "r", encoding="utf-8") as f:
+    with open(input, encoding="utf-8") as f:
         for line in f:
             line = line.rstrip()
             # On everything except MinGW, remove all lines containing ';-'

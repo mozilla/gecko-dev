@@ -18,7 +18,7 @@ def get_binary():
 
     def inner(app):
         if app not in ("chrome", "chromium", "firefox"):
-            pytest.xfail(reason="{} support not implemented".format(app))
+            pytest.xfail(reason=f"{app} support not implemented")
 
         if app == "firefox":
             binary = fixtures.binary()
@@ -28,7 +28,7 @@ def get_binary():
             binary = os.environ.get("CHROMIUM_BINARY_PATH")
 
         if not binary:
-            pytest.skip("could not find a {} binary".format(app))
+            pytest.skip(f"could not find a {app} binary")
         return binary
 
     return inner

@@ -214,7 +214,7 @@ for c in COMBOS:
 
 # -
 
-with open(DIR / "reftest.list", "r") as f:
+with open(DIR / "reftest.list") as f:
     reftest_list_text = f.read()
 
 for args in todo:

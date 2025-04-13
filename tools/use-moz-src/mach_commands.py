@@ -170,7 +170,7 @@ async def find_and_replace_refs(urlmap):
                 matching_file = matching_file.strip()
                 if not matching_file:
                     continue
-                _log.log(logging.INFO, "Rewriting {}".format(matching_file))
+                _log.log(logging.INFO, f"Rewriting {matching_file}")
                 affected_files.add(matching_file)
                 task = tg.create_task(
                     asyncio.to_thread(
@@ -254,9 +254,7 @@ def use_moz_src(command_context, paths):
     rewrite_mozbuilds(mozbuilds_for_fixing)
 
     if len(updated_files) > 0:
-        _log.log(
-            logging.INFO, "Formatting {} affected files...".format(len(updated_files))
-        )
+        _log.log(logging.INFO, f"Formatting {len(updated_files)} affected files...")
         command_context._mach_context.commands.dispatch(
             "lint",
             command_context._mach_context,

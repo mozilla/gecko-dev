@@ -96,7 +96,7 @@ class TelemetryTests(TestingMixin, VCSToolsScript, CodeCoverageMixin):
         all_actions=None,
         default_actions=None,
         *args,
-        **kwargs
+        **kwargs,
     ):
         config_options = config_options or telemetry_tests_config_options
         actions = [
@@ -113,7 +113,7 @@ class TelemetryTests(TestingMixin, VCSToolsScript, CodeCoverageMixin):
             all_actions=all_actions or actions,
             default_actions=default_actions or actions,
             *args,
-            **kwargs
+            **kwargs,
         )
 
         # Code which runs in automation has to include the following properties
@@ -177,7 +177,7 @@ class TelemetryTests(TestingMixin, VCSToolsScript, CodeCoverageMixin):
             "--binary",
             binary_path,
             "--address",
-            "localhost:{}".format(marionette_port),
+            f"localhost:{marionette_port}",
             # Resource files to serve via local webserver
             "--server-root",
             os.path.join(dirs["abs_telemetry_dir"], "harness", "www"),
@@ -202,7 +202,7 @@ class TelemetryTests(TestingMixin, VCSToolsScript, CodeCoverageMixin):
 
         if self.disable_fission:
             cmd.append("--disable-fission")
-        cmd.extend(["--setpref={}".format(p) for p in self.config["extra_prefs"]])
+        cmd.extend([f"--setpref={p}" for p in self.config["extra_prefs"]])
 
         if not self.config["e10s"]:
             cmd.append("--disable-e10s")

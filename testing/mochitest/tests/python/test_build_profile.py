@@ -44,7 +44,7 @@ def profile_data_dir():
 def test_common_prefs_are_all_set(build_profile, profile_data_dir):
     md, result = build_profile()
 
-    with open(os.path.join(profile_data_dir, "profiles.json"), "r") as fh:
+    with open(os.path.join(profile_data_dir, "profiles.json")) as fh:
         base_profiles = json.load(fh)["mochitest"]
 
     # build the expected prefs

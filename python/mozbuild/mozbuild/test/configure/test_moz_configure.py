@@ -31,7 +31,7 @@ class TargetTest(BaseConfigureTest):
         elif "apple-darwin" in self.HOST:
             platform = "darwin"
         else:
-            raise Exception("Missing platform for HOST {}".format(self.HOST))
+            raise Exception(f"Missing platform for HOST {self.HOST}")
         sandbox = self.get_sandbox({}, {}, args, env, cls=sandbox_class(platform))
         return sandbox._value_for(sandbox["target"]).alias
 
@@ -161,7 +161,7 @@ class TestMozConfigure(BaseConfigureTest):
     def test_nsis_version(self):
         this = self
 
-        class FakeNSIS(object):
+        class FakeNSIS:
             def __init__(self, version):
                 self.version = version
 

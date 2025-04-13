@@ -368,7 +368,7 @@ def plain_llvm_or_prefixed(name, llvm_name=None):
     # 2. ${toolchain_prefix}${name}
     # 3. ${name}
 
-    @depends(llvm_tool("llvm-{}".format(llvm_name or name)), toolchain_prefix)
+    @depends(llvm_tool(f"llvm-{llvm_name or name}"), toolchain_prefix)
     def plain_llvm_or_prefixed(llvm_tool, toolchain_prefix):
         commands = [llvm_tool[0], name]
         for prefix in toolchain_prefix or ():

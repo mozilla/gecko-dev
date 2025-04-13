@@ -45,7 +45,7 @@ else:
 
 def main(argv):
     # Check for CRLF line endings.
-    with open(__file__, "r") as fh:
+    with open(__file__) as fh:
         data = fh.read()
         if "\r" in data:
             print(

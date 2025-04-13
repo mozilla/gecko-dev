@@ -67,7 +67,7 @@ ALL_VERSIONS = [  # Keep this sorted
 @pytest.fixture(
     scope="function",
     params=range(len(ALL_VERSIONS) - 1),
-    ids=lambda x: "{}, {}".format(ALL_VERSIONS[x], ALL_VERSIONS[x + 1]),
+    ids=lambda x: f"{ALL_VERSIONS[x]}, {ALL_VERSIONS[x + 1]}",
 )
 def comparable_versions(request):
     index = request.param

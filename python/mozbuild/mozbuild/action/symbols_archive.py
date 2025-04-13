@@ -57,9 +57,7 @@ def make_archive(archive_name, base, exclude, include):
 
                     fill_archive(add_file)
         else:
-            raise Exception(
-                "Unsupported archive format for {}".format(archive_basename)
-            )
+            raise Exception(f"Unsupported archive format for {archive_basename}")
 
 
 def main(argv):

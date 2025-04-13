@@ -85,9 +85,7 @@ def verify_docs(filename, identifiers, appearing_as):
         match_group = re.search(expression, doctext)
         if not match_group:
             raise Exception(
-                "{}: `{}` missing from doc file: `{}`".format(
-                    appearing_as, identifier, filename
-                )
+                f"{appearing_as}: `{identifier}` missing from doc file: `{filename}`"
             )
 
 
@@ -150,10 +148,8 @@ def verify_task_graph_symbol(task, taskgraph, scratch_pad, graph_config, paramet
             collection_keys = tuple(sorted(treeherder.get("collection", {}).keys()))
             if len(collection_keys) != 1:
                 raise Exception(
-                    "Task {} can't be in multiple treeherder collections "
-                    "(the part of the platform after `/`): {}".format(
-                        task.label, collection_keys
-                    )
+                    f"Task {task.label} can't be in multiple treeherder collections "
+                    f"(the part of the platform after `/`): {collection_keys}"
                 )
             platform = treeherder.get("machine", {}).get("platform")
             group_symbol = treeherder.get("groupSymbol")
@@ -191,9 +187,7 @@ def verify_trust_domain_v2_routes(
         if route.startswith(route_prefix):
             if route in scratch_pad:
                 raise Exception(
-                    "conflict between {}:{} for route: {}".format(
-                        task.label, scratch_pad[route], route
-                    )
+                    f"conflict between {task.label}:{scratch_pad[route]} for route: {route}"
                 )
             else:
                 scratch_pad[route] = task.label
@@ -232,9 +226,7 @@ def verify_routes_notification_filters(
             route_filter = route.split(".")[-1]
             if route_filter not in valid_filters:
                 raise Exception(
-                    "{} has invalid notification filter ({})".format(
-                        task.label, route_filter
-                    )
+                    f"{task.label} has invalid notification filter ({route_filter})"
                 )
             if route_filter == "on-any":
                 warnings.warn(
@@ -268,12 +260,7 @@ def verify_dependency_tiers(task, taskgraph, scratch_pad, graph_config, paramete
                     continue
                 if tier < tiers[d]:
                     raise Exception(
-                        "{} (tier {}) cannot depend on {} (tier {})".format(
-                            task.label,
-                            printable_tier(tier),
-                            d,
-                            printable_tier(tiers[d]),
-                        )
+                        f"{task.label} (tier {printable_tier(tier)}) cannot depend on {d} (tier {printable_tier(tiers[d])})"
                     )
 
 
@@ -302,12 +289,7 @@ def verify_required_signoffs(task, taskgraph, scratch_pad, graph_config, paramet
             for d in task.dependencies.values():
                 if required_signoffs < all_required_signoffs[d]:
                     raise Exception(
-                        "{} ({}) cannot depend on {} ({})".format(
-                            task.label,
-                            printable_signoff(required_signoffs),
-                            d,
-                            printable_signoff(all_required_signoffs[d]),
-                        )
+                        f"{task.label} ({printable_signoff(required_signoffs)}) cannot depend on {d} ({printable_signoff(all_required_signoffs[d])})"
                     )
 
 
@@ -325,11 +307,7 @@ def verify_aliases(task, taskgraph, scratch_pad, graph_config, parameters):
     alias_attribute = f"{task.kind}-alias"
     if task.label in aliases:
         raise Exception(
-            "Task `{}` has a {} of `{}`, masking a task of that name.".format(
-                aliases[task.label],
-                alias_attribute,
-                task.label[len(task.kind) + 1 :],
-            )
+            f"Task `{aliases[task.label]}` has a {alias_attribute} of `{task.label[len(task.kind) + 1 :]}`, masking a task of that name."
         )
     labels = for_kind.setdefault("labels", set())
     labels.add(task.label)
@@ -344,21 +322,12 @@ def verify_aliases(task, taskgraph, scratch_pad, graph_config, parameters):
             full_key = f"{task.kind}-{key}"
             if full_key in labels:
                 raise Exception(
-                    "Task `{}` has a {} of `{}`,"
-                    " masking a task of that name.".format(
-                        task.label,
-                        alias_attribute,
-                        key,
-                    )
+                    f"Task `{task.label}` has a {alias_attribute} of `{key}`,"
+                    " masking a task of that name."
                 )
             if full_key in aliases:
                 raise Exception(
-                    "Duplicate {} in tasks `{}`and `{}`: {}".format(
-                        alias_attribute,
-                        task.label,
-                        aliases[full_key],
-                        key,
-                    )
+                    f"Duplicate {alias_attribute} in tasks `{task.label}`and `{aliases[full_key]}`: {key}"
                 )
             else:
                 aliases[full_key] = task.label
@@ -417,19 +386,17 @@ def verify_test_packaging(task, taskgraph, scratch_pad, graph_config, parameters
                     # Shippable builds should always package tests.
                     if shippable:
                         exceptions.append(
-                            "Build job {} is shippable and does not specify "
+                            f"Build job {task.label} is shippable and does not specify "
                             "MOZ_AUTOMATION_PACKAGE_TESTS=1 in the "
-                            "environment.".format(task.label)
+                            "environment."
                         )
 
                     # Build tasks in the scratch pad have tests dependent on
                     # them, so we need to package tests during build.
                     if build_has_tests:
                         exceptions.append(
-                            "Build job {} has tests dependent on it and does not specify "
-                            "MOZ_AUTOMATION_PACKAGE_TESTS=1 in the environment".format(
-                                task.label
-                            )
+                            f"Build job {task.label} has tests dependent on it and does not specify "
+                            "MOZ_AUTOMATION_PACKAGE_TESTS=1 in the environment"
                         )
                 else:
                     # Build tasks that aren't in the scratch pad have no
@@ -441,10 +408,10 @@ def verify_test_packaging(task, taskgraph, scratch_pad, graph_config, parameters
                         # there are no dependent tests.
                         if not missing_tests_allowed:
                             exceptions.append(
-                                "Build job {} has no tests, but specifies "
-                                "MOZ_AUTOMATION_PACKAGE_TESTS={} in the environment. "
+                                f"Build job {task.label} has no tests, but specifies "
+                                f"MOZ_AUTOMATION_PACKAGE_TESTS={package_tests} in the environment. "
                                 "Unset MOZ_AUTOMATION_PACKAGE_TESTS in the task definition "
-                                "to fix.".format(task.label, package_tests)
+                                "to fix."
                             )
         if exceptions:
             raise Exception("\n".join(exceptions))
@@ -466,14 +433,14 @@ def verify_run_known_projects(task, taskgraph, scratch_pad, graph_config, parame
         projects = set(task.attributes["run_on_projects"])
         if {"try", "try-comm-central"} & set(projects):
             raise Exception(
-                "In task {}: using try in run-on-projects is invalid; use try "
-                "selectors to select this task on try".format(task.label)
+                f"In task {task.label}: using try in run-on-projects is invalid; use try "
+                "selectors to select this task on try"
             )
         # try isn't valid, but by the time we get here its not an available project anyway.
         valid_projects = ALL_PROJECTS | set(RUN_ON_PROJECT_ALIASES.keys())
         invalid_projects = projects - valid_projects
         if invalid_projects:
             raise Exception(
-                "Task '{}' has an invalid run-on-projects value: "
-                "{}".format(task.label, invalid_projects)
+                f"Task '{task.label}' has an invalid run-on-projects value: "
+                f"{invalid_projects}"
             )

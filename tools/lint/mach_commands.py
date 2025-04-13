@@ -62,7 +62,7 @@ def get_global_excludes(**lintargs):
         return excludes
 
     for path in EXCLUSION_FILES + EXCLUSION_FILES_OPTIONAL:
-        with open(os.path.join(topsrcdir, path), "r") as fh:
+        with open(os.path.join(topsrcdir, path)) as fh:
             excludes.extend([f.strip() for f in fh.readlines()])
 
     return excludes

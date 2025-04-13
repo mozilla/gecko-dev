@@ -74,7 +74,7 @@ def toggle_trailing_blank_line(depname):
 
 
 def get_trailing_blank_line_state(depname):
-    lines = open(depname, "r").readlines()
+    lines = open(depname).readlines()
     if not lines:
         print("unexpected short file", file=sys.stderr)
         return "no blank line"

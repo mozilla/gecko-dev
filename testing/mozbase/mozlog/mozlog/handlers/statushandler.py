@@ -16,7 +16,7 @@ RunSummary = namedtuple(
 )
 
 
-class StatusHandler(object):
+class StatusHandler:
     """A handler used to determine an overall status for a test run according
     to a sequence of log messages."""
 

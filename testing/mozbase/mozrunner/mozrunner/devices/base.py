@@ -13,7 +13,7 @@ from configparser import ConfigParser, RawConfigParser
 from mozdevice import ADBError, ADBHost
 
 
-class Device(object):
+class Device:
     connected = False
 
     def __init__(self, app_ctx, logdir=None, serial=None, restore=True):
@@ -74,7 +74,7 @@ class Device(object):
                 finally:
                     raise e
             else:
-                print("WARNING: {}".format(e))
+                print(f"WARNING: {e}")
         if os.listdir(local_dump_dir):
             self.device.rm(remote_dump_dir, recursive=True)
             self.device.mkdir(remote_dump_dir, parents=True)

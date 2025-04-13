@@ -183,7 +183,7 @@ MAKE = env.get("MAKE", "make")
 PYTHON = sys.executable
 
 for d in DIR._fields:
-    info("DIR.{name} = {dir}".format(name=d, dir=getattr(DIR, d)))
+    info(f"DIR.{d} = {getattr(DIR, d)}")
 
 
 def ensure_dir_exists(
@@ -428,17 +428,17 @@ if use_minidump:
     if injector_lib is None:
         use_minidump = False
 
-    info("use_minidump is {}".format(use_minidump))
+    info(f"use_minidump is {use_minidump}")
     info("  MINIDUMP_SAVE_PATH={}".format(env["MINIDUMP_SAVE_PATH"]))
-    info("  injector lib is {}".format(injector_lib))
+    info(f"  injector lib is {injector_lib}")
     info("  MINIDUMP_STACKWALK={}".format(env.get("MINIDUMP_STACKWALK")))
 
 
 mozconfig = os.path.join(DIR.source, "mozconfig.autospider")
-CONFIGURE_ARGS += " --prefix={OBJDIR}/dist".format(OBJDIR=quote(OBJDIR))
+CONFIGURE_ARGS += f" --prefix={quote(OBJDIR)}/dist"
 
 # Generate a mozconfig.
-with open(mozconfig, "wt") as fh:
+with open(mozconfig, "w") as fh:
     if AUTOMATION and platform.system() == "Windows":
         fh.write('. "$topsrcdir/build/mozconfig.clang-cl"\n')
     fh.write("ac_add_options --enable-project=js\n")
@@ -497,7 +497,7 @@ def run_jsapitests(args):
                 " ".join(["jsapi-tests"] + args)
             )
         )
-        print("Return code: {}".format(st))
+        print(f"Return code: {st}")
     return st
 
 
@@ -549,11 +549,11 @@ jstest_workers = worker_max
 jittest_workers = worker_max
 if platform.system() == "Windows":
     jstest_workers = min(worker_max, 16)
-    env["JSTESTS_EXTRA_ARGS"] = "-j{} ".format(jstest_workers) + env.get(
+    env["JSTESTS_EXTRA_ARGS"] = f"-j{jstest_workers} " + env.get(
         "JSTESTS_EXTRA_ARGS", ""
     )
     jittest_workers = min(worker_max, 8)
-    env["JITTEST_EXTRA_ARGS"] = "-j{} ".format(jittest_workers) + env.get(
+    env["JITTEST_EXTRA_ARGS"] = f"-j{jittest_workers} " + env.get(
         "JITTEST_EXTRA_ARGS", ""
     )
 print(

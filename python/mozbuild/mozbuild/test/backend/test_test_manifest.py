@@ -115,7 +115,7 @@ class TestTestManifestBackend(BackendTester):
 
         status_path = mozpath.join(env.topobjdir, "config.status")
 
-        with open(backend_path, "r") as fh:
+        with open(backend_path) as fh:
             sources = set(source.strip() for source in fh)
 
         self.assertEqual(

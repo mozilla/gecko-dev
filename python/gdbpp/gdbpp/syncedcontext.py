@@ -14,7 +14,7 @@ from gdbpp import GeckoPrettyPrinter
 @GeckoPrettyPrinter(
     "syncedcontext::FieldValues", "^mozilla::dom::syncedcontext::FieldValues<.*>$"
 )
-class synced_context_field_printer(object):
+class synced_context_field_printer:
     def __init__(self, value):
         self.type = gdb.types.get_basic_type(value.type).template_argument(0)
         self.value = value.cast(self.type)

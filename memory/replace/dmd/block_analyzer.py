@@ -68,7 +68,7 @@ allocatorFns = [
 def range_1_24(string):
     value = int(string)
     if value < 1 or value > 24:
-        msg = "{:s} is not in the range 1..24".format(string)
+        msg = f"{string:s} is not in the range 1..24"
         raise argparse.ArgumentTypeError(msg)
     return value
 
@@ -169,9 +169,7 @@ def show_referrers(args, blocks, stacks, block):
                 which_edge += 1
 
         for r in referrers:
-            sys.stdout.write(
-                "0x{} size = {} bytes".format(blocks[r].addr, blocks[r].req_size)
-            )
+            sys.stdout.write(f"0x{blocks[r].addr} size = {blocks[r].req_size} bytes")
             plural = "s" if len(referrers[r]) > 1 else ""
             print(
                 " at byte offset"
@@ -206,13 +204,13 @@ def show_referrers(args, blocks, stacks, block):
 
 def show_block_info(args, blocks, stacks, block):
     b = blocks[block]
-    sys.stdout.write("block: 0x{}\n".format(b.addr))
-    sys.stdout.write("requested size: {} bytes\n".format(b.req_size))
+    sys.stdout.write(f"block: 0x{b.addr}\n")
+    sys.stdout.write(f"requested size: {b.req_size} bytes\n")
     sys.stdout.write("\n")
     sys.stdout.write("block contents: ")
     for c in b.contents:
         v = "0" if c == 0 else blocks[c].addr
-        sys.stdout.write("0x{} ".format(v))
+        sys.stdout.write(f"0x{v} ")
     sys.stdout.write("\n\n")
     sys.stdout.write("allocation stack:\n")
     print_trace_segment(args, stacks, b)
@@ -253,7 +251,7 @@ def loadGraph(options):
         j = json.load(f)
 
     if j["version"] != outputVersion:
-        raise Exception("'version' property isn't '{:d}'".format(outputVersion))
+        raise Exception(f"'version' property isn't '{outputVersion:d}'")
 
     block_list = j["blockList"]
     blocks = {}

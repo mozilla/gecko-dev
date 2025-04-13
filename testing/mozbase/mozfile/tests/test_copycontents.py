@@ -107,12 +107,12 @@ class MozfileCopyContentsTestCase(unittest.TestCase):
         self.assertTrue(os.path.exists(os.path.join(tempdir, filename)))
         self.assertTrue(os.path.exists(os.path.join(dstdir, filename)))
 
-        line = open(os.path.join(dstdir, filename), "r").readlines()[0]
+        line = open(os.path.join(dstdir, filename)).readlines()[0]
         self.assertTrue(line == "Hello " + dstdir)
 
         mozfile.copy_contents(tempdir, dstdir)
 
-        line = open(os.path.join(dstdir, filename), "r").readlines()[0]
+        line = open(os.path.join(dstdir, filename)).readlines()[0]
         self.assertTrue(line == "Hello " + tempdir)
         self._directories_are_equal(tempdir, dstdir)
 

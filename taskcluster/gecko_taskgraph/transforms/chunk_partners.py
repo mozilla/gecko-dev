@@ -33,9 +33,7 @@ def chunk_partners(config, jobs):
         copy_repack_ids = job.pop("copy-repack-ids", False)
 
         if copy_repack_ids:
-            assert repack_ids, "dep_job {} doesn't have repack_ids!".format(
-                dep_job.label
-            )
+            assert repack_ids, f"dep_job {dep_job.label} doesn't have repack_ids!"
             job.setdefault("extra", {})["repack_ids"] = repack_ids
             yield job
         # first downstream of the repack task, no chunking or fanout has been done yet

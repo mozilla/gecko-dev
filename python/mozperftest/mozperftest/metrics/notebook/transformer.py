@@ -17,7 +17,7 @@ from mozperftest.runner import HERE
 from mozperftest.utils import load_class
 
 
-class Transformer(object):
+class Transformer:
     """Abstract class for data transformers."""
 
     def __init__(self, files=None, custom_transformer=None, logger=None, prefix=None):

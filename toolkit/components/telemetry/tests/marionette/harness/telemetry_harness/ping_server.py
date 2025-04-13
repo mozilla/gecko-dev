@@ -10,7 +10,7 @@ import wptserve.logger
 from marionette_harness.runner import httpd
 
 
-class PingServer(object):
+class PingServer:
     """HTTP server for receiving Firefox Client Telemetry pings."""
 
     def __init__(self, server_root, url):
@@ -44,11 +44,11 @@ class PingServer(object):
 
             ping_type = ping_data["type"]
 
-            log_message = "pings_handler received '{}' ping".format(ping_type)
+            log_message = f"pings_handler received '{ping_type}' ping"
 
             if ping_type == "main":
                 ping_reason = ping_data["payload"]["info"]["reason"]
-                log_message = "{} with reason '{}'".format(log_message, ping_reason)
+                log_message = f"{log_message} with reason '{ping_reason}'"
 
             self._logger.info(log_message)
 

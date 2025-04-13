@@ -181,7 +181,7 @@ def make_add_if_not_instruction(filename, manifest):
 def append_remove_instructions(newdir, manifest):
     removed_files_path = os.path.join(newdir, "removed-files")
     if os.path.exists(removed_files_path):
-        with NamedTemporaryFile() as rmv, open(rmv.name, "r") as f:
+        with NamedTemporaryFile() as rmv, open(rmv.name) as f:
             xz_cmd(("--decompress",), removed_files_path, rmv.name)
             removed_files = f.readlines()
         with open(manifest, "a") as manifest_file:

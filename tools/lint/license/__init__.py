@@ -42,7 +42,7 @@ def is_valid_license(licenses, filename):
     From a given file, check if we can find the license patterns
     in the X first lines of the file
     """
-    with open(filename, "r", errors="replace") as myfile:
+    with open(filename, errors="replace") as myfile:
         contents = myfile.read()
         # Empty files don't need a license.
         if not contents:
@@ -64,8 +64,8 @@ def add_header(log, filename, header):
         try:
             lines = f.readlines()
         except UnicodeDecodeError as e:
-            log.debug("Could not read file '{}'".format(f))
-            log.debug("Error: {}".format(e))
+            log.debug(f"Could not read file '{f}'")
+            log.debug(f"Error: {e}")
             return
 
         i = 0
@@ -245,7 +245,7 @@ def lint(paths, config, fix=None, **lintargs):
                 for invalid_path, (lineno, column) in lint_license_html(f):
                     res = {
                         "path": f,
-                        "message": "references unknown path {}".format(invalid_path),
+                        "message": f"references unknown path {invalid_path}",
                         "level": "error",
                         "lineno": lineno,
                         "column": column,

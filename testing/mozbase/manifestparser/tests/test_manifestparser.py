@@ -632,7 +632,7 @@ yellow = submarine
         manifest_str = manifestparser.toml.alphabetize_toml_str(manifest)
         after = "edit-manifest-after.toml"
         after_path = os.path.join(here, after)
-        after_str = open(after_path, "r", encoding="utf-8").read()
+        after_str = open(after_path, encoding="utf-8").read()
         assert manifest_str == after_str
 
     def test_remove_skipif(self):
@@ -650,7 +650,7 @@ yellow = submarine
         manifest_str = manifestparser.toml.alphabetize_toml_str(manifest)
         after = "remove-manifest-after1.toml"
         after_path = os.path.join(here, after)
-        after_str = open(after_path, "r", encoding="utf-8").read()
+        after_str = open(after_path, encoding="utf-8").read()
         assert manifest_str == after_str
 
         parser.read(before_path)
@@ -663,7 +663,7 @@ yellow = submarine
         manifest_str = manifestparser.toml.alphabetize_toml_str(manifest)
         after = "remove-manifest-after2.toml"
         after_path = os.path.join(here, after)
-        after_str = open(after_path, "r", encoding="utf-8").read()
+        after_str = open(after_path, encoding="utf-8").read()
         assert manifest_str == after_str
 
         parser.read(before_path)
@@ -676,7 +676,7 @@ yellow = submarine
         manifest_str = manifestparser.toml.alphabetize_toml_str(manifest)
         after = "remove-manifest-after3.toml"
         after_path = os.path.join(here, after)
-        after_str = open(after_path, "r", encoding="utf-8").read()
+        after_str = open(after_path, encoding="utf-8").read()
         assert manifest_str == after_str
 
         parser.read(before_path)
@@ -689,7 +689,7 @@ yellow = submarine
         manifest_str = manifestparser.toml.alphabetize_toml_str(manifest)
         after = "remove-manifest-before.toml"
         after_path = os.path.join(here, after)
-        after_str = open(after_path, "r", encoding="utf-8").read()
+        after_str = open(after_path, encoding="utf-8").read()
         assert manifest_str == after_str
 
         parser.read(before_path)

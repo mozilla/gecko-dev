@@ -29,9 +29,7 @@ class TestPingServer(TelemetryTestCase):
             self.assertEqual(
                 response.status_code,
                 200,
-                msg="Error sending POST request to ping server: {response.text}".format(
-                    response=response
-                ),
+                msg=f"Error sending POST request to ping server: {response.text}",
             )
             return response
 

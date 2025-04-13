@@ -159,15 +159,15 @@ if __name__ == "__main__":
     sorted_totals = sorted(totals.items(), key=lambda item: (-item[1], item[0]))
     for k, v in sorted_totals:
         if v:
-            print("{0}\t".format(k)),
+            print(f"{k}\t"),
     print("")
 
     bytes_per_mebibyte = 1024.0 * 1024.0
     for k, v in sorted_totals:
         if v:
             if args.mebi:
-                print("{0:.2f} MiB".format(v / bytes_per_mebibyte)),
+                print(f"{v / bytes_per_mebibyte:.2f} MiB"),
             else:
-                print("{0} bytes".format(v)),
+                print(f"{v} bytes"),
             print("\t"),
     print("")

@@ -12,9 +12,9 @@ import six
 from six.moves import urllib
 
 
-class SecretsMixin(object):
+class SecretsMixin:
     def _fetch_secret(self, secret_name):
-        self.info("fetching secret {} from API".format(secret_name))
+        self.info(f"fetching secret {secret_name} from API")
         # fetch from TASKCLUSTER_PROXY_URL, which points to the taskcluster proxy
         # within a taskcluster task.  Outside of that environment, do not
         # use this action.
@@ -66,7 +66,7 @@ class SecretsMixin(object):
                     secret = sf["default"]
                 elif "default-file" in sf:
                     default_path = sf["default-file"].format(**dirs)
-                    with open(default_path, "r") as f:
+                    with open(default_path) as f:
                         secret = f.read()
                 else:
                     self.info("No default for secret; not writing " + filename)

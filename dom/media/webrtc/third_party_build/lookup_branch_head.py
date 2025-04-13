@@ -37,7 +37,7 @@ def fetch_branch_head_dict():
 
 def read_dict_from_cache(cache_path):
     if cache_path is not None and os.path.exists(cache_path):
-        with open(cache_path, "r") as ifile:
+        with open(cache_path) as ifile:
             return json.loads(ifile.read(), object_hook=jsonKeys2int)
     return {}
 

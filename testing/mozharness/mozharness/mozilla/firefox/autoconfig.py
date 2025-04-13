@@ -38,7 +38,7 @@ def read_autoconfig_file(fx_install_dir):
 
     fx_install_dir - path to Firefox installation
     """
-    with open(_cfg_file_path(fx_install_dir), "r") as fd:
+    with open(_cfg_file_path(fx_install_dir)) as fd:
         return fd.read()
 
 

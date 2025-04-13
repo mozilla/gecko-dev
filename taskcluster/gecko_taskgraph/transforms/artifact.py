@@ -24,7 +24,7 @@ def read_artifact_manifest(manifest_path):
     """Read the artifacts.yml manifest file and return it."""
     # logger.info(f"The current directory is {os.getcwd()}")
     try:
-        with open(manifest_path, "r") as ymlf:
+        with open(manifest_path) as ymlf:
             yml = yaml.safe_load(ymlf.read())
             return yml
     except YAMLError as ye:

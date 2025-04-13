@@ -220,7 +220,7 @@ def taskgraph_decision(command_context, **options):
                 ],
             }
             print(
-                "PERFHERDER_DATA: {}".format(json.dumps(perfherder_data)),
+                f"PERFHERDER_DATA: {json.dumps(perfherder_data)}",
                 file=sys.stderr,
             )
         return ret

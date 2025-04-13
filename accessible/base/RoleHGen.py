@@ -8,7 +8,7 @@ import re
 
 
 def generate(roleH, roleIdl):
-    input = open(roleIdl, "rt").read()
+    input = open(roleIdl).read()
     roles = re.findall(r"const unsigned long ROLE_([A-Z_]+) = (\d+);", input)
 
     roleH.write(

@@ -517,7 +517,7 @@ def lint(paths, config, fix=None, **lintargs):
     brand_names = get_branding_list(root, brand_files)
     results = []
     for path in files:
-        contents = open(path, "r", encoding="utf-8").read()
+        contents = open(path, encoding="utf-8").read()
         linter = Linter(
             path,
             config,

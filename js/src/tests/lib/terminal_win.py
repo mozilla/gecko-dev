@@ -79,7 +79,7 @@ def get_text_attr():
 DEFAULT_COLORS = get_text_attr()
 
 
-class Terminal(object):
+class Terminal:
     COLOR = {
         "black": 0x0000,
         "blue": 0x0001,

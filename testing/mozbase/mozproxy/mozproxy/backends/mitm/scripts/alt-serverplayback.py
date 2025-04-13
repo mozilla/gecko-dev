@@ -252,9 +252,7 @@ class AltServerPlayback:
                 f.is_replay = "response"
             elif ctx.options.alt_server_replay_kill_extra:
                 ctx.log.warn(
-                    "server_playback: killed non-replay request {}".format(
-                        f.request.url
-                    )
+                    f"server_playback: killed non-replay request {f.request.url}"
                 )
                 f.response = http.Response.make(
                     404, b"", {"content-type": "text/plain"}

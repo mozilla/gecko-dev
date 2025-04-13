@@ -84,7 +84,7 @@ class HTTPHandler(http.server.BaseHTTPRequestHandler):
             self.wfile.write(fh.read())
 
 
-class BuildViewerServer(object):
+class BuildViewerServer:
     def __init__(self, address="localhost", port=0):
         # TODO use pkg_resources to obtain HTML resources.
         pkg_dir = os.path.dirname(os.path.abspath(__file__))

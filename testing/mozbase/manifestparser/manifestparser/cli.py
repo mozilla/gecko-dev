@@ -60,7 +60,7 @@ def parse_args(_args):
     return (_dict, tags, args)
 
 
-class CLICommand(object):
+class CLICommand:
     usage = "%prog [options] command"
 
     def __init__(self, parser):

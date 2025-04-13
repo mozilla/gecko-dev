@@ -18,7 +18,7 @@ def parse(get_reftest, normalize):
 
     def resolve(path):
         path = normalize(path)
-        return "file://{}".format(path)
+        return f"file://{path}"
 
     def inner(*manifests):
         assert len(manifests) > 0

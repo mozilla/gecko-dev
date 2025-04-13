@@ -6,7 +6,7 @@ import os
 import sys
 
 
-class NullTerminal(object):
+class NullTerminal:
     """Replacement for `blessed.Terminal()` that does no formatting."""
 
     number_of_colors = 0

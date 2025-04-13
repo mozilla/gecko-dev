@@ -65,7 +65,7 @@ class GeckoProfile(RaptorProfiling):
         self.profile_arcname = os.path.join(
             self.upload_dir, "profile_{0}.zip".format(self.test_config["name"])
         )
-        LOG.info("Clearing archive {0}".format(self.profile_arcname))
+        LOG.info(f"Clearing archive {self.profile_arcname}")
         mozfile.remove(self.profile_arcname)
 
         self.symbol_paths = {
@@ -75,9 +75,7 @@ class GeckoProfile(RaptorProfiling):
 
         LOG.info(
             "Activating gecko profiling, temp profile dir:"
-            " {0}, interval: {1}, entries: {2}".format(
-                self.temp_profile_dir, gecko_profile_interval, gecko_profile_entries
-            )
+            f" {self.temp_profile_dir}, interval: {gecko_profile_interval}, entries: {gecko_profile_entries}"
         )
 
     @property

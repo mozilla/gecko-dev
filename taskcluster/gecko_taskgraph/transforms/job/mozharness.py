@@ -300,7 +300,7 @@ def mozharness_on_generic_worker(config, job, taskdesc):
         else:
             python_bindir = "${MOZ_PYTHON_HOME}/bin/"
 
-    mh_command = ["{}python3".format(python_bindir)]
+    mh_command = [f"{python_bindir}python3"]
 
     mh_command += [
         f"{gecko_path}/mach",

@@ -7,12 +7,12 @@ from mozharness.base.script import ScriptMixin
 from mozharness.mozilla.building.buildbase import MozconfigPathError, get_mozconfig_path
 
 
-class FakeLogger(object):
+class FakeLogger:
     def log_message(self, *args, **kwargs):
         pass
 
 
-class FakeScriptMixin(LogMixin, ScriptMixin, object):
+class FakeScriptMixin(LogMixin, ScriptMixin):
     def __init__(self):
         self.script_obj = self
         self.log_obj = FakeLogger()

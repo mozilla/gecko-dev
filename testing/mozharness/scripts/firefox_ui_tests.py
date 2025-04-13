@@ -89,7 +89,7 @@ class FirefoxUIFunctionalTests(TestingMixin, VCSToolsScript, CodeCoverageMixin):
         all_actions=None,
         default_actions=None,
         *args,
-        **kwargs
+        **kwargs,
     ):
         config_options = config_options or firefox_ui_tests_config_options
         actions = [
@@ -106,7 +106,7 @@ class FirefoxUIFunctionalTests(TestingMixin, VCSToolsScript, CodeCoverageMixin):
             all_actions=all_actions or actions,
             default_actions=default_actions or actions,
             *args,
-            **kwargs
+            **kwargs,
         )
 
         # Code which runs in automation has to include the following properties
@@ -210,7 +210,7 @@ class FirefoxUIFunctionalTests(TestingMixin, VCSToolsScript, CodeCoverageMixin):
             "--binary",
             binary_path,
             "--address",
-            "localhost:{}".format(marionette_port),
+            f"localhost:{marionette_port}",
             # Resource files to serve via local webserver
             "--server-root",
             os.path.join(dirs["abs_fxui_dir"], "resources"),
@@ -233,7 +233,7 @@ class FirefoxUIFunctionalTests(TestingMixin, VCSToolsScript, CodeCoverageMixin):
         if self.config.get("disable_fission"):
             cmd.append("--disable-fission")
 
-        cmd.extend(["--setpref={}".format(p) for p in self.config.get("extra_prefs")])
+        cmd.extend([f"--setpref={p}" for p in self.config.get("extra_prefs")])
 
         if self.symbols_url:
             cmd.extend(["--symbols-path", self.symbols_url])

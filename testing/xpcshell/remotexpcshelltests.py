@@ -27,7 +27,7 @@ from xpcshellcommandline import parser_remote
 here = os.path.dirname(os.path.abspath(__file__))
 
 
-class RemoteProcessMonitor(object):
+class RemoteProcessMonitor:
     processStatus = []
 
     def __init__(self, package, device, log, remoteLogFile):
@@ -382,7 +382,7 @@ class RemoteXPCShellTestThread(xpcshell.XPCShellTestThread):
 
 
 # A specialization of XPCShellTests that runs tests on an Android device.
-class XPCShellRemote(xpcshell.XPCShellTests, object):
+class XPCShellRemote(xpcshell.XPCShellTests):
     def __init__(self, options, log):
         xpcshell.XPCShellTests.__init__(self, log)
 

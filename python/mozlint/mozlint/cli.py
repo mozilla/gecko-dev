@@ -279,15 +279,11 @@ class MozlintParser(ArgumentParser):
                     fmt_dir = os.path.dirname(path)
                     if not os.access(fmt_dir, os.W_OK | os.X_OK):
                         self.error(
-                            "the following directory is not writable: {}".format(
-                                fmt_dir
-                            )
+                            f"the following directory is not writable: {fmt_dir}"
                         )
 
                 if fmt not in all_formatters.keys():
-                    self.error(
-                        "the following formatter is not available: {}".format(fmt)
-                    )
+                    self.error(f"the following formatter is not available: {fmt}")
 
                 formats.append((fmt, path))
             args.formats = formats

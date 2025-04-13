@@ -60,7 +60,7 @@ def generate_precomplete(root_path):
     precomplete_file_path = os.path.join(root_path, rel_path_precomplete)
     # Open the file so it exists before building the list of files and open it
     # in binary mode to prevent OS specific line endings.
-    precomplete_file = open(precomplete_file_path, mode="wt", newline="\n")
+    precomplete_file = open(precomplete_file_path, mode="w", newline="\n")
     rel_file_path_list, rel_dir_path_list = get_build_entries(root_path)
     for rel_file_path in rel_file_path_list:
         precomplete_file.write('remove "' + rel_file_path + '"\n')

@@ -22,7 +22,7 @@ import sys
 from collections import defaultdict, deque
 
 
-class IdMapping(object):
+class IdMapping:
     """Class to map values to ids.
 
     Each value is associated to an increasing id, starting from 1.

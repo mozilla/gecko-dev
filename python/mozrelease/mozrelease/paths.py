@@ -20,10 +20,8 @@ def getCandidatesDir(product, version, buildNumber, protocol=None, server=None):
         assert server is not None, "server is required with protocol"
 
     product = product2ftp(product)
-    directory = "/{}/candidates/{}-candidates/build{}".format(
-        product,
-        str(version),
-        str(buildNumber),
+    directory = (
+        f"/{product}/candidates/{str(version)}-candidates/build{str(buildNumber)}"
     )
 
     if protocol:
@@ -36,9 +34,9 @@ def getReleasesDir(product, version=None, protocol=None, server=None):
     if protocol:
         assert server is not None, "server is required with protocol"
 
-    directory = "/{}/releases".format(product)
+    directory = f"/{product}/releases"
     if version:
-        directory = "{}/{}".format(directory, version)
+        directory = f"{directory}/{version}"
 
     if protocol:
         return urlunsplit((protocol, server, directory, None, None))

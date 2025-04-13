@@ -262,7 +262,7 @@ def run_job(name, config):
                 raise
 
     if final_status != 0:
-        raise Exception("job {} returned status {}".format(name, final_status))
+        raise Exception(f"job {name} returned status {final_status}")
 
 
 def spawn_command(cmdspec, job, name, config):

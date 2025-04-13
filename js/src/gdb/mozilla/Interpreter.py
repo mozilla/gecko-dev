@@ -13,7 +13,7 @@ prettyprinters.clear_module_printers(__name__)
 from mozilla.prettyprinters import pretty_printer
 
 
-class InterpreterTypeCache(object):
+class InterpreterTypeCache:
     # Cache information about the Interpreter types for this objfile.
     def __init__(self):
         self.tValue = gdb.lookup_type("JS::Value")
@@ -32,7 +32,7 @@ class InterpreterTypeCache(object):
 
 
 @pretty_printer("js::InterpreterRegs")
-class InterpreterRegs(object):
+class InterpreterRegs:
     def __init__(self, value, cache):
         self.value = value
         self.cache = cache
@@ -48,11 +48,11 @@ class InterpreterRegs(object):
         slots = (self.value["fp_"] + 1).cast(self.itc.tValue.pointer())
         sp = "sp = fp_.slots() + {}".format(self.value["sp"] - slots)
         pc = "pc = {}".format(self.value["pc"])
-        return "{{ {}, {}, {} }}".format(fp_, sp, pc)
+        return f"{{ {fp_}, {sp}, {pc} }}"
 
 
 @pretty_printer("js::AbstractFramePtr")
-class AbstractFramePtr(object):
+class AbstractFramePtr:
     Tag_InterpreterFrame = 0x0
     Tag_BaselineFrame = 0x1
     Tag_RematerializedFrame = 0x2
@@ -82,7 +82,7 @@ class AbstractFramePtr(object):
         if tag == AbstractFramePtr.Tag_WasmDebugFrame:
             label = "js::wasm::DebugFrame"
             ptr = ptr.cast(self.itc.tDebugFrame.pointer())
-        return "AbstractFramePtr (({} *) {})".format(label, ptr)
+        return f"AbstractFramePtr (({label} *) {ptr})"
 
     # Provide the ptr_ field as a child, so it prints after the pretty string
     # provided above.

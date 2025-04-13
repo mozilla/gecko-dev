@@ -10,7 +10,7 @@ from gdbpp import GeckoPrettyPrinter
 
 
 @GeckoPrettyPrinter("nsAutoOwningThread", "^nsAutoOwningThread$")
-class owning_thread_printer(object):
+class owning_thread_printer:
     def __init__(self, value):
         self.value = value
 

@@ -309,7 +309,7 @@ class MochiRemote(MochitestDesktop):
             del browserEnv["XPCOM_MEM_BLOAT_LOG"]
         if self.mozLogs:
             browserEnv["MOZ_LOG_FILE"] = os.path.join(
-                self.remoteMozLog, "moz-pid=%PID-uid={}.log".format(str(uuid.uuid4()))
+                self.remoteMozLog, f"moz-pid=%PID-uid={str(uuid.uuid4())}.log"
             )
         if options.dmd:
             browserEnv["DMD"] = "1"

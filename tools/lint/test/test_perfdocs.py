@@ -320,7 +320,7 @@ def test_perfdocs_verifier_invalid_yaml(logger, structured_logger, perfdocs_samp
     from perfdocs.verifier import Verifier
 
     verifier = Verifier("top_dir")
-    with open(yaml_path, "r", newline="\n") as f:
+    with open(yaml_path, newline="\n") as f:
         lines = f.readlines()
         print(lines)
     with open(yaml_path, "w", newline="\n") as f:
@@ -359,7 +359,7 @@ def test_perfdocs_verifier_invalid_rst(logger, structured_logger, perfdocs_sampl
     setup_sample_logger(logger, structured_logger, top_dir)
 
     # Replace the target string to invalid Keyword for test
-    with open(rst_path, "r") as file:
+    with open(rst_path) as file:
         filedata = file.read()
 
     filedata = filedata.replace("documentation", "Invalid Keyword")
@@ -431,7 +431,7 @@ def test_perfdocs_verifier_not_existing_tests_in_suites(
     top_dir = perfdocs_sample["top_dir"]
     setup_sample_logger(logger, structured_logger, top_dir)
 
-    with open(perfdocs_sample["config"], "r") as file:
+    with open(perfdocs_sample["config"]) as file:
         filedata = file.read()
         filedata = filedata.replace("Example", "DifferentName")
     with open(perfdocs_sample["config"], "w", newline="\n") as file:
@@ -460,7 +460,7 @@ def test_perfdocs_verifier_missing_contents_in_suite(
     top_dir = perfdocs_sample["top_dir"]
     setup_sample_logger(logger, structured_logger, top_dir)
 
-    with open(perfdocs_sample["config"], "r") as file:
+    with open(perfdocs_sample["config"]) as file:
         filedata = file.read()
         filedata = filedata.replace("suite:", "InvalidSuite:")
     with open(perfdocs_sample["config"], "w", newline="\n") as file:

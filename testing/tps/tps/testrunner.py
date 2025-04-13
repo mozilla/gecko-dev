@@ -20,7 +20,7 @@ from .firefoxrunner import TPSFirefoxRunner
 from .phase import TPSTestPhase
 
 
-class TempFile(object):
+class TempFile:
     """Class for temporary files that delete themselves when garbage-collected."""
 
     def __init__(self, prefix=None):
@@ -44,7 +44,7 @@ class TempFile(object):
     __del__ = cleanup
 
 
-class TPSTestRunner(object):
+class TPSTestRunner:
     extra_env = {
         "MOZ_CRASHREPORTER_DISABLE": "1",
         "GNOME_DISABLE_CRASH_DIALOG": "1",
@@ -161,7 +161,7 @@ class TPSTestRunner(object):
         results = {"results": []}
 
         if os.access(self.resultfile, os.F_OK):
-            f = open(self.resultfile, "r")
+            f = open(self.resultfile)
             results = json.loads(f.read())
             f.close()
 
@@ -204,7 +204,7 @@ class TPSTestRunner(object):
                         profiles[profile].profile, "weave", "logs", f
                     )
                     if os.access(weavelog, os.F_OK):
-                        with open(weavelog, "r") as fh:
+                        with open(weavelog) as fh:
                             for line in fh:
                                 possible_time = line[0:13]
                                 if len(possible_time) == 13 and possible_time.isdigit():
@@ -227,7 +227,7 @@ class TPSTestRunner(object):
 
         # Read and parse the test file, merge it with the contents of the config
         # file, and write the combined output to a temporary file.
-        f = open(testpath, "r")
+        f = open(testpath)
         testcontent = f.read()
         f.close()
         # We use yaml to parse the tests because it is a superset of json
@@ -361,7 +361,7 @@ class TPSTestRunner(object):
 
         self.log(logstr, True)
         for phase in phaselist:
-            print("\t{}: {}".format(phase.phase, phase.status))
+            print(f"\t{phase.phase}: {phase.status}")
 
         return resultdata
 
@@ -463,7 +463,7 @@ class TPSTestRunner(object):
             for filename, meta in testfiles["tests"].items():
                 skip_reason = meta.get("disabled")
                 if skip_reason:
-                    print("Skipping test {} - {}".format(filename, skip_reason))
+                    print(f"Skipping test {filename} - {skip_reason}")
                 else:
                     testlist.append(filename)
         except ValueError:

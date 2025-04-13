@@ -17,7 +17,7 @@ from collections import deque, namedtuple
 from xml.etree.ElementTree import XML
 
 
-class ZlibFile(object):
+class ZlibFile:
     def __init__(self, fileobj):
         self.fileobj = fileobj
         self.decompressor = zlib.decompressobj()
@@ -97,7 +97,7 @@ def unxar(fileobj):
         yield filename, content
 
 
-class Pbzx(object):
+class Pbzx:
     def __init__(self, fileobj):
         magic = fileobj.read(4)
         if magic != b"pbzx":
@@ -155,7 +155,7 @@ class Pbzx(object):
             return result
 
 
-class Take(object):
+class Take:
     """
     File object wrapper that allows to read at most a certain length.
     """

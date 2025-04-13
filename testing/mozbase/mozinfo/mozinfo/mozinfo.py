@@ -20,7 +20,7 @@ from .string_version import StringVersion
 _os = os
 
 
-class unknown(object):
+class unknown:
     """marker class for unknown information"""
 
     # pylint: disable=W1629

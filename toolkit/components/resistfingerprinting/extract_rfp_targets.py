@@ -6,7 +6,7 @@ def parse_defaults(path):
     pattern = re.compile(r"(DESKTOP_DEFAULT|ANDROID_DEFAULT)\((.+)\)")
 
     contents = ""
-    with open(path, "r") as f:
+    with open(path) as f:
         contents = f.read()
 
     defaults = defaultdict(lambda: [])
@@ -42,7 +42,7 @@ def parse_targets(path):
     pattern = re.compile(r"ITEM_VALUE\((.+),[\s]+(.+)\)")
 
     contents = ""
-    with open(path, "r") as f:
+    with open(path) as f:
         contents = f.read()
 
     targets = {}

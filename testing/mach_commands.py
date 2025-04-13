@@ -182,25 +182,23 @@ def addtest(
     if not suite:
         print(
             "We couldn't automatically determine a suite. "
-            "Please specify `--suite` with one of the following options:\n{}\n"
+            f"Please specify `--suite` with one of the following options:\n{ADD_TEST_SUPPORTED_SUITES}\n"
             "If you'd like to add support to a new suite, please file a bug "
-            "blocking https://bugzilla.mozilla.org/show_bug.cgi?id=1540285.".format(
-                ADD_TEST_SUPPORTED_SUITES
-            )
+            "blocking https://bugzilla.mozilla.org/show_bug.cgi?id=1540285."
         )
         return 1
 
     if doc not in ADD_TEST_SUPPORTED_DOCS:
         print(
             "Error: invalid `doc`. Either pass in a test with a valid extension"
-            "({}) or pass in the `doc` argument".format(ADD_TEST_SUPPORTED_DOCS)
+            f"({ADD_TEST_SUPPORTED_DOCS}) or pass in the `doc` argument"
         )
         return 1
 
     creator_cls = addtest.creator_for_suite(suite)
 
     if creator_cls is None:
-        print("Sorry, `addtest` doesn't currently know how to add {}".format(suite))
+        print(f"Sorry, `addtest` doesn't currently know how to add {suite}")
         return 1
 
     creator = creator_cls(command_context.topsrcdir, test, suite, doc, **kwargs)
@@ -215,7 +213,7 @@ def addtest(
         added_tests = True
         if path:
             paths.append(path)
-            print("Adding a test file at {} (suite `{}`)".format(path, suite))
+            print(f"Adding a test file at {path} (suite `{suite}`)")
 
             try:
                 os.makedirs(os.path.dirname(path))
@@ -241,9 +239,7 @@ def addtest(
         mach_command = TEST_SUITES[suite]["mach_command"]
         print(
             "Please make sure to add the new test to your commit. "
-            "You can now run the test with:\n    ./mach {} {}".format(
-                mach_command, test
-            )
+            f"You can now run the test with:\n    ./mach {mach_command} {test}"
         )
 
     if editor is not MISSING_ARG:
@@ -441,7 +437,7 @@ def test(command_context, what, extra_args, **log_args):
     for (flavor, subsuite), tests in sorted(buckets.items()):
         _, m = get_suite_definition(flavor, subsuite)
         if "mach_command" not in m:
-            substr = "-{}".format(subsuite) if subsuite else ""
+            substr = f"-{subsuite}" if subsuite else ""
             print(UNKNOWN_FLAVOR % (flavor, substr))
             status = 1
             continue

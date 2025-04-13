@@ -30,7 +30,7 @@ must implement the FrameworkGatherer class.
 """
 
 
-class FrameworkGatherer(object):
+class FrameworkGatherer:
     """
     Abstract class for framework gatherers.
     """
@@ -338,11 +338,11 @@ class RaptorGatherer(FrameworkGatherer):
         if len(matcher) == 0:
             logger.critical(
                 "No tests exist for the following name "
-                "(obtained from config.yml): {}".format(title)
+                f"(obtained from config.yml): {title}"
             )
             raise Exception(
                 "No tests exist for the following name "
-                "(obtained from config.yml): {}".format(title)
+                f"(obtained from config.yml): {title}"
             )
 
         result = f".. dropdown:: {title}\n"

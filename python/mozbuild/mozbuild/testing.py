@@ -71,7 +71,7 @@ def all_test_flavors():
     )
 
 
-class TestInstallInfo(object):
+class TestInstallInfo:
     def __init__(self):
         self.seen = set()
         self.pattern_installs = []
@@ -87,7 +87,7 @@ class TestInstallInfo(object):
         return self
 
 
-class SupportFilesConverter(object):
+class SupportFilesConverter:
     """Processes a "support-files" entry from a test object, either from
     a parsed object from a test manifests or its representation in
     moz.build and returns the installs to perform for this test object.

@@ -36,7 +36,7 @@ class PreferencesReadError(Exception):
     """read error for preferences files"""
 
 
-class Preferences(object):
+class Preferences:
     """assembly of preferences from various sources"""
 
     def __init__(self, prefs=None):

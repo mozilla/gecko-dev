@@ -116,7 +116,7 @@ def indent(str_data, indent=2):
     return "\n".join(rv)
 
 
-class Differences(object):
+class Differences:
     def __init__(self):
         self.added = []
         self.deleted = []

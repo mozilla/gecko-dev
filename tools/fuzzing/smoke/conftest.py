@@ -52,4 +52,4 @@ def skip_using_mozinfo(request):
     if skip_mozinfo:
         value = skip_mozinfo.args[0]
         if expression.parse(value, **mozinfo.info):
-            pytest.skip("skipped due to mozinfo match: {}".format(value))
+            pytest.skip(f"skipped due to mozinfo match: {value}")

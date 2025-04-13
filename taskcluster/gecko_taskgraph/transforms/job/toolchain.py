@@ -232,9 +232,7 @@ def common_toolchain(config, job, taskdesc, is_docker):
 
     if is_docker:
         run["cwd"] = run["workdir"]
-    run["command"] = [
-        "{}/taskcluster/scripts/misc/{}".format(gecko_path, script)
-    ] + arguments
+    run["command"] = [f"{gecko_path}/taskcluster/scripts/misc/{script}"] + arguments
     if not is_docker:
         # Don't quote the first item in the command because it purposely contains
         # an environment variable that is not meant to be quoted.

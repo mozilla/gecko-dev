@@ -11,7 +11,7 @@ from mozlog import get_default_logger
 from six.moves.urllib import parse as urlparse
 
 
-class FOGPingServer(object):
+class FOGPingServer:
     """HTTP server for receiving Firefox on Glean pings."""
 
     def __init__(self, server_root, url):

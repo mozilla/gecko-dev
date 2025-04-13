@@ -80,7 +80,7 @@ def test_build_profile(
     raptor_pref = 'user_pref("security.enable_java", false);'
 
     prefs_file = os.path.join(perftest_instance.profile.profile, "user.js")
-    with open(prefs_file, "r") as fh:
+    with open(prefs_file) as fh:
         prefs = fh.read()
         for firefox_pref in firefox_prefs:
             assert firefox_pref in prefs

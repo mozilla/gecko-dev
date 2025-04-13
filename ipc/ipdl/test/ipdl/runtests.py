@@ -58,7 +58,7 @@ class ErrorTestCase(IPDLTestCase):
         IPDLTestCase.__init__(self, ipdlargv, filename)
 
         # Look for expected errors in the input file.
-        f = open(filename, "r")
+        f = open(filename)
         self.expectedErrorMessage = []
         for l in f:
             if l.startswith("//error:"):

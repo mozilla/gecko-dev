@@ -28,13 +28,10 @@ DEFAULT_RESPONSES = {
     "artifact": {
         "status": 200,
         "body": dedent(
-            """
-            pushdate: {}
-            pushlog_id: "{}"
-        """.format(
-                LAST_BACKSTOP_PUSHDATE,
-                LAST_BACKSTOP_PUSHID,
-            )
+            f"""
+            pushdate: {LAST_BACKSTOP_PUSHDATE}
+            pushlog_id: "{LAST_BACKSTOP_PUSHID}"
+        """
         ),
     },
     "status": {

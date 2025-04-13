@@ -667,25 +667,19 @@ class TryOptionSyntax:
 
                 if tier <= build_task_tier:
                     logger.debug(
-                        "not skipping tier {} test {} because build task {} "
-                        "is tier {}".format(
-                            tier, task.label, build_task.label, build_task_tier
-                        )
+                        f"not skipping tier {tier} test {task.label} because build task {build_task.label} "
+                        f"is tier {build_task_tier}"
                     )
                     return True
                 if 1 not in test_tiers:
                     logger.debug(
-                        "not skipping tier {} test {} without explicit inclusion; "
-                        "it is configured to run on tiers {}".format(
-                            tier, task.label, test_tiers
-                        )
+                        f"not skipping tier {tier} test {task.label} without explicit inclusion; "
+                        f"it is configured to run on tiers {test_tiers}"
                     )
                     return True
                 logger.debug(
-                    "skipping tier {} test {} because build task {} is "
-                    "tier {} and there is a higher-tier test of the same name".format(
-                        tier, task.label, build_task.label, build_task_tier
-                    )
+                    f"skipping tier {tier} test {task.label} because build task {build_task.label} is "
+                    f"tier {build_task_tier} and there is a higher-tier test of the same name"
                 )
                 return False
             if run_by_default:

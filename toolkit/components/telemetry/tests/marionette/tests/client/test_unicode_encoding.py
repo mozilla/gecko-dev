@@ -17,13 +17,10 @@ class TestUnicodeEncoding(TelemetryTestCase):
         orig = "€ —"
         with self.marionette.using_context(self.marionette.CONTEXT_CHROME):
             value = self.marionette.execute_script(
-                r"""
+                rf"""
                 Services.prefs.setStringPref("{pref}", "{orig}");
                 return Services.prefs.getStringPref("{pref}");
-                """.format(
-                    orig=orig,
-                    pref=pref,
-                )
+                """
             )
 
         self.assertEqual(value, orig)

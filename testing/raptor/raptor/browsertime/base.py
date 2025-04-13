@@ -72,7 +72,7 @@ class Browsertime(Perftest):
             results_handler_class=klass,
             **kwargs,
         )
-        LOG.info("cwd: '{}'".format(os.getcwd()))
+        LOG.info(f"cwd: '{os.getcwd()}'")
         self.config["browsertime"] = True
 
         # Setup browsertime-specific settings for result parsing
@@ -90,10 +90,10 @@ class Browsertime(Perftest):
             try:
                 if not self.browsertime_video and k == "browsertime_ffmpeg":
                     continue
-                LOG.info("{}: {}".format(k, getattr(self, k)))
-                LOG.info("{}: {}".format(k, os.stat(getattr(self, k))))
+                LOG.info(f"{k}: {getattr(self, k)}")
+                LOG.info(f"{k}: {os.stat(getattr(self, k))}")
             except Exception as e:
-                LOG.info("{}: {}".format(k, e))
+                LOG.info(f"{k}: {e}")
 
     @property
     def crash_directory(self):
@@ -127,7 +127,7 @@ class Browsertime(Perftest):
             with open(userjspath, "w") as userjsfile:
                 userjsfile.writelines(lines)
         except Exception as e:
-            LOG.critical("Exception {} while removing mozprofile delimiters".format(e))
+            LOG.critical(f"Exception {e} while removing mozprofile delimiters")
 
     def set_browser_test_prefs(self, raw_prefs):
         # add test specific preferences
@@ -252,7 +252,7 @@ class Browsertime(Perftest):
         if "youtube-playback" in test["name"] and self.config["is_release_build"]:
             os.environ["MOZ_DISABLE_NONLOCAL_CONNECTIONS"] = "0"
 
-        LOG.info("test: {}".format(test))
+        LOG.info(f"test: {test}")
 
     def run_test_teardown(self, test):
         super(Browsertime, self).run_test_teardown(test)
@@ -520,7 +520,7 @@ class Browsertime(Perftest):
         # This argument can have duplicates of the value "--firefox.env" so we do not need
         # to check if it conflicts
         for var, val in self.config.get("environment", {}).items():
-            browsertime_options.extend(["--firefox.env", "{}={}".format(var, val)])
+            browsertime_options.extend(["--firefox.env", f"{var}={val}"])
 
         # Parse the test commands (if any) from the test manifest
         cmds = evaluate_list_from_string(test.get("test_cmds", "[]"))
@@ -776,7 +776,7 @@ class Browsertime(Perftest):
             pageload_subpath = "raptor/browsertime/pageload_sites.json"
             PAGELOAD_SITES = os.path.join(base_dir, pageload_subpath)
 
-        with open(PAGELOAD_SITES, "r") as f:
+        with open(PAGELOAD_SITES) as f:
             pageload_data = json.load(f)
 
         desktop_sites = pageload_data["desktop"]
@@ -969,11 +969,11 @@ class Browsertime(Perftest):
         if self.debug_mode:
             output_timeout = 2147483647
 
-        LOG.info("timeout (s): {}".format(timeout))
-        LOG.info("browsertime cwd: {}".format(os.getcwd()))
+        LOG.info(f"timeout (s): {timeout}")
+        LOG.info(f"browsertime cwd: {os.getcwd()}")
         LOG.info("browsertime cmd: {}".format(" ".join([str(c) for c in cmd])))
         if self.browsertime_video:
-            LOG.info("browsertime_ffmpeg: {}".format(self.browsertime_ffmpeg))
+            LOG.info(f"browsertime_ffmpeg: {self.browsertime_ffmpeg}")
 
         # browsertime requires ffmpeg on the PATH for `--video=true`.
         # It's easier to configure the PATH here than at the TC level.

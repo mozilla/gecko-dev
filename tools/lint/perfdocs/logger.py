@@ -4,7 +4,7 @@
 import pathlib
 
 
-class PerfDocLogger(object):
+class PerfDocLogger:
     """
     Logger for the PerfDoc tooling. Handles the warnings by outputting
     them into through the StructuredLogger provided by lint.

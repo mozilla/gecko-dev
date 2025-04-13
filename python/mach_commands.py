@@ -182,10 +182,10 @@ def run_python_tests(
     tests = mp.active_tests(filters=filters, disabled=False, python=3, **mozinfo.info)
 
     if not tests:
-        submsg = "for subsuite '{}' ".format(subsuite) if subsuite else ""
+        submsg = f"for subsuite '{subsuite}' " if subsuite else ""
         message = (
             "TEST-UNEXPECTED-FAIL | No tests collected "
-            + "{}(Not in PYTHON_UNITTEST_MANIFESTS?)".format(submsg)
+            + f"{submsg}(Not in PYTHON_UNITTEST_MANIFESTS?)"
         )
         command_context.log(logging.WARN, "python-test", {}, message)
         return 1

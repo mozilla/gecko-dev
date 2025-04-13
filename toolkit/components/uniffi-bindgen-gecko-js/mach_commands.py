@@ -34,7 +34,7 @@ def build_gkrust_uniffi_library(command_context, package_name):
         candidate = os.path.join(out_dir, lib_basename + ext)
         if os.path.exists(candidate):
             return candidate
-    raise Exception("Can't find gkrust_uniffi library in {}".format(out_dir))
+    raise Exception(f"Can't find gkrust_uniffi library in {out_dir}")
 
 
 def build_uniffi_bindgen_gecko_js(command_context):

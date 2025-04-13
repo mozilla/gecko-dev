@@ -69,7 +69,7 @@ def add_extension(files):
     return [f + extension for f in files]
 
 
-class HelperMixin(object):
+class HelperMixin:
     """
     Test that passing filenames to exclude from processing works.
     """
@@ -299,7 +299,7 @@ class TestGeneratedFilePath(HelperMixin, unittest.TestCase):
         rel_path = "a/b/generated"
         with open(g, "wb"):
             pass
-        expected = "s3:bucket:{}/{}:".format(EMPTY_SHA512, rel_path)
+        expected = f"s3:bucket:{EMPTY_SHA512}/{rel_path}:"
         self.assertEqual(
             expected, symbolstore.get_generated_file_s3_path(g, rel_path, "bucket")
         )
@@ -370,7 +370,7 @@ if target_platform() == "WINNT":
                 for arg in args:
                     if arg.startswith("-i:"):
                         global srcsrv_stream
-                        srcsrv_stream = open(os.path.join(cwd, arg[3:]), "r").read()
+                        srcsrv_stream = open(os.path.join(cwd, arg[3:])).read()
                 return 0
 
             mock_call.side_effect = mock_pdbstr
@@ -512,7 +512,7 @@ class TestFileMapping(HelperMixin, unittest.TestCase):
         symbol_file = os.path.join(
             self.symboldir, file_id[1], file_id[0], file_id[1] + ".sym"
         )
-        self.assertEqual(open(symbol_file, "r").read(), expected_output)
+        self.assertEqual(open(symbol_file).read(), expected_output)
 
 
 class TestFunctional(HelperMixin, unittest.TestCase):
@@ -590,7 +590,7 @@ class TestFunctional(HelperMixin, unittest.TestCase):
         )
         symbol_file = os.path.join(self.test_dir, lines[0])
         self.assertTrue(os.path.isfile(symbol_file))
-        symlines = open(symbol_file, "r").readlines()
+        symlines = open(symbol_file).readlines()
         file_lines = [l for l in symlines if l.startswith("FILE")]
 
         def check_hg_path(lines, match):

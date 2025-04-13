@@ -8,7 +8,7 @@ import time
 import mozinfo
 
 
-class TestContext(object):
+class TestContext:
     """Stores context data about the test"""
 
     attrs = [
@@ -74,7 +74,7 @@ class TestContext(object):
         return hash(frozenset([get(a) for a in self.attrs]))
 
 
-class TestResult(object):
+class TestResult:
     """Stores test result data"""
 
     FAIL_RESULTS = [

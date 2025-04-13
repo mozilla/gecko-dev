@@ -433,7 +433,7 @@ class BaseToolchainTest(BaseConfigureTest):
 
 
 def old_gcc_message(old_ver):
-    return "Only GCC 8.1 or newer is supported (found version {}).".format(old_ver)
+    return f"Only GCC 8.1 or newer is supported (found version {old_ver})."
 
 
 class LinuxToolchainTest(BaseToolchainTest):

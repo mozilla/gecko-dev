@@ -29,11 +29,11 @@ assert sys.version_info >= (3, 2), "Requires Python 3.2 or later"
 
 
 def hex_string_for_struct(bytes):
-    return ["0x{:02X}".format(x) for x in bytes]
+    return [f"0x{x:02X}" for x in bytes]
 
 
 def hex_string_human_readable(bytes):
-    return ["{:02X}".format(x) for x in bytes]
+    return [f"{x:02X}" for x in bytes]
 
 
 def nameOIDtoString(oid):
@@ -47,7 +47,7 @@ def nameOIDtoString(oid):
         return "O"
     if oid == NameOID.ORGANIZATIONAL_UNIT_NAME:
         return "OU"
-    raise Exception("Unknown OID: {}".format(oid))
+    raise Exception(f"Unknown OID: {oid}")
 
 
 def print_block(pemData, identifierType="DN", crtshId=None):
@@ -72,18 +72,15 @@ def print_block(pemData, identifierType="DN", crtshId=None):
 
     fingerprint = hex_string_human_readable(cert.fingerprint(hashes.SHA256()))
 
-    dn_parts = [
-        "/{id}={value}".format(id=nameOIDtoString(part.oid), value=part.value)
-        for part in cert.subject
-    ]
+    dn_parts = [f"/{nameOIDtoString(part.oid)}={part.value}" for part in cert.subject]
     distinguished_name = "".join(dn_parts)
 
-    print("// {dn}".format(dn=distinguished_name))
+    print(f"// {distinguished_name}")
     print("// SHA256 Fingerprint: " + ":".join(fingerprint[:16]))
     print("//                     " + ":".join(fingerprint[16:]))
     if crtshId:
-        print("// https://crt.sh/?id={crtsh} (crt.sh ID={crtsh})".format(crtsh=crtshId))
-    print("static const uint8_t {}[{}] = ".format(block_name, len(octets)) + "{")
+        print(f"// https://crt.sh/?id={crtshId} (crt.sh ID={crtshId})")
+    print(f"static const uint8_t {block_name}[{len(octets)}] = " + "{")
 
     while len(octets) > 0:
         print("  " + ", ".join(octets[:13]) + ",")
@@ -140,7 +137,7 @@ if __name__ == "__main__":
                     print_block(pemFile.read(), identifierType=identifierType)
                 )
         except OSError:
-            r = requests.get("https://crt.sh/?d={}".format(certId))
+            r = requests.get(f"https://crt.sh/?d={certId}")
             r.raise_for_status()
             blocks.append(
                 print_block(r.content, crtshId=certId, identifierType=identifierType)
@@ -149,8 +146,8 @@ if __name__ == "__main__":
     print("static const DataAndLength " + args.listname + "[]= {")
     for structName in blocks:
         if len(structName) < 33:
-            print("  { " + "{name}, sizeof({name}) ".format(name=structName) + "},")
+            print("  { " + f"{structName}, sizeof({structName}) " + "},")
         else:
-            print("  { " + "{},".format(structName))
-            print("    sizeof({})".format(structName) + " },")
+            print("  { " + f"{structName},")
+            print(f"    sizeof({structName})" + " },")
     print("};")

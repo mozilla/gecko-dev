@@ -91,7 +91,7 @@ def writeCertspecForServerLocations(fd):
     fd.write(
         "issuer:printableString/CN=Temporary Certificate Authority/O=Mozilla Testing/OU=Profile Guided Optimization\n"  # NOQA: E501
     )
-    fd.write("subject:{}\n".format(SAN[0]))
+    fd.write(f"subject:{SAN[0]}\n")
     fd.write("extension:subjectAlternativeName:{}\n".format(",".join(SAN)))
 
 
@@ -100,7 +100,7 @@ def constructCertDatabase(build, srcDir):
         certutil = build.get_binary_path(what="certutil")
         pk12util = build.get_binary_path(what="pk12util")
     except BinaryNotFoundException as e:
-        print("{}\n\n{}\n".format(e, e.help()))
+        print(f"{e}\n\n{e.help()}\n")
         return 1
     openssl = shutil.which("openssl")
     pycert = os.path.join(build.topsrcdir, "security", "manager", "tools", "pycert.py")
@@ -124,9 +124,7 @@ def constructCertDatabase(build, srcDir):
         # Write a certspec for the "server-locations.txt" file to that temporary directory
         pgoserver_certspec = os.path.join(pemfolder, "pgoserver.certspec")
         if os.path.exists(pgoserver_certspec):
-            raise Exception(
-                "{} already exists, which isn't allowed".format(pgoserver_certspec)
-            )
+            raise Exception(f"{pgoserver_certspec} already exists, which isn't allowed")
         with open(pgoserver_certspec, "w") as fd:
             writeCertspecForServerLocations(fd)
 
@@ -134,11 +132,11 @@ def constructCertDatabase(build, srcDir):
         for root, dirs, files in os.walk(pemfolder):
             for certspec in [i for i in files if i.endswith(".certspec")]:
                 name = certspec.split(".certspec")[0]
-                pem = os.path.join(pemfolder, "{}.cert.pem".format(name))
+                pem = os.path.join(pemfolder, f"{name}.cert.pem")
 
-                print("Generating public certificate {} (pem={})".format(name, pem))
+                print(f"Generating public certificate {name} (pem={pem})")
 
-                with open(os.path.join(root, certspec), "r") as certspec_file:
+                with open(os.path.join(root, certspec)) as certspec_file:
                     certspec_data = certspec_file.read()
                     with open(pem, "w") as pem_file:
                         status = runUtil(
@@ -172,14 +170,14 @@ def constructCertDatabase(build, srcDir):
                 key_type = parts[1]
                 if key_type not in ["ca", "client", "server"]:
                     raise Exception(
-                        "{}: keyspec filenames must be of the form XXX.client.keyspec "
-                        "or XXX.ca.keyspec (key_type={})".format(keyspec, key_type)
+                        f"{keyspec}: keyspec filenames must be of the form XXX.client.keyspec "
+                        f"or XXX.ca.keyspec (key_type={key_type})"
                     )
-                key_pem = os.path.join(pemfolder, "{}.key.pem".format(name))
+                key_pem = os.path.join(pemfolder, f"{name}.key.pem")
 
-                print("Generating private key {} (pem={})".format(name, key_pem))
+                print(f"Generating private key {name} (pem={key_pem})")
 
-                with open(os.path.join(root, keyspec), "r") as keyspec_file:
+                with open(os.path.join(root, keyspec)) as keyspec_file:
                     keyspec_data = keyspec_file.read()
                     with open(key_pem, "w") as pem_file:
                         status = runUtil(
@@ -188,17 +186,15 @@ def constructCertDatabase(build, srcDir):
                         if status:
                             return status
 
-                cert_pem = os.path.join(pemfolder, "{}.cert.pem".format(name))
+                cert_pem = os.path.join(pemfolder, f"{name}.cert.pem")
                 if not os.path.exists(cert_pem):
                     raise Exception(
-                        "There has to be a corresponding certificate named {} for "
-                        "the keyspec {}".format(cert_pem, keyspec)
+                        f"There has to be a corresponding certificate named {cert_pem} for "
+                        f"the keyspec {keyspec}"
                     )
 
-                p12 = os.path.join(pemfolder, "{}.key.p12".format(name))
-                print(
-                    "Converting private key {} to PKCS12 (p12={})".format(key_pem, p12)
-                )
+                p12 = os.path.join(pemfolder, f"{name}.key.p12")
+                print(f"Converting private key {key_pem} to PKCS12 (p12={p12})")
                 status = runUtil(
                     openssl,
                     [
@@ -219,7 +215,7 @@ def constructCertDatabase(build, srcDir):
                 if status:
                     return status
 
-                print("Importing private key {} to database".format(key_pem))
+                print(f"Importing private key {key_pem} to database")
                 status = runUtil(
                     pk12util,
                     ["-i", p12, "-d", srcDir, "-w", pwfile.name, "-k", pwfile.name],
@@ -228,16 +224,14 @@ def constructCertDatabase(build, srcDir):
                     return status
 
                 if key_type == "ca":
-                    shutil.copyfile(
-                        cert_pem, os.path.join(srcDir, "{}.ca".format(name))
-                    )
+                    shutil.copyfile(cert_pem, os.path.join(srcDir, f"{name}.ca"))
                 elif key_type == "client":
-                    shutil.copyfile(p12, os.path.join(srcDir, "{}.client".format(name)))
+                    shutil.copyfile(p12, os.path.join(srcDir, f"{name}.client"))
                 elif key_type == "server":
                     pass  # Nothing to do for server keys
                 else:
                     raise Exception(
-                        "State error: Unknown keyspec key_type: {}".format(key_type)
+                        f"State error: Unknown keyspec key_type: {key_type}"
                     )
 
     return 0

@@ -29,7 +29,7 @@ PASS = "PASS"
 TEST_TYPES = [EQEQ, NOT_EQ]
 
 
-class ListManifestParser(object):
+class ListManifestParser:
     """
     Meta Manifest Parser is the main class for the lmp program.
     """

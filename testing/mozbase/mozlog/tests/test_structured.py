@@ -12,7 +12,7 @@ from mozlog import commandline, formatters, handlers, reader, stdadapter, struct
 from six import StringIO
 
 
-class TestHandler(object):
+class TestHandler:
     def __init__(self):
         self.items = []
 

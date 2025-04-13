@@ -42,7 +42,7 @@ class TestDiskInfo(unittest.TestCase):
         self.assertTrue(di.total == 0)
 
 
-class MockStatvfs(object):
+class MockStatvfs:
     def __init__(self):
         self.f_bsize = 0
         self.f_frsize = 0

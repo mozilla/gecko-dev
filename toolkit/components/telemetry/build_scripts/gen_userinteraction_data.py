@@ -57,7 +57,7 @@ def write_user_interaction_table(user_interactions, output, string_table):
 
     for u in user_interactions:
         name_index = string_table.stringIndex(u.label)
-        print("  UserInteractionInfo({}),".format(name_index), file=output)
+        print(f"  UserInteractionInfo({name_index}),", file=output)
     print("};", file=output)
 
     static_assert(

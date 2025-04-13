@@ -250,7 +250,7 @@ class AWSY(TestingMixin, MercurialScript, TooltoolMixin, CodeCoverageMixin):
         cmd.append("--profile=%s" % (os.path.join(dirs["abs_work_dir"], "profile")))
         if not self.config["e10s"]:
             cmd.append("--disable-e10s")
-        cmd.extend(["--setpref={}".format(p) for p in self.config["extra_prefs"]])
+        cmd.extend([f"--setpref={p}" for p in self.config["extra_prefs"]])
         cmd.append(
             "--gecko-log=%s" % os.path.join(dirs["abs_blob_upload_dir"], "gecko.log")
         )

@@ -6,7 +6,7 @@ import os
 from time import time
 
 
-class TestLogger(object):
+class TestLogger:
     def __init__(self, source, threadname="main"):
         self.template = {
             "source": source,

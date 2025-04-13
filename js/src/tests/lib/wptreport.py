@@ -12,7 +12,7 @@ from time import time
 from wptrunner.formatters.wptreport import WptreportFormatter
 
 
-class WptreportHandler(object):
+class WptreportHandler:
     def __init__(self, out):
         """
         Initialize the WptreportHandler handler.

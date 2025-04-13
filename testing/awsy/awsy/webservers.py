@@ -17,7 +17,7 @@ import mozhttpd
 here = os.path.dirname(os.path.realpath(__file__))
 
 
-class WebServers(object):
+class WebServers:
     def __init__(self, host, port, docroot, count):
         self.host = host
         self.port = port
@@ -39,15 +39,15 @@ class WebServers(object):
             except OSError as error:
                 if isinstance(error, socket.error):
                     if error.errno == 98:
-                        print("port {} is in use.".format(port))
+                        print(f"port {port} is in use.")
                     else:
-                        print("port {} error {}".format(port, error))
+                        print(f"port {port} error {error}")
                 elif isinstance(error, str):
-                    print("port {} error {}".format(port, error))
+                    print(f"port {port} error {error}")
                 self.servers.pop()
                 num_errors += 1
             except Exception as error:
-                print("port {} error {}".format(port, error))
+                print(f"port {port} error {error}")
                 self.servers.pop()
                 num_errors += 1
 

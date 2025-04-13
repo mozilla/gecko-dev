@@ -82,9 +82,7 @@ def retrier(attempts=5, sleeptime=10, max_sleeptime=300, sleepscale=1.5, jitter=
     jitter = jitter or 0  # py35 barfs on the next line if jitter is None
     if jitter > sleeptime:
         # To prevent negative sleep times
-        raise Exception(
-            "jitter ({}) must be less than sleep time ({})".format(jitter, sleeptime)
-        )
+        raise Exception(f"jitter ({jitter}) must be less than sleep time ({sleeptime})")
 
     sleeptime_real = sleeptime
     for _ in range(attempts):
@@ -271,9 +269,7 @@ def prepare_header_val(val):
 
     if not REQUEST_HEADER_ATTRIBUTE_CHARS.match(val):
         raise BadHeaderValue(  # pragma: no cover
-            "header value value={val} contained an illegal character".format(
-                val=repr(val)
-            )
+            f"header value value={repr(val)} contained an illegal character"
         )
 
     return val
@@ -301,9 +297,7 @@ def calculate_payload_hash(algorithm, payload, content_type):  # pragma: no cove
     for p in parts:
         p_hash.update(p)
 
-    log.debug(
-        "calculating payload hash from:\n{parts}".format(parts=pprint.pformat(parts))
-    )
+    log.debug(f"calculating payload hash from:\n{pprint.pformat(parts)}")
 
     return base64.b64encode(p_hash.digest())
 
@@ -318,7 +312,7 @@ def validate_taskcluster_credentials(credentials):
         credentials["accessToken"]
     except KeyError:  # pragma: no cover
         etype, val, tb = sys.exc_info()
-        raise InvalidCredentials("{etype}: {val}".format(etype=etype, val=val))
+        raise InvalidCredentials(f"{etype}: {val}")
 
 
 def normalize_header_attr(val):
@@ -372,7 +366,7 @@ def calculate_mac(
     normalized = normalize_string(
         mac_type, timestamp, nonce, method, name, host, port, content_hash
     )
-    log.debug("normalized resource for mac calc: {norm}".format(norm=normalized))
+    log.debug(f"normalized resource for mac calc: {normalized}")
     digestmod = getattr(hashlib, algorithm)
 
     if not isinstance(normalized, bytes):
@@ -418,10 +412,10 @@ def make_taskcluster_header(credentials, req):
         content_hash,
     )
 
-    header = 'Hawk mac="{}"'.format(prepare_header_val(mac))
+    header = f'Hawk mac="{prepare_header_val(mac)}"'
 
     if content_hash:  # pragma: no cover
-        header = '{}, hash="{}"'.format(header, prepare_header_val(content_hash))
+        header = f'{header}, hash="{prepare_header_val(content_hash)}"'
 
     header = '{header}, id="{id}", ts="{ts}", nonce="{nonce}"'.format(
         header=header,
@@ -430,12 +424,12 @@ def make_taskcluster_header(credentials, req):
         nonce=prepare_header_val(nonce),
     )
 
-    log.debug("Hawk header for URL={} method={}: {}".format(url, method, header))
+    log.debug(f"Hawk header for URL={url} method={method}: {header}")
 
     return header
 
 
-class FileRecord(object):
+class FileRecord:
     def __init__(
         self,
         filename,
@@ -628,7 +622,7 @@ class FileRecordJSONDecoder(json.JSONDecoder):
         return rv
 
 
-class Manifest(object):
+class Manifest:
     valid_formats = ("json",)
 
     def __init__(self, file_records=None):
@@ -741,7 +735,7 @@ def open_manifest(manifest_file):
     """I know how to take a filename and load it into a Manifest object"""
     if os.path.exists(manifest_file):
         manifest = Manifest()
-        with builtins.open(manifest_file, "r") as f:
+        with builtins.open(manifest_file) as f:
             manifest.load(f)
             log.debug("loaded manifest from file '%s'" % manifest_file)
         return manifest
@@ -1704,9 +1698,9 @@ Supported commands are:
         tooltool_host = os.environ.get("TOOLTOOL_HOST", "tooltool.mozilla-releng.net")
         taskcluster_proxy_url = os.environ.get("TASKCLUSTER_PROXY_URL")
         if taskcluster_proxy_url:
-            tooltool_url = "{}/{}".format(taskcluster_proxy_url, tooltool_host)
+            tooltool_url = f"{taskcluster_proxy_url}/{tooltool_host}"
         else:
-            tooltool_url = "https://{}".format(tooltool_host)
+            tooltool_url = f"https://{tooltool_host}"
 
         options_obj.base_url = [tooltool_url]
 

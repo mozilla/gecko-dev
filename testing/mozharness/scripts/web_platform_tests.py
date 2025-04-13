@@ -417,7 +417,7 @@ class WebPlatformTest(TestingMixin, MercurialScript, CodeCoverageMixin, AndroidM
             cmd.append("--test-type=%s" % test_type)
 
         if c["extra_prefs"]:
-            cmd.extend(["--setpref={}".format(p) for p in c["extra_prefs"]])
+            cmd.extend([f"--setpref={p}" for p in c["extra_prefs"]])
 
         if c["disable_fission"]:
             cmd.append("--disable-fission")
@@ -461,11 +461,11 @@ class WebPlatformTest(TestingMixin, MercurialScript, CodeCoverageMixin, AndroidM
                 if not os.path.exists(path):
                     self.critical("Unable to locate web-platform-test groups file.")
 
-                cmd.append("--test-groups={}".format(path))
+                cmd.append(f"--test-groups={path}")
 
                 for key in mozharness_test_paths.keys():
                     if "web-platform" not in key:
-                        self.info("Ignoring test_paths for {} harness".format(key))
+                        self.info(f"Ignoring test_paths for {key} harness")
                         continue
                     paths = mozharness_test_paths.get(key, [])
                     for p in paths:
@@ -473,7 +473,7 @@ class WebPlatformTest(TestingMixin, MercurialScript, CodeCoverageMixin, AndroidM
                             # Assume this is a filesystem path rather than a test id
                             path = os.path.relpath(p, "testing/web-platform")
                             if ".." in path:
-                                self.fatal("Invalid WPT path: {}".format(path))
+                                self.fatal(f"Invalid WPT path: {path}")
                             path = os.path.join(dirs["abs_wpttest_dir"], path)
                         else:
                             path = p

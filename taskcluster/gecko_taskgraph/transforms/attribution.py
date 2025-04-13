@@ -65,7 +65,7 @@ def mac_attribution(config, jobs):
                     {
                         "input": "/builds/worker/fetches/target.dmg",
                         "output": "/builds/worker/artifacts/target.dmg",
-                        "attribution": "dlsource={}".format(dlsource),
+                        "attribution": f"dlsource={dlsource}",
                     }
                 ],
             )

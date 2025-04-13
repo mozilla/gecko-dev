@@ -98,9 +98,7 @@ def generate_test_certs(command_context, specifications):
             output_is_binary = True
         else:
             raise UserError(
-                "'{}' is not a .certspec, .keyspec, or .pkcs12spec file".format(
-                    specification
-                )
+                f"'{specification}' is not a .certspec, .keyspec, or .pkcs12spec file"
             )
         run_module_main_on(module, os.path.abspath(specification), output_is_binary)
     return 0

@@ -20,7 +20,7 @@ from talos.utils import TalosError
 LOG = get_proxy_logger()
 
 
-class ProcessContext(object):
+class ProcessContext:
     """
     Store useful results of the browser execution.
     """
@@ -44,10 +44,8 @@ class ProcessContext(object):
         kids = parentProc and parentProc.is_running() and parentProc.children()
         if self.is_launcher and kids and len(kids) == 1 and kids[0].is_running():
             LOG.debug(
-                (
-                    "Launcher process {} detected. Terminating parent"
-                    " process {} instead."
-                ).format(parentProc, kids[0])
+                f"Launcher process {parentProc} detected. Terminating parent"
+                f" process {kids[0]} instead."
             )
             parentProc = kids[0]
 
@@ -71,7 +69,7 @@ class ProcessContext(object):
                 return parentProc.wait(3)
 
 
-class Reader(object):
+class Reader:
     def __init__(self):
         self.output = []
         self.got_end_timestamp = False
@@ -110,7 +108,7 @@ def run_browser(
     debugger=None,
     debugger_args=None,
     utility_path=None,
-    **kwargs
+    **kwargs,
 ):
     """
     Run the browser using the given `command`.
@@ -185,14 +183,14 @@ def run_browser(
             proc.wait(wait_for_quit_timeout)
             if proc.poll() is None:
                 LOG.info(
-                    "Browser shutdown timed out after {0} seconds, killing"
-                    " process.".format(wait_for_quit_timeout)
+                    f"Browser shutdown timed out after {wait_for_quit_timeout} seconds, killing"
+                    " process."
                 )
                 dump_screen_on_failure(utility_path)
                 kill_and_get_minidump(context, minidump_dir)
                 raise TalosError(
-                    "Browser shutdown timed out after {0} seconds, killed"
-                    " process.".format(wait_for_quit_timeout)
+                    f"Browser shutdown timed out after {wait_for_quit_timeout} seconds, killed"
+                    " process."
                 )
         elif reader.got_timeout:
             dump_screen_on_failure(utility_path)
@@ -279,10 +277,8 @@ def kill_and_get_minidump(context, minidump_dir):
         kids = context.process.children()
         if len(kids) == 1:
             LOG.debug(
-                (
-                    "Launcher process {} detected. Killing parent"
-                    " process {} instead."
-                ).format(proc, kids[0])
+                f"Launcher process {proc} detected. Killing parent"
+                f" process {kids[0]} instead."
             )
             proc = kids[0]
     LOG.debug("Killing %s and writing a minidump file" % proc)

@@ -37,13 +37,11 @@ class ChromeTrace(RaptorProfiling):
         self.profile_arcname = Path(
             self.upload_dir, "profile_{0}.zip".format(self.test_config["name"])
         )
-        LOG.info("Clearing archive {0}".format(self.profile_arcname))
+        LOG.info(f"Clearing archive {self.profile_arcname}")
         mozfile.remove(self.profile_arcname)
 
         LOG.info(
-            "Activating chrome tracing! temp profile dir: {0}".format(
-                self.temp_profile_dir
-            )
+            f"Activating chrome tracing! temp profile dir: {self.temp_profile_dir}"
         )
 
     @property

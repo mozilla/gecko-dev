@@ -42,7 +42,7 @@ from .. import schedules
 from ..testing import read_manifestparser_manifest, read_reftest_manifest
 
 
-class ContextDerivedValue(object):
+class ContextDerivedValue:
     """Classes deriving from this one receive a special treatment in a
     Context. See Context documentation.
     """
@@ -781,7 +781,7 @@ def Enum(*values):
     assert len(values)
     default = values[0]
 
-    class EnumClass(object):
+    class EnumClass:
         def __new__(cls, value=None):
             if value is None:
                 return default
@@ -1037,7 +1037,7 @@ def ContextDerivedTypedRecord(*fields):
     return _TypedRecord
 
 
-class Schedules(object):
+class Schedules:
     """Similar to a ContextDerivedTypedRecord, but with different behavior
     for the properties:
 

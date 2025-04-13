@@ -23,7 +23,7 @@ def toolchain_task_definitions():
         if isinstance(aliases, str):
             aliases = [aliases]
         for alias in aliases:
-            aliased["toolchain-{}".format(alias)] = t
+            aliased[f"toolchain-{alias}"] = t
     toolchains.update(aliased)
 
     return toolchains

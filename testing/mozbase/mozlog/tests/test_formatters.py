@@ -290,10 +290,10 @@ FORMATS = {
 def ids(test):
     ids = []
     for value in FORMATS[test]:
-        args = ", ".join(["{}={}".format(k, v) for k, v in value[1].items()])
+        args = ", ".join([f"{k}={v}" for k, v in value[1].items()])
         if args:
-            args = "-{}".format(args)
-        ids.append("{}{}".format(value[0], args))
+            args = f"-{args}"
+        ids.append(f"{value[0]}{args}")
     return ids
 
 

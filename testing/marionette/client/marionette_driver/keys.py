@@ -18,7 +18,7 @@
 # limitations under the License.
 
 
-class Keys(object):
+class Keys:
     NULL = "\ue000"
     CANCEL = "\ue001"  # ^break
     HELP = "\ue002"

@@ -73,7 +73,7 @@ def run(
         return
 
     if not os.path.isfile(history_path):
-        print("error: history file not found: {}".format(history_path))
+        print(f"error: history file not found: {history_path}")
         return 1
 
     with open(history_path) as fh:
@@ -124,7 +124,7 @@ def run(
 
                     num_hidden_tasks = len(tasks) - len(shown_tasks)
                     if num_hidden_tasks > 0:
-                        print("{}... and {} more".format(indent, num_hidden_tasks))
+                        print(f"{indent}... and {num_hidden_tasks} more")
 
                 if list_tasks and env:
                     for line in ("env: " + json.dumps(env, indent=2)).splitlines():
@@ -136,12 +136,7 @@ def run(
                     ).splitlines():
                         print("    " + line)
             else:
-                print(
-                    "{index}. {msg}".format(
-                        index=i,
-                        msg=msg,
-                    )
-                )
+                print(f"{i}. {msg}")
 
         return
 

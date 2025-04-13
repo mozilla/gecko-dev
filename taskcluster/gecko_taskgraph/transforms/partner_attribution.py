@@ -90,9 +90,7 @@ def add_command_arguments(config, tasks):
                 task["fetches"][upstream_label] = [
                     {
                         "artifact": upstream_artifact,
-                        "dest": "{platform}/{locale}".format(
-                            platform=platform, locale=locale
-                        ),
+                        "dest": f"{platform}/{locale}",
                         "extract": False,
                         "verify-hash": True,
                     }
@@ -119,20 +117,14 @@ def _get_attributed_build_configuration(task, partner_config, platform, locale):
             locale,
         ),
         "input_path": _get_input_path(stage_platform, locale, artifact_file_name),
-        "output_path": "/builds/worker/artifacts/{}".format(output_artifact),
+        "output_path": f"/builds/worker/artifacts/{output_artifact}",
         "release_artifact": output_artifact,
         "upstream_label": _get_upstream_task_label(platform, locale),
     }
 
 
 def _get_input_path(stage_platform, locale, artifact_file_name):
-    return (
-        "/builds/worker/fetches/{stage_platform}/{locale}/{artifact_file_name}".format(
-            stage_platform=stage_platform,
-            locale=locale,
-            artifact_file_name=artifact_file_name,
-        )
-    )
+    return f"/builds/worker/fetches/{stage_platform}/{locale}/{artifact_file_name}"
 
 
 def _get_output_path(
@@ -154,42 +146,28 @@ def _get_artifact_file_name(platform):
     elif platform.startswith("macos"):
         return "target.dmg"
     else:
-        raise NotImplementedError(
-            'Case for platform "{}" is not implemented'.format(platform)
-        )
+        raise NotImplementedError(f'Case for platform "{platform}" is not implemented')
 
 
 def _get_upstream_task_label(platform, locale):
     if platform.startswith("win"):
         if locale == "en-US":
-            upstream_label = "repackage-signing-{platform}/opt".format(
-                platform=platform
-            )
+            upstream_label = f"repackage-signing-{platform}/opt"
         else:
-            upstream_label = "repackage-signing-l10n-{locale}-{platform}/opt".format(
-                locale=locale, platform=platform
-            )
+            upstream_label = f"repackage-signing-l10n-{locale}-{platform}/opt"
     elif platform.startswith("macos"):
         if locale == "en-US":
-            upstream_label = "repackage-{platform}/opt".format(platform=platform)
+            upstream_label = f"repackage-{platform}/opt"
         else:
-            upstream_label = "repackage-l10n-{locale}-{platform}/opt".format(
-                locale=locale, platform=platform
-            )
+            upstream_label = f"repackage-l10n-{locale}-{platform}/opt"
     else:
-        raise NotImplementedError(
-            'Case for platform "{}" is not implemented'.format(platform)
-        )
+        raise NotImplementedError(f'Case for platform "{platform}" is not implemented')
 
     return upstream_label
 
 
 def _get_upstream_artifact_path(artifact_file_name, locale):
-    return (
-        artifact_file_name
-        if locale == "en-US"
-        else "{}/{}".format(locale, artifact_file_name)
-    )
+    return artifact_file_name if locale == "en-US" else f"{locale}/{artifact_file_name}"
 
 
 def _build_attribution_config(task, task_platforms, attributions):
@@ -205,5 +183,5 @@ def _build_attribution_config(task, task_platforms, attributions):
         )
     else:
         raise NotImplementedError(
-            "Case for platforms {} is not implemented".format(task_platforms)
+            f"Case for platforms {task_platforms} is not implemented"
         )

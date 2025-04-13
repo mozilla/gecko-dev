@@ -85,7 +85,7 @@ def load_moz_yaml(filename, verify=True, require_license_file=True):
 
     # Load and parse YAML.
     try:
-        with open(filename, "r") as f:
+        with open(filename) as f:
             manifest = yaml.load(f, Loader=yaml.BaseLoader)
     except OSError as e:
         if e.errno == errno.ENOENT:
@@ -409,7 +409,7 @@ def _schema_1_additional(filename, manifest, require_license_file=True):
                     )
 
     # Check for a simple YAML file
-    with open(filename, "r") as f:
+    with open(filename) as f:
         has_schema = False
         for line in f.readlines():
             m = RE_SECTION(line)
@@ -437,7 +437,7 @@ def _schema_1_transform(manifest):
     return manifest
 
 
-class UpdateActions(object):
+class UpdateActions:
     """Voluptuous validator which verifies the update actions(s) are valid."""
 
     def __call__(self, values):
@@ -494,7 +494,7 @@ class UpdateActions(object):
         return "UpdateActions"
 
 
-class UpdatebotTasks(object):
+class UpdatebotTasks:
     """Voluptuous validator which verifies the updatebot task(s) are valid."""
 
     def __call__(self, values):
@@ -525,7 +525,7 @@ class UpdatebotTasks(object):
         return "UpdatebotTasks"
 
 
-class License(object):
+class License:
     """Voluptuous validator which verifies the license(s) are valid as per our
     allow list."""
 

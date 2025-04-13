@@ -92,7 +92,7 @@ def fixture_ping_server():
     server.stop()
 
 
-class Browser(object):
+class Browser:
     def __init__(self, marionette, ping_server):
         self.marionette = marionette
         self.ping_server = ping_server
@@ -177,7 +177,7 @@ class Browser(object):
             addons = Addons(self.marionette)
             addon_id = addons.install(addon_path, temp=True)
         except MarionetteException as e:
-            pytest.fail("{} - Error installing addon: {} - ".format(e.cause, e))
+            pytest.fail(f"{e.cause} - Error installing addon: {e} - ")
         else:
             self.addon_ids.append(addon_id)
 
@@ -208,7 +208,7 @@ class Browser(object):
         except Exception:
             exc_type, exc_value, exc_traceback = sys.exc_info()
             raise exc_type(
-                "Failed to trigger opening a new tab: {}".format(exc_value)
+                f"Failed to trigger opening a new tab: {exc_value}"
             ).with_traceback(exc_traceback)
         else:
             Wait(self.marionette).until(
@@ -269,7 +269,7 @@ def fixture_browser(marionette, ping_server):
     browser.quit()
 
 
-class Helpers(object):
+class Helpers:
     def __init__(self, ping_server, marionette):
         self.ping_server = ping_server
         self.marionette = marionette
@@ -309,7 +309,7 @@ class Helpers(object):
         try:
             Wait(self.marionette, 60).until(wait_func)
         except Exception as e:
-            pytest.fail("Error waiting for ping: {}".format(e))
+            pytest.fail(f"Error waiting for ping: {e}")
 
         return filtered_pings[:count]
 

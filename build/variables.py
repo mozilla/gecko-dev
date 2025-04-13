@@ -14,7 +14,7 @@ def get_buildid():
     import buildconfig
 
     path = os.path.join(buildconfig.topobjdir, "buildid.h")
-    _define, _MOZ_BUILDID, buildid = open(path, "r", encoding="utf-8").read().split()
+    _define, _MOZ_BUILDID, buildid = open(path, encoding="utf-8").read().split()
     return buildid
 
 

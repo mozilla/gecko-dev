@@ -6,7 +6,7 @@
 __all__ = ["WebAuthn"]
 
 
-class WebAuthn(object):
+class WebAuthn:
     def __init__(self, marionette):
         self.marionette = marionette
 

@@ -18,7 +18,7 @@ import six
 from talos import filter, output, utils
 
 
-class TalosResults(object):
+class TalosResults:
     """Container class for Talos results"""
 
     def __init__(self):
@@ -59,7 +59,7 @@ class TalosResults(object):
             raise e
 
 
-class TestResults(object):
+class TestResults:
     """container object for all test results across cycles"""
 
     def __init__(self, test_config, global_counters=None, framework=None):
@@ -111,7 +111,7 @@ class TestResults(object):
             self.all_counter_results.append(counter_results)
 
 
-class Results(object):
+class Results:
     def filter(self, testname, filters):
         """
         filter the results set;
@@ -283,7 +283,7 @@ class PageloaderResults(Results):
         return page
 
 
-class BrowserLogResults(object):
+class BrowserLogResults:
     """parse the results from the browser log output"""
 
     # tokens for the report types
@@ -524,7 +524,7 @@ class BrowserLogResults(object):
             filename = "etl_output_session_restore_stats.csv"
             # This file is a csv but it only contains one field, so we'll just
             # obtain the value by converting the second line in the file.
-            with open(filename, "r") as contents:
+            with open(filename) as contents:
                 lines = contents.read().splitlines()
                 if len(lines) > 1:
                     value = float(lines[1].strip())

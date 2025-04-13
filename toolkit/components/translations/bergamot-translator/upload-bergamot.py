@@ -89,7 +89,7 @@ class RemoteSettings:
         self.server: str = server
         self.bearer_token: str = bearer_token
 
-        with open(MOZ_YAML_PATH, "r", encoding="utf8") as file:
+        with open(MOZ_YAML_PATH, encoding="utf8") as file:
             moz_yaml_text = file.read()
         self.moz_yaml = yaml.safe_load(moz_yaml_text)
 
@@ -203,7 +203,7 @@ class RemoteSettings:
             print_error("Some of the required record data is not in the moz.yaml file.")
             sys.exit(1)
 
-        with open(BROWSER_VERSION_PATH, "r", encoding="utf8") as file:
+        with open(BROWSER_VERSION_PATH, encoding="utf8") as file:
             fx_release = file.read().strip()
 
         files = [

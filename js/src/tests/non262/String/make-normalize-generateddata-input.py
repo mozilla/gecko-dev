@@ -14,7 +14,7 @@ sep_pat = re.compile(" +")
 
 
 def to_code_list(codes):
-    return "[" + ", ".join("0x{0}".format(x) for x in re.split(sep_pat, codes)) + "]"
+    return "[" + ", ".join(f"0x{x}" for x in re.split(sep_pat, codes)) + "]"
 
 
 def convert(dir):
@@ -29,8 +29,8 @@ def convert(dir):
 
     part_opened = False
     not_empty = False
-    with open("{dir}/{path}".format(dir=dir, path=txt_path), "r") as f:
-        with open("{dir}/{path}".format(dir=dir, path=js_path), "w") as outf:
+    with open(f"{dir}/{txt_path}") as f:
+        with open(f"{dir}/{js_path}", "w") as outf:
             for line in f:
                 m = test_pat.search(line)
                 if m:
@@ -55,24 +55,20 @@ def convert(dir):
                     part = m.group(2)
                     if part_opened:
                         outf.write("\n];\n")
-                    outf.write("/* {desc} */\n".format(desc=desc))
-                    outf.write("var tests_part{part} = [".format(part=part))
+                    outf.write(f"/* {desc} */\n")
+                    outf.write(f"var tests_part{part} = [")
                     part_opened = True
                     not_empty = False
                     continue
                 m = ver_pat.search(line)
                 if m:
                     ver = m.group(1)
-                    outf.write(
-                        "/* created from NormalizationTest-{ver}.txt */\n".format(
-                            ver=ver
-                        )
-                    )
+                    outf.write(f"/* created from NormalizationTest-{ver}.txt */\n")
                     continue
                 m = ignore_pat.search(line)
                 if m:
                     continue
-                print("Unknown line: {0}".format(line), file=sys.stderr)
+                print(f"Unknown line: {line}", file=sys.stderr)
             if part_opened:
                 outf.write("\n];\n")
 

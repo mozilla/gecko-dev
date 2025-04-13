@@ -84,12 +84,12 @@ def update_glean_tags(command_context):
     for bug_component in bug_components:
         product = bug_component.product.strip()
         component = bug_component.component.strip()
-        tags["{} :: {}".format(product, component)] = {
+        tags[f"{product} :: {component}"] = {
             "description": "The Bugzilla component which applies to this object."
         }
 
     open(tags_filename, "w").write(
-        "{}\n{}\n\n".format(LICENSE_HEADER, GENERATED_HEADER)
+        f"{LICENSE_HEADER}\n{GENERATED_HEADER}\n\n"
         + yaml.dump(tags, width=78, explicit_start=True, line_break="\n")
     )
 

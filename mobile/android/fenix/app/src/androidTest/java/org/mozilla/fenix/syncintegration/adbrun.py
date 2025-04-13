@@ -4,7 +4,7 @@ import os
 logging.getLogger(__name__).addHandler(logging.NullHandler())
 
 
-class ADBrun(object):
+class ADBrun:
     binary = "adbrun"
     logger = logging.getLogger()
 

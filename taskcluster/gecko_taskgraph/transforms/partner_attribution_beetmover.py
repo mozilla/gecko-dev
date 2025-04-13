@@ -124,7 +124,7 @@ def generate_upstream_artifacts(attribution_task_kind, artifacts, partner_path):
     for artifact, partner, subpartner, platform, locale in artifacts:
         upstream_artifacts.append(
             {
-                "taskId": {"task-reference": "<{}>".format(attribution_task_kind)},
+                "taskId": {"task-reference": f"<{attribution_task_kind}>"},
                 "taskType": "repackage",
                 "paths": [artifact],
                 "locale": partner_path.format(

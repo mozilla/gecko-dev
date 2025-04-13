@@ -48,7 +48,7 @@ if isWin:
     )
 
 
-class ProcessHandlerMixin(object):
+class ProcessHandlerMixin:
     """
     A class for launching and manipulating local processes.
 
@@ -154,7 +154,7 @@ class ProcessHandlerMixin(object):
             if not MOZPROCESS_DEBUG:
                 return
             thread = threading.current_thread().name
-            print("DBG::MOZPROC PID:{} ({}) | {}".format(self.pid, thread, msg))
+            print(f"DBG::MOZPROC PID:{self.pid} ({thread}) | {msg}")
 
         def __del__(self):
             if isWin:
@@ -763,7 +763,7 @@ falling back to not using job objects for managing child processes""",
         processStderrLine=(),
         onTimeout=(),
         onFinish=(),
-        **kwargs
+        **kwargs,
     ):
         self.cmd = cmd
         self.args = args
@@ -820,7 +820,7 @@ falling back to not using job objects for managing child processes""",
         if not MOZPROCESS_DEBUG:
             return
         cmd = self.cmd.split(os.sep)[-1:]
-        print("DBG::MOZPROC ProcessHandlerMixin {} | {}".format(cmd, msg))
+        print(f"DBG::MOZPROC ProcessHandlerMixin {cmd} | {msg}")
 
     @property
     def timedOut(self):
@@ -1063,7 +1063,7 @@ class CallableList(list):
         return CallableList(list.__add__(self, lst))
 
 
-class ProcessReader(object):
+class ProcessReader:
     def __init__(
         self,
         stdout_callback=None,
@@ -1086,7 +1086,7 @@ class ProcessReader(object):
     def debug(self, msg):
         if not MOZPROCESS_DEBUG:
             return
-        print("DBG::MOZPROC ProcessReader | {}".format(msg))
+        print(f"DBG::MOZPROC ProcessReader | {msg}")
 
     def _create_stream_reader(self, name, stream, queue, callback):
         thread = threading.Thread(
@@ -1185,7 +1185,7 @@ class ProcessReader(object):
 # these should be callables that take the output line
 
 
-class StoreOutput(object):
+class StoreOutput:
     """accumulate stdout"""
 
     def __init__(self):
@@ -1195,7 +1195,7 @@ class StoreOutput(object):
         self.output.append(line)
 
 
-class StreamOutput(object):
+class StreamOutput:
     """pass output to a stream and flush"""
 
     def __init__(self, stream, text=True):

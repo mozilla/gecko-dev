@@ -19,7 +19,7 @@ import six
 EVENT_ID_FIREFOX_WINDOW_RESTORED = "{917B96B1-ECAD-4DAB-A760-8D49027748AE}"
 
 
-class XPerfSession(object):
+class XPerfSession:
     """This class encapsulates data that is retained for the term of the xperf
     analysis. This includes the set of attributes, the set of events that are
     owned by those attributes, and the mapping of field names to row indices.
@@ -149,8 +149,7 @@ class XPerfAttribute(six.with_metaclass(ABCMeta, object)):
         """
         if evt not in self.evtlist:
             raise Exception(
-                'Event mismatch: "{!s}" is not in this '.format(evt)
-                + "attribute's event list"
+                f'Event mismatch: "{evt!s}" is not in this ' + "attribute's event list"
             )
 
         self.accumulate(evt)
@@ -240,15 +239,16 @@ class XPerfInterval(XPerfAttribute):
         end = self.seen_evtlist[-1]
         start = self.seen_evtlist[0]
         duration = end.get_timestamp() - start.get_timestamp()
-        msg = "Interval from [{!s}] to [{!s}] took [{:.3f}]" " milliseconds.".format(
-            (start), (end), (duration)
+        msg = (
+            f"Interval from [{start!s}] to [{end!s}] took [{duration:.3f}]"
+            " milliseconds."
         )
         if self.attrs_during_interval:
             msg += " Within this interval:"
             for attr in self.attrs_during_interval:
-                msg += " {!s}".format(attr)
-        msg += "\nStart: [{}]".format(start.get_timestamp())
-        msg += " End: [{}]".format(end.get_timestamp())
+                msg += f" {attr!s}"
+        msg += f"\nStart: [{start.get_timestamp()}]"
+        msg += f" End: [{end.get_timestamp()}]"
         return msg
 
     def get_results(self):
@@ -330,13 +330,11 @@ class XPerfCounter(XPerfAttribute):
         self.remove_event(self.evtlist[0])
 
     def __str__(self):
-        msg = "[{!s}] events of type [{!s}]".format(
-            (self.count), (self.seen_evtlist[0])
-        )
+        msg = f"[{self.count!s}] events of type [{self.seen_evtlist[0]!s}]"
         if self.values:
             msg += " with accumulated"
             for k, v in self.values.items():
-                msg += " [[{!s}] == {!s}]".format((k), (v))
+                msg += f" [[{k!s}] == {v!s}]"
         return msg
 
     def get_results(self):
@@ -351,7 +349,7 @@ class XPerfCounter(XPerfAttribute):
         return results
 
 
-class XPerfEvent(object):
+class XPerfEvent:
     """Base class for all events. An important feature of this class is the
     whiteboard variable. This variable allows for passing values between
     successive events that are *owned by the same attribute*.
@@ -514,7 +512,7 @@ class Nth(EventExpression):
 
     def __str__(self):
         suffix = self.get_suffix()
-        return "{!s}{} [{!s}]".format((self.N), (suffix), (self.event))
+        return f"{self.N!s}{suffix} [{self.event!s}]"
 
 
 class EventSequence(EventExpression):
@@ -583,8 +581,8 @@ class EventSequence(EventExpression):
     def __str__(self):
         result = ""
         for e in self.seen_events[:-1]:
-            result += "When [{!s}], ".format(e)
-        result += "then [{!s}]".format(self.seen_events[-1])
+            result += f"When [{e!s}], "
+        result += f"then [{self.seen_events[-1]!s}]"
         return result
 
 
@@ -628,7 +626,7 @@ class BindThread(EventExpression):
         return self.event.get_timestamp()
 
     def __str__(self):
-        return "[{!s}] bound to thread [{!s}]".format((self.event), (self.tid))
+        return f"[{self.event!s}] bound to thread [{self.tid!s}]"
 
 
 class ClassicEvent(XPerfEvent):
@@ -653,7 +651,7 @@ class ClassicEvent(XPerfEvent):
         return guid.int == self.guid.int
 
     def __str__(self):
-        return "User event (classic): [{{{!s}}}]".format(self.guid)
+        return f"User event (classic): [{{{self.guid!s}}}]"
 
 
 class SessionStoreWindowRestored(ClassicEvent):
@@ -736,7 +734,7 @@ class ProcessStart(XPerfEvent):
         return True
 
     def __str__(self):
-        return "Start of a [{!s}] process".format(self.leafname)
+        return f"Start of a [{self.leafname!s}] process"
 
 
 class ThreadStart(XPerfEvent):
@@ -769,9 +767,7 @@ class ThreadStart(XPerfEvent):
         return True
 
     def __str__(self):
-        s = "Thread start in process [{}]".format(
-            self.whiteboard[XPerfEvent.EVENT_DATA_PID]
-        )
+        s = f"Thread start in process [{self.whiteboard[XPerfEvent.EVENT_DATA_PID]}]"
         return s
 
 
@@ -803,9 +799,7 @@ class ReadyThread(XPerfEvent):
             return False
 
     def __str__(self):
-        return "Thread [{!s}] is ready".format(
-            self.whiteboard[XPerfEvent.EVENT_DATA_TID]
-        )
+        return f"Thread [{self.whiteboard[XPerfEvent.EVENT_DATA_TID]!s}] is ready"
 
 
 class ContextSwitchToThread(XPerfEvent):
@@ -833,8 +827,9 @@ class ContextSwitchToThread(XPerfEvent):
             return False
 
     def __str__(self):
-        return "Context switch to thread " + "[{!s}]".format(
-            self.whiteboard[XPerfEvent.EVENT_DATA_TID]
+        return (
+            "Context switch to thread "
+            + f"[{self.whiteboard[XPerfEvent.EVENT_DATA_TID]!s}]"
         )
 
 
@@ -889,10 +884,10 @@ class FileIOReadOrWrite(XPerfEvent):
         return True
 
     def __str__(self):
-        return "File I/O Bytes {}".format(self.strverb)
+        return f"File I/O Bytes {self.strverb}"
 
 
-class XPerfFile(object):
+class XPerfFile:
     """This class is the main entry point into xperf analysis. The user should
     create one or more attributes, add them via add_attr(), and then call
     analyze() to run.
@@ -990,7 +985,7 @@ class XPerfFile(object):
         else:
             (base, leaf) = os.path.split(self.etlfile)
             (leaf, ext) = os.path.splitext(leaf)
-            abs_csv_name = os.path.join(base, "{}.csv".format(leaf))
+            abs_csv_name = os.path.join(base, f"{leaf}.csv")
 
         xperf_cmd = [self.get_xperf_path(), "-i", self.etlfile, "-o", abs_csv_name]
         if self.debug:
@@ -1158,7 +1153,7 @@ if __name__ == "__main__":
                 pass
 
             def structured_output(attr):
-                print("Results: [{!r}]".format(attr.get_results()))
+                print(f"Results: [{attr.get_results()!r}]")
 
             def test_filter_exclude_dll(file):
                 (base, ext) = os.path.splitext(file)

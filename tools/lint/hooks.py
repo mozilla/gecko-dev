@@ -41,7 +41,7 @@ def run_mozlint(hooktype, args):
     elif "push" in hooktype:
         return run_process(cmd + ["--outgoing"] + args)
 
-    print("warning: '{}' is not a valid mozlint hooktype".format(hooktype))
+    print(f"warning: '{hooktype}' is not a valid mozlint hooktype")
     return False
 
 

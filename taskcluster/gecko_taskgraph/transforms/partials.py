@@ -104,11 +104,7 @@ def make_task_description(config, jobs):
         locale_suffix = ""
         if locale:
             locale_suffix = f"{locale}/"
-        artifact_path = "<{}/{}/{}target.complete.mar>".format(
-            dep_job.kind,
-            get_artifact_prefix(dep_job),
-            locale_suffix,
-        )
+        artifact_path = f"<{dep_job.kind}/{get_artifact_prefix(dep_job)}/{locale_suffix}target.complete.mar>"
         for build in sorted(builds):
             partial_info = {
                 "locale": build_locale,

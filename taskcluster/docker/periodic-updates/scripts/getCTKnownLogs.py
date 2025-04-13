@@ -103,7 +103,7 @@ def get_timestamp(time_str):
 
 def get_hex_lines(blob, width):
     """Convert a binary string to a multiline text of C escape sequences."""
-    text = "".join(["\\x{:02x}".format(c) for c in blob])
+    text = "".join([f"\\x{c:02x}" for c in blob])
     # When escaped, a single byte takes 4 chars (e.g. "\x00").
     # Make sure we don't break an escaped byte between the lines.
     return textwrap.wrap(text, width - width % 4)
@@ -116,10 +116,8 @@ def get_operator_index(json_data, target_name):
         for (index, operator) in enumerate(json_data["operators"])
         if operator["name"] == target_name
     ]
-    assert len(matches) != 0, "No operators with id {0} defined.".format(target_name)
-    assert len(matches) == 1, "Found multiple operators with id {0}.".format(
-        target_name
-    )
+    assert len(matches) != 0, f"No operators with id {target_name} defined."
+    assert len(matches) == 1, f"Found multiple operators with id {target_name}."
     return matches[0][1]
 
 
@@ -180,16 +178,14 @@ def get_log_info_structs(json_data):
                 # Not perfect but close enough.
                 description=json.dumps(log["description"]),
                 operator_index=operator_index,
-                operator_comment="operated by {0}".
-                # The comment must not contain "/".
-                format(operator_name).replace("/", "|"),
+                operator_comment=f"operated by {operator_name}".replace("/", "|"),
                 state=state,
                 timestamp=timestamp,
                 spaces=spaces,
                 timestamp_comment=timestamp_comment,
                 # Maximum line width is 80.
                 indented_log_key="\n".join(
-                    ['     "{0}"'.format(l) for l in get_hex_lines(log_key, 74)]
+                    [f'     "{l}"' for l in get_hex_lines(log_key, 74)]
                 ),
                 log_key_len=len(log_key),
             )

@@ -110,7 +110,7 @@ replaced_variables = """
 
 
 def generate_config(output, config_h_in):
-    file_config_h_in = open(config_h_in, "r")
+    file_config_h_in = open(config_h_in)
     lines = file_config_h_in.readlines()
 
     # Remove the known cmake variables

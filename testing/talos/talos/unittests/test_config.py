@@ -74,7 +74,7 @@ class mock_test(PageloaderTest):
     fnbpaint = "value"
 
 
-class Test_get_active_tests(object):
+class Test_get_active_tests:
     def test_raises_exception_for_undefined_test(self):
         with pytest.raises(ConfigurationError):
             get_active_tests({"activeTests": "undefined_test"})
@@ -86,7 +86,7 @@ class Test_get_active_tests(object):
             get_active_tests({"activeTests": "undef_test:undef_test2:undef_test3"})
 
 
-class Test_get_test(object):
+class Test_get_test:
     global_overrides = {
         "tpmozafterpaint": "overriden",
         "firstpaint": "overriden",
@@ -155,7 +155,7 @@ class Test_get_test(object):
         assert set(test_dict["xperf_counters"]) == set(counters + ["counter_extra"])
 
 
-class Test_get_browser_config(object):
+class Test_get_browser_config:
     required = (
         "extensions",
         "browser_path",
@@ -218,7 +218,7 @@ class Test_get_browser_config(object):
             pytest.fail("Must not raise exception on missing optional")
 
 
-class Test_get_config(object):
+class Test_get_config:
     @classmethod
     def setup_class(cls):
         cls.argv = "--suite other-e10s --mainthread -e /some/random/path".split()

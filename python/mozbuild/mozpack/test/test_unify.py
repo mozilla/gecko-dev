@@ -230,7 +230,7 @@ class TestUnifiedBuildFinder(TestUnified):
             # Now create the files from the above table and compare
             results = []
             for emid, (rdf_a, rdf_b, result) in enumerate(testcases):
-                filename = "ext/id{0}/install.rdf".format(emid)
+                filename = f"ext/id{emid}/install.rdf"
                 self.create_one("a", filename, rdf_a)
                 self.create_one("b", filename, rdf_b)
                 results.append((filename, result))

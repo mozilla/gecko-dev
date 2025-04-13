@@ -476,9 +476,7 @@ def _create_state_dir():
     if state_dir:
         if not os.path.exists(state_dir):
             print(
-                "Creating global state directory from environment variable: {}".format(
-                    state_dir
-                )
+                f"Creating global state directory from environment variable: {state_dir}"
             )
     else:
         state_dir = os.path.expanduser("~/.mozbuild")
@@ -486,7 +484,7 @@ def _create_state_dir():
             if not os.environ.get("MOZ_AUTOMATION"):
                 print(STATE_DIR_FIRST_RUN.format(state_dir))
 
-            print("Creating default state directory: {}".format(state_dir))
+            print(f"Creating default state directory: {state_dir}")
 
     os.makedirs(state_dir, mode=0o770, exist_ok=True)
     return state_dir

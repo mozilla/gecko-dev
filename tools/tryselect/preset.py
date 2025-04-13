@@ -103,5 +103,5 @@ class MergedHandler:
                 val = "\n  ".join(
                     [""] + val.splitlines() + [""]
                 )  # indent all lines by 2 spaces
-                print("Presets from {}:".format(handler.path))
+                print(f"Presets from {handler.path}:")
                 print(val)

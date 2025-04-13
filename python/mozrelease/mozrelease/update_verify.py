@@ -12,7 +12,7 @@ class UpdateVerifyError(Exception):
     pass
 
 
-class UpdateVerifyConfig(object):
+class UpdateVerifyConfig:
     comment_regex = re.compile("^#")
     key_write_order = (
         "release",

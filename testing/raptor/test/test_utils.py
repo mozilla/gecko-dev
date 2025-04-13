@@ -81,7 +81,7 @@ def test_write_yml_file(mock_info):
     write_yml_file(yml_file, yml_data)
     assert os.path.exists(yml_file)
 
-    with open(yml_file, "r") as yml_in:
+    with open(yml_file) as yml_in:
         yml_loaded = yaml.unsafe_load(yml_in)
         assert yml_loaded == yml_data
 

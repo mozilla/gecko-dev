@@ -95,7 +95,7 @@ def vcs_setup(command_context, update_only=False):
 
     vcs = to_optional_path(which(tool))
     if not vcs:
-        raise OSError(errno.ENOENT, "Could not find {} on $PATH".format(tool))
+        raise OSError(errno.ENOENT, f"Could not find {tool} on $PATH")
 
     if update_only:
         if repo.name == "git":

@@ -66,13 +66,13 @@ def main():
         j = json.load(f)
 
     if j["version"] != outputVersion:
-        raise Exception("'version' property isn't '{:d}'".format(outputVersion))
+        raise Exception(f"'version' property isn't '{outputVersion:d}'")
 
     invocation = j["invocation"]
 
     mode = invocation["mode"]
     if mode != "scan":
-        raise Exception("bad 'mode' property: '{:s}'".format(mode))
+        raise Exception(f"bad 'mode' property: '{mode:s}'")
 
     blockList = j["blockList"]
 

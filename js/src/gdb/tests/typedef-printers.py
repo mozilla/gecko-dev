@@ -6,7 +6,7 @@ import mozilla.prettyprinters
 
 
 @mozilla.prettyprinters.pretty_printer("my_typedef")
-class my_typedef(object):
+class my_typedef:
     def __init__(self, value, cache):
         pass
 

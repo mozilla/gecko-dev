@@ -517,7 +517,7 @@ class TreeMetadataEmitter(LoggingMixin):
             raise SandboxValidationError(
                 "No Cargo.toml file found in %s" % cargo_file, context
             )
-        with open(cargo_file, "r") as f:
+        with open(cargo_file) as f:
             content = toml.load(f)
 
         crate_name = content.get("package", {}).get("name")

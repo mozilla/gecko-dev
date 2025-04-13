@@ -57,9 +57,7 @@ def test_search_counts(browser, helpers):
     assert scalars1["browser.engagement.tab_open_event_count"] == 1
 
     keyed_histograms1 = ping1["payload"]["keyedHistograms"]
-    search_counts1 = keyed_histograms1["SEARCH_COUNTS"][
-        "{}.urlbar".format(search_engine)
-    ]
+    search_counts1 = keyed_histograms1["SEARCH_COUNTS"][f"{search_engine}.urlbar"]
 
     assert search_counts1 == {
         "range": [1, 2],
@@ -153,9 +151,7 @@ def test_search_counts(browser, helpers):
     assert "browser.engagement.window_open_event_count" not in scalars3
 
     keyed_histograms3 = ping3["payload"]["keyedHistograms"]
-    search_counts3 = keyed_histograms3["SEARCH_COUNTS"][
-        "{}.urlbar".format(search_engine)
-    ]
+    search_counts3 = keyed_histograms3["SEARCH_COUNTS"][f"{search_engine}.urlbar"]
     assert search_counts3 == {
         "range": [1, 2],
         "bucket_count": 3,

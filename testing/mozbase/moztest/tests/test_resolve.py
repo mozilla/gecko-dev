@@ -237,7 +237,7 @@ def defaults(topsrcdir):
     }
 
 
-class WPTManifestNamespace(object):
+class WPTManifestNamespace:
     """Stand-in object for various WPT classes."""
 
     def __init__(self, *args):

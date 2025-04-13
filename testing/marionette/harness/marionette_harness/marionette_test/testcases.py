@@ -49,7 +49,7 @@ def _wraps_parameterized(func, func_suffix, args, kwargs):
         return func(self, *args, **kwargs)
 
     wrapper.__name__ = func.__name__ + "_" + str(func_suffix)
-    wrapper.__doc__ = "[{0}] {1}".format(func_suffix, func.__doc__)
+    wrapper.__doc__ = f"[{func_suffix}] {func.__doc__}"
     return wrapper
 
 
@@ -71,9 +71,7 @@ class MetaParameterized(type):
                     wrapper = _wraps_parameterized(v, func_suffix, args, kwargs)
                     if wrapper.__name__ in attrs:
                         raise KeyError(
-                            "{0} is already a defined method on {1}".format(
-                                wrapper.__name__, name
-                            )
+                            f"{wrapper.__name__} is already a defined method on {name}"
                         )
                     attrs[wrapper.__name__] = wrapper
                 del attrs[k]
@@ -124,7 +122,7 @@ class CommonTestCase(unittest.TestCase):
             expected_regexp,
             callable_obj=None,
             *args,
-            **kwargs
+            **kwargs,
         )
 
     def run(self, result=None):
@@ -271,7 +269,7 @@ class CommonTestCase(unittest.TestCase):
         marionette,
         fixtures,
         testvars,
-        **kwargs
+        **kwargs,
     ):
         """Add all the tests in the specified file to the specified suite."""
         raise NotImplementedError
@@ -282,9 +280,7 @@ class CommonTestCase(unittest.TestCase):
         if os.path.exists(self.filepath):
             rel_path = self._fix_test_path(self.filepath)
 
-        return "{0} {1}.{2}".format(
-            rel_path, self.__class__.__name__, self._testMethodName
-        )
+        return f"{rel_path} {self.__class__.__name__}.{self._testMethodName}"
 
     def id(self):
         # TBPL starring requires that the "test name" field of a failure message
@@ -323,7 +319,7 @@ class CommonTestCase(unittest.TestCase):
     def _fix_test_path(self, path):
         """Normalize a logged test path from the test package."""
         test_path_prefixes = [
-            "tests{}".format(os.path.sep),
+            f"tests{os.path.sep}",
         ]
 
         path = os.path.relpath(path)
@@ -349,7 +345,7 @@ class MarionetteTestCase(CommonTestCase):
             methodName,
             marionette_weakref=marionette_weakref,
             fixtures=fixtures,
-            **kwargs
+            **kwargs,
         )
 
     @classmethod
@@ -362,7 +358,7 @@ class MarionetteTestCase(CommonTestCase):
         marionette,
         fixtures,
         testvars,
-        **kwargs
+        **kwargs,
     ):
         # since load_source caches modules, if a module is loaded with the same
         # name as another one the module would just be reloaded.
@@ -391,7 +387,7 @@ class MarionetteTestCase(CommonTestCase):
                             methodName=testname,
                             filepath=filepath,
                             testvars=testvars,
-                            **kwargs
+                            **kwargs,
                         )
                     )
 

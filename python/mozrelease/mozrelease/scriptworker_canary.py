@@ -82,10 +82,10 @@ def push_canary(scriptworkers, addresses, ssh_key_secret):
     for scriptworker in scriptworkers:
         worker_tasks = TASK_TYPES.get(scriptworker)
         if worker_tasks:
-            logger.info("Running tasks for {}: {}".format(scriptworker, worker_tasks))
+            logger.info(f"Running tasks for {scriptworker}: {worker_tasks}")
             tasks.extend(worker_tasks)
         else:
-            logger.info("No tasks for {}.".format(scriptworker))
+            logger.info(f"No tasks for {scriptworker}.")
 
     mach = Path(GECKO) / "mach"
     base_command = [str(mach), "try", "scriptworker", "--closed-tree", "--push-to-vcs"]
@@ -93,9 +93,9 @@ def push_canary(scriptworkers, addresses, ssh_key_secret):
         base_command.extend(
             [
                 "--route",
-                "notify.email.{}.on-failed".format(address),
+                f"notify.email.{address}.on-failed",
                 "--route",
-                "notify.email.{}.on-exception".format(address),
+                f"notify.email.{address}.on-exception",
             ]
         )
 

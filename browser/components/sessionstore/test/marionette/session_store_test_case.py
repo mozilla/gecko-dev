@@ -10,7 +10,7 @@ from marionette_harness import MarionetteTestCase, WindowManagerMixin
 
 
 def inline(doc):
-    return "data:text/html;charset=utf-8,{}".format(quote(doc))
+    return f"data:text/html;charset=utf-8,{quote(doc)}"
 
 
 # Each list element represents a window of tabs loaded at
@@ -441,9 +441,7 @@ class SessionStoreTestCase(WindowManagerMixin, MarionetteTestCase):
         self.assertEqual(
             current_windows_set,
             self.all_windows,
-            msg="Not all requested windows have been opened. Expected {}, got {}.".format(
-                self.all_windows, current_windows_set
-            ),
+            msg=f"Not all requested windows have been opened. Expected {self.all_windows}, got {current_windows_set}.",
         )
 
         self.marionette.quit(callback=lambda: self.simulate_os_shutdown())
