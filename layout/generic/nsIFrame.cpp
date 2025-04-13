@@ -5514,19 +5514,19 @@ static FrameContentRange GetRangeForFrame(const nsIFrame* aFrame) {
     content = content->GetParent();
   }
 
-  MOZ_ASSERT(!content->IsBeingRemoved());
-  nsIContent* parent = content->GetParent();
-  if (IsRelevantBlockFrame(aFrame) || IsEditingHost(aFrame) || !parent) {
-    return FrameContentRange(content, 0, content->GetChildCount());
+  if (aFrame->IsReplaced()) {
+    if (auto* parent = content->GetParent()) {
+      // TODO(emilio): Revise this in presence of Shadow DOM / display:
+      // contents, it's likely that we don't want to just walk the light tree,
+      // and we need to change the representation of FrameContentRange.
+      Maybe<uint32_t> index = parent->ComputeIndexOf(content);
+      MOZ_ASSERT(index.isSome());
+      return FrameContentRange(parent, static_cast<int32_t>(*index),
+                               static_cast<int32_t>(*index + 1));
+    }
   }
 
-  // TODO(emilio): Revise this in presence of Shadow DOM / display: contents,
-  // it's likely that we don't want to just walk the light tree, and we need to
-  // change the representation of FrameContentRange.
-  Maybe<uint32_t> index = parent->ComputeIndexOf(content);
-  MOZ_ASSERT(index.isSome());
-  return FrameContentRange(parent, static_cast<int32_t>(*index),
-                           static_cast<int32_t>(*index + 1));
+  return FrameContentRange(content, 0, content->GetChildCount());
 }
 
 // The FrameTarget represents the closest frame to a point that can be selected
@@ -9577,6 +9577,8 @@ static void SetPeekResultFromFrame(PeekOffsetStruct& aPos, nsIFrame* aFrame,
   // Output offset is relative to content, not frame
   aPos.mContentOffset =
       aOffset < 0 ? range.end + aOffset + 1 : range.start + aOffset;
+  // Ensure we don't go past the range. This is important if aFrame is empty.
+  aPos.mContentOffset = std::clamp(aPos.mContentOffset, range.start, range.end);
   if (aAtLineEdge == OffsetIsAtLineEdge::Yes) {
     aPos.mAttach = aPos.mContentOffset == range.start
                        ? CaretAssociationHint::After
