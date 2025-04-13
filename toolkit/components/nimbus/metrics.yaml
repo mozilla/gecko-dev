@@ -236,11 +236,6 @@ nimbus_targeting_context:
     notification_emails: *targeting_context_notification_emails
     send_in_pings: *targeting_context_pings
     description: The slugs of the actively enrolled rollouts
-    bugs: *targeting_context_bugs
-    data_reviews: *targeting_context_data_reviews
-    expires: *targeting_context_expiry
-    notification_emails: *targeting_context_notification_emails
-    send_in_pings: *targeting_context_pings
     data_sensitivity:
       - interaction
     type: object
@@ -270,11 +265,6 @@ nimbus_targeting_context:
     notification_emails: *targeting_context_notification_emails
     send_in_pings: *targeting_context_pings
     description: The architecture of the user's CPU (32-bit or 64-bit)
-    bugs: *targeting_context_bugs
-    data_reviews: *targeting_context_data_reviews
-    expires: *targeting_context_expiry
-    notification_emails: *targeting_context_notification_emails
-    send_in_pings: *targeting_context_pings
     data_sensitivity:
       - technical
     type: quantity

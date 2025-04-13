@@ -1560,42 +1560,6 @@ characteristics:
     data_sensitivity:
       - interaction
 
-  font_name_list_cursive_modified:
-    type: quantity
-    unit: int
-    description: >
-      The number of modified font.name-list.cursive. prefs.
-    lifetime: application
-    send_in_pings:
-      - user-characteristics
-    notification_emails:
-      - tom@mozilla.com
-    bugs:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1887658
-    data_reviews:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1887658#c4
-    expires: never
-    data_sensitivity:
-      - interaction
-
-  font_name_list_emoji_modified:
-    type: quantity
-    unit: int
-    description: >
-      The number of modified font.name-list.cursive. prefs.
-    lifetime: application
-    send_in_pings:
-      - user-characteristics
-    notification_emails:
-      - tom@mozilla.com
-    bugs:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1887658
-    data_reviews:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1887658#c4
-    expires: never
-    data_sensitivity:
-      - interaction
-
   font_name_list_emoji_modified:
     type: boolean
     description: >

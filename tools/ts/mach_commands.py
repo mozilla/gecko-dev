@@ -120,10 +120,12 @@ def update(ctx):
 
 
 @SubCommand("ts", "glean", description="Build Glean bindings.")
-@CommandArgument("path", help="Path to a metrics.yaml or pings.yaml file.")
-def glean(ctx, path):
+def glean(ctx):
+    sys.path.append(mozpath.join(ctx.topsrcdir, "toolkit/components/glean/"))
+    from metrics_index import metrics_yamls, pings_yamls
+
     maybe_setup(ctx)
-    return node(ctx, "build_glean", ctx.topsrcdir, path, "tools/@types")
+    return node(ctx, "build_glean", ctx.topsrcdir, *metrics_yamls, *pings_yamls)
 
 
 @SubCommand("ts", "paths", description="Build module path mapping.")
