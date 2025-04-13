@@ -3441,6 +3441,32 @@
   <string name="text_field_eye_trailing_icon_default_content_description" moz:removedIn="139" tools:ignore="UnusedResources">დაფარული ტექსტის გამოჩენა</string>
   <!-- The default content description for the cross trailing icon button in TextField -->
   <string name="text_field_cross_trailing_icon_default_content_description" moz:removedIn="139" tools:ignore="UnusedResources">ტექსტის გასუფთავება</string>
+  <!-- Title for the setup checklist feature when the state is 'completed' -->
+  <string name="setup_checklist_title_state_completed">გილოცავთ!</string>
+  <!--
+    ===== Setup checklist feature: Subtitles for 3 steps =====
+
+    Subtitle for a setup checklist with 3 steps initial step. %1$s is the name of the app (for example "Firefox").
+  -->
+  <string name="setup_checklist_subtitle_3_steps_initial_state">შეასრულეთ მოცემული ნაბიჯები, რომ გამართოთ %1$s ვებსივრცით სრულყოფილად სარგებლობისთვის.</string>
+  <!-- Subtitle for a setup checklist with 3 steps when the first task is completed. -->
+  <string name="setup_checklist_subtitle_3_steps_first_step">მშვენიერი დასაწყისია! შესრულებულია 1 ნაბიჯი 3-იდან.</string>
+  <!-- Subtitle for a setup checklist with 3 steps when two of the tasks are completed. -->
+  <string name="setup_checklist_subtitle_3_steps_second_step">თითქმის მზადაა! ორი ნაბიჯი შესრულდა და დარჩა 1.</string>
+  <!-- Subtitle for a setup checklist with 3 steps completed state. %1$s is the name of the app (for example "Firefox"). -->
+  <string name="setup_checklist_subtitle_3_steps_completed_state">თქვენ დაასრულეთ სამივე ნაბიჯი. გამოიყენეთ %1$s და დატკბით სიჩქარით, პირადულობითა და უსაფრთხოებით.</string>
+  <!--
+    ===== Setup checklist feature: Subtitles for 6 steps =====
+
+    Subtitle for a setup checklist with 6 steps initial state. %1$s is the name of the app (for example "Firefox").
+  -->
+  <string name="setup_checklist_subtitle_6_steps_initial_state">შეასრულეთ 6-ივე ნაბიჯი, რომ გამართოთ %1$s ვებსივრცით სრულყოფილად სარგებლობისთვის.</string>
+  <!-- Subtitle for a setup checklist with 6 steps when the first task is completed. -->
+  <string name="setup_checklist_subtitle_6_steps_first_step">მშვენიერი დასაწყისია! შესრულებულია 1 ნაბიჯი 6-იდან.</string>
+  <!-- Subtitle for the setup checklist when the second task is completed. -->
+  <string name="setup_checklist_subtitle_6_steps_second_step">6 ნაბიჯიდან 2 შესრულებულია. მშვენიერი წინსვლაა!</string>
+  <!-- Subtitle for a setup checklist with 6 steps when three of the tasks are completed. -->
+  <string name="setup_checklist_subtitle_6_steps_third_step">ნახევარი თითქმის გავლილია! სამი ნაბიჯი შესრულდა და 3 წინაა.</string>
   <!--
     ===== Setup checklist feature: Task titles =====
 

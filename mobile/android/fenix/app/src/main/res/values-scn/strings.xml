@@ -1385,6 +1385,8 @@
   <string name="tab_tray_multiselect_share_content_description">Sparti schedi scartati</string>
   <!-- Content description for tabs tray multiselect menu -->
   <string name="tab_tray_multiselect_menu_content_description">Minù dî schedi scartati</string>
+  <!-- Title text displayed for a homepage tab in the tabs tray. -->
+  <string name="tab_tray_homepage_tab">Pàggina mastra</string>
   <!-- Content description (not visible, for screen readers etc.): Removes tab from collection button. Removes the selected tab from collection when pressed -->
   <string name="remove_tab_from_collection">Leva scheda dâ ricota</string>
   <!-- Text for button to enter multiselect mode in tabs tray -->
@@ -1525,6 +1527,8 @@
   <string name="download_search_placeholder" tools:ignore="UnusedResources">Riscedi nnê scarricamenti</string>
   <!-- Text to indicate that no downloads match the search query. -->
   <string name="download_search_no_results_found" tools:ignore="UnusedResources">Nun attruvai nuḍḍu risurtatu</string>
+  <!-- Text for the "Select all" button, which selects all downloaded items in the downloads list. -->
+  <string name="download_select_all_items">Scarta tuttu</string>
   <!--
     Downloads Content Type Filters
 
@@ -3437,6 +3441,46 @@
   <!-- The default content description for the cross trailing icon button in TextField -->
   <string name="text_field_cross_trailing_icon_default_content_description" moz:removedIn="139" tools:ignore="UnusedResources">Scancella testu</string>
   <!--
+    Setup checklist feature
+
+    ===== Setup checklist feature: Title =====
+
+    Title for the setup checklist feature when the state is 'incomplete'. %1$s is the name of the app (for example "Firefox").
+  -->
+  <string name="setup_checklist_title_state_incomplete">Cumpleta a cunfijurazzioni di %1$s</string>
+  <!-- Title for the setup checklist feature when the state is 'completed' -->
+  <string name="setup_checklist_title_state_completed">Amunì!</string>
+  <!--
+    ===== Setup checklist feature: Subtitles for 3 steps =====
+
+    Subtitle for a setup checklist with 3 steps initial step. %1$s is the name of the app (for example "Firefox").
+  -->
+  <string name="setup_checklist_subtitle_3_steps_initial_state">Cumpleta sti 3 passi pi cunfijurari %1$s pi na megghiu spirienza di navicazzioni.</string>
+  <!-- Subtitle for a setup checklist with 3 steps when the first task is completed. -->
+  <string name="setup_checklist_subtitle_3_steps_first_step">Accuminciasti bonu! Cumplitasti 1 di 3 passi.</string>
+  <!-- Subtitle for a setup checklist with 3 steps when two of the tasks are completed. -->
+  <string name="setup_checklist_subtitle_3_steps_second_step">Amunì, cci sì quasi! Finisti du\' passi, nn\'ammanca unu sulu.</string>
+  <!-- Subtitle for a setup checklist with 3 steps completed state. %1$s is the name of the app (for example "Firefox"). -->
+  <string name="setup_checklist_subtitle_3_steps_completed_state">Cumplitasti tutti 3 i passi. Gòditi a listizza, a privatizza e a sicurizza di %1$s.</string>
+  <!--
+    ===== Setup checklist feature: Subtitles for 6 steps =====
+
+    Subtitle for a setup checklist with 6 steps initial state. %1$s is the name of the app (for example "Firefox").
+  -->
+  <string name="setup_checklist_subtitle_6_steps_initial_state">Cumpleta tutti 6 i passi pi cunfijurari %1$s pi na megghiu spirienza di navicazzioni.</string>
+  <!-- Subtitle for a setup checklist with 6 steps when the first task is completed. -->
+  <string name="setup_checklist_subtitle_6_steps_first_step">Accuminciasti bonu! Cumplitasti 1 di 6 passi.</string>
+  <!-- Subtitle for the setup checklist when the second task is completed. -->
+  <string name="setup_checklist_subtitle_6_steps_second_step">Cumplitasti 2 di 6 passi. Sta\' jennu bonu!</string>
+  <!-- Subtitle for a setup checklist with 6 steps when three of the tasks are completed. -->
+  <string name="setup_checklist_subtitle_6_steps_third_step">Juncisti a menza strata! Cumplitasti 3 passi, e nn\'ammàncanu autri 3.</string>
+  <!-- Subtitle for a setup checklist with 6 steps when the fourth task is completed. -->
+  <string name="setup_checklist_subtitle_6_steps_fourth_step">Arrivasti a 4 passi. Nn\'arrèstanu 2!</string>
+  <!-- Subtitle for a setup checklist with 6 steps when the fifth task is completed. -->
+  <string name="setup_checklist_subtitle_6_steps_fifth_step">Amunì, cci sì quasi! T\'arresta un passu sulu p\'agghicari â fini.</string>
+  <!-- Subtitle for a setup checklist with 6 steps completed state. %1$s is the name of the app (for example "Firefox"). -->
+  <string name="setup_checklist_subtitle_6_steps_completed_state">Cumplitasti tutti 6 i passi. Gòditi a listizza, a privatizza e a sicurizza di %1$s.</string>
+  <!--
     ===== Setup checklist feature: Task titles =====
 
     The title of the default browser task for the setup checklist
@@ -3462,6 +3506,12 @@
   <string name="setup_checklist_group_customize">Pirsunalizza %1$s</string>
   <!-- The title of the 'helpful tools' group in the setup checklist -->
   <string name="setup_checklist_group_helpful_tools">Stigghi ùtili</string>
+  <!--
+    ===== Setup checklist feature: Button =====
+
+    Text for the 'remove' button for the setup checklist
+  -->
+  <string name="setup_checklist_button_remove">Leva lista di cuntrollu</string>
   <!--
     ===== Setup checklist feature: Accessibility =====
 
