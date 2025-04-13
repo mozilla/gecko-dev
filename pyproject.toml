@@ -1,11 +1,13 @@
 [tool.ruff]
 line-length = 99
+target-version = "py38"
 # See https://beta.ruff.rs/docs/rules/ for a full list of rules.
 lint.select = [
   "E", "W",    # pycodestyle
   "F",         # pyflakes
   "I",         # isort
   "PL",        # pylint
+  "UP",        # pyupgrade
 ]
 lint.ignore = [
   # These should be triaged and either fixed or moved to the list below.
@@ -18,7 +20,16 @@ lint.ignore = [
   "PLC0206",   # dict-index-missing-items
 
   # These are handled by black.
-  "E1", "E4", "E5", "W2", "W5"
+  "E1", "E4", "E5", "W2", "W5",
+
+  # These pyupgrade rules are currently disabled because applying them via autofix causes failures.
+  # Each rule can be revisited and re-enabled once the underlying issues are identified and resolved.
+  # See bug 1715287
+  # https://docs.astral.sh/ruff/rules/#pyupgrade-up
+  "UP004", # useless-object-inheritance   Class {name} inherits from object
+  "UP012", # unnecessary-encode-utf8      Unnecessary call to encode as UTF-8
+  "UP015", # redundant-open-modes         Unnecessary mode argument
+  "UP032", # f-string                     Use f-string instead of format call
 ]
 builtins = ["gdb"]
 extend-include = ["*.configure"]
