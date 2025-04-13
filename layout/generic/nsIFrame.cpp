@@ -5516,7 +5516,7 @@ static FrameContentRange GetRangeForFrame(const nsIFrame* aFrame) {
 
   MOZ_ASSERT(!content->IsBeingRemoved());
   nsIContent* parent = content->GetParent();
-  if (IsRelevantBlockFrame(aFrame) || !parent) {
+  if (IsRelevantBlockFrame(aFrame) || IsEditingHost(aFrame) || !parent) {
     return FrameContentRange(content, 0, content->GetChildCount());
   }
 

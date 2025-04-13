@@ -306,6 +306,7 @@ var tests = [
     function() {SpecialPowers.pushPrefEnv({'clear': [['accessibility.browsewithcaret']]}, nextTest);} ,
     [ 'interlinePosition-after-Selection-addRange.html', 'interlinePosition-after-Selection-addRange-ref.html' ] ,
     [ 'collapse-selection-into-editing-host-during-blur-of-input.html', 'collapse-selection-into-editing-host-during-blur-of-input-ref.html' ] ,
+    [ 'caret-empty-contenteditable-overflow-click.html', 'caret-empty-contenteditable-overflow-click-ref.html' ],
 ];
 
 if (AppConstants.platform != "android") {

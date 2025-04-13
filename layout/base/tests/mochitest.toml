@@ -572,6 +572,8 @@ support-files = [
   "bug1896051.html",
   "bug1896051-ref.html",
   "chrome/blue-32x32.png",
+  "caret-empty-contenteditable-overflow-click.html",
+  "caret-empty-contenteditable-overflow-click-ref.html",
 ]
 
 ["test_resize_flush.html"]

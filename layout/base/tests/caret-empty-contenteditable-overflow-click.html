@@ -1,0 +1,23 @@
+<!doctype html>
+<html class="reftest-wait">
+<script src="/tests/SimpleTest/SimpleTest.js"></script>
+<script src="/tests/SimpleTest/EventUtils.js"></script>
+<style>
+  div {
+    overflow: hidden;
+    border: 1px solid;
+    width: 20em;
+  }
+</style>
+<div id="host" contenteditable></div>
+<script>
+onload = () => {
+  host.focus();
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      synthesizeMouseAtCenter(host, {});
+      document.documentElement.className = "";
+    });
+  })
+}
+</script>
