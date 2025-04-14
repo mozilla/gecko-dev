@@ -1382,6 +1382,8 @@
   <string name="tab_tray_multiselect_share_content_description">Partejar los onglets seleccionats</string>
   <!-- Content description for tabs tray multiselect menu -->
   <string name="tab_tray_multiselect_menu_content_description">Menú dels onglets seleccionats</string>
+  <!-- Title text displayed for a homepage tab in the tabs tray. -->
+  <string name="tab_tray_homepage_tab">Pagina d\'acuèlh</string>
   <!-- Content description (not visible, for screen readers etc.): Removes tab from collection button. Removes the selected tab from collection when pressed -->
   <string name="remove_tab_from_collection">Suprimir l’onglet de la colleccion</string>
   <!-- Text for button to enter multiselect mode in tabs tray -->
@@ -1522,6 +1524,8 @@
   <string name="download_search_placeholder" tools:ignore="UnusedResources">Recercar dins los telecargaments</string>
   <!-- Text to indicate that no downloads match the search query. -->
   <string name="download_search_no_results_found" tools:ignore="UnusedResources">Cap de resultat pas trobat</string>
+  <!-- Text for the "Select all" button, which selects all downloaded items in the downloads list. -->
+  <string name="download_select_all_items">Tot seleccionar</string>
   <!--
     Downloads Content Type Filters
 
@@ -3435,6 +3439,16 @@ Exemple :\nhttps://suggestqueries.google.com/complete/search?client=firefox&amp
   <string name="text_field_eye_trailing_icon_default_content_description" moz:removedIn="139" tools:ignore="UnusedResources">Afichar lo tèxt rescondut</string>
   <!-- The default content description for the cross trailing icon button in TextField -->
   <string name="text_field_cross_trailing_icon_default_content_description" moz:removedIn="139" tools:ignore="UnusedResources">Escafar lo tèxt</string>
+  <!--
+    Setup checklist feature
+
+    ===== Setup checklist feature: Title =====
+
+    Title for the setup checklist feature when the state is 'incomplete'. %1$s is the name of the app (for example "Firefox").
+  -->
+  <string name="setup_checklist_title_state_incomplete">Terminar la configuracion de %1$s</string>
+  <!-- Title for the setup checklist feature when the state is 'completed' -->
+  <string name="setup_checklist_title_state_completed">Felicitacions !</string>
   <!--
     ===== Setup checklist feature: Task titles =====
 

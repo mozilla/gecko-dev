@@ -1372,6 +1372,8 @@
   <string name="tab_tray_multiselect_share_content_description">Таңдалған беттермен бөлісу</string>
   <!-- Content description for tabs tray multiselect menu -->
   <string name="tab_tray_multiselect_menu_content_description">Таңдалған беттер мәзірі</string>
+  <!-- Title text displayed for a homepage tab in the tabs tray. -->
+  <string name="tab_tray_homepage_tab">Үй парағы</string>
   <!-- Content description (not visible, for screen readers etc.): Removes tab from collection button. Removes the selected tab from collection when pressed -->
   <string name="remove_tab_from_collection">Бетті жинақтан өшіру</string>
   <!-- Text for button to enter multiselect mode in tabs tray -->
@@ -2274,6 +2276,14 @@
   <string name="preference_doh_choose_provider">Провайдерді таңдау</string>
   <!-- Text displayed for "Default provider" under "DNS over HTTPS" providers -->
   <string name="preference_doh_provider_default">(бастапқы)</string>
+  <!-- Text displayed for "Custom" under "DNS over HTTPS" providers -->
+  <string name="preference_doh_provider_custom">Таңдауыңызша</string>
+  <!-- Text displayed for "Custom provider" dialog under "DNS over HTTPS" -->
+  <string name="preference_doh_provider_custom_dialog_title">Таңдауыңызша провайдер</string>
+  <!-- Text displayed above provider textfield under "DNS over HTTPS" -->
+  <string name="preference_doh_provider_custom_dialog_textfield">Провайдер</string>
+  <!-- Error text displayed for provider textfield under "DNS over HTTPS" if the URL does not start with "https://" or its scheme is not "https" -->
+  <string name="preference_doh_provider_custom_dialog_error_https">URL адресі "https://" деп басталуы керек</string>
   <!-- Error text displayed for provider textfield under "DNS over HTTPS" if the URL is invalid -->
   <string name="preference_doh_provider_custom_dialog_error_invalid">Жарамсыз URL</string>
   <!-- Cancel button text for provider textfield under "DNS over HTTPS" -->
