@@ -253,4 +253,18 @@ class DistributionIdManagerTest {
         testBrowserStoreProvider.updateDistributionId(DistributionIdManager.Distribution.DT_001.id)
         assertEquals(true, subject.isPartnershipDistribution())
     }
+
+    @Test
+    fun `WHEN the provider is aura THEN the proper distribution ID is returned`() {
+        val subject = DistributionIdManager(
+            testContext,
+            testBrowserStoreProvider,
+            testDistributionProviderChecker,
+        )
+
+        providerValue = "aura"
+        val distributionId = subject.getDistributionId()
+
+        assertEquals("aura-001", distributionId)
+    }
 }

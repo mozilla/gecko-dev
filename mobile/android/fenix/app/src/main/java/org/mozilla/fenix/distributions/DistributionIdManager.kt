@@ -24,6 +24,8 @@ private const val VIVO_MANUFACTURER = "vivo"
 private const val DT_PROVIDER = "digital_turbine"
 private const val DT_TELEFONICA_PACKAGE = "com.dti.telefonica"
 
+private const val AURA_PROVIDER = "aura"
+
 private val logger = Logger(DistributionIdManager::class.simpleName)
 
 /**
@@ -56,6 +58,7 @@ class DistributionIdManager(
 
         val distributionId = when {
             isProviderDigitalTurbine(provider) && isDtTelefonicaInstalled() -> Distribution.DT_001.id
+            isProviderAura(provider) -> Distribution.AURA_001.id
             isDeviceVivo() && appPreinstalledOnVivoDevice() -> Distribution.VIVO_001.id
             Config.channel.isMozillaOnline -> Distribution.MOZILLA_ONLINE.id
             else -> Distribution.DEFAULT.id
@@ -79,6 +82,7 @@ class DistributionIdManager(
             Distribution.MOZILLA_ONLINE -> false
             Distribution.VIVO_001 -> true
             Distribution.DT_001 -> true
+            Distribution.AURA_001 -> true
         }
     }
 
@@ -87,6 +91,8 @@ class DistributionIdManager(
     }
 
     private fun isProviderDigitalTurbine(provider: String?): Boolean = provider == DT_PROVIDER
+
+    private fun isProviderAura(provider: String?): Boolean = provider == AURA_PROVIDER
 
     /**
      * This enum represents distribution IDs that are used in glean metrics.
@@ -97,6 +103,7 @@ class DistributionIdManager(
         MOZILLA_ONLINE(id = "MozillaOnline"),
         VIVO_001(id = "vivo-001"),
         DT_001(id = "dt-001"),
+        AURA_001(id = "aura-001"),
         ;
 
         companion object {
