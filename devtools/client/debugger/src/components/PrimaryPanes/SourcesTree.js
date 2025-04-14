@@ -409,12 +409,16 @@ class SourcesTree extends Component {
         }),
       },
       this.renderSettingsButton(),
+      this.renderProjectRootHeader(),
       this.isEmpty()
-        ? this.renderEmptyElement(L10N.getStr("noSourcesText"))
+        ? this.renderEmptyElement(
+            L10N.getStr(
+              projectRoot ? "noSourcesInDirectoryRootText" : "noSourcesText"
+            )
+          )
         : React.createElement(
             Fragment,
             null,
-            this.renderProjectRootHeader(),
             this.renderTree(),
             this.renderFooter()
           )

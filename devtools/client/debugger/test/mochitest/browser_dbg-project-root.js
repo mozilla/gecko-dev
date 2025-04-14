@@ -44,6 +44,23 @@ httpServer.registerPathHandler(
   }
 );
 
+const INDEX2_PAGE_CONTENT = `<!DOCTYPE html>
+  <html>
+    <head>
+      <script type="text/javascript" src="/src/script.js"></script>
+    </head>
+    <body></body>
+  </html>`;
+
+httpServer.registerPathHandler("/index2.html", (request, response) => {
+  response.setStatusLine(request.httpVersion, 200, "OK");
+  response.write(INDEX2_PAGE_CONTENT);
+});
+httpServer.registerPathHandler("/src/script.js", (request, response) => {
+  response.setStatusLine(request.httpVersion, 200, "OK");
+  response.write("console.log('src script')");
+});
+
 const ALL_SCRIPTS = [
   "root-script.js",
   "folder-script.js",
@@ -93,9 +110,19 @@ add_task(async function testProjectRoot() {
   assertRootLabel(dbg, "sub-folder");
   await waitForSourcesInSourceTree(dbg, ["sub-folder-script.js"]);
 
+  info("Navigate to a different page");
+  await navigateTo(BASE_URL + "index2.html");
+
+  info(
+    "Check that the project root header is still visible while no sources are shown"
+  );
+  assertRootLabel(dbg, "sub-folder");
+  ok(dbg.win.document.querySelector(".no-sources-message"));
+
   info("Clear project root");
   await clearProjectRoot(dbg);
-  await waitForSourcesInSourceTree(dbg, ALL_SCRIPTS);
+  await waitForSourcesInSourceTree(dbg, ["script.js"]);
+  ok(!dbg.win.document.querySelector(".sources-clear-root"));
 });
 
 async function setProjectRoot(dbg, treeNode) {
