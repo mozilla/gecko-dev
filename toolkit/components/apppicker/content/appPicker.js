@@ -74,6 +74,7 @@ AppPicker.prototype = {
     var fileList = mimeInfo.possibleLocalHandlers;
 
     var list = document.getElementById("app-picker-listbox");
+    list.addEventListener("dblclick", () => g_dialog.appDoubleClick());
 
     var primaryCount = 0;
 
@@ -228,3 +229,4 @@ AppPicker.prototype = {
 
 // Global object
 var g_dialog = new AppPicker();
+window.addEventListener("load", () => g_dialog.appPickerLoad());

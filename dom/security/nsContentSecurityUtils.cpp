@@ -648,8 +648,10 @@ bool nsContentSecurityUtils::IsEvalAllowed(JSContext* cx,
 
   if (StaticPrefs::
           security_allow_unsafe_dangerous_privileged_evil_eval_AtStartup()) {
-    MOZ_LOG(sCSMLog, LogLevel::Debug,
-            ("Allowing eval() because security.allow_unsafe_dangerous_priviliged_evil_eval is enabled."));
+    MOZ_LOG(
+        sCSMLog, LogLevel::Debug,
+        ("Allowing eval() because "
+         "security.allow_unsafe_dangerous_priviliged_evil_eval is enabled."));
     return true;
   }
 
@@ -1967,7 +1969,6 @@ void nsContentSecurityUtils::AssertChromePageHasCSP(Document* aDocument) {
   static nsLiteralCString sAllowedChromePagesWithNoCSP[] = {
       "chrome://browser/content/shopping/review-checker.xhtml"_ns,
       "chrome://geckoview/content/geckoview.xhtml"_ns,
-      "chrome://global/content/appPicker.xhtml"_ns,
       // Test files
       "chrome://mochikit/"_ns,
       "chrome://mochitests/"_ns,

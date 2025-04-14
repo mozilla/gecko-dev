@@ -4,12 +4,13 @@
    - License, v. 2.0. If a copy of the MPL was not distributed with this
    - file, You can obtain one at http://mozilla.org/MPL/2.0/. -->
 
+<?csp default-src chrome: resource:; img-src chrome: moz-icon:; ?>
+
 <!DOCTYPE window>
 
 <window
   xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul"
   xmlns:html="http://www.w3.org/1999/xhtml"
-  onload="g_dialog.appPickerLoad();"
   aria-describedby="content-description suggested-filename"
   persist="screenX screenY"
 >
@@ -42,10 +43,7 @@
       control="app-picker-listbox"
     />
 
-    <richlistbox
-      id="app-picker-listbox"
-      ondblclick="g_dialog.appDoubleClick();"
-    />
+    <richlistbox id="app-picker-listbox" />
 
     <label
       id="app-picker-notfound"
