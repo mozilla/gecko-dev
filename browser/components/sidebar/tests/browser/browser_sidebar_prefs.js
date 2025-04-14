@@ -230,6 +230,28 @@ add_task(async function test_flip_revamp_pref() {
   await BrowserTestUtils.closeWindow(win);
 });
 
+/**
+ * Check that panels can stay open when flipping sidebar.revamp
+ */
+add_task(async function test_flip_revamp_pref_with_panel() {
+  await toggleSidebarPanel(window, "viewGenaiChatSidebar");
+  ok(SidebarController.isOpen, "panel open with revamp");
+
+  await SpecialPowers.pushPrefEnv({
+    set: [["sidebar.revamp", false]],
+  });
+
+  ok(SidebarController.isOpen, "panel still open after old");
+
+  await SpecialPowers.pushPrefEnv({
+    set: [["sidebar.revamp", true]],
+  });
+
+  ok(SidebarController.isOpen, "panel still open after new");
+
+  await SidebarController.hide();
+});
+
 add_task(async function test_opening_panel_flips_has_used_pref() {
   Services.prefs.clearUserPref("sidebar.old-sidebar.has-used");
   Services.prefs.clearUserPref("sidebar.new-sidebar.has-used");

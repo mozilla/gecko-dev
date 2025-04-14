@@ -203,13 +203,15 @@ var SidebarController = {
       }
     );
 
-    this._sidebars.set("viewCustomizeSidebar", {
-      url: "chrome://browser/content/sidebar/sidebar-customize.html",
-      revampL10nId: "sidebar-menu-customize-label",
-      iconUrl: "chrome://global/skin/icons/settings.svg",
-      gleanEvent: Glean.sidebarCustomize.panelToggle,
-      visible: false,
-    });
+    if (this.sidebarRevampEnabled) {
+      this._sidebars.set("viewCustomizeSidebar", {
+        url: "chrome://browser/content/sidebar/sidebar-customize.html",
+        revampL10nId: "sidebar-menu-customize-label",
+        iconUrl: "chrome://global/skin/icons/settings.svg",
+        gleanEvent: Glean.sidebarCustomize.panelToggle,
+        visible: false,
+      });
+    }
 
     return this._sidebars;
   },
@@ -801,10 +803,16 @@ var SidebarController = {
     }
     if (!this._sidebars.get(this.lastOpenedId)) {
       this.lastOpenedId = this.DEFAULT_SIDEBAR_ID;
+      wasOpen = false;
     }
     this.updateToolbarButton();
     this._inited = false;
     this.init();
+
+    // Reopen the panel in the new or old sidebar now that we've inited
+    if (wasOpen) {
+      this.toggle();
+    }
   },
 
   /**
