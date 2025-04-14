@@ -149,30 +149,25 @@ impl<T: WindowAdjustment> CongestionControl for ClassicCongestionControl<T> {
         self.qlog = qlog;
     }
 
-    #[must_use]
     fn cwnd(&self) -> usize {
         self.congestion_window
     }
 
-    #[must_use]
     fn bytes_in_flight(&self) -> usize {
         self.bytes_in_flight
     }
 
-    #[must_use]
     fn cwnd_avail(&self) -> usize {
         // BIF can be higher than cwnd due to PTO packets, which are sent even
         // if avail is 0, but still count towards BIF.
         self.congestion_window.saturating_sub(self.bytes_in_flight)
     }
 
-    #[must_use]
     fn cwnd_min(&self) -> usize {
         self.max_datagram_size() * 2
     }
 
     #[cfg(test)]
-    #[must_use]
     fn cwnd_initial(&self) -> usize {
         cwnd_initial(self.pmtud.plpmtu())
     }
@@ -540,7 +535,7 @@ impl<T: WindowAdjustment> ClassicCongestionControl<T> {
         // state and update the variable `self.recovery_start`. Before the
         // first recovery, all packets were sent after the recovery event,
         // allowing to reduce the cwnd on congestion events.
-        !self.state.transient() && self.recovery_start.map_or(true, |pn| packet.pn() >= pn)
+        !self.state.transient() && self.recovery_start.is_none_or(|pn| packet.pn() >= pn)
     }
 
     /// Handle a congestion event.
@@ -599,7 +594,7 @@ impl<T: WindowAdjustment> ClassicCongestionControl<T> {
 mod tests {
     use std::time::{Duration, Instant};
 
-    use neqo_common::{qinfo, IpTosEcn};
+    use neqo_common::qinfo;
     use test_fixture::now;
 
     use super::{ClassicCongestionControl, WindowAdjustment, PERSISTENT_CONG_THRESH};
@@ -618,7 +613,6 @@ mod tests {
     };
 
     const PTO: Duration = RTT;
-    const RTT_ESTIMATE: RttEstimate = RttEstimate::from_duration(RTT);
     const ZERO: Duration = Duration::from_secs(0);
     const EPSILON: Duration = Duration::from_nanos(1);
     const GAP: Duration = Duration::from_secs(1);
@@ -642,7 +636,6 @@ mod tests {
         SentPacket::new(
             PacketType::Short,
             pn,
-            IpTosEcn::default(),
             now() + t,
             ack_eliciting,
             Vec::new(),
@@ -857,7 +850,6 @@ mod tests {
                 SentPacket::new(
                     PacketType::Short,
                     u64::try_from(i).unwrap(),
-                    IpTosEcn::default(),
                     by_pto(t),
                     true,
                     Vec::new(),
@@ -979,10 +971,9 @@ mod tests {
         lost[0] = SentPacket::new(
             lost[0].packet_type(),
             lost[0].pn(),
-            lost[0].ecn_mark(),
             lost[0].time_sent(),
             false,
-            Vec::new(),
+            lost[0].tokens().to_vec(),
             lost[0].len(),
         );
         assert!(!persistent_congestion_by_pto(
@@ -1081,7 +1072,6 @@ mod tests {
                 let p = SentPacket::new(
                     PacketType::Short,
                     next_pn,
-                    IpTosEcn::default(),
                     now,
                     true,
                     Vec::new(),
@@ -1096,7 +1086,7 @@ mod tests {
                 packet_burst_size * cc.max_datagram_size()
             );
             now += RTT;
-            cc.on_packets_acked(&pkts, &RTT_ESTIMATE, now);
+            cc.on_packets_acked(&pkts, &RttEstimate::default(), now);
             assert_eq!(cc.bytes_in_flight(), 0);
             assert_eq!(cc.acked_bytes, 0);
             assert_eq!(cwnd, cc.congestion_window); // CWND doesn't grow because we're app limited
@@ -1109,7 +1099,6 @@ mod tests {
             let p = SentPacket::new(
                 PacketType::Short,
                 next_pn,
-                IpTosEcn::default(),
                 now,
                 true,
                 Vec::new(),
@@ -1126,7 +1115,7 @@ mod tests {
         now += RTT;
         // Check if congestion window gets increased for all packets currently in flight
         for (i, pkt) in pkts.into_iter().enumerate() {
-            cc.on_packets_acked(&[pkt], &RTT_ESTIMATE, now);
+            cc.on_packets_acked(&[pkt], &RttEstimate::default(), now);
 
             assert_eq!(
                 cc.bytes_in_flight(),
@@ -1160,7 +1149,6 @@ mod tests {
         let p_lost = SentPacket::new(
             PacketType::Short,
             1,
-            IpTosEcn::default(),
             now,
             true,
             Vec::new(),
@@ -1174,7 +1162,6 @@ mod tests {
         let p_not_lost = SentPacket::new(
             PacketType::Short,
             2,
-            IpTosEcn::default(),
             now,
             true,
             Vec::new(),
@@ -1182,7 +1169,7 @@ mod tests {
         );
         cc.on_packet_sent(&p_not_lost, now);
         now += RTT;
-        cc.on_packets_acked(&[p_not_lost], &RTT_ESTIMATE, now);
+        cc.on_packets_acked(&[p_not_lost], &RttEstimate::default(), now);
         cwnd_is_halved(&cc);
         // cc is app limited therefore cwnd in not increased.
         assert_eq!(cc.acked_bytes, 0);
@@ -1198,7 +1185,6 @@ mod tests {
                 let p = SentPacket::new(
                     PacketType::Short,
                     next_pn,
-                    IpTosEcn::default(),
                     now,
                     true,
                     Vec::new(),
@@ -1214,7 +1200,7 @@ mod tests {
             );
             now += RTT;
             for (i, pkt) in pkts.into_iter().enumerate() {
-                cc.on_packets_acked(&[pkt], &RTT_ESTIMATE, now);
+                cc.on_packets_acked(&[pkt], &RttEstimate::default(), now);
 
                 assert_eq!(
                     cc.bytes_in_flight(),
@@ -1232,7 +1218,6 @@ mod tests {
             let p = SentPacket::new(
                 PacketType::Short,
                 next_pn,
-                IpTosEcn::default(),
                 now,
                 true,
                 Vec::new(),
@@ -1250,7 +1235,7 @@ mod tests {
         let mut last_acked_bytes = 0;
         // Check if congestion window gets increased for all packets currently in flight
         for (i, pkt) in pkts.into_iter().enumerate() {
-            cc.on_packets_acked(&[pkt], &RTT_ESTIMATE, now);
+            cc.on_packets_acked(&[pkt], &RttEstimate::default(), now);
 
             assert_eq!(
                 cc.bytes_in_flight(),
@@ -1272,7 +1257,6 @@ mod tests {
         let p_ce = SentPacket::new(
             PacketType::Short,
             1,
-            IpTosEcn::default(),
             now,
             true,
             Vec::new(),

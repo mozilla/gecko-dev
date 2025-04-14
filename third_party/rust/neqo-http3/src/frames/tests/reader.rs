@@ -38,7 +38,7 @@ impl FrameReaderTest {
     }
 
     fn process<T: FrameDecoder<T>>(&mut self, v: &[u8]) -> Option<T> {
-        self.conn_s.stream_send(self.stream_id, v).unwrap();
+        self.conn_s.stream_send(self.stream_id, v).ok()?;
         let out = self.conn_s.process_output(now());
         drop(self.conn_c.process(out.dgram(), now()));
         let (frame, fin) = self
@@ -47,7 +47,7 @@ impl FrameReaderTest {
                 &mut self.conn_c,
                 self.stream_id,
             ))
-            .unwrap();
+            .ok()?;
         assert!(!fin);
         frame
     }
@@ -264,7 +264,7 @@ fn test_reading_frame<T: FrameDecoder<T> + PartialEq + Debug>(
             assert!(fin);
             assert!(f.is_none());
         }
-    };
+    }
 }
 
 #[test]

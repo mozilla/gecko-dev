@@ -10,14 +10,19 @@
 # See Cargo.toml.orig for the original contents.
 
 [package]
-edition = "2018"
+edition = "2021"
 name = "qlog"
-version = "0.13.0"
+version = "0.15.2"
 authors = ["Lucas Pardue <lucaspardue.24.7@gmail.com>"]
+build = false
+autolib = false
+autobins = false
+autoexamples = false
+autotests = false
+autobenches = false
 description = "qlog data model for QUIC and HTTP/3"
 readme = "README.md"
 keywords = [
-    "qlog",
     "quic",
     "http3",
 ]
@@ -25,22 +30,24 @@ categories = ["network-programming"]
 license = "BSD-2-Clause"
 repository = "https://github.com/cloudflare/quiche"
 
+[lib]
+name = "qlog"
+path = "src/lib.rs"
+
 [dependencies.serde]
-version = "1.0.139"
+version = "1"
 features = ["derive"]
 
-[dependencies.serde_derive]
-version = "1.0"
-
 [dependencies.serde_json]
-version = "1.0"
+version = "1"
 features = ["preserve_order"]
 
 [dependencies.serde_with]
-version = "3.0.0"
+version = "3.3"
 features = ["macros"]
 default-features = false
 
 [dependencies.smallvec]
 version = "1.10"
 features = ["serde"]
+default-features = false

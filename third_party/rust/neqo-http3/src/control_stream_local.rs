@@ -9,7 +9,7 @@ use std::collections::{HashMap, VecDeque};
 use neqo_common::{qtrace, Encoder};
 use neqo_transport::{Connection, StreamId, StreamType};
 
-use crate::{frames::HFrame, BufferedStream, Http3StreamType, RecvStream, Res};
+use crate::{frames::HFrame, BufferedStream, Error, Http3StreamType, RecvStream, Res};
 
 pub const HTTP3_UNI_STREAM_TYPE_CONTROL: u64 = 0x0;
 
@@ -73,14 +73,14 @@ impl ControlStreamLocal {
                 update_stream.stream_type(),
                 Http3StreamType::Http | Http3StreamType::Push
             ));
-            let stream = update_stream.http_stream().unwrap();
+            let stream = update_stream.http_stream().ok_or(Error::Internal)?;
 
             // in case multiple priority_updates were issued, ignore now irrelevant
             if let Some(hframe) = stream.priority_update_frame() {
                 let mut enc = Encoder::new();
                 hframe.encode(&mut enc);
                 if self.stream.send_atomic(conn, enc.as_ref())? {
-                    stream.priority_update_sent();
+                    stream.priority_update_sent()?;
                 } else {
                     self.outstanding_priority_update.push_front(update_id);
                     break;
@@ -95,7 +95,7 @@ impl ControlStreamLocal {
         qtrace!("[{self}] Create a control stream");
         self.stream.init(conn.stream_create(StreamType::UniDi)?);
         self.stream
-            .buffer(&[u8::try_from(HTTP3_UNI_STREAM_TYPE_CONTROL).unwrap()]);
+            .buffer(&[u8::try_from(HTTP3_UNI_STREAM_TYPE_CONTROL).map_err(|_| Error::Internal)?]);
         Ok(())
     }
 

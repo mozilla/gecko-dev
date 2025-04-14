@@ -6,8 +6,6 @@
 
 // Congestion control
 
-#![allow(clippy::module_name_repetitions)]
-
 use std::{
     fmt::{self, Display},
     time::{Duration, Instant},
@@ -21,7 +19,7 @@ use crate::{
     pmtud::Pmtud,
     recovery::SentPacket,
     rtt::RttEstimate,
-    Stats,
+    ConnectionParameters, Stats,
 };
 
 /// The number of packets we allow to burst from the pacer.
@@ -41,15 +39,10 @@ impl Display for PacketSender {
 
 impl PacketSender {
     #[must_use]
-    pub fn new(
-        alg: CongestionControlAlgorithm,
-        pacing_enabled: bool,
-        pmtud: Pmtud,
-        now: Instant,
-    ) -> Self {
+    pub fn new(conn_params: &ConnectionParameters, pmtud: Pmtud, now: Instant) -> Self {
         let mtu = pmtud.plpmtu();
         Self {
-            cc: match alg {
+            cc: match conn_params.get_cc_algorithm() {
                 CongestionControlAlgorithm::NewReno => {
                     Box::new(ClassicCongestionControl::new(NewReno::default(), pmtud))
                 }
@@ -57,7 +50,12 @@ impl PacketSender {
                     Box::new(ClassicCongestionControl::new(Cubic::default(), pmtud))
                 }
             },
-            pacer: Pacer::new(pacing_enabled, now, mtu * PACING_BURST_SIZE, mtu),
+            pacer: Pacer::new(
+                conn_params.pacing_enabled(),
+                now,
+                mtu * PACING_BURST_SIZE,
+                mtu,
+            ),
         }
     }
 

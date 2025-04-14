@@ -50,7 +50,6 @@ impl TryFrom<(MessageType, &str)> for PseudoHeaderState {
 /// a status header or if the value of the header is 101 or cannot be parsed.
 pub fn is_interim(headers: &[Header]) -> Res<bool> {
     if let Some(h) = headers.iter().take(1).find_header(":status") {
-        #[allow(clippy::map_err_ignore)]
         let status_code = h.value().parse::<u16>().map_err(|_| Error::InvalidHeader)?;
         if status_code == 101 {
             // https://datatracker.ietf.org/doc/html/draft-ietf-quic-http#section-4.3

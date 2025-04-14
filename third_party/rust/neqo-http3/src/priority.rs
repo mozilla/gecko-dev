@@ -66,7 +66,7 @@ impl Priority {
             Some(ListEntry::Item(Item {
                 bare_item: BareItem::Integer(u),
                 ..
-            })) if (0..=7).contains(u) => u8::try_from(*u).unwrap(),
+            })) if (0..=7).contains(u) => u8::try_from(*u).map_err(|_| Error::Internal)?,
             _ => 3,
         };
         let incremental = match dict.get("i") {
@@ -107,7 +107,6 @@ impl fmt::Display for Priority {
 }
 
 #[derive(Debug)]
-#[allow(clippy::module_name_repetitions)]
 pub struct PriorityHandler {
     push_stream: bool,
     priority: Priority,

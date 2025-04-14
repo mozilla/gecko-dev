@@ -4,6 +4,8 @@
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
 
+#![expect(clippy::unwrap_used, reason = "OK in a build script.")]
+
 use std::env;
 
 fn main() {

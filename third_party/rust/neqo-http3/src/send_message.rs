@@ -151,7 +151,7 @@ impl SendMessage {
     }
 
     fn stream_id(&self) -> StreamId {
-        Option::<StreamId>::from(&self.stream).unwrap()
+        Option::<StreamId>::from(&self.stream).expect("stream has ID")
     }
 
     fn get_stream_info(&self) -> Http3StreamInfo {
@@ -183,7 +183,7 @@ impl SendStream for SendMessage {
             // cheap, thus not worth optimizing.
             conn.stream_set_writable_event_low_watermark(
                 self.stream_id(),
-                NonZeroUsize::new(MIN_DATA_FRAME_SIZE).unwrap(),
+                NonZeroUsize::new(MIN_DATA_FRAME_SIZE).ok_or(Error::Internal)?,
             )?;
             return Ok(0);
         }

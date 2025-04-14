@@ -47,7 +47,10 @@ pub fn find_sni(buf: &[u8]) -> Option<Range<usize>> {
         let ext_len: u16 = dec.decode_uint()?;
         if ext_type == 0 {
             // SNI!
-            let sni_len: u16 = dec.decode_uint()?;
+            let sni_len = dec.decode_uint::<u16>()?;
+            if sni_len < 3 {
+                return None;
+            }
             skip(&mut dec, 3)?; // Skip name_type and host_name length
             let start = dec.offset();
             let end = start + usize::from(sni_len) - 3;
@@ -107,10 +110,8 @@ mod tests {
         // ClientHello without SNI extension
         let mut buf = Vec::from(&BUF_WITH_SNI[..BUF_WITH_SNI.len() - 39]);
         let len = buf.len();
-        assert!(buf[len - 2] == 0x01 && buf[len - 1] == 0xcb); // Check extensions length
-                                                               // Set extensions length to 0
-        buf[len - 2] = 0x00;
-        buf[len - 1] = 0x00;
+        assert_eq!(&buf[len - 2..len], &[0x01, 0xcb], "check extensions length");
+        buf[len - 2..len].copy_from_slice(&[0x00, 0x00]); // Set extensions length to 0
         assert!(super::find_sni(&buf).is_none());
     }
 
@@ -119,6 +120,16 @@ mod tests {
         // ClientHello with an SNI extension truncated somewhere in the hostname
         let truncated = &BUF_WITH_SNI[..BUF_WITH_SNI.len() - 15];
         assert!(super::find_sni(truncated).is_none());
+    }
+
+    #[test]
+    fn find_sni_invalid_sni_length() {
+        // ClientHello with an SNI extension with an invalid length
+        let mut buf = Vec::from(BUF_WITH_SNI);
+        let len = buf.len();
+        assert_eq!(&buf[len - 23..len - 21], &[0x00, 0x0c], "check SNI length");
+        buf[len - 23..len - 21].copy_from_slice(&[0x00, 0x02]); // Set Server Name List length to 2
+        assert!(super::find_sni(&buf).is_none());
     }
 
     #[test]

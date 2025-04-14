@@ -15,7 +15,11 @@ use neqo_crypto::{assert_initialized, init_db};
 
 // Pull in the NSS internals so that we can ask NSS if it thinks that
 // it is properly initialized.
-#[allow(dead_code, non_upper_case_globals)]
+#[expect(
+    non_upper_case_globals,
+    dead_code,
+    reason = "Code is bindgen-generated."
+)]
 mod nss {
     include!(concat!(env!("OUT_DIR"), "/nss_init.rs"));
 }

@@ -11,8 +11,8 @@ use std::{cmp::max, time::Duration};
 use neqo_common::qtrace;
 
 use crate::{
-    connection::params::ACK_RATIO_SCALE, frame::FRAME_TYPE_ACK_FREQUENCY, packet::PacketBuilder,
-    recovery::RecoveryToken, stats::FrameStats,
+    connection::params::ACK_RATIO_SCALE, frame::FrameType, packet::PacketBuilder,
+    recovery::RecoveryToken, stats::FrameStats, tracking::DEFAULT_REMOTE_ACK_DELAY,
 };
 
 #[derive(Debug, Clone)]
@@ -43,10 +43,10 @@ impl AckRate {
 
     pub fn write_frame(&self, builder: &mut PacketBuilder, seqno: u64) -> bool {
         builder.write_varint_frame(&[
-            FRAME_TYPE_ACK_FREQUENCY,
+            u64::from(FrameType::AckFrequency),
             seqno,
-            u64::try_from(self.packets + 1).unwrap(),
-            u64::try_from(self.delay.as_micros()).unwrap(),
+            u64::try_from(self.packets + 1).expect("usize fits in u64"),
+            u64::try_from(self.delay.as_micros()).unwrap_or(u64::MAX),
             0,
         ])
     }
@@ -202,6 +202,6 @@ impl PeerAckDelay {
 
 impl Default for PeerAckDelay {
     fn default() -> Self {
-        Self::fixed(Duration::from_millis(25))
+        Self::fixed(DEFAULT_REMOTE_ACK_DELAY)
     }
 }

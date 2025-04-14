@@ -70,7 +70,7 @@ impl InitialDetails {
             src_cid: ConnectionId::from(packet.scid()),
             dst_cid: ConnectionId::from(packet.dcid()),
             token: packet.token().to_vec(),
-            version: packet.version().unwrap(),
+            version: packet.version().expect("packet has version"),
         }
     }
 }
@@ -196,7 +196,7 @@ impl Server {
     fn handle_initial(
         &mut self,
         initial: InitialDetails,
-        dgram: Datagram<impl AsRef<[u8]>>,
+        dgram: Datagram<impl AsRef<[u8]> + AsMut<[u8]>>,
         now: Instant,
     ) -> Output {
         qdebug!("[{self}] Handle initial");
@@ -307,7 +307,7 @@ impl Server {
     fn accept_connection(
         &mut self,
         initial: InitialDetails,
-        dgram: Datagram<impl AsRef<[u8]>>,
+        dgram: Datagram<impl AsRef<[u8]> + AsMut<[u8]>>,
         orig_dcid: Option<ConnectionId>,
         now: Instant,
     ) -> Output {
@@ -349,12 +349,19 @@ impl Server {
         }
     }
 
-    fn process_input(&mut self, dgram: Datagram<impl AsRef<[u8]>>, now: Instant) -> Output {
+    fn process_input(
+        &mut self,
+        mut dgram: Datagram<impl AsRef<[u8]> + AsMut<[u8]>>,
+        now: Instant,
+    ) -> Output {
         qtrace!("Process datagram: {}", hex(&dgram[..]));
 
         // This is only looking at the first packet header in the datagram.
         // All packets in the datagram are routed to the same connection.
-        let res = PublicPacket::decode(&dgram[..], self.cid_generator.borrow().as_decoder());
+        let len = dgram.len();
+        let destination = dgram.destination();
+        let source = dgram.source();
+        let res = PublicPacket::decode(&mut dgram[..], self.cid_generator.borrow().as_decoder());
         let Ok((packet, _remainder)) = res else {
             qtrace!("[{self}] Discarding {dgram:?}");
             return Output::None;
@@ -381,9 +388,9 @@ impl Server {
                     .conn_params
                     .get_versions()
                     .all()
-                    .contains(&packet.version().unwrap()))
+                    .contains(&packet.version().expect("packet has version")))
         {
-            if dgram.len() < MIN_INITIAL_PACKET_SIZE {
+            if len < MIN_INITIAL_PACKET_SIZE {
                 qdebug!("[{self}] Unsupported version: too short");
                 return Output::None;
             }
@@ -399,8 +406,8 @@ impl Server {
                 "[{self}] type={:?} path:{} {}->{} {:?} len {}",
                 PacketType::VersionNegotiation,
                 packet.dcid(),
-                dgram.destination(),
-                dgram.source(),
+                destination,
+                source,
                 IpTos::default(),
                 vn.len(),
             );
@@ -422,7 +429,7 @@ impl Server {
 
         match packet.packet_type() {
             PacketType::Initial => {
-                if dgram.len() < MIN_INITIAL_PACKET_SIZE {
+                if len < MIN_INITIAL_PACKET_SIZE {
                     qdebug!("[{self}] Drop initial: too short");
                     return Output::None;
                 }
@@ -470,7 +477,11 @@ impl Server {
     }
 
     #[must_use]
-    pub fn process(&mut self, dgram: Option<Datagram<impl AsRef<[u8]>>>, now: Instant) -> Output {
+    pub fn process(
+        &mut self,
+        dgram: Option<Datagram<impl AsRef<[u8]> + AsMut<[u8]>>>,
+        now: Instant,
+    ) -> Output {
         let out = dgram
             .map_or(Output::None, |d| self.process_input(d, now))
             .or_else(|| self.process_next_output(now));
@@ -484,8 +495,10 @@ impl Server {
 
     /// This lists the connections that have received new events
     /// as a result of calling `process()`.
-    // `ActiveConnectionRef` `Hash` implementation doesn’t access any of the interior mutable types.
-    #[allow(clippy::mutable_key_type)]
+    #[expect(
+        clippy::mutable_key_type,
+        reason = "ActiveConnectionRef::Hash doesn't access any of the interior mutable types."
+    )]
     #[must_use]
     pub fn active_connections(&self) -> HashSet<ConnectionRef> {
         self.connections

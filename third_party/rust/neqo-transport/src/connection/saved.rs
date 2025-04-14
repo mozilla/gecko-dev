@@ -8,7 +8,7 @@ use std::{mem, time::Instant};
 
 use neqo_common::{qdebug, qinfo, Datagram};
 
-use crate::crypto::CryptoSpace;
+use crate::crypto::Epoch;
 
 /// The number of datagrams that are saved during the handshake when
 /// keys to decrypt them are not yet available.
@@ -25,20 +25,20 @@ pub struct SavedDatagram {
 pub struct SavedDatagrams {
     handshake: Vec<SavedDatagram>,
     application_data: Vec<SavedDatagram>,
-    available: Option<CryptoSpace>,
+    available: Option<Epoch>,
 }
 
 impl SavedDatagrams {
-    fn store(&mut self, cspace: CryptoSpace) -> &mut Vec<SavedDatagram> {
-        match cspace {
-            CryptoSpace::Handshake => &mut self.handshake,
-            CryptoSpace::ApplicationData => &mut self.application_data,
+    fn store(&mut self, epoch: Epoch) -> &mut Vec<SavedDatagram> {
+        match epoch {
+            Epoch::Handshake => &mut self.handshake,
+            Epoch::ApplicationData => &mut self.application_data,
             _ => panic!("unexpected space"),
         }
     }
 
-    pub fn save(&mut self, cspace: CryptoSpace, d: Datagram, t: Instant) {
-        let store = self.store(cspace);
+    pub fn save(&mut self, epoch: Epoch, d: Datagram, t: Instant) {
+        let store = self.store(epoch);
 
         if store.len() < MAX_SAVED_DATAGRAMS {
             qdebug!("saving datagram of {} bytes", d.len());
@@ -48,21 +48,21 @@ impl SavedDatagrams {
         }
     }
 
-    pub fn make_available(&mut self, cspace: CryptoSpace) {
-        debug_assert_ne!(cspace, CryptoSpace::ZeroRtt);
-        debug_assert_ne!(cspace, CryptoSpace::Initial);
-        if !self.store(cspace).is_empty() {
-            self.available = Some(cspace);
+    pub fn make_available(&mut self, epoch: Epoch) {
+        debug_assert_ne!(epoch, Epoch::ZeroRtt);
+        debug_assert_ne!(epoch, Epoch::Initial);
+        if !self.store(epoch).is_empty() {
+            self.available = Some(epoch);
         }
     }
 
-    pub const fn available(&self) -> Option<CryptoSpace> {
+    pub const fn available(&self) -> Option<Epoch> {
         self.available
     }
 
     pub fn take_saved(&mut self) -> Vec<SavedDatagram> {
         self.available
             .take()
-            .map_or_else(Vec::new, |cspace| mem::take(self.store(cspace)))
+            .map_or_else(Vec::new, |epoch| mem::take(self.store(epoch)))
     }
 }

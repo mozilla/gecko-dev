@@ -5,11 +5,13 @@
 // except according to those terms.
 
 #![allow(
+    clippy::allow_attributes,
     dead_code,
     non_upper_case_globals,
     non_snake_case,
+    clippy::cognitive_complexity,
     clippy::too_many_lines,
-    clippy::cognitive_complexity
+    reason = "For included bindgen code."
 )]
 
 use std::os::raw::{c_uint, c_void};
@@ -20,56 +22,41 @@ use crate::{
 };
 
 include!(concat!(env!("OUT_DIR"), "/nss_ssl.rs"));
+#[expect(non_snake_case, reason = "OK here.")]
 mod SSLOption {
     include!(concat!(env!("OUT_DIR"), "/nss_sslopt.rs"));
 }
 
-// I clearly don't understand how bindgen operates.
-pub enum PLArenaPool {}
 pub enum PRFileDesc {}
 
 // Remap some constants.
+#[expect(non_upper_case_globals, reason = "OK here.")]
 pub const SECSuccess: SECStatus = _SECStatus_SECSuccess;
+#[expect(non_upper_case_globals, reason = "OK here.")]
 pub const SECFailure: SECStatus = _SECStatus_SECFailure;
 
 #[derive(Debug, Copy, Clone)]
+#[repr(u32)]
 pub enum Opt {
-    Locking,
-    Tickets,
-    OcspStapling,
-    Alpn,
-    ExtendedMasterSecret,
-    SignedCertificateTimestamps,
-    EarlyData,
-    RecordSizeLimit,
-    Tls13CompatMode,
-    HelloDowngradeCheck,
-    SuppressEndOfEarlyData,
-    Grease,
-    EnableChExtensionPermutation,
+    Locking = SSLOption::SSL_NO_LOCKS,
+    Tickets = SSLOption::SSL_ENABLE_SESSION_TICKETS,
+    OcspStapling = SSLOption::SSL_ENABLE_OCSP_STAPLING,
+    Alpn = SSLOption::SSL_ENABLE_ALPN,
+    ExtendedMasterSecret = SSLOption::SSL_ENABLE_EXTENDED_MASTER_SECRET,
+    SignedCertificateTimestamps = SSLOption::SSL_ENABLE_SIGNED_CERT_TIMESTAMPS,
+    EarlyData = SSLOption::SSL_ENABLE_0RTT_DATA,
+    RecordSizeLimit = SSLOption::SSL_RECORD_SIZE_LIMIT,
+    Tls13CompatMode = SSLOption::SSL_ENABLE_TLS13_COMPAT_MODE,
+    HelloDowngradeCheck = SSLOption::SSL_ENABLE_HELLO_DOWNGRADE_CHECK,
+    SuppressEndOfEarlyData = SSLOption::SSL_SUPPRESS_END_OF_EARLY_DATA,
+    Grease = SSLOption::SSL_ENABLE_GREASE,
+    EnableChExtensionPermutation = SSLOption::SSL_ENABLE_CH_EXTENSION_PERMUTATION,
 }
 
 impl Opt {
-    // Cast is safe here because SSLOptions are within the i32 range
-    #[allow(clippy::cast_possible_wrap)]
     #[must_use]
     pub const fn as_int(self) -> PRInt32 {
-        let i = match self {
-            Self::Locking => SSLOption::SSL_NO_LOCKS,
-            Self::Tickets => SSLOption::SSL_ENABLE_SESSION_TICKETS,
-            Self::OcspStapling => SSLOption::SSL_ENABLE_OCSP_STAPLING,
-            Self::Alpn => SSLOption::SSL_ENABLE_ALPN,
-            Self::ExtendedMasterSecret => SSLOption::SSL_ENABLE_EXTENDED_MASTER_SECRET,
-            Self::SignedCertificateTimestamps => SSLOption::SSL_ENABLE_SIGNED_CERT_TIMESTAMPS,
-            Self::EarlyData => SSLOption::SSL_ENABLE_0RTT_DATA,
-            Self::RecordSizeLimit => SSLOption::SSL_RECORD_SIZE_LIMIT,
-            Self::Tls13CompatMode => SSLOption::SSL_ENABLE_TLS13_COMPAT_MODE,
-            Self::HelloDowngradeCheck => SSLOption::SSL_ENABLE_HELLO_DOWNGRADE_CHECK,
-            Self::SuppressEndOfEarlyData => SSLOption::SSL_SUPPRESS_END_OF_EARLY_DATA,
-            Self::Grease => SSLOption::SSL_ENABLE_GREASE,
-            Self::EnableChExtensionPermutation => SSLOption::SSL_ENABLE_CH_EXTENSION_PERMUTATION,
-        };
-        i as PRInt32
+        self as PRInt32
     }
 
     // Some options are backwards, like SSL_NO_LOCKS, so use this to manage that.
@@ -86,11 +73,6 @@ impl Opt {
     }
 }
 
-experimental_api!(SSL_GetCurrentEpoch(
-    fd: *mut PRFileDesc,
-    read_epoch: *mut u16,
-    write_epoch: *mut u16,
-));
 experimental_api!(SSL_HelloRetryRequestCallback(
     fd: *mut PRFileDesc,
     cb: SSLHelloRetryRequestCallback,

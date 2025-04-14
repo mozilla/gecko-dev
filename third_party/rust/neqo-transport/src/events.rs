@@ -81,7 +81,6 @@ pub enum ConnectionEvent {
 }
 
 #[derive(Debug, Default, Clone)]
-#[allow(clippy::module_name_repetitions)]
 pub struct ConnectionEvents {
     events: Rc<RefCell<VecDeque<ConnectionEvent>>>,
 }

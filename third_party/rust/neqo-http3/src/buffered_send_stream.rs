@@ -9,16 +9,14 @@ use neqo_transport::{Connection, StreamId};
 
 use crate::{qlog, Res};
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, Default)]
 pub enum BufferedStream {
+    #[default]
     Uninitialized,
-    Initialized { stream_id: StreamId, buf: Vec<u8> },
-}
-
-impl Default for BufferedStream {
-    fn default() -> Self {
-        Self::Uninitialized
-    }
+    Initialized {
+        stream_id: StreamId,
+        buf: Vec<u8>,
+    },
 }
 
 impl ::std::fmt::Display for BufferedStream {

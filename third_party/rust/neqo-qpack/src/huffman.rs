@@ -4,6 +4,11 @@
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
 
+#![allow(
+    clippy::module_name_repetitions,
+    reason = "<https://github.com/mozilla/neqo/issues/2284#issuecomment-2782711813>"
+)]
+
 use crate::{
     huffman_decode_helper::{huffman_decoder_root, HuffmanDecoderNode},
     huffman_table::HUFFMAN_TABLE,
@@ -80,10 +85,7 @@ pub fn decode_huffman(input: &[u8]) -> Res<Vec<u8>> {
     let mut output = Vec::new();
     while reader.has_more_data() {
         if let Some(c) = decode_character(&mut reader)? {
-            if c == 256 {
-                return Err(Error::HuffmanDecompressionFailed);
-            }
-            output.push(u8::try_from(c).unwrap());
+            output.push(u8::try_from(c).map_err(|_| Error::HuffmanDecompressionFailed)?);
         }
     }
 
@@ -127,12 +129,12 @@ pub fn encode_huffman(input: &[u8]) -> Vec<u8> {
 
         // Fill the previous byte
         if e.len < left {
-            let b = u8::try_from(e.val & 0xFF).unwrap();
+            let b = (e.val & 0xFF) as u8; // Safe due to the mask.
             saved |= b << (left - e.len);
             left -= e.len;
             e.len = 0;
         } else {
-            let v: u8 = u8::try_from(e.val >> (e.len - left)).unwrap();
+            let v: u8 = u8::try_from(e.val >> (e.len - left)).expect("fits into u8");
             saved |= v;
             output.push(saved);
             e.len -= left;
@@ -142,14 +144,14 @@ pub fn encode_huffman(input: &[u8]) -> Vec<u8> {
 
         // Write full bytes
         while e.len >= 8 {
-            let v: u8 = u8::try_from((e.val >> (e.len - 8)) & 0xFF).unwrap();
+            let v: u8 = ((e.val >> (e.len - 8)) & 0xFF) as u8; // Safe due to the mask.
             output.push(v);
             e.len -= 8;
         }
 
         // Write the rest into saved.
         if e.len > 0 {
-            saved = u8::try_from(e.val & ((1 << e.len) - 1)).unwrap() << (8 - e.len);
+            saved = u8::try_from(e.val & ((1 << e.len) - 1)).expect("fits into u8") << (8 - e.len);
             left = 8 - e.len;
         }
     }

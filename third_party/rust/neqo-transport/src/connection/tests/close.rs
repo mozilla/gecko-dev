@@ -13,7 +13,7 @@ use super::{
     connect, connect_force_idle, default_client, default_server, send_something,
 };
 use crate::{
-    tparams::{self, TransportParameter},
+    tparams::{TransportParameter, TransportParameterId::StatelessResetToken},
     AppError, CloseReason, Error, ERROR_APPLICATION_CLOSE,
 };
 
@@ -110,8 +110,10 @@ fn bad_tls_version() {
     let mut server = default_server();
 
     let dgram = client.process_output(now()).dgram();
-    assert!(dgram.is_some());
-    let dgram = server.process(dgram, now()).dgram();
+    let dgram2 = client.process_output(now()).dgram();
+    assert!(dgram.is_some() && dgram2.is_some());
+    server.process_input(dgram.unwrap(), now());
+    let dgram = server.process(dgram2, now()).dgram();
     assert_eq!(
         *server.state(),
         State::Closed(CloseReason::Transport(Error::ProtocolViolation))
@@ -211,10 +213,7 @@ fn stateless_reset_client() {
     let mut client = default_client();
     let mut server = default_server();
     server
-        .set_local_tparam(
-            tparams::STATELESS_RESET_TOKEN,
-            TransportParameter::Bytes(vec![77; 16]),
-        )
+        .set_local_tparam(StatelessResetToken, TransportParameter::Bytes(vec![77; 16]))
         .unwrap();
     connect_force_idle(&mut client, &mut server);
 

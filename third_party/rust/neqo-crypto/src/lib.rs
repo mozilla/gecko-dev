@@ -4,9 +4,6 @@
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
 
-#![allow(clippy::module_name_repetitions)] // This lint doesn't work here.
-#![allow(clippy::unseparated_literal_suffix, clippy::used_underscore_binding)] // For bindgen code.
-
 mod aead;
 #[cfg(feature = "disable-encryption")]
 pub mod aead_null;
@@ -31,7 +28,7 @@ pub mod selfencrypt;
 mod ssl;
 mod time;
 
-use std::{ffi::CString, path::PathBuf, ptr::null, sync::OnceLock};
+use std::{env, ffi::CString, path::PathBuf, ptr::null, sync::OnceLock};
 
 #[cfg(not(feature = "disable-encryption"))]
 pub use self::aead::RealAead as Aead;
@@ -63,7 +60,7 @@ mod min_version;
 use min_version::MINIMUM_NSS_VERSION;
 use neqo_common::qerror;
 
-#[allow(non_upper_case_globals)]
+#[expect(non_upper_case_globals, reason = "Code is bindgen-generated.")]
 mod nss {
     include!(concat!(env!("OUT_DIR"), "/nss_init.rs"));
 }
@@ -170,6 +167,9 @@ pub fn init() -> Res<()> {
 ///
 /// If NSS cannot be initialized.
 pub fn init_db<P: Into<PathBuf>>(dir: P) -> Res<()> {
+    // Allow overriding the NSS database path with an environment variable.
+    let dir = env::var("NSS_DB_PATH")
+        .unwrap_or(dir.into().to_str().ok_or(Error::InternalError)?.to_string());
     let res = INITIALIZED.get_or_init(|| init_once(Some(dir.into())));
     res.as_ref().map(|_| ()).map_err(Clone::clone)
 }
@@ -201,7 +201,7 @@ where
     if data.is_null() || len == 0 {
         &[]
     } else {
-        #[allow(clippy::disallowed_methods)]
+        #[expect(clippy::disallowed_methods, reason = "This is non-null.")]
         std::slice::from_raw_parts(data, len)
     }
 }

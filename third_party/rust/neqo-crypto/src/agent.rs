@@ -4,6 +4,15 @@
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
 
+#![allow(
+    clippy::module_name_repetitions,
+    reason = "<https://github.com/mozilla/neqo/issues/2284#issuecomment-2782711813>"
+)]
+#![expect(
+    clippy::unwrap_used,
+    reason = "Let's assume the use of `unwrap` was checked when the use of `unsafe` was reviewed."
+)]
+
 use std::{
     cell::RefCell,
     ffi::{CStr, CString},
@@ -122,7 +131,11 @@ macro_rules! preinfo_arg {
         pub fn $v(&self) -> Option<$t> {
             match self.info.valuesSet & ssl::$m {
                 0 => None,
-                _ => Some(<$t>::try_from(self.info.$f).unwrap()),
+                _ => Some(
+                    <$t>::try_from(self.info.$f)
+                        .inspect_err(|e| qdebug!("Invalid value in preinfo: {e:?}"))
+                        .ok()?,
+                ),
             }
         }
     };
@@ -135,7 +148,7 @@ impl SecretAgentPreInfo {
             ssl::SSL_GetPreliminaryChannelInfo(
                 fd,
                 info.as_mut_ptr(),
-                c_uint::try_from(std::mem::size_of::<ssl::SSLPreliminaryChannelInfo>())?,
+                c_uint::try_from(size_of::<ssl::SSLPreliminaryChannelInfo>())?,
             )
         })?;
 
@@ -158,12 +171,11 @@ impl SecretAgentPreInfo {
         self.info.canSendEarlyData != 0
     }
 
-    /// # Panics
+    /// # Errors
     ///
     /// If `usize` is less than 32 bits and the value is too large.
-    #[must_use]
-    pub fn max_early_data(&self) -> usize {
-        usize::try_from(self.info.maxEarlyDataSize).unwrap()
+    pub fn max_early_data(&self) -> Res<usize> {
+        Ok(usize::try_from(self.info.maxEarlyDataSize)?)
     }
 
     /// Was ECH accepted.
@@ -222,7 +234,7 @@ impl SecretAgentInfo {
             ssl::SSL_GetChannelInfo(
                 fd,
                 info.as_mut_ptr(),
-                c_uint::try_from(std::mem::size_of::<ssl::SSLChannelInfo>())?,
+                c_uint::try_from(size_of::<ssl::SSLChannelInfo>())?,
             )
         })?;
         let info = unsafe { info.assume_init() };
@@ -273,7 +285,6 @@ impl SecretAgentInfo {
 
 /// `SecretAgent` holds the common parts of client and server.
 #[derive(Debug)]
-#[allow(clippy::module_name_repetitions)]
 pub struct SecretAgent {
     fd: *mut ssl::PRFileDesc,
     secrets: SecretHolder,
@@ -345,7 +356,6 @@ impl SecretAgent {
         Ok(fd)
     }
 
-    #[allow(clippy::missing_const_for_fn)]
     unsafe extern "C" fn auth_complete_hook(
         arg: *mut c_void,
         _fd: *mut ssl::PRFileDesc,
@@ -544,9 +554,7 @@ impl SecretAgent {
 
         // NSS inherited an idiosyncratic API as a result of having implemented NPN
         // before ALPN.  For that reason, we need to put the "best" option last.
-        let (first, rest) = protocols
-            .split_first()
-            .expect("at least one ALPN value needed");
+        let (first, rest) = protocols.split_first().ok_or(Error::InternalError)?;
         for v in rest {
             add(v.as_ref());
         }
@@ -585,14 +593,16 @@ impl SecretAgent {
     // This function tracks whether handshake() or handshake_raw() was used
     // and prevents the other from being used.
     fn set_raw(&mut self, r: bool) -> Res<()> {
-        if self.raw.is_none() {
+        if let Some(raw) = self.raw {
+            if raw == r {
+                Ok(())
+            } else {
+                Err(Error::MixedHandshakeMethod)
+            }
+        } else {
             self.secrets.register(self.fd)?;
             self.raw = Some(r);
             Ok(())
-        } else if self.raw.unwrap() == r {
-            Ok(())
-        } else {
-            Err(Error::MixedHandshakeMethod)
         }
     }
 
@@ -627,6 +637,11 @@ impl SecretAgent {
     }
 
     /// Return any fatal alert that the TLS stack might have sent.
+    #[allow(
+        clippy::allow_attributes,
+        clippy::missing_const_for_fn,
+        reason = "TODO: False positive on nightly."
+    )]
     #[must_use]
     pub fn alert(&self) -> Option<&Alert> {
         (*self.alert).as_ref()
@@ -751,12 +766,15 @@ impl SecretAgent {
     /// # Panics
     ///
     /// If setup fails.
-    #[allow(clippy::branches_sharing_code)]
     pub fn close(&mut self) {
         // It should be safe to close multiple times.
         if self.fd.is_null() {
             return;
         }
+        #[expect(
+            clippy::branches_sharing_code,
+            reason = "Moving the PR_Close call after the conditional crashes things?!"
+        )]
         if self.raw == Some(true) {
             // Need to hold the record list in scope until the close is done.
             let _records = self.setup_raw().expect("Can only close");
@@ -769,7 +787,7 @@ impl SecretAgent {
             unsafe {
                 prio::PR_Close(self.fd.cast());
             }
-        };
+        }
         let _output = self.io.take_output();
         self.fd = null_mut();
     }
@@ -793,6 +811,11 @@ impl SecretAgent {
     }
 
     /// Get the active ECH configuration, which is empty if ECH is disabled.
+    #[allow(
+        clippy::allow_attributes,
+        clippy::missing_const_for_fn,
+        reason = "TODO: False positive on nightly."
+    )]
     #[must_use]
     pub fn ech_config(&self) -> &[u8] {
         &self.ech_config
@@ -840,13 +863,13 @@ impl ResumptionToken {
 
 /// A TLS Client.
 #[derive(Debug)]
-#[allow(clippy::box_collection)] // We need the Box.
 pub struct Client {
     agent: SecretAgent,
 
     /// The name of the server we're attempting a connection to.
     server_name: String,
     /// Records the resumption tokens we've received.
+    #[expect(clippy::box_collection, reason = "We need the Box.")]
     resumption: Pin<Box<Vec<ResumptionToken>>>,
 }
 
@@ -878,12 +901,10 @@ impl Client {
         arg: *mut c_void,
     ) -> ssl::SECStatus {
         let mut info: MaybeUninit<ssl::SSLResumptionTokenInfo> = MaybeUninit::uninit();
-        let info_res = &ssl::SSL_GetResumptionTokenInfo(
-            token,
-            len,
-            info.as_mut_ptr(),
-            c_uint::try_from(std::mem::size_of::<ssl::SSLResumptionTokenInfo>()).unwrap(),
-        );
+        let Ok(info_len) = c_uint::try_from(size_of::<ssl::SSLResumptionTokenInfo>()) else {
+            return ssl::SECFailure;
+        };
+        let info_res = &ssl::SSL_GetResumptionTokenInfo(token, len, info.as_mut_ptr(), info_len);
         if info_res.is_err() {
             // Ignore the token.
             return ssl::SECSuccess;
@@ -893,8 +914,12 @@ impl Client {
             // Ignore the token.
             return ssl::SECSuccess;
         }
-        let resumption = arg.cast::<Vec<ResumptionToken>>().as_mut().unwrap();
-        let len = usize::try_from(len).unwrap();
+        let Some(resumption) = arg.cast::<Vec<ResumptionToken>>().as_mut() else {
+            return ssl::SECFailure;
+        };
+        let Ok(len) = usize::try_from(len) else {
+            return ssl::SECFailure;
+        };
         let mut v = Vec::with_capacity(len);
         v.extend_from_slice(null_safe_slice(token, len));
         qdebug!("[{fd:p}] Got resumption token {}", hex_snip_middle(&v));
@@ -908,6 +933,11 @@ impl Client {
         ssl::SECSuccess
     }
 
+    #[allow(
+        clippy::allow_attributes,
+        clippy::missing_const_for_fn,
+        reason = "TODO: False positive on nightly."
+    )]
     #[must_use]
     pub fn server_name(&self) -> &str {
         &self.server_name
@@ -985,7 +1015,6 @@ impl Client {
 
 impl Deref for Client {
     type Target = SecretAgent;
-    #[must_use]
     fn deref(&self) -> &SecretAgent {
         &self.agent
     }
@@ -1194,7 +1223,6 @@ impl Server {
 
 impl Deref for Server {
     type Target = SecretAgent;
-    #[must_use]
     fn deref(&self) -> &SecretAgent {
         &self.agent
     }
@@ -1221,7 +1249,6 @@ pub enum Agent {
 
 impl Deref for Agent {
     type Target = SecretAgent;
-    #[must_use]
     fn deref(&self) -> &SecretAgent {
         match self {
             Self::Client(c) => c,
@@ -1240,14 +1267,12 @@ impl DerefMut for Agent {
 }
 
 impl From<Client> for Agent {
-    #[must_use]
     fn from(c: Client) -> Self {
         Self::Client(c)
     }
 }
 
 impl From<Server> for Agent {
-    #[must_use]
     fn from(s: Server) -> Self {
         Self::Server(s)
     }

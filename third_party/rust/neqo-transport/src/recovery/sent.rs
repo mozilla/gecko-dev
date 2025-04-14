@@ -12,8 +12,6 @@ use std::{
     time::{Duration, Instant},
 };
 
-use neqo_common::IpTosEcn;
-
 use crate::{
     packet::{PacketNumber, PacketType},
     recovery::RecoveryToken,
@@ -23,7 +21,6 @@ use crate::{
 pub struct SentPacket {
     pt: PacketType,
     pn: PacketNumber,
-    ecn_mark: IpTosEcn,
     ack_eliciting: bool,
     time_sent: Instant,
     primary_path: bool,
@@ -41,7 +38,6 @@ impl SentPacket {
     pub const fn new(
         pt: PacketType,
         pn: PacketNumber,
-        ecn_mark: IpTosEcn,
         time_sent: Instant,
         ack_eliciting: bool,
         tokens: Vec<RecoveryToken>,
@@ -50,7 +46,6 @@ impl SentPacket {
         Self {
             pt,
             pn,
-            ecn_mark,
             time_sent,
             ack_eliciting,
             primary_path: true,
@@ -75,8 +70,10 @@ impl SentPacket {
 
     /// The ECN mark of the packet.
     #[must_use]
-    pub const fn ecn_mark(&self) -> IpTosEcn {
-        self.ecn_mark
+    pub fn ecn_marked_ect0(&self) -> bool {
+        self.tokens
+            .iter()
+            .any(|t| matches!(t, RecoveryToken::EcnEct0))
     }
 
     /// The time that this packet was sent.
@@ -98,13 +95,22 @@ impl SentPacket {
     }
 
     /// The length of the packet that was sent.
-    #[allow(clippy::len_without_is_empty)]
+    #[allow(
+        clippy::allow_attributes,
+        clippy::len_without_is_empty,
+        reason = "OK here."
+    )]
     #[must_use]
     pub const fn len(&self) -> usize {
         self.len
     }
 
     /// Access the recovery tokens that this holds.
+    #[allow(
+        clippy::allow_attributes,
+        clippy::missing_const_for_fn,
+        reason = "TODO: False positive on nightly."
+    )]
     #[must_use]
     pub fn tokens(&self) -> &[RecoveryToken] {
         &self.tokens
@@ -190,7 +196,11 @@ pub struct SentPackets {
 }
 
 impl SentPackets {
-    #[allow(clippy::len_without_is_empty)]
+    #[allow(
+        clippy::allow_attributes,
+        clippy::len_without_is_empty,
+        reason = "OK here."
+    )]
     #[must_use]
     pub fn len(&self) -> usize {
         self.packets.len()
@@ -238,7 +248,7 @@ impl SentPackets {
             // > values in **descending packet number order**.
             //
             // <https://www.rfc-editor.org/rfc/rfc9000.html#section-19.3.1>
-            debug_assert!(previous_range_start.map_or(true, |s| s > *range.end()));
+            debug_assert!(previous_range_start.is_none_or(|s| s > *range.end()));
             previous_range_start = Some(*range.start());
 
             // Thus none of the following ACK ranges will acknowledge packets in
@@ -308,8 +318,6 @@ mod tests {
         time::{Duration, Instant},
     };
 
-    use neqo_common::IpTosEcn;
-
     use super::{SentPacket, SentPackets};
     use crate::packet::{PacketNumber, PacketType};
 
@@ -323,7 +331,6 @@ mod tests {
         SentPacket::new(
             PacketType::Short,
             PacketNumber::from(n),
-            IpTosEcn::default(),
             start_time() + (PACKET_GAP * n),
             true,
             Vec::new(),

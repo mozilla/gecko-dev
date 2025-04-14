@@ -11,11 +11,8 @@ use std::{cmp::min, collections::VecDeque};
 use neqo_common::Encoder;
 
 use crate::{
-    events::OutgoingDatagramOutcome,
-    frame::{FRAME_TYPE_DATAGRAM, FRAME_TYPE_DATAGRAM_WITH_LEN},
-    packet::PacketBuilder,
-    recovery::RecoveryToken,
-    ConnectionEvents, Error, Res, Stats,
+    events::OutgoingDatagramOutcome, frame::FrameType, packet::PacketBuilder,
+    recovery::RecoveryToken, ConnectionEvents, Error, Res, Stats,
 };
 
 pub const MAX_QUIC_DATAGRAM: u64 = 65535;
@@ -53,7 +50,6 @@ impl QuicDatagram {
 }
 
 impl AsRef<[u8]> for QuicDatagram {
-    #[must_use]
     fn as_ref(&self) -> &[u8] {
         &self.data[..]
     }
@@ -111,13 +107,14 @@ impl QuicDatagrams {
             let len = dgram.as_ref().len();
             if builder.remaining() > len {
                 // We need 1 more than `len` for the Frame type.
-                let length_len = Encoder::varint_len(u64::try_from(len).unwrap());
+                let length_len =
+                    Encoder::varint_len(u64::try_from(len).expect("usize fits in u64"));
                 // Include a length if there is space for another frame after this one.
                 if builder.remaining() >= 1 + length_len + len + PacketBuilder::MINIMUM_FRAME_SIZE {
-                    builder.encode_varint(FRAME_TYPE_DATAGRAM_WITH_LEN);
+                    builder.encode_varint(FrameType::DatagramWithLen);
                     builder.encode_vvec(dgram.as_ref());
                 } else {
-                    builder.encode_varint(FRAME_TYPE_DATAGRAM);
+                    builder.encode_varint(FrameType::Datagram);
                     builder.encode(dgram.as_ref());
                     builder.mark_full();
                 }

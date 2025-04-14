@@ -4,6 +4,8 @@
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
 
+#![expect(clippy::unwrap_used, reason = "This is example code.")]
+
 use std::{borrow::Cow, cell::RefCell, collections::HashMap, fmt::Display, rc::Rc, time::Instant};
 
 use neqo_common::{event::Provider as _, hex, qdebug, qerror, qinfo, qwarn, Datagram};
@@ -55,10 +57,10 @@ impl HttpServer {
             server.set_validation(ValidateAddress::Always);
         }
         if args.ech {
-            let (sk, pk) = generate_ech_keys().expect("generate ECH keys");
+            let (sk, pk) = generate_ech_keys().map_err(|_| Error::Internal)?;
             server
                 .enable_ech(random::<1>()[0], "public.example", &sk, &pk)
-                .expect("enable ECH");
+                .map_err(|_| Error::Internal)?;
             let cfg = server.ech_config();
             qinfo!("ECHConfigList: {}", hex(cfg));
         }
@@ -70,9 +72,9 @@ impl HttpServer {
             read_state: HashMap::new(),
             is_qns_test,
             regex: if is_qns_test {
-                Regex::new(r"GET +/(\S+)(?:\r)?\n").unwrap()
+                Regex::new(r"GET +/(\S+)(?:\r)?\n").map_err(|_| Error::Internal)?
             } else {
-                Regex::new(r"GET +/(\d+)(?:\r)?\n").unwrap()
+                Regex::new(r"GET +/(\d+)(?:\r)?\n").map_err(|_| Error::Internal)?
             },
             read_buffer: vec![0; STREAM_IO_BUFFER_SIZE],
         })
@@ -185,14 +187,15 @@ impl HttpServer {
 }
 
 impl super::HttpServer for HttpServer {
-    fn process(&mut self, dgram: Option<Datagram<&[u8]>>, now: Instant) -> Output {
+    fn process(&mut self, dgram: Option<Datagram<&mut [u8]>>, now: Instant) -> Output {
         self.server.process(dgram, now)
     }
 
     fn process_events(&mut self, now: Instant) {
-        // `ActiveConnectionRef` `Hash` implementation doesn’t access any of the interior mutable
-        // types.
-        #[allow(clippy::mutable_key_type)]
+        #[expect(
+            clippy::mutable_key_type,
+            reason = "ActiveConnectionRef::Hash doesn't access any of the interior mutable types"
+        )]
         let active_conns = self.server.active_connections();
         for acr in active_conns {
             loop {

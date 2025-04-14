@@ -18,7 +18,7 @@ pub fn h3_data_moved_up(qlog: &NeqoQlog, stream_id: StreamId, amount: usize) {
         let ev_data = EventData::DataMoved(qlog::events::quic::DataMoved {
             stream_id: Some(stream_id.as_u64()),
             offset: None,
-            length: Some(u64::try_from(amount).unwrap()),
+            length: Some(u64::try_from(amount).expect("usize fits in u64")),
             from: Some(DataRecipient::Transport),
             to: Some(DataRecipient::Application),
             raw: None,
@@ -36,7 +36,7 @@ pub fn h3_data_moved_down(qlog: &NeqoQlog, stream_id: StreamId, amount: usize) {
         let ev_data = EventData::DataMoved(qlog::events::quic::DataMoved {
             stream_id: Some(stream_id.as_u64()),
             offset: None,
-            length: Some(u64::try_from(amount).unwrap()),
+            length: Some(u64::try_from(amount).expect("usize fits in u64")),
             from: Some(DataRecipient::Application),
             to: Some(DataRecipient::Transport),
             raw: None,

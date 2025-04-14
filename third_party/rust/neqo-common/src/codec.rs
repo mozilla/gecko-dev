@@ -47,6 +47,7 @@ impl<'a> Decoder<'a> {
     /// Only use this for tests because we panic rather than reporting a result.
     #[cfg(any(test, feature = "test-fixture"))]
     fn skip_inner(&mut self, n: Option<u64>) {
+        #[expect(clippy::unwrap_used, reason = "Only used in tests.")]
         self.skip(usize::try_from(n.expect("invalid length")).unwrap());
     }
 
@@ -111,7 +112,7 @@ impl<'a> Decoder<'a> {
     /// unsigned integer types: `u8`, `u16`, `u32`, or `u64`.
     /// Signed types will fail if the high bit is set.
     pub fn decode_uint<T: TryFrom<u64>>(&mut self) -> Option<T> {
-        let v = self.decode_n(std::mem::size_of::<T>());
+        let v = self.decode_n(size_of::<T>());
         v.and_then(|v| T::try_from(v).ok())
     }
 
@@ -161,7 +162,6 @@ impl<'a> Decoder<'a> {
 // Implement `AsRef` for `Decoder` so that values can be examined without
 // moving the cursor.
 impl<'a> AsRef<[u8]> for Decoder<'a> {
-    #[must_use]
     fn as_ref(&self) -> &'a [u8] {
         &self.buf[self.offset..]
     }
@@ -174,7 +174,6 @@ impl Debug for Decoder<'_> {
 }
 
 impl<'a> From<&'a [u8]> for Decoder<'a> {
-    #[must_use]
     fn from(buf: &'a [u8]) -> Self {
         Decoder::new(buf)
     }
@@ -184,14 +183,12 @@ impl<'a, T> From<&'a T> for Decoder<'a>
 where
     T: AsRef<[u8]>,
 {
-    #[must_use]
     fn from(buf: &'a T) -> Self {
         Decoder::new(buf.as_ref())
     }
 }
 
 impl<'b> PartialEq<Decoder<'b>> for Decoder<'_> {
-    #[must_use]
     fn eq(&self, other: &Decoder<'b>) -> bool {
         self.buf == other.buf
     }
@@ -227,7 +224,7 @@ impl Encoder {
     /// When `len` doesn't fit in a `u64`.
     #[must_use]
     pub fn vvec_len(len: usize) -> usize {
-        Self::varint_len(u64::try_from(len).unwrap()) + len
+        Self::varint_len(u64::try_from(len).expect("usize should fit into u64")) + len
     }
 
     /// Default construction of an empty buffer.
@@ -286,6 +283,7 @@ impl Encoder {
         let mut enc = Self::with_capacity(cap);
 
         for i in 0..cap {
+            #[expect(clippy::unwrap_used, reason = "Only used in tests.")]
             let v = u8::from_str_radix(&s[i * 2..i * 2 + 2], 16).unwrap();
             enc.encode_byte(v);
         }
@@ -341,8 +339,11 @@ impl Encoder {
     ///
     /// When `v` is longer than 2^64.
     pub fn encode_vec(&mut self, n: usize, v: &[u8]) -> &mut Self {
-        self.encode_uint(n, u64::try_from(v.as_ref().len()).unwrap())
-            .encode(v)
+        self.encode_uint(
+            n,
+            u64::try_from(v.as_ref().len()).expect("v is longer than 2^64"),
+        )
+        .encode(v)
     }
 
     /// Encode a vector in TLS style using a closure for the contents.
@@ -350,7 +351,10 @@ impl Encoder {
     /// # Panics
     ///
     /// When `f()` returns a length larger than `2^8n`.
-    #[allow(clippy::cast_possible_truncation)]
+    #[expect(
+        clippy::cast_possible_truncation,
+        reason = "AND'ing with 0xff makes this OK."
+    )]
     pub fn encode_vec_with<F: FnOnce(&mut Self)>(&mut self, n: usize, f: F) -> &mut Self {
         let start = self.buf.len();
         self.buf.resize(self.buf.len() + n, 0);
@@ -369,7 +373,7 @@ impl Encoder {
     ///
     /// When `v` is longer than 2^64.
     pub fn encode_vvec(&mut self, v: &[u8]) -> &mut Self {
-        self.encode_varint(u64::try_from(v.as_ref().len()).unwrap())
+        self.encode_varint(u64::try_from(v.as_ref().len()).expect("v is longer than 2^64"))
             .encode(v)
     }
 
@@ -447,14 +451,12 @@ impl AsMut<[u8]> for Encoder {
 }
 
 impl<'a> From<Decoder<'a>> for Encoder {
-    #[must_use]
     fn from(dec: Decoder<'a>) -> Self {
         Self::from(&dec.buf[dec.offset..])
     }
 }
 
 impl From<&[u8]> for Encoder {
-    #[must_use]
     fn from(buf: &[u8]) -> Self {
         Self {
             buf: Vec::from(buf),
@@ -463,7 +465,6 @@ impl From<&[u8]> for Encoder {
 }
 
 impl From<Encoder> for Vec<u8> {
-    #[must_use]
     fn from(buf: Encoder) -> Self {
         buf.buf
     }
@@ -664,6 +665,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(target_pointer_width = "64")] // Test does not compile on 32-bit targets.
     #[should_panic(expected = "Varint value too large")]
     fn encoded_vvec_length_oob() {
         _ = Encoder::vvec_len(1 << 62);

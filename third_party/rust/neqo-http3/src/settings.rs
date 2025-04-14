@@ -4,8 +4,6 @@
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
 
-#![allow(clippy::module_name_repetitions)]
-
 use std::ops::Deref;
 
 use neqo_common::{Decoder, Encoder};
@@ -180,7 +178,7 @@ impl HSettings {
                 // other supported settings here
                 (Some(_), Some(_)) => {} // ignore unknown setting, it is fine.
                 _ => return Err(Error::NotEnoughData),
-            };
+            }
         }
         Ok(())
     }

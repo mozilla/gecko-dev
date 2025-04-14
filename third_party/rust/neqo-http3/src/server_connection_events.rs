@@ -12,7 +12,8 @@ use neqo_transport::{AppError, StreamId};
 use crate::{
     connection::Http3State,
     features::extended_connect::{ExtendedConnectEvents, ExtendedConnectType, SessionCloseReason},
-    CloseType, Http3StreamInfo, HttpRecvStreamEvents, Priority, RecvStreamEvents, SendStreamEvents,
+    CloseType, Http3StreamInfo, HttpRecvStreamEvents, Priority, RecvStreamEvents, Res,
+    SendStreamEvents,
 };
 
 #[derive(Debug, PartialEq, Eq, Clone)]
@@ -69,10 +70,9 @@ pub struct Http3ServerConnEvents {
 impl SendStreamEvents for Http3ServerConnEvents {
     fn send_closed(&self, stream_info: Http3StreamInfo, close_type: CloseType) {
         if close_type != CloseType::Done {
-            self.insert(Http3ServerConnEvent::StreamStopSending {
-                stream_info,
-                error: close_type.error().unwrap(),
-            });
+            if let Some(error) = close_type.error() {
+                self.insert(Http3ServerConnEvent::StreamStopSending { stream_info, error });
+            }
         }
     }
 
@@ -90,10 +90,9 @@ impl RecvStreamEvents for Http3ServerConnEvents {
     fn recv_closed(&self, stream_info: Http3StreamInfo, close_type: CloseType) {
         if close_type != CloseType::Done {
             self.remove_events_for_stream_id(stream_info);
-            self.insert(Http3ServerConnEvent::StreamReset {
-                stream_info,
-                error: close_type.error().unwrap(),
-            });
+            if let Some(error) = close_type.error() {
+                self.insert(Http3ServerConnEvent::StreamReset { stream_info, error });
+            }
         }
     }
 }
@@ -144,8 +143,9 @@ impl ExtendedConnectEvents for Http3ServerConnEvents {
         });
     }
 
-    fn extended_connect_new_stream(&self, stream_info: Http3StreamInfo) {
+    fn extended_connect_new_stream(&self, stream_info: Http3StreamInfo) -> Res<()> {
         self.insert(Http3ServerConnEvent::ExtendedConnectNewStream(stream_info));
+        Ok(())
     }
 
     fn new_datagram(&self, session_id: StreamId, datagram: Vec<u8>) {

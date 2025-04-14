@@ -4278,6 +4278,11 @@ who = "Kershaw Chang <kershaw@mozilla.com>"
 criteria = "safe-to-deploy"
 delta = "0.12.0 -> 0.13.0"
 
+[[audits.qlog]]
+who = "Max Leonard Inden <mail@max-inden.de>"
+criteria = "safe-to-deploy"
+delta = "0.13.0 -> 0.15.2"
+
 [[audits.quinn-udp]]
 who = "Kershaw Chang <kershaw@mozilla.com>"
 criteria = "safe-to-run"
@@ -4308,6 +4313,11 @@ delta = "0.5.8 -> 0.5.9"
 who = "Max Leonard Inden <mail@max-inden.de>"
 criteria = "safe-to-deploy"
 delta = "0.5.9 -> 0.5.10"
+
+[[audits.quinn-udp]]
+who = "Max Leonard Inden <mail@max-inden.de>"
+criteria = "safe-to-deploy"
+delta = "0.5.10 -> 0.5.11"
 
 [[audits.quote]]
 who = "Nika Layzell <nika@thelayzells.com>"

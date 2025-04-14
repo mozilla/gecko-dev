@@ -7,7 +7,6 @@
 use std::time::Instant;
 
 use criterion::{criterion_group, criterion_main, Criterion};
-use neqo_common::IpTosEcn;
 use neqo_transport::{
     packet::{PacketNumber, PacketType},
     recovery::sent::{SentPacket, SentPackets},
@@ -21,7 +20,6 @@ fn sent_packets() -> SentPackets {
         pkts.track(SentPacket::new(
             PacketType::Short,
             PacketNumber::from(i),
-            IpTosEcn::default(),
             now,
             true,
             Vec::new(),

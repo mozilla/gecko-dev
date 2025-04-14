@@ -4,6 +4,11 @@
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
 
+#![allow(
+    clippy::module_name_repetitions,
+    reason = "<https://github.com/mozilla/neqo/issues/2284#issuecomment-2782711813>"
+)]
+
 use std::collections::{HashMap, HashSet, VecDeque};
 
 use neqo_common::{qdebug, qerror, qlog::NeqoQlog, qtrace, Header};
@@ -149,7 +154,6 @@ impl QPackEncoder {
         }
     }
 
-    #[allow(clippy::map_err_ignore)]
     fn insert_count_instruction(&mut self, increment: u64) -> Res<()> {
         self.table
             .increment_acked(increment)
@@ -540,7 +544,7 @@ mod tests {
 
     impl TestEncoder {
         pub fn change_capacity(&mut self, capacity: u64) -> Res<()> {
-            self.encoder.set_max_capacity(capacity).unwrap();
+            self.encoder.set_max_capacity(capacity)?;
             // We will try to really change the table only when we send the change capacity
             // instruction.
             self.encoder.send_encoder_updates(&mut self.conn)

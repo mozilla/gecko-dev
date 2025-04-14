@@ -270,5 +270,5 @@ fn wrong_setting_value() {
             assert_eq!(err, CloseReason::Application(Error::HttpSettings.code()));
         }
         _ => panic!("Wrong state {:?}", client.state()),
-    };
+    }
 }

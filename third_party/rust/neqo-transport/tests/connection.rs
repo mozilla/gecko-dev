@@ -6,6 +6,7 @@
 
 mod common;
 
+use common::assert_dscp;
 use neqo_common::{Datagram, Decoder, Encoder, Role};
 use neqo_transport::{
     CloseReason, ConnectionParameters, Error, State, Version, MIN_INITIAL_PACKET_SIZE,
@@ -21,7 +22,9 @@ use test_fixture::{
 
 #[test]
 fn connect() {
-    let (_client, _server) = test_fixture::connect();
+    let (client, server) = test_fixture::connect();
+    assert_dscp(&client.stats());
+    assert_dscp(&server.stats());
 }
 
 #[test]
@@ -30,9 +33,13 @@ fn truncate_long_packet() {
     let mut server = default_server();
 
     let out = client.process_output(now());
+    let out2 = client.process_output(now());
+    assert!(out.as_dgram_ref().is_some() && out2.as_dgram_ref().is_some());
+    server.process_input(out.dgram().unwrap(), now());
+    let out = server.process(out2.dgram(), now());
     assert!(out.as_dgram_ref().is_some());
+    let out = client.process(out.dgram(), now());
     let out = server.process(out.dgram(), now());
-    assert!(out.as_dgram_ref().is_some());
 
     // This will truncate the Handshake packet from the server.
     let dupe = out.as_dgram_ref().unwrap().clone();
@@ -66,8 +73,11 @@ fn reorder_server_initial() {
     // A simple ACK_ECN frame for a single packet with packet number 0 with a single ECT(0) mark.
     const ACK_FRAME: &[u8] = &[0x03, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00];
 
+    // This test needs to decrypt the CI, so turn off MLKEM.
     let mut client = new_client(
-        ConnectionParameters::default().versions(Version::Version1, vec![Version::Version1]),
+        ConnectionParameters::default()
+            .versions(Version::Version1, vec![Version::Version1])
+            .mlkem(false),
     );
     let mut server = default_server();
 
@@ -132,6 +142,7 @@ fn reorder_server_initial() {
     assert_eq!(*client.state(), State::Confirmed);
 }
 
+#[cfg(test)]
 fn set_payload(server_packet: Option<&Datagram>, client_dcid: &[u8], payload: &[u8]) -> Datagram {
     let (server_initial, _server_hs) = split_datagram(server_packet.as_ref().unwrap());
     let (protected_header, _, _, orig_payload) =
@@ -204,7 +215,7 @@ fn packet_with_only_padding() {
 }
 
 /// Overflow the crypto buffer.
-#[allow(clippy::similar_names)] // For ..._scid and ..._dcid, which are fine.
+#[expect(clippy::similar_names, reason = "scid simiar to dcic.")]
 #[test]
 fn overflow_crypto() {
     let mut client = new_client(

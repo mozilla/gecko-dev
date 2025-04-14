@@ -4,14 +4,17 @@
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
 
-#![allow(clippy::missing_errors_doc)] // Functions simply delegate to tokio and quinn-udp.
+#![expect(
+    clippy::missing_errors_doc,
+    reason = "Functions simply delegate to tokio and quinn-udp."
+)]
 
 use std::{
     array,
     io::{self, IoSliceMut},
     iter,
     net::SocketAddr,
-    slice::{self, Chunks},
+    slice::{self, ChunksMut},
 };
 
 use log::{log_enabled, Level};
@@ -88,7 +91,7 @@ use std::os::fd::AsFd as SocketRef;
 #[cfg(windows)]
 use std::os::windows::io::AsSocket as SocketRef;
 
-#[allow(clippy::missing_panics_doc)]
+#[expect(clippy::missing_panics_doc, reason = "OK here.")]
 pub fn recv_inner<'a>(
     local_address: SocketAddr,
     state: &UdpSocketState,
@@ -120,7 +123,7 @@ pub fn recv_inner<'a>(
 
     Ok(DatagramIter {
         current_buffer: None,
-        remaining_buffers: metas.into_iter().zip(recv_buf.0.iter()).take(n),
+        remaining_buffers: metas.into_iter().zip(recv_buf.0.iter_mut()).take(n),
         local_address,
     })
 }
@@ -128,17 +131,17 @@ pub fn recv_inner<'a>(
 pub struct DatagramIter<'a> {
     /// The current buffer, containing zero or more datagrams, each sharing the
     /// same [`RecvMeta`].
-    current_buffer: Option<(RecvMeta, Chunks<'a, u8>)>,
+    current_buffer: Option<(RecvMeta, ChunksMut<'a, u8>)>,
     /// Remaining buffers, each containing zero or more datagrams, one
     /// [`RecvMeta`] per buffer.
     remaining_buffers:
-        iter::Take<iter::Zip<array::IntoIter<RecvMeta, NUM_BUFS>, slice::Iter<'a, Vec<u8>>>>,
+        iter::Take<iter::Zip<array::IntoIter<RecvMeta, NUM_BUFS>, slice::IterMut<'a, Vec<u8>>>>,
     /// The local address of the UDP socket used to receive the datagrams.
     local_address: SocketAddr,
 }
 
 impl<'a> Iterator for DatagramIter<'a> {
-    type Item = Datagram<&'a [u8]>;
+    type Item = Datagram<&'a mut [u8]>;
 
     fn next(&mut self) -> Option<Self::Item> {
         loop {
@@ -177,7 +180,7 @@ impl<'a> Iterator for DatagramIter<'a> {
 
             // Got another buffer. Let's chunk it into datagrams and return the
             // first datagram in the next loop iteration.
-            self.current_buffer = Some((meta, buf[0..meta.len].chunks(meta.stride)));
+            self.current_buffer = Some((meta, buf[0..meta.len].chunks_mut(meta.stride)));
         }
     }
 }
@@ -215,6 +218,8 @@ impl<S: SocketRef> Socket<S> {
 
 #[cfg(test)]
 mod tests {
+    use std::env;
+
     use neqo_common::{IpTosDscp, IpTosEcn};
 
     use super::*;
@@ -265,11 +270,25 @@ mod tests {
             .expect("receive to succeed");
 
         // Assert that the ECN is correct.
-        assert_eq!(
-            IpTosEcn::from(datagram.tos()),
-            IpTosEcn::from(received_datagrams.next().unwrap().tos())
-        );
-
+        // On Android API level <= 25 the IPv4 `IP_TOS` control message is
+        // not supported and thus ECN bits can not be received.
+        if cfg!(target_os = "android")
+            && env::var("API_LEVEL")
+                .ok()
+                .and_then(|v| v.parse::<u32>().ok())
+                .expect("API_LEVEL environment variable to be set on Android")
+                <= 25
+        {
+            assert_eq!(
+                IpTosEcn::default(),
+                IpTosEcn::from(received_datagrams.next().unwrap().tos())
+            );
+        } else {
+            assert_eq!(
+                IpTosEcn::from(datagram.tos()),
+                IpTosEcn::from(received_datagrams.next().unwrap().tos())
+            );
+        }
         Ok(())
     }
 

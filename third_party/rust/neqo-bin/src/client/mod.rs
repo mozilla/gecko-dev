@@ -4,7 +4,7 @@
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
 
-#![allow(clippy::future_not_send)]
+#![expect(clippy::unwrap_used, reason = "This is example code.")]
 
 use std::{
     collections::{HashMap, VecDeque},
@@ -104,7 +104,10 @@ type Res<T> = Result<T, Error>;
 
 #[derive(Debug, Parser)]
 #[command(author, version, about, long_about = None)]
-#[allow(clippy::struct_excessive_bools)] // Not a good use of that lint.
+#[expect(
+    clippy::struct_excessive_bools,
+    reason = "Not a good use of that lint."
+)]
 pub struct Args {
     #[command(flatten)]
     shared: SharedArgs,
@@ -180,7 +183,7 @@ pub struct Args {
 impl Args {
     #[must_use]
     #[cfg(any(test, feature = "bench"))]
-    #[allow(clippy::missing_panics_doc)]
+    #[expect(clippy::missing_panics_doc, reason = "This is example code.")]
     pub fn new(requests: &[usize], upload: bool) -> Self {
         use std::str::FromStr as _;
         Self {
@@ -383,7 +386,7 @@ trait Client {
     fn process_output(&mut self, now: Instant) -> Output;
     fn process_multiple_input<'a>(
         &mut self,
-        dgrams: impl IntoIterator<Item = Datagram<&'a [u8]>>,
+        dgrams: impl IntoIterator<Item = Datagram<&'a mut [u8]>>,
         now: Instant,
     );
     fn has_events(&self) -> bool;
@@ -431,17 +434,14 @@ impl<'a, H: Handler> Runner<'a, H> {
                 continue;
             }
 
-            #[allow(clippy::match_same_arms)]
             match (handler_done, self.client.is_closed()?) {
-                // more work
-                (false, _) => {}
+                // more work; or no more work, already closing connection
+                (true, CloseState::Closing) | (false, _) => {}
                 // no more work, closing connection
                 (true, CloseState::NotClosing) => {
                     self.client.close(Instant::now(), 0, "kthxbye!");
                     continue;
                 }
-                // no more work, already closing connection
-                (true, CloseState::Closing) => {}
                 // no more work, connection closed, terminating
                 (true, CloseState::Closed) => break,
             }
@@ -464,10 +464,19 @@ impl<'a, H: Handler> Runner<'a, H> {
     async fn process_output(&mut self) -> Result<(), io::Error> {
         loop {
             match self.client.process_output(Instant::now()) {
-                Output::Datagram(dgram) => {
-                    self.socket.writable().await?;
-                    self.socket.send(&dgram)?;
-                }
+                Output::Datagram(dgram) => loop {
+                    // Optimistically attempt sending datagram. In case the OS
+                    // buffer is full, wait till socket is writable then try
+                    // again.
+                    match self.socket.send(&dgram) {
+                        Ok(()) => break,
+                        Err(e) if e.kind() == io::ErrorKind::WouldBlock => {
+                            self.socket.writable().await?;
+                            // Now try again.
+                        }
+                        e @ Err(_) => return e,
+                    }
+                },
                 Output::Callback(new_timeout) => {
                     qdebug!("Setting timeout of {new_timeout:?}");
                     self.timeout = Some(Box::pin(tokio::time::sleep(new_timeout)));
@@ -542,6 +551,12 @@ fn urls_by_origin(urls: &[Url]) -> impl Iterator<Item = ((Host, u16), VecDeque<U
         })
 }
 
+#[expect(
+    clippy::future_not_send,
+    clippy::missing_panics_doc,
+    clippy::missing_errors_doc,
+    reason = "This is example code."
+)]
 pub async fn client(mut args: Args) -> Res<()> {
     neqo_common::log::init(
         args.shared

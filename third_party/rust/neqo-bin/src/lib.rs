@@ -4,9 +4,6 @@
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
 
-#![allow(clippy::missing_panics_doc)]
-#![allow(clippy::missing_errors_doc)]
-
 use std::{
     fmt::{self, Display},
     net::{SocketAddr, ToSocketAddrs as _},
@@ -168,8 +165,8 @@ impl QuicParameters {
         assert_eq!(
             opt.is_some(),
             addr.is_some(),
-            "unable to resolve '{}' to an {v} address",
-            opt.as_ref().unwrap(),
+            "unable to resolve '{:?}' to an {v} address",
+            opt.as_ref()?,
         );
         addr
     }

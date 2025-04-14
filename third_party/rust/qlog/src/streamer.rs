@@ -146,10 +146,34 @@ impl QlogStreamer {
         self.add_event_with_instant(event, now)
     }
 
+    /// Writes a serializable to a pretty-printed JSON-SEQ record using
+    /// [std::time::Instant::now()].
+    pub fn add_event_now_pretty<E: Serialize + Eventable>(
+        &mut self, event: E,
+    ) -> Result<()> {
+        let now = std::time::Instant::now();
+
+        self.add_event_with_instant_pretty(event, now)
+    }
+
     /// Writes a serializable to a JSON-SEQ record using the provided
     /// [std::time::Instant].
     pub fn add_event_with_instant<E: Serialize + Eventable>(
-        &mut self, mut event: E, now: std::time::Instant,
+        &mut self, event: E, now: std::time::Instant,
+    ) -> Result<()> {
+        self.event_with_instant(event, now, false)
+    }
+
+    /// Writes a serializable to a pretty-printed JSON-SEQ record using the
+    /// provided [std::time::Instant].
+    pub fn add_event_with_instant_pretty<E: Serialize + Eventable>(
+        &mut self, event: E, now: std::time::Instant,
+    ) -> Result<()> {
+        self.event_with_instant(event, now, true)
+    }
+
+    fn event_with_instant<E: Serialize + Eventable>(
+        &mut self, mut event: E, now: std::time::Instant, pretty: bool,
     ) -> Result<()> {
         if self.state != StreamerState::Ready {
             return Err(Error::InvalidState);
@@ -168,13 +192,25 @@ impl QlogStreamer {
         let rel_time = dur.as_secs_f32() * 1000.0;
         event.set_time(rel_time);
 
-        self.add_event(event)
+        if pretty {
+            self.add_event_pretty(event)
+        } else {
+            self.add_event(event)
+        }
     }
 
     /// Writes an [Event] based on the provided [EventData] to a JSON-SEQ record
     /// at time [std::time::Instant::now()].
     pub fn add_event_data_now(&mut self, event_data: EventData) -> Result<()> {
         self.add_event_data_ex_now(event_data, Default::default())
+    }
+
+    /// Writes an [Event] based on the provided [EventData] to a pretty-printed
+    /// JSON-SEQ record at time [std::time::Instant::now()].
+    pub fn add_event_data_now_pretty(
+        &mut self, event_data: EventData,
+    ) -> Result<()> {
+        self.add_event_data_ex_now_pretty(event_data, Default::default())
     }
 
     /// Writes an [Event] based on the provided [EventData] and [ExData] to a
@@ -187,6 +223,16 @@ impl QlogStreamer {
         self.add_event_data_ex_with_instant(event_data, ex_data, now)
     }
 
+    /// Writes an [Event] based on the provided [EventData] and [ExData] to a
+    /// pretty-printed JSON-SEQ record at time [std::time::Instant::now()].
+    pub fn add_event_data_ex_now_pretty(
+        &mut self, event_data: EventData, ex_data: ExData,
+    ) -> Result<()> {
+        let now = std::time::Instant::now();
+
+        self.add_event_data_ex_with_instant_pretty(event_data, ex_data, now)
+    }
+
     /// Writes an [Event] based on the provided [EventData] and
     /// [std::time::Instant] to a JSON-SEQ record.
     pub fn add_event_data_with_instant(
@@ -195,11 +241,39 @@ impl QlogStreamer {
         self.add_event_data_ex_with_instant(event_data, Default::default(), now)
     }
 
+    /// Writes an [Event] based on the provided [EventData] and
+    /// [std::time::Instant] to a pretty-printed JSON-SEQ record.
+    pub fn add_event_data_with_instant_pretty(
+        &mut self, event_data: EventData, now: std::time::Instant,
+    ) -> Result<()> {
+        self.add_event_data_ex_with_instant_pretty(
+            event_data,
+            Default::default(),
+            now,
+        )
+    }
+
     /// Writes an [Event] based on the provided [EventData], [ExData], and
     /// [std::time::Instant] to a JSON-SEQ record.
     pub fn add_event_data_ex_with_instant(
         &mut self, event_data: EventData, ex_data: ExData,
         now: std::time::Instant,
+    ) -> Result<()> {
+        self.event_data_ex_with_instant(event_data, ex_data, now, false)
+    }
+
+    // Writes an [Event] based on the provided [EventData], [ExData], and
+    /// [std::time::Instant] to a pretty-printed JSON-SEQ record.
+    pub fn add_event_data_ex_with_instant_pretty(
+        &mut self, event_data: EventData, ex_data: ExData,
+        now: std::time::Instant,
+    ) -> Result<()> {
+        self.event_data_ex_with_instant(event_data, ex_data, now, true)
+    }
+
+    fn event_data_ex_with_instant(
+        &mut self, event_data: EventData, ex_data: ExData,
+        now: std::time::Instant, pretty: bool,
     ) -> Result<()> {
         if self.state != StreamerState::Ready {
             return Err(Error::InvalidState);
@@ -219,12 +293,31 @@ impl QlogStreamer {
         let rel_time = dur.as_secs_f32() * 1000.0;
         let event = Event::with_time_ex(rel_time, event_data, ex_data);
 
-        self.add_event(event)
+        if pretty {
+            self.add_event_pretty(event)
+        } else {
+            self.add_event(event)
+        }
     }
 
     /// Writes a JSON-SEQ-serialized [Event] using the provided [Event].
     pub fn add_event<E: Serialize + Eventable>(
         &mut self, event: E,
+    ) -> Result<()> {
+        self.write_event(event, false)
+    }
+
+    /// Writes a pretty-printed JSON-SEQ-serialized [Event] using the provided
+    /// [Event].
+    pub fn add_event_pretty<E: Serialize + Eventable>(
+        &mut self, event: E,
+    ) -> Result<()> {
+        self.write_event(event, true)
+    }
+
+    /// Writes a JSON-SEQ-serialized [Event] using the provided [Event].
+    fn write_event<E: Serialize + Eventable>(
+        &mut self, event: E, pretty: bool,
     ) -> Result<()> {
         if self.state != StreamerState::Ready {
             return Err(Error::InvalidState);
@@ -235,8 +328,13 @@ impl QlogStreamer {
         }
 
         self.writer.as_mut().write_all(b"")?;
-        serde_json::to_writer(self.writer.as_mut(), &event)
-            .map_err(|_| Error::Done)?;
+        if pretty {
+            serde_json::to_writer_pretty(self.writer.as_mut(), &event)
+                .map_err(|_| Error::Done)?;
+        } else {
+            serde_json::to_writer(self.writer.as_mut(), &event)
+                .map_err(|_| Error::Done)?;
+        }
         self.writer.as_mut().write_all(b"\n")?;
 
         Ok(())
@@ -297,14 +395,8 @@ mod tests {
         let event_data1 = EventData::PacketSent(quic::PacketSent {
             header: pkt_hdr.clone(),
             frames: Some(smallvec![frame1]),
-            is_coalesced: None,
-            retry_token: None,
-            stateless_reset_token: None,
-            supported_versions: None,
             raw: raw.clone(),
-            datagram_id: None,
-            send_at_time: None,
-            trigger: None,
+            ..Default::default()
         });
 
         let ev1 = Event::with_time(0.0, event_data1);
@@ -328,14 +420,8 @@ mod tests {
         let event_data2 = EventData::PacketSent(quic::PacketSent {
             header: pkt_hdr.clone(),
             frames: Some(smallvec![frame2]),
-            is_coalesced: None,
-            retry_token: None,
-            stateless_reset_token: None,
-            supported_versions: None,
             raw: raw.clone(),
-            datagram_id: None,
-            send_at_time: None,
-            trigger: None,
+            ..Default::default()
         });
 
         let ev2 = Event::with_time(0.0, event_data2);
@@ -343,14 +429,9 @@ mod tests {
         let event_data3 = EventData::PacketSent(quic::PacketSent {
             header: pkt_hdr,
             frames: Some(smallvec![frame3]),
-            is_coalesced: None,
-            retry_token: None,
             stateless_reset_token: Some("reset_token".to_string()),
-            supported_versions: None,
             raw,
-            datagram_id: None,
-            send_at_time: None,
-            trigger: None,
+            ..Default::default()
         });
 
         let ev3 = Event::with_time(0.0, event_data3);
@@ -472,14 +553,8 @@ mod tests {
         let event_data1 = EventData::PacketSent(quic::PacketSent {
             header: pkt_hdr.clone(),
             frames: Some(smallvec![frame1]),
-            is_coalesced: None,
-            retry_token: None,
-            stateless_reset_token: None,
-            supported_versions: None,
             raw: raw.clone(),
-            datagram_id: None,
-            send_at_time: None,
-            trigger: None,
+            ..Default::default()
         });
         let j1 = json!({"foo": "Bar", "hello": 123});
         let j2 = json!({"baz": [1,2,3,4]});
@@ -500,14 +575,8 @@ mod tests {
         let event_data2 = EventData::PacketSent(quic::PacketSent {
             header: pkt_hdr.clone(),
             frames: Some(smallvec![frame2]),
-            is_coalesced: None,
-            retry_token: None,
-            stateless_reset_token: None,
-            supported_versions: None,
             raw: raw.clone(),
-            datagram_id: None,
-            send_at_time: None,
-            trigger: None,
+            ..Default::default()
         });
 
         let ev2 = Event::with_time(0.0, event_data2);

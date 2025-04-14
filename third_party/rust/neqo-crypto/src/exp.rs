@@ -7,10 +7,10 @@
 #[macro_export]
 macro_rules! experimental_api {
     ( $n:ident ( $( $a:ident : $t:ty ),* $(,)? ) ) => {
-        #[allow(non_snake_case)]
-        #[allow(clippy::too_many_arguments)]
-        #[allow(clippy::missing_safety_doc)]
-        #[allow(clippy::missing_errors_doc)]
+        #[expect(non_snake_case, reason = "Inherent in macro use.")]
+        #[allow(clippy::allow_attributes, clippy::too_many_arguments, reason = "Inherent in macro use.")]
+        #[allow(clippy::allow_attributes, clippy::missing_safety_doc, reason = "Inherent in macro use.")]
+        #[allow(clippy::allow_attributes, clippy::missing_errors_doc, reason = "Inherent in macro use.")]
         pub unsafe fn $n ( $( $a : $t ),* ) -> Result<(), $crate::err::Error> {
             const EXP_FUNCTION: &str = stringify!($n);
             let n = ::std::ffi::CString::new(EXP_FUNCTION)?;

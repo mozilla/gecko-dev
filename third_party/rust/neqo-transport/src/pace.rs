@@ -83,8 +83,8 @@ impl Pacer {
         // This is the inverse of the function in `spend`:
         // self.t + rtt * (self.p - self.c) / (PACER_SPEEDUP * cwnd)
         let r = rtt.as_nanos();
-        let d = r.saturating_mul(u128::try_from(self.p - self.c).unwrap());
-        let add = d / u128::try_from(cwnd * PACER_SPEEDUP).unwrap();
+        let d = r.saturating_mul(u128::try_from(self.p - self.c).expect("usize fits into u128"));
+        let add = d / u128::try_from(cwnd * PACER_SPEEDUP).expect("usize fits into u128");
         let w = u64::try_from(add).map(Duration::from_nanos).unwrap_or(rtt);
 
         // If the increment is below the timer granularity, send immediately.
@@ -115,7 +115,7 @@ impl Pacer {
         let incr = now
             .saturating_duration_since(self.t)
             .as_nanos()
-            .saturating_mul(u128::try_from(cwnd * PACER_SPEEDUP).unwrap())
+            .saturating_mul(u128::try_from(cwnd * PACER_SPEEDUP).expect("usize fits into u128"))
             .checked_div(rtt.as_nanos())
             .and_then(|i| usize::try_from(i).ok())
             .unwrap_or(self.m);

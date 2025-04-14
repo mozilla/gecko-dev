@@ -8,7 +8,11 @@ pub mod hframe;
 pub mod reader;
 pub mod wtframe;
 
-#[allow(unused_imports)]
+#[allow(
+    clippy::allow_attributes,
+    unused_imports,
+    reason = "These are exported."
+)]
 pub use hframe::{HFrame, H3_FRAME_TYPE_HEADERS, H3_FRAME_TYPE_SETTINGS, H3_RESERVED_FRAME_TYPES};
 pub use reader::{FrameReader, StreamReaderConnectionWrapper, StreamReaderRecvStreamWrapper};
 pub use wtframe::WebTransportFrame;

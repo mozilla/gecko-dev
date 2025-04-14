@@ -4,8 +4,6 @@
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
 
-#![allow(clippy::module_name_repetitions)]
-
 use std::{
     cell::RefCell,
     collections::{BTreeSet, HashMap},
@@ -20,6 +18,7 @@ use neqo_transport::{
     streams::SendOrder, AppError, CloseReason, Connection, DatagramTracking, State, StreamId,
     StreamType, ZeroRttState,
 };
+use strum::Display;
 
 use crate::{
     client_events::Http3ClientEvents,
@@ -55,18 +54,10 @@ where
     pub priority: Priority,
 }
 
+#[derive(Display)]
 pub enum WebTransportSessionAcceptAction {
     Accept,
     Reject(Vec<Header>),
-}
-
-impl ::std::fmt::Display for WebTransportSessionAcceptAction {
-    fn fmt(&self, f: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
-        match self {
-            Self::Accept => f.write_str("Accept"),
-            Self::Reject(_) => f.write_str("Reject"),
-        }
-    }
 }
 
 #[derive(Debug)]
@@ -127,13 +118,13 @@ The API consists of:
   - `webtransport_session_accept` -  only used by the server-side implementation
   - `webtransport_close_session`
   - `webtransport_create_stream_local` -  this function is called when an application wants to open
-     a new `WebTransport` stream. For example `Http3Client::webtransport_create_stream` will call
-     this function.
+    a new `WebTransport` stream. For example `Http3Client::webtransport_create_stream` will call
+    this function.
   - `webtransport_create_stream_remote` -  this is called when a `WebTransport` stream has been
-     opened by the peer and this function sets up the appropriate handler for the stream.
+    opened by the peer and this function sets up the appropriate handler for the stream.
 - functions that are called by `process_http3`
   - `process_sending` - some send-streams are buffered streams(see the Streams section) and this
-     function is called to trigger sending of the buffer data.
+    function is called to trigger sending of the buffer data.
 - functions that are called to  handle `ConnectionEvent`s:
   - `add_new_stream`
   - `handle_stream_readable`
@@ -173,15 +164,15 @@ There are the following types of streams:
 - `Decoder`: there is only a receiver stream of this type and the handler is `DecoderRecvStream`.
 - `Encoder`: there is only a receiver stream of this type and the handler is `EncoderRecvStream`.
 - `NewStream`: there is only a receiver stream of this type and the handler is
-               `NewStreamHeadReader`.
+  `NewStreamHeadReader`.
 - `Http`: `SendMessage` and `RecvMessage` handlers are responsible for this type of streams.
 - `Push`: `RecvMessage` is responsible for this type of streams.
 - `ExtendedConnect`: `WebTransportSession` is responsible sender and receiver handler.
 - `WebTransport(StreamId)`: `WebTransportSendStream` and `WebTransportRecvStream` are responsible
-                            sender and receiver handler.
+  sender and receiver handler.
 - `Unknown`: These are all other stream types that are not unknown to the current implementation
-             and should be handled properly by the spec, e.g., in our implementation the streams are
-             reset.
+  and should be handled properly by the spec, e.g., in our implementation the streams are
+  reset.
 
 The streams are registered in `send_streams` and `recv_streams` in following ways depending if they
 are local or remote:
@@ -517,7 +508,6 @@ impl Http3Connection {
             output = self.handle_new_stream(conn, stream_type, stream_id)?;
         }
 
-        #[allow(clippy::match_same_arms)] // clippy is being stupid here
         match output {
             ReceiveOutput::UnblockedStreams(unblocked_streams) => {
                 self.handle_unblocked_streams(unblocked_streams, conn)?;
@@ -536,11 +526,11 @@ impl Http3Connection {
                 NewStreamType::Push(_)
                 | NewStreamType::Http(_)
                 | NewStreamType::WebTransportStream(_),
-            ) => Ok(output),
+            )
+            | ReceiveOutput::NoOutput => Ok(output),
             ReceiveOutput::NewStream(_) => {
                 unreachable!("NewStream should have been handled already")
             }
-            ReceiveOutput::NoOutput => Ok(output),
         }
     }
 
@@ -727,13 +717,13 @@ impl Http3Connection {
                 match conn.stream_fairness(stream_id, true) {
                     Ok(()) | Err(neqo_transport::Error::InvalidStreamId) => (),
                     Err(e) => return Err(Error::from(e)),
-                };
+                }
                 qinfo!("[{self}] A new WebTransport stream {stream_id} for session {session_id}");
             }
             NewStreamType::Unknown => {
                 conn.stream_stop_sending(stream_id, Error::HttpStreamCreation.code())?;
             }
-        };
+        }
 
         match stream_type {
             NewStreamType::Control | NewStreamType::Decoder | NewStreamType::Encoder => {
@@ -891,7 +881,7 @@ impl Http3Connection {
 
         send_message
             .http_stream()
-            .unwrap()
+            .ok_or(Error::Internal)?
             .send_headers(&final_headers, conn)?;
 
         self.add_streams(
@@ -1182,9 +1172,13 @@ impl Http3Connection {
                             stream_id,
                             events,
                             self.role,
-                            self.recv_streams.remove(&stream_id).unwrap(),
-                            self.send_streams.remove(&stream_id).unwrap(),
-                        )));
+                            self.recv_streams
+                                .remove(&stream_id)
+                                .ok_or(Error::Internal)?,
+                            self.send_streams
+                                .remove(&stream_id)
+                                .ok_or(Error::Internal)?,
+                        )?));
                     self.add_streams(
                         stream_id,
                         Box::new(Rc::clone(&extended_conn)),
@@ -1258,7 +1252,7 @@ impl Http3Connection {
             send_events,
             recv_events,
             true,
-        );
+        )?;
         Ok(stream_id)
     }
 
@@ -1285,7 +1279,7 @@ impl Http3Connection {
             send_events,
             recv_events,
             false,
-        );
+        )?;
         Ok(())
     }
 
@@ -1297,8 +1291,8 @@ impl Http3Connection {
         send_events: Box<dyn SendStreamEvents>,
         recv_events: Box<dyn RecvStreamEvents>,
         local: bool,
-    ) {
-        webtransport_session.borrow_mut().add_stream(stream_id);
+    ) -> Res<()> {
+        webtransport_session.borrow_mut().add_stream(stream_id)?;
         if stream_id.stream_type() == StreamType::UniDi {
             if local {
                 self.send_streams.insert(
@@ -1340,6 +1334,7 @@ impl Http3Connection {
                 )),
             );
         }
+        Ok(())
     }
 
     pub fn webtransport_send_datagram(
@@ -1481,7 +1476,7 @@ impl Http3Connection {
             .http_stream()
             .ok_or(Error::InvalidStreamId)?;
 
-        if stream.maybe_update_priority(priority) {
+        if stream.maybe_update_priority(priority)? {
             self.control_stream_local.queue_update_priority(stream_id);
             Ok(true)
         } else {
@@ -1559,7 +1554,7 @@ impl Http3Connection {
         let stream = self.recv_streams.remove(&stream_id);
         if let Some(s) = &stream {
             if s.stream_type() == Http3StreamType::ExtendedConnect {
-                self.send_streams.remove(&stream_id).unwrap();
+                self.send_streams.remove(&stream_id)?;
                 if let Some(wt) = s.webtransport() {
                     self.remove_extended_connect(&wt, conn);
                 }
@@ -1576,7 +1571,7 @@ impl Http3Connection {
         let stream = self.send_streams.remove(&stream_id);
         if let Some(s) = &stream {
             if s.stream_type() == Http3StreamType::ExtendedConnect {
-                if let Some(wt) = self.recv_streams.remove(&stream_id).unwrap().webtransport() {
+                if let Some(wt) = self.recv_streams.remove(&stream_id)?.webtransport() {
                     self.remove_extended_connect(&wt, conn);
                 }
             }

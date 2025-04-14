@@ -44,7 +44,7 @@ pub enum EncoderInstruction<'a> {
         index: u64,
     },
     #[cfg(test)]
-    #[allow(dead_code)]
+    #[expect(dead_code, reason = "Only used in tests.")]
     NoInstruction,
 }
 

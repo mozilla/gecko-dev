@@ -26,7 +26,7 @@ fn hp_test(cipher: Cipher, expected: &[u8]) {
     let mask = hp.mask(&[0; 16]).expect("should produce a mask");
     assert_eq!(mask, expected, "first invocation should be correct");
 
-    #[allow(clippy::redundant_clone)] // This is deliberate.
+    #[expect(clippy::redundant_clone, reason = "This is deliberate.")]
     let hp2 = hp.clone();
     let mask = hp2.mask(&[0; 16]).expect("clone produces mask");
     assert_eq!(mask, expected, "clone should produce the same mask");

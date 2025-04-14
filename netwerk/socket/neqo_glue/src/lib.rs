@@ -261,7 +261,10 @@ impl NeqoHttp3Conn {
             .max_stream_data(StreamType::BiDi, false, max_stream_data)
             .grease(static_prefs::pref!("security.tls.grease_http3_enable"))
             .sni_slicing(static_prefs::pref!("network.http.http3.sni-slicing"))
-            .idle_timeout(Duration::from_secs(idle_timeout.into()));
+            .idle_timeout(Duration::from_secs(idle_timeout.into()))
+            // Disabled on OpenBSD. See <https://bugzilla.mozilla.org/show_bug.cgi?id=1952304>.
+            .pmtud_iface_mtu(cfg!(not(target_os = "openbsd")))
+            .mlkem(false);
 
         // Set a short timeout when fuzzing.
         #[cfg(feature = "fuzzing")]
@@ -417,10 +420,10 @@ impl NeqoHttp3Conn {
         }
 
         if static_prefs::pref!("network.http.http3.ecn") && stats.frame_rx.handshake_done != 0 {
-            if stats.ecn_tx[IpTosEcn::Ect0] > 0 {
-                if let Ok(ratio) = i64::try_from(
-                    (stats.ecn_tx[IpTosEcn::Ce] * PRECISION_FACTOR) / stats.ecn_tx[IpTosEcn::Ect0],
-                ) {
+            let tx_ect0_sum: u64 = stats.ecn_tx.into_values().map(|v| v[IpTosEcn::Ect0]).sum();
+            let tx_ce_sum: u64 = stats.ecn_tx.into_values().map(|v| v[IpTosEcn::Ce]).sum();
+            if tx_ect0_sum > 0 {
+                if let Ok(ratio) = i64::try_from((tx_ce_sum * PRECISION_FACTOR) / tx_ect0_sum) {
                     glean::http_3_ecn_ce_ect0_ratio_sent.accumulate_single_sample_signed(ratio);
                 } else {
                     let msg = "Failed to convert ratio to i64 for use with glean";
@@ -428,10 +431,10 @@ impl NeqoHttp3Conn {
                     debug_assert!(false, "{msg}");
                 }
             }
-            if stats.ecn_rx[IpTosEcn::Ect0] > 0 {
-                if let Ok(ratio) = i64::try_from(
-                    (stats.ecn_rx[IpTosEcn::Ce] * PRECISION_FACTOR) / stats.ecn_rx[IpTosEcn::Ect0],
-                ) {
+            let rx_ect0_sum: u64 = stats.ecn_rx.into_values().map(|v| v[IpTosEcn::Ect0]).sum();
+            let rx_ce_sum: u64 = stats.ecn_rx.into_values().map(|v| v[IpTosEcn::Ce]).sum();
+            if rx_ect0_sum > 0 {
+                if let Ok(ratio) = i64::try_from((rx_ce_sum * PRECISION_FACTOR) / rx_ect0_sum) {
                     glean::http_3_ecn_ce_ect0_ratio_received.accumulate_single_sample_signed(ratio);
                 } else {
                     let msg = "Failed to convert ratio to i64 for use with glean";
@@ -1159,7 +1162,6 @@ impl From<TransportError> for CloseError {
             TransportError::ConnectionIdLimitExceeded => Self::TransportInternalErrorOther(1),
             TransportError::ConnectionIdsExhausted => Self::TransportInternalErrorOther(2),
             TransportError::ConnectionState => Self::TransportInternalErrorOther(3),
-            TransportError::DecodingFrame => Self::TransportInternalErrorOther(4),
             TransportError::DecryptError => Self::TransportInternalErrorOther(5),
             TransportError::IntegerOverflow => Self::TransportInternalErrorOther(7),
             TransportError::InvalidInput => Self::TransportInternalErrorOther(8),
@@ -1184,6 +1186,7 @@ impl From<TransportError> for CloseError {
             TransportError::QlogError => Self::TransportInternalErrorOther(27),
             TransportError::NotAvailable => Self::TransportInternalErrorOther(28),
             TransportError::DisabledVersion => Self::TransportInternalErrorOther(29),
+            TransportError::UnknownTransportParameter => Self::TransportInternalErrorOther(30),
         }
     }
 }
@@ -1213,7 +1216,6 @@ const fn transport_error_to_glean_label(error: &TransportError) -> &'static str 
         TransportError::ConnectionIdLimitExceeded => "ConnectionIdLimitExceeded",
         TransportError::ConnectionIdsExhausted => "ConnectionIdsExhausted",
         TransportError::ConnectionState => "ConnectionState",
-        TransportError::DecodingFrame => "DecodingFrame",
         TransportError::DecryptError => "DecryptError",
         TransportError::DisabledVersion => "DisabledVersion",
         TransportError::IdleTimeout => "IdleTimeout",
@@ -1242,6 +1244,7 @@ const fn transport_error_to_glean_label(error: &TransportError) -> &'static str 
         TransportError::UnknownFrameType => "UnknownFrameType",
         TransportError::VersionNegotiation => "VersionNegotiation",
         TransportError::WrongRole => "WrongRole",
+        TransportError::UnknownTransportParameter => "UnknownTransportParameter",
     }
 }
 

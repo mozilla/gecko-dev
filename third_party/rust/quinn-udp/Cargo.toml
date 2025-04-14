@@ -13,7 +13,7 @@
 edition = "2021"
 rust-version = "1.71"
 name = "quinn-udp"
-version = "0.5.10"
+version = "0.5.11"
 build = "build.rs"
 autolib = false
 autobins = false
@@ -32,6 +32,15 @@ repository = "https://github.com/quinn-rs/quinn"
 
 [package.metadata.docs.rs]
 all-features = true
+
+[features]
+default = [
+    "tracing",
+    "log",
+]
+direct-log = ["dep:log"]
+fast-apple-datapath = []
+log = ["tracing/log"]
 
 [lib]
 name = "quinn_udp"
@@ -76,15 +85,6 @@ features = [
 
 [build-dependencies.cfg_aliases]
 version = "0.2"
-
-[features]
-default = [
-    "tracing",
-    "log",
-]
-direct-log = ["dep:log"]
-fast-apple-datapath = []
-log = ["tracing/log"]
 
 [target.'cfg(not(all(target_family = "wasm", target_os = "unknown")))'.dependencies.socket2]
 version = "0.5"

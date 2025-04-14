@@ -76,9 +76,10 @@ pub trait CongestionControl: Display + Debug {
     fn discard_in_flight(&mut self, now: Instant);
 }
 
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, Default)]
 pub enum CongestionControlAlgorithm {
     NewReno,
+    #[default]
     Cubic,
 }
 

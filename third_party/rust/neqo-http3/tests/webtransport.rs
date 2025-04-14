@@ -4,6 +4,8 @@
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
 
+#![cfg(test)]
+
 use std::{cell::RefCell, rc::Rc};
 
 use neqo_common::{event::Provider as _, header::HeadersExt as _};
@@ -42,8 +44,12 @@ fn connect() -> (Http3Client, Http3Server) {
     .expect("create a server");
     assert_eq!(client.state(), Http3State::Initializing);
     let out = client.process_output(now());
+    let out2 = client.process_output(now());
     assert_eq!(client.state(), Http3State::Initializing);
 
+    _ = server.process(out.dgram(), now());
+    let out = server.process(out2.dgram(), now());
+    let out = client.process(out.dgram(), now());
     let out = server.process(out.dgram(), now());
     let out = client.process(out.dgram(), now());
     let out = server.process(out.dgram(), now());

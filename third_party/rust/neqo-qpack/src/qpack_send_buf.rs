@@ -38,7 +38,7 @@ impl QpackData {
         };
 
         if val < u64::from(first_byte_max) {
-            let v = u8::try_from(val).unwrap();
+            let v = u8::try_from(val).expect("first_byte_max is a u8 and val is smaller");
             self.write_byte((prefix.prefix() & !first_byte_max) | v);
             return 1;
         }
@@ -49,7 +49,7 @@ impl QpackData {
         let mut written = 1;
         let mut done = false;
         while !done {
-            let mut b = u8::try_from(val & 0x7f).unwrap();
+            let mut b = (val & 0x7f) as u8; // Safe because of the mask.
             val >>= 7;
             if val > 0 {
                 b |= 0x80;
@@ -75,10 +75,16 @@ impl QpackData {
 
         if use_huffman {
             let encoded = encode_huffman(value);
-            self.encode_prefixed_encoded_int(real_prefix, u64::try_from(encoded.len()).unwrap());
+            self.encode_prefixed_encoded_int(
+                real_prefix,
+                u64::try_from(encoded.len()).expect("usize fits in u64"),
+            );
             self.write_bytes(&encoded);
         } else {
-            self.encode_prefixed_encoded_int(real_prefix, u64::try_from(value.len()).unwrap());
+            self.encode_prefixed_encoded_int(
+                real_prefix,
+                u64::try_from(value.len()).expect("usize fits in u64"),
+            );
             self.write_bytes(value);
         }
     }

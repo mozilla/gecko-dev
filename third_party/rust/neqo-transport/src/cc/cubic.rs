@@ -62,11 +62,13 @@ const EXPONENTIAL_GROWTH_REDUCTION: f64 = 2.0;
 pub fn convert_to_f64(v: usize) -> f64 {
     let mut f_64 = f64::from(u32::try_from(v >> 21).unwrap_or(u32::MAX));
     f_64 *= 2_097_152.0; // f_64 <<= 21
-    f_64 += f64::from(u32::try_from(v & 0x1f_ffff).unwrap());
+    #[expect(clippy::cast_possible_truncation, reason = "The mask makes this safe.")]
+    let v_trunc = (v & 0x1f_ffff) as u32;
+    f_64 += f64::from(v_trunc);
     f_64
 }
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct Cubic {
     /// Maximum Window size two congestion events ago.
     ///
@@ -106,19 +108,6 @@ pub struct Cubic {
     tcp_acked_bytes: f64,
 }
 
-impl Default for Cubic {
-    fn default() -> Self {
-        Self {
-            last_max_cwnd: 0.0,
-            estimated_tcp_cwnd: 0.0,
-            k: 0.0,
-            w_max: 0.0,
-            ca_epoch_start: None,
-            tcp_acked_bytes: 0.0,
-        }
-    }
-}
-
 impl Display for Cubic {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(
@@ -130,7 +119,7 @@ impl Display for Cubic {
     }
 }
 
-#[allow(clippy::doc_markdown)]
+#[expect(clippy::doc_markdown, reason = "Not doc items; names from RFC.")]
 impl Cubic {
     /// Original equations is:
     /// K = cubic_root(W_max*(1-beta_cubic)/C) (Eq. 2 RFC8312)
@@ -179,9 +168,11 @@ impl Cubic {
 }
 
 impl WindowAdjustment for Cubic {
-    // This is because of the cast in the last line from f64 to usize.
-    #[allow(clippy::cast_possible_truncation)]
-    #[allow(clippy::cast_sign_loss)]
+    #[expect(
+        clippy::cast_possible_truncation,
+        clippy::cast_sign_loss,
+        reason = "Cast from f64 to usize."
+    )]
     fn bytes_for_cwnd_increase(
         &mut self,
         curr_cwnd: usize,

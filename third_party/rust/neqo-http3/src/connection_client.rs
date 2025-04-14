@@ -785,7 +785,8 @@ impl Http3Client {
     /// This cannot panic. The max varint length is 8.
     pub fn webtransport_max_datagram_size(&self, session_id: StreamId) -> Res<u64> {
         Ok(self.conn.max_datagram_size()?
-            - u64::try_from(Encoder::varint_len(session_id.as_u64())).unwrap())
+            - u64::try_from(Encoder::varint_len(session_id.as_u64()))
+                .map_err(|_| Error::Internal)?)
     }
 
     /// Sets the `SendOrder` for a given stream
@@ -841,7 +842,11 @@ impl Http3Client {
     }
 
     /// This function combines  `process_input` and `process_output` function.
-    pub fn process(&mut self, dgram: Option<Datagram<impl AsRef<[u8]>>>, now: Instant) -> Output {
+    pub fn process(
+        &mut self,
+        dgram: Option<Datagram<impl AsRef<[u8]> + AsMut<[u8]>>>,
+        now: Instant,
+    ) -> Output {
         qtrace!("[{self}] Process");
         if let Some(d) = dgram {
             self.process_input(d, now);
@@ -859,13 +864,13 @@ impl Http3Client {
     /// packets need to be sent or if a timer needs to be updated.
     ///
     /// [1]: ../neqo_transport/enum.ConnectionEvent.html
-    pub fn process_input(&mut self, dgram: Datagram<impl AsRef<[u8]>>, now: Instant) {
+    pub fn process_input(&mut self, dgram: Datagram<impl AsRef<[u8]> + AsMut<[u8]>>, now: Instant) {
         self.process_multiple_input(iter::once(dgram), now);
     }
 
     pub fn process_multiple_input(
         &mut self,
-        dgrams: impl IntoIterator<Item = Datagram<impl AsRef<[u8]>>>,
+        dgrams: impl IntoIterator<Item = Datagram<impl AsRef<[u8]> + AsMut<[u8]>>>,
         now: Instant,
     ) {
         let mut dgrams = dgrams.into_iter().peekable();
@@ -1279,7 +1284,7 @@ mod tests {
     use neqo_qpack::{encoder::QPackEncoder, QpackSettings};
     use neqo_transport::{
         CloseReason, ConnectionEvent, ConnectionParameters, Output, State, StreamId, StreamType,
-        Version, MIN_INITIAL_PACKET_SIZE, RECV_BUFFER_SIZE, SEND_BUFFER_SIZE,
+        Version, INITIAL_RECV_WINDOW_SIZE, MIN_INITIAL_PACKET_SIZE,
     };
     use test_fixture::{
         anti_replay, default_server_h3, fixture_init, new_server, now,
@@ -1304,7 +1309,7 @@ mod tests {
                 assert_eq!(err, CloseReason::Application(expected.code()));
             }
             _ => panic!("Wrong state {:?}", client.state()),
-        };
+        }
     }
 
     /// Create a http3 client with default configuration.
@@ -1625,12 +1630,16 @@ mod tests {
     fn handshake_only(client: &mut Http3Client, server: &mut TestServer) -> Output {
         assert_eq!(client.state(), Http3State::Initializing);
         let out = client.process_output(now());
+        let out2 = client.process_output(now());
         assert_eq!(client.state(), Http3State::Initializing);
 
         assert_eq!(*server.conn.state(), State::Init);
-        let out = server.conn.process(out.dgram(), now());
+        server.conn.process_input(out.dgram().unwrap(), now());
+        let out = server.conn.process(out2.dgram(), now());
         assert_eq!(*server.conn.state(), State::Handshaking);
 
+        let out = client.process(out.dgram(), now());
+        let out = server.conn.process(out.dgram(), now());
         let out = client.process(out.dgram(), now());
         let out = server.conn.process(out.dgram(), now());
         assert!(out.as_dgram_ref().is_none());
@@ -2730,7 +2739,7 @@ mod tests {
             if let ConnectionEvent::RecvStreamReadable { stream_id } = e {
                 if stream_id == request_stream_id {
                     // Read the DATA frame.
-                    let mut buf = vec![1_u8; RECV_BUFFER_SIZE];
+                    let mut buf = vec![1_u8; INITIAL_RECV_WINDOW_SIZE];
                     let (amount, fin) = server.conn.stream_recv(stream_id, &mut buf).unwrap();
                     assert!(fin);
                     assert_eq!(
@@ -2803,7 +2812,7 @@ mod tests {
         assert_eq!(sent, Ok(first_frame.len()));
 
         // The second frame cannot fit.
-        let sent = client.send_data(request_stream_id, &vec![0_u8; SEND_BUFFER_SIZE]);
+        let sent = client.send_data(request_stream_id, &vec![0_u8; INITIAL_RECV_WINDOW_SIZE]);
         assert_eq!(sent, Ok(expected_second_data_frame.len()));
 
         // Close stream.
@@ -2812,7 +2821,7 @@ mod tests {
         let mut out = client.process_output(now());
         // We need to loop a bit until all data has been sent. Once for every 1K
         // of data.
-        for _i in 0..SEND_BUFFER_SIZE / 1000 {
+        for _i in 0..INITIAL_RECV_WINDOW_SIZE / 1000 {
             out = server.conn.process(out.dgram(), now());
             out = client.process(out.dgram(), now());
         }
@@ -2822,7 +2831,7 @@ mod tests {
             if let ConnectionEvent::RecvStreamReadable { stream_id } = e {
                 if stream_id == request_stream_id {
                     // Read DATA frames.
-                    let mut buf = vec![1_u8; RECV_BUFFER_SIZE];
+                    let mut buf = vec![1_u8; INITIAL_RECV_WINDOW_SIZE];
                     let (amount, fin) = server.conn.stream_recv(stream_id, &mut buf).unwrap();
                     assert!(fin);
                     assert_eq!(
@@ -2875,7 +2884,7 @@ mod tests {
     // After the first frame there is exactly 63+2 bytes left in the send buffer.
     #[test]
     fn fetch_two_data_frame_second_63bytes() {
-        let (buf, hdr) = alloc_buffer(SEND_BUFFER_SIZE - 88);
+        let (buf, hdr) = alloc_buffer(INITIAL_RECV_WINDOW_SIZE - 88);
         fetch_with_two_data_frames(&buf, &hdr, &[0x0, 0x3f], &[0_u8; 63]);
     }
 
@@ -2884,7 +2893,7 @@ mod tests {
     // but we can only send 63 bytes.
     #[test]
     fn fetch_two_data_frame_second_63bytes_place_for_66() {
-        let (buf, hdr) = alloc_buffer(SEND_BUFFER_SIZE - 89);
+        let (buf, hdr) = alloc_buffer(INITIAL_RECV_WINDOW_SIZE - 89);
         fetch_with_two_data_frames(&buf, &hdr, &[0x0, 0x3f], &[0_u8; 63]);
     }
 
@@ -2893,7 +2902,7 @@ mod tests {
     // but we can only send 64 bytes.
     #[test]
     fn fetch_two_data_frame_second_64bytes_place_for_67() {
-        let (buf, hdr) = alloc_buffer(SEND_BUFFER_SIZE - 90);
+        let (buf, hdr) = alloc_buffer(INITIAL_RECV_WINDOW_SIZE - 90);
         fetch_with_two_data_frames(&buf, &hdr, &[0x0, 0x40, 0x40], &[0_u8; 64]);
     }
 
@@ -2901,7 +2910,7 @@ mod tests {
     // After the first frame there is exactly 16383+3 bytes left in the send buffer.
     #[test]
     fn fetch_two_data_frame_second_16383bytes() {
-        let (buf, hdr) = alloc_buffer(SEND_BUFFER_SIZE - 16409);
+        let (buf, hdr) = alloc_buffer(INITIAL_RECV_WINDOW_SIZE - 16409);
         fetch_with_two_data_frames(&buf, &hdr, &[0x0, 0x7f, 0xff], &[0_u8; 16383]);
     }
 
@@ -2910,7 +2919,7 @@ mod tests {
     // send 16383 bytes.
     #[test]
     fn fetch_two_data_frame_second_16383bytes_place_for_16387() {
-        let (buf, hdr) = alloc_buffer(SEND_BUFFER_SIZE - 16410);
+        let (buf, hdr) = alloc_buffer(INITIAL_RECV_WINDOW_SIZE - 16410);
         fetch_with_two_data_frames(&buf, &hdr, &[0x0, 0x7f, 0xff], &[0_u8; 16383]);
     }
 
@@ -2919,7 +2928,7 @@ mod tests {
     // send 16383 bytes.
     #[test]
     fn fetch_two_data_frame_second_16383bytes_place_for_16388() {
-        let (buf, hdr) = alloc_buffer(SEND_BUFFER_SIZE - 16411);
+        let (buf, hdr) = alloc_buffer(INITIAL_RECV_WINDOW_SIZE - 16411);
         fetch_with_two_data_frames(&buf, &hdr, &[0x0, 0x7f, 0xff], &[0_u8; 16383]);
     }
 
@@ -2928,7 +2937,7 @@ mod tests {
     // 16384 bytes.
     #[test]
     fn fetch_two_data_frame_second_16384bytes_place_for_16389() {
-        let (buf, hdr) = alloc_buffer(SEND_BUFFER_SIZE - 16412);
+        let (buf, hdr) = alloc_buffer(INITIAL_RECV_WINDOW_SIZE - 16412);
         fetch_with_two_data_frames(&buf, &hdr, &[0x0, 0x80, 0x0, 0x40, 0x0], &[0_u8; 16384]);
     }
 
@@ -3675,7 +3684,7 @@ mod tests {
                     panic!("We should not receive a DataGeadable event!");
                 }
                 _ => {}
-            };
+            }
         }
 
         // ok NOW send fin
@@ -3699,7 +3708,7 @@ mod tests {
                     assert!(fin);
                 }
                 _ => {}
-            };
+            }
         }
 
         // Stream should now be closed and gone
@@ -3751,7 +3760,7 @@ mod tests {
                     assert_eq!(Ok((0, true)), client.read_data(now(), stream_id, &mut buf));
                 }
                 _ => {}
-            };
+            }
         }
 
         // Stream should now be closed and gone
@@ -3800,7 +3809,7 @@ mod tests {
                     panic!("We should not receive a DataGeadable event!");
                 }
                 _ => {}
-            };
+            }
         }
 
         // ok NOW send fin
@@ -3824,7 +3833,7 @@ mod tests {
                     assert!(fin);
                 }
                 _ => {}
-            };
+            }
         }
 
         // Stream should now be closed and gone
@@ -3871,7 +3880,7 @@ mod tests {
                     assert!(!fin);
                 }
                 _ => {}
-            };
+            }
         }
 
         // ok NOW send fin
@@ -4158,10 +4167,12 @@ mod tests {
         let (mut client, mut server) = start_with_0rtt();
 
         let out = client.process_output(now());
+        let out2 = client.process_output(now());
 
         assert_eq!(client.state(), Http3State::ZeroRtt);
         assert_eq!(*server.conn.state(), State::Init);
-        let out = server.conn.process(out.dgram(), now());
+        server.conn.process_input(out.dgram().unwrap(), now());
+        let out = server.conn.process(out2.dgram(), now());
 
         // Check that control and qpack streams are received and a
         // SETTINGS frame has been received.
@@ -4174,6 +4185,8 @@ mod tests {
         );
 
         assert_eq!(*server.conn.state(), State::Handshaking);
+        let out = client.process(out.dgram(), now());
+        let out = server.conn.process(out.dgram(), now());
         let out = client.process(out.dgram(), now());
         assert_eq!(client.state(), Http3State::Connected);
 
@@ -4193,10 +4206,12 @@ mod tests {
         assert_eq!(request_stream_id, 0);
 
         let out = client.process_output(now());
+        let out2 = client.process_output(now());
 
         assert_eq!(client.state(), Http3State::ZeroRtt);
         assert_eq!(*server.conn.state(), State::Init);
-        let out = server.conn.process(out.dgram(), now());
+        server.conn.process_input(out.dgram().unwrap(), now());
+        let out = server.conn.process(out2.dgram(), now());
 
         // Check that control and qpack streams are received and a
         // SETTINGS frame has been received.
@@ -4209,6 +4224,8 @@ mod tests {
         );
 
         assert_eq!(*server.conn.state(), State::Handshaking);
+        let out = client.process(out.dgram(), now());
+        let out = server.conn.process(out.dgram(), now());
         let out = client.process(out.dgram(), now());
         assert_eq!(client.state(), Http3State::Connected);
         let out = server.conn.process(out.dgram(), now());
@@ -4280,17 +4297,19 @@ mod tests {
         let client_0rtt = client.process_output(now());
         assert!(client_0rtt.as_dgram_ref().is_some());
 
-        let server_hs = server.process(client_hs.dgram(), now());
+        server.process_input(client_hs.dgram().unwrap(), now());
+        let server_hs = server.process(client_0rtt.dgram(), now());
         assert!(server_hs.as_dgram_ref().is_some()); // Should produce ServerHello etc...
-        let server_ignored = server.process(client_0rtt.dgram(), now());
-        assert!(server_ignored.as_dgram_ref().is_none());
+
+        let dgram = client.process(server_hs.dgram(), now()).dgram();
+        let dgram = server.process(dgram, now());
 
         // The server shouldn't receive that 0-RTT data.
         let recvd_stream_evt = |e| matches!(e, ConnectionEvent::NewStream { .. });
         assert!(!server.events().any(recvd_stream_evt));
 
         // Client should get a rejection.
-        let client_out = client.process(server_hs.dgram(), now());
+        let client_out = client.process(dgram.dgram(), now());
         assert!(client_out.as_dgram_ref().is_some());
         let recvd_0rtt_reject = |e| e == Http3ClientEvent::ZeroRttRejected;
         assert!(client.events().any(recvd_0rtt_reject));
@@ -4329,10 +4348,12 @@ mod tests {
             .expect("Set resumption token");
         assert_eq!(client.state(), Http3State::ZeroRtt);
         let out = client.process_output(now());
+        let out2 = client.process_output(now());
 
         assert_eq!(client.state(), Http3State::ZeroRtt);
         assert_eq!(*server.conn.state(), State::Init);
-        let out = server.conn.process(out.dgram(), now());
+        server.conn.process_input(out.dgram().unwrap(), now());
+        let out = server.conn.process(out2.dgram(), now());
 
         // Check that control and qpack streams and a SETTINGS frame are received.
         // Also qpack encoder stream will send "change capacity" instruction because it has
@@ -4344,6 +4365,8 @@ mod tests {
         );
 
         assert_eq!(*server.conn.state(), State::Handshaking);
+        let out = client.process(out.dgram(), now());
+        let out = server.conn.process(out.dgram(), now());
         let out = client.process(out.dgram(), now());
         assert_eq!(client.state(), Http3State::Connected);
 

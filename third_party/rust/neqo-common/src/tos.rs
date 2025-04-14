@@ -4,26 +4,29 @@
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
 
+#![allow(
+    clippy::module_name_repetitions,
+    reason = "<https://github.com/mozilla/neqo/issues/2284#issuecomment-2782711813>"
+)]
+
 use std::fmt::Debug;
 
 use enum_map::Enum;
+use strum::{EnumIter, FromRepr};
 
 /// ECN (Explicit Congestion Notification) codepoints mapped to the
 /// lower 2 bits of the TOS field.
 /// <https://www.iana.org/assignments/dscp-registry/dscp-registry.xhtml>
-#[derive(Copy, Clone, PartialEq, Eq, Enum, Default, Debug)]
+#[derive(Copy, Clone, PartialEq, Eq, Enum, Default, Debug, FromRepr, EnumIter)]
 #[repr(u8)]
 pub enum IpTosEcn {
     #[default]
     /// Not-ECT, Not ECN-Capable Transport, RFC3168
     NotEct = 0b00,
-
     /// ECT(1), ECN-Capable Transport(1), RFC8311 and RFC9331
     Ect1 = 0b01,
-
     /// ECT(0), ECN-Capable Transport(0), RFC3168
     Ect0 = 0b10,
-
     /// CE, Congestion Experienced, RFC3168
     Ce = 0b11,
 }
@@ -36,13 +39,7 @@ impl From<IpTosEcn> for u8 {
 
 impl From<u8> for IpTosEcn {
     fn from(v: u8) -> Self {
-        match v & 0b0000_0011 {
-            0b00 => Self::NotEct,
-            0b01 => Self::Ect1,
-            0b10 => Self::Ect0,
-            0b11 => Self::Ce,
-            _ => unreachable!(),
-        }
+        Self::from_repr(v & 0b0000_0011).expect("all ECN values are covered")
     }
 }
 
@@ -64,76 +61,54 @@ impl IpTosEcn {
 
 /// Diffserv codepoints, mapped to the upper six bits of the TOS field.
 /// <https://www.iana.org/assignments/dscp-registry/dscp-registry.xhtml>
-#[derive(Copy, Clone, PartialEq, Eq, Enum, Default, Debug)]
+#[derive(Copy, Clone, PartialEq, Eq, Enum, Default, Debug, FromRepr)]
 #[repr(u8)]
 pub enum IpTosDscp {
     #[default]
     /// Class Selector 0, RFC2474
     Cs0 = 0b0000_0000,
-
     /// Class Selector 1, RFC2474
     Cs1 = 0b0010_0000,
-
     /// Class Selector 2, RFC2474
     Cs2 = 0b0100_0000,
-
     /// Class Selector 3, RFC2474
     Cs3 = 0b0110_0000,
-
     /// Class Selector 4, RFC2474
     Cs4 = 0b1000_0000,
-
     /// Class Selector 5, RFC2474
     Cs5 = 0b1010_0000,
-
     /// Class Selector 6, RFC2474
     Cs6 = 0b1100_0000,
-
     /// Class Selector 7, RFC2474
     Cs7 = 0b1110_0000,
-
     /// Assured Forwarding 11, RFC2597
     Af11 = 0b0010_1000,
-
     /// Assured Forwarding 12, RFC2597
     Af12 = 0b0011_0000,
-
     /// Assured Forwarding 13, RFC2597
     Af13 = 0b0011_1000,
-
     /// Assured Forwarding 21, RFC2597
     Af21 = 0b0100_1000,
-
     /// Assured Forwarding 22, RFC2597
     Af22 = 0b0101_0000,
-
     /// Assured Forwarding 23, RFC2597
     Af23 = 0b0101_1000,
-
     /// Assured Forwarding 31, RFC2597
     Af31 = 0b0110_1000,
-
     /// Assured Forwarding 32, RFC2597
     Af32 = 0b0111_0000,
-
     /// Assured Forwarding 33, RFC2597
     Af33 = 0b0111_1000,
-
     /// Assured Forwarding 41, RFC2597
     Af41 = 0b1000_1000,
-
     /// Assured Forwarding 42, RFC2597
     Af42 = 0b1001_0000,
-
     /// Assured Forwarding 43, RFC2597
     Af43 = 0b1001_1000,
-
     /// Expedited Forwarding, RFC3246
     Ef = 0b1011_1000,
-
     /// Capacity-Admitted Traffic, RFC5865
     VoiceAdmit = 0b1011_0000,
-
     /// Lower-Effort, RFC8622
     Le = 0b0000_0100,
 }
@@ -146,32 +121,7 @@ impl From<IpTosDscp> for u8 {
 
 impl From<u8> for IpTosDscp {
     fn from(v: u8) -> Self {
-        match v & 0b1111_1100 {
-            0b0000_0000 => Self::Cs0,
-            0b0010_0000 => Self::Cs1,
-            0b0100_0000 => Self::Cs2,
-            0b0110_0000 => Self::Cs3,
-            0b1000_0000 => Self::Cs4,
-            0b1010_0000 => Self::Cs5,
-            0b1100_0000 => Self::Cs6,
-            0b1110_0000 => Self::Cs7,
-            0b0010_1000 => Self::Af11,
-            0b0011_0000 => Self::Af12,
-            0b0011_1000 => Self::Af13,
-            0b0100_1000 => Self::Af21,
-            0b0101_0000 => Self::Af22,
-            0b0101_1000 => Self::Af23,
-            0b0110_1000 => Self::Af31,
-            0b0111_0000 => Self::Af32,
-            0b0111_1000 => Self::Af33,
-            0b1000_1000 => Self::Af41,
-            0b1001_0000 => Self::Af42,
-            0b1001_1000 => Self::Af43,
-            0b1011_1000 => Self::Ef,
-            0b1011_0000 => Self::VoiceAdmit,
-            0b0000_0100 => Self::Le,
-            _ => unreachable!(),
-        }
+        Self::from_repr(v & 0b1111_1100).expect("all DCSP values are covered")
     }
 }
 

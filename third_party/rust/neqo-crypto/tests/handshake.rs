@@ -4,7 +4,7 @@
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
 
-#![allow(dead_code)]
+#![expect(clippy::unwrap_used, reason = "OK for tests.")]
 
 use std::{mem, time::Instant};
 
@@ -16,8 +16,16 @@ use neqo_crypto::{
 use test_fixture::{anti_replay, fixture_init, now};
 
 /// Consume records until the handshake state changes.
-#[allow(clippy::missing_panics_doc)]
-#[allow(clippy::missing_errors_doc)]
+#[allow(
+    clippy::allow_attributes,
+    clippy::missing_panics_doc,
+    reason = "OK for tests."
+)]
+#[allow(
+    clippy::allow_attributes,
+    clippy::missing_errors_doc,
+    reason = "OK for tests."
+)]
 pub fn forward_records(
     now: Instant,
     agent: &mut SecretAgent,
@@ -65,7 +73,11 @@ fn handshake(now: Instant, client: &mut SecretAgent, server: &mut SecretAgent) {
     }
 }
 
-#[allow(clippy::missing_panics_doc)]
+#[allow(
+    clippy::allow_attributes,
+    clippy::missing_panics_doc,
+    reason = "OK for tests."
+)]
 pub fn connect_at(now: Instant, client: &mut SecretAgent, server: &mut SecretAgent) {
     handshake(now, client, server);
     qinfo!("client: {:?}", client.state());
@@ -78,13 +90,19 @@ pub fn connect(client: &mut SecretAgent, server: &mut SecretAgent) {
     connect_at(now(), client, server);
 }
 
-#[allow(clippy::missing_panics_doc)]
+#[allow(
+    clippy::allow_attributes,
+    clippy::missing_panics_doc,
+    dead_code,
+    reason = "OK for tests."
+)]
 pub fn connect_fail(client: &mut SecretAgent, server: &mut SecretAgent) {
     handshake(now(), client, server);
     assert!(!client.state().is_connected());
     assert!(!server.state().is_connected());
 }
 
+#[allow(clippy::allow_attributes, dead_code, reason = "False positive.")]
 #[derive(Clone, Copy, Debug)]
 pub enum Resumption {
     WithoutZeroRtt,
@@ -115,6 +133,7 @@ impl ZeroRttChecker for PermissiveZeroRttChecker {
     }
 }
 
+#[allow(clippy::allow_attributes, dead_code, reason = "False positive.")]
 fn zero_rtt_setup(mode: Resumption, client: &Client, server: &mut Server) -> Option<AntiReplay> {
     matches!(mode, Resumption::WithZeroRtt).then(|| {
         client.enable_0rtt().expect("should enable 0-RTT on client");
@@ -131,7 +150,12 @@ fn zero_rtt_setup(mode: Resumption, client: &Client, server: &mut Server) -> Opt
     })
 }
 
-#[allow(clippy::missing_panics_doc)]
+#[allow(
+    clippy::allow_attributes,
+    clippy::missing_panics_doc,
+    dead_code,
+    reason = "OK for tests."
+)]
 #[must_use]
 pub fn resumption_setup(mode: Resumption) -> (Option<AntiReplay>, ResumptionToken) {
     fixture_init();

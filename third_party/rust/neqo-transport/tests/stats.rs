@@ -10,7 +10,7 @@ use neqo_transport::ecn;
 fn crate_exports_ecn_types() {
     let stats = neqo_transport::Stats::default();
 
-    let _ = stats.ecn_path_validation[ecn::ValidationOutcome::Capable];
-    let _ = stats.ecn_path_validation
+    _ = stats.ecn_path_validation[ecn::ValidationOutcome::Capable];
+    _ = stats.ecn_path_validation
         [ecn::ValidationOutcome::NotCapable(ecn::ValidationError::BlackHole)];
 }

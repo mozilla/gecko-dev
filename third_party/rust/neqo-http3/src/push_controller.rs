@@ -77,7 +77,7 @@ impl ActivePushStreams {
             return None;
         }
 
-        let inx = usize::try_from(u64::from(push_id - self.first_push_id)).unwrap();
+        let inx = usize::try_from(u64::from(push_id - self.first_push_id)).ok()?;
         if inx >= self.push_streams.len() {
             self.push_streams.resize(inx + 1, PushState::Init);
         }
@@ -116,7 +116,7 @@ impl ActivePushStreams {
                     .filter(|&e| e == &PushState::Closed)
                     .count(),
             )
-            .unwrap()
+            .expect("usize fits in u64")
     }
 
     pub fn clear(&mut self) {

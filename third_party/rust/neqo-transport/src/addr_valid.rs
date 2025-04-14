@@ -19,7 +19,8 @@ use neqo_crypto::{
 use smallvec::SmallVec;
 
 use crate::{
-    cid::ConnectionId, packet::PacketBuilder, recovery::RecoveryToken, stats::FrameStats, Res,
+    cid::ConnectionId, frame::FrameType, packet::PacketBuilder, recovery::RecoveryToken,
+    stats::FrameStats, Res,
 };
 
 /// A prefix we add to Retry tokens to distinguish them from `NEW_TOKEN` tokens.
@@ -190,7 +191,7 @@ impl AddressValidation {
         for i in 0..TOKEN_IDENTIFIER_RETRY.len() {
             difference += (token[i] ^ TOKEN_IDENTIFIER_RETRY[i]).count_ones();
         }
-        usize::try_from(difference).unwrap() < TOKEN_IDENTIFIER_RETRY.len()
+        usize::try_from(difference).expect("u32 fits in usize") < TOKEN_IDENTIFIER_RETRY.len()
     }
 
     pub fn validate(
@@ -218,7 +219,7 @@ impl AddressValidation {
         let enc = &token[TOKEN_IDENTIFIER_RETRY.len()..];
         // Note that this allows the token identifier part to be corrupted.
         // That's OK here as we don't depend on that being authenticated.
-        #[allow(clippy::option_if_let_else)]
+        #[expect(clippy::option_if_let_else, reason = "Alternative is less readable.")]
         if let Some(cid) = self.decrypt_token(enc, peer_address, retry, now) {
             if retry {
                 // This is from Retry, so we should have an ODCID >= 8.
@@ -261,9 +262,7 @@ impl AddressValidation {
     }
 }
 
-// Note: these lint override can be removed in later versions where the lints
-// either don't trip a false positive or don't apply.  rustc 1.46 is fine.
-#[allow(clippy::large_enum_variant)]
+#[expect(clippy::large_enum_variant, reason = "No way around it.")]
 pub enum NewTokenState {
     Client {
         /// Tokens that haven't been taken yet.
@@ -423,7 +422,7 @@ impl NewTokenSender {
             if t.needs_sending && t.len() <= builder.remaining() {
                 t.needs_sending = false;
 
-                builder.encode_varint(crate::frame::FRAME_TYPE_NEW_TOKEN);
+                builder.encode_varint(FrameType::NewToken);
                 builder.encode_vvec(&t.token);
 
                 tokens.push(RecoveryToken::NewToken(t.seqno));

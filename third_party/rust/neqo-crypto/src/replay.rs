@@ -44,7 +44,6 @@ scoped_ptr!(
 /// It limits the exposure of servers to replay attack by rejecting 0-RTT
 /// if it appears to be a replay.  There is a false-positive rate that can be
 /// managed by tuning the parameters used to create the context.
-#[allow(clippy::module_name_repetitions)]
 pub struct AntiReplay {
     ctx: AntiReplayContext,
 }

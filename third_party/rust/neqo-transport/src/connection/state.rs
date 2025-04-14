@@ -4,27 +4,16 @@
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
 
-use std::{
-    cmp::{min, Ordering},
-    mem,
-    rc::Rc,
-    time::Instant,
-};
+use std::{cmp::min, rc::Rc, time::Instant};
 
 use neqo_common::Encoder;
 
 use crate::{
-    frame::{
-        FrameType, FRAME_TYPE_CONNECTION_CLOSE_APPLICATION, FRAME_TYPE_CONNECTION_CLOSE_TRANSPORT,
-        FRAME_TYPE_HANDSHAKE_DONE,
-    },
-    packet::PacketBuilder,
-    path::PathRef,
-    recovery::RecoveryToken,
-    CloseReason, Error,
+    frame::FrameType, packet::PacketBuilder, path::PathRef, recovery::RecoveryToken, CloseReason,
+    Error,
 };
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
 /// The state of the Connection.
 pub enum State {
     /// A newly created connection.
@@ -83,40 +72,6 @@ impl State {
     }
 }
 
-// Implement `PartialOrd` so that we can enforce monotonic state progression.
-impl PartialOrd for State {
-    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        Some(self.cmp(other))
-    }
-}
-
-impl Ord for State {
-    fn cmp(&self, other: &Self) -> Ordering {
-        if mem::discriminant(self) == mem::discriminant(other) {
-            return Ordering::Equal;
-        }
-        match (self, other) {
-            (Self::Init, _) => Ordering::Less,
-            (_, Self::Init) => Ordering::Greater,
-            (Self::WaitInitial, _) => Ordering::Less,
-            (_, Self::WaitInitial) => Ordering::Greater,
-            (Self::WaitVersion, _) => Ordering::Less,
-            (_, Self::WaitVersion) => Ordering::Greater,
-            (Self::Handshaking, _) => Ordering::Less,
-            (_, Self::Handshaking) => Ordering::Greater,
-            (Self::Connected, _) => Ordering::Less,
-            (_, Self::Connected) => Ordering::Greater,
-            (Self::Confirmed, _) => Ordering::Less,
-            (_, Self::Confirmed) => Ordering::Greater,
-            (Self::Closing { .. }, _) => Ordering::Less,
-            (_, Self::Closing { .. }) => Ordering::Greater,
-            (Self::Draining { .. }, _) => Ordering::Less,
-            (_, Self::Draining { .. }) => Ordering::Greater,
-            (Self::Closed(_), _) => unreachable!(),
-        }
-    }
-}
-
 #[derive(Debug, Clone)]
 pub struct ClosingFrame {
     path: PathRef,
@@ -152,7 +107,7 @@ impl ClosingFrame {
             Some(Self {
                 path: Rc::clone(&self.path),
                 error: CloseReason::Transport(Error::ApplicationError),
-                frame_type: 0,
+                frame_type: FrameType::Padding,
                 reason_phrase: Vec::new(),
             })
         } else {
@@ -171,12 +126,12 @@ impl ClosingFrame {
         }
         match &self.error {
             CloseReason::Transport(e) => {
-                builder.encode_varint(FRAME_TYPE_CONNECTION_CLOSE_TRANSPORT);
+                builder.encode_varint(FrameType::ConnectionCloseTransport);
                 builder.encode_varint(e.code());
                 builder.encode_varint(self.frame_type);
             }
             CloseReason::Application(code) => {
-                builder.encode_varint(FRAME_TYPE_CONNECTION_CLOSE_APPLICATION);
+                builder.encode_varint(FrameType::ConnectionCloseApplication);
                 builder.encode_varint(*code);
             }
         }
@@ -224,7 +179,7 @@ impl StateSignaling {
     pub fn write_done(&mut self, builder: &mut PacketBuilder) -> Option<RecoveryToken> {
         (matches!(self, Self::HandshakeDone) && builder.remaining() >= 1).then(|| {
             *self = Self::Idle;
-            builder.encode_varint(FRAME_TYPE_HANDSHAKE_DONE);
+            builder.encode_varint(FrameType::HandshakeDone);
             RecoveryToken::HandshakeDone
         })
     }

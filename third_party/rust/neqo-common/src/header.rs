@@ -36,11 +36,21 @@ impl Header {
         )
     }
 
+    #[allow(
+        clippy::allow_attributes,
+        clippy::missing_const_for_fn,
+        reason = "TODO: False positive on nightly."
+    )]
     #[must_use]
     pub fn name(&self) -> &str {
         &self.name
     }
 
+    #[allow(
+        clippy::allow_attributes,
+        clippy::missing_const_for_fn,
+        reason = "TODO: False positive on nightly."
+    )]
     #[must_use]
     pub fn value(&self) -> &str {
         &self.value

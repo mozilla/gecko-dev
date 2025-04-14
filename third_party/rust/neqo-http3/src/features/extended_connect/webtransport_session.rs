@@ -99,24 +99,23 @@ impl WebTransportSession {
     ///
     /// This function is only called with `RecvStream` and `SendStream` that also implement
     /// the http specific functions and `http_stream()` will never return `None`.
-    #[must_use]
     pub fn new_with_http_streams(
         session_id: StreamId,
         events: Box<dyn ExtendedConnectEvents>,
         role: Role,
         mut control_stream_recv: Box<dyn RecvStream>,
         mut control_stream_send: Box<dyn SendStream>,
-    ) -> Self {
+    ) -> Res<Self> {
         let stream_event_listener = Rc::new(RefCell::new(WebTransportSessionListener::default()));
         control_stream_recv
             .http_stream()
-            .unwrap()
+            .ok_or(Error::Internal)?
             .set_new_listener(Box::new(Rc::clone(&stream_event_listener)));
         control_stream_send
             .http_stream()
-            .unwrap()
+            .ok_or(Error::Internal)?
             .set_new_listener(Box::new(Rc::clone(&stream_event_listener)));
-        Self {
+        Ok(Self {
             control_stream_recv,
             control_stream_send,
             stream_event_listener,
@@ -127,7 +126,7 @@ impl WebTransportSession {
             send_streams: BTreeSet::new(),
             recv_streams: BTreeSet::new(),
             role,
-        }
+        })
     }
 
     /// # Errors
@@ -141,7 +140,7 @@ impl WebTransportSession {
     pub fn send_request(&mut self, headers: &[Header], conn: &mut Connection) -> Res<()> {
         self.control_stream_send
             .http_stream()
-            .unwrap()
+            .ok_or(Error::Internal)?
             .send_headers(headers, conn)
     }
 
@@ -149,7 +148,7 @@ impl WebTransportSession {
         qtrace!("[{self}] receive control data");
         let (out, _) = self.control_stream_recv.receive(conn)?;
         debug_assert!(out == ReceiveOutput::NoOutput);
-        self.maybe_check_headers();
+        self.maybe_check_headers()?;
         self.read_control_stream(conn)?;
         Ok((ReceiveOutput::NoOutput, self.state == SessionState::Done))
     }
@@ -158,33 +157,32 @@ impl WebTransportSession {
         let (out, _) = self
             .control_stream_recv
             .http_stream()
-            .unwrap()
+            .ok_or(Error::Internal)?
             .header_unblocked(conn)?;
         debug_assert!(out == ReceiveOutput::NoOutput);
-        self.maybe_check_headers();
+        self.maybe_check_headers()?;
         self.read_control_stream(conn)?;
         Ok((ReceiveOutput::NoOutput, self.state == SessionState::Done))
     }
 
-    fn maybe_update_priority(&mut self, priority: Priority) -> bool {
+    fn maybe_update_priority(&mut self, priority: Priority) -> Res<bool> {
         self.control_stream_recv
             .http_stream()
-            .unwrap()
+            .ok_or(Error::Internal)?
             .maybe_update_priority(priority)
     }
 
     fn priority_update_frame(&mut self) -> Option<HFrame> {
         self.control_stream_recv
-            .http_stream()
-            .unwrap()
+            .http_stream()?
             .priority_update_frame()
     }
 
-    fn priority_update_sent(&mut self) {
+    fn priority_update_sent(&mut self) -> Res<()> {
         self.control_stream_recv
             .http_stream()
-            .unwrap()
-            .priority_update_sent();
+            .ok_or(Error::Internal)?
+            .priority_update_sent()
     }
 
     fn send(&mut self, conn: &mut Connection) -> Res<()> {
@@ -222,9 +220,9 @@ impl WebTransportSession {
     /// # Panics
     ///
     /// This cannot panic because headers are checked before this function called.
-    pub fn maybe_check_headers(&mut self) {
+    pub fn maybe_check_headers(&mut self) -> Res<()> {
         if SessionState::Negotiating != self.state {
-            return;
+            return Ok(());
         }
 
         if let Some((headers, interim, fin)) = self.stream_event_listener.borrow_mut().get_headers()
@@ -254,7 +252,7 @@ impl WebTransportSession {
                             None
                         }
                     })
-                    .unwrap();
+                    .ok_or(Error::Internal)?;
 
                 self.state = if (200..300).contains(&status) {
                     if fin {
@@ -288,9 +286,10 @@ impl WebTransportSession {
                 };
             }
         }
+        Ok(())
     }
 
-    pub fn add_stream(&mut self, stream_id: StreamId) {
+    pub fn add_stream(&mut self, stream_id: StreamId) -> Res<()> {
         if self.state == SessionState::Active {
             if stream_id.is_bidi() {
                 self.send_streams.insert(stream_id);
@@ -306,9 +305,10 @@ impl WebTransportSession {
                     .extended_connect_new_stream(Http3StreamInfo::new(
                         stream_id,
                         ExtendedConnectType::WebTransport.get_stream_type(self.session_id),
-                    ));
+                    ))?;
             }
         }
+        Ok(())
     }
 
     pub fn remove_recv_stream(&mut self, stream_id: StreamId) {
@@ -456,7 +456,7 @@ impl HttpRecvStream for Rc<RefCell<WebTransportSession>> {
         self.borrow_mut().header_unblocked(conn)
     }
 
-    fn maybe_update_priority(&mut self, priority: Priority) -> bool {
+    fn maybe_update_priority(&mut self, priority: Priority) -> Res<bool> {
         self.borrow_mut().maybe_update_priority(priority)
     }
 
@@ -464,8 +464,8 @@ impl HttpRecvStream for Rc<RefCell<WebTransportSession>> {
         self.borrow_mut().priority_update_frame()
     }
 
-    fn priority_update_sent(&mut self) {
-        self.borrow_mut().priority_update_sent();
+    fn priority_update_sent(&mut self) -> Res<()> {
+        self.borrow_mut().priority_update_sent()
     }
 }
 

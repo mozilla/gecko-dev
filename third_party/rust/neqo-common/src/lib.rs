@@ -4,8 +4,6 @@
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
 
-#![allow(clippy::module_name_repetitions)] // This lint doesn't work here.
-
 mod codec;
 mod datagram;
 pub mod event;
@@ -21,6 +19,7 @@ pub mod tos;
 use std::fmt::Write as _;
 
 use enum_map::Enum;
+use strum::Display;
 
 #[cfg(feature = "build-fuzzing-corpus")]
 pub use self::fuzz::write_item_to_fuzzing_corpus;
@@ -81,7 +80,7 @@ pub const fn const_min(a: usize, b: usize) -> usize {
     [a, b][(a >= b) as usize]
 }
 
-#[derive(Debug, PartialEq, Eq, Copy, Clone, Enum)]
+#[derive(Debug, PartialEq, Eq, Copy, Clone, Enum, Display)]
 /// Client or Server.
 pub enum Role {
     Client,
@@ -95,12 +94,6 @@ impl Role {
             Self::Client => Self::Server,
             Self::Server => Self::Client,
         }
-    }
-}
-
-impl ::std::fmt::Display for Role {
-    fn fmt(&self, f: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
-        write!(f, "{self:?}")
     }
 }
 

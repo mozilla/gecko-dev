@@ -28,12 +28,12 @@ use crate::{
     connection::tests::{
         assert_path_challenge_min_len, connect, send_something_paced, send_with_extra,
     },
-    frame::FRAME_TYPE_NEW_CONNECTION_ID,
+    frame::FrameType,
     packet::PacketBuilder,
     path::MAX_PATH_PROBES,
     pmtud::Pmtud,
     stats::FrameStats,
-    tparams::{self, PreferredAddress, TransportParameter},
+    tparams::{PreferredAddress, TransportParameter, TransportParameterId},
     CloseReason, ConnectionId, ConnectionIdDecoder as _, ConnectionIdGenerator, ConnectionIdRef,
     ConnectionParameters, EmptyConnectionIdGenerator, Error, MIN_INITIAL_PACKET_SIZE,
 };
@@ -572,7 +572,7 @@ fn migrate_same_fail() {
     assert_path_challenge_min_len(&client, &probe, now);
 
     // -1 because first PATH_CHALLENGE already sent above
-    for _ in 0..MAX_PATH_PROBES * 2 - 1 {
+    for _ in 0..MAX_PATH_PROBES - 1 {
         let cb = client.process_output(now).callback();
         assert_ne!(cb, Duration::new(0, 0));
         now += cb;
@@ -704,6 +704,10 @@ fn migration_client_empty_cid() {
 /// Returns the packet containing `HANDSHAKE_DONE` from the server.
 fn fast_handshake(client: &mut Connection, server: &mut Connection) -> Option<Datagram> {
     let dgram = client.process_output(now()).dgram();
+    let dgram2 = client.process_output(now()).dgram();
+    server.process_input(dgram.unwrap(), now());
+    let dgram = server.process(dgram2, now()).dgram();
+    let dgram = client.process(dgram, now()).dgram();
     let dgram = server.process(dgram, now()).dgram();
     client.process_input(dgram.unwrap(), now());
     assert!(maybe_authenticate(client));
@@ -900,7 +904,7 @@ fn preferred_address_server_empty_cid() {
 
     server
         .set_local_tparam(
-            tparams::PREFERRED_ADDRESS,
+            TransportParameterId::PreferredAddress,
             TransportParameter::Bytes(SAMPLE_PREFERRED_ADDRESS.to_vec()),
         )
         .unwrap();
@@ -921,7 +925,7 @@ fn preferred_address_client() {
 
     client
         .set_local_tparam(
-            tparams::PREFERRED_ADDRESS,
+            TransportParameterId::PreferredAddress,
             TransportParameter::Bytes(SAMPLE_PREFERRED_ADDRESS.to_vec()),
         )
         .unwrap();
@@ -1045,7 +1049,7 @@ impl crate::connection::test_internal::FrameWriter for RetireAll {
         const SEQNO: u64 = 100;
         let cid = self.cid_gen.borrow_mut().generate_cid().unwrap();
         builder
-            .encode_varint(FRAME_TYPE_NEW_CONNECTION_ID)
+            .encode_varint(FrameType::NewConnectionId)
             .encode_varint(SEQNO)
             .encode_varint(SEQNO) // Retire Prior To
             .encode_vec(1, &cid)

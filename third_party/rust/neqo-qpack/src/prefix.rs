@@ -6,7 +6,7 @@
 
 #[derive(Copy, Clone, Debug)]
 pub struct Prefix {
-    #[allow(clippy::struct_field_names)]
+    #[expect(clippy::struct_field_names, reason = "Still the best name.")]
     prefix: u8,
     len: u8,
     mask: u8,

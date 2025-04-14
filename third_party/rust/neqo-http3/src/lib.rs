@@ -214,7 +214,6 @@ pub enum Error {
     // Internal errors from here.
     AlreadyClosed,
     AlreadyInitialized,
-    DecodingFrame,
     FatalError,
     HttpGoaway,
     Internal,
@@ -333,7 +332,7 @@ impl Error {
             _ => {
                 debug_assert!(false, "Unexpected error");
             }
-        };
+        }
         Self::TransportStreamDoesNotExist
     }
 
@@ -495,9 +494,9 @@ trait HttpRecvStream: RecvStream {
     /// An error may happen while reading a stream, e.g. early close, protocol error, etc.
     fn header_unblocked(&mut self, conn: &mut Connection) -> Res<(ReceiveOutput, bool)>;
 
-    fn maybe_update_priority(&mut self, priority: Priority) -> bool;
+    fn maybe_update_priority(&mut self, priority: Priority) -> Res<bool>;
     fn priority_update_frame(&mut self) -> Option<HFrame>;
-    fn priority_update_sent(&mut self);
+    fn priority_update_sent(&mut self) -> Res<()>;
 
     fn set_new_listener(&mut self, _conn_events: Box<dyn HttpRecvStreamEvents>) {}
     fn extended_connect_wait_for_response(&self) -> bool {

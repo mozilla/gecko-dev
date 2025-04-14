@@ -19,7 +19,6 @@ use crate::{
     MessageType, Priority, PushId, ReceiveOutput, RecvStream, Res, Stream,
 };
 
-#[allow(clippy::module_name_repetitions)]
 pub struct RecvMessageInfo {
     pub message_type: MessageType,
     pub stream_type: Http3StreamType,
@@ -292,7 +291,7 @@ impl RecvMessage {
                                 break self.set_state_to_close_pending(post_readable_event);
                             }
                         }
-                    };
+                    }
                 }
                 RecvMessageState::DecodingHeaders { header_block, fin } => {
                     if self
@@ -338,7 +337,7 @@ impl RecvMessage {
                     // WebTransportSession
                     break Ok(());
                 }
-            };
+            }
         }
     }
 
@@ -460,16 +459,17 @@ impl HttpRecvStream for RecvMessage {
         self.receive(conn)
     }
 
-    fn maybe_update_priority(&mut self, priority: Priority) -> bool {
-        self.priority_handler.maybe_update_priority(priority)
+    fn maybe_update_priority(&mut self, priority: Priority) -> Res<bool> {
+        Ok(self.priority_handler.maybe_update_priority(priority))
     }
 
     fn priority_update_frame(&mut self) -> Option<HFrame> {
         self.priority_handler.maybe_encode_frame(self.stream_id)
     }
 
-    fn priority_update_sent(&mut self) {
+    fn priority_update_sent(&mut self) -> Res<()> {
         self.priority_handler.priority_update_sent();
+        Ok(())
     }
 
     fn set_new_listener(&mut self, conn_events: Box<dyn HttpRecvStreamEvents>) {

@@ -15,7 +15,6 @@ use crate::{
 };
 
 #[derive(Debug, Clone)]
-#[allow(clippy::module_name_repetitions)]
 pub enum StreamRecoveryToken {
     Stream(SendStreamRecoveryToken),
     ResetStream {
@@ -48,7 +47,6 @@ pub enum StreamRecoveryToken {
 }
 
 #[derive(Debug, Clone)]
-#[allow(clippy::module_name_repetitions)]
 pub enum RecoveryToken {
     Stream(StreamRecoveryToken),
     Ack(AckToken),
@@ -60,4 +58,6 @@ pub enum RecoveryToken {
     RetireConnectionId(u64),
     AckFrequency(AckRate),
     Datagram(DatagramTracking),
+    /// A packet marked with [`neqo_common::IpTosEcn::Ect0`].
+    EcnEct0,
 }

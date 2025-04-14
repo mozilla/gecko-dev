@@ -4,8 +4,6 @@
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
 
-#![allow(clippy::module_name_repetitions)]
-
 use std::{cell::RefCell, collections::VecDeque, rc::Rc};
 
 use neqo_common::{event::Provider as EventProvider, Header};
@@ -16,7 +14,8 @@ use crate::{
     connection::Http3State,
     features::extended_connect::{ExtendedConnectEvents, ExtendedConnectType, SessionCloseReason},
     settings::HSettingType,
-    CloseType, Http3StreamInfo, HttpRecvStreamEvents, PushId, RecvStreamEvents, SendStreamEvents,
+    CloseType, Error, Http3StreamInfo, HttpRecvStreamEvents, PushId, RecvStreamEvents, Res,
+    SendStreamEvents,
 };
 
 #[derive(Debug, PartialEq, Eq, Clone)]
@@ -220,13 +219,14 @@ impl ExtendedConnectEvents for Http3ClientEvents {
         }
     }
 
-    fn extended_connect_new_stream(&self, stream_info: Http3StreamInfo) {
+    fn extended_connect_new_stream(&self, stream_info: Http3StreamInfo) -> Res<()> {
         self.insert(Http3ClientEvent::WebTransport(
             WebTransportEvent::NewStream {
                 stream_id: stream_info.stream_id(),
-                session_id: stream_info.session_id().unwrap(),
+                session_id: stream_info.session_id().ok_or(Error::Internal)?,
             },
         ));
+        Ok(())
     }
 
     fn new_datagram(&self, session_id: StreamId, datagram: Vec<u8>) {

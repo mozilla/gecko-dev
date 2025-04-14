@@ -13,7 +13,7 @@ use std::{
     time::{Duration, Instant},
 };
 
-use enum_map::enum_map;
+use enum_map::EnumMap;
 use neqo_common::{event::Provider as _, qdebug, qtrace, Datagram, Decoder, Role};
 use neqo_crypto::{random, AllowZeroRtt, AuthenticationStatus, ResumptionToken};
 use test_fixture::{fixture_init, new_neqo_qlog, now, DEFAULT_ADDR};
@@ -24,12 +24,12 @@ use crate::{
     cc::CWND_INITIAL_PKTS,
     cid::ConnectionIdRef,
     events::ConnectionEvent,
-    frame::FRAME_TYPE_PING,
+    frame::FrameType,
     packet::PacketBuilder,
     pmtud::Pmtud,
     recovery::ACK_ONLY_SIZE_LIMIT,
     stats::{FrameStats, Stats, MAX_PTO_COUNTS},
-    tparams::{DISABLE_MIGRATION, GREASE_QUIC_BIT},
+    tparams::TransportParameterId::*,
     ConnectionIdDecoder, ConnectionIdGenerator, ConnectionParameters, EmptyConnectionIdGenerator,
     Error, StreamId, StreamType, Version, MIN_INITIAL_PACKET_SIZE,
 };
@@ -72,7 +72,7 @@ pub struct CountingConnectionIdGenerator {
 
 impl ConnectionIdDecoder for CountingConnectionIdGenerator {
     fn decode_cid<'a>(&self, dec: &mut Decoder<'a>) -> Option<ConnectionIdRef<'a>> {
-        let len = usize::from(dec.peek_byte().unwrap());
+        let len = usize::from(dec.peek_byte()?);
         dec.decode(len).map(ConnectionIdRef::from)
     }
 }
@@ -81,10 +81,10 @@ impl ConnectionIdGenerator for CountingConnectionIdGenerator {
     fn generate_cid(&mut self) -> Option<ConnectionId> {
         let mut r = random::<20>();
         r[0] = 8;
-        r[1] = u8::try_from(self.counter >> 24).unwrap();
-        r[2] = u8::try_from((self.counter >> 16) & 0xff).unwrap();
-        r[3] = u8::try_from((self.counter >> 8) & 0xff).unwrap();
-        r[4] = u8::try_from(self.counter & 0xff).unwrap();
+        r[1] = u8::try_from(self.counter >> 24).ok()?;
+        r[2] = u8::try_from((self.counter >> 16) & 0xff).ok()?;
+        r[3] = u8::try_from((self.counter >> 8) & 0xff).ok()?;
+        r[4] = u8::try_from(self.counter & 0xff).ok()?;
         self.counter += 1;
         Some(ConnectionId::from(&r[..8]))
     }
@@ -182,7 +182,7 @@ struct PingWriter {}
 
 impl test_internal::FrameWriter for PingWriter {
     fn write_frames(&mut self, builder: &mut PacketBuilder) {
-        builder.encode_varint(FRAME_TYPE_PING);
+        builder.encode_varint(FrameType::Ping);
     }
 }
 
@@ -206,7 +206,7 @@ fn handshake_with_modifier(
         )
     };
 
-    let mut did_ping = enum_map! {_ => false};
+    let mut did_ping = EnumMap::from_array([false, false]);
     while !is_done(a) {
         _ = maybe_authenticate(a);
         // Insert a PING frame into the first application data packet an endpoint sends,
@@ -686,8 +686,7 @@ fn assert_path_challenge_min_len(c: &Connection, d: &Datagram, now: Instant) {
     let path = c.paths.find_path(
         d.source(),
         d.destination(),
-        c.conn_params.get_cc_algorithm(),
-        c.conn_params.pacing_enabled(),
+        &c.conn_params,
         now,
         &mut c.stats.borrow_mut(),
     );
@@ -729,7 +728,7 @@ fn create_server() {
 fn tp_grease() {
     for enable in [true, false] {
         let client = new_client(ConnectionParameters::default().grease(enable));
-        let grease = client.tps.borrow_mut().local.get_empty(GREASE_QUIC_BIT);
+        let grease = client.tps.borrow_mut().local.get_empty(GreaseQuicBit);
         assert_eq!(enable, grease);
     }
 }
@@ -738,7 +737,7 @@ fn tp_grease() {
 fn tp_disable_migration() {
     for disable in [true, false] {
         let client = new_client(ConnectionParameters::default().disable_migration(disable));
-        let disable_migration = client.tps.borrow_mut().local.get_empty(DISABLE_MIGRATION);
+        let disable_migration = client.tps.borrow_mut().local.get_empty(DisableMigration);
         assert_eq!(disable, disable_migration);
     }
 }
