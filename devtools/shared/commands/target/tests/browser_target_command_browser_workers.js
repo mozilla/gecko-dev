@@ -166,6 +166,10 @@ add_task(async function () {
       if (targets.includes(targetFront)) {
         return;
       }
+      if (!targetFront.url.startsWith(CHROME_WORKER_URL)) {
+        // We might get unrelated workers eg for RemoteSettings.
+        return;
+      }
       targetCommand.unwatchTargets({
         types: [TYPES.WORKER],
         onAvailable: onAvailable2,
@@ -205,6 +209,10 @@ add_task(async function () {
   const onWorkerDestroyed = new Promise(resolve => {
     const emptyFn = () => {};
     const onDestroyed = ({ targetFront }) => {
+      if (!targetFront.url.startsWith(CHROME_WORKER_URL)) {
+        // We might get unrelated workers eg for RemoteSettings.
+        return;
+      }
       targetCommand.unwatchTargets({
         types: [TYPES.WORKER],
         onAvailable: emptyFn,
