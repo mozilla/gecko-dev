@@ -108,6 +108,7 @@ EXTRA_JS_MODULES += [
 MOZ_SRC_FILES += [
     "DefaultBrowserCheck.sys.mjs",
     "DesktopActorRegistry.sys.mjs",
+    "ProfileDataUpgrader.sys.mjs",
     "StartupTelemetry.sys.mjs",
 ]
 
