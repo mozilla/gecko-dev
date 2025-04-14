@@ -377,7 +377,7 @@ export class NetworkEventRecord {
     }
   }
 
-  #onChannelCompleted = async () => {
+  #onChannelCompleted = () => {
     if (this.#request.alreadyCompleted) {
       return;
     }
@@ -393,7 +393,7 @@ export class NetworkEventRecord {
     // sizes.
     const sizes = {};
     if (this.#request.isHttpChannel && !blockedReason) {
-      sizes.decodedBodySize = await this.#decodedBodySizeMap.getDecodedBodySize(
+      sizes.decodedBodySize = this.#decodedBodySizeMap.getDecodedBodySize(
         this.#request.channel.channelId
       );
       sizes.encodedBodySize = this.#request.channel.encodedBodySize;

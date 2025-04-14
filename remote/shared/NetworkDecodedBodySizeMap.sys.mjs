@@ -2,31 +2,35 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+/**
+ * This map will return the default value of 0 if the decoded body size for
+ * a given channel was not received yet.
+ *
+ * Bug 1959614: The NetworkDecodedBodySizeMap used to setup promises to wait for
+ * the decoded body size to be ready. However the timing differences from this
+ * change leads to regressions in Playwright tests. The new implementation of
+ * the map is only synchronous and if the size was not received yet, 0 will be
+ * returned. In theory, the decoded body size should be set via
+ * http-on-before-stop-request which should be received before the request is
+ * stopped.
+ */
 export class NetworkDecodedBodySizeMap {
   #authenticationAttemptsMap;
-  #channelIdToBodySizePromiseMap;
+  #channelIdToBodySizeMap;
 
   constructor() {
     this.#authenticationAttemptsMap = new Map();
-    this.#channelIdToBodySizePromiseMap = new Map();
+    this.#channelIdToBodySizeMap = new Map();
   }
 
   destroy() {
     this.#authenticationAttemptsMap = null;
-    this.#channelIdToBodySizePromiseMap = null;
+    this.#channelIdToBodySizeMap = null;
   }
 
-  async getDecodedBodySize(channelId) {
-    if (!this.#channelIdToBodySizePromiseMap.has(channelId)) {
-      const { promise, resolve } = Promise.withResolvers();
-      this.#channelIdToBodySizePromiseMap.set(channelId, {
-        promise,
-        resolve,
-      });
-    }
-    const mapEntry = this.#channelIdToBodySizePromiseMap.get(channelId);
-    await mapEntry.promise;
-    return mapEntry.decodedBodySize;
+  getDecodedBodySize(channelId) {
+    const decodedBodySize = this.#channelIdToBodySizeMap.get(channelId);
+    return typeof decodedBodySize === "number" ? decodedBodySize : 0;
   }
 
   /**
@@ -72,22 +76,11 @@ export class NetworkDecodedBodySizeMap {
       return;
     }
 
-    if (!this.#channelIdToBodySizePromiseMap.has(channelId)) {
-      const { promise, resolve } = Promise.withResolvers();
-      this.#channelIdToBodySizePromiseMap.set(channelId, {
-        decodedBodySize,
-        promise,
-        resolve,
-      });
-    }
-    const mapEntry = this.#channelIdToBodySizePromiseMap.get(channelId);
-
-    mapEntry.decodedBodySize = decodedBodySize;
-    mapEntry.resolve(decodedBodySize);
+    this.#channelIdToBodySizeMap.set(channelId, decodedBodySize);
   }
 
   delete(channelId) {
     this.#authenticationAttemptsMap.delete(channelId);
-    this.#channelIdToBodySizePromiseMap.delete(channelId);
+    this.#channelIdToBodySizeMap.delete(channelId);
   }
 }
