@@ -5869,7 +5869,7 @@
     }
 
     /**
-     * @param {MozTabbrowserTab|MozTabbrowserTabGroup} element
+     * @param {Element} element
      * @returns {boolean}
      *   `true` if element is a `<tab>`
      */
@@ -5878,7 +5878,16 @@
     }
 
     /**
-     * @param {MozTabbrowserTab|MozTextLabel} element
+     * @param {Element} element
+     * @returns {boolean}
+     *   `true` if element is a `<tab-group>`
+     */
+    isTabGroup(element) {
+      return !!(element?.tagName == "tab-group");
+    }
+
+    /**
+     * @param {Element} element
      * @returns {boolean}
      *   `true` if element is the `<label>` in a `<tab-group>`
      */
@@ -5911,7 +5920,7 @@
     }
 
     /**
-     * @param {MozTabbrowserTab|MozTabbrowserTabGroup} aTab
+     * @param {MozTabbrowserTab|MozTabbrowserTabGroup} element
      *   The tab or tab group to move. Also accepts a tab group label as a
      *   stand-in for its group.
      * @param {object} [options]
@@ -5921,7 +5930,7 @@
      *   The desired position, expressed as the index within the
      *   `MozTabbrowserTabs::ariaFocusableItems` array.
      * @param {boolean} [options.forceUngrouped=false]
-     *   Force `aTab` to move into position as a standalone tab, overriding
+     *   Force `element` to move into position as a standalone tab, overriding
      *   any possibility of entering a tab group. For example, setting `true`
      *   ensures that a pinned tab will not accidentally be placed inside of
      *   a tab group, since pinned tabs are presently not allowed in tab groups.
@@ -5936,7 +5945,7 @@
      *   Defaults to "unknown".
      */
     moveTabTo(
-      aTab,
+      element,
       {
         elementIndex,
         tabIndex,
@@ -5950,7 +5959,7 @@
       }
 
       // Don't allow mixing pinned and unpinned tabs.
-      if (this.isTab(aTab) && aTab.pinned) {
+      if (this.isTab(element) && element.pinned) {
         tabIndex = Math.min(tabIndex, this.pinnedTabCount - 1);
       } else {
         tabIndex = Math.max(tabIndex, this.pinnedTabCount);
@@ -5958,31 +5967,33 @@
 
       // Return early if the tab is already in the right spot.
       if (
-        this.isTab(aTab) &&
-        aTab._tPos == tabIndex &&
-        !(aTab.group && forceUngrouped)
+        this.isTab(element) &&
+        element._tPos == tabIndex &&
+        !(element.group && forceUngrouped)
       ) {
         return;
       }
 
       // When asked to move a tab group label, we need to move the whole group
       // instead.
-      if (this.isTabGroupLabel(aTab)) {
+      if (this.isTabGroupLabel(element)) {
+        element = element.group;
+      }
+      if (this.isTabGroup(element)) {
         forceUngrouped = true;
-        aTab = aTab.group;
       }
 
       this.#handleTabMove(
-        aTab,
+        element,
         () => {
           let neighbor = this.tabs[tabIndex];
           if (forceUngrouped && neighbor.group) {
             neighbor = neighbor.group;
           }
-          if (neighbor && tabIndex > aTab._tPos) {
-            neighbor.after(aTab);
+          if (neighbor && this.isTab(element) && tabIndex > element._tPos) {
+            neighbor.after(element);
           } else {
-            this.tabContainer.insertBefore(aTab, neighbor);
+            this.tabContainer.insertBefore(element, neighbor);
           }
         },
         { isUserTriggered, telemetrySource }
@@ -5990,50 +6001,50 @@
     }
 
     /**
-     * @param {MozTabbrowserTab|MozTabbrowserTabGroup} tab
+     * @param {MozTabbrowserTab|MozTabbrowserTabGroup} element
      * @param {MozTabbrowserTab|MozTabbrowserTabGroup} targetElement
      * @param {TabMetricsContext} [metricsContext]
      */
-    moveTabBefore(tab, targetElement, metricsContext) {
-      this.#moveTabNextTo(tab, targetElement, true, metricsContext);
+    moveTabBefore(element, targetElement, metricsContext) {
+      this.#moveTabNextTo(element, targetElement, true, metricsContext);
     }
 
     /**
-     * @param {MozTabbrowserTab|MozTabbrowserTabGroup[]} tabs
+     * @param {MozTabbrowserTab|MozTabbrowserTabGroup[]} elements
      * @param {MozTabbrowserTab|MozTabbrowserTabGroup} targetElement
      * @param {TabMetricsContext} [metricsContext]
      */
-    moveTabsBefore(tabs, targetElement, metricsContext) {
-      this.#moveTabsNextTo(tabs, targetElement, true, metricsContext);
+    moveTabsBefore(elements, targetElement, metricsContext) {
+      this.#moveTabsNextTo(elements, targetElement, true, metricsContext);
     }
 
     /**
-     * @param {MozTabbrowserTab|MozTabbrowserTabGroup} tab
+     * @param {MozTabbrowserTab|MozTabbrowserTabGroup} element
      * @param {MozTabbrowserTab|MozTabbrowserTabGroup} targetElement
      * @param {TabMetricsContext} [metricsContext]
      */
-    moveTabAfter(tab, targetElement, metricsContext) {
-      this.#moveTabNextTo(tab, targetElement, false, metricsContext);
+    moveTabAfter(element, targetElement, metricsContext) {
+      this.#moveTabNextTo(element, targetElement, false, metricsContext);
     }
 
     /**
-     * @param {MozTabbrowserTab|MozTabbrowserTabGroup[]} tabs
+     * @param {MozTabbrowserTab|MozTabbrowserTabGroup[]} elements
      * @param {MozTabbrowserTab|MozTabbrowserTabGroup} targetElement
      * @param {TabMetricsContext} [metricsContext]
      */
-    moveTabsAfter(tabs, targetElement, metricsContext) {
-      this.#moveTabsNextTo(tabs, targetElement, false, metricsContext);
+    moveTabsAfter(elements, targetElement, metricsContext) {
+      this.#moveTabsNextTo(elements, targetElement, false, metricsContext);
     }
 
     /**
-     * @param {MozTabbrowserTab|MozTabbrowserTabGroup} tab
+     * @param {MozTabbrowserTab|MozTabbrowserTabGroup} element
      *   The tab or tab group to move. Also accepts a tab group label as a
      *   stand-in for its group.
      * @param {MozTabbrowserTab|MozTabbrowserTabGroup} targetElement
      * @param {boolean} [moveBefore=false]
      * @param {TabMetricsContext} [metricsContext]
      */
-    #moveTabNextTo(tab, targetElement, moveBefore = false, metricsContext) {
+    #moveTabNextTo(element, targetElement, moveBefore = false, metricsContext) {
       if (this.isTabGroupLabel(targetElement)) {
         targetElement = targetElement.group;
         if (!moveBefore) {
@@ -6041,38 +6052,38 @@
           moveBefore = true;
         }
       }
-      if (this.isTabGroupLabel(tab)) {
-        tab = tab.group;
+      if (this.isTabGroupLabel(element)) {
+        element = element.group;
         if (targetElement?.group) {
           targetElement = targetElement.group;
         }
       }
 
       // Don't allow mixing pinned and unpinned tabs.
-      if (tab.pinned && !targetElement?.pinned) {
+      if (element.pinned && !targetElement?.pinned) {
         targetElement = this.tabs[this.pinnedTabCount - 1];
         moveBefore = false;
-      } else if (!tab.pinned && targetElement && targetElement.pinned) {
+      } else if (!element.pinned && targetElement && targetElement.pinned) {
         targetElement = this.tabs[this.pinnedTabCount];
         moveBefore = true;
       }
 
       let getContainer = () => {
-        if (tab.pinned && this.tabContainer.verticalMode) {
+        if (element.pinned && this.tabContainer.verticalMode) {
           return this.tabContainer.verticalPinnedTabsContainer;
         }
         return this.tabContainer;
       };
 
       this.#handleTabMove(
-        tab,
+        element,
         () => {
           if (moveBefore) {
-            getContainer().insertBefore(tab, targetElement);
+            getContainer().insertBefore(element, targetElement);
           } else if (targetElement) {
-            targetElement.after(tab);
+            targetElement.after(element);
           } else {
-            getContainer().appendChild(tab);
+            getContainer().appendChild(element);
           }
         },
         metricsContext
@@ -6080,15 +6091,30 @@
     }
 
     /**
-     * @param {MozTabbrowserTab[]} tabs
+     * @param {MozTabbrowserTab[]} elements
      * @param {MozTabbrowserTab|MozTabbrowserTabGroup} targetElement
      * @param {boolean} [moveBefore=false]
      * @param {TabMetricsContext} [metricsContext]
      */
-    #moveTabsNextTo(tabs, targetElement, moveBefore = false, metricsContext) {
-      this.#moveTabNextTo(tabs[0], targetElement, moveBefore, metricsContext);
-      for (let i = 1; i < tabs.length; i++) {
-        this.#moveTabNextTo(tabs[i], tabs[i - 1], false, metricsContext);
+    #moveTabsNextTo(
+      elements,
+      targetElement,
+      moveBefore = false,
+      metricsContext
+    ) {
+      this.#moveTabNextTo(
+        elements[0],
+        targetElement,
+        moveBefore,
+        metricsContext
+      );
+      for (let i = 1; i < elements.length; i++) {
+        this.#moveTabNextTo(
+          elements[i],
+          elements[i - 1],
+          false,
+          metricsContext
+        );
       }
     }
 
@@ -6099,6 +6125,9 @@
      * @param {TabMetricsContext} [metricsContext]
      */
     moveTabToGroup(aTab, aGroup, metricsContext) {
+      if (!this.isTab(aTab)) {
+        throw new Error("Can only move a tab into a tab group");
+      }
       if (aTab.pinned) {
         return;
       }
@@ -6174,44 +6203,52 @@
     }
 
     /**
-     * @param {MozTabbrowserTab} aTab
+     * @param {MozTabbrowserTab|MozTabbrowserTabGroup} element
      * @param {function():void} moveActionCallback
      * @param {TabMetricsContext} [metricsContext]
      */
-    #handleTabMove(aTab, moveActionCallback, metricsContext) {
+    #handleTabMove(element, moveActionCallback, metricsContext) {
+      let tabs;
+      if (this.isTab(element)) {
+        tabs = [element];
+      } else if (this.isTabGroup(element)) {
+        tabs = element.tabs;
+      } else {
+        throw new Error("Can only move a tab or tab group within the tab bar");
+      }
+
       let wasFocused = document.activeElement == this.selectedTab;
-      let previousTabState = this.#getTabMoveState(aTab);
+      let previousTabStates = tabs.map(tab => this.#getTabMoveState(tab));
 
       moveActionCallback();
 
       // Clear tabs cache after moving nodes because the order of tabs may have
       // changed.
       this.tabContainer._invalidateCachedTabs();
-
       this._lastRelatedTabMap = new WeakMap();
-
       this._updateTabsAfterInsert();
 
       if (wasFocused) {
         this.selectedTab.focus();
       }
 
-      if (aTab.selected) {
-        this.tabContainer._handleTabSelect(true);
+      for (let i = 0; i < tabs.length; i++) {
+        let tab = tabs[i];
+        if (tab.selected) {
+          this.tabContainer._handleTabSelect(true);
+        }
+        if (tab.pinned) {
+          this.tabContainer._positionPinnedTabs();
+        }
+
+        let currentTabState = this.#getTabMoveState(tab);
+        this.#notifyOnTabMove(
+          tab,
+          previousTabStates[i],
+          currentTabState,
+          metricsContext
+        );
       }
-
-      if (aTab.pinned) {
-        this.tabContainer._positionPinnedTabs();
-      }
-
-      let currentTabState = this.#getTabMoveState(aTab);
-
-      this.#notifyOnTabMove(
-        aTab,
-        previousTabState,
-        currentTabState,
-        metricsContext
-      );
     }
 
     /**

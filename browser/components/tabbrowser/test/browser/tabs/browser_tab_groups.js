@@ -566,6 +566,22 @@ add_task(async function test_TabGroupEvents() {
   BrowserTestUtils.removeTab(tab2);
 });
 
+add_task(async function test_moveTabGroup() {
+  let tab1 = BrowserTestUtils.addTab(gBrowser, "about:blank");
+  let tab2 = BrowserTestUtils.addTab(gBrowser, "about:blank");
+  let group = gBrowser.addTabGroup([tab1, tab2]);
+
+  let tabMoveEvents = Promise.all([
+    BrowserTestUtils.waitForEvent(tab1, "TabMove"),
+    BrowserTestUtils.waitForEvent(tab2, "TabMove"),
+  ]);
+  info("moving tab group and awaiting TabMove events");
+  gBrowser.moveTabToStart(group);
+  await tabMoveEvents;
+
+  await removeTabGroup(group);
+});
+
 add_task(async function test_moveTabBetweenGroups() {
   let tab1 = BrowserTestUtils.addTab(gBrowser, "about:blank");
   let tab2 = BrowserTestUtils.addTab(gBrowser, "about:blank");
