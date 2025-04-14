@@ -29,6 +29,7 @@ const startupPhases = {
     allowlist: {
       modules: new Set([
         "resource:///modules/BrowserGlue.sys.mjs",
+        "moz-src:///browser/components/DesktopActorRegistry.sys.mjs",
         "resource:///modules/StartupRecorder.sys.mjs",
         "resource://gre/modules/AppConstants.sys.mjs",
         "resource://gre/modules/ActorManagerParent.sys.mjs",
