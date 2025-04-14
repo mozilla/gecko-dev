@@ -843,6 +843,11 @@ add_task(async function test_tabGroupContextMenuMoveTabToNewGroup() {
 
   Assert.ok(tab.group, "tab is in group");
   Assert.equal(tab.group.label, "", "tab group label is empty");
+  Assert.equal(
+    gBrowser.selectedTab.group?.id,
+    tab.group.id,
+    "A tab in the group is selected"
+  );
 
   await removeTabGroup(tab.group);
 });

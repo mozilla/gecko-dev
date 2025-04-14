@@ -9187,6 +9187,7 @@ var TabContextMenu = {
       isUserTriggered: true,
       telemetryUserCreateSource: "tab_menu",
     });
+    gBrowser.selectedTab = this.contextTabs[0];
 
     // When using the tab context menu to create a group from the all tabs
     // panel, make sure we close that panel so that it doesn't obscure the tab
