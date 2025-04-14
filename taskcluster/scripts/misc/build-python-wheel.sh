@@ -17,7 +17,8 @@ WHEEL_DIR=$(find "$MOZ_FETCHES_DIR/" -maxdepth 1 -mindepth 1 -type d -not -name 
 
 export PATH="$MOZ_FETCHES_DIR/python/bin":/builds/worker/.local/bin:$PATH
 
-python3 -m pip install --upgrade pip==23.0
+python3 -m venv venv
+. venv/bin/activate
 python3 -m pip install -r "${GECKO_PATH}/build/wheel_requirements.txt"
 
 cd "$WHEEL_DIR"
