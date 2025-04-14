@@ -42,6 +42,10 @@
     "schema": {
       "$ref": "#/$defs/NimbusFeatureSchema",
       "description": "An optional JSON schema that describes the feature variables."
+    },
+    "allowCoenrollment": {
+      "description": "If true, clients can enroll in multiple experiments and rollouts that use this feature.",
+      "type": "boolean"
     }
   },
   "required": [

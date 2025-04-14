@@ -10,7 +10,7 @@ origin:
   url: "https://github.com/mozilla/experimenter"
   license: "MPL-2.0"
   revision: "fa4a7e30a18e5288121bed4a137a3f7cabb6110a"
-  release: "version 2025.1.1"
+  release: "version 3001.0.0"
 
 vendoring:
   url: "https://github.com/mozilla/experimenter"

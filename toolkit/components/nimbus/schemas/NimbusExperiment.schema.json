@@ -142,6 +142,16 @@
       ],
       "description": "The list of locale codes (e.g., \"en-US\" or \"fr\") that this experiment is targeting. If null, all locales are targeted."
     },
+    "localizations": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/ExperimentLocalizations"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
     "publishedDate": {
       "anyOf": [
         {
@@ -222,16 +232,6 @@
     "requiresRestart": {
       "description": "Does the experiment require a restart to take effect? Only used by Firefox Labs Opt-Ins.",
       "type": "boolean"
-    },
-    "localizations": {
-      "anyOf": [
-        {
-          "$ref": "#/$defs/ExperimentLocalizations"
-        },
-        {
-          "type": "null"
-        }
-      ]
     }
   },
   "required": [
@@ -245,6 +245,7 @@
     "userFacingDescription",
     "isEnrollmentPaused",
     "bucketConfig",
+    "featureIds",
     "startDate",
     "endDate",
     "proposedEnrollment",
@@ -347,7 +348,7 @@
           "type": "integer"
         },
         "total": {
-          "description": "The total number of buckets. You can assume this will always be 10000",
+          "description": "The total number of buckets. You can assume this will always be 10000.",
           "type": "integer"
         }
       },
@@ -405,7 +406,7 @@
       "type": "object"
     },
     "RandomizationUnit": {
-      "description": "A unique, stable indentifier for the user used as an input to bucket hashing.",
+      "description": "A unique, stable identifier for the user used as an input to bucket hashing.",
       "enum": [
         "normandy_id",
         "nimbus_id",
