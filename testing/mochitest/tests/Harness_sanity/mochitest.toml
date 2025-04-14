@@ -12,8 +12,6 @@ support-files = "SpecialPowersLoadChromeScript.js"
 
 ["test_SpecialPowersLoadChromeScript_function.html"]
 
-["test_SpecialPowersLoadPrivilegedScript.html"]
-
 ["test_SpecialPowersPushPermissions.html"]
 support-files = "specialPowers_framescript.js"
 
