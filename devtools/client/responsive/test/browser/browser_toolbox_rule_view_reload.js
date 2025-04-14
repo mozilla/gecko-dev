@@ -42,6 +42,8 @@ addRDMTaskWithPreAndPost(
       });
     });
 
+    info("Wait until rule view shows 2 rules");
+    await waitFor(() => numberOfRules(view) == 2);
     is(
       numberOfRules(view),
       2,
