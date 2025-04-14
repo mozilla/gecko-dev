@@ -218,13 +218,13 @@ addonsManager:
           - site_warning, site_blocked, install_disabled_warning
           - download_started, download_completed, download_failed
     notification_emails: ["addons-dev-internal@mozilla.com"]
-    expiry_version: "140"
+    expiry_version: "147"
     products:
       - "firefox"
       - "fennec"
       - "thunderbird"
     record_in_processes: ["main"]
-    bug_numbers: [1433335, 1515697, 1523641, 1549770, 1590736, 1630596, 1672570, 1714251, 1749878, 1781974, 1817100, 1861295, 1912166]
+    bug_numbers: [1433335, 1515697, 1523641, 1549770, 1590736, 1630596, 1672570, 1714251, 1749878, 1781974, 1817100, 1861295, 1912166, 1958151]
     release_channel_collection: opt-out
   install_stats:
     description: >
