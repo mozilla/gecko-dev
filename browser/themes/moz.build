@@ -10,6 +10,10 @@ with Files("**"):
 with Files("ThemeVariableMap.sys.mjs"):
     BUG_COMPONENT = ("WebExtensions", "Themes")
 
+MOZ_SRC_FILES += [
+    "ToolbarIconColor.sys.mjs",
+]
+
 EXTRA_JS_MODULES += [
     "BuiltInThemeConfig.sys.mjs",
     "BuiltInThemes.sys.mjs",

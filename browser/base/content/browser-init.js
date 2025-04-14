@@ -134,7 +134,7 @@ var gBrowserInit = {
 
     // Call this after we set attributes that might change toolbars' computed
     // text color.
-    ToolbarIconColor.init();
+    ToolbarIconColor.init(window);
   },
 
   onDOMContentLoaded() {
@@ -1000,7 +1000,7 @@ var gBrowserInit = {
 
     CustomTitlebar.uninit();
 
-    ToolbarIconColor.uninit();
+    ToolbarIconColor.uninit(window);
 
     // In certain scenarios it's possible for unload to be fired before onload,
     // (e.g. if the window is being closed after browser.js loads but before the
