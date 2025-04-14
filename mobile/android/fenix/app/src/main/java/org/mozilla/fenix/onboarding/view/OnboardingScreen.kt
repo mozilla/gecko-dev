@@ -116,6 +116,7 @@ fun OnboardingScreen(
 
     DisposableEffect(lifecycleOwner) {
         val settings = context.settings()
+        val isNotPartnershipDistribution = !context.components.distributionIdManager.isPartnershipDistribution()
 
         // Observe the shouldShowMarketingOnboarding preference and disable the marketing page
         // if the preference switches to false
@@ -125,7 +126,7 @@ fun OnboardingScreen(
             val removeMarketingPage = key == shouldShowMarketingPreferenceKey &&
                 !settings.shouldShowMarketingOnboarding &&
                 pagerState.currentPage < marketingPageIndex &&
-                !context.components.distributionIdManager.isPartnershipDistribution()
+                isNotPartnershipDistribution
 
             if (removeMarketingPage) {
                 pagesToDisplay.removeAt(marketingPageIndex)
@@ -135,7 +136,7 @@ fun OnboardingScreen(
         settings.preferences.registerOnSharedPreferenceChangeListener(listener)
 
         // If the preference is already false, disable the marketing page
-        if (!settings.shouldShowMarketingOnboarding) {
+        if (!settings.shouldShowMarketingOnboarding && isNotPartnershipDistribution) {
             val marketingPage = pagesToDisplay.find { it.type == OnboardingPageUiData.Type.MARKETING_DATA }
             marketingPage?.let { pagesToDisplay.remove(it) }
         }
