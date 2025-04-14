@@ -13,6 +13,7 @@ add_task(async function () {
   const { tab, monitor } = await initNetMonitor(INFINITE_GET_URL, {
     enableCache: true,
     requestCount: 1,
+    expectedEventTimings: 1,
   });
   const { document, windowRequire, store } = monitor.panelWin;
   const Actions = windowRequire("devtools/client/netmonitor/src/actions/index");
@@ -56,7 +57,7 @@ async function waitForRequestsToOverflowContainer(monitor, requestList) {
   info("Waiting for enough requests to overflow the container");
   while (true) {
     info("Waiting for one network request");
-    await waitForNetworkEvents(monitor, 1);
+    await waitForNetworkEvents(monitor, 1, { expectedEventTimings: 1 });
     if (requestList.scrollHeight > requestList.clientHeight + 50) {
       info("The list is long enough, returning");
       return;

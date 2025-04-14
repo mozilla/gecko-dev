@@ -13,6 +13,7 @@ add_task(async function () {
   const { tab, monitor } = await initNetMonitor(INFINITE_GET_URL, {
     enableCache: true,
     requestCount: 1,
+    expectedEventTimings: 1,
   });
   const { document, windowRequire, store } = monitor.panelWin;
   const Actions = windowRequire("devtools/client/netmonitor/src/actions/index");
@@ -48,7 +49,13 @@ add_task(async function () {
   // additional requests *do* cause the container to scroll down.
   requestsContainer.scrollTop = requestsContainer.scrollHeight;
   ok(scrolledToBottom(requestsContainer), "Set scroll position to bottom.");
-  await waitForNetworkEvents(monitor, 8);
+
+  // Make sure to only expect the same exact number of event timings, otherwise
+  // waitForNetworkEvents waits for all pending requests to have received event
+  // timings and since the page sends requests forever, on slow platform this
+  // can easily timeout.
+  await waitForNetworkEvents(monitor, 8, { expectedEventTimings: 8 });
+
   await waitForScroll();
   ok(true, "Still scrolled to bottom.");
 
@@ -57,7 +64,7 @@ add_task(async function () {
   // from just below the headers.
   store.dispatch(Actions.selectRequestByIndex(0));
   scrollTop = requestsContainer.scrollTop;
-  await waitForNetworkEvents(monitor, 8);
+  await waitForNetworkEvents(monitor, 8, { expectedEventTimings: 8 });
   await waitSomeTime();
   is(requestsContainer.scrollTop, scrollTop, "Did not scroll.");
 
@@ -82,7 +89,7 @@ add_task(async function () {
     info("Waiting for enough requests to overflow the container");
     while (true) {
       info("Waiting for one network request");
-      await waitForNetworkEvents(monitor, 1);
+      await waitForNetworkEvents(monitor, 1, { expectedEventTimings: 1 });
       if (
         requestsContainer.scrollHeight >
         requestsContainer.clientHeight + 50
