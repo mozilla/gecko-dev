@@ -25,70 +25,52 @@ updated within a defined cadence and built into one of our Firefox
 products which are released through what is commonly referred to as
 :ref:`Channels <channels>`: Firefox Nightly, Firefox Beta, and Firefox Release.
 
-`Firefox Nightly <https://whattrainisitnow.com/release/?version=nightly>`__ offers access to the latest cutting edge features
-still under active development. Released every 12 hours with all the
-changes that have :ref:`landed <landing>` on mozilla-central for Desktop and Android.
+`Firefox Nightly <https://whattrainisitnow.com/release/?version=nightly>`__ offers access
+to the latest feature work still under active development. Released every 12 hours with all
+the changes that have :ref:`landed <landing>` on mozilla-central for Desktop and Android.
 
-Every `4 weeks <https://whattrainisitnow.com/calendar/>`__, we
-:ref:`merge <merge>` the code from mozilla-central to our
-mozilla-beta branch.
-For Android, we branch from main on firefox-android to a release branch.
-New code or features can be added to mozilla-beta
-outside of this 4 week cadence but will be required to land in
-mozilla-central and then be :ref:`uplifted <uplift>` into
-mozilla-beta.
-Similarly for Android, uplifts are required to land in main on firefox-android before
-backporting to the firefox-android release branch.
+Every `4 weeks <https://whattrainisitnow.com/calendar/>`__, we :ref:`merge <merge>` the code
+for Desktop and Android builds from mozilla-central to our mozilla-beta branch. New code or
+features can be added to mozilla-beta outside of this 4 week cadence but are required to land
+on mozilla-central before being :ref:`uplifted <uplift>` to mozilla-beta.
 
-`Firefox Beta <https://whattrainisitnow.com/release/?version=beta>`__ is for developers and early adopters who want to see
-and test what’s coming next in Firefox. We release a new Desktop/Android Beta version
-three times a week.
+`Firefox Beta <https://whattrainisitnow.com/release/?version=beta>`__ is for developers and early
+adopters who want to see and test what’s coming next in Firefox. We ship new Desktop and Android
+Beta builds three times a week.
 
 .. note::
 
   The first and second beta builds of a new cycle are shipped to a
   subset of our Beta population. The full Beta population gets updated
-  starting with Beta 3 only.*
-
-Each Beta cycle lasts a total of 4 weeks where a final build is
-validated by our QA and tagged for release into the mozilla-release
-branch for Desktop. On Android we release from the same release branch
-used during the Beta cycle.
+  starting with Beta 3 only.
 
 .. note::
 
-  **Firefox Developer Edition** *is a separate product based on
-  the mozilla-beta repo and is specifically tailored for Web Developers.*
+  **Firefox Developer Edition** is a separate Desktop-only product based on
+  the mozilla-beta branch and is specifically tailored for Web Developers.
 
-`Firefox Release <https://whattrainisitnow.com/release/?version=release>`__ is released every 4 weeks and is the end result
-of our Beta cycle. This is our primary product shipping to hundreds of
-millions of users. While a release is live, interim updates (dot releases)
-are used to ship important bug fixes to users prior to the next major release.
-These can happen on an as-needed basis when there is an important-enough
-:ref:`driver <dot release drivers>` to do so (such as a critical bug severely
-impairing the usability of the product for some users). In order to provide
-better predictability, there is also a planned dot release scheduled for two
-weeks after the initial go-live for less-critical fixes and other
+`Firefox Release <https://whattrainisitnow.com/release/?version=release>`__ is updated every 4 weeks
+when a given version reaches the end of its Beta cycle. This is the primary product we ship to end users.
+While a release is live, interim updates (dot releases) are used to ship important bug fixes prior to
+the next major release. These can happen on an as-needed basis when there is an important-enough
+:ref:`driver <dot release drivers>` to do so (such as a critical bug severely impairing the usability
+of the product for some users). In order to provide better predictability, there is also a planned
+dot release scheduled for two weeks after the initial go-live for less-critical fixes and other
 :ref:`ride-along fixes <ride alongs>` deemed low-risk enough to include.
 
 .. note::
-  `Firefox ESR (Extended Support Release) <https://whattrainisitnow.com/release/?version=esr>`__ *is a separate
-  product intended for Enterprise use. Major updates are rolled out once
-  per year to maintain stability and predictability. ESR also
-  contains a number of policy options not available in the standard
-  Firefox Release. Minor updates are shipped in sync with the Firefox
-  Release schedule for security and select quality fixes only.*
+  `Firefox ESR (Extended Support Release) <https://whattrainisitnow.com/release/?version=esr>`__ is
+  a separate product intended for enterprise use. Major updates are rolled out once per year to maintain
+  stability and predictability. ESR also contains a number of enterprise policy options not available on
+  the standard Firefox Release channel. Minor updates are shipped in sync with the Firefox Release
+  schedule and generally only contain security and select quality fixes.
 
 Further Reading/Useful links:
 
--  `Firefox
-   Trains <https://whattrainisitnow.com/>`__
--  `Release
-   Calendar <https://whattrainisitnow.com/calendar/>`__
--  `Firefox Release
-   Process <https://wiki.mozilla.org/Release_Management/Release_Process>`__
--  `Firefox Delivery
-   dashboard <https://mozilla.github.io/delivery-dashboard/>`__
+-  `Firefox Trains <https://whattrainisitnow.com/>`__
+-  `Release Calendar <https://whattrainisitnow.com/calendar/>`__
+-  `Firefox Release Process <https://wiki.mozilla.org/Release_Management/Release_Process>`__
+-  `Firefox Delivery dashboard <https://mozilla.github.io/delivery-dashboard/>`__
 
 Landing Code and Shipping Features
 ----------------------------------
