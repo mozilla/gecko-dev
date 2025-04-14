@@ -26,6 +26,11 @@ XPCOMUtils.defineLazyPreferenceGetter(
   null
 );
 
+const AUTO_ACTIVATE_COUNT_PREF =
+  "browser.shopping.experience2023.autoActivateCount";
+const ONBOARDING_FIRST_IMPRESSION_TIME_PREF =
+  "browser.shopping.experience2023.firstImpressionTime";
+
 /**
  * Manages opening and closing the Review Checker in the sidebar.
  * Listens for location changes and will auto-open if enabled.
@@ -227,6 +232,35 @@ export class ReviewCheckerManager {
     return this.optedIn && !this.hasSeenNewPositionCard;
   }
 
+  #shouldAutoActivate() {
+    let shouldAutoActivate = false;
+
+    let autoActivateCount = Services.prefs.getIntPref(
+      AUTO_ACTIVATE_COUNT_PREF,
+      0
+    );
+
+    if (autoActivateCount == 0 && !this.optedIn) {
+      shouldAutoActivate = true;
+    }
+    return shouldAutoActivate;
+  }
+
+  /*
+   * Records auto-activation of the Review Checker panel
+   */
+  #recordAutoActivation() {
+    const now = Date.now() / 1000;
+    Services.prefs.setIntPref(ONBOARDING_FIRST_IMPRESSION_TIME_PREF, now);
+
+    let autoActivateCount = Services.prefs.getIntPref(
+      AUTO_ACTIVATE_COUNT_PREF,
+      0
+    );
+
+    Services.prefs.setIntPref(AUTO_ACTIVATE_COUNT_PREF, autoActivateCount + 1);
+  }
+
   /**
    * Called by onLocationChange or onTabSelect to handle navigations
    * and tab switches.
@@ -294,7 +328,9 @@ export class ReviewCheckerManager {
       return;
     }
 
-    let shouldAutoOpen;
+    let shouldAutoOpen = false;
+    let shouldAutoActivate = false;
+
     if (this.optedIn) {
       /**
        * We can auto-open the sidebar if:
@@ -307,7 +343,7 @@ export class ReviewCheckerManager {
       shouldAutoOpen = this.#canAutoOpen() && !wasClosed;
     } else {
       // Check if we should auto-open to allow opting in.
-      shouldAutoOpen = lazy.ShoppingUtils.handleAutoActivateOnProduct();
+      shouldAutoActivate = this.#shouldAutoActivate();
       // Only trigger the callout if the panel is not auto-opening
       if (!shouldAutoOpen) {
         lazy.ShoppingUtils.sendTrigger({
@@ -322,11 +358,17 @@ export class ReviewCheckerManager {
 
     // Only show sidebar if no sidebar panel is currently showing,
     // auto open is enabled and the RC sidebar is enabled.
-    if (!this.SidebarController.isOpen && shouldAutoOpen) {
+    if (
+      !this.SidebarController.isOpen &&
+      (shouldAutoOpen || shouldAutoActivate)
+    ) {
       this.showSidebar();
 
       if (this.optedIn) {
         this.#didAutoOpenForOptedInUser = true;
+      } else if (shouldAutoActivate) {
+        // set auto-activate pref
+        this.#recordAutoActivation();
       }
 
       return;

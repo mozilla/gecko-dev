@@ -500,3 +500,67 @@ add_task(
     await SpecialPowers.popPrefEnv();
   }
 );
+
+add_task(async function test_onboarding_auto_activate() {
+  await SpecialPowers.pushPrefEnv({
+    set: [
+      ["browser.shopping.experience2023.autoActivateCount", 0],
+      ["browser.shopping.experience2023.optedIn", 0],
+    ],
+  });
+
+  let shownPromise = BrowserTestUtils.waitForEvent(window, "SidebarShown");
+
+  await BrowserTestUtils.withNewTab(PRODUCT_TEST_URL, async () => {
+    // Wait for the sidebar to open on auto-activate
+    await shownPromise;
+
+    let reviewCheckerOpen =
+      SidebarController.isOpen &&
+      SidebarController.currentID == "viewReviewCheckerSidebar";
+
+    // Check that Review checker auto-opened
+    Assert.equal(
+      reviewCheckerOpen,
+      true,
+      "Review Checker should auto-activate"
+    );
+
+    // Check that the autoActivate pref was set
+    let autoActivateCount = Services.prefs.getIntPref(
+      "browser.shopping.experience2023.autoActivateCount",
+      0
+    );
+    Assert.equal(autoActivateCount, 1);
+
+    SidebarController.hide();
+
+    // Add a new tab
+    let newProductTab = BrowserTestUtils.addTab(
+      gBrowser,
+      OTHER_PRODUCT_TEST_URL
+    );
+    let newProductBrowser = newProductTab.linkedBrowser;
+    await BrowserTestUtils.browserLoaded(
+      newProductBrowser,
+      false,
+      OTHER_PRODUCT_TEST_URL
+    );
+
+    await BrowserTestUtils.switchTab(gBrowser, newProductTab);
+
+    // Wait a turn for the change to propagate to make sure the sidebar doesn't open
+    await TestUtils.waitForTick();
+
+    // Make sure the sidebar did not auto-open
+    Assert.equal(
+      SidebarController.isOpen,
+      false,
+      "Review checker should not auto-activate a second time"
+    );
+
+    await BrowserTestUtils.removeTab(newProductTab);
+  });
+
+  await SpecialPowers.popPrefEnv();
+});

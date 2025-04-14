@@ -140,6 +140,7 @@ add_task(async function test_auto_open_not_opted_in_rc_sidebar() {
       ["browser.shopping.experience2023.optedIn", 0],
       ["browser.shopping.experience2023.autoOpen.enabled", true],
       ["browser.shopping.experience2023.autoOpen.userEnabled", true],
+      ["browser.shopping.experience2023.autoActivateCount", 1],
     ],
   });
 
