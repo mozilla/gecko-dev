@@ -46,14 +46,14 @@ async function recordReflows(testPromise, win = window) {
       // Gather information about the current code path.
       let stack = new Error().stack;
       let path = stack
+        .trim()
         .split("\n")
         .slice(1) // the first frame which is our test code.
-        .map(line => line.replace(/:\d+:\d+$/, "")) // strip line numbers.
-        .join("|");
+        .map(line => line.replace(/:\d+:\d+$/, "")); // strip line numbers.
 
       // Stack trace is empty. Reflow was triggered by native code, which
       // we ignore.
-      if (path === "") {
+      if (path.length === 0) {
         ChromeUtils.addProfilerMarker(
           "ignoredNativeReflow",
           { category: "Test" },
@@ -62,7 +62,15 @@ async function recordReflows(testPromise, win = window) {
         return;
       }
 
-      reflows.push({ stack, path });
+      if (
+        path[0] ===
+        "forceRefreshDriverTick@chrome://mochikit/content/tests/SimpleTest/AccessibilityUtils.js"
+      ) {
+        // a11y-checks fake a refresh driver tick.
+        return;
+      }
+
+      reflows.push({ stack, path: path.join("|") });
 
       // Just in case, dirty the frame now that we've reflowed. This will
       // allow us to detect additional reflows that occur in this same tick
