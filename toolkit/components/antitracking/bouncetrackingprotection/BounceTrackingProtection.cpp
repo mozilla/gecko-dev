@@ -424,8 +424,14 @@ nsresult BounceTrackingProtection::RecordUserActivation(
   nsresult rv = aPrincipal->GetBaseDomain(siteHost);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  MOZ_LOG(gBounceTrackingProtectionLog, LogLevel::Debug,
-          ("%s: siteHost: %s", __FUNCTION__, siteHost.get()));
+  if (MOZ_LOG_TEST(gBounceTrackingProtectionLog, LogLevel::Debug)) {
+    nsAutoCString oaStr;
+    aPrincipal->OriginAttributesRef().CreateSuffix(oaStr);
+
+    MOZ_LOG_FMT(gBounceTrackingProtectionLog, LogLevel::Debug,
+                "{}: originAttributes: {}, siteHost: {}", __FUNCTION__, oaStr,
+                siteHost.get());
+  }
 
   RefPtr<BounceTrackingStateGlobal> globalState =
       btp->mStorage->GetOrCreateStateGlobal(aPrincipal);

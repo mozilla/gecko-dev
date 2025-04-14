@@ -22,6 +22,8 @@ support-files = [
 
 ["browser_bouncetracking_dry_run.js"]
 
+["browser_bouncetracking_fpi.js"]
+
 ["browser_bouncetracking_mode_prefs.js"]
 
 ["browser_bouncetracking_nimbus.js"]

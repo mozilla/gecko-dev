@@ -204,9 +204,14 @@ nsresult BounceTrackingState::Init(
   dom::BrowsingContext* browsingContext = aWebProgress->GetBrowsingContext();
   NS_ENSURE_TRUE(browsingContext, NS_ERROR_FAILURE);
   mBrowserId = browsingContext->BrowserId();
+
   // Create a copy of the BC's OriginAttributes so we can use it later without
   // having to hold a reference to the BC.
   mOriginAttributes = browsingContext->OriginAttributesRef();
+  // We don't need first party domain. Many things in BTP are keyed by
+  // OriginAttributes and we don't want to create unecessary partitions.
+  mOriginAttributes.mFirstPartyDomain.Truncate();
+
   MOZ_ASSERT(mOriginAttributes.mPartitionKey.IsEmpty(),
              "Top level BCs mus not have a partition key.");
 

@@ -325,6 +325,11 @@ async function runTestBounce(options = {}) {
     }
   }
 
+  // Store the initial user activation list so we can compare it to the new list
+  // after the bounce. This allows callers to deliberately interact with sites
+  // before running the helper without our checks failing.
+  let initialUserActivationHosts;
+
   if (!skipStateChecks) {
     if (btpIsDisabled) {
       Assert.ok(!expectCandidate, "Expect no classification in disabled mode.");
@@ -348,12 +353,9 @@ async function runTestBounce(options = {}) {
         0,
         "No bounce tracker hosts initially."
       );
-      Assert.equal(
-        bounceTrackingProtection.testGetUserActivationHosts(originAttributes)
-          .length,
-        0,
-        "No user activation hosts initially."
-      );
+      initialUserActivationHosts = bounceTrackingProtection
+        .testGetUserActivationHosts(originAttributes)
+        .map(entry => entry.siteHost);
     }
   }
 
@@ -488,12 +490,15 @@ async function runTestBounce(options = {}) {
         }have identified ${SITE_TRACKER} as a bounce tracker.`
       );
 
-      let expectedUserActivationHosts = [SITE_A];
+      let expectedUserActivationHosts = [...initialUserActivationHosts, SITE_A];
       if (!closeTabAfterBounce) {
         // If we didn't close the tab early we should have user activation for the
         // destination site.
         expectedUserActivationHosts.push(SITE_B);
       }
+      expectedUserActivationHosts = Array.from(
+        new Set(expectedUserActivationHosts)
+      );
 
       Assert.deepEqual(
         bounceTrackingProtection
@@ -501,7 +506,7 @@ async function runTestBounce(options = {}) {
           .map(entry => entry.siteHost)
           .sort(),
         expectedUserActivationHosts.sort(),
-        "Should only have user activation for sites where we clicked links."
+        "Should only have new user activations for sites where we clicked links."
       );
     }
   }

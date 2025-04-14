@@ -47,7 +47,10 @@ BounceTrackingProtectionStorage::GetStateGlobal(nsIPrincipal* aPrincipal) {
 RefPtr<BounceTrackingStateGlobal>
 BounceTrackingProtectionStorage::GetStateGlobal(
     const OriginAttributes& aOriginAttributes) {
-  return mStateGlobal.Get(aOriginAttributes);
+  OriginAttributes oa = aOriginAttributes;
+  oa.mFirstPartyDomain.Truncate();
+
+  return mStateGlobal.Get(oa);
 }
 
 RefPtr<BounceTrackingStateGlobal>
@@ -67,8 +70,10 @@ BounceTrackingProtectionStorage::GetOrCreateStateGlobal(
 RefPtr<BounceTrackingStateGlobal>
 BounceTrackingProtectionStorage::GetOrCreateStateGlobal(
     const OriginAttributes& aOriginAttributes) {
-  return mStateGlobal.GetOrInsertNew(aOriginAttributes, this,
-                                     aOriginAttributes);
+  OriginAttributes oa = aOriginAttributes;
+  oa.mFirstPartyDomain.Truncate();
+
+  return mStateGlobal.GetOrInsertNew(oa, this, oa);
 }
 
 nsresult BounceTrackingProtectionStorage::ClearByType(
