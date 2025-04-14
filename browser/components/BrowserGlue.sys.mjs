@@ -53,14 +53,12 @@ ChromeUtils.defineESModuleGetters(lazy, {
   NimbusFeatures: "resource://nimbus/ExperimentAPI.sys.mjs",
   OnboardingMessageProvider:
     "resource:///modules/asrouter/OnboardingMessageProvider.sys.mjs",
-  OsEnvironment: "resource://gre/modules/OsEnvironment.sys.mjs",
   PageActions: "resource:///modules/PageActions.sys.mjs",
   PageDataService: "resource:///modules/pagedata/PageDataService.sys.mjs",
   PageThumbs: "resource://gre/modules/PageThumbs.sys.mjs",
   PdfJs: "resource://pdf.js/PdfJs.sys.mjs",
   PermissionUI: "resource:///modules/PermissionUI.sys.mjs",
   PlacesBackups: "resource://gre/modules/PlacesBackups.sys.mjs",
-  PlacesDBUtils: "resource://gre/modules/PlacesDBUtils.sys.mjs",
   PlacesUIUtils: "resource:///modules/PlacesUIUtils.sys.mjs",
   PlacesUtils: "resource://gre/modules/PlacesUtils.sys.mjs",
   // PluginManager is used by the `listeners` object below.
@@ -85,7 +83,6 @@ ChromeUtils.defineESModuleGetters(lazy, {
   ShortcutUtils: "resource://gre/modules/ShortcutUtils.sys.mjs",
   SpecialMessageActions:
     "resource://messaging-system/lib/SpecialMessageActions.sys.mjs",
-  StartupTelemetry: "moz-src:///browser/components/StartupTelemetry.sys.mjs",
   TelemetryReportingPolicy:
     "resource://gre/modules/TelemetryReportingPolicy.sys.mjs",
   TRRRacer: "resource:///modules/TRRPerformance.sys.mjs",
@@ -1906,8 +1903,6 @@ BrowserGlue.prototype = {
     this._firstWindowTelemetry(aWindow);
     this._firstWindowLoaded();
 
-    lazy.StartupTelemetry.startupConditions();
-
     // Set the default favicon size for UI views that use the page-icon protocol.
     lazy.PlacesUtils.favicons.setDefaultIconURIPreferredSize(
       16 * aWindow.devicePixelRatio
@@ -2217,8 +2212,6 @@ BrowserGlue.prototype = {
     );
 
     this._monitorWebcompatReporterPref();
-    lazy.StartupTelemetry.httpsOnlyState();
-    lazy.StartupTelemetry.globalPrivacyControl();
 
     // Loading the MigrationUtils module does the work of registering the
     // migration wizard JSWindowActor pair. In case nothing else has done
@@ -2310,19 +2303,6 @@ BrowserGlue.prototype = {
     });
 
     const lateTasks = [
-      {
-        name: "PlacesDBUtils.telemetry",
-        condition:
-          AppConstants.MOZ_TELEMETRY_REPORTING &&
-          Services.prefs.getBoolPref(
-            "datareporting.healthreport.uploadEnabled",
-            false
-          ),
-        task: () => {
-          lazy.PlacesDBUtils.telemetry().catch(console.error);
-        },
-      },
-
       // Begin listening for incoming push messages.
       {
         name: "PushService.ensureReady",
@@ -2336,20 +2316,6 @@ BrowserGlue.prototype = {
               throw ex;
             }
           }
-        },
-      },
-
-      {
-        name: "StartupTelemetry.contentBlocking",
-        task: () => {
-          lazy.StartupTelemetry.contentBlocking();
-        },
-      },
-
-      {
-        name: "StartupTelemetry.dataSanitization",
-        task: () => {
-          lazy.StartupTelemetry.dataSanitization();
         },
       },
 
@@ -2375,13 +2341,6 @@ BrowserGlue.prototype = {
         task: () => {
           this._addBreachAlertsPrefObserver();
         },
-      },
-
-      // Report pinning status and the type of shortcut used to launch
-      {
-        name: "pinningStatusTelemetry",
-        condition: AppConstants.platform == "win",
-        task: () => lazy.StartupTelemetry.pinningStatus(),
       },
 
       {
@@ -2508,22 +2467,6 @@ BrowserGlue.prototype = {
       },
 
       {
-        name: "IsDefaultHandler",
-        condition: AppConstants.platform == "win",
-        task: () => {
-          lazy.StartupTelemetry.isDefaultHandler();
-        },
-      },
-
-      {
-        name: "MacDockSupport.isAppInDock",
-        condition: AppConstants.platform == "macosx",
-        task: () => {
-          lazy.StartupTelemetry.macDockStatus();
-        },
-      },
-
-      {
         name: "BrowserGlue._maybeShowDefaultBrowserPrompt",
         task: () => {
           this._maybeShowDefaultBrowserPrompt();
@@ -2592,13 +2535,6 @@ BrowserGlue.prototype = {
             });
           }
         },
-      },
-
-      // FOG doesn't need to be initialized _too_ early because it has a
-      // pre-init buffer.
-      {
-        name: "initializeFOG",
-        task: () => lazy.StartupTelemetry.initFOG(),
       },
 
       // Add the import button if this is the first startup.
@@ -2691,12 +2627,6 @@ BrowserGlue.prototype = {
         },
       },
 
-      {
-        name: "StartupTelemetry.pipEnabled",
-        task: () => {
-          lazy.StartupTelemetry.pipEnabled();
-        },
-      },
       // Schedule a sync (if enabled) after we've loaded
       {
         name: "WeaveService",
@@ -2745,16 +2675,6 @@ BrowserGlue.prototype = {
       },
 
       {
-        name: "SSLKEYLOGFILE telemetry",
-        task: () => lazy.StartupTelemetry.sslKeylogFile(),
-      },
-
-      {
-        name: "OS Authentication telemetry",
-        task: () => lazy.StartupTelemetry.osAuthEnabled(),
-      },
-
-      {
         name: "browser-startup-idle-tasks-finished",
         task: () => {
           // Use idleDispatch a second time to run this after the per-window
@@ -2789,12 +2709,6 @@ BrowserGlue.prototype = {
    */
   _scheduleBestEffortUserIdleTasks() {
     const idleTasks = [
-      // Telemetry for primary-password - we do this after a delay as it
-      // can cause IO if NSS/PSM has not already initialized.
-      function primaryPasswordTelemetry() {
-        lazy.StartupTelemetry.primaryPasswordEnabled();
-      },
-
       function GMPInstallManagerSimpleCheckAndInstall() {
         let { GMPInstallManager } = ChromeUtils.importESModule(
           "resource://gre/modules/GMPInstallManager.sys.mjs"
@@ -2814,28 +2728,10 @@ BrowserGlue.prototype = {
         lazy.RemoteSecuritySettings.init();
       },
 
-      function BrowserUsageTelemetryReportProfileCount() {
-        lazy.BrowserUsageTelemetry.reportProfileCount();
-      },
-
-      function reportAllowedAppSources() {
-        lazy.OsEnvironment.reportAllowedAppSources();
-      },
-
       function searchBackgroundChecks() {
         Services.search.runBackgroundChecks();
       },
-
-      function trustObjectTelemetry() {
-        lazy.StartupTelemetry.trustObjectCount();
-      },
     ];
-
-    if (AppConstants.platform == "win") {
-      idleTasks.push(function reportInstallationTelemetry() {
-        lazy.BrowserUsageTelemetry.reportInstallationTelemetry();
-      });
-    }
 
     for (let task of idleTasks) {
       ChromeUtils.idleDispatch(async () => {
@@ -2855,6 +2751,12 @@ BrowserGlue.prototype = {
         }
       });
     }
+
+    lazy.BrowserUtils.callModulesFromCategory({
+      categoryName: "browser-best-effort-idle-startup",
+      idleDispatch: true,
+      profilerMarker: "startupLateIdleTask",
+    });
   },
 
   _addBreachesSyncHandler() {

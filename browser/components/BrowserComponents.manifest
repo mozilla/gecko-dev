@@ -54,6 +54,11 @@ category browser-idle-startup resource://gre/modules/UpdateListener.sys.mjs Upda
 category browser-idle-startup resource:///modules/WindowsJumpLists.sys.mjs WinTaskbarJumpList.startup
 #endif
 
+# Note that these telemetry entries schedule their own idle tasks,
+# so they are guaranteed to run after everything else.
+category browser-idle-startup moz-src:///browser/components/StartupTelemetry.sys.mjs StartupTelemetry.browserIdleStartup
+category browser-best-effort-idle-startup moz-src:///browser/components/StartupTelemetry.sys.mjs StartupTelemetry.bestEffortIdleStartup
+
 # App shutdown consumers
 category browser-quit-application-granted resource:///modules/BrowserUsageTelemetry.sys.mjs BrowserUsageTelemetry.uninit
 category browser-quit-application-granted resource:///modules/Interactions.sys.mjs Interactions.uninit

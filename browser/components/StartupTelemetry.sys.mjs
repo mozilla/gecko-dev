@@ -7,9 +7,12 @@ import { AppConstants } from "resource://gre/modules/AppConstants.sys.mjs";
 let lazy = {};
 ChromeUtils.defineESModuleGetters(lazy, {
   BrowserInitState: "resource:///modules/BrowserGlue.sys.mjs",
+  BrowserUsageTelemetry: "resource:///modules/BrowserUsageTelemetry.sys.mjs",
   FormAutofillUtils: "resource://gre/modules/shared/FormAutofillUtils.sys.mjs",
   LoginHelper: "resource://gre/modules/LoginHelper.sys.mjs",
   NimbusFeatures: "resource://nimbus/ExperimentAPI.sys.mjs",
+  OsEnvironment: "resource://gre/modules/OsEnvironment.sys.mjs",
+  PlacesDBUtils: "resource://gre/modules/PlacesDBUtils.sys.mjs",
   ShellService: "resource:///modules/ShellService.sys.mjs",
   TelemetryReportingPolicy:
     "resource://gre/modules/TelemetryReportingPolicy.sys.mjs",
@@ -21,6 +24,138 @@ ChromeUtils.defineESModuleGetters(lazy, {
  *
  */
 export let StartupTelemetry = {
+  // Some tasks are expensive because they involve significant disk IO, and
+  // may also write information to disk. If we submit the telemetry that may
+  // happen anyway, but if we don't then this is undesirable, so those tasks are
+  // only run if we will submit the results.
+  // Why run any telemetry code at all if we don't submit the data? Because
+  // local and autoland builds usually do not submit telemetry, but we still
+  // want to be able to run automated tests to check the code _worked_.
+  get _willUseExpensiveTelemetry() {
+    return (
+      AppConstants.MOZ_TELEMETRY_REPORTING &&
+      Services.prefs.getBoolPref(
+        "datareporting.healthreport.uploadEnabled",
+        false
+      )
+    );
+  },
+
+  _runIdleTasks(tasks, profilerMarker) {
+    for (let task of tasks) {
+      ChromeUtils.idleDispatch(async () => {
+        if (!Services.startup.shuttingDown) {
+          let startTime = Cu.now();
+          try {
+            await task();
+          } catch (ex) {
+            console.error(ex);
+          } finally {
+            ChromeUtils.addProfilerMarker(
+              profilerMarker,
+              startTime,
+              task.toSource()
+            );
+          }
+        }
+      });
+    }
+  },
+
+  browserIdleStartup() {
+    let tasks = [
+      // FOG doesn't need to be initialized _too_ early because it has a pre-init buffer.
+      () => this.initFOG(),
+
+      () => this.contentBlocking(),
+      () => this.dataSanitization(),
+      () => this.pipEnabled(),
+      () => this.sslKeylogFile(),
+      () => this.osAuthEnabled(),
+      () => this.startupConditions(),
+      () => this.httpsOnlyState(),
+      () => this.globalPrivacyControl(),
+    ];
+    if (this._willUseExpensiveTelemetry) {
+      tasks.push(() => lazy.PlacesDBUtils.telemetry());
+    }
+    if (AppConstants.platform == "win") {
+      tasks.push(
+        () => this.pinningStatus(),
+        () => this.isDefaultHandler()
+      );
+    } else if (AppConstants.platform == "macosx") {
+      tasks.push(() => this.macDockStatus());
+    }
+
+    this._runIdleTasks(tasks, "startupTelemetryIdleTask");
+  },
+
+  /**
+   * Use this function as an entry point to collect telemetry that we hope
+   * to collect once per session, at any arbitrary point in time, and
+   *
+   * **which we are okay with sometimes not running at all.**
+   *
+   * See BrowserGlue.sys.mjs's _scheduleBestEffortUserIdleTasks for more
+   * details.
+   */
+  bestEffortIdleStartup() {
+    let tasks = [
+      () => this.primaryPasswordEnabled(),
+      () => this.trustObjectCount(),
+      () => lazy.OsEnvironment.reportAllowedAppSources(),
+    ];
+    if (AppConstants.platform == "win" && this._willUseExpensiveTelemetry) {
+      tasks.push(
+        () => lazy.BrowserUsageTelemetry.reportProfileCount(),
+        () => lazy.BrowserUsageTelemetry.reportInstallationTelemetry()
+      );
+    }
+    this._runIdleTasks(tasks, "startupTelemetryLateIdleTask");
+  },
+
+  /**
+   * Initialize Firefox-on-Glean.
+   *
+   * This is at the top because it's a bit different from the other code here
+   * which is strictly collecting specific metrics.
+   */
+  async initFOG() {
+    // Handle Usage Profile ID.  Similar logic to what's happening in
+    // `TelemetryControllerParent` for the client ID.  Must be done before
+    // initializing FOG so that ping enabled/disabled states are correct
+    // before Glean takes actions.
+    await lazy.UsageReporting.ensureInitialized();
+
+    // If needed, delay initializing FOG until policy interaction is
+    // completed.  See comments in `TelemetryReportingPolicy`.
+    await lazy.TelemetryReportingPolicy.ensureUserIsNotified();
+
+    Services.fog.initializeFOG();
+
+    // Register Glean to listen for experiment updates releated to the
+    // "gleanInternalSdk" feature defined in the t/c/nimbus/FeatureManifest.yaml
+    // This feature is intended for internal Glean use only. For features wishing
+    // to set a remote metric configuration, please use the "glean" feature for
+    // the purpose of setting the data-control-plane features via Server Knobs.
+    lazy.NimbusFeatures.gleanInternalSdk.onUpdate(() => {
+      let cfg = lazy.NimbusFeatures.gleanInternalSdk.getVariable(
+        "gleanMetricConfiguration"
+      );
+      Services.fog.applyServerKnobsConfig(JSON.stringify(cfg));
+    });
+
+    // Register Glean to listen for experiment updates releated to the
+    // "glean" feature defined in the t/c/nimbus/FeatureManifest.yaml
+    lazy.NimbusFeatures.glean.onUpdate(() => {
+      let cfg = lazy.NimbusFeatures.glean.getVariable(
+        "gleanMetricConfiguration"
+      );
+      Services.fog.applyServerKnobsConfig(JSON.stringify(cfg));
+    });
+  },
+
   startupConditions() {
     let nowSeconds = Math.round(Date.now() / 1000);
     // Don't include cases where we don't have the pref. This rules out the first install
@@ -296,44 +431,6 @@ export let StartupTelemetry = {
         Ci.nsIMacDockSupport
       ).isAppInDock
     );
-  },
-
-  /**
-   * Initialize Firefox-on-Glean.
-   */
-  async initFOG() {
-    // Handle Usage Profile ID.  Similar logic to what's happening in
-    // `TelemetryControllerParent` for the client ID.  Must be done before
-    // initializing FOG so that ping enabled/disabled states are correct
-    // before Glean takes actions.
-    await lazy.UsageReporting.ensureInitialized();
-
-    // If needed, delay initializing FOG until policy interaction is
-    // completed.  See comments in `TelemetryReportingPolicy`.
-    await lazy.TelemetryReportingPolicy.ensureUserIsNotified();
-
-    Services.fog.initializeFOG();
-
-    // Register Glean to listen for experiment updates releated to the
-    // "gleanInternalSdk" feature defined in the t/c/nimbus/FeatureManifest.yaml
-    // This feature is intended for internal Glean use only. For features wishing
-    // to set a remote metric configuration, please use the "glean" feature for
-    // the purpose of setting the data-control-plane features via Server Knobs.
-    lazy.NimbusFeatures.gleanInternalSdk.onUpdate(() => {
-      let cfg = lazy.NimbusFeatures.gleanInternalSdk.getVariable(
-        "gleanMetricConfiguration"
-      );
-      Services.fog.applyServerKnobsConfig(JSON.stringify(cfg));
-    });
-
-    // Register Glean to listen for experiment updates releated to the
-    // "glean" feature defined in the t/c/nimbus/FeatureManifest.yaml
-    lazy.NimbusFeatures.glean.onUpdate(() => {
-      let cfg = lazy.NimbusFeatures.glean.getVariable(
-        "gleanMetricConfiguration"
-      );
-      Services.fog.applyServerKnobsConfig(JSON.stringify(cfg));
-    });
   },
 
   sslKeylogFile() {

@@ -1502,17 +1502,7 @@ export let BrowserUsageTelemetry = {
 
   // Reports the number of Firefox profiles on this machine to telemetry.
   async reportProfileCount() {
-    if (
-      AppConstants.platform != "win" ||
-      !AppConstants.MOZ_TELEMETRY_REPORTING
-    ) {
-      // This is currently a windows-only feature.
-      // Also, this function writes directly to disk, without using the usual
-      // telemetry recording functions. So we excplicitly check if telemetry
-      // reporting was disabled at compile time, and we do not do anything in
-      // case.
-      return;
-    }
+    // Note: this is currently a windows-only feature.
 
     // To report only as much data as we need, we will bucket our values.
     // Rather than the raw value, we will report the greatest value in the list
