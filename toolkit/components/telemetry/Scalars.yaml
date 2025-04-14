@@ -1983,9 +1983,10 @@ extensions.startupCache:
       - 1767336
       - 1892151
       - 1928258
+      - 1958168
     description: >
       The amount of bytes writted into the Extensions StartupCache file.
-    expires: "140"
+    expires: "147"
     kind: uint
     notification_emails:
       - addons-dev-internal@mozilla.com
@@ -1999,10 +2000,11 @@ extensions.startupCache:
       - 1767336
       - 1892151
       - 1928258
+      - 1958168
     description: >
       The amount of times an unexpected error has been raised while
       reading the Extensions StartupCache file
-    expires: "140"
+    expires: "147"
     kind: uint
     keyed: true
     notification_emails:
@@ -2016,6 +2018,7 @@ extensions.startupCache:
     bug_numbers:
       - 1767336
       - 1912170
+      - 1958168
     description: >
       Time to load and deserialize the extensions startupCache data.
       This scalar is mirroring the never expiring Glean metric named
@@ -2024,7 +2027,7 @@ extensions.startupCache:
       Unlike the related glean metric, this scalar has an expiring date,
       set as a deadline to consider removing the mirrored scalar in
       favor to just use the Glean metric).
-    expires: "140"
+    expires: "147"
     kind: uint
     notification_emails:
       - addons-dev-internal@mozilla.com
