@@ -693,6 +693,27 @@ class GeckoEngineSession(
     }
 
     /**
+     * See [EngineSession.sendMoreWebCompatInfo].
+     */
+    override fun sendMoreWebCompatInfo(
+        info: JSONObject,
+        onResult: () -> Unit,
+        onException: (Throwable) -> Unit,
+    ) {
+        geckoSession.sendMoreWebCompatInfo(info).then(
+            {
+                onResult()
+                GeckoResult<Void>()
+            },
+            { throwable ->
+                logger.error("Sending more web compat info failed.", throwable)
+                onException(throwable)
+                GeckoResult()
+            },
+        )
+    }
+
+    /**
      * See [EngineSession.requestTranslate]
      */
     override fun requestTranslate(

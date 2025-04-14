@@ -87,6 +87,11 @@ class EngineObserverTest {
                 onResult: (JSONObject) -> Unit,
                 onException: (Throwable) -> Unit,
             ) {}
+            override fun sendMoreWebCompatInfo(
+                info: JSONObject,
+                onResult: () -> Unit,
+                onException: (Throwable) -> Unit,
+            ) {}
             override fun requestTranslate(
                 fromLanguage: String,
                 toLanguage: String,
@@ -173,6 +178,11 @@ class EngineObserverTest {
                 onResult: (JSONObject) -> Unit,
                 onException: (Throwable) -> Unit,
             ) {}
+            override fun sendMoreWebCompatInfo(
+                info: JSONObject,
+                onResult: () -> Unit,
+                onException: (Throwable) -> Unit,
+            ) {}
             override fun requestTranslate(
                 fromLanguage: String,
                 toLanguage: String,
@@ -253,6 +263,11 @@ class EngineObserverTest {
             ) {}
             override fun getWebCompatInfo(
                 onResult: (JSONObject) -> Unit,
+                onException: (Throwable) -> Unit,
+            ) {}
+            override fun sendMoreWebCompatInfo(
+                info: JSONObject,
+                onResult: () -> Unit,
                 onException: (Throwable) -> Unit,
             ) {}
             override fun requestTranslate(

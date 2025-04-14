@@ -2657,6 +2657,39 @@ class GeckoEngineSessionTest {
     }
 
     @Test
+    fun `sendMoreWebCompatInfo should correctly process a GV response`() {
+        val engineSession = GeckoEngineSession(mock(), geckoSessionProvider = geckoSessionProvider)
+        var onResultCalled = false
+        var onExceptionCalled = false
+
+        val testInfo = JSONObject().apply {
+            put("reason", "test-reason")
+            put("description", "test-description")
+            put("endpointUrl", "https://webcompat.com/issues/new")
+            put("reportUrl", "https://example.com")
+        }
+
+        val ruleResult = GeckoResult<Void>()
+        whenever(geckoSession.sendMoreWebCompatInfo(any())).thenReturn(ruleResult)
+
+        engineSession.sendMoreWebCompatInfo(
+            info = testInfo,
+            onResult = {
+                onResultCalled = true
+            },
+            onException = {
+                onExceptionCalled = true
+            },
+        )
+
+        ruleResult.complete(null)
+        shadowOf(getMainLooper()).idle()
+
+        assertTrue(onResultCalled)
+        assertFalse(onExceptionCalled)
+    }
+
+    @Test
     fun `WHEN session requestTranslate is successful THEN notify of completion`() {
         val engineSession = GeckoEngineSession(mock(), geckoSessionProvider = geckoSessionProvider)
         val mockedGeckoController: TranslationsController.SessionTranslation = mock()

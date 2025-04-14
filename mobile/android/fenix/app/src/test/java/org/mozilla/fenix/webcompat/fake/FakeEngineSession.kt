@@ -30,6 +30,14 @@ internal class FakeEngineSession(
         onResult(JSONObject(jsonString))
     }
 
+    override fun sendMoreWebCompatInfo(
+        info: JSONObject,
+        onResult: () -> Unit,
+        onException: (Throwable) -> Unit,
+    ) {
+        onResult()
+    }
+
     override fun loadUrl(
         url: String,
         parent: EngineSession?,

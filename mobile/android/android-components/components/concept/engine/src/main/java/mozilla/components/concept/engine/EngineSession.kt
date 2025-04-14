@@ -913,6 +913,19 @@ abstract class EngineSession(
     abstract fun getWebCompatInfo(onResult: (JSONObject) -> Unit, onException: (Throwable) -> Unit)
 
     /**
+     * Sends more web compat info.
+     *
+     * @param info jsonObject of web compat info to send.
+     * @param onResult callback invoked if the engine API returned a valid response.
+     * @param onException callback invoked if there was an error getting the response.
+     */
+    abstract fun sendMoreWebCompatInfo(
+        info: JSONObject,
+        onResult: () -> Unit,
+        onException: (Throwable) -> Unit,
+    )
+
+    /**
      * Requests the [EngineSession] to translate the current session's contents.
      *
      * @param fromLanguage The BCP 47 language tag that the page should be translated from.

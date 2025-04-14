@@ -1020,6 +1020,12 @@ open class DummyEngineSession : EngineSession() {
         onException: (Throwable) -> Unit,
     ) {}
 
+    override fun sendMoreWebCompatInfo(
+        info: JSONObject,
+        onResult: () -> Unit,
+        onException: (Throwable) -> Unit,
+    ) {}
+
     override fun requestTranslate(
         fromLanguage: String,
         toLanguage: String,

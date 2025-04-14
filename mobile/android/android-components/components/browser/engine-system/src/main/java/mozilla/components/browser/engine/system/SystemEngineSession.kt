@@ -436,6 +436,17 @@ class SystemEngineSession(
     }
 
     /**
+     * See [EngineSession.sendMoreWebCompatInfo]
+     */
+    override fun sendMoreWebCompatInfo(
+        info: JSONObject,
+        onResult: () -> Unit,
+        onException: (Throwable) -> Unit,
+    ) {
+        throw UnsupportedOperationException("Sending more web compat info is not available in this engine")
+    }
+
+    /**
      * See [EngineSession.requestTranslate]
      */
     override fun requestTranslate(
