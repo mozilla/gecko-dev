@@ -1603,6 +1603,83 @@
             "parameters": []
           }
         ]
+      },
+      {
+        "name": "group",
+        "type": "function",
+        "description": "Adds one or more tabs to a specified group, or if no group is specified, adds the given tabs to a newly created group.",
+        "async": "callback",
+        "parameters": [
+          {
+            "name": "options",
+            "type": "object",
+            "properties": {
+              "tabIds": {
+                "description": "The tab ID or list of tab IDs to add to the specified group.",
+                "choices": [
+                  { "type": "integer", "minimum": 0 },
+                  {
+                    "type": "array",
+                    "items": { "type": "integer", "minimum": 0 },
+                    "minItems": 1
+                  }
+                ]
+              },
+              "groupId": {
+                "type": "integer",
+                "description": "The ID of the group to add the tabs to. If not specified, a new group will be created.",
+                "minimum": 0,
+                "optional": true
+              },
+              "createProperties": {
+                "type": "object",
+                "optional": true,
+                "description": "Configurations for creating a group. Cannot be used if groupId is already specified.",
+                "properties": {
+                  "windowId": {
+                    "type": "integer",
+                    "minimum": -2,
+                    "optional": true,
+                    "description": "The window of the new group. Defaults to the current window."
+                  }
+                }
+              }
+            }
+          },
+          {
+            "type": "function",
+            "name": "callback",
+            "optional": true,
+            "parameters": [
+              {
+                "name": "groupId",
+                "type": "integer",
+                "minimum": 0,
+                "description": "The ID of the group that the tabs were added to."
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "name": "ungroup",
+        "type": "function",
+        "description": "Removes one or more tabs from their respective groups. If any groups become empty, they are deleted.",
+        "async": true,
+        "parameters": [
+          {
+            "name": "tabIds",
+            "description": "The tab ID or list of tab IDs to remove from their respective groups.",
+            "choices": [
+              { "type": "integer", "minimum": 0 },
+              {
+                "type": "array",
+                "items": { "type": "integer", "minimum": 0 },
+                "minItems": 1
+              }
+            ]
+          }
+        ]
       }
     ],
     "events": [
