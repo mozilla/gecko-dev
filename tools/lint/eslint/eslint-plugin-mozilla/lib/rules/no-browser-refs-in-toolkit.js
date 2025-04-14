@@ -34,7 +34,8 @@ module.exports = {
           node.value.startsWith("chrome://browser") ||
           node.value.startsWith("resource:///") ||
           node.value.startsWith("resource://app/") ||
-          (node.value.startsWith("browser/") && node.value.endsWith(".ftl"))
+          (node.value.startsWith("browser/") && node.value.endsWith(".ftl")) ||
+          /moz-src:\/\/\w*\/browser\//.test(node.value)
         ) {
           context.report({
             node,
