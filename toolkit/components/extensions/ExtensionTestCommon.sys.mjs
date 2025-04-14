@@ -511,7 +511,10 @@ export var ExtensionTestCommon = class ExtensionTestCommon {
     Object.assign(files, data.files);
 
     let manifest = data.manifest;
-    if (!manifest) {
+    if (manifest) {
+      // Copy manifest so that modifications below do not affect the input.
+      manifest = structuredClone(manifest);
+    } else {
       manifest = {};
     }
 
