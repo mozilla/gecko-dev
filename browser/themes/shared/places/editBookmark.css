@@ -26,22 +26,16 @@
   height: 16px;
 }
 
-@media (-moz-platform: macos) {
-  /* FIXME(emilio): Is this rule needed at all? */
-  .folder-icon > .menu-iconic-left > .menu-iconic-icon {
-    width: 16px;
-    height: 16px;
-  }
-}
-
-.folder-icon > .menu-iconic-left {
-  display: flex;
-}
-
 .folder-icon {
   list-style-image: url("chrome://global/skin/icons/folder.svg") !important;
   -moz-context-properties: fill;
   fill: currentColor;
+
+  /* This is needed because windows and Linux hide icons inside menulists
+   * unconditionally (why?) */
+  > .menu-icon {
+    display: flex;
+  }
 }
 
 #editBMPanel_tagsSelector > richlistitem > image {

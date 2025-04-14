@@ -133,10 +133,8 @@
   class MozMenuCaption extends MozMenuBaseMixin(MozXULElement) {
     static get inheritedAttributes() {
       return {
-        ".menu-iconic-left": "selected,disabled,checked",
-        ".menu-iconic-icon": "src=image,validate,src",
-        ".menu-iconic-text": "value=label,crop,highlightable",
-        ".menu-iconic-highlightable-text": "text=label,crop,highlightable",
+        ".menu-icon": "src=image,validate,src",
+        ".menu-text": "value=label,crop",
       };
     }
 
@@ -144,11 +142,8 @@
       this.textContent = "";
       this.appendChild(
         MozXULElement.parseXULToFragment(`
-      <hbox class="menu-iconic-left" align="center" pack="center" aria-hidden="true">
-        <image class="menu-iconic-icon" aria-hidden="true"></image>
-      </hbox>
-      <label class="menu-iconic-text" flex="1" crop="end" aria-hidden="true"></label>
-      <label class="menu-iconic-highlightable-text" crop="end" aria-hidden="true"></label>
+      <image class="menu-icon" aria-hidden="true"></image>
+      <label class="menu-text" crop="end" aria-hidden="true"/>
     `)
       );
       this.initializeAttributeInheritance();
@@ -195,73 +190,29 @@
 
     static get inheritedAttributes() {
       return {
-        ".menu-iconic-text": "value=label,crop,accesskey,highlightable",
-        ".menu-text": "value=label,crop,accesskey,highlightable",
-        ".menu-iconic-highlightable-text":
-          "text=label,crop,accesskey,highlightable",
-        ".menu-iconic-left": "selected,_moz-menuactive,disabled,checked",
-        ".menu-iconic-icon":
+        ".menu-text": "value=label,crop,accesskey",
+        // NOTE(emilio): This menu-highlightable-key thing is a hack for
+        // find-in-page in preferences, it really sucks. We can't use
+        // text=label everywhere because we rely on the accesskey...
+        ".menu-highlightable-text": "text=label,crop,accesskey",
+        ".menu-icon":
           "src=image,validate,triggeringprincipal=iconloadingprincipal",
-        ".menu-iconic-accel": "value=acceltext",
         ".menu-accel": "value=acceltext",
       };
     }
 
-    static get iconicNoAccelFragment() {
-      // Add aria-hidden="true" on all DOM, since XULMenuAccessible handles accessibility here.
+    static get fragment() {
       let frag = document.importNode(
         MozXULElement.parseXULToFragment(`
-      <hbox class="menu-iconic-left" align="center" pack="center" aria-hidden="true">
-        <image class="menu-iconic-icon"/>
-      </hbox>
-      <label class="menu-iconic-text" flex="1" crop="end" aria-hidden="true"/>
-      <label class="menu-iconic-highlightable-text" crop="end" aria-hidden="true"/>
-    `),
-        true
-      );
-      Object.defineProperty(this, "iconicNoAccelFragment", { value: frag });
-      return frag;
-    }
-
-    static get iconicFragment() {
-      let frag = document.importNode(
-        MozXULElement.parseXULToFragment(`
-      <hbox class="menu-iconic-left" align="center" pack="center" aria-hidden="true">
-        <image class="menu-iconic-icon"/>
-      </hbox>
-      <label class="menu-iconic-text" flex="1" crop="end" aria-hidden="true"/>
-      <label class="menu-iconic-highlightable-text" crop="end" aria-hidden="true"/>
-      <hbox class="menu-accel-container" aria-hidden="true">
-        <label class="menu-iconic-accel"/>
-      </hbox>
-    `),
-        true
-      );
-      Object.defineProperty(this, "iconicFragment", { value: frag });
-      return frag;
-    }
-
-    static get plainFragment() {
-      let frag = document.importNode(
-        MozXULElement.parseXULToFragment(`
+      <image class="menu-icon" aria-hidden="true"/>
       <label class="menu-text" crop="end" aria-hidden="true"/>
-      <hbox class="menu-accel-container" aria-hidden="true">
-        <label class="menu-accel"/>
-      </hbox>
+      <label class="menu-highlightable-text" crop="end" aria-hidden="true"/>
+      <label class="menu-accel" aria-hidden="true"/>
     `),
         true
       );
-      Object.defineProperty(this, "plainFragment", { value: frag });
+      Object.defineProperty(this, "fragment", { value: frag });
       return frag;
-    }
-
-    get isIconic() {
-      let type = this.getAttribute("type");
-      return (
-        type == "checkbox" ||
-        type == "radio" ||
-        this.classList.contains("menuitem-iconic")
-      );
     }
 
     get isMenulistChild() {
@@ -316,13 +267,7 @@
       }
       this.renderedOnce = true;
       this.textContent = "";
-      if (this.isMenulistChild) {
-        this.append(this.constructor.iconicNoAccelFragment.cloneNode(true));
-      } else if (this.isIconic) {
-        this.append(this.constructor.iconicFragment.cloneNode(true));
-      } else {
-        this.append(this.constructor.plainFragment.cloneNode(true));
-      }
+      this.append(this.constructor.fragment.cloneNode(true));
 
       this._computeAccelTextFromKeyIfNeeded();
       this.initializeAttributeInheritance();
@@ -355,15 +300,9 @@
   ) {
     static get inheritedAttributes() {
       return {
-        ".menubar-text": "value=label,accesskey,crop",
-        ".menu-iconic-text": "value=label,accesskey,crop,highlightable",
         ".menu-text": "value=label,accesskey,crop",
-        ".menu-iconic-highlightable-text":
-          "text=label,crop,accesskey,highlightable",
-        ".menu-iconic-icon":
+        ".menu-icon":
           "src=image,triggeringprincipal=iconloadingprincipal,validate",
-        ".menu-iconic-accel": "value=acceltext",
-        ".menu-right": "_moz-menuactive,disabled",
         ".menu-accel": "value=acceltext",
       };
     }
@@ -386,54 +325,17 @@
       return this.matches("menupopup:not([hasbeenopened]) menu");
     }
 
-    get isIconic() {
-      return this.classList.contains("menu-iconic");
-    }
-
     get fragment() {
-      let fragment = null;
-      if (this.isMenubarChild) {
-        if (!MozMenu.menubarFrag) {
-          // Add aria-hidden="true" on all DOM, since XULMenuAccessible handles accessibility here.
-          MozMenu.menubarFrag = MozXULElement.parseXULToFragment(`
-          <label class="menubar-text" crop="end" aria-hidden="true"/>
-        `);
-        }
-        fragment = document.importNode(MozMenu.menubarFrag, true);
-      } else if (this.isIconic) {
-        if (!MozMenu.normalIconicFrag) {
-          MozMenu.normalIconicFrag = MozXULElement.parseXULToFragment(`
-          <hbox class="menu-iconic-left" align="center" pack="center" aria-hidden="true">
-            <image class="menu-iconic-icon"/>
-          </hbox>
-          <label class="menu-iconic-text" flex="1" crop="end" aria-hidden="true"/>
-          <label class="menu-iconic-highlightable-text" crop="end" aria-hidden="true"/>
-          <hbox class="menu-accel-container" anonid="accel" aria-hidden="true">
-            <label class="menu-iconic-accel"/>
-          </hbox>
-          <hbox align="center" class="menu-right" aria-hidden="true">
-            <image/>
-          </hbox>
-       `);
-        }
-
-        fragment = document.importNode(MozMenu.normalIconicFrag, true);
-      } else {
-        if (!MozMenu.normalFrag) {
-          MozMenu.normalFrag = MozXULElement.parseXULToFragment(`
-          <label class="menu-text" crop="end" aria-hidden="true"/>
-          <hbox class="menu-accel-container" anonid="accel" aria-hidden="true">
-            <label class="menu-accel"/>
-          </hbox>
-          <hbox align="center" class="menu-right" aria-hidden="true">
-            <image/>
-          </hbox>
-       `);
-        }
-
-        fragment = document.importNode(MozMenu.normalFrag, true);
-      }
-      return fragment;
+      let frag = document.importNode(
+        MozXULElement.parseXULToFragment(`
+      <image class="menu-icon"/>
+      <label class="menu-text" flex="1" crop="end" aria-hidden="true"/>
+      <label class="menu-accel" aria-hidden="true"/>
+    `),
+        true
+      );
+      Object.defineProperty(this, "fragment", { value: frag });
+      return frag;
     }
 
     render() {

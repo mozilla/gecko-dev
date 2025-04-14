@@ -7,7 +7,7 @@
 menupopup,
 panel {
   --menu-icon-opacity: 1;
-  --menu-arrow-width: 1em;
+  --menu-arrow-size: 1em;
   --menuitem-border-radius: 3px;
   --menuitem-margin: 0px;
   --menuitem-padding: 0.5em 1em;
@@ -20,7 +20,7 @@ panel {
   }
 
   @media (-moz-platform: windows) {
-    --menu-arrow-width: max(1em, 16px);
+    --menu-arrow-size: max(1em, 16px);
 
     @media (prefers-color-scheme: light) {
       --menu-icon-opacity: 0.7;
@@ -74,7 +74,7 @@ menulist > menupopup {
     max-width: none;
 
     @media (-moz-platform: windows) or (-moz-platform: linux) {
-      > .menu-iconic-left {
+      > .menu-icon {
         display: none;
       }
     }
@@ -116,14 +116,6 @@ menuseparator {
     content: "";
     display: block;
     flex: 1;
-  }
-}
-
-/* Accel text */
-
-@media not (prefers-contrast) {
-  menuitem:not([disabled]) > .menu-accel-container > :is(.menu-accel, .menu-iconic-accel) {
-    color: var(--text-color-disabled);
   }
 }
 
@@ -212,10 +204,14 @@ menubar > menu {
       }
     }
   }
-}
 
-.menubar-text {
-  margin: 0;
+  > .menu-icon {
+    display: none;
+  }
+
+  > .menu-text {
+    margin: 0;
+  }
 }
 
 menu,
@@ -252,36 +248,41 @@ menucaption {
   font-weight: bold;
 }
 
+.menu-icon,
+.menu-text,
+.menu-accel {
+  pointer-events: none;
+}
+
 /* ..... menu arrow box ..... */
 
-.menu-right {
-  list-style-image: url("chrome://global/skin/icons/arrow-right.svg");
+menupopup > menu::after {
+  content: "";
+  display: block;
+  width: var(--menu-arrow-size);
+  height: var(--menu-arrow-size);
+  background-image: url("chrome://global/skin/icons/arrow-right.svg");
+  background-size: var(--menu-arrow-size);
+
   -moz-context-properties: fill, fill-opacity;
   fill: currentColor;
   fill-opacity: var(--menu-icon-opacity);
 
-  &:-moz-locale-dir(rtl) {
-    list-style-image: url("chrome://global/skin/icons/arrow-left.svg");
-  }
-
-  > image {
-    width: var(--menu-arrow-width);
-  }
-
+  margin-inline: 1em 0;
   @media (-moz-platform: linux) {
-    margin-block: 0;
     margin-inline: .5em 0;
   }
-
   @media (-moz-platform: macos) {
     margin-inline: 22px -3px;
   }
 }
 
+menupopup > menu:-moz-locale-dir(rtl)::after {
+  background-image: url("chrome://global/skin/icons/arrow-left.svg");
+}
+
 .menu-text,
-.menu-iconic-text,
-.menu-accel,
-.menu-iconic-accel {
+.menu-accel {
   margin: 0;
   @media (-moz-platform: windows) {
     padding: 1px 0;
@@ -291,8 +292,9 @@ menucaption {
   }
 }
 
-.menu-accel,
-.menu-iconic-accel {
+/* Accel text */
+
+.menu-accel {
   margin-inline: 0.74em 0.35em;
   @media (-moz-platform: macos) {
     margin-inline: 25px 0;
@@ -301,40 +303,46 @@ menucaption {
     /* Matches the margin-inline-end on iconic-left */
     margin-inline: 0.5em 0;
   }
-}
 
-@media (-moz-platform: macos) {
-  /* On macOS, empty acceltext shouldn't take up any space */
-  :is(menu, menuitem):not([acceltext]) > .menu-accel-container {
+  @media not (prefers-contrast) {
+    menuitem:not([disabled]) > & {
+      color: var(--text-color-disabled);
+    }
+  }
+
+  :is(menu, menuitem):not([acceltext]) > & {
     display: none;
   }
 }
 
-.menu-iconic-icon {
+menuitem:not([highlightable]) > .menu-highlightable-text,
+menuitem[highlightable] > .menu-text {
+  display: none;
+}
+
+.menu-highlightable-text,
+.menu-text {
+  flex: 1;
+}
+
+.menu-icon {
   width: 16px;
   height: 16px;
-}
 
-@media (-moz-platform: linux) {
-  .menu-text {
-    /* This is 16px (of icons / checkbox) + the size of end-margin on .menu-iconic-left */
-    margin-inline-start: calc(16px + .5em);
-  }
-}
-
-.menu-iconic-left {
   @media (-moz-platform: linux) {
+    /* Matches inline menuitem padding */
     margin-inline-end: .5em;
   }
   @media (-moz-platform: windows) {
-    padding-top: 2px;
+    margin-top: 2px;
     margin-inline-end: 8px;
   }
   @media (-moz-platform: macos) {
     margin-block: -2px;
     margin-inline-end: 6px;
-
-    /* On macOS, empty icons shouldn't take up any space */
+  }
+  @media (-moz-platform: macos) or (-moz-platform: windows) {
+    /* On macOS and Windows, empty icons shouldn't take up any space */
     menuitem:not(.menuitem-iconic, [image]) > &,
     menu:not(.menu-iconic) > & {
       display: none;
@@ -346,12 +354,12 @@ menucaption {
 
 /* On linux, we use regular checkboxes and radio buttons */
 @media (-moz-platform: linux) {
-  menuitem:is([type="checkbox"], [checked="true"]) .menu-iconic-icon {
+  menuitem:is([type="checkbox"], [checked="true"]) .menu-icon {
     appearance: auto;
     -moz-default-appearance: checkbox;
   }
 
-  menuitem[type="radio"] .menu-iconic-icon {
+  menuitem[type="radio"] .menu-icon {
     appearance: auto;
     -moz-default-appearance: radio;
   }
@@ -359,10 +367,6 @@ menucaption {
 
 /* On windows we use a checkmark */
 @media (-moz-platform: windows) {
-  menuitem:is([type="checkbox"], [type="radio"]):not([checked="true"]) > .menu-iconic-left > .menu-iconic-icon {
-    display: none;
-  }
-
   menuitem[checked="true"] {
     padding-inline-start: 12px;
 
@@ -370,12 +374,12 @@ menucaption {
        checkboxes and radio buttons because the native drawing we use on other
        Windows versions looks pretty bad with the Win10 styles, so for now we'll
        insert a generic checkmark icon for both types. */
-    > .menu-iconic-left {
+    > .menu-icon {
+      display: revert;
       -moz-context-properties: fill, fill-opacity;
       fill: currentColor;
       fill-opacity: var(--menu-icon-opacity);
       list-style-image: url("chrome://global/skin/icons/menu-check.svg");
-      width: 16px;
       margin-inline-end: 8px;
     }
   }

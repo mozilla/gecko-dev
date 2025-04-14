@@ -15,7 +15,7 @@ add_task(async function test_shortcut_key_label_in_fullscreen_menu_item() {
   const shortCutKeyLabel = isMac ? "\u2303\u2318F" : "F11";
   const enterMenuItemId = isMac ? "enterFullScreenItem" : "fullScreenItem";
   const exitMenuItemId = isMac ? "exitFullScreenItem" : "fullScreenItem";
-  const accelKeyLabelSelector = ".menu-accel-container > label";
+  const accelKeyLabelSelector = ".menu-accel";
 
   const tab = await BrowserTestUtils.openNewForegroundTab(
     gBrowser,

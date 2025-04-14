@@ -1105,36 +1105,33 @@
 }
 
 .searchbar-engine-one-off-add-engine:not([image]),
-moz-input-box > menupopup .context-menu-add-engine:not([image]) {
+.context-menu-add-engine:not([image]) {
   list-style-image: image-set(url("chrome://browser/skin/search-engine-placeholder.png"), url("chrome://browser/skin/search-engine-placeholder@2x.png") 2x);
 }
 
-.searchbar-engine-one-off-add-engine > .button-box::after,
-moz-input-box > menupopup .context-menu-add-engine > .menu-iconic-left::after {
-  content: "";
+.searchbar-engine-one-off-add-engine > .button-box,
+.context-menu-add-engine {
   position: relative;
-  display: flex;
-  background: url(chrome://browser/skin/search-indicator-badge-add.svg) no-repeat center;
-  height: 11px;
-  width: 11px;
-  margin-inline: -4px -7px;
-  margin-top: -13px;
-}
 
-moz-input-box > menupopup .context-menu-add-engine > .menu-iconic-left::after {
-  /* These differ from the urlbar and searchbar because the context menu
-     may not have enough space */
-  margin-inline: -7px -4px;
-  margin-top: -8px;
+  &::before {
+    content: "";
+    position: absolute;
+    display: block;
+    background: url(chrome://browser/skin/search-indicator-badge-add.svg) no-repeat center;
+    height: 11px;
+    width: 11px;
+    margin-inline-start: 9px;
+    margin-top: -8px;
+    /* Needed so it paints after the icon when it is a stacking context (with
+     * opacity, below) */
+    z-index: 1;
+  }
 }
 
 /* Fade a little the icon so that the + badge is more evident and the button
    is less likely to be visually confused with a normal search shortcut */
 .searchbar-engine-one-off-add-engine[image]:not(:hover) > .button-box > .button-icon {
   opacity: 0.7;
-}
-.searchbar-engine-one-off-add-engine[image]:hover > .button-box > .button-icon {
-  opacity: 1;
 }
 
 #urlbar-searchmode-switcher {

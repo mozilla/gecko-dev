@@ -13,11 +13,6 @@
   width: 16px;
 }
 
-/* work around a display: none in Linux's menu.css, see bug 1112310 */
-.searchengine-menuitem > .menu-iconic-left {
-  display: flex;
-}
-
 #engineList {
   margin: .5em 0;
 }

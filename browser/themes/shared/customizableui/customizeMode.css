@@ -338,12 +338,6 @@ toolbarpaletteitem {
   --arrowpanel-padding: 8px;
 }
 
-.customization-uidensity-menuitem > .menu-iconic-left > .menu-iconic-icon {
-  width: 32px;
-  height: 32px;
-  margin: 5px;
-}
-
 .customization-uidensity-menuitem {
   appearance: none;
   color: inherit;
@@ -352,6 +346,30 @@ toolbarpaletteitem {
   padding-block: 0;
   padding-inline: 0 5px;
   margin: 2px 0;
+
+  > .menu-icon {
+    width: 32px;
+    height: 32px;
+    margin: 5px;
+
+    &:-moz-locale-dir(rtl) {
+      transform: scaleX(-1);
+    }
+  }
+
+  > .menu-text {
+    text-align: start;
+  }
+
+  &:hover,
+  &:focus-visible {
+    background-color: var(--button-background-color-hover);
+  }
+
+  &:hover:active,
+  &[active="true"] {
+    background-color: var(--button-background-color-active);
+  }
 }
 
 #customization-uidensity-menuitem-normal {
@@ -364,22 +382,6 @@ toolbarpaletteitem {
 
 #customization-uidensity-menuitem-touch {
   list-style-image: url("chrome://browser/skin/customizableui/density-touch.svg");
-}
-
-.customization-uidensity-menuitem:is(:hover, :focus-visible) {
-  background-color: var(--button-background-color-hover);
-}
-
-.customization-uidensity-menuitem:is(:hover:active, [active="true"]) {
-  background-color: var(--button-background-color-active);
-}
-
-.customization-uidensity-menuitem > .menu-iconic-text {
-  text-align: start;
-}
-
-.customization-uidensity-menuitem > .menu-iconic-left > .menu-iconic-icon:-moz-locale-dir(rtl) {
-  transform: scaleX(-1);
 }
 
 #customization-uidensity-button > .box-inherit > .box-inherit > .button-icon:-moz-locale-dir(rtl) {

@@ -72,25 +72,6 @@
   list-style-image: none;
 }
 
-.bookmark-item {
-  > .menu-iconic-left > .menu-iconic-icon {
-    width: 16px;
-    height: 16px;
-  }
-
-  &[cutting] {
-    > .toolbarbutton-icon,
-    > .menu-iconic-left > .menu-iconic-icon {
-      opacity: 0.5;
-    }
-
-    > .toolbarbutton-text,
-    > .menu-iconic-left > .menu-iconic-text {
-      opacity: 0.7;
-    }
-  }
-}
-
 /* ----- BOOKMARK MENUS ----- */
 
 #bookmarksToolbarFolderMenu,
@@ -128,15 +109,6 @@
 @media -moz-pref("browser.urlbar.experimental.expandTextOnFocus") {
   #urlbar[breakout-extend] {
     font-size: 1.36em;
-  }
-}
-
-/* Move the margin to the parent element to properly position the ::after badge */
-moz-input-box > menupopup .context-menu-add-engine > .menu-iconic-left {
-  margin-inline: 0 5px;
-
-  > .menu-iconic-icon {
-    margin-inline: 0;
   }
 }
 
