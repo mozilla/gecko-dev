@@ -21,6 +21,10 @@ add_setup(async function () {
   await setStorage(TEST_CREDIT_CARD_1, TEST_CREDIT_CARD_2);
 });
 
+/*
+ * This test ensures that OS auth is enabled in Nightly builds and that the
+ * encrypted pref is set correctly.
+ */
 add_task(async function test_os_auth_enabled_with_checkbox() {
   let finalPrefPaneLoaded = TestUtils.topicObserved("sync-pane-loaded");
   await BrowserTestUtils.withNewTab(
@@ -50,6 +54,10 @@ add_task(async function test_os_auth_enabled_with_checkbox() {
   );
 });
 
+/*
+ * This test makes sure that calling setOSAuthEnabled correctly sets the
+ * checkbox and encryped pref.
+ */
 add_task(async function test_os_auth_disabled_with_checkbox() {
   let finalPrefPaneLoaded = TestUtils.topicObserved("sync-pane-loaded");
   FormAutofillUtils.setOSAuthEnabled(
@@ -84,6 +92,10 @@ add_task(async function test_os_auth_disabled_with_checkbox() {
   );
 });
 
+/*
+ * This test makes sure that a random value in the encrypted pref is interpreted
+ * as "OS auth is enabled".
+ */
 add_task(async function test_OSAuth_enabled_with_random_value_in_pref() {
   let finalPrefPaneLoaded = TestUtils.topicObserved("sync-pane-loaded");
   await SpecialPowers.pushPrefEnv({
@@ -116,6 +128,10 @@ add_task(async function test_OSAuth_enabled_with_random_value_in_pref() {
   );
 });
 
+/*
+ * This test ensures that there is an OS authentication prompt when OS
+ * authentication is enabled.
+ */
 add_task(async function test_osAuth_enabled_behaviour() {
   let finalPrefPaneLoaded = TestUtils.topicObserved("sync-pane-loaded");
   await SpecialPowers.pushPrefEnv({
@@ -153,6 +169,10 @@ add_task(async function test_osAuth_enabled_behaviour() {
   );
 });
 
+/*
+ * This test checks that no OS authentication prompt is triggered when OS
+ * authentication is disabled.
+ */
 add_task(async function test_osAuth_disabled_behavior() {
   let finalPrefPaneLoaded = TestUtils.topicObserved("sync-pane-loaded");
   FormAutofillUtils.setOSAuthEnabled(

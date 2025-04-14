@@ -40,7 +40,7 @@ export var OSKeyStoreTestUtils = {
     );
   },
 
-  // Wait for the observer message that simulates login success of failure.
+  // Wait for the observer message that simulates login success or failure.
   async waitForOSKeyStoreLogin(login = false) {
     const str = login ? "pass" : "cancel";
 
