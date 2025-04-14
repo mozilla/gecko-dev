@@ -172,4 +172,3 @@ support-files = [
 ["test_unmapped.js"]
 
 ["test_utf8_illegals.js"]
-

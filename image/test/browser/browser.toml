@@ -9,6 +9,17 @@ support-files = [
   "browser_docshell_type_editor/**"
 ]
 
+["browser_animated_css_image.js"]
+support-files = [
+  "!/gfx/layers/apz/test/mochitest/apz_test_utils.js",
+  "!/gfx/layers/apz/test/mochitest/apz_test_native_event_utils.js",
+  "animated1.gif",
+  "animated1.svg",
+  "animatedMask.gif",
+  "helper_animated_css_image.html",
+  "../animated_image_test_list.js",
+]
+
 ["browser_bug666317.js"]
 skip-if = ["true"] # Bug 1207012 - Permaorange from an uncaught exception that isn't actually turning the suite orange until it hits beta, Bug 948194 - Decoded Images seem to not be discarded on memory-pressure notification
 
@@ -28,14 +39,3 @@ skip-if = ["true"] # Bug 987616
 ["browser_offscreen_image_in_out_of_process_iframe.js"]
 https_first_disabled = true
 support-files = ["empty.html"]
-
-["browser_animated_css_image.js"]
-support-files = [
-  "!/gfx/layers/apz/test/mochitest/apz_test_utils.js",
-  "!/gfx/layers/apz/test/mochitest/apz_test_native_event_utils.js",
-  "animated1.gif",
-  "animated1.svg",
-  "animatedMask.gif",
-  "helper_animated_css_image.html",
-  "../animated_image_test_list.js",
-]

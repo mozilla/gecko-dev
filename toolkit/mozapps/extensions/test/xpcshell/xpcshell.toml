@@ -31,6 +31,12 @@ skip-if = ["os == 'android'"] # Non-extension add-ons are not supported on Andro
 
 ["test_AddonRepository_paging.js"]
 
+["test_ModelHubProvider.js"]
+skip-if = [
+  "appname == 'thunderbird'", # Disabled in extensions.manifest
+  "os == 'android'", # ModelHubProvider.sys.mjs is not included on Android
+]
+
 ["test_ProductAddonChecker.js"]
 
 ["test_ProductAddonChecker_signatures.js"]
@@ -146,12 +152,6 @@ prefs = ["dom.security.https_first=false"]
 ["test_loadManifest_isPrivileged.js"]
 
 ["test_locale.js"]
-
-["test_ModelHubProvider.js"]
-skip-if = [
-  "appname == 'thunderbird'", # Disabled in extensions.manifest
-  "os == 'android'", # ModelHubProvider.sys.mjs is not included on Android
-]
 
 ["test_moved_extension_metadata.js"]
 skip-if = ["true"] # bug 1777900

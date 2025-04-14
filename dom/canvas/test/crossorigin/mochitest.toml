@@ -23,4 +23,3 @@ subsuite = "gpu"
 
 ["test_webgl_crossorigin_textures.html"]
 subsuite = "gpu"
-

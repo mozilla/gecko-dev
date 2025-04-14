@@ -290,22 +290,22 @@ skip-if = ["release_or_beta"] # requires Selection.getComposedRanges to be enabl
 ["test_selection_cross_shadow_boundary_2_forward_drag.html"]
 skip-if = ["release_or_beta"] # requires Selection.getComposedRanges to be enabled (Nightly only)
 
-["test_selection_cross_shadow_boundary_multi_ranges_forward_drag.html"]
-skip-if = ["release_or_beta"] # requires Selection.getComposedRanges to be enabled (Nightly only)
-
-["test_selection_cross_shadow_boundary_multi_ranges_forward_click.html"]
-skip-if = ["release_or_beta"] # requires Selection.getComposedRanges to be enabled (Nightly only)
-
-["test_selection_cross_shadow_boundary_multi_ranges_backward_drag.html"]
-skip-if = ["release_or_beta"] # requires Selection.getComposedRanges to be enabled (Nightly only)
-
-["test_selection_cross_shadow_boundary_multi_ranges_backward_click.html"]
+["test_selection_cross_shadow_boundary_backward_nested_click.html"]
 skip-if = ["release_or_beta"] # requires Selection.getComposedRanges to be enabled (Nightly only)
 
 ["test_selection_cross_shadow_boundary_forward_and_backward.html"]
 skip-if = ["release_or_beta"] # requires Selection.getComposedRanges to be enabled (Nightly only)
 
-["test_selection_cross_shadow_boundary_backward_nested_click.html"]
+["test_selection_cross_shadow_boundary_multi_ranges_backward_click.html"]
+skip-if = ["release_or_beta"] # requires Selection.getComposedRanges to be enabled (Nightly only)
+
+["test_selection_cross_shadow_boundary_multi_ranges_backward_drag.html"]
+skip-if = ["release_or_beta"] # requires Selection.getComposedRanges to be enabled (Nightly only)
+
+["test_selection_cross_shadow_boundary_multi_ranges_forward_click.html"]
+skip-if = ["release_or_beta"] # requires Selection.getComposedRanges to be enabled (Nightly only)
+
+["test_selection_cross_shadow_boundary_multi_ranges_forward_drag.html"]
 skip-if = ["release_or_beta"] # requires Selection.getComposedRanges to be enabled (Nightly only)
 
 ["test_selection_doubleclick.html"]

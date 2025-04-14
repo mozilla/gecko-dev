@@ -6,5 +6,7 @@ support-files = [
   "!/accessible/tests/mochitest/*.js",
   "!/accessible/tests/browser/*.mjs",
 ]
+
 ["browser_computedARIARole.js"]
+
 ["browser_minimumRole.js"]

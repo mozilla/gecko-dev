@@ -1290,6 +1290,8 @@ skip-if = [
 ["test_trr_extended_error.js"]
 run-sequentially = "node server exceptions dont replay well"
 
+["test_trr_flags.js"]
+
 ["test_trr_https_fallback.js"]
 skip-if = [
   "asan",
@@ -1398,5 +1400,3 @@ skip-if = [
 
 ["test_xmlhttprequest.js"]
 prefs = ["network.xhr.block_sync_system_requests=false"] # Bug 721336
-
-["test_trr_flags.js"]

@@ -12,11 +12,11 @@ support-files = [
 
 ["test_initial_aboutblank.html"]
 
-["test_parser.html"]
-fail-if = ["xorigin"]
-
 ["test_nested.html"]
 scheme = "https"
+fail-if = ["xorigin"]
+
+["test_parser.html"]
 fail-if = ["xorigin"]
 
 ["test_xslt.html"]

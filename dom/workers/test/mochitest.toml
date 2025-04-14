@@ -351,15 +351,15 @@ scheme = "https"
 
 ["test_transferable.html"]
 
+["test_worker_in_background.html"]
+skip-if = [
+"os == 'android'", # since geckoview does not support multiple tabs
+]
+
 ["test_worker_interfaces.html"]
 skip-if = [
   "http3",
   "http2",
-]
-
-["test_worker_in_background.html"]
-skip-if = [
-"os == 'android'", # since geckoview does not support multiple tabs
 ]
 
 ["test_worker_interfaces_secureContext.html"]

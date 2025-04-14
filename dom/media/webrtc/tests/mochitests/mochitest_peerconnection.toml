@@ -111,9 +111,6 @@ scheme = "http"
 
 ["test_peerConnection_basicAudioRequireEOC.html"]
 
-["test_peerConnection_verifyNonEmptyFmtp.html"]
-skip-if = ["os == 'android'"]
-
 ["test_peerConnection_basicAudioVerifyRtpHeaderExtensions.html"]
 
 ["test_peerConnection_basicAudioVideo.html"]
@@ -461,6 +458,9 @@ skip-if = [
 skip-if = ["os == 'android' && processor == 'x86_64' && !debug"] # Bug 1783287
 
 ["test_peerConnection_verifyDescriptions.html"]
+
+["test_peerConnection_verifyNonEmptyFmtp.html"]
+skip-if = ["os == 'android'"]
 
 ["test_peerConnection_verifyVideoAfterRenegotiation.html"]
 

@@ -16,6 +16,7 @@ skip-if = ["os == 'android'"]
 # This test can't work in PBM because of SpecialPowers.createChromeCache not
 # supporting PBM we don't need to validate this in PBM.  So this test is not in
 # mochitest-common.toml.
+
 ["test_bad_script_cache.html"]
 
 # Following tests are not working currently when dFPI is enabled. So, we put

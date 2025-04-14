@@ -70,8 +70,6 @@ skip-if = [
   "os == 'linux'"
 ]
 
-["test_trust_anchors.js"]
-
 ["test_certDB_export_pkcs12.js"]
 
 ["test_certDB_export_pkcs12_with_primary_password.js"]
@@ -219,6 +217,8 @@ run-sequentially = "hardcoded ports"
 
 ["test_nsIX509Cert_utf8.js"]
 
+["test_nss_errors_service.js"]
+
 ["test_ocsp_caching.js"]
 run-sequentially = "hardcoded ports"
 
@@ -351,9 +351,9 @@ skip-if = ["condprof"]  # Bug 1769154 - as designed
 
 ["test_sts_preloadlist_selfdestruct.js"]
 
+["test_trust_anchors.js"]
+
 ["test_validity.js"]
 run-sequentially = "hardcoded ports"
 
 ["test_x509.js"]
-
-["test_nss_errors_service.js"]

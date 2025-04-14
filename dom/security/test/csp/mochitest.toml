@@ -644,12 +644,6 @@ skip-if = [
   "http2",
 ]
 
-["test_reporting_api_disabled.html"]
-skip-if = [
-  "http3",
-  "http2",
-]
-
 ["test_report_font_cache.html"]
 skip-if = [
   "http3",
@@ -664,6 +658,12 @@ skip-if = [
 ]
 
 ["test_report_uri_missing_in_report_only_header.html"]
+
+["test_reporting_api_disabled.html"]
+skip-if = [
+  "http3",
+  "http2",
+]
 
 ["test_sandbox.html"]
 skip-if = ["true"] # Bug 1657934

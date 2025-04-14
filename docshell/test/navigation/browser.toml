@@ -10,6 +10,8 @@ support-files = [
   "redirect_to_blank.sjs",
 ]
 
+["browser_bfcache_activebc.js"]
+
 ["browser_bug343515.js"]
 
 ["browser_bug1757458.js"]
@@ -26,5 +28,3 @@ skip-if = ["!sessionHistoryInParent"]
 
 ["browser_test_simultaneous_normal_and_history_loads.js"]
 skip-if = ["!sessionHistoryInParent"] # The test is for the new session history
-
-["browser_bfcache_activebc.js"]

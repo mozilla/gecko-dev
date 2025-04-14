@@ -4,4 +4,3 @@ firefox-appdir = "browser"
 skip-if = ["os == 'android'"]
 
 ["test_sourcetree_utils_getRelativePath.js"]
-

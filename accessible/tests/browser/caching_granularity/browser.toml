@@ -31,8 +31,6 @@ skip-if = ["os != 'win'"]
 
 ["browser_scroll_position_domain.js"]
 
-["browser_text_offset_attributes_domain.js"]
-
 ["browser_state_domain.js"]
 
 ["browser_style_domain.js"]
@@ -42,6 +40,8 @@ skip-if = ["os != 'win'"]
 ["browser_text_bounds_domain.js"]
 
 ["browser_text_domain.js"]
+
+["browser_text_offset_attributes_domain.js"]
 
 ["browser_transform_matrix_domain.js"]
 

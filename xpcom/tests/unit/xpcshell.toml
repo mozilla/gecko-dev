@@ -37,6 +37,11 @@ fail-if = ["os == 'android'"]
 
 ["test_debugger_malloc_size_of.js"]
 
+["test_error_iserror.js"]
+prefs = [
+  "javascript.options.experimental.error_iserror=true",
+]
+
 ["test_file_createUnique.js"]
 
 ["test_file_equality.js"]
@@ -114,8 +119,3 @@ run-if = ["os == 'win'"]
 
 ["test_windows_registry.js"]
 run-if = ["os == 'win'"]
-
-["test_error_iserror.js"]
-prefs = [
-  "javascript.options.experimental.error_iserror=true",
-]

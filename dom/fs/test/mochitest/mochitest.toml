@@ -30,6 +30,9 @@ scheme = "https"
 ["test_fileSystemDirectoryHandle_worker.html"]
 scheme = "https"
 
+["test_iframes.html"]
+scheme = "https"
+
 ["test_syncAccessHandle_worker.html"]
 scheme = "https"
 
@@ -37,7 +40,4 @@ scheme = "https"
 scheme = "https"
 
 ["test_writableFileStream_worker.html"]
-scheme = "https"
-
-["test_iframes.html"]
 scheme = "https"

@@ -11,14 +11,6 @@ prefs = ["sidebar.revamp=false"]
 
 ["browser_test_animations_without_apz_sampler.js"]
 
-["browser_test_touch_event_in_popup_panel.js"]
-support-files = [
-  "!/testing/mochitest/tests/SimpleTest/paint_listener.js",
-]
-skip-if = [
-  "os == 'mac'", # On Mac popup windows having no remote content doesn't have the compositor
-]
-
 ["browser_test_autoscrolling_in_extension_popup_window.js"]
 
 ["browser_test_autoscrolling_in_oop_frame.js"]
@@ -58,16 +50,16 @@ skip-if = [
   "os == 'mac'", # On Mac popup windows having no remote content doesn't have the compositor
 ]
 
-["browser_test_popup_menu_in_position_fixed.js"]
-support-files = ["helper_popup_menu_in_parent_process-1.html"]
-skip-if = [
-  "os == 'mac'", # On Mac popup windows having no remote content doesn't have the compositor
-]
-
 ["browser_test_popup_menu_in_parent_process.js"]
 support-files = [
   "helper_popup_menu_in_parent_process-1.html",
   "helper_popup_menu_in_parent_process-2.html"
+]
+
+["browser_test_popup_menu_in_position_fixed.js"]
+support-files = ["helper_popup_menu_in_parent_process-1.html"]
+skip-if = [
+  "os == 'mac'", # On Mac popup windows having no remote content doesn't have the compositor
 ]
 
 ["browser_test_position_sticky.js"]
@@ -112,3 +104,11 @@ support-files = [
 ["browser_test_tab_drag_zoom.js"]
 run-if = ["os != 'win'"] # Our Windows touch injection test code doesn't support pinch gestures (bug 1495580)
 support-files = ["helper_test_tab_drag_zoom.html"]
+
+["browser_test_touch_event_in_popup_panel.js"]
+support-files = [
+  "!/testing/mochitest/tests/SimpleTest/paint_listener.js",
+]
+skip-if = [
+  "os == 'mac'", # On Mac popup windows having no remote content doesn't have the compositor
+]

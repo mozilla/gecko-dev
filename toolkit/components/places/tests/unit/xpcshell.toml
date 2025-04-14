@@ -64,6 +64,8 @@ skip-if = ["os == 'linux'"] # Bug 821781
 
 ["test_PlacesDBUtils_removeOldCorruptDBs.js"]
 
+["test_PlacesObservers_counts.js"]
+
 ["test_PlacesQuery_history.js"]
 
 ["test_PlacesUtils_isRootItem.js"]
@@ -186,8 +188,6 @@ prefs = ["places.frecency.pages.alternative.featureGate=true"]
 ["test_origins_parsing.js"]
 
 ["test_pageGuid_bookmarkGuid.js"]
-
-["test_PlacesObservers_counts.js"]
 
 ["test_placeURIs.js"]
 

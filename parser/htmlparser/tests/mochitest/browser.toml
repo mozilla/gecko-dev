@@ -12,4 +12,3 @@ support-files = ["file_viewsource.html"]
 
 ["browser_ysod_telemetry.js"]
 support-files = ["broken_xml.xhtml"]
-

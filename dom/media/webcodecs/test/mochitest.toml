@@ -10,10 +10,10 @@ support-files = [
   "green.png",
 ]
 
-["test_videoFrame_mismatched_codedSize.html"]
-
 ["test_bug1921817.html"]
 scheme = "https"
 
 ["test_imageDecoder_desiredSize.html"]
 scheme = "https"
+
+["test_videoFrame_mismatched_codedSize.html"]
