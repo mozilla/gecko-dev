@@ -505,14 +505,6 @@ already_AddRefed<Promise> CookieStore::Delete(
   NS_DispatchToCurrentThread(NS_NewRunnableFunction(
       __func__, [self = RefPtr(this), promise = RefPtr(promise), aOptions,
                  cookiePrincipal = RefPtr(cookiePrincipal.get())]() {
-        nsAutoCString baseDomainUtf8;
-        nsresult rv =
-            net::CookieCommons::GetBaseDomain(cookiePrincipal, baseDomainUtf8);
-        if (NS_WARN_IF(NS_FAILED(rv))) {
-          promise->MaybeRejectWithNotAllowedError("Permission denied");
-          return;
-        }
-
         if (!ValidateCookieDomain(cookiePrincipal, aOptions.mName,
                                   aOptions.mDomain, promise)) {
           return;
@@ -550,7 +542,7 @@ already_AddRefed<Promise> CookieStore::Delete(
         }
 
         nsID operationID;
-        rv = nsID::GenerateUUIDInPlace(operationID);
+        nsresult rv = nsID::GenerateUUIDInPlace(operationID);
         if (NS_WARN_IF(NS_FAILED(rv))) {
           promise->MaybeReject(NS_ERROR_UNEXPECTED);
           return;

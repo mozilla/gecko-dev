@@ -445,6 +445,15 @@ bool CookieStoreParent::DeleteRequestOnMainThread(
   MOZ_ASSERT(NS_IsMainThread());
   nsresult rv;
 
+  nsAutoCString baseDomain;
+  nsCOMPtr<nsIEffectiveTLDService> etld =
+      mozilla::components::EffectiveTLD::Service();
+  bool requireMatch = false;
+  rv = CookieCommons::GetBaseDomain(etld, aCookieURI, baseDomain, requireMatch);
+  if (NS_FAILED(rv)) {
+    return false;
+  }
+
   nsAutoCString hostName;
   nsContentUtils::GetHostOrIPv6WithBrackets(aCookieURI, hostName);
 
@@ -472,14 +481,14 @@ bool CookieStoreParent::DeleteRequestOnMainThread(
 
   nsTArray<RefPtr<Cookie>> cookies;
   OriginAttributes attrs(aOriginAttributes);
-  service->GetCookiesFromHost(cookiesForDomain, attrs, cookies);
+  service->GetCookiesFromHost(baseDomain, attrs, cookies);
 
   for (Cookie* cookie : cookies) {
     MOZ_ASSERT(cookie);
     if (!matchName.Equals(cookie->Name())) {
       continue;
     }
-    if (!CookieCommons::DomainMatches(cookie, hostName)) {
+    if (!CookieCommons::DomainMatches(cookie, cookiesForDomain)) {
       continue;
     }
 
