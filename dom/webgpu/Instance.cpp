@@ -20,7 +20,7 @@
 #include "mozilla/StaticPrefs_dom.h"
 #include "nsString.h"
 
-#ifndef EARLY_BETA_OR_EARLIER
+#ifdef RELEASE_OR_BETA
 #  include "mozilla/dom/WorkerPrivate.h"
 #endif
 
@@ -104,9 +104,9 @@ already_AddRefed<dom::Promise> Instance::RequestAdapter(
   // Check if we should allow the request.
 
   const auto errStr = [&]() -> std::optional<std::string_view> {
-#ifndef EARLY_BETA_OR_EARLIER
+#ifdef RELEASE_OR_BETA
     if (true) {
-      return "WebGPU is not yet available in Release or late Beta builds.";
+      return "WebGPU is not yet available in Release or Beta builds.";
     }
 
     // NOTE: Deliberately left after the above check so that we only enter
@@ -118,7 +118,7 @@ already_AddRefed<dom::Promise> Instance::RequestAdapter(
     if (dom::WorkerPrivate* wp = dom::GetCurrentThreadWorkerPrivate()) {
       if (wp->IsServiceWorker()) {
         return "WebGPU in service workers is not yet available in Release or "
-               "late Beta builds; see "
+               "Beta builds; see "
                "<https://bugzilla.mozilla.org/show_bug.cgi?id=1942431>.";
       }
     }
