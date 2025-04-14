@@ -447,26 +447,6 @@ struct nsCallbackEventRequest {
 };
 
 // ----------------------------------------------------------------------------
-//
-// NOTE(emilio): It'd be nice for this to assert that our document isn't in the
-// bfcache, but font pref changes don't care about that, and maybe / probably
-// shouldn't.
-#ifdef DEBUG
-#  define ASSERT_REFLOW_SCHEDULED_STATE()                                      \
-    {                                                                          \
-      if (ObservingStyleFlushes()) {                                           \
-        MOZ_ASSERT(                                                            \
-            mDocument->GetBFCacheEntry() ||                                    \
-                mPresContext->RefreshDriver()->IsStyleFlushObserver(this),     \
-            "Unexpected state");                                               \
-      } else {                                                                 \
-        MOZ_ASSERT(!mPresContext->RefreshDriver()->IsStyleFlushObserver(this), \
-                   "Unexpected state");                                        \
-      }                                                                        \
-    }
-#else
-#  define ASSERT_REFLOW_SCHEDULED_STATE() /* nothing */
-#endif
 
 class nsAutoCauseReflowNotifier {
  public:
@@ -814,7 +794,6 @@ PresShell::PresShell(Document* aDocument)
       mIsFirstPaint(true),
       mObservesMutationsForPrint(false),
       mWasLastReflowInterrupted(false),
-      mObservingStyleFlushes(false),
       mResizeEventPending(false),
       mVisualViewportResizeEventPending(false),
       mFontSizeInflationForceEnabled(false),
@@ -1357,9 +1336,6 @@ void PresShell::Destroy() {
   // before we destroy the frame constructor, since apparently frame destruction
   // sometimes spins the event queue when plug-ins are involved(!).
   // XXXmats is this still needed now that plugins are gone?
-  StopObservingRefreshDriver();
-  mObservingStyleFlushes = false;
-
   CancelAllPendingReflows();
   CancelPostedReflowCallbacks();
 
@@ -1396,20 +1372,13 @@ void PresShell::Destroy() {
   mTouchManager.Destroy();
 }
 
-void PresShell::StopObservingRefreshDriver() {
-  if (mObservingStyleFlushes) {
-    nsRefreshDriver* rd = mPresContext->RefreshDriver();
-    rd->RemoveStyleFlushObserver(this);
-  }
-}
-
 void PresShell::StartObservingRefreshDriver() {
   nsRefreshDriver* rd = mPresContext->RefreshDriver();
   if (mResizeEventPending || mVisualViewportResizeEventPending) {
     rd->ScheduleRenderingPhase(mozilla::RenderingPhase::ResizeSteps);
   }
-  if (mObservingStyleFlushes) {
-    rd->AddStyleFlushObserver(this);
+  if (mNeedLayoutFlush || mNeedStyleFlush) {
+    rd->ScheduleRenderingPhase(mozilla::RenderingPhase::Layout);
   }
 }
 
@@ -1837,7 +1806,8 @@ nsresult PresShell::Initialize() {
     FrameNeedsReflow(rootFrame, IntrinsicDirty::None, NS_FRAME_IS_DIRTY);
     NS_ASSERTION(mDirtyRoots.Contains(rootFrame),
                  "Should be in mDirtyRoots now");
-    NS_ASSERTION(mObservingStyleFlushes, "Why no reflow scheduled?");
+    NS_ASSERTION(mNeedStyleFlush || mNeedLayoutFlush,
+                 "Why no reflow scheduled?");
   }
 
   // Restore our root scroll position now if we're getting here after EndLoad
@@ -1995,12 +1965,18 @@ bool PresShell::CanHandleUserInputEvents(WidgetGUIEvent* aGUIEvent) {
 
 void PresShell::PostScrollEvent(Runnable* aEvent) {
   MOZ_ASSERT(aEvent);
-  const bool hadEvents = !mPendingScrollEvents.IsEmpty();
   mPendingScrollEvents.AppendElement(aEvent);
-  if (!hadEvents) {
-    mPresContext->RefreshDriver()->ScheduleRenderingPhase(
-        RenderingPhase::ScrollSteps);
-  }
+
+  // If we (or any descendant docs) have any content visibility: auto elements,
+  // we also need to run its proximity to the viewport on scroll. Same for
+  // intersection observers.
+  //
+  // We don't need to mark ourselves as needing a layout flush. We don't need to
+  // get flushed, we just need the viewport relevancy / content-visibility: auto
+  // viewport proximity phases to run.
+  mPresContext->RefreshDriver()->ScheduleRenderingPhases(
+      {RenderingPhase::ScrollSteps, RenderingPhase::Layout,
+       RenderingPhase::UpdateIntersectionObservations});
 }
 
 void PresShell::ScheduleResizeEventIfNeeded(ResizeEventKind aKind) {
@@ -2949,10 +2925,7 @@ ScrollContainerFrame* PresShell::GetScrollContainerFrameToScroll(
   return GetScrollContainerFrameToScrollForContent(content.get(), aDirections);
 }
 
-void PresShell::CancelAllPendingReflows() {
-  mDirtyRoots.Clear();
-  ASSERT_REFLOW_SCHEDULED_STATE();
-}
+void PresShell::CancelAllPendingReflows() { mDirtyRoots.Clear(); }
 
 static bool DestroyFramesAndStyleDataFor(
     Element* aElement, nsPresContext& aPresContext,
@@ -10620,15 +10593,12 @@ bool PresShell::RemovePostRefreshObserver(nsAPostRefreshObserver* aObserver) {
   return true;
 }
 
-void PresShell::DoObserveStyleFlushes() {
-  MOZ_ASSERT(!ObservingStyleFlushes());
-  if (MOZ_UNLIKELY(IsDestroying())) {
+void PresShell::ScheduleFlush() {
+  if (MOZ_UNLIKELY(IsDestroying()) ||
+      MOZ_UNLIKELY(mDocument->GetBFCacheEntry())) {
     return;
   }
-  mObservingStyleFlushes = true;
-  if (MOZ_LIKELY(!mDocument->GetBFCacheEntry())) {
-    mPresContext->RefreshDriver()->AddStyleFlushObserver(this);
-  }
+  mPresContext->RefreshDriver()->ScheduleRenderingPhase(RenderingPhase::Layout);
 }
 
 //------------------------------------------------------
@@ -12577,13 +12547,8 @@ void PresShell::ScheduleContentRelevancyUpdate(ContentRelevancyReason aReason) {
   if (MOZ_UNLIKELY(mIsDestroying)) {
     return;
   }
-
   mContentVisibilityRelevancyToUpdate += aReason;
-
-  SetNeedLayoutFlush();
-  if (nsPresContext* presContext = GetPresContext()) {
-    presContext->RefreshDriver()->EnsureContentRelevancyUpdateHappens();
-  }
+  EnsureLayoutFlush();
 }
 
 PresShell::ProximityToViewportResult PresShell::DetermineProximityToViewport() {
@@ -12653,6 +12618,6 @@ void PresShell::UpdateContentRelevancyImmediately(
 
   mContentVisibilityRelevancyToUpdate += aReason;
 
-  SetNeedLayoutFlush();
+  EnsureLayoutFlush();
   UpdateRelevancyOfContentVisibilityAutoFrames();
 }

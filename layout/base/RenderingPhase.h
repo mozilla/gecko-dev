@@ -24,10 +24,7 @@ enum class RenderingPhase : uint8_t {
   FullscreenSteps,
   // TODO: Context lost steps?
   AnimationFrameCallbacks,
-  // TODO(emilio): UpdateContentRelevancy is no longer a rendering phase of its
-  // own (it should happen during resize observer handling).
-  UpdateContentRelevancy,
-  ResizeObservers,
+  Layout,
   ViewTransitionOperations,
   UpdateIntersectionObservations,
   // TODO: Record rendering time
@@ -47,8 +44,7 @@ inline constexpr RenderingPhases AllRenderingPhases() {
       RenderingPhase::UpdateAnimationsAndSendEvents,
       RenderingPhase::FullscreenSteps,
       RenderingPhase::AnimationFrameCallbacks,
-      RenderingPhase::UpdateContentRelevancy,
-      RenderingPhase::ResizeObservers,
+      RenderingPhase::Layout,
       RenderingPhase::ViewTransitionOperations,
       RenderingPhase::UpdateIntersectionObservations,
       RenderingPhase::Paint,

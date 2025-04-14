@@ -418,6 +418,8 @@ class PresShell final : public nsStubDocumentObserver,
    */
   bool UsesMobileViewportSizing() const;
 
+  void ResetWasLastReflowInterrupted() { mWasLastReflowInterrupted = false; }
+
   /**
    * Get the MobileViewportManager used to manage the document's mobile
    * viewport. Will return null in situations where we don't have a mobile
@@ -544,28 +546,7 @@ class PresShell final : public nsStubDocumentObserver,
    */
   void NotifyFontFaceSetOnRefresh();
 
-  // Removes ourself from the list of style and resize refresh driver observers.
-  //
-  // Right now this is only used for documents in the BFCache, so if you want to
-  // use this for anything else you need to ensure we don't end up in those
-  // lists after calling this, but before calling StartObservingRefreshDriver
-  // again.
-  //
-  // That is handled by the mDocument->GetBFCacheEntry checks in
-  // DoObserveStyleFlushes, though that could conceivably become a boolean
-  // member in the shell if needed.
-  //
-  // Callers are responsible of manually calling StartObservingRefreshDriver
-  // again.
-  void StopObservingRefreshDriver();
   void StartObservingRefreshDriver();
-
-  bool ObservingStyleFlushes() const { return mObservingStyleFlushes; }
-  void ObserveStyleFlushes() {
-    if (!ObservingStyleFlushes()) {
-      DoObserveStyleFlushes();
-    }
-  }
 
   /**
    * Callbacks will be called even if reflow itself fails for
@@ -1248,7 +1229,9 @@ class PresShell final : public nsStubDocumentObserver,
     mIsNeverPainting = aNeverPainting;
   }
 
-  bool MightHavePendingFontLoads() const { return ObservingStyleFlushes(); }
+  bool MightHavePendingFontLoads() const {
+    return mNeedLayoutFlush || mNeedStyleFlush;
+  }
 
   void SyncWindowProperties(bool aSync);
   struct WindowSizeConstraints {
@@ -1796,10 +1779,8 @@ class PresShell final : public nsStubDocumentObserver,
   MOZ_CAN_RUN_SCRIPT
   void PaintInternal(nsView* aViewToPaint, PaintInternalFlags aFlags);
 
-  /**
-   * Refresh observer management.
-   */
-  void DoObserveStyleFlushes();
+  // Refresh observer management.
+  void ScheduleFlush();
 
   /**
    * Does the actual work of figuring out the current state of font size
@@ -1867,7 +1848,6 @@ class PresShell final : public nsStubDocumentObserver,
   void PopCurrentEventInfo();
   nsIContent* GetCurrentEventContent();
 
-  friend class ::nsRefreshDriver;
   friend class ::nsAutoCauseReflowNotifier;
 
   void WillCauseReflow();
@@ -3237,9 +3217,6 @@ class PresShell final : public nsStubDocumentObserver,
 
   // Whether the most recent interruptible reflow was actually interrupted:
   bool mWasLastReflowInterrupted : 1;
-
-  // True if we're observing the refresh driver for style flushes.
-  bool mObservingStyleFlushes : 1;
 
   bool mResizeEventPending : 1;
   bool mVisualViewportResizeEventPending : 1;

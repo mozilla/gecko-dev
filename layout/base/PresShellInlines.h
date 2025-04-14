@@ -50,12 +50,12 @@ void PresShell::SetNeedStyleFlush() {
 
 void PresShell::EnsureStyleFlush() {
   SetNeedStyleFlush();
-  ObserveStyleFlushes();
+  ScheduleFlush();
 }
 
 void PresShell::EnsureLayoutFlush() {
   SetNeedLayoutFlush();
-  ObserveStyleFlushes();
+  ScheduleFlush();
 }
 
 void PresShell::SetNeedThrottledAnimationFlush() {

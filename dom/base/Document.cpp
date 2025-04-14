@@ -7550,9 +7550,7 @@ void Document::SetBFCacheEntry(nsIBFCacheEntry* aEntry) {
   MOZ_ASSERT(IsBFCachingAllowed() || !aEntry, "You should have checked!");
 
   if (mPresShell) {
-    if (aEntry) {
-      mPresShell->StopObservingRefreshDriver();
-    } else if (mBFCacheEntry) {
+    if (!aEntry && mBFCacheEntry) {
       mPresShell->StartObservingRefreshDriver();
     }
   }
@@ -18010,35 +18008,64 @@ PermissionDelegateHandler* Document::GetPermissionDelegateHandler() {
 }
 
 void Document::ScheduleResizeObserversNotification() {
-  MaybeScheduleRenderingPhases({RenderingPhase::ResizeObservers});
+  MaybeScheduleRenderingPhases({RenderingPhase::Layout});
 }
 
-static void FlushLayoutForWholeBrowsingContextTree(Document& aDoc) {
-  const ChangesToFlush ctf(FlushType::Layout, /* aFlushAnimations = */ false);
+static void FlushLayoutForWholeBrowsingContextTree(Document& aDoc,
+                                                   const ChangesToFlush& aCtf) {
   BrowsingContext* bc = aDoc.GetBrowsingContext();
   if (bc && bc->GetExtantDocument() == &aDoc) {
     RefPtr<BrowsingContext> top = bc->Top();
-    top->PreOrderWalk([ctf](BrowsingContext* aCur) {
+    top->PreOrderWalk([aCtf](BrowsingContext* aCur) {
       if (Document* doc = aCur->GetExtantDocument()) {
-        doc->FlushPendingNotifications(ctf);
+        doc->FlushPendingNotifications(aCtf);
       }
     });
   } else {
     // If there is no browsing context, or we're not the current document of the
     // browsing context, then we just flush this document itself.
-    aDoc.FlushPendingNotifications(ctf);
+    aDoc.FlushPendingNotifications(aCtf);
   }
 }
 
+// https://html.spec.whatwg.org/#update-the-rendering steps 16 and 17
 void Document::DetermineProximityToViewportAndNotifyResizeObservers() {
-  uint32_t shallowestTargetDepth = 0;
+  RefPtr ps = GetPresShell();
+  if (!ps) {
+    return;
+  }
+
+  // Try to do an interruptible reflow if it wouldn't be observable by the page
+  // in any obvious way.
+  const bool interruptible = !ps->HasContentVisibilityAutoFrames() &&
+                             !HasResizeObservers() &&
+                             !HasElementsWithLastRememberedSize();
+  ps->ResetWasLastReflowInterrupted();
+
+  // https://github.com/whatwg/html/issues/11210 for this not being in the spec.
+  ps->UpdateRelevancyOfContentVisibilityAutoFrames();
+
+  // 1. Let resizeObserverDepth be 0.
+  uint32_t resizeObserverDepth = 0;
   bool initialResetOfScrolledIntoViewFlagsDone = false;
+  const ChangesToFlush ctf(
+      interruptible ? FlushType::InterruptibleLayout : FlushType::Layout,
+      /* aFlushAnimations = */ false);
+
+  // 2. While true:
   while (true) {
-    // Flush layout, so that any callback functions' style changes / resizes
-    // get a chance to take effect. The callback functions may do changes in its
-    // sub-documents or ancestors, so flushing layout for the whole browsing
-    // context tree makes sure we don't miss anyone.
-    FlushLayoutForWholeBrowsingContextTree(*this);
+    // 2.1. Recalculate styles and update layout for doc.
+    if (interruptible) {
+      ps->FlushPendingNotifications(ctf);
+    } else {
+      // The ResizeObserver callbacks functions may do changes in its
+      // sub-documents or ancestors, so flushing layout for the whole browsing
+      // context tree makes sure we don't miss anyone.
+      //
+      // TODO(emilio): It seems Document::FlushPendingNotifications should be
+      // able to take care of ancestors... Can we do this less often?
+      FlushLayoutForWholeBrowsingContextTree(*this, ctf);
+    }
 
     // Last remembered sizes are recorded "at the time that ResizeObserver
     // events are determined and delivered".
@@ -18049,42 +18076,49 @@ void Document::DetermineProximityToViewportAndNotifyResizeObservers() {
     // 'content-visibility: auto' nodes, and if one of such node ever becomes
     // relevant to the user, then we would be incorrectly recording the size
     // of its rendering when it was skipping its content.
+    //
+    // https://github.com/whatwg/html/issues/11210 for the timing of this.
     UpdateLastRememberedSizes();
 
-    if (PresShell* presShell = GetPresShell()) {
-      auto result = presShell->DetermineProximityToViewport();
-      if (result.mHadInitialDetermination) {
+    // 2.2. Let hadInitialVisibleContentVisibilityDetermination be false.
+    //      (this is part of "result").
+    // 2.3. For each element element with 'auto' used value of
+    //      'content-visibility' [...] Determine proximity to the viewport for
+    //      element.
+    auto result = ps->DetermineProximityToViewport();
+    if (result.mHadInitialDetermination) {
+      // 2.4. If hadInitialVisibleContentVisibilityDetermination is true, then
+      //      continue.
+      continue;
+    }
+    if (result.mAnyScrollIntoViewFlag) {
+      // Not defined in the spec: It's possible that some elements with
+      // content-visibility: auto were forced to be visible in order to
+      // perform scrollIntoView() so clear their flags now and restart the
+      // loop. See https://github.com/w3c/csswg-drafts/issues/9337
+      ps->ClearTemporarilyVisibleForScrolledIntoViewDescendantFlags();
+      ps->ScheduleContentRelevancyUpdate(ContentRelevancyReason::Visible);
+      if (!initialResetOfScrolledIntoViewFlagsDone) {
+        initialResetOfScrolledIntoViewFlagsDone = true;
         continue;
       }
-      if (result.mAnyScrollIntoViewFlag) {
-        // Not defined in the spec: It's possible that some elements with
-        // content-visibility: auto were forced to be visible in order to
-        // perform scrollIntoView() so clear their flags now and restart the
-        // loop.
-        // See https://github.com/w3c/csswg-drafts/issues/9337
-        presShell->ClearTemporarilyVisibleForScrolledIntoViewDescendantFlags();
-        presShell->ScheduleContentRelevancyUpdate(
-            ContentRelevancyReason::Visible);
-        if (!initialResetOfScrolledIntoViewFlagsDone) {
-          initialResetOfScrolledIntoViewFlagsDone = true;
-          continue;
-        }
-      }
     }
 
-    // To avoid infinite resize loop, we only gather all active observations
-    // that have the depth of observed target element more than current
-    // shallowestTargetDepth.
-    GatherAllActiveResizeObservations(shallowestTargetDepth);
-
+    // 2.5. Gather active resize observations at depth resizeObserverDepth for
+    // doc.
+    GatherAllActiveResizeObservations(resizeObserverDepth);
+    // 2.6. If doc has active resize observations: [..] steps below
     if (!HasAnyActiveResizeObservations()) {
+      // 2.7. Otherwise, break.
       break;
     }
-
-    DebugOnly<uint32_t> oldShallowestTargetDepth = shallowestTargetDepth;
-    shallowestTargetDepth = BroadcastAllActiveResizeObservations();
-    NS_ASSERTION(oldShallowestTargetDepth < shallowestTargetDepth,
-                 "shallowestTargetDepth should be getting strictly deeper");
+    // 2.6.1. Set resizeObserverDepth to the result of broadcasting active
+    // resize observations given doc.
+    DebugOnly<uint32_t> oldResizeObserverDepth = resizeObserverDepth;
+    resizeObserverDepth = BroadcastAllActiveResizeObservations();
+    NS_ASSERTION(oldResizeObserverDepth < resizeObserverDepth,
+                 "resizeObserverDepth should be getting strictly deeper");
+    // 2.6.2. Continue.
   }
 
   if (HasAnySkippedResizeObservations()) {
@@ -18111,6 +18145,28 @@ void Document::DetermineProximityToViewportAndNotifyResizeObservers() {
     // We need to deliver pending notifications in next cycle.
     ScheduleResizeObserversNotification();
   }
+
+  // Step 17: For each doc of docs, if the focused area of doc is not a
+  // focusable area, then run the focusing steps for doc's viewport, and set
+  // doc's relevant global object's navigation API's focus changed during
+  // ongoing navigation to false.
+  //
+  // We do it here rather than a separate walk over the docs for convenience,
+  // and because I don't think there's a strong reason for it to be a separate
+  // walk altogether, see https://github.com/whatwg/html/issues/11211
+  const bool fixedUpFocus = ps->FixUpFocus();
+  if (fixedUpFocus) {
+    FlushPendingNotifications(ctf);
+  }
+
+  if (NS_WARN_IF(ps->NeedStyleFlush()) || NS_WARN_IF(ps->NeedLayoutFlush()) ||
+      NS_WARN_IF(fixedUpFocus && ps->NeedsFocusFixUp())) {
+    ps->EnsureLayoutFlush();
+  }
+
+  // Inform the FontFaceSet that we ticked, so that it can resolve its ready
+  // promise if it needs to. See PresShell::MightHavePendingFontLoads.
+  ps->NotifyFontFaceSetOnRefresh();
 }
 
 void Document::GatherAllActiveResizeObservations(uint32_t aDepth) {

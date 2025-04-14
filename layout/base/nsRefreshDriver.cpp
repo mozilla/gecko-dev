@@ -1263,11 +1263,10 @@ static constexpr nsLiteralCString sRenderingPhaseNames[] = {
     "Update animations and send events"_ns,    // UpdateAnimationsAndSendEvents
     "Fullscreen steps"_ns,                     // FullscreenSteps
     "Animation and video frame callbacks"_ns,  // AnimationFrameCallbacks
-    "Update content relevancy"_ns,             // UpdateContentRelevancy
-    "Resize observers"_ns,                     // ResizeObservers
-    "View transition operations"_ns,           // ViewTransitionOperations
-    "Update intersection observations"_ns,     // UpdateIntersectionObservations
-    "Paint"_ns,                                // Paint
+    "Layout, content-visibility and resize observers"_ns,  // Layout
+    "View transition operations"_ns,        // ViewTransitionOperations
+    "Update intersection observations"_ns,  // UpdateIntersectionObservations
+    "Paint"_ns,                             // Paint
 };
 
 static_assert(std::size(sRenderingPhaseNames) == size_t(RenderingPhase::Count),
@@ -1831,12 +1830,6 @@ uint32_t nsRefreshDriver::ObserverCount() const {
   for (const ObserverArray& array : mObservers) {
     sum += array.Length();
   }
-
-  // Even while throttled, we need to process layout and style changes.  Style
-  // changes can trigger transitions which fire events when they complete, and
-  // layout changes can affect media queries on child documents, triggering
-  // style changes, etc.
-  sum += mStyleFlushObservers.Length();
   sum += mEarlyRunners.Length();
   return sum;
 }
@@ -1848,7 +1841,7 @@ bool nsRefreshDriver::HasObservers() const {
     }
   }
 
-  return !mStyleFlushObservers.IsEmpty() || !mEarlyRunners.IsEmpty();
+  return !mEarlyRunners.IsEmpty();
 }
 
 void nsRefreshDriver::AppendObserverDescriptionsToString(
@@ -1858,10 +1851,6 @@ void nsRefreshDriver::AppendObserverDescriptionsToString(
       aStr.AppendPrintf("%s [%s], ", observer.mDescription,
                         kFlushTypeNames[observer.mFlushType]);
     }
-  }
-  if (!mStyleFlushObservers.IsEmpty()) {
-    aStr.AppendPrintf("%zux Style flush observer, ",
-                      mStyleFlushObservers.Length());
   }
   if (!mEarlyRunners.IsEmpty()) {
     aStr.AppendPrintf("%zux Early runner, ", mEarlyRunners.Length());
@@ -2024,50 +2013,6 @@ void nsRefreshDriver::DoTick() {
   }
 }
 
-void nsRefreshDriver::FlushLayoutOnPendingDocsAndFixUpFocus() {
-  AutoTArray<RefPtr<PresShell>, 16> observers;
-  observers.AppendElements(mStyleFlushObservers);
-  for (RefPtr<PresShell>& presShell : Reversed(observers)) {
-    if (!mPresContext || !mPresContext->GetPresShell()) {
-      break;
-    }
-    // Make sure to not process observers which might have been removed during
-    // previous iterations.
-    if (!mStyleFlushObservers.RemoveElement(presShell)) {
-      continue;
-    }
-
-    LogPresShellObserver::Run run(presShell, this);
-    presShell->mWasLastReflowInterrupted = false;
-    const ChangesToFlush ctf(FlushType::InterruptibleLayout, false);
-    // MOZ_KnownLive because 'observers' is guaranteed to keep it alive.
-    MOZ_KnownLive(presShell)->FlushPendingNotifications(ctf);
-    const bool fixedUpFocus = MOZ_KnownLive(presShell)->FixUpFocus();
-    if (fixedUpFocus) {
-      MOZ_KnownLive(presShell)->FlushPendingNotifications(ctf);
-    }
-    // This is a bit subtle: We intentionally mark the pres shell as not
-    // observing style flushes here, rather than above the flush, so that
-    // reflows scheduled from the style flush, but processed by the (same)
-    // layout flush, don't end up needlessly scheduling another tick.
-    // Instead, we re-observe only if after a flush we still need a style /
-    // layout flush / focus fix-up. These should generally never happen, but
-    // the later can for example if you have focus shifts during the focus
-    // fixup event listeners etc.
-    presShell->mObservingStyleFlushes = false;
-    if (NS_WARN_IF(presShell->NeedStyleFlush()) ||
-        NS_WARN_IF(presShell->NeedLayoutFlush()) ||
-        NS_WARN_IF(fixedUpFocus && presShell->NeedsFocusFixUp())) {
-      presShell->ObserveStyleFlushes();
-    }
-
-    // Inform the FontFaceSet that we ticked, so that it can resolve its ready
-    // promise if it needs to.
-    presShell->NotifyFontFaceSetOnRefresh();
-    mNeedToRecomputeVisibility = true;
-  }
-}
-
 void nsRefreshDriver::MaybeIncreaseMeasuredTicksSinceLoading() {
   if (mPresContext && mPresContext->IsRoot()) {
     mPresContext->MaybeIncreaseMeasuredTicksSinceLoading();
@@ -2076,28 +2021,6 @@ void nsRefreshDriver::MaybeIncreaseMeasuredTicksSinceLoading() {
 
 void nsRefreshDriver::UpdateRemoteFrameEffects() {
   mPresContext->Document()->UpdateRemoteFrameEffects();
-}
-
-void nsRefreshDriver::DetermineProximityToViewportAndNotifyResizeObservers() {
-  auto Filter = [](const Document& aDocument) {
-    PresShell* ps = aDocument.GetPresShell();
-    if (!ps || !ps->DidInitialize()) {
-      // If there's no shell or it didn't initialize, then we'll run this code
-      // when the pres shell does the initial reflow.
-      return false;
-    }
-    return ps->HasContentVisibilityAutoFrames() ||
-           aDocument.HasResizeObservers() ||
-           aDocument.HasElementsWithLastRememberedSize();
-  };
-
-  RunRenderingPhase(
-      RenderingPhase::ResizeObservers,
-      [](Document& aDoc) MOZ_CAN_RUN_SCRIPT_BOUNDARY_LAMBDA {
-        MOZ_KnownLive(aDoc)
-            .DetermineProximityToViewportAndNotifyResizeObservers();
-      },
-      Filter);
 }
 
 static void UpdateAndReduceAnimations(Document& aDocument) {
@@ -2559,16 +2482,31 @@ void nsRefreshDriver::Tick(VsyncId aId, TimeStamp aNowTime,
 
   MaybeIncreaseMeasuredTicksSinceLoading();
 
-  // Step 17. For each doc of docs, if the focused area of doc is not a
-  // focusable area, then run the focusing steps for doc's viewport [..].
-  //
-  // FIXME(emilio, bug 1788741): This should happen after resize observer
-  // handling. Also, Step 16 is supposed to be what updates layout (as part of
-  // ResizeObserver handling), not quite this. Try to consolidate it.
-  FlushLayoutOnPendingDocsAndFixUpFocus();
-
   if (!mPresContext || !mPresContext->GetPresShell()) {
     return StopTimer();
+  }
+
+  if (mRenderingPhasesNeeded.contains(RenderingPhase::Layout)) {
+    mNeedToRecomputeVisibility = true;
+    // Layout changes can cause intersection observers to need updates.
+    mRenderingPhasesNeeded += RenderingPhase::UpdateIntersectionObservations;
+  }
+
+  // Steps 16 and 17.
+  RunRenderingPhase(
+      RenderingPhase::Layout,
+      [](Document& aDoc) MOZ_CAN_RUN_SCRIPT_BOUNDARY_LAMBDA {
+        MOZ_KnownLive(aDoc)
+            .DetermineProximityToViewportAndNotifyResizeObservers();
+      });
+  if (MOZ_UNLIKELY(!mPresContext || !mPresContext->GetPresShell())) {
+    return StopTimer();
+  }
+
+  // Update any popups that may need to be moved or hidden due to their
+  // anchor changing.
+  if (nsXULPopupManager* pm = nsXULPopupManager::GetInstance()) {
+    pm->UpdatePopupPositions(this);
   }
 
   // Recompute approximate frame visibility if it's necessary and enough time
@@ -2578,42 +2516,8 @@ void nsRefreshDriver::Tick(VsyncId aId, TimeStamp aNowTime,
       !presShell->IsPaintingSuppressed()) {
     mNextRecomputeVisibilityTick = aNowTime + mMinRecomputeVisibilityInterval;
     mNeedToRecomputeVisibility = false;
-
     presShell->ScheduleApproximateFrameVisibilityUpdateNow();
   }
-
-  // Update any popups that may need to be moved or hidden due to their
-  // anchor changing.
-  if (nsXULPopupManager* pm = nsXULPopupManager::GetInstance()) {
-    pm->UpdatePopupPositions(this);
-  }
-
-  // Update the relevancy of the content of any `content-visibility: auto`
-  // elements. The specification says: "Specifically, such changes will
-  // take effect between steps 13 and 14 of Update the Rendering step of
-  // the Processing Model (between “run the animation frame callbacks” and
-  // “run the update intersection observations steps”)."
-  // https://drafts.csswg.org/css-contain/#cv-notes
-  //
-  // FIXME(emilio): There are more steps in between now, the content-visibility
-  // stuff should probably be integrated into the HTML spec.
-  RunRenderingPhase(RenderingPhase::UpdateContentRelevancy, [](Document& aDoc) {
-    if (PresShell* ps = aDoc.GetPresShell()) {
-      ps->UpdateRelevancyOfContentVisibilityAutoFrames();
-    }
-  });
-
-  // Step 16.
-  // TODO(emilio): Can we make this phase not run unconditionally? Maybe we
-  // should set this bit from layout when something changes size... Unclear if
-  // worth it.
-  mRenderingPhasesNeeded += RenderingPhase::ResizeObservers;
-  DetermineProximityToViewportAndNotifyResizeObservers();
-  if (MOZ_UNLIKELY(!mPresContext || !mPresContext->GetPresShell())) {
-    return StopTimer();
-  }
-
-  // TODO(emilio): Step 17, focus fix-up should happen here.
 
   // Step 18: For each doc of docs, perform pending transition operations for
   // doc.
@@ -2625,10 +2529,6 @@ void nsRefreshDriver::Tick(VsyncId aId, TimeStamp aNowTime,
 
   // Step 19. For each doc of docs, run the update intersection observations
   // steps for doc.
-  // TODO(emilio): Can we make this phase not run unconditionally? Maybe we
-  // should set this bit from layout when something changes size or scrolls...
-  // Unclear if worth it.
-  mRenderingPhasesNeeded += RenderingPhase::UpdateIntersectionObservations;
   RunRenderingPhase(
       RenderingPhase::UpdateIntersectionObservations,
       [&](Document& aDoc) { aDoc.UpdateIntersections(aNowTime); });

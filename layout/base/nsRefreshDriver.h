@@ -142,20 +142,6 @@ class nsRefreshDriver final : public mozilla::layers::TransactionIdAllocator,
     mUserInputProcessingCount--;
   }
 
-  void AddStyleFlushObserver(mozilla::PresShell* aPresShell) {
-    MOZ_DIAGNOSTIC_ASSERT(!IsStyleFlushObserver(aPresShell),
-                          "Double-adding style flush observer");
-    LogPresShellObserver::LogDispatch(aPresShell, this);
-    mStyleFlushObservers.AppendElement(aPresShell);
-    EnsureTimerStarted();
-  }
-  void RemoveStyleFlushObserver(mozilla::PresShell* aPresShell) {
-    mStyleFlushObservers.RemoveElement(aPresShell);
-  }
-  bool IsStyleFlushObserver(mozilla::PresShell* aPresShell) {
-    return mStyleFlushObservers.Contains(aPresShell);
-  }
-
   /**
    * "Early Runner" runnables will be called as the first step when refresh
    * driver tick is triggered. Runners shouldn't keep other objects alive,
@@ -337,10 +323,6 @@ class nsRefreshDriver final : public mozilla::layers::TransactionIdAllocator,
         mozilla::RenderingPhase::UpdateIntersectionObservations);
   }
 
-  void EnsureResizeObserverUpdateHappens() {
-    ScheduleRenderingPhase(mozilla::RenderingPhase::ResizeObservers);
-  }
-
   void EnsureViewTransitionOperationsHappen() {
     ScheduleRenderingPhase(mozilla::RenderingPhase::ViewTransitionOperations);
   }
@@ -353,10 +335,6 @@ class nsRefreshDriver final : public mozilla::layers::TransactionIdAllocator,
   void ScheduleMediaQueryListenerUpdate() {
     ScheduleRenderingPhase(
         mozilla::RenderingPhase::EvaluateMediaQueriesAndReportChanges);
-  }
-
-  void EnsureContentRelevancyUpdateHappens() {
-    ScheduleRenderingPhase(mozilla::RenderingPhase::UpdateContentRelevancy);
   }
 
   // Register a composition payload that will be forwarded to the layer manager
@@ -594,7 +572,6 @@ class nsRefreshDriver final : public mozilla::layers::TransactionIdAllocator,
   RequestTable mRequests;
   ImageStartTable mStartTable;
   AutoTArray<nsCOMPtr<nsIRunnable>, 16> mEarlyRunners;
-  AutoTArray<mozilla::PresShell*, 16> mStyleFlushObservers;
   nsTObserverArray<nsAPostRefreshObserver*> mPostRefreshObservers;
 
   // nsPresContexts which `NotifyContentfulPaint` have been called,

@@ -493,7 +493,7 @@ void NotificationController::ScheduleProcessing() {
 // NotificationCollector: protected
 
 bool NotificationController::IsUpdatePending() {
-  return mPresShell->ObservingStyleFlushes() ||
+  return mPresShell->NeedStyleFlush() || mPresShell->NeedLayoutFlush() ||
          mObservingState == eRefreshProcessingForUpdate || WaitingForParent() ||
          mContentInsertions.Count() != 0 || mNotifications.Length() != 0 ||
          !mTextArray.IsEmpty() ||
