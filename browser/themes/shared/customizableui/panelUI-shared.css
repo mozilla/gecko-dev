@@ -795,12 +795,12 @@ toolbarbutton[constrain-size="true"][cui-areatype="panel"] > .toolbarbutton-badg
   padding: var(--space-large) 0;
 }
 
-#PanelUI-fxa-menu-setup-sync-button-new,
+#PanelUI-fxa-menu-setup-sync-button,
 .sync-status-container {
   margin-inline-start: var(--space-small);
 }
 
-#PanelUI-fxa-menu-setup-sync-button-new {
+#PanelUI-fxa-menu-setup-sync-button {
   padding: 6px 12px;
   background-color: var(--button-background-color);
   font-size: 0.9em;

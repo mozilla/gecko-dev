@@ -3054,22 +3054,6 @@ fxaButtonVisibility:
           - fox-circle
       type: string
 
-syncSetupFlow:
-  description: Prefs to control the updated Mozilla account panel flow for users without sync enabled.
-  owner: skhamis@mozilla.com
-  hasExposure: true
-  exposureDescription: >-
-    Exposure is recorded when the user is enrolled in an experiment using this
-    feature and the avatar menu or app (hamburger) menu -> account on Firefox Desktop is opened
-  variables:
-    enabled:
-      description: True if we should show the user the updated sync set-up UI
-      type: boolean
-      setPref:
-        branch: user
-        pref: identity.fxaccounts.toolbar.syncSetup.enabled
-
-
 fxaClientAssociation:
   description: Prefs to control the client association ping.
   owner: mconley@mozilla.com
