@@ -1168,6 +1168,8 @@ var gSync = {
   updateFxAPanel(state = {}) {
     const isNewSyncSetupFlowEnabled =
       NimbusFeatures.syncSetupFlow.getVariable("enabled");
+    const expandedSignInCopy =
+      NimbusFeatures.expandSignInButton.getVariable("ctaCopyVariant");
     const mainWindowEl = document.documentElement;
 
     const menuHeaderTitleEl = PanelMultiView.getViewNode(
@@ -1207,6 +1209,11 @@ var gSync = {
       "PanelUI-fxa-menu-profiles-separator"
     );
 
+    const fxaToolbarMenuButton = document.getElementById(
+      "fxa-toolbar-menu-button"
+    );
+    let fxaAvatarLabelEl = document.getElementById("fxa-avatar-label");
+
     // Reset FxA/Sync UI elements to default, which is signed out
     cadButtonEl.setAttribute("disabled", true);
     cadButtonEl.hidden = isNewSyncSetupFlowEnabled;
@@ -1215,6 +1222,33 @@ var gSync = {
     fxaMenuAccountButtonEl.classList.remove("subviewbutton-nav");
     fxaMenuAccountButtonEl.removeAttribute("closemenu");
     menuHeaderDescriptionEl.hidden = false;
+
+    // Expanded sign in copy experiment is only for signed out users
+    // so if a text variant has been provided then we show the expanded label
+    // otherwise it'll be the default avatar icon
+    // fxaToolbarMenuButton can be null in certain testing scenarios
+    if (fxaToolbarMenuButton) {
+      if (
+        state.status === UIState.STATUS_NOT_CONFIGURED &&
+        expandedSignInCopy
+      ) {
+        fxaAvatarLabelEl.setAttribute(
+          "value",
+          this.fluentStrings.formatValueSync(expandedSignInCopy)
+        );
+        fxaAvatarLabelEl.removeAttribute("hidden");
+        fxaToolbarMenuButton.setAttribute("data-l10n-id", "fxa-avatar-tooltip");
+        fxaToolbarMenuButton.classList.add("avatar-button-background");
+      } else {
+        // Either signed in, or experiment not enabled
+        fxaToolbarMenuButton.setAttribute(
+          "data-l10n-id",
+          "toolbar-button-account"
+        );
+        fxaToolbarMenuButton.classList.remove("avatar-button-background");
+        fxaAvatarLabelEl.hidden = true;
+      }
+    }
 
     // The Firefox Account toolbar currently handles 3 different states for
     // users. The default `not_configured` state shows an empty avatar, `unverified`
@@ -1303,8 +1337,7 @@ var gSync = {
           newSyncSetupEl.setAttribute("hidden", "true");
         } else {
           if (this._shouldShowSyncOffIndicator()) {
-            let fxaButton = document.getElementById("fxa-toolbar-menu-button");
-            fxaButton?.setAttribute("badge-status", "sync-disabled");
+            fxaToolbarMenuButton?.setAttribute("badge-status", "sync-disabled");
           }
           // Show the sync element depending on if the user is enrolled or not
           isNewSyncSetupFlowEnabled
