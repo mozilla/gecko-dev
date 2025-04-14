@@ -678,6 +678,24 @@ def v4l2(target, toolkit_gtk):
 set_config("MOZ_ENABLE_V4L2", True, when=v4l2)
 set_define("MOZ_ENABLE_V4L2", True, when=v4l2)
 
+# System PipeWire support
+# =============================================================
+with only_when(compile_environment):
+    system_lib_option(
+        "--with-system-pipewire",
+        nargs="?",
+        help="Use system PipeWire",
+        when=use_pkg_config,
+    )
+
+    pipewire_headers = pkg_check_modules(
+        "MOZ_PIPEWIRE",
+        "libpipewire-0.3 libspa-0.2",
+        when="--with-system-pipewire",
+    )
+
+    set_config("MOZ_SYSTEM_PIPEWIRE", True, when="--with-system-pipewire")
+
 # System gbm support (for screencast support using PipeWire)
 # =============================================================
 with only_when(compile_environment):

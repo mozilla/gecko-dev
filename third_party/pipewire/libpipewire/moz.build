@@ -4,13 +4,13 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-SOURCES += [
-    'mozpipewire.cpp',
-]
-
 if CONFIG["MOZ_WIDGET_TOOLKIT"] == "gtk":
     CXXFLAGS += CONFIG['MOZ_GTK3_CFLAGS']
 
-LOCAL_INCLUDES += ['/third_party/pipewire']
+if CONFIG["MOZ_SYSTEM_PIPEWIRE"]:
+    OS_LIBS += CONFIG["MOZ_PIPEWIRE_LIBS"]
+else:
+    SOURCES += ['mozpipewire.cpp']
+    LOCAL_INCLUDES += ['/third_party/pipewire']
 
 FINAL_LIBRARY = 'xul'

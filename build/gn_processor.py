@@ -587,6 +587,16 @@ def write_mozbuild(
             try:
                 if (
                     relsrcdir
+                    in write_mozbuild_variables["INCLUDE_SYSTEM_PIPEWIRE_HANDLING"]
+                ):
+                    mb.write('CXXFLAGS += CONFIG["MOZ_PIPEWIRE_CFLAGS"]\n')
+                    mb.write('if not CONFIG["MOZ_SYSTEM_PIPEWIRE"]:\n')
+                    mb.write('    LOCAL_INCLUDES += [ "/third_party/pipewire/" ]\n')
+            except KeyError:
+                pass
+            try:
+                if (
+                    relsrcdir
                     in write_mozbuild_variables["INCLUDE_SYSTEM_LIBVPX_HANDLING"]
                 ):
                     mb.write('if not CONFIG["MOZ_SYSTEM_LIBVPX"]:\n')

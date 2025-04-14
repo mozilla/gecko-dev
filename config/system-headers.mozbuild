@@ -1267,6 +1267,11 @@ if CONFIG["MOZ_SYSTEM_LIBDRM"]:
         "xf86drm.h",
     ]
 
+if CONFIG["MOZ_SYSTEM_PIPEWIRE"]:
+    system_headers += [
+        "pipewire/pipewire.h",
+    ]
+
 if CONFIG["MOZ_JACK"]:
     system_headers += [
         "jack/jack.h",
