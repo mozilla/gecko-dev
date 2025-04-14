@@ -108,7 +108,7 @@ def Libxul(name, output_category=None):
     if CONFIG["RUSTC_NATVIS_LDFLAGS"]:
         LDFLAGS += CONFIG["RUSTC_NATVIS_LDFLAGS"]
 
-    if CONFIG["OS_TARGET"] != "Android" and name == "xul-real":
+    if name == "xul-real":
         SYMBOLS_FILE = "../libxul.symbols"
 
 
