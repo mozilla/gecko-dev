@@ -7,7 +7,7 @@
 use {
     crate::std::{env, mem::size_of},
     anyhow::Context,
-    memtest::{MemtestKind, MemtestRunner, MemtestRunnerArgs},
+    memtest::{MemtestKind, MemtestOutcome, MemtestRunner, MemtestRunnerArgs},
     rand::{seq::SliceRandom, thread_rng},
     serde_json,
 };
@@ -30,14 +30,18 @@ pub fn main() {
     };
     let mut memory = allocate_memory(mem_usize_count);
 
-    let memtest_runner_result = MemtestRunner::from_test_kinds(&memtest_runner_args, memtest_kinds)
+    let memtest_report_list = MemtestRunner::from_test_kinds(&memtest_runner_args, memtest_kinds)
         .run(&mut memory)
         .expect("failed to run memtest-runner");
-    println!(
-        "{}",
-        serde_json::to_string(&memtest_runner_result)
-            .expect("memtest runner results failed to serialize")
-    );
+
+    let mut output_json = serde_json::to_value(&memtest_report_list)
+        .expect("memtest report list failed to serialize");
+    output_json["memtest_failed"] = memtest_report_list
+        .iter()
+        .any(|report| matches!(report.outcome, Ok(MemtestOutcome::Fail(_))))
+        .into();
+
+    println!("{}", output_json.to_string());
 }
 
 /// Parse command line arguments and environment to return the parameters for running memtest,
