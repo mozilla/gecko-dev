@@ -68,10 +68,6 @@ class D3D11RecycleAllocator final : public TextureClientRecycleAllocator {
 // resource is ready to use.
 class D3D11ShareHandleImage final : public Image {
  public:
-  static RefPtr<D3D11ShareHandleImage> MaybeCreateNV12ImageAndSetData(
-      KnowsCompositor* aAllocator, ImageContainer* aContainer,
-      const PlanarYCbCrData& aData);
-
   D3D11ShareHandleImage(const gfx::IntSize& aSize, const gfx::IntRect& aRect,
                         gfx::ColorSpace2 aColorSpace,
                         gfx::ColorRange aColorRange,
