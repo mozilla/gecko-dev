@@ -1,0 +1,43 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Default tab.groupId without tab groups</title>
+  <script type="text/javascript" src="/tests/SimpleTest/SimpleTest.js"></script>
+  <script type="text/javascript" src="/tests/SimpleTest/ExtensionTestUtils.js"></script>
+  <script type="text/javascript" src="head.js"></script>
+  <link rel="stylesheet" type="text/css" href="/tests/SimpleTest/test.css">
+</head>
+<body>
+
+<script type="text/javascript">
+"use strict";
+
+// Full coverage for the tab.groupId field is provided by
+// browser/components/extensions/test/browser/browser_ext_tabs_groupId.js,
+// but that test only runs on desktop Firefox.
+// This test runs on both desktop and mobile Firefox. Although tab groups are
+// unsupported on mobile, tab.groupId can still have a meaningful value (-1).
+add_task(async function default_groupId_value() {
+  const extension = ExtensionTestUtils.loadExtension({
+    async background() {
+      const tab = await browser.tabs.create({});
+      browser.test.assertEq(
+        -1,
+        tab.groupId,
+        "tab.groupId defaults to -1 (TAB_GROUP_ID_NONE)"
+      );
+      await browser.tabs.remove(tab.id);
+      browser.test.sendMessage("done");
+    },
+  });
+
+  await extension.startup();
+  await extension.awaitMessage("done");
+  await extension.unload();
+});
+
+</script>
+
+</body>
+</html>

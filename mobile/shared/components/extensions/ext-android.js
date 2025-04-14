@@ -376,6 +376,10 @@ class Tab extends TabBase {
     return -1;
   }
 
+  get groupId() {
+    return -1;
+  }
+
   get width() {
     return this.browser.clientWidth;
   }

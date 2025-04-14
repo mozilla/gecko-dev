@@ -13,6 +13,7 @@ module.exports = {
     TabContext: true,
     Window: true,
     clickModifiersFromEvent: true,
+    getExtTabGroupIdForInternalTabGroupId: true,
     makeWidgetId: true,
     openOptionsPage: true,
     replaceUrlInTab: true,

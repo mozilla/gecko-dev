@@ -135,6 +135,36 @@ global.replaceUrlInTab = (gBrowser, tab, uri) => {
   return loaded;
 };
 
+// The tabs.Tab.groupId type in the public extension API is an integer,
+// but tabbrowser's tab group ID are strings. This handles the conversion.
+//
+// tabbrowser.addTabGroup() generates the internal tab group ID as follows:
+// internal group id = `${Date.now()}-${Math.round(Math.random() * 100)}`;
+// After dropping the hyphen ("-"), the result can be coerced into a safe
+// integer.
+//
+// As a safeguard, in case the format changes, we fall back to maintaining
+// an internal mapping (that never gets cleaned up).
+// This may change in https://bugzilla.mozilla.org/show_bug.cgi?id=1960104
+const fallbackTabGroupIdMap = new Map();
+let nextFallbackTabGroupId = 1;
+global.getExtTabGroupIdForInternalTabGroupId = groupIdStr => {
+  const parsedTabId = /^(\d{13})-(\d{1,3})$/.exec(groupIdStr);
+  if (parsedTabId) {
+    const groupId = parsedTabId[1] * 1000 + parseInt(parsedTabId[2], 10);
+    if (Number.isSafeInteger(groupId)) {
+      return groupId;
+    }
+  }
+  // Fall back.
+  let fallbackGroupId = fallbackTabGroupIdMap.get(groupIdStr);
+  if (!fallbackGroupId) {
+    fallbackGroupId = nextFallbackTabGroupId++;
+    fallbackTabGroupIdMap.set(groupIdStr, fallbackGroupId);
+  }
+  return fallbackGroupId;
+};
+
 /**
  * Manages tab-specific and window-specific context data, and dispatches
  * tab select events across all windows.
@@ -876,6 +906,11 @@ class Tab extends TabBase {
   get successorTabId() {
     const { successor } = this.nativeTab;
     return successor ? tabTracker.getId(successor) : -1;
+  }
+
+  get groupId() {
+    const { group } = this.nativeTab;
+    return group ? getExtTabGroupIdForInternalTabGroupId(group.id) : -1;
   }
 
   /**
