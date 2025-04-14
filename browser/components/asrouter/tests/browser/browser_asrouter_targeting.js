@@ -8,6 +8,7 @@ ChromeUtils.defineESModuleGetters(this, {
   BrowserWindowTracker: "resource:///modules/BrowserWindowTracker.sys.mjs",
   BuiltInThemes: "resource:///modules/BuiltInThemes.sys.mjs",
   CFRMessageProvider: "resource:///modules/asrouter/CFRMessageProvider.sys.mjs",
+  ClientID: "resource://gre/modules/ClientID.sys.mjs",
   ExperimentAPI: "resource://nimbus/ExperimentAPI.sys.mjs",
   ExperimentFakes: "resource://testing-common/NimbusTestUtils.sys.mjs",
   FxAccounts: "resource://gre/modules/FxAccounts.sys.mjs",
@@ -1999,4 +2000,23 @@ add_task(async function check_unhandledCampaignAction() {
       after();
     }
   }
+});
+
+add_task(async function check_profileGroupIdTargeting() {
+  const expected = await ClientID.getCachedProfileGroupID();
+  const result = await ASRouterTargeting.Environment.profileGroupId;
+
+  is(typeof result, "string", "profileGroupId should be a string");
+
+  is(result, expected, "it should be equal to the profile group id");
+
+  const message = {
+    id: "foo",
+    targeting: `profileGroupId == "${expected.toString()}"`,
+  };
+  is(
+    await ASRouterTargeting.findMatchingMessage({ messages: [message] }),
+    message,
+    "should select correct item by profile group id"
+  );
 });

@@ -34,6 +34,11 @@ const { ShellService } = ChromeUtils.importESModule(
   "resource:///modules/ShellService.sys.mjs"
 );
 
+// eslint-disable-next-line mozilla/use-static-import
+const { ClientID } = ChromeUtils.importESModule(
+  "resource://gre/modules/ClientID.sys.mjs"
+);
+
 const lazy = {};
 
 ChromeUtils.defineESModuleGetters(lazy, {
@@ -387,6 +392,12 @@ export const QueryCache = {
       null,
       FRECENT_SITES_UPDATE_INTERVAL,
       ShellService
+    ),
+    profileGroupId: new CachedTargetingGetter(
+      "getCachedProfileGroupID",
+      null,
+      FRECENT_SITES_UPDATE_INTERVAL,
+      ClientID
     ),
   },
 };
@@ -1183,6 +1194,10 @@ const TargetingGetters = {
 
   get totalSearches() {
     return lazy.totalSearches;
+  },
+
+  get profileGroupId() {
+    return QueryCache.getters.profileGroupId.get();
   },
 };
 

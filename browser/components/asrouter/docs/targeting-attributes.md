@@ -65,6 +65,7 @@ Please note that some targeting attributes require stricter controls on the tele
 * [primaryResolution](#primaryresolution)
 * [profileAgeCreated](#profileagecreated)
 * [profileAgeReset](#profileagereset)
+* [profileGroupId](#profilegroupid)
 * [profileRestartCount](#profilerestartcount)
 * [providerCohorts](#providercohorts)
 * [recentBookmarks](#recentbookmarks)
@@ -1092,3 +1093,8 @@ declare const systemArch: string | null;
 ### `totalSearches`
 
 Returns the number of times a user has completed a search in the URL Bar. The number is arbitrarily capped at 100.
+
+
+### `profileGroupId`
+
+Returns the stable profile group ID used for data reporting.
