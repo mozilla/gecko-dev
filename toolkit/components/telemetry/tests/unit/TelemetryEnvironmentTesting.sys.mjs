@@ -286,15 +286,34 @@ export var TelemetryEnvironmentTesting = {
         f + " must have the correct type."
       );
     }
+    lazy.Assert.equal(typeof Glean.blocklist.enabled.testGetValue(), "boolean");
+    lazy.Assert.equal(typeof Glean.e10s.enabled.testGetValue(), "boolean");
+    lazy.Assert.equal(
+      typeof Glean.e10s.multiProcesses.testGetValue(),
+      "number"
+    );
+    lazy.Assert.equal(typeof Glean.fission.enabled.testGetValue(), "boolean");
+    lazy.Assert.equal(
+      typeof Glean.preferences.userPrefs.testGetValue(),
+      "object"
+    );
 
     // This property is not always present, but when it is, it must be a number.
     if ("launcherProcessState" in data.settings) {
       lazy.Assert.equal(typeof data.settings.launcherProcessState, "number");
+      lazy.Assert.equal(
+        typeof Glean.launcherProcess.state.testGetValue(),
+        "number"
+      );
     }
 
     // Check "addonCompatibilityCheckEnabled" separately.
     lazy.Assert.equal(
       data.settings.addonCompatibilityCheckEnabled,
+      lazy.AddonManager.checkCompatibility
+    );
+    lazy.Assert.equal(
+      Glean.addonsManager.compatibilityCheckEnabled.testGetValue(),
       lazy.AddonManager.checkCompatibility
     );
 
@@ -305,10 +324,14 @@ export var TelemetryEnvironmentTesting = {
         !("isDefaultBrowser" in data.settings),
         "Must not be available on Android."
       );
+      lazy.Assert.equal(null, Glean.browser.defaultAtLaunch.testGetValue());
     } else if ("isDefaultBrowser" in data.settings) {
       // isDefaultBrowser might not be available in the payload, since it's
       // gathered after the session was restored.
       lazy.Assert.ok(this.checkNullOrBool(data.settings.isDefaultBrowser));
+      lazy.Assert.ok(
+        this.checkNullOrBool(Glean.browser.defaultAtLaunch.testGetValue())
+      );
     }
 
     // Check "channel" separately, as it can either be null or string.

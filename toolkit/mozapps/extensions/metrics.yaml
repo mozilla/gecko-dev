@@ -252,6 +252,21 @@ addons_manager:
         type: string
     expires: 147
 
+  compatibility_check_enabled:
+    type: boolean
+    lifetime: application
+    description: |
+      Whether application compatibility is enforced for add-ons.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1950389
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1950389
+    data_sensitivity:
+      - technical
+    notification_emails:
+      - addons-dev-internal@mozilla.com
+    expires: never
+
 blocklist:
   last_modified_rs_addons_mblf:
     type: datetime
@@ -550,4 +565,20 @@ blocklist:
     notification_emails:
       - addons-dev-internal@mozilla.com
       - rwu@mozilla.com
+    expires: never
+
+  enabled:
+    type: boolean
+    lifetime: application
+    description: |
+      Whether the extension blocklist is enabled.
+      Corresponds to the `extensions.blocklist.enabled` pref.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1950389
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1950389
+    data_sensitivity:
+      - technical
+    notification_emails:
+      - addons-dev-internal@mozilla.com
     expires: never

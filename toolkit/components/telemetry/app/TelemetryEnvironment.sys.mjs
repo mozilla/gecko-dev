@@ -82,8 +82,8 @@ export var Policy = {
 var gActiveExperimentStartupBuffer = new Map();
 
 // For Powering arewegleanyet.com (See bug 1944592)
-// Legacy Count: 112
-// Glean Count: 11
+// Legacy Count: 110
+// Glean Count: 19
 
 var gGlobalEnvironment;
 function getGlobal() {
@@ -1664,6 +1664,32 @@ EnvironmentCache.prototype = {
     this._updateDefaultBrowser();
     this._updateSearchEngine();
     this._loadAsyncUpdateSettingsFromCache();
+
+    Glean.addonsManager.compatibilityCheckEnabled.set(
+      this._currentEnvironment.settings.addonCompatibilityCheckEnabled
+    );
+    Glean.blocklist.enabled.set(
+      this._currentEnvironment.settings.blocklistEnabled
+    );
+    Glean.browser.defaultAtLaunch.set(
+      this._currentEnvironment.settings.isDefaultBrowser
+    );
+    Glean.launcherProcess.state.set(
+      this._currentEnvironment.settings.launcherProcessState
+    );
+    Glean.e10s.enabled.set(this._currentEnvironment.settings.e10sEnabled);
+    Glean.e10s.multiProcesses.set(
+      this._currentEnvironment.settings.e10sMultiProcesses
+    );
+    Glean.fission.enabled.set(this._currentEnvironment.settings.fissionEnabled);
+    let prefs = Object.entries(this._currentEnvironment.settings.userPrefs).map(
+      ([k, v]) => {
+        return { name: k, value: v.toString() };
+      }
+    );
+    if (prefs.length) {
+      Glean.preferences.userPrefs.set(prefs);
+    }
   },
 
   _getSandboxData() {

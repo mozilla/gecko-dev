@@ -85,3 +85,70 @@ os.environment:
       - tkikuchi@mozilla.com
     expires: never
     telemetry_mirror: OS_ENVIRONMENT_IS_ADMIN_WITHOUT_UAC
+
+launcher.process:
+  state:
+    type: quantity
+    unit: LauncherRegistryInfo::EnabledState
+    description: |
+      Whether, and in what mode, the launcher process is enabled (or not).
+      See `nsIXULRuntime.launcherProcessState`
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1950389
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1950389
+    notification_emails:
+      - gstoll@mozilla.com
+    data_sensitivity:
+      - technical
+    expires: never
+
+e10s:
+  enabled:
+    type: boolean
+    description: |
+      Whether e10s is on, i.e. browser tabs open by default in a different
+      process.
+      See `nsIXULRuntime.browserTabsRemoteAutostart`
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1950389
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1950389
+    notification_emails:
+      - nika@mozilla.com
+    data_sensitivity:
+      - technical
+    expires: never
+
+  multi_processes:
+    type: quantity
+    unit: max processes
+    description: |
+      Maximum number of processes that will be launched for regular web content.
+      See `nsIXULRuntime.maxWebProcessCount`
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1950389
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1950389
+    notification_emails:
+      - nika@mozilla.com
+    data_sensitivity:
+      - technical
+    expires: never
+
+fission:
+  enabled:
+    type: boolean
+    description: |
+      Whether fission is enabled this session, and subframes can load in a
+      different process.
+      See `nsIXULRuntime.fissionAutostart`
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1950389
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1950389
+    notification_emails:
+      - nika@mozilla.com
+    data_sensitivity:
+      - technical
+    expires: never

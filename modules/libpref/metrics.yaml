@@ -56,3 +56,33 @@ preferences:
       - kwright@mozilla.com
     expires: never
     telemetry_mirror: PREFERENCES_PREFS_FILE_WAS_INVALID
+
+  user_prefs:
+    type: object
+    lifetime: application
+    description: |
+      The fossilized remains of the Legacy Telemetry Environment's
+      `settings.userPrefs` structure.
+      A list of pref names and values.
+      Some values will be the string "<user-set>" to obscure the value.
+      Do not add more prefs to this list.
+      Prefer instead to instrument your prefs directly with individual metrics.
+      See Environment.sys.mjs' `DEFAULT_ENVIRONMENT_PREFS`.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1950389
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1950389
+    notification_emails:
+      - chutten@mozilla.com
+    data_sensitivity:
+      - technical
+    expires: never
+    structure:
+      type: array
+      items:
+        type: object
+        properties:
+          name:
+            type: string
+          value:
+            type: string

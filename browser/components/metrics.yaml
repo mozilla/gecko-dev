@@ -985,3 +985,21 @@ browser:
       - aoprea@mozilla.com
     expires: never
     telemetry_mirror: h#BROWSER_ATTRIBUTION_ERRORS
+
+  default_at_launch:
+    type: boolean
+    lifetime: application
+    description: |
+      Whether the shell service identified this app as the default browser.
+      Checked once near startup.
+      On Windows, this is operationalized as whether Firefox is the default
+      HTTP protocol handler and the default HTML file handler.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1950389
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1950389
+    notification_emails:
+      - application-update-telemetry-alerts@mozilla.com
+    data_sensitivity:
+      - technical
+    expires: never
