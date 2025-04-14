@@ -135,6 +135,7 @@ export class BaseContent extends React.PureComponent {
       firstVisibleTimestamp: null,
       colorMode: "",
       fixedNavStyle: {},
+      wallpaperTheme: "",
     };
   }
 
@@ -149,6 +150,8 @@ export class BaseContent extends React.PureComponent {
   componentDidMount() {
     global.addEventListener("scroll", this.onWindowScroll);
     global.addEventListener("keydown", this.handleOnKeyDown);
+    const prefs = this.props.Prefs.values;
+    const wallpapersV2Enabled = prefs["newtabWallpapers.v2.enabled"];
     if (this.props.document.visibilityState === VISIBLE) {
       this.setFirstVisibleTimestamp();
       this.shouldDisplayTopicSelectionModal();
@@ -179,35 +182,40 @@ export class BaseContent extends React.PureComponent {
       this.handleColorModeChange
     );
     this.handleColorModeChange();
-    this.updateWallpaper();
+    if (wallpapersV2Enabled) {
+      this.updateWallpaper();
+    }
   }
 
   componentDidUpdate(prevProps) {
-    // destructure current and previous props with fallbacks
-    // (preventing undefined errors)
-    const {
-      Wallpapers: { uploadedWallpaper = null, wallpaperList = null } = {},
-      Prefs: { values: currentPrefs = {} } = {},
-    } = this.props;
+    const prefs = this.props.Prefs.values;
+    const wallpapersV2Enabled = prefs["newtabWallpapers.v2.enabled"];
+    if (wallpapersV2Enabled) {
+      // destructure current and previous props with fallbacks
+      // (preventing undefined errors)
+      const {
+        Wallpapers: { uploadedWallpaper = null, wallpaperList = null } = {},
+      } = this.props;
 
-    const {
-      Wallpapers: {
-        uploadedWallpaper: prevUploadedWallpaper = null,
-        wallpaperList: prevWallpaperList = null,
-      } = {},
-      Prefs: { values: prevPrefs = {} } = {},
-    } = prevProps;
+      const {
+        Wallpapers: {
+          uploadedWallpaper: prevUploadedWallpaper = null,
+          wallpaperList: prevWallpaperList = null,
+        } = {},
+        Prefs: { values: prevPrefs = {} } = {},
+      } = prevProps;
 
-    const selectedWallpaper = currentPrefs["newtabWallpapers.wallpaper"];
-    const prevSelectedWallpaper = prevPrefs["newtabWallpapers.wallpaper"];
+      const selectedWallpaper = prefs["newtabWallpapers.wallpaper"];
+      const prevSelectedWallpaper = prevPrefs["newtabWallpapers.wallpaper"];
 
-    // don't update wallpaper unless the wallpaper is being changed.
-    if (
-      selectedWallpaper !== prevSelectedWallpaper || // selecting a new wallpaper
-      uploadedWallpaper !== prevUploadedWallpaper || // uploading a new wallpaper
-      wallpaperList !== prevWallpaperList // remote settings wallpaper list updates
-    ) {
-      this.updateWallpaper();
+      // don't update wallpaper unless the wallpaper is being changed.
+      if (
+        selectedWallpaper !== prevSelectedWallpaper || // selecting a new wallpaper
+        uploadedWallpaper !== prevUploadedWallpaper || // uploading a new wallpaper
+        wallpaperList !== prevWallpaperList // remote settings wallpaper list updates
+      ) {
+        this.updateWallpaper();
+      }
     }
   }
 
@@ -413,6 +421,8 @@ export class BaseContent extends React.PureComponent {
     const prefs = this.props.Prefs.values;
     const selectedWallpaper = prefs["newtabWallpapers.wallpaper"];
     const { wallpaperList, uploadedWallpaper } = this.props.Wallpapers;
+    let lightWallpaper = {};
+    let darkWallpaper = {};
 
     if (selectedWallpaper === "custom" && uploadedWallpaper) {
       // revoke ObjectURL to prevent memory leaks
@@ -437,10 +447,7 @@ export class BaseContent extends React.PureComponent {
 
     if (wallpaperList) {
       let wallpaper = wallpaperList.find(wp => wp.title === selectedWallpaper);
-
-      let lightWallpaper = {};
-      let darkWallpaper = {};
-      if (selectedWallpaper) {
+      if (selectedWallpaper && wallpaper) {
         // if selectedWallpaper exists - we override what light and dark prefs are to match that
         lightWallpaper = wallpaper;
         darkWallpaper = wallpaper;
@@ -488,16 +495,7 @@ export class BaseContent extends React.PureComponent {
         }
       }
 
-      // Add helper class to body if user has a wallpaper selected
-      if (wallpaperTheme === "light") {
-        global.document?.body.classList.add("lightWallpaper");
-        global.document?.body.classList.remove("darkWallpaper");
-      }
-
-      if (wallpaperTheme === "dark") {
-        global.document?.body.classList.add("darkWallpaper");
-        global.document?.body.classList.remove("lightWallpaper");
-      }
+      this.setState({ wallpaperTheme });
     }
   }
 
@@ -670,6 +668,18 @@ export class BaseContent extends React.PureComponent {
     ]
       .filter(v => v)
       .join(" ");
+    if (wallpapersV2Enabled) {
+      // Add helper class to body if user has a wallpaper selected
+      if (this.state.wallpaperTheme === "light") {
+        global.document?.body.classList.add("lightWallpaper");
+        global.document?.body.classList.remove("darkWallpaper");
+      }
+
+      if (this.state.wallpaperTheme === "dark") {
+        global.document?.body.classList.add("darkWallpaper");
+        global.document?.body.classList.remove("lightWallpaper");
+      }
+    }
 
     return (
       <div className={featureClassName}>

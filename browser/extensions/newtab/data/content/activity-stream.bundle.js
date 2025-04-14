@@ -14040,7 +14040,8 @@ class BaseContent extends (external_React_default()).PureComponent {
       fixedSearch: false,
       firstVisibleTimestamp: null,
       colorMode: "",
-      fixedNavStyle: {}
+      fixedNavStyle: {},
+      wallpaperTheme: ""
     };
   }
   setFirstVisibleTimestamp() {
@@ -14053,6 +14054,8 @@ class BaseContent extends (external_React_default()).PureComponent {
   componentDidMount() {
     __webpack_require__.g.addEventListener("scroll", this.onWindowScroll);
     __webpack_require__.g.addEventListener("keydown", this.handleOnKeyDown);
+    const prefs = this.props.Prefs.values;
+    const wallpapersV2Enabled = prefs["newtabWallpapers.v2.enabled"];
     if (this.props.document.visibilityState === Base_VISIBLE) {
       this.setFirstVisibleTimestamp();
       this.shouldDisplayTopicSelectionModal();
@@ -14071,40 +14074,43 @@ class BaseContent extends (external_React_default()).PureComponent {
     this.prefersDarkQuery = globalThis.matchMedia("(prefers-color-scheme: dark)");
     this.prefersDarkQuery.addEventListener("change", this.handleColorModeChange);
     this.handleColorModeChange();
-    this.updateWallpaper();
+    if (wallpapersV2Enabled) {
+      this.updateWallpaper();
+    }
   }
   componentDidUpdate(prevProps) {
-    // destructure current and previous props with fallbacks
-    // (preventing undefined errors)
-    const {
-      Wallpapers: {
-        uploadedWallpaper = null,
-        wallpaperList = null
-      } = {},
-      Prefs: {
-        values: currentPrefs = {}
-      } = {}
-    } = this.props;
-    const {
-      Wallpapers: {
-        uploadedWallpaper: prevUploadedWallpaper = null,
-        wallpaperList: prevWallpaperList = null
-      } = {},
-      Prefs: {
-        values: prevPrefs = {}
-      } = {}
-    } = prevProps;
-    const selectedWallpaper = currentPrefs["newtabWallpapers.wallpaper"];
-    const prevSelectedWallpaper = prevPrefs["newtabWallpapers.wallpaper"];
+    const prefs = this.props.Prefs.values;
+    const wallpapersV2Enabled = prefs["newtabWallpapers.v2.enabled"];
+    if (wallpapersV2Enabled) {
+      // destructure current and previous props with fallbacks
+      // (preventing undefined errors)
+      const {
+        Wallpapers: {
+          uploadedWallpaper = null,
+          wallpaperList = null
+        } = {}
+      } = this.props;
+      const {
+        Wallpapers: {
+          uploadedWallpaper: prevUploadedWallpaper = null,
+          wallpaperList: prevWallpaperList = null
+        } = {},
+        Prefs: {
+          values: prevPrefs = {}
+        } = {}
+      } = prevProps;
+      const selectedWallpaper = prefs["newtabWallpapers.wallpaper"];
+      const prevSelectedWallpaper = prevPrefs["newtabWallpapers.wallpaper"];
 
-    // don't update wallpaper unless the wallpaper is being changed.
-    if (selectedWallpaper !== prevSelectedWallpaper ||
-    // selecting a new wallpaper
-    uploadedWallpaper !== prevUploadedWallpaper ||
-    // uploading a new wallpaper
-    wallpaperList !== prevWallpaperList // remote settings wallpaper list updates
-    ) {
-      this.updateWallpaper();
+      // don't update wallpaper unless the wallpaper is being changed.
+      if (selectedWallpaper !== prevSelectedWallpaper ||
+      // selecting a new wallpaper
+      uploadedWallpaper !== prevUploadedWallpaper ||
+      // uploading a new wallpaper
+      wallpaperList !== prevWallpaperList // remote settings wallpaper list updates
+      ) {
+        this.updateWallpaper();
+      }
     }
   }
   handleColorModeChange() {
@@ -14300,6 +14306,8 @@ class BaseContent extends (external_React_default()).PureComponent {
       wallpaperList,
       uploadedWallpaper
     } = this.props.Wallpapers;
+    let lightWallpaper = {};
+    let darkWallpaper = {};
     if (selectedWallpaper === "custom" && uploadedWallpaper) {
       // revoke ObjectURL to prevent memory leaks
       if (this.uploadedWallpaperUrl) {
@@ -14312,9 +14320,7 @@ class BaseContent extends (external_React_default()).PureComponent {
     }
     if (wallpaperList) {
       let wallpaper = wallpaperList.find(wp => wp.title === selectedWallpaper);
-      let lightWallpaper = {};
-      let darkWallpaper = {};
-      if (selectedWallpaper) {
+      if (selectedWallpaper && wallpaper) {
         // if selectedWallpaper exists - we override what light and dark prefs are to match that
         lightWallpaper = wallpaper;
         darkWallpaper = wallpaper;
@@ -14351,16 +14357,9 @@ class BaseContent extends (external_React_default()).PureComponent {
           wallpaperTheme = theme;
         }
       }
-
-      // Add helper class to body if user has a wallpaper selected
-      if (wallpaperTheme === "light") {
-        __webpack_require__.g.document?.body.classList.add("lightWallpaper");
-        __webpack_require__.g.document?.body.classList.remove("darkWallpaper");
-      }
-      if (wallpaperTheme === "dark") {
-        __webpack_require__.g.document?.body.classList.add("darkWallpaper");
-        __webpack_require__.g.document?.body.classList.remove("lightWallpaper");
-      }
+      this.setState({
+        wallpaperTheme
+      });
     }
   }
   shouldShowWallpapersHighlight() {
@@ -14476,6 +14475,17 @@ class BaseContent extends (external_React_default()).PureComponent {
     // Shortcuts refresh experiment
     pocketEnabled ? "has-recommended-stories" : "no-recommended-stories", sectionsEnabled ? "has-sections-grid" : ""].filter(v => v).join(" ");
     const outerClassName = ["outer-wrapper", isDiscoveryStream && pocketEnabled && "ds-outer-wrapper-search-alignment", isDiscoveryStream && "ds-outer-wrapper-breakpoint-override", prefs.showSearch && this.state.fixedSearch && !noSectionsEnabled && "fixed-search", prefs.showSearch && noSectionsEnabled && "only-search", prefs["feeds.topsites"] && !pocketEnabled && !prefs.showSearch && "only-topsites", noSectionsEnabled && "no-sections", prefs["logowordmark.alwaysVisible"] && "visible-logo", hasThumbsUpDownLayout && hasThumbsUpDown && "thumbs-ui-compact"].filter(v => v).join(" ");
+    if (wallpapersV2Enabled) {
+      // Add helper class to body if user has a wallpaper selected
+      if (this.state.wallpaperTheme === "light") {
+        __webpack_require__.g.document?.body.classList.add("lightWallpaper");
+        __webpack_require__.g.document?.body.classList.remove("darkWallpaper");
+      }
+      if (this.state.wallpaperTheme === "dark") {
+        __webpack_require__.g.document?.body.classList.add("darkWallpaper");
+        __webpack_require__.g.document?.body.classList.remove("lightWallpaper");
+      }
+    }
     return /*#__PURE__*/external_React_default().createElement("div", {
       className: featureClassName
     }, /*#__PURE__*/external_React_default().createElement("menu", {
