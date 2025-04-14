@@ -4,13 +4,10 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-SOURCES += [
-    'mozgbm.cpp',
-]
-
-if CONFIG["MOZ_WIDGET_TOOLKIT"] == "gtk":
-    CXXFLAGS += CONFIG['MOZ_GTK3_CFLAGS']
-
-LOCAL_INCLUDES += ['/third_party/gbm']
+if CONFIG["MOZ_SYSTEM_GBM"]:
+    OS_LIBS += CONFIG["MOZ_GBM_LIBS"]
+else:
+    SOURCES += ['mozgbm.cpp']
+    LOCAL_INCLUDES += ['/third_party/gbm/gbm']
 
 FINAL_LIBRARY = 'xul'

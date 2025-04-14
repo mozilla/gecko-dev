@@ -12,6 +12,7 @@
 #  include "nsWaylandDisplay.h"
 #endif
 
+#include <gbm.h>
 #include <fcntl.h>
 #include <getopt.h>
 #include <signal.h>
@@ -33,7 +34,6 @@
 #endif
 #include <sys/ioctl.h>
 
-#include "gbm/gbm.h"
 #include "mozilla/widget/va_drmcommon.h"
 #include "mozilla/gfx/2D.h"
 #include "mozilla/gfx/FileHandleWrapper.h"

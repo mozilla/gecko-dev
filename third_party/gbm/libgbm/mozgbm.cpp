@@ -8,7 +8,7 @@
 #include "mozilla/Types.h"
 #include "prlink.h"
 
-#include <gbm/gbm.h>
+#include <gbm.h>
 
 #define GET_FUNC(func, lib)                                  \
     func##_fn =                                              \

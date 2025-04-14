@@ -565,6 +565,13 @@ def write_mozbuild(
             except KeyError:
                 pass
             try:
+                if relsrcdir in write_mozbuild_variables["INCLUDE_SYSTEM_GBM_HANDLING"]:
+                    mb.write('CXXFLAGS += CONFIG["MOZ_GBM_CFLAGS"]\n')
+                    mb.write('if not CONFIG["MOZ_SYSTEM_GBM"]:\n')
+                    mb.write('    LOCAL_INCLUDES += [ "/third_party/gbm/gbm/" ]\n')
+            except KeyError:
+                pass
+            try:
                 if (
                     relsrcdir
                     in write_mozbuild_variables["INCLUDE_SYSTEM_LIBVPX_HANDLING"]

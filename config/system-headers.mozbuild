@@ -1256,6 +1256,11 @@ if CONFIG["OS_TARGET"] == "Android":
         "vr/gvr/capi/include/gvr.h",
     ]
 
+if CONFIG["MOZ_SYSTEM_GBM"]:
+    system_headers += [
+        "gbm.h",
+    ]
+
 if CONFIG["MOZ_JACK"]:
     system_headers += [
         "jack/jack.h",

@@ -20,7 +20,6 @@ with Files("*nsGtkKeyUtils*"):
     BUG_COMPONENT = ("Core", "DOM: UI Events & Focus Handling")
 
 DIRS += [
-    "/third_party/gbm/",
     "/third_party/gbm/libgbm",
 ]
 
@@ -167,6 +166,15 @@ LOCAL_INCLUDES += [
     "/widget/headless",
     "/widget/x11",
 ]
+
+CXXFLAGS += CONFIG["MOZ_GBM_CFLAGS"]
+if not CONFIG["MOZ_SYSTEM_GBM"]:
+    LOCAL_INCLUDES += [
+        "/third_party/gbm/gbm/",
+    ]
+    DIRS += [
+        "/third_party/gbm/gbm/",
+    ]
 
 DEFINES["CAIRO_GFX"] = True
 

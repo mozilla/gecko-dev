@@ -11,12 +11,12 @@
 
 #include "DMABufLibWrapper.h"
 #include "DMABufFormats.h"
-#include "gbm/gbm.h"
 #ifdef MOZ_WAYLAND
 #  include "nsWaylandDisplay.h"
 #  include "mozilla/widget/mozwayland.h"
 #  include "mozilla/widget/linux-dmabuf-unstable-v1-client-protocol.h"
 #endif
+#include <gbm.h>
 
 #include "mozilla/gfx/Logging.h"  // for gfxCriticalNote
 

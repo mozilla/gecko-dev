@@ -11,7 +11,6 @@
 #include "DMABufLibWrapper.h"
 
 #include "mozilla/widget/mozwayland.h"
-#include "gbm/gbm.h"
 #include "mozilla/widget/fractional-scale-v1-client-protocol.h"
 #include "mozilla/widget/idle-inhibit-unstable-v1-client-protocol.h"
 #include "mozilla/widget/kde-appmenu-client-protocol.h"
@@ -23,6 +22,8 @@
 #include "mozilla/widget/xdg-activation-v1-client-protocol.h"
 #include "mozilla/widget/xdg-output-unstable-v1-client-protocol.h"
 #include "mozilla/widget/color-management-v1-client-protocol.h"
+
+#include <gbm.h>
 
 namespace mozilla::widget {
 
