@@ -442,7 +442,6 @@ nsWindow::nsWindow()
       mPendingBoundsChange(false),
       mPendingBoundsChangeMayChangeCsdMargin(false),
       mTitlebarBackdropState(false),
-      mIsChildWindow(false),
       mAlwaysOnTop(false),
       mNoAutoHide(false),
       mIsTransparent(false),
@@ -6012,16 +6011,11 @@ nsresult nsWindow::Create(nsIWidget* aParent, const LayoutDeviceIntRect& aRect,
       mWindowType == WindowType::Popup && aInitData &&
       aInitData->mTransparencyMode == TransparencyMode::Transparent;
 
-  // Figure out our parent window - only used for WindowType::Child
+  // Figure out our parent window.
   auto* parentnsWindow = static_cast<nsWindow*>(aParent);
   LOG("  parent window [%p]", parentnsWindow);
-  if (mWindowType == WindowType::Child) {
-    // We don't support WindowType::Child directly but emulate it by popup
-    // windows.
-    mWindowType = WindowType::Popup;
-    mIsChildWindow = true;
-    LOG("  child widget, switch to popup");
-  }
+
+  MOZ_DIAGNOSTIC_ASSERT(mWindowType != WindowType::Child);
 
   MOZ_ASSERT_IF(mWindowType == WindowType::Popup, parentnsWindow);
 
@@ -6306,15 +6300,6 @@ nsresult nsWindow::Create(nsIWidget* aParent, const LayoutDeviceIntRect& aRect,
     // state indicates that we already have the standard cursor.
     mUpdateCursor = true;
     SetCursor(Cursor{eCursor_standard});
-  }
-
-  if (mIsChildWindow && parentnsWindow) {
-    GdkWindow* window = GetToplevelGdkWindow();
-    GdkWindow* parentWindow = parentnsWindow->GetToplevelGdkWindow();
-    LOG("  child GdkWindow %p set parent GdkWindow %p", window, parentWindow);
-    gdk_window_reparent(window, parentWindow,
-                        DevicePixelsToGdkCoordRoundDown(mBounds.x),
-                        DevicePixelsToGdkCoordRoundDown(mBounds.y));
   }
 
   // Also label mShell toplevel window,

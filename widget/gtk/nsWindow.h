@@ -703,10 +703,6 @@ class nsWindow final : public nsBaseWidget {
   bool mPendingBoundsChangeMayChangeCsdMargin : 1;
   // Draw titlebar with :backdrop css state (inactive/unfocused).
   bool mTitlebarBackdropState : 1;
-  // It's child window, i.e. window which is nested in parent window.
-  // This is obsoleted and should not be used.
-  // We use GdkWindow hierarchy for such windows.
-  bool mIsChildWindow : 1;
   bool mAlwaysOnTop : 1;
   bool mNoAutoHide : 1;
   bool mIsTransparent : 1;
