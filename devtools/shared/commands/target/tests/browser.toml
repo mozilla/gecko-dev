@@ -45,7 +45,10 @@ skip-if = ["os == 'linux' && os_version == '18.04' && processor == 'x86_64' && t
 ["browser_target_command_service_workers.js"]
 
 ["browser_target_command_service_workers_navigation.js"]
-skip-if = ["os == 'linux' && os_version == '18.04' && processor == 'x86_64' && asan"] # Bug 1767781
+skip-if = [
+  "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && asan", # Bug 1767781
+  "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && debug", # Bug 1872255
+]
 
 ["browser_target_command_service_workers_navigation_stopped.js"]
 skip-if = [

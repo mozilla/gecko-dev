@@ -29,6 +29,7 @@ prefs = [
 ["browser_dbg-backgroundtask-debugging.js"]
 skip-if = [
   "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && asan", # Bug 1591064
+  "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && debug", # Bug 1591064
   "os == 'mac' && os_version == '14.70' && processor == 'x86_64'", # Bug 1937229
   "os == 'win' && os_version == '11.26100' && processor == 'x86_64' && asan", # Bug 1591064
 ]
@@ -174,6 +175,9 @@ fail-if = ["a11y_checks"] # Bug 1849028 clicked element may not be focusable and
 
 ["browser_dbg-event-breakpoints.js"]
 fail-if = ["a11y_checks"] # Bug 1849028 clicked element may not be focusable and/or labeled
+skip-if = [
+  "os == 'mac' && os_version == '14.70' && processor == 'x86_64' && debug", # Bug 1959062
+]
 
 ["browser_dbg-event-handler.js"]
 

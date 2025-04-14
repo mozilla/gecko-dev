@@ -154,6 +154,11 @@ fail-if = ["a11y_checks"] # Bug 1849028 clicked element may not be focusable and
 
 ["browser_touch_event_iframes.js"]
 fail-if = ["a11y_checks"] # Bug 1849028 clicked element may not be focusable and/or labeled
+skip-if = [
+  "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && debug", # Bug 1767692
+  "os == 'win' && os_version == '11.26100' && processor == 'x86_64' && asan", # Bug 1767692
+  "os == 'win' && os_version == '11.26100' && processor == 'x86_64' && opt", # Bug 1767692
+]
 
 ["browser_touch_event_should_bubble.js"]
 

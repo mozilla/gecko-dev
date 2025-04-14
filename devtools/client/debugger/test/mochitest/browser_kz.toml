@@ -113,8 +113,7 @@ fail-if = ["a11y_checks"] # Bug 1849028 clicked element may not be focusable and
 
 ["browser_dbg-pretty-print-sourcemap.js"]
 skip-if = [
-  "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && tsan", # Bug 1817966
-  "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && asan", # Bug 1817966
+  "os == 'linux' && os_version == '18.04' && processor == 'x86_64'", # Bug 1817966
   "os == 'win' && os_version == '11.26100' && processor == 'x86_64' && ccov", # Bug 1817966
 ]
 
@@ -131,7 +130,7 @@ fail-if = ["a11y_checks"] # Bug 1849028 clicked element may not be focusable and
 ["browser_dbg-preview-invalid-tokens.js"]
 skip-if = [
   "os == 'linux' && os_version == '18.04' && processor == 'x86_64'", # This specific test is heavily intermittent, and sometimes leaks on debug.
-  "os == 'mac' && os_version == '14.70' && processor == 'x86_64' && opt",
+  "os == 'mac' && os_version == '14.70' && processor == 'x86_64'", # Bug 1958748
   "os == 'win' && os_version == '11.26100' && processor == 'x86_64'",
 ]
 

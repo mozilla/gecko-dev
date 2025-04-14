@@ -197,6 +197,7 @@ https_first_disabled = true
 skip-if = [
   "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && debug && http3", # Bug 1715916 - test is having race conditions on slow hardware
   "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && tsan", # high frequency intermittent
+  "os == 'win' && os_version == '11.26100' && processor == 'x86_64' && asan", # Bug 1767758
 ]
 
 ["browser_storage_listings.js"]

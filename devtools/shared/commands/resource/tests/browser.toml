@@ -79,6 +79,11 @@ support-files = [
 ["browser_resources_platform_messages.js"]
 
 ["browser_resources_reflows.js"]
+skip-if = [
+  "os == 'mac' && os_version == '14.70' && processor == 'x86_64' && debug", # Bug 1767771
+  "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && debug", # Bug 1767771
+  "os == 'win' && os_version == '11.26100' && processor == 'x86_64' && debug", # Bug 1767771
+]
 
 ["browser_resources_root_node.js"]
 
@@ -90,10 +95,7 @@ support-files = [
 
 ["browser_resources_sources.js"]
 skip-if = [
-  "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && debug && !http3 && !socketprocess_networking", # Bug 1744565
-  "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && debug && socketprocess_networking", # Bug 1744565
-  "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && opt", # Bug 1744565
-  "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && tsan", # Bug 1744565
+  "os == 'linux' && os_version == '18.04' && processor == 'x86_64'", # Bug 1744565
   "os == 'mac' && os_version == '14.70' && processor == 'x86_64' && debug", # Bug 1932913
   "os == 'win' && os_version == '11.26100' && processor == 'x86_64' && asan", # Bug 1767772
   "os == 'win' && os_version == '11.26100' && processor == 'x86_64' && ccov", # Bug 1767772
