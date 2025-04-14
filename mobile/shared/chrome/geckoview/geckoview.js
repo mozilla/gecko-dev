@@ -541,7 +541,10 @@ function createBrowser() {
   // This is only needed for mochitests, so that they honor the
   // prefers-color-scheme.content-override pref. GeckoView doesn't set this
   // pref to anything other than the default value otherwise.
-  browser.style.colorScheme = "env(-moz-content-preferred-color-scheme)";
+  browser.setAttribute(
+    "style",
+    "color-scheme: env(-moz-content-preferred-color-scheme)"
+  );
 
   return browser;
 }
@@ -951,5 +954,3 @@ function startup() {
 
   InitializationTracker.onInitialized(performance.now());
 }
-
-window.addEventListener("DOMContentLoaded", startup, { once: true });
