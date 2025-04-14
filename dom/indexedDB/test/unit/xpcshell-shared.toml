@@ -96,6 +96,10 @@ skip-if = ["os == 'mac' && os_version == '10.15' && processor == 'x86_64' && deb
 
 ["test_multientry.js"]
 
+["test_multipleOpensInParallel.js"]
+
+["test_multipleOpensInSequence.js"]
+
 ["test_names_sorted.js"]
 
 ["test_objectCursors.js"]
