@@ -637,13 +637,18 @@ async function assertPromises(
   });
 }
 
+const isSlowPlatform =
+  AppConstants.ASAN || AppConstants.DEBUG || AppConstants.TSAN;
 function assertEvents({
   commands,
   targetBeforeNavigation,
   documentEvents,
   expectedTargetFront = commands.targetCommand.targetFront,
   expectedNewURI = gBrowser.selectedBrowser.currentURI.spec,
-  ignoreWillNavigateTimestamp = false,
+  // The will-navigate timestamp has a hardcoded offset of 20ms to be "earlier"
+  // than dom-content-loaded, but it frequently fails on debug/asan/tsan.
+  // The observed failures are within < 5ms.
+  ignoreWillNavigateTimestamp = isSlowPlatform,
   ignoreAllTimestamps = false,
 }) {
   const [willNavigateEvent, loadingEvent, interactiveEvent, completeEvent] =
