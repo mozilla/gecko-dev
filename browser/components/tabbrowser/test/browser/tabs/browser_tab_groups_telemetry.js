@@ -272,6 +272,75 @@ add_task(async function test_tabGroupTelemetrySaveGroup() {
   );
 });
 
+function forgetSavedTabGroups() {
+  let tabGroups = SessionStore.getSavedTabGroups();
+  tabGroups.forEach(tabGroup => SessionStore.forgetSavedTabGroup(tabGroup.id));
+}
+
+add_task(async function test_tabGroupTelemetry_savedGroupMetrics() {
+  forgetSavedTabGroups();
+  await resetTelemetry();
+
+  let group1Tabs = Array.from({ length: 3 }).map(() =>
+    BrowserTestUtils.addTab(win.gBrowser, "https://example.com")
+  );
+  await Promise.all(
+    group1Tabs.map(tab => BrowserTestUtils.browserLoaded(tab.linkedBrowser))
+  );
+
+  let group2Tabs = Array.from({ length: 5 }).map(() =>
+    BrowserTestUtils.addTab(win.gBrowser, "https://example.com")
+  );
+  await Promise.all(
+    group2Tabs.map(tab => BrowserTestUtils.browserLoaded(tab.linkedBrowser))
+  );
+
+  let group1 = win.gBrowser.addTabGroup(group1Tabs);
+  let group2 = win.gBrowser.addTabGroup(group2Tabs);
+  await TabStateFlusher.flushWindow(win);
+  await saveAndCloseGroup(group1);
+  await saveAndCloseGroup(group2);
+
+  await BrowserTestUtils.waitForCondition(() => {
+    return [
+      Glean.tabgroup.savedGroups,
+      Glean.tabgroup.tabsPerSavedGroup.max,
+      Glean.tabgroup.tabsPerSavedGroup.min,
+      Glean.tabgroup.tabsPerSavedGroup.median,
+      Glean.tabgroup.tabsPerSavedGroup.average,
+    ].every(metric => metric.testGetValue());
+  }, "Wait for saved tab group metrics to populate");
+
+  Assert.equal(
+    Glean.tabgroup.savedGroups.testGetValue(),
+    2,
+    "should count 2 saved tab groups"
+  );
+  Assert.equal(
+    Glean.tabgroup.tabsPerSavedGroup.max.testGetValue(),
+    5,
+    "should count 5 tabs as minimum number of tabs"
+  );
+  Assert.equal(
+    Glean.tabgroup.tabsPerSavedGroup.min.testGetValue(),
+    3,
+    "should count 3 tabs as minimum number of tabs"
+  );
+  Assert.equal(
+    Glean.tabgroup.tabsPerSavedGroup.median.testGetValue(),
+    4,
+    "should count 4 tabs as median number of tabs"
+  );
+  Assert.equal(
+    Glean.tabgroup.tabsPerSavedGroup.average.testGetValue(),
+    4,
+    "should count 4 tabs as average number of tabs"
+  );
+
+  forgetSavedTabGroups();
+  await resetTelemetry();
+});
+
 /**
  * @param {MozTabbrowserTabGroup} tabGroup
  * @returns {Promise<MozPanel>}
