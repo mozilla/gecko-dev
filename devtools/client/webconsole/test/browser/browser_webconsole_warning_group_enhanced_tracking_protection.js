@@ -16,8 +16,8 @@ const IMG_FILE =
   "browser/devtools/client/webconsole/test/browser/test-image.png";
 const TRACKER_IMG = "https://tracking.example.org/" + IMG_FILE;
 
-const CONTENT_BLOCKING_GROUP_LABEL =
-  "The resource at “<URL>” was blocked because content blocking is enabled.";
+const ENHANCED_TRACKING_PROTECTION_GROUP_LABEL =
+  "The resource at “<URL>” was blocked because Enhanced Tracking Protection is enabled.";
 
 const COOKIE_BEHAVIOR_PREF = "network.cookie.cookieBehavior";
 const COOKIE_BEHAVIORS = {
@@ -52,36 +52,36 @@ async function cleanUp() {
 
 add_task(cleanUp);
 
-add_task(async function testContentBlockingMessage() {
+add_task(async function testEnhancedTrackingProtectionMessage() {
   const { hud, tab, win } = await openNewWindowAndConsole(
     "https://tracking.example.org/" + TEST_FILE
   );
   const now = Date.now();
 
-  info("Test content blocking message");
+  info("Test tracking protection message");
   const message =
     `The resource at \u201chttps://tracking.example.com/?1&${now}\u201d ` +
-    `was blocked because content blocking is enabled`;
-  const onContentBlockingWarningMessage = waitForMessageByType(
+    `was blocked because Enhanced Tracking Protection is enabled`;
+  const onEnhancedTrackingProtectionWarningMessage = waitForMessageByType(
     hud,
     message,
     ".warn"
   );
-  emitContentBlockingMessage(tab, `${TRACKER_URL}?1&${now}`);
-  await onContentBlockingWarningMessage;
+  emitEnhancedTrackingProtectionMessage(tab, `${TRACKER_URL}?1&${now}`);
+  await onEnhancedTrackingProtectionWarningMessage;
 
-  ok(true, "The content blocking message was displayed");
+  ok(true, "The tracking protection message was displayed");
 
   info(
-    "Emit a new content blocking message to check that it causes a grouping"
+    "Emit a new tracking protection message to check that it causes a grouping"
   );
-  const onContentBlockingWarningGroupMessage = waitForMessageByType(
+  const onEnhancedTrackingProtectionWarningGroupMessage = waitForMessageByType(
     hud,
-    CONTENT_BLOCKING_GROUP_LABEL,
+    ENHANCED_TRACKING_PROTECTION_GROUP_LABEL,
     ".warn"
   );
-  emitContentBlockingMessage(tab, `${TRACKER_URL}?2&${now}`);
-  const { node } = await onContentBlockingWarningGroupMessage;
+  emitEnhancedTrackingProtectionMessage(tab, `${TRACKER_URL}?2&${now}`);
+  const { node } = await onEnhancedTrackingProtectionWarningGroupMessage;
   is(
     node.querySelector(".warning-group-badge").textContent,
     "2",
@@ -89,7 +89,7 @@ add_task(async function testContentBlockingMessage() {
   );
 
   await checkConsoleOutputForWarningGroup(hud, [
-    `▶︎⚠ ${CONTENT_BLOCKING_GROUP_LABEL} 2`,
+    `▶︎⚠ ${ENHANCED_TRACKING_PROTECTION_GROUP_LABEL} 2`,
   ]);
 
   info("Open the group");
@@ -99,7 +99,7 @@ add_task(async function testContentBlockingMessage() {
   );
 
   await checkConsoleOutputForWarningGroup(hud, [
-    `▼︎⚠ ${CONTENT_BLOCKING_GROUP_LABEL} 2`,
+    `▼︎⚠ ${ENHANCED_TRACKING_PROTECTION_GROUP_LABEL} 2`,
     `| The resource at \u201chttps://tracking.example.com/?1&${now}\u201d was blocked`,
     `| The resource at \u201chttps://tracking.example.com/?2&${now}\u201d was blocked`,
   ]);
@@ -113,7 +113,7 @@ add_task(async function testForeignCookieBlockedMessage() {
   await testStorageAccessBlockedGrouping(
     "Request to access cookie or storage on " +
       "“<URL>” was blocked because we are blocking all third-party storage access " +
-      "requests and content blocking is enabled."
+      "requests and Enhanced Tracking Protection is enabled."
   );
 });
 
@@ -124,7 +124,7 @@ add_task(async function testLimitForeignCookieBlockedMessage() {
   await testStorageAccessBlockedGrouping(
     "Request to access cookie or storage on " +
       "“<URL>” was blocked because we are blocking all third-party storage access " +
-      "requests and content blocking is enabled."
+      "requests and Enhanced Tracking Protection is enabled."
   );
 });
 
@@ -144,7 +144,7 @@ add_task(async function testTrackerCookieBlockedMessage() {
   await pushPref(COOKIE_BEHAVIOR_PREF, COOKIE_BEHAVIORS.REJECT_TRACKER);
   await testStorageAccessBlockedGrouping(
     "Request to access cookie or storage on " +
-      "“<URL>” was blocked because it came from a tracker and content blocking is " +
+      "“<URL>” was blocked because it came from a tracker and Enhanced Tracking Protection is " +
       "enabled."
   );
 });
@@ -201,16 +201,16 @@ async function testStorageAccessBlockedGrouping(groupLabel) {
   await onStorageAccessBlockedMessage;
 
   info(
-    "Emit a new content blocking message to check that it causes a grouping"
+    "Emit a new Enhanced Tracking Protection message to check that it causes a grouping"
   );
 
-  const onContentBlockingWarningGroupMessage = waitForMessageByType(
+  const onEnhancedTrackingProtectionWarningGroupMessage = waitForMessageByType(
     hud,
     groupLabel,
     ".warn"
   );
   emitStorageAccessBlockedMessage(tab, `${TRACKER_IMG}?2&${now}`);
-  const { node } = await onContentBlockingWarningGroupMessage;
+  const { node } = await onEnhancedTrackingProtectionWarningGroupMessage;
   is(
     node.querySelector(".warning-group-badge").textContent,
     "2",
@@ -234,11 +234,11 @@ async function testStorageAccessBlockedGrouping(groupLabel) {
 }
 
 /**
- * Emit a Content Blocking message. This is done by loading an iframe from an origin
+ * Emit an Enhanced Tracking Protection message. This is done by loading an iframe from an origin
  * tagged as tracker. The image is loaded with a incremented counter query parameter
  * each time so we can get the warning message.
  */
-function emitContentBlockingMessage(tab, url) {
+function emitEnhancedTrackingProtectionMessage(tab, url) {
   SpecialPowers.spawn(tab.linkedBrowser, [url], function (innerURL) {
     content.wrappedJSObject.loadIframe(innerURL);
   });

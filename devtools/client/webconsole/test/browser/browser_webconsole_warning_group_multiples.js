@@ -12,20 +12,20 @@ const TEST_FILE =
 const TEST_URI = "https://example.org/" + TEST_FILE;
 
 const TRACKER_URL = "https://tracking.example.com/";
-const FILE_PATH =
+const IMG_FILE =
   "browser/devtools/client/webconsole/test/browser/test-image.png";
-const CONTENT_BLOCKED_URL = TRACKER_URL + FILE_PATH;
-const STORAGE_BLOCKED_URL = "https://example.com/" + FILE_PATH;
+const CONTENT_BLOCKED_BY_ETP_URL = TRACKER_URL + IMG_FILE;
+const STORAGE_BLOCKED_URL = "https://example.com/" + IMG_FILE;
 
 const COOKIE_BEHAVIOR_PREF = "network.cookie.cookieBehavior";
 const COOKIE_BEHAVIORS_REJECT_FOREIGN = 1;
 
-const CONTENT_BLOCKED_GROUP_LABEL =
-  "The resource at “<URL>” was blocked because content blocking is enabled.";
+const ENHANCED_TRACKING_PROTECTION_GROUP_LABEL =
+  "The resource at “<URL>” was blocked because Enhanced Tracking Protection is enabled.";
 const STORAGE_BLOCKED_GROUP_LABEL =
   "Request to access cookie or storage on “<URL>” " +
   "was blocked because we are blocking all third-party storage access requests and " +
-  "content blocking is enabled.";
+  "Enhanced Tracking Protection is enabled.";
 
 const { UrlClassifierTestUtils } = ChromeUtils.importESModule(
   "resource://testing-common/UrlClassifierTestUtils.sys.mjs"
@@ -38,7 +38,7 @@ registerCleanupFunction(function () {
 pushPref("privacy.trackingprotection.enabled", true);
 pushPref("devtools.webconsole.groupWarningMessages", true);
 
-add_task(async function testContentBlockingMessage() {
+add_task(async function testEnhancedTrackingProtectionMessage() {
   await pushPref(COOKIE_BEHAVIOR_PREF, COOKIE_BEHAVIORS_REJECT_FOREIGN);
   await pushPref("devtools.webconsole.persistlog", true);
 
@@ -52,13 +52,13 @@ add_task(async function testContentBlockingMessage() {
   info(
     "Log a tracking protection message to check a single message isn't grouped"
   );
-  let onContentBlockedMessage = waitForMessageByType(
+  let onContentBlockedByETPWarningMessage = waitForMessageByType(
     hud,
-    CONTENT_BLOCKED_URL,
+    CONTENT_BLOCKED_BY_ETP_URL,
     ".warn"
   );
-  emitContentBlockingMessage(hud);
-  let { node } = await onContentBlockedMessage;
+  emitEnhancedTrackingProtectionMessage(hud);
+  let { node } = await onContentBlockedByETPWarningMessage;
   is(
     node.querySelector(".warning-indent"),
     null,
@@ -76,23 +76,23 @@ add_task(async function testContentBlockingMessage() {
   info(
     "Log a second tracking protection message to check that it causes the grouping"
   );
-  let onContentBlockedWarningGroupMessage = waitForMessageByType(
+  let onContentBlockedByETPWarningGroupMessage = waitForMessageByType(
     hud,
-    CONTENT_BLOCKED_GROUP_LABEL,
+    ENHANCED_TRACKING_PROTECTION_GROUP_LABEL,
     ".warn"
   );
-  emitContentBlockingMessage(hud);
-  const { node: contentBlockedWarningGroupNode } =
-    await onContentBlockedWarningGroupMessage;
+  emitEnhancedTrackingProtectionMessage(hud);
+  const { node: contentBlockedByETPWarningGroupNode } =
+    await onContentBlockedByETPWarningGroupMessage;
   is(
-    contentBlockedWarningGroupNode.querySelector(".warning-group-badge")
+    contentBlockedByETPWarningGroupNode.querySelector(".warning-group-badge")
       .textContent,
     "2",
     "The badge has the expected text"
   );
 
   await checkConsoleOutputForWarningGroup(hud, [
-    `▶︎⚠ ${CONTENT_BLOCKED_GROUP_LABEL}`,
+    `▶︎⚠ ${ENHANCED_TRACKING_PROTECTION_GROUP_LABEL}`,
     `simple message 1`,
   ]);
 
@@ -119,7 +119,7 @@ add_task(async function testContentBlockingMessage() {
   await logString(hud, "simple message 2");
 
   await checkConsoleOutputForWarningGroup(hud, [
-    `▶︎⚠ ${CONTENT_BLOCKED_GROUP_LABEL}`,
+    `▶︎⚠ ${ENHANCED_TRACKING_PROTECTION_GROUP_LABEL}`,
     `simple message 1`,
     `${STORAGE_BLOCKED_URL}`,
     `simple message 2`,
@@ -148,7 +148,7 @@ add_task(async function testContentBlockingMessage() {
   await waitFor(() => findWarningMessage(hud, STORAGE_BLOCKED_URL));
 
   await checkConsoleOutputForWarningGroup(hud, [
-    `▶︎⚠ ${CONTENT_BLOCKED_GROUP_LABEL}`,
+    `▶︎⚠ ${ENHANCED_TRACKING_PROTECTION_GROUP_LABEL}`,
     `simple message 1`,
     `▼︎⚠ ${STORAGE_BLOCKED_GROUP_LABEL}`,
     `| ${STORAGE_BLOCKED_URL}?3`,
@@ -168,7 +168,7 @@ add_task(async function testContentBlockingMessage() {
   await onStorageBlockedMessage;
 
   await checkConsoleOutputForWarningGroup(hud, [
-    `▶︎⚠ ${CONTENT_BLOCKED_GROUP_LABEL}`,
+    `▶︎⚠ ${ENHANCED_TRACKING_PROTECTION_GROUP_LABEL}`,
     `simple message 1`,
     `▼︎⚠ ${STORAGE_BLOCKED_GROUP_LABEL}`,
     `| ${STORAGE_BLOCKED_URL}?3`,
@@ -178,20 +178,20 @@ add_task(async function testContentBlockingMessage() {
   ]);
 
   info(
-    "Add a content blocked message to check the first group badge is updated"
+    "Add a message indicating content was blocked by Enhanced Tracking Protection to check the first group badge is updated"
   );
-  emitContentBlockingMessage();
-  await waitForBadgeNumber(contentBlockedWarningGroupNode, 3);
+  emitEnhancedTrackingProtectionMessage();
+  await waitForBadgeNumber(contentBlockedByETPWarningGroupNode, 3);
 
   info("Expand the first warning group");
-  contentBlockedWarningGroupNode.querySelector(".arrow").click();
-  await waitFor(() => findWarningMessage(hud, CONTENT_BLOCKED_URL));
+  contentBlockedByETPWarningGroupNode.querySelector(".arrow").click();
+  await waitFor(() => findWarningMessage(hud, CONTENT_BLOCKED_BY_ETP_URL));
 
   await checkConsoleOutputForWarningGroup(hud, [
-    `▼︎⚠ ${CONTENT_BLOCKED_GROUP_LABEL}`,
-    `| ${CONTENT_BLOCKED_URL}?1`,
-    `| ${CONTENT_BLOCKED_URL}?2`,
-    `| ${CONTENT_BLOCKED_URL}?6`,
+    `▼︎⚠ ${ENHANCED_TRACKING_PROTECTION_GROUP_LABEL}`,
+    `| ${CONTENT_BLOCKED_BY_ETP_URL}?1`,
+    `| ${CONTENT_BLOCKED_BY_ETP_URL}?2`,
+    `| ${CONTENT_BLOCKED_BY_ETP_URL}?6`,
     `simple message 1`,
     `▼︎⚠ ${STORAGE_BLOCKED_GROUP_LABEL}`,
     `| ${STORAGE_BLOCKED_URL}?3`,
@@ -217,19 +217,19 @@ add_task(async function testContentBlockingMessage() {
   emitStorageAccessBlockedMessage(hud);
   await onStorageBlockedMessage;
 
-  onContentBlockedMessage = waitForMessageByType(
+  onContentBlockedByETPWarningMessage = waitForMessageByType(
     hud,
-    CONTENT_BLOCKED_URL,
+    CONTENT_BLOCKED_BY_ETP_URL,
     ".warn"
   );
-  emitContentBlockingMessage(hud);
-  await onContentBlockedMessage;
+  emitEnhancedTrackingProtectionMessage(hud);
+  await onContentBlockedByETPWarningMessage;
 
   await checkConsoleOutputForWarningGroup(hud, [
-    `▼︎⚠ ${CONTENT_BLOCKED_GROUP_LABEL}`,
-    `| ${CONTENT_BLOCKED_URL}?1`,
-    `| ${CONTENT_BLOCKED_URL}?2`,
-    `| ${CONTENT_BLOCKED_URL}?6`,
+    `▼︎⚠ ${ENHANCED_TRACKING_PROTECTION_GROUP_LABEL}`,
+    `| ${CONTENT_BLOCKED_BY_ETP_URL}?1`,
+    `| ${CONTENT_BLOCKED_BY_ETP_URL}?2`,
+    `| ${CONTENT_BLOCKED_BY_ETP_URL}?6`,
     `simple message 1`,
     `▼︎⚠ ${STORAGE_BLOCKED_GROUP_LABEL}`,
     `| ${STORAGE_BLOCKED_URL}?3`,
@@ -238,7 +238,7 @@ add_task(async function testContentBlockingMessage() {
     `simple message 2`,
     `Navigated to`,
     `${STORAGE_BLOCKED_URL}?7`,
-    `${CONTENT_BLOCKED_URL}?8`,
+    `${CONTENT_BLOCKED_BY_ETP_URL}?8`,
   ]);
 
   info(
@@ -252,19 +252,19 @@ add_task(async function testContentBlockingMessage() {
   emitStorageAccessBlockedMessage();
   await onStorageBlockedWarningGroupMessage;
 
-  onContentBlockedWarningGroupMessage = waitForMessageByType(
+  onContentBlockedByETPWarningGroupMessage = waitForMessageByType(
     hud,
-    CONTENT_BLOCKED_GROUP_LABEL,
+    ENHANCED_TRACKING_PROTECTION_GROUP_LABEL,
     ".warn"
   );
-  emitContentBlockingMessage();
-  await onContentBlockedWarningGroupMessage;
+  emitEnhancedTrackingProtectionMessage();
+  await onContentBlockedByETPWarningGroupMessage;
 
   await checkConsoleOutputForWarningGroup(hud, [
-    `▼︎⚠ ${CONTENT_BLOCKED_GROUP_LABEL}`,
-    `| ${CONTENT_BLOCKED_URL}?1`,
-    `| ${CONTENT_BLOCKED_URL}?2`,
-    `| ${CONTENT_BLOCKED_URL}?6`,
+    `▼︎⚠ ${ENHANCED_TRACKING_PROTECTION_GROUP_LABEL}`,
+    `| ${CONTENT_BLOCKED_BY_ETP_URL}?1`,
+    `| ${CONTENT_BLOCKED_BY_ETP_URL}?2`,
+    `| ${CONTENT_BLOCKED_BY_ETP_URL}?6`,
     `simple message 1`,
     `▼︎⚠ ${STORAGE_BLOCKED_GROUP_LABEL}`,
     `| ${STORAGE_BLOCKED_URL}?3`,
@@ -273,7 +273,7 @@ add_task(async function testContentBlockingMessage() {
     `simple message 2`,
     `Navigated to`,
     `▶︎⚠ ${STORAGE_BLOCKED_GROUP_LABEL}`,
-    `▶︎⚠ ${CONTENT_BLOCKED_GROUP_LABEL}`,
+    `▶︎⚠ ${ENHANCED_TRACKING_PROTECTION_GROUP_LABEL}`,
   ]);
 });
 
@@ -281,12 +281,12 @@ let cpt = 0;
 const now = Date.now();
 
 /**
- * Emit a Content Blocking message. This is done by loading an image from an origin
- * tagged as tracker. The image is loaded with a incremented counter query parameter
- * each time so we can get the warning message.
+ * Emit an Enhanced Tracking Protection message. This is done by loading an image from
+ * an origin tagged as tracker. The image is loaded with a incremented counter query
+ * parameter each time so we can get the warning message.
  */
-function emitContentBlockingMessage() {
-  const url = `${CONTENT_BLOCKED_URL}?${++cpt}-${now}`;
+function emitEnhancedTrackingProtectionMessage() {
+  const url = `${CONTENT_BLOCKED_BY_ETP_URL}?${++cpt}-${now}`;
   SpecialPowers.spawn(gBrowser.selectedBrowser, [url], function (innerURL) {
     content.wrappedJSObject.loadImage(innerURL);
   });

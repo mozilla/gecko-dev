@@ -711,11 +711,11 @@ fail-if = ["a11y_checks"] # Bug 1849028 clicked element may not be focusable and
 
 ["browser_webconsole_warn_about_replaced_api.js"]
 
-["browser_webconsole_warning_group_content_blocking.js"]
-
 ["browser_webconsole_warning_group_cookies.js"]
 
 ["browser_webconsole_warning_group_csp.js"]
+
+["browser_webconsole_warning_group_enhanced_tracking_protection.js"]
 
 ["browser_webconsole_warning_group_multiples.js"]
 

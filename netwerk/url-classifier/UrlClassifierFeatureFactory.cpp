@@ -337,19 +337,19 @@ struct BlockingErrorCode {
 static constexpr BlockingErrorCode sBlockingErrorCodes[] = {
     {NS_ERROR_TRACKING_URI,
      nsIWebProgressListener::STATE_BLOCKED_TRACKING_CONTENT,
-     "TrackerUriBlocked", "Tracking Protection"_ns},
+     "TrackerUriBlockedByETP", "Tracking Protection"_ns},
     {NS_ERROR_FINGERPRINTING_URI,
      nsIWebProgressListener::STATE_BLOCKED_FINGERPRINTING_CONTENT,
-     "TrackerUriBlocked", "Tracking Protection"_ns},
+     "TrackerUriBlockedByETP", "Tracking Protection"_ns},
     {NS_ERROR_CRYPTOMINING_URI,
      nsIWebProgressListener::STATE_BLOCKED_CRYPTOMINING_CONTENT,
-     "TrackerUriBlocked", "Tracking Protection"_ns},
+     "TrackerUriBlockedByETP", "Tracking Protection"_ns},
     {NS_ERROR_SOCIALTRACKING_URI,
      nsIWebProgressListener::STATE_BLOCKED_SOCIALTRACKING_CONTENT,
-     "TrackerUriBlocked", "Tracking Protection"_ns},
+     "TrackerUriBlockedByETP", "Tracking Protection"_ns},
     {NS_ERROR_EMAILTRACKING_URI,
      nsIWebProgressListener::STATE_BLOCKED_EMAILTRACKING_CONTENT,
-     "TrackerUriBlocked", "Tracking Protection"_ns},
+     "TrackerUriBlockedByETP", "Tracking Protection"_ns},
 };
 
 }  // namespace

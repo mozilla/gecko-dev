@@ -11,9 +11,9 @@ const TEST_FILE =
 const TEST_URI = "https://example.org/" + TEST_FILE;
 
 const TRACKER_URL = "https://tracking.example.com/";
-const BLOCKED_URL =
-  TRACKER_URL +
+const IMG_FILE =
   "browser/devtools/client/webconsole/test/browser/test-image.png";
+const CONTENT_BLOCKED_BY_ETP_URL = TRACKER_URL + IMG_FILE;
 
 const { UrlClassifierTestUtils } = ChromeUtils.importESModule(
   "resource://testing-common/UrlClassifierTestUtils.sys.mjs"
@@ -26,10 +26,10 @@ registerCleanupFunction(function () {
 // Tracking protection preferences
 pushPref("privacy.trackingprotection.enabled", true);
 
-const CONTENT_BLOCKING_GROUP_LABEL =
-  "The resource at “<URL>” was blocked because content blocking is enabled.";
+const ENHANCED_TRACKING_PROTECTION_GROUP_LABEL =
+  "The resource at “<URL>” was blocked because Enhanced Tracking Protection is enabled.";
 
-add_task(async function testContentBlockingMessage() {
+add_task(async function testEnhancedTrackingProtectionMessage() {
   // Enable groupWarning and persist log
   await pushPref("devtools.webconsole.groupWarningMessages", true);
 
@@ -55,18 +55,18 @@ add_task(async function testContentBlockingMessage() {
     "Log a tracking protection message to check a single message isn't grouped"
   );
   const now = Date.now();
-  let onContentBlockingWarningMessage = waitForMessageByType(
+  let onContentBlockedByETPWarningMessage = waitForMessageByType(
     hud,
-    BLOCKED_URL,
+    CONTENT_BLOCKED_BY_ETP_URL,
     ".warn"
   );
-  emitContentBlockedMessage(now);
-  await onContentBlockingWarningMessage;
+  emitEnhancedTrackingProtectionMessage(now);
+  await onContentBlockedByETPWarningMessage;
 
   await checkConsoleOutputForWarningGroup(hud, [
     `▼ myGroup`,
     `| log in group`,
-    `| ${BLOCKED_URL}?${now}-1`,
+    `| ${CONTENT_BLOCKED_BY_ETP_URL}?${now}-1`,
   ]);
 
   info("Collapse the console.group");
@@ -82,34 +82,35 @@ add_task(async function testContentBlockingMessage() {
   await checkConsoleOutputForWarningGroup(hud, [
     `▼ myGroup`,
     `| log in group`,
-    `| ${BLOCKED_URL}?${now}-1`,
+    `| ${CONTENT_BLOCKED_BY_ETP_URL}?${now}-1`,
   ]);
 
   info(
     "Log a second tracking protection message to check that it causes the grouping"
   );
-  const onContentBlockingWarningGroupMessage = waitForMessageByType(
+  const onContentBlockedByETPWarningGroupMessage = waitForMessageByType(
     hud,
-    CONTENT_BLOCKING_GROUP_LABEL,
+    ENHANCED_TRACKING_PROTECTION_GROUP_LABEL,
     ".warn"
   );
-  emitContentBlockedMessage(now);
-  const { node: warningGroupNode } = await onContentBlockingWarningGroupMessage;
+  emitEnhancedTrackingProtectionMessage(now);
+  const { node: warningGroupNode } =
+    await onContentBlockedByETPWarningGroupMessage;
 
   await checkConsoleOutputForWarningGroup(hud, [
-    `▶︎⚠ ${CONTENT_BLOCKING_GROUP_LABEL}`,
+    `▶︎⚠ ${ENHANCED_TRACKING_PROTECTION_GROUP_LABEL}`,
     `▼ myGroup`,
     `| log in group`,
   ]);
 
   info("Open the warning group");
   warningGroupNode.querySelector(".arrow").click();
-  await waitFor(() => findWarningMessage(hud, BLOCKED_URL));
+  await waitFor(() => findWarningMessage(hud, CONTENT_BLOCKED_BY_ETP_URL));
 
   await checkConsoleOutputForWarningGroup(hud, [
-    `▼︎⚠ ${CONTENT_BLOCKING_GROUP_LABEL}`,
-    `| ${BLOCKED_URL}?${now}-1`,
-    `| ${BLOCKED_URL}?${now}-2`,
+    `▼︎⚠ ${ENHANCED_TRACKING_PROTECTION_GROUP_LABEL}`,
+    `| ${CONTENT_BLOCKED_BY_ETP_URL}?${now}-1`,
+    `| ${CONTENT_BLOCKED_BY_ETP_URL}?${now}-2`,
     `▼ myGroup`,
     `| log in group`,
   ]);
@@ -117,20 +118,20 @@ add_task(async function testContentBlockingMessage() {
   info(
     "Log a new tracking protection message to check it appears inside the group"
   );
-  onContentBlockingWarningMessage = waitForMessageByType(
+  onContentBlockedByETPWarningMessage = waitForMessageByType(
     hud,
-    BLOCKED_URL,
+    CONTENT_BLOCKED_BY_ETP_URL,
     ".warn"
   );
-  emitContentBlockedMessage(now);
-  await onContentBlockingWarningMessage;
+  emitEnhancedTrackingProtectionMessage(now);
+  await onContentBlockedByETPWarningMessage;
   ok(true, "The new tracking protection message is displayed");
 
   await checkConsoleOutputForWarningGroup(hud, [
-    `▼︎⚠ ${CONTENT_BLOCKING_GROUP_LABEL}`,
-    `| ${BLOCKED_URL}?${now}-1`,
-    `| ${BLOCKED_URL}?${now}-2`,
-    `| ${BLOCKED_URL}?${now}-3`,
+    `▼︎⚠ ${ENHANCED_TRACKING_PROTECTION_GROUP_LABEL}`,
+    `| ${CONTENT_BLOCKED_BY_ETP_URL}?${now}-1`,
+    `| ${CONTENT_BLOCKED_BY_ETP_URL}?${now}-2`,
+    `| ${CONTENT_BLOCKED_BY_ETP_URL}?${now}-3`,
     `▼ myGroup`,
     `| log in group`,
   ]);
@@ -143,10 +144,10 @@ add_task(async function testContentBlockingMessage() {
   await onInGroupMessage;
 
   await checkConsoleOutputForWarningGroup(hud, [
-    `▼︎⚠ ${CONTENT_BLOCKING_GROUP_LABEL}`,
-    `| ${BLOCKED_URL}?${now}-1`,
-    `| ${BLOCKED_URL}?${now}-2`,
-    `| ${BLOCKED_URL}?${now}-3`,
+    `▼︎⚠ ${ENHANCED_TRACKING_PROTECTION_GROUP_LABEL}`,
+    `| ${CONTENT_BLOCKED_BY_ETP_URL}?${now}-1`,
+    `| ${CONTENT_BLOCKED_BY_ETP_URL}?${now}-2`,
+    `| ${CONTENT_BLOCKED_BY_ETP_URL}?${now}-3`,
     `▼ myGroup`,
     `| log in group`,
     `| second log in group`,
@@ -157,19 +158,19 @@ add_task(async function testContentBlockingMessage() {
   await waitFor(() => !findConsoleAPIMessage(hud, "log in group"));
 
   await checkConsoleOutputForWarningGroup(hud, [
-    `▼︎⚠ ${CONTENT_BLOCKING_GROUP_LABEL}`,
-    `| ${BLOCKED_URL}?${now}-1`,
-    `| ${BLOCKED_URL}?${now}-2`,
-    `| ${BLOCKED_URL}?${now}-3`,
+    `▼︎⚠ ${ENHANCED_TRACKING_PROTECTION_GROUP_LABEL}`,
+    `| ${CONTENT_BLOCKED_BY_ETP_URL}?${now}-1`,
+    `| ${CONTENT_BLOCKED_BY_ETP_URL}?${now}-2`,
+    `| ${CONTENT_BLOCKED_BY_ETP_URL}?${now}-3`,
     `▶︎ myGroup`,
   ]);
 
   info("Close the warning group");
   warningGroupNode.querySelector(".arrow").click();
-  await waitFor(() => !findWarningMessage(hud, BLOCKED_URL));
+  await waitFor(() => !findWarningMessage(hud, CONTENT_BLOCKED_BY_ETP_URL));
 
   await checkConsoleOutputForWarningGroup(hud, [
-    `▶︎⚠ ${CONTENT_BLOCKING_GROUP_LABEL}`,
+    `▶︎⚠ ${ENHANCED_TRACKING_PROTECTION_GROUP_LABEL}`,
     `▶︎ myGroup`,
   ]);
 
@@ -178,7 +179,7 @@ add_task(async function testContentBlockingMessage() {
   await waitFor(() => findConsoleAPIMessage(hud, "log in group"));
 
   await checkConsoleOutputForWarningGroup(hud, [
-    `▶︎⚠ ${CONTENT_BLOCKING_GROUP_LABEL}`,
+    `▶︎⚠ ${ENHANCED_TRACKING_PROTECTION_GROUP_LABEL}`,
     `▼ myGroup`,
     `| log in group`,
     `| second log in group`,
@@ -189,31 +190,31 @@ add_task(async function testContentBlockingMessage() {
   await waitFor(() => !findConsoleAPIMessage(hud, "log in group"));
 
   await checkConsoleOutputForWarningGroup(hud, [
-    `▶︎⚠ ${CONTENT_BLOCKING_GROUP_LABEL}`,
+    `▶︎⚠ ${ENHANCED_TRACKING_PROTECTION_GROUP_LABEL}`,
     `▶︎ myGroup`,
   ]);
 
   info("Open the warning group");
   warningGroupNode.querySelector(".arrow").click();
-  await waitFor(() => findWarningMessage(hud, BLOCKED_URL));
+  await waitFor(() => findWarningMessage(hud, CONTENT_BLOCKED_BY_ETP_URL));
 
   await checkConsoleOutputForWarningGroup(hud, [
-    `▼︎⚠ ${CONTENT_BLOCKING_GROUP_LABEL}`,
-    `| ${BLOCKED_URL}?${now}-1`,
-    `| ${BLOCKED_URL}?${now}-2`,
-    `| ${BLOCKED_URL}?${now}-3`,
+    `▼︎⚠ ${ENHANCED_TRACKING_PROTECTION_GROUP_LABEL}`,
+    `| ${CONTENT_BLOCKED_BY_ETP_URL}?${now}-1`,
+    `| ${CONTENT_BLOCKED_BY_ETP_URL}?${now}-2`,
+    `| ${CONTENT_BLOCKED_BY_ETP_URL}?${now}-3`,
     `▶︎ myGroup`,
   ]);
 });
 
 let cpt = 0;
 /**
- * Emit a Content Blocking message. This is done by loading an image from an origin
+ * Emit an Enhanced Tracking Protection message. This is done by loading an image from an origin
  * tagged as tracker. The image is loaded with a incremented counter query parameter
  * each time so we can get the warning message.
  */
-function emitContentBlockedMessage(prefix) {
-  const url = `${BLOCKED_URL}?${prefix}-${++cpt}`;
+function emitEnhancedTrackingProtectionMessage(prefix) {
+  const url = `${CONTENT_BLOCKED_BY_ETP_URL}?${prefix}-${++cpt}`;
   SpecialPowers.spawn(gBrowser.selectedBrowser, [url], function (innerURL) {
     content.wrappedJSObject.loadImage(innerURL);
   });

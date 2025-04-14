@@ -167,7 +167,7 @@ void ReportBlockingToConsole(uint64_t aWindowID, nsIURI* aURI,
             break;
 
           case uint32_t(nsIWebProgressListener::STATE_COOKIES_BLOCKED_TRACKER):
-            message = "CookieBlockedTracker";
+            message = "CookieBlockedTrackerByETP";
             category = "cookieBlockedTracker"_ns;
             break;
 
@@ -177,7 +177,7 @@ void ReportBlockingToConsole(uint64_t aWindowID, nsIURI* aURI,
             break;
 
           case uint32_t(nsIWebProgressListener::STATE_COOKIES_BLOCKED_FOREIGN):
-            message = "CookieBlockedForeign";
+            message = "CookieBlockedForeignByETP";
             category = "cookieBlockedForeign"_ns;
             break;
 
