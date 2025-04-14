@@ -4,7 +4,7 @@
 "use strict";
 
 const { DefaultBrowserCheck } = ChromeUtils.importESModule(
-  "resource:///modules/BrowserGlue.sys.mjs"
+  "moz-src:///browser/components/DefaultBrowserCheck.sys.mjs"
 );
 const { ExperimentFakes } = ChromeUtils.importESModule(
   "resource://testing-common/NimbusTestUtils.sys.mjs"

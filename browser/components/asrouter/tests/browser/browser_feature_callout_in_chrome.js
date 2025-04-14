@@ -5,7 +5,7 @@ const { CustomizableUITestUtils } = ChromeUtils.importESModule(
   "resource://testing-common/CustomizableUITestUtils.sys.mjs"
 );
 const { DefaultBrowserCheck } = ChromeUtils.importESModule(
-  "resource:///modules/BrowserGlue.sys.mjs"
+  "moz-src:///browser/components/DefaultBrowserCheck.sys.mjs"
 );
 
 const PDF_TEST_URL =

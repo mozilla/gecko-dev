@@ -18,7 +18,8 @@ const lazy = {};
 
 ChromeUtils.defineESModuleGetters(lazy, {
   AppMenuNotifications: "resource://gre/modules/AppMenuNotifications.sys.mjs",
-  DefaultBrowserCheck: "resource:///modules/BrowserGlue.sys.mjs",
+  DefaultBrowserCheck:
+    "moz-src:///browser/components/DefaultBrowserCheck.sys.mjs",
   LaterRun: "resource:///modules/LaterRun.sys.mjs",
   SearchStaticData: "resource://gre/modules/SearchStaticData.sys.mjs",
   UrlbarPrefs: "resource:///modules/UrlbarPrefs.sys.mjs",
