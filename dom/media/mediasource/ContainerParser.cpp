@@ -435,9 +435,19 @@ class MP4ContainerParser : public ContainerParser,
         const uint8_t* typec = reader.Peek(4);
         MOZ_TRY_VAR(tmp, reader.ReadU32());
         AtomType type(tmp);
-        MSE_DEBUGVEX(&aParser, "Checking atom:'%c%c%c%c' @ %u", typec[0],
-                     typec[1], typec[2], typec[3],
-                     (uint32_t)reader.Offset() - 8);
+        // We've seen fourcc not being ASCII in the wild. In this rare case,
+        // print hex values instead of the ascii representation.
+        if (isprint(typec[0]) && isprint(typec[1]) && isprint(typec[2]) &&
+            isprint(typec[3])) {
+          MSE_DEBUGVEX(&aParser, "Checking atom:'%c%c%c%c' @ %u", typec[0],
+                       typec[1], typec[2], typec[3],
+                       (uint32_t)reader.Offset() - 8);
+        } else {
+          MSE_DEBUGVEX(&aParser,
+                       "Checking atom (not ASCII):'0x%02x%02x%02x%02x' @ %u",
+                       typec[0], typec[1], typec[2], typec[3],
+                       (uint32_t)reader.Offset() - 8);
+        }
         if (std::find(std::begin(validBoxes), std::end(validBoxes), type) ==
             std::end(validBoxes)) {
           // No valid box found, no point continuing.
