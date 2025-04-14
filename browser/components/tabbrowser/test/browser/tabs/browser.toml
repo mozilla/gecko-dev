@@ -37,6 +37,7 @@ https_first_disabled = true
 
 ["browser_bfcache_exemption_about_pages.js"]
 run-if = ["fission"]
+skip-if = ["os == 'linux' && os_version == '18.04' && processor == 'x86_64' && debug"] # Bug 1934436
 
 ["browser_blank_tab_label.js"]
 tags = "vertical-tabs"
