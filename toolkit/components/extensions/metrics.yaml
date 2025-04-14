@@ -383,6 +383,7 @@ extensions.data:
       first time an extension uses the sync storage API during a session.
     bugs:
       - https://bugzilla.mozilla.org/1915183
+      - https://bugzilla.mozilla.org/1958156
     data_reviews:
       - https://phabricator.services.mozilla.com/D222442
     data_sensitivity:
@@ -405,7 +406,7 @@ extensions.data:
       backend:
         description: Backend engine used, currently either "kinto" or "rust"
         type: string
-    expires: 140
+    expires: 147
 
   migrate_result_count:
     type: labeled_counter
