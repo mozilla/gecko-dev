@@ -82,7 +82,11 @@ prefs = ["network.xhr.block_sync_system_requests=false"] # Bug 721336
 ["test_alt-data_overwrite.js"]
 
 ["test_alt-data_simple.js"]
-skip-if = ["os == 'win'"] # Bug 1760081
+skip-if = [
+  "os == 'win' && os_version == '10.2009' && processor == 'x86_64'", # Bug 1760081
+  "os == 'win' && os_version == '11.26100' && processor == 'x86'", # Bug 1760081
+  "os == 'win' && os_version == '11.26100' && processor == 'x86_64'", # Bug 1760081
+]
 run-sequentially = "very high failure rate in parallel"
 
 ["test_alt-data_stream.js"]
@@ -93,17 +97,16 @@ run-sequentially = "very high failure rate in parallel"
 run-sequentially = "node server exceptions dont replay well"
 
 ["test_altsvc_http3.js"]
-skip-if = [
-  "os == 'android'",
-  "os == 'win' && msix", # Bug 1807931
-]
 run-sequentially = "http3server"
+skip-if = [
+  "os == 'android' && android_version == '24' && processor == 'x86_64'",
+  "os == 'win' && os_version == '10.2009' && processor == 'x86_64'", # Bug 1807931
+  "os == 'win' && os_version == '11.26100' && processor == 'x86'", # Bug 1807931
+  "os == 'win' && os_version == '11.26100' && processor == 'x86_64' && msix", # Bug 1807931
+]
 
 ["test_altsvc_pref.js"]
-skip-if = [
-  "os == 'android'",
-  "os == 'win' && msix", # https://bugzilla.mozilla.org/show_bug.cgi?id=1807931
-]
+skip-if = ["os == 'win' && os_version == '11.26100' && processor == 'x86_64' && msix"]
 
 ["test_anonymous-coalescing.js"]
 
@@ -274,7 +277,7 @@ skip-if = ["appname == 'thunderbird'"]
 
 ["test_bug894586.js"]
 # Allocating 4GB might actually succeed on 64 bit machines
-skip-if = ["bits != 32"]
+run-if = ["processor == 'x86'"]
 
 ["test_bug935499.js"]
 
@@ -291,7 +294,6 @@ skip-if = ["bits != 32"]
 ["test_bug1312774_http1.js"]
 
 ["test_bug1312782_http1.js"]
-skip-if = ["os == 'android'"] # Bug 1700483
 
 ["test_bug1355539_http1.js"]
 
@@ -302,45 +304,43 @@ skip-if = ["os == 'android'"] # Bug 1700483
 ["test_bug1527293.js"]
 
 ["test_bug1683176.js"]
+run-if = ["debug"]
 skip-if = [
-  "os == 'android'",
-  "!debug",
-  "os == 'win' && socketprocess_networking",
+  "os == 'android' && android_version == '24' && processor == 'x86_64'",
+  "os == 'win' && os_version == '11.26100' && processor == 'x86' && socketprocess_networking",
+  "os == 'win' && os_version == '11.26100' && processor == 'x86_64' && socketprocess_networking",
+  "os == 'win' && os_version == '10.2009' && processor == 'x86_64' && socketprocess_networking",
 ]
 
 ["test_bug1725766.js"]
-skip-if = ["os == 'android'"] # skip because of bug 1589327
+
+skip-if = ["os == 'android' && android_version == '24' && processor == 'x86_64'"] # Bug 1589327
 
 ["test_bug1830022.js"]
 prefs = ["network.http.idempotencyKey.enabled=true"]
 
 ["test_bug1883496.js"]
-skip-if = [
-  "os != 'android'",
-]
+run-if = ["os == 'android'"]
 
 ["test_bug1889130.js"]
-skip-if = ["os == 'win'"] # skip because 0.0.0.0 is invalid in windows platform
+run-if = ["os != 'win'"] # skip because 0.0.0.0 is invalid in windows platform
 
 ["test_bug1913022.js"]
 
 ["test_bug1940663.js"]
 
 ["test_bug1948203.js"]
-skip-if = [
-  "os == 'android'", # bug 1622901
-  "os == 'mac' && os_version == '10.15' && processor == 'x86_64' && opt",
-  "os == 'mac' && os_version == '11.20' && arch == 'aarch64' && opt",
-  "asan",
-  "os == 'win'", # https://bugzilla.mozilla.org/show_bug.cgi?id=1808048
-]
 run-sequentially = "node server exceptions dont replay well"
+skip-if = [
+  "os == 'android' && android_version == '24' && processor == 'x86_64'", # Bug 1622901
+  "os == 'win' && os_version == '10.2009' && processor == 'x86_64'", # Bug 1808048
+  "os == 'win' && os_version == '11.26100' && processor == 'x86'", # Bug 1808048
+  "os == 'win' && os_version == '11.26100' && processor == 'x86_64'", # Bug 1808048
+]
 
 ["test_bug_1918928.js"]
-skip-if = [
-  "socketprocess_networking", # confirmation state isn't passed cross-process
-  "appname == 'thunderbird'", # bug 1760097
-]
+run-if = ["!socketprocess_networking"] # confirmation state isn't passed cross-process
+skip-if = ["appname == 'thunderbird'"] # bug 1760097
 
 ["test_cache-control_request.js"]
 
@@ -423,12 +423,10 @@ skip-if = [
 ["test_cache2-27-force-valid-for.js"]
 
 ["test_cache2-28-last-access-attrs.js"]
-# This test will be fixed in bug 1067931
-skip-if = ["true"]
+# JMAHER: maybe skip-if true
 
 ["test_cache2-28a-OPEN_SECRETLY.js"]
-# This test will be fixed in bug 1067931
-skip-if = ["true"]
+# JMAHER: maybe skip-if true
 
 ["test_cache2-29a-concurrent_read_resumable_entry_size_zero.js"]
 
@@ -484,16 +482,11 @@ run-sequentially = "node server exceptions dont replay well"
 prefs = ["security.allow_eval_with_system_principal=true"]
 
 ["test_client_auth_with_proxy.js"]
-skip-if = [
-  "os == 'android'",
-]
+skip-if = ["os == 'android' && android_version == '24' && processor == 'x86_64'"]
 
 ["test_coaleasing_h2_and_h3_connection.js"]
-skip-if = [
-  "os == 'android'",
-  "os == 'win' && msix",
-] # https://bugzilla.mozilla.org/show_bug.cgi?id=1808049
 run-sequentially = "http3server"
+skip-if = ["os == 'win' && os_version == '11.26100' && processor == 'x86_64' && msix"] # Bug 1808049
 
 ["test_compareURIs.js"]
 
@@ -522,7 +515,6 @@ run-sequentially = "http3server"
 ["test_cookiejars_safebrowsing.js"]
 
 ["test_cookies_async_failure.js"]
-skip-if = ["os == 'linux' && bits == 64 && !debug"] #Bug 1553353
 
 ["test_cookies_partition_counting.js"]
 
@@ -531,7 +523,7 @@ skip-if = ["os == 'linux' && bits == 64 && !debug"] #Bug 1553353
 ["test_cookies_privatebrowsing.js"]
 
 ["test_cookies_profile_close.js"]
-skip-if = ["os == 'android'"] # Bug 1700483
+skip-if = ["os == 'android' && android_version == '24' && processor == 'x86_64' && !fission"] # Bug 1700483
 
 ["test_cookies_purge_counting.js"]
 
@@ -575,12 +567,13 @@ skip-if = ["verify"]
 ["test_dns_proxy_bypass.js"]
 
 ["test_dns_retry.js"]
-skip-if = [
-  "os == 'mac' && os_version == '10.15' && processor == 'x86_64'", # server on a local ipv6 is not started on mac
-  "os == 'mac' && os_version == '11.20' && arch == 'aarch64'", # server on a local ipv6 is not started on mac
-  "socketprocess_networking",
-] # bug 1760106
 run-sequentially = "node server exceptions dont replay well"
+run-if = ["os != 'mac'"] # server on a local ipv6 is not started on mac
+skip-if = [
+  "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && socketprocess_networking", # Bug 1760106
+  "os == 'win' && os_version == '11.26100' && processor == 'x86_64' && socketprocess_networking", # Bug 1760106
+  "os == 'win' && os_version == '11.26100' && processor == 'x86' && socketprocess_networking", # Bug 1760106
+]
 
 ["test_dns_service.js"]
 
@@ -588,25 +581,23 @@ run-sequentially = "node server exceptions dont replay well"
 
 ["test_dooh.js"]
 head = "head_channels.js head_cache.js head_cookies.js head_servers.js head_trr.js head_http3.js trr_common.js"
+run-if = ["!socketprocess_networking"]
 run-sequentially = "node server exceptions dont replay well"
-skip-if = ["socketprocess_networking"]
 
 ["test_doomentry.js"]
 
 ["test_duplicate_headers.js"]
 
 ["test_early_hint_listener.js"]
-skip-if = ["os == 'win' && msix"] # https://bugzilla.mozilla.org/show_bug.cgi?id=1807931
 
 ["test_early_hint_listener_http2.js"]
 run-sequentially = "node server exceptions dont replay well"
 
 ["test_ech_grease.js"]
 firefox-appdir = "browser"
-skip-if = ["tsan && socketprocess_networking"] # Bug 1808236
 
 ["test_essential_domain_fallback.js"]
-skip-if = ["socketprocess_networking"] # cancel connections doesn't work in socket proc
+run-if = ["!socketprocess_networking"] # cancel connections doesn't work in socket proc
 
 ["test_event_sink.js"]
 
@@ -653,19 +644,21 @@ run-sequentially = "node server exceptions dont replay well"
 
 ["test_hpke_out_of_process.js"]
 firefox-appdir = "browser"
-skip-if = ["os == 'android'"] # Bug 1904406
+skip-if = ["os == 'android' && android_version == '24' && processor == 'x86_64'"] # Bug 1904406
 
 ["test_http1-proxy.js"]
 
 ["test_http2-proxy-failing.js"]
 run-sequentially = "node server exceptions dont replay well"
 skip-if = [
-  "os == 'win'" # https://bugzilla.mozilla.org/show_bug.cgi?id=1881334
+  "os == 'win' && os_version == '10.2009' && processor == 'x86_64'", # Bug 1881334
+  "os == 'win' && os_version == '11.26100' && processor == 'x86'", # Bug 1881334
+  "os == 'win' && os_version == '11.26100' && processor == 'x86_64'", # Bug 1881334
 ]
 
 ["test_http2-proxy.js"]
 run-sequentially = "one http2 node proxy is used for all tests, this test is using global session counter"
-skip-if = ["os == 'android'"]
+skip-if = ["os == 'android' && android_version == '24' && processor == 'x86_64'"]
 
 ["test_http2.js"]
 run-sequentially = "node server exceptions dont replay well"
@@ -676,159 +669,180 @@ run-sequentially = "node server exceptions dont replay well"
 head = "head_channels.js head_cache.js head_cookies.js head_servers.js head_trr.js head_http3.js http2_test_common.js"
 
 ["test_http3.js"]
-skip-if = [
-  "os == 'win' && msix", # https://bugzilla.mozilla.org/show_bug.cgi?id=1807931
-  "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && !debug && !fission && socketprocess_networking ", # Bug 1925999
-]
 run-sequentially = "http3server"
+skip-if = [
+  "os == 'win' && os_version == '10.2009' && processor == 'x86_64'", # Bug 1807931
+  "os == 'win' && os_version == '11.26100' && processor == 'x86'", # Bug 1807931
+  "os == 'win' && os_version == '11.26100' && processor == 'x86_64' && msix", # Bug 1807931
+]
 
 ["test_http3_0rtt.js"]
 skip-if = [
-  "os == 'win'",
+  "os == 'win' && os_version == '10.2009' && processor == 'x86_64'",
+  "os == 'win' && os_version == '11.26100' && processor == 'x86'",
+  "os == 'win' && os_version == '11.26100' && processor == 'x86_64'",
 ]
 
 ["test_http3_421.js"]
-skip-if = [
-  "os == 'android'",
-  "os == 'win' && msix", # https://bugzilla.mozilla.org/show_bug.cgi?id=1807931
-]
 run-sequentially = "http3server"
+skip-if = [
+  "os == 'android' && android_version == '24' && processor == 'x86_64'",
+  "os == 'win' && os_version == '10.2009' && processor == 'x86_64'", # Bug 1807931
+  "os == 'win' && os_version == '11.26100' && processor == 'x86'", # Bug 1807931
+  "os == 'win' && os_version == '11.26100' && processor == 'x86_64' && msix", # Bug 1807931
+]
 
 ["test_http3_alt_svc.js"]
-skip-if = [
-  "os == 'android'",
-  "os == 'win' && msix", # https://bugzilla.mozilla.org/show_bug.cgi?id=1807931
-]
 run-sequentially = "http3server"
+skip-if = [
+  "os == 'android' && android_version == '24' && processor == 'x86_64'",
+  "os == 'win' && os_version == '11.26100' && processor == 'x86_64' && msix", # Bug 1807931
+]
 
 ["test_http3_coalescing.js"]
-skip-if = [
-  "os == 'android'",
-  "socketprocess_networking",
-  "os == 'win'", # https://bugzilla.mozilla.org/show_bug.cgi?id=1808049
-  "os == 'mac' && os_version == '11.20' && arch == 'aarch64'", # https://bugzilla.mozilla.org/show_bug.cgi?id=1866067
-  "os == 'mac' && os_version == '15.30' && arch == 'aarch64'", # https://bugzilla.mozilla.org/show_bug.cgi?id=1866067
-]
 run-sequentially = "node server exceptions dont replay well"
+run-if = ["!socketprocess_networking"]
+skip-if = [
+  "os == 'android' && android_version == '24' && processor == 'x86_64'",
+  "os == 'mac' && os_version == '11.20' && arch == 'aarch64'", # Bug 1866067
+  "os == 'mac' && os_version == '15.30' && arch == 'aarch64'", # Bug 1866067
+  "os == 'win' && os_version == '10.2009' && processor == 'x86_64'", # Bug 1808049
+  "os == 'win' && os_version == '11.26100' && processor == 'x86_64'", # Bug 1808049
+  "os == 'win' && os_version == '11.26100' && processor == 'x86'", # Bug 1808049
+]
 
 ["test_http3_direct_proxy.js"]
-skip-if = [
-  "os == 'win'", # https://bugzilla.mozilla.org/show_bug.cgi?id=1808049
-]
 run-sequentially = "node server exceptions dont replay well"
+skip-if = [
+  "os == 'win' && os_version == '10.2009' && processor == 'x86_64'", # Bug 1808049
+  "os == 'win' && os_version == '11.26100' && processor == 'x86_64'", # Bug 1808049
+  "os == 'win' && os_version == '11.26100' && processor == 'x86'", # Bug 1808049
+]
 
 ["test_http3_dns_retry.js"]
-skip-if = [
-  "os == 'android'",
-  "os == 'win'",
-]
 run-sequentially = "node server exceptions dont replay well"
+skip-if = [
+  "os == 'android' && android_version == '24' && processor == 'x86_64'",
+  "os == 'win' && os_version == '10.2009' && processor == 'x86_64'",
+  "os == 'win' && os_version == '11.26100' && processor == 'x86'",
+  "os == 'win' && os_version == '11.26100' && processor == 'x86_64'",
+]
 
 ["test_http3_early_hint_listener.js"]
-skip-if = [
-  "os == 'linux'", # Bug 1773916
-  "os == 'win'", # https://bugzilla.mozilla.org/show_bug.cgi?id=1808049
-]
 run-sequentially = "http3server"
+skip-if = [
+  "os == 'win' && os_version == '10.2009' && processor == 'x86_64'", # Bug 1808049
+  "os == 'win' && os_version == '11.26100' && processor == 'x86'", # Bug 1808049
+  "os == 'win' && os_version == '11.26100' && processor == 'x86_64'", # Bug 1808049
+]
 
 ["test_http3_error_before_connect.js"]
 run-sequentially = "node server exceptions dont replay well"
-skip-if = [
-  "os == 'android'",
-  "os == 'win' && msix", # https://bugzilla.mozilla.org/show_bug.cgi?id=1807931
-  "os == 'mac' && os_version == '14.70' && processor == 'x86_64' && debug", # Bug 1929450
-]
+skip-if = ["os == 'win' && os_version == '11.26100' && processor == 'x86_64' && msix"] # Bug 1807931
 
 ["test_http3_fast_fallback.js"]
-skip-if = [
-  "os == 'win'",
-  "os == 'android'",
-]
 run-sequentially = "node server exceptions dont replay well"
+skip-if = [
+  "os == 'win' && os_version == '10.2009' && processor == 'x86_64'",
+  "os == 'win' && os_version == '11.26100' && processor == 'x86'",
+  "os == 'win' && os_version == '11.26100' && processor == 'x86_64'",
+]
 
 ["test_http3_fatal_stream_error.js"]
-skip-if = [
-  "os == 'android'",
-  "os == 'win' && msix", # https://bugzilla.mozilla.org/show_bug.cgi?id=1807931
-]
 run-sequentially = "node server exceptions dont replay well"
+skip-if = [
+  "os == 'android' && android_version == '24' && processor == 'x86_64'",
+  "os == 'win' && os_version == '11.26100' && processor == 'x86_64' && msix", # Bug 1807931
+]
 
 ["test_http3_kyber.js"]
 skip-if = [
-  "os == 'win'",
-  "os == 'android'",
+  "os == 'android' && android_version == '24' && processor == 'x86_64'",
+  "os == 'win' && os_version == '10.2009' && processor == 'x86_64'",
+  "os == 'win' && os_version == '11.26100' && processor == 'x86_64'",
+  "os == 'win' && os_version == '11.26100' && processor == 'x86'",
 ]
 
 ["test_http3_large_post.js"]
-skip-if = [
-  "os == 'win'",
-]
 run-sequentially = "http3server"
+skip-if = [
+  "os == 'win' && os_version == '10.2009' && processor == 'x86_64'",
+  "os == 'win' && os_version == '11.26100' && processor == 'x86'",
+  "os == 'win' && os_version == '11.26100' && processor == 'x86_64'",
+]
 
 ["test_http3_network_change.js"]
-skip-if = [
-  "os == 'android'",
-  "os == 'win'",
-  "socketprocess_networking",
-]
 run-sequentially = "node server exceptions dont replay well"
+run-if = ["!socketprocess_networking"]
+skip-if = [
+  "os == 'android' && android_version == '24' && processor == 'x86_64'",
+  "os == 'win' && os_version == '10.2009' && processor == 'x86_64'",
+  "os == 'win' && os_version == '11.26100' && processor == 'x86'",
+  "os == 'win' && os_version == '11.26100' && processor == 'x86_64'",
+]
 
 ["test_http3_perf.js"]
-skip-if = [
-  "os == 'android'",
-  "os == 'win'", # https://bugzilla.mozilla.org/show_bug.cgi?id=1807931
-]
 run-sequentially = "http3server"
+skip-if = [
+  "os == 'android' && android_version == '24' && processor == 'x86_64'",
+  "os == 'win' && os_version == '10.2009' && processor == 'x86_64'", # Bug 1807931
+  "os == 'win' && os_version == '11.26100' && processor == 'x86'", # Bug 1807931
+  "os == 'win' && os_version == '11.26100' && processor == 'x86_64'", # Bug 1807931
+]
 
 ["test_http3_prio_disabled.js"]
-skip-if = [
-  "os == 'win'", # https://bugzilla.mozilla.org/show_bug.cgi?id=1807931
-]
 run-sequentially = "http3server"
+skip-if = [
+  "os == 'win' && os_version == '10.2009' && processor == 'x86_64'", # Bug 1807931
+  "os == 'win' && os_version == '11.26100' && processor == 'x86'", # Bug 1807931
+  "os == 'win' && os_version == '11.26100' && processor == 'x86_64'", # Bug 1807931
+]
 
 ["test_http3_prio_enabled.js"]
-skip-if = [
-  "os == 'android'",
-  "os == 'win' && msix", # https://bugzilla.mozilla.org/show_bug.cgi?id=1807931
-  "true", # Will be reenabled in bug 1865394
-]
 run-sequentially = "http3server"
+skip-if = ["true"] # Will be reenabled in bug 1865394
 
 ["test_http3_server.js"]
-skip-if = [
-  "verify",
-  "os == 'android'",
-  "os == 'win' && msix", # https://bugzilla.mozilla.org/show_bug.cgi?id=1808049
-]
 run-sequentially = "node server exceptions dont replay well"
+skip-if = [
+  "os == 'android' && android_version == '24' && processor == 'x86_64'",
+  "os == 'win' && os_version == '11.26100' && processor == 'x86_64' && msix", # Bug 1807931
+  "verify",
+]
 
 ["test_http3_server_not_existing.js"]
-skip-if = ["os == 'android'"]
 run-sequentially = "node server exceptions dont replay well"
 
 ["test_http3_trans_close.js"]
-skip-if = [
-  "os == 'win' && msix", # https://bugzilla.mozilla.org/show_bug.cgi?id=1807931
-]
 run-sequentially = "http3server"
+skip-if = [
+  "os == 'win' && os_version == '10.2009' && processor == 'x86_64'", # Bug 1807931
+  "os == 'win' && os_version == '11.26100' && processor == 'x86'", # Bug 1807931
+  "os == 'win' && os_version == '11.26100' && processor == 'x86_64' && msix", # Bug 1807931
+]
 
 ["test_http3_version1.js"]
-skip-if = [
-  "os == 'win'",
-]
 run-sequentially = "node server exceptions dont replay well"
+skip-if = [
+  "os == 'win' && os_version == '10.2009' && processor == 'x86_64'",
+  "os == 'win' && os_version == '11.26100' && processor == 'x86'",
+  "os == 'win' && os_version == '11.26100' && processor == 'x86_64'",
+]
 
 ["test_http3_with_third_party_roots.js"]
 run-sequentially = "node server exceptions dont replay well"
 skip-if = [
-  "os == 'win'",
-  "os == 'android'",
-  "socketprocess_networking",
-  "os == 'mac' && os_version == '14.70' && processor == 'x86_64' && debug", # Bug 1929450
+  "os == 'android' && android_version == '24' && processor == 'x86_64'",
+  "os == 'win' && os_version == '10.2009' && processor == 'x86_64'",
+  "os == 'win' && os_version == '11.26100' && processor == 'x86'",
+  "os == 'win' && os_version == '11.26100' && processor == 'x86_64'",
 ]
 
 ["test_httpResponseTimeout.js"]
-skip-if = ["os == 'win' && socketprocess_networking"]
+skip-if = [
+  "os == 'win' && os_version == '11.26100' && processor == 'x86_64' && socketprocess_networking",
+  "os == 'win' && os_version == '11.26100' && processor == 'x86' && socketprocess_networking",
+]
 
 ["test_http_408_retry.js"]
 
@@ -843,21 +857,13 @@ skip-if = ["os == 'win' && socketprocess_networking"]
 ["test_httpcancel.js"]
 
 ["test_https_rr_ech_prefs.js"]
-skip-if = ["os == 'android'"]
 run-sequentially = "node server exceptions dont replay well"
 
 ["test_https_rr_sorted_alpn.js"]
-skip-if = ["os == 'android'"]
 run-sequentially = "node server exceptions dont replay well"
 
 ["test_httpssvc_ech_with_alpn.js"]
-skip-if = [
-  "os == 'android'", # bug 1622901
-  "os == 'mac' && os_version == '10.15' && processor == 'x86_64' && opt",
-  "os == 'mac' && os_version == '11.20' && arch == 'aarch64' && opt",
-  "asan",
-  "os == 'win' && msix", # https://bugzilla.mozilla.org/show_bug.cgi?id=1808048
-]
+skip-if = ["os == 'win' && os_version == '11.26100' && processor == 'x86_64' && msix"] # Bug 1808048
 run-sequentially = "node server exceptions dont replay well"
 
 ["test_httpssvc_https_upgrade.js"]
@@ -870,18 +876,17 @@ run-sequentially = "node server exceptions dont replay well"
 run-sequentially = "node server exceptions dont replay well"
 
 ["test_httpssvc_retry_with_ech.js"]
-skip-if = [
-  "os == 'android'", # bug 1622901
-  "os == 'mac' && os_version == '10.15' && processor == 'x86_64' && opt",
-  "os == 'mac' && os_version == '11.20' && arch == 'aarch64' && opt",
-  "asan",
-  "os == 'win'", # https://bugzilla.mozilla.org/show_bug.cgi?id=1808048
-]
 run-sequentially = "node server exceptions dont replay well"
+skip-if = [
+  "os == 'android' && android_version == '24' && processor == 'x86_64'", # Bug 1622901
+  "os == 'win' && os_version == '10.2009' && processor == 'x86_64'", # Bug 1808048
+  "os == 'win' && os_version == '11.26100' && processor == 'x86'", # Bug 1808048
+  "os == 'win' && os_version == '11.26100' && processor == 'x86_64'", # Bug 1808048
+]
 
 ["test_httpssvc_retry_without_ech.js"]
-skip-if = ["os == 'win' && msix"] # https://bugzilla.mozilla.org/show_bug.cgi?id=1808048
 run-sequentially = "node server exceptions dont replay well"
+skip-if = ["os == 'win' && os_version == '11.26100' && processor == 'x86_64' && msix"] # Bug 1808048
 
 ["test_httpsuspend.js"]
 
@@ -903,16 +908,14 @@ run-sequentially = "node server exceptions dont replay well"
 ["test_ioservice.js"]
 
 ["test_ip_space_glean.js"]
-skip-if = ["os == 'android'"]
+skip-if = ["os == 'android' && android_version == '24' && processor == 'x86_64'"]
 
 ["test_large_port.js"]
 
 ["test_loadgroup_cancel.js"]
 
 ["test_loadgroup_glean.js"]
-skip-if = [
-  "os == 'android'"
-]
+skip-if = ["os == 'android' && android_version == '24' && processor == 'x86_64'"]
 
 ["test_localhost_offline.js"]
 
@@ -943,17 +946,18 @@ skip-if = [
 ["test_nestedabout_serialize.js"]
 
 ["test_net_addr.js"]
-# Bug 732363: test fails on windows for unknown reasons.
-skip-if = ["os == 'win'"]
+skip-if = [
+  "os == 'win' && os_version == '10.2009' && processor == 'x86_64'", # Bug 732363: test fails on windows for unknown reasons.
+  "os == 'win' && os_version == '11.26100' && processor == 'x86_64'", # Bug 732363: test fails on windows for unknown reasons.
+  "os == 'win' && os_version == '11.26100' && processor == 'x86'", # Bug 732363: test fails on windows for unknown reasons.
+]
 
 ["test_network_connectivity_service.js"]
 
 ["test_networking_over_socket_process.js"]
-skip-if = [
-  "os == 'android'",
-  "!socketprocess_networking",
-]
 run-sequentially = "node server exceptions dont replay well"
+run-if = ["socketprocess_networking"]
+skip-if = ["os == 'android' && android_version == '24' && processor == 'x86_64'"]
 
 ["test_no_cookies_after_last_pb_exit.js"]
 
@@ -961,7 +965,14 @@ run-sequentially = "node server exceptions dont replay well"
 
 ["test_node_execute_npm.js"]
 usesNPM = true
-skip-if = ["os == 'win'", "os == 'mac'"]
+skip-if = [
+  "os == 'mac' && os_version == '10.15' && processor == 'x86_64'",
+  "os == 'mac' && os_version == '11.20' && arch == 'aarch64'",
+  "os == 'mac' && os_version == '14.70' && processor == 'x86_64'",
+  "os == 'win' && os_version == '10.2009' && processor == 'x86_64'",
+  "os == 'win' && os_version == '11.26100' && processor == 'x86'",
+  "os == 'win' && os_version == '11.26100' && processor == 'x86_64'",
+]
 
 ["test_nojsredir.js"]
 
@@ -1000,13 +1011,15 @@ skip-if = ["os == 'win'", "os == 'mac'"]
 ["test_permmgr.js"]
 
 ["test_ping_aboutnetworking.js"]
-skip-if = ["verify && os == 'mac'"]
 
 ["test_plaintext_sniff.js"]
 skip-if = ["true"] # Causes sporatic oranges
 
 ["test_port_remapping.js"]
-skip-if = ["os == 'win' && socketprocess_networking"]
+skip-if = [
+  "os == 'win' && os_version == '11.26100' && processor == 'x86_64' && socketprocess_networking",
+  "os == 'win' && os_version == '11.26100' && processor == 'x86' && socketprocess_networking",
+]
 
 ["test_post.js"]
 
@@ -1021,18 +1034,19 @@ skip-if = ["os == 'win' && socketprocess_networking"]
 ["test_progress.js"]
 
 ["test_progress_no_proxy_and_proxy.js"]
-skip-if = [
-  "os == 'win'",
-]
 run-sequentially = "node server exceptions dont replay well"
+skip-if = [
+  "os == 'win' && os_version == '10.2009' && processor == 'x86_64'",
+  "os == 'win' && os_version == '11.26100' && processor == 'x86'",
+  "os == 'win' && os_version == '11.26100' && processor == 'x86_64'",
+]
 
 ["test_protocolproxyservice-async-filters.js"]
 
 ["test_protocolproxyservice.js"]
 skip-if = [
-  "os == 'mac' && os_version == '11.20' && arch == 'aarch64'", # bug 1707738
-  "os == 'mac' && os_version == '15.30' && arch == 'aarch64'", # bug 1707738
-  "tsan && socketprocess_networking", # Bug 1808235
+  "os == 'mac' && os_version == '11.20' && arch == 'aarch64'", # Bug 1707738
+  "os == 'mac' && os_version == '15.30' && arch == 'aarch64'", # Bug 1707738
 ]
 
 ["test_proxy-failover_canceled.js"]
@@ -1047,8 +1061,9 @@ skip-if = [
 
 ["test_proxyDNS_leak.js"]
 skip-if = [
-  "os == 'android'",
-  "socketprocess_networking",
+  "os == 'android' && android_version == '24' && processor == 'x86_64'",
+  "os == 'win' && os_version == '11.26100' && processor == 'x86_64' && socketprocess_networking",
+  "os == 'win' && os_version == '11.26100' && processor == 'x86' && socketprocess_networking",
 ]
 
 ["test_proxy_cancel.js"]
@@ -1057,21 +1072,17 @@ run-sequentially = "node server exceptions dont replay well"
 ["test_proxy_pac.js"]
 
 ["test_proxyconnect.js"]
-skip-if = [
-  "tsan",
-  "socketprocess_networking", # Bug 1614708
-]
+skip-if = ["socketprocess_networking"] # Bug 1614708
 
 ["test_proxyconnect_https.js"]
-skip-if = [
-"socketprocess_networking",
-]
+skip-if = ["socketprocess_networking"] # Bug 1614708
 
 ["test_psl.js"]
 
 ["test_race_cache_with_network.js"]
 skip-if = [
-  "os == 'win' && !debug", # Bug 1866777
+  "os == 'win' && os_version == '11.26100' && processor == 'x86_64' && opt",
+  "os == 'win' && os_version == '11.26100' && processor == 'x86' && opt",
 ]
 
 ["test_range_requests.js"]
@@ -1132,11 +1143,8 @@ prefs = ["network.xhr.block_sync_system_requests=false"] # Bug 721336
 ["test_resumable_truncate.js"]
 
 ["test_retry_0rtt.js"]
-skip-if = [
-  "verify && os == 'android'",
-  "os == 'win' && msix", # https://bugzilla.mozilla.org/show_bug.cgi?id=1808048
-]
 run-sequentially = "tlsserver uses fixed port"
+skip-if = ["os == 'win' && os_version == '11.26100' && processor == 'x86_64' && msix"] # Bug 1808048
 
 ["test_safeoutputstream.js"]
 
@@ -1159,7 +1167,7 @@ run-sequentially = "tlsserver uses fixed port"
 ["test_servers.js"]
 
 ["test_signature_extraction.js"]
-skip-if = ["os != 'win'"]
+run-if = ["os == 'win'"]
 
 ["test_simple.js"]
 
@@ -1168,14 +1176,10 @@ skip-if = ["os != 'win'"]
 ["test_sockettransportsvc_available.js"]
 
 ["test_socks.js"]
-skip-if = [
-  "os == 'mac' && os_version == '10.15' && processor == 'x86_64' && debug", #Bug 1140656
-  "os == 'mac' && os_version == '11.20' && arch == 'aarch64' && debug", #Bug 1140656
-  "os == 'win' && msix", # https://bugzilla.mozilla.org/show_bug.cgi?id=1808049
-]
 # Bug 675039: test fails consistently on Android
 fail-if = ["os == 'android'"]
 # http2 unit tests require us to have node available to run the spdy and http2 server
+skip-if = ["os == 'win' && os_version == '11.26100' && processor == 'x86_64' && msix"] # Bug 1808048
 
 ["test_speculative_connect.js"]
 
@@ -1220,21 +1224,19 @@ fail-if = ["os == 'android'"]
 ["test_tldservice_nextsubdomain.js"]
 
 ["test_tls13_disabled.js"]
-skip-if = [
-  "verify && os == 'win'",
-  "os == 'win' && msix", # https://bugzilla.mozilla.org/show_bug.cgi?id=1808049
-]
 run-sequentially = "node server exceptions dont replay well"
+skip-if = ["os == 'win' && os_version == '11.26100' && processor == 'x86_64' && msix"] # Bug 1808048
 
 ["test_tls_flags.js"]
-skip-if = ["os == 'android' && processor == 'x86_64'"]
 
 ["test_tls_flags_separate_connections.js"]
 
 ["test_tls_handshake_timing.js"]
 skip-if = [
-  "os == 'android'",
-  "os == 'win'",
+  "os == 'android' && android_version == '24' && processor == 'x86_64'",
+  "os == 'win' && os_version == '10.2009' && processor == 'x86_64'",
+  "os == 'win' && os_version == '11.26100' && processor == 'x86'",
+  "os == 'win' && os_version == '11.26100' && processor == 'x86_64'",
 ]
 
 ["test_tls_server.js"]
@@ -1270,11 +1272,9 @@ run-sequentially = "node server exceptions dont replay well"
 run-sequentially = "node server exceptions dont replay well"
 
 ["test_trr_confirmation.js"]
-skip-if = [
-  "socketprocess_networking", # confirmation state isn't passed cross-process
-  "appname == 'thunderbird'", # bug 1760097
-]
 run-sequentially = "node server exceptions dont replay well"
+run-if = ["!socketprocess_networking"] # confirmation state isn't passed cross-process
+skip-if = ["appname == 'thunderbird'"] # bug 1760097
 
 ["test_trr_decoding.js"]
 
@@ -1282,10 +1282,8 @@ run-sequentially = "node server exceptions dont replay well"
 
 ["test_trr_enterprise_policy.js"]
 firefox-appdir = "browser" # needed for resource:///modules/policies/schema.sys.mjs to be registered
-skip-if = [
-  "os == 'android'",
-  "socketprocess_networking",
-]
+run-if = ["!socketprocess_networking"] # confirmation state isn't passed cross-process
+skip-if = ["os == 'android' && android_version == '24' && processor == 'x86_64'"]
 
 ["test_trr_extended_error.js"]
 run-sequentially = "node server exceptions dont replay well"
@@ -1293,26 +1291,28 @@ run-sequentially = "node server exceptions dont replay well"
 ["test_trr_flags.js"]
 
 ["test_trr_https_fallback.js"]
-skip-if = [
-  "asan",
-  "tsan",
-  "os == 'win'",
-  "os == 'android'",
-]
 run-sequentially = "node server exceptions dont replay well"
+skip-if = [
+  "os == 'android' && android_version == '24' && processor == 'x86_64'",
+  "os == 'win' && os_version == '10.2009' && processor == 'x86_64'",
+  "os == 'win' && os_version == '11.26100' && processor == 'x86'",
+  "os == 'win' && os_version == '11.26100' && processor == 'x86_64'",
+]
 
 ["test_trr_https_rr_with_cname.js"]
-skip-if = [
-  "os == 'android'",
-  "os == 'win'", # https://bugzilla.mozilla.org/show_bug.cgi?id=1808049
-]
 run-sequentially = "node server exceptions dont replay well"
+skip-if = [
+  "os == 'android' && android_version == '24' && processor == 'x86_64'",
+  "os == 'win' && os_version == '10.2009' && processor == 'x86_64'", # Bug 1808049
+  "os == 'win' && os_version == '11.26100' && processor == 'x86'", # Bug 1808049
+  "os == 'win' && os_version == '11.26100' && processor == 'x86_64'", # Bug 1808049
+]
 
 ["test_trr_httpssvc.js"]
 run-sequentially = "node server exceptions dont replay well"
 
 ["test_trr_idle_time.js"]
-skip-if = ["socketprocess_networking"] # killing connections on socket process is async.
+run-if = ["!socketprocess_networking"] # killing connections on socket process is async.
 
 ["test_trr_nat64.js"]
 run-sequentially = "node server exceptions dont replay well"
@@ -1322,29 +1322,20 @@ run-sequentially = "node server exceptions dont replay well"
 ["test_trr_proxy.js"]
 
 ["test_trr_proxy_auth.js"]
-skip-if = [
-  "os == 'android'",
-  "socketprocess_networking",
-]
+run-if = ["!socketprocess_networking"]
 
 ["test_trr_strict_mode.js"]
 
 ["test_trr_telemetry.js"]
 head = "head_channels.js head_cache.js head_cookies.js head_servers.js head_trr.js head_http3.js trr_common.js"
-skip-if = [
-  "os == 'android'",
-  "socketprocess_networking",
-]
+run-if = ["!socketprocess_networking"]
 
 ["test_trr_ttl.js"]
 
 ["test_trr_with_proxy.js"]
 head = "head_channels.js head_cache.js head_cookies.js head_servers.js head_trr.js trr_common.js"
-skip-if = [
-  "os == 'android'",
-  "socketprocess_networking", # Bug 1808233
-]
 run-sequentially = "node server exceptions dont replay well"
+skip-if = ["os == 'linux' && os_version == '18.04' && processor == 'x86_64' && ccov && !fission && socketprocess_networking"] # Bug 1808233
 
 ["test_udp_multicast.js"]
 
@@ -1369,7 +1360,6 @@ run-sequentially = "node server exceptions dont replay well"
 
 ["test_websocket_fails.js"]
 run-sequentially = "node server exceptions dont replay well"
-skip-if = ["os == 'android' && verify"] # Bug 1804101
 
 ["test_websocket_fails_2.js"]
 run-sequentially = "node server exceptions dont replay well"
@@ -1383,19 +1373,16 @@ run-sequentially = "node server exceptions dont replay well"
 run-sequentially = "node server exceptions dont replay well"
 
 ["test_websocket_with_h3_active.js"]
-skip-if = [
-  "verify && os == 'win'",
-  "os == 'win' && msix", # https://bugzilla.mozilla.org/show_bug.cgi?id=1808049
-]
 run-sequentially = "node server exceptions dont replay well"
+skip-if = ["os == 'win' && os_version == '11.26100' && processor == 'x86_64' && msix'"] # Bug 1808049
 
 ["test_webtransport_simple.js"]
-# This test will be fixed in bug 1796556
+run-if = ["!socketprocess_networking"] # This test will be fixed in bug 1796556
 skip-if = [
-  "os == 'android'",
-  "os == 'win' && msix", # https://bugzilla.mozilla.org/show_bug.cgi?id=1807931
-  "verify && os == 'win'",
-  "socketprocess_networking",
+  "os == 'android' && android_version == '24' && processor == 'x86_64'",
+  "os == 'win' && os_version == '10.2009' && processor == 'x86_64'", # Bug 1807931
+  "os == 'win' && os_version == '11.26100' && processor == 'x86'", # Bug 1807931
+  "os == 'win' && os_version == '11.26100' && processor == 'x86_64' && msix", # Bug 1807931
 ]
 
 ["test_xmlhttprequest.js"]

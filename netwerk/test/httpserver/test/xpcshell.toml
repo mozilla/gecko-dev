@@ -23,7 +23,6 @@ support-files = ["data/**"]
 ["test_headers.js"]
 
 ["test_host.js"]
-skip-if = ["os == 'mac'"]
 run-sequentially = "Reusing same server on different specific ports."
 
 ["test_host_identity.js"]
@@ -49,7 +48,7 @@ run-sequentially = "Reusing same server on different specific ports."
 ["test_response_write.js"]
 
 ["test_seizepower.js"]
-skip-if = ["os == 'mac' && socketprocess_networking"]
+skip-if = ["os == 'mac' && os_version == '10.15' && processor == 'x86_64' && socketprocess_networking"]
 
 ["test_setindexhandler.js"]
 
