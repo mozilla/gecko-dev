@@ -18,12 +18,7 @@ add_task(async function test_submit_creditCard_update() {
     return;
   }
 
-  async function test_per_command(
-    command,
-    idx,
-    useCount = {},
-    expectChanged = undefined
-  ) {
+  async function test_per_command(command, idx, expectChanged = undefined) {
     await SpecialPowers.pushPrefEnv({
       set: [[ENABLED_AUTOFILL_CREDITCARDS_PREF, true]],
     });
@@ -81,14 +76,10 @@ add_task(async function test_submit_creditCard_update() {
       }
     );
 
-    await assertHistogram("CREDITCARD_NUM_USES", useCount);
-
     SpecialPowers.clearUserPref(ENABLED_AUTOFILL_CREDITCARDS_PREF);
 
     await removeAllRecords();
   }
-
-  await clearTelemetry(CC_NUM_USES_HISTOGRAM);
 
   const expectedFormInteractionEvents = [
     ccFormArgsv2("detected", buildccFormv2Extra({ cc_exp: "false" }, "true")),
@@ -109,7 +100,7 @@ add_task(async function test_submit_creditCard_update() {
 
   await clearGleanTelemetry();
 
-  await test_per_command(MAIN_BUTTON, undefined, { 1: 1 }, 1);
+  await test_per_command(MAIN_BUTTON, undefined, 1);
 
   await assertTelemetry(undefined, [
     ...expectedFormInteractionEvents,
@@ -124,7 +115,7 @@ add_task(async function test_submit_creditCard_update() {
 
   await clearGleanTelemetry();
 
-  await test_per_command(SECONDARY_BUTTON, undefined, { 0: 1, 1: 1 }, 2);
+  await test_per_command(SECONDARY_BUTTON, undefined, 2);
 
   await assertTelemetry(undefined, [
     ...expectedFormInteractionEvents,

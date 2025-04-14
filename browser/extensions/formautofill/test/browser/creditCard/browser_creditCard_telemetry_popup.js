@@ -13,8 +13,6 @@ add_task(async function test_popup_opened() {
         [AUTOFILL_CREDITCARDS_AVAILABLE_PREF, "on"],
       ],
     },
-    true,
-    undefined,
     TEST_CREDIT_CARD_1
   );
 
@@ -54,8 +52,6 @@ add_task(async function test_popup_opened_form_without_autocomplete() {
         ],
       ],
     },
-    true,
-    undefined,
     TEST_CREDIT_CARD_1
   );
 
@@ -96,8 +92,6 @@ add_task(
           ],
         ],
       },
-      true,
-      undefined,
       TEST_CREDIT_CARD_1
     );
 
