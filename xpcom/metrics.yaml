@@ -938,3 +938,29 @@ event:
       - perf-telemetry-alerts@mozilla.com
     expires: never
     telemetry_mirror: EVENT_LONGTASK
+
+xpcom:
+  abi:
+    type: string
+    lifetime: application
+    description: |
+      A string tag identifying the binary ABI of the current processor and
+      compiler vtable. This is taken from the TARGET_XPCOM_ABI configure
+      variable. It may not be available on all platforms, especially
+      unusual processor or compiler combinations.
+
+      The result takes the form <processor>-<compilerABI>, for example:
+        - x86-msvc
+        - ppc-gcc3
+
+      This value should almost always be used in combination with the
+      operating system.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1950386
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1950386
+    notification_emails:
+      - nika@mozilla.com
+    data_sensitivity:
+      - technical
+    expires: never

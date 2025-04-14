@@ -83,7 +83,7 @@ var gActiveExperimentStartupBuffer = new Map();
 
 // For Powering arewegleanyet.com (See bug 1944592)
 // Legacy Count: 112
-// Glean Count: 9
+// Glean Count: 11
 
 var gGlobalEnvironment;
 function getGlobal() {
@@ -1553,6 +1553,9 @@ EnvironmentCache.prototype = {
       xpcomAbi: Services.appinfo.XPCOMABI,
       updaterAvailable: AppConstants.MOZ_UPDATER,
     };
+
+    Glean.xpcom.abi.set(Services.appinfo.XPCOMABI);
+    Glean.updater.available.set(AppConstants.MOZ_UPDATER);
 
     return buildData;
   },

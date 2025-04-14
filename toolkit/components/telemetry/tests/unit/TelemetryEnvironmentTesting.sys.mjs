@@ -253,6 +253,13 @@ export var TelemetryEnvironmentTesting = {
       AppConstants.MOZ_UPDATER,
       "build.updaterAvailable must equal AppConstants.MOZ_UPDATER"
     );
+
+    // Check Glean's values
+    lazy.Assert.equal(Glean.xpcom.abi.testGetValue(), expectedInfo.xpcomAbi);
+    lazy.Assert.equal(
+      Glean.updater.available.testGetValue(),
+      AppConstants.MOZ_UPDATER
+    );
   },
 
   checkSettingsSection(data) {
