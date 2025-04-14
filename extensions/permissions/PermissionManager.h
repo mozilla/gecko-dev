@@ -511,12 +511,28 @@ class PermissionManager final : public nsIPermissionManager,
    */
   nsresult RemoveAllModifiedSince(int64_t aModificationTime);
 
-  template <class T>
-  nsresult RemovePermissionEntries(T aCondition);
+  // Removes all permissions with a private browsing principal (i.e.
+  // privateBrowsingId OA != 0).
+  nsresult RemoveAllForPrivateBrowsing();
 
-  template <class T>
-  nsresult GetPermissionEntries(T aCondition,
-                                nsTArray<RefPtr<nsIPermission>>& aResult);
+  // Helper function which removes all permissions for which aCondition
+  // evaluates to true.
+  nsresult RemovePermissionEntries(
+      const std::function<bool(const PermissionEntry& aPermEntry,
+                               const nsCOMPtr<nsIPrincipal>& aPrincipal)>&
+          aCondition,
+      bool aComputePrincipalForCondition = true);
+
+  // Overload of RemovePermissionEntries allowing aCondition not to take
+  // aPrincipal as an argument.
+  nsresult RemovePermissionEntries(
+      const std::function<bool(const PermissionEntry& aPermEntry)>& aCondition);
+
+  // Helper function which returns all permissions for which aCondition
+  // evaluates to true.
+  nsresult GetPermissionEntries(
+      const std::function<bool(const PermissionEntry& aPermEntry)>& aCondition,
+      nsTArray<RefPtr<nsIPermission>>& aResult);
 
   // This method must be called before doing any operation to be sure that the
   // DB reading has been completed. This method is also in charge to complete

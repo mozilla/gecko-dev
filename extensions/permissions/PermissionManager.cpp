@@ -784,6 +784,7 @@ nsresult PermissionManager::Init() {
     observerService->AddObserver(this, "profile-do-change", true);
     observerService->AddObserver(this, "testonly-reload-permissions-from-disk",
                                  true);
+    observerService->AddObserver(this, "last-pb-context-exited", true);
   }
 
   if (XRE_IsParentProcess()) {
@@ -2255,14 +2256,20 @@ PermissionManager::RemoveAllExceptTypes(
   });
 }
 
-template <class T>
-nsresult PermissionManager::RemovePermissionEntries(T aCondition) {
+nsresult PermissionManager::RemovePermissionEntries(
+    const std::function<bool(const PermissionEntry& aPermEntry,
+                             const nsCOMPtr<nsIPrincipal>& aPrincipal)>&
+        aCondition,
+    bool aComputePrincipalForCondition) {
   EnsureReadCompleted();
 
   Vector<std::tuple<nsCOMPtr<nsIPrincipal>, nsCString, nsCString>, 10> array;
   for (const PermissionHashKey& entry : mPermissionTable) {
     for (const auto& permEntry : entry.GetPermissions()) {
-      if (!aCondition(permEntry)) {
+      // Depending on whether the principal is needed in the condition check, we
+      // may already check the condition here, to avoid needing to compute the
+      // principal if the condition is true.
+      if (!aComputePrincipalForCondition && !aCondition(permEntry, nullptr)) {
         continue;
       }
 
@@ -2272,6 +2279,10 @@ nsresult PermissionManager::RemovePermissionEntries(T aCondition) {
           IsOAForceStripPermission(mTypeArray[permEntry.mType]),
           getter_AddRefs(principal));
       if (NS_FAILED(rv)) {
+        continue;
+      }
+
+      if (aComputePrincipalForCondition && !aCondition(permEntry, principal)) {
         continue;
       }
 
@@ -2291,6 +2302,16 @@ nsresult PermissionManager::RemovePermissionEntries(T aCondition) {
   }
 
   return NS_OK;
+}
+
+nsresult PermissionManager::RemovePermissionEntries(
+    const std::function<bool(const PermissionEntry& aPermEntry)>& aCondition) {
+  return RemovePermissionEntries(
+      [&](const PermissionEntry& aPermEntry,
+          const nsCOMPtr<nsIPrincipal>& aPrincipal) {
+        return aCondition(aPermEntry);
+      },
+      false);
 }
 
 NS_IMETHODIMP
@@ -2570,10 +2591,9 @@ nsresult PermissionManager::CommonTestPermissionInternal(
   return NS_OK;
 }
 
-// Helper function to filter permissions using a condition function.
-template <class T>
 nsresult PermissionManager::GetPermissionEntries(
-    T aCondition, nsTArray<RefPtr<nsIPermission>>& aResult) {
+    const std::function<bool(const PermissionEntry& aPermEntry)>& aCondition,
+    nsTArray<RefPtr<nsIPermission>>& aResult) {
   aResult.Clear();
   if (XRE_IsContentProcess()) {
     NS_WARNING(
@@ -2815,6 +2835,10 @@ NS_IMETHODIMP PermissionManager::Observe(nsISupports* aSubject,
     InitDB(false);
   } else if (!nsCRT::strcmp(aTopic, OBSERVER_TOPIC_IDLE_DAILY)) {
     PerformIdleDailyMaintenance();
+  } else if (!nsCRT::strcmp(aTopic, "last-pb-context-exited")) {
+    DebugOnly<nsresult> rv = RemoveAllForPrivateBrowsing();
+    NS_WARNING_ASSERTION(NS_SUCCEEDED(rv),
+                         "Failed to clear private browsing permissions");
   }
 
   return NS_OK;
@@ -2829,6 +2853,15 @@ nsresult PermissionManager::RemoveAllModifiedSince(int64_t aModificationTime) {
         return aModificationTime <= aPermEntry.mModificationTime &&
                aPermEntry.mID != cIDPermissionIsDefault;
       });
+}
+
+nsresult PermissionManager::RemoveAllForPrivateBrowsing() {
+  ENSURE_NOT_CHILD_PROCESS;
+  return RemovePermissionEntries([](const PermissionEntry& aPermEntry,
+                                    const nsCOMPtr<nsIPrincipal>& aPrincipal) {
+    return aPrincipal->GetIsInPrivateBrowsing() &&
+           aPermEntry.mID != cIDPermissionIsDefault;
+  });
 }
 
 NS_IMETHODIMP
