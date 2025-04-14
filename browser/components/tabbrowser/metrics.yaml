@@ -179,6 +179,33 @@ tabgroup:
         type: string
     expires: never
 
+  add_tab:
+    type: event
+    disabled: true # To be controlled by server knobs during Firefox 138 launch due to expected high volume
+    description: >
+      Recorded when the user adds one or more ungrouped tabs to an existing tab group
+    notification_emails:
+      - dao@mozilla.com
+      - jswinarton@mozilla.com
+      - sthompson@mozilla.com
+    bugs:
+      - https://bugzil.la/1938424
+    data_reviews:
+      - https://bugzil.la/1938424
+    data_sensitivity:
+      - interaction
+    extra_keys:
+      source:
+        description: The system, surface, or control the user used to add the tab(s) to the tab group
+        type: string
+      tabs:
+        description: The number of tabs added to the tab group
+        type: quantity
+      layout:
+        description: The layout of the tab strip when the tabs were added (either "horizontal" or "vertical")
+        type: string
+    expires: never
+
   active_groups:
     type: labeled_quantity
     description: >

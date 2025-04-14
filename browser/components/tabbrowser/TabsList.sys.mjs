@@ -235,6 +235,9 @@ class TabsListBase {
     }
   }
 
+  /**
+   * @param {MozTabbrowserTab} tab
+   */
   _moveTab(tab) {
     let item = this.tabToElement.get(tab);
     if (item) {

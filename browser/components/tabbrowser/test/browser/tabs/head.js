@@ -601,3 +601,36 @@ async function removeTabGroup(group) {
   await group.ownerGlobal.gBrowser.removeTabGroup(group, { animate: false });
   await removePromise;
 }
+
+/**
+ * @param {Node} triggerNode
+ * @param {string} contextMenuId
+ * @returns {Promise<XULMenuElement|XULPopupElement>}
+ */
+async function getContextMenu(triggerNode, contextMenuId) {
+  let win = triggerNode.ownerGlobal;
+  triggerNode.scrollIntoView({ behavior: "instant" });
+  const contextMenu = win.document.getElementById(contextMenuId);
+  const contextMenuShown = BrowserTestUtils.waitForPopupEvent(
+    contextMenu,
+    "shown"
+  );
+
+  EventUtils.synthesizeMouseAtCenter(
+    triggerNode,
+    { type: "contextmenu", button: 2 },
+    win
+  );
+  await contextMenuShown;
+  return contextMenu;
+}
+
+/**
+ * @param {XULMenuElement|XULPopupElement} contextMenu
+ * @returns {Promise<void>}
+ */
+async function closeContextMenu(contextMenu) {
+  let menuHidden = BrowserTestUtils.waitForPopupEvent(contextMenu, "hidden");
+  contextMenu.hidePopup();
+  await menuHidden;
+}

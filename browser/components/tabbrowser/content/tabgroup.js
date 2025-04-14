@@ -234,9 +234,11 @@
     /**
      * add tabs to the group
      *
-     * @param tabs array of tabs to add
+     * @param {MozTabbrowserTab[]} tabs
+     * @param {TabMetricsContext} [metricsContext]
+     *   Optional context to record for metrics purposes.
      */
-    addTabs(tabs) {
+    addTabs(tabs, metricsContext) {
       for (let tab of tabs) {
         let tabToMove =
           this.ownerGlobal === tab.ownerGlobal
@@ -245,7 +247,7 @@
                 tabIndex: gBrowser.tabs.at(-1)._tPos + 1,
                 selectTab: tab.selected,
               });
-        gBrowser.moveTabToGroup(tabToMove, this);
+        gBrowser.moveTabToGroup(tabToMove, this, metricsContext);
       }
       this.#lastAddedTo = Date.now();
     }

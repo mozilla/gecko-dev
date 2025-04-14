@@ -10,8 +10,7 @@ document.addEventListener(
   () => {
     const lazy = {};
     ChromeUtils.defineESModuleGetters(lazy, {
-      TabGroupMetrics:
-        "moz-src:///browser/components/tabbrowser/TabGroupMetrics.sys.mjs",
+      TabMetrics: "moz-src:///browser/components/tabbrowser/TabMetrics.sys.mjs",
     });
     let mainPopupSet = document.getElementById("mainPopupSet");
     // eslint-disable-next-line complexity
@@ -135,11 +134,12 @@ document.addEventListener(
             let tabGroup = gBrowser.getTabGroupById(tabGroupId);
             // Tabs need to be removed by their owning `Tabbrowser` or else
             // there are errors.
-            tabGroup.ownerGlobal.gBrowser.removeTabGroup(tabGroup, {
-              isUserTriggered: true,
-              telemetrySource:
-                lazy.TabGroupMetrics.METRIC_SOURCE.TAB_OVERFLOW_MENU,
-            });
+            tabGroup.ownerGlobal.gBrowser.removeTabGroup(
+              tabGroup,
+              lazy.TabMetrics.userTriggeredContext(
+                lazy.TabMetrics.METRIC_SOURCE.TAB_OVERFLOW_MENU
+              )
+            );
           }
           break;
 
@@ -148,7 +148,7 @@ document.addEventListener(
           {
             let { tabGroupId } = event.target.parentElement.triggerNode.dataset;
             SessionStore.openSavedTabGroup(tabGroupId, window, {
-              source: lazy.TabGroupMetrics.METRIC_SOURCE.RECENT_TABS,
+              source: lazy.TabMetrics.METRIC_SOURCE.RECENT_TABS,
             });
           }
           break;
@@ -157,7 +157,7 @@ document.addEventListener(
             // TODO Bug 1940112: "Open Group in New Window" should directly restore saved tab groups into a new window
             let { tabGroupId } = event.target.parentElement.triggerNode.dataset;
             let tabGroup = SessionStore.openSavedTabGroup(tabGroupId, window, {
-              source: lazy.TabGroupMetrics.METRIC_SOURCE.RECENT_TABS,
+              source: lazy.TabMetrics.METRIC_SOURCE.RECENT_TABS,
             });
             gBrowser.replaceGroupWithWindow(tabGroup);
           }
