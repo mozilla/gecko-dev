@@ -322,9 +322,6 @@ void gfxPlatformGtk::InitWebRenderConfig() {
   FeatureState& feature = gfxConfig::GetFeature(Feature::WEBRENDER_COMPOSITOR);
   // HDR requires compositor to work
 #if defined(MOZ_WAYLAND)
-  if (StaticPrefs::gfx_wayland_hdr_AtStartup()) {
-    feature.UserForceEnable("Requested for HDR");
-  }
   if (feature.IsEnabled()) {
     if (!StaticPrefs::gfx_wayland_hdr_AtStartup()) {
       feature.ForceDisable(FeatureStatus::Unavailable, "HDR mode is disabled",
