@@ -47,6 +47,7 @@ DIRS += [
     "newtab",
     "originattributes",
     "pagedata",
+    "permissions",
     "places",
     "pocket",
     "preferences",
