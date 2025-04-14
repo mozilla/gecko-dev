@@ -512,7 +512,7 @@ class nsGridContainerFrame final : public nsContainerFrame,
   // @return The block-size that can be used to (re-)resolve the final row
   // sizes.
   nscoord ComputeBSizeForResolvingRowSizes(
-      GridReflowInput& aGridRI, nscoord aComputedBSize,
+      GridReflowInput& aGridRI, const Grid& aGrid, nscoord aComputedBSize,
       const Maybe<nscoord>& aContainIntrinsicBSize) const;
 
   // Helper for Reflow. This is intended to be called *after* the final call to

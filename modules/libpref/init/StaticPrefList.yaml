@@ -9759,6 +9759,17 @@
   value: true
   mirror: always
 
+# Enable the new multi-pass grid track sizing algorithm.
+# This features implements two aspects from the CSS Grid Level 2 spec:
+# 1. Percent-valued row track size re-resolution:
+#    https://drafts.csswg.org/css-grid-2/#track-sizes
+# 2. Multi-pass grid sizing algorithm:
+#    https://drafts.csswg.org/css-grid-2/#algo-grid-sizing
+- name: layout.css.grid-multi-pass-track-sizing.enabled
+  type: bool
+  value: false
+  mirror: always
+
 # Is support for :has() enabled?
 - name: layout.css.has-selector.enabled
   type: RelaxedAtomicBool
