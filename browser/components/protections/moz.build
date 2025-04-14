@@ -8,5 +8,12 @@ BROWSER_CHROME_MANIFESTS += ["test/browser/browser.toml"]
 
 JAR_MANIFESTS += ["jar.mn"]
 
+MOZ_SRC_FILES += [
+    "ContentBlockingPrefs.sys.mjs",
+]
+
 with Files("**"):
     BUG_COMPONENT = ("Firefox", "Protections UI")
+
+with Files("ContentBlockingPrefs.sys.mjs"):
+    BUG_COMPONENT = ("Core", "Privacy: Anti-Tracking")
