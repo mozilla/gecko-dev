@@ -445,17 +445,6 @@ class Interventions {
         }
         return `injections/js/${item}`;
       });
-    } else {
-      // Ensure that we log a console message.
-      const info = [bug];
-      if (css) {
-        info.push("css");
-      }
-      if (intervention.ua_string) {
-        info.push("ua");
-      }
-      registration.js = [`injections/js/log_message.js#${info.join(":")}`];
-      registration.runAt = "document_idle";
     }
     if (run_at) {
       registration.runAt = run_at;

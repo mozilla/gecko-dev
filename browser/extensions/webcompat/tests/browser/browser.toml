@@ -15,6 +15,7 @@ support-files = [
 ["browser_aboutcompat.js"]
 
 ["browser_console_messages.js"]
+skip-if = ["true"] # disabled in bug 1960374 to verify if the bug which added it has caused regressions.
 
 ["browser_interventions.js"]
 
