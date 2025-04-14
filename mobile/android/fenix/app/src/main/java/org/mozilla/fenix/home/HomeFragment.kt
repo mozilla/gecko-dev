@@ -1057,9 +1057,13 @@ class HomeFragment : Fragment() {
         val settings = requireContext().settings()
         return TopSitesConfig(
             totalSites = settings.topSitesMaxLimit,
-            frecencyConfig = TopSitesFrecencyConfig(
-                FrecencyThresholdOption.SKIP_ONE_TIME_PAGES,
-            ) { !it.url.toUri().containsQueryParameters(settings.frecencyFilterQuery) },
+            frecencyConfig = if (FxNimbus.features.homepageHideFrecentTopSites.value().enabled) {
+                null
+            } else {
+                TopSitesFrecencyConfig(
+                    frecencyTresholdOption = FrecencyThresholdOption.SKIP_ONE_TIME_PAGES,
+                ) { !it.url.toUri().containsQueryParameters(settings.frecencyFilterQuery) }
+            },
             providerConfig = TopSitesProviderConfig(
                 showProviderTopSites = settings.showContileFeature,
                 limit = TOP_SITES_PROVIDER_LIMIT,

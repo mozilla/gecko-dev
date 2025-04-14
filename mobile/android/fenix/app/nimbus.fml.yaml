@@ -697,6 +697,15 @@ features:
         type: Boolean
         default: false
 
+  homepage-hide-frecent-top-sites:
+    description: Hides frecent top sites on the homepage.
+    variables:
+      enabled:
+        description: >
+          Whether or not to hide frecent top sites on the homepage.
+        type: Boolean
+        default: false
+
   user-characteristics:
     description: A feature for control user characteristic data collection
     variables:

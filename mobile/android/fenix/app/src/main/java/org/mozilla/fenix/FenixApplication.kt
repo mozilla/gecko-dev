@@ -332,11 +332,15 @@ open class FenixApplication : LocaleAwareApplication(), Provider {
                         // we can prevent with this.
                         components.core.topSitesStorage.getTopSites(
                             totalSites = components.settings.topSitesMaxLimit,
-                            frecencyConfig = TopSitesFrecencyConfig(
-                                FrecencyThresholdOption.SKIP_ONE_TIME_PAGES,
-                            ) {
-                                !it.url.toUri()
-                                    .containsQueryParameters(components.settings.frecencyFilterQuery)
+                            frecencyConfig = if (FxNimbus.features.homepageHideFrecentTopSites.value().enabled) {
+                                null
+                            } else {
+                                TopSitesFrecencyConfig(
+                                    frecencyTresholdOption = FrecencyThresholdOption.SKIP_ONE_TIME_PAGES,
+                                ) {
+                                    !it.url.toUri()
+                                        .containsQueryParameters(components.settings.frecencyFilterQuery)
+                                }
                             },
                             providerConfig = TopSitesProviderConfig(
                                 showProviderTopSites = components.settings.showContileFeature,
