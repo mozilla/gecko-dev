@@ -138,7 +138,10 @@ nsresult nsStyledElement::ReparseStyleAttribute(bool aForceInDataDoc) {
     nsAttrValue attrValue;
     nsAutoString stringValue;
     oldVal->ToString(stringValue);
-    ParseStyleAttribute(stringValue, nullptr, attrValue, aForceInDataDoc);
+    if (!stringValue.IsEmpty()) {
+      // Prevent CSP errors from re-parsing a style that was already blocked.
+      ParseStyleAttribute(stringValue, nullptr, attrValue, aForceInDataDoc);
+    }
     // Don't bother going through SetInlineStyleDeclaration; we don't
     // want to fire off mutation events or document notifications anyway
     bool oldValueSet;
@@ -168,8 +171,9 @@ void nsStyledElement::ParseStyleAttribute(const nsAString& aValue,
 
   if (!isNativeAnon &&
       !nsStyleUtil::CSPAllowsInlineStyle(this, doc, aMaybeScriptedPrincipal, 0,
-                                         1, aValue, nullptr))
+                                         1, aValue, nullptr)) {
     return;
+  }
 
   if (aForceInDataDoc || !doc->IsLoadedAsData() || GetExistingStyle() ||
       doc->IsStaticDocument()) {
