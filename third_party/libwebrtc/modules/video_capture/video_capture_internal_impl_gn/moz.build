@@ -7,6 +7,9 @@
   ### DO NOT edit it by hand.                                       ###
 if CONFIG["MOZ_WIDGET_TOOLKIT"] == "gtk":
     CXXFLAGS += CONFIG["MOZ_GTK3_CFLAGS"]
+CXXFLAGS += CONFIG["MOZ_PIPEWIRE_CFLAGS"]
+if not CONFIG["MOZ_SYSTEM_PIPEWIRE"]:
+    LOCAL_INCLUDES += [ "/third_party/pipewire/" ]
 
 COMPILE_FLAGS["OS_INCLUDES"] = []
 AllowCompilerWarnings()
@@ -196,12 +199,7 @@ if CONFIG["TARGET_CPU"] == "mips32":
 
     LOCAL_INCLUDES += [
         "/gfx/angle/checkout/include/",
-        "/third_party/drm/drm/",
-        "/third_party/drm/drm/include/",
-        "/third_party/drm/drm/include/libdrm/",
-        "/third_party/gbm/gbm/",
-        "/third_party/libepoxy/libepoxy/include/",
-        "/third_party/pipewire/"
+        "/third_party/libepoxy/libepoxy/include/"
     ]
 
     UNIFIED_SOURCES += [
@@ -218,12 +216,7 @@ if CONFIG["TARGET_CPU"] == "mips64":
 
     LOCAL_INCLUDES += [
         "/gfx/angle/checkout/include/",
-        "/third_party/drm/drm/",
-        "/third_party/drm/drm/include/",
-        "/third_party/drm/drm/include/libdrm/",
-        "/third_party/gbm/gbm/",
-        "/third_party/libepoxy/libepoxy/include/",
-        "/third_party/pipewire/"
+        "/third_party/libepoxy/libepoxy/include/"
     ]
 
     UNIFIED_SOURCES += [
@@ -284,12 +277,7 @@ if CONFIG["OS_TARGET"] == "Linux" and CONFIG["TARGET_CPU"] == "aarch64":
 
     LOCAL_INCLUDES += [
         "/gfx/angle/checkout/include/",
-        "/third_party/drm/drm/",
-        "/third_party/drm/drm/include/",
-        "/third_party/drm/drm/include/libdrm/",
-        "/third_party/gbm/gbm/",
-        "/third_party/libepoxy/libepoxy/include/",
-        "/third_party/pipewire/"
+        "/third_party/libepoxy/libepoxy/include/"
     ]
 
     UNIFIED_SOURCES += [
@@ -306,12 +294,7 @@ if CONFIG["OS_TARGET"] == "Linux" and CONFIG["TARGET_CPU"] == "arm":
 
     LOCAL_INCLUDES += [
         "/gfx/angle/checkout/include/",
-        "/third_party/drm/drm/",
-        "/third_party/drm/drm/include/",
-        "/third_party/drm/drm/include/libdrm/",
-        "/third_party/gbm/gbm/",
-        "/third_party/libepoxy/libepoxy/include/",
-        "/third_party/pipewire/"
+        "/third_party/libepoxy/libepoxy/include/"
     ]
 
     UNIFIED_SOURCES += [
@@ -332,12 +315,7 @@ if CONFIG["OS_TARGET"] == "Linux" and CONFIG["TARGET_CPU"] == "x86":
 
     LOCAL_INCLUDES += [
         "/gfx/angle/checkout/include/",
-        "/third_party/drm/drm/",
-        "/third_party/drm/drm/include/",
-        "/third_party/drm/drm/include/libdrm/",
-        "/third_party/gbm/gbm/",
-        "/third_party/libepoxy/libepoxy/include/",
-        "/third_party/pipewire/"
+        "/third_party/libepoxy/libepoxy/include/"
     ]
 
     UNIFIED_SOURCES += [
@@ -354,12 +332,7 @@ if CONFIG["OS_TARGET"] == "Linux" and CONFIG["TARGET_CPU"] == "x86_64":
 
     LOCAL_INCLUDES += [
         "/gfx/angle/checkout/include/",
-        "/third_party/drm/drm/",
-        "/third_party/drm/drm/include/",
-        "/third_party/drm/drm/include/libdrm/",
-        "/third_party/gbm/gbm/",
-        "/third_party/libepoxy/libepoxy/include/",
-        "/third_party/pipewire/"
+        "/third_party/libepoxy/libepoxy/include/"
     ]
 
     UNIFIED_SOURCES += [
