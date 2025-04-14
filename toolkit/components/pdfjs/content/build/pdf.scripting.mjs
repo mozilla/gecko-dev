@@ -20,7 +20,6 @@
  * JavaScript code in this page
  */
 
-var __webpack_exports__ = {};
 
 ;// ./src/scripting_api/constants.js
 const Border = Object.freeze({
@@ -1934,18 +1933,15 @@ class App extends PDFObject {
     this._document.obj.calculate = calculate;
   }
   get constants() {
-    if (!this._constants) {
-      this._constants = Object.freeze({
-        align: Object.freeze({
-          left: 0,
-          center: 1,
-          right: 2,
-          top: 3,
-          bottom: 4
-        })
-      });
-    }
-    return this._constants;
+    return this._constants ??= Object.freeze({
+      align: Object.freeze({
+        left: 0,
+        center: 1,
+        right: 2,
+        top: 3,
+        bottom: 4
+      })
+    });
   }
   set constants(_) {
     throw new Error("app.constants is read-only");
@@ -4043,8 +4039,8 @@ function initSandbox(params) {
 
 ;// ./src/pdf.scripting.js
 
-const pdfjsVersion = "5.2.33";
-const pdfjsBuild = "72feb4c25";
+const pdfjsVersion = "5.2.87";
+const pdfjsBuild = "2f7d163df";
 globalThis.pdfjsScripting = {
   initSandbox: initSandbox
 };
