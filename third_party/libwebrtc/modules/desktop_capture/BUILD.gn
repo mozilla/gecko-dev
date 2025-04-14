@@ -554,6 +554,10 @@ rtc_library("desktop_capture") {
       "../../rtc_base:sanitizer",
       "../portal",
     ]
+
+    if (build_with_mozilla) {
+      defines += [ "WEBRTC_USE_PIPEWIRE" ]
+    }
   }
 
   if (rtc_enable_win_wgc) {
