@@ -48,10 +48,4 @@ LOCAL_INCLUDES += [
     "/intl/icu_capi/bindings/cpp",
 ]
 
-# Disable warnings when including C++ headers of ICU4X.
-# - https://github.com/rust-diplomat/diplomat/issues/277
-CXXFLAGS += [
-    "-Wno-mismatched-tags",
-]
-
 FINAL_LIBRARY = "xul"
