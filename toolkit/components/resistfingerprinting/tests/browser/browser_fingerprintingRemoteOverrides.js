@@ -284,24 +284,25 @@ add_setup(async function () {
   });
 });
 
+const client = RemoteSettings(COLLECTION_NAME);
+const db = client.db;
+async function addRemoteOverrides(entries) {
+  const promise = promiseObserver("fpp-test:set-overrides-finishes");
+  await client.db.clear();
+  await client.db.importChanges({}, Date.now(), entries);
+
+  await client.emit("sync", {});
+  await promise;
+}
+
 add_task(async function test_remote_settings() {
   // Add initial empty record.
-  let db = RemoteSettings(COLLECTION_NAME).db;
   await db.importChanges({}, Date.now(), []);
 
   for (let test of TEST_CASES) {
     info(`Testing with entry ${JSON.stringify(test.entires)}`);
 
-    // Create a promise for waiting the overrides get updated.
-    let promise = promiseObserver("fpp-test:set-overrides-finishes");
-
-    // Trigger the fingerprinting overrides update by a remote settings sync.
-    await RemoteSettings(COLLECTION_NAME).emit("sync", {
-      data: {
-        current: test.entires,
-      },
-    });
-    await promise;
+    await addRemoteOverrides(test.entires);
 
     ok(true, "Got overrides update");
 
@@ -325,7 +326,6 @@ add_task(async function test_remote_settings() {
 
 add_task(async function test_remote_settings_pref() {
   // Add initial empty record.
-  let db = RemoteSettings(COLLECTION_NAME).db;
   await db.importChanges({}, Date.now(), []);
 
   for (let test of TEST_CASES) {
@@ -338,17 +338,7 @@ add_task(async function test_remote_settings_pref() {
       ],
     });
 
-    // Create a promise for waiting the overrides get updated.
-    let promise = promiseObserver("fpp-test:set-overrides-finishes");
-
-    // Trigger the fingerprinting overrides update by a remote settings sync.
-    await RemoteSettings(COLLECTION_NAME).emit("sync", {
-      data: {
-        current: test.entires,
-      },
-    });
-    await promise;
-
+    await addRemoteOverrides(test.entires);
     ok(true, "Got overrides update");
 
     for (let expect of test.expects) {
@@ -411,23 +401,17 @@ add_task(async function test_pref_override_remote_settings() {
   await db.importChanges({}, Date.now(), []);
 
   // Trigger a remote settings sync.
-  let promise = promiseObserver("fpp-test:set-overrides-finishes");
-  await RemoteSettings(COLLECTION_NAME).emit("sync", {
-    data: {
-      current: [
-        {
-          id: "1",
-          last_modified: 1000000000000001,
-          overrides: "+WindowOuterSize",
-          firstPartyDomain: "example.org",
-        },
-      ],
+  await addRemoteOverrides([
+    {
+      id: "1",
+      last_modified: 1000000000000001,
+      overrides: "+WindowOuterSize",
+      firstPartyDomain: "example.org",
     },
-  });
-  await promise;
+  ]);
 
   // Then, setting the pref.
-  promise = promiseObserver("fpp-test:set-overrides-finishes");
+  const promise = promiseObserver("fpp-test:set-overrides-finishes");
   await SpecialPowers.pushPrefEnv({
     set: [
       [

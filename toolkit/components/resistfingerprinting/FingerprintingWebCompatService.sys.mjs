@@ -137,12 +137,8 @@ export class FingerprintingWebCompatService {
     Services.prefs.addObserver(PREF_GRANULAR_OVERRIDES_BASELINE, this);
 
     // Register the sync event for the remote settings updates.
-    this.#rs.on("sync", event => {
-      let {
-        data: { current },
-      } = event;
-      this.#onRemoteUpdate(current);
-
+    this.#rs.on("sync", async _ => {
+      await this.#importRemoteSettingsOverrides();
       this.#populateOverrides();
     });
 

@@ -471,23 +471,24 @@ add_setup(async function () {
   });
 });
 
+const client = RemoteSettings(COLLECTION_NAME);
+const db = client.db;
+async function addRemoteOverrides(entries) {
+  const promise = promiseObserver("fpp-test:set-overrides-finishes");
+  await client.db.clear();
+  await client.db.importChanges({}, Date.now(), entries);
+
+  await client.emit("sync", {});
+  await promise;
+}
+
 add_task(async function () {
   // Add initial empty record.
-  let db = RemoteSettings(COLLECTION_NAME).db;
   await db.importChanges({}, Date.now(), []);
 
   for (let test of TEST_CASES) {
     // Create a promise for waiting the overrides get updated.
-    let promise = promiseObserver("fpp-test:set-overrides-finishes");
-
-    // Trigger the fingerprinting overrides update by a remote settings sync.
-    await RemoteSettings(COLLECTION_NAME).emit("sync", {
-      data: {
-        current: test.entires,
-      },
-    });
-    await promise;
-
+    await addRemoteOverrides(test.entires);
     ok(true, "Got overrides update");
 
     let { tab, firstPartyBC, thirdPartyBC } = await openAndSetupTestPage();
@@ -504,27 +505,18 @@ add_task(async function () {
 // that opens it.
 add_task(async function test_popup_inheritance() {
   // Add initial empty record.
-  let db = RemoteSettings(COLLECTION_NAME).db;
   await db.importChanges({}, Date.now(), []);
 
-  // Create a promise for waiting the overrides get updated.
-  let promise = promiseObserver("fpp-test:set-overrides-finishes");
-
   // Trigger the fingerprinting overrides update by a remote settings sync.
-  await RemoteSettings(COLLECTION_NAME).emit("sync", {
-    data: {
-      current: [
-        {
-          id: "1",
-          last_modified: 1000000000000001,
-          overrides: "+ScreenRect,+ScreenAvailRect",
-          firstPartyDomain: "example.com",
-          thirdPartyDomain: "example.org",
-        },
-      ],
+  await addRemoteOverrides([
+    {
+      id: "1",
+      last_modified: 1000000000000001,
+      overrides: "+ScreenRect,+ScreenAvailRect",
+      firstPartyDomain: "example.com",
+      thirdPartyDomain: "example.org",
     },
-  });
-  await promise;
+  ]);
 
   let { tab, thirdPartyFrameBC, popupBC } =
     await openAndSetupTestPageForPopup();
