@@ -25,6 +25,16 @@ add_setup(async function () {
 // The bounce tracker should still be classified and purged correctly.
 
 add_task(async function test_bounce_tab_close() {
+  if (
+    !Services.prefs.getBoolPref(
+      "privacy.bounceTrackingProtection.requireStatefulBounces"
+    )
+  ) {
+    // TODO: Bug 1959947: Make this test work for BTP stateless mode.
+    ok(true, "Skipping test because requireStatefulBounces is disabled.");
+    return;
+  }
+
   info(
     "Test bounce where extended navigation ends early because of tab close."
   );
