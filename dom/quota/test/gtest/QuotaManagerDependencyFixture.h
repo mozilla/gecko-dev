@@ -131,6 +131,26 @@ class QuotaManagerDependencyFixture : public testing::Test {
     }
   }
 
+  // Acquire and await a client directory lock and pass it to the given task.
+  template <class Task>
+  static void PerformClientDirectoryLockTest(
+      const ClientMetadata& aClientMetadata, Task&& aTask) {
+    PerformOnBackgroundThread(
+        [clientMetadata = aClientMetadata, task = std::forward<Task>(aTask)]() {
+          QuotaManager* quotaManager = QuotaManager::Get();
+          ASSERT_TRUE(quotaManager);
+
+          RefPtr<ClientDirectoryLock> directoryLock =
+              quotaManager->CreateDirectoryLock(clientMetadata,
+                                                /* aExclusive */ false);
+
+          auto value = Await(directoryLock->Acquire());
+          ASSERT_TRUE(value.IsResolve());
+
+          task(std::move(directoryLock));
+        });
+  }
+
   template <class Task>
   static void PerformClientDirectoryTest(const ClientMetadata& aClientMetadata,
                                          Task&& aTask) {

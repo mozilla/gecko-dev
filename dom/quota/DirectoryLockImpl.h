@@ -34,6 +34,7 @@ class nsITimer;
 
 namespace mozilla::dom::quota {
 
+class ClientDirectoryLockHandle;
 struct OriginMetadata;
 class QuotaManager;
 
@@ -46,6 +47,7 @@ class DirectoryLockImpl {
 
  private:
   friend class ClientDirectoryLock;
+  friend class ClientDirectoryLockHandle;
   friend class OriginDirectoryLock;
   friend class QuotaManager;
   friend class UniversalDirectoryLock;
