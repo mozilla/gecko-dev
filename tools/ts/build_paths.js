@@ -11,7 +11,7 @@
  */
 
 const fs = require("fs");
-const { paths } = require("./config/fixed_paths.js");
+const { fixed } = require("./config/fixed_paths.js");
 
 const HEADER = `/**
  * NOTE: Do not modify this file by hand.
@@ -41,8 +41,9 @@ function scan(root, dir, files) {
 
 // Emit path mapping for all found module URIs.
 function emitPaths(files, uris, modules) {
+  let paths = {};
   for (let uri of [...uris].sort()) {
-    if (uri in paths) {
+    if (uri in fixed) {
       continue;
     }
     let parts = uri.split("/");
@@ -73,6 +74,7 @@ function emitPaths(files, uris, modules) {
     }
   }
 
+  Object.assign(paths, fixed);
   let tspaths = { compilerOptions: { baseUrl: "../../", paths } };
   return JSON.stringify(tspaths, null, 2) + "\n";
 }

@@ -3,6 +3,10 @@
  * If you're updating some of the sources, see README for instructions.
  */
 
+/// <reference lib="es2024" />
+/// <reference lib="esnext.iterator" />
+
+/// <reference types="./lib.gecko.custom.d.ts" />
 /// <reference types="./lib.gecko.dom.d.ts" />
 /// <reference types="./lib.gecko.glean.d.ts" />
 /// <reference types="./lib.gecko.nsresult.d.ts" />

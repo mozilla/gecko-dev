@@ -8,7 +8,7 @@
 
     "plugins": [
       {
-        "transform": "../../../tools/ts/plugins/checkRootJs.js",
+        "transform": "../../../tools/ts/plugins/checkRootOnly.js",
         "transformProgram": true
       }
     ]

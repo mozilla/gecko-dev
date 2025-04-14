@@ -5,8 +5,9 @@
 "use strict";
 
 /*
- * TypeScript transformer to automatically enable @ts-check for root JS files,
- * only those directly referenced from the tsconfig.json include option.
+ * TypeScript transformer to automatically enable @ts-check for root files,
+ * only those directly referenced from the tsconfig.json include option,
+ * and automatically disable for everything else.
  */
 exports.default = (program, host, _, { ts }) => {
   return ts.createProgram(
@@ -16,8 +17,8 @@ exports.default = (program, host, _, { ts }) => {
       ...host,
       getSourceFile(...args) {
         let file = host.getSourceFile(...args);
-        // If source file doesn't have a @ts-check or @ts-nocheck directive.
-        if (!file.checkJsDirective && file.scriptKind === ts.ScriptKind.JS) {
+        // If the source file doesn't have a @ts-nocheck directive.
+        if (file.checkJsDirective?.enabled !== false) {
           // Add one based on it being included as root file in tsconfig.
           file.checkJsDirective = {
             enabled: program.getRootFileNames().includes(file.fileName),

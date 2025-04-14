@@ -69,22 +69,6 @@ declare global {
   // https://github.com/microsoft/TypeScript/issues/56634
   function ConduitGen<const Send>(_, init: Init<Send>, _actor?): Conduit<Send>;
   type Items<A> = A extends ReadonlyArray<infer U extends string> ? U : never;
-
-  type LazyDefinition = Record<string,
-    string |
-    (() => any) |
-    { service: string, iid: nsIID } |
-    { pref: string, default?, onUpdate?, transform? }
-  >;
-
-  type DeclaredLazy<T> = {
-    [P in keyof T]:
-      T[P] extends (() => infer U) ? U :
-      T[P] extends keyof LazyModules ? Exports<T[P], P> :
-      T[P] extends { pref: string, default?: infer U } ? Widen<U> :
-      T[P] extends { service: string, iid?: infer U } ? nsQIResult<U> :
-      never;
-  }
 }
 
 import { PointConduit, ProcessConduitsChild } from "ConduitsChild.sys.mjs";
@@ -92,37 +76,3 @@ import { ConduitAddress } from "ConduitsParent.sys.mjs";
 
 type Conduit<Send> = PointConduit & { [s in `send${Items<Send>}`]: callback };
 type Init<Send> = ConduitAddress & { send: Send; };
-
-type IfKey<T, K> = K extends keyof T ? T[K] : never;
-type Exports<M, P> = M extends keyof LazyModules ? IfKey<LazyModules[M], P> : never;
-
-type Widen<T> =
-  T extends boolean ? boolean :
-  T extends number ? number :
-  T extends string ? string :
-  never;
-
-type LazyModules = {
-  "resource://gre/modules/AddonManager.sys.mjs": typeof import("resource://gre/modules/AddonManager.sys.mjs"),
-  "resource://gre/modules/addons/AddonSettings.sys.mjs": typeof import("resource://gre/modules/addons/AddonSettings.sys.mjs"),
-  "resource://gre/modules/addons/siteperms-addon-utils.sys.mjs": typeof import("resource://gre/modules/addons/siteperms-addon-utils.sys.mjs"),
-  "resource://gre/modules/AsyncShutdown.sys.mjs": typeof import("resource://gre/modules/AsyncShutdown.sys.mjs"),
-  "resource://gre/modules/E10SUtils.sys.mjs": typeof import("resource://gre/modules/E10SUtils.sys.mjs"),
-  "resource://gre/modules/ExtensionDNR.sys.mjs": typeof import("resource://gre/modules/ExtensionDNR.sys.mjs"),
-  "resource://gre/modules/ExtensionDNRStore.sys.mjs": typeof import("resource://gre/modules/ExtensionDNRStore.sys.mjs"),
-  "resource://gre/modules/ExtensionMenus.sys.mjs": typeof import("resource://gre/modules/ExtensionMenus.sys.mjs"),
-  "resource://gre/modules/ExtensionPermissionMessages.sys.mjs": typeof import("resource://gre/modules/ExtensionPermissionMessages.sys.mjs"),
-  "resource://gre/modules/ExtensionPermissions.sys.mjs": typeof import("resource://gre/modules/ExtensionPermissions.sys.mjs"),
-  "resource://gre/modules/ExtensionPreferencesManager.sys.mjs": typeof import("resource://gre/modules/ExtensionPreferencesManager.sys.mjs"),
-  "resource://gre/modules/ExtensionProcessScript.sys.mjs": typeof import("resource://gre/modules/ExtensionProcessScript.sys.mjs"),
-  "resource://gre/modules/ExtensionScriptingStore.sys.mjs": typeof import("resource://gre/modules/ExtensionScriptingStore.sys.mjs"),
-  "resource://gre/modules/ExtensionStorage.sys.mjs": typeof import("resource://gre/modules/ExtensionStorage.sys.mjs"),
-  "resource://gre/modules/ExtensionStorageIDB.sys.mjs": typeof import("resource://gre/modules/ExtensionStorageIDB.sys.mjs"),
-  "resource://gre/modules/ExtensionStorageSync.sys.mjs": typeof import("resource://gre/modules/ExtensionStorageSync.sys.mjs"),
-  "resource://gre/modules/ExtensionTelemetry.sys.mjs": typeof import("resource://gre/modules/ExtensionTelemetry.sys.mjs"),
-  "resource://gre/modules/ExtensionUserScripts.sys.mjs": typeof import("resource://gre/modules/ExtensionUserScripts.sys.mjs"),
-  "resource://gre/modules/LightweightThemeManager.sys.mjs": typeof import("resource://gre/modules/LightweightThemeManager.sys.mjs"),
-  "resource://gre/modules/NetUtil.sys.mjs": typeof import("resource://gre/modules/NetUtil.sys.mjs"),
-  "resource://gre/modules/Schemas.sys.mjs": typeof import("resource://gre/modules/Schemas.sys.mjs"),
-  "resource://gre/modules/ServiceWorkerCleanUp.sys.mjs": typeof import("resource://gre/modules/ServiceWorkerCleanUp.sys.mjs"),
-};

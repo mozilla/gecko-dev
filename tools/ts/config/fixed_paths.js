@@ -11,8 +11,7 @@
  * If TypeScript or your editor can't find your (new) module in
  * `tools/@types/tspaths.json` try running `mach ts paths` first.
  */
-exports.paths = {
-  "moz-src:///*": ["./*"],
+exports.fixed = {
   "chrome://global/content/ml/NLPUtils.sys.mjs": [
     "toolkit/components/ml/content/nlp/Utils.sys.mjs",
   ],
@@ -102,4 +101,6 @@ exports.paths = {
   "resource://testing-common/services/sync/utils.sys.mjs": [
     "services/sync/modules-testing/utils.sys.mjs",
   ],
+  // Needs to be last, to prefer fixed paths above for autocomplete.
+  "moz-src:///*": ["./*"],
 };
