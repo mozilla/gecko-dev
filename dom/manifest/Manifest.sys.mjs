@@ -44,12 +44,10 @@ function generateHash(aString, hashAlg) {
 }
 
 /**
- * Trims the query parameters from a uri.
- *
- * @param {nsIURI} uri
+ * Trims the query parameters from a url
  */
-function stripQuery(uri) {
-  return uri.mutate().setQuery("").setRef("").finalize();
+function stripQuery(url) {
+  return url.split("?")[0];
 }
 
 // Folder in which we store the manifest files
@@ -160,7 +158,7 @@ class Manifest {
   get scope() {
     const scope =
       this._store.data.manifest.scope || this._store.data.manifest.start_url;
-    return stripQuery(Services.io.newURI(scope));
+    return stripQuery(scope);
   }
 
   get name() {
@@ -249,7 +247,7 @@ export var Manifests = {
     // url of the client and see if it matches the scope of any installed
     // manifests
     if (!manifestUrl) {
-      const url = stripQuery(browser.currentURI);
+      const url = stripQuery(browser.currentURI.spec);
       manifestUrl = this.findManifestUrl(url);
     }
 

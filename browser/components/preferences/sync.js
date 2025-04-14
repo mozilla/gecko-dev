@@ -439,10 +439,10 @@ var gSyncPane = {
   },
 
   _getEntryPoint() {
-    let params = URL.fromURI(document.documentURIObject).searchParams;
-    let entryPoint = params.get("entrypoint") || "preferences";
-    entryPoint = entryPoint.replace(/[^-.\w]/g, "");
-    return entryPoint;
+    let params = new URLSearchParams(
+      document.URL.split("#")[0].split("?")[1] || ""
+    );
+    return params.get("entrypoint") || "preferences";
   },
 
   openContentInBrowser(url, options) {
