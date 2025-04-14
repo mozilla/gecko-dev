@@ -237,6 +237,7 @@ addons_manager:
       - https://bugzilla.mozilla.org/1817100
       - https://bugzilla.mozilla.org/1820153
       - https://bugzilla.mozilla.org/1912166
+      - https://bugzilla.mozilla.org/1958151
     data_reviews:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1806056#c3
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1820153#c3
@@ -248,7 +249,7 @@ addons_manager:
       suspicious_site:
         description: The domain of the site that was reported.
         type: string
-    expires: 140
+    expires: 147
 
 blocklist:
   last_modified_rs_addons_mblf:
