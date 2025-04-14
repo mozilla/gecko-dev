@@ -1510,6 +1510,8 @@
   <string name="download_search_placeholder" tools:ignore="UnusedResources">Etsi latauksista</string>
   <!-- Text to indicate that no downloads match the search query. -->
   <string name="download_search_no_results_found" tools:ignore="UnusedResources">Tuloksia ei löytynyt</string>
+  <!-- Text for the "Select all" button, which selects all downloaded items in the downloads list. -->
+  <string name="download_select_all_items">Valitse kaikki</string>
   <!--
     Downloads Content Type Filters
 
@@ -3413,6 +3415,8 @@
   <string name="text_field_eye_trailing_icon_default_content_description" moz:removedIn="139" tools:ignore="UnusedResources">Näytä piilotettu teksti</string>
   <!-- The default content description for the cross trailing icon button in TextField -->
   <string name="text_field_cross_trailing_icon_default_content_description" moz:removedIn="139" tools:ignore="UnusedResources">Tyhjennä teksti</string>
+  <!-- Subtitle for a setup checklist with 3 steps when two of the tasks are completed. -->
+  <string name="setup_checklist_subtitle_3_steps_second_step">Melkein valmista! Kaksi vaihetta suoritettu, yksi jäljellä.</string>
   <!--
     ===== Setup checklist feature: Task titles =====
 

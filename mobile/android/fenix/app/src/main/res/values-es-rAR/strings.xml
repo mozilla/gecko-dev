@@ -3453,27 +3453,27 @@
 
     Subtitle for a setup checklist with 3 steps initial step. %1$s is the name of the app (for example "Firefox").
   -->
-  <string name="setup_checklist_subtitle_3_steps_initial_state">Complete estos 3 pasos para configurar %1$s para la mejor experiencia de navegación.</string>
+  <string name="setup_checklist_subtitle_3_steps_initial_state">Completá estos 3 pasos para configurar %1$s para la mejor experiencia de navegación.</string>
   <!-- Subtitle for a setup checklist with 3 steps when the first task is completed. -->
-  <string name="setup_checklist_subtitle_3_steps_first_step">¡Buen comienzo! Completó 1 de 3 pasos.</string>
+  <string name="setup_checklist_subtitle_3_steps_first_step">¡Buen comienzo! Completaste 1 de 3 pasos.</string>
   <!-- Subtitle for a setup checklist with 3 steps when two of the tasks are completed. -->
   <string name="setup_checklist_subtitle_3_steps_second_step">¡Casi listo! Dos pasos terminados y 1 restante.</string>
   <!-- Subtitle for a setup checklist with 3 steps completed state. %1$s is the name of the app (for example "Firefox"). -->
-  <string name="setup_checklist_subtitle_3_steps_completed_state">Completó los 3 pasos. Disfrutá de la velocidad, privacidad y seguridad de %1$s.</string>
+  <string name="setup_checklist_subtitle_3_steps_completed_state">Completaste los 3 pasos. Disfrutá de la velocidad, privacidad y seguridad de %1$s.</string>
   <!--
     ===== Setup checklist feature: Subtitles for 6 steps =====
 
     Subtitle for a setup checklist with 6 steps initial state. %1$s is the name of the app (for example "Firefox").
   -->
-  <string name="setup_checklist_subtitle_6_steps_initial_state">Complete los 6 pasos para configurar %1$s para la mejor experiencia de navegación.</string>
+  <string name="setup_checklist_subtitle_6_steps_initial_state">Completá los 6 pasos para configurar %1$s para la mejor experiencia de navegación.</string>
   <!-- Subtitle for a setup checklist with 6 steps when the first task is completed. -->
-  <string name="setup_checklist_subtitle_6_steps_first_step">¡Buen comienzo! Completó 1 de 6 pasos.</string>
+  <string name="setup_checklist_subtitle_6_steps_first_step">¡Buen comienzo! Completaste 1 de 6 pasos.</string>
   <!-- Subtitle for the setup checklist when the second task is completed. -->
-  <string name="setup_checklist_subtitle_6_steps_second_step">Completó 2 de 6 pasos. ¡Gran progreso!</string>
+  <string name="setup_checklist_subtitle_6_steps_second_step">Completaste 2 de 6 pasos. ¡Gran progreso!</string>
   <!-- Subtitle for a setup checklist with 6 steps when three of the tasks are completed. -->
   <string name="setup_checklist_subtitle_6_steps_third_step">¡Estás a mitad de camino! Tres pasos terminados y 3 restantes.</string>
   <!-- Subtitle for a setup checklist with 6 steps when the fourth task is completed. -->
-  <string name="setup_checklist_subtitle_6_steps_fourth_step">Ya dio 4 pasos. ¡Solo quedan 2 más!</string>
+  <string name="setup_checklist_subtitle_6_steps_fourth_step">Ya hiciste 4 pasos. ¡Solo quedan 2 más!</string>
   <!-- Subtitle for a setup checklist with 6 steps when the fifth task is completed. -->
   <string name="setup_checklist_subtitle_6_steps_fifth_step">¡Casi listo! Estás a solo 1 paso de la línea de meta.</string>
   <!-- Subtitle for a setup checklist with 6 steps completed state. %1$s is the name of the app (for example "Firefox"). -->

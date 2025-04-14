@@ -1384,6 +1384,8 @@
   <string name="tab_tray_multiselect_share_content_description">تاللانغان بەتكۈچنى ھەمبەھىرلە</string>
   <!-- Content description for tabs tray multiselect menu -->
   <string name="tab_tray_multiselect_menu_content_description">تاللانغان بەتكۈچ تىزىملىكى</string>
+  <!-- Title text displayed for a homepage tab in the tabs tray. -->
+  <string name="tab_tray_homepage_tab">باش بەت</string>
   <!-- Content description (not visible, for screen readers etc.): Removes tab from collection button. Removes the selected tab from collection when pressed -->
   <string name="remove_tab_from_collection">بەتكۈچنى يىغقۇچتىن چىقىرىۋەت</string>
   <!-- Text for button to enter multiselect mode in tabs tray -->
@@ -1524,6 +1526,8 @@
   <string name="download_search_placeholder" tools:ignore="UnusedResources">چۈشۈرۈشنى ئىزدە</string>
   <!-- Text to indicate that no downloads match the search query. -->
   <string name="download_search_no_results_found" tools:ignore="UnusedResources">ھېچقانداق نەتىجە تېپىلمىدى</string>
+  <!-- Text for the "Select all" button, which selects all downloaded items in the downloads list. -->
+  <string name="download_select_all_items">ھەممىنى تاللا</string>
   <!--
     Downloads Content Type Filters
 
@@ -3436,6 +3440,46 @@
   <!-- The default content description for the cross trailing icon button in TextField -->
   <string name="text_field_cross_trailing_icon_default_content_description" moz:removedIn="139" tools:ignore="UnusedResources">تېكىستنى تازىلا</string>
   <!--
+    Setup checklist feature
+
+    ===== Setup checklist feature: Title =====
+
+    Title for the setup checklist feature when the state is 'incomplete'. %1$s is the name of the app (for example "Firefox").
+  -->
+  <string name="setup_checklist_title_state_incomplete">%1$s نى تەڭشەش تامام</string>
+  <!-- Title for the setup checklist feature when the state is 'completed' -->
+  <string name="setup_checklist_title_state_completed">مۇبارەك بولسۇن!</string>
+  <!--
+    ===== Setup checklist feature: Subtitles for 3 steps =====
+
+    Subtitle for a setup checklist with 3 steps initial step. %1$s is the name of the app (for example "Firefox").
+  -->
+  <string name="setup_checklist_subtitle_3_steps_initial_state">ياخشى تور زىيارەت تەسىراتى ئۈچۈن %1$s نى تەڭشەپ 3 باسقۇچنى تاماملاڭ.</string>
+  <!-- Subtitle for a setup checklist with 3 steps when the first task is completed. -->
+  <string name="setup_checklist_subtitle_3_steps_first_step">ياخشى باشلىنىش! سىز 3 باسقۇچنىڭ 1 نى تاماملىدىڭىز.</string>
+  <!-- Subtitle for a setup checklist with 3 steps when two of the tasks are completed. -->
+  <string name="setup_checklist_subtitle_3_steps_second_step">تۈگەي دېدى! ئىككى باسقۇچ تاماملاندى 1 سى قالدى.</string>
+  <!-- Subtitle for a setup checklist with 3 steps completed state. %1$s is the name of the app (for example "Firefox"). -->
+  <string name="setup_checklist_subtitle_3_steps_completed_state">3 باسقۇچنىڭ ھەممىسىنى تاماملىدىڭىز. %1$s نىڭ سۈرئىتى، شەخسىيىتى ۋە بىخەتەرلىكىدىن ھۇزۇرلىنىڭ.</string>
+  <!--
+    ===== Setup checklist feature: Subtitles for 6 steps =====
+
+    Subtitle for a setup checklist with 6 steps initial state. %1$s is the name of the app (for example "Firefox").
+  -->
+  <string name="setup_checklist_subtitle_6_steps_initial_state">ياخشى تور زىيارەت تەسىراتى ئۈچۈن %1$s نى تەڭشەپ 6 باسقۇچنى تاماملاڭ.</string>
+  <!-- Subtitle for a setup checklist with 6 steps when the first task is completed. -->
+  <string name="setup_checklist_subtitle_6_steps_first_step">ياخشى باشلىنىش! سىز 6 باسقۇچنىڭ 1 نى تاماملىدىڭىز.</string>
+  <!-- Subtitle for the setup checklist when the second task is completed. -->
+  <string name="setup_checklist_subtitle_6_steps_second_step">سىز 6 باسقۇچنىڭ 2 نى تاماملىدىڭىز. زور ئىلگىرىلەش!</string>
+  <!-- Subtitle for a setup checklist with 6 steps when three of the tasks are completed. -->
+  <string name="setup_checklist_subtitle_6_steps_third_step">يېرىمى تۈگىدى! 3 باسقۇچ تاماملاندى 3 ى قالدى.</string>
+  <!-- Subtitle for a setup checklist with 6 steps when the fourth task is completed. -->
+  <string name="setup_checklist_subtitle_6_steps_fourth_step">سىز 4 باسقۇچنى تاماملىدىڭىز. پەقەت 2 باسقۇچ قالدى!</string>
+  <!-- Subtitle for a setup checklist with 6 steps when the fifth task is completed. -->
+  <string name="setup_checklist_subtitle_6_steps_fifth_step">تۈگەي دېدى! سىز تاماملاشقا پەقەت 1 باسقۇچ قالدى.</string>
+  <!-- Subtitle for a setup checklist with 6 steps completed state. %1$s is the name of the app (for example "Firefox"). -->
+  <string name="setup_checklist_subtitle_6_steps_completed_state">سىز 6 باسقۇچنىڭ ھەممىسىنى تاماملىدىڭىز. %1$s نىڭ سۈرئىتى، شەخسىيىتى ۋە بىخەتەرلىكىدىن ھۇزۇرلىنىڭ.</string>
+  <!--
     ===== Setup checklist feature: Task titles =====
 
     The title of the default browser task for the setup checklist
@@ -3461,6 +3505,12 @@
   <string name="setup_checklist_group_customize">%1$s نى خاسلاشتۇرىدۇ</string>
   <!-- The title of the 'helpful tools' group in the setup checklist -->
   <string name="setup_checklist_group_helpful_tools">پايدىلىق قوراللار</string>
+  <!--
+    ===== Setup checklist feature: Button =====
+
+    Text for the 'remove' button for the setup checklist
+  -->
+  <string name="setup_checklist_button_remove">تەكشۈرۈش تىزىمىنى چىقىرىۋەت</string>
   <!--
     ===== Setup checklist feature: Accessibility =====
 
