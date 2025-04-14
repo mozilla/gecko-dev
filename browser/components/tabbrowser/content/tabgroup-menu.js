@@ -886,9 +886,12 @@
           this.close(false);
           break;
         case KeyEvent.DOM_VK_RETURN:
-          // When focus is on a toolbarbutton, we need to wait for the command
-          // event, which will ultimately close the panel as well.
-          if (event.target.nodeName != "toolbarbutton") {
+          // When focus is on a button, we need to let that handle the Enter key,
+          // which should ultimately close the panel as well.
+          if (
+            event.target.localName != "toolbarbutton" &&
+            event.target.localName != "moz-button"
+          ) {
             this.close();
           }
           break;

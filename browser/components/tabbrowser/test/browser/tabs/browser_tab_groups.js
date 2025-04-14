@@ -1741,7 +1741,15 @@ add_task(async function test_tabGroupCreatePanel() {
 
   info("New group should be removed after hitting Cancel");
   let panelHidden = BrowserTestUtils.waitForPopupEvent(tabgroupPanel, "hidden");
-  tabgroupPanel.querySelector("#tab-group-editor-button-cancel").click();
+  let cancelButton = tabgroupPanel.querySelector(
+    "#tab-group-editor-button-cancel"
+  );
+  if (AppConstants.platform == "macosx") {
+    cancelButton.click();
+  } else {
+    cancelButton.focus();
+    EventUtils.synthesizeKey("VK_RETURN");
+  }
   await panelHidden;
   Assert.ok(!tab.group, "Tab is ungrouped after hitting Cancel");
 
