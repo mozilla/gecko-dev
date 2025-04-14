@@ -160,6 +160,7 @@ const allProperties = new Set([
   "autoDiscardable",
   "discarded",
   "favIconUrl",
+  "groupId",
   "hidden",
   "isArticle",
   "mutedInfo",
@@ -465,6 +466,15 @@ this.tabs = class extends ExtensionAPIPersistent {
           needed.push("discarded");
         } else if (event.type == "TabBrowserDiscarded") {
           needed.push("discarded");
+        } else if (event.type === "TabGrouped") {
+          needed.push("groupId");
+        } else if (event.type === "TabUngrouped") {
+          if (event.originalTarget.group) {
+            // If there is still a group, that means that the group changed,
+            // so TabGrouped will also fire. Ignore to avoid duplicate events.
+            return;
+          }
+          needed.push("groupId");
         } else if (event.type == "TabShow") {
           needed.push("hidden");
         } else if (event.type == "TabHide") {
@@ -530,6 +540,10 @@ this.tabs = class extends ExtensionAPIPersistent {
       if (filter.properties.has("discarded")) {
         listeners.set("TabBrowserInserted", listener);
         listeners.set("TabBrowserDiscarded", listener);
+      }
+      if (filter.properties.has("groupId")) {
+        listeners.set("TabGrouped", listener);
+        listeners.set("TabUngrouped", listener);
       }
       if (filter.properties.has("hidden")) {
         listeners.set("TabShow", listener);
