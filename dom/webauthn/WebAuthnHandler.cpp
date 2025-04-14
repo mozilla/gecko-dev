@@ -271,6 +271,24 @@ already_AddRefed<Promise> WebAuthnHandler::MakeCredential(
     }
   }
 
+  // <https://w3c.github.io/webauthn/#sctn-large-blob-extension>
+  if (aOptions.mExtensions.mLargeBlob.WasPassed()) {
+    if (aOptions.mExtensions.mLargeBlob.Value().mRead.WasPassed() ||
+        aOptions.mExtensions.mLargeBlob.Value().mWrite.WasPassed()) {
+      promise->MaybeReject(NS_ERROR_DOM_NOT_SUPPORTED_ERR);
+      return promise.forget();
+    }
+    Maybe<bool> supportRequired;
+    const Optional<nsString>& largeBlobSupport =
+        aOptions.mExtensions.mLargeBlob.Value().mSupport;
+    if (largeBlobSupport.WasPassed()) {
+      supportRequired.emplace(largeBlobSupport.Value().Equals(u"required"_ns));
+    }
+    nsTArray<uint8_t> write;  // unused
+    extensions.AppendElement(
+        WebAuthnExtensionLargeBlob(supportRequired, write));
+  }
+
   // <https://w3c.github.io/webauthn/#prf-extension>
   if (aOptions.mExtensions.mPrf.WasPassed()) {
     const AuthenticationExtensionsPRFInputs& prf =
@@ -533,6 +551,30 @@ already_AddRefed<Promise> WebAuthnHandler::GetAssertion(
     maybeAppId.emplace(std::move(appId));
   }
 
+  // <https://w3c.github.io/webauthn/#sctn-large-blob-extension>
+  if (aOptions.mExtensions.mLargeBlob.WasPassed()) {
+    const AuthenticationExtensionsLargeBlobInputs& extLargeBlob =
+        aOptions.mExtensions.mLargeBlob.Value();
+    if (extLargeBlob.mSupport.WasPassed() ||
+        (extLargeBlob.mRead.WasPassed() && extLargeBlob.mWrite.WasPassed()) ||
+        (extLargeBlob.mWrite.WasPassed() &&
+         aOptions.mAllowCredentials.Length() != 1)) {
+      promise->MaybeReject(NS_ERROR_DOM_NOT_SUPPORTED_ERR);
+      return promise.forget();
+    }
+    Maybe<bool> read = Nothing();
+    if (extLargeBlob.mRead.WasPassed() && extLargeBlob.mRead.Value()) {
+      read.emplace(true);
+    }
+
+    CryptoBuffer write;
+    if (extLargeBlob.mWrite.WasPassed()) {
+      read.emplace(false);
+      write.Assign(extLargeBlob.mWrite.Value());
+    }
+    extensions.AppendElement(WebAuthnExtensionLargeBlob(read, write));
+  }
+
   // <https://w3c.github.io/webauthn/#prf-extension>
   if (aOptions.mExtensions.mPrf.WasPassed()) {
     const AuthenticationExtensionsPRFInputs& prf =
@@ -753,6 +795,12 @@ void WebAuthnHandler::FinishMakeCredential(
           ext.get_WebAuthnExtensionResultHmacSecret().hmacCreateSecret();
       credential->SetClientExtensionResultHmacSecret(hmacCreateSecret);
     }
+    if (ext.type() ==
+        WebAuthnExtensionResult::TWebAuthnExtensionResultLargeBlob) {
+      credential->InitClientExtensionResultLargeBlob();
+      credential->SetClientExtensionResultLargeBlobSupported(
+          ext.get_WebAuthnExtensionResultLargeBlob().flag());
+    }
     if (ext.type() == WebAuthnExtensionResult::TWebAuthnExtensionResultPrf) {
       credential->InitClientExtensionResultPrf();
       const Maybe<bool> prfEnabled =
@@ -822,6 +870,24 @@ void WebAuthnHandler::FinishGetAssertion(
     if (ext.type() == WebAuthnExtensionResult::TWebAuthnExtensionResultAppId) {
       bool appid = ext.get_WebAuthnExtensionResultAppId().AppId();
       credential->SetClientExtensionResultAppId(appid);
+    }
+    if (ext.type() ==
+        WebAuthnExtensionResult::TWebAuthnExtensionResultLargeBlob) {
+      if (ext.get_WebAuthnExtensionResultLargeBlob().flag() &&
+          ext.get_WebAuthnExtensionResultLargeBlob().written()) {
+        // Signal a read failure by including an empty largeBlob extension.
+        credential->InitClientExtensionResultLargeBlob();
+      } else if (ext.get_WebAuthnExtensionResultLargeBlob().flag()) {
+        const nsTArray<uint8_t>& largeBlobValue =
+            ext.get_WebAuthnExtensionResultLargeBlob().blob();
+        credential->InitClientExtensionResultLargeBlob();
+        credential->SetClientExtensionResultLargeBlobValue(largeBlobValue);
+      } else {
+        bool largeBlobWritten =
+            ext.get_WebAuthnExtensionResultLargeBlob().written();
+        credential->InitClientExtensionResultLargeBlob();
+        credential->SetClientExtensionResultLargeBlobWritten(largeBlobWritten);
+      }
     }
     if (ext.type() == WebAuthnExtensionResult::TWebAuthnExtensionResultPrf) {
       credential->InitClientExtensionResultPrf();

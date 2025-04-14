@@ -40,6 +40,14 @@ struct WebAuthnExtensionHmacSecret {
   bool hmacCreateSecret;
 };
 
+struct WebAuthnExtensionLargeBlob {
+  bool? flag;      // In registrations this indicates whether large blob support is required.
+                   // In authentications this indicates whether this is a request to read the
+                   // a blob or whether it is a request to write one.
+  uint8_t[] write; // Authentication only. The value to be written when `flag` is
+                   // present and false.
+};
+
 struct WebAuthnExtensionMinPinLength {
   bool minPinLength;
 };
@@ -64,6 +72,7 @@ struct WebAuthnExtensionPrfEvalByCredentialEntry {
 union WebAuthnExtension {
   WebAuthnExtensionCredProps;
   WebAuthnExtensionHmacSecret;
+  WebAuthnExtensionLargeBlob;
   WebAuthnExtensionMinPinLength;
   WebAuthnExtensionPrf;
 };
@@ -80,6 +89,13 @@ struct WebAuthnExtensionResultHmacSecret {
   bool hmacCreateSecret;
 };
 
+struct WebAuthnExtensionResultLargeBlob {
+  bool flag;      // In registration this indicates support. In authentication
+                  // it indicates whether this is a read return or a write return.
+  uint8_t[] blob; // Authentication only. Read return.
+  bool written;   // Authentication only. Write return
+};
+
 struct WebAuthnExtensionResultPrf {
   bool? enabled;
   WebAuthnExtensionPrfValues? results;
@@ -89,6 +105,7 @@ union WebAuthnExtensionResult {
   WebAuthnExtensionResultAppId;
   WebAuthnExtensionResultCredProps;
   WebAuthnExtensionResultHmacSecret;
+  WebAuthnExtensionResultLargeBlob;
   WebAuthnExtensionResultPrf;
 };
 

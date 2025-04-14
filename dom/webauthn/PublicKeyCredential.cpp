@@ -198,6 +198,14 @@ already_AddRefed<Promise> PublicKeyCredential::GetClientCapabilities(
   entry->mValue = true;
 
   entry = capabilities.Entries().AppendElement();
+  entry->mKey = u"extension:largeBlob"_ns;
+#if defined(XP_MACOSX) || defined(XP_WIN)
+  entry->mValue = true;
+#else
+  entry->mValue = false;
+#endif
+
+  entry = capabilities.Entries().AppendElement();
   entry->mKey = u"extension:minPinLength"_ns;
   entry->mValue = true;
 
@@ -282,6 +290,26 @@ void PublicKeyCredential::GetClientExtensionResults(
         mClientExtensionOutputs.mHmacCreateSecret.Value());
   }
 
+  if (mClientExtensionOutputs.mLargeBlob.WasPassed()) {
+    const AuthenticationExtensionsLargeBlobOutputs& src =
+        mClientExtensionOutputs.mLargeBlob.Value();
+    AuthenticationExtensionsLargeBlobOutputs& dest =
+        aResult.mLargeBlob.Construct();
+
+    if (src.mSupported.WasPassed()) {
+      dest.mSupported.Construct(src.mSupported.Value());
+    }
+
+    if (src.mWritten.WasPassed()) {
+      dest.mWritten.Construct(src.mWritten.Value());
+    }
+
+    if (mLargeBlobValue.isSome()) {
+      dest.mBlob.Construct().Init(
+          TypedArrayCreator<ArrayBuffer>(mLargeBlobValue.ref()).Create(cx));
+    }
+  }
+
   if (mClientExtensionOutputs.mPrf.WasPassed()) {
     AuthenticationExtensionsPRFOutputs& dest = aResult.mPrf.Construct();
 
@@ -336,6 +364,15 @@ void PublicKeyCredential::ToJSON(JSContext* aCx,
             mClientExtensionOutputs.mPrf.Value().mEnabled.Value());
       }
     }
+    if (mClientExtensionOutputs.mLargeBlob.WasPassed()) {
+      const AuthenticationExtensionsLargeBlobOutputs& src =
+          mClientExtensionOutputs.mLargeBlob.Value();
+      AuthenticationExtensionsLargeBlobOutputsJSON& dest =
+          json.mClientExtensionResults.mLargeBlob.Construct();
+      if (src.mSupported.WasPassed()) {
+        dest.mSupported.Construct(src.mSupported.Value());
+      }
+    }
     json.mType.Assign(u"public-key"_ns);
     if (!ToJSValue(aCx, json, &value)) {
       aError.StealExceptionFromJSContext(aCx);
@@ -359,6 +396,27 @@ void PublicKeyCredential::ToJSON(JSContext* aCx,
     }
     if (mClientExtensionOutputs.mPrf.WasPassed()) {
       json.mClientExtensionResults.mPrf.Construct();
+    }
+    if (mClientExtensionOutputs.mLargeBlob.WasPassed()) {
+      const AuthenticationExtensionsLargeBlobOutputs& src =
+          mClientExtensionOutputs.mLargeBlob.Value();
+      AuthenticationExtensionsLargeBlobOutputsJSON& dest =
+          json.mClientExtensionResults.mLargeBlob.Construct();
+      if (src.mWritten.WasPassed()) {
+        dest.mWritten.Construct(src.mWritten.Value());
+      }
+      if (mLargeBlobValue.isSome()) {
+        nsCString largeBlobB64;
+        nsresult rv = mozilla::Base64URLEncode(
+            mLargeBlobValue->Length(), mLargeBlobValue->Elements(),
+            Base64URLEncodePaddingPolicy::Omit, largeBlobB64);
+        if (NS_FAILED(rv)) {
+          aError.ThrowEncodingError(
+              "could not encode large blob data as urlsafe base64");
+          return;
+        }
+        dest.mBlob.Construct(NS_ConvertUTF8toUTF16(largeBlobB64));
+      }
     }
     json.mType.Assign(u"public-key"_ns);
     if (!ToJSValue(aCx, json, &value)) {
@@ -388,6 +446,28 @@ void PublicKeyCredential::SetClientExtensionResultHmacSecret(
     bool aHmacCreateSecret) {
   mClientExtensionOutputs.mHmacCreateSecret.Construct();
   mClientExtensionOutputs.mHmacCreateSecret.Value() = aHmacCreateSecret;
+}
+
+void PublicKeyCredential::InitClientExtensionResultLargeBlob() {
+  mClientExtensionOutputs.mLargeBlob.Construct();
+}
+
+void PublicKeyCredential::SetClientExtensionResultLargeBlobSupported(
+    bool aLargeBlobSupported) {
+  mClientExtensionOutputs.mLargeBlob.Value().mSupported.Construct(
+      aLargeBlobSupported);
+}
+
+void PublicKeyCredential::SetClientExtensionResultLargeBlobValue(
+    const nsTArray<uint8_t>& aLargeBlobValue) {
+  mLargeBlobValue.emplace(aLargeBlobValue.Length());
+  mLargeBlobValue->Assign(aLargeBlobValue);
+}
+
+void PublicKeyCredential::SetClientExtensionResultLargeBlobWritten(
+    bool aLargeBlobWritten) {
+  mClientExtensionOutputs.mLargeBlob.Value().mWritten.Construct(
+      aLargeBlobWritten);
 }
 
 void PublicKeyCredential::InitClientExtensionResultPrf() {
@@ -474,6 +554,26 @@ bool DecodeAuthenticationExtensionsPRFInputsJSON(
   return true;
 }
 
+bool DecodeAuthenticationExtensionsLargeBlobInputsJSON(
+    GlobalObject& aGlobal,
+    const AuthenticationExtensionsLargeBlobInputsJSON& aInputsJSON,
+    AuthenticationExtensionsLargeBlobInputs& aInputs, ErrorResult& aRv) {
+  if (aInputsJSON.mSupport.WasPassed()) {
+    aInputs.mSupport.Construct(aInputsJSON.mSupport.Value());
+  }
+  if (aInputsJSON.mRead.WasPassed()) {
+    aInputs.mRead.Construct(aInputsJSON.mRead.Value());
+  }
+  if (aInputsJSON.mWrite.WasPassed()) {
+    if (!Base64DecodeToArrayBuffer(
+            aGlobal, aInputsJSON.mWrite.Value(),
+            aInputs.mWrite.Construct().SetAsArrayBuffer(), aRv)) {
+      return false;
+    }
+  }
+  return true;
+}
+
 void PublicKeyCredential::ParseCreationOptionsFromJSON(
     GlobalObject& aGlobal,
     const PublicKeyCredentialCreationOptionsJSON& aOptions,
@@ -547,6 +647,18 @@ void PublicKeyCredential::ParseCreationOptionsFromJSON(
       aResult.mExtensions.mMinPinLength.Construct(
           aOptions.mExtensions.Value().mMinPinLength.Value());
     }
+    if (aOptions.mExtensions.Value().mLargeBlob.WasPassed()) {
+      const AuthenticationExtensionsLargeBlobInputsJSON& largeBlobInputsJSON =
+          aOptions.mExtensions.Value().mLargeBlob.Value();
+      AuthenticationExtensionsLargeBlobInputs& largeBlobInputs =
+          aResult.mExtensions.mLargeBlob.Construct();
+      if (!DecodeAuthenticationExtensionsLargeBlobInputsJSON(
+              aGlobal, largeBlobInputsJSON, largeBlobInputs, aRv)) {
+        aRv.ThrowEncodingError(
+            "could not decode large blob inputs as urlsafe base64");
+        return;
+      }
+    }
     if (aOptions.mExtensions.Value().mPrf.WasPassed()) {
       const AuthenticationExtensionsPRFInputsJSON& prfInputsJSON =
           aOptions.mExtensions.Value().mPrf.Value();
@@ -614,6 +726,18 @@ void PublicKeyCredential::ParseRequestOptionsFromJSON(
     if (aOptions.mExtensions.Value().mHmacCreateSecret.WasPassed()) {
       aResult.mExtensions.mHmacCreateSecret.Construct(
           aOptions.mExtensions.Value().mHmacCreateSecret.Value());
+    }
+    if (aOptions.mExtensions.Value().mLargeBlob.WasPassed()) {
+      const AuthenticationExtensionsLargeBlobInputsJSON& largeBlobInputsJSON =
+          aOptions.mExtensions.Value().mLargeBlob.Value();
+      AuthenticationExtensionsLargeBlobInputs& largeBlobInputs =
+          aResult.mExtensions.mLargeBlob.Construct();
+      if (!DecodeAuthenticationExtensionsLargeBlobInputsJSON(
+              aGlobal, largeBlobInputsJSON, largeBlobInputs, aRv)) {
+        aRv.ThrowEncodingError(
+            "could not decode large blob inputs as urlsafe base64");
+        return;
+      }
     }
     if (aOptions.mExtensions.Value().mMinPinLength.WasPassed()) {
       aResult.mExtensions.mMinPinLength.Construct(

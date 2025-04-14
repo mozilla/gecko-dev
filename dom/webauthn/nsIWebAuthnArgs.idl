@@ -46,6 +46,7 @@ interface nsIWebAuthnRegisterArgs : nsISupports {
     [must_use] readonly attribute boolean prf;
     [must_use] readonly attribute Array<octet> prfEvalFirst;
     [must_use] readonly attribute Array<octet> prfEvalSecond;
+    [must_use] readonly attribute boolean largeBlobSupportRequired;
 
     // Options.
     readonly attribute AString residentKey;
@@ -97,6 +98,8 @@ interface nsIWebAuthnSignArgs : nsISupports {
     [must_use] readonly attribute Array<Array<octet> > prfEvalByCredentialEvalFirst;
     [must_use] readonly attribute Array<boolean> prfEvalByCredentialEvalSecondMaybe;
     [must_use] readonly attribute Array<Array<octet> > prfEvalByCredentialEvalSecond;
+    [must_use] readonly attribute boolean largeBlobRead;
+    [must_use] readonly attribute Array<octet> largeBlobWrite;
 
     // Options
     [must_use] readonly attribute AString userVerification;

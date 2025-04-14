@@ -216,6 +216,16 @@ WebAuthnRegisterArgs::GetPrivateBrowsing(bool* aPrivateBrowsing) {
   return NS_OK;
 }
 
+NS_IMETHODIMP
+WebAuthnRegisterArgs::GetLargeBlobSupportRequired(
+    bool* aLargeBlobSupportRequired) {
+  if (mLargeBlobSupportRequired.isSome()) {
+    *aLargeBlobSupportRequired = mLargeBlobSupportRequired.ref();
+    return NS_OK;
+  }
+  return NS_ERROR_NOT_AVAILABLE;
+}
+
 NS_IMPL_ISUPPORTS(WebAuthnSignArgs, nsIWebAuthnSignArgs)
 
 NS_IMETHODIMP
@@ -435,6 +445,24 @@ NS_IMETHODIMP
 WebAuthnSignArgs::GetPrivateBrowsing(bool* aPrivateBrowsing) {
   *aPrivateBrowsing = mPrivateBrowsing;
   return NS_OK;
+}
+
+NS_IMETHODIMP
+WebAuthnSignArgs::GetLargeBlobRead(bool* aLargeBlobRead) {
+  if (mLargeBlobRead.isSome()) {
+    *aLargeBlobRead = mLargeBlobRead.ref();
+    return NS_OK;
+  }
+  return NS_ERROR_NOT_AVAILABLE;
+}
+
+NS_IMETHODIMP
+WebAuthnSignArgs::GetLargeBlobWrite(nsTArray<uint8_t>& aLargeBlobWrite) {
+  if (mLargeBlobRead.isSome() && mLargeBlobRead.ref() == false) {
+    aLargeBlobWrite.Assign(mLargeBlobWrite);
+    return NS_OK;
+  }
+  return NS_ERROR_NOT_AVAILABLE;
 }
 
 }  // namespace mozilla::dom

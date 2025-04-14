@@ -28,6 +28,7 @@ class WebAuthnRegisterArgs final : public nsIWebAuthnRegisterArgs {
         mInfo(aInfo),
         mCredProps(false),
         mHmacCreateSecret(false),
+        mLargeBlobSupportRequired(Nothing()),
         mMinPinLength(false),
         mPrf(false) {
     for (const WebAuthnExtension& ext : mInfo.Extensions()) {
@@ -38,6 +39,10 @@ class WebAuthnRegisterArgs final : public nsIWebAuthnRegisterArgs {
         case WebAuthnExtension::TWebAuthnExtensionHmacSecret:
           mHmacCreateSecret =
               ext.get_WebAuthnExtensionHmacSecret().hmacCreateSecret();
+          break;
+        case WebAuthnExtension::TWebAuthnExtensionLargeBlob:
+          mLargeBlobSupportRequired =
+              ext.get_WebAuthnExtensionLargeBlob().flag();
           break;
         case WebAuthnExtension::TWebAuthnExtensionMinPinLength:
           mMinPinLength =
@@ -63,6 +68,7 @@ class WebAuthnRegisterArgs final : public nsIWebAuthnRegisterArgs {
   // Flags to indicate whether an extension is being requested.
   bool mCredProps;
   bool mHmacCreateSecret;
+  Maybe<bool> mLargeBlobSupportRequired;
   bool mMinPinLength;
   bool mPrf;
 };
@@ -89,6 +95,16 @@ class WebAuthnSignArgs final : public nsIWebAuthnSignArgs {
           break;
         case WebAuthnExtension::TWebAuthnExtensionMinPinLength:
           break;
+        case WebAuthnExtension::TWebAuthnExtensionLargeBlob:
+          if (ext.get_WebAuthnExtensionLargeBlob().flag().isSome()) {
+            bool read = ext.get_WebAuthnExtensionLargeBlob().flag().ref();
+            mLargeBlobRead.emplace(read);
+            if (!read) {
+              mLargeBlobWrite.AppendElements(
+                  ext.get_WebAuthnExtensionLargeBlob().write());
+            }
+          }
+          break;
         case WebAuthnExtension::TWebAuthnExtensionPrf:
           mPrf = ext.get_WebAuthnExtensionPrf().eval().isSome() ||
                  ext.get_WebAuthnExtensionPrf().evalByCredentialMaybe();
@@ -106,6 +122,8 @@ class WebAuthnSignArgs final : public nsIWebAuthnSignArgs {
   const nsCString mClientDataJSON;
   const bool mPrivateBrowsing;
   const WebAuthnGetAssertionInfo mInfo;
+  Maybe<bool> mLargeBlobRead;
+  nsTArray<uint8_t> mLargeBlobWrite;
   bool mPrf;
 };
 

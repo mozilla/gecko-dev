@@ -216,6 +216,11 @@ impl WebAuthnRegisterResult {
         Ok(hmac_create_secret)
     }
 
+    xpcom_method!(get_large_blob_supported => GetLargeBlobSupported() -> bool);
+    fn get_large_blob_supported(&self) -> Result<bool, nsresult> {
+        Err(NS_ERROR_NOT_AVAILABLE)
+    }
+
     xpcom_method!(get_prf_enabled => GetPrfEnabled() -> bool);
     fn get_prf_enabled(&self) -> Result<bool, nsresult> {
         match self.result.borrow().extensions.prf {
@@ -410,6 +415,16 @@ impl WebAuthnSignResult {
     xpcom_method!(set_used_app_id => SetUsedAppId(aUsedAppId: bool));
     fn set_used_app_id(&self, _used_app_id: bool) -> Result<(), nsresult> {
         Err(NS_ERROR_NOT_IMPLEMENTED)
+    }
+
+    xpcom_method!(get_large_blob_value => GetLargeBlobValue() -> ThinVec<u8>);
+    fn get_large_blob_value(&self) -> Result<ThinVec<u8>, nsresult> {
+        Err(NS_ERROR_NOT_AVAILABLE)
+    }
+
+    xpcom_method!(get_large_blob_written => GetLargeBlobWritten() -> bool);
+    fn get_large_blob_written(&self) -> Result<bool, nsresult> {
+        Err(NS_ERROR_NOT_AVAILABLE)
     }
 
     xpcom_method!(get_prf_maybe => GetPrfMaybe() -> bool);

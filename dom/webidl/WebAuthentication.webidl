@@ -319,6 +319,47 @@ partial dictionary AuthenticationExtensionsClientOutputsJSON {
     boolean hmacCreateSecret;
 };
 
+// largeBlob
+// <https://w3c.github.io/webauthn/#sctn-large-blob-extension>
+partial dictionary AuthenticationExtensionsClientInputs {
+    AuthenticationExtensionsLargeBlobInputs largeBlob;
+};
+
+partial dictionary AuthenticationExtensionsClientInputsJSON {
+    AuthenticationExtensionsLargeBlobInputsJSON largeBlob;
+};
+
+dictionary AuthenticationExtensionsLargeBlobInputs {
+    DOMString support;
+    boolean read;
+    BufferSource write;
+};
+
+dictionary AuthenticationExtensionsLargeBlobInputsJSON {
+    DOMString support;
+    boolean read;
+    Base64URLString write;
+};
+
+partial dictionary AuthenticationExtensionsClientOutputs {
+    AuthenticationExtensionsLargeBlobOutputs largeBlob;
+};
+
+partial dictionary AuthenticationExtensionsClientOutputsJSON {
+    AuthenticationExtensionsLargeBlobOutputsJSON largeBlob;
+};
+
+dictionary AuthenticationExtensionsLargeBlobOutputs {
+    boolean supported;
+    ArrayBuffer blob;
+    boolean written;
+};
+
+dictionary AuthenticationExtensionsLargeBlobOutputsJSON {
+    boolean supported;
+    Base64URLString blob;
+    boolean written;
+};
 
 // minPinLength
 // <https://fidoalliance.org/specs/fido-v2.1-ps-20210615/fido-client-to-authenticator-protocol-v2.1-ps-errata-20220621.html#sctn-minpinlength-extension>

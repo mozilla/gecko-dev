@@ -27,6 +27,8 @@ interface nsIWebAuthnRegisterResult : nsISupports {
 
     [must_use] attribute boolean credPropsRk;
 
+    readonly attribute boolean largeBlobSupported;
+
     readonly attribute boolean prfEnabled;
     readonly attribute Array<octet> prfResultsFirst;
     readonly attribute Array<octet> prfResultsSecond;
@@ -64,6 +66,9 @@ interface nsIWebAuthnSignResult : nsISupports {
 
     // appId field of AuthenticationExtensionsClientOutputs (Optional)
     [must_use] attribute boolean usedAppId;
+
+    readonly attribute Array<octet> largeBlobValue;
+    readonly attribute boolean largeBlobWritten;
 
     readonly attribute boolean prfMaybe; // prf output can be present but empty
     readonly attribute Array<octet> prfResultsFirst;

@@ -308,6 +308,23 @@ WinWebAuthnService::MakeCredential(uint64_t aTransactionId,
         // AttestationConveyance
         DWORD winAttestation = WEBAUTHN_ATTESTATION_CONVEYANCE_PREFERENCE_ANY;
 
+        // Large Blob
+        DWORD largeBlobSupport = WEBAUTHN_LARGE_BLOB_SUPPORT_NONE;
+        bool largeBlobSupportRequired;
+        nsresult rv =
+            aArgs->GetLargeBlobSupportRequired(&largeBlobSupportRequired);
+        if (rv != NS_ERROR_NOT_AVAILABLE) {
+          if (NS_FAILED(rv)) {
+            aPromise->Reject(rv);
+            return;
+          }
+          if (largeBlobSupportRequired) {
+            largeBlobSupport = WEBAUTHN_LARGE_BLOB_SUPPORT_REQUIRED;
+          } else {
+            largeBlobSupport = WEBAUTHN_LARGE_BLOB_SUPPORT_PREFERRED;
+          }
+        }
+
         // Prf
         BOOL winEnablePrf = FALSE;
 
@@ -366,8 +383,7 @@ WinWebAuthnService::MakeCredential(uint64_t aTransactionId,
         // Attachment
         DWORD winAttachment = WEBAUTHN_AUTHENTICATOR_ATTACHMENT_ANY;
         nsString authenticatorAttachment;
-        nsresult rv =
-            aArgs->GetAuthenticatorAttachment(authenticatorAttachment);
+        rv = aArgs->GetAuthenticatorAttachment(authenticatorAttachment);
         if (rv != NS_ERROR_NOT_AVAILABLE) {
           if (NS_FAILED(rv)) {
             aPromise->Reject(rv);
@@ -553,7 +569,7 @@ WinWebAuthnService::MakeCredential(uint64_t aTransactionId,
             &cancellationId,  // CancellationId
             pExcludeCredentialList,
             WEBAUTHN_ENTERPRISE_ATTESTATION_NONE,
-            WEBAUTHN_LARGE_BLOB_SUPPORT_NONE,
+            largeBlobSupport,      // LargeBlobSupport
             winPreferResidentKey,  // PreferResidentKey
             winPrivateBrowsing,    // BrowserInPrivateMode
             winEnablePrf,          // EnablePrf
@@ -739,6 +755,32 @@ void WinWebAuthnService::DoGetAssertion(
           winUserVerificationReq = WEBAUTHN_USER_VERIFICATION_REQUIREMENT_ANY;
         }
 
+        // Large Blob
+        DWORD credLargeBlobOperation = WEBAUTHN_CRED_LARGE_BLOB_OPERATION_NONE;
+        DWORD credLargeBlobSize = 0;
+        PBYTE credLargeBlob = nullptr;
+        nsTArray<uint8_t> largeBlobWrite;
+        bool largeBlobRead;
+        rv = aArgs->GetLargeBlobRead(&largeBlobRead);
+        if (rv != NS_ERROR_NOT_AVAILABLE) {
+          if (NS_FAILED(rv)) {
+            aPromise->Reject(rv);
+            return;
+          }
+          if (largeBlobRead) {
+            credLargeBlobOperation = WEBAUTHN_CRED_LARGE_BLOB_OPERATION_GET;
+          } else {
+            rv = aArgs->GetLargeBlobWrite(largeBlobWrite);
+            if (rv != NS_ERROR_NOT_AVAILABLE && NS_FAILED(rv)) {
+              aPromise->Reject(rv);
+              return;
+            }
+            credLargeBlobOperation = WEBAUTHN_CRED_LARGE_BLOB_OPERATION_SET;
+            credLargeBlobSize = largeBlobWrite.Length();
+            credLargeBlob = largeBlobWrite.Elements();
+          }
+        }
+
         // PRF inputs
         WEBAUTHN_HMAC_SECRET_SALT_VALUES* pPrfInputs = nullptr;
         WEBAUTHN_HMAC_SECRET_SALT_VALUES prfInputs = {0};
@@ -906,15 +948,15 @@ void WinWebAuthnService::DoGetAssertion(
                 pbAppIdUsed,
                 &aCancellationId,  // CancellationId
                 pAllowCredentialList,
-                WEBAUTHN_CRED_LARGE_BLOB_OPERATION_NONE,
-                0,                   // Size of CredLargeBlob
-                NULL,                // CredLargeBlob
-                pPrfInputs,          // HmacSecretSaltValues
-                winPrivateBrowsing,  // BrowserInPrivateMode
-                NULL,                // LinkedDevice
-                FALSE,               // AutoFill
-                0,                   // Size of JsonExt
-                NULL,                // JsonExt
+                credLargeBlobOperation,  // CredLargeBlobOperation
+                credLargeBlobSize,       // Size of CredLargeBlob
+                credLargeBlob,           // CredLargeBlob
+                pPrfInputs,              // HmacSecretSaltValues
+                winPrivateBrowsing,      // BrowserInPrivateMode
+                NULL,                    // LinkedDevice
+                FALSE,                   // AutoFill
+                0,                       // Size of JsonExt
+                NULL,                    // JsonExt
             };
 
         PWEBAUTHN_ASSERTION pWebAuthNAssertion = nullptr;
@@ -928,8 +970,8 @@ void WinWebAuthnService::DoGetAssertion(
             &pWebAuthNAssertion);
 
         if (hr == S_OK) {
-          RefPtr<WebAuthnSignResult> result =
-              new WebAuthnSignResult(clientDataJSON, pWebAuthNAssertion);
+          RefPtr<WebAuthnSignResult> result = new WebAuthnSignResult(
+              clientDataJSON, credLargeBlobOperation, pWebAuthNAssertion);
           gWinWebauthnFreeAssertion(pWebAuthNAssertion);
           if (winAppIdentifier != nullptr) {
             // The gWinWebauthnGetAssertion call modified bAppIdUsed through
