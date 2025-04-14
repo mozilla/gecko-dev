@@ -10,6 +10,8 @@ class TestNoToolbarChanges(MarionetteTestCase):
     Test that toolbar widgets remain in the same order over several restarts of the browser
     """
 
+    have_seen_import_button = False
+
     def setUp(self):
         super().setUp()
         self.marionette.set_context("chrome")
@@ -37,13 +39,30 @@ class TestNoToolbarChanges(MarionetteTestCase):
             navbarPlacements,
             msg="AREA_NAVBAR placements are as expected",
         )
+        actualBookmarkPlacements = self.get_area_widgets("AREA_BOOKMARKS")
         bookmarkPlacements = self.get_area_default_placements("AREA_BOOKMARKS")
-        bookmarkPlacements.insert(0, "import-button")
-        self.assertEqual(
-            self.get_area_widgets("AREA_BOOKMARKS"),
-            bookmarkPlacements,
-            msg="AREA_BOOKMARKS placements are as expected",
+        # The import button is added lazily on startup, so we can't predict
+        # whether it'll be here. Turning it off via prefs=[] annotations on the
+        # test also doesn't work
+        # (https://bugzilla.mozilla.org/show_bug.cgi?id=1959688).
+        # So we simply accept placements either with or without the button - but
+        # if we ever see the button we should keep seeing it.
+        self.have_seen_import_button = (
+            self.have_seen_import_button or "import-button" in actualBookmarkPlacements
         )
+        if self.have_seen_import_button:
+            self.assertEqual(
+                actualBookmarkPlacements,
+                ["import-button"] + bookmarkPlacements,
+                msg="AREA_BOOKMARKS placements are as expected",
+            )
+        else:
+            self.assertEqual(
+                actualBookmarkPlacements,
+                bookmarkPlacements,
+                msg="AREA_BOOKMARKS placements are as expected",
+            )
+
         self.assertEqual(
             self.get_area_widgets("AREA_ADDONS"),
             self.get_area_default_placements("AREA_ADDONS"),
