@@ -528,6 +528,10 @@ TextureData* ShmemTextureData::CreateSimilar(
 }
 
 void ShmemTextureData::Deallocate(LayersIPCChannel* aAllocator) {
+  if (!aAllocator) {
+    gfxCriticalNote << "No allocator in ShmemTextureData::Deallocate";
+    return;
+  }
   aAllocator->DeallocShmem(mShmem);
 }
 
