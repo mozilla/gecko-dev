@@ -144,7 +144,7 @@ class nsWindow final : public nsBaseWidget,
   NS_INLINE_DECL_REFCOUNTING_INHERITED(nsWindow, nsBaseWidget)
   MOZ_DECLARE_REFCOUNTED_TYPENAME(nsWindow)
 
-  explicit nsWindow(bool aIsChildWindow = false);
+  nsWindow();
 
   void SendAnAPZEvent(mozilla::InputData& aEvent);
 
@@ -873,9 +873,6 @@ class nsWindow final : public nsBaseWidget,
 
   // Whether we're in the process of sending a WM_SETTEXT ourselves
   bool mSendingSetText = false;
-
-  // Whether we were created as a child window (aka ChildWindow) or not.
-  bool mIsChildWindow : 1;
 
   // Whether we're a PIP window.
   bool mPIPWindow : 1;
