@@ -19,10 +19,17 @@ let resetTelemetry = async () => {
 let win;
 
 add_setup(async () => {
+  await SpecialPowers.pushPrefEnv({
+    set: [
+      ["browser.tabs.groups.enabled", true],
+      ["browser.urlbar.scotchBonnet.enableOverride", true],
+    ],
+  });
   win = await BrowserTestUtils.openNewBrowserWindow();
   win.gTabsPanel.init();
   registerCleanupFunction(async () => {
     await BrowserTestUtils.closeWindow(win);
+    await SpecialPowers.popPrefEnv();
   });
 });
 
