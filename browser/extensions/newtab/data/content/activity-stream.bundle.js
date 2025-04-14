@@ -5992,19 +5992,21 @@ const ReportContent = spocs => {
     name: "report",
     ref: radioGroupRef,
     id: "report-group",
-    "data-l10n-id": "newtab-report-content-why-reporting",
-    className: "report-content-options"
+    "data-l10n-id": "newtab-report-content-why-reporting-this"
   }, /*#__PURE__*/external_React_default().createElement("moz-radio", {
-    "data-l10n-id": "newtab-report-ads-reason-unsafe",
-    value: "unsafe_content"
+    "data-l10n-id": "newtab-report-content-wrong-category",
+    value: "wrong_category"
   }), /*#__PURE__*/external_React_default().createElement("moz-radio", {
-    "data-l10n-id": "newtab-report-ads-reason-inappropriate",
-    value: "inappropriate_content"
+    "data-l10n-id": "newtab-report-content-outdated",
+    value: "outdated"
   }), /*#__PURE__*/external_React_default().createElement("moz-radio", {
-    "data-l10n-id": "newtab-report-ads-reason-seen-it-too-many-times",
-    value: "seen_too_many_times"
+    "data-l10n-id": "newtab-report-content-inappropriate-offensive",
+    value: "inappropriate_or_offensive"
+  }), /*#__PURE__*/external_React_default().createElement("moz-radio", {
+    "data-l10n-id": "newtab-report-content-spam-misleading",
+    value: "spam_or_misleading"
   }))), /*#__PURE__*/external_React_default().createElement("moz-button-group", null, /*#__PURE__*/external_React_default().createElement("moz-button", {
-    "data-l10n-id": "newtab-topic-selection-cancel-button",
+    "data-l10n-id": "newtab-report-cancel",
     onClick: handleCancel,
     className: "cancel-report-btn"
   }), /*#__PURE__*/external_React_default().createElement("moz-button", {
