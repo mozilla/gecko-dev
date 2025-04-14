@@ -3,22 +3,20 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#include "mozilla/CheckedInt.h"
-#include "mozilla/intl/UnicodeProperties.h"
 #include "mozilla/intl/WordBreaker.h"
+
+#include "ICU4XDataProvider.h"
+#include "ICU4XWordBreakIteratorUtf16.hpp"
+#include "ICU4XWordSegmenter.hpp"
+#include "mozilla/CheckedInt.h"
+#include "mozilla/intl/ICU4XGeckoDataProvider.h"
+#include "mozilla/intl/UnicodeProperties.h"
+#include "mozilla/StaticPrefs_intl.h"
 #include "mozilla/StaticPrefs_layout.h"
 #include "nsComplexBreaker.h"
 #include "nsTArray.h"
+#include "nsUnicharUtils.h"
 #include "nsUnicodeProperties.h"
-
-#if defined(MOZ_ICU4X) && defined(JS_HAS_INTL_API)
-#  include "ICU4XDataProvider.h"
-#  include "ICU4XWordBreakIteratorUtf16.hpp"
-#  include "ICU4XWordSegmenter.hpp"
-#  include "mozilla/intl/ICU4XGeckoDataProvider.h"
-#  include "mozilla/StaticPrefs_intl.h"
-#  include "nsUnicharUtils.h"
-#endif
 
 using mozilla::intl::Script;
 using mozilla::intl::UnicodeProperties;
@@ -99,7 +97,6 @@ WordRange WordBreaker::FindWord(const nsAString& aText, uint32_t aPos,
 
   WordRange range{0, len.value()};
 
-#if defined(MOZ_ICU4X) && defined(JS_HAS_INTL_API)
   if (StaticPrefs::intl_icu4x_segmenter_enabled()) {
     auto result =
         capi::ICU4XWordSegmenter_create_auto(mozilla::intl::GetDataProvider());
@@ -148,7 +145,6 @@ WordRange WordBreaker::FindWord(const nsAString& aText, uint32_t aPos,
 
     return range;
   }
-#endif
 
   WordBreakClass c = GetClass(aText[aPos]);
 

@@ -5,28 +5,25 @@
 
 #include "mozilla/intl/LineBreaker.h"
 
+#include "ICU4XDataProvider.h"
+#include "ICU4XLineBreakIteratorLatin1.hpp"
+#include "ICU4XLineBreakIteratorUtf16.hpp"
+#include "ICU4XLineSegmenter.h"
 #include "jisx4051class.h"
 #include "LineBreakCache.h"
 #include "nsComplexBreaker.h"
 #include "nsTArray.h"
 #include "nsUnicodeProperties.h"
+#include "nsThreadUtils.h"
 #include "mozilla/ArrayUtils.h"
+#include "mozilla/CheckedInt.h"
+#include "mozilla/ClearOnShutdown.h"
+#include "mozilla/intl/ICU4XGeckoDataProvider.h"
 #include "mozilla/intl/Segmenter.h"
 #include "mozilla/intl/UnicodeProperties.h"
+#include "mozilla/StaticPrefs_intl.h"
 
-#if defined(MOZ_ICU4X) && defined(JS_HAS_INTL_API)
-#  include "ICU4XDataProvider.h"
-#  include "ICU4XLineBreakIteratorLatin1.hpp"
-#  include "ICU4XLineBreakIteratorUtf16.hpp"
-#  include "ICU4XLineSegmenter.h"
-#  include "mozilla/CheckedInt.h"
-#  include "mozilla/ClearOnShutdown.h"
-#  include "mozilla/intl/ICU4XGeckoDataProvider.h"
-#  include "mozilla/StaticPrefs_intl.h"
-#  include "nsThreadUtils.h"
-
-#  include <mutex>
-#endif
+#include <mutex>
 
 using namespace mozilla;
 using namespace mozilla::intl;
@@ -1000,7 +997,6 @@ static bool SuppressBreakForKeepAll(uint32_t aPrev, uint32_t aCh) {
          affectedByKeepAll(GetLineBreakClass(aCh));
 }
 
-#if defined(MOZ_ICU4X) && defined(JS_HAS_INTL_API)
 static capi::ICU4XLineBreakStrictness ConvertLineBreakRuleToICU4X(
     LineBreakRule aLevel) {
   switch (aLevel) {
@@ -1094,12 +1090,10 @@ static capi::ICU4XLineSegmenter* GetLineSegmenter(bool aUseDefault,
   MOZ_ASSERT(result.is_ok);
   return result.ok;
 }
-#endif
 
 void LineBreaker::ComputeBreakPositions(
     const char16_t* aChars, uint32_t aLength, WordBreakRule aWordBreak,
     LineBreakRule aLevel, bool aIsChineseOrJapanese, uint8_t* aBreakBefore) {
-#if defined(MOZ_ICU4X) && defined(JS_HAS_INTL_API)
   if (StaticPrefs::intl_icu4x_segmenter_enabled()) {
     if (aLength == 1) {
       // Although UAX#14 LB2 rule requires never breaking at the start of text
@@ -1178,7 +1172,6 @@ void LineBreaker::ComputeBreakPositions(
 
     return;
   }
-#endif
 
   uint32_t cur;
   int8_t lastClass = CLASS_NONE;
@@ -1309,7 +1302,6 @@ void LineBreaker::ComputeBreakPositions(const uint8_t* aChars, uint32_t aLength,
                                         LineBreakRule aLevel,
                                         bool aIsChineseOrJapanese,
                                         uint8_t* aBreakBefore) {
-#if defined(MOZ_ICU4X) && defined(JS_HAS_INTL_API)
   if (StaticPrefs::intl_icu4x_segmenter_enabled()) {
     if (aLength == 1) {
       // Although UAX#14 LB2 rule requires never breaking at the start of text
@@ -1348,7 +1340,6 @@ void LineBreaker::ComputeBreakPositions(const uint8_t* aChars, uint32_t aLength,
     }
     return;
   }
-#endif
 
   uint32_t cur;
   int8_t lastClass = CLASS_NONE;
