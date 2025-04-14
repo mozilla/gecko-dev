@@ -2,9 +2,6 @@
 
 const { ExperimentAPI, _ExperimentFeature: ExperimentFeature } =
   ChromeUtils.importESModule("resource://nimbus/ExperimentAPI.sys.mjs");
-const { ExperimentFakes } = ChromeUtils.importESModule(
-  "resource://testing-common/NimbusTestUtils.sys.mjs"
-);
 
 const { cleanupStorePrefCache } = ExperimentFakes;
 
@@ -105,7 +102,7 @@ add_task(
       "should return the AW experiment value"
     );
 
-    await ExperimentFakes.cleanupAll([recipe.slug], { manager });
+    ExperimentFakes.cleanupAll([recipe.slug], { manager });
     Assert.deepEqual(
       featureInstance.getAllVariables().screens.length,
       0,
@@ -149,32 +146,15 @@ add_task(
     // We're using the store in this test we need to wait for it to load
     await manager.store.ready();
 
-    const rolloutPromise = new Promise(resolve =>
-      featureInstance.onUpdate((feature, reason) => {
-        if (reason === "rollout-updated") {
-          resolve();
-        }
-      })
-    );
-    const experimentPromise = new Promise(resolve =>
-      featureInstance.onUpdate((feature, reason) => {
-        if (reason === "experiment-updated") {
-          resolve();
-        }
-      })
-    );
     manager.store.addEnrollment(recipe);
     manager.store.addEnrollment(rollout);
-    await rolloutPromise;
-    await experimentPromise;
 
-    let allVariables = featureInstance.getAllVariables();
+    const allVariables = featureInstance.getAllVariables();
 
     Assert.equal(allVariables.screens.length, 1, "Returns experiment value");
     Assert.ok(!allVariables.source, "Does not include rollout value");
 
-    await ExperimentFakes.cleanupAll([recipe.slug], { manager });
-    cleanupStorePrefCache();
+    ExperimentFakes.cleanupAll([recipe.slug, rollout.slug], { manager });
   }
 );
 

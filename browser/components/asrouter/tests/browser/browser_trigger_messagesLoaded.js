@@ -96,10 +96,7 @@ add_task(async function test_messagesLoaded_reach_experiment() {
       ],
     }
   );
-  Assert.ok(
-    await ExperimentTestUtils.validateExperiment(recipe),
-    "Valid recipe"
-  );
+  await ExperimentTestUtils.validateExperiment(recipe);
 
   await client.db.importChanges({}, Date.now(), [recipe], { clear: true });
   await SpecialPowers.pushPrefEnv({

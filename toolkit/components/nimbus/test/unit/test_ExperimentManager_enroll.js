@@ -595,11 +595,10 @@ add_task(async function test_rollout_experiment_no_conflict() {
     "no Glean enroll_failed events before failure"
   );
 
-  await ExperimentFakes.cleanupAll([experiment.slug, rollout.slug], {
+  ExperimentFakes.cleanupAll([experiment.slug, rollout.slug], {
     manager,
   });
 
-  assertEmptyStore(manager.store);
   sandbox.restore();
 });
 

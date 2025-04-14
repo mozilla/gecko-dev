@@ -55,6 +55,6 @@ add_task(async function test_double_feature_enrollment() {
     )
   );
 
-  await ExperimentFakes.cleanupAll([recipe1.slug]);
+  ExperimentFakes.cleanupAll([recipe1.slug]);
   sandbox.restore();
 });

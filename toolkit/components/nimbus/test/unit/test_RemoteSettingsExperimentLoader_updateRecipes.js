@@ -1,8 +1,5 @@
 "use strict";
 
-const { ExperimentFakes, ExperimentTestUtils } = ChromeUtils.importESModule(
-  "resource://testing-common/NimbusTestUtils.sys.mjs"
-);
 const {
   ExperimentAPI,
   NimbusFeatures,

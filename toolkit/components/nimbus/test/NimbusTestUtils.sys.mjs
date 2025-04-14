@@ -2,17 +2,19 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+import {
+  ExperimentAPI,
+  NimbusFeatures,
+} from "resource://nimbus/ExperimentAPI.sys.mjs";
 import { ExperimentStore } from "resource://nimbus/lib/ExperimentStore.sys.mjs";
 import { FileTestUtils } from "resource://testing-common/FileTestUtils.sys.mjs";
 
 const lazy = {};
 
 ChromeUtils.defineESModuleGetters(lazy, {
-  ExperimentAPI: "resource://nimbus/ExperimentAPI.sys.mjs",
   FeatureManifest: "resource://nimbus/FeatureManifest.sys.mjs",
   JsonSchema: "resource://gre/modules/JsonSchema.sys.mjs",
   NetUtil: "resource://gre/modules/NetUtil.sys.mjs",
-  NimbusFeatures: "resource://nimbus/ExperimentAPI.sys.mjs",
   NormandyUtils: "resource://normandy/lib/NormandyUtils.sys.mjs",
   _ExperimentManager: "resource://nimbus/lib/ExperimentManager.sys.mjs",
   _RemoteSettingsExperimentLoader:
@@ -57,241 +59,75 @@ async function fetchSchema(url) {
   return schema;
 }
 
-export const ExperimentTestUtils = {
-  _validateSchema(schema, value, errorMsg) {
-    const result = lazy.JsonSchema.validate(value, schema, {
-      shortCircuit: false,
-    });
-    if (result.errors.length) {
-      throw new Error(
-        `${errorMsg}: ${JSON.stringify(result.errors, undefined, 2)}`
-      );
-    }
-    return value;
-  },
-
-  _validateFeatureValueEnum({ branch }) {
-    let { features } = branch;
-    for (let feature of features) {
-      // If we're not using a real feature skip this check
-      if (!lazy.FeatureManifest[feature.featureId]) {
-        return true;
-      }
-      let { variables } = lazy.FeatureManifest[feature.featureId];
-      for (let varName of Object.keys(variables)) {
-        let varValue = feature.value[varName];
-        if (
-          varValue &&
-          variables[varName].enum &&
-          !variables[varName].enum.includes(varValue)
-        ) {
-          throw new Error(
-            `${varName} should have one of the following values: ${JSON.stringify(
-              variables[varName].enum
-            )} but has value '${varValue}'`
-          );
-        }
-      }
-    }
-    return true;
-  },
-
-  /**
-   * Checks if an experiment is valid acording to existing schema
-   */
-  async validateExperiment(experiment) {
-    const schema = await fetchSchema(
-      "resource://nimbus/schemas/NimbusExperiment.schema.json"
+function validateSchema(schema, value, errorMsg) {
+  const result = lazy.JsonSchema.validate(value, schema, {
+    shortCircuit: false,
+  });
+  if (result.errors.length) {
+    throw new Error(
+      `${errorMsg}: ${JSON.stringify(result.errors, undefined, 2)}`
     );
+  }
+  return value;
+}
 
-    // Ensure that the `featureIds` field is properly set
-    const { branches } = experiment;
-    branches.forEach(branch => {
-      branch.features.map(({ featureId }) => {
-        if (!experiment.featureIds.includes(featureId)) {
-          throw new Error(
-            `Branch(${branch.slug}) contains feature(${featureId}) but that's not declared in recipe(${experiment.slug}).featureIds`
-          );
-        }
-      });
-    });
-
-    return this._validateSchema(
-      schema,
-      experiment,
-      `Experiment ${experiment.slug} not valid`
-    );
-  },
-  validateEnrollment(enrollment) {
-    // We still have single feature experiment recipes for backwards
-    // compatibility testing but we don't do schema validation
-    if (!enrollment.branch.features && enrollment.branch.feature) {
-      return true;
+function validateFeatureValueEnum({ branch }) {
+  let { features } = branch;
+  for (let feature of features) {
+    // If we're not using a real feature skip this check
+    if (!lazy.FeatureManifest[feature.featureId]) {
+      return;
     }
-
-    return (
-      this._validateFeatureValueEnum(enrollment) &&
-      this._validateSchema(
-        lazy.enrollmentSchema,
-        enrollment,
-        `Enrollment ${enrollment.slug} is not valid`
-      )
-    );
-  },
-  /**
-   * Add features for tests.
-   *
-   * These features will only be visible to the JS Nimbus client. The native
-   * Nimbus client will have no access.
-   *
-   * @params features A list of |_NimbusFeature|s.
-   *
-   * @returns A cleanup function to remove the features once the test has completed.
-   */
-  addTestFeatures(...features) {
-    for (const feature of features) {
-      if (Object.hasOwn(lazy.NimbusFeatures, feature.featureId)) {
+    let { variables } = lazy.FeatureManifest[feature.featureId];
+    for (let varName of Object.keys(variables)) {
+      let varValue = feature.value[varName];
+      if (
+        varValue &&
+        variables[varName].enum &&
+        !variables[varName].enum.includes(varValue)
+      ) {
         throw new Error(
-          `Cannot add feature ${feature.featureId} -- a feature with this ID already exists!`
+          `${varName} should have one of the following values: ${JSON.stringify(
+            variables[varName].enum
+          )} but has value '${varValue}'`
         );
       }
-      lazy.NimbusFeatures[feature.featureId] = feature;
     }
-    return () => {
-      for (const { featureId } of features) {
-        delete lazy.NimbusFeatures[featureId];
-      }
-    };
+  }
+}
+
+export const ExperimentTestUtils = {
+  validateExperiment(experiment) {
+    return NimbusTestUtils.validateExperiment(experiment);
+  },
+  validateEnrollment(enrollment) {
+    return NimbusTestUtils.validateEnrollment(enrollment);
+  },
+  addTestFeatures(...features) {
+    return NimbusTestUtils.addTestFeatures(...features);
   },
 };
-
 export const ExperimentFakes = {
   manager(store) {
-    let sandbox = lazy.sinon.createSandbox();
-    let manager = new lazy._ExperimentManager({ store: store ?? this.store() });
-    // We want calls to `store.addEnrollment` to implicitly validate the
-    // enrollment before saving to store
-    let origAddExperiment = manager.store.addEnrollment.bind(manager.store);
-    sandbox.stub(manager.store, "addEnrollment").callsFake(enrollment => {
-      ExperimentTestUtils.validateEnrollment(enrollment);
-      return origAddExperiment(enrollment);
-    });
-
-    return manager;
+    return NimbusTestUtils.stubs.manager(store);
   },
   store(path) {
-    return new ExperimentStore("ExperimentStoreData", {
-      path: path ?? FileTestUtils.getTempFile("test-experiment-store").path,
-    });
+    return NimbusTestUtils.stubs.store(path);
   },
-  /**
-   * Enroll in an experiment branch with the given feature configuration.
-   *
-   * NB: It is unnecessary to await the enrollmentPromise.
-   *     See bug 1773583 and bug 1829412.
-   */
-  async enrollWithFeatureConfig(
-    featureConfig,
-    {
-      manager = lazy.ExperimentAPI._manager,
-      isRollout = false,
-      source,
-      slug = null,
-      branchSlug = "control",
-    } = {}
-  ) {
-    await manager.store.ready();
-
-    const experimentId =
-      slug ??
-      `${featureConfig.featureId}-${
-        isRollout ? "rollout" : "experiment"
-      }-${Math.random()}`;
-
-    let recipe = this.recipe(experimentId, {
-      bucketConfig: {
-        namespace: "mstest-utils",
-        randomizationUnit: "normandy_id",
-        start: 0,
-        count: 1000,
-        total: 1000,
-      },
-      branches: [
-        {
-          slug: branchSlug,
-          ratio: 1,
-          features: [featureConfig],
-        },
-      ],
-      isRollout,
-    });
-    const doEnrollmentCleanup = await this.enrollmentHelper(recipe, {
-      manager,
-      source,
-    });
-
-    return doEnrollmentCleanup;
+  enrollWithFeatureConfig(...args) {
+    return NimbusTestUtils.enrollWithFeatureConfig(...args);
   },
-  /**
-   * Attempt enrollment in the given recipe.
-   *
-   * This will evaluate bucketing, so it is possible that enrollment will *not*
-   * occur.
-   *
-   * If you are testing a feature, you likely want to use enrollInFeatureConfig,
-   * which will guarantee successful enrollment.
-   */
-  async enrollmentHelper(
-    recipe,
-    { manager = lazy.ExperimentAPI._manager, source = "enrollmentHelper" } = {}
-  ) {
-    if (!recipe?.slug) {
-      throw new Error("Enrollment helper expects a recipe");
-    }
-
-    const enrollment = await manager.enroll(recipe, source);
-    if (enrollment?.active) {
-      manager.store._syncToChildren({ flush: true });
-    }
-
-    return function doEnrollmentCleanup() {
-      manager.unenroll(enrollment.slug);
-      manager.store._deleteForTests(enrollment.slug);
-    };
+  enrollmentHelper(...args) {
+    return NimbusTestUtils.enroll(...args);
   },
-  async cleanupAll(slugs, { manager = lazy.ExperimentAPI._manager } = {}) {
-    for (const slug of slugs) {
-      manager.unenroll(slug);
-    }
-
-    if (manager.store.getAllActiveExperiments().length) {
-      throw new Error("Cleanup failed");
-    }
+  cleanupAll(...args) {
+    return NimbusTestUtils.cleanupManager(...args);
   },
-  /**
-   * Cleanup any isEarlyStartup features cached in prefs.
-   */
   cleanupStorePrefCache() {
-    // These may throw if nothing is cached, but it is harmless.
-
-    try {
-      Services.prefs.deleteBranch(SYNC_DATA_PREF_BRANCH);
-    } catch (e) {}
-    try {
-      Services.prefs.deleteBranch(SYNC_DEFAULTS_PREF_BRANCH);
-    } catch (e) {}
+    return NimbusTestUtils.cleanupStorePrefCache();
   },
   rsLoader() {
-    const loader = new lazy._RemoteSettingsExperimentLoader();
-    Object.defineProperty(loader.remoteSettingsClients, "experiments", {
-      value: { get: () => Promise.resolve([]) },
-    });
-    Object.defineProperty(loader.remoteSettingsClients, "secureExperiments", {
-      value: { get: () => Promise.resolve([]) },
-    });
-    loader.manager = this.manager();
-
-    return loader;
+    return NimbusTestUtils.stubs.rsLoader();
   },
   experiment(slug, props = {}) {
     return {
@@ -349,36 +185,12 @@ export const ExperimentFakes = {
     };
   },
   recipe(slug = lazy.NormandyUtils.generateUuid(), props = {}) {
-    return {
-      // This field is required for populating remote settings
-      id: slug,
-      schemaVersion: "1.7.0",
-      appName: "firefox_desktop",
-      appId: "firefox-desktop",
-      channel: "nightly",
-      slug,
-      isEnrollmentPaused: false,
-      probeSets: [],
-      startDate: null,
-      endDate: null,
-      proposedEnrollment: 7,
-      referenceBranch: "control",
-      application: "firefox-desktop",
-      branches: props?.isRollout
-        ? [ExperimentFakes.recipe.branches[0]]
-        : ExperimentFakes.recipe.branches,
+    return NimbusTestUtils.factories.recipe(slug, {
       bucketConfig: ExperimentFakes.recipe.bucketConfig,
-      userFacingName: "NimbusTestUtils recipe",
-      userFacingDescription: "NimbusTestUtils recipe",
-      featureIds: props?.branches?.[0].features?.map(f => f.featureId) || [
-        "testFeature",
-      ],
-      targeting: "true",
       ...props,
-    };
+    });
   },
 };
-
 Object.defineProperty(ExperimentFakes.recipe, "bucketConfig", {
   get() {
     return {
@@ -393,27 +205,511 @@ Object.defineProperty(ExperimentFakes.recipe, "bucketConfig", {
 
 Object.defineProperty(ExperimentFakes.recipe, "branches", {
   get() {
-    return [
-      {
-        slug: "control",
-        ratio: 1,
-        features: [
-          {
-            featureId: "testFeature",
-            value: { testInt: 123, enabled: true },
-          },
+    return NimbusTestUtils.factories.recipe.branches;
+  },
+});
+
+let _testSuite = null;
+
+export const NimbusTestUtils = {
+  init(testCase) {
+    _testSuite = testCase;
+
+    Object.defineProperty(NimbusTestUtils, "Assert", {
+      configurable: true,
+      get: () => _testSuite.Assert,
+    });
+  },
+
+  get Assert() {
+    // This gets replaced in NimbusTestUtils.init().
+    throw new Error("You must call NimbusTestUtils.init(this)");
+  },
+
+  assert: {
+    /**
+     * Assert that the store has no active enrollments and then clean up the
+     * store.
+     *
+     * This function will also clean up the isEarlyStartup cache.
+     *
+     * @param {object} store
+     *        The `ExperimentStore`.
+     */
+    storeIsEmpty(store) {
+      NimbusTestUtils.Assert.deepEqual(
+        store
+          .getAll()
+          .filter(e => e.active)
+          .map(e => e.slug),
+        [],
+        "Store should have no active enrollments"
+      );
+
+      store
+        .getAll()
+        .filter(e => !e.active)
+        .forEach(e => store._deleteForTests(e.slug));
+
+      NimbusTestUtils.Assert.deepEqual(
+        store
+          .getAll()
+          .filter(e => !e.active)
+          .map(e => e.slug),
+        [],
+        "Store should have no inactive enrollments"
+      );
+
+      NimbusTestUtils.cleanupStorePrefCache();
+    },
+  },
+
+  factories: {
+    /**
+     * Create a experiment enrollment for an `ExperimentStore`.
+     *
+     * @param {string} slug
+     *        The slug for the created enrollment.
+     *
+     * @param {object?} props
+     *        Additional properties to splat into the created enrollment.
+     */
+    experiment(slug, props = {}) {
+      const { isRollout = false } = props;
+
+      const experimentType = isRollout ? "rollout" : "experiment";
+      const userFacingName = `NimbusTestUtils ${experimentType}`;
+      const userFacingDescription = `NimbusTestUtils ${experimentType}`;
+
+      return {
+        slug,
+        active: true,
+        branch: {
+          slug: "treatment",
+          ratio: 1,
+          features: [
+            {
+              featureId: "testFeature",
+              value: { testInt: 123, enabled: true },
+            },
+          ],
+        },
+        source: "NimbusTestUtils",
+        isEnrollmentPaused: true,
+        experimentType,
+        userFacingName,
+        userFacingDescription,
+        lastSeen: new Date().toJSON(),
+        featureIds: props?.branch?.features?.map(f => f.featureId) ?? [
+          "testFeature",
         ],
-      },
-      {
-        slug: "treatment",
-        ratio: 1,
-        features: [
-          {
-            featureId: "testFeature",
-            value: { testInt: 123, enabled: true },
-          },
+        ...props,
+      };
+    },
+
+    /**
+     * Create a rollout enrollment for an `ExperimentStore`.
+     *
+     * @param {string} slug
+     *        The slug for the created enrollment.
+     *
+     * @param {object?} props
+     *        Additional properties to splat into the created enrollment.
+     */
+    rollout(slug, props = {}) {
+      return NimbusTestUtils.factories.experiment(slug, {
+        ...props,
+        isRollout: true,
+      });
+    },
+
+    /**
+     * Create a recipe.
+     *
+     * @param {string} slug
+     *        The slug for the created recipe.
+     *
+     * @param {object?} props
+     *        Additional properties to splat into to the
+     */
+    recipe(slug, props = {}) {
+      return {
+        id: slug,
+        schemaVersion: "1.7.0",
+        appName: "firefox_desktop",
+        appId: "firefox-desktop",
+        channel: "nightly",
+        slug,
+        isEnrollmentPaused: false,
+        probeSets: [],
+        startDate: null,
+        endDate: null,
+        proposedEnrollment: 7,
+        referenceBranch: "control",
+        application: "firefox-desktop",
+        branches: props?.isRollout
+          ? [NimbusTestUtils.factories.recipe.branches[0]]
+          : NimbusTestUtils.factories.recipe.branches,
+        bucketConfig: NimbusTestUtils.factories.recipe.bucketConfig,
+        userFacingName: "NimbusTestUtils recipe",
+        userFacingDescription: "NimbusTestUtils recipe",
+        featureIds: props?.branches?.[0].features?.map(f => f.featureId) || [
+          "testFeature",
         ],
+        targeting: "true",
+        ...props,
+      };
+    },
+  },
+
+  stubs: {
+    store(path) {
+      return new ExperimentStore("ExperimentStoreData", {
+        path: path ?? FileTestUtils.getTempFile("test-experiment-store").path,
+      });
+    },
+
+    manager(store) {
+      const manager = new lazy._ExperimentManager({
+        store: store ?? NimbusTestUtils.stubs.store(),
+      });
+      const addEnrollment = manager.store.addEnrollment.bind(manager.store);
+
+      // We want calls to `store.addEnrollment` to implicitly validate the
+      // enrollment before saving to store
+      lazy.sinon.stub(manager.store, "addEnrollment").callsFake(enrollment => {
+        ExperimentTestUtils.validateEnrollment(enrollment);
+        return addEnrollment(enrollment);
+      });
+
+      return manager;
+    },
+
+    rsLoader(manager) {
+      const loader = new lazy._RemoteSettingsExperimentLoader();
+
+      Object.defineProperties(loader.remoteSettingsClients, {
+        experiments: {
+          value: {
+            collectionName: "nimbus-desktop-experiments (stubbed)",
+            get: () => Promise.resolve([]),
+          },
+        },
+
+        secureExperiments: {
+          value: {
+            collectionName: "nimbus-secure-experiments (stubbed)",
+            get: () => Promise.resolve([]),
+          },
+        },
+      });
+
+      loader.manager = manager ?? NimbusTestUtils.stubs.manager();
+
+      return loader;
+    },
+  },
+
+  /**
+   * Add features for tests.
+   *
+   * NB: These features will only be visible to the JS Nimbus client. The native
+   * Nimbus client will have no access.
+   *
+   * @params {...object} features
+   *         A list of `_NimbusFeature`s.
+   *
+   * @returns {function(): void}
+   *          A cleanup function to remove the features once the test has completed.
+   */
+  addTestFeatures(...features) {
+    for (const feature of features) {
+      if (Object.hasOwn(NimbusFeatures, feature.featureId)) {
+        throw new Error(
+          `Cannot add feature ${feature.featureId} -- a feature with this ID already exists!`
+        );
+      }
+      NimbusFeatures[feature.featureId] = feature;
+    }
+    return () => {
+      for (const { featureId } of features) {
+        delete NimbusFeatures[featureId];
+      }
+    };
+  },
+
+  /**
+   * Unenroll from all the given slugs and assert that the store is now empty.
+   *
+   * @params {string[]} slugs
+   *         The slugs to unenroll from.
+   *
+   * @params {object?} options
+   *
+   * @params {object?} options.manager
+   *         The ExperimentManager to clean up. Defaults to the global
+   *         ExperimentManager.
+   */
+  cleanupManager(slugs, { manager = ExperimentAPI._manager } = {}) {
+    for (const slug of slugs) {
+      manager.unenroll(slug);
+    }
+
+    NimbusTestUtils.assert.storeIsEmpty(manager.store);
+  },
+
+  /**
+   * Cleanup any isEarlyStartup features cached in prefs.
+   */
+  cleanupStorePrefCache() {
+    // These may throw if nothing is cached, but it is harmless.
+
+    try {
+      Services.prefs.deleteBranch(SYNC_DATA_PREF_BRANCH);
+    } catch (e) {}
+    try {
+      Services.prefs.deleteBranch(SYNC_DEFAULTS_PREF_BRANCH);
+    } catch (e) {}
+  },
+
+  /**
+   * Enroll in the given recipe.
+   *
+   * @param {object} recipe
+   *        The recipe to enroll in.
+   *
+   * @param {object?} options
+   *
+   * @param {object?} options.manager
+   *        The ExperimentManager to use for enrollment. If not provided, the
+   *        global ExperimentManager will be used.
+   *
+   * @param {string?} options.source
+   *        The source to attribute to the enrollment.
+   *
+   * @returns {Promise<function(): void>}
+   *          A cleanup function that will unenroll from the enrolled recipe and
+   *          remove it from the store.
+   */
+  async enroll(
+    recipe,
+    { manager = ExperimentAPI._manager, source = "nimbus-test-utils" } = {}
+  ) {
+    if (!recipe?.slug) {
+      throw new Error("Experiment with slug is required");
+    }
+
+    const enrollment = await manager.enroll(recipe, source);
+    manager.store._syncToChildren({ flush: true });
+
+    return function doEnrollmentCleanup() {
+      manager.unenroll(enrollment.slug);
+      manager.store._deleteForTests(enrollment.slug);
+    };
+  },
+
+  /**
+   * Enroll in an automatically-generated recipe with the given feature
+   * configuration.
+   *
+   * @param {object} featureConfig
+   *
+   * @param {string} featureConfig.featureId
+   *                 The name of the feature.
+   *
+   * @param {object} featureConfig.value
+   *                 The feature value.
+   *
+   * @param {object?} options
+   *
+   * @param {object?} options.manager
+   *        The ExperimentManager to use for enrollment. If not provided, the
+   *        global ExperimentManager will be used.
+   *
+   * @param {string?} options.source
+   *        The source to attribute to the enrollment.
+   *
+   * @param {branchSlug?} options.slug
+   *        The slug to use for the recipe. If not provided one will be
+   *        generated based on `featureId`.
+   *
+   * @param {string?} options.branchSlug
+   *        The slug to use for the enrolled branch. Defaults to "control".
+   *
+   * @param {boolean?} options.isRollout
+   *        If true, the enrolled recipe will be a rollout.
+   *
+   * @returns {Promise<function(): void>}
+   *          A cleanup function that will unenroll from the enrolled recipe and
+   *          remove it from the store.
+   */
+  async enrollWithFeatureConfig(
+    featureConfig,
+    {
+      manager = ExperimentAPI._manager,
+      source,
+      slug,
+      branchSlug = "control",
+      isRollout = false,
+    } = {}
+  ) {
+    await manager.store.ready();
+
+    const experimentId =
+      slug ??
+      `${featureConfig.featureId}-${
+        isRollout ? "rollout" : "experiment"
+      }-${Math.random()}`;
+
+    const recipe = NimbusTestUtils.factories.recipe(experimentId, {
+      bucketConfig: {
+        ...NimbusTestUtils.factories.recipe.bucketConfig,
+        count: 1000,
       },
-    ];
+      branches: [
+        {
+          slug: branchSlug,
+          ratio: 1,
+          features: [featureConfig],
+        },
+      ],
+      isRollout,
+    });
+
+    return NimbusTestUtils.enroll(recipe, {
+      manager,
+      source,
+    });
+  },
+
+  /**
+   * Remove the ExperimentStore file.
+   *
+   * If the store contains active enrollments this function will cause the test
+   * to fail.
+   *
+   * @params {ExperimentStore} store
+   *         The store to delete.
+   */
+  async removeStore(store) {
+    NimbusTestUtils.assert.storeIsEmpty(store);
+
+    // Prevent the next save from happening.
+    store._store._saver.disarm();
+
+    // If we're too late to stop the save from happening then we need to wait
+    // for it to finish. Otherwise the saver might recreate the file on disk
+    // after we delete it.
+    if (store._store._saver.isRunning) {
+      await store._store._saver._runningPromise;
+    }
+
+    await IOUtils.remove(store._store.path);
+  },
+
+  /**
+   * Validate an enrollment matches the Nimbus enrollment schema.
+   *
+   * @params {object} enrollment
+   *         The enrollment to validate.
+   *
+   * @throws If the enrollment does not validate or its feature configurations
+   *         contain invalid enum variants.
+   */
+  validateEnrollment(enrollment) {
+    // We still have single feature experiment recipes for backwards
+    // compatibility testing but we don't do schema validation
+    if (!enrollment.branch.features && enrollment.branch.feature) {
+      return;
+    }
+
+    validateFeatureValueEnum(enrollment);
+    validateSchema(
+      lazy.enrollmentSchema,
+      enrollment,
+      `Enrollment ${enrollment.slug} is not valid`
+    );
+  },
+
+  /**
+   * Validate the experiment matches the Nimbus experiment schema.
+   *
+   * @param {object} experiment
+   *        The experiment to validate.
+   *
+   * @throws If the experiment does not validate or it includes unknown feature
+   *         IDs.
+   */
+  async validateExperiment(experiment) {
+    const schema = await fetchSchema(
+      "resource://nimbus/schemas/NimbusExperiment.schema.json"
+    );
+
+    // Ensure that the `featureIds` field is properly set
+    const { branches } = experiment;
+    branches.forEach(branch => {
+      branch.features.map(({ featureId }) => {
+        if (!experiment.featureIds.includes(featureId)) {
+          throw new Error(
+            `Branch(${branch.slug}) contains feature(${featureId}) but that's not declared in recipe(${experiment.slug}).featureIds`
+          );
+        }
+      });
+    });
+
+    validateSchema(
+      schema,
+      experiment,
+      `Experiment ${experiment.slug} not valid`
+    );
+  },
+};
+
+Object.defineProperties(NimbusTestUtils.factories.recipe, {
+  bucketConfig: {
+    /**
+     * A helper for generating valid bucketing configurations.
+     *
+     * This bucketing configuration will always result in enrollment.
+     */
+    get() {
+      return {
+        namespace: "nimbus-test-utils",
+        randomizationUnit: "normandy_id",
+        start: 0,
+        count: 1000,
+        total: 1000,
+      };
+    },
+  },
+
+  /**
+   * A helper for generating experiment branches.
+   */
+  branches: {
+    get() {
+      return [
+        {
+          slug: "control",
+          ratio: 1,
+          features: [
+            {
+              featureId: "testFeature",
+              value: { testInt: 123, enabled: true },
+            },
+          ],
+        },
+        {
+          slug: "treatment",
+          ratio: 1,
+          features: [
+            {
+              featureId: "testFeature",
+              value: { testInt: 123, enabled: true },
+            },
+          ],
+        },
+      ];
+    },
   },
 });

@@ -1,15 +1,8 @@
 "use strict";
 
-const { ExperimentFakes, ExperimentTestUtils } = ChromeUtils.importESModule(
-  "resource://testing-common/NimbusTestUtils.sys.mjs"
-);
-
 add_task(async function test_recipe_fake_validates() {
   const recipe = ExperimentFakes.recipe("foo");
-  Assert.ok(
-    await ExperimentTestUtils.validateExperiment(recipe),
-    "should produce a valid experiment recipe"
-  );
+  await ExperimentTestUtils.validateExperiment(recipe);
 });
 
 add_task(async function test_enrollmentHelper() {
