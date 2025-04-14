@@ -27,6 +27,16 @@ add_task(async function default_groupId_value() {
         tab.groupId,
         "tab.groupId defaults to -1 (TAB_GROUP_ID_NONE)"
       );
+      let tabs = await browser.tabs.query({ groupId: -1 });
+      browser.test.assertTrue(
+        tabs.some(t => t.id === tab.id),
+        "Found ungrouped tab with tabs.query({ groupId: -1})"
+      );
+      browser.test.assertDeepEq(
+        [],
+        await browser.tabs.query({ groupId: 123456789 }),
+        "tabs.query() for non-existing groupId should return empty list"
+      );
       await browser.tabs.remove(tab.id);
       browser.test.sendMessage("done");
     },

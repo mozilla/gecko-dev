@@ -838,6 +838,12 @@
                 "optional": true,
                 "description": "The ID of the tab that opened this tab. If specified, the opener tab must be in the same window as this tab."
               },
+              "groupId": {
+                "type": "integer",
+                "minimum": -1,
+                "optional": true,
+                "description": "The ID of the group that the tabs are in, or $(ref:tabGroups.TAB_GROUP_ID_NONE) (-1) for ungrouped tabs."
+              },
               "screen": {
                 "choices": [
                   {

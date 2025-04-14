@@ -574,6 +574,8 @@ class TabBase {
    *        than an exact value match, and will do so in the future.
    * @param {MatchPattern} [queryInfo.url]
    *        Requires the tab's URL to match the given MatchPattern object.
+   * @param {integer} [queryInfo.groupId]
+   *        Matches against the exact value of the tab's `groupId` attribute.
    *
    * @returns {boolean}
    *        True if the tab matches the query.
@@ -590,6 +592,7 @@ class TabBase {
       "openerTabId",
       "pinned",
       "status",
+      "groupId",
     ];
 
     function checkProperty(prop, obj) {
