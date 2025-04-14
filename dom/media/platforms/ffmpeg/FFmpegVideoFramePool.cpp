@@ -119,8 +119,9 @@ void VideoFrameSurface<LIBAV_VER>::ReleaseVAAPIData(bool aForFrameRecycle) {
 
 VideoFramePool<LIBAV_VER>::VideoFramePool(int aFFMPEGPoolSize)
     : mSurfaceLock("VideoFramePoolSurfaceLock"),
-      mFFMPEGPoolSize(aFFMPEGPoolSize) {
-  DMABUF_LOG("VideoFramePool::VideoFramePool() pool size %d", mFFMPEGPoolSize);
+      mMaxFFMPEGPoolSize(aFFMPEGPoolSize) {
+  DMABUF_LOG("VideoFramePool::VideoFramePool() pool size %d",
+             mMaxFFMPEGPoolSize);
 }
 
 VideoFramePool<LIBAV_VER>::~VideoFramePool() {
@@ -185,12 +186,18 @@ bool VideoFramePool<LIBAV_VER>::ShouldCopySurface() {
       }
     }
   }
-  float freeRatio = 1.0f - (surfacesUsedFFmpeg / (float)mFFMPEGPoolSize);
+
+  // mMaxFFMPEGPoolSize can be zero for dynamic pools,
+  // we don't do copy in that case unless it's requested by HW setup.
+  float freeRatio =
+      mMaxFFMPEGPoolSize
+          ? 1.0f - (surfacesUsedFFmpeg / (float)mMaxFFMPEGPoolSize)
+          : 1.0;
   DMABUF_LOG(
       "Surface pool size %d used copied %d used ffmpeg %d (max %d) free ratio "
       "%f",
       (int)mDMABufSurfaces.Length(), surfacesUsed - surfacesUsedFFmpeg,
-      surfacesUsedFFmpeg, mFFMPEGPoolSize, freeRatio);
+      surfacesUsedFFmpeg, mMaxFFMPEGPoolSize, freeRatio);
   if (!gfx::gfxVars::HwDecodedVideoZeroCopy()) {
     return true;
   }
