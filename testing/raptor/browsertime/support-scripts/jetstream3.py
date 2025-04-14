@@ -5,6 +5,10 @@
 import filters
 from base_python_support import BasePythonSupport
 
+# Only geometric measurement is returned as score in the raw data. Otherwise
+# the measurement is in `ms`
+TIME_METRICS = ["Runtime", "Startup", "First", "Worst", "Average"]
+
 
 class JetStreamSupport(BasePythonSupport):
     def handle_result(self, bt_result, raw_result, **kwargs):
@@ -12,10 +16,6 @@ class JetStreamSupport(BasePythonSupport):
 
         See base_python_support.py for what's expected from this method.
         """
-        print("raw")
-        print(raw_result)
-        print("bt")
-        print(bt_result)
 
         score_tracker = {}
 
@@ -34,12 +34,12 @@ class JetStreamSupport(BasePythonSupport):
 
     def _build_subtest(self, measurement_name, replicates, test):
         unit = test.get("unit", "ms")
-        if test.get("subtest_unit"):
+        lower_is_better = test.get("lower_is_better", "True")
+        is_time_metric = measurement_name.split("-")[-1] in TIME_METRICS
+        if test.get("subtest_unit") and is_time_metric:
             unit = test.get("subtest_unit")
+            lower_is_better = test.get("subtest_lower_is_better")
 
-        lower_is_better = test.get(
-            "subtest_lower_is_better", test.get("lower_is_better", True)
-        )
         if "score" in measurement_name:
             lower_is_better = False
             unit = "score"

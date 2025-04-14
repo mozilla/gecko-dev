@@ -1098,8 +1098,8 @@ Standard benchmarks are third-party tests (i.e. Speedometer) that we have integr
    * **page timeout**: 2000000
    * **repository**: https://github.com/webkit/jetstream
    * **repository revision**: 901c95b90d74b544e2b8d6bac2a6b86ebe22b43a
-   * **subtest lower is better**: false
-   * **subtest unit**: score
+   * **subtest lower is better**: true
+   * **subtest unit**: ms
    * **suite name**: JetStream3.0
    * **support class**: jetstream3.py
    * **test script**: jetstream3.js
@@ -1383,8 +1383,8 @@ Standard benchmarks are third-party tests (i.e. Speedometer) that we have integr
    * **page timeout**: 2000000
    * **repository**: https://github.com/webkit/jetstream
    * **repository revision**: 901c95b90d74b544e2b8d6bac2a6b86ebe22b43a
-   * **subtest lower is better**: false
-   * **subtest unit**: score
+   * **subtest lower is better**: true
+   * **subtest unit**: ms
    * **suite name**: JetStream3.0
    * **support class**: jetstream3.py
    * **test script**: jetstream3.js
