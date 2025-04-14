@@ -27,8 +27,6 @@
   var didRunXHR = false;
 
   async function start() {
-    await SpecialPowers.pushPrefEnv({"set": [["layout.skip_ticks_while_page_suspended", true]]});
-
     window.addEventListener("animationiteration", function l() {
       ++animCount;
       info(animCount);
