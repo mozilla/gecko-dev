@@ -263,6 +263,7 @@ windows11-64-24h2/opt:
         - talos-xperf
         - windows-talos
         - browsertime
+        - windows-talos-webgl
 
 windows11-64-24h2-shippable/opt:
     build-platform: win64-shippable/opt
@@ -280,6 +281,7 @@ windows11-64-24h2-shippable/opt:
         - talos-profiling
         - windows-talos
         - browsertime
+        - windows-talos-webgl
 
 windows11-64-24h2-devedition/opt:
     build-platform: win64-devedition/opt
