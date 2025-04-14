@@ -2566,7 +2566,11 @@ pref("browser.tabs.fadeOutUnloadedTabs", false);
 
 // Whether tabs that have been explicitly unloaded
 // are faded out in the tab bar.
+#ifdef NIGHTLY_BUILD
+pref("browser.tabs.fadeOutExplicitlyUnloadedTabs", true);
+#else
 pref("browser.tabs.fadeOutExplicitlyUnloadedTabs", false);
+#endif
 
 // If true, unprivileged extensions may use experimental APIs on
 // nightly and developer edition.
