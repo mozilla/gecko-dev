@@ -492,12 +492,13 @@ export var SearchUtils = {
 
   /**
    * Fetches an icon without sending cookies to the page and returns
-   * the data and the mime type. Rejects if the icon cannot be fetched.
+   * the data and the mime type.
    *
    * @param {string|nsIURI} uri
    *  The URI to the icon.
    * @returns {Promise<[Uint8Array, string]>}
-   *   An array containing the data and the mime type.
+   *   Resolves to an array containing the data and the mime type.
+   *   Rejects if the icon cannot be fetched.
    */
   async fetchIcon(uri) {
     return new Promise((resolve, reject) => {
@@ -507,7 +508,8 @@ export var SearchUtils = {
         /^image\//,
         (byteArray, contentType) => {
           if (!byteArray) {
-            reject(new Error(""));
+            reject(new Error("Unable to fetch icon."));
+            return;
           }
           resolve([Uint8Array.from(byteArray), contentType]);
         }
