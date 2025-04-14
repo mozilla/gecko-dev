@@ -13,7 +13,7 @@
 edition = "2021"
 rust-version = "1.76"
 name = "wgpu-core-deps-apple"
-version = "24.0.0"
+version = "25.0.0"
 authors = ["gfx-rs developers"]
 build = false
 autolib = false
@@ -44,5 +44,5 @@ name = "wgpu_core_deps_apple"
 path = "src/lib.rs"
 
 [target.'cfg(target_vendor = "apple")'.dependencies.wgpu-hal]
-version = "24.0.0"
+version = "25.0.0"
 path = "../../../wgpu-hal"

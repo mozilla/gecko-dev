@@ -13,7 +13,7 @@
 edition = "2021"
 rust-version = "1.82.0"
 name = "naga"
-version = "24.0.0"
+version = "25.0.0"
 authors = ["gfx-rs developers"]
 build = "build.rs"
 exclude = [
@@ -36,8 +36,7 @@ keywords = [
     "MSL",
 ]
 license = "MIT OR Apache-2.0"
-repository = "https://github.com/gfx-rs/wgpu/tree/trunk/naga"
-resolver = "2"
+repository = "https://github.com/gfx-rs/wgpu"
 
 [package.metadata.docs.rs]
 all-features = true
@@ -141,6 +140,14 @@ default-features = false
 
 [dependencies.num-traits]
 version = "0.2.16"
+default-features = false
+
+[dependencies.once_cell]
+version = "1.21.3"
+features = [
+    "alloc",
+    "race",
+]
 default-features = false
 
 [dependencies.petgraph]

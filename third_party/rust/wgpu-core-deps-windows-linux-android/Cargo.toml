@@ -13,7 +13,7 @@
 edition = "2021"
 rust-version = "1.76"
 name = "wgpu-core-deps-windows-linux-android"
-version = "24.0.0"
+version = "25.0.0"
 authors = ["gfx-rs developers"]
 build = false
 autolib = false
@@ -39,5 +39,5 @@ name = "wgpu_core_deps_windows_linux_android"
 path = "src/lib.rs"
 
 [target.'cfg(any(windows, target_os = "linux", target_os = "android"))'.dependencies.wgpu-hal]
-version = "24.0.0"
+version = "25.0.0"
 path = "../../../wgpu-hal"

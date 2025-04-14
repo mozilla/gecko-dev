@@ -23,7 +23,7 @@ pub use overloads::{Conclusion, MissingSpecialType, OverloadSet, Rule};
 pub use terminator::ensure_block_returns;
 use thiserror::Error;
 pub use type_methods::min_max_float_representable_by;
-pub use typifier::{ResolveContext, ResolveError, TypeResolution};
+pub use typifier::{compare_types, ResolveContext, ResolveError, TypeResolution};
 
 impl From<super::StorageFormat> for super::Scalar {
     fn from(format: super::StorageFormat) -> Self {
@@ -223,6 +223,8 @@ impl super::MathFunction {
             Self::Pow => 2,
             // geometry
             Self::Dot => 2,
+            Self::Dot4I8Packed => 2,
+            Self::Dot4U8Packed => 2,
             Self::Outer => 2,
             Self::Cross => 2,
             Self::Distance => 2,
@@ -403,6 +405,10 @@ impl crate::Module {
             global_expressions: &self.global_expressions,
         }
     }
+
+    pub fn compare_types(&self, lhs: &TypeResolution, rhs: &TypeResolution) -> bool {
+        compare_types(lhs, rhs, &self.types)
+    }
 }
 
 #[derive(Debug)]
@@ -490,6 +496,10 @@ impl GlobalCtx<'_> {
             }
             _ => get(*self, handle, arena),
         }
+    }
+
+    pub fn compare_types(&self, lhs: &TypeResolution, rhs: &TypeResolution) -> bool {
+        compare_types(lhs, rhs, self.types)
     }
 }
 
