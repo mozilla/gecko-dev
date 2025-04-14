@@ -172,7 +172,13 @@ Accessible* XULContentSelectDropdownAccessible::Parent() const {
 
     DocAccessibleParent* focusedDoc =
         DocAccessibleParent::GetFrom(focusedContext);
-    MOZ_ASSERT(focusedDoc && focusedDoc->IsDoc(), "No focused document found");
+    if (NS_WARN_IF(!focusedDoc)) {
+      // We can fail to get a document here if a user is
+      // performing a drag-and-drop selection with mouse. See
+      // `browser/base/content/tests/browser_selectpopup_large.js`
+      return LocalParent();
+    }
+    MOZ_ASSERT(focusedDoc->IsDoc(), "Got non-document?");
     focusedAcc = focusedDoc->AsDoc()->GetFocusedAcc();
   }
 
