@@ -574,6 +574,19 @@ def write_mozbuild(
             try:
                 if (
                     relsrcdir
+                    in write_mozbuild_variables["INCLUDE_SYSTEM_LIBDRM_HANDLING"]
+                ):
+                    mb.write('CXXFLAGS += CONFIG["MOZ_LIBDRM_CFLAGS"]\n')
+                    mb.write('if not CONFIG["MOZ_SYSTEM_LIBDRM"]:\n')
+                    mb.write('    LOCAL_INCLUDES += [ "/third_party/drm/drm/",\n')
+                    mb.write(
+                        '                        "/third_party/drm/drm/include/" ]\n'
+                    )
+            except KeyError:
+                pass
+            try:
+                if (
+                    relsrcdir
                     in write_mozbuild_variables["INCLUDE_SYSTEM_LIBVPX_HANDLING"]
                 ):
                     mb.write('if not CONFIG["MOZ_SYSTEM_LIBVPX"]:\n')

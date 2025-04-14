@@ -37,7 +37,7 @@ typedef HRESULT (WINAPI *PFN_CREATE_DXGI_FACTORY)(REFIID riid, void **ppFactory)
 #if CONFIG_LIBDRM
 #   include <va/va_drmcommon.h>
 #   include <xf86drm.h>
-#   include <drm_fourcc.h>
+#   include <libdrm/drm_fourcc.h>
 #   ifndef DRM_FORMAT_MOD_INVALID
 #       define DRM_FORMAT_MOD_INVALID ((1ULL << 56) - 1)
 #   endif

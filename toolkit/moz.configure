@@ -696,6 +696,24 @@ with only_when(compile_environment):
 
     set_config("MOZ_SYSTEM_GBM", True, when="--with-system-gbm")
 
+# System libdrm support
+# =============================================================
+with only_when(compile_environment):
+    system_lib_option(
+        "--with-system-libdrm",
+        nargs="?",
+        help="Use system libdrm",
+        when=use_pkg_config,
+    )
+
+    pipewire_headers = pkg_check_modules(
+        "MOZ_LIBDRM",
+        "libdrm",
+        when="--with-system-libdrm",
+    )
+
+    set_config("MOZ_SYSTEM_LIBDRM", True, when="--with-system-libdrm")
+
 # GL Provider
 # ==============================================================
 option("--with-gl-provider", nargs=1, help="Set GL provider backend type")

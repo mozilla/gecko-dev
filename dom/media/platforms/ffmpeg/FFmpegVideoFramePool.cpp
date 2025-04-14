@@ -18,7 +18,7 @@
 #ifdef DRM_FORMAT_MOD_INVALID
 #  undef DRM_FORMAT_MOD_INVALID
 #endif
-#include "drm_fourcc.h"
+#include <libdrm/drm_fourcc.h>
 
 #ifdef MOZ_LOGGING
 #  undef DMABUF_LOG
