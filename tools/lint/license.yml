@@ -73,6 +73,8 @@ license:
         - '**/reftest*'
         - '**/androidTest/'
         - '**/jit-test/'
+        # Exclude localized strings.xml files for Android.
+        - '**/values-*/strings.xml'
     extensions:
         - .c
         - .cc
