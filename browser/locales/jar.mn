@@ -19,6 +19,7 @@
   preview/backupSettings.ftl                       (../locales-preview/backupSettings.ftl)
   preview/smartTabGroups.ftl                       (../locales-preview/smartTabGroups.ftl)
   preview/tabUnload.ftl                            (../locales-preview/tabUnload.ftl)
+  preview/reportContentTemporary.ftl               (../locales-preview/reportContentTemporary.ftl)
   preview/taskbartabs.ftl                          (../locales-preview/taskbartabs.ftl)
 
 @AB_CD@.jar:

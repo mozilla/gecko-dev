@@ -484,26 +484,3 @@ newtab-custom-wallpaper-title = Custom wallpapers are here
 # 'Make firefox yours" means to customize or personalize
 newtab-custom-wallpaper-subtitle = Upload your own wallpaper or pick a custom color to make { -brand-product-name } yours.
 newtab-custom-wallpaper-cta = Try it
-
-## Strings for reporting ads and content
-
-newtab-report-content-why-reporting-this =
-  .label = Why are you reporting this?
-newtab-report-ads-reason-not-interested =
-  .label = I’m not interested
-newtab-report-ads-reason-inappropriate =
-  .label = It’s inappropriate
-newtab-report-ads-reason-seen-it-too-many-times =
-  .label = I’ve seen it too many times
-newtab-report-content-wrong-category =
-  .label = Wrong category
-newtab-report-content-outdated =
-  .label = Outdated
-newtab-report-content-inappropriate-offensive =
-  .label = Inappropriate or offensive
-newtab-report-content-spam-misleading =
-  .label = Spam or misleading
-newtab-report-cancel = Cancel
-newtab-report-submit = Submit
-newtab-toast-thanks-for-feedback =
-    .message = Thanks for your feedback.
