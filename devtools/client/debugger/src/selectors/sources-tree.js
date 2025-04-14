@@ -82,10 +82,6 @@ export function getProjectDirectoryRootName(state) {
   return state.sourcesTree.projectDirectoryRootName;
 }
 
-export function getProjectDirectoryRootFullName(state) {
-  return state.sourcesTree.projectDirectoryRootFullName;
-}
-
 /**
  * Lookup for project root item, matching the given "unique path".
  */

@@ -118,18 +118,13 @@ export function showSourceTreeItemContextMenu(
           click: () => dispatch(clearProjectDirectoryRoot()),
         });
       } else {
-        const itemFullName = item.thread
-          ? item.thread.name
-          : `${item.url} on ${getThreadName(item)}`;
         menuOptions.push({
           id: "node-set-directory-root",
           label: setDirectoryRootLabel,
           accesskey: setDirectoryRootKey,
           disabled: false,
           click: () =>
-            dispatch(
-              setProjectDirectoryRoot(item.uniquePath, itemName, itemFullName)
-            ),
+            dispatch(setProjectDirectoryRoot(item.uniquePath, itemName)),
         });
       }
 
@@ -138,10 +133,6 @@ export function showSourceTreeItemContextMenu(
 
     showMenu(event, menuOptions);
   };
-}
-
-function getThreadName(item) {
-  return item.thread ? item.thread.name : getThreadName(item.parent);
 }
 
 async function saveLocalFile(dispatch, source) {

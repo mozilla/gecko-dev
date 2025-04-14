@@ -55,6 +55,10 @@
   mask-image: url(chrome://devtools/content/debugger/images/blackBox.svg);
 }
 
+.img.breadcrumb {
+  mask-image: url(chrome://devtools/content/debugger/images/breadcrumbs-divider.svg);
+}
+
 .img.close {
   mask-image: url(chrome://devtools/skin/images/close.svg);
 }
@@ -93,11 +97,8 @@
   mask-image: url(chrome://devtools/content/debugger/images/folder.svg);
 }
 
-.img.back {
-  background-image: url(chrome://browser/skin/back.svg);
-  -moz-context-properties: fill;
-  fill: var(--theme-icon-color);
-  background-color: unset;
+.img.home {
+  mask-image: url(chrome://devtools/content/debugger/images/home.svg);
 }
 
 .img.info {
