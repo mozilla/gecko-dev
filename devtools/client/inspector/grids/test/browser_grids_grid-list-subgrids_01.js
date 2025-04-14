@@ -35,9 +35,9 @@ add_task(async function () {
     2,
     "Got the correct number of subgrids in main.subgrid"
   );
-  is(
-    await getNumberOfVisibleGridHighlighters(),
-    0,
+  ok(
+    !highlighters.gridHighlighters.size &&
+      !highlighters.parentGridHighlighters.size,
     "No CSS grid highlighter is shown."
   );
 
@@ -55,13 +55,9 @@ add_task(async function () {
   info(
     "Checking the CSS grid highlighter and parent grid highlighter are created."
   );
+  is(highlighters.gridHighlighters.size, 1, "CSS grid highlighter is shown.");
   is(
-    await getNumberOfVisibleGridHighlighters({ isParent: false }),
-    1,
-    "CSS grid highlighter is shown."
-  );
-  is(
-    await getNumberOfVisibleGridHighlighters({ isParent: true }),
+    highlighters.parentGridHighlighters.size,
     1,
     "CSS grid highlighter for parent grid container is shown."
   );
@@ -79,12 +75,12 @@ add_task(async function () {
 
   info("Checking the number of CSS grid highlighters present.");
   is(
-    await getNumberOfVisibleGridHighlighters({ isParent: false }),
+    highlighters.gridHighlighters.size,
     2,
     "Got the correct number of CSS grid highlighter shown."
   );
   is(
-    await getNumberOfVisibleGridHighlighters({ isParent: true }),
+    highlighters.parentGridHighlighters.size,
     1,
     "Only 1 parent grid highlighter should be shown for the same subgrid parent."
   );
@@ -101,12 +97,12 @@ add_task(async function () {
 
   info("Checking the number of CSS grid highlighters present.");
   is(
-    await getNumberOfVisibleGridHighlighters({ isParent: false }),
+    highlighters.gridHighlighters.size,
     1,
     "Got the correct number of CSS grid highlighter shown."
   );
   is(
-    await getNumberOfVisibleGridHighlighters({ isParent: true }),
+    highlighters.parentGridHighlighters.size,
     1,
     "Got the correct number of CSS grid parent highlighter shown."
   );
@@ -123,9 +119,9 @@ add_task(async function () {
   await onCheckboxChange;
 
   info("Checking the CSS grid highlighter is not shown.");
-  is(
-    await getNumberOfVisibleGridHighlighters(),
-    0,
+  ok(
+    !highlighters.gridHighlighters.size &&
+      !highlighters.parentGridHighlighters.size,
     "No CSS grid highlighter is shown."
   );
 });

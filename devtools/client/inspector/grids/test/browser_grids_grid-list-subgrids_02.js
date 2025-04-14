@@ -37,7 +37,7 @@ add_task(async () => {
 
   info("Check the state of highlighters");
   is(
-    await getNumberOfVisibleGridHighlighters({ isParent: false }),
+    highlighters.gridHighlighters.size,
     3,
     "All highlighters are use as normal highlighter"
   );
@@ -50,14 +50,13 @@ add_task(async () => {
   );
 
   info("Check the state of highlighters after hiding subgrid for <main>");
-
   is(
-    await getNumberOfVisibleGridHighlighters({ isParent: false }),
+    highlighters.gridHighlighters.size,
     2,
     "2 highlighters are use as normal highlighter"
   );
   is(
-    await getNumberOfVisibleGridHighlighters({ isParent: true }),
+    highlighters.parentGridHighlighters.size,
     1,
     "The highlighter for <main> is used as parent highlighter"
   );
