@@ -141,10 +141,7 @@ function createValueGrip(threadActor, value, pool, depth = 0, objectActorAttribu
       return value;
 
     case "bigint":
-      return {
-        type: "BigInt",
-        text: value.toString(),
-      };
+      return createBigIntValueGrip(value);
 
     // TODO(bug 1772157)
     // Record/tuple grips aren't fully implemented yet.
@@ -189,6 +186,19 @@ function createValueGrip(threadActor, value, pool, depth = 0, objectActorAttribu
       assert(false, "Failed to provide a grip for: " + value);
       return null;
   }
+}
+
+/**
+ * Returns a grip for the passed BigInt
+ *
+ * @param {BigInt} value
+ * @returns {Object}
+ */
+function createBigIntValueGrip(value) {
+  return {
+    type: "BigInt",
+    text: value.toString(),
+  };
 }
 
 /**
@@ -520,6 +530,7 @@ module.exports = {
   getPromiseState,
   makeDebuggeeValueIfNeeded,
   unwrapDebuggeeValue,
+  createBigIntValueGrip,
   createValueGrip,
   stringIsLong,
   isTypedArray,
