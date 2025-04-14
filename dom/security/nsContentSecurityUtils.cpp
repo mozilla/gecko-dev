@@ -1298,6 +1298,7 @@ static nsLiteralCString sStyleSrcUnsafeInlineAllowList[] = {
     "chrome://mozapps/content/downloads/unknownContentType.xhtml"_ns,
     "chrome://mozapps/content/handling/appChooser.xhtml"_ns,
     "chrome://mozapps/content/preferences/changemp.xhtml"_ns,
+    "chrome://mozapps/content/preferences/removemp.xhtml"_ns,
     "chrome://mozapps/content/profile/profileDowngrade.xhtml"_ns,
     "chrome://mozapps/content/profile/profileSelection.xhtml"_ns,
     "chrome://mozapps/content/profile/createProfileWizard.xhtml"_ns,

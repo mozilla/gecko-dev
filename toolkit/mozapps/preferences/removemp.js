@@ -13,6 +13,11 @@ var gRemovePasswordDialog = {
     document.l10n.setAttributes(this._okButton, "pw-remove-button");
 
     this._password = document.getElementById("password");
+    this._password.addEventListener("input", () => {
+      this._okButton.disabled = !this._token.checkPassword(
+        this._password.value
+      );
+    });
 
     var pk11db = Cc["@mozilla.org/security/pk11tokendb;1"].getService(
       Ci.nsIPK11TokenDB
@@ -25,10 +30,6 @@ var gRemovePasswordDialog = {
     document.addEventListener("dialogaccept", function () {
       gRemovePasswordDialog.removePassword();
     });
-  },
-
-  validateInput() {
-    this._okButton.disabled = !this._token.checkPassword(this._password.value);
   },
 
   async createAlert(titleL10nId, messageL10nId) {
@@ -50,3 +51,5 @@ var gRemovePasswordDialog = {
     }
   },
 };
+
+window.addEventListener("load", () => gRemovePasswordDialog.init());
