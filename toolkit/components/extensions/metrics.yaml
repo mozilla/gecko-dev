@@ -431,6 +431,7 @@ extensions.data:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1811155
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1861303
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1912170
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1958154
     data_reviews:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1465129
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1513556
@@ -446,7 +447,7 @@ extensions.data:
     notification_emails:
       - addons-dev-internal@mozilla.com
       - lgreco@mozilla.com
-    expires: 140
+    expires: 147
     telemetry_mirror: h#WEBEXT_STORAGE_LOCAL_IDB_MIGRATE_RESULT_COUNT
 
 extensions.counters:
@@ -561,6 +562,7 @@ extensions.timing:
         - https://bugzilla.mozilla.org/show_bug.cgi?id=1811155
         - https://bugzilla.mozilla.org/show_bug.cgi?id=1861303
         - https://bugzilla.mozilla.org/show_bug.cgi?id=1912170
+        - https://bugzilla.mozilla.org/show_bug.cgi?id=1958154
       data_reviews:
         - https://bugzilla.mozilla.org/show_bug.cgi?id=1483002
         - https://bugzilla.mozilla.org/show_bug.cgi?id=1513556
@@ -576,7 +578,7 @@ extensions.timing:
       notification_emails:
         - addons-dev-internal@mozilla.com
         - lgreco@mozilla.com
-      expires: 140
+      expires: 147
       telemetry_mirror: WEBEXT_BACKGROUND_PAGE_LOAD_MS_BY_ADDONID
 
     browser_action_popup_open:
@@ -626,6 +628,7 @@ extensions.timing:
         - https://bugzilla.mozilla.org/show_bug.cgi?id=1811155
         - https://bugzilla.mozilla.org/show_bug.cgi?id=1861303
         - https://bugzilla.mozilla.org/show_bug.cgi?id=1912170
+        - https://bugzilla.mozilla.org/show_bug.cgi?id=1958154
       data_reviews:
         - https://bugzilla.mozilla.org/show_bug.cgi?id=1483002
         - https://bugzilla.mozilla.org/show_bug.cgi?id=1513556
@@ -641,7 +644,7 @@ extensions.timing:
       notification_emails:
         - addons-dev-internal@mozilla.com
         - lgreco@mozilla.com
-      expires: 140
+      expires: 147
       telemetry_mirror: WEBEXT_BROWSERACTION_POPUP_OPEN_MS_BY_ADDONID
 
     content_script_injection:
@@ -683,6 +686,7 @@ extensions.timing:
         - https://bugzilla.mozilla.org/show_bug.cgi?id=1811155
         - https://bugzilla.mozilla.org/show_bug.cgi?id=1861303
         - https://bugzilla.mozilla.org/show_bug.cgi?id=1912170
+        - https://bugzilla.mozilla.org/show_bug.cgi?id=1958154
       data_reviews:
         - https://bugzilla.mozilla.org/show_bug.cgi?id=1483002
         - https://bugzilla.mozilla.org/show_bug.cgi?id=1513556
@@ -698,7 +702,7 @@ extensions.timing:
       notification_emails:
         - addons-dev-internal@mozilla.com
         - lgreco@mozilla.com
-      expires: 140
+      expires: 147
       telemetry_mirror: WEBEXT_CONTENT_SCRIPT_INJECTION_MS_BY_ADDONID
 
     event_page_running_time:
@@ -737,6 +741,7 @@ extensions.timing:
         - https://bugzilla.mozilla.org/show_bug.cgi?id=1817103
         - https://bugzilla.mozilla.org/show_bug.cgi?id=1861303
         - https://bugzilla.mozilla.org/show_bug.cgi?id=1912170
+        - https://bugzilla.mozilla.org/show_bug.cgi?id=1958154
       data_reviews:
         - https://bugzilla.mozilla.org/show_bug.cgi?id=1787940
         - https://bugzilla.mozilla.org/show_bug.cgi?id=1817103
@@ -745,7 +750,7 @@ extensions.timing:
       notification_emails:
         - addons-dev-internal@mozilla.com
         - lgreco@mozilla.com
-      expires: 140
+      expires: 147
       telemetry_mirror: WEBEXT_EVENTPAGE_RUNNING_TIME_MS_BY_ADDONID
 
     extension_startup:
@@ -789,6 +794,7 @@ extensions.timing:
         - https://bugzilla.mozilla.org/show_bug.cgi?id=1811155
         - https://bugzilla.mozilla.org/show_bug.cgi?id=1861303
         - https://bugzilla.mozilla.org/show_bug.cgi?id=1912170
+        - https://bugzilla.mozilla.org/show_bug.cgi?id=1958154
       data_reviews:
         - https://bugzilla.mozilla.org/show_bug.cgi?id=1483002
         - https://bugzilla.mozilla.org/show_bug.cgi?id=1513556
@@ -804,7 +810,7 @@ extensions.timing:
       notification_emails:
         - addons-dev-internal@mozilla.com
         - lgreco@mozilla.com
-      expires: 140
+      expires: 147
       telemetry_mirror: WEBEXT_EXTENSION_STARTUP_MS_BY_ADDONID
 
     page_action_popup_open:
@@ -854,6 +860,7 @@ extensions.timing:
         - https://bugzilla.mozilla.org/show_bug.cgi?id=1811155
         - https://bugzilla.mozilla.org/show_bug.cgi?id=1861303
         - https://bugzilla.mozilla.org/show_bug.cgi?id=1912170
+        - https://bugzilla.mozilla.org/show_bug.cgi?id=1958154
       data_reviews:
         - https://bugzilla.mozilla.org/show_bug.cgi?id=1483002
         - https://bugzilla.mozilla.org/show_bug.cgi?id=1513556
@@ -869,7 +876,7 @@ extensions.timing:
       notification_emails:
         - addons-dev-internal@mozilla.com
         - lgreco@mozilla.com
-      expires: 140
+      expires: 147
       telemetry_mirror: WEBEXT_PAGEACTION_POPUP_OPEN_MS_BY_ADDONID
 
     storage_local_get_idb:
@@ -919,6 +926,7 @@ extensions.timing:
         - https://bugzilla.mozilla.org/show_bug.cgi?id=1811155
         - https://bugzilla.mozilla.org/show_bug.cgi?id=1861303
         - https://bugzilla.mozilla.org/show_bug.cgi?id=1912170
+        - https://bugzilla.mozilla.org/show_bug.cgi?id=1958154
       data_reviews:
         - https://bugzilla.mozilla.org/show_bug.cgi?id=1483002
         - https://bugzilla.mozilla.org/show_bug.cgi?id=1513556
@@ -934,7 +942,7 @@ extensions.timing:
       notification_emails:
         - addons-dev-internal@mozilla.com
         - lgreco@mozilla.com
-      expires: 140
+      expires: 147
       telemetry_mirror: WEBEXT_STORAGE_LOCAL_IDB_GET_MS_BY_ADDONID
 
     storage_local_set_idb:
@@ -984,6 +992,7 @@ extensions.timing:
         - https://bugzilla.mozilla.org/show_bug.cgi?id=1811155
         - https://bugzilla.mozilla.org/show_bug.cgi?id=1861303
         - https://bugzilla.mozilla.org/show_bug.cgi?id=1912170
+        - https://bugzilla.mozilla.org/show_bug.cgi?id=1958154
       data_reviews:
         - https://bugzilla.mozilla.org/show_bug.cgi?id=1483002
         - https://bugzilla.mozilla.org/show_bug.cgi?id=1513556
@@ -999,5 +1008,5 @@ extensions.timing:
       notification_emails:
         - addons-dev-internal@mozilla.com
         - lgreco@mozilla.com
-      expires: 140
+      expires: 147
       telemetry_mirror: WEBEXT_STORAGE_LOCAL_IDB_SET_MS_BY_ADDONID
