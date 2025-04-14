@@ -104,6 +104,10 @@ EXTRA_JS_MODULES += [
     "distribution.sys.mjs",
 ]
 
+MOZ_SRC_FILES += [
+    "StartupTelemetry.sys.mjs",
+]
+
 if CONFIG["MOZ_DEBUG"] or CONFIG["MOZ_DEV_EDITION"] or CONFIG["NIGHTLY_BUILD"]:
     EXTRA_JS_MODULES += [
         "StartupRecorder.sys.mjs",

@@ -85,6 +85,7 @@ ChromeUtils.defineESModuleGetters(lazy, {
   ShortcutUtils: "resource://gre/modules/ShortcutUtils.sys.mjs",
   SpecialMessageActions:
     "resource://messaging-system/lib/SpecialMessageActions.sys.mjs",
+  StartupTelemetry: "moz-src:///browser/components/StartupTelemetry.sys.mjs",
   TelemetryReportingPolicy:
     "resource://gre/modules/TelemetryReportingPolicy.sys.mjs",
   TRRRacer: "resource:///modules/TRRPerformance.sys.mjs",
@@ -132,12 +133,6 @@ const PRIVATE_BROWSING_BINARY = "private_browsing.exe";
 const PRIVATE_BROWSING_EXE_ICON_INDEX = 1;
 const PREF_PRIVATE_BROWSING_SHORTCUT_CREATED =
   "browser.privacySegmentation.createdShortcut";
-// Whether this launch was initiated by the OS.  A launch-on-login will contain
-// the "os-autostart" flag in the initial launch command line.
-let gThisInstanceIsLaunchOnLogin = false;
-// Whether this launch was initiated by a taskbar tab shortcut. A launch from
-// a taskbar tab shortcut will contain the "taskbar-tab" flag.
-let gThisInstanceIsTaskbarTab = false;
 
 /**
  * Fission-compatible JSProcess implementations.
@@ -1047,6 +1042,12 @@ export let BrowserInitState = {};
 BrowserInitState.startupIdleTaskPromise = new Promise(resolve => {
   BrowserInitState._resolveStartupIdleTask = resolve;
 });
+// Whether this launch was initiated by the OS.  A launch-on-login will contain
+// the "os-autostart" flag in the initial launch command line.
+BrowserInitState.isLaunchOnLogin = false;
+// Whether this launch was initiated by a taskbar tab shortcut. A launch from
+// a taskbar tab shortcut will contain the "taskbar-tab" flag.
+BrowserInitState.isTaskbarTab = false;
 
 export function BrowserGlue() {
   XPCOMUtils.defineLazyServiceGetter(
@@ -1318,9 +1319,9 @@ BrowserGlue.prototype = {
         this._earlyBlankFirstPaint(subject);
         // The "taskbar-tab" flag and its param will be handled in
         // TaskbarTabCmd.sys.mjs
-        gThisInstanceIsTaskbarTab =
+        BrowserInitState.isTaskbarTab =
           subject.findFlag("taskbar-tab", false) != -1;
-        gThisInstanceIsLaunchOnLogin = subject.handleFlag(
+        BrowserInitState.isLaunchOnLogin = subject.handleFlag(
           "os-autostart",
           false
         );
@@ -1852,35 +1853,6 @@ BrowserGlue.prototype = {
     Glean.gfxDisplay.scaling.accumulateSingleSample(scaling);
   },
 
-  _collectStartupConditionsTelemetry() {
-    let nowSeconds = Math.round(Date.now() / 1000);
-    // Don't include cases where we don't have the pref. This rules out the first install
-    // as well as the first run of a build since this was introduced. These could by some
-    // definitions be referred to as "cold" startups, but probably not since we likely
-    // just wrote many of the files we use to disk. This way we should approximate a lower
-    // bound to the number of cold startups rather than an upper bound.
-    let lastCheckSeconds = Services.prefs.getIntPref(
-      "browser.startup.lastColdStartupCheck",
-      nowSeconds
-    );
-    Services.prefs.setIntPref(
-      "browser.startup.lastColdStartupCheck",
-      nowSeconds
-    );
-    try {
-      let secondsSinceLastOSRestart =
-        Services.startup.secondsSinceLastOSRestart;
-      let isColdStartup =
-        nowSeconds - secondsSinceLastOSRestart > lastCheckSeconds;
-      Glean.startup.isCold.set(isColdStartup);
-      Glean.startup.secondsSinceLastOsRestart.set(secondsSinceLastOSRestart);
-    } catch (ex) {
-      if (ex.name !== "NS_ERROR_NOT_IMPLEMENTED") {
-        console.error(ex);
-      }
-    }
-  },
-
   // the first browser window has finished initializing
   _onFirstWindowLoaded: function BG__onFirstWindowLoaded(aWindow) {
     lazy.AboutNewTab.init();
@@ -1934,7 +1906,7 @@ BrowserGlue.prototype = {
     this._firstWindowTelemetry(aWindow);
     this._firstWindowLoaded();
 
-    this._collectStartupConditionsTelemetry();
+    lazy.StartupTelemetry.startupConditions();
 
     // Set the default favicon size for UI views that use the page-icon protocol.
     lazy.PlacesUtils.favicons.setDefaultIconURIPreferredSize(
@@ -2070,104 +2042,6 @@ BrowserGlue.prototype = {
     ContentBlockingCategoriesPrefs.updateCBCategory();
   },
 
-  _recordContentBlockingTelemetry() {
-    let tpEnabled = Services.prefs.getBoolPref(
-      "privacy.trackingprotection.enabled"
-    );
-    Glean.contentblocking.trackingProtectionEnabled[
-      tpEnabled ? "true" : "false"
-    ].add();
-
-    let tpPBEnabled = Services.prefs.getBoolPref(
-      "privacy.trackingprotection.pbmode.enabled"
-    );
-    Glean.contentblocking.trackingProtectionPbmDisabled[
-      !tpPBEnabled ? "true" : "false"
-    ].add();
-
-    let cookieBehavior = Services.prefs.getIntPref(
-      "network.cookie.cookieBehavior"
-    );
-    Glean.contentblocking.cookieBehavior.accumulateSingleSample(cookieBehavior);
-
-    let fpEnabled = Services.prefs.getBoolPref(
-      "privacy.trackingprotection.fingerprinting.enabled"
-    );
-    let cmEnabled = Services.prefs.getBoolPref(
-      "privacy.trackingprotection.cryptomining.enabled"
-    );
-    let categoryPref;
-    switch (
-      Services.prefs.getStringPref("browser.contentblocking.category", null)
-    ) {
-      case "standard":
-        categoryPref = 0;
-        break;
-      case "strict":
-        categoryPref = 1;
-        break;
-      case "custom":
-        categoryPref = 2;
-        break;
-      default:
-        // Any other value is unsupported.
-        categoryPref = 3;
-        break;
-    }
-
-    Glean.contentblocking.fingerprintingBlockingEnabled.set(fpEnabled);
-    Glean.contentblocking.cryptominingBlockingEnabled.set(cmEnabled);
-    Glean.contentblocking.category.set(categoryPref);
-  },
-
-  _recordDataSanitizationPrefs() {
-    Glean.datasanitization.privacySanitizeSanitizeOnShutdown.set(
-      Services.prefs.getBoolPref("privacy.sanitize.sanitizeOnShutdown")
-    );
-    Glean.datasanitization.privacyClearOnShutdownCookies.set(
-      Services.prefs.getBoolPref("privacy.clearOnShutdown.cookies")
-    );
-    Glean.datasanitization.privacyClearOnShutdownHistory.set(
-      Services.prefs.getBoolPref("privacy.clearOnShutdown.history")
-    );
-    Glean.datasanitization.privacyClearOnShutdownFormdata.set(
-      Services.prefs.getBoolPref("privacy.clearOnShutdown.formdata")
-    );
-    Glean.datasanitization.privacyClearOnShutdownDownloads.set(
-      Services.prefs.getBoolPref("privacy.clearOnShutdown.downloads")
-    );
-    Glean.datasanitization.privacyClearOnShutdownCache.set(
-      Services.prefs.getBoolPref("privacy.clearOnShutdown.cache")
-    );
-    Glean.datasanitization.privacyClearOnShutdownSessions.set(
-      Services.prefs.getBoolPref("privacy.clearOnShutdown.sessions")
-    );
-    Glean.datasanitization.privacyClearOnShutdownOfflineApps.set(
-      Services.prefs.getBoolPref("privacy.clearOnShutdown.offlineApps")
-    );
-    Glean.datasanitization.privacyClearOnShutdownSiteSettings.set(
-      Services.prefs.getBoolPref("privacy.clearOnShutdown.siteSettings")
-    );
-    Glean.datasanitization.privacyClearOnShutdownOpenWindows.set(
-      Services.prefs.getBoolPref("privacy.clearOnShutdown.openWindows")
-    );
-
-    let exceptions = 0;
-    for (let permission of Services.perms.all) {
-      // We consider just permissions set for http, https and file URLs.
-      if (
-        permission.type == "cookie" &&
-        permission.capability == Ci.nsICookiePermission.ACCESS_SESSION &&
-        ["http", "https", "file"].some(scheme =>
-          permission.principal.schemeIs(scheme)
-        )
-      ) {
-        exceptions++;
-      }
-    }
-    Glean.datasanitization.sessionPermissionExceptions.set(exceptions);
-  },
-
   /**
    * Application shutdown handler.
    *
@@ -2275,79 +2149,6 @@ BrowserGlue.prototype = {
     });
   },
 
-  _monitorHTTPSOnlyPref() {
-    const PREF_ENABLED = "dom.security.https_only_mode";
-    const PREF_WAS_ENABLED = "dom.security.https_only_mode_ever_enabled";
-    const _checkHTTPSOnlyPref = async () => {
-      const enabled = Services.prefs.getBoolPref(PREF_ENABLED, false);
-      const was_enabled = Services.prefs.getBoolPref(PREF_WAS_ENABLED, false);
-      let value = 0;
-      if (enabled) {
-        value = 1;
-        Services.prefs.setBoolPref(PREF_WAS_ENABLED, true);
-      } else if (was_enabled) {
-        value = 2;
-      }
-      Glean.security.httpsOnlyModeEnabled.set(value);
-    };
-
-    Services.prefs.addObserver(PREF_ENABLED, _checkHTTPSOnlyPref);
-    _checkHTTPSOnlyPref();
-
-    const PREF_PBM_WAS_ENABLED =
-      "dom.security.https_only_mode_ever_enabled_pbm";
-    const PREF_PBM_ENABLED = "dom.security.https_only_mode_pbm";
-
-    const _checkHTTPSOnlyPBMPref = async () => {
-      const enabledPBM = Services.prefs.getBoolPref(PREF_PBM_ENABLED, false);
-      const was_enabledPBM = Services.prefs.getBoolPref(
-        PREF_PBM_WAS_ENABLED,
-        false
-      );
-      let valuePBM = 0;
-      if (enabledPBM) {
-        valuePBM = 1;
-        Services.prefs.setBoolPref(PREF_PBM_WAS_ENABLED, true);
-      } else if (was_enabledPBM) {
-        valuePBM = 2;
-      }
-      Glean.security.httpsOnlyModeEnabledPbm.set(valuePBM);
-    };
-
-    Services.prefs.addObserver(PREF_PBM_ENABLED, _checkHTTPSOnlyPBMPref);
-    _checkHTTPSOnlyPBMPref();
-  },
-
-  _monitorGPCPref() {
-    const FEATURE_PREF_ENABLED = "privacy.globalprivacycontrol.enabled";
-    const FUNCTIONALITY_PREF_ENABLED =
-      "privacy.globalprivacycontrol.functionality.enabled";
-    const PREF_WAS_ENABLED = "privacy.globalprivacycontrol.was_ever_enabled";
-    const _checkGPCPref = async () => {
-      const feature_enabled = Services.prefs.getBoolPref(
-        FEATURE_PREF_ENABLED,
-        false
-      );
-      const functionality_enabled = Services.prefs.getBoolPref(
-        FUNCTIONALITY_PREF_ENABLED,
-        false
-      );
-      const was_enabled = Services.prefs.getBoolPref(PREF_WAS_ENABLED, false);
-      let value = 0;
-      if (feature_enabled && functionality_enabled) {
-        value = 1;
-        Services.prefs.setBoolPref(PREF_WAS_ENABLED, true);
-      } else if (was_enabled) {
-        value = 2;
-      }
-      Glean.security.globalPrivacyControlEnabled.set(value);
-    };
-
-    Services.prefs.addObserver(FEATURE_PREF_ENABLED, _checkGPCPref);
-    Services.prefs.addObserver(FUNCTIONALITY_PREF_ENABLED, _checkGPCPref);
-    _checkGPCPref();
-  },
-
   // All initial windows have opened.
   _onWindowsRestored: function BG__onWindowsRestored() {
     if (this._windowsWereRestored) {
@@ -2416,9 +2217,8 @@ BrowserGlue.prototype = {
     );
 
     this._monitorWebcompatReporterPref();
-    this._monitorHTTPSOnlyPref();
-
-    this._monitorGPCPref();
+    lazy.StartupTelemetry.httpsOnlyState();
+    lazy.StartupTelemetry.globalPrivacyControl();
 
     // Loading the MigrationUtils module does the work of registering the
     // migration wizard JSWindowActor pair. In case nothing else has done
@@ -2540,16 +2340,16 @@ BrowserGlue.prototype = {
       },
 
       {
-        name: "BrowserGlue._recordContentBlockingTelemetry",
+        name: "StartupTelemetry.contentBlocking",
         task: () => {
-          this._recordContentBlockingTelemetry();
+          lazy.StartupTelemetry.contentBlocking();
         },
       },
 
       {
-        name: "BrowserGlue._recordDataSanitizationPrefs",
+        name: "StartupTelemetry.dataSanitization",
         task: () => {
-          this._recordDataSanitizationPrefs();
+          lazy.StartupTelemetry.dataSanitization();
         },
       },
 
@@ -2581,62 +2381,7 @@ BrowserGlue.prototype = {
       {
         name: "pinningStatusTelemetry",
         condition: AppConstants.platform == "win",
-        task: async () => {
-          let shellService = Cc[
-            "@mozilla.org/browser/shell-service;1"
-          ].getService(Ci.nsIWindowsShellService);
-          let winTaskbar = Cc["@mozilla.org/windows-taskbar;1"].getService(
-            Ci.nsIWinTaskbar
-          );
-
-          try {
-            Glean.osEnvironment.isTaskbarPinned.set(
-              await shellService.isCurrentAppPinnedToTaskbarAsync(
-                winTaskbar.defaultGroupId
-              )
-            );
-            // Bug 1911343: Pinning regular browsing on MSIX
-            // causes false positives when checking for private
-            // browsing.
-            if (
-              AppConstants.platform === "win" &&
-              !Services.sysinfo.getProperty("hasWinPackageId")
-            ) {
-              Glean.osEnvironment.isTaskbarPinnedPrivate.set(
-                await shellService.isCurrentAppPinnedToTaskbarAsync(
-                  winTaskbar.defaultPrivateGroupId
-                )
-              );
-            }
-          } catch (ex) {
-            console.error(ex);
-          }
-
-          let classification;
-          let shortcut;
-          try {
-            shortcut = Services.appinfo.processStartupShortcut;
-            classification = shellService.classifyShortcut(shortcut);
-          } catch (ex) {
-            console.error(ex);
-          }
-
-          if (!classification) {
-            if (gThisInstanceIsLaunchOnLogin) {
-              classification = "Autostart";
-            } else if (shortcut) {
-              classification = "OtherShortcut";
-            } else {
-              classification = "Other";
-            }
-          }
-          // Because of how taskbar tabs work, it may be classifed as a taskbar
-          // shortcut, in which case we want to overwrite it.
-          if (gThisInstanceIsTaskbarTab) {
-            classification = "TaskbarTab";
-          }
-          Glean.osEnvironment.launchMethod.set(classification);
-        },
+        task: () => lazy.StartupTelemetry.pinningStatus(),
       },
 
       {
@@ -2762,35 +2507,19 @@ BrowserGlue.prototype = {
         },
       },
 
-      // Report whether Firefox is the default handler for various files types
-      // and protocols, in particular, ".pdf" and "mailto"
       {
         name: "IsDefaultHandler",
         condition: AppConstants.platform == "win",
         task: () => {
-          [".pdf", "mailto"].every(x => {
-            Glean.osEnvironment.isDefaultHandler[x].set(
-              lazy.ShellService.isDefaultHandlerFor(x)
-            );
-            return true;
-          });
+          lazy.StartupTelemetry.isDefaultHandler();
         },
       },
 
-      // Report macOS Dock status
       {
         name: "MacDockSupport.isAppInDock",
         condition: AppConstants.platform == "macosx",
         task: () => {
-          try {
-            Glean.osEnvironment.isKeptInDock.set(
-              Cc["@mozilla.org/widget/macdocksupport;1"].getService(
-                Ci.nsIMacDockSupport
-              ).isAppInDock
-            );
-          } catch (ex) {
-            console.error(ex);
-          }
+          lazy.StartupTelemetry.macDockStatus();
         },
       },
 
@@ -2869,40 +2598,7 @@ BrowserGlue.prototype = {
       // pre-init buffer.
       {
         name: "initializeFOG",
-        task: async () => {
-          // Handle Usage Profile ID.  Similar logic to what's happening in
-          // `TelemetryControllerParent` for the client ID.  Must be done before
-          // initializing FOG so that ping enabled/disabled states are correct
-          // before Glean takes actions.
-          await lazy.UsageReporting.ensureInitialized();
-
-          // If needed, delay initializing FOG until policy interaction is
-          // completed.  See comments in `TelemetryReportingPolicy`.
-          await lazy.TelemetryReportingPolicy.ensureUserIsNotified();
-
-          Services.fog.initializeFOG();
-
-          // Register Glean to listen for experiment updates releated to the
-          // "gleanInternalSdk" feature defined in the t/c/nimbus/FeatureManifest.yaml
-          // This feature is intended for internal Glean use only. For features wishing
-          // to set a remote metric configuration, please use the "glean" feature for
-          // the purpose of setting the data-control-plane features via Server Knobs.
-          lazy.NimbusFeatures.gleanInternalSdk.onUpdate(() => {
-            let cfg = lazy.NimbusFeatures.gleanInternalSdk.getVariable(
-              "gleanMetricConfiguration"
-            );
-            Services.fog.applyServerKnobsConfig(JSON.stringify(cfg));
-          });
-
-          // Register Glean to listen for experiment updates releated to the
-          // "glean" feature defined in the t/c/nimbus/FeatureManifest.yaml
-          lazy.NimbusFeatures.glean.onUpdate(() => {
-            let cfg = lazy.NimbusFeatures.glean.getVariable(
-              "gleanMetricConfiguration"
-            );
-            Services.fog.applyServerKnobsConfig(JSON.stringify(cfg));
-          });
-        },
+        task: () => lazy.StartupTelemetry.initFOG(),
       },
 
       // Add the import button if this is the first startup.
@@ -2996,9 +2692,9 @@ BrowserGlue.prototype = {
       },
 
       {
-        name: "BrowserGlue._collectTelemetryPiPEnabled",
+        name: "StartupTelemetry.pipEnabled",
         task: () => {
-          this._collectTelemetryPiPEnabled();
+          lazy.StartupTelemetry.pipEnabled();
         },
       },
       // Schedule a sync (if enabled) after we've loaded
@@ -3050,32 +2746,12 @@ BrowserGlue.prototype = {
 
       {
         name: "SSLKEYLOGFILE telemetry",
-        task: () => {
-          Glean.sslkeylogging.enabled.set(Services.env.exists("SSLKEYLOGFILE"));
-        },
+        task: () => lazy.StartupTelemetry.sslKeylogFile(),
       },
 
       {
         name: "OS Authentication telemetry",
-        task: () => {
-          // Manually read these prefs. This treats any non-empty-string
-          // value as "turned off", irrespective of whether it correctly
-          // decrypts to the correct value, because we cannot do the
-          // decryption if the primary password has not yet been provided,
-          // and for telemetry treating that situation as "turned off"
-          // seems reasonable.
-          const osAuthForCc = !Services.prefs.getStringPref(
-            lazy.FormAutofillUtils.AUTOFILL_CREDITCARDS_REAUTH_PREF,
-            ""
-          );
-          const osAuthForPw = !Services.prefs.getStringPref(
-            lazy.LoginHelper.OS_AUTH_FOR_PASSWORDS_PREF,
-            ""
-          );
-
-          Glean.formautofill.osAuthEnabled.set(osAuthForCc);
-          Glean.pwmgr.osAuthEnabled.set(osAuthForPw);
-        },
+        task: () => lazy.StartupTelemetry.osAuthEnabled(),
       },
 
       {
@@ -3113,14 +2789,10 @@ BrowserGlue.prototype = {
    */
   _scheduleBestEffortUserIdleTasks() {
     const idleTasks = [
+      // Telemetry for primary-password - we do this after a delay as it
+      // can cause IO if NSS/PSM has not already initialized.
       function primaryPasswordTelemetry() {
-        // Telemetry for primary-password - we do this after a delay as it
-        // can cause IO if NSS/PSM has not already initialized.
-        let tokenDB = Cc["@mozilla.org/security/pk11tokendb;1"].getService(
-          Ci.nsIPK11TokenDB
-        );
-        let token = tokenDB.getInternalKeyToken();
-        Glean.primaryPassword.enabled.set(token.hasPassword);
+        lazy.StartupTelemetry.primaryPasswordEnabled();
       },
 
       function GMPInstallManagerSimpleCheckAndInstall() {
@@ -3155,11 +2827,7 @@ BrowserGlue.prototype = {
       },
 
       function trustObjectTelemetry() {
-        let certdb = Cc["@mozilla.org/security/x509certdb;1"].getService(
-          Ci.nsIX509CertDB
-        );
-        // countTrustObjects also logs the number of trust objects for telemetry purposes
-        certdb.countTrustObjects();
+        lazy.StartupTelemetry.trustObjectCount();
       },
     ];
 
@@ -4774,26 +4442,6 @@ BrowserGlue.prototype = {
     if (AppConstants.platform == "macosx") {
       Services.appShell.hiddenDOMWindow.openPreferences(...args);
     }
-  },
-
-  _collectTelemetryPiPEnabled() {
-    const TOGGLE_ENABLED_PREF =
-      "media.videocontrols.picture-in-picture.video-toggle.enabled";
-
-    const observe = (subject, topic) => {
-      const enabled = Services.prefs.getBoolPref(TOGGLE_ENABLED_PREF, false);
-      Glean.pictureinpicture.toggleEnabled.set(enabled);
-
-      // Record events when preferences change
-      if (topic === "nsPref:changed") {
-        if (enabled) {
-          Glean.pictureinpictureSettings.enableSettings.record();
-        }
-      }
-    };
-
-    Services.prefs.addObserver(TOGGLE_ENABLED_PREF, observe);
-    observe();
   },
 
   QueryInterface: ChromeUtils.generateQI([
