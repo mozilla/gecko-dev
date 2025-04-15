@@ -17,6 +17,11 @@ webext-perms-description-data-some = The developer says this extension collects:
 # Variables:
 #    $permissions (String): a list of data collection permissions formatted with `Intl.ListFormat` using the "narrow" style.
 webext-perms-description-data-some-update = The developer says the extension will collect: { $permissions }.
+
+# Variables:
+#    $permissions (String): a list of data collection permissions formatted with `Intl.ListFormat` using the "narrow" style.
+webext-perms-description-data-some-optional = The developer says the extension wants to collect: { $permissions }.
+
 # Variables:
 #   $extension (String): replaced with the localized name of the extension.
 webext-perms-update-data-collection-text = { $extension } has been updated. You must approve new settings before the updated version will install. Choosing “Cancel” will maintain your current extension version. This extension will have permission to:
@@ -24,6 +29,14 @@ webext-perms-update-data-collection-text = { $extension } has been updated. You 
 # Variables:
 #   $extension (String): replaced with the localized name of the extension.
 webext-perms-update-data-collection-only-text = { $extension } has been updated. You must approve new settings before the updated version will install. Choosing “Cancel” will maintain your current extension version.
+
+# Variables:
+#   $extension (String): replaced with the localized name of the extension.
+webext-perms-optional-data-collection-text = { $extension } requests additional settings
+
+# Variables:
+#   $extension (String): replaced with the localized name of the extension.
+webext-perms-optional-data-collection-only-text = { $extension } requests additional data collection
 
 ## Short form to be used in lists or in a string (`webext-perms-description-data-some`)
 ## that formats some of these permissions below using `Intl.ListFormat`.

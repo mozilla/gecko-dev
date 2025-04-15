@@ -2947,10 +2947,8 @@ export class ExtensionData {
       msgIds.length === 0 &&
       result.dataCollectionPermissions.msg;
 
-    let headerId;
     switch (type) {
       case "sideload":
-        headerId = "webext-perms-sideload-header";
         acceptId = "webext-perms-sideload-enable";
         cancelId = "webext-perms-sideload-cancel";
         result.text = l10n.formatValueSync(
@@ -2960,40 +2958,75 @@ export class ExtensionData {
         );
         break;
       case "update": {
-        if (!lazy.dataCollectionPermissionsEnabled) {
-          headerId = "webext-perms-update-text";
-        } else {
-          headerId = hasDataCollectionOnly
-            ? "webext-perms-update-data-collection-only-text"
-            : "webext-perms-update-data-collection-text";
-        }
         acceptId = "webext-perms-update-accept";
         break;
       }
-      case "optional":
-        headerId = "webext-perms-optional-perms-header";
+      case "optional": {
         acceptId = "webext-perms-optional-perms-allow";
         cancelId = "webext-perms-optional-perms-deny";
-        result.listIntro = l10n.formatValueSync(
-          "webext-perms-optional-perms-list-intro"
-        );
-        break;
-      default:
-        if (msgIds.length && !hasDataCollectionOnly) {
-          headerId = unsigned
-            ? "webext-perms-header-unsigned-with-perms"
-            : "webext-perms-header-with-perms";
-        } else {
-          headerId = unsigned
-            ? "webext-perms-header-unsigned"
-            : "webext-perms-header";
+        if (!hasDataCollectionOnly) {
+          result.listIntro = l10n.formatValueSync(
+            "webext-perms-optional-perms-list-intro"
+          );
         }
+        break;
+      }
+      default:
     }
 
-    result.header = l10n.formatValueSync(headerId, headerArgs);
+    result.header = l10n.formatValueSync(
+      this._getHeaderFluentId({
+        type,
+        hasDataCollectionOnly,
+        hasPermissions: msgIds.length,
+        unsigned,
+      }),
+      headerArgs
+    );
     result.msgs = l10n.formatValuesSync(msgIds);
     setAcceptCancel(acceptId, cancelId);
     return result;
+  }
+
+  /**
+   * Helper function to return the right header fluent ID for a permission
+   * prompt, depending on the type, whether it has permissions and/or data
+   * collection only, and also whether the add-on is signed or not.
+   */
+  static _getHeaderFluentId({
+    type,
+    hasDataCollectionOnly,
+    hasPermissions,
+    unsigned,
+  }) {
+    switch (type) {
+      case "sideload":
+        return "webext-perms-sideload-header";
+
+      case "update":
+        if (!lazy.dataCollectionPermissionsEnabled) {
+          return "webext-perms-update-text";
+        }
+        return hasDataCollectionOnly
+          ? "webext-perms-update-data-collection-only-text"
+          : "webext-perms-update-data-collection-text";
+
+      case "optional":
+        if (!lazy.dataCollectionPermissionsEnabled) {
+          return "webext-perms-optional-perms-header";
+        }
+        return hasDataCollectionOnly
+          ? "webext-perms-optional-data-collection-only-text"
+          : "webext-perms-optional-data-collection-text";
+    }
+
+    if (hasPermissions && !hasDataCollectionOnly) {
+      return unsigned
+        ? "webext-perms-header-unsigned-with-perms"
+        : "webext-perms-header-with-perms";
+    }
+
+    return unsigned ? "webext-perms-header-unsigned" : "webext-perms-header";
   }
 
   /**
@@ -3008,7 +3041,7 @@ export class ExtensionData {
 
     // This data permission is opt-in by default, but users can opt-out, making
     // it special compared to the other permissions.
-    if (permissions.delete("technicalAndInteraction")) {
+    if (type !== "optional" && permissions.delete("technicalAndInteraction")) {
       dataCollectionPermissions.collectsTechnicalAndInteractionData = true;
     }
 
@@ -3034,6 +3067,9 @@ export class ExtensionData {
 
       let id;
       switch (type) {
+        case "optional":
+          id = "webext-perms-description-data-some-optional";
+          break;
         case "update":
           id = "webext-perms-description-data-some-update";
           break;
@@ -3560,6 +3596,10 @@ export class Extension extends ExtensionData {
 
   get optionalPermissions() {
     return this.manifest.optional_permissions;
+  }
+
+  get optionalDataCollectionPermissions() {
+    return this.getDataCollectionPermissions().optional;
   }
 
   get privateBrowsingAllowed() {

@@ -715,3 +715,109 @@ add_task(
     await extension.unload();
   }
 );
+
+add_task(
+  { pref_set: [["extensions.dataCollectionPermissions.enabled", true]] },
+  async function test_request_with_data_collection() {
+    async function background() {
+      browser.test.onMessage.addListener(async msg => {
+        if (msg === "request-good") {
+          await browser.permissions.request({
+            data_collection: ["technicalAndInteraction"],
+          });
+
+          const permissions = await browser.permissions.getAll();
+          browser.test.sendMessage("all", permissions);
+          return;
+        }
+
+        if (msg === "request-invalid") {
+          try {
+            browser.permissions.request({
+              data_collection: ["invalid-permission"],
+            });
+            browser.test.fail("expected error");
+          } catch (err) {
+            browser.test.assertTrue(
+              /Error processing data_collection.0: Value "invalid-permission" must either:/.test(
+                err.message
+              ),
+              "expected error"
+            );
+          }
+          return;
+        }
+
+        if (msg === "request-bad") {
+          await browser.test.assertRejects(
+            browser.permissions.request({
+              data_collection: ["healthInfo"],
+            }),
+            /Cannot request data collection permission healthInfo since it was not declared in data_collection_permissions.optional/,
+            "Expected rejection"
+          );
+          return;
+        }
+
+        browser.test.fail(`Got unexpected msg "${msg}"`);
+      });
+
+      browser.test.sendMessage("ready");
+    }
+
+    const extension = ExtensionTestUtils.loadExtension({
+      manifest: {
+        manifest_version: 2,
+        browser_specific_settings: {
+          gecko: {
+            data_collection_permissions: {
+              optional: ["technicalAndInteraction", "locationInfo"],
+            },
+          },
+        },
+      },
+      background,
+    });
+    await extension.startup();
+    await extension.awaitMessage("ready");
+
+    await withHandlingUserInput(extension, async () => {
+      await extension.sendMessage("request-bad");
+    });
+
+    await withHandlingUserInput(extension, async () => {
+      await extension.sendMessage("request-invalid");
+    });
+
+    await withHandlingUserInput(extension, async () => {
+      await extension.sendMessage("request-good");
+    });
+    let permissions = await extension.awaitMessage("all");
+    Assert.deepEqual(
+      permissions,
+      {
+        permissions: [],
+        origins: [],
+        data_collection: ["technicalAndInteraction"],
+      },
+      "expected permissions with data collection"
+    );
+
+    // Reequest the same permission again, which should be already granted.
+    await withHandlingUserInput(extension, async () => {
+      await extension.sendMessage("request-good");
+    });
+    permissions = await extension.awaitMessage("all");
+    Assert.deepEqual(
+      permissions,
+      {
+        permissions: [],
+        origins: [],
+        data_collection: ["technicalAndInteraction"],
+      },
+      "expected permissions with data collection"
+    );
+
+    await extension.unload();
+  }
+);

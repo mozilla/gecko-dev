@@ -320,7 +320,7 @@ export var ExtensionsUI = {
       });
 
       // If we don't have any promptable permissions, just proceed
-      if (!strings.msgs.length) {
+      if (!strings.msgs.length && !strings.dataCollectionPermissions?.msg) {
         resolve(true);
         return;
       }
