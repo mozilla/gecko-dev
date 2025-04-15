@@ -7023,6 +7023,25 @@ PBIResult PortableBaselineInterpret(
         END_OP(Eq);
       }
 
+      CASE(StrictConstantNe)
+      CASE(StrictConstantEq) {
+        JSOp op = JSOp(*pc);
+        uint16_t operand = GET_UINT16(pc);
+        {
+          ReservedRooted<JS::Value> val(&state.value0, VIRTPOP().asValue());
+          bool result;
+          {
+            PUSH_EXIT_FRAME();
+            if (!js::ConstantStrictEqual(cx, val, operand, &result)) {
+              GOTO_ERROR();
+            }
+          }
+          VIRTPUSH(StackVal(
+              BooleanValue(op == JSOp::StrictConstantEq ? result : !result)));
+        }
+        END_OP(StrictConstantEq);
+      }
+
       CASE(Instanceof) {
         IC_POP_ARG(1);
         IC_POP_ARG(0);

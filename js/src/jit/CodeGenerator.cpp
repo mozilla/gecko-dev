@@ -67,6 +67,7 @@
 #include "vm/AsyncFunction.h"
 #include "vm/AsyncIteration.h"
 #include "vm/BuiltinObjectKind.h"
+#include "vm/ConstantCompareOperand.h"
 #include "vm/FunctionFlags.h"  // js::FunctionFlags
 #include "vm/Interpreter.h"
 #include "vm/JSAtomUtils.h"  // AtomizeString
@@ -1599,6 +1600,67 @@ void CodeGenerator::visitCompare(LCompare* comp) {
   } else {
     masm.cmp32Set(ReverseCondition(cond), ToAddress(right), left, output);
   }
+}
+
+void CodeGenerator::visitStrictConstantCompareInt32(
+    LStrictConstantCompareInt32* comp) {
+  ValueOperand value = ToValue(comp->value());
+  int32_t constantVal = comp->mir()->constant();
+  JSOp op = comp->mir()->jsop();
+  Register output = ToRegister(comp->output());
+
+  Label fail, pass, done, maybeDouble;
+  masm.branchTestInt32(Assembler::NotEqual, value, &maybeDouble);
+  masm.branch32(JSOpToCondition(op, true), value.payloadOrValueReg(),
+                Imm32(constantVal), &pass);
+  masm.jump(&fail);
+
+  masm.bind(&maybeDouble);
+  {
+    FloatRegister unboxedValue = ToFloatRegister(comp->temp0());
+    FloatRegister floatPayload = ToFloatRegister(comp->temp1());
+
+    masm.branchTestDouble(Assembler::NotEqual, value,
+                          op == JSOp::StrictEq ? &fail : &pass);
+
+    masm.unboxDouble(value, unboxedValue);
+    masm.loadConstantDouble(double(constantVal), floatPayload);
+    masm.branchDouble(JSOpToDoubleCondition(op), unboxedValue, floatPayload,
+                      &pass);
+  }
+
+  masm.bind(&fail);
+  masm.move32(Imm32(0), output);
+  masm.jump(&done);
+
+  masm.bind(&pass);
+  masm.move32(Imm32(1), output);
+
+  masm.bind(&done);
+}
+
+void CodeGenerator::visitStrictConstantCompareBoolean(
+    LStrictConstantCompareBoolean* comp) {
+  ValueOperand value = ToValue(comp->value());
+  bool constantVal = comp->mir()->constant();
+  JSOp op = comp->mir()->jsop();
+  Register output = ToRegister(comp->output());
+
+  Label fail, pass, done;
+  Register boolUnboxed = ToRegister(comp->temp0());
+  masm.fallibleUnboxBoolean(value, boolUnboxed,
+                            op == JSOp::StrictEq ? &fail : &pass);
+  masm.branch32(JSOpToCondition(op, true), boolUnboxed, Imm32(constantVal),
+                &pass);
+
+  masm.bind(&fail);
+  masm.move32(Imm32(0), output);
+  masm.jump(&done);
+
+  masm.bind(&pass);
+  masm.move32(Imm32(1), output);
+
+  masm.bind(&done);
 }
 
 void CodeGenerator::visitCompareAndBranch(LCompareAndBranch* comp) {
