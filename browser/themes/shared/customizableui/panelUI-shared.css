@@ -333,8 +333,7 @@ panelview {
       }
     }
 
-    &::before,
-    &::after {
+    &::before {
       content: none; /* Reset's macOS' checkmark spacing */
     }
   }
@@ -357,6 +356,7 @@ panelview {
     margin-inline-end: 8px;
   }
 
+  menu::after,
   .menu-accel {
     margin-inline-start: 16px;
   }
