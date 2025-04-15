@@ -113,7 +113,7 @@ make a decision on whether it will be accepted or not.
 
 While uplifts are generally not the preferred way to ship new feature work, it is understood that there
 are times when business needs to do so justify the required effort. Our release process is designed to
-have the flexibility to accomodate these requests, though in general they need to be handled on a case
+have the flexibility to accommodate these requests, though in general they need to be handled on a case
 by case basis to determine the suitability. Teams are encouraged to reach out to Release Management in
 the `#release-coordination` channel on Slack or `@relman` so their specific needs can be assessed.
 
