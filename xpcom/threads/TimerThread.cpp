@@ -284,7 +284,8 @@ class nsTimerEvent final : public CancelableRunnable {
         mTimerThreadId(aTimerThreadId) {
     // Note: We override operator new for this class, and the override is
     // fallible!
-    sAllocatorUsers++;
+
+    AddAllocatorRef();
 
     if (MOZ_LOG_TEST(GetTimerLog(), LogLevel::Debug) ||
         profiler_thread_is_being_profiled_for_markers(mTimerThreadId)) {
@@ -294,15 +295,13 @@ class nsTimerEvent final : public CancelableRunnable {
 
   static void Init();
   static void Shutdown();
-  static void DeleteAllocatorIfNeeded();
 
   static void* operator new(size_t aSize) noexcept(true) {
     return sAllocator->Alloc(aSize);
   }
   void operator delete(void* aPtr) {
     sAllocator->Free(aPtr);
-    sAllocatorUsers--;
-    DeleteAllocatorIfNeeded();
+    ReleaseAllocatorRef();
   }
 
   already_AddRefed<nsTimerImpl> ForgetTimer() { return mTimer.forget(); }
@@ -312,10 +311,15 @@ class nsTimerEvent final : public CancelableRunnable {
   nsTimerEvent& operator=(const nsTimerEvent&) = delete;
   nsTimerEvent& operator=(const nsTimerEvent&&) = delete;
 
-  ~nsTimerEvent() {
-    MOZ_ASSERT(!sCanDeleteAllocator || sAllocatorUsers > 0,
-               "This will result in us attempting to deallocate the "
-               "nsTimerEvent allocator twice");
+  ~nsTimerEvent() = default;
+
+  static void AddAllocatorRef() { ++sAllocatorRefs; }
+  static void ReleaseAllocatorRef() {
+    nsrefcnt count = --sAllocatorRefs;
+    if (count == 0) {
+      delete sAllocator;
+      sAllocator = nullptr;
+    }
   }
 
   TimeStamp mInitTime;
@@ -324,14 +328,11 @@ class nsTimerEvent final : public CancelableRunnable {
   ProfilerThreadId mTimerThreadId;
 
   static TimerEventAllocator* sAllocator;
-
-  static Atomic<int32_t, SequentiallyConsistent> sAllocatorUsers;
-  static Atomic<bool, SequentiallyConsistent> sCanDeleteAllocator;
+  static ThreadSafeAutoRefCnt sAllocatorRefs;
 };
 
 TimerEventAllocator* nsTimerEvent::sAllocator = nullptr;
-Atomic<int32_t, SequentiallyConsistent> nsTimerEvent::sAllocatorUsers;
-Atomic<bool, SequentiallyConsistent> nsTimerEvent::sCanDeleteAllocator;
+MOZ_RUNINIT ThreadSafeAutoRefCnt nsTimerEvent::sAllocatorRefs;
 
 namespace {
 
@@ -448,18 +449,13 @@ struct AddRemoveTimerMarker {
   }
 };
 
-void nsTimerEvent::Init() { sAllocator = new TimerEventAllocator(); }
-
-void nsTimerEvent::Shutdown() {
-  sCanDeleteAllocator = true;
-  DeleteAllocatorIfNeeded();
+void nsTimerEvent::Init() {
+  sAllocator = new TimerEventAllocator();
+  AddAllocatorRef();  // Freed in Shutdown
 }
 
-void nsTimerEvent::DeleteAllocatorIfNeeded() {
-  if (sCanDeleteAllocator && sAllocatorUsers == 0) {
-    delete sAllocator;
-    sAllocator = nullptr;
-  }
+void nsTimerEvent::Shutdown() {
+  ReleaseAllocatorRef();  // Taken in Init
 }
 
 #ifdef MOZ_COLLECTING_RUNNABLE_TELEMETRY
