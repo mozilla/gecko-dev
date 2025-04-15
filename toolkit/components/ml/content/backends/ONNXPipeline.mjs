@@ -59,6 +59,46 @@ if (AppConstants.NIGHTLY_BUILD) {
 }
 
 /**
+ * Apply logit processor for bad words. This is a patch to a bug with bad words processing in transformers.js
+ * https://github.com/huggingface/transformers.js/pull/1278/files
+ * // TODO remove once Transformers 3.4.3+ is vendored
+ *
+ * @param {bigint[][]} input_ids The input IDs.
+ * @param {Tensor} logits The logits.
+ * @returns {Tensor} The processed logits.
+ */
+function badWordsProcessorPatchWithBugFix(input_ids, logits) {
+  for (let i = 0; i < input_ids.length; ++i) {
+    const batch_logits_data = /** @type {Float32Array} */ (logits[i].data);
+    const ids = input_ids[i];
+    for (const bad_word_ids of this.bad_words_ids) {
+      // There aren't enough tokens to match the banned sequence
+      if (ids.length < bad_word_ids.length - 1) {
+        continue;
+      }
+      // Whether to modify the logits of the last token in the bad word id sequence
+      let mark = true;
+
+      // For each bad word in the list, if the current sequence of input ids ends with this sequence (excluding the last),
+      // then we set the logits of the last bad word id to -Infinity.
+      for (let j = 1; j <= bad_word_ids.length - 1; ++j) {
+        // NOTE: We use != instead of !== to compare bigint and number
+        // @ts-ignore
+        if (bad_word_ids.at(-j - 1) != ids.at(-j)) {
+          // We have found a mismatch
+          mark = false;
+          break;
+        }
+      }
+      if (mark) {
+        batch_logits_data[bad_word_ids.at(-1)] = -Infinity;
+      }
+    }
+  }
+  return logits;
+}
+
+/**
  * Echo inference for testing purposes.
  *
  * @async
@@ -316,6 +356,9 @@ export class ONNXPipeline {
         transformers.env.backends.onnx.debug = false;
         break;
     }
+
+    transformers.NoBadWordsLogitsProcessor.prototype._call =
+      badWordsProcessorPatchWithBugFix; // Fix bug with bad words filter
 
     lazy.console.debug("Transformers.js env", transformers.env);
 
