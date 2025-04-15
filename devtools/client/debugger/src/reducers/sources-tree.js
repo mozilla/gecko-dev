@@ -57,9 +57,6 @@ export function initialSourcesTreeState({ isWebExtension } = {}) {
     // The name is displayed in Source Tree header
     projectDirectoryRootName: prefs.projectDirectoryRootName,
 
-    // The full name is displayed in the Source Tree header's tooltip
-    projectDirectoryRootFullName: prefs.projectDirectoryRootFullName,
-
     // Reports if the debugged context is a web extension.
     // If so, we should display all web extension sources.
     isWebExtension,
@@ -212,10 +209,9 @@ export default function update(state = initialSourcesTreeState(), action) {
     case "SET_SELECTED_LOCATION":
       return updateSelectedLocation(state, action.location);
 
-    case "SET_PROJECT_DIRECTORY_ROOT": {
-      const { uniquePath, name, fullName } = action;
-      return updateProjectDirectoryRoot(state, uniquePath, name, fullName);
-    }
+    case "SET_PROJECT_DIRECTORY_ROOT":
+      const { uniquePath, name } = action;
+      return updateProjectDirectoryRoot(state, uniquePath, name);
 
     case "BLACKBOX_WHOLE_SOURCES":
     case "BLACKBOX_SOURCE_RANGES": {
@@ -293,20 +289,18 @@ function updateExpanded(state, action) {
 /**
  * Update the project directory root
  */
-function updateProjectDirectoryRoot(state, uniquePath, name, fullName) {
+function updateProjectDirectoryRoot(state, uniquePath, name) {
   // Only persists root within the top level target.
   // Otherwise the thread actor ID will change on page reload and we won't match anything
   if (!uniquePath || uniquePath.startsWith("top-level")) {
     prefs.projectDirectoryRoot = uniquePath;
     prefs.projectDirectoryRootName = name;
-    prefs.projectDirectoryRootFullName = fullName;
   }
 
   return {
     ...state,
     projectDirectoryRoot: uniquePath,
     projectDirectoryRootName: name,
-    projectDirectoryRootFullName: fullName,
   };
 }
 
@@ -358,14 +352,14 @@ function addSource(threadItems, source, sourceActor) {
   // Then ensure creating or fetching the related Group Item
   // About `source` versus `sourceActor`:
   const { displayURL } = source;
-  const { group, origin } = displayURL;
+  const { group } = displayURL;
 
   let groupItem = threadItem.children.find(item => {
     return item.groupName == group;
   });
 
   if (!groupItem) {
-    groupItem = createGroupTreeItem(group, origin, threadItem, source);
+    groupItem = createGroupTreeItem(group, threadItem, source);
     // Copy children in order to force updating react in case we picked
     // this directory as a project root
     threadItem.children = [...threadItem.children];
@@ -376,12 +370,7 @@ function addSource(threadItems, source, sourceActor) {
   // Then ensure creating or fetching all possibly nested Directory Item(s)
   const { path } = displayURL;
   const parentPath = path.substring(0, path.lastIndexOf("/"));
-  const parentUrl = source.url.substring(0, source.url.lastIndexOf("/"));
-  const directoryItem = addOrGetParentDirectory(
-    groupItem,
-    parentPath,
-    parentUrl
-  );
+  const directoryItem = addOrGetParentDirectory(groupItem, parentPath);
 
   // Check if a previous source actor registered this source.
   // It happens if we load the same url multiple times, or,
@@ -520,13 +509,11 @@ export function sortThreads(a, b) {
  *        The Group Item for the group where the path should be displayed.
  * @param {String} path
  *        Path of the directory for which we want a Directory Item.
- * @param {String} url
- *        URL of the directory for which we want a Directory Item.
  * @return {GroupItem|DirectoryItem}
  *        The parent Item where this path should be inserted.
  *        Note that it may be displayed right under the Group Item if the path is empty.
  */
-function addOrGetParentDirectory(groupItem, path, url) {
+function addOrGetParentDirectory(groupItem, path) {
   // We reached the top of the Tree, so return the Group Item.
   if (!path) {
     return groupItem;
@@ -541,15 +528,10 @@ function addOrGetParentDirectory(groupItem, path, url) {
   // It doesn't exists, so we will create a new Directory Item.
   // But now, lookup recursively for the parent Item for this to-be-create Directory Item
   const parentPath = path.substring(0, path.lastIndexOf("/"));
-  const parentUrl = url.substring(0, url.lastIndexOf("/"));
-  const parentDirectory = addOrGetParentDirectory(
-    groupItem,
-    parentPath,
-    parentUrl
-  );
+  const parentDirectory = addOrGetParentDirectory(groupItem, parentPath);
 
   // We can now create the new Directory Item and register it in its parent Item.
-  const directory = createDirectoryTreeItem(path, url, parentDirectory);
+  const directory = createDirectoryTreeItem(path, parentDirectory);
   // Copy children in order to force updating react in case we picked
   // this directory as a project root
   parentDirectory.children = [...parentDirectory.children];
@@ -603,7 +585,7 @@ function createThreadTreeItem(thread) {
     threadActorID: thread,
   };
 }
-function createGroupTreeItem(groupName, origin, parent, source) {
+function createGroupTreeItem(groupName, parent, source) {
   return {
     ...createBaseTreeItem({
       type: "group",
@@ -614,7 +596,6 @@ function createGroupTreeItem(groupName, origin, parent, source) {
     }),
 
     groupName,
-    url: origin,
 
     // When a content script appear in a web page,
     // a dedicated group is created for it and should
@@ -627,7 +608,7 @@ function createGroupTreeItem(groupName, origin, parent, source) {
     _allGroupDirectoryItems: [],
   };
 }
-function createDirectoryTreeItem(path, url, parent) {
+function createDirectoryTreeItem(path, parent) {
   // If the parent is a group we want to use '/' as separator
   const pathSeparator = parent.type == "directory" ? "/" : "|";
 
@@ -654,7 +635,6 @@ function createDirectoryTreeItem(path, url, parent) {
     // path will be:
     //   foo/bar
     path,
-    url,
   };
 }
 function createSourceTreeItem(source, sourceActor, parent) {

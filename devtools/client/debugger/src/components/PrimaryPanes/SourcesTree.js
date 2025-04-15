@@ -27,7 +27,6 @@ import {
   getExpandedState,
   getProjectDirectoryRoot,
   getProjectDirectoryRootName,
-  getProjectDirectoryRootFullName,
   getSourcesTreeSources,
   getFocusedSourceItem,
   getHideIgnoredSources,
@@ -248,7 +247,7 @@ class SourcesTree extends Component {
   };
 
   renderProjectRootHeader() {
-    const { projectRootName, projectRootFullName } = this.props;
+    const { projectRootName } = this.props;
 
     if (!projectRootName) {
       return null;
@@ -262,22 +261,20 @@ class SourcesTree extends Component {
         {
           className: "sources-clear-root",
           onClick: () => this.props.clearProjectDirectoryRoot(),
-          title: L10N.getFormatStr("removeDirectoryRoot.label"),
+          title: L10N.getStr("removeDirectoryRoot.label"),
         },
         React.createElement(AccessibleImage, {
-          className: "back",
-        })
-      ),
-      div({ className: "devtools-separator" }),
-      span(
-        {
-          className: "sources-clear-root-label",
-          title: L10N.getFormatStr(
-            "directoryRoot.tooltip.label",
-            projectRootFullName || projectRootName
-          ),
-        },
-        projectRootName
+          className: "home",
+        }),
+        React.createElement(AccessibleImage, {
+          className: "breadcrumb",
+        }),
+        span(
+          {
+            className: "sources-clear-root-label",
+          },
+          projectRootName
+        )
       )
     );
   }
@@ -412,16 +409,12 @@ class SourcesTree extends Component {
         }),
       },
       this.renderSettingsButton(),
-      this.renderProjectRootHeader(),
       this.isEmpty()
-        ? this.renderEmptyElement(
-            L10N.getStr(
-              projectRoot ? "noSourcesInDirectoryRootText" : "noSourcesText"
-            )
-          )
+        ? this.renderEmptyElement(L10N.getStr("noSourcesText"))
         : React.createElement(
             Fragment,
             null,
+            this.renderProjectRootHeader(),
             this.renderTree(),
             this.renderFooter()
           )
@@ -441,7 +434,6 @@ const mapStateToProps = state => {
     projectRoot: getProjectDirectoryRoot(state),
     rootItems: getSourcesTreeSources(state),
     projectRootName: getProjectDirectoryRootName(state),
-    projectRootFullName: getProjectDirectoryRootFullName(state),
     hideIgnoredSources: getHideIgnoredSources(state),
   };
 };
