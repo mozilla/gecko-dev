@@ -115,6 +115,7 @@ add_task(async function testClipboardPasteIntoChatShortcut() {
   const shortcutTextArea = document.querySelector(
     ".ask-chat-shortcuts-custom-prompt"
   );
+  shortcutTextArea.value = "";
   shortcutTextArea.focus();
   // Note that we use the EventUtils version here because we're sending this to the
   // parent process, since the GenAI overlay isn't part of the page's content.

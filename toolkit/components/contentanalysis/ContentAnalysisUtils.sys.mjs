@@ -69,7 +69,9 @@ export const ContentAnalysisUtils = {
                 url ??
                 contentAnalysis.getURIForBrowsingContext(browsingContext),
               textContent: data,
-              windowGlobalParent: browsingContext.currentWindowContext,
+              /* browsingContext can sometimes be undefined in tests where content
+                 is being pasted into chrome (specifically the GenAI custom chat shortcut) */
+              windowGlobalParent: browsingContext?.currentWindowContext,
             },
           ],
           true
