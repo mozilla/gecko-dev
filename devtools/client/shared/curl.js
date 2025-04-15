@@ -58,11 +58,17 @@ const Curl = {
   generateCommand(data, platform) {
     const utils = CurlUtils;
 
-    let commandParts = [];
+    let command = ["curl"];
 
     // Make sure to use the following helpers to sanitize arguments before execution.
-    const escapeStringifNeeded = value => {
-      return /^[a-zA-Z-]+$/.test(value) ? value : escapeString(value);
+    const addParam = value => {
+      const safe = /^[a-zA-Z-]+$/.test(value) ? value : escapeString(value);
+      command.push(safe);
+    };
+
+    const addPostData = value => {
+      const safe = /^[a-zA-Z-]+$/.test(value) ? value : escapeString(value);
+      postData.push(safe);
     };
 
     const ignoredHeaders = new Set();
@@ -71,17 +77,17 @@ const Curl = {
     // The cURL command is expected to run on the same platform that Firefox runs
     // (it may be different from the inspected page platform).
     const escapeString =
-      currentPlatform === "WINNT"
+      currentPlatform == "WINNT"
         ? utils.escapeStringWin
         : utils.escapeStringPosix;
 
     // Add URL.
-    commandParts.push(escapeString(data.url));
+    addParam(data.url);
 
     // Disable globbing if the URL contains brackets.
     // cURL also globs braces but they are already percent-encoded.
     if (data.url.includes("[") || data.url.includes("]")) {
-      commandParts.push("--globoff");
+      addParam("--globoff");
     }
 
     let postDataText = null;
@@ -98,13 +104,13 @@ const Curl = {
       // which composed using \n only, not \r\n, may be not parsable for
       // peers which split parts of multipart payload using \r\n.
       postDataText = data.postDataText;
-      postData.push("--data-binary");
+      addPostData("--data-binary");
       const boundary = utils.getMultipartBoundary(data);
       const text = utils.removeBinaryDataFromMultipartText(
         postDataText,
         boundary
       );
-      postData.push(escapeStringifNeeded(text));
+      addPostData(text);
       ignoredHeaders.add("content-length");
     } else if (
       data.postDataText &&
@@ -113,10 +119,8 @@ const Curl = {
     ) {
       // When no postData exists, --data-raw should not be set
       postDataText = data.postDataText;
-      postData.push(
-        "--data-raw " +
-          escapeStringifNeeded(`${utils.writePostDataTextParams(postDataText)}`)
-      );
+      addPostData("--data-raw");
+      addPostData(utils.writePostDataTextParams(postDataText));
       ignoredHeaders.add("content-length");
     }
     // curl generates the host header itself based on the given URL
@@ -124,19 +128,20 @@ const Curl = {
 
     // Add --compressed if the response is compressed
     if (utils.isContentEncodedResponse(data)) {
-      commandParts.push("--compressed");
+      addParam("--compressed");
     }
 
     // Add -I (HEAD)
     // For servers that supports HEAD.
     // This will fetch the header of a document only.
     if (data.method === "HEAD") {
-      commandParts.push("-I");
+      addParam("-I");
     } else if (data.method !== "GET") {
       // Add method.
       // For HEAD and GET requests this is not necessary. GET is the
       // default, -I implies HEAD.
-      commandParts.push("-X " + escapeStringifNeeded(`${data.method}`));
+      addParam("-X");
+      addParam(data.method);
     }
 
     // Add request headers.
@@ -150,26 +155,14 @@ const Curl = {
       if (ignoredHeaders.has(header.name.toLowerCase())) {
         continue;
       }
-      commandParts.push(
-        "-H " + escapeStringifNeeded(`${header.name}: ${header.value}`)
-      );
+      addParam("-H");
+      addParam(header.name + ": " + header.value);
     }
 
     // Add post data.
-    commandParts = commandParts.concat(postData);
+    command = command.concat(postData);
 
-    // Format with line breaks if the command has more than 2 parts
-    // e.g
-    // Command with 2 parts  - curl https://foo.com
-    // Commands with more than 2 parts -
-    // curl https://foo.com
-    // -X POST
-    // -H "Accept : */*"
-    // -H "accept-language: en-US"
-    const joinStr = currentPlatform === "WINNT" ? " ^\n  " : " \\\n  ";
-    return (
-      "curl " + commandParts.join(commandParts.length >= 3 ? joinStr : " ")
-    );
+    return command.join(" ");
   },
 };
 
@@ -451,16 +444,18 @@ const CurlUtils = {
       same escape characters, they can interact with each other in
       horrible ways, the order of operations is critical.
     */
-    const encapsChars = '^"';
+    const encapsChars = '"';
     return (
       encapsChars +
       str
+
         //  Replace \ with \\ first because it is an escape character for certain
         // conditions in both parsers.
         .replace(/\\/g, "\\\\")
 
-        // Escape double quotes with double slashes.
-        .replace(/"/g, '\\"')
+        // Replace double quote chars with two double quotes (not by escaping with \") because it is
+        // recognized by both cmd.exe and MS Crt arguments parser.
+        .replace(/"/g, '""')
 
         // Escape ` and $ so commands do not get executed e.g $(calc.exe) or `\$(calc.exe)
         .replace(/[`$]/g, "\\$&")
@@ -478,10 +473,15 @@ const CurlUtils = {
         // by the previous replace.
         .replace(/%(?=[a-zA-Z0-9_])/g, "%^")
 
+        // We replace \r and \r\n with \n, this allows to consistently escape all new
+        // lines in the next replace
+        .replace(/\r\n?/g, "\n")
+
         // Lastly we replace new lines with ^ and TWO new lines because the first
         // new line is there to enact the escape command the second is the character
         // to escape (in this case new line).
-        .replace(/\r?\n/g, "^\n\n") +
+        // The extra " enables escaping new lines with ^ within quotes in cmd.exe.
+        .replace(/\n/g, '"^\r\n\r\n"') +
       encapsChars
     );
   },
