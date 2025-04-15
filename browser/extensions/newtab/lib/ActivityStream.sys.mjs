@@ -463,6 +463,13 @@ export const PREFS_CONFIG = new Map([
     },
   ],
   [
+    "newtabWallpapers.customWallpaper.uuid",
+    {
+      title: "uuid for uploaded custom wallpaper",
+      value: "",
+    },
+  ],
+  [
     "newtabWallpapers.customWallpaper.uploadedPreviously",
     {
       title:

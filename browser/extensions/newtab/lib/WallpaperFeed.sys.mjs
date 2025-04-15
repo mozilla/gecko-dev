@@ -31,6 +31,9 @@ const PREF_WALLPAPERS_CUSTOM_WALLPAPER_ENABLED =
 const PREF_WALLPAPERS_CUSTOM_WALLPAPER_UUID =
   "browser.newtabpage.activity-stream.newtabWallpapers.customWallpaper.uuid";
 
+const PREF_SELECTED_WALLPAPER =
+  "browser.newtabpage.activity-stream.newtabWallpapers.wallpaper";
+
 export class WallpaperFeed {
   constructor() {
     this.loaded = false;
@@ -102,7 +105,7 @@ export class WallpaperFeed {
     );
 
     const selectedWallpaper = Services.prefs.getStringPref(
-      "newtabWallpapers.wallpaper",
+      PREF_SELECTED_WALLPAPER,
       ""
     );
 
