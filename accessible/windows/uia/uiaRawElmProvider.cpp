@@ -144,6 +144,11 @@ void uiaRawElmProvider::RaiseUiaEventForGeckoEvent(Accessible* aAcc,
   if (!uia) {
     return;
   }
+  // Some UIA events include or depend on data that might not be cached yet. We
+  // shouldn't request additional cache domains in this case because a client
+  // might not even care about these events. Instead, we use explicit client
+  // queries as a signal to request domains.
+  CacheDomainActivationBlocker cacheBlocker;
   PROPERTYID property = 0;
   _variant_t newVal;
   bool gotNewVal = false;

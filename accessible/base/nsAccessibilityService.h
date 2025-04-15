@@ -92,6 +92,23 @@ void PrefChanged(const char* aPref, void* aClosure);
  */
 EPlatformDisabledState ReadPlatformDisabledState();
 
+/**
+ * RAII class to prevent new cache domains from being requested. This is
+ * necessary in some cases when code for an OS accessibility API requires
+ * information in order to fire an event. We don't necessarily know that a
+ * client is even interested in that event, so requesting data that the client
+ * may never query doesn't make sense.
+ */
+class MOZ_RAII CacheDomainActivationBlocker {
+ public:
+  CacheDomainActivationBlocker();
+  ~CacheDomainActivationBlocker();
+
+ private:
+  // Used to manage re-entry.
+  static uint32_t sEntryCount;
+};
+
 }  // namespace a11y
 }  // namespace mozilla
 
@@ -346,6 +363,7 @@ class nsAccessibilityService final : public mozilla::a11y::DocManager,
   };
 
   static uint64_t GetActiveCacheDomains() { return gCacheDomains; }
+  bool ShouldAllowNewCacheDomains() { return mShouldAllowNewCacheDomains; }
 
 #if defined(ANDROID)
   static mozilla::Monitor& GetAndroidMonitor();
@@ -415,6 +433,10 @@ class nsAccessibilityService final : public mozilla::a11y::DocManager,
    * Contains the currently active cache domains.
    */
   static uint64_t gCacheDomains;
+  // True if requesting new cache domains should be allowed, false if this
+  // should be disallowed. This should only be changed by
+  // CacheDomainActivationBlocker.
+  bool mShouldAllowNewCacheDomains = true;
 
   // Can be weak because all atoms are known static
   using MarkupMap = nsTHashMap<nsAtom*, const mozilla::a11y::MarkupMapInfo*>;
@@ -450,6 +472,7 @@ class nsAccessibilityService final : public mozilla::a11y::DocManager,
   friend mozilla::a11y::xpcAccessibleApplication*
   mozilla::a11y::XPCApplicationAcc();
   friend class xpcAccessibilityService;
+  friend class mozilla::a11y::CacheDomainActivationBlocker;
 };
 
 /**

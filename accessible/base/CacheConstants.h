@@ -271,9 +271,11 @@ bool DomainsAreActive(uint64_t aRequiredCacheDomains);
 // false if all required domains are already active.
 bool RequestDomainsIfInactive(uint64_t aRequiredCacheDomains);
 
-#define ASSERT_DOMAINS_ACTIVE(aCacheDomains)  \
-  MOZ_ASSERT(DomainsAreActive(aCacheDomains), \
-             "Required domain(s) are not currently active.")
+#define ASSERT_DOMAINS_ACTIVE(aCacheDomains)                                 \
+  MOZ_ASSERT(                                                                \
+      (GetAccService() && !GetAccService()->ShouldAllowNewCacheDomains()) || \
+          DomainsAreActive(aCacheDomains),                                   \
+      "Required domain(s) are not currently active.")
 
 }  // namespace a11y
 }  // namespace mozilla
