@@ -199,20 +199,24 @@ export const ReportContent = spocs => {
               name="report"
               ref={radioGroupRef}
               id="report-group"
-              data-l10n-id="newtab-report-content-why-reporting"
+              data-l10n-id="newtab-report-content-why-reporting-this"
               className="report-content-options"
             >
               <moz-radio
-                data-l10n-id="newtab-report-ads-reason-unsafe"
-                value="unsafe_content"
+                data-l10n-id="newtab-report-content-wrong-category"
+                value="wrong_category"
               ></moz-radio>
               <moz-radio
-                data-l10n-id="newtab-report-ads-reason-inappropriate"
-                value="inappropriate_content"
+                data-l10n-id="newtab-report-content-outdated"
+                value="outdated"
               ></moz-radio>
               <moz-radio
-                data-l10n-id="newtab-report-ads-reason-seen-it-too-many-times"
-                value="seen_too_many_times"
+                data-l10n-id="newtab-report-content-inappropriate-offensive"
+                value="inappropriate_or_offensive"
+              ></moz-radio>
+              <moz-radio
+                data-l10n-id="newtab-report-content-spam-misleading"
+                value="spam_or_misleading"
               ></moz-radio>
             </moz-radio-group>
           </>
@@ -220,7 +224,7 @@ export const ReportContent = spocs => {
 
         <moz-button-group>
           <moz-button
-            data-l10n-id="newtab-topic-selection-cancel-button"
+            data-l10n-id="newtab-report-cancel"
             onClick={handleCancel}
             className="cancel-report-btn"
           ></moz-button>

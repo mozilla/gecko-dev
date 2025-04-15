@@ -141,7 +141,7 @@ describe("Discovery Stream <ReportContent>", () => {
 
     assert.ok(wrapper.find(".report-content-options").exists());
 
-    // test to make sure content options aren't displayed when report ads is open
+    // test to make sure ad options aren't displayed when report content is open
     assert.equal(wrapper.find(".report-ads-options").length, 0);
   });
 
