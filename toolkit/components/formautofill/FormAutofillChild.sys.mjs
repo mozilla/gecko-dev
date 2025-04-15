@@ -659,14 +659,9 @@ export class FormAutofillChild extends JSWindowActorChild {
       }
       case "FormAutofill:FillFieldsOnFormChange": {
         const { focusedId, ids, profile } = message.data;
-        // Site might clear some fields on form change, so let any other task complete first.
-        return new Promise(resolve => {
-          lazy.setTimeout(() => {
-            const result = this.fillFieldsOnFormChange(focusedId, ids, profile);
-            // Not preparing for another filling on form change to avoid infinite loops
-            resolve(result);
-          }, 0);
-        });
+        const result = this.fillFieldsOnFormChange(focusedId, ids, profile);
+        // Not preparing for another filling on form change to avoid infinite loops
+        return result;
       }
       case "FormAutofill:ClearFilledFields": {
         const { focusedId, ids } = message.data;
