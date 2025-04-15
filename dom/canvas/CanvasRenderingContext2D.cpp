@@ -1282,6 +1282,9 @@ void CanvasRenderingContext2D::OnRemoteCanvasLost() {
         // true.
         self->mAllowContextRestore = self->DispatchEvent(
             u"contextlost"_ns, CanBubble::eNo, Cancelable::eYes);
+        gfxCriticalNote << gfx::hexa(self.get())
+                        << " accel canvas lost, can restore: "
+                        << self->mAllowContextRestore;
       }));
 }
 
@@ -1307,6 +1310,8 @@ void CanvasRenderingContext2D::OnRemoteCanvasRestored() {
           // context's attributes and associating them with context. If this
           // fails, then abort these steps.
           if (!self->EnsureTarget()) {
+            gfxCriticalNote << gfx::hexa(self.get())
+                            << " accel canvas failed to restore";
             self->mIsContextLost = true;
             return;
           }
@@ -1314,6 +1319,7 @@ void CanvasRenderingContext2D::OnRemoteCanvasRestored() {
           // 8. Fire an event named contextrestored at canvas.
           self->DispatchEvent(u"contextrestored"_ns, CanBubble::eNo,
                               Cancelable::eNo);
+          gfxCriticalNote << gfx::hexa(self.get()) << " accel canvas restored";
         }
       }));
 }
