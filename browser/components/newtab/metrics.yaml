@@ -2045,7 +2045,7 @@ newtab_content:
           If click belongs in a section, if that section is followed
         type: boolean
     send_in_pings:
-      - newtab
+      - newtab-content
 
   click:
     type: event
@@ -2054,25 +2054,13 @@ newtab_content:
       Only happens on click. Not on middle-click. Not on "Open in new Tab"-like
       options in the context menu.
     bugs:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1786612
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1817105
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1854245
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1862670
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1937200
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1956331
     data_reviews:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1786612
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1817105#c11
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1854245
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1956331
     data_sensitivity:
       - interaction
     notification_emails:
-      - anicholson@mozilla.com
-      - chutten@mozilla.com
-      - mmccorquodale@mozilla.com
-      - najiang@mozilla.com
-      - lina@mozilla.com
-      - sdowne@mozilla.com
-      - mcrawford@mozilla.ccocm
+      - mcrawford@mozilla.cocm
     expires: never
     extra_keys:
       newtab_visit_id: *newtab_visit_id
@@ -2155,7 +2143,7 @@ newtab_content:
           If click belongs in a section, if that section is followed
         type: boolean
     send_in_pings:
-      - newtab
+      - newtab-content
 
   thumb_voting_interaction:
     type: event
@@ -2209,7 +2197,7 @@ newtab_content:
           If event belongs in a section, if that section is followed
         type: boolean
     send_in_pings:
-      - newtab
+      - newtab-content
 
   sections_impression:
     type: event
@@ -2241,7 +2229,7 @@ newtab_content:
           If click belongs in a section, if that section is followed
         type: boolean
     send_in_pings:
-      - newtab
+      - newtab-content
 
   sections_follow_section:
     type: event
@@ -2271,7 +2259,7 @@ newtab_content:
           Where the source of the event originated ("button", "context menu", etc.)
         type: string
     send_in_pings:
-      - newtab
+      - newtab-content
 
   sections_unfollow_section:
     type: event
@@ -2301,7 +2289,7 @@ newtab_content:
           Where the source of the event originated ("button", "context menu", etc.)
         type: string
     send_in_pings:
-      - newtab
+      - newtab-content
 
   sections_block_section:
     type: event
@@ -2331,7 +2319,7 @@ newtab_content:
           Where the source of the event originated ("button", "context menu", etc.)
         type: string
     send_in_pings:
-      - newtab
+      - newtab-content
 
   sections_unblock_section:
     type: event
@@ -2361,7 +2349,7 @@ newtab_content:
           Where the source of the event originated ("button", "context menu", etc.)
         type: string
     send_in_pings:
-      - newtab
+      - newtab-content
 
 top_sites: # Replacement for PingCentre "topsites-impression|click" pings.
   ping_type:
