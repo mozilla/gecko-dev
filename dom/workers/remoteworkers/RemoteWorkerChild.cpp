@@ -139,7 +139,8 @@ RemoteWorkerChild::RemoteWorkerChild(const RemoteWorkerData& aData)
     : mState(VariantType<remoteworker::Pending>(), "RemoteWorkerState"),
       mServiceKeepAlive(RemoteWorkerService::MaybeGetKeepAlive()),
       mIsServiceWorker(aData.serviceWorkerData().type() ==
-                       OptionalServiceWorkerData::TServiceWorkerData) {
+                       OptionalServiceWorkerData::TServiceWorkerData),
+      mPendingOps("PendingRemoteWorkerOps") {
   MOZ_ASSERT(RemoteWorkerService::Thread()->IsOnCurrentThread());
 }
 
@@ -813,8 +814,33 @@ void RemoteWorkerChild::CancelAllPendingOps(RemoteWorkerState& aState) {
   }
 }
 
+void RemoteWorkerChild::PendRemoteWorkerOp(RefPtr<RemoteWorkerOp> aOp) {
+  MOZ_ASSERT_DEBUG_OR_FUZZING(mIsThawing);
+
+  auto pendingOps = mPendingOps.Lock();
+
+  pendingOps->AppendElement(std::move(aOp));
+}
+
+void RemoteWorkerChild::RunAllPendingOpsOnMainThread() {
+  RefPtr<RemoteWorkerChild> self = this;
+
+  auto pendingOps = mPendingOps.Lock();
+
+  for (auto& op : *pendingOps) {
+    op->StartOnMainThread(self);
+  }
+
+  pendingOps->Clear();
+}
+
 void RemoteWorkerChild::MaybeStartOp(RefPtr<RemoteWorkerOp>&& aOp) {
   MOZ_ASSERT(aOp);
+
+  if (mIsThawing) {
+    PendRemoteWorkerOp(std::move(aOp));
+    return;
+  }
 
   auto lock = mState.Lock();
 

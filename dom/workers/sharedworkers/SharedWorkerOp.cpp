@@ -82,6 +82,10 @@ bool SharedWorkerOp::MaybeStart(RemoteWorkerChild* aOwner,
 
   MOZ_ASSERT(aState.is<Running>() || IsTerminationOp());
 
+  if (mOpArgs.type() == SharedWorkerOpArgs::TSharedWorkerThawOpArgs) {
+    aOwner->SetIsThawing(true);
+  }
+
   RefPtr<SharedWorkerOp> self = this;
   RefPtr<RemoteWorkerChild> owner = aOwner;
 
@@ -97,6 +101,11 @@ bool SharedWorkerOp::MaybeStart(RemoteWorkerChild* aOwner,
         }
 
         self->StartOnMainThread(owner);
+        if (self->mOpArgs.type() ==
+            SharedWorkerOpArgs::TSharedWorkerThawOpArgs) {
+          owner->SetIsThawing(false);
+          owner->RunAllPendingOpsOnMainThread();
+        }
       });
 
   MOZ_ALWAYS_SUCCEEDS(SchedulerGroup::Dispatch(r.forget()));
@@ -151,6 +160,12 @@ void SharedWorkerOp::StartOnMainThread(RefPtr<RemoteWorkerChild>& aOwner) {
   } else {
     MOZ_CRASH("Unknown SharedWorkerOpArgs type!");
   }
+
+#ifdef DEBUG
+  if (!mStarted) {
+    mStarted = true;
+  }
+#endif
 }
 
 void SharedWorkerOp::Start(RemoteWorkerNonLifeCycleOpControllerChild* aOwner,
