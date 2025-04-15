@@ -45,6 +45,27 @@ class MessagePortIdentifierRunnable final : public WorkerSameThreadRunnable {
   UniqueMessagePortId mPortIdentifier;
 };
 
+class UpdateWindowIDRunnable final : public WorkerThreadRunnable {
+ public:
+  UpdateWindowIDRunnable(const uint64_t& aWindowID, const bool& aIsAdd)
+      : WorkerThreadRunnable("UpdateWindowIDRunnable"),
+        mWindowID(aWindowID),
+        mIsAdd(aIsAdd) {}
+
+ private:
+  bool PreDispatch(WorkerPrivate* aWorkerPrivate) final { return true; }
+  void PostDispatch(WorkerPrivate* aWorkerPrivate, bool aDispatchResult) final {
+  }
+
+  bool WorkerRun(JSContext* aCx, WorkerPrivate* aWorkerPrivate) override {
+    aWorkerPrivate->UpdateWindowIDToDebugger(mWindowID, mIsAdd);
+    return true;
+  }
+
+  uint64_t mWindowID;
+  bool mIsAdd;
+};
+
 }  // namespace
 
 SharedWorkerOp::SharedWorkerOp(SharedWorkerOpArgs&& aArgs)
@@ -153,10 +174,16 @@ void SharedWorkerOp::StartOnMainThread(RefPtr<RemoteWorkerChild>& aOwner) {
              SharedWorkerOpArgs::TSharedWorkerAddWindowIDOpArgs) {
     aOwner->mWindowIDs.AppendElement(
         mOpArgs.get_SharedWorkerAddWindowIDOpArgs().windowID());
+    RefPtr<UpdateWindowIDRunnable> r = new UpdateWindowIDRunnable(
+        mOpArgs.get_SharedWorkerAddWindowIDOpArgs().windowID(), true);
+    Unused << r->Dispatch(workerPrivate);
   } else if (mOpArgs.type() ==
              SharedWorkerOpArgs::TSharedWorkerRemoveWindowIDOpArgs) {
     aOwner->mWindowIDs.RemoveElement(
         mOpArgs.get_SharedWorkerRemoveWindowIDOpArgs().windowID());
+    RefPtr<UpdateWindowIDRunnable> r = new UpdateWindowIDRunnable(
+        mOpArgs.get_SharedWorkerRemoveWindowIDOpArgs().windowID(), false);
+    Unused << r->Dispatch(workerPrivate);
   } else {
     MOZ_CRASH("Unknown SharedWorkerOpArgs type!");
   }
