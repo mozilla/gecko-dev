@@ -348,3 +348,34 @@ add_task(async function test_saving_ml_suggested_empty_label_telemetry() {
   );
   cleanup();
 });
+
+add_task(async function test_user_not_opted_in_should_not_send_ml_events() {
+  let { tab, cleanup } = await setup(true, false);
+  let tabgroupEditor = document.getElementById("tab-group-editor");
+  let tabgroupPanel = tabgroupEditor.panel;
+  let nameField = tabgroupPanel.querySelector("#tab-group-name");
+
+  await openCreatePanel(tabgroupPanel, tab);
+  // add the label
+  nameField.focus();
+  nameField.value = "Random ML Suggested Label"; // user label matching suggested label
+  tabgroupEditor.mlLabel = "Random ML Suggested Label"; // suggested label
+  // click on the suggest button
+  tabgroupPanel.querySelector("#tab-group-suggestion-button").click();
+  tabgroupEditor.hasSuggestedMlTabs = true;
+  tabgroupPanel.hidePopup();
+  let panelHidden = BrowserTestUtils.waitForPopupEvent(tabgroupPanel, "hidden");
+  await panelHidden;
+
+  Assert.equal(
+    Glean.tabgroup.smartTabTopic.testGetValue() ?? "none",
+    "none",
+    "No topic event should be sent"
+  );
+  Assert.equal(
+    Glean.tabgroup.smartTabSuggest.testGetValue() ?? "none",
+    "none",
+    "No suggest event should be sent"
+  );
+  cleanup();
+});

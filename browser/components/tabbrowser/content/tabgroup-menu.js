@@ -860,6 +860,7 @@
           );
           if (
             this.smartTabGroupsEnabled &&
+            this.smartTabGroupsOptin &&
             (this.#suggestedMlLabel !== null || this.#hasSuggestedMlTabs)
           ) {
             this.#handleMlTelemetry("save-popup-hidden");
@@ -1058,7 +1059,7 @@
      * @param {string} action "save", "save-popup-hidden" or "cancel"
      */
     #handleMlTelemetry(action) {
-      if (!this.smartTabGroupsEnabled) {
+      if (!this.smartTabGroupsEnabled || !this.smartTabGroupsOptin) {
         return;
       }
       if (this.#suggestedMlLabel !== null) {
