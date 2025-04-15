@@ -280,7 +280,11 @@ SVGViewportElement::GetAnimatedPreserveAspectRatio() {
 bool SVGViewportElement::ShouldSynthesizeViewBox() const {
   MOZ_ASSERT(!HasViewBox(), "Should only be called if we lack a viewBox");
 
-  return IsRootSVGSVGElement() && OwnerDoc()->IsBeingUsedAsImage();
+  // We synthesize a viewbox if we're the root node of an SVG image
+  // document (and lack an explicit viewBox), as long as our width &
+  // height attributes wouldn't yield an empty synthesized viewbox.
+  return IsRootSVGSVGElement() && OwnerDoc()->IsBeingUsedAsImage() &&
+         AreWidthAndHeightUnsetOrPositive();
 }
 
 //----------------------------------------------------------------------
