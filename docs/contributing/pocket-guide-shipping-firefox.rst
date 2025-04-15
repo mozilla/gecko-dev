@@ -107,9 +107,22 @@ There are a variety of reasons for this; critical fixes, security concerns, stab
 that’s already in Beta, shipping high-priority features/enhancements faster, and so on.
 
 In these situations, an uplift can be requested to take a recent landing in mozilla-central and
-merge specific bits to another repository outside the standard train model. After the request is made,
-:ref:`Release Management <release management>` will assess the potential risk and make a decision on
-whether it will be accepted or not.
+merge specific bits to the Beta or Release repository outside the standard train model. After the
+request is made, :ref:`Release Management <release management>` will assess the potential risk and
+make a decision on whether it will be accepted or not.
+
+While uplifts are generally not the preferred way to ship new feature work, it is understood that there
+are times when business needs to do so justify the required effort. Our release process is designed to
+have the flexibility to accomodate these requests, though in general they need to be handled on a case
+by case basis to determine the suitability. Teams are encouraged to reach out to Release Management in
+the `#release-coordination` channel on Slack or `@relman` so their specific needs can be assessed.
+
+Factors that will need to be taken into account include:
+
+-  Size and scope of patches to be uplifted
+-  QA availability to test prior to shipping and during development
+-  Engineering resources to resolve any conflicts between different development branches
+-  String additions/changes which may impact available locales
 
 Further Reading/Useful links:
 
