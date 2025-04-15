@@ -5334,34 +5334,34 @@
 - name: WasmAtomicLoadI64
   result_type: Int64
   operands:
-    memoryBase: WordSized
     ptr: WordSized
+    memoryBase: WordSized
   num_temps64: 1
   mir_op: WasmLoad
 
 - name: WasmAtomicStoreI64
   operands:
-    memoryBase: WordSized
     ptr: WordSized
     value: Int64
+    memoryBase: WordSized
   num_temps64: 1
   mir_op: WasmStore
 
 - name: WasmCompareExchangeI64
   result_type: Int64
   operands:
-    memoryBase: WordSized
     ptr: WordSized
     expected: Int64
     replacement: Int64
+    memoryBase: WordSized
   mir_op: WasmCompareExchangeHeap
 
 - name: WasmAtomicBinopI64
   result_type: Int64
   operands:
-    memoryBase: WordSized
     ptr: WordSized
     value: Int64
+    memoryBase: WordSized
   arguments:
     access: const wasm::MemoryAccessDesc&
     operation: AtomicOp
@@ -5369,9 +5369,9 @@
 - name: WasmAtomicExchangeI64
   result_type: Int64
   operands:
-    memoryBase: WordSized
     ptr: WordSized
     value: Int64
+    memoryBase: WordSized
   arguments:
     access: const wasm::MemoryAccessDesc&
 #endif
