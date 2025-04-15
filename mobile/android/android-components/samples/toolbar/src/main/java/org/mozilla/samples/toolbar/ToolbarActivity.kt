@@ -41,7 +41,6 @@ import mozilla.components.browser.toolbar.BrowserToolbar
 import mozilla.components.browser.toolbar.display.DisplayToolbar
 import mozilla.components.compose.base.theme.AcornTheme
 import mozilla.components.compose.browser.toolbar.BrowserToolbarDefaults
-import mozilla.components.compose.browser.toolbar.CustomTabToolbarColors
 import mozilla.components.compose.browser.toolbar.concept.Action.ActionButton
 import mozilla.components.compose.browser.toolbar.store.BrowserEditToolbarAction
 import mozilla.components.compose.browser.toolbar.store.BrowserToolbarAction
@@ -541,7 +540,7 @@ class ToolbarActivity : AppCompatActivity() {
                 val store = remember {
                     BrowserToolbarStore(
                         initialState = BrowserToolbarState(
-                            mode = Mode.CUSTOM_TAB,
+                            mode = Mode.DISPLAY,
                             displayState = DisplayState(
                                 navigationActions = listOf(
                                     ActionButton(
@@ -569,15 +568,8 @@ class ToolbarActivity : AppCompatActivity() {
                     onDisplayToolbarClick = {},
                     onTextEdit = {},
                     onTextCommit = {},
-                    colors = BrowserToolbarDefaults.colors(
-                        customTabToolbarColors = CustomTabToolbarColors(
-                            background = AcornTheme.colors.layer1,
-                            title = AcornTheme.colors.textPrimary,
-                            url = AcornTheme.colors.textSecondary,
-                        ),
-                    ),
+                    colors = BrowserToolbarDefaults.colors(),
                     url = "https://www.mozilla.org/en-US/firefox/mobile/",
-                    title = "Mozilla",
                 )
             }
         }
