@@ -648,7 +648,10 @@ export class TelemetryFeed {
             feature,
           });
         } else if (["spoc", "organic"].includes(card_type)) {
-          Glean.pocket.click.record({
+          const metricNameSpace = this.privatePingEnabled
+            ? Glean.newtabContent
+            : Glean.pocket;
+          metricNameSpace.click.record({
             newtab_visit_id: session.session_id,
             is_sponsored: card_type === "spoc",
             ...(format ? { format } : {}),
@@ -717,7 +720,10 @@ export class TelemetryFeed {
           tile_id,
           topic,
         } = action.data.value ?? {};
-        Glean.pocket.thumbVotingInteraction.record({
+        const metricNameSpace = this.privatePingEnabled
+          ? Glean.newtabContent
+          : Glean.pocket;
+        metricNameSpace.thumbVotingInteraction.record({
           newtab_visit_id: session.session_id,
           tile_id,
           // We conditionally add in a few props.
@@ -999,7 +1005,7 @@ export class TelemetryFeed {
     switch (action.type) {
       case at.INIT:
         this.init();
-        this.sendPageTakeoverData();
+        await this.sendPageTakeoverData();
         break;
       case at.NEW_TAB_INIT:
         this.handleNewTabInit(action);
@@ -1193,9 +1199,12 @@ export class TelemetryFeed {
     if (session) {
       const { section, section_position, event_source, is_section_followed } =
         action.data;
+      const metricNameSpace = this.privatePingEnabled
+        ? Glean.newtabContent
+        : Glean.newtab;
       switch (action.type) {
         case "BLOCK_SECTION":
-          Glean.newtab.sectionsBlockSection.record({
+          metricNameSpace.sectionsBlockSection.record({
             newtab_visit_id: session.session_id,
             section,
             section_position,
@@ -1203,7 +1212,7 @@ export class TelemetryFeed {
           });
           break;
         case "UNBLOCK_SECTION":
-          Glean.newtab.sectionsUnblockSection.record({
+          metricNameSpace.sectionsUnblockSection.record({
             newtab_visit_id: session.session_id,
             section,
             section_position,
@@ -1211,23 +1220,24 @@ export class TelemetryFeed {
           });
           break;
         case "CARD_SECTION_IMPRESSION":
-          Glean.newtab.sectionsImpression.record({
+          metricNameSpace.sectionsImpression.record({
             newtab_visit_id: session.session_id,
             section,
             section_position,
             is_section_followed,
           });
           break;
-        case "FOLLOW_SECTION":
-          Glean.newtab.sectionsFollowSection.record({
+        case "FOLLOW_SECTION": {
+          metricNameSpace.sectionsFollowSection.record({
             newtab_visit_id: session.session_id,
             section,
             section_position,
             event_source,
           });
           break;
+        }
         case "UNFOLLOW_SECTION":
-          Glean.newtab.sectionsUnfollowSection.record({
+          metricNameSpace.sectionsUnfollowSection.record({
             newtab_visit_id: session.session_id,
             section,
             section_position,
@@ -1403,7 +1413,10 @@ export class TelemetryFeed {
     for (const datum of data) {
       const { corpus_item_id, scheduled_corpus_item_id } = datum;
       if (datum.is_pocket_card) {
-        Glean.pocket.dismiss.record({
+        const metricNameSpace = this.privatePingEnabled
+          ? Glean.newtabContent
+          : Glean.pocket;
+        metricNameSpace.dismiss.record({
           newtab_visit_id: session.session_id,
           is_sponsored: datum.card_type === "spoc",
           ...(datum.format ? { format: datum.format } : {}),
@@ -1483,7 +1496,10 @@ export class TelemetryFeed {
         });
       } else {
         const { corpus_item_id, scheduled_corpus_item_id } = tile;
-        Glean.pocket.impression.record({
+        const metricNameSpace = this.privatePingEnabled
+          ? Glean.newtabContent
+          : Glean.pocket;
+        metricNameSpace.impression.record({
           newtab_visit_id: session.session_id,
           is_sponsored: tile.type === "spoc",
           ...(tile.format ? { format: tile.format } : {}),
