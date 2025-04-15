@@ -1899,6 +1899,8 @@ class SchemaAPIManager extends EventEmitter {
       Glean,
       GleanPings,
       IOUtils,
+      L10nFileSource,
+      L10nRegistry,
       MatchGlob,
       MatchPattern,
       MatchPatternSet,
