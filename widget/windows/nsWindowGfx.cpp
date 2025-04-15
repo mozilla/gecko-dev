@@ -127,7 +127,7 @@ void nsWindow::ForcePresent() {
   }
 }
 
-bool nsWindow::OnPaint(uint32_t aNestingLevel) {
+bool nsWindow::OnPaint() {
   struct FallbackPaintContext {
     RefPtr<gfxASurface> mTargetSurface;
     RefPtr<DrawTarget> mDt;
@@ -208,9 +208,6 @@ bool nsWindow::OnPaint(uint32_t aNestingLevel) {
       mLastPaintEndTime = TimeStamp::Now();
       if (nsIWidgetListener* listener = GetPaintListener()) {
         listener->DidPaintWindow();
-      }
-      if (aNestingLevel == 0 && ::GetUpdateRect(mWnd, nullptr, false)) {
-        OnPaint(1);
       }
     }
   });
