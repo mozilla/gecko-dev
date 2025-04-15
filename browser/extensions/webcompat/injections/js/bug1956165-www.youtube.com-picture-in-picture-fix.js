@@ -40,7 +40,7 @@ const originalExitFullscreen =
   window.wrappedJSObject.Document.prototype.exitFullscreen;
 
 const newExitFullscreen = exportFunction(function (...args) {
-  if (!this.ownerDocument.inAndroidPipMode) {
+  if (this.ownerDocument.inAndroidPipMode) {
     return undefined;
   }
   return originalExitFullscreen.apply(this, args);
