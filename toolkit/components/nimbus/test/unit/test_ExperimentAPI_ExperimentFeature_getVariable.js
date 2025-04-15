@@ -1,20 +1,11 @@
 "use strict";
 
-const { ExperimentAPI, _ExperimentFeature: ExperimentFeature } =
-  ChromeUtils.importESModule("resource://nimbus/ExperimentAPI.sys.mjs");
+const { _ExperimentFeature: ExperimentFeature } = ChromeUtils.importESModule(
+  "resource://nimbus/ExperimentAPI.sys.mjs"
+);
 const { AppConstants } = ChromeUtils.importESModule(
   "resource://gre/modules/AppConstants.sys.mjs"
 );
-
-async function setupForExperimentFeature() {
-  const sandbox = sinon.createSandbox();
-  const manager = ExperimentFakes.manager();
-  await manager.onStartup();
-
-  sandbox.stub(ExperimentAPI, "_manager").get(() => manager);
-
-  return { sandbox, manager };
-}
 
 const FEATURE_ID = "testfeature1";
 // Note: this gets deleted at the end of tests
@@ -54,10 +45,13 @@ add_task(async function test_ExperimentFeature_getFallbackPrefName() {
   );
 });
 
-add_task(async function test_ExperimentFeature_getVariable_notRegistered() {
-  const instance = createInstanceWithVariables(TEST_VARIABLES);
+add_task(
+  {
+    skip_if: () => !AppConstants.NIGHTLY_BUILD,
+  },
+  async function test_ExperimentFeature_getVariable_notRegistered() {
+    const instance = createInstanceWithVariables(TEST_VARIABLES);
 
-  if (Cu.isInAutomation || AppConstants.NIGHTLY_BUILD) {
     Assert.throws(
       () => {
         instance.getVariable("non_existant_variable");
@@ -65,12 +59,12 @@ add_task(async function test_ExperimentFeature_getVariable_notRegistered() {
       /Nimbus: Warning - variable "non_existant_variable" is not defined in FeatureManifest\.yaml/,
       "should throw in automation for variables not defined in the manifest"
     );
-  } else {
-    info("Won't throw when running in Beta and release candidates");
   }
-});
+);
 
 add_task(async function test_ExperimentFeature_getVariable_noFallbackPref() {
+  const { cleanup } = await NimbusTestUtils.setupTest();
+
   const instance = createInstanceWithVariables({
     foo: { type: "json" },
   });
@@ -80,10 +74,12 @@ add_task(async function test_ExperimentFeature_getVariable_noFallbackPref() {
     undefined,
     "should return undefined if no values are set and no fallback pref is defined"
   );
+
+  cleanup();
 });
 
 add_task(async function test_ExperimentFeature_getVariable_precedence() {
-  const { sandbox, manager } = await setupForExperimentFeature();
+  const { manager, cleanup } = await NimbusTestUtils.setupTest();
 
   const instance = createInstanceWithVariables(TEST_VARIABLES);
   const prefName = TEST_VARIABLES.items.fallbackPref;
@@ -117,8 +113,7 @@ add_task(async function test_ExperimentFeature_getVariable_precedence() {
     "should return the default pref value"
   );
 
-  // Remote default values
-  await manager.store.addEnrollment(rollout);
+  manager.store.addEnrollment(rollout);
 
   Assert.deepEqual(
     instance.getVariable("items"),
@@ -143,14 +138,14 @@ add_task(async function test_ExperimentFeature_getVariable_precedence() {
     "should return the experiment value over the remote value"
   );
 
-  // Cleanup
   Services.prefs.deleteBranch(TEST_PREF_BRANCH);
   doExperimentCleanup();
-  sandbox.restore();
+  manager.unenroll(rollout.slug);
+  cleanup();
 });
 
 add_task(async function test_ExperimentFeature_getVariable_partial_values() {
-  const { sandbox, manager } = await setupForExperimentFeature();
+  const { manager, cleanup } = await NimbusTestUtils.setupTest();
   const instance = createInstanceWithVariables(TEST_VARIABLES);
   const rollout = ExperimentFakes.rollout(`${FEATURE_ID}-rollout`, {
     branch: {
@@ -169,7 +164,7 @@ add_task(async function test_ExperimentFeature_getVariable_partial_values() {
   // a remote value for .name,
   // an experiment value for .items
   Services.prefs.setBoolPref(TEST_VARIABLES.enabled.fallbackPref, true);
-  await manager.store.addEnrollment(rollout);
+  manager.store.addEnrollment(rollout);
   const doExperimentCleanup = await ExperimentFakes.enrollWithFeatureConfig(
     {
       featureId: FEATURE_ID,
@@ -190,9 +185,9 @@ add_task(async function test_ExperimentFeature_getVariable_partial_values() {
     "should skip missing variables from experiments"
   );
 
-  // Cleanup
-  Services.prefs.getDefaultBranch("").deleteBranch(TEST_PREF_BRANCH);
+  Services.prefs.getDefaultBranch(null).deleteBranch(TEST_PREF_BRANCH);
   Services.prefs.deleteBranch(TEST_PREF_BRANCH);
   doExperimentCleanup();
-  sandbox.restore();
+  manager.unenroll(rollout.slug);
+  cleanup();
 });
