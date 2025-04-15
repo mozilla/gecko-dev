@@ -209,10 +209,9 @@ already_AddRefed<Promise> PublicKeyCredential::GetClientCapabilities(
   entry->mKey = u"extension:minPinLength"_ns;
   entry->mValue = true;
 
-  // Bug 1863819: support the PRF extension
-  // entry = capabilities.Entries().AppendElement();
-  // entry->mKey = u"extension:prf"_ns;
-  // entry->mValue = true;
+  entry = capabilities.Entries().AppendElement();
+  entry->mKey = u"extension:prf"_ns;
+  entry->mValue = true;
 
   entry = capabilities.Entries().AppendElement();
   entry->mKey = u"hybridTransport"_ns;
