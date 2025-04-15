@@ -70,7 +70,7 @@ add_task(async function testEnhancedTrackingProtectionMessage() {
 
   await testLearnMoreClickOpenNewTab(
     message,
-    "https://developer.mozilla.org/Firefox/Privacy/Tracking_Protection" +
+    "https://developer.mozilla.org/Firefox/Privacy/Guides/Tracking_Protection" +
       DOCS_GA_PARAMS
   );
 });
@@ -240,8 +240,7 @@ add_task(async function testCookieBlockedByPermissionMessage() {
 
 function getStorageErrorUrl(category) {
   const BASE_STORAGE_ERROR_URL =
-    "https://developer.mozilla.org/docs/Mozilla/Firefox/" +
-    "Privacy/Storage_access_policy/Errors/";
+    "https://developer.mozilla.org/docs/Web/Privacy/Guides/Storage_Access_Policy/Errors/";
   const STORAGE_ERROR_URL_PARAMS = new URLSearchParams({
     utm_source: "devtools",
     utm_medium: "firefox-cookie-errors",
