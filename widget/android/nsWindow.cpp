@@ -2956,6 +2956,10 @@ void nsWindow::DispatchHitTest(const WidgetTouchEvent& aEvent) {
 }
 
 void nsWindow::PassExternalResponse(java::WebResponse::Param aResponse) {
+  if (Destroyed()) {
+    return;
+  }
+
   auto acc(mGeckoViewSupport.Access());
   if (!acc) {
     return;
