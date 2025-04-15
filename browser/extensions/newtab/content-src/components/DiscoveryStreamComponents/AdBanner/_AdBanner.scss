@@ -40,12 +40,14 @@
         width: var(--leaderboard-width);
       }
 
-      .ad-banner-sponsored {
+      .ad-banner-content {
+        height: var(--leaderboard-height);
         width: var(--leaderboard-width);
+        margin: 0 auto;
       }
 
-      .ad-banner-link {
-        display: inline-block;
+      .ad-banner-sponsored {
+        width: var(--leaderboard-width);
       }
 
       @media (width <= 758px) {

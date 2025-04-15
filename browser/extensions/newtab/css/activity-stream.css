@@ -8058,11 +8058,13 @@ main section {
 .ad-banner-wrapper .ad-banner-inner.leaderboard .ad-banner-dismiss {
   width: var(--leaderboard-width);
 }
+.ad-banner-wrapper .ad-banner-inner.leaderboard .ad-banner-content {
+  height: var(--leaderboard-height);
+  width: var(--leaderboard-width);
+  margin: 0 auto;
+}
 .ad-banner-wrapper .ad-banner-inner.leaderboard .ad-banner-sponsored {
   width: var(--leaderboard-width);
-}
-.ad-banner-wrapper .ad-banner-inner.leaderboard .ad-banner-link {
-  display: inline-block;
 }
 @media (width <= 758px) {
   .ad-banner-wrapper .ad-banner-inner.leaderboard {
