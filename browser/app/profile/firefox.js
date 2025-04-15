@@ -907,6 +907,9 @@ pref("browser.spin_cursor_while_busy", false);
 // Enable display of contextual-password-manager option in browser sidebar
 pref("browser.contextual-password-manager.enabled", false);
 
+// Add the "Passwords" tool to the sidebar if contextual-password-manager is enabled.
+pref("sidebar.newTool.migration.passwords", '{ "visibilityPref": "browser.contextual-password-manager.enabled"}');
+
 // Enables the display of the Mozilla VPN banner in private browsing windows
 pref("browser.privatebrowsing.vpnpromourl", "https://vpn.mozilla.org/?utm_source=firefox-browser&utm_medium=firefox-%CHANNEL%-browser&utm_campaign=private-browsing-vpn-link");
 
