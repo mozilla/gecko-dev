@@ -149,6 +149,10 @@ describe("<ImpressionStats>", () => {
         topic: undefined,
         is_list_card: undefined,
         format: "medium-card",
+        title: undefined,
+        url: undefined,
+        publisher: undefined,
+        time_sensitive: undefined,
       },
       {
         id: 2,
@@ -163,6 +167,10 @@ describe("<ImpressionStats>", () => {
         topic: undefined,
         is_list_card: undefined,
         format: "medium-card",
+        title: undefined,
+        url: undefined,
+        publisher: undefined,
+        time_sensitive: undefined,
       },
       {
         id: 3,
@@ -177,6 +185,10 @@ describe("<ImpressionStats>", () => {
         topic: undefined,
         is_list_card: undefined,
         format: "medium-card",
+        title: undefined,
+        url: undefined,
+        publisher: undefined,
+        time_sensitive: undefined,
       },
     ]);
     assert.equal(
@@ -270,6 +282,10 @@ describe("<ImpressionStats>", () => {
         topic: undefined,
         is_list_card: undefined,
         format: "medium-card",
+        title: undefined,
+        url: undefined,
+        publisher: undefined,
+        time_sensitive: undefined,
       },
       {
         id: 2,
@@ -284,6 +300,10 @@ describe("<ImpressionStats>", () => {
         topic: undefined,
         is_list_card: undefined,
         format: "medium-card",
+        title: undefined,
+        url: undefined,
+        publisher: undefined,
+        time_sensitive: undefined,
       },
       {
         id: 3,
@@ -298,6 +318,10 @@ describe("<ImpressionStats>", () => {
         topic: undefined,
         is_list_card: undefined,
         format: "medium-card",
+        title: undefined,
+        url: undefined,
+        publisher: undefined,
+        time_sensitive: undefined,
       },
     ]);
     assert.equal(
