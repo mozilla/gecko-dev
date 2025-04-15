@@ -673,6 +673,8 @@
   <!-- Onboarding toolbar selection card content description for the toolbar placement image. -->
   <string name="onboarding_customize_toolbar_placement_bottom_content_description">Mynd af neðri verkfærastiku</string>
   <string name="onboarding_customize_toolbar_placement_top_content_description">Mynd af efri verkfærastiku</string>
+  <!-- Action label for toolbar options that can be selected. Talkback will append this to say "Double tap to select". -->
+  <string name="onboarding_customize_toolbar_a11y_action_label_select">velja</string>
   <!-- Onboarding header for the theme selection card, used by Nimbus experiments. -->
   <string name="onboarding_customize_theme_title" tools:ignore="UnusedResources">Veldu þema</string>
   <!-- Onboarding sub header for theme selection card, used by Nimbus experiments. -->
@@ -689,6 +691,8 @@
   <string name="onboarding_customize_theme_main_image_content_description">Stór fyrirsagnarmynd af vali á þema sem sýnir myndskreytingu af listamanni og byggingaverkfærum.</string>
   <!-- Onboarding theme selection card content description for the theme selection image. %1$s is placeholder for either 'system', 'light' or 'dark'. -->
   <string name="onboarding_customize_theme_content_description">Mynd af %1$s þema</string>
+  <!-- Action label for options that can be selected. Talkback will append this to say "Double tap to select". -->
+  <string name="onboarding_customize_theme_a11y_action_label_select">velja</string>
   <!--
     Widget Picker
 
@@ -766,6 +770,10 @@
   <string name="preferences_add_private_browsing_shortcut">Bæta við flýtileið fyrir huliðsvafur</string>
   <!-- Preference for enabling "HTTPS-Only" mode -->
   <string name="preferences_https_only_title">Einungis-HTTPS-hamur</string>
+  <!-- Preference title for using the screen lock to hide tabs in private browsing -->
+  <string name="preferences_pbm_lock_screen_title">Nota skjálás til að fela flipa í huliðsvafri</string>
+  <!-- Informs the user how to access the tabs when "Use screen lock to hide tabs in private browsing" is enabled -->
+  <string name="preferences_pbm_lock_screen_summary">Skoða flipa með fingrafari, andlitsopnun eða PIN-númeri.</string>
   <!-- Label for cookie banner section in quick settings panel. -->
   <string name="cookie_banner_blocker">Útilokun vefkökuborða</string>
   <!-- Preference for removing cookie/consent banners from sites automatically in private mode. See reduce_cookie_banner_summary for additional context. -->
@@ -1376,6 +1384,8 @@
   <string name="tab_tray_multiselect_share_content_description">Deila völdum flipum</string>
   <!-- Content description for tabs tray multiselect menu -->
   <string name="tab_tray_multiselect_menu_content_description">Valmynd valinna flipa</string>
+  <!-- Title text displayed for a homepage tab in the tabs tray. -->
+  <string name="tab_tray_homepage_tab">Upphafssíða</string>
   <!-- Content description (not visible, for screen readers etc.): Removes tab from collection button. Removes the selected tab from collection when pressed -->
   <string name="remove_tab_from_collection">Fjarlæga flipann úr safni</string>
   <!-- Text for button to enter multiselect mode in tabs tray -->
@@ -1439,10 +1449,31 @@
     Text for the snackbar to confirm that multiple downloads items have been removed
   -->
   <string name="download_delete_multiple_items_snackbar_1" moz:removedIn="138" tools:ignore="UnusedResources">Sóttar skrár fjarlægðar</string>
+  <!--
+    Text for the snackbar to confirm that a multiple download items have been removed. %1$s is the number of removed download items.
+    %1$d is the number of items deleted.
+  -->
+  <string name="download_delete_multiple_items_snackbar_2">Atriðum eytt: %1$d</string>
   <!-- Text for the snackbar to confirm that a single download item has been removed. %1$s is the name of the download item. -->
   <string name="download_delete_single_item_snackbar" moz:removedIn="138" tools:ignore="UnusedResources">Fjarlægði %1$s</string>
+  <!-- Text for the snackbar to confirm that a single download item has been removed. %1$s is the name of the download item. -->
+  <string name="download_delete_single_item_snackbar_2">Eyddi „%1$s“</string>
+  <!-- Text for the snackbar to confirm that downloads are in progress. -->
+  <string name="download_in_progress_snackbar" tools:ignore="UnusedResources">Verið að sækja…</string>
+  <!-- Text for the snackbar action button to view in progress download details. -->
+  <string name="download_in_progress_snackbar_action_details" tools:ignore="UnusedResources">Nánar</string>
+  <!-- Text for the snackbar to confirm that a download has completed. -->
+  <string name="download_completed_snackbar" tools:ignore="UnusedResources">Niðurhali lokið</string>
+  <!-- Text for the snackbar action button to open a completed download. -->
+  <string name="download_completed_snackbar_action_open" tools:ignore="UnusedResources">Opna</string>
+  <!-- Text for the snackbar action button to undo deleting a download. -->
+  <string name="download_undo_delete_snackbar_action">Afturkalla</string>
   <!-- Text shown when no download exists -->
   <string name="download_empty_message_1" moz:removedIn="138" tools:ignore="UnusedResources">Engar sóttar skrár</string>
+  <!-- Text shown when no download exists -->
+  <string name="download_empty_message_2">Ekkert niðurhal ennþá</string>
+  <!-- Text description shown when no download exists -->
+  <string name="download_empty_description">Skrár sem þú sækir munu birtast hér.</string>
   <!--
     History multi select title in app bar
     %1$d is the number of downloads selected
@@ -1450,6 +1481,20 @@
   <string name="download_multi_select_title">%1$d valið</string>
   <!-- Text for the button to remove a single download item -->
   <string name="download_delete_item_1" moz:removedIn="138" tools:ignore="UnusedResources">Fjarlægja</string>
+  <!-- Text for the button to delete a single downloaded file item -->
+  <string name="download_delete_item">Eyða</string>
+  <!-- Text for the button to share the download URL -->
+  <string name="download_share_url">Deila vefslóð</string>
+  <!-- Text for the button to share the download file -->
+  <string name="download_share_file">Deila skrá</string>
+  <!-- Alert dialog confirmation before deleting multiple download items, this is the title. -->
+  <string name="download_delete_multi_select_dialog_confirmation" tools:ignore="UnusedResources">Ertu viss um að þú viljir eyða völdum atriðum?</string>
+  <!-- Alert dialog confirmation before deleting multiple download items, this is the positive action. -->
+  <string name="download_delete_multi_select_dialog_confirm" tools:ignore="UnusedResources">Eyða</string>
+  <!-- Alert dialog confirmation before deleting multiple download items, this is the negative action. -->
+  <string name="download_delete_multi_select_dialog_cancel" tools:ignore="UnusedResources">Hætta við</string>
+  <!-- Text for the header of in progress downloads -->
+  <string name="download_header_in_progress" tools:ignore="UnusedResources">Í vinnslu</string>
   <!--
     Time period headers for downloads
 
@@ -1465,6 +1510,25 @@
   <!-- Text for the header that groups the downloads older than other groups -->
   <string name="download_time_period_older">Eldra</string>
   <!--
+    Description of an in progress download item, displayed in the downloads list.
+    %1$s is the current file size that has been downloaded.
+    %2$s is the total size of the downloaded file.
+    %3$s is the amount of time remaining to complete the download.
+  -->
+  <string name="download_item_in_progress_description" tools:ignore="UnusedResources">%1$s / %2$s • %3$s eftir</string>
+  <!-- Text to indicate that an in progress download is paused. -->
+  <string name="download_item_status_paused" tools:ignore="UnusedResources">í bið</string>
+  <!-- Text to indicate that the download speed of an in progress download is being calculated. -->
+  <string name="download_item_download_speed_pending" tools:ignore="UnusedResources">bíður</string>
+  <!-- Text to indicate that a download has failed to download. -->
+  <string name="download_item_status_failed" tools:ignore="UnusedResources">Niðurhal mistókst</string>
+  <!-- Placeholder text to indicate that users can use the search bar to search for a download. -->
+  <string name="download_search_placeholder" tools:ignore="UnusedResources">Leita í sóttum skrám</string>
+  <!-- Text to indicate that no downloads match the search query. -->
+  <string name="download_search_no_results_found" tools:ignore="UnusedResources">Engar niðurstöður fundust</string>
+  <!-- Text for the "Select all" button, which selects all downloaded items in the downloads list. -->
+  <string name="download_select_all_items">Velja allt</string>
+  <!--
     Downloads Content Type Filters
 
     Text for the filter button to show all files in the downloads list
@@ -1478,6 +1542,8 @@
   <string name="download_content_type_filter_document">Skjöl</string>
   <!-- Text for the filter button to show all other file types in the downloads list -->
   <string name="download_content_type_filter_other" moz:removedIn="138" tools:ignore="UnusedResources">Annað</string>
+  <!-- Text for the filter button to show all other file types in the downloads list -->
+  <string name="download_content_type_filter_other_1">Annað</string>
   <!--
     Description of a downloaded item, displayed in the downloads list.
     %1$s: The size of the downloaded file.
@@ -1588,6 +1654,14 @@
   <string name="bookmark_menu_delete_button">Eyða</string>
   <!-- Bookmark overflow menu save button -->
   <string name="bookmark_menu_save_button">Vista</string>
+  <!-- Label for button to sort bookmarks by newest in the bookmark sorting overflow menu. -->
+  <string name="bookmark_sort_menu_newest">Raða eftir nýjasta</string>
+  <!-- Label for button to sort bookmarks by oldest in the bookmark sorting overflow menu. -->
+  <string name="bookmark_sort_menu_oldest">Raða eftir elsta</string>
+  <!-- Label for button to sort bookmarks in alphabetical order in the bookmark sorting overflow menu. -->
+  <string name="bookmark_sort_menu_a_to_z">Raða frá A til Ö</string>
+  <!-- Label for button to sort bookmarks in reverse alphabetical order in the bookmark sorting overflow menu. -->
+  <string name="bookmark_sort_menu_z_to_a">Raða frá Ö til A</string>
   <!--
     Bookmark multi select title in app bar
     %1$d is the number of bookmarks selected
@@ -3367,6 +3441,78 @@
   <!-- The default content description for the cross trailing icon button in TextField -->
   <string name="text_field_cross_trailing_icon_default_content_description" moz:removedIn="139" tools:ignore="UnusedResources">Hreinsa texta</string>
   <!--
+    Setup checklist feature
+
+    ===== Setup checklist feature: Title =====
+
+    Title for the setup checklist feature when the state is 'incomplete'. %1$s is the name of the app (for example "Firefox").
+  -->
+  <string name="setup_checklist_title_state_incomplete">Ljúka við uppsetningu á %1$s</string>
+  <!-- Title for the setup checklist feature when the state is 'completed' -->
+  <string name="setup_checklist_title_state_completed">Til hamingju!</string>
+  <!--
+    ===== Setup checklist feature: Subtitles for 3 steps =====
+
+    Subtitle for a setup checklist with 3 steps initial step. %1$s is the name of the app (for example "Firefox").
+  -->
+  <string name="setup_checklist_subtitle_3_steps_initial_state">Ljúktu þessum 3 skrefum við uppsetningu á %1$s til að fá sem mest út úr vafrinu þínu.</string>
+  <!-- Subtitle for a setup checklist with 3 steps when the first task is completed. -->
+  <string name="setup_checklist_subtitle_3_steps_first_step">Frábær byrjun! Þú hefur lokið einu af þremur skrefum.</string>
+  <!-- Subtitle for a setup checklist with 3 steps when two of the tasks are completed. -->
+  <string name="setup_checklist_subtitle_3_steps_second_step">Næstum komið! Tveimur skrefum lokið og eitt eftir.</string>
+  <!-- Subtitle for a setup checklist with 3 steps completed state. %1$s is the name of the app (for example "Firefox"). -->
+  <string name="setup_checklist_subtitle_3_steps_completed_state">Þú hefur lokið öllum 3 skrefunum. Njóttu hraða, friðhelgi og öryggis í %1$s.</string>
+  <!--
+    ===== Setup checklist feature: Subtitles for 6 steps =====
+
+    Subtitle for a setup checklist with 6 steps initial state. %1$s is the name of the app (for example "Firefox").
+  -->
+  <string name="setup_checklist_subtitle_6_steps_initial_state">Ljúktu þessum 6 skrefum við uppsetningu á %1$s til að fá sem mest út úr vafrinu þínu.</string>
+  <!-- Subtitle for a setup checklist with 6 steps when the first task is completed. -->
+  <string name="setup_checklist_subtitle_6_steps_first_step">Frábær byrjun! Þú hefur lokið 1 af 6 skrefum.</string>
+  <!-- Subtitle for the setup checklist when the second task is completed. -->
+  <string name="setup_checklist_subtitle_6_steps_second_step">Þú hefur lokið 2 af 6 skrefum. Frábær framvinda!</string>
+  <!-- Subtitle for a setup checklist with 6 steps when three of the tasks are completed. -->
+  <string name="setup_checklist_subtitle_6_steps_third_step">Þetta er hálfnað! Þremur skrefum lokið og 3 eftir.</string>
+  <!-- Subtitle for a setup checklist with 6 steps when the fourth task is completed. -->
+  <string name="setup_checklist_subtitle_6_steps_fourth_step">Þú ert á 4 .skrefi. Aðeins 2 eftir!</string>
+  <!-- Subtitle for a setup checklist with 6 steps when the fifth task is completed. -->
+  <string name="setup_checklist_subtitle_6_steps_fifth_step">Næstum komið! Þú ert aðeins einu skrefi frá marklínunni.</string>
+  <!-- Subtitle for a setup checklist with 6 steps completed state. %1$s is the name of the app (for example "Firefox"). -->
+  <string name="setup_checklist_subtitle_6_steps_completed_state">Þú hefur lokið öllum 6 uppsetningarskrefunum. Njóttu hraða, friðhelgi og öryggis í %1$s.</string>
+  <!--
+    ===== Setup checklist feature: Task titles =====
+
+    The title of the default browser task for the setup checklist
+  -->
+  <string name="setup_checklist_task_default_browser">Setja sem sjálfgefinn vafra</string>
+  <!-- The title of the sign-in task for the setup checklist -->
+  <string name="setup_checklist_task_account_sync">Skráðu þig inn á notandaaðganginn þinn</string>
+  <!-- The title of the theme selection task for the setup checklist -->
+  <string name="setup_checklist_task_theme_selection">Veldu þema</string>
+  <!-- The title of the toolbar selection task for the setup checklist -->
+  <string name="setup_checklist_task_toolbar_selection">Veldu staðsetningu verkfærastikunnar</string>
+  <!-- The title of the explore extensions task for the setup checklist -->
+  <string name="setup_checklist_task_explore_extensions">Skoða forritsauka</string>
+  <!-- The title of the search widget task for the setup checklist -->
+  <string name="setup_checklist_task_search_widget">Settu upp leitargræju</string>
+  <!--
+    ===== Setup checklist feature: Group titles =====
+
+    The title of the 'essentials' group in the setup checklist. %1$s is the name of the app (for example "Firefox").
+  -->
+  <string name="setup_checklist_group_essentials">Nauðsynleg atriði %1$s</string>
+  <!-- The title of the 'customize' group in the setup checklist. %1$s is the name of the app (for example "Firefox"). -->
+  <string name="setup_checklist_group_customize">Sérsníddu %1$s</string>
+  <!-- The title of the 'helpful tools' group in the setup checklist -->
+  <string name="setup_checklist_group_helpful_tools">Gagnleg verkfæri</string>
+  <!--
+    ===== Setup checklist feature: Button =====
+
+    Text for the 'remove' button for the setup checklist
+  -->
+  <string name="setup_checklist_button_remove">Fjarlægja gátlista</string>
+  <!--
     ===== Setup checklist feature: Accessibility =====
 
     Accessibility description for a check mark on a completed task
@@ -3374,4 +3520,14 @@
   <string name="a11y_completed_task_description">Lokið verkefni</string>
   <!-- Accessibility description for the task icon -->
   <string name="a11y_task_icon_description">Verkefnistákn</string>
+  <!--
+    Private browsing mode authentication screen
+
+    Label for the secondary action to exit private browsing mode
+  -->
+  <string name="pbm_authentication_leave_private_tabs">Fara af huliðsflipum</string>
+  <!-- Label for the primary action button to unlock private tabs -->
+  <string name="pbm_authentication_unlock">Aflæsa</string>
+  <!-- Title text instructing the user to unlock private tabs -->
+  <string name="pbm_authentication_unlock_private_tabs">Aflæsa huliðsflipum</string>
 </resources>

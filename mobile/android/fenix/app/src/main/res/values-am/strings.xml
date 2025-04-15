@@ -1657,6 +1657,12 @@
   <string name="bookmark_menu_save_button">አስቀምጥ</string>
   <!-- Label for button to sort bookmarks by newest in the bookmark sorting overflow menu. -->
   <string name="bookmark_sort_menu_newest">በአዲሱ ደርድር</string>
+  <!-- Label for button to sort bookmarks by oldest in the bookmark sorting overflow menu. -->
+  <string name="bookmark_sort_menu_oldest">በቆየው ደርድር</string>
+  <!-- Label for button to sort bookmarks in alphabetical order in the bookmark sorting overflow menu. -->
+  <string name="bookmark_sort_menu_a_to_z">ከ A ወደ Z ደርድር</string>
+  <!-- Label for button to sort bookmarks in reverse alphabetical order in the bookmark sorting overflow menu. -->
+  <string name="bookmark_sort_menu_z_to_a">ከ Z ወደ A ደርድር</string>
   <!--
     Bookmark multi select title in app bar
     %1$d is the number of bookmarks selected
@@ -2280,6 +2286,16 @@
   <string name="preference_doh_add_site_description">ጣቢያ ያክሉ</string>
   <!-- Title displayed for "Default Protection" option under "DNS over HTTPS" -->
   <string name="preference_doh_default_protection">ነባሪ ጥበቃ</string>
+  <!-- Bullet point 1 for "Default Protection" information page under "DNS over HTTPS" -->
+  <string name="preference_doh_default_protection_info_1">የመረጡትን አቅራቢ ይጠቀሙ</string>
+  <!-- Title displayed for "Increased Protection" option under "DNS over HTTPS" -->
+  <string name="preference_doh_increased_protection">ጥበቃ መጨመር</string>
+  <!-- Bullet point 1 for "Increased Protection" information page under "DNS over HTTPS" -->
+  <string name="preference_doh_increased_protection_info_1">የመረጡትን አቅራቢ ይጠቀሙ</string>
+  <!-- Title displayed for "Max Protection" option under "DNS over HTTPS" -->
+  <string name="preference_doh_max_protection">ከፍተኛ ጥበቃ</string>
+  <!-- Bullet point 1 for "Max Protection" information page under "DNS over HTTPS" -->
+  <string name="preference_doh_max_protection_info_1">የመረጡትን አገልግሎት አቅራቢ ብቻ ይጠቀሙ</string>
   <!-- Title displayed for "Off" option under "DNS over HTTPS" -->
   <string name="preference_doh_off">ጠፍቷል</string>
   <!-- Text displayed above provider dropdown under "DNS over HTTPS" -->
@@ -3346,6 +3362,8 @@
     Homepage card button to open Google Play Store. "Update" is a verb.
   -->
   <string name="certificate_warning_homepage_card_update_now_button" tools:ignore="UnusedResources">አሁን አዘምን</string>
+  <!-- Homepage card title about old Firefox version. "Update" is a verb. -->
+  <string name="certificate_warning_homepage_card_hcr1_title" tools:ignore="UnusedResources">ከማርች 14 በፊት ያዘምኑ</string>
   <!-- Homepage card title about old Firefox version. Note: The word "Firefox" should NOT be translated. -->
   <string name="certificate_warning_homepage_card_hcw3_title" tools:ignore="BrandUsage,UnusedResources">የእርስዎን Firefox ለማቆየት የመጨረሻው ዕድል</string>
   <!-- Push notification title about old Firefox version. "Update" is a noun. -->
@@ -3358,6 +3376,50 @@
   <string name="text_field_eye_trailing_icon_default_content_description" moz:removedIn="139" tools:ignore="UnusedResources">የተደበቀ ጽሑፍ አሳይ</string>
   <!-- The default content description for the cross trailing icon button in TextField -->
   <string name="text_field_cross_trailing_icon_default_content_description" moz:removedIn="139" tools:ignore="UnusedResources">ጽሑፍ አጽዳ</string>
+  <!--
+    Setup checklist feature
+
+    ===== Setup checklist feature: Title =====
+
+    Title for the setup checklist feature when the state is 'incomplete'. %1$s is the name of the app (for example "Firefox").
+  -->
+  <string name="setup_checklist_title_state_incomplete">%1$sን ማዋቀር ይጨርሱ</string>
+  <!-- Title for the setup checklist feature when the state is 'completed' -->
+  <string name="setup_checklist_title_state_completed">እንኳን ደስ አለዎ!</string>
+  <!--
+    ===== Setup checklist feature: Subtitles for 3 steps =====
+
+    Subtitle for a setup checklist with 3 steps initial step. %1$s is the name of the app (for example "Firefox").
+  -->
+  <string name="setup_checklist_subtitle_3_steps_initial_state">%1$sን ለምርጥ የአሰሳ ተሞክሮ ለማዘጋጀት እነዚህን 3 ደረጃዎች ያጠናቅቁ።</string>
+  <!-- Subtitle for a setup checklist with 3 steps when the first task is completed. -->
+  <string name="setup_checklist_subtitle_3_steps_first_step">ጥሩ ጅምር! ከ3 ደረጃዎች 1 ጨርሰዋል።</string>
+  <!--
+    ===== Setup checklist feature: Task titles =====
+
+    The title of the default browser task for the setup checklist
+  -->
+  <string name="setup_checklist_task_default_browser">ነባሪ አሳሽ አድርገህ አስቀምጥ</string>
+  <!-- The title of the sign-in task for the setup checklist -->
+  <string name="setup_checklist_task_account_sync">ወደ መለያዎ ይግቡ</string>
+  <!-- The title of the theme selection task for the setup checklist -->
+  <string name="setup_checklist_task_theme_selection">ገጽታ ይምረጡ</string>
+  <!-- The title of the toolbar selection task for the setup checklist -->
+  <string name="setup_checklist_task_toolbar_selection">የመሳሪያ አሞሌ አቀማመጥን ይምረጡ</string>
+  <!-- The title of the explore extensions task for the setup checklist -->
+  <string name="setup_checklist_task_explore_extensions">ቅጥያዎችን ያስሱ</string>
+  <!--
+    ===== Setup checklist feature: Group titles =====
+
+    The title of the 'essentials' group in the setup checklist. %1$s is the name of the app (for example "Firefox").
+  -->
+  <string name="setup_checklist_group_essentials">%1$s አስፈላጊ ነገሮች</string>
+  <!--
+    ===== Setup checklist feature: Button =====
+
+    Text for the 'remove' button for the setup checklist
+  -->
+  <string name="setup_checklist_button_remove">የማረጋገጫ ዝርዝር አስወግድ</string>
   <!--
     ===== Setup checklist feature: Accessibility =====
 

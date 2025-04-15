@@ -56,6 +56,7 @@
   <string name="menu_about">Quant a</string>
   <string name="menu_help">Ajuda</string>
   <string name="menu_rights" moz:removedIn="137">Els vostres drets</string>
+  <string name="menu_terms_of_use">Condicions d’ús</string>
   <!--
     Menu item: This is the label for a menu entry that shows how many trackers have been blocked
     for the currently loaded website. The number of blocked trackers is shown below this label.
@@ -339,6 +340,8 @@
   <string name="preference_licensing_info">Informació de la llicència</string>
   <!-- Link to Focus licensing information from other libraries that we use. -->
   <string name="preference_libraries_we_use">Biblioteques que utilitzem</string>
+  <!-- Link to Focus Crash reports list. -->
+  <string name="preference_crashes">Fallades</string>
   <!-- Open Source Licenses page title. %s is the name of the app (for example "Firefox Focus" or "Firefox Klar"). -->
   <string name="open_source_licenses_title">%s | Biblioteques de codi obert</string>
   <!-- Item in Preferences that shows the about page. %1$s is the name of the app (for example "Firefox Focus" or "Firefox Klar"). -->
@@ -464,8 +467,32 @@
   <string name="onboarding_first_screen_title">Us donem la benvinguda al %1$s</string>
   <!-- New Onboarding flow first screen subtitle the one that appears under title -->
   <string name="onboarding_first_screen_subtitle">Ràpid. Privat. Sense distraccions.</string>
+  <!--
+    New Onboarding flow first screen 'terms of use' text
+
+    %1$s will be replaced by a link using onboarding_first_screen_terms_of_use_link as text
+  -->
+  <string name="onboarding_first_screen_terms_of_use_text" tools:ignore="UnusedResources">En continuar, accepteu les %1$s</string>
+  <!--
+    New Onboarding flow first screen 'terms of use link'
+
+    Text for the link used in onboarding_first_screen_terms_of_use_text
+  -->
+  <string name="onboarding_first_screen_terms_of_use_link" tools:ignore="BrandUsage">condicions d’ús del Firefox.</string>
+  <!--
+    New Onboarding flow first screen 'privacy notice' text
+
+    %1$s will be replaced by a link using onboarding_first_screen_privacy_notice_link as text
+  -->
+  <string name="onboarding_first_screen_privacy_notice_text" tools:ignore="BrandUsage">El Firefox prioritza la vostra privadesa. Més informació en l’%1$s</string>
+  <!-- Text for the link used in onboarding_first_screen_privacy_notice_text -->
+  <string name="onboarding_first_screen_privacy_notice_link">avís de privadesa.</string>
   <!-- New Onboarding flow first screen button label -->
   <string name="onboarding_first_screen_button_text" moz:removedIn="137" tools:ignore="UnusedResources">Primers passos</string>
+  <!-- New Onboarding flow first screen button label -->
+  <string name="onboarding_first_screen_button_agree_and_continue">Accepta i continua</string>
+  <!-- In the first screen of new onboarding flow, additional accessibility description for content that contain urls. -->
+  <string name="a11y_link_available">Enllaç disponible</string>
   <!--
     Onboarding second screen: Title
 

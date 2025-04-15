@@ -3441,6 +3441,14 @@
   <string name="text_field_eye_trailing_icon_default_content_description" moz:removedIn="139" tools:ignore="UnusedResources">დაფარული ტექსტის გამოჩენა</string>
   <!-- The default content description for the cross trailing icon button in TextField -->
   <string name="text_field_cross_trailing_icon_default_content_description" moz:removedIn="139" tools:ignore="UnusedResources">ტექსტის გასუფთავება</string>
+  <!--
+    Setup checklist feature
+
+    ===== Setup checklist feature: Title =====
+
+    Title for the setup checklist feature when the state is 'incomplete'. %1$s is the name of the app (for example "Firefox").
+  -->
+  <string name="setup_checklist_title_state_incomplete">სრულად გამართეთ %1$s</string>
   <!-- Title for the setup checklist feature when the state is 'completed' -->
   <string name="setup_checklist_title_state_completed">გილოცავთ!</string>
   <!--
@@ -3467,6 +3475,12 @@
   <string name="setup_checklist_subtitle_6_steps_second_step">6 ნაბიჯიდან 2 შესრულებულია. მშვენიერი წინსვლაა!</string>
   <!-- Subtitle for a setup checklist with 6 steps when three of the tasks are completed. -->
   <string name="setup_checklist_subtitle_6_steps_third_step">ნახევარი თითქმის გავლილია! სამი ნაბიჯი შესრულდა და 3 წინაა.</string>
+  <!-- Subtitle for a setup checklist with 6 steps when the fourth task is completed. -->
+  <string name="setup_checklist_subtitle_6_steps_fourth_step">თქვენ უკვე 4 ნაბიჯი გაიარეთ. დარჩენილია მხოლოდ 2!</string>
+  <!-- Subtitle for a setup checklist with 6 steps when the fifth task is completed. -->
+  <string name="setup_checklist_subtitle_6_steps_fifth_step">თითქმის მზადაა! მხოლოდ 1 ნაბიჯიღა გაშორებთ დასრულებამდე.</string>
+  <!-- Subtitle for a setup checklist with 6 steps completed state. %1$s is the name of the app (for example "Firefox"). -->
+  <string name="setup_checklist_subtitle_6_steps_completed_state">თქვენ გაიარეთ 6-ივე ნაბიჯი გასამართად. გამოიყენეთ %1$s და დატკბით სიჩქარით, პირადულობითა და უსაფრთხოებით.</string>
   <!--
     ===== Setup checklist feature: Task titles =====
 
@@ -3493,6 +3507,12 @@
   <string name="setup_checklist_group_customize">მეტად მოირგეთ %1$s</string>
   <!-- The title of the 'helpful tools' group in the setup checklist -->
   <string name="setup_checklist_group_helpful_tools">სასარგებლო ხელსაწყოები</string>
+  <!--
+    ===== Setup checklist feature: Button =====
+
+    Text for the 'remove' button for the setup checklist
+  -->
+  <string name="setup_checklist_button_remove">შესასრულებელი სიის მოცილება</string>
   <!--
     ===== Setup checklist feature: Accessibility =====
 
