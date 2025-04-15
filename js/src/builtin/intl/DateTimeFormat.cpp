@@ -25,19 +25,17 @@
 #include "builtin/intl/FormatBuffer.h"
 #include "builtin/intl/LanguageTag.h"
 #include "builtin/intl/SharedIntlData.h"
-#ifdef JS_HAS_TEMPORAL_API
-#  include "builtin/temporal/Calendar.h"
-#  include "builtin/temporal/Instant.h"
-#  include "builtin/temporal/PlainDate.h"
-#  include "builtin/temporal/PlainDateTime.h"
-#  include "builtin/temporal/PlainMonthDay.h"
-#  include "builtin/temporal/PlainTime.h"
-#  include "builtin/temporal/PlainYearMonth.h"
-#  include "builtin/temporal/Temporal.h"
-#  include "builtin/temporal/TemporalParser.h"
-#  include "builtin/temporal/TimeZone.h"
-#  include "builtin/temporal/ZonedDateTime.h"
-#endif
+#include "builtin/temporal/Calendar.h"
+#include "builtin/temporal/Instant.h"
+#include "builtin/temporal/PlainDate.h"
+#include "builtin/temporal/PlainDateTime.h"
+#include "builtin/temporal/PlainMonthDay.h"
+#include "builtin/temporal/PlainTime.h"
+#include "builtin/temporal/PlainYearMonth.h"
+#include "builtin/temporal/Temporal.h"
+#include "builtin/temporal/TemporalParser.h"
+#include "builtin/temporal/TimeZone.h"
+#include "builtin/temporal/ZonedDateTime.h"
 #include "gc/GCContext.h"
 #include "js/Date.h"
 #include "js/experimental/Intl.h"     // JS::AddMozDateTimeFormatConstructor
@@ -58,10 +56,7 @@
 #include "vm/NativeObject-inl.h"
 
 using namespace js;
-
-#ifdef JS_HAS_TEMPORAL_API
 using namespace js::temporal;
-#endif
 
 using JS::AutoStableStringChars;
 using JS::ClippedTime;
@@ -1819,7 +1814,6 @@ bool js::intl_resolveDateTimeFormatComponents(JSContext* cx, unsigned argc,
  * https://tc39.es/proposal-temporal/#sec-todatetimeformattable
  */
 static auto ToDateTimeFormattable(const Value& value) {
-#ifdef JS_HAS_TEMPORAL_API
   // Step 1. (Inlined IsTemporalObject)
   if (value.isObject()) {
     auto* obj = CheckedUnwrapStatic(&value.toObject());
@@ -1848,13 +1842,11 @@ static auto ToDateTimeFormattable(const Value& value) {
       return DateTimeValueKind::Number;
     }
   }
-#endif
 
   // Step 2. (ToNumber performed in caller)
   return DateTimeValueKind::Number;
 }
 
-#ifdef JS_HAS_TEMPORAL_API
 static bool ResolveCalendarAndTimeZone(
     JSContext* cx, Handle<DateTimeFormatObject*> dateTimeFormat) {
   Rooted<JSObject*> internals(cx, intl::GetInternalsObject(cx, dateTimeFormat));
@@ -2178,7 +2170,6 @@ static bool HandleDateTimeTemporalZonedDateTime(
   *result = JS::TimeClip(double(milliseconds));
   return true;
 }
-#endif
 
 /**
  * HandleDateTimeOthers ( dateTimeFormat, x )
@@ -2214,7 +2205,6 @@ static bool HandleDateTimeValue(JSContext* cx, const char* method,
                                 Handle<Value> x, ClippedTime* result) {
   MOZ_ASSERT(x.isObject() || x.isNumber());
 
-#ifdef JS_HAS_TEMPORAL_API
   // Step 1.
   if (x.isObject()) {
     Rooted<JSObject*> unwrapped(cx, CheckedUnwrapStatic(&x.toObject()));
@@ -2268,7 +2258,6 @@ static bool HandleDateTimeValue(JSContext* cx, const char* method,
                               unwrapped->getClass()->name);
     return false;
   }
-#endif
 
   // Step 2.
   return HandleDateTimeOthers(cx, method, x.toNumber(), result);
@@ -2818,16 +2807,12 @@ bool js::TemporalObjectToLocaleString(JSContext* cx, const CallArgs& args,
 
   JS::ClippedTime x;
   if (kind == DateTimeValueKind::TemporalZonedDateTime) {
-#ifdef JS_HAS_TEMPORAL_API
     Rooted<ZonedDateTimeObject*> zonedDateTime(
         cx, &args.thisv().toObject().as<ZonedDateTimeObject>());
     if (!HandleDateTimeTemporalZonedDateTime(cx, dateTimeFormat, zonedDateTime,
                                              &x)) {
       return false;
     }
-#else
-    MOZ_CRASH("Temporal disabled");
-#endif
   } else {
     if (!HandleDateTimeValue(cx, "toLocaleString", dateTimeFormat, args.thisv(),
                              &x)) {
