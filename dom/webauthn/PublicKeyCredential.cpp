@@ -396,6 +396,32 @@ void PublicKeyCredential::ToJSON(JSContext* aCx,
     if (mClientExtensionOutputs.mPrf.WasPassed()) {
       json.mClientExtensionResults.mPrf.Construct();
     }
+    if (mClientExtensionOutputs.mPrf.WasPassed() && mPrfResultsFirst.isSome()) {
+      AuthenticationExtensionsPRFValuesJSON& dest =
+          json.mClientExtensionResults.mPrf.Value().mResults.Construct();
+      nsCString prfFirst;
+      nsresult rv = mozilla::Base64URLEncode(
+          mPrfResultsFirst->Length(), mPrfResultsFirst->Elements(),
+          Base64URLEncodePaddingPolicy::Omit, prfFirst);
+      if (NS_FAILED(rv)) {
+        aError.ThrowEncodingError(
+            "could not encode first prf output as urlsafe base64");
+        return;
+      }
+      dest.mFirst.Assign(NS_ConvertUTF8toUTF16(prfFirst));
+      if (mPrfResultsSecond.isSome()) {
+        nsCString prfSecond;
+        nsresult rv = mozilla::Base64URLEncode(
+            mPrfResultsSecond->Length(), mPrfResultsSecond->Elements(),
+            Base64URLEncodePaddingPolicy::Omit, prfSecond);
+        if (NS_FAILED(rv)) {
+          aError.ThrowEncodingError(
+              "could not encode second prf output as urlsafe base64");
+          return;
+        }
+        dest.mSecond.Construct(NS_ConvertUTF8toUTF16(prfSecond));
+      }
+    }
     if (mClientExtensionOutputs.mLargeBlob.WasPassed()) {
       const AuthenticationExtensionsLargeBlobOutputs& src =
           mClientExtensionOutputs.mLargeBlob.Value();

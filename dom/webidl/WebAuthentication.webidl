@@ -409,6 +409,7 @@ dictionary AuthenticationExtensionsPRFOutputs {
 
 dictionary AuthenticationExtensionsPRFOutputsJSON {
   boolean enabled;
+  AuthenticationExtensionsPRFValuesJSON results;
 };
 
 partial dictionary AuthenticationExtensionsClientOutputs {
