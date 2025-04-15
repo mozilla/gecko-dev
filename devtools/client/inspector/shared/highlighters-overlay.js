@@ -244,19 +244,6 @@ class HighlightersOverlay {
     return this.inspector.toolbox;
   }
 
-  // FIXME: Shim for HighlightersOverlay.parentGridHighlighters
-  // Remove after updating tests to stop accessing this map directly. Bug 1683153
-  get parentGridHighlighters() {
-    return Array.from(this.gridHighlighters.values()).reduce((map, value) => {
-      const { parentGridNode, parentGridHighlighter } = value;
-      if (parentGridNode) {
-        map.set(parentGridNode, parentGridHighlighter);
-      }
-
-      return map;
-    }, new Map());
-  }
-
   /**
    * Optionally run some operations right after showing a highlighter of a given type,
    * but before notifying consumers by emitting the "highlighter-shown" event.
@@ -1111,6 +1098,7 @@ class HighlightersOverlay {
       ...this.getGridHighlighterSettings(node),
       // Configure the highlighter with faded-out colors.
       globalAlpha: SUBGRID_PARENT_ALPHA,
+      isParent: true,
     };
     await highlighter.show(node, options);
 
