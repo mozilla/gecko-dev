@@ -203,15 +203,8 @@ bool GlobalObject::skipDeselectedConstructor(JSContext* cx, JSProtoKey key) {
     case JSProto_NumberFormat:
     case JSProto_PluralRules:
     case JSProto_RelativeTimeFormat:
-      return false;
-
     case JSProto_Segmenter:
-#  if defined(MOZ_ICU4X)
       return false;
-#  else
-      return true;
-#  endif
-
 #endif
 
 #ifdef JS_HAS_TEMPORAL_API
