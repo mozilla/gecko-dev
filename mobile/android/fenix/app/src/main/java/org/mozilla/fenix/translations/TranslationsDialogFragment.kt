@@ -302,6 +302,7 @@ class TranslationsDialogFragment : BottomSheetDialogFragment() {
             },
             onNegativeButtonClicked = {
                 if (translationsDialogState.isTranslated || translationsDialogState.isTranslationInProgress) {
+                    @Suppress("DEPRECATION")
                     localView.announceForAccessibility(
                         requireContext().getString(
                             R.string.translations_bottom_sheet_restore_accessibility_announcement,
@@ -431,6 +432,7 @@ class TranslationsDialogFragment : BottomSheetDialogFragment() {
                 )
 
                 if (checked) {
+                    @Suppress("DEPRECATION")
                     localView.announceForAccessibility(type.descriptionId?.let { getString(it) })
                 }
             },
