@@ -62,11 +62,6 @@ ChromeUtils.defineLazyGetter(lazy, "logger", () =>
   lazy.Log.get(lazy.Log.TYPES.MARIONETTE)
 );
 
-// Preferences to control which events are sent as widget events.
-ChromeUtils.defineLazyGetter(lazy, "useAsyncWheelEvents", () =>
-  Services.prefs.getBoolPref("remote.events.async.wheel.enabled", false)
-);
-
 ChromeUtils.defineLazyGetter(lazy, "hasSystemAccess", () => {
   // Bug 1955007: Remove temporary preference in Firefox 141
   const skipCheck = !Services.prefs.getBoolPref(
