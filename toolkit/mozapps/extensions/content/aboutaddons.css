@@ -217,15 +217,8 @@ message-bar-stack > * {
 
 .addon.card {
   margin-bottom: 16px;
+  transition: opacity 150ms, box-shadow 150ms;
   overflow: hidden;
-
-  @media (prefers-reduced-motion: no-preference) {
-    transition: opacity 150ms, box-shadow 150ms;
-
-    & .addon-name-link {
-      transition: color 150ms;
-    }
-  }
 }
 
 addon-list:not([type="theme"]) addon-card:not([expanded]):not([panelopen]) > .addon.card[active="false"]:not(:focus-within):not(:hover) {

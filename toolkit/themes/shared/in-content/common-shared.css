@@ -1113,10 +1113,7 @@ input[type="text"][warning]:enabled:not(:focus) {
   margin: 0 0 8px;
   /* Remove the border from the overall padding. */
   padding: calc(var(--card-padding) - 1px);
-
-  @media (prefers-reduced-motion: no-preference) {
-    transition: box-shadow 150ms;
-  }
+  transition: box-shadow 150ms;
 }
 
 .card:not(.card-no-hover):hover {
