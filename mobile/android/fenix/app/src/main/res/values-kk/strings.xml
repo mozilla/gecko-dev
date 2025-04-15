@@ -124,9 +124,9 @@
 
     Text for the title displayed in the contextual feature recommendation popup promoting swipe of address bar.
   -->
-  <string name="address_bar_swipe_cfr_title">Беттерді ауыстыру үшін құралдар тақтасы үстінен өткізіңіз</string>
+  <string name="address_bar_swipe_cfr_title" tools:ignore="UnusedResources" moz:removedIn="139">Беттерді ауыстыру үшін құралдар тақтасы үстінен өткізіңіз</string>
   <!-- Text for the message displayed in the contextual feature recommendation popup promoting swipe of address bar. -->
-  <string name="address_bar_swipe_cfr_message">Ауыстыру үшін солға немесе оңға өткізіңіз. Жаңа бетті ашу үшін соңғы бетте солға өткізіңіз.</string>
+  <string name="address_bar_swipe_cfr_message" tools:ignore="UnusedResources" moz:removedIn="139">Ауыстыру үшін солға немесе оңға өткізіңіз. Жаңа бетті ашу үшін соңғы бетте солға өткізіңіз.</string>
   <!-- Text for the info dialog when camera permissions have been denied but user tries to access a camera feature. -->
   <string name="camera_permissions_needed_message">Камера рұқсаты керек. Android баптауларына өтіп, Рұқсаттарды ашып, "Рұқсат ету" таңдаңыз.</string>
   <!-- Text for the positive action button to go to Android Settings to grant permissions. -->

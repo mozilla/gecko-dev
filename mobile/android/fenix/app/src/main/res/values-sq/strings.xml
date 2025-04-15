@@ -126,9 +126,9 @@
 
     Text for the title displayed in the contextual feature recommendation popup promoting swipe of address bar.
   -->
-  <string name="address_bar_swipe_cfr_title">Që të ndërroni skeda, fërkoni panelin</string>
+  <string name="address_bar_swipe_cfr_title" tools:ignore="UnusedResources" moz:removedIn="139">Që të ndërroni skeda, fërkoni panelin</string>
   <!-- Text for the message displayed in the contextual feature recommendation popup promoting swipe of address bar. -->
-  <string name="address_bar_swipe_cfr_message">Fërkojeni për majtas, ose djathtas, që të ndërroni. Që të hapni një skedë të re, fërkojeni majtas mbi skedën tuaj të fundit.</string>
+  <string name="address_bar_swipe_cfr_message" tools:ignore="UnusedResources" moz:removedIn="139">Fërkojeni për majtas, ose djathtas, që të ndërroni. Që të hapni një skedë të re, fërkojeni majtas mbi skedën tuaj të fundit.</string>
   <!-- Text for the info dialog when camera permissions have been denied but user tries to access a camera feature. -->
   <string name="camera_permissions_needed_message">Lypset hyrje në kamera. Kaloni te rregullimet e Android-it, prekni mbi Leje dhe prekni Lejoje.</string>
   <!-- Text for the positive action button to go to Android Settings to grant permissions. -->

@@ -127,9 +127,9 @@
 
     Text for the title displayed in the contextual feature recommendation popup promoting swipe of address bar.
   -->
-  <string name="address_bar_swipe_cfr_title">Skubit ar varrenn-ostilhoù da cheñch ivinell</string>
+  <string name="address_bar_swipe_cfr_title" tools:ignore="UnusedResources" moz:removedIn="139">Skubit ar varrenn-ostilhoù da cheñch ivinell</string>
   <!-- Text for the message displayed in the contextual feature recommendation popup promoting swipe of address bar. -->
-  <string name="address_bar_swipe_cfr_message">Skubit war zu an tu kleiz pe an tu dehou evit cheñch. Skubit etrezek an tu kleiz war hoc’h ivinell ziwezhañ evit digeriñ un ivinell nevez.</string>
+  <string name="address_bar_swipe_cfr_message" tools:ignore="UnusedResources" moz:removedIn="139">Skubit war zu an tu kleiz pe an tu dehou evit cheñch. Skubit etrezek an tu kleiz war hoc’h ivinell ziwezhañ evit digeriñ un ivinell nevez.</string>
   <!-- Text for the info dialog when camera permissions have been denied but user tries to access a camera feature. -->
   <string name="camera_permissions_needed_message">Ezhomm a zo haeziñ ar c’hamera. Kit e Arventennoù Android, stokit war an aotreoù ha stokit war aotren.</string>
   <!-- Text for the positive action button to go to Android Settings to grant permissions. -->

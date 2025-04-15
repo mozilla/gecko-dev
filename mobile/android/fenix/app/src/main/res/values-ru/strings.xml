@@ -126,9 +126,11 @@
 
     Text for the title displayed in the contextual feature recommendation popup promoting swipe of address bar.
   -->
-  <string name="address_bar_swipe_cfr_title">Проведите по панели инструментов, чтобы переключить вкладки</string>
+  <string name="address_bar_swipe_cfr_title" tools:ignore="UnusedResources" moz:removedIn="139">Проведите по панели инструментов, чтобы переключить вкладки</string>
   <!-- Text for the message displayed in the contextual feature recommendation popup promoting swipe of address bar. -->
-  <string name="address_bar_swipe_cfr_message">Проведите влево или вправо для переключения. Проведите влево по последней вкладке, чтобы открыть новую вкладку.</string>
+  <string name="address_bar_swipe_cfr_message" tools:ignore="UnusedResources" moz:removedIn="139">Проведите влево или вправо для переключения. Проведите влево по последней вкладке, чтобы открыть новую вкладку.</string>
+  <!-- Text for the message displayed in the contextual feature recommendation popup promoting swipe of address bar. -->
+  <string name="address_bar_swipe_cfr_message_2">Проведите по панели инструментов влево или вправо, чтобы переключить вкладки.</string>
   <!-- Text for the info dialog when camera permissions have been denied but user tries to access a camera feature. -->
   <string name="camera_permissions_needed_message">Требуется доступ к камере. Перейдите в системные настройки приложения, выберите «Разрешения», затем нажмите «Камера» и выберите «Разрешить».</string>
   <!-- Text for the positive action button to go to Android Settings to grant permissions. -->
@@ -3378,6 +3380,26 @@
     The title of the glean debugging feature
   -->
   <string name="glean_debug_tools_title">Инструменты отладки Glean</string>
+  <!--
+    Debug drawer region tools
+
+    Title of the Region tools in the Debug Drawer.
+    This tool allows temporarily overriding the home region (user's default locale)
+    and the current region (device's detected location) for testing purposes.
+  -->
+  <string name="debug_drawer_region_tools_title">Региональные инструменты</string>
+  <!-- The description of the Region tools in the Debug Drawer -->
+  <string name="debug_drawer_regin_tools_description">Временно переопределяет значения дома и текущего региона для тестирования.</string>
+  <!-- The text label for displaying home region. -->
+  <string name="debug_drawer_home_region_label">Домашний регион</string>
+  <!-- The text label for displaying current region. -->
+  <string name="debug_drawer_current_region_label">Текущий регион</string>
+  <!-- The text field label for overriding home region. -->
+  <string name="debug_drawer_override_home_region_label">Переопределить домашний регион</string>
+  <!-- The text field label for overriding current region. -->
+  <string name="debug_drawer_override_current_region_label">Переопределить текущий регион</string>
+  <!-- The title of the button for overriding home and current region. -->
+  <string name="debug_drawer_override_region">Переопределить домашний и текущий регион</string>
   <!--
     Messages explaining how to exit fullscreen mode
 

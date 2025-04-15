@@ -127,9 +127,9 @@
 
     Text for the title displayed in the contextual feature recommendation popup promoting swipe of address bar.
   -->
-  <string name="address_bar_swipe_cfr_title">Ji bo guhertina hilpekînan darikê amûran kaş bike</string>
+  <string name="address_bar_swipe_cfr_title" tools:ignore="UnusedResources" moz:removedIn="139">Ji bo guhertina hilpekînan darikê amûran kaş bike</string>
   <!-- Text for the message displayed in the contextual feature recommendation popup promoting swipe of address bar. -->
-  <string name="address_bar_swipe_cfr_message">Ji bo ji yekê derbasî yeka din bibî bi çep yan rastê ve kaş bike. Ji bo vekirina hilpekîneke nû ya dawiyê bi çepê ve kaş bike.</string>
+  <string name="address_bar_swipe_cfr_message" tools:ignore="UnusedResources" moz:removedIn="139">Ji bo ji yekê derbasî yeka din bibî bi çep yan rastê ve kaş bike. Ji bo vekirina hilpekîneke nû ya dawiyê bi çepê ve kaş bike.</string>
   <!-- Text for the info dialog when camera permissions have been denied but user tries to access a camera feature. -->
   <string name="camera_permissions_needed_message">Gihîna li kamerayê hewce ye. Here sazkariyên Androidê ji beşa destûran, destûrê bide.</string>
   <!-- Text for the positive action button to go to Android Settings to grant permissions. -->

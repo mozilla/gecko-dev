@@ -126,9 +126,9 @@
 
     Text for the title displayed in the contextual feature recommendation popup promoting swipe of address bar.
   -->
-  <string name="address_bar_swipe_cfr_title">Vaihda välilehtiä pyyhkäisemällä työkalupalkkia</string>
+  <string name="address_bar_swipe_cfr_title" tools:ignore="UnusedResources" moz:removedIn="139">Vaihda välilehtiä pyyhkäisemällä työkalupalkkia</string>
   <!-- Text for the message displayed in the contextual feature recommendation popup promoting swipe of address bar. -->
-  <string name="address_bar_swipe_cfr_message">Vaihda pyyhkäisemällä vasemmalle tai oikealle. Avaa uusi välilehti pyyhkäisemällä vasemmalle viimeisellä välilehdelläsi.</string>
+  <string name="address_bar_swipe_cfr_message" tools:ignore="UnusedResources" moz:removedIn="139">Vaihda pyyhkäisemällä vasemmalle tai oikealle. Avaa uusi välilehti pyyhkäisemällä vasemmalle viimeisellä välilehdelläsi.</string>
   <!-- Text for the info dialog when camera permissions have been denied but user tries to access a camera feature. -->
   <string name="camera_permissions_needed_message">Kameran käyttöoikeus vaaditaan. Siirry Androidin asetuksiin, napauta käyttöoikeudet ja napauta salli.</string>
   <!-- Text for the positive action button to go to Android Settings to grant permissions. -->
@@ -1504,6 +1504,10 @@
     %3$s is the amount of time remaining to complete the download.
   -->
   <string name="download_item_in_progress_description" tools:ignore="UnusedResources">%1$s / %2$s • %3$s jäljellä</string>
+  <!-- Text to indicate that an in progress download is paused. -->
+  <string name="download_item_status_paused" tools:ignore="UnusedResources">keskeytetty</string>
+  <!-- Text to indicate that the download speed of an in progress download is being calculated. -->
+  <string name="download_item_download_speed_pending" tools:ignore="UnusedResources">odottaa</string>
   <!-- Text to indicate that a download has failed to download. -->
   <string name="download_item_status_failed" tools:ignore="UnusedResources">Lataus epäonnistui</string>
   <!-- Placeholder text to indicate that users can use the search bar to search for a download. -->
@@ -3415,8 +3419,46 @@
   <string name="text_field_eye_trailing_icon_default_content_description" moz:removedIn="139" tools:ignore="UnusedResources">Näytä piilotettu teksti</string>
   <!-- The default content description for the cross trailing icon button in TextField -->
   <string name="text_field_cross_trailing_icon_default_content_description" moz:removedIn="139" tools:ignore="UnusedResources">Tyhjennä teksti</string>
+  <!--
+    Setup checklist feature
+
+    ===== Setup checklist feature: Title =====
+
+    Title for the setup checklist feature when the state is 'incomplete'. %1$s is the name of the app (for example "Firefox").
+  -->
+  <string name="setup_checklist_title_state_incomplete">Viimeistele %1$sin määritys</string>
+  <!-- Title for the setup checklist feature when the state is 'completed' -->
+  <string name="setup_checklist_title_state_completed">Onnittelut!</string>
+  <!--
+    ===== Setup checklist feature: Subtitles for 3 steps =====
+
+    Subtitle for a setup checklist with 3 steps initial step. %1$s is the name of the app (for example "Firefox").
+  -->
+  <string name="setup_checklist_subtitle_3_steps_initial_state">Suorita nämä kolme vaihetta määrittääksesi %1$sin parasta selauskokemusta varten.</string>
+  <!-- Subtitle for a setup checklist with 3 steps when the first task is completed. -->
+  <string name="setup_checklist_subtitle_3_steps_first_step">Hieno aloitus! Olet suorittanut yhden kolmesta vaiheesta.</string>
   <!-- Subtitle for a setup checklist with 3 steps when two of the tasks are completed. -->
   <string name="setup_checklist_subtitle_3_steps_second_step">Melkein valmista! Kaksi vaihetta suoritettu, yksi jäljellä.</string>
+  <!-- Subtitle for a setup checklist with 3 steps completed state. %1$s is the name of the app (for example "Firefox"). -->
+  <string name="setup_checklist_subtitle_3_steps_completed_state">Olet suorittanut kaikki kolme vaihetta. Nauti %1$sin nopeudesta, yksityisyydestä ja turvallisuudesta.</string>
+  <!--
+    ===== Setup checklist feature: Subtitles for 6 steps =====
+
+    Subtitle for a setup checklist with 6 steps initial state. %1$s is the name of the app (for example "Firefox").
+  -->
+  <string name="setup_checklist_subtitle_6_steps_initial_state">Suorita kaikki kuusi vaihetta määrittääksesi %1$sin parasta selauskokemusta varten.</string>
+  <!-- Subtitle for a setup checklist with 6 steps when the first task is completed. -->
+  <string name="setup_checklist_subtitle_6_steps_first_step">Hieno aloitus! Olet suorittanut yhden kuudesta vaiheesta.</string>
+  <!-- Subtitle for the setup checklist when the second task is completed. -->
+  <string name="setup_checklist_subtitle_6_steps_second_step">Olet suorittanut kaksi vaihetta kuudesta. Hienoa edistystä!</string>
+  <!-- Subtitle for a setup checklist with 6 steps when three of the tasks are completed. -->
+  <string name="setup_checklist_subtitle_6_steps_third_step">Olet puolivälissä! Kolme vaihetta suoritettu, kolme jäljellä.</string>
+  <!-- Subtitle for a setup checklist with 6 steps when the fourth task is completed. -->
+  <string name="setup_checklist_subtitle_6_steps_fourth_step">Olet suorittanut neljä vaihetta. Vain kaksi jäljellä!</string>
+  <!-- Subtitle for a setup checklist with 6 steps when the fifth task is completed. -->
+  <string name="setup_checklist_subtitle_6_steps_fifth_step">Melkein valmista! Olet yhden vaiheen päässä maaliviivasta.</string>
+  <!-- Subtitle for a setup checklist with 6 steps completed state. %1$s is the name of the app (for example "Firefox"). -->
+  <string name="setup_checklist_subtitle_6_steps_completed_state">Olet suorittanut kaikki kuusi vaihetta. Nauti %1$sin nopeudesta, yksityisyydestä ja turvallisuudesta.</string>
   <!--
     ===== Setup checklist feature: Task titles =====
 

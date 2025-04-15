@@ -124,9 +124,9 @@
 
     Text for the title displayed in the contextual feature recommendation popup promoting swipe of address bar.
   -->
-  <string name="address_bar_swipe_cfr_title">Prevucite traku s alatima da promijenite tabove</string>
+  <string name="address_bar_swipe_cfr_title" tools:ignore="UnusedResources" moz:removedIn="139">Prevucite traku s alatima da promijenite tabove</string>
   <!-- Text for the message displayed in the contextual feature recommendation popup promoting swipe of address bar. -->
-  <string name="address_bar_swipe_cfr_message">Prevucite lijevo ili desno za prebacivanje. Prevucite ulijevo na posljednji tab da otvorite novi tab.</string>
+  <string name="address_bar_swipe_cfr_message" tools:ignore="UnusedResources" moz:removedIn="139">Prevucite lijevo ili desno za prebacivanje. Prevucite ulijevo na posljednji tab da otvorite novi tab.</string>
   <!-- Text for the info dialog when camera permissions have been denied but user tries to access a camera feature. -->
   <string name="camera_permissions_needed_message">Potreban pristup kameri. Idite na Android postavke, dodirnite dozvole i dodirnite dozvoli.</string>
   <!-- Text for the positive action button to go to Android Settings to grant permissions. -->

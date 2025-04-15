@@ -127,9 +127,11 @@
 
     Text for the title displayed in the contextual feature recommendation popup promoting swipe of address bar.
   -->
-  <string name="address_bar_swipe_cfr_title">Šmarniśo pśez symbolowu rědku, aby rejtariki wuměnił</string>
+  <string name="address_bar_swipe_cfr_title" tools:ignore="UnusedResources" moz:removedIn="139">Šmarniśo pśez symbolowu rědku, aby rejtariki wuměnił</string>
   <!-- Text for the message displayed in the contextual feature recommendation popup promoting swipe of address bar. -->
-  <string name="address_bar_swipe_cfr_message">Šmarniśo nalěwo abo napšawo, aby wuměnił. Šmarniśo nalěwo na waš slědny rejtarik, aby nowy rejtarik wócynił.</string>
+  <string name="address_bar_swipe_cfr_message" tools:ignore="UnusedResources" moz:removedIn="139">Šmarniśo nalěwo abo napšawo, aby wuměnił. Šmarniśo nalěwo na waš slědny rejtarik, aby nowy rejtarik wócynił.</string>
+  <!-- Text for the message displayed in the contextual feature recommendation popup promoting swipe of address bar. -->
+  <string name="address_bar_swipe_cfr_message_2">Trějśo symbolowu rědku dolěwa abo dopšawa, aby rejtariki pśešaltował.</string>
   <!-- Text for the info dialog when camera permissions have been denied but user tries to access a camera feature. -->
   <string name="camera_permissions_needed_message">Pśistup ku kamerje trjebny. Wócyńśo nastajenja Android, pótusniśo zapisk Pšawa a pótusniśo zapisk Dowóliś.</string>
   <!-- Text for the positive action button to go to Android Settings to grant permissions. -->
@@ -3378,6 +3380,26 @@
     The title of the glean debugging feature
   -->
   <string name="glean_debug_tools_title">Rědy Glean za pytanje zmólkow</string>
+  <!--
+    Debug drawer region tools
+
+    Title of the Region tools in the Debug Drawer.
+    This tool allows temporarily overriding the home region (user's default locale)
+    and the current region (device's detected location) for testing purposes.
+  -->
+  <string name="debug_drawer_region_tools_title">Rědy regiona</string>
+  <!-- The description of the Region tools in the Debug Drawer -->
+  <string name="debug_drawer_regin_tools_description">Pśepisujo nachylu gódnoty domacnego a aktualnego regiona za testowanje.</string>
+  <!-- The text label for displaying home region. -->
+  <string name="debug_drawer_home_region_label">Domacny region</string>
+  <!-- The text label for displaying current region. -->
+  <string name="debug_drawer_current_region_label">Aktualny region</string>
+  <!-- The text field label for overriding home region. -->
+  <string name="debug_drawer_override_home_region_label">Domacny region pśepisaś</string>
+  <!-- The text field label for overriding current region. -->
+  <string name="debug_drawer_override_current_region_label">Aktualny region pśepisaś</string>
+  <!-- The title of the button for overriding home and current region. -->
+  <string name="debug_drawer_override_region">Domacny a aktualny region pśepisaś</string>
   <!--
     Messages explaining how to exit fullscreen mode
 

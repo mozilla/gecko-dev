@@ -126,9 +126,9 @@
 
     Text for the title displayed in the contextual feature recommendation popup promoting swipe of address bar.
   -->
-  <string name="address_bar_swipe_cfr_title">Przeciągaj pasek narzędzi w bok, aby przełączać karty</string>
+  <string name="address_bar_swipe_cfr_title" tools:ignore="UnusedResources" moz:removedIn="139">Przeciągaj pasek narzędzi w bok, aby przełączać karty</string>
   <!-- Text for the message displayed in the contextual feature recommendation popup promoting swipe of address bar. -->
-  <string name="address_bar_swipe_cfr_message">Przeciągnij w lewo lub w prawo, aby przełączyć. Przeciągnij w lewo na ostatniej karcie, aby otworzyć nową.</string>
+  <string name="address_bar_swipe_cfr_message" tools:ignore="UnusedResources" moz:removedIn="139">Przeciągnij w lewo lub w prawo, aby przełączyć. Przeciągnij w lewo na ostatniej karcie, aby otworzyć nową.</string>
   <!-- Text for the info dialog when camera permissions have been denied but user tries to access a camera feature. -->
   <string name="camera_permissions_needed_message">Wymagany jest dostęp do aparatu. Przejdź do ustawień Androida, stuknij „Uprawnienia” i stuknij „Zezwól”.</string>
   <!-- Text for the positive action button to go to Android Settings to grant permissions. -->

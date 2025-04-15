@@ -128,9 +128,9 @@
 
     Text for the title displayed in the contextual feature recommendation popup promoting swipe of address bar.
   -->
-  <string name="address_bar_swipe_cfr_title">Fei oer de arkbalke om fan ljepblêd te wikseljen</string>
+  <string name="address_bar_swipe_cfr_title" tools:ignore="UnusedResources" moz:removedIn="139">Fei oer de arkbalke om fan ljepblêd te wikseljen</string>
   <!-- Text for the message displayed in the contextual feature recommendation popup promoting swipe of address bar. -->
-  <string name="address_bar_swipe_cfr_message">Fei nei links of rjochts om te wikseljen. Fei nei links op jo lêste ljepblêd om in nij ljepblêd te iepenjen.</string>
+  <string name="address_bar_swipe_cfr_message" tools:ignore="UnusedResources" moz:removedIn="139">Fei nei links of rjochts om te wikseljen. Fei nei links op jo lêste ljepblêd om in nij ljepblêd te iepenjen.</string>
   <!-- Text for the info dialog when camera permissions have been denied but user tries to access a camera feature. -->
   <string name="camera_permissions_needed_message">Kameratagong fereaske. Gean nei jo Android-ynstellingen, tik op machtigingen en tik op toestaan.</string>
   <!-- Text for the positive action button to go to Android Settings to grant permissions. -->
@@ -3453,6 +3453,36 @@
   <!-- Title for the setup checklist feature when the state is 'completed' -->
   <string name="setup_checklist_title_state_completed">Lokwinske!</string>
   <!--
+    ===== Setup checklist feature: Subtitles for 3 steps =====
+
+    Subtitle for a setup checklist with 3 steps initial step. %1$s is the name of the app (for example "Firefox").
+  -->
+  <string name="setup_checklist_subtitle_3_steps_initial_state">Foltôgje dizze 3 stappen om %1$s yn te stellen foar de bêste sneupûnderfining.</string>
+  <!-- Subtitle for a setup checklist with 3 steps when the first task is completed. -->
+  <string name="setup_checklist_subtitle_3_steps_first_step">Goed j! Jo hawwe 1 fan de 3 stappen foltôge.</string>
+  <!-- Subtitle for a setup checklist with 3 steps when two of the tasks are completed. -->
+  <string name="setup_checklist_subtitle_3_steps_second_step">Hast klear! Twa stappen foltôge en noch ien te gean.</string>
+  <!-- Subtitle for a setup checklist with 3 steps completed state. %1$s is the name of the app (for example "Firefox"). -->
+  <string name="setup_checklist_subtitle_3_steps_completed_state">Jo hawwe alle 3 stappen foltôge. Genietsje fan de snelheid, privacy en befeiliging fan %1$s.</string>
+  <!--
+    ===== Setup checklist feature: Subtitles for 6 steps =====
+
+    Subtitle for a setup checklist with 6 steps initial state. %1$s is the name of the app (for example "Firefox").
+  -->
+  <string name="setup_checklist_subtitle_6_steps_initial_state">Foltôgje alle 6 stappen om %1$s yn te stellen foar de bêste sneupûnderfining.</string>
+  <!-- Subtitle for a setup checklist with 6 steps when the first task is completed. -->
+  <string name="setup_checklist_subtitle_6_steps_first_step">Goed j! Jo hawwe 1 fan de 6 stappen foltôge.</string>
+  <!-- Subtitle for the setup checklist when the second task is completed. -->
+  <string name="setup_checklist_subtitle_6_steps_second_step">Jo hawwe 2 fan de 6 stappen foltôge. Grutte foarútgong!</string>
+  <!-- Subtitle for a setup checklist with 6 steps when three of the tasks are completed. -->
+  <string name="setup_checklist_subtitle_6_steps_third_step">Jo binne healwei! Trije stappen foltôge en noch trije te gean.</string>
+  <!-- Subtitle for a setup checklist with 6 steps when the fourth task is completed. -->
+  <string name="setup_checklist_subtitle_6_steps_fourth_step">Jo hawwe al 4 stappen set. Noch mar 2 te gean!</string>
+  <!-- Subtitle for a setup checklist with 6 steps when the fifth task is completed. -->
+  <string name="setup_checklist_subtitle_6_steps_fifth_step">Hast klear! Jo binne noch mar 1 stap wei fan de einstreek.</string>
+  <!-- Subtitle for a setup checklist with 6 steps completed state. %1$s is the name of the app (for example "Firefox"). -->
+  <string name="setup_checklist_subtitle_6_steps_completed_state">Jo hawwe alle 6 ynstallaasjestappen foltôge. Genietsje fan de snelheid, privacy en befeiliging fan %1$s.</string>
+  <!--
     ===== Setup checklist feature: Task titles =====
 
     The title of the default browser task for the setup checklist
@@ -3478,6 +3508,12 @@
   <string name="setup_checklist_group_customize">Pas jo %1$s oan</string>
   <!-- The title of the 'helpful tools' group in the setup checklist -->
   <string name="setup_checklist_group_helpful_tools">Nuttich ark</string>
+  <!--
+    ===== Setup checklist feature: Button =====
+
+    Text for the 'remove' button for the setup checklist
+  -->
+  <string name="setup_checklist_button_remove">Kontrôlelist fuortsmite</string>
   <!--
     ===== Setup checklist feature: Accessibility =====
 

@@ -126,9 +126,9 @@
 
     Text for the title displayed in the contextual feature recommendation popup promoting swipe of address bar.
   -->
-  <string name="address_bar_swipe_cfr_title">Gesek bilah alat untuk beralih tab</string>
+  <string name="address_bar_swipe_cfr_title" tools:ignore="UnusedResources" moz:removedIn="139">Gesek bilah alat untuk beralih tab</string>
   <!-- Text for the message displayed in the contextual feature recommendation popup promoting swipe of address bar. -->
-  <string name="address_bar_swipe_cfr_message">Gesek ke kiri atau kanan untuk beralih. Gesek ke kiri pada tab terakhir Anda untuk membuka tab baru.</string>
+  <string name="address_bar_swipe_cfr_message" tools:ignore="UnusedResources" moz:removedIn="139">Gesek ke kiri atau kanan untuk beralih. Gesek ke kiri pada tab terakhir Anda untuk membuka tab baru.</string>
   <!-- Text for the info dialog when camera permissions have been denied but user tries to access a camera feature. -->
   <string name="camera_permissions_needed_message">Akses kamera diperlukan. Buka pengaturan Android, ketuk izin, dan ketuk izinkan.</string>
   <!-- Text for the positive action button to go to Android Settings to grant permissions. -->

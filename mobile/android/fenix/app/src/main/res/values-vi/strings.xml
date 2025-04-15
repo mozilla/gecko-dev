@@ -126,9 +126,9 @@
 
     Text for the title displayed in the contextual feature recommendation popup promoting swipe of address bar.
   -->
-  <string name="address_bar_swipe_cfr_title">Vuốt thanh công cụ để chuyển thẻ</string>
+  <string name="address_bar_swipe_cfr_title" tools:ignore="UnusedResources" moz:removedIn="139">Vuốt thanh công cụ để chuyển thẻ</string>
   <!-- Text for the message displayed in the contextual feature recommendation popup promoting swipe of address bar. -->
-  <string name="address_bar_swipe_cfr_message">Vuốt sang trái hoặc phải để chuyển. Vuốt sang trái trên thẻ cuối cùng của bạn để mở thẻ mới.</string>
+  <string name="address_bar_swipe_cfr_message" tools:ignore="UnusedResources" moz:removedIn="139">Vuốt sang trái hoặc phải để chuyển. Vuốt sang trái trên thẻ cuối cùng của bạn để mở thẻ mới.</string>
   <!-- Text for the info dialog when camera permissions have been denied but user tries to access a camera feature. -->
   <string name="camera_permissions_needed_message">Cần có quyền truy cập máy ảnh. Đi tới cài đặt Android, chạm vào quyền và chạm cho phép.</string>
   <!-- Text for the positive action button to go to Android Settings to grant permissions. -->
