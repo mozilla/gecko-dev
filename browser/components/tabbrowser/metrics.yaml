@@ -246,6 +246,41 @@ tabgroup:
       - average
       - min
 
+  saved_groups:
+    type: quantity
+    description: >
+      Records the number of saved tab groups present in the user's session
+    notification_emails:
+      - dao@mozilla.com
+      - jswinarton@mozilla.com
+      - sthompson@mozilla.com
+    bugs:
+      - https://bugzil.la/1938398
+    data_reviews:
+      - https://bugzil.la/1938398
+    expires: never
+    unit: tab groups
+
+  tabs_per_saved_group:
+    type: labeled_quantity
+    description: >
+      Records statistics about the number of tabs per saved tab group: max, median, average and min.
+    notification_emails:
+      - dao@mozilla.com
+      - jswinarton@mozilla.com
+      - sthompson@mozilla.com
+    bugs:
+      - https://bugzil.la/1938398
+    data_reviews:
+      - https://bugzil.la/1938398
+    expires: never
+    unit: tabs
+    labels:
+      - max
+      - median
+      - average
+      - min
+
   tab_count_in_groups:
     type: labeled_quantity
     description: >
