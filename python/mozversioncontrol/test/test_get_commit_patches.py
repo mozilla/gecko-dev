@@ -30,6 +30,16 @@ STEPS = {
         git commit -m "SECOND PATCH"
         """,
     ],
+    "jj": [
+        """
+        jj new -m "FIRST PATCH"
+        echo bar >> bar
+        """,
+        """
+        jj new -m "SECOND PATCH"
+        printf "baz\\r\\nqux" > baz
+        """,
+    ],
 }
 
 

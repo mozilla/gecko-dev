@@ -2,6 +2,7 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this,
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
+import os
 from pathlib import Path
 from typing import (
     Optional,
@@ -15,12 +16,13 @@ from mozversioncontrol.errors import (
     MissingVCSTool,
 )
 from mozversioncontrol.repo.git import GitRepository
+from mozversioncontrol.repo.jj import JujutsuRepository
 from mozversioncontrol.repo.mercurial import HgRepository
 from mozversioncontrol.repo.source import SrcRepository
 
 
 def get_repository_object(
-    path: Optional[Union[str, Path]], hg="hg", git="git", src="src"
+    path: Optional[Union[str, Path]], hg="hg", git="git", jj="jj", src="src"
 ):
     """Get a repository object for the repository at `path`.
     If `path` is not a known VCS repository, raise an exception.
@@ -31,12 +33,27 @@ def get_repository_object(
     path = Path(path).resolve()
     if (path / ".hg").is_dir():
         return HgRepository(path, hg=hg)
-    elif (path / ".git").exists():
+    if (path / ".jj").is_dir():
+        # Warn (once) if MOZ_AVOID_JJ_VCS is unset. If it is set to 0, then use
+        # jj without warning. If it is set to anything else, do not use jj (so
+        # eg fall back to git if .git exists.)
+        avoid = os.getenv("MOZ_AVOID_JJ_VCS")
+        if avoid is None or avoid == "0":
+            if avoid is None and not hasattr(get_repository_object, "_warned"):
+                get_repository_object._warned = True
+                print(
+                    """\
+Using JujutsuRepository because a .jj/ directory was detected!
+Warning: jj support is currently experimental, and may be disabled
+by setting the environment variable MOZ_AVOID_JJ_VCS=1.
+"""
+                )
+            return JujutsuRepository(path, jj=jj, git=git)
+    if (path / ".git").exists():
         return GitRepository(path, git=git)
-    elif (path / "config" / "milestone.txt").exists():
+    if (path / "config" / "milestone.txt").exists():
         return SrcRepository(path, src=src)
-    else:
-        raise InvalidRepoPath(f"Unknown VCS, or not a source checkout: {path}")
+    raise InvalidRepoPath(f"Unknown VCS, or not a source checkout: {path}")
 
 
 def get_repository_from_build_config(config):
@@ -58,6 +75,10 @@ def get_repository_from_build_config(config):
 
     if flavor == "hg":
         return HgRepository(Path(config.topsrcdir), hg=config.substs["HG"])
+    elif flavor == "jj":
+        return JujutsuRepository(
+            Path(config.topsrcdir), jj=config.substs["JJ"], git=config.substs["GIT"]
+        )
     elif flavor == "git":
         return GitRepository(Path(config.topsrcdir), git=config.substs["GIT"])
     elif flavor == "src":
@@ -89,4 +110,6 @@ def get_repository_from_env():
         except InvalidRepoPath:
             continue
 
-    raise MissingVCSInfo(f"Could not find Mercurial or Git checkout for {Path.cwd()}")
+    raise MissingVCSInfo(
+        f"Could not find Mercurial / Git / JJ checkout for {Path.cwd()}"
+    )
