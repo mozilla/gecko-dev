@@ -1288,8 +1288,6 @@ skip-if = ["os == 'android' && android_version == '24' && processor == 'x86_64'"
 ["test_trr_extended_error.js"]
 run-sequentially = "node server exceptions dont replay well"
 
-["test_trr_flags.js"]
-
 ["test_trr_https_fallback.js"]
 run-sequentially = "node server exceptions dont replay well"
 skip-if = [
