@@ -2,6 +2,9 @@
  * http://creativecommons.org/publicdomain/zero/1.0/
  */
 
+const { ExperimentAPI } = ChromeUtils.importESModule(
+  "resource://nimbus/ExperimentAPI.sys.mjs"
+);
 const { NewTabUtils } = ChromeUtils.importESModule(
   "resource://gre/modules/NewTabUtils.sys.mjs"
 );
@@ -20,11 +23,18 @@ const TARGETING_CONTEXT_METRICS = Object.keys(ATTRIBUTE_TRANSFORMS).map(
   normalizeAttributeName
 );
 
-async function setupTest({ ...args } = {}) {
-  const { cleanup: baseCleanup, ...ctx } = await NimbusTestUtils.setupTest({
-    ...args,
-    clearTelemetry: true,
-  });
+/**
+ * Setup a test environment with a fake ExperimentManager and mock out
+ * ExperimentAPI to use that manager.
+ */
+async function setupNimbusForTest() {
+  const sandbox = sinon.createSandbox();
+  const manager = ExperimentFakes.manager();
+
+  sandbox.stub(ExperimentAPI, "_manager").get(() => manager);
+
+  await manager.onStartup();
+  await manager.store.ready();
 
   const localeService = Services.locale;
   const mockLocaleService = new Proxy(localeService, {
@@ -39,13 +49,15 @@ async function setupTest({ ...args } = {}) {
 
   Services.locale = mockLocaleService;
 
-  return {
-    ...ctx,
-    cleanup() {
-      baseCleanup();
-      Services.locale = localeService;
-    },
+  const cleanup = () => {
+    Services.locale = localeService;
+    sandbox.restore();
+    assertEmptyStore(manager.store);
+
+    Services.fog.testResetFOG();
   };
+
+  return { cleanup, manager, sandbox };
 }
 
 /**
@@ -140,6 +152,7 @@ async function recordAndTestPingSubmission(testFn) {
 }
 
 add_setup(async function test_setup() {
+  do_get_profile();
   Services.fog.initializeFOG();
 });
 
@@ -160,7 +173,7 @@ add_task(async function testNimbusTargetingContextAllKeysPresent() {
     "testing nimbus_targeting_context metrics contain all keys in the Nimbus targeting context"
   );
 
-  const { cleanup, manager, sandbox } = await setupTest();
+  const { cleanup, manager, sandbox } = await setupNimbusForTest();
 
   // Glean doesn't serializer empty arrays, so lets put some entries into activeExperiments and
   // activeRollouts so that they appear in the context.
@@ -199,7 +212,7 @@ add_task(async function testNimbusTargetingContextAllKeysPresent() {
 add_task(async function testNimbusTargetingEnvironmentUserSetPrefs() {
   info("testing nimbus.targetingContext.pref_is_user_set");
 
-  const { cleanup } = await setupTest();
+  const { cleanup } = await setupNimbusForTest();
 
   await recordAndTestPingSubmission(() => {
     assertRecordingFailures();
@@ -245,7 +258,7 @@ add_task(async function testNimbusTargetingEnvironmentUserSetPrefs() {
 add_task(async function testNimbusTargetingEnvironmentPrefValues() {
   info("testing nimbus.targetingContext.pref_values collects pref values");
 
-  const { cleanup } = await setupTest();
+  const { cleanup } = await setupNimbusForTest();
   const PREF = "messaging-system-action.testday";
   const PREF_KEY = "messaging_system_action__testday";
 
@@ -295,7 +308,7 @@ add_task(async function testExperimentMetrics() {
     "testing values.activeExperiments, values.activeEnrollments, and values.enrollmentsMap"
   );
 
-  const { cleanup, manager } = await setupTest();
+  const { cleanup, manager } = await setupNimbusForTest();
 
   await recordAndTestPingSubmission(() => {
     assertRecordingFailures();
@@ -379,7 +392,7 @@ add_task(async function testErrorMetrics() {
     "testing nimbus_targeting_environment.{attr_eval_errors,pref_type_errors} telemetry"
   );
 
-  const { cleanup, manager, sandbox } = await setupTest();
+  const { cleanup, manager, sandbox } = await setupNimbusForTest();
   const PREF = "messaging-system-action.testday";
   const PREF_KEY = "messaging_system_action__testday";
 
@@ -452,7 +465,7 @@ add_task(async function testErrorMetrics() {
 add_task(async function testRecordingErrors() {
   info("testing failures recording nimbus_targeting_context metrics");
 
-  const { cleanup, manager, sandbox } = await setupTest();
+  const { cleanup, manager, sandbox } = await setupNimbusForTest();
 
   sandbox.stub(manager, "createTargetingContext").callsFake(function () {
     return {
