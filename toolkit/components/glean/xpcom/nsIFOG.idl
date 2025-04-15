@@ -197,47 +197,4 @@ interface nsIFOG : nsISupports
                                    in Array<ACString> aReasonCodes,
                                    in boolean aFollowsCollectionEnabled,
                                    in Array<ACString> aUploaderCapabilities);
-
-  /**
-   * Update the core attribution metrics in Glean.
-   *
-   * @param aSource - The product's attribution source (e.g. "google-play").
-   * @param aMedium - The product's attribution medium (e.g. "organic" for a search engine).
-   * @param aCampaign - The product's attribution campaign (e.g. "mozilla-org").
-   * @param aTerm - The product's attribution term (e.g. "browser with developer tools for android").
-   * @param aContent - The product's attribution content (e.g. "firefoxview").
-   */
-  void updateAttribution(in ACString aSource,
-                         in ACString aMedium,
-                         in ACString aCampaign,
-                         in ACString aTerm,
-                         in ACString aContent);
-
-  /**
-   * ** Test-only Method **
-   *
-   * Returns the core attribution data from Glean.
-   *
-   * @returns the core attribution data from Glean in the form
-   *          `{source, medium, campaign, term, content}`.
-   */
-  [implicit_jscontext]
-  jsval testGetAttribution();
-
-  /**
-   * Update the core distribution metrics in Glean.
-   *
-   * @param aName - The product's distribution name (e.g. "MozillaOnline").
-   */
-  void updateDistribution(in ACString aName);
-
-  /**
-   * ** Test-only Method **
-   *
-   * Returns the core distribution data from Glean.
-   *
-   * @returns the core distribution data from Glean in the form `{name}`.
-   */
-  [implicit_jscontext]
-  jsval testGetDistribution();
 };
