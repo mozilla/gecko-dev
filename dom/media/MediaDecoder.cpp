@@ -1543,17 +1543,33 @@ bool MediaDecoder::CanPlayThrough() {
 
 RefPtr<SetCDMPromise> MediaDecoder::SetCDMProxy(CDMProxy* aProxy) {
   MOZ_ASSERT(NS_IsMainThread());
-#ifdef MOZ_WMF_MEDIA_ENGINE
-  // Switch to another state machine if the current one doesn't support the
-  // given CDM proxy.
-  if (aProxy && !GetStateMachine()->IsCDMProxySupported(aProxy)) {
-    LOG("CDM proxy not supported! Switch to another state machine.");
-    OnPlaybackErrorEvent(
-        MediaResult{NS_ERROR_DOM_MEDIA_CDM_PROXY_NOT_SUPPORTED_ERR, aProxy});
+#ifdef MOZ_WMF_CDM
+  if (aProxy) {
+    nsresult rv = GetStateMachine()->IsCDMProxySupported(aProxy);
+    if (rv == NS_ERROR_DOM_MEDIA_NOT_ALLOWED_ERR) {
+      // We can't switch to another state machine because this CDM proxy type is
+      // disabled by pref.
+      LOG("CDM proxy %s not allowed!",
+          NS_ConvertUTF16toUTF8(aProxy->KeySystem()).get());
+      return SetCDMPromise::CreateAndReject(rv, __func__);
+    }
+    if (rv == NS_ERROR_DOM_MEDIA_NOT_SUPPORTED_ERR) {
+      // Switch to another state machine if the current one doesn't support the
+      // given CDM proxy.
+      LOG("CDM proxy %s not supported! Switch to another state machine.",
+          NS_ConvertUTF16toUTF8(aProxy->KeySystem()).get());
+      OnPlaybackErrorEvent(
+          MediaResult{NS_ERROR_DOM_MEDIA_CDM_PROXY_NOT_SUPPORTED_ERR, aProxy});
+      rv = GetStateMachine()->IsCDMProxySupported(aProxy);
+      if (NS_FAILED(rv)) {
+        MOZ_DIAGNOSTIC_CRASH("CDM proxy not supported after switch!");
+        LOG("CDM proxy not supported after switch!");
+        return SetCDMPromise::CreateAndReject(rv, __func__);
+      }
+    }
+    MOZ_DIAGNOSTIC_ASSERT(NS_SUCCEEDED(rv), "CDM proxy not supported!");
   }
 #endif
-  MOZ_DIAGNOSTIC_ASSERT_IF(aProxy,
-                           GetStateMachine()->IsCDMProxySupported(aProxy));
   return GetStateMachine()->SetCDMProxy(aProxy);
 }
 
