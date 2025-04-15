@@ -13972,6 +13972,13 @@
   value: 60
   mirror: always
 
+# When true, the DNS code will always set the AI_CANONNAME
+# when calling getaddrinfo
+- name: network.dns.always_ai_canonname
+  type: RelaxedAtomicBool
+  value: true
+  mirror: always
+
 # The proxy type. See nsIProtocolProxyService.idl
 #     PROXYCONFIG_DIRECT   = 0
 #     PROXYCONFIG_MANUAL   = 1
