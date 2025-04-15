@@ -17,8 +17,9 @@ add_task(async function () {
   info("Starting test... ");
 
   const toolbars = document.querySelector("#netmonitor-toolbar-container");
-  let input = toolbars.querySelector(".devtools-filterinput");
-  input.value = "hello";
+
+  document.querySelector(".devtools-filterinput").focus();
+  EventUtils.sendString("hello");
 
   await monitor.toolbox.switchHost("right");
   await waitFor(
@@ -31,7 +32,7 @@ add_task(async function () {
     "Should be in 2 toolbar mode"
   );
 
-  input = toolbars.querySelector(".devtools-filterinput");
+  let input = toolbars.querySelector(".devtools-filterinput");
   is(
     input.value,
     "hello",
@@ -52,6 +53,33 @@ add_task(async function () {
 
   input = toolbars.querySelector(".devtools-filterinput");
   is(input.value, "hello", "Value should be preserved after switching tools");
+
+  await teardown(monitor);
+});
+
+/**
+ * Test that filter input persists in a new instance of devtools
+ */
+
+add_task(async function () {
+  const tab = await addTab(FILTERING_URL, { waitForLoad: false });
+
+  const toolbox = await gDevTools.showToolboxForTab(tab, {
+    toolId: "netmonitor",
+  });
+  info("Network monitor pane shown successfully.");
+
+  const monitor = toolbox.getCurrentPanel();
+
+  const toolbars = monitor.panelWin.document.querySelector(
+    "#netmonitor-toolbar-container"
+  );
+  const input = toolbars.querySelector(".devtools-filterinput");
+  is(
+    input.value,
+    "hello",
+    "Value persist after closing and reopening devtools"
+  );
 
   await teardown(monitor);
 });

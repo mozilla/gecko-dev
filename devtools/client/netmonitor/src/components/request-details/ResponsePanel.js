@@ -476,7 +476,7 @@ class ResponsePanel extends Component {
             type: "filter",
             onChange: filter => this.setState({ filterText: filter }),
             placeholder: JSON_FILTER_TEXT,
-            value: filterText,
+            initialValue: filterText,
           })
         ),
       div({ tabIndex: "0" }, CORSBlockedReasonDetails),

@@ -2988,6 +2988,7 @@ pref("devtools.netmonitor.panes-network-details-height", 450);
 pref("devtools.netmonitor.panes-search-width", 550);
 pref("devtools.netmonitor.panes-search-height", 450);
 pref("devtools.netmonitor.filters", "[\"all\"]");
+pref("devtools.netmonitor.requestfilter", "");
 pref("devtools.netmonitor.visibleColumns",
     "[\"override\",\"status\",\"method\",\"domain\",\"file\",\"initiator\",\"type\",\"transferred\",\"contentSize\",\"waterfall\"]"
 );

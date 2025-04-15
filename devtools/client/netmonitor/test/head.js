@@ -186,6 +186,9 @@ Services.prefs.setBoolPref("devtools.debugger.log", false);
 const gDefaultFilters = Services.prefs.getCharPref(
   "devtools.netmonitor.filters"
 );
+const gDefaultRequestFilter = Services.prefs.getCharPref(
+  "devtools.netmonitor.requestfilter"
+);
 
 // Reveal many columns for test
 Services.prefs.setCharPref(
@@ -216,6 +219,10 @@ registerCleanupFunction(() => {
 
   Services.prefs.setBoolPref("devtools.debugger.log", gEnableLogging);
   Services.prefs.setCharPref("devtools.netmonitor.filters", gDefaultFilters);
+  Services.prefs.setCharPref(
+    "devtools.netmonitor.requestfilter",
+    gDefaultRequestFilter
+  );
   Services.prefs.clearUserPref("devtools.cache.disabled");
   Services.prefs.clearUserPref("devtools.netmonitor.columnsData");
   Services.prefs.clearUserPref("devtools.netmonitor.visibleColumns");
