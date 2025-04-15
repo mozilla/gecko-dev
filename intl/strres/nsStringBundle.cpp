@@ -5,7 +5,6 @@
 
 #include "nsStringBundle.h"
 
-#include "netCore.h"
 #include "nsID.h"
 #include "nsString.h"
 #include "nsIStringBundle.h"
@@ -1003,9 +1002,6 @@ nsStringBundleService::FormatStatusMessage(nsresult aStatus,
   switch (NS_ERROR_GET_MODULE(aStatus)) {
     case NS_ERROR_MODULE_XSLT:
       getStringBundle(XSLT_MSGS_URL, getter_AddRefs(bundle));
-      break;
-    case NS_ERROR_MODULE_NETWORK:
-      getStringBundle(NECKO_MSGS_URL, getter_AddRefs(bundle));
       break;
     default:
       getStringBundle(GLOBAL_PROPERTIES, getter_AddRefs(bundle));
