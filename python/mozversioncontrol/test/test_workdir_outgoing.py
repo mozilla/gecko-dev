@@ -47,23 +47,6 @@ STEPS = {
         git commit -m "Modify baz; add baby"
         """,
     ],
-    "jj": [
-        """
-        echo "bar" >> bar
-        echo "baz" > baz
-        rm foo
-        """,
-        """
-        jj commit -m "Remove foo; modify bar; add baz"
-        """,
-        """
-        echo ooka >> baz
-        echo newborn > baby
-        """,
-        """
-        jj describe -m "Modify baz; add baby"
-        """,
-    ],
 }
 
 
@@ -75,11 +58,7 @@ def test_workdir_outgoing(repo):
     vcs = get_repository_object(repo.dir)
     assert vcs.path == str(repo.dir)
 
-    remote_path = {
-        "hg": "../remoterepo",
-        "git": "upstream/master",
-        "jj": "master@upstream",
-    }[repo.vcs]
+    remote_path = "../remoterepo" if repo.vcs == "hg" else "upstream/master"
 
     # Mutate files.
     repo.execute_next_step()
@@ -89,14 +68,11 @@ def test_workdir_outgoing(repo):
     assert_files(vcs.get_changed_files("D", "all"), ["foo"])
     if repo.vcs == "git":
         assert_files(vcs.get_changed_files("AM", mode="staged"), ["baz"])
-    else:
-        # Mercurial and jj do not use a staging area (and ignore the mode
-        # parameter.)
+    elif repo.vcs == "hg":
+        # Mercurial does not use a staging area (and ignores the mode parameter.)
         assert_files(vcs.get_changed_files("AM", "unstaged"), ["bar", "baz"])
-    if repo.vcs != "jj":
-        # Everything is already committed in jj, and therefore outgoing.
-        assert_files(vcs.get_outgoing_files("AMD"), [])
-        assert_files(vcs.get_outgoing_files("AMD", remote_path), [])
+    assert_files(vcs.get_outgoing_files("AMD"), [])
+    assert_files(vcs.get_outgoing_files("AMD", remote_path), [])
 
     # Create a commit.
     repo.execute_next_step()
@@ -121,22 +97,11 @@ def test_workdir_outgoing(repo):
     if repo.vcs == "git":
         assert_files(vcs.get_changed_files("AM", rev="HEAD~1"), ["bar", "baz"])
         assert_files(vcs.get_changed_files("AM", rev="HEAD"), ["baby", "baz"])
-    elif repo.vcs == "hg":
+    else:
         assert_files(vcs.get_changed_files("AM", rev=".^"), ["bar", "baz"])
         assert_files(vcs.get_changed_files("AM", rev="."), ["baby", "baz"])
         assert_files(vcs.get_changed_files("AM", rev=".^::"), ["bar", "baz", "baby"])
         assert_files(vcs.get_changed_files("AM", rev="modifies(baz)"), ["baz", "baby"])
-    elif repo.vcs == "jj":
-        assert_files(vcs.get_changed_files("AM", rev="@-"), ["bar", "baz"])
-        assert_files(vcs.get_changed_files("AM", rev="@"), ["baby", "baz"])
-        assert_files(vcs.get_changed_files("AM", rev="@-::"), ["bar", "baz", "baby"])
-        # Currently no direct equivalent of `modifies(baz)`. `files(baz)` will
-        # also select changes that added or deleted baz, and the diff_filter
-        # will applied be too late.
-        assert_files(
-            vcs.get_changed_files("AMD", rev="files(baz)"),
-            ["foo", "baz", "baby", "bar"],
-        )
 
 
 if __name__ == "__main__":

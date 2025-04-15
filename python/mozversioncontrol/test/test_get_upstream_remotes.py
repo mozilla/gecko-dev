@@ -16,7 +16,6 @@ STEPS = {
         git remote add try hg::https://hg.mozilla.org/try
         """,
     ],
-    "jj": [],
 }
 
 

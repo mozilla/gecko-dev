@@ -10,6 +10,5 @@ from mozversioncontrol.factory import (  # noqa
 )
 from mozversioncontrol.repo.base import Repository  # noqa
 from mozversioncontrol.repo.git import GitRepository  # noqa
-from mozversioncontrol.repo.jj import JujutsuRepository  # noqa
 from mozversioncontrol.repo.mercurial import HgRepository  # noqa
 from mozversioncontrol.repo.source import SrcRepository  # noqa

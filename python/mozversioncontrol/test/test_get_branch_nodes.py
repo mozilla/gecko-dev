@@ -26,14 +26,6 @@ STEPS = {
         git commit -m "commit 2"
         """
     ],
-    "jj": [
-        """
-        jj new -m "commit 1"
-        echo bar >> bar
-        jj commit -m "commit 2"
-        echo baz > baz
-        """
-    ],
 }
 
 

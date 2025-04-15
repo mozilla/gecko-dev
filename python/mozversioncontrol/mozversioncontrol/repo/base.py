@@ -59,10 +59,6 @@ class Repository:
 
     def _run(self, *args, encoding="utf-8", **runargs):
         return_codes = runargs.get("return_codes", [])
-        env = self._env
-        if "env" in runargs:
-            env = env.copy()
-            env.update(runargs["env"])
 
         cmd = (str(self._tool),) + args
         # Check if we have a tool, either hg or git. If this is a
@@ -76,7 +72,7 @@ class Repository:
                 return subprocess.check_output(
                     cmd,
                     cwd=self.path,
-                    env=env,
+                    env=self._env,
                     encoding=encoding,
                 )
             except subprocess.CalledProcessError as e:

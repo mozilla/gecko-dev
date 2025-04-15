@@ -77,7 +77,7 @@ def test_push_to_try(repo, monkeypatch):
             (str(tool), "revert", "-a"),
         ]
         expected_inputs = []
-    elif repo.vcs == "git":
+    else:
         expected = [
             (str(tool), "cinnabar", "--version"),
             (str(tool), "rev-parse", "HEAD"),
@@ -133,46 +133,6 @@ def test_push_to_try(repo, monkeypatch):
             """
             ),
         ]
-    else:
-        assert repo.vcs == "jj"
-        expected = [
-            (str(vcs._git._tool), "cinnabar", "--version"),
-            (str(tool), "operation", "log", "-n1", "--no-graph", "-T", "id.short(16)"),
-            (str(tool), "new", "-m", "commit message", "latest((@ | @-) ~ empty())"),
-            (
-                str(tool),
-                "log",
-                "--no-graph",
-                "-n1",
-                "-r",
-                "@",
-                "-T",
-                "change_id.short()",
-            ),
-            (str(tool), "git", "remote", "remove", "mach_tryserver"),
-            (
-                str(vcs._git._tool),
-                "remote",
-                "add",
-                "mach_tryserver",
-                "hg::ssh://hg.mozilla.org/try",
-            ),
-            (str(tool), "git", "import"),
-            (
-                str(tool),
-                "git",
-                "push",
-                "--remote",
-                "mach_tryserver",
-                "--change",
-                None,
-                "--allow-new",
-                "--allow-empty-description",
-            ),
-            (str(tool), "operation", "restore", ""),
-            (str(tool), "git", "remote", "remove", "mach_tryserver"),
-        ]
-        expected_inputs = []
 
     for i, value in enumerate(captured_commands):
         assert value == expected[i]
@@ -186,7 +146,7 @@ def test_push_to_try(repo, monkeypatch):
 
 
 def test_push_to_try_missing_extensions(repo, monkeypatch):
-    if repo.vcs not in ("git", "jj"):
+    if repo.vcs != "git":
         return
 
     vcs = get_repository_object(repo.dir)
@@ -200,8 +160,6 @@ def test_push_to_try_missing_extensions(repo, monkeypatch):
         return orig(*args, **kwargs)
 
     monkeypatch.setattr(vcs, "_run", cinnabar_raises)
-    if hasattr(vcs, "_git"):
-        monkeypatch.setattr(vcs._git, "_run", cinnabar_raises)
 
     with pytest.raises(MissingVCSExtension):
         vcs.push_to_try("commit message")
