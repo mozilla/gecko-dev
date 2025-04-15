@@ -373,8 +373,6 @@ describe("<LinkMenu>", () => {
       typedBonus: true,
       url: "https://foo.com",
       sponsored_tile_id: 12345,
-      publisher: "foo",
-      time_sensitive: true,
     };
     const dispatch = sinon.stub();
     const propOptions = [
@@ -409,9 +407,6 @@ describe("<LinkMenu>", () => {
         referrer: FAKE_SITE.referrer,
         typedBonus: FAKE_SITE.typedBonus,
         sponsored_tile_id: FAKE_SITE.sponsored_tile_id,
-        publisher: FAKE_SITE.publisher,
-        time_sensitive: FAKE_SITE.time_sensitive,
-        title: FAKE_SITE.title,
       },
       "newtab-menu-open-new-private-window": {
         url: FAKE_SITE.url,
@@ -433,9 +428,6 @@ describe("<LinkMenu>", () => {
           position: 3,
           is_pocket_card: false,
           is_list_card: undefined,
-          publisher: FAKE_SITE.publisher,
-          time_sensitive: FAKE_SITE.time_sensitive,
-          title: FAKE_SITE.title,
         },
       ],
       menu_action_webext_dismiss: {
@@ -608,8 +600,6 @@ describe("<LinkMenu>", () => {
         typedBonus: true,
         url: "https://foo.com",
         sponsored_position: 1,
-        time_sensitive: false,
-        publisher: "foo",
       };
       const { options: blockOptions } = shallow(
         <LinkMenu
@@ -648,9 +638,6 @@ describe("<LinkMenu>", () => {
         position: 3,
         is_pocket_card: false,
         is_list_card: undefined,
-        publisher: site.publisher,
-        time_sensitive: site.time_sensitive,
-        title: site.title,
       };
       assert.deepEqual(blockUrlOption.action.data[0], expected);
     });
@@ -663,8 +650,6 @@ describe("<LinkMenu>", () => {
         type: "CardGrid",
         typedBonus: true,
         url: "https://foo.com",
-        time_sensitive: false,
-        publisher: "foo",
       };
       const { options: blockOptions } = shallow(
         <LinkMenu
@@ -702,9 +687,6 @@ describe("<LinkMenu>", () => {
         position: 3,
         is_pocket_card: true,
         is_list_card: undefined,
-        publisher: site.publisher,
-        time_sensitive: site.time_sensitive,
-        title: site.title,
       };
       assert.deepEqual(blockUrlOption.action.data[0], expected);
     });

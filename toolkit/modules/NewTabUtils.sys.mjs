@@ -2412,50 +2412,6 @@ export var NewTabUtils = {
     );
   },
 
-  /**
-   * retrieves positive UTC offset, rounded to the nearest integer number greater than 0.
-   * (If less than 0, then add 24.)
-   * @returns {Number} utc_offset
-   */
-  getUtcOffset() {
-    const offsetInMinutes = new Date().getTimezoneOffset(); // in minutes, positive behind UTC
-    const offsetInHours = -offsetInMinutes / 60; // convert to hours, now positive *ahead* of UTC
-    let utc_offset = Math.round(offsetInHours);
-
-    if (utc_offset <= 0) {
-      utc_offset += 24;
-    }
-
-    return utc_offset;
-  },
-
-  /**
-   *  Returns a normalized OS string used in the newtab-content ping
-   * Borrowed from https://github.com/mozilla/gcp-ingestion/ingestion-beam/
-   * src/main/java/com/mozilla/telemetry/transforms/NormalizeAttributes.java
-   * @returns {String} Normalized OS string mac|win|linux|android|ios|other
-   */
-  normalizeOs() {
-    const osString = Services.appinfo.OS;
-    if (osString.startsWith("Windows") || osString.startsWith("WINNT")) {
-      return "windows";
-    } else if (osString.startsWith("Darwin")) {
-      return "mac";
-    } else if (
-      osString.includes("Linux") ||
-      osString.includes("BSD") ||
-      osString.includes("SunOS") ||
-      osString.includes("Solaris")
-    ) {
-      return "Linux";
-    } else if (osString.startsWith("iOS") || osString.includes("iPhone")) {
-      return "ios";
-    } else if (osString.startsWith("Android")) {
-      return "android";
-    }
-    return "other";
-  },
-
   links: Links,
   allPages: AllPages,
   pinnedLinks: PinnedLinks,

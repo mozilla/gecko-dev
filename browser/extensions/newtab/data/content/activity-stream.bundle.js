@@ -1763,9 +1763,6 @@ const LinkMenuOptions = {
         typedBonus: site.typedBonus,
         url: site.url,
         sponsored_tile_id: site.sponsored_tile_id,
-        title: site.title,
-        publisher: site.publisher,
-        time_sensitive: site.time_sensitive,
         ...(site.section
           ? {
               section: site.section,
@@ -1820,9 +1817,6 @@ const LinkMenuOptions = {
         ...(site.sponsored_tile_id ? { tile_id: site.sponsored_tile_id } : {}),
         is_pocket_card: site.type === "CardGrid",
         is_list_card: site.is_list_card,
-        title: site.title,
-        publisher: site.publisher,
-        time_sensitive: site.time_sensitive,
         ...(site.format ? { format: site.format } : {}),
         ...(site.section
           ? {
@@ -2781,10 +2775,6 @@ class ImpressionStats_ImpressionStats extends (external_React_default()).PureCom
             received_rank: link.received_rank,
             topic: link.topic,
             is_list_card: link.is_list_card,
-            url: link.url,
-            title: link.title,
-            publisher: link.publisher,
-            time_sensitive: link.time_sensitive,
             ...(link.format ? {
               format: link.format
             } : {
@@ -3655,10 +3645,6 @@ class _DSCard extends (external_React_default()).PureComponent {
             matches_selected_topic: matchesSelectedTopic,
             selected_topics: this.props.selectedTopics,
             is_list_card: this.props.isListCard,
-            title: this.props.title,
-            url: this.props.url,
-            publisher: this.props.publisher,
-            time_sensitive: this.props.isTimeSensitive,
             ...(this.props.format ? {
               format: this.props.format
             } : {
@@ -3687,10 +3673,6 @@ class _DSCard extends (external_React_default()).PureComponent {
             topic: this.props.topic,
             selected_topics: this.props.selectedTopics,
             is_list_card: this.props.isListCard,
-            title: this.props.title,
-            url: this.props.url,
-            publisher: this.props.publisher,
-            time_sensitive: this.props.isTimeSensitive,
             ...(this.props.format ? {
               format: this.props.format
             } : {
@@ -3735,10 +3717,6 @@ class _DSCard extends (external_React_default()).PureComponent {
         thumbs_up: true,
         thumbs_down: false,
         topic: this.props.topic,
-        title: this.props.title,
-        url: this.props.url,
-        publisher: this.props.publisher,
-        time_sensitive: this.props.isTimeSensitive,
         format: getActiveCardSize(window.innerWidth, this.props.sectionsClassNames, this.props.section, false // (thumbs up/down only exist on organic content)
         ),
         ...(this.props.section ? {
@@ -3816,10 +3794,6 @@ class _DSCard extends (external_React_default()).PureComponent {
           thumbs_up: false,
           thumbs_down: true,
           topic: this.props.topic,
-          title: this.props.title,
-          url: this.props.url,
-          publisher: this.props.publisher,
-          time_sensitive: this.props.isTimeSensitive,
           format: getActiveCardSize(window.innerWidth, this.props.sectionsClassNames, this.props.section, false // (thumbs up/down only exist on organic content)
           ),
           ...(this.props.section ? {
@@ -4118,9 +4092,7 @@ class _DSCard extends (external_React_default()).PureComponent {
       format: format,
       isSectionsCard: this.props.mayHaveSectionsCards,
       topic: this.props.topic,
-      selected_topics: this.props.selected_topics,
-      time_sensitive: this.props.isTimeSensitive,
-      publisher: this.props.publisher
+      selected_topics: this.props.selected_topics
     }))));
   }
 }
@@ -5130,8 +5102,7 @@ class _CardGrid extends (external_React_default()).PureComponent {
         recommended_at: rec.recommended_at,
         received_rank: rec.received_rank,
         format: rec.format,
-        alt_text: rec.alt_text,
-        isTimeSensitive: rec.isTimeSensitive
+        alt_text: rec.alt_text
       }));
     }
     if (widgets?.positions?.length && widgets?.data?.length) {
@@ -11140,8 +11111,7 @@ function CardSection({
       sectionsCardImageSizes: imageSizes,
       section: sectionKey,
       sectionPosition: sectionPosition,
-      sectionFollowed: following,
-      isTimeSensitive: rec.isTimeSensitive
+      sectionFollowed: following
     });
   })));
 }

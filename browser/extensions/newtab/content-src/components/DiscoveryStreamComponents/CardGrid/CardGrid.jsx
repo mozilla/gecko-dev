@@ -425,7 +425,6 @@ export class _CardGrid extends React.PureComponent {
             received_rank={rec.received_rank}
             format={rec.format}
             alt_text={rec.alt_text}
-            isTimeSensitive={rec.isTimeSensitive}
           />
         )
       );

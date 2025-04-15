@@ -318,7 +318,6 @@ function CardSection({
               section={sectionKey}
               sectionPosition={sectionPosition}
               sectionFollowed={following}
-              isTimeSensitive={rec.isTimeSensitive}
             />
           );
         })}

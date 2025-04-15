@@ -3532,7 +3532,6 @@ describe("DiscoveryStreamFeed", () => {
           settings: {},
           sections: [],
           interestPicker: {},
-          surfaceId: "",
           recommendations: [
             {
               id: 1234,
