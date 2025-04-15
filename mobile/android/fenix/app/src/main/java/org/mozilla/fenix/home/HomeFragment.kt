@@ -509,10 +509,11 @@ class HomeFragment : Fragment() {
                 appStore = components.appStore,
             ),
             bookmarksController = DefaultBookmarksController(
-                activity = activity,
                 navController = findNavController(),
                 appStore = components.appStore,
                 browserStore = components.core.store,
+                settings = components.settings,
+                fenixBrowserUseCases = requireComponents.useCases.fenixBrowserUseCases,
                 selectTabUseCase = components.useCases.tabsUseCases.selectTab,
             ),
             recentVisitsController = DefaultRecentVisitsController(

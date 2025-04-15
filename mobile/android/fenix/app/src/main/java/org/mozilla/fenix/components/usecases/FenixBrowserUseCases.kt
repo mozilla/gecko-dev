@@ -36,8 +36,8 @@ class FenixBrowserUseCases(
      *
      * @param searchTermOrURL The entered search term to search or URL to be loaded.
      * @param newTab Whether or not to load the URL in a new tab.
-     * @param forceSearch Whether or not to force performing a search.
      * @param private Whether or not the tab should be private.
+     * @param forceSearch Whether or not to force performing a search.
      * @param searchEngine Optional [SearchEngine] to use when performing a search.
      * @param flags Flags that will be used when loading the URL (not applied to searches).
      * @param historyMetadata The [HistoryMetadataKey] of the new tab in case this tab
@@ -47,9 +47,9 @@ class FenixBrowserUseCases(
     fun loadUrlOrSearch(
         searchTermOrURL: String,
         newTab: Boolean,
-        forceSearch: Boolean,
         private: Boolean,
-        searchEngine: SearchEngine?,
+        forceSearch: Boolean = false,
+        searchEngine: SearchEngine? = null,
         flags: EngineSession.LoadUrlFlags = EngineSession.LoadUrlFlags.none(),
         historyMetadata: HistoryMetadataKey? = null,
         additionalHeaders: Map<String, String>? = null,

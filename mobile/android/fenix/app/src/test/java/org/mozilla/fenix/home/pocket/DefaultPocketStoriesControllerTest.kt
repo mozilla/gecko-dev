@@ -352,7 +352,7 @@ class DefaultPocketStoriesControllerTest {
     }
 
     @Test
-    fun `GIVEN homepage as a new tab is enabled  WHEN a recommended story is clicked THEN open that story's url using HomeActivity and record telemetry`() {
+    fun `GIVEN homepage as a new tab is enabled WHEN a recommended story is clicked THEN open that story's url using HomeActivity and record telemetry`() {
         every { homeActivity.settings().enableHomepageAsNewTab } returns true
 
         val story = PocketRecommendedStory(
