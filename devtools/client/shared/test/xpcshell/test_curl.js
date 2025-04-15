@@ -230,15 +230,18 @@ add_task(async function () {
   );
 
   // Check binary data
-  const dataBinaryParam = `--data-binary \\\n  ${isWin() ? "" : "$"}'------------14808\\r\\n`;
+  const dataBinaryPos = cmd.indexOf("--data-binary");
+  const dataBinaryParam = `--data-binary ${isWin() ? "" : "$"}${escapeNewline(
+    quote(request.postDataText)
+  )}`;
   Assert.notStrictEqual(
-    cmd.indexOf("--data-binary"),
+    dataBinaryPos,
     -1,
     "--data-binary param present in curl output"
   );
-
-  Assert.ok(
-    cmd.includes(dataBinaryParam),
+  equal(
+    cmd.substr(dataBinaryPos, dataBinaryParam.length),
+    dataBinaryParam,
     "proper multipart data present in curl output"
   );
 });
@@ -348,6 +351,14 @@ function quote(str) {
     escaped = str.replace(new RegExp(QUOTE, "g"), `\\${QUOTE}`);
   }
   return QUOTE + escaped + QUOTE;
+}
+
+function escapeNewline(txt) {
+  if (isWin()) {
+    // Add `"` to close quote, then escape newline outside of quote, then start new quote
+    return txt.replace(/[\r\n]{1,2}/g, '"^$&$&"');
+  }
+  return txt.replace(/\r/g, "\\r").replace(/\n/g, "\\n");
 }
 
 // Header param is formatted as -H "Header: value" or -H 'Header: value'
