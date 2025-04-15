@@ -16,6 +16,7 @@ exclude: true
 ## v139
 - ⚠️ Removed deprecated [`GeckoSession.requestAnalysis`][118.4], [`GeckoSession.requestCreateAnalysis`][122.2], [`GeckoSession.requestAnalysisStatus`][137.1], [`GeckoSession.sendPlacementAttributionEvent`][123.3], [`GeckoSession.pollForAnalysisCompleted`][137.2], [`GeckoSession.sendClickAttributionEvent`][121.4], [`GeckoSession.sendImpressionAttributionEvent`][121.5], [`GeckoSession.sendPlacementAttributionEvent`][123.3], [`GeckoSession.requestRecommendations`][118.5], [`GeckoSession.reportBackInStock`][122.1], `AnalysisStatusResponse`, [`ReviewAnalysis`][120.2] and [`Recommendation`][120.3].
 - Added [`CompositorController.onPipModeChanged`][139.1] to [`CompositorController`][65.1] to inform GeckoSession of changes to and from picture-in-picture mode.
+- ⚠️Increased `compileSdkVersion` to 36 (Android 16)
 
 [139.1]: {{javadoc_uri}}/CompositorController.html#onPipModeChanged
 

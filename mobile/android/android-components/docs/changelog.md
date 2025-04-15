@@ -18,6 +18,8 @@ permalink: /changelog/
     * Changed the function to return the size downloaded so far and the total file size, instead of the download percentage completed.
   * ⚠️ **Breaking change**: Added new `fileSizeFormatter` parameter to `DownloadNotification.getStatusDescription`. [Bug 1956580](https://bugzilla.mozilla.org/show_bug.cgi?id=1956580).
     * Changed the return of `DOWNLOADING` status to display the size downloaded so far and the total file size, instead of the download percentage completed.
+* **All components**
+  * ⚠️Increased `compileSdkVersion` to 36 (Android 16)
 
 # 138.0
 * **support-ktx**
