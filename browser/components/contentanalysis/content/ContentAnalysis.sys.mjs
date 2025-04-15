@@ -162,6 +162,7 @@ export const ContentAnalysis = {
     Services.obs.addObserver(this, "dlp-request-made");
     Services.obs.addObserver(this, "dlp-response");
     Services.obs.addObserver(this, "quit-application");
+    Services.obs.addObserver(this, "quit-application-granted");
     Services.obs.addObserver(this, "quit-application-requested");
   },
 
@@ -218,7 +219,10 @@ export const ContentAnalysis = {
         }
         break;
       }
-      case "quit-application": {
+      // Note that we do this in quit-application-granted instead of quit-application
+      // because otherwise we can get a shutdownhang if WARN dialogs are showing and
+      // the user quits via keyboard or the hamburger menu (bug 1959966)
+      case "quit-application-granted": {
         // We're quitting, so respond false to all WARN dialogs.
         let requestTokensToCancel = this.warnDialogRequestTokens;
         // Clear this first so the handler showing the dialog will know not
@@ -230,6 +234,9 @@ export const ContentAnalysis = {
             false
           );
         }
+        break;
+      }
+      case "quit-application": {
         this.uninitialize();
         break;
       }
