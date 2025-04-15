@@ -410,7 +410,7 @@ customElements.define(
       });
       doc.l10n.setAttributes(
         checkboxEl,
-        "popup-notification-addon-privatebrowsing-checkbox"
+        "popup-notification-addon-privatebrowsing-checkbox2"
       );
       return checkboxEl;
     }

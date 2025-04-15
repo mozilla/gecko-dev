@@ -1166,10 +1166,10 @@ popup-notification-xpinstall-prompt-learn-more = Learn more about installing add
 
 popup-notification-xpinstall-prompt-block-url = See details
 
-# Note: Access key is set to P to match "Private" in the corresponding localized label.
-popup-notification-addon-privatebrowsing-checkbox =
-    .label = Run in Private Windows
-    .accesskey = P
+# Note: Access key is set to p to match "private" in the corresponding localized label.
+popup-notification-addon-privatebrowsing-checkbox2 =
+    .label = Allow extension to run in private windows
+    .accesskey = p
 
 ## Pop-up warning
 
