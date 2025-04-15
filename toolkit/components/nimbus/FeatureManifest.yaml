@@ -4613,6 +4613,21 @@ h1-in-section-styles:
         branch: user
         pref: layout.css.h1-in-section-ua-styles.enabled
 
+windowsUIAutomation:
+  description: Support for the Windows UI Automation API
+  owner: jteh@mozilla.com
+  hasExposure: false
+  variables:
+    enabled:
+      type: int
+      description: 0 to disable UIA, 2 to enable UIA.
+      enum:
+        - 0
+        - 2
+      setPref:
+        branch: user
+        pref: "accessibility.uia.enable"
+
 expandSignInButton:
   description: "Add text next to the FxA avatar toolbar icon"
   owner: skhamis@mozilla.com
