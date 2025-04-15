@@ -34,7 +34,7 @@
 #include "builtin/MapObject.h"
 #include "builtin/ShadowRealm.h"
 #include "builtin/Symbol.h"
-#ifdef JS_HAS_TEMPORAL_API
+#ifdef JS_HAS_INTL_API
 #  include "builtin/temporal/Duration.h"
 #  include "builtin/temporal/Instant.h"
 #  include "builtin/temporal/PlainDate.h"
@@ -205,9 +205,7 @@ bool GlobalObject::skipDeselectedConstructor(JSContext* cx, JSProtoKey key) {
     case JSProto_RelativeTimeFormat:
     case JSProto_Segmenter:
       return false;
-#endif
 
-#ifdef JS_HAS_TEMPORAL_API
     case JSProto_Temporal:
     case JSProto_Duration:
     case JSProto_Instant:

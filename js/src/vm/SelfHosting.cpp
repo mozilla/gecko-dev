@@ -46,7 +46,7 @@
 #include "builtin/RegExp.h"
 #include "builtin/SelfHostingDefines.h"
 #include "builtin/String.h"
-#ifdef JS_HAS_TEMPORAL_API
+#ifdef JS_HAS_INTL_API
 #  include "builtin/temporal/Duration.h"
 #endif
 #include "builtin/WeakMapObject.h"
@@ -1890,7 +1890,7 @@ static bool intrinsic_newList(JSContext* cx, unsigned argc, js::Value* vp) {
   return true;
 }
 
-#ifdef JS_HAS_TEMPORAL_API
+#ifdef JS_HAS_INTL_API
 static bool intrinsic_ToTemporalDuration(JSContext* cx, unsigned argc,
                                          js::Value* vp) {
   CallArgs args = CallArgsFromVp(argc, vp);
@@ -2248,7 +2248,7 @@ static const JSFunctionSpec intrinsic_functions[] = {
     JS_INLINABLE_FN("ToObject", intrinsic_ToObject, 1, 0, IntrinsicToObject),
     JS_FN("ToPropertyKey", intrinsic_ToPropertyKey, 1, 0),
     JS_FN("ToSource", intrinsic_ToSource, 1, 0),
-#ifdef JS_HAS_TEMPORAL_API
+#ifdef JS_HAS_INTL_API
     JS_FN("ToTemporalDuration", intrinsic_ToTemporalDuration, 1, 0),
 #endif
     JS_FN("TypedArrayBitwiseSlice", intrinsic_TypedArrayBitwiseSlice, 4, 0),
