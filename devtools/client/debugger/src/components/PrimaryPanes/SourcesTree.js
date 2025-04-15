@@ -27,6 +27,7 @@ import {
   getExpandedState,
   getProjectDirectoryRoot,
   getProjectDirectoryRootName,
+  getProjectDirectoryRootFullName,
   getSourcesTreeSources,
   getFocusedSourceItem,
   getHideIgnoredSources,
@@ -247,7 +248,7 @@ class SourcesTree extends Component {
   };
 
   renderProjectRootHeader() {
-    const { projectRootName } = this.props;
+    const { projectRootName, projectRootFullName } = this.props;
 
     if (!projectRootName) {
       return null;
@@ -261,20 +262,22 @@ class SourcesTree extends Component {
         {
           className: "sources-clear-root",
           onClick: () => this.props.clearProjectDirectoryRoot(),
-          title: L10N.getStr("removeDirectoryRoot.label"),
+          title: L10N.getFormatStr("removeDirectoryRoot.label"),
         },
         React.createElement(AccessibleImage, {
-          className: "home",
-        }),
-        React.createElement(AccessibleImage, {
-          className: "breadcrumb",
-        }),
-        span(
-          {
-            className: "sources-clear-root-label",
-          },
-          projectRootName
-        )
+          className: "back",
+        })
+      ),
+      div({ className: "devtools-separator" }),
+      span(
+        {
+          className: "sources-clear-root-label",
+          title: L10N.getFormatStr(
+            "directoryRoot.tooltip.label",
+            projectRootFullName || projectRootName
+          ),
+        },
+        projectRootName
       )
     );
   }
@@ -438,6 +441,7 @@ const mapStateToProps = state => {
     projectRoot: getProjectDirectoryRoot(state),
     rootItems: getSourcesTreeSources(state),
     projectRootName: getProjectDirectoryRootName(state),
+    projectRootFullName: getProjectDirectoryRootFullName(state),
     hideIgnoredSources: getHideIgnoredSources(state),
   };
 };

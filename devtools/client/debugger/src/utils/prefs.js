@@ -103,6 +103,11 @@ export const prefs = new PrefsHelper("devtools", {
     "debugger.project-directory-root-name",
     "",
   ],
+  projectDirectoryRootFullName: [
+    "Char",
+    "debugger.project-directory-root-full-name",
+    "",
+  ],
   skipPausing: ["Bool", "debugger.skip-pausing"],
   mapScopes: ["Bool", "debugger.map-scopes-enabled"],
   logActions: ["Bool", "debugger.log-actions"],
