@@ -145,8 +145,6 @@ const lazy = XPCOMUtils.declareLazy({
     default: false,
   },
 
-  LocaleData: () => ExtensionCommon.LocaleData,
-
   async NO_PROMPT_PERMISSIONS() {
     // Wait until all extension API schemas have been loaded and parsed.
     await Management.lazyInit();
@@ -2442,7 +2440,7 @@ export class ExtensionData {
       return this.localeData.locales;
     }
 
-    this.localeData = new lazy.LocaleData({
+    this.localeData = new ExtensionCommon.LocaleData({
       defaultLocale: this.defaultLocale,
       locales,
       builtinMessages: this.builtinMessages,
@@ -2511,9 +2509,9 @@ export class ExtensionData {
 
     const availableMessageFileLocales = await this.promiseLocales();
 
-    const localesToLoad = lazy.LocaleData.listLocaleVariations(locale).filter(
-      item => availableMessageFileLocales.has(item)
-    );
+    const localesToLoad = ExtensionCommon.LocaleData.listLocaleVariations(
+      locale
+    ).filter(item => availableMessageFileLocales.has(item));
 
     const { defaultLocale } = this;
     if (!localesToLoad.includes(defaultLocale)) {

@@ -3,14 +3,12 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+/* eslint-disable mozilla/valid-lazy */
 
 import { XPCOMUtils } from "resource://gre/modules/XPCOMUtils.sys.mjs";
 import { AppConstants } from "resource://gre/modules/AppConstants.sys.mjs";
 
-/** @type {Lazy} */
-const lazy = {};
-
-ChromeUtils.defineESModuleGetters(lazy, {
+const lazy = XPCOMUtils.declareLazy({
   ExtensionProcessScript:
     "resource://gre/modules/ExtensionProcessScript.sys.mjs",
   ExtensionTelemetry: "resource://gre/modules/ExtensionTelemetry.sys.mjs",
@@ -20,14 +18,17 @@ ChromeUtils.defineESModuleGetters(lazy, {
     "resource://gre/modules/translations/LanguageDetector.sys.mjs",
   Schemas: "resource://gre/modules/Schemas.sys.mjs",
   WebNavigationFrames: "resource://gre/modules/WebNavigationFrames.sys.mjs",
-});
 
-XPCOMUtils.defineLazyServiceGetter(
-  lazy,
-  "styleSheetService",
-  "@mozilla.org/content/style-sheet-service;1",
-  "nsIStyleSheetService"
-);
+  styleSheetService: {
+    service: "@mozilla.org/content/style-sheet-service;1",
+    iid: Ci.nsIStyleSheetService,
+  },
+  isContentScriptProcess: () =>
+    Services.appinfo.processType === Services.appinfo.PROCESS_TYPE_CONTENT ||
+    !WebExtensionPolicy.useRemoteWebExtensions ||
+    // Thunderbird still loads some content in the parent process.
+    AppConstants.MOZ_APP_NAME == "thunderbird",
+});
 
 const Timer = Components.Constructor(
   "@mozilla.org/timer;1",
@@ -67,15 +68,6 @@ const {
   redefineGetter,
   runSafeSyncWithoutClone,
 } = ExtensionCommon;
-
-ChromeUtils.defineLazyGetter(lazy, "isContentScriptProcess", () => {
-  return (
-    Services.appinfo.processType === Services.appinfo.PROCESS_TYPE_CONTENT ||
-    !WebExtensionPolicy.useRemoteWebExtensions ||
-    // Thunderbird still loads some content in the parent process.
-    AppConstants.MOZ_APP_NAME == "thunderbird"
-  );
-});
 
 var DocumentManager;
 
