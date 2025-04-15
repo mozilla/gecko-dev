@@ -2026,6 +2026,8 @@ pref("browser.newtabpage.activity-stream.discoverystream.onboardingExperience.en
 // List of locales that get thumbs up/down on recommended stories by default.
 pref("browser.newtabpage.activity-stream.discoverystream.thumbsUpDown.locale-thumbs-config", "en-US, en-GB, en-CA");
 
+pref("browser.newtabpage.activity-stream.telemetry.privatePing.enabled", false);
+
 // List of regions that get thumbs up/down on recommended stories by default.
 #ifdef EARLY_BETA_OR_EARLIER
   pref("browser.newtabpage.activity-stream.discoverystream.thumbsUpDown.region-thumbs-config", "US, CA");

@@ -1261,6 +1261,19 @@ newTabSectionsExperiment:
       description: >-
         Enable personalized sections menu panel. Allow users to follow/unfollow topic sections.
 
+newtabPrivatePing:
+  description: The newtab-content ping, sent through OHTTP
+  owner: nbarrett@mozilla.com
+  hasExposure: false
+  variables:
+    privatePingEnabled:
+      type: string
+      setPref:
+        branch: user
+        pref: browser.newtabpage.activity-stream.telemetry.privatePing.enabled
+      description: >-
+        Enables the private newtab-content ping sent through OHTTP
+
 pocketNewtab:
   description: The Pocket section in newtab
   owner: sdowne@mozilla.com
