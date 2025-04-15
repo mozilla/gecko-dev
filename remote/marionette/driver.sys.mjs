@@ -62,9 +62,11 @@ ChromeUtils.defineLazyGetter(lazy, "logger", () =>
   lazy.Log.get(lazy.Log.TYPES.MARIONETTE)
 );
 
-ChromeUtils.defineLazyGetter(lazy, "prefAsyncEventsEnabled", () =>
-  Services.prefs.getBoolPref("remote.events.async.enabled", false)
+// Preferences to control which events are sent as widget events.
+ChromeUtils.defineLazyGetter(lazy, "useAsyncWheelEvents", () =>
+  Services.prefs.getBoolPref("remote.events.async.wheel.enabled", false)
 );
+
 ChromeUtils.defineLazyGetter(lazy, "hasSystemAccess", () => {
   // Bug 1955007: Remove temporary preference in Firefox 141
   const skipCheck = !Services.prefs.getBoolPref(
@@ -1636,12 +1638,6 @@ GeckoDriver.prototype.performActions = async function (cmd) {
   const browsingContext = lazy.assert.open(this.getBrowsingContext());
   await this._handleUserPrompts();
 
-  if (!lazy.prefAsyncEventsEnabled) {
-    // Bug 1920959: Remove if we no longer need to dispatch in content.
-    await this.getActor().performActions(actions);
-    return;
-  }
-
   // Bug 1821460: Fetch top-level browsing context.
   const inputState = this._actionsHelper.getInputState(browsingContext);
   const actionsOptions = {
@@ -1677,12 +1673,6 @@ GeckoDriver.prototype.performActions = async function (cmd) {
 GeckoDriver.prototype.releaseActions = async function () {
   const browsingContext = lazy.assert.open(this.getBrowsingContext());
   await this._handleUserPrompts();
-
-  if (!lazy.prefAsyncEventsEnabled) {
-    // Bug 1920959: Remove if we no longer need to dispatch in content.
-    await this.getActor().releaseActions();
-    return;
-  }
 
   // Bug 1821460: Fetch top-level browsing context.
   const inputState = this._actionsHelper.getInputState(browsingContext);
