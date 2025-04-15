@@ -3621,7 +3621,9 @@ shopping2023:
     enabled:
       description: True if the shopping sidebar is enabled (experimental treatment group)
       type: boolean
-      fallbackPref: browser.shopping.experience2023.enabled
+      setPref:
+        branch: default
+        pref: browser.shopping.experience2023.enabled
     control:
       description: True if the experiment is enabled but experience is disabled (experimental control group)
       type: boolean
@@ -3629,7 +3631,9 @@ shopping2023:
     integratedSidebar:
       description: True if the integrated sidebar is enabled.
       type: boolean
-      fallbackPref: browser.shopping.experience2023.integratedSidebar
+      setPref:
+        branch: default
+        pref: browser.shopping.experience2023.integratedSidebar
     adsEnabled:
       description: True if showing recommended products is enabled
       type: boolean
