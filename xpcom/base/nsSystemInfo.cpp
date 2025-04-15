@@ -21,6 +21,7 @@
 #include "jsapi.h"
 #include "js/PropertyAndElement.h"  // JS_SetProperty
 #include "mozilla/dom/Promise.h"
+#include "mozilla/glean/XpcomMetrics.h"
 
 #ifdef XP_WIN
 #  include <comutil.h>
@@ -1162,20 +1163,20 @@ nsresult CollectProcessInfo(ProcessInfo& info) {
 
     for (auto& hw_impl : hw_implementer) {
       if (hw_impl.id == (int)cpuFamily) {
-        info.cpuVendor.Assign(hw_impl.name);
+        cpuVendor.Assign(hw_impl.name);
         for (auto* p = &hw_impl.parts[0]; p->id != -1; ++p) {
           if (p->id == (int)cpuModel) {
-            info.cpuName.Assign(p->name);
+            cpuName.Assign(p->name);
           }
         }
       }
     }
 #  else
     // cpuVendor from "vendor_id"
-    info.cpuVendor.Assign(keyValuePairs["vendor_id"_ns]);
+    cpuVendor.Assign(keyValuePairs["vendor_id"_ns]);
 
     // cpuName from "model name"
-    info.cpuName.Assign(keyValuePairs["model name"_ns]);
+    cpuName.Assign(keyValuePairs["model name"_ns]);
 
     // cpuFamily from "cpu family"
     (void)Tokenizer(keyValuePairs["cpu family"_ns]).ReadInteger(&cpuFamily);
@@ -1218,6 +1219,9 @@ nsresult CollectProcessInfo(ProcessInfo& info) {
   }
 
   info.cpuCount = PR_GetNumberOfProcessors();
+  if (XRE_IsParentProcess()) {
+    glean::system_cpu::logical_cores.Set(info.cpuCount);
+  }
   int max_cpu_bits = [&] {
     // PR_GetNumberOfProcessors gets the value from
     // /sys/devices/system/cpu/present, but the number of bits in the CPU masks
@@ -1320,51 +1324,92 @@ nsresult CollectProcessInfo(ProcessInfo& info) {
 
 #else
   info.cpuCount = PR_GetNumberOfProcessors();
+  if (XRE_IsParentProcess()) {
+    glean::system_cpu::logical_cores.Set(info.cpuCount);
+  }
 #endif
   if (Maybe<hal::HeterogeneousCpuInfo> hetCpuInfo =
           hal::GetHeterogeneousCpuInfo()) {
     info.cpuPCount = int32_t(hetCpuInfo->mBigCpus.Count());
     info.cpuMCount = int32_t(hetCpuInfo->mMediumCpus.Count());
     info.cpuECount = int32_t(hetCpuInfo->mLittleCpus.Count());
+    if (XRE_IsParentProcess()) {
+      glean::system_cpu::big_cores.Set(info.cpuPCount);
+      glean::system_cpu::medium_cores.Set(info.cpuMCount);
+      glean::system_cpu::little_cores.Set(info.cpuECount);
+    }
   } else {
     info.cpuPCount = physicalCPUs;
+    if (XRE_IsParentProcess()) {
+      glean::system_cpu::big_cores.Set(physicalCPUs);
+    }
     info.cpuMCount = 0;
     info.cpuECount = 0;
   }
 
   if (cpuSpeed >= 0) {
     info.cpuSpeed = cpuSpeed;
+    if (XRE_IsParentProcess()) {
+      glean::system_cpu::speed.Set(cpuSpeed);
+    }
   } else {
     info.cpuSpeed = 0;
   }
   if (!cpuVendor.IsEmpty()) {
     info.cpuVendor = cpuVendor;
+    if (XRE_IsParentProcess()) {
+      glean::system_cpu::vendor.Set(cpuVendor);
+    }
   }
   if (!cpuName.IsEmpty()) {
     info.cpuName = cpuName;
+    if (XRE_IsParentProcess()) {
+      glean::system_cpu::name.Set(cpuName);
+    }
   }
   if (cpuFamily >= 0) {
     info.cpuFamily = cpuFamily;
+    if (XRE_IsParentProcess()) {
+      glean::system_cpu::family.Set(cpuFamily);
+    }
   }
   if (cpuModel >= 0) {
     info.cpuModel = cpuModel;
+    if (XRE_IsParentProcess()) {
+      glean::system_cpu::model.Set(cpuModel);
+    }
   }
   if (cpuStepping >= 0) {
     info.cpuStepping = cpuStepping;
+    if (XRE_IsParentProcess()) {
+      glean::system_cpu::stepping.Set(cpuStepping);
+    }
   }
 
   if (logicalCPUs >= 0) {
     info.cpuCount = logicalCPUs;
+    if (XRE_IsParentProcess()) {
+      glean::system_cpu::logical_cores.Set(logicalCPUs);
+    }
   }
   if (physicalCPUs >= 0) {
     info.cpuCores = physicalCPUs;
+    if (XRE_IsParentProcess()) {
+      glean::system_cpu::physical_cores.Set(physicalCPUs);
+    }
   }
 
   if (cacheSizeL2 >= 0) {
     info.l2cacheKB = cacheSizeL2;
+    if (XRE_IsParentProcess()) {
+      glean::system_cpu::l2_cache.Set(cacheSizeL2);
+    }
   }
   if (cacheSizeL3 >= 0) {
     info.l3cacheKB = cacheSizeL3;
+    if (XRE_IsParentProcess()) {
+      glean::system_cpu::l3_cache.Set(cacheSizeL3);
+    }
   }
 
   return NS_OK;
