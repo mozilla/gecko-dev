@@ -625,7 +625,7 @@ async function doReopenTests(useVerticalTabs) {
     type: "saved",
   });
 
-  await win.gBrowser.removeTabGroup(win.gBrowser.getTabGroupById(groupId));
+  await removeTabGroup(win.gBrowser.getTabGroupById(groupId));
   await resetTelemetry();
   await SpecialPowers.popPrefEnv();
 }
