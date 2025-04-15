@@ -37,6 +37,7 @@ ChromeUtils.defineESModuleGetters(lazy, {
   NimbusFeatures: "resource://nimbus/ExperimentAPI.sys.mjs",
   TelemetryEnvironment: "resource://gre/modules/TelemetryEnvironment.sys.mjs",
   UTEventReporting: "resource://newtab/lib/UTEventReporting.sys.mjs",
+  NewTabUtils: "resource://gre/modules/NewTabUtils.sys.mjs",
   pktApi: "chrome://pocket/content/pktApi.sys.mjs",
 });
 
@@ -218,23 +219,6 @@ export class TelemetryFeed {
       now,
       "browser-open-newtab-start"
     );
-  }
-
-  /**
-   * retrieves positive UTC offset, rounded to the nearest integer number greater than 0.
-   * (If less than 0, then add 24.)
-   * @returns {Number} utc_offset
-   */
-  getUtcOffset() {
-    const offsetInMinutes = new Date().getTimezoneOffset(); // in minutes, positive behind UTC
-    const offsetInHours = -offsetInMinutes / 60; // convert to hours, now positive *ahead* of UTC
-    let utc_offset = Math.round(offsetInHours);
-
-    if (utc_offset <= 0) {
-      utc_offset += 24;
-    }
-
-    return utc_offset;
   }
 
   /**
@@ -633,6 +617,10 @@ export class TelemetryFeed {
           shim,
           tile_id,
           topic,
+          url,
+          title,
+          publisher,
+          time_sensitive,
         } = action.data.value ?? {};
         if (
           action.data.source === "POPULAR_TOPICS" ||
@@ -668,6 +656,10 @@ export class TelemetryFeed {
             is_list_card,
             position: action.data.action_position,
             tile_id,
+            url,
+            title,
+            publisher,
+            time_sensitive,
             // We conditionally add in a few props.
             ...(corpus_item_id ? { corpus_item_id } : {}),
             ...(scheduled_corpus_item_id ? { scheduled_corpus_item_id } : {}),
@@ -719,6 +711,10 @@ export class TelemetryFeed {
           thumbs_up,
           tile_id,
           topic,
+          url,
+          title,
+          publisher,
+          time_sensitive,
         } = action.data.value ?? {};
         const metricNameSpace = this.privatePingEnabled
           ? Glean.newtabContent
@@ -741,6 +737,10 @@ export class TelemetryFeed {
           thumbs_down,
           topic,
           ...(format ? { format } : {}),
+          url,
+          title,
+          publisher,
+          time_sensitive,
           ...(section
             ? {
                 section,
@@ -945,33 +945,6 @@ export class TelemetryFeed {
   }
 
   /**
-   *  Returns a normalized OS string used in the newtab-content ping
-   * Borrowed from https://github.com/mozilla/gcp-ingestion/ingestion-beam/
-   * src/main/java/com/mozilla/telemetry/transforms/NormalizeAttributes.java
-   * @returns {String} Normalized OS string mac|win|linux|android|ios|other
-   */
-  normalizeOs() {
-    const osString = Services.appinfo.OS;
-    if (osString.startsWith("Windows") || osString.startsWith("WINNT")) {
-      return "windows";
-    } else if (osString.startsWith("Darwin")) {
-      return "mac";
-    } else if (
-      osString.includes("Linux") ||
-      osString.includes("BSD") ||
-      osString.includes("SunOS") ||
-      osString.includes("Solaris")
-    ) {
-      return "Linux";
-    } else if (osString.startsWith("iOS") || osString.includes("iPhone")) {
-      return "ios";
-    } else if (osString.startsWith("Android")) {
-      return "android";
-    }
-    return "other";
-  }
-
-  /**
    *
    * @param {String} submitReason reason why the ping is being submitted.
    * "component_init" | "newtab_session_end"
@@ -982,10 +955,10 @@ export class TelemetryFeed {
     if (followed.length) {
       Glean.newtabContent.followedSections.set(followed);
     }
-    Glean.newtabContent.coarseOs.set(this.normalizeOs());
+    Glean.newtabContent.coarseOs.set(lazy.NewTabUtils.normalizeOs());
     // if os.version is undefined pass "0"
     Glean.newtabContent.coarseOsVersion.set(this.clientInfo.os.version || "0");
-    Glean.newtabContent.utcOffset.set(this.getUtcOffset());
+    Glean.newtabContent.utcOffset.set(lazy.NewTabUtils.getUtcOffset());
     Glean.newtabContent.activeExperiments.set(
       await expContext.activeExperiments
     );
@@ -1423,6 +1396,10 @@ export class TelemetryFeed {
           position: datum.pos,
           tile_id: datum.id || datum.tile_id,
           is_list_card: datum.is_list_card,
+          url: datum.url,
+          title: datum.title,
+          publisher: datum.publisher,
+          time_sensitive: datum.time_sensitive,
           ...(datum.section
             ? {
                 section: datum.section,
@@ -1515,6 +1492,10 @@ export class TelemetryFeed {
           topic: tile.topic,
           selected_topics: tile.selectedTopics,
           is_list_card: tile.is_list_card,
+          url: tile.url,
+          title: tile.title,
+          publisher: tile.publisher,
+          time_sensitive: tile.time_sensitive,
           // We conditionally add in a few props.
           ...(corpus_item_id ? { corpus_item_id } : {}),
           ...(scheduled_corpus_item_id ? { scheduled_corpus_item_id } : {}),

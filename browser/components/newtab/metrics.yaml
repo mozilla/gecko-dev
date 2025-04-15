@@ -1503,6 +1503,22 @@ pocket:
         description: >
           If click belongs in a section, the numeric position of the section
         type: string
+      title: &title
+        description: >
+          Title of the article
+        type: string
+      url: &url
+        description: >
+          Url of the article
+        type: string
+      time_sensitive: &time_sensitive
+        description: >
+          Indicates whether the article is time sensitive. This is passed down from merino
+        type: boolean
+      publisher: &publisher
+        description: >
+          derived publisher name of article
+        type: string
       is_section_followed: *is_section_followed
     send_in_pings:
       - newtab
@@ -1570,6 +1586,10 @@ pocket:
           If click belongs in a section, the numeric position of the section
         type: string
       is_section_followed: *is_section_followed
+      title: *title
+      url: *url
+      time_sensitive: *time_sensitive
+      publisher: *publisher
     send_in_pings:
       - newtab
 
@@ -1612,6 +1632,10 @@ pocket:
           If click belongs in a section, the numeric position of the section
         type: string
       is_section_followed: *is_section_followed
+      title: *title
+      url: *url
+      time_sensitive: *time_sensitive
+      publisher: *publisher
     send_in_pings:
       - newtab
 
@@ -1822,6 +1846,10 @@ pocket:
           If event belongs in a section, the numeric position of the section
         type: string
       is_section_followed: *is_section_followed
+      title: *title
+      url: *url
+      time_sensitive: *time_sensitive
+      publisher: *publisher
     send_in_pings:
       - newtab
 
@@ -1897,6 +1925,7 @@ newtab_content:
     expires: never
     send_in_pings:
       - newtab-content
+      - newtab
     lifetime: application
 
   followed_sections:
@@ -2044,6 +2073,10 @@ newtab_content:
         description: >
           If click belongs in a section, if that section is followed
         type: boolean
+      title: *title
+      url: *url
+      time_sensitive: *time_sensitive
+      publisher: *publisher
     send_in_pings:
       - newtab-content
 
@@ -2101,6 +2134,10 @@ newtab_content:
         description: >
           If click belongs in a section, if that section is followed
         type: boolean
+      title: *title
+      url: *url
+      time_sensitive: *time_sensitive
+      publisher: *publisher
     send_in_pings:
       - newtab-content
 
@@ -2142,6 +2179,10 @@ newtab_content:
         description: >
           If click belongs in a section, if that section is followed
         type: boolean
+      title: *title
+      url: *url
+      time_sensitive: *time_sensitive
+      publisher: *publisher
     send_in_pings:
       - newtab-content
 
@@ -2196,6 +2237,10 @@ newtab_content:
         description: >
           If event belongs in a section, if that section is followed
         type: boolean
+      title: *title
+      url: *url
+      time_sensitive: *time_sensitive
+      publisher: *publisher
     send_in_pings:
       - newtab-content
 
