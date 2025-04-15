@@ -83,27 +83,22 @@
         this.#tabChangeObserver = new window.MutationObserver(mutationList => {
           for (let mutation of mutationList) {
             mutation.addedNodes.forEach(node => {
-              if (node.tagName === "tab") {
+              node.tagName === "tab" &&
                 node.dispatchEvent(
                   new CustomEvent("TabGrouped", {
                     bubbles: true,
                     detail: this,
                   })
                 );
-                node.setAttribute("aria-level", 2);
-              }
             });
             mutation.removedNodes.forEach(node => {
-              if (node.tagName === "tab") {
+              node.tagName === "tab" &&
                 node.dispatchEvent(
                   new CustomEvent("TabUngrouped", {
                     bubbles: true,
                     detail: this,
                   })
                 );
-                // Tab could have moved to be ungrouped (level 1)
-                // or to a different group (level 2).
-                node.setAttribute("aria-level", node.group ? 2 : 1);
             });
           }
           if (!this.tabs.length) {
@@ -218,7 +213,6 @@
       );
       this.#labelElement?.setAttribute("aria-label", tabGroupName);
       this.#labelElement?.setAttribute("aria-description", tabGroupDescription);
-      this.#labelElement?.setAttribute("aria-level", 1);
     }
 
     #updateCollapsedAriaAttributes() {
