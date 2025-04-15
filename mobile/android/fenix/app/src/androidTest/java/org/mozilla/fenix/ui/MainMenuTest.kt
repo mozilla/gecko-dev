@@ -80,7 +80,7 @@ class MainMenuTest : TestSetup() {
         }.openThreeDotMenu {
         }.openDownloadsManager {
             verifyEmptyDownloadsList(composeTestRule)
-        }.goBack {
+        }.goBack(composeTestRule) {
         }.openThreeDotMenu {
         }.openPasswords {
             verifySecurityPromptForLogins()

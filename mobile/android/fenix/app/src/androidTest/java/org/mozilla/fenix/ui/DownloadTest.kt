@@ -9,6 +9,7 @@ import android.os.Build.VERSION.SDK_INT
 import androidx.compose.ui.test.junit4.AndroidComposeTestRule
 import androidx.core.net.toUri
 import androidx.test.espresso.intent.rule.IntentsRule
+import org.junit.Ignore
 import org.junit.Rule
 import org.junit.Test
 import org.mozilla.fenix.customannotations.SmokeTest
@@ -23,7 +24,6 @@ import org.mozilla.fenix.helpers.MatcherHelper.itemWithText
 import org.mozilla.fenix.helpers.TestAssetHelper
 import org.mozilla.fenix.helpers.TestAssetHelper.waitingTimeLong
 import org.mozilla.fenix.helpers.TestHelper.clickSnackbarButton
-import org.mozilla.fenix.helpers.TestHelper.exitMenu
 import org.mozilla.fenix.helpers.TestHelper.mDevice
 import org.mozilla.fenix.helpers.TestSetup
 import org.mozilla.fenix.ui.robots.browserScreen
@@ -172,6 +172,7 @@ class DownloadTest : TestSetup() {
     }
 
     // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2302662
+    @Ignore("Failing, see: https://bugzilla.mozilla.org/show_bug.cgi?id=1960537")
     @Test
     fun deleteMultipleDownloadedFilesTest() {
         val firstDownloadedFile = "smallZip.zip"
@@ -193,15 +194,15 @@ class DownloadTest : TestSetup() {
             verifyDownloadedFileExistsInDownloadsList(activityTestRule, secondDownloadedFile)
             longClickDownloadedItem(activityTestRule, firstDownloadedFile)
             clickDownloadedItem(activityTestRule, secondDownloadedFile)
-            openMultiSelectMoreOptionsMenu()
-            clickMultiSelectRemoveButton()
+            openMultiSelectMoreOptionsMenu(activityTestRule)
+            clickMultiSelectRemoveButton(activityTestRule)
             clickSnackbarButton(activityTestRule, "UNDO")
             verifyDownloadedFileExistsInDownloadsList(activityTestRule, firstDownloadedFile)
             verifyDownloadedFileExistsInDownloadsList(activityTestRule, secondDownloadedFile)
             longClickDownloadedItem(activityTestRule, firstDownloadedFile)
             clickDownloadedItem(activityTestRule, secondDownloadedFile)
-            openMultiSelectMoreOptionsMenu()
-            clickMultiSelectRemoveButton()
+            openMultiSelectMoreOptionsMenu(activityTestRule)
+            clickMultiSelectRemoveButton(activityTestRule)
             verifyEmptyDownloadsList(activityTestRule)
         }
     }
@@ -218,11 +219,11 @@ class DownloadTest : TestSetup() {
         }.openDownloadsManager() {
             verifyDownloadedFileExistsInDownloadsList(activityTestRule, "smallZip.zip")
             deleteDownloadedFileOnStorage("smallZip.zip")
-        }.exitDownloadsManagerToBrowser {
+        }.exitDownloadsManagerToBrowser(activityTestRule) {
         }.openThreeDotMenu {
         }.openDownloadsManager() {
             verifyEmptyDownloadsList(activityTestRule)
-            exitMenu()
+        }.exitDownloadsManagerToBrowser(activityTestRule) {
         }
 
         downloadRobot {

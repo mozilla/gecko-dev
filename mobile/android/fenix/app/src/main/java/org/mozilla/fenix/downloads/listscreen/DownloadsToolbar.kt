@@ -4,88 +4,54 @@
 
 package org.mozilla.fenix.downloads.listscreen
 
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.material.Icon
 import androidx.compose.material.IconButton
 import androidx.compose.material.Text
 import androidx.compose.material.TopAppBar
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
-import mozilla.components.browser.state.state.content.DownloadState
 import mozilla.components.compose.base.annotation.FlexibleWindowLightDarkPreview
 import mozilla.components.compose.base.menu.DropdownMenu
 import mozilla.components.compose.base.menu.MenuItem
 import org.mozilla.fenix.R
-import org.mozilla.fenix.downloads.listscreen.store.CreatedTime
-import org.mozilla.fenix.downloads.listscreen.store.DownloadUIState
-import org.mozilla.fenix.downloads.listscreen.store.FileItem
 import org.mozilla.fenix.theme.FirefoxTheme
-import mozilla.components.compose.base.text.Text as Text
 
 /**
- * Composable function that represents the toolbar for the downloads screen.
+ * The toolbar for the downloads screen.
+ * It displays the title, navigation icon, and an optional overflow menu.
  *
- * @param mode The current mode of the downloads screen.
- * @param overflowMenuItems The list of [MenuItem] to display in the overflow menu (if in editing mode).
- * @param toolbarConfig Configuration for the toolbar's appearance (title, colors).
- * @param onNavigationIconClick Callback for the back button click.
+ * @param backgroundColor - The background color for the TopAppBar.
+ * @param title - The title to be displayed in the center of the TopAppBar.
+ * @param navigationIcon - The navigation icon displayed at the start of the TopAppBar.
+ * @param actions - The actions displayed at the end of the TopAppBar.
  */
 @Composable
-fun Toolbar(
-    mode: DownloadUIState.Mode,
-    overflowMenuItems: List<MenuItem>,
-    toolbarConfig: ToolbarConfig,
-    onNavigationIconClick: () -> Unit,
+internal fun Toolbar(
+    backgroundColor: Color,
+    title: @Composable () -> Unit,
+    navigationIcon: @Composable (() -> Unit),
+    actions: @Composable RowScope.() -> Unit = {},
 ) {
-    var showMenu by remember { mutableStateOf(false) }
-
     TopAppBar(
-        backgroundColor = toolbarConfig.backgroundColor,
-        title = {
-            Text(
-                color = toolbarConfig.textColor,
-                style = FirefoxTheme.typography.headline6,
-                text = toolbarConfig.title,
-            )
-        },
-        navigationIcon = {
-            IconButton(onClick = onNavigationIconClick) {
-                Icon(
-                    painter = painterResource(R.drawable.mozac_ic_back_24),
-                    contentDescription = stringResource(R.string.preference_doh_up_description),
-                    tint = toolbarConfig.iconColor,
-                )
-            }
-        },
-        actions = {
-            if (mode is DownloadUIState.Mode.Editing) {
-                IconButton(onClick = { showMenu = true }) {
-                    Icon(
-                        painter = painterResource(R.drawable.mozac_ic_ellipsis_vertical_24),
-                        contentDescription = stringResource(
-                            R.string.content_description_menu,
-                        ),
-                        tint = toolbarConfig.iconColor,
-                    )
-                }
-
-                DownloadsOverflowMenu(
-                    showMenu = showMenu,
-                    menuItems = overflowMenuItems,
-                    onDismissRequest = { showMenu = false },
-                )
-            }
-        },
+        backgroundColor = backgroundColor,
+        title = title,
+        navigationIcon = navigationIcon,
+        actions = actions,
     )
 }
 
+/**
+ * A dropdown menu for the downloads screen.
+ *
+ * @param showMenu `true` to display the menu, `false` otherwise.
+ * @param menuItems The list of [MenuItem] to display in the dropdown menu.
+ * @param onDismissRequest A callback that is invoked when the user attempts to dismiss the menu.
+ */
 @Composable
-private fun DownloadsOverflowMenu(
+fun DownloadsOverflowMenu(
     showMenu: Boolean,
     menuItems: List<MenuItem>,
     onDismissRequest: () -> Unit,
@@ -115,43 +81,37 @@ data class ToolbarConfig(
 private fun ToolbarPreview() {
     FirefoxTheme {
         Toolbar(
-            mode = DownloadUIState.Mode.Editing(
-                setOf(
-                    FileItem(
-                        id = "3",
-                        fileName = "File 3",
-                        url = "https://example.com/file3",
-                        formattedSize = "3.4 MB",
-                        displayedShortUrl = "example.com",
-                        contentType = "application/zip",
-                        status = DownloadState.Status.COMPLETED,
-                        filePath = "/path/to/file1",
-                        createdTime = CreatedTime.OLDER,
+            backgroundColor = FirefoxTheme.colors.layerAccent,
+            title = {
+                Text(
+                    color = FirefoxTheme.colors.textOnColorPrimary,
+                    style = FirefoxTheme.typography.headline6,
+                    text = stringResource(
+                        R.string.download_multi_select_title,
+                        1,
                     ),
-                ),
-            ),
-            overflowMenuItems = listOf(
-                MenuItem.TextItem(
-                    text = Text.Resource(R.string.download_select_all_items),
-                    level = MenuItem.FixedItem.Level.Default,
-                    onClick = { },
-                ),
-                MenuItem.TextItem(
-                    text = Text.Resource(R.string.download_delete_item),
-                    level = MenuItem.FixedItem.Level.Critical,
-                    onClick = { },
-                ),
-            ),
-            toolbarConfig = ToolbarConfig(
-                title = stringResource(
-                    R.string.download_multi_select_title,
-                    1,
-                ),
-                backgroundColor = FirefoxTheme.colors.layerAccent,
-                textColor = FirefoxTheme.colors.textOnColorPrimary,
-                iconColor = FirefoxTheme.colors.iconOnColor,
-            ),
-            onNavigationIconClick = {},
+                )
+            },
+            navigationIcon = {
+                IconButton(onClick = {}) {
+                    Icon(
+                        painter = painterResource(R.drawable.mozac_ic_back_24),
+                        contentDescription = stringResource(R.string.download_navigate_back_description),
+                        tint = FirefoxTheme.colors.iconPrimary,
+                    )
+                }
+            },
+            actions = {
+                IconButton(onClick = {}) {
+                    Icon(
+                        painter = painterResource(R.drawable.mozac_ic_ellipsis_vertical_24),
+                        contentDescription = stringResource(
+                            R.string.content_description_menu,
+                        ),
+                        tint = FirefoxTheme.colors.iconOnColor,
+                    )
+                }
+            },
         )
     }
 }

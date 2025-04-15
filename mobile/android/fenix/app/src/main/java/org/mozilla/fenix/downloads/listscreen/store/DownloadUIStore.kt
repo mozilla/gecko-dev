@@ -72,6 +72,7 @@ private fun downloadStateReducer(
         is DownloadUIAction.FileItemDeletedSuccessfully -> state
 
         is DownloadUIAction.SearchQueryEntered -> state.copy(searchQuery = action.searchQuery)
+        is DownloadUIAction.UpdateDeleteDialogVisibility -> state.copy(isDeleteDialogVisible = action.visibility)
 
         DownloadUIAction.Init -> state
         is DownloadUIAction.ShareUrlClicked -> state

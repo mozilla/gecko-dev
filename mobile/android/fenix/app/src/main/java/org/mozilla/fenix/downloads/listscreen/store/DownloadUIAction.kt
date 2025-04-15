@@ -75,4 +75,9 @@ sealed interface DownloadUIAction : Action {
      * [DownloadUIAction] when a search query is entered.
      */
     data class SearchQueryEntered(val searchQuery: String) : DownloadUIAction
+
+    /**
+     * [DownloadUIAction] to show or hide the delete confirmation dialog.
+     */
+    data class UpdateDeleteDialogVisibility(val visibility: Boolean) : DownloadUIAction
 }

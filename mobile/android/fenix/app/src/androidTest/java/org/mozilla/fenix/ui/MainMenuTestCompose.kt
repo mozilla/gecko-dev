@@ -224,9 +224,8 @@ class MainMenuTestCompose : TestSetup() {
             expandMainMenu()
         }.openDownloads {
             verifyEmptyDownloadsList(composeTestRule)
-            TestHelper.exitMenu()
-        }
-        browserScreen {
+            exitMenu()
+        }.exitDownloadsManagerToBrowser(composeTestRule) {
             verifyPageContent(testPage.content)
         }
     }
