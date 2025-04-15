@@ -28,6 +28,8 @@ skip-if = [
 
 ["browser_link.js"]
 
+["browser_test_aria_hidden.js"]
+
 ["browser_searchbar.js"]
 
 ["browser_select.js"]
