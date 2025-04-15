@@ -27,7 +27,10 @@ const lazy = {};
 
 ChromeUtils.defineESModuleGetters(lazy, {
   AboutNewTab: "resource:///modules/AboutNewTab.sys.mjs",
+  ClientEnvironmentBase:
+    "resource://gre/modules/components-utils/ClientEnvironment.sys.mjs",
   ClientID: "resource://gre/modules/ClientID.sys.mjs",
+  ExperimentManager: "resource://nimbus/lib/ExperimentManager.sys.mjs",
   ExtensionSettingsStore:
     "resource://gre/modules/ExtensionSettingsStore.sys.mjs",
   HomePage: "resource:///modules/HomePage.sys.mjs",
@@ -55,6 +58,8 @@ const PREF_ENDPOINTS = "discoverystream.endpoints";
 const PREF_SHOW_SPONSORED_STORIES = "showSponsored";
 const PREF_SHOW_SPONSORED_TOPSITES = "showSponsoredTopSites";
 const BLANK_HOMEPAGE_URL = "chrome://browser/content/blanktab.html";
+const PREF_PRIVATE_PING_ENABLED = "telemetry.privatePing.enabled";
+const PREF_FOLLOWED_SECTIONS = "discoverystream.sections.following";
 
 // This is a mapping table between the user preferences and its encoding code
 export const USER_PREFS_ENCODING = {
@@ -135,6 +140,18 @@ export class TelemetryFeed {
     return this._prefs.get(EVENTS_TELEMETRY_PREF);
   }
 
+  get privatePingEnabled() {
+    return this._prefs.get(PREF_PRIVATE_PING_ENABLED);
+  }
+
+  get clientInfo() {
+    return lazy.ClientEnvironmentBase;
+  }
+
+  get experimentManager() {
+    return lazy.ExperimentManager;
+  }
+
   get canSendUnifiedAdsSpocCallbacks() {
     const unifiedAdsSpocsEnabled = this._prefs.get(
       PREF_UNIFIED_ADS_SPOCS_ENABLED
@@ -201,6 +218,41 @@ export class TelemetryFeed {
       now,
       "browser-open-newtab-start"
     );
+  }
+
+  /**
+   * retrieves positive UTC offset, rounded to the nearest integer number greater than 0.
+   * (If less than 0, then add 24.)
+   * @returns {Number} utc_offset
+   */
+  getUtcOffset() {
+    const offsetInMinutes = new Date().getTimezoneOffset(); // in minutes, positive behind UTC
+    const offsetInHours = -offsetInMinutes / 60; // convert to hours, now positive *ahead* of UTC
+    let utc_offset = Math.round(offsetInHours);
+
+    if (utc_offset <= 0) {
+      utc_offset += 24;
+    }
+
+    return utc_offset;
+  }
+
+  /**
+   * Retrieves most recently followed sections, ordered alphabetically. (maximum 2 sections)
+   * @returns {String[]} comma separated string of section UUID's
+   */
+  getFollowedSections() {
+    const followedString = this._prefs.get(PREF_FOLLOWED_SECTIONS);
+
+    if (followedString.length) {
+      const items = followedString
+        .split(",")
+        .map(item => item.trim())
+        .filter(_item => _item);
+      return items.slice(-2).sort();
+    }
+
+    return [];
   }
 
   setLoadTriggerInfo(port) {
@@ -326,7 +378,7 @@ export class TelemetryFeed {
    *
    * @param  {string} portID the portID of the session that just closed
    */
-  endSession(portID) {
+  async endSession(portID) {
     const session = this.sessions.get(portID);
 
     if (!session) {
@@ -340,6 +392,9 @@ export class TelemetryFeed {
       (lazy.NimbusFeatures.glean.getVariable("newtabPingEnabled") ?? true)
     ) {
       GleanPings.newtab.submit("newtab_session_end");
+      if (this.privatePingEnabled) {
+        this.configureContentPing("newtab_session_end");
+      }
     }
 
     if (session.perf.visibility_event_rcvd_ts) {
@@ -873,13 +928,74 @@ export class TelemetryFeed {
 
       Glean.newtab.newtabCategory.set(newtabCategory);
       Glean.newtab.homepageCategory.set(homePageCategory);
+
       if (lazy.NimbusFeatures.glean.getVariable("newtabPingEnabled") ?? true) {
+        if (this.privatePingEnabled) {
+          this.configureContentPing("component_init");
+        }
         GleanPings.newtab.submit("component_init");
       }
     }
   }
 
-  onAction(action) {
+  /**
+   *  Returns a normalized OS string used in the newtab-content ping
+   * Borrowed from https://github.com/mozilla/gcp-ingestion/ingestion-beam/
+   * src/main/java/com/mozilla/telemetry/transforms/NormalizeAttributes.java
+   * @returns {String} Normalized OS string mac|win|linux|android|ios|other
+   */
+  normalizeOs() {
+    const osString = Services.appinfo.OS;
+    if (osString.startsWith("Windows") || osString.startsWith("WINNT")) {
+      return "windows";
+    } else if (osString.startsWith("Darwin")) {
+      return "mac";
+    } else if (
+      osString.includes("Linux") ||
+      osString.includes("BSD") ||
+      osString.includes("SunOS") ||
+      osString.includes("Solaris")
+    ) {
+      return "Linux";
+    } else if (osString.startsWith("iOS") || osString.includes("iPhone")) {
+      return "ios";
+    } else if (osString.startsWith("Android")) {
+      return "android";
+    }
+    return "other";
+  }
+
+  /**
+   *
+   * @param {String} submitReason reason why the ping is being submitted.
+   * "component_init" | "newtab_session_end"
+   */
+  async configureContentPing(submitReason) {
+    const expContext = this.experimentManager.createTargetingContext();
+    const followed = this.getFollowedSections();
+    if (followed.length) {
+      Glean.newtabContent.followedSections.set(followed);
+    }
+    Glean.newtabContent.coarseOs.set(this.normalizeOs());
+    // if os.version is undefined pass "0"
+    Glean.newtabContent.coarseOsVersion.set(this.clientInfo.os.version || "0");
+    Glean.newtabContent.utcOffset.set(this.getUtcOffset());
+    Glean.newtabContent.activeExperiments.set(
+      await expContext.activeExperiments
+    );
+    Glean.newtabContent.activeRollouts.set(await expContext.activeRollouts);
+    Glean.newtabContent.enrollmentsMap.set(
+      Object.entries(await expContext.enrollmentsMap).map(
+        ([experimentSlug, branchSlug]) => ({
+          experimentSlug,
+          branchSlug,
+        })
+      )
+    );
+    GleanPings.newtabContent.submit(submitReason);
+  }
+
+  async onAction(action) {
     switch (action.type) {
       case at.INIT:
         this.init();

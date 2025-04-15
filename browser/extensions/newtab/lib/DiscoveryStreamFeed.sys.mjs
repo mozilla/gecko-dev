@@ -125,6 +125,7 @@ const PREF_INTEREST_PICKER_ENABLED =
   "discoverystream.sections.interestPicker.enabled";
 const PREF_VISIBLE_SECTIONS =
   "discoverystream.sections.interestPicker.visibleSections";
+const PREF_PRIVATE_PING_ENABLED = "telemetry.privatePing.enabled";
 
 let getHardcodedLayout;
 
@@ -1789,12 +1790,18 @@ export class DiscoveryStreamFeed {
             sections,
             interestPicker: feedResponse.interestPicker || {},
             recommendations: filteredResults,
+            surfaceId: feedResponse.surfaceId || "",
             status: "success",
           },
         };
       } else {
         console.error("No response for feed");
       }
+    }
+
+    // if surfaceID is availible either through the cache or the response set value in Glean
+    if (prefs[PREF_PRIVATE_PING_ENABLED] && feed.data.surfaceId) {
+      Glean.newtabContent.surfaceId.set(feed.data.surfaceId);
     }
 
     // If we have no feed at this point, both fetch and cache failed for some reason.

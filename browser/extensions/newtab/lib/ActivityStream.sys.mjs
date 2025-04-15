@@ -381,6 +381,13 @@ export const PREFS_CONFIG = new Map([
     },
   ],
   [
+    "telemetry.privatePing.enabled",
+    {
+      title: "Enables the private ping sent over OHTTP through Glean",
+      value: false,
+    },
+  ],
+  [
     "section.highlights.includeVisited",
     {
       title:
