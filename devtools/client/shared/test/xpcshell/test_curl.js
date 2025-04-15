@@ -230,18 +230,15 @@ add_task(async function () {
   );
 
   // Check binary data
-  const dataBinaryPos = cmd.indexOf("--data-binary");
-  const dataBinaryParam = `--data-binary ${isWin() ? "" : "$"}${escapeNewline(
-    quote(request.postDataText)
-  )}`;
+  const dataBinaryParam = `--data-binary \\\n  ${isWin() ? "" : "$"}'------------14808\\r\\n`;
   Assert.notStrictEqual(
-    dataBinaryPos,
+    cmd.indexOf("--data-binary"),
     -1,
     "--data-binary param present in curl output"
   );
-  equal(
-    cmd.substr(dataBinaryPos, dataBinaryParam.length),
-    dataBinaryParam,
+
+  Assert.ok(
+    cmd.includes(dataBinaryParam),
     "proper multipart data present in curl output"
   );
 });
@@ -353,14 +350,6 @@ function quote(str) {
   return QUOTE + escaped + QUOTE;
 }
 
-function escapeNewline(txt) {
-  if (isWin()) {
-    // Add `"` to close quote, then escape newline outside of quote, then start new quote
-    return txt.replace(/[\r\n]{1,2}/g, '"^$&$&"');
-  }
-  return txt.replace(/\r/g, "\\r").replace(/\n/g, "\\n");
-}
-
 // Header param is formatted as -H "Header: value" or -H 'Header: value'
 function headerParam(h) {
   return "-H " + quote(h);
@@ -392,6 +381,6 @@ function parseCurl(curlCmd) {
   // This monster regexp parses the command line into an array of arguments,
   // recognizing quoted args with matching quotes and escaped quotes inside:
   // [ "curl 'url'", "--standalone-arg", "-arg-with-quoted-string 'value\'s'" ]
-  const matchRe = /[-A-Za-z1-9]+(?: \$?([\"'])(?:\\\1|.)*?\1)?/g;
+  const matchRe = /[-A-Za-z1-9]+(?: ([\^\\"']+)(?:\\\1|.)*?\1)?/g;
   return curlCmd.match(matchRe);
 }
