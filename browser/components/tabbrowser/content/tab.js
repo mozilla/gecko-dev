@@ -127,6 +127,11 @@
       let labelContainer = this.querySelector(".tab-label-container");
       labelContainer.addEventListener("overflow", this);
       labelContainer.addEventListener("underflow", this);
+
+      // Tabs in the tab strip default to being at the top level (level 1)
+      // Tabs in tab groups are one level down (level 2); tab groups will
+      // update this value when tabs move in and out of tab groups.
+      this.setAttribute("aria-level", 1);
     }
 
     #elementIndex;
