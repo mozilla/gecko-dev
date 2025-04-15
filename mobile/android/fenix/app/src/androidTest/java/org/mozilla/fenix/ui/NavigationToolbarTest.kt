@@ -65,7 +65,7 @@ class NavigationToolbarTest : TestSetup() {
     fun swipeToSwitchTabInRTLTest() {
         val firstWebPage = TestAssetHelper.getGenericAsset(mockWebServer, 1)
         val secondWebPage = TestAssetHelper.getGenericAsset(mockWebServer, 2)
-        val arabicLocale = Locale("ar", "AR")
+        val arabicLocale = Locale.Builder().setLanguage("ar").setRegion("AR").build()
 
         // Disable the back gesture from the edge of the screen on the device.
         enableOrDisableBackGestureNavigationOnDevice(backGestureNavigationEnabled = false)

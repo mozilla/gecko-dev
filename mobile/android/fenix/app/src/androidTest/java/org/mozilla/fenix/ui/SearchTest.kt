@@ -919,7 +919,7 @@ class SearchTest : TestSetup() {
     // Expected for app language set to Arabic
     @Test
     fun verifySearchEnginesFunctionalityUsingRTLLocaleTest() {
-        val arabicLocale = Locale("ar", "AR")
+        val arabicLocale = Locale.Builder().setLanguage("ar").setRegion("AR").build()
 
         AppAndSystemHelper.runWithAppLocaleChanged(arabicLocale, activityTestRule.activityRule) {
             homeScreen {
