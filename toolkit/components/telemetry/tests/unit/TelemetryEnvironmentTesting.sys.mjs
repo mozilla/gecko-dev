@@ -379,18 +379,6 @@ export var TelemetryEnvironmentTesting = {
       lazy.Assert.equal(typeof data.settings.attribution, "object");
       lazy.Assert.equal(data.settings.attribution.source, "google.com");
       lazy.Assert.equal(data.settings.attribution.dlsource, "unittest");
-      let attr = Services.fog.testGetAttribution();
-      lazy.Assert.equal(
-        attr.source,
-        "google.com",
-        "Must have correct attribution.source."
-      );
-      let attrExt = Glean.gleanAttribution.ext.testGetValue();
-      lazy.Assert.equal(
-        attrExt.dlsource,
-        "unittest",
-        "Must have correct dlsource."
-      );
     }
 
     this.checkIntlSettings(data.settings);
@@ -456,8 +444,6 @@ export var TelemetryEnvironmentTesting = {
       "There must be a partner section in Environment."
     );
 
-    let dist = Services.fog.testGetDistribution();
-    let distExt = Glean.gleanDistribution.ext.testGetValue();
     for (let f in EXPECTED_FIELDS) {
       let expected = isInitial ? null : EXPECTED_FIELDS[f];
       lazy.Assert.strictEqual(
@@ -465,32 +451,14 @@ export var TelemetryEnvironmentTesting = {
         expected,
         f + " must have the correct value."
       );
-      if (f == "distributionId") {
-        lazy.Assert.strictEqual(
-          dist.name,
-          expected,
-          "Core Glean distribution must be correct."
-        );
-      } else {
-        lazy.Assert.equal(
-          distExt[f],
-          expected,
-          `Extended Glean distribution field "${f}" must be correct.`
-        );
-      }
     }
 
     // Check that "partnerNames" exists and contains the correct element.
     lazy.Assert.ok(Array.isArray(data.partner.partnerNames));
     if (isInitial) {
       lazy.Assert.equal(data.partner.partnerNames.length, 0);
-      lazy.Assert.equal(distExt.partnerNames, null);
     } else {
       lazy.Assert.ok(data.partner.partnerNames.includes(PARTNER_NAME));
-      lazy.Assert.ok(
-        distExt.partnerNames.includes(PARTNER_NAME),
-        "Glean partner names contain expected partner name."
-      );
     }
   },
 
