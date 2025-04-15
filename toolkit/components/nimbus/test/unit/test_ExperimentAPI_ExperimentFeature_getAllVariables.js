@@ -1,8 +1,19 @@
 "use strict";
 
-const { _ExperimentFeature: ExperimentFeature } = ChromeUtils.importESModule(
-  "resource://nimbus/ExperimentAPI.sys.mjs"
-);
+const { ExperimentAPI, _ExperimentFeature: ExperimentFeature } =
+  ChromeUtils.importESModule("resource://nimbus/ExperimentAPI.sys.mjs");
+
+const { cleanupStorePrefCache } = ExperimentFakes;
+
+async function setupForExperimentFeature() {
+  const sandbox = sinon.createSandbox();
+  const manager = ExperimentFakes.manager();
+  await manager.onStartup();
+
+  sandbox.stub(ExperimentAPI, "_manager").get(() => manager);
+
+  return { sandbox, manager };
+}
 
 const FEATURE_ID = "aboutwelcome";
 const TEST_FALLBACK_PREF = "browser.aboutwelcome.screens";
@@ -20,7 +31,7 @@ const FAKE_FEATURE_MANIFEST = {
 
 add_task(
   async function test_ExperimentFeature_getAllVariables_prefsOverDefaults() {
-    const { cleanup } = await NimbusTestUtils.setupTest();
+    const { sandbox } = await setupForExperimentFeature();
 
     const featureInstance = new ExperimentFeature(
       FEATURE_ID,
@@ -44,14 +55,13 @@ add_task(
     );
 
     Services.prefs.clearUserPref(TEST_FALLBACK_PREF);
-
-    cleanup();
+    sandbox.restore();
   }
 );
 
 add_task(
   async function test_ExperimentFeature_getAllVariables_experimentOverPref() {
-    const { manager, cleanup } = await NimbusTestUtils.setupTest();
+    const { sandbox, manager } = await setupForExperimentFeature();
     const recipe = ExperimentFakes.experiment("awexperiment", {
       branch: {
         slug: "treatment",
@@ -100,15 +110,14 @@ add_task(
     );
 
     Services.prefs.clearUserPref(TEST_FALLBACK_PREF);
-
-    cleanup();
+    sandbox.restore();
   }
 );
 
 add_task(
   async function test_ExperimentFeature_getAllVariables_experimentOverRemote() {
     Services.prefs.clearUserPref(TEST_FALLBACK_PREF);
-    const { manager, cleanup } = await NimbusTestUtils.setupTest();
+    const { manager } = await setupForExperimentFeature();
     const featureInstance = new ExperimentFeature(
       FEATURE_ID,
       FAKE_FEATURE_MANIFEST
@@ -146,14 +155,12 @@ add_task(
     Assert.ok(!allVariables.source, "Does not include rollout value");
 
     ExperimentFakes.cleanupAll([recipe.slug, rollout.slug], { manager });
-
-    cleanup();
   }
 );
 
 add_task(
   async function test_ExperimentFeature_getAllVariables_rolloutOverPrefDefaults() {
-    const { manager, cleanup } = await NimbusTestUtils.setupTest();
+    const { manager } = await setupForExperimentFeature();
     const featureInstance = new ExperimentFeature(
       FEATURE_ID,
       FAKE_FEATURE_MANIFEST
@@ -165,6 +172,8 @@ add_task(
         features: [{ featureId: FEATURE_ID, value: { screens: [] } }],
       },
     });
+    // We're using the store in this test we need to wait for it to load
+    await manager.store.ready();
 
     Services.prefs.clearUserPref(TEST_FALLBACK_PREF);
 
@@ -174,7 +183,14 @@ add_task(
       "Pref is not set"
     );
 
+    const updatePromise = new Promise(resolve =>
+      featureInstance.onUpdate(resolve)
+    );
+    // Load remote defaults
     manager.store.addEnrollment(rollout);
+
+    // Wait for feature to load the rollout
+    await updatePromise;
 
     Assert.deepEqual(
       featureInstance.getAllVariables().screens?.length,
@@ -191,19 +207,19 @@ add_task(
     );
 
     Services.prefs.clearUserPref(TEST_FALLBACK_PREF);
-
-    manager.unenroll(rollout.slug);
-    cleanup();
+    cleanupStorePrefCache();
   }
 );
 
 add_task(
   async function test_ExperimentFeature_getAllVariables_defaultValuesParam() {
-    const { cleanup } = await NimbusTestUtils.setupTest();
+    const { manager } = await setupForExperimentFeature();
     const featureInstance = new ExperimentFeature(
       FEATURE_ID,
       FAKE_FEATURE_MANIFEST
     );
+    // We're using the store in this test we need to wait for it to load
+    await manager.store.ready();
 
     Services.prefs.clearUserPref(TEST_FALLBACK_PREF);
 
@@ -213,7 +229,5 @@ add_task(
       null,
       "should return defaultValues param over default pref settings"
     );
-
-    cleanup();
   }
 );

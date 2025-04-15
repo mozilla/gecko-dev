@@ -2,6 +2,10 @@
  * http://creativecommons.org/publicdomain/zero/1.0/
  */
 
+const { ExperimentAPI } = ChromeUtils.importESModule(
+  "resource://nimbus/ExperimentAPI.sys.mjs"
+);
+
 const { recordTargetingContext } = ChromeUtils.importESModule(
   "resource://nimbus/lib/TargetingContextRecorder.sys.mjs"
 );
@@ -11,6 +15,7 @@ const { JsonSchema } = ChromeUtils.importESModule(
 );
 
 add_setup(function setup() {
+  do_get_profile();
   Services.fog.initializeFOG();
 });
 
@@ -27,10 +32,6 @@ function nimbusTargetingContextTelemetryDisabled() {
   return !Services.prefs.getBoolPref(
     "nimbus.telemetry.targetingContextEnabled"
   );
-}
-
-function setupTest({ ...args } = {}) {
-  return NimbusTestUtils.setupTest({ ...args, clearTelemetry: true });
 }
 
 add_task(
@@ -88,7 +89,12 @@ add_task(
       ],
     });
 
-    const { manager, cleanup } = await setupTest();
+    const manager = ExperimentFakes.manager();
+
+    sinon.stub(ExperimentAPI, "_manager").get(() => manager);
+
+    await manager.onStartup();
+    await manager.store.ready();
 
     // We don't call recordTargetingContext() here because we dont actually want
     // to do all the work when we're just testing whether or not the metrics are
@@ -244,7 +250,10 @@ add_task(
 
     Services.fog.testResetFOG();
 
-    cleanup();
+    manager.store._deleteForTests("experiment");
+    manager.store._deleteForTests("rollout");
+
+    assertEmptyStore(manager.store);
   }
 );
 
@@ -320,9 +329,15 @@ add_task(async function test_featureConfigSchema_nimbusTargetingEnvironment() {
 add_task(
   { skip_if: nimbusTargetingContextTelemetryDisabled },
   async function test_nimbusTargetingEnvironment_recordAttrs() {
-    const { manager, cleanup } = await setupTest();
+    const sandbox = sinon.createSandbox();
+    const manager = ExperimentFakes.manager();
 
-    const cleanupExperiment = await ExperimentFakes.enrollWithFeatureConfig(
+    sandbox.stub(ExperimentAPI, "_manager").get(() => manager);
+
+    await manager.onStartup();
+    await manager.store.ready();
+
+    const cleanup = await ExperimentFakes.enrollWithFeatureConfig(
       {
         featureId: "nimbusTelemetry",
         value: {
@@ -372,7 +387,10 @@ add_task(
     });
     await recordTargetingContext();
 
-    cleanupExperiment();
-    cleanup();
+    await cleanup();
+    assertEmptyStore(manager.store);
+    await sandbox.restore();
+
+    Services.fog.testResetFOG();
   }
 );
