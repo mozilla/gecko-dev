@@ -949,6 +949,20 @@ const AVAILABLE_SHIMS = [
     onlyIfDFPIActive: true,
   },
   {
+    id: "JiraZendeskSupport",
+    platform: "all",
+    name: "Jira Zendesk Support",
+    bug: "1774592",
+    contentScripts: [
+      {
+        js: "jira-zendesk-support.js",
+        matches: ["*://*.atlassian.net/*"],
+        runAt: "document_start",
+      },
+    ],
+    onlyIfDFPIActive: true,
+  },
+  {
     id: "emeraude.my.salesforce.com",
     platform: "all",
     name: "Salesforce IndexedDB Script Access",

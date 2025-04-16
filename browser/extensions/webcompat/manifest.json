@@ -2,7 +2,7 @@
   "manifest_version": 2,
   "name": "Web Compatibility Interventions",
   "description": "Urgent post-release fixes for web compatibility.",
-  "version": "139.6.0",
+  "version": "139.7.0",
   "browser_specific_settings": {
     "gecko": {
       "id": "webcompat@mozilla.org",
@@ -142,6 +142,7 @@
     "shims/instagram-embed.js",
     "shims/instagram.js",
     "shims/instagram.svg",
+    "shims/jira-zendesk-support.js",
     "shims/kinja.js",
     "shims/live-test-shim.js",
     "shims/maxmind-geoip.js",
