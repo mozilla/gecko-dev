@@ -224,6 +224,14 @@ const COMMON_PREFERENCES = new Map([
   // Disable the ProcessHangMonitor
   ["dom.ipc.reportProcessHangs", false],
 
+  // Disable the QoS manager on MacOS and the priority manager on all other
+  // platforms to not cause stalled processes in background tabs when the
+  // overall CPU load on the machine is high.
+  //
+  // TODO: Should be considered to get removed once bug 1960741 is fixed.
+  ["threads.lower_mainthread_priority_in_background.enabled", false],
+  ["dom.ipc.processPriorityManager.enabled", false],
+
   // Disable slow script dialogues
   ["dom.max_chrome_script_run_time", 0],
   ["dom.max_script_run_time", 0],
