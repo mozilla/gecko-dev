@@ -3,16 +3,15 @@
  * http://creativecommons.org/publicdomain/zero/1.0/
  */
 
-// The path to the top level directory.
-const depth = "../../../../";
-
 var gActiveListeners = {};
 
 loadScript("dom/quota/test/common/browser.js");
 
 function loadScript(path) {
-  const url = new URL(depth + path, gTestPath);
-  Services.scriptloader.loadSubScript(url.href, this);
+  // "chrome://mochitests/content/browser/" corresponds to "TEST_HARNESS_FILES.testing.mochitest.browser.dom.quota.test.common" in moz.build,
+  // and "_tests/testing/mochitest/browser/dom/quota/test/common" in the obj directory.
+  const url = new URL(path, "chrome://mochitests/content/browser/");
+  Services.scriptloader.loadSubScript(url, this);
 }
 
 // These event (un)registration handlers only work for one window, DONOT use

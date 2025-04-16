@@ -3,16 +3,13 @@
  * http://creativecommons.org/publicdomain/zero/1.0/
  */
 
-// The path to the top level directory.
-const depth = "../../../../";
-
 var testGenerator;
 var testResult;
 
 loadScript("dom/quota/test/common/nestedtest.js");
 
 function loadScript(path) {
-  const url = new URL(depth + path, window.location.href);
+  const url = new URL(path, "chrome://mochitests/content/browser/");
   SpecialPowers.Services.scriptloader.loadSubScript(url.href, this);
 }
 
