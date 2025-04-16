@@ -94,10 +94,7 @@ let ecmaGlobals = [
   "String",
   "Symbol",
   "SyntaxError",
-  {
-    name: "Temporal",
-    nightly: true,
-  },
+  "Temporal",
   "TypeError",
   "Uint16Array",
   "Uint32Array",

@@ -102,7 +102,7 @@ let ecmaGlobals = [
   { name: "String", insecureContext: true },
   { name: "Symbol", insecureContext: true },
   { name: "SyntaxError", insecureContext: true },
-  { name: "Temporal", nightly: true, insecureContext: true },
+  { name: "Temporal", insecureContext: true },
   { name: "TypeError", insecureContext: true },
   { name: "Uint16Array", insecureContext: true },
   { name: "Uint32Array", insecureContext: true },
