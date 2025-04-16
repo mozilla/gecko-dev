@@ -14078,7 +14078,7 @@ class BaseContent extends (external_React_default()).PureComponent {
     this.handleOnKeyDown = this.handleOnKeyDown.bind(this);
     this.onWindowScroll = Base_debounce(this.onWindowScroll.bind(this), 5);
     this.setPref = this.setPref.bind(this);
-    this.shouldShowWallpapersHighlight = this.shouldShowWallpapersHighlight.bind(this);
+    this.shouldShowOMCHighlight = this.shouldShowOMCHighlight.bind(this);
     this.updateWallpaper = this.updateWallpaper.bind(this);
     this.prefersDarkQuery = null;
     this.handleColorModeChange = this.handleColorModeChange.bind(this);
@@ -14409,14 +14409,14 @@ class BaseContent extends (external_React_default()).PureComponent {
       });
     }
   }
-  shouldShowWallpapersHighlight() {
+  shouldShowOMCHighlight(componentId) {
     if (!this.props.Messages?.messageData) {
       return false;
     }
     const {
       messageData
     } = this.props.Messages;
-    return messageData?.content?.messageType === "CustomWallpaperHighlight";
+    return messageData?.content?.messageType === componentId;
   }
   getRGBColors(input) {
     if (input.length !== 7) {
@@ -14565,7 +14565,7 @@ class BaseContent extends (external_React_default()).PureComponent {
       mayHaveWeather: mayHaveWeather,
       spocMessageVariant: spocMessageVariant,
       showing: customizeMenuVisible
-    }), this.shouldShowWallpapersHighlight() && /*#__PURE__*/external_React_default().createElement(MessageWrapper, {
+    }), this.shouldShowOMCHighlight("CustomWallpaperHighlight") && /*#__PURE__*/external_React_default().createElement(MessageWrapper, {
       dispatch: this.props.dispatch
     }, /*#__PURE__*/external_React_default().createElement(WallpaperFeatureHighlight, {
       position: "inset-block-start inset-inline-start",

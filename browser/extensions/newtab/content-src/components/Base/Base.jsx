@@ -124,8 +124,7 @@ export class BaseContent extends React.PureComponent {
     this.handleOnKeyDown = this.handleOnKeyDown.bind(this);
     this.onWindowScroll = debounce(this.onWindowScroll.bind(this), 5);
     this.setPref = this.setPref.bind(this);
-    this.shouldShowWallpapersHighlight =
-      this.shouldShowWallpapersHighlight.bind(this);
+    this.shouldShowOMCHighlight = this.shouldShowOMCHighlight.bind(this);
     this.updateWallpaper = this.updateWallpaper.bind(this);
     this.prefersDarkQuery = null;
     this.handleColorModeChange = this.handleColorModeChange.bind(this);
@@ -500,12 +499,12 @@ export class BaseContent extends React.PureComponent {
     }
   }
 
-  shouldShowWallpapersHighlight() {
+  shouldShowOMCHighlight(componentId) {
     if (!this.props.Messages?.messageData) {
       return false;
     }
     const { messageData } = this.props.Messages;
-    return messageData?.content?.messageType === "CustomWallpaperHighlight";
+    return messageData?.content?.messageType === componentId;
   }
 
   getRGBColors(input) {
@@ -726,7 +725,7 @@ export class BaseContent extends React.PureComponent {
             spocMessageVariant={spocMessageVariant}
             showing={customizeMenuVisible}
           />
-          {this.shouldShowWallpapersHighlight() && (
+          {this.shouldShowOMCHighlight("CustomWallpaperHighlight") && (
             <MessageWrapper dispatch={this.props.dispatch}>
               <WallpaperFeatureHighlight
                 position="inset-block-start inset-inline-start"
