@@ -989,7 +989,7 @@ function GenericObject(objectActor, grip, depth) {
 // Preview functions that do not rely on the object class.
 previewers.Object = [
   function TypedArray(objectActor, grip, depth) {
-    const { obj } = objectActor;
+    const { obj, className } = objectActor;
     if (!ObjectUtils.isTypedArray(obj)) {
       return false;
     }
@@ -1008,12 +1008,20 @@ previewers.Object = [
       grip.preview.length
     );
     grip.preview.items = [];
+    const isBigIntArray = className.startsWith("BigInt") || className.startsWith("BigUint");
+
     for (let i = 0; i < previewLength; i++) {
       const desc = obj.getOwnPropertyDescriptor(i);
       if (!desc) {
         break;
       }
-      grip.preview.items.push(objectActor.createValueGrip(desc.value, depth));
+
+      // We need to create grips for items of BigInt arrays. Other typed arrays are fine
+      // as they hold serializable primitives (Numbers)
+      const item = isBigIntArray
+        ? ObjectUtils.createBigIntValueGrip(desc.value)
+        : desc.value;
+      grip.preview.items.push(item);
     }
 
     return true;
@@ -1226,7 +1234,7 @@ previewers.Object = [
       for (const attr of safeRawObj.attributes) {
         preview.attributes[attr.nodeName] = objectActor.createValueGrip(attr.value, depth);
       }
-      
+
       // Custom elements may have private properties. Ensure that we provide
       // enough information for ObjectInspector to know it should check for
       // them.
