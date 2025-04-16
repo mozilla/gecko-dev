@@ -12953,7 +12953,7 @@
 
 - name: network.cookie.sameSite.noneRequiresSecure
   type: bool
-  value: true
+  value: @IS_NIGHTLY_BUILD@
   mirror: always
 
 - name: network.cookie.sameSite.schemeful

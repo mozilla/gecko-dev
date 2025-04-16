@@ -375,7 +375,9 @@ static bool ContainsControlChars(const nsACString& aString) {
 static inline void SetSameSiteAttributeDefault(CookieStruct& aCookieData) {
   // Set cookie with SameSite attribute that is treated as Default
   // and doesn't requires changing the DB schema.
-  aCookieData.sameSite() = nsICookie::SAMESITE_LAX;
+  aCookieData.sameSite() = StaticPrefs::network_cookie_sameSite_laxByDefault()
+                               ? nsICookie::SAMESITE_LAX
+                               : nsICookie::SAMESITE_NONE;
   aCookieData.rawSameSite() = nsICookie::SAMESITE_NONE;
 }
 
