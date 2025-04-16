@@ -1546,7 +1546,7 @@ const MESSAGES = () => [
     id: "TEST_NEWTAB_MESSAGE",
     template: "newtab_message",
     content: {
-      messageType: "CustomWallpaperHighlight",
+      messageType: "DownloadMobilePromoHighlight",
     },
     trigger: {
       id: "newtabMessageCheck",

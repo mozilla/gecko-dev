@@ -4,9 +4,9 @@
 
 import React from "react";
 
-function DownloadModalToggle() {
+function DownloadModalToggle({ onClick }) {
   return (
-    <button className="mobile-download-promo">
+    <button className="mobile-download-promo" onClick={onClick}>
       <div className="icon icon-device-phone"></div>
     </button>
   );

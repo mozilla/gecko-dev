@@ -17,6 +17,7 @@ import { Weather } from "content-src/components/Weather/Weather";
 import { DownloadModalToggle } from "content-src/components/DownloadModalToggle/DownloadModalToggle";
 import { Notifications } from "content-src/components/Notifications/Notifications";
 import { TopicSelection } from "content-src/components/DiscoveryStreamComponents/TopicSelection/TopicSelection";
+import { DownloadMobilePromoHighlight } from "../DiscoveryStreamComponents/FeatureHighlight/DownloadMobilePromoHighlight";
 import { WallpaperFeatureHighlight } from "../DiscoveryStreamComponents/FeatureHighlight/WallpaperFeatureHighlight";
 import { MessageWrapper } from "content-src/components/MessageWrapper/MessageWrapper";
 
@@ -130,12 +131,18 @@ export class BaseContent extends React.PureComponent {
     this.handleColorModeChange = this.handleColorModeChange.bind(this);
     this.shouldDisplayTopicSelectionModal =
       this.shouldDisplayTopicSelectionModal.bind(this);
+    this.toggleDownloadHighlight = this.toggleDownloadHighlight.bind(this);
+    this.handleDismissDownloadHighlight =
+      this.handleDismissDownloadHighlight.bind(this);
     this.state = {
       fixedSearch: false,
       firstVisibleTimestamp: null,
       colorMode: "",
       fixedNavStyle: {},
       wallpaperTheme: "",
+      showDownloadHighlight: this.shouldShowOMCHighlight(
+        "DownloadMobilePromoHighlight"
+      ),
     };
   }
 
@@ -500,11 +507,23 @@ export class BaseContent extends React.PureComponent {
   }
 
   shouldShowOMCHighlight(componentId) {
-    if (!this.props.Messages?.messageData) {
+    const messageData = this.props.Messages?.messageData;
+
+    if (!messageData || Object.keys(messageData).length === 0) {
       return false;
     }
-    const { messageData } = this.props.Messages;
+
     return messageData?.content?.messageType === componentId;
+  }
+
+  toggleDownloadHighlight() {
+    this.setState(prevState => ({
+      showDownloadHighlight: !prevState.showDownloadHighlight,
+    }));
+  }
+
+  handleDismissDownloadHighlight() {
+    this.setState({ showDownloadHighlight: false });
   }
 
   getRGBColors(input) {
@@ -746,7 +765,19 @@ export class BaseContent extends React.PureComponent {
         >
           {mobileDownloadPromoEnabled && mobileDownloadPromoVariantABorC && (
             <ErrorBoundary>
-              <DownloadModalToggle />
+              <DownloadModalToggle onClick={this.toggleDownloadHighlight} />
+              {this.state.showDownloadHighlight && (
+                <MessageWrapper
+                  hiddenOverride={this.state.showDownloadHighlight}
+                  onDismiss={this.handleDismissDownloadHighlight}
+                  dispatch={this.props.dispatch}
+                >
+                  <DownloadMobilePromoHighlight
+                    position="inset-block-end inset-inline-start"
+                    dispatch={this.props.dispatch}
+                  />
+                </MessageWrapper>
+              )}
             </ErrorBoundary>
           )}
         </div>

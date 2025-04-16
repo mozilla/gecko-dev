@@ -7470,6 +7470,69 @@ main section {
   display: none;
 }
 
+.download-firefox-feature-highlight .icon.icon-dismiss {
+  background: transparent url("chrome://global/skin/icons/close.svg");
+  background-size: var(--size-item-small);
+  height: var(--size-item-small);
+  width: var(--size-item-small);
+  position: absolute;
+  margin: 0;
+  inset-block-start: calc(var(--space-medium) + 2px);
+  inset-inline-end: calc(var(--space-medium) + 2px);
+}
+@media (prefers-color-scheme: dark) {
+  .download-firefox-feature-highlight .icon.icon-dismiss {
+    --dark-icon-color: var(--color-gray-70);
+    color: var(--dark-icon-color);
+  }
+}
+.download-firefox-feature-highlight .icon.icon-dismiss:hover {
+  --dark-icon-hover: var(--color-gray-60);
+  color: var(--dark-icon-hover);
+}
+.download-firefox-feature-highlight .feature-highlight .feature-highlight-modal {
+  --arrow-size: 24px;
+  padding: var(--space-large);
+  width: 271px;
+}
+.download-firefox-feature-highlight .feature-highlight .feature-highlight-modal .content-wrapper {
+  margin-block: 0;
+}
+.download-firefox-feature-highlight .feature-highlight .feature-highlight-modal .content-wrapper img {
+  display: block;
+  margin: 0 auto var(--space-large);
+}
+.download-firefox-feature-highlight .feature-highlight .feature-highlight-modal .message-icon {
+  display: none;
+}
+.download-firefox-feature-highlight .feature-highlight .feature-highlight-modal.inset-block-end {
+  margin-top: var(--space-xxlarge);
+}
+.download-firefox-feature-highlight .feature-highlight .feature-highlight-modal.inset-inline-start {
+  inset-inline-end: calc(var(--arrow-size) / 2 * -1 - 6px);
+}
+.download-firefox-feature-highlight .feature-highlight .feature-highlight-modal.inset-inline-start::after {
+  inset-inline-end: calc(var(--space-xxlarge) - 12px);
+}
+.download-firefox-feature-highlight .feature-highlight .feature-highlight-modal::after {
+  height: var(--arrow-size);
+  width: var(--arrow-size);
+  box-shadow: 4px -4px 6px -2px rgba(0, 0, 0, 0.15);
+  transform: rotate(-45deg);
+  pointer-events: none;
+}
+.download-firefox-feature-highlight .feature-highlight .feature-highlight-modal p {
+  margin: 0;
+  padding: 0;
+}
+.download-firefox-feature-highlight .feature-highlight .feature-highlight-modal .title {
+  font-weight: var(--font-weight-bold);
+  margin-block: var(--space-small);
+}
+.download-firefox-feature-highlight .feature-highlight .feature-highlight-modal .subtitle {
+  margin-block: 0;
+}
+
 .sponsored-content-highlight {
   float: inline-end;
 }
