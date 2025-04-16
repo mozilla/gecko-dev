@@ -338,6 +338,16 @@ defineLazyGetter(ExtensionChild.prototype, "authorCSSCode", function () {
  * @property {CSSCodeCache} authorCSSCode
  */
 
+/**
+ * Script/style injections depend on compiled scripts/styles. If the previously
+ * compiled script or style is not found, we block that and later script/style
+ * executions until compilation finishes. This is achieved by storing a Promise
+ * for that compilation in this gPendingScriptBlockers, for a given context.
+ *
+ * @type {WeakMap<ContentScriptContextChild, Promise>}
+ */
+const gPendingScriptBlockers = new WeakMap();
+
 // Represents a content script.
 class Script {
   /**
@@ -530,73 +540,107 @@ class Script {
       context.addScript(this);
     }
 
-    let cssPromise;
-    if (this.css.length || this.cssCodeHash) {
-      let window = context.contentWindow;
-      let { windowUtils } = window;
+    // To avoid another await (which affects timing) or .then() chaining
+    // (which would create a new Promise that could duplicate a rejection),
+    // we store the index where we expect the result of a Promise.all() call.
+    let scriptsIndex, sheetsIndex;
+    let sheets = this.getCompiledStyleSheets(context.contentWindow);
+    let scripts = this.getCompiledScripts(context);
 
-      let type =
-        this.cssOrigin === "user"
-          ? windowUtils.USER_SHEET
-          : windowUtils.AUTHOR_SHEET;
-
-      if (this.removeCSS) {
-        this.removeStyleSheets(window);
-      } else {
-        const sheets = this.getCompiledStyleSheets(window);
-        if (sheets instanceof Promise) {
-          cssPromise = sheets.then(sheetsWithSheet => {
-            if (!context.contentWindow) {
-              // Context unloaded during compilation.
-              return;
-            }
-            for (const sheet of sheetsWithSheet) {
-              runSafeSyncWithoutClone(windowUtils.addSheet, sheet, type);
-            }
-          });
-        } else {
-          for (const sheet of sheets) {
-            runSafeSyncWithoutClone(windowUtils.addSheet, sheet, type);
-          }
-          // TODO: Remove. This is just here so that the refactoring does not
-          // change the timing behavior.
-          cssPromise = Promise.resolve();
-        }
-
-        // We're loading stylesheets via the stylesheet service, which means
-        // that the normal mechanism for blocking layout and onload for pending
-        // stylesheets aren't in effect (since there's no document to block). So
-        // we need to do something custom here, similar to what we do for
-        // scripts. Blocking parsing is overkill, since we really just want to
-        // block layout and onload. But we have an API to do the former and not
-        // the latter, so we do it that way. This hopefully isn't a performance
-        // problem since there are no network loads involved, and since we cache
-        // the stylesheets on first load. We should fix this up if it does becomes
-        // a problem.
-        if (this.css.length) {
-          context.contentWindow.document.blockParsing(cssPromise, {
-            blockScriptCreated: false,
-          });
-        }
-      }
+    let executionBlockingPromises = [];
+    if (gPendingScriptBlockers.has(context)) {
+      executionBlockingPromises.push(gPendingScriptBlockers.get(context));
+    }
+    if (scripts instanceof Promise) {
+      scriptsIndex = executionBlockingPromises.length;
+      executionBlockingPromises.push(scripts);
+    }
+    if (sheets instanceof Promise) {
+      sheetsIndex = executionBlockingPromises.length;
+      executionBlockingPromises.push(sheets);
     }
 
-    let scripts = this.getCompiledScripts(context);
-    if (scripts instanceof Promise) {
+    if (executionBlockingPromises.length) {
+      let promise = Promise.all(executionBlockingPromises);
+
+      // If we're supposed to inject at the start of the document load,
+      // and we haven't already missed that point, block further parsing
+      // until the scripts/styles have been loaded.
+      // This maximizes the chance of content scripts executing before other
+      // scripts in the web page.
+      //
+      // Blocking the full parser is overkill if we are only awaiting style
+      // compilation, since we only need to block the parts that are dependent
+      // on CSS (layout, onload event, CSSOM, etc). But we have an API to do
+      // the former and not atter, so we do it that way. This hopefully isn't a
+      // performance problem since there are no network loads involved, and
+      // since we cache the stylesheets on first load. We should fix this up if
+      // it does becomes a problem.
+      const { document } = context.contentWindow;
+      if (
+        this.runAt === "document_start" &&
+        document.readyState !== "complete"
+      ) {
+        document.blockParsing(promise, { blockScriptCreated: false });
+      }
+
+      // Store a promise that never rejects, so that failure to compile scripts
+      // or styles here does not prevent the scheduling of others.
+      let promiseSettled = promise.then(
+        () => {},
+        () => {}
+      );
+      gPendingScriptBlockers.set(context, promiseSettled);
+
       // Note: in theory, the following async await could result in script
       // execution being scheduled too late. That would be an issue for
       // document_start scripts. In practice, this is not a problem because the
       // compiled script is cached in the process, and preloading to compile
       // starts as soon as the network request for the document has been
       // received (see ExtensionPolicyService::CheckRequest).
-      // getCompiledScripts() uses blockParsing() for document_start scripts to
+      //
+      // We use blockParsing() for document_start scripts (and styles) to
       // ensure that the DOM remains blocked when scripts are still compiling.
-      scripts = await scripts;
+      try {
+        // NOTE: This is the ONLY await in this injectInto function!
+        const compiledResults = await promise;
+        if (sheetsIndex !== undefined) {
+          sheets = compiledResults[sheetsIndex];
+        }
+        if (scriptsIndex !== undefined) {
+          scripts = compiledResults[scriptsIndex];
+        }
+      } finally {
+        // gPendingScriptBlockers may be overwritten by another inject() call,
+        // so check that this is the latest inject() attempt before clearing.
+        if (gPendingScriptBlockers.get(context) === promiseSettled) {
+          gPendingScriptBlockers.delete(context);
+        }
+      }
     }
 
-    if (cssPromise) {
+    let window = context.contentWindow;
+    if (!window) {
+      // context unloaded or went into bfcache before compilation completed.
+      return;
+    }
+
+    if (this.css.length || this.cssCodeHash) {
+      if (this.removeCSS) {
+        this.removeStyleSheets(window);
+        // The tabs.removeCSS and scripting.removeCSS are never combined with
+        // script execution, so we can now return early.
+        return;
+      }
       // Make sure we've injected any related CSS before we run content scripts.
-      await cssPromise;
+      let { windowUtils } = window;
+      let type =
+        this.cssOrigin === "user"
+          ? windowUtils.USER_SHEET
+          : windowUtils.AUTHOR_SHEET;
+      for (const sheet of sheets) {
+        runSafeSyncWithoutClone(windowUtils.addSheet, sheet, type);
+      }
     }
 
     const { extension } = context;
@@ -693,15 +737,14 @@ class Script {
   }
 
   /**
-   *  Get the compiled scripts (if they are already precompiled and cached) or a promise which resolves
-   *  to the precompiled scripts (once they have been compiled and cached).
+   * Get the compiled scripts (if they are already precompiled and cached) or a
+   * promise which resolves to the precompiled scripts (once they have been
+   * compiled and cached).
    *
    * @param {ContentScriptContextChild} context
-   *        The document to block the parsing on, if the scripts are not yet precompiled and cached.
+   *        The context where the caller intends to run the compiled script.
    *
    * @returns {PrecompiledScript[] | Promise<PrecompiledScript[]>}
-   *          Returns an array of preloaded scripts if they are already available, or a promise which
-   *          resolves to the array of the preloaded scripts once they are precompiled and cached.
    */
   getCompiledScripts(context) {
     let scriptPromises = this.compileScripts();
@@ -734,17 +777,6 @@ class Script {
             )
           );
         });
-      }
-
-      // If we're supposed to inject at the start of the document load,
-      // and we haven't already missed that point, block further parsing
-      // until the scripts have been loaded.
-      const { document } = context.contentWindow;
-      if (
-        this.runAt === "document_start" &&
-        document.readyState !== "complete"
-      ) {
-        document.blockParsing(promise, { blockScriptCreated: false });
       }
 
       return promise;
@@ -844,8 +876,20 @@ class UserScript extends Script {
   async inject(context) {
     let scripts = this.getCompiledScripts(context);
     if (scripts instanceof Promise) {
+      // If we're supposed to inject at the start of the document load,
+      // and we haven't already missed that point, block further parsing
+      // until the scripts have been loaded.
+      const { document } = context.contentWindow;
+      if (
+        this.runAt === "document_start" &&
+        document.readyState !== "complete"
+      ) {
+        document.blockParsing(scripts, { blockScriptCreated: false });
+      }
       scripts = await scripts;
     }
+    // NOTE: Other than "await scripts" above, there is no other "await" before
+    // execution. This ensures that document_start scripts execute immediately.
 
     let apiScript, sandboxScripts;
 
