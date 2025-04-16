@@ -250,7 +250,7 @@ export const NimbusTelemetry = {
   },
 
   recordUnenrollmentFailure(slug, reason) {
-    Glean.normandy.unenrollFailedNimbusExperiment({
+    Glean.normandy.unenrollFailedNimbusExperiment.record({
       value: slug,
       reason,
     });
