@@ -18418,13 +18418,6 @@
   value: false
   mirror: once
 
-# Use DMABuf for content textures.
-# For testing purposes only.
-- name: widget.dmabuf-textures.enabled
-  type: RelaxedAtomicBool
-  value: false
-  mirror: always
-
 # Get DMABuf format feedback from compositor.
 # For testing only
 - name: widget.dmabuf-feedback.enabled
