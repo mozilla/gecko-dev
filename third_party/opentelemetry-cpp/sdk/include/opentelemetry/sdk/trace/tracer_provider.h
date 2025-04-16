@@ -39,8 +39,6 @@ public:
    * not be a nullptr.
    * @param id_generator The custom id generator for this tracer provider. This must
    * not be a nullptr
-   * @param tracer_configurator Provides access to a function that computes the TracerConfig for
-   * Tracers provided by this TracerProvider.
    */
   explicit TracerProvider(
       std::unique_ptr<SpanProcessor> processor,
@@ -48,12 +46,7 @@ public:
           opentelemetry::sdk::resource::Resource::Create({}),
       std::unique_ptr<Sampler> sampler = std::unique_ptr<AlwaysOnSampler>(new AlwaysOnSampler),
       std::unique_ptr<IdGenerator> id_generator =
-          std::unique_ptr<IdGenerator>(new RandomIdGenerator()),
-      std::unique_ptr<instrumentationscope::ScopeConfigurator<TracerConfig>> tracer_configurator =
-          std::make_unique<instrumentationscope::ScopeConfigurator<TracerConfig>>(
-              instrumentationscope::ScopeConfigurator<TracerConfig>::Builder(
-                  TracerConfig::Default())
-                  .Build())) noexcept;
+          std::unique_ptr<IdGenerator>(new RandomIdGenerator())) noexcept;
 
   explicit TracerProvider(
       std::vector<std::unique_ptr<SpanProcessor>> &&processors,
@@ -61,12 +54,7 @@ public:
           opentelemetry::sdk::resource::Resource::Create({}),
       std::unique_ptr<Sampler> sampler = std::unique_ptr<AlwaysOnSampler>(new AlwaysOnSampler),
       std::unique_ptr<IdGenerator> id_generator =
-          std::unique_ptr<IdGenerator>(new RandomIdGenerator()),
-      std::unique_ptr<instrumentationscope::ScopeConfigurator<TracerConfig>> tracer_configurator =
-          std::make_unique<instrumentationscope::ScopeConfigurator<TracerConfig>>(
-              instrumentationscope::ScopeConfigurator<TracerConfig>::Builder(
-                  TracerConfig::Default())
-                  .Build())) noexcept;
+          std::unique_ptr<IdGenerator>(new RandomIdGenerator())) noexcept;
 
   /**
    * Initialize a new tracer provider with a specified context
@@ -113,7 +101,7 @@ public:
   /**
    * Shutdown the span processor associated with this tracer provider.
    */
-  bool Shutdown(std::chrono::microseconds timeout = (std::chrono::microseconds::max)()) noexcept;
+  bool Shutdown() noexcept;
 
   /**
    * Force flush the span processor associated with this tracer provider.

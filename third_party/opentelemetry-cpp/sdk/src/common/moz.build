@@ -12,7 +12,6 @@ LOCAL_INCLUDES += [
 
 UNIFIED_SOURCES += [
     "base64.cc",
-    "disabled.cc",
     "env_variables.cc",
     "global_log_handler.cc",
     "random.cc",

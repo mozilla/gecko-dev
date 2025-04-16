@@ -5,6 +5,7 @@
 
 #include <sstream>  // IWYU pragma: keep
 #include <string>
+#include <utility>
 
 #include "opentelemetry/nostd/shared_ptr.h"
 #include "opentelemetry/sdk/common/attribute_utils.h"
@@ -98,28 +99,37 @@ public:
    *
    * By default, a default LogHandler is returned.
    */
-  static nostd::shared_ptr<LogHandler> GetLogHandler() noexcept;
+  static inline const nostd::shared_ptr<LogHandler> &GetLogHandler() noexcept
+  {
+    return GetHandlerAndLevel().first;
+  }
 
   /**
    * Changes the singleton LogHandler.
    * This should be called once at the start of application before creating any Provider
    * instance.
    */
-  static void SetLogHandler(const nostd::shared_ptr<LogHandler> &eh) noexcept;
+  static inline void SetLogHandler(nostd::shared_ptr<LogHandler> eh) noexcept
+  {
+    GetHandlerAndLevel().first = eh;
+  }
 
   /**
    * Returns the singleton log level.
    *
    * By default, a default log level is returned.
    */
-  static LogLevel GetLogLevel() noexcept;
+  static inline LogLevel GetLogLevel() noexcept { return GetHandlerAndLevel().second; }
 
   /**
    * Changes the singleton Log level.
    * This should be called once at the start of application before creating any Provider
    * instance.
    */
-  static void SetLogLevel(LogLevel level) noexcept;
+  static inline void SetLogLevel(LogLevel level) noexcept { GetHandlerAndLevel().second = level; }
+
+private:
+  static std::pair<nostd::shared_ptr<LogHandler>, LogLevel> &GetHandlerAndLevel() noexcept;
 };
 
 }  // namespace internal_log
@@ -132,23 +142,24 @@ OPENTELEMETRY_END_NAMESPACE
  * To ensure that GlobalLogHandler is the first one to be initialized (and so last to be
  * destroyed), it is first used inside the constructors of TraceProvider, MeterProvider
  * and LoggerProvider for debug logging. */
-#define OTEL_INTERNAL_LOG_DISPATCH(level, message, attributes)                                    \
-  do                                                                                              \
-  {                                                                                               \
-    using opentelemetry::sdk::common::internal_log::GlobalLogHandler;                             \
-    using opentelemetry::sdk::common::internal_log::LogHandler;                                   \
-    if (level > GlobalLogHandler::GetLogLevel())                                                  \
-    {                                                                                             \
-      break;                                                                                      \
-    }                                                                                             \
-    opentelemetry::nostd::shared_ptr<LogHandler> log_handler = GlobalLogHandler::GetLogHandler(); \
-    if (!log_handler)                                                                             \
-    {                                                                                             \
-      break;                                                                                      \
-    }                                                                                             \
-    std::stringstream tmp_stream;                                                                 \
-    tmp_stream << message;                                                                        \
-    log_handler->Handle(level, __FILE__, __LINE__, tmp_stream.str().c_str(), attributes);         \
+#define OTEL_INTERNAL_LOG_DISPATCH(level, message, attributes)                            \
+  do                                                                                      \
+  {                                                                                       \
+    using opentelemetry::sdk::common::internal_log::GlobalLogHandler;                     \
+    using opentelemetry::sdk::common::internal_log::LogHandler;                           \
+    if (level > GlobalLogHandler::GetLogLevel())                                          \
+    {                                                                                     \
+      break;                                                                              \
+    }                                                                                     \
+    const opentelemetry::nostd::shared_ptr<LogHandler> &log_handler =                     \
+        GlobalLogHandler::GetLogHandler();                                                \
+    if (!log_handler)                                                                     \
+    {                                                                                     \
+      break;                                                                              \
+    }                                                                                     \
+    std::stringstream tmp_stream;                                                         \
+    tmp_stream << message;                                                                \
+    log_handler->Handle(level, __FILE__, __LINE__, tmp_stream.str().c_str(), attributes); \
   } while (false);
 
 #define OTEL_INTERNAL_LOG_GET_3RD_ARG(arg1, arg2, arg3, ...) arg3

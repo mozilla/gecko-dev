@@ -4,7 +4,6 @@
 #include <chrono>
 #include <utility>
 
-#include "opentelemetry/nostd/function_ref.h"
 #include "opentelemetry/sdk/trace/processor.h"
 #include "opentelemetry/sdk/trace/recordable.h"
 #include "opentelemetry/trace/span_id.h"

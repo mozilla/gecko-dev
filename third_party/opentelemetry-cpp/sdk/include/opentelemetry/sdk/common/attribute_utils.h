@@ -106,60 +106,6 @@ struct AttributeConverter
 };
 
 /**
- * Evaluates if an owned value (from an OwnedAttributeValue) is equal to another value (from a
- * non-owning AttributeValue). This only supports the checking equality with
- * nostd::visit(AttributeEqualToVisitor, OwnedAttributeValue, AttributeValue).
- */
-struct AttributeEqualToVisitor
-{
-  // Different types are not equal including containers of different element types
-  template <typename T, typename U>
-  bool operator()(const T &, const U &) const noexcept
-  {
-    return false;
-  }
-
-  // Compare the same arithmetic types
-  template <typename T>
-  bool operator()(const T &owned_value, const T &value) const noexcept
-  {
-    return owned_value == value;
-  }
-
-  // Compare std::string and const char*
-  bool operator()(const std::string &owned_value, const char *value) const noexcept
-  {
-    return owned_value == value;
-  }
-
-  // Compare std::string and nostd::string_view
-  bool operator()(const std::string &owned_value, nostd::string_view value) const noexcept
-  {
-    return owned_value == value;
-  }
-
-  // Compare std::vector<std::string> and nostd::span<const nostd::string_view>
-  bool operator()(const std::vector<std::string> &owned_value,
-                  const nostd::span<const nostd::string_view> &value) const noexcept
-  {
-    return owned_value.size() == value.size() &&
-           std::equal(owned_value.begin(), owned_value.end(), value.begin(),
-                      [](const std::string &owned_element, nostd::string_view element) {
-                        return owned_element == element;
-                      });
-  }
-
-  // Compare nostd::span<const T> and std::vector<T> for arithmetic types
-  template <typename T>
-  bool operator()(const std::vector<T> &owned_value,
-                  const nostd::span<const T> &value) const noexcept
-  {
-    return owned_value.size() == value.size() &&
-           std::equal(owned_value.begin(), owned_value.end(), value.begin());
-  }
-};
-
-/**
  * Class for storing attributes.
  */
 class AttributeMap : public std::unordered_map<std::string, OwnedAttributeValue>
@@ -216,37 +162,8 @@ public:
     (*this)[std::string(key)] = nostd::visit(converter_, value);
   }
 
-  // Compare the attributes of this map with another KeyValueIterable
-  bool EqualTo(const opentelemetry::common::KeyValueIterable &attributes) const noexcept
-  {
-    if (attributes.size() != this->size())
-    {
-      return false;
-    }
-
-    const bool is_equal = attributes.ForEachKeyValue(
-        [this](nostd::string_view key,
-               const opentelemetry::common::AttributeValue &value) noexcept {
-          // Perform a linear search to find the key assuming the map is small
-          // This avoids temporary string creation from this->find(std::string(key))
-          for (const auto &kv : *this)
-          {
-            if (kv.first == key)
-            {
-              // Order of arguments is important here. OwnedAttributeValue is first then
-              // AttributeValue AttributeEqualToVisitor does not support the reverse order
-              return nostd::visit(equal_to_visitor_, kv.second, value);
-            }
-          }
-          return false;
-        });
-
-    return is_equal;
-  }
-
 private:
   AttributeConverter converter_;
-  AttributeEqualToVisitor equal_to_visitor_;
 };
 
 /**

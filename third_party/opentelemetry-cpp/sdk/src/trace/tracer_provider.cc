@@ -12,15 +12,14 @@
 #include "opentelemetry/nostd/string_view.h"
 #include "opentelemetry/sdk/common/global_log_handler.h"
 #include "opentelemetry/sdk/instrumentationscope/instrumentation_scope.h"
-#include "opentelemetry/sdk/instrumentationscope/scope_configurator.h"
 #include "opentelemetry/sdk/resource/resource.h"
 #include "opentelemetry/sdk/trace/id_generator.h"
 #include "opentelemetry/sdk/trace/processor.h"
 #include "opentelemetry/sdk/trace/sampler.h"
 #include "opentelemetry/sdk/trace/tracer.h"
-#include "opentelemetry/sdk/trace/tracer_config.h"
 #include "opentelemetry/sdk/trace/tracer_context.h"
 #include "opentelemetry/sdk/trace/tracer_provider.h"
+#include "opentelemetry/trace/span_id.h"
 #include "opentelemetry/trace/tracer.h"
 #include "opentelemetry/version.h"
 
@@ -38,39 +37,30 @@ TracerProvider::TracerProvider(std::unique_ptr<TracerContext> context) noexcept
   OTEL_INTERNAL_LOG_DEBUG("[TracerProvider] TracerProvider created.");
 }
 
-TracerProvider::TracerProvider(
-    std::unique_ptr<SpanProcessor> processor,
-    const resource::Resource &resource,
-    std::unique_ptr<Sampler> sampler,
-    std::unique_ptr<IdGenerator> id_generator,
-    std::unique_ptr<instrumentationscope::ScopeConfigurator<TracerConfig>>
-        tracer_configurator) noexcept
+TracerProvider::TracerProvider(std::unique_ptr<SpanProcessor> processor,
+                               const resource::Resource &resource,
+                               std::unique_ptr<Sampler> sampler,
+                               std::unique_ptr<IdGenerator> id_generator) noexcept
 {
   std::vector<std::unique_ptr<SpanProcessor>> processors;
   processors.push_back(std::move(processor));
-  context_ =
-      std::make_shared<TracerContext>(std::move(processors), resource, std::move(sampler),
-                                      std::move(id_generator), std::move(tracer_configurator));
+  context_ = std::make_shared<TracerContext>(std::move(processors), resource, std::move(sampler),
+                                             std::move(id_generator));
 }
 
-TracerProvider::TracerProvider(
-    std::vector<std::unique_ptr<SpanProcessor>> &&processors,
-    const resource::Resource &resource,
-    std::unique_ptr<Sampler> sampler,
-    std::unique_ptr<IdGenerator> id_generator,
-    std::unique_ptr<instrumentationscope::ScopeConfigurator<TracerConfig>>
-        tracer_configurator) noexcept
-    : context_(std::make_shared<TracerContext>(std::move(processors),
-                                               resource,
-                                               std::move(sampler),
-                                               std::move(id_generator),
-                                               std::move(tracer_configurator)))
-{}
+TracerProvider::TracerProvider(std::vector<std::unique_ptr<SpanProcessor>> &&processors,
+                               const resource::Resource &resource,
+                               std::unique_ptr<Sampler> sampler,
+                               std::unique_ptr<IdGenerator> id_generator) noexcept
+{
+  context_ = std::make_shared<TracerContext>(std::move(processors), resource, std::move(sampler),
+                                             std::move(id_generator));
+}
 
 TracerProvider::~TracerProvider()
 {
   // Tracer hold the shared pointer to the context. So we can not use destructor of TracerContext to
-  // Shutdown and flush all pending recordables when we have more than one tracer.These recordables
+  // Shutdown and flush all pending recordables when we have more than one tracers.These recordables
   // may use the raw pointer of instrumentation_scope_ in Tracer
   if (context_)
   {
@@ -110,7 +100,7 @@ nostd::shared_ptr<trace_api::Tracer> TracerProvider::GetTracer(
   for (auto &tracer : tracers_)
   {
     auto &tracer_scope = tracer->GetInstrumentationScope();
-    if (tracer_scope.equal(name, version, schema_url, attributes))
+    if (tracer_scope.equal(name, version, schema_url))
     {
       return nostd::shared_ptr<trace_api::Tracer>{tracer};
     }
@@ -135,15 +125,16 @@ const resource::Resource &TracerProvider::GetResource() const noexcept
   return context_->GetResource();
 }
 
-bool TracerProvider::Shutdown(std::chrono::microseconds timeout) noexcept
+bool TracerProvider::Shutdown() noexcept
 {
-  return context_->Shutdown(timeout);
+  return context_->Shutdown();
 }
 
 bool TracerProvider::ForceFlush(std::chrono::microseconds timeout) noexcept
 {
   return context_->ForceFlush(timeout);
 }
+
 }  // namespace trace
 }  // namespace sdk
 OPENTELEMETRY_END_NAMESPACE

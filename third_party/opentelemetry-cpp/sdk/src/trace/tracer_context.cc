@@ -6,13 +6,11 @@
 #include <utility>
 #include <vector>
 
-#include "opentelemetry/sdk/instrumentationscope/scope_configurator.h"
 #include "opentelemetry/sdk/resource/resource.h"
 #include "opentelemetry/sdk/trace/id_generator.h"
 #include "opentelemetry/sdk/trace/multi_span_processor.h"
 #include "opentelemetry/sdk/trace/processor.h"
 #include "opentelemetry/sdk/trace/sampler.h"
-#include "opentelemetry/sdk/trace/tracer_config.h"
 #include "opentelemetry/sdk/trace/tracer_context.h"
 #include "opentelemetry/version.h"
 
@@ -26,14 +24,11 @@ namespace resource = opentelemetry::sdk::resource;
 TracerContext::TracerContext(std::vector<std::unique_ptr<SpanProcessor>> &&processors,
                              const resource::Resource &resource,
                              std::unique_ptr<Sampler> sampler,
-                             std::unique_ptr<IdGenerator> id_generator,
-                             std::unique_ptr<instrumentationscope::ScopeConfigurator<TracerConfig>>
-                                 tracer_configurator) noexcept
+                             std::unique_ptr<IdGenerator> id_generator) noexcept
     : resource_(resource),
       sampler_(std::move(sampler)),
       id_generator_(std::move(id_generator)),
-      processor_(std::unique_ptr<SpanProcessor>(new MultiSpanProcessor(std::move(processors)))),
-      tracer_configurator_(std::move(tracer_configurator))
+      processor_(std::unique_ptr<SpanProcessor>(new MultiSpanProcessor(std::move(processors))))
 {}
 
 Sampler &TracerContext::GetSampler() const noexcept
@@ -44,12 +39,6 @@ Sampler &TracerContext::GetSampler() const noexcept
 const resource::Resource &TracerContext::GetResource() const noexcept
 {
   return resource_;
-}
-
-const instrumentationscope::ScopeConfigurator<TracerConfig> &TracerContext::GetTracerConfigurator()
-    const noexcept
-{
-  return *tracer_configurator_;
 }
 
 opentelemetry::sdk::trace::IdGenerator &TracerContext::GetIdGenerator() const noexcept

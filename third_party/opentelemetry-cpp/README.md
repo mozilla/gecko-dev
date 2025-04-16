@@ -5,8 +5,6 @@
 [![Build
 Status](https://github.com/open-telemetry/opentelemetry-cpp/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/open-telemetry/opentelemetry-cpp/actions)
 [![Release](https://img.shields.io/github/v/release/open-telemetry/opentelemetry-cpp?include_prereleases&style=)](https://github.com/open-telemetry/opentelemetry-cpp/releases/)
-[![FOSSA License Status](https://app.fossa.com/api/projects/custom%2B162%2Fgithub.com%2Fopen-telemetry%2Fopentelemetry-cpp.svg?type=shield&issueType=license)](https://app.fossa.com/projects/custom%2B162%2Fgithub.com%2Fopen-telemetry%2Fopentelemetry-cpp?ref=badge_shield&issueType=license)
-[![FOSSA Security Status](https://app.fossa.com/api/projects/custom%2B162%2Fgithub.com%2Fopen-telemetry%2Fopentelemetry-cpp.svg?type=shield&issueType=security)](https://app.fossa.com/projects/custom%2B162%2Fgithub.com%2Fopen-telemetry%2Fopentelemetry-cpp?ref=badge_shield&issueType=security)
 
 The C++ [OpenTelemetry](https://opentelemetry.io/) client.
 
@@ -95,9 +93,7 @@ For edit access, get in touch on
 [Approvers](https://github.com/open-telemetry/community/blob/main/community-membership.md#approver)
 ([@open-telemetry/cpp-approvers](https://github.com/orgs/open-telemetry/teams/cpp-approvers)):
 
-* [Doug Barker](https://github.com/dbarker)
 * [Josh Suereth](https://github.com/jsuereth), Google
-* [Pranav Sharma](https://github.com/psx95), Google
 * [WenTao Ou](https://github.com/owent), Tencent
 
 [Emeritus
