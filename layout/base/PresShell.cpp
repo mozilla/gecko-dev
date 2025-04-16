@@ -2249,6 +2249,9 @@ void PresShell::NotifyDestroyingFrame(nsIFrame* aFrame) {
       }
     }
 
+    EventStateManager* const esm = mPresContext->EventStateManager();
+    esm->NotifyDestroyingFrameForGesture(aFrame);
+
     mFramesToDirty.Remove(aFrame);
 
     if (ScrollContainerFrame* scrollContainerFrame = do_QueryFrame(aFrame)) {
