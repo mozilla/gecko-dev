@@ -898,20 +898,12 @@ function getSignedStatus(aRv, aCert, aAddonID) {
 }
 
 function shouldVerifySignedState(aAddonType, aLocation) {
-  // TODO when KEY_APP_SYSTEM_DEFAULTS and KEY_APP_SYSTEM_ADDONS locations
-  // are removed, we need to reorganize the logic here.  At that point we
-  // should:
-  //   if builtin or MOZ_UNSIGNED_SCOPES return false
-  //   if system return true
-  //   return SIGNED_TYPES.has(type)
-
-  // We don't care about signatures for default system add-ons
-  if (aLocation.name == XPIExports.XPIInternal.KEY_APP_SYSTEM_DEFAULTS) {
-    return false;
-  }
-
-  // Updated system add-ons should always have their signature checked
-  if (aLocation.isSystem) {
+  // Updated system add-ons should always have their signature checked (unless they are built
+  // into the omni jar).
+  if (
+    aLocation.isSystem &&
+    aLocation.name !== XPIExports.XPIProvider.KEY_APP_SYSTEM_BUILTINS
+  ) {
     return true;
   }
 
@@ -4341,10 +4333,9 @@ export var XPIInstall = {
     // If this matches the current set in the default locations then reset the
     // updated set.
     let defaultAddons = addonMap(
-      await XPIExports.XPIDatabase.getAddonsInLocations([
-        XPIExports.XPIInternal.KEY_APP_SYSTEM_DEFAULTS,
-        XPIExports.XPIInternal.KEY_APP_SYSTEM_BUILTINS,
-      ])
+      await XPIExports.XPIDatabase.getAddonsInLocation(
+        XPIExports.XPIInternal.KEY_APP_SYSTEM_BUILTINS
+      )
     );
     if (setMatches(addonList, defaultAddons)) {
       logger.info("Resetting system add-ons.");
