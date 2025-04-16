@@ -2647,36 +2647,36 @@ export class ExtensionData {
    *                  Wether to include the full domains set in the returned
    *                  results.  Defaults to false.
    *
-   * @returns {object} An object with properties containing localized strings
-   *                   for various elements of a permission dialog. The "header"
-   *                   property on this object is the notification header text
-   *                   and it has the string "<>" as a placeholder for the
-   *                   addon name.
+   * @typedef {object} PermissionStrings
+   * @property {Array<string>} msgs an array of localized strings describing
+   * required permissions
+   * @property {Record<string, string>} optionalPermissions a map of permission
+   * name to localized strings describing the permission
+   * @property {Record<string, string>} optionalOrigins a map of a host
+   * permission to localized strings describing the host permission, where
+   * appropriate. Currently only all url style permissions are included
+   * @property {string} text a localized string
+   * @property {string} listIntro a localized string that should be displayed
+   * before the list of permissions
+   * @property {{ msg?: string, collectsTechnicalAndInteractionData?: boolean }} dataCollectionPermissions
+   * an object containing information about data permissions to be displayed.
+   * It contains a message string, and whether the extension collects technical
+   * and interaction data, which needs to be handled differently
+   * @property {Record<string, string>} optionalDataCollectionPermissions a map
+   * of data collection permission names to localized strings
+   * @property {{ domainsSet: Set, msgIdIndex: number }=} fullDomainsList an
+   * object with a Set of the full domains list (with the property name
+   * "domainsSet") and the index of the corresponding message string (with the
+   * property name "msgIdIndex"). This property is expected to be set only if
+   * "options.fullDomainsList" is passed as true and the extension doesn't
+   * include allUrls origin permissions
    *
-   *                   "object.msgs" is an array of localized strings
-   *                   describing required permissions
-   *
-   *                   "object.optionalPermissions" is a map of permission name
-   *                   to localized strings describing the permission.
-   *
-   *                   "object.optionalOrigins" is a map of a host permission
-   *                   to localized strings describing the host permission,
-   *                   where appropriate.  Currently only all url style
-   *                   permissions are included.
-   *
-   *                   "object.fullDomainsList" is an object with a Set of the
-   *                   full domains list (with the property name "domainsSet")
-   *                   and the index of the corresponding message string (with
-   *                   the property name "msgIdIndex"). This property is
-   *                   expected to be set only if "options.fullDomainsList" is
-   *                   passed as true and the extension doesn't include
-   *                   allUrls origin permissions.
-   *
-   *                   "object.dataCollectionPermissions" is an object
-   *                   containing information about data permissions to be
-   *                   displayed. It contains a message string, and whether the
-   *                   extension collects technical and interaction data, which
-   *                   needs to be handled differently.
+   * @returns {PermissionStrings} An object with properties containing
+   *                             localized strings for various elements of a
+   *                             permission dialog. The "header" property on
+   *                             this object is the notification header text
+   *                             and it has the string "<>" as a placeholder
+   *                             for the addon name.
    */
   static formatPermissionStrings(
     {
@@ -2704,6 +2704,7 @@ export class ExtensionData {
       text: "",
       listIntro: "",
       dataCollectionPermissions: {},
+      optionalDataCollectionPermissions: {},
     };
 
     // To keep the label & accesskey in sync for localizations,
@@ -2940,6 +2941,16 @@ export class ExtensionData {
           result.optionalOrigins[ooKeys[i]] = res[i];
         }
       }
+
+      if (
+        lazy.dataCollectionPermissionsEnabled &&
+        optionalPermissions.data_collection?.length
+      ) {
+        result.optionalDataCollectionPermissions =
+          this._formatOptionalDataCollectionPermissions(
+            optionalPermissions.data_collection
+          );
+      }
     }
 
     const hasDataCollectionOnly =
@@ -3092,6 +3103,34 @@ export class ExtensionData {
     }
 
     return dataCollectionPermissions;
+  }
+
+  /**
+   * @param {Array<string>} permissions A list of optional data collection
+   * permissions.
+   *
+   * @returns {Record<string, string>} A map of permission names to localized
+   * strings representing the optional data collection permissions.
+   */
+  static _formatOptionalDataCollectionPermissions(permissions) {
+    const optionalDataCollectionPermissions = {};
+
+    const odcKeys = [];
+    const odcL10nIds = [];
+    for (let permission of permissions) {
+      const l10nId = lazy.permissionToL10nId(permission, /* short */ false);
+      odcKeys.push(permission);
+      odcL10nIds.push(l10nId);
+    }
+
+    if (odcKeys.length) {
+      const res = lazy.PERMISSION_L10N.formatValuesSync(odcL10nIds);
+      for (let i = 0; i < res.length; ++i) {
+        optionalDataCollectionPermissions[odcKeys[i]] = res[i];
+      }
+    }
+
+    return optionalDataCollectionPermissions;
   }
 }
 
