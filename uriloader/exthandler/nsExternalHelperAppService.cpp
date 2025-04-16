@@ -593,7 +593,7 @@ static const nsExtraMimeTypeEntry extraMimeEntries[] = {
     {AUDIO_WEBM, "webm", "Web Media Audio"},
     {AUDIO_MP3, "mp3,mpega,mp2", "MPEG Audio"},
     {VIDEO_MP4, "mp4,m4a,m4b", "MPEG-4 Video"},
-    {AUDIO_MP4, "mp4,m4a,m4b", "MPEG-4 Audio"},
+    {AUDIO_MP4, "m4a,m4b", "MPEG-4 Audio"},
     {VIDEO_RAW, "yuv", "Raw YUV Video"},
     {AUDIO_WAV, "wav", "Waveform Audio"},
     {VIDEO_3GPP, "3gpp,3gp", "3GPP Video"},
