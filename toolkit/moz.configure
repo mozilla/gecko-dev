@@ -3370,9 +3370,6 @@ confvar(
     set_as_config=False,
     help="ID of the associated mac bundle",
 )
-add_old_configure_assignment(
-    "MOZ_MACBUNDLE_ID", depends_if("MOZ_MACBUNDLE_ID")(lambda v: v[0])
-)
 
 option(
     env="MOZ_APP_REMOTINGNAME",
@@ -3683,11 +3680,32 @@ with only_when(target_is_osx):
         help="Prefix for the mac bundle name",
     )
 
-    @depends_if("--with-macbundlename-prefix")
-    def mac_bundle_name(value):
-        return value[0]
+    @depends(moz_app_displayname, "--with-macbundlename-prefix", moz_debug)
+    def mac_bundle_name(moz_app_displayname, mac_bundle_name_prefix, moz_debug):
+        suffix = "Debug" if moz_debug else ""
+        prefix = mac_bundle_name_prefix[0] if mac_bundle_name_prefix else ""
+        app_displayname = moz_app_displayname if moz_app_displayname else ""
+        return f"{prefix}{app_displayname}{suffix}.app"
 
-    add_old_configure_assignment("MOZ_MACBUNDLE_NAME_PREFIX", mac_bundle_name)
+    set_config("MOZ_MACBUNDLE_NAME", mac_bundle_name)
+
+    @depends(
+        "MOZ_MACBUNDLE_ID", moz_app_displayname, "--with-distribution-id", moz_debug
+    )
+    @imports("re")
+    def moz_mac_bundle_id(macbundle_id, app_displayname, distribution_id, moz_debug):
+        if macbundle_id:
+            bundle_id = macbundle_id[0]
+        elif app_displayname:
+            bundle_id = re.sub("[^a-z-]", "", app_displayname.lower())
+        else:
+            return
+
+        suffix = "debug" if moz_debug else ""
+        return f"{distribution_id[0]}.{bundle_id}{suffix}"
+
+    set_config("MOZ_MACBUNDLE_ID", moz_mac_bundle_id)
+    set_define("MOZ_MACBUNDLE_ID", moz_mac_bundle_id)
 
     option(env="DMG_TOOL", nargs=1, help="Path to the dmg tool")
     set_config("DMG_TOOL", depends_if("DMG_TOOL")(lambda x: x[0]))
