@@ -1154,6 +1154,7 @@ skip-if(release_or_beta) script test262/staging/Intl402/Temporal/old/non-iso-cal
 skip-if(release_or_beta) script test262/staging/Intl402/Temporal/old/islamic-calendars-islamic.js
 skip-if(release_or_beta) script test262/staging/Intl402/Temporal/old/islamic-calendars-islamic-rgsa.js
 skip-if(release_or_beta) script test262/staging/Intl402/Temporal/old/islamic-calendars-islamic-umalqura.js
+skip-if(release_or_beta) script test262/staging/Intl402/Temporal/old/addition-across-lunisolar-leap-months-chinese.js
 skip-if(release_or_beta) script test262/intl402/Temporal/PlainYearMonth/from/reference-day-chinese.js
 skip-if(release_or_beta) script test262/intl402/Temporal/PlainDate/prototype/until/until-across-lunisolar-leap-months.js
 
