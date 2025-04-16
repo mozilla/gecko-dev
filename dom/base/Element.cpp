@@ -5389,7 +5389,7 @@ void Element::SetHTML(const nsAString& aInnerHTML,
   int32_t oldChildCount = static_cast<int32_t>(target->GetChildCount());
 
   // Step 6. Run sanitize on fragment using sanitizer and safe.
-  sanitizer->SanitizeFragment(fragment, /* aSafe */ true, aError);
+  sanitizer->Sanitize(fragment, /* aSafe */ true, aError);
   if (aError.Failed()) {
     return;
   }
