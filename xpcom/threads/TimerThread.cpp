@@ -332,7 +332,7 @@ class nsTimerEvent final : public CancelableRunnable {
 };
 
 TimerEventAllocator* nsTimerEvent::sAllocator = nullptr;
-MOZ_RUNINIT ThreadSafeAutoRefCnt nsTimerEvent::sAllocatorRefs;
+ThreadSafeAutoRefCnt nsTimerEvent::sAllocatorRefs;
 
 namespace {
 
