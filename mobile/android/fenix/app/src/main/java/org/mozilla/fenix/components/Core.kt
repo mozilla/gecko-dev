@@ -335,6 +335,10 @@ class Core(
                 // https://github.com/mozilla-mobile/android-components/issues/11300
                 // https://github.com/mozilla-mobile/android-components/issues/11653
                 trimMemoryAutomatically = false,
+                // We are disabling automatically initializing translations so that we can control when
+                // we start this process. For details, see:
+                // https://bugzilla.mozilla.org/show_bug.cgi?id=1958042
+                automaticallyInitializeTranslations = false,
             ),
         ).apply {
             // Install the "icons" WebExtension to automatically load icons for every visited website.

@@ -30,6 +30,7 @@ import kotlinx.coroutines.launch
 import mozilla.appservices.Megazord
 import mozilla.appservices.autofill.AutofillApiException
 import mozilla.components.browser.state.action.SystemAction
+import mozilla.components.browser.state.action.TranslationsAction
 import mozilla.components.browser.state.selector.selectedTab
 import mozilla.components.browser.state.state.searchEngines
 import mozilla.components.browser.state.state.selectedOrDefaultSearchEngine
@@ -427,6 +428,12 @@ open class FenixApplication : LocaleAwareApplication(), Provider {
             }
         }
 
+        fun queueInitializingTranslations() {
+            queue.runIfReadyOrQueue {
+                components.core.store.dispatch(TranslationsAction.InitTranslationsBrowserState)
+            }
+        }
+
         @OptIn(DelicateCoroutinesApi::class) // GlobalScope usage
         fun queueSuggestIngest() {
             queue.runIfReadyOrQueue {
@@ -446,6 +453,7 @@ open class FenixApplication : LocaleAwareApplication(), Provider {
         queueRestoreLocale()
         queueStorageMaintenance()
         queueNimbusFetchInForeground()
+        queueInitializingTranslations()
         if (settings().enableFxSuggest) {
             queueSuggestIngest()
         }
