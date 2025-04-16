@@ -412,27 +412,18 @@ export var ExtensionsUI = {
       shouldShowTechnicalAndInteractionCheckbox &&
       !!strings.dataCollectionPermissions?.collectsTechnicalAndInteractionData;
 
-    // Retrieve the permissions only once when we need them for one or both
-    // checkboxes.
-    let permissions;
-    if (showIncognitoCheckbox || showTechnicalAndInteractionCheckbox) {
-      permissions = await lazy.ExtensionPermissions.get(addon.id);
-    }
-
     const incognitoPermissionName = "internal:privateBrowsingAllowed";
     let grantPrivateBrowsingAllowed = false;
     if (showIncognitoCheckbox) {
-      grantPrivateBrowsingAllowed = permissions.permissions.includes(
+      let { permissions } = await lazy.ExtensionPermissions.get(addon.id);
+      grantPrivateBrowsingAllowed = permissions.includes(
         incognitoPermissionName
       );
     }
 
     const technicalAndInteractionDataName = "technicalAndInteraction";
-    let grantTechnicalAndInteractionDataCollection = false;
-    if (showTechnicalAndInteractionCheckbox) {
-      grantTechnicalAndInteractionDataCollection =
-        permissions.data_collection.includes(technicalAndInteractionDataName);
-    }
+    // This is an opt-out setting.
+    let grantTechnicalAndInteractionDataCollection = true;
 
     // Wait for any pending prompts to complete before showing the next one.
     let pending;
