@@ -187,24 +187,16 @@ class BaseCSSCache extends CacheMap {
     super(expiryTimeout, defaultConstructor, extension);
   }
 
-  addDocument(key, document) {
-    sheetCacheDocuments.get(this.get(key)).add(document);
-  }
-
-  deleteDocument(key, document) {
-    sheetCacheDocuments.get(this.get(key)).delete(document);
-  }
-
   delete(key) {
     if (this.has(key)) {
-      let promise = this.get(key);
+      let sheetPromise = this.get(key);
 
       // Never remove a sheet from the cache if it's still being used by a
       // document. Rule processors can be shared between documents with the
       // same preloaded sheet, so we only lose by removing them while they're
       // still in use.
       let docs = ChromeUtils.nondeterministicGetWeakSetKeys(
-        sheetCacheDocuments.get(promise)
+        sheetCacheDocuments.get(sheetPromise)
       );
       if (docs.length) {
         return;
@@ -224,11 +216,14 @@ class CSSCache extends BaseCSSCache {
       CSS_EXPIRY_TIMEOUT_MS,
       url => {
         let uri = Services.io.newURI(url);
-        return lazy.styleSheetService
-          .preloadSheetAsync(uri, sheetType)
-          .then(sheet => {
-            return { url, sheet };
-          });
+        const sheetPromise = lazy.styleSheetService.preloadSheetAsync(
+          uri,
+          sheetType
+        );
+        sheetPromise.then(sheet => {
+          sheetPromise.sheet = sheet;
+        });
+        return sheetPromise;
       },
       extension
     );
@@ -274,13 +269,17 @@ class CSSCodeCache extends BaseCSSCache {
       "data:text/css;extension=style;charset=utf-8," +
         encodeURIComponent(cssCode)
     );
-    const value = lazy.styleSheetService
-      .preloadSheetAsync(uri, this.sheetType)
-      .then(sheet => {
-        return { sheet, uri };
-      });
+    const sheetPromise = lazy.styleSheetService.preloadSheetAsync(
+      uri,
+      this.sheetType
+    );
+    sheetPromise.then(sheet => {
+      sheetPromise.sheet = sheet;
+    });
+    // styleURI: windowUtils.removeSheet requires a URI to identify the sheet.
+    sheetPromise.styleURI = uri;
 
-    super.set(hash, value);
+    super.set(hash, sheetPromise);
   }
 }
 
@@ -456,35 +455,7 @@ class Script {
   cleanup(window) {
     if (this.requiresCleanup) {
       if (window) {
-        let { windowUtils } = window;
-
-        let type =
-          this.cssOrigin === "user"
-            ? windowUtils.USER_SHEET
-            : windowUtils.AUTHOR_SHEET;
-
-        for (let url of this.css) {
-          this.cssCache.deleteDocument(url, window.document);
-
-          if (!window.closed) {
-            runSafeSyncWithoutClone(
-              windowUtils.removeSheetUsingURIString,
-              url,
-              type
-            );
-          }
-        }
-
-        const { cssCodeHash } = this;
-
-        if (cssCodeHash && this.cssCodeCache.has(cssCodeHash)) {
-          if (!window.closed) {
-            this.cssCodeCache.get(cssCodeHash).then(({ uri }) => {
-              runSafeSyncWithoutClone(windowUtils.removeSheet, uri, type);
-            });
-          }
-          this.cssCodeCache.deleteDocument(cssCodeHash, window.document);
-        }
+        this.removeStyleSheets(window);
       }
 
       // Clear any sheets that were kept alive past their timeout as
@@ -559,10 +530,8 @@ class Script {
       context.addScript(this);
     }
 
-    const { cssCodeHash } = this;
-
     let cssPromise;
-    if (this.css.length || cssCodeHash) {
+    if (this.css.length || this.cssCodeHash) {
       let window = context.contentWindow;
       let { windowUtils } = window;
 
@@ -572,43 +541,26 @@ class Script {
           : windowUtils.AUTHOR_SHEET;
 
       if (this.removeCSS) {
-        for (let url of this.css) {
-          this.cssCache.deleteDocument(url, window.document);
-
-          runSafeSyncWithoutClone(
-            windowUtils.removeSheetUsingURIString,
-            url,
-            type
-          );
-        }
-
-        if (cssCodeHash && this.cssCodeCache.has(cssCodeHash)) {
-          const { uri } = await this.cssCodeCache.get(cssCodeHash);
-          this.cssCodeCache.deleteDocument(cssCodeHash, window.document);
-
-          runSafeSyncWithoutClone(windowUtils.removeSheet, uri, type);
-        }
+        this.removeStyleSheets(window);
       } else {
-        cssPromise = Promise.all(this.loadCSS()).then(sheets => {
-          let window = context.contentWindow;
-          if (!window) {
-            return;
-          }
-
-          for (let { url, sheet } of sheets) {
-            this.cssCache.addDocument(url, window.document);
-
-            runSafeSyncWithoutClone(windowUtils.addSheet, sheet, type);
-          }
-        });
-
-        if (cssCodeHash) {
-          cssPromise = cssPromise.then(async () => {
-            const { sheet } = await this.cssCodeCache.get(cssCodeHash);
-            this.cssCodeCache.addDocument(cssCodeHash, window.document);
-
-            runSafeSyncWithoutClone(windowUtils.addSheet, sheet, type);
+        const sheets = this.getCompiledStyleSheets(window);
+        if (sheets instanceof Promise) {
+          cssPromise = sheets.then(sheetsWithSheet => {
+            if (!context.contentWindow) {
+              // Context unloaded during compilation.
+              return;
+            }
+            for (const sheet of sheetsWithSheet) {
+              runSafeSyncWithoutClone(windowUtils.addSheet, sheet, type);
+            }
           });
+        } else {
+          for (const sheet of sheets) {
+            runSafeSyncWithoutClone(windowUtils.addSheet, sheet, type);
+          }
+          // TODO: Remove. This is just here so that the refactoring does not
+          // change the timing behavior.
+          cssPromise = Promise.resolve();
         }
 
         // We're loading stylesheets via the stylesheet service, which means
@@ -799,6 +751,62 @@ class Script {
     }
 
     return scripts;
+  }
+
+  getCompiledStyleSheets(window) {
+    const sheetPromises = this.loadCSS();
+    if (this.cssCodeHash) {
+      sheetPromises.push(this.cssCodeCache.get(this.cssCodeHash));
+    }
+    if (window) {
+      for (const sheetPromise of sheetPromises) {
+        sheetCacheDocuments.get(sheetPromise).add(window.document);
+      }
+    }
+
+    let sheets = sheetPromises.map(sheetPromise => sheetPromise.sheet);
+    if (!sheets.every(sheet => sheet)) {
+      return Promise.all(sheetPromises);
+    }
+    return sheets;
+  }
+
+  removeStyleSheets(window) {
+    let { windowUtils } = window;
+
+    let type =
+      this.cssOrigin === "user"
+        ? windowUtils.USER_SHEET
+        : windowUtils.AUTHOR_SHEET;
+
+    for (let url of this.css) {
+      if (this.cssCache.has(url)) {
+        const sheetPromise = this.cssCache.get(url);
+        sheetCacheDocuments.get(sheetPromise).delete(window.document);
+      }
+
+      if (!window.closed) {
+        runSafeSyncWithoutClone(
+          windowUtils.removeSheetUsingURIString,
+          url,
+          type
+        );
+      }
+    }
+
+    const { cssCodeHash } = this;
+
+    if (cssCodeHash && this.cssCodeCache.has(cssCodeHash)) {
+      const sheetPromise = this.cssCodeCache.get(cssCodeHash);
+      sheetCacheDocuments.get(sheetPromise).delete(window.document);
+      if (sheetPromise.sheet && !window.closed) {
+        runSafeSyncWithoutClone(
+          windowUtils.removeSheet,
+          sheetPromise.styleURI,
+          type
+        );
+      }
+    }
   }
 }
 
