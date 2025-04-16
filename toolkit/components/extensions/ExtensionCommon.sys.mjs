@@ -24,10 +24,6 @@ const lazy = XPCOMUtils.declareLazy({
     service: "@mozilla.org/content/style-sheet-service;1",
     iid: Ci.nsIStyleSheetService,
   },
-  wptEnabled: {
-    pref: "extensions.wpt.enabled",
-    default: false,
-  },
 });
 
 const ScriptError = Components.Constructor(
@@ -3154,10 +3150,4 @@ export var ExtensionCommon = {
 
   MultiAPIManager,
   LazyAPIManager,
-
-  // Whether we're running under Web Platform Tests mode,
-  // required to adjust some cross-browser behaviors.
-  get isInWPT() {
-    return Cu.isInAutomation && lazy.wptEnabled;
-  },
 };
