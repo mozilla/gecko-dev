@@ -1,19 +1,24 @@
 //! Commit, Data Change and Rollback Notification Callbacks
-#![allow(non_camel_case_types)]
+#![expect(non_camel_case_types)]
 
 use std::os::raw::{c_char, c_int, c_void};
-use std::panic::{catch_unwind, RefUnwindSafe};
+use std::panic::catch_unwind;
 use std::ptr;
 
 use crate::ffi;
 
-use crate::{Connection, InnerConnection};
+use crate::{error::decode_result_raw, Connection, DatabaseName, InnerConnection, Result};
+
+#[cfg(feature = "preupdate_hook")]
+pub use preupdate_hook::*;
+
+#[cfg(feature = "preupdate_hook")]
+mod preupdate_hook;
 
 /// Action Codes
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 #[repr(i32)]
 #[non_exhaustive]
-#[allow(clippy::upper_case_acronyms)]
 pub enum Action {
     /// Unsupported / unexpected action
     UNKNOWN = -1,
@@ -27,12 +32,12 @@ pub enum Action {
 
 impl From<i32> for Action {
     #[inline]
-    fn from(code: i32) -> Action {
+    fn from(code: i32) -> Self {
         match code {
-            ffi::SQLITE_DELETE => Action::SQLITE_DELETE,
-            ffi::SQLITE_INSERT => Action::SQLITE_INSERT,
-            ffi::SQLITE_UPDATE => Action::SQLITE_UPDATE,
-            _ => Action::UNKNOWN,
+            ffi::SQLITE_DELETE => Self::SQLITE_DELETE,
+            ffi::SQLITE_INSERT => Self::SQLITE_INSERT,
+            ffi::SQLITE_UPDATE => Self::SQLITE_UPDATE,
+            _ => Self::UNKNOWN,
         }
     }
 }
@@ -366,7 +371,7 @@ impl Connection {
     /// The callback parameters are:
     ///
     /// - the type of database update (`SQLITE_INSERT`, `SQLITE_UPDATE` or
-    /// `SQLITE_DELETE`),
+    ///   `SQLITE_DELETE`),
     /// - the name of the database ("main", "temp", ...),
     /// - the name of the table that is updated,
     /// - the ROWID of the row that is updated.
@@ -376,6 +381,38 @@ impl Connection {
         F: FnMut(Action, &str, &str, i64) + Send + 'static,
     {
         self.db.borrow_mut().update_hook(hook);
+    }
+
+    /// Register a callback that is invoked each time data is committed to a database in wal mode.
+    ///
+    /// A single database handle may have at most a single write-ahead log callback registered at one time.
+    /// Calling `wal_hook` replaces any previously registered write-ahead log callback.
+    /// Note that the `sqlite3_wal_autocheckpoint()` interface and the `wal_autocheckpoint` pragma
+    /// both invoke `sqlite3_wal_hook()` and will overwrite any prior `sqlite3_wal_hook()` settings.
+    pub fn wal_hook(&self, hook: Option<fn(&Wal, c_int) -> Result<()>>) {
+        unsafe extern "C" fn wal_hook_callback(
+            client_data: *mut c_void,
+            db: *mut ffi::sqlite3,
+            db_name: *const c_char,
+            pages: c_int,
+        ) -> c_int {
+            let hook_fn: fn(&Wal, c_int) -> Result<()> = std::mem::transmute(client_data);
+            let wal = Wal { db, db_name };
+            catch_unwind(|| match hook_fn(&wal, pages) {
+                Ok(_) => ffi::SQLITE_OK,
+                Err(e) => e
+                    .sqlite_error()
+                    .map_or(ffi::SQLITE_ERROR, |x| x.extended_code),
+            })
+            .unwrap_or_default()
+        }
+        let c = self.db.borrow_mut();
+        match hook {
+            Some(f) => unsafe {
+                ffi::sqlite3_wal_hook(c.db(), Some(wal_hook_callback), f as *mut c_void)
+            },
+            None => unsafe { ffi::sqlite3_wal_hook(c.db(), None, ptr::null_mut()) },
+        };
     }
 
     /// Register a query progress callback.
@@ -388,7 +425,7 @@ impl Connection {
     /// If the progress callback returns `true`, the operation is interrupted.
     pub fn progress_handler<F>(&self, num_ops: c_int, handler: Option<F>)
     where
-        F: FnMut() -> bool + Send + RefUnwindSafe + 'static,
+        F: FnMut() -> bool + Send + 'static,
     {
         self.db.borrow_mut().progress_handler(num_ops, handler);
     }
@@ -398,9 +435,60 @@ impl Connection {
     #[inline]
     pub fn authorizer<'c, F>(&self, hook: Option<F>)
     where
-        F: for<'r> FnMut(AuthContext<'r>) -> Authorization + Send + RefUnwindSafe + 'static,
+        F: for<'r> FnMut(AuthContext<'r>) -> Authorization + Send + 'static,
     {
         self.db.borrow_mut().authorizer(hook);
+    }
+}
+
+/// Checkpoint mode
+#[derive(Clone, Copy)]
+#[repr(i32)]
+#[non_exhaustive]
+pub enum CheckpointMode {
+    /// Do as much as possible w/o blocking
+    PASSIVE = ffi::SQLITE_CHECKPOINT_PASSIVE,
+    /// Wait for writers, then checkpoint
+    FULL = ffi::SQLITE_CHECKPOINT_FULL,
+    /// Like FULL but wait for readers
+    RESTART = ffi::SQLITE_CHECKPOINT_RESTART,
+    /// Like RESTART but also truncate WAL
+    TRUNCATE = ffi::SQLITE_CHECKPOINT_TRUNCATE,
+}
+
+/// Write-Ahead Log
+pub struct Wal {
+    db: *mut ffi::sqlite3,
+    db_name: *const c_char,
+}
+
+impl Wal {
+    /// Checkpoint a database
+    pub fn checkpoint(&self) -> Result<()> {
+        unsafe { decode_result_raw(self.db, ffi::sqlite3_wal_checkpoint(self.db, self.db_name)) }
+    }
+    /// Checkpoint a database
+    pub fn checkpoint_v2(&self, mode: CheckpointMode) -> Result<(c_int, c_int)> {
+        let mut n_log = 0;
+        let mut n_ckpt = 0;
+        unsafe {
+            decode_result_raw(
+                self.db,
+                ffi::sqlite3_wal_checkpoint_v2(
+                    self.db,
+                    self.db_name,
+                    mode as c_int,
+                    &mut n_log,
+                    &mut n_ckpt,
+                ),
+            )?
+        };
+        Ok((n_log, n_ckpt))
+    }
+
+    /// Name of the database that was written to
+    pub fn name(&self) -> DatabaseName<'_> {
+        DatabaseName::from_cstr(unsafe { std::ffi::CStr::from_ptr(self.db_name) })
     }
 }
 
@@ -414,6 +502,27 @@ impl InnerConnection {
         self.authorizer(None::<fn(AuthContext<'_>) -> Authorization>);
     }
 
+    /// ```compile_fail
+    /// use rusqlite::{Connection, Result};
+    /// fn main() -> Result<()> {
+    ///     let db = Connection::open_in_memory()?;
+    ///     {
+    ///         let mut called = std::sync::atomic::AtomicBool::new(false);
+    ///         db.commit_hook(Some(|| {
+    ///             called.store(true, std::sync::atomic::Ordering::Relaxed);
+    ///             true
+    ///         }));
+    ///     }
+    ///     assert!(db
+    ///         .execute_batch(
+    ///             "BEGIN;
+    ///         CREATE TABLE foo (t TEXT);
+    ///         COMMIT;",
+    ///         )
+    ///         .is_err());
+    ///     Ok(())
+    /// }
+    /// ```
     fn commit_hook<F>(&mut self, hook: Option<F>)
     where
         F: FnMut() -> bool + Send + 'static,
@@ -459,6 +568,26 @@ impl InnerConnection {
         self.free_commit_hook = free_commit_hook;
     }
 
+    /// ```compile_fail
+    /// use rusqlite::{Connection, Result};
+    /// fn main() -> Result<()> {
+    ///     let db = Connection::open_in_memory()?;
+    ///     {
+    ///         let mut called = std::sync::atomic::AtomicBool::new(false);
+    ///         db.rollback_hook(Some(|| {
+    ///             called.store(true, std::sync::atomic::Ordering::Relaxed);
+    ///         }));
+    ///     }
+    ///     assert!(db
+    ///         .execute_batch(
+    ///             "BEGIN;
+    ///         CREATE TABLE foo (t TEXT);
+    ///         ROLLBACK;",
+    ///         )
+    ///         .is_err());
+    ///     Ok(())
+    /// }
+    /// ```
     fn rollback_hook<F>(&mut self, hook: Option<F>)
     where
         F: FnMut() + Send + 'static,
@@ -500,6 +629,19 @@ impl InnerConnection {
         self.free_rollback_hook = free_rollback_hook;
     }
 
+    /// ```compile_fail
+    /// use rusqlite::{Connection, Result};
+    /// fn main() -> Result<()> {
+    ///     let db = Connection::open_in_memory()?;
+    ///     {
+    ///         let mut called = std::sync::atomic::AtomicBool::new(false);
+    ///         db.update_hook(Some(|_, _: &str, _: &str, _| {
+    ///             called.store(true, std::sync::atomic::Ordering::Relaxed);
+    ///         }));
+    ///     }
+    ///     db.execute_batch("CREATE TABLE foo AS SELECT 1 AS bar;")
+    /// }
+    /// ```
     fn update_hook<F>(&mut self, hook: Option<F>)
     where
         F: FnMut(Action, &str, &str, i64) + Send + 'static,
@@ -552,9 +694,29 @@ impl InnerConnection {
         self.free_update_hook = free_update_hook;
     }
 
+    /// ```compile_fail
+    /// use rusqlite::{Connection, Result};
+    /// fn main() -> Result<()> {
+    ///     let db = Connection::open_in_memory()?;
+    ///     {
+    ///         let mut called = std::sync::atomic::AtomicBool::new(false);
+    ///         db.progress_handler(
+    ///             1,
+    ///             Some(|| {
+    ///                 called.store(true, std::sync::atomic::Ordering::Relaxed);
+    ///                 true
+    ///             }),
+    ///         );
+    ///     }
+    ///     assert!(db
+    ///         .execute_batch("BEGIN; CREATE TABLE foo (t TEXT); COMMIT;")
+    ///         .is_err());
+    ///     Ok(())
+    /// }
+    /// ```
     fn progress_handler<F>(&mut self, num_ops: c_int, handler: Option<F>)
     where
-        F: FnMut() -> bool + Send + RefUnwindSafe + 'static,
+        F: FnMut() -> bool + Send + 'static,
     {
         unsafe extern "C" fn call_boxed_closure<F>(p_arg: *mut c_void) -> c_int
         where
@@ -584,9 +746,26 @@ impl InnerConnection {
         };
     }
 
+    /// ```compile_fail
+    /// use rusqlite::{Connection, Result};
+    /// fn main() -> Result<()> {
+    ///     let db = Connection::open_in_memory()?;
+    ///     {
+    ///         let mut called = std::sync::atomic::AtomicBool::new(false);
+    ///         db.authorizer(Some(|_: rusqlite::hooks::AuthContext<'_>| {
+    ///             called.store(true, std::sync::atomic::Ordering::Relaxed);
+    ///             rusqlite::hooks::Authorization::Deny
+    ///         }));
+    ///     }
+    ///     assert!(db
+    ///         .execute_batch("BEGIN; CREATE TABLE foo (t TEXT); COMMIT;")
+    ///         .is_err());
+    ///     Ok(())
+    /// }
+    /// ```
     fn authorizer<'c, F>(&'c mut self, authorizer: Option<F>)
     where
-        F: for<'r> FnMut(AuthContext<'r>) -> Authorization + Send + RefUnwindSafe + 'static,
+        F: for<'r> FnMut(AuthContext<'r>) -> Authorization + Send + 'static,
     {
         unsafe extern "C" fn call_boxed_closure<'c, F>(
             p_arg: *mut c_void,
@@ -666,7 +845,8 @@ unsafe fn expect_optional_utf8<'a>(
     if p_str.is_null() {
         return None;
     }
-    std::str::from_utf8(std::ffi::CStr::from_ptr(p_str).to_bytes())
+    std::ffi::CStr::from_ptr(p_str)
+        .to_str()
         .unwrap_or_else(|_| panic!("received non-utf8 string as {description}"))
         .into()
 }
@@ -674,7 +854,7 @@ unsafe fn expect_optional_utf8<'a>(
 #[cfg(test)]
 mod test {
     use super::Action;
-    use crate::{Connection, Result};
+    use crate::{Connection, DatabaseName, Result};
     use std::sync::atomic::{AtomicBool, Ordering};
 
     #[test]
@@ -772,8 +952,7 @@ mod test {
         use super::{AuthAction, AuthContext, Authorization};
 
         let db = Connection::open_in_memory()?;
-        db.execute_batch("CREATE TABLE foo (public TEXT, private TEXT)")
-            .unwrap();
+        db.execute_batch("CREATE TABLE foo (public TEXT, private TEXT)")?;
 
         let authorizer = move |ctx: AuthContext<'_>| match ctx.action {
             AuthAction::Read {
@@ -788,19 +967,50 @@ mod test {
         db.authorizer(Some(authorizer));
         db.execute_batch(
             "BEGIN TRANSACTION; INSERT INTO foo VALUES ('pub txt', 'priv txt'); COMMIT;",
-        )
-        .unwrap();
+        )?;
         db.query_row_and_then("SELECT * FROM foo", [], |row| -> Result<()> {
             assert_eq!(row.get::<_, String>("public")?, "pub txt");
             assert!(row.get::<_, Option<String>>("private")?.is_none());
             Ok(())
-        })
-        .unwrap();
+        })?;
         db.execute_batch("DROP TABLE foo").unwrap_err();
 
         db.authorizer(None::<fn(AuthContext<'_>) -> Authorization>);
-        db.execute_batch("PRAGMA user_version=1").unwrap(); // Disallowed by first authorizer, but it's now removed.
+        db.execute_batch("PRAGMA user_version=1")?; // Disallowed by first authorizer, but it's now removed.
 
+        Ok(())
+    }
+
+    #[test]
+    fn wal_hook() -> Result<()> {
+        let temp_dir = tempfile::tempdir().unwrap();
+        let path = temp_dir.path().join("wal-hook.db3");
+
+        let db = Connection::open(&path)?;
+        let journal_mode: String =
+            db.pragma_update_and_check(None, "journal_mode", "wal", |row| row.get(0))?;
+        assert_eq!(journal_mode, "wal");
+
+        static CALLED: AtomicBool = AtomicBool::new(false);
+        db.wal_hook(Some(|wal, pages| {
+            assert_eq!(wal.name(), DatabaseName::Main);
+            assert!(pages > 0);
+            CALLED.swap(true, Ordering::Relaxed);
+            wal.checkpoint()
+        }));
+        db.execute_batch("CREATE TABLE x(c);")?;
+        assert!(CALLED.load(Ordering::Relaxed));
+
+        db.wal_hook(Some(|wal, pages| {
+            assert!(pages > 0);
+            let (log, ckpt) = wal.checkpoint_v2(super::CheckpointMode::TRUNCATE)?;
+            assert_eq!(log, 0);
+            assert_eq!(ckpt, 0);
+            Ok(())
+        }));
+        db.execute_batch("CREATE TABLE y(c);")?;
+
+        db.wal_hook(None);
         Ok(())
     }
 }
