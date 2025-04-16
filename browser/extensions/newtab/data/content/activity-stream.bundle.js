@@ -13413,6 +13413,20 @@ const Weather_Weather = (0,external_ReactRedux_namespaceObject.connect)(state =>
   IntersectionObserver: globalThis.IntersectionObserver,
   document: globalThis.document
 }))(_Weather);
+;// CONCATENATED MODULE: ./content-src/components/DownloadModalToggle/DownloadModalToggle.jsx
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this file,
+ * You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+
+function DownloadModalToggle() {
+  return /*#__PURE__*/external_React_default().createElement("button", {
+    className: "mobile-download-promo"
+  }, /*#__PURE__*/external_React_default().createElement("div", {
+    className: "icon icon-device-phone"
+  }));
+}
+
 ;// CONCATENATED MODULE: ./content-src/components/Notifications/Toasts/ThumbUpThumbDownToast.jsx
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
@@ -13978,6 +13992,7 @@ function Base_extends() { Base_extends = Object.assign ? Object.assign.bind() : 
 
 
 
+
 const Base_VISIBLE = "visible";
 const Base_VISIBILITY_CHANGE_EVENT = "visibilitychange";
 const Base_PREF_THUMBS_UP_DOWN_ENABLED = "discoverystream.thumbsUpDown.enabled";
@@ -14438,6 +14453,8 @@ class BaseContent extends (external_React_default()).PureComponent {
       }
     }
   }
+
+  // eslint-disable-next-line max-statements
   render() {
     const {
       props
@@ -14490,6 +14507,14 @@ class BaseContent extends (external_React_default()).PureComponent {
       mayHaveSponsoredTopSites
     } = prefs;
     const supportUrl = prefs["support.url"];
+
+    // Mobile Download Promo Pref Checks
+    const mobileDownloadPromoEnabled = prefs["mobileDownloadModal.enabled"];
+    const mobileDownloadPromoVariantAEnabled = prefs["mobileDownloadModal.variant-a"];
+    const mobileDownloadPromoVariantBEnabled = prefs["mobileDownloadModal.variant-b"];
+    const mobileDownloadPromoVariantCEnabled = prefs["mobileDownloadModal.variant-c"];
+    const mobileDownloadPromoVariantABorC = mobileDownloadPromoVariantAEnabled || mobileDownloadPromoVariantBEnabled || mobileDownloadPromoVariantCEnabled;
+    const mobileDownloadPromoWrapperHeightModifier = prefs["weather.display"] === "detailed" && weatherEnabled && mayHaveWeather ? "is-tall" : "";
     const hasThumbsUpDownLayout = prefs["discoverystream.thumbsUpDown.searchTopsitesCompact"];
     const hasThumbsUpDown = prefs["discoverystream.thumbsUpDown.enabled"];
     const sectionsEnabled = prefs["discoverystream.sections.enabled"];
@@ -14497,8 +14522,10 @@ class BaseContent extends (external_React_default()).PureComponent {
     const sectionsCustomizeMenuPanelEnabled = prefs["discoverystream.sections.customizeMenuPanel.enabled"];
     // Logic to show follow/block topic mgmt panel in Customize panel
     const mayHaveTopicSections = topicLabelsEnabled && sectionsEnabled && sectionsCustomizeMenuPanelEnabled && DiscoveryStream.feeds.loaded;
-    const featureClassName = [weatherEnabled && mayHaveWeather && "has-weather",
-    // Show is weather is enabled/visible
+    const featureClassName = [mobileDownloadPromoEnabled && mobileDownloadPromoVariantABorC && "has-mobile-download-promo",
+    // Mobile download promo modal is enabled/visible
+    weatherEnabled && mayHaveWeather && "has-weather",
+    // Weather widget is enabled/visible
     prefs.showSearch ? "has-search" : "no-search", layoutsVariantAEnabled ? "layout-variant-a" : "",
     // Layout experiment variant A
     layoutsVariantBEnabled ? "layout-variant-b" : "",
@@ -14546,6 +14573,8 @@ class BaseContent extends (external_React_default()).PureComponent {
     }))), /*#__PURE__*/external_React_default().createElement("div", {
       className: "weatherWrapper"
     }, weatherEnabled && /*#__PURE__*/external_React_default().createElement(ErrorBoundary, null, /*#__PURE__*/external_React_default().createElement(Weather_Weather, null))), /*#__PURE__*/external_React_default().createElement("div", {
+      className: `mobileDownloadPromoWrapper ${mobileDownloadPromoWrapperHeightModifier}`
+    }, mobileDownloadPromoEnabled && mobileDownloadPromoVariantABorC && /*#__PURE__*/external_React_default().createElement(ErrorBoundary, null, /*#__PURE__*/external_React_default().createElement(DownloadModalToggle, null))), /*#__PURE__*/external_React_default().createElement("div", {
       className: outerClassName,
       onClick: this.closeCustomizationMenu
     }, /*#__PURE__*/external_React_default().createElement("main", {

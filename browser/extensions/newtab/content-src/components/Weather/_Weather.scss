@@ -181,6 +181,32 @@
   }
 }
 
+// Bug 1959189 - Show mobile QR code modal toggle next to weather widget
+.has-mobile-download-promo {
+  // No Variant Layout
+  .weather {
+    // Default spacing (--space-xlarge) + width of .mobile-download-promo (32px) + gap
+    @media (min-width: $break-point-widest) {
+      inset-inline-start: calc(var(--space-xlarge) + 32px + var(--space-large));
+    }
+  }
+
+  &.layout-variant-a .weather {
+    // Var A offset (24px) + width of .mobile-download-promo (32px) + gap
+    @media (min-width: $break-point-widest) {
+      inset-inline-start: calc(24px + 32px + var(--space-medium));
+    }
+  }
+
+  &.layout-variant-b .weather {
+    // Var B offset (40px) + width of .mobile-download-promo (32px) + gap
+    @media (min-width: $break-point-widest) {
+      inset-inline-start: auto;
+      inset-inline-end: calc(40px + 32px + var(--space-medium));
+    }
+  }
+}
+
 .no-search.layout-variant-b {
   .weather {
     inset-inline-end: 20px;
@@ -293,7 +319,7 @@
   }
 
   // Bug 1908010 - This overwrites the design system color because of a
-  // know transparency issue with color-mix syntax when a wallpaper is set
+  // known transparency issue with color-mix syntax when a wallpaper is set
   .lightWallpaper &,
   .darkWallpaper & {
     background-color: var(--newtab-weather-background-color);
@@ -369,7 +395,7 @@
   }
 
   // Bug 1908010 - This overwrites the design system color because of a
-  // know transparency issue with color-mix syntax when a wallpaper is set
+  // known transparency issue with color-mix syntax when a wallpaper is set
   .lightWallpaper &,
   .darkWallpaper & {
     background-color: var(--newtab-weather-background-color);
@@ -668,7 +694,7 @@
   position: relative;
 
   // Bug 1908010 - This overwrites the design system color because of a
-  // know transparency issue with color-mix syntax when a wallpaper is set
+  // known transparency issue with color-mix syntax when a wallpaper is set
   .lightWallpaper &,
   .darkWallpaper & {
     background-color: var(--newtab-weather-background-color);

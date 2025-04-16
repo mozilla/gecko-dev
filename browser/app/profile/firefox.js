@@ -1818,6 +1818,12 @@ pref("browser.newtab.preload", true);
 // population (2500 / 10000).
 pref("browser.preonboarding.onTrainRolloutPopulation",  2500);
 
+// Show "Download Firefox for mobile" QR code modal on newtab
+pref("browser.newtabpage.activity-stream.mobileDownloadModal.enabled", false);
+pref("browser.newtabpage.activity-stream.mobileDownloadModal.variant-a", false);
+pref("browser.newtabpage.activity-stream.mobileDownloadModal.variant-b", false);
+pref("browser.newtabpage.activity-stream.mobileDownloadModal.variant-c", false);
+
 // Mozilla Ad Routing Service (MARS) unified ads service
 pref("browser.newtabpage.activity-stream.unifiedAds.tiles.enabled", true);
 pref("browser.newtabpage.activity-stream.unifiedAds.spocs.enabled", true);

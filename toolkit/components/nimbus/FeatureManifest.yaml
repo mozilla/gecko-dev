@@ -854,6 +854,39 @@ newtab:
       type: boolean
       description: Allow Contile to use additonal sponsored top sites
 
+newtabMobileDownloadPromotion:
+  description: Cross-sell promotion to download Firefox for mobile
+  owner: mcrawford@mozilla.com
+  hasExposure: false
+  variables:
+    showModal:
+      type: boolean
+      description: Display mobile download modal to users until dismissed
+      setPref:
+        branch: user
+        pref: browser.newtabpage.activity-stream.mobileDownloadModal.enabled
+    variantA:
+      type: boolean
+      setPref:
+        branch: user
+        pref: browser.newtabpage.activity-stream.mobileDownloadModal.variant-a
+      description: >-
+        Variant A modal message and QR code.
+    variantB:
+      type: boolean
+      setPref:
+        branch: user
+        pref: browser.newtabpage.activity-stream.mobileDownloadModal.variant-b
+      description: >-
+        Variant B modal message and QR code.
+    variantC:
+      type: boolean
+      setPref:
+        branch: user
+        pref: browser.newtabpage.activity-stream.mobileDownloadModal.variant-c
+      description: >-
+        Variant C modal message and QR code.
+
 newtabUnifiedAds:
   description: Mozilla Ad Routing Service (MARS) unified ads service
   owner: mcrawford@mozilla.com, sdowne@mozilla.com
@@ -893,7 +926,6 @@ newtabUnifiedAds:
       setPref:
         branch: user
         pref: browser.newtabpage.activity-stream.unifiedAds.adsFeed.tiles.enabled
-
 
 newtabSpocsCache:
   description: The about:newtab sponsored content cache.
@@ -984,7 +1016,6 @@ newtabInlineTopicSelection:
         pref: browser.newtabpage.activity-stream.discoverystream.sections.interestPicker.enabled
       description: >-
         Enables inline topic selection
-
 
 newtabLayoutExperiment:
   description: >-

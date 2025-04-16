@@ -14,6 +14,7 @@ import { Search } from "content-src/components/Search/Search";
 import { Sections } from "content-src/components/Sections/Sections";
 import { Logo } from "content-src/components/Logo/Logo";
 import { Weather } from "content-src/components/Weather/Weather";
+import { DownloadModalToggle } from "content-src/components/DownloadModalToggle/DownloadModalToggle";
 import { Notifications } from "content-src/components/Notifications/Notifications";
 import { TopicSelection } from "content-src/components/DiscoveryStreamComponents/TopicSelection/TopicSelection";
 import { WallpaperFeatureHighlight } from "../DiscoveryStreamComponents/FeatureHighlight/WallpaperFeatureHighlight";
@@ -564,6 +565,7 @@ export class BaseContent extends React.PureComponent {
     }
   }
 
+  // eslint-disable-next-line max-statements
   render() {
     const { props } = this;
     const { App, DiscoveryStream } = props;
@@ -623,6 +625,25 @@ export class BaseContent extends React.PureComponent {
     const { mayHaveSponsoredTopSites } = prefs;
     const supportUrl = prefs["support.url"];
 
+    // Mobile Download Promo Pref Checks
+    const mobileDownloadPromoEnabled = prefs["mobileDownloadModal.enabled"];
+    const mobileDownloadPromoVariantAEnabled =
+      prefs["mobileDownloadModal.variant-a"];
+    const mobileDownloadPromoVariantBEnabled =
+      prefs["mobileDownloadModal.variant-b"];
+    const mobileDownloadPromoVariantCEnabled =
+      prefs["mobileDownloadModal.variant-c"];
+    const mobileDownloadPromoVariantABorC =
+      mobileDownloadPromoVariantAEnabled ||
+      mobileDownloadPromoVariantBEnabled ||
+      mobileDownloadPromoVariantCEnabled;
+    const mobileDownloadPromoWrapperHeightModifier =
+      prefs["weather.display"] === "detailed" &&
+      weatherEnabled &&
+      mayHaveWeather
+        ? "is-tall"
+        : "";
+
     const hasThumbsUpDownLayout =
       prefs["discoverystream.thumbsUpDown.searchTopsitesCompact"];
     const hasThumbsUpDown = prefs["discoverystream.thumbsUpDown.enabled"];
@@ -638,7 +659,10 @@ export class BaseContent extends React.PureComponent {
       DiscoveryStream.feeds.loaded;
 
     const featureClassName = [
-      weatherEnabled && mayHaveWeather && "has-weather", // Show is weather is enabled/visible
+      mobileDownloadPromoEnabled &&
+        mobileDownloadPromoVariantABorC &&
+        "has-mobile-download-promo", // Mobile download promo modal is enabled/visible
+      weatherEnabled && mayHaveWeather && "has-weather", // Weather widget is enabled/visible
       prefs.showSearch ? "has-search" : "no-search",
       layoutsVariantAEnabled ? "layout-variant-a" : "", // Layout experiment variant A
       layoutsVariantBEnabled ? "layout-variant-b" : "", // Layout experiment variant B
@@ -718,6 +742,16 @@ export class BaseContent extends React.PureComponent {
             </ErrorBoundary>
           )}
         </div>
+        <div
+          className={`mobileDownloadPromoWrapper ${mobileDownloadPromoWrapperHeightModifier}`}
+        >
+          {mobileDownloadPromoEnabled && mobileDownloadPromoVariantABorC && (
+            <ErrorBoundary>
+              <DownloadModalToggle />
+            </ErrorBoundary>
+          )}
+        </div>
+
         {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions*/}
         <div className={outerClassName} onClick={this.closeCustomizationMenu}>
           <main className="newtab-main" style={this.state.fixedNavStyle}>

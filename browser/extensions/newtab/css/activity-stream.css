@@ -315,6 +315,9 @@ input {
 .icon.icon-thumbs-down {
   background-image: url("chrome://global/skin/icons/thumbs-down-20.svg");
 }
+.icon.icon-device-phone {
+  background-image: url("chrome://browser/skin/device-phone.svg");
+}
 
 :root {
   height: 100%;
@@ -2970,6 +2973,23 @@ main section {
   margin-inline-end: 5px;
 }
 
+@media (min-width: 1122px) {
+  .has-mobile-download-promo .weather {
+    inset-inline-start: calc(var(--space-xlarge) + 32px + var(--space-large));
+  }
+}
+@media (min-width: 1122px) {
+  .has-mobile-download-promo.layout-variant-a .weather {
+    inset-inline-start: calc(56px + var(--space-medium));
+  }
+}
+@media (min-width: 1122px) {
+  .has-mobile-download-promo.layout-variant-b .weather {
+    inset-inline-start: auto;
+    inset-inline-end: calc(72px + var(--space-medium));
+  }
+}
+
 .no-search.layout-variant-b .weather {
   inset-inline-end: 20px;
 }
@@ -3535,6 +3555,64 @@ main section {
 .layout-variant-b .weatherSponsorText span {
     inset-block-start: unset;
     position: relative;
+  }
+}
+
+.mobileDownloadPromoWrapper {
+  display: none;
+  height: 55px;
+}
+.mobileDownloadPromoWrapper.is-tall {
+  height: 74px;
+}
+@media (min-width: 1122px) {
+  .mobileDownloadPromoWrapper {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: absolute;
+    inset-inline-start: var(--space-xlarge);
+    inset-block-start: var(--space-xlarge);
+    margin-block-start: 0;
+    margin-inline-start: 0;
+    z-index: 1;
+  }
+}
+@media (min-width: 1122px) {
+  .layout-variant-b .mobileDownloadPromoWrapper {
+    inset-inline-start: auto;
+    inset-inline-end: 40px;
+    inset-block-start: 40px;
+  }
+}
+@media (min-width: 1122px) {
+  .layout-variant-a .mobileDownloadPromoWrapper {
+    inset-inline-start: 24px;
+    inset-block-start: 24px;
+  }
+}
+
+.mobile-download-promo {
+  width: 32px;
+  height: 32px;
+  appearance: none;
+  border: 0;
+  border-radius: var(--border-radius-small);
+  padding: 0;
+  cursor: pointer;
+}
+.mobile-download-promo:hover {
+  background-color: var(--button-background-color-ghost-hover);
+}
+.mobile-download-promo:hover:active {
+  background-color: var(--button-background-color-ghost-active);
+}
+.lightWallpaper .mobile-download-promo, .darkWallpaper .mobile-download-promo {
+  background-color: var(--newtab-weather-background-color);
+}
+@media (prefers-contrast) {
+  .lightWallpaper .mobile-download-promo, .darkWallpaper .mobile-download-promo {
+    background-color: var(--background-color-box);
   }
 }
 
