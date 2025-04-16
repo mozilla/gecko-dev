@@ -2897,7 +2897,8 @@ add_task(async function test_restorePrefs_manifestChanged() {
         break;
 
       case CHANGE_SETPREF:
-        NimbusFeatures[featureId].manifest.variables.baz.setPref.pref = BOGUS_PREF;
+        NimbusFeatures[featureId].manifest.variables.baz.setPref.pref =
+          BOGUS_PREF;
         break;
 
       default:
