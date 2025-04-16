@@ -13,10 +13,7 @@ var workerScriptPaths = [];
 loadScript("dom/quota/test/common/mochitest.js");
 
 function loadScript(path) {
-  // "chrome://mochitests/content/tests/" corresponds to
-  // "TEST_HARNESS_FILES.testing.mochitest.tests.dom.quota.test.common" in moz.build,
-  // and "_tests/testing/mochitest/tests/dom/quota/test/common" in the obj directory.
-  const url = new URL(path, "chrome://mochitests/content/tests/");
+  const url = new URL(depth + path, window.location.href);
   SpecialPowers.Services.scriptloader.loadSubScript(url.href, this);
 }
 
