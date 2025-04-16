@@ -1655,10 +1655,11 @@ class ArenaCollection {
       MutexAutoLock lock(mLock);
       mDefaultMaxDirtyPageModifier = aModifier;
       for (auto* arena : iter()) {
-        // We can only update max-dirty for main-thread-only arenas from the main thread.
+        // We can only update max-dirty for main-thread-only arenas from the
+        // main thread.
         if (!arena->IsMainThreadOnly() || IsOnMainThreadWeak()) {
           arena->UpdateMaxDirty();
-	}
+        }
       }
     }
   }
@@ -6097,7 +6098,8 @@ inline void MozJemalloc::jemalloc_reset_small_alloc_randomization(
 
   MutexAutoLock lock(gArenas.mLock);
   for (auto* arena : gArenas.iter()) {
-    // We can only initialize the PRNG for main-thread-only arenas from the main thread.
+    // We can only initialize the PRNG for main-thread-only arenas from the main
+    // thread.
     if (!arena->IsMainThreadOnly() || gArenas.IsOnMainThreadWeak()) {
       arena->ResetSmallAllocRandomization();
     }
