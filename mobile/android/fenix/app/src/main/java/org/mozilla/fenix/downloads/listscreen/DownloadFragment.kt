@@ -21,11 +21,7 @@ import org.mozilla.fenix.compose.core.Action
 import org.mozilla.fenix.compose.snackbar.Snackbar
 import org.mozilla.fenix.compose.snackbar.SnackbarState
 import org.mozilla.fenix.downloads.dialog.DynamicDownloadDialog
-import org.mozilla.fenix.downloads.listscreen.middleware.DefaultUndoDelayProvider
-import org.mozilla.fenix.downloads.listscreen.middleware.DownloadDeleteMiddleware
-import org.mozilla.fenix.downloads.listscreen.middleware.DownloadTelemetryMiddleware
-import org.mozilla.fenix.downloads.listscreen.middleware.DownloadUIMapperMiddleware
-import org.mozilla.fenix.downloads.listscreen.middleware.DownloadUIShareMiddleware
+import org.mozilla.fenix.downloads.listscreen.di.DownloadUIMiddlewareProvider
 import org.mozilla.fenix.downloads.listscreen.store.DownloadUIAction
 import org.mozilla.fenix.downloads.listscreen.store.DownloadUIState
 import org.mozilla.fenix.downloads.listscreen.store.DownloadUIStore
@@ -40,22 +36,12 @@ import org.mozilla.fenix.theme.FirefoxTheme
  */
 class DownloadFragment : ComposeFragment(), UserInteractionHandler {
 
-    private val undoDelayProvider by lazy { DefaultUndoDelayProvider(requireComponents.settings) }
     private val downloadStore by lazyStore { viewModelScope ->
         DownloadUIStore(
             initialState = DownloadUIState.INITIAL,
-            middleware = listOf(
-                DownloadUIMapperMiddleware(
-                    browserStore = requireComponents.core.store,
-                    fileSizeFormatter = requireComponents.core.fileSizeFormatter,
-                    scope = viewModelScope,
-                ),
-                DownloadUIShareMiddleware(applicationContext = requireContext().applicationContext),
-                DownloadTelemetryMiddleware(),
-                DownloadDeleteMiddleware(
-                    undoDelayProvider = undoDelayProvider,
-                    removeDownloadUseCase = requireComponents.useCases.downloadUseCases.removeDownload,
-                ),
+            middleware = DownloadUIMiddlewareProvider.provideMiddleware(
+                coroutineScope = viewModelScope,
+                applicationContext = requireContext().applicationContext,
             ),
         )
     }
@@ -101,7 +87,9 @@ class DownloadFragment : ComposeFragment(), UserInteractionHandler {
             rootView,
             snackbarState = SnackbarState(
                 message = getMultiSelectSnackBarMessage(items),
-                duration = SnackbarState.Duration.Custom(undoDelayProvider.undoDelay.toInt()),
+                duration = SnackbarState.Duration.Custom(
+                    DownloadUIMiddlewareProvider.provideUndoDelayProvider(requireComponents.settings).undoDelay.toInt(),
+                ),
                 action = Action(
                     label = getString(R.string.download_undo_delete_snackbar_action),
                     onClick = {
