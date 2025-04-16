@@ -1131,30 +1131,6 @@ project_flag(
 )
 
 
-# Child Process Name for IPC
-# ==============================================================
-@depends(toolkit, bin_suffix(target))
-def moz_child_process_name(toolkit, bin_suffix):
-    if toolkit != "android":
-        return f"plugin-container{bin_suffix}"
-    else:
-        # We want to let Android unpack the file at install time, but it only
-        # does so if the file is named libsomething.so. The lib/ path is also
-        # required because the unpacked file will be under the lib/ subdirectory
-        # and will need to be executed from that path.
-        return "libplugin-container.so"
-
-
-set_config("MOZ_CHILD_PROCESS_NAME", moz_child_process_name)
-
-with only_when(target_is_osx):
-    set_config("MOZ_CHILD_PROCESS_BUNDLE", "plugin-container.app/Contents/MacOS/")
-    set_config(
-        "MOZ_CHILD_PROCESS_BUNDLEID",
-        depends("--with-distribution-id")(lambda v: f"{v[0]}.plugincontainer"),
-    )
-    set_config("MOZ_CHILD_PROCESS_BUNDLENAME", "plugin-container.app")
-
 # Profile Management
 # ==============================================================
 # Selectable profiles are enabled by default.
@@ -3353,8 +3329,9 @@ def moz_app_displayname(value, username):
     return value[0]
 
 
+set_define("MOZ_APP_UA_VERSION", depends(milestone.app_version)(lambda v: f'"{v}"'))
+
 set_config("MOZ_APP_DISPLAYNAME", moz_app_displayname)
-add_old_configure_assignment("MOZ_APP_DISPLAYNAME", moz_app_displayname)
 
 
 confvar(
@@ -3392,11 +3369,40 @@ def moz_app_remotingname(value, moz_app_name, update_channel):
 set_config("MOZ_APP_REMOTINGNAME", moz_app_remotingname)
 
 
+# Child Process Name for IPC
+# ==============================================================
+@depends(toolkit, bin_suffix(target))
+def moz_child_process_name(toolkit, bin_suffix):
+    if toolkit != "android":
+        return f"plugin-container{bin_suffix}"
+    else:
+        # We want to let Android unpack the file at install time, but it only
+        # does so if the file is named libsomething.so. The lib/ path is also
+        # required because the unpacked file will be under the lib/ subdirectory
+        # and will need to be executed from that path.
+        return "libplugin-container.so"
+
+
+set_config("MOZ_CHILD_PROCESS_NAME", moz_child_process_name)
+
+set_config(
+    "MOZ_CHILD_PROCESS_APPNAME",
+    depends_if(moz_app_displayname)(lambda v: f"{v}CP"),
+)
+
+with only_when(target_is_osx):
+    set_config("MOZ_CHILD_PROCESS_BUNDLE", "plugin-container.app/Contents/MacOS/")
+    set_config(
+        "MOZ_CHILD_PROCESS_BUNDLEID",
+        depends("--with-distribution-id")(lambda v: f"{v[0]}.plugincontainer"),
+    )
+    set_config("MOZ_CHILD_PROCESS_BUNDLENAME", "plugin-container.app")
+
+
 # Miscellaneous options
 # ==============================================================
 option(env="MOZ_WINCONSOLE", nargs="?", help="Whether we can create a console window")
 set_define("MOZ_WINCONSOLE", True, when=depends("MOZ_WINCONSOLE")(lambda x: x))
-
 
 # Alternative Crashreporter setting
 option(
@@ -3711,6 +3717,30 @@ with only_when(target_is_osx):
 
     option(env="DMG_TOOL", nargs=1, help="Path to the dmg tool")
     set_config("DMG_TOOL", depends_if("DMG_TOOL")(lambda x: x[0]))
+
+    moz_eme_process_name = dependable("media-plugin-helper")
+
+    set_config("MOZ_EME_PROCESS_NAME", moz_eme_process_name)
+    set_config(
+        "MOZ_EME_PROCESS_NAME_BRANDED",
+        depends_if(moz_app_displayname)(lambda name: f"{name} Media Plugin Helper"),
+    )
+    set_config(
+        "MOZ_EME_PROCESS_BUNDLENAME",
+        depends(moz_eme_process_name)(lambda name: f"{name}.app"),
+    )
+
+    # Generate a lower case string with no spaces to be used as the bundle ID
+    # for the EME helper .app of the form org.mozilla.<executable-name>.
+    @depends(moz_app_displayname, moz_eme_process_name, "--with-distribution-id")
+    def moz_eme_process_bundle_id(app_displayname, eme_process_name, distribution_id):
+        if not app_displayname:
+            return
+
+        eme_process_bundle_id = app_displayname[0].replace(" ", "-").lower()
+        return f"{distribution_id[0]}.{eme_process_bundle_id}-{eme_process_name}"
+
+    set_config("MOZ_EME_PROCESS_BUNDLEID", moz_eme_process_bundle_id)
 
 
 # JS Packaging
