@@ -6012,6 +6012,7 @@ inline arena_t* ArenaCollection::GetById(arena_id_t aArenaId, bool aIsPrivate) {
   MOZ_RELEASE_ASSERT(aIsPrivate);
   // This function is not expected to be called before at least one private
   // arena was created.
+  // coverity[missing_lock]
   MOZ_RELEASE_ASSERT(mArenaIdKey);
   arena_id_t id = (aArenaId << mArenaIdRotation) |
                   (aArenaId >> (sizeof(void*) * 8 - mArenaIdRotation));
