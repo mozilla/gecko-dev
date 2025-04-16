@@ -144,12 +144,29 @@
           },
           {
             "name": "expectedError",
-            "$ref": "ExpectedError"
+            "$ref": "ExpectedError",
+            "optional": true,
+            "description": "Required, unless running with extensions.wpt.enabled"
           },
           {
             "name": "message",
             "type": "string",
             "optional": true
+          }
+        ]
+      },
+      {
+        "name": "runTests",
+        "type": "function",
+        "async": true,
+        "parameters": [
+          {
+            "name": "tests",
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "function"
+            }
           }
         ]
       }
