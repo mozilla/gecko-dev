@@ -64,6 +64,7 @@ import mozilla.components.support.ktx.android.arch.lifecycle.addObservers
 import mozilla.components.support.ktx.android.content.isMainProcess
 import mozilla.components.support.ktx.android.content.runOnlyInMainProcess
 import mozilla.components.support.locale.LocaleAwareApplication
+import mozilla.components.support.remotesettings.GlobalRemoteSettingsDependencyProvider
 import mozilla.components.support.rusterrors.initializeRustErrors
 import mozilla.components.support.rusthttp.RustHttpConfig
 import mozilla.components.support.rustlog.RustLog
@@ -240,6 +241,8 @@ open class FenixApplication : LocaleAwareApplication(), Provider {
             GlobalPlacesDependencyProvider.initialize(components.core.historyStorage)
 
             GlobalSyncedTabsCommandsProvider.initialize(lazy { components.backgroundServices.syncedTabsCommands })
+
+            initializeRemoteSettingsSupport()
 
             restoreBrowserState()
             restoreDownloads()
@@ -648,6 +651,11 @@ open class FenixApplication : LocaleAwareApplication(), Provider {
         GlobalScope.launch(Dispatchers.Default) {
             BrowsersCache.all(this@FenixApplication)
         }
+    }
+
+    private fun initializeRemoteSettingsSupport() {
+        GlobalRemoteSettingsDependencyProvider.initialize(components.remoteSettingsService.value)
+        components.remoteSettingsSyncScheduler.registerForSync()
     }
 
     @Suppress("ForbiddenComment")

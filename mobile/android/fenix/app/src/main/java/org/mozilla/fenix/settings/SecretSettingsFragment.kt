@@ -239,7 +239,16 @@ class SecretSettingsFragment : PreferenceFragmentCompat() {
         requirePreference<SwitchPreference>(R.string.pref_key_use_remote_search_configuration).apply {
             isVisible = true
             isChecked = context.settings().useRemoteSearchConfiguration
-            onPreferenceChangeListener = SharedPreferenceUpdater()
+            onPreferenceChangeListener = object : SharedPreferenceUpdater() {
+                override fun onPreferenceChange(preference: Preference, newValue: Any?): Boolean {
+                    if (newValue as? Boolean == true) {
+                        context.components.remoteSettingsSyncScheduler.registerForSync()
+                    } else {
+                        context.components.remoteSettingsSyncScheduler.unregisterForSync()
+                    }
+                    return super.onPreferenceChange(preference, newValue)
+                }
+            }
         }
 
         requirePreference<SwitchPreference>(R.string.pref_key_microsurvey_feature_enabled).apply {

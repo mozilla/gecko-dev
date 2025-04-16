@@ -22,6 +22,7 @@ import mozilla.components.lib.crash.store.CrashMiddleware
 import mozilla.components.lib.publicsuffixlist.PublicSuffixList
 import mozilla.components.support.base.android.NotificationsDelegate
 import mozilla.components.support.base.worker.Frequency
+import mozilla.components.support.remotesettings.DefaultRemoteSettingsSyncScheduler
 import mozilla.components.support.remotesettings.RemoteSettingsService
 import org.mozilla.fenix.BuildConfig
 import org.mozilla.fenix.Config
@@ -167,6 +168,14 @@ class Components(private val context: Context) {
         DefaultSupportedAddonsChecker(
             context,
             Frequency(12, TimeUnit.HOURS),
+        )
+    }
+
+    @Suppress("MagicNumber")
+    val remoteSettingsSyncScheduler by lazyMonitored {
+        DefaultRemoteSettingsSyncScheduler(
+            context,
+            Frequency(24, TimeUnit.HOURS),
         )
     }
 

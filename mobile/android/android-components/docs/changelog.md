@@ -20,6 +20,8 @@ permalink: /changelog/
     * Changed the return of `DOWNLOADING` status to display the size downloaded so far and the total file size, instead of the download percentage completed.
 * **All components**
   * ⚠️Increased `compileSdkVersion` to 36 (Android 16)
+* **support-remotesettings**
+  * Added `RemoteSettingsSyncWorker` and `RemoteSettingsSyncScheduler` to schedule periodic sync with remote settings. [Bug 1947538](https://bugzilla.mozilla.org/show_bug.cgi?id=1947538)
 
 # 138.0
 * **support-ktx**
