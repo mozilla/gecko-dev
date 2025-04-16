@@ -44,7 +44,17 @@ async function loadContentPageWithoutPreloading(path) {
   return contentPage;
 }
 
-add_task(async function test_js_order() {
+// Before bug 1792685 was fixed, the order of content script/style injection
+// from separate content_scripts declarations was not guaranteed. Specifically:
+// - If already compiled, the order of execution is as seen in test_js_order.
+// - If not already compiled, the order is effectively in the order of
+//   compilation completion.
+// After bug 1792685 was fixed, the order of content scripts are in the order
+// as specified in the content_scripts array, and already-cached scripts only
+// execute if a previous script finished compilation and started execution.
+// To allow users to revert to the previous behavior (for regression testing),
+// extensions.webextensions.content_scripts.ordered=false can be set.
+async function do_test_js_order(expectOrdered = true) {
   let extension = ExtensionTestUtils.loadExtension({
     manifest: {
       content_scripts: [
@@ -85,7 +95,7 @@ add_task(async function test_js_order() {
         // document_idle scripts - should execute last.
         {
           matches: ["*://example.com/hey"],
-          js: ["done_check_js.js"],
+          js: [expectOrdered ? "done_check_js.js" : "done_check_unordered.js"],
           run_at: "document_idle",
         },
       ],
@@ -95,12 +105,59 @@ add_task(async function test_js_order() {
       "2.js": "document.documentElement.className += ' _2';",
       "3.js": "document.documentElement.className += ' _3';",
       "4.js": "document.documentElement.className += ' _4';",
+      // Expectation for: test_js_order
       "done_check_js.js": () => {
+        // Note: _2 is run twice; the second time it is expected to be cached.
         browser.test.assertEq(
           "start _1 _2 _3 _2 _4",
           document.documentElement.className,
           "Content script execution order should be: run_at, then array order"
         );
+        browser.test.sendMessage("done");
+      },
+      // Expectation for: test_js_order_with_content_scripts_ordered_false_pref
+      "done_check_unordered.js": () => {
+        // Before bug 1792685 was fixed, the only guarantees were:
+        // - document_start runs before document_end/document_idle scripts.
+        // - Already cached scripts run immediately (according to run_at).
+        // This means that the only truly guaranteed expectations when
+        // done_check_unordered.js runs (at document_idle) are:
+        // - _1 and _2 run for sure.
+        // - The second _2 runs, after the first _1 and _2.
+        // - If _3 and _4 run, they are scheduled after the second _2. This
+        //   happens despite the declaration order being [3.js, 2.js, 4.js],
+        //   because cached scripts execute immediately.
+
+        // This is the same as done_check_js.js, except the _2 and _3 swapped.
+        const expected = "start _1 _2 _2 _3 _4";
+        const actual = document.documentElement.className;
+        if (expected === actual) {
+          // Expected (and common in practice, but not guaranteed - see above).
+          browser.test.log(`Got expected order: ${expected} == ${actual}`);
+        } else {
+          // Not having assertEq because in theory _1 and _2 could be swapped,
+          // and _3 and _4 can also be swapped or be missing altogether.
+          browser.test.log(`Got unexpected order: ${expected} != ${actual}`);
+        }
+
+        browser.test.assertTrue(actual.includes("_1"), "_1 document_start ran");
+        browser.test.assertTrue(actual.includes("_2"), "_2 document_start ran");
+        const indexOf2First = actual.indexOf("_2");
+        const indexOf2Cached = actual.lastIndexOf("_2");
+        browser.test.assertTrue(
+          indexOf2First !== indexOf2Cached && indexOf2Cached !== -1,
+          "_2 (cached) executed again at document_end"
+        );
+        const indexOf3 = actual.indexOf("_3");
+        if (indexOf3 !== -1) {
+          // If _3 executes in time, it should be after the cached _2.
+          browser.test.assertTrue(indexOf3 > indexOf2Cached, "_3 after _2");
+        }
+        const indexOf4 = actual.indexOf("_4");
+        if (indexOf4 !== -1) {
+          // If _4 executes in time, it should be after the cached _2.
+          browser.test.assertTrue(indexOf4 > indexOf2Cached, "_4 after _2");
+        }
         browser.test.sendMessage("done");
       },
     },
@@ -112,7 +169,18 @@ add_task(async function test_js_order() {
   await extension.awaitMessage("done");
   await contentPage.close();
   await extension.unload();
+}
+
+add_task(async function test_js_order() {
+  await do_test_js_order(/* expectOrdered */ true);
 });
+
+add_task(
+  { pref_set: [["extensions.webextensions.content_scripts.ordered", false]] },
+  async function test_js_order_with_content_scripts_ordered_false_pref() {
+    await do_test_js_order(/* expectOrdered */ false);
+  }
+);
 
 add_task(async function test_css_order() {
   // This test extension declares stylesheets. See the "files" section below to

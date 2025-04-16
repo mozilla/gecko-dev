@@ -28,6 +28,10 @@ const lazy = XPCOMUtils.declareLazy({
     !WebExtensionPolicy.useRemoteWebExtensions ||
     // Thunderbird still loads some content in the parent process.
     AppConstants.MOZ_APP_NAME == "thunderbird",
+  orderedContentScripts: {
+    pref: "extensions.webextensions.content_scripts.ordered",
+    default: true,
+  },
 });
 
 const Timer = Components.Constructor(
@@ -548,7 +552,7 @@ class Script {
     let scripts = this.getCompiledScripts(context);
 
     let executionBlockingPromises = [];
-    if (gPendingScriptBlockers.has(context)) {
+    if (gPendingScriptBlockers.has(context) && lazy.orderedContentScripts) {
       executionBlockingPromises.push(gPendingScriptBlockers.get(context));
     }
     if (scripts instanceof Promise) {
