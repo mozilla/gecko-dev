@@ -171,6 +171,7 @@
     "shims/vidible.js",
     "shims/vmad.xml",
     "shims/webtrends.js",
-    "shims/x-logo.svg"
+    "shims/x-logo.svg",
+    "shims/zendesk-asana-support.js"
   ]
 }
