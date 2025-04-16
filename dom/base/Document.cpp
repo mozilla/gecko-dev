@@ -13340,7 +13340,7 @@ Document* Document::GetTemplateContentsOwner() {
         Document::GetDocumentURI(), Document::GetDocBaseURI(), NodePrincipal(),
         true,          // aLoadedAsData
         scriptObject,  // aEventObject
-        IsHTMLDocument() ? DocumentFlavorHTML : DocumentFlavorXML);
+        IsHTMLDocument() ? DocumentFlavor::HTML : DocumentFlavor::XML);
     NS_ENSURE_SUCCESS(rv, nullptr);
 
     mTemplateContentsOwner = document;
@@ -16604,7 +16604,7 @@ already_AddRefed<Document> Document::Constructor(const GlobalObject& aGlobal,
   nsCOMPtr<Document> doc;
   nsresult res = NS_NewDOMDocument(getter_AddRefs(doc), VoidString(), u""_ns,
                                    nullptr, uri, uri, prin->GetPrincipal(),
-                                   true, global, DocumentFlavorPlain);
+                                   true, global, DocumentFlavor::Plain);
   if (NS_FAILED(res)) {
     rv.Throw(res);
     return nullptr;

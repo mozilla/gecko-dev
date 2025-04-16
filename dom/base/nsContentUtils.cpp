@@ -6166,13 +6166,13 @@ static already_AddRefed<Document> CreateInertDocument(const Document* aTemplate,
 /* static */
 already_AddRefed<Document> nsContentUtils::CreateInertXMLDocument(
     const Document* aTemplate) {
-  return CreateInertDocument(aTemplate, DocumentFlavorXML);
+  return CreateInertDocument(aTemplate, DocumentFlavor::XML);
 }
 
 /* static */
 already_AddRefed<Document> nsContentUtils::CreateInertHTMLDocument(
     const Document* aTemplate) {
-  return CreateInertDocument(aTemplate, DocumentFlavorHTML);
+  return CreateInertDocument(aTemplate, DocumentFlavor::HTML);
 }
 
 /* static */

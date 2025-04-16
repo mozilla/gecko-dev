@@ -5715,12 +5715,12 @@ nsresult NS_NewVideoDocument(mozilla::dom::Document** aInstancePtrResult,
                              nsIPrincipal* aPartitionedPrincipal);
 
 // Enum for requesting a particular type of document when creating a doc
-enum DocumentFlavor {
-  DocumentFlavorLegacyGuess,  // compat with old code until made HTML5-compliant
-  DocumentFlavorHTML,         // HTMLDocument with HTMLness bit set to true
-  DocumentFlavorSVG,          // SVGDocument
-  DocumentFlavorXML,          // XMLDocument
-  DocumentFlavorPlain,        // Just a Document
+enum class DocumentFlavor : uint8_t {
+  LegacyGuess,  // compat with old code until made HTML5-compliant
+  HTML,         // HTMLDocument with HTMLness bit set to true
+  SVG,          // SVGDocument
+  XML,          // XMLDocument
+  Plain,        // Just a Document
 };
 
 // Note: it's the caller's responsibility to create or get aPrincipal as needed
