@@ -36,6 +36,7 @@ import org.mozilla.fenix.helpers.TestAssetHelper
 import org.mozilla.fenix.helpers.TestAssetHelper.getGenericAsset
 import org.mozilla.fenix.helpers.TestAssetHelper.waitingTime
 import org.mozilla.fenix.helpers.TestAssetHelper.waitingTimeLong
+import org.mozilla.fenix.helpers.TestAssetHelper.waitingTimeVeryShort
 import org.mozilla.fenix.helpers.TestHelper
 import org.mozilla.fenix.helpers.TestHelper.closeApp
 import org.mozilla.fenix.helpers.TestHelper.exitMenu
@@ -1026,7 +1027,7 @@ class MainMenuTestCompose : TestSetup() {
         }.clickOutsideTheMainMenu {
         }
         customTabScreen {
-            verifyRedesignedCustomTabsMainMenuItemsExist(customMenuItem, false)
+            verifyRedesignedCustomTabsMainMenuItemsExist(customMenuItem, false, waitingTimeVeryShort)
         }
     }
 
