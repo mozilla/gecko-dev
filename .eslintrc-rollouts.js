@@ -1494,7 +1494,6 @@ const rollouts = [
       "dom/tests/browser/browser_ConsoleStoragePBTest_perwindowpb.js",
       "dom/tests/browser/browser_beforeunload_between_chrome_content.js",
       "dom/tests/browser/browser_bug1004814.js",
-      "dom/tests/browser/browser_bug1238427.js",
       "dom/tests/browser/browser_bytecode_cache_asm_js.js",
       "dom/tests/browser/browser_frame_elements.js",
       "dom/tests/browser/browser_hasbeforeunload.js",

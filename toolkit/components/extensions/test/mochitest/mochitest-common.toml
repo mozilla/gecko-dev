@@ -73,7 +73,7 @@ support-files = [
   "serviceWorker.js",
   "slow_response.sjs",
   "webrequest_worker.js",
-  "!/dom/tests/mochitest/geolocation/network_geolocation.sjs",
+  "!/dom/geolocation/test/mochitest/network_geolocation.sjs",
   "!/toolkit/components/passwordmgr/test/authenticate.sjs",
   "file_redirect_data_uri.html",
   "file_redirect_cors_bypass.html",
