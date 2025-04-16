@@ -1987,7 +1987,6 @@ export var Policies = {
         "security.mixed_content.block_active_content",
         "security.mixed_content.block_display_content",
         "security.mixed_content.upgrade_display_content",
-        "security.osclientcerts.assume_rsa_pss_support",
         "security.osclientcerts.autoload",
         "security.OCSP.enabled",
         "security.OCSP.require",

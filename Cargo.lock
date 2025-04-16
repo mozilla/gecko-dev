@@ -4880,13 +4880,11 @@ dependencies = [
  "android_logger",
  "byteorder",
  "core-foundation 0.9.999",
- "digest",
  "env_logger",
  "lazy_static",
  "libloading",
  "log",
  "pkcs11-bindings",
- "rand",
  "rsclientcerts",
  "sha2",
  "static_prefs",
@@ -5621,8 +5619,11 @@ name = "rsclientcerts"
 version = "0.1.0"
 dependencies = [
  "byteorder",
+ "digest",
  "gecko-profiler",
  "pkcs11-bindings",
+ "rand",
+ "sha2",
 ]
 
 [[package]]
