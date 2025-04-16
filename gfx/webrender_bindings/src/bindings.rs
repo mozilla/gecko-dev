@@ -1800,6 +1800,7 @@ pub struct WrShaders {
     shaders: SharedShaders,
     shaders_to_precache: PendingShadersToPrecache,
     device: Device,
+    gl: Rc<dyn gl::Gl>,
 }
 
 pub struct WrGlyphRasterThread(GlyphRasterThread);
@@ -1883,6 +1884,9 @@ pub extern "C" fn wr_window_new(
         let ctx = swgl::Context::from(swgl_context);
         ctx.make_current();
         (Rc::new(ctx) as Rc<dyn gl::Gl>, Some(ctx))
+    } else if let Some(shaders) = &shaders {
+        let gl = Rc::clone(&shaders.gl);
+        (gl, None)
     } else {
         let gl = unsafe {
             if gl_context.is_null() {
@@ -4458,11 +4462,13 @@ pub extern "C" fn wr_shaders_new(
     };
 
     let shaders_to_precache = shaders.precache_all(precache_flags);
+    let gl = Rc::clone(device.rc_gl());
 
     let shaders = WrShaders {
         shaders: Rc::new(RefCell::new(shaders)),
         shaders_to_precache,
         device,
+        gl,
     };
 
     Box::into_raw(Box::new(shaders))
