@@ -6675,17 +6675,17 @@ BranchWasmRefIsSubtypeRegisters MacroAssembler::regsForBranchWasmRefIsSubtype(
       return BranchWasmRefIsSubtypeRegisters{
           .needSuperSTV = type.isTypeRef(),
           .needScratch1 = !type.isNone() && !type.isAny(),
-          .needScratch2 =
-              type.isTypeRef() && type.typeDef()->subTypingDepth() >=
-                                      wasm::MinSuperTypeVectorLength,
+          .needScratch2 = type.isTypeRef() && !type.typeDef()->isFinal() &&
+                          type.typeDef()->subTypingDepth() >=
+                              wasm::MinSuperTypeVectorLength,
       };
     case wasm::RefTypeHierarchy::Func:
       return BranchWasmRefIsSubtypeRegisters{
           .needSuperSTV = type.isTypeRef(),
           .needScratch1 = type.isTypeRef(),
-          .needScratch2 =
-              type.isTypeRef() && type.typeDef()->subTypingDepth() >=
-                                      wasm::MinSuperTypeVectorLength,
+          .needScratch2 = type.isTypeRef() && !type.typeDef()->isFinal() &&
+                          type.typeDef()->subTypingDepth() >=
+                              wasm::MinSuperTypeVectorLength,
       };
     case wasm::RefTypeHierarchy::Extern:
     case wasm::RefTypeHierarchy::Exn:
@@ -6815,9 +6815,8 @@ void MacroAssembler::branchWasmRefIsSubtypeAny(
           scratch1);
   if (destType.isTypeRef()) {
     // Concrete type, do superTypeVector check.
-    branchWasmSTVIsSubtype(scratch1, superSTV, scratch2,
-                           destType.typeDef()->subTypingDepth(), label,
-                           onSuccess);
+    branchWasmSTVIsSubtype(scratch1, superSTV, scratch2, destType.typeDef(),
+                           label, onSuccess);
     bind(&fallthrough);
     return;
   }
@@ -6888,9 +6887,8 @@ void MacroAssembler::branchWasmRefIsSubtypeFunc(
   // remaining cases.
   loadPrivate(Address(ref, int32_t(FunctionExtended::offsetOfWasmSTV())),
               scratch1);
-  branchWasmSTVIsSubtype(scratch1, superSTV, scratch2,
-                         destType.typeDef()->subTypingDepth(), label,
-                         onSuccess);
+  branchWasmSTVIsSubtype(scratch1, superSTV, scratch2, destType.typeDef(),
+                         label, onSuccess);
   bind(&fallthrough);
 }
 
@@ -6983,10 +6981,20 @@ void MacroAssembler::branchWasmRefIsSubtypeExn(Register ref,
 
 void MacroAssembler::branchWasmSTVIsSubtype(Register subSTV, Register superSTV,
                                             Register scratch,
-                                            uint32_t superDepth, Label* label,
-                                            bool onSuccess) {
-  MOZ_ASSERT_IF(superDepth >= wasm::MinSuperTypeVectorLength,
-                scratch != Register::Invalid());
+                                            const wasm::TypeDef* destType,
+                                            Label* label, bool onSuccess) {
+  if (destType->isFinal()) {
+    // A final type cannot have subtypes, and therefore a simple equality check
+    // is sufficient.
+    MOZ_ASSERT(scratch == Register::Invalid());
+    branchPtr(onSuccess ? Assembler::Equal : Assembler::NotEqual, subSTV,
+              superSTV, label);
+    return;
+  }
+
+  MOZ_ASSERT((destType->subTypingDepth() >= wasm::MinSuperTypeVectorLength) ==
+             (scratch != Register::Invalid()));
+
   Label fallthrough;
   Label* successLabel = onSuccess ? label : &fallthrough;
   Label* failLabel = onSuccess ? &fallthrough : label;
@@ -6996,16 +7004,17 @@ void MacroAssembler::branchWasmSTVIsSubtype(Register subSTV, Register superSTV,
   branchPtr(Assembler::Equal, subSTV, superSTV, successLabel);
 
   // Emit a bounds check if the super type depth may be out-of-bounds.
-  if (superDepth >= wasm::MinSuperTypeVectorLength) {
+  if (destType->subTypingDepth() >= wasm::MinSuperTypeVectorLength) {
     load32(Address(subSTV, wasm::SuperTypeVector::offsetOfLength()), scratch);
-    branch32(Assembler::BelowOrEqual, scratch, Imm32(superDepth), failLabel);
+    branch32(Assembler::BelowOrEqual, scratch,
+             Imm32(destType->subTypingDepth()), failLabel);
   }
 
   // Load the `superTypeDepth` entry from subSTV. This will be `superSTV` if
   // `subSTV` is indeed a subtype.
-  loadPtr(
-      Address(subSTV, wasm::SuperTypeVector::offsetOfSTVInVector(superDepth)),
-      subSTV);
+  loadPtr(Address(subSTV, wasm::SuperTypeVector::offsetOfSTVInVector(
+                              destType->subTypingDepth())),
+          subSTV);
 
   // We succeed iff the entries are equal.
   branchPtr(onSuccess ? Assembler::Equal : Assembler::NotEqual, subSTV,

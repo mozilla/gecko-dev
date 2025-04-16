@@ -4029,11 +4029,12 @@ class MacroAssembler : public MacroAssemblerSpecific {
   // `superSTV` is statically known, which is the case for all wasm
   // instructions.
   //
-  // `scratch` is required iff the `superDepth` is >=
-  // wasm::MinSuperTypeVectorLength. `subSTV` is clobbered by this method.
-  // `superSTV` is preserved.
+  // `scratch` is required iff the destination type is not final and the
+  // `superDepth` is >= wasm::MinSuperTypeVectorLength. `subSTV` is clobbered by
+  // this method if the destination type is not final. `superSTV` is always
+  // preserved.
   void branchWasmSTVIsSubtype(Register subSTV, Register superSTV,
-                              Register scratch, uint32_t superDepth,
+                              Register scratch, const wasm::TypeDef* destType,
                               Label* label, bool onSuccess);
 
   // Same as branchWasmSTVIsSubtype, but looks up a dynamic position in the
