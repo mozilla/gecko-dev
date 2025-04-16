@@ -1305,6 +1305,7 @@ static nsLiteralCString sStyleSrcUnsafeInlineAllowList[] = {
     "chrome://mozapps/content/update/history.xhtml"_ns,
     "chrome://mozapps/content/update/updateElevation.xhtml"_ns,
     "chrome://pippki/content/certManager.xhtml"_ns,
+    "chrome://pippki/content/changepassword.xhtml"_ns,
     "chrome://pippki/content/deletecert.xhtml"_ns,
     "chrome://pippki/content/device_manager.xhtml"_ns,
     "chrome://pippki/content/downloadcert.xhtml"_ns,
