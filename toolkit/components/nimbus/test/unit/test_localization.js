@@ -1,8 +1,9 @@
 /* Any copyright is dedicated to the Public Domain.
  * http://creativecommons.org/publicdomain/zero/1.0/ */
 
-const { ExperimentAPI, _ExperimentFeature: ExperimentFeature } =
-  ChromeUtils.importESModule("resource://nimbus/ExperimentAPI.sys.mjs");
+const { _ExperimentFeature: ExperimentFeature } = ChromeUtils.importESModule(
+  "resource://nimbus/ExperimentAPI.sys.mjs"
+);
 const { MatchStatus } = ChromeUtils.importESModule(
   "resource://nimbus/lib/RemoteSettingsExperimentLoader.sys.mjs"
 );
@@ -97,32 +98,15 @@ const FEATURE = new ExperimentFeature(FEATURE_ID, {
   },
 });
 
-/**
- * Remove the experiment store.
- */
-async function cleanupStore(store) {
-  // We need to call finalize first to ensure that any pending saves from
-  // JSONFile.saveSoon overwrite files on disk.
-  await store._store.finalize();
-  await IOUtils.remove(store._store.path);
-}
-
-function resetTelemetry() {
-  Services.fog.testResetFOG();
-  Services.telemetry.snapshotEvents(
-    Ci.nsITelemetry.DATASET_PRERELEASE_CHANNELS,
-    /* clear = */ true
-  );
-}
-
 add_setup(function setup() {
-  do_get_profile();
-
   Services.fog.initializeFOG();
 
   registerCleanupFunction(ExperimentTestUtils.addTestFeatures(FEATURE));
-  registerCleanupFunction(resetTelemetry);
 });
+
+function setupTest({ ...args } = {}) {
+  return NimbusTestUtils.setupTest({ ...args, clearTelemetry: true });
+}
 
 add_task(async function test_schema() {
   const recipe = ExperimentFakes.recipe("foo");
@@ -202,13 +186,7 @@ add_task(function test_substituteLocalizations() {
 });
 
 add_task(async function test_getLocalizedValue() {
-  const sandbox = sinon.createSandbox();
-  const manager = ExperimentFakes.manager();
-
-  sandbox.stub(ExperimentAPI, "_manager").get(() => manager);
-
-  await manager.onStartup();
-  await manager.store.ready();
+  const { manager, cleanup } = await setupTest();
 
   const experiment = ExperimentFakes.recipe("experiment", {
     branches: [
@@ -250,20 +228,11 @@ add_task(async function test_getLocalizedValue() {
   );
 
   doExperimentCleanup();
-  await cleanupStore(manager.store);
-  sandbox.reset();
+  cleanup();
 });
 
 add_task(async function test_getLocalizedValue_unenroll_missingEntry() {
-  resetTelemetry();
-
-  const sandbox = sinon.createSandbox();
-  const manager = ExperimentFakes.manager();
-
-  sandbox.stub(ExperimentAPI, "_manager").get(() => manager);
-
-  await manager.onStartup();
-  await manager.store.ready();
+  const { manager, cleanup } = await setupTest();
 
   const experiment = ExperimentFakes.recipe("experiment", {
     branches: [
@@ -332,17 +301,11 @@ add_task(async function test_getLocalizedValue_unenroll_missingEntry() {
     }
   );
 
-  await cleanupStore(manager.store);
-  sandbox.reset();
+  cleanup();
 });
 
 add_task(async function test_getLocalizedValue_unenroll_missingEntry() {
-  resetTelemetry();
-
-  const sandbox = sinon.createSandbox();
-  const manager = ExperimentFakes.manager();
-
-  sandbox.stub(ExperimentAPI, "_manager").get(() => manager);
+  const { manager, cleanup } = await setupTest();
 
   await manager.onStartup();
   await manager.store.ready();
@@ -416,18 +379,11 @@ add_task(async function test_getLocalizedValue_unenroll_missingEntry() {
     }
   );
 
-  await cleanupStore(manager.store);
-  sandbox.reset();
+  cleanup();
 });
 
 add_task(async function test_getVariables() {
-  const sandbox = sinon.createSandbox();
-  const manager = ExperimentFakes.manager();
-
-  sandbox.stub(ExperimentAPI, "_manager").get(() => manager);
-
-  await manager.onStartup();
-  await manager.store.ready();
+  const { cleanup } = await setupTest();
 
   const experiment = ExperimentFakes.recipe("experiment", {
     branches: [
@@ -479,18 +435,11 @@ add_task(async function test_getVariables() {
   );
 
   doExperimentCleanup();
-  await cleanupStore(manager.store);
-  sandbox.reset();
+  cleanup();
 });
 
 add_task(async function test_getVariables_fallback() {
-  const sandbox = sinon.createSandbox();
-  const manager = ExperimentFakes.manager();
-
-  sandbox.stub(ExperimentAPI, "_manager").get(() => manager);
-
-  await manager.onStartup();
-  await manager.store.ready();
+  const { cleanup } = await setupTest();
 
   Services.prefs.setStringPref(
     FEATURE.manifest.variables.foo.fallbackPref,
@@ -549,7 +498,7 @@ add_task(async function test_getVariables_fallback() {
     }),
   };
 
-  const cleanup = {};
+  const experimentCleanup = {};
 
   Assert.deepEqual(
     FEATURE.getAllVariables({ defaultValues: { waldo: ["default-value"] } }),
@@ -579,7 +528,9 @@ add_task(async function test_getVariables_fallback() {
   );
 
   // Enroll in the rollout.
-  cleanup.rollout = await ExperimentFakes.enrollmentHelper(recipes.rollout);
+  experimentCleanup.rollout = await ExperimentFakes.enrollmentHelper(
+    recipes.rollout
+  );
 
   Assert.deepEqual(
     FEATURE.getAllVariables({ defaultValues: { waldo: ["default-value"] } }),
@@ -609,7 +560,7 @@ add_task(async function test_getVariables_fallback() {
   );
 
   // Enroll in the experiment.
-  cleanup.experiment = await ExperimentFakes.enrollmentHelper(
+  experimentCleanup.experiment = await ExperimentFakes.enrollmentHelper(
     recipes.experiment
   );
 
@@ -641,7 +592,7 @@ add_task(async function test_getVariables_fallback() {
   );
 
   // Unenroll from the rollout so we are only enrolled in an experiment.
-  await cleanup.rollout();
+  await experimentCleanup.rollout();
 
   Assert.deepEqual(
     FEATURE.getAllVariables({ defaultValues: { waldo: ["default-value"] } }),
@@ -671,7 +622,7 @@ add_task(async function test_getVariables_fallback() {
   );
 
   // Unenroll from experiment. We are enrolled in nothing.
-  await cleanup.experiment();
+  await experimentCleanup.experiment();
 
   Assert.deepEqual(
     FEATURE.getAllVariables({ defaultValues: { waldo: ["default-value"] } }),
@@ -703,20 +654,11 @@ add_task(async function test_getVariables_fallback() {
   Services.prefs.clearUserPref(FEATURE.manifest.variables.foo.fallbackPref);
   Services.prefs.clearUserPref(FEATURE.manifest.variables.baz.fallbackPref);
 
-  await cleanupStore(manager.store);
-  sandbox.reset();
+  cleanup();
 });
 
 add_task(async function test_getVariables_fallback_unenroll() {
-  resetTelemetry();
-
-  const sandbox = sinon.createSandbox();
-  const manager = ExperimentFakes.manager();
-
-  sandbox.stub(ExperimentAPI, "_manager").get(() => manager);
-
-  await manager.onStartup();
-  await manager.store.ready();
+  const { manager, cleanup } = await setupTest();
 
   Services.prefs.setStringPref(
     FEATURE.manifest.variables.foo.fallbackPref,
@@ -841,17 +783,12 @@ add_task(async function test_getVariables_fallback_unenroll() {
   Services.prefs.clearUserPref(FEATURE.manifest.variables.baz.fallbackPref);
   Services.prefs.clearUserPref(FEATURE.manifest.variables.waldo.fallbackPref);
 
-  await cleanupStore(manager.store);
-  sandbox.reset();
+  cleanup();
 });
 
 add_task(async function test_updateRecipes() {
-  const sandbox = sinon.createSandbox();
-  const manager = ExperimentFakes.manager();
-  const loader = ExperimentFakes.rsLoader();
+  const { sandbox, loader, manager, cleanup } = await setupTest();
 
-  loader.manager = manager;
-  sandbox.stub(ExperimentAPI, "_manager").get(() => manager);
   sandbox.stub(manager, "onRecipe");
 
   const recipe = ExperimentFakes.recipe("foo", {
@@ -874,13 +811,7 @@ add_task(async function test_updateRecipes() {
     localizations: LOCALIZATIONS,
   });
 
-  await manager.onStartup();
-  await manager.store.ready();
-  await loader.enable();
-
-  sandbox
-    .stub(loader.remoteSettingsClients.experiments, "get")
-    .resolves([recipe]);
+  loader.remoteSettingsClients.experiments.get.resolves([recipe]);
   await loader.updateRecipes();
 
   Assert.ok(
@@ -891,23 +822,13 @@ add_task(async function test_updateRecipes() {
     "would enroll"
   );
 
-  await cleanupStore(manager.store);
-  sandbox.reset();
+  cleanup();
 });
 
 async function test_updateRecipes_missingLocale({
   featureValidationOptOut = false,
 } = {}) {
-  resetTelemetry();
-
-  const sandbox = sinon.createSandbox();
-  const manager = ExperimentFakes.manager();
-  const loader = ExperimentFakes.rsLoader();
-
-  loader.manager = manager;
-  sandbox.stub(ExperimentAPI, "_manager").get(() => manager);
-  sandbox.spy(manager, "onRecipe");
-  sandbox.stub(manager, "enroll");
+  const { sandbox, loader, manager, cleanup } = await setupTest();
 
   const recipe = ExperimentFakes.recipe("foo", {
     bucketConfig: {
@@ -930,13 +851,10 @@ async function test_updateRecipes_missingLocale({
     featureValidationOptOut,
   });
 
-  await manager.onStartup();
-  await manager.store.ready();
-  await loader.enable();
+  sandbox.spy(manager, "onRecipe");
+  sandbox.stub(manager, "enroll");
+  loader.remoteSettingsClients.experiments.get.resolves([recipe]);
 
-  sandbox
-    .stub(loader.remoteSettingsClients.experiments, "get")
-    .resolves([recipe]);
   await loader.updateRecipes();
 
   Assert.ok(
@@ -977,23 +895,13 @@ async function test_updateRecipes_missingLocale({
     }
   );
 
-  await cleanupStore(manager.store);
-  sandbox.reset();
+  cleanup();
 }
 
 add_task(test_updateRecipes_missingLocale);
 
 add_task(async function test_updateRecipes_missingEntry() {
-  resetTelemetry();
-
-  const sandbox = sinon.createSandbox();
-  const manager = ExperimentFakes.manager();
-  const loader = ExperimentFakes.rsLoader();
-
-  loader.manager = manager;
-  sandbox.stub(ExperimentAPI, "_manager").get(() => manager);
-  sandbox.spy(manager, "onRecipe");
-  sandbox.stub(manager, "enroll");
+  const { sandbox, loader, manager, cleanup } = await setupTest();
 
   const recipe = ExperimentFakes.recipe("foo", {
     branches: [
@@ -1013,13 +921,10 @@ add_task(async function test_updateRecipes_missingEntry() {
     },
   });
 
-  await manager.onStartup();
-  await manager.store.ready();
-  await loader.enable();
+  sandbox.spy(manager, "onRecipe");
+  sandbox.stub(manager, "enroll");
+  loader.remoteSettingsClients.experiments.get.resolves([recipe]);
 
-  sandbox
-    .stub(loader.remoteSettingsClients.experiments, "get")
-    .resolves([recipe]);
   await loader.updateRecipes();
 
   Assert.ok(
@@ -1080,13 +985,10 @@ add_task(async function test_updateRecipes_missingEntry() {
     }
   );
 
-  await cleanupStore(manager.store);
-  sandbox.reset();
+  cleanup();
 });
 
 add_task(async function test_updateRecipes_validationDisabled_pref() {
-  resetTelemetry();
-
   Services.prefs.setBoolPref("nimbus.validation.enabled", false);
 
   await test_updateRecipes_missingLocale();
@@ -1095,22 +997,11 @@ add_task(async function test_updateRecipes_validationDisabled_pref() {
 });
 
 add_task(async function test_updateRecipes_validationDisabled_flag() {
-  resetTelemetry();
-
   await test_updateRecipes_missingLocale({ featureValidationOptOut: true });
 });
 
 add_task(async function test_updateRecipes_unenroll_missingEntry() {
-  resetTelemetry();
-
-  const sandbox = sinon.createSandbox();
-  const manager = ExperimentFakes.manager();
-  const loader = ExperimentFakes.rsLoader();
-
-  loader.manager = manager;
-  sandbox.stub(ExperimentAPI, "_manager").get(() => manager);
-  sandbox.spy(manager, "updateEnrollment");
-  sandbox.spy(manager, "_unenroll");
+  const { sandbox, loader, manager, cleanup } = await setupTest();
 
   const recipe = ExperimentFakes.recipe("foo", {
     branches: [
@@ -1128,21 +1019,17 @@ add_task(async function test_updateRecipes_unenroll_missingEntry() {
     localizations: LOCALIZATIONS,
   });
 
-  await manager.onStartup();
-  await manager.store.ready();
-  await loader.enable();
+  const badRecipe = { ...recipe, localizations: { "en-US": {} } };
+
+  sandbox.spy(manager, "updateEnrollment");
+  sandbox.spy(manager, "_unenroll");
+  loader.remoteSettingsClients.experiments.get.resolves([badRecipe]);
 
   await manager.enroll(recipe, "rs-loader");
   Assert.ok(
     !!manager.store.getExperimentForFeature(FEATURE_ID),
     "Should be enrolled in the experiment"
   );
-
-  const badRecipe = { ...recipe, localizations: { "en-US": {} } };
-
-  sandbox
-    .stub(loader.remoteSettingsClients.experiments, "get")
-    .resolves([badRecipe]);
 
   await loader.updateRecipes();
 
@@ -1254,21 +1141,11 @@ add_task(async function test_updateRecipes_unenroll_missingEntry() {
     }
   );
 
-  await cleanupStore(manager.store);
-  sandbox.reset();
+  cleanup();
 });
 
 add_task(async function test_updateRecipes_unenroll_missingLocale() {
-  resetTelemetry();
-
-  const sandbox = sinon.createSandbox();
-  const manager = ExperimentFakes.manager();
-  const loader = ExperimentFakes.rsLoader();
-
-  loader.manager = manager;
-  sandbox.stub(ExperimentAPI, "_manager").get(() => manager);
-  sandbox.spy(manager, "updateEnrollment");
-  sandbox.spy(manager, "_unenroll");
+  const { sandbox, manager, loader, cleanup } = await setupTest();
 
   const recipe = ExperimentFakes.recipe("foo", {
     branches: [
@@ -1286,24 +1163,17 @@ add_task(async function test_updateRecipes_unenroll_missingLocale() {
     localizations: LOCALIZATIONS,
   });
 
-  await manager.onStartup();
-  await manager.store.ready();
-  await loader.enable();
+  const badRecipe = { ...recipe, localizations: {} };
+
+  sandbox.spy(manager, "updateEnrollment");
+  sandbox.spy(manager, "_unenroll");
+  loader.remoteSettingsClients.experiments.get.resolves([badRecipe]);
 
   await manager.enroll(recipe, "rs-loader");
   Assert.ok(
     !!manager.store.getExperimentForFeature(FEATURE_ID),
     "Should be enrolled in the experiment"
   );
-
-  const badRecipe = {
-    ...recipe,
-    localizations: {},
-  };
-
-  sandbox
-    .stub(loader.remoteSettingsClients.experiments, "get")
-    .resolves([badRecipe]);
 
   await loader.updateRecipes();
 
@@ -1403,6 +1273,5 @@ add_task(async function test_updateRecipes_unenroll_missingLocale() {
     }
   );
 
-  await cleanupStore(manager.store);
-  sandbox.reset();
+  cleanup();
 });

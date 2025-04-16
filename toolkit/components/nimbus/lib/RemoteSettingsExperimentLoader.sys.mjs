@@ -172,7 +172,7 @@ export class _RemoteSettingsExperimentLoader {
     return "rs-loader";
   }
 
-  constructor() {
+  constructor(manager) {
     // Has the timer been set?
     this._enabled = false;
     // Are we in the middle of updating recipes already?
@@ -183,7 +183,7 @@ export class _RemoteSettingsExperimentLoader {
     this._updatingDeferred = Promise.withResolvers();
 
     // Make it possible to override for testing
-    this.manager = lazy.ExperimentManager;
+    this.manager = manager ?? lazy.ExperimentManager;
 
     this.remoteSettingsClients = {};
     ChromeUtils.defineLazyGetter(
