@@ -71,11 +71,3 @@ webext-perms-description-data-long-personallyIdentifyingInfo = Share personally 
 webext-perms-description-data-long-technicalAndInteraction = Share technical and interaction data with extension developer
 webext-perms-description-data-long-websiteActivity = Share website activity with extension developer
 webext-perms-description-data-long-websiteContent = Share website content with extension developer
-
-## Headings for the Permissions tab in `about:addons`
-
-addon-permissions-required-data-collection = Required data collection:
-addon-permissions-optional-data-collection = Optional data collection:
-
-# Name of the Permissions tab in `about:addons` when the data collection feature is enabled.
-permissions-data-addon-button = Permissions and data

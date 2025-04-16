@@ -43,12 +43,6 @@ XPCOMUtils.defineLazyPreferenceGetter(
   "extensions.htmlaboutaddons.recommendations.enabled",
   false
 );
-XPCOMUtils.defineLazyPreferenceGetter(
-  this,
-  "DATA_COLLECTION_PERMISSIONS_ENABLED",
-  "extensions.dataCollectionPermissions.enabled",
-  false
-);
 
 const PLUGIN_ICON_URL = "chrome://global/skin/icons/plugin.svg";
 const EXTENSION_ICON_URL =
@@ -1924,7 +1918,7 @@ class AddonPermissionsList extends HTMLElement {
   }
 
   async render() {
-    let empty = { origins: [], permissions: [], data_collection: [] };
+    let empty = { origins: [], permissions: [] };
     let requiredPerms = { ...(this.addon.userPermissions ?? empty) };
     let optionalPerms = { ...(this.addon.optionalPermissions ?? empty) };
     let grantedPerms = await ExtensionPermissions.get(this.addon.id);
@@ -1950,7 +1944,6 @@ class AddonPermissionsList extends HTMLElement {
     let optionalEntries = [
       ...Object.entries(permissions.optionalPermissions),
       ...Object.entries(permissions.optionalOrigins),
-      ...Object.entries(permissions.optionalDataCollectionPermissions),
     ];
 
     this.textContent = "";
@@ -1960,7 +1953,8 @@ class AddonPermissionsList extends HTMLElement {
       let section = frag.querySelector(".addon-permissions-required");
       section.hidden = false;
       let list = section.querySelector(".addon-permissions-list");
-      for (const msg of permissions.msgs) {
+
+      for (let msg of permissions.msgs) {
         let item = document.createElement("li");
         item.classList.add("permission-info", "permission-checked");
         item.appendChild(document.createTextNode(msg));
@@ -1968,30 +1962,10 @@ class AddonPermissionsList extends HTMLElement {
       }
     }
 
-    if (permissions.dataCollectionPermissions?.msg) {
-      let section = frag.querySelector(
-        ".addon-data-collection-permissions-required"
-      );
-      section.hidden = false;
-      let list = section.querySelector(".addon-permissions-list");
-      let item = document.createElement("li");
-      item.classList.add("permission-info", "permission-checked");
-      item.appendChild(
-        document.createTextNode(permissions.dataCollectionPermissions.msg)
-      );
-      list.appendChild(item);
-    }
-
     if (optionalEntries.length) {
       let section = frag.querySelector(".addon-permissions-optional");
+      section.hidden = false;
       let list = section.querySelector(".addon-permissions-list");
-
-      let dataCollectionSection = frag.querySelector(
-        ".addon-data-collection-permissions-optional"
-      );
-      let dataCollectionList = dataCollectionSection.querySelector(
-        ".addon-permissions-list"
-      );
 
       for (let id = 0; id < optionalEntries.length; id++) {
         let [perm, msg] = optionalEntries[id];
@@ -1999,8 +1973,6 @@ class AddonPermissionsList extends HTMLElement {
         let type = "permission";
         if (permissions.optionalOrigins[perm]) {
           type = "origin";
-        } else if (permissions.optionalDataCollectionPermissions[perm]) {
-          type = "data_collection";
         }
         let item = document.createElement("li");
         item.classList.add("permission-info");
@@ -2012,8 +1984,7 @@ class AddonPermissionsList extends HTMLElement {
 
         let checked =
           grantedPerms.permissions.includes(perm) ||
-          grantedPerms.origins.includes(perm) ||
-          grantedPerms.data_collection.includes(perm);
+          grantedPerms.origins.includes(perm);
 
         // If this is one of the "all sites" permissions
         if (Extension.isAllSitesPermission(perm)) {
@@ -2023,6 +1994,7 @@ class AddonPermissionsList extends HTMLElement {
         }
 
         toggle.pressed = checked;
+        item.classList.toggle("permission-checked", checked);
 
         toggle.setAttribute("permission-key", perm);
         toggle.setAttribute("action", "toggle-permission");
@@ -2035,22 +2007,10 @@ class AddonPermissionsList extends HTMLElement {
           toggle.append(mb);
         }
         item.appendChild(toggle);
-
-        if (type === "data_collection") {
-          dataCollectionSection.hidden = false;
-          dataCollectionList.appendChild(item);
-        } else {
-          section.hidden = false;
-          list.appendChild(item);
-        }
+        list.appendChild(item);
       }
     }
-
-    if (
-      !permissions.msgs.length &&
-      !optionalEntries.length &&
-      !permissions.dataCollectionPermissions?.msg
-    ) {
+    if (!permissions.msgs.length && !optionalEntries.length) {
       let row = frag.querySelector(".addon-permissions-empty");
       row.hidden = false;
     }
@@ -2215,12 +2175,6 @@ class AddonDetails extends HTMLElement {
       isAddonOptionsUIAllowed(addon).then(allowed => {
         prefsBtn.hidden = !allowed;
       });
-    }
-
-    // Override the deck button string when the feature is enabled, which isn't
-    // the case by default for now.
-    if (DATA_COLLECTION_PERMISSIONS_ENABLED) {
-      permsBtn.setAttribute("data-l10n-id", "permissions-data-addon-button");
     }
 
     // Hide the tab group if "details" is the only visible button.
@@ -2528,8 +2482,6 @@ class AddonCard extends HTMLElement {
       perms.permissions = [permission];
     } else if (type === "origin") {
       perms.origins = [permission];
-    } else if (type === "data_collection") {
-      perms.data_collection = [permission];
     } else {
       throw new Error("unknown permission type changed");
     }
@@ -3094,6 +3046,7 @@ class AddonCard extends HTMLElement {
       let target = document.querySelector(`[permission-key="${permission}"]`);
       let checked = !data.removed;
       if (target) {
+        target.closest("li").classList.toggle("permission-checked", checked);
         target.pressed = checked;
       }
     }
@@ -3101,6 +3054,7 @@ class AddonCard extends HTMLElement {
       // special-case for finding the all-sites target by attribute.
       let target = document.querySelector("[permission-all-sites]");
       let checked = await AddonCard.optionalAllSitesGranted(this.addon.id);
+      target.closest("li").classList.toggle("permission-checked", checked);
       target.pressed = checked;
     }
   }

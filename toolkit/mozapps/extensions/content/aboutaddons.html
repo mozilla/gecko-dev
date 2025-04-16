@@ -31,10 +31,6 @@
     <link rel="localization" href="branding/brand.ftl" />
     <link rel="localization" href="toolkit/about/aboutAddons.ftl" />
     <link rel="localization" href="toolkit/global/extensionPermissions.ftl" />
-    <link
-      rel="localization"
-      href="locales-preview/dataCollectionPermissions.ftl"
-    />
     <link rel="localization" href="locales-preview/localModelManagement.ftl" />
 
     <!-- Defer scripts so all the templates are loaded by the time they run. -->
@@ -325,7 +321,6 @@
     </template>
 
     <template name="addon-permissions-list">
-      <!-- Permissions -->
       <div class="addon-permissions-required" hidden>
         <h2
           class="permission-header"
@@ -340,29 +335,11 @@
         ></h2>
         <ul class="addon-permissions-list"></ul>
       </div>
-
-      <!-- Data collection -->
-      <div class="addon-data-collection-permissions-required" hidden>
-        <h2
-          class="permission-header"
-          data-l10n-id="addon-permissions-required-data-collection"
-        ></h2>
-        <ul class="addon-permissions-list"></ul>
-      </div>
-      <div class="addon-data-collection-permissions-optional" hidden>
-        <h2
-          class="permission-header"
-          data-l10n-id="addon-permissions-optional-data-collection"
-        ></h2>
-        <ul class="addon-permissions-list"></ul>
-      </div>
-
       <div
         class="addon-detail-row addon-permissions-empty"
         data-l10n-id="addon-permissions-empty2"
         hidden
       ></div>
-
       <div class="addon-detail-row">
         <a
           is="moz-support-link"
