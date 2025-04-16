@@ -36,23 +36,10 @@ manifest.force = True
 
 if CONFIG["MOZ_BUILD_APP"] == "browser":
     manifest.flags = [
-        "--features=browser/features",
         "--builtin-addons=browser/chrome/browser/builtin-addons",
     ]
 
     FINAL_TARGET_FILES.browser.chrome.browser.content.browser += [
-        "!%s" % built_in_addons,
-    ]
-elif CONFIG["MOZ_BUILD_APP"] == "mobile/android":
-    manifest.flags = ["--features=features"]
-
-    FINAL_TARGET_FILES.chrome.chrome.content += [
-        "!%s" % built_in_addons,
-    ]
-elif CONFIG["MOZ_BUILD_APP"] == "comm/mail":
-    manifest.flags = ["--features=features"]
-
-    FINAL_TARGET_FILES.chrome.browser.content += [
         "!%s" % built_in_addons,
     ]
 
