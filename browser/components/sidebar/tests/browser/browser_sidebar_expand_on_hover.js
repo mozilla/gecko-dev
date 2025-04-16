@@ -247,6 +247,7 @@ add_task(async function test_expand_on_hover_context_menu() {
       );
     }
   );
+  toolbarContextMenu.hidePopup();
   await mouseOutSidebarToCollapse();
   await SidebarController.toggleExpandOnHover(false);
   await SidebarController.waitUntilStable();
