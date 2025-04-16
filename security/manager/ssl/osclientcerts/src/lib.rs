@@ -25,7 +25,7 @@ extern crate sha2;
 extern crate winapi;
 
 use pkcs11_bindings::*;
-use rsclientcerts::manager::{ManagerProxy, SlotType};
+use rsclientcerts::manager::ManagerProxy;
 use std::convert::TryInto;
 use std::sync::Mutex;
 use std::thread;
@@ -330,10 +330,7 @@ extern "C" fn C_OpenSession(
     }
     let mut manager_proxy_guard = try_to_get_manager_proxy_guard!();
     let manager = manager_proxy_guard_to_manager!(manager_proxy_guard);
-    // The "modern"/"legacy" slot distinction still exists in ipcclientcerts,
-    // which shares some library code with this module, to allow for a more
-    // nuanced notion of whether or not e.g. RSA-PSS is supported.
-    let session_handle = match manager.open_session(SlotType::Modern) {
+    let session_handle = match manager.open_session() {
         Ok(session_handle) => session_handle,
         Err(e) => {
             log_with_thread_id!(error, "C_OpenSession: open_session failed: {}", e);
@@ -367,7 +364,7 @@ extern "C" fn C_CloseAllSessions(slotID: CK_SLOT_ID) -> CK_RV {
     }
     let mut manager_proxy_guard = try_to_get_manager_proxy_guard!();
     let manager = manager_proxy_guard_to_manager!(manager_proxy_guard);
-    match manager.close_all_sessions(SlotType::Modern) {
+    match manager.close_all_sessions() {
         Ok(()) => {
             log_with_thread_id!(debug, "C_CloseAllSessions: CKR_OK");
             CKR_OK

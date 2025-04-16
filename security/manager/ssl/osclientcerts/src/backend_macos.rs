@@ -16,7 +16,7 @@ use core_foundation::string::*;
 use libloading::{Library, Symbol};
 use pkcs11_bindings::*;
 use rsclientcerts::error::{Error, ErrorType};
-use rsclientcerts::manager::{ClientCertsBackend, CryptokiObject, Sign, SlotType};
+use rsclientcerts::manager::{ClientCertsBackend, CryptokiObject, Sign};
 use rsclientcerts::util::*;
 use sha2::{Digest, Sha256};
 use std::collections::BTreeMap;
@@ -352,17 +352,7 @@ impl Cert {
 }
 
 impl CryptokiObject for Cert {
-    fn matches(&self, slot_type: SlotType, attrs: &[(CK_ATTRIBUTE_TYPE, Vec<u8>)]) -> bool {
-        // The modern/legacy slot distinction in theory enables differentiation
-        // between keys that are from modules that can use modern cryptography
-        // (namely EC keys and RSA-PSS signatures) and those that cannot.
-        // However, the function that would enable this
-        // (SecKeyIsAlgorithmSupported) causes a password dialog to appear on
-        // our test machines, so this backend pretends that everything supports
-        // modern crypto for now.
-        if slot_type != SlotType::Modern {
-            return false;
-        }
+    fn matches(&self, attrs: &[(CK_ATTRIBUTE_TYPE, Vec<u8>)]) -> bool {
         for (attr_type, attr_value) in attrs {
             let comparison = match *attr_type {
                 CKA_CLASS => self.class(),
@@ -640,17 +630,7 @@ impl Key {
 }
 
 impl CryptokiObject for Key {
-    fn matches(&self, slot_type: SlotType, attrs: &[(CK_ATTRIBUTE_TYPE, Vec<u8>)]) -> bool {
-        // The modern/legacy slot distinction in theory enables differentiation
-        // between keys that are from modules that can use modern cryptography
-        // (namely EC keys and RSA-PSS signatures) and those that cannot.
-        // However, the function that would enable this
-        // (SecKeyIsAlgorithmSupported) causes a password dialog to appear on
-        // our test machines, so this backend pretends that everything supports
-        // modern crypto for now.
-        if slot_type != SlotType::Modern {
-            return false;
-        }
+    fn matches(&self, attrs: &[(CK_ATTRIBUTE_TYPE, Vec<u8>)]) -> bool {
         for (attr_type, attr_value) in attrs {
             let comparison = match *attr_type {
                 CKA_CLASS => self.class(),

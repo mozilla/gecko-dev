@@ -42,7 +42,6 @@ mozilla::ipc::IPCResult IPCClientCertsParent::RecvFindObjects(
   CERTCertListNode* n = CERT_LIST_HEAD(certList);
   while (!CERT_LIST_END(n, certList)) {
     nsTArray<uint8_t> certDER(n->cert->derCert.data, n->cert->derCert.len);
-    uint32_t slotType;
     UniqueSECKEYPublicKey pubkey(CERT_ExtractPublicKey(n->cert));
     if (!pubkey) {
       return IPC_OK();
@@ -50,20 +49,16 @@ mozilla::ipc::IPCResult IPCClientCertsParent::RecvFindObjects(
     switch (SECKEY_GetPublicKeyType(pubkey.get())) {
       case rsaKey:
       case rsaPssKey: {
-        slotType = PK11_DoesMechanism(n->cert->slot, CKM_RSA_PKCS_PSS)
-                       ? kIPCClientCertsSlotTypeModern
-                       : kIPCClientCertsSlotTypeLegacy;
         nsTArray<uint8_t> modulus(pubkey->u.rsa.modulus.data,
                                   pubkey->u.rsa.modulus.len);
-        RSAKey rsakey(modulus, certDER, slotType);
+        RSAKey rsakey(modulus, certDER);
         aObjects->AppendElement(std::move(rsakey));
         break;
       }
       case ecKey: {
-        slotType = kIPCClientCertsSlotTypeModern;
         nsTArray<uint8_t> params(pubkey->u.ec.DEREncodedParams.data,
                                  pubkey->u.ec.DEREncodedParams.len);
-        ECKey eckey(params, certDER, slotType);
+        ECKey eckey(params, certDER);
         aObjects->AppendElement(std::move(eckey));
         break;
       }
@@ -71,7 +66,7 @@ mozilla::ipc::IPCResult IPCClientCertsParent::RecvFindObjects(
         n = CERT_LIST_NEXT(n);
         continue;
     }
-    Certificate cert(certDER, slotType);
+    Certificate cert(certDER);
     aObjects->AppendElement(std::move(cert));
 
     n = CERT_LIST_NEXT(n);
