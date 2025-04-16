@@ -59,7 +59,8 @@ class TSFEmptyTextStore final : public TSFTextStoreBase {
                                      TS_TEXTCHANGE*);
 
  public:
-  [[nodiscard]] IMENotificationRequests GetIMENotificationRequests() final;
+  [[nodiscard]] IMENotificationRequests GetIMENotificationRequests()
+      const final;
 
   void Destroy() final;
 

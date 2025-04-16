@@ -644,8 +644,13 @@ nsresult TSFUtils::OnFocusChange(GotFocus aGotFocus, nsWindow* aFocusedWindow,
   const RefPtr<TSFTextStoreBase> oldTextStore = sCurrentTextStore.forget();
   sActiveTextStore = nullptr;
 
-  // If currently oldTextStore still has focus, notifies TSF of losing focus.
-  if (oldTextStore && oldTextStore->MaybeHasFocus()) {
+  // If the oldTextStore is editable and still has focus, disassociate document
+  // manager from the window handle.
+  // NOTE: We never associate the document manager of TSFEmptyTextStore with
+  // a window handle.  Therefore, we don't need to do this if the oldTextStore
+  // is not editable.
+  if (oldTextStore && oldTextStore->IsEditable() &&
+      oldTextStore->MaybeHasFocus()) {
     const RefPtr<ITfThreadMgr> threadMgr(sThreadMgr);
     // If active window is switched, threadMgr has already handled the focus
     // change, then, we'll fail AssociateFocus() and the following assertions

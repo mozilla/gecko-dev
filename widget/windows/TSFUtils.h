@@ -74,6 +74,8 @@ class TSFUtils final {
   static void OnSetInputContext(nsWindow* aWindow, const InputContext& aContext,
                                 const InputContextAction& aAction);
 
+  // FIXME: Simplify the following APIs with TSFTextStoreBase::IsEditable().
+
   /**
    * Active TextStore is a TSFTextStoreBase instance which is for editable
    * content.
