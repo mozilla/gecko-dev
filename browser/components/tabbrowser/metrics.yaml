@@ -363,6 +363,32 @@ tabgroup:
         type: string
     expires: never
 
+  tab_interactions:
+    type: labeled_counter
+    description: >
+      Records interactions with tabs related to a group: open, add tab to
+      group, duplicate, create a new tab, close a tab, reorder, and remove from
+      group
+    notification_emails:
+      - dao@mozilla.com
+      - jswinarton@mozilla.com
+      - sthompson@mozilla.com
+    bugs:
+      - https://bugzil.la/1938405
+    data_reviews:
+      - https://bugzil.la/1938405
+    data_sensitivity:
+      - interaction
+    labels:
+      - activate
+      - add
+      - duplicate
+      - new
+      - close_tabstrip
+      - close_tabmenu
+      - reorder
+    expires: never
+
   smart_tab_optin:
     type: event
     description: >
