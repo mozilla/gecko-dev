@@ -2460,7 +2460,7 @@ mozilla::ipc::IPCResult ContentChild::RecvAddPermission(
   // child processes don't care about modification time.
   int64_t modificationTime = 0;
 
-  permissionManager->AddInternal(
+  permissionManager->Add(
       principal, nsCString(permission.type), permission.capability, 0,
       permission.expireType, permission.expireTime, modificationTime,
       PermissionManager::eNotify, PermissionManager::eNoDBOperation);
