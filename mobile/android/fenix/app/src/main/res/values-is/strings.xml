@@ -126,9 +126,9 @@
 
     Text for the title displayed in the contextual feature recommendation popup promoting swipe of address bar.
   -->
-  <string name="address_bar_swipe_cfr_title">Strjúktu yfir verkfærastikuna til að skipta um flipa</string>
+  <string name="address_bar_swipe_cfr_title" tools:ignore="UnusedResources" moz:removedIn="139">Strjúktu yfir verkfærastikuna til að skipta um flipa</string>
   <!-- Text for the message displayed in the contextual feature recommendation popup promoting swipe of address bar. -->
-  <string name="address_bar_swipe_cfr_message">Strjúktu til vinstri eða hægri til að skipta. Strjúktu til vinstri á síðasta flipa til að opna nýjan flipa.</string>
+  <string name="address_bar_swipe_cfr_message" tools:ignore="UnusedResources" moz:removedIn="139">Strjúktu til vinstri eða hægri til að skipta. Strjúktu til vinstri á síðasta flipa til að opna nýjan flipa.</string>
   <!-- Text for the info dialog when camera permissions have been denied but user tries to access a camera feature. -->
   <string name="camera_permissions_needed_message">Aðgangur að myndavél er nauðsynlegur. Farðu í stillingar Android, farðu í Heimildir og gefðu leyfi.</string>
   <!-- Text for the positive action button to go to Android Settings to grant permissions. -->

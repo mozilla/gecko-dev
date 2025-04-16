@@ -126,9 +126,9 @@
 
     Text for the title displayed in the contextual feature recommendation popup promoting swipe of address bar.
   -->
-  <string name="address_bar_swipe_cfr_title">Přepínání panelů přejetím po panelu nástrojů</string>
+  <string name="address_bar_swipe_cfr_title" tools:ignore="UnusedResources" moz:removedIn="139">Přepínání panelů přejetím po panelu nástrojů</string>
   <!-- Text for the message displayed in the contextual feature recommendation popup promoting swipe of address bar. -->
-  <string name="address_bar_swipe_cfr_message">Přejetím doleva nebo doprava přepínáte. Přejetím doleva na posledním panelu otevřete nový panel.</string>
+  <string name="address_bar_swipe_cfr_message" tools:ignore="UnusedResources" moz:removedIn="139">Přejetím doleva nebo doprava přepínáte. Přejetím doleva na posledním panelu otevřete nový panel.</string>
   <!-- Text for the info dialog when camera permissions have been denied but user tries to access a camera feature. -->
   <string name="camera_permissions_needed_message">Pro tuto funkci je potřeba povolit přístup k fotoaparátu. Ten můžete povolit v nastavení oprávnění aplikací v systému Android.</string>
   <!-- Text for the positive action button to go to Android Settings to grant permissions. -->

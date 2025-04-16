@@ -124,9 +124,9 @@
 
     Text for the title displayed in the contextual feature recommendation popup promoting swipe of address bar.
   -->
-  <string name="address_bar_swipe_cfr_title">滑動工具列即可切換分頁</string>
+  <string name="address_bar_swipe_cfr_title" tools:ignore="UnusedResources" moz:removedIn="139">滑動工具列即可切換分頁</string>
   <!-- Text for the message displayed in the contextual feature recommendation popup promoting swipe of address bar. -->
-  <string name="address_bar_swipe_cfr_message">左右滑動即可切換分頁。對最後一個標籤再向左滑動即可開啟新分頁。</string>
+  <string name="address_bar_swipe_cfr_message" tools:ignore="UnusedResources" moz:removedIn="139">左右滑動即可切換分頁。對最後一個標籤再向左滑動即可開啟新分頁。</string>
   <!-- Text for the info dialog when camera permissions have been denied but user tries to access a camera feature. -->
   <string name="camera_permissions_needed_message">需要相機使用權限。請到 Android 系統設定點擊「權限」，然後點擊「允許」。</string>
   <!-- Text for the positive action button to go to Android Settings to grant permissions. -->

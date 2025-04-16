@@ -124,9 +124,11 @@
 
     Text for the title displayed in the contextual feature recommendation popup promoting swipe of address bar.
   -->
-  <string name="address_bar_swipe_cfr_title">Scorri la barra degli strumenti per cambiare scheda</string>
+  <string name="address_bar_swipe_cfr_title" tools:ignore="UnusedResources" moz:removedIn="139">Scorri la barra degli strumenti per cambiare scheda</string>
   <!-- Text for the message displayed in the contextual feature recommendation popup promoting swipe of address bar. -->
-  <string name="address_bar_swipe_cfr_message">Scorri verso sinistra o destra per cambiare. Scorri verso sinistra sull’ultima scheda per aprirne una nuova.</string>
+  <string name="address_bar_swipe_cfr_message" tools:ignore="UnusedResources" moz:removedIn="139">Scorri verso sinistra o destra per cambiare. Scorri verso sinistra sull’ultima scheda per aprirne una nuova.</string>
+  <!-- Text for the message displayed in the contextual feature recommendation popup promoting swipe of address bar. -->
+  <string name="address_bar_swipe_cfr_message_2">Scorri la barra degli strumenti verso sinistra o destra per cambiare scheda.</string>
   <!-- Text for the info dialog when camera permissions have been denied but user tries to access a camera feature. -->
   <string name="camera_permissions_needed_message">È richiesto l’accesso alla fotocamera. Puoi acconsentire all’accesso dalla scheda dei permessi nelle impostazioni di Android.</string>
   <!-- Text for the positive action button to go to Android Settings to grant permissions. -->
@@ -3375,6 +3377,26 @@
     The title of the glean debugging feature
   -->
   <string name="glean_debug_tools_title">Strumenti di debug per Glean</string>
+  <!--
+    Debug drawer region tools
+
+    Title of the Region tools in the Debug Drawer.
+    This tool allows temporarily overriding the home region (user's default locale)
+    and the current region (device's detected location) for testing purposes.
+  -->
+  <string name="debug_drawer_region_tools_title">Strumenti per le regioni</string>
+  <!-- The description of the Region tools in the Debug Drawer -->
+  <string name="debug_drawer_regin_tools_description">Sostituisce temporaneamente i valori delle regioni home e corrente per eseguire test.</string>
+  <!-- The text label for displaying home region. -->
+  <string name="debug_drawer_home_region_label">Regione home</string>
+  <!-- The text label for displaying current region. -->
+  <string name="debug_drawer_current_region_label">Regione corrente</string>
+  <!-- The text field label for overriding home region. -->
+  <string name="debug_drawer_override_home_region_label">Sovrascrivi regione home</string>
+  <!-- The text field label for overriding current region. -->
+  <string name="debug_drawer_override_current_region_label">Sovrascrivi regione corrente</string>
+  <!-- The title of the button for overriding home and current region. -->
+  <string name="debug_drawer_override_region">Sovrascrivi regioni home e corrente</string>
   <!--
     Messages explaining how to exit fullscreen mode
 

@@ -127,9 +127,11 @@
 
     Text for the title displayed in the contextual feature recommendation popup promoting swipe of address bar.
   -->
-  <string name="address_bar_swipe_cfr_title">도구 모음을 밀어서 탭 전환</string>
+  <string name="address_bar_swipe_cfr_title" tools:ignore="UnusedResources" moz:removedIn="139">도구 모음을 밀어서 탭 전환</string>
   <!-- Text for the message displayed in the contextual feature recommendation popup promoting swipe of address bar. -->
-  <string name="address_bar_swipe_cfr_message">탭을 전환하려면 왼쪽이나 오른쪽으로 미세요. 새 탭을 열려면 마지막 탭을 왼쪽으로 미세요.</string>
+  <string name="address_bar_swipe_cfr_message" tools:ignore="UnusedResources" moz:removedIn="139">탭을 전환하려면 왼쪽이나 오른쪽으로 미세요. 새 탭을 열려면 마지막 탭을 왼쪽으로 미세요.</string>
+  <!-- Text for the message displayed in the contextual feature recommendation popup promoting swipe of address bar. -->
+  <string name="address_bar_swipe_cfr_message_2">도구 모음을 왼쪽이나 오른쪽으로 밀어서 탭을 전환합니다.</string>
   <!-- Text for the info dialog when camera permissions have been denied but user tries to access a camera feature. -->
   <string name="camera_permissions_needed_message">카메라 액세스가 필요합니다. Android 설정으로 이동하여 권한을 누른 다음 허용을 누르세요.</string>
   <!-- Text for the positive action button to go to Android Settings to grant permissions. -->
@@ -3378,6 +3380,26 @@
     The title of the glean debugging feature
   -->
   <string name="glean_debug_tools_title">Glean 디버그 도구</string>
+  <!--
+    Debug drawer region tools
+
+    Title of the Region tools in the Debug Drawer.
+    This tool allows temporarily overriding the home region (user's default locale)
+    and the current region (device's detected location) for testing purposes.
+  -->
+  <string name="debug_drawer_region_tools_title">지역 도구</string>
+  <!-- The description of the Region tools in the Debug Drawer -->
+  <string name="debug_drawer_regin_tools_description">테스트를 위해 일시적으로 홈(사용자 기본 로케일) 및 현재 지역(기기 검출 위치) 값을 재정의합니다.</string>
+  <!-- The text label for displaying home region. -->
+  <string name="debug_drawer_home_region_label">홈 지역</string>
+  <!-- The text label for displaying current region. -->
+  <string name="debug_drawer_current_region_label">현재 지역</string>
+  <!-- The text field label for overriding home region. -->
+  <string name="debug_drawer_override_home_region_label">홈 지역 재정의</string>
+  <!-- The text field label for overriding current region. -->
+  <string name="debug_drawer_override_current_region_label">현재 지역 재정의</string>
+  <!-- The title of the button for overriding home and current region. -->
+  <string name="debug_drawer_override_region">홈 및 현재 지역 재정의</string>
   <!--
     Messages explaining how to exit fullscreen mode
 

@@ -127,9 +127,9 @@
 
     Text for the title displayed in the contextual feature recommendation popup promoting swipe of address bar.
   -->
-  <string name="address_bar_swipe_cfr_title">Tira la barra dî stigghi pi canciari schedi</string>
+  <string name="address_bar_swipe_cfr_title" tools:ignore="UnusedResources" moz:removedIn="139">Tira la barra dî stigghi pi canciari schedi</string>
   <!-- Text for the message displayed in the contextual feature recommendation popup promoting swipe of address bar. -->
-  <string name="address_bar_swipe_cfr_message">Tira a dritta o a manca pi canciari. Tira a manu manca nnâ to ùrtima scheda pi gràpirinni una nova.</string>
+  <string name="address_bar_swipe_cfr_message" tools:ignore="UnusedResources" moz:removedIn="139">Tira a dritta o a manca pi canciari. Tira a manu manca nnâ to ùrtima scheda pi gràpirinni una nova.</string>
   <!-- Text for the info dialog when camera permissions have been denied but user tries to access a camera feature. -->
   <string name="camera_permissions_needed_message">Abbisognu d\'accèdiri â fotucàmmira. Vai nnê mpustazzioni di Android, ammacca pirmissi e doppu auturizza.</string>
   <!-- Text for the positive action button to go to Android Settings to grant permissions. -->

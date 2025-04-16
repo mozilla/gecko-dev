@@ -126,9 +126,9 @@
 
     Text for the title displayed in the contextual feature recommendation popup promoting swipe of address bar.
   -->
-  <string name="address_bar_swipe_cfr_title">Embosyryry tembiporu renda emoambue hag̃ua tendayke</string>
+  <string name="address_bar_swipe_cfr_title" tools:ignore="UnusedResources" moz:removedIn="139">Embosyryry tembiporu renda emoambue hag̃ua tendayke</string>
   <!-- Text for the message displayed in the contextual feature recommendation popup promoting swipe of address bar. -->
-  <string name="address_bar_swipe_cfr_message">Embosyryry asu térã akatúa gotyo emoambue hag̃ua. Embosyryry asu gotyo tendayke pahaguápe embojuruja hag̃ua ipyahúva.</string>
+  <string name="address_bar_swipe_cfr_message" tools:ignore="UnusedResources" moz:removedIn="139">Embosyryry asu térã akatúa gotyo emoambue hag̃ua. Embosyryry asu gotyo tendayke pahaguápe embojuruja hag̃ua ipyahúva.</string>
   <!-- Text for the info dialog when camera permissions have been denied but user tries to access a camera feature. -->
   <string name="camera_permissions_needed_message">Eikotevẽ eike ta’ãngamýime. Eho Android ñembohekópe, eukutu ñemoneĩ ha moneĩ.</string>
   <!-- Text for the positive action button to go to Android Settings to grant permissions. -->

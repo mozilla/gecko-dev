@@ -126,9 +126,9 @@
 
     Text for the title displayed in the contextual feature recommendation popup promoting swipe of address bar.
   -->
-  <string name="address_bar_swipe_cfr_title">Podrsajte orodno vrstico za preklop zavihkov</string>
+  <string name="address_bar_swipe_cfr_title" tools:ignore="UnusedResources" moz:removedIn="139">Podrsajte orodno vrstico za preklop zavihkov</string>
   <!-- Text for the message displayed in the contextual feature recommendation popup promoting swipe of address bar. -->
-  <string name="address_bar_swipe_cfr_message">Podrsajte levo ali desno za preklop. Podrsajte levo na zadnjem zavihku, da odprete nov zavihek.</string>
+  <string name="address_bar_swipe_cfr_message" tools:ignore="UnusedResources" moz:removedIn="139">Podrsajte levo ali desno za preklop. Podrsajte levo na zadnjem zavihku, da odprete nov zavihek.</string>
   <!-- Text for the info dialog when camera permissions have been denied but user tries to access a camera feature. -->
   <string name="camera_permissions_needed_message">Potreben je dostop do kamere. Odprite nastavitve sistema Android in v dovoljenjih tapnite Dovoli.</string>
   <!-- Text for the positive action button to go to Android Settings to grant permissions. -->
@@ -1376,6 +1376,8 @@
   <string name="tab_tray_multiselect_share_content_description">Deli izbrane zavihke</string>
   <!-- Content description for tabs tray multiselect menu -->
   <string name="tab_tray_multiselect_menu_content_description">Meni izbranih zavihkov</string>
+  <!-- Title text displayed for a homepage tab in the tabs tray. -->
+  <string name="tab_tray_homepage_tab">Domača stran</string>
   <!-- Content description (not visible, for screen readers etc.): Removes tab from collection button. Removes the selected tab from collection when pressed -->
   <string name="remove_tab_from_collection">Odstrani zavihek iz zbirke</string>
   <!-- Text for button to enter multiselect mode in tabs tray -->
@@ -1505,6 +1507,8 @@
   <string name="download_search_placeholder" tools:ignore="UnusedResources">Iskanje po prenosih</string>
   <!-- Text to indicate that no downloads match the search query. -->
   <string name="download_search_no_results_found" tools:ignore="UnusedResources">Ni zadetkov</string>
+  <!-- Text for the "Select all" button, which selects all downloaded items in the downloads list. -->
+  <string name="download_select_all_items">Izberi vse</string>
   <!--
     Downloads Content Type Filters
 

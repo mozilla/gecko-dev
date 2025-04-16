@@ -127,9 +127,9 @@
 
     Text for the title displayed in the contextual feature recommendation popup promoting swipe of address bar.
   -->
-  <string name="address_bar_swipe_cfr_title">ትሮችን ለመቀየር የመሳሪያ አሞሌውን ያንሸራትቱ</string>
+  <string name="address_bar_swipe_cfr_title" tools:ignore="UnusedResources" moz:removedIn="139">ትሮችን ለመቀየር የመሳሪያ አሞሌውን ያንሸራትቱ</string>
   <!-- Text for the message displayed in the contextual feature recommendation popup promoting swipe of address bar. -->
-  <string name="address_bar_swipe_cfr_message">ለመቀየር ወደ ግራ ወይም ቀኝ ያንሸራትቱ። አዲስ ትር ለመክፈት በመጨረሻው ትር ላይ ወደ ግራ ያንሸራትቱ።</string>
+  <string name="address_bar_swipe_cfr_message" tools:ignore="UnusedResources" moz:removedIn="139">ለመቀየር ወደ ግራ ወይም ቀኝ ያንሸራትቱ። አዲስ ትር ለመክፈት በመጨረሻው ትር ላይ ወደ ግራ ያንሸራትቱ።</string>
   <!-- Text for the info dialog when camera permissions have been denied but user tries to access a camera feature. -->
   <string name="camera_permissions_needed_message">የካሜራ ፈቃድ ያስፈልጋል። ወደ አንድሮይድ ቅንብሮች ይሂዱ፣ ፈቃዶችን ይንኩ እና ፍቀድን ይንኩ።</string>
   <!-- Text for the positive action button to go to Android Settings to grant permissions. -->

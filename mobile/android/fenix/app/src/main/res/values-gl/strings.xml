@@ -127,9 +127,11 @@
 
     Text for the title displayed in the contextual feature recommendation popup promoting swipe of address bar.
   -->
-  <string name="address_bar_swipe_cfr_title">Escorrga na barra de ferramentas para cambiar de pestana</string>
+  <string name="address_bar_swipe_cfr_title" tools:ignore="UnusedResources" moz:removedIn="139">Escorrga na barra de ferramentas para cambiar de pestana</string>
   <!-- Text for the message displayed in the contextual feature recommendation popup promoting swipe of address bar. -->
-  <string name="address_bar_swipe_cfr_message">Escorrega cara á esquerda ou á dereita para cambiar. Escorrega cara á esquerda na túa última pestana para abrir unha nova.</string>
+  <string name="address_bar_swipe_cfr_message" tools:ignore="UnusedResources" moz:removedIn="139">Escorrega cara á esquerda ou á dereita para cambiar. Escorrega cara á esquerda na túa última pestana para abrir unha nova.</string>
+  <!-- Text for the message displayed in the contextual feature recommendation popup promoting swipe of address bar. -->
+  <string name="address_bar_swipe_cfr_message_2">Pasa o dedo pola barra de ferramentas cara á esquerda ou á dereita para cambiar de pestana.</string>
   <!-- Text for the info dialog when camera permissions have been denied but user tries to access a camera feature. -->
   <string name="camera_permissions_needed_message">Necesítase acceso á cámara. Vai á configuración de Android, toque nos permisos e toque en permitir.</string>
   <!-- Text for the positive action button to go to Android Settings to grant permissions. -->
@@ -3378,6 +3380,26 @@
     The title of the glean debugging feature
   -->
   <string name="glean_debug_tools_title">Ferramentas de depuración de Glean</string>
+  <!--
+    Debug drawer region tools
+
+    Title of the Region tools in the Debug Drawer.
+    This tool allows temporarily overriding the home region (user's default locale)
+    and the current region (device's detected location) for testing purposes.
+  -->
+  <string name="debug_drawer_region_tools_title">Ferramentas da rexión</string>
+  <!-- The description of the Region tools in the Debug Drawer -->
+  <string name="debug_drawer_regin_tools_description">Invalida temporalmente os valores da rexión de orixe e actual para a proba.</string>
+  <!-- The text label for displaying home region. -->
+  <string name="debug_drawer_home_region_label">Rexión de orixe</string>
+  <!-- The text label for displaying current region. -->
+  <string name="debug_drawer_current_region_label">Rexión actual</string>
+  <!-- The text field label for overriding home region. -->
+  <string name="debug_drawer_override_home_region_label">Anular a rexión de orixe</string>
+  <!-- The text field label for overriding current region. -->
+  <string name="debug_drawer_override_current_region_label">Anular a rexión actual</string>
+  <!-- The title of the button for overriding home and current region. -->
+  <string name="debug_drawer_override_region">Anular a casa e a rexión actual</string>
   <!--
     Messages explaining how to exit fullscreen mode
 

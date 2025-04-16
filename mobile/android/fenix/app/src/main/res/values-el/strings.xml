@@ -127,9 +127,9 @@
 
     Text for the title displayed in the contextual feature recommendation popup promoting swipe of address bar.
   -->
-  <string name="address_bar_swipe_cfr_title">Σύρετε τη γραμμή εργαλείων για εναλλαγή καρτελών</string>
+  <string name="address_bar_swipe_cfr_title" tools:ignore="UnusedResources" moz:removedIn="139">Σύρετε τη γραμμή εργαλείων για εναλλαγή καρτελών</string>
   <!-- Text for the message displayed in the contextual feature recommendation popup promoting swipe of address bar. -->
-  <string name="address_bar_swipe_cfr_message">Σύρετε προς τα αριστερά ή τα δεξιά για εναλλαγή. Σύρετε προς τα αριστερά στην τελευταία σας καρτέλα για να ανοίξετε μια νέα.</string>
+  <string name="address_bar_swipe_cfr_message" tools:ignore="UnusedResources" moz:removedIn="139">Σύρετε προς τα αριστερά ή τα δεξιά για εναλλαγή. Σύρετε προς τα αριστερά στην τελευταία σας καρτέλα για να ανοίξετε μια νέα.</string>
   <!-- Text for the info dialog when camera permissions have been denied but user tries to access a camera feature. -->
   <string name="camera_permissions_needed_message">Απαιτείται πρόσβαση στην κάμερα. Μεταβείτε στις Ρυθμίσεις Android, πατήστε «Δικαιώματα» και επιλέξτε «Να επιτρέπεται».</string>
   <!-- Text for the positive action button to go to Android Settings to grant permissions. -->

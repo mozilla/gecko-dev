@@ -124,9 +124,11 @@
 
     Text for the title displayed in the contextual feature recommendation popup promoting swipe of address bar.
   -->
-  <string name="address_bar_swipe_cfr_title">Stryg værktøjslinjen for at skifte faneblade</string>
+  <string name="address_bar_swipe_cfr_title" tools:ignore="UnusedResources" moz:removedIn="139">Stryg værktøjslinjen for at skifte faneblade</string>
   <!-- Text for the message displayed in the contextual feature recommendation popup promoting swipe of address bar. -->
-  <string name="address_bar_swipe_cfr_message">Stryg til højre eller venstre for at skifte. Stryg til venstre på dit sidste faneblad for at åbne et nyt.</string>
+  <string name="address_bar_swipe_cfr_message" tools:ignore="UnusedResources" moz:removedIn="139">Stryg til højre eller venstre for at skifte. Stryg til venstre på dit sidste faneblad for at åbne et nyt.</string>
+  <!-- Text for the message displayed in the contextual feature recommendation popup promoting swipe of address bar. -->
+  <string name="address_bar_swipe_cfr_message_2">Stryg værktøjslinjen til venstre eller højre for at skifte faneblade.</string>
   <!-- Text for the info dialog when camera permissions have been denied but user tries to access a camera feature. -->
   <string name="camera_permissions_needed_message">Adgang til kamera er nødvendig. Gå til Indstillinger i Android, tryk på Tilladelser, og tryk så på Tillad.</string>
   <!-- Text for the positive action button to go to Android Settings to grant permissions. -->
@@ -1382,6 +1384,8 @@
   <string name="tab_tray_multiselect_share_content_description">Del valgte faneblde</string>
   <!-- Content description for tabs tray multiselect menu -->
   <string name="tab_tray_multiselect_menu_content_description">Menu for valgte faneblade</string>
+  <!-- Title text displayed for a homepage tab in the tabs tray. -->
+  <string name="tab_tray_homepage_tab">Startside</string>
   <!-- Content description (not visible, for screen readers etc.): Removes tab from collection button. Removes the selected tab from collection when pressed -->
   <string name="remove_tab_from_collection">Fjern faneblad fra samling</string>
   <!-- Text for button to enter multiselect mode in tabs tray -->
@@ -1522,6 +1526,8 @@
   <string name="download_search_placeholder" tools:ignore="UnusedResources">Søg i hentede filer</string>
   <!-- Text to indicate that no downloads match the search query. -->
   <string name="download_search_no_results_found" tools:ignore="UnusedResources">Ingen resultater fundet</string>
+  <!-- Text for the "Select all" button, which selects all downloaded items in the downloads list. -->
+  <string name="download_select_all_items">Vælg alle</string>
   <!--
     Downloads Content Type Filters
 
@@ -3373,6 +3379,14 @@
   -->
   <string name="glean_debug_tools_title">Glean debug-værktøjer</string>
   <!--
+    Debug drawer region tools
+
+    Title of the Region tools in the Debug Drawer.
+    This tool allows temporarily overriding the home region (user's default locale)
+    and the current region (device's detected location) for testing purposes.
+  -->
+  <string name="debug_drawer_region_tools_title">Regions-værktøjer</string>
+  <!--
     Messages explaining how to exit fullscreen mode
 
     Message shown to explain how to exit fullscreen mode when gesture navigation is enabled.
@@ -3435,6 +3449,46 @@
   <!-- The default content description for the cross trailing icon button in TextField -->
   <string name="text_field_cross_trailing_icon_default_content_description" moz:removedIn="139" tools:ignore="UnusedResources">Ryd tekst</string>
   <!--
+    Setup checklist feature
+
+    ===== Setup checklist feature: Title =====
+
+    Title for the setup checklist feature when the state is 'incomplete'. %1$s is the name of the app (for example "Firefox").
+  -->
+  <string name="setup_checklist_title_state_incomplete">Afslut opsætningen af %1$s</string>
+  <!-- Title for the setup checklist feature when the state is 'completed' -->
+  <string name="setup_checklist_title_state_completed">Tillykke!</string>
+  <!--
+    ===== Setup checklist feature: Subtitles for 3 steps =====
+
+    Subtitle for a setup checklist with 3 steps initial step. %1$s is the name of the app (for example "Firefox").
+  -->
+  <string name="setup_checklist_subtitle_3_steps_initial_state">Udfør disse 3 trin for at sætte %1$s op for den bedste oplevelse på nettet.</string>
+  <!-- Subtitle for a setup checklist with 3 steps when the first task is completed. -->
+  <string name="setup_checklist_subtitle_3_steps_first_step">Godt begyndt! Du har gennemført 1 ud af 3 trin.</string>
+  <!-- Subtitle for a setup checklist with 3 steps when two of the tasks are completed. -->
+  <string name="setup_checklist_subtitle_3_steps_second_step">Næsten færdig! To trin udført og 1 trin tilbage.</string>
+  <!-- Subtitle for a setup checklist with 3 steps completed state. %1$s is the name of the app (for example "Firefox"). -->
+  <string name="setup_checklist_subtitle_3_steps_completed_state">Du har gennemført alle 3 trin. Nyd hastigheden, privatlivet og sikkerheden med %1$s.</string>
+  <!--
+    ===== Setup checklist feature: Subtitles for 6 steps =====
+
+    Subtitle for a setup checklist with 6 steps initial state. %1$s is the name of the app (for example "Firefox").
+  -->
+  <string name="setup_checklist_subtitle_6_steps_initial_state">Udfør alle 6 trin for at sætte %1$s op for den bedste oplevelse på nettet.</string>
+  <!-- Subtitle for a setup checklist with 6 steps when the first task is completed. -->
+  <string name="setup_checklist_subtitle_6_steps_first_step">Godt begyndt! Du har gennemført 1 ud af 6 trin.</string>
+  <!-- Subtitle for the setup checklist when the second task is completed. -->
+  <string name="setup_checklist_subtitle_6_steps_second_step">Du har gennemført 2 ud af 6 trin.</string>
+  <!-- Subtitle for a setup checklist with 6 steps when three of the tasks are completed. -->
+  <string name="setup_checklist_subtitle_6_steps_third_step">Du er halvvejs! Tre trin udført og 3 trin tilbage.</string>
+  <!-- Subtitle for a setup checklist with 6 steps when the fourth task is completed. -->
+  <string name="setup_checklist_subtitle_6_steps_fourth_step">Du er færdig med 4 trin. Kun 2 trin tilbage!</string>
+  <!-- Subtitle for a setup checklist with 6 steps when the fifth task is completed. -->
+  <string name="setup_checklist_subtitle_6_steps_fifth_step">Næsten færdig! Du er kun 1 trin fra målstregen.</string>
+  <!-- Subtitle for a setup checklist with 6 steps completed state. %1$s is the name of the app (for example "Firefox"). -->
+  <string name="setup_checklist_subtitle_6_steps_completed_state">Du har gennemført alle 6 trin. Nyd hastigheden, privatlivet og sikkerheden med %1$s.</string>
+  <!--
     ===== Setup checklist feature: Task titles =====
 
     The title of the default browser task for the setup checklist
@@ -3460,6 +3514,12 @@
   <string name="setup_checklist_group_customize">Tilpas %1$s</string>
   <!-- The title of the 'helpful tools' group in the setup checklist -->
   <string name="setup_checklist_group_helpful_tools">Nyttige funktioner</string>
+  <!--
+    ===== Setup checklist feature: Button =====
+
+    Text for the 'remove' button for the setup checklist
+  -->
+  <string name="setup_checklist_button_remove">Fjern tjekliste</string>
   <!--
     ===== Setup checklist feature: Accessibility =====
 

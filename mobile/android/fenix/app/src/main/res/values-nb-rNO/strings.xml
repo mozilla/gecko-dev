@@ -125,9 +125,9 @@
 
     Text for the title displayed in the contextual feature recommendation popup promoting swipe of address bar.
   -->
-  <string name="address_bar_swipe_cfr_title">Sveip over verktøylinjen for å bytte fane</string>
+  <string name="address_bar_swipe_cfr_title" tools:ignore="UnusedResources" moz:removedIn="139">Sveip over verktøylinjen for å bytte fane</string>
   <!-- Text for the message displayed in the contextual feature recommendation popup promoting swipe of address bar. -->
-  <string name="address_bar_swipe_cfr_message">Sveip til venstre eller høyre for å bytte. Sveip til venstre på den siste fanen for å åpne en ny fane.</string>
+  <string name="address_bar_swipe_cfr_message" tools:ignore="UnusedResources" moz:removedIn="139">Sveip til venstre eller høyre for å bytte. Sveip til venstre på den siste fanen for å åpne en ny fane.</string>
   <!-- Text for the info dialog when camera permissions have been denied but user tries to access a camera feature. -->
   <string name="camera_permissions_needed_message">Kameratilgang er nødvendig. Gå til Android-innstillinger, trykk på tillatelser, og trykk på tillat.</string>
   <!-- Text for the positive action button to go to Android Settings to grant permissions. -->

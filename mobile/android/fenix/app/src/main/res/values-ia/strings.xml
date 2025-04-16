@@ -126,9 +126,9 @@
 
     Text for the title displayed in the contextual feature recommendation popup promoting swipe of address bar.
   -->
-  <string name="address_bar_swipe_cfr_title">Rolar le barra del instrumentos pro commutar le schedas</string>
+  <string name="address_bar_swipe_cfr_title" tools:ignore="UnusedResources" moz:removedIn="139">Rolar le barra del instrumentos pro commutar le schedas</string>
   <!-- Text for the message displayed in the contextual feature recommendation popup promoting swipe of address bar. -->
-  <string name="address_bar_swipe_cfr_message">Glissar a sinistra o dextra pro commutar. Glissar a sinistra sur tu ultime scheda pro aperir un scheda nove.</string>
+  <string name="address_bar_swipe_cfr_message" tools:ignore="UnusedResources" moz:removedIn="139">Glissar a sinistra o dextra pro commutar. Glissar a sinistra sur tu ultime scheda pro aperir un scheda nove.</string>
   <!-- Text for the info dialog when camera permissions have been denied but user tries to access a camera feature. -->
   <string name="camera_permissions_needed_message">Accesso al camera necessari. Vade al parametros de Android, tocca Permissiones e tocca Permitter.</string>
   <!-- Text for the positive action button to go to Android Settings to grant permissions. -->

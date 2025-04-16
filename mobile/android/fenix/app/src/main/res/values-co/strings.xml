@@ -127,9 +127,9 @@
 
     Text for the title displayed in the contextual feature recommendation popup promoting swipe of address bar.
   -->
-  <string name="address_bar_swipe_cfr_title">Fà sfilà a barra d’attrezzi per cambià d’unghjetta</string>
+  <string name="address_bar_swipe_cfr_title" tools:ignore="UnusedResources" moz:removedIn="139">Fà sfilà a barra d’attrezzi per cambià d’unghjetta</string>
   <!-- Text for the message displayed in the contextual feature recommendation popup promoting swipe of address bar. -->
-  <string name="address_bar_swipe_cfr_message">Spazzà à manca o à diritta per cambià d’unghjetta. Spazzà versu à manca nant’à a vostra ultima unghjetta per apre un’unghjetta nova.</string>
+  <string name="address_bar_swipe_cfr_message" tools:ignore="UnusedResources" moz:removedIn="139">Spazzà à manca o à diritta per cambià d’unghjetta. Spazzà versu à manca nant’à a vostra ultima unghjetta per apre un’unghjetta nova.</string>
   <!-- Text for the info dialog when camera permissions have been denied but user tries to access a camera feature. -->
   <string name="camera_permissions_needed_message">Accessu richiestu à l’apparechju-fotò. Accidite à i parametri d’Android, picchichjate Permessi, è dopu Permette.</string>
   <!-- Text for the positive action button to go to Android Settings to grant permissions. -->

@@ -124,9 +124,9 @@
 
     Text for the title displayed in the contextual feature recommendation popup promoting swipe of address bar.
   -->
-  <string name="address_bar_swipe_cfr_title">Feu lliscar la barra d’eines per canviar de pestanya</string>
+  <string name="address_bar_swipe_cfr_title" tools:ignore="UnusedResources" moz:removedIn="139">Feu lliscar la barra d’eines per canviar de pestanya</string>
   <!-- Text for the message displayed in the contextual feature recommendation popup promoting swipe of address bar. -->
-  <string name="address_bar_swipe_cfr_message">Feu lliscar el dit a l’esquerra o a la dreta per canviar. Feu lliscar el dit a l’esquerra en l’última pestanya per obrir una pestanya nova.</string>
+  <string name="address_bar_swipe_cfr_message" tools:ignore="UnusedResources" moz:removedIn="139">Feu lliscar el dit a l’esquerra o a la dreta per canviar. Feu lliscar el dit a l’esquerra en l’última pestanya per obrir una pestanya nova.</string>
   <!-- Text for the info dialog when camera permissions have been denied but user tries to access a camera feature. -->
   <string name="camera_permissions_needed_message">Es necessita accés a la càmera. Aneu als paràmetres de l’Android, toqueu els permisos i trieu permetre.</string>
   <!-- Text for the positive action button to go to Android Settings to grant permissions. -->

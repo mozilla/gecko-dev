@@ -126,9 +126,9 @@
 
     Text for the title displayed in the contextual feature recommendation popup promoting swipe of address bar.
   -->
-  <string name="address_bar_swipe_cfr_title">ツールバーをスワイプすると、タブを切り替えられます</string>
+  <string name="address_bar_swipe_cfr_title" tools:ignore="UnusedResources" moz:removedIn="139">ツールバーをスワイプすると、タブを切り替えられます</string>
   <!-- Text for the message displayed in the contextual feature recommendation popup promoting swipe of address bar. -->
-  <string name="address_bar_swipe_cfr_message">左右にスワイプするとタブが切り替わります。最後のタブを左にスワイプすると、新しいタブを開きます。</string>
+  <string name="address_bar_swipe_cfr_message" tools:ignore="UnusedResources" moz:removedIn="139">左右にスワイプするとタブが切り替わります。最後のタブを左にスワイプすると、新しいタブを開きます。</string>
   <!-- Text for the info dialog when camera permissions have been denied but user tries to access a camera feature. -->
   <string name="camera_permissions_needed_message">カメラへのアクセスが必要です。Android の設定から、権限をタップし、許可をタップしてください。</string>
   <!-- Text for the positive action button to go to Android Settings to grant permissions. -->
@@ -1384,6 +1384,8 @@
   <string name="tab_tray_multiselect_share_content_description">選択したタブを共有</string>
   <!-- Content description for tabs tray multiselect menu -->
   <string name="tab_tray_multiselect_menu_content_description">選択したタブのメニュー</string>
+  <!-- Title text displayed for a homepage tab in the tabs tray. -->
+  <string name="tab_tray_homepage_tab">ホームページ</string>
   <!-- Content description (not visible, for screen readers etc.): Removes tab from collection button. Removes the selected tab from collection when pressed -->
   <string name="remove_tab_from_collection">タブをコレクションから削除</string>
   <!-- Text for button to enter multiselect mode in tabs tray -->
@@ -1524,6 +1526,8 @@
   <string name="download_search_placeholder" tools:ignore="UnusedResources">ダウンロードを検索</string>
   <!-- Text to indicate that no downloads match the search query. -->
   <string name="download_search_no_results_found" tools:ignore="UnusedResources">検索結果はありません</string>
+  <!-- Text for the "Select all" button, which selects all downloaded items in the downloads list. -->
+  <string name="download_select_all_items">すべて選択</string>
   <!--
     Downloads Content Type Filters
 
@@ -3436,6 +3440,16 @@
   <!-- The default content description for the cross trailing icon button in TextField -->
   <string name="text_field_cross_trailing_icon_default_content_description" moz:removedIn="139" tools:ignore="UnusedResources">テキストを消去</string>
   <!--
+    Setup checklist feature
+
+    ===== Setup checklist feature: Title =====
+
+    Title for the setup checklist feature when the state is 'incomplete'. %1$s is the name of the app (for example "Firefox").
+  -->
+  <string name="setup_checklist_title_state_incomplete">%1$s の設定を完了してください</string>
+  <!-- Title for the setup checklist feature when the state is 'completed' -->
+  <string name="setup_checklist_title_state_completed">おめでとうございます！</string>
+  <!--
     ===== Setup checklist feature: Task titles =====
 
     The title of the default browser task for the setup checklist
@@ -3461,6 +3475,12 @@
   <string name="setup_checklist_group_customize">%1$s をカスタマイズ</string>
   <!-- The title of the 'helpful tools' group in the setup checklist -->
   <string name="setup_checklist_group_helpful_tools">役立つツール</string>
+  <!--
+    ===== Setup checklist feature: Button =====
+
+    Text for the 'remove' button for the setup checklist
+  -->
+  <string name="setup_checklist_button_remove">チェックリストを削除</string>
   <!--
     ===== Setup checklist feature: Accessibility =====
 

@@ -124,9 +124,9 @@
 
     Text for the title displayed in the contextual feature recommendation popup promoting swipe of address bar.
   -->
-  <string name="address_bar_swipe_cfr_title">Stritga sur la trav da simbols per midar tab</string>
+  <string name="address_bar_swipe_cfr_title" tools:ignore="UnusedResources" moz:removedIn="139">Stritga sur la trav da simbols per midar tab</string>
   <!-- Text for the message displayed in the contextual feature recommendation popup promoting swipe of address bar. -->
-  <string name="address_bar_swipe_cfr_message">Stritga a sanestra u a dretga per midar. Stritga a sanestra sin tes ultim tab per avrir in nov.</string>
+  <string name="address_bar_swipe_cfr_message" tools:ignore="UnusedResources" moz:removedIn="139">Stritga a sanestra u a dretga per midar. Stritga a sanestra sin tes ultim tab per avrir in nov.</string>
   <!-- Text for the info dialog when camera permissions have been denied but user tries to access a camera feature. -->
   <string name="camera_permissions_needed_message">L\'access a la camera è necessari. Acceda als parameters dad Android, smatga sin permissiuns e lura sin permetter.</string>
   <!-- Text for the positive action button to go to Android Settings to grant permissions. -->

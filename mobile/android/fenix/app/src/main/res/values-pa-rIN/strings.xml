@@ -128,9 +128,9 @@
 
     Text for the title displayed in the contextual feature recommendation popup promoting swipe of address bar.
   -->
-  <string name="address_bar_swipe_cfr_title">ਟੈਬਾਂ ਵਿਚਾਲੇ ਬਦਲਣ ਵਾਸਤੇ ਟੂਲਬਾਰ ਨੂੰ ਸਰਕਾਓ</string>
+  <string name="address_bar_swipe_cfr_title" tools:ignore="UnusedResources" moz:removedIn="139">ਟੈਬਾਂ ਵਿਚਾਲੇ ਬਦਲਣ ਵਾਸਤੇ ਟੂਲਬਾਰ ਨੂੰ ਸਰਕਾਓ</string>
   <!-- Text for the message displayed in the contextual feature recommendation popup promoting swipe of address bar. -->
-  <string name="address_bar_swipe_cfr_message">ਬਦਲਣ ਵਾਸਤੇ ਖੱਬੇ ਜਾਂ ਸੱਜੇ ਵੱਲ ਸਰਕਾਓ। ਆਪਣੀ ਆਖਰੀ ਟੈਬ ਉੱਤੇ ਖੱਬੇ ਵੱਲ ਸਰਕਾਉਣ ਨਾਲ ਨਵੀਂ ਟੈਬ ਨੂੰ ਖੋਲ੍ਹੋ।</string>
+  <string name="address_bar_swipe_cfr_message" tools:ignore="UnusedResources" moz:removedIn="139">ਬਦਲਣ ਵਾਸਤੇ ਖੱਬੇ ਜਾਂ ਸੱਜੇ ਵੱਲ ਸਰਕਾਓ। ਆਪਣੀ ਆਖਰੀ ਟੈਬ ਉੱਤੇ ਖੱਬੇ ਵੱਲ ਸਰਕਾਉਣ ਨਾਲ ਨਵੀਂ ਟੈਬ ਨੂੰ ਖੋਲ੍ਹੋ।</string>
   <!-- Text for the info dialog when camera permissions have been denied but user tries to access a camera feature. -->
   <string name="camera_permissions_needed_message">ਕੈਮਰੇ ਲਈ ਪਹੁੰਚ ਚਾਹੀਦੀ ਹੈ। Android ਸੈਟਿੰਗਾਂ ਉੱਤੇ ਜਾਓ, ਇਜਾਜ਼ਤਾਂ ਨੂੰ
 ਛੂਹੋ ਅਤੇ ਇਜਾਜ਼ਤ ਨੂੰ ਛੂਹੋ।</string>

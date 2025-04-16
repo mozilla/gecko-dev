@@ -124,9 +124,9 @@
 
     Text for the title displayed in the contextual feature recommendation popup promoting swipe of address bar.
   -->
-  <string name="address_bar_swipe_cfr_title">กวาดแถบเครื่องมือเพื่อสลับแท็บ</string>
+  <string name="address_bar_swipe_cfr_title" tools:ignore="UnusedResources" moz:removedIn="139">กวาดแถบเครื่องมือเพื่อสลับแท็บ</string>
   <!-- Text for the message displayed in the contextual feature recommendation popup promoting swipe of address bar. -->
-  <string name="address_bar_swipe_cfr_message">กวาดไปทางซ้ายหรือขวาเพื่อสลับ กวาดไปทางซ้ายบนแท็บล่าสุดของคุณเพื่อเปิดแท็บใหม่</string>
+  <string name="address_bar_swipe_cfr_message" tools:ignore="UnusedResources" moz:removedIn="139">กวาดไปทางซ้ายหรือขวาเพื่อสลับ กวาดไปทางซ้ายบนแท็บล่าสุดของคุณเพื่อเปิดแท็บใหม่</string>
   <!-- Text for the info dialog when camera permissions have been denied but user tries to access a camera feature. -->
   <string name="camera_permissions_needed_message">จำเป็นต้องมีการเข้าถึงกล้อง ไปที่การตั้งค่า Android แตะสิทธิอนุญาต แล้วแตะอนุญาต</string>
   <!-- Text for the positive action button to go to Android Settings to grant permissions. -->
@@ -1445,6 +1445,8 @@
   <string name="download_delete_multiple_items_snackbar_1" moz:removedIn="138" tools:ignore="UnusedResources">การดาวน์โหลดถูกลบ</string>
   <!-- Text for the snackbar to confirm that a single download item has been removed. %1$s is the name of the download item. -->
   <string name="download_delete_single_item_snackbar" moz:removedIn="138" tools:ignore="UnusedResources">เอา %1$s ออกแล้ว</string>
+  <!-- Text for the snackbar to confirm that downloads are in progress. -->
+  <string name="download_in_progress_snackbar" tools:ignore="UnusedResources">กำลังดาวน์โหลด…</string>
   <!-- Text for the snackbar action button to view in progress download details. -->
   <string name="download_in_progress_snackbar_action_details" tools:ignore="UnusedResources">รายละเอียด</string>
   <!-- Text for the snackbar to confirm that a download has completed. -->
@@ -1457,6 +1459,8 @@
   <string name="download_empty_message_1" moz:removedIn="138" tools:ignore="UnusedResources">ไม่มีไฟล์ที่ดาวน์โหลด</string>
   <!-- Text shown when no download exists -->
   <string name="download_empty_message_2">ยังไม่มีการดาวน์โหลด</string>
+  <!-- Text description shown when no download exists -->
+  <string name="download_empty_description">ไฟล์ที่คุณดาวน์โหลดจะแสดงที่นี่</string>
   <!--
     History multi select title in app bar
     %1$d is the number of downloads selected
@@ -1468,6 +1472,8 @@
   <string name="download_delete_item">ลบ</string>
   <!-- Text for the button to share the download URL -->
   <string name="download_share_url">แบ่งปัน URL</string>
+  <!-- Text for the button to share the download file -->
+  <string name="download_share_file">แบ่งปันไฟล์</string>
   <!-- Alert dialog confirmation before deleting multiple download items, this is the title. -->
   <string name="download_delete_multi_select_dialog_confirmation" tools:ignore="UnusedResources">คุณแน่ใจหรือไม่ว่าต้องการลบรายการที่เลือก?</string>
   <!-- Alert dialog confirmation before deleting multiple download items, this is the positive action. -->
@@ -3405,6 +3411,12 @@
   <string name="text_field_cross_trailing_icon_default_content_description" moz:removedIn="139" tools:ignore="UnusedResources">ล้างข้อความ</string>
   <!-- The title of the 'helpful tools' group in the setup checklist -->
   <string name="setup_checklist_group_helpful_tools">เครื่องมือที่มีประโยชน์</string>
+  <!--
+    ===== Setup checklist feature: Button =====
+
+    Text for the 'remove' button for the setup checklist
+  -->
+  <string name="setup_checklist_button_remove">ลบรายการตรวจสอบ</string>
   <!--
     ===== Setup checklist feature: Accessibility =====
 
