@@ -352,25 +352,45 @@ function classifyPermission(perm, restrictSchemes, isPrivileged) {
   return { permission: perm };
 }
 
+function stripCommentsFromJSON(text) {
+  for (let i = 0; i < text.length; ++i) {
+    let c = text[i];
+    if (c == '"') {
+      let escaped;
+      do {
+        i = text.indexOf('"', i + 1);
+        if (i === -1) {
+          throw new Error("Invalid JSON: Unterminated string literal");
+        }
+        // Find if quote is escaped: preceded by an unpaired backslash.
+        escaped = false;
+        for (let k = i - 1; text[k] === "\\"; --k) {
+          escaped = !escaped;
+        }
+      } while (escaped);
+      // Next iteration will continue after the " that terminates the string.
+    } else if (c === "/") {
+      if (text[i + 1] !== "/") {
+        // A "/" can only appear outside of a string if it starts a //-comment.
+        throw new Error("Invalid JSON: Unexpected /");
+      }
+      let indexAfterComment = text.indexOf("\n", i + 2);
+      if (indexAfterComment === -1) {
+        indexAfterComment = text.length;
+      }
+      // Discard //-comment:
+      text = text.slice(0, i) + text.slice(indexAfterComment);
+      // text[i] is now "\n" or at end of string.
+      // Next iteration (if any) will continue after the "\n".
+    }
+  }
+  return text;
+}
+
 const LOGGER_ID_BASE = "addons.webextension.";
 const UUID_MAP_PREF = "extensions.webextensions.uuids";
 const LEAVE_STORAGE_PREF = "extensions.webextensions.keepStorageOnUninstall";
 const LEAVE_UUID_PREF = "extensions.webextensions.keepUuidOnUninstall";
-
-const COMMENT_REGEXP = new RegExp(
-  String.raw`
-    ^
-    (
-      (?:
-        [^"\n] |
-        " (?:[^"\\\n] | \\.)* "
-      )*?
-    )
-
-    //.*
-  `.replace(/\s+/g, ""),
-  "gm"
-);
 
 // All moz-extension URIs use a machine-specific UUID rather than the
 // extension's own ID in the host component. This makes it more
@@ -1134,7 +1154,7 @@ export class ExtensionData {
               { charset: "utf-8" }
             );
 
-            text = text.replace(COMMENT_REGEXP, "$1");
+            text = stripCommentsFromJSON(text);
 
             resolve(JSON.parse(text));
           } catch (e) {
