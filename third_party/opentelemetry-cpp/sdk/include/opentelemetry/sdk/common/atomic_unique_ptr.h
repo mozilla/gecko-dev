@@ -54,8 +54,7 @@ public:
                                                      std::memory_order_relaxed);
     if (was_successful)
     {
-      owner.release();
-      return true;
+      return owner.release() != nullptr;
     }
     return false;
   }

@@ -1004,40 +1004,37 @@ static constexpr const char *kAndroidState = "android.state";
  *
  * @deprecated Deprecated, use `cpu.mode` instead.
  */
-OPENTELEMETRY_DEPRECATED
-static constexpr const char *kContainerCpuState = "container.cpu.state";
+OPENTELEMETRY_DEPRECATED static constexpr const char *kContainerCpuState = "container.cpu.state";
 
 /**
  * Deprecated, use {@code db.collection.name} instead.
  *
  * @deprecated Deprecated, use `db.collection.name` instead.
  */
-OPENTELEMETRY_DEPRECATED
-static constexpr const char *kDbCassandraTable = "db.cassandra.table";
+OPENTELEMETRY_DEPRECATED static constexpr const char *kDbCassandraTable = "db.cassandra.table";
 
 /**
  * Deprecated, use {@code server.address}, {@code server.port} attributes instead.
  *
  * @deprecated Deprecated, use `server.address`, `server.port` attributes instead.
  */
-OPENTELEMETRY_DEPRECATED
-static constexpr const char *kDbConnectionString = "db.connection_string";
+OPENTELEMETRY_DEPRECATED static constexpr const char *kDbConnectionString = "db.connection_string";
 
 /**
  * Deprecated, use {@code db.collection.name} instead.
  *
  * @deprecated Deprecated, use `db.collection.name` instead.
  */
-OPENTELEMETRY_DEPRECATED
-static constexpr const char *kDbCosmosdbContainer = "db.cosmosdb.container";
+OPENTELEMETRY_DEPRECATED static constexpr const char *kDbCosmosdbContainer =
+    "db.cosmosdb.container";
 
 /**
  * Deprecated, use {@code db.namespace} instead.
  *
  * @deprecated Deprecated, use `db.namespace` instead.
  */
-OPENTELEMETRY_DEPRECATED
-static constexpr const char *kDbElasticsearchClusterName = "db.elasticsearch.cluster.name";
+OPENTELEMETRY_DEPRECATED static constexpr const char *kDbElasticsearchClusterName =
+    "db.elasticsearch.cluster.name";
 
 /**
  * Deprecated, no general replacement at this time. For Elasticsearch, use {@code
@@ -1046,24 +1043,23 @@ static constexpr const char *kDbElasticsearchClusterName = "db.elasticsearch.clu
  * @deprecated Deprecated, no general replacement at this time. For Elasticsearch, use
  * `db.elasticsearch.node.name` instead.
  */
-OPENTELEMETRY_DEPRECATED
-static constexpr const char *kDbInstanceId = "db.instance.id";
+OPENTELEMETRY_DEPRECATED static constexpr const char *kDbInstanceId = "db.instance.id";
 
 /**
  * Removed, no replacement at this time.
  *
  * @deprecated Removed, no replacement at this time.
  */
-OPENTELEMETRY_DEPRECATED
-static constexpr const char *kDbJdbcDriverClassname = "db.jdbc.driver_classname";
+OPENTELEMETRY_DEPRECATED static constexpr const char *kDbJdbcDriverClassname =
+    "db.jdbc.driver_classname";
 
 /**
  * Deprecated, use {@code db.collection.name} instead.
  *
  * @deprecated Deprecated, use `db.collection.name` instead.
  */
-OPENTELEMETRY_DEPRECATED
-static constexpr const char *kDbMongodbCollection = "db.mongodb.collection";
+OPENTELEMETRY_DEPRECATED static constexpr const char *kDbMongodbCollection =
+    "db.mongodb.collection";
 
 /**
  * Deprecated, SQL Server instance is now populated as a part of {@code db.namespace} attribute.
@@ -1071,152 +1067,140 @@ static constexpr const char *kDbMongodbCollection = "db.mongodb.collection";
  * @deprecated Deprecated, SQL Server instance is now populated as a part of `db.namespace`
  * attribute.
  */
-OPENTELEMETRY_DEPRECATED
-static constexpr const char *kDbMssqlInstanceName = "db.mssql.instance_name";
+OPENTELEMETRY_DEPRECATED static constexpr const char *kDbMssqlInstanceName =
+    "db.mssql.instance_name";
 
 /**
  * Deprecated, use {@code db.namespace} instead.
  *
  * @deprecated Deprecated, use `db.namespace` instead.
  */
-OPENTELEMETRY_DEPRECATED
-static constexpr const char *kDbName = "db.name";
+OPENTELEMETRY_DEPRECATED static constexpr const char *kDbName = "db.name";
 
 /**
  * Deprecated, use {@code db.operation.name} instead.
  *
  * @deprecated Deprecated, use `db.operation.name` instead.
  */
-OPENTELEMETRY_DEPRECATED
-static constexpr const char *kDbOperation = "db.operation";
+OPENTELEMETRY_DEPRECATED static constexpr const char *kDbOperation = "db.operation";
 
 /**
  * Deprecated, use {@code db.namespace} instead.
  *
  * @deprecated Deprecated, use `db.namespace` instead.
  */
-OPENTELEMETRY_DEPRECATED
-static constexpr const char *kDbRedisDatabaseIndex = "db.redis.database_index";
+OPENTELEMETRY_DEPRECATED static constexpr const char *kDbRedisDatabaseIndex =
+    "db.redis.database_index";
 
 /**
  * Deprecated, use {@code db.collection.name} instead.
  *
  * @deprecated Deprecated, use `db.collection.name` instead.
  */
-OPENTELEMETRY_DEPRECATED
-static constexpr const char *kDbSqlTable = "db.sql.table";
+OPENTELEMETRY_DEPRECATED static constexpr const char *kDbSqlTable = "db.sql.table";
 
 /**
  * The database statement being executed.
  *
  * @deprecated The database statement being executed.
  */
-OPENTELEMETRY_DEPRECATED
-static constexpr const char *kDbStatement = "db.statement";
+OPENTELEMETRY_DEPRECATED static constexpr const char *kDbStatement = "db.statement";
 
 /**
  * Deprecated, no replacement at this time.
  *
  * @deprecated Deprecated, no replacement at this time.
  */
-OPENTELEMETRY_DEPRECATED
-static constexpr const char *kDbUser = "db.user";
+OPENTELEMETRY_DEPRECATED static constexpr const char *kDbUser = "db.user";
 
 /**
  * Deprecated, use {@code db.client.connection.pool.name} instead.
  *
  * @deprecated Deprecated, use `db.client.connection.pool.name` instead.
  */
-OPENTELEMETRY_DEPRECATED
-static constexpr const char *kDbClientConnectionsPoolName = "db.client.connections.pool.name";
+OPENTELEMETRY_DEPRECATED static constexpr const char *kDbClientConnectionsPoolName =
+    "db.client.connections.pool.name";
 
 /**
  * Deprecated, use {@code db.client.connection.state} instead.
  *
  * @deprecated Deprecated, use `db.client.connection.state` instead.
  */
-OPENTELEMETRY_DEPRECATED
-static constexpr const char *kDbClientConnectionsState = "db.client.connections.state";
+OPENTELEMETRY_DEPRECATED static constexpr const char *kDbClientConnectionsState =
+    "db.client.connections.state";
 
 /**
  * Deprecated, use {@code db.client.connection.pool.name} instead.
  *
  * @deprecated Deprecated, use `db.client.connection.pool.name` instead.
  */
-OPENTELEMETRY_DEPRECATED
-static constexpr const char *kPoolName = "pool.name";
+OPENTELEMETRY_DEPRECATED static constexpr const char *kPoolName = "pool.name";
 
 /**
  * Deprecated, use {@code db.client.connection.state} instead.
  *
  * @deprecated Deprecated, use `db.client.connection.state` instead.
  */
-OPENTELEMETRY_DEPRECATED
-static constexpr const char *kState = "state";
+OPENTELEMETRY_DEPRECATED static constexpr const char *kState = "state";
 
 /**
  * 'Deprecated, use {@code deployment.environment.name} instead.'
  *
  * @deprecated 'Deprecated, use `deployment.environment.name` instead.'.
  */
-OPENTELEMETRY_DEPRECATED
-static constexpr const char *kDeploymentEnvironment = "deployment.environment";
+OPENTELEMETRY_DEPRECATED static constexpr const char *kDeploymentEnvironment =
+    "deployment.environment";
 
 /**
  * Deprecated, use {@code user.id} instead.
  *
  * @deprecated Deprecated, use `user.id` instead.
  */
-OPENTELEMETRY_DEPRECATED
-static constexpr const char *kEnduserId = "enduser.id";
+OPENTELEMETRY_DEPRECATED static constexpr const char *kEnduserId = "enduser.id";
 
 /**
  * Deprecated, use {@code user.roles} instead.
  *
  * @deprecated Deprecated, use `user.roles` instead.
  */
-OPENTELEMETRY_DEPRECATED
-static constexpr const char *kEnduserRole = "enduser.role";
+OPENTELEMETRY_DEPRECATED static constexpr const char *kEnduserRole = "enduser.role";
 
 /**
  * Deprecated, no replacement at this time.
  *
  * @deprecated Deprecated, no replacement at this time.
  */
-OPENTELEMETRY_DEPRECATED
-static constexpr const char *kEnduserScope = "enduser.scope";
+OPENTELEMETRY_DEPRECATED static constexpr const char *kEnduserScope = "enduser.scope";
 
 /**
  * Deprecated, use {@code gen_ai.usage.output_tokens} instead.
  *
  * @deprecated Deprecated, use `gen_ai.usage.output_tokens` instead.
  */
-OPENTELEMETRY_DEPRECATED
-static constexpr const char *kGenAiUsageCompletionTokens = "gen_ai.usage.completion_tokens";
+OPENTELEMETRY_DEPRECATED static constexpr const char *kGenAiUsageCompletionTokens =
+    "gen_ai.usage.completion_tokens";
 
 /**
  * Deprecated, use {@code gen_ai.usage.input_tokens} instead.
  *
  * @deprecated Deprecated, use `gen_ai.usage.input_tokens` instead.
  */
-OPENTELEMETRY_DEPRECATED
-static constexpr const char *kGenAiUsagePromptTokens = "gen_ai.usage.prompt_tokens";
+OPENTELEMETRY_DEPRECATED static constexpr const char *kGenAiUsagePromptTokens =
+    "gen_ai.usage.prompt_tokens";
 
 /**
  * Deprecated, use {@code client.address} instead.
  *
  * @deprecated Deprecated, use `client.address` instead.
  */
-OPENTELEMETRY_DEPRECATED
-static constexpr const char *kHttpClientIp = "http.client_ip";
+OPENTELEMETRY_DEPRECATED static constexpr const char *kHttpClientIp = "http.client_ip";
 
 /**
  * Deprecated, use {@code network.protocol.name} instead.
  *
  * @deprecated Deprecated, use `network.protocol.name` instead.
  */
-OPENTELEMETRY_DEPRECATED
-static constexpr const char *kHttpFlavor = "http.flavor";
+OPENTELEMETRY_DEPRECATED static constexpr const char *kHttpFlavor = "http.flavor";
 
 /**
  * Deprecated, use one of {@code server.address}, {@code client.address} or {@code
@@ -1225,32 +1209,29 @@ static constexpr const char *kHttpFlavor = "http.flavor";
  * @deprecated Deprecated, use one of `server.address`, `client.address` or
  * `http.request.header.host` instead, depending on the usage.
  */
-OPENTELEMETRY_DEPRECATED
-static constexpr const char *kHttpHost = "http.host";
+OPENTELEMETRY_DEPRECATED static constexpr const char *kHttpHost = "http.host";
 
 /**
  * Deprecated, use {@code http.request.method} instead.
  *
  * @deprecated Deprecated, use `http.request.method` instead.
  */
-OPENTELEMETRY_DEPRECATED
-static constexpr const char *kHttpMethod = "http.method";
+OPENTELEMETRY_DEPRECATED static constexpr const char *kHttpMethod = "http.method";
 
 /**
  * Deprecated, use {@code http.request.header.content-length} instead.
  *
  * @deprecated Deprecated, use `http.request.header.content-length` instead.
  */
-OPENTELEMETRY_DEPRECATED
-static constexpr const char *kHttpRequestContentLength = "http.request_content_length";
+OPENTELEMETRY_DEPRECATED static constexpr const char *kHttpRequestContentLength =
+    "http.request_content_length";
 
 /**
  * Deprecated, use {@code http.request.body.size} instead.
  *
  * @deprecated Deprecated, use `http.request.body.size` instead.
  */
-OPENTELEMETRY_DEPRECATED
-static constexpr const char *kHttpRequestContentLengthUncompressed =
+OPENTELEMETRY_DEPRECATED static constexpr const char *kHttpRequestContentLengthUncompressed =
     "http.request_content_length_uncompressed";
 
 /**
@@ -1258,16 +1239,15 @@ static constexpr const char *kHttpRequestContentLengthUncompressed =
  *
  * @deprecated Deprecated, use `http.response.header.content-length` instead.
  */
-OPENTELEMETRY_DEPRECATED
-static constexpr const char *kHttpResponseContentLength = "http.response_content_length";
+OPENTELEMETRY_DEPRECATED static constexpr const char *kHttpResponseContentLength =
+    "http.response_content_length";
 
 /**
  * Deprecated, use {@code http.response.body.size} instead.
  *
  * @deprecated Deprecated, use `http.response.body.size` instead.
  */
-OPENTELEMETRY_DEPRECATED
-static constexpr const char *kHttpResponseContentLengthUncompressed =
+OPENTELEMETRY_DEPRECATED static constexpr const char *kHttpResponseContentLengthUncompressed =
     "http.response_content_length_uncompressed";
 
 /**
@@ -1275,48 +1255,42 @@ static constexpr const char *kHttpResponseContentLengthUncompressed =
  *
  * @deprecated Deprecated, use `url.scheme` instead.
  */
-OPENTELEMETRY_DEPRECATED
-static constexpr const char *kHttpScheme = "http.scheme";
+OPENTELEMETRY_DEPRECATED static constexpr const char *kHttpScheme = "http.scheme";
 
 /**
  * Deprecated, use {@code server.address} instead.
  *
  * @deprecated Deprecated, use `server.address` instead.
  */
-OPENTELEMETRY_DEPRECATED
-static constexpr const char *kHttpServerName = "http.server_name";
+OPENTELEMETRY_DEPRECATED static constexpr const char *kHttpServerName = "http.server_name";
 
 /**
  * Deprecated, use {@code http.response.status_code} instead.
  *
  * @deprecated Deprecated, use `http.response.status_code` instead.
  */
-OPENTELEMETRY_DEPRECATED
-static constexpr const char *kHttpStatusCode = "http.status_code";
+OPENTELEMETRY_DEPRECATED static constexpr const char *kHttpStatusCode = "http.status_code";
 
 /**
  * Deprecated, use {@code url.path} and {@code url.query} instead.
  *
  * @deprecated Deprecated, use `url.path` and `url.query` instead.
  */
-OPENTELEMETRY_DEPRECATED
-static constexpr const char *kHttpTarget = "http.target";
+OPENTELEMETRY_DEPRECATED static constexpr const char *kHttpTarget = "http.target";
 
 /**
  * Deprecated, use {@code url.full} instead.
  *
  * @deprecated Deprecated, use `url.full` instead.
  */
-OPENTELEMETRY_DEPRECATED
-static constexpr const char *kHttpUrl = "http.url";
+OPENTELEMETRY_DEPRECATED static constexpr const char *kHttpUrl = "http.url";
 
 /**
  * Deprecated, use {@code user_agent.original} instead.
  *
  * @deprecated Deprecated, use `user_agent.original` instead.
  */
-OPENTELEMETRY_DEPRECATED
-static constexpr const char *kHttpUserAgent = "http.user_agent";
+OPENTELEMETRY_DEPRECATED static constexpr const char *kHttpUserAgent = "http.user_agent";
 
 /**
  * Deprecated use the {@code device.app.lifecycle} event definition including {@code ios.state} as a
@@ -1330,16 +1304,14 @@ static constexpr const char *kHttpUserAgent = "http.user_agent";
  * @deprecated Deprecated use the `device.app.lifecycle` event definition including `ios.state` as a
  payload field instead.
  */
-OPENTELEMETRY_DEPRECATED
-static constexpr const char *kIosState = "ios.state";
+OPENTELEMETRY_DEPRECATED static constexpr const char *kIosState = "ios.state";
 
 /**
  * Deprecated, no replacement at this time.
  *
  * @deprecated Deprecated, no replacement at this time.
  */
-OPENTELEMETRY_DEPRECATED
-static constexpr const char *kMessagingDestinationPublishAnonymous =
+OPENTELEMETRY_DEPRECATED static constexpr const char *kMessagingDestinationPublishAnonymous =
     "messaging.destination_publish.anonymous";
 
 /**
@@ -1347,8 +1319,7 @@ static constexpr const char *kMessagingDestinationPublishAnonymous =
  *
  * @deprecated Deprecated, no replacement at this time.
  */
-OPENTELEMETRY_DEPRECATED
-static constexpr const char *kMessagingDestinationPublishName =
+OPENTELEMETRY_DEPRECATED static constexpr const char *kMessagingDestinationPublishName =
     "messaging.destination_publish.name";
 
 /**
@@ -1356,8 +1327,7 @@ static constexpr const char *kMessagingDestinationPublishName =
  *
  * @deprecated Deprecated, use `messaging.consumer.group.name` instead.
  */
-OPENTELEMETRY_DEPRECATED
-static constexpr const char *kMessagingEventhubsConsumerGroup =
+OPENTELEMETRY_DEPRECATED static constexpr const char *kMessagingEventhubsConsumerGroup =
     "messaging.eventhubs.consumer.group";
 
 /**
@@ -1365,16 +1335,15 @@ static constexpr const char *kMessagingEventhubsConsumerGroup =
  *
  * @deprecated Deprecated, use `messaging.consumer.group.name` instead.
  */
-OPENTELEMETRY_DEPRECATED
-static constexpr const char *kMessagingKafkaConsumerGroup = "messaging.kafka.consumer.group";
+OPENTELEMETRY_DEPRECATED static constexpr const char *kMessagingKafkaConsumerGroup =
+    "messaging.kafka.consumer.group";
 
 /**
  * Deprecated, use {@code messaging.destination.partition.id} instead.
  *
  * @deprecated Deprecated, use `messaging.destination.partition.id` instead.
  */
-OPENTELEMETRY_DEPRECATED
-static constexpr const char *kMessagingKafkaDestinationPartition =
+OPENTELEMETRY_DEPRECATED static constexpr const char *kMessagingKafkaDestinationPartition =
     "messaging.kafka.destination.partition";
 
 /**
@@ -1382,65 +1351,60 @@ static constexpr const char *kMessagingKafkaDestinationPartition =
  *
  * @deprecated Deprecated, use `messaging.kafka.offset` instead.
  */
-OPENTELEMETRY_DEPRECATED
-static constexpr const char *kMessagingKafkaMessageOffset = "messaging.kafka.message.offset";
+OPENTELEMETRY_DEPRECATED static constexpr const char *kMessagingKafkaMessageOffset =
+    "messaging.kafka.message.offset";
 
 /**
  * Deprecated, use {@code messaging.operation.type} instead.
  *
  * @deprecated Deprecated, use `messaging.operation.type` instead.
  */
-OPENTELEMETRY_DEPRECATED
-static constexpr const char *kMessagingOperation = "messaging.operation";
+OPENTELEMETRY_DEPRECATED static constexpr const char *kMessagingOperation = "messaging.operation";
 
 /**
  * Deprecated, use {@code messaging.consumer.group.name} instead.
  *
  * @deprecated Deprecated, use `messaging.consumer.group.name` instead.
  */
-OPENTELEMETRY_DEPRECATED
-static constexpr const char *kMessagingRocketmqClientGroup = "messaging.rocketmq.client_group";
+OPENTELEMETRY_DEPRECATED static constexpr const char *kMessagingRocketmqClientGroup =
+    "messaging.rocketmq.client_group";
 
 /**
  * Deprecated, use {@code messaging.servicebus.destination.subscription_name} instead.
  *
  * @deprecated Deprecated, use `messaging.servicebus.destination.subscription_name` instead.
  */
-OPENTELEMETRY_DEPRECATED
-static constexpr const char *kMessagingServicebusDestinationSubscriptionName =
-    "messaging.servicebus.destination.subscription_name";
+OPENTELEMETRY_DEPRECATED static constexpr const char
+    *kMessagingServicebusDestinationSubscriptionName =
+        "messaging.servicebus.destination.subscription_name";
 
 /**
  * Deprecated, use {@code network.local.address}.
  *
  * @deprecated Deprecated, use `network.local.address`.
  */
-OPENTELEMETRY_DEPRECATED
-static constexpr const char *kNetHostIp = "net.host.ip";
+OPENTELEMETRY_DEPRECATED static constexpr const char *kNetHostIp = "net.host.ip";
 
 /**
  * Deprecated, use {@code server.address}.
  *
  * @deprecated Deprecated, use `server.address`.
  */
-OPENTELEMETRY_DEPRECATED
-static constexpr const char *kNetHostName = "net.host.name";
+OPENTELEMETRY_DEPRECATED static constexpr const char *kNetHostName = "net.host.name";
 
 /**
  * Deprecated, use {@code server.port}.
  *
  * @deprecated Deprecated, use `server.port`.
  */
-OPENTELEMETRY_DEPRECATED
-static constexpr const char *kNetHostPort = "net.host.port";
+OPENTELEMETRY_DEPRECATED static constexpr const char *kNetHostPort = "net.host.port";
 
 /**
  * Deprecated, use {@code network.peer.address}.
  *
  * @deprecated Deprecated, use `network.peer.address`.
  */
-OPENTELEMETRY_DEPRECATED
-static constexpr const char *kNetPeerIp = "net.peer.ip";
+OPENTELEMETRY_DEPRECATED static constexpr const char *kNetPeerIp = "net.peer.ip";
 
 /**
  * Deprecated, use {@code server.address} on client spans and {@code client.address} on server
@@ -1449,168 +1413,151 @@ static constexpr const char *kNetPeerIp = "net.peer.ip";
  * @deprecated Deprecated, use `server.address` on client spans and `client.address` on server
  * spans.
  */
-OPENTELEMETRY_DEPRECATED
-static constexpr const char *kNetPeerName = "net.peer.name";
+OPENTELEMETRY_DEPRECATED static constexpr const char *kNetPeerName = "net.peer.name";
 
 /**
  * Deprecated, use {@code server.port} on client spans and {@code client.port} on server spans.
  *
  * @deprecated Deprecated, use `server.port` on client spans and `client.port` on server spans.
  */
-OPENTELEMETRY_DEPRECATED
-static constexpr const char *kNetPeerPort = "net.peer.port";
+OPENTELEMETRY_DEPRECATED static constexpr const char *kNetPeerPort = "net.peer.port";
 
 /**
  * Deprecated, use {@code network.protocol.name}.
  *
  * @deprecated Deprecated, use `network.protocol.name`.
  */
-OPENTELEMETRY_DEPRECATED
-static constexpr const char *kNetProtocolName = "net.protocol.name";
+OPENTELEMETRY_DEPRECATED static constexpr const char *kNetProtocolName = "net.protocol.name";
 
 /**
  * Deprecated, use {@code network.protocol.version}.
  *
  * @deprecated Deprecated, use `network.protocol.version`.
  */
-OPENTELEMETRY_DEPRECATED
-static constexpr const char *kNetProtocolVersion = "net.protocol.version";
+OPENTELEMETRY_DEPRECATED static constexpr const char *kNetProtocolVersion = "net.protocol.version";
 
 /**
  * Deprecated, use {@code network.transport} and {@code network.type}.
  *
  * @deprecated Deprecated, use `network.transport` and `network.type`.
  */
-OPENTELEMETRY_DEPRECATED
-static constexpr const char *kNetSockFamily = "net.sock.family";
+OPENTELEMETRY_DEPRECATED static constexpr const char *kNetSockFamily = "net.sock.family";
 
 /**
  * Deprecated, use {@code network.local.address}.
  *
  * @deprecated Deprecated, use `network.local.address`.
  */
-OPENTELEMETRY_DEPRECATED
-static constexpr const char *kNetSockHostAddr = "net.sock.host.addr";
+OPENTELEMETRY_DEPRECATED static constexpr const char *kNetSockHostAddr = "net.sock.host.addr";
 
 /**
  * Deprecated, use {@code network.local.port}.
  *
  * @deprecated Deprecated, use `network.local.port`.
  */
-OPENTELEMETRY_DEPRECATED
-static constexpr const char *kNetSockHostPort = "net.sock.host.port";
+OPENTELEMETRY_DEPRECATED static constexpr const char *kNetSockHostPort = "net.sock.host.port";
 
 /**
  * Deprecated, use {@code network.peer.address}.
  *
  * @deprecated Deprecated, use `network.peer.address`.
  */
-OPENTELEMETRY_DEPRECATED
-static constexpr const char *kNetSockPeerAddr = "net.sock.peer.addr";
+OPENTELEMETRY_DEPRECATED static constexpr const char *kNetSockPeerAddr = "net.sock.peer.addr";
 
 /**
  * Deprecated, no replacement at this time.
  *
  * @deprecated Deprecated, no replacement at this time.
  */
-OPENTELEMETRY_DEPRECATED
-static constexpr const char *kNetSockPeerName = "net.sock.peer.name";
+OPENTELEMETRY_DEPRECATED static constexpr const char *kNetSockPeerName = "net.sock.peer.name";
 
 /**
  * Deprecated, use {@code network.peer.port}.
  *
  * @deprecated Deprecated, use `network.peer.port`.
  */
-OPENTELEMETRY_DEPRECATED
-static constexpr const char *kNetSockPeerPort = "net.sock.peer.port";
+OPENTELEMETRY_DEPRECATED static constexpr const char *kNetSockPeerPort = "net.sock.peer.port";
 
 /**
  * Deprecated, use {@code network.transport}.
  *
  * @deprecated Deprecated, use `network.transport`.
  */
-OPENTELEMETRY_DEPRECATED
-static constexpr const char *kNetTransport = "net.transport";
+OPENTELEMETRY_DEPRECATED static constexpr const char *kNetTransport = "net.transport";
 
 /**
  *
  *
  * @deprecated .
  */
-OPENTELEMETRY_DEPRECATED
-static constexpr const char *kOtelLibraryName = "otel.library.name";
+OPENTELEMETRY_DEPRECATED static constexpr const char *kOtelLibraryName = "otel.library.name";
 
 /**
  *
  *
  * @deprecated .
  */
-OPENTELEMETRY_DEPRECATED
-static constexpr const char *kOtelLibraryVersion = "otel.library.version";
+OPENTELEMETRY_DEPRECATED static constexpr const char *kOtelLibraryVersion = "otel.library.version";
 
 /**
  * Deprecated, use {@code cpu.mode} instead.
  *
  * @deprecated Deprecated, use `cpu.mode` instead.
  */
-OPENTELEMETRY_DEPRECATED
-static constexpr const char *kProcessCpuState = "process.cpu.state";
+OPENTELEMETRY_DEPRECATED static constexpr const char *kProcessCpuState = "process.cpu.state";
 
 /**
  * Deprecated, use {@code rpc.message.compressed_size} instead.
  *
  * @deprecated Deprecated, use `rpc.message.compressed_size` instead.
  */
-OPENTELEMETRY_DEPRECATED
-static constexpr const char *kMessageCompressedSize = "message.compressed_size";
+OPENTELEMETRY_DEPRECATED static constexpr const char *kMessageCompressedSize =
+    "message.compressed_size";
 
 /**
  * Deprecated, use {@code rpc.message.id} instead.
  *
  * @deprecated Deprecated, use `rpc.message.id` instead.
  */
-OPENTELEMETRY_DEPRECATED
-static constexpr const char *kMessageId = "message.id";
+OPENTELEMETRY_DEPRECATED static constexpr const char *kMessageId = "message.id";
 
 /**
  * Deprecated, use {@code rpc.message.type} instead.
  *
  * @deprecated Deprecated, use `rpc.message.type` instead.
  */
-OPENTELEMETRY_DEPRECATED
-static constexpr const char *kMessageType = "message.type";
+OPENTELEMETRY_DEPRECATED static constexpr const char *kMessageType = "message.type";
 
 /**
  * Deprecated, use {@code rpc.message.uncompressed_size} instead.
  *
  * @deprecated Deprecated, use `rpc.message.uncompressed_size` instead.
  */
-OPENTELEMETRY_DEPRECATED
-static constexpr const char *kMessageUncompressedSize = "message.uncompressed_size";
+OPENTELEMETRY_DEPRECATED static constexpr const char *kMessageUncompressedSize =
+    "message.uncompressed_size";
 
 /**
  * Deprecated, use {@code cpu.mode} instead.
  *
  * @deprecated Deprecated, use `cpu.mode` instead.
  */
-OPENTELEMETRY_DEPRECATED
-static constexpr const char *kSystemCpuState = "system.cpu.state";
+OPENTELEMETRY_DEPRECATED static constexpr const char *kSystemCpuState = "system.cpu.state";
 
 /**
  * Deprecated, use {@code system.process.status} instead.
  *
  * @deprecated Deprecated, use `system.process.status` instead.
  */
-OPENTELEMETRY_DEPRECATED
-static constexpr const char *kSystemProcessesStatus = "system.processes.status";
+OPENTELEMETRY_DEPRECATED static constexpr const char *kSystemProcessesStatus =
+    "system.processes.status";
 
 /**
  * Deprecated, use {@code server.address} instead.
  *
  * @deprecated Deprecated, use `server.address` instead.
  */
-OPENTELEMETRY_DEPRECATED
-static constexpr const char *kTlsClientServerName = "tls.client.server_name";
+OPENTELEMETRY_DEPRECATED static constexpr const char *kTlsClientServerName =
+    "tls.client.server_name";
 
 /**
  * Destination address - domain name if available without reverse DNS lookup; otherwise, IP address

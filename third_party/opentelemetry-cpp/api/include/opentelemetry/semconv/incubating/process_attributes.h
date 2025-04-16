@@ -56,12 +56,11 @@ static constexpr const char *kProcessContextSwitchType = "process.context_switch
 
 /**
  * Deprecated, use @code cpu.mode @endcode instead.
- * <p>
+ *
  * @deprecated
- * Replaced by @code cpu.mode @endcode
+ * {"note": "Replaced by @code cpu.mode @endcode", "reason": "uncategorized"}
  */
-OPENTELEMETRY_DEPRECATED
-static constexpr const char *kProcessCpuState = "process.cpu.state";
+OPENTELEMETRY_DEPRECATED static constexpr const char *kProcessCpuState = "process.cpu.state";
 
 /**
  * The date and time the process was created, in ISO 8601 format.
@@ -82,13 +81,23 @@ static constexpr const char *kProcessExecutableBuildIdGo = "process.executable.b
  * Profiling specific build ID for executables. See the OTel specification for Profiles for more
  * information.
  */
-static constexpr const char *kProcessExecutableBuildIdProfiling =
+static constexpr const char *kProcessExecutableBuildIdHtlhash =
+    "process.executable.build_id.htlhash";
+
+/**
+ * "Deprecated, use @code process.executable.build_id.htlhash @endcode instead."
+ *
+ * @deprecated
+ * {"note": "Replaced by @code process.executable.build_id.htlhash @endcode", "reason":
+ * "uncategorized"}
+ */
+OPENTELEMETRY_DEPRECATED static constexpr const char *kProcessExecutableBuildIdProfiling =
     "process.executable.build_id.profiling";
 
 /**
- * The name of the process executable. On Linux based systems, can be set to the @code Name @endcode
- * in @code proc/[pid]/status @endcode. On Windows, can be set to the base name of @code
- * GetProcessImageFileNameW @endcode.
+ * The name of the process executable. On Linux based systems, this SHOULD be set to the base name
+ * of the target of @code /proc/[pid]/exe @endcode. On Windows, this SHOULD be set to the base name
+ * of @code GetProcessImageFileNameW @endcode.
  */
 static constexpr const char *kProcessExecutableName = "process.executable.name";
 
@@ -118,6 +127,16 @@ static constexpr const char *kProcessGroupLeaderPid = "process.group_leader.pid"
  * Whether the process is connected to an interactive shell.
  */
 static constexpr const char *kProcessInteractive = "process.interactive";
+
+/**
+ * The control group associated with the process.
+ * <p>
+ * Control groups (cgroups) are a kernel feature used to organize and manage process resources. This
+ * attribute provides the path(s) to the cgroup(s) associated with the process, which should match
+ * the contents of the <a
+ * href="https://man7.org/linux/man-pages/man7/cgroups.7.html">/proc/[PID]/cgroup</a> file.
+ */
+static constexpr const char *kProcessLinuxCgroup = "process.linux.cgroup";
 
 /**
  * The username of the user that owns the process.

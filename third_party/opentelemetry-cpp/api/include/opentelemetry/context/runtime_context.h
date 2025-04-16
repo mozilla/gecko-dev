@@ -152,7 +152,8 @@ public:
    *
    * @param storage a custom runtime context storage
    */
-  static void SetRuntimeContextStorage(nostd::shared_ptr<RuntimeContextStorage> storage) noexcept
+  static void SetRuntimeContextStorage(
+      const nostd::shared_ptr<RuntimeContextStorage> &storage) noexcept
   {
     GetStorage() = storage;
   }
