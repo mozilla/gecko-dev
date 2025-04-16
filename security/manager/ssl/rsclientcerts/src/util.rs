@@ -460,8 +460,7 @@ pub fn modulus_bit_length(modulus: &[u8]) -> usize {
 // This is necessary because while Android does support RSA-PSS, it expects to
 // be given the entire message to be signed, not just the hash of the message,
 // which is what NSS gives us.
-// Additionally, this is useful on macOS for tokens that do not support
-// RSA-PSS.
+// Additionally, this is useful for tokens that do not support RSA-PSS.
 pub fn emsa_pss_encode(
     m_hash: &[u8],
     em_bits: usize,

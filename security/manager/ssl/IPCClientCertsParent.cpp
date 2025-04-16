@@ -100,6 +100,8 @@ mozilla::ipc::IPCResult IPCClientCertsParent::RecvSign(ByteArray aCert,
   if (!key) {
     return IPC_OK();
   }
+  SECItem hash = {siBuffer, aData.data().Elements(),
+                  static_cast<unsigned int>(aData.data().Length())};
   SECItem params = {siBuffer, aParams.data().Elements(),
                     static_cast<unsigned int>(aParams.data().Length())};
   SECItem* paramsPtr = aParams.data().Length() > 0 ? &params : nullptr;
@@ -109,15 +111,26 @@ mozilla::ipc::IPCResult IPCClientCertsParent::RecvSign(ByteArray aCert,
       mechanism = CKM_ECDSA;
       break;
     case rsaKey:
-      mechanism = aParams.data().Length() > 0 ? CKM_RSA_PKCS_PSS : CKM_RSA_PKCS;
+      // If we have params, this is RSA-PSS.
+      if (aParams.data().Length() > 0) {
+        mechanism = CKM_RSA_PKCS_PSS;
+      } else {
+        // If this is a DigestInfo or a TLS 1.0 MD5/SHA1 hash, this is RSA-PKCS.
+        // Otherwise, this is an emsa-pss-encoded digest that should be signed
+        // with raw RSA.
+        UniqueSGNDigestInfo digestInfo(SGN_DecodeDigestInfo(&hash));
+        if (digestInfo || aData.data().Length() == 36) {
+          mechanism = CKM_RSA_PKCS;
+        } else {
+          mechanism = CKM_RSA_X_509;
+        }
+      }
       break;
     default:
       return IPC_OK();
   }
   uint32_t len = PK11_SignatureLen(key.get());
   UniqueSECItem sig(::SECITEM_AllocItem(nullptr, nullptr, len));
-  SECItem hash = {siBuffer, aData.data().Elements(),
-                  static_cast<unsigned int>(aData.data().Length())};
   SECStatus srv =
       PK11_SignWithMechanism(key.get(), mechanism, paramsPtr, sig.get(), &hash);
   if (srv != SECSuccess) {

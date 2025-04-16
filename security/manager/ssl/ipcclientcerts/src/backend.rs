@@ -316,7 +316,7 @@ impl Sign for Key {
         params: &Option<CK_RSA_PKCS_PSS_PARAMS>,
     ) -> Result<Vec<u8>, Error> {
         let mut signature = Vec::new();
-        let (params_len, params) = match params {
+        let (sign_params_len, sign_params) = match params {
             Some(params) => (
                 std::mem::size_of::<CK_RSA_PKCS_PSS_PARAMS>(),
                 params as *const _ as *const u8,
@@ -328,8 +328,33 @@ impl Sign for Key {
             self.cert.as_ptr(),
             data.len(),
             data.as_ptr(),
-            params_len,
-            params,
+            sign_params_len,
+            sign_params,
+            Some(sign_callback),
+            &mut signature,
+        );
+        // If this succeeded, return the result.
+        if signature.len() > 0 {
+            return Ok(signature);
+        }
+        // If signing failed and this is an RSA-PSS signature, perhaps the token the key is on does
+        // not support RSA-PSS. In that case, emsa-pss-encode the data (hash, really) and try
+        // signing with raw RSA.
+        let Some(params) = params.as_ref() else {
+            return Err(error_here!(ErrorType::LibraryFailure));
+        };
+        // `params` should only be `Some` if this is an RSA key.
+        let Some(modulus) = self.modulus.as_ref() else {
+            return Err(error_here!(ErrorType::LibraryFailure));
+        };
+        let emsa_pss_encoded = emsa_pss_encode(data, modulus_bit_length(modulus) - 1, params)?;
+        DoSignWrapper(
+            self.cert.len(),
+            self.cert.as_ptr(),
+            emsa_pss_encoded.len(),
+            emsa_pss_encoded.as_ptr(),
+            0,
+            std::ptr::null(),
             Some(sign_callback),
             &mut signature,
         );
