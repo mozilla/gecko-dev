@@ -128,6 +128,7 @@ module.exports = [
   "devtools/client/aboutdebugging/test/browser/resources/bad-extensions/invalid-json/manifest.json",
   "devtools/client/jsonview/test/invalid_json.json",
   "devtools/client/webconsole/test/browser/test-syntaxerror-worklet.js",
+  "devtools/server/tests/xpcshell/addons/invalid-extension-manifest-badjson/manifest.json",
 
   // devtools specific format test file
   "devtools/server/tests/xpcshell/xpcshell_debugging_script.js",
