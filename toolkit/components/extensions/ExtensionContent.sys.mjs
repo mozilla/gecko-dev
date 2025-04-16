@@ -107,6 +107,12 @@ class CacheMap extends DefaultMap {
 
     this.expiryTimeout = timeout;
 
+    // DocumentManager clears scriptCaches early under memory pressure. For
+    // this to work, DocumentManager.lazyInit() should be called. In practice,
+    // ScriptCache/CSSCache/CSSCodeCache are only instantiated and populated
+    // when a content script/style is to be injected. This always depends on a
+    // ContentScriptContextChild instance, which is always paired with a call
+    // to DocumentManager.lazyInit().
     scriptCaches.add(this);
 
     // This ensures that all the cached scripts and stylesheets are deleted
@@ -549,7 +555,6 @@ class Script {
     // so can delay script execution beyond the scheduled point. In particular,
     // document_start scripts should run "immediately" in most cases.
 
-    DocumentManager.lazyInit();
     if (this.requiresCleanup) {
       context.addScript(this);
     }
@@ -829,8 +834,6 @@ class UserScript extends Script {
   }
 
   async inject(context) {
-    DocumentManager.lazyInit();
-
     let scripts = this.getCompiledScripts(context);
     if (scripts instanceof Promise) {
       scripts = await scripts;
@@ -1153,8 +1156,16 @@ export class ContentScriptContextChild extends BaseContext {
   }
 }
 
-// Responsible for creating ExtensionContexts and injecting content
-// scripts into them when new documents are created.
+// Responsible for tracking the lifetime of a document, to manage the lifetime
+// of ContentScriptContextChild instances for that document. When a caller
+// wants to run extension code in a document (often in a sandbox) and need to
+// have that code's lifetime be bound to the document, they call
+// ExtensionContent.getContext() (indirectly via ExtensionChild's getContext()).
+//
+// As part of the initialization of a ContentScriptContextChild, the document's
+// lifetime is tracked here, by DocumentManager. This DocumentManager ensures
+// that the ContentScriptContextChild and any supporting caches are cleared
+// when the document is destroyed.
 DocumentManager = {
   /** @type {Map<number, Map<ExtensionChild, ContentScriptContextChild>>} */
   contexts: new Map(),
@@ -1227,6 +1238,11 @@ DocumentManager = {
     if (!extensions) {
       extensions = new Map();
       this.contexts.set(winId, extensions);
+      // When ExtensionContent.getContext() calls DocumentManager.getContexts,
+      // it is about to create ContentScriptContextChild instances that wraps
+      // the document. Call DocumentManager.lazyInit() to ensure that we have
+      // the relevant observers to close contexts as needed.
+      this.lazyInit();
     }
 
     return extensions;
@@ -1252,6 +1268,9 @@ DocumentManager = {
   },
 
   initExtensionContext(extension, window) {
+    // Note: getContext() always returns an ContentScriptContextChild instance.
+    // This can be a content script, or a sandbox holding the extension APIs
+    // for an extension document embedded in a non-extension document.
     extension.getContext(window).injectAPI();
   },
 };
@@ -1275,6 +1294,15 @@ export var ExtensionContent = {
     DocumentManager.initExtensionContext(extension, window);
   },
 
+  /**
+   * Implementation of extension.getContext(window), which returns the "context"
+   * that wraps the current document in the window. The returned context is
+   * aware of the document's lifetime, including bfcache transitions.
+   *
+   * @param {ExtensionChild} extension
+   * @param {DOMWindow} window
+   * @returns {ContentScriptContextChild}
+   */
   getContext(extension, window) {
     let extensions = DocumentManager.getContexts(window);
 
