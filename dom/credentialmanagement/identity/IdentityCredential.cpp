@@ -1219,6 +1219,19 @@ IdentityCredential::CheckRootManifest(nsIPrincipal* aPrincipal,
         NS_ERROR_INVALID_ARG, __func__);
   }
 
+  // We actually don't need to do any of this well-known stuff if the
+  // requesting principal is same-site to the manifest URI. There is no
+  // privacy risk in that case, because the requests could be sent with
+  // their unpartitioned cookies anyway.
+  if (!aPrincipal->GetIsNullPrincipal()) {
+    bool thirdParty = true;
+    rv = aPrincipal->IsThirdPartyURI(manifestURI, &thirdParty);
+    if (NS_SUCCEEDED(rv) && !thirdParty) {
+      return IdentityCredential::ValidationPromise::CreateAndResolve(true,
+                                                                     __func__);
+    }
+  }
+
   return IdentityNetworkHelpers::FetchWellKnownHelper(manifestURI, aPrincipal)
       ->Then(
           GetCurrentSerialEventTarget(), __func__,

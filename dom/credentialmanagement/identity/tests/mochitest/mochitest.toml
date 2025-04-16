@@ -21,6 +21,7 @@ support-files = [
   "/.well-known/web-identity",
   "/.well-known/web-identity^headers^",
   "server_manifest.sjs",
+  "server_manifest_same_site.sjs",
   "server_manifest_wrong_provider_in_manifest.sjs",
   "server_simple_accounts.sjs",
   "server_simple_idtoken.sjs",
@@ -53,6 +54,8 @@ support-files = [
 ["test_idtoken_error.html"]
 
 ["test_idtoken_redirect.html"]
+
+["test_manifest_same_site_ignores_well_known.html"]
 
 ["test_mediation.html"]
 
