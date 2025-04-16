@@ -143,6 +143,17 @@ XPCOMUtils.defineLazyPreferenceGetter(
   AddonManager.SCOPE_ALL
 );
 
+// An hidden pref that can be used in tests (in particular
+// xpcshell-tests unit tests) that may need to opt-out from
+// XPIProvider startup logic that will be auto-installing
+// the default theme.
+XPCOMUtils.defineLazyPreferenceGetter(
+  lazy,
+  "skipDefaultThemeInstall",
+  "extensions.skipInstallDefaultThemeForTests",
+  false
+);
+
 Object.defineProperty(lazy, "enabledScopes", {
   get() {
     // The profile location is always enabled
@@ -2602,7 +2613,12 @@ export var XPIProvider = {
         );
       }
 
-      if (AppConstants.platform != "android") {
+      const isInAutomationOrXPCShellTests =
+        Cu.isInAutomation || Services.env.exists("XPCSHELL_TEST_PROFILE_DIR");
+      if (
+        AppConstants.platform != "android" &&
+        !(isInAutomationOrXPCShellTests && lazy.skipDefaultThemeInstall)
+      ) {
         // Keep version in sync with toolkit/mozapps/extensions/default-theme/manifest.json
         this.maybeInstallBuiltinAddon(
           "default-theme@mozilla.org",
