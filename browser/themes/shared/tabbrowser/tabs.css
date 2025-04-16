@@ -759,13 +759,13 @@
 
   &[textoverflow] {
     &[labeldirection=ltr],
-    &:not([labeldirection], [pinned]):-moz-locale-dir(ltr) {
+    &:not([labeldirection]):-moz-locale-dir(ltr) {
       direction: ltr;
       mask-image: linear-gradient(to left, transparent, black var(--tab-label-mask-size));
     }
 
     &[labeldirection=rtl],
-    &:not([labeldirection], [pinned]):-moz-locale-dir(rtl) {
+    &:not([labeldirection]):-moz-locale-dir(rtl) {
       direction: rtl;
       mask-image: linear-gradient(to right, transparent, black var(--tab-label-mask-size));
     }
