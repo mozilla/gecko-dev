@@ -130,6 +130,8 @@
   <string name="address_bar_swipe_cfr_title" tools:ignore="UnusedResources" moz:removedIn="139">Scor la sbare dai struments par cambiâ schede</string>
   <!-- Text for the message displayed in the contextual feature recommendation popup promoting swipe of address bar. -->
   <string name="address_bar_swipe_cfr_message" tools:ignore="UnusedResources" moz:removedIn="139">Scor viers çampe o drete par cambiâ. Scor a çampe su la ultime schede par vierzint une gnove.</string>
+  <!-- Text for the message displayed in the contextual feature recommendation popup promoting swipe of address bar. -->
+  <string name="address_bar_swipe_cfr_message_2">Scor la sbare dai struments a çampe o a diestre par cambiâ schede.</string>
   <!-- Text for the info dialog when camera permissions have been denied but user tries to access a camera feature. -->
   <string name="camera_permissions_needed_message">Al covente l’acès ae fotocjamare. Va tes impostazions di Android, va te schede dai permès e tocje permet.</string>
   <!-- Text for the positive action button to go to Android Settings to grant permissions. -->
@@ -3379,6 +3381,26 @@
     The title of the glean debugging feature
   -->
   <string name="glean_debug_tools_title">Struments di debug par Glean</string>
+  <!--
+    Debug drawer region tools
+
+    Title of the Region tools in the Debug Drawer.
+    This tool allows temporarily overriding the home region (user's default locale)
+    and the current region (device's detected location) for testing purposes.
+  -->
+  <string name="debug_drawer_region_tools_title">Struments pes regjons</string>
+  <!-- The description of the Region tools in the Debug Drawer -->
+  <string name="debug_drawer_regin_tools_description">Al sostituìs in mût temporani i valôrs des regjons di cjase (home) e atuâl (current) par fâ provis.</string>
+  <!-- The text label for displaying home region. -->
+  <string name="debug_drawer_home_region_label">Regjon di cjase (home)</string>
+  <!-- The text label for displaying current region. -->
+  <string name="debug_drawer_current_region_label">Regjon atuâl (current)</string>
+  <!-- The text field label for overriding home region. -->
+  <string name="debug_drawer_override_home_region_label">Sostituìs regjon di cjase</string>
+  <!-- The text field label for overriding current region. -->
+  <string name="debug_drawer_override_current_region_label">Sostituìs regjon atuâl</string>
+  <!-- The title of the button for overriding home and current region. -->
+  <string name="debug_drawer_override_region">Sostituìs regjons di cjase e atuâl</string>
   <!--
     Messages explaining how to exit fullscreen mode
 

@@ -130,7 +130,7 @@
   <!-- Text for the message displayed in the contextual feature recommendation popup promoting swipe of address bar. -->
   <string name="address_bar_swipe_cfr_message" tools:ignore="UnusedResources" moz:removedIn="139">Llusgwch i\'r chwith neu\'r dde i newid. Llusgwch i\'r chwith ar eich tab olaf i agor tab newydd.</string>
   <!-- Text for the message displayed in the contextual feature recommendation popup promoting swipe of address bar. -->
-  <string name="address_bar_swipe_cfr_message_2">Sychwch y bar offer i\'r chwith neu\'r dde i newid tabiau.</string>
+  <string name="address_bar_swipe_cfr_message_2">Llusgwch y bar offer i\'r chwith neu\'r dde i newid tabiau.</string>
   <!-- Text for the info dialog when camera permissions have been denied but user tries to access a camera feature. -->
   <string name="camera_permissions_needed_message">Mae angen mynediad i’r camera. Ewch i osodiadau Android, tapiwch Permissions, a thapio Allow.</string>
   <!-- Text for the positive action button to go to Android Settings to grant permissions. -->
@@ -1529,7 +1529,7 @@
   <!-- Text to indicate that no downloads match the search query. -->
   <string name="download_search_no_results_found" tools:ignore="UnusedResources">Heb ganfod canlyniadau</string>
   <!-- Text for the "Select all" button, which selects all downloaded items in the downloads list. -->
-  <string name="download_select_all_items">Dewis popeth</string>
+  <string name="download_select_all_items">Dewis y cyfan</string>
   <!--
     Downloads Content Type Filters
 
@@ -3389,17 +3389,17 @@
   -->
   <string name="debug_drawer_region_tools_title">Offer Rhanbarth</string>
   <!-- The description of the Region tools in the Debug Drawer -->
-  <string name="debug_drawer_regin_tools_description">Dros dro yn diystyru gwerthoedd y cartref a\'r rhanbarth presennol ar gyfer profi.</string>
+  <string name="debug_drawer_regin_tools_description">Yn diystyru dros dro gwerthoedd cartref a\'r rhanbarth cyfredol ar gyfer profi.</string>
   <!-- The text label for displaying home region. -->
   <string name="debug_drawer_home_region_label">Rhanbarth cartref</string>
   <!-- The text label for displaying current region. -->
-  <string name="debug_drawer_current_region_label">Rhanbarth presennol</string>
+  <string name="debug_drawer_current_region_label">Rhanbarth cyfredol</string>
   <!-- The text field label for overriding home region. -->
   <string name="debug_drawer_override_home_region_label">Diystyru\'r rhanbarth cartref</string>
   <!-- The text field label for overriding current region. -->
-  <string name="debug_drawer_override_current_region_label">Diystyru\'r rhanbarth presennol</string>
+  <string name="debug_drawer_override_current_region_label">Diystyru\'r rhanbarth cyfredol</string>
   <!-- The title of the button for overriding home and current region. -->
-  <string name="debug_drawer_override_region">Diystyru cartref a rhanbarth presennol</string>
+  <string name="debug_drawer_override_region">Diystyru\'r cartref a\'r rhanbarth cyfredol</string>
   <!--
     Messages explaining how to exit fullscreen mode
 
@@ -3497,7 +3497,7 @@
   <!-- Subtitle for a setup checklist with 6 steps when three of the tasks are completed. -->
   <string name="setup_checklist_subtitle_6_steps_third_step">Rydych chi hanner ffordd yno! Tri cham wedi gorffen a 3 i fynd.</string>
   <!-- Subtitle for a setup checklist with 6 steps when the fourth task is completed. -->
-  <string name="setup_checklist_subtitle_6_steps_fourth_step">Rydych chi 4 cam i mewn. Dim ond 2 arall i fynd!</string>
+  <string name="setup_checklist_subtitle_6_steps_fourth_step">Rydych wedi cyrraedd cam 4. Dim ond 2 arall i fynd!</string>
   <!-- Subtitle for a setup checklist with 6 steps when the fifth task is completed. -->
   <string name="setup_checklist_subtitle_6_steps_fifth_step">Bron yno! Rydych chi 1 cam yn unig i ffwrdd o\'r llinell derfyn.</string>
   <!-- Subtitle for a setup checklist with 6 steps completed state. %1$s is the name of the app (for example "Firefox"). -->
@@ -3533,7 +3533,7 @@
 
     Text for the 'remove' button for the setup checklist
   -->
-  <string name="setup_checklist_button_remove">Dileu rhestr wirio</string>
+  <string name="setup_checklist_button_remove">Dileu\'r rhestr wirio</string>
   <!--
     ===== Setup checklist feature: Accessibility =====
 

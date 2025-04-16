@@ -129,6 +129,8 @@
   <string name="address_bar_swipe_cfr_title" tools:ignore="UnusedResources" moz:removedIn="139">Desliza la barra de herramientas para cambiar de pestaña</string>
   <!-- Text for the message displayed in the contextual feature recommendation popup promoting swipe of address bar. -->
   <string name="address_bar_swipe_cfr_message" tools:ignore="UnusedResources" moz:removedIn="139">Desliza el dedo hacia la izquierda o hacia la derecha para cambiar. Desliza el dedo hacia la izquierda en la última pestaña para abrir una nueva.</string>
+  <!-- Text for the message displayed in the contextual feature recommendation popup promoting swipe of address bar. -->
+  <string name="address_bar_swipe_cfr_message_2">Desliza la barra de herramientas hacia la izquierda o hacia la derecha para cambiar de pestaña.</string>
   <!-- Text for the info dialog when camera permissions have been denied but user tries to access a camera feature. -->
   <string name="camera_permissions_needed_message">Se necesita acceso a la cámara. Ve a los ajustes de Android, toca en permisos y luego en permitir.</string>
   <!-- Text for the positive action button to go to Android Settings to grant permissions. -->
@@ -3377,6 +3379,26 @@
     The title of the glean debugging feature
   -->
   <string name="glean_debug_tools_title">Herramientas de depuración de Glean</string>
+  <!--
+    Debug drawer region tools
+
+    Title of the Region tools in the Debug Drawer.
+    This tool allows temporarily overriding the home region (user's default locale)
+    and the current region (device's detected location) for testing purposes.
+  -->
+  <string name="debug_drawer_region_tools_title">Herramientas de región</string>
+  <!-- The description of the Region tools in the Debug Drawer -->
+  <string name="debug_drawer_regin_tools_description">Temporalmente reemplaza los valores de la región de inicio y actual para la prueba.</string>
+  <!-- The text label for displaying home region. -->
+  <string name="debug_drawer_home_region_label">Región de origen</string>
+  <!-- The text label for displaying current region. -->
+  <string name="debug_drawer_current_region_label">Región actual</string>
+  <!-- The text field label for overriding home region. -->
+  <string name="debug_drawer_override_home_region_label">Reemplazar región de origen</string>
+  <!-- The text field label for overriding current region. -->
+  <string name="debug_drawer_override_current_region_label">Reemplazar región actual</string>
+  <!-- The title of the button for overriding home and current region. -->
+  <string name="debug_drawer_override_region">Reemplazar la región de inicio y la actual</string>
   <!--
     Messages explaining how to exit fullscreen mode
 

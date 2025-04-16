@@ -129,6 +129,8 @@
   <string name="address_bar_swipe_cfr_title" tools:ignore="UnusedResources" moz:removedIn="139">Vuốt thanh công cụ để chuyển thẻ</string>
   <!-- Text for the message displayed in the contextual feature recommendation popup promoting swipe of address bar. -->
   <string name="address_bar_swipe_cfr_message" tools:ignore="UnusedResources" moz:removedIn="139">Vuốt sang trái hoặc phải để chuyển. Vuốt sang trái trên thẻ cuối cùng của bạn để mở thẻ mới.</string>
+  <!-- Text for the message displayed in the contextual feature recommendation popup promoting swipe of address bar. -->
+  <string name="address_bar_swipe_cfr_message_2">Vuốt thanh công cụ sang trái hoặc phải để chuyển đổi các thẻ.</string>
   <!-- Text for the info dialog when camera permissions have been denied but user tries to access a camera feature. -->
   <string name="camera_permissions_needed_message">Cần có quyền truy cập máy ảnh. Đi tới cài đặt Android, chạm vào quyền và chạm cho phép.</string>
   <!-- Text for the positive action button to go to Android Settings to grant permissions. -->
@@ -1384,6 +1386,8 @@
   <string name="tab_tray_multiselect_share_content_description">Chia sẻ các thẻ đã chọn</string>
   <!-- Content description for tabs tray multiselect menu -->
   <string name="tab_tray_multiselect_menu_content_description">Menu thẻ đã chọn</string>
+  <!-- Title text displayed for a homepage tab in the tabs tray. -->
+  <string name="tab_tray_homepage_tab">Trang chủ</string>
   <!-- Content description (not visible, for screen readers etc.): Removes tab from collection button. Removes the selected tab from collection when pressed -->
   <string name="remove_tab_from_collection">Xóa thẻ khỏi bộ sưu tập</string>
   <!-- Text for button to enter multiselect mode in tabs tray -->
@@ -1524,6 +1528,8 @@
   <string name="download_search_placeholder" tools:ignore="UnusedResources">Tìm kiếm tải xuống</string>
   <!-- Text to indicate that no downloads match the search query. -->
   <string name="download_search_no_results_found" tools:ignore="UnusedResources">Không tìm thấy kết quả nào</string>
+  <!-- Text for the "Select all" button, which selects all downloaded items in the downloads list. -->
+  <string name="download_select_all_items">Chọn tất cả</string>
   <!--
     Downloads Content Type Filters
 
@@ -3437,6 +3443,46 @@
   <!-- The default content description for the cross trailing icon button in TextField -->
   <string name="text_field_cross_trailing_icon_default_content_description" moz:removedIn="139" tools:ignore="UnusedResources">Xoá văn bản</string>
   <!--
+    Setup checklist feature
+
+    ===== Setup checklist feature: Title =====
+
+    Title for the setup checklist feature when the state is 'incomplete'. %1$s is the name of the app (for example "Firefox").
+  -->
+  <string name="setup_checklist_title_state_incomplete">Hoàn tất thiết lập %1$s</string>
+  <!-- Title for the setup checklist feature when the state is 'completed' -->
+  <string name="setup_checklist_title_state_completed">Chúc mừng!</string>
+  <!--
+    ===== Setup checklist feature: Subtitles for 3 steps =====
+
+    Subtitle for a setup checklist with 3 steps initial step. %1$s is the name of the app (for example "Firefox").
+  -->
+  <string name="setup_checklist_subtitle_3_steps_initial_state">Hoàn tất 3 bước này để thiết lập %1$s nhằm trải nghiệm duyệt web tốt nhất.</string>
+  <!-- Subtitle for a setup checklist with 3 steps when the first task is completed. -->
+  <string name="setup_checklist_subtitle_3_steps_first_step">Khởi đầu tuyệt vời! Bạn đã hoàn thành 1 / 3 bước.</string>
+  <!-- Subtitle for a setup checklist with 3 steps when two of the tasks are completed. -->
+  <string name="setup_checklist_subtitle_3_steps_second_step">Gần xong rồi! Đã hoàn thành hai bước và còn một bước nữa.</string>
+  <!-- Subtitle for a setup checklist with 3 steps completed state. %1$s is the name of the app (for example "Firefox"). -->
+  <string name="setup_checklist_subtitle_3_steps_completed_state">Bạn đã hoàn thành tất cả 3 bước. Tận hưởng tốc độ, quyền riêng tư và bảo mật của %1$s.</string>
+  <!--
+    ===== Setup checklist feature: Subtitles for 6 steps =====
+
+    Subtitle for a setup checklist with 6 steps initial state. %1$s is the name of the app (for example "Firefox").
+  -->
+  <string name="setup_checklist_subtitle_6_steps_initial_state">Hoàn thành tất cả 6 bước để thiết lập %1$s để có trải nghiệm duyệt web tốt nhất.</string>
+  <!-- Subtitle for a setup checklist with 6 steps when the first task is completed. -->
+  <string name="setup_checklist_subtitle_6_steps_first_step">Khởi đầu tuyệt vời! Bạn đã hoàn thành 1 / 6 bước.</string>
+  <!-- Subtitle for the setup checklist when the second task is completed. -->
+  <string name="setup_checklist_subtitle_6_steps_second_step">Bạn đã hoàn thành 2 / 6 bước. Hãy tiếp tục tiến trình!</string>
+  <!-- Subtitle for a setup checklist with 6 steps when three of the tasks are completed. -->
+  <string name="setup_checklist_subtitle_6_steps_third_step">Bạn đã đi được nửa chặng đường rồi! Đã hoàn thành ba bước và còn 3 bước nữa.</string>
+  <!-- Subtitle for a setup checklist with 6 steps when the fourth task is completed. -->
+  <string name="setup_checklist_subtitle_6_steps_fourth_step">Bạn đã thực hiện được 4 bước. Chỉ còn 2 bước nữa thôi!</string>
+  <!-- Subtitle for a setup checklist with 6 steps when the fifth task is completed. -->
+  <string name="setup_checklist_subtitle_6_steps_fifth_step">Gần xong rồi! Bạn chỉ còn cách vạch đích 1 bước nữa thôi.</string>
+  <!-- Subtitle for a setup checklist with 6 steps completed state. %1$s is the name of the app (for example "Firefox"). -->
+  <string name="setup_checklist_subtitle_6_steps_completed_state">Bạn đã hoàn tất tất cả 6 bước thiết lập. Tận hưởng tốc độ, quyền riêng tư và bảo mật của %1$s.</string>
+  <!--
     ===== Setup checklist feature: Task titles =====
 
     The title of the default browser task for the setup checklist
@@ -3462,6 +3508,12 @@
   <string name="setup_checklist_group_customize">Tuỳ chỉnh %1$s của bạn</string>
   <!-- The title of the 'helpful tools' group in the setup checklist -->
   <string name="setup_checklist_group_helpful_tools">Công cụ hữu ích</string>
+  <!--
+    ===== Setup checklist feature: Button =====
+
+    Text for the 'remove' button for the setup checklist
+  -->
+  <string name="setup_checklist_button_remove">Xóa danh sách kiểm tra</string>
   <!--
     ===== Setup checklist feature: Accessibility =====
 
