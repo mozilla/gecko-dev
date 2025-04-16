@@ -9,8 +9,8 @@ origin:
   description: The OpenTelemetry C++ Client
   url: https://opentelemetry.io/
 
-  release: v1.20.0 (2025-04-02T00:21:41+02:00).
-  revision: v1.20.0
+  release: v1.18.0 (2024-11-26T00:19:04+01:00).
+  revision: v1.18.0
 
   license: Apache-2.0
   license-file: LICENSE

@@ -3,6 +3,7 @@
 
 #include "opentelemetry/exporters/ostream/span_exporter_factory.h"
 #include "opentelemetry/exporters/ostream/span_exporter.h"
+#include "opentelemetry/sdk/trace/recordable.h"
 #include "opentelemetry/version.h"
 
 namespace trace_sdk = opentelemetry::sdk::trace;

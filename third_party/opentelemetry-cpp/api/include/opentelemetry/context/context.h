@@ -29,14 +29,16 @@ public:
   // hold a shared_ptr to the head of the DataList linked list
   template <class T>
   Context(const T &keys_and_values) noexcept
-      : head_{nostd::shared_ptr<DataList>{new DataList(keys_and_values)}}
-  {}
+  {
+    head_ = nostd::shared_ptr<DataList>{new DataList(keys_and_values)};
+  }
 
   // Creates a context object from a key and value, this will
   // hold a shared_ptr to the head of the DataList linked list
   Context(nostd::string_view key, ContextValue value) noexcept
-      : head_{nostd::shared_ptr<DataList>{new DataList(key, value)}}
-  {}
+  {
+    head_ = nostd::shared_ptr<DataList>{new DataList(key, value)};
+  }
 
   // Accepts a new iterable and then returns a new context that
   // contains the new key and value data. It attaches the
@@ -90,21 +92,22 @@ public:
 
 private:
   // A linked list to contain the keys and values of this context node
-  struct DataList
+  class DataList
   {
-    char *key_ = nullptr;
+  public:
+    char *key_;
 
-    nostd::shared_ptr<DataList> next_{nullptr};
+    nostd::shared_ptr<DataList> next_;
 
-    size_t key_length_ = 0UL;
+    size_t key_length_;
 
     ContextValue value_;
 
-    DataList() = default;
+    DataList() { next_ = nullptr; }
 
     // Builds a data list off of a key and value iterable and returns the head
     template <class T>
-    DataList(const T &keys_and_vals)
+    DataList(const T &keys_and_vals) : key_{nullptr}, next_(nostd::shared_ptr<DataList>{nullptr})
     {
       bool first = true;
       auto *node = this;
@@ -129,18 +132,9 @@ private:
     {
       key_        = new char[key.size()];
       key_length_ = key.size();
-      std::memcpy(key_, key.data(), key.size() * sizeof(char));
-      next_  = nostd::shared_ptr<DataList>{nullptr};
+      memcpy(key_, key.data(), key.size() * sizeof(char));
       value_ = value;
-    }
-
-    DataList(const DataList &other)
-        : key_(new char[other.key_length_]),
-          next_(other.next_),
-          key_length_(other.key_length_),
-          value_(other.value_)
-    {
-      std::memcpy(key_, other.key_, other.key_length_ * sizeof(char));
+      next_  = nostd::shared_ptr<DataList>{nullptr};
     }
 
     DataList &operator=(DataList &&other) noexcept
