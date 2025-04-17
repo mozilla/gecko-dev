@@ -33,6 +33,9 @@ add_task(async function () {
     waitForFocus(resolve, win);
   });
 
+  // Disable active tab shadow, which causes flickering (bug 1960967)
+  win.gBrowser.tabContainer.setAttribute("noshadowfortests", "true");
+
   // At the time of writing, there are no reflows on window closing.
   // Mochitest will fail if we have no assertions, so we add one here
   // to make sure nobody adds any new ones.

@@ -403,8 +403,8 @@
     "forcedColors": "664px"
   },
   "box/shadow/level-1/shadow-1/x": 0,
-  "box/shadow/level-1/shadow-1/y": 0.125,
-  "box/shadow/level-1/shadow-1/blur": 0.25,
+  "box/shadow/level-1/shadow-1/y": 0,
+  "box/shadow/level-1/shadow-1/blur": 1,
   "box/shadow/level-1/shadow-1/spread": 0,
   "box/shadow/level-1/shadow-1/color": "{Theme$box/shadow/color/darker/layer-1}",
   "box/shadow/level-1/shadow-1/inset": false,
@@ -451,13 +451,13 @@
   "box/shadow/level-4/shadow-2/color": "{Theme$box/shadow/color/lighter/layer-2}",
   "box/shadow/level-4/shadow-2/inset": false,
   "box/shadow/color/darker/layer-1": {
-    "light": "rgba(0, 0, 0, 0.1)",
-    "dark": "rgba(0, 0, 0, 0.4)",
+    "light": "rgba(0, 0, 0, 0.15)",
+    "dark": "rgba(0, 0, 0, 0.2)",
     "forcedColors": "transparent"
   },
   "box/shadow/color/darker/layer-2": {
     "light": "rgba(0, 0, 0, 0.2)",
-    "dark": "rgba(0, 0, 0, 0.8)",
+    "dark": "rgba(0, 0, 0, 0.4)",
     "forcedColors": "transparent"
   },
   "box/shadow/color/lighter/layer-1": {
