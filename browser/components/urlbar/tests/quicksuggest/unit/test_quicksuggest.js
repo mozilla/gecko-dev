@@ -175,6 +175,7 @@ add_setup(async function init() {
   );
 
   UrlbarPrefs.set("scotchBonnet.enableOverride", false);
+  UrlbarPrefs.set("quicksuggest.ampTopPickCharThreshold", 0);
 
   await QuickSuggestTestUtils.ensureQuickSuggestInit();
   await resetRemoteSettingsData();

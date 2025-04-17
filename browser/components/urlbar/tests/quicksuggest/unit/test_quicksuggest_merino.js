@@ -42,6 +42,7 @@ add_setup(async () => {
     prefs: [
       ["suggest.quicksuggest.nonsponsored", true],
       ["suggest.quicksuggest.sponsored", true],
+      ["quicksuggest.ampTopPickCharThreshold", 0],
     ],
   });
   await resetRemoteSettingsData();
