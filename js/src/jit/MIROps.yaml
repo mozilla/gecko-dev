@@ -3748,10 +3748,10 @@
 - name: WasmStoreElementRef
   gen_boilerplate: false
 
-- name: WasmRefIsSubtypeOfConcrete
+- name: WasmRefTestConcrete
   gen_boilerplate: false
 
-- name: WasmRefIsSubtypeOfAbstract
+- name: WasmRefTestAbstract
   gen_boilerplate: false
 
 - name: WasmRefCastConcrete

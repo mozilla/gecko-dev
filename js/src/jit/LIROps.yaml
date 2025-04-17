@@ -367,7 +367,7 @@
     ref: WordSized
   mir_op: true
 
-- name: WasmRefIsSubtypeOfConcrete
+- name: WasmRefTestConcrete
   mir_op: true
   operands:
     ref: WordSized
@@ -375,14 +375,14 @@
   result_type: WordSized
   num_temps: 2
 
-- name: WasmRefIsSubtypeOfAbstract
+- name: WasmRefTestAbstract
   mir_op: true
   operands:
     ref: WordSized
   result_type: WordSized
   num_temps: 1
 
-- name: WasmRefIsSubtypeOfConcreteAndBranch
+- name: WasmRefTestConcreteAndBranch
   successors: [ifTrue, ifFalse]
   operands:
     ref: WordSized
@@ -392,7 +392,7 @@
     destType: wasm::RefType
   num_temps: 2
 
-- name: WasmRefIsSubtypeOfAbstractAndBranch
+- name: WasmRefTestAbstractAndBranch
   successors: [ifTrue, ifFalse]
   operands:
     ref: WordSized

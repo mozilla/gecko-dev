@@ -2818,11 +2818,11 @@ class MWasmStoreElementRef : public MAryInstruction<5>,
 
 // Tests if the wasm ref `ref` is a subtype of `destType` and returns the
 // boolean representing the result.
-class MWasmRefIsSubtypeOfAbstract : public MUnaryInstruction,
-                                    public NoTypePolicy::Data {
+class MWasmRefTestAbstract : public MUnaryInstruction,
+                             public NoTypePolicy::Data {
   wasm::RefType destType_;
 
-  MWasmRefIsSubtypeOfAbstract(MDefinition* ref, wasm::RefType destType)
+  MWasmRefTestAbstract(MDefinition* ref, wasm::RefType destType)
       : MUnaryInstruction(classOpcode, ref), destType_(destType) {
     MOZ_ASSERT(!destType.isTypeRef());
     setResultType(MIRType::Int32);
@@ -2830,7 +2830,7 @@ class MWasmRefIsSubtypeOfAbstract : public MUnaryInstruction,
   }
 
  public:
-  INSTRUCTION_HEADER(WasmRefIsSubtypeOfAbstract)
+  INSTRUCTION_HEADER(WasmRefTestAbstract)
   TRIVIAL_NEW_WRAPPERS
   NAMED_OPERANDS((0, ref))
 
@@ -2840,7 +2840,7 @@ class MWasmRefIsSubtypeOfAbstract : public MUnaryInstruction,
 
   bool congruentTo(const MDefinition* ins) const override {
     return congruentIfOperandsEqual(ins) &&
-           destType() == ins->toWasmRefIsSubtypeOfAbstract()->destType();
+           destType() == ins->toWasmRefTestAbstract()->destType();
   }
 
   HashNumber valueHash() const override {
@@ -2857,12 +2857,12 @@ class MWasmRefIsSubtypeOfAbstract : public MUnaryInstruction,
 //
 // The actual super type definition must be known at compile time, so that the
 // subtyping depth of super type depth can be used.
-class MWasmRefIsSubtypeOfConcrete : public MBinaryInstruction,
-                                    public NoTypePolicy::Data {
+class MWasmRefTestConcrete : public MBinaryInstruction,
+                             public NoTypePolicy::Data {
   wasm::RefType destType_;
 
-  MWasmRefIsSubtypeOfConcrete(MDefinition* ref, MDefinition* superSTV,
-                              wasm::RefType destType)
+  MWasmRefTestConcrete(MDefinition* ref, MDefinition* superSTV,
+                       wasm::RefType destType)
       : MBinaryInstruction(classOpcode, ref, superSTV), destType_(destType) {
     MOZ_ASSERT(destType.isTypeRef());
     setResultType(MIRType::Int32);
@@ -2870,7 +2870,7 @@ class MWasmRefIsSubtypeOfConcrete : public MBinaryInstruction,
   }
 
  public:
-  INSTRUCTION_HEADER(WasmRefIsSubtypeOfConcrete)
+  INSTRUCTION_HEADER(WasmRefTestConcrete)
   TRIVIAL_NEW_WRAPPERS
   NAMED_OPERANDS((0, ref), (1, superSTV))
 
@@ -2880,7 +2880,7 @@ class MWasmRefIsSubtypeOfConcrete : public MBinaryInstruction,
 
   bool congruentTo(const MDefinition* ins) const override {
     return congruentIfOperandsEqual(ins) &&
-           destType() == ins->toWasmRefIsSubtypeOfConcrete()->destType();
+           destType() == ins->toWasmRefTestConcrete()->destType();
   }
 
   HashNumber valueHash() const override {

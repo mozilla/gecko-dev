@@ -5625,10 +5625,9 @@ class FunctionCompiler {
       if (!superSTV) {
         return nullptr;
       }
-      isSubTypeOf =
-          MWasmRefIsSubtypeOfConcrete::New(alloc(), ref, superSTV, destType);
+      isSubTypeOf = MWasmRefTestConcrete::New(alloc(), ref, superSTV, destType);
     } else {
-      isSubTypeOf = MWasmRefIsSubtypeOfAbstract::New(alloc(), ref, destType);
+      isSubTypeOf = MWasmRefTestAbstract::New(alloc(), ref, destType);
     }
     MOZ_ASSERT(isSubTypeOf);
 

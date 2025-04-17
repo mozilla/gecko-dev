@@ -971,7 +971,7 @@ static MDefinition* FoldTrivialWasmCasts(MDefinition* ref,
   return nullptr;
 }
 
-MDefinition* MWasmRefIsSubtypeOfAbstract::foldsTo(TempAllocator& alloc) {
+MDefinition* MWasmRefTestAbstract::foldsTo(TempAllocator& alloc) {
   if (ref()->wasmRefType().isNothing()) {
     return this;
   }
@@ -984,7 +984,7 @@ MDefinition* MWasmRefIsSubtypeOfAbstract::foldsTo(TempAllocator& alloc) {
   return this;
 }
 
-MDefinition* MWasmRefIsSubtypeOfConcrete::foldsTo(TempAllocator& alloc) {
+MDefinition* MWasmRefTestConcrete::foldsTo(TempAllocator& alloc) {
   if (ref()->wasmRefType().isNothing()) {
     return this;
   }
