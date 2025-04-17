@@ -105,6 +105,9 @@ support-files = [
   "iframe_slow_onload.html",
   "iframe_slow_onload_inner.html",
 ]
+skip-if = [
+  "http3",
+]
 
 ["test_bug13871.html"]
 skip-if = [
