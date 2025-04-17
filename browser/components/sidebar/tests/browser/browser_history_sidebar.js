@@ -585,18 +585,39 @@ add_task(async function test_history_context_menu() {
   is(window.gBrowser.currentURI.spec, rows[0].mainEl.href, "New tab opened");
 
   info("Clear all data from website");
-  const promptPromise = PromptTestUtils.handleNextPrompt(
-    window.SidebarController.browser,
-    { modalType: Services.prompt.MODAL_TYPE_WINDOW, promptType: "confirmEx" },
-    { buttonNumClick: 0 }
+  let dialogOpened = BrowserTestUtils.promiseAlertDialogOpen(
+    null,
+    "chrome://browser/content/places/clearDataForSite.xhtml",
+    { isSubDialog: true }
   );
   site = rows[0].mainEl.href;
   const promiseForgotten = PlacesTestUtils.waitForNotification("page-removed");
   await openAndWaitForContextMenu(contextMenu, rows[0].mainEl, () =>
     contextMenu.activateItem(getItem("forget-site"))
   );
-  await promptPromise;
-  await promiseForgotten;
+  let dialog = await dialogOpened;
+  let forgetSiteText = dialog.document.getElementById(
+    "clear-data-for-site-list"
+  );
+  let siteToForget = rows[0].mainEl.href.substring(
+    8,
+    rows[0].mainEl.href.length - 1
+  );
+  await BrowserTestUtils.waitForMutationCondition(
+    forgetSiteText,
+    { attributes: true, attributeFilter: ["data-l10n-args"] },
+    () => forgetSiteText.getAttribute("data-l10n-args").includes(siteToForget)
+  );
+  ok(
+    forgetSiteText.getAttribute("data-l10n-args").includes(siteToForget),
+    "The text for forgetting a specific site should be set"
+  );
+  let dialogClosed = BrowserTestUtils.waitForEvent(dialog, "unload");
+  let removeButton = dialog.document
+    .querySelector("dialog")
+    .getButton("accept");
+  removeButton.click();
+  await Promise.all([dialogClosed, promiseForgotten]);
   await TestUtils.waitForCondition(
     () => rows[0].mainEl.href !== site,
     "The forgotten entry should no longer be visible."
