@@ -42,6 +42,9 @@ permalink: /changelog/
   * Rename `Toolbar.SiteSecurity` enum to `Toolbar.SiteInfo` and adds `LOCAL_PDF` enum value. See [Bug 1920085](https://bugzilla.mozilla.org/show_bug.cgi?id=1920085).
   * Rename `DisplayToolbarViews.securityIndicator` and `DisplayToolbarViews.setOnSiteSecurityClickedListener` to `DisplayToolbarViews.siteInfoIndicator` and `DisplayToolbarViews.setOnSiteInfoClickedListener`. See [Bug 1920085](https://bugzilla.mozilla.org/show_bug.cgi?id=1920085).
 
+* **feature-search**
+  * Adds `SearchEngineSelectorRepository` and `SearchEngineRepository` to `SearchMiddleware` See [Bug 1944964](https://bugzilla.mozilla.org/show_bug.cgi?id=1944964).
+
 * **feature-toolbar**
   * When showing a local PDF, the site security icon will display the `mozac_ic_page_portrait_24` icon. See [Bug 1920085](https://bugzilla.mozilla.org/show_bug.cgi?id=1920085).
 

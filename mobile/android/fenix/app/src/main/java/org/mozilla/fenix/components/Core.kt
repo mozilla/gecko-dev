@@ -14,6 +14,10 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import mozilla.appservices.search.SearchApplicationName
+import mozilla.appservices.search.SearchDeviceType
+import mozilla.appservices.search.SearchEngineSelector
+import mozilla.appservices.search.SearchUpdateChannel
 import mozilla.components.browser.domains.autocomplete.BaseDomainAutocompleteProvider
 import mozilla.components.browser.domains.autocomplete.ShippedDomainsProvider
 import mozilla.components.browser.engine.gecko.GeckoEngine
@@ -60,6 +64,7 @@ import mozilla.components.feature.search.middleware.AdsTelemetryMiddleware
 import mozilla.components.feature.search.middleware.SearchExtraParams
 import mozilla.components.feature.search.middleware.SearchMiddleware
 import mozilla.components.feature.search.region.RegionMiddleware
+import mozilla.components.feature.search.storage.SearchEngineSelectorConfig
 import mozilla.components.feature.search.telemetry.SerpTelemetryRepository
 import mozilla.components.feature.search.telemetry.ads.AdsTelemetry
 import mozilla.components.feature.search.telemetry.incontent.InContentTelemetry
@@ -94,6 +99,7 @@ import mozilla.components.service.pocket.mars.api.NEW_TAB_SPOCS_PLACEMENT_KEY
 import mozilla.components.service.sync.autofill.AutofillCreditCardsAddressesStorage
 import mozilla.components.service.sync.logins.SyncableLoginsStorage
 import mozilla.components.support.base.worker.Frequency
+import mozilla.components.support.ktx.android.content.appVersionName
 import mozilla.components.support.ktx.android.content.res.readJSONObject
 import mozilla.components.support.locale.LocaleManager
 import org.mozilla.fenix.AppRequestInterceptor
@@ -101,12 +107,14 @@ import org.mozilla.fenix.BuildConfig
 import org.mozilla.fenix.Config
 import org.mozilla.fenix.IntentReceiverActivity
 import org.mozilla.fenix.R
+import org.mozilla.fenix.ReleaseChannel
 import org.mozilla.fenix.browser.desktopmode.DefaultDesktopModeRepository
 import org.mozilla.fenix.browser.desktopmode.DesktopModeMiddleware
 import org.mozilla.fenix.components.search.ApplicationSearchMiddleware
 import org.mozilla.fenix.components.search.SearchMigration
 import org.mozilla.fenix.downloads.DownloadService
 import org.mozilla.fenix.ext.components
+import org.mozilla.fenix.ext.isLargeWindow
 import org.mozilla.fenix.ext.settings
 import org.mozilla.fenix.gecko.GeckoProvider
 import org.mozilla.fenix.historymetadata.DefaultHistoryMetadataService
@@ -291,6 +299,7 @@ class Core(
                 channelId.values.first(),
             )
         }
+
         val middlewareList =
             mutableListOf(
                 LastAccessMiddleware(),
@@ -306,6 +315,7 @@ class Core(
                     additionalBundledSearchEngineIds = listOf("reddit", "youtube"),
                     migration = SearchMigration(context),
                     searchExtraParams = searchExtraParams,
+                    searchEngineSelectorConfig = getSearchEngineSelectorConfig(),
                 ),
                 RecordingDevicesMiddleware(context, context.components.notificationsDelegate),
                 PromptMiddleware(),
@@ -699,6 +709,38 @@ class Core(
             inDark -> PreferredColorScheme.Dark
             else -> PreferredColorScheme.Light
         }
+    }
+
+    /**
+     * Gets a [SearchEngineSelectorConfig] for the app and device.
+     */
+    private fun getSearchEngineSelectorConfig(): SearchEngineSelectorConfig? {
+        if (!context.settings().useRemoteSearchConfiguration) {
+            return null
+        }
+
+        val updateChannel = when (Config.channel) {
+            ReleaseChannel.Debug -> SearchUpdateChannel.DEFAULT
+            ReleaseChannel.Nightly -> SearchUpdateChannel.NIGHTLY
+            ReleaseChannel.Beta -> SearchUpdateChannel.BETA
+            ReleaseChannel.Release -> SearchUpdateChannel.RELEASE
+        }
+
+        val deviceType = if (context.isLargeWindow()) {
+            SearchDeviceType.TABLET
+        } else {
+            SearchDeviceType.SMARTPHONE
+        }
+
+        return SearchEngineSelectorConfig(
+            appName = SearchApplicationName.FIREFOX_ANDROID,
+            appVersion = context.appVersionName,
+            deviceType = deviceType,
+            experiment = "",
+            updateChannel = updateChannel,
+            selector = SearchEngineSelector(),
+            service = context.components.remoteSettingsService.value,
+        )
     }
 
     companion object {
