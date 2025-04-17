@@ -102,6 +102,8 @@ const CM_MAPPING = [
   "undo",
 ];
 
+const ONLY_SPACES_REGEXP = /^\s*$/;
+
 const editors = new WeakMap();
 
 /**
@@ -1216,6 +1218,7 @@ class Editor extends EventEmitter {
       constructor({
         line,
         column,
+        isFirstNonSpaceColumn,
         markerId,
         createElementNode,
         getMarkerEqualityValue,
@@ -1223,11 +1226,13 @@ class Editor extends EventEmitter {
         super();
         this.line = line;
         this.column = column;
+        this.isFirstNonSpaceColumn = isFirstNonSpaceColumn;
         this.markerId = markerId;
         this.equalityValue = getMarkerEqualityValue
           ? getMarkerEqualityValue(line, column)
           : {};
-        this.toDOM = () => createElementNode(line, column);
+        this.toDOM = () =>
+          createElementNode(line, column, isFirstNonSpaceColumn);
       }
 
       eq(widget) {
@@ -1301,10 +1306,14 @@ class Editor extends EventEmitter {
           if (marker.createPositionElementNode) {
             // Markers used:
             // 1. column-breakpoint-marker
+            const isFirstNonSpaceColumn = ONLY_SPACES_REGEXP.test(
+              line.text.substr(0, column)
+            );
             const nodeDecoration = Decoration.widget({
               widget: new NodeWidget({
                 line: position.line,
                 column: position.column,
+                isFirstNonSpaceColumn,
                 markerId: marker.id,
                 createElementNode: marker.createPositionElementNode,
                 getMarkerEqualityValue: marker.getMarkerEqualityValue,
@@ -1389,6 +1398,18 @@ class Editor extends EventEmitter {
       transaction
     ) {
       const allNewDecorations = [];
+
+      // Sort the markers iterator thanks to `displayLast` boolean.
+      // This is typically used by the paused location marker to be shown after the column breakpoints.
+      markers = Array.from(markers).sort((a, b) => {
+        if (a.displayLast) {
+          return 1;
+        }
+        if (b.displayLast) {
+          return -1;
+        }
+        return 0;
+      });
 
       for (const marker of markers) {
         _buildDecorationsForPositionMarkers(

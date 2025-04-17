@@ -425,8 +425,16 @@ async function _assertDebugLine(dbg, line, column) {
   if (isCm6Enabled) {
     const editorLineEl = getCMEditor(dbg).getElementAtLine(line);
     const pauseLocationMarker = editorLineEl.querySelector(".paused-location");
-    is(pauseLocationMarker.cmView.widget.line, line, "The paused caret is at the right line");
-    is(pauseLocationMarker.cmView.widget.column, column, "The paused caret is at the right column");
+    is(
+      pauseLocationMarker.cmView.widget.line,
+      line,
+      "The paused caret is at the right line"
+    );
+    is(
+      pauseLocationMarker.cmView.widget.column,
+      column,
+      "The paused caret is at the right column"
+    );
   } else {
     const markedSpans = lineInfo.handle.markedSpans;
     if (markedSpans && markedSpans.length && !isWasmBinarySource(source)) {
@@ -474,7 +482,12 @@ async function assertPausedAtSourceAndLine(
     expectedLine,
     "Redux state for currently selected frame's line is correct"
   );
-  const pauseColumn = getVisibleSelectedFrameColumn(dbg);
+
+  const selectedSource = dbg.selectors.getSelectedSource();
+  // WASM binary source is pausing at 0 column, whereas visible selected frame returns 1
+  const pauseColumn = isWasmBinarySource(selectedSource)
+    ? 0
+    : getVisibleSelectedFrameColumn(dbg);
   if (expectedColumn) {
     // `pauseColumn` is 0-based, coming from internal state,
     // while `expectedColumn` is manually passed from test scripts and so is 1-based.
@@ -489,7 +502,6 @@ async function assertPausedAtSourceAndLine(
   ok(isVisibleInEditor(dbg, findElement(dbg, "gutters")), "gutter is visible");
 
   const frames = dbg.selectors.getCurrentThreadFrames();
-  const selectedSource = dbg.selectors.getSelectedSource();
 
   // WASM support is limited when we are on the generated binary source
   if (isWasmBinarySource(selectedSource)) {
