@@ -640,6 +640,22 @@ export const PREFS_CONFIG = new Map([
     },
   ],
   [
+    "discoverystream.sections.personalization.inferred.position",
+    {
+      title:
+        "Position of inferred personalizaton card. Should correlate to a row in Card Sections",
+      value: "1",
+    },
+  ],
+  [
+    "discoverystream.sections.personalization.inferred.blocked",
+    {
+      title:
+        "Boolean determining if personalized card is dismissed or visible on the page",
+      value: false,
+    },
+  ],
+  [
     "discoverystream.sections.personalization.inferred.user.enabled",
     {
       title: "User pref to toggle inferred personalizaton",
