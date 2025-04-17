@@ -19,6 +19,11 @@ ChromeUtils.defineESModuleGetters(this, {
 
 AddonTestUtils.initMochitest(this);
 
+const LABEL_FOR_TECHNICAL_AND_INTERACTION_DATA_CHECKBOX =
+  PERMISSION_L10N.formatMessagesSync([
+    "popup-notification-addon-technicalAndInteraction-checkbox",
+  ])[0].attributes.find(attr => attr.name === "label").value;
+
 function assertDisabledSideloadedExtensionElement(managerWindow, addonElement) {
   const doc = addonElement.ownerDocument;
   const toggleDisabled = addonElement.querySelector(
@@ -857,9 +862,7 @@ add_task(async function testInstallDialogShowsDataCollectionPermissions() {
         Assert.ok(checkbox.checked, "Expected checkbox to be checked");
         Assert.equal(
           popupContentEl.permsListEl.firstChild.textContent,
-          PERMISSION_L10N.formatValueSync(
-            "webext-perms-description-data-long-technicalAndInteraction"
-          ),
+          LABEL_FOR_TECHNICAL_AND_INTERACTION_DATA_CHECKBOX,
           "Expected formatted data collection permission string"
         );
         Assert.ok(
@@ -895,9 +898,7 @@ add_task(async function testInstallDialogShowsDataCollectionPermissions() {
         );
         Assert.equal(
           popupContentEl.permsListEl.textContent,
-          PERMISSION_L10N.formatValueSync(
-            "webext-perms-description-data-long-technicalAndInteraction"
-          ),
+          LABEL_FOR_TECHNICAL_AND_INTERACTION_DATA_CHECKBOX,
           "Expected formatted data collection permission string"
         );
         Assert.ok(
@@ -930,9 +931,7 @@ add_task(async function testInstallDialogShowsDataCollectionPermissions() {
         Assert.ok(checkboxEl, "Expected technical and interaction checkbox");
         Assert.equal(
           checkboxEl.parentNode.textContent,
-          PERMISSION_L10N.formatValueSync(
-            "webext-perms-description-data-long-technicalAndInteraction"
-          ),
+          LABEL_FOR_TECHNICAL_AND_INTERACTION_DATA_CHECKBOX,
           "Expected formatted data collection permission string"
         );
         Assert.ok(
@@ -1039,9 +1038,7 @@ add_task(async function testInstallDialogShowsDataCollectionPermissions() {
         Assert.ok(checkboxEl, "Expected technical and interaction checkbox");
         Assert.equal(
           checkboxEl.parentNode.textContent,
-          PERMISSION_L10N.formatValueSync(
-            "webext-perms-description-data-long-technicalAndInteraction"
-          ),
+          LABEL_FOR_TECHNICAL_AND_INTERACTION_DATA_CHECKBOX,
           "Expected formatted data collection permission string"
         );
         // Make sure the incognito checkbox is the last item.

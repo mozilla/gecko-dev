@@ -419,9 +419,14 @@ customElements.define(
       const { grantTechnicalAndInteractionDataCollection } =
         this.notification.options.customElementOptions;
 
+      MozXULElement.insertFTLIfNeeded(
+        "locales-preview/dataCollectionPermissions.ftl"
+      );
+
       const checkboxEl = this.ownerDocument.createXULElement("checkbox");
-      checkboxEl.label = lazy.PERMISSION_L10N.formatValueSync(
-        "webext-perms-description-data-long-technicalAndInteraction"
+      this.ownerDocument.l10n.setAttributes(
+        checkboxEl,
+        "popup-notification-addon-technicalAndInteraction-checkbox"
       );
       checkboxEl.checked = grantTechnicalAndInteractionDataCollection;
       checkboxEl.addEventListener("CheckboxStateChange", () => {

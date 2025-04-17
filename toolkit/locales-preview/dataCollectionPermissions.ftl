@@ -56,9 +56,6 @@ webext-perms-description-data-short-websiteActivity = website activity
 webext-perms-description-data-short-websiteContent = website content
 
 ## Long form to be used in `about:addons` when these permissions are optional.
-##
-## Note that for `technicalAndInteraction`, the long form is also used in the
-## install prompt.
 
 webext-perms-description-data-long-authenticationInfo = Share authentication information with extension developer
 webext-perms-description-data-long-bookmarksInfo = Share bookmarks information with extension developer
@@ -79,3 +76,9 @@ addon-permissions-optional-data-collection = Optional data collection:
 
 # Name of the Permissions tab in `about:addons` when the data collection feature is enabled.
 permissions-data-addon-button = Permissions and data
+
+# This string is similar to `webext-perms-description-data-long-technicalAndInteraction`
+# but it is used in the install prompt, and it needs an access key.
+popup-notification-addon-technicalAndInteraction-checkbox =
+    .label = Share technical and interaction data with extension developer
+    .accesskey = S
