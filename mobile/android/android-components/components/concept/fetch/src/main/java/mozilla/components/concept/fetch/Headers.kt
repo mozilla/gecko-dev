@@ -58,8 +58,6 @@ interface Headers : Iterable<Header> {
         const val COOKIE = "Cookie"
         const val REFERRER = "Referer"
         const val USER_AGENT = "User-Agent"
-        const val E_TAG = "ETag"
-        const val IF_NONE_MATCH = "If-None-Match"
     }
 
     /**
