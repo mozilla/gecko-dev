@@ -161,6 +161,13 @@ module.exports = function (config) {
               functions: 0,
               branches: 0,
             },
+            "content-src/components/DiscoveryStreamComponents/PersonalizedCard/PersonalizedCard.jsx":
+              {
+                statements: 0,
+                lines: 0,
+                functions: 0,
+                branches: 0,
+              },
             "content-src/components/Base/Base.jsx": {
               statements: 0,
               lines: 0,
@@ -223,9 +230,9 @@ module.exports = function (config) {
               },
             "content-src/components/DiscoveryStreamComponents/CardSections/CardSections.jsx":
               {
-                statements: 86.55,
-                lines: 86.09,
-                functions: 81.48,
+                statements: 86.36,
+                lines: 85.94,
+                functions: 79.31,
                 branches: 57.97,
               },
             "content-src/components/DiscoveryStreamComponents/SectionContextMenu/SectionContextMenu.jsx":

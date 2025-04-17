@@ -1263,6 +1263,20 @@ newTabSectionsExperiment:
         pref:  browser.newtabpage.activity-stream.discoverystream.sections.personalization.inferred.enabled
       description: >-
         Enable the inferred personalization for topics
+    personalizationInferredPosition:
+      type: string
+      setPref:
+        branch: user
+        pref:  browser.newtabpage.activity-stream.discoverystream.sections.personalization.inferred.position
+      description: >-
+        Inferred personalization card position.
+    personalizationInferredBlocked:
+      type: string
+      setPref:
+        branch: user
+        pref:  browser.newtabpage.activity-stream.discoverystream.sections.personalization.inferred.blocked
+      description: >-
+        Inferred personalization card displayed or blocked on the page.
     localeSectionstConfig:
       type: string
       setPref:
