@@ -297,6 +297,7 @@
     #tabGroupMain;
     #activeGroup;
     #cancelButton;
+    #commandButtons;
     #createButton;
     #createMode;
     #keepNewlyCreatedGroup;
@@ -421,40 +422,47 @@
         return show;
       };
 
-      document
-        .getElementById("tabGroupEditor_addNewTabInGroup")
-        .addEventListener("command", () => {
-          this.#handleNewTabInGroup();
-        });
+      this.#commandButtons = {
+        addNewTabInGroup: document.getElementById(
+          "tabGroupEditor_addNewTabInGroup"
+        ),
+        moveGroupToNewWindow: document.getElementById(
+          "tabGroupEditor_moveGroupToNewWindow"
+        ),
+        ungroupTabs: document.getElementById("tabGroupEditor_ungroupTabs"),
+        saveAndCloseGroup: document.getElementById(
+          "tabGroupEditor_saveAndCloseGroup"
+        ),
+        deleteGroup: document.getElementById("tabGroupEditor_deleteGroup"),
+      };
 
-      document
-        .getElementById("tabGroupEditor_moveGroupToNewWindow")
-        .addEventListener("command", () => {
+      this.#commandButtons.addNewTabInGroup.addEventListener("command", () => {
+        this.#handleNewTabInGroup();
+      });
+
+      this.#commandButtons.moveGroupToNewWindow.addEventListener(
+        "command",
+        () => {
           gBrowser.replaceGroupWithWindow(this.activeGroup);
-        });
+        }
+      );
 
-      document
-        .getElementById("tabGroupEditor_ungroupTabs")
-        .addEventListener("command", () => {
-          this.activeGroup.ungroupTabs();
-        });
+      this.#commandButtons.ungroupTabs.addEventListener("command", () => {
+        this.activeGroup.ungroupTabs();
+      });
 
-      document
-        .getElementById("tabGroupEditor_saveAndCloseGroup")
-        .addEventListener("command", () => {
-          this.activeGroup.saveAndClose({ isUserTriggered: true });
-        });
+      this.#commandButtons.saveAndCloseGroup.addEventListener("command", () => {
+        this.activeGroup.saveAndClose({ isUserTriggered: true });
+      });
 
-      document
-        .getElementById("tabGroupEditor_deleteGroup")
-        .addEventListener("command", () => {
-          gBrowser.removeTabGroup(
-            this.activeGroup,
-            TabMetrics.userTriggeredContext(
-              TabMetrics.METRIC_SOURCE.TAB_GROUP_MENU
-            )
-          );
-        });
+      this.#commandButtons.deleteGroup.addEventListener("command", () => {
+        gBrowser.removeTabGroup(
+          this.activeGroup,
+          TabMetrics.userTriggeredContext(
+            TabMetrics.METRIC_SOURCE.TAB_GROUP_MENU
+          )
+        );
+      });
 
       this.panel.addEventListener("popupshown", this);
       this.panel.addEventListener("popuphidden", this);
@@ -850,6 +858,10 @@
         this.#keepNewlyCreatedGroup = true;
       }
       this.#nameField.focus();
+
+      for (const button of Object.values(this.#commandButtons)) {
+        button.tooltipText = button.label;
+      }
     }
 
     on_popuphidden() {
