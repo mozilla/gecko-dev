@@ -50,7 +50,6 @@ class nsIOpenWindowInfo;
 namespace mozilla {
 class RemoteSpellcheckEngineChild;
 class ChildProfilerController;
-class BenchmarkStorageChild;
 
 namespace ipc {
 class UntypedEndpoint;
@@ -231,10 +230,6 @@ class ContentChild final : public PContentChild,
   PMediaChild* AllocPMediaChild();
 
   bool DeallocPMediaChild(PMediaChild* aActor);
-
-  PBenchmarkStorageChild* AllocPBenchmarkStorageChild();
-
-  bool DeallocPBenchmarkStorageChild(PBenchmarkStorageChild* aActor);
 
   mozilla::ipc::IPCResult RecvNotifyEmptyHTTPCache();
 
