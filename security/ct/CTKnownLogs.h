@@ -14,7 +14,7 @@
 
 #include <stddef.h>
 
-static const PRTime kCTExpirationTime = INT64_C(1750677505000000);
+static const PRTime kCTExpirationTime = INT64_C(1750936842000000);
 
 namespace mozilla::ct {
 
