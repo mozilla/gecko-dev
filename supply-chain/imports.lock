@@ -258,15 +258,15 @@ user-login = "jrmuizel"
 user-name = "Jeff Muizelaar"
 
 [[publisher.glean]]
-version = "64.0.1"
-when = "2025-04-01"
+version = "64.1.1"
+when = "2025-04-10"
 user-id = 48
 user-login = "badboy"
 user-name = "Jan-Erik Rediger"
 
 [[publisher.glean-core]]
-version = "64.0.1"
-when = "2025-04-01"
+version = "64.1.1"
+when = "2025-04-10"
 user-id = 48
 user-login = "badboy"
 user-name = "Jan-Erik Rediger"
@@ -969,20 +969,6 @@ who = "Alex Crichton <alex@alexcrichton.com>"
 criteria = "safe-to-deploy"
 version = "1.0.2"
 notes = "This is a small crate which forbids unsafe code and is a straightforward implementation of the adler hashing algorithm."
-
-[[audits.bytecode-alliance.audits.ahash]]
-who = "Chris Fallin <chris@cfallin.org>"
-criteria = "safe-to-deploy"
-delta = "0.7.6 -> 0.8.2"
-
-[[audits.bytecode-alliance.audits.ahash]]
-who = "Alex Crichton <alex@alexcrichton.com>"
-criteria = "safe-to-deploy"
-delta = "0.8.2 -> 0.8.7"
-notes = """
-Shuffling of features in this update and while there are updates to `unsafe`
-code it's no different than before and the usage remains the same.
-"""
 
 [[audits.bytecode-alliance.audits.allocator-api2]]
 who = "Chris Fallin <chris@cfallin.org>"
