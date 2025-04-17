@@ -82,6 +82,7 @@ html[dir="rtl"] .editor-mount {
   color: var(--theme-comment);
 }
 
+/* debug-expression is only used in CM5 */
 .debug-expression {
   background-color: var(--debug-expression-background);
   border-style: solid;

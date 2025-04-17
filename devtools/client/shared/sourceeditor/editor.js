@@ -2148,30 +2148,10 @@ class Editor extends EventEmitter {
     const cm = editors.get(this);
     if (this.config.cm6) {
       const el = this.getElementAtLine(line);
-      // Filter out SPAN which do not contain user-defined classes.
-      // Classes currently are "debug-expression" and "debug-expression-error"
-      const markedSpans = [...el.querySelectorAll("span")].filter(span =>
-        span.className.includes("debug-expression")
-      );
-
       return {
         text: el.innerText,
         // TODO: Expose those, or see usage for those and do things differently
         line: null,
-        handle: {
-          markedSpans: markedSpans
-            ? markedSpans.map(span => {
-                const { column } = lezerUtils.positionToLocation(
-                  cm.state.doc,
-                  cm.posAtDOM(span)
-                );
-                return {
-                  marker: { className: span.className },
-                  from: column,
-                };
-              })
-            : null,
-        },
         gutterMarkers: null,
         textClass: null,
         bgClass: null,

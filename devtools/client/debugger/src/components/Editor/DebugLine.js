@@ -147,7 +147,12 @@ export class DebugLine extends PureComponent {
       };
     }
 
-    return { markTextClass: "debug-expression", lineClass: "paused-line" };
+    // In CM6, we no longer highlight the next token via debug-expression
+    // and only highlight the line via paused-line.
+    return {
+      markTextClass: features.codemirrorNext ? null : "debug-expression",
+      lineClass: "paused-line",
+    };
   }
 
   render() {
