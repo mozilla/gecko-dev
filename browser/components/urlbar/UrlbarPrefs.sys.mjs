@@ -543,7 +543,7 @@ const PREF_URLBAR_DEFAULTS = new Map([
   ["unifiedSearchButton.always", false],
 
   // Feature gate pref for weather suggestions in the urlbar.
-  ["weather.featureGate", false],
+  ["weather.featureGate", true],
 
   // The minimum prefix length of a weather keyword the user must type to
   // trigger the suggestion. 0 means the min length should be taken from Nimbus
