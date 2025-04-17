@@ -561,9 +561,10 @@ bool WindowContext::HasValidTransientUserGestureActivation() {
     return false;
   }
 
-  MOZ_ASSERT(!mLastActivationTimestamp.IsNull(),
-             "mLastActivationTimestamp shouldn't be null if the document has ever "
-             "been activated by user gesture");
+  MOZ_ASSERT(
+      !mLastActivationTimestamp.IsNull(),
+      "mLastActivationTimestamp shouldn't be null if the document has ever "
+      "been activated by user gesture");
 
   TimeDuration timeout = TimeDuration::FromMilliseconds(
       StaticPrefs::dom_user_activation_transient_timeout());
@@ -590,9 +591,9 @@ bool WindowContext::ConsumeTransientUserGestureActivation() {
   // 2. Let top be W's navigable's top-level traversable.
   BrowsingContext* top = mBrowsingContext->Top();
 
-  // 3. Let navigables be the inclusive descendant navigables of top's active document.
+  // 3. Let navigables be the inclusive descendant navigables of top's active
+  // document.
   top->PreOrderWalk([&](BrowsingContext* aBrowsingContext) {
-
     // 4. Let windows be the list of Window objects constructed by taking the
     // active window of each item in navigables.
     WindowContext* windowContext = aBrowsingContext->GetCurrentWindowContext();

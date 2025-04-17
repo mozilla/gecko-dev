@@ -407,8 +407,8 @@ class WindowContext : public nsISupports, public nsWrapperCache {
   TimeStamp mLastActivationTimestamp;
 
   // https://html.spec.whatwg.org/#history-action-activation
-  // This is set to mLastActivationTimestamp every time ConsumeHistoryActivation is
-  // called.
+  // This is set to mLastActivationTimestamp every time ConsumeHistoryActivation
+  // is called.
   TimeStamp mHistoryActivation;
 };
 
