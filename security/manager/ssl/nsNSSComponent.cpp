@@ -457,10 +457,11 @@ nsNSSComponent::AddEnterpriseIntermediate(
 class LoadLoadableCertsTask final : public Runnable {
  public:
   LoadLoadableCertsTask(nsNSSComponent* nssComponent,
-                        bool importEnterpriseRoots)
+                        bool importEnterpriseRoots, nsAutoCString&& greBinDir)
       : Runnable("LoadLoadableCertsTask"),
         mNSSComponent(nssComponent),
-        mImportEnterpriseRoots(importEnterpriseRoots) {
+        mImportEnterpriseRoots(importEnterpriseRoots),
+        mGreBinDir(std::move(greBinDir)) {
     MOZ_ASSERT(nssComponent);
   }
 
@@ -473,6 +474,7 @@ class LoadLoadableCertsTask final : public Runnable {
   nsresult LoadLoadableRoots();
   RefPtr<nsNSSComponent> mNSSComponent;
   bool mImportEnterpriseRoots;
+  nsAutoCString mGreBinDir;
 };
 
 nsresult LoadLoadableCertsTask::Dispatch() {
@@ -666,7 +668,33 @@ static nsresult GetNSS3Directory(nsCString& result) {
 }
 #endif  // MOZ_SYSTEM_NSS
 
+// Returns by reference the path to the desired directory, based on the current
+// settings in the directory service.
+// |result| is encoded in UTF-8.
+static nsresult GetDirectoryPath(const char* directoryKey, nsCString& result) {
+  MOZ_ASSERT(NS_IsMainThread());
+
+  nsCOMPtr<nsIProperties> directoryService(
+      do_GetService(NS_DIRECTORY_SERVICE_CONTRACTID));
+  if (!directoryService) {
+    MOZ_LOG(gPIPNSSLog, LogLevel::Debug, ("could not get directory service"));
+    return NS_ERROR_FAILURE;
+  }
+  nsCOMPtr<nsIFile> directory;
+  nsresult rv = directoryService->Get(directoryKey, NS_GET_IID(nsIFile),
+                                      getter_AddRefs(directory));
+  if (NS_FAILED(rv)) {
+    MOZ_LOG(gPIPNSSLog, LogLevel::Debug,
+            ("could not get '%s' from directory service", directoryKey));
+    return rv;
+  }
+  return FileToCString(directory, result);
+}
+
 nsresult LoadLoadableCertsTask::LoadLoadableRoots() {
+  // We first start checking if the MOZ_SYSTEM_NSS is used
+  // If it's not - we check if there is nssckbi library in bin directory
+  // If not found again - we finally load the library from XUL
 #ifdef MOZ_SYSTEM_NSS
 
   // First try checking the OS' default library search path.
@@ -694,9 +722,15 @@ nsresult LoadLoadableCertsTask::LoadLoadableRoots() {
 
 #endif  // MOZ_SYSTEM_NSS
 
-  // Normally we load the built-in roots from the "trust_anchors" library.
-  // When configured to use the system version of NSS, we try that first,
-  // and only fall back to the internal built-ins if that fails.
+  if (mozilla::psm::LoadLoadableRoots(mGreBinDir)) {
+    mozilla::glean::pkcs11::external_trust_anchor_module_loaded.Set(true);
+    MOZ_LOG(gPIPNSSLog, LogLevel::Debug,
+            ("loaded external CKBI from gre directory"));
+    return NS_OK;
+  }
+
+  mozilla::glean::pkcs11::external_trust_anchor_module_loaded.Set(false);
+
   if (LoadLoadableRootsFromXul()) {
     MOZ_LOG(gPIPNSSLog, LogLevel::Debug, ("loaded CKBI from xul"));
     return NS_OK;
@@ -1556,8 +1590,15 @@ nsresult nsNSSComponent::InitializeNSS() {
     bool importEnterpriseRoots =
         StaticPrefs::security_enterprise_roots_enabled();
 
+    nsAutoCString greBinDir;
+    rv = GetDirectoryPath(NS_GRE_BIN_DIR, greBinDir);
+    if (NS_FAILED(rv)) {
+      return rv;
+    }
+
     RefPtr<LoadLoadableCertsTask> loadLoadableCertsTask(
-        new LoadLoadableCertsTask(this, importEnterpriseRoots));
+        new LoadLoadableCertsTask(this, importEnterpriseRoots,
+                                  std::move(greBinDir)));
     rv = loadLoadableCertsTask->Dispatch();
     MOZ_DIAGNOSTIC_ASSERT(NS_SUCCEEDED(rv));
     if (NS_FAILED(rv)) {
