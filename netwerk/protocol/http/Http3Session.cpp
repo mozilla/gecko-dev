@@ -2705,4 +2705,14 @@ void Http3Session::SetSendOrder(Http3StreamBase* aStream,
   }
 }
 
+Http3Stats Http3Session::GetStats() {
+  if (!mHttp3Connection) {
+    return Http3Stats();
+  }
+
+  Http3Stats stats{};
+  mHttp3Connection->GetStats(&stats);
+  return stats;
+}
+
 }  // namespace mozilla::net

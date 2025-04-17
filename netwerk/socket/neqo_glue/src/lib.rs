@@ -69,6 +69,34 @@ const AF_INET6_U16: u16 = AF_INET6 as u16;
 static_assertions::const_assert_eq!(AF_INET6_U16 as c_int, AF_INET6);
 
 #[repr(C)]
+pub struct WouldBlockCounter {
+    rx: usize,
+    tx: usize,
+}
+
+impl WouldBlockCounter {
+    pub fn new() -> Self {
+        Self { rx: 0, tx: 0 }
+    }
+
+    pub fn increment_rx(&mut self) {
+        self.rx += 1;
+    }
+
+    pub fn increment_tx(&mut self) {
+        self.tx += 1;
+    }
+
+    pub fn rx_count(&self) -> usize {
+        self.rx
+    }
+
+    pub fn tx_count(&self) -> usize {
+        self.tx
+    }
+}
+
+#[repr(C)]
 pub struct NeqoHttp3Conn {
     conn: Http3Client,
     local_addr: SocketAddr,
@@ -91,6 +119,7 @@ pub struct NeqoHttp3Conn {
     datagram_segment_size_received: LocalMemoryDistribution<'static>,
     datagram_size_received: LocalMemoryDistribution<'static>,
     datagram_segments_received: LocalCustomDistribution<'static>,
+    would_block_counter: WouldBlockCounter,
 }
 
 impl Drop for NeqoHttp3Conn {
@@ -363,6 +392,7 @@ impl NeqoHttp3Conn {
             datagram_segments_received: networking::http_3_udp_datagram_segments_received
                 .start_buffer(),
             buffered_outbound_datagram: None,
+            would_block_counter: WouldBlockCounter::new(),
         }));
         unsafe { RefPtr::from_raw(conn).ok_or(NS_ERROR_NOT_CONNECTED) }
     }
@@ -493,6 +523,22 @@ impl NeqoHttp3Conn {
     // - <https://bugzilla.mozilla.org/show_bug.cgi?id=1906664>
     #[cfg(target_os = "android")]
     fn record_stats_in_glean(&self) {}
+
+    fn increment_would_block_rx(&mut self) {
+        self.would_block_counter.increment_rx();
+    }
+
+    fn would_block_rx_count(&self) -> usize {
+        self.would_block_counter.rx_count()
+    }
+
+    fn increment_would_block_tx(&mut self) {
+        self.would_block_counter.increment_tx();
+    }
+
+    fn would_block_tx_count(&self) -> usize {
+        self.would_block_counter.tx_count()
+    }
 }
 
 /// # Safety
@@ -680,6 +726,7 @@ pub unsafe extern "C" fn neqo_http3conn_process_input(
             {
                 Ok(dgrams) => dgrams,
                 Err(e) if e.kind() == io::ErrorKind::WouldBlock => {
+                    conn.increment_would_block_rx();
                     break;
                 }
                 Err(e) => {
@@ -874,6 +921,7 @@ pub extern "C" fn neqo_http3conn_process_output_and_send(
                 match conn.socket.as_mut().expect("non NSPR IO").send(&dg) {
                     Ok(()) => {}
                     Err(e) if e.kind() == io::ErrorKind::WouldBlock => {
+                        conn.increment_would_block_tx();
                         if static_prefs::pref!("network.http.http3.pr_poll_write") {
                             qdebug!("Buffer outbound datagram to be sent once UDP socket has write-availability.");
                             conn.buffered_outbound_datagram = Some(dg);
@@ -1868,6 +1916,10 @@ pub struct Http3Stats {
     /// Count PTOs. Single PTOs, 2 PTOs in a row, 3 PTOs in row, etc. are counted
     /// separately.
     pub pto_counts: [usize; 16],
+    /// The count of WouldBlock errors encountered during receive operations on the UDP socket.
+    pub would_block_rx: usize,
+    /// The count of WouldBlock errors encountered during transmit operations on the UDP socket.
+    pub would_block_tx: usize,
 }
 
 #[no_mangle]
@@ -1882,6 +1934,8 @@ pub extern "C" fn neqo_http3conn_get_stats(conn: &mut NeqoHttp3Conn, stats: &mut
     stats.late_ack = t_stats.late_ack;
     stats.pto_ack = t_stats.pto_ack;
     stats.pto_counts = t_stats.pto_counts;
+    stats.would_block_rx = conn.would_block_rx_count();
+    stats.would_block_tx = conn.would_block_tx_count();
 }
 
 #[no_mangle]
