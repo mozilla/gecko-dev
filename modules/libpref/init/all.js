@@ -1474,7 +1474,7 @@ pref("network.cookie.sameSite.laxByDefault.disabledHosts", "");
 pref("network.cookie.maxNumber", 3000);
 pref("network.cookie.maxPerHost", 180);
 // Cookies quota for each host. If cookies exceed the limit maxPerHost,
-// (maxPerHost - quotaPerHost) cookies will be evicted.
+// we evict cookies until we have the quota amount.
 pref("network.cookie.quotaPerHost", 150);
 
 // The PAC file to load.  Ignored unless network.proxy.type is 2.
