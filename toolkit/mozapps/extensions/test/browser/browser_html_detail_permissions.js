@@ -621,6 +621,14 @@ async function testPermissionsView({
   await SpecialPowers.popPrefEnv();
 }
 
+add_setup(async () => {
+  await SpecialPowers.pushPrefEnv({
+    // TODO: Bug 1960273 - Update this test and remove this pref set when we
+    // enable the data collection permissions on all channels.
+    set: [["extensions.dataCollectionPermissions.enabled", false]],
+  });
+});
+
 add_task(async function testPermissionsView_MV2_manifestV3disabled() {
   await testPermissionsView({ manifestV3enabled: false, manifest_version: 2 });
 });

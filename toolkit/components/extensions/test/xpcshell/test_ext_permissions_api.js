@@ -20,6 +20,13 @@ AddonTestUtils.createAppInfo(
   "42"
 );
 
+// TODO: Bug 1960273 - Update this test and remove this pref set when we enable
+// the data collection permissions on all channels.
+Services.prefs.setBoolPref(
+  "extensions.dataCollectionPermissions.enabled",
+  false
+);
+
 let OptionalPermissions;
 
 add_setup(async () => {
