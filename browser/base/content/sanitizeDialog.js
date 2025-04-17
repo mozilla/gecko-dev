@@ -111,8 +111,18 @@ var gSanitizePromptDialog = {
     }
 
     if (!lazy.USE_OLD_DIALOG) {
+      // Begin collecting how long it takes to load from here
+      let timerId = Glean.privacySanitize.loadTime.start();
       this._dataSizesUpdated = false;
-      this.getAndUpdateDataSizes();
+      this.dataSizesFinishedUpdatingPromise = this.getAndUpdateDataSizes()
+        .then(() => {
+          // We're done loading, stop telemetry here
+          Glean.privacySanitize.loadTime.stopAndAccumulate(timerId);
+        })
+        .catch(() => {
+          // We're done loading, stop telemetry here
+          Glean.privacySanitize.loadTime.cancel(timerId);
+        });
     }
 
     let OKButton = this._dialog.getButton("accept");
@@ -181,6 +191,10 @@ var gSanitizePromptDialog = {
       if (this._inClearOnShutdownNewDialog) {
         this.updatePrefs();
       } else {
+        if (!lazy.USE_OLD_DIALOG) {
+          this.reportTelemetry("clear");
+        }
+
         this.sanitize(e);
       }
     });
@@ -209,6 +223,10 @@ var gSanitizePromptDialog = {
       await rootWin.promiseDocumentFlushed(() => {});
     } else {
       this.warningBox.hidden = true;
+    }
+
+    if (!lazy.USE_OLD_DIALOG) {
+      this.reportTelemetry("open");
     }
   },
 
@@ -539,6 +557,42 @@ var gSanitizePromptDialog = {
       }
     }
     return items;
+  },
+
+  reportTelemetry(event) {
+    let contextOpenedIn;
+    if (this._inClearSiteDataNewDialog) {
+      contextOpenedIn = "clearSiteData";
+    } else if (this._inBrowserWindow) {
+      contextOpenedIn = "browser";
+    } else {
+      contextOpenedIn = "clearHistory";
+    }
+
+    // Report time span and clearing options after sanitize is clicked
+    if (event == "clear") {
+      Glean.privacySanitize.clearingTimeSpanSelected.record({
+        time_span: this.selectedTimespan.toString(),
+      });
+
+      let selectedOptions = this.getItemsToClear();
+      Glean.privacySanitize.clear.record({
+        context: contextOpenedIn,
+        history_and_downloads: selectedOptions.includes(
+          "browsingHistoryAndDownloads"
+        ),
+        cookies_and_storage: selectedOptions.includes("cookiesAndStorage"),
+        cache: selectedOptions.includes("cache"),
+        site_settings: selectedOptions.includes("siteSettings"),
+        form_data: selectedOptions.includes("formdata"),
+      });
+    }
+    // if the dialog was just opened, just report which context it was opened in
+    else {
+      Glean.privacySanitize.dialogOpen.record({
+        context: contextOpenedIn,
+      });
+    }
   },
 };
 
