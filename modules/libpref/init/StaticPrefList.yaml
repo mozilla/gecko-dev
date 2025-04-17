@@ -2631,12 +2631,6 @@
   value: false
   mirror: always
 
-# Enable/disable contenteditable="plaintext-only".
-- name: dom.element.contenteditable.plaintext-only.enabled
-  type: bool
-  value: true
-  mirror: always
-
 # Whether Dialog elements emit beforetoggle and toggle events during opening and closing.
 # See https://github.com/whatwg/html/pull/10091
 - name: dom.element.dialog.toggle_events.enabled
