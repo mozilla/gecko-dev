@@ -137,7 +137,6 @@
       {
         "name": "assertThrows",
         "type": "function",
-        "allowAmbiguousOptionalArguments": true,
         "parameters": [
           {
             "name": "func",
@@ -145,29 +144,12 @@
           },
           {
             "name": "expectedError",
-            "$ref": "ExpectedError",
-            "optional": true,
-            "description": "Required, unless running with extensions.wpt.enabled"
+            "$ref": "ExpectedError"
           },
           {
             "name": "message",
             "type": "string",
             "optional": true
-          }
-        ]
-      },
-      {
-        "name": "runTests",
-        "type": "function",
-        "async": true,
-        "parameters": [
-          {
-            "name": "tests",
-            "type": "array",
-            "minItems": 1,
-            "items": {
-              "type": "function"
-            }
           }
         ]
       }
