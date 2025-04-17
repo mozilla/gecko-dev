@@ -356,7 +356,9 @@ export class FormAutofillSection {
    * multiple fields of the same type.
    */
   getAutofillFields() {
-    return this.fieldDetails.filter(fieldDetail => this.shouldAutofillField(fieldDetail));
+    return this.fieldDetails.filter(fieldDetail =>
+      this.shouldAutofillField(fieldDetail)
+    );
   }
 
   /*
