@@ -80,6 +80,7 @@ class SandboxBrokerPolicyFactory;
 #endif
 
 class PreallocatedProcessManagerImpl;
+class BenchmarkStorageParent;
 
 using mozilla::loader::PScriptCacheParent;
 
@@ -950,6 +951,10 @@ class ContentParent final : public PContentParent,
 
   bool DeallocPMediaParent(PMediaParent* aActor);
 
+  PBenchmarkStorageParent* AllocPBenchmarkStorageParent();
+
+  bool DeallocPBenchmarkStorageParent(PBenchmarkStorageParent* aActor);
+
 #ifdef MOZ_WEBSPEECH
   already_AddRefed<PSpeechSynthesisParent> AllocPSpeechSynthesisParent();
 
@@ -1146,6 +1151,9 @@ class ContentParent final : public PContentParent,
 
   mozilla::ipc::IPCResult RecvGetHyphDict(
       nsIURI* aURIParams, mozilla::ipc::ReadOnlySharedMemoryHandle* aOutHandle);
+
+  mozilla::ipc::IPCResult RecvNotifyBenchmarkResult(const nsAString& aCodecName,
+                                                    const uint32_t& aDecodeFPS);
 
   mozilla::ipc::IPCResult RecvNotifyPushObservers(const nsACString& aScope,
                                                   nsIPrincipal* aPrincipal,

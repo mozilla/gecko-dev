@@ -48,6 +48,7 @@
 #include "mozilla/AutoRestore.h"
 #include "mozilla/ClipboardContentAnalysisParent.h"
 #include "mozilla/BasePrincipal.h"
+#include "mozilla/BenchmarkStorageParent.h"
 #include "mozilla/Casting.h"
 #include "mozilla/ClearOnShutdown.h"
 #include "mozilla/ClipboardReadRequestParent.h"
@@ -326,6 +327,9 @@
 #  include "nsIMarionette.h"
 #  include "nsIRemoteAgent.h"
 #endif
+
+// For VP9Benchmark::sBenchmarkFpsPref
+#include "Benchmark.h"
 
 #include "mozilla/RemoteDecodeUtils.h"
 #include "nsIToolkitProfileService.h"
@@ -4441,6 +4445,16 @@ bool ContentParent::DeallocPMediaParent(media::PMediaParent* aActor) {
   return media::DeallocPMediaParent(aActor);
 }
 
+PBenchmarkStorageParent* ContentParent::AllocPBenchmarkStorageParent() {
+  return new BenchmarkStorageParent;
+}
+
+bool ContentParent::DeallocPBenchmarkStorageParent(
+    PBenchmarkStorageParent* aActor) {
+  delete aActor;
+  return true;
+}
+
 #ifdef MOZ_WEBSPEECH
 already_AddRefed<PSpeechSynthesisParent>
 ContentParent::AllocPSpeechSynthesisParent() {
@@ -5604,6 +5618,18 @@ mozilla::ipc::IPCResult ContentParent::RecvBeginDriverCrashGuard(
 mozilla::ipc::IPCResult ContentParent::RecvEndDriverCrashGuard(
     const uint32_t& aGuardType) {
   mDriverCrashGuard = nullptr;
+  return IPC_OK();
+}
+
+mozilla::ipc::IPCResult ContentParent::RecvNotifyBenchmarkResult(
+    const nsAString& aCodecName, const uint32_t& aDecodeFPS)
+
+{
+  if (aCodecName.EqualsLiteral("VP9")) {
+    Preferences::SetUint(VP9Benchmark::sBenchmarkFpsPref, aDecodeFPS);
+    Preferences::SetUint(VP9Benchmark::sBenchmarkFpsVersionCheck,
+                         VP9Benchmark::sBenchmarkVersionID);
+  }
   return IPC_OK();
 }
 
