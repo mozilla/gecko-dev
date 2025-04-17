@@ -1023,6 +1023,14 @@ MDefinition* MWasmRefCastConcrete::foldsTo(TempAllocator& alloc) {
   return this;
 }
 
+MDefinition* MWasmRefAsNonNull::foldsTo(TempAllocator& alloc) {
+  wasm::MaybeRefType inputType = ref()->wasmRefType();
+  if (inputType.isSome() && !inputType.value().isNullable()) {
+    return ref();
+  }
+  return this;
+}
+
 bool MWasmStructState::init() {
   // Reserve the size for the number of fields.
   return fields_.resize(

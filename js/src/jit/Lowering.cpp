@@ -4120,9 +4120,9 @@ void LIRGenerator::visitWasmTrap(MWasmTrap* ins) {
   add(new (alloc()) LWasmTrap, ins);
 }
 
-void LIRGenerator::visitWasmTrapIfNull(MWasmTrapIfNull* ins) {
-  auto* lir = new (alloc()) LWasmTrapIfNull(useRegister(ins->ref()));
-  add(lir, ins);
+void LIRGenerator::visitWasmRefAsNonNull(MWasmRefAsNonNull* ins) {
+  defineReuseInput(
+      new (alloc()) LWasmRefAsNonNull(useRegisterAtStart(ins->ref())), ins, 0);
 }
 
 void LIRGenerator::visitReinterpretCast(MReinterpretCast* ins) {

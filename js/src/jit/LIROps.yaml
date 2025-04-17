@@ -362,9 +362,10 @@
 - name: WasmTrap
   mir_op: true
 
-- name: WasmTrapIfNull
+- name: WasmRefAsNonNull
   operands:
     ref: WordSized
+  result_type: WordSized
   mir_op: true
 
 - name: WasmRefTestConcrete

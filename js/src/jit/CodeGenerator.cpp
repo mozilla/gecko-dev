@@ -19878,15 +19878,17 @@ void CodeGenerator::visitWasmTrap(LWasmTrap* lir) {
   masm.wasmTrap(mir->trap(), mir->trapSiteDesc());
 }
 
-void CodeGenerator::visitWasmTrapIfNull(LWasmTrapIfNull* lir) {
+void CodeGenerator::visitWasmRefAsNonNull(LWasmRefAsNonNull* lir) {
   MOZ_ASSERT(gen->compilingWasm());
-  const MWasmTrapIfNull* mir = lir->mir();
+  const MWasmRefAsNonNull* mir = lir->mir();
   Label nonNull;
   Register ref = ToRegister(lir->ref());
 
-  masm.branchWasmAnyRefIsNull(false, ref, &nonNull);
-  masm.wasmTrap(mir->trap(), mir->trapSiteDesc());
-  masm.bind(&nonNull);
+  auto* ool = new (alloc()) LambdaOutOfLineCode([=](OutOfLineCode& ool) {
+    masm.wasmTrap(wasm::Trap::NullPointerDereference, mir->trapSiteDesc());
+  });
+  addOutOfLineCode(ool, mir);
+  masm.branchWasmAnyRefIsNull(true, ref, ool->entry());
 }
 
 void CodeGenerator::visitWasmRefTestAbstract(LWasmRefTestAbstract* ins) {

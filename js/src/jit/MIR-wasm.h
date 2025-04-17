@@ -2816,6 +2816,36 @@ class MWasmStoreElementRef : public MAryInstruction<5>,
   WasmPreBarrierKind preBarrierKind() const { return preBarrierKind_; }
 };
 
+class MWasmRefAsNonNull : public MUnaryInstruction, public NoTypePolicy::Data {
+  wasm::TrapSiteDesc trapSiteDesc_;
+
+  MWasmRefAsNonNull(MDefinition* ref, const wasm::TrapSiteDesc& trapSiteDesc)
+      : MUnaryInstruction(classOpcode, ref), trapSiteDesc_(trapSiteDesc) {
+    setResultType(MIRType::WasmAnyRef);
+    setGuard();
+  }
+
+ public:
+  INSTRUCTION_HEADER(WasmRefAsNonNull)
+  TRIVIAL_NEW_WRAPPERS
+  NAMED_OPERANDS((0, ref))
+
+  const wasm::TrapSiteDesc& trapSiteDesc() const { return trapSiteDesc_; }
+
+  bool congruentTo(const MDefinition* ins) const override {
+    return congruentIfOperandsEqual(ins);
+  }
+
+  wasm::MaybeRefType computeWasmRefType() const override {
+    if (ref()->wasmRefType().isNothing()) {
+      return wasm::MaybeRefType();
+    }
+    return wasm::MaybeRefType(ref()->wasmRefType().value().asNonNullable());
+  }
+
+  MDefinition* foldsTo(TempAllocator& alloc) override;
+};
+
 // Tests if the wasm ref `ref` is a subtype of `destType` and returns the
 // boolean representing the result.
 class MWasmRefTestAbstract : public MUnaryInstruction,

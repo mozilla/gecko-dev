@@ -1170,16 +1170,14 @@ class FunctionCompiler {
     return compare(ref, nullVal, compareOp, MCompare::Compare_WasmAnyRef);
   }
 
-  [[nodiscard]] bool refAsNonNull(MDefinition* ref) {
-    if (inDeadCode()) {
-      return true;
+  [[nodiscard]] MDefinition* refAsNonNull(MDefinition* ref) {
+    MOZ_ASSERT(!inDeadCode());
+    auto* ins = MWasmRefAsNonNull::New(alloc(), ref, trapSiteDesc());
+    if (!ins) {
+      return nullptr;
     }
-
-    auto* ins = MWasmTrapIfNull::New(
-        alloc(), ref, wasm::Trap::NullPointerDereference, trapSiteDesc());
-
     curBlock_->add(ins);
-    return true;
+    return ins;
   }
 
   [[nodiscard]] bool brOnNull(uint32_t relativeDepth, const DefVector& values,
@@ -4672,7 +4670,8 @@ class FunctionCompiler {
     }
 
     // The exception must be non-null
-    if (!refAsNonNull(exnRef)) {
+    exnRef = refAsNonNull(exnRef);
+    if (!exnRef) {
       return false;
     }
 
@@ -8427,7 +8426,17 @@ bool FunctionCompiler::emitRefAsNonNull() {
     return false;
   }
 
-  return refAsNonNull(ref);
+  if (inDeadCode()) {
+    return true;
+  }
+
+  MDefinition* ins = refAsNonNull(ref);
+  if (!ins) {
+    return false;
+  }
+
+  iter().setResult(ins);
+  return true;
 }
 
 bool FunctionCompiler::emitBrOnNull() {
@@ -8475,7 +8484,8 @@ bool FunctionCompiler::emitSpeculativeInlineCallRef(
   MOZ_ASSERT(!expectedFuncIndices.empty());
 
   // Perform an up front null check on the callee function reference.
-  if (!refAsNonNull(actualCalleeFunc)) {
+  actualCalleeFunc = refAsNonNull(actualCalleeFunc);
+  if (!actualCalleeFunc) {
     return false;
   }
 
@@ -9186,7 +9196,8 @@ bool FunctionCompiler::emitI31Get(FieldWideningOp wideningOp) {
     return true;
   }
 
-  if (!refAsNonNull(input)) {
+  input = refAsNonNull(input);
+  if (!input) {
     return false;
   }
   MDefinition* output = i31Get(input, wideningOp);

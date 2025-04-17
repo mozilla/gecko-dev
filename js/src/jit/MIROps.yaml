@@ -1400,17 +1400,6 @@
 - name: WasmTrap
   gen_boilerplate: false
 
-# Trap if the given ref is null
-- name: WasmTrapIfNull
-  operands:
-    ref: WasmAnyRef
-  arguments:
-    trap: wasm::Trap
-    trapSiteDesc: wasm::TrapSiteDesc
-  guard: true
-  type_policy: none
-  result_type: None
-
 - name: LexicalCheck
   gen_boilerplate: false
 
@@ -3746,6 +3735,9 @@
   gen_boilerplate: false
 
 - name: WasmStoreElementRef
+  gen_boilerplate: false
+
+- name: WasmRefAsNonNull
   gen_boilerplate: false
 
 - name: WasmRefTestConcrete
