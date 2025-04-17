@@ -161,6 +161,13 @@ split-dismiss-button-show-fewer-option =
 split-dismiss-button-manage-settings-option =
     .label = Manage settings
 
+## Login Status Advisory Callout (points to the account icon)
+
+# The 'account icon' is the toolbar button with a 'profile' icon of a human
+# head/shoulders. It's for dealing with your Mozilla account. When hovering the
+# icon, the tooltip says 'Account'.
+login-status-advisory-title = You’re signed out. Click the account icon to sign in.
+
 ## Bookmarks toolbar callout strings
 
 bookmarks-toolbar-callout-1-title = Add this site to your bookmarks toolbar?
