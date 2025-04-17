@@ -2641,9 +2641,22 @@ export var Policies = {
           param.FeatureRecommendations,
           param.Locked
         );
+
+        // We use the mostRecentTargetLanguages pref to control the
+        // translations panel intro. Setting a language value simulates a
+        // first translation, which skips the intro panel for users with
+        // FeatureRecommendations disabled.
+        const topWebPreferredLanguage = Services.prefs
+          .getComplexValue("intl.accept_languages", Ci.nsIPrefLocalizedString)
+          .data.split(/\s*,\s*/g)[0];
+
+        const preferredLanguage = topWebPreferredLanguage.length
+          ? topWebPreferredLanguage
+          : Services.locale.appLocaleAsBCP47;
+
         PoliciesUtils.setDefaultPref(
-          "browser.translations.panelShown",
-          !param.FeatureRecommendations,
+          "browser.translations.mostRecentTargetLanguages",
+          param.FeatureRecommendations ? "" : preferredLanguage,
           param.Locked
         );
       }
