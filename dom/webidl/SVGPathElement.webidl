@@ -16,11 +16,6 @@ interface SVGPathSegment {
   attribute sequence<float> values;
 };
 
-dictionary SVGPathSegmentInit {
-  required DOMString type;
-  required sequence<float> values;
-};
-
 dictionary SVGPathDataSettings {
    boolean normalize = false;
 };
@@ -29,7 +24,7 @@ interface mixin SVGPathData {
    [Pref="dom.svg.pathSegment.enabled"]
    sequence<SVGPathSegment> getPathData(optional SVGPathDataSettings settings = {});
    [Pref="dom.svg.pathSegment.enabled"]
-   undefined setPathData(sequence<SVGPathSegmentInit> pathData);
+   undefined setPathData(sequence<SVGPathSegment> pathData);
 };
 
 [Exposed=Window]

@@ -21,7 +21,6 @@ namespace dom {
 class SVGAnimationElement;
 class SVGElement;
 class SVGPathSegment;
-struct SVGPathSegmentInit;
 }  // namespace dom
 
 /**
@@ -62,7 +61,7 @@ class SVGAnimatedPathSegList final {
   nsresult SetBaseValueString(const nsAString& aValue);
 
   void SetBaseValueFromPathSegments(
-      const dom::Sequence<dom::SVGPathSegmentInit>& aValues);
+      const dom::Sequence<OwningNonNull<dom::SVGPathSegment>>& aValues);
 
   void ClearBaseValue();
 

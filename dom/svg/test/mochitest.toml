@@ -39,8 +39,6 @@ support-files = [
 
 ["test_SVGNumberList.xhtml"]
 
-["test_SVGPathSegment.xhtml"]
-
 ["test_SVGPointList.xhtml"]
 
 ["test_SVGStringList.xhtml"]
