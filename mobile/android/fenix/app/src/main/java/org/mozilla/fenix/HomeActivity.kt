@@ -22,6 +22,7 @@ import android.view.LayoutInflater
 import android.view.MotionEvent
 import android.view.View
 import android.view.ViewConfiguration
+import android.view.ViewGroup
 import android.view.WindowManager.LayoutParams.FLAG_SECURE
 import androidx.activity.BackEventCompat
 import androidx.annotation.CallSuper
@@ -368,6 +369,7 @@ open class HomeActivity : LocaleAwareAppCompatActivity(), NavHostActivity {
                     nimbus = components.nimbus.sdk,
                 )
             },
+            scope = lifecycleScope,
             splashScreenTimeout = FxNimbus.features.splashScreen.value().maximumDurationMs.toLong(),
             isDeviceSupported = { Build.VERSION.SDK_INT > Build.VERSION_CODES.M },
             storage = DefaultSplashScreenStorage(components.settings),
@@ -809,6 +811,10 @@ open class HomeActivity : LocaleAwareAppCompatActivity(), NavHostActivity {
         privateNotificationObserver?.stop()
         components.notificationsDelegate.unBindActivity(this)
         MarketingAttributionService(applicationContext).stop()
+
+        // clear hierarchy change listener set by AndroidX SplashScreen
+        // https://bugzilla.mozilla.org/show_bug.cgi?id=1950295
+        (window.decorView as? ViewGroup)?.setOnHierarchyChangeListener(null)
 
         val activityStartedWithLink = startupPathProvider.startupPathForActivity == StartupPathProvider.StartupPath.VIEW
         if (this !is ExternalAppBrowserActivity && !activityStartedWithLink) {
