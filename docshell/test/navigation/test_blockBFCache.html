@@ -98,7 +98,7 @@ const blockBFCacheTests = [
   },
 ];
 
-if (SpecialPowers.effectiveIsolationStrategy() == SpecialPowers.ISOLATION_STRATEGY.IsolateEverything) {
+if (SpecialPowers.Services.appinfo.sessionHistoryInParent) {
   blockBFCacheTests.push({
     name: "Loading OOP iframe",
     test: () => {
