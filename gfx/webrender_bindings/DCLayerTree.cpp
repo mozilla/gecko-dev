@@ -621,7 +621,7 @@ void DCLayerTree::CompositorEndFrame() {
     surface->UpdateAllocatedRect();
     if (!same) {
       // Add surfaces in z-order they were added to the scene.
-      const auto visual = surface->GetVisual();
+      const auto visual = surface->GetRootVisual();
       mRootVisual->AddVisual(visual, false, nullptr);
     }
   }
@@ -824,7 +824,7 @@ void DCLayerTree::DestroySurface(NativeSurfaceId aId) {
   MOZ_RELEASE_ASSERT(surface_it != mDCSurfaces.end());
   auto surface = surface_it->second.get();
 
-  mRootVisual->RemoveVisual(surface->GetVisual());
+  mRootVisual->RemoveVisual(surface->GetRootVisual());
   mDCSurfaces.erase(surface_it);
 }
 
@@ -893,8 +893,8 @@ DCSurface* DCExternalSurfaceWrapper::EnsureSurfaceForExternalImage(
   }
 
   // Add surface's visual which will contain video data to our root visual.
-  const auto surfaceVisual = mSurface->GetVisual();
-  mVisual->AddVisual(surfaceVisual, true, nullptr);
+  const auto surfaceVisual = mSurface->GetRootVisual();
+  mContentVisual->AddVisual(surfaceVisual, true, nullptr);
 
   // -
   // Apply color management.
@@ -1024,11 +1024,13 @@ static inline D2D1_MATRIX_3X2_F D2DMatrix(const gfx::Matrix& aTransform) {
 void DCLayerTree::AddSurface(wr::NativeSurfaceId aId,
                              const wr::CompositorSurfaceTransform& aTransform,
                              wr::DeviceIntRect aClipRect,
-                             wr::ImageRendering aImageRendering) {
+                             wr::ImageRendering aImageRendering,
+                             wr::DeviceIntRect aRoundedClipRect,
+                             wr::ClipRadius aClipRadius) {
   auto it = mDCSurfaces.find(aId);
   MOZ_RELEASE_ASSERT(it != mDCSurfaces.end());
   const auto surface = it->second.get();
-  const auto visual = surface->GetVisual();
+  const auto visual = surface->GetContentVisual();
 
   wr::DeviceIntPoint virtualOffset = surface->GetVirtualOffset();
 
@@ -1070,6 +1072,8 @@ void DCLayerTree::AddSurface(wr::NativeSurfaceId aId,
     visual->SetBitmapInterpolationMode(
         DCOMPOSITION_BITMAP_INTERPOLATION_MODE_NEAREST_NEIGHBOR);
   }
+
+  surface->SetClip(aRoundedClipRect, aClipRadius);
 
   mCurrentLayers.push_back(aId);
 }
@@ -1275,9 +1279,20 @@ bool DCSurface::Initialize() {
   // Create a visual for tiles to attach to, whether virtual or not.
   HRESULT hr;
   const auto dCompDevice = mDCLayerTree->GetCompositionDevice();
-  hr = dCompDevice->CreateVisual(getter_AddRefs(mVisual));
+  hr = dCompDevice->CreateVisual(getter_AddRefs(mRootVisual));
   if (FAILED(hr)) {
     gfxCriticalNote << "Failed to create DCompositionVisual: " << gfx::hexa(hr);
+    return false;
+  }
+  hr = dCompDevice->CreateVisual(getter_AddRefs(mContentVisual));
+  if (FAILED(hr)) {
+    gfxCriticalNote << "Failed to create DCompositionVisual: " << gfx::hexa(hr);
+    return false;
+  }
+  mRootVisual->AddVisual(mContentVisual, false, nullptr);
+  hr = dCompDevice->CreateRectangleClip(getter_AddRefs(mClip));
+  if (FAILED(hr)) {
+    gfxCriticalNote << "Failed to create RectangleClip: " << gfx::hexa(hr);
     return false;
   }
 
@@ -1293,11 +1308,41 @@ bool DCSurface::Initialize() {
     MOZ_ASSERT(SUCCEEDED(hr));
 
     // Bind the surface memory to this visual
-    hr = mVisual->SetContent(mVirtualSurface);
+    hr = mContentVisual->SetContent(mVirtualSurface);
     MOZ_ASSERT(SUCCEEDED(hr));
   }
 
   return true;
+}
+
+void DCSurface::SetClip(wr::DeviceIntRect aClipRect,
+                        wr::ClipRadius aClipRadius) {
+  bool needsClip =
+      aClipRadius.top_left > 0.0f || aClipRadius.top_right > 0.0f ||
+      aClipRadius.bottom_left > 0.0f || aClipRadius.bottom_right > 0.0f;
+
+  if (needsClip) {
+    mClip->SetLeft(aClipRect.min.x);
+    mClip->SetRight(aClipRect.max.x);
+    mClip->SetTop(aClipRect.min.y);
+    mClip->SetBottom(aClipRect.max.y);
+
+    mClip->SetTopLeftRadiusX(aClipRadius.top_left);
+    mClip->SetTopLeftRadiusY(aClipRadius.top_left);
+
+    mClip->SetTopRightRadiusX(aClipRadius.top_right);
+    mClip->SetTopRightRadiusY(aClipRadius.top_right);
+
+    mClip->SetBottomLeftRadiusX(aClipRadius.bottom_left);
+    mClip->SetBottomLeftRadiusY(aClipRadius.bottom_left);
+
+    mClip->SetBottomRightRadiusX(aClipRadius.bottom_right);
+    mClip->SetBottomRightRadiusY(aClipRadius.bottom_right);
+
+    mRootVisual->SetClip(mClip);
+  } else {
+    mRootVisual->SetClip(nullptr);
+  }
 }
 
 void DCSurface::CreateTile(int32_t aX, int32_t aY) {
@@ -1306,7 +1351,7 @@ void DCSurface::CreateTile(int32_t aX, int32_t aY) {
 
   auto tile = MakeUnique<DCTile>(mDCLayerTree);
   if (!tile->Initialize(aX, aY, mTileSize, mIsVirtualSurface, mIsOpaque,
-                        mVisual)) {
+                        mContentVisual)) {
     gfxCriticalNote << "Failed to initialize DCTile: " << aX << aY;
     return;
   }
@@ -1314,7 +1359,7 @@ void DCSurface::CreateTile(int32_t aX, int32_t aY) {
   if (mIsVirtualSurface) {
     mAllocatedRectDirty = true;
   } else {
-    mVisual->AddVisual(tile->GetVisual(), false, nullptr);
+    mContentVisual->AddVisual(tile->GetVisual(), false, nullptr);
   }
 
   mDCTiles[key] = std::move(tile);
@@ -1326,7 +1371,7 @@ void DCSurface::DestroyTile(int32_t aX, int32_t aY) {
     mAllocatedRectDirty = true;
   } else {
     auto tile = GetTile(aX, aY);
-    mVisual->RemoveVisual(tile->GetVisual());
+    mContentVisual->RemoveVisual(tile->GetVisual());
   }
   mDCTiles.erase(key);
 }
@@ -1419,7 +1464,7 @@ bool DCSwapChain::Initialize() {
   hr = dxgiFactory->CreateSwapChainForComposition(device, &desc, nullptr,
                                                   getter_AddRefs(mSwapChain));
   MOZ_RELEASE_ASSERT(SUCCEEDED(hr));
-  mVisual->SetContent(mSwapChain);
+  mContentVisual->SetContent(mSwapChain);
 
   ID3D11Texture2D* backBuffer;
   hr = mSwapChain->GetBuffer(0, __uuidof(ID3D11Texture2D), (void**)&backBuffer);
@@ -1610,7 +1655,7 @@ bool DCLayerCompositionSurface::Resize(wr::DeviceIntSize aSize) {
     return false;
   }
 
-  hr = mVisual->SetContent(surface);
+  hr = mContentVisual->SetContent(surface);
   if (FAILED(hr)) {
     gfxCriticalNote << "Failed to SetContent: " << gfx::hexa(hr);
     return false;
@@ -1814,7 +1859,7 @@ void DCSurfaceVideo::PresentVideo() {
     return;
   }
 
-  mVisual->SetContent(mVideoSwapChain);
+  mContentVisual->SetContent(mVideoSwapChain);
 
   if (!CallVideoProcessorBlt()) {
     bool useYUVSwapChain = IsYUVSwapChainFormat(mSwapChainFormat);
@@ -2290,9 +2335,9 @@ void DCSurfaceHandle::PresentSurfaceHandle() {
   LOG_H("PresentSurfaceHandle");
   if (IDCompositionSurface* surface = EnsureSurface()) {
     LOG_H("Set surface %p to visual", surface);
-    mVisual->SetContent(surface);
+    mContentVisual->SetContent(surface);
   } else {
-    mVisual->SetContent(nullptr);
+    mContentVisual->SetContent(nullptr);
   }
 }
 

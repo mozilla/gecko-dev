@@ -56,7 +56,7 @@ use crate::batch::ClipMaskInstanceList;
 use crate::capture::{CaptureConfig, ExternalCaptureImage, PlainExternalImage};
 use crate::composite::{CompositeState, CompositeTileSurface, CompositorInputLayer, CompositorSurfaceTransform, ResolvedExternalSurface};
 use crate::composite::{CompositorKind, Compositor, NativeTileId, CompositeFeatures, CompositeSurfaceFormat, ResolvedExternalSurfaceColorData};
-use crate::composite::{CompositorConfig, NativeSurfaceOperationDetails, NativeSurfaceId, NativeSurfaceOperation};
+use crate::composite::{CompositorConfig, NativeSurfaceOperationDetails, NativeSurfaceId, NativeSurfaceOperation, ClipRadius};
 use crate::composite::TileKind;
 use crate::segment::SegmentBuilder;
 use crate::{debug_colors, CompositorInputConfig, CompositorSurfaceUsage};
@@ -1451,14 +1451,18 @@ impl Renderer {
                     // Unbind the draw target and add it to the visual tree to be composited
                     compositor.unbind(&mut self.device);
 
+                    let clip_rect = DeviceIntRect::from_size(
+                        self.debug_overlay_state.current_size.unwrap(),
+                    );
+
                     compositor.add_surface(
                         &mut self.device,
                         NativeSurfaceId::DEBUG_OVERLAY,
                         CompositorSurfaceTransform::identity(),
-                        DeviceIntRect::from_size(
-                            self.debug_overlay_state.current_size.unwrap(),
-                        ),
+                        clip_rect,
                         ImageRendering::Auto,
+                        clip_rect,
+                        ClipRadius::EMPTY,
                     );
                 }
                 CompositorKind::Draw { .. } => {}
@@ -6247,6 +6251,8 @@ impl CompositeState {
                 surface.transform,
                 surface.clip_rect.to_i32(),
                 surface.image_rendering,
+                surface.rounded_clip_rect.to_i32(),
+                surface.rounded_clip_radii,
             );
         }
         compositor.start_compositing(device, clear_color, dirty_rects, &[]);

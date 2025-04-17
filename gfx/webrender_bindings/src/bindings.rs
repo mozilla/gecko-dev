@@ -41,7 +41,7 @@ use webrender::{
     AsyncScreenshotHandle, Compositor, LayerCompositor, CompositorCapabilities, CompositorConfig, CompositorSurfaceTransform, Device,
     MappableCompositor, MappedTileInfo, NativeSurfaceId, NativeSurfaceInfo, NativeTileId, PartialPresentCompositor,
     PendingShadersToPrecache, PipelineInfo, ProfilerHooks, RecordedFrameHandle, RenderBackendHooks, Renderer, RendererStats,
-    SWGLCompositeSurfaceInfo, SceneBuilderHooks, ShaderPrecacheFlags, Shaders, SharedShaders, TextureCacheConfig,
+    ClipRadius, SWGLCompositeSurfaceInfo, SceneBuilderHooks, ShaderPrecacheFlags, Shaders, SharedShaders, TextureCacheConfig,
     UploadMethod, WebRenderOptions, WindowVisibility, WindowProperties, ONE_TIME_USAGE_HINT, CompositorInputConfig, CompositorSurfaceUsage,
 };
 use wr_malloc_size_of::MallocSizeOfOps;
@@ -1311,6 +1311,8 @@ extern "C" {
         transform: &CompositorSurfaceTransform,
         clip_rect: DeviceIntRect,
         image_rendering: ImageRendering,
+        rounded_clip_rect: DeviceIntRect,
+        rounded_clip_radii: ClipRadius,
     );
     fn wr_compositor_start_compositing(
         compositor: *mut c_void,
@@ -1442,9 +1444,19 @@ impl Compositor for WrCompositor {
         transform: CompositorSurfaceTransform,
         clip_rect: DeviceIntRect,
         image_rendering: ImageRendering,
+        rounded_clip_rect: DeviceIntRect,
+        rounded_clip_radii: ClipRadius,
     ) {
         unsafe {
-            wr_compositor_add_surface(self.0, id, &transform, clip_rect, image_rendering);
+            wr_compositor_add_surface(
+                self.0,
+                id,
+                &transform,
+                clip_rect,
+                image_rendering,
+                rounded_clip_rect,
+                rounded_clip_radii,
+            );
         }
     }
 
@@ -1665,6 +1677,8 @@ impl LayerCompositor for WrLayerCompositor {
                 &transform,
                 clip_rect,
                 image_rendering,
+                clip_rect,
+                ClipRadius::EMPTY,
             );
         }
     }
