@@ -1485,16 +1485,20 @@
   <string name="download_delete_item_1" moz:removedIn="138" tools:ignore="UnusedResources">Tynnu</string>
   <!-- Text for the button to delete a single downloaded file item -->
   <string name="download_delete_item">Dileu</string>
+  <!-- Content description for the toolbar "Navigate back" button -->
+  <string name="download_navigate_back_description">Symud nôl</string>
+  <!-- Content description for the toolbar "Navigate up" button -->
+  <string name="download_navigate_up_description">Llywio i fyny</string>
   <!-- Text for the button to share the download URL -->
   <string name="download_share_url">Rhannu URL</string>
   <!-- Text for the button to share the download file -->
   <string name="download_share_file">Rhannu ffeil</string>
   <!-- Alert dialog confirmation before deleting multiple download items, this is the title. -->
-  <string name="download_delete_multi_select_dialog_confirmation" tools:ignore="UnusedResources">Ydych chi\'n siŵr eich bod am ddileu\'r eitemau hyn?</string>
+  <string name="download_delete_multi_select_dialog_confirmation">Ydych chi\'n siŵr eich bod am ddileu\'r eitemau hyn?</string>
   <!-- Alert dialog confirmation before deleting multiple download items, this is the positive action. -->
-  <string name="download_delete_multi_select_dialog_confirm" tools:ignore="UnusedResources">Dileu</string>
+  <string name="download_delete_multi_select_dialog_confirm">Dileu</string>
   <!-- Alert dialog confirmation before deleting multiple download items, this is the negative action. -->
-  <string name="download_delete_multi_select_dialog_cancel" tools:ignore="UnusedResources">Diddymu</string>
+  <string name="download_delete_multi_select_dialog_cancel">Diddymu</string>
   <!-- Text for the header of in progress downloads -->
   <string name="download_header_in_progress" tools:ignore="UnusedResources">Ar waith</string>
   <!--

@@ -1412,11 +1412,11 @@
   <!-- Text for the button to share the download file -->
   <string name="download_share_file">ഫയൽ പങ്കിടുക</string>
   <!-- Alert dialog confirmation before deleting multiple download items, this is the title. -->
-  <string name="download_delete_multi_select_dialog_confirmation" tools:ignore="UnusedResources">തിരഞ്ഞെടുക്കപ്പെട്ട ഇനങ്ങൾ മായ്ക്കണമെന്നു് ഉറപ്പുണ്ടോ?</string>
+  <string name="download_delete_multi_select_dialog_confirmation">തിരഞ്ഞെടുക്കപ്പെട്ട ഇനങ്ങൾ മായ്ക്കണമെന്നു് ഉറപ്പുണ്ടോ?</string>
   <!-- Alert dialog confirmation before deleting multiple download items, this is the positive action. -->
-  <string name="download_delete_multi_select_dialog_confirm" tools:ignore="UnusedResources">മായ്ക്കുക</string>
+  <string name="download_delete_multi_select_dialog_confirm">മായ്ക്കുക</string>
   <!-- Alert dialog confirmation before deleting multiple download items, this is the negative action. -->
-  <string name="download_delete_multi_select_dialog_cancel" tools:ignore="UnusedResources">റദ്ദാക്കുക</string>
+  <string name="download_delete_multi_select_dialog_cancel">റദ്ദാക്കുക</string>
   <!-- Text for the header of in progress downloads -->
   <string name="download_header_in_progress" tools:ignore="UnusedResources">നടപ്പിലാണു്</string>
   <!--

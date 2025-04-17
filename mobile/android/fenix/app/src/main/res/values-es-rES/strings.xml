@@ -1487,11 +1487,11 @@
   <!-- Text for the button to share the download file -->
   <string name="download_share_file">Compartir archivo</string>
   <!-- Alert dialog confirmation before deleting multiple download items, this is the title. -->
-  <string name="download_delete_multi_select_dialog_confirmation" tools:ignore="UnusedResources">¿Seguro que quieres eliminar los elementos seleccionados?</string>
+  <string name="download_delete_multi_select_dialog_confirmation">¿Seguro que quieres eliminar los elementos seleccionados?</string>
   <!-- Alert dialog confirmation before deleting multiple download items, this is the positive action. -->
-  <string name="download_delete_multi_select_dialog_confirm" tools:ignore="UnusedResources">Eliminar</string>
+  <string name="download_delete_multi_select_dialog_confirm">Eliminar</string>
   <!-- Alert dialog confirmation before deleting multiple download items, this is the negative action. -->
-  <string name="download_delete_multi_select_dialog_cancel" tools:ignore="UnusedResources">Cancelar</string>
+  <string name="download_delete_multi_select_dialog_cancel">Cancelar</string>
   <!-- Text for the header of in progress downloads -->
   <string name="download_header_in_progress" tools:ignore="UnusedResources">En curso</string>
   <!--
