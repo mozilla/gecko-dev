@@ -17572,6 +17572,13 @@
 #endif
   mirror: always
 
+# If this pref and ui.touch.radious.enabled are both true, clickable content is
+# also treated as touchable content if and only if a sigle touch.
+- name: ui.touch.radius.single_touch.treat_clickable_as_touchable
+  type: bool
+  value: true
+  mirror: always
+
 - name: ui.touch.radius.visitedWeight
   type: uint32_t
   value: 120
