@@ -119,6 +119,8 @@ run-sequentially = "node server exceptions dont replay well"
 ["test_ext_content_security_policy.js"]
 skip-if = ["os == 'win'"] # Bug 1762638
 
+["test_ext_contentscript_antitracking.js"]
+
 ["test_ext_contentscript_api_injection.js"]
 
 ["test_ext_contentscript_async_loading.js"]

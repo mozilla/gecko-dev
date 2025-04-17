@@ -15842,6 +15842,12 @@
   value: false
   mirror: always
 
+  # Full isolation (referrer, cookie jar, etc) of resources injected by content-scripts.
+- name: privacy.antitracking.isolateContentScriptResources
+  type: bool
+  value: false
+  mirror: always
+
 # Controls the anti-tracking webcompat features. This includes:
 # - All URL-Classifier and state partitioning skip lists (prefs and remote
 #   settings)
