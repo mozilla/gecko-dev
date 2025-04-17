@@ -224,6 +224,14 @@ this.permissions = class extends ExtensionAPIPersistent {
             }
           }
 
+          if (dataCollectionPermissionsEnabled) {
+            for (let perm of permissions.data_collection) {
+              if (!context.extension.dataCollectionPermissions.has(perm)) {
+                return false;
+              }
+            }
+          }
+
           return true;
         },
 
