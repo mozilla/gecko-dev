@@ -1482,6 +1482,10 @@ export let BrowserUsageTelemetry = {
     ) {
       Glean.tabgroup.tabInteractions.reorder.add();
     }
+
+    if (previousTabState.tabGroupId && !currentTabState.tabGroupId) {
+      Glean.tabgroup.tabInteractions.remove_same_window.add();
+    }
   },
 
   _onTabSelect(event) {

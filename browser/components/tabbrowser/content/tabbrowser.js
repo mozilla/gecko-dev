@@ -6280,6 +6280,7 @@
       let linkedBrowser = aTab.linkedBrowser;
       let createLazyBrowser = !aTab.linkedPanel;
       let nextElement = this.tabContainer.ariaFocusableItems.at(elementIndex);
+      let tabInGroup = !!aTab.group;
       let params = {
         eventDetail: { adoptedTab: aTab },
         preferredRemoteType: linkedBrowser.remoteType,
@@ -6320,6 +6321,10 @@
 
       if (selectTab) {
         this.selectedTab = newTab;
+      }
+
+      if (tabInGroup) {
+        Glean.tabgroup.tabInteractions.remove_other_window.add();
       }
 
       return newTab;

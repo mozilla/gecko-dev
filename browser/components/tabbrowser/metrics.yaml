@@ -375,8 +375,10 @@ tabgroup:
       - sthompson@mozilla.com
     bugs:
       - https://bugzil.la/1938405
+      - https://bugzil.la/1960360
     data_reviews:
       - https://bugzil.la/1938405
+      - https://bugzil.la/1960360
     data_sensitivity:
       - interaction
     labels:
@@ -387,6 +389,9 @@ tabgroup:
       - close_tabstrip
       - close_tabmenu
       - reorder
+      - remove_same_window
+      - remove_other_window
+      - remove_new_window
     expires: never
 
   smart_tab_optin:
