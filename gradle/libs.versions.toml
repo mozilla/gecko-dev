@@ -97,7 +97,7 @@ mockk = "1.14.0"
 robolectric = "4.14.1"
 
 # Third party library versions
-adjust = "5.1.0"
+adjust = "5.3.0"
 sentry = "8.8.0"
 
 commons-exec = "1.3"

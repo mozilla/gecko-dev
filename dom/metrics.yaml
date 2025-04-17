@@ -755,28 +755,6 @@ security:
         type: string
     telemetry_mirror: Security_Fissionprincipals_Contentparent
 
-mathml:
-  doc_count:
-    type: counter
-    description: >
-      The number of documents that contained enabled MathML elements.
-      This metric was generated to correspond to the Legacy Telemetry
-      scalar mathml.doc_count.
-    bugs:
-      - https://bugzil.la/1362187
-      - https://bugzil.la/1538985
-      - https://bugzil.la/1590350
-    data_reviews:
-      - https://bugzil.la/1362187
-      - https://bugzil.la/1538985
-      - https://bugzil.la/1590350
-    notification_emails:
-      - emilio@mozilla.com
-      - fred.wang@free.fr
-      - dev-tech-layout@lists.mozilla.org
-    expires: never
-    telemetry_mirror: MATHML_DOC_COUNT
-
 dom.contentprocess:
   build_id_mismatch:
     type: counter

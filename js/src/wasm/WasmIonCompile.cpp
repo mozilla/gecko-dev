@@ -2031,25 +2031,26 @@ class FunctionCompiler {
   }
 
   [[nodiscard]] bool storeGlobalVar(uint32_t lineOrBytecode,
-                                    uint32_t instanceDataOffset,
-                                    bool isIndirect, MDefinition* v) {
+                                    const GlobalDesc& global, MDefinition* v) {
     if (inDeadCode()) {
       return true;
     }
 
-    if (isIndirect) {
+    if (global.isIndirect()) {
       // Pull a pointer to the value out of Instance::globalArea, then
       // store through that pointer.
       auto* valueAddr = MWasmLoadInstanceDataField::New(
-          alloc(), MIRType::Pointer, instanceDataOffset,
-          /*isConst=*/true, instancePointer_);
+          alloc(), MIRType::Pointer, global.offset(),
+          /*isConstant=*/true, instancePointer_);
       curBlock_->add(valueAddr);
 
       // Handle a store to a ref-typed field specially
-      if (v->type() == MIRType::WasmAnyRef) {
+      if (global.type().toMIRType() == MIRType::WasmAnyRef) {
         // Load the previous value for the post-write barrier
+        MOZ_ASSERT(v->type() == MIRType::WasmAnyRef);
         auto* prevValue =
-            MWasmLoadGlobalCell::New(alloc(), MIRType::WasmAnyRef, valueAddr);
+            MWasmLoadGlobalCell::New(alloc(), MIRType::WasmAnyRef, valueAddr,
+                                     global.type().toMaybeRefType());
         curBlock_->add(prevValue);
 
         // Store the new value
@@ -2070,16 +2071,18 @@ class FunctionCompiler {
     // Or else store the value directly in Instance::globalArea.
 
     // Handle a store to a ref-typed field specially
-    if (v->type() == MIRType::WasmAnyRef) {
+    if (global.type().toMIRType() == MIRType::WasmAnyRef) {
       // Compute the address of the ref-typed global
       auto* valueAddr = MWasmDerivedPointer::New(
           alloc(), instancePointer_,
-          wasm::Instance::offsetInData(instanceDataOffset));
+          wasm::Instance::offsetInData(global.offset()));
       curBlock_->add(valueAddr);
 
       // Load the previous value for the post-write barrier
+      MOZ_ASSERT(v->type() == MIRType::WasmAnyRef);
       auto* prevValue =
-          MWasmLoadGlobalCell::New(alloc(), MIRType::WasmAnyRef, valueAddr);
+          MWasmLoadGlobalCell::New(alloc(), MIRType::WasmAnyRef, valueAddr,
+                                   global.type().toMaybeRefType());
       curBlock_->add(prevValue);
 
       // Store the new value
@@ -2093,8 +2096,8 @@ class FunctionCompiler {
       return postBarrierPrecise(lineOrBytecode, valueAddr, prevValue);
     }
 
-    auto* store = MWasmStoreInstanceDataField::New(alloc(), instanceDataOffset,
-                                                   v, instancePointer_);
+    auto* store = MWasmStoreInstanceDataField::New(alloc(), global.offset(), v,
+                                                   instancePointer_);
     curBlock_->add(store);
     return true;
   }
@@ -6773,8 +6776,7 @@ bool FunctionCompiler::emitSetGlobal() {
 
   const GlobalDesc& global = codeMeta().globals[id];
   MOZ_ASSERT(global.isMutable());
-  return storeGlobalVar(bytecodeOffset, global.offset(), global.isIndirect(),
-                        value);
+  return storeGlobalVar(bytecodeOffset, global, value);
 }
 
 bool FunctionCompiler::emitTeeGlobal() {
@@ -6789,8 +6791,7 @@ bool FunctionCompiler::emitTeeGlobal() {
   const GlobalDesc& global = codeMeta().globals[id];
   MOZ_ASSERT(global.isMutable());
 
-  return storeGlobalVar(bytecodeOffset, global.offset(), global.isIndirect(),
-                        value);
+  return storeGlobalVar(bytecodeOffset, global, value);
 }
 
 template <typename MIRClass>

@@ -130,7 +130,6 @@ const TOOLKIT_ID = "toolkit@mozilla.org";
 
 const KEY_APP_SYSTEM_ADDONS = "app-system-addons";
 const KEY_APP_SYSTEM_BUILTINS = "app-builtin-addons";
-const KEY_APP_SYSTEM_DEFAULTS = "app-system-defaults";
 const KEY_APP_SYSTEM_PROFILE = "app-system-profile";
 const KEY_APP_BUILTINS = "app-builtin";
 const KEY_APP_SYSTEM_LOCAL = "app-system-local";
@@ -519,7 +518,6 @@ export class AddonInternal {
         return this.signedState == lazy.AddonManager.SIGNEDSTATE_SYSTEM;
 
       case KEY_APP_SYSTEM_BUILTINS:
-      case KEY_APP_SYSTEM_DEFAULTS:
       case KEY_APP_BUILTINS:
       case KEY_APP_TEMPORARY:
         // Temporary and built-in add-ons do not require signing.
@@ -3693,7 +3691,6 @@ export const XPIDatabaseReconcile = {
   isAppBundledLocation(location) {
     return (
       location.name == KEY_APP_GLOBAL ||
-      location.name == KEY_APP_SYSTEM_DEFAULTS ||
       location.name == KEY_APP_BUILTINS ||
       location.name == KEY_APP_SYSTEM_BUILTINS
     );
@@ -3709,7 +3706,6 @@ export const XPIDatabaseReconcile = {
    */
   isSystemAddonLocation(location) {
     return (
-      location.name === KEY_APP_SYSTEM_DEFAULTS ||
       location.name === KEY_APP_SYSTEM_ADDONS ||
       location.name === KEY_APP_SYSTEM_BUILTINS
     );

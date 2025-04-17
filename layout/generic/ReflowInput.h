@@ -448,6 +448,9 @@ struct ReflowInput : public SizeComputationInput {
     // Does frame height depend on an ancestor table-cell?
     bool mHeightDependsOnAncestorCell : 1;
 
+    // Is this the final reflow of an orthogonal table-cell, after row sizing?
+    bool mOrthogonalCellFinalReflow : 1;
+
     // nsColumnSetFrame is balancing columns
     bool mIsColumnBalancing : 1;
 

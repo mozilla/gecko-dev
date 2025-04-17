@@ -822,8 +822,11 @@ EnvironmentAddonBuilder.prototype = {
       // Weird addon data in the wild can lead to exceptions while collecting
       // the data.
       try {
-        // Make sure to have valid dates.
-        let updateDate = new Date(Math.max(0, addon.updateDate));
+        // Make sure to have valid dates (built-in add-ons are
+        // expected to not have a valid update date).
+        let updateDate = isNaN(addon.updateDate?.valueOf())
+          ? new Date(0)
+          : new Date(Math.max(0, addon.updateDate));
 
         activeAddons[addon.id] = {
           version: limitStringToLength(addon.version, MAX_ADDON_STRING_LENGTH),
@@ -838,7 +841,12 @@ EnvironmentAddonBuilder.prototype = {
         // getActiveAddons() gives limited data during startup and full
         // data after the addons database is loaded.
         if (fullData) {
-          let installDate = new Date(Math.max(0, addon.installDate));
+          // Make sure to have valid dates (built-in add-ons are
+          // expected to not have a valid install date).
+          let installDate = isNaN(addon.installDate?.valueOf())
+            ? new Date(0)
+            : new Date(Math.max(0, addon.installDate));
+
           Object.assign(activeAddons[addon.id], {
             blocklisted:
               addon.blocklistState !== Ci.nsIBlocklistService.STATE_NOT_BLOCKED,

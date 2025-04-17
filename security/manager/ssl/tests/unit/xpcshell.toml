@@ -309,16 +309,16 @@ run-if = ["!condprof"] # Bug 1769154 - as designed
 ["test_sss_sanitizeOnShutdown.js"]
 prefs = ["privacy.sanitize.useOldClearHistoryDialog=true"]
 firefox-appdir = "browser"
-run-if = [
-  "os != 'android'", # Sanitization works differently on Android - this doesn't apply.
+skip-if = [
+  "os == 'android'", # Sanitization works differently on Android - this doesn't apply.
   "appname == 'thunderbird'", # browser/modules/Sanitizer.sys.mjs used by the test isn't available in Thunderbird.
 ]
 
 ["test_sss_sanitizeOnShutdown_v2.js"]
 prefs = ["privacy.sanitize.useOldClearHistoryDialog=false"]
 firefox-appdir = "browser"
-run-if = [
-  "os != 'android'", # Sanitization works differently on Android - this doesn't apply.
+skip-if = [
+  "os == 'android'", # Sanitization works differently on Android - this doesn't apply.
   "appname == 'thunderbird'", # browser/modules/Sanitizer.sys.mjs used by the test isn't available in Thunderbird.
 ]
 
