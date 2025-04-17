@@ -11,8 +11,6 @@ import { useIntersectionObserver } from "../../../lib/utils";
 import { SectionContextMenu } from "../SectionContextMenu/SectionContextMenu";
 import { InterestPicker } from "../InterestPicker/InterestPicker";
 import { AdBanner } from "../AdBanner/AdBanner.jsx";
-import { PersonalizedCard } from "../PersonalizedCard/PersonalizedCard";
-
 // Prefs
 const PREF_SECTIONS_CARDS_ENABLED = "discoverystream.sections.cards.enabled";
 const PREF_SECTIONS_CARDS_THUMBS_UP_DOWN_ENABLED =
@@ -34,14 +32,6 @@ const PREF_BILLBOARD_ENABLED = "newtabAdSize.billboard";
 const PREF_LEADERBOARD_ENABLED = "newtabAdSize.leaderboard";
 const PREF_LEADERBOARD_POSITION = "newtabAdSize.leaderboard.position";
 const PREF_BILLBOARD_POSITION = "newtabAdSize.billboard.position";
-const PREF_INFERRED_PERSONALIZATION_ENABLED =
-  "discoverystream.sections.personalization.inferred.enabled";
-const PREF_INFERRED_PERSONALIZATION_USER_ENABLED =
-  "discoverystream.sections.personalization.inferred.user.enabled";
-const PREF_INFERRED_PERSONALIZATION_POSITION =
-  "discoverystream.sections.personalization.inferred.position";
-const PREF_INFERRED_PERSONALIZATION_BLOCKED =
-  "discoverystream.sections.personalization.inferred.blocked";
 
 function getLayoutData(responsiveLayouts, index) {
   let layoutData = {
@@ -452,27 +442,6 @@ function CardSections({
       />
     );
   }
-
-  const handleDismissP13nCard = () => {
-    dispatch(ac.SetPref(PREF_INFERRED_PERSONALIZATION_BLOCKED, true));
-  };
-
-  function displayP13nCard() {
-    const row = prefs[PREF_INFERRED_PERSONALIZATION_POSITION];
-    const cardBlocked = prefs[PREF_INFERRED_PERSONALIZATION_BLOCKED];
-    const cardEnabled = prefs[PREF_INFERRED_PERSONALIZATION_ENABLED];
-    const userEnabled = prefs[PREF_INFERRED_PERSONALIZATION_USER_ENABLED];
-
-    if (!cardBlocked && cardEnabled && userEnabled) {
-      sectionsToRender.splice(
-        row,
-        0,
-        <PersonalizedCard row={row} onDismiss={handleDismissP13nCard} />
-      );
-    }
-  }
-
-  displayP13nCard();
 
   const isEmpty = sectionsToRender.length === 0;
 

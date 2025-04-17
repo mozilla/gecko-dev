@@ -1999,7 +1999,6 @@ pref("browser.newtabpage.activity-stream.discoverystream.sections.region-content
 pref("browser.newtabpage.activity-stream.discoverystream.sections.cards.enabled", true);
 pref("browser.newtabpage.activity-stream.discoverystream.sections.personalization.inferred.enabled", false);
 pref("browser.newtabpage.activity-stream.discoverystream.sections.personalization.inferred.user.enabled", true);
-pref("browser.newtabpage.activity-stream.discoverystream.sections.personalization.inferred.blocked", false);
 
 pref("browser.newtabpage.activity-stream.discoverystream.sections.interestPicker.enabled", false);
 pref("browser.newtabpage.activity-stream.discoverystream.sections.interestPicker.visibleSections", "");

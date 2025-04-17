@@ -10867,43 +10867,10 @@ function InterestPicker({
   })));
 }
 
-;// CONCATENATED MODULE: ./content-src/components/DiscoveryStreamComponents/PersonalizedCard/PersonalizedCard.jsx
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this file,
- * You can obtain one at http://mozilla.org/MPL/2.0/. */
-
-
-const PersonalizedCard = ({
-  onDismiss
-}) => {
-  const wavingFox = "chrome://newtab/content/data/content/assets/waving-fox.svg";
-  return /*#__PURE__*/external_React_default().createElement("aside", {
-    className: "personalized-card-wrapper"
-  }, /*#__PURE__*/external_React_default().createElement("div", {
-    className: "personalized-card-dismiss"
-  }, /*#__PURE__*/external_React_default().createElement("moz-button", {
-    type: "icon ghost",
-    iconSrc: "chrome://global/skin/icons/close.svg",
-    onClick: onDismiss,
-    "data-l10n-id": "newtab-toast-dismiss-button"
-  })), /*#__PURE__*/external_React_default().createElement("div", {
-    className: "personalized-card-inner"
-  }, /*#__PURE__*/external_React_default().createElement("img", {
-    src: wavingFox,
-    alt: ""
-  }), /*#__PURE__*/external_React_default().createElement("h2", null, "Personalized Just for You"), /*#__PURE__*/external_React_default().createElement("p", null, "We\u2019re customizing your feed to show content that matters to you, while ensuring your privacy is always respected."), /*#__PURE__*/external_React_default().createElement("moz-button", {
-    type: "primary",
-    class: "personalized-card-cta"
-  }, "Manage your settings"), /*#__PURE__*/external_React_default().createElement("a", {
-    href: "https://www.mozilla.org/en-US/privacy/firefox/#notice"
-  }, "Learn how we protect and manage data")));
-};
 ;// CONCATENATED MODULE: ./content-src/components/DiscoveryStreamComponents/CardSections/CardSections.jsx
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-
-
 
 
 
@@ -10931,10 +10898,6 @@ const CardSections_PREF_BILLBOARD_ENABLED = "newtabAdSize.billboard";
 const CardSections_PREF_LEADERBOARD_ENABLED = "newtabAdSize.leaderboard";
 const CardSections_PREF_LEADERBOARD_POSITION = "newtabAdSize.leaderboard.position";
 const CardSections_PREF_BILLBOARD_POSITION = "newtabAdSize.billboard.position";
-const PREF_INFERRED_PERSONALIZATION_ENABLED = "discoverystream.sections.personalization.inferred.enabled";
-const PREF_INFERRED_PERSONALIZATION_USER_ENABLED = "discoverystream.sections.personalization.inferred.user.enabled";
-const PREF_INFERRED_PERSONALIZATION_POSITION = "discoverystream.sections.personalization.inferred.position";
-const PREF_INFERRED_PERSONALIZATION_BLOCKED = "discoverystream.sections.personalization.inferred.blocked";
 function getLayoutData(responsiveLayouts, index) {
   let layoutData = {
     classNames: [],
@@ -11271,22 +11234,6 @@ function CardSections({
       receivedFeedRank: interestPicker.receivedFeedRank
     }));
   }
-  const handleDismissP13nCard = () => {
-    dispatch(actionCreators.SetPref(PREF_INFERRED_PERSONALIZATION_BLOCKED, true));
-  };
-  function displayP13nCard() {
-    const row = prefs[PREF_INFERRED_PERSONALIZATION_POSITION];
-    const cardBlocked = prefs[PREF_INFERRED_PERSONALIZATION_BLOCKED];
-    const cardEnabled = prefs[PREF_INFERRED_PERSONALIZATION_ENABLED];
-    const userEnabled = prefs[PREF_INFERRED_PERSONALIZATION_USER_ENABLED];
-    if (!cardBlocked && cardEnabled && userEnabled) {
-      sectionsToRender.splice(row, 0, /*#__PURE__*/external_React_default().createElement(PersonalizedCard, {
-        row: row,
-        onDismiss: handleDismissP13nCard
-      }));
-    }
-  }
-  displayP13nCard();
   const isEmpty = sectionsToRender.length === 0;
   return isEmpty ? /*#__PURE__*/external_React_default().createElement("div", {
     className: "ds-card-grid empty"
