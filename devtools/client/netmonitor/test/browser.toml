@@ -77,6 +77,7 @@ support-files = [
   "network-overrides-test-helpers.js",
   "sjs_content-type-test-server.sjs",
   "sjs_cors-test-server.sjs",
+  "sjs_delay-test-server.sjs",
   "sjs_early-hint-test-server.sjs",
   "sjs_https-redirect-test-server.sjs",
   "sjs_hsts-test-server.sjs",
@@ -238,6 +239,8 @@ fail-if = ["a11y_checks"] # Bug 1849028 clicked element may not be focusable and
 ["browser_net_domain-not-found.js"]
 
 ["browser_net_duration.js"]
+
+["browser_net_duration-sort.js"]
 
 ["browser_net_earlyhints.js"]
 
