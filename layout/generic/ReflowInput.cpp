@@ -203,13 +203,17 @@ ReflowInput::ReflowInput(nsPresContext* aPresContext,
     // If the block establishes an orthogonal flow, set up its AvailableISize
     // per https://drafts.csswg.org/css-writing-modes/#orthogonal-auto
 
-    auto GetISizeConstraint = [this](const nsIFrame* aFrame) -> nscoord {
+    auto GetISizeConstraint = [this](const nsIFrame* aFrame,
+                                     bool* aFixed = nullptr) -> nscoord {
       nscoord limit = NS_UNCONSTRAINEDSIZE;
       const auto* pos = aFrame->StylePosition();
       const auto positionProperty = aFrame->StyleDisplay()->mPosition;
       if (auto size = nsLayoutUtils::GetAbsoluteSize(
               *pos->ISize(mWritingMode, positionProperty))) {
         limit = size.value();
+        if (aFixed) {
+          *aFixed = true;
+        }
       } else if (auto maxSize = nsLayoutUtils::GetAbsoluteSize(
                      *pos->MaxISize(mWritingMode, positionProperty))) {
         limit = maxSize.value();
@@ -225,28 +229,35 @@ ReflowInput::ReflowInput(nsPresContext* aPresContext,
 
     // See if the containing block has a fixed size we should respect:
     const nsIFrame* cb = mFrame->GetContainingBlock();
-    nscoord cbLimit = GetISizeConstraint(cb);
+    bool isFixed = false;
+    nscoord cbLimit = GetISizeConstraint(cb, &isFixed);
+    if (isFixed) {
+      SetAvailableISize(cbLimit);
+    } else {
+      // If the CB size wasn't fixed, we consider the nearest scroll container
+      // and the ICB.
 
-    nscoord scLimit = NS_UNCONSTRAINEDSIZE;
-    // If the containing block was not a scroll container itself, look up the
-    // parent chain for a scroller size that we should respect.
-    // XXX Could maybe use nsLayoutUtils::GetNearestScrollContainerFrame here,
-    // but unsure if we need the additional complexity it supports?
-    if (!cb->IsScrollContainerFrame()) {
-      for (const nsIFrame* p = mFrame->GetParent(); p; p = p->GetParent()) {
-        if (p->IsScrollContainerFrame()) {
-          scLimit = GetISizeConstraint(p);
-          // Only the closest ancestor scroller is relevant, so quit as soon as
-          // we've found one (whether or not it had fixed sizing).
-          break;
+      nscoord scLimit = NS_UNCONSTRAINEDSIZE;
+      // If the containing block was not a scroll container itself, look up the
+      // parent chain for a scroller size that we should respect.
+      // XXX Could maybe use nsLayoutUtils::GetNearestScrollContainerFrame here,
+      // but unsure if we need the additional complexity it supports?
+      if (!cb->IsScrollContainerFrame()) {
+        for (const nsIFrame* p = mFrame->GetParent(); p; p = p->GetParent()) {
+          if (p->IsScrollContainerFrame()) {
+            scLimit = GetISizeConstraint(p);
+            // Only the closest ancestor scroller is relevant, so quit as soon
+            // as we've found one (whether or not it had fixed sizing).
+            break;
+          }
         }
       }
+
+      LogicalSize icbSize(mWritingMode, GetICBSize(aPresContext, mFrame));
+      nscoord icbLimit = icbSize.ISize(mWritingMode);
+
+      SetAvailableISize(std::min(icbLimit, std::min(scLimit, cbLimit)));
     }
-
-    LogicalSize icbSize(mWritingMode, GetICBSize(aPresContext, mFrame));
-    nscoord icbLimit = icbSize.ISize(mWritingMode);
-
-    SetAvailableISize(std::min(icbLimit, std::min(scLimit, cbLimit)));
   }
 
   // Note: mFlags was initialized as a copy of aParentReflowInput.mFlags up in
