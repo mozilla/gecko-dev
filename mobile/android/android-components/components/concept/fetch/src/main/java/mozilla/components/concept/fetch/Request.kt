@@ -35,8 +35,6 @@ import java.util.concurrent.TimeUnit
  * should be forced, defaults to true (use caches).
  * @property private Whether the request should be performed in a private context, defaults to false.
  * The feature is not support in all [Client]s, check support before using.
- * @property useOhttp Whether the request should be performed using the OHTTP library, defaults to false.
- * Currently only GeckoViewFetchClient supports it.
  * @see [Headers.Names]
  * @see [Headers.Values]
  */
@@ -51,7 +49,6 @@ data class Request(
     val cookiePolicy: CookiePolicy = CookiePolicy.INCLUDE,
     val useCaches: Boolean = true,
     val private: Boolean = false,
-    val useOhttp: Boolean = false,
 ) {
     var referrerUrl: String? = null
     var conservative: Boolean = false
@@ -75,20 +72,7 @@ data class Request(
         private: Boolean = false,
         referrerUrl: String? = null,
         conservative: Boolean = false,
-        useOhttp: Boolean = false,
-    ) : this(
-        url = url,
-        method = method,
-        headers = headers,
-        connectTimeout = connectTimeout,
-        readTimeout = readTimeout,
-        body = body,
-        redirect = redirect,
-        cookiePolicy = cookiePolicy,
-        useCaches = useCaches,
-        private = private,
-        useOhttp = useOhttp,
-    ) {
+    ) : this(url, method, headers, connectTimeout, readTimeout, body, redirect, cookiePolicy, useCaches, private) {
         this.referrerUrl = referrerUrl
         this.conservative = conservative
     }

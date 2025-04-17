@@ -74,9 +74,6 @@ class GeckoViewFetchClient(
             if (redirect == Request.Redirect.MANUAL) {
                 fetchFlags += GeckoWebExecutor.FETCH_FLAGS_NO_REDIRECTS
             }
-            if (useOhttp) {
-                fetchFlags += GeckoWebExecutor.FETCH_FLAGS_OHTTP
-            }
             return fetchFlags
         }
 
