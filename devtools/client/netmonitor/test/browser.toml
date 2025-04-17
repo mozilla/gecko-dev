@@ -112,6 +112,9 @@ support-files = [
 ]
 
 ["browser_net-ws-filter-freetext.js"]
+skip-if = [
+  "os == 'mac' && os_version == '14.70' && processor == 'x86_64' && opt", # Bug 1767662
+]
 
 ["browser_net_accessibility-01.js"]
 
