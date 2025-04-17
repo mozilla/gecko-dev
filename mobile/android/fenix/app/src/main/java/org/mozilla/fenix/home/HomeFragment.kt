@@ -522,6 +522,8 @@ class HomeFragment : Fragment() {
             recentVisitsController = DefaultRecentVisitsController(
                 navController = findNavController(),
                 appStore = components.appStore,
+                settings = components.settings,
+                fenixBrowserUseCases = requireComponents.useCases.fenixBrowserUseCases,
                 selectOrAddTabUseCase = components.useCases.tabsUseCases.selectOrAddTab,
                 storage = components.core.historyStorage,
                 scope = viewLifecycleOwner.lifecycleScope,
