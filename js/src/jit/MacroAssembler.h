@@ -3975,7 +3975,7 @@ class MacroAssembler : public MacroAssemblerSpecific {
   // Will select one of the other branchWasmRefIsSubtype* functions depending on
   // destType. See each function for the register allocation requirements, as
   // well as which registers will be preserved.
-  void branchWasmRefIsSubtype(Register ref, wasm::RefType sourceType,
+  void branchWasmRefIsSubtype(Register ref, wasm::MaybeRefType sourceType,
                               wasm::RefType destType, Label* label,
                               bool onSuccess, Register superSTV,
                               Register scratch1, Register scratch2);

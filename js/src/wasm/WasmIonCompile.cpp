@@ -5590,46 +5590,50 @@ class FunctionCompiler {
     return true;
   }
 
-  [[nodiscard]] MDefinition* isRefSubtypeOf(MDefinition* ref,
-                                            RefType sourceType,
-                                            RefType destType) {
+  // Generate MIR that attempts to cast `ref` to `castToTypeDef`.  If the
+  // cast fails, we trap.  If it succeeds, then `ref` can be assumed to
+  // have a type that is a subtype of (or the same as) `castToTypeDef` after
+  // this point.
+  [[nodiscard]] MDefinition* refCast(MDefinition* ref, RefType destType) {
+    MInstruction* cast = nullptr;
+    if (destType.isTypeRef()) {
+      uint32_t typeIndex = codeMeta().types->indexOf(*destType.typeDef());
+      MDefinition* superSTV = loadSuperTypeVector(typeIndex);
+      if (!superSTV) {
+        return nullptr;
+      }
+      cast = MWasmRefCastConcrete::New(alloc(), ref, superSTV, destType,
+                                       trapSiteDesc());
+    } else {
+      cast = MWasmRefCastAbstract::New(alloc(), ref, destType, trapSiteDesc());
+    }
+
+    if (!cast) {
+      return nullptr;
+    }
+    curBlock_->add(cast);
+    return cast;
+  }
+
+  // Generate MIR that computes a boolean value indicating whether or not it
+  // is possible to cast `ref` to `destType`.
+  [[nodiscard]] MDefinition* refTest(MDefinition* ref, RefType destType) {
     MInstruction* isSubTypeOf = nullptr;
     if (destType.isTypeRef()) {
       uint32_t typeIndex = codeMeta().types->indexOf(*destType.typeDef());
       MDefinition* superSTV = loadSuperTypeVector(typeIndex);
-      isSubTypeOf = MWasmRefIsSubtypeOfConcrete::New(alloc(), ref, superSTV,
-                                                     sourceType, destType);
-    } else {
+      if (!superSTV) {
+        return nullptr;
+      }
       isSubTypeOf =
-          MWasmRefIsSubtypeOfAbstract::New(alloc(), ref, sourceType, destType);
+          MWasmRefIsSubtypeOfConcrete::New(alloc(), ref, superSTV, destType);
+    } else {
+      isSubTypeOf = MWasmRefIsSubtypeOfAbstract::New(alloc(), ref, destType);
     }
     MOZ_ASSERT(isSubTypeOf);
 
     curBlock_->add(isSubTypeOf);
     return isSubTypeOf;
-  }
-
-  // Generate MIR that attempts to downcast `ref` to `castToTypeDef`.  If the
-  // downcast fails, we trap.  If it succeeds, then `ref` can be assumed to
-  // have a type that is a subtype of (or the same as) `castToTypeDef` after
-  // this point.
-  [[nodiscard]] bool refCast(MDefinition* ref, RefType sourceType,
-                             RefType destType) {
-    MDefinition* success = isRefSubtypeOf(ref, sourceType, destType);
-    if (!success) {
-      return false;
-    }
-
-    // Trap if `success` is zero.  If it's nonzero, we have established that
-    // `ref <: castToTypeDef`.
-    return trapIfZero(wasm::Trap::BadCast, success);
-  }
-
-  // Generate MIR that computes a boolean value indicating whether or not it
-  // is possible to downcast `ref` to `destType`.
-  [[nodiscard]] MDefinition* refTest(MDefinition* ref, RefType sourceType,
-                                     RefType destType) {
-    return isRefSubtypeOf(ref, sourceType, destType);
   }
 
   // Generates MIR for br_on_cast and br_on_cast_fail.
@@ -5658,7 +5662,7 @@ class FunctionCompiler {
     MDefinition* ref = values.back();
     MOZ_ASSERT(ref->type() == MIRType::WasmAnyRef);
 
-    MDefinition* success = isRefSubtypeOf(ref, sourceType, destType);
+    MDefinition* success = refTest(ref, destType);
     if (!success) {
       return false;
     }
@@ -9206,7 +9210,7 @@ bool FunctionCompiler::emitRefTest(bool nullable) {
     return true;
   }
 
-  MDefinition* success = refTest(ref, sourceType, destType);
+  MDefinition* success = refTest(ref, destType);
   if (!success) {
     return false;
   }
@@ -9227,11 +9231,12 @@ bool FunctionCompiler::emitRefCast(bool nullable) {
     return true;
   }
 
-  if (!refCast(ref, sourceType, destType)) {
+  MDefinition* castedRef = refCast(ref, destType);
+  if (!castedRef) {
     return false;
   }
 
-  iter().setResult(ref);
+  iter().setResult(castedRef);
   return true;
 }
 

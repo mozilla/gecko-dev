@@ -388,7 +388,7 @@
     ref: WordSized
     superSTV: WordSized
   arguments:
-    sourceType: wasm::RefType
+    sourceType: wasm::MaybeRefType
     destType: wasm::RefType
   num_temps: 2
 
@@ -397,8 +397,23 @@
   operands:
     ref: WordSized
   arguments:
-    sourceType: wasm::RefType
+    sourceType: wasm::MaybeRefType
     destType: wasm::RefType
+  num_temps: 1
+
+- name: WasmRefCastConcrete
+  mir_op: true
+  operands:
+    ref: WordSized
+    superSTV: WordSized
+  result_type: WordSized
+  num_temps: 2
+
+- name: WasmRefCastAbstract
+  mir_op: true
+  operands:
+    ref: WordSized
+  result_type: WordSized
   num_temps: 1
 
 - name: WasmNewStructObject

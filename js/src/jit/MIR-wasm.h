@@ -2816,16 +2816,14 @@ class MWasmStoreElementRef : public MAryInstruction<5>,
   WasmPreBarrierKind preBarrierKind() const { return preBarrierKind_; }
 };
 
+// Tests if the wasm ref `ref` is a subtype of `destType` and returns the
+// boolean representing the result.
 class MWasmRefIsSubtypeOfAbstract : public MUnaryInstruction,
                                     public NoTypePolicy::Data {
-  wasm::RefType sourceType_;
   wasm::RefType destType_;
 
-  MWasmRefIsSubtypeOfAbstract(MDefinition* ref, wasm::RefType sourceType,
-                              wasm::RefType destType)
-      : MUnaryInstruction(classOpcode, ref),
-        sourceType_(sourceType),
-        destType_(destType) {
+  MWasmRefIsSubtypeOfAbstract(MDefinition* ref, wasm::RefType destType)
+      : MUnaryInstruction(classOpcode, ref), destType_(destType) {
     MOZ_ASSERT(!destType.isTypeRef());
     setResultType(MIRType::Int32);
     setMovable();
@@ -2836,18 +2834,17 @@ class MWasmRefIsSubtypeOfAbstract : public MUnaryInstruction,
   TRIVIAL_NEW_WRAPPERS
   NAMED_OPERANDS((0, ref))
 
-  wasm::RefType sourceType() const { return sourceType_; };
   wasm::RefType destType() const { return destType_; };
+
+  AliasSet getAliasSet() const override { return AliasSet::None(); }
 
   bool congruentTo(const MDefinition* ins) const override {
     return congruentIfOperandsEqual(ins) &&
-           sourceType() == ins->toWasmRefIsSubtypeOfAbstract()->sourceType() &&
            destType() == ins->toWasmRefIsSubtypeOfAbstract()->destType();
   }
 
   HashNumber valueHash() const override {
     HashNumber hn = MUnaryInstruction::valueHash();
-    hn = addU64ToHash(hn, sourceType().packed().bits());
     hn = addU64ToHash(hn, destType().packed().bits());
     return hn;
   }
@@ -2855,46 +2852,18 @@ class MWasmRefIsSubtypeOfAbstract : public MUnaryInstruction,
   MDefinition* foldsTo(TempAllocator& alloc) override;
 };
 
-// Represents the contents of all fields of a wasm struct.
-// This class will be used for scalar replacement of wasm structs.
-class MWasmStructState : public TempObject {
- private:
-  MDefinition* wasmStruct_;
-  // Represents the fields of this struct.
-  Vector<MDefinition*, 0, JitAllocPolicy> fields_;
-
-  explicit MWasmStructState(TempAllocator& alloc, MDefinition* structObject)
-      : wasmStruct_(structObject), fields_(alloc) {}
-
- public:
-  static MWasmStructState* New(TempAllocator& alloc, MDefinition* structObject);
-  static MWasmStructState* Copy(TempAllocator& alloc, MWasmStructState* state);
-
-  // Init the fields_ vector.
-  [[nodiscard]] bool init();
-
-  size_t numFields() const { return fields_.length(); }
-  MDefinition* wasmStruct() const { return wasmStruct_; }
-
-  // Get the field value based on the position of the field in the struct.
-  MDefinition* getField(uint32_t index) const { return fields_[index]; }
-  // Set the field offset based on the position of the field in the struct.
-  void setField(uint32_t index, MDefinition* def) { fields_[index] = def; }
-};
-
-// Tests if the wasm ref `ref` is a subtype of `superSTV`.
+// Tests if the wasm ref `ref` is a subtype of `superSTV` and returns the
+// boolean representing the result.
+//
 // The actual super type definition must be known at compile time, so that the
 // subtyping depth of super type depth can be used.
 class MWasmRefIsSubtypeOfConcrete : public MBinaryInstruction,
                                     public NoTypePolicy::Data {
-  wasm::RefType sourceType_;
   wasm::RefType destType_;
 
   MWasmRefIsSubtypeOfConcrete(MDefinition* ref, MDefinition* superSTV,
-                              wasm::RefType sourceType, wasm::RefType destType)
-      : MBinaryInstruction(classOpcode, ref, superSTV),
-        sourceType_(sourceType),
-        destType_(destType) {
+                              wasm::RefType destType)
+      : MBinaryInstruction(classOpcode, ref, superSTV), destType_(destType) {
     MOZ_ASSERT(destType.isTypeRef());
     setResultType(MIRType::Int32);
     setMovable();
@@ -2905,21 +2874,84 @@ class MWasmRefIsSubtypeOfConcrete : public MBinaryInstruction,
   TRIVIAL_NEW_WRAPPERS
   NAMED_OPERANDS((0, ref), (1, superSTV))
 
-  wasm::RefType sourceType() const { return sourceType_; };
   wasm::RefType destType() const { return destType_; };
+
+  AliasSet getAliasSet() const override { return AliasSet::None(); }
 
   bool congruentTo(const MDefinition* ins) const override {
     return congruentIfOperandsEqual(ins) &&
-           sourceType() == ins->toWasmRefIsSubtypeOfConcrete()->sourceType() &&
            destType() == ins->toWasmRefIsSubtypeOfConcrete()->destType();
   }
 
   HashNumber valueHash() const override {
     HashNumber hn = MBinaryInstruction::valueHash();
-    hn = addU64ToHash(hn, sourceType().packed().bits());
     hn = addU64ToHash(hn, destType().packed().bits());
     return hn;
   }
+
+  MDefinition* foldsTo(TempAllocator& alloc) override;
+};
+
+// Tests if the wasm ref `ref` is a subtype of `destType` and if so returns the
+// ref, otherwise it does a wasm trap.
+class MWasmRefCastAbstract : public MUnaryInstruction,
+                             public NoTypePolicy::Data {
+  wasm::RefType destType_;
+  wasm::TrapSiteDesc trapSiteDesc_;
+
+  MWasmRefCastAbstract(MDefinition* ref, wasm::RefType destType,
+                       wasm::TrapSiteDesc&& trapSiteDesc)
+      : MUnaryInstruction(classOpcode, ref),
+        destType_(destType),
+        trapSiteDesc_(std::move(trapSiteDesc)) {
+    MOZ_ASSERT(!destType.isTypeRef());
+    setResultType(MIRType::WasmAnyRef);
+    // This may trap, which requires this to be a guard.
+    setGuard();
+    initWasmRefType(wasm::MaybeRefType(destType));
+  }
+
+ public:
+  INSTRUCTION_HEADER(WasmRefCastAbstract)
+  TRIVIAL_NEW_WRAPPERS
+  NAMED_OPERANDS((0, ref))
+
+  wasm::RefType destType() const { return destType_; };
+  const wasm::TrapSiteDesc& trapSiteDesc() const { return trapSiteDesc_; }
+
+  MDefinition* foldsTo(TempAllocator& alloc) override;
+};
+
+// Tests if the wasm ref `ref` is a subtype of `superSTV`, if so return the
+// ref, otherwise do a wasm trap.
+//
+// The actual super type definition must be known at compile time, so that the
+// subtyping depth of super type depth can be used.
+class MWasmRefCastConcrete : public MBinaryInstruction,
+                             public NoTypePolicy::Data {
+  wasm::RefType destType_;
+  wasm::TrapSiteDesc trapSiteDesc_;
+
+  MWasmRefCastConcrete(MDefinition* ref, MDefinition* superSTV,
+                       wasm::RefType destType,
+                       wasm::TrapSiteDesc&& trapSiteDesc)
+      : MBinaryInstruction(classOpcode, ref, superSTV),
+        destType_(destType),
+        trapSiteDesc_(std::move(trapSiteDesc)) {
+    MOZ_ASSERT(destType.isTypeRef());
+    setResultType(MIRType::WasmAnyRef);
+    // This may trap, which requires this to be a guard.
+    setGuard();
+    initWasmRefType(wasm::MaybeRefType(destType));
+  }
+
+ public:
+  INSTRUCTION_HEADER(WasmRefCastConcrete)
+  TRIVIAL_NEW_WRAPPERS
+  NAMED_OPERANDS((0, ref), (1, superSTV))
+
+  wasm::RefType destType() const { return destType_; };
+  const wasm::TrapSiteDesc& trapSiteDesc() const { return trapSiteDesc_; }
 
   MDefinition* foldsTo(TempAllocator& alloc) override;
 };
@@ -2963,6 +2995,33 @@ class MWasmRefConvertAnyExtern : public MUnaryInstruction,
   }
 
   AliasSet getAliasSet() const override { return AliasSet::None(); }
+};
+
+// Represents the contents of all fields of a wasm struct.
+// This class will be used for scalar replacement of wasm structs.
+class MWasmStructState : public TempObject {
+ private:
+  MDefinition* wasmStruct_;
+  // Represents the fields of this struct.
+  Vector<MDefinition*, 0, JitAllocPolicy> fields_;
+
+  explicit MWasmStructState(TempAllocator& alloc, MDefinition* structObject)
+      : wasmStruct_(structObject), fields_(alloc) {}
+
+ public:
+  static MWasmStructState* New(TempAllocator& alloc, MDefinition* structObject);
+  static MWasmStructState* Copy(TempAllocator& alloc, MWasmStructState* state);
+
+  // Init the fields_ vector.
+  [[nodiscard]] bool init();
+
+  size_t numFields() const { return fields_.length(); }
+  MDefinition* wasmStruct() const { return wasmStruct_; }
+
+  // Get the field value based on the position of the field in the struct.
+  MDefinition* getField(uint32_t index) const { return fields_[index]; }
+  // Set the field offset based on the position of the field in the struct.
+  void setField(uint32_t index, MDefinition* def) { fields_[index] = def; }
 };
 
 class MWasmNewStructObject : public MBinaryInstruction,

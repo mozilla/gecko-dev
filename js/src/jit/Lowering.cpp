@@ -1218,8 +1218,8 @@ void LIRGenerator::visitTest(MTest* test) {
     WasmRefIsSubtypeDefs regs =
         useWasmRefIsSubtype(isSubTypeOf->destType(), /*superSTV=*/nullptr);
     add(new (alloc()) LWasmRefIsSubtypeOfAbstractAndBranch(
-            ifTrue, ifFalse, ref, regs.scratch1, isSubTypeOf->sourceType(),
-            isSubTypeOf->destType()),
+            ifTrue, ifFalse, ref, regs.scratch1,
+            isSubTypeOf->ref()->wasmRefType(), isSubTypeOf->destType()),
         test);
     return;
   }
@@ -1233,7 +1233,7 @@ void LIRGenerator::visitTest(MTest* test) {
         useWasmRefIsSubtype(isSubTypeOf->destType(), isSubTypeOf->superSTV());
     add(new (alloc()) LWasmRefIsSubtypeOfConcreteAndBranch(
             ifTrue, ifFalse, ref, regs.superSTV, regs.scratch1, regs.scratch2,
-            isSubTypeOf->sourceType(), isSubTypeOf->destType()),
+            isSubTypeOf->ref()->wasmRefType(), isSubTypeOf->destType()),
         test);
     return;
   }
@@ -8408,6 +8408,23 @@ void LIRGenerator::visitWasmRefIsSubtypeOfConcrete(
   define(new (alloc()) LWasmRefIsSubtypeOfConcrete(
              ref, regs.superSTV, regs.scratch1, regs.scratch2),
          ins);
+}
+
+void LIRGenerator::visitWasmRefCastAbstract(MWasmRefCastAbstract* ins) {
+  LAllocation ref = useRegisterAtStart(ins->ref());
+  WasmRefIsSubtypeDefs regs =
+      useWasmRefIsSubtype(ins->destType(), /*superSTV=*/nullptr);
+  defineReuseInput(new (alloc()) LWasmRefCastAbstract(ref, regs.scratch1), ins,
+                   0);
+}
+
+void LIRGenerator::visitWasmRefCastConcrete(MWasmRefCastConcrete* ins) {
+  LAllocation ref = useRegisterAtStart(ins->ref());
+  WasmRefIsSubtypeDefs regs =
+      useWasmRefIsSubtype(ins->destType(), ins->superSTV());
+  defineReuseInput(new (alloc()) LWasmRefCastConcrete(
+                       ref, regs.superSTV, regs.scratch1, regs.scratch2),
+                   ins, 0);
 }
 
 void LIRGenerator::visitWasmRefConvertAnyExtern(MWasmRefConvertAnyExtern* ins) {

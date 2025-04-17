@@ -6700,23 +6700,28 @@ BranchWasmRefIsSubtypeRegisters MacroAssembler::regsForBranchWasmRefIsSubtype(
 }
 
 void MacroAssembler::branchWasmRefIsSubtype(
-    Register ref, wasm::RefType sourceType, wasm::RefType destType,
+    Register ref, wasm::MaybeRefType sourceType, wasm::RefType destType,
     Label* label, bool onSuccess, Register superSTV, Register scratch1,
     Register scratch2) {
   switch (destType.hierarchy()) {
     case wasm::RefTypeHierarchy::Any: {
-      branchWasmRefIsSubtypeAny(ref, sourceType, destType, label, onSuccess,
-                                superSTV, scratch1, scratch2);
+      branchWasmRefIsSubtypeAny(ref, sourceType.valueOr(wasm::RefType::any()),
+                                destType, label, onSuccess, superSTV, scratch1,
+                                scratch2);
     } break;
     case wasm::RefTypeHierarchy::Func: {
-      branchWasmRefIsSubtypeFunc(ref, sourceType, destType, label, onSuccess,
-                                 superSTV, scratch1, scratch2);
+      branchWasmRefIsSubtypeFunc(ref, sourceType.valueOr(wasm::RefType::func()),
+                                 destType, label, onSuccess, superSTV, scratch1,
+                                 scratch2);
     } break;
     case wasm::RefTypeHierarchy::Extern: {
-      branchWasmRefIsSubtypeExtern(ref, sourceType, destType, label, onSuccess);
+      branchWasmRefIsSubtypeExtern(ref,
+                                   sourceType.valueOr(wasm::RefType::extern_()),
+                                   destType, label, onSuccess);
     } break;
     case wasm::RefTypeHierarchy::Exn: {
-      branchWasmRefIsSubtypeExn(ref, sourceType, destType, label, onSuccess);
+      branchWasmRefIsSubtypeExn(ref, sourceType.valueOr(wasm::RefType::exn()),
+                                destType, label, onSuccess);
     } break;
     default:
       MOZ_CRASH("unknown type hierarchy for wasm cast");
