@@ -61,9 +61,6 @@ def find_mozconfig(topsrcdir: Union[str, Path], env=os.environ):
 
     env_path = env.get("MOZCONFIG", None) or None
 
-    if env_path == os.devnull:
-        env_path = None
-
     if env_path is not None:
         env_path = Path(env_path)
 

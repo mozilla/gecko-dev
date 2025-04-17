@@ -49,6 +49,9 @@
 ^mozconfig*
 ^\.moz-fast-forward
 ^\.moz-vendoring
+^old-configure$
+^config\.cache$
+^config\.log$
 ^\.clang_complete
 ^machrc$
 ^\.machrc$
@@ -105,6 +108,10 @@ _DBG\.OBJ/
 _OPT\.OBJ/
 ^js/src/.*-obj/
 ^js/src/obj-.*/
+
+# SpiderMonkey configury
+^js/src/old-configure$
+^js/src/autom4te\.cache$
 
 # SpiderMonkey test result logs
 ^js/src/tests/results-.*\.html$
