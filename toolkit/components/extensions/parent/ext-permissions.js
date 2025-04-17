@@ -116,7 +116,9 @@ this.permissions = class extends ExtensionAPIPersistent {
             }
             if (
               OPTIONAL_ONLY_PERMISSIONS.has(perm) &&
-              (permissions.length > 1 || origins.length)
+              (permissions.length > 1 ||
+                origins.length ||
+                (dataCollectionPermissionsEnabled && data_collection.length))
             ) {
               throw new ExtensionError(
                 `Cannot request permission ${perm} with another permission`
