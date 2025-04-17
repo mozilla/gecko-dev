@@ -58,6 +58,11 @@ class GleanTelemetry:
         self,
     ):
         self._metrics_cache = {}
+        from pathlib import Path
+
+        from glean import load_pings
+
+        self._pings = load_pings(Path(__file__).parent.parent / "pings.yaml")
 
     def metrics(self, metrics_path: Union[str, Path]):
         if metrics_path not in self._metrics_cache:
@@ -69,9 +74,4 @@ class GleanTelemetry:
         return self._metrics_cache[metrics_path]
 
     def submit(self, _):
-        from pathlib import Path
-
-        from glean import load_pings
-
-        pings = load_pings(Path(__file__).parent.parent / "pings.yaml")
-        pings.usage.submit()
+        self._pings.usage.submit()
