@@ -169,7 +169,7 @@ export class _RemoteSettingsExperimentLoader {
   }
 
   get SOURCE() {
-    return "rs-loader";
+    return lazy.NimbusTelemetry.EnrollmentSource.RS_LOADER;
   }
 
   constructor(manager) {

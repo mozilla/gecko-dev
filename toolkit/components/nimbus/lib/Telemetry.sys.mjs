@@ -38,6 +38,11 @@ const EnrollmentFailureReason = Object.freeze({
   NAME_CONFLICT: "name-conflict",
 });
 
+const EnrollmentSource = Object.freeze({
+  RS_LOADER: "rs-loader",
+  FORCE_ENROLLMENT: "force-enrollment",
+});
+
 const UnenrollmentFailureReason = Object.freeze({
   ALREADY_UNENROLLED: "already-unenrolled",
   DOES_NOT_EXIST: "does-not-exist",
@@ -75,6 +80,7 @@ const UnenrollReason = Object.freeze({
 
 export const NimbusTelemetry = {
   EnrollmentFailureReason,
+  EnrollmentSource,
   EnrollmentStatus,
   EnrollmentStatusReason,
   UnenrollReason,
@@ -99,7 +105,8 @@ export const NimbusTelemetry = {
       branch: enrollment.branch.slug,
       status: EnrollmentStatus.ENROLLED,
       reason:
-        enrollment.force || enrollment.isFirefoxLabsOptIn
+        enrollment.isFirefoxLabsOptIn ||
+        enrollment.source === EnrollmentSource.FORCE_ENROLLMENT
           ? EnrollmentStatusReason.OPT_IN
           : EnrollmentStatusReason.QUALIFIED,
     });

@@ -36,8 +36,6 @@ const STUDIES_OPT_OUT_PREF = "app.shield.optoutstudies.enabled";
 
 const STUDIES_ENABLED_CHANGED = "nimbus:studies-enabled-changed";
 
-const FORCE_ENROLLMENT_SOURCE = "force-enrollment";
-
 function featuresCompat(branch) {
   if (!branch || (!branch.feature && !branch.features)) {
     return [];
@@ -605,8 +603,7 @@ export class _ExperimentManager {
       requiresRestart = false,
     },
     branch,
-    source,
-    options = {}
+    source
   ) {
     const { prefs, prefsToSet } = this._getPrefsForBranch(branch, isRollout);
     const prefNames = new Set(prefs.map(entry => entry.name));
@@ -664,12 +661,6 @@ export class _ExperimentManager {
 
     if (typeof isRollout !== "undefined") {
       enrollment.isRollout = isRollout;
-    }
-
-    // Tag this as a forced enrollment. This prevents all unenrolling unless
-    // manually triggered from about:studies
-    if (options.force) {
-      enrollment.force = true;
     }
 
     if (isRollout) {
@@ -731,8 +722,7 @@ export class _ExperimentManager {
         slug,
       },
       branch,
-      FORCE_ENROLLMENT_SOURCE,
-      { force: true }
+      lazy.NimbusTelemetry.EnrollmentSource.FORCE_ENROLLMENT
     );
 
     Services.obs.notifyObservers(null, "nimbus:enrollments-updated", slug);
