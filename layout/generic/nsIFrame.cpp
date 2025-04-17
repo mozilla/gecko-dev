@@ -3363,10 +3363,6 @@ void nsIFrame::BuildDisplayListForStackingContext(
       (DisplayPortUtils::IsFixedPosFrameInDisplayPort(this) ||
        BuilderHasScrolledClip(aBuilder));
 
-  const bool isViewTransitionCapture =
-      HasAnyStateBits(NS_FRAME_CAPTURED_IN_VIEW_TRANSITION) &&
-      StaticPrefs::dom_viewTransitions_live_capture();
-
   nsDisplayListBuilder::AutoBuildingDisplayList buildingDisplayList(
       aBuilder, this, visibleRect, dirtyRect, isTransformed);
 
@@ -3383,7 +3379,6 @@ void nsIFrame::BuildDisplayListForStackingContext(
     Perspective,
     Transform,
     Filter,
-    ViewTransitionCapture,
   };
 
   nsDisplayListBuilder::AutoContainerASRTracker contASRTracker(aBuilder);
@@ -3416,9 +3411,7 @@ void nsIFrame::BuildDisplayListForStackingContext(
   // one of those container items, the clip will be captured on the outermost
   // one and the inner container items will be unclipped.
   ContainerItemType clipCapturedBy = ContainerItemType::None;
-  if (isViewTransitionCapture) {
-    clipCapturedBy = ContainerItemType::ViewTransitionCapture;
-  } else if (useFixedPosition) {
+  if (useFixedPosition) {
     clipCapturedBy = ContainerItemType::FixedPosition;
   } else if (isTransformed) {
     const DisplayItemClipChain* currentClip =
@@ -3652,10 +3645,8 @@ void nsIFrame::BuildDisplayListForStackingContext(
   }
 
   // FIXME: Ensure this is the right place to do this.
-  if (isViewTransitionCapture) {
-    if (clipCapturedBy == ContainerItemType::ViewTransitionCapture) {
-      clipState.Restore();
-    }
+  if (HasAnyStateBits(NS_FRAME_CAPTURED_IN_VIEW_TRANSITION) &&
+      StaticPrefs::dom_viewTransitions_live_capture()) {
     resultList.AppendNewToTop<nsDisplayViewTransitionCapture>(
         aBuilder, this, &resultList, containerItemASR, /* aIsRoot = */ false);
     createdContainer = true;
