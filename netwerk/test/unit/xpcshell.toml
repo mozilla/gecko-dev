@@ -331,6 +331,7 @@ run-if = ["os != 'win'"] # skip because 0.0.0.0 is invalid in windows platform
 
 ["test_bug1948203.js"]
 run-sequentially = "node server exceptions dont replay well"
+run-if = ["!socketprocess_networking"] # Bug 1960490
 skip-if = [
   "os == 'android' && android_version == '24' && processor == 'x86_64'", # Bug 1622901
   "os == 'win' && os_version == '10.2009' && processor == 'x86_64'", # Bug 1808048
