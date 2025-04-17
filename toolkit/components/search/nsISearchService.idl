@@ -505,7 +505,7 @@ interface nsISearchService : nsISupports
   attribute nsISearchEngine defaultEngine;
 
   Promise getDefault();
-  Promise setDefault(in nsISearchEngine engine, in unsigned short changeSource);
+  Promise setDefault(in nsISearchEngine engine, in unsigned short changeReason);
 
   /**
    * The currently active search engine for private browsing mode.
@@ -516,7 +516,7 @@ interface nsISearchService : nsISupports
   Promise getDefaultPrivate();
   Promise setDefaultPrivate(
     in nsISearchEngine engine,
-    in unsigned short changeSource);
+    in unsigned short changeReason);
 
   /**
    * Whether to display the "Search in Private Window" result in the urlbar.

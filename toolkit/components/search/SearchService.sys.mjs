@@ -237,9 +237,9 @@ export class SearchService {
     return this.defaultEngine;
   }
 
-  async setDefault(engine, changeSource) {
+  async setDefault(engine, changeReason) {
     await this.init();
-    this.#setEngineDefault(false, engine, changeSource);
+    this.#setEngineDefault(false, engine, changeReason);
   }
 
   async getDefaultPrivate() {
@@ -247,7 +247,7 @@ export class SearchService {
     return this.defaultPrivateEngine;
   }
 
-  async setDefaultPrivate(engine, changeSource) {
+  async setDefaultPrivate(engine, changeReason) {
     await this.init();
     if (!this._separatePrivateDefaultPrefValue) {
       Services.prefs.setBoolPref(
@@ -255,7 +255,7 @@ export class SearchService {
         true
       );
     }
-    this.#setEngineDefault(this.#separatePrivateDefault, engine, changeSource);
+    this.#setEngineDefault(this.#separatePrivateDefault, engine, changeReason);
   }
 
   /**
@@ -1964,7 +1964,7 @@ export class SearchService {
    * This is prefixed with _ rather than # because it is
    * called in test_reload_engines.js
    *
-   * @param {number} changeReason
+   * @param {nsISearchService.DefaultEngineChangeReason} changeReason
    *   The reason reload engines is being called, one of
    *   Ci.nsISearchService.CHANGE_REASON*
    */
@@ -2027,7 +2027,7 @@ export class SearchService {
    *
    * @param {object} settings
    *   The user's current saved settings.
-   * @param {number} changeReason
+   * @param {nsISearchService.DefaultEngineChangeReason} changeReason
    *   The reason reload engines is being called, one of
    *   Ci.nsISearchService.CHANGE_REASON*
    */
@@ -3050,10 +3050,11 @@ export class SearchService {
    *   check the "separatePrivateDefault" preference - that is up to the caller.
    * @param {SearchEngine} newEngine
    *   The search engine to select
-   * @param {nsISearchService.DefaultEngineChangeReason} changeSource
-   *   The source of the change of engine.
+   * @param {nsISearchService.DefaultEngineChangeReason} changeReason
+   *   The reason for the default search engine change, one of
+   *   Ci.nsISearchService.CHANGE_REASON*.
    */
-  #setEngineDefault(privateMode, newEngine, changeSource) {
+  #setEngineDefault(privateMode, newEngine, changeReason) {
     // Sometimes we get wrapped nsISearchEngine objects (external XPCOM callers),
     // and sometimes we get raw Engine JS objects (callers in this file), so
     // handle both.
@@ -3140,7 +3141,7 @@ export class SearchService {
         privateMode,
         currentEngine,
         newCurrentEngine,
-        changeSource
+        changeReason
       );
       this.#recordTelemetryData();
     }
@@ -3265,14 +3266,15 @@ export class SearchService {
    *   The previously default search engine.
    * @param {nsISearchEngine} [newEngine]
    *   The new default search engine.
-   * @param {number} changeSource
-   *   The source of the change of default.
+   * @param {nsISearchService.DefaultEngineChangeReason} changeReason
+   *   The reason for the default search engine change, one of
+   *   Ci.nsISearchService.CHANGE_REASON*.
    */
   #recordDefaultChangedEvent(
     isPrivate,
     previousEngine,
     newEngine,
-    changeSource = Ci.nsISearchService.CHANGE_REASON_UNKNOWN
+    changeReason = Ci.nsISearchService.CHANGE_REASON_UNKNOWN
   ) {
     let telemetryId;
     let engineInfo;
@@ -3299,7 +3301,7 @@ export class SearchService {
       new_load_path: engineInfo.loadPath,
       // Glean has a limit of 100 characters.
       new_submission_url: submissionURL.slice(0, 100),
-      change_source: REASON_CHANGE_MAP.get(changeSource) ?? "unknown",
+      change_reason: REASON_CHANGE_MAP.get(changeReason) ?? "unknown",
     };
     if (isPrivate) {
       Glean.searchEnginePrivate.changed.record(extraArgs);
