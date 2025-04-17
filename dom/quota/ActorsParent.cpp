@@ -2680,6 +2680,11 @@ void QuotaManager::UpdateOriginAccessTime(
   MOZ_ASSERT(aOriginMetadata.mPersistenceType == aPersistenceType);
   MOZ_ASSERT(!IsShuttingDown());
 
+  if (!StaticPrefs::
+          dom_quotaManager_temporaryStorage_updateOriginAccessTime()) {
+    return;
+  }
+
   MutexAutoLock lock(mQuotaMutex);
 
   GroupInfoPair* pair;

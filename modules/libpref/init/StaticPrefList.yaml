@@ -3801,6 +3801,19 @@
   value: -1
   mirror: always
 
+# Controls whether the quota manager updates the last access time for origins
+# in temporary storage. When enabled, the access time is updated only when an
+# origin is accessed by a quota client for the first time during a session or
+# when the last quota client stops accessing the origin. This allows eviction
+# based on the LRU policy. When disabled, the access time is stored only once
+# when the corresponding origin directory is created for the first time.
+#
+# This setting is currently intended for manual testing purposes only.
+- name: dom.quotaManager.temporaryStorage.updateOriginAccessTime
+  type: RelaxedAtomicBool
+  value: true
+  mirror: always
+
 # Should we do lazy initialization of origins ?
 # When enabled, origins for temporary storage are not initialized during
 # temporary storage initialization, they are initialized lazily instead.
