@@ -11,7 +11,7 @@ ezcmd = "0.3.0"
 format = "0.2.4"
 itertools = "0.11.0"
 log = "0.4.17"
-miette = { version = "5.5.0", features = ["fancy"] }
+miette = { version = "7.5.0", features = ["fancy"] }
 regex = "1.7.1"
 thiserror = "1.0.38"
 wax = "0.6.0"

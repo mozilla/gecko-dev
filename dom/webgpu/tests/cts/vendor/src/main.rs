@@ -162,11 +162,13 @@ fn run(args: CliArgs) -> miette::Result<()> {
                     "<script type=module src=/webgpu/common/runtime/wpt.js></script>";
                 ensure!(
                     boilerplate.contains(expected_wpt_script_tag),
-                    concat!(
-                        "failed to find expected `script` tag for `wpt.js` ",
-                        "({:?}); did something change upstream?",
+                    format!(
+                        concat!(
+                            "failed to find expected `script` tag for `wpt.js` ",
+                            "({:?}); did something change upstream?"
+                        ),
+                        expected_wpt_script_tag
                     ),
-                    expected_wpt_script_tag
                 );
                 let mut boilerplate = boilerplate.replacen(
                     expected_wpt_script_tag,
