@@ -6094,10 +6094,13 @@ const FrameMetrics& AsyncPanZoomController::Metrics() const {
 
 bool CompositorScrollUpdate::operator==(
     const CompositorScrollUpdate& aOther) const {
-  // FIXME: RoundedToInt is used to preserve existing behaviour
-  //        added in bug 1600652. It can probably be removed.
-  return RoundedToInt(mVisualScrollOffset) ==
-             RoundedToInt(aOther.mVisualScrollOffset) &&
+  // Consider two updates to be the same if the scroll offsets are the same
+  // when rounded to the nearest screen pixel. This avoids spurious updates
+  // due to small rounding errors, which consumers do not care about because
+  // if the scroll offset does not change in screen pixels, what is composited
+  // should not change either.
+  return RoundedToInt(mVisualScrollOffset * mZoom) ==
+             RoundedToInt(aOther.mVisualScrollOffset * aOther.mZoom) &&
          mZoom == aOther.mZoom && mSource == aOther.mSource;
 }
 
