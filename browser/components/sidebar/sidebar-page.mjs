@@ -16,6 +16,7 @@ const { LightweightThemeConsumer } = ChromeUtils.importESModule(
 );
 ChromeUtils.defineESModuleGetters(lazy, {
   BrowserUtils: "resource://gre/modules/BrowserUtils.sys.mjs",
+  ForgetAboutSite: "resource://gre/modules/ForgetAboutSite.sys.mjs",
   PlacesUIUtils: "resource:///modules/PlacesUIUtils.sys.mjs",
 });
 
@@ -172,6 +173,7 @@ export class SidebarPage extends MozLitElement {
     }
   }
 
+  // TO DO: find a central place for this to live that's not PlacesController or here Bug 1954843
   async forgetAboutThisSite() {
     let host;
     if (PlacesUtils.nodeIsHost(this.triggerNode)) {
@@ -185,10 +187,37 @@ export class SidebarPage extends MozLitElement {
     } catch (e) {
       // If there is no baseDomain we fall back to host
     }
-    await this.topWindow.gDialogBox.open(
-      "chrome://browser/content/places/clearDataForSite.xhtml",
-      { host, hostOrBaseDomain: baseDomain ?? host }
+    const [title, body, forget] = await document.l10n.formatValues([
+      { id: "places-forget-about-this-site-confirmation-title" },
+      {
+        id: "places-forget-about-this-site-confirmation-msg",
+        args: { hostOrBaseDomain: baseDomain ?? host },
+      },
+      { id: "places-forget-about-this-site-forget" },
+    ]);
+
+    const flags =
+      Services.prompt.BUTTON_TITLE_IS_STRING * Services.prompt.BUTTON_POS_0 +
+      Services.prompt.BUTTON_TITLE_CANCEL * Services.prompt.BUTTON_POS_1 +
+      Services.prompt.BUTTON_POS_1_DEFAULT;
+
+    let bag = await Services.prompt.asyncConfirmEx(
+      window.browsingContext,
+      Services.prompt.MODAL_TYPE_INTERNAL_WINDOW,
+      title,
+      body,
+      flags,
+      forget,
+      null,
+      null,
+      null,
+      false
     );
+    if (bag.getProperty("buttonNumClicked") !== 0) {
+      return;
+    }
+
+    await lazy.ForgetAboutSite.removeDataFromBaseDomain(host);
   }
 
   /**
