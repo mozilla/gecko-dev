@@ -244,7 +244,10 @@ class HomeFragment : Fragment() {
     private var sessionControlView: SessionControlView? = null
 
     @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
-    internal lateinit var toolbarView: FenixHomeToolbar
+    internal var nullableToolbarView: FenixHomeToolbar? = null
+
+    private val toolbarView: FenixHomeToolbar
+        get() = nullableToolbarView!!
 
     private var lastAppliedWallpaperName: String = Wallpaper.defaultName
 
@@ -547,7 +550,7 @@ class HomeFragment : Fragment() {
             ),
         )
 
-        toolbarView = buildToolbar(activity)
+        nullableToolbarView = buildToolbar(activity)
 
         if (requireContext().settings().microsurveyFeatureEnabled) {
             listenForMicrosurveyMessage(requireContext())
@@ -1392,6 +1395,8 @@ class HomeFragment : Fragment() {
 
     override fun onDestroyView() {
         super.onDestroyView()
+
+        nullableToolbarView = null
 
         _sessionControlInteractor = null
         sessionControlView = null
