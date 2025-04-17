@@ -2512,6 +2512,14 @@ class Settings(private val appContext: Context) : PreferencesHolder {
     )
 
     /**
+     * Indicates if this is the default browser.
+     */
+    var isDefaultBrowser by booleanPreference(
+        key = appContext.getPreferenceKey(R.string.pref_key_default_browser),
+        default = false,
+    )
+
+    /**
      * Indicates whether or not to show the checklist feature.
      */
     val showSetupChecklist: Boolean

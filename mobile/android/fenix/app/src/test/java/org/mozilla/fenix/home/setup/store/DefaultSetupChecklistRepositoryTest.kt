@@ -5,55 +5,286 @@
 package org.mozilla.fenix.home.setup.store
 
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import junit.framework.TestCase.assertFalse
-import junit.framework.TestCase.assertTrue
+import io.mockk.every
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.take
+import kotlinx.coroutines.test.runTest
 import mozilla.components.support.test.robolectric.testContext
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
+import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
+import org.mozilla.fenix.R
+import org.mozilla.fenix.ext.settings
 import org.mozilla.fenix.utils.Settings
 
 @RunWith(AndroidJUnit4::class)
 class DefaultSetupChecklistRepositoryTest {
+    private val preferenceKeys = SetupChecklistPreference.entries
+
+    private lateinit var settings: Settings
+
+    @Before
+    fun setup() {
+        settings = Settings(testContext)
+        every { testContext.settings() } returns settings
+    }
+
+    @Test
+    fun `test the preference enum keys map to the correct preference key`() {
+        assertEquals(R.string.pref_key_default_browser, preferenceKeys[0].preferenceKey)
+        assertEquals(R.string.pref_key_fxa_signed_in, preferenceKeys[1].preferenceKey)
+        assertEquals(R.string.pref_key_setup_step_theme, preferenceKeys[2].preferenceKey)
+        assertEquals(R.string.pref_key_setup_step_toolbar, preferenceKeys[3].preferenceKey)
+        assertEquals(R.string.pref_key_setup_step_extensions, preferenceKeys[4].preferenceKey)
+        assertEquals(R.string.pref_key_search_widget_installed_2, preferenceKeys[5].preferenceKey)
+    }
+
+    @Test
+    fun `WHEN toolbar preference THEN setPreference updates the preference value`() {
+        assertFalse(settings.hasCompletedSetupStepToolbar)
+
+        val repository = DefaultSetupChecklistRepository(context = testContext)
+        repository.setPreference(SetupChecklistPreference.ToolbarComplete, true)
+
+        assertTrue(settings.hasCompletedSetupStepToolbar)
+    }
+
+    @Test
+    fun `WHEN theme preference THEN setPreference updates the preference value`() {
+        assertFalse(settings.hasCompletedSetupStepTheme)
+
+        val repository = DefaultSetupChecklistRepository(context = testContext)
+        repository.setPreference(SetupChecklistPreference.ThemeComplete, true)
+
+        assertTrue(settings.hasCompletedSetupStepTheme)
+    }
+
+    @Test
+    fun `WHEN extensions complete preference THEN setPreference updates the preference value`() {
+        assertFalse(settings.hasCompletedSetupStepExtensions)
+
+        val repository = DefaultSetupChecklistRepository(context = testContext)
+        repository.setPreference(SetupChecklistPreference.ExtensionsComplete, true)
+
+        assertTrue(settings.hasCompletedSetupStepExtensions)
+    }
+
+    @Test
+    fun `WHEN set to default preference THEN setPreference does not update the preference value`() {
+        assertFalse(settings.isDefaultBrowser)
+
+        val repository = DefaultSetupChecklistRepository(context = testContext)
+        repository.setPreference(SetupChecklistPreference.SetToDefault, true)
+
+        assertFalse(settings.isDefaultBrowser)
+    }
+
+    @Test
+    fun `WHEN sign in preference THEN setPreference does not update the preference value`() {
+        assertFalse(settings.signedInFxaAccount)
+
+        val repository = DefaultSetupChecklistRepository(context = testContext)
+        repository.setPreference(SetupChecklistPreference.SetToDefault, true)
+
+        assertFalse(settings.signedInFxaAccount)
+    }
+
+    @Test
+    fun `WHEN install search widget preference THEN setPreference does not update the preference value`() {
+        assertFalse(settings.searchWidgetInstalled)
+
+        val repository = DefaultSetupChecklistRepository(context = testContext)
+        repository.setPreference(SetupChecklistPreference.SetToDefault, true)
+
+        assertFalse(settings.searchWidgetInstalled)
+    }
+
+    @Test
+    fun `GIVEN is default browser preference WHEN a change is made to the preference value THEN the repository emits the change`() =
+        runTest {
+            assertFalse(settings.isDefaultBrowser)
+            val repository =
+                DefaultSetupChecklistRepository(context = testContext, coroutineScope = this)
+            settings.preferences.registerOnSharedPreferenceChangeListener(repository.onPreferenceChange)
+
+            settings.isDefaultBrowser = true
+
+            val result = repository.setupChecklistPreferenceUpdates.take(1).first()
+            val expected = SetupChecklistRepository.SetupChecklistPreferenceUpdate(
+                SetupChecklistPreference.SetToDefault,
+                true,
+            )
+            assertEquals(expected, result)
+        }
+
+    @Test
+    fun `GIVEN sign in preference WHEN a change is made to the preference value THEN the repository emits the change`() =
+        runTest {
+            assertFalse(settings.signedInFxaAccount)
+            val repository =
+                DefaultSetupChecklistRepository(context = testContext, coroutineScope = this)
+            settings.preferences.registerOnSharedPreferenceChangeListener(repository.onPreferenceChange)
+
+            settings.signedInFxaAccount = true
+
+            val result = repository.setupChecklistPreferenceUpdates.take(1).first()
+            val expected = SetupChecklistRepository.SetupChecklistPreferenceUpdate(
+                SetupChecklistPreference.SignIn,
+                true,
+            )
+            assertEquals(expected, result)
+        }
+
+    @Test
+    fun `GIVEN theme step completed preference WHEN a change is made to the preference value THEN the repository emits the change`() =
+        runTest {
+            assertFalse(settings.hasCompletedSetupStepTheme)
+            val repository =
+                DefaultSetupChecklistRepository(context = testContext, coroutineScope = this)
+            settings.preferences.registerOnSharedPreferenceChangeListener(repository.onPreferenceChange)
+
+            settings.hasCompletedSetupStepTheme = true
+
+            val result = repository.setupChecklistPreferenceUpdates.take(1).first()
+            val expected = SetupChecklistRepository.SetupChecklistPreferenceUpdate(
+                SetupChecklistPreference.ThemeComplete,
+                true,
+            )
+            assertEquals(expected, result)
+        }
+
+    @Test
+    fun `GIVEN toolbar step completed preference WHEN a change is made to the preference value THEN the repository emits the change`() =
+        runTest {
+            assertFalse(settings.hasCompletedSetupStepToolbar)
+            val repository =
+                DefaultSetupChecklistRepository(context = testContext, coroutineScope = this)
+            settings.preferences.registerOnSharedPreferenceChangeListener(repository.onPreferenceChange)
+
+            settings.hasCompletedSetupStepToolbar = true
+
+            val result = repository.setupChecklistPreferenceUpdates.take(1).first()
+            val expected = SetupChecklistRepository.SetupChecklistPreferenceUpdate(
+                SetupChecklistPreference.ToolbarComplete,
+                true,
+            )
+            assertEquals(expected, result)
+        }
+
+    @Test
+    fun `GIVEN extension step completed preference WHEN a change is made to the preference value THEN the repository emits the change`() =
+        runTest {
+            assertFalse(settings.hasCompletedSetupStepExtensions)
+            val repository =
+                DefaultSetupChecklistRepository(context = testContext, coroutineScope = this)
+            settings.preferences.registerOnSharedPreferenceChangeListener(repository.onPreferenceChange)
+
+            settings.hasCompletedSetupStepExtensions = true
+
+            val result = repository.setupChecklistPreferenceUpdates.take(1).first()
+            val expected = SetupChecklistRepository.SetupChecklistPreferenceUpdate(
+                SetupChecklistPreference.ExtensionsComplete,
+                true,
+            )
+            assertEquals(expected, result)
+        }
+
+    @Test
+    fun `GIVEN search widget added preference WHEN a change is made to the preference value THEN the repository emits the change`() =
+        runTest {
+            assertFalse(settings.searchWidgetInstalled)
+            val repository =
+                DefaultSetupChecklistRepository(context = testContext, coroutineScope = this)
+            settings.preferences.registerOnSharedPreferenceChangeListener(repository.onPreferenceChange)
+
+            settings.setSearchWidgetInstalled(true)
+
+            val result = repository.setupChecklistPreferenceUpdates.take(1).first()
+            val expected = SetupChecklistRepository.SetupChecklistPreferenceUpdate(
+                SetupChecklistPreference.InstallSearchWidget,
+                true,
+            )
+            assertEquals(expected, result)
+        }
+
+    @Test
+    fun `WHEN getPreference is called for the set to default step THEN the proper value is returned`() {
+        val repository = DefaultSetupChecklistRepository(testContext)
+
+        assertFalse(repository.getPreference(SetupChecklistPreference.SetToDefault))
+
+        settings.isDefaultBrowser = true
+        assertTrue(repository.getPreference(SetupChecklistPreference.SetToDefault))
+
+        settings.isDefaultBrowser = false
+        assertFalse(repository.getPreference(SetupChecklistPreference.SetToDefault))
+    }
+
+    @Test
+    fun `WHEN getPreference is called for the sign in step THEN the proper value is returned`() {
+        val repository = DefaultSetupChecklistRepository(testContext)
+
+        assertFalse(repository.getPreference(SetupChecklistPreference.SignIn))
+
+        settings.signedInFxaAccount = true
+        assertTrue(repository.getPreference(SetupChecklistPreference.SignIn))
+
+        settings.signedInFxaAccount = false
+        assertFalse(repository.getPreference(SetupChecklistPreference.SignIn))
+    }
+
+    @Test
+    fun `WHEN getPreference is called for the install search widget step THEN the proper value is returned`() {
+        val repository = DefaultSetupChecklistRepository(testContext)
+
+        assertFalse(repository.getPreference(SetupChecklistPreference.InstallSearchWidget))
+
+        settings.setSearchWidgetInstalled(true)
+        assertTrue(repository.getPreference(SetupChecklistPreference.InstallSearchWidget))
+
+        settings.setSearchWidgetInstalled(false)
+        assertFalse(repository.getPreference(SetupChecklistPreference.InstallSearchWidget))
+    }
 
     @Test
     fun `WHEN getPreference is called for the toolbar step THEN the proper value is returned`() {
-        val settings = Settings(testContext)
-        val repository = DefaultSetupChecklistRepository(settings)
+        val repository = DefaultSetupChecklistRepository(testContext)
 
-        assertFalse(repository.getPreference(PreferenceType.ToolbarComplete))
+        assertFalse(repository.getPreference(SetupChecklistPreference.ToolbarComplete))
 
         settings.hasCompletedSetupStepToolbar = true
-        assertTrue(repository.getPreference(PreferenceType.ToolbarComplete))
+        assertTrue(repository.getPreference(SetupChecklistPreference.ToolbarComplete))
 
         settings.hasCompletedSetupStepToolbar = false
-        assertFalse(repository.getPreference(PreferenceType.ToolbarComplete))
+        assertFalse(repository.getPreference(SetupChecklistPreference.ToolbarComplete))
     }
 
     @Test
     fun `WHEN getPreference is called for the theme step THEN the proper value is returned`() {
-        val settings = Settings(testContext)
-        val repository = DefaultSetupChecklistRepository(settings)
+        val repository = DefaultSetupChecklistRepository(testContext)
 
-        assertFalse(repository.getPreference(PreferenceType.ThemeComplete))
+        assertFalse(repository.getPreference(SetupChecklistPreference.ThemeComplete))
 
         settings.hasCompletedSetupStepTheme = true
-        assertTrue(repository.getPreference(PreferenceType.ThemeComplete))
+        assertTrue(repository.getPreference(SetupChecklistPreference.ThemeComplete))
 
         settings.hasCompletedSetupStepTheme = false
-        assertFalse(repository.getPreference(PreferenceType.ThemeComplete))
+        assertFalse(repository.getPreference(SetupChecklistPreference.ThemeComplete))
     }
 
     @Test
     fun `WHEN getPreference is called for the extensions step THEN the proper value is returned`() {
-        val settings = Settings(testContext)
-        val repository = DefaultSetupChecklistRepository(settings)
+        val repository = DefaultSetupChecklistRepository(testContext)
 
-        assertFalse(repository.getPreference(PreferenceType.ExtensionsComplete))
+        assertFalse(repository.getPreference(SetupChecklistPreference.ExtensionsComplete))
 
         settings.hasCompletedSetupStepExtensions = true
-        assertTrue(repository.getPreference(PreferenceType.ExtensionsComplete))
+        assertTrue(repository.getPreference(SetupChecklistPreference.ExtensionsComplete))
 
         settings.hasCompletedSetupStepExtensions = false
-        assertFalse(repository.getPreference(PreferenceType.ExtensionsComplete))
+        assertFalse(repository.getPreference(SetupChecklistPreference.ExtensionsComplete))
     }
 }

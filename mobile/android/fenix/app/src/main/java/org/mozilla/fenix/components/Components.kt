@@ -259,10 +259,11 @@ class Components(private val context: Context) {
                     ),
                 ),
                 HomeTelemetryMiddleware(),
-                SetupChecklistPreferencesMiddleware(DefaultSetupChecklistRepository(settings)),
+                SetupChecklistPreferencesMiddleware(DefaultSetupChecklistRepository(context)),
                 SetupChecklistTelemetryMiddleware(),
             ),
         ).also {
+            it.dispatch(AppAction.SetupChecklistAction.Init)
             it.dispatch(AppAction.CrashActionWrapper(CrashAction.Initialize))
         }
     }

@@ -688,7 +688,8 @@ class DefaultSessionControlController(
         appStore.dispatch(AppAction.SetupChecklistAction.ChecklistItemClicked(item))
     }
 
-    private fun navigationActionFor(item: ChecklistItem.Task) = when (item.type) {
+    @VisibleForTesting
+    internal fun navigationActionFor(item: ChecklistItem.Task) = when (item.type) {
         ChecklistItem.Task.Type.SET_AS_DEFAULT -> activity.openSetDefaultBrowserOption()
 
         ChecklistItem.Task.Type.SIGN_IN ->
