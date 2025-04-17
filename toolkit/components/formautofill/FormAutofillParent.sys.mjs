@@ -1006,6 +1006,11 @@ export class FormAutofillParent extends JSWindowActorParent {
       return null;
     }
 
+    const fieldDetail = section.getFieldDetailByElementId(elementId);
+    if (!section.shouldAutofillField(fieldDetail)) {
+      return null;
+    }
+
     const relayPromise = lazy.FirefoxRelay.autocompleteItemsAsync({
       origin: this.formOrigin,
       scenarioName,

@@ -333,27 +333,30 @@ export class FormAutofillSection {
     return data;
   }
 
+  shouldAutofillField(fieldDetail) {
+    // We don't save security code, but if somehow the profile has securty code,
+    // make sure we don't autofill it.
+    if (fieldDetail.fieldName == "cc-csc") {
+      return false;
+    }
+
+    // When both visible and invisible elements exist, we only autofill the
+    // visible element.
+    if (!fieldDetail.isVisible) {
+      return !this.fieldDetails.some(
+        field => field.fieldName == fieldDetail.fieldName && field.isVisible
+      );
+    }
+
+    return true;
+  }
+
   /**
    * Heuristics to determine which fields to autofill when a section contains
    * multiple fields of the same type.
    */
   getAutofillFields() {
-    return this.fieldDetails.filter(fieldDetail => {
-      // We don't save security code, but if somehow the profile has securty code,
-      // make sure we don't autofill it.
-      if (fieldDetail.fieldName == "cc-csc") {
-        return false;
-      }
-
-      // When both visible and invisible elements exist, we only autofill the
-      // visible element.
-      if (!fieldDetail.isVisible) {
-        return !this.fieldDetails.some(
-          field => field.fieldName == fieldDetail.fieldName && field.isVisible
-        );
-      }
-      return true;
-    });
+    return this.fieldDetails.filter(fieldDetail => this.shouldAutofillField(fieldDetail));
   }
 
   /*
