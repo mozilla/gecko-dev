@@ -49,6 +49,59 @@ add_task(async function test_usageBeforeInitialization() {
   cleanup();
 });
 
+add_task(async function test_initOnUpdateEventsFire() {
+  let storePath;
+
+  {
+    const store = NimbusTestUtils.stubs.store();
+    await store.init();
+
+    store.addEnrollment(NimbusTestUtils.factories.experiment("foo"));
+    store.addEnrollment(NimbusTestUtils.factories.rollout("bar"));
+    store.addEnrollment(
+      NimbusTestUtils.factories.experiment("baz", { active: false })
+    );
+    store.addEnrollment(
+      NimbusTestUtils.factories.rollout("qux", { active: false })
+    );
+
+    storePath = await NimbusTestUtils.saveStore(store);
+  }
+
+  const { sandbox, store, initExperimentAPI, cleanup } = await setupTest({
+    storePath,
+    init: false,
+  });
+
+  const onFeatureUpdate = sandbox.stub();
+
+  NimbusFeatures.testFeature.onUpdate(onFeatureUpdate);
+
+  await initExperimentAPI();
+
+  Assert.equal(onFeatureUpdate.callCount, 2, "onFeatureUpdate called twice");
+
+  Assert.ok(
+    onFeatureUpdate.calledWithExactly(
+      "featureUpdate:testFeature",
+      "feature-experiment-loaded"
+    )
+  );
+  Assert.ok(
+    onFeatureUpdate.calledWithExactly(
+      "featureUpdate:testFeature",
+      "feature-rollout-loaded"
+    )
+  );
+
+  NimbusFeatures.testFeature.offUpdate(onFeatureUpdate);
+
+  store.updateExperiment("foo", { active: false });
+  store.updateExperiment("bar", { active: false });
+
+  cleanup();
+});
+
 add_task(async function test_getExperimentForGroup() {
   const { store, cleanup } = await setupTest();
 
@@ -876,6 +929,31 @@ add_task(async function test_cleanupOldRecipes() {
   );
 
   store.updateExperiment("active-6hrs", { active: false });
+
+  cleanup();
+});
+
+add_task(async function test_restore() {
+  let storePath;
+  {
+    const store = NimbusTestUtils.stubs.store();
+    await store.init();
+
+    store.addEnrollment(NimbusTestUtils.factories.experiment("experiment"));
+    store.addEnrollment(
+      NimbusTestUtils.factories.rollout("rollout", { active: true })
+    );
+
+    storePath = await NimbusTestUtils.saveStore(store);
+  }
+
+  const { store, cleanup } = await setupTest({ storePath });
+
+  Assert.ok(store.get("experiment"));
+  Assert.ok(store.get("rollout"));
+
+  store.updateExperiment("experiment", { active: false });
+  store.updateExperiment("rollout", { active: false });
 
   cleanup();
 });

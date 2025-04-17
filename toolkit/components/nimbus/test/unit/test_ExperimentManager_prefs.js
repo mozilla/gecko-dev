@@ -1,9 +1,6 @@
 /* Any copyright is dedicated to the Public Domain.
  * http://creativecommons.org/publicdomain/zero/1.0/ */
 
-const { _ExperimentFeature: ExperimentFeature, NimbusFeatures } =
-  ChromeUtils.importESModule("resource://nimbus/ExperimentAPI.sys.mjs");
-
 const { ObjectUtils } = ChromeUtils.importESModule(
   "resource://gre/modules/ObjectUtils.sys.mjs"
 );

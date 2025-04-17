@@ -1,8 +1,5 @@
 "use strict";
 
-const { _ExperimentFeature: ExperimentFeature } = ChromeUtils.importESModule(
-  "resource://nimbus/ExperimentAPI.sys.mjs"
-);
 const { TelemetryTestUtils } = ChromeUtils.importESModule(
   "resource://testing-common/TelemetryTestUtils.sys.mjs"
 );

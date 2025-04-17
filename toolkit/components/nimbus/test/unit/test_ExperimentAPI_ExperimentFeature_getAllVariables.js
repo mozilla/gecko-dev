@@ -1,9 +1,5 @@
 "use strict";
 
-const { _ExperimentFeature: ExperimentFeature } = ChromeUtils.importESModule(
-  "resource://nimbus/ExperimentAPI.sys.mjs"
-);
-
 const FEATURE_ID = "aboutwelcome";
 const TEST_FALLBACK_PREF = "browser.aboutwelcome.screens";
 const FAKE_FEATURE_MANIFEST = {

@@ -7,9 +7,11 @@ const { XPCOMUtils } = ChromeUtils.importESModule(
   "resource://gre/modules/XPCOMUtils.sys.mjs"
 );
 
-const { ExperimentAPI } = ChromeUtils.importESModule(
-  "resource://nimbus/ExperimentAPI.sys.mjs"
-);
+const {
+  _ExperimentFeature: ExperimentFeature,
+  ExperimentAPI,
+  NimbusFeatures,
+} = ChromeUtils.importESModule("resource://nimbus/ExperimentAPI.sys.mjs");
 const { ExperimentFakes, ExperimentTestUtils, NimbusTestUtils } =
   ChromeUtils.importESModule(
     "resource://testing-common/NimbusTestUtils.sys.mjs"
