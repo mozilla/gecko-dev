@@ -2874,6 +2874,20 @@ static void AccumulateTelemetryCallback(JSMetric id, uint32_t sample) {
           JS::ExplainGCReason(static_cast<JS::GCReason>(sample)));
       glean::javascript_gc::minor_reason_long.Get(reason).Add(1);
     } break;
+    case JSMetric::GC_GLEAN_SLOW_PHASE: {
+      MOZ_ASSERT(sample < static_cast<uint32_t>(
+                              glean::javascript_gc::SlowPhaseLabel::e__Other__),
+                 "Phase does not exist in the slow_phase labels list.");
+      nsAutoCString phase(JS::GetGCPhaseName(sample));
+      glean::javascript_gc::slow_phase.Get(phase).Add(1);
+    } break;
+    case JSMetric::GC_GLEAN_SLOW_TASK: {
+      MOZ_ASSERT(sample < static_cast<uint32_t>(
+                              glean::javascript_gc::SlowTaskLabel::e__Other__),
+                 "Phase does not exist in the slow_task labels list.");
+      nsAutoCString phase(JS::GetGCPhaseName(sample));
+      glean::javascript_gc::slow_task.Get(phase).Add(1);
+    } break;
 
     default:
       // The rest aren't relayed to Glean.
