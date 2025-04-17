@@ -6,13 +6,14 @@ use std::{
 };
 
 use clap::Parser;
+use ezcmd::EasyCommand;
 use itertools::Itertools;
 use miette::{ensure, miette, Context, Diagnostic, IntoDiagnostic, Report, SourceSpan};
 use regex::Regex;
 
 use crate::{
     fs::{create_dir_all, remove_file, FileRoot},
-    process::{which, EasyCommand},
+    process::which,
 };
 
 mod fs;
@@ -60,17 +61,17 @@ fn run(args: CliArgs) -> miette::Result<()> {
         .wrap_err("failed to change working directory to CTS checkout")?;
     log::debug!("changed CWD to {cts_ckt}");
 
-    let mut npm_ci_cmd = EasyCommand::new(&npm_bin, |cmd| cmd.arg("ci"));
+    let mut npm_ci_cmd = EasyCommand::simple(&npm_bin, ["ci"]);
     log::info!(
         "ensuring a clean {} directory with {npm_ci_cmd}…",
         cts_ckt.child("node_modules"),
     );
-    npm_ci_cmd.spawn()?;
+    npm_ci_cmd.run().into_diagnostic()?;
 
     let out_wpt_dir = cts_ckt.regen_dir("out-wpt", |out_wpt_dir| {
-        let mut npm_run_wpt_cmd = EasyCommand::new(&npm_bin, |cmd| cmd.args(["run", "wpt"]));
+        let mut npm_run_wpt_cmd = EasyCommand::simple(&npm_bin, ["run", "wpt"]);
         log::info!("generating WPT test cases into {out_wpt_dir} with {npm_run_wpt_cmd}…");
-        npm_run_wpt_cmd.spawn()
+        npm_run_wpt_cmd.run().into_diagnostic()
     })?;
 
     let cts_https_html_path = out_wpt_dir.child("cts-withsomeworkers.https.html");
