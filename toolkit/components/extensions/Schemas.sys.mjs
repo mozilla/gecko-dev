@@ -2476,6 +2476,13 @@ class ArrayType extends Type {
     }
     value = v.value;
 
+    // eslint-disable-next-line no-use-before-define
+    if (value && this.itemType instanceof FunctionType) {
+      // This needs special handling if we're expecting an array of functions,
+      // because iterating over (wrapped) callable items fails otherwise.
+      value = this.extractItems(value, context);
+    }
+
     let result = [];
     for (let [i, element] of value.entries()) {
       element = context.withPath(String(i), () =>
@@ -2507,6 +2514,29 @@ class ArrayType extends Type {
     }
 
     return this.postprocess({ value: result }, context);
+  }
+
+  /**
+   * Extracts all items of the given array, including callable
+   * ones which would normally be omitted by X-ray wrappers.
+   *
+   * @see ObjectType.extractProperties for more details.
+   *
+   * @param {Array} value
+   * @param {Context} context
+   * @returns {Array}
+   */
+  extractItems(value, context) {
+    let klass = ChromeUtils.getClassName(value, true);
+    if (klass !== "Array") {
+      throw context.error(
+        `Expected a plain JavaScript array, got a ${klass}`,
+        `be a plain JavaScript array`
+      );
+    }
+    let obj = ChromeUtils.shallowClone(value);
+    obj.length = value.length;
+    return Array.from(obj);
   }
 
   checkBaseType(baseType) {
