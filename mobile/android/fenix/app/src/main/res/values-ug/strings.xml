@@ -129,6 +129,8 @@
   <string name="address_bar_swipe_cfr_title" tools:ignore="UnusedResources" moz:removedIn="139">قورال بالداق سۈرۈلسە بەتكۈچ ئالماشتۇرىدۇ</string>
   <!-- Text for the message displayed in the contextual feature recommendation popup promoting swipe of address bar. -->
   <string name="address_bar_swipe_cfr_message" tools:ignore="UnusedResources" moz:removedIn="139">ئوڭ ياكى سولغا سۈرۈلسە ئالماشتۇرىدۇ. ئاخىرقى بەتكۈچىڭىز سولغا سۈرۈلسە يېڭى بەتكۈچ ئېچىلىدۇ.</string>
+  <!-- Text for the message displayed in the contextual feature recommendation popup promoting swipe of address bar. -->
+  <string name="address_bar_swipe_cfr_message_2">قورال بالداق ئوڭ ياكى سولغا سۈرۈلسە بەتكۈچ ئالمىشىدۇ.</string>
   <!-- Text for the info dialog when camera permissions have been denied but user tries to access a camera feature. -->
   <string name="camera_permissions_needed_message">كامېرا ئىجازىتى زۆرۈر. ئاندىرويىد تەڭشىكىگە يۆتكىلىپ، ئىجازەتنى چېكىپ، ئاندىن يول قوينى چېكىڭ.</string>
   <!-- Text for the positive action button to go to Android Settings to grant permissions. -->
@@ -3377,6 +3379,26 @@
     The title of the glean debugging feature
   -->
   <string name="glean_debug_tools_title">Glean سازلاش قورالى</string>
+  <!--
+    Debug drawer region tools
+
+    Title of the Region tools in the Debug Drawer.
+    This tool allows temporarily overriding the home region (user's default locale)
+    and the current region (device's detected location) for testing purposes.
+  -->
+  <string name="debug_drawer_region_tools_title">رايون قورالى</string>
+  <!-- The description of the Region tools in the Debug Drawer -->
+  <string name="debug_drawer_regin_tools_description">سىناش ئۈچۈن باش بەت ۋە نۆۋەتتىكى رايون قىممىتىنى ۋاقىتلىق قاپلايدۇ.</string>
+  <!-- The text label for displaying home region. -->
+  <string name="debug_drawer_home_region_label">يەرلىك رايون</string>
+  <!-- The text label for displaying current region. -->
+  <string name="debug_drawer_current_region_label">نۆۋەتتىكى رايون</string>
+  <!-- The text field label for overriding home region. -->
+  <string name="debug_drawer_override_home_region_label">باش بەت رايوننى قاپلايدۇ</string>
+  <!-- The text field label for overriding current region. -->
+  <string name="debug_drawer_override_current_region_label">نۆۋەتتىكى رايوننى قاپلايدۇ</string>
+  <!-- The title of the button for overriding home and current region. -->
+  <string name="debug_drawer_override_region">باش بەت ۋە نۆۋەتتىكى رايوننى قاپلايدۇ</string>
   <!--
     Messages explaining how to exit fullscreen mode
 

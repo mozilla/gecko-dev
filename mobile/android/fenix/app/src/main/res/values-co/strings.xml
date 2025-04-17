@@ -130,6 +130,8 @@
   <string name="address_bar_swipe_cfr_title" tools:ignore="UnusedResources" moz:removedIn="139">Fà sfilà a barra d’attrezzi per cambià d’unghjetta</string>
   <!-- Text for the message displayed in the contextual feature recommendation popup promoting swipe of address bar. -->
   <string name="address_bar_swipe_cfr_message" tools:ignore="UnusedResources" moz:removedIn="139">Spazzà à manca o à diritta per cambià d’unghjetta. Spazzà versu à manca nant’à a vostra ultima unghjetta per apre un’unghjetta nova.</string>
+  <!-- Text for the message displayed in the contextual feature recommendation popup promoting swipe of address bar. -->
+  <string name="address_bar_swipe_cfr_message_2">Spazzà a barra d’attrezzi à manca o à diritta per cambià d’unghjetta.</string>
   <!-- Text for the info dialog when camera permissions have been denied but user tries to access a camera feature. -->
   <string name="camera_permissions_needed_message">Accessu richiestu à l’apparechju-fotò. Accidite à i parametri d’Android, picchichjate Permessi, è dopu Permette.</string>
   <!-- Text for the positive action button to go to Android Settings to grant permissions. -->
@@ -3379,6 +3381,26 @@
     The title of the glean debugging feature
   -->
   <string name="glean_debug_tools_title">Attrezzi di spannatura Glean</string>
+  <!--
+    Debug drawer region tools
+
+    Title of the Region tools in the Debug Drawer.
+    This tool allows temporarily overriding the home region (user's default locale)
+    and the current region (device's detected location) for testing purposes.
+  -->
+  <string name="debug_drawer_region_tools_title">Attrezzi di regione</string>
+  <!-- The description of the Region tools in the Debug Drawer -->
+  <string name="debug_drawer_regin_tools_description">Rimpiazzeghja timpurariamente i valori di regione - accolta è attuale - per fà prove.</string>
+  <!-- The text label for displaying home region. -->
+  <string name="debug_drawer_home_region_label">Regione d’accolta</string>
+  <!-- The text label for displaying current region. -->
+  <string name="debug_drawer_current_region_label">Regione attuale</string>
+  <!-- The text field label for overriding home region. -->
+  <string name="debug_drawer_override_home_region_label">Rimpiazzà a regione d’accolta</string>
+  <!-- The text field label for overriding current region. -->
+  <string name="debug_drawer_override_current_region_label">Rimpiazzà a regione attuale</string>
+  <!-- The title of the button for overriding home and current region. -->
+  <string name="debug_drawer_override_region">Rimpiazzà e regioni d’accolta è attuale</string>
   <!--
     Messages explaining how to exit fullscreen mode
 
