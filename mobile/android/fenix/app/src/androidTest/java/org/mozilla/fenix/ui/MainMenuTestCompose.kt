@@ -14,6 +14,7 @@ import org.junit.Rule
 import org.junit.Test
 import org.mozilla.fenix.IntentReceiverActivity
 import org.mozilla.fenix.R
+import org.mozilla.fenix.customannotations.SkipLeaks
 import org.mozilla.fenix.customannotations.SmokeTest
 import org.mozilla.fenix.ext.components
 import org.mozilla.fenix.helpers.AppAndSystemHelper.assertExternalAppOpens
@@ -45,6 +46,7 @@ import org.mozilla.fenix.helpers.TestHelper.restartApp
 import org.mozilla.fenix.helpers.TestHelper.verifySnackBarText
 import org.mozilla.fenix.helpers.TestHelper.waitUntilSnackbarGone
 import org.mozilla.fenix.helpers.TestSetup
+import org.mozilla.fenix.helpers.perf.DetectMemoryLeaksRule
 import org.mozilla.fenix.ui.robots.browserScreen
 import org.mozilla.fenix.ui.robots.clickPageObject
 import org.mozilla.fenix.ui.robots.customTabScreen
@@ -72,6 +74,9 @@ class MainMenuTestCompose : TestSetup() {
         true,
         false,
     )
+
+    @get:Rule
+    val memoryLeaksRule = DetectMemoryLeaksRule()
 
     // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2860735
     @SmokeTest
@@ -117,6 +122,7 @@ class MainMenuTestCompose : TestSetup() {
     // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2860843
     @SmokeTest
     @Test
+    @SkipLeaks(reasons = ["https://bugzilla.mozilla.org/show_bug.cgi?id=1959107"])
     fun verifyTheNewPrivateTabButtonTest() {
         val testPage = getGenericAsset(mockWebServer, 1)
 

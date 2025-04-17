@@ -7,10 +7,12 @@ package org.mozilla.fenix.ui
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
+import org.mozilla.fenix.customannotations.SkipLeaks
 import org.mozilla.fenix.helpers.HomeActivityIntentTestRule
 import org.mozilla.fenix.helpers.TestAssetHelper.TestAsset
 import org.mozilla.fenix.helpers.TestAssetHelper.getGPCTestAsset
 import org.mozilla.fenix.helpers.TestSetup
+import org.mozilla.fenix.helpers.perf.DetectMemoryLeaksRule
 import org.mozilla.fenix.ui.robots.homeScreen
 import org.mozilla.fenix.ui.robots.navigationToolbar
 
@@ -26,6 +28,9 @@ class GlobalPrivacyControlTest : TestSetup() {
         isWallpaperOnboardingEnabled = false,
         skipOnboarding = true,
     )
+
+    @get:Rule
+    val memoryLeaksRule = DetectMemoryLeaksRule()
 
     @Before
     override fun setUp() {
@@ -53,6 +58,7 @@ class GlobalPrivacyControlTest : TestSetup() {
     }
 
     // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2429364
+    @SkipLeaks(reasons = ["https://bugzilla.mozilla.org/show_bug.cgi?id=1959107"])
     @Test
     fun testGPCinPrivateBrowsing() {
         homeScreen { }.togglePrivateBrowsingMode()

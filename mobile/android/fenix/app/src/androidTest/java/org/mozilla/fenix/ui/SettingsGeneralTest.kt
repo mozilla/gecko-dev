@@ -10,6 +10,7 @@ import org.junit.Rule
 import org.junit.Test
 import org.mozilla.fenix.FenixApplication
 import org.mozilla.fenix.R
+import org.mozilla.fenix.customannotations.SkipLeaks
 import org.mozilla.fenix.customannotations.SmokeTest
 import org.mozilla.fenix.helpers.AppAndSystemHelper.registerAndCleanupIdlingResources
 import org.mozilla.fenix.helpers.AppAndSystemHelper.runWithSystemLocaleChanged
@@ -19,6 +20,7 @@ import org.mozilla.fenix.helpers.RecyclerViewIdlingResource
 import org.mozilla.fenix.helpers.TestAssetHelper.getLoremIpsumAsset
 import org.mozilla.fenix.helpers.TestHelper.mDevice
 import org.mozilla.fenix.helpers.TestSetup
+import org.mozilla.fenix.helpers.perf.DetectMemoryLeaksRule
 import org.mozilla.fenix.ui.robots.checkTextSizeOnWebsite
 import org.mozilla.fenix.ui.robots.homeScreen
 import org.mozilla.fenix.ui.robots.navigationToolbar
@@ -34,6 +36,9 @@ import org.mozilla.fenix.ui.util.ROMANIAN_LANGUAGE_HEADER
 class SettingsGeneralTest : TestSetup() {
     @get:Rule
     val activityIntentTestRule = HomeActivityIntentTestRule.withDefaultSettingsOverrides()
+
+    @get:Rule
+    val memoryLeaksRule = DetectMemoryLeaksRule()
 
     // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2092697
     @Test
@@ -138,6 +143,7 @@ class SettingsGeneralTest : TestSetup() {
 
     // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/516078
     @Test
+    @SkipLeaks(reasons = ["https://bugzilla.mozilla.org/show_bug.cgi?id=1959107"])
     fun verifyFollowDeviceLanguageTest() {
         val frenchLocale = LocaleListCompat.forLanguageTags("fr")
 
