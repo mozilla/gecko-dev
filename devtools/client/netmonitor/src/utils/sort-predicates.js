@@ -36,6 +36,12 @@ function compareValues(first, second) {
   if (first === second) {
     return 0;
   }
+  if (first === undefined) {
+    return 1;
+  }
+  if (second === undefined) {
+    return -1;
+  }
   return first > second ? 1 : -1;
 }
 
