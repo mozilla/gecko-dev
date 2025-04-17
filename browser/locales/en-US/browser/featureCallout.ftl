@@ -160,3 +160,22 @@ split-dismiss-button-show-fewer-option =
 # Opens about:preferences#general-cfrfeatures
 split-dismiss-button-manage-settings-option =
     .label = Manage settings
+
+## Bookmarks toolbar callout strings
+
+bookmarks-toolbar-callout-1-title = Add this site to your bookmarks toolbar?
+bookmarks-toolbar-callout-1-subtitle = Your bookmark will be saved just below the address bar for quick access.
+bookmarks-toolbar-callout-1-primary-button-label = Add bookmark
+bookmarks-toolbar-callout-1-secondary-button-label = No Thanks
+# Visible if user adds a bookmark in callout 1, bookmarks toolbar is set to always show when this message renders
+bookmarks-toolbar-callout-2a-title = Easily add more bookmarks
+bookmarks-toolbar-callout-2a-subtitle = You can drag and drop tabs here to keep more of your favorite sites within reach.
+bookmarks-toolbar-callout-2a-primary-button-label = Got it
+# Reverts the bookmarks toolbar to the default setting
+bookmarks-toolbar-callout-2a-secondary-button-label = Hide Toolbar
+# Visible if user declines to add a bookmark in callout 1, bookmarks toolbar is set to always show when this message renders
+bookmarks-toolbar-callout-2b-title = Keep your bookmarks toolbar open?
+bookmarks-toolbar-callout-2b-subtitle = You can add other sites you visit more often. Simply drag and drop tabs here to keep favorite websites within reach.
+bookmarks-toolbar-callout-2b-primary-button-label = Keep open
+# Reverts the bookmarks toolbar to the default setting
+bookmarks-toolbar-callout-2b-secondary-button-label = No thanks
