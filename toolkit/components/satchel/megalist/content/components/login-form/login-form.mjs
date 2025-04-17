@@ -50,6 +50,49 @@ export class LoginForm extends MozLitElement {
     };
   }
 
+  async firstUpdated() {
+    const mozButtonGroup = this.shadowRoot.querySelector("moz-button-group");
+    // Wait for the button group to complete its update cycle since it might reorder its slots.
+    await mozButtonGroup.updateComplete;
+    this.#handleKeyPressOnLastButton(mozButtonGroup);
+  }
+
+  #handleKeyPressOnLastButton(mozButtonGroup) {
+    const handleKeyPress = e => {
+      if (e.key !== "Tab") {
+        return;
+      }
+
+      const notifMsgBar = this.parentElement.querySelector(
+        "notification-message-bar"
+      );
+
+      if (!notifMsgBar) {
+        return;
+      }
+
+      e.preventDefault();
+
+      const mozMsgBar = notifMsgBar.shadowRoot.querySelector("moz-message-bar");
+      const mozButtonGroup = mozMsgBar.querySelector("moz-button-group");
+
+      if (mozButtonGroup) {
+        const firstSlot = mozButtonGroup.shadowRoot.querySelector("slot");
+        const firstButton = firstSlot.assignedElements()[0];
+        firstButton.focus();
+        return;
+      }
+
+      const primaryActionButton = mozMsgBar.querySelector("#primary-action");
+      primaryActionButton.focus();
+    };
+
+    const slots = mozButtonGroup.shadowRoot.querySelectorAll("slot");
+    const lastSlot = slots[slots.length - 1];
+    const lastButton = lastSlot.assignedElements()[0];
+    lastButton.addEventListener("keydown", e => handleKeyPress(e));
+  }
+
   #removeWarning(warning) {
     if (warning.classList.contains("invalid-input")) {
       warning.classList.remove("invalid-input");
