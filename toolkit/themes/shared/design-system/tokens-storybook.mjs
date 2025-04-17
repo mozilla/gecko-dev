@@ -821,7 +821,7 @@ export const storybookTables = {
   "box-shadow": [
     {
       value:
-        "0 0.125px 0.25px var(--box-shadow-color-darker-layer-1), 0 1px 2px var(--box-shadow-color-darker-layer-2)",
+        "0 0 1px var(--box-shadow-color-darker-layer-1), 0 1px 2px var(--box-shadow-color-darker-layer-2)",
       name: "--box-shadow-level-1",
     },
     {
@@ -845,17 +845,17 @@ export const storybookTables = {
     { value: "var(--box-shadow-level-3)", name: "--box-shadow-popup" },
     {
       value: {
-        light: "rgba(0, 0, 0, 0.1)",
-        dark: "rgba(0, 0, 0, 0.4)",
-        default: "light-dark(rgba(0, 0, 0, 0.1), rgba(0, 0, 0, 0.4))",
+        light: "rgba(0, 0, 0, 0.15)",
+        dark: "rgba(0, 0, 0, 0.2)",
+        default: "light-dark(rgba(0, 0, 0, 0.15), rgba(0, 0, 0, 0.2))",
       },
       name: "--box-shadow-color-darker-layer-1",
     },
     {
       value: {
         light: "rgba(0, 0, 0, 0.2)",
-        dark: "rgba(0, 0, 0, 0.8)",
-        default: "light-dark(rgba(0, 0, 0, 0.2), rgba(0, 0, 0, 0.8))",
+        dark: "rgba(0, 0, 0, 0.4)",
+        default: "light-dark(rgba(0, 0, 0, 0.2), rgba(0, 0, 0, 0.4))",
       },
       name: "--box-shadow-color-darker-layer-2",
     },
@@ -1356,7 +1356,7 @@ export const variableLookupTable = {
   "space-xlarge": "calc(6 * var(--space-xsmall))",
   "space-xxlarge": "calc(8 * var(--space-xsmall))",
   "box-shadow-level-1":
-    "0 0.125px 0.25px var(--box-shadow-color-darker-layer-1), 0 1px 2px var(--box-shadow-color-darker-layer-2)",
+    "0 0 1px var(--box-shadow-color-darker-layer-1), 0 1px 2px var(--box-shadow-color-darker-layer-2)",
   "box-shadow-level-2":
     "0 0.25px 0.75px var(--box-shadow-color-lighter-layer-1), 0 2px 6px var(--box-shadow-color-lighter-layer-2)",
   "box-shadow-level-3":
@@ -1368,14 +1368,14 @@ export const variableLookupTable = {
   "box-shadow-card-hover": "var(--box-shadow-level-4)",
   "box-shadow-popup": "var(--box-shadow-level-3)",
   "box-shadow-color-darker-layer-1": {
-    light: "rgba(0, 0, 0, 0.1)",
-    dark: "rgba(0, 0, 0, 0.4)",
-    default: "light-dark(rgba(0, 0, 0, 0.1), rgba(0, 0, 0, 0.4))",
+    light: "rgba(0, 0, 0, 0.15)",
+    dark: "rgba(0, 0, 0, 0.2)",
+    default: "light-dark(rgba(0, 0, 0, 0.15), rgba(0, 0, 0, 0.2))",
   },
   "box-shadow-color-darker-layer-2": {
     light: "rgba(0, 0, 0, 0.2)",
-    dark: "rgba(0, 0, 0, 0.8)",
-    default: "light-dark(rgba(0, 0, 0, 0.2), rgba(0, 0, 0, 0.8))",
+    dark: "rgba(0, 0, 0, 0.4)",
+    default: "light-dark(rgba(0, 0, 0, 0.2), rgba(0, 0, 0, 0.4))",
   },
   "box-shadow-color-lighter-layer-1": {
     light: "rgba(0, 0, 0, 0.05)",
