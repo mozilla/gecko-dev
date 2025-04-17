@@ -438,12 +438,19 @@ export class SuggestBackendRust extends SuggestBackend {
       return null;
     }
 
-    let customTargetingAttributes = {
+    let rsContext = {
       formFactor: "desktop",
+      appId: Services.appinfo.ID || "",
+      channel: AppConstants.IS_ESR ? "esr" : AppConstants.MOZ_UPDATE_CHANNEL,
+      appVersion: Services.appinfo.version,
+      locale: Services.locale.appLocaleAsBCP47,
+      os: AppConstants.platform,
+      osVersion: Services.sysinfo.get("version"),
     };
+
+    // We assume `QuickSuggest` init already awaited `Region.init()`.
     if (lazy.Region.home) {
-      // We assume `QuickSuggest` init already awaited `Region.init()`.
-      customTargetingAttributes.country = lazy.Region.home;
+      rsContext.country = lazy.Region.home;
     }
 
     let rsService;
@@ -453,22 +460,7 @@ export class SuggestBackendRust extends SuggestBackend {
         new lazy.RemoteSettingsConfig2({
           server: this.#remoteSettingsServer,
           bucketName: this.#remoteSettingsBucketName,
-          appContext: new lazy.RemoteSettingsContext({
-            appName: Services.appinfo.name || "",
-            appId: Services.appinfo.ID || "",
-            channel: AppConstants.IS_ESR
-              ? "esr"
-              : AppConstants.MOZ_UPDATE_CHANNEL,
-            appVersion: Services.appinfo.version,
-            appBuild: Services.appinfo.appBuildID,
-            architecture: Services.sysinfo.get("arch"),
-            locale: Services.locale.appLocaleAsBCP47,
-            os: AppConstants.platform,
-            osVersion: Services.sysinfo.get("version"),
-            customTargetingAttributes: JSON.stringify(
-              customTargetingAttributes
-            ),
-          }),
+          appContext: new lazy.RemoteSettingsContext(rsContext),
         })
       );
     } catch (error) {

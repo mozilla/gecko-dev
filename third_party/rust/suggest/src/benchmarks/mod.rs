@@ -85,7 +85,7 @@ fn new_store() -> SuggestStore {
             app_context: Some(RemoteSettingsContext::default()),
         };
         let remote_settings_service =
-            Arc::new(RemoteSettingsService::new("".to_string(), rs_config).unwrap());
+            Arc::new(RemoteSettingsService::new("".to_string(), rs_config));
         let store = SuggestStore::new(&db_path.to_string_lossy(), remote_settings_service)
             .expect("Error building store");
         store
@@ -101,8 +101,7 @@ fn new_store() -> SuggestStore {
         server: None,
         app_context: Some(RemoteSettingsContext::default()),
     };
-    let remote_settings_service =
-        Arc::new(RemoteSettingsService::new("".to_string(), rs_config).unwrap());
+    let remote_settings_service = Arc::new(RemoteSettingsService::new("".to_string(), rs_config));
     std::fs::copy(starter_db_path, &db_path).expect("Error copying starter DB file");
     SuggestStore::new(&db_path.to_string_lossy(), remote_settings_service)
         .expect("Error building store")

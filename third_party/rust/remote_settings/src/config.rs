@@ -63,6 +63,29 @@ impl RemoteSettingsServer {
         self.get_url()
     }
 
+    /// get_url() that never fails
+    ///
+    /// If the URL is invalid, we'll log a warning and fall back to the production URL
+    pub fn get_url_with_prod_fallback(&self) -> Url {
+        match self.get_url() {
+            Ok(url) => url,
+            // The unwrap below will never fail, since prod is a hard-coded/valid URL.
+            Err(_) => {
+                log::warn!("Invalid Custom URL: {}", self.raw_url());
+                Self::Prod.get_url().unwrap()
+            }
+        }
+    }
+
+    fn raw_url(&self) -> &str {
+        match self {
+            Self::Prod => "https://firefox.settings.services.mozilla.com/v1",
+            Self::Stage => "https://firefox.settings.services.allizom.org/v1",
+            Self::Dev => "https://remote-settings-dev.allizom.org/v1",
+            Self::Custom { url } => url,
+        }
+    }
+
     /// Internal version of `url()`.
     ///
     /// The difference is that it uses `Error` instead of `ApiError`.  This is what we need to use

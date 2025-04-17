@@ -1889,8 +1889,7 @@ mod tests {
             bucket_name: Some(String::from("main")),
             app_context: Some(RemoteSettingsContext::default()),
         };
-        let service =
-            Arc::new(RemoteSettingsService::new(String::from(":memory:"), config).unwrap());
+        let service = Arc::new(RemoteSettingsService::new(String::from(":memory:"), config));
 
         let selector = Arc::new(SearchEngineSelector::new());
 

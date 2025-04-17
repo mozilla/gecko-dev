@@ -383,12 +383,14 @@ class _QuickSuggestTestUtils {
    */
   ampRemoteSettings({
     keywords = ["amp"],
+    full_keywords = keywords.map(kw => [kw, 1]),
     url = "https://example.com/amp",
     title = "Amp Suggestion",
     score = 0.3,
   } = {}) {
     return {
       keywords,
+      full_keywords,
       url,
       title,
       score,

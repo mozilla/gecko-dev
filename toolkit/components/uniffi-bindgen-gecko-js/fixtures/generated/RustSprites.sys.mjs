@@ -370,7 +370,7 @@ export class Sprite {
                 throw e;
             }
             return UniFFIScaffolding.callAsyncWrapper(
-                204, // sprites:uniffi_uniffi_sprites_fn_constructor_sprite_new
+                205, // sprites:uniffi_uniffi_sprites_fn_constructor_sprite_new
                 FfiConverterOptionalTypePoint.lower(initialPosition),
             )
         }
@@ -404,7 +404,7 @@ export class Sprite {
                 throw e;
             }
             return UniFFIScaffolding.callAsyncWrapper(
-                205, // sprites:uniffi_uniffi_sprites_fn_constructor_sprite_new_relative_to
+                206, // sprites:uniffi_uniffi_sprites_fn_constructor_sprite_new_relative_to
                 FfiConverterTypePoint.lower(reference),
                 FfiConverterTypeVector.lower(direction),
             )
@@ -424,7 +424,7 @@ export class Sprite {
         const liftError = null;
         const functionCall = () => {
             return UniFFIScaffolding.callAsyncWrapper(
-                201, // sprites:uniffi_uniffi_sprites_fn_method_sprite_get_position
+                202, // sprites:uniffi_uniffi_sprites_fn_method_sprite_get_position
                 FfiConverterTypeSprite.lower(this),
             )
         }
@@ -451,7 +451,7 @@ export class Sprite {
                 throw e;
             }
             return UniFFIScaffolding.callAsyncWrapper(
-                202, // sprites:uniffi_uniffi_sprites_fn_method_sprite_move_by
+                203, // sprites:uniffi_uniffi_sprites_fn_method_sprite_move_by
                 FfiConverterTypeSprite.lower(this),
                 FfiConverterTypeVector.lower(direction),
             )
@@ -479,7 +479,7 @@ export class Sprite {
                 throw e;
             }
             return UniFFIScaffolding.callAsyncWrapper(
-                203, // sprites:uniffi_uniffi_sprites_fn_method_sprite_move_to
+                204, // sprites:uniffi_uniffi_sprites_fn_method_sprite_move_to
                 FfiConverterTypeSprite.lower(this),
                 FfiConverterTypePoint.lower(position),
             )
@@ -755,7 +755,7 @@ export function translate(p,v) {
                 throw e;
             }
             return UniFFIScaffolding.callAsyncWrapper(
-                200, // sprites:uniffi_uniffi_sprites_fn_func_translate
+                201, // sprites:uniffi_uniffi_sprites_fn_func_translate
                 FfiConverterTypePoint.lower(p),
                 FfiConverterTypeVector.lower(v),
             )
