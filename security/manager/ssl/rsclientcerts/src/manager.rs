@@ -403,9 +403,9 @@ pub struct Manager<B: ClientCertsBackend> {
     next_session: CK_SESSION_HANDLE,
     /// The next object handle to hand out.
     next_handle: CK_OBJECT_HANDLE,
-    /// The last time the implementation looked for new objects in the backend.
-    /// The implementation does this search no more than once every 2 seconds.
-    last_scan_time: Option<Instant>,
+    /// The last time the implementation finished looking for new objects in the backend.
+    /// The implementation does this search no more than once every 3 seconds.
+    last_scan_finished: Option<Instant>,
     backend: B,
 }
 
@@ -420,26 +420,25 @@ impl<B: ClientCertsBackend> Manager<B> {
             key_ids: BTreeSet::new(),
             next_session: 1,
             next_handle: 1,
-            last_scan_time: None,
+            last_scan_finished: None,
             backend,
         }
     }
 
-    /// When a new search session is opened (provided at least 2 seconds have elapsed since the
-    /// last session was opened), this searches for certificates and keys to expose. We
-    /// de-duplicate previously-found certificates and keys by keeping track of their IDs.
+    /// When a new search session is opened (provided at least 3 seconds have elapsed since the
+    /// last search finished), this searches for certificates and keys to expose. We de-duplicate
+    /// previously-found certificates and keys by keeping track of their IDs.
     fn maybe_find_new_objects(&mut self) -> Result<(), Error> {
-        let now = Instant::now();
-        match self.last_scan_time {
-            Some(last_scan_time) => {
-                if now.duration_since(last_scan_time) < Duration::new(2, 0) {
+        match self.last_scan_finished {
+            Some(last_scan_finished) => {
+                if Instant::now().duration_since(last_scan_finished) < Duration::new(3, 0) {
                     return Ok(());
                 }
             }
             None => {}
         }
-        self.last_scan_time = Some(now);
         let (certs, keys) = self.backend.find_objects()?;
+        self.last_scan_finished = Some(Instant::now());
         for cert in certs {
             let object = Object::Cert(cert);
             if self.cert_ids.contains(object.id()?) {

@@ -4,8 +4,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#include <atomic>
-
 #include "nsNSSComponent.h"
 
 #include "BinaryPath.h"
@@ -20,6 +18,7 @@
 #include "cert_storage/src/cert_storage.h"
 #include "certdb.h"
 #include "mozilla/AppShutdown.h"
+#include "mozilla/Atomics.h"
 #include "mozilla/ArrayUtils.h"
 #include "mozilla/Assertions.h"
 #include "mozilla/Base64.h"
@@ -1916,12 +1915,22 @@ nsNSSComponent::AsyncClearSSLExternalAndInternalSessionCache(
   return NS_OK;
 }
 
-std::atomic<bool> sSearchingForClientAuthCertificates{false};
+Atomic<bool> sSearchingForClientAuthCertificates{false};
 
 extern "C" {
-
+// Returns true once if gecko is searching for client authentication
+// certificates (i.e., if some thread has an
+// AutoSearchingForClientAuthCertificates on the stack).
+// The idea is when gecko instantiates an
+// AutoSearchingForClientAuthCertificates, sSearchingForClientAuthCertificates
+// will get set to true. Some thread running some NSS code will result in a
+// call to IsGeckoSearchingForClientAuthCertificates(), which will essentially
+// claim the search by swapping the value for false. The search will happen,
+// but for the rest of the lifetime of the
+// AutoSearchingForClientAuthCertificates, this function will return false,
+// meaning no other threads will also cause searches to happen.
 bool IsGeckoSearchingForClientAuthCertificates() {
-  return sSearchingForClientAuthCertificates;
+  return sSearchingForClientAuthCertificates.exchange(false);
 }
 }
 
