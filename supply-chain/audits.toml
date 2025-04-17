@@ -4533,6 +4533,11 @@ who = "Erich Gubler <erichdongubler@gmail.com>"
 criteria = "safe-to-deploy"
 delta = "0.8.1 -> 0.9.0"
 
+[[audits.ron]]
+who = "Erich Gubler <erichdongubler@gmail.com>"
+criteria = "safe-to-deploy"
+delta = "0.9.0 -> 0.10.1"
+
 [[audits.rure]]
 who = "Nika Layzell <nika@thelayzells.com>"
 criteria = "safe-to-deploy"
