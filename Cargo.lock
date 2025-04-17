@@ -4514,7 +4514,7 @@ dependencies = [
  "rustc-hash 1.999.999",
  "serde",
  "spirv",
- "strum",
+ "strum 0.26.999",
  "thiserror 2.0.9",
  "unicode-ident",
 ]
@@ -4550,7 +4550,7 @@ dependencies = [
  "env_logger",
  "log",
  "qlog",
- "strum",
+ "strum 0.26.999",
  "windows",
 ]
 
@@ -4567,7 +4567,7 @@ dependencies = [
  "semver",
  "serde",
  "serde_derive",
- "strum",
+ "strum 0.26.999",
  "toml",
 ]
 
@@ -4584,7 +4584,7 @@ dependencies = [
  "neqo-transport",
  "qlog",
  "sfv",
- "strum",
+ "strum 0.26.999",
  "url",
 ]
 
@@ -4615,7 +4615,7 @@ dependencies = [
  "qlog",
  "smallvec",
  "static_assertions",
- "strum",
+ "strum 0.26.999",
 ]
 
 [[package]]
@@ -6187,18 +6187,25 @@ checksum = "7da8b5736845d9f2fcb837ea5d9e2628564b3b043a70948a3f0b778838c5fb4f"
 
 [[package]]
 name = "strum"
-version = "0.26.3"
+version = "0.26.999"
+dependencies = [
+ "strum 0.27.1",
+]
+
+[[package]]
+name = "strum"
+version = "0.27.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8fec0f0aef304996cf250b31b5a10dee7980c85da9d759361292b8bca5a18f06"
+checksum = "f64def088c51c9510a8579e3c5d67c65349dcf755e5479ad3d010aa6454e2c32"
 dependencies = [
  "strum_macros",
 ]
 
 [[package]]
 name = "strum_macros"
-version = "0.26.4"
+version = "0.27.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4c6bee85a5a24955dc440386795aa378cd9cf82acd5f764469152d2270e581be"
+checksum = "c77a8c5abcaf0f9ce05d62342b7d298c346515365c36b673df4ebe3ced01fde8"
 dependencies = [
  "heck",
  "proc-macro2",

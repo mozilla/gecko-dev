@@ -216,6 +216,9 @@ rusqlite = { path = "build/rust/rusqlite" }
 # Patch `ron` 0.9.* to 0.10.
 ron = { path = "build/rust/ron" }
 
+# Patch `strum` 0.26.* to 0.27.
+strum = { path = "build/rust/strum" }
+
 # Overrides to allow easier use of common internal crates.
 moz_asserts = { path = "mozglue/static/rust/moz_asserts" }
 
