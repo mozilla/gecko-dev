@@ -48,11 +48,11 @@ def old_configure(old_configure, build_project):
     return old_configure
 
 
-@depends(prepare_mozconfig, old_configure_assignments)
+@depends(prepare_mozconfig)
 @imports(_from="__builtin__", _import="open")
 @imports(_from="__builtin__", _import="print")
 @imports(_from="mozbuild.shellutil", _import="quote")
-def prepare_configure(mozconfig, old_configure_assignments):
+def prepare_configure(mozconfig):
     assignments = {}
 
     with open("old-configure.vars", "w") as out:
@@ -72,10 +72,6 @@ def prepare_configure(mozconfig, old_configure_assignments):
                     assignments[key] = value
 
             inject("# end of mozconfig values")
-
-        for k, v in old_configure_assignments:
-            inject("%s=%s" % (k, quote(v)))
-            assignments[k] = v
 
     return namespace(assignments=assignments)
 

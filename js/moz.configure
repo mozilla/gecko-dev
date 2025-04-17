@@ -44,7 +44,6 @@ include("../build/moz.configure/bindgen.configure", when="--enable-compile-envir
 
 set_config("JS_STANDALONE", js_standalone)
 set_define("JS_STANDALONE", js_standalone)
-add_old_configure_assignment("JS_STANDALONE", js_standalone)
 option(
     "--enable-js-shell", default=js_standalone, help="{Build|Do not build} the JS shell"
 )

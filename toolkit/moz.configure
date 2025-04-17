@@ -94,9 +94,6 @@ option(
     help="Set distribution-specific id",
 )
 set_config("MOZ_DISTRIBUTION_ID", depends("--with-distribution-id")(lambda v: v[0]))
-add_old_configure_assignment(
-    "MOZ_DISTRIBUTION_ID", depends("--with-distribution-id")(lambda v: v[0])
-)
 
 
 @depends("MOZ_APP_VENDOR", build_project)
@@ -3208,8 +3205,6 @@ with only_when("--enable-official-branding"):
     set_config("MOZ_OFFICIAL_BRANDING", True)
     set_define("MOZ_OFFICIAL_BRANDING", True)
 
-    add_old_configure_assignment("MOZ_OFFICIAL_BRANDING", True)
-
 
 confvar(
     "MOZ_BRANDING_DIRECTORY",
@@ -3261,7 +3256,6 @@ def moz_branding_directory(
 
 
 set_config("MOZ_BRANDING_DIRECTORY", moz_branding_directory)
-add_old_configure_assignment("MOZ_BRANDING_DIRECTORY", moz_branding_directory)
 
 
 @depends(moz_branding_directory, build_project)

@@ -62,8 +62,6 @@ set_config("TOPSRCDIR", build_environment.topsrcdir)
 set_config("TOPOBJDIR", build_environment.topobjdir)
 set_config("DIST", build_environment.dist)
 
-add_old_configure_assignment("_topsrcdir", build_environment.topsrcdir)
-
 option(env="MOZ_AUTOMATION", help="Enable options for automated builds")
 set_config("MOZ_AUTOMATION", depends_if("MOZ_AUTOMATION")(lambda x: True))
 
@@ -995,7 +993,6 @@ def build_project(project):
 
 set_config("MOZ_BUILD_APP", build_project)
 set_define("MOZ_BUILD_APP", build_project)
-add_old_configure_assignment("MOZ_BUILD_APP", build_project)
 
 
 option(env="MOZILLA_OFFICIAL", help="Build an official release")
@@ -1178,7 +1175,6 @@ set_define("MOZILLA_UAVERSION", depends(milestone)(lambda m: '"%s"' % m.uaversio
 set_config("MOZ_APP_VERSION", milestone.app_version)
 set_config("MOZ_APP_VERSION_DISPLAY", milestone.app_version_display)
 set_config("MOZ_APP_MAXVERSION", moz_app_maxversion)
-add_old_configure_assignment("MOZ_APP_VERSION", milestone.app_version)
 
 
 # The app update channel is 'default' when not supplied. The value is used in
