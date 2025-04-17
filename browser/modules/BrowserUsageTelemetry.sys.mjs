@@ -608,7 +608,10 @@ export let BrowserUsageTelemetry = {
   handleEvent(event) {
     switch (event.type) {
       case "TabOpen":
-        this._onTabOpen();
+        this._onTabOpen(event);
+        break;
+      case "TabClose":
+        this._onTabClosed(event);
         break;
       case "TabPinned":
         this._onTabPinned();
@@ -627,12 +630,16 @@ export let BrowserUsageTelemetry = {
       case "TabMove":
         this._onTabMove(event);
         break;
+      case "TabSelect":
+        this._onTabSelect(event);
+        break;
       case "TabGroupRemoveRequested":
         this._onTabGroupRemoveRequested(event);
         break;
       case "TabGroupSaved":
         this._onTabGroupSave(event);
         break;
+
       case "unload":
         this._unregisterWindow(event.target);
         break;
@@ -1181,7 +1188,9 @@ export let BrowserUsageTelemetry = {
     win.addEventListener("unload", this);
     win.addEventListener("TabMove", this);
     win.addEventListener("TabOpen", this, true);
+    win.addEventListener("TabClose", this, true);
     win.addEventListener("TabPinned", this, true);
+    win.addEventListener("TabSelect", this);
     win.addEventListener("TabGroupCreate", this);
     win.addEventListener("TabGroupRemoveRequested", this);
     win.addEventListener("TabGrouped", this);
@@ -1201,7 +1210,9 @@ export let BrowserUsageTelemetry = {
     win.removeEventListener("unload", this);
     win.removeEventListener("TabMove", this);
     win.removeEventListener("TabOpen", this, true);
+    win.removeEventListener("TabClose", this, true);
     win.removeEventListener("TabPinned", this, true);
+    win.removeEventListener("TabSelect", this);
     win.removeEventListener("TabGroupCreate", this);
     win.removeEventListener("TabGroupRemoveRequested", this);
     win.removeEventListener("TabGrouped", this);
@@ -1220,12 +1231,16 @@ export let BrowserUsageTelemetry = {
   /**
    * Updates the tab counts.
    */
-  _onTabOpen() {
+  _onTabOpen(event) {
     // Update the "tab opened" count and its maximum.
     if (lazy.sidebarVerticalTabs) {
       Glean.browserEngagement.verticalTabOpenEventCount.add(1);
     } else {
       Glean.browserEngagement.tabOpenEventCount.add(1);
+    }
+
+    if (event?.target?.group) {
+      Glean.tabgroup.tabInteractions.new.add();
     }
 
     // In the case of opening multiple tabs at once, avoid enumerating all open
@@ -1245,6 +1260,19 @@ export let BrowserUsageTelemetry = {
     }
 
     this._recordTabCounts({ tabCount, loadedTabCount });
+  },
+
+  _onTabClosed(event) {
+    const group = event.target?.group;
+    const source = event.detail?.telemetrySource;
+
+    if (group) {
+      if (source == lazy.TabMetrics.METRIC_SOURCE.TAB_STRIP) {
+        Glean.tabgroup.tabInteractions.close_tabstrip.add();
+      } else if (source == lazy.TabMetrics.METRIC_SOURCE.TAB_OVERFLOW_MENU) {
+        Glean.tabgroup.tabInteractions.close_tabmenu.add();
+      }
+    }
   },
 
   _onTabPinned() {
@@ -1443,7 +1471,22 @@ export let BrowserUsageTelemetry = {
     let { previousTabState, currentTabState } = event.detail;
 
     if (!previousTabState.tabGroupId && currentTabState.tabGroupId) {
+      Glean.tabgroup.tabInteractions.add.add();
       record.numberAddedToTabGroup += 1;
+    }
+
+    if (
+      previousTabState.tabGroupId &&
+      previousTabState.tabGroupId == currentTabState.tabGroupId &&
+      previousTabState.tabIndex != currentTabState.tabIndex
+    ) {
+      Glean.tabgroup.tabInteractions.reorder.add();
+    }
+  },
+
+  _onTabSelect(event) {
+    if (event.target.group) {
+      Glean.tabgroup.tabInteractions.activate.add();
     }
   },
 
@@ -1480,7 +1523,7 @@ export let BrowserUsageTelemetry = {
 
       // We won't receive the "TabOpen" event for the first tab within a new window.
       // Account for that.
-      this._onTabOpen(counts);
+      this._onTabOpen();
     };
     win.addEventListener("load", onLoad);
   },

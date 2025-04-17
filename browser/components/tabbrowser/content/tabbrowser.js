@@ -4249,7 +4249,7 @@
       this.removeTabs(tabsToRemove, aParams);
     }
 
-    removeMultiSelectedTabs() {
+    removeMultiSelectedTabs({ telemetrySource } = {}) {
       let selectedTabs = this.selectedTabs;
       if (
         !this.warnAboutClosingTabs(
@@ -4260,7 +4260,7 @@
         return;
       }
 
-      this.removeTabs(selectedTabs);
+      this.removeTabs(selectedTabs, { telemetrySource });
     }
 
     /**
@@ -4304,6 +4304,7 @@
         skipPermitUnload,
         skipRemoves,
         skipSessionStore,
+        telemetrySource,
       }
     ) {
       // Note: if you change any of the unload algorithm, consider also
@@ -4386,6 +4387,7 @@
             prewarmed: true,
             skipPermitUnload,
             skipSessionStore,
+            telemetrySource,
           });
         }
       }
@@ -4507,6 +4509,7 @@
         skipPermitUnload = false,
         skipSessionStore = false,
         skipGroupCheck = false,
+        telemetrySource,
       } = {}
     ) {
       // When 'closeWindowWithLastTab' pref is enabled, closing all tabs
@@ -4553,6 +4556,7 @@
             skipPermitUnload,
             skipRemoves: false,
             skipSessionStore,
+            telemetrySource,
           });
 
         // Wait for all the beforeunload events to have been processed by content processes.
@@ -4613,6 +4617,7 @@
         closeWindowWithLastTab,
         prewarmed,
         skipSessionStore,
+        telemetrySource,
       } = {}
     ) {
       if (UserInteraction.running("browser.tabs.opening", window)) {
@@ -4650,6 +4655,7 @@
           closeWindowWithLastTab,
           prewarmed,
           skipSessionStore,
+          telemetrySource,
         })
       ) {
         Glean.browserTabclose.timeAnim.cancel(aTab._closeTimeAnimTimerId);
@@ -4737,6 +4743,7 @@
         skipPermitUnload,
         prewarmed,
         skipSessionStore = false,
+        telemetrySource,
       } = {}
     ) {
       if (aTab.closing || this._windowIsClosing) {
@@ -4884,7 +4891,7 @@
       // inspect the tab that's about to close.
       let evt = new CustomEvent("TabClose", {
         bubbles: true,
-        detail: { adoptedBy: adoptedByTab, skipSessionStore },
+        detail: { adoptedBy: adoptedByTab, skipSessionStore, telemetrySource },
       });
       aTab.dispatchEvent(evt);
 
@@ -6400,13 +6407,17 @@
      *          The new index of the tab
      */
     duplicateTab(aTab, aRestoreTabImmediately, aOptions) {
-      return SessionStore.duplicateTab(
+      let newTab = SessionStore.duplicateTab(
         window,
         aTab,
         0,
         aRestoreTabImmediately,
         aOptions
       );
+      if (aTab.group) {
+        Glean.tabgroup.tabInteractions.duplicate.add();
+      }
+      return newTab;
     }
 
     /**
@@ -9108,6 +9119,9 @@ var TabContextMenu = {
     let newIndex = this.contextTabs.at(-1)._tPos + 1;
     for (let tab of this.contextTabs) {
       let newTab = SessionStore.duplicateTab(window, tab);
+      if (tab.group) {
+        Glean.tabgroup.tabInteractions.duplicate.add();
+      }
       gBrowser.moveTabTo(newTab, { tabIndex: newIndex++ });
     }
   },
@@ -9175,9 +9189,14 @@ var TabContextMenu = {
 
   closeContextTabs() {
     if (this.contextTab.multiselected) {
-      gBrowser.removeMultiSelectedTabs();
+      gBrowser.removeMultiSelectedTabs({
+        telemetrySource: gBrowser.TabMetrics.METRIC_SOURCE.TAB_STRIP,
+      });
     } else {
-      gBrowser.removeTab(this.contextTab, { animate: true });
+      gBrowser.removeTab(this.contextTab, {
+        animate: true,
+        telemetrySource: gBrowser.TabMetrics.METRIC_SOURCE.TAB_STRIP,
+      });
     }
   },
 

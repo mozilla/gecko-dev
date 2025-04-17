@@ -5022,6 +5022,9 @@ function duplicateTabIn(aTab, where, delta) {
       });
       break;
   }
+  if (aTab.group) {
+    Glean.tabgroup.tabInteractions.duplicate.add();
+  }
 }
 
 var MousePosTracker = {

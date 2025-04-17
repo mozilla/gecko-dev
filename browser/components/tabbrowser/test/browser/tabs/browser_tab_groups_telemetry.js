@@ -699,3 +699,114 @@ add_task(async function test_tabContextMenu_addTabsToGroup() {
 
   await resetTelemetry();
 });
+
+add_task(async function test_tabInteractions() {
+  await resetTelemetry();
+  let group = await makeTabGroup();
+
+  info(
+    "Test that selecting a tab in a group records tab_interactions.activate"
+  );
+  const tabSelectEvent = BrowserTestUtils.waitForEvent(win, "TabSelect");
+  win.gBrowser.selectTabAtIndex(1);
+  await tabSelectEvent;
+
+  await BrowserTestUtils.waitForCondition(() => {
+    return Glean.tabgroup.tabInteractions.activate.testGetValue() !== null;
+  }, "Wait for tab_interactions.activate to be recorded");
+  Assert.equal(
+    Glean.tabgroup.tabInteractions.activate.testGetValue(),
+    1,
+    "tab_interactions.activate was recorded"
+  );
+
+  info(
+    "Test that moving an existing tab into a tab group records tab_interactions.add"
+  );
+  let tab1 = BrowserTestUtils.addTab(win.gBrowser, "https://example.com");
+  win.gBrowser.moveTabToGroup(tab1, group, { isUserTriggered: true });
+
+  await BrowserTestUtils.waitForCondition(() => {
+    return Glean.tabgroup.tabInteractions.add.testGetValue() !== null;
+  }, "Wait for tab_interactions.add to be recorded");
+  Assert.equal(
+    Glean.tabgroup.tabInteractions.add.testGetValue(),
+    1,
+    "tab_interactions.add was recorded"
+  );
+
+  info(
+    "Test that adding a new tab to a tab group records tab_interactions.new"
+  );
+  BrowserTestUtils.addTab(win.gBrowser, "https://example.com", {
+    tabGroup: group,
+  });
+
+  await BrowserTestUtils.waitForCondition(() => {
+    return Glean.tabgroup.tabInteractions.new.testGetValue() !== null;
+  }, "Wait for tab_interactions.new to be recorded");
+  Assert.equal(
+    Glean.tabgroup.tabInteractions.new.testGetValue(),
+    1,
+    "tab_interactions.new was recorded"
+  );
+
+  info("Test that moving a tab within a group calls tab_interactions.reorder");
+  win.gBrowser.moveTabTo(group.tabs[0], { tabIndex: 3, isUserTriggered: true });
+  await BrowserTestUtils.waitForCondition(() => {
+    return Glean.tabgroup.tabInteractions.reorder.testGetValue() !== null;
+  }, "Wait for tab_interactions.reorder to be recorded");
+  Assert.equal(
+    Glean.tabgroup.tabInteractions.reorder.testGetValue(),
+    1,
+    "tab_interactions.reorder was recorded"
+  );
+
+  info(
+    "Test that duplicating a tab within a group calls tab_interactions.duplicate"
+  );
+  win.gBrowser.duplicateTab(group.tabs[0], true, { index: 2 });
+  await BrowserTestUtils.waitForCondition(() => {
+    return Glean.tabgroup.tabInteractions.duplicate.testGetValue() !== null;
+  }, "Wait for tab_interactions.duplicate to be recorded");
+  Assert.equal(
+    Glean.tabgroup.tabInteractions.duplicate.testGetValue(),
+    1,
+    "tab_interactions.duplicate was recorded"
+  );
+
+  info(
+    "Test that closing a tab using the tab's close button calls tab_interactions.close_tabstrip"
+  );
+  group.tabs.at(-1).querySelector(".tab-close-button").click();
+  await BrowserTestUtils.waitForCondition(() => {
+    return (
+      Glean.tabgroup.tabInteractions.close_tabstrip.testGetValue() !== null
+    );
+  }, "Wait for tab_interactions.close_tabstrip to be recorded");
+  Assert.equal(
+    Glean.tabgroup.tabInteractions.close_tabstrip.testGetValue(),
+    1,
+    "tab_interactions.close_tabstrip was recorded"
+  );
+
+  info(
+    "Test that closing a tab from the tab overflow menu calls tab_interactions.close_tabmenu"
+  );
+  await openTabsMenu();
+  win.document
+    .querySelector(".all-tabs-item.grouped .all-tabs-close-button")
+    .click();
+  await BrowserTestUtils.waitForCondition(() => {
+    return Glean.tabgroup.tabInteractions.close_tabmenu.testGetValue() !== null;
+  }, "Wait for tab_interactions.close_tabmenu to be recorded");
+  Assert.equal(
+    Glean.tabgroup.tabInteractions.close_tabmenu.testGetValue(),
+    1,
+    "tab_interactions.close_tabmenu was recorded"
+  );
+  await closeTabsMenu();
+
+  await removeTabGroup(group);
+  await resetTelemetry();
+});
