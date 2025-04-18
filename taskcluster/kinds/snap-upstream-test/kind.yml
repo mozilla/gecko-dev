@@ -4,11 +4,15 @@
 ---
 loader: taskgraph.loader.transform:loader
 
+only-for-build-platforms:
+    - linux64-snap/opt
+    - linux64-snap/debug
+
 transforms:
     - taskgraph.transforms.from_deps
     - gecko_taskgraph.transforms.job
-    - gecko_taskgraph.transforms.task
     - gecko_taskgraph.transforms.snap_test
+    - gecko_taskgraph.transforms.task
 
 kind-dependencies:
     - snap-upstream-build
@@ -50,9 +54,6 @@ tasks:
         run:
             command: >-
               export TASKCLUSTER_ROOT_DIR=$PWD && cd $MOZ_FETCHES_DIR/ && ./tests.sh --basic
-        treeherder:
-            platform: linux64/opt
-            symbol: Sel(basic)
         attributes:
             snap_test_type: basic
             snap_test_release: "2204"
@@ -65,9 +66,6 @@ tasks:
         run:
             command: >-
               export TASKCLUSTER_ROOT_DIR=$PWD && cd $MOZ_FETCHES_DIR/ && ./tests.sh --qa
-        treeherder:
-            platform: linux64/opt
-            symbol: Sel(QA)
         attributes:
             snap_test_type: qa
             snap_test_release: "2204"
@@ -80,9 +78,6 @@ tasks:
         run:
             command: >-
               export TASKCLUSTER_ROOT_DIR=$PWD && cd $MOZ_FETCHES_DIR/ && ./tests.sh --basic
-        treeherder:
-            platform: linux64/opt
-            symbol: Sel(basic)
         attributes:
             snap_test_type: basic
             snap_test_release: "2404"
@@ -95,9 +90,6 @@ tasks:
         run:
             command: >-
               export TASKCLUSTER_ROOT_DIR=$PWD && cd $MOZ_FETCHES_DIR/ && ./tests.sh --qa
-        treeherder:
-            platform: linux64/opt
-            symbol: Sel(QA)
         attributes:
             snap_test_type: qa
             snap_test_release: "2404"
