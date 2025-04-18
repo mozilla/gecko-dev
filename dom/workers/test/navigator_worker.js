@@ -46,6 +46,7 @@ function startTest(channelData) {
 
     if (
       prop.isNightly === !channelData.isNightly ||
+      prop.isEarlyBetaOrEarlier === !channelData.isEarlyBetaOrEarlier ||
       prop.release === !channelData.isRelease ||
       prop.isSecureContext === !isSecureContext ||
       prop.isAndroid === !channelData.isAndroid
