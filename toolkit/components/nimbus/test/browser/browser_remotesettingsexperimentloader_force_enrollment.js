@@ -27,6 +27,13 @@ async function setup(recipes) {
 }
 
 add_setup(async function () {
+  const sandbox = sinon.createSandbox();
+
+  // Prevent a race between the RemoteSettingsExperimentLoader being enabled in
+  // an async stack triggered from a sync pref listener, which can cause
+  // spurious enrollments.
+  sandbox.stub(RemoteSettingsExperimentLoader, "updateRecipes").resolves();
+
   await SpecialPowers.pushPrefEnv({
     set: [
       ["messaging-system.log", "all"],
@@ -37,7 +44,14 @@ add_setup(async function () {
   });
 
   registerCleanupFunction(async () => {
+    // onEnabledPrefChanged is a sync function that can trigger updateRecipes(),
+    // which is an async function, which can cause hard to debug races. Let's
+    // prevent by stubbing out the pref changed handler and disabling the
+    // RemoteSettingsExperimentLoader manually.
+    sandbox.stub(RemoteSettingsExperimentLoader, "onEnabledPrefChanged");
+    await RemoteSettingsExperimentLoader.disable();
     await SpecialPowers.popPrefEnv();
+    sandbox.restore();
   });
 });
 
