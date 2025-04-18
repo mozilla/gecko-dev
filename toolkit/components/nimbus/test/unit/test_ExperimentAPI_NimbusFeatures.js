@@ -56,22 +56,6 @@ const AW_FAKE_MANIFEST = {
   },
 };
 
-const TEST_FEATURE = new ExperimentFeature("test-feature", {
-  description: "Test feature",
-  isEarlyStartup: false,
-  hasExposure: false,
-  variables: {
-    enabled: {
-      type: "boolean",
-      description: "test variable",
-    },
-  },
-});
-
-add_setup(() => {
-  NimbusTestUtils.addTestFeatures(TEST_FEATURE);
-});
-
 add_task(async function validSchema() {
   const validator = new JsonSchema.Validator(await fetchSchema, {
     shortCircuit: false,
@@ -103,8 +87,7 @@ add_task(async function readyCallAfterStore_with_remote_value() {
 });
 
 add_task(async function has_sync_value_before_ready() {
-  // We don't need to initialize Nimbus in this test.
-  const { cleanup } = await NimbusTestUtils.setupTest({ init: false });
+  const { cleanup } = await NimbusTestUtils.setupTest();
   const feature = new ExperimentFeature("aboutwelcome", AW_FAKE_MANIFEST);
 
   Assert.equal(
@@ -156,18 +139,19 @@ add_task(async function update_remote_defaults_onUpdate() {
 
 add_task(async function test_features_over_feature() {
   const { manager, cleanup } = await NimbusTestUtils.setupTest();
+  const feature = new ExperimentFeature("aboutwelcome");
   const rollout_features_and_feature = Object.freeze(
     ExperimentFakes.rollout("matching-rollout", {
       branch: {
         slug: "slug",
         ratio: 1,
         feature: {
-          featureId: TEST_FEATURE.featureId,
+          featureId: "aboutwelcome",
           value: { enabled: false },
         },
         features: [
           {
-            featureId: TEST_FEATURE.featureId,
+            featureId: "aboutwelcome",
             value: { enabled: true },
           },
         ],
@@ -180,7 +164,7 @@ add_task(async function test_features_over_feature() {
         slug: "slug",
         ratio: 1,
         feature: {
-          featureId: TEST_FEATURE.featureId,
+          featureId: "aboutwelcome",
           value: { enabled: false },
         },
       },
@@ -189,7 +173,7 @@ add_task(async function test_features_over_feature() {
 
   await manager.store.addEnrollment(rollout_features_and_feature);
   Assert.ok(
-    TEST_FEATURE.getVariable("enabled"),
+    feature.getVariable("enabled"),
     "Should read from the features property over feature"
   );
 
@@ -198,7 +182,7 @@ add_task(async function test_features_over_feature() {
 
   await manager.store.addEnrollment(rollout_just_feature);
   Assert.ok(
-    !TEST_FEATURE.getVariable("enabled"),
+    !feature.getVariable("enabled"),
     "Should read from the feature property when features doesn't exist"
   );
 

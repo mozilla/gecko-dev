@@ -247,17 +247,12 @@ export class ExperimentStore extends SharedDataMap {
    * @memberof ExperimentStore
    */
   getExperimentForFeature(featureId) {
-    if (this._isReady) {
-      return this.getAllActiveExperiments().find(experiment =>
-        experiment.featureIds.includes(featureId)
-      );
-    }
-
-    if (lazy.FeatureManifest[featureId].isEarlyStartup) {
-      return lazy.syncDataStore.get(featureId);
-    }
-
-    return undefined;
+    return (
+      this.getAllActiveExperiments().find(
+        experiment => experiment.featureIds?.includes(featureId)
+        // Default to the pref store if data is not yet ready
+      ) || lazy.syncDataStore.get(featureId)
+    );
   }
 
   /**
@@ -315,17 +310,10 @@ export class ExperimentStore extends SharedDataMap {
    * @returns {{Rollout}|undefined} Remote defaults if available
    */
   getRolloutForFeature(featureId) {
-    if (this._isReady) {
-      return this.getAllActiveRollouts().find(rollout =>
-        rollout.featureIds.includes(featureId)
-      );
-    }
-
-    if (lazy.FeatureManifest[featureId].isEarlyStartup) {
-      return lazy.syncDataStore.getDefault(featureId);
-    }
-
-    return undefined;
+    return (
+      this.getAllActiveRollouts().find(r => r.featureIds.includes(featureId)) ||
+      lazy.syncDataStore.getDefault(featureId)
+    );
   }
 
   /**
