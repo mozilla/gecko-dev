@@ -765,7 +765,10 @@ export class BaseContent extends React.PureComponent {
         >
           {mobileDownloadPromoEnabled && mobileDownloadPromoVariantABorC && (
             <ErrorBoundary>
-              <DownloadModalToggle onClick={this.toggleDownloadHighlight} />
+              <DownloadModalToggle
+                isActive={this.state.showDownloadHighlight}
+                onClick={this.toggleDownloadHighlight}
+              />
               {this.state.showDownloadHighlight && (
                 <MessageWrapper
                   hiddenOverride={this.state.showDownloadHighlight}

@@ -76,6 +76,11 @@
     }
   }
 
+  // Active state for the toggle button while the modal is open
+  &.is-active {
+    background-color: var(--button-background-color-ghost-active);
+  }
+
   // Bug 1908010 - This overwrites the design system color because of a
   // known transparency issue with color-mix syntax when a wallpaper is set
   .lightWallpaper &,

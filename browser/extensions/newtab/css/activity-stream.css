@@ -3640,6 +3640,9 @@ main section {
 .mobile-download-promo:hover:active {
   background-color: var(--button-background-color-ghost-active);
 }
+.mobile-download-promo.is-active {
+  background-color: var(--button-background-color-ghost-active);
+}
 .lightWallpaper .mobile-download-promo, .darkWallpaper .mobile-download-promo {
   background-color: var(--newtab-weather-background-color);
 }
