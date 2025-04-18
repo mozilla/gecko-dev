@@ -154,60 +154,6 @@ add_task(async function update_remote_defaults_onUpdate() {
   cleanup();
 });
 
-add_task(async function test_features_over_feature() {
-  const { manager, cleanup } = await NimbusTestUtils.setupTest();
-  const rollout_features_and_feature = Object.freeze(
-    ExperimentFakes.rollout("matching-rollout", {
-      branch: {
-        slug: "slug",
-        ratio: 1,
-        feature: {
-          featureId: TEST_FEATURE.featureId,
-          value: { enabled: false },
-        },
-        features: [
-          {
-            featureId: TEST_FEATURE.featureId,
-            value: { enabled: true },
-          },
-        ],
-      },
-    })
-  );
-  const rollout_just_feature = Object.freeze(
-    ExperimentFakes.rollout("matching-rollout", {
-      branch: {
-        slug: "slug",
-        ratio: 1,
-        feature: {
-          featureId: TEST_FEATURE.featureId,
-          value: { enabled: false },
-        },
-      },
-    })
-  );
-
-  await manager.store.addEnrollment(rollout_features_and_feature);
-  Assert.ok(
-    TEST_FEATURE.getVariable("enabled"),
-    "Should read from the features property over feature"
-  );
-
-  manager.store._deleteForTests("aboutwelcome");
-  manager.store._deleteForTests("matching-rollout");
-
-  await manager.store.addEnrollment(rollout_just_feature);
-  Assert.ok(
-    !TEST_FEATURE.getVariable("enabled"),
-    "Should read from the feature property when features doesn't exist"
-  );
-
-  manager.store._deleteForTests("aboutwelcome");
-  manager.store._deleteForTests("matching-rollout");
-
-  cleanup();
-});
-
 add_task(async function update_remote_defaults_readyPromise() {
   const { sandbox, manager, cleanup } = await NimbusTestUtils.setupTest();
   const feature = new ExperimentFeature("aboutwelcome");

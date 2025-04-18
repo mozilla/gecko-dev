@@ -107,6 +107,11 @@ ChromeUtils.defineLazyGetter(lazy, "syncDataStore", () => {
         prefBranch,
         featureId
       );
+      // We store the enrollment in the pref in a single-feature format, but
+      // Nimbus only supports multi-featured experiments, so we massage the
+      // enrollment into a multi-featured one.
+      metadata.branch.features = [metadata.branch.feature];
+      delete metadata.branch.feature;
 
       return metadata;
     },
@@ -120,6 +125,11 @@ ChromeUtils.defineLazyGetter(lazy, "syncDataStore", () => {
         prefBranch,
         featureId
       );
+      // We store the enrollment in the pref in a single-feature format, but
+      // Nimbus only supports multi-featured experiments, so we massage the
+      // enrollment into a multi-featured one.
+      metadata.branch.features = [metadata.branch.feature];
+      delete metadata.branch.feature;
 
       return metadata;
     },
@@ -197,19 +207,6 @@ ChromeUtils.defineLazyGetter(lazy, "syncDataStore", () => {
 });
 
 const DEFAULT_STORE_ID = "ExperimentStoreData";
-
-function featuresCompat(branch) {
-  if (!branch || (!branch.feature && !branch.features)) {
-    return [];
-  }
-  let { features } = branch;
-  // In <=v1.5.0 of the Nimbus API, experiments had single feature
-  if (!features) {
-    features = [branch.feature];
-  }
-
-  return features;
-}
 
 export class ExperimentStore extends SharedDataMap {
   static SYNC_DATA_PREF_BRANCH = SYNC_DATA_PREF_BRANCH;
@@ -401,8 +398,7 @@ export class ExperimentStore extends SharedDataMap {
    * @param {Enrollment} enrollment Experiment or rollout
    */
   _updateSyncStore(enrollment) {
-    let features = featuresCompat(enrollment.branch);
-    for (let feature of features) {
+    for (let feature of enrollment.branch.features) {
       if (lazy.FeatureManifest[feature.featureId]?.isEarlyStartup) {
         if (!enrollment.active) {
           // Remove experiments on un-enroll, no need to check if it exists

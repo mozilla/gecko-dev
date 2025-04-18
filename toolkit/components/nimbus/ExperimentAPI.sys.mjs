@@ -8,6 +8,7 @@ import { AppConstants } from "resource://gre/modules/AppConstants.sys.mjs";
 const lazy = {};
 
 ChromeUtils.defineESModuleGetters(lazy, {
+  _ExperimentManager: "resource://nimbus/lib/ExperimentManager.sys.mjs",
   CleanupManager: "resource://normandy/lib/CleanupManager.sys.mjs",
   ExperimentManager: "resource://nimbus/lib/ExperimentManager.sys.mjs",
   FeatureManifest: "resource://nimbus/FeatureManifest.sys.mjs",
@@ -50,25 +51,6 @@ function parseJSON(value) {
     }
   }
   return null;
-}
-
-function featuresCompat(branch) {
-  if (!branch) {
-    return [];
-  }
-  let { features } = branch;
-  // In <=v1.5.0 of the Nimbus API, experiments had single feature
-  if (!features) {
-    features = [branch.feature];
-  }
-
-  return features;
-}
-
-function getBranchFeature(enrollment, targetFeatureId) {
-  return featuresCompat(enrollment.branch).find(
-    ({ featureId }) => featureId === targetFeatureId
-  );
 }
 
 const experimentBranchAccessor = {
@@ -703,7 +685,10 @@ export class _ExperimentFeature {
         return undefined;
       }
 
-      const allValues = getBranchFeature(enrollment, this.featureId)?.value;
+      const allValues = lazy._ExperimentManager.getFeatureConfigFromBranch(
+        enrollment.branch,
+        this.featureId
+      )?.value;
       const value =
         typeof variable === "undefined" ? allValues : allValues?.[variable];
 

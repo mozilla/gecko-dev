@@ -10,8 +10,6 @@ skip-if = [
 
 ["browser_experiment_evaluate_jexl.js"]
 
-["browser_experiment_single_feature_enrollment.js"]
-
 ["browser_experimentapi_child.js"]
 
 ["browser_nimbus_telemetry.js"]

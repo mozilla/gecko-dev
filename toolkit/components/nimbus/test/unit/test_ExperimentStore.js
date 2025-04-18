@@ -345,7 +345,7 @@ add_task(async function test_sync_access_update() {
   Assert.deepEqual(
     // `branch.feature` and not `features` because for sync access (early startup)
     // experiments we only store the `isEarlyStartup` feature
-    cachedExperiment.branch.feature.value,
+    cachedExperiment.branch.features[0].value,
     { bar: "bar", enabled: true },
     "Got updated value"
   );
@@ -496,7 +496,7 @@ add_task(async function test_getRolloutForFeature_fromSyncCache() {
     "Should return back the same rollout"
   );
   Assert.deepEqual(
-    newStore.getRolloutForFeature(rollout.featureIds[0]).branch.feature,
+    newStore.getRolloutForFeature(rollout.featureIds[0]).branch.features[0],
     rollout.branch.features[0],
     "Should return back the same feature"
   );
@@ -692,7 +692,7 @@ add_task(async function test_storeValuePerPref_returnsSameValue_allTypes() {
 
   const newStore = NimbusTestUtils.stubs.store();
   Assert.deepEqual(
-    newStore.getExperimentForFeature("purple").branch.feature.value,
+    newStore.getExperimentForFeature("purple").branch.features[0].value,
     experiment.branch.features[0].value,
     "Returns the same value"
   );
