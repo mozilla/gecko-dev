@@ -264,48 +264,52 @@ fn run(args: CliArgs) -> miette::Result<()> {
         let mut failed_writing = false;
         let mut cts_cases_by_spec_file_dir = BTreeMap::<_, BTreeMap<_, BTreeSet<_>>>::new();
         for (path, worker_type, meta) in cts_cases {
-            let case_dir = {
-                // Context: We want to mirror CTS upstream's `src/webgpu/**/*.spec.ts` paths as
-                // entire WPT tests, with each subtest being a WPT variant. Here's a diagram of
-                // a CTS path to explain why the logic below is correct:
-                //
-                // ```sh
-                // webgpu:this,is,the,spec.ts,file,path:test_in_file:…
-                // \____/ \___________________________/^\__________/
-                //  test      `*.spec.ts` file path    |       |
-                // \__________________________________/|       |
-                //                   |                 |       |
-                //              We want this…          | …but not this. CTS upstream generates
-                //                                     | this too, but we don't want to divide
-                //         second ':' character here---/ here (yet).
-                // ```
-                let test_and_later_start_idx =
-                    match path.match_indices(':').nth(1).map(|(idx, _s)| idx) {
-                        Some(some) => some,
-                        None => {
-                            failed_writing = true;
-                            log::error!(
-                                concat!(
-                                    "failed to split suite and test path segments ",
-                                    "from CTS path `{}`"
-                                ),
-                                path
-                            );
-                            continue;
-                        }
-                    };
-                let slashed = path[..test_and_later_start_idx].replace([':', ','], "/");
-                cts_tests_dir.child(slashed)
-            };
-            if !cts_cases_by_spec_file_dir
-                .entry(case_dir)
-                .or_default()
-                .entry(worker_type)
-                .or_default()
-                .insert(meta)
-            {
-                log::warn!("duplicate entry {meta:?} detected")
+            macro_rules! insert {
+                ($path:expr, $meta:expr $(,)?) => {{
+                    let dir = cts_tests_dir.child($path);
+                    if !cts_cases_by_spec_file_dir
+                        .entry(dir)
+                        .or_default()
+                        .entry(worker_type)
+                        .or_default()
+                        .insert($meta)
+                    {
+                        log::warn!("duplicate entry {meta:?} detected")
+                    }
+                }};
             }
+
+            // Context: We want to mirror CTS upstream's `src/webgpu/**/*.spec.ts` paths as
+            // entire WPT tests, with each subtest being a WPT variant. Here's a diagram of
+            // a CTS path to explain why the logic below is correct:
+            //
+            // ```sh
+            // webgpu:this,is,the,spec.ts,file,path:test_in_file:…
+            // \____/ \___________________________/^\__________/
+            //  test      `*.spec.ts` file path    |       |
+            // \__________________________________/|       |
+            //                   |                 |       |
+            //              We want this…          | …but not this. CTS upstream generates
+            //                                     | this too, but we don't want to divide
+            //         second ':' character here---/ here (yet).
+            // ```
+            let test_and_later_start_idx = match path.match_indices(':').nth(1).map(|(idx, _s)| idx)
+            {
+                Some(some) => some,
+                None => {
+                    failed_writing = true;
+                    log::error!(
+                        concat!(
+                            "failed to split suite and test path segments ",
+                            "from CTS path `{}`"
+                        ),
+                        path
+                    );
+                    continue;
+                }
+            };
+            let slashed = path[..test_and_later_start_idx].replace([':', ','], "/");
+            insert!(&slashed, meta);
         }
 
         struct WptEntry<'a> {
