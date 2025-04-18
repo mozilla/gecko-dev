@@ -200,7 +200,7 @@
     static markup = /*html*/ `
     <panel
         type="arrow"
-        class="panel tab-group-editor-panel"
+        class="tab-group-editor-panel"
         orient="vertical"
         role="dialog"
         ignorekeys="true"
