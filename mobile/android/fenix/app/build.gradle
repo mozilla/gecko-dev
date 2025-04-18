@@ -306,7 +306,7 @@ android {
         compose = true
     }
 
-    compileOptions{
+    compileOptions {
         coreLibraryDesugaringEnabled = true
     }
 
