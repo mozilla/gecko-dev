@@ -561,7 +561,7 @@ extern "C" {
     fn wr_notifier_external_event(window_id: WrWindowId, raw_event: usize);
     fn wr_schedule_render(window_id: WrWindowId, reasons: RenderReasons);
     // NOTE: This moves away from pipeline_info.
-    fn wr_finished_scene_build(window_id: WrWindowId, pipeline_info: &mut WrPipelineInfo);
+    fn wr_schedule_frame_after_scene_build(window_id: WrWindowId, pipeline_info: &mut WrPipelineInfo);
 
     fn wr_transaction_notification_notified(handler: usize, when: Checkpoint);
 }
@@ -1028,16 +1028,15 @@ impl SceneBuilderHooks for APZCallbacks {
         }
     }
 
-    fn post_scene_swap(&self, _document_ids: &Vec<DocumentId>, info: PipelineInfo) {
+    fn post_scene_swap(&self, _document_ids: &Vec<DocumentId>, info: PipelineInfo, schedule_frame: bool) {
         let mut info = WrPipelineInfo::new(&info);
         unsafe {
             apz_post_scene_swap(self.window_id, &info);
         }
 
-        // After a scene swap we should schedule a render for the next vsync,
-        // otherwise there's no guarantee that the new scene will get rendered
-        // anytime soon
-        unsafe { wr_finished_scene_build(self.window_id, &mut info) }
+        if schedule_frame {
+            unsafe { wr_schedule_frame_after_scene_build(self.window_id, &mut info) }
+        }
         gecko_profiler_end_marker("SceneBuilding");
     }
 

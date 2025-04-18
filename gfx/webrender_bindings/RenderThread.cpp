@@ -1771,22 +1771,24 @@ void wr_schedule_render(mozilla::wr::WrWindowId aWindowId,
       "NotifyScheduleRender", &NotifyScheduleRender, aWindowId, aReasons));
 }
 
-static void NotifyDidSceneBuild(
+static void ScheduleFrameAfterSceneBuild(
     mozilla::wr::WrWindowId aWindowId,
     const RefPtr<const wr::WebRenderPipelineInfo>& aInfo) {
   RefPtr<mozilla::layers::CompositorBridgeParent> cbp = mozilla::layers::
       CompositorBridgeParent::GetCompositorBridgeParentFromWindowId(aWindowId);
   if (cbp) {
-    cbp->NotifyDidSceneBuild(aInfo);
+    cbp->ScheduleFrameAfterSceneBuild(aInfo);
   }
 }
 
-void wr_finished_scene_build(mozilla::wr::WrWindowId aWindowId,
-                             mozilla::wr::WrPipelineInfo* aPipelineInfo) {
+void wr_schedule_frame_after_scene_build(
+    mozilla::wr::WrWindowId aWindowId,
+    mozilla::wr::WrPipelineInfo* aPipelineInfo) {
   RefPtr<wr::WebRenderPipelineInfo> info = new wr::WebRenderPipelineInfo();
   info->Raw() = std::move(*aPipelineInfo);
-  layers::CompositorThread()->Dispatch(NewRunnableFunction(
-      "NotifyDidSceneBuild", &NotifyDidSceneBuild, aWindowId, info));
+  layers::CompositorThread()->Dispatch(
+      NewRunnableFunction("ScheduleFrameAfterSceneBuild",
+                          &ScheduleFrameAfterSceneBuild, aWindowId, info));
 }
 
 }  // extern C
