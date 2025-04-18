@@ -86,6 +86,8 @@ const FORM_IFRAME_SANDBOXED_URL =
   "https://example.org" + HTTP_TEST_PATH + "autocomplete_iframe_sandboxed.html";
 const FORMS_WITH_DYNAMIC_FORM_CHANGE =
   "https://example.org" + HTTP_TEST_PATH + "dynamic_forms.html";
+const FORMS_REPLACING_ALL_FIELDS_ON_INPUT =
+  "https://example.org" + HTTP_TEST_PATH + "dynamic_forms.html";
 const FORM_WITH_USER_INITIATED_FORM_CHANGE =
   "https://example.org" +
   HTTP_TEST_PATH +

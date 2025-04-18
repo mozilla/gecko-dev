@@ -196,6 +196,72 @@ add_task(
   }
 );
 
+add_task(
+  async function address_fields_filled_in_form_after_all_fields_replaced() {
+    await BrowserTestUtils.withNewTab(
+      FORMS_REPLACING_ALL_FIELDS_ON_INPUT,
+      async browser => {
+        const selectorToTriggerAutocompletion = "#email-node-addition";
+        const elementValueToVerifyAutofill = TEST_ADDRESS_1.email;
+
+        info("Triggering autocompletion.");
+        await openPopupOn(browser, selectorToTriggerAutocompletion);
+        await BrowserTestUtils.synthesizeKey("VK_DOWN", {}, browser);
+        await BrowserTestUtils.synthesizeKey("VK_RETURN", {}, browser);
+
+        const filledOnFormChangePromise = TestUtils.topicObserved(
+          "formautofill-fill-after-form-change-complete"
+        );
+
+        await waitForAutofill(
+          browser,
+          selectorToTriggerAutocompletion,
+          elementValueToVerifyAutofill
+        );
+        info(
+          `Waiting for "formautofill-fill-after-form-change-complete" notification`
+        );
+        await filledOnFormChangePromise;
+
+        info("Verify new fields that replaced the old fields are autofilled");
+        const expectedAdditionalFieldsNotFilled = {
+          fields: [
+            { fieldName: "name", autofill: "John R. Smith" },
+            { fieldName: "email", autofill: TEST_ADDRESS_1.email },
+            { fieldName: "tel", autofill: TEST_ADDRESS_1.tel },
+            { fieldName: "country", autofill: TEST_ADDRESS_1.country },
+            {
+              fieldName: "street-address",
+              autofill: TEST_ADDRESS_1["street-address"].replace("\n", " "),
+            },
+            {
+              fieldName: "address-level1",
+              autofill: TEST_ADDRESS_1["address-level1"],
+            },
+            {
+              fieldName: "address-level2",
+              autofill: TEST_ADDRESS_1["address-level2"],
+            },
+            {
+              fieldName: "postal-code",
+              autofill: TEST_ADDRESS_1["postal-code"],
+            },
+          ],
+        };
+        const actor =
+          browser.browsingContext.currentWindowGlobal.getActor("FormAutofill");
+        const section = Array.from(actor.sectionsByRootId.values()).flat()[0];
+
+        await verifyAutofillResult(
+          browser,
+          section,
+          expectedAdditionalFieldsNotFilled
+        );
+      }
+    );
+  }
+);
+
 /**
  * Tests that additional fields are not filled when the form change was initiated
  * by a user interaction that triggered a "click" event on the form.
