@@ -646,6 +646,12 @@ who = "Mike Hommey <mh+mozilla@glandium.org>"
 criteria = "safe-to-deploy"
 delta = "0.7.0 -> 0.8.1"
 
+[[audits.android-tzdata]]
+who = "Mark Hammond <mhammond@skippinet.com.au>"
+criteria = "safe-to-deploy"
+version = "0.1.1"
+notes = "Small crate parsing a file. No unsafe code"
+
 [[audits.android_logger]]
 who = "Jan-Erik Rediger <jrediger@mozilla.com>"
 criteria = "safe-to-deploy"
@@ -1158,6 +1164,12 @@ notes = "I, Henri Sivonen, wrote this crate for Gecko even though it is publishe
 who = "Bobby Holley <bobbyholley@gmail.com>"
 criteria = "safe-to-deploy"
 delta = "0.1.2 -> 0.1.2@git:ed8a4c6f900a90d4dbc1d64b856e61490a1c3570"
+
+[[audits.chrono]]
+who = "Mark Hammond <mhammond@skippinet.com.au>"
+criteria = "safe-to-deploy"
+delta = "0.4.19 -> 0.4.40"
+notes = "Significant refactor of both implementation and dependencies."
 
 [[audits.circular]]
 who = "Alex Franchuk <afranchuk@mozilla.com>"
@@ -2727,6 +2739,11 @@ delta = "0.14.22 -> 0.14.23"
 who = "Mike Hommey <mh+mozilla@glandium.org>"
 criteria = "safe-to-run"
 delta = "0.14.23 -> 0.14.24"
+
+[[audits.iana-time-zone]]
+who = "Mark Hammond <mhammond@skippinet.com.au>"
+criteria = "safe-to-deploy"
+delta = "0.1.61 -> 0.1.63"
 
 [[audits.icu_calendar]]
 who = "André Bargull <andre.bargull@gmail.com>"
@@ -6232,6 +6249,12 @@ who = "Jan-Erik Rediger <jrediger@mozilla.com>"
 criteria = "safe-to-deploy"
 delta = "0.1.2 -> 0.3.1"
 notes = "Maintained by me. I have written or reviewed all of the code."
+
+[[audits.windows-link]]
+who = "Mark Hammond <mhammond@skippinet.com.au>"
+criteria = "safe-to-deploy"
+version = "0.1.1"
+notes = "A microsoft crate allowing unsafe calls to windows apis."
 
 [[audits.winreg]]
 who = "Ray Kraesig <rkraesig@mozilla.com>"
