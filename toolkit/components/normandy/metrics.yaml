@@ -658,36 +658,20 @@ normandy:
       normandy.validationFailed#nimbus_experiment.
     bugs:
       - https://bugzil.la/1762652
-      - https://bugzil.la/1960370
     data_reviews:
       - https://bugzil.la/1762652
-      - https://bugzil.la/1960370
     notification_emails:
       - beth@mozilla.com
-      - project-nimbus@mozilla.com
     expires: never
     extra_keys:
       value:
         description: >
           The `value` of the event. Mirrors to the Legacy Telemetry
-          event's `value` parameter (i.e., the experiment slug).
+          event's `value` parameter.
         type: string
       reason:
         description: >
-          Why the validation failed.
-
-          This will be one of the following reasons:
-
-          - "invalid-recipe": the recipe failed schema validation;
-          - "invalid-branch": a branch value failed schema validation;
-          - "invalid-feature": the recipe uses an unknown feature;
-          - "l10n-missing-locale": the recipe is missing localizations for a
-            specific locale;
-          - "l10n-missing-entry": the recipe is missing specific localization
-            entries for a specific locale;
-          - "unsupported-feature": the recipe uses a feature that exists but is
-            not supported by this specific application (e.g., a feature that is
-            only for the background task runner);
+          Why validation failed (one of "invalid-recipe", "invalid-branch", or "invalid-reason").
         type: string
       branch:
         description: >
@@ -699,19 +683,13 @@ normandy:
         type: string
       locale:
         description: >
-          If reason == missing-locale, the locale that was missing from the
-          localization table.
-          If reason == missing-l10n-entry, the locale that was missing the
-          localization entries.
+          If reason == missing-locale, the locale that was missing from the localization table. If reason == missing-l10n-entry, the locale that was missing the localization entries.
+
         type: string
       l10n_ids:
         description: >
           If reason == missing-l10n-entry, a comma-separated list of missing localization entries.
-        type: string
-      feature_ids:
-        description: >
-          If reason == unsupported-feature, a comma-separated list of the
-          unsupported feature IDs.
+
         type: string
     telemetry_mirror: Normandy_Validationfailed_NimbusExperiment
 
