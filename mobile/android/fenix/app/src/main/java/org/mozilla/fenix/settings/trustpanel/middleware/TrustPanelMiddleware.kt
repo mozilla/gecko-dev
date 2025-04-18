@@ -122,7 +122,6 @@ class TrustPanelMiddleware(
 
         domain?.let { baseDomain ->
             store.dispatch(TrustPanelAction.UpdateBaseDomain(baseDomain))
-            store.dispatch(TrustPanelAction.Navigate.ClearSiteDataDialog)
         }
     }
 
