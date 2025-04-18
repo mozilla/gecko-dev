@@ -1484,6 +1484,10 @@
   <string name="download_delete_item_1" moz:removedIn="138" tools:ignore="UnusedResources">Тоза кардан</string>
   <!-- Text for the button to delete a single downloaded file item -->
   <string name="download_delete_item">Нест кардан</string>
+  <!-- Content description for the toolbar "Navigate back" button -->
+  <string name="download_navigate_back_description">Ба қафо гузаштан</string>
+  <!-- Content description for the toolbar "Navigate up" button -->
+  <string name="download_navigate_up_description">Ба боло гузаштан</string>
   <!-- Text for the button to share the download URL -->
   <string name="download_share_url">Мубодилаи нишонии «URL»</string>
   <!-- Text for the button to share the download file -->
@@ -3378,6 +3382,18 @@
     The title of the glean debugging feature
   -->
   <string name="glean_debug_tools_title">Абзорҳои ислоҳи хатоҳои «Glean»</string>
+  <!--
+    Debug drawer region tools
+
+    Title of the Region tools in the Debug Drawer.
+    This tool allows temporarily overriding the home region (user's default locale)
+    and the current region (device's detected location) for testing purposes.
+  -->
+  <string name="debug_drawer_region_tools_title">Абзорҳои минтақавӣ</string>
+  <!-- The text label for displaying home region. -->
+  <string name="debug_drawer_home_region_label">Минтақаи хонагӣ</string>
+  <!-- The text label for displaying current region. -->
+  <string name="debug_drawer_current_region_label">Минтақаи ҷорӣ</string>
   <!--
     Messages explaining how to exit fullscreen mode
 

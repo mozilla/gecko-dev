@@ -129,6 +129,8 @@
   <string name="address_bar_swipe_cfr_title" tools:ignore="UnusedResources" moz:removedIn="139">Embosyryry tembiporu renda emoambue hag̃ua tendayke</string>
   <!-- Text for the message displayed in the contextual feature recommendation popup promoting swipe of address bar. -->
   <string name="address_bar_swipe_cfr_message" tools:ignore="UnusedResources" moz:removedIn="139">Embosyryry asu térã akatúa gotyo emoambue hag̃ua. Embosyryry asu gotyo tendayke pahaguápe embojuruja hag̃ua ipyahúva.</string>
+  <!-- Text for the message displayed in the contextual feature recommendation popup promoting swipe of address bar. -->
+  <string name="address_bar_swipe_cfr_message_2">Embosyryry tembiporu renda asu térã akatúa gotyo emoambue hag̃ua tendayke.</string>
   <!-- Text for the info dialog when camera permissions have been denied but user tries to access a camera feature. -->
   <string name="camera_permissions_needed_message">Eikotevẽ eike ta’ãngamýime. Eho Android ñembohekópe, eukutu ñemoneĩ ha moneĩ.</string>
   <!-- Text for the positive action button to go to Android Settings to grant permissions. -->
@@ -1468,6 +1470,10 @@
   <string name="download_delete_item_1" moz:removedIn="138" tools:ignore="UnusedResources">Mboguete</string>
   <!-- Text for the button to delete a single downloaded file item -->
   <string name="download_delete_item">Mboguete</string>
+  <!-- Content description for the toolbar "Navigate back" button -->
+  <string name="download_navigate_back_description">Eikundaha tapykuévo</string>
+  <!-- Content description for the toolbar "Navigate up" button -->
+  <string name="download_navigate_up_description">Eikundaha yvatévo</string>
   <!-- Text for the button to share the download URL -->
   <string name="download_share_url">Emoherakuã URL</string>
   <!-- Text for the button to share the download file -->
@@ -3188,6 +3194,11 @@
     %d is a placeholder for the number of trackers blocked.
   -->
   <string name="trackers_blocked_panel_categorical_num_trackers_blocked">%s: %d</string>
+  <!--
+    Description text for a dialog confirming whether the user wants to delete all data for current site.
+    %s is a placeholder for the base domain of website.
+  -->
+  <string name="clear_site_data_dialog_description">Embogue kookie tenda mba’ekuaarã &lt;b&gt;%s&lt;/b&gt; omboty hag̃ua jeike ñanduti roguépe ha taipotĩ karro’i jejoguaha.</string>
   <!-- Button text on the clear site data dialog to allow users to confirm they wish to clear the site data. -->
   <string name="clear_site_data_dialog_positive_button_text">Mopotĩ</string>
   <!-- Button text on the clear site data dialog to allow users to cancel the action and not clear the site data. -->
@@ -3358,6 +3369,26 @@
   -->
   <string name="glean_debug_tools_title">Tembiporu mopotĩha Glean</string>
   <!--
+    Debug drawer region tools
+
+    Title of the Region tools in the Debug Drawer.
+    This tool allows temporarily overriding the home region (user's default locale)
+    and the current region (device's detected location) for testing purposes.
+  -->
+  <string name="debug_drawer_region_tools_title">Tembiporu tendaguasúpe</string>
+  <!-- The description of the Region tools in the Debug Drawer -->
+  <string name="debug_drawer_regin_tools_description">Omyengovia sapy’arãicha mba’eporã tendaguasugua ñepyrũ ha ag̃aguáva oñeha’ã hag̃ua.</string>
+  <!-- The text label for displaying home region. -->
+  <string name="debug_drawer_home_region_label">Tendaguasu reñoiha</string>
+  <!-- The text label for displaying current region. -->
+  <string name="debug_drawer_current_region_label">Tendaguasu ag̃agua</string>
+  <!-- The text field label for overriding home region. -->
+  <string name="debug_drawer_override_home_region_label">Emyengovia tendaguasu reñoiha</string>
+  <!-- The text field label for overriding current region. -->
+  <string name="debug_drawer_override_current_region_label">Emyengovia tendaguasu ag̃agua</string>
+  <!-- The title of the button for overriding home and current region. -->
+  <string name="debug_drawer_override_region">Emyengovia tendaguasu ñepyrũ ha ag̃agua</string>
+  <!--
     Messages explaining how to exit fullscreen mode
 
     Message shown to explain how to exit fullscreen mode when gesture navigation is enabled.
@@ -3431,6 +3462,20 @@
   <string name="setup_checklist_subtitle_3_steps_first_step">¡Eñepyrũ porã! Emoĩmba 1 pe 3 jeku’égui.</string>
   <!-- Subtitle for a setup checklist with 3 steps when two of the tasks are completed. -->
   <string name="setup_checklist_subtitle_3_steps_second_step">¡Oĩpotaite! Mokõi jeku’e hu’ãmava ha 1 hemby.</string>
+  <!--
+    ===== Setup checklist feature: Subtitles for 6 steps =====
+
+    Subtitle for a setup checklist with 6 steps initial state. %1$s is the name of the app (for example "Firefox").
+  -->
+  <string name="setup_checklist_subtitle_6_steps_initial_state">Ejapo ko’ã 6 jeku’e emboheko hag̃ua %1$s eime porãve hag̃ua eikundahakuévo.</string>
+  <!-- Subtitle for a setup checklist with 6 steps when the first task is completed. -->
+  <string name="setup_checklist_subtitle_6_steps_first_step">¡Eñepyrũ porã! Emoĩmba 1 pe 6 jeku’égui.</string>
+  <!-- Subtitle for the setup checklist when the second task is completed. -->
+  <string name="setup_checklist_subtitle_6_steps_second_step">Emoĩmba 2 pe 6 jeku’égui. ¡Tuicha emotenonde!</string>
+  <!-- Subtitle for a setup checklist with 6 steps when three of the tasks are completed. -->
+  <string name="setup_checklist_subtitle_6_steps_third_step">¡Eiméma tape ku’ápe! Mbohapy jeku’e hu’ãma ha 3 hemby.</string>
+  <!-- Subtitle for a setup checklist with 6 steps when the fourth task is completed. -->
+  <string name="setup_checklist_subtitle_6_steps_fourth_step">Emohu’ãma 4 jeku’e. ¡Mokõintema opyta!</string>
   <!--
     ===== Setup checklist feature: Task titles =====
 

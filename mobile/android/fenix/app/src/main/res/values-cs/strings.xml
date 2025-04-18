@@ -1384,6 +1384,8 @@
   <string name="tab_tray_multiselect_share_content_description">Sdílet vybrané panely</string>
   <!-- Content description for tabs tray multiselect menu -->
   <string name="tab_tray_multiselect_menu_content_description">Nabídka pro vybrané panely</string>
+  <!-- Title text displayed for a homepage tab in the tabs tray. -->
+  <string name="tab_tray_homepage_tab">Domovská stránka</string>
   <!-- Content description (not visible, for screen readers etc.): Removes tab from collection button. Removes the selected tab from collection when pressed -->
   <string name="remove_tab_from_collection">Odstranit panel ze sbírky</string>
   <!-- Text for button to enter multiselect mode in tabs tray -->
@@ -1481,6 +1483,10 @@
   <string name="download_delete_item_1" moz:removedIn="138" tools:ignore="UnusedResources">Smazat</string>
   <!-- Text for the button to delete a single downloaded file item -->
   <string name="download_delete_item">Smazat</string>
+  <!-- Content description for the toolbar "Navigate back" button -->
+  <string name="download_navigate_back_description">Návrat zpět</string>
+  <!-- Content description for the toolbar "Navigate up" button -->
+  <string name="download_navigate_up_description">Přejít nahoru</string>
   <!-- Text for the button to share the download URL -->
   <string name="download_share_url">Sdílet URL</string>
   <!-- Text for the button to share the download file -->
@@ -1524,6 +1530,8 @@
   <string name="download_search_placeholder" tools:ignore="UnusedResources">Vyhledávání stažených souborů</string>
   <!-- Text to indicate that no downloads match the search query. -->
   <string name="download_search_no_results_found" tools:ignore="UnusedResources">Nenalezeny žádné výsledky</string>
+  <!-- Text for the "Select all" button, which selects all downloaded items in the downloads list. -->
+  <string name="download_select_all_items">Vybrat vše</string>
   <!--
     Downloads Content Type Filters
 
@@ -3373,6 +3381,10 @@
     The title of the glean debugging feature
   -->
   <string name="glean_debug_tools_title">Nástroje ladění Glean</string>
+  <!-- The text label for displaying home region. -->
+  <string name="debug_drawer_home_region_label">Domovský region</string>
+  <!-- The text label for displaying current region. -->
+  <string name="debug_drawer_current_region_label">Aktuální region</string>
   <!--
     Messages explaining how to exit fullscreen mode
 

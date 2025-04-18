@@ -1488,7 +1488,7 @@
   <!-- Content description for the toolbar "Navigate back" button -->
   <string name="download_navigate_back_description">Symud nôl</string>
   <!-- Content description for the toolbar "Navigate up" button -->
-  <string name="download_navigate_up_description">Llywio i fyny</string>
+  <string name="download_navigate_up_description">Symud i fyny</string>
   <!-- Text for the button to share the download URL -->
   <string name="download_share_url">Rhannu URL</string>
   <!-- Text for the button to share the download file -->
