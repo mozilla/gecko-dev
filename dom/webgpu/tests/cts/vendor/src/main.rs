@@ -294,22 +294,17 @@ fn run(args: CliArgs) -> miette::Result<()> {
             //                                     | this too, but we don't want to divide
             //         second ':' character here---/ here (yet).
             // ```
-            let test_and_later_start_idx = match path.match_indices(':').nth(1).map(|(idx, _s)| idx)
-            {
-                Some(some) => some,
-                None => {
+            let (test_path, _cases) = match split_at_nth_colon(2, &path) {
+                Ok(ok) => ok,
+                Err(e) => {
                     failed_writing = true;
-                    log::error!(
-                        concat!(
-                            "failed to split suite and test path segments ",
-                            "from CTS path `{}`"
-                        ),
-                        path
-                    );
+                    log::error!("{e}");
                     continue;
                 }
             };
-            let slashed = path[..test_and_later_start_idx].replace([':', ','], "/");
+            let (test_group_path, _test_name) = test_path.rsplit_once(':').unwrap();
+
+            let slashed = test_group_path.replace([':', ','], "/");
             insert!(&slashed, meta.into());
         }
 
@@ -462,4 +457,13 @@ fn run(args: CliArgs) -> miette::Result<()> {
     log::info!("All done! Now get your CTS _ON_! :)");
 
     Ok(())
+}
+
+fn split_at_nth_colon(nth: usize, path: &str) -> miette::Result<(&str, &str)> {
+    path.match_indices(':')
+        .nth(nth)
+        .map(|(idx, s)| (&path[..idx], &path[idx + s.len()..]))
+        .ok_or_else(move || {
+            miette::diagnostic!("failed to split at colon {nth} from CTS path `{path}`").into()
+        })
 }
