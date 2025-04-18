@@ -215,6 +215,31 @@ class TrustPanelStoreTest {
         )
     }
 
+    @Test
+    fun `WHEN change autoplay action is dispatched THEN autoplay value state is updated`() = runTest {
+        val toggleablePermission = WebsitePermission.Autoplay(
+            autoplayValue = AutoplayValue.AUTOPLAY_BLOCK_AUDIBLE,
+            isVisible = true,
+            deviceFeature = PhoneFeature.CAMERA,
+        )
+
+        val store = TrustPanelStore(
+            initialState = TrustPanelState(
+                websitePermissionsState = mapOf(PhoneFeature.AUTOPLAY to toggleablePermission),
+            ),
+        )
+
+        store.dispatch(
+            TrustPanelAction.WebsitePermissionAction.ChangeAutoplay(AutoplayValue.AUTOPLAY_ALLOW_ALL),
+        ).join()
+
+        assertEquals(
+            (store.state.websitePermissionsState[PhoneFeature.AUTOPLAY]as? WebsitePermission.Autoplay)
+                ?.autoplayValue,
+            AutoplayValue.AUTOPLAY_ALLOW_ALL,
+        )
+    }
+
     private fun initializeSitePermissions(
         sitePermissions: SitePermissions,
     ) {

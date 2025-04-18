@@ -104,6 +104,7 @@ private fun reducer(state: TrustPanelState, action: TrustPanelAction): TrustPane
         is TrustPanelAction.RequestClearSiteDataDialog,
         is TrustPanelAction.UpdateTrackersBlocked,
         is TrustPanelAction.TogglePermission,
+        is TrustPanelAction.UpdateAutoplayValue,
         -> state
 
         is TrustPanelAction.WebsitePermissionAction -> state.copy(
@@ -158,6 +159,13 @@ private object WebsitePermissionsStateReducer {
                     isEnabled = !value.isEnabled,
                 )
 
+                state + Pair(key, newWebsitePermission)
+            }
+            is TrustPanelAction.WebsitePermissionAction.ChangeAutoplay -> {
+                val autoplay = value as WebsitePermission.Autoplay
+                val newWebsitePermission = autoplay.copy(
+                    autoplayValue = action.autoplayValue,
+                )
                 state + Pair(key, newWebsitePermission)
             }
         }

@@ -112,12 +112,13 @@ class TrustPanelFragment : BottomSheetDialogFragment() {
                 ) {
                     val components = components
                     val trackingProtectionUseCases = components.useCases.trackingProtectionUseCases
+                    val settings = components.settings
 
                     val navHostController = rememberNavController()
                     val coroutineScope = rememberCoroutineScope()
                     val store = remember {
                         TrustPanelStore(
-                            settings = components.settings,
+                            settings = settings,
                             isTrackingProtectionEnabled = args.isTrackingProtectionEnabled,
                             sessionState = components.core.store.state.findTabOrCustomTab(args.sessionId),
                             sitePermissions = args.sitePermissions,
@@ -132,6 +133,7 @@ class TrustPanelFragment : BottomSheetDialogFragment() {
                                     publicSuffixList = components.publicSuffixList,
                                     sessionUseCases = components.useCases.sessionUseCases,
                                     trackingProtectionUseCases = trackingProtectionUseCases,
+                                    settings = settings,
                                     permissionStorage = components.core.permissionStorage,
                                     requestPermissionsLauncher = requestPermissionsLauncher,
                                     onDismiss = {
@@ -242,7 +244,9 @@ class TrustPanelFragment : BottomSheetDialogFragment() {
                                 onPrivacySecuritySettingsClick = {
                                     store.dispatch(TrustPanelAction.Navigate.PrivacySecuritySettings)
                                 },
-                                onAutoplayValueClick = {},
+                                onAutoplayValueClick = { autoplayValue ->
+                                    store.dispatch(TrustPanelAction.UpdateAutoplayValue(autoplayValue))
+                                },
                                 onToggleablePermissionClick = { websitePermission: WebsitePermission.Toggleable ->
                                     store.dispatch(TrustPanelAction.TogglePermission(websitePermission))
                                 },
