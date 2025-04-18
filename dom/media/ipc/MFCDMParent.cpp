@@ -652,12 +652,54 @@ static bool FactorySupports(ComPtr<IMFContentDecryptionModuleFactory>& aFactory,
     MF_MEDIA_ENGINE_CANPLAY canPlay;
     spDrmTypeSupport->IsTypeSupportedEx(SysAllocString(contentType.get()),
                                         keySystem, &canPlay);
-    const bool support =
+    bool support =
         canPlay !=
         MF_MEDIA_ENGINE_CANPLAY::MF_MEDIA_ENGINE_CANPLAY_NOT_SUPPORTED;
     MFCDM_PARENT_SLOG("IsTypeSupportedEx=%d (key-system=%ls, content-type=%s)",
                       support, keySystem,
                       NS_ConvertUTF16toUTF8(contentType).get());
+    if (aIsHWSecure && support) {
+      // For HWDRM, `IsTypeSupportedEx` might still return the wrong answer on
+      // certain devices, so we need to create a dummy CDM to see if the HWDRM
+      // is really usable or not.
+      nsTArray<nsString> dummyInitDataType{nsString(u"cenc"),
+                                           nsString(u"keyids")};
+      nsString mimeType(u"video/mp4;codecs=\"");
+      mimeType.AppendASCII(aVideoCodec);
+      MFCDMMediaCapability dummyVideoCapability{
+          mimeType,
+          {CryptoScheme::None},  // No specific scheme
+          nsString(u"3000")};
+      MFCDMInitParamsIPDL dummyParam{
+          nsString(u"dummy"),
+          dummyInitDataType,
+          KeySystemConfig::Requirement::Required /* distinctiveID */,
+          KeySystemConfig::Requirement::Required /* persistent */,
+          {} /* audio capabilities */,
+          {dummyVideoCapability} /* video capabilities */,
+      };
+      ComPtr<IMFContentDecryptionModule> dummyCDM = nullptr;
+      if (FAILED(CreateContentDecryptionModule(
+              aFactory, MapKeySystem(aKeySystem), dummyParam, dummyCDM)) ||
+          !dummyCDM) {
+        if (IsBeingProfiledOrLogEnabled()) {
+          nsPrintfCString msg(
+              "HWDRM actually not supported (key-system=%ls, content-type=%s)",
+              keySystem, NS_ConvertUTF16toUTF8(contentType).get());
+          PROFILER_MARKER_TEXT("MFCDMParent::FailedToUseHWDRM", MEDIA_PLAYBACK,
+                               {}, msg);
+          MFCDM_PARENT_SLOG("%s", msg.get());
+        }
+        support = false;
+      }
+      MFCDM_PARENT_SLOG(
+          "After HWDRM creation check, support=%d (key-system=%ls, "
+          "content-type=%s)",
+          support, keySystem, NS_ConvertUTF16toUTF8(contentType).get());
+      if (dummyCDM) {
+        SHUTDOWN_IF_POSSIBLE(dummyCDM);
+      }
+    }
     return support;
   }
 
