@@ -18,6 +18,7 @@ JAR_MANIFESTS += ["jar.mn"]
 
 UNIFIED_SOURCES = [
     "CrashAnnotations.cpp",
+    "ExtraFileParser.cpp",
     "nsExceptionHandlerUtils.cpp",
 ]
 
