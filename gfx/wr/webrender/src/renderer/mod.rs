@@ -1274,16 +1274,10 @@ impl Renderer {
                     .remove(&doc_id)
                     .unwrap();
 
-                let size = if !device_size.is_empty() {
-                    Some(device_size)
-                } else {
-                    None
-                };
-
                 let result = self.render_impl(
                     doc_id,
                     &mut doc,
-                    size,
+                    Some(device_size),
                     buffer_age,
                 );
 
@@ -3133,7 +3127,7 @@ impl Renderer {
                             &mut self.renderer_errors,
                             &mut self.profile,
                         );
-
+                
                     ( textures, instance )
                 },
                 ResolvedExternalSurfaceColorData::Rgb{ ref plane, .. } => {

@@ -708,13 +708,8 @@ void WebRenderAPI::Readback(const TimeStamp& aStartTime, gfx::IntSize size,
 
     void Run(RenderThread& aRenderThread, WindowId aWindowId) override {
       RendererStats stats = {0};
-      wr::FrameReadyParams params = {
-          .present = true,
-          .render = true,
-          .scrolled = false,
-      };
-      aRenderThread.UpdateAndRender(aWindowId, VsyncId(), mStartTime, params,
-                                    Some(mSize),
+      aRenderThread.UpdateAndRender(aWindowId, VsyncId(), mStartTime,
+                                    /* aRender */ true, Some(mSize),
                                     wr::SurfaceFormatToImageFormat(mFormat),
                                     Some(mBuffer), &stats, mNeedsYFlip);
       layers::AutoCompleteTask complete(mTask);

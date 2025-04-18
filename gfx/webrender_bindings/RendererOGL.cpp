@@ -162,56 +162,38 @@ RenderedFrameId RendererOGL::UpdateAndRender(
     const Maybe<gfx::IntSize>& aReadbackSize,
     const Maybe<wr::ImageFormat>& aReadbackFormat,
     const Maybe<Range<uint8_t>>& aReadbackBuffer, bool* aNeedsYFlip,
-    const wr::FrameReadyParams& aFrameParams, RendererStats* aOutStats) {
+    RendererStats* aOutStats) {
   mozilla::widget::WidgetRenderingContext widgetContext;
 
 #if defined(XP_MACOSX)
   widgetContext.mGL = mCompositor->gl();
 #endif
 
-  // If present is false, WebRender needs to render some offscreen content
-  // but we don't want to touch the window, so we avoid most interactions
-  // with mCompositor.
-  bool present = aFrameParams.present;
-
-  LayoutDeviceIntSize size(0, 0);
-  auto bufferAge = 0;
-  bool fullRender = false;
-
-  bool beginFrame = !mThread->IsHandlingDeviceReset();
-
-  if (beginFrame && present) {
-    if (!mCompositor->GetWidget()->PreRender(&widgetContext)) {
-      // XXX This could cause oom in webrender since pending_texture_updates is
-      // not handled. It needs to be addressed.
-      return RenderedFrameId();
-    }
-    // XXX set clear color if MOZ_WIDGET_ANDROID is defined.
-
-    if (!mCompositor->BeginFrame()) {
-      beginFrame = false;
-    }
-
-    size = mCompositor->GetBufferSize();
-    bufferAge = mCompositor->GetBufferAge();
-
-    fullRender = mCompositor->RequestFullRender();
-    // When we're rendering to an external target, we want to render everything.
-    if (mCompositor->UsePartialPresent() &&
-        (aReadbackBuffer.isSome() ||
-         layers::ProfilerScreenshots::IsEnabled())) {
-      fullRender = true;
-    }
+  if (!mCompositor->GetWidget()->PreRender(&widgetContext)) {
+    // XXX This could cause oom in webrender since pending_texture_updates is
+    // not handled. It needs to be addressed.
+    return RenderedFrameId();
   }
+  // XXX set clear color if MOZ_WIDGET_ANDROID is defined.
 
-  if (!beginFrame) {
+  if (mThread->IsHandlingDeviceReset() || !mCompositor->BeginFrame()) {
     CheckGraphicsResetStatus(gfx::DeviceResetDetectPlace::WR_BEGIN_FRAME,
                              /* aForce */ true);
+    mCompositor->GetWidget()->PostRender(&widgetContext);
     return RenderedFrameId();
   }
 
+  auto size = mCompositor->GetBufferSize();
+  auto bufferAge = mCompositor->GetBufferAge();
+
   wr_renderer_update(mRenderer);
 
+  bool fullRender = mCompositor->RequestFullRender();
+  // When we're rendering to an external target, we want to render everything.
+  if (mCompositor->UsePartialPresent() &&
+      (aReadbackBuffer.isSome() || layers::ProfilerScreenshots::IsEnabled())) {
+    fullRender = true;
+  }
   if (fullRender) {
     wr_renderer_force_redraw(mRenderer);
   }
@@ -221,46 +203,41 @@ RenderedFrameId RendererOGL::UpdateAndRender(
                                      bufferAge, aOutStats, &dirtyRects);
   FlushPipelineInfo();
   if (!rendered) {
-    if (present) {
-      mCompositor->CancelFrame();
-      mCompositor->GetWidget()->PostRender(&widgetContext);
-    }
+    mCompositor->CancelFrame();
     RenderThread::Get()->HandleWebRenderError(WebRenderError::RENDER);
+    mCompositor->GetWidget()->PostRender(&widgetContext);
     return RenderedFrameId();
   }
 
-  RenderedFrameId frameId;
-
-  if (present) {
-    if (aReadbackBuffer.isSome()) {
-      MOZ_ASSERT(aReadbackSize.isSome());
-      MOZ_ASSERT(aReadbackFormat.isSome());
-      if (!mCompositor->MaybeReadback(aReadbackSize.ref(),
-                                      aReadbackFormat.ref(),
-                                      aReadbackBuffer.ref(), aNeedsYFlip)) {
-        wr_renderer_readback(mRenderer, aReadbackSize.ref().width,
-                             aReadbackSize.ref().height, aReadbackFormat.ref(),
-                             &aReadbackBuffer.ref()[0],
-                             aReadbackBuffer.ref().length());
-        if (aNeedsYFlip != nullptr) {
-          *aNeedsYFlip = !mCompositor->SurfaceOriginIsTopLeft();
-        }
+  if (aReadbackBuffer.isSome()) {
+    MOZ_ASSERT(aReadbackSize.isSome());
+    MOZ_ASSERT(aReadbackFormat.isSome());
+    if (!mCompositor->MaybeReadback(aReadbackSize.ref(), aReadbackFormat.ref(),
+                                    aReadbackBuffer.ref(), aNeedsYFlip)) {
+      wr_renderer_readback(mRenderer, aReadbackSize.ref().width,
+                           aReadbackSize.ref().height, aReadbackFormat.ref(),
+                           &aReadbackBuffer.ref()[0],
+                           aReadbackBuffer.ref().length());
+      if (aNeedsYFlip) {
+        *aNeedsYFlip = !mCompositor->SurfaceOriginIsTopLeft();
       }
     }
-
-    if (size.Width() != 0 && size.Height() != 0) {
-      if (!mCompositor->MaybeGrabScreenshot(size.ToUnknownSize())) {
-        mScreenshotGrabber.MaybeGrabScreenshot(this, size.ToUnknownSize());
-      }
-    }
-
-    // Frame recording must happen before EndFrame, as we must ensure we read
-    // the contents of the back buffer before any calls to SwapBuffers which
-    // might invalidate it.
-    MaybeRecordFrame(mLastPipelineInfo);
-    frameId = mCompositor->EndFrame(dirtyRects);
-    mCompositor->GetWidget()->PostRender(&widgetContext);
   }
+
+  if (size.Width() != 0 && size.Height() != 0) {
+    if (!mCompositor->MaybeGrabScreenshot(size.ToUnknownSize())) {
+      mScreenshotGrabber.MaybeGrabScreenshot(this, size.ToUnknownSize());
+    }
+  }
+
+  // Frame recording must happen before EndFrame, as we must ensure we read the
+  // contents of the back buffer before any calls to SwapBuffers which might
+  // invalidate it.
+  MaybeRecordFrame(mLastPipelineInfo);
+
+  RenderedFrameId frameId = mCompositor->EndFrame(dirtyRects);
+
+  mCompositor->GetWidget()->PostRender(&widgetContext);
 
 #if defined(ENABLE_FRAME_LATENCY_LOG)
   if (mFrameStartTime) {
@@ -272,10 +249,8 @@ RenderedFrameId RendererOGL::UpdateAndRender(
   mFrameStartTime = TimeStamp();
 #endif
 
-  if (present) {
-    if (!mCompositor->MaybeProcessScreenshotQueue()) {
-      mScreenshotGrabber.MaybeProcessQueue(this);
-    }
+  if (!mCompositor->MaybeProcessScreenshotQueue()) {
+    mScreenshotGrabber.MaybeProcessQueue(this);
   }
 
   // TODO: Flush pending actions such as texture deletions/unlocks and

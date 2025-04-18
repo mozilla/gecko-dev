@@ -2526,7 +2526,7 @@ void WebRenderBridgeParent::NotifySceneBuiltForEpoch(
   }
 }
 
-void WebRenderBridgeParent::ScheduleFrameAfterSceneBuild(
+void WebRenderBridgeParent::NotifyDidSceneBuild(
     RefPtr<const wr::WebRenderPipelineInfo> aInfo) {
   MOZ_ASSERT(IsRootWebRenderBridgeParent());
   if (!mCompositorScheduler) {

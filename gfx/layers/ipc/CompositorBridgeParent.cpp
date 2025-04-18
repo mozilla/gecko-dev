@@ -1439,7 +1439,7 @@ CompositorBridgeParent::LayerTreeState::GetCompositorController() const {
   return mParent;
 }
 
-void CompositorBridgeParent::ScheduleFrameAfterSceneBuild(
+void CompositorBridgeParent::NotifyDidSceneBuild(
     RefPtr<const wr::WebRenderPipelineInfo> aInfo) {
   MOZ_ASSERT(CompositorThreadHolder::IsInCompositorThread());
   if (mPaused) {
@@ -1447,7 +1447,7 @@ void CompositorBridgeParent::ScheduleFrameAfterSceneBuild(
   }
 
   if (mWrBridge) {
-    mWrBridge->ScheduleFrameAfterSceneBuild(aInfo);
+    mWrBridge->NotifyDidSceneBuild(aInfo);
   }
 }
 

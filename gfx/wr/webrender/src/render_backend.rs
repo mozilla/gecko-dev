@@ -1590,12 +1590,7 @@ impl RenderBackend {
             } else if render_frame {
                 doc.rendered_frame_is_valid = true;
             }
-            let params = api::FrameReadyParams {
-                present,
-                render: render_frame,
-                scrolled: scroll,
-            };
-            self.notifier.new_frame_ready(document_id, self.frame_publish_id, &params);
+            self.notifier.new_frame_ready(document_id, scroll, render_frame, self.frame_publish_id);
         }
 
         if !doc.hit_tester_is_valid {
@@ -1979,12 +1974,7 @@ impl RenderBackend {
                     );
                     self.result_tx.send(msg_publish).unwrap();
 
-                    let params = api::FrameReadyParams {
-                        present: true,
-                        render: true,
-                        scrolled: false,
-                    };
-                    self.notifier.new_frame_ready(id, self.frame_publish_id, &params);
+                    self.notifier.new_frame_ready(id, false, true, self.frame_publish_id);
 
                     // We deserialized the state of the frame so we don't want to build
                     // it (but we do want to update the scene builder's state)
