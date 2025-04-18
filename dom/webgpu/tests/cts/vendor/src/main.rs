@@ -1,4 +1,5 @@
 use std::{
+    borrow::Cow,
     collections::{BTreeMap, BTreeSet},
     env::set_current_dir,
     path::PathBuf,
@@ -309,11 +310,11 @@ fn run(args: CliArgs) -> miette::Result<()> {
                 }
             };
             let slashed = path[..test_and_later_start_idx].replace([':', ','], "/");
-            insert!(&slashed, meta);
+            insert!(&slashed, meta.into());
         }
 
         struct WptEntry<'a> {
-            cases: BTreeSet<&'a str>,
+            cases: BTreeSet<Cow<'a, str>>,
             timeout_length: TimeoutLength,
         }
         #[derive(Clone, Copy, Debug)]
@@ -326,7 +327,7 @@ fn run(args: CliArgs) -> miette::Result<()> {
             fn insert_with_default_name<'a>(
                 split_cases: &mut BTreeMap<fs::Child<'a>, WptEntry<'a>>,
                 spec_file_dir: fs::Child<'a>,
-                cases: BTreeMap<Option<WorkerType>, BTreeSet<&'a str>>,
+                cases: BTreeMap<Option<WorkerType>, BTreeSet<Cow<'a, str>>>,
                 timeout_length: TimeoutLength,
             ) {
                 for (worker_type, cases) in cases {
