@@ -1119,12 +1119,15 @@ dependencies = [
 name = "crash_helper_server"
 version = "0.1.0"
 dependencies = [
+ "android_logger",
  "anyhow",
  "cc",
  "cfg-if",
  "crash_helper_common",
  "dirs",
+ "env_logger",
  "linked-hash-map",
+ "log",
  "minidump-writer",
  "mozannotation_server",
  "mozbuild",
@@ -1810,6 +1813,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "85cdab6a89accf66733ad5a1693a4dcced6aeff64602b634530dd73c1f3ee9f0"
 dependencies = [
  "log",
+ "regex",
  "termcolor",
 ]
 
