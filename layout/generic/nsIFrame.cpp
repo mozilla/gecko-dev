@@ -9243,9 +9243,10 @@ static nsresult GetNextPrevLineFromBlockFrame(PeekOffsetStruct* aPos,
       if (!aPos->FrameContentIsInAncestorLimiter(resultFrame)) {
         return NS_ERROR_FAILURE;
       }
-      // check to see if this is ANOTHER blockframe inside the other one if so
-      // then call into its lines
-      if (resultFrame->CanProvideLineIterator()) {
+      // Check to see if this is ANOTHER blockframe inside the other one that
+      // we should look inside.
+      if (resultFrame->CanProvideLineIterator() &&
+          IsRelevantBlockFrame(resultFrame)) {
         aPos->mResultFrame = resultFrame;
         return NS_OK;
       }
