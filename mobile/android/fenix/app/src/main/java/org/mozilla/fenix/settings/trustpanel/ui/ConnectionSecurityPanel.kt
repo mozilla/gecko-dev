@@ -18,18 +18,21 @@ import org.mozilla.fenix.components.menu.compose.MenuItem
 import org.mozilla.fenix.components.menu.compose.MenuScaffold
 import org.mozilla.fenix.components.menu.compose.MenuTextItem
 import org.mozilla.fenix.components.menu.compose.header.SubmenuHeader
-import org.mozilla.fenix.settings.trustpanel.store.WebsiteInfoState
 import org.mozilla.fenix.theme.FirefoxTheme
+
+internal const val CONNECTION_SECURITY_PANEL_ROUTE = "connection_security_panel"
 
 @Composable
 internal fun ConnectionSecurityPanel(
-    websiteInfoState: WebsiteInfoState,
+    title: String,
+    isSecured: Boolean,
+    certificateName: String,
     onBackButtonClick: () -> Unit,
 ) {
     MenuScaffold(
         header = {
             SubmenuHeader(
-                header = websiteInfoState.websiteTitle,
+                header = title,
                 onClick = onBackButtonClick,
             )
         },
@@ -37,25 +40,25 @@ internal fun ConnectionSecurityPanel(
         Column {
             MenuGroup {
                 MenuItem(
-                    label = if (websiteInfoState.isSecured) {
+                    label = if (isSecured) {
                         stringResource(id = R.string.connection_security_panel_secure)
                     } else {
                         stringResource(id = R.string.connection_security_panel_not_secure)
                     },
-                    beforeIconPainter = if (websiteInfoState.isSecured) {
+                    beforeIconPainter = if (isSecured) {
                         painterResource(id = R.drawable.mozac_ic_lock_24)
                     } else {
                         painterResource(id = R.drawable.mozac_ic_lock_slash_24)
                     },
                 )
 
-                if (websiteInfoState.certificateName.isNotEmpty()) {
+                if (certificateName.isNotEmpty()) {
                     Divider(color = FirefoxTheme.colors.borderSecondary)
 
                     MenuTextItem(
                         label = stringResource(
                             id = R.string.connection_security_panel_verified_by,
-                            websiteInfoState.certificateName,
+                            certificateName,
                         ),
                     )
                 }
@@ -73,12 +76,9 @@ private fun TrackersBlockedPanelPreview() {
                 .background(color = FirefoxTheme.colors.layer3),
         ) {
             ConnectionSecurityPanel(
-                websiteInfoState = WebsiteInfoState(
-                    isSecured = true,
-                    websiteUrl = "https://www.mozilla.org",
-                    websiteTitle = "Mozilla",
-                    certificateName = "Let's Encrypt",
-                ),
+                title = "Mozilla",
+                isSecured = true,
+                certificateName = "Let's Encrypt",
                 onBackButtonClick = {},
             )
         }
