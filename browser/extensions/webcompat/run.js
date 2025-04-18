@@ -7,7 +7,7 @@
 /* globals AboutCompatBroker, AVAILABLE_SHIMS,
            CUSTOM_FUNCTIONS, Interventions, Shims */
 
-var interventions, shims;
+let interventions, shims;
 
 const AVAILABLE_INTERVENTIONS =
 #include data/interventions.json
