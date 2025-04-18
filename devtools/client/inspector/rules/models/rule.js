@@ -53,11 +53,11 @@ class Rule {
     this.compatibilityIssues = null;
 
     this.matchedSelectorIndexes = options.matchedSelectorIndexes || [];
-    this.pseudoElement = options.pseudoElement || "";
     this.isSystem = options.isSystem;
     this.isUnmatched = options.isUnmatched || false;
     this.darkColorScheme = options.darkColorScheme;
     this.inherited = options.inherited || null;
+    this.pseudoElement = options.pseudoElement || "";
     this.keyframes = options.keyframes || null;
     this.userAdded = options.rule.userAdded;
 
@@ -134,6 +134,9 @@ class Rule {
       let eltText = this.inherited.displayName;
       if (this.inherited.id) {
         eltText += "#" + this.inherited.id;
+      }
+      if (CssLogic.ELEMENT_BACKED_PSEUDO_ELEMENTS.has(this.pseudoElement)) {
+        eltText += this.pseudoElement;
       }
       this._inheritedSource = STYLE_INSPECTOR_L10N.getFormatStr(
         "rule.inheritedFrom",

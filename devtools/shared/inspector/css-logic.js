@@ -839,3 +839,8 @@ function isCssVariable(input) {
   return !!input.match(IS_VARIABLE_TOKEN);
 }
 exports.isCssVariable = isCssVariable;
+
+exports.ELEMENT_BACKED_PSEUDO_ELEMENTS = new Set([
+  "::details-content",
+  "::file-selector-button",
+]);
