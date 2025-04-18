@@ -32,6 +32,7 @@ import org.mozilla.gecko.annotation.WrapForJNI;
 import org.mozilla.gecko.mozglue.GeckoLoader;
 import org.mozilla.gecko.process.GeckoProcessManager;
 import org.mozilla.gecko.process.GeckoProcessType;
+import org.mozilla.gecko.process.MemoryController;
 import org.mozilla.gecko.util.GeckoBundle;
 import org.mozilla.gecko.util.ThreadUtils;
 import org.mozilla.geckoview.BuildConfig;
@@ -144,11 +145,14 @@ public class GeckoThread extends Thread {
   public static final int FLAG_PRELOAD_CHILD = 1 << 1; // Preload child during main thread start.
   public static final int FLAG_ENABLE_NATIVE_CRASHREPORTER =
       1 << 2; // Enable native crash reporting.
+  public static final int FLAG_DISABLE_LOW_MEMORY_DETECTION =
+      1 << 3; // Disable low-memory detection and notifications.
 
   /* package */ static final String EXTRA_ARGS = "args";
 
   private boolean mInitialized;
   private InitInfo mInitInfo;
+  private MemoryController mMemoryController;
 
   public static class InitInfo {
     public final String[] args;
@@ -455,6 +459,8 @@ public class GeckoThread extends Thread {
       env.add(0, "MOZ_ANDROID_USER_SERIAL_NUMBER=" + mInitInfo.userSerialNumber);
     }
 
+    maybeRegisterMemoryController(env);
+
     // Start the profiler before even loading mozglue, so we can capture more
     // things that are happening on the JVM side.
     maybeStartGeckoProfiler(env);
@@ -517,6 +523,32 @@ public class GeckoThread extends Thread {
       // it alive after Gecko exits.
       System.exit(0);
     }
+  }
+
+  // Register the memory controller which will listen to low-memory events from
+  // the Android framework and forward them to Gecko. Note that we only use it
+  // as long as Gecko is running and we don't enable it in tests where it
+  // causes unpredictable behavior.
+  private void maybeRegisterMemoryController(final @NonNull List<String> env) {
+    if ((mInitInfo.flags & GeckoThread.FLAG_DISABLE_LOW_MEMORY_DETECTION) != 0) {
+      return;
+    }
+
+    final Context context = GeckoAppShell.getApplicationContext();
+
+    mMemoryController = new MemoryController();
+    waitForState(State.RUNNING)
+        .accept(
+            val -> {
+              context.registerComponentCallbacks(mMemoryController);
+            },
+            e -> Log.e(LOGTAG, "Unable to register the MemoryController", e));
+    waitForState(State.EXITING)
+        .accept(
+            val -> {
+              context.unregisterComponentCallbacks(mMemoryController);
+            },
+            e -> Log.e(LOGTAG, "Unable to unregister the MemoryController", e));
   }
 
   // This may start the gecko profiler early by looking at the environment variables.
