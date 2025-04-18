@@ -378,25 +378,31 @@ export class SidebarState {
   set launcherDragActive(active) {
     this.#props.launcherDragActive = active;
     if (active) {
-      this.#launcherEl.toggleAttribute("customWidth", true);
-      if (
-        this.launcherExpanded &&
-        this.#controller.sidebarRevampVisibility === "expand-on-hover"
-      ) {
+      // Temporarily disable expand on hover functionality while dragging
+      if (this.#controller.sidebarRevampVisibility === "expand-on-hover") {
         this.#controller.toggleExpandOnHover(false);
       }
+
+      this.#launcherEl.toggleAttribute("customWidth", true);
     } else if (this.launcherWidth < LAUNCHER_MINIMUM_WIDTH) {
+      // Re-enable expand on hover if necessary
+      if (this.#controller.sidebarRevampVisibility === "expand-on-hover") {
+        this.#controller.toggleExpandOnHover(true, true);
+      }
+
       // Snap back to collapsed state when the new width is too narrow.
       this.launcherExpanded = false;
       if (this.revampVisibility === "hide-sidebar") {
         this.launcherVisible = false;
       }
     } else {
-      // Store the user-preferred launcher width.
-      this.expandedLauncherWidth = this.launcherWidth;
+      // Re-enable expand on hover if necessary
       if (this.#controller.sidebarRevampVisibility === "expand-on-hover") {
         this.#controller.toggleExpandOnHover(true, true);
       }
+
+      // Store the user-preferred launcher width.
+      this.expandedLauncherWidth = this.launcherWidth;
     }
     const rootEl = this.#controllerGlobal.document.documentElement;
     rootEl.toggleAttribute("sidebar-launcher-drag-active", active);
