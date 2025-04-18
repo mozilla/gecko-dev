@@ -136,7 +136,7 @@ add_task(async function test_hasExperimentForFeature() {
       branch: {
         ratio: 1,
         slug: "variant",
-        feature: { featureId: "green" },
+        features: [{ featureId: "green", value: {} }],
       },
     })
   );
@@ -145,7 +145,7 @@ add_task(async function test_hasExperimentForFeature() {
       branch: {
         ratio: 1,
         slug: "variant",
-        feature: { featureId: "yellow" },
+        features: [{ featureId: "yellow", value: {} }],
       },
     })
   );
@@ -155,7 +155,7 @@ add_task(async function test_hasExperimentForFeature() {
       branch: {
         ratio: 1,
         slug: "variant",
-        feature: { featureId: "purple" },
+        features: [{ featureId: "purple", value: {} }],
       },
     })
   );
