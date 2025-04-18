@@ -534,6 +534,24 @@ public class GeckoThread extends Thread {
       return;
     }
 
+    for (final String envItem : env) {
+      if (envItem == null) {
+        continue;
+      }
+
+      final String mozInAutomationEnv = "MOZ_IN_AUTOMATION=";
+
+      if (envItem.startsWith(mozInAutomationEnv)) {
+        final String value = envItem.substring(mozInAutomationEnv.length());
+
+        if (value.equals("1")) {
+          // We're in automation, do not check for low memory as sending low
+          // memory events creates unpredictable conditions in tests.
+          return;
+        }
+      }
+    }
+
     final Context context = GeckoAppShell.getApplicationContext();
 
     mMemoryController = new MemoryController();
