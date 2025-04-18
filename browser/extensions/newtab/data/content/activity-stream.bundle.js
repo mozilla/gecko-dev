@@ -14680,7 +14680,7 @@ class BaseContent extends (external_React_default()).PureComponent {
     }
   }
 
-  // eslint-disable-next-line max-statements
+  // eslint-disable-next-line max-statements, complexity
   render() {
     const {
       props
@@ -14806,8 +14806,10 @@ class BaseContent extends (external_React_default()).PureComponent {
       hiddenOverride: this.state.showDownloadHighlight,
       onDismiss: this.handleDismissDownloadHighlight,
       dispatch: this.props.dispatch
-    }, /*#__PURE__*/external_React_default().createElement(DownloadMobilePromoHighlight, {
-      position: "inset-block-end inset-inline-start",
+    }, /*#__PURE__*/external_React_default().createElement(DownloadMobilePromoHighlight
+    // Var B layout has the weather right-aligned
+    , {
+      position: `${layoutsVariantBEnabled ? "inset-inline-start" : "inset-inline-end"} inset-block-end`,
       dispatch: this.props.dispatch
     })))), /*#__PURE__*/external_React_default().createElement("div", {
       className: outerClassName,

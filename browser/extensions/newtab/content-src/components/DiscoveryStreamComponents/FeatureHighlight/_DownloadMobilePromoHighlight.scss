@@ -46,22 +46,22 @@
 
     &.inset-block-end {
       margin-top: var(--space-xxlarge);
+    }
+
+    &.inset-inline-end {
+      inset-inline-start: calc(var(--arrow-size) * -2);
 
       &::after {
-        // inset-block-start: -12px;
-        // transform: rotate(225deg);
+        inset-inline-start: calc(var(--space-xxlarge) - 14px);
       }
     }
 
     &.inset-inline-start {
-      // inset-inline-end: 0;
       inset-inline-end: calc(calc(calc(var(--arrow-size) / 2) * -1) - 6px);
-      // inset-inline-end: calc(calc(var(--arrow-size) / 2) * -1);
 
       &::after {
         inset-inline-end: calc(var(--space-xxlarge) - 12px);
       }
-
     }
 
     // Message Arrow Pointer
