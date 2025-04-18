@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+  <!-- The default content description (not visible, for screen readers etc.): Cross trailing icon button in TextField used to clear input. -->
+  <string name="text_field_cross_trailing_icon_default_content_description">Sfeḍ aḍris</string>
+</resources>
