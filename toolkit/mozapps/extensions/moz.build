@@ -42,6 +42,22 @@ if CONFIG["MOZ_BUILD_APP"] == "browser":
     FINAL_TARGET_FILES.browser.chrome.browser.content.browser += [
         "!%s" % built_in_addons,
     ]
+elif CONFIG["MOZ_BUILD_APP"] == "mobile/android":
+    # TODO: double-chek if GeckoView is really not using the default en-US dictionary
+    # as mentioned in test_dictionary_webextension.js skip-if comment here
+    # https://searchfox.org/mozilla-central/rev/f3c8c63a09/toolkit/mozapps/extensions/test/xpcshell/xpcshell.toml#101
+    #
+    # mobile/shared/actors/ContentDelegateChild.sys.mjs seems to be importing
+    # toolkit/modules/InlineSpellChecker.sys.mjs which includes a call to
+    # `spellchecker.GetDictionaryList()` internally.
+    FINAL_TARGET_FILES.chrome.chrome.content += [
+        "!%s" % built_in_addons,
+    ]
+elif CONFIG["MOZ_BUILD_APP"] == "comm/mail":
+    # NOTE: used by Thunderbird to auto-install the default en-US dictionary.
+    FINAL_TARGET_FILES.chrome.browser.content += [
+        "!%s" % built_in_addons,
+    ]
 
 EXTRA_PP_COMPONENTS += [
     "extensions.manifest",
