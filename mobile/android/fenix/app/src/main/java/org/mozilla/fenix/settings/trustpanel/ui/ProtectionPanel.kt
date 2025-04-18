@@ -76,6 +76,8 @@ internal fun ProtectionPanel(
     onClearSiteDataMenuClick: () -> Unit,
     onConnectionSecurityClick: () -> Unit,
     onPrivacySecuritySettingsClick: () -> Unit,
+    onAutoplayValueClick: (AutoplayValue) -> Unit,
+    onToggleablePermissionClick: (WebsitePermission.Toggleable) -> Unit,
 ) {
     MenuScaffold(
         header = {
@@ -129,6 +131,8 @@ internal fun ProtectionPanel(
         if (websitePermissions.isNotEmpty()) {
             WebsitePermissionsMenuGroup(
                 websitePermissions = websitePermissions,
+                onAutoplayValueClick = onAutoplayValueClick,
+                onToggleablePermissionClick = onToggleablePermissionClick,
             )
         }
 
@@ -227,6 +231,8 @@ private fun ProtectionPanelBanner(
 @Composable
 private fun WebsitePermissionsMenuGroup(
     websitePermissions: List<WebsitePermission>,
+    onAutoplayValueClick: (AutoplayValue) -> Unit,
+    onToggleablePermissionClick: (WebsitePermission.Toggleable) -> Unit,
 ) {
     MenuGroup {
         Row(
@@ -249,10 +255,10 @@ private fun WebsitePermissionsMenuGroup(
                 beforeIconPainter = painterResource(id = websitePermission.deviceFeature.getIconId()),
                 afterContent = when (websitePermission) {
                     is WebsitePermission.Autoplay -> {
-                        { AutoplayDropdownMenu(websitePermission) }
+                        { AutoplayDropdownMenu(websitePermission, onAutoplayValueClick) }
                     }
                     is WebsitePermission.Toggleable -> {
-                        { WebsitePermissionToggle(websitePermission) }
+                        { WebsitePermissionToggle(websitePermission, onToggleablePermissionClick) }
                     }
                 },
             )
@@ -263,6 +269,7 @@ private fun WebsitePermissionsMenuGroup(
 @Composable
 private fun WebsitePermissionToggle(
     websitePermission: WebsitePermission.Toggleable,
+    onToggleablePermissionClick: (WebsitePermission.Toggleable) -> Unit,
 ) {
     val toggleLabel = if (websitePermission.isBlockedByAndroid) {
         stringResource(id = R.string.phone_feature_blocked_by_android)
@@ -274,7 +281,7 @@ private fun WebsitePermissionToggle(
 
     Column(
         modifier = Modifier
-            .clickable {}
+            .clickable { onToggleablePermissionClick(websitePermission) }
             .semantics { role = Role.Switch },
     ) {
         Text(
@@ -288,6 +295,7 @@ private fun WebsitePermissionToggle(
 @Composable
 private fun AutoplayDropdownMenu(
     websitePermission: WebsitePermission.Autoplay,
+    onAutoplayValueClick: (AutoplayValue) -> Unit,
 ) {
     val density = LocalDensity.current
     var expanded by remember { mutableStateOf(false) }
@@ -297,7 +305,7 @@ private fun AutoplayDropdownMenu(
         MenuItem.CheckableItem(
             text = Text.String(stringResource(id = autoplayValueEntry.title)),
             isChecked = autoplayValueEntry == websitePermission.autoplayValue,
-            onClick = {},
+            onClick = { onAutoplayValueClick(autoplayValueEntry) },
         )
     }
 
@@ -371,6 +379,8 @@ private fun ProtectionPanelPreview() {
                 onClearSiteDataMenuClick = {},
                 onConnectionSecurityClick = {},
                 onPrivacySecuritySettingsClick = {},
+                onAutoplayValueClick = {},
+                onToggleablePermissionClick = {},
             )
         }
     }

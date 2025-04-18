@@ -103,7 +103,15 @@ private fun reducer(state: TrustPanelState, action: TrustPanelAction): TrustPane
         is TrustPanelAction.ClearSiteData,
         is TrustPanelAction.RequestClearSiteDataDialog,
         is TrustPanelAction.UpdateTrackersBlocked,
+        is TrustPanelAction.TogglePermission,
         -> state
+
+        is TrustPanelAction.WebsitePermissionAction -> state.copy(
+            websitePermissionsState = WebsitePermissionsStateReducer.reduce(
+                state.websitePermissionsState,
+                action,
+            ),
+        )
 
         is TrustPanelAction.UpdateDetailedTrackerCategory -> state.copy(
             detailedTrackerCategory = action.detailedTrackerCategory,
@@ -117,5 +125,41 @@ private fun reducer(state: TrustPanelState, action: TrustPanelAction): TrustPane
         is TrustPanelAction.UpdateNumberOfTrackersBlocked -> state.copy(
             numberOfTrackersBlocked = action.newNumberOfTrackersBlocked,
         )
+        is TrustPanelAction.UpdateSitePermissions -> state.copy(
+            sitePermissions = action.sitePermissions,
+        )
+    }
+}
+
+private object WebsitePermissionsStateReducer {
+    /**
+     * Handles creating a new [WebsitePermissionsState] based on the
+     * specific [TrustPanelAction.WebsitePermissionAction]
+     */
+    fun reduce(
+        state: WebsitePermissionsState,
+        action: TrustPanelAction.WebsitePermissionAction,
+    ): WebsitePermissionsState {
+        val key = action.updatedFeature
+        val value = state[key]
+
+        return when (action) {
+            is TrustPanelAction.WebsitePermissionAction.GrantPermissionBlockedByAndroid -> {
+                val toggleable = value as WebsitePermission.Toggleable
+                val newWebsitePermission = toggleable.copy(
+                    isBlockedByAndroid = false,
+                )
+
+                state + Pair(key, newWebsitePermission)
+            }
+            is TrustPanelAction.WebsitePermissionAction.TogglePermission -> {
+                val toggleable = value as WebsitePermission.Toggleable
+                val newWebsitePermission = toggleable.copy(
+                    isEnabled = !value.isEnabled,
+                )
+
+                state + Pair(key, newWebsitePermission)
+            }
+        }
     }
 }

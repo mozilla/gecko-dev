@@ -5,10 +5,13 @@
 package org.mozilla.fenix.settings.trustpanel
 
 import android.app.Dialog
+import android.content.Intent
+import android.net.Uri
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -33,15 +36,18 @@ import mozilla.components.lib.state.ext.observeAsState
 import mozilla.components.support.base.log.logger.Logger
 import mozilla.components.support.ktx.android.view.setNavigationBarColorCompat
 import mozilla.components.support.ktx.kotlinx.coroutines.flow.ifAnyChanged
+import org.mozilla.fenix.BuildConfig
 import org.mozilla.fenix.HomeActivity
 import org.mozilla.fenix.R
 import org.mozilla.fenix.components.components
 import org.mozilla.fenix.components.menu.compose.MenuDialogBottomSheet
+import org.mozilla.fenix.settings.PhoneFeature
 import org.mozilla.fenix.settings.trustpanel.middleware.TrustPanelMiddleware
 import org.mozilla.fenix.settings.trustpanel.middleware.TrustPanelNavigationMiddleware
 import org.mozilla.fenix.settings.trustpanel.middleware.TrustPanelTelemetryMiddleware
 import org.mozilla.fenix.settings.trustpanel.store.TrustPanelAction
 import org.mozilla.fenix.settings.trustpanel.store.TrustPanelStore
+import org.mozilla.fenix.settings.trustpanel.store.WebsitePermission
 import org.mozilla.fenix.settings.trustpanel.ui.CLEAR_SITE_DATA_DIALOG_ROUTE
 import org.mozilla.fenix.settings.trustpanel.ui.CONNECTION_SECURITY_PANEL_ROUTE
 import org.mozilla.fenix.settings.trustpanel.ui.ClearSiteDataDialog
@@ -61,6 +67,11 @@ import org.mozilla.fenix.trackingprotection.TrackerBuckets
 class TrustPanelFragment : BottomSheetDialogFragment() {
 
     private val args by navArgs<TrustPanelFragmentArgs>()
+
+    private lateinit var permissionsCallback: ((Map<String, Boolean>) -> Unit)
+    private val requestPermissionsLauncher = registerForActivityResult(
+        ActivityResultContracts.RequestMultiplePermissions(),
+    ) { isGranted: Map<String, Boolean> -> permissionsCallback.invoke(isGranted) }
 
     override fun onCreateDialog(savedInstanceState: Bundle?): Dialog =
         super.onCreateDialog(savedInstanceState).apply {
@@ -121,6 +132,8 @@ class TrustPanelFragment : BottomSheetDialogFragment() {
                                     publicSuffixList = components.publicSuffixList,
                                     sessionUseCases = components.useCases.sessionUseCases,
                                     trackingProtectionUseCases = trackingProtectionUseCases,
+                                    permissionStorage = components.core.permissionStorage,
+                                    requestPermissionsLauncher = requestPermissionsLauncher,
                                     onDismiss = {
                                         withContext(Dispatchers.Main) {
                                             this@TrustPanelFragment.dismiss()
@@ -163,6 +176,32 @@ class TrustPanelFragment : BottomSheetDialogFragment() {
                         state.websitePermissionsState.values
                     }
 
+                    permissionsCallback = { isGranted: Map<String, Boolean> ->
+                        if (isGranted.values.all { it }) {
+                            val phoneFeature = PhoneFeature.findFeatureBy(isGranted.keys.toTypedArray())
+
+                            phoneFeature?.let {
+                                store.dispatch(
+                                    TrustPanelAction.WebsitePermissionAction
+                                        .GrantPermissionBlockedByAndroid(phoneFeature),
+                                )
+                            }
+                        } else {
+                            if (isGranted.keys.any { !shouldShowRequestPermissionRationale(it) }) {
+                                // The user has permanently blocked these permissions and is trying to enable them.
+                                // At this point, we are not able to request these permissions; the only way to allow
+                                // them is to take the user to the system app setting page, and there the user can
+                                // choose to allow the permissions.
+                                startActivity(
+                                    Intent().apply {
+                                        action = android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS
+                                        data = Uri.fromParts("package", BuildConfig.APPLICATION_ID, null)
+                                    },
+                                )
+                            }
+                        }
+                    }
+
                     observeTrackersChange(components.core.store) {
                         trackingProtectionUseCases.fetchTrackingLogs(
                             tabId = args.sessionId,
@@ -202,6 +241,10 @@ class TrustPanelFragment : BottomSheetDialogFragment() {
                                 },
                                 onPrivacySecuritySettingsClick = {
                                     store.dispatch(TrustPanelAction.Navigate.PrivacySecuritySettings)
+                                },
+                                onAutoplayValueClick = {},
+                                onToggleablePermissionClick = { websitePermission: WebsitePermission.Toggleable ->
+                                    store.dispatch(TrustPanelAction.TogglePermission(websitePermission))
                                 },
                             )
                         }
