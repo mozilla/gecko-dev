@@ -4,9 +4,6 @@
 ---
 loader: taskgraph.loader.transform:loader
 
-only-for-attributes:
-    - build_platform
-
 transforms:
     - taskgraph.transforms.from_deps
     - gecko_taskgraph.transforms.job
