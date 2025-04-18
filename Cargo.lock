@@ -4292,9 +4292,6 @@ dependencies = [
 [[package]]
 name = "mozannotation_client"
 version = "0.1.0"
-dependencies = [
- "nsstring",
-]
 
 [[package]]
 name = "mozannotation_server"
