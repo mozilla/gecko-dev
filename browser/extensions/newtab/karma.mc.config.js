@@ -248,10 +248,9 @@ module.exports = function (config) {
               },
             "content-src/components/DiscoveryStreamComponents/AdBannerContextMenu/AdBannerContextMenu.jsx":
               {
-                statements: 80,
-                lines: 80,
-                functions: 75,
-                branches: 75,
+                statements: 86,
+                lines: 86,
+                functions: 83,
               },
             "content-src/components/DiscoveryStreamComponents/**/*.jsx": {
               statements: 90.48,

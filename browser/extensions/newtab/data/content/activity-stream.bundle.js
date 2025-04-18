@@ -4572,6 +4572,10 @@ function AdBannerContextMenu({
   const [showContextMenu, setShowContextMenu] = (0,external_React_namespaceObject.useState)(false);
   const [contextMenuClassNames, setContextMenuClassNames] = (0,external_React_namespaceObject.useState)("ads-context-menu");
 
+  // The keyboard access parameter is passed down to LinkMenu component
+  // that uses it to focus on the first context menu option for accessibility.
+  const [isKeyboardAccess, setIsKeyboardAccess] = (0,external_React_namespaceObject.useState)(false);
+
   /**
    * Toggles the style fix for context menu hover/active styles.
    * This allows us to have unobtrusive, transparent button background by default,
@@ -4586,10 +4590,27 @@ function AdBannerContextMenu({
       setContextMenuClassNames("ads-context-menu");
     }
   };
-  const onClick = e => {
-    e.preventDefault();
+
+  /**
+   * Toggles the context menu to open or close. Sets state depending on whether
+   * the context menu is accessed by mouse or keyboard.
+   *
+   * @param isKeyBoard
+   */
+  const toggleContextMenu = isKeyBoard => {
     toggleContextMenuStyleSwitch(!showContextMenu);
     setShowContextMenu(!showContextMenu);
+    setIsKeyboardAccess(isKeyBoard);
+  };
+  const onClick = e => {
+    e.preventDefault();
+    toggleContextMenu(false);
+  };
+  const onKeyDown = e => {
+    if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+      toggleContextMenu(true);
+    }
   };
   const onUpdate = () => {
     toggleContextMenuStyleSwitch(!showContextMenu);
@@ -4603,10 +4624,12 @@ function AdBannerContextMenu({
     type: "icon",
     size: "default",
     iconsrc: "chrome://global/skin/icons/more.svg",
-    onClick: onClick
+    onClick: onClick,
+    onKeyDown: onKeyDown
   }), showContextMenu && /*#__PURE__*/external_React_default().createElement(LinkMenu, {
     onUpdate: onUpdate,
     dispatch: dispatch,
+    keyboardAccess: isKeyboardAccess,
     options: ADBANNER_CONTEXT_MENU_OPTIONS,
     shouldSendImpressionStats: true,
     userEvent: actionCreators.DiscoveryStreamUserEvent,
