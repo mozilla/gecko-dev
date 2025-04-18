@@ -1293,6 +1293,11 @@ class HomeFragment : Fragment() {
                             browsingModeManager = browsingModeManager,
                         ),
                         interactor = sessionControlInteractor,
+                        onMiddleSearchBarVisibilityChanged = { isVisible ->
+                            // Hide the main address bar in the toolbar when the middle search is
+                            // visible (and vice versa)
+                            toolbarView.updateAddressBarVisibility(!isVisible)
+                        },
                         onTopSitesItemBound = {
                             StartupTimeline.onTopSitesItemBound(activity = (requireActivity() as HomeActivity))
                         },

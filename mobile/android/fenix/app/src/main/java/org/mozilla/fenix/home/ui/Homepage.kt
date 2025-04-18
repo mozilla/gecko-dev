@@ -4,6 +4,10 @@
 
 package org.mozilla.fenix.home.ui
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -15,6 +19,10 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.dimensionResource
@@ -64,11 +72,14 @@ import org.mozilla.fenix.theme.FirefoxTheme
 import org.mozilla.fenix.theme.Theme
 import org.mozilla.fenix.wallpapers.WallpaperState
 
+private const val MIDDLE_SEARCH_SCROLL_THRESHOLD_PX = 10
+
 /**
  * Top level composable for the homepage.
  *
  * @param state State representing the homepage.
  * @param interactor for interactions with the homepage UI.
+ * @param onMiddleSearchBarVisibilityChanged Invoked when the middle search is shown/hidden.
  * @param onTopSitesItemBound Invoked during the composition of a top site item.
  */
 @Suppress("LongMethod")
@@ -76,11 +87,15 @@ import org.mozilla.fenix.wallpapers.WallpaperState
 internal fun Homepage(
     state: HomepageState,
     interactor: HomepageInteractor,
+    onMiddleSearchBarVisibilityChanged: (isVisible: Boolean) -> Unit,
     onTopSitesItemBound: () -> Unit,
 ) {
+    val scrollState = rememberScrollState()
+
     Column(
         modifier = Modifier
-            .verticalScroll(rememberScrollState()),
+            .verticalScroll(scrollState)
+            .animateContentSize(),
     ) {
         HomepageHeader(
             browsingMode = state.browsingMode,
@@ -120,10 +135,24 @@ internal fun Homepage(
                         )
                     }
 
-                    if (showSearchBar) {
-                        SearchBar(
-                            onClick = interactor::onNavigateSearch,
-                        )
+                    if (searchBarEnabled) {
+                        val atTopOfList by remember {
+                            derivedStateOf {
+                                scrollState.value < MIDDLE_SEARCH_SCROLL_THRESHOLD_PX
+                            }
+                        }
+
+                        LaunchedEffect(atTopOfList) {
+                            onMiddleSearchBarVisibilityChanged(atTopOfList)
+                        }
+
+                        AnimatedVisibility(
+                            visible = showSearchBar && atTopOfList,
+                            enter = fadeIn(),
+                            exit = fadeOut(),
+                        ) {
+                            SearchBar(onClick = interactor::onNavigateSearch)
+                        }
                     }
 
                     if (setupChecklistState != null) {
@@ -420,6 +449,7 @@ private fun HomepagePreview() {
                     showBookmarks = true,
                     showRecentlyVisited = true,
                     showPocketStories = true,
+                    searchBarEnabled = false,
                     showSearchBar = true,
                     setupChecklistState = null,
                     topSiteColors = TopSiteColors.colors(),
@@ -431,6 +461,7 @@ private fun HomepagePreview() {
                 ),
                 interactor = FakeHomepagePreview.homepageInteractor,
                 onTopSitesItemBound = {},
+                onMiddleSearchBarVisibilityChanged = {},
             )
         }
     }
@@ -456,6 +487,7 @@ private fun HomepagePreviewCollections() {
                 showBookmarks = false,
                 showRecentlyVisited = true,
                 showPocketStories = true,
+                searchBarEnabled = false,
                 showSearchBar = true,
                 setupChecklistState = null,
                 topSiteColors = TopSiteColors.colors(),
@@ -467,6 +499,7 @@ private fun HomepagePreviewCollections() {
             ),
             interactor = FakeHomepagePreview.homepageInteractor,
             onTopSitesItemBound = {},
+            onMiddleSearchBarVisibilityChanged = {},
         )
     }
 }
@@ -487,6 +520,7 @@ private fun PrivateHomepagePreview() {
                 ),
                 interactor = FakeHomepagePreview.homepageInteractor,
                 onTopSitesItemBound = {},
+                onMiddleSearchBarVisibilityChanged = {},
             )
         }
     }

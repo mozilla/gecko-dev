@@ -116,6 +116,10 @@ internal class HomeToolbarComposable(
         // To be added later
     }
 
+    override fun updateAddressBarVisibility(isVisible: Boolean) {
+        // To be added later
+    }
+
     @Composable
     private fun BrowserToolbar(shouldShowDivider: Boolean, shouldUseBottomToolbar: Boolean) {
         // Ensure the divider is shown together with the toolbar
