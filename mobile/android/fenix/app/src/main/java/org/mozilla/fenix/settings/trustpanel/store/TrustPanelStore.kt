@@ -24,8 +24,10 @@ class TrustPanelStore(
     reducer = ::reducer,
     middleware = middleware,
 ) {
+    @Suppress("LongParameterList")
     constructor (
         isTrackingProtectionEnabled: Boolean,
+        websiteInfoState: WebsiteInfoState,
         sessionState: SessionState?,
         settings: Settings,
         sitePermissions: SitePermissions?,
@@ -37,6 +39,7 @@ class TrustPanelStore(
             isTrackingProtectionEnabled = isTrackingProtectionEnabled,
             sessionState = sessionState,
             sitePermissions = sitePermissions,
+            websiteInfoState = websiteInfoState,
             websitePermissionsState = createWebsitePermissionState(
                 settings = settings,
                 sitePermissions = sitePermissions,

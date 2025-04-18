@@ -28,6 +28,7 @@ typealias WebsitePermissionsState = Map<PhoneFeature, WebsitePermission>
  * @property sessionState The [SessionState] of the current tab.
  * @property sitePermissions The [SitePermissions] that contains the statuses of website permissions
  * for the current site.
+ * @property websiteInfoState [State] containing information about the website connection.
  * @property websitePermissionsState Mapping of [PhoneFeature]s to [WebsitePermission]s.
  */
 data class TrustPanelState(
@@ -38,8 +39,24 @@ data class TrustPanelState(
     val detailedTrackerCategory: TrackingProtectionCategory? = null,
     val sessionState: SessionState? = null,
     val sitePermissions: SitePermissions? = null,
+    val websiteInfoState: WebsiteInfoState = WebsiteInfoState(),
     val websitePermissionsState: WebsitePermissionsState = mapOf(),
 ) : State
+
+/**
+ * Value type that represents the website connection security state.
+ *
+ * @property isSecured Whether the website connection is secured or not.
+ * @property websiteUrl The URL of the current web page.
+ * @property websiteTitle The title of the current web page.
+ * @property certificateName the certificate name of the current web page.
+ */
+data class WebsiteInfoState(
+    val isSecured: Boolean = true,
+    val websiteUrl: String = "",
+    val websiteTitle: String = "",
+    val certificateName: String = "",
+)
 
 /**
  * Wrapper over a website permission encompassing all its needed state to be rendered on the screen.
