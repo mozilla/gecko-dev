@@ -2,6 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+#[cfg(any(target_os = "android", target_os = "linux"))]
+use minidump_writer::minidump_writer::{AuxvType, DirectAuxvDumpInfo};
 use num_derive::{FromPrimitive, ToPrimitive};
 use num_traits::FromPrimitive;
 use std::{
@@ -38,6 +40,12 @@ pub enum Kind {
     WindowsErrorReporting = 6,
     #[cfg(target_os = "windows")]
     WindowsErrorReportingReply = 7,
+    /// Register and unregister additional information for the auxiliary
+    /// vector of a process.
+    #[cfg(any(target_os = "android", target_os = "linux"))]
+    RegisterAuxvInfo = 8,
+    #[cfg(any(target_os = "android", target_os = "linux"))]
+    UnregisterAuxvInfo = 9,
 }
 
 pub trait Message {
@@ -457,5 +465,158 @@ impl Message for WindowsErrorReportingMinidumpReply {
         }
 
         Ok(WindowsErrorReportingMinidumpReply::new())
+    }
+}
+
+/* Message used to send information about a process' auxiliary vector. */
+
+#[cfg(any(target_os = "android", target_os = "linux"))]
+pub struct RegisterAuxvInfo {
+    pub pid: Pid,
+    pub auxv_info: DirectAuxvDumpInfo,
+}
+
+#[cfg(any(target_os = "android", target_os = "linux"))]
+impl RegisterAuxvInfo {
+    pub fn new(pid: Pid, auxv_info: DirectAuxvDumpInfo) -> RegisterAuxvInfo {
+        RegisterAuxvInfo { pid, auxv_info }
+    }
+
+    fn payload_size(&self) -> usize {
+        // A bit hacky but we'll change this when we make
+        // serialization/deserialization later.
+        size_of::<Pid>() + (size_of::<AuxvType>() * 4)
+    }
+}
+
+#[cfg(any(target_os = "android", target_os = "linux"))]
+impl Message for RegisterAuxvInfo {
+    fn kind() -> Kind {
+        Kind::RegisterAuxvInfo
+    }
+
+    fn header(&self) -> Vec<u8> {
+        Header {
+            kind: Self::kind(),
+            size: self.payload_size(),
+        }
+        .encode()
+    }
+
+    fn payload(&self) -> Vec<u8> {
+        let mut payload = Vec::with_capacity(self.payload_size());
+        payload.extend(self.pid.to_ne_bytes());
+        payload.extend(self.auxv_info.program_header_count.to_ne_bytes());
+        payload.extend(self.auxv_info.program_header_address.to_ne_bytes());
+        payload.extend(self.auxv_info.linux_gate_address.to_ne_bytes());
+        payload.extend(self.auxv_info.entry_address.to_ne_bytes());
+        debug_assert!(self.payload_size() == payload.len());
+        payload
+    }
+
+    fn ancillary_payload(&self) -> Option<AncillaryData> {
+        None
+    }
+
+    fn decode(
+        data: &[u8],
+        ancillary_data: Option<AncillaryData>,
+    ) -> Result<RegisterAuxvInfo, MessageError> {
+        debug_assert!(
+            ancillary_data.is_none(),
+            "RegisterAuxvInfo messages cannot carry ancillary data"
+        );
+
+        let bytes: [u8; size_of::<Pid>()] = data[0..size_of::<Pid>()].try_into()?;
+        let pid = Pid::from_ne_bytes(bytes);
+        let offset = size_of::<Pid>();
+
+        let bytes: [u8; size_of::<AuxvType>()] =
+            data[offset..(offset + size_of::<AuxvType>())].try_into()?;
+        let program_header_count = AuxvType::from_ne_bytes(bytes);
+        let offset = offset + size_of::<AuxvType>();
+
+        let bytes: [u8; size_of::<AuxvType>()] =
+            data[offset..(offset + size_of::<AuxvType>())].try_into()?;
+        let program_header_address = AuxvType::from_ne_bytes(bytes);
+        let offset = offset + size_of::<AuxvType>();
+
+        let bytes: [u8; size_of::<AuxvType>()] =
+            data[offset..(offset + size_of::<AuxvType>())].try_into()?;
+        let linux_gate_address = AuxvType::from_ne_bytes(bytes);
+        let offset = offset + size_of::<AuxvType>();
+
+        let bytes: [u8; size_of::<AuxvType>()] =
+            data[offset..(offset + size_of::<AuxvType>())].try_into()?;
+        let entry_address = AuxvType::from_ne_bytes(bytes);
+
+        let auxv_info = DirectAuxvDumpInfo {
+            program_header_count,
+            program_header_address,
+            entry_address,
+            linux_gate_address,
+        };
+
+        Ok(RegisterAuxvInfo { pid, auxv_info })
+    }
+}
+
+/* Message used to inform the crash helper that a process' auxiliary vector
+ * information is not needed anymore. */
+
+#[cfg(any(target_os = "android", target_os = "linux"))]
+pub struct UnregisterAuxvInfo {
+    pub pid: Pid,
+}
+
+#[cfg(any(target_os = "android", target_os = "linux"))]
+impl UnregisterAuxvInfo {
+    pub fn new(pid: Pid) -> UnregisterAuxvInfo {
+        UnregisterAuxvInfo { pid }
+    }
+
+    fn payload_size(&self) -> usize {
+        size_of::<Pid>()
+    }
+}
+
+#[cfg(any(target_os = "android", target_os = "linux"))]
+impl Message for UnregisterAuxvInfo {
+    fn kind() -> Kind {
+        Kind::UnregisterAuxvInfo
+    }
+
+    fn header(&self) -> Vec<u8> {
+        Header {
+            kind: Self::kind(),
+            size: self.payload_size(),
+        }
+        .encode()
+    }
+
+    fn payload(&self) -> Vec<u8> {
+        let mut payload = Vec::with_capacity(self.payload_size());
+        payload.extend(self.pid.to_ne_bytes());
+        debug_assert!(self.payload_size() == payload.len());
+        payload
+    }
+
+    fn ancillary_payload(&self) -> Option<AncillaryData> {
+        None
+    }
+
+    fn decode(
+        data: &[u8],
+        ancillary_data: Option<AncillaryData>,
+    ) -> Result<UnregisterAuxvInfo, MessageError> {
+        debug_assert!(
+            ancillary_data.is_none(),
+            "UnregisterAuxvInfo messages cannot carry ancillary data"
+        );
+
+        let bytes: [u8; size_of::<Pid>()] = data[0..size_of::<Pid>()].try_into()?;
+        let pid = Pid::from_ne_bytes(bytes);
+
+        Ok(UnregisterAuxvInfo { pid })
     }
 }

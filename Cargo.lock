@@ -1090,6 +1090,57 @@ dependencies = [
 ]
 
 [[package]]
+name = "crash_helper_client"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "crash_helper_common",
+ "minidump-writer",
+ "nix 0.29.0",
+ "num-derive",
+ "num-traits",
+ "rust_minidump_writer_linux",
+ "windows-sys",
+]
+
+[[package]]
+name = "crash_helper_common"
+version = "0.1.0"
+dependencies = [
+ "minidump-writer",
+ "nix 0.29.0",
+ "num-derive",
+ "num-traits",
+ "thiserror 2.0.9",
+ "windows-sys",
+]
+
+[[package]]
+name = "crash_helper_server"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "cc",
+ "cfg-if",
+ "crash_helper_common",
+ "dirs",
+ "linked-hash-map",
+ "minidump-writer",
+ "mozannotation_server",
+ "mozbuild",
+ "mozilla-central-workspace-hack",
+ "nix 0.29.0",
+ "num-derive",
+ "num-traits",
+ "once_cell",
+ "rust_minidump_writer_linux",
+ "thiserror 2.0.9",
+ "uuid",
+ "windows-sys",
+ "yaml-rust",
+]
+
+[[package]]
 name = "crashreporter"
 version = "1.0.0"
 dependencies = [
@@ -2444,6 +2495,7 @@ dependencies = [
  "cert_storage",
  "chardetng_c",
  "cose-c",
+ "crash_helper_client",
  "crypto_hash",
  "cubeb-coreaudio",
  "cubeb-pulse",
@@ -4297,11 +4349,10 @@ version = "0.1.0"
 name = "mozannotation_server"
 version = "0.1.0"
 dependencies = [
- "memoffset 0.8.999",
+ "memoffset 0.9.0",
  "mozannotation_client",
  "process_reader",
- "thin-vec",
- "thiserror 1.999.999",
+ "thiserror 2.0.9",
 ]
 
 [[package]]
@@ -4463,9 +4514,9 @@ dependencies = [
 name = "mozwer_s"
 version = "0.1.0"
 dependencies = [
+ "crash_helper_client",
  "libc",
  "mozilla-central-workspace-hack",
- "process_reader",
  "rust-ini",
  "serde",
  "serde_json",
@@ -4713,6 +4764,7 @@ dependencies = [
  "cfg-if",
  "cfg_aliases",
  "libc",
+ "memoffset 0.9.0",
 ]
 
 [[package]]
@@ -5214,7 +5266,7 @@ dependencies = [
  "memoffset 0.9.0",
  "mozilla-central-workspace-hack",
  "scroll",
- "thiserror 1.999.999",
+ "thiserror 2.0.9",
  "windows-sys",
 ]
 

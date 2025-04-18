@@ -147,6 +147,7 @@ public class GeckoThread extends Thread {
       1 << 2; // Enable native crash reporting.
   public static final int FLAG_DISABLE_LOW_MEMORY_DETECTION =
       1 << 3; // Disable low-memory detection and notifications.
+  public static final int FLAG_CHILD = 1 << 4; // This is a child process.
 
   /* package */ static final String EXTRA_ARGS = "args";
 
@@ -267,7 +268,7 @@ public class GeckoThread extends Thread {
   @WrapForJNI
   private static boolean isChildProcess() {
     final InitInfo info = INSTANCE.mInitInfo;
-    return info != null && info.fds != null;
+    return info != null && ((info.flags & FLAG_CHILD) != 0);
   }
 
   public static boolean init(final InitInfo info) {
@@ -408,6 +409,17 @@ public class GeckoThread extends Thread {
     return result;
   }
 
+  // See GeckoLoader.java and APKOpen.cpp
+  private int processType() {
+    if (mInitInfo.xpcshell) {
+      return GeckoLoader.PROCESS_TYPE_XPCSHELL;
+    } else if ((mInitInfo.flags & FLAG_CHILD) != 0) {
+      return GeckoLoader.PROCESS_TYPE_CHILD;
+    } else {
+      return GeckoLoader.PROCESS_TYPE_MAIN;
+    }
+  }
+
   @Override
   public void run() {
     Log.i(LOGTAG, "preparing to run Gecko");
@@ -502,10 +514,7 @@ public class GeckoThread extends Thread {
 
     // And go.
     GeckoLoader.nativeRun(
-        args,
-        mInitInfo.fds,
-        !isChildProcess && mInitInfo.xpcshell,
-        isChildProcess ? null : mInitInfo.outFilePath);
+        args, mInitInfo.fds, processType(), isChildProcess ? null : mInitInfo.outFilePath);
 
     // And... we're done.
     final boolean restarting = isState(State.RESTARTING);

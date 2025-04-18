@@ -551,6 +551,7 @@ class LinuxArtifactJob(ArtifactJob):
     product = "firefox"
 
     _package_artifact_patterns = {
+        "{product}/crashhelper",
         "{product}/crashreporter",
         "{product}/dependentlibs.list",
         "{product}/{product}",
@@ -647,6 +648,7 @@ class MacArtifactJob(ArtifactJob):
         (
             "Contents/MacOS",
             [
+                "crashhelper",
                 "crashreporter.app/Contents/MacOS/crashreporter",
                 "{product}",
                 "{product}-bin",

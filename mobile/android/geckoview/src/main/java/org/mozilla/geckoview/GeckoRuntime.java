@@ -9,6 +9,7 @@ package org.mozilla.geckoview;
 import android.annotation.SuppressLint;
 import android.app.ActivityManager;
 import android.app.PendingIntent;
+import android.app.Service;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
@@ -50,6 +51,7 @@ import org.mozilla.gecko.GeckoScreenOrientation.ScreenOrientation;
 import org.mozilla.gecko.GeckoSystemStateListener;
 import org.mozilla.gecko.GeckoThread;
 import org.mozilla.gecko.annotation.WrapForJNI;
+import org.mozilla.gecko.crashhelper.CrashHelper;
 import org.mozilla.gecko.process.MemoryController;
 import org.mozilla.gecko.util.BundleEventListener;
 import org.mozilla.gecko.util.DebugConfig;
@@ -396,6 +398,33 @@ public final class GeckoRuntime implements Parcelable {
     return null;
   }
 
+  private int[] startCrashHelper() {
+    final CrashHelper.Pipes pipes = CrashHelper.createCrashHelperPipes();
+
+    if (pipes == null) {
+      Log.e(LOGTAG, "Could not create the crash reporter IPC pipes");
+      return new int[] {-1, -1};
+    }
+
+    final Context context = GeckoAppShell.getApplicationContext();
+    try {
+      @SuppressWarnings("unchecked")
+      final Class<? extends Service> cls =
+          (Class<? extends Service>) Class.forName("org.mozilla.gecko.crashhelper.CrashHelper");
+      final Intent i = new Intent(context, cls);
+      final File minidumps = new File(context.getFilesDir(), "minidumps");
+      context.bindService(
+          i,
+          CrashHelper.createConnection(
+              pipes.mBreakpadServer, minidumps.getPath(), pipes.mListener, pipes.mServer),
+          Context.BIND_AUTO_CREATE);
+    } catch (final ClassNotFoundException e) {
+      Log.w(LOGTAG, "Couldn't find the crash helper class");
+    }
+
+    return new int[] {pipes.mBreakpadClient.detachFd(), pipes.mClient.detachFd()};
+  }
+
   /* package */ boolean init(
       final @NonNull Context context, final @NonNull GeckoRuntimeSettings settings) {
     if (DEBUG) {
@@ -466,6 +495,8 @@ public final class GeckoRuntime implements Parcelable {
       }
     }
 
+    final int[] fds = startCrashHelper();
+
     final GeckoThread.InitInfo info =
         GeckoThread.InitInfo.builder()
             .args(args)
@@ -473,6 +504,7 @@ public final class GeckoRuntime implements Parcelable {
             .flags(flags)
             .prefs(prefs)
             .outFilePath(extras != null ? extras.getString("out_file") : null)
+            .fds(fds)
             .build();
 
     if (info.xpcshell

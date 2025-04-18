@@ -134,7 +134,7 @@ public class GeckoServiceChildProcess extends Service {
                   GeckoThread.InitInfo.builder()
                       .args(args)
                       .extras(extras)
-                      .flags(flags)
+                      .flags(flags | GeckoThread.FLAG_CHILD)
                       .userSerialNumber(userSerialNumber)
                       .fds(fds)
                       .build();

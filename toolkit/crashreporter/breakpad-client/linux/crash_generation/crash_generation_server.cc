@@ -62,15 +62,18 @@ namespace google_breakpad {
 CrashGenerationServer::CrashGenerationServer(
   const int listen_fd,
 #if defined(MOZ_OXIDIZED_BREAKPAD)
-  std::function<GetAuxvInfo> get_auxv_info,
+  std::function<GetAuxvInfoCallback> get_auxv_info,
 #endif // defined(MOZ_OXIDIZED_BREAKPAD)
   std::function<OnClientDumpRequestCallback> dump_callback,
+  void* dump_context,
   const string* dump_path) :
     server_fd_(listen_fd),
 #if defined(MOZ_OXIDIZED_BREAKPAD)
     get_auxv_info_(std::move(get_auxv_info)),
 #endif // defined(MOZ_OXIDIZED_BREAKPAD)
     dump_callback_(std::move(dump_callback)),
+    dump_context_(dump_context),
+    dump_dir_mutex_(PTHREAD_MUTEX_INITIALIZER),
     started_(false),
     reserved_fds_{-1, -1}
 {
@@ -137,6 +140,14 @@ CrashGenerationServer::Stop()
   started_ = false;
 }
 
+void
+CrashGenerationServer::SetPath(const char* dump_path)
+{
+  pthread_mutex_lock(&dump_dir_mutex_);
+  this->dump_dir_ = string(dump_path);
+  pthread_mutex_unlock(&dump_dir_mutex_);
+}
+
 //static
 bool
 CrashGenerationServer::CreateReportChannel(int* server_fd, int* client_fd)
@@ -152,8 +163,6 @@ CrashGenerationServer::CreateReportChannel(int* server_fd, int* client_fd)
     return false;
 
   if (fcntl(fds[1], F_SETFL, O_NONBLOCK))
-    return false;
-  if (fcntl(fds[1], F_SETFD, FD_CLOEXEC))
     return false;
 
   *client_fd = fds[0];
@@ -338,7 +347,7 @@ CrashGenerationServer::ClientEvent(short revents)
   }
 #endif
   if (dump_callback_) {
-    dump_callback_(info, minidump_filename);
+    dump_callback_(dump_context_, info, minidump_filename);
   }
 
   // Send the done signal to the process: it can exit now.
@@ -385,7 +394,9 @@ CrashGenerationServer::MakeMinidumpFilename(string& outFilename)
     return false;
 
   char path[PATH_MAX];
+  pthread_mutex_lock(&dump_dir_mutex_);
   snprintf(path, sizeof(path), "%s/%s.dmp", dump_dir_.c_str(), guidString);
+  pthread_mutex_unlock(&dump_dir_mutex_);
 
   outFilename = path;
   return true;
