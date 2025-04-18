@@ -254,38 +254,3 @@ add_task(async function test_getVariable_no_mutation() {
 
   cleanup();
 });
-
-add_task(async function remote_isEarlyStartup_config() {
-  const { manager, cleanup } = await NimbusTestUtils.setupTest();
-  const rollout = ExperimentFakes.rollout("password-autocomplete", {
-    branch: {
-      slug: "remote-config-isEarlyStartup",
-      ratio: 1,
-      features: [
-        {
-          featureId: "password-autocomplete",
-          enabled: true,
-          value: { remote: true },
-          isEarlyStartup: true,
-        },
-      ],
-    },
-  });
-
-  await manager.store.addEnrollment(rollout);
-
-  Assert.ok(
-    Services.prefs.prefHasUserValue(
-      "nimbus.syncdefaultsstore.password-autocomplete"
-    ),
-    "Configuration is marked early startup"
-  );
-
-  Services.prefs.clearUserPref(
-    "nimbus.syncdefaultsstore.password-autocomplete"
-  );
-
-  manager.unenroll(rollout.slug);
-
-  cleanup();
-});

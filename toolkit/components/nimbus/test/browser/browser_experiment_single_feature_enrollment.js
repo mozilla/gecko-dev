@@ -15,7 +15,6 @@ const SINGLE_FEATURE_RECIPE = {
     {
       feature: {
         featureId: "urlbar",
-        isEarlyStartup: true,
         value: {
           enabled: true,
           quickSuggestEnabled: false,
@@ -65,18 +64,6 @@ add_task(async function test_TODO() {
   Assert.ok(
     ExperimentAPI.getExperiment({ featureId: "urlbar" }),
     "Should enroll in single feature experiment"
-  );
-
-  Assert.ok(
-    Services.prefs.getStringPref(`${SYNC_DATA_PREF_BRANCH}urlbar`),
-    "Should store early startup feature for sync access"
-  );
-  Assert.equal(
-    Services.prefs.getIntPref(
-      `${SYNC_DATA_PREF_BRANCH}urlbar.quickSuggestSponsoredIndex`
-    ),
-    -1,
-    "Should store early startup variable for sync access"
   );
 
   NimbusFeatures.urlbar.recordExposureEvent();

@@ -391,10 +391,7 @@ export class ExperimentStore extends SharedDataMap {
   _updateSyncStore(enrollment) {
     let features = featuresCompat(enrollment.branch);
     for (let feature of features) {
-      if (
-        lazy.FeatureManifest[feature.featureId]?.isEarlyStartup ||
-        feature.isEarlyStartup
-      ) {
+      if (lazy.FeatureManifest[feature.featureId]?.isEarlyStartup) {
         if (!enrollment.active) {
           // Remove experiments on un-enroll, no need to check if it exists
           if (enrollment.isRollout) {
