@@ -162,7 +162,7 @@ RenderedFrameId RendererOGL::UpdateAndRender(
     const Maybe<gfx::IntSize>& aReadbackSize,
     const Maybe<wr::ImageFormat>& aReadbackFormat,
     const Maybe<Range<uint8_t>>& aReadbackBuffer, bool* aNeedsYFlip,
-    RendererStats* aOutStats) {
+    const wr::FrameReadyParams& aFrameParams, RendererStats* aOutStats) {
   mozilla::widget::WidgetRenderingContext widgetContext;
 
 #if defined(XP_MACOSX)
