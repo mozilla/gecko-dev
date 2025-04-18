@@ -975,6 +975,7 @@ class XPCShellTestThread(Thread):
                 return_code_ok
                 and self.usingCrashReporter
                 and not self.saw_crash_reporter_init
+                and len(process_output) > 0
             )
 
             passed = (

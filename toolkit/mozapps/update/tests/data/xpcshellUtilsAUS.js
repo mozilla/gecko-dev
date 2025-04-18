@@ -7,9 +7,6 @@
  * "Couldn't get the user appdata directory. Crash events may not be produced."
  * in nsExceptionHandler.cpp (possibly bug 619104)
  *
- * Test log warnings that happen after the test has finished
- * "OOPDeinit() without successful OOPInit()" in nsExceptionHandler.cpp
- * (bug 619104)
  * "XPCOM objects created/destroyed from static ctor/dtor" in nsTraceRefcnt.cpp
  * (possibly bug 457479)
  *
