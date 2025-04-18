@@ -15,7 +15,10 @@ const REMOTE_SETTINGS_RECORDS = [
       subjects: ["ramen", "ab", "alongerkeyword", "1234"],
       preModifiers: ["best"],
       postModifiers: ["delivery"],
-      locationSigns: ["in", "nearby"],
+      locationSigns: [
+        { keyword: "in", needLocation: true },
+        { keyword: "nearby", needLocation: false },
+      ],
       yelpModifiers: [],
       icon: "1234",
       score: 0.5,
@@ -86,8 +89,8 @@ add_task(async function basic() {
       description: "No specific location with location-modifier",
       query: "ramen nearby",
       expected: {
-        url: "https://www.yelp.com/search?find_desc=ramen&find_loc=Yokohama%2C+Kanagawa",
-        title: "ramen nearby Yokohama, Kanagawa",
+        url: "https://www.yelp.com/search?find_desc=ramen+nearby&find_loc=Yokohama%2C+Kanagawa",
+        title: "ramen nearby in Yokohama, Kanagawa",
       },
     },
     {

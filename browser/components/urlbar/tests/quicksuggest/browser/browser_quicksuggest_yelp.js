@@ -12,7 +12,7 @@ const REMOTE_SETTINGS_RECORDS = [
       subjects: ["ramen"],
       preModifiers: ["best"],
       postModifiers: ["delivery"],
-      locationSigns: ["in"],
+      locationSigns: [{ keyword: "in", needLocation: true }],
       yelpModifiers: [],
       icon: "1234",
       score: 0.5,

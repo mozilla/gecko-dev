@@ -297,12 +297,10 @@ pub fn ramen_yelp() -> JsonValue {
         "preModifiers": ["best", "super best", "same_modifier"],
         "postModifiers": ["delivery", "super delivery", "same_modifier"],
         "locationSigns": [
-            // V1 format also can be used as location sign.
             { "keyword": "in", "needLocation": true },
+            { "keyword": "near", "needLocation": true },
             { "keyword": "near by", "needLocation": false },
-            // V2 format.
-            "near",
-            "near me",
+            { "keyword": "near me", "needLocation": false },
         ],
         "yelpModifiers": ["yelp", "yelp keyword"],
         "icon": "yelp-favicon",

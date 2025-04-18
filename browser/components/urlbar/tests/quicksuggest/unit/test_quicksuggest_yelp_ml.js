@@ -19,7 +19,10 @@ const REMOTE_SETTINGS_RECORDS = [
       subjects: ["coffee"],
       preModifiers: [],
       postModifiers: [],
-      locationSigns: ["in", "nearby"],
+      locationSigns: [
+        { keyword: "in", needLocation: true },
+        { keyword: "nearby", needLocation: false },
+      ],
       yelpModifiers: [],
       icon: "1234",
       score: 0.5,

@@ -23,7 +23,7 @@ use sql_support::{
 ///     `clear_database()` by adding their names to `conditional_tables`, unless
 ///     they are cleared via a deletion trigger or there's some other good
 ///     reason not to do so.
-pub const VERSION: u32 = 36;
+pub const VERSION: u32 = 35;
 
 /// The current Suggest database schema.
 pub const SQL: &str = "
@@ -169,6 +169,12 @@ CREATE TABLE yelp_modifiers(
     keyword TEXT NOT NULL,
     record_id TEXT NOT NULL,
     PRIMARY KEY (type, keyword)
+) WITHOUT ROWID;
+
+CREATE TABLE yelp_location_signs(
+    keyword TEXT PRIMARY KEY,
+    need_location INTEGER NOT NULL,
+    record_id TEXT NOT NULL
 ) WITHOUT ROWID;
 
 CREATE TABLE yelp_custom_details(
@@ -639,10 +645,6 @@ impl ConnectionInitializer for SuggestConnectionInitializer<'_> {
                 )?;
                 Ok(())
             }
-            35 => {
-                tx.execute_batch("DROP TABLE yelp_location_signs;")?;
-                Ok(())
-            }
             _ => Err(open_database::Error::IncompatibleVersion(version)),
         }
     }
@@ -660,6 +662,7 @@ pub fn clear_database(db: &Connection) -> rusqlite::Result<()> {
         DELETE FROM icons;
         DELETE FROM yelp_subjects;
         DELETE FROM yelp_modifiers;
+        DELETE FROM yelp_location_signs;
         DELETE FROM yelp_custom_details;
         ",
     )?;

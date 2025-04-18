@@ -1341,6 +1341,11 @@ impl<'a> SuggestDao<'a> {
         )?;
         self.scope.err_if_interrupted()?;
         self.conn.execute_cached(
+            "DELETE FROM yelp_location_signs WHERE record_id = :record_id",
+            named_params! { ":record_id": record_id.as_str() },
+        )?;
+        self.scope.err_if_interrupted()?;
+        self.conn.execute_cached(
             "DELETE FROM yelp_custom_details WHERE record_id = :record_id",
             named_params! { ":record_id": record_id.as_str() },
         )?;
