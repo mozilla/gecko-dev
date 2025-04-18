@@ -397,6 +397,42 @@ export class DiscoveryStreamFeed {
     );
   }
 
+  async configureFollowedSections() {
+    const prefs = this.store.getState().Prefs.values;
+    const cachedData = (await this.cache.get()) || {};
+    let { sectionData } = cachedData;
+
+    // if sectionData is empty, populate it with data from the followed and blocked prefs
+    // eventually we could remove this (maybe once more of sections is added to release)
+    if (sectionData && Object.keys(sectionData).length === 0) {
+      // Raw string of followed/blocked topics, ex: "entertainment, news"
+      const followedSectionsString = prefs[PREF_SECTIONS_FOLLOWING];
+      const blockedSectionsString = prefs[PREF_SECTIONS_BLOCKED];
+      // Format followed sections
+      const followedSections = followedSectionsString
+        ? followedSectionsString.split(",").map(s => s.trim())
+        : [];
+
+      // Format blocked sections
+      const blockedSections = blockedSectionsString
+        ? blockedSectionsString.split(",").map(s => s.trim())
+        : [];
+
+      const sectionTopics = new Set([...followedSections, ...blockedSections]);
+      sectionData = Array.from(sectionTopics).reduce((acc, section) => {
+        acc[section] = {
+          isFollowed: followedSections.includes(section),
+          isBlocked: blockedSections.includes(section),
+        };
+        return acc;
+      }, {});
+      await this.cache.set("sectionData", sectionData);
+    }
+    this.store.dispatch(
+      ac.AlsoToMain({ type: at.SECTION_DATA_UPDATE, data: sectionData })
+    );
+  }
+
   async setupPocketState(target) {
     let dispatch = action =>
       this.store.dispatch(ac.OnlyToOneContent(action, target));
@@ -1630,7 +1666,7 @@ export class DiscoveryStreamFeed {
 
     let feed = feeds ? feeds[feedUrl] : null;
     if (this.isExpired({ cachedData, key: "feed", url: feedUrl, isStartup })) {
-      const options = this.formatComponentFeedRequest();
+      const options = this.formatComponentFeedRequest(cachedData.sectionData);
 
       const feedResponse = await this.fetchFromEndpoint(feedUrl, options);
 
@@ -1859,7 +1895,7 @@ export class DiscoveryStreamFeed {
     }
   }
 
-  formatComponentFeedRequest() {
+  formatComponentFeedRequest(sectionData = {}) {
     const prefs = this.store.getState().Prefs.values;
     const headers = new Headers();
     if (this.isMerino) {
@@ -1877,32 +1913,12 @@ export class DiscoveryStreamFeed {
         PREF_MERINO_FEED_EXPERIMENT
       );
 
-      // Raw string of followed/blocked topics, ex: "entertainment, news"
-      const followedSectionsString = prefs[PREF_SECTIONS_FOLLOWING];
-      const blockedSectionsString = prefs[PREF_SECTIONS_BLOCKED];
-
-      // Format followed sections
-      const followedSections = followedSectionsString
-        ? followedSectionsString.split(",").map(s => s.trim())
-        : [];
-
-      // Format blocked sections
-      const blockedSections = blockedSectionsString
-        ? blockedSectionsString.split(",").map(s => s.trim())
-        : [];
-
-      // Combine followed and blocked sections and format into desired JSON shape for merino.
-      // Example:
-      // {
-      //   "sectionId": "business",
-      //   "isFollowed": true,
-      //   "isBlocked": false
-      // }
-      const sectionTopics = new Set([...followedSections, ...blockedSections]);
-      const sections = Array.from(sectionTopics).map(section => ({
-        sectionId: section,
-        isFollowed: followedSections.includes(section),
-        isBlocked: blockedSections.includes(section),
+      // convert section to array to match what merino is expecting
+      const sections = Object.entries(sectionData).map(([sectionId, data]) => ({
+        sectionId,
+        isFollowed: data.isFollowed,
+        isBlocked: data.isBlocked,
+        ...(data.followedAt && { followedAt: data.followedAt }),
       }));
 
       // To display the inline interest picker pass `enableInterestPicker` into the request
@@ -2540,6 +2556,7 @@ export class DiscoveryStreamFeed {
         if (this.config.enabled) {
           await this.enable({ updateOpenTabs: true, isStartup: true });
         }
+        await this.configureFollowedSections();
         Services.prefs.addObserver(PREF_POCKET_BUTTON, this);
         // This function is async but just for devtools,
         // so we don't need to wait for it.
@@ -2805,6 +2822,8 @@ export class DiscoveryStreamFeed {
       case at.TOPIC_SELECTION_IMPRESSION:
         this.topicSelectionImpressionEvent();
         break;
+      case at.SECTION_DATA_UPDATE:
+        await this.cache.set("sectionData", action.data);
     }
   }
 }

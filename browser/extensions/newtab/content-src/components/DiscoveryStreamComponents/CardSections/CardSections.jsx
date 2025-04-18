@@ -21,8 +21,6 @@ const PREF_SECTIONS_PERSONALIZATION_ENABLED =
   "discoverystream.sections.personalization.enabled";
 const PREF_TOPICS_ENABLED = "discoverystream.topicLabels.enabled";
 const PREF_TOPICS_SELECTED = "discoverystream.topicSelection.selectedTopics";
-const PREF_FOLLOWED_SECTIONS = "discoverystream.sections.following";
-const PREF_BLOCKED_SECTIONS = "discoverystream.sections.blocked";
 const PREF_TOPICS_AVAILABLE = "discoverystream.topicSelection.topics";
 const PREF_THUMBS_UP_DOWN_ENABLED = "discoverystream.thumbsUpDown.enabled";
 const PREF_INTEREST_PICKER_ENABLED =
@@ -114,6 +112,7 @@ function CardSection({
   ctaButtonSponsors,
 }) {
   const prefs = useSelector(state => state.Prefs.values);
+  const { sectionData } = useSelector(state => state.DiscoveryStream);
   const showTopics = prefs[PREF_TOPICS_ENABLED];
   const mayHaveSectionsCards = prefs[PREF_SECTIONS_CARDS_ENABLED];
   const mayHaveSectionsCardsThumbsUpDown =
@@ -121,8 +120,6 @@ function CardSection({
   const mayHaveThumbsUpDown = prefs[PREF_THUMBS_UP_DOWN_ENABLED];
   const selectedTopics = prefs[PREF_TOPICS_SELECTED];
   const availableTopics = prefs[PREF_TOPICS_AVAILABLE];
-  const followedSectionsPref = prefs[PREF_FOLLOWED_SECTIONS] || "";
-  const blockedSectionsPref = prefs[PREF_BLOCKED_SECTIONS] || "";
 
   const { saveToPocketCard } = useSelector(state => state.DiscoveryStream);
   const mayHaveSectionsPersonalization =
@@ -131,9 +128,7 @@ function CardSection({
   const { sectionKey, title, subtitle } = section;
   const { responsiveLayouts } = section.layout;
 
-  const followedSections = prefToArray(followedSectionsPref);
-  const following = followedSections.includes(sectionKey);
-  const blockedSections = prefToArray(blockedSectionsPref);
+  const following = sectionData[sectionKey]?.isFollowed;
 
   const handleIntersection = useCallback(() => {
     dispatch(
@@ -156,11 +151,19 @@ function CardSection({
     mayHaveSectionsCardsThumbsUpDown && mayHaveThumbsUpDown;
 
   const onFollowClick = useCallback(() => {
+    const updatedSectionData = {
+      ...sectionData,
+      [sectionKey]: {
+        isFollowed: true,
+        isBlocked: false,
+        followedAt: new Date().toISOString(),
+      },
+    };
     dispatch(
-      ac.SetPref(
-        PREF_FOLLOWED_SECTIONS,
-        [...followedSections, sectionKey].join(", ")
-      )
+      ac.AlsoToMain({
+        type: at.SECTION_DATA_UPDATE,
+        data: updatedSectionData,
+      })
     );
     // Telemetry Event Dispatch
     dispatch(
@@ -173,15 +176,18 @@ function CardSection({
         },
       })
     );
-  }, [dispatch, followedSections, sectionKey, sectionPosition]);
+  }, [dispatch, sectionData, sectionKey, sectionPosition]);
 
   const onUnfollowClick = useCallback(() => {
+    const updatedSectionData = { ...sectionData };
+    delete updatedSectionData[sectionKey];
     dispatch(
-      ac.SetPref(
-        PREF_FOLLOWED_SECTIONS,
-        [...followedSections.filter(item => item !== sectionKey)].join(", ")
-      )
+      ac.AlsoToMain({
+        type: at.SECTION_DATA_UPDATE,
+        data: updatedSectionData,
+      })
     );
+
     // Telemetry Event Dispatch
     dispatch(
       ac.OnlyToMain({
@@ -193,7 +199,7 @@ function CardSection({
         },
       })
     );
-  }, [dispatch, followedSections, sectionKey, sectionPosition]);
+  }, [dispatch, sectionData, sectionKey, sectionPosition]);
 
   const { maxTile } = getMaxTiles(responsiveLayouts);
   const displaySections = section.data.slice(0, maxTile);
@@ -233,8 +239,7 @@ function CardSection({
         dispatch={dispatch}
         index={sectionPosition}
         following={following}
-        followedSections={followedSections}
-        blockedSections={blockedSections}
+        sectionData={sectionData}
         sectionKey={sectionKey}
         title={title}
         type={type}
@@ -349,7 +354,7 @@ function CardSections({
   ctaButtonSponsors,
 }) {
   const prefs = useSelector(state => state.Prefs.values);
-  const { spocs } = useSelector(state => state.DiscoveryStream);
+  const { spocs, sectionData } = useSelector(state => state.DiscoveryStream);
   const personalizationEnabled = prefs[PREF_SECTIONS_PERSONALIZATION_ENABLED];
   const interestPickerEnabled = prefs[PREF_INTEREST_PICKER_ENABLED];
 
@@ -359,11 +364,10 @@ function CardSections({
   }
 
   const visibleSections = prefToArray(prefs[PREF_VISIBLE_SECTIONS]);
-  const blockedSections = prefToArray(prefs[PREF_BLOCKED_SECTIONS] || "");
   const { interestPicker } = data;
 
   let filteredSections = data.sections.filter(
-    section => !blockedSections.includes(section.sectionKey)
+    section => !sectionData[section.sectionKey]?.isBlocked
   );
 
   if (interestPickerEnabled && visibleSections.length) {

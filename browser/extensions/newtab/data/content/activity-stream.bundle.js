@@ -220,6 +220,7 @@ for (const type of [
   "SAVE_SESSION_PERF_DATA",
   "SAVE_TO_POCKET",
   "SCREENSHOT_UPDATED",
+  "SECTION_DATA_UPDATE",
   "SECTION_DEREGISTER",
   "SECTION_DISABLE",
   "SECTION_ENABLE",
@@ -2141,7 +2142,7 @@ const LinkMenuOptions = {
       type: actionTypes.OPEN_ABOUT_FAKESPOT,
     }),
   }),
-  SectionBlock: ({ blockedSections, sectionKey, sectionPosition, title }) => ({
+  SectionBlock: ({ sectionData, sectionKey, sectionPosition, title }) => ({
     id: "newtab-menu-section-block",
     icon: "delete",
     action: {
@@ -2152,10 +2153,13 @@ const LinkMenuOptions = {
           // Once the user confirmed their intention to block this section,
           // update their preferences.
           actionCreators.AlsoToMain({
-            type: actionTypes.SET_PREF,
+            type: actionTypes.SECTION_DATA_UPDATE,
             data: {
-              name: "discoverystream.sections.blocked",
-              value: [...blockedSections, sectionKey].join(", "),
+              ...sectionData,
+              [sectionKey]: {
+                isBlocked: true,
+                isFollowed: false,
+              },
             },
           }),
           // Telemetry
@@ -2186,16 +2190,13 @@ const LinkMenuOptions = {
     },
     userEvent: "DIALOG_OPEN",
   }),
-  SectionUnfollow: ({ followedSections, sectionKey, sectionPosition }) => ({
+  SectionUnfollow: ({ sectionData, sectionKey, sectionPosition }) => ({
     id: "newtab-menu-section-unfollow",
     action: actionCreators.AlsoToMain({
-      type: actionTypes.SET_PREF,
-      data: {
-        name: "discoverystream.sections.following",
-        value: [...followedSections.filter(item => item !== sectionKey)].join(
-          ", "
-        ),
-      },
+      type: actionTypes.SECTION_DATA_UPDATE,
+      data: (({ sectionKey: _sectionKey, ...remaining }) => remaining)(
+        sectionData
+      ),
     }),
     impression: actionCreators.OnlyToMain({
       type: actionTypes.UNFOLLOW_SECTION,
@@ -7344,6 +7345,7 @@ const INITIAL_STATE = {
       visible: false,
       data: {},
     },
+    sectionData: {},
   },
   // Messages received from ASRouter to render in newtab
   Messages: {
@@ -8176,6 +8178,8 @@ function DiscoveryStream(prevState = INITIAL_STATE.DiscoveryStream, action) {
           visible: false,
         },
       };
+    case actionTypes.SECTION_DATA_UPDATE:
+      return { ...prevState, sectionData: action.data };
     default:
       return prevState;
   }
@@ -10684,8 +10688,7 @@ function SectionContextMenu({
   dispatch,
   sectionKey,
   following,
-  followedSections,
-  blockedSections,
+  sectionData,
   sectionPosition
 }) {
   // Initial context menu options: block this section only.
@@ -10717,8 +10720,7 @@ function SectionContextMenu({
     options: SECTIONS_CONTEXT_MENU_OPTIONS,
     shouldSendImpressionStats: true,
     site: {
-      followedSections,
-      blockedSections,
+      sectionData,
       sectionKey,
       sectionPosition,
       title
@@ -10734,7 +10736,6 @@ function SectionContextMenu({
 
 
 
-const PREF_FOLLOWED_SECTIONS = "discoverystream.sections.following";
 const PREF_VISIBLE_SECTIONS = "discoverystream.sections.interestPicker.visibleSections";
 
 /**
@@ -10755,8 +10756,10 @@ function InterestPicker({
   const focusRef = (0,external_React_namespaceObject.useRef)(null);
   const [focusedIndex, setFocusedIndex] = (0,external_React_namespaceObject.useState)(0);
   const prefs = (0,external_ReactRedux_namespaceObject.useSelector)(state => state.Prefs.values);
+  const {
+    sectionData
+  } = (0,external_ReactRedux_namespaceObject.useSelector)(state => state.DiscoveryStream);
   const visibleSections = prefs[PREF_VISIBLE_SECTIONS]?.split(",").map(item => item.trim()).filter(item => item);
-  const following = prefs[PREF_FOLLOWED_SECTIONS]?.split(",").map(item => item.trim()).filter(item => item) || [];
   const handleIntersection = (0,external_React_namespaceObject.useCallback)(() => {
     dispatch(actionCreators.AlsoToMain({
       type: actionTypes.INLINE_SELECTION_IMPRESSION,
@@ -10797,9 +10800,15 @@ function InterestPicker({
       name: topic,
       checked
     } = e.target;
-    let updatedTopics = following;
+    let updatedSections = {
+      ...sectionData
+    };
     if (checked) {
-      updatedTopics = updatedTopics.length ? [...updatedTopics, topic] : [topic];
+      updatedSections[topic] = {
+        isFollowed: true,
+        isBlocked: false,
+        followedAt: new Date().toISOString()
+      };
       if (!visibleSections.includes(topic)) {
         // add section to visible sections and place after the inline picker
         // subtract 1 from the rank so that it is normalized with array index
@@ -10807,7 +10816,7 @@ function InterestPicker({
         dispatch(actionCreators.SetPref(PREF_VISIBLE_SECTIONS, visibleSections.join(", ")));
       }
     } else {
-      updatedTopics = updatedTopics.filter(t => t !== topic);
+      delete updatedSections[topic];
     }
     dispatch(actionCreators.OnlyToMain({
       type: actionTypes.INLINE_SELECTION_CLICK,
@@ -10818,7 +10827,10 @@ function InterestPicker({
         section_position: receivedFeedRank
       }
     }));
-    dispatch(actionCreators.SetPref(PREF_FOLLOWED_SECTIONS, updatedTopics.join(", ")));
+    dispatch(actionCreators.AlsoToMain({
+      type: actionTypes.SECTION_DATA_UPDATE,
+      data: updatedSections
+    }));
   }
   return /*#__PURE__*/external_React_default().createElement("section", {
     className: "inline-selection-wrapper ds-section",
@@ -10839,7 +10851,7 @@ function InterestPicker({
     onBlur: onWrapperBlur,
     ref: focusRef
   }, interests.map((interest, index) => {
-    const checked = following.includes(interest.sectionId);
+    const checked = sectionData[interest.sectionId]?.isFollowed;
     return /*#__PURE__*/external_React_default().createElement("li", {
       key: interest.sectionId,
       ref: index === focusedIndex ? focusedRef : null
@@ -10920,8 +10932,6 @@ const PREF_SECTIONS_CARDS_THUMBS_UP_DOWN_ENABLED = "discoverystream.sections.car
 const PREF_SECTIONS_PERSONALIZATION_ENABLED = "discoverystream.sections.personalization.enabled";
 const CardSections_PREF_TOPICS_ENABLED = "discoverystream.topicLabels.enabled";
 const CardSections_PREF_TOPICS_SELECTED = "discoverystream.topicSelection.selectedTopics";
-const CardSections_PREF_FOLLOWED_SECTIONS = "discoverystream.sections.following";
-const PREF_BLOCKED_SECTIONS = "discoverystream.sections.blocked";
 const CardSections_PREF_TOPICS_AVAILABLE = "discoverystream.topicSelection.topics";
 const CardSections_PREF_THUMBS_UP_DOWN_ENABLED = "discoverystream.thumbsUpDown.enabled";
 const PREF_INTEREST_PICKER_ENABLED = "discoverystream.sections.interestPicker.enabled";
@@ -10996,14 +11006,15 @@ function CardSection({
   ctaButtonSponsors
 }) {
   const prefs = (0,external_ReactRedux_namespaceObject.useSelector)(state => state.Prefs.values);
+  const {
+    sectionData
+  } = (0,external_ReactRedux_namespaceObject.useSelector)(state => state.DiscoveryStream);
   const showTopics = prefs[CardSections_PREF_TOPICS_ENABLED];
   const mayHaveSectionsCards = prefs[CardSections_PREF_SECTIONS_CARDS_ENABLED];
   const mayHaveSectionsCardsThumbsUpDown = prefs[PREF_SECTIONS_CARDS_THUMBS_UP_DOWN_ENABLED];
   const mayHaveThumbsUpDown = prefs[CardSections_PREF_THUMBS_UP_DOWN_ENABLED];
   const selectedTopics = prefs[CardSections_PREF_TOPICS_SELECTED];
   const availableTopics = prefs[CardSections_PREF_TOPICS_AVAILABLE];
-  const followedSectionsPref = prefs[CardSections_PREF_FOLLOWED_SECTIONS] || "";
-  const blockedSectionsPref = prefs[PREF_BLOCKED_SECTIONS] || "";
   const {
     saveToPocketCard
   } = (0,external_ReactRedux_namespaceObject.useSelector)(state => state.DiscoveryStream);
@@ -11016,9 +11027,7 @@ function CardSection({
   const {
     responsiveLayouts
   } = section.layout;
-  const followedSections = prefToArray(followedSectionsPref);
-  const following = followedSections.includes(sectionKey);
-  const blockedSections = prefToArray(blockedSectionsPref);
+  const following = sectionData[sectionKey]?.isFollowed;
   const handleIntersection = (0,external_React_namespaceObject.useCallback)(() => {
     dispatch(actionCreators.AlsoToMain({
       type: actionTypes.CARD_SECTION_IMPRESSION,
@@ -11036,7 +11045,18 @@ function CardSection({
   // Only show thumbs up/down buttons if both default thumbs and sections thumbs prefs are enabled
   const mayHaveCombinedThumbsUpDown = mayHaveSectionsCardsThumbsUpDown && mayHaveThumbsUpDown;
   const onFollowClick = (0,external_React_namespaceObject.useCallback)(() => {
-    dispatch(actionCreators.SetPref(CardSections_PREF_FOLLOWED_SECTIONS, [...followedSections, sectionKey].join(", ")));
+    const updatedSectionData = {
+      ...sectionData,
+      [sectionKey]: {
+        isFollowed: true,
+        isBlocked: false,
+        followedAt: new Date().toISOString()
+      }
+    };
+    dispatch(actionCreators.AlsoToMain({
+      type: actionTypes.SECTION_DATA_UPDATE,
+      data: updatedSectionData
+    }));
     // Telemetry Event Dispatch
     dispatch(actionCreators.OnlyToMain({
       type: "FOLLOW_SECTION",
@@ -11046,9 +11066,17 @@ function CardSection({
         event_source: "MOZ_BUTTON"
       }
     }));
-  }, [dispatch, followedSections, sectionKey, sectionPosition]);
+  }, [dispatch, sectionData, sectionKey, sectionPosition]);
   const onUnfollowClick = (0,external_React_namespaceObject.useCallback)(() => {
-    dispatch(actionCreators.SetPref(CardSections_PREF_FOLLOWED_SECTIONS, [...followedSections.filter(item => item !== sectionKey)].join(", ")));
+    const updatedSectionData = {
+      ...sectionData
+    };
+    delete updatedSectionData[sectionKey];
+    dispatch(actionCreators.AlsoToMain({
+      type: actionTypes.SECTION_DATA_UPDATE,
+      data: updatedSectionData
+    }));
+
     // Telemetry Event Dispatch
     dispatch(actionCreators.OnlyToMain({
       type: "UNFOLLOW_SECTION",
@@ -11058,7 +11086,7 @@ function CardSection({
         event_source: "MOZ_BUTTON"
       }
     }));
-  }, [dispatch, followedSections, sectionKey, sectionPosition]);
+  }, [dispatch, sectionData, sectionKey, sectionPosition]);
   const {
     maxTile
   } = getMaxTiles(responsiveLayouts);
@@ -11090,8 +11118,7 @@ function CardSection({
     dispatch: dispatch,
     index: sectionPosition,
     following: following,
-    followedSections: followedSections,
-    blockedSections: blockedSections,
+    sectionData: sectionData,
     sectionKey: sectionKey,
     title: title,
     type: type,
@@ -11195,7 +11222,8 @@ function CardSections({
 }) {
   const prefs = (0,external_ReactRedux_namespaceObject.useSelector)(state => state.Prefs.values);
   const {
-    spocs
+    spocs,
+    sectionData
   } = (0,external_ReactRedux_namespaceObject.useSelector)(state => state.DiscoveryStream);
   const personalizationEnabled = prefs[PREF_SECTIONS_PERSONALIZATION_ENABLED];
   const interestPickerEnabled = prefs[PREF_INTEREST_PICKER_ENABLED];
@@ -11205,11 +11233,10 @@ function CardSections({
     return null;
   }
   const visibleSections = prefToArray(prefs[CardSections_PREF_VISIBLE_SECTIONS]);
-  const blockedSections = prefToArray(prefs[PREF_BLOCKED_SECTIONS] || "");
   const {
     interestPicker
   } = data;
-  let filteredSections = data.sections.filter(section => !blockedSections.includes(section.sectionKey));
+  let filteredSections = data.sections.filter(section => !sectionData[section.sectionKey]?.isBlocked);
   if (interestPickerEnabled && visibleSections.length) {
     filteredSections = visibleSections.reduce((acc, visibleSection) => {
       const found = filteredSections.find(({
@@ -11677,25 +11704,13 @@ const DiscoveryStreamBase = (0,external_ReactRedux_namespaceObject.connect)(stat
 
 // eslint-disable-next-line no-shadow
 
-const SectionsMgmtPanel_PREF_FOLLOWED_SECTIONS = "discoverystream.sections.following";
-const SectionsMgmtPanel_PREF_BLOCKED_SECTIONS = "discoverystream.sections.blocked";
-
-/**
- * Transforms a comma-separated string of topics in user preferences
- * into a cleaned-up array.
- *
- * @param pref
- * @returns string[]
- */
-// TODO: DRY Issue: Import function from CardSections.jsx?
-const getTopics = pref => {
-  return pref.split(",").map(item => item.trim()).filter(item => item);
-};
 function SectionsMgmtPanel({
   exitEventFired
 }) {
   const [showPanel, setShowPanel] = (0,external_React_namespaceObject.useState)(false); // State management with useState
-  const prefs = (0,external_ReactRedux_namespaceObject.useSelector)(state => state.Prefs.values);
+  const {
+    sectionData
+  } = (0,external_ReactRedux_namespaceObject.useSelector)(state => state.DiscoveryStream);
   const layoutComponents = (0,external_ReactRedux_namespaceObject.useSelector)(state => state.DiscoveryStream.layout[0].components);
   const sections = (0,external_ReactRedux_namespaceObject.useSelector)(state => state.DiscoveryStream.feeds.data);
   const dispatch = (0,external_ReactRedux_namespaceObject.useDispatch)();
@@ -11710,24 +11725,28 @@ function SectionsMgmtPanel({
   if (sectionsFeedName) {
     sectionsList = sections[sectionsFeedName].data.sections;
   }
-  const followedSectionsPref = prefs[SectionsMgmtPanel_PREF_FOLLOWED_SECTIONS] || "";
-  const blockedSectionsPref = prefs[SectionsMgmtPanel_PREF_BLOCKED_SECTIONS] || "";
-  const followedSections = getTopics(followedSectionsPref);
-  const blockedSections = getTopics(blockedSectionsPref);
-  const [followedSectionsState, setFollowedSectionsState] = (0,external_React_namespaceObject.useState)(followedSectionsPref); // State management with useState
-  const [blockedSectionsState, setBlockedSectionsState] = (0,external_React_namespaceObject.useState)(blockedSectionsPref); // State management with useState
+  const [sectionsState, setSectionState] = (0,external_React_namespaceObject.useState)(sectionData); // State management with useState
 
-  let followedSectionsData = sectionsList.filter(item => followedSectionsState.includes(item.sectionKey));
-  let blockedSectionsData = sectionsList.filter(item => blockedSectionsState.includes(item.sectionKey));
+  let followedSectionsData = sectionsList.filter(item => sectionsState[item.sectionKey]?.isFollowed);
+  let blockedSectionsData = sectionsList.filter(item => sectionsState[item.sectionKey]?.isBlocked);
   function updateCachedData() {
     // Reset cached followed/blocked list data while panel is open
-    setFollowedSectionsState(followedSectionsPref);
-    setBlockedSectionsState(blockedSectionsPref);
-    followedSectionsData = sectionsList.filter(item => followedSectionsState.includes(item.sectionKey));
-    blockedSectionsData = sectionsList.filter(item => blockedSectionsState.includes(item.sectionKey));
+    setSectionState(sectionData);
+    followedSectionsData = sectionsList.filter(item => sectionsState[item.sectionKey]?.isFollowed);
+    blockedSectionsData = sectionsList.filter(item => sectionsState[item.sectionKey]?.isBlocked);
   }
   const onFollowClick = (0,external_React_namespaceObject.useCallback)((sectionKey, receivedRank) => {
-    dispatch(actionCreators.SetPref(SectionsMgmtPanel_PREF_FOLLOWED_SECTIONS, [...followedSections, sectionKey].join(", ")));
+    dispatch(actionCreators.AlsoToMain({
+      type: actionTypes.SECTION_DATA_UPDATE,
+      data: {
+        ...sectionData,
+        [sectionKey]: {
+          isFollowed: true,
+          isBlocked: false,
+          followedAt: new Date().toISOString()
+        }
+      }
+    }));
     // Telemetry Event Dispatch
     dispatch(actionCreators.OnlyToMain({
       type: "FOLLOW_SECTION",
@@ -11737,9 +11756,18 @@ function SectionsMgmtPanel({
         event_source: "CUSTOMIZE_PANEL"
       }
     }));
-  }, [dispatch, followedSections]);
+  }, [dispatch, sectionData]);
   const onBlockClick = (0,external_React_namespaceObject.useCallback)((sectionKey, receivedRank) => {
-    dispatch(actionCreators.SetPref(SectionsMgmtPanel_PREF_BLOCKED_SECTIONS, [...blockedSections, sectionKey].join(", ")));
+    dispatch(actionCreators.AlsoToMain({
+      type: actionTypes.SECTION_DATA_UPDATE,
+      data: {
+        ...sectionData,
+        [sectionKey]: {
+          isFollowed: false,
+          isBlocked: true
+        }
+      }
+    }));
 
     // Telemetry Event Dispatch
     dispatch(actionCreators.OnlyToMain({
@@ -11750,9 +11778,16 @@ function SectionsMgmtPanel({
         event_source: "CUSTOMIZE_PANEL"
       }
     }));
-  }, [dispatch, blockedSections]);
+  }, [dispatch, sectionData]);
   const onUnblockClick = (0,external_React_namespaceObject.useCallback)((sectionKey, receivedRank) => {
-    dispatch(actionCreators.SetPref(SectionsMgmtPanel_PREF_BLOCKED_SECTIONS, [...blockedSections.filter(item => item !== sectionKey)].join(", ")));
+    const updatedSectionData = {
+      ...sectionData
+    };
+    delete updatedSectionData[sectionKey];
+    dispatch(actionCreators.AlsoToMain({
+      type: actionTypes.SECTION_DATA_UPDATE,
+      data: updatedSectionData
+    }));
     // Telemetry Event Dispatch
     dispatch(actionCreators.OnlyToMain({
       type: "UNBLOCK_SECTION",
@@ -11762,9 +11797,16 @@ function SectionsMgmtPanel({
         event_source: "CUSTOMIZE_PANEL"
       }
     }));
-  }, [dispatch, blockedSections]);
+  }, [dispatch, sectionData]);
   const onUnfollowClick = (0,external_React_namespaceObject.useCallback)((sectionKey, receivedRank) => {
-    dispatch(actionCreators.SetPref(SectionsMgmtPanel_PREF_FOLLOWED_SECTIONS, [...followedSections.filter(item => item !== sectionKey)].join(", ")));
+    const updatedSectionData = {
+      ...sectionData
+    };
+    delete updatedSectionData[sectionKey];
+    dispatch(actionCreators.AlsoToMain({
+      type: actionTypes.SECTION_DATA_UPDATE,
+      data: updatedSectionData
+    }));
     // Telemetry Event Dispatch
     dispatch(actionCreators.OnlyToMain({
       type: "UNFOLLOW_SECTION",
@@ -11774,7 +11816,7 @@ function SectionsMgmtPanel({
         event_source: "CUSTOMIZE_PANEL"
       }
     }));
-  }, [dispatch, followedSections]);
+  }, [dispatch, sectionData]);
 
   // Close followed/blocked topic subpanel when parent menu is closed
   (0,external_React_namespaceObject.useEffect)(() => {
@@ -11795,7 +11837,7 @@ function SectionsMgmtPanel({
     title,
     receivedRank
   }) => {
-    const following = followedSections.includes(sectionKey);
+    const following = sectionData[sectionKey]?.isFollowed;
     return /*#__PURE__*/external_React_default().createElement("li", {
       key: sectionKey
     }, /*#__PURE__*/external_React_default().createElement("label", {
@@ -11824,7 +11866,7 @@ function SectionsMgmtPanel({
     title,
     receivedRank
   }) => {
-    const blocked = blockedSections.includes(sectionKey);
+    const blocked = sectionData[sectionKey]?.isBlocked;
     return /*#__PURE__*/external_React_default().createElement("li", {
       key: sectionKey
     }, /*#__PURE__*/external_React_default().createElement("label", {
