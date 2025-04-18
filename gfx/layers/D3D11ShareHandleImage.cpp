@@ -190,8 +190,8 @@ already_AddRefed<TextureClient> D3D11RecycleAllocator::CreateOrRecycleClient(
   mImageDevice = device;
 
   auto* fencesHolderMap = CompositeProcessD3D11FencesHolderMap::Get();
-  const bool useFence =
-      fencesHolderMap && FenceD3D11::IsSupported(mImageDevice);
+  // XXX enable fence
+  const bool useFence = false;
   TextureAllocationFlags allocFlags = TextureAllocationFlags::ALLOC_DEFAULT;
   if (!useFence && (StaticPrefs::media_wmf_use_sync_texture_AtStartup() ||
                     mDevice == DeviceManagerDx::Get()->GetCompositorDevice())) {
@@ -210,7 +210,6 @@ already_AddRefed<TextureClient> D3D11RecycleAllocator::CreateOrRecycleClient(
   if (textureClient) {
     auto* textureData = textureClient->GetInternalData()->AsD3D11TextureData();
     MOZ_ASSERT(textureData);
-    auto* fencesHolderMap = CompositeProcessD3D11FencesHolderMap::Get();
     if (textureData && textureData->mFencesHolderId.isSome() &&
         fencesHolderMap) {
       fencesHolderMap->WaitAllFencesAndForget(

@@ -669,9 +669,8 @@ D3D11DXVA2Manager::InitInternal(layers::KnowsCompositor* aKnowsCompositor,
     }
   }
 
-  auto* fencesHolderMap = layers::CompositeProcessD3D11FencesHolderMap::Get();
-  const bool useFence =
-      fencesHolderMap && layers::FenceD3D11::IsSupported(mDevice);
+  // XXX enable fence
+  const bool useFence = false;
   if (useFence) {
     mWriteFence = layers::FenceD3D11::Create(mDevice);
   }

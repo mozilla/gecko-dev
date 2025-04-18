@@ -480,8 +480,6 @@ already_AddRefed<TextureClient> D3D11TextureData::CreateTextureClient(
     auto* fencesHolderMap = layers::CompositeProcessD3D11FencesHolderMap::Get();
     fencesHolderId = Some(CompositeProcessFencesHolderId::GetNext());
     fencesHolderMap->Register(fencesHolderId.ref());
-  } else {
-    MOZ_ASSERT_UNREACHABLE("unexpected to be called");
   }
 
   D3D11TextureData* data = new D3D11TextureData(
