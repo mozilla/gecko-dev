@@ -208,7 +208,7 @@ fn run(args: CliArgs) -> miette::Result<()> {
                 "<meta name=variant content='",
                 r"\?",
                 r"(:?worker=(?P<worker_type>\w+)&)?",
-                r"q=(?P<test_path>[^']*?):\*",
+                r"q=(?P<test_path>[^']*?:\*)",
                 "'>",
                 "$"
             ))
