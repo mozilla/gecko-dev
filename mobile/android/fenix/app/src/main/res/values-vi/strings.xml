@@ -1485,6 +1485,10 @@
   <string name="download_delete_item_1" moz:removedIn="138" tools:ignore="UnusedResources">Xóa</string>
   <!-- Text for the button to delete a single downloaded file item -->
   <string name="download_delete_item">Xóa</string>
+  <!-- Content description for the toolbar "Navigate back" button -->
+  <string name="download_navigate_back_description">Điều hướng quay lại</string>
+  <!-- Content description for the toolbar "Navigate up" button -->
+  <string name="download_navigate_up_description">Điều hướng lên</string>
   <!-- Text for the button to share the download URL -->
   <string name="download_share_url">Chia sẻ URL</string>
   <!-- Text for the button to share the download file -->
@@ -3380,6 +3384,26 @@
     The title of the glean debugging feature
   -->
   <string name="glean_debug_tools_title">Công cụ gỡ lỗi Glean</string>
+  <!--
+    Debug drawer region tools
+
+    Title of the Region tools in the Debug Drawer.
+    This tool allows temporarily overriding the home region (user's default locale)
+    and the current region (device's detected location) for testing purposes.
+  -->
+  <string name="debug_drawer_region_tools_title">Công cụ khu vực</string>
+  <!-- The description of the Region tools in the Debug Drawer -->
+  <string name="debug_drawer_regin_tools_description">Tạm thời ghi đè giá trị khu vực hiện tại và khu vục chính để thử nghiệm.</string>
+  <!-- The text label for displaying home region. -->
+  <string name="debug_drawer_home_region_label">Khu vực chính</string>
+  <!-- The text label for displaying current region. -->
+  <string name="debug_drawer_current_region_label">Khu vực hiện tại</string>
+  <!-- The text field label for overriding home region. -->
+  <string name="debug_drawer_override_home_region_label">Ghi đè khu vực chính</string>
+  <!-- The text field label for overriding current region. -->
+  <string name="debug_drawer_override_current_region_label">Ghi đè khu vực hiện tại</string>
+  <!-- The title of the button for overriding home and current region. -->
+  <string name="debug_drawer_override_region">Ghi đè khu vực chính và hiện tại</string>
   <!--
     Messages explaining how to exit fullscreen mode
 

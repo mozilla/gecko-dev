@@ -768,6 +768,8 @@
   <string name="preferences_add_private_browsing_shortcut">添加隐私浏览快捷方式</string>
   <!-- Preference for enabling "HTTPS-Only" mode -->
   <string name="preferences_https_only_title">HTTPS-Only 模式</string>
+  <!-- Preference title for using the screen lock to hide tabs in private browsing -->
+  <string name="preferences_pbm_lock_screen_title">使用屏幕锁定方式隐藏隐私浏览中的标签页</string>
   <!-- Label for cookie banner section in quick settings panel. -->
   <string name="cookie_banner_blocker">Cookie 横幅拦截器</string>
   <!-- Preference for removing cookie/consent banners from sites automatically in private mode. See reduce_cookie_banner_summary for additional context. -->
@@ -1450,8 +1452,12 @@
   <string name="download_delete_multiple_items_snackbar_2">已删除 %1$d 个项目</string>
   <!-- Text for the snackbar to confirm that a single download item has been removed. %1$s is the name of the download item. -->
   <string name="download_delete_single_item_snackbar" moz:removedIn="138" tools:ignore="UnusedResources">已移除 %1$s</string>
+  <!-- Text for the snackbar to confirm that a single download item has been removed. %1$s is the name of the download item. -->
+  <string name="download_delete_single_item_snackbar_2">已删除“%1$s”</string>
   <!-- Text for the snackbar to confirm that downloads are in progress. -->
   <string name="download_in_progress_snackbar" tools:ignore="UnusedResources">正在下载…</string>
+  <!-- Text for the snackbar action button to view in progress download details. -->
+  <string name="download_in_progress_snackbar_action_details" tools:ignore="UnusedResources">详细信息</string>
   <!-- Text for the snackbar to confirm that a download has completed. -->
   <string name="download_completed_snackbar" tools:ignore="UnusedResources">下载完成</string>
   <!-- Text for the snackbar action button to open a completed download. -->
@@ -1460,6 +1466,10 @@
   <string name="download_undo_delete_snackbar_action">撤销</string>
   <!-- Text shown when no download exists -->
   <string name="download_empty_message_1" moz:removedIn="138" tools:ignore="UnusedResources">暂无下载的文件</string>
+  <!-- Text shown when no download exists -->
+  <string name="download_empty_message_2">暂无下载</string>
+  <!-- Text description shown when no download exists -->
+  <string name="download_empty_description">下载的文件将显示在这里。</string>
   <!--
     History multi select title in app bar
     %1$d is the number of downloads selected
@@ -1469,6 +1479,10 @@
   <string name="download_delete_item_1" moz:removedIn="138" tools:ignore="UnusedResources">移除</string>
   <!-- Text for the button to delete a single downloaded file item -->
   <string name="download_delete_item">删除</string>
+  <!-- Content description for the toolbar "Navigate back" button -->
+  <string name="download_navigate_back_description">浏览上一页</string>
+  <!-- Content description for the toolbar "Navigate up" button -->
+  <string name="download_navigate_up_description">向上导航</string>
   <!-- Text for the button to share the download URL -->
   <string name="download_share_url">分享 URL</string>
   <!-- Text for the button to share the download file -->
@@ -1502,6 +1516,8 @@
     %3$s is the amount of time remaining to complete the download.
   -->
   <string name="download_item_in_progress_description" tools:ignore="UnusedResources">%1$s / %2$s • 剩余 %3$s</string>
+  <!-- Text to indicate that an in progress download is paused. -->
+  <string name="download_item_status_paused" tools:ignore="UnusedResources">已暂停</string>
   <!-- Text to indicate that a download has failed to download. -->
   <string name="download_item_status_failed" tools:ignore="UnusedResources">下载失败</string>
   <!-- Text to indicate that no downloads match the search query. -->

@@ -127,6 +127,8 @@
   <string name="address_bar_swipe_cfr_title" tools:ignore="UnusedResources" moz:removedIn="139">Stritga sur la trav da simbols per midar tab</string>
   <!-- Text for the message displayed in the contextual feature recommendation popup promoting swipe of address bar. -->
   <string name="address_bar_swipe_cfr_message" tools:ignore="UnusedResources" moz:removedIn="139">Stritga a sanestra u a dretga per midar. Stritga a sanestra sin tes ultim tab per avrir in nov.</string>
+  <!-- Text for the message displayed in the contextual feature recommendation popup promoting swipe of address bar. -->
+  <string name="address_bar_swipe_cfr_message_2">Stuschar la trav d’utensils a sanestra u a dretga per midar tab.</string>
   <!-- Text for the info dialog when camera permissions have been denied but user tries to access a camera feature. -->
   <string name="camera_permissions_needed_message">L\'access a la camera è necessari. Acceda als parameters dad Android, smatga sin permissiuns e lura sin permetter.</string>
   <!-- Text for the positive action button to go to Android Settings to grant permissions. -->
@@ -671,6 +673,8 @@
   <!-- Onboarding toolbar selection card content description for the toolbar placement image. -->
   <string name="onboarding_customize_toolbar_placement_bottom_content_description">Maletg da la trav d’utensils inferiura</string>
   <string name="onboarding_customize_toolbar_placement_top_content_description">Maletg da la trav d’utensils superiura</string>
+  <!-- Action label for toolbar options that can be selected. Talkback will append this to say "Double tap to select". -->
+  <string name="onboarding_customize_toolbar_a11y_action_label_select">tscherner</string>
   <!-- Onboarding header for the theme selection card, used by Nimbus experiments. -->
   <string name="onboarding_customize_theme_title" tools:ignore="UnusedResources">Tscherna in design</string>
   <!-- Onboarding sub header for theme selection card, used by Nimbus experiments. -->
@@ -766,6 +770,10 @@
   <string name="preferences_add_private_browsing_shortcut">Agiuntar ina scursanida al modus privat</string>
   <!-- Preference for enabling "HTTPS-Only" mode -->
   <string name="preferences_https_only_title">Modus mo HTTPS</string>
+  <!-- Preference title for using the screen lock to hide tabs in private browsing -->
+  <string name="preferences_pbm_lock_screen_title">Utilisar la bloccada dal visur per zuppentar tabs en il modus privat</string>
+  <!-- Informs the user how to access the tabs when "Use screen lock to hide tabs in private browsing" is enabled -->
+  <string name="preferences_pbm_lock_screen_summary">Utilisar l’impronta dal det, la reconuschientscha da la fatscha u il PIN per mussar ils tabs.</string>
   <!-- Label for cookie banner section in quick settings panel. -->
   <string name="cookie_banner_blocker">Bloccada da bandieras da cookies</string>
   <!-- Preference for removing cookie/consent banners from sites automatically in private mode. See reduce_cookie_banner_summary for additional context. -->
@@ -1376,6 +1384,8 @@
   <string name="tab_tray_multiselect_share_content_description">Cundivider ils tabs tschernids</string>
   <!-- Content description for tabs tray multiselect menu -->
   <string name="tab_tray_multiselect_menu_content_description">Menu da tabs tschernids</string>
+  <!-- Title text displayed for a homepage tab in the tabs tray. -->
+  <string name="tab_tray_homepage_tab">Pagina da partenza</string>
   <!-- Content description (not visible, for screen readers etc.): Removes tab from collection button. Removes the selected tab from collection when pressed -->
   <string name="remove_tab_from_collection">Allontanar il tab da la collecziun</string>
   <!-- Text for button to enter multiselect mode in tabs tray -->
@@ -1471,6 +1481,12 @@
   <string name="download_multi_select_title">%1$d tschernidas</string>
   <!-- Text for the button to remove a single download item -->
   <string name="download_delete_item_1" moz:removedIn="138" tools:ignore="UnusedResources">Allontanar</string>
+  <!-- Text for the button to delete a single downloaded file item -->
+  <string name="download_delete_item">Stizzar</string>
+  <!-- Content description for the toolbar "Navigate back" button -->
+  <string name="download_navigate_back_description">Navigar enavos</string>
+  <!-- Content description for the toolbar "Navigate up" button -->
+  <string name="download_navigate_up_description">Navigar ensi</string>
   <!-- Text for the button to share the download URL -->
   <string name="download_share_url">Parter l’URL</string>
   <!-- Text for the button to share the download file -->
@@ -1514,6 +1530,8 @@
   <string name="download_search_placeholder" tools:ignore="UnusedResources">Retschertgar las telechargiadas</string>
   <!-- Text to indicate that no downloads match the search query. -->
   <string name="download_search_no_results_found" tools:ignore="UnusedResources">Na chattà nagins resultats</string>
+  <!-- Text for the "Select all" button, which selects all downloaded items in the downloads list. -->
+  <string name="download_select_all_items">Selecziunar tut</string>
   <!--
     Downloads Content Type Filters
 
@@ -1528,6 +1546,8 @@
   <string name="download_content_type_filter_document">Documents</string>
   <!-- Text for the filter button to show all other file types in the downloads list -->
   <string name="download_content_type_filter_other" moz:removedIn="138" tools:ignore="UnusedResources">Auters</string>
+  <!-- Text for the filter button to show all other file types in the downloads list -->
+  <string name="download_content_type_filter_other_1">Auter</string>
   <!--
     Description of a downloaded item, displayed in the downloads list.
     %1$s: The size of the downloaded file.
@@ -3361,6 +3381,16 @@
     The title of the glean debugging feature
   -->
   <string name="glean_debug_tools_title">Utensils da debugadi per Glean</string>
+  <!--
+    Debug drawer region tools
+
+    Title of the Region tools in the Debug Drawer.
+    This tool allows temporarily overriding the home region (user's default locale)
+    and the current region (device's detected location) for testing purposes.
+  -->
+  <string name="debug_drawer_region_tools_title">Utensils per la regiun</string>
+  <!-- The description of the Region tools in the Debug Drawer -->
+  <string name="debug_drawer_regin_tools_description">Recuvra temporarmain las valurs per il dachasa e la regiun actuala per exequir tests.</string>
   <!--
     Messages explaining how to exit fullscreen mode
 
