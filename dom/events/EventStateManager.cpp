@@ -4496,9 +4496,8 @@ nsresult EventStateManager::PostHandleEvent(nsPresContext* aPresContext,
 #ifdef XP_MACOSX
     case eMouseActivate:
       if (mCurrentTarget) {
-        nsCOMPtr<nsIContent> targetContent;
-        mCurrentTarget->GetContentForEvent(aEvent,
-                                           getter_AddRefs(targetContent));
+        nsCOMPtr<nsIContent> targetContent =
+          mCurrentTarget->GetContentForEvent(aEvent);
         if (!NodeAllowsClickThrough(targetContent)) {
           *aStatus = nsEventStatus_eConsumeNoDefault;
         }
