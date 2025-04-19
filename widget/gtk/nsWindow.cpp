@@ -8399,7 +8399,10 @@ static gboolean generic_event_cb(GtkWidget* widget, GdkEvent* aEvent) {
 }
 
 void nsWindow::GtkWidgetDestroyHandler(GtkWidget* aWidget) {
-  MOZ_RELEASE_ASSERT(mIsDestroyed, "Releasing live widget!");
+  if (!mIsDestroyed) {
+    NS_WARNING("GtkWidgetDestroyHandler called for live nsWindow!");
+    Destroy();
+  }
   if (aWidget == mShell) {
     mShell = nullptr;
     return;
