@@ -157,6 +157,19 @@ class nsGridContainerFrame final : public nsContainerFrame,
                            nsFrameList&& aChildList) override;
 #endif
 
+  bool CanProvideLineIterator() const final { return true; }
+  nsILineIterator* GetLineIterator() final { return this; }
+  int32_t GetNumLines() const final;
+  bool IsLineIteratorFlowRTL() final;
+  mozilla::Result<LineInfo, nsresult> GetLine(int32_t aLineNumber) final;
+  int32_t FindLineContaining(nsIFrame* aFrame, int32_t aStartLine = 0) final;
+  NS_IMETHOD FindFrameAt(int32_t aLineNumber, nsPoint aPos,
+                         nsIFrame** aFrameFound, bool* aPosIsBeforeFirstFrame,
+                         bool* aPosIsAfterLastFrame) final;
+  NS_IMETHOD CheckLineOrder(int32_t aLine, bool* aIsReordered,
+                            nsIFrame** aFirstVisual,
+                            nsIFrame** aLastVisual) final;
+
   /**
    * Return the containing block for aChild which MUST be an abs.pos. child
    * of a grid container and that container must have been reflowed.
@@ -654,19 +667,6 @@ class nsGridContainerFrame final : public nsContainerFrame,
     Key mKey;
     nscoord mBSize;
   };
-
-  bool CanProvideLineIterator() const final { return true; }
-  nsILineIterator* GetLineIterator() final { return this; }
-  int32_t GetNumLines() const final;
-  bool IsLineIteratorFlowRTL() final;
-  mozilla::Result<LineInfo, nsresult> GetLine(int32_t aLineNumber) final;
-  int32_t FindLineContaining(nsIFrame* aFrame, int32_t aStartLine = 0) final;
-  NS_IMETHOD FindFrameAt(int32_t aLineNumber, nsPoint aPos,
-                         nsIFrame** aFrameFound, bool* aPosIsBeforeFirstFrame,
-                         bool* aPosIsAfterLastFrame) final;
-  NS_IMETHOD CheckLineOrder(int32_t aLine, bool* aIsReordered,
-                            nsIFrame** aFirstVisual,
-                            nsIFrame** aLastVisual) final;
 };
 
 #endif /* nsGridContainerFrame_h___ */
