@@ -337,9 +337,7 @@ class nsGridContainerFrame final : public nsContainerFrame,
   };
 
  protected:
-  typedef mozilla::LogicalPoint LogicalPoint;
   typedef mozilla::LogicalRect LogicalRect;
-  typedef mozilla::LogicalSize LogicalSize;
   typedef mozilla::WritingMode WritingMode;
   struct Grid;
   struct GridArea;
