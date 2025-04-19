@@ -110,9 +110,9 @@ void Event::InitPresContextData(nsPresContext* aPresContext) {
   mPresContext = aPresContext;
   // Get the explicit original target (if it's anonymous make it null)
   {
-    nsCOMPtr<nsIContent> content = GetTargetFromFrame();
+    nsIContent* content = GetTargetFromFrame();
     if (content && !content->IsInNativeAnonymousSubtree()) {
-      mExplicitOriginalTarget = std::move(content);
+      mExplicitOriginalTarget = content;
     } else {
       mExplicitOriginalTarget = nullptr;
     }
@@ -312,7 +312,7 @@ void Event::ComposedPath(nsTArray<RefPtr<EventTarget>>& aPath) {
 //
 // Get the actual event target node (may have been retargeted for mouse events)
 //
-already_AddRefed<nsIContent> Event::GetTargetFromFrame() {
+nsIContent* Event::GetTargetFromFrame() {
   if (!mPresContext) {
     return nullptr;
   }
@@ -324,9 +324,7 @@ already_AddRefed<nsIContent> Event::GetTargetFromFrame() {
   }
 
   // get the real content
-  nsCOMPtr<nsIContent> realEventContent;
-  targetFrame->GetContentForEvent(mEvent, getter_AddRefs(realEventContent));
-  return realEventContent.forget();
+  return targetFrame->GetContentForEvent(mEvent);
 }
 
 EventTarget* Event::GetExplicitOriginalTarget() const {

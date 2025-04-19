@@ -905,9 +905,7 @@ nsresult EventStateManager::PreHandleEvent(nsPresContext* aPresContext,
       "aTargetFrame should be related with aTargetContent");
 #if DEBUG
   if (aTargetFrame && aTargetFrame->IsGeneratedContentFrame()) {
-    nsCOMPtr<nsIContent> targetContent;
-    aTargetFrame->GetContentForEvent(aEvent, getter_AddRefs(targetContent));
-    MOZ_ASSERT(aTargetContent == targetContent,
+    MOZ_ASSERT(aTargetContent == aTargetFrame->GetContentForEvent(aEvent),
                "Unexpected target for generated content frame!");
   }
 #endif
@@ -2422,9 +2420,7 @@ void EventStateManager::BeginTrackingDragGesture(nsPresContext* aPresContext,
   SetGestureDownPoint(inDownEvent);
 
   if (inDownFrame) {
-    inDownFrame->GetContentForEvent(inDownEvent,
-                                    getter_AddRefs(mGestureDownContent));
-
+    mGestureDownContent = inDownFrame->GetContentForEvent(inDownEvent);
     mGestureDownFrameOwner = inDownFrame->GetContent();
     if (!mGestureDownFrameOwner) {
       mGestureDownFrameOwner = mGestureDownContent;
@@ -2530,8 +2526,7 @@ void EventStateManager::MaybeFirePointerCancel(WidgetInputEvent* aEvent) {
     return;
   }
 
-  nsCOMPtr<nsIContent> content;
-  targetFrame->GetContentForEvent(aEvent, getter_AddRefs(content));
+  nsCOMPtr<nsIContent> content = targetFrame->GetContentForEvent(aEvent);
   // XXX If there is no proper event target, should we retarget ePointerCancel
   // somewhere else?
   if (NS_WARN_IF(!content)) {
@@ -2660,12 +2655,13 @@ void EventStateManager::GenerateDragGesture(nsPresContext* aPresContext,
 
   RefPtr<Selection> selection;
   RefPtr<RemoteDragStartData> remoteDragStartData;
-  nsCOMPtr<nsIContent> eventContent, targetContent;
   nsCOMPtr<nsIPrincipal> principal;
   nsCOMPtr<nsIContentSecurityPolicy> csp;
   nsCOMPtr<nsICookieJarSettings> cookieJarSettings;
+  nsCOMPtr<nsIContent> eventContent =
+      mCurrentTarget->GetContentForEvent(aEvent);
+  nsCOMPtr<nsIContent> targetContent;
   bool allowEmptyDataTransfer = false;
-  mCurrentTarget->GetContentForEvent(aEvent, getter_AddRefs(eventContent));
   if (eventContent) {
     // If the content is a text node in a password field, we shouldn't
     // allow to drag its raw text.  Note that we've supported drag from
@@ -3927,7 +3923,7 @@ nsresult EventStateManager::PostHandleEvent(nsPresContext* aPresContext,
         nsCOMPtr<nsIContent> newFocus;
         bool suppressBlur = false;
         if (mCurrentTarget) {
-          mCurrentTarget->GetContentForEvent(aEvent, getter_AddRefs(newFocus));
+          newFocus = mCurrentTarget->GetContentForEvent(aEvent);
           activeContent = mCurrentTarget->GetContent();
 
           // In some cases, we do not want to even blur the current focused
@@ -4487,9 +4483,8 @@ nsresult EventStateManager::PostHandleEvent(nsPresContext* aPresContext,
 
     case eMouseEnterIntoWidget:
       if (mCurrentTarget) {
-        nsCOMPtr<nsIContent> targetContent;
-        mCurrentTarget->GetContentForEvent(aEvent,
-                                           getter_AddRefs(targetContent));
+        nsCOMPtr<nsIContent> targetContent =
+            mCurrentTarget->GetContentForEvent(aEvent);
         SetContentState(targetContent, ElementState::HOVER);
       }
       break;
@@ -5711,9 +5706,8 @@ void EventStateManager::GenerateDragDropEnterExit(nsPresContext* aPresContext,
         // We'll need the content, too, to check if it changed separately from
         // the frames.
         nsCOMPtr<nsIContent> lastContent;
-        nsCOMPtr<nsIContent> targetContent;
-        mCurrentTarget->GetContentForEvent(aDragEvent,
-                                           getter_AddRefs(targetContent));
+        nsCOMPtr<nsIContent> targetContent =
+            mCurrentTarget->GetContentForEvent(aDragEvent);
         if (targetContent && targetContent->IsText()) {
           targetContent = targetContent->GetFlattenedTreeParent();
         }
@@ -5721,8 +5715,7 @@ void EventStateManager::GenerateDragDropEnterExit(nsPresContext* aPresContext,
         if (sLastDragOverFrame) {
           // The frame has changed but the content may not have. Check before
           // dispatching to content
-          sLastDragOverFrame->GetContentForEvent(aDragEvent,
-                                                 getter_AddRefs(lastContent));
+          lastContent = sLastDragOverFrame->GetContentForEvent(aDragEvent);
           if (lastContent && lastContent->IsText()) {
             lastContent = lastContent->GetFlattenedTreeParent();
           }
@@ -5767,9 +5760,8 @@ void EventStateManager::GenerateDragDropEnterExit(nsPresContext* aPresContext,
     case eDragExit: {
       // This is actually the window mouse exit event.
       if (sLastDragOverFrame) {
-        nsCOMPtr<nsIContent> lastContent;
-        sLastDragOverFrame->GetContentForEvent(aDragEvent,
-                                               getter_AddRefs(lastContent));
+        nsCOMPtr<nsIContent> lastContent =
+            sLastDragOverFrame->GetContentForEvent(aDragEvent);
 
         RefPtr<nsPresContext> lastDragOverFramePresContext =
             sLastDragOverFrame->PresContext();
@@ -5866,7 +5858,7 @@ nsresult EventStateManager::SetClickCount(WidgetMouseEvent* aEvent,
                                           nsIContent* aOverrideClickTarget) {
   nsCOMPtr<nsIContent> mouseContent = aOverrideClickTarget;
   if (!mouseContent && mCurrentTarget) {
-    mCurrentTarget->GetContentForEvent(aEvent, getter_AddRefs(mouseContent));
+    mouseContent = mCurrentTarget->GetContentForEvent(aEvent);
   }
   if (mouseContent && mouseContent->IsText()) {
     nsINode* parent = mouseContent->GetFlattenedTreeParentNode();
@@ -6295,7 +6287,7 @@ already_AddRefed<nsIContent> EventStateManager::GetEventTargetContent(
   // Some events here may set mCurrentTarget but not set the corresponding
   // event target in the PresShell.
   if (!content && mCurrentTarget) {
-    mCurrentTarget->GetContentForEvent(aEvent, getter_AddRefs(content));
+    content = mCurrentTarget->GetContentForEvent(aEvent);
   }
 
   return content.forget();

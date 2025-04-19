@@ -6814,9 +6814,8 @@ already_AddRefed<nsIContent> PresShell::GetEventTargetContent(
     WidgetEvent* aEvent) {
   nsCOMPtr<nsIContent> content = GetCurrentEventContent();
   if (!content) {
-    nsIFrame* currentEventFrame = GetCurrentEventFrame();
-    if (currentEventFrame) {
-      currentEventFrame->GetContentForEvent(aEvent, getter_AddRefs(content));
+    if (nsIFrame* currentEventFrame = GetCurrentEventFrame()) {
+      content = currentEventFrame->GetContentForEvent(aEvent);
       NS_ASSERTION(!content || content->GetComposedDoc() == mDocument,
                    "handing out content from a different doc");
     }
@@ -8297,11 +8296,8 @@ bool PresShell::EventHandler::MaybeDiscardOrDelayMouseEvent(
     return true;
   }
 
-  nsCOMPtr<nsIContent> targetContent;
-  aFrameToHandleEvent->GetContentForEvent(aGUIEvent,
-                                          getter_AddRefs(targetContent));
-  if (targetContent) {
-    aGUIEvent->mTarget = targetContent;
+  if (auto* target = aFrameToHandleEvent->GetContentForEvent(aGUIEvent)) {
+    aGUIEvent->mTarget = target;
   }
 
   nsCOMPtr<EventTarget> eventTarget = aGUIEvent->mTarget;
@@ -9267,15 +9263,15 @@ nsresult PresShell::EventHandler::DispatchEventToDOM(
   if (!eventTarget) {
     nsCOMPtr<nsIContent> targetContent;
     if (mPresShell->mCurrentEventTarget.mFrame) {
-      rv = mPresShell->mCurrentEventTarget.mFrame->GetContentForEvent(
-          aEvent, getter_AddRefs(targetContent));
+      targetContent =
+          mPresShell->mCurrentEventTarget.mFrame->GetContentForEvent(aEvent);
       if (targetContent && !targetContent->IsElement() &&
           IsForbiddenDispatchingToNonElementContent(aEvent->mMessage)) {
         targetContent =
             targetContent->GetInclusiveFlattenedTreeAncestorElement();
       }
     }
-    if (NS_SUCCEEDED(rv) && targetContent) {
+    if (targetContent) {
       eventTarget = targetContent;
     } else if (GetDocument()) {
       eventTarget = GetDocument();
@@ -12283,8 +12279,7 @@ void PresShell::EventHandler::EventTargetData::
 void PresShell::EventHandler::EventTargetData::SetContentForEventFromFrame(
     WidgetGUIEvent* aGUIEvent) {
   MOZ_ASSERT(mFrame);
-  mContent = nullptr;
-  mFrame->GetContentForEvent(aGUIEvent, getter_AddRefs(mContent));
+  mContent = mFrame->GetContentForEvent(aGUIEvent);
   AssertIfEventTargetContentAndFrameContentMismatch(aGUIEvent);
 }
 
@@ -12302,9 +12297,7 @@ void PresShell::EventHandler::EventTargetData::
 
   // If we know the event, we can compute the target correctly.
   if (aGUIEvent) {
-    nsCOMPtr<nsIContent> content;
-    mFrame->GetContentForEvent(aGUIEvent, getter_AddRefs(content));
-    MOZ_ASSERT(mContent == content);
+    MOZ_ASSERT(mContent == mFrame->GetContentForEvent(aGUIEvent));
     return;
   }
 
