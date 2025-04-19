@@ -551,6 +551,13 @@ rustdoc = check_prog(
     allow_missing=True,
 )
 
+option(
+    env="RUSTDOCFLAGS",
+    nargs=1,
+    when=rustdoc,
+    help="Extra options for the rustdoc program",
+)
+
 # This option is separate from --enable-tests because Rust tests are particularly
 # expensive in terms of compile time (especially for code in libxul).
 option(
