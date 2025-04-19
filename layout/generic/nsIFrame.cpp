@@ -4429,10 +4429,19 @@ void nsIFrame::MarkAbsoluteFramesForDisplayList(
 }
 
 nsIContent* nsIFrame::GetContentForEvent(const WidgetEvent* aEvent) const {
-  if (HasAnyStateBits(NS_FRAME_GENERATED_CONTENT)) {
-    return GetContent()->GetClosestNativeAnonymousSubtreeRootParentOrHost();
+  if (!IsGeneratedContentFrame()) {
+    return GetContent();
   }
-  return GetContent();
+  const nsIFrame* generatedRoot = this;
+  while (true) {
+    auto* parent = nsLayoutUtils::GetParentOrPlaceholderFor(generatedRoot);
+    if (!parent || !parent->IsGeneratedContentFrame()) {
+      break;
+    }
+    generatedRoot = parent;
+  }
+  // Return the non-generated ancestor.
+  return generatedRoot->GetContent()->GetParent();
 }
 
 void nsIFrame::FireDOMEvent(const nsAString& aDOMEventName,
