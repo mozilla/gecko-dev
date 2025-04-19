@@ -3379,6 +3379,16 @@
   -->
   <string name="glean_debug_tools_title">Εργαλεία εντοπισμού σφαλμάτων Glean</string>
   <!--
+    Debug drawer region tools
+
+    Title of the Region tools in the Debug Drawer.
+    This tool allows temporarily overriding the home region (user's default locale)
+    and the current region (device's detected location) for testing purposes.
+  -->
+  <string name="debug_drawer_region_tools_title">Εργαλεία περιοχής</string>
+  <!-- The text label for displaying current region. -->
+  <string name="debug_drawer_current_region_label">Τρέχουσα περιοχή</string>
+  <!--
     Messages explaining how to exit fullscreen mode
 
     Message shown to explain how to exit fullscreen mode when gesture navigation is enabled.
@@ -3442,6 +3452,8 @@
   <string name="text_field_cross_trailing_icon_default_content_description" moz:removedIn="139" tools:ignore="UnusedResources">Απαλοιφή κειμένου</string>
   <!-- Title for the setup checklist feature when the state is 'completed' -->
   <string name="setup_checklist_title_state_completed">Συγχαρητήρια!</string>
+  <!-- Subtitle for a setup checklist with 6 steps when the fourth task is completed. -->
+  <string name="setup_checklist_subtitle_6_steps_fourth_step">Έχετε ολοκληρώσει 4 βήματα. Απομένουν μόνο 2!</string>
   <!--
     ===== Setup checklist feature: Task titles =====
 

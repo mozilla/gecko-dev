@@ -1483,6 +1483,10 @@
   <string name="download_delete_item_1" moz:removedIn="138" tools:ignore="UnusedResources">הסרה</string>
   <!-- Text for the button to delete a single downloaded file item -->
   <string name="download_delete_item">מחיקה</string>
+  <!-- Content description for the toolbar "Navigate back" button -->
+  <string name="download_navigate_back_description">ניווט אחורה</string>
+  <!-- Content description for the toolbar "Navigate up" button -->
+  <string name="download_navigate_up_description">ניווט למעלה</string>
   <!-- Text for the button to share the download URL -->
   <string name="download_share_url">שיתוף כתובת אתר</string>
   <!-- Text for the button to share the download file -->

@@ -1407,6 +1407,10 @@
   <string name="download_delete_item_1" moz:removedIn="138" tools:ignore="UnusedResources">മാറ്റുക</string>
   <!-- Text for the button to delete a single downloaded file item -->
   <string name="download_delete_item">മായ്ക്കുക</string>
+  <!-- Content description for the toolbar "Navigate back" button -->
+  <string name="download_navigate_back_description">പുറകോട്ട് ചെല്ലുക</string>
+  <!-- Content description for the toolbar "Navigate up" button -->
+  <string name="download_navigate_up_description">മുകളിലേക്ക്  ചെല്ലുക</string>
   <!-- Text for the button to share the download URL -->
   <string name="download_share_url">കണ്ണി പങ്കിടുക</string>
   <!-- Text for the button to share the download file -->
@@ -3217,6 +3221,18 @@
   -->
   <string name="glean_debug_tools_title">ഗ്ലീൻ തെറ്റുതിരുത്തല്ക്കരുകൾ</string>
   <!--
+    Debug drawer region tools
+
+    Title of the Region tools in the Debug Drawer.
+    This tool allows temporarily overriding the home region (user's default locale)
+    and the current region (device's detected location) for testing purposes.
+  -->
+  <string name="debug_drawer_region_tools_title">പ്രദേശ്യം സംബന്ധിച്ച കരുകൾ</string>
+  <!-- The text label for displaying home region. -->
+  <string name="debug_drawer_home_region_label">സ്വദേശം</string>
+  <!-- The text label for displaying current region. -->
+  <string name="debug_drawer_current_region_label">നിലവിലെ ഇടം</string>
+  <!--
     Messages explaining how to exit fullscreen mode
 
     Message shown to explain how to exit fullscreen mode when gesture navigation is enabled.
@@ -3288,6 +3304,10 @@
   <string name="setup_checklist_title_state_incomplete">%1$s സജ്ജീകരിക്കുന്നതു് തീൎക്കുക</string>
   <!-- Title for the setup checklist feature when the state is 'completed' -->
   <string name="setup_checklist_title_state_completed">അഭിനന്ദനങ്ങള്‍!</string>
+  <!-- Subtitle for the setup checklist when the second task is completed. -->
+  <string name="setup_checklist_subtitle_6_steps_second_step">6-ൽ 2 എണ്ണം കിഴിഞ്ഞു. നല്ലോണം പോയിക്കൊണ്ടിരിക്കുന്നു!</string>
+  <!-- Subtitle for a setup checklist with 6 steps when three of the tasks are completed. -->
+  <string name="setup_checklist_subtitle_6_steps_third_step">പകുതി കഴിഞ്ഞു, ഇനിയും 3 പടികൾ മാത്രം മിച്ചമിരിപ്പുണ്ടു്.</string>
   <!--
     ===== Setup checklist feature: Task titles =====
 
@@ -3312,6 +3332,12 @@
   <string name="setup_checklist_group_customize">%1$s ഇഷ്ടാനുസൃതമാക്കുക</string>
   <!-- The title of the 'helpful tools' group in the setup checklist -->
   <string name="setup_checklist_group_helpful_tools">തുണയ്ക്കുന്ന കരുകൾ</string>
+  <!--
+    ===== Setup checklist feature: Button =====
+
+    Text for the 'remove' button for the setup checklist
+  -->
+  <string name="setup_checklist_button_remove">പട്ടിക മാറ്റുക</string>
   <!--
     ===== Setup checklist feature: Accessibility =====
 

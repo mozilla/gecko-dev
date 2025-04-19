@@ -5,7 +5,7 @@
 
     The default content description (not visible, for screen readers etc.): Eye trailing icon button in TextField used to show hidden password text.
   -->
-  <string name="text_field_eye_trailing_icon_default_content_description">Sken-d aḍris uffir</string>
+  <string name="text_field_eye_trailing_icon_default_content_description">نمایش متن مخفی</string>
   <!-- The default content description (not visible, for screen readers etc.): Cross trailing icon button in TextField used to clear input. -->
-  <string name="text_field_cross_trailing_icon_default_content_description">Sfeḍ aḍris</string>
+  <string name="text_field_cross_trailing_icon_default_content_description">پاک کردن متن</string>
 </resources>
