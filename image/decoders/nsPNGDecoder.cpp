@@ -449,6 +449,9 @@ uint32_t nsPNGDecoder::ReadColorProfile(png_structp png_ptr, png_infop info_ptr,
         mInProfile = qcms_profile_create_cicp(
             primaries, ChooseTransferCharacteristics(tc));
         if (mInProfile) {
+          if (!(color_type & PNG_COLOR_MASK_COLOR)) {
+            png_set_gray_to_rgb(png_ptr);
+          }
           return qcms_profile_get_rendering_intent(mInProfile);
         }
       }
