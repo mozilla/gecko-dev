@@ -230,12 +230,22 @@ export class FormAutofillChild extends JSWindowActorChild {
 
     const handler = this._fieldDetailsManager.getOrCreateFormHandler(element);
 
-    // If the child process is still waiting for the parent to send to
-    // `onFieldsDetectedComplete` or `onFieldsUpdatedComplete` message, bail out.
     if (
       this.#handlerWaitingForDetectedComplete.has(handler) ||
-      this.#handlerWaitingForFillOnFormChangeComplete.has(handler)
+      this.#handlerWaitingForFillOnFormChangeComplete.has(handler) ||
+      this.#handlerWaitingForFormSubmissionComplete.has(handler)
     ) {
+      // Bail out if the child process is still waiting for the parent to send a
+      // `onFieldsDetectedComplete` or `onFieldsUpdatedComplete` message,
+      // or a form submission is currently still getting processed.
+      return;
+    }
+
+    if (handler.fillOnFormChangeData.isWithinDynamicFormChangeThreshold) {
+      // Received the focus event immediately after an autofill action, which was not
+      // initiated by a user but by the site due to the form change. Bail out here,
+      // because we will receive the form-changed-event anyway and should not process the
+      // field detection here, since this would block the second autofill process.
       return;
     }
 
