@@ -4429,9 +4429,10 @@ void nsIFrame::MarkAbsoluteFramesForDisplayList(
 }
 
 nsIContent* nsIFrame::GetContentForEvent(const WidgetEvent* aEvent) const {
-  const nsIFrame* f =
-      nsLayoutUtils::GetNonGeneratedAncestor(const_cast<nsIFrame*>(this));
-  return f->GetContent();
+  if (HasAnyStateBits(NS_FRAME_GENERATED_CONTENT)) {
+    return GetContent()->GetClosestNativeAnonymousSubtreeRootParentOrHost();
+  }
+  return GetContent();
 }
 
 void nsIFrame::FireDOMEvent(const nsAString& aDOMEventName,
