@@ -1244,7 +1244,7 @@
   -->
   <string name="open_all_warning_message">Այսքան ներդիրներ բացելը կարող է դանդաղեցնել %s-ը, մինչ էջերը բեռնվում են: Վստա՞հ եք, որ ցանկանում եք շարունակել:</string>
   <!-- Dialog button text for confirming open all tabs -->
-  <string name="open_all_warning_confirm">Բաց ներդիրներ</string>
+  <string name="open_all_warning_confirm">Բացել ներդիրները</string>
   <!-- Dialog button text for canceling open all tabs -->
   <string name="open_all_warning_cancel">Չեղարկել</string>
   <!--

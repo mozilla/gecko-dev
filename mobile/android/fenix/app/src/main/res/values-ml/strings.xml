@@ -3232,6 +3232,8 @@
   <string name="debug_drawer_home_region_label">സ്വദേശം</string>
   <!-- The text label for displaying current region. -->
   <string name="debug_drawer_current_region_label">നിലവിലെ ഇടം</string>
+  <!-- The text field label for overriding current region. -->
+  <string name="debug_drawer_override_current_region_label">നിലവിലെ പ്രദേശം അസാധുവാക്കുക</string>
   <!--
     Messages explaining how to exit fullscreen mode
 
@@ -3304,10 +3306,16 @@
   <string name="setup_checklist_title_state_incomplete">%1$s സജ്ജീകരിക്കുന്നതു് തീൎക്കുക</string>
   <!-- Title for the setup checklist feature when the state is 'completed' -->
   <string name="setup_checklist_title_state_completed">അഭിനന്ദനങ്ങള്‍!</string>
+  <!-- Subtitle for a setup checklist with 3 steps when two of the tasks are completed. -->
+  <string name="setup_checklist_subtitle_3_steps_second_step">ഏതാണ്ടു് തീരാറായി! രണ്ടു പടി കഴിഞ്ഞിരിക്കുന്നു, ഇനി ഒരു പടി കൂടെ മിച്ചമിരിപ്പുണ്ടു്.</string>
+  <!-- Subtitle for a setup checklist with 6 steps when the first task is completed. -->
+  <string name="setup_checklist_subtitle_6_steps_first_step">നല്ല തുടക്കം. താങ്ങൾ 6-ൽ 1 പടി തീൎത്തു.</string>
   <!-- Subtitle for the setup checklist when the second task is completed. -->
   <string name="setup_checklist_subtitle_6_steps_second_step">6-ൽ 2 എണ്ണം കിഴിഞ്ഞു. നല്ലോണം പോയിക്കൊണ്ടിരിക്കുന്നു!</string>
   <!-- Subtitle for a setup checklist with 6 steps when three of the tasks are completed. -->
   <string name="setup_checklist_subtitle_6_steps_third_step">പകുതി കഴിഞ്ഞു, ഇനിയും 3 പടികൾ മാത്രം മിച്ചമിരിപ്പുണ്ടു്.</string>
+  <!-- Subtitle for a setup checklist with 6 steps when the fourth task is completed. -->
+  <string name="setup_checklist_subtitle_6_steps_fourth_step">4 പടികൾ കഴിഞ്ഞിരിക്കുന്നു. ഇനി രണ്ടു പടി മാത്രം മിച്ചം!</string>
   <!--
     ===== Setup checklist feature: Task titles =====
 
