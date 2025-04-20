@@ -528,6 +528,7 @@ export class FormAutofillChild extends JSWindowActorChild {
    *                          - NODES_REMOVED: HTMLElement[] - nodes removed
    *                          - ELEMENT_VISIBLE: HTMLElement[] - elements that became visible
    *                          - ELEMENT_INVISIBLE: HTMLElement[] - elements that became invisible
+   *                          - SELECT_OPTIONS_CHANGED: HTMLSelectElement[] - select elements with modified options
    *                          A form-change event is single-reasoned for visibility changes and can be multi-reasoned for mutations.
    */
   async onFormChange(form, changes) {
@@ -619,14 +620,17 @@ export class FormAutofillChild extends JSWindowActorChild {
     const currentFields =
       lazy.FormAutofillHandler.collectFormFieldDetails(currentForm);
 
+    const changedSelectElements =
+      changes[lazy.FORM_CHANGE_REASON.SELECT_OPTIONS_CHANGED];
     if (
       currentFields.length == handler.fieldDetails.length &&
       currentFields.every(
         (field, idx) => field.element === handler.fieldDetails[idx].element
-      )
+      ) &&
+      !changedSelectElements.length
     ) {
-      // The detected form fields remain unchanged,
-      // so we don't notify the parent and the subtree children
+      // All detected fields (including options from detected <select> fields)
+      // remain unchanged, so don't notify the parent and the subtree children
       return;
     }
 
