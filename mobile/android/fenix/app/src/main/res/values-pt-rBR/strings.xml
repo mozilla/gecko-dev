@@ -1485,6 +1485,10 @@
   <string name="download_delete_item_1" moz:removedIn="138" tools:ignore="UnusedResources">Remover</string>
   <!-- Text for the button to delete a single downloaded file item -->
   <string name="download_delete_item">Excluir</string>
+  <!-- Content description for the toolbar "Navigate back" button -->
+  <string name="download_navigate_back_description">Página anterior</string>
+  <!-- Content description for the toolbar "Navigate up" button -->
+  <string name="download_navigate_up_description">Ir para o topo</string>
   <!-- Text for the button to share the download URL -->
   <string name="download_share_url">Compartilhar URL</string>
   <!-- Text for the button to share the download file -->
