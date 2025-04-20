@@ -1136,7 +1136,7 @@ tab-group {
 }
 
 .tab-group-editor-panel {
-  --panel-width: 20em;
+  --panel-width: 22em;
   --panel-padding: var(--space-large);
   --panel-separator-margin: var(--panel-separator-margin-vertical) 0;
   font: menu;
