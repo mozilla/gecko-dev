@@ -9,6 +9,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Dict, List, Optional, Union
 
+import mozpack.path as mozpath
 from mozpack.files import FileListFinder
 
 from mozversioncontrol.errors import (
@@ -173,7 +174,7 @@ class JujutsuRepository(Repository):
         for line in lines:
             op, file = line.split(" ", 1)
             if op.upper() in diff_filter:
-                outgoing.append(file)
+                outgoing.append(mozpath.normsep(file))
         return outgoing
 
     def add_remove_files(self, *paths: Union[str, Path]):
@@ -193,7 +194,8 @@ class JujutsuRepository(Repository):
         self._run("file", "untrack", *paths)
 
     def get_tracked_files_finder(self, path=None):
-        return FileListFinder(self._run("file", "list").splitlines())
+        files = [mozpath.normsep(p) for p in self._run("file", "list").splitlines()]
+        return FileListFinder(files)
 
     def get_ignored_files_finder(self):
         raise Exception("unimplemented")
