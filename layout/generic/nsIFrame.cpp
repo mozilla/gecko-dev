@@ -1060,12 +1060,6 @@ void nsIFrame::RemoveDisplayItemDataForDeletion() {
     delete userDataTable;
   }
 
-  if (!nsLayoutUtils::AreRetainedDisplayListsEnabled()) {
-    // Retained display lists are disabled, no need to update
-    // RetainedDisplayListData.
-    return;
-  }
-
   auto* builder = nsLayoutUtils::GetRetainedDisplayListBuilder(this);
   if (!builder) {
     MOZ_ASSERT(DisplayItems().IsEmpty());
