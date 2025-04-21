@@ -4125,7 +4125,8 @@ void Element::GetAnimations(const GetAnimationsOptions& aOptions,
     // be reflected in the flags passed in DocumentOrShadowRoot::GetAnimations
     // too.
     doc->FlushPendingNotifications(
-        ChangesToFlush(FlushType::Style, false /* flush animations */));
+        ChangesToFlush(FlushType::Style, /* aFlushAnimations = */ false,
+                       /* aUpdateRelevancy = */ false));
   }
 
   GetAnimationsWithoutFlush(aOptions, aAnimations);

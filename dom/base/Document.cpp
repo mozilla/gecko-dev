@@ -11376,7 +11376,8 @@ already_AddRefed<Event> Document::CreateEvent(const nsAString& aEventType,
 }
 
 void Document::FlushPendingNotifications(FlushType aType) {
-  mozilla::ChangesToFlush flush(aType, aType >= FlushType::Style);
+  mozilla::ChangesToFlush flush(aType, aType >= FlushType::Style,
+                                aType >= FlushType::Layout);
   FlushPendingNotifications(flush);
 }
 
@@ -17308,7 +17309,7 @@ void Document::UpdateLastRememberedSizes() {
       mElementsObservedForLastRememberedSize.Remove(it);
       continue;
     }
-    const auto element = *it;
+    auto* element = *it;
     MOZ_ASSERT(element->GetComposedDoc() == this);
     nsIFrame* frame = element->GetPrimaryFrame();
     MOZ_ASSERT(frame);
@@ -18097,7 +18098,7 @@ void Document::DetermineProximityToViewportAndNotifyResizeObservers() {
   bool initialResetOfScrolledIntoViewFlagsDone = false;
   const ChangesToFlush ctf(
       interruptible ? FlushType::InterruptibleLayout : FlushType::Layout,
-      /* aFlushAnimations = */ false);
+      /* aFlushAnimations = */ false, /* aUpdateRelevancy = */ false);
 
   // 2. While true:
   while (true) {

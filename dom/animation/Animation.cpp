@@ -1708,7 +1708,8 @@ void Animation::UpdateEffect(PostRestyleMode aPostRestyle) {
 void Animation::FlushUnanimatedStyle() const {
   if (Document* doc = GetRenderedDocument()) {
     doc->FlushPendingNotifications(
-        ChangesToFlush(FlushType::Style, false /* flush animations */));
+        ChangesToFlush(FlushType::Style, /* aFlushAnimations = */ false,
+                       /* aUpdateRelevancy = */ false));
   }
 }
 

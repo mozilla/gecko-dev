@@ -4452,7 +4452,8 @@ void PresShell::NotifyFontFaceSetOnRefresh() {
 
 void PresShell::DoFlushPendingNotifications(FlushType aType) {
   // by default, flush animations if aType >= FlushType::Style
-  mozilla::ChangesToFlush flush(aType, aType >= FlushType::Style);
+  mozilla::ChangesToFlush flush(aType, aType >= FlushType::Style,
+                                aType >= FlushType::Layout);
   FlushPendingNotifications(flush);
 }
 
@@ -4502,10 +4503,10 @@ void PresShell::DoFlushPendingNotifications(mozilla::ChangesToFlush aFlush) {
    */
   FlushType flushType = aFlush.mFlushType;
 
-  // If this is a layout flush, first update the relevancy of any content
-  // of elements with `content-visibility: auto` so that the values
-  // returned from script queries are up-to-date.
-  if (flushType >= mozilla::FlushType::Layout) {
+  if (aFlush.mUpdateRelevancy) {
+    // If needed, first update the relevancy of any content of elements with
+    // `content-visibility: auto` so that the values returned from e.g. script
+    // queries are up-to-date.
     UpdateRelevancyOfContentVisibilityAutoFrames();
   }
 
@@ -9868,8 +9869,9 @@ void PresShell::WillPaint() {
   // reflow being interspersed.  Note that we _do_ allow this to be
   // interruptible; if we can't do all the reflows it's better to flicker a bit
   // than to freeze up.
-  FlushPendingNotifications(
-      ChangesToFlush(FlushType::InterruptibleLayout, false));
+  FlushPendingNotifications(ChangesToFlush(FlushType::InterruptibleLayout,
+                                           /* aFlushAnimations = */ false,
+                                           /* aUpdateRelevancy = */ false));
 }
 
 void PresShell::DidPaintWindow() {
@@ -12578,13 +12580,15 @@ PresShell::ProximityToViewportResult PresShell::DetermineProximityToViewport() {
             DOMIntersectionObserver::IsForProximityToViewport::Yes)
             .Intersects();
     element->SetVisibleForContentVisibility(intersects);
-    if (oldVisibility.isNothing() || *oldVisibility != intersects) {
-      frame->UpdateIsRelevantContent(ContentRelevancyReason::Visible);
-    }
 
     // 14.2.3.3
     if (checkForInitialDetermination && intersects) {
+      // Initial determination happens sync, otherwise on the next rendering
+      // opportunity.
+      frame->UpdateIsRelevantContent(ContentRelevancyReason::Visible);
       result.mHadInitialDetermination = true;
+    } else if (oldVisibility.isNothing() || *oldVisibility != intersects) {
+      ScheduleContentRelevancyUpdate(ContentRelevancyReason::Visible);
     }
   }
   if (nsPresContext* presContext = GetPresContext()) {
