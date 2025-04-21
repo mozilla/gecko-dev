@@ -16,9 +16,11 @@ import mozilla.components.compose.browser.toolbar.store.BrowserToolbarInteractio
 import mozilla.components.compose.browser.toolbar.store.BrowserToolbarInteraction.BrowserToolbarEvent
 import mozilla.components.compose.browser.toolbar.store.BrowserToolbarInteraction.BrowserToolbarMenu
 import mozilla.components.compose.browser.toolbar.store.BrowserToolbarInteraction.CombinedEventAndMenu
-import mozilla.components.compose.browser.toolbar.store.BrowserToolbarMenuItem
+import mozilla.components.compose.browser.toolbar.store.BrowserToolbarMenuItem.BrowserToolbarMenuButton
+import mozilla.components.compose.browser.toolbar.store.BrowserToolbarMenuItem.BrowserToolbarMenuDivider
 import mozilla.components.concept.menu.MenuStyle
 import mozilla.components.concept.menu.candidate.DecorativeTextMenuCandidate
+import mozilla.components.concept.menu.candidate.DividerMenuCandidate
 import mozilla.components.concept.menu.candidate.DrawableMenuIcon
 import mozilla.components.concept.menu.candidate.MenuCandidate
 import mozilla.components.concept.menu.candidate.TextMenuCandidate
@@ -46,20 +48,25 @@ internal fun BrowserToolbarInteraction?.buildMenu(
 private fun BrowserToolbarMenu.toMenuItems(
     onInteraction: (BrowserToolbarEvent) -> Unit,
 ) = items().mapNotNull {
-    if (it.icon == null && it.iconResource == null && it.text != null) {
-        DecorativeTextMenuCandidate(
-            text = stringResource(it.text),
-        )
-    } else if ((it.icon != null || it.iconResource != null) && it.text != null) {
-        TextMenuCandidate(
-            text = stringResource(it.text),
-            start = it.toDrawableMenuIcon(LocalContext.current),
-            onClick = {
-                it.onClick?.let { onInteraction(it) }
-            },
-        )
-    } else {
-        null
+    when (it) {
+        is BrowserToolbarMenuButton -> {
+            if (it.icon == null && it.iconResource == null && it.text != null) {
+                DecorativeTextMenuCandidate(
+                    text = stringResource(it.text),
+                )
+            } else if ((it.icon != null || it.iconResource != null) && it.text != null) {
+                TextMenuCandidate(
+                    text = stringResource(it.text),
+                    start = it.toDrawableMenuIcon(LocalContext.current),
+                    onClick = {
+                        it.onClick?.let { onInteraction(it) }
+                    },
+                )
+            } else {
+                null
+            }
+        }
+        is BrowserToolbarMenuDivider -> DividerMenuCandidate()
     }
 }
 
@@ -75,6 +82,6 @@ private fun buildMenuController(menuItems: List<MenuCandidate>) = when (menuItem
     false -> null
 }
 
-private fun BrowserToolbarMenuItem.toDrawableMenuIcon(context: Context) = DrawableMenuIcon(
+private fun BrowserToolbarMenuButton.toDrawableMenuIcon(context: Context) = DrawableMenuIcon(
     drawable = icon ?: iconResource?.let { ContextCompat.getDrawable(context, it) },
 )

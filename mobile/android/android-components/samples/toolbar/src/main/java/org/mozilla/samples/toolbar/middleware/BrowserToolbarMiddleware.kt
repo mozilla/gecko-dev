@@ -14,7 +14,7 @@ import mozilla.components.compose.browser.toolbar.store.BrowserDisplayToolbarAct
 import mozilla.components.compose.browser.toolbar.store.BrowserToolbarAction
 import mozilla.components.compose.browser.toolbar.store.BrowserToolbarInteraction.BrowserToolbarEvent
 import mozilla.components.compose.browser.toolbar.store.BrowserToolbarInteraction.BrowserToolbarMenu
-import mozilla.components.compose.browser.toolbar.store.BrowserToolbarMenuItem
+import mozilla.components.compose.browser.toolbar.store.BrowserToolbarMenuItem.BrowserToolbarMenuButton
 import mozilla.components.compose.browser.toolbar.store.BrowserToolbarState
 import mozilla.components.compose.browser.toolbar.store.DisplayState
 import mozilla.components.compose.browser.toolbar.store.EditState
@@ -129,32 +129,32 @@ internal class BrowserToolbarMiddleware(
         contentDescription = R.string.clear_button_description,
         menu = {
             listOfNotNull(
-                BrowserToolbarMenuItem(
+                BrowserToolbarMenuButton(
                     icon = null,
                     iconResource = null,
                     text = R.string.search_selector_header,
                     contentDescription = R.string.search_selector_header,
                     onClick = null,
                 ),
-                BrowserToolbarMenuItem(
+                BrowserToolbarMenuButton(
                     iconResource = iconsR.drawable.mozac_ic_bookmark_tray_24,
                     text = R.string.bookmarks_search_engine_name,
                     contentDescription = R.string.bookmarks_search_engine_description,
                     onClick = BookmarksClicked,
                 ),
-                BrowserToolbarMenuItem(
+                BrowserToolbarMenuButton(
                     iconResource = iconsR.drawable.mozac_ic_tab_tray_24,
                     text = R.string.tabs_search_engine_name,
                     contentDescription = R.string.tabs_search_engine_description,
                     onClick = TabsClicked,
                 ),
-                BrowserToolbarMenuItem(
+                BrowserToolbarMenuButton(
                     iconResource = iconsR.drawable.mozac_ic_history_24,
                     text = R.string.history_search_engine_name,
                     contentDescription = R.string.tabs_search_engine_description,
                     onClick = HistoryClicked,
                 ),
-                BrowserToolbarMenuItem(
+                BrowserToolbarMenuButton(
                     iconResource = iconsR.drawable.mozac_ic_settings_24,
                     text = R.string.search_settings,
                     contentDescription = R.string.tabs_search_engine_description,
@@ -166,13 +166,13 @@ internal class BrowserToolbarMiddleware(
 
     private fun buildTabCounter() = BrowserToolbarMenu {
         listOfNotNull(
-            BrowserToolbarMenuItem(
+            BrowserToolbarMenuButton(
                 iconResource = android.R.drawable.ic_menu_add,
                 text = R.string.tab_counter_add_10_tabs,
                 contentDescription = R.string.tab_counter_add_10_tabs,
                 onClick = Add10TabsClicked,
             ),
-            BrowserToolbarMenuItem(
+            BrowserToolbarMenuButton(
                 iconResource = android.R.drawable.ic_menu_delete,
                 text = R.string.tab_counter_remove_10_tabs,
                 contentDescription = R.string.tab_counter_remove_10_tabs,

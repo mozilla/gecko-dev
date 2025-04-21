@@ -25,6 +25,9 @@ import mozilla.components.compose.browser.toolbar.concept.Action.TabCounterActio
 import mozilla.components.compose.browser.toolbar.store.BrowserDisplayToolbarAction
 import mozilla.components.compose.browser.toolbar.store.BrowserToolbarAction
 import mozilla.components.compose.browser.toolbar.store.BrowserToolbarInteraction.BrowserToolbarEvent
+import mozilla.components.compose.browser.toolbar.store.BrowserToolbarInteraction.BrowserToolbarMenu
+import mozilla.components.compose.browser.toolbar.store.BrowserToolbarMenuItem.BrowserToolbarMenuButton
+import mozilla.components.compose.browser.toolbar.store.BrowserToolbarMenuItem.BrowserToolbarMenuDivider
 import mozilla.components.compose.browser.toolbar.store.BrowserToolbarState
 import mozilla.components.compose.browser.toolbar.store.BrowserToolbarStore
 import mozilla.components.lib.state.Middleware
@@ -32,16 +35,21 @@ import mozilla.components.lib.state.MiddlewareContext
 import mozilla.components.lib.state.ext.flow
 import org.mozilla.fenix.R
 import org.mozilla.fenix.browser.BrowserFragmentDirections
+import org.mozilla.fenix.browser.browsingmode.BrowsingMode
 import org.mozilla.fenix.browser.browsingmode.BrowsingMode.Normal
 import org.mozilla.fenix.browser.browsingmode.BrowsingMode.Private
 import org.mozilla.fenix.browser.browsingmode.BrowsingModeManager
 import org.mozilla.fenix.components.AppStore
 import org.mozilla.fenix.components.menu.MenuAccessPoint
 import org.mozilla.fenix.components.toolbar.DisplayActions.MenuClicked
+import org.mozilla.fenix.components.toolbar.TabCounterInteractions.AddNewPrivateTab
+import org.mozilla.fenix.components.toolbar.TabCounterInteractions.AddNewTab
+import org.mozilla.fenix.components.toolbar.TabCounterInteractions.CloseCurrentTab
 import org.mozilla.fenix.components.toolbar.TabCounterInteractions.TabCounterClicked
 import org.mozilla.fenix.components.toolbar.navbar.shouldAddNavigationBar
 import org.mozilla.fenix.ext.nav
 import org.mozilla.fenix.tabstray.Page
+import mozilla.components.ui.icons.R as iconsR
 
 @VisibleForTesting
 internal sealed class DisplayActions : BrowserToolbarEvent {
@@ -51,6 +59,9 @@ internal sealed class DisplayActions : BrowserToolbarEvent {
 @VisibleForTesting
 internal sealed class TabCounterInteractions : BrowserToolbarEvent {
     data object TabCounterClicked : TabCounterInteractions()
+    data object AddNewTab : TabCounterInteractions()
+    data object AddNewPrivateTab : TabCounterInteractions()
+    data object CloseCurrentTab : TabCounterInteractions()
 }
 
 /**
@@ -110,6 +121,15 @@ class BrowserToolbarMiddleware(
                     ),
                 )
             }
+            is AddNewTab -> {
+                openNewTab(Normal)
+            }
+            is AddNewPrivateTab -> {
+                openNewTab(Private)
+            }
+            is CloseCurrentTab -> {
+                // to be added
+            }
 
             else -> next(action)
         }
@@ -137,6 +157,7 @@ class BrowserToolbarMiddleware(
                     ),
                     showPrivacyMask = dependencies.browsingModeManager.mode == Private,
                     onClick = TabCounterClicked,
+                    onLongClick = buildTabCounterMenu(),
                 ),
                 ActionButton(
                     icon = R.drawable.mozac_ic_ellipsis_vertical_24,
@@ -148,6 +169,40 @@ class BrowserToolbarMiddleware(
 
             false -> emptyList()
         }
+
+    private fun buildTabCounterMenu() = BrowserToolbarMenu {
+        listOf(
+            BrowserToolbarMenuButton(
+                iconResource = iconsR.drawable.mozac_ic_plus_24,
+                text = R.string.mozac_browser_menu_new_tab,
+                contentDescription = R.string.mozac_browser_menu_new_tab,
+                onClick = AddNewTab,
+            ),
+
+            BrowserToolbarMenuButton(
+                iconResource = iconsR.drawable.mozac_ic_private_mode_24,
+                text = R.string.mozac_browser_menu_new_private_tab,
+                contentDescription = R.string.mozac_browser_menu_new_private_tab,
+                onClick = AddNewPrivateTab,
+            ),
+
+            BrowserToolbarMenuDivider,
+
+            BrowserToolbarMenuButton(
+                iconResource = iconsR.drawable.mozac_ic_cross_24,
+                text = R.string.mozac_close_tab,
+                contentDescription = R.string.mozac_close_tab,
+                onClick = CloseCurrentTab,
+            ),
+        )
+    }
+
+    private fun openNewTab(browsingMode: BrowsingMode) {
+        dependencies.browsingModeManager.mode = browsingMode
+        dependencies.navController.navigate(
+            BrowserFragmentDirections.actionGlobalHome(focusOnAddressBar = true),
+        )
+    }
 
     private fun updateToolbarActionsBasedOnOrientation() {
         with(dependencies.lifecycleOwner) {

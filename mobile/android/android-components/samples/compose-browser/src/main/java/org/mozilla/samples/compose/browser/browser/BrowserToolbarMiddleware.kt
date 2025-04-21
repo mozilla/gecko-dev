@@ -13,7 +13,7 @@ import mozilla.components.compose.browser.toolbar.concept.Action.TabCounterActio
 import mozilla.components.compose.browser.toolbar.store.BrowserToolbarAction
 import mozilla.components.compose.browser.toolbar.store.BrowserToolbarInteraction.BrowserToolbarEvent
 import mozilla.components.compose.browser.toolbar.store.BrowserToolbarInteraction.BrowserToolbarMenu
-import mozilla.components.compose.browser.toolbar.store.BrowserToolbarMenuItem
+import mozilla.components.compose.browser.toolbar.store.BrowserToolbarMenuItem.BrowserToolbarMenuButton
 import mozilla.components.compose.browser.toolbar.store.BrowserToolbarState
 import mozilla.components.compose.browser.toolbar.store.DisplayState
 import mozilla.components.compose.browser.toolbar.store.EditState
@@ -108,7 +108,7 @@ internal class BrowserToolbarMiddleware(
             tint = getColor(R.color.icon_tint),
             onClick = BrowserToolbarMenu {
                 listOf(
-                    BrowserToolbarMenuItem(
+                    BrowserToolbarMenuButton(
                         iconResource = iconsR.drawable.mozac_ic_settings_24,
                         text = R.string.menu_item_settings,
                         contentDescription = R.string.menu_item_settings_description,

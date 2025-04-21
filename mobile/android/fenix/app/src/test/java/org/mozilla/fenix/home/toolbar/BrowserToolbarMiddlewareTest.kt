@@ -29,7 +29,7 @@ import mozilla.components.compose.browser.toolbar.concept.Action.TabCounterActio
 import mozilla.components.compose.browser.toolbar.store.BrowserToolbarInteraction.BrowserToolbarEvent
 import mozilla.components.compose.browser.toolbar.store.BrowserToolbarInteraction.BrowserToolbarMenu
 import mozilla.components.compose.browser.toolbar.store.BrowserToolbarInteraction.CombinedEventAndMenu
-import mozilla.components.compose.browser.toolbar.store.BrowserToolbarMenuItem
+import mozilla.components.compose.browser.toolbar.store.BrowserToolbarMenuItem.BrowserToolbarMenuButton
 import mozilla.components.compose.browser.toolbar.store.BrowserToolbarStore
 import mozilla.components.support.test.ext.joinBlocking
 import mozilla.components.support.test.robolectric.testContext
@@ -400,7 +400,7 @@ class BrowserToolbarMiddlewareTest {
             mockkStatic(NavController::nav) {
                 every { testContext.settings().toolbarPosition } returns ToolbarPosition.TOP
 
-                toolbarStore.dispatch(tabCounterMenuItems[0].onClick!!)
+                toolbarStore.dispatch((tabCounterMenuItems[0] as BrowserToolbarMenuButton).onClick!!)
 
                 assertEquals(Private, browsingModeManager.mode)
                 verify {
@@ -438,7 +438,7 @@ class BrowserToolbarMiddlewareTest {
             mockkStatic(NavController::nav) {
                 every { testContext.settings().toolbarPosition } returns ToolbarPosition.TOP
 
-                toolbarStore.dispatch(tabCounterMenuItems[0].onClick!!)
+                toolbarStore.dispatch((tabCounterMenuItems[0] as BrowserToolbarMenuButton).onClick!!)
 
                 assertEquals(Normal, browsingModeManager.mode)
                 verify {
@@ -491,7 +491,7 @@ class BrowserToolbarMiddlewareTest {
         onLongClick = BrowserToolbarMenu {
             when (isPrivate) {
                 true -> listOf(
-                    BrowserToolbarMenuItem(
+                    BrowserToolbarMenuButton(
                         iconResource = iconsR.drawable.mozac_ic_plus_24,
                         text = R.string.mozac_browser_menu_new_tab,
                         contentDescription = R.string.mozac_browser_menu_new_tab,
@@ -500,7 +500,7 @@ class BrowserToolbarMiddlewareTest {
                 )
 
                 false -> listOf(
-                    BrowserToolbarMenuItem(
+                    BrowserToolbarMenuButton(
                         iconResource = iconsR.drawable.mozac_ic_private_mode_24,
                         text = R.string.mozac_browser_menu_new_private_tab,
                         contentDescription = R.string.mozac_browser_menu_new_private_tab,

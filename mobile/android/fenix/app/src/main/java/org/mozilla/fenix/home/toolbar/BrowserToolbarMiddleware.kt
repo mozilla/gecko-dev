@@ -26,7 +26,7 @@ import mozilla.components.compose.browser.toolbar.store.BrowserToolbarAction
 import mozilla.components.compose.browser.toolbar.store.BrowserToolbarAction.Init
 import mozilla.components.compose.browser.toolbar.store.BrowserToolbarInteraction.BrowserToolbarEvent
 import mozilla.components.compose.browser.toolbar.store.BrowserToolbarInteraction.BrowserToolbarMenu
-import mozilla.components.compose.browser.toolbar.store.BrowserToolbarMenuItem
+import mozilla.components.compose.browser.toolbar.store.BrowserToolbarMenuItem.BrowserToolbarMenuButton
 import mozilla.components.compose.browser.toolbar.store.BrowserToolbarState
 import mozilla.components.compose.browser.toolbar.store.BrowserToolbarStore
 import mozilla.components.lib.state.Middleware
@@ -179,7 +179,7 @@ class BrowserToolbarMiddleware(
     private fun buildTabCounterMenu() = BrowserToolbarMenu {
         when (dependencies.browsingModeManager.mode) {
             Normal -> listOf(
-                BrowserToolbarMenuItem(
+                BrowserToolbarMenuButton(
                     iconResource = iconsR.drawable.mozac_ic_private_mode_24,
                     text = R.string.mozac_browser_menu_new_private_tab,
                     contentDescription = R.string.mozac_browser_menu_new_private_tab,
@@ -188,7 +188,7 @@ class BrowserToolbarMiddleware(
             )
 
             Private -> listOf(
-                BrowserToolbarMenuItem(
+                BrowserToolbarMenuButton(
                     iconResource = iconsR.drawable.mozac_ic_plus_24,
                     text = R.string.mozac_browser_menu_new_tab,
                     contentDescription = R.string.mozac_browser_menu_new_tab,

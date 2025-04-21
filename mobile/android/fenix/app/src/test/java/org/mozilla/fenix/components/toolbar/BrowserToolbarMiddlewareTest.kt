@@ -27,6 +27,10 @@ import mozilla.components.browser.thumbnails.BrowserThumbnails
 import mozilla.components.compose.browser.toolbar.concept.Action.ActionButton
 import mozilla.components.compose.browser.toolbar.concept.Action.TabCounterAction
 import mozilla.components.compose.browser.toolbar.store.BrowserToolbarInteraction.BrowserToolbarEvent
+import mozilla.components.compose.browser.toolbar.store.BrowserToolbarInteraction.BrowserToolbarMenu
+import mozilla.components.compose.browser.toolbar.store.BrowserToolbarInteraction.CombinedEventAndMenu
+import mozilla.components.compose.browser.toolbar.store.BrowserToolbarMenuItem.BrowserToolbarMenuButton
+import mozilla.components.compose.browser.toolbar.store.BrowserToolbarMenuItem.BrowserToolbarMenuDivider
 import mozilla.components.compose.browser.toolbar.store.BrowserToolbarStore
 import mozilla.components.support.test.ext.joinBlocking
 import mozilla.components.support.test.robolectric.testContext
@@ -34,6 +38,7 @@ import mozilla.components.support.test.rule.MainCoroutineRule
 import mozilla.components.support.test.rule.runTestOnMain
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
@@ -52,10 +57,13 @@ import org.mozilla.fenix.components.appstate.OrientationMode.Portrait
 import org.mozilla.fenix.components.menu.MenuAccessPoint
 import org.mozilla.fenix.components.toolbar.BrowserToolbarMiddleware.LifecycleDependencies
 import org.mozilla.fenix.components.toolbar.DisplayActions.MenuClicked
-import org.mozilla.fenix.components.toolbar.TabCounterInteractions.TabCounterClicked
+import org.mozilla.fenix.components.toolbar.TabCounterInteractions.AddNewPrivateTab
+import org.mozilla.fenix.components.toolbar.TabCounterInteractions.AddNewTab
+import org.mozilla.fenix.components.toolbar.TabCounterInteractions.CloseCurrentTab
 import org.mozilla.fenix.components.toolbar.navbar.shouldAddNavigationBar
 import org.mozilla.fenix.ext.nav
 import org.mozilla.fenix.tabstray.Page
+import mozilla.components.ui.icons.R as iconsR
 
 @RunWith(AndroidJUnit4::class)
 class BrowserToolbarMiddlewareTest {
@@ -94,7 +102,7 @@ class BrowserToolbarMiddlewareTest {
         assertEquals(2, toolbarBrowserActions.size)
         val tabCounterButton = toolbarBrowserActions[0] as TabCounterAction
         val menuButton = toolbarBrowserActions[1] as ActionButton
-        assertEquals(expectedToolbarButton(), tabCounterButton)
+        assertEqualsToolbarButton(expectedToolbarButton(), tabCounterButton)
         assertEquals(expectedMenuButton, menuButton)
     }
 
@@ -136,7 +144,7 @@ class BrowserToolbarMiddlewareTest {
 
         val toolbarBrowserActions = toolbarStore.state.displayState.browserActions
         val tabCounterButton = toolbarBrowserActions[0] as TabCounterAction
-        assertEquals(expectedToolbarButton(1), tabCounterButton)
+        assertEqualsToolbarButton(expectedToolbarButton(1), tabCounterButton)
     }
 
     @Test
@@ -163,7 +171,7 @@ class BrowserToolbarMiddlewareTest {
 
         val toolbarBrowserActions = toolbarStore.state.displayState.browserActions
         val tabCounterButton = toolbarBrowserActions[0] as TabCounterAction
-        assertEquals(expectedToolbarButton(2, true), tabCounterButton)
+        assertEqualsToolbarButton(expectedToolbarButton(2, true), tabCounterButton)
     }
 
     @Test
@@ -197,7 +205,7 @@ class BrowserToolbarMiddlewareTest {
         assertEquals(2, toolbarBrowserActions.size)
         val tabCounterButton = toolbarBrowserActions[0] as TabCounterAction
         val menuButton = toolbarBrowserActions[1] as ActionButton
-        assertEquals(expectedToolbarButton(), tabCounterButton)
+        assertEqualsToolbarButton(expectedToolbarButton(), tabCounterButton)
         assertEquals(expectedMenuButton, menuButton)
     }
 
@@ -225,7 +233,7 @@ class BrowserToolbarMiddlewareTest {
         assertEquals(2, toolbarBrowserActions.size)
         val tabCounterButton = toolbarBrowserActions[0] as TabCounterAction
         val menuButton = toolbarBrowserActions[1] as ActionButton
-        assertEquals(expectedToolbarButton(), tabCounterButton)
+        assertEqualsToolbarButton(expectedToolbarButton(), tabCounterButton)
         assertEquals(expectedMenuButton, menuButton)
 
         // In portrait the navigation bar is displayed
@@ -255,7 +263,7 @@ class BrowserToolbarMiddlewareTest {
         var toolbarBrowserActions = toolbarStore.state.displayState.browserActions
         assertEquals(2, toolbarBrowserActions.size)
         var tabCounterButton = toolbarBrowserActions[0] as TabCounterAction
-        assertEquals(expectedToolbarButton(0), tabCounterButton)
+        assertEqualsToolbarButton(expectedToolbarButton(0), tabCounterButton)
 
         val newNormalTab = createTab("test.com", private = false)
         val newPrivateTab = createTab("test.com", private = true)
@@ -266,7 +274,7 @@ class BrowserToolbarMiddlewareTest {
         toolbarBrowserActions = toolbarStore.state.displayState.browserActions
         assertEquals(2, toolbarBrowserActions.size)
         tabCounterButton = toolbarBrowserActions[0] as TabCounterAction
-        assertEquals(expectedToolbarButton(1), tabCounterButton)
+        assertEqualsToolbarButton(expectedToolbarButton(1), tabCounterButton)
     }
 
     @Test
@@ -293,7 +301,7 @@ class BrowserToolbarMiddlewareTest {
         var toolbarBrowserActions = toolbarStore.state.displayState.browserActions
         assertEquals(2, toolbarBrowserActions.size)
         var tabCounterButton = toolbarBrowserActions[0] as TabCounterAction
-        assertEquals(expectedToolbarButton(1, true), tabCounterButton)
+        assertEqualsToolbarButton(expectedToolbarButton(1, true), tabCounterButton)
 
         browserStore.dispatch(RemoveTabAction(initialPrivateTab.id)).joinBlocking()
         testScheduler.advanceUntilIdle()
@@ -301,7 +309,7 @@ class BrowserToolbarMiddlewareTest {
         toolbarBrowserActions = toolbarStore.state.displayState.browserActions
         assertEquals(2, toolbarBrowserActions.size)
         tabCounterButton = toolbarBrowserActions[0] as TabCounterAction
-        assertEquals(expectedToolbarButton(0, true), tabCounterButton)
+        assertEqualsToolbarButton(expectedToolbarButton(0, true), tabCounterButton)
     }
 
     @Test
@@ -394,14 +402,123 @@ class BrowserToolbarMiddlewareTest {
         }
     }
 
+    @Test
+    fun `WHEN clicking on the first option in the toolbar long click menu THEN open a new normal tab`() {
+        every { testContext.shouldAddNavigationBar() } returns false
+        val browsingModeManager = SimpleBrowsingModeManager(Normal)
+        val navController: NavController = mockk(relaxed = true)
+        val middleware = BrowserToolbarMiddleware(appStore, browserStore).apply {
+            updateLifecycleDependencies(
+                LifecycleDependencies(testContext, lifecycleOwner, navController, browsingModeManager, mockk()),
+            )
+        }
+        val toolbarStore = BrowserToolbarStore(
+            middleware = listOf(middleware),
+        )
+        val tabCounterButton = toolbarStore.state.displayState.browserActions[0] as TabCounterAction
+        assertEqualsToolbarButton(expectedToolbarButton(0, false), tabCounterButton)
+        val tabCounterMenuItems = (tabCounterButton.onLongClick as BrowserToolbarMenu).items()
+
+        toolbarStore.dispatch((tabCounterMenuItems[0] as BrowserToolbarMenuButton).onClick!!)
+
+        assertEquals(Normal, browsingModeManager.mode)
+        verify {
+            navController.navigate(
+                BrowserFragmentDirections.actionGlobalHome(focusOnAddressBar = true),
+            )
+        }
+    }
+
+    @Test
+    fun `WHEN clicking on the second option in the toolbar long click menu THEN open a new private tab`() {
+        every { testContext.shouldAddNavigationBar() } returns false
+        val browsingModeManager = SimpleBrowsingModeManager(Normal)
+        val navController: NavController = mockk(relaxed = true)
+        val middleware = BrowserToolbarMiddleware(appStore, browserStore).apply {
+            updateLifecycleDependencies(
+                LifecycleDependencies(testContext, lifecycleOwner, navController, browsingModeManager, mockk()),
+            )
+        }
+        val toolbarStore = BrowserToolbarStore(
+            middleware = listOf(middleware),
+        )
+        val tabCounterButton = toolbarStore.state.displayState.browserActions[0] as TabCounterAction
+        assertEqualsToolbarButton(expectedToolbarButton(0, false), tabCounterButton)
+        val tabCounterMenuItems = (tabCounterButton.onLongClick as BrowserToolbarMenu).items()
+
+        toolbarStore.dispatch((tabCounterMenuItems[1] as BrowserToolbarMenuButton).onClick!!)
+
+        assertEquals(Private, browsingModeManager.mode)
+        verify {
+            navController.navigate(
+                BrowserFragmentDirections.actionGlobalHome(focusOnAddressBar = true),
+            )
+        }
+    }
+
+    private fun assertEqualsToolbarButton(expected: TabCounterAction, actual: TabCounterAction) {
+        assertEquals(expected.count, actual.count)
+        assertEquals(expected.contentDescription, actual.contentDescription)
+        assertEquals(expected.showPrivacyMask, actual.showPrivacyMask)
+        assertEquals(expected.onClick, actual.onClick)
+        when (expected.onLongClick) {
+            null -> assertNull(actual.onLongClick)
+            is BrowserToolbarEvent -> assertEquals(expected.onLongClick, actual.onLongClick)
+            is BrowserToolbarMenu -> assertEquals(
+                (expected.onLongClick as BrowserToolbarMenu).items(),
+                (actual.onLongClick as BrowserToolbarMenu).items(),
+            )
+            is CombinedEventAndMenu -> {
+                assertEquals(
+                    (expected.onLongClick as CombinedEventAndMenu).event,
+                    (actual.onLongClick as CombinedEventAndMenu).event,
+                )
+                assertEquals(
+                    (expected.onLongClick as CombinedEventAndMenu).menu.items(),
+                    (actual.onLongClick as CombinedEventAndMenu).menu.items(),
+                )
+            }
+        }
+    }
+
     private fun expectedToolbarButton(
         tabCount: Int = 0,
         isPrivate: Boolean = false,
+        shouldUseBottomToolbar: Boolean = false,
     ) = TabCounterAction(
         count = tabCount,
         contentDescription = testContext.getString(R.string.mozac_tab_counter_open_tab_tray, tabCount),
         showPrivacyMask = isPrivate,
-        onClick = TabCounterClicked,
+        onClick = TabCounterInteractions.TabCounterClicked,
+        onLongClick = BrowserToolbarMenu {
+            listOf(
+                BrowserToolbarMenuButton(
+                    iconResource = iconsR.drawable.mozac_ic_plus_24,
+                    text = R.string.mozac_browser_menu_new_tab,
+                    contentDescription = R.string.mozac_browser_menu_new_tab,
+                    onClick = AddNewTab,
+                ),
+                BrowserToolbarMenuButton(
+                    iconResource = iconsR.drawable.mozac_ic_private_mode_24,
+                    text = R.string.mozac_browser_menu_new_private_tab,
+                    contentDescription = R.string.mozac_browser_menu_new_private_tab,
+                    onClick = AddNewPrivateTab,
+                ),
+
+                BrowserToolbarMenuDivider,
+
+                BrowserToolbarMenuButton(
+                    iconResource = iconsR.drawable.mozac_ic_cross_24,
+                    text = R.string.mozac_close_tab,
+                    contentDescription = R.string.mozac_close_tab,
+                    onClick = CloseCurrentTab,
+                ),
+            ).apply {
+                if (shouldUseBottomToolbar) {
+                    asReversed()
+                }
+            }
+        },
     )
     private val expectedMenuButton = ActionButton(
         icon = R.drawable.mozac_ic_ellipsis_vertical_24,

@@ -57,18 +57,28 @@ sealed interface BrowserToolbarInteraction {
 }
 
 /**
- * Item which can be shown in a [BrowserToolbarMenu].
- *
- * @property icon Optional [Drawable] icon for the menu item.
- * @property iconResource Optional resource id of the icon to use for this button if a [Drawable] is not provided.
- * @property text Optional text for the menu item.
- * @property contentDescription Content description for this item. `null` if not important for accessibility.
- * @property onClick Optional [BrowserToolbarEvent] to be dispatched when this item is clicked.
+ * Items which can be shown in a [BrowserToolbarMenu].
  */
-data class BrowserToolbarMenuItem(
-    val icon: Drawable? = null,
-    @DrawableRes val iconResource: Int?,
-    @StringRes val text: Int?,
-    @StringRes val contentDescription: Int?,
-    val onClick: BrowserToolbarEvent?,
-)
+sealed class BrowserToolbarMenuItem {
+    /**
+     * Button to shown in a [BrowserToolbarMenu].
+     *
+     * @property icon Optional [Drawable] icon for the menu item.
+     * @property iconResource Optional resource id of the icon to use for this button if a [Drawable] is not provided.
+     * @property text Optional text for the menu item.
+     * @property contentDescription Content description for this item. `null` if not important for accessibility.
+     * @property onClick Optional [BrowserToolbarEvent] to be dispatched when this item is clicked.
+     */
+    data class BrowserToolbarMenuButton(
+        val icon: Drawable? = null,
+        @DrawableRes val iconResource: Int?,
+        @StringRes val text: Int?,
+        @StringRes val contentDescription: Int?,
+        val onClick: BrowserToolbarEvent?,
+    ) : BrowserToolbarMenuItem()
+
+    /**
+     * Divider to show in a [BrowserToolbarMenu].
+     */
+    data object BrowserToolbarMenuDivider : BrowserToolbarMenuItem()
+}
