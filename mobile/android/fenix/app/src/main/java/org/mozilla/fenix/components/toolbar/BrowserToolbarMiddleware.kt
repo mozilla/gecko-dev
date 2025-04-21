@@ -42,6 +42,8 @@ import org.mozilla.fenix.browser.browsingmode.BrowsingMode
 import org.mozilla.fenix.browser.browsingmode.BrowsingMode.Normal
 import org.mozilla.fenix.browser.browsingmode.BrowsingMode.Private
 import org.mozilla.fenix.browser.browsingmode.BrowsingModeManager
+import org.mozilla.fenix.browser.store.BrowserScreenAction
+import org.mozilla.fenix.browser.store.BrowserScreenStore
 import org.mozilla.fenix.components.AppStore
 import org.mozilla.fenix.components.appstate.AppAction.CurrentTabClosed
 import org.mozilla.fenix.components.menu.MenuAccessPoint
@@ -53,6 +55,7 @@ import org.mozilla.fenix.components.toolbar.TabCounterInteractions.TabCounterCli
 import org.mozilla.fenix.components.toolbar.navbar.shouldAddNavigationBar
 import org.mozilla.fenix.ext.nav
 import org.mozilla.fenix.tabstray.Page
+import org.mozilla.fenix.tabstray.ext.isActiveDownload
 import mozilla.components.ui.icons.R as iconsR
 
 @VisibleForTesting
@@ -75,6 +78,7 @@ internal sealed class TabCounterInteractions : BrowserToolbarEvent {
  */
 class BrowserToolbarMiddleware(
     private val appStore: AppStore,
+    private val browserScreenStore: BrowserScreenStore,
     private val browserStore: BrowserStore,
     private val tabsUseCases: TabsUseCases,
 ) : Middleware<BrowserToolbarState, BrowserToolbarAction>, ViewModel() {
@@ -91,6 +95,7 @@ class BrowserToolbarMiddleware(
 
         updateToolbarActionsBasedOnOrientation()
         updateTabsCount()
+        observeAcceptingCancellingPrivateDownloads()
     }
 
     override fun invoke(
@@ -133,21 +138,40 @@ class BrowserToolbarMiddleware(
                 openNewTab(Private)
             }
             is CloseCurrentTab -> {
-                browserStore.state.selectedTab?.let {
-                    val isLastTab = browserStore.state.getNormalOrPrivateTabs(it.content.private).size == 1
-                    when (isLastTab) {
-                        true -> {
-                            dependencies.navController.navigate(
-                                BrowserFragmentDirections.actionGlobalHome(
-                                    sessionToDelete = it.id,
-                                ),
-                            )
-                        }
+                browserStore.state.selectedTab?.let { selectedTab ->
+                    val isLastTab = browserStore.state.getNormalOrPrivateTabs(selectedTab.content.private).size == 1
 
-                        false -> {
-                            tabsUseCases.removeTab(it.id, selectParentIfExists = true)
-                            appStore.dispatch(CurrentTabClosed(it.content.private))
-                        }
+                    if (!isLastTab) {
+                        tabsUseCases.removeTab(selectedTab.id, selectParentIfExists = true)
+                        appStore.dispatch(CurrentTabClosed(selectedTab.content.private))
+                        return@let
+                    }
+
+                    if (!selectedTab.content.private) {
+                        dependencies.navController.navigate(
+                            BrowserFragmentDirections.actionGlobalHome(
+                                sessionToDelete = selectedTab.id,
+                            ),
+                        )
+                        return@let
+                    }
+
+                    val privateDownloads = browserStore.state.downloads.filter {
+                        it.value.private && it.value.isActiveDownload()
+                    }
+                    if (privateDownloads.isNotEmpty() && !browserScreenStore.state.cancelPrivateDownloadsAccepted) {
+                        browserScreenStore.dispatch(
+                            BrowserScreenAction.ClosingLastPrivateTab(
+                                tabId = selectedTab.id,
+                                inProgressPrivateDownloads = privateDownloads.size,
+                            ),
+                        )
+                    } else {
+                        dependencies.navController.navigate(
+                            BrowserFragmentDirections.actionGlobalHome(
+                                sessionToDelete = selectedTab.id,
+                            ),
+                        )
                     }
                 }
             }
@@ -253,6 +277,22 @@ class BrowserToolbarMiddleware(
         }
     }
 
+    private fun observeAcceptingCancellingPrivateDownloads() {
+        with(dependencies.lifecycleOwner) {
+            lifecycleScope.launch {
+                repeatOnLifecycle(RESUMED) {
+                    browserScreenStore.flow()
+                        .distinctUntilChangedBy { it.cancelPrivateDownloadsAccepted }
+                        .collect {
+                            if (it.cancelPrivateDownloadsAccepted) {
+                                store?.dispatch(CloseCurrentTab)
+                            }
+                        }
+                }
+            }
+        }
+    }
+
     /**
      * Lifecycle dependencies for the [BrowserToolbarMiddleware].
      *
@@ -278,11 +318,14 @@ class BrowserToolbarMiddleware(
          * [ViewModelProvider.Factory] for creating a [BrowserToolbarMiddleware].
          *
          * @param appStore [AppStore] to sync from.
+         * @param browserScreenStore [BrowserScreenStore] used for integration with other
+         * browser screen functionalities.
          * @param browserStore [BrowserStore] to sync from.
          * @param tabsUseCases [TabsUseCases] for managing tabs.
          */
         fun viewModelFactory(
             appStore: AppStore,
+            browserScreenStore: BrowserScreenStore,
             browserStore: BrowserStore,
             tabsUseCases: TabsUseCases,
         ): ViewModelProvider.Factory = object : ViewModelProvider.Factory {
@@ -291,6 +334,7 @@ class BrowserToolbarMiddleware(
                 if (modelClass.isAssignableFrom(BrowserToolbarMiddleware::class.java)) {
                     return BrowserToolbarMiddleware(
                         appStore = appStore,
+                        browserScreenStore = browserScreenStore,
                         browserStore = browserStore,
                         tabsUseCases = tabsUseCases,
                     ) as T

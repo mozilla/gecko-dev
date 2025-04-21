@@ -36,6 +36,7 @@ import mozilla.components.compose.browser.toolbar.store.BrowserToolbarStore
 import mozilla.components.feature.tabs.TabsUseCases
 import mozilla.components.feature.toolbar.ToolbarBehaviorController
 import org.mozilla.fenix.browser.browsingmode.BrowsingModeManager
+import org.mozilla.fenix.browser.store.BrowserScreenStore
 import org.mozilla.fenix.components.AppStore
 import org.mozilla.fenix.components.StoreProvider
 import org.mozilla.fenix.components.toolbar.BrowserToolbarMiddleware.LifecycleDependencies
@@ -53,6 +54,7 @@ import org.mozilla.fenix.utils.Settings
  * @param container [ViewGroup] which will serve as parent of this View.
  * @param navController [NavController] to use for navigating to other in-app destinations.
  * @param appStore [AppStore] to sync from.
+ * @param browserScreenStore [BrowserScreenStore] used for integration with other browser screen functionalities.
  * @param browserStore [BrowserStore] used for observing the browsing details.
  * @param browsingModeManager [BrowsingModeManager] for querying the current browsing mode.
  * @param tabsUseCases [TabsUseCases] for managing tabs.
@@ -68,6 +70,7 @@ class BrowserToolbarComposable(
     container: ViewGroup,
     private val navController: NavController,
     private val appStore: AppStore,
+    private val browserScreenStore: BrowserScreenStore,
     private val browserStore: BrowserStore,
     private val browsingModeManager: BrowsingModeManager,
     private val tabsUseCases: TabsUseCases,
@@ -171,6 +174,7 @@ class BrowserToolbarComposable(
                 lifecycleOwner,
                 BrowserToolbarMiddleware.viewModelFactory(
                     appStore = appStore,
+                    browserScreenStore = browserScreenStore,
                     browserStore = browserStore,
                     tabsUseCases = tabsUseCases,
                 ),
