@@ -545,13 +545,13 @@ class Util {
   static transform(m1, m2) {
     return [m1[0] * m2[0] + m1[2] * m2[1], m1[1] * m2[0] + m1[3] * m2[1], m1[0] * m2[2] + m1[2] * m2[3], m1[1] * m2[2] + m1[3] * m2[3], m1[0] * m2[4] + m1[2] * m2[5] + m1[4], m1[1] * m2[4] + m1[3] * m2[5] + m1[5]];
   }
-  static applyTransform(p, m) {
-    const p0 = p[0];
-    const p1 = p[1];
-    p[0] = p0 * m[0] + p1 * m[2] + m[4];
-    p[1] = p0 * m[1] + p1 * m[3] + m[5];
+  static applyTransform(p, m, pos = 0) {
+    const p0 = p[pos];
+    const p1 = p[pos + 1];
+    p[pos] = p0 * m[0] + p1 * m[2] + m[4];
+    p[pos + 1] = p0 * m[1] + p1 * m[3] + m[5];
   }
-  static applyTransformToBezier(p, transform) {
+  static applyTransformToBezier(p, transform, pos = 0) {
     const m0 = transform[0];
     const m1 = transform[1];
     const m2 = transform[2];
@@ -559,10 +559,10 @@ class Util {
     const m4 = transform[4];
     const m5 = transform[5];
     for (let i = 0; i < 6; i += 2) {
-      const pI = p[i];
-      const pI1 = p[i + 1];
-      p[i] = pI * m0 + pI1 * m2 + m4;
-      p[i + 1] = pI * m1 + pI1 * m3 + m5;
+      const pI = p[pos + i];
+      const pI1 = p[pos + i + 1];
+      p[pos + i] = pI * m0 + pI1 * m2 + m4;
+      p[pos + i + 1] = pI * m1 + pI1 * m3 + m5;
     }
   }
   static applyInverseTransform(p, m) {
@@ -10074,7 +10074,7 @@ function getDocument(src = {}) {
   }
   const docParams = {
     docId,
-    apiVersion: "5.2.87",
+    apiVersion: "5.2.96",
     data,
     password,
     disableAutoFetch,
@@ -11709,8 +11709,8 @@ class InternalRenderTask {
     }
   }
 }
-const version = "5.2.87";
-const build = "2f7d163df";
+const version = "5.2.96";
+const build = "d8d3e0abf";
 
 ;// ./src/shared/scripting_utils.js
 function makeColorComp(n) {
@@ -21090,8 +21090,8 @@ class DrawLayer {
 
 
 
-const pdfjsVersion = "5.2.87";
-const pdfjsBuild = "2f7d163df";
+const pdfjsVersion = "5.2.96";
+const pdfjsBuild = "d8d3e0abf";
 globalThis.pdfjsLib = {
   AbortException: AbortException,
   AnnotationEditorLayer: AnnotationEditorLayer,

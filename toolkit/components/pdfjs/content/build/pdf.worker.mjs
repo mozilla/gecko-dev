@@ -545,13 +545,13 @@ class Util {
   static transform(m1, m2) {
     return [m1[0] * m2[0] + m1[2] * m2[1], m1[1] * m2[0] + m1[3] * m2[1], m1[0] * m2[2] + m1[2] * m2[3], m1[1] * m2[2] + m1[3] * m2[3], m1[0] * m2[4] + m1[2] * m2[5] + m1[4], m1[1] * m2[4] + m1[3] * m2[5] + m1[5]];
   }
-  static applyTransform(p, m) {
-    const p0 = p[0];
-    const p1 = p[1];
-    p[0] = p0 * m[0] + p1 * m[2] + m[4];
-    p[1] = p0 * m[1] + p1 * m[3] + m[5];
+  static applyTransform(p, m, pos = 0) {
+    const p0 = p[pos];
+    const p1 = p[pos + 1];
+    p[pos] = p0 * m[0] + p1 * m[2] + m[4];
+    p[pos + 1] = p0 * m[1] + p1 * m[3] + m[5];
   }
-  static applyTransformToBezier(p, transform) {
+  static applyTransformToBezier(p, transform, pos = 0) {
     const m0 = transform[0];
     const m1 = transform[1];
     const m2 = transform[2];
@@ -559,10 +559,10 @@ class Util {
     const m4 = transform[4];
     const m5 = transform[5];
     for (let i = 0; i < 6; i += 2) {
-      const pI = p[i];
-      const pI1 = p[i + 1];
-      p[i] = pI * m0 + pI1 * m2 + m4;
-      p[i + 1] = pI * m1 + pI1 * m3 + m5;
+      const pI = p[pos + i];
+      const pI1 = p[pos + i + 1];
+      p[pos + i] = pI * m0 + pI1 * m2 + m4;
+      p[pos + i + 1] = pI * m1 + pI1 * m3 + m5;
     }
   }
   static applyInverseTransform(p, m) {
@@ -6373,11 +6373,11 @@ addState(InitialState, [OPS.save, OPS.transform, OPS.constructPath, OPS.restore]
     switch (buffer[k++]) {
       case DrawOPS.moveTo:
       case DrawOPS.lineTo:
-        Util.applyTransform(buffer.subarray(k), transform);
+        Util.applyTransform(buffer, transform, k);
         k += 2;
         break;
       case DrawOPS.curveTo:
-        Util.applyTransformToBezier(buffer.subarray(k), transform);
+        Util.applyTransformToBezier(buffer, transform, k);
         k += 6;
         break;
     }
@@ -19958,12 +19958,11 @@ class Commands {
   currentTransform = [1, 0, 0, 1, 0, 0];
   add(cmd, args) {
     if (args) {
-      const [a, b, c, d, e, f] = this.currentTransform;
+      const {
+        currentTransform
+      } = this;
       for (let i = 0, ii = args.length; i < ii; i += 2) {
-        const x = args[i];
-        const y = args[i + 1];
-        args[i] = a * x + c * y + e;
-        args[i + 1] = b * x + d * y + f;
+        Util.applyTransform(args, currentTransform, i);
       }
       this.cmds.push(`${cmd}${args.join(" ")}`);
     } else {
@@ -36798,7 +36797,7 @@ class StructTreePage {
     const element = new StructElementNode(this, dict);
     map.set(dict, element);
     const parent = dict.get("P");
-    if (!parent || isName(parent.get("Type"), "StructTreeRoot")) {
+    if (!(parent instanceof Dict) || isName(parent.get("Type"), "StructTreeRoot")) {
       if (!this.addTopLevelNode(dict, element)) {
         map.delete(dict);
       }
@@ -55051,8 +55050,14 @@ class Page {
       return null;
     }
     await this._parsedAnnotations;
-    const structTree = await this.pdfManager.ensure(this, "_parseStructTree", [structTreeRoot]);
-    return this.pdfManager.ensure(structTree, "serializable");
+    try {
+      const structTree = await this.pdfManager.ensure(this, "_parseStructTree", [structTreeRoot]);
+      const data = await this.pdfManager.ensure(structTree, "serializable");
+      return data;
+    } catch (ex) {
+      warn(`getStructTree: "${ex}".`);
+      return null;
+    }
   }
   _parseStructTree(structTreeRoot) {
     const tree = new StructTreePage(structTreeRoot, this.pageDict);
@@ -57125,7 +57130,7 @@ class WorkerMessageHandler {
       docId,
       apiVersion
     } = docParams;
-    const workerVersion = "5.2.87";
+    const workerVersion = "5.2.96";
     if (apiVersion !== workerVersion) {
       throw new Error(`The API version "${apiVersion}" does not match ` + `the Worker version "${workerVersion}".`);
     }
@@ -57650,8 +57655,8 @@ class WorkerMessageHandler {
 
 ;// ./src/pdf.worker.js
 
-const pdfjsVersion = "5.2.87";
-const pdfjsBuild = "2f7d163df";
+const pdfjsVersion = "5.2.96";
+const pdfjsBuild = "d8d3e0abf";
 globalThis.pdfjsWorker = {
   WorkerMessageHandler: WorkerMessageHandler
 };
