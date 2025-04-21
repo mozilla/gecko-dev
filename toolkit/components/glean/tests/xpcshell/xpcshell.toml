@@ -2,6 +2,8 @@
 firefox-appdir = "browser"
 head = "head.js"
 
+["test_AttributionDistribution.js"]
+
 ["test_FOGIPCLimit.js"]
 
 ["test_FOGInit.js"]
