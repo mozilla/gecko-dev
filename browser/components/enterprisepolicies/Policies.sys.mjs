@@ -2567,6 +2567,21 @@ export var Policies = {
     },
   },
 
+  SkipTermsOfUse: {
+    onBeforeAddons(manager, param) {
+      if (param) {
+        setAndLockPref(
+          "datareporting.policy.dataSubmissionPolicyAcceptedVersion",
+          999
+        );
+        setAndLockPref(
+          "datareporting.policy.dataSubmissionPolicyNotifiedTime",
+          Date.now().toString()
+        );
+      }
+    },
+  },
+
   SSLVersionMax: {
     onBeforeAddons(manager, param) {
       let tlsVersion;
@@ -2655,18 +2670,6 @@ export var Policies = {
         PoliciesUtils.setDefaultPref(
           "browser.aboutwelcome.enabled",
           !param.SkipOnboarding,
-          param.Locked
-        );
-      }
-      if (param.SkipTermsOfUse) {
-        PoliciesUtils.setDefaultPref(
-          "datareporting.policy.dataSubmissionPolicyAcceptedVersion",
-          999,
-          param.Locked
-        );
-        PoliciesUtils.setDefaultPref(
-          "datareporting.policy.dataSubmissionPolicyNotifiedTime",
-          Date.now().toString(),
           param.Locked
         );
       }
