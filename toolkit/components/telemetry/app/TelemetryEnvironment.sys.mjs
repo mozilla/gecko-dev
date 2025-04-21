@@ -83,7 +83,7 @@ var gActiveExperimentStartupBuffer = new Map();
 
 // For Powering arewegleanyet.com (See bug 1944592)
 // Legacy Count: 114
-// Glean Count: 32
+// Glean Count: 48
 
 var gGlobalEnvironment;
 function getGlobal() {
@@ -1789,6 +1789,22 @@ EnvironmentCache.prototype = {
           : data[key];
     }
     this._currentEnvironment.settings.attribution = attributionData;
+    let extAttribution = {
+      experiment: attributionData.experiment,
+      variation: attributionData.variation,
+      ua: attributionData.ua,
+      dltoken: attributionData.dltoken,
+      msstoresignedin: attributionData.msstoresignedin,
+      dlsource: attributionData.dlsource,
+    };
+    Services.fog.updateAttribution(
+      attributionData.source,
+      attributionData.medium,
+      attributionData.campaign,
+      attributionData.term,
+      attributionData.content
+    );
+    Glean.gleanAttribution.ext.set(extAttribution);
   },
 
   /**
@@ -1893,6 +1909,15 @@ EnvironmentCache.prototype = {
       PREF_APP_PARTNER_BRANCH
     );
     partnerData.partnerNames = partnerBranch.getChildList("");
+
+    Services.fog.updateDistribution(partnerData.distributionId);
+    Glean.gleanDistribution.ext.set({
+      distributionVersion: partnerData.distributionVersion,
+      partnerId: partnerData.partnerId,
+      distributor: partnerData.distributor,
+      distributorChannel: partnerData.distributorChannel,
+      partnerNames: partnerData.partnerNames,
+    });
 
     return partnerData;
   },
