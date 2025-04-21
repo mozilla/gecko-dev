@@ -4,7 +4,6 @@
 
 package org.mozilla.fenix.components.toolbar
 
-import android.app.Activity
 import androidx.lifecycle.ViewModel
 import androidx.navigation.NavController
 import mozilla.components.compose.browser.toolbar.concept.Action
@@ -30,15 +29,15 @@ private sealed class DisplayActions : BrowserToolbarEvent {
  * This is also a [ViewModel] allowing to be easily persisted between activity restarts.
  */
 class BrowserToolbarMiddleware : Middleware<BrowserToolbarState, BrowserToolbarAction>, ViewModel() {
-    private lateinit var navController: NavController
+    private lateinit var dependencies: LifecycleDependencies
 
     /**
-     * Update dependencies tied to the lifecycle of the [Activity] to prevent these leaking.
+     * Updates the [LifecycleDependencies] of this middleware.
      *
-     * @param navController [NavController] to use for navigating to other in-app destinations.
+     * @param dependencies The new [LifecycleDependencies].
      */
-    fun updateLifecycleDependencies(navController: NavController) {
-        this.navController = navController
+    fun updateLifecycleDependencies(dependencies: LifecycleDependencies) {
+        this.dependencies = dependencies
     }
 
     override fun invoke(
@@ -60,7 +59,7 @@ class BrowserToolbarMiddleware : Middleware<BrowserToolbarState, BrowserToolbarA
                 )
             }
             is MenuClicked -> {
-                navController.nav(
+                dependencies.navController.nav(
                     R.id.browserFragment,
                     BrowserFragmentDirections.actionGlobalMenuDialogFragment(
                         accesspoint = MenuAccessPoint.Browser,
@@ -71,4 +70,13 @@ class BrowserToolbarMiddleware : Middleware<BrowserToolbarState, BrowserToolbarA
             else -> next(action)
         }
     }
+
+    /**
+     * Lifecycle dependencies for the [BrowserToolbarMiddleware].
+     *
+     * @property navController [NavController] to use for navigating to other in-app destinations.
+     */
+    data class LifecycleDependencies(
+        val navController: NavController,
+    )
 }

@@ -34,6 +34,7 @@ import mozilla.components.compose.browser.toolbar.store.BrowserToolbarState
 import mozilla.components.compose.browser.toolbar.store.BrowserToolbarStore
 import mozilla.components.feature.toolbar.ToolbarBehaviorController
 import org.mozilla.fenix.components.StoreProvider
+import org.mozilla.fenix.components.toolbar.BrowserToolbarMiddleware.LifecycleDependencies
 import org.mozilla.fenix.components.toolbar.ToolbarPosition.BOTTOM
 import org.mozilla.fenix.components.toolbar.ToolbarPosition.TOP
 import org.mozilla.fenix.ext.components
@@ -70,7 +71,11 @@ class BrowserToolbarComposable(
     private var showDivider by mutableStateOf(true)
 
     private val middleware = ViewModelProvider(lifecycleOwner)[BrowserToolbarMiddleware::class.java].also {
-        it.updateLifecycleDependencies(navController = navController)
+        it.updateLifecycleDependencies(
+            LifecycleDependencies(
+                navController = navController,
+            ),
+        )
     }
 
     private val store = StoreProvider.get(lifecycleOwner) {

@@ -20,6 +20,7 @@ import org.junit.runner.RunWith
 import org.mozilla.fenix.R
 import org.mozilla.fenix.browser.BrowserFragmentDirections
 import org.mozilla.fenix.components.menu.MenuAccessPoint
+import org.mozilla.fenix.components.toolbar.BrowserToolbarMiddleware.LifecycleDependencies
 import org.mozilla.fenix.ext.nav
 
 @RunWith(AndroidJUnit4::class)
@@ -51,7 +52,7 @@ class BrowserToolbarMiddlewareTest {
     fun `WHEN clicking the menu button THEN open the menu`() = runTestOnMain {
         val navController: NavController = mockk(relaxed = true)
         val middleware = BrowserToolbarMiddleware().apply {
-            updateLifecycleDependencies(navController)
+            updateLifecycleDependencies(LifecycleDependencies(navController))
         }
         val toolbarStore = BrowserToolbarStore(
             middleware = listOf(middleware),
