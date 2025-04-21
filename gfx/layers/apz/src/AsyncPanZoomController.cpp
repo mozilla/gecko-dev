@@ -6092,16 +6092,20 @@ const FrameMetrics& AsyncPanZoomController::Metrics() const {
   return mScrollMetadata.GetMetrics();
 }
 
-bool CompositorScrollUpdate::operator==(
-    const CompositorScrollUpdate& aOther) const {
-  // Consider two updates to be the same if the scroll offsets are the same
+bool CompositorScrollUpdate::Metrics::operator==(const Metrics& aOther) const {
+  // Consider two metrcs to be the same if the scroll offsets are the same
   // when rounded to the nearest screen pixel. This avoids spurious updates
   // due to small rounding errors, which consumers do not care about because
   // if the scroll offset does not change in screen pixels, what is composited
   // should not change either.
   return RoundedToInt(mVisualScrollOffset * mZoom) ==
              RoundedToInt(aOther.mVisualScrollOffset * aOther.mZoom) &&
-         mZoom == aOther.mZoom && mSource == aOther.mSource;
+         mZoom == aOther.mZoom;
+}
+
+bool CompositorScrollUpdate::operator==(
+    const CompositorScrollUpdate& aOther) const {
+  return mMetrics == aOther.mMetrics && mSource == aOther.mSource;
 }
 
 std::vector<CompositorScrollUpdate>
@@ -6111,8 +6115,8 @@ AsyncPanZoomController::GetCompositorScrollUpdates() {
 
   // FIXME(bug 1940581): Propagate an accurate source.
   CompositorScrollUpdate current{
-      GetEffectiveScrollOffset(eForCompositing, lock),
-      GetEffectiveZoom(eForCompositing, lock),
+      {GetEffectiveScrollOffset(eForCompositing, lock),
+       GetEffectiveZoom(eForCompositing, lock)},
       CompositorScrollUpdate::Source::UserInteraction};
   if (current != mLastCompositorScrollUpdate) {
     mLastCompositorScrollUpdate = current;

@@ -3281,8 +3281,9 @@ void nsWindow::NotifyCompositorScrollUpdate(
     const auto& compositor = lvs->GetJavaCompositor();
     mContentDocumentDisplayed = true;
     compositor->NotifyCompositorScrollUpdate(
-        aUpdate.mVisualScrollOffset.x, aUpdate.mVisualScrollOffset.y,
-        aUpdate.mZoom.scale, ConvertScrollUpdateSource(aUpdate.mSource));
+        aUpdate.mMetrics.mVisualScrollOffset.x,
+        aUpdate.mMetrics.mVisualScrollOffset.y, aUpdate.mMetrics.mZoom.scale,
+        ConvertScrollUpdateSource(aUpdate.mSource));
   }
 }
 
