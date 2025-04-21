@@ -25,6 +25,7 @@ import mozilla.components.compose.browser.toolbar.concept.Action
 import mozilla.components.compose.browser.toolbar.concept.Action.ActionButton
 import mozilla.components.compose.browser.toolbar.concept.Action.TabCounterAction
 import mozilla.components.compose.browser.toolbar.store.BrowserDisplayToolbarAction
+import mozilla.components.compose.browser.toolbar.store.BrowserDisplayToolbarAction.UpdateProgressBarConfig
 import mozilla.components.compose.browser.toolbar.store.BrowserToolbarAction
 import mozilla.components.compose.browser.toolbar.store.BrowserToolbarInteraction.BrowserToolbarEvent
 import mozilla.components.compose.browser.toolbar.store.BrowserToolbarInteraction.BrowserToolbarMenu
@@ -32,6 +33,8 @@ import mozilla.components.compose.browser.toolbar.store.BrowserToolbarMenuItem.B
 import mozilla.components.compose.browser.toolbar.store.BrowserToolbarMenuItem.BrowserToolbarMenuDivider
 import mozilla.components.compose.browser.toolbar.store.BrowserToolbarState
 import mozilla.components.compose.browser.toolbar.store.BrowserToolbarStore
+import mozilla.components.compose.browser.toolbar.store.ProgressBarConfig
+import mozilla.components.compose.browser.toolbar.store.ProgressBarGravity
 import mozilla.components.feature.tabs.TabsUseCases
 import mozilla.components.lib.state.Middleware
 import mozilla.components.lib.state.MiddlewareContext
@@ -56,6 +59,7 @@ import org.mozilla.fenix.components.toolbar.navbar.shouldAddNavigationBar
 import org.mozilla.fenix.ext.nav
 import org.mozilla.fenix.tabstray.Page
 import org.mozilla.fenix.tabstray.ext.isActiveDownload
+import org.mozilla.fenix.utils.Settings
 import mozilla.components.ui.icons.R as iconsR
 
 @VisibleForTesting
@@ -81,6 +85,7 @@ class BrowserToolbarMiddleware(
     private val browserScreenStore: BrowserScreenStore,
     private val browserStore: BrowserStore,
     private val tabsUseCases: TabsUseCases,
+    private val settings: Settings,
 ) : Middleware<BrowserToolbarState, BrowserToolbarAction>, ViewModel() {
     private lateinit var dependencies: LifecycleDependencies
     private var store: BrowserToolbarStore? = null
@@ -93,6 +98,7 @@ class BrowserToolbarMiddleware(
     fun updateLifecycleDependencies(dependencies: LifecycleDependencies) {
         this.dependencies = dependencies
 
+        updateProgressBar()
         updateToolbarActionsBasedOnOrientation()
         updateTabsCount()
         observeAcceptingCancellingPrivateDownloads()
@@ -242,11 +248,37 @@ class BrowserToolbarMiddleware(
         )
     }
 
+    private fun buildProgressBar(progress: Int = 0) = ProgressBarConfig(
+        progress = progress,
+        gravity = when (settings.shouldUseBottomToolbar) {
+            true -> ProgressBarGravity.Top
+            false -> ProgressBarGravity.Bottom
+        },
+    )
+
     private fun openNewTab(browsingMode: BrowsingMode) {
         dependencies.browsingModeManager.mode = browsingMode
         dependencies.navController.navigate(
             BrowserFragmentDirections.actionGlobalHome(focusOnAddressBar = true),
         )
+    }
+
+    private fun updateProgressBar() {
+        with(dependencies.lifecycleOwner) {
+            lifecycleScope.launch {
+                repeatOnLifecycle(RESUMED) {
+                    browserStore.flow()
+                        .distinctUntilChangedBy { it.selectedTab?.content?.progress }
+                        .collect {
+                            store?.dispatch(
+                                UpdateProgressBarConfig(
+                                    buildProgressBar(it.selectedTab?.content?.progress ?: 0),
+                                ),
+                            )
+                        }
+                }
+            }
+        }
     }
 
     private fun updateToolbarActionsBasedOnOrientation() {
@@ -322,12 +354,14 @@ class BrowserToolbarMiddleware(
          * browser screen functionalities.
          * @param browserStore [BrowserStore] to sync from.
          * @param tabsUseCases [TabsUseCases] for managing tabs.
+         * @param settings [Settings] for accessing user preferences.
          */
         fun viewModelFactory(
             appStore: AppStore,
             browserScreenStore: BrowserScreenStore,
             browserStore: BrowserStore,
             tabsUseCases: TabsUseCases,
+            settings: Settings,
         ): ViewModelProvider.Factory = object : ViewModelProvider.Factory {
             @Suppress("UNCHECKED_CAST")
             override fun <T : ViewModel> create(modelClass: Class<T>): T {
@@ -337,6 +371,7 @@ class BrowserToolbarMiddleware(
                         browserScreenStore = browserScreenStore,
                         browserStore = browserStore,
                         tabsUseCases = tabsUseCases,
+                        settings = settings,
                     ) as T
                 }
                 throw IllegalArgumentException("Unknown ViewModel class")

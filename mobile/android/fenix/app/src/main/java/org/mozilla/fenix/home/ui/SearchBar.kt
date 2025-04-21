@@ -28,6 +28,8 @@ internal fun SearchBar(
     BrowserDisplayToolbar(
         url = stringResource(R.string.search_hint),
         colors = BrowserToolbarDefaults.colors().displayToolbarColors.copy(background = Color.Transparent),
+        progressBarConfig = null,
+        textStyle = FirefoxTheme.typography.body1,
         onUrlClicked = onClick,
         onInteraction = {},
     )

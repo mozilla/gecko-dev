@@ -35,6 +35,7 @@ import mozilla.components.compose.browser.toolbar.store.BrowserToolbarState
 import mozilla.components.compose.browser.toolbar.store.BrowserToolbarStore
 import mozilla.components.feature.tabs.TabsUseCases
 import mozilla.components.feature.toolbar.ToolbarBehaviorController
+import mozilla.components.lib.state.ext.observeAsComposableState
 import org.mozilla.fenix.browser.browsingmode.BrowsingModeManager
 import org.mozilla.fenix.browser.store.BrowserScreenStore
 import org.mozilla.fenix.components.AppStore
@@ -75,7 +76,7 @@ class BrowserToolbarComposable(
     private val browsingModeManager: BrowsingModeManager,
     private val tabsUseCases: TabsUseCases,
     private val thumbnailsFeature: BrowserThumbnails?,
-    settings: Settings,
+    private val settings: Settings,
     customTabSession: CustomTabSessionState? = null,
     private val tabStripContent: @Composable () -> Unit,
 ) : FenixBrowserToolbarView(
@@ -96,6 +97,7 @@ class BrowserToolbarComposable(
     override val layout = ScrollableToolbarComposeView(context, this) {
         val shouldShowDivider by remember { mutableStateOf(showDivider) }
         val shouldShowTabStrip: Boolean = remember { shouldShowTabStrip() }
+        val progressBarValue = store.observeAsComposableState { it.displayState.progressBarConfig?.progress }.value ?: 0
 
         DisposableEffect(context) {
             val toolbarController = ToolbarBehaviorController(
@@ -115,10 +117,10 @@ class BrowserToolbarComposable(
                         .wrapContentHeight(),
                 ) {
                     tabStripContent()
-                    BrowserToolbar(shouldShowDivider, settings.shouldUseBottomToolbar)
+                    BrowserToolbar(shouldShowDivider, progressBarValue, settings.shouldUseBottomToolbar)
                 }
 
-                false -> BrowserToolbar(shouldShowDivider, settings.shouldUseBottomToolbar)
+                false -> BrowserToolbar(shouldShowDivider, progressBarValue, settings.shouldUseBottomToolbar)
             }
         }
     }.apply {
@@ -140,7 +142,11 @@ class BrowserToolbarComposable(
     }
 
     @Composable
-    private fun BrowserToolbar(shouldShowDivider: Boolean, shouldUseBottomToolbar: Boolean) {
+    private fun BrowserToolbar(
+        shouldShowDivider: Boolean,
+        progressBarValue: Int,
+        shouldUseBottomToolbar: Boolean,
+    ) {
         // Ensure the divider is shown together with the toolbar
         Box {
             BrowserToolbar(
@@ -151,7 +157,8 @@ class BrowserToolbarComposable(
                 onTextCommit = {},
                 target = Target.SelectedTab,
             )
-            if (shouldShowDivider) {
+            @Suppress("MagicNumber")
+            if (shouldShowDivider && progressBarValue !in 1..99) {
                 Divider(
                     modifier = Modifier.align(
                         when (shouldUseBottomToolbar) {
@@ -177,6 +184,7 @@ class BrowserToolbarComposable(
                     browserScreenStore = browserScreenStore,
                     browserStore = browserStore,
                     tabsUseCases = tabsUseCases,
+                    settings = settings,
                 ),
             ).get(BrowserToolbarMiddleware::class.java).also {
                 it.updateLifecycleDependencies(

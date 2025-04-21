@@ -19,6 +19,7 @@ import io.mockk.verify
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.setMain
+import mozilla.components.browser.state.action.ContentAction.UpdateProgressAction
 import mozilla.components.browser.state.action.TabListAction.AddTabAction
 import mozilla.components.browser.state.action.TabListAction.RemoveTabAction
 import mozilla.components.browser.state.state.BrowserState
@@ -28,12 +29,16 @@ import mozilla.components.browser.state.store.BrowserStore
 import mozilla.components.browser.thumbnails.BrowserThumbnails
 import mozilla.components.compose.browser.toolbar.concept.Action.ActionButton
 import mozilla.components.compose.browser.toolbar.concept.Action.TabCounterAction
+import mozilla.components.compose.browser.toolbar.store.BrowserToolbarAction
 import mozilla.components.compose.browser.toolbar.store.BrowserToolbarInteraction.BrowserToolbarEvent
 import mozilla.components.compose.browser.toolbar.store.BrowserToolbarInteraction.BrowserToolbarMenu
 import mozilla.components.compose.browser.toolbar.store.BrowserToolbarInteraction.CombinedEventAndMenu
 import mozilla.components.compose.browser.toolbar.store.BrowserToolbarMenuItem.BrowserToolbarMenuButton
 import mozilla.components.compose.browser.toolbar.store.BrowserToolbarMenuItem.BrowserToolbarMenuDivider
 import mozilla.components.compose.browser.toolbar.store.BrowserToolbarStore
+import mozilla.components.compose.browser.toolbar.store.ProgressBarConfig
+import mozilla.components.compose.browser.toolbar.store.ProgressBarGravity.Bottom
+import mozilla.components.compose.browser.toolbar.store.ProgressBarGravity.Top
 import mozilla.components.feature.tabs.TabsUseCases
 import mozilla.components.support.test.ext.joinBlocking
 import mozilla.components.support.test.robolectric.testContext
@@ -70,6 +75,7 @@ import org.mozilla.fenix.components.toolbar.TabCounterInteractions.CloseCurrentT
 import org.mozilla.fenix.components.toolbar.navbar.shouldAddNavigationBar
 import org.mozilla.fenix.ext.nav
 import org.mozilla.fenix.tabstray.Page
+import org.mozilla.fenix.utils.Settings
 import mozilla.components.ui.icons.R as iconsR
 
 @RunWith(AndroidJUnit4::class)
@@ -82,6 +88,9 @@ class BrowserToolbarMiddlewareTest {
     private val browserStore = BrowserStore()
     private val lifecycleOwner = FakeLifecycleOwner(Lifecycle.State.RESUMED)
     private val browsingModeManager = SimpleBrowsingModeManager(Normal)
+    private val settings: Settings = mockk {
+        every { shouldUseBottomToolbar } returns true
+    }
 
     @Before
     fun setup() {
@@ -96,7 +105,7 @@ class BrowserToolbarMiddlewareTest {
     @Test
     fun `GIVEN navbar should not be shown WHEN initializing the toolbar THEN add browser end actions`() = runTestOnMain {
         every { testContext.shouldAddNavigationBar() } returns false
-        val middleware = BrowserToolbarMiddleware(appStore, browserScreenStore, browserStore, mockk()).apply {
+        val middleware = BrowserToolbarMiddleware(appStore, browserScreenStore, browserStore, mockk(), settings).apply {
             updateLifecycleDependencies(
                 LifecycleDependencies(testContext, lifecycleOwner, mockk(), browsingModeManager, mockk()),
             )
@@ -117,7 +126,7 @@ class BrowserToolbarMiddlewareTest {
     @Test
     fun `GIVEN navbar should be shown WHEN initializing the toolbar THEN don't add browser end actions`() = runTestOnMain {
         every { testContext.shouldAddNavigationBar() } returns true
-        val middleware = BrowserToolbarMiddleware(appStore, browserScreenStore, browserStore, mockk()).apply {
+        val middleware = BrowserToolbarMiddleware(appStore, browserScreenStore, browserStore, mockk(), settings).apply {
             updateLifecycleDependencies(
                 LifecycleDependencies(testContext, lifecycleOwner, mockk(), browsingModeManager, mockk()),
             )
@@ -140,7 +149,7 @@ class BrowserToolbarMiddlewareTest {
                 tabs = listOf(createTab("test.com", private = false)),
             ),
         )
-        val middleware = BrowserToolbarMiddleware(appStore, browserScreenStore, browserStore, mockk()).apply {
+        val middleware = BrowserToolbarMiddleware(appStore, browserScreenStore, browserStore, mockk(), settings).apply {
             updateLifecycleDependencies(
                 LifecycleDependencies(testContext, lifecycleOwner, mockk(), browsingModeManager, mockk()),
             )
@@ -167,7 +176,7 @@ class BrowserToolbarMiddlewareTest {
                 ),
             ),
         )
-        val middleware = BrowserToolbarMiddleware(appStore, browserScreenStore, browserStore, mockk()).apply {
+        val middleware = BrowserToolbarMiddleware(appStore, browserScreenStore, browserStore, mockk(), settings).apply {
             updateLifecycleDependencies(
                 LifecycleDependencies(testContext, lifecycleOwner, mockk(), browsingModeManager, mockk()),
             )
@@ -192,7 +201,7 @@ class BrowserToolbarMiddlewareTest {
                 orientation = Portrait,
             ),
         )
-        val middleware = BrowserToolbarMiddleware(appStore, browserScreenStore, browserStore, mockk()).apply {
+        val middleware = BrowserToolbarMiddleware(appStore, browserScreenStore, browserStore, mockk(), settings).apply {
             updateLifecycleDependencies(
                 LifecycleDependencies(testContext, lifecycleOwner, mockk(), browsingModeManager, mockk()),
             )
@@ -228,7 +237,7 @@ class BrowserToolbarMiddlewareTest {
             ),
         )
 
-        val middleware = BrowserToolbarMiddleware(appStore, browserScreenStore, browserStore, mockk()).apply {
+        val middleware = BrowserToolbarMiddleware(appStore, browserScreenStore, browserStore, mockk(), settings).apply {
             updateLifecycleDependencies(
                 LifecycleDependencies(testContext, lifecycleOwner, mockk(), browsingModeManager, mockk()),
             )
@@ -259,7 +268,7 @@ class BrowserToolbarMiddlewareTest {
         every { testContext.shouldAddNavigationBar() } returns false
         val browsingModeManager = SimpleBrowsingModeManager(Normal)
         val browserStore = BrowserStore()
-        val middleware = BrowserToolbarMiddleware(appStore, browserScreenStore, browserStore, mockk()).apply {
+        val middleware = BrowserToolbarMiddleware(appStore, browserScreenStore, browserStore, mockk(), settings).apply {
             updateLifecycleDependencies(
                 LifecycleDependencies(testContext, lifecycleOwner, mockk(), browsingModeManager, mockk()),
             )
@@ -297,7 +306,7 @@ class BrowserToolbarMiddlewareTest {
                 tabs = listOf(initialNormalTab, initialPrivateTab),
             ),
         )
-        val middleware = BrowserToolbarMiddleware(appStore, browserScreenStore, browserStore, mockk()).apply {
+        val middleware = BrowserToolbarMiddleware(appStore, browserScreenStore, browserStore, mockk(), settings).apply {
             updateLifecycleDependencies(
                 LifecycleDependencies(testContext, lifecycleOwner, mockk(), browsingModeManager, mockk()),
             )
@@ -324,7 +333,7 @@ class BrowserToolbarMiddlewareTest {
     fun `WHEN clicking the menu button THEN open the menu`() {
         every { testContext.shouldAddNavigationBar() } returns false
         val navController: NavController = mockk(relaxed = true)
-        val middleware = BrowserToolbarMiddleware(appStore, browserScreenStore, browserStore, mockk()).apply {
+        val middleware = BrowserToolbarMiddleware(appStore, browserScreenStore, browserStore, mockk(), settings).apply {
             updateLifecycleDependencies(
                 LifecycleDependencies(testContext, lifecycleOwner, navController, browsingModeManager, mockk()),
             )
@@ -354,7 +363,7 @@ class BrowserToolbarMiddlewareTest {
         val browsingModeManager = SimpleBrowsingModeManager(Normal)
         val navController: NavController = mockk(relaxed = true)
         val thumbnailsFeature: BrowserThumbnails = mockk(relaxed = true)
-        val middleware = BrowserToolbarMiddleware(appStore, browserScreenStore, browserStore, mockk()).apply {
+        val middleware = BrowserToolbarMiddleware(appStore, browserScreenStore, browserStore, mockk(), settings).apply {
             updateLifecycleDependencies(
                 LifecycleDependencies(testContext, lifecycleOwner, navController, browsingModeManager, thumbnailsFeature),
             )
@@ -385,7 +394,7 @@ class BrowserToolbarMiddlewareTest {
         val browsingModeManager = SimpleBrowsingModeManager(Private)
         val navController: NavController = mockk(relaxed = true)
         val thumbnailsFeature: BrowserThumbnails = mockk(relaxed = true)
-        val middleware = BrowserToolbarMiddleware(appStore, browserScreenStore, browserStore, mockk()).apply {
+        val middleware = BrowserToolbarMiddleware(appStore, browserScreenStore, browserStore, mockk(), settings).apply {
             updateLifecycleDependencies(
                 LifecycleDependencies(testContext, lifecycleOwner, navController, browsingModeManager, thumbnailsFeature),
             )
@@ -415,7 +424,7 @@ class BrowserToolbarMiddlewareTest {
         every { testContext.shouldAddNavigationBar() } returns false
         val browsingModeManager = SimpleBrowsingModeManager(Normal)
         val navController: NavController = mockk(relaxed = true)
-        val middleware = BrowserToolbarMiddleware(appStore, browserScreenStore, browserStore, mockk()).apply {
+        val middleware = BrowserToolbarMiddleware(appStore, browserScreenStore, browserStore, mockk(), settings).apply {
             updateLifecycleDependencies(
                 LifecycleDependencies(testContext, lifecycleOwner, navController, browsingModeManager, mockk()),
             )
@@ -442,7 +451,7 @@ class BrowserToolbarMiddlewareTest {
         every { testContext.shouldAddNavigationBar() } returns false
         val browsingModeManager = SimpleBrowsingModeManager(Normal)
         val navController: NavController = mockk(relaxed = true)
-        val middleware = BrowserToolbarMiddleware(appStore, browserScreenStore, browserStore, mockk()).apply {
+        val middleware = BrowserToolbarMiddleware(appStore, browserScreenStore, browserStore, mockk(), settings).apply {
             updateLifecycleDependencies(
                 LifecycleDependencies(testContext, lifecycleOwner, navController, browsingModeManager, mockk()),
             )
@@ -478,7 +487,7 @@ class BrowserToolbarMiddlewareTest {
             ),
         )
         val tabsUseCases: TabsUseCases = mockk(relaxed = true)
-        val middleware = BrowserToolbarMiddleware(appStore, browserScreenStore, browserStore, tabsUseCases).apply {
+        val middleware = BrowserToolbarMiddleware(appStore, browserScreenStore, browserStore, tabsUseCases, settings).apply {
             updateLifecycleDependencies(
                 LifecycleDependencies(testContext, lifecycleOwner, navController, browsingModeManager, mockk()),
             )
@@ -516,7 +525,7 @@ class BrowserToolbarMiddlewareTest {
             ),
         )
         val tabsUseCases: TabsUseCases = mockk(relaxed = true)
-        val middleware = BrowserToolbarMiddleware(appStore, browserScreenStore, browserStore, tabsUseCases).apply {
+        val middleware = BrowserToolbarMiddleware(appStore, browserScreenStore, browserStore, tabsUseCases, settings).apply {
             updateLifecycleDependencies(
                 LifecycleDependencies(testContext, lifecycleOwner, navController, browsingModeManager, mockk()),
             )
@@ -558,7 +567,7 @@ class BrowserToolbarMiddlewareTest {
             ),
         )
         val tabsUseCases: TabsUseCases = mockk(relaxed = true)
-        val middleware = BrowserToolbarMiddleware(appStore, browserScreenStore, browserStore, tabsUseCases).apply {
+        val middleware = BrowserToolbarMiddleware(appStore, browserScreenStore, browserStore, tabsUseCases, settings).apply {
             updateLifecycleDependencies(
                 LifecycleDependencies(testContext, lifecycleOwner, navController, browsingModeManager, mockk()),
             )
@@ -604,7 +613,7 @@ class BrowserToolbarMiddlewareTest {
             ),
         )
         val tabsUseCases: TabsUseCases = mockk(relaxed = true)
-        val middleware = BrowserToolbarMiddleware(appStore, browserScreenStore, browserStore, tabsUseCases).apply {
+        val middleware = BrowserToolbarMiddleware(appStore, browserScreenStore, browserStore, tabsUseCases, settings).apply {
             updateLifecycleDependencies(
                 LifecycleDependencies(testContext, lifecycleOwner, navController, browsingModeManager, mockk()),
             )
@@ -656,7 +665,7 @@ class BrowserToolbarMiddlewareTest {
             ),
         )
         val tabsUseCases: TabsUseCases = mockk(relaxed = true)
-        val middleware = BrowserToolbarMiddleware(appStore, browserScreenStore, browserStore, tabsUseCases).apply {
+        val middleware = BrowserToolbarMiddleware(appStore, browserScreenStore, browserStore, tabsUseCases, settings).apply {
             updateLifecycleDependencies(
                 LifecycleDependencies(testContext, lifecycleOwner, navController, browsingModeManager, mockk()),
             )
@@ -683,6 +692,80 @@ class BrowserToolbarMiddlewareTest {
                 ),
             )
         }
+    }
+
+    @Test
+    fun `GIVEN a bottom toolbar WHEN the loading progress of the current tab changes THEN update the progress bar`() = runTestOnMain {
+        Dispatchers.setMain(StandardTestDispatcher())
+        every { testContext.shouldAddNavigationBar() } returns false
+        every { settings.shouldUseBottomToolbar } returns true
+        val currentTab = createTab("test.com")
+        val browserStore = BrowserStore(
+            BrowserState(
+                tabs = listOf(currentTab),
+                selectedTabId = currentTab.id,
+            ),
+        )
+        val tabsUseCases: TabsUseCases = mockk(relaxed = true)
+        val middleware = BrowserToolbarMiddleware(appStore, browserScreenStore, browserStore, tabsUseCases, settings).apply {
+            updateLifecycleDependencies(
+                LifecycleDependencies(testContext, lifecycleOwner, mockk(), browsingModeManager, mockk()),
+            )
+        }
+        val toolbarStore = BrowserToolbarStore(
+            middleware = listOf(middleware),
+        ).also {
+            it.dispatch(BrowserToolbarAction.Init())
+        }
+
+        browserStore.dispatch(UpdateProgressAction(currentTab.id, 50)).joinBlocking()
+        testScheduler.advanceUntilIdle()
+
+        assertEquals(
+            ProgressBarConfig(
+                progress = 50,
+                gravity = Top,
+                color = null,
+            ),
+            toolbarStore.state.displayState.progressBarConfig,
+        )
+    }
+
+    @Test
+    fun `GIVEN a top toolbar WHEN the loading progress of the current tab changes THEN update the progress bar`() = runTestOnMain {
+        Dispatchers.setMain(StandardTestDispatcher())
+        every { testContext.shouldAddNavigationBar() } returns false
+        every { settings.shouldUseBottomToolbar } returns false
+        val currentTab = createTab("test.com", private = true)
+        val browserStore = BrowserStore(
+            BrowserState(
+                tabs = listOf(currentTab),
+                selectedTabId = currentTab.id,
+            ),
+        )
+        val tabsUseCases: TabsUseCases = mockk(relaxed = true)
+        val middleware = BrowserToolbarMiddleware(appStore, browserScreenStore, browserStore, tabsUseCases, settings).apply {
+            updateLifecycleDependencies(
+                LifecycleDependencies(testContext, lifecycleOwner, mockk(), browsingModeManager, mockk()),
+            )
+        }
+        val toolbarStore = BrowserToolbarStore(
+            middleware = listOf(middleware),
+        ).also {
+            it.dispatch(BrowserToolbarAction.Init())
+        }
+
+        browserStore.dispatch(UpdateProgressAction(currentTab.id, 71)).joinBlocking()
+        testScheduler.advanceUntilIdle()
+
+        assertEquals(
+            ProgressBarConfig(
+                progress = 71,
+                gravity = Bottom,
+                color = null,
+            ),
+            toolbarStore.state.displayState.progressBarConfig,
+        )
     }
 
     private fun assertEqualsToolbarButton(expected: TabCounterAction, actual: TabCounterAction) {
