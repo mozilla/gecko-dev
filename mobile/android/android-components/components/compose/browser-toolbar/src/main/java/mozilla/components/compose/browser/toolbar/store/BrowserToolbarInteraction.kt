@@ -19,7 +19,18 @@ sealed interface BrowserToolbarInteraction {
     /**
      * [Action]s to be dispatched on [BrowserToolbarStore] when the user interacts with a toolbar element.
      */
-    interface BrowserToolbarEvent : BrowserToolbarInteraction, BrowserToolbarAction
+    interface BrowserToolbarEvent : BrowserToolbarInteraction, BrowserToolbarAction {
+        /**
+         * Convenience method to combine dispatching a [BrowserToolbarEvent] with
+         * showing a [BrowserToolbarMenu] for the same user interaction.
+         *
+         * @param menu [BrowserToolbarMenu] to show in addition to dispatching this event.
+         */
+        operator fun plus(menu: BrowserToolbarMenu) = CombinedEventAndMenu(
+            event = this,
+            menu = menu,
+        )
+    }
 
     /**
      * Popup menu to show when the user interacts with a toolbar element.
@@ -31,6 +42,18 @@ sealed interface BrowserToolbarInteraction {
          */
         fun items(): List<BrowserToolbarMenuItem>
     }
+
+    /**
+     * Combined [BrowserToolbarEvent] to be dispatched and [BrowserToolbarMenu] to be shown
+     * for the same user interaction.
+     *
+     * @param event [BrowserToolbarEvent] to be dispatched when the menu is shown.
+     * @param menu [BrowserToolbarMenu] to show.
+     */
+    data class CombinedEventAndMenu(
+        val event: BrowserToolbarEvent,
+        val menu: BrowserToolbarMenu,
+    ) : BrowserToolbarInteraction
 }
 
 /**

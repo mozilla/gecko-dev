@@ -15,10 +15,12 @@ import mozilla.components.browser.menu2.BrowserMenuController
 import mozilla.components.compose.browser.toolbar.store.BrowserToolbarInteraction
 import mozilla.components.compose.browser.toolbar.store.BrowserToolbarInteraction.BrowserToolbarEvent
 import mozilla.components.compose.browser.toolbar.store.BrowserToolbarInteraction.BrowserToolbarMenu
+import mozilla.components.compose.browser.toolbar.store.BrowserToolbarInteraction.CombinedEventAndMenu
 import mozilla.components.compose.browser.toolbar.store.BrowserToolbarMenuItem
 import mozilla.components.concept.menu.MenuStyle
 import mozilla.components.concept.menu.candidate.DecorativeTextMenuCandidate
 import mozilla.components.concept.menu.candidate.DrawableMenuIcon
+import mozilla.components.concept.menu.candidate.MenuCandidate
 import mozilla.components.concept.menu.candidate.TextMenuCandidate
 
 /**
@@ -33,20 +35,8 @@ import mozilla.components.concept.menu.candidate.TextMenuCandidate
 internal fun BrowserToolbarInteraction?.buildMenu(
     onInteraction: (BrowserToolbarEvent) -> Unit,
 ) = when (this) {
-    is BrowserToolbarMenu -> {
-        val menuItems = toMenuItems(onInteraction)
-        when (menuItems.isNotEmpty()) {
-            true -> BrowserMenuController(
-                style = MenuStyle(
-                    completelyOverlap = true,
-                ),
-            ).apply {
-                submitList(menuItems)
-            }
-
-            false -> null
-        }
-    }
+    is BrowserToolbarMenu -> buildMenuController(toMenuItems(onInteraction))
+    is CombinedEventAndMenu -> buildMenuController(menu.toMenuItems(onInteraction))
     else -> null
 }
 
@@ -71,6 +61,18 @@ private fun BrowserToolbarMenu.toMenuItems(
     } else {
         null
     }
+}
+
+private fun buildMenuController(menuItems: List<MenuCandidate>) = when (menuItems.isNotEmpty()) {
+    true -> BrowserMenuController(
+        style = MenuStyle(
+            completelyOverlap = true,
+        ),
+    ).apply {
+        submitList(menuItems)
+    }
+
+    false -> null
 }
 
 private fun BrowserToolbarMenuItem.toDrawableMenuIcon(context: Context) = DrawableMenuIcon(

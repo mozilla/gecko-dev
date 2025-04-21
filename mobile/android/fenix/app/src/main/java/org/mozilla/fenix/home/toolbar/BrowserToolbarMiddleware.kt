@@ -23,7 +23,10 @@ import mozilla.components.compose.browser.toolbar.concept.Action.ActionButton
 import mozilla.components.compose.browser.toolbar.concept.Action.TabCounterAction
 import mozilla.components.compose.browser.toolbar.store.BrowserDisplayToolbarAction
 import mozilla.components.compose.browser.toolbar.store.BrowserToolbarAction
+import mozilla.components.compose.browser.toolbar.store.BrowserToolbarAction.Init
 import mozilla.components.compose.browser.toolbar.store.BrowserToolbarInteraction.BrowserToolbarEvent
+import mozilla.components.compose.browser.toolbar.store.BrowserToolbarInteraction.BrowserToolbarMenu
+import mozilla.components.compose.browser.toolbar.store.BrowserToolbarMenuItem
 import mozilla.components.compose.browser.toolbar.store.BrowserToolbarState
 import mozilla.components.compose.browser.toolbar.store.BrowserToolbarStore
 import mozilla.components.lib.state.Middleware
@@ -31,6 +34,8 @@ import mozilla.components.lib.state.MiddlewareContext
 import mozilla.components.lib.state.ext.flow
 import org.mozilla.fenix.NavGraphDirections
 import org.mozilla.fenix.R
+import org.mozilla.fenix.browser.BrowserAnimator
+import org.mozilla.fenix.browser.browsingmode.BrowsingMode
 import org.mozilla.fenix.browser.browsingmode.BrowsingMode.Normal
 import org.mozilla.fenix.browser.browsingmode.BrowsingMode.Private
 import org.mozilla.fenix.browser.browsingmode.BrowsingModeManager
@@ -39,8 +44,12 @@ import org.mozilla.fenix.components.menu.MenuAccessPoint
 import org.mozilla.fenix.components.toolbar.navbar.shouldAddNavigationBar
 import org.mozilla.fenix.ext.nav
 import org.mozilla.fenix.home.HomeFragmentDirections
+import org.mozilla.fenix.home.toolbar.DisplayActions.MenuClicked
+import org.mozilla.fenix.home.toolbar.TabCounterInteractions.AddNewPrivateTab
+import org.mozilla.fenix.home.toolbar.TabCounterInteractions.AddNewTab
 import org.mozilla.fenix.home.toolbar.TabCounterInteractions.TabCounterClicked
 import org.mozilla.fenix.tabstray.Page
+import mozilla.components.ui.icons.R as iconsR
 
 @VisibleForTesting
 internal sealed class DisplayActions : BrowserToolbarEvent {
@@ -50,6 +59,8 @@ internal sealed class DisplayActions : BrowserToolbarEvent {
 @VisibleForTesting
 internal sealed class TabCounterInteractions : BrowserToolbarEvent {
     data object TabCounterClicked : TabCounterInteractions()
+    data object AddNewTab : TabCounterInteractions()
+    data object AddNewPrivateTab : TabCounterInteractions()
 }
 
 /**
@@ -85,11 +96,12 @@ class BrowserToolbarMiddleware(
         action: BrowserToolbarAction,
     ) {
         when (action) {
-            is BrowserToolbarAction.Init -> {
+            is Init -> {
                 store = context.store as BrowserToolbarStore
                 updateEndBrowserActions()
             }
-            is DisplayActions.MenuClicked -> {
+
+            is MenuClicked -> {
                 dependencies.navController.nav(
                     R.id.homeFragment,
                     HomeFragmentDirections.actionGlobalMenuDialogFragment(
@@ -109,23 +121,36 @@ class BrowserToolbarMiddleware(
                     ),
                 )
             }
+            is AddNewTab -> {
+                openNewTab(Normal)
+            }
+            is AddNewPrivateTab -> {
+                openNewTab(Private)
+            }
 
             else -> next(action)
         }
     }
 
-    private fun getCurrentNumberOfTabsOpened() = when (dependencies.browsingModeManager.mode) {
+    private fun openNewTab(browsingMode: BrowsingMode) {
+        dependencies.browsingModeManager.mode = browsingMode
+        dependencies.navController.nav(
+            R.id.homeFragment,
+            NavGraphDirections.actionGlobalSearchDialog(sessionId = null),
+            BrowserAnimator.getToolbarNavOptions(dependencies.context),
+        )
+    }
+
+    private fun getCurrentNumberOfOpenedTabs() = when (dependencies.browsingModeManager.mode) {
         Normal -> browserStore.state.normalTabs.size
         Private -> browserStore.state.privateTabs.size
     }
 
-    private fun updateEndBrowserActions() {
-        store?.dispatch(
-            BrowserDisplayToolbarAction.UpdateBrowserActions(
-                buildEndBrowserActions(getCurrentNumberOfTabsOpened()),
-            ),
-        )
-    }
+    private fun updateEndBrowserActions() = store?.dispatch(
+        BrowserDisplayToolbarAction.UpdateBrowserActions(
+            buildEndBrowserActions(getCurrentNumberOfOpenedTabs()),
+        ),
+    )
 
     private fun buildEndBrowserActions(tabsCount: Int): List<Action> =
         when (!dependencies.context.shouldAddNavigationBar()) {
@@ -138,17 +163,40 @@ class BrowserToolbarMiddleware(
                     ),
                     showPrivacyMask = dependencies.browsingModeManager.mode == Private,
                     onClick = TabCounterClicked,
+                    onLongClick = buildTabCounterMenu(),
                 ),
                 ActionButton(
                     icon = R.drawable.mozac_ic_ellipsis_vertical_24,
                     contentDescription = R.string.content_description_menu,
                     tint = R.attr.actionPrimary,
-                    onClick = DisplayActions.MenuClicked,
+                    onClick = MenuClicked,
                 ),
             )
 
             false -> emptyList()
         }
+
+    private fun buildTabCounterMenu() = BrowserToolbarMenu {
+        when (dependencies.browsingModeManager.mode) {
+            Normal -> listOf(
+                BrowserToolbarMenuItem(
+                    iconResource = iconsR.drawable.mozac_ic_private_mode_24,
+                    text = R.string.mozac_browser_menu_new_private_tab,
+                    contentDescription = R.string.mozac_browser_menu_new_private_tab,
+                    onClick = AddNewPrivateTab,
+                ),
+            )
+
+            Private -> listOf(
+                BrowserToolbarMenuItem(
+                    iconResource = iconsR.drawable.mozac_ic_plus_24,
+                    text = R.string.mozac_browser_menu_new_tab,
+                    contentDescription = R.string.mozac_browser_menu_new_tab,
+                    onClick = AddNewTab,
+                ),
+            )
+        }
+    }
 
     private fun updateToolbarActionsBasedOnOrientation() {
         with(dependencies.lifecycleOwner) {
