@@ -7,6 +7,7 @@
 #include <mfmediaengine.h>
 #include <unknwnbase.h>
 #include <wtypes.h>
+#include "mozilla/Likely.h"
 #define INITGUID          // Enable DEFINE_PROPERTYKEY()
 #include <propkeydef.h>   // For DEFINE_PROPERTYKEY() definition
 #include <propvarutil.h>  // For InitPropVariantFrom*()
@@ -533,6 +534,17 @@ HRESULT MFCDMParent::LoadFactory(
     MFCDM_RETURN_IF_FAILED(sMediaEngineClassFactory.As(&clsFactory));
     MFCDM_RETURN_IF_FAILED(clsFactory->CreateContentDecryptionModuleFactory(
         MapKeySystem(aKeySystem).get(), IID_PPV_ARGS(&cdmFactory)));
+    if (MOZ_UNLIKELY(!cdmFactory)) {
+      if (IsBeingProfiledOrLogEnabled()) {
+        nsPrintfCString msg(
+            "CreateContentDecryptionModuleFactory succeeded, but still no "
+            "factory?!");
+        MFCDM_PARENT_SLOG("%s", msg.get());
+        PROFILER_MARKER_TEXT("MFCDMParent::LoadFactoryFailed", MEDIA_PLAYBACK,
+                             {}, msg);
+      }
+      return E_UNEXPECTED;
+    }
     aFactoryOut.Swap(cdmFactory);
     MFCDM_PARENT_SLOG("Created factory for %s from platform!",
                       NS_ConvertUTF16toUTF8(aKeySystem).get());
