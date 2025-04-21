@@ -6,6 +6,7 @@ package mozilla.components.compose.browser.toolbar
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -21,9 +22,13 @@ import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.unit.dp
+import mozilla.components.compose.base.progressbar.AnimatedProgressBar
 import mozilla.components.compose.base.theme.AcornTheme
 import mozilla.components.compose.browser.toolbar.concept.Action
 import mozilla.components.compose.browser.toolbar.store.BrowserToolbarInteraction.BrowserToolbarEvent
+import mozilla.components.compose.browser.toolbar.store.ProgressBarConfig
+import mozilla.components.compose.browser.toolbar.store.ProgressBarGravity.Bottom
+import mozilla.components.compose.browser.toolbar.store.ProgressBarGravity.Top
 
 private val ROUNDED_CORNER_SHAPE = RoundedCornerShape(8.dp)
 
@@ -33,6 +38,8 @@ private val ROUNDED_CORNER_SHAPE = RoundedCornerShape(8.dp)
  *
  * @param url The URL to be displayed.
  * @param colors The color scheme to use in the browser display toolbar.
+ * @param progressBarConfig [ProgressBarConfig] configuration for the progress bar.
+ * If `null` a progress bar will not be displayed.
  * @param textStyle [TextStyle] configuration for the URL text.
  * @param navigationActions List of navigation [Action]s to be displayed on left side of the
  * display toolbar (outside of the URL bounding box).
@@ -49,6 +56,7 @@ private val ROUNDED_CORNER_SHAPE = RoundedCornerShape(8.dp)
 fun BrowserDisplayToolbar(
     url: String,
     colors: BrowserDisplayToolbarColors,
+    progressBarConfig: ProgressBarConfig?,
     textStyle: TextStyle = LocalTextStyle.current,
     navigationActions: List<Action> = emptyList(),
     pageActions: List<Action> = emptyList(),
@@ -56,55 +64,69 @@ fun BrowserDisplayToolbar(
     onUrlClicked: () -> Unit = {},
     onInteraction: (BrowserToolbarEvent) -> Unit,
 ) {
-    Row(
+    Box(
         modifier = Modifier
             .background(color = colors.background)
             .fillMaxWidth(),
-        verticalAlignment = Alignment.CenterVertically,
     ) {
-        if (navigationActions.isNotEmpty()) {
-            ActionContainer(
-                actions = navigationActions,
-                onInteraction = onInteraction,
-            )
-        } else {
-            Spacer(modifier = Modifier.width(8.dp))
-        }
-
         Row(
-            modifier = Modifier
-                .padding(vertical = 8.dp)
-                .background(
-                    color = colors.urlBackground,
-                    shape = ROUNDED_CORNER_SHAPE,
-                )
-                .weight(1f),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Text(
-                url,
-                color = colors.text,
-                modifier = Modifier
-                    .clickable { onUrlClicked() }
-                    .padding(8.dp)
-                    .weight(1f),
-                maxLines = 1,
-                style = textStyle,
-            )
+            if (navigationActions.isNotEmpty()) {
+                ActionContainer(
+                    actions = navigationActions,
+                    onInteraction = onInteraction,
+                )
+            } else {
+                Spacer(modifier = Modifier.width(8.dp))
+            }
 
-            ActionContainer(
-                actions = pageActions,
-                onInteraction = onInteraction,
-            )
+            Row(
+                modifier = Modifier
+                    .padding(vertical = 8.dp)
+                    .background(
+                        color = colors.urlBackground,
+                        shape = ROUNDED_CORNER_SHAPE,
+                    )
+                    .weight(1f),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    url,
+                    color = colors.text,
+                    modifier = Modifier
+                        .clickable { onUrlClicked() }
+                        .padding(8.dp)
+                        .weight(1f),
+                    maxLines = 1,
+                    style = textStyle,
+                )
+
+                ActionContainer(
+                    actions = pageActions,
+                    onInteraction = onInteraction,
+                )
+            }
+
+            if (browserActions.isNotEmpty()) {
+                ActionContainer(
+                    actions = browserActions,
+                    onInteraction = onInteraction,
+                )
+            } else {
+                Spacer(modifier = Modifier.width(8.dp))
+            }
         }
 
-        if (browserActions.isNotEmpty()) {
-            ActionContainer(
-                actions = browserActions,
-                onInteraction = onInteraction,
+        if (progressBarConfig != null) {
+            AnimatedProgressBar(
+                progress = progressBarConfig.progress,
+                color = progressBarConfig.color,
+                modifier = when (progressBarConfig.gravity) {
+                    Top -> Modifier.align(Alignment.TopCenter)
+                    Bottom -> Modifier.align(Alignment.BottomCenter)
+                }.fillMaxWidth(),
             )
-        } else {
-            Spacer(modifier = Modifier.width(8.dp))
         }
     }
 }
@@ -119,6 +141,10 @@ private fun BrowserDisplayToolbarPreview() {
                 background = AcornTheme.colors.layer1,
                 urlBackground = AcornTheme.colors.layer3,
                 text = AcornTheme.colors.textPrimary,
+            ),
+            progressBarConfig = ProgressBarConfig(
+                progress = 66,
+                gravity = Top,
             ),
             navigationActions = listOf(
                 Action.ActionButton(

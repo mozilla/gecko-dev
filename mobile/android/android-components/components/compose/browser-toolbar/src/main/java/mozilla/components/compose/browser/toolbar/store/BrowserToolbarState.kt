@@ -4,6 +4,8 @@
 
 package mozilla.components.compose.browser.toolbar.store
 
+import androidx.annotation.IntRange
+import androidx.compose.ui.graphics.Color
 import mozilla.components.compose.browser.toolbar.concept.Action
 import mozilla.components.lib.state.State
 
@@ -46,21 +48,52 @@ enum class Mode {
  *
  * @property hint Text displayed in the toolbar when there's no URL to display
  * (no tab or empty URL).
- * @param navigationActions List of navigation [Action]s to be displayed on left side of the
+ * @property navigationActions List of navigation [Action]s to be displayed on left side of the
  * display toolbar (outside of the URL bounding box).
- * @param pageActions List of page [Action]s to be displayed to the right side of the URL of the
+ * @property pageActions List of page [Action]s to be displayed to the right side of the URL of the
  * display toolbar. Also see:
  * [MDN docs](https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/API/pageAction)
- * @param browserActions List of browser [Action]s to be displayed on the right side of the
+ * @property browserActions List of browser [Action]s to be displayed on the right side of the
  * display toolbar (outside of the URL bounding box). Also see:
  * [MDN docs](https://developer.mozilla.org/en-US/Add-ons/WebExtensions/user_interface/Browser_action)
+ * @property progressBarConfig [ProgressBarConfig] configuration for the progress bar.
+ * If `null` a progress bar will not be displayed.
  */
 data class DisplayState(
     val hint: String = "",
     val navigationActions: List<Action> = emptyList(),
     val pageActions: List<Action> = emptyList(),
     val browserActions: List<Action> = emptyList(),
+    val progressBarConfig: ProgressBarConfig? = null,
 ) : State
+
+/**
+ * @property progress `[0 - 100]` progress to show.
+ * @property gravity Top/bottom gravity of the progress bar.
+ * @property color List of colors to use for the progress bar.
+ * If more are provided then the progress bar will show them as a gradient.
+ * If `null` is provided the default colors will be used.
+ */
+data class ProgressBarConfig(
+    @IntRange(from = 0, to = 100) val progress: Int,
+    val gravity: ProgressBarGravity,
+    val color: List<Color>? = null,
+)
+
+/**
+ * Where should the progress bar be shown in relation to the browser toolbar.
+ */
+sealed class ProgressBarGravity {
+    /**
+     * Show the progress bar at the top of the browser toolbar.
+     */
+    data object Top : ProgressBarGravity()
+
+    /**
+     * Show the progress bar at the bottom of the browser toolbar.
+     */
+    data object Bottom : ProgressBarGravity()
+}
 
 /**
  * Wrapper containing the toolbar edit state.
