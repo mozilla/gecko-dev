@@ -15,6 +15,7 @@ import androidx.lifecycle.repeatOnLifecycle
 import androidx.navigation.NavController
 import kotlinx.coroutines.flow.distinctUntilChangedBy
 import kotlinx.coroutines.launch
+import mozilla.components.browser.state.selector.getNormalOrPrivateTabs
 import mozilla.components.browser.state.selector.normalTabs
 import mozilla.components.browser.state.selector.privateTabs
 import mozilla.components.browser.state.selector.selectedTab
@@ -133,8 +134,21 @@ class BrowserToolbarMiddleware(
             }
             is CloseCurrentTab -> {
                 browserStore.state.selectedTab?.let {
-                    tabsUseCases.removeTab(it.id, selectParentIfExists = true)
-                    appStore.dispatch(CurrentTabClosed(it.content.private))
+                    val isLastTab = browserStore.state.getNormalOrPrivateTabs(it.content.private).size == 1
+                    when (isLastTab) {
+                        true -> {
+                            dependencies.navController.navigate(
+                                BrowserFragmentDirections.actionGlobalHome(
+                                    sessionToDelete = it.id,
+                                ),
+                            )
+                        }
+
+                        false -> {
+                            tabsUseCases.removeTab(it.id, selectParentIfExists = true)
+                            appStore.dispatch(CurrentTabClosed(it.content.private))
+                        }
+                    }
                 }
             }
 

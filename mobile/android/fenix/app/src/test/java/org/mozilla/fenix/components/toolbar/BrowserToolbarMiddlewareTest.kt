@@ -9,6 +9,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.LifecycleRegistry
 import androidx.navigation.NavController
+import androidx.navigation.NavDirections
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import io.mockk.every
 import io.mockk.mockk
@@ -459,7 +460,7 @@ class BrowserToolbarMiddlewareTest {
     }
 
     @Test
-    fun `WHEN clicking on the close tab item in the tab counter long click menu THEN close the current tab`() {
+    fun `GIVEN multiple tabs opened WHEN clicking on the close tab item in the tab counter long click menu THEN close the current tab`() {
         every { testContext.shouldAddNavigationBar() } returns false
         val browsingModeManager = SimpleBrowsingModeManager(Private)
         val navController: NavController = mockk(relaxed = true)
@@ -467,7 +468,45 @@ class BrowserToolbarMiddlewareTest {
         val currentTab = createTab("test.com", private = true)
         val browserStore = BrowserStore(
             BrowserState(
-                tabs = listOf(currentTab),
+                tabs = listOf(currentTab, createTab("firefox.com", private = true)),
+                selectedTabId = currentTab.id,
+            ),
+        )
+        val tabsUseCases: TabsUseCases = mockk(relaxed = true)
+        val middleware = BrowserToolbarMiddleware(appStore, browserStore, tabsUseCases).apply {
+            updateLifecycleDependencies(
+                LifecycleDependencies(testContext, lifecycleOwner, navController, browsingModeManager, mockk()),
+            )
+        }
+        val toolbarStore = BrowserToolbarStore(
+            middleware = listOf(middleware),
+        )
+        val tabCounterButton = toolbarStore.state.displayState.browserActions[0] as TabCounterAction
+        assertEqualsToolbarButton(expectedToolbarButton(2, true), tabCounterButton)
+        val tabCounterMenuItems = (tabCounterButton.onLongClick as BrowserToolbarMenu).items()
+
+        toolbarStore.dispatch((tabCounterMenuItems[3] as BrowserToolbarMenuButton).onClick!!)
+
+        assertEquals(Private, browsingModeManager.mode)
+        verify {
+            tabsUseCases.removeTab(currentTab.id, true)
+            appStore.dispatch(CurrentTabClosed(true))
+        }
+        verify(exactly = 0) {
+            navController.navigate(any<NavDirections>())
+        }
+    }
+
+    @Test
+    fun `GIVEN on the last open tab WHEN clicking on the close tab item in the tab counter long click menu THEN navigate to home before closing the tab`() {
+        every { testContext.shouldAddNavigationBar() } returns false
+        val browsingModeManager = SimpleBrowsingModeManager(Private)
+        val navController: NavController = mockk(relaxed = true)
+        val appStore: AppStore = mockk(relaxed = true)
+        val currentTab = createTab("test.com", private = true)
+        val browserStore = BrowserStore(
+            BrowserState(
+                tabs = listOf(currentTab, createTab("firefox.com")),
                 selectedTabId = currentTab.id,
             ),
         )
@@ -487,9 +526,16 @@ class BrowserToolbarMiddlewareTest {
         toolbarStore.dispatch((tabCounterMenuItems[3] as BrowserToolbarMenuButton).onClick!!)
 
         assertEquals(Private, browsingModeManager.mode)
+        verify(exactly = 0) {
+            tabsUseCases.removeTab(any(), any())
+            appStore.dispatch(any())
+        }
         verify {
-            tabsUseCases.removeTab(currentTab.id, true)
-            appStore.dispatch(CurrentTabClosed(true))
+            navController.navigate(
+                BrowserFragmentDirections.actionGlobalHome(
+                    sessionToDelete = currentTab.id,
+                ),
+            )
         }
     }
 

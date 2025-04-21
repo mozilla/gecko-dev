@@ -443,6 +443,9 @@ class HomeFragment : Fragment() {
             )
         }
 
+        bundleArgs.getString(SESSION_TO_DELETE)?.let {
+            homeViewModel.sessionToDelete = it
+        }
         tabsCleanupFeature.set(
             feature = TabsCleanupFeature(
                 context = requireContext(),
@@ -1642,6 +1645,7 @@ class HomeFragment : Fragment() {
         // Navigation arguments passed to HomeFragment
         const val FOCUS_ON_ADDRESS_BAR = "focusOnAddressBar"
         private const val SCROLL_TO_COLLECTION = "scrollToCollection"
+        private const val SESSION_TO_DELETE = "sessionToDelete"
 
         // Delay for scrolling to the collection header
         private const val ANIM_SCROLL_DELAY = 100L

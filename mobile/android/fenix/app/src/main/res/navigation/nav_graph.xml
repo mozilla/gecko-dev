@@ -223,6 +223,11 @@
         android:name="org.mozilla.fenix.home.HomeFragment"
         tools:layout="@layout/fragment_home">
         <argument
+            android:name="sessionToDelete"
+            android:defaultValue="@null"
+            app:argType="string"
+            app:nullable="true" />
+        <argument
             android:name="focusOnAddressBar"
             android:defaultValue="false"
             app:argType="boolean" />
