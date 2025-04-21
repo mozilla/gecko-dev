@@ -17,6 +17,7 @@ import kotlinx.coroutines.flow.distinctUntilChangedBy
 import kotlinx.coroutines.launch
 import mozilla.components.browser.state.selector.normalTabs
 import mozilla.components.browser.state.selector.privateTabs
+import mozilla.components.browser.state.selector.selectedTab
 import mozilla.components.browser.state.store.BrowserStore
 import mozilla.components.browser.thumbnails.BrowserThumbnails
 import mozilla.components.compose.browser.toolbar.concept.Action
@@ -30,6 +31,7 @@ import mozilla.components.compose.browser.toolbar.store.BrowserToolbarMenuItem.B
 import mozilla.components.compose.browser.toolbar.store.BrowserToolbarMenuItem.BrowserToolbarMenuDivider
 import mozilla.components.compose.browser.toolbar.store.BrowserToolbarState
 import mozilla.components.compose.browser.toolbar.store.BrowserToolbarStore
+import mozilla.components.feature.tabs.TabsUseCases
 import mozilla.components.lib.state.Middleware
 import mozilla.components.lib.state.MiddlewareContext
 import mozilla.components.lib.state.ext.flow
@@ -40,6 +42,7 @@ import org.mozilla.fenix.browser.browsingmode.BrowsingMode.Normal
 import org.mozilla.fenix.browser.browsingmode.BrowsingMode.Private
 import org.mozilla.fenix.browser.browsingmode.BrowsingModeManager
 import org.mozilla.fenix.components.AppStore
+import org.mozilla.fenix.components.appstate.AppAction.CurrentTabClosed
 import org.mozilla.fenix.components.menu.MenuAccessPoint
 import org.mozilla.fenix.components.toolbar.DisplayActions.MenuClicked
 import org.mozilla.fenix.components.toolbar.TabCounterInteractions.AddNewPrivateTab
@@ -72,6 +75,7 @@ internal sealed class TabCounterInteractions : BrowserToolbarEvent {
 class BrowserToolbarMiddleware(
     private val appStore: AppStore,
     private val browserStore: BrowserStore,
+    private val tabsUseCases: TabsUseCases,
 ) : Middleware<BrowserToolbarState, BrowserToolbarAction>, ViewModel() {
     private lateinit var dependencies: LifecycleDependencies
     private var store: BrowserToolbarStore? = null
@@ -128,7 +132,10 @@ class BrowserToolbarMiddleware(
                 openNewTab(Private)
             }
             is CloseCurrentTab -> {
-                // to be added
+                browserStore.state.selectedTab?.let {
+                    tabsUseCases.removeTab(it.id, selectParentIfExists = true)
+                    appStore.dispatch(CurrentTabClosed(it.content.private))
+                }
             }
 
             else -> next(action)
@@ -258,15 +265,21 @@ class BrowserToolbarMiddleware(
          *
          * @param appStore [AppStore] to sync from.
          * @param browserStore [BrowserStore] to sync from.
+         * @param tabsUseCases [TabsUseCases] for managing tabs.
          */
         fun viewModelFactory(
             appStore: AppStore,
             browserStore: BrowserStore,
+            tabsUseCases: TabsUseCases,
         ): ViewModelProvider.Factory = object : ViewModelProvider.Factory {
             @Suppress("UNCHECKED_CAST")
             override fun <T : ViewModel> create(modelClass: Class<T>): T {
                 if (modelClass.isAssignableFrom(BrowserToolbarMiddleware::class.java)) {
-                    return BrowserToolbarMiddleware(appStore, browserStore) as T
+                    return BrowserToolbarMiddleware(
+                        appStore = appStore,
+                        browserStore = browserStore,
+                        tabsUseCases = tabsUseCases,
+                    ) as T
                 }
                 throw IllegalArgumentException("Unknown ViewModel class")
             }

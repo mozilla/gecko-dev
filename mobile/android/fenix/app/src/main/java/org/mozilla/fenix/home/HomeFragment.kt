@@ -467,6 +467,7 @@ class HomeFragment : Fragment() {
                 appStore = requireContext().components.appStore,
                 snackbarDelegate = FenixSnackbarDelegate(binding.dynamicSnackbarContainer),
                 navController = findNavController(),
+                tabsUseCases = requireContext().components.useCases.tabsUseCases,
                 sendTabUseCases = SendTabUseCases(requireComponents.backgroundServices.accountManager),
                 customTabSessionId = null,
             ),

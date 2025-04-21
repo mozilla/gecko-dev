@@ -145,6 +145,15 @@ sealed class AppAction : Action {
     data object SiteDataCleared : AppAction()
 
     /**
+     * Action dispatched when the current tab has been closed.
+     *
+     * @property isPrivate Whether the closed tab was private or not.
+     */
+    data class CurrentTabClosed(
+        val isPrivate: Boolean,
+    ) : AppAction()
+
+    /**
      * Action dispatched when open in firefox action is selected from custom tab.
      */
     data object OpenInFirefoxStarted : AppAction()

@@ -194,6 +194,7 @@ class SettingsFragment : PreferenceFragmentCompat() {
                 appStore = requireContext().components.appStore,
                 snackbarDelegate = FenixSnackbarDelegate(view),
                 navController = findNavController(),
+                tabsUseCases = requireContext().components.useCases.tabsUseCases,
                 sendTabUseCases = null,
                 customTabSessionId = null,
             ),

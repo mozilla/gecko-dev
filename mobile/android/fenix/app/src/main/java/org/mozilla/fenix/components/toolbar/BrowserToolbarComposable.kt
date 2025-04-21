@@ -33,6 +33,7 @@ import mozilla.components.compose.base.theme.AcornTheme
 import mozilla.components.compose.browser.toolbar.BrowserToolbar
 import mozilla.components.compose.browser.toolbar.store.BrowserToolbarState
 import mozilla.components.compose.browser.toolbar.store.BrowserToolbarStore
+import mozilla.components.feature.tabs.TabsUseCases
 import mozilla.components.feature.toolbar.ToolbarBehaviorController
 import org.mozilla.fenix.browser.browsingmode.BrowsingModeManager
 import org.mozilla.fenix.components.AppStore
@@ -54,6 +55,7 @@ import org.mozilla.fenix.utils.Settings
  * @param appStore [AppStore] to sync from.
  * @param browserStore [BrowserStore] used for observing the browsing details.
  * @param browsingModeManager [BrowsingModeManager] for querying the current browsing mode.
+ * @param tabsUseCases [TabsUseCases] for managing tabs.
  * @param thumbnailsFeature [BrowserThumbnails] for requesting screenshots of the current tab.
  * @param settings [Settings] object to get the toolbar position and other settings.
  * @param customTabSession [CustomTabSessionState] if the toolbar is shown in a custom tab.
@@ -68,6 +70,7 @@ class BrowserToolbarComposable(
     private val appStore: AppStore,
     private val browserStore: BrowserStore,
     private val browsingModeManager: BrowsingModeManager,
+    private val tabsUseCases: TabsUseCases,
     private val thumbnailsFeature: BrowserThumbnails?,
     settings: Settings,
     customTabSession: CustomTabSessionState? = null,
@@ -166,7 +169,11 @@ class BrowserToolbarComposable(
         BrowserToolbarMiddleware::class.java ->
             ViewModelProvider(
                 lifecycleOwner,
-                BrowserToolbarMiddleware.viewModelFactory(appStore, browserStore),
+                BrowserToolbarMiddleware.viewModelFactory(
+                    appStore = appStore,
+                    browserStore = browserStore,
+                    tabsUseCases = tabsUseCases,
+                ),
             ).get(BrowserToolbarMiddleware::class.java).also {
                 it.updateLifecycleDependencies(
                     LifecycleDependencies(
