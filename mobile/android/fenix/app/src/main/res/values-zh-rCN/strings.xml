@@ -3390,8 +3390,6 @@
     and the current region (device's detected location) for testing purposes.
   -->
   <string name="debug_drawer_region_tools_title">地区工具</string>
-  <!-- The text label for displaying home region. -->
-  <string name="debug_drawer_home_region_label">本地地区</string>
   <!-- The text label for displaying current region. -->
   <string name="debug_drawer_current_region_label">当前地区</string>
   <!-- The text field label for overriding current region. -->

@@ -3402,7 +3402,7 @@
   <!-- The text field label for overriding current region. -->
   <string name="debug_drawer_override_current_region_label">Geçerli bölgeyi değiştir</string>
   <!-- The title of the button for overriding home and current region. -->
-  <string name="debug_drawer_override_region">Ev bölgesini ve geçerli bölgeyi geçersiz değiştir</string>
+  <string name="debug_drawer_override_region">Ev bölgesini ve geçerli bölgeyi değiştir</string>
   <!--
     Messages explaining how to exit fullscreen mode
 
