@@ -592,7 +592,6 @@ class AsyncPanZoomController {
   const FrameMetrics& Metrics() const;
   FrameMetrics& Metrics();
 
-#ifdef MOZ_WIDGET_ANDROID
   /**
    * Get the CompositorScrollUpdates to be sent to consumers for the current
    * composite.
@@ -602,7 +601,6 @@ class AsyncPanZoomController {
  private:
   // Last CompositorScrollUpdate sent to GeckoView through UIController.
   CompositorScrollUpdate mLastCompositorScrollUpdate;
-#endif  // defined(MOZ_WIDGET_ANDROID)
 
  public:
   wr::MinimapData GetMinimapData() const;

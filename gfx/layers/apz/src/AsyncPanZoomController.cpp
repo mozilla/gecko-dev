@@ -6104,7 +6104,6 @@ bool CompositorScrollUpdate::operator==(
          mZoom == aOther.mZoom && mSource == aOther.mSource;
 }
 
-#ifdef MOZ_WIDGET_ANDROID
 std::vector<CompositorScrollUpdate>
 AsyncPanZoomController::GetCompositorScrollUpdates() {
   RecursiveMutexAutoLock lock(mRecursiveMutex);
@@ -6122,7 +6121,6 @@ AsyncPanZoomController::GetCompositorScrollUpdates() {
 
   return {};
 }
-#endif  // defined(MOZ_WIDGET_ANDROID)
 
 wr::MinimapData AsyncPanZoomController::GetMinimapData() const {
   RecursiveMutexAutoLock lock(mRecursiveMutex);
