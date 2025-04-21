@@ -832,8 +832,8 @@ export class _ExperimentManager {
    * @param {string} slug
    *        The slug of the enrollment to stop.
    * @param {object?} cause
-   *        The cause of this unenrollment. If not provided, "unknown" will be
-   *        used for the unenrollment reason.
+   *        The cause of this unenrollment. All non-object causes will be
+   *        coerced into the "unknown" reason.
    *
    *        See `UnenrollCause` for details.
    */
@@ -848,7 +848,12 @@ export class _ExperimentManager {
       return;
     }
 
-    this._unenroll(enrollment, cause ?? UnenrollmentCause.Unknown());
+    this._unenroll(
+      enrollment,
+      typeof cause === "object" && cause !== null
+        ? cause
+        : UnenrollmentCause.Unknown()
+    );
   }
 
   /**

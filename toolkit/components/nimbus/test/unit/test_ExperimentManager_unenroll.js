@@ -369,3 +369,66 @@ add_task(async function test_unenroll_individualOptOut_statusTelemetry() {
 
   cleanup();
 });
+
+add_task(async function testUnenrollBogusReason() {
+  const { manager, cleanup } = await setupTest();
+
+  await manager.enroll(
+    NimbusTestUtils.factories.recipe("bogus", {
+      branches: [NimbusTestUtils.factories.recipe.branches[0]],
+    })
+  );
+
+  Assert.ok(manager.store.get("bogus").active, "Enrollment active");
+
+  Services.fog.applyServerKnobsConfig(
+    JSON.stringify({
+      metrics_enabled: {
+        "nimbus_events.enrollment_status": true,
+      },
+    })
+  );
+
+  manager.unenroll("bogus", "bogus");
+
+  Assert.deepEqual(
+    Glean.nimbusEvents.enrollmentStatus
+      .testGetValue("events")
+      ?.map(ev => ev.extra),
+    [
+      {
+        slug: "bogus",
+        branch: "control",
+        status: "Disqualified",
+        reason: "Error",
+        error_string: "unknown",
+      },
+    ]
+  );
+
+  Assert.deepEqual(
+    Glean.nimbusEvents.unenrollment.testGetValue("events")?.map(ev => ev.extra),
+    [
+      {
+        experiment: "bogus",
+        branch: "control",
+        reason: "unknown",
+      },
+    ]
+  );
+
+  Assert.deepEqual(
+    Glean.normandy.unenrollNimbusExperiment
+      .testGetValue("events")
+      ?.map(ev => ev.extra),
+    [
+      {
+        value: "bogus",
+        branch: "control",
+        reason: "unknown",
+      },
+    ]
+  );
+
+  cleanup();
+});
