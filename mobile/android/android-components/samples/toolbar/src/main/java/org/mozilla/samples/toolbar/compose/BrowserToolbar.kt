@@ -11,6 +11,7 @@ import mozilla.components.compose.browser.toolbar.BrowserEditToolbar
 import mozilla.components.compose.browser.toolbar.BrowserToolbarColors
 import mozilla.components.compose.browser.toolbar.BrowserToolbarDefaults
 import mozilla.components.compose.browser.toolbar.store.BrowserToolbarStore
+import mozilla.components.lib.state.ext.observeAsComposableState
 import mozilla.components.lib.state.ext.observeAsState
 
 /**
@@ -37,6 +38,7 @@ fun BrowserToolbar(
     url: String = "",
 ) {
     val uiState by store.observeAsState(initialValue = store.state) { it }
+    val progressBarConfig = store.observeAsComposableState { it.displayState.progressBarConfig }.value
 
     val input = when (val editText = uiState.editState.editText) {
         null -> url
@@ -57,6 +59,7 @@ fun BrowserToolbar(
         BrowserDisplayToolbar(
             url = url.takeIf { it.isNotEmpty() } ?: uiState.displayState.hint,
             colors = colors.displayToolbarColors,
+            progressBarConfig = progressBarConfig,
             navigationActions = uiState.displayState.navigationActions,
             pageActions = uiState.displayState.pageActions,
             browserActions = uiState.displayState.browserActions,

@@ -7,18 +7,28 @@ package org.mozilla.samples.toolbar.middleware
 import android.content.Context
 import android.widget.Toast
 import androidx.core.content.ContextCompat
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
+import kotlinx.coroutines.launch
 import mozilla.components.compose.browser.toolbar.concept.Action
 import mozilla.components.compose.browser.toolbar.concept.Action.DropdownAction
 import mozilla.components.compose.browser.toolbar.concept.Action.TabCounterAction
 import mozilla.components.compose.browser.toolbar.store.BrowserDisplayToolbarAction
+import mozilla.components.compose.browser.toolbar.store.BrowserDisplayToolbarAction.UpdateProgressBarConfig
 import mozilla.components.compose.browser.toolbar.store.BrowserToolbarAction
 import mozilla.components.compose.browser.toolbar.store.BrowserToolbarInteraction.BrowserToolbarEvent
 import mozilla.components.compose.browser.toolbar.store.BrowserToolbarInteraction.BrowserToolbarMenu
 import mozilla.components.compose.browser.toolbar.store.BrowserToolbarMenuItem.BrowserToolbarMenuButton
 import mozilla.components.compose.browser.toolbar.store.BrowserToolbarState
+import mozilla.components.compose.browser.toolbar.store.BrowserToolbarStore
 import mozilla.components.compose.browser.toolbar.store.DisplayState
 import mozilla.components.compose.browser.toolbar.store.EditState
 import mozilla.components.compose.browser.toolbar.store.Mode
+import mozilla.components.compose.browser.toolbar.store.ProgressBarConfig
+import mozilla.components.compose.browser.toolbar.store.ProgressBarGravity.Bottom
 import mozilla.components.lib.state.Middleware
 import mozilla.components.lib.state.MiddlewareContext
 import org.mozilla.samples.toolbar.R
@@ -45,11 +55,14 @@ private sealed class TabCounterInteractions : BrowserToolbarEvent {
 }
 
 private const val BATCH_TAB_COUNTER_UPDATES_NUMBER = 10
+private val PROGRESS_RANGE = 0..100
+private const val RELOAD_STEP_SIZE = 5
 
 internal class BrowserToolbarMiddleware(
     initialDependencies: Dependencies,
 ) : Middleware<BrowserToolbarState, BrowserToolbarAction> {
     var dependencies = initialDependencies
+    private lateinit var store: BrowserToolbarStore
 
     private var currentTabsNumber = 0
         set(value) { field = value.coerceAtLeast(0) }
@@ -61,6 +74,8 @@ internal class BrowserToolbarMiddleware(
     ) {
         when (action) {
             is BrowserToolbarAction.Init -> {
+                store = context.store as BrowserToolbarStore
+
                 next(
                     BrowserToolbarAction.Init(
                         mode = Mode.DISPLAY,
@@ -78,6 +93,7 @@ internal class BrowserToolbarMiddleware(
                                 ),
                             ),
                             browserActions = buildDisplayBrowserActions(),
+                            progressBarConfig = buildProgressBar(),
                         ),
                         editState = EditState(
                             editActionsStart = listOfNotNull(
@@ -86,6 +102,8 @@ internal class BrowserToolbarMiddleware(
                         ),
                     ),
                 )
+
+                simulateReload()
             }
 
             is SearchSelectorInteractions -> {
@@ -179,6 +197,32 @@ internal class BrowserToolbarMiddleware(
                 onClick = Remove10TabsClicked,
             ),
         )
+    }
+
+    private fun buildProgressBar(progress: Int = 0) = ProgressBarConfig(
+        progress = progress,
+        gravity = Bottom,
+    )
+
+    private var progressAnimationJob: Job? = null
+    private fun simulateReload() {
+        progressAnimationJob?.cancel()
+
+        progressAnimationJob = CoroutineScope(Dispatchers.Main).launch {
+            loop@ for (progress in PROGRESS_RANGE step RELOAD_STEP_SIZE) {
+                delay(progress * RELOAD_STEP_SIZE.toLong())
+
+                if (!isActive) {
+                    break@loop
+                }
+
+                store.dispatch(
+                    UpdateProgressBarConfig(
+                        buildProgressBar(progress),
+                    ),
+                )
+            }
+        }
     }
 
     companion object {

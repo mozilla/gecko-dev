@@ -6,11 +6,11 @@ package mozilla.components.compose.browser.toolbar
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
 import mozilla.components.browser.state.helper.Target
 import mozilla.components.browser.state.state.SessionState
 import mozilla.components.browser.state.store.BrowserStore
 import mozilla.components.compose.browser.toolbar.store.BrowserToolbarStore
+import mozilla.components.lib.state.ext.observeAsComposableState
 import mozilla.components.lib.state.ext.observeAsState
 
 /**
@@ -46,7 +46,7 @@ fun BrowserToolbar(
         store = browserStore,
         observe = { tab -> tab?.content?.url },
     )
-    val progressBarConfig = remember { uiState.displayState.progressBarConfig }
+    val progressBarConfig = store.observeAsComposableState { it.displayState.progressBarConfig }.value
 
     val url = selectedTab?.content?.url ?: ""
     val input = when (val editText = uiState.editState.editText) {

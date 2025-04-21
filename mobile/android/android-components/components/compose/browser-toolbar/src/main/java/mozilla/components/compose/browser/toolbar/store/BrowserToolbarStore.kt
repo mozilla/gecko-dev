@@ -88,6 +88,12 @@ private fun reduce(state: BrowserToolbarState, action: BrowserToolbarAction): Br
             ),
         )
 
+        is BrowserDisplayToolbarAction.UpdateProgressBarConfig -> state.copy(
+            displayState = state.displayState.copy(
+                progressBarConfig = action.config,
+            ),
+        )
+
         is BrowserToolbarEvent -> {
             // no-op
             // Expected to be handled in middlewares set by integrators.
