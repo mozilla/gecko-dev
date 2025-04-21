@@ -35,7 +35,7 @@ def get_repository_object(
     path = Path(path).resolve()
     if (path / ".hg").is_dir():
         return HgRepository(path, hg=hg)
-    if (path / ".jj").is_dir():
+    if (path / ".jj").is_dir() and jj is not None:
         avoid = os.getenv("MOZ_AVOID_JJ_VCS")
         if avoid not in (None, "0", ""):
             use_jj = False
