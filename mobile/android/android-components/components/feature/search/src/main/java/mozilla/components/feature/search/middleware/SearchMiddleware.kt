@@ -104,6 +104,8 @@ class SearchMiddleware(
         }
     }
 
+    // SuppressWarnings will be removed when [BundleStorage] is entirely removed.
+    @SuppressWarnings("LongMethod")
     private fun loadSearchEngines(
         store: Store<BrowserState, BrowserAction>,
         region: RegionState,
@@ -136,12 +138,20 @@ class SearchMiddleware(
         val hiddenSearchEngineIds = async(ioDispatcher) { metadataStorage.getHiddenSearchEngines() }
         val disabledSearchEngineIds = async(ioDispatcher) { metadataStorage.getDisabledSearchEngineIds() }
         val additionalSearchEngineIds = async(ioDispatcher) { metadataStorage.getAdditionalSearchEngines() }
-        val allAdditionalSearchEngines = async(ioDispatcher) {
-            bundleStorage.load(
-                ids = additionalBundledSearchEngineIds,
-                searchExtraParams = searchExtraParams,
-                coroutineContext = ioDispatcher,
-            )
+        val allAdditionalSearchEngines = if (searchEngineSelectorRepository != null) {
+            async(ioDispatcher) {
+                regionBundle.await().list.filter { searchEngine ->
+                    !searchEngine.isGeneral
+                }
+            }
+        } else {
+            async(ioDispatcher) {
+                bundleStorage.load(
+                    ids = additionalBundledSearchEngineIds,
+                    searchExtraParams = searchExtraParams,
+                    coroutineContext = ioDispatcher,
+                )
+            }
         }
 
         val hiddenSearchEngines = mutableListOf<SearchEngine>()
