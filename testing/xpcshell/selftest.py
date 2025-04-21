@@ -509,7 +509,7 @@ class XPCShellTestsTests(unittest.TestCase):
         """
         testlines = []
         for t in tests:
-            testlines.append('["%s"]' % (t if isinstance(t, (str,)) else t[0]))
+            testlines.append('["%s"]' % (t if isinstance(t, str) else t[0]))
             if isinstance(t, tuple):
                 testlines.extend(t[1:])
         prefslines = []
