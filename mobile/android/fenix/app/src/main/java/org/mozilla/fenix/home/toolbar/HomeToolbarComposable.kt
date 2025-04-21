@@ -37,6 +37,7 @@ import org.mozilla.fenix.components.toolbar.ToolbarPosition.BOTTOM
 import org.mozilla.fenix.components.toolbar.ToolbarPosition.TOP
 import org.mozilla.fenix.databinding.FragmentHomeBinding
 import org.mozilla.fenix.ext.components
+import org.mozilla.fenix.home.toolbar.BrowserToolbarMiddleware.LifecycleDependencies
 import org.mozilla.fenix.utils.Settings
 
 /**
@@ -61,7 +62,11 @@ internal class HomeToolbarComposable(
     private var showDivider by mutableStateOf(true)
 
     private val middleware = ViewModelProvider(lifecycleOwner)[BrowserToolbarMiddleware::class.java].also {
-        it.updateLifecycleDependencies(navController = navController)
+        it.updateLifecycleDependencies(
+            LifecycleDependencies(
+                navController = navController,
+            ),
+        )
     }
 
     private val store = StoreProvider.get(lifecycleOwner) {
