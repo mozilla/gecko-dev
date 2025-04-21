@@ -76,6 +76,11 @@ already_AddRefed<FOG> FOG::GetSingleton() {
     nsresult rv;
     nsCOMPtr<nsIUserIdleService> idleService =
         do_GetService("@mozilla.org/widget/useridleservice;1", &rv);
+    if (NS_FAILED(rv) && xpc::IsInAutomation()) {
+      // bug 1955429: In some tests the idle service is unavailable.
+      // They aren't even testing FOG, so let it slide.
+      return do_AddRef(gFOG);
+    }
     NS_ENSURE_SUCCESS(rv, nullptr);
     MOZ_ASSERT(idleService);
     if (NS_WARN_IF(NS_FAILED(idleService->AddIdleObserver(gFOG, kIdleSecs)))) {
