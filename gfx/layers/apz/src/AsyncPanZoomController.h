@@ -592,6 +592,7 @@ class AsyncPanZoomController {
   const FrameMetrics& Metrics() const;
   FrameMetrics& Metrics();
 
+  class AutoRecordCompositorScrollUpdate;
   /**
    * Get the CompositorScrollUpdates to be sent to consumers for the current
    * composite.
@@ -599,8 +600,13 @@ class AsyncPanZoomController {
   std::vector<CompositorScrollUpdate> GetCompositorScrollUpdates();
 
  private:
-  // Last CompositorScrollUpdate sent to GeckoView through UIController.
-  CompositorScrollUpdate mLastCompositorScrollUpdate;
+  // Compositor scroll updates since the last time
+  // SampleCompositedAsyncTransform() was called.
+  // Access to this field should be protected by mRecursiveMutex.
+  std::vector<CompositorScrollUpdate> mUpdatesSinceLastSample;
+
+  CompositorScrollUpdate::Metrics GetCurrentMetricsForCompositorScrollUpdate(
+      const RecursiveMutexAutoLock& aProofOfApzcLock) const;
 
  public:
   wr::MinimapData GetMinimapData() const;
