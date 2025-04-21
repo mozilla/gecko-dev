@@ -231,85 +231,85 @@ let interfaceNamesInGlobalScope = [
   // IMPORTANT: Do not change this list without review from a DOM peer!
   { name: "FormData", insecureContext: true },
   // IMPORTANT: Do not change this list without review from a DOM peer!
-  { name: "GPU", isEarlyBetaOrEarlier: true },
+  { name: "GPU", earlyBetaOrEarlier: true },
   // IMPORTANT: Do not change this list without review from a DOM peer!
-  { name: "GPUAdapter", isEarlyBetaOrEarlier: true },
+  { name: "GPUAdapter", earlyBetaOrEarlier: true },
   // IMPORTANT: Do not change this list without review from a DOM peer!
-  { name: "GPUAdapterInfo", isEarlyBetaOrEarlier: true },
+  { name: "GPUAdapterInfo", earlyBetaOrEarlier: true },
   // IMPORTANT: Do not change this list without review from a DOM peer!
-  { name: "GPUBindGroup", isEarlyBetaOrEarlier: true },
+  { name: "GPUBindGroup", earlyBetaOrEarlier: true },
   // IMPORTANT: Do not change this list without review from a DOM peer!
-  { name: "GPUBindGroupLayout", isEarlyBetaOrEarlier: true },
+  { name: "GPUBindGroupLayout", earlyBetaOrEarlier: true },
   // IMPORTANT: Do not change this list without review from a DOM peer!
-  { name: "GPUBuffer", isEarlyBetaOrEarlier: true },
+  { name: "GPUBuffer", earlyBetaOrEarlier: true },
   // IMPORTANT: Do not change this list without review from a DOM peer!
-  { name: "GPUBufferUsage", isEarlyBetaOrEarlier: true },
+  { name: "GPUBufferUsage", earlyBetaOrEarlier: true },
   // IMPORTANT: Do not change this list without review from a DOM peer!
-  { name: "GPUCanvasContext", isEarlyBetaOrEarlier: true },
+  { name: "GPUCanvasContext", earlyBetaOrEarlier: true },
   // IMPORTANT: Do not change this list without review from a DOM peer!
-  { name: "GPUColorWrite", isEarlyBetaOrEarlier: true },
+  { name: "GPUColorWrite", earlyBetaOrEarlier: true },
   // IMPORTANT: Do not change this list without review from a DOM peer!
-  { name: "GPUCommandBuffer", isEarlyBetaOrEarlier: true },
+  { name: "GPUCommandBuffer", earlyBetaOrEarlier: true },
   // IMPORTANT: Do not change this list without review from a DOM peer!
-  { name: "GPUCommandEncoder", isEarlyBetaOrEarlier: true },
+  { name: "GPUCommandEncoder", earlyBetaOrEarlier: true },
   // IMPORTANT: Do not change this list without review from a DOM peer!
-  { name: "GPUCompilationInfo", isEarlyBetaOrEarlier: true },
+  { name: "GPUCompilationInfo", earlyBetaOrEarlier: true },
   // IMPORTANT: Do not change this list without review from a DOM peer!
-  { name: "GPUCompilationMessage", isEarlyBetaOrEarlier: true },
+  { name: "GPUCompilationMessage", earlyBetaOrEarlier: true },
   // IMPORTANT: Do not change this list without review from a DOM peer!
-  { name: "GPUComputePassEncoder", isEarlyBetaOrEarlier: true },
+  { name: "GPUComputePassEncoder", earlyBetaOrEarlier: true },
   // IMPORTANT: Do not change this list without review from a DOM peer!
-  { name: "GPUComputePipeline", isEarlyBetaOrEarlier: true },
+  { name: "GPUComputePipeline", earlyBetaOrEarlier: true },
   // IMPORTANT: Do not change this list without review from a DOM peer!
-  { name: "GPUDevice", isEarlyBetaOrEarlier: true },
+  { name: "GPUDevice", earlyBetaOrEarlier: true },
   // IMPORTANT: Do not change this list without review from a DOM peer!
-  { name: "GPUDeviceLostInfo", isEarlyBetaOrEarlier: true },
+  { name: "GPUDeviceLostInfo", earlyBetaOrEarlier: true },
   // IMPORTANT: Do not change this list without review from a DOM peer!
-  { name: "GPUError", isEarlyBetaOrEarlier: true },
+  { name: "GPUError", earlyBetaOrEarlier: true },
   // IMPORTANT: Do not change this list without review from a DOM peer!
-  { name: "GPUExternalTexture", isEarlyBetaOrEarlier: true },
+  { name: "GPUExternalTexture", earlyBetaOrEarlier: true },
   // IMPORTANT: Do not change this list without review from a DOM peer!
-  { name: "GPUInternalError", isEarlyBetaOrEarlier: true },
+  { name: "GPUInternalError", earlyBetaOrEarlier: true },
   // IMPORTANT: Do not change this list without review from a DOM peer!
-  { name: "GPUMapMode", isEarlyBetaOrEarlier: true },
+  { name: "GPUMapMode", earlyBetaOrEarlier: true },
   // IMPORTANT: Do not change this list without review from a DOM peer!
-  { name: "GPUOutOfMemoryError", isEarlyBetaOrEarlier: true },
+  { name: "GPUOutOfMemoryError", earlyBetaOrEarlier: true },
   // IMPORTANT: Do not change this list without review from a DOM peer!
-  { name: "GPUPipelineError", isEarlyBetaOrEarlier: true },
+  { name: "GPUPipelineError", earlyBetaOrEarlier: true },
   // IMPORTANT: Do not change this list without review from a DOM peer!
-  { name: "GPUPipelineLayout", isEarlyBetaOrEarlier: true },
+  { name: "GPUPipelineLayout", earlyBetaOrEarlier: true },
   // IMPORTANT: Do not change this list without review from a DOM peer!
-  { name: "GPUQuerySet", isEarlyBetaOrEarlier: true },
+  { name: "GPUQuerySet", earlyBetaOrEarlier: true },
   // IMPORTANT: Do not change this list without review from a DOM peer!
-  { name: "GPUQueue", isEarlyBetaOrEarlier: true },
+  { name: "GPUQueue", earlyBetaOrEarlier: true },
   // IMPORTANT: Do not change this list without review from a DOM peer!
-  { name: "GPURenderBundle", isEarlyBetaOrEarlier: true },
+  { name: "GPURenderBundle", earlyBetaOrEarlier: true },
   // IMPORTANT: Do not change this list without review from a DOM peer!
-  { name: "GPURenderBundleEncoder", isEarlyBetaOrEarlier: true },
+  { name: "GPURenderBundleEncoder", earlyBetaOrEarlier: true },
   // IMPORTANT: Do not change this list without review from a DOM peer!
-  { name: "GPURenderPassEncoder", isEarlyBetaOrEarlier: true },
+  { name: "GPURenderPassEncoder", earlyBetaOrEarlier: true },
   // IMPORTANT: Do not change this list without review from a DOM peer!
-  { name: "GPURenderPipeline", isEarlyBetaOrEarlier: true },
+  { name: "GPURenderPipeline", earlyBetaOrEarlier: true },
   // IMPORTANT: Do not change this list without review from a DOM peer!
-  { name: "GPUSampler", isEarlyBetaOrEarlier: true },
+  { name: "GPUSampler", earlyBetaOrEarlier: true },
   // IMPORTANT: Do not change this list without review from a DOM peer!
-  { name: "GPUShaderModule", isEarlyBetaOrEarlier: true },
+  { name: "GPUShaderModule", earlyBetaOrEarlier: true },
   // IMPORTANT: Do not change this list without review from a DOM peer!
-  { name: "GPUShaderStage", isEarlyBetaOrEarlier: true },
+  { name: "GPUShaderStage", earlyBetaOrEarlier: true },
   // IMPORTANT: Do not change this list without review from a DOM peer!
-  { name: "GPUSupportedFeatures", isEarlyBetaOrEarlier: true },
+  { name: "GPUSupportedFeatures", earlyBetaOrEarlier: true },
   // IMPORTANT: Do not change this list without review from a DOM peer!
-  { name: "GPUSupportedLimits", isEarlyBetaOrEarlier: true },
+  { name: "GPUSupportedLimits", earlyBetaOrEarlier: true },
   // IMPORTANT: Do not change this list without review from a DOM peer!
-  { name: "GPUTexture", isEarlyBetaOrEarlier: true },
+  { name: "GPUTexture", earlyBetaOrEarlier: true },
   // IMPORTANT: Do not change this list without review from a DOM peer!
-  { name: "GPUTextureUsage", isEarlyBetaOrEarlier: true },
+  { name: "GPUTextureUsage", earlyBetaOrEarlier: true },
   // IMPORTANT: Do not change this list without review from a DOM peer!
-  { name: "GPUTextureView", isEarlyBetaOrEarlier: true },
+  { name: "GPUTextureView", earlyBetaOrEarlier: true },
   // IMPORTANT: Do not change this list without review from a DOM peer!
-  { name: "GPUUncapturedErrorEvent", isEarlyBetaOrEarlier: true },
+  { name: "GPUUncapturedErrorEvent", earlyBetaOrEarlier: true },
   // IMPORTANT: Do not change this list without review from a DOM peer!
-  { name: "GPUValidationError", isEarlyBetaOrEarlier: true },
+  { name: "GPUValidationError", earlyBetaOrEarlier: true },
   // IMPORTANT: Do not change this list without review from a DOM peer!
   { name: "Headers", insecureContext: true },
   // IMPORTANT: Do not change this list without review from a DOM peer!
@@ -524,7 +524,7 @@ let interfaceNamesInGlobalScope = [
   // IMPORTANT: Do not change this list without review from a DOM peer!
   { name: "WebTransportSendStream", insecureContext: false },
   // IMPORTANT: Do not change this list without review from a DOM peer!
-  { name: "WGSLLanguageFeatures", isEarlyBetaOrEarlier: true },
+  { name: "WGSLLanguageFeatures", earlyBetaOrEarlier: true },
   // IMPORTANT: Do not change this list without review from a DOM peer!
   { name: "Worker", insecureContext: true },
   // IMPORTANT: Do not change this list without review from a DOM peer!
