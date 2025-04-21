@@ -25,13 +25,16 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.navigation.NavController
 import mozilla.components.browser.state.helper.Target
 import mozilla.components.browser.state.state.BrowserState
+import mozilla.components.browser.state.store.BrowserStore
 import mozilla.components.compose.base.Divider
 import mozilla.components.compose.base.theme.AcornTheme
 import mozilla.components.compose.browser.toolbar.BrowserToolbar
 import mozilla.components.compose.browser.toolbar.store.BrowserToolbarState
 import mozilla.components.compose.browser.toolbar.store.BrowserToolbarStore
 import org.mozilla.fenix.R
+import org.mozilla.fenix.browser.browsingmode.BrowsingModeManager
 import org.mozilla.fenix.browser.tabstrip.isTabStripEnabled
+import org.mozilla.fenix.components.AppStore
 import org.mozilla.fenix.components.StoreProvider
 import org.mozilla.fenix.components.toolbar.ToolbarPosition.BOTTOM
 import org.mozilla.fenix.components.toolbar.ToolbarPosition.TOP
@@ -48,27 +51,27 @@ import org.mozilla.fenix.utils.Settings
  * @param lifecycleOwner [Fragment] as a [LifecycleOwner] to used to organize lifecycle dependent operations.
  * @param navController [NavController] to use for navigating to other in-app destinations.
  * @param homeBinding [FragmentHomeBinding] which will serve as parent for this composable.
+ * @param appStore [AppStore] to sync from.
+ * @param browserStore [BrowserStore] to sync from.
+ * @param browsingModeManager [BrowsingModeManager] for querying the current browsing mode.
  * @param settings [Settings] for querying various application settings.
  * @param tabStripContent [Composable] as the tab strip content to be displayed together with this toolbar.
  */
+@Suppress("LongParameterList")
 internal class HomeToolbarComposable(
     private val context: Context,
-    lifecycleOwner: Fragment,
+    private val lifecycleOwner: Fragment,
     private val navController: NavController,
     private val homeBinding: FragmentHomeBinding,
+    private val appStore: AppStore,
+    private val browserStore: BrowserStore,
+    private val browsingModeManager: BrowsingModeManager,
     private val settings: Settings,
     private val tabStripContent: @Composable () -> Unit,
 ) : FenixHomeToolbar {
     private var showDivider by mutableStateOf(true)
 
-    private val middleware = ViewModelProvider(lifecycleOwner)[BrowserToolbarMiddleware::class.java].also {
-        it.updateLifecycleDependencies(
-            LifecycleDependencies(
-                navController = navController,
-            ),
-        )
-    }
-
+    private val middleware = getOrCreate<BrowserToolbarMiddleware>()
     private val store = StoreProvider.get(lifecycleOwner) {
         BrowserToolbarStore(
             initialState = BrowserToolbarState(),
@@ -160,5 +163,24 @@ internal class HomeToolbarComposable(
                     }
             }
         }
+    }
+
+    private inline fun <reified T> getOrCreate(): T = when (T::class.java) {
+        BrowserToolbarMiddleware::class.java ->
+            ViewModelProvider(
+                lifecycleOwner,
+                BrowserToolbarMiddleware.viewModelFactory(appStore, browserStore),
+            ).get(BrowserToolbarMiddleware::class.java).also {
+                it.updateLifecycleDependencies(
+                    LifecycleDependencies(
+                        context = context,
+                        lifecycleOwner = lifecycleOwner,
+                        navController = navController,
+                        browsingModeManager = browsingModeManager,
+                    ),
+                )
+            } as T
+
+        else -> throw IllegalArgumentException("Unknown type: ${T::class.java}")
     }
 }

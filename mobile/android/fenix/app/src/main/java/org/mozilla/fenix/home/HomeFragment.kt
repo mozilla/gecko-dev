@@ -589,11 +589,14 @@ class HomeFragment : Fragment() {
     private fun buildToolbar(activity: HomeActivity) =
         when (requireContext().settings().shouldUseComposableToolbar) {
             true -> HomeToolbarComposable(
-                context = requireContext(),
+                context = activity,
                 lifecycleOwner = this,
                 navController = findNavController(),
                 homeBinding = binding,
-                settings = requireContext().settings(),
+                appStore = activity.components.appStore,
+                browserStore = activity.components.core.store,
+                browsingModeManager = activity.browsingModeManager,
+                settings = activity.settings(),
                 tabStripContent = { TabStrip() },
             )
 
