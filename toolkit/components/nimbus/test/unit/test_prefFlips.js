@@ -2172,6 +2172,7 @@ add_task(async function test_prefFlips_restore_unenroll() {
           "test.pref.please.ignore": null,
         },
       },
+      lastSeen: new Date().toJSON(),
     };
 
     const store = ExperimentFakes.store();
@@ -2680,6 +2681,7 @@ add_task(async function test_prefFlips_restore_failure() {
           [PREF]: "original-value",
         },
       },
+      lastSeen: new Date().toJSON(),
     };
 
     const store = ExperimentFakes.store();
