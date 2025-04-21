@@ -4,23 +4,53 @@
 
 package org.mozilla.fenix.components.toolbar
 
+import android.content.Context
+import androidx.annotation.VisibleForTesting
+import androidx.lifecycle.Lifecycle.State.RESUMED
+import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.repeatOnLifecycle
 import androidx.navigation.NavController
+import kotlinx.coroutines.flow.distinctUntilChangedBy
+import kotlinx.coroutines.launch
+import mozilla.components.browser.state.selector.normalTabs
+import mozilla.components.browser.state.selector.privateTabs
+import mozilla.components.browser.state.store.BrowserStore
+import mozilla.components.browser.thumbnails.BrowserThumbnails
 import mozilla.components.compose.browser.toolbar.concept.Action
-import mozilla.components.compose.browser.toolbar.store.BrowserDisplayToolbarAction.AddBrowserAction
+import mozilla.components.compose.browser.toolbar.concept.Action.ActionButton
+import mozilla.components.compose.browser.toolbar.concept.Action.TabCounterAction
+import mozilla.components.compose.browser.toolbar.store.BrowserDisplayToolbarAction
 import mozilla.components.compose.browser.toolbar.store.BrowserToolbarAction
 import mozilla.components.compose.browser.toolbar.store.BrowserToolbarInteraction.BrowserToolbarEvent
 import mozilla.components.compose.browser.toolbar.store.BrowserToolbarState
+import mozilla.components.compose.browser.toolbar.store.BrowserToolbarStore
 import mozilla.components.lib.state.Middleware
 import mozilla.components.lib.state.MiddlewareContext
+import mozilla.components.lib.state.ext.flow
 import org.mozilla.fenix.R
 import org.mozilla.fenix.browser.BrowserFragmentDirections
+import org.mozilla.fenix.browser.browsingmode.BrowsingMode.Normal
+import org.mozilla.fenix.browser.browsingmode.BrowsingMode.Private
+import org.mozilla.fenix.browser.browsingmode.BrowsingModeManager
+import org.mozilla.fenix.components.AppStore
 import org.mozilla.fenix.components.menu.MenuAccessPoint
 import org.mozilla.fenix.components.toolbar.DisplayActions.MenuClicked
+import org.mozilla.fenix.components.toolbar.TabCounterInteractions.TabCounterClicked
+import org.mozilla.fenix.components.toolbar.navbar.shouldAddNavigationBar
 import org.mozilla.fenix.ext.nav
+import org.mozilla.fenix.tabstray.Page
 
-private sealed class DisplayActions : BrowserToolbarEvent {
+@VisibleForTesting
+internal sealed class DisplayActions : BrowserToolbarEvent {
     data object MenuClicked : DisplayActions()
+}
+
+@VisibleForTesting
+internal sealed class TabCounterInteractions : BrowserToolbarEvent {
+    data object TabCounterClicked : TabCounterInteractions()
 }
 
 /**
@@ -28,8 +58,12 @@ private sealed class DisplayActions : BrowserToolbarEvent {
  *
  * This is also a [ViewModel] allowing to be easily persisted between activity restarts.
  */
-class BrowserToolbarMiddleware : Middleware<BrowserToolbarState, BrowserToolbarAction>, ViewModel() {
+class BrowserToolbarMiddleware(
+    private val appStore: AppStore,
+    private val browserStore: BrowserStore,
+) : Middleware<BrowserToolbarState, BrowserToolbarAction>, ViewModel() {
     private lateinit var dependencies: LifecycleDependencies
+    private var store: BrowserToolbarStore? = null
 
     /**
      * Updates the [LifecycleDependencies] of this middleware.
@@ -38,6 +72,9 @@ class BrowserToolbarMiddleware : Middleware<BrowserToolbarState, BrowserToolbarA
      */
     fun updateLifecycleDependencies(dependencies: LifecycleDependencies) {
         this.dependencies = dependencies
+
+        updateToolbarActionsBasedOnOrientation()
+        updateTabsCount()
     }
 
     override fun invoke(
@@ -47,16 +84,9 @@ class BrowserToolbarMiddleware : Middleware<BrowserToolbarState, BrowserToolbarA
     ) {
         when (action) {
             is BrowserToolbarAction.Init -> {
-                context.dispatch(
-                    AddBrowserAction(
-                        Action.ActionButton(
-                            icon = R.drawable.mozac_ic_ellipsis_vertical_24,
-                            contentDescription = R.string.content_description_menu,
-                            tint = R.attr.actionPrimary,
-                            onClick = MenuClicked,
-                        ),
-                    ),
-                )
+                store = context.store as BrowserToolbarStore
+
+                updateEndBrowserActions()
             }
             is MenuClicked -> {
                 dependencies.navController.nav(
@@ -67,16 +97,124 @@ class BrowserToolbarMiddleware : Middleware<BrowserToolbarState, BrowserToolbarA
                 )
             }
 
+            is TabCounterClicked -> {
+                dependencies.thumbnailsFeature?.requestScreenshot()
+
+                dependencies.navController.nav(
+                    R.id.browserFragment,
+                    BrowserFragmentDirections.actionGlobalTabsTrayFragment(
+                        page = when (dependencies.browsingModeManager.mode) {
+                            Normal -> Page.NormalTabs
+                            Private -> Page.PrivateTabs
+                        },
+                    ),
+                )
+            }
+
             else -> next(action)
+        }
+    }
+
+    private fun getCurrentNumberOfOpenedTabs() = when (dependencies.browsingModeManager.mode) {
+        Normal -> browserStore.state.normalTabs.size
+        Private -> browserStore.state.privateTabs.size
+    }
+
+    private fun updateEndBrowserActions() = store?.dispatch(
+        BrowserDisplayToolbarAction.UpdateBrowserActions(
+            buildEndBrowserActions(getCurrentNumberOfOpenedTabs()),
+        ),
+    )
+
+    private fun buildEndBrowserActions(tabsCount: Int): List<Action> =
+        when (!dependencies.context.shouldAddNavigationBar()) {
+            true -> listOf(
+                TabCounterAction(
+                    count = tabsCount,
+                    contentDescription = dependencies.context.getString(
+                        R.string.mozac_tab_counter_open_tab_tray,
+                        tabsCount.toString(),
+                    ),
+                    showPrivacyMask = dependencies.browsingModeManager.mode == Private,
+                    onClick = TabCounterClicked,
+                ),
+                ActionButton(
+                    icon = R.drawable.mozac_ic_ellipsis_vertical_24,
+                    contentDescription = R.string.content_description_menu,
+                    tint = R.attr.actionPrimary,
+                    onClick = MenuClicked,
+                ),
+            )
+
+            false -> emptyList()
+        }
+
+    private fun updateToolbarActionsBasedOnOrientation() {
+        with(dependencies.lifecycleOwner) {
+            lifecycleScope.launch {
+                repeatOnLifecycle(RESUMED) {
+                    appStore.flow()
+                        .distinctUntilChangedBy { it.orientation }
+                        .collect {
+                            updateEndBrowserActions()
+                        }
+                }
+            }
+        }
+    }
+
+    private fun updateTabsCount() {
+        with(dependencies.lifecycleOwner) {
+            this.lifecycleScope.launch {
+                repeatOnLifecycle(RESUMED) {
+                    browserStore.flow()
+                        .distinctUntilChangedBy { it.tabs }
+                        .collect {
+                            updateEndBrowserActions()
+                        }
+                }
+            }
         }
     }
 
     /**
      * Lifecycle dependencies for the [BrowserToolbarMiddleware].
      *
+     * @property context [Context] used for various system interactions.
+     * @property lifecycleOwner [LifecycleOwner] depending on which lifecycle related operations will be scheduled.
      * @property navController [NavController] to use for navigating to other in-app destinations.
+     * @property browsingModeManager [BrowsingModeManager] for querying the current browsing mode.
+     * @property thumbnailsFeature [BrowserThumbnails] for requesting screenshots of the current tab.
      */
     data class LifecycleDependencies(
+        val context: Context,
+        val lifecycleOwner: LifecycleOwner,
         val navController: NavController,
+        val browsingModeManager: BrowsingModeManager,
+        val thumbnailsFeature: BrowserThumbnails?,
     )
+
+    /**
+     * Static functionalities of the [BrowserToolbarMiddleware].
+     */
+    companion object {
+        /**
+         * [ViewModelProvider.Factory] for creating a [BrowserToolbarMiddleware].
+         *
+         * @param appStore [AppStore] to sync from.
+         * @param browserStore [BrowserStore] to sync from.
+         */
+        fun viewModelFactory(
+            appStore: AppStore,
+            browserStore: BrowserStore,
+        ): ViewModelProvider.Factory = object : ViewModelProvider.Factory {
+            @Suppress("UNCHECKED_CAST")
+            override fun <T : ViewModel> create(modelClass: Class<T>): T {
+                if (modelClass.isAssignableFrom(BrowserToolbarMiddleware::class.java)) {
+                    return BrowserToolbarMiddleware(appStore, browserStore) as T
+                }
+                throw IllegalArgumentException("Unknown ViewModel class")
+            }
+        }
+    }
 }

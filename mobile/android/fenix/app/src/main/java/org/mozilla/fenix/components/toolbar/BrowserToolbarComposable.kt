@@ -27,12 +27,15 @@ import androidx.navigation.NavController
 import mozilla.components.browser.state.helper.Target
 import mozilla.components.browser.state.state.CustomTabSessionState
 import mozilla.components.browser.state.store.BrowserStore
+import mozilla.components.browser.thumbnails.BrowserThumbnails
 import mozilla.components.compose.base.Divider
 import mozilla.components.compose.base.theme.AcornTheme
 import mozilla.components.compose.browser.toolbar.BrowserToolbar
 import mozilla.components.compose.browser.toolbar.store.BrowserToolbarState
 import mozilla.components.compose.browser.toolbar.store.BrowserToolbarStore
 import mozilla.components.feature.toolbar.ToolbarBehaviorController
+import org.mozilla.fenix.browser.browsingmode.BrowsingModeManager
+import org.mozilla.fenix.components.AppStore
 import org.mozilla.fenix.components.StoreProvider
 import org.mozilla.fenix.components.toolbar.BrowserToolbarMiddleware.LifecycleDependencies
 import org.mozilla.fenix.components.toolbar.ToolbarPosition.BOTTOM
@@ -48,7 +51,10 @@ import org.mozilla.fenix.utils.Settings
  * @param lifecycleOwner [Fragment] as a [LifecycleOwner] to used to organize lifecycle dependent operations.
  * @param container [ViewGroup] which will serve as parent of this View.
  * @param navController [NavController] to use for navigating to other in-app destinations.
+ * @param appStore [AppStore] to sync from.
  * @param browserStore [BrowserStore] used for observing the browsing details.
+ * @param browsingModeManager [BrowsingModeManager] for querying the current browsing mode.
+ * @param thumbnailsFeature [BrowserThumbnails] for requesting screenshots of the current tab.
  * @param settings [Settings] object to get the toolbar position and other settings.
  * @param customTabSession [CustomTabSessionState] if the toolbar is shown in a custom tab.
  * @param tabStripContent Composable content for the tab strip.
@@ -56,10 +62,13 @@ import org.mozilla.fenix.utils.Settings
 @Suppress("LongParameterList")
 class BrowserToolbarComposable(
     private val context: Context,
-    lifecycleOwner: Fragment,
+    private val lifecycleOwner: Fragment,
     container: ViewGroup,
     private val navController: NavController,
+    private val appStore: AppStore,
     private val browserStore: BrowserStore,
+    private val browsingModeManager: BrowsingModeManager,
+    private val thumbnailsFeature: BrowserThumbnails?,
     settings: Settings,
     customTabSession: CustomTabSessionState? = null,
     private val tabStripContent: @Composable () -> Unit,
@@ -70,14 +79,7 @@ class BrowserToolbarComposable(
 ) {
     private var showDivider by mutableStateOf(true)
 
-    private val middleware = ViewModelProvider(lifecycleOwner)[BrowserToolbarMiddleware::class.java].also {
-        it.updateLifecycleDependencies(
-            LifecycleDependencies(
-                navController = navController,
-            ),
-        )
-    }
-
+    private val middleware = getOrCreate<BrowserToolbarMiddleware>()
     private val store = StoreProvider.get(lifecycleOwner) {
         BrowserToolbarStore(
             initialState = BrowserToolbarState(),
@@ -158,5 +160,25 @@ class BrowserToolbarComposable(
 
     override fun updateDividerVisibility(isVisible: Boolean) {
         showDivider = isVisible
+    }
+
+    private inline fun <reified T> getOrCreate(): T = when (T::class.java) {
+        BrowserToolbarMiddleware::class.java ->
+            ViewModelProvider(
+                lifecycleOwner,
+                BrowserToolbarMiddleware.viewModelFactory(appStore, browserStore),
+            ).get(BrowserToolbarMiddleware::class.java).also {
+                it.updateLifecycleDependencies(
+                    LifecycleDependencies(
+                        context = context,
+                        lifecycleOwner = lifecycleOwner,
+                        navController = navController,
+                        browsingModeManager = browsingModeManager,
+                        thumbnailsFeature = thumbnailsFeature,
+                    ),
+                )
+            } as T
+
+        else -> throw IllegalArgumentException("Unknown type: ${T::class.java}")
     }
 }
