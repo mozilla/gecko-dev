@@ -127,6 +127,8 @@
   <string name="address_bar_swipe_cfr_title" tools:ignore="UnusedResources" moz:removedIn="139">滑动工具栏切换标签页</string>
   <!-- Text for the message displayed in the contextual feature recommendation popup promoting swipe of address bar. -->
   <string name="address_bar_swipe_cfr_message" tools:ignore="UnusedResources" moz:removedIn="139">向左或向右滑动以切换，于最后一个标签页向左滑动可打开新标签页。</string>
+  <!-- Text for the message displayed in the contextual feature recommendation popup promoting swipe of address bar. -->
+  <string name="address_bar_swipe_cfr_message_2">向左或向右滑动工具栏即可切换标签页。</string>
   <!-- Text for the info dialog when camera permissions have been denied but user tries to access a camera feature. -->
   <string name="camera_permissions_needed_message">需要访问相机。请前往 Android 设置，点按“权限”，然后点按“允许”。</string>
   <!-- Text for the positive action button to go to Android Settings to grant permissions. -->
@@ -770,6 +772,8 @@
   <string name="preferences_https_only_title">HTTPS-Only 模式</string>
   <!-- Preference title for using the screen lock to hide tabs in private browsing -->
   <string name="preferences_pbm_lock_screen_title">使用屏幕锁定方式隐藏隐私浏览中的标签页</string>
+  <!-- Informs the user how to access the tabs when "Use screen lock to hide tabs in private browsing" is enabled -->
+  <string name="preferences_pbm_lock_screen_summary">用指纹、人脸解锁或 PIN 码查看标签页。</string>
   <!-- Label for cookie banner section in quick settings panel. -->
   <string name="cookie_banner_blocker">Cookie 横幅拦截器</string>
   <!-- Preference for removing cookie/consent banners from sites automatically in private mode. See reduce_cookie_banner_summary for additional context. -->
@@ -1518,8 +1522,12 @@
   <string name="download_item_in_progress_description" tools:ignore="UnusedResources">%1$s / %2$s • 剩余 %3$s</string>
   <!-- Text to indicate that an in progress download is paused. -->
   <string name="download_item_status_paused" tools:ignore="UnusedResources">已暂停</string>
+  <!-- Text to indicate that the download speed of an in progress download is being calculated. -->
+  <string name="download_item_download_speed_pending" tools:ignore="UnusedResources">测算中</string>
   <!-- Text to indicate that a download has failed to download. -->
   <string name="download_item_status_failed" tools:ignore="UnusedResources">下载失败</string>
+  <!-- Placeholder text to indicate that users can use the search bar to search for a download. -->
+  <string name="download_search_placeholder" tools:ignore="UnusedResources">搜索下载项</string>
   <!-- Text to indicate that no downloads match the search query. -->
   <string name="download_search_no_results_found" tools:ignore="UnusedResources">未找到结果</string>
   <!-- Text for the "Select all" button, which selects all downloaded items in the downloads list. -->
@@ -3374,8 +3382,20 @@
     The title of the glean debugging feature
   -->
   <string name="glean_debug_tools_title">Glean 调试工具</string>
+  <!--
+    Debug drawer region tools
+
+    Title of the Region tools in the Debug Drawer.
+    This tool allows temporarily overriding the home region (user's default locale)
+    and the current region (device's detected location) for testing purposes.
+  -->
+  <string name="debug_drawer_region_tools_title">地区工具</string>
   <!-- The text label for displaying home region. -->
   <string name="debug_drawer_home_region_label">本地地区</string>
+  <!-- The text label for displaying current region. -->
+  <string name="debug_drawer_current_region_label">当前地区</string>
+  <!-- The text field label for overriding current region. -->
+  <string name="debug_drawer_override_current_region_label">覆盖当前地区</string>
   <!--
     Messages explaining how to exit fullscreen mode
 
@@ -3504,6 +3524,12 @@
   <string name="setup_checklist_group_customize">定制 %1$s</string>
   <!-- The title of the 'helpful tools' group in the setup checklist -->
   <string name="setup_checklist_group_helpful_tools">实用工具</string>
+  <!--
+    ===== Setup checklist feature: Button =====
+
+    Text for the 'remove' button for the setup checklist
+  -->
+  <string name="setup_checklist_button_remove">移除核对清单</string>
   <!--
     ===== Setup checklist feature: Accessibility =====
 
