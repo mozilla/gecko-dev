@@ -744,7 +744,7 @@ TimerThread::Run() {
   // TODO: Make mAllowedEarlyFiringMicroseconds const and initialize it in the
   // constructor.
   mAllowedEarlyFiringMicroseconds = 250;
-  const TimeDuration allowedEarlyFiring =
+  const TimeDuration normalAllowedEarlyFiring =
       TimeDuration::FromMicroseconds(mAllowedEarlyFiringMicroseconds);
 
   // Queue for tracking of how many timers are fired on each wake-up. We need to
@@ -794,6 +794,14 @@ TimerThread::Run() {
       }
       waitFor = TimeDuration::FromMilliseconds(milliseconds);
     } else {
+      // Determine how early we are going to allow timers to fire. In chaos mode
+      // we mess with this a little bit.
+      const TimeDuration allowedEarlyFiring =
+          !chaosModeActive
+              ? normalAllowedEarlyFiring
+              : TimeDuration::FromMicroseconds(ChaosMode::randomUint32LessThan(
+                    4 * mAllowedEarlyFiringMicroseconds));
+
       waitFor = TimeDuration::Forever();
       TimeStamp now = TimeStamp::Now();
 
@@ -868,19 +876,14 @@ TimerThread::Run() {
         // resolution. We use mAllowedEarlyFiringMicroseconds, calculated
         // before, to do the optimal rounding (i.e., of how to decide what
         // interval is so small we should not wait at all).
-        double microseconds = (timeout - now).ToMicroseconds();
+        const TimeDuration timeToNextTimer = timeout - now;
 
         // The mean value of sFractions must be 1 to ensure that the average of
         // a long sequence of timeouts converges to the actual sum of their
         // times.
         static constexpr double sChaosFractions[] = {0.0, 0.25, 0.5, 0.75,
                                                      1.0, 1.75, 2.75};
-        if (chaosModeActive) {
-          microseconds *= sChaosFractions[ChaosMode::randomUint32LessThan(
-              std::size(sChaosFractions))];
-        }
-
-        if (microseconds < mAllowedEarlyFiringMicroseconds) {
+        if (timeToNextTimer < allowedEarlyFiring) {
           goto next;  // round down; execute event now
         }
 
