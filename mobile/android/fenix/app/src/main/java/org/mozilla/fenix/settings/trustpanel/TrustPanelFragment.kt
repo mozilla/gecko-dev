@@ -11,16 +11,24 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import androidx.activity.compose.BackHandler
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.AnimatedContentTransitionScope
+import androidx.compose.animation.ContentTransform
+import androidx.compose.animation.SizeTransform
+import androidx.compose.animation.core.FastOutLinearInEasing
+import androidx.compose.animation.core.LinearOutSlowInEasing
+import androidx.compose.animation.togetherWith
+import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.ComposeView
 import androidx.compose.ui.platform.ViewCompositionStrategy
 import androidx.core.content.ContextCompat
-import androidx.navigation.compose.NavHost
-import androidx.navigation.compose.composable
-import androidx.navigation.compose.rememberNavController
 import androidx.navigation.fragment.findNavController
 import androidx.navigation.fragment.navArgs
 import com.google.android.material.bottomsheet.BottomSheetBehavior
@@ -48,18 +56,22 @@ import org.mozilla.fenix.settings.trustpanel.middleware.TrustPanelTelemetryMiddl
 import org.mozilla.fenix.settings.trustpanel.store.TrustPanelAction
 import org.mozilla.fenix.settings.trustpanel.store.TrustPanelStore
 import org.mozilla.fenix.settings.trustpanel.store.WebsitePermission
-import org.mozilla.fenix.settings.trustpanel.ui.CLEAR_SITE_DATA_DIALOG_ROUTE
-import org.mozilla.fenix.settings.trustpanel.ui.CONNECTION_SECURITY_PANEL_ROUTE
 import org.mozilla.fenix.settings.trustpanel.ui.ClearSiteDataDialog
 import org.mozilla.fenix.settings.trustpanel.ui.ConnectionSecurityPanel
-import org.mozilla.fenix.settings.trustpanel.ui.PROTECTION_PANEL_ROUTE
 import org.mozilla.fenix.settings.trustpanel.ui.ProtectionPanel
-import org.mozilla.fenix.settings.trustpanel.ui.TRACKERS_PANEL_ROUTE
-import org.mozilla.fenix.settings.trustpanel.ui.TRACKER_CATEGORY_DETAILS_PANEL_ROUTE
 import org.mozilla.fenix.settings.trustpanel.ui.TrackerCategoryDetailsPanel
 import org.mozilla.fenix.settings.trustpanel.ui.TrackersBlockedPanel
 import org.mozilla.fenix.theme.FirefoxTheme
 import org.mozilla.fenix.trackingprotection.TrackerBuckets
+import org.mozilla.fenix.utils.DELAY_MS_MAIN_MENU
+import org.mozilla.fenix.utils.DELAY_MS_SUB_MENU
+import org.mozilla.fenix.utils.DURATION_MS_MAIN_MENU
+import org.mozilla.fenix.utils.DURATION_MS_SUB_MENU
+import org.mozilla.fenix.utils.contentGrowth
+import org.mozilla.fenix.utils.enterMenu
+import org.mozilla.fenix.utils.enterSubmenu
+import org.mozilla.fenix.utils.exitMenu
+import org.mozilla.fenix.utils.exitSubmenu
 
 /**
  * A bottom sheet dialog fragment displaying the unified trust panel.
@@ -106,56 +118,54 @@ class TrustPanelFragment : BottomSheetDialogFragment() {
 
         setContent {
             FirefoxTheme {
+                val components = components
+                val trackingProtectionUseCases = components.useCases.trackingProtectionUseCases
+                val settings = components.settings
+
+                val coroutineScope = rememberCoroutineScope()
+                val store = remember {
+                    TrustPanelStore(
+                        settings = settings,
+                        isTrackingProtectionEnabled = args.isTrackingProtectionEnabled,
+                        sessionState = components.core.store.state.findTabOrCustomTab(args.sessionId),
+                        sitePermissions = args.sitePermissions,
+                        permissionHighlights = args.permissionHighlights,
+                        isPermissionBlockedByAndroid = { phoneFeature ->
+                            !phoneFeature.isAndroidPermissionGranted(requireContext())
+                        },
+                        middleware = listOf(
+                            TrustPanelMiddleware(
+                                appStore = components.appStore,
+                                engine = components.core.engine,
+                                publicSuffixList = components.publicSuffixList,
+                                sessionUseCases = components.useCases.sessionUseCases,
+                                trackingProtectionUseCases = trackingProtectionUseCases,
+                                settings = settings,
+                                permissionStorage = components.core.permissionStorage,
+                                requestPermissionsLauncher = requestPermissionsLauncher,
+                                onDismiss = {
+                                    withContext(Dispatchers.Main) {
+                                        this@TrustPanelFragment.dismiss()
+                                    }
+                                },
+                                scope = coroutineScope,
+                            ),
+                            TrustPanelNavigationMiddleware(
+                                navController = findNavController(),
+                                privacySecurityPrefKey = requireContext().getString(
+                                    R.string.pref_key_privacy_security_category,
+                                ),
+                                scope = coroutineScope,
+                            ),
+                            TrustPanelTelemetryMiddleware(),
+                        ),
+                    )
+                }
+
                 MenuDialogBottomSheet(
                     onRequestDismiss = ::dismiss,
                     handlebarContentDescription = "",
                 ) {
-                    val components = components
-                    val trackingProtectionUseCases = components.useCases.trackingProtectionUseCases
-                    val settings = components.settings
-
-                    val navHostController = rememberNavController()
-                    val coroutineScope = rememberCoroutineScope()
-                    val store = remember {
-                        TrustPanelStore(
-                            settings = settings,
-                            isTrackingProtectionEnabled = args.isTrackingProtectionEnabled,
-                            sessionState = components.core.store.state.findTabOrCustomTab(args.sessionId),
-                            sitePermissions = args.sitePermissions,
-                            permissionHighlights = args.permissionHighlights,
-                            isPermissionBlockedByAndroid = { phoneFeature ->
-                                !phoneFeature.isAndroidPermissionGranted(requireContext())
-                            },
-                            middleware = listOf(
-                                TrustPanelMiddleware(
-                                    appStore = components.appStore,
-                                    engine = components.core.engine,
-                                    publicSuffixList = components.publicSuffixList,
-                                    sessionUseCases = components.useCases.sessionUseCases,
-                                    trackingProtectionUseCases = trackingProtectionUseCases,
-                                    settings = settings,
-                                    permissionStorage = components.core.permissionStorage,
-                                    requestPermissionsLauncher = requestPermissionsLauncher,
-                                    onDismiss = {
-                                        withContext(Dispatchers.Main) {
-                                            this@TrustPanelFragment.dismiss()
-                                        }
-                                    },
-                                    scope = coroutineScope,
-                                ),
-                                TrustPanelNavigationMiddleware(
-                                    navController = findNavController(),
-                                    navHostController = navHostController,
-                                    privacySecurityPrefKey = requireContext().getString(
-                                        R.string.pref_key_privacy_security_category,
-                                    ),
-                                    scope = coroutineScope,
-                                ),
-                                TrustPanelTelemetryMiddleware(),
-                            ),
-                        )
-                    }
-
                     val baseDomain by store.observeAsState(initialValue = null) { state ->
                         state.baseDomain
                     }
@@ -204,6 +214,23 @@ class TrustPanelFragment : BottomSheetDialogFragment() {
                         }
                     }
 
+                    val initRoute = Route.ProtectionPanel
+
+                    var contentState: Route by remember { mutableStateOf(initRoute) }
+
+                    BackHandler {
+                        when (contentState) {
+                            Route.TrackersPanel,
+                            Route.ConnectionSecurityPanel,
+                            -> contentState = Route.ProtectionPanel
+
+                            Route.TrackerCategoryDetailsPanel,
+                            -> contentState = Route.TrackersPanel
+
+                            else -> this@TrustPanelFragment.dismissAllowingStateLoss()
+                        }
+                    }
+
                     observeTrackersChange(components.core.store) {
                         trackingProtectionUseCases.fetchTrackingLogs(
                             tabId = args.sessionId,
@@ -216,94 +243,131 @@ class TrustPanelFragment : BottomSheetDialogFragment() {
                         )
                     }
 
-                    NavHost(
-                        navController = navHostController,
-                        startDestination = PROTECTION_PANEL_ROUTE,
-                    ) {
-                        composable(route = PROTECTION_PANEL_ROUTE) {
-                            ProtectionPanel(
-                                url = args.url,
-                                title = args.title,
-                                icon = sessionState?.content?.icon,
-                                isSecured = args.isSecured,
-                                isTrackingProtectionEnabled = isTrackingProtectionEnabled,
-                                numberOfTrackersBlocked = numberOfTrackersBlocked,
-                                websitePermissions = websitePermissions.filter { it.isVisible },
-                                onTrackerBlockedMenuClick = {
-                                    store.dispatch(TrustPanelAction.Navigate.TrackersPanel)
-                                },
-                                onTrackingProtectionToggleClick = {
-                                    store.dispatch(TrustPanelAction.ToggleTrackingProtection)
-                                },
-                                onClearSiteDataMenuClick = {
-                                    store.dispatch(TrustPanelAction.RequestClearSiteDataDialog)
-                                },
-                                onConnectionSecurityClick = {
-                                    store.dispatch(TrustPanelAction.Navigate.ConnectionSecurityPanel)
-                                },
-                                onPrivacySecuritySettingsClick = {
-                                    store.dispatch(TrustPanelAction.Navigate.PrivacySecuritySettings)
-                                },
-                                onAutoplayValueClick = { autoplayValue ->
-                                    store.dispatch(TrustPanelAction.UpdateAutoplayValue(autoplayValue))
-                                },
-                                onToggleablePermissionClick = { websitePermission: WebsitePermission.Toggleable ->
-                                    store.dispatch(TrustPanelAction.TogglePermission(websitePermission))
-                                },
-                            )
-                        }
+                    AnimatedContent(
+                        targetState = contentState,
+                        transitionSpec = trustPanelTransitionSpec(contentState),
+                        label = "MenuDialogAnimation",
+                    ) { route ->
+                        when (route) {
+                            Route.ProtectionPanel -> {
+                                ProtectionPanel(
+                                    url = args.url,
+                                    title = args.title,
+                                    icon = sessionState?.content?.icon,
+                                    isSecured = args.isSecured,
+                                    isTrackingProtectionEnabled = isTrackingProtectionEnabled,
+                                    numberOfTrackersBlocked = numberOfTrackersBlocked,
+                                    websitePermissions = websitePermissions.filter { it.isVisible },
+                                    onTrackerBlockedMenuClick = {
+                                        contentState = Route.TrackersPanel
+                                    },
+                                    onTrackingProtectionToggleClick = {
+                                        store.dispatch(TrustPanelAction.ToggleTrackingProtection)
+                                    },
+                                    onClearSiteDataMenuClick = {
+                                        store.dispatch(TrustPanelAction.RequestClearSiteDataDialog)
+                                        contentState = Route.ClearSiteDataDialog
+                                    },
+                                    onConnectionSecurityClick = {
+                                        contentState = Route.ConnectionSecurityPanel
+                                    },
+                                    onPrivacySecuritySettingsClick = {
+                                        store.dispatch(TrustPanelAction.Navigate.PrivacySecuritySettings)
+                                    },
+                                    onAutoplayValueClick = { autoplayValue ->
+                                        store.dispatch(TrustPanelAction.UpdateAutoplayValue(autoplayValue))
+                                    },
+                                    onToggleablePermissionClick = { websitePermission: WebsitePermission.Toggleable ->
+                                        store.dispatch(TrustPanelAction.TogglePermission(websitePermission))
+                                    },
+                                )
+                            }
 
-                        composable(route = TRACKERS_PANEL_ROUTE) {
-                            TrackersBlockedPanel(
-                                title = args.title,
-                                numberOfTrackersBlocked = numberOfTrackersBlocked,
-                                bucketedTrackers = bucketedTrackers,
-                                onTrackerCategoryClick = { detailedTrackerCategory ->
-                                    store.dispatch(
-                                        TrustPanelAction.UpdateDetailedTrackerCategory(detailedTrackerCategory),
-                                    )
-                                    store.dispatch(TrustPanelAction.Navigate.TrackerCategoryDetailsPanel)
-                                },
-                                onBackButtonClick = {
-                                    store.dispatch(TrustPanelAction.Navigate.Back)
-                                },
-                            )
-                        }
+                            Route.TrackersPanel -> {
+                                TrackersBlockedPanel(
+                                    title = args.title,
+                                    numberOfTrackersBlocked = numberOfTrackersBlocked,
+                                    bucketedTrackers = bucketedTrackers,
+                                    onTrackerCategoryClick = { detailedTrackerCategory ->
+                                        store.dispatch(
+                                            TrustPanelAction.UpdateDetailedTrackerCategory(detailedTrackerCategory),
+                                        )
+                                        contentState = Route.TrackerCategoryDetailsPanel
+                                    },
+                                    onBackButtonClick = {
+                                        contentState = Route.ProtectionPanel
+                                    },
+                                )
+                            }
 
-                        composable(route = TRACKER_CATEGORY_DETAILS_PANEL_ROUTE) {
-                            TrackerCategoryDetailsPanel(
-                                title = args.title,
-                                isTotalCookieProtectionEnabled = components.settings.enabledTotalCookieProtection,
-                                detailedTrackerCategory = detailedTrackerCategory,
-                                bucketedTrackers = bucketedTrackers,
-                                onBackButtonClick = {
-                                    store.dispatch(TrustPanelAction.Navigate.Back)
-                                },
-                            )
-                        }
+                            Route.TrackerCategoryDetailsPanel -> {
+                                TrackerCategoryDetailsPanel(
+                                    title = args.title,
+                                    isTotalCookieProtectionEnabled = components.settings.enabledTotalCookieProtection,
+                                    detailedTrackerCategory = detailedTrackerCategory,
+                                    bucketedTrackers = bucketedTrackers,
+                                    onBackButtonClick = {
+                                        contentState = Route.TrackersPanel
+                                    },
+                                )
+                            }
 
-                        composable(route = CONNECTION_SECURITY_PANEL_ROUTE) {
-                            ConnectionSecurityPanel(
-                                title = args.title,
-                                isSecured = args.isSecured,
-                                certificateName = args.certificateName,
-                                onBackButtonClick = {
-                                    store.dispatch(TrustPanelAction.Navigate.Back)
-                                },
-                            )
-                        }
+                            Route.ConnectionSecurityPanel -> {
+                                ConnectionSecurityPanel(
+                                    title = args.title,
+                                    isSecured = args.isSecured,
+                                    certificateName = args.certificateName,
+                                    onBackButtonClick = {
+                                        contentState = Route.ProtectionPanel
+                                    },
+                                )
+                            }
 
-                        composable(route = CLEAR_SITE_DATA_DIALOG_ROUTE) {
-                            ClearSiteDataDialog(
-                                baseDomain = baseDomain ?: "",
-                                onClearSiteDataClick = {
-                                    store.dispatch(TrustPanelAction.ClearSiteData)
-                                },
-                                onCancelClick = { ::dismiss.invoke() },
-                            )
+                            Route.ClearSiteDataDialog -> {
+                                ClearSiteDataDialog(
+                                    baseDomain = baseDomain ?: "",
+                                    onClearSiteDataClick = {
+                                        store.dispatch(TrustPanelAction.ClearSiteData)
+                                    },
+                                    onCancelClick = { ::dismiss.invoke() },
+                                )
+                            }
                         }
                     }
                 }
+            }
+        }
+    }
+
+    @Composable
+    private fun trustPanelTransitionSpec(
+        contentState: Route,
+    ): AnimatedContentTransitionScope<Route>.() -> ContentTransform = {
+        if (contentState == Route.ProtectionPanel || contentState == Route.ClearSiteDataDialog) {
+            enterMenu(
+                duration = DURATION_MS_MAIN_MENU,
+                delay = DELAY_MS_MAIN_MENU,
+                easing = LinearOutSlowInEasing,
+            ).togetherWith(
+                exitSubmenu(
+                    duration = DURATION_MS_MAIN_MENU,
+                    easing = FastOutLinearInEasing,
+                ),
+            ) using SizeTransform { initialSize, targetSize ->
+                contentGrowth(initialSize, targetSize, DURATION_MS_MAIN_MENU)
+            }
+        } else {
+            enterSubmenu(
+                duration = DURATION_MS_SUB_MENU,
+                delay = DELAY_MS_SUB_MENU,
+                easing = LinearOutSlowInEasing,
+            ).togetherWith(
+                exitMenu(
+                    duration = DURATION_MS_SUB_MENU,
+                    easing = FastOutLinearInEasing,
+                ),
+            ) using SizeTransform { initialSize, targetSize ->
+                contentGrowth(initialSize, targetSize, DURATION_MS_SUB_MENU)
             }
         }
     }
@@ -315,4 +379,15 @@ class TrustPanelFragment : BottomSheetDialogFragment() {
                 .collect(onChange)
         }
     }
+}
+
+/**
+ * Trust panel navigation destination.
+ */
+enum class Route {
+    ProtectionPanel,
+    TrackersPanel,
+    TrackerCategoryDetailsPanel,
+    ConnectionSecurityPanel,
+    ClearSiteDataDialog,
 }

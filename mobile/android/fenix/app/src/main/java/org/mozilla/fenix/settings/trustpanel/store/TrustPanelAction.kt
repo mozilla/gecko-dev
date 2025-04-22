@@ -125,31 +125,6 @@ sealed class TrustPanelAction : Action {
      */
     sealed class Navigate : TrustPanelAction() {
         /**
-         * [Navigate] action dispatched when a back navigation event occurs.
-         */
-        data object Back : Navigate()
-
-        /**
-         * [Navigate] action dispatched when navigating to the clear site data dialog.
-         */
-        data object ClearSiteDataDialog : Navigate()
-
-        /**
-         * [Navigate] action dispatched when navigating to the trackers panel.
-         */
-        data object TrackersPanel : Navigate()
-
-        /**
-         * [Navigate] action dispatched when navigating to the tracker category details panel.
-         */
-        data object TrackerCategoryDetailsPanel : Navigate()
-
-        /**
-         * [Navigate] action dispatched when navigating to the connection security panel.
-         */
-        data object ConnectionSecurityPanel : Navigate()
-
-        /**
          * [Navigate] action dispatched when navigating to the privacy and security settings.
          */
         data object PrivacySecuritySettings : Navigate()

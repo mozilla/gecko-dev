@@ -169,7 +169,6 @@ class TrustPanelMiddlewareTest {
         store.waitUntilIdle() // Wait to ensure no calls to store.dispatch(TrustPanelAction.UpdateBaseDomain(...))
 
         verify(store, never()).dispatch(TrustPanelAction.UpdateBaseDomain(baseDomain))
-        verify(store, never()).dispatch(TrustPanelAction.Navigate.ClearSiteDataDialog)
     }
 
     @Test

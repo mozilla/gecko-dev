@@ -42,11 +42,6 @@ class TrustPanelTelemetryMiddleware : Middleware<TrustPanelState, TrustPanelActi
             is TrustPanelAction.UpdateAutoplayValue,
             is TrustPanelAction.UpdateSitePermissions,
             is TrustPanelAction.WebsitePermissionAction,
-            TrustPanelAction.Navigate.Back,
-            is TrustPanelAction.Navigate.ClearSiteDataDialog,
-            is TrustPanelAction.Navigate.TrackerCategoryDetailsPanel,
-            TrustPanelAction.Navigate.TrackersPanel,
-            TrustPanelAction.Navigate.ConnectionSecurityPanel,
             TrustPanelAction.Navigate.PrivacySecuritySettings,
             is TrustPanelAction.Navigate.ManagePhoneFeature,
             -> Unit
