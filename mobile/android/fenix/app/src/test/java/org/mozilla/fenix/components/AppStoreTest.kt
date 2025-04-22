@@ -874,12 +874,12 @@ class AppStoreTest {
     }
 
     @Test
-    fun `WHEN closed action is dispatched THEN the setup checklist state remains the same`() {
+    fun `WHEN closed action is dispatched THEN the setup checklist state visible value is updated`() {
         val appState = AppState(setupChecklistState = SetupChecklistState())
 
         appStore.testDispatch(AppAction.SetupChecklistAction.Closed)
 
-        assertEquals(SetupChecklistState(), appState.setupChecklistState)
+        assertEquals(SetupChecklistState(isVisible = true), appState.setupChecklistState)
     }
 
     @Test

@@ -24,13 +24,15 @@ class SetupChecklistReducerTest {
     }
 
     @Test
-    fun `WHEN closed action THEN the reduced state remains the same`() {
+    fun `WHEN closed action THEN the reduced state visible state is updated`() {
         val appState = AppState(setupChecklistState = SetupChecklistState())
 
         val reducedState =
             SetupChecklistReducer.reduce(appState, AppAction.SetupChecklistAction.Closed)
 
-        assertEquals(appState, reducedState)
+        val expected = appState.copy(setupChecklistState = SetupChecklistState(isVisible = false))
+
+        assertEquals(expected, reducedState)
     }
 
     @Test

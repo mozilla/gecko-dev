@@ -19,10 +19,14 @@ private const val SIX_TASKS = 6
 /**
  * Represents the [State] of the setup checklist feature.
  *
+ * @property isVisible Whether the setup checklist feature should be visible to the user.
+ * This is a temporary state to remove the setup view immediately without having to update the
+ * entire AppState. Visibility is handled by the preference once the app is restarted thereon.
  * @property checklistItems The list of checklist items.
  * @property progress The progress of the current checklist.
  */
 data class SetupChecklistState(
+    val isVisible: Boolean = true,
     val checklistItems: List<ChecklistItem> = emptyList(),
     val progress: Progress = checklistItems.getTaskProgress(),
 ) : State

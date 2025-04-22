@@ -40,6 +40,7 @@ class DefaultSetupChecklistRepositoryTest {
         assertEquals(R.string.pref_key_setup_step_toolbar, preferenceKeys[3].preferenceKey)
         assertEquals(R.string.pref_key_setup_step_extensions, preferenceKeys[4].preferenceKey)
         assertEquals(R.string.pref_key_search_widget_installed_2, preferenceKeys[5].preferenceKey)
+        assertEquals(R.string.pref_key_setup_checklist_complete, preferenceKeys[6].preferenceKey)
     }
 
     @Test
@@ -100,6 +101,16 @@ class DefaultSetupChecklistRepositoryTest {
         repository.setPreference(SetupChecklistPreference.SetToDefault, true)
 
         assertFalse(settings.searchWidgetInstalled)
+    }
+
+    @Test
+    fun `WHEN show checklist preference THEN setPreference updates the preference value`() {
+        assertFalse(settings.showSetupChecklist)
+
+        val repository = DefaultSetupChecklistRepository(context = testContext)
+        repository.setPreference(SetupChecklistPreference.ShowSetupChecklist, true)
+
+        assertTrue(settings.showSetupChecklist)
     }
 
     @Test

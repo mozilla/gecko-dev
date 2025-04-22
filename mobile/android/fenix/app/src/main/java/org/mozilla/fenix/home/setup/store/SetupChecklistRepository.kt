@@ -60,6 +60,7 @@ enum class SetupChecklistPreference(@StringRes val preferenceKey: Int) {
     ToolbarComplete(R.string.pref_key_setup_step_toolbar),
     ExtensionsComplete(R.string.pref_key_setup_step_extensions),
     InstallSearchWidget(R.string.pref_key_search_widget_installed_2),
+    ShowSetupChecklist(R.string.pref_key_setup_checklist_complete),
 }
 
 /**
@@ -93,6 +94,9 @@ class DefaultSetupChecklistRepository(
 
             SetupChecklistPreference.ExtensionsComplete ->
                 settings.hasCompletedSetupStepExtensions = hasCompleted
+
+            SetupChecklistPreference.ShowSetupChecklist ->
+                settings.showSetupChecklist = hasCompleted
 
             // no-ops
             // these preferences are handled elsewhere outside of the setup checklist feature.

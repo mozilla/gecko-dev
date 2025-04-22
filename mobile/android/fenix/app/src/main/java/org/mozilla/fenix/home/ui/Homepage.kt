@@ -155,7 +155,7 @@ internal fun Homepage(
                         }
                     }
 
-                    if (setupChecklistState != null) {
+                    if (setupChecklistState != null && setupChecklistState.isVisible) {
                         SetupChecklist(
                             setupChecklistState = setupChecklistState,
                             interactor = interactor,

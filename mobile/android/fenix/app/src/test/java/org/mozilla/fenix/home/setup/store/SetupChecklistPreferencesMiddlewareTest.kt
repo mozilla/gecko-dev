@@ -184,6 +184,20 @@ class SetupChecklistPreferencesMiddlewareTest {
         )
     }
 
+    @Test
+    fun `GIVEN ShowSetupChecklist preference WHEN mapping to store action THEN returns the close action`() {
+        val preferenceUpdate = SetupChecklistRepository.SetupChecklistPreferenceUpdate(
+            SetupChecklistPreference.ShowSetupChecklist,
+            true,
+        )
+        val result = mapRepoUpdateToStoreAction(preferenceUpdate)
+
+        assertEquals(
+            AppAction.SetupChecklistAction.Closed,
+            result,
+        )
+    }
+
     private fun buildGroup() = ChecklistItem.Group(
         title = 0,
         tasks = emptyList(),

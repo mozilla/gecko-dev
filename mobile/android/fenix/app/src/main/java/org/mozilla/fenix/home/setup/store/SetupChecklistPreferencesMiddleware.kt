@@ -44,6 +44,10 @@ class SetupChecklistPreferencesMiddleware(
                 repository.init()
             }
 
+            is AppAction.SetupChecklistAction.Closed -> {
+                repository.setPreference(SetupChecklistPreference.ShowSetupChecklist, false)
+            }
+
             is AppAction.SetupChecklistAction.ChecklistItemClicked -> {
                 val item = action.item
                 if (item is ChecklistItem.Task) {
@@ -75,15 +79,27 @@ class SetupChecklistPreferencesMiddleware(
 internal fun mapRepoUpdateToStoreAction(
     preferenceUpdate: SetupChecklistRepository.SetupChecklistPreferenceUpdate,
 ) = when (preferenceUpdate.preference) {
-    SetupChecklistPreference.SetToDefault -> ChecklistItem.Task.Type.SET_AS_DEFAULT
-    SetupChecklistPreference.SignIn -> ChecklistItem.Task.Type.SIGN_IN
-    SetupChecklistPreference.ThemeComplete -> ChecklistItem.Task.Type.SELECT_THEME
-    SetupChecklistPreference.ToolbarComplete -> ChecklistItem.Task.Type.CHANGE_TOOLBAR_PLACEMENT
-    SetupChecklistPreference.ExtensionsComplete -> ChecklistItem.Task.Type.EXPLORE_EXTENSION
-    SetupChecklistPreference.InstallSearchWidget -> ChecklistItem.Task.Type.INSTALL_SEARCH_WIDGET
-}.run {
-    AppAction.SetupChecklistAction.TaskPreferenceUpdated(
-        this,
-        preferenceUpdate.value,
-    )
+    SetupChecklistPreference.SetToDefault ->
+        ChecklistItem.Task.Type.SET_AS_DEFAULT.updatedTo(preferenceUpdate)
+
+    SetupChecklistPreference.SignIn ->
+        ChecklistItem.Task.Type.SIGN_IN.updatedTo(preferenceUpdate)
+
+    SetupChecklistPreference.ThemeComplete ->
+        ChecklistItem.Task.Type.SELECT_THEME.updatedTo(preferenceUpdate)
+
+    SetupChecklistPreference.ToolbarComplete ->
+        ChecklistItem.Task.Type.CHANGE_TOOLBAR_PLACEMENT.updatedTo(preferenceUpdate)
+
+    SetupChecklistPreference.ExtensionsComplete ->
+        ChecklistItem.Task.Type.EXPLORE_EXTENSION.updatedTo(preferenceUpdate)
+
+    SetupChecklistPreference.InstallSearchWidget ->
+        ChecklistItem.Task.Type.INSTALL_SEARCH_WIDGET.updatedTo(preferenceUpdate)
+
+    SetupChecklistPreference.ShowSetupChecklist -> AppAction.SetupChecklistAction.Closed
 }
+
+private fun ChecklistItem.Task.Type.updatedTo(
+    preferenceUpdate: SetupChecklistRepository.SetupChecklistPreferenceUpdate,
+) = AppAction.SetupChecklistAction.TaskPreferenceUpdated(this, preferenceUpdate.value)

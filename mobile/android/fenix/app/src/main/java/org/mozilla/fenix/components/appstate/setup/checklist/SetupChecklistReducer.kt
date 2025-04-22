@@ -20,9 +20,10 @@ internal object SetupChecklistReducer {
      * @return The resulting [AppState] after the given [action] has been reduced.
      */
     fun reduce(state: AppState, action: SetupChecklistAction): AppState = when (action) {
-        is SetupChecklistAction.Init,
-        is SetupChecklistAction.Closed,
-        -> state
+        is SetupChecklistAction.Init -> state
+        is SetupChecklistAction.Closed -> state.copy(
+            setupChecklistState = state.setupChecklistState?.copy(isVisible = false),
+        )
 
         is SetupChecklistAction.ChecklistItemClicked -> {
             // A local variable to clearly distinguish between
