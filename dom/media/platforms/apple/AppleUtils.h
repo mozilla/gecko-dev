@@ -191,8 +191,20 @@ struct CFTypeRefTraits {
   static void Release(CFT aObject) { CFRelease(aObject); }
 };
 
+template <typename CVB>
+struct CVBufferRefTraits {
+  static CVB InvalidValue() { return nullptr; }
+  static CVB Retain(CVB aObject) {
+    CVBufferRetain(aObject);
+    return aObject;
+  }
+  static void Release(CVB aObject) { CVBufferRelease(aObject); }
+};
+
 template <typename CFT>
 using AutoCFTypeRef = AutoTypeRef<CFT, CFTypeRefTraits<CFT>>;
+template <typename CVB>
+using AutoCVBufferRef = AutoTypeRef<CVB, CVBufferRefTraits<CVB>>;
 
 class MOZ_RAII SessionPropertyManager {
  public:
