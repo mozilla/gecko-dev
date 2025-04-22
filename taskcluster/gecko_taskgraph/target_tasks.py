@@ -1632,14 +1632,17 @@ def target_tasks_holly(full_task_graph, parameters, graph_config):
     return [l for l, t in full_task_graph.tasks.items() if filter(t)]
 
 
-@register_target_task("snap_upstream_tests")
-def target_tasks_snap_upstream_tests(full_task_graph, parameters, graph_config):
+@register_target_task("snap_upstream_tasks")
+def target_tasks_snap_upstream_tasks(full_task_graph, parameters, graph_config):
     """
-    Select tasks for testing Snap package built as upstream. Omit -try because
-    it does not really make sense on a m-c cron
+    Select tasks for building/testing Snap package built as upstream. Omit -try
+    because it does not really make sense on a m-c cron
+
+    Use test tasks for linux64 builds and only builds for arm* until there is
+    support for running tests (bug 1855463)
     """
     for name, task in full_task_graph.tasks.items():
-        if "snap-upstream-test" in name and not "-try" in name:
+        if "snap-upstream" in name and not "-try" in name:
             yield name
 
 
