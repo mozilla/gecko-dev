@@ -778,6 +778,9 @@ TimerThread::Run() {
 
   uint64_t timersFiredThisWakeup = 0;
   while (!mShutdown) {
+    const bool chaosModeActive =
+        ChaosMode::isActive(ChaosFeature::TimerScheduling);
+
     // Have to use PRIntervalTime here, since PR_WaitCondVar takes it
     TimeDuration waitFor;
     bool forceRunThisTimer = forceRunNextTimer;
@@ -790,7 +793,7 @@ TimerThread::Run() {
     if (mSleeping) {
       // Sleep for 0.1 seconds while not firing timers.
       uint32_t milliseconds = 100;
-      if (ChaosMode::isActive(ChaosFeature::TimerScheduling)) {
+      if (chaosModeActive) {
         milliseconds = ChaosMode::randomUint32LessThan(200);
       }
       waitFor = TimeDuration::FromMilliseconds(milliseconds);
@@ -877,7 +880,7 @@ TimerThread::Run() {
         // times.
         static constexpr double sChaosFractions[] = {0.0, 0.25, 0.5, 0.75,
                                                      1.0, 1.75, 2.75};
-        if (ChaosMode::isActive(ChaosFeature::TimerScheduling)) {
+        if (chaosModeActive) {
           microseconds *= sChaosFractions[ChaosMode::randomUint32LessThan(
               std::size(sChaosFractions))];
           forceRunNextTimer = true;
@@ -904,7 +907,7 @@ TimerThread::Run() {
         // should have fired.
         MOZ_ASSERT(!waitFor.IsZero());
 
-        if (ChaosMode::isActive(ChaosFeature::TimerScheduling)) {
+        if (chaosModeActive) {
           // If chaos mode is active then mess with the amount of time that we
           // request to sleep (without changing what we record as our expected
           // wake-up time). This will simulate unintended early/late wake-ups.
