@@ -28,6 +28,30 @@ using namespace js::gc;
 
 namespace js::gc {
 
+struct alignas(CellAlignBytes) LargeBuffer
+    : public SlimLinkedListElement<LargeBuffer> {
+  JS::Zone* const zone;
+  void* alloc;
+  size_t bytes;
+  mozilla::Atomic<bool, mozilla::Relaxed> marked;
+  bool isNurseryOwned;
+  bool allocatedDuringCollection = false;
+
+#ifdef DEBUG
+  uint32_t checkValue = LargeBufferCheckValue;
+#endif
+
+  inline LargeBuffer(JS::Zone* zone, void* ptr, size_t bytes,
+                     bool nurseryOwned);
+
+  inline void check() const;
+
+  inline bool markAtomic();
+  void* data() { return alloc; }
+  size_t allocBytes() const { return bytes; }
+  bool isPointerWithinAllocation(void* ptr) const;
+};
+
 bool SmallBuffer::isNurseryOwned() const {
   return header_.get() & NURSERY_OWNED_BIT;
 }
