@@ -397,7 +397,9 @@ static size_t SomeAllocSizes[] = {16,
                                   255 * 1024,
                                   256 * 1024,
                                   600 * 1024,
-                                  3 * 1024 * 1024};
+                                  1 * 1024 * 1024,
+                                  3 * 1024 * 1024,
+                                  10 * 1024 * 1024};
 
 static void WriteAllocData(void* alloc, size_t bytes) {
   auto* data = reinterpret_cast<uint32_t*>(alloc);
@@ -503,12 +505,16 @@ BEGIN_TEST(testBufferAllocator_API) {
     }
     CHECK(GetGoodAllocSize(goodSize) == goodSize);
 
+    // Check we don't waste space requesting 1MB aligned sizes.
+    if (requestSize >= ChunkSize) {
+      CHECK(goodSize == RoundUp(requestSize, ChunkSize));
+    }
+
     for (bool nurseryOwned : {true, false}) {
       void* alloc = AllocBuffer(zone, requestSize, nurseryOwned);
       CHECK(alloc);
 
       CHECK(IsBufferAlloc(alloc));
-      CHECK(!ChunkPtrIsInsideNursery(alloc));
       size_t actualSize = GetAllocSize(zone, alloc);
       CHECK(actualSize == GetGoodAllocSize(requestSize));
 
@@ -571,7 +577,6 @@ BEGIN_TEST(testBufferAllocator_realloc) {
       void* alloc = ReallocBuffer(zone, nullptr, requestSize, nurseryOwned);
       CHECK(alloc);
       CHECK(IsBufferAlloc(alloc));
-      CHECK(!ChunkPtrIsInsideNursery(alloc));
       CHECK(IsNurseryOwned(zone, alloc) == nurseryOwned);
       size_t actualSize = GetAllocSize(zone, alloc);
       WriteAllocData(alloc, actualSize);
@@ -631,7 +636,6 @@ BEGIN_TEST(testBufferAllocator_predicatesOnOtherAllocs) {
   CHECK(!isMalloced);
   CHECK(cx->nursery().isInside(buffer));
   CHECK(!IsBufferAlloc(buffer));
-  CHECK(ChunkPtrIsInsideNursery(buffer));
 
   RootedObject obj(cx, NewPlainObject(cx));
   CHECK(obj);

@@ -45,8 +45,7 @@ inline size_t BufferAllocator::GetGoodAllocSize(size_t requiredBytes) {
   requiredBytes = std::max(requiredBytes, MinAllocSize);
 
   if (IsLargeAllocSize(requiredBytes)) {
-    size_t headerSize = sizeof(LargeBuffer);
-    return RoundUp(requiredBytes + headerSize, ChunkSize) - headerSize;
+    return RoundUp(requiredBytes, ChunkSize);
   }
 
   // Small and medium headers have the same size.
@@ -61,10 +60,8 @@ inline size_t BufferAllocator::GetGoodAllocSize(size_t requiredBytes) {
 size_t BufferAllocator::GetGoodPower2AllocSize(size_t requiredBytes) {
   requiredBytes = std::max(requiredBytes, MinAllocSize);
 
-  size_t headerSize;
-  if (IsLargeAllocSize(requiredBytes)) {
-    headerSize = sizeof(LargeBuffer);
-  } else {
+  size_t headerSize = 0;
+  if (!IsLargeAllocSize(requiredBytes)) {
     // Small and medium headers have the same size.
     headerSize = sizeof(SmallBuffer);
     static_assert(sizeof(SmallBuffer) == sizeof(MediumBuffer));

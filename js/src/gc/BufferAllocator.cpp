@@ -65,13 +65,10 @@ inline size_t MediumBuffer::allocBytes() const {
 
 inline void* MediumBuffer::data() { return this + 1; }
 
-inline LargeBuffer::LargeBuffer(Zone* zone, size_t bytes, bool nurseryOwned)
-    : ChunkBase(zone->runtimeFromMainThread()),
-      zone(zone),
-      bytesIncludingHeader(bytes),
-      isNurseryOwned(nurseryOwned) {
-  kind = ChunkKind::LargeBuffer;
-  MOZ_ASSERT((bytes % PageSize) == 0);
+inline LargeBuffer::LargeBuffer(Zone* zone, void* ptr, size_t bytes,
+                                bool nurseryOwned)
+    : zone(zone), alloc(ptr), bytes(bytes), isNurseryOwned(nurseryOwned) {
+  MOZ_ASSERT((bytes % ChunkSize) == 0);
 }
 
 inline void LargeBuffer::check() const {
@@ -85,12 +82,6 @@ inline bool LargeBuffer::markAtomic() {
     }
   } while (!marked.compareExchange(false, true));
   return true;
-}
-
-inline void* LargeBuffer::data() { return this + 1; }
-
-inline size_t LargeBuffer::allocBytes() const {
-  return bytesIncludingHeader - sizeof(LargeBuffer);
 }
 
 BufferAllocator::AutoLock::AutoLock(GCRuntime* gc)
@@ -151,11 +142,14 @@ struct BufferChunk : public ChunkBase,
   MainThreadOrGCTaskData<BufferChunkPageBitmap> decommittedPages;
 
   MainThreadOrGCTaskData<BufferChunkAllocBitmap> allocBitmap;
-  MainThreadData<Zone*> zone;
 
   MainThreadOrGCTaskData<bool> allocatedDuringCollection;
   MainThreadData<bool> hasNurseryOwnedAllocs;
   MainThreadOrGCTaskData<bool> hasNurseryOwnedAllocsAfterSweep;
+
+#ifdef DEBUG
+  MainThreadData<Zone*> zone;
+#endif
 
   static BufferChunk* from(void* alloc) {
     ChunkBase* chunk = js::gc::detail::GetGCAddressChunkBase(alloc);
@@ -164,8 +158,11 @@ struct BufferChunk : public ChunkBase,
   }
 
   explicit BufferChunk(Zone* zone)
-      : ChunkBase(zone->runtimeFromMainThread(), ChunkKind::MediumBuffers),
-        zone(zone) {}
+      : ChunkBase(zone->runtimeFromMainThread(), ChunkKind::MediumBuffers) {
+#ifdef DEBUG
+    this->zone = zone;
+#endif
+  }
 
   ~BufferChunk() { MOZ_ASSERT(allocBitmap.ref().IsEmpty()); }
 
@@ -423,6 +420,7 @@ BufferAllocator::BufferAllocator(Zone* zone)
       sweptMediumTenuredChunks(lock()),
       sweptMediumNurseryFreeLists(lock()),
       sweptMediumTenuredFreeLists(lock()),
+      largeAllocMap(lock()),
       sweptLargeTenuredAllocs(lock()),
       minorState(State::NotCollecting),
       majorState(State::NotCollecting),
@@ -499,6 +497,8 @@ void* BufferAllocator::allocInGC(size_t bytes, bool nurseryOwned) {
 
 template <typename HeaderT>
 static HeaderT* GetHeaderFromAlloc(void* alloc) {
+  static_assert(std::is_same_v<HeaderT, SmallBuffer> ||
+                std::is_same_v<HeaderT, MediumBuffer>);
   auto* header = reinterpret_cast<HeaderT*>(uintptr_t(alloc) - sizeof(HeaderT));
   header->check();
   return header;
@@ -534,7 +534,8 @@ void* BufferAllocator::realloc(void* ptr, size_t bytes, bool nurseryOwned) {
 
   size_t currentBytes;
   if (IsLargeAlloc(ptr)) {
-    auto* header = GetHeaderFromAlloc<LargeBuffer>(ptr);
+    AutoLock lock(this);
+    LargeBuffer* header = lookupLargeBuffer(ptr, lock);
     currentBytes = header->allocBytes();
 
     // We can shrink large allocations (on some platforms).
@@ -579,13 +580,9 @@ void* BufferAllocator::realloc(void* ptr, size_t bytes, bool nurseryOwned) {
 
 #ifdef XP_DARWIN
   if (bytesToCopy >= ChunkSize) {
-    MOZ_ASSERT((uintptr_t(ptr) & PageMask) == (uintptr_t(newPtr) & PageMask));
-    size_t alignBytes = PageSize - (uintptr_t(ptr) & PageMask);
-    memcpy(newPtr, ptr, alignBytes);
-    void* dst = reinterpret_cast<void*>(uintptr_t(newPtr) + alignBytes);
-    void* src = reinterpret_cast<void*>(uintptr_t(ptr) + alignBytes);
-    bytesToCopy -= alignBytes;
-    VirtualCopyPages(dst, src, bytesToCopy);
+    MOZ_ASSERT(IsLargeAlloc(ptr));
+    MOZ_ASSERT(IsLargeAlloc(newPtr));
+    VirtualCopyPages(newPtr, ptr, bytesToCopy);
     return newPtr;
   }
 #endif
@@ -615,9 +612,12 @@ bool BufferAllocator::IsBufferAlloc(void* alloc) {
   // Precondition: |alloc| is a pointer to a buffer allocation, a GC thing or a
   // direct nursery allocation returned by Nursery::allocateBuffer.
 
+  if (IsLargeAlloc(alloc)) {
+    return true;
+  }
+
   ChunkKind chunkKind = detail::GetGCAddressChunkBase(alloc)->getKind();
-  if (chunkKind == ChunkKind::MediumBuffers ||
-      chunkKind == ChunkKind::LargeBuffer) {
+  if (chunkKind == ChunkKind::MediumBuffers) {
     return true;
   }
 
@@ -631,7 +631,8 @@ bool BufferAllocator::IsBufferAlloc(void* alloc) {
 
 size_t BufferAllocator::getAllocSize(void* alloc) {
   if (IsLargeAlloc(alloc)) {
-    auto* header = GetHeaderFromAlloc<LargeBuffer>(alloc);
+    AutoLock lock(this);
+    LargeBuffer* header = lookupLargeBuffer(alloc, lock);
     return header->allocBytes();
   }
 
@@ -647,7 +648,8 @@ size_t BufferAllocator::getAllocSize(void* alloc) {
 
 bool BufferAllocator::isNurseryOwned(void* alloc) {
   if (IsLargeAlloc(alloc)) {
-    auto* header = GetHeaderFromAlloc<LargeBuffer>(alloc);
+    AutoLock lock(this);
+    LargeBuffer* header = lookupLargeBuffer(alloc, lock);
     return header->isNurseryOwned;
   }
 
@@ -666,20 +668,9 @@ void BufferAllocator::markNurseryOwnedAlloc(void* alloc, bool ownerWasTenured) {
   MOZ_ASSERT(isNurseryOwned(alloc));
   MOZ_ASSERT(minorState == State::Marking);
 
-  if (IsSmallAlloc(alloc)) {
-    // This path is currently unused outside test code because we allocate
-    // nursery buffers directly in the nursery rather than using this allocator.
-    auto* cell = GetHeaderFromAlloc<SmallBuffer>(alloc);
-    MOZ_ASSERT(cell->zone() == zone);
-    if (ownerWasTenured) {
-      cell->setNurseryOwned(false);
-    }
-    // Heap size tracked as part of GC heap for small allocations.
-    return;
-  }
-
   if (IsLargeAlloc(alloc)) {
-    auto* header = GetHeaderFromAlloc<LargeBuffer>(alloc);
+    AutoLock lock(this);
+    auto* header = lookupLargeBuffer(alloc, lock);
     MOZ_ASSERT(header->zone == zone);
     largeNurseryAllocs.ref().remove(header);
     if (ownerWasTenured) {
@@ -691,6 +682,18 @@ void BufferAllocator::markNurseryOwnedAlloc(void* alloc, bool ownerWasTenured) {
     } else {
       sweptLargeNurseryAllocs.ref().pushBack(header);
     }
+    return;
+  }
+
+  if (IsSmallAlloc(alloc)) {
+    // This path is currently unused outside test code because we allocate
+    // nursery buffers directly in the nursery rather than using this allocator.
+    auto* cell = GetHeaderFromAlloc<SmallBuffer>(alloc);
+    MOZ_ASSERT(cell->zone() == zone);
+    if (ownerWasTenured) {
+      cell->setNurseryOwned(false);
+    }
+    // Heap size tracked as part of GC heap for small allocations.
     return;
   }
 
@@ -739,7 +742,8 @@ void BufferAllocator::traceEdge(JSTracer* trc, Cell* owner, void** bufferp,
   void* buffer = *bufferp;
   MOZ_ASSERT(buffer);
 
-  if (js::gc::detail::GetGCAddressChunkBase(buffer)->isNurseryChunk()) {
+  if (!IsLargeAlloc(buffer) &&
+      js::gc::detail::GetGCAddressChunkBase(buffer)->isNurseryChunk()) {
     // JSObject slots and elements can be allocated in the nursery and this is
     // handled separately.
     return;
@@ -747,7 +751,7 @@ void BufferAllocator::traceEdge(JSTracer* trc, Cell* owner, void** bufferp,
 
   MOZ_ASSERT(IsBufferAlloc(buffer));
 
-  if (IsSmallAlloc(buffer)) {
+  if (!IsLargeAlloc(buffer) && IsSmallAlloc(buffer)) {
     auto* cell = GetHeaderFromAlloc<SmallBuffer>(buffer);
     TraceManuallyBarrieredEdge(trc, &cell, name);
     if (cell != GetHeaderFromAlloc<SmallBuffer>(buffer)) {
@@ -765,7 +769,6 @@ void BufferAllocator::traceEdge(JSTracer* trc, Cell* owner, void** bufferp,
 
   if (trc->isMarkingTracer()) {
     if (!isNurseryOwned(buffer)) {
-      MOZ_ASSERT(!ChunkPtrIsInsideNursery(buffer));
       markTenuredAlloc(buffer);
     }
     return;
@@ -908,7 +911,8 @@ void BufferAllocator::sweepForMinorCollection() {
 void BufferAllocator::FreeLargeAllocs(LargeAllocList& largeAllocsToFree) {
   while (!largeAllocsToFree.isEmpty()) {
     LargeBuffer* header = largeAllocsToFree.popFirst();
-    header->zone->bufferAllocator.unmapLarge(header, true);
+    AutoLock lock(&header->zone->bufferAllocator);
+    header->zone->bufferAllocator.unmapLarge(header, true, lock);
   }
 }
 
@@ -1222,7 +1226,7 @@ bool BufferChunk::isPointerWithinAllocation(void* ptr) const {
 }
 
 bool LargeBuffer::isPointerWithinAllocation(void* ptr) const {
-  return uintptr_t(ptr) - uintptr_t(this) < bytesIncludingHeader;
+  return uintptr_t(ptr) - uintptr_t(alloc) < bytes;
 }
 
 #ifdef DEBUG
@@ -1419,6 +1423,10 @@ AllocKind BufferAllocator::AllocKindForSmallAlloc(size_t bytes) {
 /* static */
 bool BufferAllocator::IsSmallAlloc(void* alloc) {
   MOZ_ASSERT(IsBufferAlloc(alloc));
+
+  // Test for large buffers before calling this so we can assume |alloc| is
+  // inside a chunk.
+  MOZ_ASSERT(!IsLargeAlloc(alloc));
 
   ChunkBase* chunk = detail::GetGCAddressChunkBase(alloc);
   return chunk->getKind() == ChunkKind::TenuredArenas;
@@ -2146,22 +2154,45 @@ bool BufferAllocator::IsMediumAlloc(void* alloc) {
   return chunk->getKind() == ChunkKind::MediumBuffers;
 }
 
+LargeBuffer* BufferAllocator::lookupLargeBuffer(void* alloc,
+                                                const AutoLock& lock) {
+  auto ptr = largeAllocMap.ref().lookup(alloc);
+  MOZ_ASSERT(ptr);
+  LargeBuffer* buffer = ptr->value();
+  MOZ_ASSERT(buffer->data() == alloc);
+  MOZ_ASSERT(buffer->zone == zone);
+  return buffer;
+}
+
 void* BufferAllocator::allocLarge(size_t bytes, bool nurseryOwned, bool inGC) {
-  size_t totalBytes = RoundUp(bytes + sizeof(LargeBuffer), ChunkSize);
-  MOZ_ASSERT(totalBytes > MaxMediumAllocSize);
-  MOZ_ASSERT(totalBytes >= bytes);
+  bytes = RoundUp(bytes, ChunkSize);
+  MOZ_ASSERT(bytes > MaxMediumAllocSize);
+  MOZ_ASSERT(bytes >= bytes);
 
   // Large allocations are aligned to the chunk size, even if they are smaller
   // than a chunk. This allows us to tell different kinds of buffer allocation
   // apart by looking at the chunk kind.
-  void* ptr = MapAlignedPages(totalBytes, ChunkSize, ShouldStallAndRetry(inGC));
+  void* ptr = MapAlignedPages(bytes, ChunkSize, ShouldStallAndRetry(inGC));
   if (!ptr) {
     return nullptr;
   }
+  auto freeGuard = mozilla::MakeScopeExit([&]() { UnmapPages(ptr, bytes); });
 
   CheckHighBitsOfPointer(ptr);
 
-  auto* header = new (ptr) LargeBuffer(zone, totalBytes, nurseryOwned);
+  LargeBuffer* header = js_new<LargeBuffer>(zone, ptr, bytes, nurseryOwned);
+  if (!header) {
+    return nullptr;
+  }
+
+  {
+    AutoLock lock(this);
+    if (!largeAllocMap.ref().put(header->data(), header)) {
+      return nullptr;
+    }
+  }
+
+  freeGuard.release();
 
   if (nurseryOwned) {
     largeNurseryAllocs.ref().pushBack(header);
@@ -2195,17 +2226,18 @@ void BufferAllocator::updateHeapSize(size_t bytes, bool checkThresholds,
 
 /* static */
 bool BufferAllocator::IsLargeAlloc(void* alloc) {
-  ChunkBase* chunk = js::gc::detail::GetGCAddressChunkBase(alloc);
-  return chunk->kind == ChunkKind::LargeBuffer;
+  return (uintptr_t(alloc) & ChunkMask) == 0;
 }
 
 bool BufferAllocator::isLargeAllocMarked(void* alloc) {
-  auto* header = GetHeaderFromAlloc<LargeBuffer>(alloc);
+  AutoLock lock(this);
+  LargeBuffer* header = lookupLargeBuffer(alloc, lock);
   return header->marked;
 }
 
 bool BufferAllocator::markLargeAlloc(void* alloc) {
-  auto* header = GetHeaderFromAlloc<LargeBuffer>(alloc);
+  AutoLock lock(this);
+  LargeBuffer* header = lookupLargeBuffer(alloc, lock);
   if (header->allocatedDuringCollection) {
     return false;
   }
@@ -2224,7 +2256,8 @@ bool BufferAllocator::sweepLargeTenured(LargeBuffer* header) {
   MOZ_ASSERT(!header->isInList());
 
   if (!header->marked) {
-    unmapLarge(header, true);
+    AutoLock lock(this);
+    unmapLarge(header, true, lock);
     return false;
   }
 
@@ -2233,7 +2266,8 @@ bool BufferAllocator::sweepLargeTenured(LargeBuffer* header) {
 }
 
 void BufferAllocator::freeLarge(void* alloc) {
-  auto* header = GetHeaderFromAlloc<LargeBuffer>(alloc);
+  AutoLock lock(this);
+  LargeBuffer* header = lookupLargeBuffer(alloc, lock);
   MOZ_ASSERT(header->zone == zone);
 
   DebugOnlyPoison(alloc, JS_FREED_BUFFER_PATTERN, header->allocBytes(),
@@ -2255,12 +2289,11 @@ void BufferAllocator::freeLarge(void* alloc) {
     largeTenuredAllocs.ref().remove(header);
   }
 
-  unmapLarge(header, false);
+  unmapLarge(header, false, lock);
 }
 
 bool BufferAllocator::shrinkLarge(LargeBuffer* header, size_t newBytes) {
   MOZ_ASSERT(IsLargeAllocSize(newBytes));
-
 #ifdef XP_WIN
   // Can't unmap part of a region mapped with VirtualAlloc on Windows.
   //
@@ -2278,8 +2311,8 @@ bool BufferAllocator::shrinkLarge(LargeBuffer* header, size_t newBytes) {
 
   MOZ_ASSERT(header->isInList());
 
-  newBytes = RoundUp(newBytes + sizeof(LargeBuffer), PageSize);
-  size_t oldBytes = header->bytesIncludingHeader;
+  newBytes = RoundUp(newBytes, ChunkSize);
+  size_t oldBytes = header->bytes;
   MOZ_ASSERT(oldBytes > newBytes);
   size_t shrinkBytes = oldBytes - newBytes;
 
@@ -2287,25 +2320,38 @@ bool BufferAllocator::shrinkLarge(LargeBuffer* header, size_t newBytes) {
     zone->mallocHeapSize.removeBytes(shrinkBytes, false);
   }
 
-  header->bytesIncludingHeader = newBytes;
-  void* endPtr = reinterpret_cast<void*>(uintptr_t(header) + newBytes);
+  header->bytes = newBytes;
+
+  void* endPtr = reinterpret_cast<void*>(uintptr_t(header->data()) + newBytes);
   UnmapPages(endPtr, shrinkBytes);
 
   return true;
 #endif
 }
 
-void BufferAllocator::unmapLarge(LargeBuffer* header, bool isSweeping) {
+void BufferAllocator::unmapLarge(LargeBuffer* header, bool isSweeping,
+                                 AutoLock& lock) {
   MOZ_ASSERT(header->zone == zone);
   MOZ_ASSERT(!header->isInList());
 
-  size_t bytes = header->bytesIncludingHeader;
+#ifdef DEBUG
+  auto ptr = largeAllocMap.ref().lookup(header->data());
+  MOZ_ASSERT(ptr && ptr->value() == header);
+#endif
+  largeAllocMap.ref().remove(header->data());
+
+  size_t bytes = header->bytes;
 
   if (!header->isNurseryOwned) {
-    zone->mallocHeapSize.removeBytes(header->allocBytes(), isSweeping);
+    zone->mallocHeapSize.removeBytes(bytes, isSweeping);
   }
 
-  UnmapPages(header, bytes);
+  {
+    UnlockGuard unlock(lock);
+    UnmapPages(header->data(), bytes);
+  }
+
+  js_free(header);
 }
 
 #include "js/Printer.h"

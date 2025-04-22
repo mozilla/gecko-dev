@@ -12,6 +12,7 @@
 #include "mozilla/Array.h"
 #include "mozilla/Atomics.h"
 #include "mozilla/BitSet.h"
+#include "mozilla/HashTable.h"
 #include "mozilla/Maybe.h"
 #include "mozilla/TimeStamp.h"
 
@@ -198,6 +199,7 @@ class BufferAllocator : public SlimLinkedListElement<BufferAllocator> {
    public:
     explicit AutoLock(GCRuntime* gc);
     explicit AutoLock(BufferAllocator* allocator);
+    friend class UnlockGuard<AutoLock>;
   };
 
   // A lock guard that is locked only when needed.
@@ -250,6 +252,9 @@ class BufferAllocator : public SlimLinkedListElement<BufferAllocator> {
 
   using LargeAllocList = SlimLinkedList<LargeBuffer>;
 
+  using LargeAllocMap =
+      mozilla::HashMap<void*, LargeBuffer*, PointerHasher<void*>>;
+
   enum class State : uint8_t { NotCollecting, Marking, Sweeping };
 
   enum class OwnerKind : uint8_t { Tenured = 0, Nursery, None };
@@ -286,6 +291,10 @@ class BufferAllocator : public SlimLinkedListElement<BufferAllocator> {
 
   // List of large tenured-owned buffers.
   MainThreadData<LargeAllocList> largeTenuredAllocs;
+
+  // Map from allocation pointer to buffer metadata for large buffers.
+  // Access requires holding the mutex.
+  MutexData<LargeAllocMap> largeAllocMap;
 
   // Large buffers waiting to be swept.
   MainThreadOrGCTaskData<LargeAllocList> largeTenuredAllocsToSweep;
@@ -449,9 +458,12 @@ class BufferAllocator : public SlimLinkedListElement<BufferAllocator> {
   bool sweepLargeTenured(LargeBuffer* header);
   void freeLarge(void* alloc);
   bool shrinkLarge(LargeBuffer* header, size_t newBytes);
-  void unmapLarge(LargeBuffer* header, bool isSweeping);
+  void unmapLarge(LargeBuffer* header, bool isSweeping, AutoLock& lock);
   bool markLargeAlloc(void* alloc);
   bool isLargeAllocMarked(void* alloc);
+
+  // Lookup a large buffer by pointer in the map.
+  LargeBuffer* lookupLargeBuffer(void* alloc, const AutoLock& lock);
 
   void updateHeapSize(size_t bytes, bool checkThresholds,
                       bool updateRetainedSize);
@@ -495,10 +507,10 @@ struct alignas(CellAlignBytes) MediumBuffer {
 };
 
 struct alignas(CellAlignBytes) LargeBuffer
-    : protected ChunkBase,
-      public SlimLinkedListElement<LargeBuffer> {
+    : public SlimLinkedListElement<LargeBuffer> {
   JS::Zone* const zone;
-  size_t bytesIncludingHeader;
+  void* alloc;
+  size_t bytes;
   mozilla::Atomic<bool, mozilla::Relaxed> marked;
   bool isNurseryOwned;
   bool allocatedDuringCollection = false;
@@ -507,17 +519,16 @@ struct alignas(CellAlignBytes) LargeBuffer
   uint32_t checkValue = LargeBufferCheckValue;
 #endif
 
-  inline LargeBuffer(JS::Zone* zone, size_t bytes, bool nurseryOwned);
+  inline LargeBuffer(JS::Zone* zone, void* ptr, size_t bytes,
+                     bool nurseryOwned);
 
   inline void check() const;
 
   inline bool markAtomic();
-  inline void* data();
-  inline size_t allocBytes() const;
+  inline void* data() { return alloc; }
+  inline size_t allocBytes() const { return bytes; }
   bool isPointerWithinAllocation(void* ptr) const;
 };
-
-static constexpr size_t LargeBufferHeaderSize = sizeof(LargeBuffer);
 
 }  // namespace gc
 }  // namespace js
