@@ -134,7 +134,7 @@ pub enum InterruptKind {
     /// Interrupt read operations like [SuggestStore::query]
     Read,
     /// Interrupt write operations.  This mostly means [SuggestStore::ingest], but
-    /// [SuggestStore::dismiss_suggestion] may also be interrupted.
+    /// other operations may also be interrupted.
     Write,
     /// Interrupt both read and write operations,
     ReadWrite,
@@ -204,12 +204,27 @@ impl SuggestStore {
     }
 
     /// Dismiss a suggestion.
+    ///
+    /// Dismissed suggestions cannot be fetched again.
     #[handle_error(Error)]
-    pub fn dismiss(&self, suggestion: &Suggestion) -> SuggestApiResult<()> {
-        self.inner.dismiss(suggestion)
+    pub fn dismiss_by_suggestion(&self, suggestion: &Suggestion) -> SuggestApiResult<()> {
+        self.inner.dismiss_by_suggestion(suggestion)
     }
 
-    /// Deprecated, use [SuggestStore::dismiss] instead.
+    /// Dismiss a suggestion by its dismissal key.
+    ///
+    /// Dismissed suggestions cannot be fetched again.
+    ///
+    /// Prefer [SuggestStore::dismiss_by_suggestion] if you have a
+    /// `crate::Suggestion`. This method is intended for cases where a
+    /// suggestion originates outside this component.
+    #[handle_error(Error)]
+    pub fn dismiss_by_key(&self, key: &str) -> SuggestApiResult<()> {
+        self.inner.dismiss_by_key(key)
+    }
+
+    /// Deprecated, use [SuggestStore::dismiss_by_suggestion] or
+    /// [SuggestStore::dismiss_by_key] instead.
     ///
     /// Dismiss a suggestion
     ///
@@ -223,6 +238,33 @@ impl SuggestStore {
     #[handle_error(Error)]
     pub fn clear_dismissed_suggestions(&self) -> SuggestApiResult<()> {
         self.inner.clear_dismissed_suggestions()
+    }
+
+    /// Return whether a suggestion has been dismissed.
+    ///
+    /// [SuggestStore::query] will never return dismissed suggestions, so
+    /// normally you never need to know whether a `Suggestion` has been
+    /// dismissed, but this method can be used to do so.
+    #[handle_error(Error)]
+    pub fn is_dismissed_by_suggestion(&self, suggestion: &Suggestion) -> SuggestApiResult<bool> {
+        self.inner.is_dismissed_by_suggestion(suggestion)
+    }
+
+    /// Return whether a suggestion has been dismissed given its dismissal key.
+    ///
+    /// [SuggestStore::query] will never return dismissed suggestions, so
+    /// normally you never need to know whether a suggestion has been dismissed.
+    /// This method is intended for cases where a dismissal key originates
+    /// outside this component.
+    #[handle_error(Error)]
+    pub fn is_dismissed_by_key(&self, key: &str) -> SuggestApiResult<bool> {
+        self.inner.is_dismissed_by_key(key)
+    }
+
+    /// Return whether any suggestions have been dismissed.
+    #[handle_error(Error)]
+    pub fn any_dismissed_suggestions(&self) -> SuggestApiResult<bool> {
+        self.inner.any_dismissed_suggestions()
     }
 
     /// Interrupts any ongoing queries.
@@ -448,13 +490,15 @@ impl<S> SuggestStoreInner<S> {
         })
     }
 
-    fn dismiss(&self, suggestion: &Suggestion) -> Result<()> {
-        if let Some(dismissal_key) = suggestion.dismissal_key() {
-            self.dbs()?
-                .writer
-                .write(|dao| dao.insert_dismissal(dismissal_key))?;
+    fn dismiss_by_suggestion(&self, suggestion: &Suggestion) -> Result<()> {
+        if let Some(key) = suggestion.dismissal_key() {
+            self.dismiss_by_key(key)?;
         }
         Ok(())
+    }
+
+    fn dismiss_by_key(&self, key: &str) -> Result<()> {
+        self.dbs()?.writer.write(|dao| dao.insert_dismissal(key))
     }
 
     fn dismiss_suggestion(&self, suggestion_url: String) -> Result<()> {
@@ -466,6 +510,22 @@ impl<S> SuggestStoreInner<S> {
     fn clear_dismissed_suggestions(&self) -> Result<()> {
         self.dbs()?.writer.write(|dao| dao.clear_dismissals())?;
         Ok(())
+    }
+
+    fn is_dismissed_by_suggestion(&self, suggestion: &Suggestion) -> Result<bool> {
+        if let Some(key) = suggestion.dismissal_key() {
+            self.dbs()?.reader.read(|dao| dao.has_dismissal(key))
+        } else {
+            Ok(false)
+        }
+    }
+
+    fn is_dismissed_by_key(&self, key: &str) -> Result<bool> {
+        self.dbs()?.reader.read(|dao| dao.has_dismissal(key))
+    }
+
+    fn any_dismissed_suggestions(&self) -> Result<bool> {
+        self.dbs()?.reader.read(|dao| dao.any_dismissals())
     }
 
     fn interrupt(&self, kind: Option<InterruptKind>) {
@@ -1174,8 +1234,12 @@ pub(crate) mod tests {
             assert_eq!(suggestions[0].dismissal_key(), expected_dismissal_key);
 
             // Dismiss the suggestion.
-            store.inner.dismiss(&suggestions[0])?;
+            let dismissal_key = suggestions[0].dismissal_key().unwrap();
+            store.inner.dismiss_by_suggestion(&suggestions[0])?;
             assert_eq!(store.fetch_suggestions(SuggestionQuery::amp(query)), vec![]);
+            assert!(store.inner.is_dismissed_by_suggestion(&suggestions[0])?);
+            assert!(store.inner.is_dismissed_by_key(dismissal_key)?);
+            assert!(store.inner.any_dismissed_suggestions()?);
 
             // Clear dismissals and fetch again.
             store.inner.clear_dismissed_suggestions()?;
@@ -1183,19 +1247,44 @@ pub(crate) mod tests {
                 store.fetch_suggestions(SuggestionQuery::amp(query)),
                 vec![expected_suggestion.clone()]
             );
+            assert!(!store.inner.is_dismissed_by_suggestion(&suggestions[0])?);
+            assert!(!store.inner.is_dismissed_by_key(dismissal_key)?);
+            assert!(!store.inner.any_dismissed_suggestions()?);
 
-            // Dismiss the suggestion by its raw URL using the deprecated API.
-            store
-                .inner
-                .dismiss_suggestion(expected_suggestion.raw_url().unwrap().to_string())?;
+            // Dismiss the suggestion by its dismissal key.
+            store.inner.dismiss_by_key(dismissal_key)?;
             assert_eq!(store.fetch_suggestions(SuggestionQuery::amp(query)), vec![]);
+            assert!(store.inner.is_dismissed_by_suggestion(&suggestions[0])?);
+            assert!(store.inner.is_dismissed_by_key(dismissal_key)?);
+            assert!(store.inner.any_dismissed_suggestions()?);
 
             // Clear dismissals and fetch again.
             store.inner.clear_dismissed_suggestions()?;
             assert_eq!(
                 store.fetch_suggestions(SuggestionQuery::amp(query)),
-                vec![expected_suggestion]
+                vec![expected_suggestion.clone()]
             );
+            assert!(!store.inner.is_dismissed_by_suggestion(&suggestions[0])?);
+            assert!(!store.inner.is_dismissed_by_key(dismissal_key)?);
+            assert!(!store.inner.any_dismissed_suggestions()?);
+
+            // Dismiss the suggestion by its raw URL using the deprecated API.
+            let raw_url = expected_suggestion.raw_url().unwrap();
+            store.inner.dismiss_suggestion(raw_url.to_string())?;
+            assert_eq!(store.fetch_suggestions(SuggestionQuery::amp(query)), vec![]);
+            assert!(store.inner.is_dismissed_by_key(raw_url)?);
+            assert!(store.inner.any_dismissed_suggestions()?);
+
+            // Clear dismissals and fetch again.
+            store.inner.clear_dismissed_suggestions()?;
+            assert_eq!(
+                store.fetch_suggestions(SuggestionQuery::amp(query)),
+                vec![expected_suggestion.clone()]
+            );
+            assert!(!store.inner.is_dismissed_by_suggestion(&suggestions[0])?);
+            assert!(!store.inner.is_dismissed_by_key(dismissal_key)?);
+            assert!(!store.inner.is_dismissed_by_key(raw_url)?);
+            assert!(!store.inner.any_dismissed_suggestions()?);
         }
 
         Ok(())
@@ -2452,18 +2541,31 @@ pub(crate) mod tests {
         let results = store.fetch_suggestions(query.clone());
         assert_eq!(results.len(), 5);
 
-        for result in results {
-            store
-                .inner
-                .dismiss_suggestion(result.raw_url().unwrap().to_string())?;
+        assert!(!store.inner.any_dismissed_suggestions()?);
+
+        for result in &results {
+            let dismissal_key = result.dismissal_key().unwrap();
+            assert!(!store.inner.is_dismissed_by_suggestion(result)?);
+            assert!(!store.inner.is_dismissed_by_key(dismissal_key)?);
+            store.inner.dismiss_by_suggestion(result)?;
+            assert!(store.inner.is_dismissed_by_suggestion(result)?);
+            assert!(store.inner.is_dismissed_by_key(dismissal_key)?);
+            assert!(store.inner.any_dismissed_suggestions()?);
         }
 
         // After dismissing the suggestions, the next query shouldn't return them
-        assert_eq!(store.fetch_suggestions(query.clone()).len(), 0);
+        assert_eq!(store.fetch_suggestions(query.clone()), vec![]);
 
         // Clearing the dismissals should cause them to be returned again
         store.inner.clear_dismissed_suggestions()?;
         assert_eq!(store.fetch_suggestions(query.clone()).len(), 5);
+
+        for result in &results {
+            let dismissal_key = result.dismissal_key().unwrap();
+            assert!(!store.inner.is_dismissed_by_suggestion(result)?);
+            assert!(!store.inner.is_dismissed_by_key(dismissal_key)?);
+        }
+        assert!(!store.inner.any_dismissed_suggestions()?);
 
         Ok(())
     }
@@ -3697,8 +3799,9 @@ pub(crate) mod tests {
         });
 
         // Make sure the suggestions are initially fetchable.
+        let suggestions = store.fetch_suggestions(SuggestionQuery::dynamic("aaa", &["aaa"]));
         assert_eq!(
-            store.fetch_suggestions(SuggestionQuery::dynamic("aaa", &["aaa"])),
+            suggestions,
             vec![
                 Suggestion::Dynamic {
                     suggestion_type: "aaa".to_string(),
@@ -3722,7 +3825,8 @@ pub(crate) mod tests {
         );
 
         // Dismiss the first suggestion.
-        store.inner.dismiss_suggestion("dk0".to_string())?;
+        assert_eq!(suggestions[0].dismissal_key(), Some("dk0"));
+        store.inner.dismiss_by_suggestion(&suggestions[0])?;
         assert_eq!(
             store.fetch_suggestions(SuggestionQuery::dynamic("aaa", &["aaa"])),
             vec![
@@ -3742,7 +3846,8 @@ pub(crate) mod tests {
         );
 
         // Dismiss the second suggestion.
-        store.inner.dismiss_suggestion("dk1".to_string())?;
+        assert_eq!(suggestions[1].dismissal_key(), Some("dk1"));
+        store.inner.dismiss_by_suggestion(&suggestions[1])?;
         assert_eq!(
             store.fetch_suggestions(SuggestionQuery::dynamic("aaa", &["aaa"])),
             vec![Suggestion::Dynamic {

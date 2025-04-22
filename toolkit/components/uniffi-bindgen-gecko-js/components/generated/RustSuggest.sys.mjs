@@ -551,12 +551,32 @@ export class SuggestStore {
                 throw e;
             }
             return UniFFIScaffolding.callSync(
-                44, // suggest:uniffi_suggest_fn_constructor_suggeststore_new
+                48, // suggest:uniffi_suggest_fn_constructor_suggeststore_new
                 FfiConverterString.lower(path),
                 FfiConverterTypeRemoteSettingsService.lower(remoteSettingsService),
             )
         }
         return handleRustResult(functionCall(), liftResult, liftError);}
+
+    /**
+     * Return whether any suggestions have been dismissed.
+     * @returns {Boolean}
+     */
+    anyDismissedSuggestions() {
+        const liftResult = (result) => FfiConverterBool.lift(result);
+        const liftError = (data) => FfiConverterTypeSuggestApiError.lift(data);
+        const functionCall = () => {
+            return UniFFIScaffolding.callAsyncWrapper(
+                33, // suggest:uniffi_suggest_fn_method_suggeststore_any_dismissed_suggestions
+                FfiConverterTypeSuggestStore.lower(this),
+            )
+        }
+        try {
+            return functionCall().then((result) => handleRustResult(result, liftResult, liftError));
+        }  catch (error) {
+            return Promise.reject(error)
+        }
+    }
 
     /**
      * Removes all content from the database.
@@ -566,7 +586,7 @@ export class SuggestStore {
         const liftError = (data) => FfiConverterTypeSuggestApiError.lift(data);
         const functionCall = () => {
             return UniFFIScaffolding.callAsyncWrapper(
-                33, // suggest:uniffi_suggest_fn_method_suggeststore_clear
+                34, // suggest:uniffi_suggest_fn_method_suggeststore_clear
                 FfiConverterTypeSuggestStore.lower(this),
             )
         }
@@ -585,7 +605,7 @@ export class SuggestStore {
         const liftError = (data) => FfiConverterTypeSuggestApiError.lift(data);
         const functionCall = () => {
             return UniFFIScaffolding.callAsyncWrapper(
-                34, // suggest:uniffi_suggest_fn_method_suggeststore_clear_dismissed_suggestions
+                35, // suggest:uniffi_suggest_fn_method_suggeststore_clear_dismissed_suggestions
                 FfiConverterTypeSuggestStore.lower(this),
             )
         }
@@ -597,9 +617,45 @@ export class SuggestStore {
     }
 
     /**
-     * Dismiss a suggestion.
+     * Dismiss a suggestion by its dismissal key.
+     *
+     * Dismissed suggestions cannot be fetched again.
+     *
+     * Prefer [SuggestStore::dismiss_by_suggestion] if you have a
+     * `crate::Suggestion`. This method is intended for cases where a
+     * suggestion originates outside this component.
      */
-    dismiss(suggestion) {
+    dismissByKey(key) {
+        const liftResult = (result) => undefined;
+        const liftError = (data) => FfiConverterTypeSuggestApiError.lift(data);
+        const functionCall = () => {
+            try {
+                FfiConverterString.checkType(key)
+            } catch (e) {
+                if (e instanceof UniFFITypeError) {
+                    e.addItemDescriptionPart("key");
+                }
+                throw e;
+            }
+            return UniFFIScaffolding.callAsyncWrapper(
+                36, // suggest:uniffi_suggest_fn_method_suggeststore_dismiss_by_key
+                FfiConverterTypeSuggestStore.lower(this),
+                FfiConverterString.lower(key),
+            )
+        }
+        try {
+            return functionCall().then((result) => handleRustResult(result, liftResult, liftError));
+        }  catch (error) {
+            return Promise.reject(error)
+        }
+    }
+
+    /**
+     * Dismiss a suggestion.
+     *
+     * Dismissed suggestions cannot be fetched again.
+     */
+    dismissBySuggestion(suggestion) {
         const liftResult = (result) => undefined;
         const liftError = (data) => FfiConverterTypeSuggestApiError.lift(data);
         const functionCall = () => {
@@ -612,7 +668,7 @@ export class SuggestStore {
                 throw e;
             }
             return UniFFIScaffolding.callAsyncWrapper(
-                35, // suggest:uniffi_suggest_fn_method_suggeststore_dismiss
+                37, // suggest:uniffi_suggest_fn_method_suggeststore_dismiss_by_suggestion
                 FfiConverterTypeSuggestStore.lower(this),
                 FfiConverterTypeSuggestion.lower(suggestion),
             )
@@ -625,7 +681,8 @@ export class SuggestStore {
     }
 
     /**
-     * Deprecated, use [SuggestStore::dismiss] instead.
+     * Deprecated, use [SuggestStore::dismiss_by_suggestion] or
+     * [SuggestStore::dismiss_by_key] instead.
      *
      * Dismiss a suggestion
      *
@@ -644,7 +701,7 @@ export class SuggestStore {
                 throw e;
             }
             return UniFFIScaffolding.callAsyncWrapper(
-                36, // suggest:uniffi_suggest_fn_method_suggeststore_dismiss_suggestion
+                38, // suggest:uniffi_suggest_fn_method_suggeststore_dismiss_suggestion
                 FfiConverterTypeSuggestStore.lower(this),
                 FfiConverterString.lower(suggestionUrl),
             )
@@ -719,7 +776,7 @@ export class SuggestStore {
                 throw e;
             }
             return UniFFIScaffolding.callAsyncWrapper(
-                37, // suggest:uniffi_suggest_fn_method_suggeststore_fetch_geonames
+                39, // suggest:uniffi_suggest_fn_method_suggeststore_fetch_geonames
                 FfiConverterTypeSuggestStore.lower(this),
                 FfiConverterString.lower(query),
                 FfiConverterBool.lower(matchNamePrefix),
@@ -743,7 +800,7 @@ export class SuggestStore {
         const liftError = (data) => FfiConverterTypeSuggestApiError.lift(data);
         const functionCall = () => {
             return UniFFIScaffolding.callAsyncWrapper(
-                38, // suggest:uniffi_suggest_fn_method_suggeststore_fetch_global_config
+                40, // suggest:uniffi_suggest_fn_method_suggeststore_fetch_global_config
                 FfiConverterTypeSuggestStore.lower(this),
             )
         }
@@ -771,7 +828,7 @@ export class SuggestStore {
                 throw e;
             }
             return UniFFIScaffolding.callAsyncWrapper(
-                39, // suggest:uniffi_suggest_fn_method_suggeststore_fetch_provider_config
+                41, // suggest:uniffi_suggest_fn_method_suggeststore_fetch_provider_config
                 FfiConverterTypeSuggestStore.lower(this),
                 FfiConverterTypeSuggestionProvider.lower(provider),
             )
@@ -800,7 +857,7 @@ export class SuggestStore {
                 throw e;
             }
             return UniFFIScaffolding.callAsyncWrapper(
-                40, // suggest:uniffi_suggest_fn_method_suggeststore_ingest
+                42, // suggest:uniffi_suggest_fn_method_suggeststore_ingest
                 FfiConverterTypeSuggestStore.lower(this),
                 FfiConverterTypeSuggestIngestionConstraints.lower(constraints),
             )
@@ -832,12 +889,79 @@ export class SuggestStore {
                 throw e;
             }
             return UniFFIScaffolding.callSync(
-                41, // suggest:uniffi_suggest_fn_method_suggeststore_interrupt
+                43, // suggest:uniffi_suggest_fn_method_suggeststore_interrupt
                 FfiConverterTypeSuggestStore.lower(this),
                 FfiConverterOptionalTypeInterruptKind.lower(kind),
             )
         }
         return handleRustResult(functionCall(), liftResult, liftError);
+    }
+
+    /**
+     * Return whether a suggestion has been dismissed given its dismissal key.
+     *
+     * [SuggestStore::query] will never return dismissed suggestions, so
+     * normally you never need to know whether a suggestion has been dismissed.
+     * This method is intended for cases where a dismissal key originates
+     * outside this component.
+     * @returns {Boolean}
+     */
+    isDismissedByKey(key) {
+        const liftResult = (result) => FfiConverterBool.lift(result);
+        const liftError = (data) => FfiConverterTypeSuggestApiError.lift(data);
+        const functionCall = () => {
+            try {
+                FfiConverterString.checkType(key)
+            } catch (e) {
+                if (e instanceof UniFFITypeError) {
+                    e.addItemDescriptionPart("key");
+                }
+                throw e;
+            }
+            return UniFFIScaffolding.callAsyncWrapper(
+                44, // suggest:uniffi_suggest_fn_method_suggeststore_is_dismissed_by_key
+                FfiConverterTypeSuggestStore.lower(this),
+                FfiConverterString.lower(key),
+            )
+        }
+        try {
+            return functionCall().then((result) => handleRustResult(result, liftResult, liftError));
+        }  catch (error) {
+            return Promise.reject(error)
+        }
+    }
+
+    /**
+     * Return whether a suggestion has been dismissed.
+     *
+     * [SuggestStore::query] will never return dismissed suggestions, so
+     * normally you never need to know whether a `Suggestion` has been
+     * dismissed, but this method can be used to do so.
+     * @returns {Boolean}
+     */
+    isDismissedBySuggestion(suggestion) {
+        const liftResult = (result) => FfiConverterBool.lift(result);
+        const liftError = (data) => FfiConverterTypeSuggestApiError.lift(data);
+        const functionCall = () => {
+            try {
+                FfiConverterTypeSuggestion.checkType(suggestion)
+            } catch (e) {
+                if (e instanceof UniFFITypeError) {
+                    e.addItemDescriptionPart("suggestion");
+                }
+                throw e;
+            }
+            return UniFFIScaffolding.callAsyncWrapper(
+                45, // suggest:uniffi_suggest_fn_method_suggeststore_is_dismissed_by_suggestion
+                FfiConverterTypeSuggestStore.lower(this),
+                FfiConverterTypeSuggestion.lower(suggestion),
+            )
+        }
+        try {
+            return functionCall().then((result) => handleRustResult(result, liftResult, liftError));
+        }  catch (error) {
+            return Promise.reject(error)
+        }
     }
 
     /**
@@ -857,7 +981,7 @@ export class SuggestStore {
                 throw e;
             }
             return UniFFIScaffolding.callAsyncWrapper(
-                42, // suggest:uniffi_suggest_fn_method_suggeststore_query
+                46, // suggest:uniffi_suggest_fn_method_suggeststore_query
                 FfiConverterTypeSuggestStore.lower(this),
                 FfiConverterTypeSuggestionQuery.lower(query),
             )
@@ -886,7 +1010,7 @@ export class SuggestStore {
                 throw e;
             }
             return UniFFIScaffolding.callAsyncWrapper(
-                43, // suggest:uniffi_suggest_fn_method_suggeststore_query_with_metrics
+                47, // suggest:uniffi_suggest_fn_method_suggeststore_query_with_metrics
                 FfiConverterTypeSuggestStore.lower(this),
                 FfiConverterTypeSuggestionQuery.lower(query),
             )
@@ -957,7 +1081,7 @@ export class SuggestStoreBuilder {
         const liftError = null;
         const functionCall = () => {
             return UniFFIScaffolding.callSync(
-                52, // suggest:uniffi_suggest_fn_constructor_suggeststorebuilder_new
+                56, // suggest:uniffi_suggest_fn_constructor_suggeststorebuilder_new
             )
         }
         return handleRustResult(functionCall(), liftResult, liftError);}
@@ -971,7 +1095,7 @@ export class SuggestStoreBuilder {
         const liftError = (data) => FfiConverterTypeSuggestApiError.lift(data);
         const functionCall = () => {
             return UniFFIScaffolding.callSync(
-                45, // suggest:uniffi_suggest_fn_method_suggeststorebuilder_build
+                49, // suggest:uniffi_suggest_fn_method_suggeststorebuilder_build
                 FfiConverterTypeSuggestStoreBuilder.lower(this),
             )
         }
@@ -995,7 +1119,7 @@ export class SuggestStoreBuilder {
                 throw e;
             }
             return UniFFIScaffolding.callAsyncWrapper(
-                46, // suggest:uniffi_suggest_fn_method_suggeststorebuilder_cache_path
+                50, // suggest:uniffi_suggest_fn_method_suggeststorebuilder_cache_path
                 FfiConverterTypeSuggestStoreBuilder.lower(this),
                 FfiConverterString.lower(path),
             )
@@ -1024,7 +1148,7 @@ export class SuggestStoreBuilder {
                 throw e;
             }
             return UniFFIScaffolding.callSync(
-                47, // suggest:uniffi_suggest_fn_method_suggeststorebuilder_data_path
+                51, // suggest:uniffi_suggest_fn_method_suggeststorebuilder_data_path
                 FfiConverterTypeSuggestStoreBuilder.lower(this),
                 FfiConverterString.lower(path),
             )
@@ -1061,7 +1185,7 @@ export class SuggestStoreBuilder {
                 throw e;
             }
             return UniFFIScaffolding.callSync(
-                48, // suggest:uniffi_suggest_fn_method_suggeststorebuilder_load_extension
+                52, // suggest:uniffi_suggest_fn_method_suggeststorebuilder_load_extension
                 FfiConverterTypeSuggestStoreBuilder.lower(this),
                 FfiConverterString.lower(library),
                 FfiConverterOptionalstring.lower(entryPoint),
@@ -1087,7 +1211,7 @@ export class SuggestStoreBuilder {
                 throw e;
             }
             return UniFFIScaffolding.callSync(
-                49, // suggest:uniffi_suggest_fn_method_suggeststorebuilder_remote_settings_bucket_name
+                53, // suggest:uniffi_suggest_fn_method_suggeststorebuilder_remote_settings_bucket_name
                 FfiConverterTypeSuggestStoreBuilder.lower(this),
                 FfiConverterString.lower(bucketName),
             )
@@ -1112,7 +1236,7 @@ export class SuggestStoreBuilder {
                 throw e;
             }
             return UniFFIScaffolding.callSync(
-                50, // suggest:uniffi_suggest_fn_method_suggeststorebuilder_remote_settings_server
+                54, // suggest:uniffi_suggest_fn_method_suggeststorebuilder_remote_settings_server
                 FfiConverterTypeSuggestStoreBuilder.lower(this),
                 FfiConverterTypeRemoteSettingsServer.lower(server),
             )
@@ -1137,7 +1261,7 @@ export class SuggestStoreBuilder {
                 throw e;
             }
             return UniFFIScaffolding.callSync(
-                51, // suggest:uniffi_suggest_fn_method_suggeststorebuilder_remote_settings_service
+                55, // suggest:uniffi_suggest_fn_method_suggeststorebuilder_remote_settings_service
                 FfiConverterTypeSuggestStoreBuilder.lower(this),
                 FfiConverterTypeRemoteSettingsService.lower(rsService),
             )
@@ -2426,7 +2550,7 @@ export const InterruptKind = {
     READ: 1,
     /**
      * Interrupt write operations.  This mostly means [SuggestStore::ingest], but
-     * [SuggestStore::dismiss_suggestion] may also be interrupted.
+     * other operations may also be interrupted.
      */
     WRITE: 2,
     /**

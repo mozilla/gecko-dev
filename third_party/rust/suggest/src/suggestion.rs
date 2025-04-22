@@ -146,14 +146,14 @@ impl Suggestion {
                     self.raw_url()
                 }
             }
+            Self::Dynamic { dismissal_key, .. } => dismissal_key.as_deref(),
             Self::Pocket { .. }
             | Self::Wikipedia { .. }
             | Self::Amo { .. }
             | Self::Yelp { .. }
             | Self::Mdn { .. }
             | Self::Weather { .. }
-            | Self::Fakespot { .. }
-            | Self::Dynamic { .. } => self.raw_url(),
+            | Self::Fakespot { .. } => self.raw_url(),
         }
     }
 

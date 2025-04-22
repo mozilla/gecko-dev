@@ -23,7 +23,7 @@ use sql_support::{
 ///     `clear_database()` by adding their names to `conditional_tables`, unless
 ///     they are cleared via a deletion trigger or there's some other good
 ///     reason not to do so.
-pub const VERSION: u32 = 35;
+pub const VERSION: u32 = 36;
 
 /// The current Suggest database schema.
 pub const SQL: &str = "
@@ -643,6 +643,10 @@ impl ConnectionInitializer for SuggestConnectionInitializer<'_> {
                     CREATE INDEX dynamic_custom_details_suggestion_type ON dynamic_custom_details(suggestion_type);
                     "#,
                 )?;
+                Ok(())
+            }
+            35 => {
+                // The commit that added this migration was reverted.
                 Ok(())
             }
             _ => Err(open_database::Error::IncompatibleVersion(version)),

@@ -1271,12 +1271,12 @@ impl<'a> SuggestDao<'a> {
         Ok(())
     }
 
-    pub fn insert_dismissal(&self, url: &str) -> Result<()> {
+    pub fn insert_dismissal(&self, key: &str) -> Result<()> {
         self.conn.execute(
             "INSERT OR IGNORE INTO dismissed_suggestions(url)
              VALUES(:url)",
             named_params! {
-                ":url": url,
+                ":url": key,
             },
         )?;
         Ok(())
@@ -1285,6 +1285,21 @@ impl<'a> SuggestDao<'a> {
     pub fn clear_dismissals(&self) -> Result<()> {
         self.conn.execute("DELETE FROM dismissed_suggestions", ())?;
         Ok(())
+    }
+
+    pub fn has_dismissal(&self, key: &str) -> Result<bool> {
+        Ok(self.conn.exists(
+            "SELECT 1 FROM dismissed_suggestions WHERE url = :url",
+            named_params! {
+                ":url": key,
+            },
+        )?)
+    }
+
+    pub fn any_dismissals(&self) -> Result<bool> {
+        Ok(self
+            .conn
+            .exists("SELECT 1 FROM dismissed_suggestions LIMIT 1", ())?)
     }
 
     /// Deletes all suggestions associated with a Remote Settings record from
