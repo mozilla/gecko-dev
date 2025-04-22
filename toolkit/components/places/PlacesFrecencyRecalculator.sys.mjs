@@ -540,7 +540,10 @@ class AlternativeFrecencyHelper {
   sets = {
     pages: {
       // This pref is only read once and used to kick-off recalculations.
-      enabled: lazy.PlacesUtils.history.isAlternativeFrecencyEnabled,
+      enabled: Services.prefs.getBoolPref(
+        "places.frecency.pages.alternative.featureGate",
+        false
+      ),
       // Key used to store variables in the moz_meta table.
       metadataKey: "page_alternative_frecency",
       // The table containing frecency.
