@@ -788,6 +788,9 @@ partial namespace ChromeUtils {
   // Equivalent to pressing the home button. Exclusively for testing.
   [ChromeOnly]
   undefined androidMoveTaskToBack();
+
+  [Throws]
+  ContentSecurityPolicy createCSPFromHeader(DOMString header, URI selfURI, Principal loadingPrincipal);
 };
 
 /*

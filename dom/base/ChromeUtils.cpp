@@ -2585,4 +2585,11 @@ void ChromeUtils::AndroidMoveTaskToBack(GlobalObject& aGlobal) {
 #endif
 }
 
+already_AddRefed<nsIContentSecurityPolicy> ChromeUtils::CreateCSPFromHeader(
+    GlobalObject& aGlobal, const nsAString& aHeader, nsIURI* aSelfURI,
+    nsIPrincipal* aLoadingPrincipal, ErrorResult& aRv) {
+  return CSP_CreateFromHeader(aHeader, aSelfURI, aLoadingPrincipal,
+                             aRv);
+}
+
 }  // namespace mozilla::dom
