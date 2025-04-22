@@ -323,7 +323,8 @@ LocalAccessible* TreeWalker::AccessibleFor(nsIContent* aNode, uint32_t aFlags,
   }
 
   // Create an accessible if allowed.
-  if (!(aFlags & eWalkCache) && mContext->IsAcceptableChild(aNode)) {
+  if (!(aFlags & eWalkCache) && mContext->IsAcceptableChild(aNode) &&
+      !aria::IsValidARIAHidden(mDoc)) {
     mDoc->RelocateARIAOwnedIfNeeded(aNode);
     return GetAccService()->CreateAccessible(aNode, mContext, aSkipSubtree);
   }
