@@ -70,9 +70,7 @@ class Variants(ClassificationEnum):
 
 """
 The following methods and constants are used for restricting
-certain platforms and applications such as chrome, safari, and
-android tests. These all require a flag such as --android to
-enable (see build_category_matrix for more info).
+certain platforms and applications such as chrome and safari
 """
 
 
@@ -238,7 +236,6 @@ class ClassificationProvider:
                     Suites.PERFTEST.value: "'android 'a55",
                     "default": "'android 'a55 'shippable 'aarch64",
                 },
-                "restriction": check_for_android,
                 "platform": Platforms.ANDROID.value,
             },
             Platforms.ANDROID.value: {
@@ -248,7 +245,6 @@ class ClassificationProvider:
                     Suites.PERFTEST.value: "'android",
                     "default": "'android 'a55 'shippable 'aarch64",
                 },
-                "restriction": check_for_android,
                 "platform": Platforms.ANDROID.value,
             },
             Platforms.WINDOWS.value: {

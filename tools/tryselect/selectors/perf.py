@@ -140,14 +140,6 @@ class PerfParser(CompareParser):
             },
         ],
         [
-            ["--android"],
-            {
-                "action": "store_true",
-                "default": False,
-                "help": "Show android test categories (disabled by default).",
-            },
-        ],
-        [
             ["--chrome"],
             {
                 "action": "store_true",
@@ -161,8 +153,7 @@ class PerfParser(CompareParser):
             {
                 "action": "store_true",
                 "default": False,
-                "help": "Show tests available for Custom Chromium-as-Release (disabled by default). "
-                "Use with --android flag to select Custom CaR android tests (cstm-car-m)",
+                "help": "Show tests available for Custom Chromium-as-Release (disabled by default)",
             },
         ],
         [
@@ -297,8 +288,7 @@ class PerfParser(CompareParser):
                 "default": [],
                 "dest": "requested_platforms",
                 "choices": list(platforms.keys()),
-                "help": "Select specific platforms to target. Android only "
-                "available with --android. Available platforms: "
+                "help": "Select specific platforms to target. Available platforms: "
                 + ", ".join(list(platforms.keys())),
                 "metavar": "",
             },
@@ -1588,8 +1578,8 @@ class PerfParser(CompareParser):
         subprocess.check_output(hg_cmd)
         print(
             "\nAPK is setup for uploading. Please commit the changes, "
-            "and re-run this command. \nEnsure you supply the --android, "
-            "and select the correct tasks (fenix, geckoview) or use "
+            "and re-run this command. \nEnsure you "
+            "select the correct tasks (fenix, geckoview) or use "
             "--show-all/--full for mozperftest task selection. \nFor Fenix, ensure "
             "you also provide the --fenix flag."
         )

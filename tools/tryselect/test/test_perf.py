@@ -225,7 +225,7 @@ def setup_perfparser():
         # except for when there are requested apps/variants/platforms
         (
             {},
-            66,
+            96,
             {
                 "Benchmarks desktop": {
                     "raptor": [
@@ -287,7 +287,7 @@ def setup_perfparser():
         ),  # Default settings
         (
             {"live_sites": True},
-            74,
+            110,
             {
                 "Benchmarks desktop": {
                     "raptor": [
@@ -338,7 +338,7 @@ def setup_perfparser():
         ),
         (
             {"live_sites": True, "safari": True},
-            80,
+            116,
             {
                 "Benchmarks desktop": {
                     "raptor": [
@@ -378,7 +378,7 @@ def setup_perfparser():
         ),
         (
             {"safari-tp": True},
-            66,
+            96,
             {
                 "Benchmarks desktop": {
                     "raptor": [
@@ -415,7 +415,7 @@ def setup_perfparser():
         ),
         (
             {"live_sites": True, "chrome": True},
-            98,
+            146,
             {
                 "Benchmarks desktop": {
                     "raptor": [
@@ -599,13 +599,6 @@ def setup_perfparser():
         # Can't have fenix on the windows platform
         (
             {"requested_platforms": ["windows"], "requested_apps": ["fenix"]},
-            0,
-            {},
-            ["Benchmarks desktop"],
-        ),
-        # Android flag also needs to be supplied
-        (
-            {"requested_platforms": ["android"], "requested_apps": ["fenix"]},
             0,
             {},
             ["Benchmarks desktop"],
@@ -906,7 +899,7 @@ def test_category_expansion(
         ),
         (
             {"non_pgo": True},
-            58,
+            88,
         ),
     ],
 )
