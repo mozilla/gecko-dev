@@ -293,8 +293,8 @@ class BufferAllocator : public SlimLinkedListElement<BufferAllocator> {
   MainThreadData<LargeAllocList> largeTenuredAllocs;
 
   // Map from allocation pointer to buffer metadata for large buffers.
-  // Access requires holding the mutex.
-  MutexData<LargeAllocMap> largeAllocMap;
+  // Access requires holding the mutex during sweeping.
+  MainThreadOrGCTaskData<LargeAllocMap> largeAllocMap;
 
   // Large buffers waiting to be swept.
   MainThreadOrGCTaskData<LargeAllocList> largeNurseryAllocsToSweep;
@@ -459,12 +459,14 @@ class BufferAllocator : public SlimLinkedListElement<BufferAllocator> {
   bool sweepLargeTenured(LargeBuffer* header);
   void freeLarge(void* alloc);
   bool shrinkLarge(LargeBuffer* header, size_t newBytes);
-  void unmapLarge(LargeBuffer* header, bool isSweeping, AutoLock& lock);
+  void unmapLarge(LargeBuffer* header, bool isSweeping, MaybeLock& lock);
   bool markLargeAlloc(void* alloc);
   bool isLargeAllocMarked(void* alloc);
 
   // Lookup a large buffer by pointer in the map.
-  LargeBuffer* lookupLargeBuffer(void* alloc, const AutoLock& lock);
+  LargeBuffer* lookupLargeBuffer(void* alloc);
+  LargeBuffer* lookupLargeBuffer(void* alloc, MaybeLock& lock);
+  bool needLockToAccessBufferMap() const;
 
   void updateHeapSize(size_t bytes, bool checkThresholds,
                       bool updateRetainedSize);

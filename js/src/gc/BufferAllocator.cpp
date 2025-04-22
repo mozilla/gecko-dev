@@ -420,7 +420,6 @@ BufferAllocator::BufferAllocator(Zone* zone)
       sweptMediumTenuredChunks(lock()),
       sweptMediumNurseryFreeLists(lock()),
       sweptMediumTenuredFreeLists(lock()),
-      largeAllocMap(lock()),
       sweptLargeTenuredAllocs(lock()),
       minorState(State::NotCollecting),
       majorState(State::NotCollecting),
@@ -535,8 +534,7 @@ void* BufferAllocator::realloc(void* ptr, size_t bytes, bool nurseryOwned) {
 
   size_t currentBytes;
   if (IsLargeAlloc(ptr)) {
-    AutoLock lock(this);
-    LargeBuffer* header = lookupLargeBuffer(ptr, lock);
+    LargeBuffer* header = lookupLargeBuffer(ptr);
     currentBytes = header->allocBytes();
 
     // We can shrink large allocations (on some platforms).
@@ -632,8 +630,7 @@ bool BufferAllocator::IsBufferAlloc(void* alloc) {
 
 size_t BufferAllocator::getAllocSize(void* alloc) {
   if (IsLargeAlloc(alloc)) {
-    AutoLock lock(this);
-    LargeBuffer* header = lookupLargeBuffer(alloc, lock);
+    LargeBuffer* header = lookupLargeBuffer(alloc);
     return header->allocBytes();
   }
 
@@ -649,8 +646,7 @@ size_t BufferAllocator::getAllocSize(void* alloc) {
 
 bool BufferAllocator::isNurseryOwned(void* alloc) {
   if (IsLargeAlloc(alloc)) {
-    AutoLock lock(this);
-    LargeBuffer* header = lookupLargeBuffer(alloc, lock);
+    LargeBuffer* header = lookupLargeBuffer(alloc);
     return header->isNurseryOwned;
   }
 
@@ -670,8 +666,7 @@ void BufferAllocator::markNurseryOwnedAlloc(void* alloc, bool ownerWasTenured) {
   MOZ_ASSERT(minorState == State::Marking);
 
   if (IsLargeAlloc(alloc)) {
-    AutoLock lock(this);
-    auto* header = lookupLargeBuffer(alloc, lock);
+    auto* header = lookupLargeBuffer(alloc);
     MOZ_ASSERT(header->zone == zone);
     largeNurseryAllocsToSweep.ref().remove(header);
     if (ownerWasTenured) {
@@ -904,7 +899,7 @@ void BufferAllocator::sweepForMinorCollection() {
 
   while (!largeNurseryAllocsToSweep.ref().isEmpty()) {
     LargeBuffer* header = largeNurseryAllocsToSweep.ref().popFirst();
-    AutoLock lock(this);
+    MaybeLock lock(std::in_place, this);
     unmapLarge(header, true, lock);
   }
 
@@ -2184,8 +2179,23 @@ bool BufferAllocator::IsMediumAlloc(void* alloc) {
   return chunk->getKind() == ChunkKind::MediumBuffers;
 }
 
-LargeBuffer* BufferAllocator::lookupLargeBuffer(void* alloc,
-                                                const AutoLock& lock) {
+bool BufferAllocator::needLockToAccessBufferMap() const {
+  MOZ_ASSERT(CurrentThreadCanAccessZone(zone) || CurrentThreadIsGCMarking());
+  return minorState.refNoCheck() == State::Sweeping ||
+         majorState.refNoCheck() == State::Sweeping;
+}
+
+LargeBuffer* BufferAllocator::lookupLargeBuffer(void* alloc) {
+  MaybeLock lock;
+  return lookupLargeBuffer(alloc, lock);
+}
+
+LargeBuffer* BufferAllocator::lookupLargeBuffer(void* alloc, MaybeLock& lock) {
+  MOZ_ASSERT(lock.isNothing());
+  if (needLockToAccessBufferMap()) {
+    lock.emplace(this);
+  }
+
   auto ptr = largeAllocMap.ref().lookup(alloc);
   MOZ_ASSERT(ptr);
   LargeBuffer* buffer = ptr->value();
@@ -2216,7 +2226,10 @@ void* BufferAllocator::allocLarge(size_t bytes, bool nurseryOwned, bool inGC) {
   }
 
   {
-    AutoLock lock(this);
+    MaybeLock lock;
+    if (needLockToAccessBufferMap()) {
+      lock.emplace(this);
+    }
     if (!largeAllocMap.ref().put(header->data(), header)) {
       return nullptr;
     }
@@ -2234,13 +2247,11 @@ void* BufferAllocator::allocLarge(size_t bytes, bool nurseryOwned, bool inGC) {
   // Update memory accounting and trigger an incremental slice if needed.
   if (!nurseryOwned) {
     bool checkThresholds = !inGC;
-    updateHeapSize(header->allocBytes(), checkThresholds, false);
+    updateHeapSize(bytes, checkThresholds, false);
   }
 
-  void* alloc = header->data();
-  MOZ_ASSERT(IsLargeAlloc(alloc));
-
-  return alloc;
+  MOZ_ASSERT(IsLargeAlloc(ptr));
+  return ptr;
 }
 
 void BufferAllocator::updateHeapSize(size_t bytes, bool checkThresholds,
@@ -2260,14 +2271,12 @@ bool BufferAllocator::IsLargeAlloc(void* alloc) {
 }
 
 bool BufferAllocator::isLargeAllocMarked(void* alloc) {
-  AutoLock lock(this);
-  LargeBuffer* header = lookupLargeBuffer(alloc, lock);
+  LargeBuffer* header = lookupLargeBuffer(alloc);
   return header->marked;
 }
 
 bool BufferAllocator::markLargeAlloc(void* alloc) {
-  AutoLock lock(this);
-  LargeBuffer* header = lookupLargeBuffer(alloc, lock);
+  LargeBuffer* header = lookupLargeBuffer(alloc);
   if (header->allocatedDuringCollection) {
     return false;
   }
@@ -2286,7 +2295,7 @@ bool BufferAllocator::sweepLargeTenured(LargeBuffer* header) {
   MOZ_ASSERT(!header->isInList());
 
   if (!header->marked) {
-    AutoLock lock(this);
+    MaybeLock lock(std::in_place, this);
     unmapLarge(header, true, lock);
     return false;
   }
@@ -2296,7 +2305,7 @@ bool BufferAllocator::sweepLargeTenured(LargeBuffer* header) {
 }
 
 void BufferAllocator::freeLarge(void* alloc) {
-  AutoLock lock(this);
+  MaybeLock lock;
   LargeBuffer* header = lookupLargeBuffer(alloc, lock);
   MOZ_ASSERT(header->zone == zone);
 
@@ -2360,9 +2369,10 @@ bool BufferAllocator::shrinkLarge(LargeBuffer* header, size_t newBytes) {
 }
 
 void BufferAllocator::unmapLarge(LargeBuffer* header, bool isSweeping,
-                                 AutoLock& lock) {
+                                 MaybeLock& lock) {
   MOZ_ASSERT(header->zone == zone);
   MOZ_ASSERT(!header->isInList());
+  MOZ_ASSERT_IF(isSweeping || needLockToAccessBufferMap(), lock.isSome());
 
 #ifdef DEBUG
   auto ptr = largeAllocMap.ref().lookup(header->data());
@@ -2370,16 +2380,16 @@ void BufferAllocator::unmapLarge(LargeBuffer* header, bool isSweeping,
 #endif
   largeAllocMap.ref().remove(header->data());
 
+  // Drop the lock now we've updated the map.
+  lock.reset();
+
   size_t bytes = header->bytes;
 
   if (!header->isNurseryOwned) {
     zone->mallocHeapSize.removeBytes(bytes, isSweeping);
   }
 
-  {
-    UnlockGuard unlock(lock);
-    UnmapPages(header->data(), bytes);
-  }
+  UnmapPages(header->data(), bytes);
 
   js_free(header);
 }
