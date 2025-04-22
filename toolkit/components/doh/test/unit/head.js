@@ -33,14 +33,13 @@ function addCertFromFile(certdb, filename, trustString) {
   certdb.addCertFromBase64(pem, trustString);
 }
 
-function ensureNoTelemetry() {
+async function ensureNoTelemetry() {
   let events =
-    Services.telemetry.snapshotEvents(
-      Ci.nsITelemetry.DATASET_PRERELEASE_CHANNELS,
-      true
-    ).parent || [];
-  events = events.filter(e => e[1] == "security.doh.trrPerformance");
-  Assert.ok(!events.length);
+    await Glean.securityDohTrrPerformance.resolvedRecord.testGetValue();
+  Assert.ok(
+    !events ||
+      !events.filter(e => e.category == "security.doh.trr_performance").length
+  );
 }
 
 function setup() {
@@ -80,7 +79,7 @@ function setup() {
   );
 
   let TRRPerformance = ChromeUtils.importESModule(
-    "resource:///modules/TRRPerformance.sys.mjs"
+    "resource://gre/modules/TRRPerformance.sys.mjs"
   );
 
   DNSLookup = TRRPerformance.DNSLookup;

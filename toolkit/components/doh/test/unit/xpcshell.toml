@@ -6,9 +6,7 @@ support-files = ["../../../../../netwerk/test/unit/http2-ca.pem"]
 ["test_DNSLookup.js"]
 
 ["test_LookupAggregator.js"]
-skip-if = ["os == 'android'"] # need to migrate telemetry
 
 ["test_TRRRacer.js"]
-skip-if = ["os == 'android'"] # need to migrate telemetry
 
 ["test_heuristics.js"]

@@ -14,6 +14,7 @@ async function helper_SuccessfulLookupAggregator(
   networkUnstable = false,
   captivePortal = false
 ) {
+  Services.fog.testResetFOG();
   let deferred = Promise.withResolvers();
   let aggregator = new LookupAggregator(() => deferred.resolve(), trrList);
   // The aggregator's domain list should correctly reflect our set
@@ -38,24 +39,23 @@ async function helper_SuccessfulLookupAggregator(
   Assert.equal(aggregator.captivePortal, captivePortal);
   Assert.equal(aggregator.results.length, aggregator.totalLookups);
 
-  let events = Services.telemetry.snapshotEvents(
-    Ci.nsITelemetry.DATASET_PRERELEASE_CHANNELS,
-    true
-  ).parent;
+  let events =
+    await Glean.securityDohTrrPerformance.resolvedRecord.testGetValue();
   Assert.ok(events);
-  events = events.filter(e => e[1] == "security.doh.trrPerformance");
+  info(events);
+
+  events = events.filter(e => e.category == "security.doh.trr_performance");
   Assert.equal(events.length, aggregator.totalLookups);
 
   for (let event of events) {
     info(JSON.stringify(event));
-    Assert.equal(event[1], "security.doh.trrPerformance");
-    Assert.equal(event[2], "resolved");
-    Assert.equal(event[3], "record");
-    Assert.equal(event[4], "success");
+    Assert.equal(event.category, "security.doh.trr_performance");
+    Assert.equal(event.name, "resolved_record");
+    Assert.equal(event.extra.value, "success");
   }
 
   // We only need to check the payload of each event from here on.
-  events = events.map(e => e[5]);
+  events = events.map(e => e.extra);
 
   for (let trr of [trrServer1, trrServer2]) {
     // There should be two results for random subdomains.
@@ -114,7 +114,7 @@ async function helper_SuccessfulLookupAggregator(
     }
   }
 
-  Services.telemetry.clearEvents();
+  Services.fog.testResetFOG();
 }
 
 add_task(async function test_SuccessfulLookupAggregator() {
@@ -125,6 +125,7 @@ add_task(async function test_SuccessfulLookupAggregator() {
 });
 
 add_task(async function test_AbortedLookupAggregator() {
+  Services.fog.testResetFOG();
   let deferred = Promise.withResolvers();
   let aggregator = new LookupAggregator(() => deferred.resolve(), trrList);
   // The aggregator's domain list should correctly reflect our set
@@ -152,11 +153,7 @@ add_task(async function test_AbortedLookupAggregator() {
   Assert.ok(!aggregator.captivePortal);
 
   // Ensure we send no telemetry for an aborted run!
-  let events = Services.telemetry.snapshotEvents(
-    Ci.nsITelemetry.DATASET_PRERELEASE_CHANNELS,
-    true
-  ).parent;
-  Assert.ok(
-    !events || !events.filter(e => e[1] == "security.doh.trrPerformance").length
-  );
+  let events =
+    await Glean.securityDohTrrPerformance.resolvedRecord.testGetValue();
+  Assert.ok(!events || !events.length);
 });
