@@ -1081,11 +1081,13 @@ var SidebarController = {
 
     let fromRects = this._getRects(animatingElements);
 
-    // We need to wait for lit to re-render, and us to get the final width.
-    // This is a bit unfortunate but alas...
-    this.sidebarMain.requestUpdate();
-    await this.sidebarMain.updateComplete;
-    let toRects = this._getRects(animatingElements);
+    // We need to wait for rAF for lit to re-render, and us to get the final
+    // width. This is a bit unfortunate but alas...
+    let toRects = await new Promise(resolve => {
+      requestAnimationFrame(() => {
+        resolve(this._getRects(animatingElements));
+      });
+    });
 
     const options = {
       duration: document.documentElement.hasAttribute("sidebar-expand-on-hover")
