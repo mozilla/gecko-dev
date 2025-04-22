@@ -352,14 +352,7 @@ class BufferAllocator : public SlimLinkedListElement<BufferAllocator> {
   void startMajorSweeping(MaybeLock& lock);
   void sweepForMajorCollection(bool shouldDecommit);
   void finishMajorCollection(const AutoLock& lock);
-  void clearAllocatedDuringCollectionState(const AutoLock& lock);
   void clearMarkStateAfterBarrierVerification();
-
-  void maybeMergeSweptData();
-  void maybeMergeSweptData(MaybeLock& lock);
-  void mergeSweptData();
-  void mergeSweptData(const AutoLock& lock);
-  void abortMajorSweeping(const AutoLock& lock);
 
   bool isEmpty() const;
 
@@ -395,6 +388,13 @@ class BufferAllocator : public SlimLinkedListElement<BufferAllocator> {
  private:
   void markNurseryOwnedAlloc(void* alloc, bool ownerWasTenured);
   friend class js::Nursery;
+
+  void maybeMergeSweptData();
+  void maybeMergeSweptData(MaybeLock& lock);
+  void mergeSweptData();
+  void mergeSweptData(const AutoLock& lock);
+  void abortMajorSweeping(const AutoLock& lock);
+  void clearAllocatedDuringCollectionState(const AutoLock& lock);
 
   // Small allocation methods:
 
