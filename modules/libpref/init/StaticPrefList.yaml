@@ -15760,12 +15760,6 @@
   value: false
   mirror: always
 
-# Check if the caller is system. Only used during user char data collection.
-- name:  privacy.resistFingerprinting.randomization.canvas.disable_for_chrome
-  type: RelaxedAtomicBool
-  value: false
-  mirror: always
-
 # Anti-tracking permission expiration.
 - name: privacy.restrict3rdpartystorage.expiration
   type: uint32_t
