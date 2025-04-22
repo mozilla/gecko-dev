@@ -680,4 +680,26 @@ class ClassificationProvider:
                     "A set of tests used to test Translations performance in Firefox."
                 ),
             },
+            "Critical Android Performance": {
+                "query": {
+                    Suites.RAPTOR.value: ["'speedometer3 | 'jetstream"],
+                    Suites.PERFTEST.value: ["'applink-startup"],
+                },
+                "suites": [Suites.RAPTOR.value, Suites.PERFTEST.value],
+                "platform-restrictions": [
+                    Platforms.ANDROID_A55.value,
+                ],
+                "app-restrictions": {
+                    Suites.PERFTEST.value: [
+                        Apps.FENIX.value,
+                    ],
+                    Suites.RAPTOR.value: [
+                        Apps.FENIX.value,
+                    ],
+                },
+                "tasks": [],
+                "description": (
+                    "Our most important set of tests for android performance."
+                ),
+            },
         }
