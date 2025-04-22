@@ -209,9 +209,11 @@ export const LinkPreview = {
     // language or restricted.
     if (
       pageData.article.textContent &&
-      pageData.article.language &&
+      pageData.article.detectedLanguage &&
       (!lazy.allowedLanguages ||
-        lazy.allowedLanguages.split(",").includes(pageData.article.language))
+        lazy.allowedLanguages
+          .split(",")
+          .includes(pageData.article.detectedLanguage))
     ) {
       this.generateKeyPoints(ogCard);
     }
