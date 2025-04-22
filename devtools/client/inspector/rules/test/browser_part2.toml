@@ -216,7 +216,6 @@ fail-if = ["a11y_checks"] # Bug 1849028 clicked element may not be focusable and
 ["browser_rules_mark_overridden_layers.js"]
 
 ["browser_rules_mathml-element.js"]
-disabled = "bug 1231085 # This should be rewritten now that MathMLElement.style is available."
 
 ["browser_rules_media-queries.js"]
 
