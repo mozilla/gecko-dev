@@ -878,11 +878,6 @@ TimerThread::Run() {
         // interval is so small we should not wait at all).
         const TimeDuration timeToNextTimer = timeout - now;
 
-        // The mean value of sFractions must be 1 to ensure that the average of
-        // a long sequence of timeouts converges to the actual sum of their
-        // times.
-        static constexpr double sChaosFractions[] = {0.0, 0.25, 0.5, 0.75,
-                                                     1.0, 1.75, 2.75};
         if (timeToNextTimer < allowedEarlyFiring) {
           goto next;  // round down; execute event now
         }
@@ -903,16 +898,14 @@ TimerThread::Run() {
         // should have fired.
         MOZ_ASSERT(!waitFor.IsZero());
 
-        if (chaosModeActive) {
-          // If chaos mode is active then mess with the amount of time that we
-          // request to sleep (without changing what we record as our expected
-          // wake-up time). This will simulate unintended early/late wake-ups.
-          const double waitInMs = waitFor.ToMilliseconds();
-          const double chaosWaitInMs =
-              waitInMs * sChaosFractions[ChaosMode::randomUint32LessThan(
-                             std::size(sChaosFractions))];
-          waitFor = TimeDuration::FromMilliseconds(chaosWaitInMs);
-        }
+        // If chaos mode is active then we will add a random amount to the
+        // calculated wait (sleep) time to simulate early/late wake-ups.
+        const TimeDuration chaosWaitDelay =
+            !chaosModeActive
+                ? TimeDuration::Zero()
+                : TimeDuration::FromMicroseconds(
+                      ChaosMode::randomInt32InRange(-10000, 10000));
+        waitFor = std::max(TimeDuration::Zero(), waitFor + chaosWaitDelay);
 
         mIntendedWakeupTime = wakeupTime;
       } else {
