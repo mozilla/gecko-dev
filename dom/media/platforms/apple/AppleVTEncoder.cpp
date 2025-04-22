@@ -82,7 +82,7 @@ static bool SetAverageBitrate(VTCompressionSessionRef& aSession,
 
 static bool SetConstantBitrate(VTCompressionSessionRef& aSession,
                                uint32_t aBitsPerSec) {
-  int32_t bps(aBitsPerSec);
+  int32_t bps = AssertedCast<int32_t>(aBitsPerSec);
   AutoCFRelease<CFNumberRef> bitrate(
       CFNumberCreate(kCFAllocatorDefault, kCFNumberSInt32Type, &bps));
 
