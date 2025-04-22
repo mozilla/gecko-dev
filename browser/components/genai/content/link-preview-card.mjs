@@ -55,7 +55,9 @@ class LinkPreviewCard extends MozLitElement {
   handleLink(event) {
     event.preventDefault();
 
-    const url = event.target.href;
+    const anchor = event.target.closest("a");
+    const url = anchor.href;
+
     const win = this.ownerGlobal;
     const params = {
       triggeringPrincipal: Services.scriptSecurityManager.createNullPrincipal(
@@ -98,7 +100,8 @@ class LinkPreviewCard extends MozLitElement {
   render() {
     const articleData = this.pageData?.article || {};
     const pageUrl = this.pageData?.url || "about:blank";
-    const siteName = articleData.siteName || "";
+    const siteName =
+      articleData.siteName || this.pageData?.urlComponents?.domain || "";
 
     const { title, description, imageUrl } = this.pageData.meta;
 
@@ -163,7 +166,15 @@ class LinkPreviewCard extends MozLitElement {
         ${this.generating || this.keyPoints.length
           ? html`
               <div class="ai-content">
-                <h3>Key points</h3>
+                <h3>
+                  Key points
+                  <img
+                    class="icon"
+                    xmlns="http://www.w3.org/1999/xhtml"
+                    role="presentation"
+                    src="chrome://global/skin/icons/highlights.svg"
+                  />
+                </h3>
                 <ul class="keypoints-list">
                   ${
                     /* All populated content items */
@@ -193,6 +204,22 @@ class LinkPreviewCard extends MozLitElement {
                       : []
                   }
                 </ul>
+                <div class="visit-link-container">
+                  <a
+                    @click=${this.handleLink}
+                    data-source="visit"
+                    href=${pageUrl}
+                    class="visit-link"
+                  >
+                    Visit page
+                    <img
+                      class="icon"
+                      xmlns="http://www.w3.org/1999/xhtml"
+                      role="presentation"
+                      src="chrome://global/skin/icons/open-in-new.svg"
+                    />
+                  </a>
+                </div>
                 ${this.progress >= 0
                   ? html`
                       <p>
@@ -210,15 +237,6 @@ class LinkPreviewCard extends MozLitElement {
                     href=${FEEDBACK_LINK}
                   >
                     Share feedback
-                  </a>
-                </p>
-                <p>
-                  <a
-                    @click=${this.handleLink}
-                    data-source="visit"
-                    href=${pageUrl}
-                  >
-                    Visit original page
                   </a>
                 </p>
               </div>
