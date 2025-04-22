@@ -1869,7 +1869,8 @@ pref("browser.newtabpage.activity-stream.newNewtabExperience.colors", "#004CA4,#
 pref("browser.newtabpage.activity-stream.newtabLayouts.variant-a", false);
 pref("browser.newtabpage.activity-stream.newtabLayouts.variant-b", true);
 
-pref("browser.newtabpage.activity-stream.newtabShortcuts.refresh", true);
+// Shortcuts experiment
+pref("browser.newtabpage.activity-stream.newtabShortcuts.refresh", false);
 
 // Discovery stream ad size experiment
 pref("browser.newtabpage.activity-stream.newtabAdSize.variant-a", false);
