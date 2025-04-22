@@ -135,8 +135,8 @@ inline bool IsBufferAlloc(void* alloc) {
   return BufferAllocator::IsBufferAlloc(alloc);
 }
 
-inline size_t GetAllocSize(void* alloc) {
-  return BufferAllocator::GetAllocSize(alloc);
+inline size_t GetAllocSize(JS::Zone* zone, void* alloc) {
+  return zone->bufferAllocator.getAllocSize(alloc);
 }
 
 inline bool IsNurseryOwned(void* alloc) {

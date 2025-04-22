@@ -326,7 +326,6 @@ class BufferAllocator : public SlimLinkedListElement<BufferAllocator> {
   static inline size_t GetGoodPower2ElementCount(size_t requiredElements,
                                                  size_t elementSize);
   static bool IsBufferAlloc(void* alloc);
-  static size_t GetAllocSize(void* alloc);
   static bool IsNurseryOwned(void* alloc);
   static bool IsMarkedBlack(void* alloc);
   static void TraceEdge(JSTracer* trc, Cell* owner, void** bufferp,
@@ -336,6 +335,7 @@ class BufferAllocator : public SlimLinkedListElement<BufferAllocator> {
   void* allocInGC(size_t bytes, bool nurseryOwned);
   void* realloc(void* ptr, size_t bytes, bool nurseryOwned);
   void free(void* ptr);
+  size_t getAllocSize(void* ptr);
 
   void startMinorCollection(MaybeLock& lock);
   bool startMinorSweeping(LargeAllocList& largeAllocsToFree);
@@ -418,8 +418,8 @@ class BufferAllocator : public SlimLinkedListElement<BufferAllocator> {
                       uintptr_t freeEnd, bool shouldDecommit,
                       bool expectUnchanged, FreeLists& freeLists);
   void freeMedium(void* alloc);
-  bool growMedium(void* alloc, size_t newBytes);
-  bool shrinkMedium(void* alloc, size_t newBytes);
+  bool growMedium(MediumBuffer* header, size_t newBytes);
+  bool shrinkMedium(MediumBuffer* header, size_t newBytes);
   FreeRegion* findFollowingFreeRegion(uintptr_t start);
   FreeRegion* findPrecedingFreeRegion(uintptr_t start);
   enum class ListPosition { Front, Back };
@@ -453,7 +453,7 @@ class BufferAllocator : public SlimLinkedListElement<BufferAllocator> {
   void* allocLarge(size_t bytes, bool nurseryOwned, bool inGC);
   bool sweepLargeTenured(LargeBuffer* header);
   void freeLarge(void* alloc);
-  bool shrinkLarge(void* alloc, size_t newBytes);
+  bool shrinkLarge(LargeBuffer* header, size_t newBytes);
   void unmapLarge(LargeBuffer* header, bool isSweeping);
 
   void updateHeapSize(size_t bytes, bool checkThresholds,
@@ -493,6 +493,7 @@ struct alignas(CellAlignBytes) MediumBuffer {
   static MediumBuffer* from(BufferChunk* chunk, uintptr_t offset);
   void check() const;
   size_t bytesIncludingHeader() const;
+  size_t allocBytes() const;
   void* data();
 };
 
@@ -515,6 +516,7 @@ struct alignas(CellAlignBytes) LargeBuffer
 
   inline bool markAtomic();
   inline void* data();
+  inline size_t allocBytes() const;
   bool isPointerWithinAllocation(void* ptr) const;
 };
 

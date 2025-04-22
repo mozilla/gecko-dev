@@ -901,6 +901,8 @@ class alignas(gc::CellAlignBytes) SmallBuffer : public TenuredCell {
     // GCRuntime::checkForCompartmentMismatches ends up calling this because it
     // iterates all GC cells.
   }
+
+  size_t allocBytes() const;
   void* data() { return this + 1; }
 };
 template <size_t bytes>

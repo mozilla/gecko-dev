@@ -509,7 +509,7 @@ BEGIN_TEST(testBufferAllocator_API) {
 
       CHECK(IsBufferAlloc(alloc));
       CHECK(!ChunkPtrIsInsideNursery(alloc));
-      size_t actualSize = GetAllocSize(alloc);
+      size_t actualSize = GetAllocSize(zone, alloc);
       CHECK(actualSize == GetGoodAllocSize(requestSize));
 
       CHECK(IsNurseryOwned(alloc) == nurseryOwned);
@@ -573,7 +573,7 @@ BEGIN_TEST(testBufferAllocator_realloc) {
       CHECK(IsBufferAlloc(alloc));
       CHECK(!ChunkPtrIsInsideNursery(alloc));
       CHECK(IsNurseryOwned(alloc) == nurseryOwned);
-      size_t actualSize = GetAllocSize(alloc);
+      size_t actualSize = GetAllocSize(zone, alloc);
       WriteAllocData(alloc, actualSize);
       holder->setBuffer(alloc);
 
@@ -582,7 +582,7 @@ BEGIN_TEST(testBufferAllocator_realloc) {
       alloc = ReallocBuffer(zone, alloc, requestSize, nurseryOwned);
       CHECK(alloc);
       CHECK(alloc == prev);
-      CHECK(actualSize == GetAllocSize(alloc));
+      CHECK(actualSize == GetAllocSize(zone, alloc));
       CHECK(IsNurseryOwned(alloc) == nurseryOwned);
       CHECK(CheckAllocData(alloc, actualSize));
 
@@ -598,7 +598,7 @@ BEGIN_TEST(testBufferAllocator_realloc) {
       alloc = ReallocBuffer(zone, alloc, newSize, nurseryOwned);
       CHECK(alloc);
       CHECK(IsNurseryOwned(alloc) == nurseryOwned);
-      actualSize = GetAllocSize(alloc);
+      actualSize = GetAllocSize(zone, alloc);
       CHECK(CheckAllocData(alloc, actualSize));
 
       // Free.

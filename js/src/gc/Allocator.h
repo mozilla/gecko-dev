@@ -131,7 +131,7 @@ bool IsBufferAlloc(void* alloc);
 
 bool IsNurseryOwned(void* alloc);
 
-size_t GetAllocSize(void* alloc);
+size_t GetAllocSize(JS::Zone* zone, void* alloc);
 
 // Buffer allocator GC-internal API.
 

@@ -3193,13 +3193,13 @@ void JSObject::addSizeOfExcludingThis(mozilla::MallocSizeOf mallocSizeOf,
   // TODO: These will eventually count as GC heap memory.
   if (is<NativeObject>() && as<NativeObject>().hasDynamicSlots()) {
     info->objectsMallocHeapSlots +=
-        gc::GetAllocSize(as<NativeObject>().getSlotsHeader());
+        gc::GetAllocSize(zone(), as<NativeObject>().getSlotsHeader());
   }
 
   if (is<NativeObject>() && as<NativeObject>().hasDynamicElements()) {
     void* allocatedElements = as<NativeObject>().getUnshiftedElementsHeader();
     info->objectsMallocHeapElementsNormal +=
-        gc::GetAllocSize(allocatedElements);
+        gc::GetAllocSize(zone(), allocatedElements);
   }
 
   // Other things may be measured in the future if DMD indicates it is

@@ -35,6 +35,10 @@ void SmallBuffer::setNurseryOwned(bool value) {
   header_.set(value ? NURSERY_OWNED_BIT : 0);
 }
 
+size_t SmallBuffer::allocBytes() const {
+  return arena()->getThingSize() - sizeof(SmallBuffer);
+}
+
 inline MediumBuffer::MediumBuffer(uint8_t sizeClass, bool nurseryOwned)
     : sizeClass(sizeClass), isNurseryOwned(nurseryOwned) {}
 
@@ -53,6 +57,10 @@ inline void MediumBuffer::check() const {
 
 inline size_t MediumBuffer::bytesIncludingHeader() const {
   return BufferAllocator::SizeClassBytes(sizeClass);
+}
+
+inline size_t MediumBuffer::allocBytes() const {
+  return bytesIncludingHeader() - sizeof(MediumBuffer);
 }
 
 inline void* MediumBuffer::data() { return this + 1; }
@@ -80,6 +88,10 @@ inline bool LargeBuffer::markAtomic() {
 }
 
 inline void* LargeBuffer::data() { return this + 1; }
+
+inline size_t LargeBuffer::allocBytes() const {
+  return bytesIncludingHeader - sizeof(LargeBuffer);
+}
 
 BufferAllocator::AutoLock::AutoLock(GCRuntime* gc)
     : LockGuard(gc->bufferAllocatorLock) {}
@@ -485,6 +497,13 @@ void* BufferAllocator::allocInGC(size_t bytes, bool nurseryOwned) {
   return result;
 }
 
+template <typename HeaderT>
+static HeaderT* GetHeaderFromAlloc(void* alloc) {
+  auto* header = reinterpret_cast<HeaderT*>(uintptr_t(alloc) - sizeof(HeaderT));
+  header->check();
+  return header;
+}
+
 #ifdef XP_DARWIN
 static inline void VirtualCopyPages(void* dst, const void* src, size_t bytes) {
   MOZ_ASSERT((uintptr_t(dst) & PageMask) == 0);
@@ -511,31 +530,42 @@ void* BufferAllocator::realloc(void* ptr, size_t bytes, bool nurseryOwned) {
   MOZ_ASSERT(IsNurseryOwned(ptr) == nurseryOwned);
   MOZ_ASSERT_IF(zone->isGCMarkingOrSweeping(), majorState == State::Marking);
 
-  size_t currentBytes = GetAllocSize(ptr);
   bytes = GetGoodAllocSize(bytes);
-  if (bytes == currentBytes) {
-    return ptr;
-  }
 
-  if (bytes > currentBytes) {
-    // Can only grow medium allocations.
-    if (IsMediumAlloc(ptr) && !IsLargeAllocSize(bytes)) {
-      if (growMedium(ptr, bytes)) {
+  size_t currentBytes;
+  if (IsLargeAlloc(ptr)) {
+    auto* header = GetHeaderFromAlloc<LargeBuffer>(ptr);
+    currentBytes = header->allocBytes();
+
+    // We can shrink large allocations (on some platforms).
+    if (bytes < header->allocBytes() && IsLargeAllocSize(bytes)) {
+      if (shrinkLarge(header, bytes)) {
+        return ptr;
+      }
+    }
+  } else if (IsMediumAlloc(ptr)) {
+    auto* header = GetHeaderFromAlloc<MediumBuffer>(ptr);
+    currentBytes = header->allocBytes();
+
+    // We can grow or shrink medium allocations.
+    if (bytes < header->allocBytes() && !IsSmallAllocSize(bytes)) {
+      if (shrinkMedium(header, bytes)) {
+        return ptr;
+      }
+    }
+
+    if (bytes > header->allocBytes() && !IsLargeAllocSize(bytes)) {
+      if (growMedium(header, bytes)) {
         return ptr;
       }
     }
   } else {
-    // Can shrink medium or large allocations.
-    if (IsMediumAlloc(ptr) && !IsSmallAllocSize(bytes)) {
-      if (shrinkMedium(ptr, bytes)) {
-        return ptr;
-      }
-    }
-    if (IsLargeAlloc(ptr) && IsLargeAllocSize(bytes)) {
-      if (shrinkLarge(ptr, bytes)) {
-        return ptr;
-      }
-    }
+    auto* header = GetHeaderFromAlloc<SmallBuffer>(ptr);
+    currentBytes = header->allocBytes();
+  }
+
+  if (bytes == currentBytes) {
+    return ptr;
   }
 
   void* newPtr = alloc(bytes, nurseryOwned);
@@ -564,18 +594,8 @@ void* BufferAllocator::realloc(void* ptr, size_t bytes, bool nurseryOwned) {
   return newPtr;
 }
 
-template <typename HeaderT>
-static HeaderT* GetHeaderFromAlloc(void* alloc) {
-  auto* header = reinterpret_cast<HeaderT*>(uintptr_t(alloc) - sizeof(HeaderT));
-  header->check();
-  return header;
-}
-
 void BufferAllocator::free(void* ptr) {
   MOZ_ASSERT(ptr);
-
-  DebugOnlyPoison(ptr, JS_FREED_BUFFER_PATTERN, GetAllocSize(ptr),
-                  MemCheckKind::MakeUndefined);
 
   if (IsLargeAlloc(ptr)) {
     freeLarge(ptr);
@@ -609,21 +629,20 @@ bool BufferAllocator::IsBufferAlloc(void* alloc) {
   return false;
 }
 
-/* static */
-size_t BufferAllocator::GetAllocSize(void* alloc) {
+size_t BufferAllocator::getAllocSize(void* alloc) {
   if (IsLargeAlloc(alloc)) {
     auto* header = GetHeaderFromAlloc<LargeBuffer>(alloc);
-    return header->bytesIncludingHeader - sizeof(LargeBuffer);
+    return header->allocBytes();
   }
 
   if (IsSmallAlloc(alloc)) {
     auto* cell = GetHeaderFromAlloc<SmallBuffer>(alloc);
-    return cell->arena()->getThingSize() - sizeof(SmallBuffer);
+    return cell->allocBytes();
   }
 
   MOZ_ASSERT(IsMediumAlloc(alloc));
   auto* header = GetHeaderFromAlloc<MediumBuffer>(alloc);
-  return SizeClassBytes(header->sizeClass) - sizeof(MediumBuffer);
+  return header->allocBytes();
 }
 
 /* static */
@@ -668,7 +687,7 @@ void BufferAllocator::markNurseryOwnedAlloc(void* alloc, bool ownerWasTenured) {
       header->isNurseryOwned = false;
       header->allocatedDuringCollection = majorState != State::NotCollecting;
       largeTenuredAllocs.ref().pushBack(header);
-      size_t usableSize = header->bytesIncludingHeader - sizeof(LargeBuffer);
+      size_t usableSize = header->allocBytes();
       updateHeapSize(usableSize, false, false);
     } else {
       sweptLargeNurseryAllocs.ref().pushBack(header);
@@ -684,8 +703,7 @@ void BufferAllocator::markNurseryOwnedAlloc(void* alloc, bool ownerWasTenured) {
   MOZ_ASSERT(chunk->isAllocated(alloc));
   if (ownerWasTenured) {
     header->isNurseryOwned = false;
-    size_t usableSize =
-        SizeClassBytes(header->sizeClass) - sizeof(MediumBuffer);
+    size_t usableSize = header->allocBytes();
     updateHeapSize(usableSize, false, false);
   } else {
     chunk->markBits.ref().markIfUnmarked(alloc, MarkColor::Black);
@@ -1357,8 +1375,8 @@ void* BufferAllocator::allocSmall(size_t bytes, bool nurseryOwned) {
   void* alloc = cell->data();
 
   MOZ_ASSERT(IsSmallAlloc(alloc));
-  MOZ_ASSERT(GetAllocSize(alloc) >= bytes);
-  MOZ_ASSERT(GetAllocSize(alloc) < 2 * (bytes + sizeof(SmallBuffer)));
+  MOZ_ASSERT(getAllocSize(alloc) >= bytes);
+  MOZ_ASSERT(getAllocSize(alloc) < 2 * (bytes + sizeof(SmallBuffer)));
 
   return alloc;
 }
@@ -1376,8 +1394,8 @@ void* BufferAllocator::allocSmallInGC(size_t bytes, bool nurseryOwned) {
   cell->setNurseryOwned(nurseryOwned);
   void* alloc = cell->data();
 
-  MOZ_ASSERT(GetAllocSize(alloc) >= bytes);
-  MOZ_ASSERT(GetAllocSize(alloc) < 2 * (bytes + sizeof(SmallBuffer)));
+  MOZ_ASSERT(getAllocSize(alloc) >= bytes);
+  MOZ_ASSERT(getAllocSize(alloc) < 2 * (bytes + sizeof(SmallBuffer)));
 
   return alloc;
 }
@@ -1651,8 +1669,7 @@ bool BufferAllocator::sweepChunk(BufferChunk* chunk, OwnerKind ownerKindToSweep,
       // Dead. Update allocated bitmap and heap size accounting.
       chunk->setAllocated(header, false);
       if (!header->isNurseryOwned) {
-        size_t usableBytes = bytes - sizeof(MediumBuffer);
-        mallocHeapBytesFreed += usableBytes;
+        mallocHeapBytesFreed += header->allocBytes();
       }
       PoisonAlloc(header, JS_SWEPT_TENURED_PATTERN, bytes,
                   MemCheckKind::MakeUndefined);
@@ -1758,14 +1775,16 @@ void BufferAllocator::freeMedium(void* alloc) {
   // neighboring free regions. Coalescing is necessary for resize to work
   // properly.
 
+  auto* header = GetHeaderFromAlloc<MediumBuffer>(alloc);
+  DebugOnlyPoison(alloc, JS_FREED_BUFFER_PATTERN, header->allocBytes(),
+                  MemCheckKind::MakeUndefined);
+
   BufferChunk* chunk = BufferChunk::from(alloc);
   MOZ_ASSERT(chunk->zone == zone);
 
   if (isSweepingChunk(chunk)) {
     return;  // We can't free if the chunk is currently being swept.
   }
-
-  auto* header = GetHeaderFromAlloc<MediumBuffer>(alloc);
 
   // Set region as not allocated and then clear mark bit.
   chunk->setAllocated(alloc, false);
@@ -1780,11 +1799,11 @@ void BufferAllocator::freeMedium(void* alloc) {
   if (!header->isNurseryOwned) {
     bool updateRetained =
         majorState == State::Marking && !chunk->allocatedDuringCollection;
-    size_t usableBytes = bytes - sizeof(MediumBuffer);
-    zone->mallocHeapSize.removeBytes(usableBytes, updateRetained);
+    zone->mallocHeapSize.removeBytes(bytes - sizeof(MediumBuffer),
+                                     updateRetained);
   }
 
-  PoisonAlloc(header, JS_SWEPT_TENURED_PATTERN, bytes,
+  PoisonAlloc(header, JS_FREED_BUFFER_PATTERN, sizeof(MediumBuffer),
               MemCheckKind::MakeUndefined);
 
   FreeLists* freeLists = getChunkFreeLists(chunk);
@@ -1908,15 +1927,14 @@ void BufferAllocator::updateFreeRegionStart(FreeLists* freeLists,
   }
 }
 
-bool BufferAllocator::growMedium(void* alloc, size_t newBytes) {
-  BufferChunk* chunk = BufferChunk::from(alloc);
+bool BufferAllocator::growMedium(MediumBuffer* header, size_t newBytes) {
+  BufferChunk* chunk = BufferChunk::from(header);
   MOZ_ASSERT(chunk->zone == zone);
 
   if (isSweepingChunk(chunk)) {
     return false;  // We can't grow if the chunk is currently being swept.
   }
 
-  auto* header = GetHeaderFromAlloc<MediumBuffer>(alloc);
   newBytes += sizeof(MediumBuffer);
 
   size_t currentBytes = SizeClassBytes(header->sizeClass);
@@ -1961,15 +1979,14 @@ bool BufferAllocator::growMedium(void* alloc, size_t newBytes) {
   return true;
 }
 
-bool BufferAllocator::shrinkMedium(void* alloc, size_t newBytes) {
-  BufferChunk* chunk = BufferChunk::from(alloc);
+bool BufferAllocator::shrinkMedium(MediumBuffer* header, size_t newBytes) {
+  BufferChunk* chunk = BufferChunk::from(header);
   MOZ_ASSERT(chunk->zone == zone);
 
   if (isSweepingChunk(chunk)) {
     return false;  // We can't shrink if the chunk is currently being swept.
   }
 
-  auto* header = GetHeaderFromAlloc<MediumBuffer>(alloc);
   size_t currentBytes = SizeClassBytes(header->sizeClass);
   newBytes += sizeof(MediumBuffer);
 
@@ -2160,9 +2177,8 @@ void* BufferAllocator::allocLarge(size_t bytes, bool nurseryOwned, bool inGC) {
 
   // Update memory accounting and trigger an incremental slice if needed.
   if (!nurseryOwned) {
-    size_t usableBytes = totalBytes - sizeof(LargeBuffer);
     bool checkThresholds = !inGC;
-    updateHeapSize(usableBytes, checkThresholds, false);
+    updateHeapSize(header->allocBytes(), checkThresholds, false);
   }
 
   void* alloc = header->data();
@@ -2227,6 +2243,9 @@ void BufferAllocator::freeLarge(void* alloc) {
   auto* header = GetHeaderFromAlloc<LargeBuffer>(alloc);
   MOZ_ASSERT(header->zone == zone);
 
+  DebugOnlyPoison(alloc, JS_FREED_BUFFER_PATTERN, header->allocBytes(),
+                  MemCheckKind::MakeUndefined);
+
   if (!header->isNurseryOwned && majorState == State::Sweeping &&
       !header->allocatedDuringCollection) {
     return;  // Large allocations are currently being swept.
@@ -2246,8 +2265,7 @@ void BufferAllocator::freeLarge(void* alloc) {
   unmapLarge(header, false);
 }
 
-bool BufferAllocator::shrinkLarge(void* alloc, size_t newBytes) {
-  MOZ_ASSERT(IsLargeAlloc(alloc));
+bool BufferAllocator::shrinkLarge(LargeBuffer* header, size_t newBytes) {
   MOZ_ASSERT(IsLargeAllocSize(newBytes));
 
 #ifdef XP_WIN
@@ -2258,7 +2276,6 @@ bool BufferAllocator::shrinkLarge(void* alloc, size_t newBytes) {
   // grow the allocation again if necessary.
   return false;
 #else
-  auto* header = GetHeaderFromAlloc<LargeBuffer>(alloc);
   MOZ_ASSERT(header->zone == zone);
 
   if (!header->isNurseryOwned && majorState == State::Sweeping &&
@@ -2292,8 +2309,7 @@ void BufferAllocator::unmapLarge(LargeBuffer* header, bool isSweeping) {
   size_t bytes = header->bytesIncludingHeader;
 
   if (!header->isNurseryOwned) {
-    size_t usableBytes = bytes - sizeof(LargeBuffer);
-    zone->mallocHeapSize.removeBytes(usableBytes, isSweeping);
+    zone->mallocHeapSize.removeBytes(header->allocBytes(), isSweeping);
   }
 
   UnmapPages(header, bytes);
@@ -2404,13 +2420,13 @@ size_t BufferAllocator::getSizeOfNurseryBuffers() {
   for (BufferChunk* chunk : mediumMixedChunks.ref()) {
     for (BufferChunkIter alloc(chunk); !alloc.done(); alloc.next()) {
       if (alloc->isNurseryOwned) {
-        bytes += alloc->bytesIncludingHeader() - sizeof(MediumBuffer);
+        bytes += alloc->allocBytes();
       }
     }
   }
 
   for (const LargeBuffer* buffer : largeNurseryAllocs.ref()) {
-    bytes += buffer->bytesIncludingHeader - sizeof(LargeBuffer);
+    bytes += buffer->allocBytes();
   }
 
   return bytes;
@@ -2466,12 +2482,12 @@ void BufferAllocator::getStats(size_t& usedBytes, size_t& freeBytes,
   }
   for (const LargeBuffer* buffer : largeNurseryAllocs.ref()) {
     largeNurseryAllocCount++;
-    usedBytes += buffer->bytesIncludingHeader - sizeof(LargeBuffer);
+    usedBytes += buffer->allocBytes();
     adminBytes += sizeof(LargeBuffer);
   }
   for (const LargeBuffer* buffer : largeTenuredAllocs.ref()) {
     largeTenuredAllocCount++;
-    usedBytes += buffer->bytesIncludingHeader - sizeof(LargeBuffer);
+    usedBytes += buffer->allocBytes();
     adminBytes += sizeof(LargeBuffer);
   }
   for (const FreeList& freeList : mediumFreeLists.ref()) {
