@@ -30,7 +30,6 @@ namespace js::gc {
 
 struct alignas(CellAlignBytes) LargeBuffer
     : public SlimLinkedListElement<LargeBuffer> {
-  JS::Zone* const zone;
   void* alloc;
   size_t bytes;
   mozilla::Atomic<bool, mozilla::Relaxed> marked;
@@ -41,10 +40,19 @@ struct alignas(CellAlignBytes) LargeBuffer
   uint32_t checkValue = LargeBufferCheckValue;
 #endif
 
-  inline LargeBuffer(JS::Zone* zone, void* ptr, size_t bytes,
-                     bool nurseryOwned);
+  LargeBuffer(void* ptr, size_t bytes, bool nurseryOwned)
+      : alloc(ptr), bytes(bytes), isNurseryOwned(nurseryOwned) {
+    MOZ_ASSERT((bytes % ChunkSize) == 0);
+  }
 
   inline void check() const;
+
+  inline Cell* headerCell();
+
+#ifdef DEBUG
+  inline Zone* zone();
+  inline Zone* zoneFromAnyThread();
+#endif
 
   inline bool markAtomic();
   void* data() { return alloc; }
@@ -89,12 +97,6 @@ inline size_t MediumBuffer::allocBytes() const {
 }
 
 inline void* MediumBuffer::data() { return this + 1; }
-
-inline LargeBuffer::LargeBuffer(Zone* zone, void* ptr, size_t bytes,
-                                bool nurseryOwned)
-    : zone(zone), alloc(ptr), bytes(bytes), isNurseryOwned(nurseryOwned) {
-  MOZ_ASSERT((bytes % ChunkSize) == 0);
-}
 
 inline void LargeBuffer::check() const {
   MOZ_ASSERT(checkValue == LargeBufferCheckValue);
@@ -529,6 +531,20 @@ static HeaderT* GetHeaderFromAlloc(void* alloc) {
   return header;
 }
 
+inline Cell* LargeBuffer::headerCell() {
+  return GetHeaderFromAlloc<SmallBuffer>(this);
+}
+
+#ifdef DEBUG
+
+inline Zone* LargeBuffer::zone() { return headerCell()->zone(); }
+
+inline Zone* LargeBuffer::zoneFromAnyThread() {
+  return headerCell()->zoneFromAnyThread();
+}
+
+#endif
+
 #ifdef XP_DARWIN
 static inline void VirtualCopyPages(void* dst, const void* src, size_t bytes) {
   MOZ_ASSERT((uintptr_t(dst) & PageMask) == 0);
@@ -692,7 +708,7 @@ void BufferAllocator::markNurseryOwnedAlloc(void* alloc, bool ownerWasTenured) {
 
   if (IsLargeAlloc(alloc)) {
     LargeBuffer* buffer = lookupLargeBuffer(alloc);
-    MOZ_ASSERT(buffer->zone == zone);
+    MOZ_ASSERT(buffer->zone() == zone);
     markLargeNurseryOwnedBuffer(buffer, ownerWasTenured);
     return;
   }
@@ -2354,7 +2370,7 @@ LargeBuffer* BufferAllocator::lookupLargeBuffer(void* alloc, MaybeLock& lock) {
   MOZ_ASSERT(ptr);
   LargeBuffer* buffer = ptr->value();
   MOZ_ASSERT(buffer->data() == alloc);
-  MOZ_ASSERT(buffer->zone == zone);
+  MOZ_ASSERT(buffer->zone() == zone);
   return buffer;
 }
 
@@ -2379,7 +2395,7 @@ void* BufferAllocator::allocLarge(size_t bytes, bool nurseryOwned, bool inGC) {
   }
   auto freeGuard = mozilla::MakeScopeExit([&]() { UnmapPages(ptr, bytes); });
 
-  auto* buffer = new (bufferPtr) LargeBuffer(zone, ptr, bytes, nurseryOwned);
+  auto* buffer = new (bufferPtr) LargeBuffer(ptr, bytes, nurseryOwned);
 
   CheckHighBitsOfPointer(ptr);
 
@@ -2448,7 +2464,7 @@ bool BufferAllocator::markLargeTenuredBuffer(LargeBuffer* buffer) {
 
 bool BufferAllocator::sweepLargeTenured(LargeBuffer* header) {
   MOZ_ASSERT(!header->isNurseryOwned);
-  MOZ_ASSERT(header->zone == zone);
+  MOZ_ASSERT(header->zoneFromAnyThread() == zone);
   MOZ_ASSERT(!header->isInList());
 
   if (!header->marked) {
@@ -2464,7 +2480,7 @@ bool BufferAllocator::sweepLargeTenured(LargeBuffer* header) {
 void BufferAllocator::freeLarge(void* alloc) {
   MaybeLock lock;
   LargeBuffer* header = lookupLargeBuffer(alloc, lock);
-  MOZ_ASSERT(header->zone == zone);
+  MOZ_ASSERT(header->zone() == zone);
 
   DebugOnlyPoison(alloc, JS_FREED_BUFFER_PATTERN, header->allocBytes(),
                   MemCheckKind::MakeUndefined);
@@ -2498,7 +2514,7 @@ bool BufferAllocator::shrinkLarge(LargeBuffer* header, size_t newBytes) {
   // grow the allocation again if necessary.
   return false;
 #else
-  MOZ_ASSERT(header->zone == zone);
+  MOZ_ASSERT(header->zone() == zone);
 
   if (!header->isNurseryOwned && majorState == State::Sweeping &&
       !header->allocatedDuringCollection) {
@@ -2527,7 +2543,7 @@ bool BufferAllocator::shrinkLarge(LargeBuffer* header, size_t newBytes) {
 
 void BufferAllocator::unmapLarge(LargeBuffer* header, bool isSweeping,
                                  MaybeLock& lock) {
-  MOZ_ASSERT(header->zone == zone);
+  MOZ_ASSERT(header->zoneFromAnyThread() == zone);
   MOZ_ASSERT(!header->isInList());
   MOZ_ASSERT_IF(isSweeping || needLockToAccessBufferMap(), lock.isSome());
 
