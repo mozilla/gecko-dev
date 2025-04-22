@@ -325,6 +325,10 @@ class BufferAllocator : public SlimLinkedListElement<BufferAllocator> {
   // cleanup will be deferred to the end of the minor sweeping.
   MainThreadData<bool> majorFinishedWhileMinorSweeping;
 
+#ifdef DEBUG
+  MainThreadData<bool> movingGCInProgress;
+#endif
+
  public:
   explicit BufferAllocator(JS::Zone* zone);
   ~BufferAllocator();
@@ -352,6 +356,8 @@ class BufferAllocator : public SlimLinkedListElement<BufferAllocator> {
   void startMajorSweeping(MaybeLock& lock);
   void sweepForMajorCollection(bool shouldDecommit);
   void finishMajorCollection(const AutoLock& lock);
+  void prepareForMovingGC();
+  void fixupAfterMovingGC();
   void clearMarkStateAfterBarrierVerification();
 
   bool isEmpty() const;

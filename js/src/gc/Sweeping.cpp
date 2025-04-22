@@ -430,7 +430,9 @@ void GCRuntime::sweepBackgroundThings(ZoneList& zones) {
 
     // Now everything with a non-trivial finalizer has been finalized we can
     // sweep buffer memory.
-    // TODO: This could happen in parallel with further arena sweeping.
+    //
+    // Note we depend on this happening before the BUFFER alloc kinds in
+    // BackgroundTrivialFinalizePhase are swept!
     bool decommit = shouldDecommit() && DecommitEnabled();
     zone->bufferAllocator.sweepForMajorCollection(decommit);
 

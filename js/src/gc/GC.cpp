@@ -4064,6 +4064,7 @@ void GCRuntime::incrementalSlice(SliceBudget& budget, JS::GCReason reason,
           beginCompactPhase();
         }
 
+        nursery().joinSweepTask();
         if (compactPhase(reason, budget, session) == NotFinished) {
           break;
         }
