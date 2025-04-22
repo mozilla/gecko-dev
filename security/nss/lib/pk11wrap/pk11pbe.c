@@ -940,15 +940,15 @@ pbe_PK11AlgidToParam(SECAlgorithmID *algid, SECItem *mech)
      * based on the algorithm. */
     if (algorithm == SEC_OID_PKCS5_PBKDF2) {
         SECOidTag prfAlgTag;
-        CK_PKCS5_PBKD2_PARAMS2 *pbeV2_params =
-            (CK_PKCS5_PBKD2_PARAMS2 *)PORT_ZAlloc(
-                PR_MAX(sizeof(CK_PKCS5_PBKD2_PARAMS2), sizeof(CK_PKCS5_PBKD2_PARAMS)) + salt->len);
+        CK_PKCS5_PBKD2_PARAMS *pbeV2_params =
+            (CK_PKCS5_PBKD2_PARAMS *)PORT_ZAlloc(
+                sizeof(CK_PKCS5_PBKD2_PARAMS) + salt->len);
 
         if (pbeV2_params == NULL) {
             goto loser;
         }
         paramData = (unsigned char *)pbeV2_params;
-        paramLen = PR_MAX(sizeof(CK_PKCS5_PBKD2_PARAMS2), sizeof(CK_PKCS5_PBKD2_PARAMS));
+        paramLen = sizeof(CK_PKCS5_PBKD2_PARAMS);
 
         /* set the prf */
         prfAlgTag = SEC_OID_HMAC_SHA1;
@@ -981,7 +981,7 @@ pbe_PK11AlgidToParam(SECAlgorithmID *algid, SECItem *mech)
         pbeV2_params->pPrfData = NULL;
         pbeV2_params->ulPrfDataLen = 0;
         pbeV2_params->saltSource = CKZ_SALT_SPECIFIED;
-        pSalt = ((CK_CHAR_PTR)pbeV2_params) + PR_MAX(sizeof(CK_PKCS5_PBKD2_PARAMS2), sizeof(CK_PKCS5_PBKD2_PARAMS));
+        pSalt = ((CK_CHAR_PTR)pbeV2_params) + sizeof(CK_PKCS5_PBKD2_PARAMS);
         if (salt->data) {
             PORT_Memcpy(pSalt, salt->data, salt->len);
         }
@@ -1420,12 +1420,7 @@ pk11_RawPBEKeyGenWithKeyType(PK11SlotInfo *slot, CK_MECHANISM_TYPE type,
                              SECItem *params, CK_KEY_TYPE keyType, int keyLen,
                              SECItem *pwitem, void *wincx)
 {
-#ifndef SOFTOKEN_USE_PKCS5_PBKD2_PARAMS2_ONLY
-    SECItem _params = { 0, NULL, 0 };
-    CK_PKCS5_PBKD2_PARAMS pbev2_1_params;
     CK_ULONG pwLen;
-#endif
-
     /* do some sanity checks */
     if ((params == NULL) || (params->data == NULL)) {
         PORT_SetError(SEC_ERROR_INVALID_ARGS);
@@ -1439,39 +1434,15 @@ pk11_RawPBEKeyGenWithKeyType(PK11SlotInfo *slot, CK_MECHANISM_TYPE type,
 
     /* set the password pointer in the parameters... */
     if (type == CKM_PKCS5_PBKD2) {
-        CK_PKCS5_PBKD2_PARAMS2 *pbev2_params;
-
-        if ((params->len < PR_MIN(sizeof(CK_PKCS5_PBKD2_PARAMS2), sizeof(CK_PKCS5_PBKD2_PARAMS))) ||
-            pwitem->len > CK_PKCS5_PBKD2_PARAMS_MAX_PWD_LEN) {
+        CK_PKCS5_PBKD2_PARAMS *pbev2_params;
+        if (params->len < sizeof(CK_PKCS5_PBKD2_PARAMS)) {
             PORT_SetError(SEC_ERROR_INVALID_ARGS);
             return NULL;
         }
-        pbev2_params = (CK_PKCS5_PBKD2_PARAMS2 *)params->data;
+        pbev2_params = (CK_PKCS5_PBKD2_PARAMS *)params->data;
         pbev2_params->pPassword = pwitem->data;
-
-#ifdef SOFTOKEN_USE_PKCS5_PBKD2_PARAMS2_ONLY
-        pbev2_params->ulPasswordLen = pwitem->len;
-#else
-        CK_VERSION cryptokiVersion = slot->module->cryptokiVersion;
-        if (cryptokiVersion.major < 2 ||
-            (cryptokiVersion.major == 2 && cryptokiVersion.minor < 40)) {
-            /* CK_PKCS5_PBKD2_PARAMS */
-            _params.type = params->type;
-            _params.data = (CK_CHAR_PTR)&pbev2_1_params;
-            _params.len = sizeof(CK_PKCS5_PBKD2_PARAMS);
-            params = &_params;
-            memcpy(&pbev2_1_params, pbev2_params,
-                   PR_MIN(sizeof(CK_PKCS5_PBKD2_PARAMS2),
-                          sizeof(CK_PKCS5_PBKD2_PARAMS)));
-
-            pwLen = pwitem->len;
-            pbev2_1_params.ulPasswordLen = &pwLen;
-        } else {
-            /* CK_PKCS5_PBKD2_PARAMS2 */
-            pbev2_params->ulPasswordLen = pwitem->len;
-        }
-#endif
-
+        pwLen = pwitem->len;
+        pbev2_params->ulPasswordLen = &pwLen;
     } else {
         CK_PBE_PARAMS *pbe_params;
         if (params->len < sizeof(CK_PBE_PARAMS)) {
@@ -1484,7 +1455,8 @@ pk11_RawPBEKeyGenWithKeyType(PK11SlotInfo *slot, CK_MECHANISM_TYPE type,
     }
 
     /* generate the key (and sometimes the IV as a side effect...) */
-    return pk11_TokenKeyGenWithFlagsAndKeyType(slot, type, params, keyType, keyLen, NULL,
+    return pk11_TokenKeyGenWithFlagsAndKeyType(slot, type, params, keyType,
+                                               keyLen, NULL,
                                                CKF_SIGN | CKF_ENCRYPT | CKF_DECRYPT | CKF_UNWRAP | CKF_WRAP,
                                                0, wincx);
 }
