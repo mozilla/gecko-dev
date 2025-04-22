@@ -519,6 +519,7 @@
         this._needBrowserFocusAtEnterKeyUp = true;
       }
 
+      lazy.BrowserSearchTelemetry.recordSearchForm(engine, "searchbar");
       openTrustedLinkIn(searchForm, where, params);
     }
 

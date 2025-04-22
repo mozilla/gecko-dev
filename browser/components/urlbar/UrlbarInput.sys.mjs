@@ -1867,8 +1867,10 @@ export class UrlbarInput {
         null,
         "search-mode-switcher"
       ).uri.spec;
+      // TODO: record SAP telemetry, see Bug 1961789.
     } else {
       url = searchEngine.searchForm;
+      lazy.BrowserSearchTelemetry.recordSearchForm(searchEngine, "urlbar");
     }
 
     this._lastSearchString = "";

@@ -908,6 +908,7 @@ interface GleanImpl {
   sap: {
     counts: GleanEvent;
     deprecatedCounts: Record<string, GleanCounter>;
+    searchFormCounts: GleanEvent;
   }
 
   serp: {
@@ -1176,6 +1177,7 @@ interface GleanImpl {
   tabgroup: {
     createGroup: GleanEvent;
     reopen: GleanEvent;
+    addTab: GleanEvent;
     activeGroups: Record<string, GleanQuantity>;
     tabsPerActiveGroup: Record<string, GleanQuantity>;
     tabCountInGroups: Record<string, GleanQuantity>;
@@ -5237,6 +5239,11 @@ interface GleanImpl {
     intervalHours: GleanTimingDistribution;
   }
 
+  hangs: {
+    reports: GleanObject;
+    modules: GleanObject;
+  }
+
   backgroundTasksRmdirBase: {
     metricBase: GleanEvent;
     elapsedMs: GleanQuantity;
@@ -6968,6 +6975,7 @@ interface GleanPingsImpl {
   useCounters: nsIGleanPingWithReason<"app_shutdown_confirmed"|"idle_startup">;
   fxAccounts: nsIGleanPingWithReason<"active"|"dirty_startup"|"inactive">;
   bounceTrackingProtection: nsIGleanPingNoReason;
+  hangReport: nsIGleanPingNoReason;
   backgroundTasks: nsIGleanPingNoReason;
   captchaDetection: nsIGleanPingNoReason;
   crash: nsIGleanPingWithReason<"crash"|"event_found">;
