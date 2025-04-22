@@ -42,9 +42,9 @@ llvm_profdata = check_prog(
 )
 
 
-@depends(c_compiler, select_linker, target)
-def pgo_cg_sort(compiler, linker, target):
-    return compiler.type == "clang-cl" or (linker.KIND == "lld" and target.os != "OSX")
+@depends(select_linker, target)
+def pgo_cg_sort(linker, target):
+    return linker and linker.KIND == "lld" and target.os != "OSX"
 
 
 @depends_if(llvm_profdata, when=enable_profile_use & ~pgo_cg_sort)
