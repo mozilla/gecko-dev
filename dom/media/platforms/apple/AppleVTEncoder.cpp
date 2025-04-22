@@ -511,7 +511,7 @@ bool AppleVTEncoder::WriteExtraData(MediaRawData* aDst, CMSampleBufferRef aSrc,
     aDst->mExtraData = mAvcc;
   }
 
-  return avcc != nullptr;
+  return true;
 }
 
 static bool WriteNALUs(MediaRawData* aDst, CMSampleBufferRef aSrc,
