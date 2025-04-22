@@ -777,9 +777,6 @@ class Nursery {
       Vector<mozilla::StringBuffer*, 8, SystemAllocPolicy>;
   StringBufferVector stringBuffersToReleaseAfterMinorGC_;
 
-  using LargeAllocList = SlimLinkedList<gc::LargeBuffer>;
-  LargeAllocList largeAllocsToFreeAfterMinorGC_;
-
   UniquePtr<NurserySweepTask> sweepTask;
   UniquePtr<NurseryDecommitTask> decommitTask;
 

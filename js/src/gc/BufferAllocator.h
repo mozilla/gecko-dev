@@ -297,10 +297,10 @@ class BufferAllocator : public SlimLinkedListElement<BufferAllocator> {
   MutexData<LargeAllocMap> largeAllocMap;
 
   // Large buffers waiting to be swept.
+  MainThreadOrGCTaskData<LargeAllocList> largeNurseryAllocsToSweep;
   MainThreadOrGCTaskData<LargeAllocList> largeTenuredAllocsToSweep;
 
   // Large buffers that have been swept.
-  MainThreadData<LargeAllocList> sweptLargeNurseryAllocs;
   MutexData<LargeAllocList> sweptLargeTenuredAllocs;
 
   // Flag to indicate that swept chunks are available to be merged in the
@@ -344,10 +344,8 @@ class BufferAllocator : public SlimLinkedListElement<BufferAllocator> {
   bool isNurseryOwned(void* ptr);
 
   void startMinorCollection(MaybeLock& lock);
-  bool startMinorSweeping(LargeAllocList& largeAllocsToFree);
+  bool startMinorSweeping();
   void sweepForMinorCollection();
-
-  static void FreeLargeAllocs(LargeAllocList& largeAllocsToFree);
 
   void startMajorCollection(MaybeLock& lock);
   void startMajorSweeping(MaybeLock& lock);

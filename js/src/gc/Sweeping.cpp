@@ -601,9 +601,6 @@ void GCRuntime::freeFromBackgroundThread(AutoLockHelperThreadState& lock) {
     Nursery::StringBufferVector stringBuffers;
     std::swap(stringBuffers, stringBuffersToReleaseAfterMinorGC.ref());
 
-    SlimLinkedList<LargeBuffer> largeBuffers;
-    std::swap(largeBuffers, largeBuffersToFreeAfterMinorGC.ref());
-
     AutoUnlockHelperThreadState unlock(lock);
 
     lifoBlocks.freeAll();
@@ -619,8 +616,6 @@ void GCRuntime::freeFromBackgroundThread(AutoLockHelperThreadState& lock) {
     for (auto* buffer : stringBuffers) {
       buffer->Release();
     }
-
-    BufferAllocator::FreeLargeAllocs(largeBuffers);
   } while (hasBuffersForBackgroundFree());
 }
 
