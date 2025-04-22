@@ -533,13 +533,7 @@ struct ReflowInput : public SizeComputationInput {
   // is from the top of the frame tree.
   int16_t mReflowDepth = 0;
 
-  // Logical and physical accessors for the resize flags.
-  bool IsHResize() const {
-    return mWritingMode.IsVertical() ? mFlags.mIsBResize : mFlags.mIsIResize;
-  }
-  bool IsVResize() const {
-    return mWritingMode.IsVertical() ? mFlags.mIsIResize : mFlags.mIsBResize;
-  }
+  // Accessors for the resize flags.
   bool IsIResize() const { return mFlags.mIsIResize; }
   bool IsBResize() const { return mFlags.mIsBResize; }
   bool IsBResizeForWM(WritingMode aWM) const {
@@ -552,20 +546,6 @@ struct ReflowInput : public SizeComputationInput {
     // pessimistic when orthogonal.
     return !aWM.IsOrthogonalTo(mWritingMode) ? mFlags.mIsBResizeForPercentages
                                              : IsIResize();
-  }
-  void SetHResize(bool aValue) {
-    if (mWritingMode.IsVertical()) {
-      mFlags.mIsBResize = aValue;
-    } else {
-      mFlags.mIsIResize = aValue;
-    }
-  }
-  void SetVResize(bool aValue) {
-    if (mWritingMode.IsVertical()) {
-      mFlags.mIsIResize = aValue;
-    } else {
-      mFlags.mIsBResize = aValue;
-    }
   }
   void SetIResize(bool aValue) { mFlags.mIsIResize = aValue; }
   void SetBResize(bool aValue) { mFlags.mIsBResize = aValue; }
