@@ -510,10 +510,12 @@ class HomeFragment : Fragment() {
                 appStore = components.appStore,
             ),
             recentSyncedTabController = DefaultRecentSyncedTabController(
+                fenixBrowserUseCases = requireComponents.useCases.fenixBrowserUseCases,
                 tabsUseCase = requireComponents.useCases.tabsUseCases,
                 navController = findNavController(),
                 accessPoint = TabsTrayAccessPoint.HomeRecentSyncedTab,
                 appStore = components.appStore,
+                settings = components.settings,
             ),
             bookmarksController = DefaultBookmarksController(
                 navController = findNavController(),
