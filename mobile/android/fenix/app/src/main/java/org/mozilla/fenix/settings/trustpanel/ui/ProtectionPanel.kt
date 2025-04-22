@@ -54,22 +54,19 @@ import org.mozilla.fenix.compose.LinkTextState
 import org.mozilla.fenix.compose.SwitchWithLabel
 import org.mozilla.fenix.settings.PhoneFeature
 import org.mozilla.fenix.settings.trustpanel.store.AutoplayValue
+import org.mozilla.fenix.settings.trustpanel.store.WebsiteInfoState
 import org.mozilla.fenix.settings.trustpanel.store.WebsitePermission
 import org.mozilla.fenix.theme.FirefoxTheme
-
-internal const val PROTECTION_PANEL_ROUTE = "protection_panel"
 
 private val ROUNDED_CORNER_SHAPE = RoundedCornerShape(4.dp)
 
 @Suppress("LongParameterList", "LongMethod")
 @Composable
 internal fun ProtectionPanel(
-    url: String,
-    title: String,
     icon: Bitmap?,
-    isSecured: Boolean,
     isTrackingProtectionEnabled: Boolean,
     numberOfTrackersBlocked: Int,
+    websiteInfoState: WebsiteInfoState,
     websitePermissions: List<WebsitePermission>,
     onTrackerBlockedMenuClick: () -> Unit,
     onTrackingProtectionToggleClick: () -> Unit,
@@ -82,17 +79,15 @@ internal fun ProtectionPanel(
     MenuScaffold(
         header = {
             ProtectionPanelHeader(
-                url = url,
-                title = title,
                 icon = icon,
-                isSecured = isSecured,
+                websiteInfoState = websiteInfoState,
                 onConnectionSecurityClick = onConnectionSecurityClick,
             )
         },
     ) {
         MenuGroup {
             ProtectionPanelBanner(
-                isSecured = isSecured,
+                isSecured = websiteInfoState.isSecured,
                 isTrackingProtectionEnabled = isTrackingProtectionEnabled,
             )
 
@@ -361,10 +356,13 @@ private fun ProtectionPanelPreview() {
                 .background(color = FirefoxTheme.colors.layer3),
         ) {
             ProtectionPanel(
-                url = "https://www.mozilla.org",
-                title = "Mozilla",
                 icon = null,
-                isSecured = true,
+                websiteInfoState = WebsiteInfoState(
+                    isSecured = true,
+                    websiteUrl = "https://www.mozilla.org",
+                    websiteTitle = "Mozilla",
+                    certificateName = "",
+                ),
                 isTrackingProtectionEnabled = true,
                 numberOfTrackersBlocked = 5,
                 websitePermissions = listOf(

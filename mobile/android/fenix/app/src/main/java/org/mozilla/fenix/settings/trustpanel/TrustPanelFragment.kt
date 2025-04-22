@@ -55,6 +55,7 @@ import org.mozilla.fenix.settings.trustpanel.middleware.TrustPanelNavigationMidd
 import org.mozilla.fenix.settings.trustpanel.middleware.TrustPanelTelemetryMiddleware
 import org.mozilla.fenix.settings.trustpanel.store.TrustPanelAction
 import org.mozilla.fenix.settings.trustpanel.store.TrustPanelStore
+import org.mozilla.fenix.settings.trustpanel.store.WebsiteInfoState
 import org.mozilla.fenix.settings.trustpanel.store.WebsitePermission
 import org.mozilla.fenix.settings.trustpanel.ui.ClearSiteDataDialog
 import org.mozilla.fenix.settings.trustpanel.ui.ConnectionSecurityPanel
@@ -125,9 +126,15 @@ class TrustPanelFragment : BottomSheetDialogFragment() {
                 val coroutineScope = rememberCoroutineScope()
                 val store = remember {
                     TrustPanelStore(
-                        settings = settings,
                         isTrackingProtectionEnabled = args.isTrackingProtectionEnabled,
+                        websiteInfoState = WebsiteInfoState(
+                            isSecured = args.isSecured,
+                            websiteUrl = args.url,
+                            websiteTitle = args.title,
+                            certificateName = args.certificateName,
+                        ),
                         sessionState = components.core.store.state.findTabOrCustomTab(args.sessionId),
+                        settings = settings,
                         sitePermissions = args.sitePermissions,
                         permissionHighlights = args.permissionHighlights,
                         isPermissionBlockedByAndroid = { phoneFeature ->
@@ -251,12 +258,10 @@ class TrustPanelFragment : BottomSheetDialogFragment() {
                         when (route) {
                             Route.ProtectionPanel -> {
                                 ProtectionPanel(
-                                    url = args.url,
-                                    title = args.title,
                                     icon = sessionState?.content?.icon,
-                                    isSecured = args.isSecured,
                                     isTrackingProtectionEnabled = isTrackingProtectionEnabled,
                                     numberOfTrackersBlocked = numberOfTrackersBlocked,
+                                    websiteInfoState = store.state.websiteInfoState,
                                     websitePermissions = websitePermissions.filter { it.isVisible },
                                     onTrackerBlockedMenuClick = {
                                         contentState = Route.TrackersPanel
@@ -314,9 +319,7 @@ class TrustPanelFragment : BottomSheetDialogFragment() {
 
                             Route.ConnectionSecurityPanel -> {
                                 ConnectionSecurityPanel(
-                                    title = args.title,
-                                    isSecured = args.isSecured,
-                                    certificateName = args.certificateName,
+                                    websiteInfoState = store.state.websiteInfoState,
                                     onBackButtonClick = {
                                         contentState = Route.ProtectionPanel
                                     },
