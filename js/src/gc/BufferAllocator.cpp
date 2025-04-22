@@ -32,7 +32,6 @@ struct alignas(CellAlignBytes) LargeBuffer
     : public SlimLinkedListElement<LargeBuffer> {
   void* alloc;
   size_t bytes;
-  mozilla::Atomic<bool, mozilla::Relaxed> marked;
   bool isNurseryOwned;
   bool allocatedDuringCollection = false;
 
@@ -54,7 +53,6 @@ struct alignas(CellAlignBytes) LargeBuffer
   inline Zone* zoneFromAnyThread();
 #endif
 
-  inline bool markAtomic();
   void* data() { return alloc; }
   size_t allocBytes() const { return bytes; }
   bool isPointerWithinAllocation(void* ptr) const;
@@ -100,15 +98,6 @@ inline void* MediumBuffer::data() { return this + 1; }
 
 inline void LargeBuffer::check() const {
   MOZ_ASSERT(checkValue == LargeBufferCheckValue);
-}
-
-inline bool LargeBuffer::markAtomic() {
-  do {
-    if (marked) {
-      return false;
-    }
-  } while (!marked.compareExchange(false, true));
-  return true;
 }
 
 BufferAllocator::AutoLock::AutoLock(GCRuntime* gc)
@@ -938,11 +927,9 @@ bool BufferAllocator::startMinorSweeping() {
   }
   for (LargeBuffer* header : largeNurseryAllocs.ref()) {
     MOZ_ASSERT(header->isNurseryOwned);
-    MOZ_ASSERT(!header->marked);  // Unused for nursery allocs.
   }
   for (LargeBuffer* header : largeNurseryAllocsToSweep.ref()) {
     MOZ_ASSERT(header->isNurseryOwned);
-    MOZ_ASSERT(!header->marked);  // Unused for nursery allocs.
   }
 #endif
 
@@ -1166,9 +1153,6 @@ void BufferAllocator::abortMajorSweeping(const AutoLock& lock) {
   for (BufferChunk* chunk : mediumTenuredChunksToSweep.ref()) {
     chunk->markBits.ref().clear();
   }
-  for (LargeBuffer* alloc : largeTenuredAllocsToSweep.ref()) {
-    alloc->marked = false;
-  }
 
   // Rebuild free lists for chunks we didn't end up sweeping.
   for (BufferChunk* chunk : mediumTenuredChunksToSweep.ref()) {
@@ -1360,11 +1344,6 @@ void BufferAllocator::clearMarkStateAfterBarrierVerification() {
       chunk->markBits.ref().clear();
     }
   }
-  for (auto* allocs : {&largeNurseryAllocs.ref(), &largeTenuredAllocs.ref()}) {
-    for (auto* alloc : *allocs) {
-      alloc->marked = false;
-    }
-  }
 }
 
 bool BufferAllocator::isPointerWithinMediumOrLargeBuffer(void* ptr) {
@@ -1548,7 +1527,6 @@ void BufferAllocator::checkAllocListGCStateNotInUse(LargeAllocList& list,
                                                     bool isNurseryOwned) {
   for (LargeBuffer* header : list) {
     MOZ_ASSERT(header->isNurseryOwned == isNurseryOwned);
-    MOZ_ASSERT(!header->marked);
     MOZ_ASSERT_IF(!isNurseryOwned, !header->allocatedDuringCollection);
   }
 }
@@ -2446,7 +2424,7 @@ bool BufferAllocator::IsLargeAlloc(void* alloc) {
 
 bool BufferAllocator::isLargeAllocMarked(void* alloc) {
   LargeBuffer* header = lookupLargeBuffer(alloc);
-  return header->marked;
+  return header->headerCell()->isMarkedAny();
 }
 
 bool BufferAllocator::markLargeTenuredBuffer(LargeBuffer* buffer) {
@@ -2457,9 +2435,10 @@ bool BufferAllocator::markLargeTenuredBuffer(LargeBuffer* buffer) {
   }
 
   auto* headerCell = GetHeaderFromAlloc<SmallBuffer>(buffer);
-  headerCell->markBlackAtomic();
 
-  return buffer->markAtomic();
+  // Bug 1961755: This method can return false positives. A fully atomic version
+  // would be preferable in this case.
+  return headerCell->markIfUnmarkedAtomic(MarkColor::Black);
 }
 
 bool BufferAllocator::sweepLargeTenured(LargeBuffer* header) {
@@ -2467,14 +2446,13 @@ bool BufferAllocator::sweepLargeTenured(LargeBuffer* header) {
   MOZ_ASSERT(header->zoneFromAnyThread() == zone);
   MOZ_ASSERT(!header->isInList());
 
-  if (!header->marked) {
-    MaybeLock lock(std::in_place, this);
-    unmapLarge(header, true, lock);
-    return false;
+  if (header->headerCell()->isMarkedAny()) {
+    return true;
   }
 
-  header->marked = false;
-  return true;
+  MaybeLock lock(std::in_place, this);
+  unmapLarge(header, true, lock);
+  return false;
 }
 
 void BufferAllocator::freeLarge(void* alloc) {
