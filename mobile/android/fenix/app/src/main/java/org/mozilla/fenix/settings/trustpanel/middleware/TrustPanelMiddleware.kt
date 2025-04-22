@@ -11,21 +11,26 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import mozilla.components.concept.engine.Engine
 import mozilla.components.concept.engine.content.blocking.TrackerLog
+import mozilla.components.concept.engine.permission.SitePermissions
 import mozilla.components.feature.session.SessionUseCases
 import mozilla.components.feature.session.TrackingProtectionUseCases
 import mozilla.components.lib.publicsuffixlist.PublicSuffixList
 import mozilla.components.lib.state.Middleware
 import mozilla.components.lib.state.MiddlewareContext
 import mozilla.components.lib.state.Store
+import mozilla.components.support.ktx.kotlin.getOrigin
 import org.mozilla.fenix.components.AppStore
 import org.mozilla.fenix.components.PermissionStorage
 import org.mozilla.fenix.components.appstate.AppAction
 import org.mozilla.fenix.settings.toggle
+import org.mozilla.fenix.settings.trustpanel.store.AutoplayValue
 import org.mozilla.fenix.settings.trustpanel.store.TrustPanelAction
 import org.mozilla.fenix.settings.trustpanel.store.TrustPanelState
 import org.mozilla.fenix.settings.trustpanel.store.WebsitePermission
+import org.mozilla.fenix.settings.trustpanel.store.WebsitePermissionsState
 import org.mozilla.fenix.trackingprotection.TrackerBuckets
 import org.mozilla.fenix.trackingprotection.TrackingProtectionCategory
+import org.mozilla.fenix.utils.Settings
 
 /**
  * [Middleware] implementation for handling [TrustPanelAction] and managing the [TrustPanelState] for the menu
@@ -37,6 +42,8 @@ import org.mozilla.fenix.trackingprotection.TrackingProtectionCategory
  * @param sessionUseCases [SessionUseCases] used to reload the page after toggling tracking protection.
  * @param trackingProtectionUseCases [TrackingProtectionUseCases] used to add/remove sites from the
  * tracking protection exceptions list.
+ * @param settings Used to obtain site permission information when the current site's [SitePermissions]
+ * is not available.
  * @param permissionStorage The [PermissionStorage] used to update permission changes for the current site.
  * @param requestPermissionsLauncher Used to execute an ActivityResultContract to request runtime permissions.
  * @param onDismiss Callback invoked to dismiss the trust panel.
@@ -49,6 +56,7 @@ class TrustPanelMiddleware(
     private val publicSuffixList: PublicSuffixList,
     private val sessionUseCases: SessionUseCases,
     private val trackingProtectionUseCases: TrackingProtectionUseCases,
+    private val settings: Settings,
     private val permissionStorage: PermissionStorage,
     private val requestPermissionsLauncher: ActivityResultLauncher<Array<String>>,
     private val onDismiss: suspend () -> Unit,
@@ -71,6 +79,8 @@ class TrustPanelMiddleware(
             -> updateTrackersBlocked(currentState, action.trackerLogs, store)
             is TrustPanelAction.TogglePermission,
             -> togglePermission(currentState, action.permission, store)
+            is TrustPanelAction.UpdateAutoplayValue,
+            -> updateAutoplayValue(currentState, action.autoplayValue, store)
 
             else -> Unit
         }
@@ -162,6 +172,51 @@ class TrustPanelMiddleware(
             sessionUseCases.reload.invoke(session.id)
         }
     }
+
+    private fun updateAutoplayValue(
+        currentState: TrustPanelState,
+        autoplayValue: AutoplayValue,
+        store: Store<TrustPanelState, TrustPanelAction>,
+    ) = scope.launch {
+        if (currentState.websitePermissionsState.getAutoplayValue() == autoplayValue) {
+            return@launch
+        }
+
+        currentState.sessionState?.let { session ->
+            val updatedSitePermissions: SitePermissions
+
+            if (currentState.sitePermissions == null) {
+                val origin = requireNotNull(session.content.url.getOrigin()) {
+                    "An origin is required to change a autoplay settings from the door hanger"
+                }
+                updatedSitePermissions = settings.getSitePermissionsCustomSettingsRules().toSitePermissions(origin)
+                    .updateAutoplayPermissions(autoplayValue)
+                permissionStorage.add(
+                    sitePermissions = updatedSitePermissions,
+                    private = session.content.private,
+                )
+            } else {
+                updatedSitePermissions = currentState.sitePermissions.updateAutoplayPermissions(autoplayValue)
+                permissionStorage.updateSitePermissions(
+                    sitePermissions = updatedSitePermissions,
+                    private = session.content.private,
+                )
+            }
+
+            store.dispatch(TrustPanelAction.UpdateSitePermissions(updatedSitePermissions))
+            store.dispatch(TrustPanelAction.WebsitePermissionAction.ChangeAutoplay(autoplayValue))
+
+            sessionUseCases.reload.invoke(session.id)
+        }
+    }
+
+    private fun SitePermissions.updateAutoplayPermissions(autoplayValue: AutoplayValue) = this.copy(
+        autoplayAudible = autoplayValue.autoplayAudibleStatus,
+        autoplayInaudible = autoplayValue.autoplayInaudibleStatus,
+    )
+
+    private fun WebsitePermissionsState.getAutoplayValue() =
+        (this[org.mozilla.fenix.settings.PhoneFeature.AUTOPLAY] as? WebsitePermission.Autoplay)?.autoplayValue
 }
 
 private fun TrackerBuckets.numberOfTrackersBlocked() = TrackingProtectionCategory.entries

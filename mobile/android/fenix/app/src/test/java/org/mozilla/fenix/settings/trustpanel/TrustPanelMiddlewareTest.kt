@@ -15,6 +15,7 @@ import mozilla.components.concept.engine.content.blocking.TrackerLog
 import mozilla.components.concept.engine.permission.SitePermissions
 import mozilla.components.feature.session.SessionUseCases
 import mozilla.components.feature.session.TrackingProtectionUseCases
+import mozilla.components.feature.sitepermissions.SitePermissionsRules
 import mozilla.components.lib.publicsuffixlist.PublicSuffixList
 import mozilla.components.support.ktx.kotlin.getOrigin
 import mozilla.components.support.test.any
@@ -28,6 +29,8 @@ import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
+import org.mockito.ArgumentMatchers.anyLong
+import org.mockito.ArgumentMatchers.anyString
 import org.mockito.Mockito.never
 import org.mockito.Mockito.spy
 import org.mockito.Mockito.verify
@@ -38,11 +41,13 @@ import org.mozilla.fenix.helpers.FenixRobolectricTestRunner
 import org.mozilla.fenix.settings.PhoneFeature
 import org.mozilla.fenix.settings.toggle
 import org.mozilla.fenix.settings.trustpanel.middleware.TrustPanelMiddleware
+import org.mozilla.fenix.settings.trustpanel.store.AutoplayValue
 import org.mozilla.fenix.settings.trustpanel.store.TrustPanelAction
 import org.mozilla.fenix.settings.trustpanel.store.TrustPanelState
 import org.mozilla.fenix.settings.trustpanel.store.TrustPanelStore
 import org.mozilla.fenix.settings.trustpanel.store.WebsitePermission
 import org.mozilla.fenix.trackingprotection.TrackerBuckets
+import org.mozilla.fenix.utils.Settings
 
 @RunWith(FenixRobolectricTestRunner::class)
 class TrustPanelMiddlewareTest {
@@ -56,6 +61,7 @@ class TrustPanelMiddlewareTest {
     private lateinit var publicSuffixList: PublicSuffixList
     private lateinit var sessionUseCases: SessionUseCases
     private lateinit var trackingProtectionUseCases: TrackingProtectionUseCases
+    private lateinit var settings: Settings
     private lateinit var permissionStorage: PermissionStorage
     private lateinit var requestPermissionsLauncher: ActivityResultLauncher<Array<String>>
 
@@ -66,6 +72,7 @@ class TrustPanelMiddlewareTest {
         publicSuffixList = mock()
         sessionUseCases = mock()
         trackingProtectionUseCases = mock()
+        settings = mock()
         permissionStorage = mock()
         requestPermissionsLauncher = mock()
     }
@@ -297,6 +304,115 @@ class TrustPanelMiddlewareTest {
         verify(reloadUrlUseCase).invoke(sessionId)
     }
 
+    @Test
+    fun `GIVEN site permissions is null WHEN update autoplay value action is dispatched THEN site permissions are updated`() = runTestOnMain {
+        val sessionId = "0"
+        val sessionUrl = "https://mozilla.org"
+        val autoplayValue = AutoplayValue.AUTOPLAY_ALLOW_ALL
+        val sessionState: SessionState = mock()
+
+        val sessionContentState: ContentState = mock()
+        val reloadUrlUseCase: SessionUseCases.ReloadUrlUseCase = mock()
+
+        val updatedSitePermissions: SitePermissions = mock()
+        val newSitePermissions: SitePermissions = mock()
+        val sitePermissionsRules: SitePermissionsRules = mock()
+
+        whenever(sessionState.id).thenReturn(sessionId)
+        whenever(sessionState.content).thenReturn(sessionContentState)
+        whenever(sessionUseCases.reload).thenReturn(reloadUrlUseCase)
+        whenever(sessionContentState.url).thenReturn(sessionUrl)
+        whenever(sessionContentState.private).thenReturn(false)
+
+        whenever(settings.getSitePermissionsCustomSettingsRules()).thenReturn(sitePermissionsRules)
+        whenever(sitePermissionsRules.toSitePermissions(anyString(), anyLong())).thenReturn(newSitePermissions)
+        whenever(
+            newSitePermissions.copy(
+                autoplayAudible = autoplayValue.autoplayAudibleStatus,
+                autoplayInaudible = autoplayValue.autoplayInaudibleStatus,
+            ),
+        ).thenReturn(updatedSitePermissions)
+
+        val store = createStore(
+            trustPanelState = TrustPanelState(
+                sitePermissions = null,
+                sessionState = sessionState,
+            ),
+        )
+
+        store.dispatch(TrustPanelAction.UpdateAutoplayValue(autoplayValue))
+        store.waitUntilIdle()
+
+        verify(permissionStorage).add(updatedSitePermissions, false)
+        verify(reloadUrlUseCase).invoke(sessionId)
+    }
+
+    @Test
+    fun `GIVEN site permissions is not null WHEN update autoplay value action is dispatched THEN site permissions are updated`() = runTestOnMain {
+        val sessionId = "0"
+        val autoplayValue = AutoplayValue.AUTOPLAY_ALLOW_ALL
+        val sessionState: SessionState = mock()
+
+        val sessionContentState: ContentState = mock()
+        val reloadUrlUseCase: SessionUseCases.ReloadUrlUseCase = mock()
+
+        val originalSitePermissions: SitePermissions = mock()
+        val updatedSitePermissions: SitePermissions = mock()
+
+        whenever(sessionState.id).thenReturn(sessionId)
+        whenever(sessionState.content).thenReturn(sessionContentState)
+        whenever(sessionUseCases.reload).thenReturn(reloadUrlUseCase)
+        whenever(sessionContentState.private).thenReturn(false)
+        whenever(
+            originalSitePermissions.copy(
+                autoplayAudible = autoplayValue.autoplayAudibleStatus,
+                autoplayInaudible = autoplayValue.autoplayInaudibleStatus,
+            ),
+        ).thenReturn(updatedSitePermissions)
+
+        val store = createStore(
+            trustPanelState = TrustPanelState(
+                sitePermissions = originalSitePermissions,
+                sessionState = sessionState,
+            ),
+        )
+
+        store.dispatch(TrustPanelAction.UpdateAutoplayValue(autoplayValue))
+        store.waitUntilIdle()
+
+        verify(permissionStorage).updateSitePermissions(updatedSitePermissions, false)
+        verify(reloadUrlUseCase).invoke(sessionId)
+    }
+
+    @Test
+    fun `GIVEN autoplay value matches the current autoplay status WHEN update autoplay value action is dispatched THEN site permissions are not updated`() = runTestOnMain {
+        val sessionId = "0"
+        val autoplayValue = AutoplayValue.AUTOPLAY_ALLOW_ALL
+
+        val reloadUrlUseCase: SessionUseCases.ReloadUrlUseCase = mock()
+        val updatedSitePermissions: SitePermissions = mock()
+
+        whenever(sessionUseCases.reload).thenReturn(reloadUrlUseCase)
+
+        val store = createStore(
+            trustPanelState = TrustPanelState(
+                websitePermissionsState = mapOf(
+                    PhoneFeature.AUTOPLAY to WebsitePermission.Autoplay(
+                        autoplayValue = AutoplayValue.AUTOPLAY_ALLOW_ALL,
+                        isVisible = true,
+                        deviceFeature = PhoneFeature.AUTOPLAY,
+                    ),
+                ),
+            ),
+        )
+
+        store.dispatch(TrustPanelAction.UpdateAutoplayValue(autoplayValue))
+        store.waitUntilIdle()
+
+        verify(permissionStorage, never()).updateSitePermissions(updatedSitePermissions, false)
+        verify(reloadUrlUseCase, never()).invoke(sessionId)
+    }
+
     private fun createStore(
         trustPanelState: TrustPanelState = TrustPanelState(),
         onDismiss: suspend () -> Unit = {},
@@ -309,6 +425,7 @@ class TrustPanelMiddlewareTest {
                 publicSuffixList = publicSuffixList,
                 sessionUseCases = sessionUseCases,
                 trackingProtectionUseCases = trackingProtectionUseCases,
+                settings = settings,
                 permissionStorage = permissionStorage,
                 requestPermissionsLauncher = requestPermissionsLauncher,
                 onDismiss = onDismiss,

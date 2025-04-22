@@ -39,6 +39,7 @@ class TrustPanelTelemetryMiddleware : Middleware<TrustPanelState, TrustPanelActi
             is TrustPanelAction.UpdateNumberOfTrackersBlocked,
             is TrustPanelAction.UpdateTrackersBlocked,
             is TrustPanelAction.TogglePermission,
+            is TrustPanelAction.UpdateAutoplayValue,
             is TrustPanelAction.UpdateSitePermissions,
             is TrustPanelAction.WebsitePermissionAction,
             TrustPanelAction.Navigate.Back,

@@ -77,6 +77,13 @@ sealed class TrustPanelAction : Action {
     data class TogglePermission(val permission: WebsitePermission.Toggleable) : TrustPanelAction()
 
     /**
+     * [TrustPanelAction] dispatched when autoplay value is updated.
+     *
+     * @property autoplayValue Requested [AutoplayValue] to be selected.
+     */
+    data class UpdateAutoplayValue(val autoplayValue: AutoplayValue) : TrustPanelAction()
+
+    /**
      * All possible [WebsitePermissionsState] changes as result of user / system interactions.
      *
      * @property updatedFeature [PhoneFeature] backing a certain [WebsitePermission].
@@ -101,6 +108,16 @@ sealed class TrustPanelAction : Action {
         class TogglePermission(
             override val updatedFeature: PhoneFeature,
         ) : WebsitePermissionAction(updatedFeature)
+
+        /**
+         * Change resulting from changing a specific [WebsitePermission.Autoplay] for the current website.
+         *
+         * @property autoplayValue [AutoplayValue] backing a certain [WebsitePermission.Autoplay].
+         * Allows to easily identify which permission changed
+         */
+        class ChangeAutoplay(
+            val autoplayValue: AutoplayValue,
+        ) : WebsitePermissionAction(PhoneFeature.AUTOPLAY)
     }
 
     /**
