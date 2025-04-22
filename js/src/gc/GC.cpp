@@ -317,6 +317,8 @@ void GCRuntime::verifyAllChunks() {
   if (currentChunk_) {
     MOZ_ASSERT(currentChunk_->info.isCurrentChunk);
     currentChunk_->verify();
+  } else {
+    MOZ_ASSERT(pendingFreeCommittedArenas.ref().IsEmpty());
   }
 }
 #endif

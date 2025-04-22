@@ -1099,6 +1099,11 @@ class GCRuntime {
   // accessed without taking the GC lock.
   MainThreadData<ArenaChunk*> currentChunk_;
 
+  // Bitmap for arenas in the current chunk that have been freed by background
+  // sweeping but not yet merged into the chunk's freeCommittedArenas.
+  GCLockData<ChunkArenaBitmap> pendingFreeCommittedArenas;
+  friend class ArenaChunk;
+
   /*
    * JSGC_MIN_EMPTY_CHUNK_COUNT
    *

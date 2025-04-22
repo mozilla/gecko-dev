@@ -332,7 +332,6 @@ class ArenaChunkBase : public ChunkBase {
   ArenaChunkInfo info;
   ChunkMarkBitmap markBits;
   ChunkArenaBitmap freeCommittedArenas;
-  ChunkArenaBitmap pendingFreeCommittedArenas;
   ChunkPageBitmap decommittedPages;
 
  protected:
