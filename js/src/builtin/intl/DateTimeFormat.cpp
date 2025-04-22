@@ -1638,10 +1638,6 @@ static mozilla::intl::DateTimeFormat* NewDateTimeFormat(
     df = dfResult.unwrap();
   }
 
-  // ECMAScript requires the Gregorian calendar to be used from the beginning
-  // of ECMAScript time.
-  df->SetStartTimeIfGregorian(StartOfTime);
-
   return df.release();
 }
 
@@ -2578,51 +2574,12 @@ static bool PartitionDateTimeRangePattern(
   MOZ_ASSERT(x.isValid());
   MOZ_ASSERT(y.isValid());
 
-  // We can't access the calendar used by UDateIntervalFormat to change it to a
-  // proleptic Gregorian calendar. Instead we need to call a different formatter
-  // function which accepts UCalendar instead of UDate.
-  // But creating new UCalendar objects for each call is slow, so when we can
-  // ensure that the input dates are later than the Gregorian change date,
-  // directly call the formatter functions taking UDate.
-
-  // The Gregorian change date "1582-10-15T00:00:00.000Z".
-  constexpr double GregorianChangeDate = -12219292800000.0;
-
-  // Add a full day to account for time zone offsets.
-  constexpr double GregorianChangeDatePlusOneDay =
-      GregorianChangeDate + msPerDay;
-
-  mozilla::intl::ICUResult result = Ok();
-  if (x.toDouble() < GregorianChangeDatePlusOneDay ||
-      y.toDouble() < GregorianChangeDatePlusOneDay) {
-    // Create calendar objects for the start and end date by cloning the date
-    // formatter calendar. The date formatter calendar already has the correct
-    // time zone set and was changed to use a proleptic Gregorian calendar.
-    auto startCal = df->CloneCalendar(x.toDouble());
-    if (startCal.isErr()) {
-      intl::ReportInternalError(cx, startCal.unwrapErr());
-      return false;
-    }
-
-    auto endCal = df->CloneCalendar(y.toDouble());
-    if (endCal.isErr()) {
-      intl::ReportInternalError(cx, endCal.unwrapErr());
-      return false;
-    }
-
-    result = dif->TryFormatCalendar(*startCal.unwrap(), *endCal.unwrap(),
-                                    formatted, equal);
-  } else {
-    // The common fast path which doesn't require creating calendar objects.
-    result =
-        dif->TryFormatDateTime(x.toDouble(), y.toDouble(), formatted, equal);
-  }
-
+  auto result =
+      dif->TryFormatDateTime(x.toDouble(), y.toDouble(), df, formatted, equal);
   if (result.isErr()) {
     intl::ReportInternalError(cx, result.unwrapErr());
     return false;
   }
-
   return true;
 }
 
