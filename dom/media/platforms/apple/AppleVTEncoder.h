@@ -73,6 +73,14 @@ class AppleVTEncoder final : public MediaDataEncoder {
   CVPixelBufferRef CreateCVPixelBuffer(layers::Image* aSource);
   bool WriteExtraData(MediaRawData* aDst, CMSampleBufferRef aSrc,
                       const bool aAsAnnexB);
+
+  bool SetAverageBitrate(uint32_t aBitsPerSec);
+  bool SetConstantBitrate(uint32_t aBitsPerSec);
+  bool SetBitrateAndMode(BitrateMode aBitrateMode, uint32_t aBitsPerSec);
+  bool SetFrameRate(int64_t aFPS);
+  bool SetRealtime(bool aEnabled);
+  bool SetProfileLevel(H264_PROFILE aValue);
+
   void AssertOnTaskQueue() { MOZ_ASSERT(mTaskQueue->IsCurrentThreadIn()); }
 
   EncoderConfig mConfig;

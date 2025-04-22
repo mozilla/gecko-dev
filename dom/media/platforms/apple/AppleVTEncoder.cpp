@@ -70,25 +70,28 @@ static void FrameCallback(void* aEncoder, void* aFrameRefCon, OSStatus aStatus,
       ->OutputFrame(aStatus, aInfoFlags, aSampleBuffer);
 }
 
-static bool SetAverageBitrate(VTCompressionSessionRef& aSession,
-                              uint32_t aBitsPerSec) {
+bool AppleVTEncoder::SetAverageBitrate(uint32_t aBitsPerSec) {
+  MOZ_ASSERT(mSession);
+
   int64_t bps(aBitsPerSec);
   AutoCFRelease<CFNumberRef> bitrate(
       CFNumberCreate(kCFAllocatorDefault, kCFNumberSInt64Type, &bps));
-  return VTSessionSetProperty(aSession,
+  return VTSessionSetProperty(mSession,
                               kVTCompressionPropertyKey_AverageBitRate,
                               bitrate) == noErr;
 }
 
-static bool SetConstantBitrate(VTCompressionSessionRef& aSession,
-                               uint32_t aBitsPerSec) {
+bool AppleVTEncoder::SetConstantBitrate(uint32_t aBitsPerSec) {
+  MOZ_ASSERT(mSession);
+
   int32_t bps = AssertedCast<int32_t>(aBitsPerSec);
   AutoCFRelease<CFNumberRef> bitrate(
       CFNumberCreate(kCFAllocatorDefault, kCFNumberSInt32Type, &bps));
 
   if (__builtin_available(macos 13.0, *)) {
-    int rv = VTSessionSetProperty(
-        aSession, kVTCompressionPropertyKey_ConstantBitRate, bitrate);
+    int rv = VTSessionSetProperty(mSession,
+                                  kVTCompressionPropertyKey_ConstantBitRate,
+                                  bitrate) == noErr;
     if (rv == kVTPropertyNotSupportedErr) {
       LOGE("Constant bitrate not supported.");
     }
@@ -97,28 +100,31 @@ static bool SetConstantBitrate(VTCompressionSessionRef& aSession,
   return false;
 }
 
-static bool SetBitrateAndMode(VTCompressionSessionRef& aSession,
-                              BitrateMode aBitrateMode, uint32_t aBitsPerSec) {
+bool AppleVTEncoder::SetBitrateAndMode(BitrateMode aBitrateMode,
+                                       uint32_t aBitsPerSec) {
   if (aBitrateMode == BitrateMode::Variable) {
-    return SetAverageBitrate(aSession, aBitsPerSec);
+    return SetAverageBitrate(aBitsPerSec);
   }
-  return SetConstantBitrate(aSession, aBitsPerSec);
+  return SetConstantBitrate(aBitsPerSec);
 }
 
-static bool SetFrameRate(VTCompressionSessionRef& aSession, int64_t aFPS) {
+bool AppleVTEncoder::SetFrameRate(int64_t aFPS) {
+  MOZ_ASSERT(mSession);
   AutoCFRelease<CFNumberRef> framerate(
       CFNumberCreate(kCFAllocatorDefault, kCFNumberSInt64Type, &aFPS));
-  return VTSessionSetProperty(aSession,
+  return VTSessionSetProperty(mSession,
                               kVTCompressionPropertyKey_ExpectedFrameRate,
                               framerate) == noErr;
 }
 
-static bool SetRealtime(VTCompressionSessionRef& aSession, bool aEnabled) {
+bool AppleVTEncoder::SetRealtime(bool aEnabled) {
+  MOZ_ASSERT(mSession);
+
   // B-frames has been disabled in Init(), so no need to set it here.
 
   CFBooleanRef enabled = aEnabled ? kCFBooleanTrue : kCFBooleanFalse;
   OSStatus status = VTSessionSetProperty(
-      aSession, kVTCompressionPropertyKey_RealTime, enabled);
+      mSession, kVTCompressionPropertyKey_RealTime, enabled);
   LOGD("%s real time, status: %d", aEnabled ? "Enable" : "Disable", status);
   if (status != noErr) {
     return false;
@@ -126,7 +132,7 @@ static bool SetRealtime(VTCompressionSessionRef& aSession, bool aEnabled) {
 
   if (__builtin_available(macos 11.0, *)) {
     status = VTSessionSetProperty(
-        aSession, kVTCompressionPropertyKey_PrioritizeEncodingSpeedOverQuality,
+        mSession, kVTCompressionPropertyKey_PrioritizeEncodingSpeedOverQuality,
         enabled);
     LOGD("%s PrioritizeEncodingSpeedOverQuality, status: %d",
          aEnabled ? "Enable" : "Disable", status);
@@ -139,7 +145,7 @@ static bool SetRealtime(VTCompressionSessionRef& aSession, bool aEnabled) {
   AutoCFRelease<CFNumberRef> cf(CFNumberCreate(
       kCFAllocatorDefault, kCFNumberSInt32Type, &maxFrameDelayCount));
   status = VTSessionSetProperty(
-      aSession, kVTCompressionPropertyKey_MaxFrameDelayCount, cf);
+      mSession, kVTCompressionPropertyKey_MaxFrameDelayCount, cf);
   LOGD("Set max frame delay count to %d, status: %d", maxFrameDelayCount,
        status);
   if (status != noErr && status != kVTPropertyNotSupportedErr) {
@@ -149,8 +155,9 @@ static bool SetRealtime(VTCompressionSessionRef& aSession, bool aEnabled) {
   return true;
 }
 
-static bool SetProfileLevel(VTCompressionSessionRef& aSession,
-                            H264_PROFILE aValue) {
+bool AppleVTEncoder::SetProfileLevel(H264_PROFILE aValue) {
+  MOZ_ASSERT(mSession);
+
   CFStringRef profileLevel = nullptr;
   switch (aValue) {
     case H264_PROFILE::H264_PROFILE_BASE:
@@ -167,7 +174,7 @@ static bool SetProfileLevel(VTCompressionSessionRef& aSession,
   }
 
   return profileLevel ? VTSessionSetProperty(
-                            aSession, kVTCompressionPropertyKey_ProfileLevel,
+                            mSession, kVTCompressionPropertyKey_ProfileLevel,
                             profileLevel) == noErr
                       : false;
 }
@@ -278,7 +285,7 @@ MediaResult AppleVTEncoder::InitSession() {
                        "Couldn't disable bframes");
   }
 
-  if (mConfig.mUsage == Usage::Realtime && !SetRealtime(mSession, true)) {
+  if (mConfig.mUsage == Usage::Realtime && !SetRealtime(true)) {
     return MediaResult(NS_ERROR_DOM_MEDIA_FATAL_ERR,
                        "fail to configure real-time");
   }
@@ -290,8 +297,7 @@ MediaResult AppleVTEncoder::InitSession() {
       LOGD("H264 CBR not supported in VideoToolbox, falling back to VBR");
       mConfig.mBitrateMode = BitrateMode::Variable;
     }
-    bool rv =
-        SetBitrateAndMode(mSession, mConfig.mBitrateMode, mConfig.mBitrate);
+    bool rv = SetBitrateAndMode(mConfig.mBitrateMode, mConfig.mBitrate);
     if (!rv) {
       return MediaResult(NS_ERROR_DOM_MEDIA_FATAL_ERR,
                          "fail to configurate bitrate");
@@ -347,7 +353,7 @@ MediaResult AppleVTEncoder::InitSession() {
 
   if (mConfig.mCodecSpecific) {
     const H264Specific& specific = mConfig.mCodecSpecific->as<H264Specific>();
-    if (!SetProfileLevel(mSession, specific.mProfile)) {
+    if (!SetProfileLevel(specific.mProfile)) {
       return MediaResult(NS_ERROR_DOM_MEDIA_FATAL_ERR,
                          nsPrintfCString("fail to configurate profile level:%d",
                                          int(specific.mProfile)));
@@ -774,15 +780,13 @@ AppleVTEncoder::ProcessReconfigure(
         [&](const DisplayDimensionsChange& aChange) -> bool { return false; },
         [&](const BitrateModeChange& aChange) -> bool {
           mConfig.mBitrateMode = aChange.get();
-          return SetBitrateAndMode(mSession, mConfig.mBitrateMode,
-                                   mConfig.mBitrate);
+          return SetBitrateAndMode(mConfig.mBitrateMode, mConfig.mBitrate);
         },
         [&](const BitrateChange& aChange) -> bool {
           mConfig.mBitrate = aChange.get().refOr(0);
           // 0 is the default in AppleVTEncoder: the encoder chooses the bitrate
           // based on the content.
-          return SetBitrateAndMode(mSession, mConfig.mBitrateMode,
-                                   mConfig.mBitrate);
+          return SetBitrateAndMode(mConfig.mBitrateMode, mConfig.mBitrate);
         },
         [&](const FramerateChange& aChange) -> bool {
           // 0 means default, in VideoToolbox, and is valid, perform some light
@@ -793,11 +797,11 @@ AppleVTEncoder::ProcessReconfigure(
             LOGE("Invalid fps of %lf", fps);
             return false;
           }
-          return SetFrameRate(mSession, AssertedCast<int64_t>(fps));
+          return SetFrameRate(AssertedCast<int64_t>(fps));
         },
         [&](const UsageChange& aChange) -> bool {
           mConfig.mUsage = aChange.get();
-          return SetRealtime(mSession, aChange.get() == Usage::Realtime);
+          return SetRealtime(aChange.get() == Usage::Realtime);
         },
         [&](const ContentHintChange& aChange) -> bool { return false; },
         [&](const SampleRateChange& aChange) -> bool { return false; },
@@ -1023,8 +1027,7 @@ RefPtr<GenericPromise> AppleVTEncoder::SetBitrate(uint32_t aBitsPerSec) {
   RefPtr<AppleVTEncoder> self = this;
   return InvokeAsync(mTaskQueue, __func__, [self, aBitsPerSec]() {
     MOZ_ASSERT(self->mSession);
-    bool rv = SetBitrateAndMode(self->mSession, self->mConfig.mBitrateMode,
-                                aBitsPerSec);
+    bool rv = self->SetBitrateAndMode(self->mConfig.mBitrateMode, aBitsPerSec);
     return rv ? GenericPromise::CreateAndResolve(true, __func__)
               : GenericPromise::CreateAndReject(
                     NS_ERROR_DOM_MEDIA_NOT_SUPPORTED_ERR, __func__);
