@@ -251,7 +251,7 @@ MediaResult AppleVTEncoder::InitSession() {
   LOGD("low latency rate control: %s, Hardware allowed: %s",
        lowLatencyRateControl ? "yes" : "no",
        mHardwareNotAllowed ? "no" : "yes");
-  AutoCFRelease<CFDictionaryRef> spec(
+  AutoCFTypeRef<CFDictionaryRef> spec(
       BuildEncoderSpec(mHardwareNotAllowed, lowLatencyRateControl));
 
   // Bug 1955153: Set sourceImageBufferAttributes using the pixel format derived
@@ -369,10 +369,10 @@ CFDictionaryRef AppleVTEncoder::BuildSourceImageBufferAttributes(
                         kCVPixelBufferIOSurfacePropertiesKey,  // TODO
                         kCVPixelBufferPixelFormatTypeKey};
 
-  AutoCFRelease<CFDictionaryRef> ioSurfaceProps(CFDictionaryCreate(
+  AutoCFTypeRef<CFDictionaryRef> ioSurfaceProps(CFDictionaryCreate(
       kCFAllocatorDefault, nullptr, nullptr, 0, &kCFTypeDictionaryKeyCallBacks,
       &kCFTypeDictionaryValueCallBacks));
-  AutoCFRelease<CFNumberRef> pixelFormat(
+  AutoCFTypeRef<CFNumberRef> pixelFormat(
       CFNumberCreate(kCFAllocatorDefault, kCFNumberSInt32Type, &aPixelFormat));
   const void* values[] = {kCFBooleanTrue, ioSurfaceProps, pixelFormat};
 
@@ -698,7 +698,7 @@ void AppleVTEncoder::ProcessEncode(const RefPtr<const VideoData>& aSample) {
     MaybeResolveOrRejectEncodePromise();
   }
 
-  AutoCVBufferRelease<CVImageBufferRef> buffer(
+  AutoCVBufferRef<CVImageBufferRef> buffer(
       CreateCVPixelBuffer(aSample->mImage));
   if (!buffer) {
     LOGE("Failed to allocate buffer");
