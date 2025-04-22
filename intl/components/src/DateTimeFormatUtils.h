@@ -5,24 +5,10 @@
 #define intl_components_DateTimeFormatUtils_h_
 #include "unicode/udat.h"
 
-#if !MOZ_SYSTEM_ICU
-#  include "unicode/calendar.h"
-#endif
-
-#include "mozilla/Result.h"
-#include "mozilla/UniquePtr.h"
 #include "mozilla/intl/DateTimePart.h"
-#include "mozilla/intl/ICUError.h"
 
 namespace mozilla::intl {
 DateTimePartType ConvertUFormatFieldToPartType(UDateFormatField fieldName);
-
-Result<Ok, ICUError> ApplyCalendarOverride(UDateFormat* aDateFormat);
-
-#if !MOZ_SYSTEM_ICU
-Result<UniquePtr<icu::Calendar>, ICUError> CreateCalendarOverride(
-    const icu::Calendar* calendar);
-#endif
 }  // namespace mozilla::intl
 
 #endif
