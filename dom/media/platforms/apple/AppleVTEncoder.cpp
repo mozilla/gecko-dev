@@ -490,6 +490,8 @@ bool AppleVTEncoder::WriteExtraData(MediaRawData* aDst, CMSampleBufferRef aSrc,
     return true;
   }
 
+  LOGV("Writing extra data (%s) for keyframe", aAsAnnexB ? "AnnexB" : "AVCC");
+
   aDst->mKeyframe = true;
   CMFormatDescriptionRef desc = CMSampleBufferGetFormatDescription(aSrc);
   if (!desc) {
@@ -503,10 +505,12 @@ bool AppleVTEncoder::WriteExtraData(MediaRawData* aDst, CMSampleBufferRef aSrc,
 
   RefPtr<MediaByteBuffer> avcc = extractAvcc(desc);
   if (!avcc) {
+    LOGE("failed to extract avcc");
     return false;
   }
 
   if (!mAvcc || !H264::CompareExtraData(avcc, mAvcc)) {
+    LOGV("avcC changed, updating");
     mAvcc = avcc;
     aDst->mExtraData = mAvcc;
   }
