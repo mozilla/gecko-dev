@@ -3,4 +3,7 @@ support-files = ["submit_invalid_file.sjs"]
 
 ["test_autocompleteinfo.html"]
 
+["test_input_search.html"]
+prefs = ["layout.forms.input-type-search.enabled=true"]
+
 ["test_submit_invalid_file.html"]
