@@ -10,6 +10,7 @@
 #include <CoreMedia/CoreMedia.h>
 #include <VideoToolbox/VideoToolbox.h>
 
+#include "apple/AppleUtils.h"
 #include "PlatformEncoderModule.h"
 
 namespace mozilla {
@@ -94,7 +95,7 @@ class AppleVTEncoder final : public MediaDataEncoder {
   MediaResult mError;
 
   // Written by Init() but used only in task queue.
-  VTCompressionSessionRef mSession;
+  AutoCFTypeRef<VTCompressionSessionRef> mSession;
   // Can be accessed on any thread, but only written on during init.
   Atomic<bool> mIsHardwareAccelerated;
   // Accessed only in mTaskQueue. Used for for OS versions < 11.

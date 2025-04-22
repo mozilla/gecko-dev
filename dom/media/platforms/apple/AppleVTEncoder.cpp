@@ -12,7 +12,6 @@
 #include <MacTypes.h>
 
 #include "AnnexB.h"
-#include "AppleUtils.h"
 #include "H264.h"
 #include "ImageContainer.h"
 
@@ -73,25 +72,18 @@ static void FrameCallback(void* aEncoder, void* aFrameRefCon, OSStatus aStatus,
 bool AppleVTEncoder::SetAverageBitrate(uint32_t aBitsPerSec) {
   MOZ_ASSERT(mSession);
 
-  int64_t bps(aBitsPerSec);
-  AutoCFRelease<CFNumberRef> bitrate(
-      CFNumberCreate(kCFAllocatorDefault, kCFNumberSInt64Type, &bps));
-  return VTSessionSetProperty(mSession,
-                              kVTCompressionPropertyKey_AverageBitRate,
-                              bitrate) == noErr;
+  SessionPropertyManager mgr(mSession);
+  return mgr.Set(kVTCompressionPropertyKey_AverageBitRate,
+                 int64_t(aBitsPerSec)) == noErr;
 }
 
 bool AppleVTEncoder::SetConstantBitrate(uint32_t aBitsPerSec) {
   MOZ_ASSERT(mSession);
 
-  int32_t bps = AssertedCast<int32_t>(aBitsPerSec);
-  AutoCFRelease<CFNumberRef> bitrate(
-      CFNumberCreate(kCFAllocatorDefault, kCFNumberSInt32Type, &bps));
-
   if (__builtin_available(macos 13.0, *)) {
-    int rv = VTSessionSetProperty(mSession,
-                                  kVTCompressionPropertyKey_ConstantBitRate,
-                                  bitrate) == noErr;
+    SessionPropertyManager mgr(mSession);
+    OSStatus rv = mgr.Set(kVTCompressionPropertyKey_ConstantBitRate,
+                          AssertedCast<int32_t>(aBitsPerSec));
     if (rv == kVTPropertyNotSupportedErr) {
       LOGE("Constant bitrate not supported.");
     }
@@ -110,11 +102,9 @@ bool AppleVTEncoder::SetBitrateAndMode(BitrateMode aBitrateMode,
 
 bool AppleVTEncoder::SetFrameRate(int64_t aFPS) {
   MOZ_ASSERT(mSession);
-  AutoCFRelease<CFNumberRef> framerate(
-      CFNumberCreate(kCFAllocatorDefault, kCFNumberSInt64Type, &aFPS));
-  return VTSessionSetProperty(mSession,
-                              kVTCompressionPropertyKey_ExpectedFrameRate,
-                              framerate) == noErr;
+
+  SessionPropertyManager mgr(mSession);
+  return mgr.Set(kVTCompressionPropertyKey_ExpectedFrameRate, aFPS) == noErr;
 }
 
 bool AppleVTEncoder::SetRealtime(bool aEnabled) {
@@ -122,18 +112,16 @@ bool AppleVTEncoder::SetRealtime(bool aEnabled) {
 
   // B-frames has been disabled in Init(), so no need to set it here.
 
-  CFBooleanRef enabled = aEnabled ? kCFBooleanTrue : kCFBooleanFalse;
-  OSStatus status = VTSessionSetProperty(
-      mSession, kVTCompressionPropertyKey_RealTime, enabled);
+  SessionPropertyManager mgr(mSession);
+  OSStatus status = mgr.Set(kVTCompressionPropertyKey_RealTime, aEnabled);
   LOGD("%s real time, status: %d", aEnabled ? "Enable" : "Disable", status);
   if (status != noErr) {
     return false;
   }
 
   if (__builtin_available(macos 11.0, *)) {
-    status = VTSessionSetProperty(
-        mSession, kVTCompressionPropertyKey_PrioritizeEncodingSpeedOverQuality,
-        enabled);
+    status = mgr.Set(
+        kVTCompressionPropertyKey_PrioritizeEncodingSpeedOverQuality, aEnabled);
     LOGD("%s PrioritizeEncodingSpeedOverQuality, status: %d",
          aEnabled ? "Enable" : "Disable", status);
     if (status != noErr && status != kVTPropertyNotSupportedErr) {
@@ -142,10 +130,8 @@ bool AppleVTEncoder::SetRealtime(bool aEnabled) {
   }
 
   int32_t maxFrameDelayCount = aEnabled ? 0 : kVTUnlimitedFrameDelayCount;
-  AutoCFRelease<CFNumberRef> cf(CFNumberCreate(
-      kCFAllocatorDefault, kCFNumberSInt32Type, &maxFrameDelayCount));
-  status = VTSessionSetProperty(
-      mSession, kVTCompressionPropertyKey_MaxFrameDelayCount, cf);
+  status =
+      mgr.Set(kVTCompressionPropertyKey_MaxFrameDelayCount, maxFrameDelayCount);
   LOGD("Set max frame delay count to %d, status: %d", maxFrameDelayCount,
        status);
   if (status != noErr && status != kVTPropertyNotSupportedErr) {
@@ -173,10 +159,12 @@ bool AppleVTEncoder::SetProfileLevel(H264_PROFILE aValue) {
       LOGE("Profile %d not handled", static_cast<int>(aValue));
   }
 
-  return profileLevel ? VTSessionSetProperty(
-                            mSession, kVTCompressionPropertyKey_ProfileLevel,
-                            profileLevel) == noErr
-                      : false;
+  if (profileLevel == nullptr) {
+    return false;
+  }
+
+  SessionPropertyManager mgr(mSession);
+  return mgr.Set(kVTCompressionPropertyKey_ProfileLevel, profileLevel) == noErr;
 }
 
 static Result<OSType, MediaResult> MapPixelFormat(
@@ -272,15 +260,15 @@ MediaResult AppleVTEncoder::InitSession() {
       kCFAllocatorDefault, mConfig.mSize.width, mConfig.mSize.height,
       kCMVideoCodecType_H264, spec, nullptr /* sourceImageBufferAttributes */,
       kCFAllocatorDefault, &FrameCallback, this /* outputCallbackRefCon */,
-      &mSession);
+      mSession.Receive());
   if (status != noErr) {
     return MediaResult(NS_ERROR_DOM_MEDIA_FATAL_ERR,
                        "fail to create encoder session");
   }
 
-  if (VTSessionSetProperty(mSession,
-                           kVTCompressionPropertyKey_AllowFrameReordering,
-                           kCFBooleanFalse) != noErr) {
+  SessionPropertyManager mgr(mSession);
+
+  if (mgr.Set(kVTCompressionPropertyKey_AllowFrameReordering, false) != noErr) {
     return MediaResult(NS_ERROR_DOM_MEDIA_FATAL_ERR,
                        "Couldn't disable bframes");
   }
@@ -320,11 +308,9 @@ MediaResult AppleVTEncoder::InitSession() {
         default:
           MOZ_ASSERT_UNREACHABLE("Unhandled value");
       }
-      AutoCFRelease<CFNumberRef> cf(CFNumberCreate(
-          kCFAllocatorDefault, kCFNumberFloatType, &baseLayerFPSRatio));
-      if (VTSessionSetProperty(
-              mSession, kVTCompressionPropertyKey_BaseLayerFrameRateFraction,
-              cf)) {
+
+      if (mgr.Set(kVTCompressionPropertyKey_BaseLayerFrameRateFraction,
+                  baseLayerFPSRatio) != noErr) {
         return MediaResult(
             NS_ERROR_DOM_MEDIA_FATAL_ERR,
             nsPrintfCString("fail to configure SVC (base ratio: %f",
@@ -340,11 +326,9 @@ MediaResult AppleVTEncoder::InitSession() {
       mConfig.mKeyframeInterval > std::numeric_limits<int64_t>::max()
           ? std::numeric_limits<int64_t>::max()
           : AssertedCast<int64_t>(mConfig.mKeyframeInterval);
-  AutoCFRelease<CFNumberRef> cf(
-      CFNumberCreate(kCFAllocatorDefault, kCFNumberSInt64Type, &interval));
-  if (VTSessionSetProperty(mSession,
-                           kVTCompressionPropertyKey_MaxKeyFrameInterval,
-                           cf) != noErr) {
+
+  if (mgr.Set(kVTCompressionPropertyKey_MaxKeyFrameInterval, interval) !=
+      noErr) {
     return MediaResult(
         NS_ERROR_DOM_MEDIA_FATAL_ERR,
         nsPrintfCString("fail to configurate keyframe interval:%" PRId64,
@@ -360,11 +344,11 @@ MediaResult AppleVTEncoder::InitSession() {
     }
   }
 
-  AutoCFRelease<CFBooleanRef> isUsingHW = nullptr;
-  status = VTSessionCopyProperty(
-      mSession, kVTCompressionPropertyKey_UsingHardwareAcceleratedVideoEncoder,
-      kCFAllocatorDefault, isUsingHW.receive());
-  mIsHardwareAccelerated = status == noErr && isUsingHW == kCFBooleanTrue;
+  bool isUsingHW = false;
+  status =
+      mgr.Copy(kVTCompressionPropertyKey_UsingHardwareAcceleratedVideoEncoder,
+               isUsingHW);
+  mIsHardwareAccelerated = status == noErr && isUsingHW;
   LOGD("Using hw acceleration: %s", mIsHardwareAccelerated ? "yes" : "no");
 
   errorExit.release();
@@ -374,8 +358,7 @@ MediaResult AppleVTEncoder::InitSession() {
 void AppleVTEncoder::InvalidateSessionIfNeeded() {
   if (mSession) {
     VTCompressionSessionInvalidate(mSession);
-    CFRelease(mSession);
-    mSession = nullptr;
+    mSession.Reset();
   }
 }
 
