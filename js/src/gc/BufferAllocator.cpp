@@ -424,7 +424,8 @@ BufferAllocator::BufferAllocator(Zone* zone)
       sweptLargeTenuredAllocs(lock()),
       minorState(State::NotCollecting),
       majorState(State::NotCollecting),
-      minorSweepingFinished(lock()) {}
+      minorSweepingFinished(lock()),
+      majorSweepingFinished(lock()) {}
 
 BufferAllocator::~BufferAllocator() {
 #ifdef DEBUG
@@ -954,6 +955,7 @@ void BufferAllocator::startMajorSweeping(MaybeLock& lock) {
 #ifdef DEBUG
   MOZ_ASSERT(majorState == State::Marking);
   MOZ_ASSERT(zone->isGCFinished());
+  MOZ_ASSERT(!majorSweepingFinished.refNoCheck());
 #endif
 
   maybeMergeSweptData(lock);
@@ -999,6 +1001,10 @@ void BufferAllocator::sweepForMajorCollection(bool shouldDecommit) {
   // there's currently no advantage to that.
   AutoLock lock(this);
   sweptLargeTenuredAllocs.ref() = std::move(sweptList);
+
+  // Signal to main thread to update majorState.
+  MOZ_ASSERT(!majorSweepingFinished);
+  majorSweepingFinished = true;
 }
 
 static void ClearAllocatedDuringCollection(SlimLinkedList<BufferChunk>& list) {
@@ -1013,56 +1019,67 @@ static void ClearAllocatedDuringCollection(SlimLinkedList<LargeBuffer>& list) {
 }
 
 void BufferAllocator::finishMajorCollection(const AutoLock& lock) {
-  // This can be called without startMajorSweeping if collection is aborted.
-  MOZ_ASSERT(majorState == State::Marking || majorState == State::Sweeping);
+  // This can be called in any state:
+  //
+  //  - NotCollecting: after major sweeping has finished and the state has been
+  //                   reset to NotCollecting in mergeSweptData.
+  //
+  //  - Marking:       if collection was aborted and startMajorSweeping was not
+  //                   called.
+  //
+  //  - Sweeping:      if sweeping has finished and mergeSweptData has not been
+  //                   called yet.
 
-  ClearAllocatedDuringCollection(mediumMixedChunks.ref());
-  ClearAllocatedDuringCollection(mediumTenuredChunks.ref());
-  // This flag is not set for large nursery-owned allocations.
-  ClearAllocatedDuringCollection(largeTenuredAllocs.ref());
-
-  if (minorState == State::Sweeping) {
-    // Ensure this flag is cleared when chunks are merged in mergeSweptData.
-    majorFinishedWhileMinorSweeping = true;
-  }
+  MOZ_ASSERT_IF(majorState == State::Sweeping, majorSweepingFinished);
 
   if (minorState == State::Sweeping || majorState == State::Sweeping) {
     mergeSweptData(lock);
   }
 
-  MOZ_ASSERT_IF(majorState == State::Marking,
-                sweptMediumTenuredChunks.ref().isEmpty());
-  MOZ_ASSERT_IF(majorState == State::Sweeping,
-                mediumTenuredChunksToSweep.ref().isEmpty());
-
   if (majorState == State::Marking) {
-    // We have aborted collection without sweeping this zone. Restore or rebuild
-    // the original state.
-
-    for (BufferChunk* chunk : mediumTenuredChunksToSweep.ref()) {
-      chunk->markBits.ref().clear();
-    }
-    for (LargeBuffer* alloc : largeTenuredAllocsToSweep.ref()) {
-      alloc->marked = false;
-    }
-
-    // Rebuild free lists for chunks we didn't end up sweeping.
-    for (BufferChunk* chunk : mediumTenuredChunksToSweep.ref()) {
-      MOZ_ALWAYS_TRUE(
-          sweepChunk(chunk, OwnerKind::None, false, mediumFreeLists.ref()));
-    }
-
-    mediumTenuredChunks.ref().prepend(
-        std::move(mediumTenuredChunksToSweep.ref()));
-    largeTenuredAllocs.ref().prepend(
-        std::move(largeTenuredAllocsToSweep.ref()));
+    abortMajorSweeping(lock);
   }
-
-  majorState = State::NotCollecting;
 
 #ifdef DEBUG
   checkGCStateNotInUse(lock);
 #endif
+}
+
+void BufferAllocator::abortMajorSweeping(const AutoLock& lock) {
+  // We have aborted collection without sweeping this zone. Restore or rebuild
+  // the original state.
+
+  MOZ_ASSERT(majorState == State::Marking);
+  MOZ_ASSERT(sweptMediumTenuredChunks.ref().isEmpty());
+
+  clearAllocatedDuringCollectionState(lock);
+
+  for (BufferChunk* chunk : mediumTenuredChunksToSweep.ref()) {
+    chunk->markBits.ref().clear();
+  }
+  for (LargeBuffer* alloc : largeTenuredAllocsToSweep.ref()) {
+    alloc->marked = false;
+  }
+
+  // Rebuild free lists for chunks we didn't end up sweeping.
+  for (BufferChunk* chunk : mediumTenuredChunksToSweep.ref()) {
+    MOZ_ALWAYS_TRUE(
+        sweepChunk(chunk, OwnerKind::None, false, mediumFreeLists.ref()));
+  }
+
+  mediumTenuredChunks.ref().prepend(
+      std::move(mediumTenuredChunksToSweep.ref()));
+  largeTenuredAllocs.ref().prepend(std::move(largeTenuredAllocsToSweep.ref()));
+
+  majorState = State::NotCollecting;
+}
+
+void BufferAllocator::clearAllocatedDuringCollectionState(
+    const AutoLock& lock) {
+  ClearAllocatedDuringCollection(mediumMixedChunks.ref());
+  ClearAllocatedDuringCollection(mediumTenuredChunks.ref());
+  // This flag is not set for large nursery-owned allocations.
+  ClearAllocatedDuringCollection(largeTenuredAllocs.ref());
 }
 
 void BufferAllocator::maybeMergeSweptData() {
@@ -1087,6 +1104,14 @@ void BufferAllocator::maybeMergeSweptData(MaybeLock& lock) {
 
 void BufferAllocator::mergeSweptData(const AutoLock& lock) {
   MOZ_ASSERT(minorState == State::Sweeping || majorState == State::Sweeping);
+
+  if (majorSweepingFinished) {
+    clearAllocatedDuringCollectionState(lock);
+
+    if (minorState == State::Sweeping) {
+      majorFinishedWhileMinorSweeping = true;
+    }
+  }
 
   // Merge swept chunks that previously contained nursery owned allocations. If
   // semispace nursery collection is in use then these chunks may contain both
@@ -1149,6 +1174,14 @@ void BufferAllocator::mergeSweptData(const AutoLock& lock) {
       verifyChunk(chunk, false);
     }
 #endif
+  }
+
+  if (majorSweepingFinished) {
+    MOZ_ASSERT(majorState == State::Sweeping);
+    majorState = State::NotCollecting;
+    majorSweepingFinished = false;
+
+    MOZ_ASSERT(mediumTenuredChunksToSweep.ref().isEmpty());
   }
 }
 
@@ -1267,6 +1300,7 @@ void BufferAllocator::checkGCStateNotInUse(const AutoLock& lock) {
     MOZ_ASSERT(!majorFinishedWhileMinorSweeping);
     MOZ_ASSERT(!sweptChunksAvailable);
     MOZ_ASSERT(!minorSweepingFinished);
+    MOZ_ASSERT(!majorSweepingFinished);
   }
 
   MOZ_ASSERT(mediumTenuredChunksToSweep.ref().isEmpty());

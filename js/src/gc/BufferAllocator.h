@@ -311,6 +311,11 @@ class BufferAllocator : public SlimLinkedListElement<BufferAllocator> {
   MainThreadData<State> minorState;
   MainThreadData<State> majorState;
 
+  // Flags to tell the main thread that sweeping has finished and the state
+  // should be updated.
+  MutexData<bool> minorSweepingFinished;
+  MutexData<bool> majorSweepingFinished;
+
   // A major GC was started while a minor GC was still sweeping. Chunks by the
   // minor GC will be moved directly to the list of chunks to sweep for the
   // major GC. This happens for the minor GC at the start of every major GC.
@@ -319,10 +324,6 @@ class BufferAllocator : public SlimLinkedListElement<BufferAllocator> {
   // A major GC finished while a minor GC was still sweeping. Some post major GC
   // cleanup will be deferred to the end of the minor sweeping.
   MainThreadData<bool> majorFinishedWhileMinorSweeping;
-
-  // Flag to tell the main thread that minor sweeping has finished and
-  // minorState should be updated.
-  MutexData<bool> minorSweepingFinished;
 
  public:
   explicit BufferAllocator(JS::Zone* zone);
@@ -351,12 +352,14 @@ class BufferAllocator : public SlimLinkedListElement<BufferAllocator> {
   void startMajorSweeping(MaybeLock& lock);
   void sweepForMajorCollection(bool shouldDecommit);
   void finishMajorCollection(const AutoLock& lock);
+  void clearAllocatedDuringCollectionState(const AutoLock& lock);
   void clearMarkStateAfterBarrierVerification();
 
   void maybeMergeSweptData();
   void maybeMergeSweptData(MaybeLock& lock);
   void mergeSweptData();
   void mergeSweptData(const AutoLock& lock);
+  void abortMajorSweeping(const AutoLock& lock);
 
   bool isEmpty() const;
 
