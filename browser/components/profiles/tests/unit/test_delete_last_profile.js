@@ -3,26 +3,18 @@ https://creativecommons.org/publicdomain/zero/1.0/ */
 
 "use strict";
 
-const { sinon } = ChromeUtils.importESModule(
-  "resource://testing-common/Sinon.sys.mjs"
-);
-
-const execProcess = sinon.fake();
-const sendCommandLine = sinon.fake.throws(Cr.NS_ERROR_NOT_AVAILABLE);
-
-add_setup(async () => {
-  await initSelectableProfileService();
-
-  sinon.replace(
-    getSelectableProfileService(),
-    "sendCommandLine",
-    (path, args, raise) => sendCommandLine(path, [...args], raise)
-  );
-  sinon.replace(getSelectableProfileService(), "execProcess", execProcess);
-});
+add_setup(initSelectableProfileService);
 
 add_task(async function test_delete_last_profile() {
+  // mock() returns an object with a fake `runw` method that, when
+  // called, records its arguments.
+  let input = [];
+  let mock = args => {
+    input = args;
+  };
+
   const SelectableProfileService = getSelectableProfileService();
+  SelectableProfileService.execProcess = mock;
 
   let profiles = await SelectableProfileService.getAllProfiles();
   Assert.equal(profiles.length, 1, "Only 1 profile exists before deleting");
@@ -49,39 +41,19 @@ add_task(async function test_delete_last_profile() {
 
   profile = profiles[0];
 
-  let expected = ["-url", "about:newprofile"];
-
-  Assert.equal(
-    sendCommandLine.callCount,
-    2,
-    "Should have attempted to remote twice"
-  );
-  Assert.deepEqual(
-    sendCommandLine.firstCall.args,
-    [profile.path, expected, true],
-    "Expected sendCommandLine arguments to open new profile"
-  );
-  Assert.deepEqual(
-    sendCommandLine.secondCall.args,
-    [profile.path, ["--profiles-updated"], false],
-    "Expected sendCommandLine arguments to update other profiles"
-  );
-
-  expected.unshift("--profile", profile.path);
-
-  if (Services.appinfo.OS === "Darwin") {
-    expected.unshift("-foreground");
+  let expectedRunwArgs;
+  if (Services.appinfo.OS == "Darwin") {
+    expectedRunwArgs = [
+      "-foreground",
+      "--profile",
+      profile.path,
+      "-url",
+      "about:newprofile",
+    ];
+  } else {
+    expectedRunwArgs = ["--profile", profile.path, "-url", "about:newprofile"];
   }
-
-  // Our mock remote service claims the instance is not running so we will fall back to launching
-  // a new process.
-
-  Assert.equal(execProcess.callCount, 1, "Should have called execProcess once");
-  Assert.deepEqual(
-    execProcess.firstCall.args,
-    [expected],
-    "Expected execProcess arguments"
-  );
+  Assert.deepEqual(expectedRunwArgs, input, "Expected runw arguments");
 
   Assert.equal(
     SelectableProfileService.groupToolkitProfile.rootDir.path,
