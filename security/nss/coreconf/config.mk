@@ -259,3 +259,22 @@ DEFINES += -DNO_NSPR_10_SUPPORT
 
 # Hide old, deprecated, TLS cipher suite names when building NSS
 DEFINES += -DSSL_DISABLE_DEPRECATED_CIPHER_SUITE_NAMES
+
+
+# By default the PKCS5_PBKD2_PARAMS(structure) version is determined based on the
+# cryptokiVersion of the token, PKCS5_PBKD2_PARAMS2 structure is used for version
+# 2.40 or later, PKCS5_PBKD2_PARAMS structure is used otherwise.
+# This define allows to force the use of PKCS5_PBKD2_PARAMS2 structure only.
+ifeq ($(SOFTOKEN_USE_PKCS5_PBKD2_PARAMS2_ONLY),1)
+    DEFINES += -DSOFTOKEN_USE_PKCS5_PBKD2_PARAMS2_ONLY
+endif
+
+# By default the PKCS5_PBKD2_PARAMS(structure) version is auto-detected based on
+# the difference between the two structures, in this case the password length is
+# limited to 8192 bytes.
+# Using this define, only PKCS5_PBKD2_PARAMS2 structure is expected, this can cause
+# segmentation fault if PKCS5_PBKD2_PARAMS structure is provided!).
+# Additional the password length is not limited with this option.
+ifeq ($(NSS_USE_PKCS5_PBKD2_PARAMS2_ONLY),1)
+    DEFINES += -DNSS_USE_PKCS5_PBKD2_PARAMS2_ONLY
+endif
