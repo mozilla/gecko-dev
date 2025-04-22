@@ -720,14 +720,14 @@ export class UrlbarInput {
    *   Where we expect the result to be opened.
    * @property {object} openParams
    *   The parameters related to where the result will be opened.
-   * @property {nsISearchEngine} engine
+   * @property {Node} engine
    *   The selected one-off's engine.
    */
 
   /**
    * Handles an event which would cause a URL or text to be opened.
    *
-   * @param {object} options
+   * @param {object} [options]
    *   Options for the navigation.
    * @param {Event} [options.event]
    *   The event triggering the open.
@@ -819,21 +819,7 @@ export class UrlbarInput {
         oneOffParams.engine,
         searchString
       );
-      if (oneOffParams.openWhere == "tab") {
-        this.window.gBrowser.tabContainer.addEventListener(
-          "TabOpen",
-          tabEvent =>
-            this._recordSearch(
-              oneOffParams.engine,
-              event,
-              {},
-              tabEvent.target.linkedBrowser
-            ),
-          { once: true }
-        );
-      } else {
-        this._recordSearch(oneOffParams.engine, event);
-      }
+      this._recordSearch(oneOffParams.engine, event);
 
       lazy.UrlbarUtils.addToFormHistory(
         this,
@@ -1302,24 +1288,7 @@ export class UrlbarInput {
           alias: result.payload.keyword,
         };
         const engine = Services.search.getEngineByName(result.payload.engine);
-
-        if (where == "tab") {
-          // The TabOpen event is fired synchronously so tabEvent.target
-          // is guaranteed to be our new search tab.
-          this.window.gBrowser.tabContainer.addEventListener(
-            "TabOpen",
-            tabEvent =>
-              this._recordSearch(
-                engine,
-                event,
-                actionDetails,
-                tabEvent.target.linkedBrowser
-              ),
-            { once: true }
-          );
-        } else {
-          this._recordSearch(engine, event, actionDetails);
-        }
+        this._recordSearch(engine, event, actionDetails);
 
         if (!result.payload.inPrivateWindow) {
           lazy.UrlbarUtils.addToFormHistory(
@@ -2984,26 +2953,18 @@ export class UrlbarInput {
    *   The engine to generate the query for.
    * @param {Event} event
    *   The event that triggered this query.
-   * @param {object} [searchActionDetails]
+   * @param {object} searchActionDetails
    *   The details associated with this search query.
-   * @param {boolean} [searchActionDetails.isSuggestion]
+   * @param {boolean} searchActionDetails.isSuggestion
    *   True if this query was initiated from a suggestion from the search engine.
-   * @param {boolean} [searchActionDetails.alias]
+   * @param {boolean} searchActionDetails.alias
    *   True if this query was initiated via a search alias.
-   * @param {boolean} [searchActionDetails.isFormHistory]
+   * @param {boolean} searchActionDetails.isFormHistory
    *   True if this query was initiated from a form history result.
-   * @param {string} [searchActionDetails.url]
+   * @param {string} searchActionDetails.url
    *   The url this query was triggered with.
-   * @param {XULBrowserElement} [browser]
-   *   The browser where the search is being opened.
-   *   Defaults to the window's selected browser.
    */
-  _recordSearch(
-    engine,
-    event,
-    searchActionDetails = {},
-    browser = this.window.gBrowser.selectedBrowser
-  ) {
+  _recordSearch(engine, event, searchActionDetails = {}) {
     const isOneOff = this.view.oneOffSearchButtons.eventTargetIsAOneOff(event);
     const searchSource = this.getSearchSource(event);
 
@@ -3023,7 +2984,7 @@ export class UrlbarInput {
 
     // Sending a trigger to ASRouter when a search happens
     lazy.ASRouter.sendTriggerMessage({
-      browser,
+      browser: this.window.gBrowser.selectedBrowser,
       id: "onSearch",
       context: {
         isSuggestion: searchActionDetails.isSuggestion || false,
@@ -3032,11 +2993,16 @@ export class UrlbarInput {
       },
     });
 
-    lazy.BrowserSearchTelemetry.recordSearch(browser, engine, searchSource, {
-      ...searchActionDetails,
-      isOneOff,
-      newtabSessionId: this._handoffSession,
-    });
+    lazy.BrowserSearchTelemetry.recordSearch(
+      this.window.gBrowser.selectedBrowser,
+      engine,
+      searchSource,
+      {
+        ...searchActionDetails,
+        isOneOff,
+        newtabSessionId: this._handoffSession,
+      }
+    );
   }
 
   /**
