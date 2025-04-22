@@ -1347,6 +1347,7 @@ static nsLiteralCString sImgSrcDataBlobAllowList[] = {
     "chrome://browser/content/sidebar/sidebar-syncedtabs.html"_ns,
     "chrome://browser/content/spotlight.html"_ns,
     "chrome://browser/content/syncedtabs/sidebar.xhtml"_ns,
+    "chrome://browser/content/webext-panels.xhtml"_ns,
     "chrome://devtools/content/application/index.html"_ns,
     "chrome://devtools/content/framework/browser-toolbox/window.html"_ns,
     "chrome://devtools/content/framework/toolbox-window.xhtml"_ns,
