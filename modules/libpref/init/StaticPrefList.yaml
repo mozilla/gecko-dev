@@ -14757,16 +14757,6 @@
   mirror: always
   rust: true
 
-# It represents the maximum duration that we used to accumulate
-# callback timeouts before we set a timer and break out of the loop.
-#
-# Note the typo in accumlated. Not worth fixing.
-- name: network.http.http3.max_accumlated_time_ms
-  type: RelaxedAtomicUint32
-  value: 1
-  mirror: always
-  rust: true
-
 # Whether to send an mlkem768x25519 key share in HTTP/3 TLS handshakes.
 # Has no effect unless security.tls.enable_kyber is true.
 - name: network.http.http3.enable_kyber
