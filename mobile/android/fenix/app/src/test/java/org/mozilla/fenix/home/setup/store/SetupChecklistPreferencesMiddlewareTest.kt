@@ -220,9 +220,9 @@ private class FakeRepository : SetupChecklistRepository {
         initInvoked = true
     }
 
-    override fun setPreference(type: SetupChecklistPreference, hasCompleted: Boolean) {
-        // Ensure the passed hasCompleted value is true.
-        if (hasCompleted) {
+    override fun setPreference(type: SetupChecklistPreference, value: Boolean) {
+        // Ensure the passed value is true.
+        if (value) {
             setPreferenceInvoked = true
         }
     }
