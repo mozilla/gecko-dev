@@ -3947,6 +3947,7 @@ nsresult HTMLInputElement::PostHandleEvent(EventChainPostVisitor& aVisitor) {
               aVisitor.mEventStatus = nsEventStatus_eConsumeNoDefault;
             }
           }
+
         } break;  // eKeyPress
 
         case eMouseDown:
@@ -4053,6 +4054,10 @@ nsresult HTMLInputElement::PostHandleEvent(EventChainPostVisitor& aVisitor) {
                     aVisitor.mEvent->mOriginalTarget == clearButton) {
                   SetUserInput(EmptyString(),
                                *nsContentUtils::GetSystemPrincipal());
+                  // TODO(emilio): This should focus the input, but calling
+                  // SetFocus(this, FLAG_NOSCROLL) for some reason gets us into
+                  // an inconsistent state where we're focused but don't match
+                  // :focus-visible / :focus.
                 }
               }
             } else if (mType == FormControlType::InputPassword) {
@@ -4061,6 +4066,10 @@ nsresult HTMLInputElement::PostHandleEvent(EventChainPostVisitor& aVisitor) {
                 auto* reveal = textControlFrame->GetButton();
                 if (reveal && aVisitor.mEvent->mOriginalTarget == reveal) {
                   SetRevealPassword(!RevealPassword());
+                  // TODO(emilio): This should focus the input, but calling
+                  // SetFocus(this, FLAG_NOSCROLL) for some reason gets us into
+                  // an inconsistent state where we're focused but don't match
+                  // :focus-visible / :focus.
                 }
               }
             }

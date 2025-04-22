@@ -83,7 +83,7 @@ fieldset,
 }
 
 .clear-icon {
-  background-image: url(resource://content-accessible/close-12.svg);
+  background-image: url(chrome://global/skin/icons/close-12.svg);
   inset-inline-end: var(--space-small);
 }
 
