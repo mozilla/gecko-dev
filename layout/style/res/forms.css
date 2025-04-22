@@ -875,19 +875,31 @@ input::-moz-reveal {
   cursor: default;
   width: 1em;
   height: 1em;
-  max-height: 100%;
-  max-width: 100%;
   margin-inline-start: 1px;
   background-image: url(resource://content-accessible/close-12.svg);
   background-repeat: no-repeat;
   background-position: center;
   background-size: contain;
+  border-radius: 4px;
+  -moz-context-properties: fill;
+  fill: currentColor;
+}
+
+input::-moz-search-clear-button {
+  background-size: 1em;
+  padding: 0.35em;
+}
+
+input::-moz-search-clear-button:hover {
+  background-color: color-mix(in srgb, currentColor 17%, transparent);
+}
+
+input::-moz-search-clear-button:active {
+  background-color: color-mix(in srgb, currentColor 30%, transparent);
 }
 
 input::-moz-reveal {
   background-image: url("resource://gre-resources/password.svg");
-  -moz-context-properties: fill;
-  fill: currentColor;
 }
 
 input:-moz-revealed::-moz-reveal {
