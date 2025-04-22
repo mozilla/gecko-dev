@@ -123,7 +123,10 @@ prefs = ["places.frecency.pages.alternative.featureGate=true"]
 ["test_frecency_origins_recalc.js"]
 prefs = ["places.frecency.origins.alternative.featureGate=true"]
 
-["test_frecency_pages_alternative.js"]
+["test_frecency_pages_alternative_disabled.js"]
+prefs = ["places.frecency.pages.alternative.featureGate=false"]
+
+["test_frecency_pages_alternative_enabled.js"]
 prefs = ["places.frecency.pages.alternative.featureGate=true"]
 
 ["test_frecency_pages_recalc_alt.js"]
