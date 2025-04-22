@@ -82,8 +82,8 @@ export var Policy = {
 var gActiveExperimentStartupBuffer = new Map();
 
 // For Powering arewegleanyet.com (See bug 1944592)
-// Legacy Count: 114
-// Glean Count: 49
+// Legacy Count: 112
+// Glean Count: 51
 
 var gGlobalEnvironment;
 function getGlobal() {
