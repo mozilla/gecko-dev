@@ -24,6 +24,7 @@ const IGNORED_URLS = ["debugger eval code", "XStringBundle"];
 const IGNORED_EXTENSIONS = ["css", "svg", "png"];
 import { isPretty, getRawSourceURL } from "../utils/source";
 import { prefs } from "../utils/prefs";
+import { getDisplayURL } from "../utils/sources-tree/getURL";
 
 import TargetCommand from "resource://devtools/shared/commands/target/target-command.js";
 
@@ -32,7 +33,10 @@ ChromeUtils.defineESModuleGetters(lazy, {
   BinarySearch: "resource://gre/modules/BinarySearch.sys.mjs",
 });
 
-export function initialSourcesTreeState({ isWebExtension } = {}) {
+export function initialSourcesTreeState({
+  isWebExtension,
+  mainThreadProjectDirectoryRoots = {},
+} = {}) {
   return {
     // List of all Thread Tree Items.
     // All other item types are children of these and aren't store in
@@ -47,18 +51,19 @@ export function initialSourcesTreeState({ isWebExtension } = {}) {
     // It can be any type of Tree Item.
     focusedItem: null,
 
+    // Persisted main thread project roots by origin.
+    // These will be applied whenever a new main thread is added.
+    mainThreadProjectDirectoryRoots,
+
     // Project root set from the Source Tree.
     // This focuses the source tree on a subset of sources.
-    // This is a `uniquePath`, where ${thread} is replaced by "top-level"
-    // when we picked an item from the main thread. This allows to preserve
-    // the root selection on page reload.
-    projectDirectoryRoot: prefs.projectDirectoryRoot,
+    projectDirectoryRoot: "",
 
     // The name is displayed in Source Tree header
-    projectDirectoryRootName: prefs.projectDirectoryRootName,
+    projectDirectoryRootName: "",
 
     // The full name is displayed in the Source Tree header's tooltip
-    projectDirectoryRootFullName: prefs.projectDirectoryRootFullName,
+    projectDirectoryRootFullName: "",
 
     // Reports if the debugged context is a web extension.
     // If so, we should display all web extension sources.
@@ -167,7 +172,7 @@ export default function update(state = initialSourcesTreeState(), action) {
     case "INSERT_THREAD":
       state = { ...state };
       addThread(state, action.newThread);
-      return state;
+      return applyMainThreadProjectDirectoryRoot(state, action.newThread);
 
     case "REMOVE_THREAD": {
       const { threadActorID } = action;
@@ -193,6 +198,18 @@ export default function update(state = initialSourcesTreeState(), action) {
         }
       }
 
+      // clear the project root if it was set to this thread
+      let {
+        projectDirectoryRoot,
+        projectDirectoryRootName,
+        projectDirectoryRootFullName,
+      } = state;
+      if (projectDirectoryRoot.startsWith(`${threadActorID}|`)) {
+        projectDirectoryRoot = "";
+        projectDirectoryRootName = "";
+        projectDirectoryRootFullName = "";
+      }
+
       const threadItems = [...state.threadItems];
       threadItems.splice(index, 1);
       return {
@@ -200,6 +217,9 @@ export default function update(state = initialSourcesTreeState(), action) {
         threadItems,
         focusedItem,
         expanded,
+        projectDirectoryRoot,
+        projectDirectoryRootName,
+        projectDirectoryRootFullName,
       };
     }
 
@@ -213,8 +233,14 @@ export default function update(state = initialSourcesTreeState(), action) {
       return updateSelectedLocation(state, action.location);
 
     case "SET_PROJECT_DIRECTORY_ROOT": {
-      const { uniquePath, name, fullName } = action;
-      return updateProjectDirectoryRoot(state, uniquePath, name, fullName);
+      const { uniquePath, name, fullName, mainThread } = action;
+      return updateProjectDirectoryRoot(
+        state,
+        uniquePath,
+        name,
+        fullName,
+        mainThread
+      );
     }
 
     case "BLACKBOX_WHOLE_SOURCES":
@@ -293,14 +319,63 @@ function updateExpanded(state, action) {
 /**
  * Update the project directory root
  */
-function updateProjectDirectoryRoot(state, uniquePath, name, fullName) {
-  // Only persists root within the top level target.
-  // Otherwise the thread actor ID will change on page reload and we won't match anything
-  if (!uniquePath || uniquePath.startsWith("top-level")) {
-    prefs.projectDirectoryRoot = uniquePath;
-    prefs.projectDirectoryRootName = name;
-    prefs.projectDirectoryRootFullName = fullName;
+function updateProjectDirectoryRoot(
+  state,
+  uniquePath,
+  name,
+  fullName,
+  mainThread
+) {
+  let directoryRoots = state.mainThreadProjectDirectoryRoots;
+  if (mainThread) {
+    const { origin } = getDisplayURL(mainThread.url);
+    if (origin) {
+      // Update the persisted main thread project directory root for this origin
+      directoryRoots = { ...directoryRoots };
+      if (uniquePath.startsWith(`${mainThread.actor}|`)) {
+        directoryRoots[origin] = {
+          // uniquePath contains the thread actor name, origin and path,
+          // e.g. "server0.conn0.watcher2.process6//thread1|example.com|/src/"
+          // We remove the thread actor name and re-add it when
+          // applying this directory root to another thread because
+          // the new thread will in general have a different name
+          uniquePath: uniquePath.substring(mainThread.actor.length),
+          name,
+          fullName,
+        };
+      } else {
+        // The directory root is set to a thread other than the main thread,
+        // we don't persist it in this case because there is no reliable way
+        // to identify this thread after reloading
+        delete directoryRoots[origin];
+      }
+    }
   }
+
+  return {
+    ...state,
+    mainThreadProjectDirectoryRoots: directoryRoots,
+    projectDirectoryRoot: uniquePath,
+    projectDirectoryRootName: name,
+    projectDirectoryRootFullName: fullName,
+  };
+}
+
+function applyMainThreadProjectDirectoryRoot(state, thread) {
+  if (!thread.isTopLevel || !thread.url) {
+    return state;
+  }
+  const { origin } = getDisplayURL(thread.url);
+  if (!origin) {
+    return state;
+  }
+
+  const directoryRoot = state.mainThreadProjectDirectoryRoots[origin];
+  const uniquePath = directoryRoot
+    ? thread.actor + directoryRoot.uniquePath
+    : "";
+  const name = directoryRoot?.name ?? "";
+  const fullName = directoryRoot?.fullName ?? "";
 
   return {
     ...state,

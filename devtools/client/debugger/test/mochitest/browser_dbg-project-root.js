@@ -50,6 +50,7 @@ httpServer.registerPathHandler(
   }
 );
 
+const PAGE2_URL = BASE_URL + "index2.html";
 const PAGE2_CONTENT = `<!DOCTYPE html>
   <html>
     <head>
@@ -97,6 +98,28 @@ httpServer.registerPathHandler("/src/worker-script.js", (request, response) => {
   response.write("console.log('worker script')");
 });
 
+const httpServer2 = createTestHTTPServer();
+const ALT_HOST = `localhost:${httpServer2.identity.primaryPort}`;
+const ALT_BASE_URL = `http://${ALT_HOST}/`;
+
+const PAGE3_URL = ALT_BASE_URL + "index.html";
+const PAGE3_CONTENT = `<!DOCTYPE html>
+  <html>
+    <head>
+      <script type="text/javascript" src="/lib/script.js"></script>
+    </head>
+    <body></body>
+  </html>`;
+
+httpServer2.registerPathHandler("/index.html", (request, response) => {
+  response.setStatusLine(request.httpVersion, 200, "OK");
+  response.write(PAGE3_CONTENT);
+});
+httpServer2.registerPathHandler("/lib/script.js", (request, response) => {
+  response.setStatusLine(request.httpVersion, 200, "OK");
+  response.write("console.log('lib script')");
+});
+
 add_task(async function testProjectRoot() {
   await pushPref("devtools.debugger.show-content-scripts", true);
 
@@ -138,8 +161,8 @@ add_task(async function testProjectRoot() {
     },
   ]);
 
-  info("Navigate to a different page");
-  await navigateTo(BASE_URL + "index2.html");
+  info("Navigate to a different page with the same origin");
+  await navigateTo(PAGE2_URL);
   await checkProjectRoot(
     dbg,
     "sub-folder",
@@ -149,6 +172,36 @@ add_task(async function testProjectRoot() {
 
   info("Clear project root");
   await clearProjectRoot(dbg);
+  await waitForSourcesInSourceTree(dbg, ALL_PAGE2_SCRIPTS);
+  checkNoProjectRoot(dbg);
+
+  info("Load the test extension");
+  const extension = await installAndStartExtension();
+  await waitForSourcesInSourceTree(dbg, [
+    ...ALL_PAGE2_SCRIPTS,
+    "content_script.js",
+  ]);
+
+  await selectAndCheckProjectRoots(dbg, [
+    {
+      label: "Test extension",
+      tooltip: `Test extension`,
+      sources: ["content_script.js"],
+    },
+    {
+      label: "Test extension",
+      tooltip: `moz-extension://${extension.uuid} on Test extension`,
+      sources: ["content_script.js"],
+    },
+    {
+      label: "src",
+      tooltip: `moz-extension://${extension.uuid}/src on Test extension`,
+      sources: ["content_script.js"],
+    },
+  ]);
+
+  info("Check that the project root is cleared when its thread is removed");
+  await extension.unload();
   await waitForSourcesInSourceTree(dbg, ALL_PAGE2_SCRIPTS);
   checkNoProjectRoot(dbg);
 
@@ -234,49 +287,41 @@ add_task(async function testProjectRoot() {
     },
   ]);
 
-  info("Clear project root");
-  await clearProjectRoot(dbg);
-
-  info("Load the test extension");
-  const extension = await installAndStartExtension();
-  await waitForSourcesInSourceTree(dbg, [
-    ...ALL_PAGE2_SCRIPTS,
-    "content_script.js",
-  ]);
+  info("Navigate to a page with a different origin");
+  await navigateTo(PAGE3_URL);
+  checkNoProjectRoot(dbg);
 
   await selectAndCheckProjectRoots(dbg, [
     {
-      label: "Test extension",
-      tooltip: `Test extension`,
-      sources: ["content_script.js"],
-    },
-    {
-      label: "Test extension",
-      tooltip: `moz-extension://${extension.uuid} on Test extension`,
-      sources: ["content_script.js"],
-    },
-    {
-      label: "src",
-      tooltip: `moz-extension://${extension.uuid}/src on Test extension`,
-      sources: ["content_script.js"],
+      label: "lib",
+      tooltip: `${ALT_BASE_URL}lib on Main Thread`,
+      sources: ["script.js"],
     },
   ]);
 
-  await extension.unload();
+  info("Navigate to the first page");
+  await navigateTo(PAGE_URL);
+  checkNoProjectRoot(dbg);
 
-  info("Clear project root");
-  await clearProjectRoot(dbg);
+  info("Navigate to the third page");
+  await navigateTo(PAGE3_URL);
+  await checkProjectRoot(dbg, "lib", `${ALT_BASE_URL}lib on Main Thread`, [
+    "script.js",
+  ]);
 
   info("Navigate to a data: URL");
   const dataURL =
     "data:text/html,<meta charset=utf8><script>console.log('inline script')</script>";
   await navigateTo(dataURL);
-  const noDomainItem = findSourceNodeWithText(dbg, "(no domain)");
-  await setProjectRoot(dbg, noDomainItem);
-  await checkProjectRoot(dbg, "(no domain)", `data: on Main Thread`, [dataURL]);
+  checkNoProjectRoot(dbg);
 
-  info("Clear project root");
-  await clearProjectRoot(dbg);
+  await selectAndCheckProjectRoots(dbg, [
+    {
+      label: "(no domain)",
+      tooltip: `data: on Main Thread`,
+      sources: [dataURL],
+    },
+  ]);
 });
 
 async function setProjectRoot(dbg, treeNode) {

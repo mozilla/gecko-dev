@@ -97,17 +97,6 @@ export const prefs = new PrefsHelper("devtools", {
   expressions: ["Json", "debugger.expressions", []],
   searchOptions: ["Json", "debugger.search-options"],
   debuggerPrefsSchemaVersion: ["Int", "debugger.prefs-schema-version"],
-  projectDirectoryRoot: ["Char", "debugger.project-directory-root", ""],
-  projectDirectoryRootName: [
-    "Char",
-    "debugger.project-directory-root-name",
-    "",
-  ],
-  projectDirectoryRootFullName: [
-    "Char",
-    "debugger.project-directory-root-full-name",
-    "",
-  ],
   skipPausing: ["Bool", "debugger.skip-pausing"],
   mapScopes: ["Bool", "debugger.map-scopes-enabled"],
   logActions: ["Bool", "debugger.log-actions"],
