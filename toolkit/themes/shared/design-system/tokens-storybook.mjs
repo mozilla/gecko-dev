@@ -854,29 +854,37 @@ export const storybookTables = {
   link: [
     {
       value: {
-        default: "var(--color-accent-primary)",
         forcedColors: "LinkText",
+        brand: { default: "var(--color-accent-primary)" },
+        platform: { default: "LinkText" },
       },
       name: "--link-color",
     },
     {
       value: {
-        default: "var(--color-accent-primary-hover)",
         forcedColors: "LinkText",
+        brand: { default: "var(--color-accent-primary-hover)" },
+        platform: {
+          default: "color-mix(in srgb, black 10%, var(--link-color))",
+        },
       },
       name: "--link-color-hover",
     },
     {
       value: {
-        default: "var(--color-accent-primary-active)",
         forcedColors: "ActiveText",
+        brand: { default: "var(--color-accent-primary-active)" },
+        platform: {
+          default: "color-mix(in srgb, black 20%, var(--link-color))",
+        },
       },
       name: "--link-color-active",
     },
     {
       value: {
-        default: "var(--link-color)",
         forcedColors: "var(--link-color)",
+        brand: { default: "var(--link-color)" },
+        platform: { default: "var(--link-color)" },
       },
       name: "--link-color-visited",
     },
@@ -1480,20 +1488,24 @@ export const variableLookupTable = {
   "input-text-min-height": "var(--button-min-height)",
   "input-space-block": "var(--space-xsmall)",
   "link-color": {
-    default: "var(--color-accent-primary)",
     forcedColors: "LinkText",
+    brand: { default: "var(--color-accent-primary)" },
+    platform: { default: "LinkText" },
   },
   "link-color-hover": {
-    default: "var(--color-accent-primary-hover)",
     forcedColors: "LinkText",
+    brand: { default: "var(--color-accent-primary-hover)" },
+    platform: { default: "color-mix(in srgb, black 10%, var(--link-color))" },
   },
   "link-color-active": {
-    default: "var(--color-accent-primary-active)",
     forcedColors: "ActiveText",
+    brand: { default: "var(--color-accent-primary-active)" },
+    platform: { default: "color-mix(in srgb, black 20%, var(--link-color))" },
   },
   "link-color-visited": {
-    default: "var(--link-color)",
     forcedColors: "var(--link-color)",
+    brand: { default: "var(--link-color)" },
+    platform: { default: "var(--link-color)" },
   },
   "link-focus-outline-offset": "1px",
   "outline-color-error": {

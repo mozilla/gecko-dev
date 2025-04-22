@@ -253,10 +253,6 @@
     --input-space-block: var(--space-xsmall);
 
     /** Link **/
-    --link-color: var(--color-accent-primary);
-    --link-color-hover: var(--color-accent-primary-hover);
-    --link-color-active: var(--color-accent-primary-active);
-    --link-color-visited: var(--link-color);
     /**
      * Not using --force-outline-offset for links because that's intended for
      * elements with a background, and we only want a slight offset here while
