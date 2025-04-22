@@ -883,6 +883,7 @@ input::-moz-reveal {
   border-radius: 4px;
   -moz-context-properties: fill;
   fill: currentColor;
+  -moz-user-focus: none;
 }
 
 input::-moz-search-clear-button {
