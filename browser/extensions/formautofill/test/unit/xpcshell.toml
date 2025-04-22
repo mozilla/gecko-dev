@@ -49,6 +49,7 @@ head = "head_addressComponent.js"
 ["test_creditCardRecords.js"]
 skip-if = [
   "os == 'mac' && os_version == '11.20' && arch == 'aarch64'", # Bug 1729554
+  "os == 'mac' && os_version == '15.30' && arch == 'aarch64'", # Bug 1729554
 ]
 
 ["test_extractLabelStrings.js"]
@@ -68,6 +69,7 @@ skip-if = [
 ["test_getRecords.js"]
 skip-if = [
   "os == 'mac' && os_version == '11.20' && arch == 'aarch64'", # Bug 1729554
+  "os == 'mac' && os_version == '15.30' && arch == 'aarch64'", # Bug 1729554
 ]
 
 ["test_inspectFields.js"]
@@ -97,12 +99,14 @@ skip-if = [
 ["test_reconcile.js"]
 skip-if = [
   "os == 'mac' && os_version == '11.20' && arch == 'aarch64'", # Bug 1729554
+  "os == 'mac' && os_version == '15.30' && arch == 'aarch64'", # Bug 1729554
 ]
 
 ["test_savedFieldNames.js"]
 
 ["test_storage_remove.js"]
 skip-if = [
+  "os == 'mac' && os_version == '15.30' && arch == 'aarch64'", # Bug 1729554
   "os == 'mac' && os_version == '11.20' && arch == 'aarch64'", # Bug 1729554
 ]
 
@@ -110,6 +114,7 @@ skip-if = [
 
 ["test_storage_tombstones.js"]
 skip-if = [
+  "os == 'mac' && os_version == '15.30' && arch == 'aarch64'", # Bug 1729554
   "os == 'mac' && os_version == '11.20' && arch == 'aarch64'", # Bug 1729554
 ]
 
@@ -123,6 +128,7 @@ head = "head.js ../../../../../services/sync/tests/unit/head_appinfo.js ../../..
 head = "head.js ../../../../../services/sync/tests/unit/head_appinfo.js ../../../../../services/common/tests/unit/head_helpers.js ../../../../../services/sync/tests/unit/head_helpers.js ../../../../../services/sync/tests/unit/head_http_server.js"
 skip-if = [
   "os == 'mac' && os_version == '11.20' && arch == 'aarch64'", # Bug 1729554
+  "os == 'mac' && os_version == '15.30' && arch == 'aarch64'", # Bug 1729554
 ]
 
 ["test_toOneLineAddress.js"]
@@ -130,4 +136,5 @@ skip-if = [
 ["test_transformFields.js"]
 skip-if = [
   "os == 'mac' && os_version == '11.20' && arch == 'aarch64'", # Bug 1729554
+  "os == 'mac' && os_version == '15.30' && arch == 'aarch64'", # Bug 1729554
 ]

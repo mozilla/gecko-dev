@@ -67,6 +67,9 @@ run-if = [
   "debug",
   "nightly_build", # Requires StartupRecorder.sys.mjs, which isn't shipped everywhere by default
 ]
+skip-if = [
+  "os == 'mac' && os_version == '15.30' && arch == 'aarch64' && opt", # Bug 1889278
+]
 
 ["browser_tabclose.js"]
 skip-if = [

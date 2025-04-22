@@ -970,6 +970,7 @@ skip-if = [
   "os == 'mac' && os_version == '10.15' && processor == 'x86_64'",
   "os == 'mac' && os_version == '11.20' && arch == 'aarch64'",
   "os == 'mac' && os_version == '14.70' && processor == 'x86_64'",
+  "os == 'mac' && os_version == '15.30' && arch == 'aarch64' && opt",
   "os == 'win' && os_version == '10.2009' && processor == 'x86_64'",
   "os == 'win' && os_version == '11.26100' && processor == 'x86'",
   "os == 'win' && os_version == '11.26100' && processor == 'x86_64'",
@@ -1337,6 +1338,7 @@ run-sequentially = "node server exceptions dont replay well"
 skip-if = ["os == 'linux' && os_version == '18.04' && processor == 'x86_64' && ccov && !fission && socketprocess_networking"] # Bug 1808233
 
 ["test_udp_multicast.js"]
+skip-if = ["os == 'mac' && os_version == '15.30' && arch == 'aarch64'"] # Bug 1760123
 
 ["test_udpsocket.js"]
 
