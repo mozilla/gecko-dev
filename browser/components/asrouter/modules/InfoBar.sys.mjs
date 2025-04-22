@@ -7,8 +7,6 @@ const lazy = {};
 ChromeUtils.defineESModuleGetters(lazy, {
   PrivateBrowsingUtils: "resource://gre/modules/PrivateBrowsingUtils.sys.mjs",
   RemoteL10n: "resource:///modules/asrouter/RemoteL10n.sys.mjs",
-  SpecialMessageActions:
-    "resource://messaging-system/lib/SpecialMessageActions.sys.mjs",
 });
 
 class InfoBarNotification {
@@ -42,7 +40,7 @@ class InfoBarNotification {
     this.notification = await notificationContainer.appendNotification(
       this.message.id,
       {
-        label: this.formatMessageConfig(doc, browser, content.text),
+        label: this.formatMessageConfig(doc, content.text),
         image: content.icon || "chrome://branding/content/icon64.png",
         priority,
         eventCallback: this.infobarCallback,
@@ -55,53 +53,14 @@ class InfoBarNotification {
     this.addImpression();
   }
 
-  formatMessageConfig(doc, browser, content) {
-    const frag = doc.createDocumentFragment();
-    const parts = Array.isArray(content) ? content : [content];
-    for (const part of parts) {
-      let node;
-      if (typeof part === "string") {
-        node = doc.createTextNode(part);
-        // Handle embedded link
-      } else if (part.href) {
-        const a = doc.createElement("a");
-        a.href = part.href;
-        a.addEventListener("click", e => {
-          e.preventDefault();
-          lazy.SpecialMessageActions.handleAction(
-            { type: "OPEN_URL", data: { args: a.href, where: part.where } },
-            browser
-          );
-        });
+  formatMessageConfig(doc, content) {
+    let docFragment = doc.createDocumentFragment();
+    // notificationbox will only `appendChild` for documentFragments
+    docFragment.appendChild(
+      lazy.RemoteL10n.createElement(doc, "span", { content })
+    );
 
-        if (part.string_id) {
-          const l10n = lazy.RemoteL10n.createElement(doc, "span", {
-            content: {
-              string_id: part.string_id,
-              ...(part.args && { args: part.args }),
-            },
-          });
-          a.appendChild(l10n);
-        } else {
-          a.textContent = part.raw || "";
-        }
-        node = a;
-      } else if (part.string_id) {
-        node = lazy.RemoteL10n.createElement(doc, "span", {
-          content: {
-            string_id: part.string_id,
-            ...(part.args && { args: part.args }),
-          },
-        });
-      } else {
-        const text = part.raw !== null ? part.raw : String(part);
-        node = doc.createTextNode(text);
-      }
-
-      frag.appendChild(node);
-    }
-
-    return frag;
+    return docFragment;
   }
 
   formatButtonConfig(button) {
