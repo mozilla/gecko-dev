@@ -14,6 +14,7 @@ import org.junit.Rule
 import org.junit.Test
 import org.mozilla.fenix.R
 import org.mozilla.fenix.ext.nav
+import org.mozilla.fenix.settings.PhoneFeature
 import org.mozilla.fenix.settings.trustpanel.middleware.TrustPanelNavigationMiddleware
 import org.mozilla.fenix.settings.trustpanel.store.TrustPanelAction
 import org.mozilla.fenix.settings.trustpanel.store.TrustPanelState
@@ -92,6 +93,19 @@ class TrustPanelNavigationMiddlewareTest {
                 TrustPanelFragmentDirections.actionGlobalSettingsFragment(
                     preferenceToScrollTo = privacySecurityPrefKey,
                 ),
+            )
+        }
+    }
+
+    @Test
+    fun `WHEN navigate to manage phone feature is dispatched THEN navigate to manage phone feature`() = runTest {
+        val store = createStore()
+        store.dispatch(TrustPanelAction.Navigate.ManagePhoneFeature(PhoneFeature.CAMERA)).join()
+
+        verify {
+            navController.nav(
+                R.id.trustPanelFragment,
+                TrustPanelFragmentDirections.actionGlobalSitePermissionsManagePhoneFeature(PhoneFeature.CAMERA),
             )
         }
     }

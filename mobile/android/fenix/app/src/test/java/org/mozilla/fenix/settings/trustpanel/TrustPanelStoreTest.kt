@@ -157,6 +157,64 @@ class TrustPanelStoreTest {
         )
     }
 
+    @Test
+    fun `WHEN update site permissions action is dispatched THEN site permissions state is updated`() = runTest {
+        val store = TrustPanelStore(initialState = TrustPanelState())
+        val newSitePermissions: SitePermissions = mock()
+
+        store.dispatch(TrustPanelAction.UpdateSitePermissions(newSitePermissions)).join()
+
+        assertEquals(store.state.sitePermissions, newSitePermissions)
+    }
+
+    @Test
+    fun `WHEN grant permission blocked by android action is dispatched THEN permissions blocked by android state is updated`() = runTest {
+        val toggleablePermission = WebsitePermission.Toggleable(
+            isEnabled = true,
+            isBlockedByAndroid = true,
+            isVisible = true,
+            deviceFeature = PhoneFeature.CAMERA,
+        )
+
+        val store = TrustPanelStore(
+            initialState = TrustPanelState(
+                websitePermissionsState = mapOf(PhoneFeature.CAMERA to toggleablePermission),
+            ),
+        )
+
+        store.dispatch(TrustPanelAction.WebsitePermissionAction.GrantPermissionBlockedByAndroid(PhoneFeature.CAMERA)).join()
+
+        assertEquals(
+            (store.state.websitePermissionsState[PhoneFeature.CAMERA]as? WebsitePermission.Toggleable)
+                ?.isBlockedByAndroid,
+            false,
+        )
+    }
+
+    @Test
+    fun `WHEN toggle permission action is dispatched THEN permission enabled state is updated`() = runTest {
+        val toggleablePermission = WebsitePermission.Toggleable(
+            isEnabled = true,
+            isBlockedByAndroid = true,
+            isVisible = true,
+            deviceFeature = PhoneFeature.CAMERA,
+        )
+
+        val store = TrustPanelStore(
+            initialState = TrustPanelState(
+                websitePermissionsState = mapOf(PhoneFeature.CAMERA to toggleablePermission),
+            ),
+        )
+
+        store.dispatch(TrustPanelAction.WebsitePermissionAction.TogglePermission(PhoneFeature.CAMERA)).join()
+
+        assertEquals(
+            (store.state.websitePermissionsState[PhoneFeature.CAMERA]as? WebsitePermission.Toggleable)
+                ?.isEnabled,
+            false,
+        )
+    }
+
     private fun initializeSitePermissions(
         sitePermissions: SitePermissions,
     ) {

@@ -4,6 +4,7 @@
 
 package org.mozilla.fenix.settings.trustpanel
 
+import androidx.activity.result.ActivityResultLauncher
 import androidx.core.net.toUri
 import kotlinx.coroutines.Deferred
 import mozilla.components.browser.state.state.ContentState
@@ -11,9 +12,12 @@ import mozilla.components.browser.state.state.SessionState
 import mozilla.components.concept.engine.Engine
 import mozilla.components.concept.engine.EngineSession.TrackingProtectionPolicy.TrackingCategory
 import mozilla.components.concept.engine.content.blocking.TrackerLog
+import mozilla.components.concept.engine.permission.SitePermissions
 import mozilla.components.feature.session.SessionUseCases
 import mozilla.components.feature.session.TrackingProtectionUseCases
 import mozilla.components.lib.publicsuffixlist.PublicSuffixList
+import mozilla.components.support.ktx.kotlin.getOrigin
+import mozilla.components.support.test.any
 import mozilla.components.support.test.libstate.ext.waitUntilIdle
 import mozilla.components.support.test.mock
 import mozilla.components.support.test.rule.MainCoroutineRule
@@ -28,12 +32,16 @@ import org.mockito.Mockito.never
 import org.mockito.Mockito.spy
 import org.mockito.Mockito.verify
 import org.mozilla.fenix.components.AppStore
+import org.mozilla.fenix.components.PermissionStorage
 import org.mozilla.fenix.components.appstate.AppAction
 import org.mozilla.fenix.helpers.FenixRobolectricTestRunner
+import org.mozilla.fenix.settings.PhoneFeature
+import org.mozilla.fenix.settings.toggle
 import org.mozilla.fenix.settings.trustpanel.middleware.TrustPanelMiddleware
 import org.mozilla.fenix.settings.trustpanel.store.TrustPanelAction
 import org.mozilla.fenix.settings.trustpanel.store.TrustPanelState
 import org.mozilla.fenix.settings.trustpanel.store.TrustPanelStore
+import org.mozilla.fenix.settings.trustpanel.store.WebsitePermission
 import org.mozilla.fenix.trackingprotection.TrackerBuckets
 
 @RunWith(FenixRobolectricTestRunner::class)
@@ -48,6 +56,8 @@ class TrustPanelMiddlewareTest {
     private lateinit var publicSuffixList: PublicSuffixList
     private lateinit var sessionUseCases: SessionUseCases
     private lateinit var trackingProtectionUseCases: TrackingProtectionUseCases
+    private lateinit var permissionStorage: PermissionStorage
+    private lateinit var requestPermissionsLauncher: ActivityResultLauncher<Array<String>>
 
     @Before
     fun setup() {
@@ -56,6 +66,8 @@ class TrustPanelMiddlewareTest {
         publicSuffixList = mock()
         sessionUseCases = mock()
         trackingProtectionUseCases = mock()
+        permissionStorage = mock()
+        requestPermissionsLauncher = mock()
     }
 
     @Test
@@ -200,6 +212,91 @@ class TrustPanelMiddlewareTest {
         verify(appStore).dispatch(AppAction.SiteDataCleared)
     }
 
+    @Test
+    fun `GIVEN toggleable permission is blocked by Android WHEN toggle toggleable permission action is dispatched THEN permission is requested`() = runTestOnMain {
+        val toggleablePermission = WebsitePermission.Toggleable(
+            isEnabled = true,
+            isBlockedByAndroid = true,
+            isVisible = true,
+            deviceFeature = PhoneFeature.CAMERA,
+        )
+        val store = createStore(
+            trustPanelState = TrustPanelState(
+                websitePermissionsState = mapOf(PhoneFeature.CAMERA to toggleablePermission),
+            ),
+        )
+
+        store.dispatch(TrustPanelAction.TogglePermission(toggleablePermission))
+        store.waitUntilIdle()
+
+        verify(requestPermissionsLauncher).launch(PhoneFeature.CAMERA.androidPermissionsList)
+    }
+
+    @Test
+    fun `GIVEN site permissions are null WHEN toggle toggleable permission action is dispatched THEN permissions are not updated`() = runTestOnMain {
+        val toggleablePermission = WebsitePermission.Toggleable(
+            isEnabled = true,
+            isBlockedByAndroid = false,
+            isVisible = true,
+            deviceFeature = PhoneFeature.CAMERA,
+        )
+
+        val trustPanelState = spy(TrustPanelState(sitePermissions = null))
+        val store = createStore(
+            trustPanelState = trustPanelState,
+        )
+
+        store.dispatch(TrustPanelAction.TogglePermission(toggleablePermission))
+        store.waitUntilIdle()
+
+        // Ensure request permissions launcher is not accessed to request permission
+        verify(requestPermissionsLauncher, never()).launch(any())
+        // Ensure session state is not accessed to update permissions
+        verify(trustPanelState, never()).sessionState
+    }
+
+    @Test
+    fun `GIVEN toggleable permission is not blocked by Android and site permissions are not null WHEN toggle toggleable permission action is dispatched THEN site permissions are updated`() = runTestOnMain {
+        val sessionId = "0"
+        val sessionUrl = "https://mozilla.org"
+        val sessionState: SessionState = mock()
+        val urlOrigin = sessionUrl.getOrigin()
+        val originalSitePermissions = SitePermissions(
+            origin = urlOrigin!!,
+            savedAt = 0,
+        )
+        val toggleablePermission = WebsitePermission.Toggleable(
+            isEnabled = true,
+            isBlockedByAndroid = false,
+            isVisible = true,
+            deviceFeature = PhoneFeature.CAMERA,
+        )
+
+        val sessionContentState: ContentState = mock()
+        val reloadUrlUseCase: SessionUseCases.ReloadUrlUseCase = mock()
+        val updatedSitePermissions = originalSitePermissions.toggle(PhoneFeature.CAMERA)
+
+        whenever(sessionState.id).thenReturn(sessionId)
+        whenever(sessionState.content).thenReturn(sessionContentState)
+        whenever(sessionUseCases.reload).thenReturn(reloadUrlUseCase)
+        whenever(sessionContentState.url).thenReturn(sessionUrl)
+        whenever(sessionContentState.private).thenReturn(false)
+
+        val store = createStore(
+            trustPanelState = TrustPanelState(
+                sitePermissions = originalSitePermissions,
+                sessionState = sessionState,
+                websitePermissionsState = mapOf(PhoneFeature.CAMERA to toggleablePermission),
+            ),
+        )
+
+        store.dispatch(TrustPanelAction.TogglePermission(toggleablePermission))
+        store.waitUntilIdle()
+
+        verify(permissionStorage).updateSitePermissions(updatedSitePermissions, false)
+        verify(reloadUrlUseCase).invoke(sessionId)
+    }
+
     private fun createStore(
         trustPanelState: TrustPanelState = TrustPanelState(),
         onDismiss: suspend () -> Unit = {},
@@ -212,6 +309,8 @@ class TrustPanelMiddlewareTest {
                 publicSuffixList = publicSuffixList,
                 sessionUseCases = sessionUseCases,
                 trackingProtectionUseCases = trackingProtectionUseCases,
+                permissionStorage = permissionStorage,
+                requestPermissionsLauncher = requestPermissionsLauncher,
                 onDismiss = onDismiss,
                 scope = scope,
             ),
