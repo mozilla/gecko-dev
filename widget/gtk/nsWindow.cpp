@@ -916,8 +916,7 @@ bool nsWindow::ToplevelUsesCSD() const {
 }
 
 bool nsWindow::DrawsToCSDTitlebar() const {
-  return mSizeMode == nsSizeMode_Normal &&
-         mGtkWindowDecoration == GTK_DECORATION_CLIENT && mDrawInTitlebar;
+  return mGtkWindowDecoration == GTK_DECORATION_CLIENT && mDrawInTitlebar;
 }
 
 GdkPoint nsWindow::GetCsdOffsetInGdkCoords() {
