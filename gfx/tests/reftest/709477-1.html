@@ -42,17 +42,8 @@ function doPaint()
 function doScroll()
 {
   window.removeEventListener("MozAfterPaint", doScroll);
-  // wait to flush out any more paints
-  await new Promise(resolve => requestAnimationFrame(resolve));
-  await new Promise(resolve => requestAnimationFrame(resolve));
-
+  window.addEventListener("MozAfterPaint", endTest);
   scrollTo(0,1);
-  // scrolling doesn't seem to generate a mozafterpaint, but it should be
-  // handled after one refresh driver tick, and then the reftest harness will
-  // handle making sure everything is sync'ed up for the final snapshot.
-  await new Promise(resolve => requestAnimationFrame(resolve));
-  await new Promise(resolve => requestAnimationFrame(resolve));
-  setTimeout(endTest,0);
 }
 
 function endTest()
