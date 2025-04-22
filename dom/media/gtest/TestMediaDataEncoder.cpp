@@ -703,14 +703,18 @@ TEST_F(MediaDataEncoderTest, H264AVCC) {
     for (auto frame : output) {
       EXPECT_FALSE(AnnexB::IsAnnexB(frame));
       if (frame->mKeyframe) {
-        AnnexB::IsAVCC(frame);
-        AVCCConfig config = AVCCConfig::Parse(frame).unwrap();
-        EXPECT_EQ(config.mAVCProfileIndication,
-                  static_cast<decltype(config.mAVCProfileIndication)>(
-                      kH264SpecificAVCC.mProfile));
-        EXPECT_EQ(config.mAVCLevelIndication,
-                  static_cast<decltype(config.mAVCLevelIndication)>(
-                      kH264SpecificAVCC.mLevel));
+        // The extradata may be included at the beginning, whenever it changes,
+        // or with every keyframe to support robust seeking or decoder resets.
+        if (frame->mExtraData && !frame->mExtraData->IsEmpty()) {
+          EXPECT_TRUE(AnnexB::IsAVCC(frame));
+          AVCCConfig config = AVCCConfig::Parse(frame).unwrap();
+          EXPECT_EQ(config.mAVCProfileIndication,
+                    static_cast<decltype(config.mAVCProfileIndication)>(
+                        kH264SpecificAVCC.mProfile));
+          EXPECT_EQ(config.mAVCLevelIndication,
+                    static_cast<decltype(config.mAVCLevelIndication)>(
+                        kH264SpecificAVCC.mLevel));
+        }
       }
     }
     WaitForShutdown(e);
