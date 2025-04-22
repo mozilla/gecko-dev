@@ -1011,22 +1011,6 @@ Result NSSCertDBTrustDomain::CheckRevocationByOCSP(
     return Success;
   }
 
-  // There are a few situations where the user's CRLite data may not cover a
-  // certificate that chains to our root store, e.g.
-  //  1) the user has not yet downloaded CRLite filters, or
-  //  2) the user's CRLite filters are out-of-date, or
-  //  3) the certificate has been in CT for < 1 MMD interval.
-  // If we're configured to enforce CRLite (i.e. CRLite is enabled and it is not
-  // in "confirm revocations" mode) and we're configured to tolerate OCSP soft
-  // failures, then it's reasonable to skip the synchronous OCSP request here.
-  // In effect, we're choosing to preserve the privacy of the user at the risk
-  // of potentially allowing them to navigate to a site that is serving a
-  // revoked certificate.
-  if (mCRLiteMode == CRLiteMode::Enforce &&
-      mOCSPFetching == FetchOCSPForDVSoftFail && mIsBuiltChainRootBuiltInRoot) {
-    return Success;
-  }
-
   if (mOCSPFetching == LocalOnlyOCSPForEV) {
     if (cachedResponseResult != Success) {
       return cachedResponseResult;
