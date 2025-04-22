@@ -421,7 +421,8 @@ class PageStyleActor extends Actor {
         const opts = {
           previewText: options.previewText,
           previewFontSize: options.previewFontSize,
-          fontStyle: weight + " " + style,
+          fontStyle: style,
+          fontWeight: weight,
           fillStyle: options.previewFillStyle,
         };
         const { dataURL, size } = getFontPreviewData(
