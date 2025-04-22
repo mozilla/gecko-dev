@@ -1831,6 +1831,13 @@ nsNavHistory::SetIsFrecencyDecaying(bool aVal) {
 }
 
 NS_IMETHODIMP
+nsNavHistory::GetIsAlternativeFrecencyEnabled(bool* _out) {
+  *_out =
+      StaticPrefs::places_frecency_pages_alternative_featureGate_AtStartup();
+  return NS_OK;
+}
+
+NS_IMETHODIMP
 nsNavHistory::GetShouldStartFrecencyRecalculation(bool* _out) {
   NS_ENSURE_ARG_POINTER(_out);
   *_out = nsNavHistory::sShouldStartFrecencyRecalculation;
