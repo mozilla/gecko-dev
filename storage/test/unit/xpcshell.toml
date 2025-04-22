@@ -79,6 +79,9 @@ skip-if = ["appname != 'thunderbird' && appname != 'seamonkey'"]
 
 ["test_storage_ext_fts5.js"]
 
+["test_storage_ext_vec.js"]
+run-if = ["buildapp == 'browser'"]
+
 ["test_storage_function.js"]
 
 ["test_storage_progresshandler.js"]
