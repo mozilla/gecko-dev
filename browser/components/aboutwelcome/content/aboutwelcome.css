@@ -1352,6 +1352,11 @@ html {
   z-index: 1;
   box-sizing: border-box;
 }
+@media (prefers-contrast) {
+  .onboardingContainer .main-content {
+    border: 1px solid var(--in-content-page-color);
+  }
+}
 .onboardingContainer .main-content.no-steps {
   padding-bottom: 48px;
 }
