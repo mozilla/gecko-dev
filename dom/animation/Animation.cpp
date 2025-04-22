@@ -1393,7 +1393,7 @@ static TimeStamp EnsurePaintIsScheduled(Document& aDoc) {
   if (!rd->IsInRefresh()) {
     return {};
   }
-  return rd->MostRecentRefresh(/* aEnsureTimerStarted = */ false);
+  return rd->MostRecentRefresh();
 }
 
 // https://drafts.csswg.org/web-animations/#play-an-animation

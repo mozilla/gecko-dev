@@ -1497,16 +1497,6 @@ void nsRefreshDriver::RestoreNormalRefresh() {
   mPendingTransactions.Clear();
 }
 
-TimeStamp nsRefreshDriver::MostRecentRefresh(bool aEnsureTimerStarted) const {
-  // In case of stylo traversal, we have already activated the refresh driver in
-  // RestyleManager::ProcessPendingRestyles().
-  if (aEnsureTimerStarted && !ServoStyleSet::IsInServoTraversal()) {
-    const_cast<nsRefreshDriver*>(this)->EnsureTimerStarted();
-  }
-
-  return mMostRecentRefresh;
-}
-
 void nsRefreshDriver::AddRefreshObserver(nsARefreshObserver* aObserver,
                                          FlushType aFlushType,
                                          const char* aObserverDescription) {
