@@ -1265,7 +1265,18 @@ browsertime-indexeddb:
             default: 3
     mozharness:
         extra-options:
-            - --extra-profiler-run
+            by-subtest:
+                addMbl1:
+                    by-app:
+                        chrome:
+                            by-test-platform:
+                                linux.*shippable.*: []
+                                default:
+                                    - --extra-profiler-run
+                        default:
+                            - --extra-profiler-run
+                default:
+                    - --extra-profiler-run
 
 browsertime-trr-performance:
     raptor:
