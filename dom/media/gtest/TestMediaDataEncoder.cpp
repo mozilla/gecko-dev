@@ -688,7 +688,7 @@ TEST_F(MediaDataEncoderTest, AndroidNotSupportedSize) {
 }
 #endif
 
-#if defined(XP_LINUX) && !defined(ANDROID)
+#if !defined(ANDROID)
 TEST_F(MediaDataEncoderTest, H264AVCC) {
   RUN_IF_SUPPORTED(CodecType::H264, [this]() {
     // Encod frames in avcC format.
@@ -813,7 +813,7 @@ TEST_F(MediaDataEncoderTest, VP8Duration) {
   });
 }
 
-#if defined(XP_LINUX) && !defined(ANDROID)
+#if !defined(ANDROID)
 TEST_F(MediaDataEncoderTest, VP8EncodeAfterDrain) {
   RUN_IF_SUPPORTED(CodecType::VP8, [this]() {
     RefPtr<MediaDataEncoder> e = CreateVP8Encoder();
@@ -986,7 +986,7 @@ TEST_F(MediaDataEncoderTest, VP9Duration) {
   });
 }
 
-#if defined(XP_LINUX) && !defined(ANDROID)
+#if !defined(ANDROID)
 TEST_F(MediaDataEncoderTest, VP9EncodeAfterDrain) {
   RUN_IF_SUPPORTED(CodecType::VP9, [this]() {
     RefPtr<MediaDataEncoder> e = CreateVP9Encoder();
