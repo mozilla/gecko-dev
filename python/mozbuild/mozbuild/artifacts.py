@@ -1169,6 +1169,27 @@ class Artifacts:
         kwargs["universal_newlines"] = True
         return subprocess.check_output([self._hg] + list(args), **kwargs)
 
+    @property
+    @functools.lru_cache(maxsize=None)
+    def _is_git_cinnabar(self):
+        if self._git:
+            try:
+                metadata = subprocess.check_output(
+                    [
+                        self._git,
+                        "rev-parse",
+                        "--revs-only",
+                        "refs/cinnabar/metadata",
+                    ],
+                    universal_newlines=True,
+                    cwd=self._topsrcdir,
+                )
+                return bool(metadata.strip())
+            except subprocess.CalledProcessError:
+                pass
+
+        return False
+
     def _guess_artifact_job(self):
         # Add the "-debug" suffix to the guessed artifact job name
         # if MOZ_DEBUG is enabled.
@@ -1285,33 +1306,17 @@ class Artifacts:
                 continue
             hashes.append(hg_hash)
         if not hashes:
-            msg = (
-                "Could not list any recent revisions in your clone. Does "
-                "your clone have git-cinnabar metadata? If not, consider "
-                "re-cloning using the directions at "
-                "https://github.com/glandium/git-cinnabar/wiki/Mozilla:-A-"
-                "git-workflow-for-Gecko-development"
-            )
-            try:
-                subprocess.check_output(
-                    [
-                        self._git,
-                        "cat-file",
-                        "-e",
-                        "05e5d33a570d48aed58b2d38f5dfc0a7870ff8d3^{commit}",
-                    ],
-                    stderr=subprocess.STDOUT,
-                )
-                # If the above commit exists, we're probably in a clone of
-                # `gecko-dev`, and this documentation applies.
+            msg = "Could not list any recent revisions in your clone."
+            if self._git and not self._is_git_cinnabar:
                 msg += (
-                    "\n\nNOTE: Consider following the directions "
-                    "at https://github.com/glandium/git-cinnabar/wiki/"
-                    "Mozilla:-Using-a-git-clone-of-gecko%E2%80%90dev-"
-                    "to-push-to-mercurial to resolve this issue."
+                    "\n\nYour clone does not have git-cinnabar metadata,"
+                    " please ensure git-cinnabar is installed and run the following commands,"
+                    " replacing `origin` as necessary:"
+                    "\n  `git remote set-url origin hg://hg.mozilla.org/mozilla-unified`"
+                    "\n  `git config cinnabar.refs bookmarks`"
+                    "\n  `git config --add remote.origin.fetch refs/heads/central:refs/remotes/origin/main`"
+                    "\n  `git -c fetch.prune=true remote update origin`"
                 )
-            except subprocess.CalledProcessError:
-                pass
             raise UserError(msg)
         return hashes
 
