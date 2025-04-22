@@ -57,6 +57,9 @@ def create_telemetry_from_environment(settings):
 
     from pathlib import Path
 
+    # We must initialize Glean even if telemetry is disabled to ensure a deletion ping is sent.
+    # This deletes any previously collected data if the user opts out of telemetry.
+
     # Creating GleanTelemetry will load and register pings,
     # which must be done before init or no metrics can be recorded for them.
     telemetry_interface = GleanTelemetry()
