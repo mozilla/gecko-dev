@@ -423,7 +423,7 @@ dependencies = [
  "bitflags 2.9.0",
  "cexpr",
  "clang-sys",
- "itertools",
+ "itertools 0.10.999",
  "lazy_static",
  "lazycell",
  "proc-macro2",
@@ -3393,9 +3393,16 @@ dependencies = [
 
 [[package]]
 name = "itertools"
-version = "0.10.5"
+version = "0.10.999"
+dependencies = [
+ "itertools 0.14.0",
+]
+
+[[package]]
+name = "itertools"
+version = "0.14.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b0fd2260e829bddf4cb6ea802289de2f86d6a7a690192fbe91b3f46e0f2c8473"
+checksum = "2b192c782037fadd9cfa75548310488aabdbf3d2da73885b31bd0abd03351285"
 dependencies = [
  "either",
 ]
@@ -4176,7 +4183,7 @@ dependencies = [
  "futures",
  "getrandom 0.2.999",
  "hex",
- "itertools",
+ "itertools 0.10.999",
  "maybe-async",
  "mls-rs-codec",
  "mls-rs-core",
@@ -4423,7 +4430,7 @@ dependencies = [
  "icu_properties",
  "idna",
  "indexmap",
- "itertools",
+ "itertools 0.14.0",
  "libc",
  "lmdb-rkv-sys",
  "log",
@@ -5338,7 +5345,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "265baba7fabd416cf5078179f7d2cbeca4ce7a9041111900675ea7c4cb8a4c32"
 dependencies = [
  "anyhow",
- "itertools",
+ "itertools 0.10.999",
  "proc-macro2",
  "quote",
  "syn",
@@ -6316,7 +6323,7 @@ dependencies = [
  "gecko-profiler",
  "icu_segmenter",
  "indexmap",
- "itertools",
+ "itertools 0.14.0",
  "itoa",
  "lazy_static",
  "log",

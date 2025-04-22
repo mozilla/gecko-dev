@@ -220,6 +220,9 @@ ron = { path = "build/rust/ron" }
 # Patch `strum` 0.26.* to 0.27.
 strum = { path = "build/rust/strum" }
 
+# Patch `itertools` 0.10.* to 0.14.
+itertools = { path = "build/rust/itertools" }
+
 # Overrides to allow easier use of common internal crates.
 moz_asserts = { path = "mozglue/static/rust/moz_asserts" }
 
