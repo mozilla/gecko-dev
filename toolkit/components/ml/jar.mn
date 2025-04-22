@@ -12,6 +12,7 @@ toolkit.jar:
     content/global/ml/backends/Pipeline.mjs               (content/backends/Pipeline.mjs)
     content/global/ml/Utils.sys.mjs             	      (content/Utils.sys.mjs)
     content/global/ml/BlockWords.sys.mjs                  (content/BlockWords.sys.mjs)
+    content/global/ml/EmbeddingsGenerator.sys.mjs         (content/nlp/EmbeddingsGenerator.sys.mjs)
     content/global/ml/StopWords.sys.mjs                   (content/nlp/StopWords.sys.mjs)
     content/global/ml/NLPUtils.sys.mjs                    (content/nlp/Utils.sys.mjs)
     content/global/ml/ort.webgpu.mjs            	      (vendor/ort.webgpu.mjs)
