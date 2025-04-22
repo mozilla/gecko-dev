@@ -25,7 +25,6 @@
 #include "nsGtkUtils.h"
 #include "nsTArray.h"
 #include "nsWindow.h"
-#include "mozilla/StaticPrefs_gfx.h"
 
 struct wl_registry;
 
@@ -265,7 +264,7 @@ static already_AddRefed<Screen> MakeScreenGtk(GdkScreen* aScreen,
 
   bool isHDR = false;
 #ifdef MOZ_WAYLAND
-  if (GdkIsWaylandDisplay() && StaticPrefs::gfx_wayland_hdr_AtStartup()) {
+  if (GdkIsWaylandDisplay()) {
     isHDR = WaylandDisplayGet()->IsHDREnabled();
   }
 #endif
