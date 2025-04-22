@@ -154,9 +154,7 @@ jobs:
           include-push-tasks: true
       run-on-projects:
           - mozilla-central
-      when:
-          - {weekday: 'Monday', hour: 10, minute: 30}
-          - {weekday: 'Thursday', hour: 10, minute: 30}
+      when: []  # Bug 1961831 - Disabled temporarily during provider transition
 
     - name: custom-car-perf-testing
       job:
