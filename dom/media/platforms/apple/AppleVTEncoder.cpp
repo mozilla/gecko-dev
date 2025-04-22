@@ -87,12 +87,12 @@ static bool SetConstantBitrate(VTCompressionSessionRef& aSession,
       CFNumberCreate(kCFAllocatorDefault, kCFNumberSInt32Type, &bps));
 
   if (__builtin_available(macos 13.0, *)) {
-    int rv = VTSessionSetProperty(aSession,
-                                  kVTCompressionPropertyKey_ConstantBitRate,
-                                  bitrate) == noErr;
+    int rv = VTSessionSetProperty(
+        aSession, kVTCompressionPropertyKey_ConstantBitRate, bitrate);
     if (rv == kVTPropertyNotSupportedErr) {
       LOGE("Constant bitrate not supported.");
     }
+    return rv == noErr;
   }
   return false;
 }
