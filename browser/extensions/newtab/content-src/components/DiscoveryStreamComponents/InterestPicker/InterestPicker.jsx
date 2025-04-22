@@ -22,7 +22,9 @@ function InterestPicker({ title, subtitle, interests, receivedFeedRank }) {
   const focusRef = useRef(null);
   const [focusedIndex, setFocusedIndex] = useState(0);
   const prefs = useSelector(state => state.Prefs.values);
-  const { sectionData } = useSelector(state => state.DiscoveryStream);
+  const { sectionPersonalization } = useSelector(
+    state => state.DiscoveryStream
+  );
   const visibleSections = prefs[PREF_VISIBLE_SECTIONS]?.split(",")
     .map(item => item.trim())
     .filter(item => item);
@@ -76,7 +78,7 @@ function InterestPicker({ title, subtitle, interests, receivedFeedRank }) {
   // by selecting them from the list
   function handleChange(e, index) {
     const { name: topic, checked } = e.target;
-    let updatedSections = { ...sectionData };
+    let updatedSections = { ...sectionPersonalization };
     if (checked) {
       updatedSections[topic] = {
         isFollowed: true,
@@ -104,7 +106,10 @@ function InterestPicker({ title, subtitle, interests, receivedFeedRank }) {
       })
     );
     dispatch(
-      ac.AlsoToMain({ type: at.SECTION_DATA_UPDATE, data: updatedSections })
+      ac.AlsoToMain({
+        type: at.SECTION_PERSONALIZATION_UPDATE,
+        data: updatedSections,
+      })
     );
   }
   return (
@@ -127,7 +132,8 @@ function InterestPicker({ title, subtitle, interests, receivedFeedRank }) {
         ref={focusRef}
       >
         {interests.map((interest, index) => {
-          const checked = sectionData[interest.sectionId]?.isFollowed;
+          const checked =
+            sectionPersonalization[interest.sectionId]?.isFollowed;
           return (
             <li
               key={interest.sectionId}

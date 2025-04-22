@@ -669,8 +669,11 @@ export class BaseContent extends React.PureComponent {
     const topicLabelsEnabled = prefs["discoverystream.topicLabels.enabled"];
     const sectionsCustomizeMenuPanelEnabled =
       prefs["discoverystream.sections.customizeMenuPanel.enabled"];
+    const sectionsPersonalizationEnabled =
+      prefs["discoverystream.sections.personalization.enabled"];
     // Logic to show follow/block topic mgmt panel in Customize panel
-    const mayHaveTopicSections =
+    const mayHavePersonalizedTopicSections =
+      sectionsPersonalizationEnabled &&
       topicLabelsEnabled &&
       sectionsEnabled &&
       sectionsCustomizeMenuPanelEnabled &&
@@ -736,7 +739,7 @@ export class BaseContent extends React.PureComponent {
             wallpapersV2Enabled={wallpapersV2Enabled}
             activeWallpaper={activeWallpaper}
             pocketRegion={pocketRegion}
-            mayHaveTopicSections={mayHaveTopicSections}
+            mayHaveTopicSections={mayHavePersonalizedTopicSections}
             mayHaveSponsoredTopSites={mayHaveSponsoredTopSites}
             mayHaveSponsoredStories={mayHaveSponsoredStories}
             mayHaveInferredPersonalization={mayHaveInferredPersonalization}

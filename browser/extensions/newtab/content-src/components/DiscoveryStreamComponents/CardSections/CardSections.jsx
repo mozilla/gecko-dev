@@ -112,7 +112,9 @@ function CardSection({
   ctaButtonSponsors,
 }) {
   const prefs = useSelector(state => state.Prefs.values);
-  const { sectionData } = useSelector(state => state.DiscoveryStream);
+  const { sectionPersonalization } = useSelector(
+    state => state.DiscoveryStream
+  );
   const showTopics = prefs[PREF_TOPICS_ENABLED];
   const mayHaveSectionsCards = prefs[PREF_SECTIONS_CARDS_ENABLED];
   const mayHaveSectionsCardsThumbsUpDown =
@@ -128,7 +130,7 @@ function CardSection({
   const { sectionKey, title, subtitle } = section;
   const { responsiveLayouts } = section.layout;
 
-  const following = sectionData[sectionKey]?.isFollowed;
+  const following = sectionPersonalization[sectionKey]?.isFollowed;
 
   const handleIntersection = useCallback(() => {
     dispatch(
@@ -152,7 +154,7 @@ function CardSection({
 
   const onFollowClick = useCallback(() => {
     const updatedSectionData = {
-      ...sectionData,
+      ...sectionPersonalization,
       [sectionKey]: {
         isFollowed: true,
         isBlocked: false,
@@ -161,7 +163,7 @@ function CardSection({
     };
     dispatch(
       ac.AlsoToMain({
-        type: at.SECTION_DATA_UPDATE,
+        type: at.SECTION_PERSONALIZATION_UPDATE,
         data: updatedSectionData,
       })
     );
@@ -176,14 +178,14 @@ function CardSection({
         },
       })
     );
-  }, [dispatch, sectionData, sectionKey, sectionPosition]);
+  }, [dispatch, sectionPersonalization, sectionKey, sectionPosition]);
 
   const onUnfollowClick = useCallback(() => {
-    const updatedSectionData = { ...sectionData };
+    const updatedSectionData = { ...sectionPersonalization };
     delete updatedSectionData[sectionKey];
     dispatch(
       ac.AlsoToMain({
-        type: at.SECTION_DATA_UPDATE,
+        type: at.SECTION_PERSONALIZATION_UPDATE,
         data: updatedSectionData,
       })
     );
@@ -199,7 +201,7 @@ function CardSection({
         },
       })
     );
-  }, [dispatch, sectionData, sectionKey, sectionPosition]);
+  }, [dispatch, sectionPersonalization, sectionKey, sectionPosition]);
 
   const { maxTile } = getMaxTiles(responsiveLayouts);
   const displaySections = section.data.slice(0, maxTile);
@@ -239,7 +241,7 @@ function CardSection({
         dispatch={dispatch}
         index={sectionPosition}
         following={following}
-        sectionData={sectionData}
+        sectionPersonalization={sectionPersonalization}
         sectionKey={sectionKey}
         title={title}
         type={type}
@@ -354,7 +356,9 @@ function CardSections({
   ctaButtonSponsors,
 }) {
   const prefs = useSelector(state => state.Prefs.values);
-  const { spocs, sectionData } = useSelector(state => state.DiscoveryStream);
+  const { spocs, sectionPersonalization } = useSelector(
+    state => state.DiscoveryStream
+  );
   const personalizationEnabled = prefs[PREF_SECTIONS_PERSONALIZATION_ENABLED];
   const interestPickerEnabled = prefs[PREF_INTEREST_PICKER_ENABLED];
 
@@ -367,7 +371,7 @@ function CardSections({
   const { interestPicker } = data;
 
   let filteredSections = data.sections.filter(
-    section => !sectionData[section.sectionKey]?.isBlocked
+    section => !sectionPersonalization[section.sectionKey]?.isBlocked
   );
 
   if (interestPickerEnabled && visibleSections.length) {

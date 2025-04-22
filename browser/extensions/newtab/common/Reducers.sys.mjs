@@ -106,7 +106,7 @@ export const INITIAL_STATE = {
       visible: false,
       data: {},
     },
-    sectionData: {},
+    sectionPersonalization: {},
   },
   // Messages received from ASRouter to render in newtab
   Messages: {
@@ -895,7 +895,7 @@ function DiscoveryStream(prevState = INITIAL_STATE.DiscoveryStream, action) {
       return {
         ...prevState,
         showBlockSectionConfirmation: true,
-        sectionData: action.data,
+        sectionPersonalization: action.data,
       };
     case at.REPORT_AD_OPEN:
       return {
@@ -939,8 +939,8 @@ function DiscoveryStream(prevState = INITIAL_STATE.DiscoveryStream, action) {
           visible: false,
         },
       };
-    case at.SECTION_DATA_UPDATE:
-      return { ...prevState, sectionData: action.data };
+    case at.SECTION_PERSONALIZATION_UPDATE:
+      return { ...prevState, sectionPersonalization: action.data };
     default:
       return prevState;
   }

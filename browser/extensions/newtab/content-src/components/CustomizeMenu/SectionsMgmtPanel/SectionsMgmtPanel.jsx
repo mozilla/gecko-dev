@@ -10,7 +10,9 @@ import { CSSTransition } from "react-transition-group";
 
 function SectionsMgmtPanel({ exitEventFired }) {
   const [showPanel, setShowPanel] = useState(false); // State management with useState
-  const { sectionData } = useSelector(state => state.DiscoveryStream);
+  const { sectionPersonalization } = useSelector(
+    state => state.DiscoveryStream
+  );
   const layoutComponents = useSelector(
     state => state.DiscoveryStream.layout[0].components
   );
@@ -32,7 +34,7 @@ function SectionsMgmtPanel({ exitEventFired }) {
     sectionsList = sections[sectionsFeedName].data.sections;
   }
 
-  const [sectionsState, setSectionState] = useState(sectionData); // State management with useState
+  const [sectionsState, setSectionState] = useState(sectionPersonalization); // State management with useState
 
   let followedSectionsData = sectionsList.filter(
     item => sectionsState[item.sectionKey]?.isFollowed
@@ -44,7 +46,7 @@ function SectionsMgmtPanel({ exitEventFired }) {
 
   function updateCachedData() {
     // Reset cached followed/blocked list data while panel is open
-    setSectionState(sectionData);
+    setSectionState(sectionPersonalization);
 
     followedSectionsData = sectionsList.filter(
       item => sectionsState[item.sectionKey]?.isFollowed
@@ -59,9 +61,9 @@ function SectionsMgmtPanel({ exitEventFired }) {
     (sectionKey, receivedRank) => {
       dispatch(
         ac.AlsoToMain({
-          type: at.SECTION_DATA_UPDATE,
+          type: at.SECTION_PERSONALIZATION_UPDATE,
           data: {
-            ...sectionData,
+            ...sectionPersonalization,
             [sectionKey]: {
               isFollowed: true,
               isBlocked: false,
@@ -82,16 +84,16 @@ function SectionsMgmtPanel({ exitEventFired }) {
         })
       );
     },
-    [dispatch, sectionData]
+    [dispatch, sectionPersonalization]
   );
 
   const onBlockClick = useCallback(
     (sectionKey, receivedRank) => {
       dispatch(
         ac.AlsoToMain({
-          type: at.SECTION_DATA_UPDATE,
+          type: at.SECTION_PERSONALIZATION_UPDATE,
           data: {
-            ...sectionData,
+            ...sectionPersonalization,
             [sectionKey]: {
               isFollowed: false,
               isBlocked: true,
@@ -112,16 +114,16 @@ function SectionsMgmtPanel({ exitEventFired }) {
         })
       );
     },
-    [dispatch, sectionData]
+    [dispatch, sectionPersonalization]
   );
 
   const onUnblockClick = useCallback(
     (sectionKey, receivedRank) => {
-      const updatedSectionData = { ...sectionData };
+      const updatedSectionData = { ...sectionPersonalization };
       delete updatedSectionData[sectionKey];
       dispatch(
         ac.AlsoToMain({
-          type: at.SECTION_DATA_UPDATE,
+          type: at.SECTION_PERSONALIZATION_UPDATE,
           data: updatedSectionData,
         })
       );
@@ -137,16 +139,16 @@ function SectionsMgmtPanel({ exitEventFired }) {
         })
       );
     },
-    [dispatch, sectionData]
+    [dispatch, sectionPersonalization]
   );
 
   const onUnfollowClick = useCallback(
     (sectionKey, receivedRank) => {
-      const updatedSectionData = { ...sectionData };
+      const updatedSectionData = { ...sectionPersonalization };
       delete updatedSectionData[sectionKey];
       dispatch(
         ac.AlsoToMain({
-          type: at.SECTION_DATA_UPDATE,
+          type: at.SECTION_PERSONALIZATION_UPDATE,
           data: updatedSectionData,
         })
       );
@@ -162,7 +164,7 @@ function SectionsMgmtPanel({ exitEventFired }) {
         })
       );
     },
-    [dispatch, sectionData]
+    [dispatch, sectionPersonalization]
   );
 
   // Close followed/blocked topic subpanel when parent menu is closed
@@ -183,7 +185,7 @@ function SectionsMgmtPanel({ exitEventFired }) {
 
   const followedSectionsList = followedSectionsData.map(
     ({ sectionKey, title, receivedRank }) => {
-      const following = sectionData[sectionKey]?.isFollowed;
+      const following = sectionPersonalization[sectionKey]?.isFollowed;
 
       return (
         <li key={sectionKey}>
@@ -225,7 +227,7 @@ function SectionsMgmtPanel({ exitEventFired }) {
 
   const blockedSectionsList = blockedSectionsData.map(
     ({ sectionKey, title, receivedRank }) => {
-      const blocked = sectionData[sectionKey]?.isBlocked;
+      const blocked = sectionPersonalization[sectionKey]?.isBlocked;
 
       return (
         <li key={sectionKey}>

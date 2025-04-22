@@ -19,7 +19,7 @@ export function SectionContextMenu({
   dispatch,
   sectionKey,
   following,
-  sectionData,
+  sectionPersonalization,
   sectionPosition,
 }) {
   // Initial context menu options: block this section only.
@@ -57,7 +57,7 @@ export function SectionContextMenu({
           options={SECTIONS_CONTEXT_MENU_OPTIONS}
           shouldSendImpressionStats={true}
           site={{
-            sectionData,
+            sectionPersonalization,
             sectionKey,
             sectionPosition,
             title,

@@ -400,11 +400,14 @@ export class DiscoveryStreamFeed {
   async configureFollowedSections() {
     const prefs = this.store.getState().Prefs.values;
     const cachedData = (await this.cache.get()) || {};
-    let { sectionData } = cachedData;
+    let { sectionPersonalization } = cachedData;
 
-    // if sectionData is empty, populate it with data from the followed and blocked prefs
+    // if sectionPersonalization is empty, populate it with data from the followed and blocked prefs
     // eventually we could remove this (maybe once more of sections is added to release)
-    if (sectionData && Object.keys(sectionData).length === 0) {
+    if (
+      sectionPersonalization &&
+      Object.keys(sectionPersonalization).length === 0
+    ) {
       // Raw string of followed/blocked topics, ex: "entertainment, news"
       const followedSectionsString = prefs[PREF_SECTIONS_FOLLOWING];
       const blockedSectionsString = prefs[PREF_SECTIONS_BLOCKED];
@@ -419,17 +422,26 @@ export class DiscoveryStreamFeed {
         : [];
 
       const sectionTopics = new Set([...followedSections, ...blockedSections]);
-      sectionData = Array.from(sectionTopics).reduce((acc, section) => {
-        acc[section] = {
-          isFollowed: followedSections.includes(section),
-          isBlocked: blockedSections.includes(section),
-        };
-        return acc;
-      }, {});
-      await this.cache.set("sectionData", sectionData);
+      sectionPersonalization = Array.from(sectionTopics).reduce(
+        (acc, section) => {
+          acc[section] = {
+            isFollowed: followedSections.includes(section),
+            isBlocked: blockedSections.includes(section),
+          };
+          return acc;
+        },
+        {}
+      );
+      await this.cache.set(
+        "sectionPersonalization",
+        sectionPersonalization || {}
+      );
     }
     this.store.dispatch(
-      ac.AlsoToMain({ type: at.SECTION_DATA_UPDATE, data: sectionData })
+      ac.AlsoToMain({
+        type: at.SECTION_PERSONALIZATION_UPDATE,
+        data: sectionPersonalization || {},
+      })
     );
   }
 
@@ -1666,7 +1678,9 @@ export class DiscoveryStreamFeed {
 
     let feed = feeds ? feeds[feedUrl] : null;
     if (this.isExpired({ cachedData, key: "feed", url: feedUrl, isStartup })) {
-      const options = this.formatComponentFeedRequest(cachedData.sectionData);
+      const options = this.formatComponentFeedRequest(
+        cachedData.sectionPersonalization
+      );
 
       const feedResponse = await this.fetchFromEndpoint(feedUrl, options);
 
@@ -1895,7 +1909,7 @@ export class DiscoveryStreamFeed {
     }
   }
 
-  formatComponentFeedRequest(sectionData = {}) {
+  formatComponentFeedRequest(sectionPersonalization = {}) {
     const prefs = this.store.getState().Prefs.values;
     const headers = new Headers();
     if (this.isMerino) {
@@ -1914,12 +1928,14 @@ export class DiscoveryStreamFeed {
       );
 
       // convert section to array to match what merino is expecting
-      const sections = Object.entries(sectionData).map(([sectionId, data]) => ({
-        sectionId,
-        isFollowed: data.isFollowed,
-        isBlocked: data.isBlocked,
-        ...(data.followedAt && { followedAt: data.followedAt }),
-      }));
+      const sections = Object.entries(sectionPersonalization).map(
+        ([sectionId, data]) => ({
+          sectionId,
+          isFollowed: data.isFollowed,
+          isBlocked: data.isBlocked,
+          ...(data.followedAt && { followedAt: data.followedAt }),
+        })
+      );
 
       // To display the inline interest picker pass `enableInterestPicker` into the request
       const interestPickerEnabled = prefs[PREF_INTEREST_PICKER_ENABLED];
@@ -2822,8 +2838,8 @@ export class DiscoveryStreamFeed {
       case at.TOPIC_SELECTION_IMPRESSION:
         this.topicSelectionImpressionEvent();
         break;
-      case at.SECTION_DATA_UPDATE:
-        await this.cache.set("sectionData", action.data);
+      case at.SECTION_PERSONALIZATION_UPDATE:
+        await this.cache.set("sectionPersonalization", action.data);
     }
   }
 }

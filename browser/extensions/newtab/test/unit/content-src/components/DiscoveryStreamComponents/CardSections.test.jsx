@@ -205,7 +205,7 @@ describe("<CardSections />", () => {
     });
   });
 
-  it("should dispatch SECTION_DATA_UPDATE updates with follow and unfollow", () => {
+  it("should dispatch SECTION_PERSONALIZATION_UPDATE updates with follow and unfollow", () => {
     const fakeDate = "2020-01-01T00:00:00.000Z";
     sandbox.useFakeTimers(new Date(fakeDate));
     const layout = {
@@ -247,7 +247,7 @@ describe("<CardSections />", () => {
       ...INITIAL_STATE,
       DiscoveryStream: {
         ...INITIAL_STATE.DiscoveryStream,
-        sectionData: {
+        sectionPersonalization: {
           section_key_2: {
             isFollowed: true,
             isBlocked: false,
@@ -307,7 +307,7 @@ describe("<CardSections />", () => {
     button.simulate("click", {});
 
     assert.deepEqual(dispatch.getCall(0).firstArg, {
-      type: "SECTION_DATA_UPDATE",
+      type: "SECTION_PERSONALIZATION_UPDATE",
       data: {
         section_key_2: {
           isFollowed: true,
@@ -343,7 +343,7 @@ describe("<CardSections />", () => {
     button.simulate("click", {});
 
     assert.calledWith(dispatch.getCall(2), {
-      type: "SECTION_DATA_UPDATE",
+      type: "SECTION_PERSONALIZATION_UPDATE",
       data: {},
       meta: {
         from: "ActivityStream:Content",

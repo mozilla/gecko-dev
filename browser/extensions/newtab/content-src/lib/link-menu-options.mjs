@@ -453,7 +453,12 @@ export const LinkMenuOptions = {
       type: at.OPEN_ABOUT_FAKESPOT,
     }),
   }),
-  SectionBlock: ({ sectionData, sectionKey, sectionPosition, title }) => ({
+  SectionBlock: ({
+    sectionPersonalization,
+    sectionKey,
+    sectionPosition,
+    title,
+  }) => ({
     id: "newtab-menu-section-block",
     icon: "delete",
     action: {
@@ -464,9 +469,9 @@ export const LinkMenuOptions = {
           // Once the user confirmed their intention to block this section,
           // update their preferences.
           ac.AlsoToMain({
-            type: at.SECTION_DATA_UPDATE,
+            type: at.SECTION_PERSONALIZATION_UPDATE,
             data: {
-              ...sectionData,
+              ...sectionPersonalization,
               [sectionKey]: {
                 isBlocked: true,
                 isFollowed: false,
@@ -501,12 +506,16 @@ export const LinkMenuOptions = {
     },
     userEvent: "DIALOG_OPEN",
   }),
-  SectionUnfollow: ({ sectionData, sectionKey, sectionPosition }) => ({
+  SectionUnfollow: ({
+    sectionPersonalization,
+    sectionKey,
+    sectionPosition,
+  }) => ({
     id: "newtab-menu-section-unfollow",
     action: ac.AlsoToMain({
-      type: at.SECTION_DATA_UPDATE,
+      type: at.SECTION_PERSONALIZATION_UPDATE,
       data: (({ sectionKey: _sectionKey, ...remaining }) => remaining)(
-        sectionData
+        sectionPersonalization
       ),
     }),
     impression: ac.OnlyToMain({
