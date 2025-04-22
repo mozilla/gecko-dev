@@ -147,6 +147,7 @@ class TrustPanelMiddlewareTest {
 
         store.dispatch(TrustPanelAction.RequestClearSiteDataDialog)
         store.waitUntilIdle()
+        store.waitUntilIdle() // Wait to ensure no calls to store.dispatch(TrustPanelAction.UpdateBaseDomain(...))
 
         verify(store, never()).dispatch(TrustPanelAction.UpdateBaseDomain(baseDomain))
         verify(store, never()).dispatch(TrustPanelAction.Navigate.ClearSiteDataDialog)
@@ -167,17 +168,15 @@ class TrustPanelMiddlewareTest {
         whenever(publicSuffixList.getPublicSuffixPlusOne(urlHost)).thenReturn(publicSuffixDeferredString)
         whenever(publicSuffixDeferredString.await()).thenReturn(baseDomain)
 
-        val store = spy(
-            createStore(
-                trustPanelState = TrustPanelState(sessionState = sessionState),
-            ),
+        val store = createStore(
+            trustPanelState = TrustPanelState(sessionState = sessionState),
         )
 
         store.dispatch(TrustPanelAction.RequestClearSiteDataDialog)
         store.waitUntilIdle()
+        store.waitUntilIdle() // Wait for call to store.dispatch(TrustPanelAction.UpdateBaseDomain(...))
 
-        verify(store).dispatch(TrustPanelAction.UpdateBaseDomain(baseDomain))
-        verify(store).dispatch(TrustPanelAction.Navigate.ClearSiteDataDialog)
+        assertEquals(store.state.baseDomain, baseDomain)
     }
 
     @Test

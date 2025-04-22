@@ -41,7 +41,6 @@ import org.mozilla.fenix.settings.trustpanel.middleware.TrustPanelMiddleware
 import org.mozilla.fenix.settings.trustpanel.middleware.TrustPanelNavigationMiddleware
 import org.mozilla.fenix.settings.trustpanel.middleware.TrustPanelTelemetryMiddleware
 import org.mozilla.fenix.settings.trustpanel.store.TrustPanelAction
-import org.mozilla.fenix.settings.trustpanel.store.TrustPanelState
 import org.mozilla.fenix.settings.trustpanel.store.TrustPanelStore
 import org.mozilla.fenix.settings.trustpanel.ui.CLEAR_SITE_DATA_DIALOG_ROUTE
 import org.mozilla.fenix.settings.trustpanel.ui.CONNECTION_SECURITY_PANEL_ROUTE
@@ -107,10 +106,14 @@ class TrustPanelFragment : BottomSheetDialogFragment() {
                     val coroutineScope = rememberCoroutineScope()
                     val store = remember {
                         TrustPanelStore(
-                            initialState = TrustPanelState(
-                                isTrackingProtectionEnabled = args.isTrackingProtectionEnabled,
-                                sessionState = components.core.store.state.findTabOrCustomTab(args.sessionId),
-                            ),
+                            settings = components.settings,
+                            isTrackingProtectionEnabled = args.isTrackingProtectionEnabled,
+                            sessionState = components.core.store.state.findTabOrCustomTab(args.sessionId),
+                            sitePermissions = args.sitePermissions,
+                            permissionHighlights = args.permissionHighlights,
+                            isPermissionBlockedByAndroid = { phoneFeature ->
+                                !phoneFeature.isAndroidPermissionGranted(requireContext())
+                            },
                             middleware = listOf(
                                 TrustPanelMiddleware(
                                     appStore = components.appStore,
@@ -156,6 +159,9 @@ class TrustPanelFragment : BottomSheetDialogFragment() {
                     val sessionState by store.observeAsState(initialValue = null) { state ->
                         state.sessionState
                     }
+                    val websitePermissions by store.observeAsState(initialValue = listOf()) { state ->
+                        state.websitePermissionsState.values
+                    }
 
                     observeTrackersChange(components.core.store) {
                         trackingProtectionUseCases.fetchTrackingLogs(
@@ -181,6 +187,7 @@ class TrustPanelFragment : BottomSheetDialogFragment() {
                                 isSecured = args.isSecured,
                                 isTrackingProtectionEnabled = isTrackingProtectionEnabled,
                                 numberOfTrackersBlocked = numberOfTrackersBlocked,
+                                websitePermissions = websitePermissions.filter { it.isVisible },
                                 onTrackerBlockedMenuClick = {
                                     store.dispatch(TrustPanelAction.Navigate.TrackersPanel)
                                 },
