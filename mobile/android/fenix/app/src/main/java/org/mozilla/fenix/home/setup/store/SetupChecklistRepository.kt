@@ -83,18 +83,6 @@ class DefaultSetupChecklistRepository(
         settings.preferences.registerOnSharedPreferenceChangeListener(onPreferenceChange)
     }
 
-    @VisibleForTesting
-    internal fun getPreference(type: SetupChecklistPreference): Boolean {
-        return when (type) {
-            SetupChecklistPreference.SetToDefault -> settings.isDefaultBrowser
-            SetupChecklistPreference.SignIn -> settings.signedInFxaAccount
-            SetupChecklistPreference.ThemeComplete -> settings.hasCompletedSetupStepTheme
-            SetupChecklistPreference.ToolbarComplete -> settings.hasCompletedSetupStepToolbar
-            SetupChecklistPreference.ExtensionsComplete -> settings.hasCompletedSetupStepExtensions
-            SetupChecklistPreference.InstallSearchWidget -> settings.searchWidgetInstalled
-        }
-    }
-
     override fun setPreference(type: SetupChecklistPreference, hasCompleted: Boolean) {
         when (type) {
             SetupChecklistPreference.ToolbarComplete ->
