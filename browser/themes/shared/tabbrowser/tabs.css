@@ -786,7 +786,7 @@
   box-sizing: border-box;
   padding: var(--tab-close-button-padding);
   border-radius: var(--tab-border-radius);
-  list-style-image: url(chrome://global/skin/icons/close-12.svg);
+  list-style-image: url(resource://content-accessible/close-12.svg);
 
   #tabbrowser-tabs[orient="horizontal"] &[pinned],
   :root:not([sidebar-expand-on-hover]) #tabbrowser-tabs[orient="vertical"] &[pinned],
@@ -1885,7 +1885,7 @@ toolbar:not(#TabsToolbar) #firefox-view-button {
 }
 
 .all-tabs-close-button {
-  list-style-image: url(chrome://global/skin/icons/close-12.svg);
+  list-style-image: url(resource://content-accessible/close-12.svg);
 
   > .toolbarbutton-icon {
     margin-inline: 2px !important; /* override panelUI-shared.css */
