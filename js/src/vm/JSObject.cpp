@@ -1085,14 +1085,18 @@ bool NativeObject::fixupAfterSwap(JSContext* cx, Handle<NativeObject*> obj,
     obj->initSlotUnchecked(i, slotValues[i]);
   }
 
-  MOZ_ASSERT_IF(
-      obj->hasDynamicSlots() && gc::IsBufferAlloc(obj->getSlotsHeader()),
-      gc::IsNurseryOwned(obj->getSlotsHeader()) == IsInsideNursery(obj));
-
-  MOZ_ASSERT_IF(obj->hasDynamicElements() &&
-                    gc::IsBufferAlloc(obj->getUnshiftedElementsHeader()),
-                gc::IsNurseryOwned(obj->getUnshiftedElementsHeader()) ==
-                    IsInsideNursery(obj));
+#ifdef DEBUG
+  Zone* zone = obj->zone();
+  if (obj->hasDynamicSlots() && gc::IsBufferAlloc(obj->getSlotsHeader())) {
+    MOZ_ASSERT(gc::IsNurseryOwned(zone, obj->getSlotsHeader()) ==
+               IsInsideNursery(obj));
+  }
+  if (obj->hasDynamicElements() &&
+      gc::IsBufferAlloc(obj->getUnshiftedElementsHeader())) {
+    MOZ_ASSERT(gc::IsNurseryOwned(zone, obj->getUnshiftedElementsHeader()) ==
+               IsInsideNursery(obj));
+  }
+#endif
 
   return true;
 }

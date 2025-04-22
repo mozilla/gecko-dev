@@ -139,12 +139,22 @@ inline size_t GetAllocSize(JS::Zone* zone, void* alloc) {
   return zone->bufferAllocator.getAllocSize(alloc);
 }
 
-inline bool IsNurseryOwned(void* alloc) {
-  return BufferAllocator::IsNurseryOwned(alloc);
+inline bool IsNurseryOwned(JS::Zone* zone, void* alloc) {
+  return zone->bufferAllocator.isNurseryOwned(alloc);
 }
 
-inline bool IsBufferAllocMarkedBlack(void* alloc) {
-  return BufferAllocator::IsMarkedBlack(alloc);
+inline bool IsBufferAllocMarkedBlack(JS::Zone* zone, void* alloc) {
+  return zone->bufferAllocator.isMarkedBlack(alloc);
+}
+
+inline void TraceBufferEdgeInternal(JSTracer* trc, Cell* owner, void** bufferp,
+                                    const char* name) {
+  owner->zoneFromAnyThread()->bufferAllocator.traceEdge(trc, owner, bufferp,
+                                                        name);
+}
+
+inline void MarkTenuredBuffer(JS::Zone* zone, void* alloc) {
+  zone->bufferAllocator.markTenuredAlloc(alloc);
 }
 
 }  // namespace js::gc

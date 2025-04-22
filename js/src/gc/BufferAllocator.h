@@ -326,16 +326,13 @@ class BufferAllocator : public SlimLinkedListElement<BufferAllocator> {
   static inline size_t GetGoodPower2ElementCount(size_t requiredElements,
                                                  size_t elementSize);
   static bool IsBufferAlloc(void* alloc);
-  static bool IsNurseryOwned(void* alloc);
-  static bool IsMarkedBlack(void* alloc);
-  static void TraceEdge(JSTracer* trc, Cell* owner, void** bufferp,
-                        const char* name);
 
   void* alloc(size_t bytes, bool nurseryOwned);
   void* allocInGC(size_t bytes, bool nurseryOwned);
   void* realloc(void* ptr, size_t bytes, bool nurseryOwned);
   void free(void* ptr);
   size_t getAllocSize(void* ptr);
+  bool isNurseryOwned(void* ptr);
 
   void startMinorCollection(MaybeLock& lock);
   bool startMinorSweeping(LargeAllocList& largeAllocsToFree);
@@ -355,6 +352,10 @@ class BufferAllocator : public SlimLinkedListElement<BufferAllocator> {
   void mergeSweptData(const AutoLock& lock);
 
   bool isEmpty() const;
+
+  void traceEdge(JSTracer* trc, Cell* owner, void** bufferp, const char* name);
+  bool markTenuredAlloc(void* alloc);
+  bool isMarkedBlack(void* alloc);
 
   // For debugging, used to implement GetMarkInfo. Returns false for allocations
   // being swept on another thread.
@@ -382,10 +383,6 @@ class BufferAllocator : public SlimLinkedListElement<BufferAllocator> {
 #endif
 
  private:
-  // GC-internal APIs:
-  static bool MarkTenuredAlloc(void* alloc);
-  friend class js::GCMarker;
-
   void markNurseryOwnedAlloc(void* alloc, bool ownerWasTenured);
   friend class js::Nursery;
 
@@ -447,14 +444,14 @@ class BufferAllocator : public SlimLinkedListElement<BufferAllocator> {
 
   static inline bool IsLargeAllocSize(size_t bytes);
   static bool IsLargeAlloc(void* alloc);
-  static bool IsLargeAllocMarked(void* alloc);
-  static bool MarkLargeAlloc(void* alloc);
 
   void* allocLarge(size_t bytes, bool nurseryOwned, bool inGC);
   bool sweepLargeTenured(LargeBuffer* header);
   void freeLarge(void* alloc);
   bool shrinkLarge(LargeBuffer* header, size_t newBytes);
   void unmapLarge(LargeBuffer* header, bool isSweeping);
+  bool markLargeAlloc(void* alloc);
+  bool isLargeAllocMarked(void* alloc);
 
   void updateHeapSize(size_t bytes, bool checkThresholds,
                       bool updateRetainedSize);

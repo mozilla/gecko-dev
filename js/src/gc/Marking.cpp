@@ -1657,12 +1657,12 @@ scan_obj: {
 
   if (nobj->hasDynamicSlots()) {
     ObjectSlots* slots = nobj->getSlotsHeader();
-    BufferAllocator::MarkTenuredAlloc(slots);
+    MarkTenuredBuffer(nobj->zone(), slots);
   }
 
   if (nobj->hasDynamicElements()) {
     void* elements = nobj->getUnshiftedElementsHeader();
-    BufferAllocator::MarkTenuredAlloc(elements);
+    MarkTenuredBuffer(nobj->zone(), elements);
   }
 
   if (!nobj->hasEmptyElements()) {
