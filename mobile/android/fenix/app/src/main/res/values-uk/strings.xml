@@ -129,6 +129,8 @@
   <string name="address_bar_swipe_cfr_title" tools:ignore="UnusedResources" moz:removedIn="139">Проведіть по панелі інструментів, щоб перейти на інші вкладки</string>
   <!-- Text for the message displayed in the contextual feature recommendation popup promoting swipe of address bar. -->
   <string name="address_bar_swipe_cfr_message" tools:ignore="UnusedResources" moz:removedIn="139">Для переходу між вкладками проведіть вліво або вправо. Проведіть вліво на останній вкладці, щоб відкрити нову.</string>
+  <!-- Text for the message displayed in the contextual feature recommendation popup promoting swipe of address bar. -->
+  <string name="address_bar_swipe_cfr_message_2">Проведіть по панелі інструментів ліворуч або праворуч, щоб перемкнути вкладки.</string>
   <!-- Text for the info dialog when camera permissions have been denied but user tries to access a camera feature. -->
   <string name="camera_permissions_needed_message">Необхідний доступ до камери. Перейдіть до налаштувань Android, торкніться дозволів та торкніться дозволити.</string>
   <!-- Text for the positive action button to go to Android Settings to grant permissions. -->
@@ -1483,6 +1485,10 @@
   <string name="download_delete_item_1" moz:removedIn="138" tools:ignore="UnusedResources">Вилучити</string>
   <!-- Text for the button to delete a single downloaded file item -->
   <string name="download_delete_item">Видалити</string>
+  <!-- Content description for the toolbar "Navigate back" button -->
+  <string name="download_navigate_back_description">Перейти назад</string>
+  <!-- Content description for the toolbar "Navigate up" button -->
+  <string name="download_navigate_up_description">Вгору</string>
   <!-- Text for the button to share the download URL -->
   <string name="download_share_url">Поділитися URL-адресою</string>
   <!-- Text for the button to share the download file -->
@@ -3377,6 +3383,26 @@
     The title of the glean debugging feature
   -->
   <string name="glean_debug_tools_title">Інструменти налагодження Glean</string>
+  <!--
+    Debug drawer region tools
+
+    Title of the Region tools in the Debug Drawer.
+    This tool allows temporarily overriding the home region (user's default locale)
+    and the current region (device's detected location) for testing purposes.
+  -->
+  <string name="debug_drawer_region_tools_title">Інструменти вибору регіону</string>
+  <!-- The description of the Region tools in the Debug Drawer -->
+  <string name="debug_drawer_regin_tools_description">Тимчасове перевизначення параметрів домашнього та поточного регіону для тестування.</string>
+  <!-- The text label for displaying home region. -->
+  <string name="debug_drawer_home_region_label">Домашній регіон</string>
+  <!-- The text label for displaying current region. -->
+  <string name="debug_drawer_current_region_label">Поточний регіон</string>
+  <!-- The text field label for overriding home region. -->
+  <string name="debug_drawer_override_home_region_label">Перевизначити домашній регіон</string>
+  <!-- The text field label for overriding current region. -->
+  <string name="debug_drawer_override_current_region_label">Перевизначити поточний регіон</string>
+  <!-- The title of the button for overriding home and current region. -->
+  <string name="debug_drawer_override_region">Перевизначення домашнього та поточного регіону</string>
   <!--
     Messages explaining how to exit fullscreen mode
 

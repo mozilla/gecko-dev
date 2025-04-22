@@ -521,6 +521,7 @@
   <string name="onboarding_preferences_dialog_crash_reporting_title">බිඳවැටුම් වාර්තා ස්වයංක්‍රීයව යවන්න</string>
   <!-- Learn more link for the crash reporting option in the privacy preferences dialog shown during onboarding. -->
   <string name="onboarding_preferences_dialog_crash_reporting_learn_more_2">තව දැනගන්න</string>
+  <string name="onboarding_preferences_dialog_usage_data_learn_more_2">තව දැනගන්න</string>
   <!-- Positive button label for the privacy preferences dialog shown during onboarding. -->
   <string name="onboarding_preferences_dialog_positive_button">අහවරයි</string>
   <!-- Terms of service onboarding title card label. 'Firefox' intentionally hardcoded here -->
@@ -537,6 +538,8 @@
   <string name="onboarding_customize_toolbar_top_option">මුදුන</string>
   <!-- Onboarding toolbar selection card label for 'bottom' option, used by Nimbus experiments. -->
   <string name="onboarding_customize_toolbar_bottom_option">පතුළ</string>
+  <!-- Action label for toolbar options that can be selected. Talkback will append this to say "Double tap to select". -->
+  <string name="onboarding_customize_toolbar_a11y_action_label_select">තෝරන්න</string>
   <!-- Onboarding header for the theme selection card, used by Nimbus experiments. -->
   <string name="onboarding_customize_theme_title" tools:ignore="UnusedResources">තේමාවක් තෝරන්න</string>
   <!-- Onboarding theme selection card label for 'dark' option, used by Nimbus experiments. -->

@@ -1482,6 +1482,10 @@
   <string name="download_delete_item_1" moz:removedIn="138" tools:ignore="UnusedResources">ລຶບ</string>
   <!-- Text for the button to delete a single downloaded file item -->
   <string name="download_delete_item">ລຶບ</string>
+  <!-- Content description for the toolbar "Navigate back" button -->
+  <string name="download_navigate_back_description">ນຳທາງຍ້ອນກັບ</string>
+  <!-- Content description for the toolbar "Navigate up" button -->
+  <string name="download_navigate_up_description">ນຳທາງຂຶ້ນໄປທາງເທິງ</string>
   <!-- Text for the button to share the download URL -->
   <string name="download_share_url">ແບ່ງປັນ URL</string>
   <!-- Text for the button to share the download file -->
@@ -2193,6 +2197,8 @@
   <string name="preference_enhanced_tracking_protection_custom_cookies_4">ຄຸກກີ້ທັງຫມົດ (ຈະສົ່ງຜົນໃຫ້ເວັບໄຊທບໍ່ສົມບູນ)</string>
   <!-- Option for enhanced tracking protection for the custom protection settings for cookies -->
   <string name="preference_enhanced_tracking_protection_custom_cookies_5">ແຍກຄຸກກີ້ຂ້າມເວັບໄຊ</string>
+  <!-- Preference for Global Privacy Control for the custom privacy settings for Global Privacy Control. '&amp;' is replaced with the ampersand symbol: & -->
+  <string name="preference_enhanced_tracking_protection_custom_global_privacy_control">ບອກເວັບໄຊທບໍ່ໃຫ້ແບ່ງປັນ ແລະ ຂາຍຂໍ້ມູນ</string>
   <!-- Preference for enhanced tracking protection for the custom protection settings for tracking content -->
   <string name="preference_enhanced_tracking_protection_custom_tracking_content">ຕົວຕິດຕາມເນື້ອຫາ</string>
   <!-- Option for enhanced tracking protection for the custom protection settings for tracking content -->
@@ -2251,6 +2257,10 @@
   <string name="etp_redirect_trackers_title">ປ່ຽນເສັ້ນທາງຕິດຕາມ</string>
   <!-- Description of redirect tracker cookies that can be blocked by Enhanced Tracking Protection -->
   <string name="etp_redirect_trackers_description">ລຶບ cookies ທີ່ຕັ້ງໄວ້ໂດຍການປ່ຽນເສັ້ນທາງໄປຫາເວັບໄຊທ໌ຕິດຕາມທີ່ຮູ້ຈັກ.</string>
+  <!-- Preference for fingerprinting protection for the custom protection settings -->
+  <string name="etp_suspected_fingerprinters_title">ລາຍນິ້ວມືດິຈິຕອນທີ່ສົງໃສ</string>
+  <!-- Category of trackers (fingerprinters) that can be blocked by Enhanced Tracking Protection -->
+  <string name="etp_known_fingerprinters_title">ລາຍນີ້ວມືດິຈິຕອນທີ່ຮູ້ຈັກ</string>
   <!--
     Description of the SmartBlock Enhanced Tracking Protection feature. The * symbol is intentionally hardcoded here,
     as we use it on the UI to indicate which trackers have been partially unblocked.
@@ -2263,20 +2273,52 @@
     Enhanced tracking protection exception preference icon for ETP settings.
   -->
   <string name="preference_etp_exceptions_icon_description">ໄອຄອນການຍົກເວັ້ນການປ້ອງກັນການຕິດຕາມທີ່ປັບປຸງໃຫ້ດີຂຶ້ນ</string>
+  <!--
+    DNS Over HTTPS (DoH)
+
+    Preference title for DNS over HTTPS settings
+  -->
+  <string name="preference_doh_title">DNS ຜ່ານ HTTPS</string>
   <!-- Description of the preference to enable "DNS over HTTPS". %1$s is replaced by a link using `preference_doh_learn_more` at text ("Learn More"). -->
   <string name="preference_doh_summary">ລະບົບ Domain Name (DNS) ຜ່ານ HTTPS ສົ່ງຄໍາຮ້ອງຂໍຂອງທ່ານສໍາລັບຊື່ໂດເມນໂດຍຜ່ານການເຊື່ອມຕໍ່ທີ່ຖືກເຂົ້າລະຫັດ, ສະຫນອງ DNS ທີ່ປອດໄພແລະເຮັດໃຫ້ມັນຍາກສໍາລັບຜູ້ອື່ນທີ່ຈະເບິ່ງວ່າເວັບໄຊທ໌ໃດທີ່ທ່ານກໍາລັງຈະເຂົ້າຫາ. %1$s</string>
   <!-- Used as text for the link in `preference_doh_title`, points to documentation about "DNS over HTTPS" -->
   <string name="preference_doh_learn_more">ຮຽນຮູ້ເພີ່ມເຕີມ</string>
+  <!-- Content description for the toolbar "Navigate up" button -->
+  <string name="preference_doh_up_description">ນຳທາງຂຶ້ນໄປທາງເທິງ</string>
+  <!-- Content description for the "Exceptions" button -->
+  <string name="preference_doh_exceptions_description">ຂໍ້ຍົກເວັ້ນ</string>
   <!-- Content description for the "Info" button -->
   <string name="preference_doh_info_description">ຂໍ້ມູນ</string>
   <!-- Content description for the "Add Site" button -->
   <string name="preference_doh_add_site_description">ເພີ່ມເວັບໄຊ</string>
   <!-- Title displayed for "Default Protection" option under "DNS over HTTPS" -->
   <string name="preference_doh_default_protection">ການປົກປ້ອງເລີ່ມຕົ້ນ</string>
+  <!-- Bullet point 1 for "Default Protection" information page under "DNS over HTTPS" -->
+  <string name="preference_doh_default_protection_info_1">ໃຊ້ຜູ້ໃຫ້ບໍລິການທີ່ທ່ານເລືອກ</string>
   <!-- Bullet point 2 for "Default Protection" information page under "DNS over HTTPS" -->
   <string name="preference_doh_default_protection_info_2">ໃຊ້ຕົວແກ້ໄຂ DNS ເລີ່ມຕົ້ນຂອງທ່ານຖ້າມີບັນຫາກັບຜູ້ໃຫ້ບໍລິການ DNS ທີ່ປອດໄພ</string>
+  <!-- Bullet point 3 for "Default Protection" information page under "DNS over HTTPS". %1$s is replaced by a link using `preference_doh_learn_more` at text ("Learn More"). -->
+  <string name="preference_doh_default_protection_info_3">ໃຊ້ຜູ້ໃຫ້ບໍລິການສະເພາະທີ່ຖ້າເປັນໄປໄດ້. %1$s</string>
+  <!-- Bullet point 4 for "Default Protection" information page under "DNS over HTTPS" -->
+  <string name="preference_doh_default_protection_info_4">ປິດການນຳໃຊ້ VPN ເມື່ອມີການຄວບຄຸມຂອງພໍ່ແມ່ ຫຼື ນະໂຍບາຍນຳໃຊ້ອິນເຕີເນັດໃນອົງກອນເປີດທຳງານ</string>
+  <!-- Title displayed for "Increased Protection" option under "DNS over HTTPS" -->
+  <string name="preference_doh_increased_protection">ເພີ່ມການປົກປ້ອງຂຶ້ນ</string>
+  <!-- Bullet point 1 for "Increased Protection" information page under "DNS over HTTPS" -->
+  <string name="preference_doh_increased_protection_info_1">ໃຊ້ຜູ້ໃຫ້ບໍລິການທີ່ທ່ານເລືອກ</string>
   <!-- Title displayed for "Max Protection" option under "DNS over HTTPS" -->
   <string name="preference_doh_max_protection">ການປົກປ້ອງສູງສຸດ</string>
+  <!-- Title displayed for "Off" option under "DNS over HTTPS" -->
+  <string name="preference_doh_off">ປິດ</string>
+  <!-- Text displayed above provider dropdown under "DNS over HTTPS" -->
+  <string name="preference_doh_choose_provider">ເລືອກຜູ້ໃຫ້ບໍລິການ</string>
+  <!-- Text displayed for "Default provider" under "DNS over HTTPS" providers -->
+  <string name="preference_doh_provider_default">(ຄ່າເລີ່ມຕົ້ນ)</string>
+  <!-- Text displayed for "Custom" under "DNS over HTTPS" providers -->
+  <string name="preference_doh_provider_custom">ກຳນົດເອງ</string>
+  <!-- Cancel button text for provider textfield under "DNS over HTTPS" -->
+  <string name="preference_doh_provider_custom_dialog_cancel">ຍົກເລີກ</string>
+  <!-- Add button text for provider textfield under "DNS over HTTPS" -->
+  <string name="preference_doh_provider_custom_dialog_add">ເພີ່ມ</string>
   <!-- Text displayed for removing all exceptions in "DNS over HTTPS" -->
   <string name="preference_doh_exceptions_remove_all_exceptions">ເອົາຂໍ້ຍົກເວັ້ນທັງໝົດອອກ</string>
   <!-- About page link text to open support link -->
@@ -2343,14 +2385,24 @@
   <string name="preferences_logins_add_login_2">ເພີ່ມລະຫັດຜ່ານ</string>
   <!-- Preference for syncing saved passwords in Fenix -->
   <string name="preferences_passwords_sync_logins_2">ຊິ້ງຂໍ້ມູນລະຫັດຜ່ານ</string>
+  <!-- Preference for syncing saved passwords in Fenix, when not signed in -->
+  <string name="preferences_passwords_sync_logins_across_devices_2">ຊິ້ງຂໍ້ມູນລະຫັດຜ່ານໃນທົ່ວອຸປະກອນ</string>
+  <!-- Preference to access list of saved passwords -->
+  <string name="preferences_passwords_saved_logins_2">ລະຫັດຜ່ານທີ່ບັນທຶກໄວ້</string>
   <!-- Description of empty list of saved passwords. %s is the name of the app (for example "Firefox"). -->
   <string name="preferences_passwords_saved_logins_description_empty_text_2">ລະ​ຫັດ​ຜ່ານ​ທີ່​ທ່ານ​ບັນ​ທຶກ​ ຫຼື sync ກັບ %s ຈະ​ມີ​ລາຍ​ການ​ຢູ່​ທີ່​ນີ້​. ລະຫັດຜ່ານທັງໝົດທີ່ທ່ານບັນທຶກໄວ້ແມ່ນຖືກເຂົ້າລະຫັດໄວ້.</string>
   <!-- Clickable text for opening an external link for more information about Sync. -->
   <string name="preferences_passwords_saved_logins_description_empty_learn_more_link_2">ສຶກສາເພີ່ມເຕີມກ່ຽວກັບການຊິ້ງ</string>
   <!-- Preference to access list of login exceptions that we never save logins for -->
   <string name="preferences_passwords_exceptions">ຍົກເວັ້ນ</string>
+  <!-- Empty description of list of login exceptions that we never save passwords for. %s is the name of the app (for example "Firefox"). -->
+  <string name="preferences_passwords_exceptions_description_empty_2">%s ຈະບໍ່ບັນທຶກລະຫັດຜ່ານສໍາລັບເວັບໄຊທທີ່ມີລາຍຊື່ຢູ່ທີ່ນີ້.</string>
+  <!-- Description of list of login exceptions that we never save passwords for. %s is the name of the app (for example "Firefox"). -->
+  <string name="preferences_passwords_exceptions_description_2">%s ຈະບໍ່ບັນທຶກລະຫັດຜ່ານສໍາລັບເວັບໄຊທເຫຼົ່ານີ້.</string>
   <!-- Text on button to remove all saved login exceptions -->
   <string name="preferences_passwords_exceptions_remove_all">ລຶບທຸກຂໍ້ຍົກເວັ້ນ</string>
+  <!-- Hint for search box in passwords list -->
+  <string name="preferences_passwords_saved_logins_search_2">ຄົ້ນຫາລະຫັດຜ່ານ</string>
   <!-- The header for the site that a login is for -->
   <string name="preferences_passwords_saved_logins_site">ເວັບ​ໄຊ​ທ</string>
   <!-- The header for the username for a login -->

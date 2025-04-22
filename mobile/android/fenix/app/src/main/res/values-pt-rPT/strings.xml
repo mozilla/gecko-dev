@@ -130,7 +130,7 @@
   <!-- Text for the message displayed in the contextual feature recommendation popup promoting swipe of address bar. -->
   <string name="address_bar_swipe_cfr_message" tools:ignore="UnusedResources" moz:removedIn="139">Deslize para a esquerda ou direita para alternar. Deslize para a esquerda no seu último separador para abrir um novo separador.</string>
   <!-- Text for the message displayed in the contextual feature recommendation popup promoting swipe of address bar. -->
-  <string name="address_bar_swipe_cfr_message_2">Deslize a barra de ferramentas para a esquerda ou direita para alternar entre separadores.</string>
+  <string name="address_bar_swipe_cfr_message_2">Deslize a barra de ferramentas para a esquerda ou direita para alternar entre os separadores.</string>
   <!-- Text for the info dialog when camera permissions have been denied but user tries to access a camera feature. -->
   <string name="camera_permissions_needed_message">É necessário acesso à câmara. Aceda às definições do Android, toque em permissões e toque em permitir.</string>
   <!-- Text for the positive action button to go to Android Settings to grant permissions. -->
@@ -1486,7 +1486,7 @@
   <!-- Text for the button to delete a single downloaded file item -->
   <string name="download_delete_item">Eliminar</string>
   <!-- Content description for the toolbar "Navigate back" button -->
-  <string name="download_navigate_back_description">Navegar de volta</string>
+  <string name="download_navigate_back_description">Navegar para trás</string>
   <!-- Content description for the toolbar "Navigate up" button -->
   <string name="download_navigate_up_description">Navegar para cima</string>
   <!-- Text for the button to share the download URL -->
@@ -3393,17 +3393,17 @@
   -->
   <string name="debug_drawer_region_tools_title">Ferramentas de região</string>
   <!-- The description of the Region tools in the Debug Drawer -->
-  <string name="debug_drawer_regin_tools_description">Sobrepõe temporariamente os valores da casa e da região atual para testes.</string>
+  <string name="debug_drawer_regin_tools_description">Sobrepõe temporariamente os valores da região inicial e atual para testes.</string>
   <!-- The text label for displaying home region. -->
   <string name="debug_drawer_home_region_label">Região inicial</string>
   <!-- The text label for displaying current region. -->
   <string name="debug_drawer_current_region_label">Região atual</string>
   <!-- The text field label for overriding home region. -->
-  <string name="debug_drawer_override_home_region_label">Sobrepor região base</string>
+  <string name="debug_drawer_override_home_region_label">Sobrepor região inicial</string>
   <!-- The text field label for overriding current region. -->
   <string name="debug_drawer_override_current_region_label">Sobrepor região atual</string>
   <!-- The title of the button for overriding home and current region. -->
-  <string name="debug_drawer_override_region">Sobrepor casa e região atual</string>
+  <string name="debug_drawer_override_region">Sobrepor região inicial e atual</string>
   <!--
     Messages explaining how to exit fullscreen mode
 
