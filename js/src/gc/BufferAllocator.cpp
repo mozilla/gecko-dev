@@ -139,7 +139,7 @@ struct BufferChunk : public ChunkBase,
   MainThreadOrGCTaskData<BufferChunkPageBitmap> decommittedPages;
 
   MainThreadOrGCTaskData<BufferChunkAllocBitmap> allocBitmap;
-  MainThreadData<Zone*> zone;  // Only used by GetAllocZone.
+  MainThreadData<Zone*> zone;
 
   MainThreadOrGCTaskData<bool> allocatedDuringCollection;
   MainThreadData<bool> hasNurseryOwnedAllocs;
@@ -508,7 +508,6 @@ void* BufferAllocator::realloc(void* ptr, size_t bytes, bool nurseryOwned) {
     return alloc(bytes, nurseryOwned);
   }
 
-  MOZ_ASSERT(GetAllocZone(ptr) == zone);
   MOZ_ASSERT(IsNurseryOwned(ptr) == nurseryOwned);
   MOZ_ASSERT_IF(zone->isGCMarkingOrSweeping(), majorState == State::Marking);
 
@@ -574,7 +573,6 @@ static HeaderT* GetHeaderFromAlloc(void* alloc) {
 
 void BufferAllocator::free(void* ptr) {
   MOZ_ASSERT(ptr);
-  MOZ_ASSERT(GetAllocZone(ptr) == zone);
 
   DebugOnlyPoison(ptr, JS_FREED_BUFFER_PATTERN, GetAllocSize(ptr),
                   MemCheckKind::MakeUndefined);
@@ -629,21 +627,6 @@ size_t BufferAllocator::GetAllocSize(void* alloc) {
 }
 
 /* static */
-JS::Zone* BufferAllocator::GetAllocZone(void* alloc) {
-  if (IsLargeAlloc(alloc)) {
-    auto* header = GetHeaderFromAlloc<LargeBuffer>(alloc);
-    return header->zone;
-  }
-
-  if (IsSmallAlloc(alloc)) {
-    auto* cell = GetHeaderFromAlloc<SmallBuffer>(alloc);
-    return cell->zone();
-  }
-
-  return BufferChunk::from(alloc)->zone;
-}
-
-/* static */
 bool BufferAllocator::IsNurseryOwned(void* alloc) {
   if (IsLargeAlloc(alloc)) {
     auto* header = GetHeaderFromAlloc<LargeBuffer>(alloc);
@@ -663,13 +646,13 @@ bool BufferAllocator::IsNurseryOwned(void* alloc) {
 void BufferAllocator::markNurseryOwnedAlloc(void* alloc, bool ownerWasTenured) {
   MOZ_ASSERT(alloc);
   MOZ_ASSERT(IsNurseryOwned(alloc));
-  MOZ_ASSERT(GetAllocZone(alloc) == zone);
   MOZ_ASSERT(minorState == State::Marking);
 
   if (IsSmallAlloc(alloc)) {
     // This path is currently unused outside test code because we allocate
     // nursery buffers directly in the nursery rather than using this allocator.
     auto* cell = GetHeaderFromAlloc<SmallBuffer>(alloc);
+    MOZ_ASSERT(cell->zone() == zone);
     if (ownerWasTenured) {
       cell->setNurseryOwned(false);
     }
@@ -679,6 +662,7 @@ void BufferAllocator::markNurseryOwnedAlloc(void* alloc, bool ownerWasTenured) {
 
   if (IsLargeAlloc(alloc)) {
     auto* header = GetHeaderFromAlloc<LargeBuffer>(alloc);
+    MOZ_ASSERT(header->zone == zone);
     largeNurseryAllocs.ref().remove(header);
     if (ownerWasTenured) {
       header->isNurseryOwned = false;
@@ -694,15 +678,16 @@ void BufferAllocator::markNurseryOwnedAlloc(void* alloc, bool ownerWasTenured) {
 
   MOZ_ASSERT(IsMediumAlloc(alloc));
   auto* header = GetHeaderFromAlloc<MediumBuffer>(alloc);
-  MOZ_ASSERT(BufferChunk::from(alloc)->hasNurseryOwnedAllocs);
+  BufferChunk* chunk = BufferChunk::from(alloc);
+  MOZ_ASSERT(chunk->zone == zone);
+  MOZ_ASSERT(chunk->hasNurseryOwnedAllocs);
+  MOZ_ASSERT(chunk->isAllocated(alloc));
   if (ownerWasTenured) {
     header->isNurseryOwned = false;
     size_t usableSize =
         SizeClassBytes(header->sizeClass) - sizeof(MediumBuffer);
     updateHeapSize(usableSize, false, false);
   } else {
-    BufferChunk* chunk = BufferChunk::from(alloc);
-    MOZ_ASSERT(chunk->isAllocated(alloc));
     chunk->markBits.ref().markIfUnmarked(alloc, MarkColor::Black);
   }
 }
@@ -1774,6 +1759,8 @@ void BufferAllocator::freeMedium(void* alloc) {
   // properly.
 
   BufferChunk* chunk = BufferChunk::from(alloc);
+  MOZ_ASSERT(chunk->zone == zone);
+
   if (isSweepingChunk(chunk)) {
     return;  // We can't free if the chunk is currently being swept.
   }
@@ -1923,6 +1910,8 @@ void BufferAllocator::updateFreeRegionStart(FreeLists* freeLists,
 
 bool BufferAllocator::growMedium(void* alloc, size_t newBytes) {
   BufferChunk* chunk = BufferChunk::from(alloc);
+  MOZ_ASSERT(chunk->zone == zone);
+
   if (isSweepingChunk(chunk)) {
     return false;  // We can't grow if the chunk is currently being swept.
   }
@@ -1974,6 +1963,8 @@ bool BufferAllocator::growMedium(void* alloc, size_t newBytes) {
 
 bool BufferAllocator::shrinkMedium(void* alloc, size_t newBytes) {
   BufferChunk* chunk = BufferChunk::from(alloc);
+  MOZ_ASSERT(chunk->zone == zone);
+
   if (isSweepingChunk(chunk)) {
     return false;  // We can't shrink if the chunk is currently being swept.
   }

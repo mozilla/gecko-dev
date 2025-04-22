@@ -512,8 +512,6 @@ BEGIN_TEST(testBufferAllocator_API) {
       size_t actualSize = GetAllocSize(alloc);
       CHECK(actualSize == GetGoodAllocSize(requestSize));
 
-      CHECK(GetAllocZone(alloc) == zone);
-
       CHECK(IsNurseryOwned(alloc) == nurseryOwned);
 
       WriteAllocData(alloc, actualSize);

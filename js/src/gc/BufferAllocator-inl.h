@@ -139,10 +139,6 @@ inline size_t GetAllocSize(void* alloc) {
   return BufferAllocator::GetAllocSize(alloc);
 }
 
-inline JS::Zone* GetAllocZone(void* alloc) {
-  return BufferAllocator::GetAllocZone(alloc);
-}
-
 inline bool IsNurseryOwned(void* alloc) {
   return BufferAllocator::IsNurseryOwned(alloc);
 }

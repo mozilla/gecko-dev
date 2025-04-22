@@ -327,7 +327,6 @@ class BufferAllocator : public SlimLinkedListElement<BufferAllocator> {
                                                  size_t elementSize);
   static bool IsBufferAlloc(void* alloc);
   static size_t GetAllocSize(void* alloc);
-  static JS::Zone* GetAllocZone(void* alloc);
   static bool IsNurseryOwned(void* alloc);
   static bool IsMarkedBlack(void* alloc);
   static void TraceEdge(JSTracer* trc, Cell* owner, void** bufferp,
