@@ -747,8 +747,6 @@ TimerThread::Run() {
   const TimeDuration allowedEarlyFiring =
       TimeDuration::FromMicroseconds(mAllowedEarlyFiringMicroseconds);
 
-  bool forceRunNextTimer = false;
-
   // Queue for tracking of how many timers are fired on each wake-up. We need to
   // buffer these locally and only send off to glean occasionally to avoid
   // performance hit.
@@ -783,8 +781,6 @@ TimerThread::Run() {
 
     // Have to use PRIntervalTime here, since PR_WaitCondVar takes it
     TimeDuration waitFor;
-    bool forceRunThisTimer = forceRunNextTimer;
-    forceRunNextTimer = false;
 
 #ifdef DEBUG
     VerifyTimerListConsistency();
@@ -827,8 +823,7 @@ TimerThread::Run() {
       RemoveLeadingCanceledTimersInternal();
 
       if (!mTimers.IsEmpty()) {
-        if (now + allowedEarlyFiring >= mTimers[0].Value()->mTimeout ||
-            forceRunThisTimer) {
+        if (now + allowedEarlyFiring >= mTimers[0].Value()->mTimeout) {
         next:
           // NB: AddRef before the Release under RemoveTimerInternal to avoid
           // mRefCnt passing through zero, in case all other refs than the one
@@ -883,11 +878,9 @@ TimerThread::Run() {
         if (chaosModeActive) {
           microseconds *= sChaosFractions[ChaosMode::randomUint32LessThan(
               std::size(sChaosFractions))];
-          forceRunNextTimer = true;
         }
 
         if (microseconds < mAllowedEarlyFiringMicroseconds) {
-          forceRunNextTimer = false;
           goto next;  // round down; execute event now
         }
 
@@ -974,9 +967,6 @@ TimerThread::Run() {
     {
       AUTO_PROFILER_TRACING_MARKER("TimerThread", "Wait", OTHER);
       mMonitor.Wait(waitFor);
-    }
-    if (mNotified) {
-      forceRunNextTimer = false;
     }
     mWaiting = false;
   }
