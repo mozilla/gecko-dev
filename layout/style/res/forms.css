@@ -875,7 +875,7 @@ input::-moz-reveal {
   cursor: default;
   width: 1em;
   height: 1em;
-  margin-inline-start: 1px;
+  margin-inline: 1px;
   background-image: url(resource://content-accessible/close-12.svg);
   background-repeat: no-repeat;
   background-position: center;
@@ -896,6 +896,27 @@ input::-moz-search-clear-button:hover {
 
 input::-moz-search-clear-button:active {
   background-color: color-mix(in srgb, currentColor 30%, transparent);
+}
+
+@media (forced-colors) {
+  input::-moz-search-clear-button {
+    outline: 1px solid ButtonText;
+    outline-offset: -1px;
+    color: ButtonText;
+    background-color: ButtonFace;
+  }
+
+  input::-moz-search-clear-button:hover {
+    color: SelectedItem;
+    background-color: SelectedItemText;
+    outline-color: SelectedItem;
+  }
+
+  input::-moz-search-clear-button:active {
+    color: SelectedItem;
+    background-color: SelectedItemText;
+    outline-color: ButtonText;
+  }
 }
 
 input::-moz-reveal {
