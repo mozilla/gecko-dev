@@ -51,7 +51,6 @@ DOMSVGLength::DOMSVGLength(DOMSVGLengthList* aList, uint8_t aAttrEnum,
       mListIndex(aListIndex),
       mAttrEnum(aAttrEnum),
       mIsAnimValItem(aIsAnimValItem),
-      mIsInTearoffTable(false),
       mUnit(SVGLength_Binding::SVG_LENGTHTYPE_NUMBER) {
   MOZ_ASSERT(aList, "bad arg");
   MOZ_ASSERT(mAttrEnum == aAttrEnum, "bitfield too small");
@@ -89,33 +88,22 @@ void DOMSVGLength::CleanupWeakRefs() {
 
   // Similarly, we must update the tearoff table to remove its (non-owning)
   // pointer to mVal.
-  if (mIsInTearoffTable) {
-    nsCOMPtr<SVGElement> svg = do_QueryInterface(mOwner);
-    MOZ_ASSERT(svg,
-               "We need our svgElement reference in order to remove "
-               "ourselves from tearoff table...");
-    if (MOZ_LIKELY(svg)) {
-      auto& table = mIsAnimValItem ? sAnimSVGLengthTearOffTable
-                                   : sBaseSVGLengthTearOffTable;
-      table.RemoveTearoff(svg->GetAnimatedLength(mAttrEnum));
-      mIsInTearoffTable = false;
-    }
+  if (nsCOMPtr<SVGElement> svg = do_QueryInterface(mOwner)) {
+    auto& table = mIsAnimValItem ? sAnimSVGLengthTearOffTable
+                                 : sBaseSVGLengthTearOffTable;
+    table.RemoveTearoff(svg->GetAnimatedLength(mAttrEnum));
   }
 }
 
 already_AddRefed<DOMSVGLength> DOMSVGLength::GetTearOff(SVGAnimatedLength* aVal,
                                                         SVGElement* aSVGElement,
                                                         bool aAnimVal) {
-  MOZ_ASSERT(aVal && aSVGElement, "Expecting non-null aVal and aSVGElement");
-  MOZ_ASSERT(aVal == aSVGElement->GetAnimatedLength(aVal->mAttrEnum),
-             "Mismatched aVal/SVGElement?");
   auto& table =
       aAnimVal ? sAnimSVGLengthTearOffTable : sBaseSVGLengthTearOffTable;
   RefPtr<DOMSVGLength> domLength = table.GetTearoff(aVal);
   if (!domLength) {
     domLength = new DOMSVGLength(aVal, aSVGElement, aAnimVal);
     table.AddTearoff(aVal, domLength);
-    domLength->mIsInTearoffTable = true;
   }
 
   return domLength.forget();

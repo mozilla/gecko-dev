@@ -17,7 +17,7 @@
 #include "mozilla/dom/SVGSVGElement.h"
 #include "mozilla/gfx/2D.h"
 
-#define MOZ_SVG_LIST_INDEX_BIT_COUNT 29
+#define MOZ_SVG_LIST_INDEX_BIT_COUNT 30
 
 namespace mozilla::dom {
 struct DOMMatrix2DInit;
@@ -51,8 +51,7 @@ class DOMSVGPoint final : public nsWrapperCache {
         mOwner(aList),
         mListIndex(aListIndex),
         mIsAnimValItem(aIsAnimValItem),
-        mIsTranslatePoint(false),
-        mIsInTearoffTable(false) {
+        mIsTranslatePoint(false) {
     // These shifts are in sync with the members.
     MOZ_ASSERT(aList && aListIndex <= MaxListIndex(), "bad arg");
 
@@ -61,10 +60,7 @@ class DOMSVGPoint final : public nsWrapperCache {
 
   // Constructor for unowned points and SVGSVGElement.createSVGPoint
   explicit DOMSVGPoint(const Point& aPt)
-      : mListIndex(0),
-        mIsAnimValItem(false),
-        mIsTranslatePoint(false),
-        mIsInTearoffTable(false) {
+      : mListIndex(0), mIsAnimValItem(false), mIsTranslatePoint(false) {
     // In this case we own mVal
     mVal = new SVGPoint(aPt.x, aPt.y);
   }
@@ -76,8 +72,7 @@ class DOMSVGPoint final : public nsWrapperCache {
         mOwner(ToSupports(aSVGSVGElement)),
         mListIndex(0),
         mIsAnimValItem(false),
-        mIsTranslatePoint(true),
-        mIsInTearoffTable(false) {}
+        mIsTranslatePoint(true) {}
 
   virtual ~DOMSVGPoint() { CleanupWeakRefs(); }
 
@@ -183,12 +178,6 @@ class DOMSVGPoint final : public nsWrapperCache {
   uint32_t mListIndex : MOZ_SVG_LIST_INDEX_BIT_COUNT;
   uint32_t mIsAnimValItem : 1;     // True if We're the animated value of a list
   uint32_t mIsTranslatePoint : 1;  // true iff our owner is a SVGSVGElement
-
-  // Tracks whether we're in the tearoff table. Initialized to false in the
-  // ctor, but then immediately set to true if/when we're added to the table
-  // (not all instances are).  Updated to false when we're removed from the
-  // table (at which point we're being destructed or soon-to-be destructed).
-  uint32_t mIsInTearoffTable : 1;
 };
 
 }  // namespace mozilla::dom

@@ -90,12 +90,9 @@ void DOMSVGPointList::RemoveFromTearoffTable() {
   //
   // There are now no longer any references to us held by script or list items.
   // Note we must use GetAnimValKey/GetBaseValKey here, NOT InternalList()!
-  if (mIsInTearoffTable) {
-    void* key = mIsAnimValList ? InternalAList().GetAnimValKey()
-                               : InternalAList().GetBaseValKey();
-    SVGPointListTearoffTable().RemoveTearoff(key);
-    mIsInTearoffTable = false;
-  }
+  void* key = mIsAnimValList ? InternalAList().GetAnimValKey()
+                             : InternalAList().GetBaseValKey();
+  SVGPointListTearoffTable().RemoveTearoff(key);
 }
 
 DOMSVGPointList::~DOMSVGPointList() { RemoveFromTearoffTable(); }
