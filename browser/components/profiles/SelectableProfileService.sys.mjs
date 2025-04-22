@@ -736,15 +736,27 @@ class SelectableProfileServiceClass extends EventEmitter {
    * @param {string} aUrl A url to open in launched profile
    */
   launchInstance(aProfile, aUrl) {
-    let args = ["--profile", aProfile.path];
-    if (Services.appinfo.OS === "Darwin") {
-      args.unshift("-foreground");
-    }
+    let args = [];
 
     if (aUrl) {
       args.push("-url", aUrl);
     } else {
       args.push(`--${COMMAND_LINE_ACTIVATE}`);
+    }
+
+    // If the other instance is already running we can just use the remoting
+    // service directly.
+    try {
+      this.sendCommandLine(aProfile.path, args, true);
+
+      return;
+    } catch (e) {
+      // This is expected to fail if no instance is running with the profile.
+    }
+
+    args.unshift("--profile", aProfile.path);
+    if (Services.appinfo.OS === "Darwin") {
+      args.unshift("-foreground");
     }
 
     this.execProcess(args);
