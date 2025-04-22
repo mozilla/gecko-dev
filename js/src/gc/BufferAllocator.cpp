@@ -667,46 +667,66 @@ void BufferAllocator::markNurseryOwnedAlloc(void* alloc, bool ownerWasTenured) {
   MOZ_ASSERT(minorState == State::Marking);
 
   if (IsLargeAlloc(alloc)) {
-    auto* header = lookupLargeBuffer(alloc);
-    MOZ_ASSERT(header->zone == zone);
-    largeNurseryAllocsToSweep.ref().remove(header);
-    if (ownerWasTenured) {
-      header->isNurseryOwned = false;
-      header->allocatedDuringCollection = majorState != State::NotCollecting;
-      largeTenuredAllocs.ref().pushBack(header);
-      size_t usableSize = header->allocBytes();
-      updateHeapSize(usableSize, false, false);
-    } else {
-      largeNurseryAllocs.ref().pushBack(header);
-    }
+    LargeBuffer* buffer = lookupLargeBuffer(alloc);
+    MOZ_ASSERT(buffer->zone == zone);
+    markLargeNurseryOwnedBuffer(buffer, ownerWasTenured);
     return;
   }
 
   if (IsSmallAlloc(alloc)) {
-    // This path is currently unused outside test code because we allocate
-    // nursery buffers directly in the nursery rather than using this allocator.
-    auto* cell = GetHeaderFromAlloc<SmallBuffer>(alloc);
-    MOZ_ASSERT(cell->zone() == zone);
-    if (ownerWasTenured) {
-      cell->setNurseryOwned(false);
-    }
-    // Heap size tracked as part of GC heap for small allocations.
+    auto* buffer = GetHeaderFromAlloc<SmallBuffer>(alloc);
+    markSmallNurseryOwnedBuffer(buffer, ownerWasTenured);
     return;
   }
 
-  MOZ_ASSERT(IsMediumAlloc(alloc));
-  auto* header = GetHeaderFromAlloc<MediumBuffer>(alloc);
-  BufferChunk* chunk = BufferChunk::from(alloc);
+  auto* buffer = GetHeaderFromAlloc<MediumBuffer>(alloc);
+  markMediumNurseryOwnedBuffer(buffer, ownerWasTenured);
+}
+
+void BufferAllocator::markSmallNurseryOwnedBuffer(SmallBuffer* buffer,
+                                                  bool ownerWasTenured) {
+  MOZ_ASSERT(buffer->zone() == zone);
+
+  if (ownerWasTenured) {
+    buffer->setNurseryOwned(false);
+  }
+
+  // Heap size is tracked as part of GC heap for small allocations.
+}
+
+void BufferAllocator::markMediumNurseryOwnedBuffer(MediumBuffer* buffer,
+                                                   bool ownerWasTenured) {
+  BufferChunk* chunk = BufferChunk::from(buffer);
   MOZ_ASSERT(chunk->zone == zone);
   MOZ_ASSERT(chunk->hasNurseryOwnedAllocs);
-  MOZ_ASSERT(chunk->isAllocated(alloc));
+  MOZ_ASSERT(chunk->isAllocated(buffer->data()));
+
   if (ownerWasTenured) {
-    header->isNurseryOwned = false;
-    size_t usableSize = header->allocBytes();
+    // Change the allocation to a tenured owned one. This prevents sweeping in a
+    // minor collection.
+    buffer->isNurseryOwned = false;
+    size_t usableSize = buffer->allocBytes();
     updateHeapSize(usableSize, false, false);
-  } else {
-    chunk->markBits.ref().markIfUnmarked(alloc, MarkColor::Black);
+    return;
   }
+
+  chunk->markBits.ref().markIfUnmarked(buffer->data(), MarkColor::Black);
+}
+
+void BufferAllocator::markLargeNurseryOwnedBuffer(LargeBuffer* buffer,
+                                                  bool ownerWasTenured) {
+  largeNurseryAllocsToSweep.ref().remove(buffer);
+
+  if (ownerWasTenured) {
+    buffer->isNurseryOwned = false;
+    buffer->allocatedDuringCollection = majorState != State::NotCollecting;
+    largeTenuredAllocs.ref().pushBack(buffer);
+    size_t usableSize = buffer->allocBytes();
+    updateHeapSize(usableSize, false, false);
+    return;
+  }
+
+  largeNurseryAllocs.ref().pushBack(buffer);
 }
 
 bool BufferAllocator::isMarkedBlack(void* alloc) {
@@ -749,32 +769,67 @@ void BufferAllocator::traceEdge(JSTracer* trc, Cell* owner, void** bufferp,
   MOZ_ASSERT(IsBufferAlloc(buffer));
 
   if (IsLargeAlloc(buffer)) {
-    // Trace small buffer that holds large buffer metadata.
-    // For moving GC the table is updated in fixupAfterMovingGC().
-    LargeBuffer* header = lookupLargeBuffer(buffer);
-    auto* cell = GetHeaderFromAlloc<SmallBuffer>(header);
-    TraceManuallyBarrieredEdge(trc, &cell, "LargeBuffer");
-  }
-
-  if (!IsLargeAlloc(buffer) && IsSmallAlloc(buffer)) {
-    auto* cell = GetHeaderFromAlloc<SmallBuffer>(buffer);
-    TraceManuallyBarrieredEdge(trc, &cell, name);
-    if (cell != GetHeaderFromAlloc<SmallBuffer>(buffer)) {
-      *bufferp = cell->data();
-    }
+    traceLargeAlloc(trc, owner, bufferp, name);
     return;
   }
 
+  if (IsSmallAlloc(buffer)) {
+    traceSmallAlloc(trc, owner, bufferp, name);
+    return;
+  }
+
+  traceMediumAlloc(trc, owner, bufferp, name);
+}
+
+void BufferAllocator::traceSmallAlloc(JSTracer* trc, Cell* owner, void** allocp,
+                                      const char* name) {
+  void* alloc = *allocp;
+  auto* cell = GetHeaderFromAlloc<SmallBuffer>(alloc);
+  TraceManuallyBarrieredEdge(trc, &cell, name);
+  if (cell != GetHeaderFromAlloc<SmallBuffer>(alloc)) {
+    *allocp = cell->data();
+  }
+}
+
+void BufferAllocator::traceMediumAlloc(JSTracer* trc, Cell* owner,
+                                       void** allocp, const char* name) {
+  void* alloc = *allocp;
+  auto* buffer = GetHeaderFromAlloc<MediumBuffer>(alloc);
+
   if (trc->isTenuringTracer()) {
-    if (isNurseryOwned(buffer)) {
-      markNurseryOwnedAlloc(buffer, owner->isTenured());
+    if (buffer->isNurseryOwned) {
+      markMediumNurseryOwnedBuffer(buffer, owner->isTenured());
     }
     return;
   }
 
   if (trc->isMarkingTracer()) {
-    if (!isNurseryOwned(buffer)) {
-      markTenuredAlloc(buffer);
+    if (!buffer->isNurseryOwned) {
+      markMediumTenuredAlloc(alloc);
+    }
+    return;
+  }
+}
+
+void BufferAllocator::traceLargeAlloc(JSTracer* trc, Cell* owner, void** allocp,
+                                      const char* name) {
+  void* alloc = *allocp;
+  LargeBuffer* buffer = lookupLargeBuffer(alloc);
+
+  // Trace small buffer that holds large buffer metadata.
+  // For moving GC the table is updated in fixupAfterMovingGC().
+  traceSmallAlloc(trc, owner, reinterpret_cast<void**>(&buffer), "LargeBuffer");
+
+  if (trc->isTenuringTracer()) {
+    if (isNurseryOwned(alloc)) {
+      markLargeNurseryOwnedBuffer(buffer, owner->isTenured());
+    }
+    return;
+  }
+
+  if (trc->isMarkingTracer()) {
+    if (!isNurseryOwned(alloc)) {
+      markLargeTenuredBuffer(buffer);
     }
     return;
   }
@@ -785,14 +840,23 @@ bool BufferAllocator::markTenuredAlloc(void* alloc) {
   MOZ_ASSERT(!isNurseryOwned(alloc));
 
   if (IsLargeAlloc(alloc)) {
-    return markLargeAlloc(alloc);
+    LargeBuffer* buffer = lookupLargeBuffer(alloc);
+    return markLargeTenuredBuffer(buffer);
   }
 
   if (IsSmallAlloc(alloc)) {
-    auto* cell = GetHeaderFromAlloc<SmallBuffer>(alloc);
-    return cell->markIfUnmarkedAtomic(MarkColor::Black);
+    return markSmallTenuredAlloc(alloc);
   }
 
+  return markMediumTenuredAlloc(alloc);
+}
+
+bool BufferAllocator::markSmallTenuredAlloc(void* alloc) {
+  auto* cell = GetHeaderFromAlloc<SmallBuffer>(alloc);
+  return cell->markIfUnmarkedAtomic(MarkColor::Black);
+}
+
+bool BufferAllocator::markMediumTenuredAlloc(void* alloc) {
   BufferChunk* chunk = BufferChunk::from(alloc);
   MOZ_ASSERT(chunk->isAllocated(alloc));
   if (chunk->allocatedDuringCollection) {
@@ -2345,23 +2409,17 @@ bool BufferAllocator::isLargeAllocMarked(void* alloc) {
   return header->marked;
 }
 
-bool BufferAllocator::markLargeAlloc(void* alloc) {
-  LargeBuffer* header = lookupLargeBuffer(alloc);
-  if (header->allocatedDuringCollection) {
+bool BufferAllocator::markLargeTenuredBuffer(LargeBuffer* buffer) {
+  MOZ_ASSERT(!buffer->isNurseryOwned);
+
+  if (buffer->allocatedDuringCollection) {
     return false;
   }
 
-  auto* headerCell = GetHeaderFromAlloc<SmallBuffer>(header);
-
-  if (header->isNurseryOwned) {
-    // Nursery-owned allocations are always marked.
-    MOZ_ASSERT(!headerCell->isTenured());
-    return false;
-  }
-
+  auto* headerCell = GetHeaderFromAlloc<SmallBuffer>(buffer);
   headerCell->markBlackAtomic();
 
-  return header->markAtomic();
+  return buffer->markAtomic();
 }
 
 bool BufferAllocator::sweepLargeTenured(LargeBuffer* header) {

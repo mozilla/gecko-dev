@@ -409,6 +409,10 @@ class BufferAllocator : public SlimLinkedListElement<BufferAllocator> {
 
   void* allocSmall(size_t bytes, bool nurseryOwned);
   void* allocSmallInGC(size_t bytes, bool nurseryOwned);
+  void traceSmallAlloc(JSTracer* trc, Cell* owner, void** allocp,
+                       const char* name);
+  void markSmallNurseryOwnedBuffer(SmallBuffer* buffer, bool ownerWasTenured);
+  bool markSmallTenuredAlloc(void* alloc);
 
   static AllocKind AllocKindForSmallAlloc(size_t bytes);
 
@@ -444,6 +448,10 @@ class BufferAllocator : public SlimLinkedListElement<BufferAllocator> {
                              uintptr_t newStart);
   FreeLists* getChunkFreeLists(BufferChunk* chunk);
   bool isSweepingChunk(BufferChunk* chunk);
+  void traceMediumAlloc(JSTracer* trc, Cell* owner, void** allocp,
+                        const char* name);
+  void markMediumNurseryOwnedBuffer(MediumBuffer* buffer, bool ownerWasTenured);
+  bool markMediumTenuredAlloc(void* alloc);
 
   // Get the size class for an allocation. This rounds up to a class that is
   // large enough to hold the required size.
@@ -466,7 +474,10 @@ class BufferAllocator : public SlimLinkedListElement<BufferAllocator> {
   void freeLarge(void* alloc);
   bool shrinkLarge(LargeBuffer* header, size_t newBytes);
   void unmapLarge(LargeBuffer* header, bool isSweeping, MaybeLock& lock);
-  bool markLargeAlloc(void* alloc);
+  void traceLargeAlloc(JSTracer* trc, Cell* owner, void** allocp,
+                       const char* name);
+  void markLargeNurseryOwnedBuffer(LargeBuffer* buffer, bool ownerWasTenured);
+  bool markLargeTenuredBuffer(LargeBuffer* buffer);
   bool isLargeAllocMarked(void* alloc);
 
   // Lookup a large buffer by pointer in the map.
