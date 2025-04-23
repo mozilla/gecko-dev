@@ -38,6 +38,7 @@ import org.mozilla.samples.toolbar.middleware.SearchSelectorInteractions.History
 import org.mozilla.samples.toolbar.middleware.SearchSelectorInteractions.SettingsClicked
 import org.mozilla.samples.toolbar.middleware.SearchSelectorInteractions.TabsClicked
 import org.mozilla.samples.toolbar.middleware.StartBrowserInteractions.HomeClicked
+import org.mozilla.samples.toolbar.middleware.StartPageInteractions.SecurityIndicatorClicked
 import org.mozilla.samples.toolbar.middleware.TabCounterInteractions.Add10TabsClicked
 import org.mozilla.samples.toolbar.middleware.TabCounterInteractions.Remove10TabsClicked
 import org.mozilla.samples.toolbar.middleware.TabCounterInteractions.TabCounterClicked
@@ -52,6 +53,10 @@ private sealed class SearchSelectorInteractions : BrowserToolbarEvent {
 
 private sealed class StartBrowserInteractions : BrowserToolbarEvent {
     data object HomeClicked : StartBrowserInteractions()
+}
+
+private sealed class StartPageInteractions : BrowserToolbarEvent {
+    data object SecurityIndicatorClicked : StartBrowserInteractions()
 }
 
 private sealed class TabCounterInteractions : BrowserToolbarEvent {
@@ -88,6 +93,7 @@ internal class BrowserToolbarMiddleware(
                         displayState = DisplayState(
                             hint = "Search or enter address",
                             browserActionsStart = buildStartBrowserActions(),
+                            pageActionsStart = buildStartPageActions(),
                             pageActions = listOf(
                                 ActionButton(
                                     icon = iconsR.drawable.mozac_ic_arrow_clockwise_24,
@@ -115,6 +121,7 @@ internal class BrowserToolbarMiddleware(
 
             is SearchSelectorInteractions,
             is StartBrowserInteractions,
+            is StartPageInteractions,
             -> Toast.makeText(dependencies.context, action.javaClass.simpleName, Toast.LENGTH_SHORT).show()
 
             is TabCounterClicked -> {
@@ -147,6 +154,18 @@ internal class BrowserToolbarMiddleware(
                 R.color.generic_button_tint,
             ),
             onClick = HomeClicked,
+        ),
+    )
+
+    private fun buildStartPageActions() = listOf(
+        ActionButton(
+            icon = iconsR.drawable.mozac_ic_lock_24,
+            contentDescription = R.string.browser_action_security_lock_description,
+            tint = ContextCompat.getColor(
+                dependencies.context,
+                R.color.generic_button_tint,
+            ),
+            onClick = SecurityIndicatorClicked,
         ),
     )
 

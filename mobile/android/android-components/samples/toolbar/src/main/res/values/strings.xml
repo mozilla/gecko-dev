@@ -20,4 +20,5 @@
     <string name="page_action_refresh_description">Refresh</string>
     <string name="page_action_clear_input_description">Clear input</string>
     <string name="browser_action_home_button_description">Stay home</string>
+    <string name="browser_action_security_lock_description">Webpage security information</string>
 </resources>
