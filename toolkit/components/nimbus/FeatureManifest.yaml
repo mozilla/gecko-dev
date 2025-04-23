@@ -4497,6 +4497,18 @@ smartTabGroups:
         pref: browser.tabs.groups.smart.enabled
       description: Controls whether users can use ml features for suggesting tab group names or similar tabs
 
+smartTabGroupsClustering:
+  description: Prefs to control Smart Tab Groups Clustering Method
+  owner: rrando@mozilla.com
+  hasExposure: false
+  variables:
+    enabled:
+      type: string
+      setPref:
+        branch: user
+        pref: browser.tabs.groups.smart.suggestOtherTabsMethod
+      description: Controls clustering method used to suggest similar tabs feature
+
 smartblockEmbeds:
   description: Pref to control Smartblock Embeds
   owner: emz@mozilla.com
