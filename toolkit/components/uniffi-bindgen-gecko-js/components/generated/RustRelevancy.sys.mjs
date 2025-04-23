@@ -1585,47 +1585,47 @@ export const Interest = {
     /**
      * INCONCLUSIVE
      */
-    INCONCLUSIVE: 0,
+    INCONCLUSIVE: 1,
     /**
      * ANIMALS
      */
-    ANIMALS: 1,
+    ANIMALS: 2,
     /**
      * ARTS
      */
-    ARTS: 2,
+    ARTS: 3,
     /**
      * AUTOS
      */
-    AUTOS: 3,
+    AUTOS: 4,
     /**
      * BUSINESS
      */
-    BUSINESS: 4,
+    BUSINESS: 5,
     /**
      * CAREER
      */
-    CAREER: 5,
+    CAREER: 6,
     /**
      * EDUCATION
      */
-    EDUCATION: 6,
+    EDUCATION: 7,
     /**
      * FASHION
      */
-    FASHION: 7,
+    FASHION: 8,
     /**
      * FINANCE
      */
-    FINANCE: 8,
+    FINANCE: 9,
     /**
      * FOOD
      */
-    FOOD: 9,
+    FOOD: 10,
     /**
      * GOVERNMENT
      */
-    GOVERNMENT: 10,
+    GOVERNMENT: 11,
     /**
      * HOBBIES
      */
@@ -1663,10 +1663,7 @@ export const Interest = {
 Object.freeze(Interest);
 // Export the FFIConverter object to make external types work.
 export class FfiConverterTypeInterest extends FfiConverterArrayBuffer {
-    static #validValues = Object.values(Interest);
-
     static read(dataStream) {
-        // Use sequential indices (1-based) for the wire format to match Python bindings
         switch (dataStream.readInt32()) {
             case 1:
                 return Interest.INCONCLUSIVE
@@ -1710,7 +1707,6 @@ export class FfiConverterTypeInterest extends FfiConverterArrayBuffer {
                 throw new UniFFITypeError("Unknown Interest variant");
         }
     }
-
 
     static write(dataStream, value) {
         if (value === Interest.INCONCLUSIVE) {
@@ -1797,11 +1793,10 @@ export class FfiConverterTypeInterest extends FfiConverterArrayBuffer {
     }
 
     static checkType(value) {
-        // Check that the value is a valid enum variant
-        if (!this.#validValues.includes(value)) {
-            throw new UniFFITypeError(`${value} is not a valid value for Interest`);
-        }
+      if (!Number.isInteger(value) || value < 1 || value > 19) {
+          throw new UniFFITypeError(`${value} is not a valid value for Interest`);
       }
+    }
 }
 
 

@@ -2368,24 +2368,21 @@ export const AmpMatchingStrategy = {
      * This eliminates keywords that for terms related to the "real" keywords, for example
      * misspellings like "underarmor" instead of "under armor"'.
      */
-    NO_KEYWORD_EXPANSION: 0,
+    NO_KEYWORD_EXPANSION: 1,
     /**
      * Use FTS matching against the full keywords, joined together.
      */
-    FTS_AGAINST_FULL_KEYWORDS: 1,
+    FTS_AGAINST_FULL_KEYWORDS: 2,
     /**
      * Use FTS matching against the title field
      */
-    FTS_AGAINST_TITLE: 2,
+    FTS_AGAINST_TITLE: 3,
 };
 
 Object.freeze(AmpMatchingStrategy);
 // Export the FFIConverter object to make external types work.
 export class FfiConverterTypeAmpMatchingStrategy extends FfiConverterArrayBuffer {
-    static #validValues = Object.values(AmpMatchingStrategy);
-
     static read(dataStream) {
-        // Use sequential indices (1-based) for the wire format to match Python bindings
         switch (dataStream.readInt32()) {
             case 1:
                 return AmpMatchingStrategy.NO_KEYWORD_EXPANSION
@@ -2397,7 +2394,6 @@ export class FfiConverterTypeAmpMatchingStrategy extends FfiConverterArrayBuffer
                 throw new UniFFITypeError("Unknown AmpMatchingStrategy variant");
         }
     }
-
 
     static write(dataStream, value) {
         if (value === AmpMatchingStrategy.NO_KEYWORD_EXPANSION) {
@@ -2420,11 +2416,10 @@ export class FfiConverterTypeAmpMatchingStrategy extends FfiConverterArrayBuffer
     }
 
     static checkType(value) {
-        // Check that the value is a valid enum variant
-        if (!this.#validValues.includes(value)) {
-            throw new UniFFITypeError(`${value} is not a valid value for AmpMatchingStrategy`);
-        }
+      if (!Number.isInteger(value) || value < 1 || value > 3) {
+          throw new UniFFITypeError(`${value} is not a valid value for AmpMatchingStrategy`);
       }
+    }
 }
 
 
@@ -2436,24 +2431,21 @@ export const GeonameMatchType = {
     /**
      * For U.S. states, abbreviations are the usual two-letter codes ("CA").
      */
-    ABBREVIATION: 0,
+    ABBREVIATION: 1,
     /**
      * AIRPORT_CODE
      */
-    AIRPORT_CODE: 1,
+    AIRPORT_CODE: 2,
     /**
      * This includes any names that aren't abbreviations or airport codes.
      */
-    NAME: 2,
+    NAME: 3,
 };
 
 Object.freeze(GeonameMatchType);
 // Export the FFIConverter object to make external types work.
 export class FfiConverterTypeGeonameMatchType extends FfiConverterArrayBuffer {
-    static #validValues = Object.values(GeonameMatchType);
-
     static read(dataStream) {
-        // Use sequential indices (1-based) for the wire format to match Python bindings
         switch (dataStream.readInt32()) {
             case 1:
                 return GeonameMatchType.ABBREVIATION
@@ -2465,7 +2457,6 @@ export class FfiConverterTypeGeonameMatchType extends FfiConverterArrayBuffer {
                 throw new UniFFITypeError("Unknown GeonameMatchType variant");
         }
     }
-
 
     static write(dataStream, value) {
         if (value === GeonameMatchType.ABBREVIATION) {
@@ -2488,11 +2479,10 @@ export class FfiConverterTypeGeonameMatchType extends FfiConverterArrayBuffer {
     }
 
     static checkType(value) {
-        // Check that the value is a valid enum variant
-        if (!this.#validValues.includes(value)) {
-            throw new UniFFITypeError(`${value} is not a valid value for GeonameMatchType`);
-        }
+      if (!Number.isInteger(value) || value < 1 || value > 3) {
+          throw new UniFFITypeError(`${value} is not a valid value for GeonameMatchType`);
       }
+    }
 }
 
 
@@ -2504,20 +2494,17 @@ export const GeonameType = {
     /**
      * CITY
      */
-    CITY: 0,
+    CITY: 1,
     /**
      * REGION
      */
-    REGION: 1,
+    REGION: 2,
 };
 
 Object.freeze(GeonameType);
 // Export the FFIConverter object to make external types work.
 export class FfiConverterTypeGeonameType extends FfiConverterArrayBuffer {
-    static #validValues = Object.values(GeonameType);
-
     static read(dataStream) {
-        // Use sequential indices (1-based) for the wire format to match Python bindings
         switch (dataStream.readInt32()) {
             case 1:
                 return GeonameType.CITY
@@ -2527,7 +2514,6 @@ export class FfiConverterTypeGeonameType extends FfiConverterArrayBuffer {
                 throw new UniFFITypeError("Unknown GeonameType variant");
         }
     }
-
 
     static write(dataStream, value) {
         if (value === GeonameType.CITY) {
@@ -2546,11 +2532,10 @@ export class FfiConverterTypeGeonameType extends FfiConverterArrayBuffer {
     }
 
     static checkType(value) {
-        // Check that the value is a valid enum variant
-        if (!this.#validValues.includes(value)) {
-            throw new UniFFITypeError(`${value} is not a valid value for GeonameType`);
-        }
+      if (!Number.isInteger(value) || value < 1 || value > 2) {
+          throw new UniFFITypeError(`${value} is not a valid value for GeonameType`);
       }
+    }
 }
 
 
@@ -2562,25 +2547,22 @@ export const InterruptKind = {
     /**
      * Interrupt read operations like [SuggestStore::query]
      */
-    READ: 0,
+    READ: 1,
     /**
      * Interrupt write operations.  This mostly means [SuggestStore::ingest], but
      * other operations may also be interrupted.
      */
-    WRITE: 1,
+    WRITE: 2,
     /**
      * Interrupt both read and write operations,
      */
-    READ_WRITE: 2,
+    READ_WRITE: 3,
 };
 
 Object.freeze(InterruptKind);
 // Export the FFIConverter object to make external types work.
 export class FfiConverterTypeInterruptKind extends FfiConverterArrayBuffer {
-    static #validValues = Object.values(InterruptKind);
-
     static read(dataStream) {
-        // Use sequential indices (1-based) for the wire format to match Python bindings
         switch (dataStream.readInt32()) {
             case 1:
                 return InterruptKind.READ
@@ -2592,7 +2574,6 @@ export class FfiConverterTypeInterruptKind extends FfiConverterArrayBuffer {
                 throw new UniFFITypeError("Unknown InterruptKind variant");
         }
     }
-
 
     static write(dataStream, value) {
         if (value === InterruptKind.READ) {
@@ -2615,11 +2596,10 @@ export class FfiConverterTypeInterruptKind extends FfiConverterArrayBuffer {
     }
 
     static checkType(value) {
-        // Check that the value is a valid enum variant
-        if (!this.#validValues.includes(value)) {
-            throw new UniFFITypeError(`${value} is not a valid value for InterruptKind`);
-        }
+      if (!Number.isInteger(value) || value < 1 || value > 3) {
+          throw new UniFFITypeError(`${value} is not a valid value for InterruptKind`);
       }
+    }
 }
 
 
@@ -2793,7 +2773,6 @@ SuggestProviderConfig.Weather = class extends SuggestProviderConfig{
 // Export the FFIConverter object to make external types work.
 export class FfiConverterTypeSuggestProviderConfig extends FfiConverterArrayBuffer {
     static read(dataStream) {
-        // Use sequential indices (1-based) for the wire format to match Python bindings
         switch (dataStream.readInt32()) {
             case 1:
                 return new SuggestProviderConfig.Weather(
@@ -2827,7 +2806,7 @@ export class FfiConverterTypeSuggestProviderConfig extends FfiConverterArrayBuff
     }
 
     static checkType(value) {
-      if (value === undefined || value === null || !(value instanceof SuggestProviderConfig)) {
+      if (!(value instanceof SuggestProviderConfig)) {
         throw new UniFFITypeError(`${value} is not a subclass instance of SuggestProviderConfig`);
       }
     }
@@ -3050,7 +3029,6 @@ Suggestion.Dynamic = class extends Suggestion{
 // Export the FFIConverter object to make external types work.
 export class FfiConverterTypeSuggestion extends FfiConverterArrayBuffer {
     static read(dataStream) {
-        // Use sequential indices (1-based) for the wire format to match Python bindings
         switch (dataStream.readInt32()) {
             case 1:
                 return new Suggestion.Amp(
@@ -3347,7 +3325,7 @@ export class FfiConverterTypeSuggestion extends FfiConverterArrayBuffer {
     }
 
     static checkType(value) {
-      if (value === undefined || value === null || !(value instanceof Suggestion)) {
+      if (!(value instanceof Suggestion)) {
         throw new UniFFITypeError(`${value} is not a subclass instance of Suggestion`);
       }
     }
@@ -3400,10 +3378,7 @@ export const SuggestionProvider = {
 Object.freeze(SuggestionProvider);
 // Export the FFIConverter object to make external types work.
 export class FfiConverterTypeSuggestionProvider extends FfiConverterArrayBuffer {
-    static #validValues = Object.values(SuggestionProvider);
-
     static read(dataStream) {
-        // Use sequential indices (1-based) for the wire format to match Python bindings
         switch (dataStream.readInt32()) {
             case 1:
                 return SuggestionProvider.AMP
@@ -3427,7 +3402,6 @@ export class FfiConverterTypeSuggestionProvider extends FfiConverterArrayBuffer 
                 throw new UniFFITypeError("Unknown SuggestionProvider variant");
         }
     }
-
 
     static write(dataStream, value) {
         if (value === SuggestionProvider.AMP) {
@@ -3474,11 +3448,10 @@ export class FfiConverterTypeSuggestionProvider extends FfiConverterArrayBuffer 
     }
 
     static checkType(value) {
-        // Check that the value is a valid enum variant
-        if (!this.#validValues.includes(value)) {
-            throw new UniFFITypeError(`${value} is not a valid value for SuggestionProvider`);
-        }
+      if (!Number.isInteger(value) || value < 1 || value > 9) {
+          throw new UniFFITypeError(`${value} is not a valid value for SuggestionProvider`);
       }
+    }
 }
 
 
