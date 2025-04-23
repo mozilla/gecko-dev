@@ -10,6 +10,7 @@ a file.
 
 import importlib.machinery
 import importlib.util
+import os
 import sys
 import tempfile
 from pathlib import Path
@@ -31,7 +32,8 @@ def main():
     spec.loader.exec_module(mach)
 
     assert len(sys.argv) == 2
-    with tempfile.NamedTemporaryFile(mode="wb+", delete_on_close=False) as temp:
+    temp = tempfile.NamedTemporaryFile(mode="wb+", delete=False)
+    try:
         # Close the file so we don't run into permissions errors trying to read
         # the file later when other processes have written to it.
         # See https://bugzilla.mozilla.org/show_bug?cgi?id=1948069
@@ -63,6 +65,9 @@ def main():
         # Windows.
         with open(temp.name, "rb") as f:
             sys.stdout.buffer.write(f.read())
+    finally:
+        os.unlink(temp.name)
+
 
 if __name__ == "__main__":
     main()
