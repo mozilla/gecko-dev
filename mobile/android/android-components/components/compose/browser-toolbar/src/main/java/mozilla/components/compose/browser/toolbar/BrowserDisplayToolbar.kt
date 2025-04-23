@@ -41,8 +41,10 @@ private val ROUNDED_CORNER_SHAPE = RoundedCornerShape(8.dp)
  * @param progressBarConfig [ProgressBarConfig] configuration for the progress bar.
  * If `null` a progress bar will not be displayed.
  * @param textStyle [TextStyle] configuration for the URL text.
- * @param navigationActions List of navigation [Action]s to be displayed on left side of the
- * display toolbar (outside of the URL bounding box).
+ * @param browserActionsStart List of browser [Action]s to be displayed at the start of the
+ * toolbar, outside of the URL bounding box.
+ * These should be actions relevant to the browser as a whole.
+ * See [MDN docs](https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/API/browserAction).
  * @param pageActions List of page [Action]s to be displayed to the right side of the URL of the
  * display toolbar. Also see:
  * [MDN docs](https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/API/pageAction)
@@ -58,7 +60,7 @@ fun BrowserDisplayToolbar(
     colors: BrowserDisplayToolbarColors,
     progressBarConfig: ProgressBarConfig?,
     textStyle: TextStyle = LocalTextStyle.current,
-    navigationActions: List<Action> = emptyList(),
+    browserActionsStart: List<Action> = emptyList(),
     pageActions: List<Action> = emptyList(),
     browserActions: List<Action> = emptyList(),
     onUrlClicked: () -> Unit = {},
@@ -72,13 +74,11 @@ fun BrowserDisplayToolbar(
         Row(
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            if (navigationActions.isNotEmpty()) {
+            if (browserActionsStart.isNotEmpty()) {
                 ActionContainer(
-                    actions = navigationActions,
+                    actions = browserActionsStart,
                     onInteraction = onInteraction,
                 )
-            } else {
-                Spacer(modifier = Modifier.width(8.dp))
             }
 
             Row(
@@ -146,7 +146,7 @@ private fun BrowserDisplayToolbarPreview() {
                 progress = 66,
                 gravity = Top,
             ),
-            navigationActions = listOf(
+            browserActionsStart = listOf(
                 Action.ActionButton(
                     icon = mozilla.components.ui.icons.R.drawable.mozac_ic_home_24,
                     contentDescription = android.R.string.untitled,

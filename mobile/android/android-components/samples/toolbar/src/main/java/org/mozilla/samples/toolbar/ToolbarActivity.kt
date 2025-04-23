@@ -542,7 +542,7 @@ class ToolbarActivity : AppCompatActivity() {
                         initialState = BrowserToolbarState(
                             mode = Mode.DISPLAY,
                             displayState = DisplayState(
-                                navigationActions = listOf(
+                                browserActionsStart = listOf(
                                     ActionButton(
                                         icon = iconsR.drawable.mozac_ic_cross_24,
                                         contentDescription = R.string.page_action_clear_input_description,

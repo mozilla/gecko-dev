@@ -6,6 +6,7 @@ package mozilla.components.compose.browser.toolbar.store
 
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import mozilla.components.compose.browser.toolbar.concept.Action.ActionButton
+import mozilla.components.compose.browser.toolbar.store.BrowserDisplayToolbarAction.BrowserActionsStartUpdated
 import mozilla.components.compose.browser.toolbar.store.BrowserToolbarInteraction.BrowserToolbarEvent
 import mozilla.components.support.test.rule.MainCoroutineRule
 import org.junit.Assert.assertEquals
@@ -104,23 +105,18 @@ class BrowserToolbarStoreTest {
     }
 
     @Test
-    fun `WHEN add navigation action is dispatched THEN update display navigation actions state`() {
+    fun `WHEN updating start browser actions THEN replace the old actions with the new ones`() {
         val store = BrowserToolbarStore()
         val action1 = fakeActionButton()
         val action2 = fakeActionButton()
+        val action3 = fakeActionButton()
+        assertEquals(0, store.state.displayState.browserActionsStart.size)
 
-        assertEquals(0, store.state.displayState.navigationActions.size)
+        store.dispatch(BrowserActionsStartUpdated(listOf(action1)))
+        assertEquals(listOf(action1), store.state.displayState.browserActionsStart)
 
-        store.dispatch(BrowserDisplayToolbarAction.AddNavigationAction(action = action1))
-
-        assertEquals(1, store.state.displayState.navigationActions.size)
-        assertEquals(action1, store.state.displayState.navigationActions.first())
-
-        store.dispatch(BrowserDisplayToolbarAction.AddNavigationAction(action = action2))
-
-        assertEquals(2, store.state.displayState.navigationActions.size)
-        assertEquals(action1, store.state.displayState.navigationActions.first())
-        assertEquals(action2, store.state.displayState.navigationActions.last())
+        store.dispatch(BrowserActionsStartUpdated(listOf(action2, action3)))
+        assertEquals(listOf(action2, action3), store.state.displayState.browserActionsStart)
     }
 
     @Test

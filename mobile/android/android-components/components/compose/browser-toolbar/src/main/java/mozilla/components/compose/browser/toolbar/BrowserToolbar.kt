@@ -69,7 +69,7 @@ fun BrowserToolbar(
             url = selectedTab?.content?.url ?: uiState.displayState.hint,
             colors = colors.displayToolbarColors,
             progressBarConfig = progressBarConfig,
-            navigationActions = uiState.displayState.navigationActions,
+            browserActionsStart = uiState.displayState.browserActionsStart,
             pageActions = uiState.displayState.pageActions,
             browserActions = uiState.displayState.browserActions,
             onUrlClicked = {

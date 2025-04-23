@@ -48,8 +48,10 @@ enum class Mode {
  *
  * @property hint Text displayed in the toolbar when there's no URL to display
  * (no tab or empty URL).
- * @property navigationActions List of navigation [Action]s to be displayed on left side of the
- * display toolbar (outside of the URL bounding box).
+ * @property browserActionsStart List of browser [Action]s to be displayed at the start of the
+ * toolbar, outside of the URL bounding box.
+ * These should be actions relevant to the browser as a whole.
+ * See [MDN docs](https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/API/browserAction).
  * @property pageActions List of page [Action]s to be displayed to the right side of the URL of the
  * display toolbar. Also see:
  * [MDN docs](https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/API/pageAction)
@@ -61,7 +63,7 @@ enum class Mode {
  */
 data class DisplayState(
     val hint: String = "",
-    val navigationActions: List<Action> = emptyList(),
+    val browserActionsStart: List<Action> = emptyList(),
     val pageActions: List<Action> = emptyList(),
     val browserActions: List<Action> = emptyList(),
     val progressBarConfig: ProgressBarConfig? = null,

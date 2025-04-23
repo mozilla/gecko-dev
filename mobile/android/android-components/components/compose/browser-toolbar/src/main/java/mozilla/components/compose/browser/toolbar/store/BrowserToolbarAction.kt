@@ -37,12 +37,12 @@ sealed interface BrowserToolbarAction : Action {
  */
 sealed class BrowserDisplayToolbarAction : BrowserToolbarAction {
     /**
-     * Adds a navigation [Action] to be displayed to the left side of the URL of the display toolbar
-     * (outside of the URL bounding box).
+     * Replaces the currently displayed list of start browser actions with the provided list of actions.
+     * These are displayed to the left side of the URL, outside of the URL bounding box.
      *
-     * @property action The [Action] to be added.
+     * @property actions The new list of [ToolbarAction]s.
      */
-    data class AddNavigationAction(val action: ToolbarAction) : BrowserDisplayToolbarAction()
+    data class BrowserActionsStartUpdated(val actions: List<ToolbarAction>) : BrowserDisplayToolbarAction()
 
     /**
      * Adds a page [Action] to be displayed to the right side of the URL of the display toolbar.
