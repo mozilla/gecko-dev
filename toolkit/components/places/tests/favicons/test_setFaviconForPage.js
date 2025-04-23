@@ -57,11 +57,21 @@ add_task(async function test_replaceExisting() {
     firstFaviconDataURL
   );
 
-  await checkFaviconDataForPage(
-    pageURI,
-    firstFavicon.mimeType,
-    firstFavicon.data
-  );
+  await new Promise(resolve => {
+    PlacesUtils.favicons.getFaviconDataForPage(
+      pageURI,
+      function (aURI, aDataLen, aData, aMimeType) {
+        Assert.equal(aMimeType, firstFavicon.mimeType);
+        Assert.ok(compareArrays(aData, firstFavicon.data));
+        checkFaviconDataForPage(
+          pageURI,
+          firstFavicon.mimeType,
+          firstFavicon.data,
+          resolve
+        );
+      }
+    );
+  });
 
   await doTestSetFaviconForPage({
     pageURI,
@@ -312,14 +322,8 @@ add_task(async function test_sameHostRedirect() {
   await promise;
 
   // The favicon should be set also on the bookmarked url that redirected.
-  let favicon = await PlacesUtils.favicons.getFaviconForPage(
-    PlacesUtils.toURI(srcUrl)
-  );
-  Assert.equal(
-    favicon.rawData.length,
-    SMALLPNG_DATA_LEN,
-    "Check favicon dataLen"
-  );
+  let { dataLen } = await PlacesUtils.promiseFaviconData(srcUrl);
+  Assert.equal(dataLen, SMALLPNG_DATA_LEN, "Check favicon dataLen");
 
   await PlacesUtils.bookmarks.eraseEverything();
   await PlacesUtils.history.clear();
@@ -379,11 +383,14 @@ async function doTestSetFaviconForPage({
   info("Check the result of setFaviconForPage");
   Assert.equal(result, null, "If succeeded, the promise has no data");
 
-  await checkFaviconDataForPage(
-    pageURI,
-    expectedFaviconMimeType,
-    expectedFaviconData
-  );
+  await new Promise(resolve => {
+    checkFaviconDataForPage(
+      pageURI,
+      expectedFaviconMimeType,
+      expectedFaviconData,
+      resolve
+    );
+  });
 }
 
 add_task(async function test_incorrectMimeTypeDataURI() {

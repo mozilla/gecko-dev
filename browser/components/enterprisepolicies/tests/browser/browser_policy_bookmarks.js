@@ -220,9 +220,12 @@ add_task(async function test_initial_bookmarks() {
 add_task(async function checkFavicon() {
   let bookmark1url = CURRENT_POLICY.policies.Bookmarks[0].URL;
 
-  let result = await PlacesUtils.favicons.getFaviconForPage(
-    Services.io.newURI(bookmark1url)
-  );
+  let result = await new Promise(resolve => {
+    PlacesUtils.favicons.getFaviconDataForPage(
+      Services.io.newURI(bookmark1url),
+      (uri, _, data) => resolve({ uri, data })
+    );
+  });
 
   is(
     result.uri.spec,
@@ -232,7 +235,7 @@ add_task(async function checkFavicon() {
   // data is an array of octets, which will be a bit hard to compare against
   // FAVICON_DATA, which is base64 encoded. Checking the expected length should
   // be good indication that this is working properly.
-  is(result.rawData.length, 464, "Favicon data has the correct length");
+  is(result.data.length, 464, "Favicon data has the correct length");
 
   let faviconsExpiredNotification = TestUtils.topicObserved(
     "places-favicons-expired"
@@ -244,11 +247,15 @@ add_task(async function checkFavicon() {
 add_task(async function checkNetworkFavicon() {
   let bookmarkURL = CURRENT_POLICY.policies.Bookmarks[1].URL;
 
-  let result = await PlacesUtils.favicons.getFaviconForPage(
-    Services.io.newURI(bookmarkURL)
-  );
+  let result = await new Promise(resolve => {
+    PlacesUtils.favicons.getFaviconDataForPage(
+      Services.io.newURI(bookmarkURL),
+      (uri, _, data) => resolve({ uri, data })
+    );
+  });
 
-  is(result, null, "Favicon should not be loaded");
+  is(result.uri, null, "Favicon should not be loaded");
+  is(result.data.length, 0, "Favicon data should be empty");
 });
 
 add_task(async function test_remove_Bookmark_2() {

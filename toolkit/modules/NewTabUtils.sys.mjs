@@ -855,17 +855,17 @@ var ActivityStreamProvider = {
   async _loadIcons(aUri, preferredFaviconWidth) {
     let iconData = {};
     // Fetch the largest icon available.
+    let faviconData;
     try {
-      let faviconData = await lazy.PlacesUtils.favicons.getFaviconForPage(
+      faviconData = await lazy.PlacesUtils.promiseFaviconData(
         aUri,
         this.THUMB_FAVICON_SIZE
       );
-      let rawData = faviconData.rawData;
       Object.assign(iconData, {
-        favicon: rawData,
-        faviconLength: rawData.length,
+        favicon: faviconData.data,
+        faviconLength: faviconData.dataLen,
         faviconRef: faviconData.uri.ref,
-        faviconSize: faviconData.width,
+        faviconSize: faviconData.size,
         mimeType: faviconData.mimeType,
       });
     } catch (e) {
@@ -876,16 +876,15 @@ var ActivityStreamProvider = {
 
     // Also fetch a smaller icon.
     try {
-      let faviconData = await lazy.PlacesUtils.favicons.getFaviconForPage(
+      faviconData = await lazy.PlacesUtils.promiseFaviconData(
         aUri,
         preferredFaviconWidth
       );
-      let rawData = faviconData.rawData;
       Object.assign(iconData, {
-        smallFavicon: rawData,
-        smallFaviconLength: rawData.length,
+        smallFavicon: faviconData.data,
+        smallFaviconLength: faviconData.dataLen,
         smallFaviconRef: faviconData.uri.ref,
-        smallFaviconSize: faviconData.width,
+        smallFaviconSize: faviconData.size,
         smallFaviconMimeType: faviconData.mimeType,
       });
     } catch (e) {

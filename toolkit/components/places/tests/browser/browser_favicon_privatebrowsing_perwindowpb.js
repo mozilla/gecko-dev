@@ -33,10 +33,14 @@ function test() {
   }
 
   testOnWindow(true, function (win) {
-    waitForTabLoad(win, async function () {
-      let favicon = await PlacesTestUtils.getFaviconForPage(pageURI);
-      is(favicon, null, "No result should be found");
-      finish();
+    waitForTabLoad(win, function () {
+      PlacesUtils.favicons.getFaviconURLForPage(
+        NetUtil.newURI(pageURI),
+        function (uri) {
+          is(uri, null, "No result should be found");
+          finish();
+        }
+      );
     });
   });
 }

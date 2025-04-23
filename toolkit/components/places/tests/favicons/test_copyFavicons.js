@@ -117,12 +117,12 @@ add_task(async function test_copyFavicons() {
   );
   await promiseChange;
   Assert.equal(
-    (await PlacesTestUtils.getFaviconForPage(TEST_URI2, 1)).uri.spec,
+    await getFaviconUrlForPage(TEST_URI2, 1),
     SMALLPNG_DATA_URI.spec,
     "Small icon found"
   );
   Assert.equal(
-    (await PlacesTestUtils.getFaviconForPage(TEST_URI2)).uri.spec,
+    await getFaviconUrlForPage(TEST_URI2),
     SMALLSVG_DATA_URI.spec,
     "Large icon found"
   );
@@ -140,12 +140,12 @@ add_task(async function test_copyFavicons() {
   );
   await promiseChange;
   Assert.equal(
-    (await PlacesTestUtils.getFaviconForPage(TEST_URI3, 1)).uri.spec,
+    await getFaviconUrlForPage(TEST_URI3, 1),
     SMALLPNG_DATA_URI.spec,
     "Small icon found"
   );
   Assert.equal(
-    (await PlacesTestUtils.getFaviconForPage(TEST_URI3)).uri.spec,
+    await getFaviconUrlForPage(TEST_URI3),
     SMALLSVG_DATA_URI.spec,
     "Large icon found"
   );
@@ -181,12 +181,12 @@ add_task(async function test_copyFavicons_overlap() {
   );
   await promiseChange;
   Assert.equal(
-    (await PlacesTestUtils.getFaviconForPage(TEST_URI2, 1)).uri.spec,
+    await getFaviconUrlForPage(TEST_URI2, 1),
     SMALLPNG_DATA_URI.spec,
     "Small icon found"
   );
   Assert.equal(
-    (await PlacesTestUtils.getFaviconForPage(TEST_URI2)).uri.spec,
+    await getFaviconUrlForPage(TEST_URI2),
     SMALLSVG_DATA_URI.spec,
     "Large icon found"
   );

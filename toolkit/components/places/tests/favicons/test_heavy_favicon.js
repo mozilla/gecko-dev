@@ -32,7 +32,7 @@ add_task(async function () {
   );
   await PlacesTestUtils.setFaviconForPage(pageURI.spec, icon.uri.spec, dataURI);
   Assert.equal(
-    (await PlacesTestUtils.getFaviconForPage(pageURI)).uri.spec,
+    await getFaviconUrlForPage(pageURI),
     icon.uri.spec,
     "A resampled version of the icon should be stored"
   );

@@ -16,16 +16,9 @@ add_task(async function () {
   );
 
   // Sanity checks.
+  Assert.equal(await getFaviconUrlForPage(pageURI), faviconURI.spec);
   Assert.equal(
-    (await PlacesTestUtils.getFaviconForPage(pageURI)).uri.spec,
-    faviconURI.spec
-  );
-  Assert.equal(
-    (
-      await PlacesTestUtils.getFaviconForPage(
-        "https://places.test/somethingelse/"
-      )
-    ).uri.spec,
+    await getFaviconUrlForPage("https://places.test/somethingelse/"),
     faviconURI.spec
   );
 
@@ -49,10 +42,7 @@ add_task(async function () {
   await PlacesUtils.history.remove(pageURI);
 
   // Still works since the icon has not been removed.
-  Assert.equal(
-    (await PlacesTestUtils.getFaviconForPage(pageURI)).uri.spec,
-    faviconURI.spec
-  );
+  Assert.equal(await getFaviconUrlForPage(pageURI), faviconURI.spec);
 
   // Remove all the pages for the given domain.
   await PlacesUtils.history.remove("http://places.test/page2/");
@@ -93,17 +83,17 @@ add_task(async function test_removePagesByTimeframe() {
 
   // Sanity checks.
   Assert.equal(
-    (await PlacesTestUtils.getFaviconForPage(pageURI)).uri.spec,
+    await getFaviconUrlForPage(pageURI),
     faviconURI.spec,
     "Should get the biggest icon"
   );
   Assert.equal(
-    (await PlacesTestUtils.getFaviconForPage(pageURI, 1)).uri.spec,
+    await getFaviconUrlForPage(pageURI, 1),
     rootIconURI.spec,
     "Should get the smallest icon"
   );
   Assert.equal(
-    (await PlacesTestUtils.getFaviconForPage(oldPageURI)).uri.spec,
+    await getFaviconUrlForPage(oldPageURI),
     rootIconURI.spec,
     "Should get the root icon"
   );
@@ -152,7 +142,7 @@ add_task(async function test_different_host() {
   );
 
   Assert.equal(
-    (await PlacesTestUtils.getFaviconForPage(pageURI)).uri.spec,
+    await getFaviconUrlForPage(pageURI),
     faviconURI.spec,
     "Should get the png icon"
   );
@@ -189,7 +179,7 @@ add_task(async function test_same_size() {
   );
 
   Assert.equal(
-    (await PlacesTestUtils.getFaviconForPage(pageURI, 20)).uri.spec,
+    await getFaviconUrlForPage(pageURI, 20),
     faviconURI.spec,
     "Should get the non-root icon"
   );
@@ -221,7 +211,7 @@ add_task(async function test_root_on_different_host() {
   await PlacesTestUtils.setFaviconForPage(pageURI1, iconURI, SMALLPNG_DATA_URI);
   Assert.equal(await getRootValue(ICON_URL), 1, "Check root == 1");
   Assert.equal(
-    (await PlacesTestUtils.getFaviconForPage(pageURI1, 16)).uri.spec,
+    await getFaviconUrlForPage(pageURI1, 16),
     ICON_URL,
     "The icon should been found"
   );
@@ -230,7 +220,7 @@ add_task(async function test_root_on_different_host() {
   await PlacesTestUtils.setFaviconForPage(pageURI2, iconURI, SMALLPNG_DATA_URI);
   Assert.equal(await getRootValue(ICON_URL), 1, "Check root == 1");
   Assert.equal(
-    (await PlacesTestUtils.getFaviconForPage(pageURI2, 16)).uri.spec,
+    await getFaviconUrlForPage(pageURI2, 16),
     ICON_URL,
     "The icon should be found"
   );
@@ -238,7 +228,7 @@ add_task(async function test_root_on_different_host() {
   await PlacesUtils.history.remove(pageURI1);
 
   Assert.equal(
-    (await PlacesTestUtils.getFaviconForPage(pageURI2, 16)).uri.spec,
+    await getFaviconUrlForPage(pageURI2, 16),
     ICON_URL,
     "The icon should not have been removed"
   );

@@ -28,18 +28,26 @@ let uniqueFaviconId = 0;
  * @param aExpectedData
  *        Expected icon data, expressed as an array of byte values.
  *        If set null, skip the test for the favicon data.
+ * @param aCallback
+ *        This function is called after the check finished.
  */
-async function checkFaviconDataForPage(
+function checkFaviconDataForPage(
   aPageURI,
   aExpectedMimeType,
-  aExpectedData
+  aExpectedData,
+  aCallback
 ) {
-  let favicon = await PlacesTestUtils.getFaviconForPage(aPageURI);
-  Assert.equal(aExpectedMimeType, favicon.mimeType);
-  if (aExpectedData) {
-    Assert.ok(compareArrays(aExpectedData, favicon.rawData));
-  }
-  await check_guid_for_uri(aPageURI);
+  PlacesUtils.favicons.getFaviconDataForPage(
+    aPageURI,
+    async function (aURI, aDataLen, aData, aMimeType) {
+      Assert.equal(aExpectedMimeType, aMimeType);
+      if (aExpectedData) {
+        Assert.ok(compareArrays(aExpectedData, aData));
+      }
+      await check_guid_for_uri(aPageURI);
+      aCallback();
+    }
+  );
 }
 
 /**
@@ -47,10 +55,18 @@ async function checkFaviconDataForPage(
  *
  * @param aPageURI
  *        nsIURI object for the page to check.
+ * @param aCallback
+ *        This function is called after the check finished.
  */
-async function checkFaviconMissingForPage(aPageURI) {
-  let favicon = await PlacesTestUtils.getFaviconForPage(aPageURI);
-  Assert.ok(!favicon);
+function checkFaviconMissingForPage(aPageURI, aCallback) {
+  PlacesUtils.favicons.getFaviconURLForPage(aPageURI, function (aURI) {
+    Assert.ok(aURI === null);
+    aCallback();
+  });
+}
+
+function promiseFaviconMissingForPage(aPageURI) {
+  return new Promise(resolve => checkFaviconMissingForPage(aPageURI, resolve));
 }
 
 function promiseFaviconChanged(aExpectedPageURI, aExpectedFaviconURI) {

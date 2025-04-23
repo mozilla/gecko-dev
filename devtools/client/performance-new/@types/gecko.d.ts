@@ -232,23 +232,19 @@ declare namespace MockedExports {
 
   interface FaviconData {
     uri: nsIURI;
-    rawData: number[];
+    dataLen: number;
+    data: number[];
     mimeType: string;
-    width: number;
+    size: number;
   }
 
   const PlaceUtilsSYSMJS: {
     PlacesUtils: {
-      favicons: {
-        getFaviconForPage: (
-          pageUrl: nsIURI,
-          preferredWidth?: number
-        ) => Promise<FaviconData>;
-        // TS-TODO: Add the rest.
-      },
-      toURI: (
-        string | URL | nsIURI
-      ) => nsIURI
+      promiseFaviconData: (
+        pageUrl: string | URL | nsIURI,
+        preferredWidth?: number
+      ) => Promise<FaviconData>;
+      // TS-TODO: Add the rest.
     };
   };
 

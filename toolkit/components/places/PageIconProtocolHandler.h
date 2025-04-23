@@ -10,7 +10,6 @@
 #include "mozilla/MozPromise.h"
 #include "mozilla/StaticPtr.h"
 #include "mozilla/net/RemoteStreamGetter.h"
-#include "mozilla/places/nsFaviconService.h"
 #include "nsIProtocolHandler.h"
 #include "nsThreadUtils.h"
 #include "nsWeakReference.h"
@@ -18,6 +17,8 @@
 namespace mozilla::places {
 
 struct FaviconMetadata;
+using FaviconMetadataPromise =
+    mozilla::MozPromise<FaviconMetadata, nsresult, false>;
 
 using net::RemoteStreamPromise;
 
@@ -73,7 +74,8 @@ class PageIconProtocolHandler final : public nsIProtocolHandler,
                                                nsILoadInfo* aLoadInfo,
                                                nsIChannel** aRetVal);
 
-  RefPtr<FaviconPromise> GetFaviconData(nsIURI* aPageIconURI);
+  RefPtr<FaviconMetadataPromise> GetFaviconData(nsIURI* aPageIconURI,
+                                                nsILoadInfo* aLoadInfo);
 
   nsresult NewChannelInternal(nsIURI*, nsILoadInfo*, nsIChannel**);
 
