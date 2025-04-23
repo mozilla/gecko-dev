@@ -155,6 +155,8 @@ skip-if = ["inc_origin_init"]
 
 ["test_tempMetadataCleanup.js"]
 
+["test_temporaryStorageEviction.js"]
+
 ["test_unaccessedOrigins.js"]
 
 ["test_unknownFiles.js"]
