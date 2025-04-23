@@ -41,11 +41,11 @@ Object.defineProperty(win, "outerHeight", outerHeightDesc);
 
 const originalExitFullscreen = win.Document.prototype.exitFullscreen;
 
-const newExitFullscreen = exportFunction(function (...args) {
+const newExitFullscreen = exportFunction(function () {
   if (this.inAndroidPipMode) {
     return undefined;
   }
-  return originalExitFullscreen.apply(this, args);
+  return originalExitFullscreen.apply(this);
 }, window);
 
 Object.defineProperty(win.Document.prototype, "exitFullscreen", {
