@@ -125,9 +125,9 @@ test_update.html
 **Test updating.**
 
 
-dom/webgpu/mochitest
---------------------
-Performance tests from the 'dom/webgpu/mochitest' folder.
+dom/webgpu/tests/mochitest
+--------------------------
+Performance tests from the 'dom/webgpu/tests/mochitest' folder.
 
 test_queue_write_perf.html
 ==========================

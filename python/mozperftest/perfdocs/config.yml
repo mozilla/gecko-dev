@@ -74,7 +74,7 @@ suites:
             "IntlNumberFormat": ""
             "IntlPluralRules": ""
 
-    dom/webgpu/mochitest:
-        description: "Performance tests from the 'dom/webgpu/mochitest' folder."
+    dom/webgpu/tests/mochitest:
+        description: "Performance tests from the 'dom/webgpu/tests/mochitest' folder."
         tests:
             "Queue Write": ""
