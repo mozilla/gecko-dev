@@ -157,41 +157,6 @@ export const ExperimentAPI = {
   },
 
   /**
-   * Returns an experiment, including all its metadata
-   * Sends exposure event
-   *
-   * @param {{slug?: string, featureId?: string}} options slug = An experiment identifier
-   * or feature = a stable identifier for a type of experiment
-   * @returns {{slug: string, active: bool}} A matching experiment if one is found.
-   */
-  getExperiment({ slug, featureId } = {}) {
-    if (!slug && !featureId) {
-      throw new Error(
-        "getExperiment(options) must include a slug or a feature."
-      );
-    }
-    let experimentData;
-    try {
-      if (slug) {
-        experimentData = this._manager.store.get(slug);
-      } else if (featureId) {
-        experimentData = this._manager.store.getExperimentForFeature(featureId);
-      }
-    } catch (e) {
-      console.error(e);
-    }
-    if (experimentData) {
-      return {
-        slug: experimentData.slug,
-        active: experimentData.active,
-        branch: new Proxy(experimentData.branch, experimentBranchAccessor),
-      };
-    }
-
-    return null;
-  },
-
-  /**
    * Used by getExperimentMetaData and getRolloutMetaData
    *
    * @param {{slug: string, featureId: string}} options Enrollment identifier
@@ -201,7 +166,7 @@ export const ExperimentAPI = {
   getEnrollmentMetaData({ slug, featureId }, isRollout) {
     if (!slug && !featureId) {
       throw new Error(
-        "getExperiment(options) must include a slug or a feature."
+        "getEnrollmentMetaData(options) must include a slug or a feature."
       );
     }
 

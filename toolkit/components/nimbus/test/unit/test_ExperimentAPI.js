@@ -8,26 +8,6 @@ const { TestUtils } = ChromeUtils.importESModule(
 );
 const COLLECTION_ID_PREF = "messaging-system.rsexperimentloader.collection_id";
 
-/**
- * #getExperiment
- */
-add_task(async function test_getExperiment_fromParent_slug() {
-  const { manager, cleanup } = await NimbusTestUtils.setupTest();
-
-  const expected = ExperimentFakes.experiment("foo");
-
-  manager.store.addEnrollment(expected);
-
-  Assert.equal(
-    ExperimentAPI.getExperiment({ slug: "foo" }).slug,
-    expected.slug,
-    "should return an experiment by slug"
-  );
-
-  manager.unenroll(expected.slug);
-  cleanup();
-});
-
 add_task(async function test_getExperimentMetaData() {
   const { sandbox, manager, cleanup } = await NimbusTestUtils.setupTest();
 
@@ -107,66 +87,6 @@ add_task(async function test_getExperimentMetaData_safe() {
 
   Assert.ok(manager.store.getExperimentForFeature.calledOnce);
   Assert.ok(exposureStub.notCalled, "Not called for this feature");
-
-  cleanup();
-});
-
-add_task(async function test_getExperiment_safe() {
-  const { sandbox, manager, cleanup } = await NimbusTestUtils.setupTest();
-
-  sandbox.stub(manager.store, "getExperimentForFeature").throws();
-
-  try {
-    Assert.equal(
-      ExperimentAPI.getExperiment({ featureId: "foo" }),
-      null,
-      "It should not fail even when it throws."
-    );
-  } catch (e) {
-    Assert.ok(false, "Error should be caught by ExperimentAPI");
-  }
-
-  cleanup();
-});
-
-add_task(async function test_getExperiment_featureAccess() {
-  const { sandbox, manager, cleanup } = await NimbusTestUtils.setupTest();
-
-  const expected = ExperimentFakes.experiment("foo", {
-    branch: {
-      slug: "treatment",
-      value: { title: "hi" },
-      features: [{ featureId: "cfr", value: { message: "content" } }],
-    },
-  });
-  sandbox.stub(manager.store, "getExperimentForFeature").returns(expected);
-
-  const { branch } = ExperimentAPI.getExperiment({ featureId: "cfr" });
-
-  Assert.equal(branch.slug, "treatment");
-  const feature = branch.cfr;
-  Assert.ok(feature, "Should allow to access by featureId");
-  Assert.equal(feature.value.message, "content");
-
-  cleanup();
-});
-
-add_task(async function test_getExperiment_featureAccess_backwardsCompat() {
-  const { sandbox, manager, cleanup } = await NimbusTestUtils.setupTest();
-  const expected = ExperimentFakes.experiment("foo", {
-    branch: {
-      slug: "treatment",
-      feature: { featureId: "cfr", value: { message: "content" } },
-    },
-  });
-  sandbox.stub(manager.store, "getExperimentForFeature").returns(expected);
-
-  const { branch } = ExperimentAPI.getExperiment({ featureId: "cfr" });
-
-  Assert.equal(branch.slug, "treatment");
-  const feature = branch.cfr;
-  Assert.ok(feature, "Should allow to access by featureId");
-  Assert.equal(feature.value.message, "content");
 
   cleanup();
 });
