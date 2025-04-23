@@ -189,7 +189,7 @@ const DEFAULT_ACTIONS = {
     onPick: restartBrowser,
   },
   savepdf: {
-    l10nCommands: ["quickactions-cmd-savepdf"],
+    l10nCommands: ["quickactions-cmd-savepdf2"],
     label: "quickactions-savepdf",
     icon: "chrome://global/skin/icons/print.svg",
     onPick: () => {
