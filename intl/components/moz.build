@@ -77,6 +77,9 @@ LOCAL_INCLUDES += [
     "/intl/icu_capi/bindings/c",
 ]
 
+if not CONFIG["MOZ_SYSTEM_ICU"]:
+    DIRS += ["src/calendar"]
+
 # At the time of this writing the MOZ_HAS_MOZGLUE define must be true in order to
 # correctly include ConvertUtf8toUtf16 in certain include paths, otherwise it results
 # in a compile time "undeclared identifier" error. See:
