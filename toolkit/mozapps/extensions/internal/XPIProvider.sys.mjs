@@ -78,6 +78,9 @@ const PREF_SYSTEM_ADDON_SET = "extensions.systemAddonSet";
 
 const PREF_EM_LAST_APP_BUILD_ID = "extensions.lastAppBuildId";
 
+const PREF_DATA_COLLECTION_PERMISSIONS_ENABLED =
+  "extensions.dataCollectionPermissions.enabled";
+
 // Specify a list of valid built-in add-ons to load.
 const BUILT_IN_ADDONS_URI = "chrome://browser/content/built_in_addons.json";
 
@@ -2590,6 +2593,11 @@ export var XPIProvider = {
       Services.prefs.addObserver(PREF_LANGPACK_SIGNATURES, this);
       Services.obs.addObserver(this, NOTIFICATION_FLUSH_PERMISSIONS);
 
+      Services.prefs.addObserver(
+        PREF_DATA_COLLECTION_PERMISSIONS_ENABLED,
+        this
+      );
+
       this.checkForChanges(aAppChanged, aOldAppVersion, aOldPlatformVersion);
 
       AddonManagerPrivate.markProviderSafe(this);
@@ -2847,6 +2855,11 @@ export var XPIProvider = {
 
     // Stop anything we were doing asynchronously
     XPIExports.XPIInstall.cancelAll();
+
+    Services.prefs.removeObserver(
+      PREF_DATA_COLLECTION_PERMISSIONS_ENABLED,
+      this
+    );
 
     for (let install of XPIExports.XPIInstall.installs) {
       if (install.onShutdown()) {
@@ -3247,9 +3260,7 @@ export var XPIProvider = {
   async getNewSideloads() {
     if (XPIStates.scanForChanges(false)) {
       // We detected changes. Update the database to account for them.
-      await XPIExports.XPIDatabase.asyncLoadDB(false);
-      XPIExports.XPIDatabaseReconcile.processFileChanges({}, false);
-      XPIExports.XPIDatabase.updateActiveAddons();
+      await this._updateDatabase({ aSchemaChange: false });
     }
 
     let addons = await Promise.all(
@@ -3406,6 +3417,20 @@ export var XPIProvider = {
           case PREF_LANGPACK_SIGNATURES:
             XPIExports.XPIDatabase.updateAddonAppDisabledStates();
             break;
+
+          case PREF_DATA_COLLECTION_PERMISSIONS_ENABLED:
+            // When this pref is enabled, we need to update the DB. It is fine
+            // to only do this when the pref is enabled because the UI and APIs
+            // are backward compatible.
+            if (
+              Services.prefs.getBoolPref(
+                PREF_DATA_COLLECTION_PERMISSIONS_ENABLED,
+                false
+              )
+            ) {
+              this._updateDatabase({ aSchemaChange: true });
+            }
+            break;
         }
     }
   },
@@ -3413,6 +3438,19 @@ export var XPIProvider = {
   uninstallSystemProfileAddon(aID) {
     let location = XPIStates.getLocation(KEY_APP_SYSTEM_PROFILE);
     return XPIExports.XPIInstall.uninstallAddonFromLocation(aID, location);
+  },
+
+  async _updateDatabase({ aSchemaChange }) {
+    await XPIExports.XPIDatabase.asyncLoadDB(false);
+    XPIExports.XPIDatabaseReconcile.processFileChanges(
+      /* aManifests */ {},
+      /* aAppChanged */ false,
+      /* aOldAppVersion, */ false,
+      /* aOldPlatformVersion */ false,
+      aSchemaChange
+    );
+    XPIExports.XPIDatabase.updateActiveAddons();
+    Services.obs.notifyObservers(null, "xpi-provider:database-updated");
   },
 };
 

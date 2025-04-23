@@ -1000,3 +1000,63 @@ add_task(
     await extension.unload();
   }
 );
+
+// This test verifies that data collection permissions are taken into account when
+// an extension is installed before the `extensions.dataCollectionPermissions.enabled`
+// pref is enabled.
+add_task(
+  { pref_set: [["extensions.dataCollectionPermissions.enabled", false]] },
+  async function test_database_updated_for_data_collection() {
+    const extension = ExtensionTestUtils.loadExtension({
+      manifest: {
+        manifest_version: 2,
+        browser_specific_settings: {
+          gecko: {
+            id: "@updated-db-ext",
+            data_collection_permissions: {
+              required: ["locationInfo"],
+            },
+          },
+        },
+      },
+      useAddonManager: "permanent",
+    });
+    await extension.startup();
+
+    const addon = await AddonManager.getAddonByID(extension.id);
+    ok(addon, "Expected add-on wrapper");
+    Assert.deepEqual(
+      addon.userPermissions,
+      { permissions: [], origins: [], data_collection: [] },
+      "Expected no permissions"
+    );
+
+    // Flip the pref.
+    let observePromise = TestUtils.topicObserved(
+      "xpi-provider:database-updated"
+    );
+    Services.prefs.setBoolPref(
+      "extensions.dataCollectionPermissions.enabled",
+      true
+    );
+    await observePromise;
+    Assert.deepEqual(
+      addon.userPermissions,
+      { permissions: [], origins: [], data_collection: ["locationInfo"] },
+      "Expected data collection permissions"
+    );
+
+    // Flip the pref back to `false`. We do not rebuild the DB in this case.
+    Services.prefs.setBoolPref(
+      "extensions.dataCollectionPermissions.enabled",
+      false
+    );
+    Assert.deepEqual(
+      addon.userPermissions,
+      { permissions: [], origins: [], data_collection: ["locationInfo"] },
+      "Expected data collection permissions"
+    );
+
+    await extension.unload();
+  }
+);
