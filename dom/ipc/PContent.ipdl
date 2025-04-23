@@ -47,7 +47,6 @@ include protocol PRemoteWorkerService;
 include protocol PProfiler;
 include protocol PScriptCache;
 include protocol PSessionStorageObserver;
-include protocol PBenchmarkStorage;
 include CrashReporterInitArgs;
 include DOMTypes;
 include WindowGlobalTypes;
@@ -508,7 +507,6 @@ sync protocol PContent
     manages PURLClassifierLocalByName;
     manages PScriptCache;
     manages PSessionStorageObserver;
-    manages PBenchmarkStorage;
 
     // Depending on exactly how the new browser is being created, it might be
     // created from either the child or parent process!
@@ -1135,8 +1133,6 @@ parent:
 
     async PSessionStorageObserver();
 
-    async PBenchmarkStorage();
-
     // Services remoting
 
     async StartVisitedQueries(nullable nsIURI[] uri);
@@ -1549,12 +1545,6 @@ parent:
       OriginAttributes aOriginAttributes,
       bool aUserActivation,
       bool aTextDirectiveUserActivation);
-
-    /**
-     * Tell the parent that a decoder's' benchmark has been completed.
-     * The result can then be stored in permanent storage.
-     */
-    async NotifyBenchmarkResult(nsString aCodecName, uint32_t aDecodeFPS);
 
     /**
      * Notify `push-message` observers without data in the parent.
