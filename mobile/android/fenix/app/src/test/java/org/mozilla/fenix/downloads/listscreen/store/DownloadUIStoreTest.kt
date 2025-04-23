@@ -18,7 +18,6 @@ import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotSame
 import org.junit.Assert.assertSame
-import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
@@ -180,17 +179,14 @@ class DownloadUIStoreTest {
         )
 
         assertEquals(expectedUIStateBeforeDeleteAction, store.state)
-        assertTrue(store.state.itemsToDisplay.contains(fileItem1))
 
         store.dispatch(DownloadUIAction.AddPendingDeletionSet(deleteItemSet))
         assertEquals(store.state.pendingDeletionIds, deleteItemSet)
         assertEquals(expectedUIStateAfterDeleteAction, store.state)
-        assertEquals(listOf<DownloadListItem>(), store.state.itemsToDisplay)
 
         dispatcher.scheduler.advanceTimeBy(UNDO_DELAY_PASSED.milliseconds)
         assertEquals(store.state.pendingDeletionIds, deleteItemSet)
         assertEquals(expectedUIStateAfterDeleteAction, store.state)
-        assertEquals(listOf<DownloadListItem>(), store.state.itemsToDisplay)
 
         browserStoreMiddleware.assertLastAction(DownloadAction.RemoveDownloadAction::class) { action ->
             assertEquals(fileItem1.id, action.downloadId)
@@ -211,15 +207,12 @@ class DownloadUIStoreTest {
             pendingDeletionIds = deleteItemSet,
         )
         assertEquals(expectedUIState, store.state)
-        assertEquals(0, store.state.itemsToDisplay.size)
 
         store.dispatch(DownloadUIAction.UndoPendingDeletionSet(deleteItemSet))
         assertEquals(store.state.pendingDeletionIds, emptySet<String>())
-        assertTrue(store.state.itemsToDisplay.contains(fileItem1))
 
         dispatcher.scheduler.advanceTimeBy(UNDO_DELAY_PASSED.milliseconds)
         assertEquals(store.state.pendingDeletionIds, emptySet<String>())
-        assertTrue(store.state.itemsToDisplay.contains(fileItem1))
 
         browserStoreMiddleware.assertNotDispatched(DownloadAction.RemoveDownloadAction::class)
     }
@@ -238,7 +231,6 @@ class DownloadUIStoreTest {
             pendingDeletionIds = deleteItemSet,
         )
         assertEquals(expectedUIState, store.state)
-        assertEquals(0, store.state.itemsToDisplay.size)
 
         dispatcher.scheduler.advanceTimeBy(UNDO_DELAY_PASSED.milliseconds)
         store.dispatch(DownloadUIAction.UndoPendingDeletionSet(deleteItemSet))
@@ -330,7 +322,7 @@ class DownloadUIStoreTest {
         )
         downloadsStore.waitUntilIdle()
 
-        val expectedList =
+        val expectedList = DownloadUIState.ItemsState.Items(
             listOf(
                 HeaderItem(CreatedTime.TODAY),
                 FileItem(
@@ -356,9 +348,10 @@ class DownloadUIStoreTest {
                     status = DownloadState.Status.COMPLETED,
                     createdTime = CreatedTime.OLDER,
                 ),
-            )
+            ),
+        )
 
-        assertEquals(expectedList, downloadsStore.state.itemsToDisplay)
+        assertEquals(expectedList, downloadsStore.state.itemsState)
     }
 
     @Test
@@ -401,22 +394,24 @@ class DownloadUIStoreTest {
         )
         downloadsStore.waitUntilIdle()
 
-        val expectedList = listOf(
-            HeaderItem(CreatedTime.OLDER),
-            FileItem(
-                id = "1",
-                url = "https://www.google.com",
-                fileName = "1.pdf",
-                filePath = "downloads/1.pdf",
-                formattedSize = "10000",
-                displayedShortUrl = "google.com",
-                contentType = "application/pdf",
-                status = DownloadState.Status.COMPLETED,
-                createdTime = CreatedTime.OLDER,
+        val expectedList = DownloadUIState.ItemsState.Items(
+            listOf(
+                HeaderItem(CreatedTime.OLDER),
+                FileItem(
+                    id = "1",
+                    url = "https://www.google.com",
+                    fileName = "1.pdf",
+                    filePath = "downloads/1.pdf",
+                    formattedSize = "10000",
+                    displayedShortUrl = "google.com",
+                    contentType = "application/pdf",
+                    status = DownloadState.Status.COMPLETED,
+                    createdTime = CreatedTime.OLDER,
+                ),
             ),
         )
 
-        assertEquals(expectedList, downloadsStore.state.itemsToDisplay)
+        assertEquals(expectedList, downloadsStore.state.itemsState)
     }
 
     private fun LocalDate.toEpochMilli(zoneId: ZoneId): Long {

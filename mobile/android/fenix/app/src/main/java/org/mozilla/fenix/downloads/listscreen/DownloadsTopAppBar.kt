@@ -4,64 +4,77 @@
 
 package org.mozilla.fenix.downloads.listscreen
 
-import androidx.compose.foundation.layout.RowScope
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.width
 import androidx.compose.material.Icon
 import androidx.compose.material.IconButton
 import androidx.compose.material.Text
 import androidx.compose.material.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.dp
 import mozilla.components.compose.base.annotation.FlexibleWindowLightDarkPreview
-import mozilla.components.compose.base.menu.DropdownMenu
-import mozilla.components.compose.base.menu.MenuItem
 import org.mozilla.fenix.R
 import org.mozilla.fenix.theme.FirefoxTheme
 
 /**
- * The toolbar for the downloads screen.
- * It displays the title, navigation icon, and an optional overflow menu.
+ * A TopAppBar for the Downloads screen. It has slots for a title, an optional navigation icon
+ * and actions.
  *
  * @param backgroundColor - The background color for the TopAppBar.
+ * @param modifier - The [Modifier] to be applied to this composable.
+ * @param navigationIcon - The optional navigation icon displayed at the start of the TopAppBar.
  * @param title - The title to be displayed in the center of the TopAppBar.
- * @param navigationIcon - The navigation icon displayed at the start of the TopAppBar.
  * @param actions - The actions displayed at the end of the TopAppBar.
  */
 @Composable
-internal fun Toolbar(
+internal fun DownloadsTopAppBar(
     backgroundColor: Color,
+    modifier: Modifier = Modifier,
+    navigationIcon: @Composable (() -> Unit)? = null,
     title: @Composable () -> Unit,
-    navigationIcon: @Composable (() -> Unit),
-    actions: @Composable RowScope.() -> Unit = {},
+    actions: @Composable () -> Unit,
 ) {
     TopAppBar(
         backgroundColor = backgroundColor,
-        title = title,
-        navigationIcon = navigationIcon,
-        actions = actions,
+        contentPadding = PaddingValues(start = TopAppBarPaddingStart, end = TopAppBarPaddingEnd),
+        content = {
+            Row(
+                modifier = modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                if (navigationIcon != null) {
+                    Spacer(Modifier.width(4.dp))
+                    navigationIcon()
+                    Spacer(Modifier.width(4.dp))
+                }
+                Box(
+                    modifier = Modifier.weight(1f),
+                    contentAlignment = Alignment.CenterStart,
+                ) {
+                    title()
+                }
+                actions()
+            }
+        },
     )
 }
 
 /**
- * A dropdown menu for the downloads screen.
- *
- * @param showMenu `true` to display the menu, `false` otherwise.
- * @param menuItems The list of [MenuItem] to display in the dropdown menu.
- * @param onDismissRequest A callback that is invoked when the user attempts to dismiss the menu.
+ * These padding values offset the start inset being applied by the material component on the
+ * TopAppBar when there's no navigation icon, so the content can be centre aligned. See
+ * constants at the bottom in [TopAppBar].
  */
-@Composable
-fun DownloadsOverflowMenu(
-    showMenu: Boolean,
-    menuItems: List<MenuItem>,
-    onDismissRequest: () -> Unit,
-) {
-    DropdownMenu(
-        menuItems = menuItems,
-        expanded = showMenu,
-        onDismissRequest = onDismissRequest,
-    )
-}
+private val TopAppBarPaddingEnd = 8.dp
+private val TopAppBarPaddingStart = 0.dp
 
 /**
  * @property title The title text to display in the Toolbar.
@@ -78,9 +91,9 @@ data class ToolbarConfig(
 
 @Composable
 @FlexibleWindowLightDarkPreview
-private fun ToolbarPreview() {
+private fun DownloadsTopAppBarPreview() {
     FirefoxTheme {
-        Toolbar(
+        DownloadsTopAppBar(
             backgroundColor = FirefoxTheme.colors.layerAccent,
             title = {
                 Text(
