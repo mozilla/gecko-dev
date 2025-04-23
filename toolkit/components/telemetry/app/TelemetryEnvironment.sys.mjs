@@ -82,8 +82,8 @@ export var Policy = {
 var gActiveExperimentStartupBuffer = new Map();
 
 // For Powering arewegleanyet.com (See bug 1944592)
-// Legacy Count: 112
-// Glean Count: 51
+// Legacy Count: 114
+// Glean Count: 54
 
 var gGlobalEnvironment;
 function getGlobal() {
@@ -795,6 +795,20 @@ EnvironmentAddonBuilder.prototype = {
       );
     }
     this._environment._currentEnvironment.addons = addons;
+
+    // Convert into the appropriate schema and record the addon environment
+    // data in Glean
+    let activeAddonsGlean = Object.entries(addons.activeAddons).map(
+      ([id, { type, ...rest }]) => ({ id, addonType: type, ...rest })
+    );
+    Glean.addons.activeAddons.set(activeAddonsGlean);
+    Glean.addons.theme.set(addons.theme);
+    Glean.addons.activeGMPlugins.set(
+      Object.entries(addons.activeGMPlugins).map(([id, value]) => ({
+        id,
+        ...value,
+      }))
+    );
 
     return result;
   },
