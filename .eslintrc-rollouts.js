@@ -51,7 +51,7 @@ const rollouts = [
       "browser/base/content/browser-data-submission-info-bar.js",
       "browser/base/content/browser-sync.js",
       "browser/base/content/browser.js",
-      "browser/components/BrowserGlue.sys.mjs",
+      "browser/components/shell/StartupOSIntegration.sys.mjs",
       "browser/components/attribution/AttributionCode.sys.mjs",
       "browser/components/customizableui/**",
       "browser/components/downloads/**",
