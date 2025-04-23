@@ -495,7 +495,7 @@ let interfaceNamesInGlobalScope = [
   // IMPORTANT: Do not change this list without review from a DOM peer!
   "WindowClient",
   // IMPORTANT: Do not change this list without review from a DOM peer!
-  { name: "WGSLLanguageFeatures", isEarlyBetaOrEarlier: true },
+  { name: "WGSLLanguageFeatures", earlyBetaOrEarlier: true },
   // IMPORTANT: Do not change this list without review from a DOM peer!
   "WorkerGlobalScope",
   // IMPORTANT: Do not change this list without review from a DOM peer!
