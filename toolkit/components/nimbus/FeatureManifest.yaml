@@ -1313,6 +1313,19 @@ newtabPrivatePing:
       description: >-
         Enables the private newtab-content ping sent through OHTTP
 
+newtabTrainhop:
+  description: Experiment feature for the train-hopping newtab extension.
+  owner: mconley@mozilla.com
+  hasExposure: false
+  allowCoenrollment: true
+  variables:
+    type:
+      type: string
+      description: A discriminant to tell different kinds of trainhop experiments apart.
+    payload:
+      type: json
+      description: The experiment configuration.
+
 pocketNewtab:
   description: The Pocket section in newtab
   owner: sdowne@mozilla.com
