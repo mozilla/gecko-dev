@@ -14,6 +14,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import mozilla.components.compose.browser.toolbar.concept.Action
+import mozilla.components.compose.browser.toolbar.concept.Action.ActionButton
 import mozilla.components.compose.browser.toolbar.concept.Action.DropdownAction
 import mozilla.components.compose.browser.toolbar.concept.Action.TabCounterAction
 import mozilla.components.compose.browser.toolbar.store.BrowserDisplayToolbarAction
@@ -36,6 +37,7 @@ import org.mozilla.samples.toolbar.middleware.SearchSelectorInteractions.Bookmar
 import org.mozilla.samples.toolbar.middleware.SearchSelectorInteractions.HistoryClicked
 import org.mozilla.samples.toolbar.middleware.SearchSelectorInteractions.SettingsClicked
 import org.mozilla.samples.toolbar.middleware.SearchSelectorInteractions.TabsClicked
+import org.mozilla.samples.toolbar.middleware.StartBrowserInteractions.HomeClicked
 import org.mozilla.samples.toolbar.middleware.TabCounterInteractions.Add10TabsClicked
 import org.mozilla.samples.toolbar.middleware.TabCounterInteractions.Remove10TabsClicked
 import org.mozilla.samples.toolbar.middleware.TabCounterInteractions.TabCounterClicked
@@ -46,6 +48,10 @@ private sealed class SearchSelectorInteractions : BrowserToolbarEvent {
     data object TabsClicked : SearchSelectorInteractions()
     data object HistoryClicked : SearchSelectorInteractions()
     data object SettingsClicked : SearchSelectorInteractions()
+}
+
+private sealed class StartBrowserInteractions : BrowserToolbarEvent {
+    data object HomeClicked : StartBrowserInteractions()
 }
 
 private sealed class TabCounterInteractions : BrowserToolbarEvent {
@@ -81,8 +87,9 @@ internal class BrowserToolbarMiddleware(
                         mode = Mode.DISPLAY,
                         displayState = DisplayState(
                             hint = "Search or enter address",
+                            browserActionsStart = buildStartBrowserActions(),
                             pageActions = listOf(
-                                Action.ActionButton(
+                                ActionButton(
                                     icon = iconsR.drawable.mozac_ic_arrow_clockwise_24,
                                     contentDescription = R.string.page_action_refresh_description,
                                     tint = ContextCompat.getColor(
@@ -106,9 +113,9 @@ internal class BrowserToolbarMiddleware(
                 simulateReload()
             }
 
-            is SearchSelectorInteractions -> {
-                Toast.makeText(dependencies.context, action.javaClass.simpleName, Toast.LENGTH_SHORT).show()
-            }
+            is SearchSelectorInteractions,
+            is StartBrowserInteractions,
+            -> Toast.makeText(dependencies.context, action.javaClass.simpleName, Toast.LENGTH_SHORT).show()
 
             is TabCounterClicked -> {
                 currentTabsNumber += 1
@@ -130,6 +137,18 @@ internal class BrowserToolbarMiddleware(
             }
         }
     }
+
+    private fun buildStartBrowserActions() = listOf(
+        ActionButton(
+            icon = iconsR.drawable.mozac_ic_home_24,
+            contentDescription = R.string.browser_action_home_button_description,
+            tint = ContextCompat.getColor(
+                dependencies.context,
+                R.color.generic_button_tint,
+            ),
+            onClick = HomeClicked,
+        ),
+    )
 
     private fun buildDisplayBrowserActions() = listOf(
         TabCounterAction(
