@@ -2177,14 +2177,6 @@ export class UrlbarInput {
 
     this.#updateTextboxPosition();
 
-    if (Cu.isInAutomation) {
-      if (lazy.UrlbarPrefs.get("disableExtendForTests")) {
-        this.setAttribute("breakout-extend-disabled", "true");
-        return;
-      }
-      this.removeAttribute("breakout-extend-disabled");
-    }
-
     this.setAttribute("breakout-extend", "true");
 
     // Enable the animation only after the first extend call to ensure it
