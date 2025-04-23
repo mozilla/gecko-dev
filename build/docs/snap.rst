@@ -138,7 +138,7 @@ So pushing to try is basically just:
 
 .. code-block:: shell
 
-    $ mach try fuzzy --full -q "'snap 'upstream 'try"
+    $ mach try fuzzy --full -q "'snap 'upstream 'local"
 
 Because of the build process, a full opt build will take around 1h45-2h while a
 debug build will be around 60 minutes, the difference coming from the use of

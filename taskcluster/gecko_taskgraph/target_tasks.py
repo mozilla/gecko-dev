@@ -1643,7 +1643,7 @@ def target_tasks_snap_upstream_tasks(full_task_graph, parameters, graph_config):
     support for running tests (bug 1855463)
     """
     for name, task in full_task_graph.tasks.items():
-        if "snap-upstream" in name and not "-try" in name:
+        if "snap-upstream" in name and not "-local" in name:
             yield name
 
 
