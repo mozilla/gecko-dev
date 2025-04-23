@@ -155,8 +155,13 @@ export const ContentTiles = props => {
                 content={{ tiles: tile }}
                 activeTheme={props.activeTheme}
                 handleAction={props.handleAction}
-                activeSingleSelect={props.activeSingleSelect}
-                setActiveSingleSelect={props.setActiveSingleSelect}
+                activeSingleSelectSelections={
+                  props.activeSingleSelectSelections
+                }
+                setActiveSingleSelectSelection={
+                  props.setActiveSingleSelectSelection
+                }
+                singleSelectId={`single-select-${index}`}
               />
             )}
             {tile.type === "mobile_downloads" && tile.data && (
