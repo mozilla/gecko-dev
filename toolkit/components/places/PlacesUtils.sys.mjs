@@ -1633,23 +1633,26 @@ export var PlacesUtils = {
    *   Resolves an object representing a favicon entry.
    *   Rejects if the given url has no associated favicon.
    */
-  promiseFaviconData(aPageUrl, preferredWidth = 0) {
-    return new Promise((resolve, reject) => {
-      if (!(aPageUrl instanceof Ci.nsIURI)) {
-        aPageUrl = PlacesUtils.toURI(aPageUrl);
-      }
-      PlacesUtils.favicons.getFaviconDataForPage(
-        aPageUrl,
-        function (uri, dataLen, data, mimeType, size) {
-          if (uri) {
-            resolve({ uri, dataLen, data, mimeType, size });
-          } else {
-            reject();
-          }
-        },
-        preferredWidth
-      );
-    });
+  async promiseFaviconData(aPageUrl, preferredWidth = 0) {
+    if (!(aPageUrl instanceof Ci.nsIURI)) {
+      aPageUrl = PlacesUtils.toURI(aPageUrl);
+    }
+
+    let favicon = await PlacesUtils.favicons.getFaviconForPage(
+      aPageUrl,
+      preferredWidth
+    );
+    if (!favicon) {
+      throw new Error(`Favicon not found for ${aPageUrl.spec}`);
+    }
+
+    return {
+      uri: favicon.uri,
+      dataLen: favicon.rawData.length,
+      data: favicon.rawData,
+      mimeType: favicon.mimeType,
+      size: favicon.width,
+    };
   },
 
   /**
