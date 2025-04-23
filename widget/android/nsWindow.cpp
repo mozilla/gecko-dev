@@ -1997,6 +1997,11 @@ void GeckoViewSupport::AttachAccessibility(
       jni::NativeWeakPtrHolder<a11y::SessionAccessibility>::Attach(
           sessionAccessibility, mWindow->mGeckoViewSupport,
           sessionAccessibility);
+
+  DispatchToUiThread(
+      "GeckoViewSupport::AttachAccessibility",
+      [sa = java::SessionAccessibility::NativeProvider::GlobalRef(
+           sessionAccessibility)] { sa->SetAttached(true); });
 }
 
 auto GeckoViewSupport::OnLoadRequest(mozilla::jni::String::Param aUri,
