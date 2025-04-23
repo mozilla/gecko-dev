@@ -128,6 +128,8 @@
   <string name="address_bar_swipe_cfr_title" tools:ignore="UnusedResources" moz:removedIn="139">ປັດແຖບເຄື່ອງມືເພື່ອສະຫຼັບແຖບ</string>
   <!-- Text for the message displayed in the contextual feature recommendation popup promoting swipe of address bar. -->
   <string name="address_bar_swipe_cfr_message" tools:ignore="UnusedResources" moz:removedIn="139">ປັດຊ້າຍ ຫຼື ຂວາເພື່ອສະຫຼັບ. ປັດຊ້າຍຢູ່ແຖບສຸດທ້າຍຂອງທ່ານເພື່ອເປີດແຖບໃໝ່.</string>
+  <!-- Text for the message displayed in the contextual feature recommendation popup promoting swipe of address bar. -->
+  <string name="address_bar_swipe_cfr_message_2">ປັດແຖບເຄື່ອງມືຊ້າຍ ຫຼື ຂວາເພື່ອສະຫຼັບແຖບ.</string>
   <!-- Text for the info dialog when camera permissions have been denied but user tries to access a camera feature. -->
   <string name="camera_permissions_needed_message">ຕ້ອງການເຂົ້ານຳໃຊ້ກ້ອງ. ໄປທີ່ການຕັ້ງຄ່າ Android ແຕະໃສ່ ສິດ ແລະ ແຕະໃສ່ ອະນຸຍາດ</string>
   <!-- Text for the positive action button to go to Android Settings to grant permissions. -->
@@ -1939,6 +1941,8 @@
   <string name="sync_add_new_device_learn_button">ຮຽນຮູ້ກ່ຽວກັບການສົ່ງແທັບ…</string>
   <!-- Text for the button to connect another device -->
   <string name="sync_add_new_device_connect_button">ເຊື່ອມຕໍ່ກັບອຸປະກອນອື່ນ…</string>
+  <!-- A short message template for the shared link with a footer. %1$s is the shared link, %2$s is the app name (e.g. Firefox) and %3$s is a download link for the app. -->
+  <string name="sent_from_firefox_template_short" tools:ignore="UnusedResources">%1$s\n\nສົ່ງມາຈາກ %2$s 🦊 %3$s</string>
   <!--
     Notifications
 
@@ -2315,6 +2319,8 @@
   <string name="preference_doh_provider_default">(ຄ່າເລີ່ມຕົ້ນ)</string>
   <!-- Text displayed for "Custom" under "DNS over HTTPS" providers -->
   <string name="preference_doh_provider_custom">ກຳນົດເອງ</string>
+  <!-- Text displayed above provider textfield under "DNS over HTTPS" -->
+  <string name="preference_doh_provider_custom_dialog_textfield">ຜູ້ໃຫ້ບໍລິການ</string>
   <!-- Cancel button text for provider textfield under "DNS over HTTPS" -->
   <string name="preference_doh_provider_custom_dialog_cancel">ຍົກເລີກ</string>
   <!-- Add button text for provider textfield under "DNS over HTTPS" -->

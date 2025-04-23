@@ -3392,17 +3392,17 @@
   -->
   <string name="debug_drawer_region_tools_title">地區工具</string>
   <!-- The description of the Region tools in the Debug Drawer -->
-  <string name="debug_drawer_regin_tools_description">暫時更改首頁與目前所在地區的相關設定，以進行測試。</string>
+  <string name="debug_drawer_regin_tools_description">暫時更改原始與目前所在地區的相關設定，以進行測試。</string>
   <!-- The text label for displaying home region. -->
-  <string name="debug_drawer_home_region_label">首頁地區</string>
+  <string name="debug_drawer_home_region_label">原始地區</string>
   <!-- The text label for displaying current region. -->
   <string name="debug_drawer_current_region_label">目前地區</string>
   <!-- The text field label for overriding home region. -->
-  <string name="debug_drawer_override_home_region_label">覆蓋首頁地區</string>
+  <string name="debug_drawer_override_home_region_label">覆蓋原始地區</string>
   <!-- The text field label for overriding current region. -->
   <string name="debug_drawer_override_current_region_label">覆蓋目前地區</string>
   <!-- The title of the button for overriding home and current region. -->
-  <string name="debug_drawer_override_region">覆蓋首頁與目前地區</string>
+  <string name="debug_drawer_override_region">覆蓋原始與目前地區</string>
   <!--
     Messages explaining how to exit fullscreen mode
 

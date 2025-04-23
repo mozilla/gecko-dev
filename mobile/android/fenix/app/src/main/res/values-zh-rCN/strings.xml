@@ -3390,10 +3390,18 @@
     and the current region (device's detected location) for testing purposes.
   -->
   <string name="debug_drawer_region_tools_title">地区工具</string>
+  <!-- The description of the Region tools in the Debug Drawer -->
+  <string name="debug_drawer_regin_tools_description">暂时覆盖主地区和当前地区的值以进行测试。</string>
+  <!-- The text label for displaying home region. -->
+  <string name="debug_drawer_home_region_label">主地区</string>
   <!-- The text label for displaying current region. -->
   <string name="debug_drawer_current_region_label">当前地区</string>
+  <!-- The text field label for overriding home region. -->
+  <string name="debug_drawer_override_home_region_label">覆盖主地区</string>
   <!-- The text field label for overriding current region. -->
   <string name="debug_drawer_override_current_region_label">覆盖当前地区</string>
+  <!-- The title of the button for overriding home and current region. -->
+  <string name="debug_drawer_override_region">覆盖主地区和当前地区</string>
   <!--
     Messages explaining how to exit fullscreen mode
 
