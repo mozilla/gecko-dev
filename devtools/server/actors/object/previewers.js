@@ -1034,13 +1034,10 @@ previewers.Object = [
 
     const { obj } = objectActor;
 
-    // The name and/or message could be getters, and even if it's unsafe,
-    // we do want to show it to the user, unless the error is muted
-    // (See Bug 1710694).
-    const invokeUnsafeGetters = !obj.isMutedError;
-
-    const name = DevToolsUtils.getProperty(obj, "name", invokeUnsafeGetters);
-    const msg = DevToolsUtils.getProperty(obj, "message", invokeUnsafeGetters);
+    // The name and/or message could be getters, and even if it's unsafe, we do want
+    // to show it to the user (See Bug 1710694).
+    const name = DevToolsUtils.getProperty(obj, "name", true);
+    const msg = DevToolsUtils.getProperty(obj, "message", true);
     const stack = DevToolsUtils.getProperty(obj, "stack");
     const fileName = DevToolsUtils.getProperty(obj, "fileName");
     const lineNumber = DevToolsUtils.getProperty(obj, "lineNumber");
