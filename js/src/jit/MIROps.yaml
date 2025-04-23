@@ -683,6 +683,7 @@
   folds_to: custom
   congruent_to: if_operands_equal
   alias_set: none
+  clone: true
 
 - name: WasmUnsignedToFloat32
   gen_boilerplate: false
