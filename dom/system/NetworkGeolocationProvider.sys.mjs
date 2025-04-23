@@ -243,6 +243,10 @@ export function NetworkGeolocationProvider() {
     from the Wifi subsystem.  If this timer fires, we believe the Wifi scan has
     had a problem and we no longer can use Wifi to position the user this time
     around (we will continue to be hopeful that Wifi will recover).
+
+    This timeout value is also used when Wifi scanning is disabled (see
+    isWifiScanningEnabled).  In this case, we use this timer to collect cell/ip
+    data and xhr it to the location server.
   */
   XPCOMUtils.defineLazyPreferenceGetter(
     this,
@@ -295,7 +299,6 @@ NetworkGeolocationProvider.prototype = {
   },
 
   startup() {
-    LOG("startup called.");
     if (this.started) {
       return;
     }
@@ -313,13 +316,11 @@ NetworkGeolocationProvider.prototype = {
     }
 
     this.resetTimer();
+    LOG("startup called.");
   },
 
   watch(c) {
-    LOG("watch called");
     this.listener = c;
-    this.notify();
-    this.resetTimer();
   },
 
   shutdown() {
