@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+/* eslint-disable no-use-before-define */
 const lazy = {};
 
 ChromeUtils.defineESModuleGetters(lazy, {
@@ -10,6 +11,11 @@ ChromeUtils.defineESModuleGetters(lazy, {
   SpecialMessageActions:
     "resource://messaging-system/lib/SpecialMessageActions.sys.mjs",
 });
+
+const TYPES = {
+  UNIVERSAL: "universal",
+  GLOBAL: "global",
+};
 
 class InfoBarNotification {
   constructor(message, dispatch) {
@@ -31,7 +37,7 @@ class InfoBarNotification {
     let { gBrowser } = browser.ownerGlobal;
     let doc = gBrowser.ownerDocument;
     let notificationContainer;
-    if (content.type === "global") {
+    if ([TYPES.GLOBAL, TYPES.UNIVERSAL].includes(content.type)) {
       notificationContainer = browser.ownerGlobal.gNotificationBox;
     } else {
       notificationContainer = gBrowser.getNotificationBox(browser);
@@ -51,8 +57,21 @@ class InfoBarNotification {
       false,
       content.dismissable
     );
+    // If InfoBar is universal, only record an impression for the first
+    // instance.
+    if (
+      content.type !== TYPES.UNIVERSAL ||
+      !InfoBar._universalInfobars.length
+    ) {
+      this.addImpression();
+    }
 
-    this.addImpression();
+    if (content.type === TYPES.UNIVERSAL) {
+      InfoBar._universalInfobars.push({
+        box: browser.ownerGlobal.gNotificationBox,
+        notification: this.notification,
+      });
+    }
   }
 
   formatMessageConfig(doc, browser, content) {
@@ -145,16 +164,36 @@ class InfoBarNotification {
    * Called when interacting with the toolbar (but not through the buttons)
    */
   infobarCallback(eventType) {
+    const wasUniversal =
+      InfoBar._activeInfobar?.message.content.type === TYPES.UNIVERSAL;
     if (eventType === "removed") {
       this.notification = null;
-      // eslint-disable-next-line no-use-before-define
       InfoBar._activeInfobar = null;
     } else if (this.notification) {
       this.sendUserEventTelemetry("DISMISSED");
       this.notification = null;
-      // eslint-disable-next-line no-use-before-define
       InfoBar._activeInfobar = null;
     }
+    // If one instance of universal infobar is removed, remove all instances and
+    // the new window observer
+    if (wasUniversal) {
+      this.removeUniversalInfobars();
+    }
+  }
+
+  removeUniversalInfobars() {
+    try {
+      Services.obs.removeObserver(InfoBar, "domwindowopened");
+    } catch (error) {
+      console.error(
+        "Error removing domwindowopened observer on InfoBar:",
+        error
+      );
+    }
+    InfoBar._universalInfobars.forEach(({ box, notification }) => {
+      box.removeNotification(notification);
+    });
+    InfoBar._universalInfobars = [];
   }
 
   sendUserEventTelemetry(event) {
@@ -171,6 +210,7 @@ class InfoBarNotification {
 
 export const InfoBar = {
   _activeInfobar: null,
+  _universalInfobars: [],
 
   maybeLoadCustomElement(win) {
     if (!win.customElements.get("remote-text")) {
@@ -188,12 +228,22 @@ export const InfoBar = {
     );
   },
 
-  async showInfoBarMessage(browser, message, dispatch) {
+  async showNotificationAllWindows(notification) {
+    for (let win of Services.wm.getEnumerator(null)) {
+      const browser = win.gBrowser.selectedBrowser;
+      await notification.showNotification(browser);
+    }
+  },
+
+  async showInfoBarMessage(browser, message, dispatch, universalInNewWin) {
     // Prevent stacking multiple infobars
-    if (this._activeInfobar) {
+    if (this._activeInfobar && !universalInNewWin) {
       return null;
     }
 
+    // Check if this is the first instance of a universal infobar
+    const isFirstUniversal =
+      !universalInNewWin && message.content.type === TYPES.UNIVERSAL;
     const win = browser?.ownerGlobal;
 
     if (!win || lazy.PrivateBrowsingUtils.isWindowPrivate(win)) {
@@ -204,9 +254,39 @@ export const InfoBar = {
     this.maybeInsertFTL(win);
 
     let notification = new InfoBarNotification(message, dispatch);
-    await notification.showNotification(browser);
-    this._activeInfobar = true;
+    if (isFirstUniversal) {
+      await this.showNotificationAllWindows(notification);
+      Services.obs.addObserver(this, "domwindowopened");
+    } else {
+      await notification.showNotification(browser);
+    }
+    if (!universalInNewWin) {
+      this._activeInfobar = { message, dispatch };
+    }
 
     return notification;
+  },
+
+  observe(aSubject, aTopic) {
+    const { message, dispatch } = this._activeInfobar;
+    if (
+      aTopic !== "domwindowopened" ||
+      message?.content.type !== TYPES.UNIVERSAL
+    ) {
+      return;
+    }
+    if (aSubject.document.readyState === "complete") {
+      let browser = aSubject.gBrowser.selectedBrowser;
+      this.showInfoBarMessage(browser, message, dispatch, true);
+    } else {
+      aSubject.addEventListener(
+        "load",
+        () => {
+          let browser = aSubject.gBrowser.selectedBrowser;
+          this.showInfoBarMessage(browser, message, dispatch, true);
+        },
+        { once: true }
+      );
+    }
   },
 };
