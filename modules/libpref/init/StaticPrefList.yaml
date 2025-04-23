@@ -4229,6 +4229,13 @@
   value: false
   mirror: always
 
+
+# Serialize < as &lt; and > as &gt; in attribute values for getHTML, innerHTML etc.
+- name: dom.security.html_serialization_escape_lt_gt
+  type: RelaxedAtomicBool
+  value: @IS_NIGHTLY_BUILD@
+  mirror: always
+
 # For testing purposes only; Flipping this pref to true allows
 # to skip the assertion that remote scripts can not be loaded
 # in system privileged contexts.

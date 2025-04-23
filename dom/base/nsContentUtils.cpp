@@ -9658,6 +9658,20 @@ class StringBuilder {
           aAppender.AppendLiteral(u"&nbsp;");
           flushedUntil = currentPosition + 1;
           break;
+        case '<':
+          if (StaticPrefs::dom_security_html_serialization_escape_lt_gt()) {
+            aAppender.Append(aStr.FromTo(flushedUntil, currentPosition));
+            aAppender.AppendLiteral(u"&lt;");
+            flushedUntil = currentPosition + 1;
+          }
+          break;
+        case '>':
+          if (StaticPrefs::dom_security_html_serialization_escape_lt_gt()) {
+            aAppender.Append(aStr.FromTo(flushedUntil, currentPosition));
+            aAppender.AppendLiteral(u"&gt;");
+            flushedUntil = currentPosition + 1;
+          }
+          break;
         default:
           break;
       }
@@ -9781,7 +9795,9 @@ static CheckedInt<uint32_t> ExtraSpaceNeededForAttrEncoding(
     switch (*c) {
       case '"':
       case '&':
-      case 0x00A0:
+      case 0x00A0: // NO-BREAK SPACE
+      case '<':
+      case '>':
         ++numEncodedChars;
         break;
       default:
@@ -9800,7 +9816,7 @@ static CheckedInt<uint32_t> ExtraSpaceNeededForAttrEncoding(
   // & in it. We subtract 1 for the null terminator, then 1 more for the
   // existing character that will be replaced.
   constexpr uint32_t maxCharExtraSpace =
-      std::max({std::size("&quot;"), std::size("&amp;"), std::size("&nbsp;")}) -
+      std::max({std::size("&quot;"), std::size("&amp;"), std::size("&nbsp;"), std::size("&lt;"), std::size("&gt;")}) -
       2;
   static_assert(maxCharExtraSpace < 100, "Possible underflow");
   return CheckedInt<uint32_t>(numEncodedChars) * maxCharExtraSpace;
