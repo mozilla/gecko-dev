@@ -312,8 +312,14 @@ add_task(async function test_sameHostRedirect() {
   await promise;
 
   // The favicon should be set also on the bookmarked url that redirected.
-  let { dataLen } = await PlacesUtils.promiseFaviconData(srcUrl);
-  Assert.equal(dataLen, SMALLPNG_DATA_LEN, "Check favicon dataLen");
+  let favicon = await PlacesUtils.favicons.getFaviconForPage(
+    PlacesUtils.toURI(srcUrl)
+  );
+  Assert.equal(
+    favicon.rawData.length,
+    SMALLPNG_DATA_LEN,
+    "Check favicon dataLen"
+  );
 
   await PlacesUtils.bookmarks.eraseEverything();
   await PlacesUtils.history.clear();
