@@ -423,6 +423,11 @@ namespace ChromeUtils {
                                   optional ImportESModuleOptionsDictionary aOptions = {});
 
   /**
+   * Returns whether |str| is a valid JS identifier
+   */
+  boolean isJSIdentifier(DOMString str);
+
+  /**
    * IF YOU ADD NEW METHODS HERE, MAKE SURE THEY ARE THREAD-SAFE.
    */
 };
