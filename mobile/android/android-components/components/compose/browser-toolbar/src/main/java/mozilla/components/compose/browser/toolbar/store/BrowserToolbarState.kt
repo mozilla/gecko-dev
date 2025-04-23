@@ -49,8 +49,6 @@ enum class Mode {
 /**
  * Wrapper containing the toolbar display state.
  *
- * @property hint Text displayed in the toolbar when there's no URL to display
- * (no tab or empty URL).
  * @property browserActionsStart List of browser [Action]s to be displayed at the start of the
  * toolbar, outside of the URL bounding box.
  * These should be actions relevant to the browser as a whole.
@@ -59,8 +57,8 @@ enum class Mode {
  * and the current webpage's details, inside of the URL bounding box.
  * These should be actions relevant to specific webpages as opposed to [browserActionsStart].
  * See [MDN docs](https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/API/pageAction).
- * @param pageOrigin Details about the current website.
- * @param pageActions List of page [Action]s to be displayed to the right side of the URL of the
+ * @property pageOrigin Details about the current website.
+ * @property pageActions List of page [Action]s to be displayed to the right side of the URL of the
  * display toolbar. Also see:
  * [MDN docs](https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/API/pageAction)
  * @property browserActions List of browser [Action]s to be displayed on the right side of the
@@ -70,7 +68,6 @@ enum class Mode {
  * If `null` a progress bar will not be displayed.
  */
 data class DisplayState(
-    val hint: String = "",
     val browserActionsStart: List<Action> = emptyList(),
     val pageActionsStart: List<Action> = emptyList(),
     val pageOrigin: PageOrigin = PageOrigin(

@@ -152,7 +152,6 @@ class BrowserToolbarComposable(
             BrowserToolbar(
                 store = store,
                 browserStore = context.components.core.store,
-                onDisplayToolbarClick = {},
                 onTextEdit = {},
                 onTextCommit = {},
                 target = Target.SelectedTab,

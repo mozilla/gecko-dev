@@ -515,9 +515,6 @@ class ToolbarActivity : AppCompatActivity() {
             AcornTheme {
                 BrowserToolbar(
                     store = store,
-                    onDisplayToolbarClick = {
-                        store.dispatch(BrowserToolbarAction.ToggleEditMode(editMode = true))
-                    },
                     onTextEdit = { text ->
                         store.dispatch(BrowserEditToolbarAction.UpdateEditText(text = text))
                     },
@@ -565,7 +562,6 @@ class ToolbarActivity : AppCompatActivity() {
 
                 BrowserToolbar(
                     store = store,
-                    onDisplayToolbarClick = {},
                     onTextEdit = {},
                     onTextCommit = {},
                     colors = BrowserToolbarDefaults.colors(),

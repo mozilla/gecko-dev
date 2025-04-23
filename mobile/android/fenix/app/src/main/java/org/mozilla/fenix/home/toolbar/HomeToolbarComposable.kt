@@ -135,7 +135,6 @@ internal class HomeToolbarComposable(
             BrowserToolbar(
                 store = store,
                 browserStore = context.components.core.store,
-                onDisplayToolbarClick = {},
                 onTextEdit = {},
                 onTextCommit = {},
                 target = Target.Tab("none"),

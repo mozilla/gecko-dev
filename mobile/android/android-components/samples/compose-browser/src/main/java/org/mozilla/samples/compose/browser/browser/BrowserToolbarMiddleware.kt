@@ -10,7 +10,9 @@ import androidx.core.content.ContextCompat
 import androidx.navigation.NavController
 import mozilla.components.compose.browser.toolbar.concept.Action.ActionButton
 import mozilla.components.compose.browser.toolbar.concept.Action.TabCounterAction
+import mozilla.components.compose.browser.toolbar.concept.PageOrigin
 import mozilla.components.compose.browser.toolbar.store.BrowserToolbarAction
+import mozilla.components.compose.browser.toolbar.store.BrowserToolbarAction.ToggleEditMode
 import mozilla.components.compose.browser.toolbar.store.BrowserToolbarInteraction.BrowserToolbarEvent
 import mozilla.components.compose.browser.toolbar.store.BrowserToolbarInteraction.BrowserToolbarMenu
 import mozilla.components.compose.browser.toolbar.store.BrowserToolbarMenuItem.BrowserToolbarMenuButton
@@ -25,8 +27,13 @@ import org.mozilla.samples.compose.browser.BrowserComposeActivity.Companion.ROUT
 import org.mozilla.samples.compose.browser.R
 import org.mozilla.samples.compose.browser.browser.DisplayBrowserActionsInteractions.TabCounterClicked
 import org.mozilla.samples.compose.browser.browser.DisplayPageActionsInteractions.RefreshClicked
+import org.mozilla.samples.compose.browser.browser.DisplayPageOriginInteractions.PageOriginClicked
 import org.mozilla.samples.compose.browser.browser.EditActionsInteractions.ClearClicked
 import mozilla.components.ui.icons.R as iconsR
+
+private sealed class DisplayPageOriginInteractions : BrowserToolbarEvent {
+    data object PageOriginClicked : DisplayPageOriginInteractions()
+}
 
 private sealed class DisplayPageActionsInteractions : BrowserToolbarEvent {
     data object RefreshClicked : DisplayPageActionsInteractions()
@@ -59,6 +66,10 @@ internal class BrowserToolbarMiddleware(
                 next(buildInitialState())
             }
 
+            is PageOriginClicked -> {
+                next(ToggleEditMode(true))
+            }
+
             is TabCounterClicked -> {
                 dependencies.browserScreenStore.dispatch(BrowserScreenAction.ShowTabs)
             }
@@ -76,7 +87,12 @@ internal class BrowserToolbarMiddleware(
     private fun buildInitialState() = BrowserToolbarAction.Init(
         mode = Mode.DISPLAY,
         displayState = DisplayState(
-            hint = "Search or enter address",
+            pageOrigin = PageOrigin(
+                hint = R.string.toolbar_search_hint,
+                title = null,
+                url = null,
+                onClick = PageOriginClicked,
+            ),
             pageActions = buildDisplayPageActions(),
             browserActions = buildDisplayBrowserActions(),
         ),

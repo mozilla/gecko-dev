@@ -17,6 +17,7 @@ import mozilla.components.compose.browser.toolbar.concept.Action
 import mozilla.components.compose.browser.toolbar.concept.Action.ActionButton
 import mozilla.components.compose.browser.toolbar.concept.Action.DropdownAction
 import mozilla.components.compose.browser.toolbar.concept.Action.TabCounterAction
+import mozilla.components.compose.browser.toolbar.concept.PageOrigin
 import mozilla.components.compose.browser.toolbar.store.BrowserDisplayToolbarAction
 import mozilla.components.compose.browser.toolbar.store.BrowserDisplayToolbarAction.UpdateProgressBarConfig
 import mozilla.components.compose.browser.toolbar.store.BrowserToolbarAction
@@ -33,6 +34,8 @@ import mozilla.components.compose.browser.toolbar.store.ProgressBarGravity.Botto
 import mozilla.components.lib.state.Middleware
 import mozilla.components.lib.state.MiddlewareContext
 import org.mozilla.samples.toolbar.R
+import org.mozilla.samples.toolbar.middleware.PageOriginInteractions.CopyOptionClicked
+import org.mozilla.samples.toolbar.middleware.PageOriginInteractions.PageOriginClicked
 import org.mozilla.samples.toolbar.middleware.SearchSelectorInteractions.BookmarksClicked
 import org.mozilla.samples.toolbar.middleware.SearchSelectorInteractions.HistoryClicked
 import org.mozilla.samples.toolbar.middleware.SearchSelectorInteractions.SettingsClicked
@@ -57,6 +60,11 @@ private sealed class StartBrowserInteractions : BrowserToolbarEvent {
 
 private sealed class StartPageInteractions : BrowserToolbarEvent {
     data object SecurityIndicatorClicked : StartBrowserInteractions()
+}
+
+private sealed class PageOriginInteractions : BrowserToolbarEvent {
+    data object PageOriginClicked : PageOriginInteractions()
+    data object CopyOptionClicked : PageOriginInteractions()
 }
 
 private sealed class TabCounterInteractions : BrowserToolbarEvent {
@@ -91,9 +99,9 @@ internal class BrowserToolbarMiddleware(
                     BrowserToolbarAction.Init(
                         mode = Mode.DISPLAY,
                         displayState = DisplayState(
-                            hint = "Search or enter address",
                             browserActionsStart = buildStartBrowserActions(),
                             pageActionsStart = buildStartPageActions(),
+                            pageOrigin = buildPageOrigin(),
                             pageActions = listOf(
                                 ActionButton(
                                     icon = iconsR.drawable.mozac_ic_arrow_clockwise_24,
@@ -122,6 +130,7 @@ internal class BrowserToolbarMiddleware(
             is SearchSelectorInteractions,
             is StartBrowserInteractions,
             is StartPageInteractions,
+            is PageOriginInteractions,
             -> Toast.makeText(dependencies.context, action.javaClass.simpleName, Toast.LENGTH_SHORT).show()
 
             is TabCounterClicked -> {
@@ -167,6 +176,23 @@ internal class BrowserToolbarMiddleware(
             ),
             onClick = SecurityIndicatorClicked,
         ),
+    )
+
+    private fun buildPageOrigin() = PageOrigin(
+        hint = R.string.toolbar_search_hint,
+        title = null,
+        url = null,
+        onClick = PageOriginClicked,
+        onLongClick = BrowserToolbarMenu {
+            listOf(
+                BrowserToolbarMenuButton(
+                    iconResource = iconsR.drawable.mozac_ic_copy_24,
+                    text = R.string.copy_url_button,
+                    contentDescription = R.string.copy_url_button_description,
+                    onClick = CopyOptionClicked,
+                ),
+            )
+        },
     )
 
     private fun buildDisplayBrowserActions() = listOf(
