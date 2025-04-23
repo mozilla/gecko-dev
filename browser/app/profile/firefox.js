@@ -388,11 +388,20 @@ pref("browser.overlink-delay", 80);
 
 pref("browser.taskbarTabs.enabled", false);
 
+pref("browser.theme.colorway-closet", true);
+
 #if defined(MOZ_WIDGET_GTK)
   pref("browser.theme.native-theme", true);
 #else
   pref("browser.theme.native-theme", false);
 #endif
+
+// Whether expired built-in colorways themes that are active or retained
+// should be allowed to check for updates and be updated to an AMO hosted
+// theme with the same id (as part of preparing to remove from mozilla-central
+// all the expired built-in colorways themes, after existing users have been
+// migrated to colorways themes hosted on AMO).
+pref("browser.theme.colorway-migration", true);
 
 // Whether using `ctrl` when hitting return/enter in the URL bar
 // (or clicking 'go') should prefix 'www.' and suffix

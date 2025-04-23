@@ -19,6 +19,7 @@ const lazy = {};
 ChromeUtils.defineESModuleGetters(lazy, {
   // XPIDatabase.sys.mjs
   AddonInternal: "resource://gre/modules/addons/XPIDatabase.sys.mjs",
+  BuiltInThemesHelpers: "resource://gre/modules/addons/XPIDatabase.sys.mjs",
   XPIDatabase: "resource://gre/modules/addons/XPIDatabase.sys.mjs",
   XPIDatabaseReconcile: "resource://gre/modules/addons/XPIDatabase.sys.mjs",
 

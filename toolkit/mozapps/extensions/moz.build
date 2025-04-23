@@ -71,7 +71,6 @@ EXTRA_JS_MODULES += [
     "amManager.sys.mjs",
     "amWebAPI.sys.mjs",
     "Blocklist.sys.mjs",
-    "ColorwayThemeMigration.sys.mjs",
     "LightweightThemeManager.sys.mjs",
 ]
 
