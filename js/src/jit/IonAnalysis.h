@@ -37,7 +37,7 @@ class MTest;
 
 [[nodiscard]] bool FoldTests(MIRGraph& graph);
 
-[[nodiscard]] bool FoldEmptyBlocks(MIRGraph& graph);
+[[nodiscard]] bool FoldEmptyBlocks(MIRGraph& graph, bool* changed);
 
 [[nodiscard]] bool SplitCriticalEdges(MIRGraph& graph);
 

@@ -1320,7 +1320,9 @@ bool jit::FoldTests(MIRGraph& graph) {
   return true;
 }
 
-bool jit::FoldEmptyBlocks(MIRGraph& graph) {
+bool jit::FoldEmptyBlocks(MIRGraph& graph, bool* changed) {
+  *changed = false;
+
   for (MBasicBlockIterator iter(graph.begin()); iter != graph.end();) {
     MBasicBlock* block = *iter;
     iter++;
@@ -1357,6 +1359,8 @@ bool jit::FoldEmptyBlocks(MIRGraph& graph) {
       return false;
     }
     succ->removePredecessor(block);
+
+    *changed = true;
   }
   return true;
 }
