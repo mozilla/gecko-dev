@@ -32,6 +32,6 @@ ac_add_options --disable-replace-malloc
 # -Wignored-attributes is very verbose due to attributes being
 # ignored on template parameters.
 ANALYSIS_EXTRA_CFLAGS="-Wno-attributes -Wno-ignored-attributes"
-export CFLAGS="$CFLAGS $ANALYSIS_EXTRA_CFLAGS"
-export CPPFLAGS="$CPPFLAGS $ANALYSIS_EXTRA_CFLAGS"
-export CXXFLAGS="$CXXFLAGS $ANALYSIS_EXTRA_CFLAGS"
+CFLAGS="$CFLAGS $ANALYSIS_EXTRA_CFLAGS"
+CPPFLAGS="$CPPFLAGS $ANALYSIS_EXTRA_CFLAGS"
+CXXFLAGS="$CXXFLAGS $ANALYSIS_EXTRA_CFLAGS"

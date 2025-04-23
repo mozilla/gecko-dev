@@ -1,7 +1,7 @@
 ac_add_options --enable-debug-symbols=-gline-tables-only
 
 #add-on signing is checked but not enforced
-unset MOZ_REQUIRE_SIGNING
+MOZ_REQUIRE_SIGNING=
 
 # ASan specific options on Linux
 ac_add_options --enable-valgrind
