@@ -68,6 +68,8 @@ skip-if = ["os == 'linux'"] # Bug 821781
 
 ["test_PlacesQuery_history.js"]
 
+["test_PlacesSemanticHistoryManager.js"]
+
 ["test_PlacesUtils_isRootItem.js"]
 
 ["test_PlacesUtils_unwrapNodes.js"]
