@@ -3560,6 +3560,8 @@ nsresult QuotaManager::RestoreDirectoryMetadata2(nsIFile* aDirectory) {
   MOZ_ASSERT(aDirectory);
   MOZ_ASSERT(mStorageConnection);
 
+  glean::quotamanager::restore_origin_directory_metadata_counter.Add();
+
   RefPtr<RestoreDirectoryMetadata2Helper> helper =
       new RestoreDirectoryMetadata2Helper(aDirectory);
 
