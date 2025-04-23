@@ -754,10 +754,7 @@ void XPCJSRuntime::UnmarkSkippableJSHolders() {
 }
 
 void XPCJSRuntime::PrepareForForgetSkippable() {
-  nsCOMPtr<nsIObserverService> obs = xpc::GetObserverService();
-  if (obs) {
-    obs->NotifyObservers(nullptr, "cycle-collector-forget-skippable", nullptr);
-  }
+  nsCCUncollectableMarker::CleanupForForgetSkippable();
 }
 
 void XPCJSRuntime::BeginCycleCollectionCallback(CCReason aReason) {
