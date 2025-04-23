@@ -272,7 +272,7 @@ const TEST_ADDRESS_IE_1 = {
   "street-address": "123 Kilkenny St.",
   "address-level3": "Some Townland",
   "address-level2": "Dublin",
-  "address-level1": "Co. Dublin",
+  "address-level1": "D",
   "postal-code": "A65 F4E2",
   country: "IE",
   tel: "+13534564947391",

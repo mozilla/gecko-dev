@@ -686,14 +686,24 @@ FormAutofillUtils = {
    */
   buildRegionMapIfAvailable(subKeys, subIsoids, subNames, subLnames) {
     // Not all regions have sub_keys. e.g. DE
-    if (
-      !subKeys ||
-      !subKeys.length ||
-      (!subNames && !subLnames) ||
-      (subNames && subKeys.length != subNames.length) ||
-      (subLnames && subKeys.length != subLnames.length)
-    ) {
+    if (!subKeys?.length) {
       return null;
+    }
+
+    let names;
+    if (!subNames && !subLnames) {
+      // Use the keys if sub_names does not exist
+      names = [...subKeys];
+    } else {
+      if (
+        (subNames && subKeys.length != subNames.length) ||
+        (subLnames && subKeys.length != subLnames.length)
+      ) {
+        return null;
+      }
+
+      // Apply sub_lnames if sub_names does not exist
+      names = subNames || subLnames;
     }
 
     // Overwrite subKeys with subIsoids, when available
@@ -705,8 +715,6 @@ FormAutofillUtils = {
       }
     }
 
-    // Apply sub_lnames if sub_names does not exist
-    let names = subNames || subLnames;
     return new Map(subKeys.map((key, index) => [key, names[index]]));
   },
 
@@ -833,7 +841,7 @@ FormAutofillUtils = {
         continue;
       }
       // Apply sub_lnames if sub_names does not exist
-      subNames = subNames || subLnames;
+      subNames = subNames || subLnames || subKeys;
 
       let speculatedSubIndexes = [];
       for (const val of values) {
@@ -921,7 +929,8 @@ FormAutofillUtils = {
             continue;
           }
           // Apply sub_lnames if sub_names does not exist
-          let names = dataset.sub_names || dataset.sub_lnames;
+          let names =
+            dataset.sub_names || dataset.sub_lnames || dataset.sub_keys;
           let isoids = dataset.sub_isoids;
 
           // Go through options one by one to find a match.
