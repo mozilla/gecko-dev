@@ -115,7 +115,6 @@ class SettingsFragment : PreferenceFragmentCompat() {
             scope = lifecycleScope,
             accountManager = requireComponents.backgroundServices.accountManager,
             httpClient = requireComponents.core.client,
-            updateFxAAllowDomesticChinaServerMenu = ::updateFxAAllowDomesticChinaServerMenu,
         )
 
         addonFilePicker = AddonFilePicker(requireContext(), requireComponents.addonManager)
@@ -568,7 +567,6 @@ class SettingsFragment : PreferenceFragmentCompat() {
         setLinkSharingPreference()
         setupAmoCollectionOverridePreference(requireContext().settings())
         setupGeckoLogsPreference(requireContext().settings())
-        setupAllowDomesticChinaFxaServerPreference()
         setupHttpsOnlyPreferences()
         setupNotificationPreference()
         setupSearchPreference()
@@ -606,22 +604,6 @@ class SettingsFragment : PreferenceFragmentCompat() {
             scrollBarSize = 0
             delay(SCROLL_INDICATOR_DELAY)
             scrollBarSize = originalSize
-        }
-    }
-
-    private fun updateFxAAllowDomesticChinaServerMenu() {
-        val settings = requireContext().settings()
-        val preferenceAllowDomesticChinaServer =
-            findPreference<SwitchPreference>(getPreferenceKey(R.string.pref_key_allow_domestic_china_fxa_server))
-        // Only enable changes to these prefs when the user isn't connected to an account.
-        val enabled =
-            requireComponents.backgroundServices.accountManager.authenticatedAccount() == null
-        val checked = settings.allowDomesticChinaFxaServer
-        val visible = Config.channel.isMozillaOnline
-        preferenceAllowDomesticChinaServer?.apply {
-            isEnabled = enabled
-            isChecked = checked
-            isVisible = visible
         }
     }
 
@@ -665,37 +647,6 @@ class SettingsFragment : PreferenceFragmentCompat() {
                 )
                 true
             }
-    }
-
-    private fun setupAllowDomesticChinaFxaServerPreference() {
-        val allowDomesticChinaFxAServer = getPreferenceKey(R.string.pref_key_allow_domestic_china_fxa_server)
-        val preferenceAllowDomesticChinaFxAServer = findPreference<SwitchPreference>(allowDomesticChinaFxAServer)
-        val visible = Config.channel.isMozillaOnline
-
-        preferenceAllowDomesticChinaFxAServer?.apply {
-            isVisible = visible
-        }
-
-        if (visible) {
-            preferenceAllowDomesticChinaFxAServer?.onPreferenceChangeListener =
-                Preference.OnPreferenceChangeListener { preference, newValue ->
-                    preference.context.settings().preferences.edit {
-                        putBoolean(preference.key, newValue as Boolean)
-                    }
-                    updateFxAAllowDomesticChinaServerMenu()
-                    Toast.makeText(
-                        context,
-                        getString(R.string.toast_override_account_sync_server_done),
-                        Toast.LENGTH_LONG,
-                    ).show()
-                    Handler(Looper.getMainLooper()).postDelayed(
-                        {
-                            exitProcess(0)
-                        },
-                        FXA_SYNC_OVERRIDE_EXIT_DELAY,
-                    )
-                }
-        }
     }
 
     @VisibleForTesting

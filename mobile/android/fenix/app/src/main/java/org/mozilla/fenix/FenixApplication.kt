@@ -146,12 +146,6 @@ open class FenixApplication : LocaleAwareApplication(), Provider {
     override fun onCreate() {
         super.onCreate()
 
-        if (shouldShowPrivacyNotice()) {
-            // For Mozilla Online build: Delay initialization on first run until privacy notice
-            // is accepted by the user.
-            return
-        }
-
         initialize()
     }
 
@@ -1044,15 +1038,5 @@ open class FenixApplication : LocaleAwareApplication(), Provider {
         GlobalScope.launch {
             components.useCases.wallpaperUseCases.initialize()
         }
-    }
-
-    /**
-     * Checks whether or not a privacy notice needs to be displayed before
-     * the application can continue to initialize.
-     */
-    internal fun shouldShowPrivacyNotice(): Boolean {
-        return Config.channel.isMozillaOnline &&
-            settings().shouldShowPrivacyPopWindow &&
-            !components.fenixOnboarding.userHasBeenOnboarded()
     }
 }

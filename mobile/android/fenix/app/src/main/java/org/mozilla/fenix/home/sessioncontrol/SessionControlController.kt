@@ -403,7 +403,6 @@ class DefaultSessionControlController(
         when (topSite.url) {
             SupportUtils.POCKET_TRENDING_URL -> Pocket.pocketTopSiteRemoved.record(NoExtras())
             SupportUtils.GOOGLE_URL -> TopSites.googleTopSiteRemoved.record(NoExtras())
-            SupportUtils.BAIDU_URL -> TopSites.baiduTopSiteRemoved.record(NoExtras())
         }
 
         viewLifecycleScope.launch(Dispatchers.IO) {
@@ -441,7 +440,6 @@ class DefaultSessionControlController(
 
         when (topSite.url) {
             SupportUtils.GOOGLE_URL -> TopSites.openGoogleSearchAttribution.record(NoExtras())
-            SupportUtils.BAIDU_URL -> TopSites.openBaiduSearchAttribution.record(NoExtras())
             SupportUtils.POCKET_TRENDING_URL -> Pocket.pocketTopSiteClicked.record(NoExtras())
         }
 

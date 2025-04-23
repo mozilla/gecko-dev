@@ -80,7 +80,7 @@
         <activity-alias
             android:name="${applicationId}.App"
             android:exported="true"
-            android:targetActivity=".${targetActivity}">
+            android:targetActivity="HomeActivity">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 
@@ -98,7 +98,7 @@
             android:exported="true"
             android:icon="@mipmap/ic_launcher_alternative"
             android:roundIcon="@mipmap/ic_launcher_round_alternative"
-            android:targetActivity=".${targetActivity}">
+            android:targetActivity="HomeActivity">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
@@ -120,7 +120,7 @@
             android:exported="true"
             android:icon="@mipmap/ic_launcher_solid_light"
             android:roundIcon="@mipmap/ic_launcher_solid_light"
-            android:targetActivity=".${targetActivity}">
+            android:targetActivity="HomeActivity">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
@@ -136,7 +136,7 @@
             android:exported="true"
             android:icon="@mipmap/ic_launcher_solid_dark"
             android:roundIcon="@mipmap/ic_launcher_solid_dark"
-            android:targetActivity=".${targetActivity}">
+            android:targetActivity="HomeActivity">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
@@ -152,7 +152,7 @@
             android:exported="true"
             android:icon="@mipmap/ic_launcher_solid_red"
             android:roundIcon="@mipmap/ic_launcher_solid_red"
-            android:targetActivity=".${targetActivity}">
+            android:targetActivity="HomeActivity">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
@@ -168,7 +168,7 @@
             android:exported="true"
             android:icon="@mipmap/ic_launcher_solid_green"
             android:roundIcon="@mipmap/ic_launcher_solid_green"
-            android:targetActivity=".${targetActivity}">
+            android:targetActivity="HomeActivity">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
@@ -184,7 +184,7 @@
             android:exported="true"
             android:icon="@mipmap/ic_launcher_solid_blue"
             android:roundIcon="@mipmap/ic_launcher_solid_blue"
-            android:targetActivity=".${targetActivity}">
+            android:targetActivity="HomeActivity">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
@@ -200,7 +200,7 @@
             android:exported="true"
             android:icon="@mipmap/ic_launcher_solid_purple"
             android:roundIcon="@mipmap/ic_launcher_solid_purple"
-            android:targetActivity=".${targetActivity}">
+            android:targetActivity="HomeActivity">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
@@ -216,7 +216,7 @@
             android:exported="true"
             android:icon="@mipmap/ic_launcher_solid_purple_dark"
             android:roundIcon="@mipmap/ic_launcher_solid_purple_dark"
-            android:targetActivity=".${targetActivity}">
+            android:targetActivity="HomeActivity">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
@@ -234,7 +234,7 @@
             android:exported="true"
             android:icon="@mipmap/ic_launcher_gradient_sunrise"
             android:roundIcon="@mipmap/ic_launcher_gradient_sunrise"
-            android:targetActivity=".${targetActivity}">
+            android:targetActivity="HomeActivity">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
@@ -250,7 +250,7 @@
             android:exported="true"
             android:icon="@mipmap/ic_launcher_gradient_golden_hour"
             android:roundIcon="@mipmap/ic_launcher_gradient_golden_hour"
-            android:targetActivity=".${targetActivity}">
+            android:targetActivity="HomeActivity">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
@@ -266,7 +266,7 @@
             android:exported="true"
             android:icon="@mipmap/ic_launcher_gradient_sunset"
             android:roundIcon="@mipmap/ic_launcher_gradient_sunset"
-            android:targetActivity=".${targetActivity}">
+            android:targetActivity="HomeActivity">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
@@ -282,7 +282,7 @@
             android:exported="true"
             android:icon="@mipmap/ic_launcher_gradient_blue_hour"
             android:roundIcon="@mipmap/ic_launcher_gradient_blue_hour"
-            android:targetActivity=".${targetActivity}">
+            android:targetActivity="HomeActivity">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
@@ -298,7 +298,7 @@
             android:exported="true"
             android:icon="@mipmap/ic_launcher_gradient_twilight"
             android:roundIcon="@mipmap/ic_launcher_gradient_twilight"
-            android:targetActivity=".${targetActivity}">
+            android:targetActivity="HomeActivity">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
@@ -314,7 +314,7 @@
             android:exported="true"
             android:icon="@mipmap/ic_launcher_gradient_midnight"
             android:roundIcon="@mipmap/ic_launcher_gradient_midnight"
-            android:targetActivity=".${targetActivity}">
+            android:targetActivity="HomeActivity">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
@@ -330,7 +330,7 @@
             android:exported="true"
             android:icon="@mipmap/ic_launcher_gradient_northern_lights"
             android:roundIcon="@mipmap/ic_launcher_gradient_northern_lights"
-            android:targetActivity=".${targetActivity}">
+            android:targetActivity="HomeActivity">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
@@ -348,7 +348,7 @@
             android:exported="true"
             android:icon="@mipmap/ic_launcher_retro_2004"
             android:roundIcon="@mipmap/ic_launcher_retro_2004"
-            android:targetActivity=".${targetActivity}">
+            android:targetActivity="HomeActivity">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
@@ -364,7 +364,7 @@
             android:exported="true"
             android:icon="@mipmap/ic_launcher_retro_2017"
             android:roundIcon="@mipmap/ic_launcher_retro_2017"
-            android:targetActivity=".${targetActivity}">
+            android:targetActivity="HomeActivity">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
@@ -380,7 +380,7 @@
             android:exported="true"
             android:icon="@mipmap/ic_launcher_pixelated"
             android:roundIcon="@mipmap/ic_launcher_pixelated"
-            android:targetActivity=".${targetActivity}">
+            android:targetActivity="HomeActivity">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
@@ -396,7 +396,7 @@
             android:exported="true"
             android:icon="@mipmap/ic_launcher_minimal"
             android:roundIcon="@mipmap/ic_launcher_minimal"
-            android:targetActivity=".${targetActivity}">
+            android:targetActivity="HomeActivity">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
@@ -412,7 +412,7 @@
             android:exported="true"
             android:icon="@mipmap/ic_launcher_pride"
             android:roundIcon="@mipmap/ic_launcher_pride"
-            android:targetActivity=".${targetActivity}">
+            android:targetActivity="HomeActivity">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
@@ -428,7 +428,7 @@
             android:exported="true"
             android:icon="@mipmap/ic_launcher_cute"
             android:roundIcon="@mipmap/ic_launcher_cute"
-            android:targetActivity=".${targetActivity}">
+            android:targetActivity="HomeActivity">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
@@ -444,7 +444,7 @@
             android:exported="true"
             android:icon="@mipmap/ic_launcher_momo"
             android:roundIcon="@mipmap/ic_launcher_momo"
-            android:targetActivity=".${targetActivity}">
+            android:targetActivity="HomeActivity">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
@@ -528,9 +528,6 @@
                     android:host="settings_private_browsing"/>
             </intent-filter>
         </activity>
-
-        <activity android:name=".MozillaOnlineHomeActivity"
-                android:exported="false"/>
 
         <activity android:name=".home.mozonline.PrivacyContentDisplayActivity"
                 android:exported="false"/>
