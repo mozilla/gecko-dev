@@ -472,7 +472,7 @@ describe("MultiStageAboutWelcome module", () => {
             },
           },
           navigate: sandbox.stub(),
-          setActiveSingleSelectSelection: sandbox.stub(),
+          setActiveSingleSelect: sandbox.stub(),
           setActiveMultiSelect: sandbox.stub(),
           setScreenMultiSelects: sandbox.stub(),
         };
@@ -489,9 +489,7 @@ describe("MultiStageAboutWelcome module", () => {
         );
       });
       it("should preselect the active value if present", async () => {
-        SINGLE_SELECT_SCREEN_PROPS.activeSingleSelectSelections = {
-          "tile-0": ["test2"],
-        };
+        SINGLE_SELECT_SCREEN_PROPS.activeSingleSelect = "test2";
         const wrapper = mount(
           <WelcomeScreen {...SINGLE_SELECT_SCREEN_PROPS} />
         );

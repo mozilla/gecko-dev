@@ -61,8 +61,8 @@ export const MultiStageProtonScreen = props => {
       setScreenMultiSelects={props.setScreenMultiSelects}
       activeMultiSelect={props.activeMultiSelect}
       setActiveMultiSelect={props.setActiveMultiSelect}
-      activeSingleSelectSelections={props.activeSingleSelectSelections}
-      setActiveSingleSelectSelection={props.setActiveSingleSelectSelection}
+      activeSingleSelect={props.activeSingleSelect}
+      setActiveSingleSelect={props.setActiveSingleSelect}
       totalNumberOfScreens={props.totalNumberOfScreens}
       handleAction={props.handleAction}
       isFirstScreen={props.isFirstScreen}
