@@ -3,6 +3,7 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 import os
+import re
 import subprocess
 import sys
 from pathlib import Path
@@ -10,6 +11,8 @@ from typing import (
     Optional,
     Union,
 )
+
+from packaging.version import Version
 
 from mozversioncontrol.errors import (
     InvalidRepoPath,
@@ -21,6 +24,20 @@ from mozversioncontrol.repo.git import GitRepository
 from mozversioncontrol.repo.jj import JujutsuRepository
 from mozversioncontrol.repo.mercurial import HgRepository
 from mozversioncontrol.repo.source import SrcRepository
+
+MINIMUM_SUPPORTED_JJ_VERSION = Version("0.28")
+USING_JJ_WARNING = """\
+Using JujutsuRepository because a ".jj/" directory was detected!
+
+Warning: jj support is currently experimental, and may be disabled by setting the
+environment variable MOZ_AVOID_JJ_VCS=1. (This warning may be suppressed by
+setting MOZ_AVOID_JJ_VCS=0.)"""
+
+
+class UnsupportedJujutsuVersionError(Exception):
+    """Raised when the detected jj version is below the required minimum."""
+
+    pass
 
 
 def get_repository_object(
@@ -37,35 +54,44 @@ def get_repository_object(
         return HgRepository(path, hg=hg)
     if (path / ".jj").is_dir() and jj is not None:
         avoid = os.getenv("MOZ_AVOID_JJ_VCS")
-        if avoid not in (None, "0", ""):
-            use_jj = False
-        else:
+        try_using_jj = avoid in (None, "0", "")
+        if try_using_jj:
             try:
-                subprocess.call(["jj", "--version"], stdout=subprocess.DEVNULL)
-                use_jj = True
-            except OSError:
-                use_jj = False
-                print(".jj/ directory exists but jj binary not usable", file=sys.stderr)
-
-        if use_jj and avoid not in ("0", ""):
-            # Warn (once) if MOZ_AVOID_JJ_VCS is unset. If it is set to 0, then use
-            # jj without warning. If it is set to anything else, do not use jj (so
-            # eg fall back to git if .git exists.)
-            if not hasattr(get_repository_object, "_warned"):
-                get_repository_object._warned = True
-                print(
-                    """\
-Using JujutsuRepository because a .jj/ directory was detected!
-
-Warning: jj support is currently experimental, and may be disabled by setting the
-environment variable MOZ_AVOID_JJ_VCS=1. (This warning may be suppressed by
-setting MOZ_AVOID_JJ_VCS=0.)""",
-                    file=sys.stderr,
+                result = subprocess.run(
+                    ["jj", "--version"],
+                    capture_output=True,
+                    text=True,
+                    check=False,
                 )
+                raw_jj_version = result.stdout.strip()
+                match = re.search(r"\b(\d+\.\d+\.\d+)\b", raw_jj_version)
 
-        if use_jj:
-            return JujutsuRepository(path, jj=jj, git=git)
+                if not match:
+                    raise ValueError(
+                        f"Could not parse jj version from output: {raw_jj_version}"
+                    )
 
+                current_jj_version = Version(match.group(1))
+
+                if current_jj_version < MINIMUM_SUPPORTED_JJ_VERSION:
+                    raise UnsupportedJujutsuVersionError(
+                        f"Detected jj version {current_jj_version}, "
+                        f"but version {MINIMUM_SUPPORTED_JJ_VERSION} or newer is required.\n"
+                        f'Full "jj --version" output was: "{raw_jj_version}"'
+                    )
+
+                avoid_is_unset = avoid not in ("0", "")
+                if avoid_is_unset and not hasattr(get_repository_object, "_warned"):
+                    # Warn (once) if MOZ_AVOID_JJ_VCS is unset. If it is set to 0, then use
+                    # jj without warning. If it is set to anything else, do not use jj (so
+                    # eg fall back to git if .git exists.)
+                    get_repository_object._warned = True
+                    print(USING_JJ_WARNING, file=sys.stderr)
+
+                return JujutsuRepository(path, jj=jj, git=git)
+
+            except OSError:
+                print(".jj/ directory exists but jj binary not usable", file=sys.stderr)
     if (path / ".git").exists():
         return GitRepository(path, git=git)
     if (path / "config" / "milestone.txt").exists():
@@ -101,7 +127,7 @@ def get_repository_from_build_config(config):
     elif flavor == "src":
         return SrcRepository(Path(config.topsrcdir), src=config.substs["SRC"])
     else:
-        raise MissingVCSInfo("unknown VCS_CHECKOUT_TYPE value: %s" % flavor)
+        raise MissingVCSInfo(f"unknown VCS_CHECKOUT_TYPE value: {flavor}")
 
 
 def get_repository_from_env():
