@@ -41,6 +41,16 @@ extern "C" {
     ) -> bool;
 }
 
+struct SumMeasurement {
+    value: u32,
+    bits: usize,
+}
+
+struct SumVecMeasurement<'a> {
+    value: &'a ThinVec<u32>,
+    bits: usize,
+}
+
 pub fn new_prio_sum(num_aggregators: u8, bits: usize) -> Result<Prio3Sum, VdafError> {
     if bits > 64 {
         return Err(VdafError::Uncategorized(format!(
@@ -57,7 +67,7 @@ pub fn new_prio_sumvec(
     len: usize,
     bits: usize,
 ) -> Result<Prio3SumVec, VdafError> {
-    let chunk_length = prio::vdaf::prio3::optimal_chunk_length(8 * len);
+    let chunk_length = prio::vdaf::prio3::optimal_chunk_length(bits * len);
     Prio3SumVec::new_sum_vec(num_aggregators, bits, len, chunk_length)
 }
 
@@ -106,14 +116,14 @@ trait Shardable {
     ) -> Result<(Vec<u8>, Vec<Vec<u8>>), Box<dyn std::error::Error>>;
 }
 
-impl Shardable for u8 {
+impl Shardable for SumMeasurement {
     fn shard(
         &self,
         nonce: &[u8; 16],
     ) -> Result<(Vec<u8>, Vec<Vec<u8>>), Box<dyn std::error::Error>> {
-        let prio = new_prio_sum(2, 8)?;
+        let prio = new_prio_sum(2, self.bits)?;
 
-        let (public_share, input_shares) = prio.shard(&(*self as u128), nonce)?;
+        let (public_share, input_shares) = prio.shard(&(self.value as u128), nonce)?;
 
         debug_assert_eq!(input_shares.len(), 2);
 
@@ -126,35 +136,14 @@ impl Shardable for u8 {
     }
 }
 
-impl Shardable for ThinVec<u8> {
+impl Shardable for SumVecMeasurement<'_> {
     fn shard(
         &self,
         nonce: &[u8; 16],
     ) -> Result<(Vec<u8>, Vec<Vec<u8>>), Box<dyn std::error::Error>> {
-        let prio = new_prio_sumvec(2, self.len(), 8)?;
+        let prio = new_prio_sumvec(2, self.value.len(), self.bits)?;
 
-        let measurement: Vec<u128> = self.iter().map(|e| (*e as u128)).collect();
-        let (public_share, input_shares) = prio.shard(&measurement, nonce)?;
-
-        debug_assert_eq!(input_shares.len(), 2);
-
-        let encoded_input_shares = input_shares
-            .iter()
-            .map(|s| s.get_encoded())
-            .collect::<Result<Vec<_>, _>>()?;
-        let encoded_public_share = public_share.get_encoded()?;
-        Ok((encoded_public_share, encoded_input_shares))
-    }
-}
-
-impl Shardable for ThinVec<u16> {
-    fn shard(
-        &self,
-        nonce: &[u8; 16],
-    ) -> Result<(Vec<u8>, Vec<Vec<u8>>), Box<dyn std::error::Error>> {
-        let prio = new_prio_sumvec(2, self.len(), 16)?;
-
-        let measurement: Vec<u128> = self.iter().map(|e| (*e as u128)).collect();
+        let measurement: Vec<u128> = self.value.iter().map(|e| (*e as u128)).collect();
         let (public_share, input_shares) = prio.shard(&measurement, nonce)?;
 
         debug_assert_eq!(input_shares.len(), 2);
@@ -265,20 +254,24 @@ fn get_dap_report_internal<T: Shardable>(
 /// Wraps the function above with minor C interop.
 /// Mostly it turns any error result into a return value of false.
 #[no_mangle]
-pub extern "C" fn dapGetReportU8(
+pub extern "C" fn dapGetReportPrioSum(
     leader_hpke_config_encoded: &ThinVec<u8>,
     helper_hpke_config_encoded: &ThinVec<u8>,
-    measurement: u8,
+    measurement: u32,
     task_id: &ThinVec<u8>,
+    bits: u32,
     time_precision: u64,
     out_report: &mut ThinVec<u8>,
 ) -> bool {
     assert_eq!(task_id.len(), 32);
 
-    let Ok(report) = get_dap_report_internal::<u8>(
+    let Ok(report) = get_dap_report_internal::<SumMeasurement>(
         leader_hpke_config_encoded,
         helper_hpke_config_encoded,
-        &measurement,
+        &SumMeasurement {
+            value: measurement,
+            bits: bits as usize,
+        },
         &task_id.as_slice().try_into().unwrap(),
         time_precision,
     ) else {
@@ -294,49 +287,24 @@ pub extern "C" fn dapGetReportU8(
 }
 
 #[no_mangle]
-pub extern "C" fn dapGetReportVecU8(
+pub extern "C" fn dapGetReportPrioSumVec(
     leader_hpke_config_encoded: &ThinVec<u8>,
     helper_hpke_config_encoded: &ThinVec<u8>,
-    measurement: &ThinVec<u8>,
+    measurement: &ThinVec<u32>,
     task_id: &ThinVec<u8>,
+    bits: u32,
     time_precision: u64,
     out_report: &mut ThinVec<u8>,
 ) -> bool {
     assert_eq!(task_id.len(), 32);
 
-    let Ok(report) = get_dap_report_internal::<ThinVec<u8>>(
+    let Ok(report) = get_dap_report_internal::<SumVecMeasurement>(
         leader_hpke_config_encoded,
         helper_hpke_config_encoded,
-        measurement,
-        &task_id.as_slice().try_into().unwrap(),
-        time_precision,
-    ) else {
-        warn!("Creating report failed!");
-        return false;
-    };
-    let Ok(encoded_report) = report.get_encoded() else {
-        warn!("Encoding report failed!");
-        return false;
-    };
-    out_report.extend(encoded_report);
-    true
-}
-
-#[no_mangle]
-pub extern "C" fn dapGetReportVecU16(
-    leader_hpke_config_encoded: &ThinVec<u8>,
-    helper_hpke_config_encoded: &ThinVec<u8>,
-    measurement: &ThinVec<u16>,
-    task_id: &ThinVec<u8>,
-    time_precision: u64,
-    out_report: &mut ThinVec<u8>,
-) -> bool {
-    assert_eq!(task_id.len(), 32);
-
-    let Ok(report) = get_dap_report_internal::<ThinVec<u16>>(
-        leader_hpke_config_encoded,
-        helper_hpke_config_encoded,
-        measurement,
+        &SumVecMeasurement {
+            value: measurement,
+            bits: bits as usize,
+        },
         &task_id.as_slice().try_into().unwrap(),
         time_precision,
     ) else {

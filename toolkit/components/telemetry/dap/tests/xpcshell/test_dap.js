@@ -47,6 +47,13 @@ const tasks = [
     time_precision: 300,
   },
   {
+    id: "52TTU9GPOA_eTiPJePk5RNauQI4EWCnzixAXe3LEz7o",
+    vdaf: "sumvec",
+    bits: 1,
+    length: 20,
+    time_precision: 300,
+  },
+  {
     id: "DSZGMFh26hBYXNaKvhL_N4AHA3P5lDn19on1vFPBxJM",
     vdaf: "sumvec",
     bits: 8,
@@ -63,7 +70,7 @@ const tasks = [
 ];
 
 // Expected payload sizes of DAP reports for the above tasks.
-const task_report_sizes = [886, 3654, 6726];
+const task_report_sizes = [886, 902, 3654, 6566];
 
 function uploadHandler(request, response) {
   Assert.equal(
@@ -177,7 +184,7 @@ add_task(
           enabled: true,
           visitCountingEnabled: true,
           visitCountingExperimentList: {
-            [tasks[1].id]: ["mozilla.org", "example.com"],
+            [tasks[2].id]: ["mozilla.org", "example.com"],
           },
         },
       });

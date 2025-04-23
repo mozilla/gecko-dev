@@ -262,30 +262,28 @@ export const DAPTelemetrySender = new (class {
 
     let reportOut = {};
 
-    if (task.vdaf === "sum" && task.bits === 8) {
-      Services.DAPTelemetry.GetReportU8(
+    if (task.vdaf === "sum") {
+      Services.DAPTelemetry.GetReportPrioSum(
         keys.leader_hpke,
         keys.helper_hpke,
         measurement,
         task_id,
+        task.bits,
         task.time_precision,
         reportOut
       );
-    } else if (task.vdaf === "sumvec" && task.bits === 8) {
-      Services.DAPTelemetry.GetReportVecU8(
+    } else if (task.vdaf === "sumvec") {
+      if (measurement.length != task.length) {
+        throw new Error(
+          "Measurement vector length doesn't match task configuration"
+        );
+      }
+      Services.DAPTelemetry.GetReportPrioSumVec(
         keys.leader_hpke,
         keys.helper_hpke,
         measurement,
         task_id,
-        task.time_precision,
-        reportOut
-      );
-    } else if (task.vdaf === "sumvec" && task.bits === 16) {
-      Services.DAPTelemetry.GetReportVecU16(
-        keys.leader_hpke,
-        keys.helper_hpke,
-        measurement,
-        task_id,
+        task.bits,
         task.time_precision,
         reportOut
       );
