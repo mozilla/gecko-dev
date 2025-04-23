@@ -27,8 +27,6 @@ import mozilla.components.lib.state.ext.observeAsState
  * "edit" mode.
  * @param onTextCommit Function to get executed when the user has finished editing the URL and wants
  * to load the entered text.
- * @param onDisplayToolbarClick Function to get executed when the user clicks on the URL in "display"
- * mode.
  * @param colors The color scheme the browser toolbar will use for the UI.
  */
 @Composable
@@ -38,7 +36,6 @@ fun BrowserToolbar(
     target: Target,
     onTextEdit: (String) -> Unit,
     onTextCommit: (String) -> Unit,
-    onDisplayToolbarClick: () -> Unit,
     colors: BrowserToolbarColors = BrowserToolbarDefaults.colors(),
 ) {
     val uiState by store.observeAsState(initialValue = store.state) { it }
@@ -66,16 +63,13 @@ fun BrowserToolbar(
         )
     } else {
         BrowserDisplayToolbar(
-            url = selectedTab?.content?.url ?: uiState.displayState.hint,
+            pageOrigin = uiState.displayState.pageOrigin,
             colors = colors.displayToolbarColors,
             progressBarConfig = progressBarConfig,
             browserActionsStart = uiState.displayState.browserActionsStart,
             pageActionsStart = uiState.displayState.pageActionsStart,
             pageActions = uiState.displayState.pageActions,
             browserActions = uiState.displayState.browserActions,
-            onUrlClicked = {
-                onDisplayToolbarClick()
-            },
             onInteraction = { store.dispatch(it) },
         )
     }

@@ -5,9 +5,12 @@
 package mozilla.components.compose.browser.toolbar.store
 
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import mozilla.components.compose.browser.toolbar.R
 import mozilla.components.compose.browser.toolbar.concept.Action.ActionButton
+import mozilla.components.compose.browser.toolbar.concept.PageOrigin
 import mozilla.components.compose.browser.toolbar.store.BrowserDisplayToolbarAction.BrowserActionsStartUpdated
 import mozilla.components.compose.browser.toolbar.store.BrowserDisplayToolbarAction.PageActionsStartUpdated
+import mozilla.components.compose.browser.toolbar.store.BrowserDisplayToolbarAction.PageOriginUpdated
 import mozilla.components.compose.browser.toolbar.store.BrowserToolbarInteraction.BrowserToolbarEvent
 import mozilla.components.support.test.rule.MainCoroutineRule
 import org.junit.Assert.assertEquals
@@ -139,6 +142,29 @@ class BrowserToolbarStoreTest {
     }
 
     @Test
+    fun `WHEN updating the page origin details THEN replace the old details with the new ones`() {
+        val store = BrowserToolbarStore()
+        val defaultPageDetails = PageOrigin(
+            hint = R.string.mozac_browser_toolbar_search_hint,
+            title = null,
+            url = null,
+            onClick = object : BrowserToolbarEvent {},
+        )
+        val newPageDetails = PageOrigin(
+            hint = Random.nextInt(),
+            title = "test",
+            url = "https://firefox.com",
+            onClick = object : BrowserToolbarEvent {},
+            onLongClick = object : BrowserToolbarEvent {},
+        )
+        assertPageOriginEquals(defaultPageDetails, store.state.displayState.pageOrigin)
+
+        store.dispatch(PageOriginUpdated(newPageDetails))
+
+        assertEquals(newPageDetails, store.state.displayState.pageOrigin)
+    }
+
+    @Test
     fun `WHEN add browser action is dispatched THEN update display browser actions state`() {
         val store = BrowserToolbarStore()
         val action1 = fakeActionButton()
@@ -164,4 +190,11 @@ class BrowserToolbarStoreTest {
         tint = Random.nextInt(),
         onClick = object : BrowserToolbarEvent {},
     )
+
+    private fun assertPageOriginEquals(expected: PageOrigin, actual: PageOrigin) {
+        assertEquals(expected.hint, actual.hint)
+        assertEquals(expected.title, actual.title)
+        assertEquals(expected.url, actual.url)
+        // Cannot check the onClick and onLongClick anonymous object
+    }
 }

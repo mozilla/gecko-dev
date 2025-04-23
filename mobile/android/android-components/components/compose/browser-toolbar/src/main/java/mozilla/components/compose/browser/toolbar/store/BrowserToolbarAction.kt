@@ -4,6 +4,7 @@
 
 package mozilla.components.compose.browser.toolbar.store
 
+import mozilla.components.compose.browser.toolbar.concept.PageOrigin
 import mozilla.components.lib.state.Action
 import mozilla.components.compose.browser.toolbar.concept.Action as ToolbarAction
 
@@ -51,6 +52,13 @@ sealed class BrowserDisplayToolbarAction : BrowserToolbarAction {
      * @property actions The new list of [ToolbarAction]s.
      */
     data class PageActionsStartUpdated(val actions: List<ToolbarAction>) : BrowserDisplayToolbarAction()
+
+    /**
+     * Replace the currently displayed details of the page with the newly provided details.
+     *
+     * @property pageOrigin The new details of the current webpage.
+     */
+    data class PageOriginUpdated(val pageOrigin: PageOrigin) : BrowserDisplayToolbarAction()
 
     /**
      * Adds a browser [Action] to be displayed to the right side of the URL of the display toolbar

@@ -6,7 +6,10 @@ package mozilla.components.compose.browser.toolbar.store
 
 import androidx.annotation.IntRange
 import androidx.compose.ui.graphics.Color
+import mozilla.components.compose.browser.toolbar.R
 import mozilla.components.compose.browser.toolbar.concept.Action
+import mozilla.components.compose.browser.toolbar.concept.PageOrigin
+import mozilla.components.compose.browser.toolbar.store.BrowserToolbarInteraction.BrowserToolbarEvent
 import mozilla.components.lib.state.State
 
 /**
@@ -56,6 +59,10 @@ enum class Mode {
  * and the current webpage's details, inside of the URL bounding box.
  * These should be actions relevant to specific webpages as opposed to [browserActionsStart].
  * See [MDN docs](https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/API/pageAction).
+ * @param pageOrigin Details about the current website.
+ * @param pageActions List of page [Action]s to be displayed to the right side of the URL of the
+ * display toolbar. Also see:
+ * [MDN docs](https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/API/pageAction)
  * @property browserActions List of browser [Action]s to be displayed on the right side of the
  * display toolbar (outside of the URL bounding box). Also see:
  * [MDN docs](https://developer.mozilla.org/en-US/Add-ons/WebExtensions/user_interface/Browser_action)
@@ -66,6 +73,12 @@ data class DisplayState(
     val hint: String = "",
     val browserActionsStart: List<Action> = emptyList(),
     val pageActionsStart: List<Action> = emptyList(),
+    val pageOrigin: PageOrigin = PageOrigin(
+        hint = R.string.mozac_browser_toolbar_search_hint,
+        title = null,
+        url = null,
+        onClick = object : BrowserToolbarEvent {},
+    ),
     val pageActions: List<Action> = emptyList(),
     val browserActions: List<Action> = emptyList(),
     val progressBarConfig: ProgressBarConfig? = null,
