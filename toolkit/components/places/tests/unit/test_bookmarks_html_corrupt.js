@@ -109,9 +109,7 @@ var database_check = async function () {
   root.containerOpen = false;
 
   // favicons
-  let favicon = await PlacesUtils.favicons.getFaviconForPage(
-    uri(TEST_FAVICON_PAGE_URL)
-  );
+  let favicon = await PlacesTestUtils.getFaviconForPage(TEST_FAVICON_PAGE_URL);
   // aURI should never be null when rawData.length > 0.
   Assert.notEqual(favicon.uri, null);
   // Favicon data is stored in the bookmarks file as a "data:" URI.  For
