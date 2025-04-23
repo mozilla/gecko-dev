@@ -93,6 +93,11 @@ const unsigned long kIdleContentAnalysisAgentTimeoutMs = 100;
 // means.
 const unsigned long kMaxIdleContentAnalysisAgentTimeoutMs = UINT32_MAX;
 
+// How long the threadpool will wait at shutdown for the agent to complete any
+// in-progress operations before it abandons the threads (they will keep
+// running).
+const uint32_t kShutdownThreadpoolTimeoutMs = 2 * 1000;
+
 // kTextMime must be the first entry.
 auto kTextFormatsToAnalyze = {kTextMime, kHTMLMime};
 
@@ -1366,7 +1371,7 @@ void ContentAnalysis::Close() {
   // The userActionMap must be cleared before the object is destroyed.
   mUserActionMap.Clear();
 
-  mThreadPool->Shutdown();
+  mThreadPool->ShutdownWithTimeout(kShutdownThreadpoolTimeoutMs);
   mThreadPool = nullptr;
   LOGD("Content Analysis service is closed");
 }
