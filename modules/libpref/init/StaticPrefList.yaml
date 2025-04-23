@@ -2638,6 +2638,13 @@
   value: true
   mirror: always
 
+# HTMLDialogElement.prototype.requestClose
+# See https://html.spec.whatwg.org/#dom-dialog-requestclose
+- name: dom.element.dialog.request_close.enabled
+  type: bool
+  value: true
+  mirror: always
+
 - name: dom.element.transform-getters.enabled
   type: bool
   value: false
