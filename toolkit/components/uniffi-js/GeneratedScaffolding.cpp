@@ -870,7 +870,15 @@ extern "C" {
   uint16_t uniffi_arithmetical_checksum_func_equal();
   uint16_t uniffi_arithmetical_checksum_func_sub();
   uint32_t ffi_arithmetical_uniffi_contract_version();
+  RustBuffer uniffi_uniffi_custom_types_fn_func_echo_explicit_value(RustBuffer, RustCallStatus*);
+  RustBuffer uniffi_uniffi_custom_types_fn_func_echo_gapped_value(RustBuffer, RustCallStatus*);
+  RustBuffer uniffi_uniffi_custom_types_fn_func_echo_sequential_value(RustBuffer, RustCallStatus*);
   RustBuffer uniffi_uniffi_custom_types_fn_func_get_custom_types_demo(RustBuffer, RustCallStatus*);
+  uint8_t uniffi_uniffi_custom_types_fn_func_get_explicit_discriminant(RustBuffer, RustCallStatus*);
+  RustBuffer uniffi_uniffi_custom_types_fn_func_get_explicit_enum_values(RustCallStatus*);
+  uint8_t uniffi_uniffi_custom_types_fn_func_get_gapped_discriminant(RustBuffer, RustCallStatus*);
+  RustBuffer uniffi_uniffi_custom_types_fn_func_get_gapped_enum_values(RustCallStatus*);
+  uint8_t uniffi_uniffi_custom_types_fn_func_get_sequential_discriminant(RustBuffer, RustCallStatus*);
   RustBuffer ffi_uniffi_custom_types_rustbuffer_alloc(uint64_t, RustCallStatus*);
   RustBuffer ffi_uniffi_custom_types_rustbuffer_from_bytes(ForeignBytes, RustCallStatus*);
   void ffi_uniffi_custom_types_rustbuffer_free(RustBuffer, RustCallStatus*);
@@ -927,7 +935,15 @@ extern "C" {
   void ffi_uniffi_custom_types_rust_future_cancel_void(uint64_t);
   void ffi_uniffi_custom_types_rust_future_free_void(uint64_t);
   void ffi_uniffi_custom_types_rust_future_complete_void(uint64_t, RustCallStatus*);
+  uint16_t uniffi_uniffi_custom_types_checksum_func_echo_explicit_value();
+  uint16_t uniffi_uniffi_custom_types_checksum_func_echo_gapped_value();
+  uint16_t uniffi_uniffi_custom_types_checksum_func_echo_sequential_value();
   uint16_t uniffi_uniffi_custom_types_checksum_func_get_custom_types_demo();
+  uint16_t uniffi_uniffi_custom_types_checksum_func_get_explicit_discriminant();
+  uint16_t uniffi_uniffi_custom_types_checksum_func_get_explicit_enum_values();
+  uint16_t uniffi_uniffi_custom_types_checksum_func_get_gapped_discriminant();
+  uint16_t uniffi_uniffi_custom_types_checksum_func_get_gapped_enum_values();
+  uint16_t uniffi_uniffi_custom_types_checksum_func_get_sequential_discriminant();
   uint32_t ffi_uniffi_custom_types_uniffi_contract_version();
   double uniffi_uniffi_fixture_external_types_fn_func_gradient(RustBuffer, RustCallStatus*);
   RustBuffer uniffi_uniffi_fixture_external_types_fn_func_intersection(RustBuffer, RustBuffer, RustCallStatus*);
@@ -7532,6 +7548,105 @@ public:
     );
   }
 };
+class ScaffoldingCallHandlerUniffiUniffiCustomTypesFnFuncEchoExplicitValue : public UniffiSyncCallHandler {
+private:
+  // LowerRustArgs stores the resulting arguments in these fields
+  FfiValueRustBuffer mValue{};
+
+  // MakeRustCall stores the result of the call in these fields
+  FfiValueRustBuffer mUniffiReturnValue{};
+
+public:
+  void LowerRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+    mValue.Lower(aArgs[0], aError);
+    if (aError.Failed()) {
+      return;
+    }
+  }
+
+  void MakeRustCall(RustCallStatus* aOutStatus) override {
+    mUniffiReturnValue = FfiValueRustBuffer::FromRust(
+      uniffi_uniffi_custom_types_fn_func_echo_explicit_value(
+        mValue.IntoRust(),
+        aOutStatus
+      )
+    );
+  }
+
+  virtual void LiftSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+    mUniffiReturnValue.Lift(
+      aCx,
+      &aDest.Construct(),
+      aError
+    );
+  }
+};
+class ScaffoldingCallHandlerUniffiUniffiCustomTypesFnFuncEchoGappedValue : public UniffiSyncCallHandler {
+private:
+  // LowerRustArgs stores the resulting arguments in these fields
+  FfiValueRustBuffer mValue{};
+
+  // MakeRustCall stores the result of the call in these fields
+  FfiValueRustBuffer mUniffiReturnValue{};
+
+public:
+  void LowerRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+    mValue.Lower(aArgs[0], aError);
+    if (aError.Failed()) {
+      return;
+    }
+  }
+
+  void MakeRustCall(RustCallStatus* aOutStatus) override {
+    mUniffiReturnValue = FfiValueRustBuffer::FromRust(
+      uniffi_uniffi_custom_types_fn_func_echo_gapped_value(
+        mValue.IntoRust(),
+        aOutStatus
+      )
+    );
+  }
+
+  virtual void LiftSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+    mUniffiReturnValue.Lift(
+      aCx,
+      &aDest.Construct(),
+      aError
+    );
+  }
+};
+class ScaffoldingCallHandlerUniffiUniffiCustomTypesFnFuncEchoSequentialValue : public UniffiSyncCallHandler {
+private:
+  // LowerRustArgs stores the resulting arguments in these fields
+  FfiValueRustBuffer mValue{};
+
+  // MakeRustCall stores the result of the call in these fields
+  FfiValueRustBuffer mUniffiReturnValue{};
+
+public:
+  void LowerRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+    mValue.Lower(aArgs[0], aError);
+    if (aError.Failed()) {
+      return;
+    }
+  }
+
+  void MakeRustCall(RustCallStatus* aOutStatus) override {
+    mUniffiReturnValue = FfiValueRustBuffer::FromRust(
+      uniffi_uniffi_custom_types_fn_func_echo_sequential_value(
+        mValue.IntoRust(),
+        aOutStatus
+      )
+    );
+  }
+
+  virtual void LiftSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+    mUniffiReturnValue.Lift(
+      aCx,
+      &aDest.Construct(),
+      aError
+    );
+  }
+};
 class ScaffoldingCallHandlerUniffiUniffiCustomTypesFnFuncGetCustomTypesDemo : public UniffiSyncCallHandler {
 private:
   // LowerRustArgs stores the resulting arguments in these fields
@@ -7552,6 +7667,159 @@ public:
     mUniffiReturnValue = FfiValueRustBuffer::FromRust(
       uniffi_uniffi_custom_types_fn_func_get_custom_types_demo(
         mDemo.IntoRust(),
+        aOutStatus
+      )
+    );
+  }
+
+  virtual void LiftSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+    mUniffiReturnValue.Lift(
+      aCx,
+      &aDest.Construct(),
+      aError
+    );
+  }
+};
+class ScaffoldingCallHandlerUniffiUniffiCustomTypesFnFuncGetExplicitDiscriminant : public UniffiSyncCallHandler {
+private:
+  // LowerRustArgs stores the resulting arguments in these fields
+  FfiValueRustBuffer mValue{};
+
+  // MakeRustCall stores the result of the call in these fields
+  FfiValueInt<uint8_t> mUniffiReturnValue{};
+
+public:
+  void LowerRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+    mValue.Lower(aArgs[0], aError);
+    if (aError.Failed()) {
+      return;
+    }
+  }
+
+  void MakeRustCall(RustCallStatus* aOutStatus) override {
+    mUniffiReturnValue = FfiValueInt<uint8_t>::FromRust(
+      uniffi_uniffi_custom_types_fn_func_get_explicit_discriminant(
+        mValue.IntoRust(),
+        aOutStatus
+      )
+    );
+  }
+
+  virtual void LiftSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+    mUniffiReturnValue.Lift(
+      aCx,
+      &aDest.Construct(),
+      aError
+    );
+  }
+};
+class ScaffoldingCallHandlerUniffiUniffiCustomTypesFnFuncGetExplicitEnumValues : public UniffiSyncCallHandler {
+private:
+  // LowerRustArgs stores the resulting arguments in these fields
+
+  // MakeRustCall stores the result of the call in these fields
+  FfiValueRustBuffer mUniffiReturnValue{};
+
+public:
+  void LowerRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  }
+
+  void MakeRustCall(RustCallStatus* aOutStatus) override {
+    mUniffiReturnValue = FfiValueRustBuffer::FromRust(
+      uniffi_uniffi_custom_types_fn_func_get_explicit_enum_values(
+        aOutStatus
+      )
+    );
+  }
+
+  virtual void LiftSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+    mUniffiReturnValue.Lift(
+      aCx,
+      &aDest.Construct(),
+      aError
+    );
+  }
+};
+class ScaffoldingCallHandlerUniffiUniffiCustomTypesFnFuncGetGappedDiscriminant : public UniffiSyncCallHandler {
+private:
+  // LowerRustArgs stores the resulting arguments in these fields
+  FfiValueRustBuffer mValue{};
+
+  // MakeRustCall stores the result of the call in these fields
+  FfiValueInt<uint8_t> mUniffiReturnValue{};
+
+public:
+  void LowerRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+    mValue.Lower(aArgs[0], aError);
+    if (aError.Failed()) {
+      return;
+    }
+  }
+
+  void MakeRustCall(RustCallStatus* aOutStatus) override {
+    mUniffiReturnValue = FfiValueInt<uint8_t>::FromRust(
+      uniffi_uniffi_custom_types_fn_func_get_gapped_discriminant(
+        mValue.IntoRust(),
+        aOutStatus
+      )
+    );
+  }
+
+  virtual void LiftSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+    mUniffiReturnValue.Lift(
+      aCx,
+      &aDest.Construct(),
+      aError
+    );
+  }
+};
+class ScaffoldingCallHandlerUniffiUniffiCustomTypesFnFuncGetGappedEnumValues : public UniffiSyncCallHandler {
+private:
+  // LowerRustArgs stores the resulting arguments in these fields
+
+  // MakeRustCall stores the result of the call in these fields
+  FfiValueRustBuffer mUniffiReturnValue{};
+
+public:
+  void LowerRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  }
+
+  void MakeRustCall(RustCallStatus* aOutStatus) override {
+    mUniffiReturnValue = FfiValueRustBuffer::FromRust(
+      uniffi_uniffi_custom_types_fn_func_get_gapped_enum_values(
+        aOutStatus
+      )
+    );
+  }
+
+  virtual void LiftSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+    mUniffiReturnValue.Lift(
+      aCx,
+      &aDest.Construct(),
+      aError
+    );
+  }
+};
+class ScaffoldingCallHandlerUniffiUniffiCustomTypesFnFuncGetSequentialDiscriminant : public UniffiSyncCallHandler {
+private:
+  // LowerRustArgs stores the resulting arguments in these fields
+  FfiValueRustBuffer mValue{};
+
+  // MakeRustCall stores the result of the call in these fields
+  FfiValueInt<uint8_t> mUniffiReturnValue{};
+
+public:
+  void LowerRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+    mValue.Lower(aArgs[0], aError);
+    if (aError.Failed()) {
+      return;
+    }
+  }
+
+  void MakeRustCall(RustCallStatus* aOutStatus) override {
+    mUniffiReturnValue = FfiValueInt<uint8_t>::FromRust(
+      uniffi_uniffi_custom_types_fn_func_get_sequential_discriminant(
+        mValue.IntoRust(),
         aOutStatus
       )
     );
@@ -12145,318 +12413,342 @@ UniquePtr<UniffiSyncCallHandler> GetSyncCallHandler(uint64_t aId) {
       return MakeUnique<ScaffoldingCallHandlerUniffiArithmeticalFnFuncSub>();
     }
     case 108: {
-      return MakeUnique<ScaffoldingCallHandlerUniffiUniffiCustomTypesFnFuncGetCustomTypesDemo>();
+      return MakeUnique<ScaffoldingCallHandlerUniffiUniffiCustomTypesFnFuncEchoExplicitValue>();
     }
     case 109: {
-      return MakeUnique<ScaffoldingCallHandlerUniffiUniffiFixtureExternalTypesFnFuncGradient>();
+      return MakeUnique<ScaffoldingCallHandlerUniffiUniffiCustomTypesFnFuncEchoGappedValue>();
     }
     case 110: {
-      return MakeUnique<ScaffoldingCallHandlerUniffiUniffiFixtureExternalTypesFnFuncIntersection>();
+      return MakeUnique<ScaffoldingCallHandlerUniffiUniffiCustomTypesFnFuncEchoSequentialValue>();
     }
     case 111: {
-      return MakeUnique<ScaffoldingCallHandlerUniffiUniffiFixtureExternalTypesFnFuncMoveSpriteToOrigin>();
+      return MakeUnique<ScaffoldingCallHandlerUniffiUniffiCustomTypesFnFuncGetCustomTypesDemo>();
     }
     case 112: {
-      return MakeUnique<ScaffoldingCallHandlerUniffiUniffiFixtureCallbacksFnFuncCallLogRepeat>();
+      return MakeUnique<ScaffoldingCallHandlerUniffiUniffiCustomTypesFnFuncGetExplicitDiscriminant>();
     }
     case 113: {
-      return MakeUnique<ScaffoldingCallHandlerUniffiUniffiFixtureCallbacksFnFuncLogEvenNumbers>();
+      return MakeUnique<ScaffoldingCallHandlerUniffiUniffiCustomTypesFnFuncGetExplicitEnumValues>();
     }
     case 114: {
-      return MakeUnique<ScaffoldingCallHandlerUniffiUniffiFixtureCallbacksFnFuncLogEvenNumbersMainThread>();
+      return MakeUnique<ScaffoldingCallHandlerUniffiUniffiCustomTypesFnFuncGetGappedDiscriminant>();
+    }
+    case 115: {
+      return MakeUnique<ScaffoldingCallHandlerUniffiUniffiCustomTypesFnFuncGetGappedEnumValues>();
     }
     case 116: {
-      return MakeUnique<ScaffoldingCallHandlerUniffiUniffiFixtureFuturesFnFuncInitializeGeckoGlobalWorkerQueue>();
+      return MakeUnique<ScaffoldingCallHandlerUniffiUniffiCustomTypesFnFuncGetSequentialDiscriminant>();
     }
     case 117: {
+      return MakeUnique<ScaffoldingCallHandlerUniffiUniffiFixtureExternalTypesFnFuncGradient>();
+    }
+    case 118: {
+      return MakeUnique<ScaffoldingCallHandlerUniffiUniffiFixtureExternalTypesFnFuncIntersection>();
+    }
+    case 119: {
+      return MakeUnique<ScaffoldingCallHandlerUniffiUniffiFixtureExternalTypesFnFuncMoveSpriteToOrigin>();
+    }
+    case 120: {
+      return MakeUnique<ScaffoldingCallHandlerUniffiUniffiFixtureCallbacksFnFuncCallLogRepeat>();
+    }
+    case 121: {
+      return MakeUnique<ScaffoldingCallHandlerUniffiUniffiFixtureCallbacksFnFuncLogEvenNumbers>();
+    }
+    case 122: {
+      return MakeUnique<ScaffoldingCallHandlerUniffiUniffiFixtureCallbacksFnFuncLogEvenNumbersMainThread>();
+    }
+    case 124: {
+      return MakeUnique<ScaffoldingCallHandlerUniffiUniffiFixtureFuturesFnFuncInitializeGeckoGlobalWorkerQueue>();
+    }
+    case 125: {
       return MakeUnique<ScaffoldingCallHandlerUniffiUniffiFixtureFuturesFnFuncInitializeGlobalWorkerQueue>();
     }
-    case 132: {
+    case 140: {
       return MakeUnique<ScaffoldingCallHandlerUniffiUniffiFixtureFuturesFnMethodFuturetesterCompleteFutures>();
     }
-    case 134: {
+    case 142: {
       return MakeUnique<ScaffoldingCallHandlerUniffiUniffiFixtureFuturesFnMethodFuturetesterWakeFutures>();
     }
-    case 135: {
+    case 143: {
       return MakeUnique<ScaffoldingCallHandlerUniffiUniffiFixtureFuturesFnConstructorFuturetesterInit>();
     }
-    case 136: {
+    case 144: {
       return MakeUnique<ScaffoldingCallHandlerUniffiUniffiFixtureFuturesFnMethodRusttaskRun>();
     }
-    case 137: {
+    case 145: {
       return MakeUnique<ScaffoldingCallHandlerUniffiUniffiFixtureFuturesFnMethodTravellerName>();
     }
-    case 138: {
+    case 146: {
       return MakeUnique<ScaffoldingCallHandlerUniffiUniffiFixtureFuturesFnConstructorTravellerNew>();
     }
-    case 139: {
+    case 147: {
       return MakeUnique<ScaffoldingCallHandlerUniffiUniffiFixtureFuturesFnMethodWorkerqueueAddTask>();
     }
-    case 140: {
+    case 148: {
       return MakeUnique<ScaffoldingCallHandlerUniffiUniffiGeometryFnFuncGradient>();
     }
-    case 141: {
+    case 149: {
       return MakeUnique<ScaffoldingCallHandlerUniffiUniffiGeometryFnFuncIntersection>();
     }
-    case 142: {
+    case 150: {
       return MakeUnique<ScaffoldingCallHandlerUniffiUniffiFixtureRefcountsFnFuncGetJsRefcount>();
     }
-    case 143: {
+    case 151: {
       return MakeUnique<ScaffoldingCallHandlerUniffiUniffiFixtureRefcountsFnFuncGetSingleton>();
     }
-    case 144: {
+    case 152: {
       return MakeUnique<ScaffoldingCallHandlerUniffiUniffiFixtureRefcountsFnMethodSingletonobjectMethod>();
     }
-    case 145: {
+    case 153: {
       return MakeUnique<ScaffoldingCallHandlerUniffiUniffiRondpointFnFuncCopieCarte>();
     }
-    case 146: {
+    case 154: {
       return MakeUnique<ScaffoldingCallHandlerUniffiUniffiRondpointFnFuncCopieDictionnaire>();
     }
-    case 147: {
+    case 155: {
       return MakeUnique<ScaffoldingCallHandlerUniffiUniffiRondpointFnFuncCopieEnumeration>();
     }
-    case 148: {
+    case 156: {
       return MakeUnique<ScaffoldingCallHandlerUniffiUniffiRondpointFnFuncCopieEnumerations>();
     }
-    case 149: {
+    case 157: {
       return MakeUnique<ScaffoldingCallHandlerUniffiUniffiRondpointFnFuncSwitcheroo>();
     }
-    case 150: {
+    case 158: {
       return MakeUnique<ScaffoldingCallHandlerUniffiUniffiRondpointFnMethodOptionneurSinonBoolean>();
     }
-    case 151: {
+    case 159: {
       return MakeUnique<ScaffoldingCallHandlerUniffiUniffiRondpointFnMethodOptionneurSinonEnum>();
     }
-    case 152: {
+    case 160: {
       return MakeUnique<ScaffoldingCallHandlerUniffiUniffiRondpointFnMethodOptionneurSinonF32>();
     }
-    case 153: {
+    case 161: {
       return MakeUnique<ScaffoldingCallHandlerUniffiUniffiRondpointFnMethodOptionneurSinonF64>();
     }
-    case 154: {
+    case 162: {
       return MakeUnique<ScaffoldingCallHandlerUniffiUniffiRondpointFnMethodOptionneurSinonI16Dec>();
     }
-    case 155: {
+    case 163: {
       return MakeUnique<ScaffoldingCallHandlerUniffiUniffiRondpointFnMethodOptionneurSinonI16Hex>();
     }
-    case 156: {
+    case 164: {
       return MakeUnique<ScaffoldingCallHandlerUniffiUniffiRondpointFnMethodOptionneurSinonI32Dec>();
     }
-    case 157: {
+    case 165: {
       return MakeUnique<ScaffoldingCallHandlerUniffiUniffiRondpointFnMethodOptionneurSinonI32Hex>();
     }
-    case 158: {
+    case 166: {
       return MakeUnique<ScaffoldingCallHandlerUniffiUniffiRondpointFnMethodOptionneurSinonI64Dec>();
     }
-    case 159: {
+    case 167: {
       return MakeUnique<ScaffoldingCallHandlerUniffiUniffiRondpointFnMethodOptionneurSinonI64Hex>();
     }
-    case 160: {
+    case 168: {
       return MakeUnique<ScaffoldingCallHandlerUniffiUniffiRondpointFnMethodOptionneurSinonI8Dec>();
     }
-    case 161: {
+    case 169: {
       return MakeUnique<ScaffoldingCallHandlerUniffiUniffiRondpointFnMethodOptionneurSinonI8Hex>();
     }
-    case 162: {
+    case 170: {
       return MakeUnique<ScaffoldingCallHandlerUniffiUniffiRondpointFnMethodOptionneurSinonNull>();
     }
-    case 163: {
+    case 171: {
       return MakeUnique<ScaffoldingCallHandlerUniffiUniffiRondpointFnMethodOptionneurSinonSequence>();
     }
-    case 164: {
+    case 172: {
       return MakeUnique<ScaffoldingCallHandlerUniffiUniffiRondpointFnMethodOptionneurSinonString>();
     }
-    case 165: {
+    case 173: {
       return MakeUnique<ScaffoldingCallHandlerUniffiUniffiRondpointFnMethodOptionneurSinonU16Dec>();
     }
-    case 166: {
+    case 174: {
       return MakeUnique<ScaffoldingCallHandlerUniffiUniffiRondpointFnMethodOptionneurSinonU16Hex>();
     }
-    case 167: {
+    case 175: {
       return MakeUnique<ScaffoldingCallHandlerUniffiUniffiRondpointFnMethodOptionneurSinonU32Dec>();
     }
-    case 168: {
+    case 176: {
       return MakeUnique<ScaffoldingCallHandlerUniffiUniffiRondpointFnMethodOptionneurSinonU32Hex>();
     }
-    case 169: {
+    case 177: {
       return MakeUnique<ScaffoldingCallHandlerUniffiUniffiRondpointFnMethodOptionneurSinonU32Oct>();
     }
-    case 170: {
+    case 178: {
       return MakeUnique<ScaffoldingCallHandlerUniffiUniffiRondpointFnMethodOptionneurSinonU64Dec>();
     }
-    case 171: {
+    case 179: {
       return MakeUnique<ScaffoldingCallHandlerUniffiUniffiRondpointFnMethodOptionneurSinonU64Hex>();
     }
-    case 172: {
+    case 180: {
       return MakeUnique<ScaffoldingCallHandlerUniffiUniffiRondpointFnMethodOptionneurSinonU8Dec>();
     }
-    case 173: {
+    case 181: {
       return MakeUnique<ScaffoldingCallHandlerUniffiUniffiRondpointFnMethodOptionneurSinonU8Hex>();
     }
-    case 174: {
+    case 182: {
       return MakeUnique<ScaffoldingCallHandlerUniffiUniffiRondpointFnMethodOptionneurSinonZero>();
     }
-    case 175: {
+    case 183: {
       return MakeUnique<ScaffoldingCallHandlerUniffiUniffiRondpointFnConstructorOptionneurNew>();
     }
-    case 176: {
+    case 184: {
       return MakeUnique<ScaffoldingCallHandlerUniffiUniffiRondpointFnMethodRetourneurIdentiqueBoolean>();
     }
-    case 177: {
+    case 185: {
       return MakeUnique<ScaffoldingCallHandlerUniffiUniffiRondpointFnMethodRetourneurIdentiqueDouble>();
     }
-    case 178: {
+    case 186: {
       return MakeUnique<ScaffoldingCallHandlerUniffiUniffiRondpointFnMethodRetourneurIdentiqueFloat>();
     }
-    case 179: {
+    case 187: {
       return MakeUnique<ScaffoldingCallHandlerUniffiUniffiRondpointFnMethodRetourneurIdentiqueI16>();
     }
-    case 180: {
+    case 188: {
       return MakeUnique<ScaffoldingCallHandlerUniffiUniffiRondpointFnMethodRetourneurIdentiqueI32>();
     }
-    case 181: {
+    case 189: {
       return MakeUnique<ScaffoldingCallHandlerUniffiUniffiRondpointFnMethodRetourneurIdentiqueI64>();
     }
-    case 182: {
+    case 190: {
       return MakeUnique<ScaffoldingCallHandlerUniffiUniffiRondpointFnMethodRetourneurIdentiqueI8>();
     }
-    case 183: {
+    case 191: {
       return MakeUnique<ScaffoldingCallHandlerUniffiUniffiRondpointFnMethodRetourneurIdentiqueNombres>();
     }
-    case 184: {
+    case 192: {
       return MakeUnique<ScaffoldingCallHandlerUniffiUniffiRondpointFnMethodRetourneurIdentiqueNombresSignes>();
     }
-    case 185: {
+    case 193: {
       return MakeUnique<ScaffoldingCallHandlerUniffiUniffiRondpointFnMethodRetourneurIdentiqueOptionneurDictionnaire>();
     }
-    case 186: {
+    case 194: {
       return MakeUnique<ScaffoldingCallHandlerUniffiUniffiRondpointFnMethodRetourneurIdentiqueString>();
     }
-    case 187: {
+    case 195: {
       return MakeUnique<ScaffoldingCallHandlerUniffiUniffiRondpointFnMethodRetourneurIdentiqueU16>();
     }
-    case 188: {
+    case 196: {
       return MakeUnique<ScaffoldingCallHandlerUniffiUniffiRondpointFnMethodRetourneurIdentiqueU32>();
     }
-    case 189: {
+    case 197: {
       return MakeUnique<ScaffoldingCallHandlerUniffiUniffiRondpointFnMethodRetourneurIdentiqueU64>();
     }
-    case 190: {
+    case 198: {
       return MakeUnique<ScaffoldingCallHandlerUniffiUniffiRondpointFnMethodRetourneurIdentiqueU8>();
     }
-    case 191: {
+    case 199: {
       return MakeUnique<ScaffoldingCallHandlerUniffiUniffiRondpointFnConstructorRetourneurNew>();
     }
-    case 192: {
+    case 200: {
       return MakeUnique<ScaffoldingCallHandlerUniffiUniffiRondpointFnMethodStringifierToStringBoolean>();
     }
-    case 193: {
+    case 201: {
       return MakeUnique<ScaffoldingCallHandlerUniffiUniffiRondpointFnMethodStringifierToStringDouble>();
     }
-    case 194: {
+    case 202: {
       return MakeUnique<ScaffoldingCallHandlerUniffiUniffiRondpointFnMethodStringifierToStringFloat>();
     }
-    case 195: {
+    case 203: {
       return MakeUnique<ScaffoldingCallHandlerUniffiUniffiRondpointFnMethodStringifierToStringI16>();
     }
-    case 196: {
+    case 204: {
       return MakeUnique<ScaffoldingCallHandlerUniffiUniffiRondpointFnMethodStringifierToStringI32>();
     }
-    case 197: {
+    case 205: {
       return MakeUnique<ScaffoldingCallHandlerUniffiUniffiRondpointFnMethodStringifierToStringI64>();
     }
-    case 198: {
+    case 206: {
       return MakeUnique<ScaffoldingCallHandlerUniffiUniffiRondpointFnMethodStringifierToStringI8>();
     }
-    case 199: {
+    case 207: {
       return MakeUnique<ScaffoldingCallHandlerUniffiUniffiRondpointFnMethodStringifierToStringU16>();
     }
-    case 200: {
+    case 208: {
       return MakeUnique<ScaffoldingCallHandlerUniffiUniffiRondpointFnMethodStringifierToStringU32>();
     }
-    case 201: {
+    case 209: {
       return MakeUnique<ScaffoldingCallHandlerUniffiUniffiRondpointFnMethodStringifierToStringU64>();
     }
-    case 202: {
+    case 210: {
       return MakeUnique<ScaffoldingCallHandlerUniffiUniffiRondpointFnMethodStringifierToStringU8>();
     }
-    case 203: {
+    case 211: {
       return MakeUnique<ScaffoldingCallHandlerUniffiUniffiRondpointFnMethodStringifierWellKnownString>();
     }
-    case 204: {
+    case 212: {
       return MakeUnique<ScaffoldingCallHandlerUniffiUniffiRondpointFnConstructorStringifierNew>();
     }
-    case 205: {
+    case 213: {
       return MakeUnique<ScaffoldingCallHandlerUniffiUniffiSpritesFnFuncTranslate>();
     }
-    case 206: {
+    case 214: {
       return MakeUnique<ScaffoldingCallHandlerUniffiUniffiSpritesFnMethodSpriteGetPosition>();
     }
-    case 207: {
+    case 215: {
       return MakeUnique<ScaffoldingCallHandlerUniffiUniffiSpritesFnMethodSpriteMoveBy>();
     }
-    case 208: {
+    case 216: {
       return MakeUnique<ScaffoldingCallHandlerUniffiUniffiSpritesFnMethodSpriteMoveTo>();
     }
-    case 209: {
+    case 217: {
       return MakeUnique<ScaffoldingCallHandlerUniffiUniffiSpritesFnConstructorSpriteNew>();
     }
-    case 210: {
+    case 218: {
       return MakeUnique<ScaffoldingCallHandlerUniffiUniffiSpritesFnConstructorSpriteNewRelativeTo>();
     }
-    case 211: {
+    case 219: {
       return MakeUnique<ScaffoldingCallHandlerUniffiUniffiTodolistFnFuncCreateEntryWith>();
     }
-    case 212: {
+    case 220: {
       return MakeUnique<ScaffoldingCallHandlerUniffiUniffiTodolistFnFuncGetDefaultList>();
     }
-    case 213: {
+    case 221: {
       return MakeUnique<ScaffoldingCallHandlerUniffiUniffiTodolistFnFuncSetDefaultList>();
     }
-    case 214: {
+    case 222: {
       return MakeUnique<ScaffoldingCallHandlerUniffiUniffiTodolistFnMethodTodolistAddEntries>();
     }
-    case 215: {
+    case 223: {
       return MakeUnique<ScaffoldingCallHandlerUniffiUniffiTodolistFnMethodTodolistAddEntry>();
     }
-    case 216: {
+    case 224: {
       return MakeUnique<ScaffoldingCallHandlerUniffiUniffiTodolistFnMethodTodolistAddItem>();
     }
-    case 217: {
+    case 225: {
       return MakeUnique<ScaffoldingCallHandlerUniffiUniffiTodolistFnMethodTodolistAddItems>();
     }
-    case 218: {
+    case 226: {
       return MakeUnique<ScaffoldingCallHandlerUniffiUniffiTodolistFnMethodTodolistClearItem>();
     }
-    case 219: {
+    case 227: {
       return MakeUnique<ScaffoldingCallHandlerUniffiUniffiTodolistFnMethodTodolistGetEntries>();
     }
-    case 220: {
+    case 228: {
       return MakeUnique<ScaffoldingCallHandlerUniffiUniffiTodolistFnMethodTodolistGetFirst>();
     }
-    case 221: {
+    case 229: {
       return MakeUnique<ScaffoldingCallHandlerUniffiUniffiTodolistFnMethodTodolistGetItems>();
     }
-    case 222: {
+    case 230: {
       return MakeUnique<ScaffoldingCallHandlerUniffiUniffiTodolistFnMethodTodolistGetLast>();
     }
-    case 223: {
+    case 231: {
       return MakeUnique<ScaffoldingCallHandlerUniffiUniffiTodolistFnMethodTodolistGetLastEntry>();
     }
-    case 224: {
+    case 232: {
       return MakeUnique<ScaffoldingCallHandlerUniffiUniffiTodolistFnMethodTodolistMakeDefault>();
     }
-    case 225: {
+    case 233: {
       return MakeUnique<ScaffoldingCallHandlerUniffiUniffiTodolistFnConstructorTodolistNew>();
     }
-    case 226: {
+    case 234: {
       return MakeUnique<ScaffoldingCallHandlerUniffiUniffiTraitInterfacesFnFuncMakeBuggyCalculator>();
     }
-    case 227: {
+    case 235: {
       return MakeUnique<ScaffoldingCallHandlerUniffiUniffiTraitInterfacesFnFuncMakeCalculator>();
     }
-    case 228: {
+    case 236: {
       return MakeUnique<ScaffoldingCallHandlerUniffiUniffiTraitInterfacesFnMethodCalcAdd>();
     }
 #endif /* MOZ_UNIFFI_FIXTURES */
@@ -12471,52 +12763,52 @@ UniquePtr<UniffiAsyncCallHandler> GetAsyncCallHandler(uint64_t aId) {
 
 
 #ifdef MOZ_UNIFFI_FIXTURES
-    case 115: {
+    case 123: {
       return MakeUnique<ScaffoldingCallHandlerUniffiUniffiFixtureFuturesFnFuncExpensiveComputation>();
     }
-    case 118: {
+    case 126: {
       return MakeUnique<ScaffoldingCallHandlerUniffiUniffiFixtureFuturesFnFuncRoundtripF32>();
     }
-    case 119: {
+    case 127: {
       return MakeUnique<ScaffoldingCallHandlerUniffiUniffiFixtureFuturesFnFuncRoundtripF64>();
     }
-    case 120: {
+    case 128: {
       return MakeUnique<ScaffoldingCallHandlerUniffiUniffiFixtureFuturesFnFuncRoundtripI16>();
     }
-    case 121: {
+    case 129: {
       return MakeUnique<ScaffoldingCallHandlerUniffiUniffiFixtureFuturesFnFuncRoundtripI32>();
     }
-    case 122: {
+    case 130: {
       return MakeUnique<ScaffoldingCallHandlerUniffiUniffiFixtureFuturesFnFuncRoundtripI64>();
     }
-    case 123: {
+    case 131: {
       return MakeUnique<ScaffoldingCallHandlerUniffiUniffiFixtureFuturesFnFuncRoundtripI8>();
     }
-    case 124: {
+    case 132: {
       return MakeUnique<ScaffoldingCallHandlerUniffiUniffiFixtureFuturesFnFuncRoundtripMap>();
     }
-    case 125: {
+    case 133: {
       return MakeUnique<ScaffoldingCallHandlerUniffiUniffiFixtureFuturesFnFuncRoundtripObj>();
     }
-    case 126: {
+    case 134: {
       return MakeUnique<ScaffoldingCallHandlerUniffiUniffiFixtureFuturesFnFuncRoundtripString>();
     }
-    case 127: {
+    case 135: {
       return MakeUnique<ScaffoldingCallHandlerUniffiUniffiFixtureFuturesFnFuncRoundtripU16>();
     }
-    case 128: {
+    case 136: {
       return MakeUnique<ScaffoldingCallHandlerUniffiUniffiFixtureFuturesFnFuncRoundtripU32>();
     }
-    case 129: {
+    case 137: {
       return MakeUnique<ScaffoldingCallHandlerUniffiUniffiFixtureFuturesFnFuncRoundtripU64>();
     }
-    case 130: {
+    case 138: {
       return MakeUnique<ScaffoldingCallHandlerUniffiUniffiFixtureFuturesFnFuncRoundtripU8>();
     }
-    case 131: {
+    case 139: {
       return MakeUnique<ScaffoldingCallHandlerUniffiUniffiFixtureFuturesFnFuncRoundtripVec>();
     }
-    case 133: {
+    case 141: {
       return MakeUnique<ScaffoldingCallHandlerUniffiUniffiFixtureFuturesFnMethodFuturetesterMakeFuture>();
     }
 #endif /* MOZ_UNIFFI_FIXTURES */

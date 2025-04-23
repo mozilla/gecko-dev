@@ -514,10 +514,7 @@ class ProviderQuickSuggest extends UrlbarProvider {
 
     let score;
     try {
-      score = await lazy.ContentRelevancyManager.score(
-        suggestion.categories,
-        true // adjustment needed b/c Merino uses the original encoding
-      );
+      score = await lazy.ContentRelevancyManager.score(suggestion.categories);
     } catch (error) {
       Glean.suggestRelevance.status.failure.add(1);
       this.logger.error("Error updating suggestion score", error);
