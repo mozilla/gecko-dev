@@ -10,7 +10,6 @@
 #include <deque>
 
 #include "mozilla/Attributes.h"
-#include "mozilla/LinkedList.h"
 #include "mozilla/MemoryReporting.h"
 #include "mozilla/dom/AtomList.h"
 #include "mozilla/dom/Promise.h"
@@ -30,7 +29,6 @@ class AutoSlowOperation;
 
 class CycleCollectedJSContext;
 class CycleCollectedJSRuntime;
-class PromiseJobRunnable;
 
 namespace dom {
 class Exception;
@@ -74,20 +72,15 @@ struct CycleCollectorResults {
   uint32_t mNumSlices;
 };
 
-class MicroTaskRunnable : public LinkedListElement<MicroTaskRunnable> {
+class MicroTaskRunnable {
  public:
   MicroTaskRunnable() = default;
   NS_INLINE_DECL_REFCOUNTING(MicroTaskRunnable)
   MOZ_CAN_RUN_SCRIPT virtual void Run(AutoSlowOperation& aAso) = 0;
   virtual bool Suppressed() { return false; }
-  virtual void TraceMicroTask(JSTracer* aTracer) {}
 
  protected:
-  virtual ~MicroTaskRunnable() {
-    if (isInList()) {
-      remove();
-    }
-  }
+  virtual ~MicroTaskRunnable() = default;
 };
 
 // Store the suppressed mictotasks in another microtask so that operations
@@ -180,8 +173,6 @@ class CycleCollectedJSContext : dom::PerThreadAtomCache, private JS::JobQueue {
 
   std::deque<RefPtr<MicroTaskRunnable>>& GetMicroTaskQueue();
   std::deque<RefPtr<MicroTaskRunnable>>& GetDebuggerMicroTaskQueue();
-
-  void TraceMicroTasks(JSTracer* aTracer);
 
   JSContext* Context() const {
     MOZ_ASSERT(mJSContext);
@@ -358,13 +349,6 @@ class CycleCollectedJSContext : dom::PerThreadAtomCache, private JS::JobQueue {
   std::deque<RefPtr<MicroTaskRunnable>> mDebuggerMicroTaskQueue;
   RefPtr<SuppressedMicroTasks> mSuppressedMicroTasks;
   uint64_t mSuppressionGeneration;
-
- protected:
-  mozilla::LinkedList<MicroTaskRunnable> mMicrotasksToTrace;
-
- private:
-  friend class PromiseJobRunnable;
-  RefPtr<PromiseJobRunnable> mRecycledPromiseJob;
 
   // How many times the debugger has interrupted execution, possibly creating
   // microtask checkpoints in places that they would not normally occur.

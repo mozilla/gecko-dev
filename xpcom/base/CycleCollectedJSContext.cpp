@@ -27,7 +27,7 @@
 #include "mozilla/dom/DOMException.h"
 #include "mozilla/dom/DOMJSClass.h"
 #include "mozilla/dom/FinalizationRegistryBinding.h"
-#include "mozilla/dom/CallbackObject.h"
+#include "mozilla/dom/PromiseBinding.h"
 #include "mozilla/dom/PromiseDebugging.h"
 #include "mozilla/dom/PromiseRejectionEvent.h"
 #include "mozilla/dom/PromiseRejectionEventBinding.h"
@@ -77,7 +77,6 @@ CycleCollectedJSContext::~CycleCollectedJSContext() {
   if (!mJSContext) {
     return;
   }
-  mRecycledPromiseJob = nullptr;
 
   JS::SetHostCleanupFinalizationRegistryCallback(mJSContext, nullptr, nullptr);
 
@@ -173,56 +172,34 @@ size_t CycleCollectedJSContext::SizeOfExcludingThis(
   return 0;
 }
 
-class PromiseJobRunnable final : public CallbackObjectBase,
-                                 public MicroTaskRunnable {
+class PromiseJobRunnable final : public MicroTaskRunnable {
  public:
   PromiseJobRunnable(JS::HandleObject aPromise, JS::HandleObject aCallback,
                      JS::HandleObject aCallbackGlobal,
                      JS::HandleObject aAllocationSite,
                      nsIGlobalObject* aIncumbentGlobal,
                      WebTaskSchedulingState* aSchedulingState)
-      : CallbackObjectBase(aCallback, aCallbackGlobal, aAllocationSite,
-                           aIncumbentGlobal),
+      : mCallback(new PromiseJobCallback(aCallback, aCallbackGlobal,
+                                         aAllocationSite, aIncumbentGlobal)),
+        mSchedulingState(aSchedulingState),
         mPropagateUserInputEventHandling(false) {
     MOZ_ASSERT(js::IsFunctionObject(aCallback));
-    InitInternal(aPromise, aSchedulingState);
+
+    if (aPromise) {
+      JS::PromiseUserInputEventHandlingState state =
+          JS::GetPromiseUserInputEventHandlingState(aPromise);
+      mPropagateUserInputEventHandling =
+          state ==
+          JS::PromiseUserInputEventHandlingState::HadUserInteractionAtCreation;
+    }
   }
 
-  void Reinit(JS::HandleObject aPromise, JS::HandleObject aCallback,
-              JS::HandleObject aCallbackGlobal,
-              JS::HandleObject aAllocationSite,
-              nsIGlobalObject* aIncumbentGlobal,
-              WebTaskSchedulingState* aSchedulingState) {
-    InitNoHold(aCallback, aCallbackGlobal, aAllocationSite, aIncumbentGlobal);
-    InitInternal(aPromise, aSchedulingState);
-  }
-
- protected:
   virtual ~PromiseJobRunnable() = default;
 
-  // This is modeled on the Call methods which WebIDL codegen creates for
-  // callback PromiseJobCallback = undefined();
-  MOZ_CAN_RUN_SCRIPT inline void Call() {
-    IgnoredErrorResult rv;
-    CallSetup s(this, rv, "promise callback", eReportExceptions);
-    if (!s.GetContext()) {
-      MOZ_ASSERT(rv.Failed());
-      return;
-    }
-    JS::Rooted<JS::Value> rval(s.GetContext());
-
-    JS::Rooted<JS::Value> callable(s.GetContext(), JS::ObjectValue(*mCallback));
-    if (!JS::Call(s.GetContext(), JS::UndefinedHandleValue, callable,
-                  JS::HandleValueArray::empty(), &rval)) {
-      // This isn't really needed but it ensures that rv's value is updated
-      // consistently.
-      rv.NoteJSContextException(s.GetContext());
-    }
-  }
-
+ protected:
   MOZ_CAN_RUN_SCRIPT
   virtual void Run(AutoSlowOperation& aAso) override {
-    JSObject* callback = CallbackPreserveColor();
+    JSObject* callback = mCallback->CallbackPreserveColor();
     nsCOMPtr<nsIGlobalObject> global =
         callback ? xpc::NativeGlobal(callback) : nullptr;
     if (global && !global->IsDying()) {
@@ -235,53 +212,31 @@ class PromiseJobRunnable final : public CallbackObjectBase,
       // callback.[[HostDefined]].[[SchedulingState]].
       global->SetWebTaskSchedulingState(mSchedulingState);
 
-      Call();
+      mCallback->Call("promise callback");
 
       // (The step after step 7): Set event loop’s current scheduling state to
       // null
       global->SetWebTaskSchedulingState(nullptr);
+
+      aAso.CheckForInterrupt();
     }
-    // Now that PromiseJobCallback is no longer needed, clear any pointers it
-    // contains. This removes any storebuffer entries associated with those
+    // Now that mCallback is no longer needed, clear any pointers it contains to
+    // JS GC things. This removes any storebuffer entries associated with those
     // pointers, which can cause problems by taking up memory and by triggering
     // minor GCs. This otherwise would not happen until the next minor GC or
     // cycle collection.
-    Reset();
-    // Clear also other explicit member variables of PromiseJobRunnable so that
-    // we can possibly reuse it.
-    mSchedulingState = nullptr;
-    mPropagateUserInputEventHandling = false;
-
-    if (CycleCollectedJSContext* ccjs = CycleCollectedJSContext::Get()) {
-      ccjs->mRecycledPromiseJob = this;
-    }
+    mCallback->Reset();
   }
 
   virtual bool Suppressed() override {
-    JSObject* callback = CallbackPreserveColor();
+    JSObject* callback = mCallback->CallbackPreserveColor();
     nsIGlobalObject* global = callback ? xpc::NativeGlobal(callback) : nullptr;
     return global && global->IsInSyncOperation();
   }
 
-  void TraceMicroTask(JSTracer* aTracer) override {
-    // We can trace CallbackObjectBase.
-    Trace(aTracer);
-  }
-
  private:
-  void InitInternal(JS::HandleObject aPromise,
-                    WebTaskSchedulingState* aSchedulingState) {
-    if (aPromise) {
-      JS::PromiseUserInputEventHandlingState state =
-          JS::GetPromiseUserInputEventHandlingState(aPromise);
-      mPropagateUserInputEventHandling =
-          state ==
-          JS::PromiseUserInputEventHandlingState::HadUserInteractionAtCreation;
-    }
-    mSchedulingState = aSchedulingState;
-  }
-
-  RefPtr<WebTaskSchedulingState> mSchedulingState;
+  const RefPtr<PromiseJobCallback> mCallback;
+  const RefPtr<WebTaskSchedulingState> mSchedulingState;
   bool mPropagateUserInputEventHandling;
 };
 
@@ -379,15 +334,8 @@ bool CycleCollectedJSContext::enqueuePromiseJob(
   }
 
   JS::RootedObject jobGlobal(aCx, JS::CurrentGlobalOrNull(aCx));
-  RefPtr<PromiseJobRunnable> runnable;
-  if (mRecycledPromiseJob) {
-    runnable = mRecycledPromiseJob.forget();
-    runnable->Reinit(aPromise, aJob, jobGlobal, aAllocationSite, global,
-                     schedulingState);
-  } else {
-    runnable = new PromiseJobRunnable(aPromise, aJob, jobGlobal,
-                                      aAllocationSite, global, schedulingState);
-  }
+  RefPtr<PromiseJobRunnable> runnable = new PromiseJobRunnable(
+      aPromise, aJob, jobGlobal, aAllocationSite, global, schedulingState);
   DispatchToMicroTask(runnable.forget());
   return true;
 }
@@ -567,12 +515,6 @@ std::deque<RefPtr<MicroTaskRunnable>>&
 CycleCollectedJSContext::GetDebuggerMicroTaskQueue() {
   MOZ_ASSERT(mJSContext);
   return mDebuggerMicroTaskQueue;
-}
-
-void CycleCollectedJSContext::TraceMicroTasks(JSTracer* aTracer) {
-  for (MicroTaskRunnable* mt : mMicrotasksToTrace) {
-    mt->TraceMicroTask(aTracer);
-  }
 }
 
 void CycleCollectedJSContext::ProcessStableStateQueue() {
@@ -757,10 +699,6 @@ void CycleCollectedJSContext::DispatchToMicroTask(
   JS::JobQueueMayNotBeEmpty(Context());
 
   LogMicroTaskRunnable::LogDispatch(runnable.get());
-  if (!runnable->isInList()) {
-    // A recycled object may be in the list already.
-    mMicrotasksToTrace.insertBack(runnable);
-  }
   mPendingMicroTaskRunnables.push_back(std::move(runnable));
 }
 

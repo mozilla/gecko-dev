@@ -91,6 +91,7 @@ enum WhichJSHolders { AllJSHolders, JSHoldersRequiredForGrayMarking };
 // SegmentedVector to speed up iteration.
 class JSHolderMap {
  public:
+
   class Iter;
 
   JSHolderMap();
@@ -341,9 +342,6 @@ class CycleCollectedJSRuntime {
 
   CycleCollectedJSContext* GetContext() { return mContext; }
 
-  void TraceNativeBlackRoots(JSTracer* aTracer);
-  virtual void TraceAdditionalNativeBlackRoots(JSTracer* aTracer) {}
-
  private:
   void DescribeGCThing(bool aIsMarked, JS::GCCellPtr aThing,
                        nsCycleCollectionTraversalCallback& aCb) const;
@@ -401,6 +399,8 @@ class CycleCollectedJSRuntime {
 
   static void* BeforeWaitCallback(uint8_t* aMemory);
   static void AfterWaitCallback(void* aCookie);
+
+  virtual void TraceNativeBlackRoots(JSTracer* aTracer) {};
 
 #ifdef NS_BUILD_REFCNT_LOGGING
   void TraceAllNativeGrayRoots(JSTracer* aTracer);
