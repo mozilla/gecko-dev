@@ -6969,6 +6969,20 @@
       }
     }
 
+    /**
+     *
+     * @param {MozTabbrowserTab} tab
+     */
+    #isFirstOrLastInTabGroup(tab) {
+      if (tab.group) {
+        let groupTabs = tab.group.tabs;
+        if (groupTabs.at(0) == tab || groupTabs.at(-1) == tab) {
+          return true;
+        }
+      }
+      return false;
+    }
+
     getTabPids(tab) {
       if (!tab.linkedBrowser) {
         return [];
@@ -6983,6 +6997,15 @@
       return pids.concat(framePids.sort());
     }
 
+    /**
+     * @param {MozTabbrowserTab} tab
+     * @param {boolean} [includeLabel=true]
+     *   Include the tab's title/full label in the tooltip. Defaults to true,
+     *   Can be disabled for contexts where including the title in the tooltip
+     *   string would be duplicative would already available information,
+     *   e.g. accessibility descriptions.
+     * @returns {string}
+     */
     getTabTooltip(tab, includeLabel = true) {
       let labelArray = [];
       if (includeLabel) {
@@ -6990,28 +7013,59 @@
       }
       if (this.showPidAndActiveness) {
         const pids = this.getTabPids(tab);
+        let debugStringArray = [];
         if (pids.length) {
           let pidLabel = pids.length > 1 ? "pids" : "pid";
-          labelArray.push(`(${pidLabel} ${pids.join(", ")})`);
+          debugStringArray.push(`(${pidLabel} ${pids.join(", ")})`);
         }
 
         if (tab.linkedBrowser.docShellIsActive) {
-          labelArray.push("[A]");
+          debugStringArray.push("[A]");
+        }
+
+        if (debugStringArray.length) {
+          labelArray.push(debugStringArray.join(" "));
         }
       }
 
-      let label = labelArray.join(" ");
-      if (tab.userContextId) {
-        const containerName = ContextualIdentityService.getUserContextLabel(
-          tab.userContextId
-        );
-        label = this.tabLocalization.formatValueSync(
-          "tabbrowser-container-tab-title",
-          { title: label, containerName }
-        );
+      // Add a line to the tooltip with additional tab context (e.g. container
+      // membership, tab group membership) when applicable.
+      let containerName = tab.userContextId
+        ? ContextualIdentityService.getUserContextLabel(tab.userContextId)
+        : "";
+      let tabGroupName = this.#isFirstOrLastInTabGroup(tab)
+        ? tab.group.name ||
+          this.tabLocalization.formatValueSync("tab-group-name-default")
+        : "";
+
+      if (containerName || tabGroupName) {
+        let tabContextString;
+        if (containerName && tabGroupName) {
+          tabContextString = this.tabLocalization.formatValueSync(
+            "tabbrowser-tab-tooltip-tab-group-container",
+            {
+              tabGroupName,
+              containerName,
+            }
+          );
+        } else if (tabGroupName) {
+          tabContextString = this.tabLocalization.formatValueSync(
+            "tabbrowser-tab-tooltip-tab-group",
+            {
+              tabGroupName,
+            }
+          );
+        } else {
+          tabContextString = this.tabLocalization.formatValueSync(
+            "tabbrowser-tab-tooltip-container",
+            {
+              containerName,
+            }
+          );
+        }
+        labelArray.push(tabContextString);
       }
 
-      labelArray = [label];
       if (tab.soundPlaying) {
         let audioPlayingString = this.tabLocalization.formatValueSync(
           "tabbrowser-tab-audio-playing-description"
