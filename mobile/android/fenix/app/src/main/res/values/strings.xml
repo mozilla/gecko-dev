@@ -2057,9 +2057,9 @@
     Enhanced tracking protection exception preference icon for ETP settings. -->
     <string name="preference_etp_exceptions_icon_description">Enhanced tracking protection exception preference icon</string>
 
-    <!-- DNS Over HTTPS (DoH) -->
+    <!-- DNS over HTTPS (DoH) -->
     <!-- Preference title for DNS over HTTPS settings -->
-    <string name="preference_doh_title">DNS Over HTTPS</string>
+    <string name="preference_doh_title">DNS over HTTPS</string>
     <!-- Description of the preference to enable "DNS over HTTPS". %1$s is replaced by a link using `preference_doh_learn_more` at text ("Learn More"). -->
     <string name="preference_doh_summary">Domain Name System (DNS) over HTTPS sends your request for a domain name through an encrypted connection, providing a secure DNS and making it harder for others to see which website you’re about to access. %1$s</string>
     <!-- Used as text for the link in `preference_doh_title`, points to documentation about "DNS over HTTPS" -->
