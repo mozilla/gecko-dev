@@ -541,12 +541,8 @@ export class _ExperimentManager {
       branch = await this.chooseBranch(slug, branches, userId);
     }
 
-    for (const { featureId } of branch.features) {
-      if (lazy.NimbusFeatures[featureId]?.allowCoenrollment) {
-        continue;
-      }
-
-      const existingEnrollment = storeLookupByFeature(featureId);
+    for (const feature of branch.features) {
+      const existingEnrollment = storeLookupByFeature(feature?.featureId);
       if (existingEnrollment) {
         lazy.log.debug(
           `Skipping enrollment for "${slug}" because there is an existing ${

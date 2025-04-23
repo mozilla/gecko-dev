@@ -357,7 +357,6 @@ export const NimbusTestUtils = {
           "testFeature",
         ],
         targeting: "true",
-        isRollout: false,
         ...props,
       };
     },
@@ -838,34 +837,6 @@ Object.defineProperties(NimbusTestUtils.factories.recipe, {
           ],
         },
       ];
-    },
-  },
-
-  /**
-   * A helper for generating a recipe that has a single branch with the given
-   * feature config.
-   */
-  withFeatureConfig: {
-    value: function NimbusTestUtils_factories_recipe_withFeatureConfig(
-      slug,
-      { branchSlug = "control", featureId, value = {} } = {},
-      props = {}
-    ) {
-      return NimbusTestUtils.factories.recipe(slug, {
-        branches: [
-          {
-            slug: branchSlug,
-            ratio: 1,
-            features: [
-              {
-                featureId,
-                value,
-              },
-            ],
-          },
-        ],
-        ...props,
-      });
     },
   },
 });
