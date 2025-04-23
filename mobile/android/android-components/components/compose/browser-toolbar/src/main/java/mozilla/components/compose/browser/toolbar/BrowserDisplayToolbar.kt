@@ -45,9 +45,10 @@ private val ROUNDED_CORNER_SHAPE = RoundedCornerShape(8.dp)
  * toolbar, outside of the URL bounding box.
  * These should be actions relevant to the browser as a whole.
  * See [MDN docs](https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/API/browserAction).
- * @param pageActions List of page [Action]s to be displayed to the right side of the URL of the
- * display toolbar. Also see:
- * [MDN docs](https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/API/pageAction)
+ * @param pageActionsStart List of navigation [Action]s to be displayed between [browserActionsStart]
+ * and the current webpage's details, inside of the URL bounding box.
+ * These should be actions relevant to specific webpages as opposed to [browserActionsStart].
+ * See [MDN docs](https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/API/pageAction).
  * @param browserActions List of browser [Action]s to be displayed on the right side of the
  * display toolbar (outside of the URL bounding box). Also see:
  * [MDN docs](https://developer.mozilla.org/en-US/Add-ons/WebExtensions/user_interface/Browser_action)
@@ -61,6 +62,7 @@ fun BrowserDisplayToolbar(
     progressBarConfig: ProgressBarConfig?,
     textStyle: TextStyle = LocalTextStyle.current,
     browserActionsStart: List<Action> = emptyList(),
+    pageActionsStart: List<Action> = emptyList(),
     pageActions: List<Action> = emptyList(),
     browserActions: List<Action> = emptyList(),
     onUrlClicked: () -> Unit = {},
@@ -91,6 +93,12 @@ fun BrowserDisplayToolbar(
                     .weight(1f),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
+                if (pageActionsStart.isNotEmpty()) {
+                    ActionContainer(
+                        actions = pageActionsStart,
+                        onInteraction = onInteraction,
+                    )
+                }
                 Text(
                     url,
                     color = colors.text,

@@ -61,6 +61,7 @@ fun BrowserToolbar(
             colors = colors.displayToolbarColors,
             progressBarConfig = progressBarConfig,
             browserActionsStart = uiState.displayState.browserActionsStart,
+            pageActionsStart = uiState.displayState.pageActionsStart,
             pageActions = uiState.displayState.pageActions,
             browserActions = uiState.displayState.browserActions,
             onUrlClicked = {

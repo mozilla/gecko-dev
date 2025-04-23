@@ -7,6 +7,7 @@ package mozilla.components.compose.browser.toolbar.store
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import mozilla.components.compose.browser.toolbar.concept.Action.ActionButton
 import mozilla.components.compose.browser.toolbar.store.BrowserDisplayToolbarAction.BrowserActionsStartUpdated
+import mozilla.components.compose.browser.toolbar.store.BrowserDisplayToolbarAction.PageActionsStartUpdated
 import mozilla.components.compose.browser.toolbar.store.BrowserToolbarInteraction.BrowserToolbarEvent
 import mozilla.components.support.test.rule.MainCoroutineRule
 import org.junit.Assert.assertEquals
@@ -120,23 +121,21 @@ class BrowserToolbarStoreTest {
     }
 
     @Test
-    fun `WHEN add page action is dispatched THEN update display page actions state`() {
+    fun `WHEN updating start page actions THEN replace old actions with the new one`() {
         val store = BrowserToolbarStore()
         val action1 = fakeActionButton()
         val action2 = fakeActionButton()
+        val action3 = fakeActionButton()
+        assertEquals(0, store.state.displayState.pageActionsStart.size)
 
-        assertEquals(0, store.state.displayState.pageActions.size)
+        store.dispatch(PageActionsStartUpdated(listOf(action1)))
+        assertEquals(listOf(action1), store.state.displayState.pageActionsStart)
 
-        store.dispatch(BrowserDisplayToolbarAction.AddPageAction(action = action1))
+        store.dispatch(PageActionsStartUpdated(listOf(action2, action3)))
+        assertEquals(listOf(action2, action3), store.state.displayState.pageActionsStart)
 
-        assertEquals(1, store.state.displayState.pageActions.size)
-        assertEquals(action1, store.state.displayState.pageActions.first())
-
-        store.dispatch(BrowserDisplayToolbarAction.AddPageAction(action = action2))
-
-        assertEquals(2, store.state.displayState.pageActions.size)
-        assertEquals(action1, store.state.displayState.pageActions.first())
-        assertEquals(action2, store.state.displayState.pageActions.last())
+        store.dispatch(PageActionsStartUpdated(emptyList()))
+        assertEquals(0, store.state.displayState.pageActionsStart.size)
     }
 
     @Test

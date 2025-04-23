@@ -52,9 +52,10 @@ enum class Mode {
  * toolbar, outside of the URL bounding box.
  * These should be actions relevant to the browser as a whole.
  * See [MDN docs](https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/API/browserAction).
- * @property pageActions List of page [Action]s to be displayed to the right side of the URL of the
- * display toolbar. Also see:
- * [MDN docs](https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/API/pageAction)
+ * @property pageActionsStart List of navigation [Action]s to be displayed between [browserActionsStart]
+ * and the current webpage's details, inside of the URL bounding box.
+ * These should be actions relevant to specific webpages as opposed to [browserActionsStart].
+ * See [MDN docs](https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/API/pageAction).
  * @property browserActions List of browser [Action]s to be displayed on the right side of the
  * display toolbar (outside of the URL bounding box). Also see:
  * [MDN docs](https://developer.mozilla.org/en-US/Add-ons/WebExtensions/user_interface/Browser_action)
@@ -64,6 +65,7 @@ enum class Mode {
 data class DisplayState(
     val hint: String = "",
     val browserActionsStart: List<Action> = emptyList(),
+    val pageActionsStart: List<Action> = emptyList(),
     val pageActions: List<Action> = emptyList(),
     val browserActions: List<Action> = emptyList(),
     val progressBarConfig: ProgressBarConfig? = null,

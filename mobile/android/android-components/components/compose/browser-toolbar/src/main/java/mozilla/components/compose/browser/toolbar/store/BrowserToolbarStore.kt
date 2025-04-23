@@ -5,6 +5,7 @@
 package mozilla.components.compose.browser.toolbar.store
 
 import mozilla.components.compose.browser.toolbar.store.BrowserDisplayToolbarAction.BrowserActionsStartUpdated
+import mozilla.components.compose.browser.toolbar.store.BrowserDisplayToolbarAction.PageActionsStartUpdated
 import mozilla.components.compose.browser.toolbar.store.BrowserToolbarInteraction.BrowserToolbarEvent
 import mozilla.components.lib.state.Middleware
 import mozilla.components.lib.state.UiStore
@@ -59,9 +60,9 @@ private fun reduce(state: BrowserToolbarState, action: BrowserToolbarAction): Br
             ),
         )
 
-        is BrowserDisplayToolbarAction.AddPageAction -> state.copy(
+        is PageActionsStartUpdated -> state.copy(
             displayState = state.displayState.copy(
-                pageActions = state.displayState.pageActions + action.action,
+                pageActionsStart = action.actions,
             ),
         )
 
