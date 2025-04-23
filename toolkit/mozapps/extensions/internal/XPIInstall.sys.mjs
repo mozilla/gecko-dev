@@ -1989,18 +1989,6 @@ class AddonInstall {
             this.addon.type
           );
         }
-
-        // Clear the colorways builtins migrated to a non-builtin themes
-        // form the list of the retained themes.
-        if (
-          this.existingAddon?.isBuiltinColorwayTheme &&
-          !this.addon.isBuiltin &&
-          XPIExports.BuiltInThemesHelpers.isColorwayMigrationEnabled
-        ) {
-          XPIExports.BuiltInThemesHelpers.unretainMigratedColorwayTheme(
-            this.addon.id
-          );
-        }
       };
 
       this._startupPromise = (async () => {
@@ -2878,22 +2866,7 @@ function createUpdate(aCallback, aAddon, aUpdate, isUserRequested) {
       install = new LocalAddonInstall(aAddon.location, url, opts);
       await install.init();
     } else {
-      let loc = aAddon.location;
-      if (
-        aAddon.isBuiltinColorwayTheme &&
-        XPIExports.BuiltInThemesHelpers.isColorwayMigrationEnabled
-      ) {
-        // Builtin colorways theme needs to be updated by installing the version
-        // got from AMO into the profile location and not using the location
-        // where the builtin addon is currently installed.
-        logger.info(
-          `Overriding location to APP_PROFILE on builtin colorway theme update for "${aAddon.id}"`
-        );
-        loc = XPIExports.XPIInternal.XPIStates.getLocation(
-          XPIExports.XPIInternal.KEY_APP_PROFILE
-        );
-      }
-      install = new DownloadAddonInstall(loc, url, opts);
+      install = new DownloadAddonInstall(aAddon.location, url, opts);
     }
 
     aCallback(install);
@@ -4931,38 +4904,22 @@ export var XPIInstall = {
         AddonManagerPrivate.callAddonListeners("onUninstalled", wrapper);
 
         if (existing) {
-          // Migrate back to the existing addon, unless it was a builtin colorway theme,
-          // in that case we also make sure to remove the addon from the builtin location.
-          if (
-            existing.isBuiltinColorwayTheme &&
-            XPIExports.BuiltInThemesHelpers.isColorwayMigrationEnabled
-          ) {
-            existing.location.removeAddon(existing.id);
-          } else {
-            XPIExports.XPIDatabase.makeAddonVisible(existing);
-            AddonManagerPrivate.callAddonListeners(
-              "onInstalling",
-              existing.wrapper,
-              false
-            );
+          XPIExports.XPIDatabase.makeAddonVisible(existing);
+          AddonManagerPrivate.callAddonListeners(
+            "onInstalling",
+            existing.wrapper,
+            false
+          );
 
-            if (!existing.disabled) {
-              XPIExports.XPIDatabase.updateAddonActive(existing, true);
-            }
+          if (!existing.disabled) {
+            XPIExports.XPIDatabase.updateAddonActive(existing, true);
           }
         }
       };
 
       // Migrate back to the existing addon, unless it was a builtin colorway theme.
-      if (
-        existing &&
-        !(
-          existing.isBuiltinColorwayTheme &&
-          XPIExports.BuiltInThemesHelpers.isColorwayMigrationEnabled
-        )
-      ) {
+      if (existing) {
         await bootstrap.update(existing, !existing.disabled, uninstall);
-
         AddonManagerPrivate.callAddonListeners("onInstalled", existing.wrapper);
       } else {
         aAddon.location.removeAddon(aAddon.id);
