@@ -85,6 +85,16 @@ class ProfilesDatastoreServiceClass {
     await this.init();
   }
 
+  /**
+   * Gets a connection to the database.
+   *
+   * Use this connection to query existing tables, but never to create or
+   * modify schemas. Any schema changes should be added as a new migration,
+   * see `createTables()`.
+   *
+   * Rethrows errors thrown by `Sqlite.openConnection()`; see details in
+   * `Sqlite.sys.mjs`. TODO: document and handle errors (bug 1960963).
+   */
   async getConnection() {
     await this.init();
     return this.#connection;
@@ -205,36 +215,57 @@ class ProfilesDatastoreServiceClass {
   }
 
   /**
-   * Create tables for Selectable Profiles if they don't already exist
+   * Create or update tables in this shared cross-profile database.
+   *
+   * Includes simple forward-only migration support which applies any new
+   * migrations based on the schema version.
+   *
+   * Notes for migration authors:
+   *
+   * Since a mix of Firefox versions may access the database at any time, all
+   * schema changes must be backwards-compatible.
+   *
+   * Please keep your schemas as simple as possible, to reduce the odds of
+   * corruption affecting all users of the database.
    */
   async createTables() {
     // TODO: (Bug 1902320) Handle exceptions on connection opening
-    await this.#connection.executeTransaction(async () => {
-      const createProfilesTable = `
-          CREATE TABLE IF NOT EXISTS "Profiles" (
-            id  INTEGER NOT NULL,
-            path	TEXT NOT NULL UNIQUE,
-            name	TEXT NOT NULL,
-            avatar	TEXT NOT NULL,
-            themeId	TEXT NOT NULL,
-            themeFg	TEXT NOT NULL,
-            themeBg	TEXT NOT NULL,
-            PRIMARY KEY(id)
-          );`;
+    let currentVersion = await this.#connection.getSchemaVersion();
+    if (currentVersion == 1) {
+      return;
+    }
 
-      await this.#connection.execute(createProfilesTable);
+    if (currentVersion < 1) {
+      // Brand new database or created prior to migration support.
+      await this.#connection.executeTransaction(async () => {
+        const createProfilesTable = `
+            CREATE TABLE IF NOT EXISTS "Profiles" (
+              id  INTEGER NOT NULL,
+              path	TEXT NOT NULL UNIQUE,
+              name	TEXT NOT NULL,
+              avatar	TEXT NOT NULL,
+              themeId	TEXT NOT NULL,
+              themeFg	TEXT NOT NULL,
+              themeBg	TEXT NOT NULL,
+              PRIMARY KEY(id)
+            );`;
 
-      const createSharedPrefsTable = `
-          CREATE TABLE IF NOT EXISTS "SharedPrefs" (
-            id	INTEGER NOT NULL,
-            name	TEXT NOT NULL UNIQUE,
-            value	BLOB,
-            isBoolean	INTEGER,
-            PRIMARY KEY(id)
-          );`;
+        await this.#connection.execute(createProfilesTable);
 
-      await this.#connection.execute(createSharedPrefsTable);
-    });
+        const createSharedPrefsTable = `
+            CREATE TABLE IF NOT EXISTS "SharedPrefs" (
+              id	INTEGER NOT NULL,
+              name	TEXT NOT NULL UNIQUE,
+              value	BLOB,
+              isBoolean	INTEGER,
+              PRIMARY KEY(id)
+            );`;
+
+        await this.#connection.execute(createSharedPrefsTable);
+      });
+    }
+
+    await this.#connection.setSchemaVersion(1);
   }
 
   async maybeCreateProfilesStorePath() {
@@ -278,6 +309,23 @@ class ProfilesDatastoreServiceClass {
     );
   }
 
+  /**
+   * Trigger an async cross-instance notification that the data in the
+   * datastore has been changed.
+   *
+   * Two different nsIObserver events may be fired, depending on whether the
+   * change originated in the current Firefox instance or in another instance.
+   *
+   * Changes to the datastore made by the current instance will trigger the
+   * "pds-datastore-changed" nsIObserver event; see `#datastoreChanged` for
+   * details. These events are fired whether or not the multiple profiles
+   * feature is enabled.
+   *
+   * If the multiple profiles feature is enabled, then changes to the datastore
+   * made either by the current instance or another instance in the profile
+   * group will trigger the "sps-profiles-updated" nsIObserver event. See
+   * `SelectableProfileService.databaseChanged` for details.
+   */
   notify() {
     this.#notifyTask.arm();
   }
