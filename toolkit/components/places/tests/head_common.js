@@ -734,36 +734,18 @@ function sortBy(array, prop) {
   return array.sort((a, b) => compareAscending(a[prop], b[prop]));
 }
 
-function getFaviconUrlForPage(page, width = 0) {
+async function getFaviconUrlForPage(page, width = 0) {
   let pageURI =
     page instanceof Ci.nsIURI ? page : NetUtil.newURI(new URL(page).href);
-  return new Promise((resolve, reject) => {
-    PlacesUtils.favicons.getFaviconURLForPage(
-      pageURI,
-      iconURI => {
-        if (iconURI) {
-          resolve(iconURI.spec);
-        } else {
-          reject("Unable to find an icon for " + pageURI.spec);
-        }
-      },
-      width
-    );
-  });
+  let favicon = await PlacesUtils.favicons.getFaviconForPage(pageURI, width);
+  return favicon.uri.spec;
 }
 
-function getFaviconDataForPage(page, width = 0) {
+async function getFaviconDataForPage(page, width = 0) {
   let pageURI =
     page instanceof Ci.nsIURI ? page : NetUtil.newURI(new URL(page).href);
-  return new Promise(resolve => {
-    PlacesUtils.favicons.getFaviconDataForPage(
-      pageURI,
-      (iconUri, len, data, mimeType) => {
-        resolve({ data, mimeType });
-      },
-      width
-    );
-  });
+  let favicon = await PlacesUtils.favicons.getFaviconForPage(pageURI, width);
+  return { data: favicon.rawData, mimeType: favicon.mimeType };
 }
 
 /**

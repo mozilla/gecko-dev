@@ -240,12 +240,8 @@ add_task(async function test_import_chromefavicon() {
     dataURL
   );
 
-  let data = await new Promise(resolve => {
-    PlacesUtils.favicons.getFaviconDataForPage(
-      PAGE_URI,
-      (uri, dataLen, faviconData) => resolve(faviconData)
-    );
-  });
+  let { rawData: data } =
+    await PlacesUtils.favicons.getFaviconForPage(PAGE_URI);
 
   let base64Icon =
     "data:image/png;base64," +
@@ -361,7 +357,9 @@ function checkItem(aExpected, aNode) {
           Assert.equal(aNode.uri, aExpected.url);
           break;
         case "icon": {
-          let { data } = await getFaviconDataForPage(aExpected.url);
+          let { rawData: data } = await PlacesUtils.favicons.getFaviconForPage(
+            PlacesUtils.toURI(aExpected.url)
+          );
           let base64Icon =
             "data:image/png;base64," +
             base64EncodeString(String.fromCharCode.apply(String, data));

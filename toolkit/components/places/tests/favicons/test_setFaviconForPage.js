@@ -57,21 +57,11 @@ add_task(async function test_replaceExisting() {
     firstFaviconDataURL
   );
 
-  await new Promise(resolve => {
-    PlacesUtils.favicons.getFaviconDataForPage(
-      pageURI,
-      function (aURI, aDataLen, aData, aMimeType) {
-        Assert.equal(aMimeType, firstFavicon.mimeType);
-        Assert.ok(compareArrays(aData, firstFavicon.data));
-        checkFaviconDataForPage(
-          pageURI,
-          firstFavicon.mimeType,
-          firstFavicon.data,
-          resolve
-        );
-      }
-    );
-  });
+  await checkFaviconDataForPage(
+    pageURI,
+    firstFavicon.mimeType,
+    firstFavicon.data
+  );
 
   await doTestSetFaviconForPage({
     pageURI,
@@ -383,14 +373,11 @@ async function doTestSetFaviconForPage({
   info("Check the result of setFaviconForPage");
   Assert.equal(result, null, "If succeeded, the promise has no data");
 
-  await new Promise(resolve => {
-    checkFaviconDataForPage(
-      pageURI,
-      expectedFaviconMimeType,
-      expectedFaviconData,
-      resolve
-    );
-  });
+  await checkFaviconDataForPage(
+    pageURI,
+    expectedFaviconMimeType,
+    expectedFaviconData
+  );
 }
 
 add_task(async function test_incorrectMimeTypeDataURI() {
