@@ -15,6 +15,8 @@ ChromeUtils.defineESModuleGetters(this, {
   AddonRepository: "resource://gre/modules/addons/AddonRepository.sys.mjs",
   BuiltInThemes: "resource:///modules/BuiltInThemes.sys.mjs",
   ClientID: "resource://gre/modules/ClientID.sys.mjs",
+  ColorwayThemeMigration:
+    "resource://gre/modules/ColorwayThemeMigration.sys.mjs",
   DeferredTask: "resource://gre/modules/DeferredTask.sys.mjs",
   E10SUtils: "resource://gre/modules/E10SUtils.sys.mjs",
   ExtensionCommon: "resource://gre/modules/ExtensionCommon.sys.mjs",
@@ -3975,6 +3977,44 @@ class RecommendedAddonList extends HTMLElement {
 }
 customElements.define("recommended-addon-list", RecommendedAddonList);
 
+class ColorwayRemovalNotice extends HTMLElement {
+  connectedCallback() {
+    // The pref CLEANUP_PREF is set by the
+    // ColorwayThemeMigration.sys.mjs. We show the notice only if, during the
+    // colorway theme uninstall, we detect some colorway builtin theme.
+    if (
+      Services.prefs.getIntPref(
+        ColorwayThemeMigration.CLEANUP_PREF,
+        ColorwayThemeMigration.CLEANUP_UNKNOWN
+      ) != ColorwayThemeMigration.CLEANUP_COMPLETED_WITH_BUILTIN
+    ) {
+      return;
+    }
+
+    this.appendChild(importTemplate("colorway-removal-notice"));
+    this.addEventListener("click", this);
+    this.messageBar = this.querySelector("moz-message-bar");
+    this.messageBar.addEventListener("message-bar:user-dismissed", this);
+  }
+
+  handleEvent(e) {
+    if (e.type === "message-bar:user-dismissed") {
+      Services.prefs.setIntPref(
+        ColorwayThemeMigration.CLEANUP_PREF,
+        ColorwayThemeMigration.CLEANUP_COMPLETED
+      );
+    }
+
+    if (
+      e.type === "click" &&
+      e.target.getAttribute("action") === "open-amo-colorway-collection"
+    ) {
+      openAmoInTab(this, "collections/4757633/colorways");
+    }
+  }
+}
+customElements.define("colorway-removal-notice", ColorwayRemovalNotice);
+
 class TaarMessageBar extends HTMLElement {
   connectedCallback() {
     this.hidden =
@@ -4141,6 +4181,12 @@ gViewController.defineView("list", async type => {
     sectionClass: `${type}-disabled-section`,
     filterFn: disabledAddonsFilterFn,
   });
+
+  // Show the colorway warning only in themes list view
+  if (type === "theme") {
+    const warning = document.createElement("colorway-removal-notice");
+    frag.appendChild(warning);
+  }
 
   list.setSections(sections);
   frag.appendChild(list);
