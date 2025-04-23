@@ -264,9 +264,7 @@ add_task(async function test_fetchIcon_withNetworkFetch() {
 
   // Set up mocks
   PlacesUtils.favicons = {
-    getFaviconDataForPage: sandbox
-      .stub()
-      .callsArgWith(1, null, 0, null, null, 0),
+    getFaviconForPage: sandbox.stub().returns(Promise.resolve(null)),
     setFaviconForPage: sandbox.spy(),
     copyFavicons: sandbox.spy(),
   };
@@ -298,9 +296,10 @@ add_task(async function test_fetchIcon_withInvalidDataInDb() {
   const sandbox = sinon.createSandbox();
   // Set up mocks
   PlacesUtils.favicons = {
-    getFaviconDataForPage: sandbox
+    // Invalid since no width.
+    getFaviconForPage: sandbox
       .stub()
-      .callsArgWith(1, { spec: FAKE_SMALLPNG_DATA_URI }, 0, null, null, 0),
+      .returns(Promise.resolve({ iconUri: { spec: FAKE_SMALLPNG_DATA_URI } })),
     setFaviconForPage: sandbox.spy(),
     copyFavicons: sandbox.spy(),
   };
@@ -335,16 +334,12 @@ add_task(async function test_fetchIcon_withValidDataInDb() {
   const sandbox = sinon.createSandbox();
   // Set up mocks
   PlacesUtils.favicons = {
-    getFaviconDataForPage: sandbox
-      .stub()
-      .callsArgWith(
-        1,
-        { spec: FAKE_SMALLPNG_DATA_URI },
-        100,
-        ["dummy icon data"],
-        "image/png",
-        16
-      ),
+    getFaviconForPage: sandbox.stub().returns(
+      Promise.resolve({
+        iconUri: { spec: FAKE_SMALLPNG_DATA_URI },
+        width: 100,
+      })
+    ),
     setFaviconForPage: sandbox.spy(),
     copyFavicons: sandbox.spy(),
   };
@@ -370,9 +365,7 @@ add_task(async function test_fetchIcon_withNoTippyTopData() {
   let feed = new FaviconProvider();
   // Set up mocks
   PlacesUtils.favicons = {
-    getFaviconDataForPage: sandbox
-      .stub()
-      .callsArgWith(1, null, 0, null, null, 0),
+    getFaviconForPage: sandbox.stub().returns(Promise.resolve(null)),
     setFaviconForPage: sandbox.spy(),
     copyFavicons: sandbox.spy(),
   };
