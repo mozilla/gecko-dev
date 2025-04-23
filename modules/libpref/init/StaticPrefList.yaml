@@ -8939,24 +8939,6 @@
   mirror: always
   set_spidermonkey_pref: always
 
-# Support for wasm loop unrolling and peeling in wasm-via-Ion.  This enables
-# both unrolling and peeling.
-- name: javascript.options.wasm_unroll_loops
-  type: bool
-  value: false
-  mirror: always
-  set_spidermonkey_pref: always
-
-# The number of times a loop is unrolled, not counting the peeled iteration.
-# Minimum is 2 -- otherwise we're not unrolling at all.  From testing with
-# JetStream3 (wasm tests), it's hard to get consistently better performance
-# than simply by unrolling by 3, regardless of loop size.
-- name: javascript.options.wasm_unroll_factor
-  type: uint32_t
-  value: 3
-  mirror: always
-  set_spidermonkey_pref: always
-
 # Support for pretenuring allocations based on their allocation site.
 - name: javascript.options.site_based_pretenuring
   type: bool

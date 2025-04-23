@@ -95,7 +95,6 @@ UNIFIED_SOURCES += [
     "TrampolineNatives.cpp",
     "TrialInlining.cpp",
     "TypePolicy.cpp",
-    "UnrollLoops.cpp",
     "ValueNumbering.cpp",
     "VMFunctions.cpp",
     "WarpBuilder.cpp",

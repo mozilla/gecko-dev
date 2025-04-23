@@ -1111,14 +1111,9 @@ class MInstruction : public MDefinition, public InlineListNode<MInstruction> {
   bool canClone() const override { return true; }                            \
   MInstruction* clone(TempAllocator& alloc, const MDefinitionVector& inputs) \
       const override {                                                       \
-    MOZ_ASSERT(numOperands() == inputs.length());                            \
     MInstruction* res = new (alloc) typename(*this);                         \
-    if (!res) {                                                              \
-      return nullptr;                                                        \
-    }                                                                        \
-    for (size_t i = 0; i < numOperands(); i++) {                             \
+    for (size_t i = 0; i < numOperands(); i++)                               \
       res->replaceOperand(i, inputs[i]);                                     \
-    }                                                                        \
     return res;                                                              \
   }
 
@@ -1824,8 +1819,6 @@ class MGoto : public MAryControlInstruction<0, 1>, public NoTypePolicy::Data {
   static constexpr size_t TargetIndex = 0;
 
   MBasicBlock* target() const { return getSuccessor(TargetIndex); }
-  void setTarget(MBasicBlock* target) { setSuccessor(TargetIndex, target); }
-
   AliasSet getAliasSet() const override { return AliasSet::None(); }
 
 #ifdef JS_JITSPEW
@@ -1835,8 +1828,6 @@ class MGoto : public MAryControlInstruction<0, 1>, public NoTypePolicy::Data {
     extras->add(buf);
   }
 #endif
-
-  ALLOW_CLONE(MGoto)
 };
 
 // Tests if the input instruction evaluates to true or false, and jumps to the
@@ -1868,11 +1859,6 @@ class MTest : public MAryControlInstruction<1, 2>, public TestPolicy::Data {
 
   MBasicBlock* ifTrue() const { return getSuccessor(TrueBranchIndex); }
   MBasicBlock* ifFalse() const { return getSuccessor(FalseBranchIndex); }
-  void setIfTrue(MBasicBlock* target) { setSuccessor(TrueBranchIndex, target); }
-  void setIfFalse(MBasicBlock* target) {
-    setSuccessor(FalseBranchIndex, target);
-  }
-
   MBasicBlock* branchSuccessor(BranchDirection dir) const {
     return (dir == TRUE_BRANCH) ? ifTrue() : ifFalse();
   }
@@ -1898,19 +1884,6 @@ class MTest : public MAryControlInstruction<1, 2>, public TestPolicy::Data {
     extras->add(buf);
   }
 #endif
-
-  bool canClone() const override { return true; }
-  MInstruction* clone(TempAllocator& alloc,
-                      const MDefinitionVector& inputs) const override {
-    MInstruction* res = new (alloc) MTest(input(), ifTrue(), ifFalse());
-    if (!res) {
-      return nullptr;
-    }
-    for (size_t i = 0; i < numOperands(); i++) {
-      res->replaceOperand(i, inputs[i]);
-    }
-    return res;
-  }
 };
 
 // Returns from this function to the previous caller.
@@ -3554,8 +3527,6 @@ class MWrapInt64ToInt32 : public MUnaryInstruction, public NoTypePolicy::Data {
   AliasSet getAliasSet() const override { return AliasSet::None(); }
 
   bool bottomHalf() const { return bottomHalf_; }
-
-  ALLOW_CLONE(MWrapInt64ToInt32)
 };
 
 class MExtendInt32ToInt64 : public MUnaryInstruction,
@@ -3585,8 +3556,6 @@ class MExtendInt32ToInt64 : public MUnaryInstruction,
     return congruentIfOperandsEqual(ins);
   }
   AliasSet getAliasSet() const override { return AliasSet::None(); }
-
-  ALLOW_CLONE(MExtendInt32ToInt64)
 };
 
 // Converts an int32 value to intptr by sign-extending it.
@@ -4729,8 +4698,6 @@ class MClz : public MUnaryInstruction, public BitwisePolicy::Data {
   MDefinition* foldsTo(TempAllocator& alloc) override;
   void computeRange(TempAllocator& alloc) override;
   void collectRangeInfoPreTrunc() override;
-
-  ALLOW_CLONE(MClz)
 };
 
 class MCtz : public MUnaryInstruction, public BitwisePolicy::Data {
@@ -4760,8 +4727,6 @@ class MCtz : public MUnaryInstruction, public BitwisePolicy::Data {
   MDefinition* foldsTo(TempAllocator& alloc) override;
   void computeRange(TempAllocator& alloc) override;
   void collectRangeInfoPreTrunc() override;
-
-  ALLOW_CLONE(MCtz)
 };
 
 class MPopcnt : public MUnaryInstruction, public BitwisePolicy::Data {
@@ -4786,8 +4751,6 @@ class MPopcnt : public MUnaryInstruction, public BitwisePolicy::Data {
 
   MDefinition* foldsTo(TempAllocator& alloc) override;
   void computeRange(TempAllocator& alloc) override;
-
-  ALLOW_CLONE(MPopcnt)
 };
 
 // Inline implementation of Math.sqrt().
@@ -6176,8 +6139,6 @@ class MPhi final : public MDefinition,
   using InputVector = js::Vector<MUse, 2, JitAllocPolicy>;
   InputVector inputs_;
 
-  // Important: if you add fields to this class, be sure to update its ::clone
-  // method accordingly.
   TruncateKind truncateKind_;
   bool triedToSpecialize_;
   bool isIterator_;
@@ -6217,25 +6178,6 @@ class MPhi final : public MDefinition,
   static MPhi* New(TempAllocator::Fallible alloc,
                    MIRType resultType = MIRType::Value) {
     return new (alloc) MPhi(alloc.alloc, resultType);
-  }
-
-  MPhi* clone(TempAllocator& alloc, const MDefinitionVector& inputs) const {
-    MOZ_ASSERT(inputs.length() == inputs_.length());
-    MPhi* phi = MPhi::New(alloc);
-    if (!phi || !phi->reserveLength(inputs.length())) {
-      return nullptr;
-    }
-    for (const auto& inp : inputs) {
-      phi->addInput(inp);
-    }
-    phi->truncateKind_ = truncateKind_;
-    phi->triedToSpecialize_ = triedToSpecialize_;
-    phi->isIterator_ = isIterator_;
-    phi->canProduceFloat32_ = canProduceFloat32_;
-    phi->canConsumeFloat32_ = canConsumeFloat32_;
-    phi->usageAnalysis_ = usageAnalysis_;
-    phi->setResultType(type());
-    return phi;
   }
 
   void removeOperand(size_t index);
@@ -6292,12 +6234,6 @@ class MPhi final : public MDefinition,
   void addInput(MDefinition* ins) {
     MOZ_ASSERT_IF(type() != MIRType::Value, ins->type() == type());
     inputs_.infallibleEmplaceBack(ins, this);
-  }
-
-  // Append a new input to the input vector.  May fail.
-  [[nodiscard]] bool addInputFallible(MDefinition* ins) {
-    MOZ_ASSERT_IF(type() != MIRType::Value, ins->type() == type());
-    return inputs_.emplaceBack(ins, this);
   }
 
   // Appends a new input to the input vector. May perform reallocation.
@@ -6802,8 +6738,6 @@ class MNot : public MUnaryInstruction, public TestPolicy::Data {
   bool canRecoverOnBailout() const override {
     return type() == MIRType::Boolean;
   }
-
-  ALLOW_CLONE(MNot)
 };
 
 // Bailout if index + minimum < 0 or index + maximum >= length. The length used
