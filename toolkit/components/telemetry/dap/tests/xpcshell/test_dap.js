@@ -33,26 +33,37 @@ const PREF_DATAUPLOAD = "datareporting.healthreport.uploadEnabled";
 
 let server;
 let server_addr;
-let server_requests = 0;
 
+// The dummy test server will record report sizes in this list.
+let server_requests = [];
+
+// List of testing task configurations. These are fake IDs for use in this files
+// test server only.
 const tasks = [
   {
-    // this is testing task 1
     id: "QjMD4n8l_MHBoLrbCfLTFi8hC264fC59SKHPviPF0q8",
-    leader_endpoint: null,
-    helper_endpoint: null,
+    vdaf: "sum",
+    bits: 8,
     time_precision: 300,
-    measurement_type: "u8",
   },
   {
-    // this is testing task 2
     id: "DSZGMFh26hBYXNaKvhL_N4AHA3P5lDn19on1vFPBxJM",
-    leader_endpoint: null,
-    helper_endpoint: null,
+    vdaf: "sumvec",
+    bits: 8,
+    length: 20,
     time_precision: 300,
-    measurement_type: "vecu8",
+  },
+  {
+    id: "RnywY1X4s1vtspu6B8C1FOu_jJZhJO6V8L3PT3WepF4",
+    vdaf: "sumvec",
+    bits: 16,
+    length: 20,
+    time_precision: 300,
   },
 ];
+
+// Expected payload sizes of DAP reports for the above tasks.
+const task_report_sizes = [886, 3654, 6726];
 
 function uploadHandler(request, response) {
   Assert.equal(
@@ -62,14 +73,7 @@ function uploadHandler(request, response) {
   );
 
   let body = new BinaryInputStream(request.bodyInputStream);
-  console.log(body.available());
-  Assert.equal(
-    true,
-    body.available() == 886 || body.available() == 3654,
-    "Wrong request body size."
-  );
-
-  server_requests += 1;
+  server_requests.push(body.available());
 
   response.setStatusLine(request.httpVersion, 200);
 }
@@ -100,9 +104,13 @@ add_setup(async function () {
 add_task(async function testVerificationTask() {
   Services.fog.testResetFOG();
 
-  server_requests = 0;
+  server_requests = [];
   await lazy.DAPTelemetrySender.sendTestReports(tasks, { timeout: 5000 });
-  Assert.equal(server_requests, tasks.length, "Report upload successful.");
+  Assert.deepEqual(
+    server_requests,
+    task_report_sizes,
+    "Report upload successful."
+  );
 });
 
 add_task(async function testNetworkError() {
@@ -111,6 +119,8 @@ add_task(async function testNetworkError() {
   const test_leader = Services.prefs.getStringPref(PREF_LEADER);
   Services.prefs.setStringPref(PREF_LEADER, server_addr + "/invalid-endpoint");
 
+  server_requests = [];
+
   let thrownErr;
   try {
     await lazy.DAPTelemetrySender.sendTestReports(tasks, { timeout: 5000 });
@@ -118,6 +128,7 @@ add_task(async function testNetworkError() {
     thrownErr = e;
   }
 
+  Assert.deepEqual(server_requests, []);
   Assert.ok(thrownErr.message.startsWith("Sending failed."));
 
   Services.prefs.setStringPref(PREF_LEADER, test_leader);
@@ -127,21 +138,21 @@ add_task(async function testTelemetryToggle() {
   Services.fog.testResetFOG();
 
   // Normal
-  server_requests = 0;
+  server_requests = [];
   await lazy.DAPTelemetrySender.sendTestReports(tasks, { timeout: 5000 });
-  Assert.equal(server_requests, tasks.length);
+  Assert.deepEqual(server_requests, task_report_sizes);
 
   // Telemetry off
-  server_requests = 0;
+  server_requests = [];
   Services.prefs.setBoolPref(PREF_DATAUPLOAD, false);
   await lazy.DAPTelemetrySender.sendTestReports(tasks, { timeout: 5000 });
-  Assert.equal(server_requests, 0);
+  Assert.deepEqual(server_requests, []);
 
   // Normal
-  server_requests = 0;
+  server_requests = [];
   Services.prefs.clearUserPref(PREF_DATAUPLOAD);
   await lazy.DAPTelemetrySender.sendTestReports(tasks, { timeout: 5000 });
-  Assert.equal(server_requests, tasks.length);
+  Assert.deepEqual(server_requests, task_report_sizes);
 });
 
 add_task(
@@ -177,7 +188,7 @@ add_task(
     );
 
     // Need to submit 2 non-zero reports, only 1 registered
-    server_requests = 0;
+    server_requests = [];
     lazy.DAPVisitCounter.counters[0].count = 1;
     await lazy.DAPVisitCounter.send(30 * 1000, "test");
 
@@ -197,7 +208,11 @@ add_task(
     // 1.  The first DAPVisitCounter.send call (the second DAPVisitCounter.send has reached the submission cap)
     // 2.  The third DAPVisitCounter.send call (an empty report which is not capped)
     // 3.  The flush of reports on unenrollment.
-    Assert.equal(server_requests, 3, "Unenrollment should flush reports");
+    Assert.deepEqual(
+      server_requests,
+      [3654, 3654, 3654],
+      "Unenrollment should flush reports"
+    );
     Assert.ok(
       lazy.DAPVisitCounter.timerId === null,
       "Submission timer should not exist after unenrollment"

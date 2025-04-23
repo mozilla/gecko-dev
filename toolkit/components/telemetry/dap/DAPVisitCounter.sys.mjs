@@ -252,8 +252,10 @@ export const DAPVisitCounter = new (class {
 
       let task = {
         id: task_id,
+        vdaf: "sumvec",
+        bits: 8,
+        length: 20,
         time_precision: 60,
-        measurement_type: "vecu8",
       };
 
       send_promises.push(
