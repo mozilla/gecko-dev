@@ -714,6 +714,26 @@
       </named-deck>
     </template>
 
+    <template name="colorway-removal-notice">
+      <moz-message-bar
+        data-l10n-id="colorway-removal-notice-message"
+        dismissable
+      >
+        <a
+          is="moz-support-link"
+          support-page="colorways"
+          data-l10n-id="colorway-removal-notice-learn-more"
+          slot="support-link"
+        ></a>
+
+        <button
+          slot="actions"
+          action="open-amo-colorway-collection"
+          data-l10n-id="colorway-removal-notice-button"
+        ></button>
+      </moz-message-bar>
+    </template>
+
     <template name="taar-notice">
       <moz-message-bar
         class="discopane-notice"

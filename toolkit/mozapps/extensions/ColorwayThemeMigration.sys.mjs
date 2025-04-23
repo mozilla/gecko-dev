@@ -10,16 +10,13 @@ ChromeUtils.defineESModuleGetters(lazy, {
   BrowserWindowTracker: "resource:///modules/BrowserWindowTracker.sys.mjs",
 });
 
-const CLEANUP_UNKNOWN = 0;
-const CLEANUP_COMPLETED = 1;
-const CLEANUP_COMPLETED_WITH_BUILTIN = 2;
-
 // Cleanup any colorway builtin theme that may still be installed.
 async function uninstallAllColorwayBuiltinThemes(activeThemeID) {
-  const CLEANUP_PREF = "extensions.colorway-builtin-themes-cleanup";
-
   if (
-    Services.prefs.getIntPref(CLEANUP_PREF, CLEANUP_UNKNOWN) != CLEANUP_UNKNOWN
+    Services.prefs.getIntPref(
+      ColorwayThemeMigration.CLEANUP_PREF,
+      ColorwayThemeMigration.CLEANUP_UNKNOWN
+    ) != ColorwayThemeMigration.CLEANUP_UNKNOWN
   ) {
     return false;
   }
@@ -40,16 +37,29 @@ async function uninstallAllColorwayBuiltinThemes(activeThemeID) {
   }
 
   Services.prefs.setIntPref(
-    CLEANUP_PREF,
+    ColorwayThemeMigration.CLEANUP_PREF,
     builtinColorwayThemeFound
-      ? CLEANUP_COMPLETED_WITH_BUILTIN
-      : CLEANUP_COMPLETED
+      ? ColorwayThemeMigration.CLEANUP_COMPLETED_WITH_BUILTIN
+      : ColorwayThemeMigration.CLEANUP_COMPLETED
   );
 
   return activeThemeUninstalling;
 }
 
 export const ColorwayThemeMigration = {
+  get CLEANUP_PREF() {
+    return "extensions.colorway-builtin-themes-cleanup";
+  },
+  get CLEANUP_UNKNOWN() {
+    return 0;
+  },
+  get CLEANUP_COMPLETED() {
+    return 1;
+  },
+  get CLEANUP_COMPLETED_WITH_BUILTIN() {
+    return 2;
+  },
+
   maybeWarn: async () => {
     const activeThemeID = Services.prefs.getCharPref(
       "extensions.activeThemeID",
