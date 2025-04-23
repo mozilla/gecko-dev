@@ -233,7 +233,7 @@ const DEFAULT_ACTIONS = {
     },
   },
   settings: {
-    l10nCommands: ["quickactions-cmd-settings"],
+    l10nCommands: ["quickactions-cmd-settings2"],
     icon: "chrome://global/skin/icons/settings.svg",
     label: "quickactions-settings2",
     onPick: openUrlFun("about:preferences"),
