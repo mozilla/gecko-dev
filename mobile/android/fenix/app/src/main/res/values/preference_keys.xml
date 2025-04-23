@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?><!-- This Source Code Form is subject to the terms of the Mozilla Public
    - License, v. 2.0. If a copy of the MPL was not distributed with this
    - file, You can obtain one at http://mozilla.org/MPL/2.0/. -->
-<resources>
+<resources xmlns:moz="http://schemas.android.com/apk/res-auto" xmlns:tools="http://schemas.android.com/tools">
     <string name="pref_key_make_default_browser" translatable="false">pref_key_make_default_browser</string>
     <string name="pref_key_search_settings" translatable="false">pref_key_search_settings</string>
     <string name="pref_key_search_engine" translatable="false">pref_key_search_engine</string>
@@ -335,7 +335,7 @@
     <string name="pref_key_open_tabs_count" translatable="false">pref_key_open_tabs_count</string>
     <string name="pref_key_open_private_tabs_count" translatable="false">pref_key_open_private_tabs_count</string>
 
-    <string name="pref_key_tab_strip" translatable="false">pref_key_tab_strip</string>
+    <string name="pref_key_tab_strip" translatable="false" moz:removedIn="139" tools:ignore="UnusedResources">pref_key_tab_strip</string>
 
     <!-- Add-on Metrics Values -->
     <string name="pref_key_installed_addons_count" translatable="false">pref_key_installed_addons_count</string>

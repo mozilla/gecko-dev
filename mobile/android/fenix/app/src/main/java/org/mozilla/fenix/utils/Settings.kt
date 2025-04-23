@@ -2474,15 +2474,6 @@ class Settings(private val appContext: Context) : PreferencesHolder {
     }
 
     /**
-     * Indicates whether or not to show the tab strip.
-     */
-    var tabStripEnabled by lazyFeatureFlagPreference(
-        key = appContext.getPreferenceKey(R.string.pref_key_tab_strip),
-        default = { FxNimbus.features.tabStrip.value().enabled },
-        featureFlag = true,
-    )
-
-    /**
      * Indicates if the user has completed the setup step for choosing the toolbar location
      */
     var hasCompletedSetupStepToolbar by booleanPreference(
