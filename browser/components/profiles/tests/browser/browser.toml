@@ -1,7 +1,7 @@
 [DEFAULT]
 support-files = ["head.js"]
 
-prefs = ["browser.profiles.enabled=true"]
+prefs = ["browser.profiles.enabled=true","browser.profiles.created=false",]
 
 ["browser_activate.js"]
 run-if = [
@@ -38,8 +38,6 @@ skip-if = ["os == 'mac' && os_version == '15.30' && arch == 'aarch64' && opt && 
 
 ["browser_preferences.js"]
 fail-if = ["a11y_checks"] # Bug 1955503
-
-["browser_test_db_lazily_created.js"]
 
 ["browser_test_last_tab.js"]
 skip-if = [

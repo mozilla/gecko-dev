@@ -68,6 +68,8 @@ ChromeUtils.defineESModuleGetters(lazy, {
   ProcessHangMonitor: "resource:///modules/ProcessHangMonitor.sys.mjs",
   ProfileDataUpgrader:
     "moz-src:///browser/components/ProfileDataUpgrader.sys.mjs",
+  ProfilesDatastoreService:
+    "resource:///modules/profiles/ProfilesDatastoreService.sys.mjs",
   RemoteSecuritySettings:
     "resource://gre/modules/psm/RemoteSecuritySettings.sys.mjs",
   RemoteSettings: "resource://services-settings/remote-settings.sys.mjs",
@@ -917,9 +919,8 @@ BrowserGlue.prototype = {
 
     lazy.DoHController.init();
 
-    if (AppConstants.MOZ_SELECTABLE_PROFILES) {
-      lazy.SelectableProfileService.init().catch(console.error);
-    }
+    lazy.ProfilesDatastoreService.init().catch(console.error);
+    lazy.SelectableProfileService.init().catch(console.error);
 
     this._firstWindowTelemetry(aWindow);
     this._firstWindowLoaded();

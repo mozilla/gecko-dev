@@ -4,6 +4,7 @@ firefox-appdir = "browser"
 
 prefs = [
   "browser.profiles.enabled=true",
+  "browser.profiles.created=false",
 ]
 
 ["test_delete_last_profile.js"]
