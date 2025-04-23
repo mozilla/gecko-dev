@@ -1534,7 +1534,7 @@ const MESSAGES = () => [
       },
       imageURL:
         "chrome://browser/content/asrouter/assets/fox-with-box-on-cloud.svg",
-      imageVerticalOffset: -20,
+      imageVerticalTopOffset: -20,
     },
     skip_in_tests: "TODO",
     trigger: {
