@@ -26,7 +26,7 @@ import mozilla.components.lib.state.Store
 import org.mozilla.samples.compose.browser.BrowserComposeActivity.Companion.ROUTE_SETTINGS
 import org.mozilla.samples.compose.browser.R
 import org.mozilla.samples.compose.browser.browser.DisplayBrowserActionsInteractions.TabCounterClicked
-import org.mozilla.samples.compose.browser.browser.DisplayPageActionsInteractions.RefreshClicked
+import org.mozilla.samples.compose.browser.browser.DisplayPageActionsEndInteractions.RefreshClicked
 import org.mozilla.samples.compose.browser.browser.DisplayPageOriginInteractions.PageOriginClicked
 import org.mozilla.samples.compose.browser.browser.EditActionsInteractions.ClearClicked
 import mozilla.components.ui.icons.R as iconsR
@@ -35,8 +35,8 @@ private sealed class DisplayPageOriginInteractions : BrowserToolbarEvent {
     data object PageOriginClicked : DisplayPageOriginInteractions()
 }
 
-private sealed class DisplayPageActionsInteractions : BrowserToolbarEvent {
-    data object RefreshClicked : DisplayPageActionsInteractions()
+private sealed class DisplayPageActionsEndInteractions : BrowserToolbarEvent {
+    data object RefreshClicked : DisplayPageActionsEndInteractions()
 }
 
 private sealed class DisplayBrowserActionsInteractions : BrowserToolbarEvent {
@@ -93,7 +93,7 @@ internal class BrowserToolbarMiddleware(
                 url = null,
                 onClick = PageOriginClicked,
             ),
-            pageActions = buildDisplayPageActions(),
+            pageActionsEnd = buildDisplayPageActions(),
             browserActions = buildDisplayBrowserActions(),
         ),
         editState = EditState(

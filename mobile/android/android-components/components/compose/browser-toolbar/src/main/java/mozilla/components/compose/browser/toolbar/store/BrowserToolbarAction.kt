@@ -61,6 +61,14 @@ sealed class BrowserDisplayToolbarAction : BrowserToolbarAction {
     data class PageOriginUpdated(val pageOrigin: PageOrigin) : BrowserDisplayToolbarAction()
 
     /**
+     * Replaces the currently displayed list of end page actions with the provided list of actions.
+     * These are displayed to the right side of the URL, inside of the URL bounding box.
+     *
+     * @property actions The new list of [ToolbarAction]s.
+     */
+    data class PageActionsEndUpdated(val actions: List<ToolbarAction>) : BrowserDisplayToolbarAction()
+
+    /**
      * Adds a browser [Action] to be displayed to the right side of the URL of the display toolbar
      * (outside of the URL bounding box).
      *

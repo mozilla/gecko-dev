@@ -60,7 +60,7 @@ fun BrowserToolbar(
             progressBarConfig = progressBarConfig,
             browserActionsStart = uiState.displayState.browserActionsStart,
             pageActionsStart = uiState.displayState.pageActionsStart,
-            pageActions = uiState.displayState.pageActions,
+            pageActionsEnd = uiState.displayState.pageActionsEnd,
             browserActions = uiState.displayState.browserActions,
             onInteraction = { store.dispatch(it) },
         )

@@ -34,6 +34,7 @@ import mozilla.components.compose.browser.toolbar.store.ProgressBarGravity.Botto
 import mozilla.components.lib.state.Middleware
 import mozilla.components.lib.state.MiddlewareContext
 import org.mozilla.samples.toolbar.R
+import org.mozilla.samples.toolbar.middleware.PageActionsEndInteractions.RefreshClicked
 import org.mozilla.samples.toolbar.middleware.PageOriginInteractions.CopyOptionClicked
 import org.mozilla.samples.toolbar.middleware.PageOriginInteractions.PageOriginClicked
 import org.mozilla.samples.toolbar.middleware.SearchSelectorInteractions.BookmarksClicked
@@ -65,6 +66,10 @@ private sealed class StartPageInteractions : BrowserToolbarEvent {
 private sealed class PageOriginInteractions : BrowserToolbarEvent {
     data object PageOriginClicked : PageOriginInteractions()
     data object CopyOptionClicked : PageOriginInteractions()
+}
+
+private sealed class PageActionsEndInteractions : BrowserToolbarEvent {
+    data object RefreshClicked : PageOriginInteractions()
 }
 
 private sealed class TabCounterInteractions : BrowserToolbarEvent {
@@ -102,17 +107,7 @@ internal class BrowserToolbarMiddleware(
                             browserActionsStart = buildStartBrowserActions(),
                             pageActionsStart = buildStartPageActions(),
                             pageOrigin = buildPageOrigin(),
-                            pageActions = listOf(
-                                ActionButton(
-                                    icon = iconsR.drawable.mozac_ic_arrow_clockwise_24,
-                                    contentDescription = R.string.page_action_refresh_description,
-                                    tint = ContextCompat.getColor(
-                                        dependencies.context,
-                                        R.color.generic_button_tint,
-                                    ),
-                                    onClick = object : BrowserToolbarEvent {},
-                                ),
-                            ),
+                            pageActionsEnd = buildPageActionsEnd(),
                             browserActions = buildDisplayBrowserActions(),
                             progressBarConfig = buildProgressBar(),
                         ),
@@ -131,6 +126,7 @@ internal class BrowserToolbarMiddleware(
             is StartBrowserInteractions,
             is StartPageInteractions,
             is PageOriginInteractions,
+            is PageActionsEndInteractions,
             -> Toast.makeText(dependencies.context, action.javaClass.simpleName, Toast.LENGTH_SHORT).show()
 
             is TabCounterClicked -> {
@@ -193,6 +189,18 @@ internal class BrowserToolbarMiddleware(
                 ),
             )
         },
+    )
+
+    private fun buildPageActionsEnd() = listOf(
+        ActionButton(
+            icon = iconsR.drawable.mozac_ic_arrow_clockwise_24,
+            contentDescription = R.string.page_action_refresh_description,
+            tint = ContextCompat.getColor(
+                dependencies.context,
+                R.color.generic_button_tint,
+            ),
+            onClick = RefreshClicked,
+        ),
     )
 
     private fun buildDisplayBrowserActions() = listOf(

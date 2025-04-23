@@ -5,6 +5,7 @@
 package mozilla.components.compose.browser.toolbar.store
 
 import mozilla.components.compose.browser.toolbar.store.BrowserDisplayToolbarAction.BrowserActionsStartUpdated
+import mozilla.components.compose.browser.toolbar.store.BrowserDisplayToolbarAction.PageActionsEndUpdated
 import mozilla.components.compose.browser.toolbar.store.BrowserDisplayToolbarAction.PageActionsStartUpdated
 import mozilla.components.compose.browser.toolbar.store.BrowserDisplayToolbarAction.PageOriginUpdated
 import mozilla.components.compose.browser.toolbar.store.BrowserToolbarInteraction.BrowserToolbarEvent
@@ -70,6 +71,12 @@ private fun reduce(state: BrowserToolbarState, action: BrowserToolbarAction): Br
         is PageOriginUpdated -> state.copy(
             displayState = state.displayState.copy(
                 pageOrigin = action.pageOrigin,
+            ),
+        )
+
+        is PageActionsEndUpdated -> state.copy(
+            displayState = state.displayState.copy(
+                pageActionsEnd = action.actions,
             ),
         )
 

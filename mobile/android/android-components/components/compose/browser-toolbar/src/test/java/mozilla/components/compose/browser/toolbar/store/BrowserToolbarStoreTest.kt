@@ -9,6 +9,7 @@ import mozilla.components.compose.browser.toolbar.R
 import mozilla.components.compose.browser.toolbar.concept.Action.ActionButton
 import mozilla.components.compose.browser.toolbar.concept.PageOrigin
 import mozilla.components.compose.browser.toolbar.store.BrowserDisplayToolbarAction.BrowserActionsStartUpdated
+import mozilla.components.compose.browser.toolbar.store.BrowserDisplayToolbarAction.PageActionsEndUpdated
 import mozilla.components.compose.browser.toolbar.store.BrowserDisplayToolbarAction.PageActionsStartUpdated
 import mozilla.components.compose.browser.toolbar.store.BrowserDisplayToolbarAction.PageOriginUpdated
 import mozilla.components.compose.browser.toolbar.store.BrowserToolbarInteraction.BrowserToolbarEvent
@@ -139,6 +140,24 @@ class BrowserToolbarStoreTest {
 
         store.dispatch(PageActionsStartUpdated(emptyList()))
         assertEquals(0, store.state.displayState.pageActionsStart.size)
+    }
+
+    @Test
+    fun `WHEN updating end page actions THEN replace old actions with the new one`() {
+        val store = BrowserToolbarStore()
+        val action1 = fakeActionButton()
+        val action2 = fakeActionButton()
+        val action3 = fakeActionButton()
+        assertEquals(0, store.state.displayState.pageActionsEnd.size)
+
+        store.dispatch(PageActionsEndUpdated(listOf(action1)))
+        assertEquals(listOf(action1), store.state.displayState.pageActionsEnd)
+
+        store.dispatch(PageActionsEndUpdated(listOf(action2, action3)))
+        assertEquals(listOf(action2, action3), store.state.displayState.pageActionsEnd)
+
+        store.dispatch(PageActionsEndUpdated(emptyList()))
+        assertEquals(0, store.state.displayState.pageActionsEnd.size)
     }
 
     @Test
