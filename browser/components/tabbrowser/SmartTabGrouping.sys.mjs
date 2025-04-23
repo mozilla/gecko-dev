@@ -257,7 +257,7 @@ export class SmartTabGroupingManager {
           let text = SmartTabGroupingManager.preprocessText(td[EMBED_TEXT_KEY]);
           // augment with group name if it's present
           if (groupLabel && groupedIndices.includes(index)) {
-            text = `${groupLabel.slice(0, 100)}. ${td[EMBED_TEXT_KEY]}`;
+            text = `${groupLabel.slice(0, 100)}. ${text}`;
           }
           return text;
         })

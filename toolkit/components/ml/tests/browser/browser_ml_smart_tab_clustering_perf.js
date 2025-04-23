@@ -121,7 +121,7 @@ add_task(async function test_clustering() {
   const titles = similarTabs.map(s => s.label);
   Assert.equal(
     titles.length,
-    4,
+    5,
     "Proper number of similar tabs should be returned"
   );
   Assert.equal(
@@ -133,8 +133,9 @@ add_task(async function test_clustering() {
     "Impact of Tourism on Local Communities - Google Scholar"
   );
   Assert.equal(titles[2], "Cheap Flights, Airline Tickets & Airfare Deals");
+  Assert.equal(titles[3], "Hotel Deals: Save Big on Hotels with Expedia");
   Assert.equal(
-    titles[3],
+    titles[4],
     "The Influence of Travel Restrictions on the Spread of COVID-19 - Nature"
   );
   reportMetrics(singleTabMetrics);
