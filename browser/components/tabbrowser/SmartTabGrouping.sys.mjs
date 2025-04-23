@@ -52,6 +52,8 @@ export const SUGGEST_OTHER_TABS_METHODS = {
 const EXPECTED_TOPIC_MODEL_OBJECTS = 6;
 const EXPECTED_EMBEDDING_MODEL_OBJECTS = 4;
 
+const MAX_NON_SUMMARIZED_SEARCH_LENGTH = 26;
+
 export const DIM_REDUCTION_METHODS = {};
 const MISSING_ANCHOR_IN_CLUSTER_PENALTY = 0.2;
 const NEAREST_NEIGHBOR_DEFAULT_THRESHOLD = 0.275;
@@ -65,7 +67,7 @@ const LABELS_TO_EXCLUDE = [DISSIMILAR_TAB_LABEL, ADULT_TAB_LABEL];
 const ML_TASK_FEATURE_EXTRACTION = "feature-extraction";
 const ML_TASK_TEXT2TEXT = "text2text-generation";
 
-const SMART_TAB_GROUPING_CONFIG = {
+export const SMART_TAB_GROUPING_CONFIG = {
   embedding: {
     dtype: "q8",
     timeoutMS: 2 * 60 * 1000, // 2 minutes
@@ -101,6 +103,8 @@ const TAB_URLS_TO_EXCLUDE = [
   "about:firefoxview",
 ];
 
+const TITLE_DELIMETER_SET = new Set(["-", "|", "—"]);
+
 /**
  * For a given set of clusters represented by indices, returns the index of the cluster
  * that has the most anchor items inside it.
@@ -123,6 +127,35 @@ export function getBestAnchorClusterInfo(groupIndices, anchorItems) {
   const anchorClusterIndex = numItemsList.indexOf(Math.max(...numItemsList));
   const numAnchorItemsInCluster = numItemsList[anchorClusterIndex];
   return { anchorClusterIndex, numAnchorItemsInCluster };
+}
+
+/**
+ * Check tab to see if it's a search page
+ * @param {Object} tab
+ * @returns {boolean} Returns true if the tab is a web search from the Firefox search UI and the user is still on the original page.
+ * Changes in search query after search is made is supported.
+ * Returns false if user started from a hompepage of a site rather than the New Tab / browser UI
+ */
+export function isSearchTab(tab) {
+  const linkedBrowser = tab?.linkedBrowser;
+  if (!linkedBrowser) {
+    return false;
+  }
+  const searchURL = linkedBrowser.getAttribute("triggeringSearchEngineURL");
+  const curURL = linkedBrowser.currentURI?.spec;
+  if (!searchURL) {
+    return false;
+  }
+  const queryFieldsMarker = searchURL.indexOf("?");
+
+  if (
+    queryFieldsMarker > 0 &&
+    searchURL.substring(0, queryFieldsMarker) ===
+      curURL.substring(0, queryFieldsMarker)
+  ) {
+    return true;
+  }
+  return false;
 }
 
 export class SmartTabGroupingManager {
@@ -826,6 +859,16 @@ export class SmartTabGroupingManager {
    * @param {SmartTabGroupingResult} otherGroupingResult A 'made up' cluster representing all other tabs in the window
    */
   async generateGroupLabels(groupingResult, otherGroupingResult = null) {
+    // Special case for a search page
+    if (
+      groupingResult.clusterRepresentations.length == 1 &&
+      groupingResult.clusterRepresentations[0].isSingleTabSearch
+    ) {
+      if (groupingResult.clusterRepresentations[0].setSingleTabSearchLabel()) {
+        return;
+      }
+    }
+
     const { keywords, documents } =
       groupingResult.getRepresentativeDocsAndKeywords(
         otherGroupingResult
@@ -1219,6 +1262,33 @@ export class ClusterRepresentation extends EmbeddingCluster {
     this.keywords = null;
     this.documents = null;
     this.clusterID = genHexString(10);
+    this.isSingleTabSearch = tabs.length == 1 && isSearchTab(tabs[0]);
+  }
+
+  /**
+   * For a single tab cluster with a search field, set the predicted topic
+   * to be the title of the page
+   * @returns {boolean} True if we updated the cluster label successfully
+   */
+  setSingleTabSearchLabel() {
+    if (this.tabs.length !== 1) {
+      return false;
+    }
+    const pageTitle = this.tabs[0][this.config.dataConfig.titleKey] || "";
+    for (let i = pageTitle.length - 1; i > 0; i--) {
+      if (TITLE_DELIMETER_SET.has(pageTitle[i])) {
+        const topicString = pageTitle.substring(0, i).trim();
+        if (topicString.length > MAX_NON_SUMMARIZED_SEARCH_LENGTH) {
+          return false;
+        }
+        // Capitalize first character of each word. Regex returns first char of each word
+        this.predictedTopicLabel = topicString.replace(/(^|\s)\S/g, t =>
+          t.toUpperCase()
+        );
+        return true;
+      }
+    }
+    return false;
   }
 
   /**

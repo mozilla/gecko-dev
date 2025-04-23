@@ -7,6 +7,9 @@ const {
   CLUSTER_METHODS,
   ANCHOR_METHODS,
   getBestAnchorClusterInfo,
+  ClusterRepresentation,
+  SMART_TAB_GROUPING_CONFIG,
+  isSearchTab,
 } = ChromeUtils.importESModule(
   "moz-src:///browser/components/tabbrowser/SmartTabGrouping.sys.mjs"
 );
@@ -246,4 +249,31 @@ function fetchFile(host_prefix, filename) {
     xhr.onerror = () => reject(new Error(`Network error getting ${url}`));
     xhr.send();
   });
+}
+
+/**
+ * Creates a mock tab object with a mocked linkedBrowser,
+ * simulating the tab data structure
+ *
+ * @param {object} options
+ * @param {string|null} options.searchURL - The value to return from getAttribute("triggeringSearchEngineURL").
+ * @param {string} options.currentURL - The current URI of the tab's linked browser.
+ * @param {string|null} options.title - Title of page
+ * @returns {object} A mock tab object shaped like a real Firefox tab for testing.
+ */
+function createMockTab({ searchURL, currentURL, title }) {
+  return {
+    linkedBrowser: {
+      getAttribute(name) {
+        if (name === "triggeringSearchEngineURL") {
+          return searchURL;
+        }
+        return null;
+      },
+      currentURI: {
+        spec: currentURL,
+      },
+    },
+    label: title,
+  };
 }
