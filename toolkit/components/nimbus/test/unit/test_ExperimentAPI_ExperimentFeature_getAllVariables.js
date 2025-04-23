@@ -213,3 +213,23 @@ add_task(
     cleanup();
   }
 );
+
+add_task(async function testGetAllVariablesCoenrolling() {
+  const cleanupFeature = NimbusTestUtils.addTestFeatures(
+    new ExperimentFeature("foo", {
+      allowCoenrollment: true,
+      variables: {
+        bar: {
+          type: "string",
+        },
+      },
+    })
+  );
+
+  Assert.throws(
+    () => NimbusFeatures.foo.getAllVariables(),
+    /Co-enrolling features must use the getAllEnrollments API/
+  );
+
+  cleanupFeature();
+});
