@@ -609,6 +609,29 @@ class MBasicBlock : public TempObject, public InlineListNode<MBasicBlock> {
   // bails out.
   MResumePoint* activeResumePoint(MInstruction* ins);
 
+#ifdef JS_JITSPEW
+  const char* nameOfKind() const {
+    switch (kind_) {
+      case MBasicBlock::Kind::NORMAL:
+        return "NORMAL";
+      case MBasicBlock::Kind::PENDING_LOOP_HEADER:
+        return "PENDING_LOOP_HEADER";
+      case MBasicBlock::Kind::LOOP_HEADER:
+        return "LOOP_HEADER";
+      case MBasicBlock::Kind::SPLIT_EDGE:
+        return "SPLIT_EDGE";
+      case MBasicBlock::Kind::FAKE_LOOP_PRED:
+        return "FAKE_LOOP_PRED";
+      case MBasicBlock::Kind::INTERNAL:
+        return "INTERNAL";
+      case MBasicBlock::Kind::DEAD:
+        return "DEAD";
+      default:
+        return "MBasicBlock::Kind::???";
+    }
+  }
+#endif
+
  private:
   MIRGraph& graph_;
   const CompileInfo& info_;  // Each block originates from a particular script.
