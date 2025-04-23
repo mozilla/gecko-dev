@@ -1272,3 +1272,168 @@ add_task(async function test_updateRecipes_unenroll_missingLocale() {
 
   cleanup();
 });
+
+add_task(async function testCoenrolling() {
+  const { manager, cleanup } = await setupTest();
+
+  const featureId = "coenrolling-feature";
+
+  const cleanupFeature = NimbusTestUtils.addTestFeatures(
+    new ExperimentFeature(featureId, {
+      allowCoenrollment: true,
+      isEarlyStartup: false,
+      variables: {
+        foo: {
+          type: "string",
+          fallbackPref: `${TEST_PREF_BRANCH}.coenrolling.foo`,
+        },
+        bar: {
+          type: "json",
+        },
+        baz: {
+          type: "string",
+        },
+        waldo: {
+          type: "json",
+        },
+      },
+    })
+  );
+
+  Services.prefs.setStringPref(
+    NimbusFeatures["coenrolling-feature"].getFallbackPrefName("foo"),
+    "fallback-foo-pref-value"
+  );
+
+  await manager.enroll(
+    NimbusTestUtils.factories.recipe.withFeatureConfig("experiment-1", {
+      branchSlug: "treatment-a",
+      featureId,
+      value: {
+        foo: "foo",
+        bar: "bar",
+        baz: "baz",
+        waldo: "waldo",
+      },
+    })
+  );
+
+  await manager.enroll(
+    NimbusTestUtils.factories.recipe.withFeatureConfig(
+      "experiment-2",
+      {
+        branchSlug: "treatment-b",
+        featureId,
+        value: {
+          foo: {
+            $l10n: {
+              id: "foo",
+              comment: "foo comment",
+              text: "original foo",
+            },
+          },
+          bar: "bar",
+          baz: "baz",
+          waldo: "waldo",
+        },
+      },
+      {
+        localizations: LOCALIZATIONS,
+      }
+    )
+  );
+
+  await manager.enroll(
+    NimbusTestUtils.factories.recipe.withFeatureConfig(
+      "rollout-1",
+      {
+        featureId,
+        value: {
+          bar: DEEPLY_NESTED_VALUE.bar,
+        },
+      },
+      {
+        localizations: LOCALIZATIONS,
+      }
+    )
+  );
+
+  await manager.enroll(
+    NimbusTestUtils.factories.recipe.withFeatureConfig(
+      "rollout-2",
+      {
+        featureId,
+        value: DEEPLY_NESTED_VALUE,
+      },
+      {
+        localizations: LOCALIZATIONS,
+      }
+    )
+  );
+
+  const enrollments = NimbusFeatures[featureId]
+    .getAllEnrollments()
+    .sort((a, b) => a.meta.slug.localeCompare(b.meta.slug));
+
+  Assert.deepEqual(enrollments, [
+    {
+      meta: {
+        slug: "experiment-1",
+        branch: "treatment-a",
+        isRollout: false,
+      },
+      value: {
+        foo: "foo",
+        bar: "bar",
+        baz: "baz",
+        waldo: "waldo",
+      },
+    },
+    {
+      meta: {
+        slug: "experiment-2",
+        branch: "treatment-b",
+        isRollout: false,
+      },
+      value: {
+        foo: LOCALIZED_DEEPLY_NESTED_VALUE.foo,
+        bar: "bar",
+        baz: "baz",
+        waldo: "waldo",
+      },
+    },
+    {
+      meta: {
+        slug: "rollout-1",
+        branch: "control",
+        isRollout: false,
+      },
+      value: {
+        foo: "fallback-foo-pref-value",
+        bar: LOCALIZED_DEEPLY_NESTED_VALUE.bar,
+      },
+    },
+    {
+      meta: {
+        slug: "rollout-2",
+        branch: "control",
+        isRollout: false,
+      },
+      value: LOCALIZED_DEEPLY_NESTED_VALUE,
+    },
+  ]);
+
+  NimbusTestUtils.cleanupManager([
+    "experiment-1",
+    "experiment-2",
+    "rollout-1",
+    "rollout-2",
+  ]);
+
+  Services.prefs.clearUserPref(
+    NimbusFeatures["coenrolling-feature"].getFallbackPrefName("foo")
+  );
+
+  cleanupFeature();
+  cleanup();
+});

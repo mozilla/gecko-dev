@@ -1205,3 +1205,44 @@ add_task(async function test_getAllOptInRecipes() {
 
   cleanup();
 });
+
+add_task(async function testCoenrolling() {
+  const { manager, cleanup } = await setupTest();
+
+  await manager.enroll(
+    NimbusTestUtils.factories.recipe.withFeatureConfig(
+      "rollout-1",
+      { featureId: "no-feature-firefox-desktop" },
+      { isRollout: true }
+    )
+  );
+  await manager.enroll(
+    NimbusTestUtils.factories.recipe.withFeatureConfig(
+      "rollout-2",
+      { featureId: "no-feature-firefox-desktop" },
+      { isRollout: true }
+    )
+  );
+  await manager.enroll(
+    NimbusTestUtils.factories.recipe.withFeatureConfig("experiment-1", {
+      featureId: "no-feature-firefox-desktop",
+    })
+  );
+  await manager.enroll(
+    NimbusTestUtils.factories.recipe.withFeatureConfig("experiment-2", {
+      featureId: "no-feature-firefox-desktop",
+    })
+  );
+
+  Assert.ok(manager.store.get("rollout-1").active, "rollout-1 is active");
+  Assert.ok(manager.store.get("rollout-2").active, "rollout-2 is active");
+  Assert.ok(manager.store.get("experiment-1").active, "experiment-1 is active");
+  Assert.ok(manager.store.get("experiment-2").active, "experiment-2 is active");
+
+  manager.unenroll("rollout-1");
+  manager.unenroll("rollout-2");
+  manager.unenroll("experiment-1");
+  manager.unenroll("experiment-2");
+
+  cleanup();
+});

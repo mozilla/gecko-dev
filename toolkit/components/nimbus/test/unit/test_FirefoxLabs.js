@@ -203,6 +203,7 @@ add_task(async function test_reenroll() {
     firefoxLabsDescriptionLinks: null,
     firefoxLabsGroup: "placeholder",
     requiresRestart: false,
+    isRollout: true,
   });
 
   const { manager, cleanup } = await setupTest({ experiments: [recipe] });

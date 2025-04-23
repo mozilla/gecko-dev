@@ -13,6 +13,7 @@
     - firefox-desktop
     - firefox-desktop-background-task
   hasExposure: false
+  allowCoenrollment: true
   variables: {}
 
 testFeature:

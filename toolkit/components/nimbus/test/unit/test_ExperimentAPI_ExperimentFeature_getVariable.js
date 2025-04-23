@@ -193,3 +193,23 @@ add_task(async function test_ExperimentFeature_getVariable_partial_values() {
   manager.unenroll(rollout.slug);
   cleanup();
 });
+
+add_task(async function testGetVariableCoenrolling() {
+  const cleanupFeature = NimbusTestUtils.addTestFeatures(
+    new ExperimentFeature("foo", {
+      allowCoenrollment: true,
+      variables: {
+        bar: {
+          type: "string",
+        },
+      },
+    })
+  );
+
+  Assert.throws(
+    () => NimbusFeatures.foo.getVariable("bar"),
+    /Co-enrolling features must use the getAllEnrollments API/
+  );
+
+  cleanupFeature();
+});
