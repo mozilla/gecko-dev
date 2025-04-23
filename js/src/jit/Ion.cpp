@@ -1053,7 +1053,7 @@ bool OptimizeMIR(MIRGenerator* mir) {
   }
 
   {
-    if (!BuildDominatorTree(graph)) {
+    if (!BuildDominatorTree(mir, graph)) {
       return false;
     }
     // No spew: graph not changed.
@@ -1400,7 +1400,7 @@ bool OptimizeMIR(MIRGenerator* mir) {
 
   if (mir->optimizationInfo().instructionReorderingEnabled() &&
       !mir->outerInfo().hadReorderingBailout()) {
-    if (!ReorderInstructions(graph)) {
+    if (!ReorderInstructions(mir, graph)) {
       return false;
     }
     gs.spewPass("Reordering");
@@ -1468,6 +1468,10 @@ bool OptimizeMIR(MIRGenerator* mir) {
     }
     gs.spewPass("Bounds Check Elimination");
     AssertGraphCoherency(graph);
+
+    if (mir->shouldCancel("Bounds Check Elimination")) {
+      return false;
+    }
   }
 
   if (mir->optimizationInfo().eliminateRedundantShapeGuardsEnabled()) {
@@ -1476,6 +1480,10 @@ bool OptimizeMIR(MIRGenerator* mir) {
     }
     gs.spewPass("Shape Guard Elimination");
     AssertGraphCoherency(graph);
+
+    if (mir->shouldCancel("Shape Guard Elimination")) {
+      return false;
+    }
   }
 
   // Run the GC Barrier Elimination pass after instruction reordering, to
@@ -1487,6 +1495,10 @@ bool OptimizeMIR(MIRGenerator* mir) {
     }
     gs.spewPass("GC Barrier Elimination");
     AssertGraphCoherency(graph);
+
+    if (mir->shouldCancel("GC Barrier Elimination")) {
+      return false;
+    }
   }
 
   if (!mir->compilingWasm() && !mir->outerInfo().hadUnboxFoldingBailout()) {
@@ -1495,6 +1507,10 @@ bool OptimizeMIR(MIRGenerator* mir) {
     }
     gs.spewPass("FoldLoadsWithUnbox");
     AssertGraphCoherency(graph);
+
+    if (mir->shouldCancel("FoldLoadsWithUnbox")) {
+      return false;
+    }
   }
 
   if (!mir->compilingWasm()) {
@@ -1503,6 +1519,10 @@ bool OptimizeMIR(MIRGenerator* mir) {
     }
     gs.spewPass("Add KeepAlive Instructions");
     AssertGraphCoherency(graph);
+
+    if (mir->shouldCancel("Add KeepAlive Instructions")) {
+      return false;
+    }
   }
 
   AssertGraphCoherency(graph, /* force = */ true);

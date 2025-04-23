@@ -8066,6 +8066,9 @@ bool LIRGenerator::visitBlock(MBasicBlock* block) {
   MOZ_ASSERT_IF(block->unreachable(), !mir()->optimizationInfo().gvnEnabled());
   for (MInstructionIterator iter = block->begin(); *iter != block->lastIns();
        iter++) {
+    if (gen->shouldCancel("Lowering (instruction loop)")) {
+      return false;
+    }
     if (!visitInstruction(*iter)) {
       return false;
     }

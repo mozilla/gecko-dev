@@ -8014,6 +8014,10 @@ bool CodeGenerator::generateBody() {
       continue;
     }
 
+    if (gen->shouldCancel("Generate Code (block loop)")) {
+      return false;
+    }
+
 #ifdef JS_JITSPEW
     const char* filename = nullptr;
     size_t lineNumber = 0;
@@ -8048,6 +8052,9 @@ bool CodeGenerator::generateBody() {
 
     for (LInstructionIterator iter = current->begin(); iter != current->end();
          iter++) {
+      if (gen->shouldCancel("Generate Code (instruction loop)")) {
+        return false;
+      }
       if (!alloc().ensureBallast()) {
         return false;
       }
