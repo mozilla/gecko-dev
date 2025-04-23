@@ -7,75 +7,8 @@
 loadScripts({ name: "role.js", dir: MOCHITESTS_DIR });
 
 /**
- * Verify loading an iframe document with aria-hidden specified on the root element
- * correctly hides the root element and its content. This test is meaninfully
- * different than testIframeDocument which tests aria-hidden specified on the
- * body element.
- */
-addAccessibleTask(
-  `hello world`,
-  async function testIframeRootDocument(browser) {
-    info("Loading iframe document");
-    const HIDDEN_IFRAME_URI =
-      "data:text/html,<html id='new_html' aria-hidden='true'><body id='iframeBody'><u>hello world</u></body></html>";
-    const loaded = waitForEvent(EVENT_DOCUMENT_LOAD_COMPLETE, "iframeBody");
-    await SpecialPowers.spawn(
-      browser,
-      [DEFAULT_IFRAME_ID, HIDDEN_IFRAME_URI],
-      (_id, _uri) => {
-        content.document.getElementById(_id).src = _uri;
-      }
-    );
-    await loaded;
-
-    const tree = {
-      INTERNAL_FRAME: [
-        {
-          DOCUMENT: [],
-        },
-      ],
-    };
-    const root = getRootAccessible(document);
-    const iframeDoc = findAccessibleChildByID(root, DEFAULT_IFRAME_ID);
-    testAccessibleTree(iframeDoc, tree);
-  },
-  {
-    chrome: false,
-    topLevel: false,
-    iframe: true,
-    remoteIframe: true,
-  }
-);
-
-/**
- * Verify loading a tab document with aria-hidden specified on the root element
- * correctly renders the root element and its content. This test is meaninfully
- * different than testTabDocument which tests aria-hidden specified on the
- * body element.
- */
-addAccessibleTask(
-  `<html aria-hidden="true"><u>hello world`,
-  async function testTabRootDocument(_, accDoc) {
-    const tree = {
-      DOCUMENT: [
-        {
-          TEXT_LEAF: [],
-        },
-      ],
-    };
-    testAccessibleTree(accDoc, tree);
-  },
-  {
-    chrome: true,
-    topLevel: true,
-    iframe: false,
-    remoteIframe: false,
-  }
-);
-
-/**
- * Verify loading a tab doc with aria-hidden on the body renders the document.
- * Body elements inside of embedded iframes, should continue
+ * Verify loading a root doc with aria-hidden renders the document.
+ * Non-root doc elements, like embedded iframes, should continue
  * to respect aria-hidden when present. This test ONLY tests
  * tab documents, it should not run in iframes. There is a separate
  * test for iframes below.
@@ -203,9 +136,9 @@ addAccessibleTask(
   { chrome: false, topLevel: false, iframe: true, remoteIframe: true }
 );
 
-///////////////////////////////
-//////////////////// SVG Tests
-//////////////////////////////
+// // ///////////////////////////////
+// // //////////////////// SVG Tests
+// // //////////////////////////////
 
 const SVG_DOCUMENT_ID = "rootSVG";
 const HIDDEN_SVG_URI =
@@ -247,34 +180,32 @@ addAccessibleTask(
   { chrome: true, topLevel: true, iframe: false, remoteIframe: false }
 );
 
-/**
- * Verify loading an SVG document with aria-hidden=true
- * in an iframe does not render the document subtree.
- */
-addAccessibleTask(
-  `hello world`,
-  async function testSVGIframeDocument(browser) {
-    info("Loading SVG");
-    const loaded = waitForEvent(EVENT_DOCUMENT_LOAD_COMPLETE, SVG_DOCUMENT_ID);
-    await SpecialPowers.spawn(
-      browser,
-      [DEFAULT_IFRAME_ID, HIDDEN_SVG_URI],
-      (_id, _uri) => {
-        content.document.getElementById(_id).src = _uri;
-      }
-    );
-    await loaded;
+///////////
+///// TODO: Bug 1960416
+//////////
+// /**
+//  * Verify loading an SVG document with aria-hidden=true
+//  * in an iframe does not render the document subtree.
+//  */
+// addAccessibleTask(
+//   `hello world`,
+//   async function testSVGIframeDocument(browser) {
+//     info("Loading SVG");
+//     const loaded = waitForEvent(EVENT_DOCUMENT_LOAD_COMPLETE, SVG_DOCUMENT_ID);
+//     await SpecialPowers.spawn(browser, [DEFAULT_IFRAME_ID, HIDDEN_SVG_URI], (_id,_uri) => {
+//       content.document.getElementById(_id).src = _uri;
+//     });
+//     await loaded;
 
-    const tree = {
-      DOCUMENT: [],
-    };
-
-    const root = getRootAccessible(document);
-    const svgRoot = findAccessibleChildByID(root, SVG_DOCUMENT_ID);
-    testAccessibleTree(svgRoot, tree);
-  },
-  { chrome: false, topLevel: false, iframe: true, remoteIframe: true }
-);
+//     const tree = {
+//       DOCUMENT: [],
+//     };
+//     const root = getRootAccessible(document);
+//     const svgRoot = findAccessibleChildByID(root, SVG_DOCUMENT_ID);
+//     testAccessibleTree(svgRoot, tree);
+//   },
+//   { chrome: false, topLevel: false, iframe: true, remoteIframe: true }
+// );
 
 /**
  * Verify adding aria-hidden to root svg elements has no effect.
