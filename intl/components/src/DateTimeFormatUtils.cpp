@@ -11,6 +11,8 @@
 #include <cstring>
 
 #if !MOZ_SYSTEM_ICU
+#  include "calendar/ICU4XChineseCalendar.h"
+#  include "calendar/ICU4XDangiCalendar.h"
 #  include "unicode/datefmt.h"
 #  include "unicode/gregocal.h"
 #endif
@@ -135,6 +137,43 @@ static Result<Ok, ICUError> SetGregorianChangeDate(
   }
   return Ok{};
 }
+
+static bool IsCalendarReplacementSupported(const char* type) {
+  return std::strcmp(type, "chinese") == 0 || std::strcmp(type, "dangi") == 0;
+}
+
+static Result<UniquePtr<icu::Calendar>, ICUError> CreateCalendarReplacement(
+    const icu::Calendar* calendar) {
+  const char* type = calendar->getType();
+  MOZ_ASSERT(IsCalendarReplacementSupported(type));
+
+  UErrorCode status = U_ZERO_ERROR;
+  icu::Locale locale = calendar->getLocale(ULOC_ACTUAL_LOCALE, status);
+  locale.setKeywordValue("calendar", type, status);
+  if (U_FAILURE(status)) {
+    return Err(ToICUError(status));
+  }
+
+  const icu::TimeZone& timeZone = calendar->getTimeZone();
+
+  UniquePtr<icu::Calendar> replacement = nullptr;
+  if (std::strcmp(type, "chinese") == 0) {
+    replacement.reset(
+        new calendar::ICU4XChineseCalendar(timeZone, locale, status));
+  } else {
+    MOZ_ASSERT(std::strcmp(type, "dangi") == 0);
+    replacement.reset(
+        new calendar::ICU4XDangiCalendar(timeZone, locale, status));
+  }
+  if (replacement == nullptr) {
+    return Err(ICUError::OutOfMemory);
+  }
+  if (U_FAILURE(status)) {
+    return Err(ToICUError(status));
+  }
+
+  return replacement;
+}
 #endif
 
 Result<Ok, ICUError> ApplyCalendarOverride(UDateFormat* aDateFormat) {
@@ -148,6 +187,13 @@ Result<Ok, ICUError> ApplyCalendarOverride(UDateFormat* aDateFormat) {
     auto* gregorian = static_cast<const icu::GregorianCalendar*>(calendar);
     MOZ_TRY(
         SetGregorianChangeDate(const_cast<icu::GregorianCalendar*>(gregorian)));
+  }
+  else if (IsCalendarReplacementSupported(type)) {
+    auto replacement = CreateCalendarReplacement(calendar);
+    if (replacement.isErr()) {
+      return replacement.propagateErr();
+    }
+    df->adoptCalendar(replacement.unwrap().release());
   }
 #else
   UErrorCode status = U_ZERO_ERROR;
@@ -174,6 +220,10 @@ Result<UniquePtr<icu::Calendar>, ICUError> CreateCalendarOverride(
     MOZ_TRY(SetGregorianChangeDate(gregorian.get()));
 
     return UniquePtr<icu::Calendar>{gregorian.release()};
+  }
+
+  if (IsCalendarReplacementSupported(type)) {
+    return CreateCalendarReplacement(calendar);
   }
 
   return UniquePtr<icu::Calendar>{};
