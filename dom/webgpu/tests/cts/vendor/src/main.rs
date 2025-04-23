@@ -268,9 +268,18 @@ fn run(args: CliArgs) -> miette::Result<()> {
     let mut tests_to_split = {
         log::info!("generating index of tests to split…");
 
-        let test_split_config: [(&'static str, _); 0] = {
-            // TODO: See the next patch for a used configuration.
-            []
+        let test_split_config = {
+            use test_split::*;
+            [(
+                "webgpu:api,operation,command_buffer,image_copy:mip_levels",
+                Config {
+                    new_sibling_basename: "image_copy__mip_levels",
+                    split_by: SplitBy::first_param(
+                        "initMethod",
+                        SplitParamsTo::SeparateTestsInSameFile,
+                    ),
+                },
+            )]
         };
 
         let mut tests_to_split = test_split_config
