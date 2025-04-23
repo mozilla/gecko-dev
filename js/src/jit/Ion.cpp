@@ -51,6 +51,7 @@
 #include "jit/ScalarReplacement.h"
 #include "jit/ScriptFromCalleeToken.h"
 #include "jit/Sink.h"
+#include "jit/UnrollLoops.h"
 #include "jit/ValueNumbering.h"
 #include "jit/WarpBuilder.h"
 #include "jit/WarpOracle.h"
@@ -993,7 +994,8 @@ bool OptimizeMIR(MIRGenerator* mir) {
   }
 
   {
-    if (!FoldEmptyBlocks(graph)) {
+    bool dummy;
+    if (!FoldEmptyBlocks(graph, &dummy)) {
       return false;
     }
     gs.spewPass("Fold Empty Blocks");
@@ -1427,6 +1429,48 @@ bool OptimizeMIR(MIRGenerator* mir) {
   }
   AssertExtendedGraphCoherency(graph, /* underValueNumberer = */ false,
                                /* force = */ true);
+
+  // Unroll and/or peel loops
+  if (mir->compilingWasm() && JS::Prefs::wasm_unroll_loops()) {
+    bool loopsChanged;
+    if (!UnrollLoops(mir, graph, &loopsChanged)) {
+      return false;
+    }
+
+    gs.spewPass("Unroll loops");
+
+    AssertExtendedGraphCoherency(graph);
+
+    if (mir->shouldCancel("Unroll loops")) {
+      return false;
+    }
+
+    if (loopsChanged) {
+      // Rerun GVN in the hope that unrolling exposed more optimization
+      // opportunities.
+      if (!gvn.run(ValueNumberer::DontUpdateAliasAnalysis)) {
+        return false;
+      }
+      // And tidy up any empty blocks.
+      bool blocksFolded;
+      if (!FoldEmptyBlocks(graph, &blocksFolded)) {
+        return false;
+      }
+      if (blocksFolded) {
+        // Redo the dominator tree.
+        ClearDominatorTree(graph);
+        if (!BuildDominatorTree(mir, graph)) {
+          return false;
+        }
+      }
+
+      AssertExtendedGraphCoherency(graph);
+
+      if (mir->shouldCancel("Rerun GVN after loop unrolling")) {
+        return false;
+      }
+    }
+  }
 
   // Remove unreachable blocks created by MBasicBlock::NewFakeLoopPredecessor
   // to ensure every loop header has two predecessors. (This only happens due

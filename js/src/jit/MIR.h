@@ -1824,6 +1824,8 @@ class MGoto : public MAryControlInstruction<0, 1>, public NoTypePolicy::Data {
   static constexpr size_t TargetIndex = 0;
 
   MBasicBlock* target() const { return getSuccessor(TargetIndex); }
+  void setTarget(MBasicBlock* target) { setSuccessor(TargetIndex, target); }
+
   AliasSet getAliasSet() const override { return AliasSet::None(); }
 
 #ifdef JS_JITSPEW
@@ -1866,6 +1868,11 @@ class MTest : public MAryControlInstruction<1, 2>, public TestPolicy::Data {
 
   MBasicBlock* ifTrue() const { return getSuccessor(TrueBranchIndex); }
   MBasicBlock* ifFalse() const { return getSuccessor(FalseBranchIndex); }
+  void setIfTrue(MBasicBlock* target) { setSuccessor(TrueBranchIndex, target); }
+  void setIfFalse(MBasicBlock* target) {
+    setSuccessor(FalseBranchIndex, target);
+  }
+
   MBasicBlock* branchSuccessor(BranchDirection dir) const {
     return (dir == TRUE_BRANCH) ? ifTrue() : ifFalse();
   }
@@ -6285,6 +6292,12 @@ class MPhi final : public MDefinition,
   void addInput(MDefinition* ins) {
     MOZ_ASSERT_IF(type() != MIRType::Value, ins->type() == type());
     inputs_.infallibleEmplaceBack(ins, this);
+  }
+
+  // Append a new input to the input vector.  May fail.
+  [[nodiscard]] bool addInputFallible(MDefinition* ins) {
+    MOZ_ASSERT_IF(type() != MIRType::Value, ins->type() == type());
+    return inputs_.emplaceBack(ins, this);
   }
 
   // Appends a new input to the input vector. May perform reallocation.
