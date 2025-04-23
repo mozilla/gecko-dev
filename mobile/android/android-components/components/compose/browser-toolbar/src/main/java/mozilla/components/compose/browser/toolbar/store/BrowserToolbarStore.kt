@@ -4,6 +4,7 @@
 
 package mozilla.components.compose.browser.toolbar.store
 
+import mozilla.components.compose.browser.toolbar.store.BrowserDisplayToolbarAction.BrowserActionsEndUpdated
 import mozilla.components.compose.browser.toolbar.store.BrowserDisplayToolbarAction.BrowserActionsStartUpdated
 import mozilla.components.compose.browser.toolbar.store.BrowserDisplayToolbarAction.PageActionsEndUpdated
 import mozilla.components.compose.browser.toolbar.store.BrowserDisplayToolbarAction.PageActionsStartUpdated
@@ -50,12 +51,6 @@ private fun reduce(state: BrowserToolbarState, action: BrowserToolbarAction): Br
             ),
         )
 
-        is BrowserDisplayToolbarAction.UpdateBrowserActions -> state.copy(
-            displayState = state.displayState.copy(
-                browserActions = action.actions,
-            ),
-        )
-
         is BrowserActionsStartUpdated -> state.copy(
             displayState = state.displayState.copy(
                 browserActionsStart = action.actions,
@@ -80,9 +75,9 @@ private fun reduce(state: BrowserToolbarState, action: BrowserToolbarAction): Br
             ),
         )
 
-        is BrowserDisplayToolbarAction.AddBrowserAction -> state.copy(
+        is BrowserActionsEndUpdated -> state.copy(
             displayState = state.displayState.copy(
-                browserActions = state.displayState.browserActions + action.action,
+                browserActionsEnd = action.actions,
             ),
         )
 

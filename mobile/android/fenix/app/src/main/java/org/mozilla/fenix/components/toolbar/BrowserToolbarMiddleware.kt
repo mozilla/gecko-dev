@@ -24,7 +24,7 @@ import mozilla.components.browser.thumbnails.BrowserThumbnails
 import mozilla.components.compose.browser.toolbar.concept.Action
 import mozilla.components.compose.browser.toolbar.concept.Action.ActionButton
 import mozilla.components.compose.browser.toolbar.concept.Action.TabCounterAction
-import mozilla.components.compose.browser.toolbar.store.BrowserDisplayToolbarAction
+import mozilla.components.compose.browser.toolbar.store.BrowserDisplayToolbarAction.BrowserActionsEndUpdated
 import mozilla.components.compose.browser.toolbar.store.BrowserDisplayToolbarAction.UpdateProgressBarConfig
 import mozilla.components.compose.browser.toolbar.store.BrowserToolbarAction
 import mozilla.components.compose.browser.toolbar.store.BrowserToolbarInteraction.BrowserToolbarEvent
@@ -192,7 +192,7 @@ class BrowserToolbarMiddleware(
     }
 
     private fun updateEndBrowserActions() = store?.dispatch(
-        BrowserDisplayToolbarAction.UpdateBrowserActions(
+        BrowserActionsEndUpdated(
             buildEndBrowserActions(getCurrentNumberOfOpenedTabs()),
         ),
     )

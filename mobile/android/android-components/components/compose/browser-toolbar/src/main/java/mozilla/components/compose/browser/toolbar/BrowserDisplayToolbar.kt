@@ -7,11 +7,9 @@ package mozilla.components.compose.browser.toolbar
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -47,13 +45,14 @@ private val ROUNDED_CORNER_SHAPE = RoundedCornerShape(8.dp)
  * and [pageOrigin], inside of the URL bounding box.
  * These should be actions relevant to specific webpages as opposed to [browserActionsStart].
  * See [MDN docs](https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/API/pageAction).
- * @param pageActionsEnd List of page [Action]s to be displayed between [pageOrigin] and [browserActions],
+ * @param pageActionsEnd List of page [Action]s to be displayed between [pageOrigin] and [browserActionsEnd],
  * inside of the URL bounding box.
  * These should be actions relevant to specific webpages as opposed to [browserActionsStart].
  * See [MDN docs](https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/API/pageAction).
- * @param browserActions List of browser [Action]s to be displayed on the right side of the
- * display toolbar (outside of the URL bounding box). Also see:
- * [MDN docs](https://developer.mozilla.org/en-US/Add-ons/WebExtensions/user_interface/Browser_action)
+ * @param browserActionsEnd List of browser [Action]s to be displayed at the end of the toolbar,
+ * outside of the URL bounding box.
+ * These should be actions relevant to the browser as a whole.
+ * See [MDN docs](https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/API/browserAction).
  * @param onInteraction Callback for handling [BrowserToolbarEvent]s on user interactions.
  */
 @Composable
@@ -64,7 +63,7 @@ fun BrowserDisplayToolbar(
     browserActionsStart: List<Action> = emptyList(),
     pageActionsStart: List<Action> = emptyList(),
     pageActionsEnd: List<Action> = emptyList(),
-    browserActions: List<Action> = emptyList(),
+    browserActionsEnd: List<Action> = emptyList(),
     onInteraction: (BrowserToolbarEvent) -> Unit,
 ) {
     Box(
@@ -121,13 +120,11 @@ fun BrowserDisplayToolbar(
                 }
             }
 
-            if (browserActions.isNotEmpty()) {
+            if (browserActionsEnd.isNotEmpty()) {
                 ActionContainer(
-                    actions = browserActions,
+                    actions = browserActionsEnd,
                     onInteraction = onInteraction,
                 )
-            } else {
-                Spacer(modifier = Modifier.width(8.dp))
             }
         }
 
@@ -180,7 +177,7 @@ private fun BrowserDisplayToolbarPreview() {
                     onClick = object : BrowserToolbarEvent {},
                 ),
             ),
-            browserActions = listOf(
+            browserActionsEnd = listOf(
                 Action.ActionButton(
                     icon = mozilla.components.ui.icons.R.drawable.mozac_ic_ellipsis_vertical_24,
                     contentDescription = android.R.string.untitled,

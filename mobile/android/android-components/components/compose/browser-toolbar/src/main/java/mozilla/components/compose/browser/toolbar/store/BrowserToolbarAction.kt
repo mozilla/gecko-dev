@@ -69,19 +69,12 @@ sealed class BrowserDisplayToolbarAction : BrowserToolbarAction {
     data class PageActionsEndUpdated(val actions: List<ToolbarAction>) : BrowserDisplayToolbarAction()
 
     /**
-     * Adds a browser [Action] to be displayed to the right side of the URL of the display toolbar
-     * (outside of the URL bounding box).
-     *
-     * @property action The [Action] to be added.
-     */
-    data class AddBrowserAction(val action: ToolbarAction) : BrowserDisplayToolbarAction()
-
-    /**
-     * Replaces the currently displayed list of browser actions with the provided list of actions.
+     * Replaces the currently displayed list of end browser actions with the provided list of actions.
+     * These are displayed to the right side of the URL, outside of the URL bounding box.
      *
      * @property actions The new list of [ToolbarAction]s.
      */
-    data class UpdateBrowserActions(val actions: List<ToolbarAction>) : BrowserDisplayToolbarAction()
+    data class BrowserActionsEndUpdated(val actions: List<ToolbarAction>) : BrowserDisplayToolbarAction()
 
     /**
      * Updates the [ProgressBarConfig] of the display toolbar.

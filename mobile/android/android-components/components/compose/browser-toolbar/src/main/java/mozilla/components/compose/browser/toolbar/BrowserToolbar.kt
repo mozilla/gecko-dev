@@ -69,7 +69,7 @@ fun BrowserToolbar(
             browserActionsStart = uiState.displayState.browserActionsStart,
             pageActionsStart = uiState.displayState.pageActionsStart,
             pageActionsEnd = uiState.displayState.pageActionsEnd,
-            browserActions = uiState.displayState.browserActions,
+            browserActionsEnd = uiState.displayState.browserActionsEnd,
             onInteraction = { store.dispatch(it) },
         )
     }

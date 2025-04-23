@@ -18,7 +18,7 @@ import mozilla.components.compose.browser.toolbar.concept.Action.ActionButton
 import mozilla.components.compose.browser.toolbar.concept.Action.DropdownAction
 import mozilla.components.compose.browser.toolbar.concept.Action.TabCounterAction
 import mozilla.components.compose.browser.toolbar.concept.PageOrigin
-import mozilla.components.compose.browser.toolbar.store.BrowserDisplayToolbarAction
+import mozilla.components.compose.browser.toolbar.store.BrowserDisplayToolbarAction.BrowserActionsEndUpdated
 import mozilla.components.compose.browser.toolbar.store.BrowserDisplayToolbarAction.UpdateProgressBarConfig
 import mozilla.components.compose.browser.toolbar.store.BrowserToolbarAction
 import mozilla.components.compose.browser.toolbar.store.BrowserToolbarInteraction.BrowserToolbarEvent
@@ -108,7 +108,7 @@ internal class BrowserToolbarMiddleware(
                             pageActionsStart = buildStartPageActions(),
                             pageOrigin = buildPageOrigin(),
                             pageActionsEnd = buildPageActionsEnd(),
-                            browserActions = buildDisplayBrowserActions(),
+                            browserActionsEnd = buildDisplayBrowserActions(),
                             progressBarConfig = buildProgressBar(),
                         ),
                         editState = EditState(
@@ -131,17 +131,17 @@ internal class BrowserToolbarMiddleware(
 
             is TabCounterClicked -> {
                 currentTabsNumber += 1
-                next(BrowserDisplayToolbarAction.UpdateBrowserActions(buildDisplayBrowserActions()))
+                next(BrowserActionsEndUpdated(buildDisplayBrowserActions()))
             }
 
             is Add10TabsClicked -> {
                 currentTabsNumber += BATCH_TAB_COUNTER_UPDATES_NUMBER
-                next(BrowserDisplayToolbarAction.UpdateBrowserActions(buildDisplayBrowserActions()))
+                next(BrowserActionsEndUpdated(buildDisplayBrowserActions()))
             }
 
             is Remove10TabsClicked -> {
                 currentTabsNumber -= BATCH_TAB_COUNTER_UPDATES_NUMBER
-                next(BrowserDisplayToolbarAction.UpdateBrowserActions(buildDisplayBrowserActions()))
+                next(BrowserActionsEndUpdated(buildDisplayBrowserActions()))
             }
 
             else -> {

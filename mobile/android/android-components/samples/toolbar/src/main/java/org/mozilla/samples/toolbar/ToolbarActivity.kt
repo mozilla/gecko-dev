@@ -547,7 +547,7 @@ class ToolbarActivity : AppCompatActivity() {
                                         onClick = object : BrowserToolbarEvent {},
                                     ),
                                 ),
-                                browserActions = listOf(
+                                browserActionsEnd = listOf(
                                     ActionButton(
                                         icon = iconsR.drawable.mozac_ic_arrow_clockwise_24,
                                         contentDescription = R.string.page_action_refresh_description,

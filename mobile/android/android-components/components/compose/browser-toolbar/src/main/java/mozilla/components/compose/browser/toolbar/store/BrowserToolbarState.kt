@@ -58,13 +58,14 @@ enum class Mode {
  * These should be actions relevant to specific webpages as opposed to [browserActionsStart].
  * See [MDN docs](https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/API/pageAction).
  * @property pageOrigin Details about the current website.
- * @property pageActionsEnd List of page [Action]s to be displayed between [pageOrigin] and [browserActions],
+ * @property pageActionsEnd List of page [Action]s to be displayed between [pageOrigin] and [browserActionsEnd],
  * inside of the URL bounding box.
  * These should be actions relevant to specific webpages as opposed to [browserActionsStart].
  * See [MDN docs](https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/API/pageAction).
- * @property browserActions List of browser [Action]s to be displayed on the right side of the
- * display toolbar (outside of the URL bounding box). Also see:
- * [MDN docs](https://developer.mozilla.org/en-US/Add-ons/WebExtensions/user_interface/Browser_action)
+ * @param browserActionsEnd List of browser [Action]s to be displayed at the end of the toolbar,
+ * outside of the URL bounding box.
+ * These should be actions relevant to the browser as a whole.
+ * See [MDN docs](https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/API/browserAction).
  * @property progressBarConfig [ProgressBarConfig] configuration for the progress bar.
  * If `null` a progress bar will not be displayed.
  */
@@ -78,7 +79,7 @@ data class DisplayState(
         onClick = object : BrowserToolbarEvent {},
     ),
     val pageActionsEnd: List<Action> = emptyList(),
-    val browserActions: List<Action> = emptyList(),
+    val browserActionsEnd: List<Action> = emptyList(),
     val progressBarConfig: ProgressBarConfig? = null,
 ) : State
 

@@ -8,6 +8,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import mozilla.components.compose.browser.toolbar.R
 import mozilla.components.compose.browser.toolbar.concept.Action.ActionButton
 import mozilla.components.compose.browser.toolbar.concept.PageOrigin
+import mozilla.components.compose.browser.toolbar.store.BrowserDisplayToolbarAction.BrowserActionsEndUpdated
 import mozilla.components.compose.browser.toolbar.store.BrowserDisplayToolbarAction.BrowserActionsStartUpdated
 import mozilla.components.compose.browser.toolbar.store.BrowserDisplayToolbarAction.PageActionsEndUpdated
 import mozilla.components.compose.browser.toolbar.store.BrowserDisplayToolbarAction.PageActionsStartUpdated
@@ -38,23 +39,6 @@ class BrowserToolbarStoreTest {
 
         assertEquals(Mode.EDIT, store.state.mode)
         assertNull(store.state.editState.editText)
-    }
-
-    @Test
-    fun `GIVEN browser actions already set WHEN updating them THEN replace all current ones with the newly provided list`() {
-        val initialBrowserActions = listOf(fakeActionButton())
-        val updatedListOfBrowserActions = listOf(fakeActionButton())
-        val store = BrowserToolbarStore(
-            initialState = BrowserToolbarState(
-                displayState = DisplayState(
-                    browserActions = initialBrowserActions,
-                ),
-            ),
-        )
-
-        store.dispatch(BrowserDisplayToolbarAction.UpdateBrowserActions(updatedListOfBrowserActions))
-
-        assertEquals(store.state.displayState.browserActions, updatedListOfBrowserActions)
     }
 
     @Test
@@ -184,23 +168,18 @@ class BrowserToolbarStoreTest {
     }
 
     @Test
-    fun `WHEN add browser action is dispatched THEN update display browser actions state`() {
+    fun `WHEN updating end browser actions THEN replace the old actions with the new ones`() {
         val store = BrowserToolbarStore()
         val action1 = fakeActionButton()
         val action2 = fakeActionButton()
+        val action3 = fakeActionButton()
+        assertEquals(0, store.state.displayState.browserActionsEnd.size)
 
-        assertEquals(0, store.state.displayState.browserActions.size)
+        store.dispatch(BrowserActionsEndUpdated(listOf(action1)))
+        assertEquals(listOf(action1), store.state.displayState.browserActionsEnd)
 
-        store.dispatch(BrowserDisplayToolbarAction.AddBrowserAction(action = action1))
-
-        assertEquals(1, store.state.displayState.browserActions.size)
-        assertEquals(action1, store.state.displayState.browserActions.first())
-
-        store.dispatch(BrowserDisplayToolbarAction.AddBrowserAction(action = action2))
-
-        assertEquals(2, store.state.displayState.browserActions.size)
-        assertEquals(action1, store.state.displayState.browserActions.first())
-        assertEquals(action2, store.state.displayState.browserActions.last())
+        store.dispatch(BrowserActionsEndUpdated(listOf(action2, action3)))
+        assertEquals(listOf(action2, action3), store.state.displayState.browserActionsEnd)
     }
 
     private fun fakeActionButton() = ActionButton(

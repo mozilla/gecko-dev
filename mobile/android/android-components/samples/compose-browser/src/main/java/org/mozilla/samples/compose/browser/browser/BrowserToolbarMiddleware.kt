@@ -94,7 +94,7 @@ internal class BrowserToolbarMiddleware(
                 onClick = PageOriginClicked,
             ),
             pageActionsEnd = buildDisplayPageActions(),
-            browserActions = buildDisplayBrowserActions(),
+            browserActionsEnd = buildDisplayBrowserActions(),
         ),
         editState = EditState(
             editActionsEnd = buildEditPageActionsEnd(),
