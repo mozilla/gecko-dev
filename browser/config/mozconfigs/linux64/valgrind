@@ -1,4 +1,4 @@
-export MOZ_AUTOMATION_CHECK=0
+MOZ_AUTOMATION_CHECK=0
 
 . $topsrcdir/browser/config/mozconfigs/linux64/nightly
 

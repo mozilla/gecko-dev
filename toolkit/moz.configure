@@ -116,9 +116,9 @@ def all_configure_options():
         # __sandbox__._options contains items for both option.name and
         # option.env. But it's also an OrderedDict, meaning both are
         # consecutive.
-        # Also ignore MOZCONFIG because they're not
+        # Also ignore OLD_CONFIGURE and MOZCONFIG because they're not
         # interesting.
-        if option == previous or option.env in ("MOZCONFIG",):
+        if option == previous or option.env in ("OLD_CONFIGURE", "MOZCONFIG"):
             continue
         previous = option
         value = __sandbox__._value_for(option)

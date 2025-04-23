@@ -36,15 +36,15 @@ ac_add_options --disable-default-browser-agent # Relies on toast notifications w
 ac_add_options --disable-notification-server # Toast notifications don't build on mingw.
 
 # Find our toolchain
-export HOST_CC="$MOZ_FETCHES_DIR/clang/bin/clang"
-export HOST_CXX="$MOZ_FETCHES_DIR/clang/bin/clang++"
-export CC="$MOZ_FETCHES_DIR/clang/bin/i686-w64-mingw32-clang"
-export CXX="$MOZ_FETCHES_DIR/clang/bin/i686-w64-mingw32-clang++"
-export CXXFLAGS="-fms-extensions"
-export CFLAGS="$CFLAGS -fcrash-diagnostics-dir=${UPLOAD_PATH}"
-export CXXFLAGS="$CXXFLAGS -fcrash-diagnostics-dir=${UPLOAD_PATH}"
-export CFLAGS="$CFLAGS -include _mingw.h"
-export CXXFLAGS="$CXXFLAGS -include _mingw.h"
+HOST_CC="$MOZ_FETCHES_DIR/clang/bin/clang"
+HOST_CXX="$MOZ_FETCHES_DIR/clang/bin/clang++"
+CC="$MOZ_FETCHES_DIR/clang/bin/i686-w64-mingw32-clang"
+CXX="$MOZ_FETCHES_DIR/clang/bin/i686-w64-mingw32-clang++"
+CXXFLAGS="-fms-extensions"
+CFLAGS="$CFLAGS -fcrash-diagnostics-dir=${UPLOAD_PATH}"
+CXXFLAGS="$CXXFLAGS -fcrash-diagnostics-dir=${UPLOAD_PATH}"
+CFLAGS="$CFLAGS -include _mingw.h"
+CXXFLAGS="$CXXFLAGS -include _mingw.h"
 
 # We want to make sure we use binutils and other binaries in the tooltool
 # package.
