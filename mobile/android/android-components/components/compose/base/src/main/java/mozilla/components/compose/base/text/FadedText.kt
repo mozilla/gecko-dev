@@ -13,7 +13,6 @@ import androidx.compose.ui.layout.SubcomposeLayout
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.rememberTextMeasurer
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.LayoutDirection
@@ -50,46 +49,51 @@ fun FadedText(
         FadeDirection.RIGHT
     }
 
-    val textAlignment = if (fadeDirection == FadeDirection.LEFT) {
-        TextAlign.Right
-    } else {
-        TextAlign.Left
-    }
-
     SubcomposeLayout(
         modifier = modifier,
     ) { constraints ->
         val textLayoutResult = textMeasurer.measure(
             text = text,
             maxLines = 1,
-            style = style.copy(
-                textAlign = textAlignment,
-            ),
+            style = style,
             constraints = constraints,
         )
 
         val visibleCharacters = textLayoutResult.getLineEnd(0, true)
-        val truncatedText = if (fadeDirection == FadeDirection.LEFT) {
-            text.takeLast(visibleCharacters)
-        } else {
-            text.take(visibleCharacters)
+        val isTextOverflowing = visibleCharacters < text.length
+
+        val placeable = when (isTextOverflowing) {
+            true -> {
+                val truncatedText = if (fadeDirection == FadeDirection.LEFT) {
+                    text.takeLast(visibleCharacters)
+                } else {
+                    text.take(visibleCharacters)
+                }
+
+                subcompose("truncated") {
+                    Text(
+                        text = truncatedText,
+                        modifier = modifier.horizontalFadeGradient(
+                            fadeLength = fadeLength,
+                            fadeDirection = fadeDirection,
+                        ),
+                        style = style,
+                        maxLines = 1,
+                    )
+                }.first().measure(constraints)
+            }
+
+            false -> subcompose("text") {
+                Text(
+                    text = text,
+                    style = style,
+                    maxLines = 1,
+                )
+            }.first().measure(constraints)
         }
 
-        val truncatedPlaceable = subcompose("truncated") {
-            Text(
-                text = truncatedText,
-                modifier = modifier.horizontalFadeGradient(
-                    fadeLength = fadeLength,
-                    fadeDirection = fadeDirection,
-                ),
-                textAlign = textAlignment,
-                style = style,
-                maxLines = 1,
-            )
-        }.first().measure(constraints)
-
-        layout(truncatedPlaceable.width, truncatedPlaceable.height) {
-            truncatedPlaceable.place(0, 0)
+        layout(placeable.width, placeable.height) {
+            placeable.place(0, 0)
         }
     }
 }
@@ -103,6 +107,21 @@ enum class TruncationDirection {
 }
 
 /**
+ * Preview of a short[FadedText] with start truncation and fade.
+ */
+@Preview(showBackground = true)
+@Composable
+fun ShortStartFadedTextPreview() {
+    FadedText(
+        text = "127.0.0.1",
+        modifier = Modifier.width(200.dp),
+        style = TextStyle(fontSize = 16.sp),
+        truncationDirection = TruncationDirection.START,
+        fadeLength = 60.dp,
+    )
+}
+
+/**
  * Preview of [FadedText] with start truncation and fade.
  */
 @Preview(showBackground = true)
@@ -113,6 +132,21 @@ fun StartFadedTextPreview() {
         modifier = Modifier.width(200.dp),
         style = TextStyle(fontSize = 16.sp),
         truncationDirection = TruncationDirection.START,
+        fadeLength = 60.dp,
+    )
+}
+
+/**
+ * Preview of a short [FadedText] with end truncation and fade
+ */
+@Preview(showBackground = true)
+@Composable
+fun ShortEndFadedTextPreview() {
+    FadedText(
+        text = "127.0.0.1",
+        modifier = Modifier.width(200.dp),
+        style = TextStyle(fontSize = 16.sp),
+        truncationDirection = TruncationDirection.END,
         fadeLength = 60.dp,
     )
 }
@@ -133,6 +167,25 @@ fun EndFadedTextPreview() {
 }
 
 /**
+ * Preview of a short [FadedText] with start truncation and fade and RTL language
+ */
+@Preview(showBackground = true)
+@Composable
+fun ShortRTLStartFadedTextPreview() {
+    CompositionLocalProvider(
+        LocalLayoutDirection provides LayoutDirection.Rtl,
+    ) {
+        FadedText(
+            text = "127.0.0.1",
+            modifier = Modifier.width(200.dp),
+            style = TextStyle(fontSize = 16.sp),
+            truncationDirection = TruncationDirection.START,
+            fadeLength = 60.dp,
+        )
+    }
+}
+
+/**
  * Preview of [FadedText] with start truncation and fade and RTL language
  */
 @Preview(showBackground = true)
@@ -146,6 +199,25 @@ fun RTLStartFadedTextPreview() {
             modifier = Modifier.width(200.dp),
             style = TextStyle(fontSize = 16.sp),
             truncationDirection = TruncationDirection.START,
+            fadeLength = 60.dp,
+        )
+    }
+}
+
+/**
+ * Preview of a short [FadedText] with end truncation and fade and RTL language
+ */
+@Preview(showBackground = true)
+@Composable
+fun ShortRTLEndFadedTextPreview() {
+    CompositionLocalProvider(
+        LocalLayoutDirection provides LayoutDirection.Rtl,
+    ) {
+        FadedText(
+            text = "127.0.0.1",
+            modifier = Modifier.width(200.dp),
+            style = TextStyle(fontSize = 16.sp),
+            truncationDirection = TruncationDirection.END,
             fadeLength = 60.dp,
         )
     }
