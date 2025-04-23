@@ -3203,10 +3203,10 @@ void gfxPlatform::InitWebGPUConfig() {
     feature.Disable(FeatureStatus::Blocklisted, message.get(), failureId);
   }
 
-#ifdef RELEASE_OR_BETA
+#if !(defined(NIGHTLY_BUILD) || (defined(XP_WIN) && defined(EARLY_BETA_OR_EARLIER)))
   feature.ForceDisable(FeatureStatus::Blocked,
-                       "WebGPU cannot be enabled in release or beta",
-                       "WEBGPU_DISABLE_RELEASE_OR_BETA"_ns);
+                       "WebGPU cannot be enabled unless in Nightly, or Early Beta on Windows.",
+                       "WEBGPU_DISABLE_RELEASE_OR_NON_WINDOWS_EARLY_BETA"_ns);
 #endif
 
   gfxVars::SetAllowWebGPU(feature.IsEnabled());
