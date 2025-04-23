@@ -7,8 +7,7 @@ use std::io::Cursor;
 
 use log::{debug, warn};
 
-use prio::vdaf::prio3::Prio3Sum;
-use prio::vdaf::prio3::Prio3SumVec;
+use prio::vdaf::prio3::{Prio3Histogram, Prio3Sum, Prio3SumVec};
 use thin_vec::ThinVec;
 
 pub mod types;
@@ -51,6 +50,11 @@ struct SumVecMeasurement<'a> {
     bits: usize,
 }
 
+struct HistogramMeasurement {
+    index: u32,
+    length: usize,
+}
+
 pub fn new_prio_sum(num_aggregators: u8, bits: usize) -> Result<Prio3Sum, VdafError> {
     if bits > 64 {
         return Err(VdafError::Uncategorized(format!(
@@ -69,6 +73,11 @@ pub fn new_prio_sumvec(
 ) -> Result<Prio3SumVec, VdafError> {
     let chunk_length = prio::vdaf::prio3::optimal_chunk_length(bits * len);
     Prio3SumVec::new_sum_vec(num_aggregators, bits, len, chunk_length)
+}
+
+pub fn new_prio_histogram(num_aggregators: u8, len: usize) -> Result<Prio3Histogram, VdafError> {
+    let chunk_length = prio::vdaf::prio3::optimal_chunk_length(len);
+    Prio3Histogram::new_histogram(num_aggregators, len, chunk_length)
 }
 
 enum Role {
@@ -145,6 +154,26 @@ impl Shardable for SumVecMeasurement<'_> {
 
         let measurement: Vec<u128> = self.value.iter().map(|e| (*e as u128)).collect();
         let (public_share, input_shares) = prio.shard(&measurement, nonce)?;
+
+        debug_assert_eq!(input_shares.len(), 2);
+
+        let encoded_input_shares = input_shares
+            .iter()
+            .map(|s| s.get_encoded())
+            .collect::<Result<Vec<_>, _>>()?;
+        let encoded_public_share = public_share.get_encoded()?;
+        Ok((encoded_public_share, encoded_input_shares))
+    }
+}
+
+impl Shardable for HistogramMeasurement {
+    fn shard(
+        &self,
+        nonce: &[u8; 16],
+    ) -> Result<(Vec<u8>, Vec<Vec<u8>>), Box<dyn std::error::Error>> {
+        let prio = new_prio_histogram(2, self.length)?;
+
+        let (public_share, input_shares) = prio.shard(&(self.index as usize), nonce)?;
 
         debug_assert_eq!(input_shares.len(), 2);
 
@@ -304,6 +333,39 @@ pub extern "C" fn dapGetReportPrioSumVec(
         &SumVecMeasurement {
             value: measurement,
             bits: bits as usize,
+        },
+        &task_id.as_slice().try_into().unwrap(),
+        time_precision,
+    ) else {
+        warn!("Creating report failed!");
+        return false;
+    };
+    let Ok(encoded_report) = report.get_encoded() else {
+        warn!("Encoding report failed!");
+        return false;
+    };
+    out_report.extend(encoded_report);
+    true
+}
+
+#[no_mangle]
+pub extern "C" fn dapGetReportPrioHistogram(
+    leader_hpke_config_encoded: &ThinVec<u8>,
+    helper_hpke_config_encoded: &ThinVec<u8>,
+    measurement: u32,
+    task_id: &ThinVec<u8>,
+    length: u32,
+    time_precision: u64,
+    out_report: &mut ThinVec<u8>,
+) -> bool {
+    assert_eq!(task_id.len(), 32);
+
+    let Ok(report) = get_dap_report_internal::<HistogramMeasurement>(
+        leader_hpke_config_encoded,
+        helper_hpke_config_encoded,
+        &HistogramMeasurement {
+            index: measurement,
+            length: length as usize,
         },
         &task_id.as_slice().try_into().unwrap(),
         time_precision,

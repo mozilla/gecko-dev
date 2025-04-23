@@ -210,4 +210,19 @@ NS_IMETHODIMP DAPTelemetry::GetReportPrioSumVec(
   return NS_OK;
 }
 
+NS_IMETHODIMP DAPTelemetry::GetReportPrioHistogram(
+    const nsTArray<uint8_t>& aLeaderHpkeConfig,
+    const nsTArray<uint8_t>& aHelperHpkeConfig, const uint32_t aMeasurement,
+    const nsTArray<uint8_t>& aTaskID, const uint32_t aLength,
+    const uint64_t aTimePrecision, nsTArray<uint8_t>& aOutReport) {
+  MOZ_RELEASE_ASSERT(aTaskID.Length() == 32, "TaskID must have 32 bytes.");
+  if (!dapGetReportPrioHistogram(&aLeaderHpkeConfig, &aHelperHpkeConfig,
+                                 aMeasurement, &aTaskID, aLength,
+                                 aTimePrecision, &aOutReport)) {
+    return NS_ERROR_FAILURE;
+  }
+
+  return NS_OK;
+}
+
 }  // namespace mozilla

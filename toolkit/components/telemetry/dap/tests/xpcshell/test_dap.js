@@ -67,10 +67,16 @@ const tasks = [
     length: 20,
     time_precision: 300,
   },
+  {
+    id: "o-91EcR2kfxfAmkKPPHifXKqiH7Upm0Ilw5joB3L_pE",
+    vdaf: "histogram",
+    length: 30,
+    time_precision: 300,
+  },
 ];
 
 // Expected payload sizes of DAP reports for the above tasks.
-const task_report_sizes = [886, 902, 3654, 6566];
+const task_report_sizes = [886, 902, 3654, 6566, 1126];
 
 function uploadHandler(request, response) {
   Assert.equal(

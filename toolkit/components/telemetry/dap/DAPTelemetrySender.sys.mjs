@@ -53,7 +53,7 @@ XPCOMUtils.defineLazyPreferenceGetter(
 
 export const DAPTelemetrySender = new (class {
   /**
-   * @typedef { 'sum' | 'sumvec' } VDAF
+   * @typedef { 'sum' | 'sumvec' | 'histogram' } VDAF
    */
 
   /**
@@ -143,6 +143,8 @@ export const DAPTelemetrySender = new (class {
         let r = Math.floor(Math.random() * 10);
         measurement[r] += 1;
         measurement[19] += 1;
+      } else if (task.vdaf == "histogram") {
+        measurement = Math.floor(Math.random() * 15);
       } else {
         throw new Error(`Unknown VDAF ${task.vdaf}`);
       }
@@ -284,6 +286,16 @@ export const DAPTelemetrySender = new (class {
         measurement,
         task_id,
         task.bits,
+        task.time_precision,
+        reportOut
+      );
+    } else if (task.vdaf === "histogram") {
+      Services.DAPTelemetry.GetReportPrioHistogram(
+        keys.leader_hpke,
+        keys.helper_hpke,
+        measurement,
+        task_id,
+        task.length,
         task.time_precision,
         reportOut
       );
