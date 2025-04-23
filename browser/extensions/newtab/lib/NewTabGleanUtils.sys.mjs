@@ -129,7 +129,7 @@ export const NewTabGleanUtils = {
       lazy.logConsole.debug(`Registering metric ${name} at runtime`);
 
       // Register the metric
-      Services.fog.testRegisterRuntimeMetric(
+      Services.fog.registerRuntimeMetric(
         type,
         category,
         name,
@@ -185,7 +185,7 @@ export const NewTabGleanUtils = {
       // Ping doesn't exist, register it
       lazy.logConsole.debug(`Registering ping ${name} at runtime`);
 
-      Services.fog.testRegisterRuntimePing(
+      Services.fog.registerRuntimePing(
         name,
         includeClientId,
         sendIfEmpty,

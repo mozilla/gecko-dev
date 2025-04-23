@@ -477,6 +477,17 @@ FOG::TestRegisterRuntimeMetric(
 }
 
 NS_IMETHODIMP
+FOG::RegisterRuntimeMetric(const nsACString& aType, const nsACString& aCategory,
+                           const nsACString& aName,
+                           const nsTArray<nsCString>& aPings,
+                           const nsACString& aLifetime, const bool aDisabled,
+                           const nsACString& aExtraArgs) {
+  MOZ_ASSERT(XRE_IsParentProcess());
+  return glean::jog::jog_register_metric(&aType, &aCategory, &aName, &aPings,
+                                         &aLifetime, aDisabled, &aExtraArgs);
+}
+
+NS_IMETHODIMP
 FOG::TestRegisterRuntimePing(
     const nsACString& aName, const bool aIncludeClientId,
     const bool aSendIfEmpty, const bool aPreciseTimestamps,
@@ -491,6 +502,21 @@ FOG::TestRegisterRuntimePing(
       aIncludeInfoSections, aEnabled, &aSchedulesPings, &aReasonCodes,
       aFollowsCollectionEnabled, &aUploaderCapabilities);
   return NS_OK;
+}
+
+NS_IMETHODIMP
+FOG::RegisterRuntimePing(const nsACString& aName, const bool aIncludeClientId,
+                         const bool aSendIfEmpty, const bool aPreciseTimestamps,
+                         const bool aIncludeInfoSections, const bool aEnabled,
+                         const nsTArray<nsCString>& aSchedulesPings,
+                         const nsTArray<nsCString>& aReasonCodes,
+                         const bool aFollowsCollectionEnabled,
+                         const nsTArray<nsCString>& aUploaderCapabilities) {
+  MOZ_ASSERT(XRE_IsParentProcess());
+  return glean::jog::jog_register_ping(
+      &aName, aIncludeClientId, aSendIfEmpty, aPreciseTimestamps,
+      aIncludeInfoSections, aEnabled, &aSchedulesPings, &aReasonCodes,
+      aFollowsCollectionEnabled, &aUploaderCapabilities);
 }
 
 NS_IMETHODIMP

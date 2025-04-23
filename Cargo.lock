@@ -3452,6 +3452,7 @@ dependencies = [
  "firefox-on-glean",
  "log",
  "mozbuild",
+ "nserror",
  "nsstring",
  "once_cell",
  "serde",
