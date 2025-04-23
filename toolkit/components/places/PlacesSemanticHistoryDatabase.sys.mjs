@@ -89,4 +89,15 @@ export class PlacesSemanticHistoryDatabase {
   getDatabasePath() {
     return this.#semanticDbPath;
   }
+
+  /**
+   * Drops the history vector tables and resets schema version
+   */
+  async dropSchema() {
+    await this.#conn.executeTransaction(async () => {
+      await this.#conn.execute(`DROP TABLE IF EXISTS vec_history;`);
+      await this.#conn.execute(`DROP TABLE IF EXISTS vec_history_mapping;`);
+    });
+    await this.#conn.setSchemaVersion(0);
+  }
 }

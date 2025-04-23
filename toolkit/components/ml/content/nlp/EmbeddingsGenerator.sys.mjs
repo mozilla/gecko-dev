@@ -39,8 +39,9 @@ ChromeUtils.defineLazyGetter(lazy, "console", () => {
   });
 });
 
-// We set a limit for semantic search to see if device has at least 8 GiB
-const REQUIRED_MEMORY_BYTES = 8 * 1024 * 1024 * 1024;
+// We set a limit for semantic search to see if device has at least 7 GiB
+// Note: 8GB is ~7.48 GiB. So threshold has been set as 7 GiB (i.e 7.518 GB)
+const REQUIRED_MEMORY_BYTES = 7 * 1024 * 1024 * 1024;
 const REQUIRED_CPU_CORES = 2;
 
 /**
@@ -50,6 +51,12 @@ export class EmbeddingsGenerator {
   #engine = undefined;
   #promiseEngine;
   #embeddingSize = 384;
+  options = {
+    taskName: "feature-extraction",
+    featureId: "simple-text-embedder",
+    timeoutMS: -1,
+    numThreads: 2,
+  };
 
   constructor(embeddingSize = 384) {
     this.#embeddingSize = embeddingSize;
@@ -71,6 +78,9 @@ export class EmbeddingsGenerator {
    *     REQUIRED_MEMORY_BYTES.
    */
   isEnoughPhysicalMemoryAvailable() {
+    lazy.console.debug(
+      `totalPhysicalMemory = ${lazy.mlUtils.totalPhysicalMemory}`
+    );
     return lazy.mlUtils.totalPhysicalMemory >= REQUIRED_MEMORY_BYTES;
   }
 
@@ -90,6 +100,9 @@ export class EmbeddingsGenerator {
    *     REQUIRED_CPU_CORES.
    */
   isEnoughCpuCoresAvailable() {
+    lazy.console.debug(
+      `Number of CPU cores = ${lazy.mlUtils.getOptimalCPUConcurrency()}`
+    );
     return lazy.mlUtils.getOptimalCPUConcurrency() >= REQUIRED_CPU_CORES;
   }
 
@@ -103,19 +116,25 @@ export class EmbeddingsGenerator {
    */
   async createEngineIfNotPresent() {
     if (!this.#engine) {
-      const options = {
-        taskName: "feature-extraction",
-        featureId: "simple-text-embedder",
-        timeoutMS: -1,
-        numThreads: 2,
-      };
       try {
-        this.#engine = await lazy.createEngine(options);
+        this.#engine = await lazy.createEngine(this.options);
       } catch (ex) {
         lazy.console.error("Unable to initialize the ML engine. " + ex);
         throw new Error("Unable to initialize the ML engine. ", { cause: ex });
       }
     }
+  }
+
+  /**
+   * Shuts down the ML engine if it has been initialized.
+   *
+   * @private
+   * @returns {Promise<void>}
+   *   Resolves when the engine is successfully terminated, or
+   *   immediately if not present.
+   */
+  async shutdown() {
+    await this.#engine.terminate?.();
   }
 
   /**
@@ -165,7 +184,7 @@ export class EmbeddingsGenerator {
       throw new Error("embedMany received an empty array of texts");
     }
 
-    // Call the engine once with the batch of texts.
+    // call the engine once with the batch of texts.
     let batchTensors = await this.engineRun({
       args: [texts],
       options: { pooling: "mean", normalize: true, max_length: 100 },

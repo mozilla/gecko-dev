@@ -117,7 +117,9 @@ export class PlacesSemanticHistoryManager {
     this.testFlag = testFlag;
     this.#updateTaskLatency = [];
     lazy.logger.info("Inside PlaceSemanticManager constructor");
-    this.onPagesRankChanged();
+    if (this.qualifiedForSemanticSearch) {
+      this.onPagesRankChanged();
+    }
   }
 
   /**
@@ -626,5 +628,10 @@ export class PlacesSemanticHistoryManager {
   //setters for mocking from tests
   setConnection(mockConnection) {
     this.#conn = mockConnection;
+  }
+
+  //for test purposes
+  stopProcess() {
+    this.#finalize();
   }
 }

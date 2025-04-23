@@ -403,6 +403,24 @@ toolkit/components/ml/tests/browser
 -----------------------------------
 Performance tests running through Mochitest for ML Models
 
+browser_ml_semantic_history_search_perf.js
+==========================================
+
+:owner: GenAI Team
+:name: ML Semantic History Search
+:Default options:
+
+::
+
+ --perfherder
+ --perfherder-metrics name:latency,unit:ms,shouldAlert:True, name:memory,unit:MB,shouldAlert:True
+ --verbose
+ --manifest perftest.toml
+ --manifest-flavor browser-chrome
+ --try-platform linux, mac, win
+
+**Test for latency for ML Semantic Search History Feature**
+
 browser_ml_smart_tab_clustering_perf.js
 =======================================
 

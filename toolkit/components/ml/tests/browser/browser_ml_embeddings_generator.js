@@ -45,7 +45,7 @@ add_task(async function test_EmbeddingsGenerator_for_minimum_physical_memory() {
   let embeddingsGenerator = new EmbeddingsGenerator();
   Assert.ok(
     embeddingsGenerator.isEnoughPhysicalMemoryAvailable(),
-    "Physical Memory size < 8GiB."
+    "Physical Memory size < 7GiB."
   );
 });
 
