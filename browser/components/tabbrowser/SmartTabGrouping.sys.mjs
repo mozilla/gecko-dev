@@ -165,7 +165,11 @@ export class SmartTabGroupingManager {
       .filter(a => a >= 0);
 
     let suggestedTabs;
-    switch (this.config.suggestOtherTabsMethod) {
+    const suggestOtherTabsMethod = Services.prefs.getStringPref(
+      "browser.tabs.groups.smart.suggestOtherTabsMethod",
+      SUGGEST_OTHER_TABS_METHODS.NEAREST_NEIGHBOR
+    );
+    switch (suggestOtherTabsMethod) {
       case SUGGEST_OTHER_TABS_METHODS.KMEANS_WITH_ANCHOR:
         suggestedTabs = await this.generateClusters(
           allTabs,

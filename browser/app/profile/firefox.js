@@ -1063,6 +1063,9 @@ pref("browser.tabs.groups.smart.enabled", true);
 pref("browser.tabs.groups.smart.enabled", false);
 #endif
 
+// KMEANS_WITH_ANCHOR or NEAREST_NEIGHBOR
+pref("browser.tabs.groups.smart.suggestOtherTabsMethod", "NEAREST_NEIGHBOR");
+
 pref("browser.tabs.groups.smart.optin", false);
 
 pref("browser.tabs.dragDrop.createGroup.delayMS", 240);
