@@ -14,7 +14,7 @@ add_task(async function () {
     SMALLSVG_DATA_URI
   );
 
-  let favicon = await PlacesUtils.favicons.getFaviconForPage(PAGEURI);
+  let favicon = await PlacesTestUtils.getFaviconForPage(PAGEURI);
   Assert.equal(
     favicon.uri.spec,
     SMALLSVG_DATA_URI.spec,

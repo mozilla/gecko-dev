@@ -34,9 +34,7 @@ function test() {
 
   testOnWindow(true, function (win) {
     waitForTabLoad(win, async function () {
-      let favicon = await PlacesUtils.favicons.getFaviconForPage(
-        NetUtil.newURI(pageURI)
-      );
+      let favicon = await PlacesTestUtils.getFaviconForPage(pageURI);
       is(favicon, null, "No result should be found");
       finish();
     });

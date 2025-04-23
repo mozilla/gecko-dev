@@ -34,7 +34,7 @@ async function checkFaviconDataForPage(
   aExpectedMimeType,
   aExpectedData
 ) {
-  let favicon = await PlacesUtils.favicons.getFaviconForPage(aPageURI);
+  let favicon = await PlacesTestUtils.getFaviconForPage(aPageURI);
   Assert.equal(aExpectedMimeType, favicon.mimeType);
   if (aExpectedData) {
     Assert.ok(compareArrays(aExpectedData, favicon.rawData));
@@ -49,7 +49,7 @@ async function checkFaviconDataForPage(
  *        nsIURI object for the page to check.
  */
 async function checkFaviconMissingForPage(aPageURI) {
-  let favicon = await PlacesUtils.favicons.getFaviconForPage(aPageURI);
+  let favicon = await PlacesTestUtils.getFaviconForPage(aPageURI);
   Assert.ok(!favicon);
 }
 
