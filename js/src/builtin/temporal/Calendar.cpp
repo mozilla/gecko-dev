@@ -1190,7 +1190,12 @@ static UniqueICU4XDate CreateDateFromCodes(JSContext* cx, CalendarId calendarId,
       //
       // Chinese/Dangi calendar:
       // Pick the next month, for example M03L -> M04, except for M12L, because
-      // we don't to switch over to the next year.
+      // we don't want to switch over to the next year.
+
+      // TODO: Temporal spec polyfill replaces M03L with M03 for Chinese/Dangi.
+      // No idea what are the "cultural conventions" for these two calendars...
+      //
+      // https://github.com/tc39/proposal-intl-era-monthcode/issues/32
 
       int32_t nonLeapMonth = std::min(monthCode.ordinal() + 1, 12);
       auto nonLeapMonthCode = MonthCode{nonLeapMonth};
