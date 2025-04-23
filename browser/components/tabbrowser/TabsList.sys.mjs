@@ -164,9 +164,14 @@ class TabsListBase {
     if (!this.#domRefreshPending) {
       this.#domRefreshPending = true;
       this.containerNode.ownerGlobal.requestAnimationFrame(() => {
-        this.#domRefreshPending = false;
-        this._cleanupDOM();
-        this._populateDOM();
+        if (this.#domRefreshPending) {
+          this.#domRefreshPending = false;
+          if (this.listenersRegistered) {
+            // Only re-render the menu DOM if the menu is still open.
+            this._cleanupDOM();
+            this._populateDOM();
+          }
+        }
       });
     }
   }
