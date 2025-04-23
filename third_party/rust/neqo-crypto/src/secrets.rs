@@ -25,11 +25,8 @@ experimental_api!(SSL_SecretCallback(
 ));
 
 #[derive(Clone, Copy, Debug, FromRepr)]
-// Use i32 for Windows MSVC, unless it is MinGW (see
-// https://bugzilla.mozilla.org/show_bug.cgi?id=1960482). All other platforms
-// use u32.
-#[cfg_attr(all(windows, not(target_env = "gnu")), repr(i32))]
-#[cfg_attr(not(all(windows, not(target_env = "gnu"))), repr(u32))]
+#[cfg_attr(windows, repr(i32))] // Windows has to be different, of course.
+#[cfg_attr(not(windows), repr(u32))]
 pub enum SecretDirection {
     Read = SSLSecretDirection::ssl_secret_read,
     Write = SSLSecretDirection::ssl_secret_write,

@@ -235,9 +235,7 @@ fn pto_handshake_complete() {
 
     now += HALF_RTT;
     let pkt = client.process(pkt, now).dgram();
-    let (initial, handshake) = split_datagram(&pkt.clone().unwrap());
-    assert_initial(&initial, false);
-    assert_handshake(handshake.as_ref().unwrap());
+    assert_handshake(pkt.as_ref().unwrap());
 
     let cb = client.process_output(now).callback();
     // The client now has a single RTT estimate (20ms), so
