@@ -284,7 +284,8 @@ impl NeqoHttp3Conn {
             .sni_slicing(static_prefs::pref!("network.http.http3.sni-slicing"))
             .idle_timeout(Duration::from_secs(idle_timeout.into()))
             // Disabled on OpenBSD. See <https://bugzilla.mozilla.org/show_bug.cgi?id=1952304>.
-            .pmtud_iface_mtu(cfg!(not(target_os = "openbsd")));
+            .pmtud_iface_mtu(cfg!(not(target_os = "openbsd")))
+            .mlkem(false);
 
         // Set a short timeout when fuzzing.
         #[cfg(feature = "fuzzing")]
