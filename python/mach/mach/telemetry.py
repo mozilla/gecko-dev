@@ -3,6 +3,7 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 import configparser
+import importlib.util
 import json
 import os
 import subprocess
@@ -50,26 +51,15 @@ def create_telemetry_from_environment(settings):
 
     is_enabled = is_telemetry_enabled(settings)
 
-    try:
-        from glean import Glean
-    except ImportError:
+    if importlib.util.find_spec("glean") is None:
         return NoopTelemetry(is_enabled)
-
-    from pathlib import Path
 
     # We must initialize Glean even if telemetry is disabled to ensure a deletion ping is sent.
     # This deletes any previously collected data if the user opts out of telemetry.
-
-    # Creating GleanTelemetry will load and register pings,
-    # which must be done before init or no metrics can be recorded for them.
-    telemetry_interface = GleanTelemetry()
-
-    Glean.initialize(
-        "mozilla.mach",
-        "Unknown",
-        is_enabled,
-        data_dir=Path(get_state_dir()) / "glean",
+    telemetry_interface = GleanTelemetry(
+        upload_enabled=is_enabled, data_dir=Path(get_state_dir()) / "glean"
     )
+
     return telemetry_interface
 
 
