@@ -11,6 +11,7 @@
 #include "mozilla/dom/BrowsingContext.h"
 #include "mozilla/dom/MaybeDiscarded.h"
 #include "mozilla/dom/Promise.h"
+#include "mozilla/media/MediaUtils.h"
 #include "mozilla/WeakPtr.h"
 #include "nsIClipboard.h"
 #include "nsIContentAnalysis.h"
@@ -19,6 +20,7 @@
 #include "nsString.h"
 #include "nsTHashMap.h"
 #include "nsTHashSet.h"
+#include "nsTStringHasher.h"
 
 #include <atomic>
 #include <regex>
@@ -245,14 +247,20 @@ class ContentAnalysis final : public nsIContentAnalysis,
       nsITransferable* aTransferable,
       nsIClipboard::ClipboardType aClipboardType,
       ContentAnalysisCallback* aResolver, bool aForFullClipboard = false);
+
   using FilesAllowedPromise = MozPromise<nsCOMArray<nsIFile>, nsresult, true>;
   // Checks the passed in files in "batch mode", meaning that all requests will
-  // be done even if some of them are BLOCKED.
+  // be done even if some of them are BLOCKED.  Unlike the other Check
+  // methods, "batch mode" requests do not all share a user action ID.
+  // This also consolidates the busy dialogs for the files into one that is
+  // associated with the "primary" request's user action ID -- that is, the
+  // user action ID of the first request generated.
   // Note that aURI is only necessary to pass in in gtests; otherwise we'll
   // get the URI from aWindow.
   static RefPtr<FilesAllowedPromise> CheckFilesInBatchMode(
       nsCOMArray<nsIFile>&& aFiles, mozilla::dom::WindowGlobalParent* aWindow,
       nsIContentAnalysisRequest::Reason aReason, nsIURI* aURI = nullptr);
+
   static RefPtr<ContentAnalysis> GetContentAnalysisFromService();
 
   // Cancel all outstanding requests for the given user action ID.
@@ -488,6 +496,12 @@ class ContentAnalysis final : public nsIContentAnalysis,
   bool mParsedUrlLists = false;
   bool mForbidFutureRequests = false;
   DataMutex<bool> mIsShutDown{false, "ContentAnalysis::IsShutDown"};
+
+  // Set of sets of user action IDs.  Each set of IDs defines one compound action.
+  using UserActionSet = media::Refcountable<mozilla::HashSet<nsCString>>;
+  using UserActionSets = mozilla::HashSet<RefPtr<const UserActionSet>,
+                                          PointerHasher<const UserActionSet*>>;
+  UserActionSets mCompoundUserActions;
 
   friend class ContentAnalysisResponse;
   friend class ::ContentAnalysisTest;
