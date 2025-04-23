@@ -12967,7 +12967,7 @@
 
 - name: network.cookie.sameSite.noneRequiresSecure
   type: bool
-  value: false
+  value: true
   mirror: always
 
 - name: network.cookie.sameSite.schemeful
