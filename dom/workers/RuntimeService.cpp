@@ -842,7 +842,7 @@ class WorkerJSRuntime final : public mozilla::CycleCollectedJSRuntime {
     }
   }
 
-  void TraceAdditionalNativeBlackRoots(JSTracer* aTracer) override {
+  void TraceNativeBlackRoots(JSTracer* aTracer) override {
     if (!mWorkerPrivate || !mWorkerPrivate->MayContinueRunning()) {
       return;
     }
@@ -957,10 +957,6 @@ class WorkerJSContext final : public mozilla::CycleCollectedJSContext {
     }
 
     JS::JobQueueMayNotBeEmpty(cx);
-    if (!runnable->isInList()) {
-      // A recycled object may be in the list already.
-      mMicrotasksToTrace.insertBack(runnable);
-    }
     microTaskQueue->push_back(std::move(runnable));
   }
 
