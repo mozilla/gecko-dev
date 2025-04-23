@@ -16,13 +16,7 @@
 import { XPCOMUtils } from "resource://gre/modules/XPCOMUtils.sys.mjs";
 
 const lazy = {};
-
-XPCOMUtils.defineLazyServiceGetter(
-  lazy,
-  "gContentAnalysis",
-  "@mozilla.org/contentanalysis;1",
-  Ci.nsIContentAnalysis
-);
+let internalContentAnalysisService = undefined;
 
 ChromeUtils.defineESModuleGetters(lazy, {
   clearTimeout: "resource://gre/modules/Timer.sys.mjs",
@@ -115,19 +109,55 @@ export const ContentAnalysis = {
   warnDialogRequestTokens: new Set(),
 
   /**
+   * The nsIContentAnalysis to use instead of lazy.gContentAnalysis. Should
+   * only be used for tests.
+   *
+   * @type {nsIContentAnalysis?}
+   */
+  mockContentAnalysisForTest: undefined,
+
+  /**
+   * The nsIContentAnalysis to use. Nothing else in this file should
+   * use lazy.gContentAnalysis.
+   *
+   * @returns {nsIContentAnalysis}
+   */
+  get contentAnalysis() {
+    if (this.mockContentAnalysisForTest) {
+      return this.mockContentAnalysisForTest;
+    }
+    if (!internalContentAnalysisService) {
+      internalContentAnalysisService = Cc[
+        "@mozilla.org/contentanalysis;1"
+      ].getService(Ci.nsIContentAnalysis);
+    }
+    return internalContentAnalysisService;
+  },
+
+  /**
+   * Sets the nsIContentAnalysis to use. Should only be used for tests.
+   *
+   * @param {nsIContentAnalysis?} contentAnalysis
+   */
+  setMockContentAnalysisForTest(contentAnalysis) {
+    this.mockContentAnalysisForTest = contentAnalysis;
+  },
+
+  /**
    * Registers for various messages/events that will indicate the
    * need for communicating something to the user.
    *
    * @param {Window} window - The window to monitor
    */
   initialize(window) {
-    if (!lazy.gContentAnalysis.isActive) {
+    if (!this.contentAnalysis.isActive) {
+      this.uninitialize();
       return;
     }
     let doc = window.document;
     if (!this.isInitialized) {
       this.isInitialized = true;
-      this.initializeDownloadCA();
+      this.initializeObservers();
 
       ChromeUtils.defineLazyGetter(this, "l10n", function () {
         return new Localization(
@@ -153,18 +183,31 @@ export const ContentAnalysis = {
     if (this.isInitialized) {
       this.isInitialized = false;
       this.requestTokenToRequestInfo.clear();
+      this.userActionToBusyDialogMap.clear();
+      this.uninitializeObservers();
     }
   },
 
   /**
-   * Register UI for file download CA events.
+   * Register UI for CA events.
    */
-  async initializeDownloadCA() {
+  initializeObservers() {
     Services.obs.addObserver(this, "dlp-request-made");
     Services.obs.addObserver(this, "dlp-response");
     Services.obs.addObserver(this, "quit-application");
     Services.obs.addObserver(this, "quit-application-granted");
     Services.obs.addObserver(this, "quit-application-requested");
+  },
+
+  /**
+   * Unregister UI for CA events.
+   */
+  uninitializeObservers() {
+    Services.obs.removeObserver(this, "dlp-request-made");
+    Services.obs.removeObserver(this, "dlp-response");
+    Services.obs.removeObserver(this, "quit-application");
+    Services.obs.removeObserver(this, "quit-application-granted");
+    Services.obs.removeObserver(this, "quit-application-requested");
   },
 
   // nsIObserver
@@ -216,7 +259,7 @@ export const ContentAnalysis = {
           // DLP requests, but the "DLP busy" or "DLP blocked" dialog can block the
           // main thread, thus preventing the "quit-application" from being sent,
           // which causes a shutdownhang. (bug 1899703)
-          lazy.gContentAnalysis.cancelAllRequests(true);
+          this.contentAnalysis.cancelAllRequests(true);
         }
         break;
       }
@@ -230,7 +273,7 @@ export const ContentAnalysis = {
         // to call respondToWarnDialog() again.
         this.warnDialogRequestTokens = new Set();
         for (let warnDialogRequestToken of requestTokensToCancel) {
-          lazy.gContentAnalysis.respondToWarnDialog(
+          this.contentAnalysis.respondToWarnDialog(
             warnDialogRequestToken,
             false
           );
@@ -721,7 +764,7 @@ export const ContentAnalysis = {
         // in which case we need to cancel the request.
         if (this.requestTokenToRequestInfo.delete(aRequestToken)) {
           this._removeSlowCAMessage(aUserActionId, aRequestToken);
-          lazy.gContentAnalysis.cancelRequestsByRequestToken(aRequestToken);
+          this.contentAnalysis.cancelRequestsByRequestToken(aRequestToken);
         }
       });
     return {
@@ -807,7 +850,7 @@ export const ContentAnalysis = {
         // to the request already, so don't call respondToWarnDialog()
         // if aRequestToken is not in warnDialogRequestTokens.
         if (this.warnDialogRequestTokens.delete(aRequestToken)) {
-          lazy.gContentAnalysis.respondToWarnDialog(aRequestToken, allow);
+          this.contentAnalysis.respondToWarnDialog(aRequestToken, allow);
         }
         return null;
       }
@@ -831,7 +874,7 @@ export const ContentAnalysis = {
             case Ci.nsIContentAnalysisRequest.eClipboard: {
               // Unlike the cases below, this can be shown when the DLP
               // agent is not available.  We use a different message for that.
-              const caInfo = await lazy.gContentAnalysis.getDiagnosticInfo();
+              const caInfo = await this.contentAnalysis.getDiagnosticInfo();
               titleId = "contentanalysis-block-dialog-title-clipboard";
               bodyId = caInfo.connectedToAgent
                 ? "contentanalysis-block-dialog-body-clipboard"
@@ -980,7 +1023,7 @@ export const ContentAnalysis = {
    * @param {ResourceNameOrOperationType} aResourceNameOrOperationType
    */
   async _warnDialogText(aResourceNameOrOperationType) {
-    const caInfo = await lazy.gContentAnalysis.getDiagnosticInfo();
+    const caInfo = await this.contentAnalysis.getDiagnosticInfo();
     if (caInfo.connectedToAgent) {
       return await this.l10n.formatValue("contentanalysis-warndialogtext", {
         content: this._getResourceNameFromNameOrOperationType(
