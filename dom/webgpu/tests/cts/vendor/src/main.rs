@@ -9,6 +9,7 @@ use std::{
 use clap::Parser;
 use ezcmd::EasyCommand;
 use itertools::Itertools;
+use joinery::JoinableIterator;
 use miette::{ensure, miette, Context, Diagnostic, IntoDiagnostic, Report, SourceSpan};
 use regex::Regex;
 
@@ -303,9 +304,12 @@ fn run(args: CliArgs) -> miette::Result<()> {
                 }
             };
             let (test_group_path, _test_name) = test_path.rsplit_once(':').unwrap();
+            let test_group_path_components = test_group_path.split([':', ',']);
 
-            let slashed = test_group_path.replace([':', ','], "/");
-            insert!(&slashed, meta.into());
+            insert!(
+                &test_group_path_components.join_with("/").to_string(),
+                meta.into()
+            );
         }
 
         struct WptEntry<'a> {

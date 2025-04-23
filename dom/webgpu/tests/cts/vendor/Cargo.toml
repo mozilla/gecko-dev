@@ -10,6 +10,7 @@ env_logger = "0.10.0"
 ezcmd = "0.3.0"
 format = "0.2.4"
 itertools = "0.11.0"
+joinery = "3.1.0"
 log = "0.4.17"
 miette = { version = "7.5.0", features = ["fancy"] }
 regex = "1.7.1"
