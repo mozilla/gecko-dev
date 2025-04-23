@@ -3,8 +3,17 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "mozilla/Assertions.h"
+#include "mozilla/Try.h"
 
 #include "DateTimeFormatUtils.h"
+#include "mozilla/intl/ICU4CGlue.h"
+
+#include <cstring>
+
+#if !MOZ_SYSTEM_ICU
+#  include "unicode/datefmt.h"
+#  include "unicode/gregocal.h"
+#endif
 
 namespace mozilla::intl {
 
@@ -100,5 +109,75 @@ DateTimePartType ConvertUFormatFieldToPartType(UDateFormatField fieldName) {
       "by iterator");
   return DateTimePartType::Unknown;
 }
+
+// Start of ECMAScript time.
+static constexpr double StartOfTime = -8.64e15;
+
+#if !MOZ_SYSTEM_ICU
+static bool IsGregorianLikeCalendar(const char* type) {
+  return std::strcmp(type, "gregorian") == 0 ||
+         std::strcmp(type, "iso8601") == 0 ||
+         std::strcmp(type, "buddhist") == 0 ||
+         std::strcmp(type, "japanese") == 0 || std::strcmp(type, "roc") == 0;
+}
+
+/**
+ * Set the start time of the Gregorian calendar. This is useful for
+ * ensuring the consistent use of a proleptic Gregorian calendar for ECMA-402.
+ * https://en.wikipedia.org/wiki/Proleptic_Gregorian_calendar
+ */
+static Result<Ok, ICUError> SetGregorianChangeDate(
+    icu::GregorianCalendar* gregorian) {
+  UErrorCode status = U_ZERO_ERROR;
+  gregorian->setGregorianChange(StartOfTime, status);
+  if (U_FAILURE(status)) {
+    return Err(ToICUError(status));
+  }
+  return Ok{};
+}
+#endif
+
+Result<Ok, ICUError> ApplyCalendarOverride(UDateFormat* aDateFormat) {
+#if !MOZ_SYSTEM_ICU
+  icu::DateFormat* df = reinterpret_cast<icu::DateFormat*>(aDateFormat);
+  const icu::Calendar* calendar = df->getCalendar();
+
+  const char* type = calendar->getType();
+
+  if (IsGregorianLikeCalendar(type)) {
+    auto* gregorian = static_cast<const icu::GregorianCalendar*>(calendar);
+    MOZ_TRY(
+        SetGregorianChangeDate(const_cast<icu::GregorianCalendar*>(gregorian)));
+  }
+#else
+  UErrorCode status = U_ZERO_ERROR;
+  UCalendar* cal = const_cast<UCalendar*>(udat_getCalendar(aDateFormat));
+  ucal_setGregorianChange(cal, StartOfTime, &status);
+  // An error here means the calendar is not Gregorian, and can be ignored.
+#endif
+
+  return Ok{};
+}
+
+#if !MOZ_SYSTEM_ICU
+Result<UniquePtr<icu::Calendar>, ICUError> CreateCalendarOverride(
+    const icu::Calendar* calendar) {
+  const char* type = calendar->getType();
+
+  if (IsGregorianLikeCalendar(type)) {
+    UniquePtr<icu::GregorianCalendar> gregorian(
+        static_cast<const icu::GregorianCalendar*>(calendar)->clone());
+    if (!gregorian) {
+      return Err(ICUError::OutOfMemory);
+    }
+
+    MOZ_TRY(SetGregorianChangeDate(gregorian.get()));
+
+    return UniquePtr<icu::Calendar>{gregorian.release()};
+  }
+
+  return UniquePtr<icu::Calendar>{};
+}
+#endif
 
 }  // namespace mozilla::intl
