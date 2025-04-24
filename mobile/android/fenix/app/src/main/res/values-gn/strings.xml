@@ -900,6 +900,8 @@
   <string name="preferences_link_sharing">Emoherakuã juajuha</string>
   <!-- Title for the link sharing toggle. %1$s is replaced by the brand name (e.g. Firefox). -->
   <string name="link_sharing_toggle_title">Emoĩ juajuha mboguejyha %1$s WhatsApp omoherakuãpyrévape</string>
+  <!-- Body for the link sharing toggle.  %1$s is replaced by the brand name (e.g. Firefox). -->
+  <string name="link_sharing_toggle_body">Eipepirũ ne angirũnguérape toikundaha pya’e ha tekorosãme %1$s ndive emoherakuãvo juajuha WhatsApp-pe.</string>
   <!-- Snackbar message shown when user shares a link -->
   <string name="link_shared_snackbar_message">Juajuha moherakuãpyre</string>
   <!-- Snackbar action label shown when user shares a link -->
@@ -3476,6 +3478,8 @@
   <string name="setup_checklist_subtitle_6_steps_third_step">¡Eiméma tape ku’ápe! Mbohapy jeku’e hu’ãma ha 3 hemby.</string>
   <!-- Subtitle for a setup checklist with 6 steps when the fourth task is completed. -->
   <string name="setup_checklist_subtitle_6_steps_fourth_step">Emohu’ãma 4 jeku’e. ¡Mokõintema opyta!</string>
+  <!-- Subtitle for a setup checklist with 6 steps when the fifth task is completed. -->
+  <string name="setup_checklist_subtitle_6_steps_fifth_step">¡Oĩmbotaitéma! Eiméma ag̃uiete tenda eg̃uahẽsehápegui.</string>
   <!--
     ===== Setup checklist feature: Task titles =====
 

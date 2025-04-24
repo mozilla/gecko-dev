@@ -813,13 +813,13 @@
   <!-- Summary of https only preference if https only is set to off -->
   <string name="preferences_https_only_off">关闭</string>
   <!-- Summary of https only preference if https only is set to on in all tabs -->
-  <string name="preferences_https_only_on_all">在所有标签页启用</string>
+  <string name="preferences_https_only_on_all">对所有标签页开启</string>
   <!-- Summary of https only preference if https only is set to on in private tabs only -->
   <string name="preferences_https_only_on_private">仅在隐私标签页启用</string>
   <!-- Text displayed that links to website containing documentation about "HTTPS-Only" mode -->
   <string name="preferences_http_only_learn_more">详细了解</string>
   <!-- Option for the https only setting -->
-  <string name="preferences_https_only_in_all_tabs">在所有标签页启用</string>
+  <string name="preferences_https_only_in_all_tabs">对所有标签页启用</string>
   <!-- Option for the https only setting -->
   <string name="preferences_https_only_in_private_tabs">仅在隐私标签页启用</string>
   <!-- Title shown in the error page for when trying to access a http website while https only mode is enabled. -->
