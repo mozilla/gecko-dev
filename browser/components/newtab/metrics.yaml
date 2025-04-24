@@ -1002,6 +1002,38 @@ newtab:
     send_in_pings:
       - newtab
 
+  metric_registered:
+    type: labeled_boolean
+    description: >
+      Records technical data about whether the metric registration
+      at runtime succeeded
+    bugs:
+      - https://bugzil.la/1961989
+    data_reviews:
+      - https://bugzil.la/1961989
+    data_sensitivity:
+      - technical
+    notification_emails:
+      - pdahiya@mozilla.com
+      - mconley@mozilla.com
+    expires: never
+
+  ping_registered:
+    type: labeled_boolean
+    description: >
+      Records technical data about whether the ping registration
+      at runtime succeeded
+    bugs:
+      - https://bugzil.la/1961989
+    data_reviews:
+      - https://bugzil.la/1961989
+    data_sensitivity:
+      - technical
+    notification_emails:
+      - pdahiya@mozilla.com
+      - mconley@mozilla.com
+    expires: never
+
 newtab.search:
   enabled:
     lifetime: application

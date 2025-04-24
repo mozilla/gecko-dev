@@ -108,6 +108,9 @@ export const NewTabGleanUtils = {
     const { type, category, name, pings, lifetime, disabled, extraArgs } =
       options;
 
+    // Glean metric to record the success of metric registration for telemetry purposes.
+    let gleanSuccessMetric = Glean.newtab.metricRegistered[name];
+
     try {
       let categoryName = this.dottedSnakeToCamel(category);
       let metricName = this.dottedSnakeToCamel(name);
@@ -138,7 +141,9 @@ export const NewTabGleanUtils = {
         disabled,
         extraArgsJson
       );
+      gleanSuccessMetric.set(true);
     } catch (e) {
+      gleanSuccessMetric.set(false);
       lazy.logConsole.error(`Error registering metric ${name}: ${e}`);
       throw new Error(`Failure while registering metrics ${name} `);
     }
@@ -173,6 +178,8 @@ export const NewTabGleanUtils = {
       uploaderCapabilities,
     } = options;
 
+    // Glean metric to record the success of ping registration for telemetry purposes.
+    let gleanSuccessPing = Glean.newtab.pingRegistered[name];
     try {
       let pingName = this.kebabToCamel(name);
       if (pingName in GleanPings) {
@@ -197,7 +204,9 @@ export const NewTabGleanUtils = {
         followsCollectionEnabled,
         uploaderCapabilities
       );
+      gleanSuccessPing.set(true);
     } catch (e) {
+      gleanSuccessPing.set(false);
       lazy.logConsole.error(`Error registering ping ${name}: ${e}`);
       throw new Error(`Failure while registering ping ${name} `);
     }
