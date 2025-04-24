@@ -6,6 +6,7 @@ package org.mozilla.gecko.crashhelper;
 
 import android.app.Service;
 import android.content.ComponentName;
+import android.content.Context;
 import android.content.Intent;
 import android.content.ServiceConnection;
 import android.os.Binder;
@@ -129,7 +130,13 @@ public final class CrashHelper extends Service {
         throws IOException {
       mBreakpadClient = ParcelFileDescriptor.dup(breakpadClientFd);
       mBreakpadServer = ParcelFileDescriptor.dup(breakpadServerFd);
+      if (!CrashHelper.set_breakpad_opts(mBreakpadServer.getFd())) {
+        throw new IOException("Could not set the proper options on the Breakpad socket");
+      }
       mListener = ParcelFileDescriptor.dup(listenerFd);
+      if (!CrashHelper.bind_and_listen(mListener.getFd())) {
+        throw new IOException("Could not listen on incoming connections");
+      }
       mClient = ParcelFileDescriptor.dup(clientFd);
       mServer = ParcelFileDescriptor.dup(serverFd);
     }
@@ -141,13 +148,12 @@ public final class CrashHelper extends Service {
   // google_breakpad::CrashGenerationServer::CreateReportChannel(), so we can
   // use them Breakpad's crash generation server & clients. The rest are
   // specific to the crash helper process.
-  public static Pipes createCrashHelperPipes() {
-    // Ideally we'd set all the required options for the server socket, by using
-    // Os.setsockoptInt() to enable the SO_PASSCRED socket option and then a
-    // couple of calls to Os.fcntlInt() to read the socket file flags and then
-    // set it in non-blocking mode by setting O_NONBLOCK. Unfortunately both
-    // calls require Android API version more recent than we support, so this
-    // job is delegated to crashhelper_android.cpp after receiving the socket.
+  public static Pipes createCrashHelperPipes(final Context context) {
+    // We can't set the required socket options for the Breakpad server socket
+    // or our own listener from here, so we delegate those parts to native
+    // functions in crashhelper_android.cpp.
+    GeckoLoader.doLoadLibrary(context, "crashhelper");
+
     try {
       final FileDescriptor breakpad_client_fd = new FileDescriptor();
       final FileDescriptor breakpad_server_fd = new FileDescriptor();
@@ -188,4 +194,8 @@ public final class CrashHelper extends Service {
 
   protected static native void crash_generator(
       int clientPid, int breakpadFd, String minidumpPath, int listenFd, int serverFd);
+
+  protected static native boolean set_breakpad_opts(int breakpadFd);
+
+  protected static native boolean bind_and_listen(int listenFd);
 }

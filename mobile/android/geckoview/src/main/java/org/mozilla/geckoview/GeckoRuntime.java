@@ -399,14 +399,14 @@ public final class GeckoRuntime implements Parcelable {
   }
 
   private int[] startCrashHelper() {
-    final CrashHelper.Pipes pipes = CrashHelper.createCrashHelperPipes();
+    final Context context = GeckoAppShell.getApplicationContext();
+    final CrashHelper.Pipes pipes = CrashHelper.createCrashHelperPipes(context);
 
     if (pipes == null) {
       Log.e(LOGTAG, "Could not create the crash reporter IPC pipes");
       return new int[] {-1, -1};
     }
 
-    final Context context = GeckoAppShell.getApplicationContext();
     try {
       @SuppressWarnings("unchecked")
       final Class<? extends Service> cls =

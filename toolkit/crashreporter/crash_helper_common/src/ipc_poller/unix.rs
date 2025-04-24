@@ -2,7 +2,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use nix::poll::{poll, PollFd, PollFlags, PollTimeout};
+use nix::{
+  errno::Errno,
+  poll::{poll, PollFd, PollFlags, PollTimeout},
+};
 
 use crate::{errors::IPCError, ignore_eintr, IPCConnector, IPCEvent, IPCListener};
 
@@ -48,8 +51,14 @@ pub fn wait_for_events(
             }
         }
 
-        if revents.contains(PollFlags::POLLHUP) && (index > 0) {
-            events.push(IPCEvent::Disconnect(index - 1));
+        if revents.contains(PollFlags::POLLHUP) {
+            if index > 0 {
+                events.push(IPCEvent::Disconnect(index - 1));
+            } else {
+                // This should never happen, unless the listener socket was not
+                // set up properly or a failure happened during setup.
+                return Err(IPCError::System(Errno::EFAULT));
+            }
         }
 
         if !revents.is_empty() {
