@@ -1257,6 +1257,20 @@ newTabSectionsExperiment:
         pref:  browser.newtabpage.activity-stream.discoverystream.sections.cards.enabled
       description: >-
         Enable the revised pocket story card UI in recommended stories on newtab
+    regionPersonalizationInferredConfig:
+      type: string
+      setPref:
+        branch: user
+        pref: browser.newtabpage.activity-stream.discoverystream.sections.personalization.inferred.region-config
+      description: >-
+        A comma-separated list of regions that use inferred personalization.
+    localePersonalizationInferredConfig:
+      type: string
+      setPref:
+        branch: user
+        pref: browser.newtabpage.activity-stream.discoverystream.sections.personalization.inferred.locale-config
+      description: >-
+        A comma-separated list of locales that use inferred personalization.
     personalizationInferredEnabled:
       type: boolean
       setPref:

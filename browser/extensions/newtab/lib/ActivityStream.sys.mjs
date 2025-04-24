@@ -48,6 +48,11 @@ import {
   actionTypes as at,
 } from "resource://newtab/common/Actions.mjs";
 
+const REGION_INFERRED_PERSONALIZATION_CONFIG =
+  "browser.newtabpage.activity-stream.discoverystream.sections.personalization.inferred.region-config";
+const LOCALE_INFERRED_PERSONALIZATION_CONFIG =
+  "browser.newtabpage.activity-stream.discoverystream.sections.personalization.inferred.locale-config";
+
 const REGION_WEATHER_CONFIG =
   "browser.newtabpage.activity-stream.discoverystream.region-weather-config";
 const LOCALE_WEATHER_CONFIG =
@@ -92,6 +97,13 @@ export function csvPrefHasValue(stringPrefName, value) {
     .filter(item => item);
 
   return prefValues.includes(value);
+}
+
+function useInferredPersonalization({ geo, locale }) {
+  return (
+    csvPrefHasValue(REGION_INFERRED_PERSONALIZATION_CONFIG, geo) &&
+    csvPrefHasValue(LOCALE_INFERRED_PERSONALIZATION_CONFIG, locale)
+  );
 }
 
 // Determine if spocs should be shown for a geo/locale
@@ -636,7 +648,8 @@ export const PREFS_CONFIG = new Map([
     "discoverystream.sections.personalization.inferred.enabled",
     {
       title: "Boolean flag to enable inferred personalizaton",
-      value: false,
+      // pref is dynamic
+      getValue: useInferredPersonalization,
     },
   ],
   [
