@@ -9,6 +9,7 @@ import android.content.ComponentName;
 import android.content.Intent;
 import android.content.ServiceConnection;
 import android.os.Binder;
+import android.os.DeadObjectException;
 import android.os.IBinder;
 import android.os.ParcelFileDescriptor;
 import android.os.Process;
@@ -88,6 +89,11 @@ public final class CrashHelper extends Service {
         final ICrashHelper helper = ICrashHelper.Stub.asInterface(service);
         try {
           helper.start(Process.myPid(), mBreakpadFd, mMinidumpPath, mListenFd, mServerFd);
+        } catch (final DeadObjectException e) {
+          // The crash helper process died before we could start it, presumably
+          // because of an out-of-memory condition. We don't attempt to restart
+          // it as the required IPC would be too complex.
+          Log.e(LOGTAG, "The crash helper process died before we could start the service");
         } catch (final RemoteException e) {
           throw new RuntimeException(e);
         }
