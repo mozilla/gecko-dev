@@ -13616,7 +13616,7 @@ function ReportContentToast({
     type: "success",
     class: "notification-feed-item",
     dismissable: true,
-    "data-l10n-id": "newtab-toast-thanks-for-feedback",
+    "data-l10n-id": "newtab-toast-thanks-for-reporting",
     ref: mozMessageBarRef,
     onAnimationEnd: onAnimationEnd
   });
