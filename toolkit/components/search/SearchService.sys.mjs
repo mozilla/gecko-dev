@@ -3220,6 +3220,9 @@ export class SearchService {
       // Our preferences UI doesn't let users do that.
       lazy.logConsole.error("getEngineInfo: No default engine");
       return {
+        providerId: "NONE",
+        partnerCode: "NONE",
+        overriddenByThirdParty: false,
         telemetryId: "NONE",
         loadPath: "NONE",
         name: "NONE",
@@ -3227,7 +3230,15 @@ export class SearchService {
       };
     }
 
+    // When an engine is overridden by a third party, then we report the
+    // override and skip reporting the partner code, since we don't have
+    // a requirement to report the partner code in that case.
+    let isOverridden = !!engine.overriddenById;
+
     let engineInfo = {
+      providerId: engine.isAppProvided ? engine.id : "other",
+      partnerCode: isOverridden ? "" : engine.partnerCode,
+      overriddenByThirdParty: isOverridden,
       telemetryId: engine.telemetryId,
       loadPath: engine.loadPath,
       name: engine.name ? engine.name : "",
@@ -3332,6 +3343,11 @@ export class SearchService {
   #recordTelemetryData() {
     let engineInfo = this.#getEngineInfo(this.defaultEngine);
 
+    Glean.searchEngineDefault.providerId.set(engineInfo.providerId);
+    Glean.searchEngineDefault.partnerCode.set(engineInfo.partnerCode);
+    Glean.searchEngineDefault.overriddenByThirdParty.set(
+      engineInfo.overriddenByThirdParty
+    );
     Glean.searchEngineDefault.engineId.set(engineInfo.telemetryId);
     Glean.searchEngineDefault.displayName.set(engineInfo.name);
     Glean.searchEngineDefault.loadPath.set(engineInfo.loadPath);
@@ -3342,6 +3358,11 @@ export class SearchService {
     if (this.#separatePrivateDefault) {
       let privateEngineInfo = this.#getEngineInfo(this.defaultPrivateEngine);
 
+      Glean.searchEnginePrivate.providerId.set(privateEngineInfo.providerId);
+      Glean.searchEnginePrivate.partnerCode.set(privateEngineInfo.partnerCode);
+      Glean.searchEnginePrivate.overriddenByThirdParty.set(
+        privateEngineInfo.overriddenByThirdParty
+      );
       Glean.searchEnginePrivate.engineId.set(privateEngineInfo.telemetryId);
       Glean.searchEnginePrivate.displayName.set(privateEngineInfo.name);
       Glean.searchEnginePrivate.loadPath.set(privateEngineInfo.loadPath);
@@ -3349,6 +3370,9 @@ export class SearchService {
         privateEngineInfo.submissionURL ?? "blank:"
       );
     } else {
+      Glean.searchEnginePrivate.providerId.set("");
+      Glean.searchEnginePrivate.partnerCode.set("");
+      Glean.searchEnginePrivate.overriddenByThirdParty.set(false);
       Glean.searchEnginePrivate.engineId.set("");
       Glean.searchEnginePrivate.displayName.set("");
       Glean.searchEnginePrivate.loadPath.set("");
