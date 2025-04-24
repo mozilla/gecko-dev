@@ -219,7 +219,7 @@ pref("app.update.langpack.enabled", true);
 // This feature is also affected by
 // `app.update.multiSessionInstallLockout.timeoutMs`, which is in the branding
 // section.
-pref("app.update.multiSessionInstallLockout.enabled", false);
+pref("app.update.multiSessionInstallLockout.enabled", true);
 
 #if defined(MOZ_BACKGROUNDTASKS)
   // The amount of time, in seconds, before background tasks time out and exit.
