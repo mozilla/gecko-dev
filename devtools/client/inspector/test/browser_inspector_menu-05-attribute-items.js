@@ -117,8 +117,6 @@ add_task(async function () {
     });
     const menuItem = allMenuItems.find(i => i.id === id);
     ok(menuItem, "Menu item '" + id + "' found");
-    // Close the menu so synthesizing future keys won't select menu items.
-    EventUtils.synthesizeKey("KEY_Escape");
     return menuItem;
   }
 });
