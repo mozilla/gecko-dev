@@ -52,6 +52,7 @@ STEPS = {
         echo "bar" >> bar
         echo "baz" > baz
         rm foo
+        jj log -n0 # snapshot, since bug 1962245 suppresses automatic ones
         """,
         """
         jj commit -m "Remove foo; modify bar; add baz"
@@ -59,6 +60,7 @@ STEPS = {
         """
         echo ooka >> baz
         echo newborn > baby
+        jj log -n0 # snapshot, since bug 1962245 suppresses automatic ones
         """,
         """
         jj describe -m "Modify baz; add baby"

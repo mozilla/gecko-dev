@@ -58,7 +58,7 @@ class JujutsuRepository(Repository):
 
         It will avoid locking the working copy and can prevent potential concurrency issues.
         """
-        return super()._run(*(args + ("--ignore-working-copy",)), **kwargs)
+        return super()._run("--ignore-working-copy", *args, **kwargs)
 
     def _snapshot(self):
         """_snapshot() can be used to update the repository after changing files in the working
