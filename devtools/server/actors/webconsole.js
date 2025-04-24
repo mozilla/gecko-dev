@@ -343,13 +343,17 @@ class WebConsoleActor extends Actor {
    * Create a grip for the given value.
    *
    * @param mixed value
+   * @param object objectActorAttributes
+   *        See createValueGrip in devtools/server/actors/object/utils.js
    * @return object
    */
-  createValueGrip(value) {
+  createValueGrip(value, objectActorAttributes = {}) {
     return createValueGrip(
       this.targetActor.threadActor,
       value,
-      this.targetActor.objectsPool
+      this.targetActor.objectsPool,
+      0,
+      objectActorAttributes
     );
   }
 
@@ -948,7 +952,8 @@ class WebConsoleActor extends Actor {
         result = evalResult.yield;
       } else if ("throw" in evalResult) {
         const error = evalResult.throw;
-        errorGrip = this.createValueGrip(error);
+        const allowSideEffect = !eager;
+        errorGrip = this.createValueGrip(error, { allowSideEffect });
 
         exceptionStack = this.prepareStackForRemote(evalResult.stack);
 
@@ -967,7 +972,7 @@ class WebConsoleActor extends Actor {
         }
 
         errorMessage = String(error);
-        if (typeof error === "object" && error !== null) {
+        if (allowSideEffect && typeof error === "object" && error !== null) {
           try {
             errorMessage = DevToolsUtils.callPropertyOnObject(
               error,

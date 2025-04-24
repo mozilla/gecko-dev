@@ -1032,12 +1032,12 @@ previewers.Object = [
       return false;
     }
 
-    const { obj } = objectActor;
+    const { obj, allowSideEffect = false } = objectActor;
 
     // The name and/or message could be getters, and even if it's unsafe,
     // we do want to show it to the user, unless the error is muted
     // (See Bug 1710694).
-    const invokeUnsafeGetters = !obj.isMutedError;
+    const invokeUnsafeGetters = allowSideEffect && !obj.isMutedError;
 
     const name = DevToolsUtils.getProperty(obj, "name", invokeUnsafeGetters);
     const msg = DevToolsUtils.getProperty(obj, "message", invokeUnsafeGetters);
