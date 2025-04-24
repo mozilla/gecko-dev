@@ -2452,7 +2452,7 @@
 # Should CommitStyles use the end-point inclusive timing?
 - name: dom.animations.commit-styles-endpoint-inclusive
   type: bool
-  value: false
+  value: @IS_NIGHTLY_BUILD@
   mirror: always
 
 # Is support for Navigator.getBattery enabled?
