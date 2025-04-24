@@ -1762,8 +1762,7 @@ email-autocomplete-relay:
 address-autofill-feature:
   description: Enabling address autofill feature
   owner: issozi@mozilla.com
-  hasExposure: true
-  exposureDescription: "Exposure is sent when an address is autofilled."
+  hasExposure: false
   variables:
     status:
       type: boolean

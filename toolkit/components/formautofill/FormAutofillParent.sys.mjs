@@ -50,7 +50,6 @@ ChromeUtils.defineESModuleGetters(lazy, {
   FirefoxRelay: "resource://gre/modules/FirefoxRelay.sys.mjs",
   LoginHelper: "resource://gre/modules/LoginHelper.sys.mjs",
   MLAutofill: "resource://autofill/MLAutofill.sys.mjs",
-  NimbusFeatures: "resource://nimbus/ExperimentAPI.sys.mjs",
   OSKeyStore: "resource://gre/modules/OSKeyStore.sys.mjs",
 });
 
@@ -1236,10 +1235,6 @@ export class FormAutofillParent extends JSWindowActorParent {
       Services.obs.notifyObservers(null, "formautofill-autofill-complete");
       return;
     }
-
-    lazy.NimbusFeatures["address-autofill-feature"].recordExposureEvent({
-      once: true,
-    });
 
     const msg = "FormAutofill:FillFields";
     const fields = section.getAutofillFields();
