@@ -7252,12 +7252,19 @@ var SessionStoreInternal = {
         tIndex++;
       }
 
+      // Any tab groups that were in the tab strip at the end of the last
+      // session should be saved. If any tab groups were present in both
+      // saved groups and open groups in the last session, set the saved
+      // group's `removeAfterRestore` so that if the last session is restored,
+      // the group will be opened to the tab strip and removed from the list
+      // of saved tab groups.
       groupsToSave.forEach(groupState => {
-        if (
-          !defaultState.savedGroups.find(
-            existingGroup => existingGroup.id == groupState.id
-          )
-        ) {
+        const alreadySavedGroup = defaultState.savedGroups.find(
+          existingGroup => existingGroup.id == groupState.id
+        );
+        if (alreadySavedGroup) {
+          alreadySavedGroup.removeAfterRestore = true;
+        } else {
           defaultState.savedGroups.push(groupState);
         }
       });
