@@ -133,6 +133,18 @@ export class UserCharacteristicsCanvasRenderingChild extends JSWindowActorChild 
 
   async getDebugInfo() {
     const canvas = this.document.createElement("canvas");
+
+    if (canvas == null) {
+      throw new Error("Canvas is ${canvas}");
+    }
+
+    if (typeof canvas.getContext !== "function") {
+      // Huh? How? Why?
+      throw new Error(
+        `Canvas is ${canvas} and doesn't have getContext. TagName: ${canvas.tagName}`
+      );
+    }
+
     const ctx = canvas.getContext("2d");
 
     if (!ctx) {
