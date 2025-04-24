@@ -218,7 +218,7 @@ optional = true
 default-features = false
 
 [dependencies.raw-window-handle]
-version = "0.6"
+version = "0.6.2"
 default-features = false
 
 [dependencies.rustc-hash]

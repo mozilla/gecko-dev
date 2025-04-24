@@ -3715,7 +3715,7 @@ delta = "24.0.0 -> 25.0.0"
 [[audits.naga]]
 who = "Erich Gubler <erichdongubler@gmail.com>"
 criteria = "safe-to-deploy"
-delta = "25.0.0 -> 25.0.0@git:f1c496523ff0aa10c162fd01ad606960e925a5a4"
+delta = "25.0.0 -> 25.0.0@git:5304c3ca4a43e78d6a8e3b45d8d3f76216f2c1a6"
 importable = false
 
 [[audits.net2]]
@@ -6001,7 +6001,7 @@ delta = "24.0.0 -> 25.0.0"
 [[audits.wgpu-core]]
 who = "Erich Gubler <erichdongubler@gmail.com>"
 criteria = "safe-to-deploy"
-delta = "25.0.0 -> 25.0.0@git:f1c496523ff0aa10c162fd01ad606960e925a5a4"
+delta = "25.0.0 -> 25.0.0@git:5304c3ca4a43e78d6a8e3b45d8d3f76216f2c1a6"
 importable = false
 
 [[audits.wgpu-core-deps-apple]]
@@ -6012,7 +6012,7 @@ version = "25.0.0"
 [[audits.wgpu-core-deps-apple]]
 who = "Erich Gubler <erichdongubler@gmail.com>"
 criteria = "safe-to-deploy"
-delta = "25.0.0 -> 25.0.0@git:f1c496523ff0aa10c162fd01ad606960e925a5a4"
+delta = "25.0.0 -> 25.0.0@git:5304c3ca4a43e78d6a8e3b45d8d3f76216f2c1a6"
 importable = false
 
 [[audits.wgpu-core-deps-windows-linux-android]]
@@ -6023,7 +6023,7 @@ version = "25.0.0"
 [[audits.wgpu-core-deps-windows-linux-android]]
 who = "Erich Gubler <erichdongubler@gmail.com>"
 criteria = "safe-to-deploy"
-delta = "25.0.0 -> 25.0.0@git:f1c496523ff0aa10c162fd01ad606960e925a5a4"
+delta = "25.0.0 -> 25.0.0@git:5304c3ca4a43e78d6a8e3b45d8d3f76216f2c1a6"
 importable = false
 
 [[audits.wgpu-hal]]
@@ -6112,7 +6112,7 @@ delta = "24.0.0 -> 25.0.0"
 [[audits.wgpu-hal]]
 who = "Erich Gubler <erichdongubler@gmail.com>"
 criteria = "safe-to-deploy"
-delta = "25.0.0 -> 25.0.0@git:f1c496523ff0aa10c162fd01ad606960e925a5a4"
+delta = "25.0.0 -> 25.0.0@git:5304c3ca4a43e78d6a8e3b45d8d3f76216f2c1a6"
 importable = false
 
 [[audits.wgpu-types]]
@@ -6196,7 +6196,7 @@ delta = "24.0.0 -> 25.0.0"
 [[audits.wgpu-types]]
 who = "Erich Gubler <erichdongubler@gmail.com>"
 criteria = "safe-to-deploy"
-delta = "25.0.0 -> 25.0.0@git:f1c496523ff0aa10c162fd01ad606960e925a5a4"
+delta = "25.0.0 -> 25.0.0@git:5304c3ca4a43e78d6a8e3b45d8d3f76216f2c1a6"
 importable = false
 
 [[audits.whatsys]]

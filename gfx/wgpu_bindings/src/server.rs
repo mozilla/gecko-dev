@@ -136,7 +136,6 @@ pub extern "C" fn wgpu_server_new(owner: *mut c_void, use_dxc: bool) -> *mut Glo
     let dx12_shader_compiler = if use_dxc {
         wgt::Dx12Compiler::DynamicDxc {
             dxc_path: "dxcompiler.dll".into(),
-            dxil_path: "dxil.dll".into(),
             max_shader_model: wgt::DxcShaderModel::V6_6,
         }
     } else {
