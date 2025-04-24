@@ -89,25 +89,10 @@ int MaxTouchPoints() {
 }  // extern "C"
 };  // namespace testing
 
-using FunctionName = nsCString;
-using AdditionalContext = nsCString;
 using PopulatePromiseBase =
-    MozPromise<void_t, std::tuple<FunctionName, nsresult, AdditionalContext>,
+    MozPromise<void_t, std::pair<nsCString, Variant<nsresult, nsCString>>,
                false>;
 using PopulatePromise = PopulatePromiseBase::Private;
-
-#define REJECT(aPromise, aFuncName, aRv, aError)                          \
-  aPromise->Reject(std::tuple<FunctionName, nsresult, AdditionalContext>( \
-                       aFuncName, aRv, aError),                           \
-                   __func__);
-
-#define REJECT_AND_FORGET(aPromise, aFuncName, aRv, aError) \
-  REJECT(aPromise, aFuncName, aRv, aError);                 \
-  return (aPromise).forget();
-
-#define REJECT_VOID(aPromise, aFuncName, aRv, aError) \
-  REJECT(aPromise, aFuncName, aRv, aError);           \
-  return;
 
 // ==================================================================
 // ==================================================================
@@ -124,7 +109,9 @@ already_AddRefed<PopulatePromise> ContentPageStuff() {
   if (NS_FAILED(rv)) {
     MOZ_LOG(gUserCharacteristicsLog, mozilla::LogLevel::Error,
             ("Could not create Content Page"));
-    REJECT_AND_FORGET(populatePromise, __func__, rv, "CREATION_FAILED");
+    populatePromise->Reject(
+        std::pair(__func__, "CREATION_FAILED"_ns.AsString()), __func__);
+    return populatePromise.forget();
   }
   MOZ_LOG(gUserCharacteristicsLog, mozilla::LogLevel::Debug,
           ("Created Content Page"));
@@ -136,16 +123,20 @@ already_AddRefed<PopulatePromise> ContentPageStuff() {
         },
         [=](JSContext*, JS::Handle<JS::Value>, mozilla::ErrorResult& error) {
           if (error.Failed()) {
-            REJECT_VOID(populatePromise, "ContentPageStuff",
-                        error.StealNSResult(), "REJECTED_WITH_ERROR");
+            nsresult rv = error.StealNSResult();
+            populatePromise->Reject(std::pair("ContentPageStuff"_ns, rv),
+                                    __func__);
+            return;
           }
-          REJECT(populatePromise, "ContentPageStuff", NS_ERROR_FAILURE,
-                 "REJECTED_WITHOUT_ERROR");
+          populatePromise->Reject(
+              std::pair("ContentPageStuff"_ns, "UNKNOWN"_ns.AsString()),
+              __func__);
         });
   } else {
     MOZ_LOG(gUserCharacteristicsLog, mozilla::LogLevel::Error,
             ("Did not get a Promise back from ContentPageStuff"));
-    REJECT(populatePromise, __func__, NS_ERROR_FAILURE, "NO_PROMISE");
+    populatePromise->Reject(std::pair(__func__, "NO_PROMISE"_ns.AsString()),
+                            __func__);
   }
 
   return populatePromise.forget();
@@ -366,8 +357,10 @@ already_AddRefed<PopulatePromise> PopulateFingerprintedFonts() {
     nsresult rv =
         ProcessFingerprintedFonts(fontList, allowlistedHex, nonallowlistedHex);
     if (NS_FAILED(rv)) {
-      REJECT_AND_FORGET(populatePromise, __func__, rv,
-                        "ProcessFingerprintedFonts"_ns.AsString());
+      populatePromise->Reject(
+          std::pair(__func__, "PopulateFingerprintedFonts"_ns.AsString()),
+          __func__);
+      return populatePromise.forget();
     }
 
     metrics.first.Set(allowlistedHex);
@@ -574,8 +567,8 @@ already_AddRefed<PopulatePromise> PopulateMediaDevices() {
         // GetPhysicalDevices() never rejects but we'll add the following
         // just in case it changes in the future
         reason->mMessage.StripChar(',');
-        REJECT(populatePromise, "PopulateMediaDevices", NS_ERROR_FAILURE,
-               reason->mMessage);
+        populatePromise->Reject(
+            std::pair("PopulateMediaDevices"_ns, reason->mMessage), __func__);
       });
   return populatePromise.forget();
 }
@@ -667,15 +660,20 @@ void PopulateErrors(
     }
 
     const auto& errorVar = result.RejectValue();
-    nsCString funcName = std::get<0>(errorVar);
-    nsresult rv = std::get<1>(errorVar);
-    nsCString additionalCtx = std::get<2>(errorVar);
-
-    errors.AppendPrintf("%s:%lu:%s", funcName.get(), rv, additionalCtx.get());
-    MOZ_LOG(gUserCharacteristicsLog, mozilla::LogLevel::Error,
-            ("Error encountered: %s:%lu:%s", funcName.get(), rv,
-             additionalCtx.get()));
-
+    if (errorVar.second.is<nsresult>()) {
+      nsresult error = errorVar.second.as<nsresult>();
+      MOZ_LOG(gUserCharacteristicsLog, mozilla::LogLevel::Error,
+              ("%s rejected with nsresult: %u.", errorVar.first.get(),
+               static_cast<uint32_t>(error)));
+      errors.AppendPrintf("%s:%u", errorVar.first.get(),
+                          static_cast<uint32_t>(error));
+    } else if (errorVar.second.is<nsCString>()) {
+      nsCString error = errorVar.second.as<nsCString>();
+      MOZ_LOG(
+          gUserCharacteristicsLog, mozilla::LogLevel::Error,
+          ("%s rejected with reason: %s.", errorVar.first.get(), error.get()));
+      errors.AppendPrintf("%s:%s", errorVar.first.get(), error.get());
+    }
     errors.Append(",");
   }
   if (errors.Length() > 0) {
@@ -734,8 +732,8 @@ already_AddRefed<PopulatePromise> PopulateTimeZone() {
     glean::characteristics::timezone.Set(timeZone);
     populatePromise->Resolve(void_t(), __func__);
   } else {
-    REJECT(populatePromise, __func__, NS_ERROR_FAILURE,
-           nsPrintfCString("ICUError=%d", result.unwrapErr()));
+    populatePromise->Reject(std::pair(__func__, "NO_RESULT"_ns.AsString()),
+                            __func__);
   }
 
   return populatePromise.forget();
@@ -776,11 +774,12 @@ const RefPtr<PopulatePromise>& TimoutPromise(
       getter_AddRefs(timeout),
       [=](auto) {
         // NOTE: has no effect if `promise` has already been resolved.
-        REJECT(promise, funcName, NS_ERROR_FAILURE, "TIMEOUT");
+        promise->Reject(std::pair(funcName, "TIMEOUT"_ns.AsString()), __func__);
       },
       delay, nsITimer::TYPE_ONE_SHOT, "UserCharacteristicsPromiseTimeout");
   if (NS_FAILED(rv)) {
-    REJECT(promise, funcName, rv, "TIMEOUT_CREATION");
+    promise->Reject(std::pair(funcName, "TIMEOUT_CREATION"_ns.AsString()),
+                    __func__);
   }
 
   auto cancelTimeoutRes = [timeout = std::move(timeout)]() {
@@ -798,7 +797,7 @@ const RefPtr<PopulatePromise>& TimoutPromise(
 // metric is set, this variable should be incremented. It'll be a lot. It's
 // okay. We're going to need it to know (including during development) what is
 // the source of the data we are looking at.
-const int kSubmissionSchema = 27;
+const int kSubmissionSchema = 26;
 
 const auto* const kUUIDPref =
     "toolkit.telemetry.user_characteristics_ping.uuid";
