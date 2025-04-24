@@ -178,15 +178,21 @@ already_AddRefed<Promise> PublicKeyCredential::GetClientCapabilities(
   entry->mKey = u"extension:credProps"_ns;
   entry->mValue = true;
 
-  // Bug 1844449: support the credProtect extension.
-  // entry = capabilities.Entries().AppendElement();
-  // entry->mKey = u"extension:credentialProtectionPolicy"_ns;
-  // entry->mValue = true;
+  entry = capabilities.Entries().AppendElement();
+  entry->mKey = u"extension:credentialProtectionPolicy"_ns;
+#if defined(XP_MACOSX) || defined(MOZ_WIDGET_ANDROID)
+  entry->mValue = false;
+#else
+  entry->mValue = true;
+#endif
 
-  // Bug 1844449: support the credProtect extension.
-  // entry = capabilities.Entries().AppendElement();
-  // entry->mKey = u"extension:enforceCredentialProtectionPolicy"_ns;
-  // entry->mValue = true;
+  entry = capabilities.Entries().AppendElement();
+  entry->mKey = u"extension:enforceCredentialProtectionPolicy"_ns;
+#if defined(XP_MACOSX) || defined(MOZ_WIDGET_ANDROID)
+  entry->mValue = false;
+#else
+  entry->mValue = true;
+#endif
 
   // Bug 1844448: support the credBlob extension.
   // entry = capabilities.Entries().AppendElement();
@@ -656,25 +662,33 @@ void PublicKeyCredential::ParseCreationOptionsFromJSON(
   aResult.mAttestation = aOptions.mAttestation;
 
   if (aOptions.mExtensions.WasPassed()) {
-    if (aOptions.mExtensions.Value().mAppid.WasPassed()) {
-      aResult.mExtensions.mAppid.Construct(
-          aOptions.mExtensions.Value().mAppid.Value());
+    const AuthenticationExtensionsClientInputsJSON& extInputsJSON =
+        aOptions.mExtensions.Value();
+    AuthenticationExtensionsClientInputs& extInputs = aResult.mExtensions;
+    if (extInputsJSON.mAppid.WasPassed()) {
+      extInputs.mAppid.Construct(extInputsJSON.mAppid.Value());
     }
-    if (aOptions.mExtensions.Value().mCredProps.WasPassed()) {
-      aResult.mExtensions.mCredProps.Construct(
-          aOptions.mExtensions.Value().mCredProps.Value());
+    if (extInputsJSON.mCredentialProtectionPolicy.WasPassed()) {
+      extInputs.mCredentialProtectionPolicy.Construct(
+          extInputsJSON.mCredentialProtectionPolicy.Value());
     }
-    if (aOptions.mExtensions.Value().mHmacCreateSecret.WasPassed()) {
-      aResult.mExtensions.mHmacCreateSecret.Construct(
-          aOptions.mExtensions.Value().mHmacCreateSecret.Value());
+    if (extInputsJSON.mEnforceCredentialProtectionPolicy.WasPassed()) {
+      extInputs.mEnforceCredentialProtectionPolicy.Construct(
+          extInputsJSON.mEnforceCredentialProtectionPolicy.Value());
     }
-    if (aOptions.mExtensions.Value().mMinPinLength.WasPassed()) {
-      aResult.mExtensions.mMinPinLength.Construct(
-          aOptions.mExtensions.Value().mMinPinLength.Value());
+    if (extInputsJSON.mCredProps.WasPassed()) {
+      extInputs.mCredProps.Construct(extInputsJSON.mCredProps.Value());
     }
-    if (aOptions.mExtensions.Value().mLargeBlob.WasPassed()) {
+    if (extInputsJSON.mHmacCreateSecret.WasPassed()) {
+      extInputs.mHmacCreateSecret.Construct(
+          extInputsJSON.mHmacCreateSecret.Value());
+    }
+    if (extInputsJSON.mMinPinLength.WasPassed()) {
+      extInputs.mMinPinLength.Construct(extInputsJSON.mMinPinLength.Value());
+    }
+    if (extInputsJSON.mLargeBlob.WasPassed()) {
       const AuthenticationExtensionsLargeBlobInputsJSON& largeBlobInputsJSON =
-          aOptions.mExtensions.Value().mLargeBlob.Value();
+          extInputsJSON.mLargeBlob.Value();
       AuthenticationExtensionsLargeBlobInputs& largeBlobInputs =
           aResult.mExtensions.mLargeBlob.Construct();
       if (!DecodeAuthenticationExtensionsLargeBlobInputsJSON(
@@ -684,11 +698,10 @@ void PublicKeyCredential::ParseCreationOptionsFromJSON(
         return;
       }
     }
-    if (aOptions.mExtensions.Value().mPrf.WasPassed()) {
+    if (extInputsJSON.mPrf.WasPassed()) {
       const AuthenticationExtensionsPRFInputsJSON& prfInputsJSON =
-          aOptions.mExtensions.Value().mPrf.Value();
-      AuthenticationExtensionsPRFInputs& prfInputs =
-          aResult.mExtensions.mPrf.Construct();
+          extInputsJSON.mPrf.Value();
+      AuthenticationExtensionsPRFInputs& prfInputs = extInputs.mPrf.Construct();
       if (!DecodeAuthenticationExtensionsPRFInputsJSON(aGlobal, prfInputsJSON,
                                                        prfInputs, aRv)) {
         aRv.ThrowEncodingError("could not decode prf inputs as urlsafe base64");
