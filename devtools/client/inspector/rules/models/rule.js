@@ -90,17 +90,6 @@ class Rule {
     return this.textProps;
   }
 
-  get inheritance() {
-    if (!this.inherited) {
-      return null;
-    }
-
-    return {
-      inherited: this.inherited,
-      inheritedSource: this.inheritedSource,
-    };
-  }
-
   get selector() {
     return {
       getUniqueSelector: this.getUniqueSelector,
@@ -125,11 +114,11 @@ class Rule {
     return title;
   }
 
-  get inheritedSource() {
-    if (this._inheritedSource) {
-      return this._inheritedSource;
+  get inheritedSectionLabel() {
+    if (this._inheritedSectionLabel) {
+      return this._inheritedSectionLabel;
     }
-    this._inheritedSource = "";
+    this._inheritedSectionLabel = "";
     if (this.inherited) {
       let eltText = this.inherited.displayName;
       if (this.inherited.id) {
@@ -138,12 +127,12 @@ class Rule {
       if (CssLogic.ELEMENT_BACKED_PSEUDO_ELEMENTS.has(this.pseudoElement)) {
         eltText += this.pseudoElement;
       }
-      this._inheritedSource = STYLE_INSPECTOR_L10N.getFormatStr(
+      this._inheritedSectionLabel = STYLE_INSPECTOR_L10N.getFormatStr(
         "rule.inheritedFrom",
         eltText
       );
     }
-    return this._inheritedSource;
+    return this._inheritedSectionLabel;
   }
 
   get keyframesName() {

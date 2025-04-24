@@ -1412,7 +1412,7 @@ CssRuleView.prototype = {
     // Run through the current list of rules, attaching
     // their editors in order.  Create editors if needed.
     let lastInherited = null;
-    let lastInheritedSource = "";
+    let lastinheritedSectionLabel = "";
     let seenNormalElement = false;
     let seenSearchTerm = false;
     const containers = new Map();
@@ -1458,8 +1458,8 @@ CssRuleView.prototype = {
         this.element.appendChild(div);
       }
 
-      const { inherited, inheritedSource } = rule;
-      // We need to check both `inherited` (a NodeFront) and `inheritedSource` (string),
+      const { inherited, inheritedSectionLabel } = rule;
+      // We need to check both `inherited` (a NodeFront) and `inheritedSectionLabel` (string),
       // as element-backed pseudo element rules (e.g. `::details-content`) can have the same
       // `inherited` property as a regular rule (e.g. on `<details>`), but the element is
       // to be considered as a child of the binding element.
@@ -1469,7 +1469,8 @@ CssRuleView.prototype = {
       // Inherited by details
       if (
         inherited &&
-        (inherited !== lastInherited || inheritedSource !== lastInheritedSource)
+        (inherited !== lastInherited ||
+          inheritedSectionLabel !== lastinheritedSectionLabel)
       ) {
         const div = this.styleDocument.createElementNS(HTML_NS, "div");
         div.classList.add(
@@ -1478,9 +1479,9 @@ CssRuleView.prototype = {
         );
         div.setAttribute("role", "heading");
         div.setAttribute("aria-level", "3");
-        div.textContent = rule.inheritedSource;
+        div.textContent = rule.inheritedSectionLabel;
         lastInherited = inherited;
-        lastInheritedSource = inheritedSource;
+        lastinheritedSectionLabel = inheritedSectionLabel;
         this.element.appendChild(div);
       }
 
