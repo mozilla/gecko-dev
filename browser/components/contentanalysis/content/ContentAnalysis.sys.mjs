@@ -760,12 +760,15 @@ export const ContentAnalysis = {
         // the dialog, no need to log the exception.
       })
       .finally(() => {
-        // This is also be called if the tab/window is closed while a request is in progress,
-        // in which case we need to cancel the request.
+        // This is also called if the tab/window is closed while a request is
+        // in progress, in which case we need to cancel all related requests.
         if (this.requestTokenToRequestInfo.delete(aRequestToken)) {
+          // TODO: Is this useful?  I think no.
           this._removeSlowCAMessage(aUserActionId, aRequestToken);
-          this.contentAnalysis.cancelRequestsByRequestToken(aRequestToken);
         }
+        this.contentAnalysis.cancelAllRequestsAssociatedWithUserAction(
+          aUserActionId
+        );
       });
     return {
       dialogBrowsingContext: aBrowsingContext,

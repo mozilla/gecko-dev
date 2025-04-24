@@ -345,6 +345,12 @@ function makeMockContentAnalysis() {
     cancelRequestsByRequestToken(aRequestToken) {
       this.cancelledRequestTokens.push(aRequestToken);
     },
+
+    cancelAllRequestsAssociatedWithUserAction(aUserActionId) {
+      return this.realCAService.cancelAllRequestsAssociatedWithUserAction(
+        aUserActionId
+      );
+    },
   };
 }
 
