@@ -821,3 +821,162 @@ add_task(async function test_tabInteractions() {
   win.gBrowser.removeAllTabsBut(initialTab);
   await resetTelemetry();
 });
+
+add_task(async function test_groupInteractions() {
+  await resetTelemetry();
+  let group = await makeTabGroup();
+  const groupId = group.id;
+
+  info("test that collapsing and expanding the group gets counted");
+  Assert.ok(!group.collapsed, "new tab group should start expanded");
+  const tabGroupCollapseEvent = BrowserTestUtils.waitForEvent(
+    win,
+    "TabGroupCollapse"
+  );
+  group.labelElement.click();
+  await tabGroupCollapseEvent;
+  Assert.equal(
+    Glean.tabgroup.groupInteractions.collapse.testGetValue(),
+    1,
+    "tab group collapse should have been recorded"
+  );
+  const tabGroupExpandEvent = BrowserTestUtils.waitForEvent(
+    win,
+    "TabGroupExpand"
+  );
+  group.labelElement.click();
+  await tabGroupExpandEvent;
+  Assert.equal(
+    Glean.tabgroup.groupInteractions.expand.testGetValue(),
+    1,
+    "tab group expand should have been recorded"
+  );
+
+  info("opening and closing tab group context menu");
+  let tabGroupContextMenu = await openTabGroupContextMenu(group);
+  await closeContextMenu(tabGroupContextMenu);
+
+  Assert.equal(
+    Glean.tabgroup.groupInteractions.rename.testGetValue(),
+    null,
+    "tab group rename count should not have changed because the name did not change"
+  );
+
+  info("opening tab group context menu and inputting tab group name change");
+  tabGroupContextMenu = await openTabGroupContextMenu(group);
+  let tabGroupNameInput = win.document.getElementById("tab-group-name");
+  let inputEvent = BrowserTestUtils.waitForEvent(tabGroupNameInput, "input");
+  tabGroupNameInput.value = "test group name";
+  tabGroupNameInput.dispatchEvent(
+    new InputEvent("input", { data: "test group name" })
+  );
+  await inputEvent;
+  await closeContextMenu(tabGroupContextMenu);
+
+  await TestUtils.waitForCondition(
+    () => Glean.tabgroup.groupInteractions.rename.testGetValue() != null,
+    "waiting for `rename` metric to be set"
+  );
+  Assert.equal(
+    Glean.tabgroup.groupInteractions.rename.testGetValue(),
+    1,
+    "tab group rename count should have increased because the name changed"
+  );
+
+  Assert.equal(
+    Glean.tabgroup.groupInteractions.change_color.testGetValue(),
+    null,
+    "tab group change_color count should start unset"
+  );
+  info("opening tab group context menu and changing tab group color");
+  tabGroupContextMenu = await openTabGroupContextMenu(group);
+  win.document.getElementById("tab-group-editor-swatch-green").click();
+  await closeContextMenu(tabGroupContextMenu);
+  Assert.equal(
+    Glean.tabgroup.groupInteractions.change_color.testGetValue(),
+    1,
+    "tab group change_color count should have increased because the color changed"
+  );
+
+  Assert.equal(
+    Glean.tabgroup.groupInteractions.delete.testGetValue(),
+    null,
+    "tab group delete count should start unset"
+  );
+  info("opening tab group context menu and deleting it");
+  tabGroupContextMenu = await openTabGroupContextMenu(group);
+  let tabGroupRemoved = BrowserTestUtils.waitForEvent(group, "TabGroupRemoved");
+  win.document.getElementById("tabGroupEditor_deleteGroup").click();
+  await tabGroupRemoved;
+  Assert.equal(
+    Glean.tabgroup.groupInteractions.delete.testGetValue(),
+    1,
+    "tab group delete count should have increased because a tab group was deleted"
+  );
+
+  Assert.equal(
+    Glean.tabgroup.groupInteractions.open_recent.testGetValue(),
+    null,
+    "tab group open_recent count should start unset"
+  );
+  info(
+    "undoing last closed tab group, which should restore the just-deleted tab group"
+  );
+  SessionStore.undoCloseTabGroup(win, groupId, win);
+  group = win.gBrowser.getTabGroupById(groupId);
+  Assert.ok(group, "group should have been restored");
+  Assert.equal(
+    Glean.tabgroup.groupInteractions.open_recent.testGetValue(),
+    1,
+    "tab group open_recent count should have increased because a recently closed tab group was reopened"
+  );
+
+  Assert.equal(
+    Glean.tabgroup.groupInteractions.save.testGetValue(),
+    null,
+    "tab group save count should start unset"
+  );
+  info("opening tab group context menu and saving it");
+  tabGroupContextMenu = await openTabGroupContextMenu(group);
+  win.document.getElementById("tabGroupEditor_saveAndCloseGroup").click();
+  await TestUtils.waitForCondition(
+    () => Glean.tabgroup.groupInteractions.save.testGetValue() != null,
+    "waiting for `save` metric to be set"
+  );
+  Assert.equal(
+    Glean.tabgroup.groupInteractions.save.testGetValue(),
+    1,
+    "tab group save count should have increased because a tab group was saved"
+  );
+
+  info("reopen saved tab group virtually from tab overflow menu");
+
+  group = SessionStore.openSavedTabGroup(groupId, win, {
+    source: "tab_overflow",
+  });
+  Assert.equal(
+    Glean.tabgroup.groupInteractions.open_tabmenu.testGetValue(),
+    1,
+    "`open_tabmenu` metric should increment"
+  );
+
+  Assert.equal(
+    Glean.tabgroup.groupInteractions.ungroup.testGetValue(),
+    null,
+    "tab group ungroup count should start unset"
+  );
+  info("opening tab group context menu and ungrouping it");
+
+  tabGroupContextMenu = await openTabGroupContextMenu(group);
+
+  tabGroupRemoved = BrowserTestUtils.waitForEvent(group, "TabGroupRemoved");
+  win.document.getElementById("tabGroupEditor_ungroupTabs").click();
+  await tabGroupRemoved;
+  Assert.equal(
+    Glean.tabgroup.groupInteractions.ungroup.testGetValue(),
+    1,
+    "tab group ungroup count should have increased because a tab group was ungrouped"
+  );
+
+  await resetTelemetry();
+});

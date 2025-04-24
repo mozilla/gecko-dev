@@ -911,6 +911,13 @@ export var SessionStore = {
         : TabMetrics.METRIC_TABS_LAYOUT.HORIZONTAL,
       type: TabMetrics.METRIC_REOPEN_TYPE.SAVED,
     });
+    if (source == TabMetrics.METRIC_SOURCE.SUGGEST) {
+      Glean.tabgroup.groupInteractions.open_suggest.add(1);
+    } else if (source == TabMetrics.METRIC_SOURCE.TAB_OVERFLOW_MENU) {
+      Glean.tabgroup.groupInteractions.open_tabmenu.add(1);
+    } else if (source == TabMetrics.METRIC_SOURCE.RECENT_TABS) {
+      Glean.tabgroup.groupInteractions.open_recent.add(1);
+    }
 
     return SessionStoreInternal.openSavedTabGroup(tabGroupId, targetWindow);
   },
@@ -8143,6 +8150,8 @@ var SessionStoreInternal = {
     );
     this.forgetClosedTabGroup(source, tabGroupId);
     sourceWinData.lastClosedTabGroupId = null;
+
+    Glean.tabgroup.groupInteractions.open_recent.add(1);
 
     group.select();
     return group;

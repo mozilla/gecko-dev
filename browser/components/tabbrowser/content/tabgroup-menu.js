@@ -254,7 +254,7 @@
             data-l10n-id="tab-group-editor-no-tabs-found-message">
           </html:p>
         </html:div>
-        
+
         ${this.defaultActions}
 
       </html:div>
@@ -309,6 +309,8 @@
     #suggestionState = MozTabbrowserTabGroupMenu.State.CREATE_STANDARD_INITIAL;
     #suggestionsHeading;
     #defaultHeader;
+    /** @type {string} */
+    #initialTabGroupName;
     #suggestionsContainer;
     #suggestions;
     #suggestionButton;
@@ -448,7 +450,10 @@
       );
 
       this.#commandButtons.ungroupTabs.addEventListener("command", () => {
-        this.activeGroup.ungroupTabs();
+        this.activeGroup.ungroupTabs({
+          isUserTriggered: true,
+          telemetrySource: TabMetrics.METRIC_SOURCE.TAB_GROUP_MENU,
+        });
       });
 
       this.#commandButtons.saveAndCloseGroup.addEventListener("command", () => {
@@ -857,6 +862,7 @@
       if (this.createMode) {
         this.#keepNewlyCreatedGroup = true;
       }
+      this.#initialTabGroupName = this.activeGroup?.label;
       this.#nameField.focus();
 
       for (const button of Object.values(this.#commandButtons)) {
@@ -883,6 +889,9 @@
       }
       if (this.#nameField.disabled) {
         this.#setFormToDisabled(false);
+      }
+      if (this.activeGroup?.label != this.#initialTabGroupName) {
+        Glean.tabgroup.groupInteractions.rename.add(1);
       }
       this.activeGroup = null;
       this.#smartTabGroupingManager.terminateProcess();
@@ -920,6 +929,7 @@
       }
       if (this.activeGroup) {
         this.activeGroup.color = aEvent.target.value;
+        Glean.tabgroup.groupInteractions.change_color.add(1);
       }
     }
 
