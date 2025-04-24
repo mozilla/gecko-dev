@@ -114,11 +114,14 @@ class DownloadUIStoreTest {
     }
 
     @Test
-    fun allItemsAddedForRemoval() {
+    fun `WHEN all items are visible and all items selected for removal THEN all items are selected`() {
         val initialState = DownloadUIState(
             items = listOf(fileItem1, fileItem2),
             mode = DownloadUIState.Mode.Normal,
             pendingDeletionIds = emptySet(),
+            userSelectedContentTypeFilter = FileItem.ContentTypeFilter.All,
+            searchQuery = "",
+            isSearchEnabled = true,
         )
         val store = DownloadUIStore(initialState)
 
@@ -128,6 +131,121 @@ class DownloadUIStoreTest {
             items = listOf(fileItem1, fileItem2),
             mode = DownloadUIState.Mode.Editing(setOf(fileItem1, fileItem2)),
             pendingDeletionIds = emptySet(),
+        )
+
+        assertEquals(expected, store.state)
+    }
+
+    @Test
+    fun `WHEN only filtered items are visible and all items selected for removal THEN only those filtered items are selected`() {
+        val image = FileItem(
+            id = "1",
+            url = "url",
+            fileName = "title",
+            filePath = "url",
+            formattedSize = "77",
+            displayedShortUrl = "url",
+            contentType = "image/jpeg",
+            status = DownloadState.Status.COMPLETED,
+            createdTime = CreatedTime.TODAY,
+        )
+
+        val document = FileItem(
+            id = "2",
+            url = "docurl",
+            fileName = "doc",
+            filePath = "docPath",
+            formattedSize = "77",
+            displayedShortUrl = "url",
+            contentType = "application/pdf",
+            status = DownloadState.Status.COMPLETED,
+            createdTime = CreatedTime.TODAY,
+        )
+
+        val initialState = DownloadUIState(
+            items = listOf(image, document),
+            mode = DownloadUIState.Mode.Normal,
+            pendingDeletionIds = emptySet(),
+            userSelectedContentTypeFilter = FileItem.ContentTypeFilter.All,
+            searchQuery = "",
+            isSearchEnabled = true,
+        )
+        val store = DownloadUIStore(initialState)
+
+        store.dispatch(DownloadUIAction.ContentTypeSelected(FileItem.ContentTypeFilter.Image))
+        store.dispatch(DownloadUIAction.AddAllItemsForRemoval)
+
+        val expected = DownloadUIState(
+            items = listOf(image, document),
+            mode = DownloadUIState.Mode.Editing(setOf(image)),
+            pendingDeletionIds = emptySet(),
+            userSelectedContentTypeFilter = FileItem.ContentTypeFilter.Image,
+            searchQuery = "",
+            isSearchEnabled = true,
+        )
+
+        assertEquals(expected, store.state)
+    }
+
+    @Test
+    fun `WHEN items are filtered by content type and search and all items selected for removal THEN only those filtered items are selected`() {
+        val image1 = FileItem(
+            id = "1",
+            url = "url",
+            fileName = "title",
+            filePath = "filePath",
+            formattedSize = "77",
+            displayedShortUrl = "url",
+            contentType = "image/jpeg",
+            status = DownloadState.Status.COMPLETED,
+            createdTime = CreatedTime.TODAY,
+        )
+
+        val image2 = FileItem(
+            id = "2",
+            url = "image2",
+            fileName = "image2",
+            filePath = "filePath2",
+            formattedSize = "1234",
+            displayedShortUrl = "image2",
+            contentType = "image/jpg",
+            status = DownloadState.Status.COMPLETED,
+            createdTime = CreatedTime.TODAY,
+        )
+
+        val document = FileItem(
+            id = "3",
+            url = "docurl",
+            fileName = "doc",
+            filePath = "docPath",
+            formattedSize = "77",
+            displayedShortUrl = "url",
+            contentType = "application/pdf",
+            status = DownloadState.Status.COMPLETED,
+            createdTime = CreatedTime.TODAY,
+        )
+
+        val initialState = DownloadUIState(
+            items = listOf(image1, image2, document),
+            mode = DownloadUIState.Mode.Normal,
+            pendingDeletionIds = emptySet(),
+            userSelectedContentTypeFilter = FileItem.ContentTypeFilter.All,
+            searchQuery = "",
+            isSearchEnabled = true,
+        )
+        val store = DownloadUIStore(initialState)
+
+        store.dispatch(DownloadUIAction.ContentTypeSelected(FileItem.ContentTypeFilter.Image))
+        store.dispatch(DownloadUIAction.SearchQueryEntered("url"))
+        store.dispatch(DownloadUIAction.AddAllItemsForRemoval)
+
+        val expected = DownloadUIState(
+            items = listOf(image1, image2, document),
+            mode = DownloadUIState.Mode.Editing(setOf(image1)),
+            pendingDeletionIds = emptySet(),
+            userSelectedContentTypeFilter = FileItem.ContentTypeFilter.Image,
+            searchQuery = "url",
+            isSearchEnabled = true,
         )
 
         assertEquals(expected, store.state)

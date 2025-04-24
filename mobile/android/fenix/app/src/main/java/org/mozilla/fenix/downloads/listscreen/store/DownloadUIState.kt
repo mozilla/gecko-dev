@@ -32,9 +32,9 @@ data class DownloadUIState(
 ) : State {
 
     /**
-     * The ungrouped list of items to display, excluding any items that are pending deletion.
+     * The ungrouped list of items, excluding any items that are pending deletion.
      */
-    val itemsNotPendingDeletion = items.filter { it.id !in pendingDeletionIds }
+    private val itemsNotPendingDeletion = items.filter { it.id !in pendingDeletionIds }
 
     /**
      * The content type filter that is actually used to filter the items. This overrides the user
@@ -63,10 +63,17 @@ data class DownloadUIState(
 
     /**
      * The list of items to display grouped by the created time of the item.
+     * The ungrouped list of items to display, excluding any items that are pending deletion and
+     * that match the selected content type filter and the search query.
      */
-    private val itemsToDisplay: List<DownloadListItem> = itemsNotPendingDeletion
+    val itemsMatchingFilters = itemsNotPendingDeletion
         .filter { selectedContentTypeFilter.predicate(it.contentType) }
         .filter(searchQueryPredicate)
+
+    /**
+     * The list of items to display grouped by the created time of the item.
+     */
+    private val itemsToDisplay: List<DownloadListItem> = itemsMatchingFilters
         .groupBy { it.createdTime }
         .toSortedMap()
         .flatMap { (key, value) ->

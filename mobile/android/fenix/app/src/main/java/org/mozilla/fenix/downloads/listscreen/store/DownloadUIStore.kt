@@ -41,7 +41,7 @@ private fun downloadStateReducer(
 
         is DownloadUIAction.AddAllItemsForRemoval -> {
             state.copy(
-                mode = Mode.Editing(state.itemsNotPendingDeletion.toSet()),
+                mode = Mode.Editing(state.itemsMatchingFilters.toSet()),
             )
         }
 
