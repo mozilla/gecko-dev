@@ -217,52 +217,6 @@ add_task(async function test_allow_multiple_exposure_events() {
   cleanup();
 });
 
-add_task(async function test_onUpdate_before_store_ready() {
-  const { sandbox, manager, initExperimentAPI, cleanup } =
-    await NimbusTestUtils.setupTest({ init: false });
-
-  const feature = new ExperimentFeature("foo", FAKE_FEATURE_MANIFEST);
-  const stub = sandbox.stub();
-  sandbox.stub(ExperimentAPI, "_manager").get(() => manager);
-  sandbox.stub(manager.store, "getAllActiveExperiments").returns([
-    ExperimentFakes.experiment("foo-experiment", {
-      branch: {
-        slug: "control",
-        features: [
-          {
-            featureId: "foo",
-            value: null,
-          },
-        ],
-      },
-    }),
-  ]);
-
-  // We register for updates before the store finished loading experiments
-  // from disk
-  feature.onUpdate(stub);
-
-  await initExperimentAPI();
-
-  Assert.ok(
-    stub.calledOnce,
-    "Called on startup after loading experiments from disk"
-  );
-  Assert.equal(
-    stub.firstCall.args[0],
-    `featureUpdate:${feature.featureId}`,
-    "Called for correct feature"
-  );
-
-  Assert.equal(
-    stub.firstCall.args[1],
-    "feature-experiment-loaded",
-    "Called for the expected reason"
-  );
-
-  cleanup();
-});
-
 add_task(async function test_onUpdate_after_store_ready() {
   const { sandbox, manager, cleanup } = await setupTest();
   const stub = sandbox.stub();

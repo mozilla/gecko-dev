@@ -219,16 +219,15 @@ export class ExperimentStore extends SharedDataMap {
   async init() {
     await super.init();
 
-    for (const { featureIds } of this.getAllActiveExperiments()) {
-      for (const featureId of featureIds) {
-        this._emitFeatureUpdate(featureId, "feature-experiment-loaded");
+    const featureIds = new Set();
+    for (const enrollment of this.getAll().filter(e => e.active)) {
+      for (const featureId of enrollment.featureIds) {
+        featureIds.add(featureId);
       }
     }
 
-    for (const { featureIds } of this.getAllActiveRollouts()) {
-      for (const featureId of featureIds) {
-        this._emitFeatureUpdate(featureId, "feature-rollout-loaded");
-      }
+    for (const featureId of featureIds) {
+      this._emitFeatureUpdate(featureId, "feature-enrollments-loaded");
     }
 
     Services.tm.idleDispatchToMainThread(() => this._cleanupOldRecipes());

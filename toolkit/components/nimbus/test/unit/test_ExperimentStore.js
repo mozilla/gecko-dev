@@ -56,13 +56,50 @@ add_task(async function test_initOnUpdateEventsFire() {
     const store = NimbusTestUtils.stubs.store();
     await store.init();
 
-    store.addEnrollment(NimbusTestUtils.factories.experiment("foo"));
-    store.addEnrollment(NimbusTestUtils.factories.rollout("bar"));
     store.addEnrollment(
-      NimbusTestUtils.factories.experiment("baz", { active: false })
+      NimbusTestUtils.factories.experiment.withFeatureConfig("testFeature-1", {
+        featureId: "testFeature",
+      })
     );
     store.addEnrollment(
-      NimbusTestUtils.factories.rollout("qux", { active: false })
+      NimbusTestUtils.factories.rollout.withFeatureConfig("testFeature-2", {
+        featureId: "testFeature",
+      })
+    );
+    store.addEnrollment(
+      NimbusTestUtils.factories.experiment.withFeatureConfig(
+        "nimbus-qa-1",
+        { featureId: "nimbus-qa-1" },
+        { active: false }
+      )
+    );
+    store.addEnrollment(
+      NimbusTestUtils.factories.rollout.withFeatureConfig(
+        "nimbus-qa-2",
+        { featureId: "nimbus-qa-2" },
+        { active: false }
+      )
+    );
+
+    store.addEnrollment(
+      NimbusTestUtils.factories.experiment.withFeatureConfig("coenroll-1", {
+        featureId: "no-feature-firefox-desktop",
+      })
+    );
+    store.addEnrollment(
+      NimbusTestUtils.factories.experiment.withFeatureConfig("coenroll-2", {
+        featureId: "no-feature-firefox-desktop",
+      })
+    );
+    store.addEnrollment(
+      NimbusTestUtils.factories.rollout.withFeatureConfig("coenroll-3", {
+        featureId: "no-feature-firefox-desktop",
+      })
+    );
+    store.addEnrollment(
+      NimbusTestUtils.factories.rollout.withFeatureConfig("coenroll-4", {
+        featureId: "no-feature-firefox-desktop",
+      })
     );
 
     storePath = await NimbusTestUtils.saveStore(store);
@@ -76,28 +113,38 @@ add_task(async function test_initOnUpdateEventsFire() {
   const onFeatureUpdate = sandbox.stub();
 
   NimbusFeatures.testFeature.onUpdate(onFeatureUpdate);
+  NimbusFeatures["nimbus-qa-1"].onUpdate(onFeatureUpdate);
+  NimbusFeatures["nimbus-qa-2"].onUpdate(onFeatureUpdate);
+  NimbusFeatures["no-feature-firefox-desktop"].onUpdate(onFeatureUpdate);
 
   await initExperimentAPI();
-
-  Assert.equal(onFeatureUpdate.callCount, 2, "onFeatureUpdate called twice");
 
   Assert.ok(
     onFeatureUpdate.calledWithExactly(
       "featureUpdate:testFeature",
-      "feature-experiment-loaded"
+      "feature-enrollments-loaded"
     )
   );
   Assert.ok(
     onFeatureUpdate.calledWithExactly(
-      "featureUpdate:testFeature",
-      "feature-rollout-loaded"
+      "featureUpdate:no-feature-firefox-desktop",
+      "feature-enrollments-loaded"
     )
+  );
+  Assert.equal(
+    onFeatureUpdate.callCount,
+    2,
+    "onFeatureUpdate called once per active feature ID"
   );
 
   NimbusFeatures.testFeature.offUpdate(onFeatureUpdate);
 
-  store.updateExperiment("foo", { active: false });
-  store.updateExperiment("bar", { active: false });
+  store.updateExperiment("testFeature-1", { active: false });
+  store.updateExperiment("testFeature-2", { active: false });
+  store.updateExperiment("coenroll-1", { active: false });
+  store.updateExperiment("coenroll-2", { active: false });
+  store.updateExperiment("coenroll-3", { active: false });
+  store.updateExperiment("coenroll-4", { active: false });
 
   cleanup();
 });
