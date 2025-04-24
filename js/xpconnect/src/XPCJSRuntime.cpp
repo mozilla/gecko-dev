@@ -2957,6 +2957,10 @@ static void SetUseCounterCallback(JSObject* obj, JSUseCounter counter) {
     case JSUseCounter::DATEPARSE_IMPL_DEF:
       SetUseCounter(obj, eUseCounter_custom_JS_dateparse_impl_def);
       return;
+    case JSUseCounter::REGEXP_SYMBOL_PROTOCOL_ON_PRIMITIVE:
+      SetUseCounter(obj,
+                    eUseCounter_custom_JS_regexp_symbol_protocol_on_primitive);
+      return;
     case JSUseCounter::COUNT:
       break;
   }
