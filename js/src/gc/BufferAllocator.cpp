@@ -882,7 +882,7 @@ bool BufferAllocator::markTenuredAlloc(void* alloc) {
 
 bool BufferAllocator::markSmallTenuredAlloc(void* alloc) {
   auto* cell = GetHeaderFromAlloc<SmallBuffer>(alloc);
-  return cell->markIfUnmarkedAtomic(MarkColor::Black);
+  return cell->markIfUnmarkedThreadSafe(MarkColor::Black);
 }
 
 bool BufferAllocator::markMediumTenuredAlloc(void* alloc) {
@@ -893,7 +893,8 @@ bool BufferAllocator::markMediumTenuredAlloc(void* alloc) {
     return false;
   }
 
-  return chunk->markBits.ref().markIfUnmarkedAtomic(alloc, MarkColor::Black);
+  return chunk->markBits.ref().markIfUnmarkedThreadSafe(alloc,
+                                                        MarkColor::Black);
 }
 
 void BufferAllocator::startMinorCollection(MaybeLock& lock) {
@@ -2438,7 +2439,7 @@ bool BufferAllocator::markLargeTenuredBuffer(LargeBuffer* buffer) {
 
   // Bug 1961755: This method can return false positives. A fully atomic version
   // would be preferable in this case.
-  return headerCell->markIfUnmarkedAtomic(MarkColor::Black);
+  return headerCell->markIfUnmarkedThreadSafe(MarkColor::Black);
 }
 
 bool BufferAllocator::sweepLargeTenured(LargeBuffer* header) {

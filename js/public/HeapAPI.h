@@ -303,7 +303,7 @@ class alignas(TypicalCacheLineSize) MarkBitmap {
   }
 
   inline bool markIfUnmarked(const void* cell, MarkColor color);
-  inline bool markIfUnmarkedAtomic(const void* cell, MarkColor color);
+  inline bool markIfUnmarkedThreadSafe(const void* cell, MarkColor color);
   inline void markBlack(const void* cell);
   inline void markBlackAtomic(const void* cell);
   inline void copyMarkBit(TenuredCell* dst, const TenuredCell* src,

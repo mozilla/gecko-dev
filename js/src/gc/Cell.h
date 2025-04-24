@@ -252,7 +252,7 @@ class TenuredCell : public Cell {
   // The return value indicates if the cell went from unmarked to marked.
   MOZ_ALWAYS_INLINE bool markIfUnmarked(
       MarkColor color = MarkColor::Black) const;
-  MOZ_ALWAYS_INLINE bool markIfUnmarkedAtomic(MarkColor color) const;
+  MOZ_ALWAYS_INLINE bool markIfUnmarkedThreadSafe(MarkColor color) const;
   MOZ_ALWAYS_INLINE void markBlack() const;
   MOZ_ALWAYS_INLINE void markBlackAtomic() const;
   MOZ_ALWAYS_INLINE void copyMarkBitsFrom(const TenuredCell* src);

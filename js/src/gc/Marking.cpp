@@ -1226,7 +1226,7 @@ bool js::GCMarker::mark(T* thing) {
       TraceKindCanBeGray<T>::value ? markColor() : MarkColor::Black;
 
   if constexpr (bool(opts & MarkingOptions::ParallelMarking)) {
-    return thing->asTenured().markIfUnmarkedAtomic(color);
+    return thing->asTenured().markIfUnmarkedThreadSafe(color);
   }
 
   return thing->asTenured().markIfUnmarked(color);
