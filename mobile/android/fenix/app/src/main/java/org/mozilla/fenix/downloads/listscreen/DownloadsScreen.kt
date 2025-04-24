@@ -63,6 +63,7 @@ import mozilla.components.compose.base.menu.MenuItem
 import mozilla.components.compose.base.text.Text
 import mozilla.components.lib.state.ext.observeAsState
 import org.mozilla.fenix.R
+import org.mozilla.fenix.compose.button.FloatingActionButton
 import org.mozilla.fenix.compose.ext.isItemPartiallyVisible
 import org.mozilla.fenix.compose.list.ExpandableListHeader
 import org.mozilla.fenix.compose.list.SelectableListItem
@@ -152,30 +153,24 @@ fun DownloadsScreen(
                     }
                 },
                 actions = {
-                    Row {
-                        if (!uiState.isSearchFieldVisible && uiState.mode is Mode.Normal) {
-                            IconButton(
-                                onClick = {
-                                    downloadsStore.dispatch(DownloadUIAction.SearchBarVisibilityRequest)
-                                },
-                            ) {
-                                Icon(
-                                    painter = painterResource(R.drawable.mozac_ic_search_24),
-                                    contentDescription = stringResource(R.string.download_search_placeholder),
-                                    tint = toolbarConfig.iconColor,
-                                )
-                            }
-                        }
-                        if (uiState.mode is Mode.Editing) {
-                            ToolbarEditActions(
-                                downloadsStore = downloadsStore,
-                                toolbarConfig = toolbarConfig,
-                                onItemDeleteClick = onItemDeleteClick,
-                            )
-                        }
+                    if (uiState.mode is Mode.Editing) {
+                        ToolbarEditActions(
+                            downloadsStore = downloadsStore,
+                            toolbarConfig = toolbarConfig,
+                            onItemDeleteClick = onItemDeleteClick,
+                        )
                     }
                 },
             )
+        },
+        floatingActionButton = {
+            if (!uiState.isSearchFieldVisible && uiState.mode is Mode.Normal) {
+                FloatingActionButton(
+                    icon = painterResource(R.drawable.mozac_ic_search_24),
+                    contentDescription = stringResource(R.string.download_search_placeholder),
+                    onClick = { downloadsStore.dispatch(DownloadUIAction.SearchBarVisibilityRequest) },
+                )
+            }
         },
         backgroundColor = FirefoxTheme.colors.layer1,
     ) { paddingValues ->
