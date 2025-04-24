@@ -1843,8 +1843,8 @@ RefPtr<MozPromise<T, nsresult, true>> ContentAnalysis::CallClientWithRetry(
             promise->Reject(NS_ERROR_ILLEGAL_DURING_SHUTDOWN, aMethodName);
             return;
           }
-          nsresult rv =
-              contentAnalysis->mThreadPool->Dispatch(NS_NewRunnableFunction(
+          nsresult rv = contentAnalysis->mThreadPool->Dispatch(
+              NS_NewCancelableRunnableFunction(
                   aMethodName, [aMethodName, promise,
                                 clientCallFunc = std::move(clientCallFunc),
                                 client = std::move(client)]() mutable {
@@ -1879,8 +1879,8 @@ RefPtr<MozPromise<T, nsresult, true>> ContentAnalysis::CallClientWithRetry(
           promise->Reject(NS_ERROR_ILLEGAL_DURING_SHUTDOWN, aMethodName);
           return;
         }
-        nsresult rv =
-            contentAnalysis->mThreadPool->Dispatch(NS_NewRunnableFunction(
+        nsresult rv = contentAnalysis->mThreadPool->Dispatch(
+            NS_NewCancelableRunnableFunction(
                 aMethodName, [aMethodName, promise, aClientCallFunc,
                               reconnectAndRetry = std::move(reconnectAndRetry),
                               client = std::move(client)]() mutable {
@@ -1890,7 +1890,7 @@ RefPtr<MozPromise<T, nsresult, true>> ContentAnalysis::CallClientWithRetry(
                     return;
                   }
                   nsresult rv = result.unwrapErr();
-                  NS_DispatchToMainThread(NS_NewRunnableFunction(
+                  NS_DispatchToMainThread(NS_NewCancelableRunnableFunction(
                       "reconnect to Content Analysis client",
                       [rv, reconnectAndRetry = std::move(reconnectAndRetry)]() {
                         reconnectAndRetry(rv);
