@@ -2241,10 +2241,7 @@ class Update {
     // Set the installDate value with the current time. If the update has an
     // installDate attribute this will be replaced with that value if it doesn't
     // equal 0.
-    this._installDate = new Date().getTime();
-    // The `installDate` set above isn't especially legitimate. In some cases,
-    // we need to be able to tell when we have the real install date.
-    this.usingDefaultInstallDate = true;
+    this.installDate = new Date().getTime();
     this.patchCount = this._patches.length;
 
     for (let i = 0; i < update.attributes.length; ++i) {
@@ -2534,15 +2531,6 @@ class Update {
       return this._properties[name].data;
     }
     return null;
-  }
-
-  get installDate() {
-    return this._installDate;
-  }
-
-  set installDate(date) {
-    this._installDate = date;
-    this.usingDefaultInstallDate = false;
   }
 
   QueryInterface = ChromeUtils.generateQI([
