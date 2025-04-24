@@ -53,8 +53,15 @@ class JujutsuRepository(Repository):
 
         self._git._env["GIT_DIR"] = str(git_dir.resolve())
 
+    def _run_read_only(self, *args, **kwargs):
+        """_run_read_only() should be used instead of _run() for read-only jj commands.
+
+        It will avoid locking the working copy and can prevent potential concurrency issues.
+        """
+        return super()._run(*(args + ("--ignore-working-copy",)), **kwargs)
+
     def resolve_to_change(self, revset: str) -> Optional[str]:
-        change_id = self._run(
+        change_id = self._run_read_only(
             "log", "--no-graph", "-n1", "-r", revset, "-T", "change_id.short()"
         ).rstrip()
         return change_id if change_id != "" else None
@@ -78,7 +85,7 @@ class JujutsuRepository(Repository):
         return ref if ref else self.head_ref
 
     def convert_change_to_commit(self, change_id):
-        commit = self._run(
+        commit = self._run_read_only(
             "log", "--no-graph", "-r", f"latest({change_id})", "-T", "commit_id"
         ).rstrip()
         return commit
@@ -105,16 +112,16 @@ class JujutsuRepository(Repository):
 
     def get_commit_time(self):
         return int(
-            self._run(
+            self._run_read_only(
                 "log", "-n1", "--no-graph", "-T", 'committer.timestamp().format("%s")'
             ).strip()
         )
 
     def sparse_checkout_present(self):
-        return self._run("sparse", "list").rstrip() != "."
+        return self._run_read_only("sparse", "list").rstrip() != "."
 
     def get_user_email(self):
-        email = self._run("config", "get", "user.email", return_codes=[0, 1])
+        email = self._run_read_only("config", "get", "user.email", return_codes=[0, 1])
         if not email:
             return None
         return email.strip()
@@ -122,7 +129,7 @@ class JujutsuRepository(Repository):
     def get_changed_files(self, diff_filter="ADM", mode="(ignored)", rev="@"):
         assert all(f.lower() in self._valid_diff_filter for f in diff_filter)
 
-        out = self._run(
+        out = self._run_read_only(
             "log",
             "-r",
             rev,
@@ -161,7 +168,7 @@ class JujutsuRepository(Repository):
         if upstream is None:
             upstream = self.base_ref
 
-        lines = self._run(
+        lines = self._run_read_only(
             "diff",
             "--from",
             upstream,
@@ -191,7 +198,7 @@ class JujutsuRepository(Repository):
 
         paths = [str(path) for path in paths]
 
-        self._run("file", "untrack", *paths)
+        self._run_read_only("file", "untrack", *paths)
 
     def get_tracked_files_finder(self, path=None):
         files = [mozpath.normsep(p) for p in self._run("file", "list").splitlines()]
@@ -271,14 +278,14 @@ class JujutsuRepository(Repository):
         self._run("git", "remote", "remove", "mach_tryserver", return_codes=[0, 1])
 
     def set_config(self, name, value):
-        self._run("config", name, value)
+        self._run_read_only("config", name, value)
 
     def get_branch_nodes(self, head: Optional[str] = "@") -> List[str]:
         """Return a list of commit SHAs for nodes on the current branch, in order that they should be applied."""
         # Note: lando gets grumpy if you try to push empty commits.
         return list(
             reversed(
-                self._run(
+                self._run_read_only(
                     "log",
                     "--no-graph",
                     "-r",
@@ -322,7 +329,7 @@ class JujutsuRepository(Repository):
         `changed_files` may contain a dict of file paths and their contents,
         see `stage_changes`.
         """
-        opid = self._run(
+        opid = self._run_read_only(
             "operation", "log", "-n1", "--no-graph", "-T", "id.short(16)"
         ).rstrip()
         try:
@@ -337,7 +344,7 @@ class JujutsuRepository(Repository):
 
     def get_last_modified_time_for_file(self, path: Path) -> datetime:
         """Return last modified in VCS time for the specified file."""
-        date = self._run(
+        date = self._run_read_only(
             "log",
             "--no-graph",
             "-n1",
