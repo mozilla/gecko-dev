@@ -186,3 +186,25 @@ bookmarks-toolbar-callout-2b-subtitle = You can add other sites you visit more o
 bookmarks-toolbar-callout-2b-primary-button-label = Keep open
 # Reverts the bookmarks toolbar to the default setting
 bookmarks-toolbar-callout-2b-secondary-button-label = No thanks
+
+## Perplexity callout strings
+## Titles
+
+perplexity-callout-need-title = Need the right answer, right away?
+perplexity-callout-try-title = Try Perplexity: a new way to search
+
+## Subtitles without action
+
+perplexity-callout-subtitle-without-action-1 = Try Perplexity. Choose it from the search button when you want complete answers, sources included.
+perplexity-callout-subtitle-without-action-2 = Ask questions. Get complete, well-cited answers. To try Perplexity, choose it from the search button.
+
+## Subtitles with primary button and action
+
+perplexity-callout-subtitle-with-action-1 = Ask Perplexity. You’ll get complete answers, sources included.
+perplexity-callout-subtitle-with-action-2 = Ask questions. Get complete, well-cited answers.
+
+## Buttons
+
+perplexity-callout-primary-label = Ask Perplexity
+perplexity-callout-secondary-dismiss-label = Dismiss
+perplexity-callout-secondary-got-it-label = Got it
