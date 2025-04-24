@@ -121,12 +121,14 @@ private fun SearchTextFieldContent(
                 innerTextField()
             }
 
-            IconButton(onClick = onClearSearchQuery) {
-                Icon(
-                    painter = painterResource(R.drawable.mozac_ic_cross_circle_fill_20),
-                    contentDescription = null,
-                    tint = FirefoxTheme.colors.iconPrimary,
-                )
+            if (state.text.isNotEmpty()) {
+                IconButton(onClick = onClearSearchQuery) {
+                    Icon(
+                        painter = painterResource(R.drawable.mozac_ic_cross_circle_fill_20),
+                        contentDescription = null,
+                        tint = FirefoxTheme.colors.iconPrimary,
+                    )
+                }
             }
         }
     }
