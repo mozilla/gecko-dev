@@ -93,8 +93,6 @@
   }
 
   window.Tabbrowser = class {
-    #stgManager; // Smart Tab Grouping Manager
-
     init() {
       this.tabContainer = document.getElementById("tabbrowser-tabs");
       this.tabGroupMenu = document.getElementById("tab-group-editor");
@@ -3181,57 +3179,6 @@
         }
       }
       return null;
-    }
-
-    getSmartTabGroupingManager() {
-      if (!this.#stgManager) {
-        this.#stgManager = new this.SmartTabGroupingManager();
-      }
-      return this.#stgManager;
-    }
-
-    /**
-     * Groups all tabs in the current window (other than pinned tabs) into a
-     * set of tab groups. Each is given a name.
-     *
-     * Note that there is no immediate UX plan for this feature but it is
-     * being left in for now, as it can be used while testing in the console.
-     *
-     * Currently this implementation has automatic labeling of the group disabled.
-     *
-     * @returns {object []} List of tab groups
-     */
-    async smartTabGrouping() {
-      const groupManager = this.getSmartTabGroupingManager();
-      const clusters = await groupManager.generateClusters(
-        this.visibleTabs.filter(t => !t.pinned)
-      );
-      const clusterReps = clusters.clusterRepresentations;
-      const tabGroups = clusterReps.map(clusterRep =>
-        this.addTabGroup(clusterRep.tabs, {
-          label: clusterRep.predictedTopicLabel || "",
-        })
-      );
-      return tabGroups;
-    }
-
-    /**
-     * Get suggested title for tabs
-     * @param {object []} tabs One or more tabs in a list
-     * @returns {String} Suggested label for the tabs if creating a tab group, or empty string if no suggestion
-     */
-    async getGroupTitleForTabs(tabs) {
-      if (!tabs) {
-        return "";
-      }
-      const otherTabs = gBrowser.visibleTabs.filter(
-        t => !tabs.includes(t) && !t.pinned
-      );
-      const groupManager = this.getSmartTabGroupingManager();
-      const clusters = groupManager.createStaticCluster(tabs);
-      const otherClusters = groupManager.createStaticCluster(otherTabs);
-      await groupManager.generateGroupLabels(clusters, otherClusters);
-      return clusters.clusterRepresentations[0].predictedTopicLabel;
     }
 
     _determineURIToLoad(uriString, createLazyBrowser) {

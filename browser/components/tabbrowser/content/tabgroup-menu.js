@@ -747,13 +747,24 @@
       return "bottomleft topleft";
     }
 
-    #initMlGroupLabel() {
-      if (!this.smartTabGroupsEnabled) {
+    /**
+     * Sets the suggested title for the group
+     */
+    async #initMlGroupLabel() {
+      if (!this.smartTabGroupsEnabled || !this.activeGroup.tabs?.length) {
         return;
       }
-      gBrowser.getGroupTitleForTabs(this.activeGroup.tabs).then(newLabel => {
-        this.#setMlGroupLabel(newLabel);
-      });
+
+      const tabs = this.activeGroup.tabs;
+      const otherTabs = gBrowser.visibleTabs.filter(
+        t => !tabs.includes(t) && !t.pinned
+      );
+      let predictedLabel =
+        await this.#smartTabGroupingManager.getPredictedLabelForGroup(
+          tabs,
+          otherTabs
+        );
+      this.#setMlGroupLabel(predictedLabel);
     }
 
     /**

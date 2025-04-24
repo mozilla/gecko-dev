@@ -457,8 +457,10 @@ tabgroup:
       - vbaungally@mozilla.com
     bugs:
       - https://bugzil.la/1949010
+      - https://bugzil.la/1961641
     data_reviews:
       - https://bugzil.la/1949010
+      - https://bugzil.la/1961641
     data_sensitivity:
       - interaction
     extra_keys:
@@ -487,6 +489,9 @@ tabgroup:
         type: string
       id:
         description: The ID of the created tab group
+        type: string
+      label_reason:
+        description: Whether the model suggested no label due to low probability or dissimilar tabs
         type: string
     expires: never
     no_lint:

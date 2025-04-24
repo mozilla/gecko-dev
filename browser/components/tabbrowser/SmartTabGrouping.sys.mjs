@@ -65,6 +65,13 @@ const LABELS_TO_EXCLUDE = [DISSIMILAR_TAB_LABEL, ADULT_TAB_LABEL];
 const ML_TASK_FEATURE_EXTRACTION = "feature-extraction";
 const ML_TASK_TEXT2TEXT = "text2text-generation";
 
+const LABEL_REASONS = {
+  DEFAULT: "DEFAULT",
+  LOW_CONFIDENCE: "LOW_CONFIDENCE",
+  EXCLUDE: "EXCLUDE",
+  ERROR: "ERROR",
+};
+
 const SMART_TAB_GROUPING_CONFIG = {
   embedding: {
     dtype: "q8",
@@ -595,6 +602,28 @@ export class SmartTabGroupingManager {
   }
 
   /**
+   * Generate a label for tabs in a group created by the user
+   *
+   * @param tabs tabs that are currently in the group
+   * @param otherTabs tabs in the window not part of the group
+   * @return {Promise<null|string|string|*>}
+   */
+  async getPredictedLabelForGroup(tabs, otherTabs) {
+    const clusters = this.createStaticCluster(tabs);
+    const otherClusters = this.createStaticCluster(otherTabs);
+    let predictedLabel;
+    try {
+      // function below modifies "clusters" object
+      await this.generateGroupLabels(clusters, otherClusters);
+      predictedLabel = clusters.clusterRepresentations[0].predictedTopicLabel;
+    } catch (e) {
+      this.labelReason = LABEL_REASONS.ERROR;
+      predictedLabel = "";
+    }
+    return predictedLabel;
+  }
+
+  /**
    * Generates clusters for a given list of tabs using precomputed embeddings or newly generated ones.
    *
    * @param {Object[]} tabList - List of tab objects to be clustered.
@@ -808,9 +837,13 @@ export class SmartTabGroupingManager {
    * Postprocessing of raw output from Topic Model ML Engine
    * @param {string | undefined} topic Raw topic phrase from topic model or undefined in case of an error
    */
-  static processTopicModelResult(topic) {
+  processTopicModelResult(topic) {
     let basicResult = (topic || "").trim();
+    if (!basicResult) {
+      this.labelReason = LABEL_REASONS.LOW_CONFIDENCE;
+    }
     if (LABELS_TO_EXCLUDE.includes(basicResult.toLowerCase())) {
+      this.labelReason = LABEL_REASONS.EXCLUDE;
       return "";
     }
     return SmartTabGroupingManager.cutAtDuplicateWords(basicResult);
@@ -856,10 +889,14 @@ export class SmartTabGroupingManager {
     genLabelResults.forEach((genResult, genResultIndex) => {
       groupingResult.clusterRepresentations[
         genResultIndex
-      ].predictedTopicLabel = SmartTabGroupingManager.processTopicModelResult(
+      ].predictedTopicLabel = this.processTopicModelResult(
         genResult.generated_text
       );
     });
+  }
+
+  getLabelReason() {
+    return this.labelReason || LABEL_REASONS.DEFAULT;
   }
 
   /**
@@ -881,6 +918,7 @@ export class SmartTabGroupingManager {
   }) {
     const { [ML_TASK_TEXT2TEXT]: topicEngineConfig } =
       await this.getEngineConfigs();
+    const labelReason = this.getLabelReason();
     Glean.tabgroup.smartTabTopic.record({
       action,
       tabs_in_group: numTabsInGroup,
@@ -892,7 +930,9 @@ export class SmartTabGroupingManager {
       ),
       model_revision: topicEngineConfig.modelRevision || "",
       id,
+      label_reason: labelReason,
     });
+    this.labelReason = LABEL_REASONS.DEFAULT;
   }
 
   /**
