@@ -9,6 +9,7 @@ import android.content.DialogInterface
 import android.content.Intent
 import android.provider.Settings
 import android.view.View
+import androidx.annotation.StringRes
 import androidx.appcompat.app.AlertDialog
 import androidx.core.content.getSystemService
 import androidx.fragment.app.Fragment
@@ -30,6 +31,7 @@ import org.mozilla.fenix.ext.settings
  */
 @Suppress("Deprecation")
 fun bindBiometricsCredentialsPromptOrShowWarning(
+    @StringRes titleRes: Int = R.string.logins_biometric_prompt_message_2,
     view: View,
     onShowPinVerification: (Intent) -> Unit,
     onAuthSuccess: () -> Unit,
@@ -64,7 +66,7 @@ fun bindBiometricsCredentialsPromptOrShowWarning(
     // Use the BiometricPrompt first
     if (BiometricPromptFeature.canUseFeature(context)) {
         biometricPromptFeature.get()
-            ?.requestAuthentication(context.resources.getString(R.string.logins_biometric_prompt_message_2))
+            ?.requestAuthentication(context.resources.getString(titleRes))
         return
     }
 
@@ -73,7 +75,7 @@ fun bindBiometricsCredentialsPromptOrShowWarning(
     if (manager?.isKeyguardSecure == true) {
         val confirmDeviceCredentialIntent = manager.createConfirmDeviceCredentialIntent(
             context.resources.getString(R.string.logins_biometric_prompt_message_pin),
-            context.resources.getString(R.string.logins_biometric_prompt_message_2),
+            context.resources.getString(titleRes),
         )
         onShowPinVerification(confirmDeviceCredentialIntent)
     } else {
