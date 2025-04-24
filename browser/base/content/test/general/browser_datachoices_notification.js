@@ -174,7 +174,6 @@ function assertCoherentInitialState() {
 }
 
 add_task(async function test_single_window() {
-  Preferences.set("browser.preonboarding.enabled", false);
   TelemetryReportingPolicy.reset();
   clearAcceptedPolicy();
 
@@ -235,7 +234,6 @@ add_task(async function test_single_window() {
     -1,
     "Date pref set."
   );
-  Preferences.reset("browser.preonboarding.enabled");
 });
 
 /* See bug 1571932
