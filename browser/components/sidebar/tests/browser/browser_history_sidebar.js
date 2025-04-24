@@ -602,10 +602,17 @@ add_task(async function test_history_hover_buttons() {
   const rows = lists[0].rowEls;
 
   info("Open the first link.");
+  // We intentionally turn off this a11y check, because the following click is purposefully targeting a not
+  // focusable link within a history item row which are following list-style keyboard navigation pattern.
+  // This pattern is tested above. A keyboard-only user could focus these links using arrow navigation, but
+  // a mouse user would not need these links to become focusable, therefore this rule check shall be ignored
+  // by a11y_checks suite. Bug 1961686 is a follow up update a helper so we can later remove this.
+  AccessibilityUtils.setEnv({ focusableRule: false });
   await waitForPageLoadTask(
     () => EventUtils.synthesizeMouseAtCenter(rows[0].mainEl, {}, contentWindow),
     URLs[1]
   );
+  AccessibilityUtils.resetEnv();
 
   info("Remove the first entry.");
   const promiseRemoved = PlacesTestUtils.waitForNotification("page-removed");
