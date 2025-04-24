@@ -1969,18 +1969,25 @@ void nsContentSecurityUtils::AssertChromePageHasCSP(Document* aDocument) {
     return;
   }
 
-  static nsLiteralCString sAllowedChromePagesWithNoCSP[] = {
-      // Test files
-      "chrome://mochikit/"_ns,
-      "chrome://mochitests/"_ns,
-      "chrome://pageloader/content/pageloader.xhtml"_ns,
-      "chrome://reftest/"_ns,
-      "chrome://remote/content/marionette/"_ns,
-  };
+  // TODO These are injecting scripts so it cannot be blocked without
+  // further coordination.
+  if (StringBeginsWith(spec, "chrome://remote/content/marionette/"_ns)) {
+    return;
+  }
 
-  for (const nsLiteralCString& entry : sAllowedChromePagesWithNoCSP) {
-    if (StringBeginsWith(spec, entry)) {
-      return;
+  if (xpc::IsInAutomation()) {
+    // Test files
+    static nsLiteralCString sAllowedTestPathsWithNoCSP[] = {
+        "chrome://mochikit/"_ns,
+        "chrome://mochitests/"_ns,
+        "chrome://pageloader/content/pageloader.xhtml"_ns,
+        "chrome://reftest/"_ns,
+    };
+
+    for (const nsLiteralCString& entry : sAllowedTestPathsWithNoCSP) {
+      if (StringBeginsWith(spec, entry)) {
+        return;
+      }
     }
   }
 
