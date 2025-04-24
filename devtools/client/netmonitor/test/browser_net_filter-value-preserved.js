@@ -11,15 +11,29 @@ add_task(async function () {
   const { monitor } = await initNetMonitor(FILTERING_URL, { requestCount: 1 });
   const { document, store, windowRequire } = monitor.panelWin;
   const Actions = windowRequire("devtools/client/netmonitor/src/actions/index");
+  const { getDisplayedRequests } = windowRequire(
+    "devtools/client/netmonitor/src/selectors/index"
+  );
 
   store.dispatch(Actions.batchEnable(false));
 
   info("Starting test... ");
 
+  // Perform 2 data URI requests to check the filter is working.
+  const onNetworkEvents = waitForNetworkEvents(monitor, 2);
+  await performRequestsInContent([
+    { url: "data:text/plain,bonjour" },
+    { url: "data:text/plain,hello" },
+  ]);
+  await onNetworkEvents;
+
   const toolbars = document.querySelector("#netmonitor-toolbar-container");
 
   document.querySelector(".devtools-filterinput").focus();
-  EventUtils.sendString("hello");
+  typeInNetmonitor("hello", monitor);
+
+  info("Wait until text filter is applied");
+  await waitFor(() => getDisplayedRequests(store.getState()).length == 1);
 
   await monitor.toolbox.switchHost("right");
   await waitFor(
