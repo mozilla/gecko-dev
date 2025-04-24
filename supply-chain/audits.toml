@@ -298,6 +298,14 @@ user-id = 84794 # Jamie Nicol (jamienicol)
 start = "2020-04-07"
 end = "2025-08-30"
 
+[[wildcard-audits.hawk]]
+who = "Ryan Safaeian <rsafaeian@mozilla.com>"
+criteria = "safe-to-deploy"
+user-id = 158511 # Yarik (lotas)
+start = "2022-05-05"
+end = "2026-04-24"
+notes = "Hawk is written and maintained by mozilla employees."
+
 [[wildcard-audits.io-surface]]
 who = "Bobby Holley <bobbyholley@gmail.com>"
 criteria = "safe-to-deploy"
@@ -909,6 +917,11 @@ who = "Josh Stone <jistone@redhat.com>"
 criteria = "safe-to-deploy"
 version = "1.1.0"
 notes = "All code written or reviewed by Josh Stone."
+
+[[audits.base16]]
+who = "Ryan Safaeian <rsafaeian@mozilla.com>"
+criteria = "safe-to-deploy"
+version = "0.2.1"
 
 [[audits.base64]]
 who = "Mike Hommey <mh+mozilla@glandium.org>"
