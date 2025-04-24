@@ -9,11 +9,11 @@ import android.content.Context
 import android.graphics.Canvas
 import android.widget.TextView
 import androidx.appcompat.widget.AppCompatTextView
-import mozilla.components.compose.browser.toolbar.concept.PageOrigin.Companion.FADE_DIRECTION_END
-import mozilla.components.compose.browser.toolbar.concept.PageOrigin.Companion.FADE_DIRECTION_START
 import mozilla.components.compose.browser.toolbar.concept.PageOrigin.Companion.FadeDirection
-import mozilla.components.compose.browser.toolbar.concept.PageOrigin.Companion.TEXT_GRAVITY_END
+import mozilla.components.compose.browser.toolbar.concept.PageOrigin.Companion.FadeDirection.FADE_DIRECTION_END
+import mozilla.components.compose.browser.toolbar.concept.PageOrigin.Companion.FadeDirection.FADE_DIRECTION_START
 import mozilla.components.compose.browser.toolbar.concept.PageOrigin.Companion.TextGravity
+import mozilla.components.compose.browser.toolbar.concept.PageOrigin.Companion.TextGravity.TEXT_GRAVITY_END
 import kotlin.math.max
 import kotlin.math.roundToInt
 
@@ -29,8 +29,8 @@ import kotlin.math.roundToInt
 @SuppressLint("ViewConstructor")
 internal class CustomFadeAndGravityTextView(
     context: Context,
-    @FadeDirection private val fadeDirection: Int,
-    @TextGravity private val textGravity: Int,
+    private val fadeDirection: FadeDirection,
+    private val textGravity: TextGravity,
 ) : AppCompatTextView(context) {
     override fun getLeftFadingEdgeStrength() = when (fadeDirection) {
         FADE_DIRECTION_START -> getFadeStrength()

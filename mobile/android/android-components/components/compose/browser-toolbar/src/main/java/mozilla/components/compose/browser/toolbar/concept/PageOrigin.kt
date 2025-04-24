@@ -4,8 +4,9 @@
 
 package mozilla.components.compose.browser.toolbar.concept
 
-import androidx.annotation.IntDef
 import androidx.annotation.StringRes
+import mozilla.components.compose.browser.toolbar.concept.PageOrigin.Companion.FadeDirection.FADE_DIRECTION_END
+import mozilla.components.compose.browser.toolbar.concept.PageOrigin.Companion.TextGravity.TEXT_GRAVITY_START
 import mozilla.components.compose.browser.toolbar.store.BrowserToolbarInteraction
 import mozilla.components.compose.browser.toolbar.store.BrowserToolbarInteraction.BrowserToolbarEvent
 
@@ -28,34 +29,47 @@ data class PageOrigin(
     val url: String?,
     val onClick: BrowserToolbarEvent,
     val onLongClick: BrowserToolbarInteraction? = null,
-    @FadeDirection val fadeDirection: Int = FADE_DIRECTION_END,
-    @TextGravity val textGravity: Int = TEXT_GRAVITY_START,
+    val fadeDirection: FadeDirection = FADE_DIRECTION_END,
+    val textGravity: TextGravity = TEXT_GRAVITY_START,
 ) {
     /**
      * Static values used in the configuration of the [PageOrigin] class.
      */
     companion object {
-        const val FADE_DIRECTION_NONE = -1
-        const val FADE_DIRECTION_START = 0
-        const val FADE_DIRECTION_END = 1
+        /**
+         * The direction in which the text should fade if it does not fit the available space.
+         */
+        enum class FadeDirection {
+            /**
+             * No text fading.
+             */
+            FADE_DIRECTION_NONE,
 
-        const val TEXT_GRAVITY_START = 0
-        const val TEXT_GRAVITY_END = 1
+            /**
+             * Text that overflows the available space should be faded at the start.
+             */
+            FADE_DIRECTION_START,
+
+            /**
+             * Text that overflows the available space should be faded at the end.
+             */
+            FADE_DIRECTION_END,
+        }
 
         /**
-         * The direction in which the text should fade.
-         * Values: [FADE_DIRECTION_NONE], [FADE_DIRECTION_START], [FADE_DIRECTION_END].
+         * The gravity of the text - whether to show the start or end of long text
+         * that does not fit the available space.
          */
-        @IntDef(value = [FADE_DIRECTION_NONE, FADE_DIRECTION_START, FADE_DIRECTION_END])
-        @Retention(AnnotationRetention.SOURCE)
-        annotation class FadeDirection
+        enum class TextGravity {
+            /**
+             * Show the start of long text and hide the end part which overflows the available space.
+             */
+            TEXT_GRAVITY_START,
 
-        /**
-         * The gravity of the text - whether to show the start or end of long text.
-         * Values: [TEXT_GRAVITY_START], [TEXT_GRAVITY_END].
-         */
-        @IntDef(value = [TEXT_GRAVITY_START, TEXT_GRAVITY_END])
-        @Retention(AnnotationRetention.SOURCE)
-        annotation class TextGravity
+            /**
+             * Show the end of long text and hide the start part which overflows the available space.
+             */
+            TEXT_GRAVITY_END,
+        }
     }
 }

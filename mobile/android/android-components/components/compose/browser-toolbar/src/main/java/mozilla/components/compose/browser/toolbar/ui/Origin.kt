@@ -26,12 +26,12 @@ import androidx.core.view.isVisible
 import mozilla.components.browser.menu2.BrowserMenuController
 import mozilla.components.compose.base.theme.AcornTheme
 import mozilla.components.compose.browser.toolbar.R
-import mozilla.components.compose.browser.toolbar.concept.PageOrigin.Companion.FADE_DIRECTION_END
-import mozilla.components.compose.browser.toolbar.concept.PageOrigin.Companion.FADE_DIRECTION_START
 import mozilla.components.compose.browser.toolbar.concept.PageOrigin.Companion.FadeDirection
-import mozilla.components.compose.browser.toolbar.concept.PageOrigin.Companion.TEXT_GRAVITY_END
-import mozilla.components.compose.browser.toolbar.concept.PageOrigin.Companion.TEXT_GRAVITY_START
+import mozilla.components.compose.browser.toolbar.concept.PageOrigin.Companion.FadeDirection.FADE_DIRECTION_END
+import mozilla.components.compose.browser.toolbar.concept.PageOrigin.Companion.FadeDirection.FADE_DIRECTION_START
 import mozilla.components.compose.browser.toolbar.concept.PageOrigin.Companion.TextGravity
+import mozilla.components.compose.browser.toolbar.concept.PageOrigin.Companion.TextGravity.TEXT_GRAVITY_END
+import mozilla.components.compose.browser.toolbar.concept.PageOrigin.Companion.TextGravity.TEXT_GRAVITY_START
 import mozilla.components.compose.browser.toolbar.store.BrowserToolbarInteraction
 import mozilla.components.compose.browser.toolbar.store.BrowserToolbarInteraction.BrowserToolbarEvent
 import mozilla.components.compose.browser.toolbar.store.BrowserToolbarInteraction.BrowserToolbarMenu
@@ -63,8 +63,8 @@ internal fun Origin(
     onClick: BrowserToolbarEvent,
     onLongClick: BrowserToolbarInteraction?,
     onInteraction: (BrowserToolbarEvent) -> Unit,
-    @FadeDirection fadeDirection: Int,
-    @TextGravity textGravity: Int,
+    fadeDirection: FadeDirection,
+    textGravity: TextGravity,
 ) {
     OriginView(
         hint = stringResource(hint),
@@ -85,8 +85,8 @@ private fun OriginView(
     hint: String,
     url: String?,
     title: String?,
-    @FadeDirection fadeDirection: Int,
-    @TextGravity textGravity: Int,
+    fadeDirection: FadeDirection,
+    textGravity: TextGravity,
     onClick: BrowserToolbarEvent,
     onLongClick: BrowserToolbarInteraction?,
     onInteraction: (BrowserToolbarEvent) -> Unit,
