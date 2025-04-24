@@ -13,7 +13,6 @@ const lazy = {};
 
 ChromeUtils.defineESModuleGetters(lazy, {
   BrowserUtils: "resource://gre/modules/BrowserUtils.sys.mjs",
-  ExperimentManager: "resource://nimbus/lib/ExperimentManager.sys.mjs",
   TelemetrySend: "resource://gre/modules/TelemetrySend.sys.mjs",
   NimbusFeatures: "resource://nimbus/ExperimentAPI.sys.mjs",
   OnboardingMessageProvider:
@@ -646,7 +645,14 @@ var TelemetryReportingPolicyImpl = {
     // Make sure Glean won't initialize on shutdown, in case the user never interacts with the modal
     Services.prefs.setBoolPref("telemetry.fog.init_on_shutdown", false);
 
-    if (this._nimbusVariables.enabled && this._nimbusVariables.screens) {
+    if (
+      this._nimbusVariables.enabled &&
+      this._nimbusVariables.screens &&
+      (AppConstants.MOZILLA_OFFICIAL ||
+        Services.prefs.getBoolPref(
+          "browser.preonboarding.enrollOnUnofficialBuild"
+        ))
+    ) {
       if (await this._notifyUserViaMessagingSystem()) {
         this._log.trace(
           `_waitForUserIsNotified: user notified via Messaging System`
@@ -721,64 +727,6 @@ var TelemetryReportingPolicyImpl = {
     });
   },
 
-  async _configureFromOnTrainRollout() {
-    const ENROLLMENT_PREF = "browser.preonboarding.enrolledInOnTrainRollout";
-
-    const platformSupported =
-      AppConstants.platform == "linux" ||
-      AppConstants.platform == "macosx" ||
-      (AppConstants.platform === "win" &&
-        Services.sysinfo.getProperty("hasWinPackageId", false));
-    if (!platformSupported) {
-      return;
-    }
-
-    let enrolled;
-    // Only enroll new users
-    if (this.isFirstRun()) {
-      const count = this._nimbusVariables.onTrainRolloutPopulation;
-      if (!count) {
-        this._log.trace(
-          `_configureFromOnTrainRollout: User not enrolled in on-train rollout - population is 0, not setting preferences`
-        );
-        return;
-      }
-      const bucketConfig = {
-        count,
-        namespace: "firefox-desktop-preonboarding-on-train-rollout-1",
-        randomizationUnit: "normandy_id",
-        start: 0,
-        total: 10000,
-      };
-
-      enrolled =
-        await lazy.ExperimentManager.isInBucketAllocation(bucketConfig);
-
-      if (enrolled) {
-        Services.prefs.setBoolPref(ENROLLMENT_PREF, enrolled);
-      }
-    } else {
-      enrolled = Services.prefs.getBoolPref(ENROLLMENT_PREF, false);
-    }
-
-    if (enrolled) {
-      const preonboardingMessage =
-        lazy.OnboardingMessageProvider.getPreonboardingMessages().find(
-          m => m.id === "ON_TRAIN_ROLLOUT"
-        );
-
-      this._nimbusVariables = preonboardingMessage;
-
-      this._log.trace(
-        `_configureFromOnTrainRollout: User enrolled in on-train rollout, will set preferences`
-      );
-    } else {
-      this._log.trace(
-        `_configureFromOnTrainRollout: User not enrolled in on-train rollout, not setting preferences`
-      );
-    }
-  },
-
   /**
    * Capture Nimbus configuration: record feature variables for future use and
    * set Gecko preferences based on values.
@@ -787,7 +735,23 @@ var TelemetryReportingPolicyImpl = {
     this._nimbusVariables = lazy.NimbusFeatures.preonboarding.getAllVariables();
 
     if (this._nimbusVariables.enabled === null) {
-      await this._configureFromOnTrainRollout();
+      const preonboardingMessage =
+        lazy.OnboardingMessageProvider.getPreonboardingMessages().find(
+          m => m.id === "NEW_USER_TOU_ONBOARDING"
+        );
+      // Use default message variables, overriding with values from any set
+      // fallback prefs.
+      this._nimbusVariables = {
+        ...preonboardingMessage,
+        ...Object.fromEntries(
+          Object.entries(this._nimbusVariables).filter(
+            ([_, value]) => value !== null
+          )
+        ),
+      };
+      this._log.trace(
+        `_configureFromNimbus: using default preoonboarding message`
+      );
     }
 
     if (this._nimbusVariables.enabled) {

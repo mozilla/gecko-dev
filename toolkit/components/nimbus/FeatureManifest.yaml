@@ -763,12 +763,6 @@ preonboarding:
       fallbackPref: datareporting.policy.firstRunURL
       description: >-
         URL of browser tab to be opened on first run instead of infobar.
-    onTrainRolloutPopulation:
-      type: int
-      fallbackPref: browser.preonboarding.onTrainRolloutPopulation
-      description: >-
-        If an on-train limited rollout is enabled, the percentage of the population to enroll
-
 
 moreFromMozilla:
   description: "New page on about:preferences to suggest more Mozilla products"
