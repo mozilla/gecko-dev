@@ -868,7 +868,7 @@
           : event.screenY - window.screenY,
         scrollPos:
           this.verticalMode && tab.pinned
-            ? this.verticalPinnedTabsContainer.scrollTop
+            ? this.verticalPinnedTabsContainer.scrollPosition
             : this.arrowScrollbox.scrollPosition,
         screenX: event.screenX,
         screenY: event.screenY,
@@ -2239,7 +2239,7 @@
       let translateX = screenX - dragData.screenX;
       let translateY = screenY - dragData.screenY;
       translateY +=
-        this.verticalPinnedTabsContainer.scrollTop - dragData.scrollPos;
+        this.verticalPinnedTabsContainer.scrollPosition - dragData.scrollPos;
       let firstBoundX = firstTabInRow.screenX - firstMovingTabScreenX;
       let firstBoundY = firstTabInRow.screenY - firstMovingTabScreenY;
       let lastBoundX =
@@ -2427,7 +2427,7 @@
           this.arrowScrollbox.scrollbox[scrollDirection] - dragData.scrollPos;
       } else if (isPinned && this.verticalMode) {
         translate +=
-          this.verticalPinnedTabsContainer.scrollTop - dragData.scrollPos;
+          this.verticalPinnedTabsContainer.scrollPosition - dragData.scrollPos;
       }
       // Constrain the range over which the moving tabs can move:
       // - for pinned tabs, between the first and last pinned tab
