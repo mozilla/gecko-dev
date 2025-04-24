@@ -327,19 +327,29 @@ export class SearchService {
   }
 
   getDefaultEngineInfo() {
-    let [telemetryId, defaultSearchEngineData] = this.#getEngineInfo(
-      this.defaultEngine
-    );
+    let engineInfo = this.#getEngineInfo(this.defaultEngine);
     const result = {
-      defaultSearchEngine: telemetryId,
-      defaultSearchEngineData,
+      defaultSearchEngine: engineInfo.telemetryId,
+      defaultSearchEngineData: {
+        loadPath: engineInfo.loadPath,
+        name: engineInfo.name,
+      },
     };
+    if (engineInfo.submissionURL) {
+      result.defaultSearchEngineData.submissionURL = engineInfo.submissionURL;
+    }
 
     if (this.#separatePrivateDefault) {
-      let [privateTelemetryId, defaultPrivateSearchEngineData] =
-        this.#getEngineInfo(this.defaultPrivateEngine);
-      result.defaultPrivateSearchEngine = privateTelemetryId;
-      result.defaultPrivateSearchEngineData = defaultPrivateSearchEngineData;
+      let privateEngineInfo = this.#getEngineInfo(this.defaultPrivateEngine);
+      result.defaultPrivateSearchEngine = privateEngineInfo.telemetryId;
+      result.defaultPrivateSearchEngineData = {
+        loadPath: privateEngineInfo.loadPath,
+        name: privateEngineInfo.name,
+      };
+      if (privateEngineInfo.submissionURL) {
+        result.defaultPrivateSearchEngineData.submissionURL =
+          privateEngineInfo.submissionURL;
+      }
     }
 
     return result;
@@ -3198,18 +3208,31 @@ export class SearchService {
     this.#recordTelemetryData();
   }
 
+  /**
+   * Gets summary information for an engine to report to telemetry.
+   *
+   * @param {nsISearchEngine} engine
+   */
   #getEngineInfo(engine) {
     if (!engine) {
       // The defaultEngine getter will throw if there's no engine at all,
       // which shouldn't happen unless an add-on or a test deleted all of them.
       // Our preferences UI doesn't let users do that.
-      console.error("getDefaultEngineInfo: No default engine");
-      return ["NONE", { name: "NONE" }];
+      lazy.logConsole.error("getEngineInfo: No default engine");
+      return {
+        telemetryId: "NONE",
+        loadPath: "NONE",
+        name: "NONE",
+        submissionURL: "NONE",
+      };
     }
 
-    const engineData = {
-      loadPath: engine._loadPath,
+    let engineInfo = {
+      telemetryId: engine.telemetryId,
+      loadPath: engine.loadPath,
       name: engine.name ? engine.name : "",
+      /** @type {?string} */
+      submissionURL: undefined,
     };
 
     // For privacy, we only collect the submission URL for default engines...
@@ -3247,10 +3270,10 @@ export class SearchService {
         .mutate()
         .setUserPass("") // Avoid reporting a username or password.
         .finalize();
-      engineData.submissionURL = uri.spec;
+      engineInfo.submissionURL = uri.spec;
     }
 
-    return [engine.telemetryId, engineData];
+    return engineInfo;
   }
 
   /**
@@ -3276,29 +3299,21 @@ export class SearchService {
     newEngine,
     changeReason = Ci.nsISearchService.CHANGE_REASON_UNKNOWN
   ) {
-    let telemetryId;
     let engineInfo;
     // If we are toggling the separate private browsing settings, we might not
     // have an engine to record.
     if (newEngine) {
-      [telemetryId, engineInfo] = this.#getEngineInfo(newEngine);
-    } else {
-      telemetryId = "";
-      engineInfo = {
-        name: "",
-        loadPath: "",
-        submissionURL: "",
-      };
+      engineInfo = this.#getEngineInfo(newEngine);
     }
 
-    let submissionURL = engineInfo.submissionURL ?? "";
+    let submissionURL = engineInfo?.submissionURL ?? "";
     let extraArgs = {
       // In docshell tests, the previous engine does not exist, so we allow
       // for the previousEngine to be undefined.
       previous_engine_id: previousEngine?.telemetryId ?? "",
-      new_engine_id: telemetryId,
-      new_display_name: engineInfo.name,
-      new_load_path: engineInfo.loadPath,
+      new_engine_id: engineInfo?.telemetryId ?? "",
+      new_display_name: engineInfo?.name ?? "",
+      new_load_path: engineInfo?.loadPath ?? "",
       // Glean has a limit of 100 characters.
       new_submission_url: submissionURL.slice(0, 100),
       change_reason: REASON_CHANGE_MAP.get(changeReason) ?? "unknown",
@@ -3315,34 +3330,26 @@ export class SearchService {
    * telemetry.
    */
   #recordTelemetryData() {
-    let info = this.getDefaultEngineInfo();
+    let engineInfo = this.#getEngineInfo(this.defaultEngine);
 
-    Glean.searchEngineDefault.engineId.set(info.defaultSearchEngine);
-    Glean.searchEngineDefault.displayName.set(
-      info.defaultSearchEngineData.name
-    );
-    Glean.searchEngineDefault.loadPath.set(
-      info.defaultSearchEngineData.loadPath
-    );
+    Glean.searchEngineDefault.engineId.set(engineInfo.telemetryId);
+    Glean.searchEngineDefault.displayName.set(engineInfo.name);
+    Glean.searchEngineDefault.loadPath.set(engineInfo.loadPath);
     Glean.searchEngineDefault.submissionUrl.set(
-      info.defaultSearchEngineData.submissionURL ?? "blank:"
+      engineInfo.submissionURL ?? "blank:"
     );
 
-    Glean.searchEnginePrivate.engineId.set(
-      info.defaultPrivateSearchEngine ?? ""
-    );
+    if (this.#separatePrivateDefault) {
+      let privateEngineInfo = this.#getEngineInfo(this.defaultPrivateEngine);
 
-    if (info.defaultPrivateSearchEngineData) {
-      Glean.searchEnginePrivate.displayName.set(
-        info.defaultPrivateSearchEngineData.name
-      );
-      Glean.searchEnginePrivate.loadPath.set(
-        info.defaultPrivateSearchEngineData.loadPath
-      );
+      Glean.searchEnginePrivate.engineId.set(privateEngineInfo.telemetryId);
+      Glean.searchEnginePrivate.displayName.set(privateEngineInfo.name);
+      Glean.searchEnginePrivate.loadPath.set(privateEngineInfo.loadPath);
       Glean.searchEnginePrivate.submissionUrl.set(
-        info.defaultPrivateSearchEngineData.submissionURL ?? "blank:"
+        privateEngineInfo.submissionURL ?? "blank:"
       );
     } else {
+      Glean.searchEnginePrivate.engineId.set("");
       Glean.searchEnginePrivate.displayName.set("");
       Glean.searchEnginePrivate.loadPath.set("");
       Glean.searchEnginePrivate.submissionUrl.set("blank:");
