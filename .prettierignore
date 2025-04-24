@@ -15,6 +15,7 @@
 # Include Widget test files in formatting
 !toolkit/content/tests/widgets/*.xhtml
 !toolkit/content/tests/widgets/*.html
+!toolkit/content/tests/chrome/test_preferencesBindings_setting.html
 
 # This should be re-enabled in bug 1827456.
 js/src/builtin
