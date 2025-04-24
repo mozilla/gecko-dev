@@ -214,9 +214,6 @@ half = { path = "build/rust/half" }
 # Upgrade `rusqlite` 0.31 to 0.33.
 rusqlite = { path = "build/rust/rusqlite" }
 
-# Patch `ron` 0.9.* to 0.10.
-ron = { path = "build/rust/ron" }
-
 # Patch `strum` 0.26.* to 0.27.
 strum = { path = "build/rust/strum" }
 

@@ -3713,9 +3713,12 @@ criteria = "safe-to-deploy"
 delta = "24.0.0 -> 25.0.0"
 
 [[audits.naga]]
-who = "Erich Gubler <erichdongubler@gmail.com>"
+who = [
+    "Erich Gubler <erichdongubler@gmail.com>",
+    "Jim Blandy <jimb@red-bean.com>",
+]
 criteria = "safe-to-deploy"
-delta = "25.0.0 -> 25.0.0@git:5304c3ca4a43e78d6a8e3b45d8d3f76216f2c1a6"
+delta = "25.0.0 -> 25.0.0@git:35f131ff10153e48b790e1f156c864734063ce71"
 importable = false
 
 [[audits.net2]]
@@ -5999,9 +6002,12 @@ criteria = "safe-to-deploy"
 delta = "24.0.0 -> 25.0.0"
 
 [[audits.wgpu-core]]
-who = "Erich Gubler <erichdongubler@gmail.com>"
+who = [
+    "Erich Gubler <erichdongubler@gmail.com>",
+    "Jim Blandy <jimb@red-bean.com>",
+]
 criteria = "safe-to-deploy"
-delta = "25.0.0 -> 25.0.0@git:5304c3ca4a43e78d6a8e3b45d8d3f76216f2c1a6"
+delta = "25.0.0 -> 25.0.0@git:35f131ff10153e48b790e1f156c864734063ce71"
 importable = false
 
 [[audits.wgpu-core-deps-apple]]
@@ -6010,9 +6016,12 @@ criteria = "safe-to-deploy"
 version = "25.0.0"
 
 [[audits.wgpu-core-deps-apple]]
-who = "Erich Gubler <erichdongubler@gmail.com>"
+who = [
+    "Erich Gubler <erichdongubler@gmail.com>",
+    "Jim Blandy <jimb@red-bean.com>",
+]
 criteria = "safe-to-deploy"
-delta = "25.0.0 -> 25.0.0@git:5304c3ca4a43e78d6a8e3b45d8d3f76216f2c1a6"
+delta = "25.0.0 -> 25.0.0@git:35f131ff10153e48b790e1f156c864734063ce71"
 importable = false
 
 [[audits.wgpu-core-deps-windows-linux-android]]
@@ -6021,9 +6030,12 @@ criteria = "safe-to-deploy"
 version = "25.0.0"
 
 [[audits.wgpu-core-deps-windows-linux-android]]
-who = "Erich Gubler <erichdongubler@gmail.com>"
+who = [
+    "Erich Gubler <erichdongubler@gmail.com>",
+    "Jim Blandy <jimb@red-bean.com>",
+]
 criteria = "safe-to-deploy"
-delta = "25.0.0 -> 25.0.0@git:5304c3ca4a43e78d6a8e3b45d8d3f76216f2c1a6"
+delta = "25.0.0 -> 25.0.0@git:35f131ff10153e48b790e1f156c864734063ce71"
 importable = false
 
 [[audits.wgpu-hal]]
@@ -6110,9 +6122,12 @@ criteria = "safe-to-deploy"
 delta = "24.0.0 -> 25.0.0"
 
 [[audits.wgpu-hal]]
-who = "Erich Gubler <erichdongubler@gmail.com>"
+who = [
+    "Erich Gubler <erichdongubler@gmail.com>",
+    "Jim Blandy <jimb@red-bean.com>",
+]
 criteria = "safe-to-deploy"
-delta = "25.0.0 -> 25.0.0@git:5304c3ca4a43e78d6a8e3b45d8d3f76216f2c1a6"
+delta = "25.0.0 -> 25.0.0@git:35f131ff10153e48b790e1f156c864734063ce71"
 importable = false
 
 [[audits.wgpu-types]]
@@ -6194,9 +6209,12 @@ criteria = "safe-to-deploy"
 delta = "24.0.0 -> 25.0.0"
 
 [[audits.wgpu-types]]
-who = "Erich Gubler <erichdongubler@gmail.com>"
+who = [
+    "Erich Gubler <erichdongubler@gmail.com>",
+    "Jim Blandy <jimb@red-bean.com>",
+]
 criteria = "safe-to-deploy"
-delta = "25.0.0 -> 25.0.0@git:5304c3ca4a43e78d6a8e3b45d8d3f76216f2c1a6"
+delta = "25.0.0 -> 25.0.0@git:35f131ff10153e48b790e1f156c864734063ce71"
 importable = false
 
 [[audits.whatsys]]

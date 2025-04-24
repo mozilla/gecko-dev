@@ -916,8 +916,6 @@ version = "0.12.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "fe6d2e5af09e8c8ad56c969f2157a3d4238cebc7c55f0a517728c38f7b200f81"
 dependencies = [
- "serde",
- "termcolor",
  "unicode-width 0.2.0",
 ]
 
@@ -4588,11 +4586,12 @@ checksum = "a2983372caf4480544083767bf2d27defafe32af49ab4df3a0b7fc90793a3664"
 [[package]]
 name = "naga"
 version = "25.0.0"
-source = "git+https://github.com/gfx-rs/wgpu?rev=5304c3ca4a43e78d6a8e3b45d8d3f76216f2c1a6#5304c3ca4a43e78d6a8e3b45d8d3f76216f2c1a6"
+source = "git+https://github.com/gfx-rs/wgpu?rev=35f131ff10153e48b790e1f156c864734063ce71#35f131ff10153e48b790e1f156c864734063ce71"
 dependencies = [
  "arrayvec",
  "bit-set",
  "bitflags 2.9.0",
+ "cfg-if",
  "cfg_aliases",
  "codespan-reporting",
  "half 2.5.0",
@@ -4605,7 +4604,7 @@ dependencies = [
  "rustc-hash 1.999.999",
  "serde",
  "spirv",
- "strum 0.26.999",
+ "strum 0.27.1",
  "thiserror 2.0.9",
  "unicode-ident",
 ]
@@ -5691,13 +5690,6 @@ dependencies = [
  "byteorder",
  "rmp",
  "serde",
-]
-
-[[package]]
-name = "ron"
-version = "0.9.999"
-dependencies = [
- "ron 0.10.1",
 ]
 
 [[package]]
@@ -7453,7 +7445,7 @@ dependencies = [
  "peek-poke",
  "plane-split",
  "rayon",
- "ron 0.10.1",
+ "ron",
  "serde",
  "smallvec",
  "svg_fmt",
@@ -7547,7 +7539,7 @@ dependencies = [
 [[package]]
 name = "wgpu-core"
 version = "25.0.0"
-source = "git+https://github.com/gfx-rs/wgpu?rev=5304c3ca4a43e78d6a8e3b45d8d3f76216f2c1a6#5304c3ca4a43e78d6a8e3b45d8d3f76216f2c1a6"
+source = "git+https://github.com/gfx-rs/wgpu?rev=35f131ff10153e48b790e1f156c864734063ce71#35f131ff10153e48b790e1f156c864734063ce71"
 dependencies = [
  "arrayvec",
  "bit-set",
@@ -7563,7 +7555,7 @@ dependencies = [
  "once_cell",
  "parking_lot",
  "profiling",
- "ron 0.9.999",
+ "ron",
  "rustc-hash 1.999.999",
  "serde",
  "smallvec",
@@ -7577,7 +7569,7 @@ dependencies = [
 [[package]]
 name = "wgpu-core-deps-apple"
 version = "25.0.0"
-source = "git+https://github.com/gfx-rs/wgpu?rev=5304c3ca4a43e78d6a8e3b45d8d3f76216f2c1a6#5304c3ca4a43e78d6a8e3b45d8d3f76216f2c1a6"
+source = "git+https://github.com/gfx-rs/wgpu?rev=35f131ff10153e48b790e1f156c864734063ce71#35f131ff10153e48b790e1f156c864734063ce71"
 dependencies = [
  "wgpu-hal",
 ]
@@ -7585,7 +7577,7 @@ dependencies = [
 [[package]]
 name = "wgpu-core-deps-windows-linux-android"
 version = "25.0.0"
-source = "git+https://github.com/gfx-rs/wgpu?rev=5304c3ca4a43e78d6a8e3b45d8d3f76216f2c1a6#5304c3ca4a43e78d6a8e3b45d8d3f76216f2c1a6"
+source = "git+https://github.com/gfx-rs/wgpu?rev=35f131ff10153e48b790e1f156c864734063ce71#35f131ff10153e48b790e1f156c864734063ce71"
 dependencies = [
  "wgpu-hal",
 ]
@@ -7593,7 +7585,7 @@ dependencies = [
 [[package]]
 name = "wgpu-hal"
 version = "25.0.0"
-source = "git+https://github.com/gfx-rs/wgpu?rev=5304c3ca4a43e78d6a8e3b45d8d3f76216f2c1a6#5304c3ca4a43e78d6a8e3b45d8d3f76216f2c1a6"
+source = "git+https://github.com/gfx-rs/wgpu?rev=35f131ff10153e48b790e1f156c864734063ce71#35f131ff10153e48b790e1f156c864734063ce71"
 dependencies = [
  "android_system_properties",
  "arrayvec",
@@ -7629,7 +7621,7 @@ dependencies = [
 [[package]]
 name = "wgpu-types"
 version = "25.0.0"
-source = "git+https://github.com/gfx-rs/wgpu?rev=5304c3ca4a43e78d6a8e3b45d8d3f76216f2c1a6#5304c3ca4a43e78d6a8e3b45d8d3f76216f2c1a6"
+source = "git+https://github.com/gfx-rs/wgpu?rev=35f131ff10153e48b790e1f156c864734063ce71#35f131ff10153e48b790e1f156c864734063ce71"
 dependencies = [
  "bitflags 2.9.0",
  "bytemuck",

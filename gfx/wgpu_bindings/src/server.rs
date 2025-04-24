@@ -157,6 +157,10 @@ pub extern "C" fn wgpu_server_new(owner: *mut c_void, use_dxc: bool) -> *mut Glo
                 },
                 noop: wgt::NoopBackendOptions { enable: false },
             },
+            memory_budget_thresholds: wgt::MemoryBudgetThresholds {
+                for_resource_creation: Some(95),
+                for_device_loss: Some(100),
+            },
         },
     );
     let global = Global { global, owner };

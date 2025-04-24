@@ -167,7 +167,7 @@ optional = true
 default-features = false
 
 [dependencies.ron]
-version = "0.9"
+version = "0.10"
 optional = true
 
 [dependencies.rustc-hash]
