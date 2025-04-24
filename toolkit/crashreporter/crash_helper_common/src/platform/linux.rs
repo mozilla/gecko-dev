@@ -19,6 +19,7 @@ use nix::{
     Result,
 };
 use std::{
+    env,
     io::{IoSlice, IoSliceMut},
     os::fd::{AsRawFd, BorrowedFd, OwnedFd, RawFd},
 };
@@ -53,7 +54,11 @@ pub(crate) fn set_socket_cloexec(socket: BorrowedFd) -> Result<()> {
 }
 
 pub(crate) fn server_addr(pid: Pid) -> Result<UnixAddr> {
-    let server_name = format!("gecko-crash-helper-pipe.{pid:}");
+    let server_name = if let Ok(snap_instance_name) = env::var("SNAP_INSTANCE_NAME") {
+        format!("snap.{snap_instance_name:}.gecko-crash-helper-pipe.{pid:}")
+    } else {
+        format!("gecko-crash-helper-pipe.{pid:}")
+    };
     UnixAddr::new_abstract(server_name.as_bytes())
 }
 
