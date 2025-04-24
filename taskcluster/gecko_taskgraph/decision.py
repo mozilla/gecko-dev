@@ -506,7 +506,7 @@ def write_artifact(filename, data):
             yaml.safe_dump(data, f, allow_unicode=True, default_flow_style=False)
     elif filename.endswith(".json"):
         with open(path, "w") as f:
-            json.dump(data, f, sort_keys=True, indent=2, separators=(",", ": "))
+            json.dump(data, f, separators=(",", ": "))
     elif filename.endswith(".json.gz"):
         import gzip
 
