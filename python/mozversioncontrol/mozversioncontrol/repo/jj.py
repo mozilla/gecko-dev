@@ -60,6 +60,17 @@ class JujutsuRepository(Repository):
         """
         return super()._run(*(args + ("--ignore-working-copy",)), **kwargs)
 
+    def _snapshot(self):
+        """_snapshot() can be used to update the repository after changing files in the working
+        directory. Normally jj commands will do this automatically, but we often run jj commands
+        using `_run_read_only` which passes `--ignore-working-copy` to jj.
+        See bug 1962245 and bug 1962389.
+
+        An alternative option would be to add an extra argument to methods such as
+        `get_branch_nodes`.
+        """
+        self._run("log", "-n0")
+
     def resolve_to_change(self, revset: str) -> Optional[str]:
         change_id = self._run_read_only(
             "log", "--no-graph", "-n1", "-r", revset, "-T", "change_id.short()"
@@ -338,6 +349,8 @@ class JujutsuRepository(Repository):
                 p = self.path / Path(path)
                 p.parent.mkdir(parents=True, exist_ok=True)
                 p.write_text(content)
+            # Update the jj commit with the changes we just made.
+            self._snapshot()
             yield self.resolve_to_change("@")
         finally:
             self._run("operation", "restore", opid)
