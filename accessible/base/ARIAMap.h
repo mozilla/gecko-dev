@@ -10,6 +10,7 @@
 
 #include "ARIAStateMap.h"
 #include "mozilla/a11y/AccTypes.h"
+#include "mozilla/a11y/DocAccessible.h"
 #include "mozilla/a11y/Role.h"
 
 #include "nsAtom.h"
@@ -309,6 +310,14 @@ uint8_t AttrCharacteristicsFor(nsAtom* aAtom);
  * and should not be ignored per ShouldIgnoreARIAHidden.
  */
 bool IsValidARIAHidden(nsIContent* aContent);
+
+/**
+ * This function calls into the function above. It verifies the validity
+ * of any `aria-hidden` specified on the given Doc Accessible's
+ * mContent, as well as on the root element of mContent's owner
+ * doc.
+ */
+bool IsValidARIAHidden(DocAccessible* aDocAcc);
 
 /**
  * Return true if the element should render its subtree

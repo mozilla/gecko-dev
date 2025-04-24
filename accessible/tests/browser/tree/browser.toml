@@ -30,6 +30,10 @@ skip-if = [
 
 ["browser_test_aria_hidden.js"]
 
+["browser_test_aria_hidden_iframe.js"]
+
+["browser_test_aria_hidden_svg.js"]
+
 ["browser_searchbar.js"]
 
 ["browser_select.js"]
