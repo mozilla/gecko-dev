@@ -608,25 +608,6 @@ export class RemoteSettingsClient {
     }
 
     /**
-     * close
-     */
-    close() {
-        const liftResult = (result) => undefined;
-        const liftError = null;
-        const functionCall = () => {
-            return UniFFIScaffolding.callAsyncWrapper(
-                17, // remote_settings:uniffi_remote_settings_fn_method_remotesettingsclient_close
-                FfiConverterTypeRemoteSettingsClient.lower(this),
-            )
-        }
-        try {
-            return functionCall().then((result) => handleRustResult(result, liftResult, liftError));
-        }  catch (error) {
-            return Promise.reject(error)
-        }
-    }
-
-    /**
      * Collection this client is for
      * @returns {string}
      */
@@ -635,7 +616,7 @@ export class RemoteSettingsClient {
         const liftError = null;
         const functionCall = () => {
             return UniFFIScaffolding.callAsyncWrapper(
-                18, // remote_settings:uniffi_remote_settings_fn_method_remotesettingsclient_collection_name
+                17, // remote_settings:uniffi_remote_settings_fn_method_remotesettingsclient_collection_name
                 FfiConverterTypeRemoteSettingsClient.lower(this),
             )
         }
@@ -671,7 +652,7 @@ export class RemoteSettingsClient {
                 throw e;
             }
             return UniFFIScaffolding.callAsyncWrapper(
-                19, // remote_settings:uniffi_remote_settings_fn_method_remotesettingsclient_get_attachment
+                18, // remote_settings:uniffi_remote_settings_fn_method_remotesettingsclient_get_attachment
                 FfiConverterTypeRemoteSettingsClient.lower(this),
                 FfiConverterTypeRemoteSettingsRecord.lower(record),
             )
@@ -715,7 +696,7 @@ export class RemoteSettingsClient {
                 throw e;
             }
             return UniFFIScaffolding.callAsyncWrapper(
-                20, // remote_settings:uniffi_remote_settings_fn_method_remotesettingsclient_get_records
+                19, // remote_settings:uniffi_remote_settings_fn_method_remotesettingsclient_get_records
                 FfiConverterTypeRemoteSettingsClient.lower(this),
                 FfiConverterBool.lower(syncIfEmpty),
             )
@@ -747,9 +728,28 @@ export class RemoteSettingsClient {
                 throw e;
             }
             return UniFFIScaffolding.callAsyncWrapper(
-                21, // remote_settings:uniffi_remote_settings_fn_method_remotesettingsclient_get_records_map
+                20, // remote_settings:uniffi_remote_settings_fn_method_remotesettingsclient_get_records_map
                 FfiConverterTypeRemoteSettingsClient.lower(this),
                 FfiConverterBool.lower(syncIfEmpty),
+            )
+        }
+        try {
+            return functionCall().then((result) => handleRustResult(result, liftResult, liftError));
+        }  catch (error) {
+            return Promise.reject(error)
+        }
+    }
+
+    /**
+     * Shutdown the client, releasing the SQLite connection used to cache records.
+     */
+    shutdown() {
+        const liftResult = (result) => undefined;
+        const liftError = null;
+        const functionCall = () => {
+            return UniFFIScaffolding.callAsyncWrapper(
+                21, // remote_settings:uniffi_remote_settings_fn_method_remotesettingsclient_shutdown
+                FfiConverterTypeRemoteSettingsClient.lower(this),
             )
         }
         try {
