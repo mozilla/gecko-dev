@@ -968,6 +968,10 @@ var SidebarController = {
     return this._state?.launcherVisible;
   },
 
+  get launcherEverVisible() {
+    return this._state?.launcherEverVisible;
+  },
+
   get title() {
     return this._title.value;
   },
