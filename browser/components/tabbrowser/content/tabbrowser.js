@@ -2971,6 +2971,9 @@
      *   An optional argument that accepts a single tab, which, if passed, will
      *   cause the group to be inserted just before this tab in the tab strip. By
      *   default, the group will be created at the end of the tab strip.
+     * @param {boolean} [options.isAdoptingGroup]
+     *   Whether the tab group was created because a tab group with the same
+     *   properties is being adopted from a different window.
      * @param {boolean} [options.isUserTriggered]
      *   Should be true if this group is being created in response to an
      *   explicit request from the user (as opposed to a group being created
@@ -2989,6 +2992,7 @@
         color = null,
         label = "",
         insertBefore = null,
+        isAdoptingGroup = false,
         isUserTriggered = false,
         telemetryUserCreateSource = "unknown",
       } = {}
@@ -3026,6 +3030,7 @@
         new CustomEvent("TabGroupCreate", {
           bubbles: true,
           detail: {
+            isAdoptingGroup,
             isUserTriggered,
             telemetryUserCreateSource,
           },
@@ -3144,6 +3149,7 @@
       if (group.ownerDocument == document) {
         return group;
       }
+      group.removedByAdoption = true;
       group.saveOnWindowClose = false;
 
       let newTabs = [];
@@ -3156,6 +3162,7 @@
         label: group.label,
         color: group.color,
         insertBefore: newTabs[0],
+        isAdoptingGroup: true,
       });
     }
 

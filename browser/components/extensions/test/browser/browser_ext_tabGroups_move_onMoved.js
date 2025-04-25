@@ -126,15 +126,24 @@ add_task(async function tabsGroups_move_onMoved() {
   is(created3.id, gid3, "Correct group 3 create event.");
 
   ext.sendMessage(gid3, { index: 0, windowId });
-  ext.awaitMessage("done");
+  await ext.awaitMessage("done");
 
-  // TODO bug 1962475: order of events sucks, fix it and add a proper test.
-  let r3 = await ext.awaitMessage("removed");
-  let c3 = await ext.awaitMessage("created");
-  let m3 = await ext.awaitMessage("moved");
-  is(r3.id, gid3, "Moving to another window first closes the group,");
-  is(c3.id, gid3, "then re-creates it,");
-  is(m3.id, gid3, "and finally moves it.");
+  let moved3 = await ext.awaitMessage("moved");
+  // Chrome fires onRemoved + onCreated, but we intentionally dispatch onMoved
+  // because it makes more sense - bug 1962475.
+  is(moved3.id, gid3, "onMoved fired after moving to another window");
+
+  // Add and remove a tab group, so that if onCreated/onRemoved was
+  // unexpectedly fired by the move above, that we will see (unexpected) gid3
+  // instead of (expected) gid4.
+  let tab5 = await BrowserTestUtils.openNewForegroundTab(win3.gBrowser, url);
+  let group5 = win3.gBrowser.addTabGroup([tab5]);
+  let created5 = await ext.awaitMessage("created");
+  let gid5 = getExtTabGroupIdForInternalTabGroupId(group5.id);
+  is(created5.id, gid5, "Correct group 5 create event.");
+  win3.gBrowser.removeTabGroup(group5);
+  let removed5 = await ext.awaitMessage("removed");
+  is(removed5.id, gid5, "Correct group 5 removed event.");
 
   await BrowserTestUtils.closeWindow(win3);
   let group3b = gBrowser.getTabGroupById(group3.id);

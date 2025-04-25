@@ -211,7 +211,7 @@
       {
         "name": "onMoved",
         "type": "function",
-        "description": "Fired when a tab group is moved within a window.",
+        "description": "Fired when a tab group is moved, within a window or to another window.",
         "parameters": [{ "$ref": "TabGroup", "name": "group" }]
       },
       {
