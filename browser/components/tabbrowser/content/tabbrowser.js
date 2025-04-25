@@ -3155,6 +3155,7 @@
       let newTabs = [];
       for (let tab of group.tabs) {
         newTabs.push(this.adoptTab(tab, { elementIndex }));
+        ++elementIndex;
       }
 
       return this.addTabGroup(newTabs, {
