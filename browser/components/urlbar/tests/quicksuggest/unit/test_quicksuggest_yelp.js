@@ -254,7 +254,7 @@ add_task(async function basic() {
         providers: [UrlbarProviderQuickSuggest.name],
         isPrivate: false,
       }),
-      matches: expected ? [makeExpectedResult(expected)] : [],
+      matches: expected ? [QuickSuggestTestUtils.yelpResult(expected)] : [],
     });
 
     UrlbarPrefs.clear("yelp.showLessFrequentlyCount");
@@ -281,7 +281,7 @@ add_task(async function sponsoredDisabled() {
       providers: [UrlbarProviderQuickSuggest.name],
       isPrivate: false,
     }),
-    matches: [makeExpectedResult(TOKYO_RESULT)],
+    matches: [QuickSuggestTestUtils.yelpResult(TOKYO_RESULT)],
   });
 
   // Now disable the pref.
@@ -312,7 +312,7 @@ add_task(async function sponsoredDisabled() {
       providers: [UrlbarProviderQuickSuggest.name],
       isPrivate: false,
     }),
-    matches: [makeExpectedResult(TOKYO_RESULT)],
+    matches: [QuickSuggestTestUtils.yelpResult(TOKYO_RESULT)],
   });
 });
 
@@ -327,7 +327,7 @@ add_task(async function yelpSpecificPrefsDisabled() {
         providers: [UrlbarProviderQuickSuggest.name],
         isPrivate: false,
       }),
-      matches: [makeExpectedResult(TOKYO_RESULT)],
+      matches: [QuickSuggestTestUtils.yelpResult(TOKYO_RESULT)],
     });
 
     // Now disable the pref.
@@ -358,7 +358,7 @@ add_task(async function yelpSpecificPrefsDisabled() {
         providers: [UrlbarProviderQuickSuggest.name],
         isPrivate: false,
       }),
-      matches: [makeExpectedResult(TOKYO_RESULT)],
+      matches: [QuickSuggestTestUtils.yelpResult(TOKYO_RESULT)],
     });
   }
 });
@@ -386,7 +386,7 @@ add_task(async function featureGate() {
       providers: [UrlbarProviderQuickSuggest.name],
       isPrivate: false,
     }),
-    matches: [makeExpectedResult(TOKYO_RESULT)],
+    matches: [QuickSuggestTestUtils.yelpResult(TOKYO_RESULT)],
   });
   await cleanUpNimbusEnable();
 
@@ -427,7 +427,7 @@ add_task(async function yelpSuggestPriority() {
       isPrivate: false,
     }),
     matches: [
-      makeExpectedResult({
+      QuickSuggestTestUtils.yelpResult({
         ...TOKYO_RESULT,
         isTopPick: true,
       }),
@@ -443,7 +443,7 @@ add_task(async function yelpSuggestPriority() {
       isPrivate: false,
     }),
     matches: [
-      makeExpectedResult({
+      QuickSuggestTestUtils.yelpResult({
         ...TOKYO_RESULT,
         isTopPick: false,
       }),
@@ -468,7 +468,7 @@ add_task(async function nimbusSuggestedIndex() {
       isPrivate: false,
     }),
     matches: [
-      makeExpectedResult({
+      QuickSuggestTestUtils.yelpResult({
         ...TOKYO_RESULT,
         isTopPick: false,
         suggestedIndex: -2,
@@ -487,7 +487,7 @@ add_task(async function nimbusSuggestedIndex() {
       isPrivate: false,
     }),
     matches: [
-      makeExpectedResult({
+      QuickSuggestTestUtils.yelpResult({
         ...TOKYO_RESULT,
         isTopPick: false,
         suggestedIndex: 0,
@@ -507,7 +507,7 @@ add_task(async function showSearchSuggestionsFirstDisabledSuggestedIndex() {
       isPrivate: false,
     }),
     matches: [
-      makeExpectedResult({
+      QuickSuggestTestUtils.yelpResult({
         ...TOKYO_RESULT,
         isTopPick: false,
         suggestedIndex: -1,
@@ -523,7 +523,7 @@ add_task(async function showSearchSuggestionsFirstDisabledSuggestedIndex() {
       isPrivate: false,
     }),
     matches: [
-      makeExpectedResult({
+      QuickSuggestTestUtils.yelpResult({
         ...TOKYO_RESULT,
         isTopPick: false,
         suggestedIndex: 0,
@@ -537,7 +537,7 @@ add_task(async function showSearchSuggestionsFirstDisabledSuggestedIndex() {
 // Tests the "Not relevant" command: a dismissed suggestion shouldn't be added.
 add_task(async function notRelevant() {
   await doDismissOneTest({
-    result: makeExpectedResult(TOKYO_RESULT),
+    result: QuickSuggestTestUtils.yelpResult(TOKYO_RESULT),
     command: "not_relevant",
     feature: QuickSuggest.getFeature("YelpSuggestions"),
     queriesForDismissals: [
@@ -549,7 +549,7 @@ add_task(async function notRelevant() {
       {
         query: "ramen in waterloo",
         expectedResults: [
-          makeExpectedResult({
+          QuickSuggestTestUtils.yelpResult({
             url: "https://www.yelp.com/search?find_desc=ramen&find_loc=Waterloo%2C+IA",
             title: "ramen in Waterloo, IA",
           }),
@@ -560,7 +560,7 @@ add_task(async function notRelevant() {
       {
         query: "alongerkeyword in tokyo",
         expectedResults: [
-          makeExpectedResult({
+          QuickSuggestTestUtils.yelpResult({
             url: "https://www.yelp.com/search?find_desc=alongerkeyword&find_loc=Tokyo%2C+Tokyo-to",
             title: "alongerkeyword in Tokyo, Tokyo-to",
           }),
@@ -574,7 +574,7 @@ add_task(async function notRelevant() {
 // and not added anymore.
 add_task(async function notInterested() {
   await doDismissAllTest({
-    result: makeExpectedResult(TOKYO_RESULT),
+    result: QuickSuggestTestUtils.yelpResult(TOKYO_RESULT),
     command: "not_interested",
     feature: QuickSuggest.getFeature("YelpSuggestions"),
     pref: "suggest.yelp",
@@ -585,7 +585,7 @@ add_task(async function notInterested() {
       {
         query: "alongerkeyword in tokyo",
         expectedResults: [
-          makeExpectedResult({
+          QuickSuggestTestUtils.yelpResult({
             url: "https://www.yelp.com/search?find_desc=alongerkeyword&find_loc=Tokyo%2C+Tokyo-to",
             title: "alongerkeyword in Tokyo, Tokyo-to",
           }),
@@ -609,7 +609,7 @@ add_task(async function showLessFrequently() {
   url.searchParams.set("find_desc", "best ramen");
   url.searchParams.set("find_loc", location);
 
-  let result = makeExpectedResult({
+  let result = QuickSuggestTestUtils.yelpResult({
     url: url.toString(),
     title: `best ramen in ${location}`,
   });
@@ -1009,7 +1009,7 @@ async function doMinKeywordLengthTest({ prefUserValue, nimbusValue, tests }) {
         providers: [UrlbarProviderQuickSuggest.name],
         isPrivate: false,
       }),
-      matches: expected ? [makeExpectedResult(expected)] : [],
+      matches: expected ? [QuickSuggestTestUtils.yelpResult(expected)] : [],
     });
   }
 
@@ -1020,58 +1020,4 @@ async function doMinKeywordLengthTest({ prefUserValue, nimbusValue, tests }) {
   } else {
     UrlbarPrefs.set("yelp.minKeywordLength", originalPrefUserValue);
   }
-}
-
-function makeExpectedResult({
-  url,
-  title,
-  isTopPick = false,
-  // The default Yelp suggestedIndex is 0, unlike most other Suggest suggestion
-  // types, which use -1.
-  suggestedIndex = 0,
-  isSuggestedIndexRelativeToGroup = true,
-  originalUrl = undefined,
-  displayUrl = undefined,
-}) {
-  const utmParameters = "&utm_medium=partner&utm_source=mozilla";
-
-  originalUrl ??= url;
-  originalUrl = new URL(originalUrl);
-  originalUrl.searchParams.delete("find_loc");
-  originalUrl = originalUrl.toString();
-
-  displayUrl =
-    (displayUrl ??
-      url
-        .replace(/^https:\/\/www[.]/, "")
-        .replace("%20", " ")
-        .replace("%2C", ",")) + utmParameters;
-
-  url += utmParameters;
-
-  if (isTopPick) {
-    suggestedIndex = 1;
-    isSuggestedIndexRelativeToGroup = false;
-  }
-
-  return {
-    type: UrlbarUtils.RESULT_TYPE.URL,
-    source: UrlbarUtils.RESULT_SOURCE.SEARCH,
-    isBestMatch: !!isTopPick,
-    suggestedIndex,
-    isSuggestedIndexRelativeToGroup,
-    heuristic: false,
-    payload: {
-      source: "rust",
-      provider: "Yelp",
-      telemetryType: "yelp",
-      bottomTextL10n: { id: "firefox-suggest-yelp-bottom-text" },
-      url,
-      originalUrl,
-      title,
-      displayUrl,
-      icon: null,
-      isSponsored: true,
-    },
-  };
 }

@@ -229,9 +229,6 @@ const PREF_URLBAR_DEFAULTS = new Map([
   // pick.
   ["quicksuggest.ampTopPickCharThreshold", 5],
 
-  // JSON'ed array of blocked quick suggest URL digests.
-  ["quicksuggest.blockedDigests", ""],
-
   // Whether the Firefox Suggest data collection opt-in result is enabled.
   ["quicksuggest.contextualOptIn", false],
 

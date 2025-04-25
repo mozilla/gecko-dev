@@ -478,6 +478,9 @@ add_task(async function notRelevant() {
     matches: [result],
   });
 
+  let dismissalPromise = TestUtils.topicObserved(
+    "quicksuggest-dismissals-changed"
+  );
   triggerCommand({
     result,
     command: "not_relevant",
@@ -486,14 +489,14 @@ add_task(async function notRelevant() {
       removeResult: 1,
     },
   });
-  await QuickSuggest.blockedSuggestions._test_readyPromise;
+  await dismissalPromise;
 
   Assert.ok(
-    await QuickSuggest.blockedSuggestions.isResultBlocked(result),
-    "The result's URL should be blocked"
+    await QuickSuggest.isResultDismissed(result),
+    "The result should be dismissed"
   );
 
-  info("Doing search for blocked suggestion");
+  info("Doing search for dismissed suggestion");
   await check_results({
     context: createContext("burgers", {
       providers: [UrlbarProviderQuickSuggest.name],
@@ -502,8 +505,8 @@ add_task(async function notRelevant() {
     matches: [],
   });
 
-  // Yelp suggestions are blocked by URL excluding location, so all
-  // "ramen in <valid location>" results should be blocked.
+  // Yelp suggestions are dismissed by URL excluding location, so all
+  // "ramen in <valid location>" results should be dismissed.
   gMakeSuggestionsStub.returns(waterlooIntent);
   await check_results({
     context: createContext("burgers in waterloo", {
@@ -513,7 +516,7 @@ add_task(async function notRelevant() {
     matches: [],
   });
 
-  info("Doing search for a suggestion that wasn't blocked");
+  info("Doing search for a suggestion that wasn't dismissed");
   gMakeSuggestionsStub.returns({ intent: "yelp_intent", subject: "ramen" });
   await check_results({
     context: createContext("ramen", {
@@ -528,10 +531,10 @@ add_task(async function notRelevant() {
     ],
   });
 
-  info("Clearing blocked suggestions");
+  info("Clearing dismissed suggestions");
   await QuickSuggest.clearDismissedSuggestions();
 
-  info("Doing search for unblocked suggestion");
+  info("Doing search for un-dismissed suggestion");
   gMakeSuggestionsStub.returns(burgersIntent);
   await check_results({
     context: createContext("burgers", {
@@ -558,37 +561,12 @@ function makeExpectedResult({
   originalUrl = undefined,
   displayUrl = undefined,
 }) {
-  const utmParameters = "&utm_medium=partner&utm_source=mozilla";
-
-  originalUrl ??= url;
-  originalUrl = new URL(originalUrl);
-  originalUrl.searchParams.delete("find_loc");
-  originalUrl = originalUrl.toString();
-
-  displayUrl =
-    (displayUrl ??
-      url
-        .replace(/^https:\/\/www[.]/, "")
-        .replace("%20", " ")
-        .replace("%2C", ",")) + utmParameters;
-
-  url += utmParameters;
-
-  return {
-    type: UrlbarUtils.RESULT_TYPE.URL,
-    source: UrlbarUtils.RESULT_SOURCE.SEARCH,
-    heuristic: false,
-    payload: {
-      source,
-      provider,
-      telemetryType: "yelp",
-      bottomTextL10n: { id: "firefox-suggest-yelp-bottom-text" },
-      url,
-      originalUrl,
-      title,
-      displayUrl,
-      icon: null,
-      isSponsored: true,
-    },
-  };
+  return QuickSuggestTestUtils.yelpResult({
+    url,
+    title,
+    source,
+    provider,
+    originalUrl,
+    displayUrl,
+  });
 }
