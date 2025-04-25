@@ -17,6 +17,8 @@ ChromeUtils.defineESModuleGetters(lazy, {
   FormAutofillNameUtils:
     "resource://gre/modules/shared/FormAutofillNameUtils.sys.mjs",
   LabelUtils: "resource://gre/modules/shared/LabelUtils.sys.mjs",
+  clearTimeout: "resource://gre/modules/Timer.sys.mjs",
+  setTimeout: "resource://gre/modules/Timer.sys.mjs",
 });
 
 const { FIELD_STATES } = FormAutofillUtils;
@@ -74,7 +76,7 @@ export class FormAutofillHandler {
    *
    * fillOnFormChangeData.isWithinDynamicFormChangeThreshold:
    *              Flags if a "form-change" event is received within the timeout threshold
-   *              (see lazy.FormAutofill.fillOnDynamicFormChangeTimeout), that we set
+   *              (see FormAutofill.fillOnDynamicFormChangeTimeout), that we set
    *              in order to consider newly detected fields for filling.
    * fillOnFormChangeData.previouslyUsedProfile
    *              The previously used profile from the latest autocompletion.
@@ -82,9 +84,15 @@ export class FormAutofillHandler {
    *              The previously focused element id from the latest autocompletion
    *
    * This is used for any following form changes and is cleared after a time threshold
-   * set by lazy.FormAutofill.fillOnDynamicFormChangeTimeout.
+   * set by FormAutofill.fillOnDynamicFormChangeTimeout.
    */
   #fillOnFormChangeData = new Map();
+
+  /**
+   * Caching the refill timeout id to cancel it once we know that we're about to fill
+   * on form change, because this sets up another refill timeout.
+   */
+  #refillTimeoutId = null;
 
   /**
    * Flag to indicate whethere there is an ongoing autofilling/clearing process.
@@ -455,9 +463,12 @@ export class FormAutofillHandler {
    *        The data profile containing the values to be autofilled into the form fields.
    */
   fillFields(focusedId, elementIds, profile) {
+    this.cancelRefillOnSiteClearingFieldsAction();
+
     this.#isAutofillInProgress = true;
     this.getAdaptedProfiles([profile]);
 
+    const filledValuesByElement = new Map();
     for (const fieldDetail of this.fieldDetails) {
       const { element, elementId } = fieldDetail;
 
@@ -494,6 +505,7 @@ export class FormAutofillHandler {
         ) {
           FormAutofillHandler.fillFieldValue(element, value);
           this.changeFieldState(fieldDetail, FIELD_STATES.AUTO_FILLED);
+          filledValuesByElement.set(element, value);
         }
       } else if (HTMLSelectElement.isInstance(element)) {
         const option = this.matchSelectOptions(fieldDetail, profile);
@@ -517,6 +529,7 @@ export class FormAutofillHandler {
         }
         // Autofill highlight appears regardless if value is changed or not
         this.changeFieldState(fieldDetail, FIELD_STATES.AUTO_FILLED);
+        filledValuesByElement.set(element, option.value);
       } else {
         continue;
       }
@@ -526,6 +539,8 @@ export class FormAutofillHandler {
     this.#isAutofillInProgress = false;
 
     this.registerFormChangeHandler();
+
+    this.ensureValuesRefilledIfCleared(filledValuesByElement);
   }
 
   registerFormChangeHandler() {
@@ -540,6 +555,7 @@ export class FormAutofillHandler {
         return;
       }
       if (e.type == "reset") {
+        this.cancelRefillOnSiteClearingFieldsAction();
         for (const fieldDetail of this.fieldDetails) {
           const element = fieldDetail.element;
           element.removeEventListener("input", this, { mozSystemGroup: true });
@@ -578,6 +594,53 @@ export class FormAutofillHandler {
     this.form.rootElement.addEventListener("reset", this.onChangeHandler, {
       mozSystemGroup: true,
     });
+  }
+
+  /**
+   * Re-fills any previously autofilled element if the website cleared the element
+   * immediately after it has been autofilled (not if cleared by the user).
+   * This is to avoid having elements that are empty but highlighted.
+   *
+   * @param {Map<HTMLElement,string>} filledValuesByElement
+   */
+  ensureValuesRefilledIfCleared(filledValuesByElement) {
+    if (!FormAutofill.refillOnSiteClearingFields) {
+      return;
+    }
+
+    const filledElementValues = this.fieldDetails
+      .filter(fd => fd.element.autofillState == FIELD_STATES.AUTO_FILLED)
+      // Using the cached filled value here instead of fd.element.value, because
+      // fd.element.value is not always the property that the site stores the value at.
+      .map(fd => [fd.element, filledValuesByElement.get(fd.element) ?? ""]);
+
+    this.#refillTimeoutId = lazy.setTimeout(() => {
+      for (let [e, v] of filledElementValues) {
+        if (e.autofillState == FIELD_STATES.AUTO_FILLED && e.value === v) {
+          // Nothing to do if the autofilled value wasn't cleared or the
+          // element's autofill state has changed to NORMAL in the meantime
+          continue;
+        }
+
+        this.#isAutofillInProgress = true;
+        FormAutofillHandler.fillFieldValue(e, v, { ignoreFocus: true });
+        // Although the field should already be in the autofilled state at this point,
+        // still setting autofilled state to re-highlight the element.
+        e.autofillState = FIELD_STATES.AUTO_FILLED;
+        this.#isAutofillInProgress = false;
+        this.#refillTimeoutId = null;
+      }
+    }, FormAutofill.refillOnSiteClearingFieldsTimeout);
+  }
+
+  cancelRefillOnSiteClearingFieldsAction() {
+    if (!FormAutofill.refillOnSiteClearingFields) {
+      return;
+    }
+    if (this.#refillTimeoutId) {
+      lazy.clearTimeout(this.#refillTimeoutId);
+      this.#refillTimeoutId = null;
+    }
   }
 
   /**
@@ -1269,9 +1332,17 @@ export class FormAutofillHandler {
    *
    * @param {HTMLElement} element - The form field element to be filled.
    * @param {string} value - The value to be filled into the form field.
+   * @param {object} options
+   * @param {boolean} [options.ignoreFocus] - Whether to ignore focusing the field that is filled.
+   *                                          True  - When an autofilled field get's refilled after
+   *                                                  its value was cleared
+   *                                          False - Default
    */
-  static fillFieldValue(element, value) {
-    if (FormAutofillUtils.focusOnAutofill) {
+  static fillFieldValue(element, value, { ignoreFocus = false } = {}) {
+    // Ignoring to focus the field if it gets refilled (after the site cleared its value),
+    // because it was already focused on the previous autofill action and we want to avoid
+    // re-triggering any event listener callbacks or autocomplete dropdowns
+    if (FormAutofillUtils.focusOnAutofill && !ignoreFocus) {
       element.focus({ preventScroll: true });
     }
     if (FormAutofillUtils.isTextControl(element)) {
@@ -1306,6 +1377,7 @@ export class FormAutofillHandler {
   }
 
   clearFilledFields(focusedId, elementIds) {
+    this.cancelRefillOnSiteClearingFieldsAction();
     this.#isAutofillInProgress = true;
     const fieldDetails = elementIds.map(id =>
       this.getFieldDetailByElementId(id)

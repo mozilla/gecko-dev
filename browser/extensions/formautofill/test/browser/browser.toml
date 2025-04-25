@@ -72,6 +72,8 @@ skip-if = [
 
 ["browser_dynamic_form_detection.js"]
 
+["browser_dynamic_form_refill_on_site_clearing_values.js"]
+
 ["browser_dynamic_form_telemetry.js"]
 
 ["browser_editAddressDialog.js"]
