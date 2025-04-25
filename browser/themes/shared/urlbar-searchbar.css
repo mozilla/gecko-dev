@@ -1025,7 +1025,7 @@
 /* Search bar */
 
 #search-container,
-#wrapper-search-container {
+#wrapper-search-container:not([place="panel"]) {
   flex: 175 175 auto;
 }
 
