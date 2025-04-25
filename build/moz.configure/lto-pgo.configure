@@ -42,6 +42,10 @@ llvm_profdata = check_prog(
 )
 
 
+# --call-graph-profile-sort is the default behavior for lld, and it proves to be
+# more efficient than pgo-based orderfile. Don't pass it explicitly because it's
+# option support differ from one version to the other (w/ or W: argument and the
+# argument value).
 @depends(select_linker, target)
 def pgo_cg_sort(linker, target):
     return linker and linker.KIND == "lld" and target.os != "OSX"
@@ -124,7 +128,6 @@ pgo_temporal = c_compiler.try_compile(
     target,
     pgo_profile_path,
     target_is_windows,
-    pgo_cg_sort,
     pgo_temporal,
     orderfile_path,
 )
@@ -135,7 +138,6 @@ def pgo_flags(
     target,
     profdata,
     target_is_windows,
-    pgo_cg_sort,
     pgo_temporal,
     orderfile,
 ):
@@ -156,13 +158,7 @@ def pgo_flags(
             gen_ldflags = ["-fprofile-generate"]
 
         use_ldflags = []
-        if pgo_cg_sort:
-            if compiler.type == "clang-cl":
-                use_ldflags.append("/call-graph-profile-sort")
-            else:
-                use_ldflags.append("-Wl,--call-graph-profile-sort=cdsort")
-            log.info("Activating PGO-based call graph sort")
-        elif orderfile:
+        if orderfile:
             if compiler.type == "clang-cl":
                 use_ldflags += [
                     "-ORDER:@" + orderfile,
