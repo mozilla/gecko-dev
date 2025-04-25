@@ -145,6 +145,7 @@
     }
 
     set color(code) {
+      let diff = code !== this.#colorCode;
       this.#colorCode = code;
       this.style.setProperty(
         "--tab-group-color",
@@ -158,6 +159,11 @@
         "--tab-group-color-pale",
         `var(--tab-group-color-${code}-pale)`
       );
+      if (diff) {
+        this.dispatchEvent(
+          new CustomEvent("TabGroupUpdate", { bubbles: true })
+        );
+      }
     }
 
     get id() {
@@ -173,6 +179,7 @@
     }
 
     set label(val) {
+      let diff = val !== this.#label;
       this.#label = val;
 
       // If the group name is empty, use a zero width space so we
@@ -182,6 +189,11 @@
       this.dataset.tooltip = val;
 
       this.#updateLabelAriaAttributes();
+      if (diff) {
+        this.dispatchEvent(
+          new CustomEvent("TabGroupUpdate", { bubbles: true })
+        );
+      }
     }
 
     // alias for label

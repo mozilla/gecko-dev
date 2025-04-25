@@ -87,6 +87,50 @@
             "parameters": [{ "name": "group", "$ref": "TabGroup" }]
           }
         ]
+      },
+      {
+        "name": "update",
+        "type": "function",
+        "description": "Modifies state of a specified group.",
+        "async": "callback",
+        "parameters": [
+          {
+            "type": "integer",
+            "name": "groupId",
+            "minimum": 0
+          },
+          {
+            "type": "object",
+            "name": "updateProperties",
+            "properties": {
+              "collapsed": {
+                "type": "boolean",
+                "optional": true
+              },
+              "color": {
+                "$ref": "Color",
+                "optional": true
+              },
+              "title": {
+                "type": "string",
+                "optional": true
+              }
+            }
+          },
+          {
+            "type": "function",
+            "name": "callback",
+            "parameters": [{ "name": "group", "$ref": "TabGroup" }]
+          }
+        ]
+      }
+    ],
+    "events": [
+      {
+        "name": "onUpdated",
+        "type": "function",
+        "description": "Fired when a tab group is updated.",
+        "parameters": [{ "$ref": "TabGroup", "name": "group" }]
       }
     ]
   }
