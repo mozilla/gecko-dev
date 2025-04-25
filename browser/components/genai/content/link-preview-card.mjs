@@ -12,6 +12,18 @@ ChromeUtils.defineESModuleGetters(lazy, {
   BrowserUtils: "resource://gre/modules/BrowserUtils.sys.mjs",
 });
 
+ChromeUtils.defineLazyGetter(
+  lazy,
+  "numberFormat",
+  () => new Services.intl.NumberFormat()
+);
+
+ChromeUtils.defineLazyGetter(
+  lazy,
+  "pluralRules",
+  () => new Services.intl.PluralRules()
+);
+
 const FEEDBACK_LINK =
   "https://connect.mozilla.org/t5/discussions/try-out-link-previews-on-firefox-labs/td-p/92012";
 
@@ -107,6 +119,12 @@ class LinkPreviewCard extends MozLitElement {
 
     const readingTimeMinsFast = articleData.readingTimeMinsFast || "";
     const readingTimeMinsSlow = articleData.readingTimeMinsSlow || "";
+    const readingTimeMinsFastStr =
+      lazy.numberFormat.format(readingTimeMinsFast);
+    const readingTimeRange = lazy.numberFormat.formatRange(
+      readingTimeMinsFast,
+      readingTimeMinsSlow
+    );
 
     // Check if both metadata and article text content are missing
     const isMissingAllContent = !description && !articleData.textContent;
@@ -156,11 +174,25 @@ class LinkPreviewCard extends MozLitElement {
             ? html`<p class="og-card-description">${description}</p>`
             : ""}
           ${readingTimeMinsFast && readingTimeMinsSlow
-            ? html`<div class="og-card-reading-time">
-                ${readingTimeMinsFast === readingTimeMinsSlow
-                  ? `${readingTimeMinsFast} min${readingTimeMinsFast > 1 ? "s" : ""} reading time`
-                  : `${readingTimeMinsFast}-${readingTimeMinsSlow} mins reading time`}
-              </div>`
+            ? html`
+                <div
+                  class="og-card-reading-time"
+                  data-l10n-id="link-preview-reading-time"
+                  data-l10n-args=${JSON.stringify({
+                    range:
+                      readingTimeMinsFast === readingTimeMinsSlow
+                        ? `~${readingTimeMinsFastStr}`
+                        : `${readingTimeRange}`,
+                    rangePlural:
+                      readingTimeMinsFast === readingTimeMinsSlow
+                        ? lazy.pluralRules.select(readingTimeMinsFast)
+                        : lazy.pluralRules.selectRange(
+                            readingTimeMinsFast,
+                            readingTimeMinsSlow
+                          ),
+                  })}
+                ></div>
+              `
             : ""}
         </div>
         ${this.generating || this.keyPoints.length
