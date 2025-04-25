@@ -80,10 +80,18 @@ this.tabGroups = class extends ExtensionAPIPersistent {
       let onMove = event => {
         fire.async(this.convert(event.originalTarget));
       };
+      let onCreate = event => {
+        if (event.detail.isAdoptingGroup) {
+          // Tab group moved from a different window.
+          fire.async(this.convert(event.originalTarget));
+        }
+      };
       windowTracker.addListener("TabGroupMoved", onMove);
+      windowTracker.addListener("TabGroupCreate", onCreate);
       return {
         unregister() {
           windowTracker.removeListener("TabGroupMoved", onMove);
+          windowTracker.removeListener("TabGroupCreate", onCreate);
         },
         convert(_fire) {
           fire = _fire;
@@ -158,12 +166,10 @@ this.tabGroups = class extends ExtensionAPIPersistent {
           }
 
           if (win !== group.ownerGlobal) {
-            // Always adopt at the end when moving to another window,
-            // so that moveBefore/moveAfter logic works as expected.
-            let last = win.gBrowser.tabContainer.ariaFocusableItems.length;
-            group = win.gBrowser.adoptTabGroup(group, last);
-          }
-          if (index >= 0 && index < win.gBrowser.tabs.length) {
+            let last = win.gBrowser.tabContainer.ariaFocusableItems.length + 1;
+            let elementIndex = index === -1 ? last : Math.min(index, last);
+            group = win.gBrowser.adoptTabGroup(group, elementIndex);
+          } else if (index >= 0 && index < win.gBrowser.tabs.length) {
             win.gBrowser.moveTabTo(group, { tabIndex: index });
           } else if (win.gBrowser.tabs.at(-1) !== group.tabs.at(-1)) {
             win.gBrowser.moveTabAfter(group, win.gBrowser.tabs.at(-1));
