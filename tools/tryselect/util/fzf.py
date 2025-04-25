@@ -339,6 +339,10 @@ def run_fzf(cmd, tasks):
     )
     out = proc.communicate("\n".join(tasks))[0].splitlines()
 
+    # If fzf exited with code 130 (interrupted by Ctrl-C), re-raise KeyboardInterrupt
+    if proc.returncode == 130:
+        raise KeyboardInterrupt
+
     selected = []
     query = None
     if out:
