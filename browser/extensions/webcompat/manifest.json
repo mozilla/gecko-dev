@@ -98,6 +98,7 @@
       "lib/custom_functions.js",
       "lib/interventions.js",
       "lib/shims.js",
+      "lib/smartblock_embeds_helper.js",
       "run.js"
     ]
   },
