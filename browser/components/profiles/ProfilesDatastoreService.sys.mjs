@@ -219,7 +219,11 @@ class ProfilesDatastoreServiceClass {
       return;
     }
 
-    this.#storeID = Services.prefs.getStringPref(STOREID_PREF_NAME, "");
+    // We read the store ID from prefs but in early startup (for example in the profile selector)
+    // this is not available so we get it from the current profile.
+    this.#storeID = Services.startup.startingUp
+      ? this.#profileService.currentProfile?.storeID
+      : Services.prefs.getStringPref(STOREID_PREF_NAME, "");
 
     // This could fail if we're adding it during shutdown. In this case,
     // don't throw but don't continue initialization.
