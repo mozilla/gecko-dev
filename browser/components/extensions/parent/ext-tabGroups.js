@@ -12,16 +12,33 @@ var { ExtensionError } = ExtensionUtils;
 const spellColour = color => (color === "grey" ? "gray" : color);
 
 this.tabGroups = class extends ExtensionAPIPersistent {
+  queryGroups({ collapsed, color, title, windowId } = {}) {
+    color = spellColour(color);
+    let glob = title != null && new MatchGlob(title);
+    let window =
+      windowId != null && windowTracker.getWindow(windowId, null, false);
+    return windowTracker
+      .browserWindows()
+      .filter(
+        win =>
+          this.extension.canAccessWindow(win) &&
+          (windowId == null || win === window)
+      )
+      .flatMap(win => win.gBrowser.tabGroups)
+      .filter(
+        group =>
+          (collapsed == null || group.collapsed === collapsed) &&
+          (color == null || group.color === color) &&
+          (title == null || glob.matches(group.name))
+      );
+  }
+
   get(groupId) {
     let gid = getInternalTabGroupIdForExtTabGroupId(groupId);
     if (!gid) {
       throw new ExtensionError(`No group with id: ${groupId}`);
     }
-    let groups = windowTracker
-      .browserWindows()
-      .filter(win => this.extension.canAccessWindow(win))
-      .flatMap(win => win.gBrowser.tabGroups);
-    for (let group of groups) {
+    for (let group of this.queryGroups()) {
       if (group.id === gid) {
         return group;
       }
@@ -144,6 +161,12 @@ this.tabGroups = class extends ExtensionAPIPersistent {
             win.gBrowser.moveTabAfter(group, win.gBrowser.tabs.at(-1));
           }
           return this.convert(group);
+        },
+
+        query: query => {
+          return Array.from(this.queryGroups(query ?? {}), group =>
+            this.convert(group)
+          );
         },
 
         update: (groupId, { collapsed, color, title }) => {

@@ -48,7 +48,7 @@
             "description": "User-selected color name for the tab group's label/icons."
           },
           "id": {
-            "type": "number",
+            "type": "integer",
             "description": "Unique ID of the tab group."
           },
           "title": {
@@ -57,7 +57,7 @@
             "description": "User-defined name of the tab group."
           },
           "windowId": {
-            "type": "number",
+            "type": "integer",
             "description": "Window that the tab group is in."
           }
         }
@@ -118,6 +118,49 @@
             "type": "function",
             "name": "callback",
             "parameters": [{ "name": "group", "$ref": "TabGroup" }]
+          }
+        ]
+      },
+      {
+        "name": "query",
+        "type": "function",
+        "description": "Return all grups, or find groups with specified properties.",
+        "async": "callback",
+        "parameters": [
+          {
+            "type": "object",
+            "name": "queryInfo",
+            "optional": true,
+            "properties": {
+              "collapsed": {
+                "type": "boolean",
+                "optional": true
+              },
+              "color": {
+                "$ref": "Color",
+                "optional": true
+              },
+              "title": {
+                "type": "string",
+                "optional": true
+              },
+              "windowId": {
+                "type": "integer",
+                "optional": true,
+                "minimum": -2
+              }
+            }
+          },
+          {
+            "type": "function",
+            "name": "callback",
+            "parameters": [
+              {
+                "name": "groups",
+                "type": "array",
+                "items": { "$ref": "TabGroup" }
+              }
+            ]
           }
         ]
       },

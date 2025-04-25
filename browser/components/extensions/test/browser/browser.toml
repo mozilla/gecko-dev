@@ -483,6 +483,8 @@ https_first_disabled = true
 
 ["browser_ext_tabGroups.js"]
 
+["browser_ext_tabGroups_query.js"]
+
 ["browser_ext_tab_runtimeConnect.js"]
 
 ["browser_ext_tabs_attention.js"]
