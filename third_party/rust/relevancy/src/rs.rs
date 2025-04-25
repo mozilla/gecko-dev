@@ -4,7 +4,9 @@
  */
 
 use crate::{Error, Result};
-use remote_settings::{RemoteSettingsClient, RemoteSettingsRecord};
+use remote_settings::{
+    RemoteSettings, RemoteSettingsConfig, RemoteSettingsResponse, RemoteSettingsServer,
+};
 use serde::Deserialize;
 /// The Remote Settings collection name.
 pub(crate) const REMOTE_SETTINGS_COLLECTION: &str = "content-relevance";
@@ -14,61 +16,45 @@ pub(crate) const REMOTE_SETTINGS_COLLECTION: &str = "content-relevance";
 /// This trait lets tests use a mock client.
 pub(crate) trait RelevancyRemoteSettingsClient {
     /// Fetches records from the Suggest Remote Settings collection.
-    fn get_records(&self) -> Result<Vec<RemoteSettingsRecord>>;
+    fn get_records(&self) -> Result<RemoteSettingsResponse>;
 
     /// Fetches a record's attachment from the Suggest Remote Settings
     /// collection.
-    fn get_attachment(&self, location: &RemoteSettingsRecord) -> Result<Vec<u8>>;
-
-    /// Close any open resources
-    fn close(&self);
+    fn get_attachment(&self, location: &str) -> Result<Vec<u8>>;
 }
 
-impl RelevancyRemoteSettingsClient for RemoteSettingsClient {
-    fn get_records(&self) -> Result<Vec<RemoteSettingsRecord>> {
-        self.sync()?;
-        Ok(self
-            .get_records(false)
-            .expect("RemoteSettingsClient::get_records() returned None after `sync()` called"))
+impl RelevancyRemoteSettingsClient for remote_settings::RemoteSettings {
+    fn get_records(&self) -> Result<RemoteSettingsResponse> {
+        Ok(remote_settings::RemoteSettings::get_records(self)?)
     }
 
-    fn get_attachment(&self, record: &RemoteSettingsRecord) -> Result<Vec<u8>> {
-        Ok(self.get_attachment(record)?)
-    }
-
-    fn close(&self) {
-        self.shutdown()
+    fn get_attachment(&self, location: &str) -> Result<Vec<u8>> {
+        Ok(remote_settings::RemoteSettings::get_attachment(
+            self, location,
+        )?)
     }
 }
 
 impl<T: RelevancyRemoteSettingsClient> RelevancyRemoteSettingsClient for &T {
-    fn get_records(&self) -> Result<Vec<RemoteSettingsRecord>> {
+    fn get_records(&self) -> Result<RemoteSettingsResponse> {
         (*self).get_records()
     }
 
-    fn get_attachment(&self, record: &RemoteSettingsRecord) -> Result<Vec<u8>> {
-        (*self).get_attachment(record)
-    }
-
-    fn close(&self) {
-        (*self).close();
+    fn get_attachment(&self, location: &str) -> Result<Vec<u8>> {
+        (*self).get_attachment(location)
     }
 }
 
-impl<T: RelevancyRemoteSettingsClient> RelevancyRemoteSettingsClient for std::sync::Arc<T> {
-    fn get_records(&self) -> Result<Vec<RemoteSettingsRecord>> {
-        (**self).get_records()
-    }
-
-    fn get_attachment(&self, record: &RemoteSettingsRecord) -> Result<Vec<u8>> {
-        (**self).get_attachment(record)
-    }
-
-    fn close(&self) {
-        (**self).close()
-    }
+pub fn create_client() -> Result<RemoteSettings> {
+    Ok(RemoteSettings::new(RemoteSettingsConfig {
+        collection_name: REMOTE_SETTINGS_COLLECTION.to_string(),
+        server: Some(RemoteSettingsServer::Prod),
+        server_url: None,
+        bucket_name: None,
+    })?)
 }
 
+/// A record in the Relevancy Remote Settings collection.
 #[derive(Clone, Debug, Deserialize)]
 pub struct RelevancyRecord {
     #[allow(dead_code)]
@@ -129,14 +115,12 @@ pub mod test {
     pub struct NullRelavancyRemoteSettingsClient;
 
     impl RelevancyRemoteSettingsClient for NullRelavancyRemoteSettingsClient {
-        fn get_records(&self) -> Result<Vec<RemoteSettingsRecord>> {
+        fn get_records(&self) -> Result<RemoteSettingsResponse> {
             panic!("NullRelavancyRemoteSettingsClient::get_records was called")
         }
 
-        fn get_attachment(&self, _record: &RemoteSettingsRecord) -> Result<Vec<u8>> {
+        fn get_attachment(&self, _location: &str) -> Result<Vec<u8>> {
             panic!("NullRelavancyRemoteSettingsClient::get_records was called")
         }
-
-        fn close(&self) {}
     }
 }
