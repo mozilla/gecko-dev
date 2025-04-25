@@ -41,6 +41,20 @@ this.tabGroups = class extends ExtensionAPIPersistent {
   }
 
   PERSISTENT_EVENTS = {
+    onCreated({ fire }) {
+      let onCreate = event => {
+        fire.async(this.convert(event.originalTarget));
+      };
+      windowTracker.addListener("TabGroupCreate", onCreate);
+      return {
+        unregister() {
+          windowTracker.removeListener("TabGroupCreate", onCreate);
+        },
+        convert(_fire) {
+          fire = _fire;
+        },
+      };
+    },
     onMoved({ fire }) {
       let onMove = event => {
         fire.async(this.convert(event.originalTarget));
@@ -49,6 +63,20 @@ this.tabGroups = class extends ExtensionAPIPersistent {
       return {
         unregister() {
           windowTracker.removeListener("TabGroupMoved", onMove);
+        },
+        convert(_fire) {
+          fire = _fire;
+        },
+      };
+    },
+    onRemoved({ fire }) {
+      let onRemove = event => {
+        fire.async(this.convert(event.originalTarget));
+      };
+      windowTracker.addListener("TabGroupRemoved", onRemove);
+      return {
+        unregister() {
+          windowTracker.removeListener("TabGroupRemoved", onRemove);
         },
         convert(_fire) {
           fire = _fire;
@@ -132,10 +160,24 @@ this.tabGroups = class extends ExtensionAPIPersistent {
           return this.convert(group);
         },
 
+        onCreated: new EventManager({
+          context,
+          module: "tabGroups",
+          event: "onCreated",
+          extensionApi: this,
+        }).api(),
+
         onMoved: new EventManager({
           context,
           module: "tabGroups",
           event: "onMoved",
+          extensionApi: this,
+        }).api(),
+
+        onRemoved: new EventManager({
+          context,
+          module: "tabGroups",
+          event: "onRemoved",
           extensionApi: this,
         }).api(),
 

@@ -105,6 +105,13 @@ add_task(async function tabsGroups_update_onUpdated() {
       browser.test.assertEq(tab.groupId, group.id, "Group id matches.");
       browser.test.assertEq(tab.windowId, group.windowId, "Window id ok.");
 
+      browser.tabGroups.onCreated.addListener(group => {
+        browser.test.sendMessage("created", group);
+      });
+      browser.tabGroups.onRemoved.addListener(group => {
+        browser.test.sendMessage("removed", group);
+      });
+
       browser.tabGroups.onUpdated.addListener(async updated => {
         let group = await browser.tabGroups.get(updated.id);
         browser.test.assertDeepEq(updated, group, "It's the same group.");
@@ -176,9 +183,11 @@ add_task(async function tabsGroups_update_onUpdated() {
   info("Creating a new group does not trigger onUpdated event.");
   let tab3 = await BrowserTestUtils.openNewForegroundTab(gBrowser, url + 3);
   gBrowser.addTabGroup([tab3]);
+  await ext.awaitMessage("created");
 
   info("Closing tab1, and thus its group, does not trigger onUpdated.");
   BrowserTestUtils.removeTab(tab1);
+  await ext.awaitMessage("removed");
 
   info("Updating group2 directly from outside of the extension.");
   group2.collapsed = true;
@@ -209,6 +218,12 @@ add_task(async function tabsGroups_move_onMoved() {
       },
       incognitoOverride: "spanning",
       async background() {
+        browser.tabGroups.onCreated.addListener(group => {
+          browser.test.sendMessage("created", group);
+        });
+        browser.tabGroups.onRemoved.addListener(group => {
+          browser.test.sendMessage("removed", group);
+        });
         browser.tabGroups.onMoved.addListener(moved => {
           browser.test.sendMessage("moved", moved);
         });
@@ -274,7 +289,10 @@ add_task(async function tabsGroups_move_onMoved() {
   is(group.tabs[0], gBrowser.tabs[0], "Using same index 0 doesn't move.");
 
   info("Create a large second group, and try to move in the middle of it.");
-  gBrowser.addTabGroup(gBrowser.tabs.slice(5));
+  let group4 = gBrowser.addTabGroup(gBrowser.tabs.slice(5));
+  let created4 = await ext.awaitMessage("created");
+  let gid4 = getExtTabGroupIdForInternalTabGroupId(group4.id);
+  is(created4.id, gid4, "Correct group 4 created event.");
 
   ext.sendMessage(gid, { index: 8 });
   await Promise.all([ext.awaitMessage("done"), ext.awaitMessage("moved")]);
@@ -283,16 +301,48 @@ add_task(async function tabsGroups_move_onMoved() {
   for (let tab of tabs) {
     BrowserTestUtils.removeTab(tab);
   }
+  let removed1 = await ext.awaitMessage("removed");
+  let removed4 = await ext.awaitMessage("removed");
+  is(removed1.id, gid, "Correct group 1 removed event.");
+  is(removed4.id, gid4, "Correct group 4 removed event.");
 
+  info("Test moving a group from a non-private to a private window.");
   let win2 = await BrowserTestUtils.openNewBrowserWindow({ private: true });
   let tab2 = await BrowserTestUtils.openNewForegroundTab(win2.gBrowser, url);
   let group2 = win2.gBrowser.addTabGroup([tab2]);
   let gid2 = getExtTabGroupIdForInternalTabGroupId(group2.id);
+  let created2 = await ext.awaitMessage("created");
+  is(created2.id, gid2, "Correct group 2 create event.");
 
   ext.sendMessage(gid2, { index: 0, windowId });
   let error = await ext.awaitMessage("error");
   is(error, "Can't move groups between private and non-private windows");
   await BrowserTestUtils.closeWindow(win2);
+
+  info("Test moving a group to another window.");
+  let win3 = await BrowserTestUtils.openNewBrowserWindow();
+  let tab3 = await BrowserTestUtils.openNewForegroundTab(win3.gBrowser, url);
+  let group3 = win3.gBrowser.addTabGroup([tab3]);
+  let gid3 = getExtTabGroupIdForInternalTabGroupId(group3.id);
+  let created3 = await ext.awaitMessage("created");
+  is(created3.id, gid3, "Correct group 3 create event.");
+
+  ext.sendMessage(gid3, { index: 0, windowId });
+  ext.awaitMessage("done");
+
+  // TODO bug 1962475: order of events sucks, fix it and add a proper test.
+  let r3 = await ext.awaitMessage("removed");
+  let c3 = await ext.awaitMessage("created");
+  let m3 = await ext.awaitMessage("moved");
+  is(r3.id, gid3, "Moving to another window first closes the group,");
+  is(c3.id, gid3, "then re-creates it,");
+  is(m3.id, gid3, "and finally moves it.");
+
+  await BrowserTestUtils.closeWindow(win3);
+  let group3b = gBrowser.getTabGroupById(group3.id);
+  BrowserTestUtils.removeTab(group3b.tabs[0]);
+  let removed3 = await ext.awaitMessage("removed");
+  is(removed3.id, gid3, "Correct group 3 removed event.");
 
   await ext.unload();
 });

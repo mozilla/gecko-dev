@@ -160,15 +160,27 @@
     ],
     "events": [
       {
-        "name": "onUpdated",
+        "name": "onCreated",
         "type": "function",
-        "description": "Fired when a tab group is updated.",
+        "description": "Fired when a tab group is created.",
         "parameters": [{ "$ref": "TabGroup", "name": "group" }]
       },
       {
         "name": "onMoved",
         "type": "function",
         "description": "Fired when a tab group is moved within a window.",
+        "parameters": [{ "$ref": "TabGroup", "name": "group" }]
+      },
+      {
+        "name": "onRemoved",
+        "type": "function",
+        "description": "Fired when a tab group is removed.",
+        "parameters": [{ "$ref": "TabGroup", "name": "group" }]
+      },
+      {
+        "name": "onUpdated",
+        "type": "function",
+        "description": "Fired when a tab group is updated.",
         "parameters": [{ "$ref": "TabGroup", "name": "group" }]
       }
     ]

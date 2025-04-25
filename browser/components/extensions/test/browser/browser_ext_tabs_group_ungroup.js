@@ -10,6 +10,9 @@ PromiseTestUtils.allowMatchingRejectionsGlobally(
 
 add_task(async function group_ungroup_and_index() {
   const extension = ExtensionTestUtils.loadExtension({
+    manifest: {
+      permissions: ["tabGroups"],
+    },
     files: {
       "tab1.htm": "<title>tab1.html</title>",
       "tab2.htm": "<title>tab2.html</title>",
@@ -19,6 +22,23 @@ add_task(async function group_ungroup_and_index() {
       const { id: tabId1 } = await browser.tabs.create({ url: "tab1.htm" });
       const { id: tabId2 } = await browser.tabs.create({ url: "tab2.htm " });
       const { id: tabId3 } = await browser.tabs.create({ url: "tab3.htm" });
+
+      let eventIds = [];
+      let expected = [];
+      let allEvents = Promise.withResolvers();
+
+      browser.tabGroups.onCreated.addListener(group => {
+        eventIds.push(group.id);
+      });
+      browser.tabGroups.onRemoved.addListener(group => {
+        eventIds.push(-group.id);
+        if (eventIds.length === 16) {
+          allEvents.resolve();
+        }
+        if (eventIds.length > 16) {
+          browser.fail("Extra event received: " + group.id);
+        }
+      });
 
       async function assertAllTabExpectations(expectations, desc) {
         const tabs = await Promise.all([
@@ -52,6 +72,7 @@ add_task(async function group_ungroup_and_index() {
 
       const groupId1 = await browser.tabs.group({ tabIds: tabId1 });
       const groupId2 = await browser.tabs.group({ tabIds: [tabId2, tabId3] });
+      expected.push(groupId1, groupId2);
 
       await assertAllTabExpectations(
         { indexes: [1, 2, 3], groupIds: [groupId1, groupId2, groupId2] },
@@ -63,6 +84,7 @@ add_task(async function group_ungroup_and_index() {
       // middle of a tab group.
       await browser.tabs.ungroup([tabId3, tabId1]);
       await browser.tabs.ungroup(tabId2);
+      expected.push(-groupId1, -groupId2);
 
       await browser.test.assertRejects(
         browser.tabs.group({ tabIds: tabId3, groupId: groupId1 }),
@@ -81,6 +103,7 @@ add_task(async function group_ungroup_and_index() {
         { indexes: [1, 3, 2], groupIds: [groupId3, groupId3, -1] },
         "Tabs in same tab group must be next to each other"
       );
+      expected.push(groupId3);
 
       // Join existing tab group - now we should have three in the tab group.
       const groupId4 = await browser.tabs.group({
@@ -100,6 +123,7 @@ add_task(async function group_ungroup_and_index() {
       );
 
       await browser.tabs.ungroup([tabId1, tabId2, tabId3]);
+      expected.push(-groupId3);
 
       // Ungrouping of the group should not have changed positions either,
       // despite the list of tabIds passed to ungroup() being out of order.
@@ -124,6 +148,7 @@ add_task(async function group_ungroup_and_index() {
         { indexes: [1, 2, 3], groupIds: [groupId6, groupId5, groupId5] },
         "Leftmost tab should still be ordered before the original tab group"
       );
+      expected.push(groupId5, groupId6);
 
       // Join an existing group (from the left). Position should not change.
       await browser.tabs.group({ tabIds: [tabId1], groupId: groupId5 });
@@ -136,6 +161,7 @@ add_task(async function group_ungroup_and_index() {
         `No group with id: ${groupId6}`,
         "Old groupId should be invalid after last tab was moved from group"
       );
+      expected.push(-groupId6);
 
       // Move the middle tab to a new group. That tab should be at the right.
       const groupId7 = await browser.tabs.group({ tabIds: [tabId2] });
@@ -147,6 +173,7 @@ add_task(async function group_ungroup_and_index() {
       // Prepare: tabId1 and tabId2 together at the left, followed by tabId3.
       const groupId8 = await browser.tabs.group({ tabIds: [tabId1, tabId2] });
       await browser.tabs.ungroup(tabId3);
+      expected.push(groupId7, groupId8);
 
       // When tabId2 is moved to a new group, it should stay in the middle,
       // meaning that the tab was inserted after its original tab group.
@@ -156,10 +183,22 @@ add_task(async function group_ungroup_and_index() {
         { indexes: [1, 2, 3], groupIds: [groupId8, groupId9, -1] },
         "group() on rightmost tab should appear after original tab group"
       );
+      expected.push(-groupId7, -groupId5, groupId9);
 
       await browser.tabs.remove(tabId1);
       await browser.tabs.remove(tabId2);
       await browser.tabs.remove(tabId3);
+
+      expected.push(-groupId8, -groupId9);
+
+      await allEvents.promise;
+
+      browser.test.assertEq(
+        eventIds.join(),
+        expected.join(),
+        "Received expected onCreated events"
+      );
+
       browser.test.sendMessage("done");
     },
   });
