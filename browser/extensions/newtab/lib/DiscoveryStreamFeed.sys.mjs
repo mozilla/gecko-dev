@@ -1941,7 +1941,7 @@ export class DiscoveryStreamFeed {
       const interestPickerEnabled = prefs[PREF_INTEREST_PICKER_ENABLED];
 
       const requestMetadata = {
-        otc_offset: lazy.NewTabUtils.getUtcOffset(),
+        utc_offset: lazy.NewTabUtils.getUtcOffset(),
         coarse_os: lazy.NewTabUtils.normalizeOs(),
         coarse_os_version: lazy.ClientEnvironmentBase.os.version,
         surface_id: prefs[PREF_SURFACE_ID] || "",

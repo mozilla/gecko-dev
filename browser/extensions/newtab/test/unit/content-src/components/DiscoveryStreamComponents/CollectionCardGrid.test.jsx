@@ -122,9 +122,6 @@ describe("<CollectionCardGrid>", () => {
       position: 0,
       is_pocket_card: false,
       is_list_card: undefined,
-      title: undefined,
-      time_sensitive: undefined,
-      publisher: undefined,
     }));
 
     assert.deepEqual(firstCall.args[0].data, expected);

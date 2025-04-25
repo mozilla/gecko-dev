@@ -120,10 +120,6 @@ export class ImpressionStats extends React.PureComponent {
               received_rank: link.received_rank,
               topic: link.topic,
               is_list_card: link.is_list_card,
-              url: link.url,
-              title: link.title,
-              publisher: link.publisher,
-              time_sensitive: link.time_sensitive,
               ...(link.format
                 ? { format: link.format }
                 : {

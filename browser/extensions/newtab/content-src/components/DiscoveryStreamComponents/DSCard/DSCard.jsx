@@ -366,10 +366,6 @@ export class _DSCard extends React.PureComponent {
               matches_selected_topic: matchesSelectedTopic,
               selected_topics: this.props.selectedTopics,
               is_list_card: this.props.isListCard,
-              title: this.props.title,
-              url: this.props.url,
-              publisher: this.props.publisher,
-              time_sensitive: this.props.isTimeSensitive,
               ...(this.props.format
                 ? { format: this.props.format }
                 : {
@@ -409,10 +405,6 @@ export class _DSCard extends React.PureComponent {
                 topic: this.props.topic,
                 selected_topics: this.props.selectedTopics,
                 is_list_card: this.props.isListCard,
-                title: this.props.title,
-                url: this.props.url,
-                publisher: this.props.publisher,
-                time_sensitive: this.props.isTimeSensitive,
                 ...(this.props.format
                   ? { format: this.props.format }
                   : {
@@ -467,10 +459,6 @@ export class _DSCard extends React.PureComponent {
           thumbs_up: true,
           thumbs_down: false,
           topic: this.props.topic,
-          title: this.props.title,
-          url: this.props.url,
-          publisher: this.props.publisher,
-          time_sensitive: this.props.isTimeSensitive,
           format: getActiveCardSize(
             window.innerWidth,
             this.props.sectionsClassNames,
@@ -567,10 +555,6 @@ export class _DSCard extends React.PureComponent {
             thumbs_up: false,
             thumbs_down: true,
             topic: this.props.topic,
-            title: this.props.title,
-            url: this.props.url,
-            publisher: this.props.publisher,
-            time_sensitive: this.props.isTimeSensitive,
             format: getActiveCardSize(
               window.innerWidth,
               this.props.sectionsClassNames,
@@ -941,8 +925,6 @@ export class _DSCard extends React.PureComponent {
                 isSectionsCard={this.props.mayHaveSectionsCards}
                 topic={this.props.topic}
                 selected_topics={this.props.selected_topics}
-                time_sensitive={this.props.isTimeSensitive}
-                publisher={this.props.publisher}
               />
             )}
           </div>

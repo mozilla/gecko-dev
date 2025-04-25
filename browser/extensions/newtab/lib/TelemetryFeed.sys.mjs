@@ -145,12 +145,12 @@ export class TelemetryFeed {
     return this._prefs.get(PREF_PRIVATE_PING_ENABLED);
   }
 
-  get clientInfo() {
-    return lazy.ClientEnvironmentBase;
-  }
-
   get experimentManager() {
     return lazy.ExperimentManager;
+  }
+
+  get clientInfo() {
+    return lazy.ClientEnvironmentBase;
   }
 
   get canSendUnifiedAdsSpocCallbacks() {
@@ -617,10 +617,6 @@ export class TelemetryFeed {
           shim,
           tile_id,
           topic,
-          url,
-          title,
-          publisher,
-          time_sensitive,
         } = action.data.value ?? {};
         if (
           action.data.source === "POPULAR_TOPICS" ||
@@ -656,10 +652,6 @@ export class TelemetryFeed {
             is_list_card,
             position: action.data.action_position,
             tile_id,
-            url,
-            title,
-            publisher,
-            time_sensitive,
             // We conditionally add in a few props.
             ...(corpus_item_id ? { corpus_item_id } : {}),
             ...(scheduled_corpus_item_id ? { scheduled_corpus_item_id } : {}),
@@ -711,10 +703,6 @@ export class TelemetryFeed {
           thumbs_up,
           tile_id,
           topic,
-          url,
-          title,
-          publisher,
-          time_sensitive,
         } = action.data.value ?? {};
         const metricNameSpace = this.privatePingEnabled
           ? Glean.newtabContent
@@ -737,10 +725,6 @@ export class TelemetryFeed {
           thumbs_down,
           topic,
           ...(format ? { format } : {}),
-          url,
-          title,
-          publisher,
-          time_sensitive,
           ...(section
             ? {
                 section,
@@ -1396,10 +1380,6 @@ export class TelemetryFeed {
           position: datum.pos,
           tile_id: datum.id || datum.tile_id,
           is_list_card: datum.is_list_card,
-          url: datum.url,
-          title: datum.title,
-          publisher: datum.publisher,
-          time_sensitive: datum.time_sensitive,
           ...(datum.section
             ? {
                 section: datum.section,
@@ -1492,10 +1472,6 @@ export class TelemetryFeed {
           topic: tile.topic,
           selected_topics: tile.selectedTopics,
           is_list_card: tile.is_list_card,
-          url: tile.url,
-          title: tile.title,
-          publisher: tile.publisher,
-          time_sensitive: tile.time_sensitive,
           // We conditionally add in a few props.
           ...(corpus_item_id ? { corpus_item_id } : {}),
           ...(scheduled_corpus_item_id ? { scheduled_corpus_item_id } : {}),

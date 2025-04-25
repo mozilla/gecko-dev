@@ -75,9 +75,6 @@ export const LinkMenuOptions = {
         typedBonus: site.typedBonus,
         url: site.url,
         sponsored_tile_id: site.sponsored_tile_id,
-        title: site.title,
-        publisher: site.publisher,
-        time_sensitive: site.time_sensitive,
         ...(site.section
           ? {
               section: site.section,
@@ -132,9 +129,6 @@ export const LinkMenuOptions = {
         ...(site.sponsored_tile_id ? { tile_id: site.sponsored_tile_id } : {}),
         is_pocket_card: site.type === "CardGrid",
         is_list_card: site.is_list_card,
-        title: site.title,
-        publisher: site.publisher,
-        time_sensitive: site.time_sensitive,
         ...(site.format ? { format: site.format } : {}),
         ...(site.section
           ? {
