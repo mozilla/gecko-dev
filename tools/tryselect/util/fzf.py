@@ -10,7 +10,6 @@ import subprocess
 import sys
 
 import mozfile
-import six
 from gecko_taskgraph.target_tasks import filter_by_uncommon_try_tasks
 from mach.util import get_state_dir
 from mozboot.util import http_download_and_save
@@ -239,7 +238,7 @@ def get_fzf_version(fzf_bin):
         sys.exit(1)
 
     # Some fzf versions have extra, e.g 0.18.0 (ff95134)
-    fzf_version = six.ensure_text(fzf_version.split()[0])
+    fzf_version = fzf_version.split()[0].decode()
 
     return fzf_version
 
