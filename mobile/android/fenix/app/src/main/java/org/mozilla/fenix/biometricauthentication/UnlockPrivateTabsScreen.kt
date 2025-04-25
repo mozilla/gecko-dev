@@ -10,7 +10,6 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.Text
@@ -18,7 +17,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
@@ -27,7 +25,6 @@ import mozilla.components.compose.base.annotation.FlexibleWindowLightDarkPreview
 import mozilla.components.compose.base.button.PrimaryButton
 import mozilla.components.compose.base.button.TextButton
 import org.mozilla.fenix.R
-import org.mozilla.fenix.ext.isLargeWindow
 import org.mozilla.fenix.theme.FirefoxTheme
 import org.mozilla.fenix.theme.Theme
 
@@ -43,8 +40,7 @@ internal fun UnlockPrivateTabsScreen(
     onLeaveClicked: () -> Unit,
 ) {
     Column(
-        modifier = Modifier
-            .fillMaxSize()
+        modifier = Modifier.fillMaxSize()
             .background(FirefoxTheme.colors.layer1)
             .padding(bottom = 24.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -89,22 +85,14 @@ private fun Header() {
 
 @Composable
 private fun Footer(onUnlockClicked: () -> Unit, onLeaveClicked: () -> Unit) {
-    val fillWidthFraction = if (LocalContext.current.isLargeWindow()) {
-        0.5f
-    } else {
-        1.0f
-    }
-
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
-        modifier = Modifier
-            .padding(horizontal = 16.dp)
-            .fillMaxWidth(fillWidthFraction),
+        modifier = Modifier.padding(horizontal = 16.dp),
     ) {
         PrimaryButton(
-            text = stringResource(id = R.string.pbm_authentication_unlock),
-            modifier = Modifier.fillMaxWidth(),
             onClick = onUnlockClicked,
+            icon = painterResource(id = R.drawable.ic_lock),
+            text = stringResource(id = R.string.pbm_authentication_unlock),
         )
 
         Spacer(modifier = Modifier.height(8.dp))
@@ -112,7 +100,6 @@ private fun Footer(onUnlockClicked: () -> Unit, onLeaveClicked: () -> Unit) {
         TextButton(
             text = stringResource(R.string.pbm_authentication_leave_private_tabs),
             onClick = onLeaveClicked,
-            textColor = FirefoxTheme.colors.textActionPrimary,
             upperCaseText = false,
         )
     }
