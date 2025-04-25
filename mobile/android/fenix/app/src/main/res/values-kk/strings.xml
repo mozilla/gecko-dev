@@ -830,8 +830,6 @@
   <string name="preferences_override_account_server">Таңдауыңызша Mozilla тіркелгі сервері</string>
   <!-- Preference to override the Sync token server -->
   <string name="preferences_override_sync_tokenserver">Таңдауыңызша синхрондау сервері</string>
-  <!-- Toast shown after updating the Mozilla account/Sync server override preferences -->
-  <string name="toast_override_account_sync_server_done">Mozilla тіркелгісі/синхрондау сервері өзгертілген. Өзгерістерді іске асыру үшін қолданба жұмысын аяқтау…</string>
   <!-- Preference category for account information -->
   <string name="preferences_category_account">Тіркелгі</string>
   <!-- Preference for changing where the AddressBar is positioned -->
@@ -1506,9 +1504,9 @@
   <!-- Text to indicate that a download has failed to download. -->
   <string name="download_item_status_failed" tools:ignore="UnusedResources">Жүктеп алу сәтсіз аяқталды</string>
   <!-- Placeholder text to indicate that users can use the search bar to search for a download. -->
-  <string name="download_search_placeholder" tools:ignore="UnusedResources">Жүктемелер ішінен іздеу</string>
+  <string name="download_search_placeholder">Жүктемелер ішінен іздеу</string>
   <!-- Text to indicate that no downloads match the search query. -->
-  <string name="download_search_no_results_found" tools:ignore="UnusedResources">Нәтижелер табылмады</string>
+  <string name="download_search_no_results_found">Нәтижелер табылмады</string>
   <!-- Text for the "Select all" button, which selects all downloaded items in the downloads list. -->
   <string name="download_select_all_items">Барлығын таңдау</string>
   <!--
@@ -2257,7 +2255,7 @@
   -->
   <string name="preference_etp_exceptions_icon_description">Бақылаудан жақсартылған қорғаныстың ережеден тыс жағдайының баптау таңбашасы</string>
   <!--
-    DNS Over HTTPS (DoH)
+    DNS over HTTPS (DoH)
 
     Preference title for DNS over HTTPS settings
   -->

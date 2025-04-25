@@ -836,8 +836,6 @@
   <string name="preferences_override_account_server">Máy chủ tài khoản Mozilla tùy chỉnh</string>
   <!-- Preference to override the Sync token server -->
   <string name="preferences_override_sync_tokenserver">Tùy chỉnh máy chủ đồng bộ hóa</string>
-  <!-- Toast shown after updating the Mozilla account/Sync server override preferences -->
-  <string name="toast_override_account_sync_server_done">Đã sửa đổi máy chủ/tài khoản đồng bộ hóa Mozilla. Đang thoát khỏi ứng dụng để áp dụng các thay đổi…</string>
   <!-- Preference category for account information -->
   <string name="preferences_category_account">Tài khoản</string>
   <!-- Preference for changing where the AddressBar is positioned -->
@@ -1529,9 +1527,9 @@
   <!-- Text to indicate that a download has failed to download. -->
   <string name="download_item_status_failed" tools:ignore="UnusedResources">Tải xuống không thành công</string>
   <!-- Placeholder text to indicate that users can use the search bar to search for a download. -->
-  <string name="download_search_placeholder" tools:ignore="UnusedResources">Tìm kiếm tải xuống</string>
+  <string name="download_search_placeholder">Tìm kiếm tải xuống</string>
   <!-- Text to indicate that no downloads match the search query. -->
-  <string name="download_search_no_results_found" tools:ignore="UnusedResources">Không tìm thấy kết quả nào</string>
+  <string name="download_search_no_results_found">Không tìm thấy kết quả nào</string>
   <!-- Text for the "Select all" button, which selects all downloaded items in the downloads list. -->
   <string name="download_select_all_items">Chọn tất cả</string>
   <!--
@@ -2284,7 +2282,7 @@
   -->
   <string name="preference_etp_exceptions_icon_description">Biểu tượng tùy chọn ngoại lệ trình chống theo dõi nâng cao</string>
   <!--
-    DNS Over HTTPS (DoH)
+    DNS over HTTPS (DoH)
 
     Preference title for DNS over HTTPS settings
   -->

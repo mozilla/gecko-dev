@@ -837,8 +837,6 @@
   <string name="preferences_override_account_server">Swójski kontowy serwer Mozilla</string>
   <!-- Preference to override the Sync token server -->
   <string name="preferences_override_sync_tokenserver">Swójski synchronizowanski serwer</string>
-  <!-- Toast shown after updating the Mozilla account/Sync server override preferences -->
-  <string name="toast_override_account_sync_server_done">Kontowy resp. synchronizowanski serwer Mozilla je so změnił. Nałoženje so kónči, zo bychu so změny nałožili…</string>
   <!-- Preference category for account information -->
   <string name="preferences_category_account">Konto</string>
   <!-- Preference for changing where the AddressBar is positioned -->
@@ -1530,9 +1528,9 @@
   <!-- Text to indicate that a download has failed to download. -->
   <string name="download_item_status_failed" tools:ignore="UnusedResources">Sćehnjenje njeje so poradźiło</string>
   <!-- Placeholder text to indicate that users can use the search bar to search for a download. -->
-  <string name="download_search_placeholder" tools:ignore="UnusedResources">Sćehnjenja přepytać</string>
+  <string name="download_search_placeholder">Sćehnjenja přepytać</string>
   <!-- Text to indicate that no downloads match the search query. -->
-  <string name="download_search_no_results_found" tools:ignore="UnusedResources">Žane wuslědki namakane</string>
+  <string name="download_search_no_results_found">Žane wuslědki namakane</string>
   <!-- Text for the "Select all" button, which selects all downloaded items in the downloads list. -->
   <string name="download_select_all_items">Wšě wubrać</string>
   <!--
@@ -2285,7 +2283,7 @@
   -->
   <string name="preference_etp_exceptions_icon_description">Symbol wuwzaćoweho nastajenja za polěpšeny slědowanski škit</string>
   <!--
-    DNS Over HTTPS (DoH)
+    DNS over HTTPS (DoH)
 
     Preference title for DNS over HTTPS settings
   -->
@@ -3199,6 +3197,8 @@
   <string name="protection_panel_no_trackers_blocked">Žane přesćěhowaki namakane</string>
   <!-- Link text to navigate to privacy and security settings from the protection panel. -->
   <string name="protection_panel_privacy_and_security_settings">Nastajenja priwatnosće a wěstoty</string>
+  <!-- Title text for the protection panel permissions section. -->
+  <string name="protection_panel_permissions_title">Prawa</string>
   <!--
     Text for displaying the total number of trackers blocked in the trackers blocked panel.
     %d is a placeholder for the number of trackers blocked.

@@ -837,8 +837,6 @@
   <string name="preferences_override_account_server">Сервери ҳисоби фармоишии «Mozilla»</string>
   <!-- Preference to override the Sync token server -->
   <string name="preferences_override_sync_tokenserver">Сервери ҳамоҳангсозии фармоишӣ</string>
-  <!-- Toast shown after updating the Mozilla account/Sync server override preferences -->
-  <string name="toast_override_account_sync_server_done">Сервери ҳисоб/ҳамоҳангсозии «Mozilla» тағйир ёфт. Барои татбиқ кардани тағйирот барнома бояд хомӯш карда шавад…</string>
   <!-- Preference category for account information -->
   <string name="preferences_category_account">Ҳисоб</string>
   <!-- Preference for changing where the AddressBar is positioned -->
@@ -1530,9 +1528,9 @@
   <!-- Text to indicate that a download has failed to download. -->
   <string name="download_item_status_failed" tools:ignore="UnusedResources">Боргирӣ иҷро нашуд</string>
   <!-- Placeholder text to indicate that users can use the search bar to search for a download. -->
-  <string name="download_search_placeholder" tools:ignore="UnusedResources">Ҷустуҷӯ дар боргириҳо</string>
+  <string name="download_search_placeholder">Ҷустуҷӯ дар боргириҳо</string>
   <!-- Text to indicate that no downloads match the search query. -->
-  <string name="download_search_no_results_found" tools:ignore="UnusedResources">Ягон натиҷа ёфт нашуд</string>
+  <string name="download_search_no_results_found">Ягон натиҷа ёфт нашуд</string>
   <!-- Text for the "Select all" button, which selects all downloaded items in the downloads list. -->
   <string name="download_select_all_items">Ҳамаро интихоб кардан</string>
   <!--
@@ -2285,7 +2283,7 @@
   -->
   <string name="preference_etp_exceptions_icon_description">Нишони хусусияти истисно барои муҳофизати такмилёфта аз пайгирӣ</string>
   <!--
-    DNS Over HTTPS (DoH)
+    DNS over HTTPS (DoH)
 
     Preference title for DNS over HTTPS settings
   -->

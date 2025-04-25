@@ -812,8 +812,6 @@
   <string name="preferences_override_account_server">ഇഷ്ടനുസൃത മോസില്ല അക്കൗണ്ടു് സേവനദാതാവു്</string>
   <!-- Preference to override the Sync token server -->
   <string name="preferences_override_sync_tokenserver">ഇഷ്‌ടാനുസൃത സമന്വയ സെർവർ</string>
-  <!-- Toast shown after updating the Mozilla account/Sync server override preferences -->
-  <string name="toast_override_account_sync_server_done">ഫയർ‌ഫോക്സ് അകൗണ്ട്/സമന്വയ പ്രദായിണി പുതുച്ചു. മാറ്റങ്ങൾ പ്രയോഗിക്കുന്നതിന് പ്രയോഗത്തിൽ  നിന്നു പുറത്തുകടക്കുന്നു…</string>
   <!-- Preference category for account information -->
   <string name="preferences_category_account">അക്കൗണ്ട്</string>
   <!-- Preference for changing where the AddressBar is positioned -->
@@ -1451,9 +1449,9 @@
   <!-- Text to indicate that a download has failed to download. -->
   <string name="download_item_status_failed" tools:ignore="UnusedResources">ഇറക്കിവയ്ക്കൽ തോറ്റു</string>
   <!-- Placeholder text to indicate that users can use the search bar to search for a download. -->
-  <string name="download_search_placeholder" tools:ignore="UnusedResources">ഇറക്കിവച്ചതിലു് തിരയുക</string>
+  <string name="download_search_placeholder">ഇറക്കിവച്ചതിലു് തിരയുക</string>
   <!-- Text to indicate that no downloads match the search query. -->
-  <string name="download_search_no_results_found" tools:ignore="UnusedResources">ഫലങ്ങളൊന്നും കിട്ടിയില്ല</string>
+  <string name="download_search_no_results_found">ഫലങ്ങളൊന്നും കിട്ടിയില്ല</string>
   <!-- Text for the "Select all" button, which selects all downloaded items in the downloads list. -->
   <string name="download_select_all_items">എല്ലാം തിരഞ്ഞെടുക്കുക</string>
   <!--
@@ -2183,7 +2181,7 @@
   -->
   <string name="preference_etp_exceptions_icon_description">മെച്ചപ്പെടുത്തിയ പിന്തുടൎച്ച പരിരക്ഷണ ഒഴിവാക്കൽ മുൻഗണന അടയാളം</string>
   <!--
-    DNS Over HTTPS (DoH)
+    DNS over HTTPS (DoH)
 
     Preference title for DNS over HTTPS settings
   -->

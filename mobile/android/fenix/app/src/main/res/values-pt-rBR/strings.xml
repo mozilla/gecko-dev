@@ -836,8 +836,6 @@
   <string name="preferences_override_account_server">Servidor personalizado de conta Mozilla</string>
   <!-- Preference to override the Sync token server -->
   <string name="preferences_override_sync_tokenserver">Servidor personalizado de sincronização</string>
-  <!-- Toast shown after updating the Mozilla account/Sync server override preferences -->
-  <string name="toast_override_account_sync_server_done">Modificado o servidor de conta Mozilla e sincronização. Saindo do aplicativo para aplicar as mudanças…</string>
   <!-- Preference category for account information -->
   <string name="preferences_category_account">Conta</string>
   <!-- Preference for changing where the AddressBar is positioned -->
@@ -1529,9 +1527,9 @@
   <!-- Text to indicate that a download has failed to download. -->
   <string name="download_item_status_failed" tools:ignore="UnusedResources">Falha ao baixar arquivo</string>
   <!-- Placeholder text to indicate that users can use the search bar to search for a download. -->
-  <string name="download_search_placeholder" tools:ignore="UnusedResources">Pesquisar nos arquivos baixados</string>
+  <string name="download_search_placeholder">Pesquisar nos arquivos baixados</string>
   <!-- Text to indicate that no downloads match the search query. -->
-  <string name="download_search_no_results_found" tools:ignore="UnusedResources">Nenhum resultado encontrado</string>
+  <string name="download_search_no_results_found">Nenhum resultado encontrado</string>
   <!-- Text for the "Select all" button, which selects all downloaded items in the downloads list. -->
   <string name="download_select_all_items">Selecionar tudo</string>
   <!--
@@ -2284,7 +2282,7 @@
   -->
   <string name="preference_etp_exceptions_icon_description">Ícone de preferência de exceção de proteção aprimorada contra rastreamento</string>
   <!--
-    DNS Over HTTPS (DoH)
+    DNS over HTTPS (DoH)
 
     Preference title for DNS over HTTPS settings
   -->

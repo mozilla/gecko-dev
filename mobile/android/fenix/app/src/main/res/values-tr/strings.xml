@@ -836,8 +836,6 @@
   <string name="preferences_override_account_server">Özel Mozilla hesabı sunucusu</string>
   <!-- Preference to override the Sync token server -->
   <string name="preferences_override_sync_tokenserver">Özel Sync sunucusu</string>
-  <!-- Toast shown after updating the Mozilla account/Sync server override preferences -->
-  <string name="toast_override_account_sync_server_done">Mozilla hesabı/Sync sunucusu değiştirildi. Değişiklikleri uygulamak için uygulamadan çıkılıyor…</string>
   <!-- Preference category for account information -->
   <string name="preferences_category_account">Hesap</string>
   <!-- Preference for changing where the AddressBar is positioned -->
@@ -1529,9 +1527,9 @@
   <!-- Text to indicate that a download has failed to download. -->
   <string name="download_item_status_failed" tools:ignore="UnusedResources">İndirme başarısız oldu</string>
   <!-- Placeholder text to indicate that users can use the search bar to search for a download. -->
-  <string name="download_search_placeholder" tools:ignore="UnusedResources">İndirilenlerde ara</string>
+  <string name="download_search_placeholder">İndirilenlerde ara</string>
   <!-- Text to indicate that no downloads match the search query. -->
-  <string name="download_search_no_results_found" tools:ignore="UnusedResources">Sonuç bulunamadı</string>
+  <string name="download_search_no_results_found">Sonuç bulunamadı</string>
   <!-- Text for the "Select all" button, which selects all downloaded items in the downloads list. -->
   <string name="download_select_all_items">Tümünü seç</string>
   <!--
@@ -2284,7 +2282,7 @@
   -->
   <string name="preference_etp_exceptions_icon_description">Gelişmiş izlenme koruması istisna tercihi simgesi</string>
   <!--
-    DNS Over HTTPS (DoH)
+    DNS over HTTPS (DoH)
 
     Preference title for DNS over HTTPS settings
   -->
@@ -3198,6 +3196,8 @@
   <string name="protection_panel_no_trackers_blocked">Hiç takip kodu bulunamadı</string>
   <!-- Link text to navigate to privacy and security settings from the protection panel. -->
   <string name="protection_panel_privacy_and_security_settings">Gizlilik ve güvenlik ayarları</string>
+  <!-- Title text for the protection panel permissions section. -->
+  <string name="protection_panel_permissions_title">İzinler</string>
   <!--
     Text for displaying the total number of trackers blocked in the trackers blocked panel.
     %d is a placeholder for the number of trackers blocked.

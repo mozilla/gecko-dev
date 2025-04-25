@@ -840,9 +840,6 @@
   <string name="preferences_override_account_server">ਪਸੰਦੀਦਾ Mozilla ਖਾਤਾ ਸਰਵਰ</string>
   <!-- Preference to override the Sync token server -->
   <string name="preferences_override_sync_tokenserver">ਪਸੰਦੀਦਾ ਸਿੰਕ ਸਰਵਰ</string>
-  <!-- Toast shown after updating the Mozilla account/Sync server override preferences -->
-  <string name="toast_override_account_sync_server_done">Mozilla ਖਾਤਾ/ਸਿੰਕ ਸਰਵਰ ਨੂੰ ਸੋਧਿਆ ਗਿਆ ਹੈ।
-ਤਬਦੀਲੀਆਂ ਲਾਗੂ ਕਰਨ ਵਾਸਤੇ ਐਪਲੀਕੇਸ਼ਨ ਨੂੰ ਬੰਦ ਕੀਤਾ ਜਾ ਰਿਹਾ ਹੈ…</string>
   <!-- Preference category for account information -->
   <string name="preferences_category_account">ਖਾਤਾ</string>
   <!-- Preference for changing where the AddressBar is positioned -->
@@ -1530,9 +1527,9 @@
   <!-- Text to indicate that a download has failed to download. -->
   <string name="download_item_status_failed" tools:ignore="UnusedResources">ਡਾਊਨਲੋਡ ਅਸਫ਼ਲ ਹੈ</string>
   <!-- Placeholder text to indicate that users can use the search bar to search for a download. -->
-  <string name="download_search_placeholder" tools:ignore="UnusedResources">ਡਾਊਨਲੋਡਾਂ ਨੂੰ ਖੋਜੋ</string>
+  <string name="download_search_placeholder">ਡਾਊਨਲੋਡਾਂ ਨੂੰ ਖੋਜੋ</string>
   <!-- Text to indicate that no downloads match the search query. -->
-  <string name="download_search_no_results_found" tools:ignore="UnusedResources">ਨਤੀਜੇ ਨਹੀਂ ਲੱਭੇ</string>
+  <string name="download_search_no_results_found">ਨਤੀਜੇ ਨਹੀਂ ਲੱਭੇ</string>
   <!-- Text for the "Select all" button, which selects all downloaded items in the downloads list. -->
   <string name="download_select_all_items">ਸਭ ਨੂੰ ਚੁਣੋ</string>
   <!--
@@ -2286,7 +2283,7 @@
   -->
   <string name="preference_etp_exceptions_icon_description">ਵਾਧਾ ਕੀਤੀ ਟਰੈਕਿੰਗ ਰੋਧੀ ਛੋਟ ਪਸੰਦ ਆਈਕਾਨ</string>
   <!--
-    DNS Over HTTPS (DoH)
+    DNS over HTTPS (DoH)
 
     Preference title for DNS over HTTPS settings
   -->

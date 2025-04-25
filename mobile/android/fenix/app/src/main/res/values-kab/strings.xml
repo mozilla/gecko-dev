@@ -779,8 +779,6 @@ Tiktiwin tigejdanin yuzzlen ur nṣeḥḥi ara
   <string name="preferences_override_account_server">Sagen aqeddac n umiḍan Mozilla</string>
   <!-- Preference to override the Sync token server -->
   <string name="preferences_override_sync_tokenserver">Sagen aeddac n umtawi</string>
-  <!-- Toast shown after updating the Mozilla account/Sync server override preferences -->
-  <string name="toast_override_account_sync_server_done">Aqeddac i umtawi neɣ amiḍan n Mozilla yettwasenfel, Ffeɣ seg usnas akken ad iddu usnifel…</string>
   <!-- Preference category for account information -->
   <string name="preferences_category_account">Amiḍan</string>
   <!-- Preference for changing where the AddressBar is positioned -->
@@ -1411,9 +1409,9 @@ Tiktiwin tigejdanin yuzzlen ur nṣeḥḥi ara
   <!-- Text to indicate that a download has failed to download. -->
   <string name="download_item_status_failed" tools:ignore="UnusedResources">Ifuyla ittwazedmen</string>
   <!-- Placeholder text to indicate that users can use the search bar to search for a download. -->
-  <string name="download_search_placeholder" tools:ignore="UnusedResources">Nadi isadaren</string>
+  <string name="download_search_placeholder">Nadi isadaren</string>
   <!-- Text to indicate that no downloads match the search query. -->
-  <string name="download_search_no_results_found" tools:ignore="UnusedResources">Ulac igmad yettwafen</string>
+  <string name="download_search_no_results_found">Ulac igmad yettwafen</string>
   <!-- Text for the "Select all" button, which selects all downloaded items in the downloads list. -->
   <string name="download_select_all_items">Fren akk</string>
   <!--
@@ -2160,7 +2158,7 @@ Tiktiwin tigejdanin yuzzlen ur nṣeḥḥi ara
   -->
   <string name="preference_etp_exceptions_icon_description">Tignit n usmenyif n tasureft i ummesten yettwasǧehden mgal aḍfar</string>
   <!--
-    DNS Over HTTPS (DoH)
+    DNS over HTTPS (DoH)
 
     Preference title for DNS over HTTPS settings
   -->

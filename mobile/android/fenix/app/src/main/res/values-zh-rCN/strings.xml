@@ -834,8 +834,6 @@
   <string name="preferences_override_account_server">自定义 Mozilla 账户服务器</string>
   <!-- Preference to override the Sync token server -->
   <string name="preferences_override_sync_tokenserver">自定义同步服务器</string>
-  <!-- Toast shown after updating the Mozilla account/Sync server override preferences -->
-  <string name="toast_override_account_sync_server_done">已更改 Mozilla 账户/同步服务器设置。正在退出应用程序以应用更改…</string>
   <!-- Preference category for account information -->
   <string name="preferences_category_account">账户</string>
   <!-- Preference for changing where the AddressBar is positioned -->
@@ -1527,9 +1525,9 @@
   <!-- Text to indicate that a download has failed to download. -->
   <string name="download_item_status_failed" tools:ignore="UnusedResources">下载失败</string>
   <!-- Placeholder text to indicate that users can use the search bar to search for a download. -->
-  <string name="download_search_placeholder" tools:ignore="UnusedResources">搜索下载项</string>
+  <string name="download_search_placeholder">搜索下载项</string>
   <!-- Text to indicate that no downloads match the search query. -->
-  <string name="download_search_no_results_found" tools:ignore="UnusedResources">未找到结果</string>
+  <string name="download_search_no_results_found">未找到结果</string>
   <!-- Text for the "Select all" button, which selects all downloaded items in the downloads list. -->
   <string name="download_select_all_items">全选</string>
   <!--
@@ -2282,7 +2280,7 @@
   -->
   <string name="preference_etp_exceptions_icon_description">增强型跟踪保护例外首选项图标</string>
   <!--
-    DNS Over HTTPS (DoH)
+    DNS over HTTPS (DoH)
 
     Preference title for DNS over HTTPS settings
   -->

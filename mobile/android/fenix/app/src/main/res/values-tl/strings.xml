@@ -660,8 +660,6 @@
   <string name="preferences_override_account_server">Pasadyang Mozilla account server</string>
   <!-- Preference to override the Sync token server -->
   <string name="preferences_override_sync_tokenserver">Pasadya na Sync server</string>
-  <!-- Toast shown after updating the Mozilla account/Sync server override preferences -->
-  <string name="toast_override_account_sync_server_done">Nabago na ang Mozilla account/Sync server. Magsasara na ang application para mailapat ang mga pagbabago…</string>
   <!-- Preference category for account information -->
   <string name="preferences_category_account">Account</string>
   <!-- Preference for changing where the AddressBar is positioned -->
@@ -1265,9 +1263,9 @@
   <!-- Text to indicate that a download has failed to download. -->
   <string name="download_item_status_failed" tools:ignore="UnusedResources">Bigo ang pag-download</string>
   <!-- Placeholder text to indicate that users can use the search bar to search for a download. -->
-  <string name="download_search_placeholder" tools:ignore="UnusedResources">Hanapin sa mga download</string>
+  <string name="download_search_placeholder">Hanapin sa mga download</string>
   <!-- Text to indicate that no downloads match the search query. -->
-  <string name="download_search_no_results_found" tools:ignore="UnusedResources">Walang natagpuang resulta</string>
+  <string name="download_search_no_results_found">Walang natagpuang resulta</string>
   <!-- Text for the "Select all" button, which selects all downloaded items in the downloads list. -->
   <string name="download_select_all_items">Piliin lahat</string>
   <!--
@@ -1942,7 +1940,7 @@
   <!-- Text displayed that links to website about enhanced tracking protection SmartBlock -->
   <string name="preference_etp_smartblock_learn_more">Alamin</string>
   <!--
-    DNS Over HTTPS (DoH)
+    DNS over HTTPS (DoH)
 
     Preference title for DNS over HTTPS settings
   -->
