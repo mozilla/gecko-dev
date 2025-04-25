@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use crate::config::RemoteSettingsConfig;
+use crate::config::{BaseUrl, RemoteSettingsConfig};
 use crate::error::{Error, Result};
 use crate::jexl_filter::JexlFilter;
 #[cfg(feature = "signatures")]
@@ -360,11 +360,7 @@ impl<C: ApiClient> RemoteSettingsClient<C> {
         Ok(())
     }
 
-    /// Close the client
-    ///
-    /// This is typically used during shutdown.  It closes the underlying SQLite connection used to
-    /// cache records.
-    pub fn close(&self) {
+    pub fn shutdown(&self) {
         self.inner.lock().storage.close();
     }
 
@@ -499,26 +495,21 @@ impl<C: ApiClient> RemoteSettingsClient<C> {
 
 impl RemoteSettingsClient<ViaductApiClient> {
     pub fn new(
-        server_url: Url,
+        server_url: BaseUrl,
         bucket_name: String,
         collection_name: String,
         context: Option<RemoteSettingsContext>,
         storage: Storage,
-    ) -> Result<Self> {
-        let api_client = ViaductApiClient::new(server_url, &bucket_name, &collection_name)?;
+    ) -> Self {
+        let api_client = ViaductApiClient::new(server_url, &bucket_name, &collection_name);
         let jexl_filter = JexlFilter::new(context);
 
-        Ok(Self::new_from_parts(
-            collection_name,
-            storage,
-            jexl_filter,
-            api_client,
-        ))
+        Self::new_from_parts(collection_name, storage, jexl_filter, api_client)
     }
 
-    pub fn update_config(&self, server_url: Url, bucket_name: String) -> Result<()> {
+    pub fn update_config(&self, server_url: BaseUrl, bucket_name: String) -> Result<()> {
         let mut inner = self.inner.lock();
-        inner.api_client = ViaductApiClient::new(server_url, &bucket_name, &self.collection_name)?;
+        inner.api_client = ViaductApiClient::new(server_url, &bucket_name, &self.collection_name);
         inner.storage.empty()
     }
 }
@@ -554,11 +545,11 @@ pub struct ViaductApiClient {
 }
 
 impl ViaductApiClient {
-    fn new(base_url: Url, bucket_name: &str, collection_name: &str) -> Result<Self> {
-        Ok(Self {
-            endpoints: RemoteSettingsEndpoints::new(&base_url, bucket_name, collection_name)?,
+    fn new(base_url: BaseUrl, bucket_name: &str, collection_name: &str) -> Self {
+        Self {
+            endpoints: RemoteSettingsEndpoints::new(&base_url, bucket_name, collection_name),
             remote_state: RemoteState::default(),
-        })
+        }
     }
 
     fn make_request(&mut self, url: Url) -> Result<Response> {
@@ -707,10 +698,10 @@ impl Client {
 
         let bucket_name = config.bucket_name.unwrap_or_else(|| String::from("main"));
         let endpoints = RemoteSettingsEndpoints::new(
-            &server.get_url()?,
+            &server.get_base_url()?,
             &bucket_name,
             &config.collection_name,
-        )?;
+        );
 
         Ok(Self {
             endpoints,
@@ -914,41 +905,31 @@ impl RemoteSettingsEndpoints {
     /// Construct a new RemoteSettingsEndpoints
     ///
     /// `base_url` should have the form `https://[domain]/v1` (no trailing slash).
-    fn new(base_url: &Url, bucket_name: &str, collection_name: &str) -> Result<Self> {
+    fn new(base_url: &BaseUrl, bucket_name: &str, collection_name: &str) -> Self {
         let mut root_url = base_url.clone();
         // Push the empty string to add the trailing slash.
-        Self::path_segments_mut(&mut root_url)?.push("");
+        root_url.path_segments_mut().push("");
 
         let mut collection_url = base_url.clone();
-        Self::path_segments_mut(&mut collection_url)?
+        collection_url
+            .path_segments_mut()
             .push("buckets")
             .push(bucket_name)
             .push("collections")
             .push(collection_name);
 
         let mut records_url = collection_url.clone();
-        Self::path_segments_mut(&mut records_url)?.push("records");
+        records_url.path_segments_mut().push("records");
 
         let mut changeset_url = collection_url.clone();
-        Self::path_segments_mut(&mut changeset_url)?.push("changeset");
+        changeset_url.path_segments_mut().push("changeset");
 
-        Ok(Self {
-            root_url,
-            collection_url,
-            records_url,
-            changeset_url,
-        })
-    }
-
-    /// Utility method for calling [Url::path_segments_mut]
-    ///
-    /// The issue we're working around is that path_segments_mut uses `()` as the error type, which
-    /// can't be converted into our `Error` type.
-    fn path_segments_mut(url: &mut Url) -> Result<url::PathSegmentsMut<'_>> {
-        url.path_segments_mut()
-            // path_segments_mut uses `()` as the error type, but the docs say that it only will
-            // error for cannot-be-a-base URLs.
-            .map_err(|_| Error::UrlParsingError(url::ParseError::RelativeUrlWithCannotBeABaseBase))
+        Self {
+            root_url: root_url.into_inner(),
+            collection_url: collection_url.into_inner(),
+            records_url: records_url.into_inner(),
+            changeset_url: changeset_url.into_inner(),
+        }
     }
 }
 
@@ -1920,11 +1901,10 @@ mod test_new_client {
     #[test]
     fn test_endpoints() {
         let endpoints = RemoteSettingsEndpoints::new(
-            &Url::parse("http://rs.example.com/v1").unwrap(),
+            &BaseUrl::parse("http://rs.example.com/v1").unwrap(),
             "main",
             "test-collection",
-        )
-        .unwrap();
+        );
         assert_eq!(endpoints.root_url.to_string(), "http://rs.example.com/v1/");
         assert_eq!(
             endpoints.collection_url.to_string(),
@@ -1982,7 +1962,7 @@ mod jexl_tests {
             ..Default::default()
         };
 
-        let mut storage = Storage::new(":memory:".into()).expect("Error creating storage");
+        let mut storage = Storage::new(":memory:".into());
         let _ = storage.insert_collection_content(
             "http://rs.example.com/v1/buckets/main/collections/test-collection",
             &records,
@@ -2040,7 +2020,7 @@ mod jexl_tests {
             ..Default::default()
         };
 
-        let mut storage = Storage::new(":memory:".into()).expect("Error creating storage");
+        let mut storage = Storage::new(":memory:".into());
         let _ = storage.insert_collection_content(
             "http://rs.example.com/v1/buckets/main/collections/test-collection",
             &records,
@@ -2221,7 +2201,7 @@ IKdcFKAt3fFrpyMhlfIKkLfmm0iDjmfmIXbDGBJw9SE=
             .expect_fetch_cert()
             .returning(move |_| Ok(certificate.clone().into_bytes()));
 
-        let storage = Storage::new(":memory:".into())?;
+        let storage = Storage::new(":memory:".into());
         let jexl_filter = JexlFilter::new(Some(RemoteSettingsContext::default()));
         let rs_client = RemoteSettingsClient::new_from_parts(
             collection_name.to_string(),

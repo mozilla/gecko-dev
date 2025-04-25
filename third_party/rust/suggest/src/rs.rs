@@ -86,12 +86,12 @@ pub struct SuggestRemoteSettingsClient {
 }
 
 impl SuggestRemoteSettingsClient {
-    pub fn new(rs_service: &RemoteSettingsService) -> Result<Self> {
-        Ok(Self {
-            amp_client: rs_service.make_client(Collection::Amp.name().to_owned())?,
-            other_client: rs_service.make_client(Collection::Other.name().to_owned())?,
-            fakespot_client: rs_service.make_client(Collection::Fakespot.name().to_owned())?,
-        })
+    pub fn new(rs_service: &RemoteSettingsService) -> Self {
+        Self {
+            amp_client: rs_service.make_client(Collection::Amp.name().to_owned()),
+            other_client: rs_service.make_client(Collection::Other.name().to_owned()),
+            fakespot_client: rs_service.make_client(Collection::Fakespot.name().to_owned()),
+        }
     }
 
     fn client_for_collection(&self, collection: Collection) -> &RemoteSettingsClient {

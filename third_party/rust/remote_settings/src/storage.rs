@@ -32,11 +32,11 @@ pub struct Storage {
 }
 
 impl Storage {
-    pub fn new(path: Utf8PathBuf) -> Result<Self> {
-        Ok(Self {
+    pub fn new(path: Utf8PathBuf) -> Self {
+        Self {
             path,
             conn: ConnectionCell::Uninitialized,
-        })
+        }
     }
 
     fn transaction(&mut self) -> Result<Transaction<'_>> {
@@ -324,7 +324,7 @@ mod tests {
 
     #[test]
     fn test_storage_set_and_get_records() -> Result<()> {
-        let mut storage = Storage::new(":memory:".into())?;
+        let mut storage = Storage::new(":memory:".into());
 
         let collection_url = "https://example.com/api";
         let records = vec![
@@ -376,7 +376,7 @@ mod tests {
 
     #[test]
     fn test_storage_get_records_none() -> Result<()> {
-        let mut storage = Storage::new(":memory:".into())?;
+        let mut storage = Storage::new(":memory:".into());
 
         let collection_url = "https://example.com/api";
 
@@ -393,7 +393,7 @@ mod tests {
 
     #[test]
     fn test_storage_get_records_empty() -> Result<()> {
-        let mut storage = Storage::new(":memory:".into())?;
+        let mut storage = Storage::new(":memory:".into());
 
         let collection_url = "https://example.com/api";
 
@@ -418,7 +418,7 @@ mod tests {
 
     #[test]
     fn test_storage_set_and_get_attachment() -> Result<()> {
-        let mut storage = Storage::new(":memory:".into())?;
+        let mut storage = Storage::new(":memory:".into());
 
         let attachment = &[0x18, 0x64];
         let collection_url = "https://example.com/api";
@@ -444,7 +444,7 @@ mod tests {
 
     #[test]
     fn test_storage_set_and_replace_attachment() -> Result<()> {
-        let mut storage = Storage::new(":memory:".into())?;
+        let mut storage = Storage::new(":memory:".into());
 
         let collection_url = "https://example.com/api";
 
@@ -492,7 +492,7 @@ mod tests {
 
     #[test]
     fn test_storage_set_attachment_delete_others() -> Result<()> {
-        let mut storage = Storage::new(":memory:".into())?;
+        let mut storage = Storage::new(":memory:".into());
 
         let collection_url_1 = "https://example.com/api1";
         let collection_url_2 = "https://example.com/api2";
@@ -544,7 +544,7 @@ mod tests {
 
     #[test]
     fn test_storage_get_attachment_not_found() -> Result<()> {
-        let mut storage = Storage::new(":memory:".into())?;
+        let mut storage = Storage::new(":memory:".into());
 
         let collection_url = "https://example.com/api";
         let metadata = Attachment::default();
@@ -558,7 +558,7 @@ mod tests {
 
     #[test]
     fn test_storage_empty() -> Result<()> {
-        let mut storage = Storage::new(":memory:".into())?;
+        let mut storage = Storage::new(":memory:".into());
 
         let collection_url = "https://example.com/api";
         let attachment = &[0x18, 0x64];
@@ -626,7 +626,7 @@ mod tests {
 
     #[test]
     fn test_storage_collection_url_isolation() -> Result<()> {
-        let mut storage = Storage::new(":memory:".into())?;
+        let mut storage = Storage::new(":memory:".into());
 
         let collection_url1 = "https://example.com/api1";
         let collection_url2 = "https://example.com/api2";
@@ -695,7 +695,7 @@ mod tests {
 
     #[test]
     fn test_storage_insert_collection_content() -> Result<()> {
-        let mut storage = Storage::new(":memory:".into())?;
+        let mut storage = Storage::new(":memory:".into());
 
         let collection_url = "https://example.com/api";
         let initial_records = vec![RemoteSettingsRecord {
@@ -761,7 +761,7 @@ mod tests {
 
     #[test]
     fn test_storage_merge_records() -> Result<()> {
-        let mut storage = Storage::new(":memory:".into())?;
+        let mut storage = Storage::new(":memory:".into());
 
         let collection_url = "https://example.com/api";
 
@@ -872,7 +872,7 @@ mod tests {
     }
     #[test]
     fn test_storage_get_collection_metadata() -> Result<()> {
-        let mut storage = Storage::new(":memory:".into())?;
+        let mut storage = Storage::new(":memory:".into());
 
         let collection_url = "https://example.com/api";
         let initial_records = vec![RemoteSettingsRecord {
