@@ -41,6 +41,7 @@ use serde::{Deserialize, Deserializer, Serialize};
 use serde_json::{Map, Value};
 
 use crate::{error::Error, query::full_keywords_to_fts_content, Result};
+use rusqlite::{types::ToSqlOutput, ToSql};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum Collection {
@@ -86,12 +87,12 @@ pub struct SuggestRemoteSettingsClient {
 }
 
 impl SuggestRemoteSettingsClient {
-    pub fn new(rs_service: &RemoteSettingsService) -> Result<Self> {
-        Ok(Self {
-            amp_client: rs_service.make_client(Collection::Amp.name().to_owned())?,
-            other_client: rs_service.make_client(Collection::Other.name().to_owned())?,
-            fakespot_client: rs_service.make_client(Collection::Fakespot.name().to_owned())?,
-        })
+    pub fn new(rs_service: &RemoteSettingsService) -> Self {
+        Self {
+            amp_client: rs_service.make_client(Collection::Amp.name().to_owned()),
+            other_client: rs_service.make_client(Collection::Other.name().to_owned()),
+            fakespot_client: rs_service.make_client(Collection::Fakespot.name().to_owned()),
+        }
     }
 
     fn client_for_collection(&self, collection: Collection) -> &RemoteSettingsClient {
@@ -453,12 +454,21 @@ pub(crate) struct DownloadedPocketSuggestion {
     pub high_confidence_keywords: Vec<String>,
     pub score: f64,
 }
-/// A location sign for Yelp to ingest from a Yelp Attachment
+/// Yelp location sign data type
 #[derive(Clone, Debug, Deserialize)]
-pub(crate) struct DownloadedYelpLocationSign {
-    pub keyword: String,
-    #[serde(rename = "needLocation")]
-    pub need_location: bool,
+#[serde(untagged)]
+pub enum DownloadedYelpLocationSign {
+    V1 { keyword: String },
+    V2(String),
+}
+impl ToSql for DownloadedYelpLocationSign {
+    fn to_sql(&self) -> rusqlite::Result<ToSqlOutput<'_>> {
+        let keyword = match self {
+            DownloadedYelpLocationSign::V1 { keyword } => keyword,
+            DownloadedYelpLocationSign::V2(keyword) => keyword,
+        };
+        Ok(ToSqlOutput::from(keyword.as_str()))
+    }
 }
 /// A Yelp suggestion to ingest from a Yelp Attachment
 #[derive(Clone, Debug, Deserialize)]

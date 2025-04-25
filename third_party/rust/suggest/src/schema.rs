@@ -23,7 +23,7 @@ use sql_support::{
 ///     `clear_database()` by adding their names to `conditional_tables`, unless
 ///     they are cleared via a deletion trigger or there's some other good
 ///     reason not to do so.
-pub const VERSION: u32 = 36;
+pub const VERSION: u32 = 37;
 
 /// The current Suggest database schema.
 pub const SQL: &str = "
@@ -169,12 +169,6 @@ CREATE TABLE yelp_modifiers(
     keyword TEXT NOT NULL,
     record_id TEXT NOT NULL,
     PRIMARY KEY (type, keyword)
-) WITHOUT ROWID;
-
-CREATE TABLE yelp_location_signs(
-    keyword TEXT PRIMARY KEY,
-    need_location INTEGER NOT NULL,
-    record_id TEXT NOT NULL
 ) WITHOUT ROWID;
 
 CREATE TABLE yelp_custom_details(
@@ -649,6 +643,10 @@ impl ConnectionInitializer for SuggestConnectionInitializer<'_> {
                 // The commit that added this migration was reverted.
                 Ok(())
             }
+            36 => {
+                tx.execute_batch("DROP TABLE IF EXISTS yelp_location_signs;")?;
+                Ok(())
+            }
             _ => Err(open_database::Error::IncompatibleVersion(version)),
         }
     }
@@ -666,7 +664,6 @@ pub fn clear_database(db: &Connection) -> rusqlite::Result<()> {
         DELETE FROM icons;
         DELETE FROM yelp_subjects;
         DELETE FROM yelp_modifiers;
-        DELETE FROM yelp_location_signs;
         DELETE FROM yelp_custom_details;
         ",
     )?;
@@ -847,6 +844,28 @@ PRAGMA user_version=16;
             "ingested_records should be empty"
         );
         conn.close().expect("Connection should be closed");
+
+        Ok(())
+    }
+
+    /// Test that yelp_location_signs table could be removed correctly.
+    #[test]
+    fn test_remove_yelp_location_signs_table() -> anyhow::Result<()> {
+        // Start with the v16 schema.
+        let db_file =
+            MigratedDatabaseFile::new(SuggestConnectionInitializer::default(), V16_SCHEMA);
+
+        // Upgrade to v36.
+        db_file.upgrade_to(36);
+
+        // Drop the table to simulate old 35 > 36 migration.
+        let conn = db_file.open();
+        conn.execute("DROP table yelp_location_signs", ())?;
+        conn.close().expect("Connection should be closed");
+
+        // Finish upgrading to the current version.
+        db_file.upgrade_to(VERSION);
+        db_file.assert_schema_matches_new_database();
 
         Ok(())
     }

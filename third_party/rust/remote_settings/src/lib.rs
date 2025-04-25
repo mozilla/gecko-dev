@@ -5,7 +5,6 @@
 use std::{collections::HashMap, fs::File, io::prelude::Write, sync::Arc};
 
 use error_support::{convert_log_report_error, handle_error};
-use url::Url;
 
 pub mod cache;
 pub mod client;
@@ -22,7 +21,7 @@ pub(crate) mod jexl_filter;
 mod macros;
 
 pub use client::{Attachment, RemoteSettingsRecord, RemoteSettingsResponse, RsJsonObject};
-pub use config::{RemoteSettingsConfig, RemoteSettingsConfig2, RemoteSettingsServer};
+pub use config::{BaseUrl, RemoteSettingsConfig, RemoteSettingsConfig2, RemoteSettingsServer};
 pub use context::RemoteSettingsContext;
 pub use error::{ApiResult, RemoteSettingsError, Result};
 
@@ -64,8 +63,7 @@ impl RemoteSettingsService {
     /// Create a new Remote Settings client
     ///
     /// This method performs no IO or network requests and is safe to run in a main thread that can't be blocked.
-    #[handle_error(Error)]
-    pub fn make_client(&self, collection_name: String) -> ApiResult<Arc<RemoteSettingsClient>> {
+    pub fn make_client(&self, collection_name: String) -> Arc<RemoteSettingsClient> {
         self.internal.make_client(collection_name)
     }
 
@@ -166,27 +164,32 @@ impl RemoteSettingsClient {
     pub fn sync(&self) -> ApiResult<()> {
         self.internal.sync()
     }
+
+    /// Shutdown the client, releasing the SQLite connection used to cache records.
+    pub fn shutdown(&self) {
+        self.internal.shutdown()
+    }
 }
 
 impl RemoteSettingsClient {
     /// Create a new client.  This is not exposed to foreign code, consumers need to call
     /// [RemoteSettingsService::make_client]
     fn new(
-        base_url: Url,
+        base_url: BaseUrl,
         bucket_name: String,
         collection_name: String,
         #[allow(unused)] context: Option<RemoteSettingsContext>,
         storage: Storage,
-    ) -> Result<Self> {
-        Ok(Self {
+    ) -> Self {
+        Self {
             internal: client::RemoteSettingsClient::new(
                 base_url,
                 bucket_name,
                 collection_name,
                 context,
                 storage,
-            )?,
-        })
+            ),
+        }
     }
 }
 

@@ -122,7 +122,7 @@ impl SuggestStoreBuilder {
             inner: SuggestStoreInner::new(
                 data_path,
                 extensions_to_load,
-                SuggestRemoteSettingsClient::new(&rs_service)?,
+                SuggestRemoteSettingsClient::new(&rs_service),
             ),
         }))
     }
@@ -176,16 +176,12 @@ pub struct SuggestStore {
 #[uniffi::export]
 impl SuggestStore {
     /// Creates a Suggest store.
-    #[handle_error(Error)]
     #[uniffi::constructor()]
-    pub fn new(
-        path: &str,
-        remote_settings_service: Arc<RemoteSettingsService>,
-    ) -> SuggestApiResult<Self> {
-        let client = SuggestRemoteSettingsClient::new(&remote_settings_service)?;
-        Ok(Self {
+    pub fn new(path: &str, remote_settings_service: Arc<RemoteSettingsService>) -> Self {
+        let client = SuggestRemoteSettingsClient::new(&remote_settings_service);
+        Self {
             inner: SuggestStoreInner::new(path.to_owned(), vec![], client),
-        })
+        }
     }
 
     /// Queries the database for suggestions.
@@ -1940,8 +1936,20 @@ pub(crate) mod tests {
             ),],
         );
         assert_eq!(
+            store.fetch_suggestions(SuggestionQuery::yelp("ramen invalid_delivery")),
+            vec![ramen_suggestion(
+                "ramen invalid_delivery",
+                "https://www.yelp.com/search?find_desc=ramen&find_loc=invalid_delivery"
+            )
+            .has_location_sign(false),],
+        );
+        assert_eq!(
             store.fetch_suggestions(SuggestionQuery::yelp("ramen invalid_delivery in tokyo")),
-            vec![],
+            vec![ramen_suggestion(
+                "ramen invalid_delivery in tokyo",
+                "https://www.yelp.com/search?find_desc=ramen&find_loc=invalid_delivery+in+tokyo"
+            )
+            .has_location_sign(false),],
         );
         assert_eq!(
             store.fetch_suggestions(SuggestionQuery::yelp("ramen in tokyo")),
@@ -1959,7 +1967,11 @@ pub(crate) mod tests {
         );
         assert_eq!(
             store.fetch_suggestions(SuggestionQuery::yelp("ramen invalid_in tokyo")),
-            vec![],
+            vec![ramen_suggestion(
+                "ramen invalid_in tokyo",
+                "https://www.yelp.com/search?find_desc=ramen&find_loc=invalid_in+tokyo"
+            )
+            .has_location_sign(false),],
         );
         assert_eq!(
             store.fetch_suggestions(SuggestionQuery::yelp("ramen in San Francisco")),
@@ -1979,21 +1991,22 @@ pub(crate) mod tests {
             store.fetch_suggestions(SuggestionQuery::yelp("ramen near by")),
             vec![ramen_suggestion(
                 "ramen near by",
-                "https://www.yelp.com/search?find_desc=ramen+near+by"
-            )
-            .has_location_sign(false),],
+                "https://www.yelp.com/search?find_desc=ramen"
+            )],
         );
         assert_eq!(
             store.fetch_suggestions(SuggestionQuery::yelp("ramen near me")),
             vec![ramen_suggestion(
                 "ramen near me",
-                "https://www.yelp.com/search?find_desc=ramen+near+me"
-            )
-            .has_location_sign(false),],
+                "https://www.yelp.com/search?find_desc=ramen"
+            )],
         );
         assert_eq!(
             store.fetch_suggestions(SuggestionQuery::yelp("ramen near by tokyo")),
-            vec![],
+            vec![ramen_suggestion(
+                "ramen near by tokyo",
+                "https://www.yelp.com/search?find_desc=ramen&find_loc=tokyo"
+            )],
         );
         assert_eq!(
             store.fetch_suggestions(SuggestionQuery::yelp("ramen")),
@@ -2082,6 +2095,15 @@ pub(crate) mod tests {
             .subject_exact_match(false)],
         );
         assert_eq!(
+            store.fetch_suggestions(SuggestionQuery::yelp("spi")),
+            vec![ramen_suggestion(
+                "spicy ramen",
+                "https://www.yelp.com/search?find_desc=spicy+ramen"
+            )
+            .has_location_sign(false)
+            .subject_exact_match(false)],
+        );
+        assert_eq!(
             store.fetch_suggestions(SuggestionQuery::yelp("BeSt             Ramen")),
             vec![ramen_suggestion(
                 "BeSt Ramen",
@@ -2139,6 +2161,91 @@ pub(crate) mod tests {
             )
             .has_location_sign(false)
             .subject_exact_match(false)],
+        );
+        assert_eq!(
+            store.fetch_suggestions(SuggestionQuery::yelp("best sp")),
+            vec![ramen_suggestion(
+                "best spicy ramen",
+                "https://www.yelp.com/search?find_desc=best+spicy+ramen"
+            )
+            .has_location_sign(false)
+            .subject_exact_match(false)],
+        );
+        assert_eq!(
+            store.fetch_suggestions(SuggestionQuery::yelp("ramenabc")),
+            vec![],
+        );
+        assert_eq!(
+            store.fetch_suggestions(SuggestionQuery::yelp("ramenabc xyz")),
+            vec![],
+        );
+        assert_eq!(
+            store.fetch_suggestions(SuggestionQuery::yelp("best ramenabc")),
+            vec![],
+        );
+        assert_eq!(
+            store.fetch_suggestions(SuggestionQuery::yelp("bestabc ra")),
+            vec![],
+        );
+        assert_eq!(
+            store.fetch_suggestions(SuggestionQuery::yelp("bestabc ramen")),
+            vec![],
+        );
+        assert_eq!(
+            store.fetch_suggestions(SuggestionQuery::yelp("bestabc ramen xyz")),
+            vec![],
+        );
+        assert_eq!(
+            store.fetch_suggestions(SuggestionQuery::yelp("best spi ram")),
+            vec![],
+        );
+        assert_eq!(
+            store.fetch_suggestions(SuggestionQuery::yelp("bes ram")),
+            vec![],
+        );
+        assert_eq!(
+            store.fetch_suggestions(SuggestionQuery::yelp("bes ramen")),
+            vec![],
+        );
+        // Test for prefix match.
+        assert_eq!(
+            store.fetch_suggestions(SuggestionQuery::yelp("ramen D")),
+            vec![ramen_suggestion(
+                "ramen Delivery",
+                "https://www.yelp.com/search?find_desc=ramen+Delivery"
+            )
+            .has_location_sign(false)],
+        );
+        assert_eq!(
+            store.fetch_suggestions(SuggestionQuery::yelp("ramen I")),
+            vec![ramen_suggestion(
+                "ramen In",
+                "https://www.yelp.com/search?find_desc=ramen"
+            )],
+        );
+        assert_eq!(
+            store.fetch_suggestions(SuggestionQuery::yelp("ramen Y")),
+            vec![
+                ramen_suggestion("ramen", "https://www.yelp.com/search?find_desc=ramen")
+                    .has_location_sign(false)
+            ],
+        );
+        // Prefix match is available only for last words.
+        assert_eq!(
+            store.fetch_suggestions(SuggestionQuery::yelp("ramen D Yelp")),
+            vec![ramen_suggestion(
+                "ramen D",
+                "https://www.yelp.com/search?find_desc=ramen&find_loc=D"
+            )
+            .has_location_sign(false)],
+        );
+        assert_eq!(
+            store.fetch_suggestions(SuggestionQuery::yelp("ramen I Tokyo")),
+            vec![ramen_suggestion(
+                "ramen I Tokyo",
+                "https://www.yelp.com/search?find_desc=ramen&find_loc=I+Tokyo"
+            )
+            .has_location_sign(false)],
         );
 
         Ok(())

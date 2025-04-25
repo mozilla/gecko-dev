@@ -459,6 +459,7 @@ mod tests {
 
     #[test]
     fn test_endpoint() {
+        nss::ensure_initialized();
         // Use a cell to avoid the closure having a mutable ref to this scope.
         let counter: Cell<u32> = Cell::new(0);
         let fetch = || {
@@ -490,6 +491,7 @@ mod tests {
 
     #[test]
     fn test_backoff() {
+        nss::ensure_initialized();
         let counter: Cell<u32> = Cell::new(0);
         let fetch = || {
             counter.set(counter.get() + 1);
@@ -518,6 +520,7 @@ mod tests {
 
     #[test]
     fn test_validity() {
+        nss::ensure_initialized();
         let counter: Cell<u32> = Cell::new(0);
         let fetch = || {
             counter.set(counter.get() + 1);

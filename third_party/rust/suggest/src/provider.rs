@@ -228,7 +228,7 @@ pub enum AmpMatchingStrategy {
     /// Disable keywords added via keyword expansion.
     /// This eliminates keywords that for terms related to the "real" keywords, for example
     /// misspellings like "underarmor" instead of "under armor"'.
-    NoKeywordExpansion,
+    NoKeywordExpansion = 1, // The desktop consumer assumes this starts at `1`
     /// Use FTS matching against the full keywords, joined together.
     FtsAgainstFullKeywords,
     /// Use FTS matching against the title field
