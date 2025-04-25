@@ -489,9 +489,10 @@ class Settings(private val appContext: Context) : PreferencesHolder {
     /**
      * Returns true if shortcut suggestions feature should be shown to the user.
      */
-    val isShortcutSuggestionsVisible by booleanPreference(
-        appContext.getPreferenceKey(R.string.pref_key_enable_shortcuts_suggestions),
-        default = FxNimbus.features.topSitesSuggestions.value().enabled,
+    var isShortcutSuggestionsVisible by lazyFeatureFlagPreference(
+        key = appContext.getPreferenceKey(R.string.pref_key_enable_shortcuts_suggestions),
+        default = { FxNimbus.features.topSitesSuggestions.value().enabled },
+        featureFlag = true,
     )
 
     /**
@@ -2061,17 +2062,19 @@ class Settings(private val appContext: Context) : PreferencesHolder {
     /**
      * Indicates if Trending Search Suggestions are enabled.
      */
-    var isTrendingSearchesVisible by booleanPreference(
+    var isTrendingSearchesVisible by lazyFeatureFlagPreference(
         key = appContext.getPreferenceKey(R.string.pref_key_enable_trending_searches),
-        default = FxNimbus.features.trendingSearches.value().enabled,
+        default = { FxNimbus.features.trendingSearches.value().enabled },
+        featureFlag = true,
     )
 
     /**
      * Indicates if Recent Search Suggestions are enabled.
      */
-    var isRecentSearchesVisible by booleanPreference(
+    var isRecentSearchesVisible by lazyFeatureFlagPreference(
         key = appContext.getPreferenceKey(R.string.pref_key_enable_recent_searches),
-        default = FxNimbus.features.recentSearches.value().enabled,
+        default = { FxNimbus.features.recentSearches.value().enabled },
+        featureFlag = true,
     )
 
     /**
