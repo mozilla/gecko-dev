@@ -107,6 +107,10 @@ genai-options-about-chatbot =
 
 ## Chatbot onboarding
 
+genai-chatbot-contextual-title = Use an AI chatbot without switching tabs
+genai-chatbot-contextual-subtitle = Chat and browse side-by-side when you add an AI chatbot in the { -brand-short-name } sidebar.
+genai-chatbot-contextual-button = Choose a chatbot
+
 genai-onboarding-header = Summarize, brainstorm, and more as you browse
 genai-onboarding-choose-header = Choose an AI chatbot to use in the { -brand-short-name } sidebar
 # "Switch anytime" refers to allowing the user to switch to a different chatbot.
