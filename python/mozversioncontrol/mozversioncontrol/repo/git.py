@@ -271,16 +271,11 @@ class GitRepository(Repository):
     def set_config(self, name, value):
         self._run("config", name, value)
 
-    def get_branch_nodes(
-        self,
-        head: Optional[str] = None,
-        limit: Optional[int] = None,
-        follow: Optional[List[str]] = None,
-    ) -> List[str]:
+    def get_branch_nodes(self, head: Optional[str] = None) -> List[str]:
         """Return a list of commit SHAs for nodes on the current branch."""
         remote_args = self.get_mozilla_remote_args()
 
-        cmd = [
+        return self._run(
             "log",
             head or "HEAD",
             "--reverse",
@@ -288,12 +283,7 @@ class GitRepository(Repository):
             "--not",
             *remote_args,
             "--pretty=%H",
-        ]
-        if limit is not None:
-            cmd.append(f"-n{limit}")
-        if follow is not None:
-            cmd += ["--", *follow]
-        return self._run(*cmd).splitlines()
+        ).splitlines()
 
     def get_commit_patches(self, nodes: List[str]) -> List[bytes]:
         """Return the contents of the patch `node` in the VCS' standard format."""

@@ -317,12 +317,7 @@ class Repository:
             )
 
     @abc.abstractmethod
-    def get_branch_nodes(
-        self,
-        head: Optional[str] = None,
-        limit: Optional[int] = None,
-        follow: Optional[List[str]] = None,
-    ) -> List[str]:
+    def get_branch_nodes(self, head: Optional[str] = None) -> List[str]:
         """Return a list of commit SHAs for nodes on the current branch."""
 
     @abc.abstractmethod
