@@ -1125,7 +1125,6 @@ nsresult EventStateManager::PreHandleEvent(nsPresContext* aPresContext,
         break;
       }
       [[fallthrough]];
-    case eMouseMove:
     case ePointerDown:
       if (aEvent->mMessage == ePointerDown) {
         PointerEventHandler::UpdateActivePointerState(mouseEvent,
@@ -1139,7 +1138,12 @@ nsresult EventStateManager::PreHandleEvent(nsPresContext* aPresContext,
         LightDismissOpenPopovers(aEvent, aTargetContent);
       }
       [[fallthrough]];
+    case eMouseMove:
     case ePointerMove: {
+      if (aEvent->mMessage == ePointerMove) {
+        PointerEventHandler::UpdateActivePointerState(mouseEvent,
+                                                      aTargetContent);
+      }
       if (!mInTouchDrag &&
           PointerEventHandler::IsDragAndDropEnabled(*mouseEvent)) {
         GenerateDragGesture(aPresContext, mouseEvent);
@@ -4497,7 +4501,7 @@ nsresult EventStateManager::PostHandleEvent(nsPresContext* aPresContext,
     case eMouseActivate:
       if (mCurrentTarget) {
         nsCOMPtr<nsIContent> targetContent =
-          mCurrentTarget->GetContentForEvent(aEvent);
+            mCurrentTarget->GetContentForEvent(aEvent);
         if (!NodeAllowsClickThrough(targetContent)) {
           *aStatus = nsEventStatus_eConsumeNoDefault;
         }
