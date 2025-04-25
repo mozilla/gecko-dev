@@ -181,3 +181,49 @@ add_task(async function testHorizontalScrolling() {
 
   await resume(dbg);
 });
+
+// Tests the limit of the no of column breakpoint markers in a minified source with a long line.
+add_task(async function testColumnBreakpointsLimitAfterHorizontalScroll() {
+  // Keep the layout consistent
+  await pushPref("devtools.debugger.end-panel-size", 300);
+
+  const dbg = await initDebugger(
+    "doc-large-sources.html",
+    "codemirror-bundle.js"
+  );
+
+  info("Select the minified bundle and add a breakpoint");
+  await selectSource(dbg, "codemirror-bundle.js");
+  await addBreakpoint(dbg, "codemirror-bundle.js", 1);
+
+  let columnBreakpointMarkers = await waitForAllElements(
+    dbg,
+    "columnBreakpoints"
+  );
+
+  is(
+    columnBreakpointMarkers.length,
+    100,
+    "We have the expected limit of column breakpoint markers on the minified source"
+  );
+
+  info("Scroll horizintally far to the right of the file");
+  await scrollEditorIntoView(dbg, 0, 300000);
+
+  columnBreakpointMarkers = findAllElements(dbg, "columnBreakpoints");
+  is(
+    columnBreakpointMarkers.length,
+    0,
+    "There are no column breakpoint marker as the source has horizontally scrolled the viewport over the limit"
+  );
+
+  info("Scroll back to the start of the line");
+  await scrollEditorIntoView(dbg, 0, 0);
+
+  columnBreakpointMarkers = await waitForAllElements(dbg, "columnBreakpoints");
+  is(
+    columnBreakpointMarkers.length,
+    100,
+    "We still have the expected limit of column breakpoint markers on the minified source"
+  );
+});
