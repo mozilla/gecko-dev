@@ -864,10 +864,6 @@ float nsPageFrame::ComputeSinglePPSPageSizeScale(
 }
 
 double nsPageFrame::GetPageOrientationRotation(nsSharedPageData* aPD) const {
-  if (!StaticPrefs::layout_css_page_orientation_enabled()) {
-    return 0.0;
-  }
-
   if (aPD->PagesPerSheetInfo()->mNumPages == 1 && !PresContext()->IsScreen() &&
       aPD->mPrintSettings->GetOutputFormat() !=
           nsIPrintSettings::kOutputFormatPDF) {

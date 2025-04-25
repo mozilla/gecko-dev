@@ -9898,13 +9898,6 @@
   value: true
   mirror: always
 
-# Enables support for the page-orientation  property inside of CSS @page rules.
-- name: layout.css.page-orientation.enabled
-  type: RelaxedAtomicBool
-  value: true
-  mirror: always
-  rust: true
-
 # Enables support for different CSS page sizes on each page when printing.
 - name: layout.css.allow-mixed-page-sizes
   type: RelaxedAtomicBool
