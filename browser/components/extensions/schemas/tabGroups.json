@@ -1,0 +1,93 @@
+[
+  {
+    "namespace": "manifest",
+    "types": [
+      {
+        "$extend": "OptionalPermissionNoPrompt",
+        "choices": [
+          {
+            "type": "string",
+            "enum": ["tabGroups"]
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "namespace": "tabGroups",
+    "description": "Use the browser.tabGroups API to interact with the browser's tab grouping system. You can use this API to modify, and rearrange tab groups.",
+    "permissions": ["tabGroups"],
+    "types": [
+      {
+        "id": "Color",
+        "type": "string",
+        "description": "The group's color, using 'grey' spelling for compatibility with Chromium.",
+        "enum": [
+          "blue",
+          "cyan",
+          "grey",
+          "green",
+          "orange",
+          "pink",
+          "purple",
+          "red",
+          "yellow"
+        ]
+      },
+      {
+        "id": "TabGroup",
+        "type": "object",
+        "description": "State of a tab group inside of an open window.",
+        "properties": {
+          "collapsed": {
+            "type": "boolean",
+            "description": "Whether the tab group is collapsed or expanded in the tab strip."
+          },
+          "color": {
+            "$ref": "Color",
+            "description": "User-selected color name for the tab group's label/icons."
+          },
+          "id": {
+            "type": "number",
+            "description": "Unique ID of the tab group."
+          },
+          "title": {
+            "type": "string",
+            "optional": true,
+            "description": "User-defined name of the tab group."
+          },
+          "windowId": {
+            "type": "number",
+            "description": "Window that the tab group is in."
+          }
+        }
+      }
+    ],
+    "properties": {
+      "TAB_GROUP_ID_NONE": {
+        "value": -1,
+        "description": "An ID that represents the absence of a group."
+      }
+    },
+    "functions": [
+      {
+        "name": "get",
+        "type": "function",
+        "description": "Retrieves details about the specified group.",
+        "async": "callback",
+        "parameters": [
+          {
+            "type": "integer",
+            "name": "groupId",
+            "minimum": 0
+          },
+          {
+            "type": "function",
+            "name": "callback",
+            "parameters": [{ "name": "group", "$ref": "TabGroup" }]
+          }
+        ]
+      }
+    ]
+  }
+]

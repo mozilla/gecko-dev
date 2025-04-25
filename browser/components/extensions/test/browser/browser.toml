@@ -481,6 +481,8 @@ skip-if = ["true"] # Bug 1575369
 ["browser_ext_slow_script.js"]
 https_first_disabled = true
 
+["browser_ext_tabGroups.js"]
+
 ["browser_ext_tab_runtimeConnect.js"]
 
 ["browser_ext_tabs_attention.js"]

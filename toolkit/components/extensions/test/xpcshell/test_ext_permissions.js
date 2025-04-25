@@ -776,7 +776,8 @@ if (AppConstants.platform == "android") {
     "menus",
     "menus.overrideContext",
     "normandyAddonStudy",
-    "search"
+    "search",
+    "tabGroups"
   );
 }
 GRANTED_WITHOUT_USER_PROMPT.sort();
