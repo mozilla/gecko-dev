@@ -2878,27 +2878,6 @@ webrtc.video:
     record_in_processes:
       - 'content'
 
-mathml:
-  doc_count:
-    bug_numbers:
-      - 1362187
-      - 1538985
-      - 1590350
-    description: >
-      The number of documents that contained enabled MathML elements.
-    expires: never
-    kind: uint
-    notification_emails:
-      - emilio@mozilla.com
-      - fred.wang@free.fr
-      - dev-tech-layout@lists.mozilla.org
-    release_channel_collection: opt-out
-    products:
-      - 'firefox'
-      - 'fennec'
-    record_in_processes:
-      - 'content'
-
 media:
   element_in_page_count:
     bug_numbers:
