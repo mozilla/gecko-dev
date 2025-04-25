@@ -319,6 +319,8 @@ fail-if = ["a11y_checks"] # Bug 1849028 clicked element may not be focusable and
 
 ["browser_net_internal-stylesheet.js"]
 
+["browser_net_invalid-mime-types.js"]
+
 ["browser_net_json-b64.js"]
 
 ["browser_net_json-empty.js"]
