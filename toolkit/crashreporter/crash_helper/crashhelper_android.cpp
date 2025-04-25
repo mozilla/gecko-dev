@@ -7,6 +7,7 @@
 #include <android/log.h>
 #include <fcntl.h>
 #include <sys/socket.h>
+#include <sys/un.h>
 
 // For DirectAuxvDumpInfo
 #include "mozilla/toolkit/crashreporter/rust_minidump_writer_linux_ffi_generated.h"
@@ -14,21 +15,54 @@
 
 #define CRASH_HELPER_LOGTAG "GeckoCrashHelper"
 
+extern "C" JNIEXPORT jboolean JNICALL
+Java_org_mozilla_gecko_crashhelper_CrashHelper_set_1breakpad_1opts(
+    JNIEnv* jenv, jclass, jint breakpad_fd) {
+  // Enable passing credentials on the Breakpad server socket. We'd love to do
+  // it inside CrashHelper.java but the Java methods require an Android API
+  // version that's too recent for us.
+  const int val = 1;
+  int res = setsockopt(breakpad_fd, SOL_SOCKET, SO_PASSCRED, &val, sizeof(val));
+  if (res < 0) {
+    return false;
+  }
+
+  return true;
+}
+
+extern "C" JNIEXPORT jboolean JNICALL
+Java_org_mozilla_gecko_crashhelper_CrashHelper_bind_1and_1listen(
+    JNIEnv* jenv, jclass, jint listen_fd) {
+  struct sockaddr_un addr = {
+      .sun_family = AF_UNIX,
+      .sun_path = {},
+  };
+
+  // The address' path deliberately starts with a null byte to inform the
+  // kernel that this is an abstract address and not an actual file path.
+  snprintf(addr.sun_path + 1, sizeof(addr.sun_path) - 2,
+           "gecko-crash-helper-pipe.%d", getpid());
+
+  int res = bind(listen_fd, (const struct sockaddr*)&addr, sizeof(addr));
+  if (res < 0) {
+    return false;
+  }
+
+  res = listen(listen_fd, 1);
+  if (res < 0) {
+    return false;
+  }
+
+  return true;
+}
+
 extern "C" JNIEXPORT void JNICALL
 Java_org_mozilla_gecko_crashhelper_CrashHelper_crash_1generator(
     JNIEnv* jenv, jclass, jint client_pid, jint breakpad_fd,
     jstring minidump_path, jint listen_fd, jint server_fd) {
-  // Enable passing credentials on the server socket and set it in non-blocking
-  // mode. We'd love to do it inside CrashHelper.java but the Java methods
-  // require an Android API version that's too recent for us.
-  const int val = 1;
-  int res = setsockopt(breakpad_fd, SOL_SOCKET, SO_PASSCRED, &val, sizeof(val));
-  if (res < 0) {
-    __android_log_print(ANDROID_LOG_FATAL, CRASH_HELPER_LOGTAG,
-                        "Unable to set the Breakpad pipe socket options");
-    return;
-  }
-
+  // The breakpad server socket needs to be put in non-blocking mode, we do it
+  // here as the Rust code that picks it up won't touch it anymore and just
+  // pass it along to Breakpad.
   int flags = fcntl(breakpad_fd, F_GETFL);
   if (flags == -1) {
     __android_log_print(ANDROID_LOG_FATAL, CRASH_HELPER_LOGTAG,
@@ -36,7 +70,7 @@ Java_org_mozilla_gecko_crashhelper_CrashHelper_crash_1generator(
     return;
   }
 
-  res = fcntl(breakpad_fd, F_SETFL, flags | O_NONBLOCK);
+  int res = fcntl(breakpad_fd, F_SETFL, flags | O_NONBLOCK);
   if (res == -1) {
     __android_log_print(ANDROID_LOG_FATAL, CRASH_HELPER_LOGTAG,
                         "Unable to set the Breakpad pipe in non-blocking mode");
