@@ -11,6 +11,10 @@ prefs = [
 
 ["test_fail_recover_storeID.js"]
 
+["test_recover_database.js"]
+
+["test_recover_empty_database.js"]
+
 ["test_recover_storeID.js"]
 
 ["test_selectable_profile_launch.js"]

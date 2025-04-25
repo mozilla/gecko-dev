@@ -2,7 +2,7 @@
    http://creativecommons.org/publicdomain/zero/1.0/ */
 
 /*
- * Tests that the StoreID is restored if in profiles.ini.
+ * Tests that the group profile is correctly found from the store ID.
  */
 add_task(
   {
@@ -11,6 +11,7 @@ add_task(
   async () => {
     let hash = xreDirProvider.getInstallHash();
     let defaultProfile = makeRandomProfileDir("default");
+    let otherProfile = makeRandomProfileDir("other");
     let profilesIni = {
       profiles: [
         {
@@ -28,16 +29,16 @@ add_task(
     };
     writeProfilesIni(profilesIni);
 
+    Services.prefs.setCharPref("toolkit.profiles.storeID", "bishbashbosh");
+
     let service = getProfileService();
-    let { profile } = selectStartupProfile();
+    let { profile } = selectStartupProfile(["-profile", otherProfile.path]);
 
-    let storeID = Services.prefs.getCharPref("toolkit.profiles.storeID");
-
-    Assert.equal(profile.rootDir.path, defaultProfile.path);
-    Assert.equal(service.currentProfile, profile);
-    Assert.equal(service.groupProfile, profile);
-    Assert.equal(profile.storeID, "bishbashbosh");
-    Assert.equal(storeID, "bishbashbosh");
+    Assert.ok(!profile);
+    Assert.ok(!service.currentProfile);
+    Assert.ok(service.groupProfile);
+    Assert.equal(service.groupProfile.storeID, "bishbashbosh");
+    Assert.equal(service.groupProfile.rootDir.path, defaultProfile.path);
 
     checkProfileService();
   }

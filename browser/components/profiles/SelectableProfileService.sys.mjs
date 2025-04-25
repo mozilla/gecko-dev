@@ -253,11 +253,13 @@ class SelectableProfileServiceClass extends EventEmitter {
    * At startup, store the nsToolkitProfile for the group.
    * Get the groupDBPath from the nsToolkitProfile, and connect to it.
    *
+   * @param {boolean} isInitial true if this is an init prior to creating a new profile.
+   *
    * @returns {Promise}
    */
-  init() {
+  init(isInitial = false) {
     if (!this.#initPromise) {
-      this.#initPromise = this.#init().finally(
+      this.#initPromise = this.#init(isInitial).finally(
         () => (this.#initPromise = null)
       );
     }
@@ -265,7 +267,7 @@ class SelectableProfileServiceClass extends EventEmitter {
     return this.#initPromise;
   }
 
-  async #init() {
+  async #init(isInitial = false) {
     if (this.#initialized) {
       return;
     }
@@ -292,15 +294,6 @@ class SelectableProfileServiceClass extends EventEmitter {
       return;
     }
 
-    // This can happen if profiles.ini has been reset by a version of Firefox
-    // prior to 67 and the current profile is not the current default for the
-    // group. We can recover by overwriting this.#groupToolkitProfile.storeID
-    // with the current storeID.
-    if (this.#groupToolkitProfile.storeID != this.storeID) {
-      this.#groupToolkitProfile.storeID = this.storeID;
-      this.#attemptFlushProfileService();
-    }
-
     // When we launch into the startup window, the `ProfD` is not defined so
     // getting the directory will throw. Leaving the `currentProfile` as null
     // is fine for the startup window.
@@ -311,6 +304,38 @@ class SelectableProfileServiceClass extends EventEmitter {
         ProfilesDatastoreService.constructor.getDirectory("ProfD")
       );
     } catch {}
+
+    // If this isn't the first init prior to creating the first new profile and
+    // the app is started up we should have found a current profile.
+    if (!isInitial && !Services.startup.startingUp && !this.#currentProfile) {
+      let count = await this.getProfileCount();
+
+      if (count) {
+        // There are other profiles, re-create the current profile.
+        this.#currentProfile = await this.#createProfile(
+          ProfilesDatastoreService.constructor.getDirectory("ProfD")
+        );
+      } else {
+        // No other profiles. Reset our state.
+        this.#groupToolkitProfile.storeID = null;
+        this.#attemptFlushProfileService();
+        Services.prefs.setBoolPref(PROFILES_CREATED_PREF_NAME, false);
+
+        this.#connection = null;
+        this.updateEnabledState();
+
+        return;
+      }
+    }
+
+    // This can happen if profiles.ini has been reset by a version of Firefox
+    // prior to 67 and the current profile is not the current default for the
+    // group. We can recover by overwriting this.#groupToolkitProfile.storeID
+    // with the current storeID.
+    if (this.#groupToolkitProfile.storeID != this.storeID) {
+      this.#groupToolkitProfile.storeID = this.storeID;
+      this.#attemptFlushProfileService();
+    }
 
     // On macOS when other applications request we open a url the most recent
     // window becomes activated first. This would cause the default profile to
@@ -1041,7 +1066,7 @@ class SelectableProfileServiceClass extends EventEmitter {
     }
 
     await this.initProfilesData();
-    await this.init();
+    await this.init(true);
 
     await this.flushAllSharedPrefsToDatabase();
 
