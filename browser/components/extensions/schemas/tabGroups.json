@@ -89,6 +89,39 @@
         ]
       },
       {
+        "name": "move",
+        "type": "function",
+        "description": "Move a group within, or to another window.",
+        "async": "callback",
+        "parameters": [
+          {
+            "type": "integer",
+            "name": "groupId",
+            "minimum": 0
+          },
+          {
+            "type": "object",
+            "name": "moveProperties",
+            "properties": {
+              "index": {
+                "type": "integer",
+                "minimum": -1
+              },
+              "windowId": {
+                "type": "integer",
+                "optional": true,
+                "minimum": 0
+              }
+            }
+          },
+          {
+            "type": "function",
+            "name": "callback",
+            "parameters": [{ "name": "group", "$ref": "TabGroup" }]
+          }
+        ]
+      },
+      {
         "name": "update",
         "type": "function",
         "description": "Modifies state of a specified group.",
@@ -130,6 +163,12 @@
         "name": "onUpdated",
         "type": "function",
         "description": "Fired when a tab group is updated.",
+        "parameters": [{ "$ref": "TabGroup", "name": "group" }]
+      },
+      {
+        "name": "onMoved",
+        "type": "function",
+        "description": "Fired when a tab group is moved within a window.",
         "parameters": [{ "$ref": "TabGroup", "name": "group" }]
       }
     ]

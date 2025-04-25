@@ -3,6 +3,10 @@
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
 "use strict";
 
+ChromeUtils.defineESModuleGetters(this, {
+  PrivateBrowsingUtils: "resource://gre/modules/PrivateBrowsingUtils.sys.mjs",
+});
+
 var { ExtensionError } = ExtensionUtils;
 
 const spellColour = color => (color === "grey" ? "gray" : color);
@@ -37,6 +41,20 @@ this.tabGroups = class extends ExtensionAPIPersistent {
   }
 
   PERSISTENT_EVENTS = {
+    onMoved({ fire }) {
+      let onMove = event => {
+        fire.async(this.convert(event.originalTarget));
+      };
+      windowTracker.addListener("TabGroupMoved", onMove);
+      return {
+        unregister() {
+          windowTracker.removeListener("TabGroupMoved", onMove);
+        },
+        convert(_fire) {
+          fire = _fire;
+        },
+      };
+    },
     onUpdated({ fire }) {
       let onUpdate = event => {
         fire.async(this.convert(event.originalTarget));
@@ -58,10 +76,46 @@ this.tabGroups = class extends ExtensionAPIPersistent {
   };
 
   getAPI(context) {
+    const { windowManager } = this.extension;
     return {
       tabGroups: {
         get: groupId => {
           return this.convert(this.get(groupId));
+        },
+
+        move: (groupId, { index, windowId }) => {
+          let group = this.get(groupId);
+          let win = group.ownerGlobal;
+
+          if (windowId != null) {
+            win = windowTracker.getWindow(windowId, context);
+            if (
+              PrivateBrowsingUtils.isWindowPrivate(group.ownerGlobal) !==
+              PrivateBrowsingUtils.isWindowPrivate(win)
+            ) {
+              throw new ExtensionError(
+                "Can't move groups between private and non-private windows"
+              );
+            }
+            if (windowManager.getWrapper(win).type !== "normal") {
+              throw new ExtensionError(
+                "Groups can only be moved to normal windows."
+              );
+            }
+          }
+
+          if (win !== group.ownerGlobal) {
+            // Always adopt at the end when moving to another window,
+            // so that moveBefore/moveAfter logic works as expected.
+            let last = win.gBrowser.tabContainer.ariaFocusableItems.length;
+            group = win.gBrowser.adoptTabGroup(group, last);
+          }
+          if (index >= 0 && index < win.gBrowser.tabs.length) {
+            win.gBrowser.moveTabTo(group, { tabIndex: index });
+          } else if (win.gBrowser.tabs.at(-1) !== group.tabs.at(-1)) {
+            win.gBrowser.moveTabAfter(group, win.gBrowser.tabs.at(-1));
+          }
+          return this.convert(group);
         },
 
         update: (groupId, { collapsed, color, title }) => {
@@ -77,6 +131,13 @@ this.tabGroups = class extends ExtensionAPIPersistent {
           }
           return this.convert(group);
         },
+
+        onMoved: new EventManager({
+          context,
+          module: "tabGroups",
+          event: "onMoved",
+          extensionApi: this,
+        }).api(),
 
         onUpdated: new EventManager({
           context,

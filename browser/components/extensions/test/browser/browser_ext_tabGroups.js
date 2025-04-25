@@ -200,3 +200,99 @@ add_task(async function tabsGroups_update_onUpdated() {
   BrowserTestUtils.removeTab(tab3);
   BrowserTestUtils.removeTab(tab2);
 });
+
+add_task(async function tabsGroups_move_onMoved() {
+  async function loadExt() {
+    let ext = ExtensionTestUtils.loadExtension({
+      manifest: {
+        permissions: ["tabGroups"],
+      },
+      incognitoOverride: "spanning",
+      async background() {
+        browser.tabGroups.onMoved.addListener(moved => {
+          browser.test.sendMessage("moved", moved);
+        });
+        browser.test.onMessage.addListener(async (groupId, moveProps) => {
+          try {
+            let group = await browser.tabGroups.move(groupId, moveProps);
+            browser.test.sendMessage("done", group);
+          } catch (e) {
+            browser.test.sendMessage("error", e.message);
+          }
+        });
+        let [tab] = await browser.tabs.query({
+          lastFocusedWindow: true,
+          active: true,
+        });
+        browser.test.sendMessage("windowId", tab.windowId);
+      },
+    });
+    await ext.startup();
+    return ext;
+  }
+
+  let tabs = [];
+  let url = "https://example.com/foo?";
+  for (let i = 1; i < 10; i++) {
+    tabs.push(await BrowserTestUtils.openNewForegroundTab(gBrowser, url + i));
+  }
+
+  let group = gBrowser.addTabGroup(gBrowser.tabs.slice(-2));
+  is(group.tabs[1], gBrowser.tabs.at(-1), "Group's last tab is last.");
+
+  let gid = getExtTabGroupIdForInternalTabGroupId(group.id);
+
+  let ext = await loadExt();
+  let windowId = await ext.awaitMessage("windowId");
+
+  ext.sendMessage(gid, { index: 6 });
+  await Promise.all([ext.awaitMessage("done"), ext.awaitMessage("moved")]);
+  is(group.tabs[0], gBrowser.tabs[6], "Group's first tab moved to index 6.");
+
+  ext.sendMessage(gid, { index: 3 });
+  await Promise.all([ext.awaitMessage("done"), ext.awaitMessage("moved")]);
+  is(group.tabs[0], gBrowser.tabs[3], "Group's first tab moved to index 3.");
+
+  ext.sendMessage(gid, { index: 3 });
+  await ext.awaitMessage("done");
+  is(group.tabs[0], gBrowser.tabs[3], "Using same index 3 doesn't move.");
+
+  ext.sendMessage(gid, { index: -1 });
+  await Promise.all([ext.awaitMessage("done"), ext.awaitMessage("moved")]);
+  is(group.tabs[1], gBrowser.tabs.at(-1), "Group moved to the end.");
+
+  ext.sendMessage(gid, { index: -1 });
+  await ext.awaitMessage("done");
+  is(group.tabs[1], gBrowser.tabs.at(-1), "Using same index -1 doesn't move.");
+
+  ext.sendMessage(gid, { index: 0 });
+  await Promise.all([ext.awaitMessage("done"), ext.awaitMessage("moved")]);
+  is(group.tabs[0], gBrowser.tabs[0], "Group moved to the beginning.");
+
+  ext.sendMessage(gid, { index: 0 });
+  await ext.awaitMessage("done");
+  is(group.tabs[0], gBrowser.tabs[0], "Using same index 0 doesn't move.");
+
+  info("Create a large second group, and try to move in the middle of it.");
+  gBrowser.addTabGroup(gBrowser.tabs.slice(5));
+
+  ext.sendMessage(gid, { index: 8 });
+  await Promise.all([ext.awaitMessage("done"), ext.awaitMessage("moved")]);
+  is(group.tabs[1], gBrowser.tabs[4], "Moved before the whole group instead.");
+
+  for (let tab of tabs) {
+    BrowserTestUtils.removeTab(tab);
+  }
+
+  let win2 = await BrowserTestUtils.openNewBrowserWindow({ private: true });
+  let tab2 = await BrowserTestUtils.openNewForegroundTab(win2.gBrowser, url);
+  let group2 = win2.gBrowser.addTabGroup([tab2]);
+  let gid2 = getExtTabGroupIdForInternalTabGroupId(group2.id);
+
+  ext.sendMessage(gid2, { index: 0, windowId });
+  let error = await ext.awaitMessage("error");
+  is(error, "Can't move groups between private and non-private windows");
+  await BrowserTestUtils.closeWindow(win2);
+
+  await ext.unload();
+});
