@@ -323,9 +323,6 @@ void Element::SetPointerCapture(int32_t aPointerId, ErrorResult& aError) {
     aError.Throw(NS_ERROR_DOM_INVALID_STATE_ERR);
     return;
   }
-  // XXX If pointerInfo->mIsSynthesizedForTests does not match the last
-  // WidgetPointerEvent's mFlags.mIsSynthesizedForTests, should we treat it
-  // as unknown pointerId?
   if (!pointerInfo->mActiveState ||
       pointerInfo->mActiveDocument != OwnerDoc()) {
     return;
