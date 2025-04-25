@@ -280,13 +280,15 @@ class Interventions {
       this._customFunctions
     )) {
       if (customFuncName in intervention) {
-        try {
-          await customFunc[action](config, intervention);
-        } catch (e) {
-          console.trace(
-            `Error while calling custom function ${customFuncName}.${action} for ${label}:`,
-            e
-          );
+        for (const details of intervention[customFuncName]) {
+          try {
+            await customFunc[action](details, config);
+          } catch (e) {
+            console.trace(
+              `Error while calling custom function ${customFuncName}.${action} for ${label}:`,
+              e
+            );
+          }
         }
       }
     }
