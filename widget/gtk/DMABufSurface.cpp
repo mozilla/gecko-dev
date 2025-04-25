@@ -34,13 +34,6 @@
 #endif
 #include <sys/ioctl.h>
 
-// DMABufLibWrapper defines its own version of this which collides with the
-// official version in drm_fourcc.h
-#ifdef DRM_FORMAT_MOD_INVALID
-#  undef DRM_FORMAT_MOD_INVALID
-#endif
-#include "drm_fourcc.h"
-
 #include "mozilla/widget/va_drmcommon.h"
 #include "mozilla/gfx/2D.h"
 #include "mozilla/gfx/FileHandleWrapper.h"
@@ -2053,10 +2046,9 @@ gfx::SurfaceFormat DMABufSurfaceYUV::GetFormat() {
     case VA_FOURCC_NV12:
       return gfx::SurfaceFormat::NV12;
     case VA_FOURCC_YV12:
-    case VA_FOURCC_I420:
       return gfx::SurfaceFormat::YUV420;
     default:
-      gfxCriticalNoteOnce << "DMABufSurfaceYUV::GetFormat() unknown format: "
+      gfxCriticalNoteOnce << "DMABufSurfaceYUV::GetFormat() unknow format: "
                           << mFOURCCFormat;
       return gfx::SurfaceFormat::UNKNOWN;
   }
@@ -2185,18 +2177,11 @@ wl_buffer* DMABufSurfaceYUV::CreateWlBuffer() {
         mBufferModifiers[i] >> 32, mBufferModifiers[i] & 0xffffffff);
   }
 
-  // The format passed to wayland needs to be a DRM_FORMAT_* enum.  These are
-  // largely the same as VA_FOURCC_* values except for I420/YUV420
-  uint32_t format = GetFOURCCFormat();
-  if (format == VA_FOURCC_I420) {
-    format = DRM_FORMAT_YUV420;
-  }
-
   LOGDMABUF(
       "  zwp_linux_buffer_params_v1_create_immed() [%d x %d], fourcc [%x]",
-      GetWidth(), GetHeight(), format);
+      GetWidth(), GetHeight(), GetFOURCCFormat());
   wl_buffer* buffer = zwp_linux_buffer_params_v1_create_immed(
-      params, GetWidth(), GetHeight(), format, 0);
+      params, GetWidth(), GetHeight(), GetFOURCCFormat(), 0);
   if (!buffer) {
     LOGDMABUF(
         "  zwp_linux_buffer_params_v1_create_immed(): failed to create "

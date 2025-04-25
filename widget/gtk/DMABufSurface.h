@@ -30,9 +30,6 @@ typedef void* EGLSyncKHR;
 #ifndef VA_FOURCC_NV12
 #  define VA_FOURCC_NV12 0x3231564E
 #endif
-#ifndef VA_FOURCC_I420
-#  define VA_FOURCC_I420 0x30323449
-#endif
 #ifndef VA_FOURCC_YV12
 #  define VA_FOURCC_YV12 0x32315659
 #endif
