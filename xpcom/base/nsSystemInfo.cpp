@@ -2050,7 +2050,7 @@ nsSystemInfo::GetDiskInfo(JSContext* aCx, Promise** aResult) {
   RefPtr<Promise> capturedPromise = promise;
   mDiskInfoPromise->Then(
       GetMainThreadSerialEventTarget(), __func__,
-      [capturedPromise](const DiskInfo& info) {
+      [capturedPromise, self = RefPtr{this}](const DiskInfo& info) {
         AutoJSAPI jsapi;
         if (NS_WARN_IF(!jsapi.Init(capturedPromise->GetGlobalObject()))) {
           capturedPromise->MaybeReject(NS_ERROR_UNEXPECTED);
@@ -2069,6 +2069,10 @@ nsSystemInfo::GetDiskInfo(JSContext* aCx, Promise** aResult) {
           capturedPromise->MaybeReject(NS_ERROR_FAILURE);
           return;
         }
+
+        bool hasSSD =
+            info.binary.isSSD || info.system.isSSD || info.profile.isSSD;
+        self->SetPropertyAsBool(u"hasSSD"_ns, hasSSD);
 
         JS::Rooted<JS::Value> val(cx, JS::ObjectValue(*jsInfo));
         capturedPromise->MaybeResolve(val);

@@ -1501,6 +1501,15 @@ BrowserGlue.prototype = {
       },
 
       {
+        name: "Init hasSSD for SystemInfo",
+        condition: AppConstants.platform == "win",
+        // Initializes diskInfo to be able to get hasSSD which is part
+        // of the PageLoad event. Only runs on windows, since diskInfo
+        // is a no-op on other platforms
+        task: () => Services.sysinfo.diskInfo,
+      },
+
+      {
         name: "browser-startup-idle-tasks-finished",
         task: () => {
           // Use idleDispatch a second time to run this after the per-window

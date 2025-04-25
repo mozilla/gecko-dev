@@ -6171,6 +6171,22 @@ mozilla::ipc::IPCResult ContentParent::RecvRecordPageLoadEvent(
     mozilla::glean::perf::PageLoadExtra&& aPageLoadEventExtra) {
   // Check whether a webdriver is running.
   aPageLoadEventExtra.usingWebdriver = mozilla::Some(WebdriverRunning());
+
+#if defined(XP_WIN)
+  // The "hasSSD" property is only set on Windows during the first
+  // call to nsISystemInfo.diskInfo - which is done before
+  // browser-startup-idle-tasks-finished
+  // Other platforms do not compute hasSSD, so there's no reason to
+  // query this on other platforms.
+  nsresult rv;
+  nsCOMPtr<nsIPropertyBag2> infoService =
+      mozilla::components::SystemInfo::Service();
+  bool hasSSD;
+  rv = infoService->GetPropertyAsBool(u"hasSSD"_ns, &hasSSD);
+  if (NS_SUCCEEDED(rv)) {
+    aPageLoadEventExtra.hasSsd = Some(hasSSD);
+  }
+#endif
   mozilla::glean::perf::page_load.Record(mozilla::Some(aPageLoadEventExtra));
 
   // Send the PageLoadPing after every 30 page loads, or on startup.
