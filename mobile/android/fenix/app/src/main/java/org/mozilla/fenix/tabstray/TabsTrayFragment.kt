@@ -739,7 +739,10 @@ class TabsTrayFragment : AppCompatDialogFragment() {
                     BiometricAuthenticationManager.biometricAuthenticationNeededInfo.apply {
                         authenticationStatus = AuthenticationStatus.AUTHENTICATED
                     }
+
                     tabsTrayInteractor.onTrayPositionSelected(page.ordinal, false)
+
+                    requireContext().settings().isPrivateScreenBlocked = false
                 },
                 onAuthFailure = {
                     BiometricAuthenticationManager.biometricAuthenticationNeededInfo.apply {

@@ -350,6 +350,11 @@ class Settings(private val appContext: Context) : PreferencesHolder {
         default = false,
     )
 
+    var isPrivateScreenBlocked by booleanPreference(
+        appContext.getPreferenceKey(R.string.pref_key_private_screen_locked),
+        default = false,
+    )
+
     var shouldReturnToBrowser by booleanPreference(
         appContext.getString(R.string.pref_key_return_to_browser),
         false,

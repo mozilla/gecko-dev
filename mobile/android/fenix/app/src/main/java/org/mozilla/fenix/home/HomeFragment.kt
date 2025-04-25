@@ -1421,6 +1421,8 @@ class HomeFragment : Fragment() {
 
         bundleArgs.clear()
         lastAppliedWallpaperName = Wallpaper.defaultName
+
+        requireContext().settings().isPrivateScreenBlocked = false
     }
 
     override fun onStart() {
@@ -1458,6 +1460,10 @@ class HomeFragment : Fragment() {
 
         lifecycleScope.launch(IO) {
             requireComponents.reviewPromptController.promptReview(requireActivity())
+        }
+
+        if ((requireActivity() as HomeActivity).shouldShowUnlockScreen()) {
+            findNavController().navigate(R.id.unlockPrivateTabsFragment)
         }
     }
 

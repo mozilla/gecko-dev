@@ -2120,6 +2120,14 @@ abstract class BaseBrowserFragment :
         }
     }
 
+    override fun onStart() {
+        super.onStart()
+
+        if ((requireActivity() as HomeActivity).shouldShowUnlockScreen()) {
+            findNavController().navigate(R.id.unlockPrivateTabsFragment)
+        }
+    }
+
     @CallSuper
     override fun onResume() {
         super.onResume()
@@ -2674,6 +2682,8 @@ abstract class BaseBrowserFragment :
         _browserToolbarView = null
         _browserToolbarInteractor = null
         _binding = null
+
+        requireContext().settings().isPrivateScreenBlocked = false
     }
 
     override fun onAttach(context: Context) {

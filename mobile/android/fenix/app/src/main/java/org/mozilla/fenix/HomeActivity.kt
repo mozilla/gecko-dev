@@ -53,6 +53,7 @@ import mozilla.components.browser.state.action.MediaSessionAction
 import mozilla.components.browser.state.action.SearchAction
 import mozilla.components.browser.state.search.SearchEngine
 import mozilla.components.browser.state.selector.getNormalOrPrivateTabs
+import mozilla.components.browser.state.selector.privateTabs
 import mozilla.components.browser.state.selector.selectedTab
 import mozilla.components.browser.state.state.WebExtensionState
 import mozilla.components.concept.engine.EngineSession
@@ -690,6 +691,18 @@ open class HomeActivity : LocaleAwareAppCompatActivity(), NavHostActivity {
         components.core.store.dispatch(SearchAction.RefreshSearchEnginesAction)
     }
 
+    /**
+     * We verify if all conditions are met to display the unlock private mode screen
+     */
+    fun shouldShowUnlockScreen(): Boolean {
+        val hasPrivateTabs = components.core.store.state.privateTabs.isNotEmpty()
+        val biometricLockEnabled = settings().privateBrowsingLockedEnabled
+        val isPrivateMode = browsingModeManager.mode.isPrivate
+        val isScreenBlocked = settings().isPrivateScreenBlocked
+
+        return isPrivateMode && hasPrivateTabs && biometricLockEnabled && isScreenBlocked
+    }
+
     final override fun onStart() {
         // DO NOT MOVE ANYTHING ABOVE THIS getProfilerTime CALL.
         val startProfilerTime = components.core.engine.profiler?.getProfilerTime()
@@ -715,6 +728,8 @@ open class HomeActivity : LocaleAwareAppCompatActivity(), NavHostActivity {
         val startTimeProfiler = components.core.engine.profiler?.getProfilerTime()
 
         super.onStop()
+
+        settings().isPrivateScreenBlocked = true
 
         // Diagnostic breadcrumb for "Display already aquired" crash:
         // https://github.com/mozilla-mobile/android-components/issues/7960
