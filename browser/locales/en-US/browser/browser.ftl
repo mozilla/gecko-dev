@@ -1226,3 +1226,7 @@ file-picker-crashed-save-nowhere = The Windows file-dialog has crashed. No defau
 file-picker-crashed-show-in-folder =
     .label = Show in Folder
     .accessKey = F
+
+## Onboarding Finish Setup checklist
+
+onboarding-checklist-button-label = Finish setup
