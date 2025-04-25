@@ -25,22 +25,16 @@ STEPS = {
         git commit -a -m "second commit"
         """,
     ],
-    "jj": [
-        """
-        jj bookmark set test
-        """,
-        """
-        jj new -m "xyzzy" zzzzzzzz
-        jj new -m "second commit" test
-        echo "bar" > foo
-        """,
-    ],
+    "jj": [],
 }
 
 
 def test_branch(repo):
     vcs = get_repository_object(repo.dir)
-    if vcs.name in ("git", "jj"):
+    if vcs.name == "jj":
+        mozunit.pytest.skip("jj does not have an active branch")
+
+    if vcs.name == "git":
         assert vcs.branch == "master"
     else:
         assert vcs.branch is None
@@ -52,22 +46,10 @@ def test_branch(repo):
     assert vcs.branch == "test"
 
     vcs.update(vcs.head_ref)
-    if repo.vcs == "jj":
-        # jj "branches" do not auto-advance (in our JujutsuRepository
-        # implementation, anyway), so this is the rev marked as the root of the
-        # test branch.
-        assert vcs.branch == "test"
-    else:
-        assert vcs.branch is None
+    assert vcs.branch is None
 
     vcs.update("test")
     assert vcs.branch == "test"
-
-    # for jj only, check that a topological branch with no bookmarks is not
-    # considered a "branch":
-    if repo.vcs == "jj":
-        vcs.update("description('xyzzy')")
-        assert vcs.branch is None
 
 
 if __name__ == "__main__":

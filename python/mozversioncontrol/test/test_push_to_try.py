@@ -160,7 +160,7 @@ def test_push_to_try(repo, monkeypatch):
                 "-T",
                 "change_id.short()",
             ),
-            (str(tool), "git", "remote", "remove", "mach_tryserver"),
+            (str(vcs._git._tool), "remote"),
             (
                 str(vcs._git._tool),
                 "remote",

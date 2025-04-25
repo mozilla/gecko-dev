@@ -110,12 +110,9 @@ class JujutsuRepository(Repository):
 
     @property
     def branch(self):
-        # jj does not have an "active branch" concept. Invent something similar,
-        # the latest bookmark in the descendants of @.
-        bookmark = self._run(
-            "log", "--no-graph", "-r", "latest(::@ & bookmarks())", "-T", "bookmarks"
-        )
-        return bookmark or None
+        # jj does not have an "active branch" concept. The lone caller will fall
+        # back to self.head_ref.
+        return None
 
     @property
     def has_git_cinnabar(self):
@@ -264,7 +261,10 @@ class JujutsuRepository(Repository):
             raise MissingVCSExtension("cinnabar")
 
         with self.try_commit(message, changed_files) as head:
-            self._run("git", "remote", "remove", "mach_tryserver", return_codes=[0, 1])
+            if "mach_tryserver" in self._git._run("remote"):
+                self._run(
+                    "git", "remote", "remove", "mach_tryserver", return_codes=[0, 1]
+                )
             # `jj git remote add` would barf on the cinnabar syntax here.
             self._git._run(
                 "remote", "add", "mach_tryserver", "hg::ssh://hg.mozilla.org/try"
