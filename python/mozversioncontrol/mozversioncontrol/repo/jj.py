@@ -95,14 +95,14 @@ class JujutsuRepository(Repository):
         ref = self.resolve_to_change("latest(roots(::@ & mutable())-)")
         return ref if ref else self.head_ref
 
-    def convert_change_to_commit(self, change_id):
+    def resolve_to_commit(self, revset):
         commit = self._run_read_only(
-            "log", "--no-graph", "-r", f"latest({change_id})", "-T", "commit_id"
+            "log", "--no-graph", "-r", f"latest({revset})", "-T", "commit_id"
         ).rstrip()
         return commit
 
     def base_ref_as_hg(self):
-        base_ref = self.convert_change_to_commit(self.base_ref)
+        base_ref = self.resolve_to_commit(self.base_ref)
         try:
             return self._git._run("cinnabar", "git2hg", base_ref).strip()
         except subprocess.CalledProcessError:
@@ -172,6 +172,14 @@ class JujutsuRepository(Repository):
                 raise Exception(f"unexpected jj file status '{op}'")
 
         return changed
+
+    def diff_stream(self, rev=None, extensions=(), exclude_file=None, context=8):
+        if rev is None:
+            rev = "latest((@ | @-) ~ empty())"
+        rev = self.resolve_to_commit(rev)
+        return self._git.diff_stream(
+            rev=rev, extensions=extensions, exclude_file=exclude_file, context=context
+        )
 
     def get_outgoing_files(self, diff_filter="ADM", upstream=None):
         assert all(f.lower() in self._valid_diff_filter for f in diff_filter)
@@ -318,7 +326,7 @@ class JujutsuRepository(Repository):
         # Warning: tests, at least, may call this with change ids rather than
         # commit ids.
         nodes = [
-            id if self.looks_like_commit_id(id) else self.convert_change_to_commit(id)
+            id if self.looks_like_commit_id(id) else self.resolve_to_commit(id)
             for id in nodes
         ]
         return [
