@@ -378,30 +378,16 @@ class MachSiteManager:
             )
 
     def ensure(self, *, force=False):
-        lock_file = Path(self._virtualenv_root).with_suffix(".lock")
-        timeout = 60
-
-        # In the scenario where multiple processes try to create a mach site that does not yet
-        # exist, they will trample each other when attempting to create it. To resolve this, we
-        # use a file lock. The first process to reach the lock will create it and ensure it is up
-        # to date, while the other(s) wait(s). Once the first releases the lock, the others will
-        # continue one-by-one and determine it's up-to-date.
-        try:
-            with FileLock(lock_file, timeout=timeout):
-                result = self._up_to_date()
-                if force or not result.is_up_to_date:
-                    if Path(sys.prefix) == Path(self._metadata.prefix):
-                        # If the Mach virtualenv is already activated, then the changes caused
-                        # by rebuilding the virtualenv won't take effect until the next time
-                        # Mach is used, which can lead to confusing one-off errors.
-                        # Instead, request that the user resolve the out-of-date situation,
-                        # *then* come back and run the intended command.
-                        raise VirtualenvOutOfDateException(result.reason)
-                    self._build()
-        except Timeout:
-            self._log(
-                f"Could not acquire the lock at {lock_file} for the mach site after {timeout} seconds."
-            )
+        result = self._up_to_date()
+        if force or not result.is_up_to_date:
+            if Path(sys.prefix) == Path(self._metadata.prefix):
+                # If the Mach virtualenv is already activated, then the changes caused
+                # by rebuilding the virtualenv won't take effect until the next time
+                # Mach is used, which can lead to confusing one-off errors.
+                # Instead, request that the user resolve the out-of-date situation,
+                # *then* come back and run the intended command.
+                raise VirtualenvOutOfDateException(result.reason)
+            self._build()
 
     def attempt_populate_optional_packages(self):
         if self._site_packages_source != SitePackagesSource.VENV:
