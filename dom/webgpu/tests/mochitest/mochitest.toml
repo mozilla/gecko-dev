@@ -1,7 +1,16 @@
 [DEFAULT]
 subsuite = "webgpu"
-run-if = ["!release_or_beta"]
-skip-if = ["verify"] # `test-verify` jobs don't guarantee a GPU, so skip them.
+
+# This test suite should run when WebGPU is enabled by the preprocessor
+# conditionals in `gfxPlatform::InitWebGPUConfig`.
+#
+# This condition should be the exact complement of the `run-if`
+# condition in `mochitest-disabled.html`.
+run-if = ["nightly_build || (os == 'win' && early_beta_or_earlier)"]
+
+# `test-verify` jobs don't guarantee a GPU, so skip them.
+skip-if = ["verify"]
+
 prefs = [
   "dom.webgpu.enabled=true",
   "dom.webgpu.workers.enabled=true",
@@ -68,3 +77,5 @@ scheme = "http"
 ["test_submit_render_empty.html"]
 
 ["test_submit_render_empty.worker.html"]
+
+["test_adapter_enabled.html"]
