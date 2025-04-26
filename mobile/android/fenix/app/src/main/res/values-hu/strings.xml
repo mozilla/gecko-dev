@@ -1483,6 +1483,10 @@
   <string name="download_delete_item_1" moz:removedIn="138" tools:ignore="UnusedResources">Eltávolítás</string>
   <!-- Text for the button to delete a single downloaded file item -->
   <string name="download_delete_item">Törlés</string>
+  <!-- Content description for the toolbar "Navigate back" button -->
+  <string name="download_navigate_back_description">Navigálás visszafelé</string>
+  <!-- Content description for the toolbar "Navigate up" button -->
+  <string name="download_navigate_up_description">Navigálás fel</string>
   <!-- Text for the button to share the download URL -->
   <string name="download_share_url">Webcím megosztása</string>
   <!-- Text for the button to share the download file -->
@@ -3192,6 +3196,8 @@
   <string name="protection_panel_no_trackers_blocked">Nem találhatóak nyomkövetők</string>
   <!-- Link text to navigate to privacy and security settings from the protection panel. -->
   <string name="protection_panel_privacy_and_security_settings">Adatvédelmi és biztonsági beállítások</string>
+  <!-- Title text for the protection panel permissions section. -->
+  <string name="protection_panel_permissions_title">Engedélyek</string>
   <!--
     Text for displaying the total number of trackers blocked in the trackers blocked panel.
     %d is a placeholder for the number of trackers blocked.

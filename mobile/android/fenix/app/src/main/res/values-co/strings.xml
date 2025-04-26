@@ -1775,9 +1775,6 @@
   <string name="preference_phone_feature_microphone">Microfonu</string>
   <!-- Preference for altering the location access for all websites -->
   <string name="preference_phone_feature_location">Lucalizazione</string>
-  <!-- Preference for altering the notification access for all websites -->
-  <string name="preference_phone_feature_notification">
-</string>
   <!-- Preference for altering the persistent storage access for all websites -->
   <string name="preference_phone_feature_persistent_storage">Allucamentu permanente</string>
   <!-- Preference for altering the storage access setting for all websites -->
