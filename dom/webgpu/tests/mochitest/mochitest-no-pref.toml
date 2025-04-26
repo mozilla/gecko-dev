@@ -10,4 +10,4 @@ skip-if = ["verify"] # `test-verify` jobs don't guarantee a GPU, so skip them.
 # See spec WebIDL, like this: https://www.w3.org/TR/webgpu/#navigatorgpu
 scheme = "https"
 
-["test_disabled.html"]
+["test_gpu_disabled.html"]
