@@ -5479,7 +5479,8 @@ static bool IsRelevantBlockFrame(const nsIFrame* aFrame) {
   if (!aFrame->IsBlockOutside()) {
     return false;
   }
-  if (aFrame->GetContent()->IsInNativeAnonymousSubtree()) {
+  if (aFrame->GetContent() &&
+      aFrame->GetContent()->IsInNativeAnonymousSubtree()) {
     // This helps skipping things like scrollbar parts.
     return false;
   }
@@ -9526,12 +9527,14 @@ nsresult nsIFrame::PeekOffsetForParagraph(PeekOffsetStruct* aPos) {
 
   if (reachedLimit) {  // no "stop frame" found
     aPos->mResultContent = frame->GetContent();
-    if (ShadowRoot* shadowRoot =
-            aPos->mResultContent->GetShadowRootForSelection()) {
-      // Even if there's no children for this node,
-      // the elements inside the shadow root is still
-      // selectable
-      aPos->mResultContent = shadowRoot;
+    if (aPos->mResultContent) {
+      if (ShadowRoot* shadowRoot =
+              aPos->mResultContent->GetShadowRootForSelection()) {
+        // Even if there's no children for this node,
+        // the elements inside the shadow root is still
+        // selectable
+        aPos->mResultContent = shadowRoot;
+      }
     }
     if (aPos->mDirection == eDirPrevious) {
       aPos->mContentOffset = 0;
