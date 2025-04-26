@@ -528,7 +528,10 @@ export class SentencePostProcessor {
       // If the sentence contains a block word, abort
       if (
         this.blockListManager &&
-        this.blockListManager.matchAtWordBoundary({ text: sentence })
+        this.blockListManager.matchAtWordBoundary({
+          // Blocklist is always lowercase
+          text: sentence.toLowerCase(),
+        })
       ) {
         sentence = "";
         abort = true;
