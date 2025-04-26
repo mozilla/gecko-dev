@@ -2919,7 +2919,9 @@ static GeckoFontMetrics GetFontMetricsFromCanvas(void* aContext) {
             0.0f,
             0.0f};
   }
-  auto metrics = fontGroup->GetMetricsForCSSUnits(nsFontMetrics::eHorizontal);
+  auto metrics = fontGroup->GetMetricsForCSSUnits(
+      nsFontMetrics::eHorizontal, StyleQueryFontMetricsFlags::NEEDS_CH |
+                                      StyleQueryFontMetricsFlags::NEEDS_IC);
   return {Length::FromPixels(metrics.xHeight),
           Length::FromPixels(metrics.zeroWidth),
           Length::FromPixels(metrics.capHeight),
@@ -3037,8 +3039,9 @@ class CanvasUserSpaceMetrics final : public UserSpaceMetricsWithSize {
         return Gecko_GetFontMetrics(
             mPresContext, WritingMode(mCanvasStyle).IsVertical(),
             mCanvasStyle->StyleFont(), mCanvasStyle->StyleFont()->mFont.size,
-            /* aUseUserFontSet = */ true,
-            /* aRetrieveMathScales */ false);
+            StyleQueryFontMetricsFlags::USE_USER_FONT_SET |
+                StyleQueryFontMetricsFlags::NEEDS_CH |
+                StyleQueryFontMetricsFlags::NEEDS_IC);
       }
       case Type::Root:
         return GetFontMetrics(mPresContext->Document()->GetRootElement());
