@@ -1058,7 +1058,7 @@ class _QuickSuggestTestUtils {
         },
         bottomTextL10n: {
           id: "firefox-suggest-weather-sponsored",
-          args: { provider: "AccuWeather" },
+          args: { provider: "AccuWeather®" },
           cacheable: true,
         },
         source,

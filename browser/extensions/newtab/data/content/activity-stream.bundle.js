@@ -13463,7 +13463,7 @@ class _Weather extends (external_React_default()).PureComponent {
         className: "weatherCard"
       }, /*#__PURE__*/external_React_default().createElement("a", {
         "data-l10n-id": "newtab-weather-see-forecast",
-        "data-l10n-args": "{\"provider\": \"AccuWeather\"}",
+        "data-l10n-args": "{\"provider\": \"AccuWeather\xAE\"}",
         href: WEATHER_SUGGESTION.forecast.url,
         className: "weatherInfoLink",
         onClick: this.onProviderClick
@@ -13491,7 +13491,7 @@ class _Weather extends (external_React_default()).PureComponent {
         className: "weatherSponsorText"
       }, /*#__PURE__*/external_React_default().createElement("span", {
         "data-l10n-id": "newtab-weather-sponsored",
-        "data-l10n-args": "{\"provider\": \"AccuWeather\"}"
+        "data-l10n-args": "{\"provider\": \"AccuWeather\xAE\"}"
       })));
     }
     return /*#__PURE__*/external_React_default().createElement("div", {
