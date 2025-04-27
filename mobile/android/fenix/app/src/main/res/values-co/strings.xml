@@ -1775,6 +1775,8 @@
   <string name="preference_phone_feature_microphone">Microfonu</string>
   <!-- Preference for altering the location access for all websites -->
   <string name="preference_phone_feature_location">Lucalizazione</string>
+  <!-- Preference for altering the notification access for all websites -->
+  <string name="preference_phone_feature_notification">Nutificazione</string>
   <!-- Preference for altering the persistent storage access for all websites -->
   <string name="preference_phone_feature_persistent_storage">Allucamentu permanente</string>
   <!-- Preference for altering the storage access setting for all websites -->
@@ -3195,6 +3197,8 @@
   <string name="protection_panel_no_trackers_blocked">Ùn si trova nisunu perseguitatore</string>
   <!-- Link text to navigate to privacy and security settings from the protection panel. -->
   <string name="protection_panel_privacy_and_security_settings">Parametri di cunfidenzialità è di sicurità</string>
+  <!-- Title text for the protection panel permissions section. -->
+  <string name="protection_panel_permissions_title">Permessi</string>
   <!--
     Text for displaying the total number of trackers blocked in the trackers blocked panel.
     %d is a placeholder for the number of trackers blocked.
