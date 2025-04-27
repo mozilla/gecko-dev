@@ -6,8 +6,11 @@ const { sinon } = ChromeUtils.importESModule(
   "resource://testing-common/Sinon.sys.mjs"
 );
 
-const { ProgressStatusText, ProgressType, OPFS } = ChromeUtils.importESModule(
+const { ProgressStatusText, ProgressType } = ChromeUtils.importESModule(
   "chrome://global/content/ml/Utils.sys.mjs"
+);
+const { OPFS } = ChromeUtils.importESModule(
+  "chrome://global/content/ml/OPFS.sys.mjs"
 );
 
 const { URLChecker } = ChromeUtils.importESModule(
@@ -1812,8 +1815,6 @@ add_task(async function test_getOwnerIcon() {
   Assert.notEqual(icon, null);
 
   // second call will get it from the cache
-  info(OPFS.File);
-
   let spy = sinon.spy(OPFS.File.prototype, "getBlobFromOPFS");
 
   const icon2 = await hub.getOwnerIcon(fullyQualifiedModelName);

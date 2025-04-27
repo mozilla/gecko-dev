@@ -19,6 +19,8 @@ support-files = [
 
 ["browser_ml_nlp_utils.js"]
 
+["browser_ml_opfs.js"]
+
 ["browser_ml_telemetry.js"]
 
 ["browser_ml_utils.js"]

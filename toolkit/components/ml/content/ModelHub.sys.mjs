@@ -15,7 +15,7 @@ ChromeUtils.defineESModuleGetters(lazy, {
   ObjectUtils: "resource://gre/modules/ObjectUtils.sys.mjs",
   setTimeout: "resource://gre/modules/Timer.sys.mjs",
   Progress: "chrome://global/content/ml/Utils.sys.mjs",
-  OPFS: "chrome://global/content/ml/Utils.sys.mjs",
+  OPFS: "chrome://global/content/ml/OPFS.sys.mjs",
   URLChecker: "chrome://global/content/ml/Utils.sys.mjs",
   createFileUrl: "chrome://global/content/ml/Utils.sys.mjs",
   DEFAULT_ENGINE_ID: "chrome://global/content/ml/EngineProcess.sys.mjs",
