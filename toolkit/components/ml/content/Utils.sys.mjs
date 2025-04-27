@@ -582,6 +582,87 @@ export async function readResponseToWriter(
   await response.body.pipeThrough(progressStream).pipeTo(writableStream);
 }
 
+class OPFSFile {
+  constructor({ urls = null, localPath }) {
+    this.urls = urls;
+    this.localPath = localPath;
+  }
+
+  async getBlobFromOPFS() {
+    // Attempt to get an existing file handle in OPFS (cache hit?)
+    let fileHandle;
+    try {
+      fileHandle = await getFileHandleFromOPFS(this.localPath, {
+        create: false,
+      });
+      if (fileHandle) {
+        // File is already cached
+        const file = await fileHandle.getFile();
+        return await new Response(file.stream()).blob();
+      }
+    } catch (e) {
+      // If getFileHandle() throws, it likely doesn't exist in OPFS
+    }
+    return null;
+  }
+
+  async getBlobFromURL(url) {
+    lazy.console.debug(`Fetching ${url}...`);
+    const response = await fetch(url);
+    if (!response.ok) {
+      return null;
+    }
+    return await response.blob();
+  }
+
+  async delete() {
+    const fileHandle = await getFileHandleFromOPFS(this.localPath);
+    if (fileHandle) {
+      await removeFromOPFS(this.localPath);
+    }
+  }
+
+  async getAsObjectURL() {
+    // Already in cache maybe ?
+    let blob = await this.getBlobFromOPFS();
+
+    // no, try in urls
+    if (!blob) {
+      if (!this.urls) {
+        throw new Error("File not present in OPFS and no urls provided");
+      }
+
+      for (const url of this.urls) {
+        blob = await this.getBlobFromURL(url);
+        if (blob) {
+          break;
+        }
+      }
+    }
+
+    if (!blob) {
+      throw new Error("Could not fetch the resource from the provided urls");
+    }
+
+    // At this point, we have a Blob. Write it to OPFS so next time it's cached.
+    try {
+      // Create the file (since it didn't exist before)
+      const newFileHandle = await getFileHandleFromOPFS(this.localPath, {
+        create: true,
+      });
+      const writable = await newFileHandle.createWritable();
+      await writable.write(blob);
+      await writable.close();
+    } catch (writeErr) {
+      lazy.console.warning(`Failed to write file to OPFS cache: ${writeErr}`);
+      // We can continue returning the icon even if cache write fails
+    }
+
+    // Finally return a Blob URL for this fetched icon
+    return URL.createObjectURL(blob);
+  }
+}
+
 // Create a "namespace" to make it easier to import multiple names.
 export var Progress = Progress || {};
 Progress.ProgressAndStatusCallbackParams = ProgressAndStatusCallbackParams;
@@ -595,6 +676,7 @@ export var OPFS = OPFS || {};
 OPFS.getFileHandle = getFileHandleFromOPFS;
 OPFS.getDirectoryHandle = getDirectoryHandleFromOPFS;
 OPFS.remove = removeFromOPFS;
+OPFS.File = OPFSFile;
 
 export async function getInferenceProcessInfo() {
   // for now we only have a single inference process.

@@ -386,6 +386,8 @@ async function updateModels() {
   let fragment = document.createDocumentFragment();
 
   for (const { name: model, revision } of models) {
+    const icon = await hub.getOwnerIcon(model);
+
     let files = await hub.listFiles({ model, revision });
 
     // Create a new table for the current model
@@ -395,6 +397,13 @@ async function updateModels() {
     let caption = document.createElement("caption");
     let modelInfo = document.createElement("div");
     modelInfo.textContent = `${model} (${revision})`;
+    if (icon) {
+      let iconImage = document.createElement("img");
+      iconImage.src = icon;
+      iconImage.width = 16;
+      iconImage.height = 16;
+      modelInfo.appendChild(iconImage);
+    }
     let deleteButton = document.createElement("button");
     document.l10n.setAttributes(deleteButton, "about-inference-delete-button");
     deleteButton.onclick = async () => {

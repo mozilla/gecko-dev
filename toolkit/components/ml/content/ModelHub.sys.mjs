@@ -39,6 +39,10 @@ const ALLOWED_HEADERS_KEYS = [
   "lastUsed",
 ];
 
+const MOZILLA_HUB_HOSTNAME = "model-hub.mozilla.org";
+const HF_HUB_HOSTNAME = "huggingface.co";
+const MOCHITESTS_HOSTNAME = "mochitests";
+
 // Default indexedDB revision.
 const DEFAULT_MODEL_REVISION = 6;
 
@@ -76,6 +80,103 @@ class ForbiddenURLError extends Error {
     super(`Forbidden URL: ${url} (${rejectionType})`);
     this.name = "ForbiddenURLError";
     this.url = url;
+  }
+}
+
+/**
+ * Class representing a model owner.
+ *
+ * A model owner can be a user or an organization
+ */
+class ModelOwner {
+  constructor({ hostname, owner }) {
+    this.hostname = hostname;
+    this.owner = owner;
+  }
+
+  /**
+   * @type {string} model - The fully qualified model name (hub/owner/name)
+   */
+  static fromModel(model) {
+    const hostname = model.split("/")[0];
+    const owner = model.split("/")[1];
+    return new ModelOwner({ hostname, owner });
+  }
+
+  /**
+   * Gets the icon OPFS path
+   *
+   * @returns {Promise<void>}
+   */
+  #getIconFilePath() {
+    return `modelOwners/${this.hostname}/${this.owner}/icon`;
+  }
+
+  /**
+   * Removes ant cache associated with this owner
+   *
+   */
+  async pruneCache() {
+    const filePath = this.#getIconFilePath();
+    try {
+      const fileHandle = await lazy.OPFS.getFileHandle(filePath);
+
+      if (fileHandle) {
+        await lazy.OPFS.remove(filePath);
+      }
+    } catch (e) {
+      // we can ignore this error, as the deleteIconFile may be called multiple times on the same file.
+    }
+  }
+
+  /**
+   * Returns the owner's icon
+   *
+   * @returns {Promise<string|null>}
+   */
+  async getIcon() {
+    // If it's not the known HF hub root, we don't know how to fetch an icon
+    if (
+      ![MOCHITESTS_HOSTNAME, HF_HUB_HOSTNAME, MOZILLA_HUB_HOSTNAME].includes(
+        this.hostname
+      )
+    ) {
+      lazy.console.debug(
+        "We don't know how to get icons from that hub",
+        this.hostname
+      );
+      return null;
+    }
+
+    // Switch from Mozilla to Hugging Face if needed
+    if (this.hostname === MOZILLA_HUB_HOSTNAME) {
+      this.hostname = "huggingface.co";
+    }
+
+    const hubRootUrl = `https://${this.hostname}/`;
+    const filePath = this.#getIconFilePath();
+    let possibleUrls = [];
+
+    if (this.hostname === MOCHITESTS_HOSTNAME) {
+      possibleUrls.push(
+        "chrome://mochitests/content/browser/toolkit/components/ml/tests/browser/data/mozilla-logo.webp"
+      );
+    } else {
+      // Attempt to fetch (org first, then user)
+      possibleUrls.push(
+        `${hubRootUrl}api/organizations/${this.owner}/avatar?redirect=true`
+      );
+      possibleUrls.push(
+        `${hubRootUrl}api/users/${this.owner}/avatar?redirect=true`
+      );
+    }
+
+    lazy.console.debug("Fetching icon", filePath, possibleUrls);
+    const opfsFile = new lazy.OPFS.File({
+      urls: possibleUrls,
+      localPath: filePath,
+    });
+    return opfsFile.getAsObjectURL();
   }
 }
 
@@ -894,7 +995,11 @@ class IndexedDBCache {
    * @returns {Promise<void>} A promise that resolves once the file and associated data are deleted.
    */
   async #deleteFile({ model, revision, file }) {
+    const owner = ModelOwner.fromModel(model);
+
     await Promise.all([
+      // For now we delete the icon file any time a file from a model is removed.
+      owner.pruneCache(),
       this.#deleteData(this.headersStoreName, [model, revision, file]),
       lazy.OPFS.remove(this.generateFilePathInOPFS({ model, revision, file })),
     ]);
@@ -1718,5 +1823,17 @@ export class ModelHub {
   async deleteFilesByEngine(engineId) {
     await this.#initCache();
     return this.cache.deleteFilesByEngine(engineId);
+  }
+
+  /**
+   * Returns the owner icon from a model
+   *
+   * @param {string} model -- Fully qualified model name
+   * @returns {Promise<string|null>}
+   */
+  async getOwnerIcon(model) {
+    await this.#initCache();
+    const owner = ModelOwner.fromModel(model);
+    return owner.getIcon();
   }
 }
