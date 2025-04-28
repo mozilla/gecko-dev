@@ -73,7 +73,7 @@ ChromeUtils.defineLazyGetter(lazy, "gFluentStrings", function () {
 
 const DEFAULT_ACTIONS = {
   addons: {
-    l10nCommands: ["quickactions-cmd-addons2", "quickactions-addons"],
+    l10nCommands: ["quickactions-cmd-addons3"],
     icon: "chrome://mozapps/skin/extensions/category-extensions.svg",
     label: "quickactions-addons",
     onPick: openAddonsUrl("addons://discover/"),

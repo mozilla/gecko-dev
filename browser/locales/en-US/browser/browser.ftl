@@ -301,8 +301,11 @@ search-one-offs-actions =
 ## the action.
 
 # Opens the about:addons page in the home / recommendations section
-quickactions-addons = View Add-ons
-quickactions-cmd-addons2 = add-ons
+quickactions-addons = View add-ons
+# In English we provide multiple spellings for "add-ons". If that's not
+# applicable to your language, only use the correct spelling (don't repeat the
+# same word).
+quickactions-cmd-addons3 = extensions, themes, addons, add-ons
 
 # Opens the bookmarks library window
 quickactions-bookmarks2 = Manage bookmarks
