@@ -83,7 +83,7 @@ var gActiveExperimentStartupBuffer = new Map();
 
 // For Powering arewegleanyet.com (See bug 1944592)
 // Legacy Count: 114
-// Glean Count: 57
+// Glean Count: 66
 
 var gGlobalEnvironment;
 function getGlobal() {
@@ -2118,6 +2118,9 @@ EnvironmentCache.prototype = {
     try {
       let gfxInfo = Cc["@mozilla.org/gfx/info;1"].getService(Ci.nsIGfxInfo);
       gfxData.features = gfxInfo.getFeatures();
+      for (const [name, value] of Object.entries(gfxData.features)) {
+        Glean.gfxFeatures[name].set(value);
+      }
     } catch (e) {
       this._log.error("nsIGfxInfo.getFeatures() caught error", e);
     }

@@ -743,9 +743,11 @@ export var TelemetryEnvironmentTesting = {
 
     lazy.Assert.equal(typeof gfxData.features, "object");
     lazy.Assert.equal(typeof gfxData.features.compositor, "string");
+    lazy.Assert.ok(!!Glean.gfxFeatures.compositor.testGetValue());
 
     lazy.Assert.equal(typeof gfxData.features.gpuProcess, "object");
     lazy.Assert.equal(typeof gfxData.features.gpuProcess.status, "string");
+    lazy.Assert.ok(!!Glean.gfxFeatures.gpuProcess.testGetValue().status);
 
     try {
       // If we've not got nsIGfxInfoDebug, then this will throw and stop us doing
@@ -765,8 +767,14 @@ export var TelemetryEnvironmentTesting = {
         features.gpuProcess.status,
         gfxData.features.gpuProcess.status
       );
-      lazy.Assert.equal(features.opengl, gfxData.features.opengl);
-      lazy.Assert.equal(features.webgl, gfxData.features.webgl);
+      lazy.Assert.equal(
+        features.compositor,
+        Glean.gfxFeatures.compositor.testGetValue()
+      );
+      lazy.Assert.equal(
+        features.gpuProcess.status,
+        Glean.gfxFeatures.gpuProcess.testGetValue().status
+      );
     } catch (e) {}
 
     if (gIsMac) {
