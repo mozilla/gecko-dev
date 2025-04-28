@@ -2091,7 +2091,7 @@ uint64_t ICInterpretOps(uint64_t arg0, uint64_t arg1, ICStub* stub,
             ArrayObject* aobj = &nobj->as<ArrayObject>();
             uint32_t len = aobj->length();
             if (len <= index) {
-              aobj->setLength(len + 1);
+              aobj->setLength(ctx.frameMgr.cxForLocalUseOnly(), len + 1);
             }
           }
 
@@ -2118,7 +2118,7 @@ uint64_t ICInterpretOps(uint64_t arg0, uint64_t arg1, ICStub* stub,
           }
         }
         aobj->setDenseInitializedLength(initLength + 1);
-        aobj->setLength(initLength + 1);
+        aobj->setLengthToInitializedLength();
         aobj->initDenseElement(initLength, rhs);
         retValue = Int32Value(initLength + 1).asRawBits();
         PREDICT_RETURN();
@@ -4098,8 +4098,8 @@ uint64_t ICInterpretOps(uint64_t arg0, uint64_t arg1, ICStub* stub,
           HeapSlot* slot = &elements->elements()[len - 1];
           retValue = slot->get().asRawBits();
           len--;
-          aobj->setLength(len);
           aobj->setDenseInitializedLength(len);
+          aobj->setLengthToInitializedLength();
         }
         PREDICT_RETURN();
         DISPATCH_CACHEOP();

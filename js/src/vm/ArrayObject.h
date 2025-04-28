@@ -34,7 +34,16 @@ class ArrayObject : public NativeObject {
     getElementsHeader()->setNonwritableArrayLength();
   }
 
-  void setLength(uint32_t length) {
+  void setLengthToInitializedLength() {
+    MOZ_ASSERT(lengthIsWritable());
+    MOZ_ASSERT_IF(length() != getElementsHeader()->length,
+                  !denseElementsAreFrozen());
+    getElementsHeader()->length = getDenseInitializedLength();
+    static_assert(MAX_DENSE_ELEMENTS_COUNT <= INT32_MAX,
+                  "No need to check HasSeenArrayExceedsInt32LengthFuse");
+  }
+
+  void setLength(JSContext* cx, uint32_t length) {
     MOZ_ASSERT(lengthIsWritable());
     MOZ_ASSERT_IF(length != getElementsHeader()->length,
                   !denseElementsAreFrozen());

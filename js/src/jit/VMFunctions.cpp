@@ -1214,7 +1214,7 @@ ArrayObject* InitRestParameter(JSContext* cx, uint32_t length, Value* rest,
       return nullptr;
     }
     arrRes->initDenseElements(rest, length);
-    arrRes->setLength(length);
+    arrRes->setLengthToInitializedLength();
     return arrRes;
   }
 

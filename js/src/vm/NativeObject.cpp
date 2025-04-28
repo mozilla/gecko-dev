@@ -1193,7 +1193,7 @@ static MOZ_ALWAYS_INLINE bool CallAddPropertyHookDense(
     ArrayObject* arr = &obj->as<ArrayObject>();
     uint32_t length = arr->length();
     if (index >= length) {
-      arr->setLength(index + 1);
+      arr->setLength(cx, index + 1);
     }
     return true;
   }
