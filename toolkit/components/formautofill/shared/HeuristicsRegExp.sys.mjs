@@ -671,6 +671,11 @@ export const HeuristicsRegExp = {
     },
   ],
 
+  EXTRA_RULES: {
+    "lookup":
+      "lookup|search|suchen",
+  },
+
   _getRules(rules, rulesets) {
     function computeRule(name) {
       let regexps = [];
@@ -710,6 +715,10 @@ export const HeuristicsRegExp = {
   getRules() {
     return this._getRules(this.RULES, this.RULE_SETS);
   },
+
+  getExtraRules(fieldName) {
+    return new RegExp(this.EXTRA_RULES[fieldName], "iug");
+  }
 };
 
 export default HeuristicsRegExp;

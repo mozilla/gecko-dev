@@ -348,6 +348,27 @@ export class FormAutofillSection {
       );
     }
 
+    // Only fill a street address lookup field if it is the only street
+    // address related field in this section.
+    const STREET_FIELDS = [
+      "street-address",
+      "address-line1",
+      "address-line2",
+      "address-line3",
+    ];
+    if (fieldDetail.isLookup && STREET_FIELDS.includes(fieldDetail.fieldName)) {
+      if (
+        this.fieldDetails.some(
+          field =>
+            STREET_FIELDS.includes(field.fieldName) &&
+            field.isVisible &&
+            !field.isLookup
+        )
+      ) {
+        return false;
+      }
+    }
+
     return true;
   }
 
