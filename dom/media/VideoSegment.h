@@ -135,7 +135,6 @@ class VideoSegment : public MediaSegmentBase<VideoSegment, VideoChunk> {
                               const IntSize& aIntrinsicSize,
                               const PrincipalHandle& aPrincipalHandle,
                               bool aForceBlack, TimeStamp aTimeStamp,
-                              media::TimeUnit aProcessingDuration,
                               TimeStamp aWebrtcCaptureTime);
   void ExtendLastFrameBy(TrackTime aDuration) {
     if (aDuration <= 0) {

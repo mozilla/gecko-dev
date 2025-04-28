@@ -146,11 +146,9 @@ void VideoSegment::AppendWebrtcRemoteFrame(
 void VideoSegment::AppendWebrtcLocalFrame(
     already_AddRefed<Image>&& aImage, const IntSize& aIntrinsicSize,
     const PrincipalHandle& aPrincipalHandle, bool aForceBlack,
-    TimeStamp aTimeStamp, media::TimeUnit aProcessingDuration,
-    TimeStamp aWebrtcCaptureTime) {
+    TimeStamp aTimeStamp, TimeStamp aWebrtcCaptureTime) {
   VideoChunk* chunk = AppendChunk(0);
   chunk->mTimeStamp = aTimeStamp;
-  chunk->mProcessingDuration = aProcessingDuration;
   chunk->mWebrtcCaptureTime = AsVariant(aWebrtcCaptureTime);
   VideoFrame frame(std::move(aImage), aIntrinsicSize);
   MOZ_ASSERT_IF(!IsNull(), !aTimeStamp.IsNull());

@@ -40,7 +40,6 @@ struct VideoFrameProperties
   uint32_t rtpTimeStamp;
   int64_t ntpTimeMs;
   int64_t renderTimeMs;
-  TimeUnit processingDuration;
   // See webrtc/**/rotation.h
   int rotation;
   int yAllocatedSize;

@@ -33,14 +33,6 @@ void VideoFrameUtils::InitFrameBufferProperties(
   aDestProps.rtpTimeStamp() = aVideoFrame.rtp_timestamp();
   aDestProps.ntpTimeMs() = aVideoFrame.ntp_time_ms();
   aDestProps.renderTimeMs() = aVideoFrame.render_time_ms();
-
-  if (aVideoFrame.processing_time()) {
-    aDestProps.processingDuration() = media::TimeUnit::FromMicroseconds(
-        aVideoFrame.processing_time()->Elapsed().us());
-  } else {
-    aDestProps.processingDuration() = media::TimeUnit::Invalid();
-  }
-
   aDestProps.rotation() = aVideoFrame.rotation();
 
   auto i420 = aVideoFrame.video_frame_buffer()->ToI420();
