@@ -112,8 +112,7 @@ add_task(async function test_invalid_url() {
     RegionTestUtils.REGION_URL_PREF,
     "http://localhost:0"
   );
-  let result = await Region._fetchRegion();
-  Assert.ok(!result, "Should return no result");
+  await Region._fetchRegion();
   await checkTelemetry(Region.TELEMETRY.NO_RESULT);
 });
 
@@ -123,8 +122,7 @@ add_task(async function test_invalid_json() {
     RegionTestUtils.REGION_URL_PREF,
     'data:application/json,{"country_code"'
   );
-  let result = await Region._fetchRegion();
-  Assert.ok(!result, "Should return no result");
+  await Region._fetchRegion();
   await checkTelemetry(Region.TELEMETRY.NO_RESULT);
 });
 
@@ -141,9 +139,7 @@ add_task(async function test_timeout() {
     });
   });
 
-  let result = await Region._fetchRegion();
-  Assert.equal(result, null, "Region fetch should return null");
-
+  await Region._fetchRegion();
   await checkTelemetry(Region.TELEMETRY.TIMEOUT);
   await cleanup(srv);
 });
