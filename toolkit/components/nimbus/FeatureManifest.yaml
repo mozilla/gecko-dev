@@ -2467,30 +2467,6 @@ networking:
       setPref:
         branch: default
         pref: "network.http.http3.cc_algorithm"
-    sendOnDataFinished:
-      description: Whether we can send OnDataFinished in the content process
-      type: boolean
-      setPref:
-        branch: default
-        pref: "network.send_OnDataFinished"
-    sendOnDataFinshedFromInputStreamPump:
-      description: Whether we can send OnDataFinished to the content process from InputStreamPump
-      type: boolean
-      setPref:
-        branch: default
-        pref: "network.send_OnDataFinished.nsInputStreamPump"
-    sendOnDataFinishedToHtml5parser:
-      description: Whether we can send OnDataFinished to the html5parser in content process
-      type: boolean
-      setPref:
-        branch: default
-        pref: "network.send_OnDataFinished.html5parser"
-    sendOnDataFinishedToCssLoader:
-      description: Whether we can send OnDataFinished to the cssLoader in content process
-      type: boolean
-      setPref:
-        branch: default
-        pref: "network.send_OnDataFinished.cssLoader"
     enableOffMainThreadStreamDecompression:
       description: Whether to enable decompression of network streams off-main-thread
       type: boolean
@@ -2581,6 +2557,37 @@ networkingConnections:
       setPref:
         branch: default
         pref: "network.http.speculative-parallel-limit"
+
+
+networkingSendOnDataFinished:
+  description: "Networking (Necko) OnDataFinished"
+  owner: vgosu@mozilla.com
+  hasExposure: false
+  variables:
+    sendOnDataFinished:
+      description: Whether we can send OnDataFinished in the content process
+      type: boolean
+      setPref:
+        branch: default
+        pref: "network.send_OnDataFinished"
+    sendOnDataFinshedFromInputStreamPump:
+      description: Whether we can send OnDataFinished to the content process from InputStreamPump
+      type: boolean
+      setPref:
+        branch: default
+        pref: "network.send_OnDataFinished.nsInputStreamPump"
+    sendOnDataFinishedToHtml5parser:
+      description: Whether we can send OnDataFinished to the html5parser in content process
+      type: boolean
+      setPref:
+        branch: default
+        pref: "network.send_OnDataFinished.html5parser"
+    sendOnDataFinishedToCssLoader:
+      description: Whether we can send OnDataFinished to the cssLoader in content process
+      type: boolean
+      setPref:
+        branch: default
+        pref: "network.send_OnDataFinished.cssLoader"
 
 essentialFallbackDomains:
   description: "Whether to retry failing system requests with a backup domain"
