@@ -1,6 +1,11 @@
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at https://mozilla.org/MPL/2.0/.
+
 from collections import defaultdict
 
 from taskgraph.transforms.base import TransformSequence
+from taskgraph.util.taskcluster import get_artifact_prefix
 
 transforms = TransformSequence()
 
@@ -42,7 +47,7 @@ def repackage_rpm(config, tasks):
             **{
                 "build-signing": [
                     {
-                        "artifact": "public/build/target.tar.xz",
+                        "artifact": "target.tar.xz",
                         "extract": False,
                         "dest": "/builds/worker/fetches/target.tar.xz",
                     }
@@ -61,9 +66,13 @@ def repackage_rpm(config, tasks):
                 locale = _extract_locale_from_langpack_artifact_path(
                     langpack_artifact_path
                 )
+                prefix = get_artifact_prefix(kind_deps[l10n_signing_dep])
+                langpack_artifact_path_no_prefix = langpack_artifact_path[
+                    len(prefix) :
+                ].lstrip("/")
                 fetches[l10n_signing_dep].append(
                     {
-                        "artifact": langpack_artifact_path,
+                        "artifact": langpack_artifact_path_no_prefix,
                         "extract": False,
                         "dest": f"/builds/worker/fetches/{locale}.langpack.xpi",
                     }
