@@ -464,6 +464,9 @@
   @media -moz-pref("browser.tabs.fadeOutUnloadedTabs") {
     &[pending] {
       filter: grayscale(100%);
+      @media (prefers-color-scheme: dark) {
+        filter: grayscale(100%) invert();
+      }
       opacity: 0.5;
       /* Fade the favicon out */
       transition-property: filter, opacity;
@@ -481,6 +484,9 @@
   @media -moz-pref("browser.tabs.fadeOutExplicitlyUnloadedTabs") {
     &[pending][discarded] {
       filter: grayscale(100%);
+      @media (prefers-color-scheme: dark) {
+        filter: grayscale(100%) invert();
+      }
       opacity: 0.5;
       /* Fade the favicon out */
       transition-property: filter, opacity;
