@@ -46,6 +46,9 @@ vendoring:
     - 'libpipewire'
     - 'generate_version.sh'
     - 'README.md'
+  patches:
+    # Don't include <pipewire/conf.h> to avoid build failures
+    - '00-pipewire-dont-include-conf-header.patch'
   update-actions:
     - action: run-script
       script: generate_version.sh

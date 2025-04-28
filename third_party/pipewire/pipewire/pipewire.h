@@ -13,7 +13,6 @@ extern "C" {
 
 #include <pipewire/array.h>
 #include <pipewire/client.h>
-#include <pipewire/conf.h>
 #include <pipewire/context.h>
 #include <pipewire/device.h>
 #include <pipewire/buffers.h>
