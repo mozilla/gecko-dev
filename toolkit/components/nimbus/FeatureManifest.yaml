@@ -2251,6 +2251,7 @@ glean:
   description: "The Glean data-control-plane feature within Firefox Desktop for controlling metric configuration"
   owner: glean-team@mozilla.com
   hasExposure: false
+  allowCoenrollment: true
   variables:
     gleanMetricConfiguration:
       type: json

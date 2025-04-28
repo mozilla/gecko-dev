@@ -149,10 +149,13 @@ export let StartupTelemetry = {
     // Register Glean to listen for experiment updates releated to the
     // "glean" feature defined in the t/c/nimbus/FeatureManifest.yaml
     lazy.NimbusFeatures.glean.onUpdate(() => {
-      let cfg = lazy.NimbusFeatures.glean.getVariable(
-        "gleanMetricConfiguration"
-      );
-      Services.fog.applyServerKnobsConfig(JSON.stringify(cfg));
+      const enrollments = lazy.NimbusFeatures.glean.getAllEnrollments();
+      for (const enrollment of enrollments) {
+        const cfg = enrollment.value.gleanMetricConfiguration;
+        if (typeof cfg === "object" && cfg !== null) {
+          Services.fog.applyServerKnobsConfig(JSON.stringify(cfg));
+        }
+      }
     });
   },
 
