@@ -363,6 +363,17 @@ function createValidAbsoluteUrl(url, baseUrl = null, options = null) {
   const absoluteUrl = baseUrl ? URL.parse(url, baseUrl) : URL.parse(url);
   return _isValidProtocol(absoluteUrl) ? absoluteUrl : null;
 }
+function updateUrlHash(url, hash, allowRel = false) {
+  const res = URL.parse(url);
+  if (res) {
+    res.hash = hash;
+    return res.href;
+  }
+  if (allowRel && createValidAbsoluteUrl(url, "http://example.com")) {
+    return url.split("#", 1)[0] + `${hash ? `#${hash}` : ""}`;
+  }
+  return "";
+}
 function shadow(obj, prop, value, nonSerializable = false) {
   Object.defineProperty(obj, prop, {
     value,
@@ -18144,7 +18155,8 @@ class CFFCompiler {
     let out;
     const numGlyphsLessNotDef = numGlyphs - 1;
     if (isCIDFont) {
-      out = new Uint8Array([2, 0, 0, numGlyphsLessNotDef >> 8 & 0xff, numGlyphsLessNotDef & 0xff]);
+      const nLeft = numGlyphsLessNotDef - 1;
+      out = new Uint8Array([2, 0, 0, nLeft >> 8 & 0xff, nLeft & 0xff]);
     } else {
       const length = 1 + numGlyphsLessNotDef * 2;
       out = new Uint8Array(length);
@@ -31268,7 +31280,9 @@ class PartialEvaluator {
     return new Stream(data);
   }
   async buildFormXObject(resources, xobj, smask, operatorList, task, initialState, localColorSpaceCache, seenRefs) {
-    const dict = xobj.dict;
+    const {
+      dict
+    } = xobj;
     const matrix = lookupMatrix(dict.getArray("Matrix"), null);
     const bbox = lookupNormalRect(dict.getArray("BBox"), null);
     let optionalContent, groupOptions;
@@ -31307,10 +31321,11 @@ class PartialEvaluator {
     const f32bbox = !group && bbox && new Float32Array(bbox) || null;
     const args = [f32matrix, f32bbox];
     operatorList.addOp(OPS.paintFormXObjectBegin, args);
+    const localResources = dict.get("Resources");
     await this.getOperatorList({
       stream: xobj,
       task,
-      resources: dict.get("Resources") || resources,
+      resources: localResources instanceof Dict ? localResources : resources,
       operatorList,
       initialState,
       prevRefs: seenRefs
@@ -33277,21 +33292,25 @@ class PartialEvaluator {
               if (!(xobj instanceof BaseStream)) {
                 throw new FormatError("XObject should be a stream");
               }
-              const type = xobj.dict.get("Subtype");
+              const {
+                dict
+              } = xobj;
+              const type = dict.get("Subtype");
               if (!(type instanceof Name)) {
                 throw new FormatError("XObject should have a Name subtype");
               }
               if (type.name !== "Form") {
-                emptyXObjectCache.set(name, xobj.dict.objId, true);
+                emptyXObjectCache.set(name, dict.objId, true);
                 resolveXObject();
                 return;
               }
               const currentState = stateManager.state.clone();
               const xObjStateManager = new StateManager(currentState);
-              const matrix = lookupMatrix(xobj.dict.getArray("Matrix"), null);
+              const matrix = lookupMatrix(dict.getArray("Matrix"), null);
               if (matrix) {
                 xObjStateManager.transform(matrix);
               }
+              const localResources = dict.get("Resources");
               enqueueChunk();
               const sinkWrapper = {
                 enqueueInvoked: false,
@@ -33309,7 +33328,7 @@ class PartialEvaluator {
               self.getTextContent({
                 stream: xobj,
                 task,
-                resources: xobj.dict.get("Resources") || resources,
+                resources: localResources instanceof Dict ? localResources : resources,
                 stateManager: xObjStateManager,
                 includeMarkedContent,
                 sink: sinkWrapper,
@@ -33322,7 +33341,7 @@ class PartialEvaluator {
                 prevRefs: seenRefs
               }).then(function () {
                 if (!sinkWrapper.enqueueInvoked) {
-                  emptyXObjectCache.set(name, xobj.dict.objId, true);
+                  emptyXObjectCache.set(name, dict.objId, true);
                 }
                 resolveXObject();
               }, rejectXObject);
@@ -37453,7 +37472,7 @@ class Catalog {
         for (const [key, value] of obj) {
           const dest = fetchDest(value);
           if (dest) {
-            dests[key] ||= dest;
+            dests[stringToPDFString(key)] ||= dest;
           }
         }
       }
@@ -37470,10 +37489,9 @@ class Catalog {
         }
       }
     }
-    if (rawDests[0] instanceof NameTree) {
+    if (rawDests.length) {
       const dest = this.destinations[id];
       if (dest) {
-        warn(`Found "${id}" at an incorrect position in the NameTree.`);
         return dest;
       }
     }
@@ -54856,7 +54874,7 @@ class Page {
   }
   async #getMergedResources(streamDict, keys) {
     const localResources = streamDict?.get("Resources");
-    if (!(localResources instanceof Dict)) {
+    if (!(localResources instanceof Dict && localResources.size)) {
       return this.resources;
     }
     const objectLoader = new ObjectLoader(localResources, keys, this.xref);
@@ -57130,7 +57148,7 @@ class WorkerMessageHandler {
       docId,
       apiVersion
     } = docParams;
-    const workerVersion = "5.2.96";
+    const workerVersion = "5.2.135";
     if (apiVersion !== workerVersion) {
       throw new Error(`The API version "${apiVersion}" does not match ` + `the Worker version "${workerVersion}".`);
     }
@@ -57655,8 +57673,8 @@ class WorkerMessageHandler {
 
 ;// ./src/pdf.worker.js
 
-const pdfjsVersion = "5.2.96";
-const pdfjsBuild = "d8d3e0abf";
+const pdfjsVersion = "5.2.135";
+const pdfjsBuild = "b47b248e1";
 globalThis.pdfjsWorker = {
   WorkerMessageHandler: WorkerMessageHandler
 };
