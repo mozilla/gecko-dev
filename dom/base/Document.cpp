@@ -945,17 +945,29 @@ Document* ExternalResourceMap::RequestResource(
   return nullptr;
 }
 
-void ExternalResourceMap::EnumerateResources(SubDocEnumFunc aCallback) {
+void ExternalResourceMap::EnumerateResources(SubDocEnumFunc aCallback) const {
   nsTArray<RefPtr<Document>> docs(mMap.Count());
   for (const auto& entry : mMap.Values()) {
     if (Document* doc = entry->mDocument) {
       docs.AppendElement(doc);
     }
   }
-
   for (auto& doc : docs) {
     if (aCallback(*doc) == CallState::Stop) {
       return;
+    }
+  }
+}
+
+void ExternalResourceMap::CollectDescendantDocuments(
+    nsTArray<RefPtr<Document>>& aDocs, SubDocTestFunc aCallback) const {
+  for (const auto& entry : mMap.Values()) {
+    if (Document* doc = entry->mDocument) {
+      if (aCallback(doc)) {
+        aDocs.AppendElement(doc);
+      }
+      doc->CollectDescendantDocuments(aDocs, Document::IncludeSubResources::Yes,
+                                      aCallback);
     }
   }
 }
@@ -7412,7 +7424,7 @@ bool Document::IsRenderingSuppressed() const {
   }
   // The user agent believes that updating the rendering of doc's node navigable
   // would have no visible effect.
-  if (!IsEventHandlingEnabled() && !IsBeingUsedAsImage()) {
+  if (!IsEventHandlingEnabled() && !IsBeingUsedAsImage() && !mDisplayDocument) {
     return true;
   }
   if (!mPresShell || !mPresShell->DidInitialize()) {
@@ -9907,7 +9919,7 @@ Document* Document::RequestExternalResource(
       aURI, aReferrerInfo, aRequestingNode, this, aPendingLoad);
 }
 
-void Document::EnumerateExternalResources(SubDocEnumFunc aCallback) {
+void Document::EnumerateExternalResources(SubDocEnumFunc aCallback) const {
   mExternalResourceMap.EnumerateResources(aCallback);
 }
 
@@ -11762,7 +11774,7 @@ void Document::EnumerateSubDocuments(SubDocEnumFunc aCallback) {
   // copy all entries to an array first before calling any callbacks.
   AutoTArray<RefPtr<Document>, 8> subdocs;
   for (auto iter = mSubDocuments->Iter(); !iter.Done(); iter.Next()) {
-    auto entry = static_cast<SubDocMapEntry*>(iter.Get());
+    const auto* entry = static_cast<SubDocMapEntry*>(iter.Get());
     if (Document* subdoc = entry->mSubDocument) {
       subdocs.AppendElement(subdoc);
     }
@@ -11775,20 +11787,23 @@ void Document::EnumerateSubDocuments(SubDocEnumFunc aCallback) {
 }
 
 void Document::CollectDescendantDocuments(
-    nsTArray<RefPtr<Document>>& aDescendants, nsDocTestFunc aCallback) const {
-  if (!mSubDocuments) {
-    return;
+    nsTArray<RefPtr<Document>>& aDescendants,
+    IncludeSubResources aIncludeSubresources, SubDocTestFunc aCallback) const {
+  if (mSubDocuments) {
+    for (auto iter = mSubDocuments->Iter(); !iter.Done(); iter.Next()) {
+      const auto* entry = static_cast<SubDocMapEntry*>(iter.Get());
+      if (Document* subdoc = entry->mSubDocument) {
+        if (aCallback(subdoc)) {
+          aDescendants.AppendElement(subdoc);
+        }
+        subdoc->CollectDescendantDocuments(aDescendants, aIncludeSubresources,
+                                           aCallback);
+      }
+    }
   }
 
-  for (auto iter = mSubDocuments->Iter(); !iter.Done(); iter.Next()) {
-    auto entry = static_cast<SubDocMapEntry*>(iter.Get());
-    const Document* subdoc = entry->mSubDocument;
-    if (subdoc) {
-      if (aCallback(subdoc)) {
-        aDescendants.AppendElement(entry->mSubDocument);
-      }
-      subdoc->CollectDescendantDocuments(aDescendants, aCallback);
-    }
+  if (aIncludeSubresources == IncludeSubResources::Yes) {
+    mExternalResourceMap.CollectDescendantDocuments(aDescendants, aCallback);
   }
 }
 
