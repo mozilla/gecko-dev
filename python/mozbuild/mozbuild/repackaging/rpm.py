@@ -47,7 +47,7 @@ def repackage_rpm(
     log,
     infile,
     xpi_directory,
-    output,
+    output_filename,
     template_dir,
     arch,
     version,
@@ -106,14 +106,11 @@ def repackage_rpm(
         mv_manpage_files(rpm_dir, build_variables)
         inject_prefs_file(source_dir, app_name, template_dir)
 
-        if not os.path.exists(output):
-            os.mkdir(output)
-
         _generate_rpm_archive(
             rpm_dir,
             infile,
             target_dir=tmpdir,
-            output_path=output,
+            output_filename=output_filename,
             build_variables=build_variables,
             arch=arch,
         )
@@ -129,7 +126,7 @@ def _create_temporary_directory(arch):
 
 
 def _generate_rpm_archive(
-    source_dir, infile, target_dir, output_path, build_variables, arch
+    source_dir, infile, target_dir, output_filename, build_variables, arch
 ):
     rpm_arch = _RPM_ARCH.get(arch, "noarch")
     shutil.copy(
@@ -150,10 +147,19 @@ def _generate_rpm_archive(
     if not os.path.exists(file_path):
         raise NoRpmPackageFound(file_path)
 
-    for pkg_arch in [arch, "noarch"]:
-        packages_directory = pathlib.Path(target_dir, pkg_arch)
-        for filename in packages_directory.glob("*.rpm"):
-            shutil.copy(filename, output_path)
+    shutil.copy(file_path, output_filename)
+
+    try:
+        upload_dir = os.environ["UPLOAD_DIR"]
+    except KeyError as e:
+        raise OSError(f"The {e} environment variable is not set.")
+
+    if not os.path.exists(upload_dir):
+        os.mkdir(upload_dir)
+
+    l10n_rpm_directory = pathlib.Path(target_dir, "noarch")
+    for filename in l10n_rpm_directory.glob("*.rpm"):
+        shutil.copy(filename, upload_dir)
 
 
 def _get_build_variables(
