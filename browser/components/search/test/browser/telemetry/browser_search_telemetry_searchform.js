@@ -59,6 +59,9 @@ async function openSearchbarPopup(searchBarValue) {
 }
 
 add_setup(async function () {
+  await SpecialPowers.pushPrefEnv({
+    set: [["browser.urlbar.scotchBonnet.enableOverride", true]],
+  });
   await SearchTestUtils.updateRemoteSettingsConfig(CONFIG);
   await SearchTestUtils.installOpenSearchEngine({
     url: getRootDirectory(gTestPath) + "../" + TEST_ENGINE_BASENAME,
