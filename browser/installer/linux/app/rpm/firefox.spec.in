@@ -1,0 +1,37 @@
+Name:           ${PKG_NAME}
+Version:        ${PKG_VERSION}
+Release:        ${PKG_BUILD_NUMBER}%{?dist}
+Summary:        ${DESCRIPTION}
+URL:            https://www.mozilla.org/firefox/
+Group:          Applications/Internet
+BuildArch:      ${ARCH_NAME}
+License:        MPL-2
+Vendor:         Mozilla
+Source0:        %{name}.tar.xz
+Source1:        %{name}.desktop
+Source2:        %{name}.1
+
+%global mozappdir /${PKG_INSTALL_PATH}
+%global appdir %{_datadir}/applications/
+
+%description
+${DESCRIPTION}
+
+%prep
+%setup -q -n firefox
+%{__mkdir_p} %{buildroot}/%{mozappdir} %{buildroot}%{appdir} %{buildroot}%{_bindir} %{buildroot}%{_mandir}/man1/
+%{__cp} -r . %{buildroot}/%{mozappdir}
+%{__install} -m 0644 %{SOURCE1} %{buildroot}%{_datadir}/applications/
+%{__install} -m 0644 %{SOURCE2} %{buildroot}%{_mandir}/man1/%{name}.1
+%{__ln_s} %{mozappdir}/firefox %{buildroot}%{_bindir}/%{name}
+
+%files
+%dir %{mozappdir}
+%{mozappdir}/*
+%{appdir}/%{name}.desktop
+%{_bindir}/%{name}
+%{_mandir}/man1/%{name}.1*
+
+%changelog
+* ${CHANGELOG_DATE} Mozilla <release@mozilla.com> ${PKG_VERSION}-${PKG_BUILD_NUMBER}
+  - N/A
