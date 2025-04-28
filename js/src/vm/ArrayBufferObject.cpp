@@ -2383,6 +2383,7 @@ ArrayBufferObject* ArrayBufferObject::createFromNewRawBuffer(
 template <typename ArrayBufferType>
 ArrayBufferType* ArrayBufferObject::createFromWasmObject(
     JSContext* cx, Handle<ArrayBufferObject*> donor) {
+  AutoSetNewObjectMetadata metadata(cx);
   // Similar to NewResizableArrayBufferObject/NewArrayBufferObject
   constexpr auto allocKind =
       GetArrayBufferGCObjectKind(ArrayBufferType::RESERVED_SLOTS);
