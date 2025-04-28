@@ -1,6 +1,6 @@
 // Nursery dependent ND2 -> tenured dependent TD3 -> nursery base NB4 that is
 // deduplicated. The difficulty is that ND2 needs to update its chars pointer
-// because of the roo base NB4 being deduplicated, but if TD3's whole cell
+// because of the root base NB4 being deduplicated, but if TD3's whole cell
 // buffer entry is processed first, then it will no longer have a pointer to NB4
 // and cannot recover the original chars pointer.
 //
@@ -45,27 +45,43 @@ function with_dependent() {
     // Clear some roots.
     TD3 = NB4 = NB5 = "";
 
+    var preGC_ND2_rep = this.stringRepresentation ? JSON.parse(stringRepresentation(ND2)) : null;
     gc();
-    print(ND2);
-
-    // THIS WILL CURRENTLY FAIL! ND2 points to chars held by the nursery string
-    // NB4. It will be correctly marked as non-deduplicatable, but that won't do
-    // any good because the chars are allocated in the nursery. NB4 is promoted
-    // first (because TD3 points to it, and is in the whole cell buffer). At
-    // that point, ND2's base is TD3, but its chars are still the old chars
-    // sitting in the nursery, and there's no way to get to them. NB4's
-    // StringRelocationOverlay points to them, but from ND2 the base chain now
-    // leads to the tenured TB4. You can't get from a tenured string to its
-    // pre-promotion nursery counterpart.
-    //
-    // Note that the with_rope() test below will not fail in the same way,
-    // because NB4 and NB5 are extensible strings (and must be, in order to be
-    // able to create the same scenario.) Those are presently never
-    // nursery-allocated.
-    //
-    // This will be fixed in the next patch, and I will fold them together
-    // before landing.
     assertEq(ND2, "A TOE, A GIANT BLUE TOE, IT MADE FUN OF ME INCESSANTLY BUT THAT DID NOT BOTHER ME");
+
+    // Depending on the zeal mode and timing, *why* this test passes can vary.
+    //
+    // - Case 1: A GC might be triggered early, and the root base is already
+    //   tenured when ND2 gets promoted. In this case, ND2 will share the
+    //   malloced chars of the tenured string, and can stay a dependent string
+    //   that needs no adjustment to its chars pointer.
+    //
+    // - Case 2: The root base's chars could be allocated in the nursery. The
+    //   added mechanism that this test was meant for will be triggered, namely
+    //   when ND2 is promoted its base's base will already be tenured, and there
+    //   is no way for it to know what the original nursery chars pointer was,
+    //   so it can't recover its offset and has to clone its chars.
+    //
+    // - Case 3: The root bases's chars could be malloced from the start (as in,
+    //   even when the root base is in the nursery itself). This is similar to
+    //   the previous case, except now ND2 will see that its now-tenured root
+    //   base still has the chars ND2 is pointing to, so it can stay a dependent
+    //   string sharing them.
+
+    if (!this.stringRepresentation) {
+        return;
+    }
+    var ND2_rep = JSON.parse(stringRepresentation(ND2));
+    if (preGC_ND2_rep.base.base.isTenured) {
+        print("Case 1"); // I see this with zeal=7, semispace off
+        assertEq(ND2_rep.flags.includes("DEPENDENT_BIT"), true);
+    } else if (preGC_ND2_rep.chars != ND2_rep.chars) {
+        print("Case 2"); // I see this with zeal=0
+        assertEq(ND2_rep.flags.includes("DEPENDENT_BIT"), false);
+    } else {
+        print("Case 3"); // I see this with zeal=7, semispace on
+        assertEq(ND2_rep.flags.includes("DEPENDENT_BIT"), true);
+    }
 }
 
 function with_rope() {
@@ -109,7 +125,8 @@ function with_rope() {
     gc();
     print(ND2);
     assertEq(ND2, "A TOE, A GIANT BLUE TOE, IT MADE FUN OF ME INCESSANTLY BUT THAT DID NOT BOTHER ME");
-    // This only works because NB4 has the NON_DEDUP_BIT.
+    // This only works because NB4 has the NON_DEDUP_BIT, and is an extensible
+    // string so its data will not be allocated from the nursery.
     if (NB4_rep !== null) {
         assertEq(NB4_rep.flags.includes("NON_DEDUP_BIT"), true);
     }
