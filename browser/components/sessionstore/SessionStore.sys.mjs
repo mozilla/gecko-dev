@@ -6402,7 +6402,7 @@ var SessionStoreInternal = {
   restoreWindowFeatures: function ssi_restoreWindowFeatures(aWindow, aWinData) {
     var hidden = aWinData.hidden ? aWinData.hidden.split(",") : [];
     var isTaskbarTab =
-      aWindow.document.documentElement.getAttribute("taskbartab");
+      aWindow.document.documentElement.hasAttribute("taskbartab");
     if (!isTaskbarTab) {
       WINDOW_HIDEABLE_FEATURES.forEach(function (aItem) {
         aWindow[aItem].visible = !hidden.includes(aItem);
