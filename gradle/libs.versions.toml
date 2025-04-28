@@ -50,7 +50,7 @@ viewpager2 = "1.1.0"
 work = "2.10.0"
 
 # Google versions
-accompanist = "0.37.0"
+accompanist = "0.37.3"
 desugar-jdk-libs = "2.1.5"
 firebase-messaging = "24.1.1"
 installreferrer = "2.2"
