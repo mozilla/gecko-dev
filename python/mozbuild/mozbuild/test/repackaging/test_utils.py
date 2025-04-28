@@ -13,7 +13,7 @@ import mozpack.path as mozpath
 import mozunit
 import pytest
 
-from mozbuild.repackaging import deb, utils
+from mozbuild.repackaging import utils
 
 _APPLICATION_INI_CONTENT = """[App]
 Vendor=Mozilla
@@ -291,7 +291,7 @@ def test_get_build_variables(
     expected,
     raises,
 ):
-    application_ini_data = deb._parse_application_ini_data(
+    application_ini_data = utils._parse_application_ini_data(
         application_ini_data,
         version,
         build_number,
@@ -300,11 +300,9 @@ def test_get_build_variables(
         if not package_name_suffix:
             depends = "${shlibs:Depends},"
         elif release_product == "devedition":
-            depends = (
-                f"firefox-devedition (= {application_ini_data['deb_pkg_version']})"
-            )
+            depends = f"firefox-devedition (= {application_ini_data['pkg_version']})"
         else:
-            depends = f"{application_ini_data['remoting_name']} (= {application_ini_data['deb_pkg_version']})"
+            depends = f"{application_ini_data['remoting_name']} (= {application_ini_data['pkg_version']})"
 
         build_variables = utils.get_build_variables(
             application_ini_data,

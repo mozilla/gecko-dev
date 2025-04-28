@@ -3423,7 +3423,7 @@ def repackage_desktop_file(
         # debian repackage code that serves the same purpose on Flatpak, so
         # it is just directly re-used here.
         build_variables = {
-            "DEB_PKG_NAME": release_product,
+            "PKG_NAME": release_product,
             "DBusActivatable": "false",
             "Icon": "org.mozilla.firefox",
             "StartupWMClass": release_product,

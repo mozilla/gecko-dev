@@ -135,9 +135,6 @@ def inject_desktop_entry_file(
     fluent_localization,
     fluent_resource_loader,
 ):
-    # The desktop_file still have hardcoded debian related variables
-    build_variables["DEB_PKG_NAME"] = build_variables["PKG_NAME"]
-
     desktop_entry_template_path = mozpath.join(
         source_dir, f"{build_variables['PRODUCT_NAME'].lower()}.desktop"
     )
