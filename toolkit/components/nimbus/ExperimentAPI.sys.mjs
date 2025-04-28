@@ -72,6 +72,43 @@ const experimentBranchAccessor = {
 
 let initialized = false;
 
+/**
+ * Metadata about an enrollment.
+ *
+ * @typedef {object} EnrollmentMetadata
+ * @property {string} slug
+ *           The enrollment slug.
+ * @property {string} branch
+ *           The slug of the enrolled branch.
+ * @property {boolean} isRollout
+ *           Whether or not the enrollment is a rollout.
+ */
+
+/**
+ * Return metadata about an enrollment.
+ *
+ * @param {object} enrollment
+ *        The enrollment.
+ *
+ * @returns {EnrollmentMetadata}
+ *          Metadata about the enrollment.
+ */
+function _getEnrollmentMetadata(enrollment) {
+  return {
+    slug: enrollment.slug,
+    branch: enrollment.branch.slug,
+    isRollout: enrollment.isRollout,
+  };
+}
+
+/**
+ * @typedef {"experiment"|"rollout"} EnrollmentType
+ */
+export const EnrollmentType = Object.freeze({
+  EXPERIMENT: "experiment",
+  ROLLOUT: "rollout",
+});
+
 export const ExperimentAPI = {
   /**
    * Initialize the ExperimentAPI.
@@ -163,7 +200,7 @@ export const ExperimentAPI = {
    * @param isRollout Is enrollment an experiment or a rollout
    * @returns {object} Enrollment metadata
    */
-  getEnrollmentMetaData({ slug, featureId }, isRollout) {
+  _getEnrollmentMetaData({ slug, featureId }, isRollout) {
     if (!slug && !featureId) {
       throw new Error(
         "getEnrollmentMetaData(options) must include a slug or a feature."
@@ -207,7 +244,7 @@ export const ExperimentAPI = {
    * Does NOT send exposure event because you only have access to the slugs
    */
   getExperimentMetaData(options) {
-    return this.getEnrollmentMetaData(options);
+    return this._getEnrollmentMetaData(options);
   },
 
   /**
@@ -215,7 +252,7 @@ export const ExperimentAPI = {
    * Does NOT send exposure event because you only have access to the slugs
    */
   getRolloutMetaData(options) {
-    return this.getEnrollmentMetaData(options, true);
+    return this._getEnrollmentMetaData(options, true);
   },
 
   /**
@@ -460,6 +497,63 @@ export class _ExperimentFeature {
   }
 
   /**
+   * Return metadata about the requested enrollment that uses this feature ID.
+   *
+   * N.B.: This API cannot be used for co-enrolling features. The
+   *       `getAllEnrollmentMetadata` API must be used instead.
+   *
+   * @param {EnrollmentType?} enrollmentType
+   *        The type of enrollment that you want metadata for.
+   *
+   *        If not provided, metadata for the active experiment
+   *
+   * @returns {EnrollmentMetadata | null}
+   *          The metadata for the requested enrollment if one exists, otherwise
+   *          null.
+   */
+  getEnrollmentMetadata(enrollmentType = undefined) {
+    if (this.allowCoenrollment) {
+      throw new Error(
+        "Co-enrolling features must use the getAllEnrollments or getAllEnrollmentMetadata APIs"
+      );
+    }
+
+    let enrollment = null;
+
+    try {
+      if (typeof enrollmentType === "undefined" || enrollmentType === null) {
+        enrollment =
+          ExperimentAPI._manager.store.getExperimentForFeature(
+            this.featureId
+          ) ??
+          ExperimentAPI._manager.store.getRolloutForFeature(this.featureId);
+      } else {
+        switch (enrollmentType) {
+          case EnrollmentType.EXPERIMENT:
+            enrollment = ExperimentAPI._manager.store.getExperimentForFeature(
+              this.featureId
+            );
+            break;
+
+          case EnrollmentType.ROLLOUT:
+            enrollment = ExperimentAPI._manager.store.getRolloutForFeature(
+              this.featureId
+            );
+            break;
+        }
+      }
+    } catch (e) {
+      lazy.log.error("Failed to get enrollment metadata:", e);
+    }
+
+    if (!enrollment) {
+      return null;
+    }
+
+    return _getEnrollmentMetadata(enrollment);
+  }
+
+  /**
    * Return all active enrollments.
    *
    * @param {object[]}
@@ -471,12 +565,7 @@ export class _ExperimentFeature {
       .getAll()
       .filter(e => e.active && e.featureIds.includes(this.featureId))
       .map(enrollment => {
-        const meta = {
-          slug: enrollment.slug,
-          branch: enrollment.branch.slug,
-          isRollout: enrollment.isRollout,
-        };
-
+        const meta = _getEnrollmentMetadata(enrollment);
         const values = this._getLocalizedValue(enrollment);
         const value = {
           ...this.prefGetters,
@@ -503,11 +592,7 @@ export class _ExperimentFeature {
     return ExperimentAPI._manager.store
       .getAll()
       .filter(e => e.active && e.featureIds.includes(this.featureId))
-      .map(enrollment => ({
-        slug: enrollment.slug,
-        branch: enrollment.branch.slug,
-        isRollout: enrollment.isRollout,
-      }));
+      .map(_getEnrollmentMetadata);
   }
 
   recordExposureEvent({ once = false, slug } = {}) {
@@ -519,25 +604,21 @@ export class _ExperimentFeature {
       return;
     }
 
-    let enrollmentData;
+    let metadata = null;
     if (this.allowCoenrollment) {
-      enrollmentData = ExperimentAPI.getEnrollmentMetaData({ slug });
-    } else {
-      enrollmentData = ExperimentAPI.getExperimentMetaData({
-        featureId: this.featureId,
-      });
-      if (!enrollmentData) {
-        enrollmentData = ExperimentAPI.getRolloutMetaData({
-          featureId: this.featureId,
-        });
+      const enrollment = ExperimentAPI._manager.store.get(slug);
+      if (enrollment.active) {
+        metadata = _getEnrollmentMetadata(enrollment);
       }
+    } else {
+      metadata = this.getEnrollmentMetadata();
     }
 
-    // Exposure only sent if user is enrolled in an experiment
-    if (enrollmentData?.active) {
+    // Exposure is only sent if user is enrolled in an experiment or rollout.
+    if (metadata) {
       lazy.NimbusTelemetry.recordExposure(
-        enrollmentData.slug,
-        enrollmentData.branch.slug,
+        metadata.slug,
+        metadata.branch,
         this.featureId
       );
       this._didSendExposureEvent = true;

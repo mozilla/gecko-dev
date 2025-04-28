@@ -790,6 +790,11 @@ add_task(async function testCoenrollingTraditionalApis() {
     /Co-enrolling features must provide slug/
   );
 
+  Assert.throws(
+    () => NimbusFeatures.foo.getEnrollmentMetadata(),
+    /Co-enrolling features must use the getAllEnrollments or getAllEnrollmentMetadata APIs/
+  );
+
   NimbusFeatures.foo.recordExposureEvent({ slug: "experiment-1" });
   NimbusFeatures.foo.recordExposureEvent({ slug: "rollout-2" });
 
@@ -815,5 +820,161 @@ add_task(async function testCoenrollingTraditionalApis() {
   );
 
   cleanupFeature();
+  cleanup();
+});
+
+add_task(async function testGetEnrollmentMetadata() {
+  const feature = new ExperimentFeature("test-feature", {
+    variables: {},
+  });
+  const featureId = feature.featureId;
+  const cleanupFeature = NimbusTestUtils.addTestFeatures(feature);
+
+  const { manager, cleanup } = await NimbusTestUtils.setupTest();
+
+  const experimentMeta = {
+    slug: "experiment-slug",
+    branch: "treatment",
+    isRollout: false,
+  };
+
+  const rolloutMeta = {
+    slug: "rollout-slug",
+    branch: "control",
+    isRollout: true,
+  };
+
+  // There are no active enrollments.
+  Assert.equal(
+    NimbusFeatures[featureId].getEnrollmentMetadata("experiment"),
+    null
+  );
+  Assert.equal(
+    NimbusFeatures[featureId].getEnrollmentMetadata("rollout"),
+    null
+  );
+  Assert.equal(NimbusFeatures[featureId].getEnrollmentMetadata(), null);
+
+  await manager.enroll(
+    NimbusTestUtils.factories.recipe.withFeatureConfig(
+      "rollout-slug",
+      { featureId },
+      { isRollout: true }
+    )
+  );
+
+  // Thre are no active experiments, but there is an active rollout.
+  Assert.equal(
+    NimbusFeatures[featureId].getEnrollmentMetadata("experiment"),
+    null
+  );
+  Assert.deepEqual(
+    NimbusFeatures[featureId].getEnrollmentMetadata("rollout"),
+    rolloutMeta
+  );
+  Assert.deepEqual(
+    NimbusFeatures[featureId].getEnrollmentMetadata(),
+    rolloutMeta
+  );
+
+  await manager.enroll(
+    NimbusTestUtils.factories.recipe.withFeatureConfig("experiment-slug", {
+      featureId,
+      branchSlug: "treatment",
+    })
+  );
+
+  // There is an active experiment and rollout, so we should get the experiment metadata by default.
+  Assert.deepEqual(
+    NimbusFeatures[featureId].getEnrollmentMetadata("experiment"),
+    experimentMeta
+  );
+  Assert.deepEqual(
+    NimbusFeatures[featureId].getEnrollmentMetadata("rollout"),
+    rolloutMeta
+  );
+  Assert.deepEqual(
+    NimbusFeatures[featureId].getEnrollmentMetadata(),
+    experimentMeta
+  );
+
+  manager.unenroll("rollout-slug");
+
+  // There is only an active experiment.
+  Assert.deepEqual(
+    NimbusFeatures[featureId].getEnrollmentMetadata("experiment"),
+    experimentMeta
+  );
+  Assert.equal(
+    NimbusFeatures[featureId].getEnrollmentMetadata("rollout"),
+    null
+  );
+  Assert.deepEqual(
+    NimbusFeatures[featureId].getEnrollmentMetadata(),
+    experimentMeta
+  );
+
+  manager.unenroll("experiment-slug");
+
+  // There are no active enrollments.
+  Assert.equal(
+    NimbusFeatures[featureId].getEnrollmentMetadata("experiment"),
+    null
+  );
+  Assert.equal(
+    NimbusFeatures[featureId].getEnrollmentMetadata("rollout"),
+    null
+  );
+  Assert.equal(NimbusFeatures[featureId].getEnrollmentMetadata(), null);
+
+  cleanup();
+  cleanupFeature();
+});
+
+add_task(async function testGetEnrollmentMetadataSafe() {
+  const { sandbox, manager, cleanup } = await NimbusTestUtils.setupTest();
+
+  sandbox.stub(NimbusTelemetry, "recordExposure");
+  sandbox.stub(manager.store, "getExperimentForFeature").throws();
+  sandbox.stub(manager.store, "getRolloutForFeature").throws();
+
+  Assert.equal(
+    NimbusFeatures.testFeature.getEnrollmentMetadata(),
+    null,
+    "Should not throw"
+  );
+  Assert.equal(
+    NimbusFeatures.testFeature.getEnrollmentMetadata("experiment"),
+    null,
+    "Should not throw"
+  );
+  Assert.equal(
+    NimbusFeatures.testFeature.getEnrollmentMetadata("rollout"),
+    null,
+    "Should not throw"
+  );
+
+  Assert.equal(
+    manager.store.getExperimentForFeature.callCount,
+    2,
+    "getExperimentForFeature called"
+  );
+  Assert.equal(
+    manager.store.getRolloutForFeature.callCount,
+    1,
+    "getRolloutForFeature called"
+  );
+
+  NimbusFeatures.testFeature.recordExposureEvent();
+  Assert.ok(
+    NimbusTelemetry.recordExposure.notCalled,
+    "Should not record exposure"
+  );
+  Assert.equal(
+    manager.store.getExperimentForFeature.callCount,
+    3,
+    "getExperimentForFeature called"
+  );
+
   cleanup();
 });
