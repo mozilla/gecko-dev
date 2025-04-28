@@ -842,7 +842,11 @@ CVPixelBufferRef AppleVTEncoder::CreateCVPixelBuffer(Image* aSource) {
   }
   const EncoderConfig::SampleFormat sf = sfr.unwrap();
 
-  auto pfr = MapPixelFormat(sf.mPixelFormat, sf.mColorRange);
+  gfx::ColorRange defaultColorRange =
+      sf.IsYUV() ? gfx::ColorRange::LIMITED : gfx::ColorRange::FULL;
+  auto pfr = MapPixelFormat(sf.mPixelFormat, sf.mColorSpace.mRange
+                                                 ? sf.mColorSpace.mRange.value()
+                                                 : defaultColorRange);
   if (pfr.isErr()) {
     MediaResult err = pfr.unwrapErr();
     LOGE("%s", err.Description().get());
@@ -852,9 +856,6 @@ CVPixelBufferRef AppleVTEncoder::CreateCVPixelBuffer(Image* aSource) {
   OSType pixelFormat = pfr.unwrap();
 
   if (sf != mConfig.mFormat) {
-    MOZ_ASSERT(pixelFormat != MapPixelFormat(mConfig.mFormat.mPixelFormat,
-                                             mConfig.mFormat.mColorRange)
-                                  .unwrap());
     LOGV(
         "Input image in format %s but encoder configured with format %s. "
         "Fingers crossed",
