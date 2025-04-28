@@ -45,7 +45,8 @@ add_task(async function test_new_submitted_card_is_normalized() {
   let creditCards = await getCreditCards();
   let savedCreditCard = creditCards[0];
   let decryptedNumber = await OSKeyStore.decrypt(
-    savedCreditCard["cc-number-encrypted"]
+    savedCreditCard["cc-number-encrypted"],
+    "testing"
   );
   savedCreditCard["cc-number"] = decryptedNumber;
   for (let key in testCard) {
@@ -97,7 +98,8 @@ add_task(async function test_updated_card_is_normalized() {
   let creditCards = await getCreditCards();
   let savedCreditCard = creditCards[0];
   savedCreditCard["cc-number"] = await OSKeyStore.decrypt(
-    savedCreditCard["cc-number-encrypted"]
+    savedCreditCard["cc-number-encrypted"],
+    "testing"
   );
 
   for (let key in testCard) {

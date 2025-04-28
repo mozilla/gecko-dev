@@ -12,6 +12,7 @@ async function decryptCard(card) {
     try {
       card["cc-number-decrypted"] = await OSKeyStore.decrypt(
         card["cc-number-encrypted"],
+        "BankCardDataSource_decryptCard",
         false
       );
       card["cc-number"] = card["cc-number-decrypted"];

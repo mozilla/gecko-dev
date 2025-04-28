@@ -113,7 +113,8 @@ export class CreditCard extends FormAutofillBase {
       storage._data.map(
         async entry =>
           (entry["cc-number"] = await lazy.OSKeyStore.decrypt(
-            entry["cc-number-encrypted"]
+            entry["cc-number-encrypted"],
+            "CC.Find"
           ))
       )
     );

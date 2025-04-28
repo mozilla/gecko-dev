@@ -971,7 +971,10 @@ async function testDialog(url, testFn, arg = undefined) {
     arg.record["cc-number-encrypted"]
   ) {
     arg.record = Object.assign({}, arg.record, {
-      "cc-number": await OSKeyStore.decrypt(arg.record["cc-number-encrypted"]),
+      "cc-number": await OSKeyStore.decrypt(
+        arg.record["cc-number-encrypted"],
+        "testing"
+      ),
     });
   }
   const win = window.openDialog(url, null, "width=600,height=600", {

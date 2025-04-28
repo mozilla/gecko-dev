@@ -405,7 +405,8 @@ export class ManageCreditCards extends ManageRecords {
     if (creditCard && creditCard["cc-number-encrypted"]) {
       try {
         decryptedCCNumObj["cc-number"] = await lazy.OSKeyStore.decrypt(
-          creditCard["cc-number-encrypted"]
+          creditCard["cc-number-encrypted"],
+          "ManageCC.openEditDialog"
         );
       } catch (ex) {
         errorResult = ex.result;

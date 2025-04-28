@@ -1845,7 +1845,8 @@ export class CreditCardsBase extends AutofillRecords {
     if (creditCard["cc-number-encrypted"]) {
       try {
         creditCard["cc-number"] = await lazy.OSKeyStore.decrypt(
-          creditCard["cc-number-encrypted"]
+          creditCard["cc-number-encrypted"],
+          "CCBase._stripComputedField"
         );
       } catch (ex) {
         if (ex.result == Cr.NS_ERROR_ABORT) {
@@ -1967,6 +1968,7 @@ export class CreditCardsBase extends AutofillRecords {
 
       const decrypted = await lazy.OSKeyStore.decrypt(
         recordInStorage["cc-number-encrypted"],
+        "CCBase.*getDuplicatedRecords",
         false
       );
 

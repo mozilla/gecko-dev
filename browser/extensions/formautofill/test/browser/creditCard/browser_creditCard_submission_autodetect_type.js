@@ -41,7 +41,8 @@ add_task(async function test_autodetect_credit_not_set() {
   let creditCards = await getCreditCards();
   let savedCreditCard = creditCards[0];
   let decryptedNumber = await OSKeyStore.decrypt(
-    savedCreditCard["cc-number-encrypted"]
+    savedCreditCard["cc-number-encrypted"],
+    "testing"
   );
   savedCreditCard["cc-number"] = decryptedNumber;
   for (let key in testCard) {
@@ -91,7 +92,8 @@ add_task(async function test_autodetect_credit_overwrite() {
   let creditCards = await getCreditCards();
   let savedCreditCard = creditCards[0];
   let decryptedNumber = await OSKeyStore.decrypt(
-    savedCreditCard["cc-number-encrypted"]
+    savedCreditCard["cc-number-encrypted"],
+    "testing"
   );
   savedCreditCard["cc-number"] = decryptedNumber;
   for (let key in testCard) {
