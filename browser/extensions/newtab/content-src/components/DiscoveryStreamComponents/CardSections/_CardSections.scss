@@ -302,6 +302,7 @@
 
 .ds-section-wrapper {
   padding-inline: 0;
+  position: relative;
 
   .ds-section {
     padding-block-end: var(--space-medium);

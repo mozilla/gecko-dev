@@ -20,7 +20,8 @@ $ds-width: 936px;
   }
 
   .ds-column-grid {
-    display: grid;
+    display: flex;
+    flex-direction: column;
     grid-row-gap: var(--gridRowGap);
 
     // We want to completely hide components with no content,

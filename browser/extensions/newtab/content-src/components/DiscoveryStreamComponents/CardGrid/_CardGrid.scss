@@ -125,6 +125,7 @@ $col4-header-font-size: 14;
 .ds-card-grid {
   display: grid;
   grid-gap: 24px;
+  position: relative;
 
   &.ds-card-grid-compact {
     grid-gap: 20px;

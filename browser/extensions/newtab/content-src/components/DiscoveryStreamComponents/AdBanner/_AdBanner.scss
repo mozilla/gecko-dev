@@ -4,12 +4,13 @@
   --leaderboard-width: 728px;
   --leaderboard-height: 90px;
 
+  position: relative;
   grid-column: 1/-1;
   overflow: hidden;
   // allow the ad banner to take up full width
   // of screen rather than card-grid width
   width: 100%;
-  margin-inline-start: 50%;
+  inset-inline-start: 50%;
   transform: translate3d(-50%, 0, 0);
 
   // Adding min-width if .billboard/.leaderboard exist within

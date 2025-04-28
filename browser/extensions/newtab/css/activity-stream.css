@@ -4471,7 +4471,8 @@ main section {
   grid-column-end: span 1;
 }
 .discovery-stream.ds-layout .ds-column-grid {
-  display: grid;
+  display: flex;
+  flex-direction: column;
   grid-row-gap: var(--gridRowGap);
 }
 .discovery-stream.ds-layout .ds-column-grid > div:empty {
@@ -4756,6 +4757,7 @@ main section {
 .ds-card-grid {
   display: grid;
   grid-gap: 24px;
+  position: relative;
 }
 .ds-card-grid.ds-card-grid-compact {
   grid-gap: 20px;
@@ -5115,6 +5117,7 @@ main section {
 
 .ds-section-wrapper {
   padding-inline: 0;
+  position: relative;
 }
 .ds-section-wrapper .ds-section {
   padding-block-end: var(--space-medium);
@@ -8210,10 +8213,11 @@ main section {
   --billboard-height: 250px;
   --leaderboard-width: 728px;
   --leaderboard-height: 90px;
+  position: relative;
   grid-column: 1/-1;
   overflow: hidden;
   width: 100%;
-  margin-inline-start: 50%;
+  inset-inline-start: 50%;
   transform: translate3d(-50%, 0, 0);
 }
 .ad-banner-wrapper:has(.ad-banner-inner.billboard) {
