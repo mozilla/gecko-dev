@@ -1522,33 +1522,6 @@ nsresult WorkerPrivate::SetCSPFromHeaderValues(
 
   mLoadInfo.mCSP = csp;
 
-  // Set evalAllowed, default value is set in GetAllowsEval
-  bool evalAllowed = false;
-  bool reportEvalViolations = false;
-  rv = csp->GetAllowsEval(&reportEvalViolations, &evalAllowed);
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  mLoadInfo.mEvalAllowed = evalAllowed;
-  mLoadInfo.mReportEvalCSPViolations = reportEvalViolations;
-
-  // Set wasmEvalAllowed
-  bool wasmEvalAllowed = false;
-  bool reportWasmEvalViolations = false;
-  rv = csp->GetAllowsWasmEval(&reportWasmEvalViolations, &wasmEvalAllowed);
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  // As for nsScriptSecurityManager::ContentSecurityPolicyPermitsJSAction,
-  // for MV2 extensions we have to allow wasm by default and report violations
-  // for historical reasons.
-  // TODO bug 1770909: remove this exception.
-  if (!wasmEvalAllowed && addonPolicy && addonPolicy->ManifestVersion() == 2) {
-    wasmEvalAllowed = true;
-    reportWasmEvalViolations = true;
-  }
-
-  mLoadInfo.mWasmEvalAllowed = wasmEvalAllowed;
-  mLoadInfo.mReportWasmEvalCSPViolations = reportWasmEvalViolations;
-
   auto ctx = WorkerCSPContext::CreateFromCSP(csp);
   if (NS_WARN_IF(ctx.isErr())) {
     return ctx.unwrapErr();
