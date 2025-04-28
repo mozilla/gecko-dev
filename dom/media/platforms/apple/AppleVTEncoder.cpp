@@ -167,6 +167,166 @@ bool AppleVTEncoder::SetProfileLevel(H264_PROFILE aValue) {
   return mgr.Set(kVTCompressionPropertyKey_ProfileLevel, profileLevel) == noErr;
 }
 
+static Maybe<CFStringRef> MapColorPrimaries(
+    const gfx::ColorSpace2& aPrimaries) {
+  switch (aPrimaries) {
+    case gfx::ColorSpace2::Display:
+      return Nothing();
+    case gfx::ColorSpace2::SRGB:
+      return Some(kCVImageBufferColorPrimaries_P22);
+    case gfx::ColorSpace2::DISPLAY_P3:
+      return Some(kCVImageBufferColorPrimaries_P3_D65);
+    case gfx::ColorSpace2::BT601_525:
+      return Some(kCVImageBufferColorPrimaries_SMPTE_C);
+    case gfx::ColorSpace2::BT709:
+      return Some(kCVImageBufferColorPrimaries_ITU_R_709_2);
+    case gfx::ColorSpace2::BT2020:
+      return Some(kCVImageBufferColorPrimaries_ITU_R_2020);
+  }
+
+  MOZ_ASSERT_UNREACHABLE("Unsupported color primaries");
+  return Nothing();
+}
+
+static Maybe<CFStringRef> MapYCbCrMatrix(const gfx::YUVColorSpace& aMatrix) {
+  switch (aMatrix) {
+    case gfx::YUVColorSpace::BT601:
+      return Some(kCVImageBufferYCbCrMatrix_ITU_R_601_4);
+    case gfx::YUVColorSpace::BT709:
+      return Some(kCVImageBufferYCbCrMatrix_ITU_R_709_2);
+    case gfx::YUVColorSpace::BT2020:
+      return Some(kCVImageBufferYCbCrMatrix_ITU_R_2020);
+    case gfx::YUVColorSpace::Identity:
+      return Nothing();
+  }
+
+  MOZ_ASSERT_UNREACHABLE("Unsupported YCbCr matrix");
+  return Nothing();
+}
+
+static Maybe<CFStringRef> MapTransferFunction(
+    const gfx::TransferFunction& aTransferFunction) {
+  switch (aTransferFunction) {
+    case gfx::TransferFunction::BT709:
+      return Some(kCVImageBufferTransferFunction_ITU_R_709_2);
+    case gfx::TransferFunction::SRGB:
+      return Some(kCVImageBufferTransferFunction_sRGB);
+    case gfx::TransferFunction::PQ:
+      return Some(kCVImageBufferTransferFunction_SMPTE_ST_2084_PQ);
+    case gfx::TransferFunction::HLG:
+      return Some(kCVImageBufferTransferFunction_ITU_R_2100_HLG);
+  }
+
+  MOZ_ASSERT_UNREACHABLE("Unsupported transfer function");
+  return Nothing();
+}
+
+struct EncoderColorSpace {
+  CFStringRef mColorPrimaries = nullptr;
+  CFStringRef mYCbCrMatrix = nullptr;
+  CFStringRef mTransferFunction = nullptr;
+};
+
+static Result<EncoderColorSpace, MediaResult> MapColorSpace(
+    const EncoderConfig::VideoColorSpace& aColorSpace) {
+  EncoderColorSpace colorSpace;
+  if (aColorSpace.mPrimaries) {
+    Maybe<CFStringRef> p = MapColorPrimaries(aColorSpace.mPrimaries.ref());
+    if (p.isNothing()) {
+      return Err(MediaResult(NS_ERROR_DOM_MEDIA_NOT_SUPPORTED_ERR,
+                             "Unsupported color primaries"));
+    }
+    colorSpace.mColorPrimaries = p.value();
+  }
+  if (aColorSpace.mMatrix) {
+    Maybe<CFStringRef> m = MapYCbCrMatrix(aColorSpace.mMatrix.ref());
+    if (m.isNothing()) {
+      return Err(MediaResult(NS_ERROR_DOM_MEDIA_NOT_SUPPORTED_ERR,
+                             "Unsupported YCbCr matrix"));
+    }
+    colorSpace.mYCbCrMatrix = m.value();
+  }
+  if (aColorSpace.mTransferFunction) {
+    Maybe<CFStringRef> f =
+        MapTransferFunction(aColorSpace.mTransferFunction.ref());
+    if (f.isNothing()) {
+      return Err(MediaResult(NS_ERROR_DOM_MEDIA_NOT_SUPPORTED_ERR,
+                             "Unsupported transfer function"));
+    }
+    colorSpace.mTransferFunction = f.value();
+  }
+  return colorSpace;
+}
+
+bool AppleVTEncoder::IsSettingColorSpaceSupported() const {
+  SessionPropertyManager mgr(mSession);
+  return mgr.IsSupported(kVTCompressionPropertyKey_ColorPrimaries) &&
+         mgr.IsSupported(kVTCompressionPropertyKey_YCbCrMatrix) &&
+         mgr.IsSupported(kVTCompressionPropertyKey_TransferFunction);
+}
+
+MediaResult AppleVTEncoder::SetColorSpace(
+    const EncoderConfig::SampleFormat& aFormat) {
+  MOZ_ASSERT(mSession);
+
+  if (!aFormat.IsYUV()) {
+    return MediaResult(NS_OK, "Skip setting color space for non-YUV formats");
+  }
+
+  if (!IsSettingColorSpaceSupported()) {
+    return MediaResult(NS_ERROR_DOM_MEDIA_NOT_SUPPORTED_ERR,
+                       "Setting color space not supported");
+  }
+
+  auto r = MapColorSpace(aFormat.mColorSpace);
+  if (r.isErr()) {
+    return r.unwrapErr();
+  }
+
+  EncoderColorSpace colorSpace = r.unwrap();
+
+  SessionPropertyManager mgr(mSession);
+  AutoTArray<const char*, 3> properties;
+
+  if (colorSpace.mColorPrimaries) {
+    OSStatus status = mgr.Set(kVTCompressionPropertyKey_ColorPrimaries,
+                              colorSpace.mColorPrimaries);
+    if (status != noErr) {
+      return MediaResult(NS_ERROR_DOM_MEDIA_FATAL_ERR,
+                         "Failed to set color primaries");
+    }
+    properties.AppendElement("ColorPrimaries");
+  }
+  if (colorSpace.mYCbCrMatrix) {
+    OSStatus status =
+        mgr.Set(kVTCompressionPropertyKey_YCbCrMatrix, colorSpace.mYCbCrMatrix);
+    if (status != noErr) {
+      return MediaResult(NS_ERROR_DOM_MEDIA_FATAL_ERR,
+                         "Failed to set YCbCr matrix");
+    }
+    properties.AppendElement("YCbCrMatrix");
+  }
+  if (colorSpace.mTransferFunction) {
+    OSStatus status = mgr.Set(kVTCompressionPropertyKey_TransferFunction,
+                              colorSpace.mTransferFunction);
+    if (status != noErr) {
+      return MediaResult(NS_ERROR_DOM_MEDIA_FATAL_ERR,
+                         "Failed to set transfer function");
+    }
+    properties.AppendElement("TransferFunction");
+  }
+
+  nsCString msg;
+  if (properties.IsEmpty()) {
+    msg = "No color space properties set"_ns;
+  } else {
+    msg = StringJoin(","_ns, properties);
+    msg.Append(" set");
+  }
+
+  return MediaResult(NS_OK, msg);
+}
+
 static Result<OSType, MediaResult> MapPixelFormat(
     dom::ImageBitmapFormat aFormat, gfx::ColorRange aColorRange) {
   const bool isFullRange = aColorRange == gfx::ColorRange::FULL;
@@ -342,6 +502,18 @@ MediaResult AppleVTEncoder::InitSession() {
                          nsPrintfCString("fail to configurate profile level:%d",
                                          int(specific.mProfile)));
     }
+  }
+
+  MediaResult colorSpaceResult = SetColorSpace(mConfig.mFormat);
+  if (NS_SUCCEEDED(colorSpaceResult.Code())) {
+    LOGD("%s", colorSpaceResult.Description().get());
+  } else if (colorSpaceResult.Code() == NS_ERROR_DOM_MEDIA_NOT_SUPPORTED_ERR) {
+    // Color space not supported, ignore.
+    LOGW("%s", colorSpaceResult.Description().get());
+  } else {
+    MOZ_ASSERT(NS_FAILED(colorSpaceResult.Code()));
+    LOGE("%s", colorSpaceResult.Description().get());
+    return colorSpaceResult;
   }
 
   bool isUsingHW = false;
@@ -860,9 +1032,10 @@ CVPixelBufferRef AppleVTEncoder::CreateCVPixelBuffer(Image* aSource) {
         "Input image in format %s but encoder configured with format %s. "
         "Fingers crossed",
         sf.ToString().get(), mConfig.mFormat.ToString().get());
-    // If the encoder cannot encode the image in pixelFormat to presetFormat,
-    // a kVTPixelTransferNotSupportedErr error will be thrown. In such cases,
-    // the encoder should be re-initialized (see bug 1955153).
+    // Bug 1955153: If the encoder encounters a kVTPixelTransferNotSupportedErr
+    // error due to an unsupported image format, it must be re-initialized.
+    // Additionally, any changes to the color space also require re-initializing
+    // the encoder.
   }
 
   if (aSource->GetFormat() == ImageFormat::PLANAR_YCBCR) {

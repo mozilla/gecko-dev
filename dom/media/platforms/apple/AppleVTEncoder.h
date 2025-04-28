@@ -81,6 +81,8 @@ class AppleVTEncoder final : public MediaDataEncoder {
   bool SetFrameRate(int64_t aFPS);
   bool SetRealtime(bool aEnabled);
   bool SetProfileLevel(H264_PROFILE aValue);
+  bool IsSettingColorSpaceSupported() const;
+  MediaResult SetColorSpace(const EncoderConfig::SampleFormat& aFormat);
 
   void AssertOnTaskQueue() { MOZ_ASSERT(mTaskQueue->IsCurrentThreadIn()); }
 
