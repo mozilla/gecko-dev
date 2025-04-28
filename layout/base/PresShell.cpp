@@ -983,11 +983,6 @@ void PresShell::Init(nsPresContext* aPresContext, nsViewManager* aViewManager) {
   }
 #endif
 
-  if (mDocument->HasAnimationController()) {
-    SMILAnimationController* animCtrl = mDocument->GetAnimationController();
-    animCtrl->NotifyRefreshDriverCreated(GetPresContext()->RefreshDriver());
-  }
-
   for (DocumentTimeline* timelines : mDocument->Timelines()) {
     timelines->UpdateLastRefreshDriverTime();
   }
@@ -1313,8 +1308,6 @@ void PresShell::Destroy() {
     mViewManager = nullptr;
   }
 
-  nsRefreshDriver* rd = GetPresContext()->RefreshDriver();
-
   // This shell must be removed from the document before the frame
   // hierarchy is torn down to avoid finding deleted frames through
   // this presshell while the frames are being torn down
@@ -1322,10 +1315,6 @@ void PresShell::Destroy() {
     NS_ASSERTION(mDocument->GetPresShell() == this, "Wrong shell?");
     mDocument->ClearServoRestyleRoot();
     mDocument->DeletePresShell();
-
-    if (mDocument->HasAnimationController()) {
-      mDocument->GetAnimationController()->NotifyRefreshDriverDestroying(rd);
-    }
   }
 
   if (mPresContext) {
