@@ -12,6 +12,7 @@
 #include "prio.h"
 #include "mozilla/SSE.h"
 #include "mozilla/arm.h"
+#include "mozilla/dom/DOMMozPromiseRequestHolder.h"
 #include "mozilla/Hal.h"
 #include "mozilla/LazyIdleThread.h"
 #include "mozilla/LookAndFeel.h"
@@ -1973,25 +1974,33 @@ nsSystemInfo::GetOsInfo(JSContext* aCx, Promise** aResult) {
     });
   };
 
+  auto requestHolder =
+      MakeRefPtr<dom::DOMMozPromiseRequestHolder<OSInfoPromise>>(global);
+
   // Chain the new promise to the extant mozpromise
   RefPtr<Promise> capturedPromise = promise;
-  mOSInfoPromise->Then(
-      GetMainThreadSerialEventTarget(), __func__,
-      [capturedPromise](const OSInfo& info) {
-        AutoJSAPI jsapi;
-        if (NS_WARN_IF(!jsapi.Init(capturedPromise->GetGlobalObject()))) {
-          capturedPromise->MaybeReject(NS_ERROR_UNEXPECTED);
-          return;
-        }
-        JSContext* cx = jsapi.cx();
-        JS::Rooted<JS::Value> val(
-            cx, JS::ObjectValue(*GetJSObjForOSInfo(cx, info)));
-        capturedPromise->MaybeResolve(val);
-      },
-      [capturedPromise](const nsresult rv) {
-        // Resolve with null when installYear is not available from the system
-        capturedPromise->MaybeResolve(JS::NullHandleValue);
-      });
+  mOSInfoPromise
+      ->Then(
+          GetMainThreadSerialEventTarget(), __func__,
+          [requestHolder, capturedPromise](const OSInfo& info) {
+            requestHolder->Complete();
+            AutoJSAPI jsapi;
+            if (NS_WARN_IF(!jsapi.Init(capturedPromise->GetGlobalObject()))) {
+              capturedPromise->MaybeReject(NS_ERROR_UNEXPECTED);
+              return;
+            }
+            JSContext* cx = jsapi.cx();
+            JS::Rooted<JS::Value> val(
+                cx, JS::ObjectValue(*GetJSObjForOSInfo(cx, info)));
+            capturedPromise->MaybeResolve(val);
+          },
+          [requestHolder, capturedPromise](const nsresult rv) {
+            requestHolder->Complete();
+            // Resolve with null when installYear is not available from the
+            // system
+            capturedPromise->MaybeResolve(JS::NullHandleValue);
+          })
+      ->Track(*requestHolder);
 
   promise.forget(aResult);
 #endif
@@ -2046,40 +2055,49 @@ nsSystemInfo::GetDiskInfo(JSContext* aCx, Promise** aResult) {
         });
   }
 
+  auto requestHolder =
+      MakeRefPtr<dom::DOMMozPromiseRequestHolder<DiskInfoPromise>>(global);
+
   // Chain the new promise to the extant mozpromise.
   RefPtr<Promise> capturedPromise = promise;
-  mDiskInfoPromise->Then(
-      GetMainThreadSerialEventTarget(), __func__,
-      [capturedPromise, self = RefPtr{this}](const DiskInfo& info) {
-        AutoJSAPI jsapi;
-        if (NS_WARN_IF(!jsapi.Init(capturedPromise->GetGlobalObject()))) {
-          capturedPromise->MaybeReject(NS_ERROR_UNEXPECTED);
-          return;
-        }
-        JSContext* cx = jsapi.cx();
-        JS::Rooted<JSObject*> jsInfo(cx, JS_NewPlainObject(cx));
-        // Store data in the rv:
-        bool succeededSettingAllObjects =
-            jsInfo && GetJSObjForDiskInfo(cx, jsInfo, info.binary, "binary") &&
-            GetJSObjForDiskInfo(cx, jsInfo, info.profile, "profile") &&
-            GetJSObjForDiskInfo(cx, jsInfo, info.system, "system");
-        // The above can fail due to OOM
-        if (!succeededSettingAllObjects) {
-          JS_ClearPendingException(cx);
-          capturedPromise->MaybeReject(NS_ERROR_FAILURE);
-          return;
-        }
+  mDiskInfoPromise
+      ->Then(
+          GetMainThreadSerialEventTarget(), __func__,
+          [requestHolder, capturedPromise,
+           self = RefPtr{this}](const DiskInfo& info) {
+            requestHolder->Complete();
+            AutoJSAPI jsapi;
+            if (NS_WARN_IF(!jsapi.Init(capturedPromise->GetGlobalObject()))) {
+              capturedPromise->MaybeReject(NS_ERROR_UNEXPECTED);
+              return;
+            }
+            JSContext* cx = jsapi.cx();
+            JS::Rooted<JSObject*> jsInfo(cx, JS_NewPlainObject(cx));
+            // Store data in the rv:
+            bool succeededSettingAllObjects =
+                jsInfo &&
+                GetJSObjForDiskInfo(cx, jsInfo, info.binary, "binary") &&
+                GetJSObjForDiskInfo(cx, jsInfo, info.profile, "profile") &&
+                GetJSObjForDiskInfo(cx, jsInfo, info.system, "system");
+            // The above can fail due to OOM
+            if (!succeededSettingAllObjects) {
+              JS_ClearPendingException(cx);
+              capturedPromise->MaybeReject(NS_ERROR_FAILURE);
+              return;
+            }
 
-        bool hasSSD =
-            info.binary.isSSD || info.system.isSSD || info.profile.isSSD;
-        self->SetPropertyAsBool(u"hasSSD"_ns, hasSSD);
+            bool hasSSD =
+                info.binary.isSSD || info.system.isSSD || info.profile.isSSD;
+            self->SetPropertyAsBool(u"hasSSD"_ns, hasSSD);
 
-        JS::Rooted<JS::Value> val(cx, JS::ObjectValue(*jsInfo));
-        capturedPromise->MaybeResolve(val);
-      },
-      [capturedPromise](const nsresult rv) {
-        capturedPromise->MaybeReject(rv);
-      });
+            JS::Rooted<JS::Value> val(cx, JS::ObjectValue(*jsInfo));
+            capturedPromise->MaybeResolve(val);
+          },
+          [requestHolder, capturedPromise](const nsresult rv) {
+            requestHolder->Complete();
+            capturedPromise->MaybeReject(rv);
+          })
+      ->Track(*requestHolder);
 
   promise.forget(aResult);
 #endif
@@ -2127,26 +2145,34 @@ nsSystemInfo::GetCountryCode(JSContext* aCx, Promise** aResult) {
     });
   }
 
-  RefPtr<Promise> capturedPromise = promise;
-  mCountryCodePromise->Then(
-      GetMainThreadSerialEventTarget(), __func__,
-      [capturedPromise](const nsString& countryCode) {
-        AutoJSAPI jsapi;
-        if (NS_WARN_IF(!jsapi.Init(capturedPromise->GetGlobalObject()))) {
-          capturedPromise->MaybeReject(NS_ERROR_UNEXPECTED);
-          return;
-        }
-        JSContext* cx = jsapi.cx();
-        JS::Rooted<JSString*> jsCountryCode(
-            cx, JS_NewUCStringCopyZ(cx, countryCode.get()));
+  auto requestHolder =
+      MakeRefPtr<dom::DOMMozPromiseRequestHolder<CountryCodePromise>>(global);
 
-        JS::Rooted<JS::Value> val(cx, JS::StringValue(jsCountryCode));
-        capturedPromise->MaybeResolve(val);
-      },
-      [capturedPromise](const nsresult rv) {
-        // Resolve with null when countryCode is not available from the system
-        capturedPromise->MaybeResolve(JS::NullHandleValue);
-      });
+  RefPtr<Promise> capturedPromise = promise;
+  mCountryCodePromise
+      ->Then(
+          GetMainThreadSerialEventTarget(), __func__,
+          [requestHolder, capturedPromise](const nsString& countryCode) {
+            requestHolder->Complete();
+            AutoJSAPI jsapi;
+            if (NS_WARN_IF(!jsapi.Init(capturedPromise->GetGlobalObject()))) {
+              capturedPromise->MaybeReject(NS_ERROR_UNEXPECTED);
+              return;
+            }
+            JSContext* cx = jsapi.cx();
+            JS::Rooted<JSString*> jsCountryCode(
+                cx, JS_NewUCStringCopyZ(cx, countryCode.get()));
+
+            JS::Rooted<JS::Value> val(cx, JS::StringValue(jsCountryCode));
+            capturedPromise->MaybeResolve(val);
+          },
+          [requestHolder, capturedPromise](const nsresult rv) {
+            requestHolder->Complete();
+            // Resolve with null when countryCode is not available from the
+            // system
+            capturedPromise->MaybeResolve(JS::NullHandleValue);
+          })
+      ->Track(*requestHolder);
 
   promise.forget(aResult);
 #endif
@@ -2186,25 +2212,33 @@ nsSystemInfo::GetProcessInfo(JSContext* aCx, Promise** aResult) {
     });
   };
 
+  auto requestHolder =
+      MakeRefPtr<dom::DOMMozPromiseRequestHolder<ProcessInfoPromise>>(global);
+
   // Chain the new promise to the extant mozpromise
   RefPtr<Promise> capturedPromise = promise;
-  mProcessInfoPromise->Then(
-      GetMainThreadSerialEventTarget(), __func__,
-      [capturedPromise](const ProcessInfo& info) {
-        AutoJSAPI jsapi;
-        if (NS_WARN_IF(!jsapi.Init(capturedPromise->GetGlobalObject()))) {
-          capturedPromise->MaybeReject(NS_ERROR_UNEXPECTED);
-          return;
-        }
-        JSContext* cx = jsapi.cx();
-        JS::Rooted<JS::Value> val(
-            cx, JS::ObjectValue(*GetJSObjForProcessInfo(cx, info)));
-        capturedPromise->MaybeResolve(val);
-      },
-      [capturedPromise](const nsresult rv) {
-        // Resolve with null when installYear is not available from the system
-        capturedPromise->MaybeResolve(JS::NullHandleValue);
-      });
+  mProcessInfoPromise
+      ->Then(
+          GetMainThreadSerialEventTarget(), __func__,
+          [requestHolder, capturedPromise](const ProcessInfo& info) {
+            requestHolder->Complete();
+            AutoJSAPI jsapi;
+            if (NS_WARN_IF(!jsapi.Init(capturedPromise->GetGlobalObject()))) {
+              capturedPromise->MaybeReject(NS_ERROR_UNEXPECTED);
+              return;
+            }
+            JSContext* cx = jsapi.cx();
+            JS::Rooted<JS::Value> val(
+                cx, JS::ObjectValue(*GetJSObjForProcessInfo(cx, info)));
+            capturedPromise->MaybeResolve(val);
+          },
+          [requestHolder, capturedPromise](const nsresult rv) {
+            requestHolder->Complete();
+            // Resolve with null when installYear is not available from the
+            // system
+            capturedPromise->MaybeResolve(JS::NullHandleValue);
+          })
+      ->Track(*requestHolder);
 
   promise.forget(aResult);
 
