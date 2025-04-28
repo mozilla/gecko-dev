@@ -19,8 +19,12 @@ class nsIStreamListener;
 #define NS_CONTENTSECURITYMANAGER_CONTRACTID \
   "@mozilla.org/contentsecuritymanager;1"
 // cdcc1ab8-3cea-4e6c-a294-a651fa35227f
-#define NS_CONTENTSECURITYMANAGER_CID \
-  {0xcdcc1ab8, 0x3cea, 0x4e6c, {0xa2, 0x94, 0xa6, 0x51, 0xfa, 0x35, 0x22, 0x7f}}
+#define NS_CONTENTSECURITYMANAGER_CID                \
+  {                                                  \
+    0xcdcc1ab8, 0x3cea, 0x4e6c, {                    \
+      0xa2, 0x94, 0xa6, 0x51, 0xfa, 0x35, 0x22, 0x7f \
+    }                                                \
+  }
 
 class nsContentSecurityManager : public nsIContentSecurityManager,
                                  public nsIChannelEventSink {
@@ -76,8 +80,6 @@ class nsContentSecurityManager : public nsIContentSecurityManager,
   // https://html.spec.whatwg.org/multipage/browsers.html#compatible-with-cross-origin-isolation
   static bool IsCompatibleWithCrossOriginIsolation(
       nsILoadInfo::CrossOriginEmbedderPolicy aPolicy);
-
-  static bool ShouldAddCookies(nsIChannel* aChannel);
 
  private:
   static nsresult CheckChannel(nsIChannel* aChannel);
