@@ -3,7 +3,10 @@ scheme = "https"
 support-files = [
   "cookie.sjs",
   "cookiesHelper.js",
+  "cookieUpgrade.sjs",
 ]
+
+["test_cookie_sent_upgrade_XHR.html"]
 
 ["test_document_cookie.html"]
 
