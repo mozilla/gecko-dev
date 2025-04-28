@@ -3040,7 +3040,7 @@ class FactoryOp
   ClientDirectoryLockHandle mDirectoryLockHandle;
 
   nsTArray<NotNull<RefPtr<FactoryOp>>> mBlocking;
-  nsTArray<NotNull<RefPtr<FactoryOp>>> mBlockedOn;
+  nsTHashSet<RefPtr<FactoryOp>> mBlockedOn;
 
   nsTArray<MaybeBlockedDatabaseInfo> mMaybeBlockedDatabases;
 
@@ -3172,13 +3172,13 @@ class FactoryOp
   void AddBlockedOnOp(FactoryOp& aOp) {
     AssertIsOnOwningThread();
 
-    mBlockedOn.AppendElement(WrapNotNull(&aOp));
+    mBlockedOn.Insert(&aOp);
   }
 
   void MaybeUnblock(FactoryOp& aOp) {
     AssertIsOnOwningThread();
 
-    mBlockedOn.RemoveElement(&aOp);
+    mBlockedOn.Remove(&aOp);
     if (mBlockedOn.IsEmpty()) {
       MOZ_ALWAYS_SUCCEEDS(NS_DispatchToCurrentThread(this));
     }
