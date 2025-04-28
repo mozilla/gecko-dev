@@ -359,10 +359,9 @@ enum class DeprecatedOperations : uint16_t {
 #undef DEPRECATED_OPERATION
 
 class ExternalResourceMap {
- public:
   using SubDocEnumFunc = FunctionRef<CallState(Document&)>;
-  using SubDocTestFunc = FunctionRef<bool(const Document* aDocument)>;
 
+ public:
   /**
    * A class that represents an external resource load that has begun but
    * doesn't have a document yet.  Observers can be registered on this object,
@@ -403,11 +402,7 @@ class ExternalResourceMap {
    * Enumerate the resource documents.  See
    * Document::EnumerateExternalResources.
    */
-  void EnumerateResources(SubDocEnumFunc aCallback) const;
-
-  /** Recursively collect subresources and their subdocuments too */
-  void CollectDescendantDocuments(nsTArray<RefPtr<Document>>& aDocs,
-                                  SubDocTestFunc) const;
+  void EnumerateResources(SubDocEnumFunc aCallback);
 
   /**
    * Traverse ourselves for cycle-collection
@@ -2327,19 +2322,16 @@ class Document : public nsINode,
    * enumerating, or CallState::Stop to stop.  This will never get passed a null
    * aDocument.
    */
-  using SubDocEnumFunc = ExternalResourceMap::SubDocEnumFunc;
+  using SubDocEnumFunc = FunctionRef<CallState(Document&)>;
   void EnumerateSubDocuments(SubDocEnumFunc aCallback);
 
   /**
    * Collect all the descendant documents for which |aCalback| returns true.
    * The callback function must not mutate any state for the given document.
-   * Note that, unlike EnumerateSubDocuments, this recurses into nested
-   * subdocuments.
    */
-  using SubDocTestFunc = ExternalResourceMap::SubDocTestFunc;
-  enum class IncludeSubResources : bool { No, Yes };
+  using nsDocTestFunc = mozilla::FunctionRef<bool(const Document* aDocument)>;
   void CollectDescendantDocuments(nsTArray<RefPtr<Document>>& aDescendants,
-                                  IncludeSubResources, SubDocTestFunc) const;
+                                  nsDocTestFunc aCallback) const;
 
   /**
    * Check whether it is safe to cache the presentation of this document
@@ -2659,7 +2651,7 @@ class Document : public nsINode,
    * enumerating, or CallState::Stop to stop.  This callback will never get
    * passed a null aDocument.
    */
-  void EnumerateExternalResources(SubDocEnumFunc aCallback) const;
+  void EnumerateExternalResources(SubDocEnumFunc aCallback);
 
   dom::ExternalResourceMap& ExternalResourceMap() {
     return mExternalResourceMap;
