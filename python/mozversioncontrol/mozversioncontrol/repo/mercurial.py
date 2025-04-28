@@ -305,7 +305,11 @@ class HgRepository(Repository):
             self._run("revert", "-a")
 
     def get_branch_nodes(
-        self, head: Optional[str] = None, base_ref: Optional[str] = None
+        self,
+        head: Optional[str] = None,
+        base_ref: Optional[str] = None,
+        limit: Optional[int] = None,
+        follow: Optional[List[str]] = None,
     ) -> List[str]:
         """Return a list of commit SHAs for nodes on the current branch."""
         if not base_ref:
@@ -313,13 +317,19 @@ class HgRepository(Repository):
 
         head_ref = head or self.head_ref
 
-        return self._run(
+        cmd = [
             "log",
             "-r",
             f"{base_ref}::{head_ref} and not {base_ref}",
             "-T",
             "{node}\n",
-        ).splitlines()
+        ]
+        if limit is not None:
+            cmd.append(f"-l{limit}")
+        if follow is not None:
+            cmd += ["-f", "--", *follow]
+
+        return self._run(*cmd).splitlines()
 
     def get_commit_patches(self, nodes: List[str]) -> List[bytes]:
         """Return the contents of the patch `node` in the VCS' standard format."""

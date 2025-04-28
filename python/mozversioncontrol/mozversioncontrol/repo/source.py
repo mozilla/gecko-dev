@@ -138,6 +138,9 @@ class SrcRepository(Repository):
     def set_config(self, name, value):
         pass
 
+    def get_branch_nodes(self, head=None, limit=None, follow=None):
+        return []
+
     def get_last_modified_time_for_file(self, path: Path):
         """Return last modified in VCS time for the specified file."""
         raise MissingVCSTool
