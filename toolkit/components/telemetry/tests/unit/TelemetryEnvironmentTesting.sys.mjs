@@ -695,11 +695,25 @@ export var TelemetryEnvironmentTesting = {
 
     let gfxData = data.system.gfx;
     lazy.Assert.ok("D2DEnabled" in gfxData);
+    lazy.Assert.equal(gfxData.D2DEnabled, Glean.gfx.d2dEnabled.testGetValue());
     lazy.Assert.ok("DWriteEnabled" in gfxData);
+    lazy.Assert.equal(
+      gfxData.DWriteEnabled,
+      Glean.gfx.dwriteEnabled.testGetValue()
+    );
     lazy.Assert.ok("Headless" in gfxData);
+    lazy.Assert.equal(gfxData.Headless, Glean.gfx.headless.testGetValue());
     lazy.Assert.ok("TargetFrameRate" in gfxData);
     lazy.Assert.equal(typeof gfxData.TargetFrameRate, "number");
+    lazy.Assert.equal(
+      gfxData.TargetFrameRate,
+      Glean.gfx.targetFrameRate.testGetValue()
+    );
     lazy.Assert.ok("textScaleFactor" in gfxData);
+    lazy.Assert.equal(
+      gfxData.textScaleFactor,
+      Glean.gfx.textScaleFactor.testGetValue()
+    );
     if (gIsWindows) {
       lazy.Assert.equal(typeof gfxData.D2DEnabled, "boolean");
       lazy.Assert.equal(typeof gfxData.DWriteEnabled, "boolean");
@@ -718,6 +732,16 @@ export var TelemetryEnvironmentTesting = {
       gfxData.adapters[0].GPUActive,
       "The first GFX adapter must be active."
     );
+    const adapters = Glean.gfx.adapters.testGetValue();
+    gfxData.adapters.forEach((adapter, index) => {
+      for (const [k, v] of Object.entries(adapter)) {
+        if (v === null) {
+          // Glean doesn't bother with `null`s
+          continue;
+        }
+        lazy.Assert.equal(v, adapters[index][k]);
+      }
+    });
 
     lazy.Assert.ok(Array.isArray(gfxData.monitors));
     if (gIsWindows || gIsMac || gIsLinux) {
@@ -740,6 +764,7 @@ export var TelemetryEnvironmentTesting = {
         lazy.Assert.equal(typeof gfxData.monitors[0].pseudoDisplay, "boolean");
       }
     }
+    lazy.Assert.deepEqual(gfxData.monitors, Glean.gfx.monitors.testGetValue());
 
     lazy.Assert.equal(typeof gfxData.features, "object");
     lazy.Assert.equal(typeof gfxData.features.compositor, "string");

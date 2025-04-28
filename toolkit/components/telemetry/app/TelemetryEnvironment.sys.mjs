@@ -83,7 +83,7 @@ var gActiveExperimentStartupBuffer = new Map();
 
 // For Powering arewegleanyet.com (See bug 1944592)
 // Legacy Count: 114
-// Glean Count: 66
+// Glean Count: 74
 
 var gGlobalEnvironment;
 function getGlobal() {
@@ -2105,11 +2105,42 @@ EnvironmentCache.prototype = {
       monitors: [],
       features: {},
     };
+    if (gfxData.D2DEnabled !== null) {
+      Glean.gfx.d2dEnabled.set(gfxData.D2DEnabled);
+    }
+    if (gfxData.DWriteEnabled !== null) {
+      Glean.gfx.dwriteEnabled.set(gfxData.DWriteEnabled);
+    }
+    if (gfxData.ContentBackend !== null) {
+      Glean.gfx.contentBackend.set(gfxData.ContentBackend);
+    }
+    if (gfxData.Headless !== null) {
+      Glean.gfx.headless.set(gfxData.Headless);
+    }
+    if (gfxData.TargetFrameRate !== null) {
+      Glean.gfx.targetFrameRate.set(gfxData.TargetFrameRate);
+    }
+    if (gfxData.textScaleFactor !== null) {
+      Glean.gfx.textScaleFactor.set(gfxData.textScaleFactor);
+    }
 
     if (AppConstants.platform !== "android") {
       let gfxInfo = Cc["@mozilla.org/gfx/info;1"].getService(Ci.nsIGfxInfo);
       try {
         gfxData.monitors = gfxInfo.getMonitors();
+        // Special handling because floats need to become strings.
+        let monitors = gfxInfo.getMonitors();
+        for (let monitor of monitors) {
+          if ("defaultCSSScaleFactor" in monitor) {
+            monitor.defaultCSSScaleFactor =
+              monitor.defaultCSSScaleFactor.toString();
+          }
+          if ("contentsScaleFactor" in monitor) {
+            monitor.contentsScaleFactor =
+              monitor.contentsScaleFactor.toString();
+          }
+        }
+        Glean.gfx.monitors.set(monitors);
       } catch (e) {
         this._log.error("nsIGfxInfo.getMonitors() caught error", e);
       }
@@ -2133,6 +2164,7 @@ EnvironmentCache.prototype = {
     let hasGPU2 = getGfxField("adapterDeviceID2", null) !== null;
     if (!hasGPU2) {
       this._log.trace("_getGFXData - Only one display adapter detected.");
+      Glean.gfx.adapters.set(gfxData.adapters);
       return gfxData;
     }
 
@@ -2140,6 +2172,8 @@ EnvironmentCache.prototype = {
 
     gfxData.adapters.push(getGfxAdapter("2"));
     gfxData.adapters[1].GPUActive = getGfxField("isGPU2Active", null);
+
+    Glean.gfx.adapters.set(gfxData.adapters);
 
     return gfxData;
   },
