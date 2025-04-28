@@ -1787,12 +1787,6 @@ nsresult nsProtocolProxyService::InsertFilterLink(RefPtr<FilterLink>&& link) {
 }
 
 NS_IMETHODIMP
-nsProtocolProxyService::GetHasProxyFilterRegistered(bool* aResult) {
-  *aResult = !mFilters.IsEmpty();
-  return NS_OK;
-}
-
-NS_IMETHODIMP
 nsProtocolProxyService::RegisterFilter(nsIProtocolProxyFilter* filter,
                                        uint32_t position) {
   UnregisterFilter(filter);  // remove this filter if we already have it
