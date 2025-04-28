@@ -187,16 +187,6 @@ windows11-64-24h2-hw-ref/opt:
         - browsertime-ref-hw
         - windows-ref-hw-tests
 
-windows11-64-qr/opt:
-    build-platform: win64/opt
-    test-sets:
-        - windows-talos-webgl
-
-windows11-64-shippable-qr/opt:
-    build-platform: win64-shippable/opt
-    test-sets:
-        - windows-talos-webgl
-
 # win10-64 2004
 windows10-64-2009-qr/debug:
     build-platform: win64/debug
