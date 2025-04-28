@@ -602,12 +602,16 @@ open class HomeActivity : LocaleAwareAppCompatActivity(), NavHostActivity {
             // This is to avoid disk read violations on some devices such as samsung and pixel for android 9/10
             components.strictMode.resetAfter(StrictMode.allowThreadDiskReads()) {
                 components.appStore.dispatch(AppAction.UpdateWasNativeDefaultBrowserPromptShown(true))
-                openSetDefaultBrowserOption().also {
-                    Metrics.setAsDefaultBrowserNativePromptShown.record()
-                    settings().setAsDefaultPromptCalled()
-                }
+                showSetDefaultBrowserPrompt()
+                Metrics.setAsDefaultBrowserNativePromptShown.record()
+                settings().setAsDefaultPromptCalled()
             }
         }
+    }
+
+    @VisibleForTesting
+    internal fun showSetDefaultBrowserPrompt() {
+        openSetDefaultBrowserOption()
     }
 
     /**
