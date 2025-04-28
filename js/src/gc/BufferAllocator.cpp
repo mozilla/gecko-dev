@@ -70,8 +70,7 @@ size_t SmallBuffer::allocBytes() const {
   return arena()->getThingSize() - sizeof(SmallBuffer);
 }
 
-inline MediumBuffer::MediumBuffer(uint8_t sizeClass, bool nurseryOwned)
-    : sizeClass(sizeClass), isNurseryOwned(nurseryOwned) {}
+inline MediumBuffer::MediumBuffer(uint8_t sizeClass) : sizeClass(sizeClass) {}
 
 /* static */
 inline MediumBuffer* MediumBuffer::from(BufferChunk* chunk, uintptr_t offset) {
@@ -142,30 +141,29 @@ struct BufferAllocator::FreeRegion
   size_t size() const { return getEnd() - startAddr; }
 };
 
-using BufferChunkAllocBitmap = mozilla::BitSet<ChunkSize / MinMediumAllocSize>;
-
-using BufferChunkPageBitmap = mozilla::BitSet<ChunkSize / PageSize, uint32_t>;
-
-// A chunk containing buffer allocations for a single zone. Unlike ArenaChunk,
-// allocations from different zones do not share chunks.
+// A chunk containing medium buffer allocations for a single zone. Unlike
+// ArenaChunk, allocations from different zones do not share chunks.
 struct BufferChunk : public ChunkBase,
                      public SlimLinkedListElement<BufferChunk> {
-  // One bit minimum per allocation, no gray bits.
-  static constexpr size_t BytesPerMarkBit = MinMediumAllocSize;
-  using BufferMarkBitmap = MarkBitmap<BytesPerMarkBit, 0>;
-  MainThreadOrGCTaskData<BufferMarkBitmap> markBits;
-
-  MainThreadOrGCTaskData<BufferChunkPageBitmap> decommittedPages;
-
-  MainThreadOrGCTaskData<BufferChunkAllocBitmap> allocBitmap;
+#ifdef DEBUG
+  MainThreadData<Zone*> zone;
+#endif
 
   MainThreadOrGCTaskData<bool> allocatedDuringCollection;
   MainThreadData<bool> hasNurseryOwnedAllocs;
   MainThreadOrGCTaskData<bool> hasNurseryOwnedAllocsAfterSweep;
 
-#ifdef DEBUG
-  MainThreadData<Zone*> zone;
-#endif
+  // Mark bitmap: one bit minimum per allocation, no gray bits.
+  static constexpr size_t BytesPerMarkBit = MinMediumAllocSize;
+  using BufferMarkBitmap = MarkBitmap<BytesPerMarkBit, 0>;
+  MainThreadOrGCTaskData<BufferMarkBitmap> markBits;
+
+  using PerAllocBitmap = mozilla::BitSet<ChunkSize / MinMediumAllocSize>;
+  MainThreadOrGCTaskData<PerAllocBitmap> allocBitmap;
+  MainThreadOrGCTaskData<PerAllocBitmap> nurseryOwnedBitmap;
+
+  using PerPageBitmap = mozilla::BitSet<ChunkSize / PageSize, uint32_t>;
+  MainThreadOrGCTaskData<PerPageBitmap> decommittedPages;
 
   static BufferChunk* from(void* alloc) {
     ChunkBase* chunk = js::gc::detail::GetGCAddressChunkBase(alloc);
@@ -173,18 +171,15 @@ struct BufferChunk : public ChunkBase,
     return static_cast<BufferChunk*>(chunk);
   }
 
-  explicit BufferChunk(Zone* zone)
-      : ChunkBase(zone->runtimeFromMainThread(), ChunkKind::MediumBuffers) {
-#ifdef DEBUG
-    this->zone = zone;
-#endif
-  }
-
-  ~BufferChunk() { MOZ_ASSERT(allocBitmap.ref().IsEmpty()); }
+  explicit BufferChunk(Zone* zone);
+  ~BufferChunk();
 
   void setAllocated(void* alloc, bool allocated);
-  bool isAllocated(void* alloc) const;
+  bool isAllocated(const void* alloc) const;
   bool isAllocated(uintptr_t offset) const;
+
+  void setNurseryOwned(void* alloc, bool nurseryOwned);
+  bool isNurseryOwned(const void* alloc) const;
 
   // Find next/previous allocations from |offset|. Return ChunkSize on failure.
   size_t findNextAllocated(uintptr_t offset) const;
@@ -193,7 +188,7 @@ struct BufferChunk : public ChunkBase,
   bool isPointerWithinAllocation(void* ptr) const;
 
  private:
-  uintptr_t ptrToOffset(void* alloc) const;
+  uintptr_t ptrToOffset(const void* alloc) const;
 };
 
 constexpr size_t FirstMediumAllocOffset =
@@ -377,7 +372,22 @@ MOZ_ALWAYS_INLINE void PoisonAlloc(void* alloc, uint8_t value, size_t bytes,
   AlwaysPoison(alloc, value, bytes, kind);
 }
 
-uintptr_t BufferChunk::ptrToOffset(void* alloc) const {
+BufferChunk::BufferChunk(Zone* zone)
+    : ChunkBase(zone->runtimeFromMainThread(), ChunkKind::MediumBuffers) {
+#ifdef DEBUG
+  this->zone = zone;
+  MOZ_ASSERT(allocBitmap.ref().IsEmpty());
+  MOZ_ASSERT(nurseryOwnedBitmap.ref().IsEmpty());
+  MOZ_ASSERT(decommittedPages.ref().IsEmpty());
+#endif
+}
+
+BufferChunk::~BufferChunk() {
+  MOZ_ASSERT(allocBitmap.ref().IsEmpty());
+  MOZ_ASSERT(nurseryOwnedBitmap.ref().IsEmpty());
+}
+
+uintptr_t BufferChunk::ptrToOffset(const void* alloc) const {
   MOZ_ASSERT((uintptr_t(alloc) & ~ChunkMask) == uintptr_t(this));
 
   uintptr_t offset = uintptr_t(alloc) & ChunkMask;
@@ -389,10 +399,11 @@ uintptr_t BufferChunk::ptrToOffset(void* alloc) const {
 void BufferChunk::setAllocated(void* alloc, bool allocated) {
   uintptr_t offset = ptrToOffset(alloc);
   size_t bit = offset / MinMediumAllocSize;
+  MOZ_ASSERT(allocBitmap.ref()[bit] != allocated);
   allocBitmap.ref()[bit] = allocated;
 }
 
-bool BufferChunk::isAllocated(void* alloc) const {
+bool BufferChunk::isAllocated(const void* alloc) const {
   return isAllocated(ptrToOffset(alloc));
 }
 
@@ -428,6 +439,18 @@ size_t BufferChunk::findPrevAllocated(uintptr_t offset) const {
   }
 
   return prev * MinMediumAllocSize;
+}
+
+void BufferChunk::setNurseryOwned(void* alloc, bool nurseryOwned) {
+  uintptr_t offset = ptrToOffset(alloc);
+  size_t bit = offset / MinMediumAllocSize;
+  nurseryOwnedBitmap.ref()[bit] = nurseryOwned;
+}
+
+bool BufferChunk::isNurseryOwned(const void* alloc) const {
+  uintptr_t offset = ptrToOffset(alloc);
+  size_t bit = offset / MinMediumAllocSize;
+  return nurseryOwnedBitmap.ref()[bit];
 }
 
 BufferAllocator::BufferAllocator(Zone* zone)
@@ -687,7 +710,8 @@ bool BufferAllocator::isNurseryOwned(void* alloc) {
     return cell->isNurseryOwned();
   }
 
-  return GetBufferFromAlloc<MediumBuffer>(alloc)->isNurseryOwned;
+  BufferChunk* chunk = BufferChunk::from(alloc);
+  return chunk->isNurseryOwned(alloc);
 }
 
 void BufferAllocator::markNurseryOwnedAlloc(void* alloc, bool ownerWasTenured) {
@@ -733,7 +757,7 @@ void BufferAllocator::markMediumNurseryOwnedBuffer(MediumBuffer* buffer,
   if (ownerWasTenured) {
     // Change the allocation to a tenured owned one. This prevents sweeping in a
     // minor collection.
-    buffer->isNurseryOwned = false;
+    chunk->setNurseryOwned(buffer, false);
     size_t usableSize = buffer->allocBytes();
     updateHeapSize(usableSize, false, false);
     return;
@@ -825,15 +849,17 @@ void BufferAllocator::traceMediumAlloc(JSTracer* trc, Cell* owner,
   void* alloc = *allocp;
   auto* buffer = GetBufferFromAlloc<MediumBuffer>(alloc);
 
+  BufferChunk* chunk = BufferChunk::from(alloc);
+
   if (trc->isTenuringTracer()) {
-    if (buffer->isNurseryOwned) {
+    if (chunk->isNurseryOwned(alloc)) {
       markMediumNurseryOwnedBuffer(buffer, owner->isTenured());
     }
     return;
   }
 
   if (trc->isMarkingTracer()) {
-    if (!buffer->isNurseryOwned) {
+    if (!chunk->isNurseryOwned(alloc)) {
       markMediumTenuredAlloc(alloc);
     }
     return;
@@ -1500,7 +1526,7 @@ void BufferAllocator::verifyChunk(BufferChunk* chunk,
 
     // Check this allocation.
     MediumBuffer* buffer = iter.get();
-    MOZ_ASSERT_IF(buffer->isNurseryOwned, hasNurseryOwnedAllocs);
+    MOZ_ASSERT_IF(chunk->isNurseryOwned(buffer), hasNurseryOwnedAllocs);
     size_t bytes = SizeClassBytes(buffer->sizeClass);
     uintptr_t endOffset = offset + bytes;
     MOZ_ASSERT(endOffset <= ChunkSize);
@@ -1620,11 +1646,12 @@ void* BufferAllocator::allocMedium(size_t bytes, bool nurseryOwned, bool inGC) {
     return nullptr;
   }
 
-  auto* buffer = new (ptr) MediumBuffer(sizeClass, nurseryOwned);
+  auto* buffer = new (ptr) MediumBuffer(sizeClass);
   void* alloc = buffer->data();
 
   BufferChunk* chunk = BufferChunk::from(ptr);
   chunk->setAllocated(alloc, true);
+  chunk->setNurseryOwned(alloc, nurseryOwned);
 
   if (nurseryOwned && !chunk->hasNurseryOwnedAllocs) {
     mediumTenuredChunks.ref().remove(chunk);
@@ -1836,16 +1863,18 @@ bool BufferAllocator::sweepChunk(BufferChunk* chunk, OwnerKind ownerKindToSweep,
     size_t bytes = buffer->bytesIncludingHeader();
     uintptr_t allocEnd = iter.getOffset() + bytes;
 
-    OwnerKind ownerKind = OwnerKind(uint8_t(buffer->isNurseryOwned));
-    MOZ_ASSERT_IF(buffer->isNurseryOwned, ownerKind == OwnerKind::Nursery);
-    MOZ_ASSERT_IF(!buffer->isNurseryOwned, ownerKind == OwnerKind::Tenured);
+    bool nurseryOwned = chunk->isNurseryOwned(buffer);
+    OwnerKind ownerKind = OwnerKind(uint8_t(nurseryOwned));
+    MOZ_ASSERT_IF(nurseryOwned, ownerKind == OwnerKind::Nursery);
+    MOZ_ASSERT_IF(!nurseryOwned, ownerKind == OwnerKind::Tenured);
     bool canSweep = ownerKind == ownerKindToSweep;
     bool shouldSweep = canSweep && !chunk->markBits.ref().isMarkedBlack(buffer);
 
     if (shouldSweep) {
-      // Dead. Update allocated bitmap and heap size accounting.
+      // Dead. Update allocated bitmap, metadata and heap size accounting.
+      chunk->setNurseryOwned(buffer, false);
       chunk->setAllocated(buffer, false);
-      if (!buffer->isNurseryOwned) {
+      if (!nurseryOwned) {
         mallocHeapBytesFreed += buffer->allocBytes();
       }
       PoisonAlloc(buffer, JS_SWEPT_TENURED_PATTERN, bytes,
@@ -1862,7 +1891,7 @@ bool BufferAllocator::sweepChunk(BufferChunk* chunk, OwnerKind ownerKindToSweep,
       if (canSweep) {
         chunk->markBits.ref().unmarkOneBit(buffer, ColorBit::BlackBit);
       }
-      if (buffer->isNurseryOwned) {
+      if (nurseryOwned) {
         MOZ_ASSERT(ownerKindToSweep == OwnerKind::Nursery);
         hasNurseryOwnedAllocs = true;
       }
@@ -1963,6 +1992,18 @@ void BufferAllocator::freeMedium(void* alloc) {
     return;  // We can't free if the chunk is currently being swept.
   }
 
+  // Update heap size for tenured owned allocations.
+  size_t bytes = SizeClassBytes(buffer->sizeClass);
+  if (!chunk->isNurseryOwned(buffer)) {
+    bool updateRetained =
+        majorState == State::Marking && !chunk->allocatedDuringCollection;
+    zone->mallocHeapSize.removeBytes(bytes - sizeof(MediumBuffer),
+                                     updateRetained);
+  }
+
+  // Update metadata.
+  chunk->setNurseryOwned(alloc, false);
+
   // Set region as not allocated and then clear mark bit.
   chunk->setAllocated(alloc, false);
 
@@ -1970,15 +2011,6 @@ void BufferAllocator::freeMedium(void* alloc) {
   // the chunk is currently being swept. If we get lucky the memory will be
   // freed sooner.
   chunk->markBits.ref().unmarkOneBit(alloc, ColorBit::BlackBit);
-
-  // Update heap size for tenured owned allocations.
-  size_t bytes = SizeClassBytes(buffer->sizeClass);
-  if (!buffer->isNurseryOwned) {
-    bool updateRetained =
-        majorState == State::Marking && !chunk->allocatedDuringCollection;
-    zone->mallocHeapSize.removeBytes(bytes - sizeof(MediumBuffer),
-                                     updateRetained);
-  }
 
   PoisonAlloc(buffer, JS_FREED_BUFFER_PATTERN, sizeof(MediumBuffer),
               MemCheckKind::MakeUndefined);
@@ -2147,7 +2179,7 @@ bool BufferAllocator::growMedium(MediumBuffer* buffer, size_t newBytes) {
   }
 
   buffer->sizeClass = SizeClassForAlloc(newBytes);
-  if (!buffer->isNurseryOwned) {
+  if (!chunk->isNurseryOwned(buffer)) {
     bool updateRetained =
         majorState == State::Marking && !chunk->allocatedDuringCollection;
     updateHeapSize(extraBytes, true, updateRetained);
@@ -2172,7 +2204,7 @@ bool BufferAllocator::shrinkMedium(MediumBuffer* buffer, size_t newBytes) {
 
   // Update allocation size.
   buffer->sizeClass = SizeClassForAlloc(newBytes);
-  if (!buffer->isNurseryOwned) {
+  if (!chunk->isNurseryOwned(buffer)) {
     bool updateRetained =
         majorState == State::Marking && !chunk->allocatedDuringCollection;
     zone->mallocHeapSize.removeBytes(sizeChange, updateRetained);
@@ -2646,7 +2678,7 @@ size_t BufferAllocator::getSizeOfNurseryBuffers() {
 
   for (BufferChunk* chunk : mediumMixedChunks.ref()) {
     for (BufferChunkIter alloc(chunk); !alloc.done(); alloc.next()) {
-      if (alloc->isNurseryOwned) {
+      if (chunk->isNurseryOwned(alloc)) {
         bytes += alloc->allocBytes();
       }
     }

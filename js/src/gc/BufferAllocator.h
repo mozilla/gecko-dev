@@ -457,6 +457,7 @@ class BufferAllocator : public SlimLinkedListElement<BufferAllocator> {
   bool isSweepingChunk(BufferChunk* chunk);
   void traceMediumAlloc(JSTracer* trc, Cell* owner, void** allocp,
                         const char* name);
+  bool isMediumBufferNurseryOwned(void* alloc) const;
   void markMediumNurseryOwnedBuffer(MediumBuffer* buffer, bool ownerWasTenured);
   bool markMediumTenuredAlloc(void* alloc);
 
@@ -519,13 +520,12 @@ static constexpr uint32_t FreeRegionCheckValue = 0xBFA110C3;
 
 struct alignas(CellAlignBytes) MediumBuffer {
   uint8_t sizeClass;
-  bool isNurseryOwned = false;
 
 #ifdef DEBUG
   uint16_t checkValue = MediumBufferCheckValue;
 #endif
 
-  MediumBuffer(uint8_t sizeClass, bool nurseryOwned);
+  explicit MediumBuffer(uint8_t sizeClass);
   static MediumBuffer* from(BufferChunk* chunk, uintptr_t offset);
   void check() const;
   size_t bytesIncludingHeader() const;
