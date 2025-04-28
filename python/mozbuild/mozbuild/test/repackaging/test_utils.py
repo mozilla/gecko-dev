@@ -672,15 +672,15 @@ def test_prepare_langpack_files(monkeypatch, languages, expected):
 
     monkeypatch.setattr(utils.shutil, "copy", _mock_copy)
 
-    with tempfile.TemporaryDirectory() as d:
+    with tempfile.TemporaryDirectory() as xpi_dir, tempfile.TemporaryDirectory() as output_dir:
         for language in languages:
-            path = os.path.join(d, f"{language}.langpack.xpi")
+            path = os.path.join(xpi_dir, f"{language}.langpack.xpi")
             with zipfile.ZipFile(path, "w") as zip_file:
                 zip_file.writestr(
                     "manifest.json", _MINIMAL_MANIFEST_JSON % {"lang": language}
                 )
 
-        assert utils.prepare_langpack_files("/tmp", d) == expected
+        assert utils.prepare_langpack_files(output_dir, xpi_dir) == expected
 
 
 if __name__ == "__main__":
