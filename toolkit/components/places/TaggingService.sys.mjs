@@ -504,7 +504,7 @@ class TagSearch {
           this._notifyResult(true);
           // yield to avoid monopolizing the main-thread
           await new Promise(resolve =>
-            Services.tm.dispatchToMainThread(resolve)
+            Services.tm.dispatchToMainThread(() => resolve())
           );
           if (this._canceled) {
             return;

@@ -2,8 +2,8 @@ export {};
 
 declare global {
 
-  // We use `Extension` from the extensions code, but importing that requires
-  // a lot of set-up, and so we skip it for now.
-  type Extension = any;
+  type Extension = import("resource://gre/modules/Extension.sys.mjs").Extension;
+
+  type DeferredTask = import("resource://gre/modules/DeferredTask.sys.mjs").DeferredTask;
 
 }
