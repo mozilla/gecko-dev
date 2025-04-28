@@ -154,6 +154,7 @@ function waitForSource(dbg, url) {
 }
 
 async function waitForElement(dbg, name, ...args) {
+  info(`Waiting for debugger element by name: ${name}`);
   await waitUntil(() => findElement(dbg, name, ...args));
   return findElement(dbg, name, ...args);
 }
@@ -175,6 +176,7 @@ async function waitForAllElements(
   count = 1,
   countStrictlyEqual = false
 ) {
+  info(`Waiting for N=${count} debugger elements by name: ${name}`);
   await waitUntil(() => {
     const elsCount = findAllElements(dbg, name).length;
     return countStrictlyEqual ? elsCount === count : elsCount >= count;
@@ -183,6 +185,7 @@ async function waitForAllElements(
 }
 
 async function waitForElementWithSelector(dbg, selector) {
+  info(`Waiting for debugger element by selector: ${selector}`);
   await waitUntil(() => findElementWithSelector(dbg, selector));
   return findElementWithSelector(dbg, selector);
 }
@@ -545,6 +548,7 @@ async function waitForLoadedScopes(dbg) {
   const scopes = await waitForElement(dbg, "scopes");
   // Since scopes auto-expand, we can assume they are loaded when there is a tree node
   // with the aria-level attribute equal to "2".
+  info("Wait for loaded scopes - ie when a tree node has aria-level=2");
   await waitUntil(() => scopes.querySelector('.tree-node[aria-level="2"]'));
 }
 
@@ -2317,8 +2321,10 @@ function toggleObjectInspectorNode(node) {
   const objectInspector = node.closest(".object-inspector");
   const properties = objectInspector.querySelectorAll(".node").length;
 
-  info(`Toggling node ${node.innerText}`);
+  info(`Toggle node ${node.innerText}`);
   node.click();
+
+  info(`Waiting for object inspector properties update`);
   return waitUntil(
     () => objectInspector.querySelectorAll(".node").length !== properties
   );
@@ -2331,6 +2337,7 @@ function rightClickObjectInspectorNode(dbg, node) {
   info(`Right clicking node ${node.innerText}`);
   rightClickEl(dbg, node);
 
+  info(`Waiting for object inspector properties update`);
   return waitUntil(
     () => objectInspector.querySelectorAll(".node").length !== properties
   );
@@ -2709,6 +2716,7 @@ async function closePreviewForToken(
     element.ownerGlobal
   );
 
+  info(`Waiting for preview to be closed (preview type=${previewType})`);
   await waitUntil(() => findElement(dbg, previewType) == null);
   info("Preview closed");
 }
@@ -3024,6 +3032,7 @@ async function assertInlineExceptionPreview(
  * @param {String} result
  */
 async function waitForPreviewWithResult(dbg, result) {
+  info(`Wait for preview popup with result ${result}`);
   await waitUntil(async () => {
     const previewEl = await waitForElement(dbg, "previewPopup");
     return previewEl.innerText.includes(result);
@@ -3069,7 +3078,7 @@ async function waitForBreakableLine(dbg, source, lineNumber) {
 }
 
 async function waitForSourceTreeThreadsCount(dbg, i) {
-  info(`waiting for ${i} threads in the source tree`);
+  info(`Waiting for ${i} threads in the source tree`);
   await waitUntil(() => {
     return findAllElements(dbg, "sourceTreeThreads").length === i;
   });
@@ -3157,6 +3166,7 @@ async function waitForSourcesInSourceTree(
 }
 
 async function waitForNodeToGainFocus(dbg, index) {
+  info(`Waiting for source node #${index} to be focused`);
   await waitUntil(() => {
     const element = findElement(dbg, "sourceNode", index);
 
@@ -3165,7 +3175,7 @@ async function waitForNodeToGainFocus(dbg, index) {
     }
 
     return false;
-  }, `waiting for source node ${index} to be focused`);
+  });
 }
 
 async function assertNodeIsFocused(dbg, index) {
@@ -3346,6 +3356,7 @@ function getEagerEvaluationElement(hud) {
 }
 
 async function waitForEagerEvaluationResult(hud, text) {
+  info(`Waiting for eager evaluation result: ${text}`);
   await waitUntil(() => {
     const elem = getEagerEvaluationElement(hud);
     if (elem) {
@@ -3506,7 +3517,7 @@ async function doProjectSearch(dbg, searchTerm, expectedResults) {
 }
 
 /**
- * Waits for the search resluts node to render
+ * Waits for the search results node to render
  *
  * @param {Object} dbg
  * @param {Number} expectedResults - The expected no of results to wait for
@@ -3515,7 +3526,7 @@ async function doProjectSearch(dbg, searchTerm, expectedResults) {
  */
 async function waitForSearchResults(dbg, expectedResults) {
   if (expectedResults) {
-    info(`Wait for ${expectedResults} project search results`);
+    info(`Waiting for ${expectedResults} project search results`);
     await waitUntil(
       () =>
         findAllElements(dbg, "projectSearchFileResults").length ==
