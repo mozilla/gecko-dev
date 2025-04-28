@@ -1476,42 +1476,43 @@ MacOSWebAuthnService::AddVirtualAuthenticator(
 }
 
 NS_IMETHODIMP
-MacOSWebAuthnService::RemoveVirtualAuthenticator(uint64_t authenticatorId) {
+MacOSWebAuthnService::RemoveVirtualAuthenticator(
+    const nsACString& aAuthenticatorId) {
   return NS_ERROR_NOT_IMPLEMENTED;
 }
 
 NS_IMETHODIMP
-MacOSWebAuthnService::AddCredential(uint64_t authenticatorId,
-                                    const nsACString& credentialId,
-                                    bool isResidentCredential,
-                                    const nsACString& rpId,
-                                    const nsACString& privateKey,
-                                    const nsACString& userHandle,
-                                    uint32_t signCount) {
+MacOSWebAuthnService::AddCredential(const nsACString& aAuthenticatorId,
+                                    const nsACString& aCredentialId,
+                                    bool aIsResidentCredential,
+                                    const nsACString& aRpId,
+                                    const nsACString& aPrivateKey,
+                                    const nsACString& aUserHandle,
+                                    uint32_t aSignCount) {
   return NS_ERROR_NOT_IMPLEMENTED;
 }
 
 NS_IMETHODIMP
 MacOSWebAuthnService::GetCredentials(
-    uint64_t authenticatorId,
-    nsTArray<RefPtr<nsICredentialParameters>>& _retval) {
+    const nsACString& aAuthenticatorId,
+    nsTArray<RefPtr<nsICredentialParameters>>& _aRetval) {
   return NS_ERROR_NOT_IMPLEMENTED;
 }
 
 NS_IMETHODIMP
-MacOSWebAuthnService::RemoveCredential(uint64_t authenticatorId,
-                                       const nsACString& credentialId) {
+MacOSWebAuthnService::RemoveCredential(const nsACString& aAuthenticatorId,
+                                       const nsACString& aCredentialId) {
   return NS_ERROR_NOT_IMPLEMENTED;
 }
 
 NS_IMETHODIMP
-MacOSWebAuthnService::RemoveAllCredentials(uint64_t authenticatorId) {
+MacOSWebAuthnService::RemoveAllCredentials(const nsACString& aAuthenticatorId) {
   return NS_ERROR_NOT_IMPLEMENTED;
 }
 
 NS_IMETHODIMP
-MacOSWebAuthnService::SetUserVerified(uint64_t authenticatorId,
-                                      bool isUserVerified) {
+MacOSWebAuthnService::SetUserVerified(const nsACString& aAuthenticatorId,
+                                      bool aIsUserVerified) {
   return NS_ERROR_NOT_IMPLEMENTED;
 }
 
@@ -1519,7 +1520,7 @@ NS_IMETHODIMP
 MacOSWebAuthnService::Listen() { return NS_ERROR_NOT_IMPLEMENTED; }
 
 NS_IMETHODIMP
-MacOSWebAuthnService::RunCommand(const nsACString& cmd) {
+MacOSWebAuthnService::RunCommand(const nsACString& aCmd) {
   return NS_ERROR_NOT_IMPLEMENTED;
 }
 

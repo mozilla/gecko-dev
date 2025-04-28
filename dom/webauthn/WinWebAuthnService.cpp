@@ -1183,42 +1183,43 @@ WinWebAuthnService::AddVirtualAuthenticator(
 }
 
 NS_IMETHODIMP
-WinWebAuthnService::RemoveVirtualAuthenticator(uint64_t authenticatorId) {
+WinWebAuthnService::RemoveVirtualAuthenticator(
+    const nsACString& aAuthenticatorId) {
   return NS_ERROR_NOT_IMPLEMENTED;
 }
 
 NS_IMETHODIMP
-WinWebAuthnService::AddCredential(uint64_t authenticatorId,
-                                  const nsACString& credentialId,
-                                  bool isResidentCredential,
-                                  const nsACString& rpId,
-                                  const nsACString& privateKey,
-                                  const nsACString& userHandle,
-                                  uint32_t signCount) {
+WinWebAuthnService::AddCredential(const nsACString& aAuthenticatorId,
+                                  const nsACString& aCredentialId,
+                                  bool aIsResidentCredential,
+                                  const nsACString& aRpId,
+                                  const nsACString& aPrivateKey,
+                                  const nsACString& aUserHandle,
+                                  uint32_t aSignCount) {
   return NS_ERROR_NOT_IMPLEMENTED;
 }
 
 NS_IMETHODIMP
 WinWebAuthnService::GetCredentials(
-    uint64_t authenticatorId,
-    nsTArray<RefPtr<nsICredentialParameters>>& _retval) {
+    const nsACString& aAuthenticatorId,
+    nsTArray<RefPtr<nsICredentialParameters>>& _aRetval) {
   return NS_ERROR_NOT_IMPLEMENTED;
 }
 
 NS_IMETHODIMP
-WinWebAuthnService::RemoveCredential(uint64_t authenticatorId,
-                                     const nsACString& credentialId) {
+WinWebAuthnService::RemoveCredential(const nsACString& aAuthenticatorId,
+                                     const nsACString& aCredentialId) {
   return NS_ERROR_NOT_IMPLEMENTED;
 }
 
 NS_IMETHODIMP
-WinWebAuthnService::RemoveAllCredentials(uint64_t authenticatorId) {
+WinWebAuthnService::RemoveAllCredentials(const nsACString& aAuthenticatorId) {
   return NS_ERROR_NOT_IMPLEMENTED;
 }
 
 NS_IMETHODIMP
-WinWebAuthnService::SetUserVerified(uint64_t authenticatorId,
-                                    bool isUserVerified) {
+WinWebAuthnService::SetUserVerified(const nsACString& aAuthenticatorId,
+                                    bool aIsUserVerified) {
   return NS_ERROR_NOT_IMPLEMENTED;
 }
 
@@ -1226,7 +1227,7 @@ NS_IMETHODIMP
 WinWebAuthnService::Listen() { return NS_ERROR_NOT_IMPLEMENTED; }
 
 NS_IMETHODIMP
-WinWebAuthnService::RunCommand(const nsACString& cmd) {
+WinWebAuthnService::RunCommand(const nsACString& aCmd) {
   return NS_ERROR_NOT_IMPLEMENTED;
 }
 
