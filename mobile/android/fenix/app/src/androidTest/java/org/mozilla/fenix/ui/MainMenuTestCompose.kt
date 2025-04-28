@@ -14,7 +14,6 @@ import org.junit.Rule
 import org.junit.Test
 import org.mozilla.fenix.IntentReceiverActivity
 import org.mozilla.fenix.R
-import org.mozilla.fenix.customannotations.SkipLeaks
 import org.mozilla.fenix.customannotations.SmokeTest
 import org.mozilla.fenix.ext.components
 import org.mozilla.fenix.helpers.AppAndSystemHelper.assertExternalAppOpens
@@ -122,7 +121,6 @@ class MainMenuTestCompose : TestSetup() {
     // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2860843
     @SmokeTest
     @Test
-    @SkipLeaks(reasons = ["https://bugzilla.mozilla.org/show_bug.cgi?id=1959107"])
     fun verifyTheNewPrivateTabButtonTest() {
         val testPage = getGenericAsset(mockWebServer, 1)
 

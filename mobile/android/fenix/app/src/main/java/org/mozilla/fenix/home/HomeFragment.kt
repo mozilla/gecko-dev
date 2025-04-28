@@ -29,7 +29,6 @@ import androidx.compose.ui.viewinterop.AndroidView
 import androidx.coordinatorlayout.widget.CoordinatorLayout
 import androidx.core.content.ContextCompat.getColor
 import androidx.core.graphics.drawable.toDrawable
-import androidx.core.net.toUri
 import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
@@ -65,17 +64,13 @@ import mozilla.components.compose.base.Divider
 import mozilla.components.compose.cfr.CFRPopup
 import mozilla.components.compose.cfr.CFRPopupLayout
 import mozilla.components.compose.cfr.CFRPopupProperties
-import mozilla.components.concept.storage.FrecencyThresholdOption
 import mozilla.components.concept.sync.AccountObserver
 import mozilla.components.concept.sync.AuthType
 import mozilla.components.concept.sync.OAuthAccount
 import mozilla.components.feature.accounts.push.SendTabUseCases
 import mozilla.components.feature.tab.collections.TabCollection
 import mozilla.components.feature.top.sites.TopSite
-import mozilla.components.feature.top.sites.TopSitesConfig
 import mozilla.components.feature.top.sites.TopSitesFeature
-import mozilla.components.feature.top.sites.TopSitesFrecencyConfig
-import mozilla.components.feature.top.sites.TopSitesProviderConfig
 import mozilla.components.lib.state.ext.consumeFlow
 import mozilla.components.lib.state.ext.consumeFrom
 import mozilla.components.lib.state.ext.observeAsState
@@ -113,7 +108,6 @@ import org.mozilla.fenix.compose.snackbar.Snackbar
 import org.mozilla.fenix.compose.snackbar.SnackbarState
 import org.mozilla.fenix.databinding.FragmentHomeBinding
 import org.mozilla.fenix.ext.components
-import org.mozilla.fenix.ext.containsQueryParameters
 import org.mozilla.fenix.ext.hideToolbar
 import org.mozilla.fenix.ext.isToolbarAtBottom
 import org.mozilla.fenix.ext.nav
@@ -147,6 +141,10 @@ import org.mozilla.fenix.home.toolbar.HomeToolbarView
 import org.mozilla.fenix.home.toolbar.SearchSelectorBinding
 import org.mozilla.fenix.home.toolbar.SearchSelectorMenuBinding
 import org.mozilla.fenix.home.topsites.DefaultTopSitesView
+import org.mozilla.fenix.home.topsites.TopSitesConfigConstants.AMAZON_SEARCH_ENGINE_NAME
+import org.mozilla.fenix.home.topsites.TopSitesConfigConstants.AMAZON_SPONSORED_TITLE
+import org.mozilla.fenix.home.topsites.TopSitesConfigConstants.EBAY_SPONSORED_TITLE
+import org.mozilla.fenix.home.topsites.getTopSitesConfig
 import org.mozilla.fenix.home.ui.Homepage
 import org.mozilla.fenix.messaging.DefaultMessageController
 import org.mozilla.fenix.messaging.FenixMessageSurfaceId
@@ -166,8 +164,6 @@ import org.mozilla.fenix.snackbar.SnackbarBinding
 import org.mozilla.fenix.tabstray.Page
 import org.mozilla.fenix.tabstray.TabsTrayAccessPoint
 import org.mozilla.fenix.theme.FirefoxTheme
-import org.mozilla.fenix.utils.Settings.Companion.TOP_SITES_PROVIDER_LIMIT
-import org.mozilla.fenix.utils.Settings.Companion.TOP_SITES_PROVIDER_MAX_THRESHOLD
 import org.mozilla.fenix.utils.allowUndo
 import org.mozilla.fenix.wallpapers.Wallpaper
 import java.lang.ref.WeakReference
@@ -384,7 +380,10 @@ class HomeFragment : Fragment() {
                         settings = components.settings,
                     ),
                     storage = components.core.topSitesStorage,
-                    config = ::getTopSitesConfig,
+                    config = getTopSitesConfig(
+                        settings = requireContext().settings(),
+                        store = store,
+                    ),
                 ),
                 owner = viewLifecycleOwner,
                 view = binding.root,
@@ -1063,37 +1062,6 @@ class HomeFragment : Fragment() {
     private fun shouldShowMicrosurveyPrompt(context: Context) =
         context.components.settings.shouldShowMicrosurveyPrompt
 
-    /**
-     * Returns a [TopSitesConfig] which specifies how many top sites to display and whether or
-     * not frequently visited sites should be displayed.
-     */
-    @VisibleForTesting
-    internal fun getTopSitesConfig(): TopSitesConfig {
-        val settings = requireContext().settings()
-        return TopSitesConfig(
-            totalSites = settings.topSitesMaxLimit,
-            frecencyConfig = if (FxNimbus.features.homepageHideFrecentTopSites.value().enabled) {
-                null
-            } else {
-                TopSitesFrecencyConfig(
-                    frecencyTresholdOption = FrecencyThresholdOption.SKIP_ONE_TIME_PAGES,
-                ) { !it.url.toUri().containsQueryParameters(settings.frecencyFilterQuery) }
-            },
-            providerConfig = TopSitesProviderConfig(
-                showProviderTopSites = settings.showContileFeature,
-                limit = TOP_SITES_PROVIDER_LIMIT,
-                maxThreshold = TOP_SITES_PROVIDER_MAX_THRESHOLD,
-                providerFilter = { topSite ->
-                    when (store.state.search.selectedOrDefaultSearchEngine?.name) {
-                        AMAZON_SEARCH_ENGINE_NAME -> topSite.title != AMAZON_SPONSORED_TITLE
-                        EBAY_SPONSORED_TITLE -> topSite.title != EBAY_SPONSORED_TITLE
-                        else -> true
-                    }
-                },
-            ),
-        )
-    }
-
     @VisibleForTesting
     internal fun showUndoSnackbarForTopSite(topSite: TopSite) {
         lifecycleScope.allowUndo(
@@ -1657,11 +1625,6 @@ class HomeFragment : Fragment() {
 
         // Delay for scrolling to the collection header
         private const val ANIM_SCROLL_DELAY = 100L
-
-        // Sponsored top sites titles and search engine names used for filtering
-        const val AMAZON_SPONSORED_TITLE = "Amazon"
-        const val AMAZON_SEARCH_ENGINE_NAME = "Amazon.com"
-        const val EBAY_SPONSORED_TITLE = "eBay"
 
         // Elevation for undo toasts
         internal const val TOAST_ELEVATION = 80f

@@ -6,7 +6,6 @@ package org.mozilla.fenix.ui
 
 import org.junit.Rule
 import org.junit.Test
-import org.mozilla.fenix.customannotations.SkipLeaks
 import org.mozilla.fenix.customannotations.SmokeTest
 import org.mozilla.fenix.helpers.Constants.defaultTopSitesList
 import org.mozilla.fenix.helpers.DataGenerationHelper.getSponsoredShortcutTitle
@@ -62,7 +61,6 @@ class SponsoredShortcutsTest : TestSetup() {
 
     // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/1729334
     @Test
-    @SkipLeaks(reasons = ["https://bugzilla.mozilla.org/show_bug.cgi?id=1959107"])
     fun openSponsoredShortcutInPrivateTabTest() {
         homeScreen {
             sponsoredShortcutTitle = getSponsoredShortcutTitle(2)
