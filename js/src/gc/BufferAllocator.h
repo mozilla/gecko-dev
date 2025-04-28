@@ -519,13 +519,11 @@ static constexpr uint32_t FreeRegionCheckValue = 0xBFA110C3;
 #endif
 
 struct alignas(CellAlignBytes) MediumBuffer {
-  uint8_t sizeClass;
-
 #ifdef DEBUG
   uint16_t checkValue = MediumBufferCheckValue;
 #endif
 
-  explicit MediumBuffer(uint8_t sizeClass);
+  MediumBuffer();
   static MediumBuffer* from(BufferChunk* chunk, uintptr_t offset);
   void check() const;
   size_t bytesIncludingHeader() const;
