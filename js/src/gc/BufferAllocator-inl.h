@@ -37,7 +37,7 @@ inline bool BufferAllocator::IsSmallAllocSize(size_t bytes) {
 
 /* static */
 inline bool BufferAllocator::IsLargeAllocSize(size_t bytes) {
-  return bytes + sizeof(MediumBuffer) > MaxMediumAllocSize;
+  return bytes > MaxMediumAllocSize;
 }
 
 /* static */
@@ -48,9 +48,10 @@ inline size_t BufferAllocator::GetGoodAllocSize(size_t requiredBytes) {
     return RoundUp(requiredBytes, ChunkSize);
   }
 
-  // Small and medium headers have the same size.
-  size_t headerSize = sizeof(SmallBuffer);
-  static_assert(sizeof(SmallBuffer) == sizeof(MediumBuffer));
+  size_t headerSize = 0;
+  if (IsSmallAllocSize(requiredBytes)) {
+    headerSize = sizeof(SmallBuffer);
+  }
 
   // TODO: Support more sizes than powers of 2
   return mozilla::RoundUpPow2(requiredBytes + headerSize) - headerSize;
@@ -61,10 +62,8 @@ size_t BufferAllocator::GetGoodPower2AllocSize(size_t requiredBytes) {
   requiredBytes = std::max(requiredBytes, MinAllocSize);
 
   size_t headerSize = 0;
-  if (!IsLargeAllocSize(requiredBytes)) {
-    // Small and medium headers have the same size.
+  if (IsSmallAllocSize(requiredBytes)) {
     headerSize = sizeof(SmallBuffer);
-    static_assert(sizeof(SmallBuffer) == sizeof(MediumBuffer));
   }
 
   return mozilla::RoundUpPow2(requiredBytes + headerSize) - headerSize;
