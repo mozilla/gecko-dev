@@ -559,10 +559,10 @@ static RefPtr<VideoFrame> CreateVideoFrame(
     }
   }
 
-  return MakeRefPtr<VideoFrame>(
-      aGlobalObject, aData->mImage, format, aData->mImage->GetSize(),
-      aData->mImage->GetPictureRect(), displaySize, Some(aDuration), aTimestamp,
-      aColorSpace.ToColorSpaceInit());
+  return MakeRefPtr<VideoFrame>(aGlobalObject, aData->mImage, format,
+                                aData->mImage->GetSize(),
+                                aData->mImage->GetPictureRect(), displaySize,
+                                Some(aDuration), aTimestamp, aColorSpace);
 }
 
 /* static */
