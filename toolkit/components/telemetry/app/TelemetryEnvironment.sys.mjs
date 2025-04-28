@@ -83,7 +83,7 @@ var gActiveExperimentStartupBuffer = new Map();
 
 // For Powering arewegleanyet.com (See bug 1944592)
 // Legacy Count: 115
-// Glean Count: 107
+// Glean Count: 111
 
 var gGlobalEnvironment;
 function getGlobal() {
@@ -1474,9 +1474,15 @@ EnvironmentCache.prototype = {
         break;
       case AUTO_UPDATE_PREF_CHANGE_TOPIC:
         this._currentEnvironment.settings.update.autoDownload = aData == "true";
+        Glean.updateSettings.autoDownload.set(
+          this._currentEnvironment.settings.update.autoDownload
+        );
         break;
       case BACKGROUND_UPDATE_PREF_CHANGE_TOPIC:
         this._currentEnvironment.settings.update.background = aData == "true";
+        Glean.updateSettings.background.set(
+          this._currentEnvironment.settings.update.background
+        );
         break;
       case SERVICES_INFO_CHANGE_TOPIC:
         this._updateServicesInfo();
@@ -1678,6 +1684,10 @@ EnvironmentCache.prototype = {
       userPrefs: this._getPrefData(),
       sandbox: this._getSandboxData(),
     };
+    Glean.updateSettings.channel.set(updateChannel);
+    Glean.updateSettings.enabled.set(
+      this._currentEnvironment.settings.update.enabled
+    );
 
     // Services.appinfo.launcherProcessState is not available in all build
     // configurations, in which case an exception may be thrown.
@@ -1874,10 +1884,12 @@ EnvironmentCache.prototype = {
     if (this._updateAutoDownloadCache !== undefined) {
       this._currentEnvironment.settings.update.autoDownload =
         this._updateAutoDownloadCache;
+      Glean.updateSettings.autoDownload.set(this._updateAutoDownloadCache);
     }
     if (this._updateBackgroundCache !== undefined) {
       this._currentEnvironment.settings.update.background =
         this._updateBackgroundCache;
+      Glean.updateSettings.background.set(this._updateBackgroundCache);
     }
   },
 

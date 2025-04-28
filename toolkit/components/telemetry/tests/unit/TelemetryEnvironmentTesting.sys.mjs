@@ -340,6 +340,22 @@ export var TelemetryEnvironmentTesting = {
     lazy.Assert.equal(typeof update.enabled, "boolean");
     lazy.Assert.equal(typeof update.autoDownload, "boolean");
     lazy.Assert.equal(typeof update.background, "boolean");
+    lazy.Assert.equal(
+      update.channel,
+      Glean.updateSettings.channel.testGetValue()
+    );
+    lazy.Assert.equal(
+      update.enabled,
+      Glean.updateSettings.enabled.testGetValue()
+    );
+    lazy.Assert.equal(
+      update.autoDownload,
+      Glean.updateSettings.autoDownload.testGetValue()
+    );
+    lazy.Assert.equal(
+      update.background,
+      Glean.updateSettings.background.testGetValue()
+    );
 
     // Check sandbox settings exist and make sense
     if (data.settings.sandbox.effectiveContentProcessLevel !== null) {
