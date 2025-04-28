@@ -318,7 +318,7 @@ class SelectableProfileServiceClass extends EventEmitter {
       } else {
         // No other profiles. Reset our state.
         this.#groupToolkitProfile.storeID = null;
-        this.#attemptFlushProfileService();
+        await this.#attemptFlushProfileService();
         Services.prefs.setBoolPref(PROFILES_CREATED_PREF_NAME, false);
 
         this.#connection = null;
@@ -334,7 +334,7 @@ class SelectableProfileServiceClass extends EventEmitter {
     // with the current storeID.
     if (this.#groupToolkitProfile.storeID != this.storeID) {
       this.#groupToolkitProfile.storeID = this.storeID;
-      this.#attemptFlushProfileService();
+      await this.#attemptFlushProfileService();
     }
 
     // On macOS when other applications request we open a url the most recent
@@ -352,7 +352,7 @@ class SelectableProfileServiceClass extends EventEmitter {
     this.initWindowTracker();
 
     // We must also set the current profile as default during startup.
-    this.setDefaultProfileForGroup();
+    await this.setDefaultProfileForGroup();
 
     Services.obs.addObserver(
       this.themeObserver,
@@ -1097,7 +1097,7 @@ class SelectableProfileServiceClass extends EventEmitter {
       this.#currentProfile = await this.#createProfile(path);
 
       // And also set the profile selector window to show at startup (bug 1933911).
-      this.setShowProfileSelectorWindow(true);
+      await this.setShowProfileSelectorWindow(true);
 
       // For first-run dark mode macOS users, the original profile's dock icon
       // disappears after creating and launching an additional profile for the
