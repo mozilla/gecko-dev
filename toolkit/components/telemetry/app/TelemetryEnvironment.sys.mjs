@@ -83,7 +83,7 @@ var gActiveExperimentStartupBuffer = new Map();
 
 // For Powering arewegleanyet.com (See bug 1944592)
 // Legacy Count: 115
-// Glean Count: 103
+// Glean Count: 105
 
 var gGlobalEnvironment;
 function getGlobal() {
@@ -1918,6 +1918,8 @@ EnvironmentCache.prototype = {
       accountEnabled,
       syncEnabled,
     };
+    Glean.fxa.syncEnabled.set(syncEnabled);
+    Glean.fxa.accountEnabled.set(accountEnabled);
   },
 
   /**
