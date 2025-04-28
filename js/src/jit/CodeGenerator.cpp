@@ -10715,6 +10715,11 @@ void CodeGenerator::visitWasmPostWriteBarrierWholeCell(
   Register temp = ToRegister(lir->temp0());
   MOZ_ASSERT(ToRegister(lir->instance()) == InstanceReg);
   auto* ool = new (alloc()) LambdaOutOfLineCode([=](OutOfLineCode& ool) {
+    // Skip the barrier if this object was previously added to the store buffer.
+    // We perform this check out of line because in practice the prior guards
+    // eliminate most calls to the barrier.
+    wasm::CheckWholeCellLastElementCache(masm, object, temp, ool.rejoin());
+
     saveLiveVolatile(lir);
     masm.Push(InstanceReg);
     int32_t framePushedAfterInstance = masm.framePushed();

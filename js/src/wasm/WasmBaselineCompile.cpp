@@ -7259,10 +7259,11 @@ bool BaseCompiler::emitPostBarrierWholeCell(RegRef object, RegRef value,
   // location for whether or not the post-barrier call is taken.
   sync();
 
-  // Emit a guard to skip the post-barrier call if it is not needed.
+  // Emit guards to skip the post-barrier call if it is not needed.
   Label skipBarrier;
   EmitWasmPostBarrierGuard(masm, mozilla::Some(object), temp, value,
                            &skipBarrier);
+  CheckWholeCellLastElementCache(masm, object, temp, &skipBarrier);
 
   movePtr(RegPtr(object), temp);
 
