@@ -49,7 +49,7 @@ def repackage_rpm(config, tasks):
                     {
                         "artifact": "target.tar.xz",
                         "extract": False,
-                        "dest": "/builds/worker/fetches/target.tar.xz",
+                        "dest": "/builds/worker/fetches",
                     }
                 ]
             },
@@ -74,7 +74,7 @@ def repackage_rpm(config, tasks):
                     {
                         "artifact": langpack_artifact_path_no_prefix,
                         "extract": False,
-                        "dest": f"/builds/worker/fetches/{locale}.langpack.xpi",
+                        "dest": f"/builds/worker/fetches/{locale}",
                     }
                 )
         task["dependencies"] = {**task["dependencies"], **l10n_signing_deps}
