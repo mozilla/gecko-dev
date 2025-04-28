@@ -1131,12 +1131,6 @@ class nsDocShell final : public nsDocLoader,
   bool IsSameDocumentAsActiveEntry(
       const mozilla::dom::SessionHistoryInfo& aSHInfo);
 
-  nsresult ReloadNavigable(
-      JSContext* aCx, uint32_t aReloadFlags,
-      nsIStructuredCloneContainer* aNavigationAPIState = nullptr,
-      mozilla::dom::UserNavigationInvolvement aUserInvolvement =
-          mozilla::dom::UserNavigationInvolvement::None);
-
  private:
   void SetCurrentURIInternal(nsIURI* aURI);
 

@@ -4142,15 +4142,12 @@ class Document : public nsINode,
     --mThrowOnDynamicMarkupInsertionCounter;
   }
 
-  // https://html.spec.whatwg.org/#unload-counter
   bool ShouldIgnoreOpens() const { return mIgnoreOpensDuringUnloadCounter; }
 
-  // https://html.spec.whatwg.org/#unload-counter
   void IncrementIgnoreOpensDuringUnloadCounter() {
     ++mIgnoreOpensDuringUnloadCounter;
   }
 
-  // https://html.spec.whatwg.org/#unload-counter
   void DecrementIgnoreOpensDuringUnloadCounter() {
     MOZ_ASSERT(mIgnoreOpensDuringUnloadCounter);
     --mIgnoreOpensDuringUnloadCounter;
