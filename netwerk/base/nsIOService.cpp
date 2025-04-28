@@ -2190,6 +2190,10 @@ nsresult nsIOService::SpeculativeConnectInternal(
     loadFlags |= nsIRequest::LOAD_ANONYMOUS;
     channel->SetLoadFlags(loadFlags);
   }
+  if (aCallbacks) {
+    rv = channel->SetNotificationCallbacks(aCallbacks);
+    NS_ENSURE_SUCCESS(rv, rv);
+  }
 
   nsCOMPtr<nsICancelable> cancelable;
   RefPtr<IOServiceProxyCallback> callback = new IOServiceProxyCallback(
