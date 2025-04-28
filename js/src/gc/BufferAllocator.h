@@ -442,8 +442,8 @@ class BufferAllocator : public SlimLinkedListElement<BufferAllocator> {
                       uintptr_t freeEnd, bool shouldDecommit,
                       bool expectUnchanged, FreeLists& freeLists);
   void freeMedium(void* alloc);
-  bool growMedium(MediumBuffer* header, size_t newBytes);
-  bool shrinkMedium(MediumBuffer* header, size_t newBytes);
+  bool growMedium(MediumBuffer* buffer, size_t newBytes);
+  bool shrinkMedium(MediumBuffer* buffer, size_t newBytes);
   FreeRegion* findFollowingFreeRegion(uintptr_t start);
   FreeRegion* findPrecedingFreeRegion(uintptr_t start);
   enum class ListPosition { Front, Back };
@@ -477,10 +477,10 @@ class BufferAllocator : public SlimLinkedListElement<BufferAllocator> {
   static bool IsLargeAlloc(void* alloc);
 
   void* allocLarge(size_t bytes, bool nurseryOwned, bool inGC);
-  bool sweepLargeTenured(LargeBuffer* header);
+  bool sweepLargeTenured(LargeBuffer* buffer);
   void freeLarge(void* alloc);
-  bool shrinkLarge(LargeBuffer* header, size_t newBytes);
-  void unmapLarge(LargeBuffer* header, bool isSweeping, MaybeLock& lock);
+  bool shrinkLarge(LargeBuffer* buffer, size_t newBytes);
+  void unmapLarge(LargeBuffer* buffer, bool isSweeping, MaybeLock& lock);
   void traceLargeAlloc(JSTracer* trc, Cell* owner, void** allocp,
                        const char* name);
   void markLargeNurseryOwnedBuffer(LargeBuffer* buffer, bool ownerWasTenured);
