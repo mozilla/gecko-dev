@@ -2058,7 +2058,7 @@ class FunctionCompiler {
         curBlock_->add(store);
 
         // Call the post-write barrier
-        return postBarrierPrecise(lineOrBytecode, valueAddr, prevValue);
+        return postBarrierEdgePrecise(lineOrBytecode, valueAddr, prevValue);
       }
 
       auto* store = MWasmStoreGlobalCell::New(alloc(), v, valueAddr);
@@ -2089,7 +2089,7 @@ class FunctionCompiler {
       curBlock_->add(store);
 
       // Call the post-write barrier
-      return postBarrierPrecise(lineOrBytecode, valueAddr, prevValue);
+      return postBarrierEdgePrecise(lineOrBytecode, valueAddr, prevValue);
     }
 
     auto* store = MWasmStoreInstanceDataField::New(alloc(), global.offset(), v,
@@ -2205,7 +2205,7 @@ class FunctionCompiler {
     curBlock_->add(store);
 
     // Perform the post barrier
-    return postBarrierPrecise(lineOrBytecode, loc, prevValue);
+    return postBarrierEdgePrecise(lineOrBytecode, loc, prevValue);
   }
 
   void addInterruptCheck() {
@@ -2217,39 +2217,12 @@ class FunctionCompiler {
   }
 
   // Perform a post-write barrier to update the generational store buffer. This
-  // version will remove a previous store buffer entry if it is no longer
-  // needed.
-  [[nodiscard]] bool postBarrierPrecise(uint32_t lineOrBytecode,
-                                        MDefinition* valueAddr,
-                                        MDefinition* value) {
-    return emitInstanceCall2(lineOrBytecode, SASigPostBarrierPrecise, valueAddr,
-                             value);
-  }
-
-  // Perform a post-write barrier to update the generational store buffer. This
-  // version will remove a previous store buffer entry if it is no longer
-  // needed.
-  [[nodiscard]] bool postBarrierPreciseWithOffset(uint32_t lineOrBytecode,
-                                                  MDefinition* valueBase,
-                                                  uint32_t valueOffset,
-                                                  MDefinition* value) {
-    MDefinition* valueOffsetDef = constantI32(int32_t(valueOffset));
-    if (!valueOffsetDef) {
-      return false;
-    }
-    return emitInstanceCall3(lineOrBytecode, SASigPostBarrierPreciseWithOffset,
-                             valueBase, valueOffsetDef, value);
-  }
-
-  // Perform a post-write barrier to update the generational store buffer. This
-  // version is the most efficient and only requires the address to store the
-  // value and the new value. It does not remove a previous store buffer entry
-  // if it is no longer needed, you must use a precise post-write barrier for
-  // that.
-  [[nodiscard]] bool postBarrierImmediate(uint32_t lineOrBytecode,
+  // version stores the entire containing object (e.g. a struct) rather than a
+  // single edge.
+  [[nodiscard]] bool postBarrierWholeCell(uint32_t lineOrBytecode,
                                           MDefinition* object,
                                           MDefinition* newValue) {
-    auto* barrier = MWasmPostWriteBarrierImmediate::New(
+    auto* barrier = MWasmPostWriteBarrierWholeCell::New(
         alloc(), instancePointer_, object, newValue);
     if (!barrier) {
       return false;
@@ -2258,12 +2231,25 @@ class FunctionCompiler {
     return true;
   }
 
-  [[nodiscard]] bool postBarrierIndex(uint32_t lineOrBytecode,
-                                      MDefinition* object,
-                                      MDefinition* valueBase,
-                                      MDefinition* index, uint32_t scale,
-                                      MDefinition* newValue) {
-    auto* barrier = MWasmPostWriteBarrierIndex::New(
+  // Perform a post-write barrier to update the generational store buffer. This
+  // version tracks a single tenured -> nursery edge, and will remove a previous
+  // store buffer entry if it is no longer needed.
+  [[nodiscard]] bool postBarrierEdgePrecise(uint32_t lineOrBytecode,
+                                            MDefinition* valueAddr,
+                                            MDefinition* value) {
+    return emitInstanceCall2(lineOrBytecode, SASigPostBarrierEdgePrecise,
+                             valueAddr, value);
+  }
+
+  // Perform a post-write barrier to update the generational store buffer. This
+  // version does not remove a previous store buffer entry if it is no longer
+  // needed.
+  [[nodiscard]] bool postBarrierEdgeAtIndex(uint32_t lineOrBytecode,
+                                            MDefinition* object,
+                                            MDefinition* valueBase,
+                                            MDefinition* index, uint32_t scale,
+                                            MDefinition* newValue) {
+    auto* barrier = MWasmPostWriteBarrierEdgeAtIndex::New(
         alloc(), instancePointer_, object, valueBase, index, scale, newValue);
     if (!barrier) {
       return false;
@@ -4053,7 +4039,8 @@ class FunctionCompiler {
         alloc(), instancePointer_, exceptionAddr, /*valueOffset=*/0, exception,
         AliasSet::WasmPendingException, WasmPreBarrierKind::Normal);
     curBlock_->add(setException);
-    if (!postBarrierPrecise(/*lineOrBytecode=*/0, exceptionAddr, exception)) {
+    if (!postBarrierEdgePrecise(/*lineOrBytecode=*/0, exceptionAddr,
+                                exception)) {
       return false;
     }
 
@@ -4065,7 +4052,7 @@ class FunctionCompiler {
         alloc(), instancePointer_, exceptionTagAddr, /*valueOffset=*/0, tag,
         AliasSet::WasmPendingException, WasmPreBarrierKind::Normal);
     curBlock_->add(setExceptionTag);
-    return postBarrierPrecise(/*lineOrBytecode=*/0, exceptionTagAddr, tag);
+    return postBarrierEdgePrecise(/*lineOrBytecode=*/0, exceptionTagAddr, tag);
   }
 
   [[nodiscard]] bool endWithPadPatch(
@@ -4650,7 +4637,7 @@ class FunctionCompiler {
       curBlock_->add(store);
 
       // Call the post-write barrier
-      if (!postBarrierImmediate(bytecodeOffset, exception, argValues[i])) {
+      if (!postBarrierWholeCell(bytecodeOffset, exception, argValues[i])) {
         return false;
       }
     }
@@ -4850,7 +4837,7 @@ class FunctionCompiler {
     curBlock_->add(store);
 
     // Call the post-write barrier
-    return postBarrierImmediate(lineOrBytecode, keepAlive, value);
+    return postBarrierWholeCell(lineOrBytecode, keepAlive, value);
   }
 
   // Generate a write of `value` at address `base + index * scale`, where
@@ -4897,8 +4884,8 @@ class FunctionCompiler {
     }
     curBlock_->add(store);
 
-    return postBarrierIndex(lineOrBytecode, keepAlive, base, index,
-                            sizeof(void*), value);
+    return postBarrierEdgeAtIndex(lineOrBytecode, keepAlive, base, index,
+                                  sizeof(void*), value);
   }
 
   // Generate a read from address `base + offset`, where `offset` is known at

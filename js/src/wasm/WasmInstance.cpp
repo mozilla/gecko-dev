@@ -1400,28 +1400,20 @@ static int32_t MemDiscardShared(Instance* instance, I byteOffset, I byteLen,
 //
 // AnyRef support.
 
-/* static */ void Instance::postBarrier(Instance* instance, void** location) {
-  MOZ_ASSERT(SASigPostBarrier.failureMode == FailureMode::Infallible);
+/* static */ void Instance::postBarrierEdge(Instance* instance,
+                                            AnyRef* location) {
+  MOZ_ASSERT(SASigPostBarrierEdge.failureMode == FailureMode::Infallible);
   MOZ_ASSERT(location);
-  instance->storeBuffer_->putWasmAnyRef(
-      reinterpret_cast<wasm::AnyRef*>(location));
+  instance->storeBuffer_->putWasmAnyRef(location);
 }
 
-/* static */ void Instance::postBarrierPrecise(Instance* instance,
-                                               void** location, void* prev) {
-  MOZ_ASSERT(SASigPostBarrierPrecise.failureMode == FailureMode::Infallible);
-  postBarrierPreciseWithOffset(instance, location, /*offset=*/0, prev);
-}
-
-/* static */ void Instance::postBarrierPreciseWithOffset(Instance* instance,
-                                                         void** base,
-                                                         uint32_t offset,
-                                                         void* prev) {
-  MOZ_ASSERT(SASigPostBarrierPreciseWithOffset.failureMode ==
+/* static */ void Instance::postBarrierEdgePrecise(Instance* instance,
+                                                   AnyRef* location,
+                                                   void* prev) {
+  MOZ_ASSERT(SASigPostBarrierEdgePrecise.failureMode ==
              FailureMode::Infallible);
-  MOZ_ASSERT(base);
-  wasm::AnyRef* location = (wasm::AnyRef*)(uintptr_t(base) + size_t(offset));
-  wasm::AnyRef next = *location;
+  MOZ_ASSERT(location);
+  AnyRef next = *location;
   InternalBarrierMethods<AnyRef>::postBarrier(
       location, wasm::AnyRef::fromCompiledCode(prev), next);
 }
