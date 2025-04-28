@@ -295,29 +295,7 @@ export var OSKeyStore = {
    *                                      login dialog. Empty strings and `true` are disallowed.
    * @returns {Promise<string>}           resolves to the decrypted string, or rejects otherwise.
    */
-  async decrypt(cipherText, trigger, reauth = false) {
-    let string;
-    let errorResult = 0;
-    try {
-      string = await this._decrypt(cipherText, reauth, trigger);
-    } catch (e) {
-      errorResult = e.result;
-      if (e.result != Cr.NS_ERROR_ABORT) {
-        lazy.log.warn(`Decryption failed with result: ${e.result}`);
-        throw e;
-      }
-      lazy.log.warn("User canceled encryption login");
-    } finally {
-      Glean.creditcard.osKeystoreDecrypt.record({
-        isDecryptSuccess: errorResult === 0,
-        errorResult,
-        trigger,
-      });
-    }
-    return string;
-  },
-
-  async _decrypt(cipherText, reauth = false) {
+  async decrypt(cipherText, reauth = false) {
     if (!(await this.ensureLoggedIn(reauth)).authenticated) {
       throw Components.Exception(
         "User canceled OS unlock entry",

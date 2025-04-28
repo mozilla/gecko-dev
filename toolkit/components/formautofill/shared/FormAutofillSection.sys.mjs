@@ -674,6 +674,24 @@ export class FormAutofillCreditCardSection extends FormAutofillSection {
       this.log.debug("Reauth is disabled");
       reauth = false;
     }
-    return await lazy.OSKeyStore.decrypt(cipherText, "autofill", reauth);
+    let string;
+    let errorResult = 0;
+    try {
+      string = await lazy.OSKeyStore.decrypt(cipherText, reauth);
+    } catch (e) {
+      errorResult = e.result;
+      if (e.result != Cr.NS_ERROR_ABORT) {
+        this.log.warn(`Decryption failed with result: ${e.result}`);
+        throw e;
+      }
+      this.log.warn("User canceled encryption login");
+    } finally {
+      Glean.creditcard.osKeystoreDecrypt.record({
+        isDecryptSuccess: errorResult === 0,
+        errorResult,
+        trigger: "autofill",
+      });
+    }
+    return string;
   }
 }
