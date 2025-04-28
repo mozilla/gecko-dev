@@ -161,12 +161,16 @@ export class DeferredTask {
    * if the task is not currently running.
    *
    * May be accessed for tests.
+   *
+   * @type {Promise<void>|undefined}
    */
-  _runningPromise = null;
+  _runningPromise = undefined;
 
   /**
    * nsITimer used for triggering the task after a delay, or null in case the
    * task is running or there is no task scheduled for execution.
+   *
+   * @type {nsITimer|null}
    */
   #timer = null;
 
@@ -196,6 +200,9 @@ export class DeferredTask {
 
   /**
    * Dispatches idle task. Can be overridden for testing by test_DeferredTask.
+   *
+   * @param {IdleRequestCallback} callback
+   * @param {number} timeout
    */
   _startIdleDispatch(callback, timeout) {
     ChromeUtils.idleDispatch(callback, { timeout });
@@ -211,7 +218,7 @@ export class DeferredTask {
    * within the same tick of the event loop are guaranteed to result in a single
    * execution of the task.
    *
-   * @note By design, this method doesn't provide a way for the caller to detect
+   * Note: By design, this method doesn't provide a way for the caller to detect
    *       when the next execution terminates, or collect a result.  In fact,
    *       doing that would often result in duplicate processing or logging.  If
    *       a special operation or error logging is needed on completion, it can
@@ -267,9 +274,8 @@ export class DeferredTask {
    * - If the task is not running and the timer is not armed, the method returns
    *   a resolved promise.
    *
-   * @return {Promise}
-   * @resolves After the last execution of the task is finished.
-   * @rejects Never.
+   * @returns {Promise<void>}
+   *   Resolves when the last execution of the task is finished.
    */
   finalize() {
     if (this.#finalized) {
