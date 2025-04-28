@@ -67,7 +67,6 @@ class nsIPrincipal;
 // default policy.
 #define PREF_GEO_SECURITY_ALLOWINSECURE "geo.security.allowinsecure"
 
-using mozilla::Unused;  // <snicker>
 using namespace mozilla;
 using namespace mozilla::dom;
 using namespace mozilla::dom::geolocation;
@@ -454,7 +453,12 @@ nsGeolocationRequest::Allow(JS::Handle<JS::Value> aChoices) {
     canUseCache = true;
   }
 
-  gs->UpdateAccuracy(WantsHighAccuracy());
+  if (XRE_IsParentProcess()) {
+    // On content process this info will be passed together via
+    // SendAddGeolocationListener called by StartDevice below
+    gs->UpdateAccuracy(WantsHighAccuracy());
+  }
+
   if (canUseCache) {
     // okay, we can return a cached position
     // getCurrentPosition requests serviced by the cache
@@ -828,6 +832,7 @@ nsGeolocationService::Observe(nsISupports* aSubject, const char* aTopic,
 NS_IMETHODIMP
 nsGeolocationService::Update(nsIDOMGeoPosition* aSomewhere) {
   if (aSomewhere) {
+    mStarting.reset();
     SetCachedPosition(aSomewhere);
   }
 
@@ -869,12 +874,20 @@ nsresult nsGeolocationService::StartDevice() {
 
   // We do not want to keep the geolocation devices online
   // indefinitely.
-  // Close them down after a reasonable period of inactivivity.
+  // Close them down after a reasonable period of inactivity.
   SetDisconnectTimer();
 
   if (XRE_IsContentProcess()) {
+    bool highAccuracyRequested = HighAccuracyRequested();
+    if (mStarting.isSome() && *mStarting == highAccuracyRequested) {
+      // Already being started
+      return NS_OK;
+    }
+    mStarting = Some(highAccuracyRequested);
     ContentChild* cpc = ContentChild::GetSingleton();
-    cpc->SendAddGeolocationListener(HighAccuracyRequested());
+    if (!cpc->SendAddGeolocationListener(highAccuracyRequested)) {
+      return NS_ERROR_NOT_AVAILABLE;
+    }
     return NS_OK;
   }
 
@@ -945,6 +958,7 @@ void nsGeolocationService::StopDevice() {
   }
 
   if (XRE_IsContentProcess()) {
+    mStarting.reset();
     ContentChild* cpc = ContentChild::GetSingleton();
     cpc->SendRemoveGeolocationListener();
 

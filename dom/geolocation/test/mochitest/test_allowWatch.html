@@ -26,14 +26,21 @@ resume_geolocationProvider(function() {
 });
 
 var watchID;
+var timestamp;
 
+/** @param {GeolocationPosition} position */
 function successCallback(position) {
   check_geolocation(position);
+
+  const delay = position.timestamp - timestamp;
+  info(`watchPosition took ${delay} ms`);
+  ok(delay < 2000, "watchPosition should respond fast");
   navigator.geolocation.clearWatch(watchID);
   SimpleTest.finish();
 }
 
 function test1() {
+  timestamp = Date.now();
   watchID = navigator.geolocation.watchPosition(successCallback, null, null);
   is(watchID, 1, "initially returns 1");
 }

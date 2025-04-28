@@ -113,6 +113,11 @@ class nsGeolocationService final : public nsIGeolocationUpdate,
 
   // Current state of requests for higher accuracy
   bool mHigherAccuracy = false;
+
+  // Whether the geolocation device is starting.
+  // Nothing() if not being started, or a boolean reflecting the requested
+  // accuracy.
+  mozilla::Maybe<bool> mStarting;
 };
 
 namespace mozilla::dom {
