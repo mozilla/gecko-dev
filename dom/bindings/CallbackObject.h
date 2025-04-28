@@ -170,7 +170,10 @@ class CallbackObjectBase {
   // this point. This should only be called if the object is known not to be
   // used again, and no handles (e.g. those returned by CallbackPreserveColor)
   // are in use.
-  void Reset() { ClearJSReferences(); }
+  virtual void Reset() {
+    ClearJSReferences();
+    mIncumbentGlobal = nullptr;
+  }
 
   friend class mozilla::PromiseJobRunnable;
 
@@ -346,7 +349,7 @@ class CallbackObject : public nsISupports,
     return aMallocSizeOf(this);
   }
 
-  void Reset() {
+  void Reset() final {
     CallbackObjectBase::Reset();
     mozilla::DropJSObjectsWithKey(this);
   }

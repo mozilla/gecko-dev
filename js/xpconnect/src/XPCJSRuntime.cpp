@@ -719,7 +719,7 @@ bool XPCJSRuntime::UsefulToMergeZones() const {
   return false;
 }
 
-void XPCJSRuntime::TraceNativeBlackRoots(JSTracer* trc) {
+void XPCJSRuntime::TraceAdditionalNativeBlackRoots(JSTracer* trc) {
   if (CycleCollectedJSContext* ccx = GetContext()) {
     const auto* cx = static_cast<const XPCJSContext*>(ccx);
     if (AutoMarkingPtr* roots = cx->mAutoRoots) {
