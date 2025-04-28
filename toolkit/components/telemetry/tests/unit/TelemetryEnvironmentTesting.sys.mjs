@@ -784,6 +784,7 @@ export var TelemetryEnvironmentTesting = {
 
       let SEC_FIELDS = ["antivirus", "antispyware", "firewall"];
       for (let f of SEC_FIELDS) {
+        let products = Glean.windowsSecurity[f].testGetValue();
         lazy.Assert.ok(
           f in data.system.sec,
           f + " must be available under data.system.sec"
@@ -797,6 +798,10 @@ export var TelemetryEnvironmentTesting = {
         );
         if (Array.isArray(value)) {
           for (let product of value) {
+            // It is posssible that this will fail if either the Legacy or
+            // Glean string limits are hit. If the Glean string_list limits are
+            // hit, `testGetValue` above will throw, though.
+            lazy.Assert.ok(products.includes(product), `${f} data must match.`);
             lazy.Assert.equal(
               typeof product,
               "string",

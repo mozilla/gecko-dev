@@ -251,7 +251,7 @@ Structure:
             },
           },
         appleModelId: <string>, // Mac only or null on failure
-        sec: { // This feature is Windows 8+ only
+        sec: { // This feature is Windows only
           antivirus: [ <string>, ... ],    // null if unavailable on platform: Product name(s) of registered antivirus programs
           antispyware: [ <string>, ... ],  // null if unavailable on platform: Product name(s) of registered antispyware programs
           firewall: [ <string>, ... ],     // null if unavailable on platform: Product name(s) of registered firewall programs

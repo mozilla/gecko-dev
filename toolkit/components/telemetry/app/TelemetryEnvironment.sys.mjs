@@ -83,7 +83,7 @@ var gActiveExperimentStartupBuffer = new Map();
 
 // For Powering arewegleanyet.com (See bug 1944592)
 // Legacy Count: 114
-// Glean Count: 54
+// Glean Count: 57
 
 var gGlobalEnvironment;
 function getGlobal() {
@@ -2078,6 +2078,7 @@ EnvironmentCache.prototype = {
     for (let [inKey, outKey] of keys) {
       let prop = getSysinfoProperty(inKey, null);
       if (prop) {
+        Glean.windowsSecurity[outKey].set(prop.split(";"));
         prop = limitStringToLength(prop, maxStringLength).split(";");
       }
 
