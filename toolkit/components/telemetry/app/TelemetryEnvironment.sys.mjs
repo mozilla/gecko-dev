@@ -83,7 +83,7 @@ var gActiveExperimentStartupBuffer = new Map();
 
 // For Powering arewegleanyet.com (See bug 1944592)
 // Legacy Count: 114
-// Glean Count: 92
+// Glean Count: 99
 
 var gGlobalEnvironment;
 function getGlobal() {
@@ -2208,6 +2208,7 @@ EnvironmentCache.prototype = {
       // Send RAM size in megabytes. Rounding because sysinfo doesn't
       // always provide RAM in multiples of 1024.
       memoryMB = Math.round(memoryMB / 1024 / 1024);
+      Glean.system.memory.set(memoryMB);
     }
 
     let virtualMB = getSysinfoProperty("virtualmemsize", null);
@@ -2215,6 +2216,7 @@ EnvironmentCache.prototype = {
       // Send the total virtual memory size in megabytes. Rounding because
       // sysinfo doesn't always provide RAM in multiples of 1024.
       virtualMB = Math.round(virtualMB / 1024 / 1024);
+      Glean.system.virtualMemory.set(virtualMB);
     }
 
     let data = {
@@ -2227,6 +2229,10 @@ EnvironmentCache.prototype = {
       appleModelId: getSysinfoProperty("appleModelId", null),
       hasWinPackageId: getSysinfoProperty("hasWinPackageId", null),
     };
+    Glean.system.appleModelId.set(data.appleModelId);
+    if (data.hasWinPackageId !== null) {
+      Glean.system.hasWinPackageId.set(data.hasWinPackageId);
+    }
 
     if (AppConstants.platform === "win") {
       // This is only sent for Mozilla produced MSIX packages
@@ -2236,8 +2242,11 @@ EnvironmentCache.prototype = {
         winPackageFamilyName.startsWith("MozillaCorporation.")
       ) {
         data = { winPackageFamilyName, ...data };
+        Glean.system.winPackageFamilyName.set(winPackageFamilyName);
       }
       data = { ...this._getProcessData(), ...data };
+      Glean.system.isWow64.set(data.isWow64);
+      Glean.system.isWowArm64.set(data.isWowARM64);
       data.sec = this._getSecurityAppData();
     }
 

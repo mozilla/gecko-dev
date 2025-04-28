@@ -1378,3 +1378,124 @@ system.os:
     notification_emails:
       - gijs@mozilla.com
     expires: never
+
+system:
+  memory:
+    type: quantity
+    unit: MB
+    lifetime: application
+    description: |
+      The physical memory size in MB (2^20 bytes).
+      e.g. 32211
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1950403
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1950403
+    data_sensitivity:
+      - technical
+    notification_emails:
+      - memshrink-telemetry-alerts@mozilla.com
+    expires: never
+
+  virtual_memory:
+    type: quantity
+    unit: MB
+    lifetime: application
+    description: |
+      The size of the user-mode portion of the virtual address space of the parent process.
+      Windows only.
+      e.g. 134217728
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1950403
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1950403
+    data_sensitivity:
+      - technical
+    notification_emails:
+      - memshrink-telemetry-alerts@mozilla.com
+    expires: never
+
+  is_wow_64:
+    type: boolean
+    lifetime: application
+    description: |
+      Whether we're in Windows32-on-Windows64 mode.
+      Windows only.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1950403
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1950403
+    data_sensitivity:
+      - technical
+    notification_emails:
+      - gijs@mozilla.com
+    expires: never
+
+  is_wow_arm_64:
+    type: boolean
+    lifetime: application
+    description: |
+      Whether we're in Windows32-on-WindowsForArm64 mode.
+      Windows only.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1950403
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1950403
+    data_sensitivity:
+      - technical
+    notification_emails:
+      - gijs@mozilla.com
+    expires: never
+
+  has_win_package_id:
+    type: boolean
+    lifetime: application
+    description: |
+      Whether the app has a package identity.
+      Windows only.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1950403
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1950403
+    data_sensitivity:
+      - technical
+    notification_emails:
+      - gijs@ozilla.com
+    expires: never
+
+  win_package_family_name:
+    type: string
+    lifetime: application
+    description: |
+      The full application package name without any of the components that might change
+      during the life cycle of the app (such as the version number or the architecture).
+      Uniquely identifies the application within one Windows installation.
+      Windows only.
+      Only included if it begins with "Mozilla." or "MozillaCorporation.".
+      e.g. "Mozilla.Firefox_n80bbvh6b1yt2"
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1950403
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1950403
+    data_sensitivity:
+      - technical
+    notification_emails:
+      - gijs@mozilla.com
+    expires: never
+
+  apple_model_id:
+    type: string
+    lifetime: application
+    description: |
+      The `hw.model` of the hardware running this software.
+      Mac only.
+      e.g. "MacBookPro14,1"
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1950403
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1950403
+    data_sensitivity:
+      - technical
+    notification_emails:
+      - gijs@mozilla.com
+    expires: never

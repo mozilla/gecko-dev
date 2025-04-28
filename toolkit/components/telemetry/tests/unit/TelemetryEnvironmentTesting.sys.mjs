@@ -546,6 +546,7 @@ export var TelemetryEnvironmentTesting = {
       Number.isFinite(data.system.memoryMB),
       "MemoryMB must be a number."
     );
+    lazy.Assert.equal(data.system.memoryMB, Glean.system.memory.testGetValue());
 
     if (assertProcessData) {
       if (gIsWindows || gIsMac || gIsLinux) {
@@ -600,6 +601,28 @@ export var TelemetryEnvironmentTesting = {
           lazy.Assert.ok(
             Number.isFinite(data.system.virtualMaxMB),
             "virtualMaxMB must be a number."
+          );
+          lazy.Assert.equal(
+            data.system.isWow64,
+            Glean.system.isWow64.testGetValue()
+          );
+          lazy.Assert.equal(
+            data.system.isWowARM64,
+            Glean.system.isWowArm64.testGetValue()
+          );
+          lazy.Assert.equal(
+            data.system.hasWinPackageId,
+            Glean.system.hasWinPackageId.testGetValue()
+          );
+          if (data.system.winPackageFamilyName) {
+            lazy.Assert.equal(
+              data.system.winPackageFamilyName,
+              Glean.system.winPackageFamilyName.testGetValue()
+            );
+          }
+          lazy.Assert.equal(
+            data.system.virtualMaxMB,
+            Glean.system.virtualMemory.testGetValue()
           );
 
           for (let f of [
@@ -844,8 +867,13 @@ export var TelemetryEnvironmentTesting = {
 
     if (gIsMac) {
       lazy.Assert.ok(this.checkString(data.system.appleModelId));
+      lazy.Assert.equal(
+        data.system.appleModelId,
+        Glean.system.appleModelId.testGetValue()
+      );
     } else {
       lazy.Assert.ok(this.checkNullOrString(data.system.appleModelId));
+      lazy.Assert.equal(null, Glean.system.appleModelId.testGetValue());
     }
 
     // This feature is only available on Windows
