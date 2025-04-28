@@ -442,6 +442,7 @@ def run(
             not paths
             and Path.cwd() == Path(lint.root)
             and not (outgoing or workdir or rev)
+            and not setup
         ):
             print(
                 "warning: linting the entire repo takes a long time, using --outgoing and "
