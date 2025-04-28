@@ -150,30 +150,6 @@ GIT ?= git
 merge-%: IS_LANGUAGE_REPACK=1
 merge-%: AB_CD=$*
 merge-%:
-# For nightly builds, we automatically check out missing localizations
-# from firefox-l10n.  We never automatically check out in automation:
-# automation builds check out revisions that have been signed-off by
-# l10n drivers prior to use.
-ifdef MOZ_AUTOMATION
-	if  ! test -d $(L10NBASEDIR)/$(AB_CD) ; then \
-		echo 'Error: Automation requires l10n repositories to be checked out: $(L10NBASEDIR)/$(AB_CD)' ; \
-		exit 1 ; \
-	fi
-endif
-ifdef NIGHTLY_BUILD
-	if  ! test -d $(L10NBASEDIR)/$(AB_CD) ; then \
-		$(NSINSTALL) -D $(L10NBASEDIR) ; \
-		$(GIT) clone https://github.com/mozilla-l10n/firefox-l10n.git $(L10NBASEDIR) --depth 1 ; \
-	fi
-ifndef MOZ_AUTOMATION
-	if  test -d $(L10NBASEDIR)/.git ; then \
-		$(GIT) -C $(L10NBASEDIR) pull --quiet ; \
-	else \
-		echo 'Error: folder is not a git repository - $(L10NBASEDIR)' ; \
-		exit 1 ; \
-	fi
-endif
-endif
 	$(RM) -rf $(REAL_LOCALE_MERGEDIR)
 	$(PYTHON3) -m moz.l10n.bin.build --config $(srcdir)/l10n.toml --base $(L10NBASEDIR) --target $(BASE_MERGE) --locales $(AB_CD)
 # Hunspell dictionaries are interesting, as we don't ship the en-US
