@@ -9,6 +9,7 @@ kind-dependencies:
     - fetch
 
 transforms:
+    - gecko_taskgraph.transforms.build_schedules:transforms
     - gecko_taskgraph.transforms.job:transforms
     - gecko_taskgraph.transforms.task:transforms
 
