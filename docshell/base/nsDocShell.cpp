@@ -3891,6 +3891,61 @@ nsresult nsDocShell::LoadErrorPage(nsIURI* aErrorURI, nsIURI* aFailedURI,
   return InternalLoad(loadState);
 }
 
+// https://html.spec.whatwg.org/#reload
+// To reload a navigable navigable given an optional serialized state-or-null
+// navigationAPIState (default null) and an optional user navigation
+// involvement userInvolvement (default "none"):
+nsresult nsDocShell::ReloadNavigable(
+    JSContext* aCx, uint32_t aReloadFlags,
+    nsIStructuredCloneContainer* aNavigationAPIState,
+    UserNavigationInvolvement aUserInvolvement) {
+  // 1. If userInvolvement is not "browser UI", then:
+  if (aUserInvolvement != UserNavigationInvolvement::BrowserUI) {
+    // 1.1 Let navigation be navigable's active window's navigation API.
+    nsPIDOMWindowOuter* windowOuter = GetWindow();
+    MOZ_DIAGNOSTIC_ASSERT(windowOuter);
+    nsPIDOMWindowInner* windowInner = windowOuter->GetCurrentInnerWindow();
+    MOZ_DIAGNOSTIC_ASSERT(windowInner);
+    RefPtr navigation = windowInner->Navigation();
+    MOZ_DIAGNOSTIC_ASSERT(navigation);
+
+    // 1.2 Let destinationNavigationAPIState be navigable's active session
+    //     history entry's navigation API state.
+    // 1.3 If navigationAPIState is not null, then set
+    //     destinationNavigationAPIState to navigationAPIState.
+    RefPtr<nsIStructuredCloneContainer> destinationNavigationAPIState =
+        aNavigationAPIState;
+    if (!destinationNavigationAPIState) {
+      destinationNavigationAPIState =
+          mActiveEntry ? mActiveEntry->GetNavigationState() : nullptr;
+    }
+
+    // 1.4 Let continue be the result of firing a push/replace/reload navigate
+    //     event at navigation with navigationType set to "reload",
+    //     isSameDocument set to false, userInvolvement set to userInvolvement,
+    //     destinationURL set to navigable's active session history entry's URL,
+    //     and navigationAPIState set to destinationNavigationAPIState.
+    // 1.5 If continue is false, then return.
+    RefPtr destinationURL = mActiveEntry ? mActiveEntry->GetURI() : nullptr;
+    if (!navigation->FirePushReplaceReloadNavigateEvent(
+            aCx, NavigationType::Reload, destinationURL,
+            /* aIsSameDocument */ false, Some(aUserInvolvement),
+            /* aSourceElement*/ nullptr, /* aFormDataEntryList */ Nothing{},
+            destinationNavigationAPIState,
+            /* aClassiCHistoryAPIState */ nullptr)) {
+      return NS_OK;
+    }
+  }
+  // 2. Set navigable's active session history entry's document state's reload
+  //    pending to true.
+  // 3. Let traversable be navigable's traversable navigable.
+  // 4. Append the following session history traversal steps to traversable:
+  // 4.1 Apply the reload history step to traversable given userInvolvement.
+  // XXX this is not complete yet. userInvolvement is not yet propagated,
+  //     and the navigate event is not yet fired (https://bugzil.la/1962710)
+  return Reload(aReloadFlags);
+}
+
 NS_IMETHODIMP
 nsDocShell::Reload(uint32_t aReloadFlags) {
   if (!IsNavigationAllowed()) {
