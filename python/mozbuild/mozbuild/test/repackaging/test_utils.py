@@ -3,9 +3,11 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 import datetime
+import json
 import os
 import tarfile
 import tempfile
+import zipfile
 from contextlib import nullcontext as does_not_raise
 from unittest.mock import MagicMock, call
 
@@ -619,6 +621,66 @@ def test_load_application_ini_data(version, build_number, expected):
             tar_path, version, build_number
         )
         assert application_ini_data == expected
+
+
+_MINIMAL_MANIFEST_JSON = """{
+  "langpack_id": "%(lang)s",
+  "manifest_version": 2,
+  "browser_specific_settings": {},
+  "name": "Language: %(lang)s",
+  "description": "Firefox Language Pack for %(lang)s",
+  "version": "136.0.20250326.231000",
+  "languages": {},
+  "sources": {},
+  "author": "mozilla.org"
+}"""
+
+
+def test_get_manifest_from_langpack():
+    with tempfile.TemporaryDirectory() as d:
+        path = os.path.join(d, "dummy.langpack.xpi")
+
+        with zipfile.ZipFile(path, "w") as zip_file:
+            zip_file.writestr("manifest.json", "")
+        assert utils.get_manifest_from_langpack(path, d) is None
+
+        with zipfile.ZipFile(path, "w") as zip_file:
+            zip_file.writestr(
+                "manifest.json", _MINIMAL_MANIFEST_JSON % {"lang": "dummy"}
+            )
+        assert utils.get_manifest_from_langpack(path, d) == json.loads(
+            _MINIMAL_MANIFEST_JSON % {"lang": "dummy"}
+        )
+
+
+@pytest.mark.parametrize(
+    "languages, expected",
+    (
+        ([], {}),
+        (
+            ["ach", "fr"],
+            {
+                "ach": "Firefox Language Pack for ach",
+                "fr": "Firefox Language Pack for fr",
+            },
+        ),
+    ),
+)
+def test_prepare_langpack_files(monkeypatch, languages, expected):
+    def _mock_copy(source, destination):
+        pass
+
+    monkeypatch.setattr(utils.shutil, "copy", _mock_copy)
+
+    with tempfile.TemporaryDirectory() as d:
+        for language in languages:
+            path = os.path.join(d, f"{language}.langpack.xpi")
+            with zipfile.ZipFile(path, "w") as zip_file:
+                zip_file.writestr(
+                    "manifest.json", _MINIMAL_MANIFEST_JSON % {"lang": language}
+                )
+
+        assert utils.prepare_langpack_files("/tmp", d) == expected
 
 
 if __name__ == "__main__":

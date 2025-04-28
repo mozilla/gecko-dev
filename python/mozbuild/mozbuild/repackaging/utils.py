@@ -2,10 +2,13 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this file,
 # You can obtain one at http://mozilla.org/MPL/2.0/.
 
+import json
 import os
+import pathlib
 import shutil
 import subprocess
 import tarfile
+import zipfile
 from datetime import datetime
 from email.utils import format_datetime
 from pathlib import Path
@@ -13,6 +16,7 @@ from string import Template
 from tempfile import TemporaryDirectory
 
 import mozpack.path as mozpath
+from jinja2 import Environment, FileSystemLoader
 
 from mozbuild.repackaging.application_ini import get_application_ini_values
 from mozbuild.repackaging.desktop_file import generate_browser_desktop_entry_file_text
@@ -82,7 +86,7 @@ def copy_plain_config(input_template_dir, source_dir):
     filenames = [
         mozpath.basename(filename)
         for filename in os.listdir(input_template_dir)
-        if not filename.endswith(".in") and not filename.endswith(".js")
+        if Path(filename).suffix not in [".j2", ".js", ".in"]
     ]
     os.makedirs(source_dir, exist_ok=True)
 
@@ -124,6 +128,15 @@ def get_build_variables(
         "DEPENDS": depends,
         "Icon": pkg_name,
     }
+
+
+def get_manifest_from_langpack(xpi_file, output_path):
+    try:
+        zip_file = zipfile.ZipFile(xpi_file)
+        manifest_file = zip_file.extract("manifest.json", output_path)
+        return json.loads(pathlib.Path(manifest_file).read_text())
+    except json.JSONDecodeError:
+        return None
 
 
 def inject_desktop_entry_file(
@@ -216,6 +229,19 @@ def mv_manpage_files(source_dir, build_variables):
         shutil.move(src, dst)
 
 
+def prepare_langpack_files(output_dir, xpi_directory):
+    metadata = {}
+    for xpi_file in Path(xpi_directory).rglob("*.langpack.xpi"):
+        manifest = get_manifest_from_langpack(xpi_file, output_dir)
+        if manifest is not None:
+            language = manifest["langpack_id"]
+            metadata[language] = manifest["description"]
+            output_file = mozpath.join(output_dir, f"{language}.langpack.xpi")
+            shutil.copy(xpi_file, output_file)
+
+    return metadata
+
+
 def render_templates(
     input_template_dir,
     source_dir,
@@ -227,12 +253,19 @@ def render_templates(
     filenames = [
         mozpath.basename(filename)
         for filename in os.listdir(input_template_dir)
-        if filename.endswith(".in") and filename not in exclude_file_names
+        if Path(filename).suffix in [".j2", ".in"]
+        and filename not in exclude_file_names
     ]
     os.makedirs(source_dir, exist_ok=True)
 
     for file_name in filenames:
-        with open(mozpath.join(input_template_dir, file_name)) as f:
-            template = Template(f.read())
-        with open(mozpath.join(source_dir, Path(file_name).stem), "w") as f:
-            f.write(template.substitute(build_variables))
+        if file_name.endswith(".in"):
+            with open(mozpath.join(input_template_dir, file_name)) as f:
+                template = Template(f.read())
+            with open(mozpath.join(source_dir, Path(file_name).stem), "w") as f:
+                f.write(template.substitute(build_variables))
+        elif file_name.endswith(".j2"):
+            environment = Environment(loader=FileSystemLoader(input_template_dir))
+            template = environment.get_template(file_name)
+            with open(mozpath.join(source_dir, Path(file_name).stem), "w") as f:
+                f.write(template.render(build_variables))

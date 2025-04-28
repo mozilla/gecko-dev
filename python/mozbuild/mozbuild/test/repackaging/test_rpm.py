@@ -296,12 +296,6 @@ def test_generate_rpm_archive(
 
     monkeypatch.setattr(rpm.os.path, "exists", mock_exists)
 
-    def mock_move(source_path, destination_path):
-        assert source_path == "/target_dir/x86_64/firefox-111.0-1.x86_64.rpm"
-        assert destination_path == "/output/target.rpm"
-
-    monkeypatch.setattr(rpm.shutil, "move", mock_move)
-
     def mock_copy(source_path, destination_path):
         assert source_path == "/tmp/firefox.tar.xz"
         assert destination_path == "/source_dir/rpm/firefox.tar.xz"
@@ -313,7 +307,7 @@ def test_generate_rpm_archive(
             source_dir="/source_dir/rpm",
             infile="/tmp/firefox.tar.xz",
             target_dir="/target_dir",
-            output_file_path="/output/target.rpm",
+            output_path="/output",
             build_variables={
                 "PKG_NAME": "firefox",
                 "PKG_VERSION": "111.0",

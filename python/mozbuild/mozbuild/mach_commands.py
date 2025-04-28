@@ -2576,7 +2576,20 @@ def repackage_deb_l10n(
 @CommandArgument(
     "--input", "-i", type=str, required=True, help="Input tarfile filename"
 )
-@CommandArgument("--output", "-o", type=str, required=True, help="Output .rpm filename")
+@CommandArgument(
+    "--input-xpi-dir",
+    "-x",
+    type=str,
+    required=True,
+    help="Directory which contains the .xpi langpacks",
+)
+@CommandArgument(
+    "--output",
+    "-o",
+    type=str,
+    required=True,
+    help="Output directory for the .rpm files",
+)
 @CommandArgument("--arch", type=str, required=True, help="One of ['x86', 'x86_64']")
 @CommandArgument(
     "--version",
@@ -2611,6 +2624,7 @@ def repackage_deb_l10n(
 def repackage_rpm(
     command_context,
     input,
+    input_xpi_dir,
     output,
     arch,
     version,
@@ -2635,6 +2649,7 @@ def repackage_rpm(
     repackage_rpm(
         command_context.log,
         input,
+        input_xpi_dir,
         output,
         template_dir,
         arch,

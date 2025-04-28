@@ -3,6 +3,7 @@
 # You can obtain one at http://mozilla.org/MPL/2.0/.
 
 import os
+import pathlib
 import shutil
 import subprocess
 import tarfile
@@ -19,6 +20,7 @@ from mozbuild.repackaging.utils import (
     inject_prefs_file,
     load_application_ini_data,
     mv_manpage_files,
+    prepare_langpack_files,
     render_templates,
 )
 
@@ -44,6 +46,7 @@ _RPM_ARCH = {
 def repackage_rpm(
     log,
     infile,
+    xpi_directory,
     output,
     template_dir,
     arch,
@@ -56,6 +59,8 @@ def repackage_rpm(
 ):
     if not tarfile.is_tarfile(infile):
         raise Exception("Input file %s is not a valid tarfile." % infile)
+    if not pathlib.Path(xpi_directory).is_dir():
+        raise NotADirectoryError("The xpi_directory is not a directory.")
 
     tmpdir = _create_temporary_directory(arch)
     source_dir = os.path.join(tmpdir, "source")
@@ -72,6 +77,7 @@ def repackage_rpm(
         )
 
         rpm_dir = mozpath.join(source_dir, "rpm")
+        build_variables["LANGUAGES"] = prepare_langpack_files(rpm_dir, xpi_directory)
 
         copy_plain_config(template_dir, rpm_dir)
         render_templates(
@@ -99,11 +105,15 @@ def repackage_rpm(
         )
         mv_manpage_files(rpm_dir, build_variables)
         inject_prefs_file(source_dir, app_name, template_dir)
+
+        if not os.path.exists(output):
+            os.mkdir(output)
+
         _generate_rpm_archive(
             rpm_dir,
             infile,
             target_dir=tmpdir,
-            output_file_path=output,
+            output_path=output,
             build_variables=build_variables,
             arch=arch,
         )
@@ -119,7 +129,7 @@ def _create_temporary_directory(arch):
 
 
 def _generate_rpm_archive(
-    source_dir, infile, target_dir, output_file_path, build_variables, arch
+    source_dir, infile, target_dir, output_path, build_variables, arch
 ):
     shutil.copy(
         infile,
@@ -139,7 +149,10 @@ def _generate_rpm_archive(
     if not os.path.exists(file_path):
         raise NoRpmPackageFound(file_path)
 
-    shutil.move(file_path, output_file_path)
+    for pkg_arch in [arch, "noarch"]:
+        packages_directory = pathlib.Path(target_dir, pkg_arch)
+        for filename in packages_directory.glob("*.rpm"):
+            shutil.copy(filename, output_path)
 
 
 def _get_build_variables(
