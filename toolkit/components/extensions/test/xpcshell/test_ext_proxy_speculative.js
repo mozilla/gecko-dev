@@ -44,7 +44,12 @@ add_task(async function test_speculative_connect() {
   Services.io.speculativeConnect(
     uri,
     Services.scriptSecurityManager.getSystemPrincipal(),
-    null,
+    {
+      QueryInterface: ChromeUtils.generateQI([Ci.nsIInterfaceRequestor]),
+      getInterface() {
+        throw Components.Exception("", Cr.NS_ERROR_NO_INTERFACE);
+      },
+    },
     false
   );
   await notificationPromise;

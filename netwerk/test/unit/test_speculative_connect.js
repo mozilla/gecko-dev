@@ -58,6 +58,7 @@ var testList = [
   test_localhost_https_speculative_connect,
   test_hostnames_resolving_to_local_addresses,
   test_proxies_with_local_addresses,
+  test_speculative_connect_with_proxy_filter,
 ];
 
 var testDescription = [
@@ -65,6 +66,7 @@ var testDescription = [
   "Expect pass with localhost, https",
   "Expect failure with resolved local IPs",
   "Expect failure for proxies with local IPs",
+  "Expect failure without notification callbacks",
 ];
 
 var testIdx = 0;
@@ -346,6 +348,54 @@ function test_proxies_with_local_addresses() {
   // Test another local IP address when the current one is done.
   var next = test_proxies_with_local_addresses;
   test_proxies(host, next);
+}
+
+class ProxyFilter {
+  constructor(type, host, port, flags) {
+    this._type = type;
+    this._host = host;
+    this._port = port;
+    this._flags = flags;
+    this.QueryInterface = ChromeUtils.generateQI(["nsIProtocolProxyFilter"]);
+  }
+  applyFilter(uri, pi, cb) {
+    const pps =
+      Cc["@mozilla.org/network/protocol-proxy-service;1"].getService();
+    cb.onProxyFilterResult(
+      pps.newProxyInfo(
+        this._type,
+        this._host,
+        this._port,
+        "",
+        "",
+        this._flags,
+        1000,
+        null
+      )
+    );
+  }
+}
+
+function test_speculative_connect_with_proxy_filter() {
+  let filter = new ProxyFilter("https", "localhost", 80, 0);
+  let pps = Cc["@mozilla.org/network/protocol-proxy-service;1"].getService();
+  pps.registerFilter(filter, 10);
+  let URI = ios.newURI("https://not-exist-dommain.com");
+  let principal = Services.scriptSecurityManager.createContentPrincipal(
+    URI,
+    {}
+  );
+
+  Assert.throws(
+    () =>
+      ios
+        .QueryInterface(Ci.nsISpeculativeConnect)
+        .speculativeConnect(URI, principal, null, false),
+    /NS_ERROR_FAILURE/,
+    "speculativeConnect should throw when no callback is provided and a proxy filter is registered"
+  );
+  pps.unregisterFilter(filter);
+  next_test();
 }
 
 /** next_test
