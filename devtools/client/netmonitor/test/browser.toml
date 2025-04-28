@@ -436,6 +436,8 @@ fail-if = ["a11y_checks"] # Bug 1849028 clicked element may not be focusable and
 
 ["browser_net_save_response_as.js"]
 
+["browser_net_save_response_as_sanitization.js"]
+
 ["browser_net_script_cache.js"]
 
 ["browser_net_search-results.js"]

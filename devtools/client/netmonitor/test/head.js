@@ -1788,3 +1788,60 @@ function findRequestByInitiator(document, initiator) {
   }
   return null;
 }
+
+/**
+ * Click on the "save response as" context menu item for the provided request
+ * element in the provided netmonitor panel.
+ *
+ * Resolves when the context menu is closed.
+ *
+ * @param {object} monitor
+ *     The netmonitor instance
+ * @param {HTMLElement} request
+ *     The request item in the netmonitor table
+ */
+async function triggerSaveResponseAs(monitor, request) {
+  EventUtils.sendMouseEvent({ type: "mousedown" }, request);
+  EventUtils.sendMouseEvent({ type: "contextmenu" }, request);
+
+  info("Open the save dialog");
+  await selectContextMenuItem(monitor, "request-list-context-save-response-as");
+}
+
+/**
+ * Wait until the provided path has a non-zero size on the file system.
+ *
+ * @param {string} path
+ *     The path to wait for.
+ */
+async function waitForFileSavedToDisk(path) {
+  info("Wait for the downloaded file to be fully saved to disk: " + path);
+  await TestUtils.waitForCondition(async () => {
+    if (!(await IOUtils.exists(path))) {
+      return false;
+    }
+    const { size } = await IOUtils.stat(path);
+    return size > 0;
+  });
+}
+
+/**
+ * Create a temporary directory to save files for a test.
+ * Register a cleanup function to delete the directory after the test.
+ *
+ * @returns {nsIFile}
+ *     The created temporary directory.
+ */
+function createTemporarySaveDirectory() {
+  const saveDir = Services.dirsvc.get("TmpD", Ci.nsIFile);
+  saveDir.append("testsavedir");
+
+  if (!saveDir.exists()) {
+    saveDir.create(Ci.nsIFile.DIRECTORY_TYPE, 0o755);
+  }
+
+  registerCleanupFunction(function () {
+    saveDir.remove(true);
+  });
+  return saveDir;
+}
