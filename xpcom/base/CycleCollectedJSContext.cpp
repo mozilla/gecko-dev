@@ -62,7 +62,6 @@ CycleCollectedJSContext::CycleCollectedJSContext()
       mSyncOperations(0),
       mSuppressionGeneration(0),
       mDebuggerRecursionDepth(0),
-      mMicroTaskRecursionDepth(0),
       mFinalizationRegistryCleanup(this) {
   MOZ_COUNT_CTOR(CycleCollectedJSContext);
 
@@ -745,7 +744,8 @@ bool CycleCollectedJSContext::PerformMicroTaskCheckPoint(bool aForce) {
   }
 
   uint32_t currentDepth = RecursionDepth();
-  if (mMicroTaskRecursionDepth >= currentDepth && !aForce) {
+  if (mMicroTaskRecursionDepth && *mMicroTaskRecursionDepth >= currentDepth &&
+      !aForce) {
     // We are already executing microtasks for the current recursion depth.
     return false;
   }
@@ -763,9 +763,8 @@ bool CycleCollectedJSContext::PerformMicroTaskCheckPoint(bool aForce) {
     return false;
   }
 
-  mozilla::AutoRestore<uint32_t> restore(mMicroTaskRecursionDepth);
-  MOZ_ASSERT(aForce ? currentDepth == 0 : currentDepth > 0);
-  mMicroTaskRecursionDepth = currentDepth;
+  mozilla::AutoRestore<Maybe<uint32_t>> restore(mMicroTaskRecursionDepth);
+  mMicroTaskRecursionDepth = Some(currentDepth);
 
   AUTO_PROFILER_TRACING_MARKER("JS", "Perform microtasks", JS);
 

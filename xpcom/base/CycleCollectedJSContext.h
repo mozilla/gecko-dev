@@ -354,7 +354,7 @@ class CycleCollectedJSContext : dom::PerThreadAtomCache, private JS::JobQueue {
   // microtask checkpoints in places that they would not normally occur.
   uint32_t mDebuggerRecursionDepth;
 
-  uint32_t mMicroTaskRecursionDepth;
+  Maybe<uint32_t> mMicroTaskRecursionDepth;
 
   // This implements about-to-be-notified rejected promises list in the spec.
   // https://html.spec.whatwg.org/multipage/webappapis.html#about-to-be-notified-rejected-promises-list
