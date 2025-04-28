@@ -2025,6 +2025,8 @@ EnvironmentCache.prototype = {
 
     this._cpuData.extensions = availableExts;
 
+    Glean.systemCpu.extensions.set(availableExts);
+
     return this._cpuData;
   },
 

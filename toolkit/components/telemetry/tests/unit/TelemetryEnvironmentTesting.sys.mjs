@@ -718,6 +718,10 @@ export var TelemetryEnvironmentTesting = {
       Array.isArray(cpuData.extensions),
       "CPU extensions must be available."
     );
+    lazy.Assert.deepEqual(
+      cpuData.extensions,
+      Glean.systemCpu.extensions.testGetValue()
+    );
 
     let osData = data.system.os;
     lazy.Assert.ok(this.checkNullOrString(osData.name));

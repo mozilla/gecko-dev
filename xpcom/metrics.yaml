@@ -1173,6 +1173,21 @@ system.cpu:
     expires: never
     unit: megahertz
 
+  extensions:
+    type: string_list
+    lifetime: application
+    description: >
+      Recognized CPU extensions.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1962547
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1962547
+    data_sensitivity:
+      - technical
+    notification_emails:
+      - gijs@mozilla.com
+    expires: never
+
 hdd:
   profile: &hdd_object
     type: object
