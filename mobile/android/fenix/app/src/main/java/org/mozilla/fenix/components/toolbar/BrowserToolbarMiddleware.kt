@@ -24,6 +24,8 @@ import mozilla.components.browser.thumbnails.BrowserThumbnails
 import mozilla.components.compose.browser.toolbar.concept.Action
 import mozilla.components.compose.browser.toolbar.concept.Action.ActionButton
 import mozilla.components.compose.browser.toolbar.concept.Action.TabCounterAction
+import mozilla.components.compose.browser.toolbar.concept.PageOrigin
+import mozilla.components.compose.browser.toolbar.store.BrowserDisplayToolbarAction
 import mozilla.components.compose.browser.toolbar.store.BrowserDisplayToolbarAction.BrowserActionsEndUpdated
 import mozilla.components.compose.browser.toolbar.store.BrowserDisplayToolbarAction.UpdateProgressBarConfig
 import mozilla.components.compose.browser.toolbar.store.BrowserToolbarAction
@@ -39,6 +41,7 @@ import mozilla.components.feature.tabs.TabsUseCases
 import mozilla.components.lib.state.Middleware
 import mozilla.components.lib.state.MiddlewareContext
 import mozilla.components.lib.state.ext.flow
+import mozilla.components.support.ktx.util.URLStringUtils
 import org.mozilla.fenix.R
 import org.mozilla.fenix.browser.BrowserFragmentDirections
 import org.mozilla.fenix.browser.browsingmode.BrowsingMode
@@ -102,6 +105,7 @@ class BrowserToolbarMiddleware(
         updateToolbarActionsBasedOnOrientation()
         updateTabsCount()
         observeAcceptingCancellingPrivateDownloads()
+        updatePageOrigin()
     }
 
     override fun invoke(
@@ -303,6 +307,32 @@ class BrowserToolbarMiddleware(
                         .distinctUntilChangedBy { it.tabs }
                         .collect {
                             updateEndBrowserActions()
+                        }
+                }
+            }
+        }
+    }
+
+    private fun updatePageOrigin() {
+        with(dependencies.lifecycleOwner) {
+            this.lifecycleScope.launch {
+                repeatOnLifecycle(RESUMED) {
+                    browserStore.flow()
+                        .distinctUntilChangedBy { it.selectedTab?.content?.url }
+                        .collect {
+                            val urlString = it.selectedTab?.content?.url ?: ""
+                            val title = it.selectedTab?.content?.title
+
+                            store?.dispatch(
+                                BrowserDisplayToolbarAction.PageOriginUpdated(
+                                    PageOrigin(
+                                        hint = R.string.mozac_browser_toolbar_search_hint,
+                                        title = title,
+                                        url = URLStringUtils.toDisplayUrl(urlString).toString(),
+                                        onClick = object : BrowserToolbarEvent {},
+                                    ),
+                                ),
+                            )
                         }
                 }
             }
