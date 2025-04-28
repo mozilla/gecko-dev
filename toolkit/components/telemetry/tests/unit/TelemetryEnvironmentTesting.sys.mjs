@@ -348,6 +348,10 @@ export var TelemetryEnvironmentTesting = {
         "number",
         "sandbox.effectiveContentProcessLevel must have the correct type"
       );
+      lazy.Assert.equal(
+        data.settings.sandbox.effectiveContentProcessLevel,
+        Glean.sandbox.effectiveContentProcessLevel.testGetValue()
+      );
     }
 
     if (data.settings.sandbox.contentWin32kLockdownState !== null) {
@@ -360,6 +364,11 @@ export var TelemetryEnvironmentTesting = {
       let win32kLockdownState =
         data.settings.sandbox.contentWin32kLockdownState;
       lazy.Assert.ok(win32kLockdownState >= 1 && win32kLockdownState <= 17);
+
+      lazy.Assert.equal(
+        win32kLockdownState,
+        Glean.sandbox.contentWin32kLockdownState.testGetValue()
+      );
     }
 
     // Check "defaultSearchEngine" separately, as it can either be undefined or string.

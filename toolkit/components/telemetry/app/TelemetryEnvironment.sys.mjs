@@ -83,7 +83,7 @@ var gActiveExperimentStartupBuffer = new Map();
 
 // For Powering arewegleanyet.com (See bug 1944592)
 // Legacy Count: 115
-// Glean Count: 105
+// Glean Count: 107
 
 var gGlobalEnvironment;
 function getGlobal() {
@@ -1737,6 +1737,14 @@ EnvironmentCache.prototype = {
       // enum in security/sandbox/common/SandboxSettings.h
       contentWin32kLockdownState = sandboxSettings.contentWin32kLockdownState;
     } catch (e) {}
+    if (effectiveContentProcessLevel !== null) {
+      Glean.sandbox.effectiveContentProcessLevel.set(
+        effectiveContentProcessLevel
+      );
+    }
+    if (contentWin32kLockdownState !== null) {
+      Glean.sandbox.contentWin32kLockdownState.set(contentWin32kLockdownState);
+    }
     return {
       effectiveContentProcessLevel,
       contentWin32kLockdownState,
