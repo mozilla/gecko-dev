@@ -198,6 +198,22 @@ bool CopyExtradataToDescription(JSContext* aCx, Span<const uint8_t>& aSrc,
  * gfx's values.
  */
 
+VideoColorSpaceInternal::VideoColorSpaceInternal(
+    const VideoColorSpaceInit& aColorSpaceInit)
+    : mFullRange(NullableToMaybe(aColorSpaceInit.mFullRange)),
+      mMatrix(NullableToMaybe(aColorSpaceInit.mMatrix)),
+      mPrimaries(NullableToMaybe(aColorSpaceInit.mPrimaries)),
+      mTransfer(NullableToMaybe(aColorSpaceInit.mTransfer)) {}
+
+VideoColorSpaceInit VideoColorSpaceInternal::ToColorSpaceInit() const {
+  VideoColorSpaceInit init;
+  init.mFullRange = MaybeToNullable(mFullRange);
+  init.mMatrix = MaybeToNullable(mMatrix);
+  init.mPrimaries = MaybeToNullable(mPrimaries);
+  init.mTransfer = MaybeToNullable(mTransfer);
+  return init;
+}
+
 gfx::ColorRange ToColorRange(bool aIsFullRange) {
   return aIsFullRange ? gfx::ColorRange::FULL : gfx::ColorRange::LIMITED;
 }

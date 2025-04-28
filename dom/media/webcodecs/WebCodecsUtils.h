@@ -20,6 +20,7 @@
 #include "mozilla/dom/BindingDeclarations.h"
 #include "mozilla/dom/Nullable.h"
 #include "mozilla/dom/UnionTypes.h"
+#include "mozilla/dom/VideoColorSpaceBinding.h"
 #include "mozilla/dom/VideoEncoderBinding.h"
 #include "mozilla/dom/VideoFrameBinding.h"
 
@@ -166,9 +167,21 @@ bool CopyExtradataToDescription(JSContext* aCx, Span<const uint8_t>& aSrc,
  * gfx's values.
  */
 
-enum class VideoColorPrimaries : uint8_t;
-enum class VideoMatrixCoefficients : uint8_t;
-enum class VideoTransferCharacteristics : uint8_t;
+struct VideoColorSpaceInternal {
+  explicit VideoColorSpaceInternal(const VideoColorSpaceInit& aColorSpaceInit);
+  VideoColorSpaceInternal() = default;
+  VideoColorSpaceInit ToColorSpaceInit() const;
+
+  bool operator==(const VideoColorSpaceInternal& aOther) const {
+    return mFullRange == aOther.mFullRange && mMatrix == aOther.mMatrix &&
+           mPrimaries == aOther.mPrimaries && mTransfer == aOther.mTransfer;
+  }
+
+  Maybe<bool> mFullRange;
+  Maybe<VideoMatrixCoefficients> mMatrix;
+  Maybe<VideoColorPrimaries> mPrimaries;
+  Maybe<VideoTransferCharacteristics> mTransfer;
+};
 
 gfx::ColorRange ToColorRange(bool aIsFullRange);
 
