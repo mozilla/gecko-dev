@@ -17,11 +17,9 @@
 const { ASRouterTargeting } = ChromeUtils.importESModule(
   "resource:///modules/asrouter/ASRouterTargeting.sys.mjs"
 );
-const { NimbusTestUtils } = ChromeUtils.importESModule(
+const { ExperimentFakes } = ChromeUtils.importESModule(
   "resource://testing-common/NimbusTestUtils.sys.mjs"
 );
-
-NimbusTestUtils.init(this);
 
 // These randomization IDs were extracted by hand from Firefox instances.
 // Randomization is sufficiently stable to hard-code these IDs rather than
@@ -43,7 +41,6 @@ setupProfileService();
 
 let taskProfile;
 let manager;
-let cleanup;
 
 // Arrange a dummy Remote Settings server so that no non-local network
 // connections are opened.
@@ -66,47 +63,21 @@ add_setup(async () => {
   });
 
   // Arrange fake experiment enrollment details.
-  ({ manager, cleanup } = await NimbusTestUtils.setupTest());
+  manager = ExperimentFakes.manager();
 
-  await manager.enroll(
-    NimbusTestUtils.factories.recipe.withFeatureConfig("foo", {
-      branchSlug: "treatment",
-      featureId: "testFeature",
-    }),
-    "test"
-  );
+  await manager.onStartup();
+  await manager.store.addEnrollment(ExperimentFakes.experiment("foo"));
   manager.unenroll("foo");
-  await manager.enroll(
-    NimbusTestUtils.factories.recipe.withFeatureConfig("bar", {
-      branchSlug: "treatment",
-      featureId: "testFeature",
-    }),
-    "test"
+  await manager.store.addEnrollment(
+    ExperimentFakes.experiment("bar", { active: false })
   );
-  manager.unenroll("bar");
-  await manager.enroll(
-    NimbusTestUtils.factories.recipe.withFeatureConfig("baz", {
-      branchSlug: "treatment",
-      featureId: "testFeature",
-    }),
-    "test"
+  await manager.store.addEnrollment(
+    ExperimentFakes.experiment("baz", { active: true })
   );
 
-  await manager.enroll(
-    NimbusTestUtils.factories.recipe("rol1", { isRollout: true }),
-    "test"
-  );
+  manager.store.addEnrollment(ExperimentFakes.rollout("rol1"));
   manager.unenroll("rol1");
-  await manager.enroll(
-    NimbusTestUtils.factories.recipe("rol2", { isRollout: true }),
-    "test"
-  );
-});
-
-registerCleanupFunction(async () => {
-  manager.unenroll("baz");
-  manager.unenroll("rol2");
-  cleanup();
+  manager.store.addEnrollment(ExperimentFakes.rollout("rol2"));
 });
 
 function resetProfile(profile) {

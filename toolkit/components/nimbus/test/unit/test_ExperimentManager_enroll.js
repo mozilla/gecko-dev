@@ -335,15 +335,11 @@ add_task(async function test_failure_name_conflict() {
     "no Glean enroll_failed events before failure"
   );
 
-  const experiment = NimbusTestUtils.factories.recipe.withFeatureConfig("foo", {
-    featureId: "testFeature",
-  });
-
   // simulate adding a previouly enrolled experiment
-  await manager.enroll(experiment, "test");
+  await manager.store.addEnrollment(ExperimentFakes.experiment("foo"));
 
   await Assert.rejects(
-    manager.enroll(experiment, "test_failure_name_conflict"),
+    manager.enroll(ExperimentFakes.recipe("foo"), "test_failure_name_conflict"),
     /An experiment with the slug "foo" already exists/,
     "should throw if a conflicting experiment exists"
   );
@@ -365,12 +361,6 @@ add_task(async function test_failure_name_conflict() {
       .testGetValue("events")
       .map(ev => ev.extra),
     [
-      {
-        slug: "foo",
-        status: "Enrolled",
-        reason: "Qualified",
-        branch: "control",
-      },
       {
         slug: "foo",
         status: "NotEnrolled",
@@ -412,18 +402,17 @@ add_task(async function test_failure_group_conflict() {
   };
 
   // simulate adding an experiment with a conflicting group "pink"
-  await manager.enroll(
-    NimbusTestUtils.factories.recipe("foo", {
-      branches: [existingBranch],
-    }),
-    "test_failure_group_conflict"
+  await manager.store.addEnrollment(
+    ExperimentFakes.experiment("foo", {
+      branch: existingBranch,
+    })
   );
 
   // ensure .enroll chooses the special branch with the conflict
   sandbox.stub(manager, "chooseBranch").returns(newBranch);
   Assert.equal(
     await manager.enroll(
-      NimbusTestUtils.factories.recipe("bar", { branches: [newBranch] }),
+      ExperimentFakes.recipe("bar", { branches: [newBranch] }),
       "test_failure_group_conflict"
     ),
     null,

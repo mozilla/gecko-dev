@@ -48,16 +48,20 @@ add_task(
 add_task(
   async function test_ExperimentFeature_getAllVariables_experimentOverPref() {
     const { manager, cleanup } = await NimbusTestUtils.setupTest();
-    const recipe = NimbusTestUtils.factories.recipe.withFeatureConfig(
-      "awexperiment",
-      {
-        branchSlug: "treatment",
-        featureId: "aboutwelcome",
-        value: { screens: ["test-value"] },
-      }
-    );
+    const recipe = ExperimentFakes.experiment("awexperiment", {
+      branch: {
+        slug: "treatment",
+        ratio: 1,
+        features: [
+          {
+            featureId: "aboutwelcome",
+            value: { screens: ["test-value"] },
+          },
+        ],
+      },
+    });
 
-    await manager.enroll(recipe, "test");
+    await manager.store.addEnrollment(recipe);
 
     const featureInstance = new ExperimentFeature(
       FEATURE_ID,
@@ -105,29 +109,32 @@ add_task(
       FEATURE_ID,
       FAKE_FEATURE_MANIFEST
     );
-
-    const recipe = NimbusTestUtils.factories.recipe.withFeatureConfig(
-      "aw-experiment",
-      {
-        branchSlug: "treatment",
-        featureId: FEATURE_ID,
-        value: { screens: ["test-value"] },
-      }
-    );
-    const rollout = NimbusTestUtils.factories.recipe.withFeatureConfig(
-      "aw-rollout",
-      {
-        branchSlug: "treatment",
-        featureId: FEATURE_ID,
-        value: { screens: [], source: "rollout" },
+    const recipe = ExperimentFakes.experiment("aw-experiment", {
+      branch: {
+        slug: "treatment",
+        ratio: 1,
+        features: [
+          {
+            featureId: FEATURE_ID,
+            value: { screens: ["test-value"] },
+          },
+        ],
       },
-      { isRollout: true }
-    );
+    });
+    const rollout = ExperimentFakes.rollout("aw-rollout", {
+      branch: {
+        slug: "treatment",
+        ratio: 1,
+        features: [
+          { featureId: FEATURE_ID, value: { screens: [], source: "rollout" } },
+        ],
+      },
+    });
     // We're using the store in this test we need to wait for it to load
     await manager.store.ready();
 
-    await manager.enroll(recipe, "test");
-    await manager.enroll(rollout, "test");
+    manager.store.addEnrollment(recipe);
+    manager.store.addEnrollment(rollout);
 
     const allVariables = featureInstance.getAllVariables();
 
@@ -147,15 +154,13 @@ add_task(
       FEATURE_ID,
       FAKE_FEATURE_MANIFEST
     );
-    const rollout = NimbusTestUtils.factories.recipe.withFeatureConfig(
-      "foo-aw",
-      {
-        branchSlug: "getAllVariables",
-        featureId: FEATURE_ID,
-        value: { screens: [] },
+    const rollout = ExperimentFakes.rollout("foo-aw", {
+      branch: {
+        slug: "getAllVariables",
+        ratio: 1,
+        features: [{ featureId: FEATURE_ID, value: { screens: [] } }],
       },
-      { isRollout: true }
-    );
+    });
 
     Services.prefs.clearUserPref(TEST_FALLBACK_PREF);
 
@@ -165,7 +170,7 @@ add_task(
       "Pref is not set"
     );
 
-    await manager.enroll(rollout, "test");
+    manager.store.addEnrollment(rollout);
 
     Assert.deepEqual(
       featureInstance.getAllVariables().screens?.length,

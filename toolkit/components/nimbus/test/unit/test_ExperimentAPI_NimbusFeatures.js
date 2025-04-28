@@ -10,8 +10,8 @@ ChromeUtils.defineLazyGetter(this, "fetchSchema", () => {
   }).then(rsp => rsp.json());
 });
 
-const MATCHING_ROLLOUT = Object.freeze(
-  ExperimentFakes.rollout("matching-rollout", {
+const NON_MATCHING_ROLLOUT = Object.freeze(
+  ExperimentFakes.rollout("non-matching-rollout", {
     branch: {
       slug: "slug",
       ratio: 1,
@@ -24,10 +24,18 @@ const MATCHING_ROLLOUT = Object.freeze(
     },
   })
 );
-const MATCHING_ROLLOUT_RECIPE = Object.freeze(
-  NimbusTestUtils.factories.recipe(MATCHING_ROLLOUT.slug, {
-    branches: [MATCHING_ROLLOUT.branch],
-    isRollout: true,
+const MATCHING_ROLLOUT = Object.freeze(
+  ExperimentFakes.rollout("matching-rollout", {
+    branch: {
+      slug: "slug",
+      ratio: 1,
+      features: [
+        {
+          featureId: "aboutwelcome",
+          value: { enabled: false },
+        },
+      ],
+    },
   })
 );
 
@@ -70,6 +78,10 @@ add_task(async function validSchema() {
   });
 
   {
+    const result = validator.validate(NON_MATCHING_ROLLOUT);
+    Assert.ok(result.valid, JSON.stringify(result.errors, undefined, 2));
+  }
+  {
     const result = validator.validate(MATCHING_ROLLOUT);
     Assert.ok(result.valid, JSON.stringify(result.errors, undefined, 2));
   }
@@ -81,7 +93,7 @@ add_task(async function readyCallAfterStore_with_remote_value() {
 
   Assert.ok(feature.getVariable("enabled"), "Feature is true by default");
 
-  await manager.enroll(MATCHING_ROLLOUT_RECIPE, "test");
+  await manager.store.addEnrollment(MATCHING_ROLLOUT);
 
   Assert.ok(!feature.getVariable("enabled"), "Loads value from store");
 
@@ -131,7 +143,7 @@ add_task(async function update_remote_defaults_onUpdate() {
 
   feature.onUpdate(stub);
 
-  await manager.enroll(MATCHING_ROLLOUT_RECIPE, "test");
+  await manager.store.addEnrollment(MATCHING_ROLLOUT);
 
   Assert.ok(stub.called, "update event called");
   Assert.equal(stub.callCount, 1, "Called once for remote configs");
@@ -149,7 +161,7 @@ add_task(async function update_remote_defaults_readyPromise() {
 
   feature.onUpdate(stub);
 
-  await manager.enroll(MATCHING_ROLLOUT_RECIPE, "test");
+  await manager.store.addEnrollment(MATCHING_ROLLOUT);
 
   Assert.ok(stub.calledOnce, "Update called after enrollment processed.");
   Assert.ok(
@@ -172,14 +184,14 @@ add_task(async function update_remote_defaults_enabled() {
     "Feature is enabled by manifest.variables.enabled"
   );
 
-  await manager.enroll(MATCHING_ROLLOUT_RECIPE, "test");
+  await manager.store.addEnrollment(NON_MATCHING_ROLLOUT);
 
   Assert.ok(
     !feature.getVariable("enabled"),
     "Feature is disabled by remote configuration"
   );
 
-  manager.unenroll(MATCHING_ROLLOUT.slug);
+  manager.unenroll(NON_MATCHING_ROLLOUT.slug);
   cleanup();
 });
 

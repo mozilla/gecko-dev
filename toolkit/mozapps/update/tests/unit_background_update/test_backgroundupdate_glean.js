@@ -12,15 +12,13 @@ const { ASRouterTargeting } = ChromeUtils.importESModule(
 const { BackgroundUpdate } = ChromeUtils.importESModule(
   "resource://gre/modules/BackgroundUpdate.sys.mjs"
 );
-const { NimbusTestUtils } = ChromeUtils.importESModule(
+const { ExperimentFakes } = ChromeUtils.importESModule(
   "resource://testing-common/NimbusTestUtils.sys.mjs"
 );
 
 const { maybeSubmitBackgroundUpdatePing } = ChromeUtils.importESModule(
   "resource://gre/modules/backgroundtasks/BackgroundTask_backgroundupdate.sys.mjs"
 );
-
-NimbusTestUtils.init(this);
 
 XPCOMUtils.defineLazyServiceGetter(
   this,
@@ -175,38 +173,21 @@ add_task(async function test_targeting_exists() {
   };
 
   // Arrange fake experiment enrollment details.
-  const { manager, cleanup } = await NimbusTestUtils.setupTest();
+  const manager = ExperimentFakes.manager();
 
-  await manager.enroll(
-    NimbusTestUtils.factories.recipe.withFeatureConfig("foo", {
-      featureId: "testFeature",
-    }),
-    "test"
-  );
+  await manager.onStartup();
+  await manager.store.addEnrollment(ExperimentFakes.experiment("foo"));
   manager.unenroll("foo");
-  await manager.enroll(
-    NimbusTestUtils.factories.recipe.withFeatureConfig("bar", {
-      featureId: "testFeature",
-    }),
-    "test"
+  await manager.store.addEnrollment(
+    ExperimentFakes.experiment("bar", { active: false })
   );
-  manager.unenroll("bar");
-  await manager.enroll(
-    NimbusTestUtils.factories.recipe.withFeatureConfig("baz", {
-      featureId: "testFeature",
-    }),
-    "test"
+  await manager.store.addEnrollment(
+    ExperimentFakes.experiment("baz", { active: true })
   );
 
-  await manager.enroll(
-    NimbusTestUtils.factories.recipe("rol1", { isRollout: true }),
-    "test"
-  );
+  manager.store.addEnrollment(ExperimentFakes.rollout("rol1"));
   manager.unenroll("rol1");
-  await manager.enroll(
-    NimbusTestUtils.factories.recipe("rol2", { isRollout: true }),
-    "test"
-  );
+  manager.store.addEnrollment(ExperimentFakes.rollout("rol2"));
 
   let targetSnapshot = await ASRouterTargeting.getEnvironmentSnapshot({
     targets: [manager.createTargetingContext(), target],
@@ -265,7 +246,7 @@ add_task(async function test_targeting_exists() {
     // Verify active experiments.
     Assert.deepEqual(
       {
-        branch: "control",
+        branch: "treatment",
         extra: { source: "defaultProfile", type: "nimbus-nimbus" },
       },
       Services.fog.testGetExperimentData("baz"),
@@ -274,7 +255,7 @@ add_task(async function test_targeting_exists() {
 
     Assert.deepEqual(
       {
-        branch: "control",
+        branch: "treatment",
         extra: { source: "defaultProfile", type: "nimbus-rollout" },
       },
       Services.fog.testGetExperimentData("rol2"),
@@ -291,8 +272,4 @@ add_task(async function test_targeting_exists() {
       );
     }
   });
-
-  manager.unenroll("baz");
-  manager.unenroll("rol2");
-  cleanup();
 });

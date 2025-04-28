@@ -92,22 +92,19 @@ add_task(async function test_record_exposure_event() {
     "no Glean exposure events before exposure"
   );
 
-  await manager.enroll(
-    NimbusTestUtils.factories.recipe("blah", {
-      branches: [
-        {
-          slug: "treatment",
-          ratio: 1,
-          features: [
-            {
-              featureId: "foo",
-              value: { enabled: false },
-            },
-          ],
-        },
-      ],
-    }),
-    "test"
+  await manager.store.addEnrollment(
+    ExperimentFakes.experiment("blah", {
+      branch: {
+        slug: "treatment",
+        ratio: 1,
+        features: [
+          {
+            featureId: "foo",
+            value: { enabled: false },
+          },
+        ],
+      },
+    })
   );
 
   featureInstance.recordExposureEvent();
@@ -151,13 +148,19 @@ add_task(async function test_record_exposure_event_once() {
   const featureInstance = new ExperimentFeature("foo", FAKE_FEATURE_MANIFEST);
   const exposureSpy = sandbox.spy(NimbusTelemetry, "recordExposure");
 
-  await manager.enroll(
-    NimbusTestUtils.factories.recipe.withFeatureConfig("blah", {
-      branchSlug: "treatment",
-      featureId: "foo",
-      value: { enabled: false },
-    }),
-    "test"
+  await manager.store.addEnrollment(
+    ExperimentFakes.experiment("blah", {
+      branch: {
+        slug: "treatment",
+        ratio: 1,
+        features: [
+          {
+            featureId: "foo",
+            value: { enabled: false },
+          },
+        ],
+      },
+    })
   );
 
   featureInstance.recordExposureEvent({ once: true });
