@@ -7,8 +7,7 @@ requestLongerTimeout(10);
 
 const lazy = {};
 
-const TAB_DIRECTION_PREF = "sidebar.verticalTabs";
-const initialTabDirection = Services.prefs.getBoolPref(TAB_DIRECTION_PREF)
+const initialTabDirection = Services.prefs.getBoolPref(VERTICAL_TABS_PREF)
   ? "vertical"
   : "horizontal";
 
@@ -25,9 +24,7 @@ add_setup(async () => {
 });
 
 registerCleanupFunction(() => {
-  while (gBrowser.tabs.length > 1) {
-    BrowserTestUtils.removeTab(gBrowser.tabs[0]);
-  }
+  cleanUpExtraTabs();
 });
 
 function getExpectedVersionString() {
@@ -49,7 +46,7 @@ add_task(async function test_metrics_initialized() {
 add_task(async function test_sidebar_expand() {
   await SidebarController.initializeUIState({ launcherExpanded: false });
   await SpecialPowers.pushPrefEnv({
-    set: [[TAB_DIRECTION_PREF, true]],
+    set: [[VERTICAL_TABS_PREF, true]],
   });
   await waitForTabstripOrientation("vertical");
   // Vertical tabs are expanded by default
@@ -451,7 +448,7 @@ async function testCustomizeSetting(
 
 add_task(async function test_customize_sidebar_display() {
   await SpecialPowers.pushPrefEnv({
-    set: [[TAB_DIRECTION_PREF, true]],
+    set: [[VERTICAL_TABS_PREF, true]],
   });
   await waitForTabstripOrientation("vertical");
   await testCustomizeSetting(
@@ -498,7 +495,7 @@ add_task(async function test_customize_firefox_settings_clicked() {
 
 add_task(async function test_sidebar_resize() {
   await SpecialPowers.pushPrefEnv({
-    set: [[TAB_DIRECTION_PREF, true]],
+    set: [[VERTICAL_TABS_PREF, true]],
   });
   await waitForTabstripOrientation("vertical");
   await SidebarController.show("viewHistorySidebar");
@@ -529,7 +526,7 @@ add_task(async function test_sidebar_resize() {
 
 add_task(async function test_sidebar_display_settings() {
   await SpecialPowers.pushPrefEnv({
-    set: [[TAB_DIRECTION_PREF, true]],
+    set: [[VERTICAL_TABS_PREF, true]],
   });
   await waitForTabstripOrientation("vertical");
   await testCustomizeSetting(
@@ -588,7 +585,7 @@ async function testIconClick(expanded) {
     set: [
       ["browser.ml.chat.enabled", true],
       ["browser.shopping.experience2023.integratedSidebar", true],
-      [TAB_DIRECTION_PREF, true],
+      [VERTICAL_TABS_PREF, true],
     ],
   });
   await waitForTabstripOrientation("vertical");

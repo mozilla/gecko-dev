@@ -53,7 +53,6 @@ registerCleanupFunction(async () => {
 });
 
 async function showHistorySidebar({ waitForPendingHistory = true } = {}) {
-  const { SidebarController } = window;
   if (SidebarController.currentID !== "viewHistorySidebar") {
     await SidebarController.show("viewHistorySidebar");
   }
@@ -193,7 +192,7 @@ add_task(async function test_history_cards_created() {
       "Card shows the correct number of visits."
     );
   }
-  window.SidebarController.hide();
+  SidebarController.hide();
 });
 
 add_task(async function test_history_searchbox_focus() {
@@ -206,7 +205,7 @@ add_task(async function test_history_searchbox_focus() {
     searchTextbox,
     "Check search box is focused"
   );
-  window.SidebarController.hide();
+  SidebarController.hide();
 });
 
 add_task(async function test_history_searchbox_focused_with_history_pending() {
@@ -217,8 +216,6 @@ add_task(async function test_history_searchbox_focused_with_history_pending() {
   sandbox
     .stub(lazy.HistoryController.prototype, "isHistoryPending")
     .value(true);
-
-  const { SidebarController } = window;
 
   // Show the new history sidebar but don't wait for pendingHistory as this will timeout
   // since the check isHistoryPending will always return true.
@@ -281,7 +278,7 @@ add_task(async function test_history_search() {
     () => !component.lists[0].emptyState,
     "The original cards are restored."
   );
-  window.SidebarController.hide();
+  SidebarController.hide();
 });
 
 add_task(async function test_history_sort() {
@@ -389,7 +386,7 @@ add_task(async function test_history_sort() {
     "Sort by last visited is checked."
   );
 
-  window.SidebarController.hide();
+  SidebarController.hide();
 });
 
 add_task(async function test_history_keyboard_navigation() {
@@ -582,7 +579,7 @@ add_task(async function test_history_keyboard_navigation() {
     () => component.shadowRoot.querySelector(".date-card")
   );
 
-  window.SidebarController.hide();
+  SidebarController.hide();
 });
 
 add_task(async function test_history_hover_buttons() {
@@ -626,7 +623,7 @@ add_task(async function test_history_hover_buttons() {
     () => lists[0].rowEls.length === URLs.length - 1,
     "The removed entry should no longer be visible."
   );
-  window.SidebarController.hide();
+  SidebarController.hide();
 });
 
 add_task(async function test_history_context_menu() {
@@ -643,7 +640,7 @@ add_task(async function test_history_context_menu() {
     () => !!lists[0].rowEls.length
   );
   ok(true, "History rows are shown.");
-  const contextMenu = window.SidebarController.currentContextMenu;
+  const contextMenu = SidebarController.currentContextMenu;
   let rows = lists[0].rowEls;
 
   function getItem(item) {
@@ -801,9 +798,7 @@ add_task(async function test_history_context_menu() {
   );
   await toggleSidebarPanel(window, "viewBookmarksSidebar");
   let tree =
-    window.SidebarController.browser.contentDocument.getElementById(
-      "bookmarks-view"
-    );
+    SidebarController.browser.contentDocument.getElementById("bookmarks-view");
   let toolbarKey = tree._view._nodeDetails
     .keys()
     .find(key => key.includes("toolbar"));
@@ -819,11 +814,8 @@ add_task(async function test_history_context_menu() {
   ok(vals.includes(bookmarkName), "Bookmark entry exists");
   await PlacesUtils.bookmarks.eraseEverything();
 
-  // clean up extra tabs
-  while (window.gBrowser.tabs.length > 1) {
-    await BrowserTestUtils.removeTab(window.gBrowser.tabs.at(-1));
-  }
-  window.SidebarController.hide();
+  cleanUpExtraTabs();
+  SidebarController.hide();
 });
 
 add_task(async function test_history_empty_state() {
@@ -840,5 +832,5 @@ add_task(async function test_history_empty_state() {
     BrowserTestUtils.isVisible(component.emptyState),
     "Empty state is displayed."
   );
-  window.SidebarController.hide();
+  SidebarController.hide();
 });

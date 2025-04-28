@@ -10,7 +10,7 @@ add_setup(async () => {
   });
 });
 
-const initialTabDirection = Services.prefs.getBoolPref("sidebar.verticalTabs")
+const initialTabDirection = Services.prefs.getBoolPref(VERTICAL_TABS_PREF)
   ? "vertical"
   : "horizontal";
 
@@ -198,7 +198,6 @@ add_task(async function test_extension_context_menu() {
 });
 
 add_task(async function test_sidebar_context_menu() {
-  const { document, SidebarController } = window;
   const { sidebarMain, sidebarContainer } = SidebarController;
   await SidebarController.initializeUIState({
     launcherVisible: true,
@@ -263,10 +262,10 @@ add_task(async function test_sidebar_context_menu() {
   });
   contextMenu.hidePopup();
   ok(
-    Services.prefs.getBoolPref("sidebar.verticalTabs", false),
+    Services.prefs.getBoolPref(VERTICAL_TABS_PREF, false),
     "Vertical tabs disabled"
   );
-  Services.prefs.clearUserPref("sidebar.verticalTabs");
+  Services.prefs.clearUserPref(VERTICAL_TABS_PREF);
   await waitForTabstripOrientation(initialTabDirection);
 
   is(contextMenu.state, "closed", "Context menu closed for vertical tabs");
@@ -274,11 +273,11 @@ add_task(async function test_sidebar_context_menu() {
 
 add_task(async function test_toggle_vertical_tabs_from_sidebar_button() {
   await SpecialPowers.pushPrefEnv({
-    set: [["sidebar.verticalTabs", false]],
+    set: [[VERTICAL_TABS_PREF, false]],
   });
   await waitForTabstripOrientation("horizontal");
   Assert.equal(
-    Services.prefs.getStringPref("sidebar.visibility"),
+    Services.prefs.getStringPref(SIDEBAR_VISIBILITY_PREF),
     "hide-sidebar",
     "Sanity check the visibilty pref when verticalTabs are disabled"
   );
@@ -305,7 +304,7 @@ add_task(async function test_toggle_vertical_tabs_from_sidebar_button() {
   toolbarContextMenu.hidePopup();
 
   Assert.equal(
-    Services.prefs.getStringPref("sidebar.visibility"),
+    Services.prefs.getStringPref(SIDEBAR_VISIBILITY_PREF),
     "always-show",
     "Sanity check the visibilty pref when verticalTabs are enabled"
   );
@@ -314,9 +313,9 @@ add_task(async function test_toggle_vertical_tabs_from_sidebar_button() {
   await openAndWaitForContextMenu(toolbarContextMenu, sidebarButton, () => {
     customizeSidebarItem.click();
   });
-  ok(window.SidebarController.isOpen, "Sidebar is open");
+  ok(SidebarController.isOpen, "Sidebar is open");
   Assert.equal(
-    window.SidebarController.currentID,
+    SidebarController.currentID,
     "viewCustomizeSidebar",
     "Sidebar should have opened to the customize sidebar panel"
   );
@@ -334,13 +333,13 @@ add_task(async function test_toggle_vertical_tabs_from_sidebar_button() {
   await waitForTabstripOrientation("horizontal");
   ok(!gBrowser.tabContainer.verticalMode, "Vertical tabs are disabled.");
   Assert.equal(
-    Services.prefs.getStringPref("sidebar.visibility"),
+    Services.prefs.getStringPref(SIDEBAR_VISIBILITY_PREF),
     "hide-sidebar",
     "Sanity check the visibilty pref when verticalTabs are disabled"
   );
   toolbarContextMenu.hidePopup();
 
-  window.SidebarController.hide();
+  SidebarController.hide();
   await SpecialPowers.popPrefEnv();
-  await window.SidebarController.waitUntilStable();
+  await SidebarController.waitUntilStable();
 });
