@@ -2449,30 +2449,6 @@ networking:
   owner: vgosu@mozilla.com
   hasExposure: false
   variables:
-    ehPreloadEnabled:
-      description: Whether Early Hints preload is enabled
-      type: boolean
-      setPref:
-        branch: default
-        pref: "network.early-hints.enabled"
-    ehPreconnectEnabled:
-      description: Whether Early Hints preconnect is enabled
-      type: boolean
-      setPref:
-        branch: default
-        pref: "network.early-hints.preconnect.enabled"
-    dnsMaxPriorityThreads:
-      description: The maximum number of high priority DNS threads that can be created.
-      type: int
-      setPref:
-        branch: default
-        pref: "network.dns.max_high_priority_threads"
-    dnsMaxAnyPriorityThreads:
-      description: The maximum number of DNS threads that can be created to handle any priority DNS requests.
-      type: int
-      setPref:
-        branch: default
-        pref: "network.dns.max_any_priority_threads"
     preconnect:
       description: Whether the rel=preconnect feature is enabled
       type: boolean
@@ -2551,18 +2527,54 @@ networking:
       setPref:
         branch: default
         pref: "network.dnsCacheExpirationGracePeriod"
-    maxDnsCacheEntries:
-      description: This is the number of dns cache entries allowed
-      type: int
-      setPref:
-        branch: default
-        pref: "network.dnsCacheEntries"
     http3UseNSPRForIO:
       description: true by default using legacy UDP IO via NSPR. When set to false, uses new UDP IO via Fast UDP for Firefox project.
       type: boolean
       setPref:
         branch: default
         pref: "network.http.http3.use_nspr_for_io"
+
+networkingEarlyHints:
+  description: "Networking (Necko) Early Hints"
+  owner: vgosu@mozilla.com
+  hasExposure: false
+  variables:
+    ehPreloadEnabled:
+      description: Whether Early Hints preload is enabled
+      type: boolean
+      setPref:
+        branch: default
+        pref: "network.early-hints.enabled"
+    ehPreconnectEnabled:
+      description: Whether Early Hints preconnect is enabled
+      type: boolean
+      setPref:
+        branch: default
+        pref: "network.early-hints.preconnect.enabled"
+
+networkingDNS:
+  description: "Networking (Necko) DNS"
+  owner: vgosu@mozilla.com
+  hasExposure: false
+  variables:
+    dnsMaxPriorityThreads:
+      description: The maximum number of high priority DNS threads that can be created.
+      type: int
+      setPref:
+        branch: default
+        pref: "network.dns.max_high_priority_threads"
+    dnsMaxAnyPriorityThreads:
+      description: The maximum number of DNS threads that can be created to handle any priority DNS requests.
+      type: int
+      setPref:
+        branch: default
+        pref: "network.dns.max_any_priority_threads"
+    maxDnsCacheEntries:
+      description: This is the number of dns cache entries allowed
+      type: int
+      setPref:
+        branch: default
+        pref: "network.dnsCacheEntries"
 
 essentialFallbackDomains:
   description: "Whether to retry failing system requests with a backup domain"
