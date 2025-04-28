@@ -20,7 +20,6 @@ EXTRA_JS_MODULES += [
 
 BROWSER_CHROME_MANIFESTS += [
     "tests/browser/browser.toml",
-    "tests/browser/browser_reviewchecker.toml",
 ]
 
 with Files("**"):

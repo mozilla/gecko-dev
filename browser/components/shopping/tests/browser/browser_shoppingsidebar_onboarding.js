@@ -209,10 +209,7 @@ add_task(async function test_hideOnboarding_onClose() {
   setOnboardingPrefs({ active: false, optedIn: 0, telemetryEnabled: true });
 
   await SpecialPowers.pushPrefEnv({
-    set: [
-      ["browser.shopping.experience2023.integratedSidebar", false],
-      ["browser.shopping.experience2023.enabled", true],
-    ],
+    set: [["browser.shopping.experience2023.enabled", true]],
   });
 
   await BrowserTestUtils.withNewTab(

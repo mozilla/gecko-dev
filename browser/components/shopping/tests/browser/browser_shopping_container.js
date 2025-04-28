@@ -41,26 +41,3 @@ add_task(async function test_close_button() {
     }
   );
 });
-
-add_task(async function test_double_header() {
-  SpecialPowers.pushPrefEnv({
-    set: [
-      ["sidebar.revamp", false],
-      ["browser.shopping.experience2023.integratedSidebar", true],
-    ],
-  });
-
-  await BrowserTestUtils.withNewTab(
-    {
-      url: "about:shoppingsidebar",
-      gBrowser,
-    },
-    async browser => {
-      await SpecialPowers.spawn(browser, [], async () => {
-        let secondHeader = content.document.querySelector("#shopping-header");
-        Assert.ok(!secondHeader);
-      });
-    }
-  );
-  await SpecialPowers.popPrefEnv();
-});
