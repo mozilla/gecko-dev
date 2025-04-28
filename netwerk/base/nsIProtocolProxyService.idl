@@ -287,6 +287,11 @@ interface nsIProtocolProxyService : nsISupports
     void unregisterChannelFilter(in nsIProtocolProxyChannelFilter aFilter);
 
     /**
+      * True when there is a filter registered.
+      */
+    readonly attribute boolean hasProxyFilterRegistered;
+
+    /**
      * This method is used to register a nsIProxyConfigChangedCallback.
      *
      * @param aCallback
