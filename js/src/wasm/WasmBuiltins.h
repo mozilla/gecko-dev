@@ -134,6 +134,7 @@ enum class SymbolicAddress {
   PostBarrier,
   PostBarrierPrecise,
   PostBarrierPreciseWithOffset,
+  PostBarrierWholeCell,
   ExceptionNew,
   ThrowException,
   StructNewIL_true,
@@ -277,6 +278,7 @@ extern const SymbolicAddressSignature SASigRefFunc;
 extern const SymbolicAddressSignature SASigPostBarrier;
 extern const SymbolicAddressSignature SASigPostBarrierPrecise;
 extern const SymbolicAddressSignature SASigPostBarrierPreciseWithOffset;
+extern const SymbolicAddressSignature SASigPostBarrierWholeCell;
 extern const SymbolicAddressSignature SASigExceptionNew;
 extern const SymbolicAddressSignature SASigThrowException;
 extern const SymbolicAddressSignature SASigStructNewIL_true;

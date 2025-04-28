@@ -41,6 +41,7 @@ namespace js {
 class SharedArrayRawBuffer;
 class WasmBreakpointSite;
 
+class WasmGcObject;
 class WasmStructObject;
 class WasmArrayObject;
 
@@ -594,6 +595,7 @@ class alignas(16) Instance {
                                  void* prev);
   static void postBarrierPreciseWithOffset(Instance* instance, void** base,
                                            uint32_t offset, void* prev);
+  static void postBarrierWholeCell(Instance* instance, gc::Cell* object);
   static void* exceptionNew(Instance* instance, void* exceptionArg);
   static int32_t throwException(Instance* instance, void* exceptionArg);
   template <bool ZeroFields>

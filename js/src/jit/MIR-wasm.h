@@ -1541,25 +1541,20 @@ class MWasmStoreRef : public MAryInstruction<3>, public NoTypePolicy::Data {
 
 // Given a value being written to another object, update the generational store
 // buffer if the value is in the nursery and object is in the tenured heap.
-class MWasmPostWriteBarrierImmediate : public MQuaternaryInstruction,
+class MWasmPostWriteBarrierImmediate : public MTernaryInstruction,
                                        public NoTypePolicy::Data {
-  uint32_t valueOffset_;
-
   MWasmPostWriteBarrierImmediate(MDefinition* instance, MDefinition* object,
-                                 MDefinition* valueBase, uint32_t valueOffset,
                                  MDefinition* value)
-      : MQuaternaryInstruction(classOpcode, instance, object, valueBase, value),
-        valueOffset_(valueOffset) {
+      : MTernaryInstruction(classOpcode, instance, object, value) {
     setGuard();
   }
 
  public:
   INSTRUCTION_HEADER(WasmPostWriteBarrierImmediate)
   TRIVIAL_NEW_WRAPPERS
-  NAMED_OPERANDS((0, instance), (1, object), (2, valueBase), (3, value))
+  NAMED_OPERANDS((0, instance), (1, object), (2, value))
 
   AliasSet getAliasSet() const override { return AliasSet::None(); }
-  uint32_t valueOffset() const { return valueOffset_; }
 
   ALLOW_CLONE(MWasmPostWriteBarrierImmediate)
 };

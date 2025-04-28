@@ -1958,6 +1958,7 @@ static const char* ThunkedNativeToDescription(SymbolicAddress func) {
     case SymbolicAddress::PostBarrier:
     case SymbolicAddress::PostBarrierPrecise:
     case SymbolicAddress::PostBarrierPreciseWithOffset:
+    case SymbolicAddress::PostBarrierWholeCell:
       return "call to native GC postbarrier (in wasm)";
     case SymbolicAddress::ExceptionNew:
       return "call to native exception new (in wasm)";

@@ -6723,11 +6723,10 @@ void LIRGenerator::visitWasmStoreRef(MWasmStoreRef* ins) {
 
 void LIRGenerator::visitWasmPostWriteBarrierImmediate(
     MWasmPostWriteBarrierImmediate* ins) {
-  LWasmPostWriteBarrierImmediate* lir =
-      new (alloc()) LWasmPostWriteBarrierImmediate(
-          useFixed(ins->instance(), InstanceReg), useRegister(ins->object()),
-          useRegister(ins->valueBase()), useRegister(ins->value()), temp(),
-          ins->valueOffset());
+  LWasmPostWriteBarrierImmediate* lir = new (alloc())
+      LWasmPostWriteBarrierImmediate(useFixed(ins->instance(), InstanceReg),
+                                     useRegister(ins->object()),
+                                     useRegister(ins->value()), temp());
   add(lir, ins);
   assignWasmSafepoint(lir);
 }

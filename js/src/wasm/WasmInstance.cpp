@@ -1426,6 +1426,13 @@ static int32_t MemDiscardShared(Instance* instance, I byteOffset, I byteLen,
       location, wasm::AnyRef::fromCompiledCode(prev), next);
 }
 
+/* static */ void Instance::postBarrierWholeCell(Instance* instance,
+                                                 gc::Cell* object) {
+  MOZ_ASSERT(SASigPostBarrierWholeCell.failureMode == FailureMode::Infallible);
+  MOZ_ASSERT(object);
+  instance->storeBuffer_->putWholeCell(object);
+}
+
 //////////////////////////////////////////////////////////////////////////////
 //
 // GC and exception handling support.
