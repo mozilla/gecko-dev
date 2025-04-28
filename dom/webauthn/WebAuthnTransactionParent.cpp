@@ -143,6 +143,17 @@ mozilla::ipc::IPCResult WebAuthnTransactionParent::RecvRequestRegister(
   WindowGlobalParent* manager = static_cast<WindowGlobalParent*>(Manager());
   nsIPrincipal* principal = manager->DocumentPrincipal();
 
+  WindowGlobalParent* windowContext = manager;
+  while (windowContext) {
+    nsITransportSecurityInfo* securityInfo = windowContext->GetSecurityInfo();
+    if (securityInfo &&
+        !IsWebAuthnAllowedForTransportSecurityInfo(securityInfo)) {
+      aResolver(NS_ERROR_DOM_SECURITY_ERR);
+      return IPC_OK();
+    }
+    windowContext = windowContext->GetParentWindowContext();
+  }
+
   if (!IsWebAuthnAllowedForPrincipal(principal)) {
     aResolver(NS_ERROR_DOM_SECURITY_ERR);
     return IPC_OK();
@@ -340,6 +351,17 @@ mozilla::ipc::IPCResult WebAuthnTransactionParent::RecvRequestSign(
 
   WindowGlobalParent* manager = static_cast<WindowGlobalParent*>(Manager());
   nsIPrincipal* principal = manager->DocumentPrincipal();
+
+  WindowGlobalParent* windowContext = manager;
+  while (windowContext) {
+    nsITransportSecurityInfo* securityInfo = windowContext->GetSecurityInfo();
+    if (securityInfo &&
+        !IsWebAuthnAllowedForTransportSecurityInfo(securityInfo)) {
+      aResolver(NS_ERROR_DOM_SECURITY_ERR);
+      return IPC_OK();
+    }
+    windowContext = windowContext->GetParentWindowContext();
+  }
 
   if (!IsWebAuthnAllowedForPrincipal(principal)) {
     aResolver(NS_ERROR_DOM_SECURITY_ERR);

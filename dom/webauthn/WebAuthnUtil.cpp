@@ -132,6 +132,28 @@ bool IsWebAuthnAllowedForPrincipal(const nsCOMPtr<nsIPrincipal>& aPrincipal) {
   return true;
 }
 
+bool IsWebAuthnAllowedForTransportSecurityInfo(
+    nsITransportSecurityInfo* aSecurityInfo) {
+  nsITransportSecurityInfo::OverridableErrorCategory overridableErrorCategory;
+  if (!aSecurityInfo || NS_FAILED(aSecurityInfo->GetOverridableErrorCategory(
+                            &overridableErrorCategory))) {
+    return false;
+  }
+
+  switch (overridableErrorCategory) {
+    case nsITransportSecurityInfo::OverridableErrorCategory::ERROR_UNSET:
+      return true;
+    case nsITransportSecurityInfo::OverridableErrorCategory::ERROR_TIME:
+      return true;
+    case nsITransportSecurityInfo::OverridableErrorCategory::ERROR_TRUST:
+      return false;
+    case nsITransportSecurityInfo::OverridableErrorCategory::ERROR_DOMAIN:
+      return false;
+    default:
+      return false;
+  }
+}
+
 bool IsValidRpId(const nsCOMPtr<nsIPrincipal>& aPrincipal,
                  const nsACString& aRpId) {
   // This checks two of the conditions defined in
