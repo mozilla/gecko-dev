@@ -1148,37 +1148,6 @@ Element::Loading Element::LoadingState() const {
   return static_cast<Loading>(val->GetEnumValue());
 }
 
-namespace {
-// <https://html.spec.whatwg.org/multipage/urls-and-fetching.html#fetch-priority-attributes>.
-static constexpr nsAttrValue::EnumTable kFetchPriorityEnumTable[] = {
-    {kFetchPriorityAttributeValueHigh, FetchPriority::High},
-    {kFetchPriorityAttributeValueLow, FetchPriority::Low},
-    {kFetchPriorityAttributeValueAuto, FetchPriority::Auto},
-    {nullptr, 0}};
-
-// <https://html.spec.whatwg.org/multipage/urls-and-fetching.html#fetch-priority-attributes>.
-static const nsAttrValue::EnumTable*
-    kFetchPriorityEnumTableInvalidValueDefault = &kFetchPriorityEnumTable[2];
-}  // namespace
-
-void Element::ParseFetchPriority(const nsAString& aValue,
-                                 nsAttrValue& aResult) {
-  aResult.ParseEnumValue(aValue, kFetchPriorityEnumTable,
-                         false /* aCaseSensitive */,
-                         kFetchPriorityEnumTableInvalidValueDefault);
-}
-
-FetchPriority Element::GetFetchPriority() const {
-  const nsAttrValue* fetchpriorityAttribute =
-      GetParsedAttr(nsGkAtoms::fetchpriority);
-  if (fetchpriorityAttribute) {
-    MOZ_ASSERT(fetchpriorityAttribute->Type() == nsAttrValue::eEnum);
-    return FetchPriority(fetchpriorityAttribute->GetEnumValue());
-  }
-
-  return FetchPriority::Auto;
-}
-
 //----------------------------------------------------------------------
 
 void Element::AddToIdTable(nsAtom* aId) {

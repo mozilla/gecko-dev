@@ -19,8 +19,6 @@ interface SVGScriptElement : SVGElement {
   attribute boolean defer;
   [SetterThrows]
   attribute DOMString? crossOrigin;
-  [Pref="network.fetchpriority.enabled"]
-  attribute DOMString fetchPriority;
 };
 
 SVGScriptElement includes SVGURIReference;

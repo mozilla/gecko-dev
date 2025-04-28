@@ -24,8 +24,6 @@ interface SVGImageElement : SVGGraphicsElement {
   readonly attribute SVGAnimatedPreserveAspectRatio preserveAspectRatio;
   [SetterThrows]
   attribute DOMString? crossOrigin;
-  [Pref="network.fetchpriority.enabled"]
-  attribute DOMString fetchPriority;
   [CEReactions, SetterThrows]
   attribute DOMString decoding;
   [NewObject]

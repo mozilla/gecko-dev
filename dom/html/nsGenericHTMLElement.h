@@ -750,6 +750,11 @@ class nsGenericHTMLElement : public nsGenericHTMLElementBase {
     SetHTMLAttr(nsGkAtoms::fetchpriority, aFetchPriority);
   }
 
+ protected:
+  mozilla::dom::FetchPriority GetFetchPriority() const;
+
+  static void ParseFetchPriority(const nsAString& aValue, nsAttrValue& aResult);
+
  private:
   /**
    * Add/remove this element to the documents name cache

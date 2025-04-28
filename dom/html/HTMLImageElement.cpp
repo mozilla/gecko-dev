@@ -1295,7 +1295,7 @@ void HTMLImageElement::SetDensity(double aDensity) {
 }
 
 FetchPriority HTMLImageElement::GetFetchPriorityForImage() const {
-  return Element::GetFetchPriority();
+  return nsGenericHTMLElement::GetFetchPriority();
 }
 
 }  // namespace mozilla::dom

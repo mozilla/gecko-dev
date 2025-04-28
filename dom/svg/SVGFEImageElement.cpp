@@ -105,15 +105,10 @@ bool SVGFEImageElement::ParseAttribute(int32_t aNamespaceID, nsAtom* aAttribute,
                                        const nsAString& aValue,
                                        nsIPrincipal* aMaybeScriptedPrincipal,
                                        nsAttrValue& aResult) {
-  if (aNamespaceID == kNameSpaceID_None) {
-    if (aAttribute == nsGkAtoms::crossorigin) {
-      ParseCORSValue(aValue, aResult);
-      return true;
-    }
-    if (aAttribute == nsGkAtoms::fetchpriority) {
-      ParseFetchPriority(aValue, aResult);
-      return true;
-    }
+  if (aNamespaceID == kNameSpaceID_None &&
+      aAttribute == nsGkAtoms::crossorigin) {
+    ParseCORSValue(aValue, aResult);
+    return true;
   }
   return SVGFEImageElementBase::ParseAttribute(
       aNamespaceID, aAttribute, aValue, aMaybeScriptedPrincipal, aResult);

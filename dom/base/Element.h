@@ -145,7 +145,6 @@ template <typename T>
 class Optional;
 enum class CallerType : uint32_t;
 enum class ReferrerPolicy : uint8_t;
-enum class FetchPriority : uint8_t;
 }  // namespace dom
 }  // namespace mozilla
 
@@ -2216,10 +2215,6 @@ class Element : public FragmentOrElement {
    */
   MOZ_CAN_RUN_SCRIPT
   nsresult PostHandleEventForLinks(EventChainPostVisitor& aVisitor);
-
-  mozilla::dom::FetchPriority GetFetchPriority() const;
-
-  static void ParseFetchPriority(const nsAString& aValue, nsAttrValue& aResult);
 
  public:
   /**

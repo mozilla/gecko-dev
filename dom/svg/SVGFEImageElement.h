@@ -93,14 +93,6 @@ class SVGFEImageElement final : public SVGFEImageElementBase,
     SetOrRemoveNullableStringAttr(nsGkAtoms::crossorigin, aCrossOrigin, aError);
   }
 
-  void GetFetchPriority(nsAString& aFetchPriority) const {
-    GetEnumAttr(nsGkAtoms::fetchpriority, kFetchPriorityAttributeValueAuto,
-                aFetchPriority);
-  }
-  void SetFetchPriority(const nsAString& aFetchPriority) {
-    SetAttr(nsGkAtoms::fetchpriority, aFetchPriority, IgnoreErrors());
-  }
-
  private:
   void DidAnimateAttribute(int32_t aNameSpaceID, nsAtom* aAttribute) override;
   nsresult LoadSVGImage(bool aForce, bool aNotify);
@@ -114,10 +106,6 @@ class SVGFEImageElement final : public SVGFEImageElementBase,
 
   // Override for nsImageLoadingContent.
   nsIContent* AsContent() override { return this; }
-
-  FetchPriority GetFetchPriorityForImage() const override {
-    return Element::GetFetchPriority();
-  }
 
   enum { RESULT, HREF, XLINK_HREF };
   SVGAnimatedString mStringAttributes[3];
