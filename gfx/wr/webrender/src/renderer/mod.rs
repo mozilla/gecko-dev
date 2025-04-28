@@ -3532,12 +3532,12 @@ impl Renderer {
             .filter(|tile| tile.kind != TileKind::Clear).count();
         self.profile.set(profiler::PICTURE_TILES, num_tiles);
 
-        let window_is_opaque = match self.compositor_config.layer_compositor() {
+        let (window_is_opaque, enable_screenshot)  = match self.compositor_config.layer_compositor() {
             Some(ref compositor) => {
                 let props = compositor.get_window_properties();
-                props.is_opaque
+                (props.is_opaque, props.enable_screenshot)
             }
-            None => true,
+            None => (true, true)
         };
 
         let mut input_layers: Vec<CompositorInputLayer> = Vec::new();
@@ -3581,11 +3581,14 @@ impl Renderer {
                     CompositorSurfaceUsage::Content
                 }
                 CompositeTileSurface::ExternalSurface { external_surface_index } => {
-                    match self.current_compositor_kind {
-                        CompositorKind::Native { .. } | CompositorKind::Draw { .. } => {
+                    match (self.current_compositor_kind, enable_screenshot) {
+                        (CompositorKind::Native { .. }, _) | (CompositorKind::Draw { .. }, _) => {
                             CompositorSurfaceUsage::Content
                         }
-                        CompositorKind::Layer { .. } => {
+                        (CompositorKind::Layer { .. }, true) => {
+                            CompositorSurfaceUsage::Content
+                        }
+                        (CompositorKind::Layer { .. }, false) => {
                             let surface = &composite_state.external_surfaces[external_surface_index.0];
 
                             // TODO(gwc): For now, we only select a hardware overlay swapchain if we
@@ -3789,6 +3792,7 @@ impl Renderer {
         // Start compositing if using OS compositor
         if let Some(ref mut compositor) = self.compositor_config.layer_compositor() {
             let input = CompositorInputConfig {
+                enable_screenshot,
                 layers: &input_layers,
             };
             compositor.begin_frame(&input);

@@ -540,13 +540,39 @@ void DCLayerTree::WaitForCommitCompletion() {
   mCompositionDevice->WaitForCommitCompletion();
 }
 
+bool DCLayerTree::UseNativeCompositor() const {
+  return mUseNativeCompositor && gfx::gfxVars::UseWebRenderCompositor();
+}
+
+bool DCLayerTree::UseLayerCompositor() const {
+// Only allow the layer compositor in nightly builds, for now.
+#ifdef NIGHTLY_BUILD
+  return UseNativeCompositor() &&
+         StaticPrefs::gfx_webrender_layer_compositor_AtStartup();
+#else
+  return false;
+#endif
+}
+
 void DCLayerTree::DisableNativeCompositor() {
+  MOZ_ASSERT(!UseLayerCompositor());
   MOZ_ASSERT(mCurrentSurface.isNothing());
   MOZ_ASSERT(mCurrentLayers.empty());
 
+  mUseNativeCompositor = false;
   ReleaseNativeCompositorResources();
   mPrevLayers.clear();
   mRootVisual->RemoveAllVisuals();
+}
+
+void DCLayerTree::EnableAsyncScreenshot() {
+  MOZ_ASSERT(UseLayerCompositor());
+  if (!UseLayerCompositor()) {
+    MOZ_ASSERT_UNREACHABLE("unexpected to be called");
+    return;
+  }
+  mEnableAsyncScreenshot = true;
+  mAsyncScreenshotLastFrameUsed = mCurrentFrame;
 }
 
 bool DCLayerTree::MaybeUpdateDebugCounter() {
@@ -651,6 +677,11 @@ void DCLayerTree::CompositorEndFrame() {
       --i;  // Examine the element again, if necessary.
       --len;
     }
+  }
+
+  if (mEnableAsyncScreenshot &&
+      (mCurrentFrame - mAsyncScreenshotLastFrameUsed) > 5) {
+    mEnableAsyncScreenshot = false;
   }
 
   if (!StaticPrefs::gfx_webrender_dcomp_video_check_slow_present()) {
@@ -775,7 +806,8 @@ void DCLayerTree::CreateSwapChainSurface(wr::NativeSurfaceId aId,
   MOZ_RELEASE_ASSERT(it == mDCSurfaces.end());
 
   UniquePtr<DCSurface> surface;
-  if (StaticPrefs::
+  if (!mEnableAsyncScreenshot &&
+      StaticPrefs::
           gfx_webrender_layer_compositor_use_composition_surface_AtStartup()) {
     surface = MakeUnique<DCLayerCompositionSurface>(aSize, aIsOpaque, this);
     if (!surface->Initialize()) {
@@ -791,6 +823,8 @@ void DCLayerTree::CreateSwapChainSurface(wr::NativeSurfaceId aId,
       return;
     }
   }
+
+  MOZ_ASSERT_IF(mEnableAsyncScreenshot, mDCSurfaces.empty());
 
   mDCSurfaces[aId] = std::move(surface);
 }
@@ -1420,6 +1454,10 @@ DCSwapChain::~DCSwapChain() {
 
     const auto& gle = gl::GLContextEGL::Cast(gl);
     const auto& egl = gle->mEgl;
+
+    if (gle->GetEGLSurfaceOverride() == mEGLSurface) {
+      gle->SetEGLSurfaceOverride(EGL_NO_SURFACE);
+    }
     egl->fDestroySurface(mEGLSurface);
     mEGLSurface = EGL_NO_SURFACE;
   }
@@ -1534,9 +1572,6 @@ bool DCSwapChain::Resize(wr::DeviceIntSize aSize) {
 }
 
 void DCSwapChain::Present() {
-  const auto gl = mDCLayerTree->GetGLContext();
-  const auto& gle = gl::GLContextEGL::Cast(gl);
-
   HRESULT hr = mSwapChain->Present(0, 0);
   MOZ_RELEASE_ASSERT(SUCCEEDED(hr));
 
@@ -1561,8 +1596,6 @@ void DCSwapChain::Present() {
     }
     ::CloseHandle(event);
   }
-
-  gle->SetEGLSurfaceOverride(EGL_NO_SURFACE);
 }
 
 DCLayerCompositionSurface::DCLayerCompositionSurface(wr::DeviceIntSize aSize,

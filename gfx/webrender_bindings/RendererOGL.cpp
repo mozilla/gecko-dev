@@ -288,6 +288,9 @@ bool RendererOGL::EnsureAsyncScreenshot() {
   if (mCompositor->SupportAsyncScreenshot()) {
     return true;
   }
+  if (mCompositor->EnableAsyncScreenshot()) {
+    return true;
+  }
   if (!mDisableNativeCompositor) {
     layers::CompositorThread()->Dispatch(
         NewRunnableFunction("DoWebRenderDisableNativeCompositorRunnable",

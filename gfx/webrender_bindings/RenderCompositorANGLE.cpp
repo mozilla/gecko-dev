@@ -139,12 +139,6 @@ bool RenderCompositorANGLE::Initialize(nsACString& aError) {
     return false;
   }
 
-  // Disable native compositor when fast snapshot is needed.
-  // Taking snapshot of native compositor is very slow on Windows.
-  if (mWidget->GetCompositorOptions().NeedFastSnaphot()) {
-    mUseNativeCompositor = false;
-  }
-
   // Create DCLayerTree when DirectComposition is used.
   if (gfx::gfxVars::UseWebRenderDCompWin()) {
     HWND compositorHwnd = GetCompositorHwnd();
@@ -158,6 +152,12 @@ bool RenderCompositorANGLE::Initialize(nsACString& aError) {
       aError.Assign("RcANGLE(no compositor window)"_ns);
       return false;
     }
+  }
+
+  // Disable native compositor when fast snapshot is needed.
+  // Taking snapshot of native compositor is very slow on Windows.
+  if (mDCLayerTree && mWidget->GetCompositorOptions().NeedFastSnaphot()) {
+    mDCLayerTree->DisableNativeCompositor();
   }
 
   // Create SwapChain when compositor is not used
@@ -828,21 +828,23 @@ gfx::DeviceResetReason RenderCompositorANGLE::IsContextLost(bool aForce) {
 }
 
 bool RenderCompositorANGLE::UseCompositor() const {
-  return mUseNativeCompositor && mDCLayerTree &&
-         gfx::gfxVars::UseWebRenderCompositor();
+  return mDCLayerTree && mDCLayerTree->UseNativeCompositor();
+}
+
+bool RenderCompositorANGLE::UseLayerCompositor() const {
+  return mDCLayerTree && mDCLayerTree->UseLayerCompositor();
 }
 
 bool RenderCompositorANGLE::SupportAsyncScreenshot() {
-#ifdef NIGHTLY_BUILD
-  if (StaticPrefs::gfx_webrender_layer_compositor_AtStartup()) {
-    return true;
-  }
-#endif
   return !UseCompositor() && !mDisablingNativeCompositor;
 }
 
 bool RenderCompositorANGLE::ShouldUseNativeCompositor() {
   return UseCompositor();
+}
+
+bool RenderCompositorANGLE::ShouldUseLayerCompositor() {
+  return UseLayerCompositor();
 }
 
 void RenderCompositorANGLE::CompositorBeginFrame() {
@@ -934,6 +936,9 @@ void RenderCompositorANGLE::GetCompositorCapabilities(
 
 void RenderCompositorANGLE::GetWindowProperties(WindowProperties* aProperties) {
   aProperties->is_opaque = !ShouldUseAlpha();
+  const bool enable_screenshot =
+      mDCLayerTree && mDCLayerTree->GetAsyncScreenshotEnabled();
+  aProperties->enable_screenshot = enable_screenshot;
 }
 
 void RenderCompositorANGLE::EnableNativeCompositor(bool aEnable) {
@@ -946,7 +951,6 @@ void RenderCompositorANGLE::EnableNativeCompositor(bool aEnable) {
     return;
   }
 
-  mUseNativeCompositor = false;
   mDCLayerTree->DisableNativeCompositor();
 
   if (!RecreateNonNativeCompositorSwapChain()) {
@@ -956,6 +960,14 @@ void RenderCompositorANGLE::EnableNativeCompositor(bool aEnable) {
   }
 
   mDisablingNativeCompositor = true;
+}
+
+bool RenderCompositorANGLE::EnableAsyncScreenshot() {
+  if (!UseLayerCompositor()) {
+    return false;
+  }
+  mDCLayerTree->EnableAsyncScreenshot();
+  return true;
 }
 
 bool RenderCompositorANGLE::RecreateNonNativeCompositorSwapChain() {

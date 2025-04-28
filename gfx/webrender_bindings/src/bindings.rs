@@ -1526,6 +1526,7 @@ pub struct WrLayerCompositor {
     next_layer_id: u64,
     surface_pool: Vec<NativeLayer>,
     visual_tree: Vec<NativeLayer>,
+    enable_screenshot: bool,
 }
 
 impl WrLayerCompositor {
@@ -1535,6 +1536,7 @@ impl WrLayerCompositor {
             next_layer_id: 0,
             surface_pool: Vec::new(),
             visual_tree: Vec::new(),
+            enable_screenshot: true,
         }
     }
 }
@@ -1545,6 +1547,18 @@ impl LayerCompositor for WrLayerCompositor {
         &mut self,
         input: &CompositorInputConfig,
     ) {
+
+        if self.enable_screenshot != input.enable_screenshot {
+            let mut layers_to_destroy = Vec::new();
+            mem::swap(&mut self.surface_pool, &mut layers_to_destroy);
+            for layer in layers_to_destroy {
+                unsafe {
+                    wr_compositor_destroy_surface(self.compositor, layer.id);
+                }
+            }
+            self.enable_screenshot = input.enable_screenshot;
+        }
+
         unsafe {
             wr_compositor_begin_frame(self.compositor);
         }

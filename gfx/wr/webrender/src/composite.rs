@@ -1277,12 +1277,14 @@ pub struct NativeSurfaceInfo {
 #[derive(Debug, Copy, Clone)]
 pub struct WindowProperties {
     pub is_opaque: bool,
+    pub enable_screenshot: bool,
 }
 
 impl Default for WindowProperties {
     fn default() -> Self {
         WindowProperties {
             is_opaque: true,
+            enable_screenshot: true,
         }
     }
 }
@@ -1542,6 +1544,7 @@ pub struct CompositorInputLayer {
 // TODO(gw): Include information about picture cache slices and external surfaces.
 #[derive(Debug)]
 pub struct CompositorInputConfig<'a> {
+    pub enable_screenshot: bool,
     pub layers: &'a [CompositorInputLayer],
 }
 

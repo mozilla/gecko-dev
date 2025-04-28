@@ -131,7 +131,12 @@ class DCLayerTree {
   void MaybeUpdateDebug();
   void MaybeCommit();
   void WaitForCommitCompletion();
+
+  bool UseNativeCompositor() const;
+  bool UseLayerCompositor() const;
   void DisableNativeCompositor();
+  void EnableAsyncScreenshot();
+  bool GetAsyncScreenshotEnabled() const { return mEnableAsyncScreenshot; }
 
   // Interface for wr::Compositor
   void CompositorBeginFrame();
@@ -203,6 +208,10 @@ class DCLayerTree {
       wr::DeviceIntPoint aSurfaceOffset);
   void ReleaseNativeCompositorResources();
   layers::OverlayInfo GetOverlayInfo();
+
+  bool mUseNativeCompositor = true;
+  bool mEnableAsyncScreenshot = false;
+  int mAsyncScreenshotLastFrameUsed = 0;
 
   RefPtr<gl::GLContext> mGL;
   EGLConfig mEGLConfig;
