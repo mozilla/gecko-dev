@@ -87,6 +87,8 @@ skip-if = ["os == 'android'"]
 
 ["test_ObjectUtils.js"]
 
+["test_ObjectUtils_strict.js"]
+
 ["test_PermissionsUtils.js"]
 
 ["test_Preferences.js"]

@@ -14,7 +14,6 @@ ChromeUtils.defineLazyGetter(lazy, "MigrationUtils", () => {
 
   try {
     let { MigrationUtils } = ChromeUtils.importESModule(
-      // eslint-disable-next-line mozilla/no-browser-refs-in-toolkit
       "resource:///modules/MigrationUtils.sys.mjs"
     );
     return MigrationUtils;
@@ -30,7 +29,7 @@ export var ResetProfile = {
   /**
    * Check if reset is supported for the currently running profile.
    *
-   * @returns {boolean} whether reset is supported.
+   * @return boolean whether reset is supported.
    */
   resetSupported() {
     if (Services.policies && !Services.policies.isAllowed("profileRefresh")) {
@@ -67,8 +66,6 @@ export var ResetProfile = {
 
   /**
    * Ask the user if they wish to restart the application to reset the profile.
-   *
-   * @param {Window} window
    */
   async openConfirmationDialog(window) {
     let win = window;

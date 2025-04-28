@@ -9,15 +9,7 @@
 // This gives us >=2^30 unique timer IDs, enough for 1 per ms for 12.4 days.
 var gNextId = 1; // setTimeout and setInterval must return a positive integer
 
-/**
- * @type {Map<number, nsITimer>}
- */
-var gTimerTable = new Map();
-
-/**
- * @type {Map<number, () => void>}
- */
-var gIdleTable = new Map();
+var gTimerTable = new Map(); // int -> nsITimer or idleCallback
 
 // Don't generate this for every timer.
 var setTimeout_timerCallbackQI = ChromeUtils.generateQI([
@@ -25,172 +17,123 @@ var setTimeout_timerCallbackQI = ChromeUtils.generateQI([
   "nsINamed",
 ]);
 
-/**
- * @template {any[]} T
- *
- * @param {(...args: T) => any} callback
- * @param {number} milliseconds
- * @param {boolean} [isInterval]
- * @param {nsIEventTarget} [target]
- * @param {T} [args]
- */
 function _setTimeoutOrIsInterval(
-  callback,
-  milliseconds,
-  isInterval,
-  target,
-  args
+  aCallback,
+  aMilliseconds,
+  aIsInterval,
+  aTarget,
+  aArgs
 ) {
-  if (typeof callback !== "function") {
+  if (typeof aCallback !== "function") {
     throw new Error(
       `callback is not a function in ${
-        isInterval ? "setInterval" : "setTimeout"
+        aIsInterval ? "setInterval" : "setTimeout"
       }`
     );
   }
   let id = gNextId++;
   let timer = Cc["@mozilla.org/timer;1"].createInstance(Ci.nsITimer);
 
-  if (target) {
-    timer.target = target;
+  if (aTarget) {
+    timer.target = aTarget;
   }
 
-  let callbackObj = {
+  let callback = {
     QueryInterface: setTimeout_timerCallbackQI,
 
     // nsITimerCallback
     notify() {
-      if (!isInterval) {
+      if (!aIsInterval) {
         gTimerTable.delete(id);
       }
-      callback.apply(null, args);
+      aCallback.apply(null, aArgs);
     },
 
     // nsINamed
     get name() {
       return `${
-        isInterval ? "setInterval" : "setTimeout"
-      }() for ${Cu.getDebugName(callback)}`;
+        aIsInterval ? "setInterval" : "setTimeout"
+      }() for ${Cu.getDebugName(aCallback)}`;
     },
   };
 
   timer.initWithCallback(
-    callbackObj,
-    milliseconds,
-    isInterval ? timer.TYPE_REPEATING_SLACK : timer.TYPE_ONE_SHOT
+    callback,
+    aMilliseconds,
+    aIsInterval ? timer.TYPE_REPEATING_SLACK : timer.TYPE_ONE_SHOT
   );
 
   gTimerTable.set(id, timer);
   return id;
 }
 
-/**
- * Sets a timeout.
- *
- * @template {any[]} T
- *
- * @param {(...args: T) => any} callback
- * @param {number} milliseconds
- * @param {T} [args]
- */
-export function setTimeout(callback, milliseconds, ...args) {
-  return _setTimeoutOrIsInterval(callback, milliseconds, false, null, args);
+export function setTimeout(aCallback, aMilliseconds, ...aArgs) {
+  return _setTimeoutOrIsInterval(aCallback, aMilliseconds, false, null, aArgs);
 }
 
-/**
- * Sets a timeout with a given event target.
- *
- * @template {any[]} T
- *
- * @param {(...args: T) => any} callback
- * @param {number} milliseconds
- * @param {nsIEventTarget} target
- * @param {T} [args]
- */
-export function setTimeoutWithTarget(callback, milliseconds, target, ...args) {
-  return _setTimeoutOrIsInterval(callback, milliseconds, false, target, args);
+export function setTimeoutWithTarget(
+  aCallback,
+  aMilliseconds,
+  aTarget,
+  ...aArgs
+) {
+  return _setTimeoutOrIsInterval(
+    aCallback,
+    aMilliseconds,
+    false,
+    aTarget,
+    aArgs
+  );
 }
 
-/**
- * Sets an interval timer.
- *
- * @template {any[]} T
- *
- * @param {(...args: T) => any} callback
- * @param {number} milliseconds
- * @param {T} [args]
- */
-export function setInterval(callback, milliseconds, ...args) {
-  return _setTimeoutOrIsInterval(callback, milliseconds, true, null, args);
+export function setInterval(aCallback, aMilliseconds, ...aArgs) {
+  return _setTimeoutOrIsInterval(aCallback, aMilliseconds, true, null, aArgs);
 }
 
-/**
- * Sets an interval timer.
- *
- * @template {any[]} T
- *
- * @param {(...args: T) => any} callback
- * @param {number} milliseconds
- * @param {nsIEventTarget} target
- * @param {T} [args]
- */
-export function setIntervalWithTarget(callback, milliseconds, target, ...args) {
-  return _setTimeoutOrIsInterval(callback, milliseconds, true, target, args);
+export function setIntervalWithTarget(
+  aCallback,
+  aMilliseconds,
+  aTarget,
+  ...aArgs
+) {
+  return _setTimeoutOrIsInterval(
+    aCallback,
+    aMilliseconds,
+    true,
+    aTarget,
+    aArgs
+  );
 }
 
-/**
- * Clears the given timer.
- *
- * @param {number} id
- */
-function clear(id) {
-  if (gTimerTable.has(id)) {
-    gTimerTable.get(id).cancel();
-    gTimerTable.delete(id);
+function clear(aId) {
+  if (gTimerTable.has(aId)) {
+    gTimerTable.get(aId).cancel();
+    gTimerTable.delete(aId);
   }
 }
-
-/**
- * Clears the given timer.
- */
 export var clearInterval = clear;
-
-/**
- * Clears the given timer.
- */
 export var clearTimeout = clear;
 
-/**
- * Dispatches the given callback to the main thread when it would be otherwise
- * idle. The callback may be canceled via `cancelIdleCallback` - the idle
- * dispatch will still happen but it won't be called.
- *
- * @param {() => void} callback
- * @param {object} options
- */
-export function requestIdleCallback(callback, options) {
-  if (typeof callback !== "function") {
+export function requestIdleCallback(aCallback, aOptions) {
+  if (typeof aCallback !== "function") {
     throw new Error("callback is not a function in requestIdleCallback");
   }
   let id = gNextId++;
 
-  ChromeUtils.idleDispatch(() => {
-    if (gIdleTable.has(id)) {
-      gIdleTable.delete(id);
-      callback();
+  let callback = (...aArgs) => {
+    if (gTimerTable.has(id)) {
+      gTimerTable.delete(id);
+      aCallback(...aArgs);
     }
-  }, options);
-  gIdleTable.set(id, callback);
+  };
+
+  ChromeUtils.idleDispatch(callback, aOptions);
+  gTimerTable.set(id, callback);
   return id;
 }
 
-/**
- * Cancels the given idle callback
- *
- * @param {number} id
- */
-export function cancelIdleCallback(id) {
-  if (gIdleTable.has(id)) {
-    gIdleTable.delete(id);
+export function cancelIdleCallback(aId) {
+  if (gTimerTable.has(aId)) {
+    gTimerTable.delete(aId);
   }
 }

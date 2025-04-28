@@ -10,75 +10,43 @@ ChromeUtils.defineESModuleGetters(lazy, {
     "resource://services-settings/RemoteSettingsClient.sys.mjs",
 });
 
-/**
- * @typedef {import("../../services/settings/RemoteSettingsClient.sys.mjs").RemoteSettingsClient} RemoteSettingsClient
- */
-
 const SETTINGS_IGNORELIST_KEY = "hijack-blocklists";
 
-/**
- * A remote settings wrapper for the ignore lists from the hijack-blocklists
- * collection.
- */
 class IgnoreListsManager {
-  /**
-   * @type {RemoteSettingsClient}
-   */
-  #ignoreListSettings;
-
-  /**
-   * Initializes the manager, if it is not already initialised.
-   */
-  #init() {
-    if (!this.#ignoreListSettings) {
-      this.#ignoreListSettings = lazy.RemoteSettings(SETTINGS_IGNORELIST_KEY);
+  async init() {
+    if (!this._ignoreListSettings) {
+      this._ignoreListSettings = lazy.RemoteSettings(SETTINGS_IGNORELIST_KEY);
     }
   }
 
-  /**
-   * Gets the current collection, subscribing to the collection after the
-   * get has been completed.
-   *
-   * @param {Function} listener
-   */
   async getAndSubscribe(listener) {
-    this.#init();
+    await this.init();
 
     // Trigger a get of the initial value.
-    const settings = await this.#getIgnoreList();
+    const settings = await this._getIgnoreList();
 
     // Listen for future updates after we first get the values.
-    this.#ignoreListSettings.on("sync", listener);
+    this._ignoreListSettings.on("sync", listener);
 
     return settings;
   }
 
-  /**
-   * Unsubscribes from updates to the collection.
-   *
-   * @param {Function} listener
-   */
   unsubscribe(listener) {
-    if (!this.#ignoreListSettings) {
+    if (!this._ignoreListSettings) {
       return;
     }
 
-    this.#ignoreListSettings.off("sync", listener);
+    this._ignoreListSettings.off("sync", listener);
   }
 
-  /**
-   * @type {Promise<object[]>}
-   */
-  #getSettingsPromise;
-
-  async #getIgnoreList() {
-    if (this.#getSettingsPromise) {
-      return this.#getSettingsPromise;
+  async _getIgnoreList() {
+    if (this._getSettingsPromise) {
+      return this._getSettingsPromise;
     }
 
-    const settings = await (this.#getSettingsPromise =
-      this.#getIgnoreListSettings());
-    this.#getSettingsPromise = undefined;
+    const settings = await (this._getSettingsPromise =
+      this._getIgnoreListSettings());
+    delete this._getSettingsPromise;
     return settings;
   }
 
@@ -94,14 +62,14 @@ class IgnoreListsManager {
    *
    * @param {boolean} [firstTime]
    *   Internal boolean to indicate if this is the first time check or not.
-   * @returns {Promise<object[]>}
+   * @returns {array}
    *   An array of objects in the database, or an empty array if none
    *   could be obtained.
    */
-  async #getIgnoreListSettings(firstTime = true) {
+  async _getIgnoreListSettings(firstTime = true) {
     let result = [];
     try {
-      result = await this.#ignoreListSettings.get({
+      result = await this._ignoreListSettings.get({
         verifySignature: true,
       });
     } catch (ex) {
@@ -110,9 +78,9 @@ class IgnoreListsManager {
         firstTime
       ) {
         // The local database is invalid, try and reset it.
-        await this.#ignoreListSettings.db.clear();
+        await this._ignoreListSettings.db.clear();
         // Now call this again.
-        return this.#getIgnoreListSettings(false);
+        return this._getIgnoreListSettings(false);
       }
       // Don't throw an error just log it, just continue with no data, and hopefully
       // a sync will fix things later on.
@@ -122,8 +90,4 @@ class IgnoreListsManager {
   }
 }
 
-/**
- * A remote settings wrapper for the ignore lists from the hijack-blocklists
- * collection.
- */
 export const IgnoreLists = new IgnoreListsManager();

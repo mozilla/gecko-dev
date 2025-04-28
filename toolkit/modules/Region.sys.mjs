@@ -12,10 +12,6 @@ ChromeUtils.defineESModuleGetters(lazy, {
   setTimeout: "resource://gre/modules/Timer.sys.mjs",
 });
 
-/**
- * @typedef {import("../../services/settings/RemoteSettingsClient.sys.mjs").RemoteSettingsClient} RemoteSettingsClient
- */
-
 XPCOMUtils.defineLazyPreferenceGetter(
   lazy,
   "wifiScanningEnabled",
@@ -117,42 +113,22 @@ let inChildProcess =
  * specific customisations.
  */
 class RegionDetector {
-  /**
-   * The users home location. Accessible to tests. Production code should use
-   * the `home` getter.
-   *
-   * @type {string}
-   */
+  // The users home location.
   _home = null;
-  /**
-   * The most recent location the user was detected. Production code should use
-   * the `current` getter.
-   *
-   * @type {string}
-   */
+  // The most recent location the user was detected.
   _current = null;
-  /**
-   * The RemoteSettings client used to sync region files.
-   *
-   * @type {RemoteSettingsClient}
-   */
-  #rsClient;
-  /**
-   * The resolver for when wifi data is received.
-   *
-   * @type {?(value: any) => void}
-   */
-  #wifiDataPromiseResolver = null;
-  /**
-   * Keeps track of how many times we have tried to fetch the users region during
-   * failure. Exposed for tests
-   */
+  // The RemoteSettings client used to sync region files.
+  _rsClient = null;
+  // Keep track of the wifi data across listener events.
+  _wifiDataPromise = null;
+  // Keep track of how many times we have tried to fetch
+  // the users region during failure.
   _retryCount = 0;
   /**
    * @type {Promise}
    *   Allow tests to wait for init to be complete.
    */
-  #initPromise = null;
+  _initPromise = null;
   // Topic for Observer events fired by Region.sys.mjs.
   REGION_TOPIC = "browser-region-updated";
   // Values for telemetry.
@@ -175,8 +151,8 @@ class RegionDetector {
       return Promise.resolve();
     }
 
-    if (this.#initPromise) {
-      return this.#initPromise;
+    if (this._initPromise) {
+      return this._initPromise;
     }
     if (lazy.cacheBustEnabled) {
       Services.tm.idleDispatchToMainThread(() => {
@@ -193,12 +169,12 @@ class RegionDetector {
       // On startup, ensure the Glean probe knows the home region from preferences.
       Glean.region.homeRegion.set(this._home);
     } else {
-      promises.push(this.#idleDispatch(() => this._fetchRegion()));
+      promises.push(this._idleDispatch(() => this._fetchRegion()));
     }
     if (lazy.localGeocodingEnabled) {
-      promises.push(this.#idleDispatch(() => this.#setupRemoteSettings()));
+      promises.push(this._idleDispatch(() => this._setupRemoteSettings()));
     }
-    return (this.#initPromise = Promise.all(promises));
+    return (this._initPromise = Promise.all(promises));
   }
 
   /**
@@ -222,18 +198,21 @@ class RegionDetector {
   }
 
   /**
-   * Triggers fetching of the users current region. Exposed for tests.
+   * Fetch the users current region.
+   *
+   * @returns {string}
+   *   The country_code defining users current region.
    */
   async _fetchRegion() {
     if (this._retryCount >= MAX_RETRIES) {
-      return;
+      return null;
     }
     let startTime = Date.now();
     let telemetryResult = this.TELEMETRY.SUCCESS;
     let result = null;
 
     try {
-      result = await this.#getRegion();
+      result = await this._getRegion();
     } catch (err) {
       telemetryResult = this.TELEMETRY[err.message] || this.TELEMETRY.ERROR;
       log.error("Failed to fetch region", err);
@@ -247,11 +226,13 @@ class RegionDetector {
 
     let took = Date.now() - startTime;
     if (result) {
-      await this.#storeRegion(result);
+      await this._storeRegion(result);
     }
     Glean.region.fetchTime.accumulateSingleSample(took);
 
     Glean.region.fetchResult.accumulateSingleSample(telemetryResult);
+
+    return result;
   }
 
   /**
@@ -260,16 +241,16 @@ class RegionDetector {
    * @param {string} region
    *   The region to store.
    */
-  async #storeRegion(region) {
+  async _storeRegion(region) {
     let isTimezoneUS = this._isUSTimezone();
     // If it's a US region, but not a US timezone, we don't store
     // the value. This works because no region defaults to
     // ZZ (unknown) in nsURLFormatter
     if (region != "US") {
-      this._setCurrentRegion(region);
+      this._setCurrentRegion(region, true);
       Glean.region.storeRegionResult.setForRestOfWorld.add();
     } else if (isTimezoneUS) {
-      this._setCurrentRegion(region);
+      this._setCurrentRegion(region, true);
       Glean.region.storeRegionResult.setForUnitedStates.add();
     } else {
       Glean.region.storeRegionResult.ignoredUnitedStatesIncorrectTimezone.add();
@@ -278,7 +259,7 @@ class RegionDetector {
 
   /**
    * Save the update current region and check if the home region
-   * also needs an update. Exposed for tests.
+   * also needs an update.
    *
    * @param {string} region
    *   The region to store.
@@ -321,12 +302,8 @@ class RegionDetector {
     }
   }
 
-  /**
-   * Wrap a string as a nsISupports.
-   *
-   * @param {string} data
-   */
-  #createSupportsString(data) {
+  // Wrap a string as a nsISupports.
+  _createSupportsString(data) {
     let string = Cc["@mozilla.org/supports-string;1"].createInstance(
       Ci.nsISupportsString
     );
@@ -335,7 +312,7 @@ class RegionDetector {
   }
 
   /**
-   * Save the updated home region and notify observers. Exposed for tests.
+   * Save the updated home region and notify observers.
    *
    * @param {string} region
    *   The region to store.
@@ -353,7 +330,7 @@ class RegionDetector {
     Glean.region.homeRegion.set(region);
     if (notify) {
       Services.obs.notifyObservers(
-        this.#createSupportsString(region),
+        this._createSupportsString(region),
         this.REGION_TOPIC
       );
     }
@@ -362,14 +339,14 @@ class RegionDetector {
   /**
    * Make the request to fetch the region from the configured service.
    */
-  async #getRegion() {
-    log.info("#getRegion called");
+  async _getRegion() {
+    log.info("_getRegion called");
     let fetchOpts = {
       headers: { "Content-Type": "application/json" },
       credentials: "omit",
     };
     if (lazy.wifiScanningEnabled) {
-      let wifiData = await this.#fetchWifiData();
+      let wifiData = await this._fetchWifiData();
       if (wifiData) {
         let postData = JSON.stringify({ wifiAccessPoints: wifiData });
         log.info("Sending wifi details: ", wifiData);
@@ -378,17 +355,16 @@ class RegionDetector {
       }
     }
     let url = Services.urlFormatter.formatURLPref("browser.region.network.url");
-    log.info("#getRegion url is: ", url);
+    log.info("_getRegion url is: ", url);
 
     if (!url) {
       return null;
     }
 
     try {
-      let req = await this.#fetchTimeout(url, fetchOpts, lazy.networkTimeout);
-      // @ts-ignore
-      let res = /** @type {{country_code:string}} */ (await req.json());
-      log.info("_#getRegion returning ", res.country_code);
+      let req = await this._fetchTimeout(url, fetchOpts, lazy.networkTimeout);
+      let res = await req.json();
+      log.info("_getRegion returning ", res.country_code);
       return res.country_code;
     } catch (err) {
       log.error("Error fetching region", err);
@@ -401,11 +377,11 @@ class RegionDetector {
    * Setup the RemoteSetting client + sync listener and ensure
    * the map files are downloaded.
    */
-  async #setupRemoteSettings() {
-    log.info("#setupRemoteSettings");
-    this.#rsClient = lazy.RemoteSettings(COLLECTION_ID);
-    this.#rsClient.on("sync", this._onRegionFilesSync.bind(this));
-    await this.#ensureRegionFilesDownloaded();
+  async _setupRemoteSettings() {
+    log.info("_setupRemoteSettings");
+    this._rsClient = lazy.RemoteSettings(COLLECTION_ID);
+    this._rsClient.on("sync", this._onRegionFilesSync.bind(this));
+    await this._ensureRegionFilesDownloaded();
     // Start listening to geolocation events only after
     // we know the maps are downloded.
     Services.obs.addObserver(this, GEOLOCATION_TOPIC);
@@ -415,19 +391,17 @@ class RegionDetector {
    * Called when RemoteSettings syncs new data, clean up any
    * stale attachments and download any new ones.
    *
-   * @param {object} syncData
+   * @param {Object} syncData
    *   Object describing the data that has just been synced.
-   * @param {object} syncData.data
-   * @param {object[]} syncData.data.deleted
    */
   async _onRegionFilesSync({ data: { deleted } }) {
     log.info("_onRegionFilesSync");
     const toDelete = deleted.filter(d => d.attachment);
     // Remove local files of deleted records
     await Promise.all(
-      toDelete.map(entry => this.#rsClient.attachments.deleteDownloaded(entry))
+      toDelete.map(entry => this._rsClient.attachments.deleteDownloaded(entry))
     );
-    await this.#ensureRegionFilesDownloaded();
+    await this._ensureRegionFilesDownloaded();
   }
 
   /**
@@ -435,52 +409,52 @@ class RegionDetector {
    * successfully downloaded set a flag so we can start using them
    * for geocoding.
    */
-  async #ensureRegionFilesDownloaded() {
-    log.info("#ensureRegionFilesDownloaded");
-    let records = (await this.#rsClient.get()).filter(d => d.attachment);
-    log.info("#ensureRegionFilesDownloaded", records);
+  async _ensureRegionFilesDownloaded() {
+    log.info("_ensureRegionFilesDownloaded");
+    let records = (await this._rsClient.get()).filter(d => d.attachment);
+    log.info("_ensureRegionFilesDownloaded", records);
     if (!records.length) {
-      log.info("#ensureRegionFilesDownloaded: Nothing to download");
+      log.info("_ensureRegionFilesDownloaded: Nothing to download");
       return;
     }
-    await Promise.all(records.map(r => this.#rsClient.attachments.download(r)));
-    log.info("#ensureRegionFilesDownloaded complete");
+    await Promise.all(records.map(r => this._rsClient.attachments.download(r)));
+    log.info("_ensureRegionFilesDownloaded complete");
     this._regionFilesReady = true;
   }
 
   /**
    * Fetch an attachment from RemoteSettings.
    *
-   * @param {string} id
+   * @param {String} id
    *   The id of the record to fetch the attachment from.
    */
-  async #fetchAttachment(id) {
-    let record = (await this.#rsClient.get({ filters: { id } })).pop();
-    let { buffer } = await this.#rsClient.attachments.download(record);
+  async _fetchAttachment(id) {
+    let record = (await this._rsClient.get({ filters: { id } })).pop();
+    let { buffer } = await this._rsClient.attachments.download(record);
     let text = new TextDecoder("utf-8").decode(buffer);
     return JSON.parse(text);
   }
 
   /**
-   * Get a map of the world with region definitions. Exposed for tests.
+   * Get a map of the world with region definitions.
    */
   async _getPlainMap() {
-    return this.#fetchAttachment("world");
+    return this._fetchAttachment("world");
   }
 
   /**
    * Get a map with the regions expanded by a few km to help
-   * fallback lookups when a location is not within a region. Exposed for tests.
+   * fallback lookups when a location is not within a region.
    */
   async _getBufferedMap() {
-    return this.#fetchAttachment("world-buffered");
+    return this._fetchAttachment("world-buffered");
   }
 
   /**
    * Gets the users current location using the same reverse IP
-   * request that is used for GeoLocation requests. Exposed for tests.
+   * request that is used for GeoLocation requests.
    *
-   * @returns {Promise<object>} location
+   * @returns {Object} location
    *   Object representing the user location, with a location key
    *   that contains the lat / lng coordinates.
    */
@@ -488,22 +462,22 @@ class RegionDetector {
     log.info("_getLocation called");
     let fetchOpts = { headers: { "Content-Type": "application/json" } };
     let url = Services.urlFormatter.formatURLPref("geo.provider.network.url");
-    let req = await this.#fetchTimeout(url, fetchOpts, lazy.networkTimeout);
+    let req = await this._fetchTimeout(url, fetchOpts, lazy.networkTimeout);
     let result = await req.json();
     log.info("_getLocation returning", result);
     return result;
   }
 
   /**
-   * Return the users current region using request that is used for GeoLocation
-   * requests. Exposed for tests.
+   * Return the users current region using
+   * request that is used for GeoLocation requests.
    *
-   * @returns {Promise<string>}
+   * @returns {String}
    *   A 2 character string representing a region.
    */
   async _getRegionLocally() {
     let { location } = await this._getLocation();
-    return this.#geoCode(location);
+    return this._geoCode(location);
   }
 
   /**
@@ -511,28 +485,28 @@ class RegionDetector {
    * by looking up the coordinates in geojson map files.
    * Inspired by https://github.com/mozilla/ichnaea/blob/874e8284f0dfa1868e79aae64e14707eed660efe/ichnaea/geocode.py#L114
    *
-   * @param {object} location
+   * @param {Object} location
    *   A location object containing lat + lng coordinates.
    *
-   * @returns {Promise<string>}
+   * @returns {String}
    *   A 2 character string representing a region.
    */
-  async #geoCode(location) {
+  async _geoCode(location) {
     let plainMap = await this._getPlainMap();
-    let polygons = this.#getPolygonsContainingPoint(location, plainMap);
+    let polygons = this._getPolygonsContainingPoint(location, plainMap);
     if (polygons.length == 1) {
       log.info("Found in single exact region");
       return polygons[0].properties.alpha2;
     }
     if (polygons.length) {
       log.info("Found in ", polygons.length, "overlapping exact regions");
-      return this.#findFurthest(location, polygons);
+      return this._findFurthest(location, polygons);
     }
 
     // We haven't found a match in the exact map, use the buffered map
     // to see if the point is close to a region.
     let bufferedMap = await this._getBufferedMap();
-    polygons = this.#getPolygonsContainingPoint(location, bufferedMap);
+    polygons = this._getPolygonsContainingPoint(location, bufferedMap);
 
     if (polygons.length === 1) {
       log.info("Found in single buffered region");
@@ -547,7 +521,7 @@ class RegionDetector {
       let unBufferedRegions = plainMap.features.filter(feature =>
         regions.includes(feature.properties.alpha2)
       );
-      return this.#findClosest(location, unBufferedRegions);
+      return this._findClosest(location, unBufferedRegions);
     }
     return null;
   }
@@ -557,9 +531,9 @@ class RegionDetector {
    * an array of those polygons along with the region that
    * they define
    *
-   * @param {object} point
+   * @param {Object} point
    *   A lat + lng coordinate.
-   * @param {object} map
+   * @param {Object} map
    *   Geojson object that defined seperate regions with a list
    *   of polygons.
    *
@@ -567,17 +541,17 @@ class RegionDetector {
    *   An array of polygons that contain the point, along with the
    *   region they define.
    */
-  #getPolygonsContainingPoint(point, map) {
+  _getPolygonsContainingPoint(point, map) {
     let polygons = [];
     for (const feature of map.features) {
       let coords = feature.geometry.coordinates;
       if (feature.geometry.type === "Polygon") {
-        if (this.#polygonInPoint(point, coords[0])) {
+        if (this._polygonInPoint(point, coords[0])) {
           polygons.push(feature);
         }
       } else if (feature.geometry.type === "MultiPolygon") {
         for (const innerCoords of coords) {
-          if (this.#polygonInPoint(point, innerCoords[0])) {
+          if (this._polygonInPoint(point, innerCoords[0])) {
             polygons.push(feature);
           }
         }
@@ -590,18 +564,18 @@ class RegionDetector {
    * Find the largest distance between a point and any of the points that
    * make up an array of regions.
    *
-   * @param {object} location
+   * @param {Object} location
    *   A lat + lng coordinate.
    * @param {Array} regions
    *   An array of GeoJSON region definitions.
    *
-   * @returns {string}
+   * @returns {String}
    *   A 2 character string representing a region.
    */
-  #findFurthest(location, regions) {
+  _findFurthest(location, regions) {
     let max = { distance: 0, region: null };
-    this.#traverse(regions, ({ lat, lng, region }) => {
-      let distance = this.#distanceBetween(location, { lng, lat });
+    this._traverse(regions, ({ lat, lng, region }) => {
+      let distance = this._distanceBetween(location, { lng, lat });
       if (distance > max.distance) {
         max = { distance, region };
       }
@@ -613,18 +587,18 @@ class RegionDetector {
    * Find the smallest distance between a point and any of the points that
    * make up an array of regions.
    *
-   * @param {object} location
+   * @param {Object} location
    *   A lat + lng coordinate.
    * @param {Array} regions
    *   An array of GeoJSON region definitions.
    *
-   * @returns {string}
+   * @returns {String}
    *   A 2 character string representing a region.
    */
-  #findClosest(location, regions) {
+  _findClosest(location, regions) {
     let min = { distance: Infinity, region: null };
-    this.#traverse(regions, ({ lat, lng, region }) => {
-      let distance = this.#distanceBetween(location, { lng, lat });
+    this._traverse(regions, ({ lat, lng, region }) => {
+      let distance = this._distanceBetween(location, { lng, lat });
       if (distance < min.distance) {
         min = { distance, region };
       }
@@ -641,7 +615,7 @@ class RegionDetector {
    * @param {Function} fun
    *   Function to call on individual coordinates.
    */
-  #traverse(regions, fun) {
+  _traverse(regions, fun) {
     for (const region of regions) {
       if (region.geometry.type === "Polygon") {
         for (const [lng, lat] of region.geometry.coordinates[0]) {
@@ -665,16 +639,15 @@ class RegionDetector {
    * that ray intersects with the polygons borders, if it is
    * an odd number of times the point is inside the polygon.
    *
-   * @param {object} location
+   * @param {Object} location
    *   A lat + lng coordinate.
-   * @param {number} location.lng
-   * @param {number} location.lat
-   * @param {object} poly
+   * @param {Object} polygon
    *   Array of coordinates that define the boundaries of a polygon.
+   *
    * @returns {boolean}
    *   Whether the point is within the polygon.
    */
-  #polygonInPoint({ lng, lat }, poly) {
+  _polygonInPoint({ lng, lat }, poly) {
     let inside = false;
     // For each edge of the polygon.
     for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
@@ -697,15 +670,15 @@ class RegionDetector {
   /**
    * Find the distance between 2 points.
    *
-   * @param {object} p1
+   * @param {Object} p1
    *   A lat + lng coordinate.
-   * @param {object} p2
+   * @param {Object} p2
    *   A lat + lng coordinate.
    *
-   * @returns {number}
+   * @returns {int}
    *   The distance between the 2 points.
    */
-  #distanceBetween(p1, p2) {
+  _distanceBetween(p1, p2) {
     return Math.hypot(p2.lng - p1.lng, p2.lat - p1.lat);
   }
 
@@ -713,22 +686,17 @@ class RegionDetector {
    * A wrapper around fetch that implements a timeout, will throw
    * a TIMEOUT error if the request is not completed in time.
    *
-   * @param {string} url
+   * @param {String} url
    *   The time url to fetch.
-   * @param {object} opts
+   * @param {Object} opts
    *   The options object passed to the call to fetch.
-   * @param {number} timeout
+   * @param {int} timeout
    *   The time in ms to wait for the request to complete.
-   * @returns {Promise<Response>}
    */
-  async #fetchTimeout(url, opts, timeout) {
+  async _fetchTimeout(url, opts, timeout) {
     let controller = new AbortController();
     opts.signal = controller.signal;
-    // Casted to Promise<Response> because `this.#timeout` will not return void,
-    // but reject if it wins the race.
-    return /** @type {Promise<Response>} */ (
-      Promise.race([fetch(url, opts), this.#timeout(timeout, controller)])
-    );
+    return Promise.race([fetch(url, opts), this._timeout(timeout, controller)]);
   }
 
   /**
@@ -736,13 +704,13 @@ class RegionDetector {
    * all network requests, but the error will only be returned if it
    * completes first.
    *
-   * @param {number} timeout
+   * @param {int} timeout
    *   The time in ms to wait for the request to complete.
-   * @param {object} controller
+   * @param {Object} controller
    *   The AbortController passed to the fetch request that
    *   allows us to abort the request.
    */
-  async #timeout(timeout, controller) {
+  async _timeout(timeout, controller) {
     await new Promise(resolve => lazy.setTimeout(resolve, timeout));
     if (controller) {
       // Yield so it is the TIMEOUT that is returned and not
@@ -752,7 +720,7 @@ class RegionDetector {
     throw new Error("TIMEOUT");
   }
 
-  async #fetchWifiData() {
+  async _fetchWifiData() {
     log.info("fetchWifiData called");
     this.wifiService = Cc["@mozilla.org/wifi/monitor;1"].getService(
       Ci.nsIWifiMonitor
@@ -760,7 +728,7 @@ class RegionDetector {
     this.wifiService.startWatching(this, false);
 
     return new Promise(resolve => {
-      this.#wifiDataPromiseResolver = resolve;
+      this._wifiDataPromise = resolve;
     });
   }
 
@@ -768,10 +736,10 @@ class RegionDetector {
    * If the user is using geolocation then we will see frequent updates
    * debounce those so we aren't processing them constantly.
    *
-   * @returns {boolean}
+   * @returns {bool}
    *   Whether we should continue the update check.
    */
-  #needsUpdateCheck() {
+  _needsUpdateCheck() {
     let sinceUpdate = Math.round(Date.now() / 1000) - lazy.lastUpdated;
     let needsUpdate = sinceUpdate >= lazy.updateDebounce;
     if (!needsUpdate) {
@@ -783,10 +751,8 @@ class RegionDetector {
   /**
    * Dispatch a promise returning function to the main thread and
    * resolve when it is completed.
-   *
-   * @param {() => Promise<void>} fun
    */
-  #idleDispatch(fun) {
+  _idleDispatch(fun) {
     return new Promise(resolve => {
       Services.tm.idleDispatchToMainThread(fun().then(resolve));
     });
@@ -794,10 +760,10 @@ class RegionDetector {
 
   /**
    * timerManager will call this periodically to update the region
-   * in case the user never users geolocation. Exposed for tests.
+   * in case the user never users geolocation.
    */
   async _updateTimer() {
-    if (this.#needsUpdateCheck()) {
+    if (this._needsUpdateCheck()) {
       await this._fetchRegion();
     }
   }
@@ -806,13 +772,14 @@ class RegionDetector {
    * Called when we see geolocation updates.
    * in case the user never users geolocation.
    *
-   * @param {object} location
+   * @param {Object} location
    *   A location object containing lat + lng coordinates.
+   *
    */
-  async #seenLocation(location) {
+  async _seenLocation(location) {
     log.info(`Got location update: ${location.lat}:${location.lng}`);
-    if (this.#needsUpdateCheck()) {
-      let region = await this.#geoCode(location);
+    if (this._needsUpdateCheck()) {
+      let region = await this._geoCode(location);
       if (region) {
         this._setCurrentRegion(region);
       }
@@ -821,7 +788,7 @@ class RegionDetector {
 
   onChange(accessPoints) {
     log.info("onChange called");
-    if (!accessPoints || !this.#wifiDataPromiseResolver) {
+    if (!accessPoints || !this._wifiDataPromise) {
       return;
     }
 
@@ -830,17 +797,12 @@ class RegionDetector {
       this.wifiService = null;
     }
 
-    if (this.#wifiDataPromiseResolver) {
+    if (this._wifiDataPromise) {
       let data = lazy.LocationHelper.formatWifiAccessPoints(accessPoints);
-      this.#wifiDataPromiseResolver(data);
-      this.#wifiDataPromiseResolver = null;
+      this._wifiDataPromise(data);
+      this._wifiDataPromise = null;
     }
   }
-
-  /**
-   * Implemented for nsIWifiListener.
-   */
-  onError() {}
 
   /**
    * A method that tries to determine if this user is in a US geography according
@@ -871,17 +833,16 @@ class RegionDetector {
   observe(aSubject, aTopic) {
     log.info(`Observed ${aTopic}`);
     switch (aTopic) {
-      case GEOLOCATION_TOPIC: {
+      case GEOLOCATION_TOPIC:
         // aSubject from GeoLocation.cpp will be a GeoPosition
         // DOM Object, but from tests we will receive a
         // wrappedJSObject so handle both here.
         let coords = aSubject.coords || aSubject.wrappedJSObject.coords;
-        this.#seenLocation({
+        this._seenLocation({
           lat: coords.latitude,
           lng: coords.longitude,
         });
         break;
-      }
     }
   }
 

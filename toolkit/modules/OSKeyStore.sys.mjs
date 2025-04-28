@@ -45,8 +45,7 @@ export var OSKeyStore = {
   /**
    * Consider the module is initialized as locked. OS might unlock without a
    * prompt.
-   *
-   * @type {boolean}
+   * @type {Boolean}
    */
   _isLocked: true,
 
@@ -153,7 +152,7 @@ export var OSKeyStore = {
    *                                  the key storage. If we start creating keys on macOS by running
    *                                  this code we'll potentially have to do extra work to cleanup
    *                                  the mess later.
-   * @returns {Promise<object>}       Object with the following properties:
+   * @returns {Promise<Object>}       Object with the following properties:
    *                                    authenticated: {boolean} Set to true if the user successfully authenticated.
    *                                    auth_details: {String?} Details of the authentication result.
    */
