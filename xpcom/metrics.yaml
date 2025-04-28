@@ -1172,3 +1172,50 @@ system.cpu:
       - florian@mozilla.com
     expires: never
     unit: megahertz
+
+hdd:
+  profile: &hdd_object
+    type: object
+    lifetime: application
+    description: |
+      Information about the disk the profile is stored on.
+      Windows only.
+      * model - The disk's self-reported model string
+      * revision - The disk's self-reported revision string
+      * diskType - Either "HDD" or "SSD"
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1950410
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1950410
+    data_sensitivity:
+      - technical
+    structure:
+      type: object
+      properties:
+        model:
+          type: string
+        revision:
+          type: string
+        diskType:
+          type: string
+    notification_emails:
+      - gijs@mozilla.com
+    expires: never
+
+  binary:
+    <<: *hdd_object
+    description: |
+      Information about the disk the application binary is stored on.
+      Windows only.
+      * model - The disk's self-reported model string
+      * revision - The disk's self-reported revision string
+      * diskType - Either "HDD" or "SSD"
+
+  system:
+    <<: *hdd_object
+    description: |
+      Information about the disk the system files are stored on.
+      Windows only.
+      * model - The disk's self-reported model string
+      * revision - The disk's self-reported revision string
+      * diskType - Either "HDD" or "SSD"

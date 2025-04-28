@@ -688,9 +688,19 @@ export var TelemetryEnvironmentTesting = {
     }
 
     for (let disk of EXPECTED_HDD_FIELDS) {
+      let diskData = Glean.hdd[disk].testGetValue();
       lazy.Assert.ok(this.checkNullOrString(data.system.hdd[disk].model));
       lazy.Assert.ok(this.checkNullOrString(data.system.hdd[disk].revision));
       lazy.Assert.ok(this.checkNullOrString(data.system.hdd[disk].type));
+      if (data.system.hdd[disk].model !== null) {
+        lazy.Assert.equal(data.system.hdd[disk].model, diskData.model);
+      }
+      if (data.system.hdd[disk].revision !== null) {
+        lazy.Assert.equal(data.system.hdd[disk].revision, diskData.revision);
+      }
+      if (data.system.hdd[disk].type !== null) {
+        lazy.Assert.equal(data.system.hdd[disk].type, diskData.diskType);
+      }
     }
 
     let gfxData = data.system.gfx;

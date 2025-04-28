@@ -83,7 +83,7 @@ var gActiveExperimentStartupBuffer = new Map();
 
 // For Powering arewegleanyet.com (See bug 1944592)
 // Legacy Count: 114
-// Glean Count: 74
+// Glean Count: 83
 
 var gGlobalEnvironment;
 function getGlobal() {
@@ -1109,6 +1109,15 @@ EnvironmentCache.prototype = {
 
     if (AppConstants.platform == "win") {
       this._hddData = await Services.sysinfo.diskInfo;
+      for (const [name, disk] of Object.entries(this._hddData)) {
+        if (!disk) {
+          continue;
+        }
+        // Glean `object` metrics don't like `type` as it's a reserved word.
+        let diskData = { ...disk, diskType: disk.type };
+        delete diskData.type;
+        Glean.hdd[name].set(diskData);
+      }
       let osData = await Services.sysinfo.osInfo;
 
       if (!this._initTask) {
