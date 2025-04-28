@@ -131,6 +131,7 @@ def _create_temporary_directory(arch):
 def _generate_rpm_archive(
     source_dir, infile, target_dir, output_path, build_variables, arch
 ):
+    rpm_arch = _RPM_ARCH.get(arch, "noarch")
     shutil.copy(
         infile,
         mozpath.join(source_dir, f"{build_variables['PKG_NAME']}.tar.xz"),
@@ -141,9 +142,9 @@ def _generate_rpm_archive(
 
     file_path = mozpath.join(
         target_dir,
-        arch,
+        rpm_arch,
         f"{build_variables['PKG_NAME']}-{build_variables['PKG_VERSION']}"
-        f"-{build_variables['PKG_BUILD_NUMBER']}.{arch}.rpm",
+        f"-{build_variables['PKG_BUILD_NUMBER']}.{rpm_arch}.rpm",
     )
 
     if not os.path.exists(file_path):
