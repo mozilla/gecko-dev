@@ -120,13 +120,15 @@
   <!-- Pressing this will dismiss the dialog and reload the page sending again the previous data -->
   <string name="mozac_feature_prompt_repost_positive_button_text">Ipadala muli ang data</string>
   <!-- Pressing this will dismiss the dialog and not refresh the webpage -->
-  <string name="mozac_feature_prompt_repost_negative_button_text">Kanselahin</string>
+  <string name="mozac_feature_prompt_repost_negative_button_text">Ikansela</string>
   <!--
     Credit Card Autofill
 
     Header for the select card prompt to allow users to fill a form with a saved card.
   -->
   <string name="mozac_feature_prompts_select_credit_card_2">Gamitin ang naka-save na card</string>
+  <!-- Option in the expanded select card prompt that links to cards settings. -->
+  <string name="mozac_feature_prompts_manage_credit_cards_2">Pamahalaan ang mga card</string>
   <!-- Text for the title of a save credit card dialog. -->
   <string name="mozac_feature_prompts_save_credit_card_prompt_title">I save and Card</string>
   <!-- Text for the title of an update credit card dialog. -->
@@ -147,4 +149,12 @@
   <string name="mozac_feature_prompts_account_picture">Larawan ng account</string>
   <!-- Title of the Identity Credential provider dialog chooser. -->
   <string name="mozac_feature_prompts_identity_credentials_choose_provider">Pumili ng login provider</string>
+  <!-- Title of an account picker dialog for identity credentials. The %1$s will be replaced with the name of the provider -->
+  <string name="mozac_feature_prompts_identity_credentials_choose_account_for_provider">Mag-sign in gamit ang isang %1$s account</string>
+  <!-- Title of the Identity Credential privacy policy dialog title. The %1$s will be replaced with the name of the provider. -->
+  <string name="mozac_feature_prompts_identity_credentials_privacy_policy_title">Gamitin ang %1$s bilang login provider</string>
+  <!-- Text for the positive button of the Identity Credential dialogs. -->
+  <string name="mozac_feature_prompts_identity_credentials_continue">Magpatuloy</string>
+  <!-- Text for the cancel button of the Identity Credential dialogs. -->
+  <string name="mozac_feature_prompts_identity_credentials_cancel">Ikansela</string>
 </resources>
