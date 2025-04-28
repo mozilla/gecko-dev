@@ -185,6 +185,13 @@ struct LargeBuffer;
 // chunk aligned which allows them to be distinguished from the other allocation
 // kinds by checking the low bits the pointer.
 //
+// Naming conventions
+// ------------------
+//
+// The following conventions are used in the code:
+//  - alloc:  client pointer to allocated memory
+//  - buffer: pointer to per-allocation metadata
+//
 
 class BufferAllocator : public SlimLinkedListElement<BufferAllocator> {
  public:
@@ -343,10 +350,10 @@ class BufferAllocator : public SlimLinkedListElement<BufferAllocator> {
 
   void* alloc(size_t bytes, bool nurseryOwned);
   void* allocInGC(size_t bytes, bool nurseryOwned);
-  void* realloc(void* ptr, size_t bytes, bool nurseryOwned);
-  void free(void* ptr);
-  size_t getAllocSize(void* ptr);
-  bool isNurseryOwned(void* ptr);
+  void* realloc(void* alloc, size_t bytes, bool nurseryOwned);
+  void free(void* alloc);
+  size_t getAllocSize(void* alloc);
+  bool isNurseryOwned(void* alloc);
 
   void startMinorCollection(MaybeLock& lock);
   bool startMinorSweeping();

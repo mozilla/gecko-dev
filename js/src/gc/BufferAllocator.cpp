@@ -39,8 +39,8 @@ struct alignas(CellAlignBytes) LargeBuffer
   uint32_t checkValue = LargeBufferCheckValue;
 #endif
 
-  LargeBuffer(void* ptr, size_t bytes, bool nurseryOwned)
-      : alloc(ptr), bytes(bytes), isNurseryOwned(nurseryOwned) {
+  LargeBuffer(void* alloc, size_t bytes, bool nurseryOwned)
+      : alloc(alloc), bytes(bytes), isNurseryOwned(nurseryOwned) {
     MOZ_ASSERT((bytes % ChunkSize) == 0);
   }
 
@@ -368,13 +368,13 @@ inline void BufferAllocator::FreeLists::checkAvailable() const {
 
 }  // namespace js::gc
 
-MOZ_ALWAYS_INLINE void PoisonAlloc(void* ptr, uint8_t value, size_t bytes,
+MOZ_ALWAYS_INLINE void PoisonAlloc(void* alloc, uint8_t value, size_t bytes,
                                    MemCheckKind kind) {
 #ifndef EARLY_BETA_OR_EARLIER
   // Limit poisoning in release builds.
   bytes = std::min(bytes, size_t(256));
 #endif
-  AlwaysPoison(ptr, value, bytes, kind);
+  AlwaysPoison(alloc, value, bytes, kind);
 }
 
 uintptr_t BufferChunk::ptrToOffset(void* alloc) const {
@@ -548,88 +548,88 @@ static inline void VirtualCopyPages(void* dst, const void* src, size_t bytes) {
 }
 #endif
 
-void* BufferAllocator::realloc(void* ptr, size_t bytes, bool nurseryOwned) {
+void* BufferAllocator::realloc(void* alloc, size_t bytes, bool nurseryOwned) {
   // Reallocate a buffer. This has the same semantics as standard libarary
   // realloc: if |ptr| is null it creates a new allocation, and if it fails it
   // returns |nullptr| and the original |ptr| is still valid.
 
-  if (!ptr) {
-    return alloc(bytes, nurseryOwned);
+  if (!alloc) {
+    return this->alloc(bytes, nurseryOwned);
   }
 
-  MOZ_ASSERT(isNurseryOwned(ptr) == nurseryOwned);
+  MOZ_ASSERT(isNurseryOwned(alloc) == nurseryOwned);
   MOZ_ASSERT_IF(zone->isGCMarkingOrSweeping(), majorState == State::Marking);
 
   bytes = GetGoodAllocSize(bytes);
 
   size_t currentBytes;
-  if (IsLargeAlloc(ptr)) {
-    LargeBuffer* header = lookupLargeBuffer(ptr);
+  if (IsLargeAlloc(alloc)) {
+    LargeBuffer* header = lookupLargeBuffer(alloc);
     currentBytes = header->allocBytes();
 
     // We can shrink large allocations (on some platforms).
     if (bytes < header->allocBytes() && IsLargeAllocSize(bytes)) {
       if (shrinkLarge(header, bytes)) {
-        return ptr;
+        return alloc;
       }
     }
-  } else if (IsMediumAlloc(ptr)) {
-    auto* header = GetHeaderFromAlloc<MediumBuffer>(ptr);
+  } else if (IsMediumAlloc(alloc)) {
+    auto* header = GetHeaderFromAlloc<MediumBuffer>(alloc);
     currentBytes = header->allocBytes();
 
     // We can grow or shrink medium allocations.
     if (bytes < header->allocBytes() && !IsSmallAllocSize(bytes)) {
       if (shrinkMedium(header, bytes)) {
-        return ptr;
+        return alloc;
       }
     }
 
     if (bytes > header->allocBytes() && !IsLargeAllocSize(bytes)) {
       if (growMedium(header, bytes)) {
-        return ptr;
+        return alloc;
       }
     }
   } else {
-    auto* header = GetHeaderFromAlloc<SmallBuffer>(ptr);
+    auto* header = GetHeaderFromAlloc<SmallBuffer>(alloc);
     currentBytes = header->allocBytes();
   }
 
   if (bytes == currentBytes) {
-    return ptr;
+    return alloc;
   }
 
-  void* newPtr = alloc(bytes, nurseryOwned);
-  if (!newPtr) {
+  void* newAlloc = this->alloc(bytes, nurseryOwned);
+  if (!newAlloc) {
     return nullptr;
   }
 
-  auto freeGuard = mozilla::MakeScopeExit([&]() { free(ptr); });
+  auto freeGuard = mozilla::MakeScopeExit([&]() { free(alloc); });
 
   size_t bytesToCopy = std::min(bytes, currentBytes);
 
 #ifdef XP_DARWIN
   if (bytesToCopy >= ChunkSize) {
-    MOZ_ASSERT(IsLargeAlloc(ptr));
-    MOZ_ASSERT(IsLargeAlloc(newPtr));
-    VirtualCopyPages(newPtr, ptr, bytesToCopy);
-    return newPtr;
+    MOZ_ASSERT(IsLargeAlloc(alloc));
+    MOZ_ASSERT(IsLargeAlloc(newAlloc));
+    VirtualCopyPages(newAlloc, alloc, bytesToCopy);
+    return newAlloc;
   }
 #endif
 
-  memcpy(newPtr, ptr, bytesToCopy);
-  return newPtr;
+  memcpy(newAlloc, alloc, bytesToCopy);
+  return newAlloc;
 }
 
-void BufferAllocator::free(void* ptr) {
-  MOZ_ASSERT(ptr);
+void BufferAllocator::free(void* alloc) {
+  MOZ_ASSERT(alloc);
 
-  if (IsLargeAlloc(ptr)) {
-    freeLarge(ptr);
+  if (IsLargeAlloc(alloc)) {
+    freeLarge(alloc);
     return;
   }
 
-  if (IsMediumAlloc(ptr)) {
-    freeMedium(ptr);
+  if (IsMediumAlloc(alloc)) {
+    freeMedium(alloc);
     return;
   }
 
@@ -2368,22 +2368,22 @@ void* BufferAllocator::allocLarge(size_t bytes, bool nurseryOwned, bool inGC) {
   // Large allocations are aligned to the chunk size, even if they are smaller
   // than a chunk. This allows us to tell large buffer allocations apart by
   // looking at the pointer alignment.
-  void* ptr = MapAlignedPages(bytes, ChunkSize, ShouldStallAndRetry(inGC));
-  if (!ptr) {
+  void* alloc = MapAlignedPages(bytes, ChunkSize, ShouldStallAndRetry(inGC));
+  if (!alloc) {
     return nullptr;
   }
-  auto freeGuard = mozilla::MakeScopeExit([&]() { UnmapPages(ptr, bytes); });
+  auto freeGuard = mozilla::MakeScopeExit([&]() { UnmapPages(alloc, bytes); });
 
-  auto* buffer = new (bufferPtr) LargeBuffer(ptr, bytes, nurseryOwned);
+  CheckHighBitsOfPointer(alloc);
 
-  CheckHighBitsOfPointer(ptr);
+  auto* buffer = new (bufferPtr) LargeBuffer(alloc, bytes, nurseryOwned);
 
   {
     MaybeLock lock;
     if (needLockToAccessBufferMap()) {
       lock.emplace(this);
     }
-    if (!largeAllocMap.ref().putNew(ptr, buffer)) {
+    if (!largeAllocMap.ref().putNew(alloc, buffer)) {
       return nullptr;
     }
   }
@@ -2403,8 +2403,8 @@ void* BufferAllocator::allocLarge(size_t bytes, bool nurseryOwned, bool inGC) {
     updateHeapSize(bytes, checkThresholds, false);
   }
 
-  MOZ_ASSERT(IsLargeAlloc(ptr));
-  return ptr;
+  MOZ_ASSERT(IsLargeAlloc(alloc));
+  return alloc;
 }
 
 void BufferAllocator::updateHeapSize(size_t bytes, bool checkThresholds,
