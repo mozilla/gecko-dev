@@ -7,11 +7,6 @@
  * https://w3c-fedid.github.io/FedCM.
  */
 
-
-dictionary IdentityCredentialDisconnectOptions : IdentityProviderConfig  {
-  required UTF8String accountHint;
-};
-
  // https://w3c-fedid.github.io/FedCM/#browser-api-identity-credential-interface
 [Exposed=Window, SecureContext,
  Pref="dom.security.credentialmanagement.identity.enabled"]
@@ -26,18 +21,16 @@ interface IdentityCredential : Credential {
 };
 
 dictionary IdentityCredentialRequestOptions {
- sequence<IdentityProviderConfig> providers;
+ required sequence<IdentityProviderRequestOptions> providers;
 };
 
 enum IdentityLoginTargetType { "redirect", "popup" };
 
+// https://w3c-fedid.github.io/FedCM/#dictdef-identityproviderconfig
 [GenerateConversionToJS]
 dictionary IdentityProviderConfig {
  UTF8String configURL;
  UTF8String clientId;
- UTF8String nonce;
- UTF8String loginHint;
- UTF8String domainHint;
  [Pref="dom.security.credentialmanagement.identity.lightweight.enabled"]
  UTF8String origin;
  [Pref="dom.security.credentialmanagement.identity.lightweight.enabled"]
@@ -48,6 +41,19 @@ dictionary IdentityProviderConfig {
  UTF8String effectiveQueryURL;
  [Pref="dom.security.credentialmanagement.identity.lightweight.enabled"]
  UTF8String effectiveType;
+};
+
+// https://w3c-fedid.github.io/FedCM/#dictdef-identityproviderrequestoptions
+[GenerateConversionToJS]
+dictionary IdentityProviderRequestOptions : IdentityProviderConfig {
+  UTF8String nonce;
+  UTF8String loginHint;
+  UTF8String domainHint;
+};
+
+// https://w3c-fedid.github.io/FedCM/#dictdef-identitycredentialdisconnectoptions
+dictionary IdentityCredentialDisconnectOptions : IdentityProviderConfig  {
+  required UTF8String accountHint;
 };
 
 // Lightweight only

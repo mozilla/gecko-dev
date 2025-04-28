@@ -37,11 +37,7 @@ nsresult IdentityCredentialRequestManager::StorePendingRequest(
     const RefPtr<dom::CanonicalBrowsingContext>& aBrowsingContext) {
   MOZ_ASSERT(aRPPrincipal);
 
-  if (!aRequest.mProviders.WasPassed()) {
-    return NS_ERROR_DOM_INVALID_ACCESS_ERR;
-  }
-
-  for (const auto& provider : aRequest.mProviders.Value()) {
+  for (const auto& provider : aRequest.mProviders) {
     if (!provider.mLoginURL.WasPassed()) {
       continue;
     }

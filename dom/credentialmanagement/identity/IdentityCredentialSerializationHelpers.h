@@ -22,6 +22,31 @@ struct ParamTraits<mozilla::dom::IdentityProviderConfig> {
   static void Write(MessageWriter* aWriter, const paramType& aParam) {
     WriteParam(aWriter, aParam.mConfigURL);
     WriteParam(aWriter, aParam.mClientId);
+    WriteParam(aWriter, aParam.mOrigin);
+    WriteParam(aWriter, aParam.mLoginURL);
+    WriteParam(aWriter, aParam.mLoginTarget);
+    WriteParam(aWriter, aParam.mEffectiveQueryURL);
+    WriteParam(aWriter, aParam.mEffectiveType);
+  }
+
+  static bool Read(MessageReader* aReader, paramType* aResult) {
+    return ReadParam(aReader, &aResult->mConfigURL) &&
+           ReadParam(aReader, &aResult->mClientId) &&
+           ReadParam(aReader, &aResult->mOrigin) &&
+           ReadParam(aReader, &aResult->mLoginURL) &&
+           ReadParam(aReader, &aResult->mLoginTarget) &&
+           ReadParam(aReader, &aResult->mEffectiveQueryURL) &&
+           ReadParam(aReader, &aResult->mEffectiveType);
+  }
+};
+
+template <>
+struct ParamTraits<mozilla::dom::IdentityProviderRequestOptions> {
+  typedef mozilla::dom::IdentityProviderRequestOptions paramType;
+
+  static void Write(MessageWriter* aWriter, const paramType& aParam) {
+    WriteParam(aWriter, aParam.mConfigURL);
+    WriteParam(aWriter, aParam.mClientId);
     WriteParam(aWriter, aParam.mNonce);
     WriteParam(aWriter, aParam.mLoginHint);
     WriteParam(aWriter, aParam.mDomainHint);
