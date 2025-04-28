@@ -49,7 +49,6 @@ gecko_metrics = [
     "extensions/permissions/metrics.yaml",
     "gfx/metrics.yaml",
     "image/decoders/metrics.yaml",
-    "intl/locale/metrics.yaml",
     "ipc/metrics.yaml",
     "js/xpconnect/metrics.yaml",
     "layout/base/metrics.yaml",
