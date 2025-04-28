@@ -327,6 +327,8 @@ PACKAGE_FORMATS = {
             "{release_product}",
             "--release-type",
             "{release_type}",
+            "--locales-file",
+            "{locales-file}",
         ],
         "inputs": {
             "input": "target{archive_format}",
@@ -380,6 +382,7 @@ MOZHARNESS_EXPANSIONS = [
     "deb-templates",
     "rpm-templates",
     "deb-l10n-templates",
+    "locales-file",
     "sfx-stub",
     "wsx-stub",
     "flatpak-templates",
