@@ -9384,6 +9384,19 @@ nsresult nsDocShell::InternalLoad(nsDocShellLoadState* aLoadState,
       INTERNAL_LOAD_FLAGS_ALLOW_THIRD_PARTY_FIXUP);
   mURIResultedInDocument = false;  // reset the clock...
 
+  // If container is an iframe element and will lazy load element steps given
+  // container returns true, then stop intersection-observing a lazy loading
+  // element container and set container's lazy load resumption steps to null.
+  if (IsSubframe()) {
+    if (auto* iframe = HTMLIFrameElement::FromNodeOrNull(
+            mBrowsingContext->GetEmbedderElement())) {
+      // Per spec, reload doesn't cancel lazy loading iframes.
+      if (!(aLoadState->LoadType() & LOAD_RELOAD_NORMAL)) {
+        iframe->CancelLazyLoading(true /* aClearLazyLoadState */);
+      }
+    }
+  }
+
   // See if this is actually a load between two history entries for the same
   // document. If the process fails, or if we successfully navigate within the
   // same document, return.
@@ -10192,15 +10205,6 @@ nsresult nsDocShell::DoURILoad(nsDocShellLoadState* aLoadState,
     MOZ_ASSERT(contentPolicyType == nsIContentPolicy::TYPE_INTERNAL_IFRAME ||
                    contentPolicyType == nsIContentPolicy::TYPE_INTERNAL_FRAME,
                "DoURILoad thinks this is a frame and InternalLoad does not");
-
-    if (auto* iframe = HTMLIFrameElement::FromNodeOrNull(
-            mBrowsingContext->GetEmbedderElement())) {
-      // Per spec, reload doesn't cacel lazy loading iframes.
-      if (!(aLoadState->LoadType() & LOAD_RELOAD_NORMAL)) {
-        iframe->CancelLazyLoading(true /* aClearLazyLoadState */);
-      }
-    }
-
     if (StaticPrefs::dom_block_external_protocol_in_iframes()) {
       // Only allow URLs able to return data in iframes.
       if (nsContentUtils::IsExternalProtocol(aLoadState->URI())) {
