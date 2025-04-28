@@ -16,6 +16,8 @@ interface SVGFEImageElement : SVGElement {
   readonly attribute SVGAnimatedPreserveAspectRatio preserveAspectRatio;
   [SetterThrows]
   attribute DOMString? crossOrigin;
+  [Pref="network.fetchpriority.enabled"]
+  attribute DOMString fetchPriority;
 };
 
 SVGFEImageElement includes SVGFilterPrimitiveStandardAttributes;

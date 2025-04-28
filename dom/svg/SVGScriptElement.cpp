@@ -203,10 +203,15 @@ bool SVGScriptElement::ParseAttribute(int32_t aNamespaceID, nsAtom* aAttribute,
                                       const nsAString& aValue,
                                       nsIPrincipal* aMaybeScriptedPrincipal,
                                       nsAttrValue& aResult) {
-  if (aNamespaceID == kNameSpaceID_None &&
-      aAttribute == nsGkAtoms::crossorigin) {
-    ParseCORSValue(aValue, aResult);
-    return true;
+  if (aNamespaceID == kNameSpaceID_None) {
+    if (aAttribute == nsGkAtoms::crossorigin) {
+      ParseCORSValue(aValue, aResult);
+      return true;
+    }
+    if (aAttribute == nsGkAtoms::fetchpriority) {
+      ParseFetchPriority(aValue, aResult);
+      return true;
+    }
   }
 
   return SVGScriptElementBase::ParseAttribute(aNamespaceID, aAttribute, aValue,
@@ -218,8 +223,7 @@ CORSMode SVGScriptElement::GetCORSMode() const {
 }
 
 FetchPriority SVGScriptElement::GetFetchPriority() const {
-  // <https://github.com/w3c/svgwg/issues/916>.
-  return FetchPriority::Auto;
+  return Element::GetFetchPriority();
 }
 
 }  // namespace mozilla::dom

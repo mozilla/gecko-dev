@@ -40,13 +40,11 @@ const kExpectedRequestsOfDynamicLoadDisabled = kExpectedRequestsOfInitialLoadDis
 
 const kExpectedRequestsOfInitialLoadForSVGImageTagDisabled = kExpectedRequestsOfInitialLoadDisabled;
 
-// TODO(bug 1865837): Should SVG's `<image>` element support the `fetchpriority` attribute?
 const kExpectedRequestsOfInitialLoadForSVGImageTag = kExpectedRequestsOfInitialLoadForSVGImageTagDisabled;
 
 const kExpectedRequestsOfDynamicLoadForSVGImageTagDisabled = kExpectedRequestsOfDynamicLoadDisabled;
 
-// TODO(bug 1865837): Should SVG's `<image>` element support the `fetchpriority` attribute?
-const kExpectedRequestsOfDynamicLoadForSVGImageTag = kExpectedRequestsOfDynamicLoadForSVGImageTagDisabled;
+const kExpectedRequestsOfDynamicLoadForSVGImageTag = kExpectedRequestsOfInitialLoad;
 
 const kExpectedRequestsShapeOutsideImage = [
     {   fileNameAndSuffix: "square_25px_x_25px.png?1",

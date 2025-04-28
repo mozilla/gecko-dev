@@ -318,7 +318,7 @@ CORSMode HTMLScriptElement::GetCORSMode() const {
 }
 
 FetchPriority HTMLScriptElement::GetFetchPriority() const {
-  return nsGenericHTMLElement::GetFetchPriority();
+  return Element::GetFetchPriority();
 }
 
 mozilla::dom::ReferrerPolicy HTMLScriptElement::GetReferrerPolicy() {

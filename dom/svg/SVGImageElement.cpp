@@ -197,6 +197,10 @@ bool SVGImageElement::ParseAttribute(int32_t aNamespaceID, nsAtom* aAttribute,
       return aResult.ParseEnumValue(aValue, kDecodingTable, false,
                                     kDecodingTableDefault);
     }
+    if (aAttribute == nsGkAtoms::fetchpriority) {
+      ParseFetchPriority(aValue, aResult);
+      return true;
+    }
   }
 
   return SVGImageElementBase::ParseAttribute(aNamespaceID, aAttribute, aValue,

@@ -24,18 +24,14 @@
       if (!data.svg) {
         scriptElement = document.createElement("script");
         scriptElement.src = data.src;
-        if ("fetchPriority" in data) {
-          scriptElement.fetchPriority = data.fetchPriority;
-        }
       } else {
         const namespaceURI = "http://www.w3.org/2000/svg";
         scriptElement = document.createElementNS(namespaceURI, "script");
         scriptElement.href.baseVal = data.src;
-        // Use setAttribute as SVGScriptElement has no fetchPriority property.
-        scriptElement.setAttribute("href", data.src);
-        if ("fetchPriority" in data) {
-          scriptElement.setAttribute("fetchPriority", data.fetchPriority);
-        }
+      }
+
+      if ("fetchPriority" in data) {
+        scriptElement.fetchPriority = data.fetchPriority;
       }
 
       allScriptElements.push(scriptElement);
