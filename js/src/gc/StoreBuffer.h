@@ -214,14 +214,6 @@ class StoreBuffer {
 
     const Cell** lastBufferedPtr() { return &last_; }
 
-    CellSweepSet releaseCellSweepSet() {
-      CellSweepSet set;
-      std::swap(storage_, set.storage_);
-      std::swap(sweepHead_, set.head_);
-      last_ = nullptr;
-      return set;
-    }
-
    private:
     ArenaCellSet* allocateCellSet(Arena* arena);
   };
@@ -626,10 +618,6 @@ class StoreBuffer {
   }
   void traceGenericEntries(JSTracer* trc) { bufferGeneric.trace(trc, this); }
 
-  gc::CellSweepSet releaseCellSweepSet() {
-    return bufferWholeCell.releaseCellSweepSet();
-  }
-
   /* For use by our owned buffers and for testing. */
   void setAboutToOverflow(JS::GCReason);
 
@@ -694,11 +682,6 @@ class ArenaCellSet {
 
   // Sweep this set, returning whether it also needs to be swept later.
   bool trace(TenuringTracer& mover);
-
-  // At the end of a minor GC, sweep through all tenured dependent strings that
-  // may point to nursery-allocated chars to update their pointers in case the
-  // base string moved its chars.
-  static void sweepDependentStrings(ArenaCellSet* listHead);
 
   // Sentinel object used for all empty sets.
   //
