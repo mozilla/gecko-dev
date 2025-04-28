@@ -2567,6 +2567,86 @@ def repackage_deb_l10n(
     )
 
 
+@SubCommand(
+    "repackage",
+    "rpm",
+    description="Repackage a tar file into a .rpm for Linux",
+    virtualenv_name="repackage-desktop-file",
+)
+@CommandArgument(
+    "--input", "-i", type=str, required=True, help="Input tarfile filename"
+)
+@CommandArgument("--output", "-o", type=str, required=True, help="Output .rpm filename")
+@CommandArgument("--arch", type=str, required=True, help="One of ['x86', 'x86_64']")
+@CommandArgument(
+    "--version",
+    type=str,
+    required=True,
+    help="The Firefox version used to create the installer",
+)
+@CommandArgument(
+    "--build-number",
+    type=str,
+    required=True,
+    help="The release's build number",
+)
+@CommandArgument(
+    "--templates",
+    type=str,
+    required=True,
+    help="Location of the templates used to generate the rpm/ directory files",
+)
+@CommandArgument(
+    "--release-product",
+    type=str,
+    required=True,
+    help="The product being shipped. Used to disambiguate beta/devedition etc.",
+)
+@CommandArgument(
+    "--release-type",
+    type=str,
+    required=True,
+    help="The release being shipped. Used to disambiguate nightly/try etc.",
+)
+def repackage_rpm(
+    command_context,
+    input,
+    output,
+    arch,
+    version,
+    build_number,
+    templates,
+    release_product,
+    release_type,
+):
+    if not os.path.exists(input):
+        print("Input file does not exist: %s" % input)
+        return 1
+
+    template_dir = os.path.join(
+        command_context.topsrcdir,
+        templates,
+    )
+
+    from fluent.runtime.fallback import FluentLocalization, FluentResourceLoader
+
+    from mozbuild.repackaging.rpm import repackage_rpm
+
+    repackage_rpm(
+        command_context.log,
+        input,
+        output,
+        template_dir,
+        arch,
+        version,
+        build_number,
+        release_product,
+        release_type,
+        FluentLocalization,
+        FluentResourceLoader,
+    )
+
+
 @SubCommand("repackage", "dmg", description="Repackage a tar file into a .dmg for OSX")
 @CommandArgument("--input", "-i", type=str, required=True, help="Input filename")
 @CommandArgument("--output", "-o", type=str, required=True, help="Output filename")
