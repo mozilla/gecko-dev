@@ -68,7 +68,7 @@ class ConceptFetchHttpUploader(
      *         error callers can deal with.
      */
     override fun upload(request: CapablePingUploadRequest): UploadResult {
-        val req: PingUploadRequest? = request.capable({ capabilities: List<String> -> capabilities.size == 0 })
+        val req: PingUploadRequest? = request.capable { capabilities: List<String> -> capabilities.isEmpty() || capabilities == listOf("ohttp") }
         if (req == null) {
             return Incapable(0)
         }
@@ -99,6 +99,7 @@ class ConceptFetchHttpUploader(
             body = Request.Body(request.data.inputStream()),
             private = usePrivateRequest,
             conservative = true,
+            useOhttp = request.uploaderCapabilities.contains("ohttp")
         )
     }
 
