@@ -335,6 +335,7 @@ RPMBUILD_COMMAND = [
     "_sourcedir /src",
     "--define",
     "_srcrpmdir /target",
+    "--target",
 ]
 
 
@@ -349,10 +350,10 @@ RPMBUILD_COMMAND = [
                 "/srv/rpm-all",
                 "bash",
                 "-c",
-                f"cd /tmp/*/source; {' '.join(RPMBUILD_COMMAND)}",
+                f"cd /tmp/*/source; {' '.join(RPMBUILD_COMMAND)} noarch",
             ],
         ),
-        ("all", False, RPMBUILD_COMMAND),
+        ("all", False, RPMBUILD_COMMAND + ["noarch"]),
         (
             "x86",
             True,
@@ -361,10 +362,10 @@ RPMBUILD_COMMAND = [
                 "/srv/rpm-x86",
                 "bash",
                 "-c",
-                f"cd /tmp/*/source; {' '.join(RPMBUILD_COMMAND)}",
+                f"cd /tmp/*/source; {' '.join(RPMBUILD_COMMAND)} i386",
             ],
         ),
-        ("x86", False, RPMBUILD_COMMAND),
+        ("x86", False, RPMBUILD_COMMAND + ["i386"]),
         (
             "x86_64",
             True,
@@ -373,13 +374,13 @@ RPMBUILD_COMMAND = [
                 "/srv/rpm-x86_64",
                 "bash",
                 "-c",
-                f"cd /tmp/*/source; {' '.join(RPMBUILD_COMMAND)}",
+                f"cd /tmp/*/source; {' '.join(RPMBUILD_COMMAND)} x86_64",
             ],
         ),
         (
             "x86_64",
             False,
-            RPMBUILD_COMMAND,
+            RPMBUILD_COMMAND + ["x86_64"],
         ),
     ),
 )

@@ -30,6 +30,17 @@ class NoRpmPackageFound(Exception):
         super().__init__(f"No {file_path} package found after calling rpmbuild")
 
 
+# Maps our CI/release pipeline's architecture names (e.g., "x86")
+# into architectures ("i386") compatible with RPM's rpmbuild tool.
+# This is the target architecture we are building the .rpm package for.
+_RPM_ARCH = {
+    "all": "noarch",
+    "x86": "i386",
+    "x86_64": "x86_64",
+    "aarch64": "aarch64",
+}
+
+
 def repackage_rpm(
     log,
     infile,
@@ -175,6 +186,8 @@ def _get_command(source_dir, target_dir, arch):
         f"_sourcedir {source_dir}",  # Retrieve the sources from this directory
         "--define",
         f"_srcrpmdir {target_dir}",  # Store the generated src.rpm in target_dir
+        "--target",
+        _RPM_ARCH.get(arch, "noarch"),
     ]
 
     if _is_chroot_available(arch):

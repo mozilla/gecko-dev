@@ -4,7 +4,6 @@ Release:        ${PKG_BUILD_NUMBER}%{?dist}
 Summary:        ${DESCRIPTION}
 URL:            https://www.mozilla.org/firefox/
 Group:          Applications/Internet
-BuildArch:      ${ARCH_NAME}
 License:        MPL-2
 Vendor:         Mozilla
 Source0:        %{name}.tar.xz
