@@ -6,9 +6,11 @@ https://creativecommons.org/publicdomain/zero/1.0/ */
 const { NetUtil } = ChromeUtils.importESModule(
   "resource://gre/modules/NetUtil.sys.mjs"
 );
-const { ExperimentFakes } = ChromeUtils.importESModule(
+const { NimbusTestUtils } = ChromeUtils.importESModule(
   "resource://testing-common/NimbusTestUtils.sys.mjs"
 );
+
+NimbusTestUtils.init(this);
 
 /**
  * Tests that a visit to about:welcome results in an exposure recorded via
@@ -18,7 +20,7 @@ const { ExperimentFakes } = ChromeUtils.importESModule(
 add_task(async function test_exposure() {
   do_get_profile();
   Services.fog.initializeFOG();
-  ExperimentFakes.cleanupStorePrefCache();
+  NimbusTestUtils.cleanupStorePrefCache();
 
   // Simulate a visit by requesting the about:welcome nsIAboutModule, and
   // requesting a channel for about:welcome.
@@ -33,13 +35,13 @@ add_task(async function test_exposure() {
     "No exposure events recorded yet."
   );
 
-  let store = ExperimentFakes.store();
-  let experiment = ExperimentFakes.experiment("foo", {
-    features: [{ featureId: "aboutwelcome", isEarlyStartup: true }],
-  });
-
-  await store.init();
-  store.addEnrollment(experiment);
+  const { manager, cleanup } = await NimbusTestUtils.setupTest();
+  await manager.enroll(
+    NimbusTestUtils.factories.recipe.withFeatureConfig("foo", {
+      featureId: "aboutwelcome",
+    }),
+    "test"
+  );
 
   const ABOUT_WELCOME_URI = Services.io.newURI("about:welcome");
 
@@ -71,4 +73,7 @@ add_task(async function test_exposure() {
     );
   });
   Assert.equal(result.length, 1, "Only a single exposure still.");
+
+  manager.unenroll("foo");
+  cleanup();
 });

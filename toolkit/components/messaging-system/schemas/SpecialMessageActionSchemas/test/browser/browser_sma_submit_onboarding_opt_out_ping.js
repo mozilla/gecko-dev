@@ -3,9 +3,11 @@
 
 "use strict";
 
-const { ExperimentFakes } = ChromeUtils.importESModule(
+const { NimbusTestUtils } = ChromeUtils.importESModule(
   "resource://testing-common/NimbusTestUtils.sys.mjs"
 );
+
+NimbusTestUtils.init(this);
 
 add_setup(() => {
   Services.fog.initializeFOG();
@@ -13,22 +15,40 @@ add_setup(() => {
 
 add_task(async function test_SUBMIT_ONBOARDING_OPT_OUT_PING() {
   // Arrange fake experiment enrollment details.
-  const manager = ExperimentFakes.manager();
+  const manager = NimbusTestUtils.stubs.manager();
   sinon.stub(SpecialMessageActions, "_experimentManager").get(() => manager);
 
   await manager.onStartup();
-  await manager.store.addEnrollment(ExperimentFakes.experiment("foo"));
-  manager.unenroll("foo");
-  await manager.store.addEnrollment(
-    ExperimentFakes.experiment("bar", { active: false })
+  await manager.enroll(
+    NimbusTestUtils.factories.recipe.withFeatureConfig("foo", {
+      featureId: "testFeature",
+    }),
+    "test"
   );
-  await manager.store.addEnrollment(
-    ExperimentFakes.experiment("baz", { active: true })
+  manager.unenroll("foo");
+  await manager.enroll(
+    NimbusTestUtils.factories.recipe.withFeatureConfig("bar", {
+      featureId: "testFeature",
+    }),
+    "test"
+  );
+  manager.unenroll("bar");
+  await manager.enroll(
+    NimbusTestUtils.factories.recipe.withFeatureConfig("baz", {
+      featureId: "testFeature",
+    }),
+    "test"
   );
 
-  manager.store.addEnrollment(ExperimentFakes.rollout("rol1"));
+  await manager.enroll(
+    NimbusTestUtils.factories.recipe("rol1", { isRollout: true }),
+    "test"
+  );
   manager.unenroll("rol1");
-  manager.store.addEnrollment(ExperimentFakes.rollout("rol2"));
+  await manager.enroll(
+    NimbusTestUtils.factories.recipe("rol2", { isRollout: true }),
+    "test"
+  );
 
   let { promise, resolve } = Promise.withResolvers();
 
@@ -43,11 +63,11 @@ add_task(async function test_SUBMIT_ONBOARDING_OPT_OUT_PING() {
 
     // Map entry order is stable: we need not sort.
     let expected = [
-      { experimentSlug: "foo", branchSlug: "treatment" },
-      { experimentSlug: "bar", branchSlug: "treatment" },
-      { experimentSlug: "baz", branchSlug: "treatment" },
-      { experimentSlug: "rol1", branchSlug: "treatment" },
-      { experimentSlug: "rol2", branchSlug: "treatment" },
+      { experimentSlug: "foo", branchSlug: "control" },
+      { experimentSlug: "bar", branchSlug: "control" },
+      { experimentSlug: "baz", branchSlug: "control" },
+      { experimentSlug: "rol1", branchSlug: "control" },
+      { experimentSlug: "rol2", branchSlug: "control" },
     ];
 
     Assert.deepEqual(
@@ -71,4 +91,6 @@ add_task(async function test_SUBMIT_ONBOARDING_OPT_OUT_PING() {
   });
 
   ok(await promise, "`onboarding-opt-out` ping was submitted");
+
+  NimbusTestUtils.cleanupManager(["baz", "rol2"], { manager });
 });

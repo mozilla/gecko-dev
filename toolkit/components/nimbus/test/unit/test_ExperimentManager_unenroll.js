@@ -23,7 +23,7 @@ function setupTest({ ...args } = {}) {
 add_task(async function test_set_inactive() {
   const { manager, cleanup } = await setupTest();
 
-  await manager.store.addEnrollment(ExperimentFakes.experiment("foo"));
+  await manager.enroll(NimbusTestUtils.factories.recipe("foo"), "test");
   manager.unenroll("foo");
 
   Assert.equal(
@@ -39,8 +39,10 @@ add_task(async function test_unenroll_opt_out() {
   Services.prefs.setBoolPref(STUDIES_OPT_OUT_PREF, true);
 
   const { manager, cleanup } = await setupTest();
-  const experiment = ExperimentFakes.experiment("foo");
-  await manager.store.addEnrollment(experiment);
+  const experiment = NimbusTestUtils.factories.recipe.withFeatureConfig("foo", {
+    featureId: "testFeature",
+  });
+  await manager.enroll(experiment, "test");
 
   // Check that there aren't any Glean normandy unenrollNimbusExperiment events yet
   Assert.equal(
@@ -72,7 +74,7 @@ add_task(async function test_unenroll_opt_out() {
     [
       {
         value: experiment.slug,
-        branch: experiment.branch.slug,
+        branch: experiment.branches[0].slug,
         reason: "studies-opt-out",
       },
     ]
@@ -84,7 +86,7 @@ add_task(async function test_unenroll_opt_out() {
     [
       {
         experiment: experiment.slug,
-        branch: experiment.branch.slug,
+        branch: experiment.branches[0].slug,
         reason: "studies-opt-out",
       },
     ]
@@ -98,8 +100,8 @@ add_task(async function test_unenroll_rollout_opt_out() {
   Services.prefs.setBoolPref(STUDIES_OPT_OUT_PREF, true);
 
   const { manager, cleanup } = await setupTest();
-  const rollout = ExperimentFakes.rollout("foo");
-  manager.store.addEnrollment(rollout);
+  const rollout = NimbusTestUtils.factories.recipe("foo", { isRollout: true });
+  await manager.enroll(rollout, "test");
 
   // Check that there aren't any Glean normandy unenrollNimbusExperiment events yet
   Assert.equal(
@@ -131,7 +133,7 @@ add_task(async function test_unenroll_rollout_opt_out() {
     [
       {
         value: rollout.slug,
-        branch: rollout.branch.slug,
+        branch: rollout.branches[0].slug,
         reason: "studies-opt-out",
       },
     ]
@@ -143,7 +145,7 @@ add_task(async function test_unenroll_rollout_opt_out() {
     [
       {
         experiment: rollout.slug,
-        branch: rollout.branch.slug,
+        branch: rollout.branches[0].slug,
         reason: "studies-opt-out",
       },
     ]
@@ -217,9 +219,11 @@ add_task(async function test_setExperimentInactive_called() {
 
 add_task(async function test_send_unenroll_event() {
   const { manager, cleanup } = await setupTest();
-  const experiment = ExperimentFakes.experiment("foo");
+  const experiment = NimbusTestUtils.factories.recipe.withFeatureConfig("foo", {
+    featureId: "testFeature",
+  });
 
-  manager.store.addEnrollment(experiment);
+  await manager.enroll(experiment, "test");
 
   // Check that there aren't any Glean normandy unenrollNimbusExperiment events yet
   Assert.equal(
@@ -245,7 +249,7 @@ add_task(async function test_send_unenroll_event() {
     [
       {
         value: experiment.slug,
-        branch: experiment.branch.slug,
+        branch: experiment.branches[0].slug,
         reason: "some-reason",
       },
     ]
@@ -257,7 +261,7 @@ add_task(async function test_send_unenroll_event() {
     [
       {
         experiment: experiment.slug,
-        branch: experiment.branch.slug,
+        branch: experiment.branches[0].slug,
         reason: "some-reason",
       },
     ]
@@ -268,9 +272,9 @@ add_task(async function test_send_unenroll_event() {
 
 add_task(async function test_undefined_reason() {
   const { manager, cleanup } = await setupTest();
-  const experiment = ExperimentFakes.experiment("foo");
+  const experiment = NimbusTestUtils.factories.recipe("foo");
 
-  manager.store.addEnrollment(experiment);
+  await manager.enroll(experiment, "test");
 
   manager.unenroll("foo");
 

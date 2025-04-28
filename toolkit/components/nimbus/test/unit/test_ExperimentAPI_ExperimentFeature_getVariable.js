@@ -83,18 +83,15 @@ add_task(async function test_ExperimentFeature_getVariable_precedence() {
   const { manager, cleanup } = await NimbusTestUtils.setupTest();
 
   const prefName = TEST_FEATURE.manifest.variables.items.fallbackPref;
-  const rollout = ExperimentFakes.rollout(`${FEATURE_ID}-rollout`, {
-    branch: {
-      slug: "slug",
-      ratio: 1,
-      features: [
-        {
-          featureId: FEATURE_ID,
-          value: { items: [4, 5, 6] },
-        },
-      ],
+  const rollout = NimbusTestUtils.factories.recipe.withFeatureConfig(
+    `${FEATURE_ID}-rollout`,
+    {
+      branchSlug: "slug",
+      featureId: FEATURE_ID,
+      value: { items: [4, 5, 6] },
     },
-  });
+    { isRollout: true }
+  );
 
   Services.prefs.clearUserPref(prefName);
 
@@ -113,7 +110,7 @@ add_task(async function test_ExperimentFeature_getVariable_precedence() {
     "should return the default pref value"
   );
 
-  manager.store.addEnrollment(rollout);
+  await manager.enroll(rollout, "test");
 
   Assert.deepEqual(
     TEST_FEATURE.getVariable("items"),
@@ -146,18 +143,15 @@ add_task(async function test_ExperimentFeature_getVariable_precedence() {
 
 add_task(async function test_ExperimentFeature_getVariable_partial_values() {
   const { manager, cleanup } = await NimbusTestUtils.setupTest();
-  const rollout = ExperimentFakes.rollout(`${FEATURE_ID}-rollout`, {
-    branch: {
-      slug: "slug",
-      ratio: 1,
-      features: [
-        {
-          featureId: FEATURE_ID,
-          value: { name: "abc" },
-        },
-      ],
+  const rollout = NimbusTestUtils.factories.recipe.withFeatureConfig(
+    `${FEATURE_ID}-rollout`,
+    {
+      branchSlug: "slug",
+      featureId: FEATURE_ID,
+      value: { name: "abc" },
     },
-  });
+    { isRollout: true }
+  );
 
   // Set up a pref value for .enabled,
   // a remote value for .name,
@@ -166,7 +160,7 @@ add_task(async function test_ExperimentFeature_getVariable_partial_values() {
     TEST_FEATURE.manifest.variables.enabled.fallbackPref,
     true
   );
-  manager.store.addEnrollment(rollout);
+  await manager.enroll(rollout, "test");
   const doExperimentCleanup = await ExperimentFakes.enrollWithFeatureConfig(
     {
       featureId: FEATURE_ID,
