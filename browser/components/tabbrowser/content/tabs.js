@@ -1398,7 +1398,7 @@
           ) {
             crossAxisStart =
               window.mozInnerScreenX + rect.right - 1.5 * rect.width;
-            crossAxisEnd = window.screenX;
+            crossAxisEnd = window.screenX + window.outerWidth;
           } else {
             crossAxisStart = window.screenX;
             crossAxisEnd =
