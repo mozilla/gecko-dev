@@ -1020,14 +1020,14 @@ mac-signing:
                 - deep: false
                   runtime: true
                   force: true
-                  entitlements: security/mac/hardenedruntime/v2/production/plugin-container.xml
+                  entitlements: security/mac/hardenedruntime/production/plugin-container.xml
                   globs:
                       - "/Contents/MacOS/plugin-container.app"
 
                 - deep: false
                   runtime: true
                   force: true
-                  entitlements: security/mac/hardenedruntime/v2/production/media-plugin-helper.xml
+                  entitlements: security/mac/hardenedruntime/production/media-plugin-helper.xml
                   globs:
                       - "/Contents/MacOS/media-plugin-helper.app"
 
@@ -1053,11 +1053,11 @@ mac-signing:
                   force: true
                   entitlements:
                       by-build-platform:
-                          .*devedition.*: security/mac/hardenedruntime/v2/production/firefoxdeveloperedition.browser.xml
+                          .*devedition.*: security/mac/hardenedruntime/production/firefoxdeveloperedition.browser.xml
                           default:
                               by-project:
-                                  mozilla-central: security/mac/hardenedruntime/v2/production/nightly.browser.xml
-                                  default: security/mac/hardenedruntime/v2/production/firefox.browser.xml
+                                  mozilla-central: security/mac/hardenedruntime/production/nightly.browser.xml
+                                  default: security/mac/hardenedruntime/production/firefox.browser.xml
                   globs:
                       - "/"  # The .app
 
@@ -1065,21 +1065,21 @@ mac-signing:
                 - deep: false
                   runtime: true
                   force: true
-                  entitlements: security/mac/hardenedruntime/v2/developer/plugin-container.xml
+                  entitlements: security/mac/hardenedruntime/developer/plugin-container.xml
                   globs:
                       - "/Contents/MacOS/plugin-container.app"
 
                 - deep: false
                   runtime: true
                   force: true
-                  entitlements: security/mac/hardenedruntime/v2/developer/media-plugin-helper.xml
+                  entitlements: security/mac/hardenedruntime/developer/media-plugin-helper.xml
                   globs:
                       - "/Contents/MacOS/media-plugin-helper.app"
 
                 - deep: false
                   runtime: true
                   force: true
-                  entitlements: security/mac/hardenedruntime/v2/developer/utility.xml
+                  entitlements: security/mac/hardenedruntime/developer/utility.xml
                   globs:
                       - "/Contents/MacOS/crashhelper"
                       - "/Contents/MacOS/crashreporter.app"
@@ -1102,7 +1102,7 @@ mac-signing:
                 - deep: false
                   runtime: true
                   force: true
-                  entitlements: security/mac/hardenedruntime/v2/developer/browser.xml
+                  entitlements: security/mac/hardenedruntime/developer/browser.xml
                   globs:
                       - "/"  # The .app
 
