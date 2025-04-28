@@ -8,6 +8,19 @@ ChromeUtils.defineESModuleGetters(lazy, {
   PrivateBrowsingUtils: "resource://gre/modules/PrivateBrowsingUtils.sys.mjs",
 });
 
+function NotificationCallbacks(browser) {
+  this._browser = browser;
+}
+NotificationCallbacks.prototype = {
+  QueryInterface: ChromeUtils.generateQI(["nsIInterfaceRequestor"]),
+  getInterface(iid) {
+    if (iid.equals(Ci.nsILoadContext)) {
+      return this._browser.browsingContext;
+    }
+    throw Components.Exception("", Cr.NS_ERROR_NO_INTERFACE);
+  },
+};
+
 // This object implements the JS parts of nsIWebNavigation.
 export class RemoteWebNavigation {
   constructor(aBrowser) {
@@ -109,7 +122,12 @@ export class RemoteWebNavigation {
             attrs
           );
         }
-        Services.io.speculativeConnect(uri, principal, null, false);
+        Services.io.speculativeConnect(
+          uri,
+          principal,
+          new NotificationCallbacks(this._browser),
+          false
+        );
       }
     } catch (ex) {
       // Can't setup speculative connection for this uri for some
