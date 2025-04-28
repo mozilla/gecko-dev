@@ -958,32 +958,6 @@ class WorkerPrivate final
     mLoadInfo.mReferrerInfo = aReferrerInfo;
   }
 
-  bool IsEvalAllowed() const { return mLoadInfo.mEvalAllowed; }
-
-  void SetEvalAllowed(bool aAllowed) { mLoadInfo.mEvalAllowed = aAllowed; }
-
-  bool GetReportEvalCSPViolations() const {
-    return mLoadInfo.mReportEvalCSPViolations;
-  }
-
-  void SetReportEvalCSPViolations(bool aReport) {
-    mLoadInfo.mReportEvalCSPViolations = aReport;
-  }
-
-  bool IsWasmEvalAllowed() const { return mLoadInfo.mWasmEvalAllowed; }
-
-  void SetWasmEvalAllowed(bool aAllowed) {
-    mLoadInfo.mWasmEvalAllowed = aAllowed;
-  }
-
-  bool GetReportWasmEvalCSPViolations() const {
-    return mLoadInfo.mReportWasmEvalCSPViolations;
-  }
-
-  void SetReportWasmEvalCSPViolations(bool aReport) {
-    mLoadInfo.mReportWasmEvalCSPViolations = aReport;
-  }
-
   bool XHRParamsAllowed() const { return mLoadInfo.mXHRParamsAllowed; }
 
   void SetXHRParamsAllowed(bool aAllowed) {

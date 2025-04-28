@@ -356,3 +356,87 @@ add_task(async function test_tab_reload() {
 
   BrowserTestUtils.removeTab(tab);
 });
+
+add_task(async function test_amount_of_updates_for_watchPosition() {
+  await SpecialPowers.pushPrefEnv({
+    set: required_preferences,
+  });
+
+  let pageLoaded;
+  let browser;
+  const tab = await BrowserTestUtils.openNewForegroundTab(
+    gBrowser,
+    () => {
+      gBrowser.selectedTab = BrowserTestUtils.addTab(gBrowser, PAGE_URL);
+      browser = gBrowser.selectedBrowser;
+      pageLoaded = BrowserTestUtils.browserLoaded(browser, true);
+    },
+    false
+  );
+  await pageLoaded;
+
+  await SpecialPowers.spawn(browser, [], async () => {
+    await SpecialPowers.pushPermissions([
+      {
+        type: "geo",
+        allow: SpecialPowers.Services.perms.ALLOW_ACTION,
+        context: content.document,
+      },
+    ]);
+
+    const browsingContext = content.browsingContext;
+
+    // Set the initial override before the watchPosition is started.
+    browsingContext.setGeolocationServiceOverride({
+      coords: {
+        latitude: 0,
+        longitude: 0,
+        accuracy: 0,
+        altitude: NaN,
+        altitudeAccuracy: NaN,
+        heading: NaN,
+        speed: NaN,
+      },
+      timestamp: Date.now(),
+    });
+
+    const watchID = content.window.navigator.geolocation.watchPosition(
+      result => {
+        const event = new content.window.CustomEvent("watchPosition", {
+          detail: result.coords.toJSON(),
+        });
+
+        content.document.dispatchEvent(event);
+      }
+    );
+    const events = [];
+
+    info("Override the geolocation");
+
+    content.document.addEventListener("watchPosition", e => {
+      content.window.console.log("test");
+      events.push(e.detail);
+    });
+
+    browsingContext.setGeolocationServiceOverride({
+      coords: {
+        latitude: 10,
+        longitude: 10,
+        accuracy: 5,
+        altitude: NaN,
+        altitudeAccuracy: NaN,
+        heading: NaN,
+        speed: NaN,
+      },
+      timestamp: Date.now(),
+    });
+
+    await ContentTaskUtils.waitForCondition(() => !!events.length);
+
+    is(events.length, 1, "Only one event should come after override is set");
+
+    content.window.navigator.geolocation.clearWatch(watchID);
+  });
+
+  BrowserTestUtils.removeTab(tab);
+});

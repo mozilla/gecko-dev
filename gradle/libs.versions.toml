@@ -70,6 +70,7 @@ jacoco = "0.8.13"
 kotlin-dsl = "5.2.0"
 protobuf-plugin = "0.9.5"
 scip-java = "0.10.4"
+semanticdb-kotlinc = "0.5.0"
 
 # Kotlin versions
 coroutines = "1.10.2"
@@ -245,6 +246,7 @@ jna = { group = "net.java.dev.jna", name = "jna", version.ref = "jna" }
 
 # Gradle plugins
 semanticdb-java = { group = "com.sourcegraph", name = "semanticdb-javac", version.ref = "scip-java" }
+semanticdb-kotlin = { group = "com.github.mozsearch", name = "semanticdb-kotlinc", version.ref = "semanticdb-kotlinc" }
 
 glean-gradle-plugin = { group = "org.mozilla.telemetry", name = "glean-gradle-plugin", version.ref = "mozilla-glean" }
 kotlin-annotations-jvm = { group = "org.jetbrains.kotlin", name = "kotlin-annotations-jvm", version.ref = "kotlin" }

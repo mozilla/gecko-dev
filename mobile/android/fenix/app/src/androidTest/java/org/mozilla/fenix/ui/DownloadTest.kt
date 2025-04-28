@@ -12,7 +12,6 @@ import androidx.test.espresso.intent.rule.IntentsRule
 import org.junit.Ignore
 import org.junit.Rule
 import org.junit.Test
-import org.mozilla.fenix.customannotations.SkipLeaks
 import org.mozilla.fenix.customannotations.SmokeTest
 import org.mozilla.fenix.helpers.AppAndSystemHelper.assertExternalAppOpens
 import org.mozilla.fenix.helpers.AppAndSystemHelper.deleteDownloadedFileOnStorage
@@ -293,7 +292,6 @@ class DownloadTest : TestSetup() {
 
     // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/1632384
     @Test
-    @SkipLeaks(reasons = ["https://bugzilla.mozilla.org/show_bug.cgi?id=1959107"])
     fun warningWhenClosingPrivateTabsWhileDownloadingTest() {
         homeScreen {
         }.togglePrivateBrowsingMode()

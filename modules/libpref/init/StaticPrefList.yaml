@@ -15852,7 +15852,7 @@
   # Full isolation (referrer, cookie jar, etc) of resources injected by content-scripts.
 - name: privacy.antitracking.isolateContentScriptResources
   type: bool
-  value: false
+  value: @IS_NIGHTLY_BUILD@
   mirror: always
 
 # Controls the anti-tracking webcompat features. This includes:

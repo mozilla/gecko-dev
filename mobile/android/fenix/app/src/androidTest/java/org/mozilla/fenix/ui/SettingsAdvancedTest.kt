@@ -7,7 +7,6 @@ package org.mozilla.fenix.ui
 import androidx.core.net.toUri
 import org.junit.Rule
 import org.junit.Test
-import org.mozilla.fenix.customannotations.SkipLeaks
 import org.mozilla.fenix.customannotations.SmokeTest
 import org.mozilla.fenix.ext.settings
 import org.mozilla.fenix.helpers.AppAndSystemHelper.assertYoutubeAppOpens
@@ -93,7 +92,6 @@ class SettingsAdvancedTest : TestSetup() {
     // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2121052
     // Assumes Youtube is installed and enabled
     @Test
-    @SkipLeaks(reasons = ["https://bugzilla.mozilla.org/show_bug.cgi?id=1959107"])
     fun privateBrowsingAskBeforeOpeningOpenLinkInAppTest() {
         val externalLinksPage = TestAssetHelper.getExternalLinksAsset(mockWebServer)
 
@@ -183,7 +181,6 @@ class SettingsAdvancedTest : TestSetup() {
     // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2121051
     // Assumes Youtube is installed and enabled
     @Test
-    @SkipLeaks(reasons = ["https://bugzilla.mozilla.org/show_bug.cgi?id=1959107"])
     fun privateBrowsingAskBeforeOpeningLinkInAppCancelTest() {
         TestHelper.appContext.settings().shouldShowCookieBannersCFR = false
         val externalLinksPage = TestAssetHelper.getExternalLinksAsset(mockWebServer)

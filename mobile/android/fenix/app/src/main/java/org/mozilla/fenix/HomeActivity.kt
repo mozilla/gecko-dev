@@ -69,7 +69,6 @@ import mozilla.components.service.pocket.PocketStoriesService
 import mozilla.components.support.base.feature.ActivityResultHandler
 import mozilla.components.support.base.feature.UserInteractionHandler
 import mozilla.components.support.base.feature.UserInteractionOnBackPressedCallback
-import mozilla.components.support.base.log.logger.Logger
 import mozilla.components.support.ktx.android.arch.lifecycle.addObservers
 import mozilla.components.support.ktx.android.content.call
 import mozilla.components.support.ktx.android.content.email
@@ -123,6 +122,7 @@ import org.mozilla.fenix.ext.setNavigationIcon
 import org.mozilla.fenix.ext.settings
 import org.mozilla.fenix.extension.WebExtensionPromptFeature
 import org.mozilla.fenix.home.HomeFragment
+import org.mozilla.fenix.home.TopSitesRefresher
 import org.mozilla.fenix.home.intent.AssistIntentProcessor
 import org.mozilla.fenix.home.intent.CrashReporterIntentProcessor
 import org.mozilla.fenix.home.intent.HomeDeepLinkIntentProcessor
@@ -495,6 +495,14 @@ open class HomeActivity : LocaleAwareAppCompatActivity(), NavHostActivity {
             extensionsProcessDisabledBackgroundController,
             serviceWorkerSupport,
             crashReporterBinding,
+            TopSitesRefresher(
+                settings = settings(),
+                topSitesProvider = if (settings().marsAPIEnabled) {
+                    components.core.marsTopSitesProvider
+                } else {
+                    components.core.contileTopSitesProvider
+                },
+            ),
         )
 
         if (!isCustomTabIntent(intent)) {
@@ -602,12 +610,16 @@ open class HomeActivity : LocaleAwareAppCompatActivity(), NavHostActivity {
             // This is to avoid disk read violations on some devices such as samsung and pixel for android 9/10
             components.strictMode.resetAfter(StrictMode.allowThreadDiskReads()) {
                 components.appStore.dispatch(AppAction.UpdateWasNativeDefaultBrowserPromptShown(true))
-                openSetDefaultBrowserOption().also {
-                    Metrics.setAsDefaultBrowserNativePromptShown.record()
-                    settings().setAsDefaultPromptCalled()
-                }
+                showSetDefaultBrowserPrompt()
+                Metrics.setAsDefaultBrowserNativePromptShown.record()
+                settings().setAsDefaultPromptCalled()
             }
         }
+    }
+
+    @VisibleForTesting
+    internal fun showSetDefaultBrowserPrompt() {
+        openSetDefaultBrowserOption()
     }
 
     /**
@@ -640,7 +652,6 @@ open class HomeActivity : LocaleAwareAppCompatActivity(), NavHostActivity {
     }
 
     @CallSuper
-    @Suppress("TooGenericExceptionCaught")
     override fun onResume() {
         super.onResume()
 
@@ -651,18 +662,6 @@ open class HomeActivity : LocaleAwareAppCompatActivity(), NavHostActivity {
         )
 
         lifecycleScope.launch(IO) {
-            try {
-                if (settings().showContileFeature) {
-                    if (settings().marsAPIEnabled) {
-                        components.core.marsTopSitesProvider.refreshTopSitesIfCacheExpired()
-                    } else {
-                        components.core.contileTopSitesProvider.refreshTopSitesIfCacheExpired()
-                    }
-                }
-            } catch (e: Exception) {
-                Logger.error("Failed to refresh contile top sites", e)
-            }
-
             if (settings().checkIfFenixIsDefaultBrowserOnAppResume()) {
                 if (components.appStore.state.wasNativeDefaultBrowserPromptShown) {
                     Metrics.defaultBrowserChangedViaNativeSystemPrompt.record(NoExtras())

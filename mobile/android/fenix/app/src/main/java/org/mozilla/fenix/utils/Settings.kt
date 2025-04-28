@@ -21,7 +21,6 @@ import mozilla.components.concept.engine.EngineSession.CookieBannerHandlingMode
 import mozilla.components.feature.sitepermissions.SitePermissionsRules
 import mozilla.components.feature.sitepermissions.SitePermissionsRules.Action
 import mozilla.components.feature.sitepermissions.SitePermissionsRules.AutoplayAction
-import mozilla.components.feature.top.sites.TopSitesProvider
 import mozilla.components.support.ktx.android.content.PreferencesHolder
 import mozilla.components.support.ktx.android.content.booleanPreference
 import mozilla.components.support.ktx.android.content.floatPreference
@@ -45,6 +44,7 @@ import org.mozilla.fenix.components.toolbar.navbar.shouldAddNavigationBar
 import org.mozilla.fenix.debugsettings.addresses.SharedPrefsAddressesDebugLocalesRepository
 import org.mozilla.fenix.ext.components
 import org.mozilla.fenix.ext.getPreferenceKey
+import org.mozilla.fenix.home.topsites.TopSitesConfigConstants.TOP_SITES_MAX_COUNT
 import org.mozilla.fenix.nimbus.CookieBannersSection
 import org.mozilla.fenix.nimbus.FxNimbus
 import org.mozilla.fenix.nimbus.HomeScreenSection
@@ -97,20 +97,6 @@ class Settings(private val appContext: Context) : PreferencesHolder {
          */
         @VisibleForTesting
         internal var SEARCH_GROUP_MINIMUM_SITES: Int = 2
-
-        // The maximum number of top sites to display.
-        const val TOP_SITES_MAX_COUNT = 16
-
-        /**
-         * Only fetch top sites from the [TopSitesProvider] when the number of default and
-         * pinned sites are below this maximum threshold.
-         */
-        const val TOP_SITES_PROVIDER_MAX_THRESHOLD = 8
-
-        /**
-         * Number of top sites to take from the [TopSitesProvider].
-         */
-        const val TOP_SITES_PROVIDER_LIMIT = 2
 
         /**
          * Minimum number of days between Set as default Browser prompt displays in home page.
