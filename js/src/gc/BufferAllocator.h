@@ -182,8 +182,8 @@ struct LargeBuffer;
 //
 // These are implemented using the OS page allocator. Allocations of this size
 // are relatively rare and not much attempt is made to optimize them. They are
-// stored with a chunk header at the front to allow them to be distinguished
-// from the other allocation kinds easily.
+// chunk aligned which allows them to be distinguished from the other allocation
+// kinds by checking the low bits the pointer.
 //
 
 class BufferAllocator : public SlimLinkedListElement<BufferAllocator> {
