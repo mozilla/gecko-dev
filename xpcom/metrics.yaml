@@ -1219,3 +1219,162 @@ hdd:
       * model - The disk's self-reported model string
       * revision - The disk's self-reported revision string
       * diskType - Either "HDD" or "SSD"
+
+system.os:
+  name:
+    type: string
+    lifetime: application
+    description: |
+      The Operating System's name, according to sysinfo.
+      e.g. "Windows_NT"
+      Expected in most cases to be identical to `client_info.os`.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1950409
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1950409
+    data_sensitivity:
+      - technical
+    notification_emails:
+      - gijs@mozilla.com
+    expires: never
+
+  version:
+    type: string
+    lifetime: application
+    description: |
+      The Operating System's version, according to sysinfo.
+      e.g. "6.3"
+      Expected in most cases to be identical to `client_info.os_version`.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1950409
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1950409
+    data_sensitivity:
+      - technical
+    notification_emails:
+      - gijs@mozilla.com
+    expires: never
+
+  locale:
+    type: string
+    lifetime: application
+    description: |
+      The Operating System's local, according to ospreferences.
+      e.g. "en-US"
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1950409
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1950409
+    data_sensitivity:
+      - technical
+    notification_emails:
+      - gijs@mozilla.com
+    expires: never
+
+  distro:
+    type: string
+    lifetime: application
+    description: |
+      The Operating System's distribution, according to sysinfo.
+      Linux only.
+      e.g. "Linuxmint"
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1950409
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1950409
+    data_sensitivity:
+      - technical
+    notification_emails:
+      - gijs@mozilla.com
+    expires: never
+
+  distro_version:
+    type: string
+    lifetime: application
+    description: |
+      The Operating System's distribution's version, according to sysinfo.
+      Linux only.
+      e.g. "22"
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1950409
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1950409
+    data_sensitivity:
+      - technical
+    notification_emails:
+      - gijs@mozilla.com
+    expires: never
+
+  service_pack_major:
+    type: quantity
+    unit: version
+    lifetime: application
+    description: |
+      The Windows service pack's major version, according to WindowsVersionInfo.
+      Windows only.
+      e.g. 0
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1950409
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1950409
+    data_sensitivity:
+      - technical
+    notification_emails:
+      - gijs@mozilla.com
+    expires: never
+
+  service_pack_minor:
+    type: quantity
+    unit: version
+    lifetime: application
+    description: |
+      The Windows service pack's minor version, according to WindowsVersionInfo.
+      Windows only.
+      e.g. 0
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1950409
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1950409
+    data_sensitivity:
+      - technical
+    notification_emails:
+      - gijs@mozilla.com
+    expires: never
+
+  windows_build_number:
+    type: quantity
+    unit: build number
+    lifetime: application
+    description: |
+      The Windows build number, according to WindowsVersionInfo.
+      Windows only.
+      e.g. 26100
+      Expected in most cases to be identical to `client_info.windows_build_number`.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1950409
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1950409
+    data_sensitivity:
+      - technical
+    notification_emails:
+      - gijs@mozilla.com
+    expires: never
+
+  windows_ubr:
+    type: quantity
+    unit: build number
+    lifetime: application
+    description: |
+      The Windows update build revision number, according to
+      `SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion`.
+      Windows only.
+      e.g. 3775
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1950409
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1950409
+    data_sensitivity:
+      - technical
+    notification_emails:
+      - gijs@mozilla.com
+    expires: never

@@ -149,10 +149,7 @@ Structure:
             servicePackMinor: <number>, // windows only or null on failure
             windowsBuildNumber: <number>, // windows only or null on failure
             windowsUBR: <number>, // windows 10 only or null on failure
-            installYear: <number>, // windows only or null on failure
             locale: <string>, // "en" or null on failure
-            hasPrefetch: <bool>, // windows only, or null on failure
-            hasSuperfetch: <bool>, // windows only, or null on failure
             distro: <string>, // linux only, or null on failure
             distroVersion: <string>, // linux only, or null on failure
         },

@@ -657,6 +657,15 @@ export var TelemetryEnvironmentTesting = {
     lazy.Assert.ok(this.checkNullOrString(osData.name));
     lazy.Assert.ok(this.checkNullOrString(osData.version));
     lazy.Assert.ok(this.checkNullOrString(osData.locale));
+    if (osData.name !== null) {
+      lazy.Assert.equal(osData.name, Glean.systemOs.name.testGetValue());
+    }
+    if (osData.version !== null) {
+      lazy.Assert.equal(osData.version, Glean.systemOs.version.testGetValue());
+    }
+    if (osData.locale !== null) {
+      lazy.Assert.equal(osData.locale, Glean.systemOs.locale.testGetValue());
+    }
 
     // Service pack is only available on Windows.
     if (gIsWindows) {
@@ -668,11 +677,23 @@ export var TelemetryEnvironmentTesting = {
         Number.isFinite(osData.servicePackMinor),
         "ServicePackMinor must be a number."
       );
+      lazy.Assert.equal(
+        osData.servicePackMajor,
+        Glean.systemOs.servicePackMajor.testGetValue()
+      );
+      lazy.Assert.equal(
+        osData.servicePackMinor,
+        Glean.systemOs.servicePackMinor.testGetValue()
+      );
       if ("windowsBuildNumber" in osData) {
         // This might not be available on all Windows platforms.
         lazy.Assert.ok(
           Number.isFinite(osData.windowsBuildNumber),
           "windowsBuildNumber must be a number."
+        );
+        lazy.Assert.equal(
+          osData.windowsBuildNumber,
+          Glean.systemOs.windowsBuildNumber.testGetValue()
         );
       }
       if ("windowsUBR" in osData) {
@@ -681,10 +702,19 @@ export var TelemetryEnvironmentTesting = {
           osData.windowsUBR === null || Number.isFinite(osData.windowsUBR),
           "windowsUBR must be null or a number."
         );
+        lazy.Assert.equal(
+          osData.windowsUBR,
+          Glean.systemOs.windowsUbr.testGetValue()
+        );
       }
     } else if (gIsLinux) {
       lazy.Assert.ok(this.checkNullOrString(osData.distro));
       lazy.Assert.ok(this.checkNullOrString(osData.distroVersion));
+      lazy.Assert.equal(osData.distro, Glean.systemOs.distro.testGetValue());
+      lazy.Assert.equal(
+        osData.distroVersion,
+        Glean.systemOs.distroVersion.testGetValue()
+      );
     }
 
     for (let disk of EXPECTED_HDD_FIELDS) {

@@ -83,7 +83,7 @@ var gActiveExperimentStartupBuffer = new Map();
 
 // For Powering arewegleanyet.com (See bug 1944592)
 // Legacy Count: 114
-// Glean Count: 83
+// Glean Count: 92
 
 var gGlobalEnvironment;
 function getGlobal() {
@@ -2015,6 +2015,9 @@ EnvironmentCache.prototype = {
       version: forceToStringOrNull(getSysinfoProperty("version", null)),
       locale: forceToStringOrNull(getSystemLocale()),
     };
+    Glean.systemOs.name.set(this._osData.name);
+    Glean.systemOs.version.set(this._osData.version);
+    Glean.systemOs.locale.set(this._osData.locale);
 
     if (AppConstants.platform == "android") {
       this._osData.kernelVersion = forceToStringOrNull(
@@ -2027,6 +2030,8 @@ EnvironmentCache.prototype = {
       this._osData.distroVersion = forceToStringOrNull(
         getSysinfoProperty("distroVersion", null)
       );
+      Glean.systemOs.distro.set(this._osData.distro);
+      Glean.systemOs.distroVersion.set(this._osData.distroVersion);
     } else if (AppConstants.platform === "win") {
       // The path to the "UBR" key, queried to get additional version details on Windows.
       const WINDOWS_UBR_KEY_PATH =
@@ -2036,6 +2041,9 @@ EnvironmentCache.prototype = {
       this._osData.servicePackMajor = versionInfo.servicePackMajor;
       this._osData.servicePackMinor = versionInfo.servicePackMinor;
       this._osData.windowsBuildNumber = versionInfo.buildNumber;
+      Glean.systemOs.servicePackMajor.set(this._osData.servicePackMajor);
+      Glean.systemOs.servicePackMinor.set(this._osData.servicePackMinor);
+      Glean.systemOs.windowsBuildNumber.set(this._osData.windowsBuildNumber);
       // We only need the UBR if we're at or above Windows 10.
       if (
         typeof this._osData.version === "string" &&
@@ -2049,6 +2057,9 @@ EnvironmentCache.prototype = {
           "UBR",
           Ci.nsIWindowsRegKey.WOW64_64
         );
+        if (Number.isInteger(ubr)) {
+          Glean.systemOs.windowsUbr.set(ubr);
+        }
         this._osData.windowsUBR = ubr !== undefined ? ubr : null;
       }
     }
