@@ -33,6 +33,7 @@ https_first_disabled = true
 ["browser_autoplay_policy_web_audio.js"]
 
 ["browser_autoplay_policy_web_audio_with_gum.js"]
+skip-if = ["os == 'mac' && os_version == '15.30' && arch == 'aarch64'"] # Bug 1700016
 
 ["browser_autoplay_userinteraction.js"]
 
