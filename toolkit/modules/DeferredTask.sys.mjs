@@ -4,6 +4,12 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+const Timer = Components.Constructor(
+  "@mozilla.org/timer;1",
+  "nsITimer",
+  "initWithCallback"
+);
+
 /**
  * Sets up a function or an asynchronous task whose execution can be triggered
  * after a defined delay.  Multiple attempts to run the task before the delay
@@ -75,70 +81,71 @@
  *   saveDeferredTask.finalize().then(() => OS.File.remove(...))
  *                              .then(null, Components.utils.reportError);
  */
-
-// Globals
-
-const Timer = Components.Constructor(
-  "@mozilla.org/timer;1",
-  "nsITimer",
-  "initWithCallback"
-);
-
-// DeferredTask
-
-/**
- * Sets up a task whose execution can be triggered after a delay.
- *
- * @param aTaskFn
- *        Function to execute.  If the function returns a promise, the task is
- *        not considered complete until that promise resolves.  This
- *        task is never re-entered while running.
- * @param aDelayMs
- *        Time between executions, in milliseconds.  Multiple attempts to run
- *        the task before the delay has passed are coalesced.  This time of
- *        inactivity is guaranteed to pass between multiple executions of the
- *        task, except on finalization, when the task may restart immediately
- *        after the previous execution finished.
- * @param aIdleTimeoutMs
- *        The maximum time to wait for an idle slot on the main thread after
- *        aDelayMs have elapsed. If omitted, waits indefinitely for an idle
- *        callback.
- */
-export var DeferredTask = function (aTaskFn, aDelayMs, aIdleTimeoutMs) {
-  this._taskFn = aTaskFn;
-  this._delayMs = aDelayMs;
-  this._timeoutMs = aIdleTimeoutMs;
-  this._caller = new Error().stack.split("\n", 2)[1];
-  let markerString = `delay: ${aDelayMs}ms`;
-  if (aIdleTimeoutMs) {
-    markerString += `, idle timeout: ${aIdleTimeoutMs}`;
+export class DeferredTask {
+  /**
+   * Sets up a task whose execution can be triggered after a delay.
+   *
+   * @param {Function} taskFn
+   *   Function to execute.  If the function returns a promise, the task is not
+   *   considered complete until that promise resolves. This task is never
+   *   re-entered while running.
+   * @param {number} delayMs
+   *   Time between executions, in milliseconds.  Multiple attempts to run the
+   *   task before the delay has passed are coalesced.  This time of inactivity
+   *   is guaranteed to pass between multiple executions of the task, except on
+   *   finalization, when the task may restart immediately after the previous
+   *   execution finished.
+   * @param {number} [idleTimeoutMs]
+   *        The maximum time to wait for an idle slot on the main thread after
+   *        aDelayMs have elapsed. If omitted, waits indefinitely for an idle
+   *        callback.
+   */
+  constructor(taskFn, delayMs, idleTimeoutMs) {
+    this.#taskFn = taskFn;
+    this.#delayMs = delayMs;
+    this.#idleTimeoutMs = idleTimeoutMs;
+    this.#caller = new Error().stack.split("\n", 2)[1];
+    let markerString = `delay: ${delayMs}ms`;
+    if (idleTimeoutMs) {
+      markerString += `, idle timeout: ${idleTimeoutMs}`;
+    }
+    ChromeUtils.addProfilerMarker(
+      "DeferredTask",
+      { captureStack: true },
+      markerString
+    );
   }
-  ChromeUtils.addProfilerMarker(
-    "DeferredTask",
-    { captureStack: true },
-    markerString
-  );
-};
 
-DeferredTask.prototype = {
   /**
    * Function to execute.
    */
-  _taskFn: null,
+  #taskFn;
 
   /**
    * Time between executions, in milliseconds.
    */
-  _delayMs: null,
+  #delayMs;
+
+  /**
+   * The idle timeout wait.
+   *
+   * @type {number|undefined}
+   */
+  #idleTimeoutMs = undefined;
+
+  /**
+   * The name of the caller that created the deferred task.
+   */
+  #caller;
 
   /**
    * Indicates whether the task is currently requested to start again later,
    * regardless of whether it is currently running.
    */
   get isArmed() {
-    return this._armed;
-  },
-  _armed: false,
+    return this.#armed;
+  }
+  #armed = false;
 
   /**
    * Indicates whether the task is currently running.  This is always true when
@@ -147,50 +154,52 @@ DeferredTask.prototype = {
    */
   get isRunning() {
     return !!this._runningPromise;
-  },
+  }
 
   /**
    * Promise resolved when the current execution of the task terminates, or null
    * if the task is not currently running.
+   *
+   * May be accessed for tests.
    */
-  _runningPromise: null,
+  _runningPromise = null;
 
   /**
    * nsITimer used for triggering the task after a delay, or null in case the
    * task is running or there is no task scheduled for execution.
    */
-  _timer: null,
+  #timer = null;
 
   /**
    * Actually starts the timer with the delay specified on construction.
    */
-  _startTimer() {
+  #startTimer() {
     let callback, timer;
-    if (this._timeoutMs === 0) {
-      callback = () => this._timerCallback();
+    if (this.#idleTimeoutMs === 0) {
+      callback = () => this.#timerCallback();
     } else {
       callback = () => {
         this._startIdleDispatch(() => {
-          // _timer could have changed by now:
+          // #timer could have changed by now:
           // - to null if disarm() or finalize() has been called.
           // - to a new nsITimer if disarm() was called, followed by arm().
-          // In either case, don't invoke _timerCallback any more.
-          if (this._timer === timer) {
-            this._timerCallback();
+          // In either case, don't invoke #timerCallback any more.
+          if (this.#timer === timer) {
+            this.#timerCallback();
           }
-        }, this._timeoutMs);
+        }, this.#idleTimeoutMs);
       };
     }
-    timer = new Timer(callback, this._delayMs, Ci.nsITimer.TYPE_ONE_SHOT);
-    this._timer = timer;
-  },
+    timer = new Timer(callback, this.#delayMs, Ci.nsITimer.TYPE_ONE_SHOT);
+    this.#timer = timer;
+  }
 
   /**
    * Dispatches idle task. Can be overridden for testing by test_DeferredTask.
    */
   _startIdleDispatch(callback, timeout) {
     ChromeUtils.idleDispatch(callback, { timeout });
-  },
+  }
 
   /**
    * Requests the execution of the task after the delay specified on
@@ -211,19 +220,19 @@ DeferredTask.prototype = {
    *       used in the common case of waiting for completion on shutdown.
    */
   arm() {
-    if (this._finalized) {
+    if (this.#finalized) {
       throw new Error("Unable to arm timer, the object has been finalized.");
     }
 
-    this._armed = true;
+    this.#armed = true;
 
     // In case the timer callback is running, do not create the timer now,
     // because this will be handled by the timer callback itself.  Also, the
     // timer is not restarted in case it is already running.
-    if (!this._runningPromise && !this._timer) {
-      this._startTimer();
+    if (!this._runningPromise && !this.#timer) {
+      this.#startTimer();
     }
-  },
+  }
 
   /**
    * Cancels any request for a delayed the execution of the task, though the
@@ -233,15 +242,15 @@ DeferredTask.prototype = {
    * from its original value in case the "arm" method is called again.
    */
   disarm() {
-    this._armed = false;
-    if (this._timer) {
+    this.#armed = false;
+    if (this.#timer) {
       // Calling the "cancel" method and discarding the timer reference makes
       // sure that the timer callback will not be called later, even if the
       // timer thread has already posted the timer event on the main thread.
-      this._timer.cancel();
-      this._timer = null;
+      this.#timer.cancel();
+      this.#timer = null;
     }
-  },
+  }
 
   /**
    * Ensures that any pending task is executed from start to finish, while
@@ -263,17 +272,17 @@ DeferredTask.prototype = {
    * @rejects Never.
    */
   finalize() {
-    if (this._finalized) {
+    if (this.#finalized) {
       throw new Error("The object has been already finalized.");
     }
-    this._finalized = true;
+    this.#finalized = true;
 
     // If the timer is armed, it means that the task is not running but it is
     // scheduled for execution.  Cancel the timer and run the task immediately,
     // so we don't risk blocking async shutdown longer than necessary.
-    if (this._timer) {
+    if (this.#timer) {
       this.disarm();
-      this._timerCallback();
+      this.#timerCallback();
     }
 
     // Wait for the operation to be completed, or resolve immediately.
@@ -281,20 +290,20 @@ DeferredTask.prototype = {
       return this._runningPromise;
     }
     return Promise.resolve();
-  },
-  _finalized: false,
+  }
+  #finalized = false;
 
   /**
    * Whether the DeferredTask has been finalized, and it cannot be armed anymore.
    */
   get isFinalized() {
-    return this._finalized;
-  },
+    return this.#finalized;
+  }
 
   /**
    * Timer callback used to run the delayed task.
    */
-  _timerCallback() {
+  #timerCallback() {
     let runningDeferred = Promise.withResolvers();
 
     // All these state changes must occur at the same time directly inside the
@@ -302,26 +311,26 @@ DeferredTask.prototype = {
     // methods behave consistently even if called from inside the task.  This
     // means that the assignment of "this._runningPromise" must complete before
     // the task gets a chance to start.
-    this._timer = null;
-    this._armed = false;
+    this.#timer = null;
+    this.#armed = false;
     this._runningPromise = runningDeferred.promise;
 
     runningDeferred.resolve(
       (async () => {
         // Execute the provided function asynchronously.
-        await this._runTask();
+        await this.#runTask();
 
         // Now that the task has finished, we check the state of the object to
         // determine if we should restart the task again.
-        if (this._armed) {
-          if (!this._finalized) {
-            this._startTimer();
+        if (this.#armed) {
+          if (!this.#finalized) {
+            this.#startTimer();
           } else {
             // Execute the task again immediately, for the last time.  The isArmed
             // property should return false while the task is running, and should
             // remain false after the last execution terminates.
-            this._armed = false;
-            await this._runTask();
+            this.#armed = false;
+            await this.#runTask();
           }
         }
 
@@ -330,23 +339,23 @@ DeferredTask.prototype = {
         this._runningPromise = null;
       })().catch(console.error)
     );
-  },
+  }
 
   /**
    * Executes the associated task and catches exceptions.
    */
-  async _runTask() {
+  async #runTask() {
     let startTime = Cu.now();
     try {
-      await this._taskFn();
+      await this.#taskFn();
     } catch (ex) {
       console.error(ex);
     } finally {
       ChromeUtils.addProfilerMarker(
         "DeferredTask",
         { startTime },
-        this._caller
+        this.#caller
       );
     }
-  },
-};
+  }
+}
