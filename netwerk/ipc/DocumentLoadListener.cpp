@@ -283,14 +283,6 @@ class ParentProcessDocumentOpenInfo final : public nsDocumentOpenInfo,
       return nsDocumentOpenInfo::TryStreamConversion(aChannel);
     }
 
-    if (nsCOMPtr<nsILoadInfo> loadInfo = aChannel->LoadInfo();
-        loadInfo->GetSandboxFlags() &&
-        mContentType.LowerCaseEqualsLiteral(APPLICATION_PDF)) {
-      // Sandboxed iframes are just never allowed to display plugins. In the
-      // modern world, this just means "application/pdf".
-      return NS_ERROR_FAILURE;
-    }
-
     nsresult rv;
     nsCOMPtr<nsIStreamConverterService> streamConvService;
     nsAutoCString str;

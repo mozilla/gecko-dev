@@ -6,6 +6,7 @@
 
 #include "nsURILoader.h"
 #include "nsComponentManagerUtils.h"
+#include "nsContentSecurityUtils.h"
 #include "nsIURIContentListener.h"
 #include "nsIContentHandler.h"
 #include "nsILoadGroup.h"
@@ -42,6 +43,7 @@
 #include "mozilla/Attributes.h"
 #include "mozilla/IntegerPrintfMacros.h"
 #include "mozilla/Preferences.h"
+#include "mozilla/Result.h"
 #include "mozilla/Unused.h"
 #include "mozilla/StaticPrefs_browser.h"
 #include "mozilla/StaticPrefs_dom.h"
@@ -317,6 +319,62 @@ NS_IMETHODIMP nsDocumentOpenInfo::OnStopRequest(nsIRequest* request,
   return NS_OK;
 }
 
+static bool IsContentPDF(nsIChannel* aChannel, const nsACString& aContentType) {
+  bool isPDF = aContentType.LowerCaseEqualsASCII(APPLICATION_PDF);
+  if (!isPDF && (aContentType.LowerCaseEqualsASCII(APPLICATION_OCTET_STREAM) ||
+                 aContentType.IsEmpty())) {
+    nsAutoString flname;
+    aChannel->GetContentDispositionFilename(flname);
+    isPDF = StringEndsWith(flname, u".pdf"_ns);
+    if (!isPDF) {
+      nsCOMPtr<nsIURI> uri;
+      aChannel->GetURI(getter_AddRefs(uri));
+      nsCOMPtr<nsIURL> url(do_QueryInterface(uri));
+      if (url) {
+        nsAutoCString ext;
+        url->GetFileExtension(ext);
+        isPDF = ext.EqualsLiteral("pdf");
+      }
+    }
+  }
+
+  return isPDF;
+}
+
+static mozilla::Result<bool, nsresult> ShouldHandleExternally(
+    const nsACString& aMimeType) {
+  // For a PDF, check if the preference is set that forces attachments to be
+  // opened inline. If so, treat it as a non-attachment by clearing
+  // 'forceExternalHandling' again. This allows it open a PDF directly
+  // instead of downloading it first. It may still end up being handled by
+  // a helper app depending anyway on the later checks.
+  nsCOMPtr<nsIMIMEInfo> mimeInfo;
+
+  nsCOMPtr<nsIMIMEService> mimeSvc(do_GetService(NS_MIMESERVICE_CONTRACTID));
+  if (!mimeSvc) {
+    return mozilla::Err(NS_ERROR_FAILURE);
+  }
+
+  mimeSvc->GetFromTypeAndExtension(aMimeType, EmptyCString(),
+                                   getter_AddRefs(mimeInfo));
+
+  if (mimeInfo) {
+    int32_t action = nsIMIMEInfo::saveToDisk;
+    mimeInfo->GetPreferredAction(&action);
+
+    bool alwaysAsk = true;
+    mimeInfo->GetAlwaysAskBeforeHandling(&alwaysAsk);
+    return alwaysAsk || action != nsIMIMEInfo::handleInternally;
+  }
+
+  return false;
+}
+
+static bool IsSandboxed(nsIChannel* aChannel) {
+  nsCOMPtr<nsILoadInfo> loadInfo = aChannel->LoadInfo();
+  return loadInfo->GetSandboxFlags();
+}
+
 nsresult nsDocumentOpenInfo::DispatchContent(nsIRequest* request) {
   LOG(("[0x%p] nsDocumentOpenInfo::DispatchContent for type '%s'", this,
        mContentType.get()));
@@ -367,56 +425,38 @@ nsresult nsDocumentOpenInfo::DispatchContent(nsIRequest* request) {
   }
 
   LOG(("  forceExternalHandling: %s", forceExternalHandling ? "yes" : "no"));
+  LOG(("  IsSandboxed: %s", IsSandboxed(aChannel) ? "yes" : "no"));
+  LOG(("  IsContentPDF: %s",
+       IsContentPDF(aChannel, mContentType) ? "yes" : "no"));
 
-  if (forceExternalHandling &&
-      mozilla::StaticPrefs::browser_download_open_pdf_attachments_inline()) {
-    // Check if this is a PDF which should be opened internally. We also handle
-    // octet-streams that look like they might be PDFs based on their extension.
-    bool isPDF = mContentType.LowerCaseEqualsASCII(APPLICATION_PDF);
-    if (!isPDF &&
-        (mContentType.LowerCaseEqualsASCII(APPLICATION_OCTET_STREAM) ||
-         mContentType.IsEmpty())) {
-      nsAutoString flname;
-      aChannel->GetContentDispositionFilename(flname);
-      isPDF = StringEndsWith(flname, u".pdf"_ns);
-      if (!isPDF) {
-        nsCOMPtr<nsIURI> uri;
-        aChannel->GetURI(getter_AddRefs(uri));
-        nsCOMPtr<nsIURL> url(do_QueryInterface(uri));
-        if (url) {
-          nsAutoCString ext;
-          url->GetFileExtension(ext);
-          isPDF = ext.EqualsLiteral("pdf");
-        }
-      }
-    }
+  bool maybeForceInternalHandling =
+      forceExternalHandling &&
+      mozilla::StaticPrefs::browser_download_open_pdf_attachments_inline();
 
+  // Check if this is a PDF which should be opened internally. We also handle
+  // octet-streams that look like they might be PDFs based on their extension.
+  if ((maybeForceInternalHandling || IsSandboxed(aChannel)) &&
+      IsContentPDF(aChannel, mContentType)) {
     // For a PDF, check if the preference is set that forces attachments to be
     // opened inline. If so, treat it as a non-attachment by clearing
     // 'forceExternalHandling' again. This allows it open a PDF directly
     // instead of downloading it first. It may still end up being handled by
     // a helper app depending anyway on the later checks.
-    if (isPDF) {
-      nsCOMPtr<nsILoadInfo> loadInfo;
-      aChannel->GetLoadInfo(getter_AddRefs(loadInfo));
+    auto result = ShouldHandleExternally(nsLiteralCString(APPLICATION_PDF));
+    if (result.isErr()) {
+      return result.unwrapErr();
+    }
+    forceExternalHandling = result.unwrap();
 
-      nsCOMPtr<nsIMIMEInfo> mimeInfo;
-
-      nsCOMPtr<nsIMIMEService> mimeSvc(
-          do_GetService(NS_MIMESERVICE_CONTRACTID));
-      NS_ENSURE_TRUE(mimeSvc, NS_ERROR_FAILURE);
-      mimeSvc->GetFromTypeAndExtension(nsLiteralCString(APPLICATION_PDF), ""_ns,
-                                       getter_AddRefs(mimeInfo));
-
-      if (mimeInfo) {
-        int32_t action = nsIMIMEInfo::saveToDisk;
-        mimeInfo->GetPreferredAction(&action);
-
-        bool alwaysAsk = true;
-        mimeInfo->GetAlwaysAskBeforeHandling(&alwaysAsk);
-        forceExternalHandling =
-            alwaysAsk || action != nsIMIMEInfo::handleInternally;
+    // If we're not opening the PDF externally we block it if it's sandboxed.
+    if (IsSandboxed(aChannel) && !forceExternalHandling) {
+      LOG(("Blocked sandboxed PDF"));
+      nsCOMPtr<nsIHttpChannel> httpChannel = do_QueryInterface(aChannel);
+      if (httpChannel) {
+        nsContentSecurityUtils::LogMessageToConsole(
+            httpChannel, "IframeSandboxBlockedDownload");
       }
+      return NS_ERROR_CONTENT_BLOCKED;
     }
   }
 
