@@ -34,7 +34,6 @@ ChromeUtils.defineESModuleGetters(lazy, {
   ExtensionSettingsStore:
     "resource://gre/modules/ExtensionSettingsStore.sys.mjs",
   HomePage: "resource:///modules/HomePage.sys.mjs",
-  NimbusFeatures: "resource://nimbus/ExperimentAPI.sys.mjs",
   TelemetryEnvironment: "resource://gre/modules/TelemetryEnvironment.sys.mjs",
   UTEventReporting: "resource://newtab/lib/UTEventReporting.sys.mjs",
   NewTabUtils: "resource://gre/modules/NewTabUtils.sys.mjs",
@@ -61,6 +60,7 @@ const PREF_SHOW_SPONSORED_TOPSITES = "showSponsoredTopSites";
 const BLANK_HOMEPAGE_URL = "chrome://browser/content/blanktab.html";
 const PREF_PRIVATE_PING_ENABLED = "telemetry.privatePing.enabled";
 const PREF_FOLLOWED_SECTIONS = "discoverystream.sections.following";
+const PREF_NEWTAB_PING_ENABLED = "browser.newtabpage.ping.enabled";
 
 // This is a mapping table between the user preferences and its encoding code
 export const USER_PREFS_ENCODING = {
@@ -373,7 +373,7 @@ export class TelemetryFeed {
     Glean.newtab.closed.record({ newtab_visit_id: session.session_id });
     if (
       this.telemetryEnabled &&
-      (lazy.NimbusFeatures.glean.getVariable("newtabPingEnabled") ?? true)
+      Services.prefs.getBoolPref(PREF_NEWTAB_PING_ENABLED, true)
     ) {
       GleanPings.newtab.submit("newtab_session_end");
       if (this.privatePingEnabled) {
@@ -919,7 +919,7 @@ export class TelemetryFeed {
       Glean.newtab.newtabCategory.set(newtabCategory);
       Glean.newtab.homepageCategory.set(homePageCategory);
 
-      if (lazy.NimbusFeatures.glean.getVariable("newtabPingEnabled") ?? true) {
+      if (Services.prefs.getBoolPref(PREF_NEWTAB_PING_ENABLED, true)) {
         if (this.privatePingEnabled) {
           this.configureContentPing("component_init");
         }
