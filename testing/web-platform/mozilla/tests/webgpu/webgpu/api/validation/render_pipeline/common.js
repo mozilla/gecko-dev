@@ -1,10 +1,10 @@
 /**
 * AUTO-GENERATED - DO NOT EDIT. Source: https://github.com/gpuweb/cts
-**/import { getTextureFormatType } from '../../../format_info.js';import { getFragmentShaderCodeWithOutput,
-getPlainTypeInfo,
-kDefaultVertexShaderCode } from
+**/import { getTextureFormatType } from '../../../format_info.js';import { AllFeaturesMaxLimitsGPUTest } from '../../../gpu_test.js';import {
+  getFragmentShaderCodeWithOutput,
+  getPlainTypeInfo,
+  kDefaultVertexShaderCode } from
 '../../../util/shader.js';
-import { AllFeaturesMaxLimitsValidationTest } from '../validation_test.js';
 
 
 
@@ -63,7 +63,7 @@ options =
   };
 }
 
-export class CreateRenderPipelineValidationTest extends AllFeaturesMaxLimitsValidationTest {
+export class CreateRenderPipelineValidationTest extends AllFeaturesMaxLimitsGPUTest {
   getDescriptor(
   options =
 

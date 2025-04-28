@@ -4,6 +4,7 @@
 This test dedicatedly tests validation of pipeline overridable constants of createRenderPipeline.
 `;import { makeTestGroup } from '../../../../common/framework/test_group.js';
 import { kValue } from '../../../util/constants.js';
+import * as vtu from '../validation_test_utils.js';
 
 import { CreateRenderPipelineValidationTest } from './common.js';
 
@@ -36,7 +37,7 @@ combineWithParams([
 fn((t) => {
   const { isAsync, vertexConstants, _success } = t.params;
 
-  t.doCreateRenderPipelineTest(isAsync, _success, {
+  vtu.doCreateRenderPipelineTest(t, isAsync, _success, {
     layout: 'auto',
     vertex: {
       module: t.device.createShaderModule({
@@ -108,7 +109,7 @@ fn((t) => {
     fragmentConstants
   });
 
-  t.doCreateRenderPipelineTest(isAsync, _success, descriptor);
+  vtu.doCreateRenderPipelineTest(t, isAsync, _success, descriptor);
 });
 
 g.test('uninitialized,vertex').
@@ -130,7 +131,7 @@ combineWithParams([
 fn((t) => {
   const { isAsync, vertexConstants, _success } = t.params;
 
-  t.doCreateRenderPipelineTest(isAsync, _success, {
+  vtu.doCreateRenderPipelineTest(t, isAsync, _success, {
     layout: 'auto',
     vertex: {
       module: t.device.createShaderModule({
@@ -191,7 +192,7 @@ fn((t) => {
     fragmentConstants
   });
 
-  t.doCreateRenderPipelineTest(isAsync, _success, descriptor);
+  vtu.doCreateRenderPipelineTest(t, isAsync, _success, descriptor);
 });
 
 g.test('value,type_error,vertex').
@@ -213,7 +214,8 @@ combineWithParams([
 fn((t) => {
   const { isAsync, vertexConstants, _success } = t.params;
 
-  t.doCreateRenderPipelineTest(
+  vtu.doCreateRenderPipelineTest(
+    t,
     isAsync,
     _success,
     {
@@ -275,7 +277,7 @@ fn((t) => {
     fragmentConstants
   });
 
-  t.doCreateRenderPipelineTest(isAsync, _success, descriptor, 'TypeError');
+  vtu.doCreateRenderPipelineTest(t, isAsync, _success, descriptor, 'TypeError');
 });
 
 g.test('value,validation_error,vertex').
@@ -316,7 +318,7 @@ combineWithParams([
 fn((t) => {
   const { isAsync, vertexConstants, _success } = t.params;
 
-  t.doCreateRenderPipelineTest(isAsync, _success, {
+  vtu.doCreateRenderPipelineTest(t, isAsync, _success, {
     layout: 'auto',
     vertex: {
       module: t.device.createShaderModule({
@@ -404,7 +406,7 @@ fn((t) => {
     fragmentConstants
   });
 
-  t.doCreateRenderPipelineTest(isAsync, _success, descriptor);
+  vtu.doCreateRenderPipelineTest(t, isAsync, _success, descriptor);
 });
 
 g.test('value,validation_error,f16,vertex').
@@ -446,7 +448,7 @@ fn((t) => {
   t.skipIfDeviceDoesNotHaveFeature('shader-f16');
   const { isAsync, vertexConstants, _success } = t.params;
 
-  t.doCreateRenderPipelineTest(isAsync, _success, {
+  vtu.doCreateRenderPipelineTest(t, isAsync, _success, {
     layout: 'auto',
     vertex: {
       module: t.device.createShaderModule({
@@ -527,5 +529,5 @@ fn((t) => {
     fragmentConstants
   });
 
-  t.doCreateRenderPipelineTest(isAsync, _success, descriptor);
+  vtu.doCreateRenderPipelineTest(t, isAsync, _success, descriptor);
 });

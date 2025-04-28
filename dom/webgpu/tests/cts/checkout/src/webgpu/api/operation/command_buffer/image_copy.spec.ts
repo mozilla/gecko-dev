@@ -60,7 +60,8 @@ import {
   canCopyToAllAspectsOfTextureFormat,
   canCopyFromAllAspectsOfTextureFormat,
 } from '../../../format_info.js';
-import { AllFeaturesMaxLimitsGPUTest, TextureTestMixin } from '../../../gpu_test.js';
+import { AllFeaturesMaxLimitsGPUTest } from '../../../gpu_test.js';
+import * as ttu from '../../../texture_test_utils.js';
 import { checkElementsEqual } from '../../../util/check_contents.js';
 import { align } from '../../../util/math.js';
 import { physicalMipSizeFromTexture } from '../../../util/texture/base.js';
@@ -125,7 +126,7 @@ const kMethodsToTest = [
 const dataGenerator = new DataArrayGenerator();
 const altDataGenerator = new DataArrayGenerator();
 
-class ImageCopyTest extends TextureTestMixin(AllFeaturesMaxLimitsGPUTest) {
+class ImageCopyTest extends AllFeaturesMaxLimitsGPUTest {
   /**
    * This is used for testing passing undefined members of `GPUTexelCopyBufferLayout` instead of actual
    * values where possible. Passing arguments as values and not as objects so that they are passed
@@ -292,8 +293,8 @@ class ImageCopyTest extends TextureTestMixin(AllFeaturesMaxLimitsGPUTest) {
       {
         const rowLength = bytesInACompleteRow(size.width, format);
         let lastOffset = 0;
-        for (const texel of this.iterateBlockRows(size, format)) {
-          const offset = this.getTexelOffsetInBytes(dataLayout, format, texel, zero);
+        for (const texel of ttu.iterateBlockRows(size, format)) {
+          const offset = ttu.getTexelOffsetInBytes(dataLayout, format, texel, zero);
           const actualPart = actual.subarray(lastOffset, offset);
           const expectedPart = expected.subarray(lastOffset, offset);
           const error = checkElementsEqual(actualPart, expectedPart);
@@ -467,7 +468,7 @@ class ImageCopyTest extends TextureTestMixin(AllFeaturesMaxLimitsGPUTest) {
 
     // update the data for the entire mip level with the data
     // that would be copied to the "actual" texture
-    this.updateLinearTextureDataSubBox(format, copySize, {
+    ttu.updateLinearTextureDataSubBox(this, format, copySize, {
       src: {
         dataLayout: expectedDataLayout,
         origin: { x: 0, y: 0, z: 0 },
@@ -488,7 +489,8 @@ class ImageCopyTest extends TextureTestMixin(AllFeaturesMaxLimitsGPUTest) {
       mipSize
     );
 
-    this.expectTexturesToMatchByRendering(
+    ttu.expectTexturesToMatchByRendering(
+      this,
       actualTexture,
       expectedTexture,
       mipLevel,
@@ -542,7 +544,7 @@ class ImageCopyTest extends TextureTestMixin(AllFeaturesMaxLimitsGPUTest) {
     // bufferData has ...... in it.
     // Update bufferData to have the same contents as buffer.
     // When done, bufferData now has t.t.t. because the rows are padded.
-    this.updateLinearTextureDataSubBox(format, checkSize, {
+    ttu.updateLinearTextureDataSubBox(this, format, checkSize, {
       src: {
         dataLayout: expectedDataLayout,
         origin: { x: 0, y: 0, z: 0 },
@@ -592,7 +594,7 @@ class ImageCopyTest extends TextureTestMixin(AllFeaturesMaxLimitsGPUTest) {
     // other eventual async expectations to ensure it will be correct.
     this.eventualAsyncExpectation(async () => {
       const readback = await readbackPromise;
-      this.updateLinearTextureDataSubBox(format, copySize, {
+      ttu.updateLinearTextureDataSubBox(this, format, copySize, {
         dest: {
           dataLayout: { offset: 0, ...fullTextureCopyLayout },
           origin,
@@ -701,7 +703,8 @@ class ImageCopyTest extends TextureTestMixin(AllFeaturesMaxLimitsGPUTest) {
             mipLevel,
           });
 
-          const fullData = this.copyWholeTextureToNewBuffer(
+          const fullData = ttu.copyWholeTextureToNewBuffer(
+            this,
             { texture, mipLevel },
             fullTextureCopyLayout
           );

@@ -6,8 +6,8 @@ and parameters as expect.
 
 import { makeTestGroup } from '../../../../../../common/framework/test_group.js';
 import { kVertexFormatInfo } from '../../../../../capability_info.js';
-import { GPUTest } from '../../../../../gpu_test.js';
-import { AllFeaturesMaxLimitsValidationTest } from '../../../validation_test.js';
+import { GPUTest, AllFeaturesMaxLimitsGPUTest } from '../../../../../gpu_test.js';
+import * as vtu from '../../../validation_test_utils.js';
 
 type VertexAttrib<A> = A & { shaderLocation: number };
 type VertexBuffer<V, A> = V & {
@@ -98,7 +98,7 @@ function callDraw(
 }
 
 function makeTestPipeline(
-  test: AllFeaturesMaxLimitsValidationTest,
+  test: AllFeaturesMaxLimitsGPUTest,
   buffers: VertexState<
     { stepMode: GPUVertexStepMode; arrayStride: number },
     {
@@ -116,14 +116,14 @@ function makeTestPipeline(
     layout: 'auto',
     vertex: {
       module: test.device.createShaderModule({
-        code: test.getNoOpShaderCode('VERTEX'),
+        code: vtu.getNoOpShaderCode('VERTEX'),
       }),
       entryPoint: 'main',
       buffers: bufferLayouts,
     },
     fragment: {
       module: test.device.createShaderModule({
-        code: test.getNoOpShaderCode('FRAGMENT'),
+        code: vtu.getNoOpShaderCode('FRAGMENT'),
       }),
       entryPoint: 'main',
       targets: [{ format: 'rgba8unorm', writeMask: 0 }],
@@ -133,7 +133,7 @@ function makeTestPipeline(
 }
 
 function makeTestPipelineWithVertexAndInstanceBuffer(
-  test: AllFeaturesMaxLimitsValidationTest,
+  test: AllFeaturesMaxLimitsGPUTest,
   arrayStride: number,
   attributeFormat: GPUVertexFormat,
   attributeOffset: number = 0
@@ -190,7 +190,7 @@ const kDefaultParameterForIndexedDraw = {
   indexBufferSize: 2 * 200, // exact required bound size for index buffer
 };
 
-export const g = makeTestGroup(AllFeaturesMaxLimitsValidationTest);
+export const g = makeTestGroup(AllFeaturesMaxLimitsGPUTest);
 
 g.test(`unused_buffer_bound`)
   .desc(
@@ -226,16 +226,16 @@ In this test we test that a small buffer bound to unused buffer slot won't cause
       bufferOffset,
       boundSize,
     } = t.params;
-    const renderPipeline = t.createNoOpRenderPipeline();
+    const renderPipeline = vtu.createNoOpRenderPipeline(t);
     const bufferSize = bufferOffset + boundSize;
-    const smallBuffer = t.createBufferWithState('valid', {
+    const smallBuffer = vtu.createBufferWithState(t, 'valid', {
       size: bufferSize,
       usage: GPUBufferUsage.INDEX | GPUBufferUsage.VERTEX,
     });
 
     // An index buffer of enough size, used if smallIndexBuffer === false
     const { indexFormat, indexBufferSize } = kDefaultParameterForIndexedDraw;
-    const indexBuffer = t.createBufferWithState('valid', {
+    const indexBuffer = vtu.createBufferWithState(t, 'valid', {
       size: indexBufferSize,
       usage: GPUBufferUsage.INDEX,
     });
@@ -320,7 +320,7 @@ drawIndexedIndirect as it is GPU-validated.
       size: bufferSize,
       usage: GPUBufferUsage.INDEX | GPUBufferUsage.COPY_DST,
     };
-    const indexBuffer = t.createBufferWithState('valid', desc);
+    const indexBuffer = vtu.createBufferWithState(t, 'valid', desc);
 
     const drawCallParam: DrawIndexedParameter = {
       indexCount: drawIndexCount,
@@ -331,7 +331,7 @@ drawIndexedIndirect as it is GPU-validated.
     const isFinishSuccess =
       drawIndexCount <= bindingSizeInElements || drawType === 'drawIndexedIndirect';
 
-    const renderPipeline = t.createNoOpRenderPipeline();
+    const renderPipeline = vtu.createNoOpRenderPipeline(t);
 
     for (const encoderType of ['render bundle', 'render pass'] as const) {
       for (const setPipelineBeforeBuffer of [false, true]) {
@@ -514,11 +514,11 @@ success/error as expected. Such set of buffer parameters should include cases li
     );
     const instanceBufferSize = setBufferOffset + setInstanceBufferSize;
 
-    const vertexBuffer = t.createBufferWithState('valid', {
+    const vertexBuffer = vtu.createBufferWithState(t, 'valid', {
       size: vertexBufferSize,
       usage: GPUBufferUsage.VERTEX,
     });
-    const instanceBuffer = t.createBufferWithState('valid', {
+    const instanceBuffer = vtu.createBufferWithState(t, 'valid', {
       size: instanceBufferSize,
       usage: GPUBufferUsage.VERTEX,
     });
@@ -561,7 +561,7 @@ success/error as expected. Such set of buffer parameters should include cases li
             size: indexBufferSize,
             usage: GPUBufferUsage.INDEX | GPUBufferUsage.COPY_DST,
           };
-          const indexBuffer = t.createBufferWithState('valid', desc);
+          const indexBuffer = vtu.createBufferWithState(t, 'valid', desc);
 
           const drawParam: DrawIndexedParameter = {
             indexCount,
@@ -679,7 +679,7 @@ buffer slot and index buffer will cause no validation error, with completely/par
     requiredBufferSize = Math.max(requiredBufferSize, setIndexBufferOffset + setIndexBufferSize);
 
     // Create the shared GPU buffer with both vertetx and index usage
-    const sharedBuffer = t.createBufferWithState('valid', {
+    const sharedBuffer = vtu.createBufferWithState(t, 'valid', {
       size: requiredBufferSize,
       usage: GPUBufferUsage.VERTEX | GPUBufferUsage.INDEX,
     });

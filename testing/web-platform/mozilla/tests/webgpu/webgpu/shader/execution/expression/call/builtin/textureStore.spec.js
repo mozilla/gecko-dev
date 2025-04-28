@@ -17,7 +17,8 @@ import {
   isTextureFormatPossiblyStorageReadWritable,
   kPossibleStorageTextureFormats } from
 '../../../../../format_info.js';
-import { AllFeaturesMaxLimitsGPUTest, TextureTestMixin } from '../../../../../gpu_test.js';
+import { AllFeaturesMaxLimitsGPUTest } from '../../../../../gpu_test.js';
+import * as ttu from '../../../../../texture_test_utils.js';
 import {
   kFloat32Format,
   kFloat16Format,
@@ -33,7 +34,7 @@ import { getTextureFormatTypeInfo } from './texture_utils.js';
 const kDims = ['1d', '2d', '3d'];
 const kViewDimensions = ['1d', '2d', '2d-array', '3d'];
 
-export const g = makeTestGroup(TextureTestMixin(AllFeaturesMaxLimitsGPUTest));
+export const g = makeTestGroup(AllFeaturesMaxLimitsGPUTest);
 
 // We require a few values that are out of range for a given type
 // so we can check clamping behavior.
@@ -262,7 +263,7 @@ struct VOut {
       break;
   }
 
-  const buffer = t.copyWholeTextureToNewBufferSimple(texture, mipLevel);
+  const buffer = ttu.copyWholeTextureToNewBufferSimple(t, texture, mipLevel);
   const u32sPerTexel = bytesPerTexel / 4;
   const bytesPerRow = align(testMipLevelSize[0] * bytesPerTexel, 256);
   const texelsPerRow = bytesPerRow / bytesPerTexel;
@@ -429,7 +430,7 @@ fn main(@builtin(global_invocation_id) gid : vec3u) {
   pass.end();
   t.queue.submit([encoder.finish()]);
 
-  const buffer = t.copyWholeTextureToNewBufferSimple(texture, 0);
+  const buffer = ttu.copyWholeTextureToNewBufferSimple(t, texture, 0);
   const expected = new Uint32Array([
   ...iterRange(numTexels, (x) => {
     const { r, g, b, a } = values[x];
@@ -676,7 +677,7 @@ fn main(@builtin(global_invocation_id) gid : vec3u) {
   t.queue.submit([encoder.finish()]);
 
   for (let m = 0; m < t.params.mipCount; m++) {
-    const buffer = t.copyWholeTextureToNewBufferSimple(texture, m);
+    const buffer = ttu.copyWholeTextureToNewBufferSimple(t, texture, m);
     if (m === t.params.mip) {
       const expectedOutput = new Uint32Array([
       ...iterRange(view_texels, (x) => {
@@ -817,7 +818,7 @@ fn main(@builtin(global_invocation_id) gid : vec3u) {
   pass.end();
   t.queue.submit([encoder.finish()]);
 
-  const buffer = t.copyWholeTextureToNewBufferSimple(texture, 0);
+  const buffer = ttu.copyWholeTextureToNewBufferSimple(t, texture, 0);
   const expectedOutput = new Uint32Array([
   ...iterRange(num_texels, (x) => {
     const baseOffset = base_texels * t.params.baseLevel;

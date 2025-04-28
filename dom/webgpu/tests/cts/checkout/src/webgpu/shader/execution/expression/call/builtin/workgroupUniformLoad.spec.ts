@@ -100,6 +100,17 @@ const kTypes: Record<string, TypeConfig> = {
     host_type: 'i32',
     expected: new Int32Array([-42]),
   },
+  AtomicInStruct: {
+    decls: `struct AtomicInStruct {
+      x : i32,
+      a : atomic<u32>,
+      y : u32,
+    };`,
+    host_type: 'u32',
+    store_decl: `atomicStore(&(wgvar.a), 42u);`,
+    to_host: () => `workgroupUniformLoad(&(wgvar.a))`,
+    expected: new Uint32Array([42]),
+  },
 };
 
 g.test('types')

@@ -15,8 +15,7 @@ type EncoderByEncoderType<T extends EncoderType> = {
   'render bundle': GPURenderBundleEncoder;
 }[T];
 
-/** See {@link webgpu/api/validation/validation_test.ValidationTest.createEncoder |
- * GPUTest.createEncoder()}. */
+/** See {@link GPUTestBase.createEncoder}. */
 export class CommandBufferMaker<T extends EncoderType> {
   /** `GPU___Encoder` for recording commands into. */
   // Look up the type of the encoder based on `T`. If `T` is a union, this will be too!

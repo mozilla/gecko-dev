@@ -4,6 +4,7 @@ misc createRenderPipeline and createRenderPipelineAsync validation tests.
 
 import { makeTestGroup } from '../../../../common/framework/test_group.js';
 import { kDefaultVertexShaderCode, kDefaultFragmentShaderCode } from '../../../util/shader.js';
+import * as vtu from '../validation_test_utils.js';
 
 import { CreateRenderPipelineValidationTest } from './common.js';
 
@@ -16,7 +17,7 @@ g.test('basic')
     const { isAsync } = t.params;
     const descriptor = t.getDescriptor();
 
-    t.doCreateRenderPipelineTest(isAsync, true, descriptor);
+    vtu.doCreateRenderPipelineTest(t, isAsync, true, descriptor);
   });
 
 g.test('no_attachment')
@@ -30,7 +31,7 @@ g.test('no_attachment')
       depthStencil: undefined,
     });
 
-    t.doCreateRenderPipelineTest(isAsync, false, descriptor);
+    vtu.doCreateRenderPipelineTest(t, isAsync, false, descriptor);
   });
 
 g.test('vertex_state_only')
@@ -76,7 +77,7 @@ state (and thus has no color state), and must have a depth-stencil state as an a
       targets: hasColor ? [{ format: 'rgba8unorm' }] : [],
     });
 
-    t.doCreateRenderPipelineTest(isAsync, depthStencilState !== undefined, descriptor);
+    vtu.doCreateRenderPipelineTest(t, isAsync, depthStencilState !== undefined, descriptor);
   });
 
 g.test('pipeline_layout,device_mismatch')
@@ -110,7 +111,7 @@ g.test('pipeline_layout,device_mismatch')
       },
     };
 
-    t.doCreateRenderPipelineTest(isAsync, !mismatched, descriptor);
+    vtu.doCreateRenderPipelineTest(t, isAsync, !mismatched, descriptor);
   });
 
 g.test('external_texture')
@@ -144,5 +145,5 @@ g.test('external_texture')
       },
     };
 
-    t.doCreateRenderPipelineTest(false, true, descriptor);
+    vtu.doCreateRenderPipelineTest(t, false, true, descriptor);
   });

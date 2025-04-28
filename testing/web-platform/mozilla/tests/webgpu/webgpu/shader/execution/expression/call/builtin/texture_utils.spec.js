@@ -22,10 +22,10 @@ import {
   convertPerTexelComponentToResultFormat,
   createTextureWithRandomDataAndGetTexels,
   graphWeights,
-  isSupportedViewFormatCombo,
   makeRandomDepthComparisonTexelGenerator,
   queryMipLevelMixWeightsForDevice,
   readTextureToTexelViews,
+  skipIfTextureViewAndFormatNotCompatibleForDevice,
   texelsApproximatelyEqual } from
 './texture_utils.js';
 
@@ -46,13 +46,13 @@ desc(
 params((u) =>
 u.
 combine('format', kDepthStencilFormats).
-combine('viewDimension', ['2d', '2d-array', 'cube', 'cube-array']).
-filter((t) => isSupportedViewFormatCombo(t.format, t.viewDimension))
+combine('viewDimension', ['2d', '2d-array', 'cube', 'cube-array'])
 ).
 fn(async (t) => {
   const { format, viewDimension } = t.params;
   t.skipIfTextureFormatNotSupported(format);
   t.skipIfTextureViewDimensionNotSupported(viewDimension);
+  skipIfTextureViewAndFormatNotCompatibleForDevice(t, format, viewDimension);
   // choose an odd size (9) so we're more likely to test alignment issue.
   const size = chooseTextureSize({ minSize: 9, minBlocks: 4, format, viewDimension });
   t.debug(`size: ${size.map((v) => v.toString()).join(', ')}`);
@@ -86,7 +86,6 @@ combineWithParams([
 { srcFormat: 'stencil8', texelViewFormat: 'stencil8' }]
 ).
 combine('viewDimension', ['1d', '2d', '2d-array', '3d', 'cube', 'cube-array']).
-filter((t) => isSupportedViewFormatCombo(t.srcFormat, t.viewDimension)).
 combine('sampleCount', [1, 4]).
 unless(
   (t) =>
@@ -97,6 +96,7 @@ unless(
 fn(async (t) => {
   const { srcFormat, texelViewFormat, viewDimension, sampleCount } = t.params;
   t.skipIfTextureViewDimensionNotSupported(viewDimension);
+  skipIfTextureViewAndFormatNotCompatibleForDevice(t, srcFormat, viewDimension);
   if (sampleCount > 1) {
     t.skipIfTextureFormatNotMultisampled(srcFormat);
   }

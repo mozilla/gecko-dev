@@ -17,6 +17,7 @@ import {
   isStencilTextureFormat,
 } from '../../../format_info.js';
 import { getFragmentShaderCodeWithOutput } from '../../../util/shader.js';
+import * as vtu from '../validation_test_utils.js';
 
 import { CreateRenderPipelineValidationTest } from './common.js';
 
@@ -37,7 +38,7 @@ g.test('format')
       depthStencil: { format, depthWriteEnabled: false, depthCompare: 'always' },
     });
 
-    t.doCreateRenderPipelineTest(isAsync, isDepthOrStencilTextureFormat(format), descriptor);
+    vtu.doCreateRenderPipelineTest(t, isAsync, isDepthOrStencilTextureFormat(format), descriptor);
   });
 
 g.test('depthCompare_optional')
@@ -92,7 +93,7 @@ g.test('depthCompare_optional')
       }
     }
 
-    t.doCreateRenderPipelineTest(isAsync, success, descriptor);
+    vtu.doCreateRenderPipelineTest(t, isAsync, success, descriptor);
   });
 
 g.test('depthWriteEnabled_optional')
@@ -107,7 +108,7 @@ g.test('depthWriteEnabled_optional')
       depthStencil: { format, depthCompare: 'always', depthWriteEnabled: undefined },
     });
 
-    t.doCreateRenderPipelineTest(isAsync, !isDepthTextureFormat(format), descriptor);
+    vtu.doCreateRenderPipelineTest(t, isAsync, !isDepthTextureFormat(format), descriptor);
   });
 
 g.test('depth_test')
@@ -129,7 +130,8 @@ g.test('depth_test')
     });
 
     const depthTestEnabled = depthCompare !== undefined && depthCompare !== 'always';
-    t.doCreateRenderPipelineTest(
+    vtu.doCreateRenderPipelineTest(
+      t,
       isAsync,
       !depthTestEnabled || isDepthTextureFormat(format),
       descriptor
@@ -153,7 +155,8 @@ g.test('depth_write')
     const descriptor = t.getDescriptor({
       depthStencil: { format, depthWriteEnabled, depthCompare: 'always' },
     });
-    t.doCreateRenderPipelineTest(
+    vtu.doCreateRenderPipelineTest(
+      t,
       isAsync,
       !depthWriteEnabled || isDepthTextureFormat(format),
       descriptor
@@ -182,7 +185,7 @@ g.test('depth_write,frag_depth')
     });
 
     const hasDepth = format ? isDepthTextureFormat(format) : false;
-    t.doCreateRenderPipelineTest(isAsync, hasDepth, descriptor);
+    vtu.doCreateRenderPipelineTest(t, isAsync, hasDepth, descriptor);
   });
 
 g.test('depth_bias')
@@ -227,7 +230,7 @@ g.test('depth_bias')
         depthBiasClamp,
       },
     });
-    t.doCreateRenderPipelineTest(isAsync, shouldSucceed, descriptor);
+    vtu.doCreateRenderPipelineTest(t, isAsync, shouldSucceed, descriptor);
   });
 
 g.test('stencil_test')
@@ -267,7 +270,8 @@ g.test('stencil_test')
     }
 
     const stencilTestEnabled = compare !== undefined && compare !== 'always';
-    t.doCreateRenderPipelineTest(
+    vtu.doCreateRenderPipelineTest(
+      t,
       isAsync,
       !stencilTestEnabled || isStencilTextureFormat(format),
       descriptor
@@ -327,7 +331,8 @@ g.test('stencil_write')
     const descriptor = t.getDescriptor({ depthStencil });
 
     const stencilWriteEnabled = op !== undefined && op !== 'keep';
-    t.doCreateRenderPipelineTest(
+    vtu.doCreateRenderPipelineTest(
+      t,
       isAsync,
       !stencilWriteEnabled || isStencilTextureFormat(format),
       descriptor

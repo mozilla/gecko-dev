@@ -4,9 +4,10 @@
 Tests for capabilities added by rg11b10ufloat-renderable flag.
 `;import { makeTestGroup } from '../../../../common/framework/test_group.js';
 import { GPUConst } from '../../../constants.js';
-import { AllFeaturesMaxLimitsValidationTest } from '../validation_test.js';
+import { AllFeaturesMaxLimitsGPUTest } from '../../../gpu_test.js';
+import * as vtu from '../validation_test_utils.js';
 
-export const g = makeTestGroup(AllFeaturesMaxLimitsValidationTest);
+export const g = makeTestGroup(AllFeaturesMaxLimitsGPUTest);
 
 g.test('create_texture').
 desc(
@@ -123,13 +124,13 @@ fn((t) => {
     layout: 'auto',
     vertex: {
       module: t.device.createShaderModule({
-        code: t.getNoOpShaderCode('VERTEX')
+        code: vtu.getNoOpShaderCode('VERTEX')
       }),
       entryPoint: 'main'
     },
     fragment: {
       module: t.device.createShaderModule({
-        code: t.getNoOpShaderCode('FRAGMENT')
+        code: vtu.getNoOpShaderCode('FRAGMENT')
       }),
       entryPoint: 'main',
       targets: [{ format: 'rg11b10ufloat', writeMask: 0 }]

@@ -30,6 +30,7 @@ import {
   isTextureFormatPossiblyUsableAsColorRenderAttachment,
   isTextureFormatPossiblyStorageReadable,
 } from '../../../../format_info.js';
+import { AllFeaturesMaxLimitsGPUTest } from '../../../../gpu_test.js';
 import { CommandBufferMaker, EncoderType } from '../../../../util/command_buffer_maker.js';
 import {
   createCanvas,
@@ -41,12 +42,12 @@ import {
   getVideoElement,
   getVideoFrameFromVideoElement,
 } from '../../../../web_platform/util.js';
-import { AllFeaturesMaxLimitsValidationTest } from '../../validation_test.js';
+import * as vtu from '../../validation_test_utils.js';
 
 const kCommandValidationStages = ['finish', 'submit'];
 type CommandValidationStage = (typeof kCommandValidationStages)[number];
 
-class DeviceDestroyTests extends AllFeaturesMaxLimitsValidationTest {
+class DeviceDestroyTests extends AllFeaturesMaxLimitsGPUTest {
   /**
    * Expects that `fn` does not produce any errors before the device is destroyed, and then calls
    * `fn` after the device is destroyed without any specific expectation. If `awaitLost` is true, we
@@ -361,7 +362,7 @@ Tests creating bind group on destroyed device. Tests valid combinations of:
     const layout = t.device.createBindGroupLayout({
       entries: [{ binding: 0, visibility, ...entry }],
     });
-    const resource = t.getBindingResource(resourceType);
+    const resource = vtu.getBindingResource(t, resourceType);
     await t.executeAfterDestroy(() => {
       t.device.createBindGroup({ layout, entries: [{ binding: 0, resource }] });
     }, awaitLost);
@@ -400,7 +401,7 @@ Tests creating shader modules on destroyed device.
   .fn(async t => {
     const { awaitLost, stage } = t.params;
     await t.executeAfterDestroy(() => {
-      t.device.createShaderModule({ code: t.getNoOpShaderCode(stage) });
+      t.device.createShaderModule({ code: vtu.getNoOpShaderCode(stage) });
     }, awaitLost);
   });
 
@@ -414,7 +415,7 @@ Tests creating compute pipeline on destroyed device.
   .params(u => u.combine('awaitLost', [true, false]))
   .fn(async t => {
     const { awaitLost } = t.params;
-    const cShader = t.device.createShaderModule({ code: t.getNoOpShaderCode('COMPUTE') });
+    const cShader = t.device.createShaderModule({ code: vtu.getNoOpShaderCode('COMPUTE') });
     await t.executeAfterDestroy(() => {
       t.device.createComputePipeline({
         layout: 'auto',
@@ -433,8 +434,8 @@ Tests creating render pipeline on destroyed device.
   .params(u => u.combine('awaitLost', [true, false]))
   .fn(async t => {
     const { awaitLost } = t.params;
-    const vShader = t.device.createShaderModule({ code: t.getNoOpShaderCode('VERTEX') });
-    const fShader = t.device.createShaderModule({ code: t.getNoOpShaderCode('FRAGMENT') });
+    const vShader = t.device.createShaderModule({ code: vtu.getNoOpShaderCode('VERTEX') });
+    const fShader = t.device.createShaderModule({ code: vtu.getNoOpShaderCode('FRAGMENT') });
     await t.executeAfterDestroy(() => {
       t.device.createRenderPipeline({
         layout: 'auto',
@@ -459,7 +460,7 @@ Tests creating a pipeline asynchronously while destroying the device and on a de
   .params(u => u.combine('valid', [true, false]).combine('awaitLost', [true, false]))
   .fn(async t => {
     const { valid, awaitLost } = t.params;
-    const cShader = t.device.createShaderModule({ code: t.getNoOpShaderCode('COMPUTE') });
+    const cShader = t.device.createShaderModule({ code: vtu.getNoOpShaderCode('COMPUTE') });
     const fn = () =>
       t.device.createComputePipelineAsync({
         layout: 'auto',
@@ -536,8 +537,8 @@ Tests creating a pipeline asynchronously while destroying the device and on a de
   .params(u => u.combine('valid', [true, false]).combine('awaitLost', [true, false]))
   .fn(async t => {
     const { valid, awaitLost } = t.params;
-    const vShader = t.device.createShaderModule({ code: t.getNoOpShaderCode('VERTEX') });
-    const fShader = t.device.createShaderModule({ code: t.getNoOpShaderCode('FRAGMENT') });
+    const vShader = t.device.createShaderModule({ code: vtu.getNoOpShaderCode('VERTEX') });
+    const fShader = t.device.createShaderModule({ code: vtu.getNoOpShaderCode('FRAGMENT') });
     const fn = () =>
       t.device.createRenderPipelineAsync({
         layout: 'auto',
@@ -889,8 +890,8 @@ Tests encoding and finishing a resolveQuerySet command on destroyed device.
   .fn(async t => {
     const { stage, awaitLost } = t.params;
     const kQueryCount = 2;
-    const querySet = t.createQuerySetWithState('valid');
-    const destination = t.createBufferWithState('valid', {
+    const querySet = vtu.createQuerySetWithState(t, 'valid');
+    const destination = vtu.createBufferWithState(t, 'valid', {
       size: kQueryCount * 8,
       usage: GPUBufferUsage.QUERY_RESOLVE,
     });
@@ -912,7 +913,7 @@ Tests encoding and dispatching a simple valid compute pass on destroyed device.
   .params(u => u.combine('stage', kCommandValidationStages).combine('awaitLost', [true, false]))
   .fn(async t => {
     const { stage, awaitLost } = t.params;
-    const cShader = t.device.createShaderModule({ code: t.getNoOpShaderCode('COMPUTE') });
+    const cShader = t.device.createShaderModule({ code: vtu.getNoOpShaderCode('COMPUTE') });
     const pipeline = t.device.createComputePipeline({
       layout: 'auto',
       compute: { module: cShader, entryPoint: 'main' },
@@ -936,8 +937,8 @@ Tests encoding and finishing a simple valid render pass on destroyed device.
   .params(u => u.combine('stage', kCommandValidationStages).combine('awaitLost', [true, false]))
   .fn(async t => {
     const { stage, awaitLost } = t.params;
-    const vShader = t.device.createShaderModule({ code: t.getNoOpShaderCode('VERTEX') });
-    const fShader = t.device.createShaderModule({ code: t.getNoOpShaderCode('FRAGMENT') });
+    const vShader = t.device.createShaderModule({ code: vtu.getNoOpShaderCode('VERTEX') });
+    const fShader = t.device.createShaderModule({ code: vtu.getNoOpShaderCode('FRAGMENT') });
     const pipeline = t.device.createRenderPipeline({
       layout: 'auto',
       vertex: { module: vShader, entryPoint: 'main' },
@@ -966,8 +967,8 @@ Tests encoding and drawing a render pass including a render bundle on destroyed 
   .params(u => u.combine('stage', kCommandValidationStages).combine('awaitLost', [true, false]))
   .fn(async t => {
     const { stage, awaitLost } = t.params;
-    const vShader = t.device.createShaderModule({ code: t.getNoOpShaderCode('VERTEX') });
-    const fShader = t.device.createShaderModule({ code: t.getNoOpShaderCode('FRAGMENT') });
+    const vShader = t.device.createShaderModule({ code: vtu.getNoOpShaderCode('VERTEX') });
+    const fShader = t.device.createShaderModule({ code: vtu.getNoOpShaderCode('FRAGMENT') });
     const pipeline = t.device.createRenderPipeline({
       layout: 'auto',
       vertex: { module: vShader, entryPoint: 'main' },

@@ -11,6 +11,7 @@ import {
 '../../../format_info.js';
 import { kResourceStates } from '../../../gpu_test.js';
 import { kImageCopyTypes } from '../../../util/texture/layout.js';
+import * as vtu from '../validation_test_utils.js';
 
 import { ImageCopyTest, formatCopyableWithMethod } from './image_copy.js';
 
@@ -34,7 +35,7 @@ fn((t) => {
   const { method, state } = t.params;
 
   // A valid buffer.
-  const buffer = t.createBufferWithState(state, {
+  const buffer = vtu.createBufferWithState(t, state, {
     size: 16,
     usage: GPUBufferUsage.COPY_SRC | GPUBufferUsage.COPY_DST
   });

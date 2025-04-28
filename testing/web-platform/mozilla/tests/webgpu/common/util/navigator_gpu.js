@@ -197,22 +197,24 @@ export function getGPU(recorder) {
 
   if (defaultRequestAdapterOptions) {
 
-    const oldFn = impl.requestAdapter;
-    impl.requestAdapter = function (
-    options)
-    {
-      const promise = oldFn.call(this, { ...defaultRequestAdapterOptions, ...options });
-      if (recorder) {
-        void promise.then((adapter) => {
-          if (adapter) {
-            const adapterInfo = adapter.info;
-            const infoString = `Adapter: ${adapterInfo.vendor} / ${adapterInfo.architecture} / ${adapterInfo.device}`;
-            recorder.debug(new ErrorWithExtra(infoString, () => ({ adapterInfo })));
-          }
+    const origRequestAdapterFn = impl.requestAdapter;
+
+
+    Object.defineProperty(impl, 'requestAdapter', {
+      configurable: true,
+      async value(options) {
+        const adapter = await origRequestAdapterFn.call(this, {
+          ...defaultRequestAdapterOptions,
+          ...options
         });
+        if (recorder && adapter) {
+          const adapterInfo = adapter.info;
+          const infoString = `Adapter: ${adapterInfo.vendor} / ${adapterInfo.architecture} / ${adapterInfo.device}`;
+          recorder.debug(new ErrorWithExtra(infoString, () => ({ adapterInfo })));
+        }
+        return adapter;
       }
-      return promise;
-    };
+    });
   }
 
   return impl;

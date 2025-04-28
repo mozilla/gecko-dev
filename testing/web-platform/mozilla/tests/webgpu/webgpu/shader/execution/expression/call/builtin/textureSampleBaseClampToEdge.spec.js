@@ -3,7 +3,7 @@
 **/export const description = `
 Execution tests for textureSampleBaseClampToEdge
 `;import { makeTestGroup } from '../../../../../../common/framework/test_group.js';
-
+import { AllFeaturesMaxLimitsGPUTest } from '../../../../../gpu_test.js';
 
 
 import {
@@ -15,13 +15,12 @@ import {
   kSamplePointMethods,
   kShortAddressModes,
   kShortAddressModeToAddressMode,
-  kShortShaderStages,
+  kShortShaderStages } from
 
 
-  WGSLTextureSampleTest } from
 './texture_utils.js';
 
-export const g = makeTestGroup(WGSLTextureSampleTest);
+export const g = makeTestGroup(AllFeaturesMaxLimitsGPUTest);
 
 async function createTextureAndDataForTest(
 t,

@@ -16,7 +16,8 @@ import {
   kDepthStencilFormats,
   depthStencilFormatAspectSize } from
 '../../../format_info.js';
-import { AllFeaturesMaxLimitsGPUTest, TextureTestMixin } from '../../../gpu_test.js';
+import { AllFeaturesMaxLimitsGPUTest } from '../../../gpu_test.js';
+import * as ttu from '../../../texture_test_utils.js';
 import { align } from '../../../util/math.js';
 import { DataArrayGenerator } from '../../../util/texture/data_generation.js';
 import { dataBytesForCopyOrFail, getTextureCopyLayout } from '../../../util/texture/layout.js';
@@ -32,7 +33,7 @@ const kGreenStencilColor = new Float32Array([0.0, 1.0, 0.0, 1.0]);
 
 
 
-class StencilTest extends TextureTestMixin(AllFeaturesMaxLimitsGPUTest) {
+class StencilTest extends AllFeaturesMaxLimitsGPUTest {
   checkStencilOperation(
   depthStencilFormat,
   testStencilState,
@@ -218,7 +219,12 @@ class StencilTest extends TextureTestMixin(AllFeaturesMaxLimitsGPUTest) {
       A: expectedColor[3]
     };
     const expTexelView = TexelView.fromTexelsAsColors(renderTargetFormat, (_coords) => expColor);
-    this.expectTexelViewComparisonIsOkInTexture({ texture: renderTarget }, expTexelView, [1, 1]);
+    ttu.expectTexelViewComparisonIsOkInTexture(
+      this,
+      { texture: renderTarget },
+      expTexelView,
+      [1, 1]
+    );
   }
 
   createRenderPipelineForTest(depthStencil) {

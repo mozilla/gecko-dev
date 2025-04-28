@@ -3,6 +3,7 @@ Tests that depthBiasClamp must be zero in compat mode.
 `;
 
 import { makeTestGroup } from '../../../../../common/framework/test_group.js';
+import * as vtu from '../../../../api/validation/validation_test_utils.js';
 import { CompatibilityTest } from '../../../compatibility_test.js';
 
 export const g = makeTestGroup(CompatibilityTest);
@@ -49,5 +50,5 @@ g.test('depthBiasClamp')
     };
 
     const success = !t.isCompatibility || !depthBiasClamp;
-    t.doCreateRenderPipelineTest(async, success, pipelineDescriptor);
+    vtu.doCreateRenderPipelineTest(t, async, success, pipelineDescriptor);
   });

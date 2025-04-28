@@ -6,14 +6,14 @@ Tests submit validation.
 Note: destroyed buffer/texture/querySet are tested in destroyed/. (unless it gets moved here)
 Note: buffer map state is tested in ./buffer_mapped.spec.ts.
 `;import { makeTestGroup } from '../../../../common/framework/test_group.js';
-import { AllFeaturesMaxLimitsValidationTest } from '../validation_test.js';
+import { AllFeaturesMaxLimitsGPUTest } from '../../../gpu_test.js';
 
 
 
 
 
 
-class F extends AllFeaturesMaxLimitsValidationTest {
+class F extends AllFeaturesMaxLimitsGPUTest {
   createCommandBuffer(options = {}) {
     const device = options.device ?? this.device;
 

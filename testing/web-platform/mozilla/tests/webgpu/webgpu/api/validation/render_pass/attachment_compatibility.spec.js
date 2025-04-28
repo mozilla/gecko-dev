@@ -16,7 +16,7 @@ import {
   isStencilTextureFormat,
   kPossibleColorRenderableTextureFormats } from
 '../../../format_info.js';
-import { AllFeaturesMaxLimitsValidationTest } from '../validation_test.js';
+import { AllFeaturesMaxLimitsGPUTest } from '../../../gpu_test.js';
 
 // MAINTENANCE_TODO: This should be changed to kMaxColorAttachmentsToTest
 // when this is made a MaxLimitTest (see above).
@@ -90,7 +90,7 @@ const kFeaturesForDepthStencilAttachmentFormats = getFeaturesForFormats([
 ...kUnsizedDepthStencilFormats]
 );
 
-class F extends AllFeaturesMaxLimitsValidationTest {
+class F extends AllFeaturesMaxLimitsGPUTest {
   createAttachmentTextureView(format, sampleCount) {
     return this.createTextureTracked({
       // Size matching the "arbitrary" size used by ValidationTest helpers.

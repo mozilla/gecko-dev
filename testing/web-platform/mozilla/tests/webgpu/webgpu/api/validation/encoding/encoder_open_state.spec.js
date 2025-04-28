@@ -6,11 +6,12 @@ GPURenderPassEncoder when the encoder is not finished.
 `;import { makeTestGroup } from '../../../../common/framework/test_group.js';
 import { keysOf } from '../../../../common/util/data_tables.js';
 import { unreachable } from '../../../../common/util/util.js';
-import { AllFeaturesMaxLimitsValidationTest } from '../validation_test.js';
+import { AllFeaturesMaxLimitsGPUTest } from '../../../gpu_test.js';
+import * as vtu from '../validation_test_utils.js';
 
 import { beginRenderPassWithQuerySet } from './queries/common.js';
 
-class F extends AllFeaturesMaxLimitsValidationTest {
+class F extends AllFeaturesMaxLimitsGPUTest {
   createRenderPipelineForTest() {
     return this.device.createRenderPipeline({
       layout: 'auto',
@@ -561,7 +562,7 @@ fn((t) => {
     usage: GPUBufferUsage.INDIRECT
   });
 
-  const computePipeline = t.createNoOpComputePipeline();
+  const computePipeline = vtu.createNoOpComputePipeline(t);
 
   const bindGroup = t.createBindGroupForTest();
 

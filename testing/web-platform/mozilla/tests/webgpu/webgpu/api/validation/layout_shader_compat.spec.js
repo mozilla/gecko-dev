@@ -5,7 +5,8 @@ TODO:
 - interface matching between pipeline layout and shader
     - x= bind group index values, binding index values, multiple bindings
     - x= {superset, subset}
-`;import { makeTestGroup } from '../../../common/framework/test_group.js';
+`;import { AllFeaturesMaxLimitsGPUTest } from '../.././gpu_test.js';
+import { makeTestGroup } from '../../../common/framework/test_group.js';
 import {
   kShaderStageCombinations,
   kShaderStages } from
@@ -13,7 +14,7 @@ import {
 '../../capability_info.js';
 import { GPUConst } from '../../constants.js';
 
-import { AllFeaturesMaxLimitsValidationTest } from './validation_test.js';
+import * as vtu from './validation_test_utils.js';
 
 
 const kBindableResources = [
@@ -92,7 +93,7 @@ const bindGroupLayoutEntryContents = {
   }
 };
 
-class F extends AllFeaturesMaxLimitsValidationTest {
+class F extends AllFeaturesMaxLimitsGPUTest {
   createPipelineLayout(
   bindingInPipelineLayout,
   visibility)
@@ -267,7 +268,7 @@ fn((t) => {
           ${staticallyUseBinding}
         }
         `;
-        t.doCreateComputePipelineTest(isAsync, success, {
+        vtu.doCreateComputePipelineTest(t, isAsync, success, {
           layout,
           compute: {
             module: t.device.createShaderModule({
@@ -286,7 +287,7 @@ fn((t) => {
           return vec4f();
         }
         `;
-        t.doCreateRenderPipelineTest(isAsync, success, {
+        vtu.doCreateRenderPipelineTest(t, isAsync, success, {
           layout,
           vertex: {
             module: t.device.createShaderModule({
@@ -306,7 +307,7 @@ fn((t) => {
           return vec4f();
         }
         `;
-        t.doCreateRenderPipelineTest(isAsync, success, {
+        vtu.doCreateRenderPipelineTest(t, isAsync, success, {
           layout,
           vertex: {
             module: t.device.createShaderModule({

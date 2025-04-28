@@ -23,8 +23,7 @@ function unregisterAllServiceWorkers() {
 // important, so we try our best (and don't worry about shutdown performance or disabling bfcache).
 // (We could try 'visibilitychange', but since it can happen in the middle of the page lifetime,
 // it is more likely to have unintended consequences and would need to do different stuff.)
-// - 'unload' supposedly always disables the bfcache.
-window.addEventListener('unload', runShutdownTasks);
+// - 'unload' supposedly always disables the bfcache, but is deprecated in Chrome.
 // - 'beforeunload' may disable the bfcache but may be called more reliably than 'unload'.
 window.addEventListener('beforeunload', runShutdownTasks);
 // - 'pagehide' won't disable the bfcache but may be called more reliably than the others.

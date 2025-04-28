@@ -61,7 +61,8 @@ it should be added into drawCallTestParameter list.
 
 import { makeTestGroup } from '../../../common/framework/test_group.js';
 import { assert } from '../../../common/util/util.js';
-import { AllFeaturesMaxLimitsGPUTest, GPUTest, TextureTestMixin } from '../../gpu_test.js';
+import { AllFeaturesMaxLimitsGPUTest, GPUTest } from '../../gpu_test.js';
+import * as ttu from '../../texture_test_utils.js';
 
 // Encapsulates a draw call (either indexed or non-indexed)
 class DrawCall {
@@ -273,7 +274,7 @@ const typeInfoMap: { [k: string]: VertexInfo } = {
   },
 };
 
-class F extends TextureTestMixin(AllFeaturesMaxLimitsGPUTest) {
+class F extends AllFeaturesMaxLimitsGPUTest {
   generateBufferContents(
     numVertices: number,
     attributesPerBuffer: number,
@@ -514,7 +515,7 @@ class F extends TextureTestMixin(AllFeaturesMaxLimitsGPUTest) {
     this.device.queue.submit([encoder.finish()]);
 
     // Validate we see green on the left pixel, showing that no failure case is detected
-    this.expectSinglePixelComparisonsAreOkInTexture({ texture: colorAttachment }, [
+    ttu.expectSinglePixelComparisonsAreOkInTexture(this, { texture: colorAttachment }, [
       { coord: { x: 0, y: 0 }, exp: new Uint8Array([0x00, 0xff, 0x00, 0xff]) },
     ]);
   }

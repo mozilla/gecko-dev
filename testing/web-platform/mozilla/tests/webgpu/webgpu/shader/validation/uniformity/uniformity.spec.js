@@ -579,6 +579,11 @@ const kPointerCases = {
     check: `contents`,
     uniform: true
   },
+  wg_uniform_load_atomic_is_uniform: {
+    code: `let ptr = &wg_atomic;`,
+    check: `address`,
+    uniform: true
+  },
   contents_scalar_uniform1: {
     code: `let ptr = &func_scalar;
     let test_val = *ptr;`,
@@ -938,6 +943,7 @@ fn((t) => {
   const code = `
 var<workgroup> wg_scalar : u32;
 var<workgroup> wg_array : array<u32, 16>;
+var<workgroup> wg_atomic : atomic<u32>;
 
 struct Inner {
   x : array<u32, 4>

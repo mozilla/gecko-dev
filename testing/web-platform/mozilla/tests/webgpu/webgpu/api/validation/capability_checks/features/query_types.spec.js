@@ -3,9 +3,9 @@
 **/export const description = `
 Tests for capability checking for features enabling optional query types.
 `;import { makeTestGroup } from '../../../../../common/framework/test_group.js';
-import { UniqueFeaturesAndLimitsValidationTest } from '../../validation_test.js';
+import { UniqueFeaturesOrLimitsGPUTest } from '../../../../gpu_test.js';
 
-export const g = makeTestGroup(UniqueFeaturesAndLimitsValidationTest);
+export const g = makeTestGroup(UniqueFeaturesOrLimitsGPUTest);
 
 g.test('createQuerySet').
 desc(

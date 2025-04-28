@@ -7,16 +7,19 @@ import { getGPU } from '../../../../../common/util/navigator_gpu.js';
 import { assert } from '../../../../../common/util/util.js';
 import { kCanvasTextureFormats } from '../../../../capability_info.js';
 import {
+  kASTCCompressedTextureFormats,
+  kBCCompressedTextureFormats,
   getBlockInfoForTextureFormat,
   isDepthOrStencilTextureFormat,
   isTextureFormatPossiblyStorageReadable,
   isTextureFormatPossiblyUsableAsColorRenderAttachment,
   kOptionalTextureFormats } from
 '../../../../format_info.js';
+import { UniqueFeaturesOrLimitsGPUTest } from '../../../../gpu_test.js';
 import { kAllCanvasTypes, createCanvas } from '../../../../util/create_elements.js';
-import { UniqueFeaturesAndLimitsValidationTest } from '../../validation_test.js';
+import * as vtu from '../../validation_test_utils.js';
 
-export const g = makeTestGroup(UniqueFeaturesAndLimitsValidationTest);
+export const g = makeTestGroup(UniqueFeaturesOrLimitsGPUTest);
 
 g.test('texture_descriptor').
 desc(
@@ -124,6 +127,94 @@ fn((t) => {
   t.shouldThrow(enable_required_feature ? false : 'TypeError', () => {
     testTexture.createView(testViewDesc);
   });
+});
+
+g.test('texture_compression_bc_sliced_3d').
+desc(
+  `
+  Tests that creating a 3D texture with BC compressed format fails if the features don't contain
+  'texture-compression-bc' and 'texture-compression-bc-sliced-3d'.
+  `
+).
+params((u) =>
+u.
+combine('format', kBCCompressedTextureFormats).
+combine('supportsBC', [false, true]).
+combine('supportsBCSliced3D', [false, true])
+).
+beforeAllSubcases((t) => {
+  const { supportsBC, supportsBCSliced3D } = t.params;
+
+  const requiredFeatures = [];
+  if (supportsBC) {
+    requiredFeatures.push('texture-compression-bc');
+  }
+  if (supportsBCSliced3D) {
+    requiredFeatures.push('texture-compression-bc-sliced-3d');
+  }
+
+  t.selectDeviceOrSkipTestCase({ requiredFeatures });
+}).
+fn((t) => {
+  const { format, supportsBC, supportsBCSliced3D } = t.params;
+
+  t.skipIfTextureFormatNotSupported(format);
+  const info = getBlockInfoForTextureFormat(format);
+
+  const descriptor = {
+    size: [info.blockWidth, info.blockHeight, 1],
+    dimension: '3d',
+    format,
+    usage: GPUTextureUsage.TEXTURE_BINDING
+  };
+
+  t.expectValidationError(() => {
+    t.createTextureTracked(descriptor);
+  }, !supportsBC || !supportsBCSliced3D);
+});
+
+g.test('texture_compression_astc_sliced_3d').
+desc(
+  `
+  Tests that creating a 3D texture with ASTC compressed format fails if the features don't contain
+  'texture-compression-astc' and 'texture-compression-astc-sliced-3d'.
+  `
+).
+params((u) =>
+u.
+combine('format', kASTCCompressedTextureFormats).
+combine('supportsASTC', [false, true]).
+combine('supportsASTCSliced3D', [false, true])
+).
+beforeAllSubcases((t) => {
+  const { supportsASTC, supportsASTCSliced3D } = t.params;
+
+  const requiredFeatures = [];
+  if (supportsASTC) {
+    requiredFeatures.push('texture-compression-astc');
+  }
+  if (supportsASTCSliced3D) {
+    requiredFeatures.push('texture-compression-astc-sliced-3d');
+  }
+
+  t.selectDeviceOrSkipTestCase({ requiredFeatures });
+}).
+fn((t) => {
+  const { format, supportsASTC, supportsASTCSliced3D } = t.params;
+
+  t.skipIfTextureFormatNotSupported(format);
+  const info = getBlockInfoForTextureFormat(format);
+
+  const descriptor = {
+    size: [info.blockWidth, info.blockHeight, 1],
+    dimension: '3d',
+    format,
+    usage: GPUTextureUsage.TEXTURE_BINDING
+  };
+
+  t.expectValidationError(() => {
+    t.createTextureTracked(descriptor);
+  }, !supportsASTC || !supportsASTCSliced3D);
 });
 
 g.test('canvas_configuration').
@@ -289,7 +380,8 @@ fn((t) => {
   const { isAsync, format, enable_required_feature } = t.params;
   t.skipIfTextureFormatNotUsableAsRenderAttachment(format);
 
-  t.doCreateRenderPipelineTest(
+  vtu.doCreateRenderPipelineTest(
+    t,
     isAsync,
     enable_required_feature,
     {
@@ -344,7 +436,8 @@ beforeAllSubcases((t) => {
 fn((t) => {
   const { isAsync, format, enable_required_feature } = t.params;
 
-  t.doCreateRenderPipelineTest(
+  vtu.doCreateRenderPipelineTest(
+    t,
     isAsync,
     enable_required_feature,
     {
@@ -446,15 +539,28 @@ fn((t) => {
 
 g.test('check_capability_guarantees').
 desc(
-  `check "texture-compression-bc" is supported or both "texture-compression-etc2" and "texture-compression-astc" are supported.`
+  `check any adapter returned by requestAdapter() must provide the following guarantees:
+      - "texture-compression-bc" is supported or both "texture-compression-etc2" and "texture-compression-astc" are supported
+      - either "texture-compression-bc" or "texture-compression-bc-sliced-3d" is supported, both must be supported.
+    `
 ).
 fn(async (t) => {
   const adapter = await getGPU(t.rec).requestAdapter();
   assert(adapter !== null);
 
   const features = adapter.features;
-  t.expect(
-    features.has('texture-compression-bc') ||
-    features.has('texture-compression-etc2') && features.has('texture-compression-astc')
-  );
+
+  const supportsBC = features.has('texture-compression-bc');
+  const supportsETC2ASTC =
+  features.has('texture-compression-etc2') && features.has('texture-compression-astc');
+  const supportsBCSliced3D = features.has('texture-compression-bc-sliced-3d');
+
+  t.expect(supportsBC || supportsETC2ASTC, 'Adapter must support BC or both ETC2 and ASTC');
+
+  if (supportsBC || supportsBCSliced3D) {
+    t.expect(
+      supportsBC && supportsBCSliced3D,
+      'If BC or BC Sliced 3D is supported, both must be'
+    );
+  }
 });

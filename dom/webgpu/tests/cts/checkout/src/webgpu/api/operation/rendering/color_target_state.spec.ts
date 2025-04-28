@@ -19,7 +19,8 @@ import {
   EncodableTextureFormat,
   kPossibleColorRenderableTextureFormats,
 } from '../../../format_info.js';
-import { AllFeaturesMaxLimitsGPUTest, TextureTestMixin } from '../../../gpu_test.js';
+import { AllFeaturesMaxLimitsGPUTest } from '../../../gpu_test.js';
+import * as ttu from '../../../texture_test_utils.js';
 import { clamp } from '../../../util/math.js';
 import { TexelView } from '../../../util/texture/texel_view.js';
 
@@ -76,7 +77,7 @@ class BlendingTest extends AllFeaturesMaxLimitsGPUTest {
   }
 }
 
-export const g = makeTestGroup(TextureTestMixin(BlendingTest));
+export const g = makeTestGroup(BlendingTest);
 
 function mapColor(
   col: GPUColorDict,
@@ -367,7 +368,8 @@ struct FragOutput {
 
     t.device.queue.submit([commandEncoder.finish()]);
 
-    t.expectSinglePixelComparisonsAreOkInTexture(
+    ttu.expectSinglePixelComparisonsAreOkInTexture(
+      t,
       { texture: renderTarget },
       [
         {
@@ -457,7 +459,12 @@ g.test('blending,formats')
       format as EncodableTextureFormat,
       _coords => expColor
     );
-    t.expectTexelViewComparisonIsOkInTexture({ texture: renderTarget }, expTexelView, [1, 1, 1]);
+    ttu.expectTexelViewComparisonIsOkInTexture(
+      t,
+      { texture: renderTarget },
+      expTexelView,
+      [1, 1, 1]
+    );
   });
 
 g.test('blend_constant,initial')
@@ -505,7 +512,7 @@ g.test('blend_constant,initial')
     // a white color buffer data.
     const expColor = { R: 0, G: 0, B: 0, A: 0 };
     const expTexelView = TexelView.fromTexelsAsColors(format, _coords => expColor);
-    t.expectTexelViewComparisonIsOkInTexture({ texture: renderTarget }, expTexelView, [
+    ttu.expectTexelViewComparisonIsOkInTexture(t, { texture: renderTarget }, expTexelView, [
       kSize,
       kSize,
     ]);
@@ -564,7 +571,7 @@ g.test('blend_constant,setting')
     const expColor = { R: r, G: g, B: b, A: a };
     const expTexelView = TexelView.fromTexelsAsColors(format, _coords => expColor);
 
-    t.expectTexelViewComparisonIsOkInTexture({ texture: renderTarget }, expTexelView, [
+    ttu.expectTexelViewComparisonIsOkInTexture(t, { texture: renderTarget }, expTexelView, [
       kSize,
       kSize,
     ]);
@@ -637,7 +644,7 @@ g.test('blend_constant,not_inherited')
     const expColor = { R: 0, G: 0, B: 0, A: 0 };
     const expTexelView = TexelView.fromTexelsAsColors(format, _coords => expColor);
 
-    t.expectTexelViewComparisonIsOkInTexture({ texture: renderTarget }, expTexelView, [
+    ttu.expectTexelViewComparisonIsOkInTexture(t, { texture: renderTarget }, expTexelView, [
       kSize,
       kSize,
     ]);
@@ -718,7 +725,7 @@ g.test('color_write_mask,channel_work')
     const expColor = { R: r, G: g, B: b, A: a };
     const expTexelView = TexelView.fromTexelsAsColors(format, _coords => expColor);
 
-    t.expectTexelViewComparisonIsOkInTexture({ texture: renderTarget }, expTexelView, [
+    ttu.expectTexelViewComparisonIsOkInTexture(t, { texture: renderTarget }, expTexelView, [
       kSize,
       kSize,
     ]);
@@ -776,7 +783,7 @@ g.test('color_write_mask,blending_disabled')
     const expColor = { R: 1, G: 0, B: 0, A: 0 };
     const expTexelView = TexelView.fromTexelsAsColors(format, _coords => expColor);
 
-    t.expectTexelViewComparisonIsOkInTexture({ texture: renderTarget }, expTexelView, [
+    ttu.expectTexelViewComparisonIsOkInTexture(t, { texture: renderTarget }, expTexelView, [
       kSize,
       kSize,
     ]);
@@ -873,5 +880,10 @@ g.test('blending,clamping')
     const expColor = { R: expValue, G: expValue, B: expValue, A: expValue };
     const expTexelView = TexelView.fromTexelsAsColors(format, _coords => expColor);
 
-    t.expectTexelViewComparisonIsOkInTexture({ texture: renderTarget }, expTexelView, [1, 1, 1]);
+    ttu.expectTexelViewComparisonIsOkInTexture(
+      t,
+      { texture: renderTarget },
+      expTexelView,
+      [1, 1, 1]
+    );
   });

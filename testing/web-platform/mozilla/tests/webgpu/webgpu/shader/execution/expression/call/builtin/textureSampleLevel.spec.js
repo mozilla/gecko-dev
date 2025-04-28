@@ -11,6 +11,7 @@ import {
   kAllTextureFormats,
   kDepthStencilFormats } from
 '../../../../../format_info.js';
+import { AllFeaturesMaxLimitsGPUTest } from '../../../../../gpu_test.js';
 
 import {
   appendComponentTypeForFormatToTextureType,
@@ -24,7 +25,6 @@ import {
   getDepthOrArrayLayersForViewDimension,
   getTextureTypeForTextureViewDimension,
   isPotentiallyFilterableAndFillable,
-  isSupportedViewFormatCombo,
   kCubeSamplePointMethods,
   kSamplePointMethods,
   kShortAddressModes,
@@ -32,13 +32,13 @@ import {
   kShortShaderStages,
 
   skipIfTextureFormatNotSupportedOrNeedsFilteringAndIsUnfilterable,
+  skipIfTextureViewAndFormatNotCompatibleForDevice } from
 
 
 
-  WGSLTextureSampleTest } from
 './texture_utils.js';
 
-export const g = makeTestGroup(WGSLTextureSampleTest);
+export const g = makeTestGroup(AllFeaturesMaxLimitsGPUTest);
 
 g.test('sampled_2d_coords').
 specURL('https://www.w3.org/TR/WGSL/#texturesamplelevel').
@@ -385,7 +385,6 @@ combine('stage', kShortShaderStages).
 combine('format', kAllTextureFormats).
 filter((t) => isPotentiallyFilterableAndFillable(t.format)).
 combine('dim', ['3d', 'cube']).
-filter((t) => isSupportedViewFormatCombo(t.format, t.dim)).
 combine('filt', ['nearest', 'linear']).
 filter((t) => t.filt === 'nearest' || isTextureFormatPossiblyFilterableAsTextureF32(t.format)).
 combine('mode', kShortAddressModes).
@@ -406,6 +405,7 @@ fn(async (t) => {
     offset
   } = t.params;
   skipIfTextureFormatNotSupportedOrNeedsFilteringAndIsUnfilterable(t, minFilter, format);
+  skipIfTextureViewAndFormatNotCompatibleForDevice(t, format, viewDimension);
 
   const [width, height] = chooseTextureSize({ minSize: 32, minBlocks: 2, format, viewDimension });
   const depthOrArrayLayers = getDepthOrArrayLayersForViewDimension(viewDimension);
@@ -496,7 +496,6 @@ combine('stage', kShortShaderStages).
 combine('format', kAllTextureFormats).
 filter((t) => isPotentiallyFilterableAndFillable(t.format)).
 combine('dim', ['3d', 'cube']).
-filter((t) => isSupportedViewFormatCombo(t.format, t.dim)).
 combine('filt', ['nearest', 'linear']).
 filter((t) => t.filt === 'nearest' || isTextureFormatPossiblyFilterableAsTextureF32(t.format)).
 beginSubcases().
@@ -522,6 +521,7 @@ fn(async (t) => {
     lodMinClamp
   } = t.params;
   skipIfTextureFormatNotSupportedOrNeedsFilteringAndIsUnfilterable(t, minFilter, format);
+  skipIfTextureViewAndFormatNotCompatibleForDevice(t, format, viewDimension);
 
   const [width, height] = chooseTextureSize({ minSize: 32, minBlocks: 2, format, viewDimension });
   const depthOrArrayLayers = getDepthOrArrayLayersForViewDimension(viewDimension);

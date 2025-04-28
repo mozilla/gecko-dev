@@ -94,6 +94,11 @@ g.test('device')
       ctx.getCurrentTexture();
     });
 
+    // Should throw on the second call to getCurrentTexture also.
+    t.shouldThrow('InvalidStateError', () => {
+      ctx.getCurrentTexture();
+    });
+
     // Calling configure with a device should succeed.
     ctx.configure({
       device: t.device,

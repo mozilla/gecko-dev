@@ -14,7 +14,8 @@ import {
   isTextureFormatColorRenderable,
   kPossibleColorRenderableTextureFormats,
 } from '../../../format_info.js';
-import { AllFeaturesMaxLimitsGPUTest, TextureTestMixin } from '../../../gpu_test.js';
+import { AllFeaturesMaxLimitsGPUTest } from '../../../gpu_test.js';
+import * as ttu from '../../../texture_test_utils.js';
 import { getTextureCopyLayout } from '../../../util/texture/layout.js';
 import { TexelView } from '../../../util/texture/texel_view.js';
 
@@ -38,7 +39,7 @@ const kPossiblyRenderablePossiblyFilterableColorTextureFormats =
       getTextureFormatType(format) === 'unfilterable-float'
   );
 
-class FilterModeTest extends TextureTestMixin(AllFeaturesMaxLimitsGPUTest) {
+class FilterModeTest extends AllFeaturesMaxLimitsGPUTest {
   runFilterRenderPipeline(
     sampler: GPUSampler,
     module: GPUShaderModule,
@@ -53,7 +54,8 @@ class FilterModeTest extends TextureTestMixin(AllFeaturesMaxLimitsGPUTest) {
       // to verify the result, which is always renderable.
       renderTargetFormat = 'rgba32float';
     }
-    const sampleTexture = this.createTextureFromTexelView(
+    const sampleTexture = ttu.createTextureFromTexelView(
+      this,
       TexelView.fromTexelsAsColors(format, coord => {
         const id = coord.x + coord.y * kCheckerTextureSize;
         return kCheckerTextureData[id];
@@ -554,7 +556,8 @@ g.test('magFilter,nearest')
       vertexCount,
       instanceCount
     );
-    t.expectTexelViewComparisonIsOkInTexture(
+    ttu.expectTexelViewComparisonIsOkInTexture(
+      t,
       { texture: render.texture },
       expectedColors(render.format, 'nearest', addressModeU, addressModeV),
       kNearestRenderDim
@@ -669,7 +672,8 @@ g.test('magFilter,linear')
       vertexCount,
       instanceCount
     );
-    t.expectTexelViewComparisonIsOkInTexture(
+    ttu.expectTexelViewComparisonIsOkInTexture(
+      t,
       { texture: render.texture },
       expectedColors(render.format, 'linear', addressModeU, addressModeV),
       kLinearRenderDim
@@ -796,7 +800,8 @@ g.test('minFilter,nearest')
       vertexCount,
       instanceCount
     );
-    t.expectTexelViewComparisonIsOkInTexture(
+    ttu.expectTexelViewComparisonIsOkInTexture(
+      t,
       { texture: render.texture },
       expectedColors(render.format, 'nearest', addressModeU, addressModeV),
       kNearestRenderDim
@@ -921,7 +926,8 @@ g.test('minFilter,linear')
       vertexCount,
       instanceCount
     );
-    t.expectTexelViewComparisonIsOkInTexture(
+    ttu.expectTexelViewComparisonIsOkInTexture(
+      t,
       { texture: render.texture },
       expectedColors(render.format, 'linear', addressModeU, addressModeV),
       kLinearRenderDim
@@ -964,7 +970,8 @@ g.test('mipmapFilter')
     const sampler = t.device.createSampler({
       mipmapFilter: filterMode,
     });
-    const sampleTexture = t.createTextureFromTexelViewsMultipleMipmaps(
+    const sampleTexture = ttu.createTextureFromTexelViewsMultipleMipmaps(
+      t,
       [
         TexelView.fromTexelsAsColors(format, () => {
           return { R: 0.0, G: 0.0, B: 0.0, A: 1.0 };
@@ -1058,7 +1065,7 @@ g.test('mipmapFilter')
 
     // Since mipmap filtering varies across different backends, we verify that the result exhibits
     // filtered characteristics without strict value equalities via copies to a buffer.
-    const buffer = t.copyWholeTextureToNewBufferSimple(renderTexture, 0);
+    const buffer = ttu.copyWholeTextureToNewBufferSimple(t, renderTexture, 0);
     t.expectGPUBufferValuesPassCheck(
       buffer,
       actual => {

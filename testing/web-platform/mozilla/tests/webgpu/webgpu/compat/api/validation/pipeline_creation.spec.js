@@ -11,6 +11,7 @@ TODO:
   texture+sampler combinations generates a validation error.
 `;import { makeTestGroup } from '../../../../common/framework/test_group.js';
 import { keysOf } from '../../../../common/util/data_tables.js';
+import * as vtu from '../../../api/validation/validation_test_utils.js';
 import {
   kShortShaderStages,
   kShortShaderStageToShaderStage } from
@@ -178,7 +179,7 @@ fn((t) => {
   const success = !t.isCompatibility || textureType === 'texture_2d<f32>';
   switch (stage) {
     case 'compute':
-      t.doCreateComputePipelineTest(async, success, {
+      vtu.doCreateComputePipelineTest(t, async, success, {
         layout,
         compute: {
           module
@@ -187,7 +188,7 @@ fn((t) => {
       break;
     case 'fragment':
     case 'vertex':
-      t.doCreateRenderPipelineTest(async, success, {
+      vtu.doCreateRenderPipelineTest(t, async, success, {
         layout,
         vertex: {
           module
@@ -403,12 +404,12 @@ fn usage1() -> vec4f {
 
   const module = device.createShaderModule({ code });
   if (stages === 'compute') {
-    t.doCreateComputePipelineTest(async, pass || !t.isCompatibility, {
+    vtu.doCreateComputePipelineTest(t, async, pass || !t.isCompatibility, {
       layout,
       compute: { module }
     });
   } else {
-    t.doCreateRenderPipelineTest(async, pass || !t.isCompatibility, {
+    vtu.doCreateRenderPipelineTest(t, async, pass || !t.isCompatibility, {
       layout,
       vertex: { module },
       fragment: { module, targets: [{ format: 'rgba8unorm' }] }

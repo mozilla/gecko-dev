@@ -3,7 +3,7 @@ Execution tests for textureSampleBaseClampToEdge
 `;
 
 import { makeTestGroup } from '../../../../../../common/framework/test_group.js';
-import { GPUTest } from '../../../../../gpu_test.js';
+import { AllFeaturesMaxLimitsGPUTest, GPUTest } from '../../../../../gpu_test.js';
 import { TexelView } from '../../../../../util/texture/texel_view.js';
 
 import {
@@ -18,10 +18,9 @@ import {
   kShortShaderStages,
   TextureCall,
   vec2,
-  WGSLTextureSampleTest,
 } from './texture_utils.js';
 
-export const g = makeTestGroup(WGSLTextureSampleTest);
+export const g = makeTestGroup(AllFeaturesMaxLimitsGPUTest);
 
 async function createTextureAndDataForTest(
   t: GPUTest,

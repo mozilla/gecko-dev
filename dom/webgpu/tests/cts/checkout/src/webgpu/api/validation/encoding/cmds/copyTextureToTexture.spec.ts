@@ -15,11 +15,11 @@ import {
   canCopyToAllAspectsOfTextureFormat,
   ColorTextureFormat,
 } from '../../../../format_info.js';
-import { kResourceStates } from '../../../../gpu_test.js';
+import { kResourceStates, AllFeaturesMaxLimitsGPUTest } from '../../../../gpu_test.js';
 import { align, lcm } from '../../../../util/math.js';
-import { AllFeaturesMaxLimitsValidationTest } from '../../validation_test.js';
+import * as vtu from '../../validation_test_utils.js';
 
-class F extends AllFeaturesMaxLimitsValidationTest {
+class F extends AllFeaturesMaxLimitsGPUTest {
   TestCopyTextureToTexture(
     source: GPUTexelCopyTextureInfo,
     destination: GPUTexelCopyTextureInfo,
@@ -90,8 +90,8 @@ g.test('copy_with_invalid_or_destroyed_texture')
       usage: GPUTextureUsage.COPY_SRC | GPUTextureUsage.COPY_DST,
     };
 
-    const srcTexture = t.createTextureWithState(srcState, textureDesc);
-    const dstTexture = t.createTextureWithState(dstState, textureDesc);
+    const srcTexture = vtu.createTextureWithState(t, srcState, textureDesc);
+    const dstTexture = vtu.createTextureWithState(t, dstState, textureDesc);
 
     const isSubmitSuccess = srcState === 'valid' && dstState === 'valid';
     const isFinishSuccess = srcState !== 'invalid' && dstState !== 'invalid';

@@ -4,6 +4,7 @@ This test dedicatedly tests validation of pipeline overridable constants of crea
 
 import { makeTestGroup } from '../../../../common/framework/test_group.js';
 import { kValue } from '../../../util/constants.js';
+import * as vtu from '../validation_test_utils.js';
 
 import { CreateRenderPipelineValidationTest } from './common.js';
 
@@ -36,7 +37,7 @@ Tests calling createRenderPipeline(Async) validation for overridable constants i
   .fn(t => {
     const { isAsync, vertexConstants, _success } = t.params;
 
-    t.doCreateRenderPipelineTest(isAsync, _success, {
+    vtu.doCreateRenderPipelineTest(t, isAsync, _success, {
       layout: 'auto',
       vertex: {
         module: t.device.createShaderModule({
@@ -108,7 +109,7 @@ Tests calling createRenderPipeline(Async) validation for overridable constants i
       fragmentConstants,
     });
 
-    t.doCreateRenderPipelineTest(isAsync, _success, descriptor);
+    vtu.doCreateRenderPipelineTest(t, isAsync, _success, descriptor);
   });
 
 g.test('uninitialized,vertex')
@@ -130,7 +131,7 @@ Tests calling createRenderPipeline(Async) validation for uninitialized overridab
   .fn(t => {
     const { isAsync, vertexConstants, _success } = t.params;
 
-    t.doCreateRenderPipelineTest(isAsync, _success, {
+    vtu.doCreateRenderPipelineTest(t, isAsync, _success, {
       layout: 'auto',
       vertex: {
         module: t.device.createShaderModule({
@@ -191,7 +192,7 @@ Tests calling createRenderPipeline(Async) validation for uninitialized overridab
       fragmentConstants,
     });
 
-    t.doCreateRenderPipelineTest(isAsync, _success, descriptor);
+    vtu.doCreateRenderPipelineTest(t, isAsync, _success, descriptor);
   });
 
 g.test('value,type_error,vertex')
@@ -213,7 +214,8 @@ Tests calling createRenderPipeline(Async) validation for invalid constant values
   .fn(t => {
     const { isAsync, vertexConstants, _success } = t.params;
 
-    t.doCreateRenderPipelineTest(
+    vtu.doCreateRenderPipelineTest(
+      t,
       isAsync,
       _success,
       {
@@ -275,7 +277,7 @@ Tests calling createRenderPipeline(Async) validation for invalid constant values
       fragmentConstants,
     });
 
-    t.doCreateRenderPipelineTest(isAsync, _success, descriptor, 'TypeError');
+    vtu.doCreateRenderPipelineTest(t, isAsync, _success, descriptor, 'TypeError');
   });
 
 g.test('value,validation_error,vertex')
@@ -316,7 +318,7 @@ TODO(#2060): test with last_f64_castable.
   .fn(t => {
     const { isAsync, vertexConstants, _success } = t.params;
 
-    t.doCreateRenderPipelineTest(isAsync, _success, {
+    vtu.doCreateRenderPipelineTest(t, isAsync, _success, {
       layout: 'auto',
       vertex: {
         module: t.device.createShaderModule({
@@ -404,7 +406,7 @@ TODO(#2060): test with last_f64_castable.
       fragmentConstants,
     });
 
-    t.doCreateRenderPipelineTest(isAsync, _success, descriptor);
+    vtu.doCreateRenderPipelineTest(t, isAsync, _success, descriptor);
   });
 
 g.test('value,validation_error,f16,vertex')
@@ -446,7 +448,7 @@ clarity on whether values like f16.positive.last_f64_castable would be valid. Se
     t.skipIfDeviceDoesNotHaveFeature('shader-f16');
     const { isAsync, vertexConstants, _success } = t.params;
 
-    t.doCreateRenderPipelineTest(isAsync, _success, {
+    vtu.doCreateRenderPipelineTest(t, isAsync, _success, {
       layout: 'auto',
       vertex: {
         module: t.device.createShaderModule({
@@ -527,5 +529,5 @@ clarity on whether values like f16.positive.last_f64_castable would be valid. Se
       fragmentConstants,
     });
 
-    t.doCreateRenderPipelineTest(isAsync, _success, descriptor);
+    vtu.doCreateRenderPipelineTest(t, isAsync, _success, descriptor);
   });

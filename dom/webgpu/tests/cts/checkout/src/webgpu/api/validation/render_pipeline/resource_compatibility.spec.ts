@@ -10,6 +10,7 @@ import {
   getAPIBindGroupLayoutForResource,
   doResourcesMatch,
 } from '../utils.js';
+import * as vtu from '../validation_test_utils.js';
 
 import { CreateRenderPipelineValidationTest } from './common.js';
 
@@ -123,7 +124,8 @@ fn main() -> @location(0) vec4f {
       },
     };
 
-    t.doCreateRenderPipelineTest(
+    vtu.doCreateRenderPipelineTest(
+      t,
       t.params.isAsync,
       doResourcesMatch(apiResource, wgslResource),
       descriptor

@@ -16,9 +16,10 @@ import {
   isEncodableTextureFormat,
   isSintOrUintFormat,
   isStencilTextureFormat,
-  kEncodableTextureFormats } from
+  kEncodableTextureFormats,
+  textureViewDimensionAndFormatCompatibleForDevice } from
 '../../../../../format_info.js';
-import { AllFeaturesMaxLimitsGPUTest } from '../../../../../gpu_test.js';
+
 import {
   align,
   clamp,
@@ -79,15 +80,15 @@ export const kSampleTypeInfo = {
   }
 };
 
-// MAINTENANCE_TODO: Stop excluding sliced compressed 3d formats.
-export function isSupportedViewFormatCombo(
+export function skipIfTextureViewAndFormatNotCompatibleForDevice(
+t,
 format,
 viewDimension)
 {
-  return !(
-  (isCompressedTextureFormat(format) || isDepthOrStencilTextureFormat(format)) && (
-  viewDimension === '3d' || viewDimension === '1d'));
-
+  t.skipIf(
+    !textureViewDimensionAndFormatCompatibleForDevice(t.device, viewDimension, format),
+    `format: ${format} does not support viewDimension: ${viewDimension}`
+  );
 }
 
 /**
@@ -754,36 +755,40 @@ mipLevel)
 }
 
 /**
- * Used for textureNumSamples, textureNumLevels, textureNumLayers, textureDimension
+ * Skip a test if the specific stage doesn't support storage textures.
  */
-export class WGSLTextureQueryTest extends AllFeaturesMaxLimitsGPUTest {
-  skipIfNoStorageTexturesInStage(stage) {
-    if (this.isCompatibility) {
-      this.skipIf(
-        stage === 'fragment' && !(this.device.limits.maxStorageTexturesInFragmentStage > 0),
-        'device does not support storage textures in fragment shaders'
-      );
-      this.skipIf(
-        stage === 'vertex' && !(this.device.limits.maxStorageTexturesInVertexStage > 0),
-        'device does not support storage textures in vertex shaders'
-      );
-    }
+export function skipIfNoStorageTexturesInStage(t, stage) {
+  if (t.isCompatibility) {
+    t.skipIf(
+      stage === 'fragment' && !(t.device.limits.maxStorageTexturesInFragmentStage > 0),
+      'device does not support storage textures in fragment shaders'
+    );
+    t.skipIf(
+      stage === 'vertex' && !(t.device.limits.maxStorageTexturesInVertexStage > 0),
+      'device does not support storage textures in vertex shaders'
+    );
   }
+}
 
-  executeAndExpectResult(
-  stage,
-  code,
-  texture,
-  viewDescriptor,
-  expected)
-  {
-    const { device } = this;
+/**
+ * Runs a texture query like textureDimensions, textureNumLevels and expects
+ * a particular result.
+ */
+export function executeTextureQueryAndExpectResult(
+t,
+stage,
+code,
+texture,
+viewDescriptor,
+expected)
+{
+  const { device } = t;
 
-    const returnType = `vec4<u32>`;
-    const castWGSL = `${returnType}(getValue()${range(4 - expected.length, () => ', 0').join('')})`;
-    const stageWGSL =
-    stage === 'vertex' ?
-    `
+  const returnType = `vec4<u32>`;
+  const castWGSL = `${returnType}(getValue()${range(4 - expected.length, () => ', 0').join('')})`;
+  const stageWGSL =
+  stage === 'vertex' ?
+  `
 // --------------------------- vertex stage shaders --------------------------------
 @vertex fn vsVertex(
     @builtin(vertex_index) vertex_index : u32,
@@ -798,8 +803,8 @@ export class WGSLTextureQueryTest extends AllFeaturesMaxLimitsGPUTest {
   return bitcast<vec4u>(v.result);
 }
 ` :
-    stage === 'fragment' ?
-    `
+  stage === 'fragment' ?
+  `
 // --------------------------- fragment stage shaders --------------------------------
 @vertex fn vsFragment(
     @builtin(vertex_index) vertex_index : u32,
@@ -812,7 +817,7 @@ export class WGSLTextureQueryTest extends AllFeaturesMaxLimitsGPUTest {
   return bitcast<vec4u>(${castWGSL});
 }
 ` :
-    `
+  `
 // --------------------------- compute stage shaders --------------------------------
 @group(1) @binding(0) var<storage, read_write> results: array<${returnType}>;
 
@@ -820,8 +825,8 @@ export class WGSLTextureQueryTest extends AllFeaturesMaxLimitsGPUTest {
   results[id.x] = ${castWGSL};
 }
 `;
-    const wgsl = `
-      ${code}
+  const wgsl = `
+    ${code}
 
 struct VOut {
   @builtin(position) pos: vec4f,
@@ -829,197 +834,187 @@ struct VOut {
   @location(1) @interpolate(flat, either) result: ${returnType},
 };
 
-      ${stageWGSL}
-    `;
-    const module = device.createShaderModule({ code: wgsl });
+    ${stageWGSL}
+  `;
+  const module = device.createShaderModule({ code: wgsl });
 
-    const visibility =
-    stage === 'compute' ?
-    GPUShaderStage.COMPUTE :
-    stage === 'fragment' ?
-    GPUShaderStage.FRAGMENT :
-    GPUShaderStage.VERTEX;
+  const visibility =
+  stage === 'compute' ?
+  GPUShaderStage.COMPUTE :
+  stage === 'fragment' ?
+  GPUShaderStage.FRAGMENT :
+  GPUShaderStage.VERTEX;
 
-    const entries = [];
-    if (code.includes('texture_external')) {
-      entries.push({
-        binding: 0,
-        visibility,
-        externalTexture: {}
+  const entries = [];
+  if (code.includes('texture_external')) {
+    entries.push({
+      binding: 0,
+      visibility,
+      externalTexture: {}
+    });
+  } else if (code.includes('texture_storage')) {
+    assert(texture instanceof GPUTexture);
+    entries.push({
+      binding: 0,
+      visibility,
+      storageTexture: {
+        access: code.includes(', read>') ?
+        'read-only' :
+        code.includes(', write>') ?
+        'write-only' :
+        'read-write',
+        viewDimension: viewDescriptor?.dimension ?? '2d',
+        format: texture.format
+      }
+    });
+  } else {
+    assert(texture instanceof GPUTexture);
+    const sampleType =
+    viewDescriptor?.aspect === 'stencil-only' ?
+    'uint' :
+    code.includes('texture_depth') ?
+    'depth' :
+    isDepthTextureFormat(texture.format) ?
+    'unfilterable-float' :
+    isStencilTextureFormat(texture.format) ?
+    'uint' :
+    texture.sampleCount > 1 && getTextureFormatType(texture.format) === 'float' ?
+    'unfilterable-float' :
+    getTextureFormatType(texture.format) ?? 'unfilterable-float';
+    entries.push({
+      binding: 0,
+      visibility,
+      texture: {
+        sampleType,
+        viewDimension: viewDescriptor?.dimension ?? '2d',
+        multisampled: texture.sampleCount > 1
+      }
+    });
+  }
+
+  const bindGroupLayouts = [device.createBindGroupLayout({ entries })];
+
+  if (stage === 'compute') {
+    bindGroupLayouts.push(
+      device.createBindGroupLayout({
+        entries: [
+        {
+          binding: 0,
+          visibility: GPUShaderStage.COMPUTE,
+          buffer: {
+            type: 'storage',
+            hasDynamicOffset: false,
+            minBindingSize: 16
+          }
+        }]
+
+      })
+    );
+  }
+
+  const layout = device.createPipelineLayout({
+    bindGroupLayouts
+  });
+
+  let pipeline;
+
+  switch (stage) {
+    case 'compute':
+      pipeline = device.createComputePipeline({
+        layout,
+        compute: { module }
       });
-    } else if (code.includes('texture_storage')) {
-      assert(texture instanceof GPUTexture);
-      entries.push({
-        binding: 0,
-        visibility,
-        storageTexture: {
-          access: code.includes(', read>') ?
-          'read-only' :
-          code.includes(', write>') ?
-          'write-only' :
-          'read-write',
-          viewDimension: viewDescriptor?.dimension ?? '2d',
-          format: texture.format
+      break;
+    case 'fragment':
+    case 'vertex':
+      pipeline = device.createRenderPipeline({
+        layout,
+        vertex: { module },
+        fragment: {
+          module,
+          targets: [{ format: 'rgba32uint' }]
         }
       });
-    } else {
-      assert(texture instanceof GPUTexture);
-      const sampleType =
-      viewDescriptor?.aspect === 'stencil-only' ?
-      'uint' :
-      code.includes('texture_depth') ?
-      'depth' :
-      isDepthTextureFormat(texture.format) ?
-      'unfilterable-float' :
-      isStencilTextureFormat(texture.format) ?
-      'uint' :
-      texture.sampleCount > 1 && getTextureFormatType(texture.format) === 'float' ?
-      'unfilterable-float' :
-      getTextureFormatType(texture.format) ?? 'unfilterable-float';
-      entries.push({
-        binding: 0,
-        visibility,
-        texture: {
-          sampleType,
-          viewDimension: viewDescriptor?.dimension ?? '2d',
-          multisampled: texture.sampleCount > 1
-        }
-      });
-    }
+      break;
+  }
 
-    const bindGroupLayouts = [device.createBindGroupLayout({ entries })];
+  const bindGroup0 = device.createBindGroup({
+    layout: pipeline.getBindGroupLayout(0),
+    entries: [
+    {
+      binding: 0,
+      resource:
+      texture instanceof GPUExternalTexture ? texture : texture.createView(viewDescriptor)
+    }]
 
-    if (stage === 'compute') {
-      bindGroupLayouts.push(
-        device.createBindGroupLayout({
-          entries: [
-          {
-            binding: 0,
-            visibility: GPUShaderStage.COMPUTE,
-            buffer: {
-              type: 'storage',
-              hasDynamicOffset: false,
-              minBindingSize: 16
-            }
-          }]
+  });
 
-        })
-      );
-    }
+  const renderTarget = t.createTextureTracked({
+    format: 'rgba32uint',
+    size: [expected.length, 1],
+    usage: GPUTextureUsage.COPY_SRC | GPUTextureUsage.RENDER_ATTACHMENT
+  });
 
-    const layout = device.createPipelineLayout({
-      bindGroupLayouts
+  const resultBuffer = t.createBufferTracked({
+    label: 'executeAndExpectResult:resultBuffer',
+    size: align(expected.length * 4, 256),
+    usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.COPY_SRC
+  });
+
+  let storageBuffer;
+  const encoder = device.createCommandEncoder({ label: 'executeAndExpectResult' });
+
+  if (stage === 'compute') {
+    storageBuffer = t.createBufferTracked({
+      label: 'executeAndExpectResult:storageBuffer',
+      size: resultBuffer.size,
+      usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC
     });
 
-    let pipeline;
+    const bindGroup1 = device.createBindGroup({
+      layout: pipeline.getBindGroupLayout(1),
+      entries: [{ binding: 0, resource: { buffer: storageBuffer } }]
+    });
 
-    switch (stage) {
-      case 'compute':
-        pipeline = device.createComputePipeline({
-          layout,
-          compute: { module }
-        });
-        break;
-      case 'fragment':
-      case 'vertex':
-        pipeline = device.createRenderPipeline({
-          layout,
-          vertex: { module },
-          fragment: {
-            module,
-            targets: [{ format: 'rgba32uint' }]
-          }
-        });
-        break;
-    }
-
-    const bindGroup0 = device.createBindGroup({
-      layout: pipeline.getBindGroupLayout(0),
-      entries: [
+    const pass = encoder.beginComputePass();
+    pass.setPipeline(pipeline);
+    pass.setBindGroup(0, bindGroup0);
+    pass.setBindGroup(1, bindGroup1);
+    pass.dispatchWorkgroups(expected.length);
+    pass.end();
+    encoder.copyBufferToBuffer(storageBuffer, 0, resultBuffer, 0, storageBuffer.size);
+  } else {
+    const pass = encoder.beginRenderPass({
+      colorAttachments: [
       {
-        binding: 0,
-        resource:
-        texture instanceof GPUExternalTexture ? texture : texture.createView(viewDescriptor)
+        view: renderTarget.createView(),
+        loadOp: 'clear',
+        storeOp: 'store'
       }]
 
     });
 
-    const renderTarget = this.createTextureTracked({
-      format: 'rgba32uint',
-      size: [expected.length, 1],
-      usage: GPUTextureUsage.COPY_SRC | GPUTextureUsage.RENDER_ATTACHMENT
-    });
-
-    const resultBuffer = this.createBufferTracked({
-      label: 'executeAndExpectResult:resultBuffer',
-      size: align(expected.length * 4, 256),
-      usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.COPY_SRC
-    });
-
-    let storageBuffer;
-    const encoder = device.createCommandEncoder({ label: 'executeAndExpectResult' });
-
-    if (stage === 'compute') {
-      storageBuffer = this.createBufferTracked({
-        label: 'executeAndExpectResult:storageBuffer',
-        size: resultBuffer.size,
-        usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC
-      });
-
-      const bindGroup1 = device.createBindGroup({
-        layout: pipeline.getBindGroupLayout(1),
-        entries: [{ binding: 0, resource: { buffer: storageBuffer } }]
-      });
-
-      const pass = encoder.beginComputePass();
-      pass.setPipeline(pipeline);
-      pass.setBindGroup(0, bindGroup0);
-      pass.setBindGroup(1, bindGroup1);
-      pass.dispatchWorkgroups(expected.length);
-      pass.end();
-      encoder.copyBufferToBuffer(storageBuffer, 0, resultBuffer, 0, storageBuffer.size);
-    } else {
-      const pass = encoder.beginRenderPass({
-        colorAttachments: [
-        {
-          view: renderTarget.createView(),
-          loadOp: 'clear',
-          storeOp: 'store'
-        }]
-
-      });
-
-      pass.setPipeline(pipeline);
-      pass.setBindGroup(0, bindGroup0);
-      for (let i = 0; i < expected.length; ++i) {
-        pass.setViewport(i, 0, 1, 1, 0, 1);
-        pass.draw(3, 1, 0, i);
-      }
-      pass.end();
-      encoder.copyTextureToBuffer(
-        { texture: renderTarget },
-        {
-          buffer: resultBuffer,
-          bytesPerRow: resultBuffer.size
-        },
-        [renderTarget.width, 1]
-      );
+    pass.setPipeline(pipeline);
+    pass.setBindGroup(0, bindGroup0);
+    for (let i = 0; i < expected.length; ++i) {
+      pass.setViewport(i, 0, 1, 1, 0, 1);
+      pass.draw(3, 1, 0, i);
     }
-    this.device.queue.submit([encoder.finish()]);
-
-    const e = new Uint32Array(4);
-    e.set(expected);
-    this.expectGPUBufferValuesEqual(resultBuffer, e);
+    pass.end();
+    encoder.copyTextureToBuffer(
+      { texture: renderTarget },
+      {
+        buffer: resultBuffer,
+        bytesPerRow: resultBuffer.size
+      },
+      [renderTarget.width, 1]
+    );
   }
-}
+  t.device.queue.submit([encoder.finish()]);
 
-/**
- * Used for textureSampleXXX
- */
-export class WGSLTextureSampleTest extends AllFeaturesMaxLimitsGPUTest {
-  async init() {
-    await super.init();
-  }
+  const e = new Uint32Array(4);
+  e.set(expected);
+  t.expectGPUBufferValuesEqual(resultBuffer, e);
 }
 
 /**

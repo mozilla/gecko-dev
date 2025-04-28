@@ -2,10 +2,11 @@ export const description = `
 Tests that non-filterable textures used with filtering samplers generate a validation error.
 `;
 
+import { AllFeaturesMaxLimitsGPUTest } from '../.././gpu_test.js';
 import { makeTestGroup } from '../../../common/framework/test_group.js';
 import { keysOf } from '../../../common/util/data_tables.js';
 
-import { AllFeaturesMaxLimitsValidationTest } from './validation_test.js';
+import * as vtu from './validation_test_utils.js';
 
 const kNonFilterableCaseInfo: Record<GPUTextureSampleType, { type: string; component: string }> = {
   sint: { type: 'i32', component: '0,' },
@@ -16,7 +17,7 @@ const kNonFilterableCaseInfo: Record<GPUTextureSampleType, { type: string; compo
 };
 const kNonFilterableCases = keysOf(kNonFilterableCaseInfo);
 
-export const g = makeTestGroup(AllFeaturesMaxLimitsValidationTest);
+export const g = makeTestGroup(AllFeaturesMaxLimitsGPUTest);
 
 g.test('non_filterable_texture_with_filtering_sampler')
   .desc(
@@ -112,12 +113,12 @@ g.test('non_filterable_texture_with_filtering_sampler')
     const success = sampleType === 'float';
 
     if (pipeline === 'compute') {
-      t.doCreateComputePipelineTest(async, success, {
+      vtu.doCreateComputePipelineTest(t, async, success, {
         layout,
         compute: { module },
       });
     } else {
-      t.doCreateRenderPipelineTest(async, success, {
+      vtu.doCreateRenderPipelineTest(t, async, success, {
         layout,
         vertex: { module },
         fragment: { module, targets: [{ format: 'rgba8unorm' }] },

@@ -9,14 +9,14 @@ import {
   kMaxUnsignedLongValue,
   kMaxUnsignedLongLongValue,
 } from '../../../../../constants.js';
-import { kResourceStates } from '../../../../../gpu_test.js';
-import { AllFeaturesMaxLimitsValidationTest } from '../../../validation_test.js';
+import { kResourceStates, AllFeaturesMaxLimitsGPUTest } from '../../../../../gpu_test.js';
+import * as vtu from '../../../validation_test_utils.js';
 
 const kIndirectMultiDrawTestParams = kUnitCaseParamsBuilder
   .combine('indexed', [true, false] as const)
   .combine('useDrawCountBuffer', [true, false] as const);
 
-class F extends AllFeaturesMaxLimitsValidationTest {
+class F extends AllFeaturesMaxLimitsGPUTest {
   makeIndexBuffer(): GPUBuffer {
     return this.createBufferTracked({
       size: 16,
@@ -50,19 +50,19 @@ Tests indirect and draw count buffers must be valid.
   .fn(t => {
     t.skipIfDeviceDoesNotHaveFeature('chromium-experimental-multi-draw-indirect' as GPUFeatureName);
     const { indexed, indirectState, useDrawCountBuffer, drawCountState } = t.params;
-    const indirectBuffer = t.createBufferWithState(indirectState, {
+    const indirectBuffer = vtu.createBufferWithState(t, indirectState, {
       size: 256,
       usage: GPUBufferUsage.INDIRECT,
     });
     const drawCountBuffer = useDrawCountBuffer
-      ? t.createBufferWithState(drawCountState, {
+      ? vtu.createBufferWithState(t, drawCountState, {
           size: 256,
           usage: GPUBufferUsage.INDIRECT,
         })
       : undefined;
 
     const { encoder, validateFinishAndSubmit } = t.createEncoder('render pass');
-    encoder.setPipeline(t.createNoOpRenderPipeline());
+    encoder.setPipeline(vtu.createNoOpRenderPipeline(t));
     if (indexed) {
       encoder.setIndexBuffer(t.makeIndexBuffer(), 'uint32');
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -117,7 +117,7 @@ g.test('buffers,device_mismatch')
       : undefined;
 
     const { encoder, validateFinish } = t.createEncoder('render pass');
-    encoder.setPipeline(t.createNoOpRenderPipeline());
+    encoder.setPipeline(vtu.createNoOpRenderPipeline(t));
     if (indexed) {
       encoder.setIndexBuffer(t.makeIndexBuffer(), 'uint32');
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -164,7 +164,7 @@ Tests indirect and draw count buffers must have 'Indirect' usage.
       : undefined;
 
     const { encoder, validateFinish } = t.createEncoder('render pass');
-    encoder.setPipeline(t.createNoOpRenderPipeline());
+    encoder.setPipeline(vtu.createNoOpRenderPipeline(t));
     if (indexed) {
       encoder.setIndexBuffer(t.makeIndexBuffer(), 'uint32');
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -214,7 +214,7 @@ Tests indirect and draw count offsets must be a multiple of 4.
       : undefined;
 
     const { encoder, validateFinish } = t.createEncoder('render pass');
-    encoder.setPipeline(t.createNoOpRenderPipeline());
+    encoder.setPipeline(vtu.createNoOpRenderPipeline(t));
     if (indexed) {
       encoder.setIndexBuffer(t.makeIndexBuffer(), 'uint32');
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -288,7 +288,7 @@ Tests multi indirect draw calls with various indirect offsets and buffer sizes w
     });
 
     const { encoder, validateFinish } = t.createEncoder('render pass');
-    encoder.setPipeline(t.createNoOpRenderPipeline());
+    encoder.setPipeline(vtu.createNoOpRenderPipeline(t));
     if (indexed) {
       encoder.setIndexBuffer(t.makeIndexBuffer(), 'uint32');
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -339,7 +339,7 @@ Tests multi indirect draw calls with various draw count offsets, and draw count 
     });
 
     const { encoder, validateFinish } = t.createEncoder('render pass');
-    encoder.setPipeline(t.createNoOpRenderPipeline());
+    encoder.setPipeline(vtu.createNoOpRenderPipeline(t));
     if (indexed) {
       encoder.setIndexBuffer(t.makeIndexBuffer(), 'uint32');
       // eslint-disable-next-line @typescript-eslint/no-explicit-any

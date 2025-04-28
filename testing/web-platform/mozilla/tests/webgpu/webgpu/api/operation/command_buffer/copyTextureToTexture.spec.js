@@ -24,7 +24,8 @@ import {
   textureDimensionAndFormatCompatible,
   textureFormatsAreViewCompatible } from
 '../../../format_info.js';
-import { AllFeaturesMaxLimitsGPUTest, TextureTestMixin } from '../../../gpu_test.js';
+import { AllFeaturesMaxLimitsGPUTest } from '../../../gpu_test.js';
+import * as ttu from '../../../texture_test_utils.js';
 import { checkElementsEqual } from '../../../util/check_contents.js';
 import { align } from '../../../util/math.js';
 import { physicalMipSize } from '../../../util/texture/base.js';
@@ -35,7 +36,7 @@ import { findFailedPixels } from '../../../util/texture/texture_ok.js';
 
 const dataGenerator = new DataArrayGenerator();
 
-class F extends TextureTestMixin(AllFeaturesMaxLimitsGPUTest) {
+class F extends AllFeaturesMaxLimitsGPUTest {
   GetInitialDataPerMipLevel(
   dimension,
   textureSize,
@@ -220,7 +221,7 @@ class F extends TextureTestMixin(AllFeaturesMaxLimitsGPUTest) {
 
       // Execute the equivalent of `copyTextureToTexture`, copying
       // from `initialSrcData` to `expectedData`.
-      this.updateLinearTextureDataSubBox(dstFormat, appliedSize, {
+      ttu.updateLinearTextureDataSubBox(this, dstFormat, appliedSize, {
         src: {
           dataLayout: {
             bytesPerRow: srcBlocksPerRow * bytesPerBlock,
@@ -253,7 +254,8 @@ class F extends TextureTestMixin(AllFeaturesMaxLimitsGPUTest) {
         dstTextureSizeAtLevel
       );
 
-      this.expectTexturesToMatchByRendering(
+      ttu.expectTexturesToMatchByRendering(
+        this,
         dstTexture,
         expectedTexture,
         dstCopyLevel,

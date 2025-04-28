@@ -6,14 +6,14 @@ Note: buffer map state is tested in ./buffer_mapped.spec.ts.
 `;
 
 import { makeTestGroup } from '../../../../common/framework/test_group.js';
-import { AllFeaturesMaxLimitsValidationTest } from '../validation_test.js';
+import { AllFeaturesMaxLimitsGPUTest } from '../../../gpu_test.js';
 
 interface CommandBufferOptions {
   device?: GPUDevice;
   valid?: boolean;
 }
 
-class F extends AllFeaturesMaxLimitsValidationTest {
+class F extends AllFeaturesMaxLimitsGPUTest {
   createCommandBuffer(options: CommandBufferOptions = {}): GPUCommandBuffer {
     const device = options.device ?? this.device;
 

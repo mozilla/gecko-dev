@@ -1,6 +1,7 @@
 import { assert, memcpy } from '../../common/util/util.js';
 import { RegularTextureFormat } from '../format_info.js';
-import { AllFeaturesMaxLimitsGPUTest, TextureTestMixin } from '../gpu_test.js';
+import { AllFeaturesMaxLimitsGPUTest } from '../gpu_test.js';
+import * as ttu from '../texture_test_utils.js';
 import { reifyExtent3D, reifyOrigin3D } from '../util/unions.js';
 
 import { makeInPlaceColorConversion } from './color_space_conversion.js';
@@ -55,7 +56,7 @@ export const kCopySubrectInfo = [
   },
 ] as const;
 
-export class TextureUploadingUtils extends TextureTestMixin(AllFeaturesMaxLimitsGPUTest) {
+export class TextureUploadingUtils extends AllFeaturesMaxLimitsGPUTest {
   doFlipY(
     sourcePixels: Uint8ClampedArray,
     width: number,
@@ -181,7 +182,8 @@ export class TextureUploadingUtils extends TextureTestMixin(AllFeaturesMaxLimits
       copySize
     );
 
-    this.expectTexelViewComparisonIsOkInTexture(
+    ttu.expectTexelViewComparisonIsOkInTexture(
+      this,
       { texture: dstTextureCopyView.texture, origin: dstTextureCopyView.origin },
       expTexelView,
       copySize,

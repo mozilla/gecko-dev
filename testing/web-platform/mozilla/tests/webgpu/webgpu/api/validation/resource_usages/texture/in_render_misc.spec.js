@@ -5,7 +5,8 @@ Texture Usages Validation Tests on All Kinds of WebGPU Subresource Usage Scopes.
 `;import { makeTestGroup } from '../../../../../common/framework/test_group.js';
 import { unreachable } from '../../../../../common/util/util.js';
 import { kTextureUsages } from '../../../../capability_info.js';
-import { AllFeaturesMaxLimitsValidationTest } from '../../validation_test.js';
+import { AllFeaturesMaxLimitsGPUTest } from '../../../../gpu_test.js';
+import * as vtu from '../../validation_test_utils.js';
 import {
 
   kTextureBindingTypes,
@@ -27,7 +28,7 @@ numRequired)
   );
 }
 
-class F extends AllFeaturesMaxLimitsValidationTest {
+class F extends AllFeaturesMaxLimitsGPUTest {
   createBindGroupLayoutForTest(
   textureUsage,
   sampleType,
@@ -353,7 +354,7 @@ fn((t) => {
       }),
       vertex: {
         module: t.device.createShaderModule({
-          code: t.getNoOpShaderCode('VERTEX')
+          code: vtu.getNoOpShaderCode('VERTEX')
         })
       },
       fragment: {
@@ -546,7 +547,7 @@ fn((t) => {
   {
     switch (usage) {
       case 'copy-src':{
-          const buffer = t.createBufferWithState('valid', {
+          const buffer = vtu.createBufferWithState(t, 'valid', {
             size: 4,
             usage: GPUBufferUsage.COPY_DST
           });
@@ -554,7 +555,7 @@ fn((t) => {
           break;
         }
       case 'copy-dst':{
-          const buffer = t.createBufferWithState('valid', {
+          const buffer = vtu.createBufferWithState(t, 'valid', {
             size: 4,
             usage: GPUBufferUsage.COPY_SRC
           });

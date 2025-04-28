@@ -1,10 +1,10 @@
 import { ColorTextureFormat, getTextureFormatType } from '../../../format_info.js';
+import { AllFeaturesMaxLimitsGPUTest } from '../../../gpu_test.js';
 import {
   getFragmentShaderCodeWithOutput,
   getPlainTypeInfo,
   kDefaultVertexShaderCode,
 } from '../../../util/shader.js';
-import { AllFeaturesMaxLimitsValidationTest } from '../validation_test.js';
 
 export type ColorTargetState = GPUColorTargetState & { format: ColorTextureFormat };
 
@@ -63,7 +63,7 @@ export function getDescriptorForCreateRenderPipelineValidationTest(
   };
 }
 
-export class CreateRenderPipelineValidationTest extends AllFeaturesMaxLimitsValidationTest {
+export class CreateRenderPipelineValidationTest extends AllFeaturesMaxLimitsGPUTest {
   getDescriptor(
     options: {
       primitive?: GPUPrimitiveState;

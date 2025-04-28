@@ -76,7 +76,7 @@ g.test('invalidTextureBindingViewDimension')
           usage: GPUTextureUsage.TEXTURE_BINDING,
           dimension,
           textureBindingViewDimension,
-        } as GPUTextureDescriptor); // MAINTENANCE_TODO: remove cast once textureBindingViewDimension is added to IDL
+        });
       },
       shouldError
     );
@@ -91,7 +91,7 @@ g.test('depthOrArrayLayers_incompatible_with_textureBindingViewDimension')
   )
   .params(u =>
     u //
-      .combine('textureBindingViewDimension', ['2d', 'cube'])
+      .combine('textureBindingViewDimension', ['2d', 'cube'] as const)
       .combine('depthOrArrayLayers', [1, 3, 6, 12])
   )
   .fn(t => {
@@ -107,7 +107,7 @@ g.test('depthOrArrayLayers_incompatible_with_textureBindingViewDimension')
           format: 'rgba8unorm',
           usage: GPUTextureUsage.TEXTURE_BINDING,
           textureBindingViewDimension,
-        } as GPUTextureDescriptor); // MAINTENANCE_TODO: remove cast once textureBindingViewDimension is added to IDL
+        });
       },
       shouldError
     );

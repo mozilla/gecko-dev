@@ -197,22 +197,24 @@ export function getGPU(recorder: TestCaseRecorder | null): GPU {
 
   if (defaultRequestAdapterOptions) {
     // eslint-disable-next-line @typescript-eslint/unbound-method
-    const oldFn = impl.requestAdapter;
-    impl.requestAdapter = function (
-      options?: GPURequestAdapterOptions
-    ): Promise<GPUAdapter | null> {
-      const promise = oldFn.call(this, { ...defaultRequestAdapterOptions, ...options });
-      if (recorder) {
-        void promise.then(adapter => {
-          if (adapter) {
-            const adapterInfo = adapter.info;
-            const infoString = `Adapter: ${adapterInfo.vendor} / ${adapterInfo.architecture} / ${adapterInfo.device}`;
-            recorder.debug(new ErrorWithExtra(infoString, () => ({ adapterInfo })));
-          }
+    const origRequestAdapterFn = impl.requestAdapter;
+
+    // eslint-disable-next-line @typescript-eslint/unbound-method
+    Object.defineProperty(impl, 'requestAdapter', {
+      configurable: true,
+      async value(options?: GPURequestAdapterOptions) {
+        const adapter = await origRequestAdapterFn.call(this, {
+          ...defaultRequestAdapterOptions,
+          ...options,
         });
-      }
-      return promise;
-    };
+        if (recorder && adapter) {
+          const adapterInfo = adapter.info;
+          const infoString = `Adapter: ${adapterInfo.vendor} / ${adapterInfo.architecture} / ${adapterInfo.device}`;
+          recorder.debug(new ErrorWithExtra(infoString, () => ({ adapterInfo })));
+        }
+        return adapter;
+      },
+    });
   }
 
   return impl;

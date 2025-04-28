@@ -4,7 +4,8 @@
 createPipelineLayout validation tests.
 
 TODO: review existing tests, write descriptions, and make sure tests are complete.
-`;import { makeTestGroup } from '../../../common/framework/test_group.js';
+`;import { AllFeaturesMaxLimitsGPUTest } from '../.././gpu_test.js';
+import { makeTestGroup } from '../../../common/framework/test_group.js';
 import { count } from '../../../common/util/util.js';
 import {
   bufferBindingTypeInfo,
@@ -13,13 +14,11 @@ import {
 '../../capability_info.js';
 import { GPUConst } from '../../constants.js';
 
-import { AllFeaturesMaxLimitsValidationTest } from './validation_test.js';
-
 function clone(descriptor) {
   return JSON.parse(JSON.stringify(descriptor));
 }
 
-export const g = makeTestGroup(AllFeaturesMaxLimitsValidationTest);
+export const g = makeTestGroup(AllFeaturesMaxLimitsGPUTest);
 
 g.test('number_of_dynamic_buffers_exceeds_the_maximum_value').
 desc(

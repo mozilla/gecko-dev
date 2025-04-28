@@ -578,9 +578,9 @@ fn(async (t) => {
   const testcase = kPredicateCases[t.params.predicate];
   const wgThreads = t.params.wgSize[0] * t.params.wgSize[1] * t.params.wgSize[2];
 
-  let value = `input[id]`;
+  let value = `input[lid]`;
   if (t.params.op !== 'subgroupShuffle') {
-    value = `subgroupBroadcastFirst(input[id])`;
+    value = `subgroupBroadcastFirst(input[lid])`;
   }
 
   const wgsl = `

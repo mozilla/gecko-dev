@@ -12,7 +12,8 @@ import {
   isStencilTextureFormat,
   isDepthTextureFormat,
 } from '../../../../format_info.js';
-import { AllFeaturesMaxLimitsValidationTest } from '../../validation_test.js';
+import { AllFeaturesMaxLimitsGPUTest } from '../../../../gpu_test.js';
+import * as vtu from '../../validation_test_utils.js';
 
 type TextureBindingType =
   | 'sampled-texture'
@@ -29,7 +30,7 @@ const kTextureBindingTypes = [
 ] as const;
 
 const SIZE = 32;
-class TextureUsageTracking extends AllFeaturesMaxLimitsValidationTest {
+class TextureUsageTracking extends AllFeaturesMaxLimitsGPUTest {
   createTestTexture(
     options: {
       width?: number;
@@ -202,8 +203,8 @@ class TextureUsageTracking extends AllFeaturesMaxLimitsValidationTest {
       bindGroupLayouts,
     });
     const pipeline = compute
-      ? this.createNoOpComputePipeline(pipelineLayout)
-      : this.createNoOpRenderPipeline(pipelineLayout, 'r32float');
+      ? vtu.createNoOpComputePipeline(this, pipelineLayout)
+      : vtu.createNoOpRenderPipeline(this, pipelineLayout, 'r32float');
     return {
       bindGroup0: bindGroups[0],
       bindGroup1: bindGroups[1],
@@ -233,7 +234,7 @@ class TextureUsageTracking extends AllFeaturesMaxLimitsValidationTest {
   }
 
   setComputePipelineAndCallDispatch(pass: GPUComputePassEncoder, layout?: GPUPipelineLayout) {
-    const pipeline = this.createNoOpComputePipeline(layout);
+    const pipeline = vtu.createNoOpComputePipeline(this, layout);
     pass.setPipeline(pipeline);
     pass.dispatchWorkgroups(1);
   }
@@ -1068,8 +1069,8 @@ g.test('replaced_binding')
     pass.setBindGroup(0, bindGroup0);
     if (callDrawOrDispatch) {
       const pipeline = compute
-        ? t.createNoOpComputePipeline()
-        : t.createNoOpRenderPipeline('auto', 'r32float');
+        ? vtu.createNoOpComputePipeline(t)
+        : vtu.createNoOpRenderPipeline(t, 'auto', 'r32float');
       t.setPipeline(pass, pipeline);
       t.issueDrawOrDispatch(pass);
     }
@@ -1523,12 +1524,14 @@ g.test('scope,pass_boundary,compute')
 
     const encoder = t.device.createCommandEncoder();
 
-    const pipelineUsingBG0 = t.createNoOpComputePipeline(
+    const pipelineUsingBG0 = vtu.createNoOpComputePipeline(
+      t,
       t.device.createPipelineLayout({
         bindGroupLayouts: [bindGroupLayouts[0]],
       })
     );
-    const pipelineUsingBG1 = t.createNoOpComputePipeline(
+    const pipelineUsingBG1 = vtu.createNoOpComputePipeline(
+      t,
       t.device.createPipelineLayout({
         bindGroupLayouts: [bindGroupLayouts[1]],
       })
@@ -1583,13 +1586,15 @@ g.test('scope,pass_boundary,render')
 
     const encoder = t.device.createCommandEncoder();
 
-    const pipelineUsingBG0 = t.createNoOpRenderPipeline(
+    const pipelineUsingBG0 = vtu.createNoOpRenderPipeline(
+      t,
       t.device.createPipelineLayout({
         bindGroupLayouts: [bindGroupLayouts[0]],
       }),
       'r32float'
     );
-    const pipelineUsingBG1 = t.createNoOpRenderPipeline(
+    const pipelineUsingBG1 = vtu.createNoOpRenderPipeline(
+      t,
       t.device.createPipelineLayout({
         bindGroupLayouts: [bindGroupLayouts[1]],
       }),

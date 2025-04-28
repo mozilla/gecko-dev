@@ -1,5 +1,6 @@
 export const description = `createView validation tests.`;
 
+import { AllFeaturesMaxLimitsGPUTest, kResourceStates } from '../.././gpu_test.js';
 import { kUnitCaseParamsBuilder } from '../../../common/framework/params_builder.js';
 import { makeTestGroup } from '../../../common/framework/test_group.js';
 import { unreachable } from '../../../common/util/util.js';
@@ -20,7 +21,6 @@ import {
   getBlockInfoForTextureFormat,
   isTextureFormatPossiblyUsableAsRenderAttachment,
 } from '../../format_info.js';
-import { kResourceStates } from '../../gpu_test.js';
 import {
   getTextureDimensionFromView,
   reifyTextureViewDescriptor,
@@ -28,9 +28,9 @@ import {
 } from '../../util/texture/base.js';
 import { reifyExtent3D } from '../../util/unions.js';
 
-import { AllFeaturesMaxLimitsValidationTest } from './validation_test.js';
+import * as vtu from './validation_test_utils.js';
 
-export const g = makeTestGroup(AllFeaturesMaxLimitsValidationTest);
+export const g = makeTestGroup(AllFeaturesMaxLimitsGPUTest);
 
 const kLevels = 6;
 
@@ -331,7 +331,7 @@ g.test('texture_state')
   .paramsSubcasesOnly(u => u.combine('state', kResourceStates))
   .fn(t => {
     const { state } = t.params;
-    const texture = t.createTextureWithState(state);
+    const texture = vtu.createTextureWithState(t, state);
 
     t.expectValidationError(() => {
       texture.createView();

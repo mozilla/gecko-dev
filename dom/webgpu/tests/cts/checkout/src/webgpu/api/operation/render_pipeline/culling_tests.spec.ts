@@ -6,7 +6,8 @@ Test all culling combinations of GPUFrontFace and GPUCullMode show the correct o
 
 import { makeTestGroup } from '../../../../common/framework/test_group.js';
 import { isStencilTextureFormat, SizedTextureFormat } from '../../../format_info.js';
-import { AllFeaturesMaxLimitsGPUTest, TextureTestMixin } from '../../../gpu_test.js';
+import { AllFeaturesMaxLimitsGPUTest } from '../../../gpu_test.js';
+import * as ttu from '../../../texture_test_utils.js';
 
 function faceIsCulled(face: 'cw' | 'ccw', frontFace: GPUFrontFace, cullMode: GPUCullMode): boolean {
   return cullMode !== 'none' && (frontFace === face) === (cullMode === 'front');
@@ -24,13 +25,13 @@ function faceColor(face: 'cw' | 'ccw', frontFace: GPUFrontFace, cullMode: GPUCul
   }
 }
 
-class CullingTest extends TextureTestMixin(AllFeaturesMaxLimitsGPUTest) {
+class CullingTest extends AllFeaturesMaxLimitsGPUTest {
   checkCornerPixels(
     texture: GPUTexture,
     expectedTopLeftColor: Uint8Array,
     expectedBottomRightColor: Uint8Array
   ) {
-    this.expectSinglePixelComparisonsAreOkInTexture({ texture }, [
+    ttu.expectSinglePixelComparisonsAreOkInTexture(this, { texture }, [
       { coord: { x: 0, y: 0 }, exp: expectedTopLeftColor },
       { coord: { x: texture.width - 1, y: texture.height - 1 }, exp: expectedBottomRightColor },
     ]);

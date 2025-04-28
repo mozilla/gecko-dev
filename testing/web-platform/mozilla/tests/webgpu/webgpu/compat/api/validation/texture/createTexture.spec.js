@@ -76,7 +76,7 @@ fn((t) => {
         usage: GPUTextureUsage.TEXTURE_BINDING,
         dimension,
         textureBindingViewDimension
-      }); // MAINTENANCE_TODO: remove cast once textureBindingViewDimension is added to IDL
+      });
     },
     shouldError
   );
@@ -107,7 +107,7 @@ fn((t) => {
         format: 'rgba8unorm',
         usage: GPUTextureUsage.TEXTURE_BINDING,
         textureBindingViewDimension
-      }); // MAINTENANCE_TODO: remove cast once textureBindingViewDimension is added to IDL
+      });
     },
     shouldError
   );

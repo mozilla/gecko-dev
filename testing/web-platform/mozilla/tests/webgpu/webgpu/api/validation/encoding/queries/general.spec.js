@@ -4,11 +4,12 @@
 Validation for encoding queries.
 `;import { makeTestGroup } from '../../../../../common/framework/test_group.js';
 import { kQueryTypes } from '../../../../capability_info.js';
-import { AllFeaturesMaxLimitsValidationTest } from '../../validation_test.js';
+import { AllFeaturesMaxLimitsGPUTest } from '../../../../gpu_test.js';
+import * as vtu from '../../validation_test_utils.js';
 
 import { createQuerySetWithType } from './common.js';
 
-export const g = makeTestGroup(AllFeaturesMaxLimitsValidationTest);
+export const g = makeTestGroup(AllFeaturesMaxLimitsGPUTest);
 
 g.test('occlusion_query,query_type').
 desc(
@@ -40,7 +41,7 @@ Tests that begin occlusion query with a invalid query set that failed during cre
 ).
 paramsSubcasesOnly((u) => u.combine('querySetState', ['valid', 'invalid'])).
 fn((t) => {
-  const occlusionQuerySet = t.createQuerySetWithState(t.params.querySetState);
+  const occlusionQuerySet = vtu.createQuerySetWithState(t, t.params.querySetState);
 
   const encoder = t.createEncoder('render pass', { occlusionQuerySet });
   encoder.encoder.beginOcclusionQuery(0);
@@ -114,7 +115,7 @@ fn((t) => {
   t.skipIfDeviceDoesNotSupportQueryType('timestamp');
   const { querySetState } = t.params;
 
-  const querySet = t.createQuerySetWithState(querySetState, {
+  const querySet = vtu.createQuerySetWithState(t, querySetState, {
     type: 'timestamp',
     count: 2
   });

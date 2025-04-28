@@ -5,21 +5,22 @@ Destroying a texture more than once is allowed.
 import { makeTestGroup } from '../../../../common/framework/test_group.js';
 import { kTextureAspects } from '../../../capability_info.js';
 import { isDepthTextureFormat, isStencilTextureFormat } from '../../../format_info.js';
-import { AllFeaturesMaxLimitsValidationTest } from '../validation_test.js';
+import { AllFeaturesMaxLimitsGPUTest } from '../../../gpu_test.js';
+import * as vtu from '../validation_test_utils.js';
 
-export const g = makeTestGroup(AllFeaturesMaxLimitsValidationTest);
+export const g = makeTestGroup(AllFeaturesMaxLimitsGPUTest);
 
 g.test('base')
   .desc(`Test that it is valid to destroy a texture.`)
   .fn(t => {
-    const texture = t.getSampledTexture();
+    const texture = vtu.getSampledTexture(t);
     texture.destroy();
   });
 
 g.test('twice')
   .desc(`Test that it is valid to destroy a destroyed texture.`)
   .fn(t => {
-    const texture = t.getSampledTexture();
+    const texture = vtu.getSampledTexture(t);
     texture.destroy();
     texture.destroy();
   });

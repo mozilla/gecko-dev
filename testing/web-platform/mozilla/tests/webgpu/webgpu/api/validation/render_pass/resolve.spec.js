@@ -4,11 +4,12 @@
 Validation tests for render pass resolve.
 `;import { makeTestGroup } from '../../../../common/framework/test_group.js';
 import { GPUConst } from '../../../constants.js';
-import { AllFeaturesMaxLimitsValidationTest } from '../validation_test.js';
+import { AllFeaturesMaxLimitsGPUTest } from '../../../gpu_test.js';
+import * as vtu from '../validation_test_utils.js';
 
 const kNumColorAttachments = 4;
 
-export const g = makeTestGroup(AllFeaturesMaxLimitsValidationTest);
+export const g = makeTestGroup(AllFeaturesMaxLimitsGPUTest);
 
 g.test('resolve_attachment').
 desc(
@@ -137,7 +138,7 @@ fn((t) => {
           loadOp: 'load',
           storeOp: 'discard',
           resolveTarget: resolveTargetInvalid ?
-          t.getErrorTextureView() :
+          vtu.getErrorTextureView(t) :
           resolveTarget.createView({
             dimension: resolveTargetViewArrayLayerCount === 1 ? '2d' : '2d-array',
             mipLevelCount: resolveTargetViewMipCount,

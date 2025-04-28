@@ -10,6 +10,7 @@ TODO(#3193): Test video in BT.2020 color space
 
 import { makeTestGroup } from '../../../common/framework/test_group.js';
 import { GPUTest } from '../../gpu_test.js';
+import * as ttu from '../../texture_test_utils.js';
 import { TextureUploadingUtils } from '../../util/copy_to_texture.js';
 import { createCanvas } from '../../util/create_elements.js';
 import {
@@ -227,7 +228,7 @@ for several combinations of video format, video color spaces and dst color space
 
       // For validation, we sample a few pixels away from the edges to avoid compression
       // artifacts.
-      t.expectSinglePixelComparisonsAreOkInTexture({ texture: colorAttachment }, [
+      ttu.expectSinglePixelComparisonsAreOkInTexture(t, { texture: colorAttachment }, [
         // Top-left.
         {
           coord: { x: kWidth * 0.25, y: kHeight * 0.25 },
@@ -353,7 +354,7 @@ Tests that we can import an VideoFrame with non-YUV pixel format into a GPUExter
 
     // For validation, we sample a few pixels away from the edges to avoid compression
     // artifacts.
-    t.expectSinglePixelComparisonsAreOkInTexture({ texture: colorAttachment }, [
+    ttu.expectSinglePixelComparisonsAreOkInTexture(t, { texture: colorAttachment }, [
       // Top-left.
       {
         coord: { x: kWidth * 0.25, y: kHeight * 0.25 },
@@ -487,7 +488,7 @@ parameters are present.
 
         // For validation, we sample a few pixels away from the edges to avoid compression
         // artifacts.
-        t.expectSinglePixelComparisonsAreOkInTexture({ texture: colorAttachment }, [
+        ttu.expectSinglePixelComparisonsAreOkInTexture(t, { texture: colorAttachment }, [
           { coord: { x: kWidth * 0.1, y: kHeight * 0.1 }, exp: cropParam.color },
           { coord: { x: kWidth * 0.9, y: kHeight * 0.1 }, exp: cropParam.color },
           { coord: { x: kWidth * 0.1, y: kHeight * 0.9 }, exp: cropParam.color },
@@ -611,7 +612,7 @@ compute shader, for several combinations of video format, video color spaces and
       // visible rect is whole frame, no clipping.
       const expect = kVideoInfo[videoName].display;
 
-      t.expectSinglePixelComparisonsAreOkInTexture({ texture: outputTexture }, [
+      ttu.expectSinglePixelComparisonsAreOkInTexture(t, { texture: outputTexture }, [
         // Top-left.
         { coord: { x: 0, y: 0 }, exp: convertToUnorm8(presentColors[expect.topLeftColor]) },
         // Top-right.
@@ -713,7 +714,7 @@ compared with 2d canvas rendering result.
       },
     });
 
-    t.expectTexelViewComparisonIsOkInTexture({ texture: colorAttachment }, expectedView, [
+    ttu.expectTexelViewComparisonIsOkInTexture(t, { texture: colorAttachment }, expectedView, [
       frameWidth,
       frameHeight,
       1,

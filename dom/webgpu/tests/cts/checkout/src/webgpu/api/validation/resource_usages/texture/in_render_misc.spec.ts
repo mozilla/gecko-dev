@@ -5,7 +5,8 @@ Texture Usages Validation Tests on All Kinds of WebGPU Subresource Usage Scopes.
 import { makeTestGroup } from '../../../../../common/framework/test_group.js';
 import { unreachable } from '../../../../../common/util/util.js';
 import { kTextureUsages } from '../../../../capability_info.js';
-import { AllFeaturesMaxLimitsValidationTest } from '../../validation_test.js';
+import { AllFeaturesMaxLimitsGPUTest } from '../../../../gpu_test.js';
+import * as vtu from '../../validation_test_utils.js';
 import {
   TextureBindingType,
   kTextureBindingTypes,
@@ -13,7 +14,7 @@ import {
 } from '../texture/in_render_common.spec.js';
 
 function skipIfStorageTexturesUsedAndNotAvailableInFragmentStage(
-  t: AllFeaturesMaxLimitsValidationTest,
+  t: AllFeaturesMaxLimitsGPUTest,
   usage: (typeof kTextureBindingTypes)[number] | 'copy-src' | 'copy-dst' | 'color-attachment',
   numRequired: number
 ) {
@@ -27,7 +28,7 @@ function skipIfStorageTexturesUsedAndNotAvailableInFragmentStage(
   );
 }
 
-class F extends AllFeaturesMaxLimitsValidationTest {
+class F extends AllFeaturesMaxLimitsGPUTest {
   createBindGroupLayoutForTest(
     textureUsage: TextureBindingType,
     sampleType: 'unfilterable-float' | 'depth' | 'uint',
@@ -353,7 +354,7 @@ g.test('subresources,set_unused_bind_group')
         }),
         vertex: {
           module: t.device.createShaderModule({
-            code: t.getNoOpShaderCode('VERTEX'),
+            code: vtu.getNoOpShaderCode('VERTEX'),
           }),
         },
         fragment: {
@@ -546,7 +547,7 @@ g.test('subresources,texture_usages_in_copy_and_render_pass')
     ) => {
       switch (usage) {
         case 'copy-src': {
-          const buffer = t.createBufferWithState('valid', {
+          const buffer = vtu.createBufferWithState(t, 'valid', {
             size: 4,
             usage: GPUBufferUsage.COPY_DST,
           });
@@ -554,7 +555,7 @@ g.test('subresources,texture_usages_in_copy_and_render_pass')
           break;
         }
         case 'copy-dst': {
-          const buffer = t.createBufferWithState('valid', {
+          const buffer = vtu.createBufferWithState(t, 'valid', {
             size: 4,
             usage: GPUBufferUsage.COPY_SRC,
           });

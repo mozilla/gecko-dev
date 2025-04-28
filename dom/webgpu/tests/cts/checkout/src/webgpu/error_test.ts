@@ -102,25 +102,38 @@ export class ErrorTest extends Fixture {
    * Expect an uncapturederror event to occur. Note: this MUST be awaited, because
    * otherwise it could erroneously pass by capturing an error from later in the test.
    */
-  async expectUncapturedError(fn: Function): Promise<GPUUncapturedErrorEvent> {
+  async expectUncapturedError(
+    fn: Function,
+    useOnuncapturederror = false
+  ): Promise<GPUUncapturedErrorEvent> {
     return this.immediateAsyncExpectation(() => {
-      // MAINTENANCE_TODO: Make arbitrary timeout value a test runner variable
-      const TIMEOUT_IN_MS = 1000;
-
       const promise: Promise<GPUUncapturedErrorEvent> = new Promise(resolve => {
-        const eventListener = ((event: GPUUncapturedErrorEvent) => {
+        const eventListener = (event: GPUUncapturedErrorEvent) => {
+          // Unregister before resolving so we can be certain these are cleaned
+          // up before the next test.
+          if (useOnuncapturederror) {
+            this.device.onuncapturederror = null;
+          } else {
+            this.device.removeEventListener('uncapturederror', eventListener);
+          }
+
           this.debug(`Got uncaptured error event with ${event.error}`);
           resolve(event);
-        }) as EventListener;
+        };
 
-        this.device.addEventListener('uncapturederror', eventListener, { once: true });
+        if (useOnuncapturederror) {
+          this.device.onuncapturederror = eventListener;
+        } else {
+          this.device.addEventListener('uncapturederror', eventListener, { once: true });
+        }
       });
 
       fn();
 
+      const kTimeoutMS = 1000;
       return raceWithRejectOnTimeout(
         promise,
-        TIMEOUT_IN_MS,
+        kTimeoutMS,
         'Timeout occurred waiting for uncaptured error'
       );
     });

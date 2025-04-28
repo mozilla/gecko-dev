@@ -2,11 +2,10 @@ export const description = `
 createSampler validation tests.
 `;
 
+import { AllFeaturesMaxLimitsGPUTest } from '../.././gpu_test.js';
 import { makeTestGroup } from '../../../common/framework/test_group.js';
 
-import { AllFeaturesMaxLimitsValidationTest } from './validation_test.js';
-
-export const g = makeTestGroup(AllFeaturesMaxLimitsValidationTest);
+export const g = makeTestGroup(AllFeaturesMaxLimitsGPUTest);
 
 g.test('lodMinAndMaxClamp')
   .desc('test different combinations of min and max clamp values')

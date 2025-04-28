@@ -6,10 +6,10 @@ import { makeTestGroup } from '../../../../common/framework/test_group.js';
 import { assert } from '../../../../common/util/util.js';
 import { kTextureUsages } from '../../../capability_info.js';
 import { GPUConst } from '../../../constants.js';
+import { UniqueFeaturesOrLimitsGPUTest } from '../../../gpu_test.js';
 import { kAllCanvasTypes, createCanvas } from '../../../util/create_elements.js';
-import { UniqueFeaturesAndLimitsValidationTest } from '../validation_test.js';
 
-class BGRA8UnormStorageValidationTests extends UniqueFeaturesAndLimitsValidationTest {
+class BGRA8UnormStorageValidationTests extends UniqueFeaturesOrLimitsGPUTest {
   testCreateShaderModuleWithBGRA8UnormStorage(
     shaderType: 'fragment' | 'compute',
     success: boolean

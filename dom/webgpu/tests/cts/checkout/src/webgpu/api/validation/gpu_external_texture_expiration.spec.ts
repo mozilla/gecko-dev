@@ -2,6 +2,7 @@ export const description = `
 GPUExternalTexture expiration mechanism validation tests.
 `;
 
+import { AllFeaturesMaxLimitsGPUTest } from '../.././gpu_test.js';
 import { makeTestGroup } from '../../../common/framework/test_group.js';
 import { assert } from '../../../common/util/util.js';
 import {
@@ -12,9 +13,7 @@ import {
   waitForNextTask,
 } from '../../web_platform/util.js';
 
-import { AllFeaturesMaxLimitsValidationTest } from './validation_test.js';
-
-class GPUExternalTextureExpireTest extends AllFeaturesMaxLimitsValidationTest {
+class GPUExternalTextureExpireTest extends AllFeaturesMaxLimitsGPUTest {
   submitCommandBuffer(bindGroup: GPUBindGroup, success: boolean): void {
     const kHeight = 16;
     const kWidth = 16;

@@ -9,9 +9,14 @@ import {
   isTextureFormatPossiblyStorageReadWritable,
   kPossibleStorageTextureFormats,
 } from '../../../../../format_info.js';
+import { AllFeaturesMaxLimitsGPUTest } from '../../../../../gpu_test.js';
 import { kShaderStages } from '../../../../validation/decl/util.js';
 
-import { kSampleTypeInfo, WGSLTextureQueryTest } from './texture_utils.js';
+import {
+  executeTextureQueryAndExpectResult,
+  kSampleTypeInfo,
+  skipIfNoStorageTexturesInStage,
+} from './texture_utils.js';
 
 const kNumLayers = 36;
 
@@ -36,7 +41,7 @@ function getLayerSettingsAndExpected({
       };
 }
 
-export const g = makeTestGroup(WGSLTextureQueryTest);
+export const g = makeTestGroup(AllFeaturesMaxLimitsGPUTest);
 
 g.test('sampled')
   .specURL('https://www.w3.org/TR/WGSL/#texturenumlayers')
@@ -96,7 +101,7 @@ fn getValue() -> u32 {
       arrayLayerCount,
     };
 
-    t.executeAndExpectResult(stage, code, texture, viewDescription, expected);
+    executeTextureQueryAndExpectResult(t, stage, code, texture, viewDescription, expected);
   });
 
 g.test('arrayed')
@@ -154,7 +159,7 @@ fn getValue() -> u32 {
       arrayLayerCount,
     };
 
-    t.executeAndExpectResult(stage, code, texture, viewDescription, expected);
+    executeTextureQueryAndExpectResult(t, stage, code, texture, viewDescription, expected);
   });
 
 g.test('storage')
@@ -206,7 +211,7 @@ Parameters
   })
   .fn(t => {
     const { stage, format, access_mode, view_type } = t.params;
-    t.skipIfNoStorageTexturesInStage(stage);
+    skipIfNoStorageTexturesInStage(t, stage);
     t.skipIfTextureFormatNotUsableAsStorageTexture(format);
     if (access_mode === 'read_write') {
       t.skipIfTextureFormatNotUsableAsReadWriteStorageTexture(format);
@@ -235,5 +240,5 @@ fn getValue() -> u32 {
       arrayLayerCount,
     };
 
-    t.executeAndExpectResult(stage, code, texture, viewDescription, expected);
+    executeTextureQueryAndExpectResult(t, stage, code, texture, viewDescription, expected);
   });

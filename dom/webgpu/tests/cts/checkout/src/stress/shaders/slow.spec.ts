@@ -3,9 +3,10 @@ Stress tests covering robustness in the presence of slow shaders.
 `;
 
 import { makeTestGroup } from '../../common/framework/test_group.js';
-import { GPUTest, TextureTestMixin } from '../../webgpu/gpu_test.js';
+import { GPUTest } from '../../webgpu/gpu_test.js';
+import * as ttu from '../../webgpu/texture_test_utils.js';
 
-export const g = makeTestGroup(TextureTestMixin(GPUTest));
+export const g = makeTestGroup(GPUTest);
 
 g.test('compute')
   .desc(`Tests execution of compute passes with very long-running dispatch operations.`)
@@ -110,7 +111,7 @@ g.test('vertex')
     pass.draw(1);
     pass.end();
     t.device.queue.submit([encoder.finish()]);
-    t.expectSinglePixelComparisonsAreOkInTexture({ texture: renderTarget }, [
+    ttu.expectSinglePixelComparisonsAreOkInTexture(t, { texture: renderTarget }, [
       {
         coord: { x: 1, y: 1 },
         exp: new Uint8Array([255, 255, 0, 255]),
@@ -182,7 +183,7 @@ g.test('fragment')
     pass.draw(1);
     pass.end();
     t.device.queue.submit([encoder.finish()]);
-    t.expectSinglePixelComparisonsAreOkInTexture({ texture: renderTarget }, [
+    ttu.expectSinglePixelComparisonsAreOkInTexture(t, { texture: renderTarget }, [
       {
         coord: { x: 1, y: 1 },
         exp: new Uint8Array([255, 255, 0, 255]),

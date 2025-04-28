@@ -12,11 +12,11 @@ import {
   depthStencilBufferTextureCopySupported,
   depthStencilFormatAspectSize } from
 '../../../format_info.js';
+import { AllFeaturesMaxLimitsGPUTest } from '../../../gpu_test.js';
 import { align } from '../../../util/math.js';
 import { kBufferCopyAlignment, kBytesPerRowAlignment } from '../../../util/texture/layout.js';
-import { AllFeaturesMaxLimitsValidationTest } from '../validation_test.js';
 
-class ImageCopyTest extends AllFeaturesMaxLimitsValidationTest {
+class ImageCopyTest extends AllFeaturesMaxLimitsGPUTest {
   testCopyBufferToTexture(
   source,
   destination,

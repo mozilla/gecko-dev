@@ -2,12 +2,11 @@ export const description = `
   getBindGroupLayout validation tests.
 `;
 
+import { AllFeaturesMaxLimitsGPUTest } from '../.././gpu_test.js';
 import { makeTestGroup } from '../../../common/framework/test_group.js';
 import { assert } from '../../../common/util/util.js';
 
-import { AllFeaturesMaxLimitsValidationTest } from './validation_test.js';
-
-export const g = makeTestGroup(AllFeaturesMaxLimitsValidationTest);
+export const g = makeTestGroup(AllFeaturesMaxLimitsGPUTest);
 
 g.test('index_range,explicit_layout')
   .desc(

@@ -3,9 +3,10 @@
 **/export const description = `
 Tests using a destroyed query set on a queue.
 `;import { makeTestGroup } from '../../../../../common/framework/test_group.js';
-import { AllFeaturesMaxLimitsValidationTest } from '../../validation_test.js';
+import { AllFeaturesMaxLimitsGPUTest } from '../../../../gpu_test.js';
+import * as vtu from '../../validation_test_utils.js';
 
-export const g = makeTestGroup(AllFeaturesMaxLimitsValidationTest);
+export const g = makeTestGroup(AllFeaturesMaxLimitsGPUTest);
 
 g.test('beginOcclusionQuery').
 desc(
@@ -16,7 +17,7 @@ Tests that use a destroyed query set in occlusion query on render pass encoder.
 ).
 paramsSubcasesOnly((u) => u.combine('querySetState', ['valid', 'destroyed'])).
 fn((t) => {
-  const occlusionQuerySet = t.createQuerySetWithState(t.params.querySetState);
+  const occlusionQuerySet = vtu.createQuerySetWithState(t, t.params.querySetState);
 
   const encoder = t.createEncoder('render pass', { occlusionQuerySet });
   encoder.encoder.beginOcclusionQuery(0);
@@ -36,7 +37,7 @@ Tests that use a destroyed query set in timestamp query on {non-pass, compute, r
 params((u) => u.beginSubcases().combine('querySetState', ['valid', 'destroyed'])).
 fn((t) => {
   t.skipIfDeviceDoesNotSupportQueryType('timestamp');
-  const querySet = t.createQuerySetWithState(t.params.querySetState, {
+  const querySet = vtu.createQuerySetWithState(t, t.params.querySetState, {
     type: 'timestamp',
     count: 2
   });
@@ -94,7 +95,7 @@ Tests that use a destroyed query set in resolveQuerySet.
 ).
 paramsSubcasesOnly((u) => u.combine('querySetState', ['valid', 'destroyed'])).
 fn((t) => {
-  const querySet = t.createQuerySetWithState(t.params.querySetState);
+  const querySet = vtu.createQuerySetWithState(t, t.params.querySetState);
 
   const buffer = t.createBufferTracked({ size: 8, usage: GPUBufferUsage.QUERY_RESOLVE });
 

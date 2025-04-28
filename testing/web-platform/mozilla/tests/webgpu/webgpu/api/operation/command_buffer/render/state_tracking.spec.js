@@ -6,10 +6,11 @@ times in different orders) for setIndexBuffer and setVertexBuffer.
 Equivalent tests for setBindGroup and setPipeline are in programmable/state_tracking.spec.ts.
 Equivalent tests for viewport/scissor/blend/reference are in render/dynamic_state.spec.ts
 `;import { makeTestGroup } from '../../../../../common/framework/test_group.js';
-import { AllFeaturesMaxLimitsGPUTest, TextureTestMixin } from '../../../../gpu_test.js';
+import { AllFeaturesMaxLimitsGPUTest } from '../../../../gpu_test.js';
+import * as ttu from '../../../../texture_test_utils.js';
 import { TexelView } from '../../../../util/texture/texel_view.js';
 
-class VertexAndIndexStateTrackingTest extends TextureTestMixin(AllFeaturesMaxLimitsGPUTest) {
+class VertexAndIndexStateTrackingTest extends AllFeaturesMaxLimitsGPUTest {
   GetRenderPipelineForTest(arrayStride) {
     return this.device.createRenderPipeline({
       layout: 'auto',
@@ -171,7 +172,8 @@ fn((t) => {
   renderPass.end();
   t.queue.submit([encoder.finish()]);
 
-  t.expectTexelViewComparisonIsOkInTexture(
+  ttu.expectTexelViewComparisonIsOkInTexture(
+    t,
     { texture: outputTexture },
     TexelView.fromTexelsAsBytes('rgba8unorm', (coord) =>
     coord.x === 1 ? kColors[kPositions.length - 1] : kColors[coord.x]
@@ -274,7 +276,8 @@ fn((t) => {
   renderPass.end();
   t.queue.submit([encoder.finish()]);
 
-  t.expectTexelViewComparisonIsOkInTexture(
+  ttu.expectTexelViewComparisonIsOkInTexture(
+    t,
     { texture: outputTexture },
     TexelView.fromTexelsAsBytes('rgba8unorm', (coord) => kColors[coord.x]),
     outputTextureSize
@@ -358,7 +361,8 @@ fn((t) => {
 
   t.queue.submit([encoder.finish()]);
 
-  t.expectTexelViewComparisonIsOkInTexture(
+  ttu.expectTexelViewComparisonIsOkInTexture(
+    t,
     { texture: outputTexture },
     TexelView.fromTexelsAsBytes('rgba8unorm', (coord) =>
     coord.x === 1 ? new Uint8Array([0, 0, 0, 255]) : kColors[coord.x]
@@ -536,7 +540,8 @@ fn((t) => {
   kColors.subarray(4)];
 
 
-  t.expectTexelViewComparisonIsOkInTexture(
+  ttu.expectTexelViewComparisonIsOkInTexture(
+    t,
     { texture: outputTexture },
     TexelView.fromTexelsAsBytes('rgba8unorm', (coord) => kExpectedColors[coord.x]),
     outputTextureSize
@@ -612,7 +617,8 @@ fn((t) => {
 
   t.queue.submit([encoder.finish()]);
 
-  t.expectTexelViewComparisonIsOkInTexture(
+  ttu.expectTexelViewComparisonIsOkInTexture(
+    t,
     { texture: outputTexture },
     TexelView.fromTexelsAsBytes('rgba8unorm', (coord) => kColors[coord.x]),
     outputTextureSize

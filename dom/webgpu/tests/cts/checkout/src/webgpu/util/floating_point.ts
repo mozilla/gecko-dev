@@ -38,6 +38,7 @@ import {
   map2DArray,
   oneULPF16,
   oneULPF32,
+  nextAfterF64,
   quantizeToF16,
   quantizeToF32,
   scalarF16Range,
@@ -706,6 +707,46 @@ export abstract class FPTraits {
     }
 
     return new FPInterval(this.kind, n, n);
+  }
+
+  /**
+   * WGSL specifies unbounded precision:
+   *   https://www.w3.org/TR/WGSL/#floating-point-accuracy
+   * In most computations doubles (number in js) are equivalent
+   * to correctly rounded intervals. However in some cases
+   * (addition/subtraction) doubles do not provide enough numeric precision.
+   *
+   * These cases are whenever a small magnitude number, y
+   * (e.g. smallest positive normal) is added (or subtracted) from a much
+   * larger magnitude number x (1.0), such that the difference between them
+   * is smaller then ULP(x). When working in JS numbers the result will,
+   * incorrectly, simply be x, since it will get rounded. JS rounds to even
+   * but WGSL allows for rounding up and down (which in our context will be an interval).
+   * We must detect these cases where double precision does not represent
+   * infinitely accurate computations accurately then we must manually create the interval.
+   *
+   * @param sum the result of adding large_val + small_val, using Number
+   * @param large_val: the summand with larger magnitude
+   * @param small_val: the summand with smaller magnitude
+   * @returns an interval containing the correctly rounded val with respect to unbounded precision
+   */
+  public correctlyRoundedIntervalWithUnboundedPrecisionForAddition(
+    val: number,
+    large_val: number,
+    small_val: number
+  ): FPInterval {
+    if (val === large_val && !(small_val === 0.0)) {
+      if (Math.sign(small_val) >= 0) {
+        return this.correctlyRoundedInterval(
+          this.toInterval([large_val, nextAfterF64(large_val, 'positive', 'flush')])
+        );
+      } else {
+        return this.correctlyRoundedInterval(
+          this.toInterval([nextAfterF64(large_val, 'negative', 'flush'), large_val])
+        );
+      }
+    }
+    return this.correctlyRoundedInterval(val);
   }
 
   /**
@@ -2797,7 +2838,14 @@ export abstract class FPTraits {
 
   private readonly AdditionIntervalOp: ScalarPairToIntervalOp = {
     impl: (x: number, y: number): FPInterval => {
-      return this.correctlyRoundedInterval(x + y);
+      const sum = x + y;
+      const large_val = Math.abs(x) > Math.abs(y) ? x : y;
+      const small_val = Math.abs(x) > Math.abs(y) ? y : x;
+      return this.correctlyRoundedIntervalWithUnboundedPrecisionForAddition(
+        sum,
+        large_val,
+        small_val
+      );
     },
   };
 
@@ -4317,7 +4365,17 @@ export abstract class FPTraits {
 
   private readonly SubtractionIntervalOp: ScalarPairToIntervalOp = {
     impl: (x: number, y: number): FPInterval => {
-      return this.correctlyRoundedInterval(x - y);
+      const difference: number = x - y;
+      // To support unbounded precision we need to handle the special case for very large vs small values
+      // We can resuse the function that is used by addition since floating point is symmetric for negative
+      // and positive values.
+      const large_val = Math.abs(x) > Math.abs(y) ? x : -y;
+      const small_val = Math.abs(x) > Math.abs(y) ? -y : x;
+      return this.correctlyRoundedIntervalWithUnboundedPrecisionForAddition(
+        difference,
+        large_val,
+        small_val
+      );
     },
   };
 

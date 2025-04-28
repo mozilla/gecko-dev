@@ -31,6 +31,7 @@ import {
   kDefaultVertexShaderCode,
 } from '../../../util/shader.js';
 import { kTexelRepresentationInfo } from '../../../util/texture/texel_data.js';
+import * as vtu from '../validation_test_utils.js';
 
 import { ColorTargetState, CreateRenderPipelineValidationTest } from './common.js';
 
@@ -53,14 +54,14 @@ g.test('color_target_exists')
     });
 
     // Control case
-    t.doCreateRenderPipelineTest(isAsync, true, goodDescriptor);
+    vtu.doCreateRenderPipelineTest(t, isAsync, true, goodDescriptor);
 
     // Fail because lack of color states
     const badDescriptor = t.getDescriptor({
       targets: [],
     });
 
-    t.doCreateRenderPipelineTest(isAsync, false, badDescriptor);
+    vtu.doCreateRenderPipelineTest(t, isAsync, false, badDescriptor);
   });
 
 g.test('targets_format_is_color_format')
@@ -88,7 +89,7 @@ g.test('targets_format_is_color_format')
     ]);
 
     const success = format === 'rgba8unorm' && fragOutType === 'f32';
-    t.doCreateRenderPipelineTest(isAsync, success, {
+    vtu.doCreateRenderPipelineTest(t, isAsync, success, {
       vertex: {
         module: t.device.createShaderModule({ code: kDefaultVertexShaderCode }),
         entryPoint: 'main',
@@ -118,7 +119,8 @@ g.test('targets_format_renderable')
 
     const descriptor = t.getDescriptor({ targets: [{ format }] });
 
-    t.doCreateRenderPipelineTest(
+    vtu.doCreateRenderPipelineTest(
+      t,
       isAsync,
       isTextureFormatColorRenderable(t.device, format),
       descriptor
@@ -152,7 +154,8 @@ g.test('limits,maxColorAttachments')
       },
     });
 
-    t.doCreateRenderPipelineTest(
+    vtu.doCreateRenderPipelineTest(
+      t,
       isAsync,
       targetsLength <= t.device.limits.maxColorAttachments,
       descriptor
@@ -195,7 +198,7 @@ g.test('limits,maxColorAttachmentBytesPerSample,aligned')
       getColorRenderByteCost(format) * attachmentCount >
         t.device.limits.maxColorAttachmentBytesPerSample;
 
-    t.doCreateRenderPipelineTest(isAsync, !shouldError, descriptor);
+    vtu.doCreateRenderPipelineTest(t, isAsync, !shouldError, descriptor);
   });
 
 g.test('limits,maxColorAttachmentBytesPerSample,unaligned')
@@ -239,7 +242,7 @@ g.test('limits,maxColorAttachmentBytesPerSample,unaligned')
       }),
     });
 
-    t.doCreateRenderPipelineTest(isAsync, success, descriptor);
+    vtu.doCreateRenderPipelineTest(t, isAsync, success, descriptor);
   });
 
 g.test('targets_format_filterable')
@@ -270,7 +273,7 @@ g.test('targets_format_filterable')
     });
 
     const supportsBlend = isTextureFormatBlendable(t.device, format);
-    t.doCreateRenderPipelineTest(isAsync, !hasBlend || supportsBlend, descriptor);
+    vtu.doCreateRenderPipelineTest(t, isAsync, !hasBlend || supportsBlend, descriptor);
   });
 
 g.test('targets_blend')
@@ -330,9 +333,9 @@ g.test('targets_blend')
 
     if (operation === 'min' || operation === 'max') {
       const _success = srcFactor === 'one' && dstFactor === 'one';
-      t.doCreateRenderPipelineTest(isAsync, _success, descriptor);
+      vtu.doCreateRenderPipelineTest(t, isAsync, _success, descriptor);
     } else {
-      t.doCreateRenderPipelineTest(isAsync, true, descriptor);
+      vtu.doCreateRenderPipelineTest(t, isAsync, true, descriptor);
     }
   });
 
@@ -351,7 +354,7 @@ g.test('targets_write_mask')
       ],
     });
 
-    t.doCreateRenderPipelineTest(isAsync, writeMask < 16, descriptor);
+    vtu.doCreateRenderPipelineTest(t, isAsync, writeMask < 16, descriptor);
   });
 
 g.test('pipeline_output_targets')
@@ -407,7 +410,7 @@ g.test('pipeline_output_targets')
       }
     }
 
-    t.doCreateRenderPipelineTest(isAsync, success, descriptor);
+    vtu.doCreateRenderPipelineTest(t, isAsync, success, descriptor);
   });
 
 g.test('pipeline_output_targets,blend')
@@ -479,7 +482,7 @@ g.test('pipeline_output_targets,blend')
       getTextureFormatColorType(format) === sampleType &&
       componentCount >= kTexelRepresentationInfo[format].componentOrder.length &&
       meetsExtraBlendingRequirement;
-    t.doCreateRenderPipelineTest(isAsync, _success, descriptor);
+    vtu.doCreateRenderPipelineTest(t, isAsync, _success, descriptor);
   });
 
 const kDualSourceBlendingFactors: GPUBlendFactor[] = [
@@ -550,7 +553,7 @@ g.test('dual_source_blending,color_target_count')
 
     const isAsync = false;
     const _success = colorTargetsCount === 1;
-    t.doCreateRenderPipelineTest(isAsync, _success, descriptor);
+    vtu.doCreateRenderPipelineTest(t, isAsync, _success, descriptor);
   });
 
 g.test('dual_source_blending,use_blend_src')
@@ -604,5 +607,5 @@ g.test('dual_source_blending,use_blend_src')
 
     const _success = !IsDualSourceBlendingFactor(blendFactor) || useBlendSrc1;
     const isAsync = false;
-    t.doCreateRenderPipelineTest(isAsync, _success, descriptor);
+    vtu.doCreateRenderPipelineTest(t, isAsync, _success, descriptor);
   });

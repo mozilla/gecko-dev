@@ -56,7 +56,8 @@ Test locations are framebuffer coordinates:
 `;
 
 import { makeTestGroup } from '../../../../common/framework/test_group.js';
-import { AllFeaturesMaxLimitsGPUTest, TextureTestMixin } from '../../../gpu_test.js';
+import { AllFeaturesMaxLimitsGPUTest } from '../../../gpu_test.js';
+import * as ttu from '../../../texture_test_utils.js';
 import { PerPixelComparison } from '../../../util/texture/texture_ok.js';
 
 const kRTSize: number = 56;
@@ -279,7 +280,7 @@ function generateVertexBuffer(vertexLocations: Point2D[]): Float32Array {
 }
 
 const kDefaultDrawCount = 6;
-class PrimitiveTopologyTest extends TextureTestMixin(AllFeaturesMaxLimitsGPUTest) {
+class PrimitiveTopologyTest extends AllFeaturesMaxLimitsGPUTest {
   makeAttachmentTexture(): GPUTexture {
     return this.createTextureTracked({
       format: kColorFormat,
@@ -410,7 +411,11 @@ class PrimitiveTopologyTest extends TextureTestMixin(AllFeaturesMaxLimitsGPUTest
     renderPass.end();
 
     this.device.queue.submit([encoder.finish()]);
-    this.expectSinglePixelComparisonsAreOkInTexture({ texture: colorAttachment }, testLocations);
+    ttu.expectSinglePixelComparisonsAreOkInTexture(
+      this,
+      { texture: colorAttachment },
+      testLocations
+    );
   }
 }
 

@@ -22,11 +22,12 @@ import {
   kRegularTextureFormats,
   RegularTextureFormat,
 } from '../../../format_info.js';
-import { AllFeaturesMaxLimitsGPUTest, GPUTest, TextureTestMixin } from '../../../gpu_test.js';
+import { AllFeaturesMaxLimitsGPUTest, GPUTest } from '../../../gpu_test.js';
+import * as ttu from '../../../texture_test_utils.js';
 import { kFullscreenQuadVertexShaderCode } from '../../../util/shader.js';
 import { TexelView } from '../../../util/texture/texel_view.js';
 
-export const g = makeTestGroup(TextureTestMixin(AllFeaturesMaxLimitsGPUTest));
+export const g = makeTestGroup(AllFeaturesMaxLimitsGPUTest);
 
 const kTextureViewWriteMethods = [
   'storage-write-fragment',
@@ -388,7 +389,7 @@ TODO: Test rgb10a2uint when TexelRepresentation.numericRange is made per-compone
     );
 
     // [1] Use copySinglePixelTextureToBufferUsingComputePass to check multisampled texture.
-    t.expectTexelViewComparisonIsOkInTexture({ texture }, expectedTexelView, [
+    ttu.expectTexelViewComparisonIsOkInTexture(t, { texture }, expectedTexelView, [
       kTextureSize,
       kTextureSize,
     ]);

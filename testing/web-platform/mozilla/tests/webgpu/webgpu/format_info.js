@@ -3,6 +3,7 @@
 **/import { isCompatibilityDevice } from '../common/framework/test_config.js';import { keysOf } from '../common/util/data_tables.js';import { assert, unreachable } from '../common/util/util.js';
 
 import { align } from './util/math.js';
+import { getTextureDimensionFromView } from './util/texture/base.js';
 
 
 //
@@ -1442,6 +1443,8 @@ export const kRegularTextureFormats = keysOf(kRegularTextureFormatInfo);
 export const kSizedDepthStencilFormats = keysOf(kSizedDepthStencilFormatInfo);
 export const kUnsizedDepthStencilFormats = keysOf(kUnsizedDepthStencilFormatInfo);
 export const kCompressedTextureFormats = keysOf(kCompressedTextureFormatInfo);
+export const kBCCompressedTextureFormats = keysOf(kBCTextureFormatInfo);
+export const kASTCCompressedTextureFormats = keysOf(kASTCTextureFormatInfo);
 
 export const kColorTextureFormats = keysOf(kColorTextureFormatInfo);
 export const kEncodableTextureFormats = keysOf(kEncodableTextureFormatInfo);
@@ -1875,6 +1878,40 @@ format)
 }
 
 /**
+ * Returns true iff a texture can be created with the provided GPUTextureDimension
+ * (defaulting to 2d) and GPUTextureFormat for a GPU device, by spec.
+ */
+export function textureDimensionAndFormatCompatibleForDevice(
+device,
+dimension,
+format)
+{
+  if (
+  dimension === '3d' && (
+  isBCTextureFormat(format) && device.features.has('texture-compression-bc-sliced-3d') ||
+  isASTCTextureFormat(format) && device.features.has('texture-compression-astc-sliced-3d')))
+  {
+    return true;
+  }
+  return textureDimensionAndFormatCompatible(dimension, format);
+}
+
+/**
+ * Returns true iff a texture can be used with the provided GPUTextureViewDimension
+ */
+export function textureViewDimensionAndFormatCompatibleForDevice(
+device,
+dimension,
+format)
+{
+  return textureDimensionAndFormatCompatibleForDevice(
+    device,
+    getTextureDimensionFromView(dimension),
+    format
+  );
+}
+
+/**
  * Check if two formats are view format compatible.
  */
 export function textureFormatsAreViewCompatible(
@@ -2075,6 +2112,14 @@ export function canCopyFromAllAspectsOfTextureFormat(format) {
 
 export function isCompressedTextureFormat(format) {
   return format in kCompressedTextureFormatInfo;
+}
+
+export function isBCTextureFormat(format) {
+  return format in kBCTextureFormatInfo;
+}
+
+export function isASTCTextureFormat(format) {
+  return format in kASTCTextureFormatInfo;
 }
 
 export function isColorTextureFormat(format) {

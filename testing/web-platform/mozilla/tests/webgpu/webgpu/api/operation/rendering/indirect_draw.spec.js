@@ -7,7 +7,8 @@ import {
   kDrawIndirectParametersSize,
   kDrawIndexedIndirectParametersSize } from
 '../../../capability_info.js';
-import { AllFeaturesMaxLimitsGPUTest, TextureTestMixin } from '../../../gpu_test.js';
+import { AllFeaturesMaxLimitsGPUTest } from '../../../gpu_test.js';
+import * as ttu from '../../../texture_test_utils.js';
 
 const filled = new Uint8Array([0, 255, 0, 255]);
 const notFilled = new Uint8Array([0, 0, 0, 0]);
@@ -124,7 +125,7 @@ class F extends AllFeaturesMaxLimitsGPUTest {
   }
 }
 
-export const g = makeTestGroup(TextureTestMixin(F));
+export const g = makeTestGroup(F);
 
 g.test('basics').
 desc(
@@ -233,7 +234,7 @@ fn((t) => {
   renderPass.end();
   t.queue.submit([commandEncoder.finish()]);
 
-  t.expectSinglePixelComparisonsAreOkInTexture({ texture: renderTarget }, [
+  ttu.expectSinglePixelComparisonsAreOkInTexture(t, { texture: renderTarget }, [
   // The bottom left area is filled
   { coord: { x: 0, y: 1 }, exp: filled },
   // The top right area is not filled

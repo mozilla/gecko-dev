@@ -23,8 +23,8 @@ TODO: ensure existing tests cover these notes. Note many of these may be operati
 `;
 
 import { makeTestGroup } from '../../../../../../common/framework/test_group.js';
+import { AllFeaturesMaxLimitsGPUTest } from '../../../../../gpu_test.js';
 import { nextAfterF32 } from '../../../../../util/math.js';
-import { AllFeaturesMaxLimitsValidationTest } from '../../../validation_test.js';
 
 interface ViewportCall {
   x: number;
@@ -42,7 +42,7 @@ interface ScissorCall {
   h: number;
 }
 
-class F extends AllFeaturesMaxLimitsValidationTest {
+class F extends AllFeaturesMaxLimitsGPUTest {
   testViewportCall(
     success: boolean,
     v: ViewportCall,

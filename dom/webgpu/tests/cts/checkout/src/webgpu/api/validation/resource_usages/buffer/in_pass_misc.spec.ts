@@ -4,6 +4,7 @@ Test other buffer usage validation rules that are not tests in ./in_pass_encoder
 
 import { makeTestGroup } from '../../../../../common/framework/test_group.js';
 import { unreachable } from '../../../../../common/util/util.js';
+import * as vtu from '../../validation_test_utils.js';
 
 import {
   BufferUsage,
@@ -31,11 +32,11 @@ do not contribute directly to any usage scope in a compute pass.`
     const { usage0, usage1 } = t.params;
 
     const kUsages = GPUBufferUsage.UNIFORM | GPUBufferUsage.STORAGE | GPUBufferUsage.INDIRECT;
-    const buffer = t.createBufferWithState('valid', {
+    const buffer = vtu.createBufferWithState(t, 'valid', {
       size: kBufferSize,
       usage: kUsages,
     });
-    const anotherBuffer = t.createBufferWithState('valid', {
+    const anotherBuffer = vtu.createBufferWithState(t, 'valid', {
       size: kBufferSize,
       usage: kUsages,
     });
@@ -47,7 +48,7 @@ do not contribute directly to any usage scope in a compute pass.`
       bindGroupLayouts.push(t.createBindGroupLayoutForTest(usage1, 'compute'));
     }
     const pipelineLayout = t.device.createPipelineLayout({ bindGroupLayouts });
-    const computePipeline = t.createNoOpComputePipeline(pipelineLayout);
+    const computePipeline = vtu.createNoOpComputePipeline(t, pipelineLayout);
 
     const encoder = t.device.createCommandEncoder();
     const computePassEncoder = encoder.beginComputePass();
@@ -109,11 +110,11 @@ still contribute directly to the usage scope of the draw call.`
       GPUBufferUsage.INDIRECT |
       GPUBufferUsage.VERTEX |
       GPUBufferUsage.INDEX;
-    const buffer = t.createBufferWithState('valid', {
+    const buffer = vtu.createBufferWithState(t, 'valid', {
       size: kBufferSize,
       usage: kUsages,
     });
-    const anotherBuffer = t.createBufferWithState('valid', {
+    const anotherBuffer = vtu.createBufferWithState(t, 'valid', {
       size: kBufferSize,
       usage: kUsages,
     });
@@ -186,7 +187,7 @@ still contribute directly to the usage scope of the draw call.`
     switch (usage1) {
       case 'indexedIndirect': {
         if (usage0 !== 'index') {
-          const indexBuffer = t.createBufferWithState('valid', {
+          const indexBuffer = vtu.createBufferWithState(t, 'valid', {
             size: 4,
             usage: GPUBufferUsage.INDEX,
           });
@@ -311,7 +312,7 @@ g.test('subresources,buffer_usages_in_copy_and_pass')
       GPUBufferUsage.INDIRECT |
       GPUBufferUsage.VERTEX |
       GPUBufferUsage.INDEX;
-    const buffer = t.createBufferWithState('valid', {
+    const buffer = vtu.createBufferWithState(t, 'valid', {
       size: kBufferSize,
       usage: kUsages,
     });
@@ -331,7 +332,7 @@ g.test('subresources,buffer_usages_in_copy_and_pass')
     ) => {
       switch (usage) {
         case 'copy-src': {
-          const destinationBuffer = t.createBufferWithState('valid', {
+          const destinationBuffer = vtu.createBufferWithState(t, 'valid', {
             size: 4,
             usage: GPUBufferUsage.COPY_DST,
           });
@@ -339,7 +340,7 @@ g.test('subresources,buffer_usages_in_copy_and_pass')
           break;
         }
         case 'copy-dst': {
-          const sourceBuffer = t.createBufferWithState('valid', {
+          const sourceBuffer = vtu.createBufferWithState(t, 'valid', {
             size: 4,
             usage: GPUBufferUsage.COPY_SRC,
           });
@@ -385,7 +386,7 @@ g.test('subresources,buffer_usages_in_copy_and_pass')
           switch (pass) {
             case 'render': {
               const renderPassEncoder = t.beginSimpleRenderPass(encoder);
-              const renderPipeline = t.createNoOpRenderPipeline();
+              const renderPipeline = vtu.createNoOpRenderPipeline(t);
               renderPassEncoder.setPipeline(renderPipeline);
               renderPassEncoder.drawIndirect(buffer, 0);
               renderPassEncoder.end();
@@ -393,7 +394,7 @@ g.test('subresources,buffer_usages_in_copy_and_pass')
             }
             case 'compute': {
               const computePassEncoder = encoder.beginComputePass();
-              const computePipeline = t.createNoOpComputePipeline();
+              const computePipeline = vtu.createNoOpComputePipeline(t);
               computePassEncoder.setPipeline(computePipeline);
               computePassEncoder.dispatchWorkgroupsIndirect(buffer, 0);
               computePassEncoder.end();
@@ -406,9 +407,9 @@ g.test('subresources,buffer_usages_in_copy_and_pass')
         }
         case 'indexedIndirect': {
           const renderPassEncoder = t.beginSimpleRenderPass(encoder);
-          const renderPipeline = t.createNoOpRenderPipeline();
+          const renderPipeline = vtu.createNoOpRenderPipeline(t);
           renderPassEncoder.setPipeline(renderPipeline);
-          const indexBuffer = t.createBufferWithState('valid', {
+          const indexBuffer = vtu.createBufferWithState(t, 'valid', {
             size: 4,
             usage: GPUBufferUsage.INDEX,
           });

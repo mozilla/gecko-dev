@@ -2,11 +2,10 @@ export const description = `
 Test validation of pushDebugGroup, popDebugGroup, and insertDebugMarker.
 `;
 
+import { AllFeaturesMaxLimitsGPUTest } from '../.././gpu_test.js';
 import { makeTestGroup } from '../../../common/framework/test_group.js';
 
-import { AllFeaturesMaxLimitsValidationTest } from './validation_test.js';
-
-class F extends AllFeaturesMaxLimitsValidationTest {
+class F extends AllFeaturesMaxLimitsGPUTest {
   beginRenderPass(commandEncoder: GPUCommandEncoder): GPURenderPassEncoder {
     const attachmentTexture = this.createTextureTracked({
       format: 'rgba8unorm',

@@ -4,7 +4,7 @@ Texture Usages Validation Tests in Same or Different Render Pass Encoders.
 
 import { makeTestGroup } from '../../../../../common/framework/test_group.js';
 import { assert, unreachable } from '../../../../../common/util/util.js';
-import { AllFeaturesMaxLimitsValidationTest } from '../../validation_test.js';
+import { AllFeaturesMaxLimitsGPUTest } from '../../../../gpu_test.js';
 
 export type TextureBindingType =
   | 'sampled-texture'
@@ -21,7 +21,7 @@ export function IsReadOnlyTextureBindingType(t: TextureBindingType): boolean {
   return t === 'sampled-texture' || t === 'readonly-storage-texture';
 }
 
-class F extends AllFeaturesMaxLimitsValidationTest {
+class F extends AllFeaturesMaxLimitsGPUTest {
   getColorAttachment(
     texture: GPUTexture,
     textureViewDescriptor?: GPUTextureViewDescriptor

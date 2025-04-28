@@ -7,10 +7,11 @@ Tests samplers with textures.
 
 import { makeTestGroup } from '../../../../common/framework/test_group.js';
 import { assert, range } from '../../../../common/util/util.js';
-import { AllFeaturesMaxLimitsGPUTest, TextureTestMixin } from '../../../gpu_test.js';
+import { AllFeaturesMaxLimitsGPUTest } from '../../../gpu_test.js';
+import * as ttu from '../../../texture_test_utils.js';
 import { TexelView } from '../../../util/texture/texel_view.js';
 
-export const g = makeTestGroup(TextureTestMixin(AllFeaturesMaxLimitsGPUTest));
+export const g = makeTestGroup(AllFeaturesMaxLimitsGPUTest);
 
 g.test('sample_texture_combos')
   .desc(
@@ -333,7 +334,7 @@ ${declarationLines.join('\n')}
     );
 
     const size = [numAcross, 2];
-    t.expectTexelViewComparisonIsOkInTexture({ texture: renderTarget }, expTexelView, size);
+    ttu.expectTexelViewComparisonIsOkInTexture(t, { texture: renderTarget }, expTexelView, size);
 
     textures.forEach(texture => texture.destroy());
   });

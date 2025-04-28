@@ -12,10 +12,10 @@ import {
 '../../../../common/util/util.js';
 import { Float16Array } from '../../../../external/petamoriken/float16/float16.js';
 import { GPUConst } from '../../../constants.js';
-import { kResourceStates } from '../../../gpu_test.js';
-import { AllFeaturesMaxLimitsValidationTest } from '../validation_test.js';
+import { kResourceStates, AllFeaturesMaxLimitsGPUTest } from '../../../gpu_test.js';
+import * as vtu from '../validation_test_utils.js';
 
-export const g = makeTestGroup(AllFeaturesMaxLimitsValidationTest);
+export const g = makeTestGroup(AllFeaturesMaxLimitsGPUTest);
 
 g.test('buffer_state').
 desc(
@@ -27,7 +27,7 @@ desc(
 params((u) => u.combine('bufferState', kResourceStates)).
 fn((t) => {
   const { bufferState } = t.params;
-  const buffer = t.createBufferWithState(bufferState, {
+  const buffer = vtu.createBufferWithState(t, bufferState, {
     size: 16,
     usage: GPUBufferUsage.COPY_DST
   });

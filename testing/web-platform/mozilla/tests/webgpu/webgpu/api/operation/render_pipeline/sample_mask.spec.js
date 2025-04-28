@@ -19,7 +19,8 @@ The cross-platform behavior is unknown. could be any of:
 Details could be found at: https://github.com/gpuweb/cts/issues/2201
 `;import { makeTestGroup } from '../../../../common/framework/test_group.js';
 import { assert, range } from '../../../../common/util/util.js';
-import { AllFeaturesMaxLimitsGPUTest, TextureTestMixin } from '../../../gpu_test.js';
+import { AllFeaturesMaxLimitsGPUTest } from '../../../gpu_test.js';
+import * as ttu from '../../../texture_test_utils.js';
 import { checkElementsPassPredicate, checkElementsEqual } from '../../../util/check_contents.js';
 import { Type } from '../../../util/conversion.js';
 import { TexelView } from '../../../util/texture/texel_view.js';
@@ -263,7 +264,7 @@ struct FragmentOutput2 {
 }
 `;
 
-class F extends TextureTestMixin(AllFeaturesMaxLimitsGPUTest) {
+class F extends AllFeaturesMaxLimitsGPUTest {
 
 
 
@@ -278,7 +279,8 @@ class F extends TextureTestMixin(AllFeaturesMaxLimitsGPUTest) {
     // texel 2 - Blue
     // texel 3 - Yellow
     const kSampleTextureSize = 2;
-    this.sampleTexture = this.createTextureFromTexelView(
+    this.sampleTexture = ttu.createTextureFromTexelView(
+      this,
       TexelView.fromTexelsAsBytes(format, (coord) => {
         const id = coord.x + coord.y * kSampleTextureSize;
         return kColors[id];

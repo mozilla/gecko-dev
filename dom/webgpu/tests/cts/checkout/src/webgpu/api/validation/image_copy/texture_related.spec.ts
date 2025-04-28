@@ -17,6 +17,7 @@ import { kResourceStates } from '../../../gpu_test.js';
 import { align } from '../../../util/math.js';
 import { virtualMipSize } from '../../../util/texture/base.js';
 import { kImageCopyTypes } from '../../../util/texture/layout.js';
+import * as vtu from '../validation_test_utils.js';
 
 import {
   ImageCopyTest,
@@ -50,7 +51,7 @@ Test that the texture must be valid and not destroyed.
   .fn(t => {
     const { method, textureState, size, dimension } = t.params;
 
-    const texture = t.createTextureWithState(textureState, {
+    const texture = vtu.createTextureWithState(t, textureState, {
       size,
       dimension,
       format: 'rgba8unorm',

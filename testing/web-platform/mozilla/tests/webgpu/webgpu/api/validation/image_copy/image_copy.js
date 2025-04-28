@@ -8,11 +8,11 @@
   canCopyFromAllAspectsOfTextureFormat,
   canCopyToAllAspectsOfTextureFormat } from
 '../../../format_info.js';
+import { AllFeaturesMaxLimitsGPUTest } from '../../../gpu_test.js';
 import { align } from '../../../util/math.js';
 
-import { AllFeaturesMaxLimitsValidationTest } from '../validation_test.js';
 
-export class ImageCopyTest extends AllFeaturesMaxLimitsValidationTest {
+export class ImageCopyTest extends AllFeaturesMaxLimitsGPUTest {
   testRun(
   textureCopyView,
   textureDataLayout,

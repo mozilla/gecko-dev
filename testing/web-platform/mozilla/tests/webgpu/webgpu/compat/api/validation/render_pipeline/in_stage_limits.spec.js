@@ -5,6 +5,7 @@ Tests that, in compat mode, you can not create a pipeline layout with with
 more than the max in stage limit even if the per stage limit is higher.
 `;import { makeTestGroup } from '../../../../../common/framework/test_group.js';
 import { range } from '../../../../../common/util/util.js';
+import * as vtu from '../../../../api/validation/validation_test_utils.js';
 import { RequiredLimitsTestMixin } from '../../../../gpu_test.js';
 import { CompatibilityTest } from '../../../compatibility_test.js';
 
@@ -119,5 +120,5 @@ fn((t) => {
   };
 
   const success = extra === 0;
-  t.doCreateRenderPipelineTest(async, success, pipelineDescriptor);
+  vtu.doCreateRenderPipelineTest(t, async, success, pipelineDescriptor);
 });

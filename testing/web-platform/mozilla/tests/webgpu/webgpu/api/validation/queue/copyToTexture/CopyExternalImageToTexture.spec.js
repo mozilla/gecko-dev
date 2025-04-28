@@ -13,14 +13,14 @@ import { makeTestGroup } from '../../../../../common/framework/test_group.js';
 import { raceWithRejectOnTimeout, unreachable, assert } from '../../../../../common/util/util.js';
 import { kTextureUsages } from '../../../../capability_info.js';
 import { kAllTextureFormats, kValidTextureFormatsForCopyE2T } from '../../../../format_info.js';
-import { kResourceStates } from '../../../../gpu_test.js';
+import { kResourceStates, AllFeaturesMaxLimitsGPUTest } from '../../../../gpu_test.js';
 import {
 
   createCanvas,
   createOnscreenCanvas,
   createOffscreenCanvas } from
 '../../../../util/create_elements.js';
-import { AllFeaturesMaxLimitsValidationTest } from '../../validation_test.js';
+import * as vtu from '../../validation_test_utils.js';
 
 const kDefaultBytesPerPixel = 4; // using 'bgra8unorm' or 'rgba8unorm'
 const kDefaultWidth = 32;
@@ -132,7 +132,7 @@ function generateCopySizeForDstOOB({ mipLevel, dstOrigin }) {
   ];
 }
 
-class CopyExternalImageToTextureTest extends AllFeaturesMaxLimitsValidationTest {
+class CopyExternalImageToTextureTest extends AllFeaturesMaxLimitsGPUTest {
   onlineCrossOriginUrl = 'https://raw.githubusercontent.com/gpuweb/gpuweb/main/logo/webgpu.png';
 
   getImageData(width, height) {
@@ -527,7 +527,7 @@ combine('copySize', [
 fn(async (t) => {
   const { state, copySize } = t.params;
   const imageBitmap = await t.createImageBitmap(t.getImageData(1, 1));
-  const dstTexture = t.createTextureWithState(state);
+  const dstTexture = vtu.createTextureWithState(t, state);
 
   t.runTest({ source: imageBitmap }, { texture: dstTexture }, copySize, state === 'valid');
 });

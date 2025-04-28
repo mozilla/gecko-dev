@@ -3,6 +3,7 @@ copyExternalImageToTexture from ImageFiles like *.png, *.jpg source.
 `;
 
 import { makeTestGroup } from '../../../common/framework/test_group.js';
+import * as ttu from '../../texture_test_utils.js';
 import { TextureUploadingUtils } from '../../util/copy_to_texture.js';
 import {
   convertToUnorm8,
@@ -79,7 +80,7 @@ g.test('from_orientation_metadata_file')
     const presentColors = kImageExpectedColors.srgb;
 
     if (srcDoFlipYDuringCopy) {
-      t.expectSinglePixelComparisonsAreOkInTexture({ texture: dstTexture }, [
+      ttu.expectSinglePixelComparisonsAreOkInTexture(t, { texture: dstTexture }, [
         // Flipped top-left.
         {
           coord: { x: width * 0.25, y: height * 0.25 },
@@ -102,7 +103,7 @@ g.test('from_orientation_metadata_file')
         },
       ]);
     } else {
-      t.expectSinglePixelComparisonsAreOkInTexture({ texture: dstTexture }, [
+      ttu.expectSinglePixelComparisonsAreOkInTexture(t, { texture: dstTexture }, [
         // Top-left.
         {
           coord: { x: width * 0.25, y: height * 0.25 },
@@ -186,7 +187,7 @@ g.test('from_multiple_formats')
       const presentColors = kImageExpectedColors.srgb;
 
       if (srcDoFlipYDuringCopy) {
-        t.expectSinglePixelComparisonsAreOkInTexture({ texture: dstTexture }, [
+        ttu.expectSinglePixelComparisonsAreOkInTexture(t, { texture: dstTexture }, [
           // Flipped top-left.
           {
             coord: { x: width * 0.25, y: height * 0.25 },
@@ -209,7 +210,7 @@ g.test('from_multiple_formats')
           },
         ]);
       } else {
-        t.expectSinglePixelComparisonsAreOkInTexture({ texture: dstTexture }, [
+        ttu.expectSinglePixelComparisonsAreOkInTexture(t, { texture: dstTexture }, [
           // Top-left.
           {
             coord: { x: width * 0.25, y: height * 0.25 },

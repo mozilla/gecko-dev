@@ -4,6 +4,7 @@ export const description = `
   TODO: Ensure sure tests cover all createBindGroup validation rules.
 `;
 
+import { AllFeaturesMaxLimitsGPUTest, kResourceStates } from '../.././gpu_test.js';
 import { makeTestGroup } from '../../../common/framework/test_group.js';
 import { assert, makeValueTestVariant, unreachable } from '../../../common/util/util.js';
 import {
@@ -25,10 +26,9 @@ import {
 } from '../../capability_info.js';
 import { GPUConst } from '../../constants.js';
 import { kPossibleStorageTextureFormats, kRegularTextureFormats } from '../../format_info.js';
-import { kResourceStates } from '../../gpu_test.js';
 import { getTextureDimensionFromView } from '../../util/texture/base.js';
 
-import { AllFeaturesMaxLimitsValidationTest } from './validation_test.js';
+import * as vtu from './validation_test_utils.js';
 
 const kTestFormat: GPUTextureFormat = 'r32float';
 
@@ -37,7 +37,7 @@ function clone<T extends GPUTextureDescriptor>(descriptor: T): T {
 }
 
 function skipIfResourceNotSupportedInStages(
-  t: AllFeaturesMaxLimitsValidationTest,
+  t: AllFeaturesMaxLimitsGPUTest,
   entry: BGLEntry,
   visibility: number
 ) {
@@ -69,7 +69,7 @@ function skipIfResourceNotSupportedInStages(
   }
 }
 
-export const g = makeTestGroup(AllFeaturesMaxLimitsValidationTest);
+export const g = makeTestGroup(AllFeaturesMaxLimitsGPUTest);
 
 g.test('binding_count_mismatch')
   .desc('Test that the number of entries must match the number of entries in the BindGroupLayout.')
@@ -95,7 +95,7 @@ g.test('binding_count_mismatch')
     for (let i = 0; i < bindGroupEntryCount; ++i) {
       entries.push({
         binding: i,
-        resource: { buffer: t.getStorageBuffer() },
+        resource: { buffer: vtu.getStorageBuffer(t) },
       });
     }
 
@@ -127,7 +127,7 @@ g.test('binding_must_be_present_in_layout')
     });
 
     const descriptor = {
-      entries: [{ binding, resource: { buffer: t.getStorageBuffer() } }],
+      entries: [{ binding, resource: { buffer: vtu.getStorageBuffer(t) } }],
       layout: bindGroupLayout,
     };
 
@@ -154,7 +154,7 @@ g.test('binding_must_contain_resource_defined_in_layout')
       entries: [{ binding: 0, visibility: GPUShaderStage.COMPUTE, ...entry }],
     });
 
-    const resource = t.getBindingResource(resourceType);
+    const resource = vtu.getBindingResource(t, resourceType);
 
     const IsStorageTextureResourceType = (resourceType: BindableResource) => {
       switch (resourceType) {
@@ -581,7 +581,7 @@ g.test('buffer,resource_state')
       ],
     });
 
-    const buffer = t.createBufferWithState(state, {
+    const buffer = vtu.createBufferWithState(t, state, {
       usage: info.usage,
       size: 4,
     });
@@ -631,7 +631,7 @@ g.test('texture,resource_state')
       ? info.usage | GPUConst.TextureUsage.RENDER_ATTACHMENT
       : info.usage;
     const format = entry.storageTexture !== undefined ? 'r32float' : 'rgba8unorm';
-    const texture = t.createTextureWithState(state, {
+    const texture = vtu.createTextureWithState(t, state, {
       usage,
       size: [1, 1],
       format,
@@ -683,7 +683,7 @@ g.test('bind_group_layout,device_mismatch')
         entries: [
           {
             binding: 0,
-            resource: { buffer: t.getUniformBuffer() },
+            resource: { buffer: vtu.getUniformBuffer(t) },
           },
         ],
       });
@@ -728,11 +728,11 @@ g.test('binding_resources,device_mismatch')
     skipIfResourceNotSupportedInStages(t, entry, visibility);
 
     const resource0 = resource0Mismatched
-      ? t.getDeviceMismatchedBindingResource(info.resource)
-      : t.getBindingResource(info.resource);
+      ? vtu.getDeviceMismatchedBindingResource(t, info.resource)
+      : vtu.getBindingResource(t, info.resource);
     const resource1 = resource1Mismatched
-      ? t.getDeviceMismatchedBindingResource(info.resource)
-      : t.getBindingResource(info.resource);
+      ? vtu.getDeviceMismatchedBindingResource(t, info.resource)
+      : vtu.getBindingResource(t, info.resource);
 
     const bgl = t.device.createBindGroupLayout({
       entries: [

@@ -4,7 +4,6 @@
 Tests limitations of bind group usage in a pipeline in compat mode.
 `;import { makeTestGroup } from '../../../../../../common/framework/test_group.js';
 import { keysOf } from '../../../../../../common/util/data_tables.js';
-import { MaxLimitsTestMixin } from '../../../../../gpu_test.js';
 import { kRenderEncodeTypes } from '../../../../../util/command_buffer_maker.js';
 import { CompatibilityTest } from '../../../../compatibility_test.js';
 
@@ -294,7 +293,7 @@ bindConfig)
   return { texture, pipeline };
 }
 
-export const g = makeTestGroup(MaxLimitsTestMixin(CompatibilityTest));
+export const g = makeTestGroup(CompatibilityTest);
 
 g.test('twoDifferentTextureViews,render_pass,used').
 desc(

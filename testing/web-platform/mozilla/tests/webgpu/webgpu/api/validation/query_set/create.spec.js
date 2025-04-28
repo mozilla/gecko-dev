@@ -4,9 +4,9 @@
 Tests for validation in createQuerySet.
 `;import { makeTestGroup } from '../../../../common/framework/test_group.js';
 import { kQueryTypes, kMaxQueryCount } from '../../../capability_info.js';
-import { AllFeaturesMaxLimitsValidationTest } from '../validation_test.js';
+import { AllFeaturesMaxLimitsGPUTest } from '../../../gpu_test.js';
 
-export const g = makeTestGroup(AllFeaturesMaxLimitsValidationTest);
+export const g = makeTestGroup(AllFeaturesMaxLimitsGPUTest);
 
 g.test('count').
 desc(

@@ -4,11 +4,11 @@
 API validation tests for clearBuffer.
 `;import { makeTestGroup } from '../../../../../common/framework/test_group.js';
 import { kBufferUsages } from '../../../../capability_info.js';
-import { kResourceStates } from '../../../../gpu_test.js';
+import { kResourceStates, AllFeaturesMaxLimitsGPUTest } from '../../../../gpu_test.js';
 import { kMaxSafeMultipleOf8 } from '../../../../util/math.js';
-import { AllFeaturesMaxLimitsValidationTest } from '../../validation_test.js';
+import * as vtu from '../../validation_test_utils.js';
 
-class F extends AllFeaturesMaxLimitsValidationTest {
+class F extends AllFeaturesMaxLimitsGPUTest {
   TestClearBuffer(options)
 
 
@@ -34,7 +34,7 @@ params((u) => u.combine('bufferState', kResourceStates)).
 fn((t) => {
   const { bufferState } = t.params;
 
-  const buffer = t.createBufferWithState(bufferState, {
+  const buffer = vtu.createBufferWithState(t, bufferState, {
     size: 8,
     usage: GPUBufferUsage.COPY_DST
   });

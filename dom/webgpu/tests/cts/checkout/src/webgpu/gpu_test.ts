@@ -1,4 +1,3 @@
-// MAINTENANCE_TODO: Remove all deprecated functions once they are no longer in use.
 import {
   Fixture,
   FixtureClass,
@@ -25,12 +24,10 @@ import {
 import { kLimits, kQueryTypeInfo, WGSLLanguageFeature } from './capability_info.js';
 import { InterpolationType, InterpolationSampling } from './constants.js';
 import {
-  kEncodableTextureFormats,
   resolvePerAspectFormat,
   SizedTextureFormat,
   EncodableTextureFormat,
   isCompressedTextureFormat,
-  ColorTextureFormat,
   getRequiredFeatureForTextureFormat,
   isTextureFormatUsableAsStorageFormat,
   isTextureFormatUsableAsRenderAttachment,
@@ -41,8 +38,6 @@ import {
   isTextureFormatUsableAsReadWriteStorageTexture,
   isDepthTextureFormat,
   isStencilTextureFormat,
-  getBlockInfoForTextureFormat,
-  getBlockInfoForColorTextureFormat,
 } from './format_info.js';
 import { checkElementsEqual, checkElementsBetween } from './util/check_contents.js';
 import { CommandBufferMaker, EncoderType } from './util/command_buffer_maker.js';
@@ -55,22 +50,12 @@ import {
   UncanonicalizedDeviceDescriptor,
 } from './util/device_pool.js';
 import { align, roundDown } from './util/math.js';
-import { physicalMipSizeFromTexture, virtualMipSize } from './util/texture/base.js';
 import {
-  bytesInACompleteRow,
   getTextureCopyLayout,
   getTextureSubCopyLayout,
   LayoutOptions as TextureLayoutOptions,
 } from './util/texture/layout.js';
 import { PerTexelComponent, kTexelRepresentationInfo } from './util/texture/texel_data.js';
-import { TexelView } from './util/texture/texel_view.js';
-import {
-  PerPixelComparison,
-  PixelExpectation,
-  TexelCompareOptions,
-  textureContentIsOKByT2B,
-} from './util/texture/texture_ok.js';
-import { createTextureFromTexelViews } from './util/texture.js';
 import { reifyExtent3D, reifyOrigin3D } from './util/unions.js';
 
 // Declarations for WebGPU items we want tests for that are not yet officially part of the spec.
@@ -161,11 +146,17 @@ export class GPUTestSubcaseBatchState extends SubcaseBatchState {
   override async finalize(): Promise<void> {
     await super.finalize();
 
-    // Ensure devicePool.release is called for both providers even if one rejects.
-    await Promise.all([
+    // Ensure devicePool.release is called for both providers even if one rejects
+    // and wait for both of them before proceeding.
+    const results = await Promise.allSettled([
       this.provider?.then(x => devicePool.release(x)),
       this.mismatchedProvider?.then(x => mismatchedDevicePool.release(x)),
     ]);
+
+    // If one of them rejected throw its reason. It should be an `Error`.
+    for (const result of results) {
+      if (result.status === 'rejected') throw result.reason;
+    }
   }
 
   /** @internal MAINTENANCE_TODO: Make this not visible to test code? */
@@ -1582,19 +1573,6 @@ export function RequiredLimitsTestMixin<F extends FixtureClass<GPUTestBase>>(
 }
 
 /**
- * Requests all the max limits from the adapter.
- * @deprecated Use AllFeaturesMaxLimitsGPUTest or related.
- */
-export function MaxLimitsTestMixin<F extends FixtureClass<GPUTestBase>>(Base: F) {
-  return RequiredLimitsTestMixin(Base, {
-    getRequiredLimits: getAdapterLimitsAsDeviceRequiredLimits,
-    key() {
-      return 'AllLimits';
-    },
-  });
-}
-
-/**
  * Used by AllFeaturesMaxLimitsGPUTest to request a device with all limits and features of the adapter.
  */
 export class AllFeaturesMaxLimitsGPUTestSubcaseBatchState extends GPUTestSubcaseBatchState {
@@ -1630,7 +1608,7 @@ export class AllFeaturesMaxLimitsGPUTestSubcaseBatchState extends GPUTestSubcase
   /**
    * Use skipIfDeviceDoesNotHaveFeature or similar. If you really need to test
    * lack of a feature (for example tests under webgpu/api/validation/capability_checks)
-   * then use UniqueFeaturesAndLimitsGPUTest
+   * then use UniqueFeaturesOrLimitsGPUTest
    */
   override selectDeviceOrSkipTestCase(descriptor: DeviceSelectionDescriptor): void {
     unreachable('this function should not be called in AllFeaturesMaxLimitsGPUTest');
@@ -1696,627 +1674,4 @@ export class AllFeaturesMaxLimitsGPUTest extends GPUTest {
   ): GPUTestSubcaseBatchState {
     return new AllFeaturesMaxLimitsGPUTestSubcaseBatchState(recorder, params);
   }
-}
-
-/**
- * Texture expectation mixin can be applied on top of GPUTest to add texture
- * related expectation helpers.
- */
-export interface TextureTestMixinType {
-  /**
-   * Creates a 1 mip level texture with the contents of a TexelView and tracks
-   * it for destruction for the test case.
-   */
-  createTextureFromTexelView(
-    texelView: TexelView,
-    desc: Omit<GPUTextureDescriptor, 'format'>
-  ): GPUTexture;
-
-  /**
-   * Creates a mipmapped texture where each mipmap level's (`i`) content is
-   * from `texelViews[i]` and tracks it for destruction for the test case.
-   */
-  createTextureFromTexelViewsMultipleMipmaps(
-    texelViews: TexelView[],
-    desc: Omit<GPUTextureDescriptor, 'format'>
-  ): GPUTexture;
-
-  /**
-   * Expects that comparing the subrect (defined via `size`) of a GPUTexture
-   * to the expected TexelView passes without error.
-   */
-  expectTexelViewComparisonIsOkInTexture(
-    src: GPUTexelCopyTextureInfo,
-    exp: TexelView,
-    size: GPUExtent3D,
-    comparisonOptions?: TexelCompareOptions
-  ): void;
-
-  /**
-   * Expects that a sparse set of pixels in the GPUTexture passes comparison against
-   * their expected colors without error.
-   */
-  expectSinglePixelComparisonsAreOkInTexture<E extends PixelExpectation>(
-    src: GPUTexelCopyTextureInfo,
-    exp: PerPixelComparison<E>[],
-    comparisonOptions?: TexelCompareOptions
-  ): void;
-
-  /**
-   * Renders the 2 given textures to an rgba8unorm texture at the size of the
-   * specified mipLevel, each time reading the contents of the result.
-   * Expects contents of both renders to match. Also expects contents described
-   * by origin and size to not be a constant value so as to make sure something
-   * interesting was actually compared.
-   *
-   * The point of this function is to compare compressed texture contents in
-   * compatibility mode. `copyTextureToBuffer` does not work for compressed
-   * textures in compatibility mode so instead, we pass 2 compressed texture
-   * to this function. Each one will be rendered to an `rgba8unorm` texture,
-   * the results of that `rgba8unorm` texture read via `copyTextureToBuffer`,
-   * and then results compared. This indirectly lets us compare the contents
-   * of the 2 compressed textures.
-   *
-   * Code calling this function would generate the textures where the
-   * `actualTexture` is generated calling `writeTexture`, `copyBufferToTexture`
-   * or `copyTextureToTexture` and `expectedTexture`'s data is generated entirely
-   * on the CPU in such a way that its content should match whatever process
-   * was used to generate `actualTexture`. Often this involves calling
-   * `updateLinearTextureDataSubBox`
-   */
-  expectTexturesToMatchByRendering(
-    actualTexture: GPUTexture,
-    expectedTexture: GPUTexture,
-    mipLevel: number,
-    origin: Required<GPUOrigin3DDict>,
-    size: Required<GPUExtent3DDict>
-  ): void;
-
-  /**
-   * Copies an entire texture's mipLevel to a buffer
-   */
-  copyWholeTextureToNewBufferSimple(texture: GPUTexture, mipLevel: number): GPUBuffer;
-
-  /**
-   * Copies an texture's mipLevel to a buffer
-   * The size of the buffer is specified by `byteLength`
-   */
-  copyWholeTextureToNewBuffer(
-    { texture, mipLevel }: { texture: GPUTexture; mipLevel: number | undefined },
-    resultDataLayout: {
-      bytesPerBlock: number;
-      byteLength: number;
-      bytesPerRow: number;
-      rowsPerImage: number;
-      mipSize: [number, number, number];
-    }
-  ): GPUBuffer;
-
-  /**
-   * Updates a Uint8Array with a cubic portion of data from another Uint8Array.
-   * Effectively it's a Uint8Array to Uint8Array copy that
-   * does the same thing as `writeTexture` but because the
-   * destination is a buffer you have to provide the parameters
-   * of the destination buffer similarly to how you'd provide them
-   * to `copyTextureToBuffer`
-   */
-  updateLinearTextureDataSubBox(
-    format: ColorTextureFormat,
-    copySize: Required<GPUExtent3DDict>,
-    copyParams: {
-      dest: LinearCopyParameters;
-      src: LinearCopyParameters;
-    }
-  ): void;
-
-  /**
-   * Gets a byte offset to a texel
-   */
-  getTexelOffsetInBytes(
-    textureDataLayout: Required<GPUTexelCopyBufferLayout>,
-    format: ColorTextureFormat,
-    texel: Required<GPUOrigin3DDict>,
-    origin?: Required<GPUOrigin3DDict>
-  ): number;
-
-  iterateBlockRows(
-    size: Required<GPUExtent3DDict>,
-    format: ColorTextureFormat
-  ): Generator<Required<GPUOrigin3DDict>>;
-}
-
-type PipelineType = '2d' | '2d-array';
-
-type ImageCopyTestResources = {
-  pipelineByPipelineType: Map<PipelineType, GPURenderPipeline>;
-};
-
-const s_deviceToResourcesMap = new WeakMap<GPUDevice, ImageCopyTestResources>();
-
-/**
- * Gets a (cached) pipeline to render a texture to an rgba8unorm texture
- */
-function getPipelineToRenderTextureToRGB8UnormTexture(
-  device: GPUDevice,
-  texture: GPUTexture,
-  isCompatibility: boolean
-) {
-  if (!s_deviceToResourcesMap.has(device)) {
-    s_deviceToResourcesMap.set(device, {
-      pipelineByPipelineType: new Map<PipelineType, GPURenderPipeline>(),
-    });
-  }
-
-  const { pipelineByPipelineType } = s_deviceToResourcesMap.get(device)!;
-  const pipelineType: PipelineType =
-    isCompatibility && texture.depthOrArrayLayers > 1 ? '2d-array' : '2d';
-  if (!pipelineByPipelineType.get(pipelineType)) {
-    const [textureType, layerCode] =
-      pipelineType === '2d' ? ['texture_2d', ''] : ['texture_2d_array', ', uni.baseArrayLayer'];
-    const module = device.createShaderModule({
-      code: `
-        struct VSOutput {
-          @builtin(position) position: vec4f,
-          @location(0) texcoord: vec2f,
-        };
-
-        struct Uniforms {
-          baseArrayLayer: u32,
-        };
-
-        @vertex fn vs(
-          @builtin(vertex_index) vertexIndex : u32
-        ) -> VSOutput {
-            let pos = array(
-               vec2f(-1, -1),
-               vec2f(-1,  3),
-               vec2f( 3, -1),
-            );
-
-            var vsOutput: VSOutput;
-
-            let xy = pos[vertexIndex];
-
-            vsOutput.position = vec4f(xy, 0.0, 1.0);
-            vsOutput.texcoord = xy * vec2f(0.5, -0.5) + vec2f(0.5);
-
-            return vsOutput;
-         }
-
-         @group(0) @binding(0) var ourSampler: sampler;
-         @group(0) @binding(1) var ourTexture: ${textureType}<f32>;
-         @group(0) @binding(2) var<uniform> uni: Uniforms;
-
-         @fragment fn fs(fsInput: VSOutput) -> @location(0) vec4f {
-            return textureSample(ourTexture, ourSampler, fsInput.texcoord${layerCode});
-         }
-      `,
-    });
-    const pipeline = device.createRenderPipeline({
-      layout: 'auto',
-      vertex: {
-        module,
-        entryPoint: 'vs',
-      },
-      fragment: {
-        module,
-        entryPoint: 'fs',
-        targets: [{ format: 'rgba8unorm' }],
-      },
-    });
-    pipelineByPipelineType.set(pipelineType, pipeline);
-  }
-  const pipeline = pipelineByPipelineType.get(pipelineType)!;
-  return { pipelineType, pipeline };
-}
-
-type LinearCopyParameters = {
-  dataLayout: Required<GPUTexelCopyBufferLayout>;
-  origin: Required<GPUOrigin3DDict>;
-  data: Uint8Array;
-};
-
-export function TextureTestMixin<F extends FixtureClass<GPUTestBase>>(
-  Base: F
-): FixtureClassWithMixin<F, TextureTestMixinType> {
-  class TextureExpectations
-    extends (Base as FixtureClassInterface<GPUTestBase>)
-    implements TextureTestMixinType
-  {
-    /**
-     * Creates a 1 mip level texture with the contents of a TexelView.
-     */
-    createTextureFromTexelView(
-      texelView: TexelView,
-      desc: Omit<GPUTextureDescriptor, 'format'>
-    ): GPUTexture {
-      return createTextureFromTexelViews(this, [texelView], desc);
-    }
-
-    createTextureFromTexelViewsMultipleMipmaps(
-      texelViews: TexelView[],
-      desc: Omit<GPUTextureDescriptor, 'format'>
-    ): GPUTexture {
-      return createTextureFromTexelViews(this, texelViews, desc);
-    }
-
-    expectTexelViewComparisonIsOkInTexture(
-      src: GPUTexelCopyTextureInfo,
-      exp: TexelView,
-      size: GPUExtent3D,
-      comparisonOptions = {
-        maxIntDiff: 0,
-        maxDiffULPsForNormFormat: 1,
-        maxDiffULPsForFloatFormat: 1,
-      }
-    ): void {
-      this.eventualExpectOK(
-        textureContentIsOKByT2B(this, src, size, { expTexelView: exp }, comparisonOptions)
-      );
-    }
-
-    expectSinglePixelComparisonsAreOkInTexture<E extends PixelExpectation>(
-      src: GPUTexelCopyTextureInfo,
-      exp: PerPixelComparison<E>[],
-      comparisonOptions = {
-        maxIntDiff: 0,
-        maxDiffULPsForNormFormat: 1,
-        maxDiffULPsForFloatFormat: 1,
-      }
-    ): void {
-      assert(exp.length > 0, 'must specify at least one pixel comparison');
-      assert(
-        (kEncodableTextureFormats as GPUTextureFormat[]).includes(src.texture.format),
-        () => `${src.texture.format} is not an encodable format`
-      );
-      const lowerCorner = [src.texture.width, src.texture.height, src.texture.depthOrArrayLayers];
-      const upperCorner = [0, 0, 0];
-      const expMap = new Map<string, E>();
-      const coords: Required<GPUOrigin3DDict>[] = [];
-      for (const e of exp) {
-        const coord = reifyOrigin3D(e.coord);
-        const coordKey = JSON.stringify(coord);
-        coords.push(coord);
-
-        // Compute the minimum sub-rect that encompasses all the pixel comparisons. The
-        // `lowerCorner` will become the origin, and the `upperCorner` will be used to compute the
-        // size.
-        lowerCorner[0] = Math.min(lowerCorner[0], coord.x);
-        lowerCorner[1] = Math.min(lowerCorner[1], coord.y);
-        lowerCorner[2] = Math.min(lowerCorner[2], coord.z);
-        upperCorner[0] = Math.max(upperCorner[0], coord.x);
-        upperCorner[1] = Math.max(upperCorner[1], coord.y);
-        upperCorner[2] = Math.max(upperCorner[2], coord.z);
-
-        // Build a sparse map of the coordinates to the expected colors for the texel view.
-        assert(
-          !expMap.has(coordKey),
-          () => `duplicate pixel expectation at coordinate (${coord.x},${coord.y},${coord.z})`
-        );
-        expMap.set(coordKey, e.exp);
-      }
-      const size: GPUExtent3D = [
-        upperCorner[0] - lowerCorner[0] + 1,
-        upperCorner[1] - lowerCorner[1] + 1,
-        upperCorner[2] - lowerCorner[2] + 1,
-      ];
-      let expTexelView: TexelView;
-      if (Symbol.iterator in exp[0].exp) {
-        expTexelView = TexelView.fromTexelsAsBytes(
-          src.texture.format as EncodableTextureFormat,
-          coord => {
-            const res = expMap.get(JSON.stringify(coord));
-            assert(
-              res !== undefined,
-              () => `invalid coordinate (${coord.x},${coord.y},${coord.z}) in sparse texel view`
-            );
-            return res as Uint8Array;
-          }
-        );
-      } else {
-        expTexelView = TexelView.fromTexelsAsColors(
-          src.texture.format as EncodableTextureFormat,
-          coord => {
-            const res = expMap.get(JSON.stringify(coord));
-            assert(
-              res !== undefined,
-              () => `invalid coordinate (${coord.x},${coord.y},${coord.z}) in sparse texel view`
-            );
-            return res as PerTexelComponent<number>;
-          }
-        );
-      }
-      const coordsF = (function* () {
-        for (const coord of coords) {
-          yield coord;
-        }
-      })();
-
-      this.eventualExpectOK(
-        textureContentIsOKByT2B(
-          this,
-          { ...src, origin: reifyOrigin3D(lowerCorner) },
-          size,
-          { expTexelView },
-          comparisonOptions,
-          coordsF
-        )
-      );
-    }
-
-    expectTexturesToMatchByRendering(
-      actualTexture: GPUTexture,
-      expectedTexture: GPUTexture,
-      mipLevel: number,
-      origin: Required<GPUOrigin3DDict>,
-      size: Required<GPUExtent3DDict>
-    ): void {
-      // Render every layer of both textures at mipLevel to an rgba8unorm texture
-      // that matches the size of the mipLevel. After each render, copy the
-      // result to a buffer and expect the results from both textures to match.
-      const { pipelineType, pipeline } = getPipelineToRenderTextureToRGB8UnormTexture(
-        this.device,
-        actualTexture,
-        this.isCompatibility
-      );
-      const readbackPromisesPerTexturePerLayer = [actualTexture, expectedTexture].map(
-        (texture, ndx) => {
-          const attachmentSize = virtualMipSize('2d', [texture.width, texture.height, 1], mipLevel);
-          const attachment = this.createTextureTracked({
-            label: `readback${ndx}`,
-            size: attachmentSize,
-            format: 'rgba8unorm',
-            usage: GPUTextureUsage.COPY_SRC | GPUTextureUsage.RENDER_ATTACHMENT,
-          });
-
-          const sampler = this.device.createSampler();
-
-          const numLayers = texture.depthOrArrayLayers;
-          const readbackPromisesPerLayer = [];
-
-          const uniformBuffer = this.createBufferTracked({
-            label: 'expectTexturesToMatchByRendering:uniforBuffer',
-            size: 4,
-            usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
-          });
-
-          for (let layer = 0; layer < numLayers; ++layer) {
-            const viewDescriptor: GPUTextureViewDescriptor = {
-              baseMipLevel: mipLevel,
-              mipLevelCount: 1,
-              ...(!this.isCompatibility && {
-                baseArrayLayer: layer,
-                arrayLayerCount: 1,
-              }),
-              dimension: pipelineType,
-            };
-
-            const bindGroup = this.device.createBindGroup({
-              layout: pipeline.getBindGroupLayout(0),
-              entries: [
-                { binding: 0, resource: sampler },
-                {
-                  binding: 1,
-                  resource: texture.createView(viewDescriptor),
-                },
-                ...(pipelineType === '2d-array'
-                  ? [
-                      {
-                        binding: 2,
-                        resource: { buffer: uniformBuffer },
-                      },
-                    ]
-                  : []),
-              ],
-            });
-
-            this.device.queue.writeBuffer(uniformBuffer, 0, new Uint32Array([layer]));
-
-            const encoder = this.device.createCommandEncoder({
-              label: 'expectTexturesToMatchByRendering',
-            });
-            const pass = encoder.beginRenderPass({
-              colorAttachments: [
-                {
-                  view: attachment.createView(),
-                  clearValue: [0.5, 0.5, 0.5, 0.5],
-                  loadOp: 'clear',
-                  storeOp: 'store',
-                },
-              ],
-            });
-            pass.setPipeline(pipeline);
-            pass.setBindGroup(0, bindGroup);
-            pass.draw(3);
-            pass.end();
-            this.queue.submit([encoder.finish()]);
-
-            const buffer = this.copyWholeTextureToNewBufferSimple(attachment, 0);
-
-            readbackPromisesPerLayer.push(
-              this.readGPUBufferRangeTyped(buffer, {
-                type: Uint8Array,
-                typedLength: buffer.size,
-              })
-            );
-          }
-          return readbackPromisesPerLayer;
-        }
-      );
-
-      this.eventualAsyncExpectation(async niceStack => {
-        const readbacksPerTexturePerLayer = [];
-
-        // Wait for all buffers to be ready
-        for (const readbackPromises of readbackPromisesPerTexturePerLayer) {
-          readbacksPerTexturePerLayer.push(await Promise.all(readbackPromises));
-        }
-
-        function arrayNotAllTheSameValue(arr: TypedArrayBufferView | number[], msg?: string) {
-          const first = arr[0];
-          return arr.length <= 1 || arr.findIndex(v => v !== first) >= 0
-            ? undefined
-            : Error(`array is entirely ${first} so likely nothing was tested: ${msg || ''}`);
-        }
-
-        // Compare each layer of each texture as read from buffer.
-        const [actualReadbacksPerLayer, expectedReadbacksPerLayer] = readbacksPerTexturePerLayer;
-        for (let layer = 0; layer < actualReadbacksPerLayer.length; ++layer) {
-          const actualReadback = actualReadbacksPerLayer[layer];
-          const expectedReadback = expectedReadbacksPerLayer[layer];
-          const sameOk =
-            size.width === 0 ||
-            size.height === 0 ||
-            layer < origin.z ||
-            layer >= origin.z + size.depthOrArrayLayers;
-          this.expectOK(
-            sameOk ? undefined : arrayNotAllTheSameValue(actualReadback.data, 'actualTexture')
-          );
-          this.expectOK(
-            sameOk ? undefined : arrayNotAllTheSameValue(expectedReadback.data, 'expectedTexture')
-          );
-          this.expectOK(checkElementsEqual(actualReadback.data, expectedReadback.data), {
-            mode: 'fail',
-            niceStack,
-          });
-          actualReadback.cleanup();
-          expectedReadback.cleanup();
-        }
-      });
-    }
-
-    copyWholeTextureToNewBufferSimple(texture: GPUTexture, mipLevel: number) {
-      const { blockWidth, blockHeight, bytesPerBlock } = getBlockInfoForTextureFormat(
-        texture.format
-      );
-      const mipSize = physicalMipSizeFromTexture(texture, mipLevel);
-      assert(bytesPerBlock !== undefined);
-
-      const blocksPerRow = mipSize[0] / blockWidth;
-      const blocksPerColumn = mipSize[1] / blockHeight;
-
-      assert(blocksPerRow % 1 === 0);
-      assert(blocksPerColumn % 1 === 0);
-
-      const bytesPerRow = align(blocksPerRow * bytesPerBlock, 256);
-      const byteLength = bytesPerRow * blocksPerColumn * mipSize[2];
-
-      return this.copyWholeTextureToNewBuffer(
-        { texture, mipLevel },
-        {
-          bytesPerBlock,
-          bytesPerRow,
-          rowsPerImage: blocksPerColumn,
-          byteLength,
-        }
-      );
-    }
-
-    copyWholeTextureToNewBuffer(
-      { texture, mipLevel }: { texture: GPUTexture; mipLevel: number | undefined },
-      resultDataLayout: {
-        bytesPerBlock: number;
-        byteLength: number;
-        bytesPerRow: number;
-        rowsPerImage: number;
-      }
-    ): GPUBuffer {
-      const { byteLength, bytesPerRow, rowsPerImage } = resultDataLayout;
-      const buffer = this.createBufferTracked({
-        label: 'copyWholeTextureToNewBuffer:buffer',
-        size: align(byteLength, 4), // this is necessary because we need to copy and map data from this buffer
-        usage: GPUBufferUsage.COPY_SRC | GPUBufferUsage.COPY_DST,
-      });
-
-      const mipSize = physicalMipSizeFromTexture(texture, mipLevel || 0);
-      const encoder = this.device.createCommandEncoder({ label: 'copyWholeTextureToNewBuffer' });
-      encoder.copyTextureToBuffer(
-        { texture, mipLevel },
-        { buffer, bytesPerRow, rowsPerImage },
-        mipSize
-      );
-      this.device.queue.submit([encoder.finish()]);
-
-      return buffer;
-    }
-
-    updateLinearTextureDataSubBox(
-      format: ColorTextureFormat,
-      copySize: Required<GPUExtent3DDict>,
-      copyParams: {
-        dest: LinearCopyParameters;
-        src: LinearCopyParameters;
-      }
-    ): void {
-      const { src, dest } = copyParams;
-      const rowLength = bytesInACompleteRow(copySize.width, format);
-      for (const texel of this.iterateBlockRows(copySize, format)) {
-        const srcOffsetElements = this.getTexelOffsetInBytes(
-          src.dataLayout,
-          format,
-          texel,
-          src.origin
-        );
-        const dstOffsetElements = this.getTexelOffsetInBytes(
-          dest.dataLayout,
-          format,
-          texel,
-          dest.origin
-        );
-        memcpy(
-          { src: src.data, start: srcOffsetElements, length: rowLength },
-          { dst: dest.data, start: dstOffsetElements }
-        );
-      }
-    }
-
-    /** Offset for a particular texel in the linear texture data */
-    getTexelOffsetInBytes(
-      textureDataLayout: Required<GPUTexelCopyBufferLayout>,
-      format: ColorTextureFormat,
-      texel: Required<GPUOrigin3DDict>,
-      origin: Required<GPUOrigin3DDict> = { x: 0, y: 0, z: 0 }
-    ): number {
-      const { offset, bytesPerRow, rowsPerImage } = textureDataLayout;
-      const info = getBlockInfoForColorTextureFormat(format);
-
-      assert(texel.x % info.blockWidth === 0);
-      assert(texel.y % info.blockHeight === 0);
-      assert(origin.x % info.blockWidth === 0);
-      assert(origin.y % info.blockHeight === 0);
-
-      const bytesPerImage = rowsPerImage * bytesPerRow;
-
-      return (
-        offset +
-        (texel.z + origin.z) * bytesPerImage +
-        ((texel.y + origin.y) / info.blockHeight) * bytesPerRow +
-        ((texel.x + origin.x) / info.blockWidth) * info.bytesPerBlock
-      );
-    }
-
-    *iterateBlockRows(
-      size: Required<GPUExtent3DDict>,
-      format: ColorTextureFormat
-    ): Generator<Required<GPUOrigin3DDict>> {
-      if (size.width === 0 || size.height === 0 || size.depthOrArrayLayers === 0) {
-        // do not iterate anything for an empty region
-        return;
-      }
-      const info = getBlockInfoForTextureFormat(format);
-      assert(size.height % info.blockHeight === 0);
-      // Note: it's important that the order is in increasing memory address order.
-      for (let z = 0; z < size.depthOrArrayLayers; ++z) {
-        for (let y = 0; y < size.height; y += info.blockHeight) {
-          yield {
-            x: 0,
-            y,
-            z,
-          };
-        }
-      }
-    }
-  }
-
-  return TextureExpectations as unknown as FixtureClassWithMixin<F, TextureTestMixinType>;
 }
