@@ -329,9 +329,6 @@ var allowlist = [
     file: "resource://gre/localization/en-US/netwerk/necko.ftl",
   },
 
-  // dom/xslt/xslt/txMozillaXSLTProcessor.cpp
-  { file: "resource://gre/localization/en-US/dom/xslt.ftl" },
-
   // A QA and dev debug tool.
   { file: "chrome://browser/content/places/interactionsViewer.html" },
 ];
