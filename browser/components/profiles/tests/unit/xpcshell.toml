@@ -7,6 +7,8 @@ prefs = [
   "browser.profiles.created=false",
 ]
 
+["test_command_line_handler.js"]
+
 ["test_delete_last_profile.js"]
 
 ["test_fail_recover_storeID.js"]
