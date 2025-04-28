@@ -573,7 +573,6 @@ AntiTrackingUtils::GetStoragePermissionStateInParent(nsIChannel* aChannel) {
     return nsILoadInfo::NoStoragePermission;
   }
 
-
   RefPtr<net::HttpBaseChannel> httpBaseChannel = do_QueryObject(aChannel);
   if (httpBaseChannel && httpBaseChannel->HasRedirectTaintedOrigin()) {
     return nsILoadInfo::NoStoragePermission;
@@ -1039,7 +1038,10 @@ bool AntiTrackingUtils::IsThirdPartyDocument(Document* aDocument) {
     }
 
     RefPtr<BrowsingContext> bc = aDocument->GetBrowsingContext();
-    return bc ? IsThirdPartyContext(bc) : true;
+    if (bc && bc->IsInProcess()) {
+      return IsThirdPartyContext(bc);
+    }
+    return true;
   }
 
   nsresult rv = tpuService->IsThirdPartyChannel(aDocument->GetChannel(),
