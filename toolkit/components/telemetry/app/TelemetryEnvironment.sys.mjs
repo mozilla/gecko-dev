@@ -82,8 +82,8 @@ export var Policy = {
 var gActiveExperimentStartupBuffer = new Map();
 
 // For Powering arewegleanyet.com (See bug 1944592)
-// Legacy Count: 115
-// Glean Count: 111
+// Legacy Count: 118
+// Glean Count: 117
 
 var gGlobalEnvironment;
 function getGlobal() {
@@ -479,7 +479,7 @@ function getRegionalPrefsLocales() {
 }
 
 function getIntlSettings() {
-  return {
+  let intl = {
     requestedLocales: Services.locale.requestedLocales,
     availableLocales: Services.locale.availableLocales,
     appLocales: Services.locale.appLocalesAsBCP47,
@@ -490,6 +490,13 @@ function getIntlSettings() {
       .data.split(",")
       .map(str => str.trim()),
   };
+  Glean.intl.requestedLocales.set(intl.requestedLocales);
+  Glean.intl.availableLocales.set(intl.availableLocales);
+  Glean.intl.appLocales.set(intl.appLocales);
+  Glean.intl.systemLocales.set(intl.systemLocales);
+  Glean.intl.regionalPrefsLocales.set(intl.regionalPrefsLocales);
+  Glean.intl.acceptLanguages.set(intl.acceptLanguages);
+  return intl;
 }
 
 /**

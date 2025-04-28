@@ -431,6 +431,7 @@ export var TelemetryEnvironmentTesting = {
 
     for (let field of fields) {
       lazy.Assert.ok(Array.isArray(intl[field]), `${field} is an array`);
+      lazy.Assert.deepEqual(intl[field], Glean.intl[field].testGetValue());
     }
 
     // These fields may be null if they aren't ready yet. This is mostly to deal
@@ -441,6 +442,7 @@ export var TelemetryEnvironmentTesting = {
       let isArray = Array.isArray(intl[field]);
       let isNull = intl[field] === null;
       lazy.Assert.ok(isArray || isNull, `${field} is an array or null`);
+      lazy.Assert.deepEqual(intl[field], Glean.intl[field].testGetValue());
     }
   },
 
