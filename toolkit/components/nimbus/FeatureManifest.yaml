@@ -2503,24 +2503,6 @@ networking:
       setPref:
         branch: default
         pref: "network.decompression_off_mainthread_min_size"
-    httpMaxConnections:
-      description: The maximum number of http connections.
-      type: int
-      setPref:
-        branch: default
-        pref: "network.http.max-connections"
-    httpMaxPersistentConnectionsPerServer:
-      description: The maximum number of persistent connections to a server
-      type: int
-      setPref:
-        branch: default
-        pref: "network.http.max-persistent-connections-per-server"
-    speculativeConnectionLimit:
-      description: The maximum number of half-open sockets allowed for speculative connections
-      type: int
-      setPref:
-        branch: default
-        pref: "network.http.speculative-parallel-limit"
     dnsGracePeriod:
       description: The grace period allows the DNS cache to use expired entries, while kicking off a revalidation in the background.
       type: int
@@ -2575,6 +2557,30 @@ networkingDNS:
       setPref:
         branch: default
         pref: "network.dnsCacheEntries"
+
+networkingConnections:
+  description: "Networking (Necko) Connections"
+  owner: vgosu@mozilla.com
+  hasExposure: false
+  variables:
+    httpMaxConnections:
+      description: The maximum number of http connections.
+      type: int
+      setPref:
+        branch: default
+        pref: "network.http.max-connections"
+    httpMaxPersistentConnectionsPerServer:
+      description: The maximum number of persistent connections to a server
+      type: int
+      setPref:
+        branch: default
+        pref: "network.http.max-persistent-connections-per-server"
+    speculativeConnectionLimit:
+      description: The maximum number of half-open sockets allowed for speculative connections
+      type: int
+      setPref:
+        branch: default
+        pref: "network.http.speculative-parallel-limit"
 
 essentialFallbackDomains:
   description: "Whether to retry failing system requests with a backup domain"
