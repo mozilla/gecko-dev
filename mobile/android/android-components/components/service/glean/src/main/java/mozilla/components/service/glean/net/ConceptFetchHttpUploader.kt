@@ -34,6 +34,7 @@ typealias PingUploader = CorePingUploader
 class ConceptFetchHttpUploader(
     internal val client: Lazy<Client>,
     private val usePrivateRequest: Boolean = false,
+    private val supportsOhttp: Boolean = false,
 ) : PingUploader {
     private val logger = Logger("glean/ConceptFetchHttpUploader")
 
@@ -68,7 +69,9 @@ class ConceptFetchHttpUploader(
      *         error callers can deal with.
      */
     override fun upload(request: CapablePingUploadRequest): UploadResult {
-        val req: PingUploadRequest? = request.capable { capabilities: List<String> -> capabilities.isEmpty() || capabilities == listOf("ohttp") }
+        val req: PingUploadRequest? = request.capable { capabilities: List<String> ->
+            capabilities.isEmpty() || (supportsOhttp && capabilities == listOf("ohttp"))
+        }
         if (req == null) {
             return Incapable(0)
         }
@@ -99,7 +102,7 @@ class ConceptFetchHttpUploader(
             body = Request.Body(request.data.inputStream()),
             private = usePrivateRequest,
             conservative = true,
-            useOhttp = request.uploaderCapabilities.contains("ohttp")
+            useOhttp = supportsOhttp && request.uploaderCapabilities.contains("ohttp"),
         )
     }
 
