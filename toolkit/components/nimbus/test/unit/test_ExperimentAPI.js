@@ -15,10 +15,13 @@ add_setup(function () {
 add_task(async function test_getExperimentMetaData() {
   const { sandbox, manager, cleanup } = await NimbusTestUtils.setupTest();
 
-  const expected = ExperimentFakes.experiment("foo");
+  const expected = NimbusTestUtils.factories.recipe.withFeatureConfig("foo", {
+    featureId: "testFeature",
+  });
+
   let exposureStub = sandbox.stub(NimbusTelemetry, "recordExposure");
 
-  manager.store.addEnrollment(expected);
+  await manager.enroll(expected, "test");
 
   let metadata = ExperimentAPI.getExperimentMetaData({ slug: expected.slug });
 
@@ -29,7 +32,7 @@ add_task(async function test_getExperimentMetaData() {
   );
   Assert.equal(
     metadata.branch.slug,
-    expected.branch.slug,
+    expected.branches[0].slug,
     "Should have the slug prop"
   );
 
@@ -42,10 +45,11 @@ add_task(async function test_getExperimentMetaData() {
 add_task(async function test_getRolloutMetaData() {
   const { sandbox, manager, cleanup } = await NimbusTestUtils.setupTest();
 
-  const expected = ExperimentFakes.rollout("foo");
+  const expected = NimbusTestUtils.factories.recipe("foo", { isRollout: true });
+
   let exposureStub = sandbox.stub(NimbusTelemetry, "recordExposure");
 
-  manager.store.addEnrollment(expected);
+  await manager.enroll(expected, "test");
 
   let metadata = ExperimentAPI.getExperimentMetaData({ slug: expected.slug });
 
@@ -56,7 +60,7 @@ add_task(async function test_getRolloutMetaData() {
   );
   Assert.equal(
     metadata.branch.slug,
-    expected.branch.slug,
+    expected.branches[0].slug,
     "Should have the slug prop"
   );
 
