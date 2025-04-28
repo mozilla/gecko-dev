@@ -461,9 +461,6 @@ void Event::PreventDefault(JSContext* aCx, CallerType aCallerType) {
 
 void Event::PreventDefaultInternal(bool aCalledByDefaultHandler,
                                    nsIPrincipal* aPrincipal) {
-  if (!mEvent->mFlags.mCancelable) {
-    return;
-  }
   if (mEvent->mFlags.mInPassiveListener) {
     if (nsPIDOMWindowInner* win = mOwner->GetAsInnerWindow()) {
       if (Document* doc = win->GetExtantDoc()) {
@@ -476,6 +473,9 @@ void Event::PreventDefaultInternal(bool aCalledByDefaultHandler,
         }
       }
     }
+    return;
+  }
+  if (!mEvent->mFlags.mCancelable) {
     return;
   }
 

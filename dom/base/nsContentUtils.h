@@ -1774,6 +1774,12 @@ class nsContentUtils {
   static nsAtom* GetEventTypeFromMessage(EventMessage aEventMessage);
 
   /**
+   * Return the event type atom from a given event.
+   */
+  static already_AddRefed<nsAtom> GetEventType(
+      const mozilla::WidgetEvent* aEvent);
+
+  /**
    * Returns the EventMessage and nsAtom to be used for event listener
    * registration.
    */

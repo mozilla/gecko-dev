@@ -1181,6 +1181,16 @@ nsAtom* nsContentUtils::GetEventTypeFromMessage(EventMessage aEventMessage) {
   }
 }
 
+/* static */
+already_AddRefed<nsAtom> nsContentUtils::GetEventType(
+    const WidgetEvent* aEvent) {
+  RefPtr<nsAtom> typeAtom =
+      aEvent->mMessage == eUnidentifiedEvent
+          ? aEvent->mSpecifiedEventType.get()
+          : nsContentUtils::GetEventTypeFromMessage(aEvent->mMessage);
+  return typeAtom.forget();
+}
+
 bool nsContentUtils::InitializeEventTable() {
   NS_ASSERTION(!sAtomEventTable, "EventTable already initialized!");
   NS_ASSERTION(!sStringEventTable, "EventTable already initialized!");
