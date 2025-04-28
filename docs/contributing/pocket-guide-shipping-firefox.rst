@@ -77,7 +77,7 @@ Landing Code and Shipping Features
 
 Mozillians (those employed by MoCo and the broader community) land lots of code in
 the Mozilla repositories: fixes, enhancements, compatibility, new features, etc. which are
-managed by :ref:`Mercurial <Mercurial Overview>` (aka hg). All code development is tracked in
+managed by git. All code development is tracked in
 :ref:`Bugzilla <bugzilla>`, reviewed in :ref:`Phabricator <Phabricator>`, and then checked
 into the mozilla-central repository using :ref:`Lando <Lando>`.
 
@@ -331,12 +331,6 @@ particular source code repository
 **Lando** - Automated code lander for Mozilla. It is integrated with
 our `Phabricator instance <https://phabricator.services.mozilla.com>`__
 and can be used to land revisions to various repositories.
-
-.. _mercurial:
-
-**Mercurial** - A source-code management tool (just like git)
-which allows users to keep track of changes to the source code
-locally and share their changes with others. It is also called hg.
 
 .. _merge:
 
