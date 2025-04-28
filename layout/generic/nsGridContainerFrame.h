@@ -11,7 +11,6 @@
 
 #include "mozilla/CSSOrderAwareFrameIterator.h"
 #include "mozilla/IntrinsicISizesCache.h"
-#include "mozilla/MathAlgorithms.h"
 #include "mozilla/Maybe.h"
 #include "mozilla/HashTable.h"
 #include "nsAtomHashKeys.h"
