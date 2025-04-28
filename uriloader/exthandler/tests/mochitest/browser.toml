@@ -118,6 +118,9 @@ support-files = [
   "file_pdf_application_pdf.pdf^headers^",
 ]
 
+["browser_pdf_sandboxed_iframe.js"]
+support-files = ["file_pdf.pdf"]
+
 ["browser_pdf_save_as.js"]
 
 ["browser_protocol_ask_dialog.js"]
