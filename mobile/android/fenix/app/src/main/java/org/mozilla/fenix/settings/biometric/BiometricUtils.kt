@@ -11,6 +11,7 @@ import android.provider.Settings
 import android.view.View
 import androidx.annotation.StringRes
 import androidx.appcompat.app.AlertDialog
+import androidx.biometric.BiometricManager
 import androidx.core.content.getSystemService
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.FragmentActivity
@@ -64,7 +65,7 @@ fun bindBiometricsCredentialsPromptOrShowWarning(
         ),
     )
     // Use the BiometricPrompt first
-    if (BiometricPromptFeature.canUseFeature(context)) {
+    if (BiometricPromptFeature.canUseFeature(BiometricManager.from(context))) {
         biometricPromptFeature.get()
             ?.requestAuthentication(context.resources.getString(titleRes))
         return

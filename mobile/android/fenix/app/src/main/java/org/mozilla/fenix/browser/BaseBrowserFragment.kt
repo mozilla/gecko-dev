@@ -22,6 +22,7 @@ import androidx.activity.result.ActivityResultLauncher
 import androidx.annotation.CallSuper
 import androidx.annotation.VisibleForTesting
 import androidx.appcompat.app.AlertDialog
+import androidx.biometric.BiometricManager
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Column
 import androidx.compose.material.Text
@@ -1373,7 +1374,7 @@ abstract class BaseBrowserFragment :
      * Shows a biometric prompt and fallback to prompting for the password.
      */
     private fun showBiometricPrompt(context: Context) {
-        if (BiometricPromptFeature.canUseFeature(context)) {
+        if (BiometricPromptFeature.canUseFeature(BiometricManager.from(context))) {
             biometricPromptFeature.get()
                 ?.requestAuthentication(getString(R.string.credit_cards_biometric_prompt_unlock_message_2))
             return
