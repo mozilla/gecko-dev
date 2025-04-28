@@ -440,6 +440,22 @@ export var TelemetryEnvironmentTesting = {
       data.profile.recoveredFromBackup,
       truncateToDays(PROFILE_RECOVERED_FROM_BACKUP)
     );
+    lazy.Assert.equal(
+      data.profile.creationDate,
+      Glean.profiles.creationDate.testGetValue()
+    );
+    lazy.Assert.equal(
+      data.profile.resetDate,
+      Glean.profiles.resetDate.testGetValue()
+    );
+    lazy.Assert.equal(
+      data.profile.firstUseDate,
+      Glean.profiles.firstUseDate.testGetValue()
+    );
+    lazy.Assert.equal(
+      data.profile.recoveredFromBackup,
+      Glean.profiles.recoveredFromBackup.testGetValue()
+    );
   },
 
   checkPartnerSection(data, isInitial) {
