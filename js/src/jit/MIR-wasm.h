@@ -1306,11 +1306,11 @@ class MWasmLoadInstanceDataField : public MUnaryInstruction,
 class MWasmLoadGlobalCell : public MUnaryInstruction,
                             public NoTypePolicy::Data {
   MWasmLoadGlobalCell(MIRType type, MDefinition* cellPtr,
-                      wasm::MaybeRefType maybeRefType = wasm::MaybeRefType())
+                      wasm::ValType globalType)
       : MUnaryInstruction(classOpcode, cellPtr) {
     setResultType(type);
     setMovable();
-    initWasmRefType(maybeRefType);
+    initWasmRefType(globalType.toMaybeRefType());
   }
 
  public:
@@ -2530,11 +2530,6 @@ class MWasmLoadField : public MBinaryInstruction, public NoTypePolicy::Data {
   wasm::MaybeTrapSiteDesc maybeTrap() const { return maybeTrap_; }
 
   bool congruentTo(const MDefinition* ins) const override {
-    // In the limited case where this insn is used to read
-    // WasmStructObject::outlineData_ (the field itself, not what it points
-    // at), we allow commoning up to happen.  This is OK because
-    // WasmStructObject::outlineData_ is readonly for the life of the
-    // WasmStructObject.
     if (!ins->isWasmLoadField()) {
       return false;
     }
@@ -2543,7 +2538,8 @@ class MWasmLoadField : public MBinaryInstruction, public NoTypePolicy::Data {
            offset() == other->offset() &&
            structFieldIndex() == other->structFieldIndex() &&
            wideningOp() == other->wideningOp() &&
-           getAliasSet().flags() == other->getAliasSet().flags();
+           getAliasSet().flags() == other->getAliasSet().flags() &&
+           wasmRefType() == other->wasmRefType();
   }
 
 #ifdef JS_JITSPEW
