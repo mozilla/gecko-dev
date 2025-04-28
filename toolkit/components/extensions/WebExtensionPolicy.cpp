@@ -608,13 +608,7 @@ bool WebExtensionPolicy::CanAccessContext(nsILoadContext* aContext) const {
 
 bool WebExtensionPolicy::CanAccessWindow(
     const dom::WindowProxyHolder& aWindow) const {
-  if (PrivateBrowsingAllowed()) {
-    return true;
-  }
-  // match browsing mode with policy
-  nsIDocShell* docShell = aWindow.get()->GetDocShell();
-  nsCOMPtr<nsILoadContext> loadContext = do_QueryInterface(docShell);
-  return !(loadContext && loadContext->UsePrivateBrowsing());
+  return PrivateBrowsingAllowed() || !aWindow.get()->UsePrivateBrowsing();
 }
 
 void WebExtensionPolicy::GetReadyPromise(
