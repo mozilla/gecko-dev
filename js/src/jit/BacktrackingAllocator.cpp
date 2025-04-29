@@ -1778,12 +1778,16 @@ static bool IsInputReused(LInstruction* ins, LUse* use) {
 bool BacktrackingAllocator::buildLivenessInfo() {
   JitSpew(JitSpew_RegAlloc, "Beginning liveness analysis");
 
-  // The callPositions vector is initialized from index |length - 1| to 0, to
-  // ensure the call positions are sorted.
-  if (!callPositions.growByUninitialized(graph.numCallInstructions())) {
+  // The callPositions vector and the safepoint vectors are initialized from
+  // index |length - 1| to 0, to ensure they are sorted.
+  if (!callPositions.growByUninitialized(graph.numCallInstructions()) ||
+      !safepoints_.growByUninitialized(graph.numSafepoints()) ||
+      !nonCallSafepoints_.growByUninitialized(graph.numNonCallSafepoints())) {
     return false;
   }
   size_t prevCallPositionIndex = callPositions.length();
+  size_t prevSafepointIndex = safepoints_.length();
+  size_t prevNonCallSafepointIndex = nonCallSafepoints_.length();
 
   for (size_t i = graph.numBlocks(); i > 0; i--) {
     if (mir->shouldCancel("Build Liveness Info (main loop)")) {
@@ -1998,6 +2002,17 @@ bool BacktrackingAllocator::buildLivenessInfo() {
           }
         }
       }
+
+      if (ins->safepoint()) {
+        MOZ_ASSERT(prevSafepointIndex > 0);
+        prevSafepointIndex--;
+        safepoints_[prevSafepointIndex] = *ins;
+        if (!ins->isCall()) {
+          MOZ_ASSERT(prevNonCallSafepointIndex > 0);
+          prevNonCallSafepointIndex--;
+          nonCallSafepoints_[prevNonCallSafepointIndex] = *ins;
+        }
+      }
     }
 
     // Phis have simultaneous assignment semantics at block begin, so at
@@ -2060,6 +2075,10 @@ bool BacktrackingAllocator::buildLivenessInfo() {
 
   MOZ_RELEASE_ASSERT(prevCallPositionIndex == 0,
                      "Must have initialized all call positions");
+  MOZ_RELEASE_ASSERT(prevSafepointIndex == 0,
+                     "Must have initialized all safepoints");
+  MOZ_RELEASE_ASSERT(prevNonCallSafepointIndex == 0,
+                     "Must have initialized all safepoints");
 
   JitSpew(JitSpew_RegAlloc, "Completed liveness analysis");
   return true;
@@ -4419,11 +4438,11 @@ size_t BacktrackingAllocator::findFirstNonCallSafepoint(CodePosition pos,
                                                         size_t startFrom) {
   // Assert startFrom is valid.
   MOZ_ASSERT_IF(startFrom > 0,
-                inputOf(graph.getSafepoint(startFrom - 1)) < pos);
+                inputOf(nonCallSafepoints_[startFrom - 1]) < pos);
 
   size_t i = startFrom;
-  for (; i < graph.numNonCallSafepoints(); i++) {
-    const LInstruction* ins = graph.getNonCallSafepoint(i);
+  for (; i < nonCallSafepoints_.length(); i++) {
+    const LInstruction* ins = nonCallSafepoints_[i];
     if (pos <= inputOf(ins)) {
       break;
     }
@@ -4459,9 +4478,9 @@ void BacktrackingAllocator::addLiveRegistersForRange(
   *firstNonCallSafepoint =
       findFirstNonCallSafepoint(range->from(), *firstNonCallSafepoint);
 
-  for (size_t i = *firstNonCallSafepoint; i < graph.numNonCallSafepoints();
+  for (size_t i = *firstNonCallSafepoint; i < nonCallSafepoints_.length();
        i++) {
-    LInstruction* ins = graph.getNonCallSafepoint(i);
+    LInstruction* ins = nonCallSafepoints_[i];
     CodePosition pos = inputOf(ins);
 
     // Safepoints are sorted, so we can shortcut out of this loop
@@ -4581,12 +4600,11 @@ bool BacktrackingAllocator::installAllocationsInLIR() {
 size_t BacktrackingAllocator::findFirstSafepoint(CodePosition pos,
                                                  size_t startFrom) {
   // Assert startFrom is valid.
-  MOZ_ASSERT_IF(startFrom > 0,
-                inputOf(graph.getSafepoint(startFrom - 1)) < pos);
+  MOZ_ASSERT_IF(startFrom > 0, inputOf(safepoints_[startFrom - 1]) < pos);
 
   size_t i = startFrom;
-  for (; i < graph.numSafepoints(); i++) {
-    LInstruction* ins = graph.getSafepoint(i);
+  for (; i < safepoints_.length(); i++) {
+    LInstruction* ins = safepoints_[i];
     if (pos <= inputOf(ins)) {
       break;
     }
@@ -4664,7 +4682,7 @@ bool BacktrackingAllocator::populateSafepoints() {
           findFirstSafepoint(range->from(), firstSafepointForRange);
 
       for (size_t j = firstSafepointForRange; j < graph.numSafepoints(); j++) {
-        LInstruction* ins = graph.getSafepoint(j);
+        LInstruction* ins = safepoints_[j];
 
         if (inputOf(ins) >= range->to()) {
           break;

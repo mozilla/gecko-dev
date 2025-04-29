@@ -29,8 +29,6 @@ const char* const js::jit::LIROpNames[] = {
 LIRGraph::LIRGraph(MIRGraph* mir)
     : constantPool_(mir->alloc()),
       constantPoolMap_(mir->alloc()),
-      safepoints_(mir->alloc()),
-      nonCallSafepoints_(mir->alloc()),
       numVirtualRegisters_(0),
       numInstructions_(1),  // First id is 1.
       localSlotsSize_(0),
@@ -46,15 +44,6 @@ bool LIRGraph::addConstantToPool(const Value& v, uint32_t* index) {
   }
   *index = constantPool_.length();
   return constantPool_.append(v) && constantPoolMap_.add(p, v, *index);
-}
-
-bool LIRGraph::noteNeedsSafepoint(LInstruction* ins) {
-  // Instructions with safepoints must be in linear order.
-  MOZ_ASSERT_IF(!safepoints_.empty(), safepoints_.back()->id() < ins->id());
-  if (!ins->isCall() && !nonCallSafepoints_.append(ins)) {
-    return false;
-  }
-  return safepoints_.append(ins);
 }
 
 #ifdef JS_JITSPEW

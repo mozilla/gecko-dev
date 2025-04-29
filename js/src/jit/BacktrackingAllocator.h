@@ -682,6 +682,14 @@ class BacktrackingAllocator : protected RegisterAllocator {
   // Allocation state.
   StackSlotAllocator stackSlotAllocator;
 
+  // List of all instructions with a safepoint. The order is the same as the
+  // order of the instructions in the LIR graph.
+  Vector<LInstruction*, 0, JitAllocPolicy> safepoints_;
+
+  // List of all non-call instructions with a safepoint. The order is the same
+  // as the order of the instructions in the LIR graph.
+  Vector<LInstruction*, 0, JitAllocPolicy> nonCallSafepoints_;
+
   // Priority queue element: a bundle and the associated priority.
   struct QueueItem {
     LiveBundle* bundle;
@@ -936,7 +944,9 @@ class BacktrackingAllocator : protected RegisterAllocator {
       : RegisterAllocator(mir, lir, graph),
         testbed(testbed),
         liveIn(mir->alloc()),
-        vregs(mir->alloc()) {}
+        vregs(mir->alloc()),
+        safepoints_(mir->alloc()),
+        nonCallSafepoints_(mir->alloc()) {}
 
   [[nodiscard]] bool go();
 };

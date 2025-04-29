@@ -2013,10 +2013,13 @@ class LIRGraph {
   mozilla::Vector<Value, 0, JitAllocPolicy> constantPool_;
   using ConstantPoolMap = HashMap<Value, uint32_t, ValueHasher, JitAllocPolicy>;
   ConstantPoolMap constantPoolMap_;
-  Vector<LInstruction*, 0, JitAllocPolicy> safepoints_;
-  Vector<LInstruction*, 0, JitAllocPolicy> nonCallSafepoints_;
   uint32_t numVirtualRegisters_;
   uint32_t numInstructions_;
+
+  // Number of instructions with a safepoint.
+  uint32_t numSafepoints_ = 0;
+  // Number of non-call instructions with a safepoint.
+  uint32_t numNonCallSafepoints_ = 0;
 
   // Number of call-instructions in this LIR graph.
   uint32_t numCallInstructions_ = 0;
@@ -2074,13 +2077,15 @@ class LIRGraph {
   size_t numConstants() const { return constantPool_.length(); }
   Value* constantPool() { return &constantPool_[0]; }
 
-  bool noteNeedsSafepoint(LInstruction* ins);
-  size_t numNonCallSafepoints() const { return nonCallSafepoints_.length(); }
-  LInstruction* getNonCallSafepoint(size_t i) const {
-    return nonCallSafepoints_[i];
+  void noteNeedsSafepoint(LInstruction* ins) {
+    numSafepoints_++;
+    if (!ins->isCall()) {
+      numNonCallSafepoints_++;
+    }
   }
-  size_t numSafepoints() const { return safepoints_.length(); }
-  LInstruction* getSafepoint(size_t i) const { return safepoints_[i]; }
+
+  size_t numNonCallSafepoints() const { return numNonCallSafepoints_; }
+  size_t numSafepoints() const { return numSafepoints_; }
 
 #ifdef JS_JITSPEW
   void dump(GenericPrinter& out);
