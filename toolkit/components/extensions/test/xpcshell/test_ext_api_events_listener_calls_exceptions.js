@@ -41,6 +41,22 @@ server.registerPathHandler("/test-page.html", (req, res) => {
   `);
 });
 
+add_setup(() => {
+  // This hidden pref is only expected to be set to true if we had to revert
+  // to the old behaviors due to a regression only hit once it got to release
+  // and we had to set it to temporarily set to true while we are investigating
+  // the underlying issue.
+  //
+  // Bug 1963002: remove this logic along with removing the related lazy pref getter from
+  // ExtensionCommon.sys.mjs.
+  const FALLBACK_HIDDEN_PREF = "extensions.callFunctionAndLogExceptionDisabled";
+  Services.prefs.setBoolPref(FALLBACK_HIDDEN_PREF, true);
+  if (Services.prefs.getBoolPref(FALLBACK_HIDDEN_PREF, false)) {
+    info("Enabling use of ChromeUtils.callFunctionAndLogException");
+    Services.prefs.setBoolPref(FALLBACK_HIDDEN_PREF, false);
+  }
+});
+
 add_task(async function test_api_listener_call_exception() {
   const extension = ExtensionTestUtils.loadExtension({
     manifest: {
@@ -147,11 +163,27 @@ add_task(async function test_api_listener_call_exception() {
           },
 
           toString() {
-            browser.test.fail(`Unexpected extension code executed`);
+            return "Custom exception string";
           },
         };
         browser.storage.sync.onChanged.addListener(() => {
           throw nonError;
+        });
+        // Verify DOM event listeners behaviors on the `nonError` object being raised
+        // as an exception as the WebExtensions API event listeners.
+        window.addEventListener(
+          "TestDOMEvent",
+          () => {
+            throw nonError;
+          },
+          { once: true }
+        );
+        browser.test.onMessage.addListener(msg => {
+          if (msg === "dispatch-test-dom-event") {
+            window.dispatchEvent(new CustomEvent("TestDOMEvent"));
+            return;
+          }
+          browser.test.fail(`Got unxpected test message: ${msg}`);
         });
 
         // Throwing undefined or null is also allowed and so we cover that here as well
@@ -233,7 +265,7 @@ add_task(async function test_api_listener_call_exception() {
 
     ok(
       expectedErrorRegExp.test(message),
-      `Got the expected error message: ${message}`
+      `Got the expected error message: ${message} vs ${expectedErrorRegExp}`
     );
 
     Assert.deepEqual(
@@ -263,8 +295,7 @@ add_task(async function test_api_listener_call_exception() {
       targetPage: page,
       expectedErrorRegExp,
       expectedSourceName,
-      // TODO(Bug 1810582): this should be expected to be true.
-      shouldIncludeStack: false,
+      shouldIncludeStack: true,
     });
   }
 
@@ -274,12 +305,10 @@ add_task(async function test_api_listener_call_exception() {
     // it also has a getter for the message property, we expect it to be
     // logged using the string returned by the native toString method.
     const expectedErrorRegExp = new RegExp(
-      `uncaught exception: \\[object Object\\]`
+      `uncaught exception: Custom exception string`
     );
-    // TODO(Bug 1810582): this should be expected to be the script url
-    // where the exception has been originated from.
     const expectedSourceName =
-      extension.extension.baseURI.resolve("extpage.html");
+      extension.extension.baseURI.resolve("extpage.js");
 
     await page.spawn([], prepareWaitForConsoleMessage);
     notifyStorageSyncListener(extension);
@@ -287,8 +316,29 @@ add_task(async function test_api_listener_call_exception() {
       targetPage: page,
       expectedErrorRegExp,
       expectedSourceName,
-      // TODO(Bug 1810582): this should be expected to be true.
-      shouldIncludeStack: false,
+      shouldIncludeStack: true,
+    });
+  }
+
+  {
+    info("Test exception raised by a DOM event listener for comparison");
+    // Similarly to the previous test on the storage.sync listener but originated
+    // from a DOM event listener (to ensure that the WebExtensions API event
+    // listeners and the DOM event listeners are behaving similarly with custom
+    // error objects).
+    const expectedErrorRegExp = new RegExp(
+      `uncaught exception: Custom exception string`
+    );
+    const expectedSourceName =
+      extension.extension.baseURI.resolve("extpage.js");
+
+    await page.spawn([], prepareWaitForConsoleMessage);
+    extension.sendMessage("dispatch-test-dom-event");
+    await asyncAssertConsoleMessage({
+      targetPage: page,
+      expectedErrorRegExp,
+      expectedSourceName,
+      shouldIncludeStack: true,
     });
   }
 
@@ -298,18 +348,15 @@ add_task(async function test_api_listener_call_exception() {
     // it also has a getter for the message property, we expect it to be
     // logged using the string returned by the native toString method.
     const expectedErrorRegExp = new RegExp(`uncaught exception: undefined`);
-    // TODO(Bug 1810582): this should be expected to be the script url
-    // where the exception has been originated from.
     const expectedSourceName =
-      extension.extension.baseURI.resolve("extpage.html");
+      extension.extension.baseURI.resolve("extpage.js");
     await page.spawn([], prepareWaitForConsoleMessage);
     ExtensionStorageIDB.notifyListeners(extension.id, {});
     await asyncAssertConsoleMessage({
       targetPage: page,
       expectedErrorRegExp,
       expectedSourceName,
-      // TODO(Bug 1810582): this should be expected to be true.
-      shouldIncludeStack: false,
+      shouldIncludeStack: true,
     });
   }
 
@@ -338,8 +385,7 @@ add_task(async function test_api_listener_call_exception() {
       targetPage: contentPage,
       expectedErrorRegExp,
       expectedSourceName,
-      // TODO(Bug 1810582): this should be expected to be true.
-      shouldIncludeStack: false,
+      shouldIncludeStack: true,
     });
   }
 
@@ -349,9 +395,8 @@ add_task(async function test_api_listener_call_exception() {
     // it also has a getter for the message property, we expect it to be
     // logged using the string returned by the native toString method.
     const expectedErrorRegExp = new RegExp(`uncaught exception: undefined`);
-    // TODO(Bug 1810582): this should be expected to be the script url
-    // where the exception has been originated from.
-    const expectedSourceName = extension.extension.baseURI.resolve("/");
+    const expectedSourceName =
+      extension.extension.baseURI.resolve("contentscript.js");
 
     await contentPage.spawn([], prepareWaitForConsoleMessage);
     ExtensionStorageIDB.notifyListeners(extension.id, {});
@@ -359,8 +404,7 @@ add_task(async function test_api_listener_call_exception() {
       targetPage: contentPage,
       expectedErrorRegExp,
       expectedSourceName,
-      // TODO(Bug 1810582): this should be expected to be true.
-      shouldIncludeStack: false,
+      shouldIncludeStack: true,
     });
   }
 

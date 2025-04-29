@@ -12,6 +12,10 @@ const { PromiseTestUtils } = ChromeUtils.importESModule(
 );
 PromiseTestUtils.allowMatchingRejectionsGlobally(/File closed/);
 
+const { ExtensionStorageIDB } = ChromeUtils.importESModule(
+  "resource://gre/modules/ExtensionStorageIDB.sys.mjs"
+);
+
 // Avoid test timeouts that can occur while waiting for the "addon-console-works" message.
 requestLongerTimeout(2);
 
@@ -27,6 +31,8 @@ const POPUPONLY_ADDON_NAME = "popuponly-test-devtools-webextension";
 const BACKGROUND_ADDON_ID = "background-test-devtools-webextension@mozilla.org";
 const BACKGROUND_ADDON_NAME = "background-test-devtools-webextension";
 
+const TEST_URI = "https://example.com/document-builder.sjs?html=foo";
+
 /**
  * This test file ensures that the webextension addon developer toolbox:
  * - when the debug button is clicked on a webextension, the opened toolbox
@@ -35,22 +41,40 @@ const BACKGROUND_ADDON_NAME = "background-test-devtools-webextension";
 add_task(async function testWebExtensionsToolboxWebConsole() {
   await pushPref("devtools.webconsole.filter.css", true);
   await enableExtensionDebugging();
+
+  await addTab(TEST_URI);
+
   const { document, tab, window } = await openAboutDebugging();
   await selectThisFirefoxPage(document, window.AboutDebugging.store);
 
   await installTemporaryExtensionFromXPI(
     {
       background() {
-        window.myWebExtensionAddonFunction = function () {
+        /* global browser */
+        window.myWebExtensionAddonFunction = async function () {
           console.log(
             "Background page function called",
             this.browser.runtime.getManifest()
           );
+
+          const [t] = await browser.tabs.query({
+            url: "https://example.com/document-builder*",
+          });
+          browser.tabs.sendMessage(t.id, {});
         };
 
         const style = document.createElement("style");
         style.textContent = "* { color: error; }";
         document.documentElement.appendChild(style);
+
+        browser.runtime.onMessage.addListener(() => {
+          browser.runtime.sendMessage("messageForOnMessageInPopup");
+          throw new Error("onMessage exception from background page");
+        });
+
+        browser.storage.local.onChanged.addListener(() => {
+          throw new Error("local.onChanged exception");
+        });
 
         throw new Error("Background page exception");
       },
@@ -60,6 +84,13 @@ add_task(async function testWebExtensionsToolboxWebConsole() {
           default_popup: "popup.html",
           default_area: "navbar",
         },
+        permissions: ["storage", "https://example.com/*"],
+        content_scripts: [
+          {
+            matches: ["<all_urls>"],
+            js: ["content-script.js"],
+          },
+        ],
       },
       files: {
         "popup.html": `<!DOCTYPE html>
@@ -80,7 +111,20 @@ add_task(async function testWebExtensionsToolboxWebConsole() {
           style.textContent = "* { color: popup-error; }";
           document.documentElement.appendChild(style);
 
+          browser.runtime.onMessage.addListener(() => {
+            throw new Error("onMessage exception from popup");
+          });
+
+          browser.runtime.sendMessage("messageForOnMessageInBackgroundPage");
+
           throw new Error("Popup exception");
+        },
+        "content-script.js": function () {
+          browser.runtime.onMessage.addListener(() => {
+            throw new Error("onMessage exception from content script");
+          });
+
+          throw new Error("Content script exception");
         },
       },
       id: ADDON_ID,
@@ -136,6 +180,9 @@ add_task(async function testWebExtensionsToolboxWebConsole() {
     document
   );
 
+  // Trigger a browser.local storage change
+  ExtensionStorageIDB.notifyListeners(ADDON_ID, {});
+
   const { devtoolsWindow } = await openAboutDevtoolsToolbox(
     document,
     tab,
@@ -146,13 +193,22 @@ add_task(async function testWebExtensionsToolboxWebConsole() {
   const webconsole = await toolbox.selectTool("webconsole");
   const { hud } = webconsole;
 
-  info("Trigger some code in the background page logging some stuff");
-  const onMessage = waitUntil(() => {
+  info("Wait for the exception coming from the background page");
+  await waitUntil(() => {
     return !!findMessagesByType(hud, "Background page exception", ".error")
       .length;
   });
+
+  info("Trigger some code in the background page logging some stuff");
+  const onLogMessage = waitUntil(() => {
+    return !!findMessagesByType(
+      hud,
+      "Background page function called",
+      ".message"
+    ).length;
+  });
   hud.ui.wrapper.dispatchEvaluateExpression("myWebExtensionAddonFunction()");
-  await onMessage;
+  await onLogMessage;
 
   info("Open the two add-ons popups to cover popups messages");
   const onPopupMessage = waitUntil(() => {
@@ -161,6 +217,21 @@ add_task(async function testWebExtensionsToolboxWebConsole() {
   clickOnAddonWidget(OTHER_ADDON_ID);
   clickOnAddonWidget(ADDON_ID);
   await onPopupMessage;
+  await waitUntil(() => {
+    return !!findMessagesByType(
+      hud,
+      "onMessage exception from background page",
+      ".error"
+    ).length;
+  });
+  await waitUntil(() => {
+    return !!findMessagesByType(hud, "onMessage exception from popup", ".error")
+      .length;
+  });
+  await waitUntil(() => {
+    return !!findMessagesByType(hud, "local.onChanged exception", ".error")
+      .length;
+  });
 
   info("Assert the context of the evaluation context selector");
   const contextLabels = getContextLabels(toolbox);
@@ -270,6 +341,23 @@ add_task(async function testWebExtensionsToolboxWebConsole() {
   await onEvaluationResultAfterReload;
 
   await closeWebExtAboutDevtoolsToolbox(devtoolsWindow, window);
+
+  info(
+    "Open a toolbox against the tab in order to cover the content script exceptions"
+  );
+  const { devtoolsTab, devtoolsWindow: tabDevtoolsWindow } =
+    await openAboutDevtoolsToolbox(document, tab, window, TEST_URI);
+  const tabToolbox = getToolbox(tabDevtoolsWindow);
+  const tabWebconsole = await tabToolbox.selectTool("webconsole");
+  const tabHud = tabWebconsole.hud;
+  await waitUntil(() => {
+    return !!findMessagesByType(
+      tabHud,
+      "onMessage exception from content script",
+      ".error"
+    ).length;
+  });
+  await closeAboutDevtoolsToolbox(document, devtoolsTab, window);
 
   // Note that it seems to be important to remove the addons in the reverse order
   // from which they were installed...

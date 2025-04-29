@@ -28,6 +28,16 @@ const lazy = XPCOMUtils.declareLazy({
     pref: "extensions.wpt.enabled",
     default: false,
   },
+  // An hidden pref only meant to be used if we would need to revert the use
+  // of the ChromeUtils.callFunctionAndLogException helper temporarily because
+  // of regression only hit once it got to the release channel.
+  //
+  // Bug 1963002: remove this hidden pref 3 cycles after this has been in release
+  // without any regression that needed us to revert it.
+  callFunctionAndLogExceptionDisabled: {
+    pref: "extensions.callFunctionAndLogExceptionDisabled",
+    default: false,
+  },
 });
 
 const ScriptError = Components.Constructor(
@@ -673,88 +683,23 @@ export class BaseContext {
       );
     } else {
       try {
-        return Reflect.apply(callback, null, args);
-      } catch (e) {
-        // An extension listener may as well be throwing an object that isn't
-        // an instance of Error, in that case we have to use fallbacks for the
-        // error message, fileName, lineNumber and columnNumber properties.
-        const isError = e instanceof this.Error;
-        let message;
-        let fileName;
-        let lineNumber;
-        let columnNumber;
-
-        if (isError) {
-          message = `${e.name}: ${e.message}`;
-          lineNumber = e.lineNumber;
-          columnNumber = e.columnNumber;
-          fileName = e.fileName;
-        } else {
-          message = `uncaught exception: ${e}`;
-
-          try {
-            // TODO(Bug 1810582): the following fallback logic may go away once
-            // we introduced a better way to capture and log the exception in
-            // the right window and in all cases (included when the extension
-            // code is raising undefined or an object that isn't an instance of
-            // the Error constructor).
-            //
-            // Fallbacks for the error location:
-            // - the callback location if it is registered directly from the
-            //   extension code (and not wrapped by the child/ext-APINAMe.js
-            //   implementation, like e.g. browser.storage, browser.devtools.network
-            //   are doing and browser.menus).
-            // - if the location of the extension callback is not directly
-            //   available (e.g. browser.storage onChanged events, and similarly
-            //   for browser.devtools.network and browser.menus events):
-            //   - the extension page url if the context is an extension page
-            //   - the extension base url if the context is a content script
-            const cbLoc = Cu.getFunctionSourceLocation(callback);
-            fileName = cbLoc.filename;
-            lineNumber = cbLoc.lineNumber ?? lineNumber;
-
-            const extBaseUrl = this.extension.baseURI.resolve("/");
-            if (fileName.startsWith(extBaseUrl)) {
-              fileName = cbLoc.filename;
-              lineNumber = cbLoc.lineNumber ?? lineNumber;
-            } else {
-              fileName = this.contentWindow?.location?.href;
-              if (!fileName || !fileName.startsWith(extBaseUrl)) {
-                fileName = extBaseUrl;
-              }
-            }
-          } catch {
-            // Ignore errors on retrieving the callback source location.
-          }
+        // When we are in the parent process (isProxyContextParent==true), there is no need to forward
+        // the exceptions to the extension document (this.cloneScope).
+        if (
+          this.isProxyContextParent ||
+          lazy.callFunctionAndLogExceptionDisabled
+        ) {
+          return Reflect.apply(callback, null, args);
         }
+        // Use callFunctionAndLogException in order to ensure routing any exception to DevTools.
 
-        dump(
-          `Extension error: ${message} ${fileName} ${lineNumber}\n[[Exception stack\n${
-            isError ? filterStack(e) : undefined
-          }Current stack\n${filterStack(Error())}]]\n`
+        return ChromeUtils.callFunctionAndLogException(this.cloneScope, () =>
+          Reflect.apply(callback, null, args)
         );
-
-        // If the error is coming from an extension context associated
-        // to a window (e.g. an extension page or extension content script).
-        //
-        // TODO(Bug 1810574): for the background service worker we will need to do
-        // something similar, but not tied to the innerWindowID because there
-        // wouldn't be one set for extension contexts related to the
-        // background service worker.
-        //
-        // TODO(Bug 1810582): change the error associated to the innerWindowID to also
-        // include a full stack from the original error.
-        if (!this.isProxyContextParent && this.contentWindow) {
-          this.logConsoleScriptError({
-            message,
-            fileName,
-            lineNumber,
-            columnNumber,
-          });
+      } catch (e) {
+        if (this.isProxyContextParent) {
+          Cu.reportError(e);
         }
-        // Also report the original error object (because it also includes
-        // the full error stack).
-        Cu.reportError(e);
       }
     }
   }
@@ -2867,7 +2812,21 @@ class EventManager {
           throw new Error("Called raw() on unloaded/inactive context");
         }
         resetIdle();
-        let result = Reflect.apply(callback, null, args);
+        let result;
+        // When we are in the parent process (isProxyContextParent==true), there is no need to forward
+        // the exceptions to the extension document (context.cloneScope).
+        if (
+          this.context.isProxyContextParent ||
+          lazy.callFunctionAndLogExceptionDisabled
+        ) {
+          result = Reflect.apply(callback, null, args);
+        } else {
+          // Use callFunctionAndLogException in order to ensure routing any exception to DevTools.
+          result = ChromeUtils.callFunctionAndLogException(
+            this.context.cloneScope,
+            () => Reflect.apply(callback, null, args)
+          );
+        }
         this.context.logActivity("api_event", this.name, { args, result });
         return result;
       },
