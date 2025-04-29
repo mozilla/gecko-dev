@@ -10756,12 +10756,12 @@ nsContentUtils::ExtractFormAssociatedCustomElementValue(
       for (auto i = 0ul; i < array.Length(); ++i) {
         const auto& item = array.ElementAt(i);
         switch (item.value().type()) {
-          case FormDataValue::TnsString:
+          case IPCFormDataValue::TnsString:
             formData->AddNameValuePair(item.name(),
                                        item.value().get_nsString());
             break;
 
-          case FormDataValue::TBlobImpl: {
+          case IPCFormDataValue::TBlobImpl: {
             auto blobImpl = item.value().get_BlobImpl();
             auto* blob = Blob::Create(aGlobal, blobImpl);
             formData->AddNameBlobPair(item.name(), blob);

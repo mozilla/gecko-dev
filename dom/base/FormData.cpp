@@ -395,7 +395,7 @@ CustomElementFormValue FormData::ConvertToCustomElementFormValue() {
   ForEach([&formValue](const nsString& aName,
                        const OwningBlobOrDirectoryOrUSVString& aValue) -> bool {
     if (aValue.IsBlob()) {
-      FormDataValue value(WrapNotNull(aValue.GetAsBlob()->Impl()));
+      IPCFormDataValue value(WrapNotNull(aValue.GetAsBlob()->Impl()));
       formValue.AppendElement(mozilla::dom::FormDataTuple(aName, value));
     } else if (aValue.IsUSVString()) {
       formValue.AppendElement(
