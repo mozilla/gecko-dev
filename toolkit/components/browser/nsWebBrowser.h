@@ -72,24 +72,6 @@ class nsWebBrowser final : public nsIWebBrowser,
   friend class nsDocShellTreeOwner;
 
  public:
-  // The implementation of non-refcounted nsIWidgetListener, which would hold a
-  // strong reference on stack before calling nsWebBrowser's
-  // MOZ_CAN_RUN_SCRIPT methods.
-  class WidgetListenerDelegate : public nsIWidgetListener {
-   public:
-    explicit WidgetListenerDelegate(nsWebBrowser* aWebBrowser)
-        : mWebBrowser(aWebBrowser) {}
-    MOZ_CAN_RUN_SCRIPT_BOUNDARY virtual void WindowActivated() override;
-    MOZ_CAN_RUN_SCRIPT_BOUNDARY virtual void WindowDeactivated() override;
-    MOZ_CAN_RUN_SCRIPT_BOUNDARY virtual bool PaintWindow(
-        nsIWidget* aWidget, mozilla::LayoutDeviceIntRegion aRegion) override;
-
-   private:
-    // The lifetime of WidgetListenerDelegate is bound to nsWebBrowser so we
-    // just use raw pointer here.
-    nsWebBrowser* mWebBrowser;
-  };
-
   NS_DECL_CYCLE_COLLECTING_ISUPPORTS
   NS_DECL_CYCLE_COLLECTION_CLASS_AMBIGUOUS(nsWebBrowser, nsIWebBrowser)
 
@@ -122,13 +104,6 @@ class nsWebBrowser final : public nsIWebBrowser,
   void EnsureDocShellTreeOwner();
 
   nsIWidget* EnsureWidget();
-
-  // nsIWidgetListener methods for WidgetListenerDelegate.
-  MOZ_CAN_RUN_SCRIPT void WindowActivated();
-  MOZ_CAN_RUN_SCRIPT void WindowDeactivated();
-  MOZ_CAN_RUN_SCRIPT bool PaintWindow(nsIWidget* aWidget,
-                                      mozilla::LayoutDeviceIntRegion aRegion);
-
   explicit nsWebBrowser(int aItemType);
 
  protected:
@@ -136,7 +111,6 @@ class nsWebBrowser final : public nsIWebBrowser,
   RefPtr<nsDocShell> mDocShell;
   mozilla::OriginAttributes mOriginAttributes;
 
-  nsCOMPtr<nsIWidget> mInternalWidget;
   nsCOMPtr<nsIWindowWatcher> mWWatch;
   const uint32_t mContentType;
   bool mShouldEnableHistory;
@@ -144,8 +118,6 @@ class nsWebBrowser final : public nsIWebBrowser,
   nsIWebProgressListener* mProgressListener;
 
   nsCOMPtr<nsIPrintSettings> mPrintSettings;
-
-  WidgetListenerDelegate mWidgetListenerDelegate;
 
   // cached background color
   nscolor mBackgroundColor;

@@ -4552,9 +4552,6 @@ DesktopToLayoutDeviceScale ParentBackingScaleFactor(nsIWidget* aParent) {
 static DesktopRect GetWidgetScreenRectForChildren(nsIWidget* aWidget) {
   mozilla::DesktopToLayoutDeviceScale scale =
       aWidget->GetDesktopToDeviceScale();
-  if (aWidget->GetWindowType() == WindowType::Child) {
-    return aWidget->GetScreenBounds() / scale;
-  }
   return aWidget->GetClientBounds() / scale;
 }
 
@@ -4686,7 +4683,6 @@ nsresult nsCocoaWindow::CreateNativeWindow(const NSRect& aRect,
   // Configure the window we will create based on the window type.
   switch (mWindowType) {
     case WindowType::Invisible:
-    case WindowType::Child:
       break;
     case WindowType::Popup:
       if (aBorderStyle != BorderStyle::Default &&
@@ -4978,9 +4974,6 @@ void nsCocoaWindow::SetModal(bool aModal) {
   // (similar) event loops).
   for (auto* ancestorWidget = mParent; ancestorWidget;
        ancestorWidget = ancestorWidget->GetParent()) {
-    if (ancestorWidget->GetWindowType() == WindowType::Child) {
-      continue;
-    }
     auto* ancestor = static_cast<nsCocoaWindow*>(ancestorWidget);
     const bool changed = aModal ? ancestor->mNumModalDescendants++ == 0
                                 : --ancestor->mNumModalDescendants == 0;

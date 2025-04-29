@@ -467,7 +467,6 @@ nsWindow::nsWindow()
       mConfiguredClearColor(false),
       mGotNonBlankPaint(false),
       mNeedsToRetryCapturingMouse(false) {
-  mWindowType = WindowType::Child;
   mSizeConstraints.mMaxSize = GetSafeWindowSize(mSizeConstraints.mMaxSize);
 
   if (!gGlobalsInitialized) {
@@ -6015,8 +6014,6 @@ nsresult nsWindow::Create(nsIWidget* aParent, const LayoutDeviceIntRect& aRect,
   // Figure out our parent window.
   auto* parentnsWindow = static_cast<nsWindow*>(aParent);
   LOG("  parent window [%p]", parentnsWindow);
-
-  MOZ_DIAGNOSTIC_ASSERT(mWindowType != WindowType::Child);
 
   MOZ_ASSERT_IF(mWindowType == WindowType::Popup, parentnsWindow);
 

@@ -467,7 +467,6 @@ void nsView::RemoveChild(nsView* child) {
 
 struct DefaultWidgetInitData : public widget::InitData {
   DefaultWidgetInitData() : widget::InitData() {
-    mWindowType = WindowType::Child;
     mClipChildren = true;
     mClipSiblings = true;
   }
