@@ -321,6 +321,12 @@ class ChromeUtils {
       nsIRFPTargetSetIDL* aOverriddenFingerprintingSettings,
       const Optional<bool>& aIsPBM);
 
+  static void CallFunctionAndLogException(GlobalObject& aGlobal,
+                                          JS::Handle<JS::Value> aTargetGlobal,
+                                          JS::Handle<JS::Value> aFunction,
+                                          JS::MutableHandle<JS::Value> aRetval,
+                                          ErrorResult& aRv);
+
 #ifdef MOZ_WMF_CDM
   static already_AddRefed<Promise> GetWMFContentDecryptionModuleInformation(
       GlobalObject& aGlobal, ErrorResult& aRv);

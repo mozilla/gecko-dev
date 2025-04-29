@@ -51,15 +51,20 @@ add_task(async function customScriptError() {
 
 add_task(async function callFunctionAndLogExceptionWithChromeGlobal() {
   try {
-    Services.console.callFunctionAndLogException(globalThis, function () {
+    ChromeUtils.callFunctionAndLogException(globalThis, function () {
       throw new Error("custom exception");
     });
-    Assert.fail("callFunctionAndLogException should throw");
+    Assert.ok(false, "callFunctionAndLogException should throw");
   } catch (e) {
     Assert.equal(
       e.name,
-      "NS_ERROR_XPC_JAVASCRIPT_ERROR",
-      "callFunctionAndLogException thrown"
+      "Error",
+      "callFunctionAndLogException thrown with the expected exception name"
+    );
+    Assert.equal(
+      e.message,
+      "custom exception",
+      "callFunctionAndLogException thrown with the expected message"
     );
   }
 
@@ -92,15 +97,20 @@ add_task(async function callFunctionAndLogExceptionWithChromeGlobal() {
 add_task(async function callFunctionAndLogExceptionWithContentGlobal() {
   const window = createContentWindow();
   try {
-    Services.console.callFunctionAndLogException(window, function () {
+    ChromeUtils.callFunctionAndLogException(window, function () {
       throw new Error("another custom exception");
     });
-    Assert.fail("callFunctionAndLogException should throw");
+    Assert.ok(false, "callFunctionAndLogException should throw");
   } catch (e) {
     Assert.equal(
       e.name,
-      "NS_ERROR_XPC_JAVASCRIPT_ERROR",
-      "callFunctionAndLogException thrown"
+      "Error",
+      "callFunctionAndLogException thrown with the expected exception name"
+    );
+    Assert.equal(
+      e.message,
+      "another custom exception",
+      "callFunctionAndLogException thrown with the expected message"
     );
   }
 
@@ -114,13 +124,13 @@ add_task(async function callFunctionAndLogExceptionWithContentGlobal() {
 
   Assert.equal(lastMessage.errorMessage, "Error: another custom exception");
   Assert.equal(lastMessage.sourceName, _TEST_FILE);
-  Assert.equal(lastMessage.lineNumber, 96);
+  Assert.equal(lastMessage.lineNumber, 101);
   Assert.equal(lastMessage.columnNumber, 13);
   Assert.equal(lastMessage.flags, Ci.nsIScriptError.errorFlag);
   Assert.equal(lastMessage.category, "content javascript");
   Assert.ok(lastMessage.stack, "It has a stack");
   Assert.equal(lastMessage.stack.source, _TEST_FILE);
-  Assert.equal(lastMessage.stack.line, 96);
+  Assert.equal(lastMessage.stack.line, 101);
   Assert.equal(lastMessage.stack.column, 13);
   Assert.ok(!!lastMessage.stack.parent, "stack has a parent frame");
   Assert.ok(
@@ -145,13 +155,18 @@ add_task(async function callFunctionAndLogExceptionForContentScriptSandboxes() {
     0
   );
   try {
-    Services.console.callFunctionAndLogException(window, sandbox.foo);
+    ChromeUtils.callFunctionAndLogException(window, sandbox.foo);
     Assert.fail("callFunctionAndLogException should throw");
   } catch (e) {
     Assert.equal(
       e.name,
-      "NS_ERROR_XPC_JAVASCRIPT_ERROR",
-      "callFunctionAndLogException thrown"
+      "Error",
+      "callFunctionAndLogException thrown with the expected exception name"
+    );
+    Assert.equal(
+      e.message,
+      "sandbox exception",
+      "callFunctionAndLogException thrown with the expected message"
     );
   }
 
@@ -198,15 +213,20 @@ add_task(
       0
     );
     try {
-      Services.console.callFunctionAndLogException(window, function () {
+      ChromeUtils.callFunctionAndLogException(window, function () {
         sandbox.foo();
       });
       Assert.fail("callFunctionAndLogException should throw");
     } catch (e) {
       Assert.equal(
         e.name,
-        "NS_ERROR_XPC_JAVASCRIPT_ERROR",
-        "callFunctionAndLogException thrown"
+        "Error",
+        "callFunctionAndLogException thrown with the expected exception name"
+      );
+      Assert.equal(
+        e.message,
+        "sandbox exception",
+        "callFunctionAndLogException thrown with the expected message"
       );
     }
 

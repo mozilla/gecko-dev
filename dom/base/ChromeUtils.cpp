@@ -2526,6 +2526,67 @@ bool ChromeUtils::ShouldResistFingerprinting(
                                        overriddenFingerprintingSettings);
 }
 
+/* static */
+void ChromeUtils::CallFunctionAndLogException(
+    GlobalObject& aGlobal, JS::Handle<JS::Value> aTargetGlobal,
+    JS::Handle<JS::Value> aFunction, JS::MutableHandle<JS::Value> aRetVal,
+    ErrorResult& aRv) {
+  JSContext* cx = aGlobal.Context();
+  if (!aTargetGlobal.isObject() || !aFunction.isObject()) {
+    aRv.Throw(NS_ERROR_INVALID_ARG);
+    return;
+  }
+
+  JS::Rooted<JS::Realm*> contextRealm(cx, JS::GetCurrentRealmOrNull(cx));
+  if (!contextRealm) {
+    aRv.Throw(NS_ERROR_INVALID_ARG);
+    return;
+  }
+
+  JS::Rooted<JSObject*> global(
+      cx, js::CheckedUnwrapDynamic(&aTargetGlobal.toObject(), cx));
+  if (!global) {
+    aRv.Throw(NS_ERROR_INVALID_ARG);
+    return;
+  }
+
+  // Use AutoJSAPI in order to trigger AutoJSAPI::ReportException
+  // which will do most of the work required for this function.
+  //
+  // We only have to pick the right global for which we want to flag
+  // the exception against.
+  dom::AutoJSAPI jsapi;
+  if (!jsapi.Init(global)) {
+    aRv.Throw(NS_ERROR_UNEXPECTED);
+    return;
+  }
+  JSContext* ccx = jsapi.cx();
+
+  // AutoJSAPI picks `aTargetGlobal` as execution compartment
+  // whereas we expect to run `aFunction` from the callsites compartment.
+  JSAutoRealm ar(ccx, JS::GetRealmGlobalOrNull(contextRealm));
+
+  JS::Rooted<JS::Value> funVal(ccx, aFunction);
+  if (!JS_WrapValue(ccx, &funVal)) {
+    aRv.Throw(NS_ERROR_FAILURE);
+    return;
+  }
+  if (!JS_CallFunctionValue(ccx, nullptr, funVal, JS::HandleValueArray::empty(),
+                            aRetVal)) {
+    // Ensure re-throwing the exception which may have been thrown by
+    // `aFunction`
+    if (JS_IsExceptionPending(ccx)) {
+      JS::Rooted<JS::Value> exception(cx);
+      if (JS_GetPendingException(ccx, &exception)) {
+        if (JS_WrapValue(cx, &exception)) {
+          aRv.MightThrowJSException();
+          aRv.ThrowJSException(cx, exception);
+        }
+      }
+    }
+  }
+}
+
 std::atomic<uint32_t> ChromeUtils::sDevToolsOpenedCount = 0;
 
 /* static */

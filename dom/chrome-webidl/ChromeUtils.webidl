@@ -796,6 +796,18 @@ partial namespace ChromeUtils {
 
   [Throws]
   ContentSecurityPolicy createCSPFromHeader(DOMString header, URI selfURI, Principal loadingPrincipal);
+
+  // This helper function executes `func` and redirects any exception
+  // that may be thrown while running it to the DevTools Console currently
+  // debugging `targetGlobal`.
+  //
+  // This helps flag the nsIScriptError with a particular innerWindowID
+  // which is especially useful for WebExtension content scripts
+  // where script are running in a Sandbox whose prototype is the content window.
+  // We expect content script exception to be flagged with the content window
+  // innerWindowID in order to appear in the tab's DevTools.
+  [ChromeOnly, Throws]
+  any callFunctionAndLogException(any targetGlobal, any func);
 };
 
 /*

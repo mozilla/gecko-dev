@@ -425,53 +425,6 @@ nsresult nsConsoleService::LogMessageWithMode(
   return NS_OK;
 }
 
-// See nsIConsoleService.idl for more info about this method
-NS_IMETHODIMP
-nsConsoleService::CallFunctionAndLogException(
-    JS::Handle<JS::Value> targetGlobal, JS::HandleValue function, JSContext* cx,
-    JS::MutableHandleValue retval) {
-  if (!targetGlobal.isObject() || !function.isObject()) {
-    return NS_ERROR_INVALID_ARG;
-  }
-
-  JS::Rooted<JS::Realm*> contextRealm(cx, JS::GetCurrentRealmOrNull(cx));
-  if (!contextRealm) {
-    return NS_ERROR_INVALID_ARG;
-  }
-
-  JS::Rooted<JSObject*> global(
-      cx, js::CheckedUnwrapDynamic(&targetGlobal.toObject(), cx));
-  if (!global) {
-    return NS_ERROR_INVALID_ARG;
-  }
-
-  // Use AutoJSAPI in order to trigger AutoJSAPI::ReportException
-  // which will do most of the work required for this function.
-  //
-  // We only have to pick the right global for which we want to flag
-  // the exception against.
-  dom::AutoJSAPI jsapi;
-  if (!jsapi.Init(global)) {
-    return NS_ERROR_UNEXPECTED;
-  }
-  JSContext* ccx = jsapi.cx();
-
-  // AutoJSAPI picks `targetGlobal` as execution compartment
-  // whereas we expect to run `function` from the callsites compartment.
-  JSAutoRealm ar(ccx, JS::GetRealmGlobalOrNull(contextRealm));
-
-  JS::RootedValue funVal(ccx, function);
-  if (!JS_WrapValue(ccx, &funVal)) {
-    return NS_ERROR_FAILURE;
-  }
-  if (!JS_CallFunctionValue(ccx, nullptr, funVal, JS::HandleValueArray::empty(),
-                            retval)) {
-    return NS_ERROR_XPC_JAVASCRIPT_ERROR;
-  }
-
-  return NS_OK;
-}
-
 void nsConsoleService::CollectCurrentListeners(
     nsCOMArray<nsIConsoleListener>& aListeners) {
   MutexAutoLock lock(mLock);
