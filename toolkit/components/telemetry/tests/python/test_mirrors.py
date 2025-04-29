@@ -34,6 +34,22 @@ MIRROR_TYPES = {
     for metric_type in metric_types
 }
 
+# Event probes for which we permit the weaker event compatiblity checks:
+# only ensuring that all the metric's extra keys are present in the probe,
+# not ensuring that all the probe's extra keys are defined in the metric.
+WEAKER_EVENT_COMPATIBILITY_PROBES = [
+    "security.ui.protectionspopup#click",
+    "intl.ui.browserLanguage#action",
+    "privacy.ui.fpp#click",
+    "slow_script_warning#shown",
+    "address#address_form",
+    "pwmgr#mgmt_interaction",
+    "relay_integration#popup_option",
+    "relay_integration#mask_panel",
+    "security.ui.certerror#click",
+    "security.ui.certerror#load",
+]
+
 # This import can error, but in that case we want the test to fail anyway.
 from mozbuild.base import MozbuildObject
 
@@ -56,18 +72,23 @@ def mirroring_metrics(objs):
 
 # Events are compatible if their extra keys are compatible.
 def ensure_compatible_event(metric, probe):
-    # Alas, there is a pattern where Telemetry event definitions will have extra
-    # keys that are only used by _some_ of the method+object pairs, so we can't
-    # assert that the lists are the same.
-    # So, instead, assert all extras allowed in the metric exist in the probe.
-    for key in metric.allowed_extra_keys:
-        # `event` metrics may have a `value` extra for mapping to a
-        # mirror's value parameter.
-        if key == "value":
-            continue
+    # There is a pattern where Telemetry event definitions will have extra
+    # keys that are only used by _some_ of the method+object pairs.
+    # We only permit that pattern for old definitions that rely on it.
+    if probe.identifier in WEAKER_EVENT_COMPATIBILITY_PROBES:
+        for key in metric.allowed_extra_keys:
+            # `event` metrics may have a `value` extra for mapping to a
+            # mirror's value parameter.
+            if key == "value":
+                continue
+            assert (
+                key in probe.extra_keys
+            ), f"Key {key} not in mirrored event probe {probe.identifier}. Be sure to add it."
+    else:
         assert (
-            key in probe.extra_keys
-        ), f"Key {key} not in mirrored event probe {probe.identifier}. Be sure to add it."
+            metric.allowed_extra_keys == probe.extra_keys
+            or metric.allowed_extra_keys == sorted(probe.extra_keys + ["value"])
+        ), f"Metric {metric.identifier()}'s extra keys {metric.allowed_extra_keys} are not the same as probe {probe.identifier}'s extras {probe.extra_keys}."
 
 
 # Histograms are compatible with metrics if they are
