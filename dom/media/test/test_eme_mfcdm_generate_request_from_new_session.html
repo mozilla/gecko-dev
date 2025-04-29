@@ -1,0 +1,118 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+  <title>Media Engine only test : test generateRequest on a new session created by same media keys</title>
+  <script src="/tests/SimpleTest/SimpleTest.js"></script>
+  <link rel="stylesheet" type="text/css" href="/tests/SimpleTest/test.css" />
+  <script type="text/javascript" src="manifest.js"></script>
+</head>
+<body>
+<video id="video" controls width="640" height="360"></video>
+<script class="testbody" type="text/javascript">
+
+/**
+ * When using the MFCDM, the CDM should not be closed when the media engine
+ * using it is shut down. Since the CDM is independent and reusable, this test
+ * verifies that a MediaKeys object can be reused to create a new session and
+ * generate a request after the initial media engine is shut down.
+ */
+add_task(async function setupTestingPrefs() {
+  await SpecialPowers.pushPrefEnv({
+    set: [
+      ["media.wmf.media-engine.enabled", 2],
+      // Our mock CDM doesn't implement 'IsTypeSupportedEx()', only 'IsTypeSupported()'
+      ["media.eme.playready.istypesupportedex", false],
+      ["media.eme.wmf.use-mock-cdm-for-external-cdms", true],
+    ],
+  });
+});
+
+let gMediaKeys;
+// Extract only one video frame from https://test.playready.microsoft.com/media/profficialsite/tearsofsteel_1080p_60s_24fps.6000kbps.1920x1080.h264-8b.2ch.128kbps.aac.avsep.cenc.mp4
+const gVideoUrl = 'tearsofsteel_1frame_enc.mp4';
+const gMimeType = 'video/mp4; codecs="avc1.640028"';
+const gKeyId = 'a2c786d0-f9ef-4cb3-b333-cd323a4284a5';
+
+add_task(async function testGenerateRequestOnNewSessionCreatedBySameMediaKeys() {
+  // This test is about the CDM implementation; the key system in use doesn't matter.
+  const keySystem = "com.microsoft.playready.recommendation";
+  const video = document.getElementById('video');
+  await Promise.all([
+    once(video, "loadedmetadata"),
+    setupMSE(video),
+  ]);
+  await setupEME(video, keySystem);
+  await resetVideoElement(video);
+  await generateRequestOnNewSessionCreatedBySameMediaKeys();
+});
+
+// Helper functions below
+function base64UrlEncode(str) {
+  return btoa(str)
+    .replace(/\+/g, '-')
+    .replace(/\//g, '_')
+    .replace(/=+$/, '');
+}
+
+async function setupEME(video, keySystem) {
+  info(`Setting up EME`);
+  const sessionType = 'temporary';
+  const keyIdBytes = gKeyId.replace(/-/g, '').match(/.{1,2}/g).map(b => parseInt(b, 16));
+  const keyIdStr = String.fromCharCode.apply(null, keyIdBytes);
+  const keyIdJson = JSON.stringify({ kids: [base64UrlEncode(keyIdStr)] });
+
+  const configs = [{
+    initDataTypes: ['keyids'],
+    videoCapabilities: [{ contentType: gMimeType }],
+    sessionTypes: [sessionType]
+  }];
+
+  const access = await navigator.requestMediaKeySystemAccess(keySystem, configs);
+  gMediaKeys = await access.createMediaKeys();
+  await video.setMediaKeys(gMediaKeys);
+
+  const session = gMediaKeys.createSession(sessionType);
+  await session.generateRequest('keyids', new TextEncoder().encode(keyIdJson));
+}
+
+async function setupMSE(video) {
+  info(`Setting up MSE`);
+  const mediaSource = new MediaSource();
+  video.src = URL.createObjectURL(mediaSource);
+  await once(mediaSource, "sourceopen");
+
+  info(`Fetching data`);
+  const sourceBuffer = mediaSource.addSourceBuffer(gMimeType);
+  const res = await fetch(gVideoUrl);
+  const data = await res.arrayBuffer();
+
+  info(`Appending data`);
+  sourceBuffer.appendBuffer(data);
+  await once(sourceBuffer, "updateend");
+  mediaSource.endOfStream();
+}
+
+async function resetVideoElement(video) {
+  info(`Resetting video`);
+  video.removeAttribute('src');
+  video.load();
+  await once(video, "emptied");
+}
+
+async function generateRequestOnNewSessionCreatedBySameMediaKeys() {
+  const sessionType = 'temporary';
+  const keyIdBytes = gKeyId.replace(/-/g, '').match(/.{1,2}/g).map(b => parseInt(b, 16));
+  const keyIdStr = String.fromCharCode.apply(null, keyIdBytes);
+  const keyIdJson = JSON.stringify({ kids: [base64UrlEncode(keyIdStr)] });
+  const session = gMediaKeys.createSession(sessionType);
+  try {
+    await session.generateRequest('keyids', new TextEncoder().encode(keyIdJson));
+    ok(true, "Generated request succesfully on a new session!");
+  } catch (error) {
+    ok(false, "Failed to generate request again!");
+  }
+}
+
+</script>
+</body>
+</html>
