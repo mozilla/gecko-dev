@@ -111,12 +111,20 @@ struct WebTransportStopSendingCapsule {
   CapsuleType Type() const { return CapsuleType::WT_STOP_SENDING; }
 };
 
+struct WebTransportResetStreamCapsule {
+  uint64_t mErrorCode = 0;
+  uint64_t mReliableSize{0};
+  uint64_t mID{0};
+
+  CapsuleType Type() const { return CapsuleType::WT_RESET_STREAM; }
+};
+
 using CapsuleValue = mozilla::Variant<
     UnknownCapsule, CloseWebTransportSessionCapsule, WebTransportMaxDataCapsule,
     WebTransportStreamDataCapsule, WebTransportStreamsBlockedCapsule,
     WebTransportMaxStreamsCapsule, WebTransportStreamDataBlockedCapsule,
     WebTransportMaxStreamDataCapsule, WebTransportDataBlockedCapsule,
-    WebTransportStopSendingCapsule>;
+    WebTransportStopSendingCapsule, WebTransportResetStreamCapsule>;
 
 class Capsule final {
  public:
@@ -132,6 +140,8 @@ class Capsule final {
   static Capsule WebTransportMaxStreamData(uint64_t aLimit, uint64_t aID);
   static Capsule WebTransportDataBlocked(uint64_t aLimit);
   static Capsule WebTransportStopSending(uint64_t aError, uint64_t aID);
+  static Capsule WebTransportResetStream(uint64_t aError, uint64_t aSize,
+                                         uint64_t aID);
 
   CapsuleType Type() const;
 
@@ -201,6 +211,13 @@ class Capsule final {
   const WebTransportStopSendingCapsule& GetWebTransportStopSendingCapsule()
       const {
     return mCapsule.as<WebTransportStopSendingCapsule>();
+  }
+  WebTransportResetStreamCapsule& GetWebTransportResetStreamCapsule() {
+    return mCapsule.as<WebTransportResetStreamCapsule>();
+  }
+  const WebTransportResetStreamCapsule& GetWebTransportResetStreamCapsule()
+      const {
+    return mCapsule.as<WebTransportResetStreamCapsule>();
   }
 
   template <typename CapsuleStruct>

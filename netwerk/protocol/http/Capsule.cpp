@@ -93,6 +93,16 @@ Capsule Capsule::WebTransportStopSending(uint64_t aError, uint64_t aID) {
 }
 
 // static
+Capsule Capsule::WebTransportResetStream(uint64_t aError, uint64_t aSize,
+                                         uint64_t aID) {
+  WebTransportResetStreamCapsule capsule;
+  capsule.mErrorCode = aError;
+  capsule.mReliableSize = aSize;
+  capsule.mID = aID;
+  return Capsule(std::move(capsule));
+}
+
+// static
 Capsule Capsule::Unknown(uint64_t aType, nsTArray<uint8_t>&& aData) {
   UnknownCapsule capsule;
   capsule.mType = aType;
@@ -128,6 +138,9 @@ CapsuleType Capsule::Type() const {
         return aCapsule.Type();
       },
       [](const WebTransportStopSendingCapsule& aCapsule) {
+        return aCapsule.Type();
+      },
+      [](const WebTransportResetStreamCapsule& aCapsule) {
         return aCapsule.Type();
       });
 }

@@ -55,7 +55,19 @@ class MockWebTransportClient : public CapsuleIOHandler {
     }
   }
 
-  void ProcessOutput() { mSession->PrepareCapsulesToSend(mOutCapsules); }
+  void ProcessOutput() {
+    mSession->PrepareCapsulesToSend(mOutCapsules);
+    mozilla::Queue<UniquePtr<CapsuleEncoder>> queue(std::move(mOutCapsules));
+    while (!queue.IsEmpty()) {
+      UniquePtr<CapsuleEncoder> encoder = queue.Pop();
+      auto metadata = encoder->GetStreamMetadata();
+      if (metadata) {
+        mSession->OnStreamDataSent(StreamId(metadata->mID),
+                                   metadata->mDataSize);
+      }
+      mOutCapsules.Push(std::move(encoder));
+    }
+  }
 
   mozilla::Queue<UniquePtr<CapsuleEncoder>> GetOutCapsules() {
     return std::move(mOutCapsules);
@@ -145,6 +157,14 @@ class MockWebTransportServer : public CapsuleParser::Listener {
     mOutCapsules.Push(std::move(encoder));
   }
 
+  void SendWebTransportResetStreamCapsule(uint64_t aError, uint64_t aSize,
+                                          uint64_t aID) {
+    Capsule capsule = Capsule::WebTransportResetStream(aError, aSize, aID);
+    UniquePtr<CapsuleEncoder> encoder = MakeUnique<CapsuleEncoder>();
+    encoder->EncodeCapsule(capsule);
+    mOutCapsules.Push(std::move(encoder));
+  }
+
   mozilla::Queue<UniquePtr<CapsuleEncoder>> GetOutCapsules() {
     return std::move(mOutCapsules);
   }
@@ -177,11 +197,14 @@ class MockWebTransportSessionEventListener
     return std::move(mStopSending);
   }
 
+  Maybe<std::pair<uint64_t, nsresult>> TakeReset() { return std::move(mReset); }
+
  private:
   virtual ~MockWebTransportSessionEventListener() = default;
 
   nsTArray<RefPtr<WebTransportStreamBase>> mIncomingStreams;
   Maybe<std::pair<uint64_t, nsresult>> mStopSending;
+  Maybe<std::pair<uint64_t, nsresult>> mReset;
 };
 
 NS_IMPL_ISUPPORTS(MockWebTransportSessionEventListener,
@@ -253,6 +276,7 @@ NS_IMETHODIMP MockWebTransportSessionEventListener::OnStopSending(
 
 NS_IMETHODIMP MockWebTransportSessionEventListener::OnResetReceived(
     uint64_t aStreamId, nsresult aError) {
+  mReset = Some(std::pair<uint64_t, nsresult>(aStreamId, aError));
   return NS_OK;
 }
 
@@ -388,8 +412,9 @@ static void ValidateData(nsIInputStream* aStream,
   ValidateData(outputData, aExpectedData);
 }
 
-static void CreateStreamAndSendData(WebTransportStreamBase* aStream,
-                                    const nsTArray<uint8_t>& aData) {
+static std::pair<nsCOMPtr<nsIAsyncOutputStream>, nsCOMPtr<nsIAsyncInputStream>>
+CreateStreamAndSendData(WebTransportStreamBase* aStream,
+                        const nsTArray<uint8_t>& aData) {
   nsCOMPtr<nsIAsyncOutputStream> writer;
   nsCOMPtr<nsIAsyncInputStream> reader;
   aStream->GetWriterAndReader(getter_AddRefs(writer), getter_AddRefs(reader));
@@ -398,6 +423,7 @@ static void CreateStreamAndSendData(WebTransportStreamBase* aStream,
   Unused << writer->Write((const char*)aData.Elements(), aData.Length(),
                           &numWritten);
   NS_ProcessPendingEvents(nullptr);
+  return std::make_pair(writer, reader);
 }
 
 static void ValidateStreamCapsule(MockWebTransportServer* aServer,
@@ -928,6 +954,94 @@ TEST(TestHttp2WebTransport, StreamOnStopSending)
   ASSERT_TRUE(stopSending);
   ASSERT_EQ(stopSending->first, uniStream->WebTransportStreamId());
   ASSERT_EQ(stopSending->second, NS_ERROR_WEBTRANSPORT_CODE_BASE);
+
+  client->Done();
+  server->Done();
+}
+
+TEST(TestHttp2WebTransport, StreamReset)
+{
+  const uint32_t TOTAL_SIZE = 1024;
+  Http2WebTransportInitialSettings settings;
+  settings.mInitialMaxStreamsBidi = 1;
+  settings.mInitialMaxStreamDataBidi = TOTAL_SIZE;
+  settings.mInitialMaxData = TOTAL_SIZE;
+  RefPtr<MockWebTransportClient> client = new MockWebTransportClient(settings);
+  RefPtr<MockWebTransportSessionEventListener> listener =
+      new MockWebTransportSessionEventListener();
+  client->Session()->SetWebTransportSessionEventListener(listener);
+  RefPtr<MockWebTransportServer> server = new MockWebTransportServer();
+
+  RefPtr<WebTransportStreamBase> stream = CreateOutgoingStream(client);
+  ASSERT_TRUE(stream != nullptr);
+
+  nsTArray<uint8_t> inputData;
+  CreateTestData(TOTAL_SIZE / 4, inputData);
+  CreateStreamAndSendData(stream, inputData);
+
+  ServerProcessCapsules(server, client);
+
+  inputData.Clear();
+  CreateTestData(TOTAL_SIZE / 4, inputData);
+  CreateStreamAndSendData(stream, inputData);
+
+  ServerProcessCapsules(server, client);
+
+  nsTArray<Capsule> received = server->GetReceivedCapsules();
+  ASSERT_EQ(received.Length(), 2u);
+
+  stream->Reset(0);
+
+  ServerProcessCapsules(server, client);
+  received = server->GetReceivedCapsules();
+  ASSERT_EQ(received.Length(), 1u);
+
+  WebTransportResetStreamCapsule& reset =
+      received[0].GetWebTransportResetStreamCapsule();
+  ASSERT_EQ(reset.mID, stream->WebTransportStreamId());
+  ASSERT_EQ(reset.mErrorCode, 0u);
+  ASSERT_EQ(reset.mReliableSize, TOTAL_SIZE / 2);
+
+  client->Done();
+  server->Done();
+}
+
+TEST(TestHttp2WebTransport, StreamResetReliableSize)
+{
+  const uint32_t TOTAL_SIZE = 1024;
+  Http2WebTransportInitialSettings settings;
+  settings.mInitialMaxStreamsBidi = 1;
+  settings.mInitialMaxStreamDataBidi = TOTAL_SIZE;
+  settings.mInitialMaxData = TOTAL_SIZE;
+  RefPtr<MockWebTransportClient> client = new MockWebTransportClient(settings);
+  RefPtr<MockWebTransportSessionEventListener> listener =
+      new MockWebTransportSessionEventListener();
+  client->Session()->SetWebTransportSessionEventListener(listener);
+  RefPtr<MockWebTransportServer> server = new MockWebTransportServer();
+
+  RefPtr<WebTransportStreamBase> stream = CreateOutgoingStream(client);
+  ASSERT_TRUE(stream != nullptr);
+
+  nsTArray<uint8_t> inputData;
+  CreateTestData(TOTAL_SIZE / 4, inputData);
+  auto streams = CreateStreamAndSendData(stream, inputData);
+
+  ServerProcessCapsules(server, client);
+
+  server->SendWebTransportStreamDataCapsule(stream->WebTransportStreamId(),
+                                            false, std::move(inputData));
+  CreateTestData(TOTAL_SIZE / 4, inputData);
+  server->SendWebTransportStreamDataCapsule(stream->WebTransportStreamId(),
+                                            false, std::move(inputData));
+
+  server->SendWebTransportResetStreamCapsule(0, TOTAL_SIZE / 2,
+                                             stream->WebTransportStreamId());
+  ClientProcessCapsules(server, client);
+
+  auto reset = listener->TakeReset();
+  ASSERT_TRUE(reset);
+  ASSERT_EQ(reset->first, stream->WebTransportStreamId());
+  ASSERT_EQ(reset->second, NS_ERROR_WEBTRANSPORT_CODE_BASE);
 
   client->Done();
   server->Done();

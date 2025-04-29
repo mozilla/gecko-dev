@@ -51,6 +51,11 @@ void CapsuleEncoder::EncodeCapsule(Capsule& aCapsule) {
         .EncodeVarint(length)
         .EncodeVarint(value.mID)
         .EncodeBuffer(value.mData);
+    mStreamMetadata = Some(StreamMetadata{
+        value.mID, value.mData.Length(),
+        CapsuleEncoder::VarintLength(static_cast<uint64_t>(value.Type())) +
+            CapsuleEncoder::VarintLength(length) +
+            CapsuleEncoder::VarintLength(value.mID)});
     return;
   }
 
@@ -105,6 +110,18 @@ void CapsuleEncoder::EncodeCapsule(Capsule& aCapsule) {
                       CapsuleEncoder::VarintLength(value.mErrorCode))
         .EncodeVarint(value.mID)
         .EncodeVarint(value.mErrorCode);
+    return;
+  }
+
+  if (aCapsule.mCapsule.is<WebTransportResetStreamCapsule>()) {
+    auto& value = aCapsule.mCapsule.as<WebTransportResetStreamCapsule>();
+    EncodeVarint(value.Type())
+        .EncodeVarint(CapsuleEncoder::VarintLength(value.mID) +
+                      CapsuleEncoder::VarintLength(value.mErrorCode) +
+                      CapsuleEncoder::VarintLength(value.mReliableSize))
+        .EncodeVarint(value.mID)
+        .EncodeVarint(value.mErrorCode)
+        .EncodeVarint(value.mReliableSize);
     return;
   }
 }

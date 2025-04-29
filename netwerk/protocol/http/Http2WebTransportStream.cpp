@@ -128,7 +128,21 @@ void Http2WebTransportStream::SendStopSending(uint8_t aErrorCode) {
 
 void Http2WebTransportStream::SendFin() {}
 
-void Http2WebTransportStream::Reset(uint64_t aErrorCode) {}
+void Http2WebTransportStream::Reset(uint64_t aErrorCode) {
+  if (mSentReset || !mWebTransportSession || mSendState == SEND_DONE) {
+    // https://www.ietf.org/archive/id/draft-ietf-webtrans-http2-11.html#section-6.2
+    // A WT_RESET_STREAM capsule MUST NOT be sent after a stream is closed or
+    // reset.
+    return;
+  }
+
+  mSentReset = true;
+  mStreamResetCapsule.emplace(Capsule::WebTransportResetStream(
+      aErrorCode, mTotalSent.value(), mStreamId));
+  mWebTransportSession->StreamHasCapsuleToSend();
+  mRecvState = RECV_DONE;
+  mSendState = SEND_DONE;
+}
 
 already_AddRefed<nsIWebTransportSendStreamStats>
 Http2WebTransportStream::GetSendStreamStats() {
@@ -169,14 +183,23 @@ Http2WebTransportStream::OnOutputStreamReady(nsIAsyncOutputStream* aOut) {
     mCurrentOut = mOutgoingQueue.Pop();
   }
 
-  while (mCurrentOut && mReceiveStreamPipeOut) {
+  while (mCurrentOut && mReceiveStreamPipeOut && (mRecvState != RECV_DONE)) {
     char* writeBuffer = reinterpret_cast<char*>(const_cast<uint8_t*>(
                             mCurrentOut->GetData().Elements())) +
                         mWriteOffset;
     uint32_t toWrite = mCurrentOut->GetData().Length() - mWriteOffset;
+    if (mReliableSize) {
+      if (mTotalReceived + toWrite > *mReliableSize) {
+        toWrite = *mReliableSize - mTotalReceived;
+      }
+    }
 
     uint32_t wrote = 0;
     nsresult rv = mReceiveStreamPipeOut->Write(writeBuffer, toWrite, &wrote);
+    LOG(("Http2WebTransportStream::Write rv=0x%" PRIx32 " wrote=%" PRIu32
+         " socketin=%" PRIx32 " [this=%p]",
+         static_cast<uint32_t>(rv), wrote,
+         static_cast<uint32_t>(mSocketInCondition), this));
     if (rv == NS_BASE_STREAM_WOULD_BLOCK) {
       mSocketInCondition =
           mReceiveStreamPipeOut->AsyncWait(this, 0, 0, nullptr);
@@ -198,6 +221,18 @@ Http2WebTransportStream::OnOutputStreamReady(nsIAsyncOutputStream* aOut) {
     mWebTransportSession->ReceiverFc().AddRetired(wrote);
 
     mWriteOffset += wrote;
+    mTotalReceived += wrote;
+    // https://www.ietf.org/archive/id/draft-ietf-webtrans-http2-11.html#section-6.2
+    // A receiver of a WT_RESET_STREAM capsule can discard any data in excess of
+    // the Reliable Size indicated, even if that data was already received.
+    if (mReliableSize && mTotalReceived == *mReliableSize) {
+      mSocketInCondition = NS_OK;
+      mWriteOffset = 0;
+      mCurrentOut = nullptr;
+      mOutgoingQueue.Clear();
+      mRecvState = RECV_DONE;
+      break;
+    }
 
     if (toWrite == wrote) {
       mWriteOffset = 0;
@@ -241,9 +276,6 @@ nsresult Http2WebTransportStream::ReadRequestSegment(
   UniquePtr<CapsuleEncoder> encoder = MakeUnique<CapsuleEncoder>();
   encoder->EncodeCapsule(capsule);
   wtStream->mCapsuleQueue.Push(std::move(encoder));
-  wtStream->mTotalSent += count;
-  wtStream->mFc.Consume(count);
-  wtStream->mWebTransportSession->SessionDataFc().Consume(count);
   *countRead = count;
   return NS_OK;
 }
@@ -268,6 +300,13 @@ void Http2WebTransportStream::WriteMaintenanceCapsules(
     UniquePtr<CapsuleEncoder> encoder = MakeUnique<CapsuleEncoder>();
     encoder->EncodeCapsule(*mStopSendingCapsule);
     mStopSendingCapsule = Nothing();
+    aOutput.Push(std::move(encoder));
+  }
+
+  if (mStreamResetCapsule) {
+    UniquePtr<CapsuleEncoder> encoder = MakeUnique<CapsuleEncoder>();
+    encoder->EncodeCapsule(*mStreamResetCapsule);
+    mStreamResetCapsule = Nothing();
     aOutput.Push(std::move(encoder));
   }
 
@@ -319,6 +358,40 @@ nsresult Http2WebTransportStream::HandleMaxStreamData(uint64_t aLimit) {
 
 void Http2WebTransportStream::OnStopSending() { mSendState = SEND_DONE; }
 
+void Http2WebTransportStream::OnReset(uint64_t aSize) {
+  if (mReliableSize) {
+    return;
+  }
+
+  mReliableSize.emplace(aSize);
+
+  LOG(("Http2WebTransportStream::OnReset %p mReliableSize=%" PRIu64
+       " mTotalReceived=%" PRIu64,
+       this, *mReliableSize, mTotalReceived));
+  if (*mReliableSize < mTotalReceived) {
+    // A receiver MUST treat the receipt of a WT_RESET_STREAM with a Reliable
+    // Size smaller than the number of bytes it has received on the stream as a
+    // session error.
+    // TODO: find a better error code.
+    mWebTransportSession->OnError(0);
+  }
+}
+
+void Http2WebTransportStream::OnStreamDataSent(size_t aCount) {
+  LOG(("Http2WebTransportStream::OnStreamDataSent %p aCount=%" PRIu64
+       " mTotalSent=%" PRIu64,
+       this, static_cast<uint64_t>(aCount), mTotalSent.value()));
+  mTotalSent += aCount;
+  if (!mTotalSent.isValid()) {
+    // TODO: find a better error code.
+    mWebTransportSession->OnError(0);
+    return;
+  }
+
+  mFc.Consume(aCount);
+  mWebTransportSession->SessionDataFc().Consume(aCount);
+}
+
 void Http2WebTransportStream::Close(nsresult aResult) {
   if (mSendStreamPipeIn) {
     mSendStreamPipeIn->AsyncWait(nullptr, 0, 0, nullptr);
@@ -361,14 +434,12 @@ nsresult Http2WebTransportStream::HandleStreamData(bool aFin,
             mSocketInCondition = OnOutputStreamReady(mReceiveStreamPipeOut);
           }
         }
-      } else if (mTotalReceived) {
+      } else {
         // https://www.ietf.org/archive/id/draft-ietf-webtrans-http2-10.html#section-6.4
         // Empty WT_STREAM capsules MUST NOT be used unless they open or close a
         // stream
         // TODO: Handle empty stream capsule
       }
-
-      mTotalReceived += length;
 
       LOG((
           "Http2WebTransportStream::HandleStreamData "

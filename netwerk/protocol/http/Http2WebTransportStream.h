@@ -8,6 +8,7 @@
 
 #include <functional>
 
+#include "mozilla/CheckedInt.h"
 #include "mozilla/Queue.h"
 #include "WebTransportFlowControl.h"
 #include "WebTransportStreamBase.h"
@@ -71,6 +72,8 @@ class Http2WebTransportStream final : public WebTransportStreamBase {
   void TakeOutputCapsule(mozilla::Queue<UniquePtr<CapsuleEncoder>>& aOutput);
 
   void OnStopSending();
+  void OnReset(uint64_t aSize);
+  void OnStreamDataSent(size_t aCount);
 
  private:
   virtual ~Http2WebTransportStream();
@@ -85,10 +88,12 @@ class Http2WebTransportStream final : public WebTransportStreamBase {
   RefPtr<Http2WebTransportSessionImpl> mWebTransportSession;
   class StreamId mStreamId{0u};
   nsTArray<uint8_t> mBuffer;
-  uint64_t mTotalSent = 0;
+  CheckedUint64 mTotalSent{0};
   uint64_t mTotalReceived = 0;
+  Maybe<uint64_t> mReliableSize;
   uint32_t mWriteOffset = 0;
   bool mSentStopSending = false;
+  bool mSentReset = false;
   // The queue used for passing data to the upper layer.
   // When mReceiveStreamPipeOut->Write() returns NS_BASE_STREAM_WOULD_BLOCK, we
   // need to store the data in this queue.
@@ -99,6 +104,7 @@ class Http2WebTransportStream final : public WebTransportStreamBase {
   SenderFlowControlStreamId mFc;
   ReceiverFlowControlStreamId mReceiverFc;
   Maybe<Capsule> mStopSendingCapsule;
+  Maybe<Capsule> mStreamResetCapsule;
 };
 }  // namespace mozilla::net
 

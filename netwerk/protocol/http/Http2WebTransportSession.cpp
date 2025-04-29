@@ -267,9 +267,14 @@ bool Http2WebTransportSessionImpl::OnCapsule(Capsule&& aCapsule) {
     case CapsuleType::PADDING:
       LOG(("Handling PADDING\n"));
       break;
-    case CapsuleType::WT_RESET_STREAM:
-      LOG(("Handling WT_RESET_STREAM\n"));
-      break;
+    case CapsuleType::WT_RESET_STREAM: {
+      WebTransportResetStreamCapsule& reset =
+          aCapsule.GetWebTransportResetStreamCapsule();
+      StreamId id = StreamId(reset.mID);
+      if (!HandleStreamResetCapsule(id, std::move(aCapsule))) {
+        return false;
+      }
+    } break;
     case CapsuleType::WT_STOP_SENDING: {
       WebTransportStopSendingCapsule& stopSending =
           aCapsule.GetWebTransportStopSendingCapsule();
@@ -415,6 +420,43 @@ bool Http2WebTransportSessionImpl::HandleStreamStopSendingCapsule(
     mListener->OnStopSending(aId, rv);
   }
   return true;
+}
+
+bool Http2WebTransportSessionImpl::HandleStreamResetCapsule(
+    StreamId aId, Capsule&& aCapsule) {
+  RefPtr<Http2WebTransportStream> stream = GetStream(aId);
+  if (!stream) {
+    return false;
+  }
+
+  WebTransportResetStreamCapsule& reset =
+      aCapsule.GetWebTransportResetStreamCapsule();
+
+  stream->OnReset(reset.mReliableSize);
+
+  uint8_t wtError = Http3ErrorToWebTransportError(reset.mErrorCode);
+  nsresult rv = GetNSResultFromWebTransportError(wtError);
+  if (mListener) {
+    mListener->OnResetReceived(aId, rv);
+  }
+
+  return true;
+}
+
+void Http2WebTransportSessionImpl::OnStreamDataSent(StreamId aId,
+                                                    size_t aCount) {
+  RefPtr<Http2WebTransportStream> stream = GetStream(aId);
+  if (!stream) {
+    return;
+  }
+
+  stream->OnStreamDataSent(aCount);
+}
+
+void Http2WebTransportSessionImpl::OnError(uint64_t aError) {
+  LOG(("Http2WebTransportSessionImpl::OnError %p aError=%" PRIu64, this,
+       aError));
+  // To be implemented.
 }
 
 bool Http2WebTransportSessionImpl::ProcessIncomingStreamCapsule(
@@ -607,6 +649,16 @@ Http2WebTransportSession::OnOutputStreamReady(nsIAsyncOutputStream* aOut) {
     }
 
     mWriteOffset += wrote;
+
+    Maybe<StreamMetadata> metadata = mCurrentOutCapsule->GetStreamMetadata();
+    // This is a WT_STREAM_DATA capsule, so we need to track how many bytes of
+    // stream data are sent.
+    if (metadata) {
+      if (mWriteOffset > metadata->mStartOfData) {
+        uint64_t dataSent = mWriteOffset - metadata->mStartOfData;
+        mImpl->OnStreamDataSent(StreamId(metadata->mID), dataSent);
+      }
+    }
 
     if (toWrite == wrote) {
       mWriteOffset = 0;
