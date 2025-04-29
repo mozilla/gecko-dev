@@ -4461,7 +4461,7 @@ void BacktrackingAllocator::addLiveRegistersForRange(
   }
 
   *firstNonCallSafepoint =
-      findFirstNonCallSafepoint(range->from(), *firstNonCallSafepoint);
+      findFirstNonCallSafepoint(start, *firstNonCallSafepoint);
 
   for (size_t i = *firstNonCallSafepoint; i < nonCallSafepoints_.length();
        i++) {
