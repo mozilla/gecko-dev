@@ -12,29 +12,29 @@ ChromeUtils.defineESModuleGetters(lazy, {
 ChromeUtils.defineLazyGetter(lazy, "logger", () => lazy.Log.get());
 
 let registered = false;
-export function isNavigationListenerActorRegistered() {
+export function isWebProgressListenerActorRegistered() {
   return registered;
 }
 
 /**
- * Register the NavigationListener actor that will keep track of all ongoing
+ * Register the WebProgressListener actor that will keep track of all ongoing
  * navigations.
  */
-export function registerNavigationListenerActor() {
+export function registerWebProgressListenerActor() {
   if (registered) {
     return;
   }
 
   try {
-    ChromeUtils.registerWindowActor("NavigationListener", {
+    ChromeUtils.registerWindowActor("WebProgressListener", {
       kind: "JSWindowActor",
       parent: {
         esModuleURI:
-          "chrome://remote/content/shared/js-window-actors/NavigationListenerParent.sys.mjs",
+          "chrome://remote/content/shared/js-window-actors/WebProgressListenerParent.sys.mjs",
       },
       child: {
         esModuleURI:
-          "chrome://remote/content/shared/js-window-actors/NavigationListenerChild.sys.mjs",
+          "chrome://remote/content/shared/js-window-actors/WebProgressListenerChild.sys.mjs",
         events: {
           DOMWindowCreated: {},
         },
@@ -44,7 +44,7 @@ export function registerNavigationListenerActor() {
     });
     registered = true;
 
-    // Ensure the navigation listener is started in existing contexts.
+    // Ensure the WebProgress listener is started in existing contexts.
     for (const browser of lazy.TabManager.browsers) {
       if (!browser?.browsingContext) {
         continue;
@@ -56,7 +56,7 @@ export function registerNavigationListenerActor() {
         }
 
         context.currentWindowGlobal
-          .getActor("NavigationListener")
+          .getActor("WebProgressListener")
           // Note that "createActor" is not explicitly referenced in the child
           // actor, this is only used to trigger the creation of the actor.
           .sendAsyncMessage("createActor");
@@ -64,17 +64,17 @@ export function registerNavigationListenerActor() {
     }
   } catch (e) {
     if (e.name === "NotSupportedError") {
-      lazy.logger.warn(`NavigationListener actor is already registered!`);
+      lazy.logger.warn(`WebProgressListener actor is already registered!`);
     } else {
       throw e;
     }
   }
 }
 
-export function unregisterNavigationListenerActor() {
+export function unregisterWebProgressListenerActor() {
   if (!registered) {
     return;
   }
-  ChromeUtils.unregisterWindowActor("NavigationListener");
+  ChromeUtils.unregisterWindowActor("WebProgressListener");
   registered = false;
 }
