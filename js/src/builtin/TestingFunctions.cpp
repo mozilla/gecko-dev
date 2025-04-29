@@ -65,7 +65,6 @@
 #include "jit/BaselineJIT.h"
 #include "jit/CacheIRSpewer.h"
 #include "jit/Disassemble.h"
-#include "jit/FlushICache.h"
 #include "jit/InlinableNatives.h"
 #include "jit/Invalidation.h"
 #include "jit/Ion.h"
@@ -1081,22 +1080,6 @@ static bool WasmCompileMode(JSContext* cx, unsigned argc, Value* vp) {
     return true;
   }
   return false;
-}
-
-static bool WasmLazyTieringEnabled(JSContext* cx, unsigned argc, Value* vp) {
-  // Note: ensure this function stays in sync with `PlatformCanTier()`.
-  CallArgs args = CallArgsFromVp(argc, vp);
-  bool baseline = wasm::BaselineAvailable(cx);
-  bool ion = wasm::IonAvailable(cx);
-
-  bool enabled =
-      baseline && ion &&
-      JS::Prefs::wasm_lazy_tiering() &&
-      (JS::Prefs::wasm_lazy_tiering_synchronous() ||
-       (CanUseExtraThreads() && jit::CanFlushExecutionContextForAllThreads()));
-
-  args.rval().setBoolean(enabled);
-  return true;
 }
 
 static bool WasmBaselineDisabledByFeatures(JSContext* cx, unsigned argc,
@@ -10220,11 +10203,6 @@ JS_FOR_WASM_FEATURES(WASM_FEATURE)
 "  'baseline+ion', or 'none'.  A compiler is available if it is present in the\n"
 "  executable and not disabled by switches or runtime conditions.  At most one\n"
 "  baseline and one optimizing compiler can be available."),
-
-    JS_FN_HELP("wasmLazyTieringEnabled", WasmLazyTieringEnabled, 0, 0,
-"wasmLazyTieringEnabled()",
-"  Returns a boolean indicating whether compilation will be performed\n"
-"  using lazy tiering."),
 
     JS_FN_HELP("wasmBaselineDisabledByFeatures", WasmBaselineDisabledByFeatures, 0, 0,
 "wasmBaselineDisabledByFeatures()",

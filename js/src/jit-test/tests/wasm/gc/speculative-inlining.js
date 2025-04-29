@@ -1,4 +1,4 @@
-// |jit-test| test-also=--setpref=wasm_lazy_tiering --setpref=wasm_lazy_tiering_synchronous; skip-if: !wasmLazyTieringEnabled() || !getPrefValue("wasm_lazy_tiering_synchronous")
+// |jit-test| test-also=--setpref=wasm_lazy_tiering --setpref=wasm_lazy_tiering_synchronous; skip-if: wasmCompileMode() != "baseline+ion" || !getPrefValue("wasm_lazy_tiering")
 
 // Needs to be at least 13500 in order for test functions to tier up.
 // See Instance::computeInitialHotnessCounter.
@@ -59,8 +59,6 @@ for ([funcToInline, funcToInlineExpected] of testFuncs) {
   for (let i = 0; i <= tierUpThreshold; i++) {
     invokeTestWith(exports, funcToInline, funcToInlineExpected);
   }
-  // We are running in "synchronous" lazy-tiering mode, so there's no race here
-  // -- the optimized version should be available at this point.
   assertEq(wasmFunctionTier(test), "optimized");
 
   // Now that we've inlined something, try calling it with every test function
