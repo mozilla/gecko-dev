@@ -924,6 +924,7 @@ void nsTableRowFrame::ReflowChildren(nsPresContext* aPresContext,
          kidFrame = kidFrame->GetNextCell()) {
       if (kidFrame->Inner()->GetWritingMode().IsOrthogonalTo(wm)) {
         LogicalSize kidAvailSize(wm, kidFrame->GetRectRelativeToSelf().Size());
+        kidAvailSize.BSize(wm) = aDesiredSize.BSize(wm);
 
         // Reflow the child
         TableCellReflowInput kidReflowInput(

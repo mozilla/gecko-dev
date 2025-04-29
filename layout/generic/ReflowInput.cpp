@@ -2404,11 +2404,14 @@ void ReflowInput::InitConstraints(
       if (mParentReflowInput->mFlags.mOrthogonalCellFinalReflow) {
         // This is the "extra" reflow for the inner content of an orthogonal
         // table cell, after the row size has been determined; so we want to
-        // directly use the cell size without further adjustment.
-        const auto* cell = mFrame->GetParent();
-        MOZ_ASSERT(cell->IsTableCellFrame(),
+        // respect the cell's size without further adjustment. Its rect may
+        // not yet be correct, however, so we base our size on the parent
+        // reflow input's available size, adjusted for border widths.
+        MOZ_ASSERT(mFrame->GetParent()->IsTableCellFrame(),
                    "unexpected mOrthogonalCellFinalReflow flag!");
-        cbSize = LogicalSize(wm, cell->GetPaddingRectRelativeToSelf().Size());
+        cbSize = mParentReflowInput->AvailableSize().ConvertTo(
+            wm, mParentReflowInput->GetWritingMode());
+        cbSize -= mParentReflowInput->ComputedLogicalBorder(wm).Size(wm);
         SetAvailableISize(cbSize.ISize(wm));
       } else {
         const bool shouldShrinkWrap = [&] {
