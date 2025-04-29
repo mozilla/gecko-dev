@@ -18,11 +18,10 @@ const FEATURES = {
   AddonSuggestions:
     "resource:///modules/urlbar/private/AddonSuggestions.sys.mjs",
   AmpSuggestions: "resource:///modules/urlbar/private/AmpSuggestions.sys.mjs",
-  // TODO Bug 1961040: Convert ExposureSuggestions to DynamicSuggestions.
-  // ExposureSuggestions:
-  //  "resource:///modules/urlbar/private/ExposureSuggestions.sys.mjs",
   FakespotSuggestions:
     "resource:///modules/urlbar/private/FakespotSuggestions.sys.mjs",
+  DynamicSuggestions:
+    "resource:///modules/urlbar/private/DynamicSuggestions.sys.mjs",
   ImpressionCaps: "resource:///modules/urlbar/private/ImpressionCaps.sys.mjs",
   MDNSuggestions: "resource:///modules/urlbar/private/MDNSuggestions.sys.mjs",
   OfflineWikipediaSuggestions:

@@ -569,8 +569,8 @@ pref("browser.urlbar.quicksuggest.ampTopPickCharThreshold", 5);
 // value).
 pref("browser.urlbar.quicksuggest.ampMatchingStrategy", 0);
 
-// Comma-separated list of Suggest exposure suggestion types to enable.
-pref("browser.urlbar.quicksuggest.exposureSuggestionTypes", "");
+// Comma-separated list of Suggest dynamic suggestion types to enable.
+pref("browser.urlbar.quicksuggest.dynamicSuggestionTypes", "");
 
 // Whether Suggest will use the ML backend in addition to Rust.
 pref("browser.urlbar.quicksuggest.mlEnabled", false);

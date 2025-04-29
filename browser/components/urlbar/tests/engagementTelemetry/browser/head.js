@@ -117,11 +117,19 @@ async function ensureQuickSuggestInit({ ...args } = {}) {
       },
       lazy.QuickSuggestTestUtils.weatherRecord(),
       {
-        type: "exposure-suggestions",
-        suggestion_type: "aaa",
-        attachment: {
-          keywords: ["aaa keyword"],
-        },
+        type: "dynamic-suggestions",
+        suggestion_type: "test-exposure-aaa",
+        score: 1.0,
+        attachment: [
+          {
+            keywords: ["aaa keyword"],
+            data: {
+              result: {
+                isHiddenExposure: true,
+              },
+            },
+          },
+        ],
       },
     ],
     ...args,
