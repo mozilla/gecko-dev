@@ -13,6 +13,7 @@ import androidx.activity.result.ActivityResultLauncher
 import androidx.compose.ui.platform.ComposeView
 import androidx.fragment.app.Fragment
 import androidx.navigation.fragment.findNavController
+import org.mozilla.fenix.GleanMetrics.PrivateBrowsingLocked
 import org.mozilla.fenix.R
 import org.mozilla.fenix.ext.settings
 import org.mozilla.fenix.home.HomeFragmentDirections
@@ -38,6 +39,8 @@ class UnlockPrivateTabsFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+        PrivateBrowsingLocked.promptShown.record()
+
         (view as ComposeView).setContent {
             FirefoxTheme {
                 UnlockPrivateTabsScreen(
@@ -62,12 +65,15 @@ class UnlockPrivateTabsFragment : Fragment() {
     }
 
     private fun leavePrivateMode() {
-        findNavController().popBackStack(R.id.homeFragment, true)
+        PrivateBrowsingLocked.seeOtherTabsClicked.record()
 
+        findNavController().popBackStack(R.id.homeFragment, true)
         findNavController().navigate(HomeFragmentDirections.actionGlobalTabsTrayFragment(page = Page.NormalTabs))
     }
 
     private fun onAuthSuccess() {
+        PrivateBrowsingLocked.authSuccess.record()
+
         requireContext().settings().isPrivateScreenBlocked = false
 
         BiometricAuthenticationManager.biometricAuthenticationNeededInfo.apply {
@@ -78,6 +84,8 @@ class UnlockPrivateTabsFragment : Fragment() {
     }
 
     private fun onAuthFailure() {
+        PrivateBrowsingLocked.authFailure.record()
+
         BiometricAuthenticationManager.biometricAuthenticationNeededInfo.apply {
             authenticationStatus = AuthenticationStatus.NOT_AUTHENTICATED
         }
