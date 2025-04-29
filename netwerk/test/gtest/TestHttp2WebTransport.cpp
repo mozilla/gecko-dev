@@ -3,6 +3,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+#include <utility>
+
 #include "TestCommon.h"
 #include "gtest/gtest.h"
 #include "Http2WebTransportSession.h"
@@ -136,6 +138,13 @@ class MockWebTransportServer : public CapsuleParser::Listener {
     mOutCapsules.Push(std::move(encoder));
   }
 
+  void SendWebTransportStopSendingCapsule(uint64_t aError, uint64_t aID) {
+    Capsule capsule = Capsule::WebTransportStopSending(aError, aID);
+    UniquePtr<CapsuleEncoder> encoder = MakeUnique<CapsuleEncoder>();
+    encoder->EncodeCapsule(capsule);
+    mOutCapsules.Push(std::move(encoder));
+  }
+
   mozilla::Queue<UniquePtr<CapsuleEncoder>> GetOutCapsules() {
     return std::move(mOutCapsules);
   }
@@ -164,10 +173,15 @@ class MockWebTransportSessionEventListener
     return std::move(mIncomingStreams);
   }
 
+  Maybe<std::pair<uint64_t, nsresult>> TakeStopSending() {
+    return std::move(mStopSending);
+  }
+
  private:
   virtual ~MockWebTransportSessionEventListener() = default;
 
   nsTArray<RefPtr<WebTransportStreamBase>> mIncomingStreams;
+  Maybe<std::pair<uint64_t, nsresult>> mStopSending;
 };
 
 NS_IMPL_ISUPPORTS(MockWebTransportSessionEventListener,
@@ -233,6 +247,7 @@ MockWebTransportSessionEventListener::OnOutgoingDatagramOutCome(
 
 NS_IMETHODIMP MockWebTransportSessionEventListener::OnStopSending(
     uint64_t aStreamId, nsresult aError) {
+  mStopSending = Some(std::pair<uint64_t, nsresult>(aStreamId, aError));
   return NS_OK;
 }
 
@@ -854,6 +869,65 @@ TEST(TestHttp2WebTransport, ReceiverFlowControl1)
   WebTransportMaxDataCapsule& maxData =
       received[0].GetWebTransportMaxDataCapsule();
   ASSERT_EQ(maxData.mMaxDataSize, FC_SIZE * 3 / 2 + 1);
+
+  client->Done();
+  server->Done();
+}
+
+TEST(TestHttp2WebTransport, StreamStopSending)
+{
+  Http2WebTransportInitialSettings settings;
+  settings.mInitialMaxStreamsUni = 1;
+  RefPtr<MockWebTransportClient> client = new MockWebTransportClient(settings);
+  RefPtr<MockWebTransportServer> server = new MockWebTransportServer();
+
+  RefPtr<WebTransportStreamBase> uniStream =
+      CreateOutgoingStream(client, false);
+  ASSERT_TRUE(uniStream != nullptr);
+
+  uniStream->SendStopSending(0);
+  ServerProcessCapsules(server, client);
+
+  nsTArray<Capsule> received = server->GetReceivedCapsules();
+  ASSERT_EQ(received.Length(), 1u);
+
+  WebTransportStopSendingCapsule& stopSending =
+      received[0].GetWebTransportStopSendingCapsule();
+  ASSERT_EQ(stopSending.mID, uniStream->WebTransportStreamId());
+  ASSERT_EQ(stopSending.mErrorCode, 0u);
+
+  client->Done();
+  server->Done();
+}
+
+TEST(TestHttp2WebTransport, StreamOnStopSending)
+{
+  Http2WebTransportInitialSettings settings;
+  settings.mInitialMaxStreamsUni = 1;
+  RefPtr<MockWebTransportClient> client = new MockWebTransportClient(settings);
+  RefPtr<MockWebTransportSessionEventListener> listener =
+      new MockWebTransportSessionEventListener();
+  client->Session()->SetWebTransportSessionEventListener(listener);
+  RefPtr<MockWebTransportServer> server = new MockWebTransportServer();
+
+  RefPtr<WebTransportStreamBase> uniStream =
+      CreateOutgoingStream(client, false);
+  ASSERT_TRUE(uniStream != nullptr);
+
+  nsTArray<uint8_t> inputData;
+  CreateTestData(512, inputData);
+  CreateStreamAndSendData(uniStream, inputData);
+
+  ServerProcessCapsules(server, client);
+
+  server->SendWebTransportStopSendingCapsule(0,
+                                             uniStream->WebTransportStreamId());
+  ClientProcessCapsules(server, client);
+
+  auto stopSending = listener->TakeStopSending();
+  ASSERT_TRUE(stopSending);
+  ASSERT_EQ(stopSending->first, uniStream->WebTransportStreamId());
+  ASSERT_EQ(stopSending->second, NS_ERROR_WEBTRANSPORT_CODE_BASE);
 
   client->Done();
   server->Done();

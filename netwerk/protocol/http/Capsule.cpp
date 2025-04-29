@@ -85,6 +85,14 @@ Capsule Capsule::WebTransportDataBlocked(uint64_t aLimit) {
 }
 
 // static
+Capsule Capsule::WebTransportStopSending(uint64_t aError, uint64_t aID) {
+  WebTransportStopSendingCapsule capsule;
+  capsule.mErrorCode = aError;
+  capsule.mID = aID;
+  return Capsule(std::move(capsule));
+}
+
+// static
 Capsule Capsule::Unknown(uint64_t aType, nsTArray<uint8_t>&& aData) {
   UnknownCapsule capsule;
   capsule.mType = aType;
@@ -117,6 +125,9 @@ CapsuleType Capsule::Type() const {
         return aCapsule.Type();
       },
       [](const WebTransportDataBlockedCapsule& aCapsule) {
+        return aCapsule.Type();
+      },
+      [](const WebTransportStopSendingCapsule& aCapsule) {
         return aCapsule.Type();
       });
 }

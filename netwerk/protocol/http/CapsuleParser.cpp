@@ -138,8 +138,17 @@ Result<Capsule, nsresult> CapsuleParser::ParseCapsulePayload(
       break;
     case CapsuleType::WT_RESET_STREAM:
       break;
-    case CapsuleType::WT_STOP_SENDING:
-      break;
+    case CapsuleType::WT_STOP_SENDING: {
+      auto id = aDecoder.DecodeVarint();
+      if (!id) {
+        return Err(NS_ERROR_UNEXPECTED);
+      }
+      auto error = aDecoder.DecodeVarint();
+      if (!error) {
+        return Err(NS_ERROR_UNEXPECTED);
+      }
+      return Capsule::WebTransportStopSending(*error, *id);
+    }
     case CapsuleType::WT_STREAM: {
       auto id = aDecoder.DecodeVarint();
       if (!id) {

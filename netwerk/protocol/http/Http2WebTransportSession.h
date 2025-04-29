@@ -102,6 +102,8 @@ class Http2WebTransportSessionImpl final : public WebTransportSessionBase,
   SenderFlowControlSession& SessionDataFc() { return mSessionDataFc; }
   ReceiverFlowControlSession& ReceiverFc() { return mReceiverFc; }
 
+  void StreamHasCapsuleToSend();
+
  private:
   virtual ~Http2WebTransportSessionImpl();
 
@@ -130,8 +132,10 @@ class Http2WebTransportSessionImpl final : public WebTransportSessionBase,
       WebTransportStreamType aStreamType);
   bool ProcessIncomingStreamCapsule(Capsule&& aCapsule, StreamId aID,
                                     WebTransportStreamType aStreamType);
-  void SendFlowControlCapsules(CapsuleTransmissionPriority aPriority);
+  void SendMaintenanceCapsules(CapsuleTransmissionPriority aPriority);
+  already_AddRefed<Http2WebTransportStream> GetStream(StreamId aId);
   bool HandleMaxStreamDataCapsule(StreamId aId, Capsule&& aCapsule);
+  bool HandleStreamStopSendingCapsule(StreamId aId, Capsule&& aCapsule);
 
   class CapsuleQueue final {
    public:

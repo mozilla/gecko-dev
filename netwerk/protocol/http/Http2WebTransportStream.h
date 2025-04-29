@@ -66,9 +66,11 @@ class Http2WebTransportStream final : public WebTransportStreamBase {
 
   nsresult OnCapsule(Capsule&& aCapsule);
   void Close(nsresult aResult);
-  Maybe<CapsuleEncoder> HasStreamDataBlockedCapsuleToSend();
-  Maybe<CapsuleEncoder> HasMaxStreamDataCapsuleToSend();
+  void WriteMaintenanceCapsules(
+      mozilla::Queue<UniquePtr<CapsuleEncoder>>& aOutput);
   void TakeOutputCapsule(mozilla::Queue<UniquePtr<CapsuleEncoder>>& aOutput);
+
+  void OnStopSending();
 
  private:
   virtual ~Http2WebTransportStream();
@@ -78,6 +80,7 @@ class Http2WebTransportStream final : public WebTransportStreamBase {
 
   nsresult HandleStreamData(bool aFin, nsTArray<uint8_t>&& aData);
   nsresult HandleMaxStreamData(uint64_t aLimit);
+  nsresult HandleStopSending(uint64_t aError);
 
   RefPtr<Http2WebTransportSessionImpl> mWebTransportSession;
   class StreamId mStreamId{0u};
@@ -85,6 +88,7 @@ class Http2WebTransportStream final : public WebTransportStreamBase {
   uint64_t mTotalSent = 0;
   uint64_t mTotalReceived = 0;
   uint32_t mWriteOffset = 0;
+  bool mSentStopSending = false;
   // The queue used for passing data to the upper layer.
   // When mReceiveStreamPipeOut->Write() returns NS_BASE_STREAM_WOULD_BLOCK, we
   // need to store the data in this queue.
@@ -94,6 +98,7 @@ class Http2WebTransportStream final : public WebTransportStreamBase {
   const RefPtr<nsISerialEventTarget> mOwnerThread;
   SenderFlowControlStreamId mFc;
   ReceiverFlowControlStreamId mReceiverFc;
+  Maybe<Capsule> mStopSendingCapsule;
 };
 }  // namespace mozilla::net
 

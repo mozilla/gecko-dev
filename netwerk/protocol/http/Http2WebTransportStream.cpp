@@ -111,7 +111,20 @@ class StreamId Http2WebTransportStream::WebTransportStreamId() const {
 
 uint64_t Http2WebTransportStream::GetStreamId() const { return mStreamId; }
 
-void Http2WebTransportStream::SendStopSending(uint8_t aErrorCode) {}
+void Http2WebTransportStream::SendStopSending(uint8_t aErrorCode) {
+  if (mSentStopSending || !mWebTransportSession) {
+    // https://www.ietf.org/archive/id/draft-ietf-webtrans-http2-11.html#section-6.3
+    // A WT_STOP_SENDING capsule MUST NOT be sent multiple times for the same
+    // stream.
+    return;
+  }
+
+  mSentStopSending = true;
+  mStopSendingCapsule.emplace(
+      Capsule::WebTransportStopSending(aErrorCode, mStreamId));
+  mWebTransportSession->StreamHasCapsuleToSend();
+  mRecvState = RECV_DONE;
+}
 
 void Http2WebTransportStream::SendFin() {}
 
@@ -249,14 +262,27 @@ void Http2WebTransportStream::TakeOutputCapsule(
   mSendStreamPipeIn->AsyncWait(this, 0, 0, mOwnerThread);
 }
 
-Maybe<CapsuleEncoder>
-Http2WebTransportStream::HasStreamDataBlockedCapsuleToSend() {
-  mSendStreamPipeIn->AsyncWait(this, 0, 0, mOwnerThread);
-  return mFc.CreateStreamDataBlockedCapsule();
-}
+void Http2WebTransportStream::WriteMaintenanceCapsules(
+    mozilla::Queue<UniquePtr<CapsuleEncoder>>& aOutput) {
+  if (mStopSendingCapsule) {
+    UniquePtr<CapsuleEncoder> encoder = MakeUnique<CapsuleEncoder>();
+    encoder->EncodeCapsule(*mStopSendingCapsule);
+    mStopSendingCapsule = Nothing();
+    aOutput.Push(std::move(encoder));
+  }
 
-Maybe<CapsuleEncoder> Http2WebTransportStream::HasMaxStreamDataCapsuleToSend() {
-  return mReceiverFc.CreateMaxStreamDataCapsule();
+  auto dataBlocked = mFc.CreateStreamDataBlockedCapsule();
+  if (dataBlocked) {
+    aOutput.Push(MakeUnique<CapsuleEncoder>(dataBlocked.ref()));
+  }
+
+  auto maxStreamData = mReceiverFc.CreateMaxStreamDataCapsule();
+  if (maxStreamData) {
+    aOutput.Push(MakeUnique<CapsuleEncoder>(maxStreamData.ref()));
+  }
+
+  // Keep reading data from the consumer.
+  mSendStreamPipeIn->AsyncWait(this, 0, 0, mOwnerThread);
 }
 
 nsresult Http2WebTransportStream::OnCapsule(Capsule&& aCapsule) {
@@ -290,6 +316,8 @@ nsresult Http2WebTransportStream::HandleMaxStreamData(uint64_t aLimit) {
   mFc.Update(aLimit);
   return NS_OK;
 }
+
+void Http2WebTransportStream::OnStopSending() { mSendState = SEND_DONE; }
 
 void Http2WebTransportStream::Close(nsresult aResult) {
   if (mSendStreamPipeIn) {

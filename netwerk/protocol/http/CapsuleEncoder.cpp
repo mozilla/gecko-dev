@@ -97,6 +97,16 @@ void CapsuleEncoder::EncodeCapsule(Capsule& aCapsule) {
         .EncodeVarint(value.mLimit);
     return;
   }
+
+  if (aCapsule.mCapsule.is<WebTransportStopSendingCapsule>()) {
+    auto& value = aCapsule.mCapsule.as<WebTransportStopSendingCapsule>();
+    EncodeVarint(value.Type())
+        .EncodeVarint(CapsuleEncoder::VarintLength(value.mID) +
+                      CapsuleEncoder::VarintLength(value.mErrorCode))
+        .EncodeVarint(value.mID)
+        .EncodeVarint(value.mErrorCode);
+    return;
+  }
 }
 
 CapsuleEncoder& CapsuleEncoder::EncodeByte(uint8_t aData) {

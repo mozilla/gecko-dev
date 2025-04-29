@@ -15,6 +15,7 @@
 #include "mozilla/net/NeqoHttp3Conn.h"
 #include "nsIWebTransport.h"
 #include "nsIOService.h"
+#include "nsHttp.h"
 
 namespace mozilla::net {
 
@@ -154,7 +155,7 @@ void Http2WebTransportSessionImpl::EnqueueOutCapsule(
   mHandler->HasCapsuleToSend();
 }
 
-void Http2WebTransportSessionImpl::SendFlowControlCapsules(
+void Http2WebTransportSessionImpl::SendMaintenanceCapsules(
     CapsuleTransmissionPriority aPriority) {
   auto encoder = mSessionDataFc.CreateSessionDataBlockedCapsule();
   if (encoder) {
@@ -187,32 +188,22 @@ void Http2WebTransportSessionImpl::SendFlowControlCapsules(
     mCapsuleQueue[aPriority].Push(MakeUnique<CapsuleEncoder>(encoder.ref()));
   }
   for (const auto& stream : mOutgoingStreams.Values()) {
-    encoder = stream->HasStreamDataBlockedCapsuleToSend();
-    if (encoder) {
-      mCapsuleQueue[aPriority].Push(MakeUnique<CapsuleEncoder>(encoder.ref()));
-    }
-    encoder = stream->HasMaxStreamDataCapsuleToSend();
-    if (encoder) {
-      mCapsuleQueue[aPriority].Push(MakeUnique<CapsuleEncoder>(encoder.ref()));
-    }
+    stream->WriteMaintenanceCapsules(mCapsuleQueue[aPriority]);
   }
   for (const auto& stream : mIncomingStreams.Values()) {
-    encoder = stream->HasStreamDataBlockedCapsuleToSend();
-    if (encoder) {
-      mCapsuleQueue[aPriority].Push(MakeUnique<CapsuleEncoder>(encoder.ref()));
-    }
-    encoder = stream->HasMaxStreamDataCapsuleToSend();
-    if (encoder) {
-      mCapsuleQueue[aPriority].Push(MakeUnique<CapsuleEncoder>(encoder.ref()));
-    }
+    stream->WriteMaintenanceCapsules(mCapsuleQueue[aPriority]);
   }
+}
+
+void Http2WebTransportSessionImpl::StreamHasCapsuleToSend() {
+  mHandler->HasCapsuleToSend();
 }
 
 void Http2WebTransportSessionImpl::PrepareCapsulesToSend(
     mozilla::Queue<UniquePtr<CapsuleEncoder>>& aOutput) {
   // Like neqo, flow control capsules are at level
   // CapsuleTransmissionPriority::Important.
-  SendFlowControlCapsules(CapsuleTransmissionPriority::Important);
+  SendMaintenanceCapsules(CapsuleTransmissionPriority::Important);
 
   for (const auto& stream : mOutgoingStreams.Values()) {
     stream->TakeOutputCapsule(
@@ -279,9 +270,14 @@ bool Http2WebTransportSessionImpl::OnCapsule(Capsule&& aCapsule) {
     case CapsuleType::WT_RESET_STREAM:
       LOG(("Handling WT_RESET_STREAM\n"));
       break;
-    case CapsuleType::WT_STOP_SENDING:
-      LOG(("Handling WT_STOP_SENDING\n"));
-      break;
+    case CapsuleType::WT_STOP_SENDING: {
+      WebTransportStopSendingCapsule& stopSending =
+          aCapsule.GetWebTransportStopSendingCapsule();
+      StreamId id = StreamId(stopSending.mID);
+      if (!HandleStreamStopSendingCapsule(id, std::move(aCapsule))) {
+        return false;
+      }
+    } break;
     case CapsuleType::WT_STREAM: {
       WebTransportStreamDataCapsule& streamData =
           aCapsule.GetWebTransportStreamDataCapsule();
@@ -361,8 +357,8 @@ bool Http2WebTransportSessionImpl::OnCapsule(Capsule&& aCapsule) {
   return true;
 }
 
-bool Http2WebTransportSessionImpl::HandleMaxStreamDataCapsule(
-    StreamId aId, Capsule&& aCapsule) {
+already_AddRefed<Http2WebTransportStream>
+Http2WebTransportSessionImpl::GetStream(StreamId aId) {
   RefPtr<Http2WebTransportStream> stream;
   if (aId.IsClientInitiated()) {
     stream = mOutgoingStreams.Get(aId);
@@ -372,10 +368,20 @@ bool Http2WebTransportSessionImpl::HandleMaxStreamDataCapsule(
 
   if (!stream) {
     LOG(
-        ("Http2WebTransportSessionImpl::HandleMaxStreamDataCapsule - "
+        ("Http2WebTransportSessionImpl::GetStream - "
          "stream not found "
          "stream_id=0x%" PRIx64 " [this=%p].",
          static_cast<uint64_t>(aId), this));
+    return nullptr;
+  }
+
+  return stream.forget();
+}
+
+bool Http2WebTransportSessionImpl::HandleMaxStreamDataCapsule(
+    StreamId aId, Capsule&& aCapsule) {
+  RefPtr<Http2WebTransportStream> stream = GetStream(aId);
+  if (!stream) {
     return false;
   }
 
@@ -383,6 +389,31 @@ bool Http2WebTransportSessionImpl::HandleMaxStreamDataCapsule(
     return false;
   }
 
+  return true;
+}
+
+bool Http2WebTransportSessionImpl::HandleStreamStopSendingCapsule(
+    StreamId aId, Capsule&& aCapsule) {
+  RefPtr<Http2WebTransportStream> stream = GetStream(aId);
+  if (!stream) {
+    return false;
+  }
+
+  stream->OnStopSending();
+
+  WebTransportStopSendingCapsule& stopSending =
+      aCapsule.GetWebTransportStopSendingCapsule();
+
+  LOG(
+      ("Http2WebTransportSessionImpl::HandleStreamStopSendingCapsule %p "
+       "aID=%" PRIu64 " error=%" PRIu64,
+       this, (uint64_t)aId, stopSending.mErrorCode));
+
+  uint8_t wtError = Http3ErrorToWebTransportError(stopSending.mErrorCode);
+  nsresult rv = GetNSResultFromWebTransportError(wtError);
+  if (mListener) {
+    mListener->OnStopSending(aId, rv);
+  }
   return true;
 }
 
