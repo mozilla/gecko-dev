@@ -995,7 +995,16 @@ class LInstruction : public LNode,
   void assignSnapshot(LSnapshot* snapshot);
   void initSafepoint(TempAllocator& alloc);
 
-  class InputIterator;
+  // InputIter iterates over all operands including snapshot inputs.
+  // NonSnapshotInputIter does not include snapshot inputs.
+  //
+  // There can be many snapshot inputs and these are always KEEPALIVE uses or
+  // constants. NonSnapshotInputIter can be used in places where we're not
+  // interested in those.
+  template <bool WithSnapshotUses>
+  class InputIterImpl;
+  using InputIter = InputIterImpl<true>;
+  using NonSnapshotInputIter = InputIterImpl<false>;
 };
 
 LInstruction* LNode::toInstruction() {
@@ -1947,34 +1956,34 @@ struct WasmRefIsSubtypeDefs {
   LDefinition scratch2;
 };
 
-class LInstruction::InputIterator {
+template <bool WithSnapshotUses>
+class LInstruction::InputIterImpl {
  private:
   LInstruction& ins_;
-  size_t idx_;
-  bool snapshot_;
+  size_t idx_ = 0;
+  bool snapshot_ = false;
 
   void handleOperandsEnd() {
     // Iterate on the snapshot when iteration over all operands is done.
-    if (!snapshot_ && idx_ == ins_.numOperands() && ins_.snapshot()) {
-      idx_ = 0;
-      snapshot_ = true;
+    if constexpr (WithSnapshotUses) {
+      if (!snapshot_ && idx_ == ins_.numOperands() && ins_.snapshot()) {
+        idx_ = 0;
+        snapshot_ = true;
+      }
     }
   }
 
  public:
-  explicit InputIterator(LInstruction& ins)
-      : ins_(ins), idx_(0), snapshot_(false) {
-    handleOperandsEnd();
-  }
+  explicit InputIterImpl(LInstruction& ins) : ins_(ins) { handleOperandsEnd(); }
 
   bool more() const {
-    if (snapshot_) {
+    if (WithSnapshotUses && snapshot_) {
       return idx_ < ins_.snapshot()->numEntries();
     }
     if (idx_ < ins_.numOperands()) {
       return true;
     }
-    if (ins_.snapshot() && ins_.snapshot()->numEntries()) {
+    if (WithSnapshotUses && ins_.snapshot() && ins_.snapshot()->numEntries()) {
       return true;
     }
     return false;
@@ -1989,7 +1998,7 @@ class LInstruction::InputIterator {
   }
 
   void replace(const LAllocation& alloc) {
-    if (snapshot_) {
+    if (WithSnapshotUses && snapshot_) {
       ins_.snapshot()->setEntry(idx_, alloc);
     } else {
       ins_.setOperand(idx_, alloc);
@@ -1997,7 +2006,7 @@ class LInstruction::InputIterator {
   }
 
   LAllocation* operator*() const {
-    if (snapshot_) {
+    if (WithSnapshotUses && snapshot_) {
       return ins_.snapshot()->getEntry(idx_);
     }
     return ins_.getOperand(idx_);

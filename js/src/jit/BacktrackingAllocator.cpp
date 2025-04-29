@@ -1912,7 +1912,7 @@ bool BacktrackingAllocator::buildLivenessInfo() {
         CodePosition from = inputOf(*ins);
         if (temp->policy() == LDefinition::FIXED) {
           AnyRegister reg = temp->output()->toAnyRegister();
-          for (LInstruction::InputIterator alloc(**ins); alloc.more();
+          for (LInstruction::NonSnapshotInputIter alloc(**ins); alloc.more();
                alloc.next()) {
             if (alloc->isUse()) {
               LUse* use = alloc->toUse();
@@ -1945,7 +1945,7 @@ bool BacktrackingAllocator::buildLivenessInfo() {
       DebugOnly<bool> hasUseRegister = false;
       DebugOnly<bool> hasUseRegisterAtStart = false;
 
-      for (LInstruction::InputIterator inputAlloc(**ins); inputAlloc.more();
+      for (LInstruction::InputIter inputAlloc(**ins); inputAlloc.more();
            inputAlloc.next()) {
         if (inputAlloc->isUse()) {
           LUse* use = inputAlloc->toUse();

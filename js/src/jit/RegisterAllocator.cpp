@@ -78,8 +78,7 @@ bool AllocationIntegrityState::record() {
           return false;
         }
       }
-      for (LInstruction::InputIterator alloc(*ins); alloc.more();
-           alloc.next()) {
+      for (LInstruction::InputIter alloc(*ins); alloc.more(); alloc.next()) {
         if (!info.inputs.append(**alloc)) {
           return false;
         }
@@ -107,8 +106,7 @@ bool AllocationIntegrityState::check() {
          iter++) {
       LInstruction* ins = *iter;
 
-      for (LInstruction::InputIterator alloc(*ins); alloc.more();
-           alloc.next()) {
+      for (LInstruction::InputIter alloc(*ins); alloc.more(); alloc.next()) {
         MOZ_ASSERT(!alloc->isUse());
       }
 
@@ -165,7 +163,7 @@ bool AllocationIntegrityState::check() {
       }
 
       size_t inputIndex = 0;
-      for (LInstruction::InputIterator alloc(*ins); alloc.more();
+      for (LInstruction::InputIter alloc(*ins); alloc.more();
            inputIndex++, alloc.next()) {
         LAllocation oldInput = info.inputs[inputIndex];
         if (!oldInput.isUse()) {
@@ -473,8 +471,7 @@ void AllocationIntegrityState::dump() {
       }
 
       size_t index = 0;
-      for (LInstruction::InputIterator alloc(*ins); alloc.more();
-           alloc.next()) {
+      for (LInstruction::InputIter alloc(*ins); alloc.more(); alloc.next()) {
         JitSpewCont(JitSpew_RegAlloc, " [use %s",
                     info.inputs[index++].toString().get());
         if (!alloc->isConstant()) {
@@ -622,8 +619,7 @@ void RegisterAllocator::dumpInstructions(const char* who) {
         }
       }
 
-      for (LInstruction::InputIterator alloc(*ins); alloc.more();
-           alloc.next()) {
+      for (LInstruction::InputIter alloc(*ins); alloc.more(); alloc.next()) {
         if (!alloc->isBogus()) {
           JitSpewCont(JitSpew_RegAlloc, " [use %s]", alloc->toString().get());
         }
