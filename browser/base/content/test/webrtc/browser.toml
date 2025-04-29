@@ -36,6 +36,7 @@ skip-if = [
 https_first_disabled = true
 skip-if = [
   "os == 'linux' && bits == 64", # linux: bug 976544, Bug 1616011
+  "os == 'mac' && os_version == '15.30' && arch == 'aarch64'", # bug 1963169
 ]
 
 ["browser_devices_get_user_media_anim.js"]
