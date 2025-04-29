@@ -23,16 +23,14 @@
 
     .title {
       color: var(--newtab-text-primary-color);
-      font-weight: 600;
-      font-size: 17px;
-      line-height: 24px;
+      font-weight: var(--font-weight-bold);
+      font-size: var(--font-size-large);
     }
 
     .ds-context {
       color: var(--newtab-text-secondary-color);
       font-weight: normal;
-      font-size: 13px;
-      line-height: 24px;
+      font-size: var(--font-size-small);
     }
   }
 }

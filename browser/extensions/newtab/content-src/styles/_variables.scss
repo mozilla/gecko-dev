@@ -134,7 +134,7 @@ $debug-breakpoint-colors: (
   ultra-wide: violet
 );
 
-$section-title-font-size: 17px;
+$section-title-font-size: var(--font-size-large);
 
 $card-width: $grid-unit-small * 2 + $base-gutter;
 
@@ -157,13 +157,12 @@ $topic-margin-top: 12px;
 $context-menu-button-size: 27px;
 $context-menu-button-boxshadow: 0 2px $grey-90-10;
 $context-menu-shadow: 0 5px 10px $black-30, 0 0 0 1px $black-20;
-$context-menu-font-size: 14px;
+$context-menu-font-size: inherit;
 $context-menu-border-radius: 5px;
 $context-menu-outer-padding: 5px;
 $context-menu-item-padding: 3px 12px;
 
-$error-fallback-font-size: 12px;
-$error-fallback-line-height: 1.5;
+$error-fallback-font-size: var(--font-size-small);
 
 $image-path: 'chrome://newtab/content/data/content/assets/';
 

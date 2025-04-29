@@ -36,7 +36,7 @@ $ds-width: 936px;
   margin: 8px 0;
 
   .ds-context {
-    font-weight: 400;
+    font-weight: normal;
   }
 }
 
@@ -44,8 +44,7 @@ $ds-width: 936px;
 .ds-layout .section-title span {
   color: var(--newtab-contextual-text-primary-color);
   font-size: $section-title-font-size;
-  font-weight: 600;
-  line-height: 20px;
+  font-weight: var(--font-weight-bold);
 
   // Contrast fix for users who have wallpapers set
   @include wallpaper-contrast-fix;
@@ -64,7 +63,7 @@ $ds-width: 936px;
 
     a {
       color: var(--newtab-primary-action-background);
-      font-weight: 500;
+      font-weight: var(--font-weight-bold);
 
       &:is(:focus, :hover) {
         text-decoration: none;

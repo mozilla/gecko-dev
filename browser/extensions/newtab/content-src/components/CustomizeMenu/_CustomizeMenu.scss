@@ -127,8 +127,8 @@
     border: $customize-menu-border-tint;
     border-radius: 4px;
     color: var(--newtab-text-primary-color);
-    font-size: 13px;
-    font-weight: 600;
+    font-size: var(--font-size-small);
+    font-weight: var(--font-weight-bold);
   }
 
   .close-button:hover {
@@ -167,7 +167,7 @@
 
   .section {
     .customize-menu-checkbox-label {
-      font-size: 14px;
+      font-size: inherit;
       margin-inline-start: 5px;
     }
 
@@ -329,6 +329,10 @@
       background-position-x: right;
     }
   }
+
+  .external-link:hover {
+    text-decoration: none;
+  }
 }
 
 .external-link:focus-visible,
@@ -443,7 +447,6 @@
 
     border: none;
     cursor: pointer;
-    font-size: var(--font-size-root);
     margin-block-end: var(--space-xlarge);
     padding-inline-start: var(--space-xlarge);
     -moz-context-properties: fill;

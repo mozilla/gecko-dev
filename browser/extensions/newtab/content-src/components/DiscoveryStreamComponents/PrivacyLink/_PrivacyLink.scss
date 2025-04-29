@@ -1,8 +1,7 @@
 .ds-privacy-link {
   text-align: center;
-  font-size: 13px;
-  font-weight: 500;
-  line-height: 24px;
+  font-size: var(--font-size-small);
+  font-weight: var(--font-weight-bold);
 
   a:hover {
     text-decoration: none;

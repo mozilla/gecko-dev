@@ -4,14 +4,12 @@
 
   .title {
     color: var(--newtab-text-primary-color);
-    line-height: 48px;
-    font-size: 36px;
-    font-weight: 300;
+    font-size: var(--font-size-xxlarge);
+    font-weight: normal;
   }
 
   .subtitle {
-    line-height: 24px;
-    font-size: 14px;
+    font-size: inherit;
     color: var(--newtab-text-secondary-color);
     margin-top: 4px;
   }

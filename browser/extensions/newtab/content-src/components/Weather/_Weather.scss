@@ -1,11 +1,11 @@
 // Custom font sizing for weather widget
 :root {
-  --newtab-weather-content-font-size: 11px;
+  --newtab-weather-content-font-size: var(--font-size-small);
   --newtab-weather-sponsor-font-size: 8px;
 }
 
 .weather {
-  font-size: var(--font-size-root);
+  font-size: inherit;
   margin-block-start: var(--space-xlarge);
   margin-inline-start: var(--space-xlarge);
   display: inline-block;

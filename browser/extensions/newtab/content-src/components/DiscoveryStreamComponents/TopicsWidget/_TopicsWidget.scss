@@ -6,8 +6,7 @@
   flex-direction: column;
 
   .ds-topics-widget-header {
-    font-size: 18px;
-    line-height: 20px;
+    font-size: var(--font-size-large);
   }
 
   hr {
@@ -32,8 +31,7 @@
         display: flex;
 
         a {
-          font-size: 14px;
-          line-height: 16px;
+          font-size: var(--font-size-small);
           text-decoration: none;
           padding: 8px 15px;
           background: var(--newtab-background-color-secondary);
@@ -69,8 +67,7 @@
 
   .ds-topics-widget-button {
     margin: 14px 0 0;
-    font-size: 16px;
-    line-height: 24px;
+    font-size: inherit;
     text-align: center;
     padding: 8px;
     border-radius: 4px;

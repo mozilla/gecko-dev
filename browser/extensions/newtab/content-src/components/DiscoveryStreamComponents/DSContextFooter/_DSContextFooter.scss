@@ -14,8 +14,7 @@
   .story-sponsored-label,
   .status-message {
     -webkit-line-clamp: 1;
-    font-size: 13px;
-    line-height: 24px;
+    font-size: var(--font-size-small);
     color: var(--newtab-text-secondary-color);
   }
 
@@ -37,8 +36,7 @@
     .story-context-label {
       color: var(--newtab-text-secondary-color);
       flex-grow: 1;
-      font-size: 13px;
-      line-height: 24px;
+      font-size: var(--font-size-small);
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;

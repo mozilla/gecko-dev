@@ -20,7 +20,7 @@
         height: 175px;
 
         .card-host-name {
-          font-size: 13px;
+          font-size: var(--font-size-small);
           line-height: $line-height;
           margin-bottom: 2px;
           padding-bottom: 0;
@@ -28,8 +28,8 @@
         }
 
         .card-title {
-          font-size: 14px;
-          font-weight: 600;
+          font-size: var(--font-size-small);
+          font-weight: var(--font-weight-bold);
           line-height: $line-height;
           max-height: $line-height;
         }

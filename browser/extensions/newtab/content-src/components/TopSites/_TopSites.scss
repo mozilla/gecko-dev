@@ -252,8 +252,7 @@ $calculated-max-width-twice-widest: $break-point-widest + 2 * $card-width;
     align-items: center;
     color: var(--newtab-contextual-text-secondary-color);
     display: flex;
-    font-size: 32px;
-    font-weight: 200;
+    font-size: var(--font-size-xxlarge);
     text-transform: uppercase;
 
     .icon-wrapper {
@@ -273,7 +272,7 @@ $calculated-max-width-twice-widest: $break-point-widest + 2 * $card-width;
         align-items: center;
         justify-content: center;
         font-size: 64px;
-        font-weight: 800;
+        font-weight: var(--font-weight-bold);
         transform: rotate(-10deg);
         top: 6px;
         position: relative;
@@ -308,7 +307,7 @@ $calculated-max-width-twice-widest: $break-point-widest + 2 * $card-width;
     // for corner letter fallback
     align-items: center;
     display: flex;
-    font-size: 20px;
+    font-size: var(--font-size-xlarge);
     justify-content: center;
 
     &[data-fallback]::before {
@@ -369,7 +368,7 @@ $calculated-max-width-twice-widest: $break-point-widest + 2 * $card-width;
 
     .sponsored-label {
       color: var(--newtab-contextual-text-secondary-color);
-      font-size: 0.9em;
+      font-size: var(--font-size-small);
     }
 
     &:not(.sponsored) .sponsored-label {
@@ -570,7 +569,7 @@ $calculated-max-width-twice-widest: $break-point-widest + 2 * $card-width;
   $form-spacing: 32px;
 
   .section-title {
-    font-size: 16px;
+    font-size: inherit;
     margin: 0 0 16px;
   }
 
@@ -644,7 +643,7 @@ $calculated-max-width-twice-widest: $break-point-widest + 2 * $card-width;
 
     .enable-custom-image-input {
       display: inline-block;
-      font-size: 13px;
+      font-size: var(--font-size-small);
       margin-top: 4px;
       cursor: pointer;
     }
@@ -694,7 +693,7 @@ $calculated-max-width-twice-widest: $break-point-widest + 2 * $card-width;
         padding: 0 8px;
         height: 32px;
         width: 100%;
-        font-size: 15px;
+        font-size: inherit;
 
         &[disabled] {
           border: $input-border;
@@ -862,7 +861,6 @@ $calculated-max-width-twice-widest: $break-point-widest + 2 * $card-width;
         -webkit-line-clamp: 2;
         white-space: wrap;
         word-break: break-word;
-        line-height: 1.3;
         min-height: 2lh;
         width: 100px;
         padding: 0 var(--space-xsmall);

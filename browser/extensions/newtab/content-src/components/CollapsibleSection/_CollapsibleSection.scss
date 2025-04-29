@@ -20,7 +20,7 @@
 
   .section-title {
     font-size: $section-title-font-size;
-    font-weight: 600;
+    font-weight: var(--font-weight-bold);
     color: var(--newtab-text-primary-color);
 
     &.grey-title {
@@ -50,8 +50,7 @@
   }
 
   .section-sub-title {
-    font-size: 14px;
-    line-height: 16px;
+    font-size: inherit;
     color: var(--newtab-text-secondary-color);
     opacity: 0.3;
   }
@@ -77,7 +76,7 @@
   }
 
   .learn-more-link {
-    font-size: 13px;
+    font-size: var(--font-size-small);
     margin-inline-start: 12px;
 
     a {

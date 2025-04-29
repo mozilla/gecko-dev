@@ -1,6 +1,3 @@
-$col4-header-line-height: 20;
-$col4-header-font-size: 14;
-
 .ds-onboarding-container,
 .ds-card-grid .ds-card {
   background: var(--newtab-background-color-secondary);
@@ -59,16 +56,14 @@ $col4-header-font-size: 14;
       height: 24px;
     }
 
-    font-size: 17px;
-    line-height: 23.8px;
-    font-weight: 600;
+    font-size: var(--font-size-large);
+    font-weight: var(--font-weight-bold);
     color: $pocket-icon-fill;
   }
 
   p {
     margin: 8px 0 16px;
-    font-size: 13px;
-    line-height: 19.5px;
+    font-size: var(--font-size-small);
   }
 
   .icon-pocket {
@@ -179,8 +174,7 @@ $col4-header-font-size: 14;
     }
 
     .title {
-      font-size: 17px;
-      line-height: 24px;
+      font-size: var(--font-size-large);
     }
 
     .excerpt {
@@ -212,11 +206,11 @@ $col4-header-font-size: 14;
 
         .source,
         .story-sponsored-label {
-          font-size: 13px;
+          font-size: var(--font-size-small);
         }
 
         .status-message .story-context-label {
-          font-size: 11.7px;
+          font-size: var(--font-size-small);
         }
 
         .story-badge-icon {
@@ -228,8 +222,7 @@ $col4-header-font-size: 14;
         }
 
         .title {
-          font-size: 14px;
-          line-height: 20px;
+          font-size: inherit;
         }
 
         .info-wrap {
@@ -335,8 +328,7 @@ $col4-header-font-size: 14;
 
     .section-sub-link {
       color: var(--newtab-primary-action-background);
-      font-size: 14px;
-      line-height: 16px;
+      font-size: inherit;
       cursor: pointer;
 
       &:hover {

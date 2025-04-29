@@ -43,7 +43,7 @@
 
       .empty-state-message {
         color: var(--newtab-text-primary-color);
-        font-size: 13px;
+        font-size: var(--font-size-small);
         margin-bottom: 0;
         text-align: center;
       }
@@ -57,19 +57,18 @@
 
 .top-stories-bottom-container {
   color: var(--newtab-text-primary-color);
-  font-size: 12px;
-  line-height: 1.6;
+  font-size: var(--font-size-small);
   margin-top: $topic-margin-top;
   display: flex;
   justify-content: space-between;
 
   a {
     color: var(--newtab-primary-action-background);
-    font-weight: bold;
+    font-weight: var(--font-weight-bold);
 
     &.more-recommendations {
       font-weight: normal;
-      font-size: 13px;
+      font-size: var(--font-size-small);
     }
   }
 

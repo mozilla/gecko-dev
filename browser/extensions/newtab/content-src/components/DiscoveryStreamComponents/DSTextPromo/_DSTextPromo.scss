@@ -39,19 +39,15 @@
     }
   }
 
-  .text {
-    line-height: 24px;
-  }
-
   h3 {
     color: var(--newtab-text-primary-color);
     margin: 0;
-    font-weight: 600;
-    font-size: 15px;
+    font-weight: var(--font-weight-bold);
+    font-size: inherit;
   }
 
   .subtitle {
-    font-size: 13px;
+    font-size: var(--font-size-small);
     margin: 0;
     color: var(--newtab-text-primary-color);
   }

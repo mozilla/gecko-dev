@@ -13,9 +13,9 @@
 // Note: lineHeight and fontSize should be unitless but can be derived from pixel values
 // Bug 1550624 to clean up / remove this mixin to avoid duplicate styles
 @mixin limit-visible-lines($line-count, $line-height, $font-size) {
-  font-size: $font-size * 1px;
+  font-size: $font-size;
   -webkit-line-clamp: $line-count;
-  line-height: $line-height * 1px;
+  line-height: $line-height;
 }
 
 @mixin dark-theme-only {

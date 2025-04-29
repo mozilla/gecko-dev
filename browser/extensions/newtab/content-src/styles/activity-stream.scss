@@ -9,6 +9,7 @@
 @import './mixins';
 
 :root {
+  font-size: var(--font-size-root);
   height: 100%;
 
   &[lwt-newtab-brighttext] {
@@ -28,7 +29,7 @@ body,
 body {
   background-color: var(--newtab-background-color);
   font-family: system-ui;
-  font-size: 16px;
+  font-size: var(--font-size-root);
 
   // rules for HNT wallpapers
   background-repeat: no-repeat;

@@ -2,14 +2,12 @@
 
 .ds-navigation {
   color: var(--newtab-contextual-text-primary-color);
-  font-size: 11.5px;
-  font-weight: 500;
-  line-height: 22px;
+  font-size: var(--font-size-small);
+  font-weight: var(--font-weight-bold);
   padding: 4px 0;
 
   @media (min-width: $break-point-widest) {
     line-height: 32px;
-    font-size: 14px;
   }
 
   &.ds-navigation-centered {
@@ -71,17 +69,15 @@
     padding-top: 32px;
 
     .ds-navigation-header {
-      font-size: 14px;
-      line-height: 20px;
-      font-weight: 700;
+      font-size: var(--font-size-small);
+      font-weight: var(--font-weight-bold);
       display: inline-block;
       margin-bottom: 8px;
     }
 
     .ds-navigation-family {
       text-align: center;
-      font-size: 14px;
-      line-height: 20px;
+      font-size: var(--font-size-small);
       margin: 16px auto 28px;
 
       span {
@@ -105,7 +101,6 @@
       }
 
       .ds-navigation-family-message {
-        font-weight: 400;
         display: block;
 
         @media (min-width: $break-point-medium) {
@@ -127,8 +122,8 @@
       li {
         border-top: $border-primary;
         line-height: 24px;
-        font-size: 13px;
-        font-weight: 500;
+        font-size: var(--font-size-small);
+        font-weight: var(--font-weight-bold);
 
         &::after {
           content: '';

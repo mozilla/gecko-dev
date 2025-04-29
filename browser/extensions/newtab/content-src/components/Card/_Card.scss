@@ -137,7 +137,7 @@
 
   .card-host-name {
     color: var(--newtab-text-secondary-color);
-    font-size: 10px;
+    font-size: var(--font-size-small);
     overflow: hidden;
     padding-bottom: 4px;
     text-overflow: ellipsis;
@@ -148,15 +148,15 @@
   .card-host-name.alternate { display: none; }
 
   .card-title {
-    font-size: 14px;
-    font-weight: 600;
+    font-size: inherit;
+    font-weight: var(--font-weight-bold);
     line-height: $card-text-line-height;
     margin: 0 0 $card-title-margin;
     word-wrap: break-word;
   }
 
   .card-description {
-    font-size: 12px;
+    font-size: var(--font-size-small);
     line-height: $card-text-line-height;
     margin: 0;
     overflow: hidden;
@@ -167,7 +167,7 @@
     bottom: 0;
     color: var(--newtab-text-secondary-color);
     display: flex;
-    font-size: 11px;
+    font-size: var(--font-size-small);
     inset-inline-start: 0;
     padding: 9px 16px 9px 14px;
     position: absolute;
@@ -209,12 +209,12 @@
       }
 
       .card-host-name {
-        font-size: 12px;
+        font-size: var(--font-size-small);
         padding-bottom: 5px;
       }
 
       .card-title {
-        font-size: 17px;
+        font-size: var(--font-size-large);
         line-height: $line-height;
         margin-bottom: 0;
       }
@@ -226,13 +226,14 @@
       }
 
       .card-description {
-        font-size: 15px;
+        font-size: inherit;
         line-height: $line-height;
       }
 
       .card-context {
         bottom: 4px;
-        font-size: 14px;
+        font-size: inherit;
+        line-height: $line-height;
       }
     }
   }
@@ -240,7 +241,7 @@
 
 .compact-cards {
   $card-detail-vertical-spacing: 12px;
-  $card-title-font-size: 12px;
+  $card-title-font-size: var(--font-size-small);
 
   .card-outer {
     height: $card-height-compact;

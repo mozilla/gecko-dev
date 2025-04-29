@@ -51,11 +51,8 @@ $modal-scrollbar-z-index: 1100;
   h2 {
     color: var(--newtab-text-primary-color);
     text-align: center;
-    font-weight: 200;
     margin-top: 30px;
-    font-size: 28px;
-    line-height: 37px;
-    letter-spacing: -0.13px;
+    font-size: var(--font-size-xxlarge);
 
     @media(width <= 960px) {
       margin-top: 100px;
@@ -91,7 +88,7 @@ $modal-scrollbar-z-index: 1100;
       min-width: 150px;
       height: 30px;
       padding: 4px 30px 6px;
-      font-size: 15px;
+      font-size: inherit;
 
       &:focus,
       &.active,

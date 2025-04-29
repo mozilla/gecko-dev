@@ -1,8 +1,8 @@
 // Type sizes
-$header-font-size: 17;
-$header-line-height: 24;
-$excerpt-font-size: 14;
-$excerpt-line-height: 20;
+$header-font-size: var(--font-size-large);
+$header-line-height: normal;
+$excerpt-font-size: var(--font-size-small);
+$excerpt-line-height: normal;
 $ds-card-image-gradient-fade: rgba(0, 0, 0, 0%);
 $ds-card-image-gradient-solid: rgba(0, 0, 0, 100%);
 
@@ -221,7 +221,7 @@ $ds-card-image-gradient-solid: rgba(0, 0, 0, 100%);
     color: var(--newtab-text-primary-color);
     padding: var(--space-small);
     margin: var(--space-small);
-    font-size: 14px;
+    font-size: var(--font-size-small);
   }
 
   .meta {
@@ -239,7 +239,7 @@ $ds-card-image-gradient-solid: rgba(0, 0, 0, 100%);
       @include limit-visible-lines(3, $header-line-height, $header-font-size);
 
       margin-block: 0;
-      font-weight: 600;
+      font-weight: var(--font-weight-bold);
     }
 
     .excerpt {
@@ -273,7 +273,7 @@ $ds-card-image-gradient-solid: rgba(0, 0, 0, 100%);
     }
 
     .new-sponsored-label {
-      font-size: 13px;
+      font-size: var(--font-size-small);
       margin-bottom: 2px;
     }
   }
@@ -365,14 +365,12 @@ $ds-card-image-gradient-solid: rgba(0, 0, 0, 100%);
   }
 
   h3 {
-    line-height: $header-line-height * 1px;
-    font-size: $header-font-size * 1px;
+    font-size: $header-font-size;
     color: var(--newtab-text-primary-color);
   }
 
   p {
-    font-size: $excerpt-font-size * 1px;
-    line-height: $excerpt-line-height * 1px;
+    font-size: $excerpt-font-size;
     color: var(--newtab-text-primary-color);
     margin: 0;
   }
@@ -486,7 +484,6 @@ $ds-card-image-gradient-solid: rgba(0, 0, 0, 100%);
         // show only 3 lines of copy
         -webkit-line-clamp: 3;
         font-size: var(--font-size-root);
-        line-height: normal;
         margin-bottom: var(--space-small);
         font-weight: var(--font-weight-bold);
       }
@@ -495,7 +492,6 @@ $ds-card-image-gradient-solid: rgba(0, 0, 0, 100%);
         // show only 3 lines of copy
         -webkit-line-clamp: 3;
         font-size: var(--font-size-small);
-        line-height: normal;
       }
 
       .source {

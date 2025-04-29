@@ -295,7 +295,7 @@ $glyph-forward: url('chrome://browser/skin/forward.svg');
   border-radius: 3px;
   box-shadow: $shadow-secondary, 0 0 0 1px $black-15;
   cursor: text;
-  font-size: 15px;
+  font-size: inherit;
   padding: 0;
   padding-inline-end: 48px;
   padding-inline-start: 46px;

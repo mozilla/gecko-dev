@@ -41,7 +41,6 @@
   height: 100%;
   overflow-y: scroll;
   margin: 0 auto;
-  font-size: 14px;
   padding-inline-start: $sidebar-width;
   color: var(--newtab-text-primary-color);
   z-index: 3;
@@ -74,13 +73,12 @@
   }
 
   h1 {
-    font-weight: 200;
-    font-size: 32px;
+    font-size: var(--font-size-xxlarge);
   }
 
   h2 .button,
   p .button {
-    font-size: 14px;
+    font-size: inherit;
     padding: 6px 12px;
     margin-inline-start: 5px;
     margin-bottom: 0;
@@ -108,7 +106,7 @@
 
   .json-button {
     display: inline-flex;
-    font-size: 10px;
+    font-size: var(--font-size-small);
     padding: 4px 10px;
     margin-bottom: 6px;
     margin-inline-end: 4px;
@@ -230,19 +228,19 @@
 
     .message-id {
       font-family: $monospace;
-      font-size: 12px;
+      font-size: var(--font-size-small);
     }
   }
 
   .providerUrl {
-    font-size: 12px;
+    font-size: var(--font-size-small);
   }
 
   pre {
     background: var(--newtab-background-color-secondary);
     margin: 0;
     padding: 8px;
-    font-size: 12px;
+    font-size: var(--font-size-small);
     max-width: 750px;
     overflow: auto;
     font-family: $monospace;
@@ -327,7 +325,7 @@
       }
 
       .impressions-category {
-        font-size: 1.15em;
+        font-size: var(--font-size-large);
         white-space: nowrap;
         flex-grow: 0.1;
       }
