@@ -32,6 +32,12 @@ class GitRepository(Repository):
     def head_ref(self):
         return self._run("rev-parse", "HEAD").strip()
 
+    def is_cinnabar_repo(self) -> bool:
+        """Return `True` if the repo is a git-cinnabar clone."""
+        output = self._run("for-each-ref")
+
+        return "refs/cinnabar" in output
+
     def get_mozilla_upstream_remotes(self) -> Iterator[str]:
         """Return the Mozilla-official upstream remotes for this repo."""
         out = self._run("remote", "-v")
@@ -42,6 +48,27 @@ class GitRepository(Repository):
         if not remotes:
             return
 
+        is_cinnabar_repo = self.is_cinnabar_repo()
+
+        def is_official_remote(url: str) -> bool:
+            """Determine if a remote is official.
+
+            Account for `git-cinnabar` remotes with `hg.mozilla.org` in the name,
+            as well as SSH and HTTP remotes for Git-native.
+            """
+            if is_cinnabar_repo:
+                return "hg.mozilla.org" in url and not url.endswith(
+                    "hg.mozilla.org/try"
+                )
+
+            return any(
+                remote in url
+                for remote in (
+                    "github.com/mozilla-firefox/",
+                    "github.com:mozilla-firefox/",
+                )
+            )
+
         for line in remotes:
             name, url, action = line.split()
 
@@ -49,8 +76,7 @@ class GitRepository(Repository):
             if action != "(fetch)":
                 continue
 
-            # Return any `hg.mozilla.org` remotes, ignoring `try`.
-            if "hg.mozilla.org" in url and not url.endswith("hg.mozilla.org/try"):
+            if is_official_remote(url):
                 yield name
 
     def get_mozilla_remote_args(self) -> List[str]:

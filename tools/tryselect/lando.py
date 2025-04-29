@@ -73,18 +73,25 @@ def load_token_from_disk() -> Optional[dict]:
 
 def get_stack_info(
     vcs: SupportedVcsRepository, head: Optional[str]
-) -> Tuple[str, List[str]]:
+) -> Tuple[str, str, List[str]]:
     """Retrieve information about the current stack for submission via Lando.
 
     Returns a tuple of the current public base commit as a Mercurial SHA,
     and a list of ordered base64 encoded patches.
     """
-    base_commit = vcs.base_ref_as_hg()
+    # Get the appropriate base commit hash format.
+    # Use `git` for Git-native checkouts of Firefox.
+    # Use `hg` for Mercurial repos and `git-cinnabar` clones.
+    base_commit_vcs = (
+        "git" if vcs.name == "git" and not vcs.is_cinnabar_repo() else "hg"
+    )
+
+    base_commit = vcs.base_ref_as_hg() if base_commit_vcs == "hg" else vcs.base_ref
     if not base_commit:
         raise ValueError(
             "Could not determine base Mercurial commit hash for submission."
         )
-    print("Using", base_commit, "as the hg base commit.")
+    print("Using", base_commit, f"as the {base_commit_vcs} base commit.")
 
     # Reuse the base revision when on Mercurial to avoid multiple calls to `hg log`.
     branch_nodes_kwargs = {}
@@ -107,7 +114,7 @@ def get_stack_info(
     ]
     print("Patches gathered for submission.")
 
-    return base_commit, base64_patches
+    return base_commit, base_commit_vcs, base64_patches
 
 
 @dataclass
@@ -376,6 +383,7 @@ class LandoAPI:
         patches: List[str],
         patch_format: str,
         base_commit: str,
+        base_commit_vcs: str,
     ) -> dict:
         """Send try push contents to Lando.
 
@@ -384,6 +392,7 @@ class LandoAPI:
         """
         request_json_body = {
             "base_commit": base_commit,
+            "base_commit_vcs": base_commit_vcs,
             "patch_format": patch_format,
             "patches": patches,
         }
@@ -423,7 +432,7 @@ def push_to_lando_try(
 
     with vcs.try_commit(commit_message, changed_files) as head:
         try:
-            base_commit, patches = get_stack_info(vcs, head)
+            base_commit, base_commit_vcs, patches = get_stack_info(vcs, head)
         except ValueError as exc:
             error_msg = "abort: error gathering patches for submission."
             print(error_msg)
@@ -434,7 +443,7 @@ def push_to_lando_try(
         try:
             # Make the try request to Lando.
             response_json = lando_api.post_try_push_patches(
-                patches, patch_format, base_commit
+                patches, patch_format, base_commit, base_commit_vcs
             )
         except LandoAPIException as exc:
             error_msg = "abort: error submitting patches to Lando."

@@ -2,7 +2,10 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
+from unittest import mock
+
 import mozunit
+import pytest
 
 from mozversioncontrol import get_repository_object
 
@@ -14,13 +17,27 @@ STEPS = {
         git remote add unified hg::https://hg.mozilla.org/mozilla-unified
         git remote add central hg::https://hg.mozilla.org/central
         git remote add try hg::https://hg.mozilla.org/try
+        git remote add firefox https://github.com/mozilla-firefox/firefox
         """,
     ],
     "jj": [],
 }
 
 
-def test_get_mozilla_remote_args(repo):
+@pytest.mark.parametrize(
+    "is_cinnabar,expected_remotes",
+    (
+        (
+            True,
+            [
+                "--remotes=central",
+                "--remotes=unified",
+            ],
+        ),
+        (False, ["--remotes=firefox"]),
+    ),
+)
+def test_get_mozilla_remote_args(is_cinnabar, expected_remotes, repo):
     # Test is only relevant for Git.
     if not repo.vcs == "git":
         return
@@ -28,6 +45,9 @@ def test_get_mozilla_remote_args(repo):
     repo.execute_next_step()
 
     vcs = get_repository_object(repo.dir)
+    vcs.is_cinnabar_repo = mock.MagicMock(name="is_cinnabar_repo")
+    vcs.is_cinnabar_repo.return_value = is_cinnabar
+
     remotes = vcs.get_mozilla_remote_args()
 
     assert remotes == [
@@ -38,10 +58,9 @@ def test_get_mozilla_remote_args(repo):
 
     remotes = sorted(vcs.get_mozilla_remote_args())
 
-    assert remotes == [
-        "--remotes=central",
-        "--remotes=unified",
-    ], "Multiple non-try remote arguments should be found."
+    assert (
+        remotes == expected_remotes
+    ), "Multiple non-try remote arguments should be found."
 
 
 if __name__ == "__main__":
