@@ -4972,14 +4972,16 @@ dependencies = [
  "byteorder",
  "core-foundation 0.9.999",
  "env_logger",
+ "futures-executor",
  "lazy_static",
  "libloading",
  "log",
+ "moz_task",
  "pkcs11-bindings",
  "rsclientcerts",
  "sha2",
- "static_prefs",
  "winapi",
+ "xpcom",
 ]
 
 [[package]]
