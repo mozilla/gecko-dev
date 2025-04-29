@@ -2404,6 +2404,10 @@ void GCRuntime::sweepZones(JS::GCContext* gcx, bool destroyingRuntime) {
 
   assertBackgroundSweepingFinished();
 
+  // Host destroy callbacks can access the store buffer, e.g. when resizing hash
+  // tables containing nursery pointers.
+  AutoLockStoreBuffer lock(rt);
+
   // Sweep zones following the atoms zone.
   MOZ_ASSERT(zones()[0]->isAtomsZone());
   Zone** read = zones().begin() + 1;
