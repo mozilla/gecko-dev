@@ -7253,6 +7253,36 @@ void BaseCompiler::emitPreBarrier(RegPtr valueAddr) {
   masm.bind(&skipBarrier);
 }
 
+bool BaseCompiler::emitPostBarrierWholeCell(RegRef object, RegRef value,
+                                            RegPtr temp) {
+  // We must force a sync before the guard so that locals are in a consistent
+  // location for whether or not the post-barrier call is taken.
+  sync();
+
+  // Emit a guard to skip the post-barrier call if it is not needed.
+  Label skipBarrier;
+  EmitWasmPostBarrierGuard(masm, mozilla::Some(object), temp, value,
+                           &skipBarrier);
+
+  movePtr(RegPtr(object), temp);
+
+  // Push `object` and `value` to preserve them across the call.
+  pushRef(object);
+  pushRef(value);
+
+  pushPtr(temp);
+  if (!emitInstanceCall(SASigPostBarrierWholeCell)) {
+    return false;
+  }
+
+  // Restore `object` and `value`.
+  popRef(value);
+  popRef(object);
+
+  masm.bind(&skipBarrier);
+  return true;
+}
+
 bool BaseCompiler::emitPostBarrierImprecise(const Maybe<RegRef>& object,
                                             RegPtr valueAddr, RegRef value) {
   // We must force a sync before the guard so that locals are in a consistent
@@ -7338,7 +7368,14 @@ bool BaseCompiler::emitBarrieredStore(const Maybe<RegRef>& object,
   if (postBarrierKind == PostBarrierKind::Precise) {
     return emitPostBarrierPrecise(object, valueAddr, prevValue, value);
   }
-  return emitPostBarrierImprecise(object, valueAddr, value);
+  if (postBarrierKind == PostBarrierKind::Imprecise) {
+    return emitPostBarrierImprecise(object, valueAddr, value);
+  }
+  if (postBarrierKind == PostBarrierKind::WholeCell) {
+    // valueAddr is reused as a temp register.
+    return emitPostBarrierWholeCell(object.value(), value, valueAddr);
+  }
+  MOZ_CRASH("unknown barrier kind");
 }
 
 void BaseCompiler::emitBarrieredClear(RegPtr valueAddr) {
@@ -7616,7 +7653,7 @@ bool BaseCompiler::emitGcStructSet(RegRef object, RegPtr areaBase,
 
   // emitBarrieredStore preserves object and value
   if (!emitBarrieredStore(Some(object), valueAddr, value.ref(), preBarrierKind,
-                          PostBarrierKind::Imprecise)) {
+                          PostBarrierKind::WholeCell)) {
     return false;
   }
   freeRef(value.ref());
