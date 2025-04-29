@@ -13,10 +13,6 @@
 /* import-globals-from ../../chrome-harness.js */
 /* import-globals-from ../../chunkifyTests.js */
 
-// It appears we expect these from one of the MochiKit scripts.
-/* global toggleElementClass, removeElementClass, addElementClass,
-          hasElementClass */
-
 TestRunner.logEnabled = true;
 TestRunner.logger = LogController;
 
@@ -318,33 +314,27 @@ RunSet.reloadAndRunAll = function (e) {
 
 // UI Stuff
 function toggleVisible(elem) {
-  toggleElementClass("invisible", elem);
-}
-
-function makeVisible(elem) {
-  removeElementClass(elem, "invisible");
-}
-
-function makeInvisible(elem) {
-  addElementClass(elem, "invisible");
+  elem.classList.toggle("invisible");
 }
 
 function isVisible(elem) {
   // you may also want to check for
   // getElement(elem).style.display == "none"
-  return !hasElementClass(elem, "invisible");
+  return !elem.classList.contains("invisible");
 }
 
 function toggleNonTests(e) {
   e.preventDefault();
   var elems = document.getElementsByClassName("non-test");
-  for (var i = "0"; i < elems.length; i++) {
+  for (var i = 0; i < elems.length; i++) {
     toggleVisible(elems[i]);
   }
-  if (isVisible(elems[0])) {
-    $("toggleNonTests").innerHTML = "Hide Non-Tests";
+  if (!elems.length) {
+    $("toggleNonTests").textContent = "No Non-Tests";
+  } else if (isVisible(elems[0])) {
+    $("toggleNonTests").textContent = "Hide Non-Tests";
   } else {
-    $("toggleNonTests").innerHTML = "Show Non-Tests";
+    $("toggleNonTests").textContent = "Show Non-Tests";
   }
 }
 
