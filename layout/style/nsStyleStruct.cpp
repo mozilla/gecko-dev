@@ -298,11 +298,9 @@ AnchorResolvedMargin AnchorResolvedMarginHelper::ResolveAnchor(
       return Zero();
     }
     if (resolved.IsResolvedReference()) {
-      return AnchorResolvedMargin::Evaluated(
-          StyleMargin::LengthPercentage(*resolved.AsResolvedReference()));
+      return MakeUniqueOfUniqueOrNonOwning<const StyleMargin>(*resolved.AsResolvedReference());
     }
-    return AnchorResolvedMargin::Evaluated(
-        StyleMargin::LengthPercentage(resolved.AsResolved()));
+    return MakeUniqueOfUniqueOrNonOwning<const StyleMargin>(resolved.AsResolved());
   }
 
   const auto& lp = aValue.AsAnchorContainingCalcFunction();
@@ -312,8 +310,7 @@ AnchorResolvedMargin AnchorResolvedMarginHelper::ResolveAnchor(
   if (result.IsInvalid()) {
     return Zero();
   }
-  return AnchorResolvedMargin::Evaluated(
-      StyleMargin::LengthPercentage(result.AsValid()));
+  return MakeUniqueOfUniqueOrNonOwning<const StyleMargin>(result.AsValid());
 }
 
 nsStyleMargin::nsStyleMargin()
@@ -1386,8 +1383,7 @@ AnchorResolvedInset AnchorResolvedInsetHelper::ResolveAnchor(
       if (result.IsInvalid()) {
         return Auto();
       }
-      return AnchorResolvedInset::Evaluated(
-          StyleInset::LengthPercentage(result.AsValid()));
+      return MakeUniqueOfUniqueOrNonOwning<const StyleInset>(result.AsValid());
     }
     case StyleInset::Tag::AnchorFunction: {
       auto resolved = StyleAnchorPositioningFunctionResolution::Invalid();
@@ -1397,11 +1393,10 @@ AnchorResolvedInset AnchorResolvedInsetHelper::ResolveAnchor(
         return Auto();
       }
       if (resolved.IsResolvedReference()) {
-        return AnchorResolvedInset::Evaluated(
-            StyleInset::LengthPercentage(*resolved.AsResolvedReference()));
+        return MakeUniqueOfUniqueOrNonOwning<const StyleInset>(*resolved.AsResolvedReference());
       }
-      return AnchorResolvedInset::Evaluated(
-          StyleInset::LengthPercentage(resolved.AsResolved()));
+      return AnchorResolvedInset{
+        MakeUniqueOfUniqueOrNonOwning<const StyleInset>(resolved.AsResolved())};
     }
     case StyleInset::Tag::AnchorSizeFunction: {
       auto resolved = StyleAnchorPositioningFunctionResolution::Invalid();
@@ -1411,11 +1406,9 @@ AnchorResolvedInset AnchorResolvedInsetHelper::ResolveAnchor(
         return Auto();
       }
       if (resolved.IsResolvedReference()) {
-        return AnchorResolvedInset::Evaluated(
-            StyleInset::LengthPercentage(*resolved.AsResolvedReference()));
+        return MakeUniqueOfUniqueOrNonOwning<const StyleInset>(*resolved.AsResolvedReference());
       }
-      return AnchorResolvedInset::Evaluated(
-          StyleInset::LengthPercentage(resolved.AsResolved()));
+      return MakeUniqueOfUniqueOrNonOwning<const StyleInset>(resolved.AsResolved());
     }
     default:
       MOZ_ASSERT_UNREACHABLE("Unhandled inset type");
@@ -1436,11 +1429,10 @@ AnchorResolvedSize AnchorResolvedSizeHelper::ResolveAnchor(
       return Auto();
     }
     if (resolved.IsResolvedReference()) {
-      return AnchorResolvedSize::Evaluated(
-          StyleSize::LengthPercentage(*resolved.AsResolvedReference()));
+      return MakeUniqueOfUniqueOrNonOwning<const StyleSize>(
+          *resolved.AsResolvedReference());
     }
-    return AnchorResolvedSize::Evaluated(
-        StyleSize::LengthPercentage(resolved.AsResolved()));
+    return MakeUniqueOfUniqueOrNonOwning<const StyleSize>(resolved.AsResolved());
   }
 
   const auto& lp = aValue.AsAnchorContainingCalcFunction();
@@ -1451,8 +1443,7 @@ AnchorResolvedSize AnchorResolvedSizeHelper::ResolveAnchor(
   if (result.IsInvalid()) {
     return Auto();
   }
-  return AnchorResolvedSize::Evaluated(
-      StyleSize::LengthPercentage(result.AsValid()));
+  return MakeUniqueOfUniqueOrNonOwning<const StyleSize>(result.AsValid());
 }
 
 AnchorResolvedMaxSize AnchorResolvedMaxSizeHelper::ResolveAnchor(
@@ -1468,11 +1459,10 @@ AnchorResolvedMaxSize AnchorResolvedMaxSizeHelper::ResolveAnchor(
       return None();
     }
     if (resolved.IsResolvedReference()) {
-      return AnchorResolvedMaxSize::Evaluated(
-          StyleMaxSize::LengthPercentage(*resolved.AsResolvedReference()));
+      return MakeUniqueOfUniqueOrNonOwning<const StyleMaxSize>(
+              *resolved.AsResolvedReference());
     }
-    return AnchorResolvedMaxSize::Evaluated(
-        StyleMaxSize::LengthPercentage(resolved.AsResolved()));
+    return MakeUniqueOfUniqueOrNonOwning<const StyleMaxSize>(resolved.AsResolved());
   }
 
   const auto& lp = aValue.AsAnchorContainingCalcFunction();
@@ -1483,8 +1473,7 @@ AnchorResolvedMaxSize AnchorResolvedMaxSizeHelper::ResolveAnchor(
   if (result.IsInvalid()) {
     return None();
   }
-  return AnchorResolvedMaxSize::Evaluated(
-      StyleMaxSize::LengthPercentage(result.AsValid()));
+  return MakeUniqueOfUniqueOrNonOwning<const StyleMaxSize>(result.AsValid());
 }
 
 // --------------------

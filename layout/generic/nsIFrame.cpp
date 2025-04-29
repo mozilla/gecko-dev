@@ -6494,8 +6494,8 @@ nsIFrame::SizeComputationResult nsIFrame::ComputeSize(
       nscoord stretchBSize = nsLayoutUtils::ComputeStretchBSize(
           aCBSize.BSize(aWM), aMargin.BSize(aWM), aBorderPadding.BSize(aWM),
           stylePos->mBoxSizing);
-      return AnchorResolvedSizeHelper::LengthPercentage(
-          LengthPercentage::FromAppUnits(stretchBSize));
+      // Note(dshin): This allocates.
+      return AnchorResolvedSizeHelper::LengthPercentage(LengthPercentage::FromAppUnits(stretchBSize));
     }
     return styleBSizeConsideringOverrides;
   }();
