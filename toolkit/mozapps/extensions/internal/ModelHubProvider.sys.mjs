@@ -8,9 +8,7 @@ const lazy = {};
 ChromeUtils.defineESModuleGetters(lazy, {
   AddonManager: "resource://gre/modules/AddonManager.sys.mjs",
   AddonManagerPrivate: "resource://gre/modules/AddonManager.sys.mjs",
-  computeSha256HashAsString:
-    "resource://gre/modules/addons/crypto-utils.sys.mjs",
-  ModelHub: "chrome://global/content/ml/ModelHub.sys.mjs",
+  DownloadUtils: "resource://gre/modules/DownloadUtils.sys.mjs",
 });
 
 XPCOMUtils.defineLazyPreferenceGetter(
@@ -18,80 +16,56 @@ XPCOMUtils.defineLazyPreferenceGetter(
   "MODELHUB_PROVIDER_ENABLED",
   "browser.ml.modelHubProvider",
   false,
-  (_pref, _old, val) => ModelHubProvider[val ? "init" : "shutdown"]()
+  (_pref, _old, val) => ModelHubProvider[val ? "init" : "uninit"]()
 );
 
-const MODELHUB_ADDON_ID_SUFFIX = "@modelhub.mozilla.org";
+const MODELHUB_ADDON_ID_SUFFIX = "-modelhub@mozilla.org";
 const MODELHUB_ADDON_TYPE = "mlmodel";
 
-export class ModelHubAddonWrapper {
-  #provider;
-  id;
-  name;
-  version;
-  totalSize;
-  lastUsed;
-  updateDate;
-
-  constructor(params) {
-    this.#provider = params.provider;
-    this.id = params.id;
-    this.name = params.name;
-    this.version = params.version;
-    this.totalSize = params.totalSize;
-    this.lastUsed = params.lastUsed;
-    this.updateDate = params.updateDate;
-  }
-
-  async uninstall() {
-    await this.#provider.modelHub.deleteModels({
-      model: this.name,
-      revision: this.version,
-    });
-
-    await this.#provider.onUninstalled(this);
+class ModelHubAddonWrapper {
+  constructor(id = MODELHUB_ADDON_ID_SUFFIX) {
+    this.id = id;
+    // TODO: use actual values (for now random 0 bytes to 100 GB)
+    this.fileSize = lazy.DownloadUtils.getTransferTotal(
+      Math.random() * Math.pow(10, 1 + Math.random() * 10)
+    );
   }
 
   get isActive() {
     return true;
   }
-
   get isCompatible() {
     return true;
   }
-
+  get name() {
+    return "ModelHub";
+  }
   get permissions() {
     return lazy.AddonManager.PERM_CAN_UNINSTALL;
   }
-
   get type() {
     return MODELHUB_ADDON_TYPE;
   }
 }
 
-export const ModelHubProvider = {
-  cache: new Map(),
-  modelHub: null,
-
+const ModelHubProvider = {
   get name() {
     return "ModelHubProvider";
   },
 
-  async getAddonsByTypes(types) {
-    if (!lazy.MODELHUB_PROVIDER_ENABLED) {
-      return [];
+  init() {
+    // Activate lazy getter and initialize if necessary
+    if (lazy.MODELHUB_PROVIDER_ENABLED && !this.initialized) {
+      this.initialized = true;
+      lazy.AddonManagerPrivate.registerProvider(this, [MODELHUB_ADDON_TYPE]);
     }
-
-    const match = types?.includes?.(MODELHUB_ADDON_TYPE);
-    return match
-      ? await this.refreshAddonCache().then(() =>
-          Array.from(this.cache.values())
-        )
-      : [];
   },
 
-  async getAddonByID(id) {
-    return this.cache.get(id);
+  uninit() {
+    if (this.initialized) {
+      lazy.AddonManagerPrivate.unregisterProvider(this);
+      this.initialized = false;
+    }
   },
 
   observe(_subject, topic, _data) {
@@ -103,66 +77,16 @@ export const ModelHubProvider = {
     }
   },
 
-  shutdown() {
-    if (this.initialized) {
-      lazy.AddonManagerPrivate.unregisterProvider(this);
-      this.initialized = false;
-      this.clearAddonCache();
-    }
+  async getAddonByID(id) {
+    // TODO: should return a ModelHubAddonWrapper only if we have it
+    return id == MODELHUB_ADDON_ID_SUFFIX ? new ModelHubAddonWrapper() : null;
   },
 
-  async init() {
-    if (!lazy.MODELHUB_PROVIDER_ENABLED || this.initialized) {
-      return;
-    }
-
-    this.initialized = true;
-    lazy.AddonManagerPrivate.registerProvider(this, [MODELHUB_ADDON_TYPE]);
-    this.modelHub = new lazy.ModelHub();
-    await this.refreshAddonCache();
-  },
-
-  async onUninstalled(addon) {
-    if (!this.cache.has(addon.id)) {
-      return;
-    }
-    this.cache.delete(addon.id);
-    lazy.AddonManagerPrivate.callAddonListeners("onUninstalled", addon);
-  },
-
-  async clearAddonCache() {
-    this.cache.clear();
-  },
-
-  getWrapperIdForModel(model) {
-    return [
-      lazy.computeSha256HashAsString(`${model.name}:${model.revision}`),
-      MODELHUB_ADDON_ID_SUFFIX,
-    ].join("");
-  },
-
-  async refreshAddonCache() {
-    const models = await this.modelHub.listModels();
-
-    for (const model of models) {
-      const { metadata } = await this.modelHub.listFiles({
-        model: model.name,
-        revision: model.revision,
-      });
-
-      const id = this.getWrapperIdForModel(model);
-
-      const wrapper = new ModelHubAddonWrapper({
-        provider: this,
-        id,
-        name: model.name,
-        version: model.revision,
-        totalSize: metadata.totalSize,
-        lastUsed: new Date(metadata.lastUsed),
-        updateDate: new Date(metadata.updateDate),
-      });
-      this.cache.set(wrapper.id, wrapper);
-    }
+  async getAddonsByTypes(types) {
+    // TODO: should return ModelHubAddonWrappers only if we have them
+    return !types || types.includes(MODELHUB_ADDON_TYPE)
+      ? [new ModelHubAddonWrapper()]
+      : [];
   },
 };
 

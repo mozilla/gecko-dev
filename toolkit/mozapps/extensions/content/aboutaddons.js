@@ -2877,15 +2877,6 @@ class AddonCard extends HTMLElement {
       this.details.update();
     }
 
-    if (addon.type == "mlmodel") {
-      this.optionsButton.hidden = this.expanded;
-      const mlmodelHeaderAdditions = this.card.querySelector(
-        "mlmodel-card-header-additions"
-      );
-      mlmodelHeaderAdditions.setAddon(addon);
-      mlmodelHeaderAdditions.expanded = this.expanded;
-    }
-
     this.sendEvent("update");
   }
 
@@ -2978,6 +2969,7 @@ class AddonCard extends HTMLElement {
     if (addon.type != "extension" && addon.type != "sitepermission") {
       this.card.querySelector(".extension-enable-button").remove();
     }
+
     let nameContainer = this.card.querySelector(".addon-name-container");
     let headingLevel = this.expanded ? "h1" : "h3";
     let nameHeading = document.createElement(headingLevel);
