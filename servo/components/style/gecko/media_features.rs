@@ -515,6 +515,10 @@ fn eval_moz_is_glyph(context: &Context) -> bool {
     context.device().document().mIsSVGGlyphsDocument()
 }
 
+fn eval_moz_in_android_pip_mode(context: &Context) -> bool {
+    unsafe { bindings::Gecko_MediaFeatures_InAndroidPipMode(context.device().document()) }
+}
+
 fn eval_moz_print_preview(context: &Context) -> bool {
     let is_print_preview = context.device().is_print_preview();
     if is_print_preview {
@@ -653,7 +657,7 @@ macro_rules! lnf_int_feature {
 /// to support new types in these entries and (2) ensuring that either
 /// nsPresContext::MediaFeatureValuesChanged is called when the value that
 /// would be returned by the evaluator function could change.
-pub static MEDIA_FEATURES: [QueryFeatureDescription; 61] = [
+pub static MEDIA_FEATURES: [QueryFeatureDescription; 62] = [
     feature!(
         atom!("width"),
         AllowsRanges::Yes,
@@ -886,6 +890,12 @@ pub static MEDIA_FEATURES: [QueryFeatureDescription; 61] = [
         atom!("-moz-is-glyph"),
         AllowsRanges::No,
         Evaluator::BoolInteger(eval_moz_is_glyph),
+        FeatureFlags::CHROME_AND_UA_ONLY,
+    ),
+    feature!(
+        atom!("-moz-in-android-pip-mode"),
+        AllowsRanges::No,
+        Evaluator::BoolInteger(eval_moz_in_android_pip_mode),
         FeatureFlags::CHROME_AND_UA_ONLY,
     ),
     feature!(

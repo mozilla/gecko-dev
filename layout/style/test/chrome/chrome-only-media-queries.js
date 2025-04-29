@@ -1,5 +1,6 @@
 const CHROME_ONLY_TOGGLES = [
   "-moz-is-glyph",
+  "-moz-in-android-pip-mode",
   "-moz-print-preview",
   "-moz-scrollbar-start-backward",
   "-moz-scrollbar-start-forward",

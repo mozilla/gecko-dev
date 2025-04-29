@@ -29,6 +29,7 @@
 #include "mozilla/LookAndFeel.h"
 #include "mozilla/MouseEvents.h"
 #include "mozilla/widget/ScreenManager.h"
+#include "mozilla/MediaFeatureChange.h"
 #include "mozilla/NativeKeyBindingsType.h"
 #include "mozilla/NullPrincipal.h"
 #include "mozilla/PointerLockManager.h"
@@ -1264,6 +1265,11 @@ mozilla::ipc::IPCResult BrowserChild::RecvAndroidPipModeChanged(bool aPipMode) {
   }
   mInAndroidPipMode = aPipMode;
   if (RefPtr<Document> document = GetTopLevelDocument()) {
+    if (nsPresContext* presContext = document->GetPresContext()) {
+      presContext->MediaFeatureValuesChanged(
+          {MediaFeatureChangeReason::DisplayModeChange},
+          MediaFeatureChangePropagation::JustThisDocument);
+    }
     nsContentUtils::DispatchEventOnlyToChrome(
         document, document,
         aPipMode ? u"MozAndroidPipModeEntered"_ns
