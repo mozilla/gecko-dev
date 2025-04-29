@@ -11,7 +11,7 @@
 
 #import <objc/message.h>
 
-#include "nsChildView.h"
+#include "nsCocoaWindow.h"
 #include "mozilla/StaticPrefs_widget.h"
 
 using namespace mozilla;
@@ -90,7 +90,7 @@ static constexpr nsLiteralCString kObservedPrefs[] = {
     "widget.macos.titlebar-blend-mode.behind-window"_ns,
 };
 
-VibrancyManager::VibrancyManager(const nsChildView& aCoordinateConverter,
+VibrancyManager::VibrancyManager(const nsCocoaWindow& aCoordinateConverter,
                                  NSView* aContainerView)
     : mCoordinateConverter(aCoordinateConverter),
       mContainerView(aContainerView) {

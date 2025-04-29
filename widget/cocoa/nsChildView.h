@@ -14,7 +14,6 @@
 #endif
 
 #include "nsISupports.h"
-#include "nsBaseWidget.h"
 #include "nsIWeakReferenceUtils.h"
 #include "TextInputHandler.h"
 #include "nsCocoaUtils.h"
@@ -51,7 +50,6 @@ class PanGestureInput;
 class VibrancyManager;
 namespace layers {
 class GLManager;
-class IAPZCTreeManager;
 class NativeLayerRootCA;
 class NativeLayerCA;
 }  // namespace layers
@@ -108,9 +106,9 @@ class WidgetRenderingContext;
                            NSPasteboardItemDataProvider,
                            NSStandardKeyBindingResponding> {
  @private
-  // the nsChildView that created the view. It retains this NSView, so
+  // the nsCocoaWindow that created the view. It retains this NSView, so
   // the link back to it must be weak.
-  nsChildView* mGeckoChild;
+  nsCocoaWindow* mGeckoChild;
 
   // Text input handler for mGeckoChild and us.  Note that this is a weak
   // reference.  Ideally, this should be a strong reference but a ChildView
@@ -226,8 +224,6 @@ class WidgetRenderingContext;
 - (NSView*)nonDraggableViewsContainer;
 - (NSView*)pixelHostingView;
 
-- (BOOL)isCoveringTitlebar;
-
 - (void)viewWillStartLiveResize;
 - (void)viewDidEndLiveResize;
 
@@ -250,8 +246,6 @@ class WidgetRenderingContext;
 - (void)endGestureWithEvent:(NSEvent*)anEvent;
 
 - (void)scrollWheel:(NSEvent*)anEvent;
-
-- (void)setUsingOMTCompositor:(BOOL)aUseOMTC;
 
 - (NSEvent*)lastKeyDownEvent;
 
@@ -281,332 +275,6 @@ class ChildViewMouseTracker {
   static NSEvent* sLastMouseMoveEvent;
   static NSWindow* sWindowUnderMouse;
   static NSPoint sLastScrollEventScreenLocation;
-};
-
-//-------------------------------------------------------------------------
-//
-// nsChildView
-//
-//-------------------------------------------------------------------------
-
-class nsChildView final : public nsBaseWidget {
- private:
-  typedef nsBaseWidget Inherited;
-  typedef mozilla::layers::IAPZCTreeManager IAPZCTreeManager;
-
- public:
-  nsChildView();
-
-  // nsIWidget interface
-  [[nodiscard]] nsresult Create(nsIWidget* aParent,
-                                const LayoutDeviceIntRect& aRect,
-                                InitData* = nullptr) override;
-
-  void Destroy() override;
-
-  void Show(bool aState) override;
-  bool IsVisible() const override;
-
-  float GetDPI() override;
-
-  void Move(double aX, double aY) override;
-  void Resize(double aWidth, double aHeight, bool aRepaint) override;
-  void Resize(double aX, double aY, double aWidth, double aHeight,
-              bool aRepaint) override;
-
-  void Enable(bool aState) override;
-  bool IsEnabled() const override;
-
-  nsSizeMode SizeMode() override { return mSizeMode; }
-  void SetSizeMode(nsSizeMode aMode) override { mSizeMode = aMode; }
-
-  void SetFocus(Raise, mozilla::dom::CallerType aCallerType) override;
-  LayoutDeviceIntRect GetBounds() override;
-  LayoutDeviceIntRect GetClientBounds() override;
-  LayoutDeviceIntRect GetScreenBounds() override;
-
-  // Refresh mBounds with up-to-date values from [mView frame].
-  // Only called if this nsChildView is the popup content view of a popup
-  // window. For popup windows, the nsIWidget interface to Gecko is provided by
-  // nsCocoaWindow, not by nsChildView. So nsCocoaWindow manages resize requests
-  // from Gecko, fires resize events, and resizes the native NSWindow and
-  // NSView.
-  void UpdateBoundsFromView();
-
-  // Returns the "backing scale factor" of the view's window, which is the
-  // ratio of pixels in the window's backing store to Cocoa points. Prior to
-  // HiDPI support in OS X 10.7, this was always 1.0, but in HiDPI mode it
-  // will be 2.0 (and might potentially other values as screen resolutions
-  // evolve). This gives the relationship between what Gecko calls "device
-  // pixels" and the Cocoa "points" coordinate system.
-  CGFloat BackingScaleFactor() const;
-
-  mozilla::DesktopToLayoutDeviceScale GetDesktopToDeviceScale() final {
-    return mozilla::DesktopToLayoutDeviceScale(BackingScaleFactor());
-  }
-
-  // Call if the window's backing scale factor changes - i.e., it is moved
-  // between HiDPI and non-HiDPI screens
-  void BackingScaleFactorChanged();
-
-  double GetDefaultScaleInternal() override;
-
-  int32_t RoundsWidgetCoordinatesTo() override;
-
-  void Invalidate(const LayoutDeviceIntRect& aRect) override;
-  void EnsureContentLayerForMainThreadPainting();
-
-  void* GetNativeData(uint32_t aDataType) override;
-  LayoutDeviceIntPoint WidgetToScreenOffset() override;
-  bool ShowsResizeIndicator(LayoutDeviceIntRect* aResizerRect) override {
-    return false;
-  }
-
-  nsresult DispatchEvent(mozilla::WidgetGUIEvent* aEvent,
-                         nsEventStatus& aStatus) override;
-
-  bool WidgetTypeSupportsAcceleration() override;
-  bool ShouldUseOffMainThreadCompositing() override;
-
-  void SetCursor(const Cursor&) override;
-
-  nsresult SetTitle(const nsAString& title) override;
-
-  [[nodiscard]] nsresult GetAttention(int32_t aCycleCount) override;
-
-  bool HasPendingInputEvent() override;
-
-  bool SendEventToNativeMenuSystem(NSEvent* aEvent);
-  void PostHandleKeyEvent(mozilla::WidgetKeyboardEvent* aEvent) override;
-  nsresult ActivateNativeMenuItemAt(const nsAString& indexString) override;
-  nsresult ForceUpdateNativeMenuAt(const nsAString& indexString) override;
-  [[nodiscard]] nsresult GetSelectionAsPlaintext(nsAString& aResult) override;
-
-  void SetInputContext(const InputContext& aContext,
-                       const InputContextAction& aAction) override;
-  InputContext GetInputContext() override;
-  TextEventDispatcherListener* GetNativeTextEventDispatcherListener() override;
-  [[nodiscard]] nsresult AttachNativeKeyEvent(
-      mozilla::WidgetKeyboardEvent& aEvent) override;
-  MOZ_CAN_RUN_SCRIPT bool GetEditCommands(
-      mozilla::NativeKeyBindingsType aType,
-      const mozilla::WidgetKeyboardEvent& aEvent,
-      nsTArray<mozilla::CommandInt>& aCommands) override;
-
-  void SuppressAnimation(bool aSuppress) override;
-
-  nsresult SynthesizeNativeKeyEvent(int32_t aNativeKeyboardLayout,
-                                    int32_t aNativeKeyCode,
-                                    uint32_t aModifierFlags,
-                                    const nsAString& aCharacters,
-                                    const nsAString& aUnmodifiedCharacters,
-                                    nsIObserver* aObserver) override;
-
-  nsresult SynthesizeNativeMouseEvent(LayoutDeviceIntPoint aPoint,
-                                      NativeMouseMessage aNativeMessage,
-                                      mozilla::MouseButton aButton,
-                                      nsIWidget::Modifiers aModifierFlags,
-                                      nsIObserver* aObserver) override;
-
-  nsresult SynthesizeNativeMouseMove(LayoutDeviceIntPoint aPoint,
-                                     nsIObserver* aObserver) override {
-    return SynthesizeNativeMouseEvent(
-        aPoint, NativeMouseMessage::Move, mozilla::MouseButton::eNotPressed,
-        nsIWidget::Modifiers::NO_MODIFIERS, aObserver);
-  }
-  nsresult SynthesizeNativeMouseScrollEvent(
-      LayoutDeviceIntPoint aPoint, uint32_t aNativeMessage, double aDeltaX,
-      double aDeltaY, double aDeltaZ, uint32_t aModifierFlags,
-      uint32_t aAdditionalFlags, nsIObserver* aObserver) override;
-  nsresult SynthesizeNativeTouchPoint(uint32_t aPointerId,
-                                      TouchPointerState aPointerState,
-                                      LayoutDeviceIntPoint aPoint,
-                                      double aPointerPressure,
-                                      uint32_t aPointerOrientation,
-                                      nsIObserver* aObserver) override;
-
-  nsresult SynthesizeNativeTouchpadDoubleTap(LayoutDeviceIntPoint aPoint,
-                                             uint32_t aModifierFlags) override;
-
-  // Mac specific methods
-  void WillPaintWindow();
-  bool PaintWindow(LayoutDeviceIntRegion aRegion);
-  bool PaintWindowInDrawTarget(mozilla::gfx::DrawTarget* aDT,
-                               const LayoutDeviceIntRegion& aRegion,
-                               const mozilla::gfx::IntSize& aSurfaceSize);
-
-  void PaintWindowInContentLayer();
-  void HandleMainThreadCATransaction();
-
-#ifdef ACCESSIBILITY
-  already_AddRefed<mozilla::a11y::LocalAccessible> GetDocumentAccessible();
-#endif
-
-  void CreateCompositor() override;
-
-  bool WidgetPaintsBackground() override { return true; }
-
-  bool PreRender(mozilla::widget::WidgetRenderingContext* aContext) override;
-  void PostRender(mozilla::widget::WidgetRenderingContext* aContext) override;
-  RefPtr<mozilla::layers::NativeLayerRoot> GetNativeLayerRoot() override;
-
-  void UpdateThemeGeometries(
-      const nsTArray<ThemeGeometry>& aThemeGeometries) override;
-
-  void UpdateWindowDraggingRegion(
-      const LayoutDeviceIntRegion& aRegion) override;
-  LayoutDeviceIntRegion GetNonDraggableRegion() {
-    return mNonDraggableRegion.Region();
-  }
-
-  void LookUpDictionary(const nsAString& aText,
-                        const nsTArray<mozilla::FontRange>& aFontRangeArray,
-                        const bool aIsVertical,
-                        const LayoutDeviceIntPoint& aPoint) override;
-
-  static bool DoHasPendingInputEvent();
-  static uint32_t GetCurrentInputEventCount();
-  static void UpdateCurrentInputEventCount();
-
-  NSView<mozView>* GetEditorView();
-
-  nsCocoaWindow* GetAppWindowWidget() const;
-
-  void DidClearParent(nsIWidget*) override;
-
-  mozilla::widget::TextInputHandler* GetTextInputHandler() {
-    return mTextInputHandler;
-  }
-
-  // unit conversion convenience functions
-  int32_t CocoaPointsToDevPixels(CGFloat aPts) const {
-    return nsCocoaUtils::CocoaPointsToDevPixels(aPts, BackingScaleFactor());
-  }
-  LayoutDeviceIntPoint CocoaPointsToDevPixels(const NSPoint& aPt) const {
-    return nsCocoaUtils::CocoaPointsToDevPixels(aPt, BackingScaleFactor());
-  }
-  LayoutDeviceIntPoint CocoaPointsToDevPixelsRoundDown(
-      const NSPoint& aPt) const {
-    return nsCocoaUtils::CocoaPointsToDevPixelsRoundDown(aPt,
-                                                         BackingScaleFactor());
-  }
-  LayoutDeviceIntRect CocoaPointsToDevPixels(const NSRect& aRect) const {
-    return nsCocoaUtils::CocoaPointsToDevPixels(aRect, BackingScaleFactor());
-  }
-  CGFloat DevPixelsToCocoaPoints(int32_t aPixels) const {
-    return nsCocoaUtils::DevPixelsToCocoaPoints(aPixels, BackingScaleFactor());
-  }
-  NSRect DevPixelsToCocoaPoints(const LayoutDeviceIntRect& aRect) const {
-    return nsCocoaUtils::DevPixelsToCocoaPoints(aRect, BackingScaleFactor());
-  }
-
-  LayoutDeviceIntPoint GetClientOffset() override;
-
-  void DispatchAPZWheelInputEvent(mozilla::InputData& aEvent);
-  nsEventStatus DispatchAPZInputEvent(mozilla::InputData& aEvent);
-
-  void DispatchDoubleTapGesture(mozilla::TimeStamp aEventTimeStamp,
-                                LayoutDeviceIntPoint aScreenPosition,
-                                mozilla::Modifiers aModifiers);
-
-  // Called when the main thread enters a phase during which visual changes
-  // are imminent and any layer updates on the compositor thread would interfere
-  // with visual atomicity.
-  // "Async" CATransactions are CATransactions which happen on a thread that's
-  // not the main thread.
-  void SuspendAsyncCATransactions();
-
-  // Called when we know that the current main thread paint will be completed
-  // once the main thread goes back to the event loop.
-  void MaybeScheduleUnsuspendAsyncCATransactions();
-
-  // Called from the runnable dispatched by
-  // MaybeScheduleUnsuspendAsyncCATransactions(). At this point we know that the
-  // main thread is done handling the visual change (such as a window resize)
-  // and we can start modifying CALayers from the compositor thread again.
-  void UnsuspendAsyncCATransactions();
-
-  // Called by nsCocoaWindow when the window's fullscreen state changes.
-  void UpdateFullscreen(bool aFullscreen);
-
-#ifdef DEBUG
-  // test only.
-  nsresult SetHiDPIMode(bool aHiDPI) override;
-  nsresult RestoreHiDPIMode() override;
-#endif
-
- protected:
-  virtual ~nsChildView();
-
-  void ReportMoveEvent();
-  void ReportSizeEvent();
-
-  void TearDownView();
-
-  already_AddRefed<nsIWidget> AllocateChildPopupWidget() override {
-    return nsIWidget::CreateTopLevelWindow();
-  }
-
-  void ConfigureAPZCTreeManager() override;
-  void ConfigureAPZControllerThread() override;
-
-  void UpdateVibrancy(const nsTArray<ThemeGeometry>& aThemeGeometries);
-  mozilla::VibrancyManager& EnsureVibrancyManager();
-
-  nsIWidget* GetWidgetForListenerEvents();
-
- protected:
-  ChildView* mView;  // my parallel cocoa view, [STRONG]
-  RefPtr<mozilla::widget::TextInputHandler> mTextInputHandler;
-  InputContext mInputContext;
-
-  NSView* mParentView;
-
-#ifdef ACCESSIBILITY
-  // weak ref to this childview's associated mozAccessible for speed reasons
-  // (we get queried for it *a lot* but don't want to own it)
-  nsWeakPtr mAccessible;
-#endif
-
-  // Held while the compositor (or WR renderer) thread is compositing.
-  // Protects from tearing down the view during compositing and from presenting
-  // half-composited layers to the screen.
-  mozilla::Mutex mCompositingLock MOZ_UNANNOTATED;
-
-  mozilla::ViewRegion mNonDraggableRegion;
-
-  // Cached value of [mView backingScaleFactor], to avoid sending two obj-c
-  // messages (respondsToSelector, backingScaleFactor) every time we need to
-  // use it.
-  // ** We'll need to reinitialize this if the backing resolution changes. **
-  mutable CGFloat mBackingScaleFactor;
-
-  bool mVisible;
-  nsSizeMode mSizeMode;
-  bool mDrawing;
-  bool mIsDispatchPaint;  // Is a paint event being dispatched
-
-  RefPtr<mozilla::layers::NativeLayerRootCA> mNativeLayerRoot;
-
-  // In BasicLayers mode, this is the CoreAnimation layer that contains the
-  // rendering from Gecko. It is a sublayer of mNativeLayerRoot's underlying
-  // wrapper layer.
-  // Lazily created by EnsureContentLayerForMainThreadPainting().
-  RefPtr<mozilla::layers::NativeLayerCA> mContentLayer;
-  RefPtr<mozilla::layers::SurfacePoolHandle> mPoolHandle;
-
-  // In BasicLayers mode, this is the invalid region of mContentLayer.
-  LayoutDeviceIntRegion mContentLayerInvalidRegion;
-
-  mozilla::UniquePtr<mozilla::VibrancyManager> mVibrancyManager;
-
-  RefPtr<mozilla::CancelableRunnable> mUnsuspendAsyncCATransactionsRunnable;
-
-  static uint32_t sLastInputEventCount;
-
-  // This is used by SynthesizeNativeTouchPoint to maintain state between
-  // multiple synthesized points
-  mozilla::UniquePtr<mozilla::MultiTouchInput> mSynthesizedTouchInput;
 };
 
 #endif  // nsChildView_h_
