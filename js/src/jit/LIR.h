@@ -977,6 +977,19 @@ class LInstruction : public LNode,
     MOZ_ASSERT(nonPhiOperandsOffset_ == offset, "offset must fit in bitfield");
   }
 
+  void changePolicyOfReusedInputToAny(LDefinition* def) {
+    // MUST_REUSE_INPUT is implemented by allocating an output register and
+    // moving the input to it. Register hints are used to avoid unnecessary
+    // moves. We give the input an LUse::ANY policy to avoid requiring a
+    // register for the input.
+    MOZ_ASSERT(def->policy() == LDefinition::MUST_REUSE_INPUT);
+    LUse* inputUse = getOperand(def->getReusedInput())->toUse();
+    MOZ_ASSERT(inputUse->policy() == LUse::REGISTER);
+    MOZ_ASSERT(inputUse->usedAtStart());
+    *inputUse = LUse(inputUse->virtualRegister(), LUse::ANY,
+                     /* usedAtStart = */ true);
+  }
+
   // Returns information about temporary registers needed. Each temporary
   // register is an LDefinition with a fixed or virtual register and
   // either GENERAL, FLOAT32, or DOUBLE type.

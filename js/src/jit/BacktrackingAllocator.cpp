@@ -1866,16 +1866,7 @@ bool BacktrackingAllocator::buildLivenessInfo() {
         CodePosition from = outputOf(*ins);
 
         if (def->policy() == LDefinition::MUST_REUSE_INPUT) {
-          // MUST_REUSE_INPUT is implemented by allocating an output
-          // register and moving the input to it. Register hints are
-          // used to avoid unnecessary moves. We give the input an
-          // LUse::ANY policy to avoid allocating a register for the
-          // input.
-          LUse* inputUse = ins->getOperand(def->getReusedInput())->toUse();
-          MOZ_ASSERT(inputUse->policy() == LUse::REGISTER);
-          MOZ_ASSERT(inputUse->usedAtStart());
-          *inputUse = LUse(inputUse->virtualRegister(), LUse::ANY,
-                           /* usedAtStart = */ true);
+          ins->changePolicyOfReusedInputToAny(def);
         }
 
         if (!vreg(def).addInitialRange(alloc(), from, from.next())) {
