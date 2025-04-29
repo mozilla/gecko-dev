@@ -174,7 +174,7 @@ NavigationActivation* Navigation::GetActivation() const { return mActivation; }
 
 // https://html.spec.whatwg.org/#has-entries-and-events-disabled
 bool Navigation::HasEntriesAndEventsDisabled() const {
-  Document* doc = GetDocumentIfCurrent();
+  Document* doc = GetAssociatedDocument();
   return !doc || !doc->IsCurrentActiveDocument() ||
          (NS_IsAboutBlankAllowQueryAndFragment(doc->GetDocumentURI()) &&
           doc->IsInitialDocument()) ||
@@ -396,7 +396,7 @@ Navigation::CreateSerializedStateAndMaybeSetEarlyErrorResult(
 void Navigation::Reload(JSContext* aCx, const NavigationReloadOptions& aOptions,
                         NavigationResult& aResult) {
   // 1. Let document be this's relevant global object's associated Document.
-  const RefPtr<Document> document = GetDocumentIfCurrent();
+  const RefPtr<Document> document = GetAssociatedDocument();
   if (!document) {
     return;
   }
@@ -727,7 +727,7 @@ bool Navigation::InnerFireNavigateEvent(
 
   // Step 17
   init.mHasUAVisualTransition =
-      HasUAVisualTransition(ToMaybeRef(GetDocumentIfCurrent()));
+      HasUAVisualTransition(ToMaybeRef(GetAssociatedDocument()));
 
   // Step 18
   init.mSourceElement = aSourceElement;
@@ -1084,6 +1084,12 @@ bool Navigation::FocusedChangedDuringOngoingNavigation() const {
 void Navigation::SetFocusedChangedDuringOngoingNavigation(
     bool aFocusChangedDUringOngoingNavigation) {
   mFocusChangedDuringOngoingNavigation = aFocusChangedDUringOngoingNavigation;
+}
+
+// The associated document of navigation's relevant global object.
+Document* Navigation::GetAssociatedDocument() const {
+  nsGlobalWindowInner* window = GetOwnerWindow();
+  return window ? window->GetDocument() : nullptr;
 }
 
 void Navigation::LogHistory() const {

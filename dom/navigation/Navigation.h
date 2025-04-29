@@ -186,6 +186,8 @@ class Navigation final : public DOMEventTargetHelper {
   void AbortOngoingNavigation(
       JSContext* aCx, JS::Handle<JS::Value> aError = JS::UndefinedHandleValue);
 
+  Document* GetAssociatedDocument() const;
+
   void LogHistory() const;
 
   // https://html.spec.whatwg.org/multipage/nav-history-apis.html#navigation-entry-list

@@ -10,6 +10,7 @@
 #include "mozilla/dom/Document.h"
 #include "mozilla/dom/SessionHistoryEntry.h"
 #include "nsDocShell.h"
+#include "nsGlobalWindowInner.h"
 
 extern mozilla::LazyLogModule gNavigationLog;
 
@@ -37,11 +38,11 @@ void NavigationHistoryEntry::GetUrl(nsAString& aResult) const {
     return;
   }
 
-  // HasActiveDocument implies that GetCurrentDocument returns non-null.
-  MOZ_DIAGNOSTIC_ASSERT(GetCurrentDocument());
+  // HasActiveDocument implies that GetAssociatedDocument returns non-null.
+  MOZ_DIAGNOSTIC_ASSERT(GetAssociatedDocument());
 
   if (!SameDocument()) {
-    auto referrerPolicy = GetCurrentDocument()->ReferrerPolicy();
+    auto referrerPolicy = GetAssociatedDocument()->ReferrerPolicy();
     if (referrerPolicy == ReferrerPolicy::No_referrer ||
         referrerPolicy == ReferrerPolicy::Origin) {
       return;
@@ -93,11 +94,11 @@ bool NavigationHistoryEntry::SameDocument() const {
     return false;
   }
 
-  // HasActiveDocument implies that GetCurrentDocument returns non-null.
-  MOZ_DIAGNOSTIC_ASSERT(GetCurrentDocument());
+  // HasActiveDocument implies that GetAssociatedDocument returns non-null.
+  MOZ_DIAGNOSTIC_ASSERT(GetAssociatedDocument());
 
   MOZ_ASSERT(mSHInfo);
-  auto* docShell = nsDocShell::Cast(GetCurrentDocument()->GetDocShell());
+  auto* docShell = nsDocShell::Cast(GetAssociatedDocument()->GetDocShell());
   return docShell && docShell->IsSameDocumentAsActiveEntry(*mSHInfo);
 }
 
@@ -143,12 +144,13 @@ JSObject* NavigationHistoryEntry::WrapObject(
   return NavigationHistoryEntry_Binding::Wrap(aCx, this, aGivenProto);
 }
 
-Document* NavigationHistoryEntry::GetCurrentDocument() const {
-  return GetDocumentIfCurrent();
+Document* NavigationHistoryEntry::GetAssociatedDocument() const {
+  nsGlobalWindowInner* window = GetOwnerWindow();
+  return window ? window->GetDocument() : nullptr;
 }
 
 bool NavigationHistoryEntry::HasActiveDocument() const {
-  if (auto* document = GetCurrentDocument()) {
+  if (auto* document = GetAssociatedDocument()) {
     return document->IsCurrentActiveDocument();
   }
 

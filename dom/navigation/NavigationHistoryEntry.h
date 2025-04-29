@@ -52,7 +52,7 @@ class NavigationHistoryEntry final : public DOMEventTargetHelper {
  private:
   ~NavigationHistoryEntry();
 
-  Document* GetCurrentDocument() const;
+  Document* GetAssociatedDocument() const;
 
   bool HasActiveDocument() const;
 
