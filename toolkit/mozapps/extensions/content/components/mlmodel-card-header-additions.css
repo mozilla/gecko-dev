@@ -1,0 +1,40 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+
+/* mlmodel-card-header-additions LitElement is not rendering into the
+isolated shadow DOM and so this stylesheet is not restricted to the
+content of the LitElement, and these rules are nested to make sure
+they don't apply to elements outside of the LitElement */
+
+mlmodel-card-header-additions {
+  .mlmodel-total-size-bubble {
+    border: var(--border-width) solid var(--border-color-deemphasized);
+    border-radius: var(--border-radius-circle);
+    padding: var(--space-xsmall);
+    font-size: var(--font-size-small);
+  }
+
+  button.mlmodel-remove-addon-button {
+    min-width: auto;
+    min-height: auto;
+    width: 24px;
+    height: 24px;
+    -moz-context-properties: fill;
+    fill: var(--button-text-color-destructive);
+    background-image: url("chrome://global/skin/icons/delete.svg");
+    background-repeat: no-repeat;
+    background-position: center center;
+    padding: var(--button-padding-icon);
+    display: flex;
+    justify-content: flex-end;
+    background-color: var(--button-background-color-destructive);
+  }
+
+  button.mlmodel-remove-addon-button:active,
+  button.mlmodel-remove-addon-button:hover,
+  button.mlmodel-remove-addon-button:enabled:hover:active {
+    background-color: var(--button-background-color-destructive-hover);
+    color: var(--button-text-color-destructive-hover);
+  }
+}
