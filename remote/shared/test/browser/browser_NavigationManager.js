@@ -41,6 +41,7 @@ add_task(async function test_simpleNavigation() {
   is(events.length, 0, "No event recorded");
 
   await loadURL(browser, SECOND_URL);
+  await BrowserTestUtils.waitForCondition(() => events.length === 2);
 
   const firstNavigation = navigationManager.getNavigationForBrowsingContext(
     browser.browsingContext
@@ -56,6 +57,7 @@ add_task(async function test_simpleNavigation() {
   );
 
   await loadURL(browser, THIRD_URL);
+  await BrowserTestUtils.waitForCondition(() => events.length === 4);
 
   const secondNavigation = navigationManager.getNavigationForBrowsingContext(
     browser.browsingContext
@@ -109,6 +111,7 @@ add_task(async function test_loadTwoTabsSimultaneously() {
 
   info("Wait for the tabs to load");
   await Promise.all([onLoad1, onLoad2]);
+  await BrowserTestUtils.waitForCondition(() => events.length === 4);
 
   is(events.length, 4, "Recorded 4 navigation events");
 
@@ -132,6 +135,7 @@ add_task(async function test_loadTwoTabsSimultaneously() {
     BrowserTestUtils.reloadTab(tab1),
     BrowserTestUtils.reloadTab(tab2),
   ]);
+  await BrowserTestUtils.waitForCondition(() => events.length === 8);
 
   is(events.length, 8, "Recorded 8 navigation events");
 
@@ -156,6 +160,19 @@ add_task(async function test_loadTwoTabsSimultaneously() {
 });
 
 add_task(async function test_loadPageWithIframes() {
+  if (
+    Services.prefs.getBoolPref(
+      "remote.experimental-parent-navigation.enabled",
+      false
+    )
+  ) {
+    todo(
+      false,
+      "The ParentWebProgressListener misses events from same process iframes"
+    );
+    return;
+  }
+
   const events = [];
   const onEvent = (name, data) => events.push({ name, data });
 
@@ -170,6 +187,7 @@ add_task(async function test_loadPageWithIframes() {
   const tab = addTab(gBrowser, testUrl);
   const browser = tab.linkedBrowser;
   await BrowserTestUtils.browserLoaded(browser, false, testUrl);
+  await BrowserTestUtils.waitForCondition(() => events.length === 8);
 
   is(events.length, 8, "Recorded 8 navigation events");
   const contexts = browser.browsingContext.getAllBrowsingContextsInSubtree();
@@ -188,6 +206,7 @@ add_task(async function test_loadPageWithIframes() {
   assertUniqueNavigationIds(...navigations);
 
   await BrowserTestUtils.reloadTab(tab);
+  await BrowserTestUtils.waitForCondition(() => events.length === 16);
 
   is(events.length, 16, "Recorded 8 additional navigation events");
   const newContexts = browser.browsingContext.getAllBrowsingContextsInSubtree();
@@ -210,6 +229,19 @@ add_task(async function test_loadPageWithIframes() {
 });
 
 add_task(async function test_loadPageWithCoop() {
+  if (
+    Services.prefs.getBoolPref(
+      "remote.experimental-parent-navigation.enabled",
+      false
+    )
+  ) {
+    todo(
+      false,
+      "The ParentWebProgressListener misses navigation stopped for coop navigation"
+    );
+    return;
+  }
+
   const tab = addTab(gBrowser, FIRST_COOP_URL);
   const browser = tab.linkedBrowser;
   await BrowserTestUtils.browserLoaded(browser, false, FIRST_COOP_URL);
@@ -225,6 +257,7 @@ add_task(async function test_loadPageWithCoop() {
 
   const navigableId = TabManager.getIdForBrowser(browser);
   await loadURL(browser, SECOND_COOP_URL);
+  await BrowserTestUtils.waitForCondition(() => events.length === 2);
 
   const coopNavigation = navigationManager.getNavigationForBrowsingContext(
     browser.browsingContext
@@ -286,6 +319,7 @@ add_task(async function test_sameDocumentNavigation() {
   // complete.
   info("Perform a regular navigation");
   await loadURL(browser, url);
+  await BrowserTestUtils.waitForCondition(() => events.length === 3);
 
   const regularNavigation = navigationManager.getNavigationForBrowsingContext(
     browser.browsingContext

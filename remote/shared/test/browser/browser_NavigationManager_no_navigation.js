@@ -50,9 +50,18 @@ add_task(async function testDocumentOpenWriteClose() {
   info("Reload the page, which should trigger a navigation");
   await loadURL(browser, url);
 
-  // See Bug 1844517.
-  // document.open/write/close is identical to same-url + same-hash navigations.
-  todo_is(events.length, 2, "Recorded navigation events");
+  if (
+    Services.prefs.getBoolPref(
+      "remote.experimental-parent-navigation.enabled",
+      false
+    )
+  ) {
+    is(events.length, 2, "Recorded navigation events");
+  } else {
+    // See Bug 1844517.
+    // document.open/write/close is identical to same-url + same-hash navigations.
+    todo_is(events.length, 2, "Recorded navigation events");
+  }
 
   navigationManager.off("fragment-navigated", onEvent);
   navigationManager.off("navigation-started", onEvent);

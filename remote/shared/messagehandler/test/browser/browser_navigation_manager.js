@@ -41,6 +41,7 @@ add_task(async function test_navigationManager() {
   );
   is(navigation.url, testUrl, "Navigation has the expected URL");
 
+  await BrowserTestUtils.waitForCondition(() => events.length === 2);
   is(events.length, 2, "Received 2 navigation events");
   is(events[0].name, "navigation-started");
   is(events[1].name, "navigation-stopped");
