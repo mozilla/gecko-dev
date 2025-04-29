@@ -75,6 +75,11 @@ export default class MozInputFolder extends MozInputText {
     return this.#folder;
   }
 
+  hasServices() {
+    // Safely check for Services without throwing a ReferenceError.
+    return typeof Services !== "undefined";
+  }
+
   async getFolderFromPath(path) {
     let folder = null;
     try {
@@ -90,8 +95,9 @@ export default class MozInputFolder extends MozInputText {
   }
 
   getInputIconSrc(folder) {
-    if (!folder) {
-      return "";
+    if (!folder || !this.hasServices()) {
+      let defaultIconSrc = "chrome://global/skin/icons/folder.svg";
+      return defaultIconSrc;
     }
 
     let fph = Services.io
