@@ -1,4 +1,4 @@
-// |jit-test| --disable-main-thread-denormals; skip-if: !getBuildConfiguration("can-disable-main-thread-denormals") || !wasmIsSupported();
+// |jit-test| --disable-main-thread-denormals; skip-if: !getBuildConfiguration("can-disable-main-thread-denormals") || !wasmIsSupported() || (getBuildConfiguration("osx") && getBuildConfiguration("arm64"));
 
 function a(b) {
   c = new WebAssembly.Module(b);
