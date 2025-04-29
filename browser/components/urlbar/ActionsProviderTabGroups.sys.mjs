@@ -49,7 +49,7 @@ class ProviderTabGroups extends ActionsProvider {
     let i = 0;
 
     for (let group of window.gBrowser.getAllTabGroups()) {
-      if (group.label.toLowerCase().startsWith(input)) {
+      if (this.#matches(group.label, input)) {
         results.push(
           this.#makeResult({
             key: `tabgroup-${i++}`,
@@ -65,7 +65,7 @@ class ProviderTabGroups extends ActionsProvider {
     }
 
     for (let savedGroup of lazy.SessionStore.getSavedTabGroups()) {
-      if (savedGroup.name.toLowerCase().startsWith(input)) {
+      if (this.#matches(savedGroup.name, input)) {
         results.push(
           this.#makeResult({
             key: `tabgroup-${i++}`,
@@ -88,6 +88,14 @@ class ProviderTabGroups extends ActionsProvider {
     }
 
     return results;
+  }
+
+  #matches(groupName, trimmedLowerCaseSearchString) {
+    groupName = groupName.toLowerCase();
+    if (trimmedLowerCaseSearchString.length == 1) {
+      return groupName.startsWith(trimmedLowerCaseSearchString);
+    }
+    return groupName.includes(trimmedLowerCaseSearchString);
   }
 
   #makeResult({ key, l10nId, l10nArgs, onPick, color }) {
