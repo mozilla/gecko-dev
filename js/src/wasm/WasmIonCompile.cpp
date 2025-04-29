@@ -2016,7 +2016,7 @@ class FunctionCompiler {
           /*isConst=*/true, instancePointer_);
       curBlock_->add(cellPtr);
       load = MWasmLoadGlobalCell::New(alloc(), global.type().toMIRType(),
-                                      cellPtr, global.type().toMaybeRefType());
+                                      cellPtr, global.type());
     } else {
       // Pull the value directly out of Instance::globalArea.
       load = MWasmLoadInstanceDataField::New(
@@ -2046,9 +2046,8 @@ class FunctionCompiler {
       if (global.type().toMIRType() == MIRType::WasmAnyRef) {
         // Load the previous value for the post-write barrier
         MOZ_ASSERT(v->type() == MIRType::WasmAnyRef);
-        auto* prevValue =
-            MWasmLoadGlobalCell::New(alloc(), MIRType::WasmAnyRef, valueAddr,
-                                     global.type().toMaybeRefType());
+        auto* prevValue = MWasmLoadGlobalCell::New(alloc(), MIRType::WasmAnyRef,
+                                                   valueAddr, global.type());
         curBlock_->add(prevValue);
 
         // Store the new value
@@ -2078,9 +2077,8 @@ class FunctionCompiler {
 
       // Load the previous value for the post-write barrier
       MOZ_ASSERT(v->type() == MIRType::WasmAnyRef);
-      auto* prevValue =
-          MWasmLoadGlobalCell::New(alloc(), MIRType::WasmAnyRef, valueAddr,
-                                   global.type().toMaybeRefType());
+      auto* prevValue = MWasmLoadGlobalCell::New(alloc(), MIRType::WasmAnyRef,
+                                                 valueAddr, global.type());
       curBlock_->add(prevValue);
 
       // Store the new value
