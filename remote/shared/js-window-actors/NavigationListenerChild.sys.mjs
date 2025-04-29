@@ -11,7 +11,7 @@ ChromeUtils.defineESModuleGetters(lazy, {
 
 ChromeUtils.defineLazyGetter(lazy, "logger", () => lazy.Log.get());
 
-export class WebProgressListenerChild extends JSWindowActorChild {
+export class NavigationListenerChild extends JSWindowActorChild {
   #listener;
   #webProgress;
 
@@ -116,7 +116,7 @@ export class WebProgressListenerChild extends JSWindowActorChild {
         );
 
         this.sendAsyncMessage(
-          "WebProgressListenerChild:fragmentNavigated",
+          "NavigationListenerChild:fragmentNavigated",
           payload
         );
         return;
@@ -128,7 +128,7 @@ export class WebProgressListenerChild extends JSWindowActorChild {
       );
 
       this.sendAsyncMessage(
-        "WebProgressListenerChild:sameDocumentChanged",
+        "NavigationListenerChild:sameDocumentChanged",
         payload
       );
     }
@@ -157,7 +157,7 @@ export class WebProgressListenerChild extends JSWindowActorChild {
 
     try {
       if (isStart) {
-        this.sendAsyncMessage("WebProgressListenerChild:navigationStarted", {
+        this.sendAsyncMessage("NavigationListenerChild:navigationStarted", {
           contextDetails: this.#getBrowsingContextDetails(context),
           url: targetURI?.spec,
         });
@@ -169,7 +169,7 @@ export class WebProgressListenerChild extends JSWindowActorChild {
         // Skip NS_BINDING_ABORTED state changes as this can happen during a
         // browsing context + process change and we should get the real stop state
         // change from the correct process later.
-        this.sendAsyncMessage("WebProgressListenerChild:navigationStopped", {
+        this.sendAsyncMessage("NavigationListenerChild:navigationStopped", {
           contextDetails: this.#getBrowsingContextDetails(context),
           status,
           url: targetURI?.spec,

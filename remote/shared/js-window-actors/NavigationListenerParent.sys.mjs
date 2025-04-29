@@ -20,7 +20,7 @@ ChromeUtils.defineESModuleGetters(lazy, {
 
 ChromeUtils.defineLazyGetter(lazy, "logger", () => lazy.Log.get());
 
-export class WebProgressListenerParent extends JSWindowActorParent {
+export class NavigationListenerParent extends JSWindowActorParent {
   async receiveMessage(message) {
     const { data, name } = message;
 
@@ -31,19 +31,19 @@ export class WebProgressListenerParent extends JSWindowActorParent {
       };
 
       switch (name) {
-        case "WebProgressListenerChild:fragmentNavigated": {
+        case "NavigationListenerChild:fragmentNavigated": {
           lazy.notifyFragmentNavigated(payload);
           break;
         }
-        case "WebProgressListenerChild:sameDocumentChanged": {
+        case "NavigationListenerChild:sameDocumentChanged": {
           lazy.notifySameDocumentChanged(payload);
           break;
         }
-        case "WebProgressListenerChild:navigationStarted": {
+        case "NavigationListenerChild:navigationStarted": {
           lazy.notifyNavigationStarted(payload);
           break;
         }
-        case "WebProgressListenerChild:navigationStopped": {
+        case "NavigationListenerChild:navigationStopped": {
           const errorName = ChromeUtils.getXPCOMErrorName(data.status);
           if (this.#isContentBlocked(errorName)) {
             payload.errorName = errorName;
