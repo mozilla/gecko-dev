@@ -148,6 +148,8 @@ internal class CFRPopupFullscreenLayout(
     }
 
     @Composable
+    // https://bugzilla.mozilla.org/show_bug.cgi?id=1957792
+    @Suppress("ConfigurationScreenWidthHeight")
     override fun Content() {
         val anchorLocation = IntArray(2).apply {
             anchor.getLocationInWindow(this)
