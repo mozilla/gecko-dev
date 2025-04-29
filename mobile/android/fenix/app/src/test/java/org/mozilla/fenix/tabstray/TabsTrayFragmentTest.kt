@@ -17,17 +17,22 @@ import io.mockk.mockkStatic
 import io.mockk.spyk
 import io.mockk.unmockkStatic
 import io.mockk.verify
+import mozilla.components.browser.state.selector.privateTabs
 import mozilla.components.browser.state.state.ContentState
 import mozilla.components.browser.state.state.TabSessionState
 import mozilla.components.support.test.robolectric.testContext
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.mozilla.fenix.NavGraphDirections
+import org.mozilla.fenix.biometricauthentication.BiometricAuthenticationNeededInfo
 import org.mozilla.fenix.databinding.FragmentTabTrayDialogBinding
 import org.mozilla.fenix.ext.components
+import org.mozilla.fenix.ext.requireComponents
 import org.mozilla.fenix.ext.settings
 import org.mozilla.fenix.helpers.FenixGleanTestRule
 import org.mozilla.fenix.helpers.FenixRobolectricTestRunner
@@ -54,7 +59,6 @@ class TabsTrayFragmentTest {
 
         fragment = spyk(TabsTrayFragment())
         fragment._tabsTrayDialogBinding = tabsTrayDialogBinding
-        every { fragment.context } returns context
         every { fragment.context } returns context
         every { fragment.viewLifecycleOwner } returns mockk(relaxed = true)
     }
@@ -148,5 +152,83 @@ class TabsTrayFragmentTest {
         )
         val position = fragment.getTabPositionFromId(tabsList, "tab2")
         assertEquals(1, position)
+    }
+
+    @Test
+    fun `WHEN all valid conditions THEN shouldShowPrompt returns true`() {
+        mockkStatic("mozilla.components.browser.state.selector.SelectorsKt")
+        every { fragment.requireComponents.core.store.state.privateTabs } returns listOf(
+            mockk(),
+            mockk(),
+        )
+        every { fragment.requireContext().settings().privateBrowsingLockedEnabled } returns true
+
+        val biometricAuthenticationNeededInfo = BiometricAuthenticationNeededInfo()
+        val result =
+            fragment.shouldShowPrompt(biometricAuthenticationNeededInfo, isPrivateTabPage = true)
+
+        assertTrue(result)
+    }
+
+    @Test
+    fun `WHEN isPrivateTabPage is false THEN shouldShowPrompt returns false`() {
+        mockkStatic("mozilla.components.browser.state.selector.SelectorsKt")
+        every { fragment.requireComponents.core.store.state.privateTabs } returns listOf(
+            mockk(),
+            mockk(),
+        )
+        every { fragment.requireContext().settings().privateBrowsingLockedEnabled } returns true
+
+        val biometricAuthenticationNeededInfo = BiometricAuthenticationNeededInfo()
+        val result =
+            fragment.shouldShowPrompt(biometricAuthenticationNeededInfo, isPrivateTabPage = false)
+
+        assertFalse(result)
+    }
+
+    @Test
+    fun `WHEN hasPrivateTabs is false THEN shouldShowPrompt returns false`() {
+        mockkStatic("mozilla.components.browser.state.selector.SelectorsKt")
+        every { fragment.requireComponents.core.store.state.privateTabs } returns emptyList()
+        every { fragment.requireContext().settings().privateBrowsingLockedEnabled } returns true
+
+        val biometricAuthenticationNeededInfo = BiometricAuthenticationNeededInfo()
+        val result =
+            fragment.shouldShowPrompt(biometricAuthenticationNeededInfo, isPrivateTabPage = true)
+
+        assertFalse(result)
+    }
+
+    @Test
+    fun `WHEN privateBrowsingLockedEnabled is false THEN shouldShowPrompt returns false`() {
+        mockkStatic("mozilla.components.browser.state.selector.SelectorsKt")
+        every { fragment.requireComponents.core.store.state.privateTabs } returns listOf(
+            mockk(),
+            mockk(),
+        )
+        every { fragment.requireContext().settings().privateBrowsingLockedEnabled } returns false
+
+        val biometricAuthenticationNeededInfo = BiometricAuthenticationNeededInfo()
+        val result =
+            fragment.shouldShowPrompt(biometricAuthenticationNeededInfo, isPrivateTabPage = true)
+
+        assertFalse(result)
+    }
+
+    @Test
+    fun `WHEN shouldShowAuthenticationPrompt is false THEN shouldShowPrompt returns false`() {
+        mockkStatic("mozilla.components.browser.state.selector.SelectorsKt")
+        every { fragment.requireComponents.core.store.state.privateTabs } returns listOf(
+            mockk(),
+            mockk(),
+        )
+        every { fragment.requireContext().settings().privateBrowsingLockedEnabled } returns true
+
+        val biometricAuthenticationNeededInfo =
+            BiometricAuthenticationNeededInfo(shouldShowAuthenticationPrompt = false)
+        val result =
+            fragment.shouldShowPrompt(biometricAuthenticationNeededInfo, isPrivateTabPage = true)
+
+        assertFalse(result)
     }
 }

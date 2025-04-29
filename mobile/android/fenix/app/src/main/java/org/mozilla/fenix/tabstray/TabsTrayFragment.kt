@@ -45,6 +45,7 @@ import org.mozilla.fenix.NavGraphDirections
 import org.mozilla.fenix.R
 import org.mozilla.fenix.biometricauthentication.AuthenticationStatus
 import org.mozilla.fenix.biometricauthentication.BiometricAuthenticationManager
+import org.mozilla.fenix.biometricauthentication.BiometricAuthenticationNeededInfo
 import org.mozilla.fenix.browser.tabstrip.isTabStripEnabled
 import org.mozilla.fenix.components.StoreProvider
 import org.mozilla.fenix.compose.core.Action
@@ -728,7 +729,11 @@ class TabsTrayFragment : AppCompatDialogFragment() {
     private fun onTabPageClick(page: Page) {
         val isPrivateTabPage = page == Page.PrivateTabs
 
-        if (shouldShowPrompt(isPrivateTabPage)) {
+        if (shouldShowPrompt(
+                BiometricAuthenticationManager.biometricAuthenticationNeededInfo,
+                isPrivateTabPage,
+            )
+        ) {
             BiometricAuthenticationManager.biometricAuthenticationNeededInfo.authenticationStatus =
                 AuthenticationStatus.AUTHENTICATION_IN_PROGRESS
 
@@ -762,12 +767,17 @@ class TabsTrayFragment : AppCompatDialogFragment() {
         }
     }
 
-    private fun shouldShowPrompt(isPrivateTabPage: Boolean): Boolean {
+    @VisibleForTesting
+    internal fun shouldShowPrompt(
+        biometricAuthenticationNeededInfo: BiometricAuthenticationNeededInfo,
+        isPrivateTabPage: Boolean,
+    ): Boolean {
         val hasPrivateTabs = requireComponents.core.store.state.privateTabs.isNotEmpty()
         val biometricLockEnabled = requireContext().settings().privateBrowsingLockedEnabled
-        val authInfo = BiometricAuthenticationManager.biometricAuthenticationNeededInfo
+        val shouldShowAuthenticationPrompt =
+            biometricAuthenticationNeededInfo.shouldShowAuthenticationPrompt
 
-        return isPrivateTabPage && hasPrivateTabs && biometricLockEnabled && authInfo.shouldShowAuthenticationPrompt
+        return isPrivateTabPage && hasPrivateTabs && biometricLockEnabled && shouldShowAuthenticationPrompt
     }
 
     companion object {
