@@ -459,6 +459,12 @@ class AnchorResolved {
 using AnchorResolvedMargin = AnchorResolved<mozilla::StyleMargin>;
 
 struct AnchorResolvedMarginHelper {
+  static const mozilla::StyleMargin& ZeroValue() {
+    static const auto value = mozilla::StyleMargin::LengthPercentage(
+        mozilla::StyleLengthPercentage::Zero());
+    return value;
+  }
+
   static AnchorResolvedMargin FromUnresolved(
       const mozilla::StyleMargin& aValue,
       mozilla::StylePositionProperty aPosition) {
@@ -469,6 +475,10 @@ struct AnchorResolvedMarginHelper {
   }
 
  private:
+  static AnchorResolvedMargin Zero() {
+    return AnchorResolvedMargin::Unchanged(ZeroValue());
+  }
+
   static AnchorResolvedMargin ResolveAnchor(
       const mozilla::StyleMargin& aValue,
       mozilla::StylePositionProperty aPosition);
@@ -812,6 +822,11 @@ struct MOZ_NEEDS_MEMMOVABLE_MEMBERS nsStylePage {
 using AnchorResolvedInset = AnchorResolved<mozilla::StyleInset>;
 
 struct AnchorResolvedInsetHelper {
+  static const mozilla::StyleInset& AutoValue() {
+    static const auto value = mozilla::StyleInset::Auto();
+    return value;
+  }
+
   static AnchorResolvedInset FromUnresolved(
       const mozilla::StyleInset& aValue, mozilla::StylePhysicalAxis aAxis,
       mozilla::StylePositionProperty aPosition) {
@@ -822,6 +837,10 @@ struct AnchorResolvedInsetHelper {
   }
 
  private:
+  static AnchorResolvedInset Auto() {
+    return AnchorResolvedInset::Unchanged(AutoValue());
+  }
+
   static AnchorResolvedInset ResolveAnchor(
       const mozilla::StyleInset& aValue, mozilla::StylePhysicalAxis aAxis,
       mozilla::StylePositionProperty aPosition);
@@ -830,6 +849,22 @@ struct AnchorResolvedInsetHelper {
 using AnchorResolvedSize = AnchorResolved<mozilla::StyleSize>;
 
 struct AnchorResolvedSizeHelper {
+  static const mozilla::StyleSize& ZeroValue() {
+    static const auto value = mozilla::StyleSize::LengthPercentage(
+        mozilla::StyleLengthPercentage::Zero());
+    return value;
+  }
+
+  static const mozilla::StyleSize& MinContentValue() {
+    static const auto value = mozilla::StyleSize::MinContent();
+    return value;
+  }
+
+  static const mozilla::StyleSize& AutoValue() {
+    static const auto value = mozilla::StyleSize::Auto();
+    return value;
+  }
+
   static AnchorResolvedSize FromUnresolved(
       const mozilla::StyleSize& aValue,
       mozilla::StylePositionProperty aPosition) {
@@ -844,16 +879,15 @@ struct AnchorResolvedSizeHelper {
   }
 
   static AnchorResolvedSize Zero() {
-    return AnchorResolvedSize::Evaluated(mozilla::StyleSize::LengthPercentage(
-        mozilla::StyleLengthPercentage::Zero()));
+    return AnchorResolvedSize::Unchanged(ZeroValue());
   }
 
   static AnchorResolvedSize MinContent() {
-    return AnchorResolvedSize::Evaluated(mozilla::StyleSize::MinContent());
+    return AnchorResolvedSize::Unchanged(MinContentValue());
   }
 
   static AnchorResolvedSize Auto() {
-    return AnchorResolvedSize::Evaluated(mozilla::StyleSize::Auto());
+    return AnchorResolvedSize::Unchanged(AutoValue());
   }
 
   static AnchorResolvedSize LengthPercentage(
@@ -871,6 +905,15 @@ struct AnchorResolvedSizeHelper {
 using AnchorResolvedMaxSize = AnchorResolved<mozilla::StyleMaxSize>;
 
 struct AnchorResolvedMaxSizeHelper {
+  static const mozilla::StyleMaxSize& MaxContentValue() {
+    static const auto value = mozilla::StyleMaxSize::MaxContent();
+    return value;
+  }
+  static const mozilla::StyleMaxSize& NoneValue() {
+    static const auto value = mozilla::StyleMaxSize::None();
+    return value;
+  }
+
   static AnchorResolvedMaxSize FromUnresolved(
       const mozilla::StyleMaxSize& aValue,
       mozilla::StylePositionProperty aPosition) {
@@ -880,12 +923,11 @@ struct AnchorResolvedMaxSizeHelper {
     return ResolveAnchor(aValue, aPosition);
   }
   static AnchorResolvedMaxSize MaxContent() {
-    return AnchorResolvedMaxSize::Evaluated(
-        mozilla::StyleMaxSize::MaxContent());
+    return AnchorResolvedMaxSize::Unchanged(MaxContentValue());
   }
 
   static AnchorResolvedMaxSize None() {
-    return AnchorResolvedMaxSize::Evaluated(mozilla::StyleMaxSize::None());
+    return AnchorResolvedMaxSize::Unchanged(NoneValue());
   }
 
  private:
