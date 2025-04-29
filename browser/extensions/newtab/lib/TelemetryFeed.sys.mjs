@@ -632,10 +632,7 @@ export class TelemetryFeed {
             feature,
           });
         } else if (["spoc", "organic"].includes(card_type)) {
-          const metricNameSpace = this.privatePingEnabled
-            ? Glean.newtabContent
-            : Glean.pocket;
-          metricNameSpace.click.record({
+          const gleanData = {
             newtab_visit_id: session.session_id,
             is_sponsored: card_type === "spoc",
             ...(format ? { format } : {}),
@@ -663,7 +660,11 @@ export class TelemetryFeed {
               : {
                   recommendation_id,
                 }),
-          });
+          };
+          Glean.pocket.click.record(gleanData);
+          if (this.privatePingEnabled) {
+            Glean.newtabContent.click.record(gleanData);
+          }
           if (shim) {
             if (this.canSendUnifiedAdsSpocCallbacks) {
               // Send unified ads callback event
@@ -704,10 +705,7 @@ export class TelemetryFeed {
           tile_id,
           topic,
         } = action.data.value ?? {};
-        const metricNameSpace = this.privatePingEnabled
-          ? Glean.newtabContent
-          : Glean.pocket;
-        metricNameSpace.thumbVotingInteraction.record({
+        const gleanData = {
           newtab_visit_id: session.session_id,
           tile_id,
           // We conditionally add in a few props.
@@ -732,7 +730,11 @@ export class TelemetryFeed {
                 is_section_followed,
               }
             : {}),
-        });
+        };
+        Glean.pocket.thumbVotingInteraction.record(gleanData);
+        if (this.privatePingEnabled) {
+          Glean.newtabContent.thumbVotingInteraction.record(gleanData);
+        }
         break;
       }
       case "SAVE_TO_POCKET": {
@@ -1156,50 +1158,54 @@ export class TelemetryFeed {
     if (session) {
       const { section, section_position, event_source, is_section_followed } =
         action.data;
-      const metricNameSpace = this.privatePingEnabled
-        ? Glean.newtabContent
-        : Glean.newtab;
+      const gleanData = {
+        newtab_visit_id: session.session_id,
+        section,
+        section_position,
+        event_source,
+      };
+
       switch (action.type) {
         case "BLOCK_SECTION":
-          metricNameSpace.sectionsBlockSection.record({
-            newtab_visit_id: session.session_id,
-            section,
-            section_position,
-            event_source,
-          });
+          Glean.newtab.sectionsBlockSection.record(gleanData);
+          if (this.privatePingEnabled) {
+            Glean.newtabContent.sectionsBlockSection.record(gleanData);
+          }
           break;
         case "UNBLOCK_SECTION":
-          metricNameSpace.sectionsUnblockSection.record({
-            newtab_visit_id: session.session_id,
-            section,
-            section_position,
-            event_source,
-          });
+          Glean.newtab.sectionsUnblockSection.record(gleanData);
+          if (this.privatePingEnabled) {
+            Glean.newtabContent.sectionsUnblockSection.record(gleanData);
+          }
           break;
         case "CARD_SECTION_IMPRESSION":
-          metricNameSpace.sectionsImpression.record({
+          Glean.newtab.sectionsImpression.record({
             newtab_visit_id: session.session_id,
             section,
             section_position,
             is_section_followed,
           });
+          if (this.privatePingEnabled) {
+            Glean.newtabContent.sectionsImpression.record({
+              newtab_visit_id: session.session_id,
+              section,
+              section_position,
+              is_section_followed,
+            });
+          }
           break;
         case "FOLLOW_SECTION": {
-          metricNameSpace.sectionsFollowSection.record({
-            newtab_visit_id: session.session_id,
-            section,
-            section_position,
-            event_source,
-          });
+          Glean.newtab.sectionsFollowSection.record(gleanData);
+          if (this.privatePingEnabled) {
+            Glean.newtabContent.sectionsFollowSection.record(gleanData);
+          }
           break;
         }
         case "UNFOLLOW_SECTION":
-          metricNameSpace.sectionsUnfollowSection.record({
-            newtab_visit_id: session.session_id,
-            section,
-            section_position,
-            event_source,
-          });
+          Glean.newtab.sectionsUnfollowSection.record(gleanData);
+          if (this.privatePingEnabled) {
+            Glean.newtabContent.sectionsUnfollowSection.record(gleanData);
+          }
           break;
         default:
           break;
@@ -1370,10 +1376,7 @@ export class TelemetryFeed {
     for (const datum of data) {
       const { corpus_item_id, scheduled_corpus_item_id } = datum;
       if (datum.is_pocket_card) {
-        const metricNameSpace = this.privatePingEnabled
-          ? Glean.newtabContent
-          : Glean.pocket;
-        metricNameSpace.dismiss.record({
+        const gleanData = {
           newtab_visit_id: session.session_id,
           is_sponsored: datum.card_type === "spoc",
           ...(datum.format ? { format: datum.format } : {}),
@@ -1398,7 +1401,11 @@ export class TelemetryFeed {
             : {
                 recommendation_id: datum.recommendation_id,
               }),
-        });
+        };
+        Glean.pocket.dismiss.record(gleanData);
+        if (this.privatePingEnabled) {
+          Glean.newtabContent.dismiss.record(gleanData);
+        }
         continue;
       }
       const { position, advertiser_name, tile_id, isSponsoredTopSite } = datum;
@@ -1453,10 +1460,7 @@ export class TelemetryFeed {
         });
       } else {
         const { corpus_item_id, scheduled_corpus_item_id } = tile;
-        const metricNameSpace = this.privatePingEnabled
-          ? Glean.newtabContent
-          : Glean.pocket;
-        metricNameSpace.impression.record({
+        const gleanData = {
           newtab_visit_id: session.session_id,
           is_sponsored: tile.type === "spoc",
           ...(tile.format ? { format: tile.format } : {}),
@@ -1483,7 +1487,12 @@ export class TelemetryFeed {
             : {
                 recommendation_id: tile.recommendation_id,
               }),
-        });
+        };
+        Glean.pocket.impression.record(gleanData);
+
+        if (this.privatePingEnabled) {
+          Glean.newtabContent.impression.record(gleanData);
+        }
       }
       if (tile.shim) {
         if (this.canSendUnifiedAdsSpocCallbacks) {
