@@ -93,6 +93,10 @@ export function AdBannerContextMenu({
         <moz-button
           type="icon"
           size="default"
+          data-l10n-id="newtab-menu-content-tooltip"
+          data-l10n-args={JSON.stringify({
+            title: spoc.title || spoc.sponsor || spoc.alt_text,
+          })}
           iconsrc="chrome://global/skin/icons/more.svg"
           onClick={onClick}
           onKeyDown={onKeyDown}

@@ -4604,6 +4604,10 @@ function AdBannerContextMenu({
   }, /*#__PURE__*/external_React_default().createElement("moz-button", {
     type: "icon",
     size: "default",
+    "data-l10n-id": "newtab-menu-content-tooltip",
+    "data-l10n-args": JSON.stringify({
+      title: spoc.title || spoc.sponsor || spoc.alt_text
+    }),
     iconsrc: "chrome://global/skin/icons/more.svg",
     onClick: onClick,
     onKeyDown: onKeyDown
@@ -4737,7 +4741,7 @@ const AdBanner = ({
   }), /*#__PURE__*/external_React_default().createElement(SafeAnchor, {
     className: "ad-banner-link",
     url: spoc.url,
-    title: spoc.title,
+    title: spoc.title || spoc.sponsor || spoc.alt_text,
     onLinkClick: onLinkClick,
     dispatch: dispatch
   }, /*#__PURE__*/external_React_default().createElement(ImpressionStats_ImpressionStats, {

@@ -95,7 +95,7 @@ export const AdBanner = ({
         <SafeAnchor
           className="ad-banner-link"
           url={spoc.url}
-          title={spoc.title}
+          title={spoc.title || spoc.sponsor || spoc.alt_text}
           onLinkClick={onLinkClick}
           dispatch={dispatch}
         >
