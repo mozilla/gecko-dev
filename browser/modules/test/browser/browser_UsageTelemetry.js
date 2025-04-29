@@ -27,9 +27,9 @@ const { ObjectUtils } = ChromeUtils.importESModule(
   "resource://gre/modules/ObjectUtils.sys.mjs"
 );
 
-BrowserUsageTelemetry._onTabsOpenedTask._timeoutMs = 0;
+BrowserUsageTelemetry._onTabsOpenedTask._idleTimeoutMs = 0;
 registerCleanupFunction(() => {
-  BrowserUsageTelemetry._onTabsOpenedTask._timeoutMs = undefined;
+  BrowserUsageTelemetry._onTabsOpenedTask._idleTimeoutMs = undefined;
 });
 
 // Reset internal URI counter in case URIs were opened by other tests.

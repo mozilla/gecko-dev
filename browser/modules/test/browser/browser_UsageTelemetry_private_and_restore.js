@@ -12,9 +12,9 @@ const UNIQUE_DOMAINS_COUNT = "browser.engagement.unique_domains_count";
 const TOTAL_URI_COUNT_NORMAL_AND_PRIVATE_MODE =
   "browser.engagement.total_uri_count_normal_and_private_mode";
 
-BrowserUsageTelemetry._onTabsOpenedTask._timeoutMs = 0;
+BrowserUsageTelemetry._onTabsOpenedTask._idleTimeoutMs = 0;
 registerCleanupFunction(() => {
-  BrowserUsageTelemetry._onTabsOpenedTask._timeoutMs = undefined;
+  BrowserUsageTelemetry._onTabsOpenedTask._idleTimeoutMs = undefined;
 });
 
 function promiseBrowserStateRestored() {
