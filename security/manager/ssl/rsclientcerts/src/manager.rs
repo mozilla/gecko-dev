@@ -5,6 +5,9 @@
 
 use pkcs11_bindings::*;
 use std::collections::{BTreeMap, BTreeSet};
+use std::sync::mpsc::{channel, Receiver, Sender};
+use std::thread;
+use std::thread::JoinHandle;
 use std::time::{Duration, Instant};
 
 use crate::error::{Error, ErrorType};
@@ -38,6 +41,281 @@ pub trait ClientCertsBackend {
 
     #[allow(clippy::type_complexity)]
     fn find_objects(&self) -> Result<(Vec<Self::Cert>, Vec<Self::Key>), Error>;
+}
+
+/// Helper type for sending `ManagerArguments` to the real `Manager`.
+type ManagerArgumentsSender = Sender<ManagerArguments>;
+/// Helper type for receiving `ManagerReturnValue`s from the real `Manager`.
+type ManagerReturnValueReceiver = Receiver<ManagerReturnValue>;
+
+/// Helper enum that encapsulates arguments to send from the `ManagerProxy` to the real `Manager`.
+/// `ManagerArguments::Stop` is a special variant that stops the background thread and drops the
+/// `Manager`.
+enum ManagerArguments {
+    OpenSession(),
+    CloseSession(CK_SESSION_HANDLE),
+    CloseAllSessions(),
+    StartSearch(CK_SESSION_HANDLE, Vec<(CK_ATTRIBUTE_TYPE, Vec<u8>)>),
+    Search(CK_SESSION_HANDLE, usize),
+    ClearSearch(CK_SESSION_HANDLE),
+    GetAttributes(CK_OBJECT_HANDLE, Vec<CK_ATTRIBUTE_TYPE>),
+    StartSign(
+        CK_SESSION_HANDLE,
+        CK_OBJECT_HANDLE,
+        Option<CK_RSA_PKCS_PSS_PARAMS>,
+    ),
+    GetSignatureLength(CK_SESSION_HANDLE, Vec<u8>),
+    Sign(CK_SESSION_HANDLE, Vec<u8>),
+    Stop,
+}
+
+/// Helper enum that encapsulates return values from the real `Manager` that are sent back to the
+/// `ManagerProxy`. `ManagerReturnValue::Stop` is a special variant that indicates that the
+/// `Manager` will stop.
+enum ManagerReturnValue {
+    OpenSession(Result<CK_SESSION_HANDLE, Error>),
+    CloseSession(Result<(), Error>),
+    CloseAllSessions(Result<(), Error>),
+    StartSearch(Result<(), Error>),
+    Search(Result<Vec<CK_OBJECT_HANDLE>, Error>),
+    ClearSearch(Result<(), Error>),
+    GetAttributes(Result<Vec<Option<Vec<u8>>>, Error>),
+    StartSign(Result<(), Error>),
+    GetSignatureLength(Result<usize, Error>),
+    Sign(Result<Vec<u8>, Error>),
+    Stop(Result<(), Error>),
+}
+
+/// Helper macro to implement the body of each public `ManagerProxy` function. Takes a
+/// `ManagerProxy` instance (should always be `self`), a `ManagerArguments` representing the
+/// `Manager` function to call and the arguments to use, and the qualified type of the expected
+/// `ManagerReturnValue` that will be received from the `Manager` when it is done.
+macro_rules! manager_proxy_fn_impl {
+    ($manager:ident, $argument_enum:expr, $return_type:path) => {
+        match $manager.proxy_call($argument_enum) {
+            Ok($return_type(result)) => result,
+            Ok(_) => Err(error_here!(ErrorType::LibraryFailure)),
+            Err(e) => Err(e),
+        }
+    };
+}
+
+/// `ManagerProxy` synchronously proxies calls from any thread to the `Manager` that runs on a
+/// single thread. This is necessary because the underlying OS APIs in use are not guaranteed to be
+/// thread-safe (e.g. they may use thread-local storage). Using it should be identical to using the
+/// real `Manager`.
+pub struct ManagerProxy {
+    sender: ManagerArgumentsSender,
+    receiver: ManagerReturnValueReceiver,
+    thread_handle: Option<JoinHandle<()>>,
+}
+
+impl ManagerProxy {
+    pub fn new<B: ClientCertsBackend + Send + 'static>(
+        name: &'static str,
+        backend: B,
+    ) -> Result<ManagerProxy, Error> {
+        let (proxy_sender, manager_receiver) = channel();
+        let (manager_sender, proxy_receiver) = channel();
+        let thread_handle = thread::Builder::new().name(name.into()).spawn(move || {
+            #[cfg(not(test))]
+            gecko_profiler::register_thread(name);
+
+            let mut real_manager = Manager::new(backend);
+            while let Ok(arguments) = manager_receiver.recv() {
+                let results = match arguments {
+                    ManagerArguments::OpenSession() => {
+                        ManagerReturnValue::OpenSession(real_manager.open_session())
+                    }
+                    ManagerArguments::CloseSession(session_handle) => {
+                        ManagerReturnValue::CloseSession(real_manager.close_session(session_handle))
+                    }
+                    ManagerArguments::CloseAllSessions() => {
+                        ManagerReturnValue::CloseAllSessions(
+                            real_manager.close_all_sessions(),
+                        )
+                    }
+                    ManagerArguments::StartSearch(session, attrs) => {
+                        ManagerReturnValue::StartSearch(real_manager.start_search(session, attrs))
+                    }
+                    ManagerArguments::Search(session, max_objects) => {
+                        ManagerReturnValue::Search(real_manager.search(session, max_objects))
+                    }
+                    ManagerArguments::ClearSearch(session) => {
+                        ManagerReturnValue::ClearSearch(real_manager.clear_search(session))
+                    }
+                    ManagerArguments::GetAttributes(object_handle, attr_types) => {
+                        ManagerReturnValue::GetAttributes(
+                            real_manager.get_attributes(object_handle, attr_types),
+                        )
+                    }
+                    ManagerArguments::StartSign(session, key_handle, params) => {
+                        ManagerReturnValue::StartSign(
+                            real_manager.start_sign(session, key_handle, params),
+                        )
+                    }
+                    ManagerArguments::GetSignatureLength(session, data) => {
+                        ManagerReturnValue::GetSignatureLength(
+                            real_manager.get_signature_length(session, data),
+                        )
+                    }
+                    ManagerArguments::Sign(session, data) => {
+                        ManagerReturnValue::Sign(real_manager.sign(session, data))
+                    }
+                    ManagerArguments::Stop => ManagerReturnValue::Stop(Ok(())),
+                };
+                let stop_after_send = matches!(&results, &ManagerReturnValue::Stop(_));
+                match manager_sender.send(results) {
+                    Ok(()) => {}
+                    Err(_) => {
+                        break;
+                    }
+                }
+                if stop_after_send {
+                    break;
+                }
+            }
+
+            #[cfg(not(test))]
+            gecko_profiler::unregister_thread();
+        });
+        match thread_handle {
+            Ok(thread_handle) => Ok(ManagerProxy {
+                sender: proxy_sender,
+                receiver: proxy_receiver,
+                thread_handle: Some(thread_handle),
+            }),
+            Err(_) => Err(error_here!(ErrorType::LibraryFailure)),
+        }
+    }
+
+    fn proxy_call(&self, args: ManagerArguments) -> Result<ManagerReturnValue, Error> {
+        match self.sender.send(args) {
+            Ok(()) => {}
+            Err(_) => {
+                return Err(error_here!(ErrorType::LibraryFailure));
+            }
+        };
+        let result = match self.receiver.recv() {
+            Ok(result) => result,
+            Err(_) => {
+                return Err(error_here!(ErrorType::LibraryFailure));
+            }
+        };
+        Ok(result)
+    }
+
+    pub fn open_session(&mut self) -> Result<CK_SESSION_HANDLE, Error> {
+        manager_proxy_fn_impl!(
+            self,
+            ManagerArguments::OpenSession(),
+            ManagerReturnValue::OpenSession
+        )
+    }
+
+    pub fn close_session(&mut self, session: CK_SESSION_HANDLE) -> Result<(), Error> {
+        manager_proxy_fn_impl!(
+            self,
+            ManagerArguments::CloseSession(session),
+            ManagerReturnValue::CloseSession
+        )
+    }
+
+    pub fn close_all_sessions(&mut self) -> Result<(), Error> {
+        manager_proxy_fn_impl!(
+            self,
+            ManagerArguments::CloseAllSessions(),
+            ManagerReturnValue::CloseAllSessions
+        )
+    }
+
+    pub fn start_search(
+        &mut self,
+        session: CK_SESSION_HANDLE,
+        attrs: Vec<(CK_ATTRIBUTE_TYPE, Vec<u8>)>,
+    ) -> Result<(), Error> {
+        manager_proxy_fn_impl!(
+            self,
+            ManagerArguments::StartSearch(session, attrs),
+            ManagerReturnValue::StartSearch
+        )
+    }
+
+    pub fn search(
+        &mut self,
+        session: CK_SESSION_HANDLE,
+        max_objects: usize,
+    ) -> Result<Vec<CK_OBJECT_HANDLE>, Error> {
+        manager_proxy_fn_impl!(
+            self,
+            ManagerArguments::Search(session, max_objects),
+            ManagerReturnValue::Search
+        )
+    }
+
+    pub fn clear_search(&mut self, session: CK_SESSION_HANDLE) -> Result<(), Error> {
+        manager_proxy_fn_impl!(
+            self,
+            ManagerArguments::ClearSearch(session),
+            ManagerReturnValue::ClearSearch
+        )
+    }
+
+    pub fn get_attributes(
+        &self,
+        object_handle: CK_OBJECT_HANDLE,
+        attr_types: Vec<CK_ATTRIBUTE_TYPE>,
+    ) -> Result<Vec<Option<Vec<u8>>>, Error> {
+        manager_proxy_fn_impl!(
+            self,
+            ManagerArguments::GetAttributes(object_handle, attr_types,),
+            ManagerReturnValue::GetAttributes
+        )
+    }
+
+    pub fn start_sign(
+        &mut self,
+        session: CK_SESSION_HANDLE,
+        key_handle: CK_OBJECT_HANDLE,
+        params: Option<CK_RSA_PKCS_PSS_PARAMS>,
+    ) -> Result<(), Error> {
+        manager_proxy_fn_impl!(
+            self,
+            ManagerArguments::StartSign(session, key_handle, params),
+            ManagerReturnValue::StartSign
+        )
+    }
+
+    pub fn get_signature_length(
+        &self,
+        session: CK_SESSION_HANDLE,
+        data: Vec<u8>,
+    ) -> Result<usize, Error> {
+        manager_proxy_fn_impl!(
+            self,
+            ManagerArguments::GetSignatureLength(session, data),
+            ManagerReturnValue::GetSignatureLength
+        )
+    }
+
+    pub fn sign(&mut self, session: CK_SESSION_HANDLE, data: Vec<u8>) -> Result<Vec<u8>, Error> {
+        manager_proxy_fn_impl!(
+            self,
+            ManagerArguments::Sign(session, data),
+            ManagerReturnValue::Sign
+        )
+    }
+
+    pub fn stop(&mut self) -> Result<(), Error> {
+        manager_proxy_fn_impl!(self, ManagerArguments::Stop, ManagerReturnValue::Stop)?;
+        let thread_handle = match self.thread_handle.take() {
+            Some(thread_handle) => thread_handle,
+            None => return Err(error_here!(ErrorType::LibraryFailure)),
+        };
+        thread_handle
+            .join()
+            .map_err(|_| error_here!(ErrorType::LibraryFailure))
+    }
 }
 
 const SUPPORTED_ATTRIBUTES: &[CK_ATTRIBUTE_TYPE] = &[

@@ -9,14 +9,13 @@ license = "MPL-2.0"
 [dependencies]
 byteorder = "1.3"
 env_logger = {version = "0.10", default-features = false } # disable `regex` to reduce code size
-futures-executor = { version = "0.3" }
 lazy_static = "1"
 log = "0.4"
-moz_task = { path = "../../../../xpcom/rust/moz_task" }
+
 pkcs11-bindings = "0.1"
 rsclientcerts = { path = "../rsclientcerts" }
 sha2 = "0.10.2"
-xpcom = { path = "../../../../xpcom/rust/xpcom" }
+static_prefs = { path = "../../../../modules/libpref/init/static_prefs"}
 
 [target."cfg(any(target_os = \"macos\", target_os = \"ios\"))".dependencies.core-foundation]
 version = "0.9"
