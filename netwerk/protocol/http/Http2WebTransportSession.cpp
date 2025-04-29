@@ -363,9 +363,16 @@ bool Http2WebTransportSessionImpl::OnCapsule(Capsule&& aCapsule) {
     case CapsuleType::WT_STREAMS_BLOCKED_UNIDI:
       LOG(("Handling WT_STREAMS_BLOCKED_UNIDI\n"));
       break;
-    case CapsuleType::DATAGRAM:
+    case CapsuleType::DATAGRAM: {
       LOG(("Handling DATAGRAM\n"));
+      WebTransportDatagramCapsule& datagram =
+          aCapsule.GetWebTransportDatagramCapsule();
+      if (nsCOMPtr<WebTransportSessionEventListenerInternal> listener =
+              do_QueryInterface(mListener)) {
+        listener->OnDatagramReceivedInternal(std::move(datagram.mPayload));
+      }
       break;
+    }
     default:
       LOG(("Unhandled capsule type\n"));
       break;

@@ -165,6 +165,13 @@ class MockWebTransportServer : public CapsuleParser::Listener {
     mOutCapsules.Push(std::move(encoder));
   }
 
+  void SendDatagramCapsule(nsTArray<uint8_t>&& aPayload) {
+    Capsule capsule = Capsule::WebTransportDatagram(std::move(aPayload));
+    UniquePtr<CapsuleEncoder> encoder = MakeUnique<CapsuleEncoder>();
+    encoder->EncodeCapsule(capsule);
+    mOutCapsules.Push(std::move(encoder));
+  }
+
   mozilla::Queue<UniquePtr<CapsuleEncoder>> GetOutCapsules() {
     return std::move(mOutCapsules);
   }
@@ -192,6 +199,7 @@ class MockWebTransportSessionEventListener
   nsTArray<RefPtr<WebTransportStreamBase>> TakeIncomingStreams() {
     return std::move(mIncomingStreams);
   }
+  nsTArray<uint8_t> mReceivedDatagrams;
 
   Maybe<std::pair<uint64_t, nsresult>> TakeStopSending() {
     return std::move(mStopSending);
@@ -249,6 +257,7 @@ MockWebTransportSessionEventListener::OnSessionClosed(
 
 NS_IMETHODIMP MockWebTransportSessionEventListener::OnDatagramReceivedInternal(
     nsTArray<uint8_t>&& aData) {
+  mReceivedDatagrams = std::move(aData);
   return NS_OK;
 }
 
@@ -1067,8 +1076,13 @@ TEST(TestHttp2WebTransport, SendAndReceiveDatagram)
   // Verify the server received the correct datagram capsule
   nsTArray<Capsule> received = server->GetReceivedCapsules();
   WebTransportDatagramCapsule& parsedCapsule =
-    received[0].GetWebTransportDatagramCapsule();
+      received[0].GetWebTransportDatagramCapsule();
   ValidateData(parsedCapsule.mPayload, expectedData);
+
+  // Echo and verify the received datagram payload back to the client
+  server->SendDatagramCapsule(std::move(parsedCapsule.mPayload));
+  ClientProcessCapsules(server, client);
+  ValidateData(listener->mReceivedDatagrams, expectedData);
 
   client->Done();
   server->Done();
