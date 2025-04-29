@@ -177,6 +177,8 @@ class DebuggerObject : public NativeObject {
   bool isError() const;
   JSAtom* name(JSContext* cx) const;
   JSAtom* displayName(JSContext* cx) const;
+  bool isMutedError(JSContext* cx) const;
+
   JS::PromiseState promiseState() const;
   double promiseLifetime() const;
   double promiseTimeToResolution() const;
