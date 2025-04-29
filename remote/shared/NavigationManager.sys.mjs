@@ -13,12 +13,12 @@ ChromeUtils.defineESModuleGetters(lazy, {
   Log: "chrome://remote/content/shared/Log.sys.mjs",
   PromptListener:
     "chrome://remote/content/shared/listeners/PromptListener.sys.mjs",
-  registerNavigationListenerActor:
-    "chrome://remote/content/shared/js-window-actors/NavigationListenerActor.sys.mjs",
+  registerWebProgressListenerActor:
+    "chrome://remote/content/shared/js-window-actors/WebProgressListenerActor.sys.mjs",
   TabManager: "chrome://remote/content/shared/TabManager.sys.mjs",
   truncate: "chrome://remote/content/shared/Format.sys.mjs",
-  unregisterNavigationListenerActor:
-    "chrome://remote/content/shared/js-window-actors/NavigationListenerActor.sys.mjs",
+  unregisterWebProgressListenerActor:
+    "chrome://remote/content/shared/js-window-actors/WebProgressListenerActor.sys.mjs",
 });
 
 ChromeUtils.defineLazyGetter(lazy, "logger", () => lazy.Log.get());
@@ -46,20 +46,20 @@ ChromeUtils.defineLazyGetter(lazy, "logger", () => lazy.Log.get());
  * The NavigationRegistry is responsible for monitoring all navigations happening
  * in the browser.
  *
- * It relies on a JSWindowActor pair called NavigationListener{Parent|Child},
+ * It relies on a JSWindowActor pair called WebProgressListener{Parent|Child},
  * found under remote/shared/js-window-actors. As a simple overview, the
- * NavigationListenerChild will monitor navigations in all window globals using
+ * WebProgressListenerChild will monitor navigations in all window globals using
  * content process WebProgressListener, and will forward each relevant update to
- * the NavigationListenerParent
+ * the WebProgressListenerParent
  *
  * The NavigationRegistry singleton holds the map of navigations, from navigable
- * to NavigationInfo. It will also be called by NavigationListenerParent
+ * to NavigationInfo. It will also be called by WebProgressListenerParent
  * whenever a navigation event happens.
  *
  * This singleton is not exported outside of this class, and consumers instead
  * need to use the NavigationManager class. The NavigationRegistry keeps track
  * of how many NavigationListener instances are currently listening in order to
- * know if the NavigationListenerActor should be registered or not.
+ * know if the WebProgressListenerActor should be registered or not.
  *
  * The NavigationRegistry exposes an API to retrieve the current or last
  * navigation for a given navigable, and also forwards events to notify about
@@ -116,12 +116,12 @@ class NavigationRegistry extends EventEmitter {
 
   /**
    * Start monitoring navigations in all browsing contexts. This will register
-   * the NavigationListener JSWindowActor and will initialize them in all
+   * the WebProgressListener JSWindowActor and will initialize them in all
    * existing browsing contexts.
    */
   startMonitoring(listener) {
     if (this.#managers.size == 0) {
-      lazy.registerNavigationListenerActor();
+      lazy.registerWebProgressListenerActor();
       this.#contextListener.startListening();
       this.#promptListener.startListening();
     }
@@ -130,7 +130,7 @@ class NavigationRegistry extends EventEmitter {
   }
 
   /**
-   * Stop monitoring navigations. This will unregister the NavigationListener
+   * Stop monitoring navigations. This will unregister the WebProgressListener
    * JSWindowActor and clear the information collected about navigations so far.
    */
   stopMonitoring(listener) {
@@ -142,7 +142,7 @@ class NavigationRegistry extends EventEmitter {
     if (this.#managers.size == 0) {
       this.#contextListener.stopListening();
       this.#promptListener.stopListening();
-      lazy.unregisterNavigationListenerActor();
+      lazy.unregisterWebProgressListenerActor();
       // Clear the map.
       this.#navigations = new Map();
     }
@@ -150,10 +150,10 @@ class NavigationRegistry extends EventEmitter {
 
   /**
    * Called when a fragment navigation is recorded from the
-   * NavigationListener actors.
+   * WebProgressListener actors.
    *
    * This entry point is only intended to be called from
-   * NavigationListenerParent, to avoid setting up observers or listeners,
+   * WebProgressListenerParent, to avoid setting up observers or listeners,
    * which are unnecessary since NavigationManager has to be a singleton.
    *
    * @param {object} data
@@ -187,10 +187,10 @@ class NavigationRegistry extends EventEmitter {
   }
   /**
    * Called when a same-document navigation is recorded from the
-   * NavigationListener actors.
+   * WebProgressListener actors.
    *
    * This entry point is only intended to be called from
-   * NavigationListenerParent, to avoid setting up observers or listeners,
+   * WebProgressListenerParent, to avoid setting up observers or listeners,
    * which are unnecessary since NavigationManager has to be a singleton.
    *
    * @param {object} data
@@ -226,10 +226,10 @@ class NavigationRegistry extends EventEmitter {
 
   /**
    * Called when a navigation-failed event is recorded from the
-   * NavigationListener actors.
+   * WebProgressListener actors.
    *
    * This entry point is only intended to be called from
-   * NavigationListenerParent, to avoid setting up observers or listeners,
+   * WebProgressListenerParent, to avoid setting up observers or listeners,
    * which are unnecessary since NavigationManager has to be a singleton.
    *
    * @param {object} data
@@ -283,10 +283,10 @@ class NavigationRegistry extends EventEmitter {
 
   /**
    * Called when a navigation-started event is recorded from the
-   * NavigationListener actors.
+   * WebProgressListener actors.
    *
    * This entry point is only intended to be called from
-   * NavigationListenerParent, to avoid setting up observers or listeners,
+   * WebProgressListenerParent, to avoid setting up observers or listeners,
    * which are unnecessary since NavigationManager has to be a singleton.
    *
    * @param {object} data
@@ -386,7 +386,7 @@ class NavigationRegistry extends EventEmitter {
 
   /**
    * Called when a navigation-stopped event is recorded from the
-   * NavigationListener actors.
+   * WebProgressListener actors.
    *
    * @param {object} data
    * @param {BrowsingContextDetails} data.contextDetails
@@ -601,7 +601,7 @@ const navigationRegistry = new NavigationRegistry();
 /**
  * See NavigationRegistry.notifyHashChanged.
  *
- * This entry point is only intended to be called from NavigationListenerParent,
+ * This entry point is only intended to be called from WebProgressListenerParent,
  * to avoid setting up observers or listeners, which are unnecessary since
  * NavigationRegistry has to be a singleton.
  */
@@ -612,7 +612,7 @@ export function notifyFragmentNavigated(data) {
 /**
  * See NavigationRegistry.notifySameDocumentChanged.
  *
- * This entry point is only intended to be called from NavigationListenerParent,
+ * This entry point is only intended to be called from WebProgressListenerParent,
  * to avoid setting up observers or listeners, which are unnecessary since
  * NavigationRegistry has to be a singleton.
  */
@@ -623,7 +623,7 @@ export function notifySameDocumentChanged(data) {
 /**
  * See NavigationRegistry.notifyNavigationFailed.
  *
- * This entry point is only intended to be called from NavigationListenerParent,
+ * This entry point is only intended to be called from WebProgressListenerParent,
  * to avoid setting up observers or listeners, which are unnecessary since
  * NavigationRegistry has to be a singleton.
  */
@@ -634,7 +634,7 @@ export function notifyNavigationFailed(data) {
 /**
  * See NavigationRegistry.notifyNavigationStarted.
  *
- * This entry point is only intended to be called from NavigationListenerParent,
+ * This entry point is only intended to be called from WebProgressListenerParent,
  * to avoid setting up observers or listeners, which are unnecessary since
  * NavigationRegistry has to be a singleton.
  */
@@ -645,7 +645,7 @@ export function notifyNavigationStarted(data) {
 /**
  * See NavigationRegistry.notifyNavigationStopped.
  *
- * This entry point is only intended to be called from NavigationListenerParent,
+ * This entry point is only intended to be called from WebProgressListenerParent,
  * to avoid setting up observers or listeners, which are unnecessary since
  * NavigationRegistry has to be a singleton.
  */
