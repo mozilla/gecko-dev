@@ -126,21 +126,23 @@ Http3WebTransportStream::Http3WebTransportStream(
     Http3Session* aSession, uint64_t aSessionId, WebTransportStreamType aType,
     std::function<void(Result<RefPtr<WebTransportStreamBase>, nsresult>&&)>&&
         aCallback)
-    : WebTransportStreamBase(aSessionId, aType, std::move(aCallback)),
+    : WebTransportStreamBase(aSessionId, std::move(aCallback)),
       Http3StreamBase(new DummyWebTransportStreamTransaction(), aSession) {
   LOG(("Http3WebTransportStream outgoing ctor %p", this));
   mStreamRole = OUTGOING;
+  mStreamType = aType;
 }
 
 Http3WebTransportStream::Http3WebTransportStream(Http3Session* aSession,
                                                  uint64_t aSessionId,
                                                  WebTransportStreamType aType,
                                                  uint64_t aStreamId)
-    : WebTransportStreamBase(aSessionId, aType, nullptr),
+    : WebTransportStreamBase(aSessionId, nullptr),
       Http3StreamBase(new DummyWebTransportStreamTransaction(), aSession) {
   LOG(("Http3WebTransportStream incoming ctor %p", this));
   mStreamId = aStreamId;
   mStreamRole = INCOMING;
+  mStreamType = aType;
   // WAITING_DATA indicates we are waiting
   // Http3WebTransportStream::OnInputStreamReady to be called.
   mSendState = WAITING_DATA;
@@ -150,7 +152,11 @@ Http3WebTransportStream::~Http3WebTransportStream() {
   LOG(("Http3WebTransportStream dtor %p", this));
 }
 
-uint64_t Http3WebTransportStream::StreamId() const {
+StreamId Http3WebTransportStream::WebTransportStreamId() const {
+  return StreamId::From(Http3StreamBase::StreamId());
+}
+
+uint64_t Http3WebTransportStream::GetStreamId() const {
   return Http3StreamBase::StreamId();
 }
 

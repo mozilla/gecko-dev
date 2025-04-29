@@ -25,7 +25,7 @@ Http3WebTransportSession::Http3WebTransportSession(nsAHttpTransaction* trans,
 
 Http3WebTransportSession::~Http3WebTransportSession() = default;
 
-uint64_t Http3WebTransportSession::StreamId() const {
+uint64_t Http3WebTransportSession::GetStreamId() const {
   return Http3StreamBase::StreamId();
 }
 

@@ -26,7 +26,7 @@ class WebTransportSessionBase {
   void SetWebTransportSessionEventListener(
       WebTransportSessionEventListener* listener);
 
-  virtual uint64_t StreamId() const = 0;
+  virtual uint64_t GetStreamId() const = 0;
   virtual void CloseSession(uint32_t aStatus, const nsACString& aReason) = 0;
   virtual void GetMaxDatagramSize() = 0;
   virtual void SendDatagram(nsTArray<uint8_t>&& aData,
@@ -37,6 +37,7 @@ class WebTransportSessionBase {
   virtual void CreateOutgoingUnidirectionalStream(
       std::function<void(Result<RefPtr<WebTransportStreamBase>, nsresult>&&)>&&
           aCallback) = 0;
+  virtual void StartReading() {}
 
  protected:
   virtual ~WebTransportSessionBase() = default;

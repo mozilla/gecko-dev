@@ -218,7 +218,7 @@ NS_IMETHODIMP WebTransportStreamProxy::GetOutputStream(
 }
 
 NS_IMETHODIMP WebTransportStreamProxy::GetStreamId(uint64_t* aId) {
-  *aId = mWebTransportStream->StreamId();
+  *aId = mWebTransportStream->GetStreamId();
   return NS_OK;
 }
 

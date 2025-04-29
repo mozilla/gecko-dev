@@ -40,7 +40,8 @@ class Http3WebTransportStream final : public WebTransportStreamBase,
                                    WebTransportStreamType aType,
                                    uint64_t aStreamId);
 
-  uint64_t StreamId() const override;
+  class StreamId WebTransportStreamId() const override;
+  uint64_t GetStreamId() const override;
 
   Http3WebTransportSession* GetHttp3WebTransportSession() override {
     return nullptr;

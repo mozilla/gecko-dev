@@ -20,6 +20,8 @@
 namespace mozilla::net {
 
 class CapsuleEncoder;
+class Http2WebTransportStream;
+
 class Http2WebTransportSession final : public WebTransportSessionBase,
                                        public Http2StreamTunnel,
                                        public nsIOutputStreamCallback,
@@ -38,28 +40,40 @@ class Http2WebTransportSession final : public WebTransportSessionBase,
   }
   void CloseSession(uint32_t aStatus, const nsACString& aReason) override;
   void CloseStream(nsresult aReason) override;
-  uint64_t StreamId() const override;
+  uint64_t GetStreamId() const override;
   void GetMaxDatagramSize() override;
   void SendDatagram(nsTArray<uint8_t>&& aData, uint64_t aTrackingId) override;
   void CreateOutgoingBidirectionalStream(
       std::function<void(Result<RefPtr<WebTransportStreamBase>, nsresult>&&)>&&
-          aCallback) override {}
+          aCallback) override;
   void CreateOutgoingUnidirectionalStream(
       std::function<void(Result<RefPtr<WebTransportStreamBase>, nsresult>&&)>&&
-          aCallback) override {}
+          aCallback) override;
 
   bool OnCapsule(Capsule&& aCapsule) override;
   void OnCapsuleParseFailure(nsresult aError) override;
+  void StartReading() override;
 
  private:
+  friend class Http2WebTransportStream;
+
   virtual ~Http2WebTransportSession();
   nsresult GenerateHeaders(nsCString& aCompressedData,
                            uint8_t& aFirstFrameFlags) override;
   void SendCapsule(CapsuleEncoder&& aCapsule);
+  void CreateOutgoingStreamInternal(
+      bool aBidi,
+      std::function<void(Result<RefPtr<WebTransportStreamBase>, nsresult>&&)>&&
+          aCallback);
+  Result<StreamId, nsresult> GetNextOutgoingStreamId(bool aBidi);
 
   size_t mWriteOffset{0};
   std::list<CapsuleEncoder> mOutgoingQueue;
   UniquePtr<CapsuleParser> mCapsuleParser;
+
+  StreamId mNextStreamID{0};
+  nsRefPtrHashtable<nsUint64HashKey, Http2WebTransportStream> mOutgoingStreams;
+  nsRefPtrHashtable<nsUint64HashKey, Http2WebTransportStream> mIncomingStreams;
 };
 
 }  // namespace mozilla::net

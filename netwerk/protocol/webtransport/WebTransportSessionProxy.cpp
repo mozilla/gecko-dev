@@ -832,8 +832,9 @@ WebTransportSessionProxy::OnSessionReadyInternal(
       return NS_ERROR_ABORT;
     case WebTransportSessionProxyState::NEGOTIATING:
       mWebTransportSession = aSession;
-      mSessionId = aSession->StreamId();
+      mSessionId = aSession->GetStreamId();
       ChangeState(WebTransportSessionProxyState::NEGOTIATING_SUCCEEDED);
+      mWebTransportSession->StartReading();
       break;
     case WebTransportSessionProxyState::DONE:
       // The session has been canceled. We do not need to set

@@ -10,6 +10,7 @@
 #include "Capsule.h"
 #include "CapsuleEncoder.h"
 #include "Http2WebTransportSession.h"
+#include "Http2WebTransportStream.h"
 #include "Http2Session.h"
 #include "mozilla/net/NeqoHttp3Conn.h"
 #include "nsIWebTransport.h"
@@ -39,7 +40,21 @@ void Http2WebTransportSession::CloseStream(nsresult aReason) {
     mTransaction->Close(aReason);
     mTransaction = nullptr;
   }
+
+  mInput->AsyncWait(nullptr, 0, 0, nullptr);
+  mOutput->AsyncWait(nullptr, 0, 0, nullptr);
   Http2StreamTunnel::CloseStream(aReason);
+
+  mCapsuleParser = nullptr;
+
+  for (const auto& stream : mOutgoingStreams.Values()) {
+    stream->Close(aReason);
+  }
+  for (const auto& stream : mIncomingStreams.Values()) {
+    stream->Close(aReason);
+  }
+  mOutgoingStreams.Clear();
+  mIncomingStreams.Clear();
 }
 
 nsresult Http2WebTransportSession::GenerateHeaders(nsCString& aCompressedData,
@@ -87,9 +102,45 @@ bool Http2WebTransportSession::OnCapsule(Capsule&& aCapsule) {
     case CapsuleType::WT_STOP_SENDING:
       LOG(("Handling WT_STOP_SENDING\n"));
       break;
-    case CapsuleType::WT_STREAM:
-      LOG(("Handling WT_STREAM\n"));
+    case CapsuleType::WT_STREAM: {
+      WebTransportStreamDataCapsule& streamData =
+          aCapsule.GetWebTransportStreamDataCapsule();
+      // TODO: implement stream-level flow control
+      if (streamData.mID & 1) {
+        RefPtr<Http2WebTransportStream> stream =
+            mIncomingStreams.Get(streamData.mID);
+        if (!stream) {
+          stream =
+              new Http2WebTransportStream(this, StreamId::From(streamData.mID));
+          if (NS_FAILED(stream->Init())) {
+            return false;
+          }
+          mIncomingStreams.InsertOrUpdate(streamData.mID, stream);
+          if (nsCOMPtr<WebTransportSessionEventListenerInternal> listener =
+                  do_QueryInterface(mListener)) {
+            listener->OnIncomingStreamAvailableInternal(stream);
+          }
+        }
+        if (NS_FAILED(stream->OnCapsule(std::move(aCapsule)))) {
+          return false;
+        }
+      } else {
+        RefPtr<Http2WebTransportStream> stream =
+            mOutgoingStreams.Get(streamData.mID);
+        if (!stream) {
+          LOG(
+              ("Http2WebTransportSession::OnCapsule - "
+               "stream not found "
+               "stream_id=0x%" PRIx64 " [this=%p].",
+               streamData.mID, this));
+          return false;
+        }
+        if (NS_FAILED(stream->OnCapsule(std::move(aCapsule)))) {
+          return false;
+        }
+      }
       break;
+    }
     case CapsuleType::WT_STREAM_FIN:
       LOG(("Handling WT_STREAM_FIN\n"));
       break;
@@ -140,8 +191,8 @@ Http2WebTransportSession::OnInputStreamReady(nsIAsyncInputStream* aIn) {
     }
 
     if (NS_FAILED(rv)) {
-      LOG(("Http2WebTransportSession::OnInputStreamReady %p failed %u\n", this,
-           static_cast<uint32_t>(rv)));
+      LOG(("Http2WebTransportSession::OnInputStreamReady %p failed 0x%x\n",
+           this, static_cast<uint32_t>(rv)));
       // TODO: close connection
       return rv;
     }
@@ -234,11 +285,65 @@ void Http2WebTransportSession::CloseSession(uint32_t aStatus,
   SendCapsule(std::move(encoder));
 }
 
-uint64_t Http2WebTransportSession::StreamId() const { return mStreamID; }
+uint64_t Http2WebTransportSession::GetStreamId() const { return mStreamID; }
 
 void Http2WebTransportSession::GetMaxDatagramSize() {}
 
 void Http2WebTransportSession::SendDatagram(nsTArray<uint8_t>&& aData,
                                             uint64_t aTrackingId) {}
+
+void Http2WebTransportSession::CreateOutgoingStreamInternal(
+    bool aBidi,
+    std::function<void(Result<RefPtr<WebTransportStreamBase>, nsresult>&&)>&&
+        aCallback) {
+  LOG(("Http2WebTransportSession::CreateOutgoingStreamInternal %p aBidi=%d",
+       this, aBidi));
+
+  auto result = GetNextOutgoingStreamId(aBidi);
+  if (result.isErr()) {
+    auto error = result.unwrapErr();
+    aCallback(Err(error));
+    return;
+  }
+
+  StreamId streamId = result.unwrap();
+  RefPtr<Http2WebTransportStream> stream =
+      new Http2WebTransportStream(this, streamId, std::move(aCallback));
+  nsresult rv = stream->Init();
+  if (NS_FAILED(rv)) {
+    return;
+  }
+  mOutgoingStreams.InsertOrUpdate(streamId, std::move(stream));
+}
+
+Result<StreamId, nsresult> Http2WebTransportSession::GetNextOutgoingStreamId(
+    bool aBidi) {
+  // TODO: check flow control limits
+  uint64_t newId = mNextStreamID;
+  mNextStreamID.Next();
+  if (!aBidi) {
+    newId |= 0b10;
+  }
+  return StreamId::From(newId);
+}
+
+void Http2WebTransportSession::CreateOutgoingBidirectionalStream(
+    std::function<void(Result<RefPtr<WebTransportStreamBase>, nsresult>&&)>&&
+        aCallback) {
+  CreateOutgoingStreamInternal(true, std::move(aCallback));
+}
+
+void Http2WebTransportSession::CreateOutgoingUnidirectionalStream(
+    std::function<void(Result<RefPtr<WebTransportStreamBase>, nsresult>&&)>&&
+        aCallback) {
+  CreateOutgoingStreamInternal(false, std::move(aCallback));
+}
+
+void Http2WebTransportSession::StartReading() {
+  LOG(("Http2WebTransportSession::StartReading %p", this));
+  if (mInput) {
+    mInput->AsyncWait(this, 0, 0, nullptr);
+  }
+}
 
 }  // namespace mozilla::net

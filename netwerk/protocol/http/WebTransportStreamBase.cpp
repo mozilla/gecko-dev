@@ -12,12 +12,10 @@
 namespace mozilla::net {
 
 WebTransportStreamBase::WebTransportStreamBase(
-    uint64_t aSessionId, WebTransportStreamType aType,
+    uint64_t aSessionId,
     std::function<void(Result<RefPtr<WebTransportStreamBase>, nsresult>&&)>&&
         aCallback)
-    : mSessionId(aSessionId),
-      mStreamType(aType),
-      mStreamReadyCallback(std::move(aCallback)) {}
+    : mSessionId(aSessionId), mStreamReadyCallback(std::move(aCallback)) {}
 
 WebTransportStreamBase::~WebTransportStreamBase() = default;
 
