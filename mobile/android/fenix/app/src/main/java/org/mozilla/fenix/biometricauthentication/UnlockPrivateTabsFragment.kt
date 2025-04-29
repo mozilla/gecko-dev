@@ -4,20 +4,21 @@
 
 package org.mozilla.fenix.biometricauthentication
 
-import android.content.Intent
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import androidx.activity.result.ActivityResultLauncher
+import androidx.biometric.BiometricManager
+import androidx.biometric.BiometricManager.Authenticators.DEVICE_CREDENTIAL
+import androidx.biometric.BiometricPrompt
 import androidx.compose.ui.platform.ComposeView
+import androidx.compose.ui.res.stringResource
 import androidx.fragment.app.Fragment
 import androidx.navigation.fragment.findNavController
 import org.mozilla.fenix.GleanMetrics.PrivateBrowsingLocked
 import org.mozilla.fenix.R
 import org.mozilla.fenix.ext.settings
 import org.mozilla.fenix.home.HomeFragmentDirections
-import org.mozilla.fenix.settings.biometric.bindBiometricsCredentialsPromptOrShowWarning
 import org.mozilla.fenix.tabstray.Page
 import org.mozilla.fenix.theme.FirefoxTheme
 
@@ -25,7 +26,6 @@ import org.mozilla.fenix.theme.FirefoxTheme
  * Fragment used to display biometric authentication when the app is locked.
  */
 class UnlockPrivateTabsFragment : Fragment() {
-    private lateinit var startForResult: ActivityResultLauncher<Intent>
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -43,25 +43,44 @@ class UnlockPrivateTabsFragment : Fragment() {
 
         (view as ComposeView).setContent {
             FirefoxTheme {
+                val title = stringResource(R.string.pbm_authentication_unlock_private_tabs)
+
                 UnlockPrivateTabsScreen(
-                    onUnlockClicked = { showAuthPrompt() },
+                    onUnlockClicked = { requestPrompt(title) },
                     onLeaveClicked = { leavePrivateMode() },
                 )
+
+                requestPrompt(title)
             }
         }
     }
 
-    private fun showAuthPrompt() {
-        BiometricAuthenticationManager.biometricAuthenticationNeededInfo.authenticationStatus =
-            AuthenticationStatus.AUTHENTICATION_IN_PROGRESS
+    private fun requestPrompt(title: String) {
+        val biometricPrompt = BiometricPrompt(
+            this,
+            object : BiometricPrompt.AuthenticationCallback() {
+                override fun onAuthenticationSucceeded(
+                    result: BiometricPrompt.AuthenticationResult,
+                ) {
+                    super.onAuthenticationSucceeded(result)
 
-        bindBiometricsCredentialsPromptOrShowWarning(
-            view = requireView(),
-            onShowPinVerification = { intent -> startForResult.launch(intent) },
-            onAuthSuccess = { onAuthSuccess() },
-            onAuthFailure = { onAuthFailure() },
-            titleRes = R.string.pbm_authentication_unlock_private_tabs,
+                    onAuthSuccess()
+                }
+
+                override fun onAuthenticationFailed() {
+                    super.onAuthenticationFailed()
+
+                    onAuthFailure()
+                }
+            },
         )
+
+        val promptInfo = BiometricPrompt.PromptInfo.Builder()
+            .setTitle(title)
+            .setAllowedAuthenticators(DEVICE_CREDENTIAL or BiometricManager.Authenticators.BIOMETRIC_WEAK)
+            .build()
+
+        biometricPrompt.authenticate(promptInfo)
     }
 
     private fun leavePrivateMode() {
