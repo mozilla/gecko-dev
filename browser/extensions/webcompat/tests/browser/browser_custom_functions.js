@@ -151,7 +151,7 @@ add_task(async function test_custom_functions() {
     test: "verify that setting `replacement` to `null` removes a header",
     browser,
     serverSends: {
-      "sent-value": "bad",
+      "sent-header": "bad",
     },
     expect: { "sent-header": null },
   });

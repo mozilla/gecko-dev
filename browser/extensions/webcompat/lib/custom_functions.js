@@ -80,7 +80,7 @@ var CUSTOM_FUNCTIONS = {
         const responseHeaders = [];
         for (const header of evt.responseHeaders) {
           if (headers.includes(header.name.toLowerCase())) {
-            if (regex !== null) {
+            if (regex !== null && replacement !== null) {
               found = true;
               const value = header.value.replaceAll(regex, replacement);
               responseHeaders.push({ name: header.name, value });
@@ -90,10 +90,13 @@ var CUSTOM_FUNCTIONS = {
           }
         }
         if (!found && (replace === undefined || typeof fallback === "string")) {
-          responseHeaders.push({
-            name: headers[0],
-            value: fallback ?? replacement,
-          });
+          const value = fallback ?? replacement;
+          if (value !== null) {
+            responseHeaders.push({
+              name: headers[0],
+              value,
+            });
+          }
         }
         return { responseHeaders };
       };
