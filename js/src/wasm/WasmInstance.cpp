@@ -2274,7 +2274,9 @@ Instance::Instance(JSContext* cx, Handle<WasmInstanceObject*> object,
       maybeDebug_(std::move(maybeDebug)),
       debugFilter_(nullptr),
       callRefMetrics_(nullptr),
-      maxInitializedGlobalsIndexPlus1_(0) {
+      maxInitializedGlobalsIndexPlus1_(0),
+      addressOfLastBufferedWholeCell_(
+          cx->runtime()->gc.addressOfLastBufferedWholeCell()) {
   for (size_t i = 0; i < N_BASELINE_SCRATCH_WORDS; i++) {
     baselineScratchWords_[i] = 0;
   }

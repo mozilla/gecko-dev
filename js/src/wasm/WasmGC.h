@@ -462,11 +462,21 @@ void EmitWasmPreBarrierCallIndex(jit::MacroAssembler& masm,
 // will use other available scratch registers.
 //
 // `otherScratch` cannot be a designated scratch register.
-
 void EmitWasmPostBarrierGuard(jit::MacroAssembler& masm,
                               const mozilla::Maybe<jit::Register>& object,
                               jit::Register otherScratch,
                               jit::Register setValue, jit::Label* skipBarrier);
+
+// Before calling Instance::postBarrierWholeCell, we can check the object
+// against the store buffer's last element cache, skipping the post barrier if
+// that object had already been barriered.
+//
+// `instance` and `temp` can be the same register; if so, instance will be
+// clobbered, otherwise instance will be preserved.
+void CheckWholeCellLastElementCache(jit::MacroAssembler& masm,
+                                    jit::Register instance,
+                                    jit::Register object, jit::Register temp,
+                                    jit::Label* skipBarrier);
 
 #ifdef DEBUG
 // Check (approximately) whether `nextPC` is a valid code address for a

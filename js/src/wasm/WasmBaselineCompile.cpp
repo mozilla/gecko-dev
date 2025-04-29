@@ -7259,10 +7259,18 @@ bool BaseCompiler::emitPostBarrierWholeCell(RegRef object, RegRef value,
   // location for whether or not the post-barrier call is taken.
   sync();
 
-  // Emit a guard to skip the post-barrier call if it is not needed.
+  // Emit guards to skip the post-barrier call if it is not needed.
   Label skipBarrier;
   EmitWasmPostBarrierGuard(masm, mozilla::Some(object), temp, value,
                            &skipBarrier);
+
+#ifdef RABALDR_PIN_INSTANCE
+  Register instance(InstanceReg);
+#else
+  Register instance(temp);
+  fr.loadInstancePtr(instance);
+#endif
+  CheckWholeCellLastElementCache(masm, instance, object, temp, &skipBarrier);
 
   movePtr(RegPtr(object), temp);
 
