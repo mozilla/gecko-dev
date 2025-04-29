@@ -6,8 +6,10 @@
 #include "TestCommon.h"
 #include "gtest/gtest.h"
 #include "Http2WebTransportSession.h"
+#include "Http2WebTransportStream.h"
 #include "nsString.h"
 #include "nsTArray.h"
+#include "mozilla/Queue.h"
 #include "mozilla/net/NeqoHttp3Conn.h"
 #include "Capsule.h"
 #include "CapsuleEncoder.h"
@@ -29,8 +31,8 @@ class MockWebTransportClient : public CapsuleIOHandler {
 
   Http2WebTransportSessionImpl* Session() { return mSession; }
 
-  void SendCapsule(CapsuleEncoder&& aCapsule) override {
-    mOutCapsules.AppendElement(std::move(aCapsule));
+  void HasCapsuleToSend() override {
+    mSession->PrepareCapsulesToSend(mOutCapsules);
   }
 
   void SetSentFin() override { mSetSentFinCalled = true; }
@@ -41,14 +43,20 @@ class MockWebTransportClient : public CapsuleIOHandler {
     mOnParseFailureCalled = true;
   }
 
-  void ProcessInputCapsules(nsTArray<CapsuleEncoder>&& aCapsules) {
-    for (auto capsule : aCapsules) {
-      auto buffer = capsule.GetBuffer();
+  void ProcessInputCapsules(
+      mozilla::Queue<UniquePtr<CapsuleEncoder>>&& aCapsules) {
+    while (!aCapsules.IsEmpty()) {
+      UniquePtr<CapsuleEncoder> capsule = aCapsules.Pop();
+      auto buffer = capsule->GetBuffer();
       mParser->ProcessCapsuleData(buffer.Elements(), buffer.Length());
     }
   }
 
-  nsTArray<CapsuleEncoder> GetOutCapsules() { return std::move(mOutCapsules); }
+  void ProcessOutput() { mSession->PrepareCapsulesToSend(mOutCapsules); }
+
+  mozilla::Queue<UniquePtr<CapsuleEncoder>> GetOutCapsules() {
+    return std::move(mOutCapsules);
+  }
 
   void Done() {
     mParser = nullptr;
@@ -66,7 +74,7 @@ class MockWebTransportClient : public CapsuleIOHandler {
 
   RefPtr<Http2WebTransportSessionImpl> mSession;
   UniquePtr<CapsuleParser> mParser;
-  nsTArray<CapsuleEncoder> mOutCapsules;
+  mozilla::Queue<UniquePtr<CapsuleEncoder>> mOutCapsules;
 };
 
 class MockWebTransportServer : public CapsuleParser::Listener {
@@ -88,30 +96,34 @@ class MockWebTransportServer : public CapsuleParser::Listener {
     return std::move(mReceivedCapsules);
   }
 
-  void ProcessInputCapsules(nsTArray<CapsuleEncoder>&& aCapsules) {
-    for (auto capsule : aCapsules) {
-      auto buffer = capsule.GetBuffer();
+  void ProcessInputCapsules(
+      mozilla::Queue<UniquePtr<CapsuleEncoder>>&& aCapsules) {
+    while (!aCapsules.IsEmpty()) {
+      UniquePtr<CapsuleEncoder> capsule = aCapsules.Pop();
+      auto buffer = capsule->GetBuffer();
       mParser->ProcessCapsuleData(buffer.Elements(), buffer.Length());
     }
   }
 
   void SendWebTransportMaxStreamsCapsule(uint64_t aLimit, bool aBidi) {
     Capsule capsule = Capsule::WebTransportMaxStreams(aLimit, aBidi);
-    CapsuleEncoder encoder;
-    encoder.EncodeCapsule(capsule);
-    mOutCapsules.AppendElement(std::move(encoder));
+    UniquePtr<CapsuleEncoder> encoder = MakeUnique<CapsuleEncoder>();
+    encoder->EncodeCapsule(capsule);
+    mOutCapsules.Push(std::move(encoder));
   }
 
   void SendWebTransportStreamDataCapsule(uint64_t aID, bool aFin,
                                          nsTArray<uint8_t>&& aData) {
     Capsule capsule =
         Capsule::WebTransportStreamData(aID, aFin, std::move(aData));
-    CapsuleEncoder encoder;
-    encoder.EncodeCapsule(capsule);
-    mOutCapsules.AppendElement(std::move(encoder));
+    UniquePtr<CapsuleEncoder> encoder = MakeUnique<CapsuleEncoder>();
+    encoder->EncodeCapsule(capsule);
+    mOutCapsules.Push(std::move(encoder));
   }
 
-  nsTArray<CapsuleEncoder> GetOutCapsules() { return std::move(mOutCapsules); }
+  mozilla::Queue<UniquePtr<CapsuleEncoder>> GetOutCapsules() {
+    return std::move(mOutCapsules);
+  }
 
   void Done() { mParser = nullptr; }
 
@@ -120,7 +132,7 @@ class MockWebTransportServer : public CapsuleParser::Listener {
 
   UniquePtr<CapsuleParser> mParser;
   nsTArray<Capsule> mReceivedCapsules;
-  nsTArray<CapsuleEncoder> mOutCapsules;
+  mozilla::Queue<UniquePtr<CapsuleEncoder>> mOutCapsules;
 };
 
 // TODO: will be used when testing incoming streams.
@@ -210,13 +222,16 @@ NS_IMETHODIMP MockWebTransportSessionEventListener::OnResetReceived(
 
 static void ServerProcessCapsules(MockWebTransportServer* aServer,
                                   MockWebTransportClient* aClient) {
-  nsTArray<CapsuleEncoder> outCapsules = aClient->GetOutCapsules();
+  aClient->ProcessOutput();
+  mozilla::Queue<UniquePtr<CapsuleEncoder>> outCapsules =
+      aClient->GetOutCapsules();
   aServer->ProcessInputCapsules(std::move(outCapsules));
 }
 
 static void ClientProcessCapsules(MockWebTransportServer* aServer,
                                   MockWebTransportClient* aClient) {
-  nsTArray<CapsuleEncoder> outCapsules = aServer->GetOutCapsules();
+  mozilla::Queue<UniquePtr<CapsuleEncoder>> outCapsules =
+      aServer->GetOutCapsules();
   aClient->ProcessInputCapsules(std::move(outCapsules));
 }
 
@@ -305,36 +320,36 @@ TEST(TestHttp2WebTransport, CreateOutgoingStream)
   server->Done();
 }
 
-static void CreateTestData(uint32_t aNumBytes, nsCString& aDataOut) {
+static void CreateTestData(uint32_t aNumBytes, nsTArray<uint8_t>& aDataOut) {
   static constexpr const char kSampleText[] =
       "{\"type\":\"message\",\"id\":42,\"payload\":\"The quick brown fox jumps "
       "over the lazy dog.\"}";
   static constexpr uint32_t kSampleTextLen = sizeof(kSampleText) - 1;
 
   aDataOut.SetCapacity(aNumBytes);
-  aDataOut.Truncate();
 
   while (aNumBytes > 0) {
     uint32_t chunkSize = std::min(kSampleTextLen, aNumBytes);
-    aDataOut.Append(kSampleText, chunkSize);
+    aDataOut.AppendElements(reinterpret_cast<const uint8_t*>(kSampleText),
+                            chunkSize);
     aNumBytes -= chunkSize;
   }
 }
 
 static void ValidateData(nsTArray<uint8_t>& aInput,
-                         const nsACString& aExpectedData) {
-  nsDependentCSubstring input((const char*)aInput.Elements(), aInput.Length());
-  ASSERT_EQ(aExpectedData.Length(), input.Length());
-  ASSERT_TRUE(aExpectedData.Equals(input));
+                         nsTArray<uint8_t>& aExpectedData) {
+  ASSERT_EQ(aExpectedData.Length(), aInput.Length());
+  for (size_t i = 0; i < aExpectedData.Length(); i++) {
+    ASSERT_EQ(aExpectedData[i], aInput[i]);
+  }
 }
 
 static void ValidateData(nsIInputStream* aStream,
-                         const nsACString& aExpectedData) {
-  nsAutoCString outputData;
+                         nsTArray<uint8_t>& aExpectedData) {
+  nsTArray<uint8_t> outputData;
   nsresult rv = NS_ConsumeStream(aStream, UINT32_MAX, outputData);
   ASSERT_NS_SUCCEEDED(rv);
-  ASSERT_EQ(aExpectedData.Length(), outputData.Length());
-  ASSERT_TRUE(aExpectedData.Equals(outputData));
+  ValidateData(outputData, aExpectedData);
 }
 
 TEST(TestHttp2WebTransport, OutgoingUniStream)
@@ -381,10 +396,10 @@ TEST(TestHttp2WebTransport, OutgoingUniStream)
   unidiStream->GetWriterAndReader(getter_AddRefs(writer),
                                   getter_AddRefs(reader));
 
-  nsCString inputData;
+  nsTArray<uint8_t> inputData;
   CreateTestData(512, inputData);
   uint32_t numWritten = 0;
-  Unused << writer->Write(inputData.BeginReading(), inputData.Length(),
+  Unused << writer->Write((const char*)inputData.Elements(), inputData.Length(),
                           &numWritten);
 
   NS_ProcessPendingEvents(nullptr);
@@ -430,10 +445,10 @@ TEST(TestHttp2WebTransport, OutgoingBidiStream)
   bidiStream->GetWriterAndReader(getter_AddRefs(writer),
                                  getter_AddRefs(reader));
 
-  nsCString inputData;
+  nsTArray<uint8_t> inputData;
   CreateTestData(512, inputData);
   uint32_t numWritten = 0;
-  Unused << writer->Write(inputData.BeginReading(), inputData.Length(),
+  Unused << writer->Write((const char*)inputData.Elements(), inputData.Length(),
                           &numWritten);
 
   NS_ProcessPendingEvents(nullptr);
@@ -452,7 +467,7 @@ TEST(TestHttp2WebTransport, OutgoingBidiStream)
   ValidateData(streamData.mData, inputData);
 
   nsTArray<uint8_t> echo;
-  echo.AppendElements((uint8_t*)inputData.BeginReading(), inputData.Length());
+  echo.AppendElements(inputData.Elements(), inputData.Length());
 
   server->SendWebTransportStreamDataCapsule(id, false, std::move(echo));
   ClientProcessCapsules(server, client);

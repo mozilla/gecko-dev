@@ -141,12 +141,18 @@ Http2WebTransportStream::OnInputStreamReady(nsIAsyncInputStream* aIn) {
 
 NS_IMETHODIMP
 Http2WebTransportStream::OnOutputStreamReady(nsIAsyncOutputStream* aOut) {
-  while (!mOutgoingQueue.empty() && mReceiveStreamPipeOut) {
-    StreamData& data = mOutgoingQueue.front();
-    char* writeBuffer = reinterpret_cast<char*>(
-                            const_cast<uint8_t*>(data.GetData().Elements())) +
+  if (!mCurrentOut) {
+    if (mOutgoingQueue.IsEmpty()) {
+      return NS_OK;
+    }
+    mCurrentOut = mOutgoingQueue.Pop();
+  }
+
+  while (mCurrentOut && mReceiveStreamPipeOut) {
+    char* writeBuffer = reinterpret_cast<char*>(const_cast<uint8_t*>(
+                            mCurrentOut->GetData().Elements())) +
                         mWriteOffset;
-    uint32_t toWrite = data.GetData().Length() - mWriteOffset;
+    uint32_t toWrite = mCurrentOut->GetData().Length() - mWriteOffset;
 
     uint32_t wrote = 0;
     nsresult rv = mReceiveStreamPipeOut->Write(writeBuffer, toWrite, &wrote);
@@ -161,6 +167,7 @@ Http2WebTransportStream::OnOutputStreamReady(nsIAsyncOutputStream* aOut) {
            static_cast<uint32_t>(rv)));
       // TODO: close this stream
       mSocketInCondition = rv;
+      mCurrentOut = nullptr;
       mRecvState = RECV_DONE;
       return NS_OK;
     }
@@ -169,7 +176,7 @@ Http2WebTransportStream::OnOutputStreamReady(nsIAsyncOutputStream* aOut) {
 
     if (toWrite == wrote) {
       mWriteOffset = 0;
-      mOutgoingQueue.pop_front();
+      mCurrentOut = mOutgoingQueue.IsEmpty() ? nullptr : mOutgoingQueue.Pop();
     }
   }
   return NS_OK;
@@ -190,9 +197,9 @@ nsresult Http2WebTransportStream::ReadRequestSegment(
   data.AppendElements(buf, count);
   Capsule capsule = Capsule::WebTransportStreamData(wtStream->mStreamId, false,
                                                     std::move(data));
-  CapsuleEncoder encoder;
-  encoder.EncodeCapsule(capsule);
-  wtStream->mWebTransportSession->SendCapsule(std::move(encoder));
+  UniquePtr<CapsuleEncoder> encoder = MakeUnique<CapsuleEncoder>();
+  encoder->EncodeCapsule(capsule);
+  wtStream->mWebTransportSession->SendStreamDataCapsule(std::move(encoder));
   wtStream->mTotalSent += count;
   return NS_OK;
 }
@@ -249,7 +256,7 @@ nsresult Http2WebTransportStream::HandleStreamData(bool aFin,
     case READING: {
       size_t length = aData.Length();
       if (length) {
-        mOutgoingQueue.emplace_back(std::move(aData));
+        mOutgoingQueue.Push(MakeUnique<StreamData>(std::move(aData)));
         mSocketInCondition = OnOutputStreamReady(mReceiveStreamPipeOut);
       } else if (mTotalReceived) {
         // https://www.ietf.org/archive/id/draft-ietf-webtrans-http2-10.html#section-6.4

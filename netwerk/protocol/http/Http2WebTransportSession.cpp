@@ -18,6 +18,27 @@
 
 namespace mozilla::net {
 
+Http2WebTransportSessionImpl::CapsuleQueue::CapsuleQueue() = default;
+
+mozilla::Queue<UniquePtr<CapsuleEncoder>>&
+Http2WebTransportSessionImpl::CapsuleQueue::operator[](
+    CapsuleTransmissionPriority aPriority) {
+  if (aPriority == CapsuleTransmissionPriority::Critical) {
+    return mCritical;
+  }
+  if (aPriority == CapsuleTransmissionPriority::Important) {
+    return mImportant;
+  }
+  if (aPriority == CapsuleTransmissionPriority::High) {
+    return mHigh;
+  }
+  if (aPriority == CapsuleTransmissionPriority::Normal) {
+    return mNormal;
+  }
+
+  return mLow;
+}
+
 Http2WebTransportSessionImpl::Http2WebTransportSessionImpl(
     CapsuleIOHandler* aHandler, Http2WebTransportInitialSettings aSettings)
     : mHandler(aHandler), mSettings(aSettings) {
@@ -40,9 +61,9 @@ void Http2WebTransportSessionImpl::CloseSession(uint32_t aStatus,
   mHandler->SetSentFin();
 
   Capsule capsule = Capsule::CloseWebTransportSession(aStatus, aReason);
-  CapsuleEncoder encoder;
-  encoder.EncodeCapsule(capsule);
-  mHandler->SendCapsule(std::move(encoder));
+  UniquePtr<CapsuleEncoder> encoder = MakeUnique<CapsuleEncoder>();
+  encoder->EncodeCapsule(capsule);
+  EnqueueOutCapsule(CapsuleTransmissionPriority::Important, std::move(encoder));
 }
 
 uint64_t Http2WebTransportSessionImpl::GetStreamId() const { return mStreamId; }
@@ -92,11 +113,6 @@ void Http2WebTransportSessionImpl::CreateOutgoingBidirectionalStream(
   if (!id) {
     mBidiPendingStreamCallbacks.Push(
         MakeUnique<PendingStreamCallback>(std::move(aCallback)));
-    auto encoder = mLocalStreamsFlowControl[WebTransportStreamType::BiDi]
-                       .CreateStreamsBlockedCapsule();
-    if (encoder) {
-      SendCapsule(std::move(encoder.ref()));
-    }
     return;
   }
 
@@ -111,11 +127,6 @@ void Http2WebTransportSessionImpl::CreateOutgoingUnidirectionalStream(
   if (!id) {
     mUnidiPendingStreamCallbacks.Push(
         MakeUnique<PendingStreamCallback>(std::move(aCallback)));
-    auto encoder = mLocalStreamsFlowControl[WebTransportStreamType::UniDi]
-                       .CreateStreamsBlockedCapsule();
-    if (encoder) {
-      SendCapsule(std::move(encoder.ref()));
-    }
     return;
   }
 
@@ -127,8 +138,53 @@ void Http2WebTransportSessionImpl::StartReading() {
   mHandler->StartReading();
 }
 
-void Http2WebTransportSessionImpl::SendCapsule(CapsuleEncoder&& aCapsule) {
-  mHandler->SendCapsule(std::move(aCapsule));
+void Http2WebTransportSessionImpl::SendStreamDataCapsule(
+    UniquePtr<CapsuleEncoder>&& aData) {
+  // TODO: implement SendOrder/SendGroup for stream data
+  EnqueueOutCapsule(CapsuleTransmissionPriority::Normal, std::move(aData));
+}
+
+void Http2WebTransportSessionImpl::EnqueueOutCapsule(
+    CapsuleTransmissionPriority aPriority, UniquePtr<CapsuleEncoder>&& aData) {
+  mCapsuleQueue[aPriority].Push(std::move(aData));
+  mHandler->HasCapsuleToSend();
+}
+
+void Http2WebTransportSessionImpl::SendFlowControlCapsules(
+    CapsuleTransmissionPriority aPriority) {
+  auto encoder = mLocalStreamsFlowControl[WebTransportStreamType::BiDi]
+                     .CreateStreamsBlockedCapsule();
+  if (encoder) {
+    mCapsuleQueue[aPriority].Push(MakeUnique<CapsuleEncoder>(encoder.ref()));
+  }
+  encoder = mLocalStreamsFlowControl[WebTransportStreamType::UniDi]
+                .CreateStreamsBlockedCapsule();
+  if (encoder) {
+    mCapsuleQueue[aPriority].Push(MakeUnique<CapsuleEncoder>(encoder.ref()));
+  }
+}
+
+void Http2WebTransportSessionImpl::PrepareCapsulesToSend(
+    mozilla::Queue<UniquePtr<CapsuleEncoder>>& aOutput) {
+  // Like neqo, flow control capsules are at level
+  // CapsuleTransmissionPriority::Important.
+  SendFlowControlCapsules(CapsuleTransmissionPriority::Important);
+
+  static constexpr CapsuleTransmissionPriority priorities[] = {
+      CapsuleTransmissionPriority::Critical,
+      CapsuleTransmissionPriority::Important,
+      CapsuleTransmissionPriority::High,
+      CapsuleTransmissionPriority::Normal,
+      CapsuleTransmissionPriority::Low,
+  };
+
+  for (CapsuleTransmissionPriority priority : priorities) {
+    auto& queue = mCapsuleQueue[priority];
+    while (!queue.IsEmpty()) {
+      UniquePtr<CapsuleEncoder> entry = queue.Pop();
+      aOutput.Push(std::move(entry));
+    }
+  }
 }
 
 void Http2WebTransportSessionImpl::Close(nsresult aReason) {
@@ -360,9 +416,15 @@ Http2WebTransportSession::OnInputStreamReady(nsIAsyncInputStream* aIn) {
 
 NS_IMETHODIMP
 Http2WebTransportSession::OnOutputStreamReady(nsIAsyncOutputStream* aOut) {
-  while (!mOutgoingQueue.empty() && mOutput) {
-    CapsuleEncoder& data = mOutgoingQueue.front();
-    auto buffer = data.GetBuffer();
+  if (!mCurrentOutCapsule) {
+    if (mOutgoingQueue.IsEmpty()) {
+      return NS_OK;
+    }
+    mCurrentOutCapsule = mOutgoingQueue.Pop();
+  }
+
+  while (mCurrentOutCapsule && mOutput) {
+    auto buffer = mCurrentOutCapsule->GetBuffer();
     const char* writeBuffer =
         reinterpret_cast<const char*>(buffer.Elements()) + mWriteOffset;
     uint32_t toWrite = buffer.Length() - mWriteOffset;
@@ -385,24 +447,22 @@ Http2WebTransportSession::OnOutputStreamReady(nsIAsyncOutputStream* aOut) {
 
     if (toWrite == wrote) {
       mWriteOffset = 0;
-      mOutgoingQueue.pop_front();
+      mCurrentOutCapsule =
+          mOutgoingQueue.IsEmpty() ? nullptr : mOutgoingQueue.Pop();
     }
   }
 
-  if (mInput) {
-    mInput->AsyncWait(this, 0, 0, nullptr);
-  }
   return NS_OK;
 }
 
-void Http2WebTransportSession::SendCapsule(CapsuleEncoder&& aEncoder) {
-  LOG(("Http2WebTransportSession::SendCapsule %p mSendClosed=%d", this,
+void Http2WebTransportSession::HasCapsuleToSend() {
+  LOG(("Http2WebTransportSession::HasCapsuleToSend %p mSendClosed=%d", this,
        mSendClosed));
   if (mSendClosed) {
     return;
   }
 
-  mOutgoingQueue.emplace_back(std::move(aEncoder));
+  mImpl->PrepareCapsulesToSend(mOutgoingQueue);
 
   if (mOutput) {
     OnOutputStreamReady(mOutput);
