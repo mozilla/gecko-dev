@@ -190,7 +190,7 @@ class QATests(SnapTestsBase):
         """
 
         self._test_audio_video_playback(
-            "https://drive.google.com/file/d/0BwxFVkl63-lEY3l3ODJReDg3RzQ/view?resourcekey=0-5kDw2QbFk9eLrWE1N9M1rQ&hl=en-US"
+            "https://drive.google.com/file/d/1lY6xYRR_KC0MGosopJA6Kn6uCvJ1RgQm/view?hl=en-US"
         )
 
         return True
