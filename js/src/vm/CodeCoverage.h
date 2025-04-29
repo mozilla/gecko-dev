@@ -169,4 +169,4 @@ bool CollectScriptCoverage(JSScript* script, bool finalizing);
 }  // namespace coverage
 }  // namespace js
 
-#endif  // vm_Printer_h
+#endif  // vm_CodeCoverage_h
