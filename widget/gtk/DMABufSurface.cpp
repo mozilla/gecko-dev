@@ -345,6 +345,7 @@ DMABufSurface::DMABufSurface(SurfaceType aSurfaceType)
       mStrides(),
       mOffsets(),
       mGbmBufferObject(),
+      mGbmBufferFlags(0),
 #ifdef DEBUG
       mMappedRegion(),
       mMappedRegionStride(),
@@ -615,7 +616,6 @@ DMABufSurfaceRGBA::DMABufSurfaceRGBA()
       mHeight(0),
       mEGLImage(LOCAL_EGL_NO_IMAGE),
       mTexture(0),
-      mGbmBufferFlags(0),
       mBufferModifier(DRM_FORMAT_MOD_INVALID) {}
 
 DMABufSurfaceRGBA::~DMABufSurfaceRGBA() { ReleaseSurface(); }
@@ -1538,7 +1538,7 @@ void DMABufSurfaceYUV::ReleaseVADRMPRIMESurfaceDescriptor(
   }
 }
 
-bool DMABufSurfaceYUV::CreateYUVPlaneGBM(int aPlane) {
+bool DMABufSurfaceYUV::CreateYUVPlaneGBM(int aPlane, DRMFormat* aFormat) {
   LOGDMABUF(
       "DMABufSurfaceYUV::CreateYUVPlaneGBM() UID %d size %d x %d plane %d",
       mUID, mWidth[aPlane], mHeight[aPlane], aPlane);
@@ -1549,13 +1549,17 @@ bool DMABufSurfaceYUV::CreateYUVPlaneGBM(int aPlane) {
   }
 
   MOZ_DIAGNOSTIC_ASSERT(mGbmBufferObject[aPlane] == nullptr);
-  bool useModifiers = (mBufferModifiers[aPlane] != DRM_FORMAT_MOD_INVALID);
-  if (useModifiers) {
-    LOGDMABUF("    Creating with modifier %" PRIx64, mBufferModifiers[aPlane]);
+
+  if (aFormat->UseModifiers()) {
+    LOGDMABUF("    Creating with modifiers\n");
+    uint32_t modifiersNum = 0;
+    const uint64_t* modifiers = aFormat->GetModifiers(modifiersNum);
     mGbmBufferObject[aPlane] = GbmLib::CreateWithModifiers2(
         GetDMABufDevice()->GetGbmDevice(), mWidth[aPlane], mHeight[aPlane],
-        mDrmFormats[aPlane], mBufferModifiers + aPlane, 1,
-        GBM_BO_USE_RENDERING);
+        mDrmFormats[aPlane], modifiers, modifiersNum, mGbmBufferFlags);
+    if (mGbmBufferObject[aPlane]) {
+      mBufferModifiers[aPlane] = GbmLib::GetModifier(mGbmBufferObject[aPlane]);
+    }
   }
   if (!mGbmBufferObject[aPlane]) {
     LOGDMABUF("    Creating without modifiers");
@@ -1675,14 +1679,15 @@ bool DMABufSurfaceYUV::CreateYUVPlaneExport(GLContext* aGLContext, int aPlane) {
   return true;
 }
 
-bool DMABufSurfaceYUV::CreateYUVPlane(GLContext* aGLContext, int aPlane) {
+bool DMABufSurfaceYUV::CreateYUVPlane(GLContext* aGLContext, int aPlane,
+                                      DRMFormat* aFormat) {
   if (gfx::gfxVars::UseDMABufSurfaceExport()) {
     if (!UseDmaBufExportExtension(aGLContext)) {
       return false;
     }
     return CreateYUVPlaneExport(aGLContext, aPlane);
   }
-  return CreateYUVPlaneGBM(aPlane);
+  return CreateYUVPlaneGBM(aPlane, aFormat);
 }
 
 bool DMABufSurfaceYUV::CopyYUVDataImpl(const VADRMPRIMESurfaceDescriptor& aDesc,
@@ -1752,6 +1757,10 @@ bool DMABufSurfaceYUV::UpdateYUVData(
   mHeightAligned[1] = mHeight[1] = (size.height + 1) >> 1;
   mBufferPlaneCount = 2;
 
+  // We use this YUV plane for direct rendering of YUV video as wl_buffer
+  // for ask for scanout modifiers.
+  mGbmBufferFlags = GBM_BO_USE_RENDERING | GBM_BO_USE_SCANOUT;
+
   switch (targetFormat) {
     case gfx::SurfaceFormat::P010:
       mFOURCCFormat = VA_FOURCC_P010;
@@ -1769,11 +1778,9 @@ bool DMABufSurfaceYUV::UpdateYUVData(
   }
 
   RefPtr<DRMFormat> format = GetDMABufDevice()->GetDRMFormat(mFOURCCFormat);
-  mBufferModifiers[0] = mBufferModifiers[1] =
-      format ? format->GetModifier() : DRM_FORMAT_MOD_INVALID;
 
   for (int i = 0; i < mBufferPlaneCount; i++) {
-    if (!CreateYUVPlane(context, i)) {
+    if (!CreateYUVPlane(context, i, format)) {
       return false;
     }
     if (!CreateTexture(context, i)) {
@@ -1797,6 +1804,7 @@ bool DMABufSurfaceYUV::ImportSurfaceDescriptor(
   mColorRange = aDesc.colorRange();
   mColorPrimaries = aDesc.colorPrimaries();
   mTransferFunction = aDesc.transferFunction();
+  mGbmBufferFlags = aDesc.flags();
   mUID = aDesc.uid();
 
   LOGDMABUF("DMABufSurfaceYUV::ImportSurfaceDescriptor() UID %d", mUID);
@@ -1872,9 +1880,10 @@ bool DMABufSurfaceYUV::Serialize(
   }
 
   aOutDescriptor = SurfaceDescriptorDMABuf(
-      mSurfaceType, mFOURCCFormat, modifiers, 0, fds, width, height, widthBytes,
-      heightBytes, format, strides, offsets, GetYUVColorSpace(), mColorRange,
-      mColorPrimaries, mTransferFunction, fenceFDs, mUID, refCountFDs,
+      mSurfaceType, mFOURCCFormat, modifiers, mGbmBufferFlags, fds, width,
+      height, widthBytes, heightBytes, format, strides, offsets,
+      GetYUVColorSpace(), mColorRange, mColorPrimaries, mTransferFunction,
+      fenceFDs, mUID, refCountFDs,
       /* semaphoreFd */ nullptr);
   return true;
 }

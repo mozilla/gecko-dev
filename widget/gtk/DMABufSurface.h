@@ -261,6 +261,7 @@ class DMABufSurface {
   int32_t mOffsets[DMABUF_BUFFER_PLANES];
 
   struct gbm_bo* mGbmBufferObject[DMABUF_BUFFER_PLANES];
+  uint32_t mGbmBufferFlags;
 
 #ifdef DEBUG
   void* mMappedRegion[DMABUF_BUFFER_PLANES];
@@ -366,7 +367,6 @@ class DMABufSurfaceRGBA final : public DMABufSurface {
 
   EGLImageKHR mEGLImage;
   GLuint mTexture;
-  uint32_t mGbmBufferFlags;
   uint64_t mBufferModifier;
 };
 
@@ -446,8 +446,10 @@ class DMABufSurfaceYUV final : public DMABufSurface {
   ~DMABufSurfaceYUV();
 
   bool Create(const mozilla::layers::SurfaceDescriptor& aDesc) override;
-  bool CreateYUVPlane(mozilla::gl::GLContext* aGLContext, int aPlane);
-  bool CreateYUVPlaneGBM(int aPlane);
+  bool CreateYUVPlane(mozilla::gl::GLContext* aGLContext, int aPlane,
+                      mozilla::widget::DRMFormat* aFormat = nullptr);
+  bool CreateYUVPlaneGBM(int aPlane,
+                         mozilla::widget::DRMFormat* aFormat = nullptr);
   bool CreateYUVPlaneExport(mozilla::gl::GLContext* aGLContext, int aPlane);
 
   bool MoveYUVDataImpl(const VADRMPRIMESurfaceDescriptor& aDesc, int aWidth,
