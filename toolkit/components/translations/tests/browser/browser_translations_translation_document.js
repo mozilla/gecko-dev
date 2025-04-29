@@ -1424,6 +1424,7 @@ add_task(
         Enter information:
         <input type="text" placeholder="I cannot participate in translations because my parent said no">
       </label>
+      <textarea placeholder="I cannot participate in translations because my parent said no">The content of the textarea is not translatable</textarea>
     </div>
     <input type="text" placeholder="Translate me">
     <input type="text" placeholder="Do not translate me" translate="no">
@@ -1440,6 +1441,7 @@ add_task(
         Enter information:
         <input type="text" placeholder="I cannot participate in translations because my parent said no">
       </label>
+      <textarea placeholder="I cannot participate in translations because my parent said no">The content of the textarea is not translatable</textarea>
     </div>
     <input type="text" placeholder="TRANSLATE ME">
     <input type="text" placeholder="Do not translate me" translate="no">
@@ -1542,6 +1544,110 @@ add_task(async function test_attribute_translation_for_area_elements() {
     <map>
       <area alt="AREA_ALT" href="#" target="_blank" shape="area_shape" coords="area_coords" download="AREA.PNG" rel="area_rel">
     </map>
+    `
+  );
+
+  cleanup();
+});
+
+add_task(
+  async function test_textarea_placeholder_translation_and_content_exclusion() {
+    const { translate, htmlMatches, cleanup } =
+      await createTranslationsDoc(/* html */ `
+    <textarea placeholder="This is a placeholder">
+      This is the content of the textarea.
+    </textarea>
+  `);
+
+    translate();
+
+    await htmlMatches(
+      "Only the placeholder is translated, not the content.",
+      /* html */ `
+    <textarea placeholder="THIS IS A PLACEHOLDER">
+      This is the content of the textarea.
+    </textarea>
+    `
+    );
+
+    cleanup();
+  }
+);
+
+add_task(async function test_textarea_other_attributes_exclusion() {
+  const { translate, htmlMatches, cleanup } =
+    await createTranslationsDoc(/* html */ `
+    <textarea placeholder="Translate this placeholder" title="Translate this title" rows="rows" cols="cols">
+      Do not translate this content.
+    </textarea>
+  `);
+
+  translate();
+
+  await htmlMatches(
+    "Only the placeholder is translated, not other attributes or content.",
+    /* html */ `
+    <textarea placeholder="TRANSLATE THIS PLACEHOLDER" title="TRANSLATE THIS TITLE" rows="rows" cols="cols">
+      Do not translate this content.
+    </textarea>
+    `
+  );
+
+  cleanup();
+});
+
+add_task(async function test_textarea_with_translate_no() {
+  const { translate, htmlMatches, cleanup } =
+    await createTranslationsDoc(/* html */ `
+    <textarea placeholder="Do not translate this placeholder" translate="no">
+      Do not translate this content.
+    </textarea>
+  `);
+
+  translate();
+
+  await htmlMatches(
+    "Neither the placeholder nor the content is translated when translate='no'.",
+    /* html */ `
+    <textarea placeholder="Do not translate this placeholder" translate="no">
+      Do not translate this content.
+    </textarea>
+    `
+  );
+
+  cleanup();
+});
+
+add_task(async function test_textarea_placeholder_mutation() {
+  const { translate, htmlMatches, cleanup, document } =
+    await createTranslationsDoc(/* html */ `
+    <textarea placeholder="Initial placeholder">
+      This is the content of the textarea.
+    </textarea>
+  `);
+
+  translate();
+
+  await htmlMatches(
+    "Initial placeholder is translated.",
+    /* html */ `
+    <textarea placeholder="INITIAL PLACEHOLDER">
+      This is the content of the textarea.
+    </textarea>
+    `
+  );
+
+  info("Mutate the placeholder attribute.");
+  document
+    .querySelector("textarea")
+    .setAttribute("placeholder", "New placeholder");
+
+  await htmlMatches(
+    "The mutated placeholder is translated.",
+    /* html */ `
+    <textarea placeholder="NEW PLACEHOLDER">
+      This is the content of the textarea.
+    </textarea>
     `
   );
 

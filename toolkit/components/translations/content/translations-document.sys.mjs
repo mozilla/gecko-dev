@@ -190,9 +190,9 @@ export class LRUCache {
 const DOM_UPDATE_INTERVAL_MS = 50;
 
 /**
- * These tags are excluded from translation.
+ * Tags excluded from content translation.
  */
-const EXCLUDED_TAGS = new Set([
+const CONTENT_EXCLUDED_TAGS = new Set([
   // The following are elements that semantically should not be translated.
   "CODE",
   "KBD",
@@ -220,6 +220,9 @@ const EXCLUDED_TAGS = new Set([
   "NOEMBED",
   "NOFRAMES",
 
+  // The title is handled separately, and a HEAD tag should not be considered.
+  "HEAD",
+
   // These are not user-visible tags.
   "STYLE",
   "SCRIPT",
@@ -228,6 +231,22 @@ const EXCLUDED_TAGS = new Set([
   // Textarea elements contain user content, which should not be translated.
   "TEXTAREA",
 ]);
+
+/**
+ * Tags excluded from attribute translation.
+ */
+const ATTRIBUTE_EXCLUDED_TAGS = (() => {
+  const attributeTags = new Set(CONTENT_EXCLUDED_TAGS);
+
+  // <head> elements contain metadata and not user-visible attributes like title,
+  // so it's safe to allow attribute translation
+  attributeTags.delete("HEAD");
+
+  // <textarea> elements are excluded from content translation, but their placeholder attribute is translatable.
+  attributeTags.delete("TEXTAREA");
+
+  return attributeTags;
+})();
 
 /**
  * A map of criteria to determine if an attribute is translatable for a given element.
@@ -283,7 +302,7 @@ const TRANSLATABLE_ATTRIBUTES = new Map([
     "label",
     [{ tagName: "TRACK" }, { tagName: "OPTGROUP" }, { tagName: "OPTION" }],
   ],
-  ["placeholder", [{ tagName: "INPUT" }]],
+  ["placeholder", [{ tagName: "INPUT" }, { tagName: "TEXTAREA" }]],
   ["title", null],
   [
     // We only want to translate value attributes for button-like <input> elements.
@@ -594,7 +613,7 @@ export class TranslationsDocument {
      *
      * @type {string}
      */
-    this.excludedNodeSelector = [
+    this.contentExcludedNodeSelector = [
       // Use: [lang|=value] to match language codes.
       //
       // Per: https://developer.mozilla.org/en-US/docs/Web/CSS/Attribute_selectors
@@ -607,7 +626,21 @@ export class TranslationsDocument {
       `.notranslate`,
       `[contenteditable="true"]`,
       `[contenteditable=""]`,
-      [...EXCLUDED_TAGS].join(","),
+      [...CONTENT_EXCLUDED_TAGS].join(","),
+    ].join(",");
+
+    /**
+     * This selector runs to find elements that should be excluded from attribute translation.
+     *
+     * @type {string}
+     */
+    this.attributeExcludedNodeSelector = [
+      // Exclude any element with translate="no", as it explicitly opts out of translation.
+      `[translate="no"]`,
+
+      // Exclude any element that is a descendant of a container marked with "notranslate" class.
+      `.notranslate`,
+      [...ATTRIBUTE_EXCLUDED_TAGS].join(","),
     ].join(",");
 
     /**
@@ -923,7 +956,7 @@ export class TranslationsDocument {
    * will be returned even if they are otherwise translatable.
    *
    * @see TRANSLATABLE_ATTRIBUTES
-   * @see TranslationsDocument.excludedNodeSelector
+   * @see TranslationsDocument.contentExcludedNodeSelector
    *
    * @param {Node} node - The node from which to retrieve translatable attributes.
    *
@@ -936,7 +969,7 @@ export class TranslationsDocument {
       return null;
     }
 
-    if (element.closest(this.excludedNodeSelector)) {
+    if (element.closest(this.attributeExcludedNodeSelector)) {
       // Either this node or an ancestor is explicitly excluded from translations, so we should not translate.
       return null;
     }
@@ -1218,12 +1251,8 @@ export class TranslationsDocument {
 
     const { nodeName } = element;
 
-    if (
-      EXCLUDED_TAGS.has(
-        // SVG tags can be lowercased, so ensure everything is uppercased.
-        nodeName.toUpperCase()
-      )
-    ) {
+    if (CONTENT_EXCLUDED_TAGS.has(nodeName.toUpperCase())) {
+      // SVG tags can be lowercased, so ensure everything is uppercased.
       // This is an excluded tag.
       return true;
     }
@@ -1311,7 +1340,7 @@ export class TranslationsDocument {
     }
 
     if (
-      containsExcludedNode(node, this.excludedNodeSelector) &&
+      containsExcludedNode(node, this.contentExcludedNodeSelector) &&
       !hasTextNodes(node)
     ) {
       // Skip this node, and dig deeper into its tree to cut off smaller pieces
@@ -2449,11 +2478,11 @@ function hasTextNodes(node) {
  * branches first to try to exclude more of the non-translatable content.
  *
  * @param {Node} node
- * @param {string} excludedNodeSelector
+ * @param {string} contentExcludedNodeSelector
  * @returns {boolean}
  */
-function containsExcludedNode(node, excludedNodeSelector) {
-  return Boolean(asElement(node)?.querySelector(excludedNodeSelector));
+function containsExcludedNode(node, contentExcludedNodeSelector) {
+  return Boolean(asElement(node)?.querySelector(contentExcludedNodeSelector));
 }
 
 /**
