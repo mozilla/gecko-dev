@@ -3945,7 +3945,6 @@ static bool NewDependentString(JSContext* cx, unsigned argc, Value* vp) {
   mozilla::Maybe<uint64_t> indexEnd;
   gc::Heap heap = gc::Heap::Default;
   mozilla::Maybe<gc::Heap> requiredHeap;
-  bool suppressContraction = false;
 
   if (!ToIndex(cx, args.get(1), &indexStart)) {
     return false;
@@ -3976,10 +3975,6 @@ static bool NewDependentString(JSContext* cx, unsigned argc, Value* vp) {
                                          : gc::Heap::Default);
       heap = *requiredHeap;
     }
-    if (!JS_GetProperty(cx, optObj, "suppress-contraction", &v)) {
-      return false;
-    }
-    suppressContraction = ToBoolean(v);
   }
 
   if (indexEnd.isNothing()) {
@@ -3995,11 +3990,8 @@ static bool NewDependentString(JSContext* cx, unsigned argc, Value* vp) {
     return false;
   }
   Rooted<JSString*> result(
-      cx, js::NewDependentStringForTesting(
-              cx, src, indexStart, *indexEnd - indexStart,
-              suppressContraction ? JS::ContractBaseChain::AllowLong
-                                  : JS::ContractBaseChain::Contract,
-              heap));
+      cx, js::NewDependentString(cx, src, indexStart, *indexEnd - indexStart,
+                                 heap));
   if (!result) {
     return false;
   }
@@ -9826,9 +9818,7 @@ static const JSFunctionSpecWithHelp TestingFunctions[] = {
 "     tenured.\n"
 "  \n"
 "   - maybeExternal: create an external string, unless the data fits within an\n"
-"     inline string. Inline strings may be nursery-allocated.\n"
-"  \n"
-"   - capacity: create an extensible string with the given capacity"),
+"     inline string. Inline strings may be nursery-allocated."),
 
     JS_FN_HELP("newDependentString", NewDependentString, 2, 0,
 "newDependentString(str, indexStart[, indexEnd] [, options])",
@@ -9837,9 +9827,7 @@ static const JSFunctionSpecWithHelp TestingFunctions[] = {
 "  control the heap the string object is allocated into:\n"
 "  \n"
 "   - tenured: if true, allocate in the tenured heap or throw. If false,\n"
-"     allocate in the nursery or throw.\n"
-"   - suppress-contraction: prevent the optimization of using a base's base rather\n"
-"     than creating a chain of dependent string bases."),
+"     allocate in the nursery or throw."),
 
     JS_FN_HELP("ensureLinearString", EnsureLinearString, 1, 0,
 "ensureLinearString(str)",

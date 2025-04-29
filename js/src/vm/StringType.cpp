@@ -1845,10 +1845,9 @@ void JSExternalString::dumpOwnRepresentationFields(
 }
 #endif /* defined(DEBUG) || defined(JS_JITSPEW) || defined(JS_CACHEIR_SPEW) */
 
-template <JS::ContractBaseChain contract>
-static JSLinearString* NewDependentStringHelper(JSContext* cx,
-                                                JSString* baseArg, size_t start,
-                                                size_t length, gc::Heap heap) {
+JSLinearString* js::NewDependentString(JSContext* cx, JSString* baseArg,
+                                       size_t start, size_t length,
+                                       gc::Heap heap) {
   if (length == 0) {
     return cx->emptyString();
   }
@@ -1892,27 +1891,7 @@ static JSLinearString* NewDependentStringHelper(JSContext* cx,
     return NewInlineString<Latin1Char>(cx, rootedBase, start, length, heap);
   }
 
-  return JSDependentString::newImpl_<contract>(cx, base, start, length, heap);
-}
-
-JSLinearString* js::NewDependentString(JSContext* cx, JSString* baseArg,
-                                       size_t start, size_t length,
-                                       gc::Heap heap) {
-  return NewDependentStringHelper<JS::ContractBaseChain::Contract>(
-      cx, baseArg, start, length, heap);
-}
-
-JSLinearString* js::NewDependentStringForTesting(JSContext* cx,
-                                                 JSString* baseArg,
-                                                 size_t start, size_t length,
-                                                 JS::ContractBaseChain contract,
-                                                 gc::Heap heap) {
-  if (contract == JS::ContractBaseChain::Contract) {
-    return NewDependentStringHelper<JS::ContractBaseChain::Contract>(
-        cx, baseArg, start, length, heap);
-  }
-  return NewDependentStringHelper<JS::ContractBaseChain::AllowLong>(
-      cx, baseArg, start, length, heap);
+  return JSDependentString::new_(cx, base, start, length, heap);
 }
 
 static constexpr bool CanStoreCharsAsLatin1(const JS::Latin1Char* s,
