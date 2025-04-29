@@ -12044,7 +12044,6 @@ void Document::Destroy() {
   }
 
   ReportDocumentUseCounters();
-  ReportShadowedHTMLDocumentProperties();
   ReportLCP();
   SetDevToolsWatchingDOMMutations(false);
 
@@ -16879,18 +16878,6 @@ void Document::ReportDocumentUseCounters() {
       printf_stderr("USE_COUNTER_DOCUMENT: %s - %s\n", metricName,
                     urlForLogging->get());
     }
-  }
-}
-
-void Document::ReportShadowedHTMLDocumentProperties() {
-  if (!ShouldIncludeInTelemetry()) {
-    return;
-  }
-
-  for (const nsString& property : mShadowedHTMLDocumentProperties) {
-    glean::security::ShadowedHtmlDocumentPropertyAccessExtra extra = {};
-    extra.name = Some(NS_ConvertUTF16toUTF8(property));
-    glean::security::shadowed_html_document_property_access.Record(Some(extra));
   }
 }
 
