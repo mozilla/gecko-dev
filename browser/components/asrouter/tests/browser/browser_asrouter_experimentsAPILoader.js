@@ -236,7 +236,7 @@ add_task(async function test_loading_experimentsAPI_rollout() {
   await setup(rollout);
   await RemoteSettingsExperimentLoader.updateRecipes();
   await BrowserTestUtils.waitForCondition(() =>
-    NimbusFeatures.cfr.getEnrollmentMetadata("rollout")
+    ExperimentAPI.getRolloutMetaData({ featureId: "cfr" })
   );
 
   await assertMessageInState("xman_test_message");

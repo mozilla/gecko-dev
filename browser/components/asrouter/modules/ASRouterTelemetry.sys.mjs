@@ -24,8 +24,7 @@ ChromeUtils.defineESModuleGetters(lazy, {
   ClientID: "resource://gre/modules/ClientID.sys.mjs",
   AboutWelcomeTelemetry:
     "resource:///modules/aboutwelcome/AboutWelcomeTelemetry.sys.mjs",
-  EnrollmentType: "resource://nimbus/ExperimentAPI.sys.mjs",
-  NimbusFeatures: "resource://nimbus/ExperimentAPI.sys.mjs",
+  ExperimentAPI: "resource://nimbus/ExperimentAPI.sys.mjs",
   TelemetrySession: "resource://gre/modules/TelemetrySession.sys.mjs",
   UpdateUtils: "resource://gre/modules/UpdateUtils.sys.mjs",
 });
@@ -77,9 +76,14 @@ export class ASRouterTelemetry {
    *  @return {bool}
    */
   get isInCFRCohort() {
-    return !!lazy.NimbusFeatures.cfr.getEnrollmentMetadata(
-      lazy.EnrollmentType.EXPERIMENT
-    );
+    const experimentData = lazy.ExperimentAPI.getExperimentMetaData({
+      featureId: "cfr",
+    });
+    if (experimentData && experimentData.slug) {
+      return true;
+    }
+
+    return false;
   }
 
   /**

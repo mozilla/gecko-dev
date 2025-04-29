@@ -7,8 +7,7 @@ import { XPCOMUtils } from "resource://gre/modules/XPCOMUtils.sys.mjs";
 const lazy = {};
 
 ChromeUtils.defineESModuleGetters(lazy, {
-  NimbusFeatures: "resource://nimbus/ExperimentAPI.sys.mjs",
-  EnrollmentType: "resource://nimbus/ExperimentAPI.sys.mjs",
+  ExperimentAPI: "resource://nimbus/ExperimentAPI.sys.mjs",
   RemoteL10n: "resource:///modules/asrouter/RemoteL10n.sys.mjs",
 });
 
@@ -52,13 +51,17 @@ export const ToastNotification = {
     let { tag } = content;
 
     let experimentMetadata =
-      lazy.NimbusFeatures.backgroundTaskMessage.getEnrollmentMetadata(
-        lazy.EnrollmentType.EXPERIMENT
-      ) ?? {};
+      lazy.ExperimentAPI.getExperimentMetaData({
+        featureId: "backgroundTaskMessage",
+      }) || {};
 
-    if (experimentMetadata) {
+    if (
+      experimentMetadata?.active &&
+      experimentMetadata?.slug &&
+      experimentMetadata?.branch?.slug
+    ) {
       // Like `my-experiment:my-branch`.
-      tag = `${experimentMetadata.slug}:${experimentMetadata.branch}`;
+      tag = `${experimentMetadata?.slug}:${experimentMetadata?.branch?.slug}`;
     }
 
     // There are two events named `IMPRESSION` the first one refers to telemetry
