@@ -4,6 +4,7 @@ import {
   GlobalOverrider,
   FakeConsoleAPI,
   FakeLogger,
+  FakeNimbusFeatures,
 } from "tests/unit/utils";
 import Adapter from "enzyme-adapter-react-16";
 import chaiJsonSchema from "chai-json-schema";
@@ -13,6 +14,7 @@ import {
   MESSAGE_TYPE_LIST,
   MESSAGE_TYPE_HASH,
 } from "modules/ActorConstants.mjs";
+import { MESSAGING_EXPERIMENTS_DEFAULT_FEATURES } from "modules/MessagingExperimentConstants.sys.mjs";
 
 enzyme.configure({ adapter: new Adapter() });
 
@@ -515,30 +517,14 @@ const TEST_GLOBAL = {
     },
   },
   FX_MONITOR_OAUTH_CLIENT_ID: "fake_client_id",
-  ExperimentAPI: {
-    getExperimentMetaData() {},
-    getRolloutMetaData() {},
-  },
-  NimbusFeatures: {
-    glean: {
-      getVariable() {},
-    },
-    newtab: {
-      getVariable() {},
-      getAllVariables() {},
-      onUpdate() {},
-      offUpdate() {},
-    },
-    pocketNewtab: {
-      getVariable() {},
-      getAllVariables() {},
-      onUpdate() {},
-      offUpdate() {},
-    },
-    cookieBannerHandling: {
-      getVariable() {},
-    },
-  },
+  ExperimentAPI: {},
+  NimbusFeatures: FakeNimbusFeatures([
+    ...MESSAGING_EXPERIMENTS_DEFAULT_FEATURES,
+    "glean",
+    "newtab",
+    "pocketNewtab",
+    "cookieBannerHandling",
+  ]),
   TelemetryEnvironment: {
     setExperimentActive() {},
     currentEnvironment: {

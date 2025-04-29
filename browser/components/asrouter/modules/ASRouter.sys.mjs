@@ -356,16 +356,11 @@ export const MessageLoaderUtils = {
     let experiments = [];
     for (const featureId of featureIds) {
       const featureAPI = lazy.NimbusFeatures[featureId];
-      const experimentData = lazy.ExperimentAPI.getExperimentMetaData({
-        featureId,
-      });
+      const enrollmentData = featureAPI.getEnrollmentMetadata();
 
       // We are not enrolled in any experiment or rollout for this feature, so
       // we can skip the feature.
-      if (
-        !experimentData &&
-        !lazy.ExperimentAPI.getRolloutMetaData({ featureId })
-      ) {
+      if (!enrollmentData) {
         continue;
       }
 
@@ -393,7 +388,7 @@ export const MessageLoaderUtils = {
       if (
         NO_REACH_EVENT_GROUPS.includes(featureId) ||
         !MESSAGING_EXPERIMENTS_DEFAULT_FEATURES.includes(featureId) ||
-        !experimentData
+        enrollmentData.isRollout
       ) {
         continue;
       }
@@ -402,10 +397,10 @@ export const MessageLoaderUtils = {
       // if found any. The `forReachEvent` label is used to identify those
       // branches so that they would only be used to record the Reach event.
       const branches =
-        (await lazy.ExperimentAPI.getAllBranches(experimentData.slug)) || [];
+        (await lazy.ExperimentAPI.getAllBranches(enrollmentData.slug)) || [];
       for (const branch of branches) {
         let branchValue = branch[featureId].value;
-        if (!branchValue || branch.slug === experimentData.branch.slug) {
+        if (!branchValue || branch.slug === enrollmentData.branch) {
           continue;
         }
         const branchMessages =
@@ -419,7 +414,7 @@ export const MessageLoaderUtils = {
           }
           experiments.push({
             forReachEvent: { sent: false, group: featureId },
-            experimentSlug: experimentData.slug,
+            experimentSlug: enrollmentData.slug,
             branchSlug: branch.slug,
             ...message,
           });
