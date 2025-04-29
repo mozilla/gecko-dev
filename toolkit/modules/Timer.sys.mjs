@@ -9,7 +9,15 @@
 // This gives us >=2^30 unique timer IDs, enough for 1 per ms for 12.4 days.
 var gNextId = 1; // setTimeout and setInterval must return a positive integer
 
-var gTimerTable = new Map(); // int -> nsITimer or idleCallback
+/**
+ * @type {Map<number, nsITimer>}
+ */
+var gTimerTable = new Map();
+
+/**
+ * @type {Map<number, (deadline: IdleDeadline) => void>}
+ */
+var gIdleTable = new Map();
 
 // Don't generate this for every timer.
 var setTimeout_timerCallbackQI = ChromeUtils.generateQI([
@@ -17,123 +25,172 @@ var setTimeout_timerCallbackQI = ChromeUtils.generateQI([
   "nsINamed",
 ]);
 
+/**
+ * @template {any[]} T
+ *
+ * @param {(...args: T) => any} callback
+ * @param {number} milliseconds
+ * @param {boolean} [isInterval]
+ * @param {nsIEventTarget} [target]
+ * @param {T} [args]
+ */
 function _setTimeoutOrIsInterval(
-  aCallback,
-  aMilliseconds,
-  aIsInterval,
-  aTarget,
-  aArgs
+  callback,
+  milliseconds,
+  isInterval,
+  target,
+  args
 ) {
-  if (typeof aCallback !== "function") {
+  if (typeof callback !== "function") {
     throw new Error(
       `callback is not a function in ${
-        aIsInterval ? "setInterval" : "setTimeout"
+        isInterval ? "setInterval" : "setTimeout"
       }`
     );
   }
   let id = gNextId++;
   let timer = Cc["@mozilla.org/timer;1"].createInstance(Ci.nsITimer);
 
-  if (aTarget) {
-    timer.target = aTarget;
+  if (target) {
+    timer.target = target;
   }
 
-  let callback = {
+  let callbackObj = {
     QueryInterface: setTimeout_timerCallbackQI,
 
     // nsITimerCallback
     notify() {
-      if (!aIsInterval) {
+      if (!isInterval) {
         gTimerTable.delete(id);
       }
-      aCallback.apply(null, aArgs);
+      callback.apply(null, args);
     },
 
     // nsINamed
     get name() {
       return `${
-        aIsInterval ? "setInterval" : "setTimeout"
-      }() for ${Cu.getDebugName(aCallback)}`;
+        isInterval ? "setInterval" : "setTimeout"
+      }() for ${Cu.getDebugName(callback)}`;
     },
   };
 
   timer.initWithCallback(
-    callback,
-    aMilliseconds,
-    aIsInterval ? timer.TYPE_REPEATING_SLACK : timer.TYPE_ONE_SHOT
+    callbackObj,
+    milliseconds,
+    isInterval ? timer.TYPE_REPEATING_SLACK : timer.TYPE_ONE_SHOT
   );
 
   gTimerTable.set(id, timer);
   return id;
 }
 
-export function setTimeout(aCallback, aMilliseconds, ...aArgs) {
-  return _setTimeoutOrIsInterval(aCallback, aMilliseconds, false, null, aArgs);
+/**
+ * Sets a timeout.
+ *
+ * @template {any[]} T
+ *
+ * @param {(...args: T) => any} callback
+ * @param {number} milliseconds
+ * @param {T} [args]
+ */
+export function setTimeout(callback, milliseconds, ...args) {
+  return _setTimeoutOrIsInterval(callback, milliseconds, false, null, args);
 }
 
-export function setTimeoutWithTarget(
-  aCallback,
-  aMilliseconds,
-  aTarget,
-  ...aArgs
-) {
-  return _setTimeoutOrIsInterval(
-    aCallback,
-    aMilliseconds,
-    false,
-    aTarget,
-    aArgs
-  );
+/**
+ * Sets a timeout with a given event target.
+ *
+ * @template {any[]} T
+ *
+ * @param {(...args: T) => any} callback
+ * @param {number} milliseconds
+ * @param {nsIEventTarget} target
+ * @param {T} [args]
+ */
+export function setTimeoutWithTarget(callback, milliseconds, target, ...args) {
+  return _setTimeoutOrIsInterval(callback, milliseconds, false, target, args);
 }
 
-export function setInterval(aCallback, aMilliseconds, ...aArgs) {
-  return _setTimeoutOrIsInterval(aCallback, aMilliseconds, true, null, aArgs);
+/**
+ * Sets an interval timer.
+ *
+ * @template {any[]} T
+ *
+ * @param {(...args: T) => any} callback
+ * @param {number} milliseconds
+ * @param {T} [args]
+ */
+export function setInterval(callback, milliseconds, ...args) {
+  return _setTimeoutOrIsInterval(callback, milliseconds, true, null, args);
 }
 
-export function setIntervalWithTarget(
-  aCallback,
-  aMilliseconds,
-  aTarget,
-  ...aArgs
-) {
-  return _setTimeoutOrIsInterval(
-    aCallback,
-    aMilliseconds,
-    true,
-    aTarget,
-    aArgs
-  );
+/**
+ * Sets an interval timer.
+ *
+ * @template {any[]} T
+ *
+ * @param {(...args: T) => any} callback
+ * @param {number} milliseconds
+ * @param {nsIEventTarget} target
+ * @param {T} [args]
+ */
+export function setIntervalWithTarget(callback, milliseconds, target, ...args) {
+  return _setTimeoutOrIsInterval(callback, milliseconds, true, target, args);
 }
 
-function clear(aId) {
-  if (gTimerTable.has(aId)) {
-    gTimerTable.get(aId).cancel();
-    gTimerTable.delete(aId);
+/**
+ * Clears the given timer.
+ *
+ * @param {number} id
+ */
+function clear(id) {
+  if (gTimerTable.has(id)) {
+    gTimerTable.get(id).cancel();
+    gTimerTable.delete(id);
   }
 }
+
+/**
+ * Clears the given timer.
+ */
 export var clearInterval = clear;
+
+/**
+ * Clears the given timer.
+ */
 export var clearTimeout = clear;
 
-export function requestIdleCallback(aCallback, aOptions) {
-  if (typeof aCallback !== "function") {
+/**
+ * Dispatches the given callback to the main thread when it would be otherwise
+ * idle. The callback may be canceled via `cancelIdleCallback` - the idle
+ * dispatch will still happen but it won't be called.
+ *
+ * @param {(deadline: IdleDeadline) => any} callback
+ * @param {object} options
+ */
+export function requestIdleCallback(callback, options) {
+  if (typeof callback !== "function") {
     throw new Error("callback is not a function in requestIdleCallback");
   }
   let id = gNextId++;
 
-  let callback = (...aArgs) => {
-    if (gTimerTable.has(id)) {
-      gTimerTable.delete(id);
-      aCallback(...aArgs);
+  ChromeUtils.idleDispatch(deadline => {
+    if (gIdleTable.has(id)) {
+      gIdleTable.delete(id);
+      callback(deadline);
     }
-  };
-
-  ChromeUtils.idleDispatch(callback, aOptions);
-  gTimerTable.set(id, callback);
+  }, options);
+  gIdleTable.set(id, callback);
   return id;
 }
 
-export function cancelIdleCallback(aId) {
-  if (gTimerTable.has(aId)) {
-    gTimerTable.delete(aId);
+/**
+ * Cancels the given idle callback
+ *
+ * @param {number} id
+ */
+export function cancelIdleCallback(id) {
+  if (gIdleTable.has(id)) {
+    gIdleTable.delete(id);
   }
 }
