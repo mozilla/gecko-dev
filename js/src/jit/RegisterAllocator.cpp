@@ -150,12 +150,9 @@ bool AllocationIntegrityState::check() {
 
       LSafepoint* safepoint = ins->safepoint();
       if (safepoint) {
-        for (size_t i = 0; i < ins->numTemps(); i++) {
-          if (ins->getTemp(i)->isBogusTemp()) {
-            continue;
-          }
-          uint32_t vreg = info.temps[i].virtualRegister();
-          LAllocation* alloc = ins->getTemp(i)->output();
+        for (LInstruction::TempIter temp(ins); !temp.done(); temp++) {
+          uint32_t vreg = info.temps[temp.index()].virtualRegister();
+          LAllocation* alloc = temp->output();
           checkSafepointAllocation(ins, vreg, *alloc);
         }
         MOZ_ASSERT_IF(ins->isCall(), safepoint->liveRegs().emptyFloat() &&
@@ -178,13 +175,11 @@ bool AllocationIntegrityState::check() {
 
         // Temps must never alias inputs (even at-start uses) unless explicitly
         // requested.
-        for (size_t i = 0; i < ins->numTemps(); i++) {
-          if (ins->getTemp(i)->isBogusTemp()) {
-            continue;
-          }
-          LAllocation* tempAlloc = ins->getTemp(i)->output();
+        for (LInstruction::TempIter temp(ins); !temp.done(); temp++) {
+          LAllocation* tempAlloc = temp->output();
 
           // Fixed uses and fixed temps are allowed to alias.
+          size_t i = temp.index();
           if (oldInput.toUse()->isFixedRegister() && info.temps[i].isFixed()) {
             continue;
           }
@@ -246,20 +241,17 @@ bool AllocationIntegrityState::checkIntegrity(LBlock* block, LInstruction* ins,
     // another instruction, and that if the originating vreg definition is
     // found that it is writing to the tracked location.
 
-    for (size_t i = 0; i < ins->numDefs(); i++) {
-      LDefinition* def = ins->getDef(i);
-      if (def->isBogusTemp()) {
-        continue;
-      }
-      if (info.outputs[i].virtualRegister() == vreg) {
+    for (LInstruction::OutputIter output(ins); !output.done(); output++) {
+      LDefinition* def = *output;
+      if (info.outputs[output.index()].virtualRegister() == vreg) {
 #  ifdef JS_JITSPEW
         // If the following assertion is about to fail, print some useful info.
         if (!(*def->output() == alloc) && JitSpewEnabled(JitSpew_RegAlloc)) {
-          CodePosition input(ins->id(), CodePosition::INPUT);
-          CodePosition output(ins->id(), CodePosition::OUTPUT);
+          CodePosition inputPos(ins->id(), CodePosition::INPUT);
+          CodePosition outputPos(ins->id(), CodePosition::OUTPUT);
           JitSpew(JitSpew_RegAlloc,
-                  "Instruction at %u-%u, output number %u:", input.bits(),
-                  output.bits(), unsigned(i));
+                  "Instruction at %u-%u, output number %u:", inputPos.bits(),
+                  outputPos.bits(), unsigned(output.index()));
           JitSpew(JitSpew_RegAlloc,
                   "  Error: conflicting allocations: %s vs %s",
                   (*def->output()).toString().get(), alloc.toString().get());
@@ -274,11 +266,8 @@ bool AllocationIntegrityState::checkIntegrity(LBlock* block, LInstruction* ins,
       }
     }
 
-    for (size_t i = 0; i < ins->numTemps(); i++) {
-      LDefinition* temp = ins->getTemp(i);
-      if (!temp->isBogusTemp()) {
-        MOZ_ASSERT(*temp->output() != alloc);
-      }
+    for (LInstruction::TempIter temp(ins); !temp.done(); temp++) {
+      MOZ_ASSERT(*temp->output() != alloc);
     }
 
     if (ins->safepoint()) {
@@ -457,17 +446,13 @@ void AllocationIntegrityState::dump() {
         continue;
       }
 
-      for (size_t i = 0; i < ins->numDefs(); i++) {
-        JitSpewCont(JitSpew_RegAlloc, " [def %s]",
-                    ins->getDef(i)->toString().get());
+      for (LInstruction::OutputIter output(ins); !output.done(); output++) {
+        JitSpewCont(JitSpew_RegAlloc, " [def %s]", output->toString().get());
       }
-
-      for (size_t i = 0; i < ins->numTemps(); i++) {
-        LDefinition* temp = ins->getTemp(i);
-        if (!temp->isBogusTemp()) {
-          JitSpewCont(JitSpew_RegAlloc, " [temp v%u %s]",
-                      info.temps[i].virtualRegister(), temp->toString().get());
-        }
+      for (LInstruction::TempIter temp(ins); !temp.done(); temp++) {
+        JitSpewCont(JitSpew_RegAlloc, " [temp v%u %s]",
+                    info.temps[temp.index()].virtualRegister(),
+                    temp->toString().get());
       }
 
       size_t index = 0;
@@ -607,16 +592,12 @@ void RegisterAllocator::dumpInstructions(const char* who) {
         continue;
       }
 
-      for (size_t i = 0; i < ins->numDefs(); i++) {
-        JitSpewCont(JitSpew_RegAlloc, " [def %s]",
-                    ins->getDef(i)->toString().get());
+      for (LInstruction::OutputIter output(ins); !output.done(); output++) {
+        JitSpewCont(JitSpew_RegAlloc, " [def %s]", output->toString().get());
       }
 
-      for (size_t i = 0; i < ins->numTemps(); i++) {
-        LDefinition* temp = ins->getTemp(i);
-        if (!temp->isBogusTemp()) {
-          JitSpewCont(JitSpew_RegAlloc, " [temp %s]", temp->toString().get());
-        }
+      for (LInstruction::TempIter temp(ins); !temp.done(); temp++) {
+        JitSpewCont(JitSpew_RegAlloc, " [temp %s]", temp->toString().get());
       }
 
       for (LInstruction::InputIter alloc(*ins); alloc.more(); alloc.next()) {

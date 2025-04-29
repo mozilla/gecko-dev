@@ -1646,20 +1646,11 @@ bool BacktrackingAllocator::init() {
         return false;
       }
 
-      for (size_t j = 0; j < ins->numDefs(); j++) {
-        LDefinition* def = ins->getDef(j);
-        if (def->isBogusTemp()) {
-          continue;
-        }
-        vreg(def).init(*ins, def, /* isTemp = */ false);
+      for (LInstruction::OutputIter output(*ins); !output.done(); output++) {
+        vreg(*output).init(*ins, *output, /* isTemp = */ false);
       }
-
-      for (size_t j = 0; j < ins->numTemps(); j++) {
-        LDefinition* def = ins->getTemp(j);
-        if (def->isBogusTemp()) {
-          continue;
-        }
-        vreg(def).init(*ins, def, /* isTemp = */ true);
+      for (LInstruction::TempIter temp(*ins); !temp.done(); temp++) {
+        vreg(*temp).init(*ins, *temp, /* isTemp = */ true);
       }
     }
     for (size_t j = 0; j < block->numPhis(); j++) {
@@ -1870,12 +1861,8 @@ bool BacktrackingAllocator::buildLivenessInfo() {
         callPositions[prevCallPositionIndex] = outputOf(*ins);
       }
 
-      for (size_t i = 0; i < ins->numDefs(); i++) {
-        LDefinition* def = ins->getDef(i);
-        if (def->isBogusTemp()) {
-          continue;
-        }
-
+      for (LInstruction::OutputIter output(*ins); !output.done(); output++) {
+        LDefinition* def = *output;
         CodePosition from = outputOf(*ins);
 
         if (def->policy() == LDefinition::MUST_REUSE_INPUT) {
@@ -1898,11 +1885,9 @@ bool BacktrackingAllocator::buildLivenessInfo() {
         live.remove(def->virtualRegister());
       }
 
-      for (size_t i = 0; i < ins->numTemps(); i++) {
-        LDefinition* temp = ins->getTemp(i);
-        if (temp->isBogusTemp()) {
-          continue;
-        }
+      for (LInstruction::TempIter tempIter(*ins); !tempIter.done();
+           tempIter++) {
+        LDefinition* temp = *tempIter;
 
         // Normally temps are considered to cover both the input
         // and output of the associated instruction. In some cases

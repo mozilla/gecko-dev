@@ -1005,6 +1005,13 @@ class LInstruction : public LNode,
   class InputIterImpl;
   using InputIter = InputIterImpl<true>;
   using NonSnapshotInputIter = InputIterImpl<false>;
+
+  // Iterators for an instruction's outputs and temps. These skip BogusTemp
+  // definitions.
+  template <bool Temps>
+  class DefIterImpl;
+  using TempIter = DefIterImpl<true>;
+  using OutputIter = DefIterImpl<false>;
 };
 
 LInstruction* LNode::toInstruction() {
@@ -2013,6 +2020,48 @@ class LInstruction::InputIterImpl {
   }
 
   LAllocation* operator->() const { return **this; }
+};
+
+// Iterator for instruction outputs or temps. Skips BogusTemp definitions.
+template <bool Temps>
+class LInstruction::DefIterImpl {
+ private:
+  LInstruction* ins_;
+  size_t idx_ = 0;
+  const size_t len_;
+
+ public:
+  explicit DefIterImpl(LInstruction* ins)
+      : ins_(ins), len_(Temps ? ins->numTemps() : ins->numDefs()) {
+    settle();
+  }
+  bool done() const {
+    MOZ_ASSERT(idx_ <= len_);
+    return idx_ == len_;
+  }
+  void operator++(int) {
+    MOZ_ASSERT(!done());
+    idx_++;
+    settle();
+  }
+  void settle() {
+    while (!done() && get()->isBogusTemp()) {
+      idx_++;
+    }
+  }
+  size_t index() const {
+    MOZ_ASSERT(!done());
+    return idx_;
+  }
+  LDefinition* get() const {
+    MOZ_ASSERT(!done());
+    if constexpr (Temps) {
+      return ins_->getTemp(idx_);
+    }
+    return ins_->getDef(idx_);
+  }
+  LDefinition* operator*() const { return get(); }
+  LDefinition* operator->() const { return **this; }
 };
 
 bool LDefinition::isSafepointGCType(LNode* ins) const {
