@@ -58,7 +58,7 @@
       await gleanResetTestValues();
       let client_successes = await GleanTest.webrtcdtls.clientHandshakeResult.SUCCESS.testGetValue() || 0;
       let server_successes = await GleanTest.webrtcdtls.serverHandshakeResult.SUCCESS.testGetValue() || 0;
-      let cipher_count = await GleanTest.webrtcdtls.cipher["0xc02b"].testGetValue() || 0;
+      let cipher_count = await GleanTest.webrtcdtls.cipher["0x1301"].testGetValue() || 0;
       let srtp_cipher_count = await GleanTest.webrtcdtls.srtpCipher["0x0007"].testGetValue() || 0;
       is(client_successes, 0);
       is(server_successes, 0);
@@ -74,7 +74,7 @@
 
       client_successes = await GleanTest.webrtcdtls.clientHandshakeResult.SUCCESS.testGetValue() || 0;
       server_successes = await GleanTest.webrtcdtls.serverHandshakeResult.SUCCESS.testGetValue() || 0;
-      cipher_count = await GleanTest.webrtcdtls.cipher["0xc02b"].testGetValue() || 0;
+      cipher_count = await GleanTest.webrtcdtls.cipher["0x1301"].testGetValue() || 0;
       srtp_cipher_count = await GleanTest.webrtcdtls.srtpCipher["0x0007"].testGetValue() || 0;
       is(client_successes, 1);
       is(server_successes, 1);
@@ -135,9 +135,7 @@
     },
 
     async function checkDtlsVersion1_3() {
-      // Make 1.3 the default
-      await withPrefs([["media.peerconnection.dtls.version.max", 772]],
-        async () => {
+      // 1.3 should be the default
           const pc1 = new RTCPeerConnection();
           const pc2 = new RTCPeerConnection();
           await gleanResetTestValues();
@@ -161,7 +159,6 @@
           is(count1_0, 0);
           is(count1_2, 0);
           is(count1_3, 2);
-      });
     },
 
     async function checkDtlsVersion1_2() {
