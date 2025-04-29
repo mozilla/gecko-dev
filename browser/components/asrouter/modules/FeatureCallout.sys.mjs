@@ -2374,30 +2374,49 @@ export class FeatureCallout {
         color: "var(--arrowpanel-color)",
         border: "var(--arrowpanel-border-color)",
         "accent-color": "var(--focus-outline-color)",
+        // Button Background
         "button-background": "var(--button-background-color)",
-        "button-color": "var(--button-text-color)",
-        "button-border": "transparent",
         "button-background-hover": "var(--button-background-color-hover)",
-        "button-color-hover": "var(--button-text-color)",
-        "button-border-hover": "transparent",
         "button-background-active": "var(--button-background-color-active)",
-        "button-color-active": "var(--button-text-color)",
-        "button-border-active": "transparent",
-        "primary-button-background": "var(--color-accent-primary)",
-        "primary-button-color": "var(--button-text-color-primary)",
-        "primary-button-border": "transparent",
-        "primary-button-background-hover": "var(--color-accent-primary-hover)",
-        "primary-button-color-hover": "var(--button-text-color-primary)",
-        "primary-button-border-hover": "transparent",
+        "button-background-disabled": "var(--button-background-color-disabled)",
+        // Button Text
+        "button-color": "var(--button-text-color)",
+        "button-color-hover": "var(--button-text-color-hover)",
+        "button-color-active": "var(--button-text-color-active)",
+        // Button Border
+        "button-border": "var(--button-border-color)",
+        "button-border-color": "var(--button-border-color)",
+        "button-border-hover": "var(--button-border-color-hover)",
+        "button-border-active": "var(--button-border-color-active)",
+        "button-border-disabled": "var(--button-border-color-disabled)",
+        // Primary Button Background
+        "primary-button-background": "var(--button-background-color-primary)",
+        "primary-button-background-hover":
+          "var(--button-background-color-primary-hover)",
         "primary-button-background-active":
-          "var(--color-accent-primary-active)",
+          "var(--button-background-color-primary-active)",
+        "primary-button-background-disabled":
+          "var(--button-background-color-primary-disabled)",
+        // Primary Button Color
+        "primary-button-color": "var(--button-text-color-primary)",
+        "primary-button-color-hover": "var(--button-text-color-primary)",
         "primary-button-color-active": "var(--button-text-color-primary)",
-        "primary-button-border-active": "transparent",
+        "primary-button-color-disabled": "var(--button-text-color-primary)",
+        // Primary Button Border
+        "primary-button-border": "var(--button-border-color-primary)",
+        "primary-button-border-hover":
+          "var(--button-border-color-primary-hover)",
+        "primary-button-border-active":
+          "var(--button-border-color-primary-active)",
+        "primary-button-border-disabled":
+          "var(--button-border-color-primary-disabled)",
+        // Links
         "link-color": "LinkText",
         "link-color-hover": "LinkText",
         "link-color-active": "ActiveText",
         "link-color-visited": "VisitedText",
         "icon-success-color": "var(--attention-dot-color)",
+        // Dismiss Button
         "dismiss-button-bg":
           "Menu linear-gradient(var(--arrowpanel-background), var(--arrowpanel-background))",
         "dismiss-button-bg-hover":
