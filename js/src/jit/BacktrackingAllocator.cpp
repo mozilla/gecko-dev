@@ -4612,43 +4612,6 @@ size_t BacktrackingAllocator::findFirstSafepoint(CodePosition pos,
   return i;
 }
 
-// Helper for ::populateSafepoints
-static inline bool IsNunbox(VirtualRegister& reg) {
-#ifdef JS_NUNBOX32
-  return reg.type() == LDefinition::TYPE || reg.type() == LDefinition::PAYLOAD;
-#else
-  return false;
-#endif
-}
-
-// Helper for ::populateSafepoints
-static inline bool IsSlotsOrElements(VirtualRegister& reg) {
-  return reg.type() == LDefinition::SLOTS;
-}
-
-// Helper for ::populateSafepoints
-static inline bool IsTraceable(VirtualRegister& reg) {
-  if (reg.type() == LDefinition::OBJECT ||
-      reg.type() == LDefinition::WASM_ANYREF) {
-    return true;
-  }
-#ifdef JS_PUNBOX64
-  if (reg.type() == LDefinition::BOX) {
-    return true;
-  }
-#endif
-  if (reg.type() == LDefinition::STACKRESULTS) {
-    MOZ_ASSERT(reg.def());
-    const LStackArea* alloc = reg.def()->output()->toStackArea();
-    for (auto iter = alloc->results(); iter; iter.next()) {
-      if (iter.isWasmAnyRef()) {
-        return true;
-      }
-    }
-  }
-  return false;
-}
-
 bool BacktrackingAllocator::populateSafepoints() {
   JitSpew(JitSpew_RegAlloc, "Populating Safepoints");
 
@@ -4661,8 +4624,7 @@ bool BacktrackingAllocator::populateSafepoints() {
   for (uint32_t i = 1; i < graph.numVirtualRegisters(); i++) {
     VirtualRegister& reg = vregs[i];
 
-    if (!reg.def() ||
-        (!IsTraceable(reg) && !IsSlotsOrElements(reg) && !IsNunbox(reg))) {
+    if (!reg.def() || !reg.def()->isSafepointGCType(reg.ins())) {
       continue;
     }
 
@@ -4711,53 +4673,8 @@ bool BacktrackingAllocator::populateSafepoints() {
           continue;
         }
 
-        switch (reg.type()) {
-          case LDefinition::OBJECT:
-            if (!safepoint->addGcPointer(a)) {
-              return false;
-            }
-            break;
-          case LDefinition::SLOTS:
-            if (!safepoint->addSlotsOrElementsPointer(a)) {
-              return false;
-            }
-            break;
-          case LDefinition::WASM_ANYREF:
-            if (!safepoint->addWasmAnyRef(a)) {
-              return false;
-            }
-            break;
-          case LDefinition::STACKRESULTS: {
-            MOZ_ASSERT(a.isStackArea());
-            for (auto iter = a.toStackArea()->results(); iter; iter.next()) {
-              if (iter.isWasmAnyRef()) {
-                if (!safepoint->addWasmAnyRef(iter.alloc())) {
-                  return false;
-                }
-              }
-            }
-            break;
-          }
-#ifdef JS_NUNBOX32
-          case LDefinition::TYPE:
-            if (!safepoint->addNunboxType(i, a)) {
-              return false;
-            }
-            break;
-          case LDefinition::PAYLOAD:
-            if (!safepoint->addNunboxPayload(i, a)) {
-              return false;
-            }
-            break;
-#else
-          case LDefinition::BOX:
-            if (!safepoint->addBoxedValue(a)) {
-              return false;
-            }
-            break;
-#endif
-          default:
-            MOZ_CRASH("Bad register type");
+        if (!safepoint->addGCAllocation(i, reg.def(), a)) {
+          return false;
         }
       }
     }

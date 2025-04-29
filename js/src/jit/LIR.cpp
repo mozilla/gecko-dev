@@ -681,6 +681,51 @@ void LInstruction::initSafepoint(TempAllocator& alloc) {
   MOZ_ASSERT(safepoint_);
 }
 
+bool LSafepoint::addGCAllocation(uint32_t vregId, LDefinition* def,
+                                 LAllocation a) {
+  switch (def->type()) {
+    case LDefinition::OBJECT:
+      return addGcPointer(a);
+
+    case LDefinition::SLOTS:
+      return addSlotsOrElementsPointer(a);
+
+    case LDefinition::WASM_ANYREF:
+      return addWasmAnyRef(a);
+
+#ifdef JS_NUNBOX32
+    case LDefinition::TYPE:
+      return addNunboxType(vregId, a);
+
+    case LDefinition::PAYLOAD:
+      return addNunboxPayload(vregId, a);
+#else
+    case LDefinition::BOX:
+      return addBoxedValue(a);
+#endif
+
+    case LDefinition::STACKRESULTS: {
+      MOZ_ASSERT(a.isStackArea());
+      for (auto iter = a.toStackArea()->results(); iter; iter.next()) {
+        if (iter.isWasmAnyRef()) {
+          if (!addWasmAnyRef(iter.alloc())) {
+            return false;
+          }
+        }
+      }
+      return true;
+    }
+
+    case LDefinition::GENERAL:
+    case LDefinition::INT32:
+    case LDefinition::FLOAT32:
+    case LDefinition::DOUBLE:
+    case LDefinition::SIMD128:
+      break;
+  }
+  MOZ_CRASH("Bad register type");
+}
+
 bool LMoveGroup::add(LAllocation from, LAllocation to, LDefinition::Type type) {
 #ifdef DEBUG
   MOZ_ASSERT(from != to);

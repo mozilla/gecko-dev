@@ -36,6 +36,7 @@ class LStackArea;
 class LArgument;
 class LConstantIndex;
 class LInstruction;
+class LNode;
 class LDefinition;
 class MBasicBlock;
 class MIRGenerator;
@@ -659,6 +660,11 @@ class LDefinition {
     MOZ_ASSERT(policy() == LDefinition::MUST_REUSE_INPUT);
     return output_.toConstantIndex()->index();
   }
+
+  // Returns true if this definition should be added to safepoints for GC
+  // tracing. This includes Value type tags on 32-bit and slots/elements
+  // pointers.
+  inline bool isSafepointGCType(LNode* ins) const;
 
   static inline Type TypeFrom(MIRType type) {
     switch (type) {
@@ -1899,6 +1905,9 @@ class LSafepoint : public TempObject {
 
 #endif  // JS_PUNBOX64
 
+  [[nodiscard]] bool addGCAllocation(uint32_t vregId, LDefinition* def,
+                                     LAllocation a);
+
   bool encoded() const { return safepointOffset_ != INVALID_SAFEPOINT_OFFSET; }
   uint32_t offset() const {
     MOZ_ASSERT(encoded());
@@ -1996,6 +2005,37 @@ class LInstruction::InputIterator {
 
   LAllocation* operator->() const { return **this; }
 };
+
+bool LDefinition::isSafepointGCType(LNode* ins) const {
+  switch (type()) {
+    case LDefinition::OBJECT:
+    case LDefinition::SLOTS:
+    case LDefinition::WASM_ANYREF:
+#ifdef JS_NUNBOX32
+    case LDefinition::TYPE:
+    case LDefinition::PAYLOAD:
+#else
+    case LDefinition::BOX:
+#endif
+      return true;
+    case LDefinition::STACKRESULTS: {
+      LStackArea alloc(ins->toInstruction());
+      for (auto iter = alloc.results(); iter; iter.next()) {
+        if (iter.isWasmAnyRef()) {
+          return true;
+        }
+      }
+      return false;
+    }
+    case LDefinition::GENERAL:
+    case LDefinition::INT32:
+    case LDefinition::FLOAT32:
+    case LDefinition::DOUBLE:
+    case LDefinition::SIMD128:
+      return false;
+  }
+  MOZ_CRASH("invalid type");
+}
 
 class LIRGraph {
   struct ValueHasher {
