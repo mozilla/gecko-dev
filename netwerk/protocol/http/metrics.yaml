@@ -628,6 +628,24 @@ network:
     telemetry_mirror: HTTP_SUB_TCP_CONNECTION_2
     expires: never
 
+  page_load_size:
+    type: labeled_memory_distribution
+    memory_unit: byte
+    labels:
+      - page
+      - subresources
+    description: >
+      The size of the HTTP response for a document load, keyed by
+      the page itself or the sum of subresources.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1960943
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1960943
+    notification_emails:
+      - necko@mozilla.com
+      - kershaw@mozilla.com
+    expires: never
+
   tls_early_data_negotiated:
     type: labeled_counter
     labels:

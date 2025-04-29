@@ -119,6 +119,8 @@ class nsLoadGroup : public nsILoadGroup,
   mozilla::TimeStamp mDefaultRequestCreationTime;
   uint32_t mTimedRequests{0};
   uint32_t mCachedRequests{0};
+  uint64_t mPageSize{0};
+  uint64_t mTotalSubresourcesSize{0};
 };
 
 }  // namespace net

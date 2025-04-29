@@ -15,6 +15,7 @@
 #include "mozilla/Logging.h"
 #include "nsString.h"
 #include "nsTArray.h"
+#include "nsIHttpChannel.h"
 #include "nsIHttpChannelInternal.h"
 #include "nsITimedChannel.h"
 #include "nsIInterfaceRequestor.h"
@@ -111,6 +112,14 @@ nsLoadGroup::~nsLoadGroup() {
   nsCOMPtr<nsIObserverService> os = mozilla::services::GetObserverService();
   if (os) {
     Unused << os->RemoveObserver(this, "last-pb-context-exited");
+  }
+
+  if (mPageSize) {
+    glean::network::page_load_size.Get("page"_ns).Accumulate(mPageSize);
+  }
+  if (mTotalSubresourcesSize) {
+    glean::network::page_load_size.Get("subresources"_ns)
+        .Accumulate(mTotalSubresourcesSize);
   }
 
   LOG(("LOADGROUP [%p]: Destroyed.\n", this));
@@ -532,6 +541,16 @@ nsLoadGroup::RemoveRequest(nsIRequest* request, nsISupports* ctxt,
   return NotifyRemovalObservers(request, aStatus);
 }
 
+static uint64_t GetTransferSize(nsITimedChannel* aTimedChannel) {
+  if (nsCOMPtr<nsIHttpChannel> channel = do_QueryInterface(aTimedChannel)) {
+    uint64_t size = 0;
+    Unused << channel->GetTransferSize(&size);
+    return size;
+  }
+
+  return 0;
+}
+
 nsresult nsLoadGroup::RemoveRequestFromHashtable(nsIRequest* request,
                                                  nsresult aStatus) {
   NS_ENSURE_ARG_POINTER(request);
@@ -583,6 +602,7 @@ nsresult nsLoadGroup::RemoveRequestFromHashtable(nsIRequest* request,
 
       if (request == mDefaultLoadRequest) {
         TelemetryReportChannel(timedChannel, true);
+        mPageSize = GetTransferSize(timedChannel);
       } else {
         rv = timedChannel->GetAsyncOpen(&timeStamp);
         if (NS_SUCCEEDED(rv) && !timeStamp.IsNull()) {
@@ -597,6 +617,7 @@ nsresult nsLoadGroup::RemoveRequestFromHashtable(nsIRequest* request,
         }
 
         TelemetryReportChannel(timedChannel, false);
+        mTotalSubresourcesSize += GetTransferSize(timedChannel);
       }
     }
   }

@@ -80,7 +80,7 @@ async function test_loadgroup_glean_http2(page, probes) {
 
   await server.registerPathHandler("/", (req, resp) => {
     resp.writeHead(200);
-    resp.end("done");
+    resp.end("a".repeat(100));
   });
   let chan = NetUtil.newChannel({
     uri: `https://localhost:${server.port()}`,
@@ -107,6 +107,16 @@ async function test_loadgroup_glean_http2(page, probes) {
     chan.asyncOpen(new ChannelListener(resolve, null, CL_ALLOW_UNKNOWN_CL));
   });
   loadGroup.removeRequest(chan, null, Cr.NS_OK);
+
+  loadGroup = null;
+
+  Cu.forceCC();
+  Cu.forceGC();
+
+  const result = page
+    ? network.pageLoadSize.page.testGetValue()
+    : network.pageLoadSize.subresources.testGetValue();
+  Assert.ok(result.sum > 100, "size should > 100");
 }
 
 add_task(async function test_loadgroup_glean_http2_page() {
