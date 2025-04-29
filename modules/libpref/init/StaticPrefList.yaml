@@ -18377,6 +18377,12 @@
   value: false
   mirror: always
 
+# Gtk clipboard timeout
+- name: widget.gtk.clipboard_timeout_ms
+  type: RelaxedAtomicUint32
+  value: 1000
+  mirror: always
+
 # Whether to use gtk high contrast themes to disable content styling like on
 # windows high contrast mode.
 - name: widget.content.gtk-high-contrast.enabled
