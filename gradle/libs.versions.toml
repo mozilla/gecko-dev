@@ -47,7 +47,7 @@ savedstate = "1.2.1"
 swiperefreshlayout = "1.1.0"
 transition = "1.6.0"
 viewpager2 = "1.1.0"
-work = "2.10.0"
+work = "2.10.1"
 
 # Google versions
 accompanist = "0.37.3"
