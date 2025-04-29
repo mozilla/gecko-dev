@@ -3751,11 +3751,15 @@ pref("toolkit.legacyUserProfileCustomizations.stylesheets", false);
   pref("datareporting.policy.dataSubmissionEnabled", true);
   pref("datareporting.policy.dataSubmissionPolicyNotifiedTime", "0");
   pref("datareporting.policy.dataSubmissionPolicyAcceptedVersion", 0);
-  pref("datareporting.policy.dataSubmissionPolicyBypassNotification", false);
   pref("datareporting.policy.currentPolicyVersion", 2);
   pref("datareporting.policy.minimumPolicyVersion", 1);
   pref("datareporting.policy.minimumPolicyVersion.channel-beta", 2);
   pref("datareporting.policy.firstRunURL", "https://www.mozilla.org/privacy/firefox/");
+  #ifdef MOZILLA_OFFICIAL
+    pref("datareporting.policy.dataSubmissionPolicyBypassNotification", false);
+  #else
+    pref("datareporting.policy.dataSubmissionPolicyBypassNotification", true);
+  #endif
 #endif
 
 #ifdef MOZ_SERVICES_HEALTHREPORT
