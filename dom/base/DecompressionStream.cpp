@@ -8,6 +8,7 @@
 
 #include "js/TypeDecls.h"
 #include "mozilla/Assertions.h"
+#include "mozilla/dom/BufferSourceBindingFwd.h"
 #include "mozilla/dom/BufferSourceBinding.h"
 #include "mozilla/dom/DecompressionStreamBinding.h"
 #include "mozilla/dom/ReadableStream.h"
