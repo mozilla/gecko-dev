@@ -413,6 +413,11 @@ class RegisterSet {
     return RegisterSet(GeneralRegisterSet::Not(in.gpr_),
                        FloatRegisterSet::Not(in.fpu_));
   }
+  static inline RegisterSet Subtract(const RegisterSet& lhs,
+                                     const RegisterSet& rhs) {
+    return RegisterSet(GeneralRegisterSet::Subtract(lhs.gpr_, rhs.gpr_),
+                       FloatRegisterSet::Subtract(lhs.fpu_, rhs.fpu_));
+  }
   static inline RegisterSet VolatileNot(const RegisterSet& in) {
     return RegisterSet(GeneralRegisterSet::VolatileNot(in.gpr_),
                        FloatRegisterSet::VolatileNot(in.fpu_));
