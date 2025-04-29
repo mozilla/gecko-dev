@@ -19,9 +19,10 @@ export var ObjectUtils = {
    * `JSON.stringify` is not designed to be used for this purpose; objects may
    * have ambiguous `toJSON()` implementations that would influence the test.
    *
-   * @param a (mixed) Object or value to be compared.
-   * @param b (mixed) Object or value to be compared.
-   * @return Boolean Whether the objects are deep equal.
+   * @param {any} a
+   *   Object or value to be compared.
+   * @param {any} b
+   *   Object or value to be compared.
    */
   deepEqual(a, b) {
     return _deepEqual(a, b);
@@ -30,6 +31,8 @@ export var ObjectUtils = {
   /**
    * Returns `true` if `obj` is an array without elements, an object without
    * enumerable properties, or a falsy primitive; `false` otherwise.
+   *
+   * @param {any} obj
    */
   isEmpty(obj) {
     if (!obj) {
@@ -53,6 +56,12 @@ export var ObjectUtils = {
 // Copyright (c) 2009 Thomas Robinson <280north.com>
 // MIT license: http://opensource.org/licenses/MIT
 
+/**
+ * Tests objects & values for deep equality.
+ *
+ * @param {any} a
+ * @param {any} b
+ */
 function _deepEqual(a, b) {
   // The numbering below refers to sections in the CommonJS spec.
 
@@ -103,18 +112,41 @@ function _deepEqual(a, b) {
   return objEquiv(a, b);
 }
 
+/**
+ * Tests to see if an object is a particular instance of the given type.
+ *
+ * @param {object} object
+ * @param {string} type
+ */
 function instanceOf(object, type) {
   return Object.prototype.toString.call(object) == "[object " + type + "]";
 }
 
+/**
+ * Checks is see if the value is undefined or null.
+ *
+ * @param {any} value
+ */
 function isUndefinedOrNull(value) {
   return value === null || value === undefined;
 }
 
+/**
+ * Checks to see if the object is an arguments object.
+ *
+ * @param {object} object
+ */
 function isArguments(object) {
   return instanceOf(object, "Arguments");
 }
 
+/**
+ * Compares objects for equivalence.
+ *
+ * @param {object} a
+ * @param {object} b
+ * @returns {boolean}
+ */
 function objEquiv(a, b) {
   if (isUndefinedOrNull(a) || isUndefinedOrNull(b)) {
     return false;
