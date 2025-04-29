@@ -422,9 +422,9 @@ class InputTestHelpers extends LitTestHelpers {
     await firstInput.updateComplete;
 
     is(
-      getSupportLink().parentElement.id,
+      getSupportLink().previousElementSibling.id,
       "description",
-      "Support link is rendered in the description if a description is present."
+      "Support link is rendered next to the description if a description is present."
     );
 
     let getSlottedSupportLink = () =>
@@ -468,9 +468,9 @@ class InputTestHelpers extends LitTestHelpers {
     await slottedDescriptionPresent;
 
     is(
-      getSlottedSupportLink().assignedSlot.parentElement.id,
+      getSlottedSupportLink().assignedSlot.previousElementSibling.id,
       "description",
-      "Support link is rendered in the slotted description if a slotted description is present."
+      "Support link is rendered next to the slotted description if a slotted description is present."
     );
   }
 

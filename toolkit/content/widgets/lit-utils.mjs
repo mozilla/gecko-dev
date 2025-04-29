@@ -411,13 +411,14 @@ export class MozBaseInputElement extends MozLitElement {
 
   descriptionTemplate() {
     return html`
-      <div id="description" class="description text-deemphasized">
-        ${this.description
-          ? html`<span class="description-text">${this.description}</span>`
-          : html`<slot
-              name="description"
-              @slotchange=${this.onSlotchange}
-            ></slot>`}${this.hasDescription ? this.supportLinkTemplate() : ""}
+      <div class="description text-deemphasized">
+        <span id="description" class="description-text">
+          ${this.description ??
+          html`<slot
+            name="description"
+            @slotchange=${this.onSlotchange}
+          ></slot>`}</span
+        >${this.hasDescription ? this.supportLinkTemplate() : ""}
       </div>
     `;
   }
