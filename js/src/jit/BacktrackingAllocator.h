@@ -667,6 +667,11 @@ using SplitPositionVector =
 class BacktrackingAllocator : protected RegisterAllocator {
   friend class JSONSpewer;
 
+  // Computed data
+  InstructionDataMap insData;
+  Vector<CodePosition, 12, SystemAllocPolicy> entryPositions;
+  Vector<CodePosition, 12, SystemAllocPolicy> exitPositions;
+
   // This flag is set when testing new allocator modifications.
   bool testbed;
 
@@ -752,6 +757,16 @@ class BacktrackingAllocator : protected RegisterAllocator {
   }
 
   uint32_t getNextBundleId() { return nextBundleId_++; }
+
+  CodePosition entryOf(const LBlock* block) {
+    return entryPositions[block->mir()->id()];
+  }
+  CodePosition exitOf(const LBlock* block) {
+    return exitPositions[block->mir()->id()];
+  }
+
+  // Atomic group helper.  See comments in BacktrackingAllocator.cpp.
+  CodePosition minimalDefEnd(LNode* ins) const;
 
   // Helpers for creating and adding MoveGroups
   [[nodiscard]] bool addMove(LMoveGroup* moves, LiveRange* from, LiveRange* to,

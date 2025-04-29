@@ -1389,7 +1389,7 @@ bool BacktrackingAllocator::isRegisterDefinition(LiveRange* range) {
 // [Further group definitions and supporting code to come, pending rework
 //  of the wasm atomic-group situation.]
 
-CodePosition RegisterAllocator::minimalDefEnd(LNode* ins) const {
+CodePosition BacktrackingAllocator::minimalDefEnd(LNode* ins) const {
   // Compute the shortest interval that captures vregs defined by ins.
   // Watch for instructions that are followed by an OSI point.
   // If moves are introduced between the instruction and the OSI point then
@@ -1588,8 +1588,35 @@ size_t BacktrackingAllocator::maximumSpillWeight(
 // This function pre-allocates and initializes as much global state as possible
 // to avoid littering the algorithms with memory management cruft.
 bool BacktrackingAllocator::init() {
-  if (!RegisterAllocator::init()) {
+  if (!insData.init(mir, graph.numInstructions())) {
     return false;
+  }
+
+  if (!entryPositions.reserve(graph.numBlocks()) ||
+      !exitPositions.reserve(graph.numBlocks())) {
+    return false;
+  }
+
+  for (size_t i = 0; i < graph.numBlocks(); i++) {
+    LBlock* block = graph.getBlock(i);
+    for (LInstructionIterator ins = block->begin(); ins != block->end();
+         ins++) {
+      insData[ins->id()] = *ins;
+    }
+    for (size_t j = 0; j < block->numPhis(); j++) {
+      LPhi* phi = block->getPhi(j);
+      insData[phi->id()] = phi;
+    }
+
+    CodePosition entry =
+        block->numPhis() != 0
+            ? CodePosition(block->getPhi(0)->id(), CodePosition::INPUT)
+            : inputOf(block->firstInstructionWithId());
+    CodePosition exit = outputOf(block->lastInstructionWithId());
+
+    MOZ_ASSERT(block->mir()->id() == i);
+    entryPositions.infallibleAppend(entry);
+    exitPositions.infallibleAppend(exit);
   }
 
   uint32_t numBlocks = graph.numBlockIds();

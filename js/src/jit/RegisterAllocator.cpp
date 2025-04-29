@@ -519,41 +519,6 @@ void AllocationIntegrityState::dump() {
 const CodePosition CodePosition::MAX(UINT_MAX);
 const CodePosition CodePosition::MIN(0);
 
-bool RegisterAllocator::init() {
-  if (!insData.init(mir, graph.numInstructions())) {
-    return false;
-  }
-
-  if (!entryPositions.reserve(graph.numBlocks()) ||
-      !exitPositions.reserve(graph.numBlocks())) {
-    return false;
-  }
-
-  for (size_t i = 0; i < graph.numBlocks(); i++) {
-    LBlock* block = graph.getBlock(i);
-    for (LInstructionIterator ins = block->begin(); ins != block->end();
-         ins++) {
-      insData[ins->id()] = *ins;
-    }
-    for (size_t j = 0; j < block->numPhis(); j++) {
-      LPhi* phi = block->getPhi(j);
-      insData[phi->id()] = phi;
-    }
-
-    CodePosition entry =
-        block->numPhis() != 0
-            ? CodePosition(block->getPhi(0)->id(), CodePosition::INPUT)
-            : inputOf(block->firstInstructionWithId());
-    CodePosition exit = outputOf(block->lastInstructionWithId());
-
-    MOZ_ASSERT(block->mir()->id() == i);
-    entryPositions.infallibleAppend(entry);
-    exitPositions.infallibleAppend(exit);
-  }
-
-  return true;
-}
-
 LMoveGroup* RegisterAllocator::getInputMoveGroup(LInstruction* ins) {
   MOZ_ASSERT(!ins->fixReuseMoves());
   if (ins->inputMoves()) {
