@@ -12,7 +12,6 @@ ChromeUtils.defineESModuleGetters(lazy, {
   ASRouterTargeting: "resource:///modules/asrouter/ASRouterTargeting.sys.mjs",
   ContentAnalysisUtils: "resource://gre/modules/ContentAnalysisUtils.sys.mjs",
   EveryWindow: "resource:///modules/EveryWindow.sys.mjs",
-  ExperimentAPI: "resource://nimbus/ExperimentAPI.sys.mjs",
   NimbusFeatures: "resource://nimbus/ExperimentAPI.sys.mjs",
   PrefUtils: "resource://normandy/lib/PrefUtils.sys.mjs",
 });
@@ -297,11 +296,7 @@ export const GenAI = {
     // Handle nimbus feature pref setting
     const featureId = "chatbot";
     lazy.NimbusFeatures[featureId].onUpdate(() => {
-      // Prefer experiments over rollouts
-      const feature = { featureId };
-      const enrollment =
-        lazy.ExperimentAPI.getExperimentMetaData(feature) ??
-        lazy.ExperimentAPI.getRolloutMetaData(feature);
+      const enrollment = lazy.NimbusFeatures[featureId].getEnrollmentMetadata();
       if (!enrollment) {
         return;
       }
@@ -321,7 +316,7 @@ export const GenAI = {
 
       // Set prefs on any branch if we have a new enrollment slug, otherwise
       // only set default branch as those only last for the session
-      const slug = enrollment.slug + ":" + enrollment.branch.slug;
+      const slug = enrollment.slug + ":" + enrollment.branch;
       const anyBranch = slug != lazy.chatNimbus;
       const setPref = ([pref, { branch = "user", value = null }]) => {
         if (anyBranch || branch == "default") {
