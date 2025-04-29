@@ -9,6 +9,7 @@
 #include "mozilla/SVGObserverUtils.h"
 #include "mozilla/dom/Document.h"
 #include "mozilla/dom/BindContext.h"
+#include "mozilla/dom/FetchPriority.h"
 #include "mozilla/dom/SVGFEImageElementBinding.h"
 #include "mozilla/dom/SVGFilterElement.h"
 #include "mozilla/dom/UserActivation.h"
@@ -105,10 +106,15 @@ bool SVGFEImageElement::ParseAttribute(int32_t aNamespaceID, nsAtom* aAttribute,
                                        const nsAString& aValue,
                                        nsIPrincipal* aMaybeScriptedPrincipal,
                                        nsAttrValue& aResult) {
-  if (aNamespaceID == kNameSpaceID_None &&
-      aAttribute == nsGkAtoms::crossorigin) {
-    ParseCORSValue(aValue, aResult);
-    return true;
+  if (aNamespaceID == kNameSpaceID_None) {
+    if (aAttribute == nsGkAtoms::crossorigin) {
+      ParseCORSValue(aValue, aResult);
+      return true;
+    }
+    if (aAttribute == nsGkAtoms::fetchpriority) {
+      ParseFetchPriority(aValue, aResult);
+      return true;
+    }
   }
   return SVGFEImageElementBase::ParseAttribute(
       aNamespaceID, aAttribute, aValue, aMaybeScriptedPrincipal, aResult);
@@ -202,6 +208,11 @@ already_AddRefed<DOMSVGAnimatedString> SVGFEImageElement::Href() {
 
 CORSMode SVGFEImageElement::GetCORSMode() {
   return AttrValueToCORSMode(GetParsedAttr(nsGkAtoms::crossorigin));
+}
+
+void SVGFEImageElement::GetFetchPriority(nsAString& aFetchPriority) const {
+  GetEnumAttr(nsGkAtoms::fetchpriority, kFetchPriorityAttributeValueAuto,
+              aFetchPriority);
 }
 
 //----------------------------------------------------------------------

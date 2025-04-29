@@ -13,6 +13,7 @@
 #include "nsNetUtil.h"
 #include "imgINotificationObserver.h"
 #include "mozilla/dom/Document.h"
+#include "mozilla/dom/FetchPriority.h"
 #include "mozilla/dom/SVGImageElementBinding.h"
 #include "mozilla/dom/SVGLengthBinding.h"
 #include "mozilla/dom/UserActivation.h"
@@ -181,6 +182,11 @@ CORSMode SVGImageElement::GetCORSMode() {
   return AttrValueToCORSMode(GetParsedAttr(nsGkAtoms::crossorigin));
 }
 
+void SVGImageElement::GetFetchPriority(nsAString& aFetchPriority) const {
+  GetEnumAttr(nsGkAtoms::fetchpriority, kFetchPriorityAttributeValueAuto,
+              aFetchPriority);
+}
+
 //----------------------------------------------------------------------
 // nsIContent methods:
 
@@ -196,6 +202,10 @@ bool SVGImageElement::ParseAttribute(int32_t aNamespaceID, nsAtom* aAttribute,
     if (aAttribute == nsGkAtoms::decoding) {
       return aResult.ParseEnumValue(aValue, kDecodingTable, false,
                                     kDecodingTableDefault);
+    }
+    if (aAttribute == nsGkAtoms::fetchpriority) {
+      ParseFetchPriority(aValue, aResult);
+      return true;
     }
   }
 
