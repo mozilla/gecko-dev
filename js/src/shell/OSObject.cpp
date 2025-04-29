@@ -120,6 +120,7 @@ static UniqueChars DirectoryName(JSContext* cx, const char* path) {
   char dirName[PATH_MAX + 1];
   strncpy(dirName, narrowPath.get(), PATH_MAX);
   if (dirName[PATH_MAX - 1] != '\0') {
+    JS_ReportErrorASCII(cx, "Path is too long");
     return nullptr;
   }
 
