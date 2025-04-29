@@ -1156,15 +1156,6 @@ class JSLinearString : public JSString {
     return mozilla::Range<const char16_t>(twoByteChars(nogc), length());
   }
 
-  template <typename CharT>
-  mozilla::Range<const CharT> range(const JS::AutoRequireNoGC& nogc) const {
-    if constexpr (std::is_same_v<CharT, JS::Latin1Char>) {
-      return latin1Range(nogc);
-    } else {
-      return twoByteRange(nogc);
-    }
-  }
-
   MOZ_ALWAYS_INLINE
   char16_t latin1OrTwoByteChar(size_t index) const {
     MOZ_ASSERT(JSString::isLinear());
@@ -1236,22 +1227,6 @@ class JSLinearString : public JSString {
   // to the tenured heap and may still point to nursery-allocated chars.
   template <typename CharT>
   inline size_t maybeMallocCharsOnPromotion(js::Nursery* nursery);
-
-  // Handle an edge case where a dependent chain N1 -> T2 -> N3 cannot handle N3
-  // moving its chars (or more specifically, updating N1 to the new chars.) When
-  // this is detected, convert N1 to a regular string with its own storage.
-  //
-  // It is currently unknown whether it is possible to trigger this case outside
-  // of testing code.
-  template <typename CharT>
-  static size_t maybeCloneCharsOnPromotionTyped(JSLinearString* str);
-
-  static size_t maybeCloneCharsOnPromotion(JSLinearString* str) {
-    if (str->hasLatin1Chars()) {
-      return maybeCloneCharsOnPromotionTyped<JS::Latin1Char>(str);
-    }
-    return maybeCloneCharsOnPromotionTyped<char16_t>(str);
-  }
 
   inline void finalize(JS::GCContext* gcx);
   inline size_t allocSize() const;
@@ -2578,12 +2553,13 @@ class StringRelocationOverlay : public RelocationOverlay {
     // overlay, or it is not yet forwarded and is simply the (nursery) base
     // string.
     JSLinearString* nurseryBaseOrRelocOverlay;
-
-    // For ropes. Present only to simplify the generated code.
-    JSString* unusedLeftChild;
   };
 
  public:
+  explicit StringRelocationOverlay(Cell* dst) : RelocationOverlay(dst) {
+    static_assert(sizeof(JSString) >= sizeof(StringRelocationOverlay));
+  }
+
   StringRelocationOverlay(Cell* dst, const JS::Latin1Char* chars)
       : RelocationOverlay(dst), nurseryCharsLatin1(chars) {}
 
@@ -2592,9 +2568,6 @@ class StringRelocationOverlay : public RelocationOverlay {
 
   StringRelocationOverlay(Cell* dst, JSLinearString* origBase)
       : RelocationOverlay(dst), nurseryBaseOrRelocOverlay(origBase) {}
-
-  StringRelocationOverlay(Cell* dst, JSString* origLeftChild)
-      : RelocationOverlay(dst), unusedLeftChild(origLeftChild) {}
 
   static const StringRelocationOverlay* fromCell(const Cell* cell) {
     return static_cast<const StringRelocationOverlay*>(cell);
@@ -2642,36 +2615,30 @@ class StringRelocationOverlay : public RelocationOverlay {
   inline static StringRelocationOverlay* forwardDependentString(JSString* src,
                                                                 Cell* dst);
 
-  // Usually only called on non-dependent strings, except for the case where a
-  // dependent string is converted to a linear string.
+  // Callable only on non-dependent strings.
   static StringRelocationOverlay* forwardString(JSString* src, Cell* dst) {
     MOZ_ASSERT(!src->isForwarded());
     MOZ_ASSERT(!dst->isForwarded());
+    MOZ_ASSERT(!src->isDependent());
 
     JS::AutoCheckCannotGC nogc;
 
-    // Initialize the overlay for a non-dependent string (that could be the root
-    // base of other strings), remember nursery non-inlined chars.
+    // Initialize the overlay for a non-dependent string (that could be the
+    // root base of other strings), remember nursery non-inlined chars.
     //
-    // Note that this will store the chars pointer even when it is known that it
-    // will never be used (!canOwnDependentChar()), or a left child pointer of
-    // a rope that will never get used, in order to simplify the generated code
-    // to do an unconditional store.
-    //
-    // All of these compile down to
-    //    header_.value_ = dst | 1; /* offset 0 */
-    //    StringRelocationOverlay.union = d.s.u2; /* offset 16 <- offset 8 */
-    if (src->isLinear()) {
+    // FIXME: Would it be better to remove this canOwnDependentChars branch
+    // and unconditionally store a useless pointer here? Or does all of this
+    // compile out to nothing anyway?
+    if (src->canOwnDependentChars()) {
       if (src->hasTwoByteChars()) {
         auto* nurseryCharsTwoByte = src->asLinear().twoByteChars(nogc);
         return new (src) StringRelocationOverlay(dst, nurseryCharsTwoByte);
       }
       auto* nurseryCharsLatin1 = src->asLinear().latin1Chars(nogc);
       return new (src) StringRelocationOverlay(dst, nurseryCharsLatin1);
-    } else {
-      return new (src) StringRelocationOverlay(
-          dst, dst->as<JSString>()->asRope().leftChild());
     }
+
+    return new (src) StringRelocationOverlay(dst);
   }
 };
 

@@ -945,21 +945,14 @@ JSString* js::gc::TenuringTracer::promoteString(JSString* src) {
 
     dst = allocString(src, zone, dstKind);
 
-    // In some situations, a string may be converted to a different type when
-    // tenured. Currently, this only happens when a dependent string's chain of
-    // base strings makes it impossible to recover its data, in which case it
-    // will get converted to a regular linear string. In order to avoid
-    // rehashing and some complexity, do not deduplicate to such strings.
-    if (dst->flags() == src->flags()) {
-      using DedupHasher [[maybe_unused]] = DeduplicationStringHasher<JSString*>;
-      MOZ_ASSERT(DedupHasher::hash(src) == DedupHasher::hash(dst),
-                 "src and dst must have the same hash for lookupForAdd");
+    using DedupHasher [[maybe_unused]] = DeduplicationStringHasher<JSString*>;
+    MOZ_ASSERT(DedupHasher::hash(src) == DedupHasher::hash(dst),
+               "src and dst must have the same hash for lookupForAdd");
 
-      if (!stringDeDupSet->add(p, dst)) {
-        // When there is oom caused by the stringDeDupSet, stop deduplicating
-        // strings.
-        stringDeDupSet.reset();
-      }
+    if (!stringDeDupSet->add(p, dst)) {
+      // When there is oom caused by the stringDeDupSet, stop deduplicating
+      // strings.
+      stringDeDupSet.reset();
     }
   } else {
     dst = allocString(src, zone, dstKind);
@@ -1082,17 +1075,6 @@ size_t js::gc::TenuringTracer::moveString(JSString* dst, JSString* src,
   // Copy the Cell contents.
   MOZ_ASSERT(OffsetToChunkEnd(src) >= size);
   js_memcpy(dst, src, size);
-
-  if (src->isDependent()) {
-    // Special case: if src is a dependent string whose base chain goes through
-    // tenured space, then it may point to dead chars -- either because its root
-    // base was deduplicated, or its root base's chars were allocated in the
-    // nursery. If src's chars pointer will no longer be valid once minor GC is
-    // complete, give it its own copy of the chars.
-    size_t cloned =
-        JSLinearString::maybeCloneCharsOnPromotion(&dst->asDependent());
-    return size + cloned;
-  }
 
   if (!src->hasOutOfLineChars()) {
     return size;
