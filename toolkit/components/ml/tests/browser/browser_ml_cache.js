@@ -1093,7 +1093,10 @@ add_task(async function test_listFiles() {
     headers,
   });
 
-  const files = await cache.listFiles({ model: "org/model", revision: "v1" });
+  const { files } = await cache.listFiles({
+    model: "org/model",
+    revision: "v1",
+  });
   const expected = [
     {
       path: "file.txt",
@@ -1104,6 +1107,7 @@ add_task(async function test_listFiles() {
         lastUsed: when1,
         lastUpdated: when1,
       },
+      engineIds: [],
     },
     {
       path: "file2.txt",
@@ -1114,6 +1118,7 @@ add_task(async function test_listFiles() {
         lastUsed: when2,
         lastUpdated: when2,
       },
+      engineIds: [],
     },
     {
       path: "sub/file3.txt",
@@ -1125,6 +1130,7 @@ add_task(async function test_listFiles() {
         lastUsed: when3,
         lastUpdated: when3,
       },
+      engineIds: [],
     },
   ];
 
@@ -1172,7 +1178,7 @@ add_task(async function test_listFilesUsingTaskName() {
     headers,
   });
 
-  const files = await cache.listFiles({ taskName });
+  const { files } = await cache.listFiles({ taskName });
   const expected = [
     {
       path: "file.txt",
@@ -1183,6 +1189,7 @@ add_task(async function test_listFilesUsingTaskName() {
         lastUsed: when1,
         lastUpdated: when1,
       },
+      engineIds: [],
     },
     {
       path: "file2.txt",
@@ -1193,6 +1200,7 @@ add_task(async function test_listFilesUsingTaskName() {
         lastUsed: when2,
         lastUpdated: when2,
       },
+      engineIds: [],
     },
     {
       path: "sub/file3.txt",
@@ -1204,6 +1212,7 @@ add_task(async function test_listFilesUsingTaskName() {
         lastUsed: when3,
         lastUpdated: when3,
       },
+      engineIds: [],
     },
   ];
 
@@ -1252,7 +1261,7 @@ add_task(async function test_listFilesUsingNonExistingTaskName() {
     }),
   ]);
 
-  const files = await cache.listFiles({ taskName: "non-existing-task" });
+  const { files } = await cache.listFiles({ taskName: "non-existing-task" });
 
   Assert.deepEqual(files, []);
 
@@ -1322,11 +1331,12 @@ add_task(async function test_initDbFromExistingEmpty() {
         lastUsed: when,
         lastUpdated: when,
       },
+      engineIds: [],
     },
   ];
 
   // Ensure every table & indices is on so that we can list files
-  const files = await cache.listFiles({ taskName });
+  const { files } = await cache.listFiles({ taskName });
   Assert.deepEqual(files, expected);
 
   await deleteCache(cache);
@@ -1369,7 +1379,7 @@ add_task(async function test_initDbFromExistingNoChange() {
   Assert.equal(cache.db.version, 2);
 
   // Ensure tables are all empty.
-  const files = await cache.listFiles({ taskName });
+  const { files } = await cache.listFiles({ taskName });
 
   Assert.deepEqual(files, []);
 
@@ -1422,11 +1432,12 @@ add_task(async function test_initDbFromExistingElseWhereStoreChanges() {
         lastUpdated: when,
         lastUsed: when,
       },
+      engineIds: [],
     },
   ];
 
   // Ensure every table & indices is on so that we can list files
-  const files = await cache2.listFiles({ taskName });
+  const { files } = await cache2.listFiles({ taskName });
   Assert.deepEqual(files, expected);
 
   await deleteCache(cache2);
@@ -1750,25 +1761,17 @@ add_task(async function test_migrateStore_modelsDeleted() {
   cache = await IndexedDBCache.init({ dbName, version: 5 });
 
   // Verify all unknown model data is deleted
-  let remainingFiles = await cache.listFiles({
+  const { files: random } = await cache.listFiles({
     model: "random/model",
     revision: "v1",
   });
-  Assert.deepEqual(
-    remainingFiles,
-    [],
-    "All unknown model files should be deleted."
-  );
+  Assert.deepEqual(random, [], "All unknown model files should be deleted.");
 
-  remainingFiles = await cache.listFiles({
+  const { files: unknown } = await cache.listFiles({
     model: "unknown/model",
     revision: "v2",
   });
-  Assert.deepEqual(
-    remainingFiles,
-    [],
-    "All unknown model files should be deleted."
-  );
+  Assert.deepEqual(unknown, [], "All unknown model files should be deleted.");
 
   await deleteCache(cache);
 });

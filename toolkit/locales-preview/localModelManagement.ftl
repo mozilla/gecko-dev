@@ -15,4 +15,8 @@ mlmodel-description =
 
   They process your queries on your device, meaning they are more private than online AI providers, but sometimes slower depending on the performance of your device. <a data-l10n-name="learn-more">Learn more</a>
 
-addon-detail-file-size-label = File size
+# Label for button that when clicked removed local model
+mlmodel-remove-addon-button =
+  .aria-label = Remove
+# Label for the aggregated value of all files for a model
+mlmodel-addon-detail-totalsize-label = File size

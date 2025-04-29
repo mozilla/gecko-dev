@@ -1090,69 +1090,112 @@ class IndexedDBCache {
   }
 
   /**
-   * Lists all files for a given model and revision stored in the cache.
+   * Lists all files for a given model and revision stored in the cache,
+   * and aggregates metadata from the file headers.
    *
-   * @param {object} config
-   * @param {?string} config.model - The model name (organization/name).
+   * When a `taskName` is provided, the method retrieves all model/revision
+   * pairs associated with that task; otherwise, it uses the provided `model`
+   * and `revision`. It then queries the store to retrieve file information (path
+   * and headers) and aggregates metadata (totalSize, lastUsed, updateDate, engineIds)
+   * across all files.
+   *
+   * @param {object} config - The configuration for querying the files.
+   * @param {?string} config.model - The model name (in "organization/name" format).
    * @param {?string} config.revision - The model version.
-   * @param {?string} config.taskName - name of the inference :wtask.
-   * @returns {Promise<Array<{path:string, headers: object}>>} An array of file identifiers.
+   * @param {?string} config.taskName - The name of the inference task.
+   * @returns {Promise<{
+   *   files: Array<{ path: string, headers: object, engineIds: Array<string> }>,
+   *   metadata: { totalSize: number, lastUsed: number, updateDate: number, engineIds: Array<string> }
+   * }>} An object containing:
+   *   - files: an array of file records with their path, headers, and engine IDs.
+   *   - metadata: aggregated metadata computed from all the files.
    */
   async listFiles({ taskName, model, revision }) {
-    // When not providing taskName, we want model and revision
+    // When not providing taskName, both model and revision must be defined.
     if (!taskName && (!model || !revision)) {
       throw new Error("Both model and revision must be defined");
     }
 
+    // Determine which model/revision pairs we want files for.
     let modelRevisions = [{ model, revision }];
     if (taskName) {
-      // Get all model/revision associated to this task.
-      const data = await this.#getKeys({
+      // Get all model/revision pairs associated with this task.
+      const keysData = await this.#getKeys({
         storeName: this.taskStoreName,
         ...this.#getFileQuery({ taskName, model, revision }),
       });
-
-      modelRevisions = [];
-      for (const { key } of data) {
-        modelRevisions.push({ model: key[1], revision: key[2] });
-      }
+      modelRevisions = keysData.map(({ key }) => ({
+        model: key[1],
+        revision: key[2],
+      }));
     }
 
-    const filePromises = [];
+    // For each model/revision, query for headers data.
+    const fileDataPromises = modelRevisions.map(task =>
+      this.#getData({
+        storeName: this.headersStoreName,
+        indexName: this.#indices.modelRevisionIndex.name,
+        key: [task.model, task.revision],
+      })
+    );
+    const fileData = (await Promise.all(fileDataPromises)).flat();
 
-    for (const task of modelRevisions) {
-      filePromises.push(
-        this.#getData({
-          storeName: this.headersStoreName,
-          indexName: this.#indices.modelRevisionIndex.name,
-          key: [task.model, task.revision],
-        })
-      );
-    }
+    // Initialize aggregated metadata.
+    let totalFileSize = 0;
+    let aggregatedLastUsed = 0;
+    let aggregatedUpdateDate = 0;
+    let aggregatedEngineIds = [];
 
-    const data = (await Promise.all(filePromises)).flat();
-
+    // Process each file entry.
     const files = [];
-    for (const { file: path, headers } of data) {
-      files.push({ path, headers });
+    for (const { file: path, headers } of fileData) {
+      // Aggregate metadata.
+      totalFileSize += headers.fileSize;
+      aggregatedLastUsed = Math.max(aggregatedLastUsed, headers.lastUsed);
+      aggregatedUpdateDate = Math.max(
+        aggregatedUpdateDate,
+        headers.lastUpdated
+      );
+      if (headers.engineIds && headers.engineIds.length) {
+        aggregatedEngineIds = headers.engineIds;
+      }
+      files.push({ path, headers, engineIds: headers.engineIds || [] });
     }
 
-    return files;
+    return {
+      files,
+      metadata: {
+        totalSize: totalFileSize,
+        lastUsed: aggregatedLastUsed,
+        updateDate: aggregatedUpdateDate,
+        engineIds: aggregatedEngineIds,
+      },
+    };
   }
 
   /**
    * Lists all models stored in the cache.
    *
-   * @returns {Promise<Array<{name:string, revision:string}>>} An array of model identifiers.
+   * @returns {Promise<Array<{name: string, revision: string}>>}
+   *          An array of model identifiers.
    */
   async listModels() {
+    // Get all keys (model/revision pairs) from the underlying store.
     const modelRevisions = await this.#getKeys({
       storeName: this.taskStoreName,
       indexName: this.#indices.modelRevisionIndex.name,
     });
+
     const models = [];
+    // Process each key entry.
     for (const { key } of modelRevisions) {
-      models.push({ name: key[0], revision: key[1] });
+      const model = key[0];
+      const revision = key[1];
+
+      models.push({
+        name: model,
+        revision,
+      });
     }
     return models;
   }

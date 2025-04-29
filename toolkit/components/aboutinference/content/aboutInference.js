@@ -388,7 +388,7 @@ async function updateModels() {
   for (const { name: model, revision } of models) {
     const icon = await hub.getOwnerIcon(model);
 
-    let files = await hub.listFiles({ model, revision });
+    let { files } = await hub.listFiles({ model, revision });
 
     // Create a new table for the current model
     let table = document.createElement("table");
