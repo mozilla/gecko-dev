@@ -150,8 +150,11 @@ bool AllocationIntegrityState::check() {
 
       LSafepoint* safepoint = ins->safepoint();
       if (safepoint) {
-        // Call instructions have an empty liveRegs set.
+        // Call instructions have empty liveRegs/clobberedRegs sets.
         MOZ_ASSERT_IF(ins->isCall(), safepoint->liveRegs().empty());
+#  ifdef CHECK_OSIPOINT_REGISTERS
+        MOZ_ASSERT_IF(ins->isCall(), safepoint->clobberedRegs().empty());
+#  endif
 
         // Temps are included in safepoints.
         for (LInstruction::TempIter temp(ins); !temp.done(); temp++) {

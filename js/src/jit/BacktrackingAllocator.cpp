@@ -4446,18 +4446,21 @@ void BacktrackingAllocator::addLiveRegistersForRange(
 
   // Don't add output registers to the safepoint.
   CodePosition start = range->from();
-  if (range->hasDefinition() && !reg.isTemp()) {
+  if (range->hasDefinition()) {
 #ifdef CHECK_OSIPOINT_REGISTERS
-    // We don't add the output register to the safepoint,
-    // but it still might get added as one of the inputs.
-    // So eagerly add this reg to the safepoint clobbered registers.
-    if (reg.ins()->isInstruction()) {
+    // Add output and temp registers to the safepoint's clobberedRegs.
+    // Note: the outputs aren't added to the safepoint's liveRegs here, but the
+    // same register might still be added to liveRegs for one of the inputs, so
+    // we have to add outputs to clobberedRegs here.
+    if (reg.ins()->isInstruction() && !reg.ins()->isCall()) {
       if (LSafepoint* safepoint = reg.ins()->toInstruction()->safepoint()) {
         safepoint->addClobberedRegister(a.toAnyRegister());
       }
     }
 #endif
-    start = start.next();
+    if (!reg.isTemp()) {
+      start = start.next();
+    }
   }
 
   *firstNonCallSafepoint =
@@ -4478,12 +4481,6 @@ void BacktrackingAllocator::addLiveRegistersForRange(
 
     LSafepoint* safepoint = ins->safepoint();
     safepoint->addLiveRegister(a.toAnyRegister());
-
-#ifdef CHECK_OSIPOINT_REGISTERS
-    if (reg.isTemp()) {
-      safepoint->addClobberedRegister(a.toAnyRegister());
-    }
-#endif
   }
 }
 
