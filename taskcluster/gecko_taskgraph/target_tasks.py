@@ -780,6 +780,9 @@ def target_tasks_custom_car_perf_testing(full_task_graph, parameters, graph_conf
                     and "ebay-kleinanzeigen-search" not in try_name
                 ):
                     return False
+                # Bug 1960921 Disable ebay-kleinanzeigen-search-nofis on custom-car
+                if "ebay-kleinanzeigen-search-nofis" in try_name:
+                    return False
                 return True
         return False
 
