@@ -85,25 +85,11 @@ VCS Integrations
 
 .. _lint-vcs-hook:
 
-Using a Git or Mercurial Hook
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Using a Git Hook
+~~~~~~~~~~~~~~~~
 
 There are also both pre-commit and pre-push version control hooks that work in
-either hg or git. To enable a pre-push hg hook, add the following to hgrc:
-
-.. code-block:: ini
-
-    [hooks]
-    pre-push.lint = python:./tools/lint/hooks.py:hg
-
-
-To enable a pre-commit hg hook, add the following to hgrc:
-
-.. code-block:: ini
-
-    [hooks]
-    pretxncommit.lint = python:./tools/lint/hooks.py:hg
-
+git.
 
 To enable a pre-push git hook, run the following command:
 

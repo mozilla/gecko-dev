@@ -80,9 +80,7 @@ Working on a patch
 
 Changes to the Firefox source code are presented in the form of a patch.
 A patch is a commit to version control. Firefox and related code is
-stored in our `Mercurial
-server <https://hg.mozilla.org/mozilla-central>`__. We have extensive
-documentation on using Mercurial in our guide, :ref:`Firefox Contributors' Quick Reference`.
+stored in our `git repository <https://github.com/mozilla-firefox/firefox>`__.
 
 Each patch should represent a single complete change, separating
 distinct changes into multiple individual patches. If your change

@@ -37,32 +37,6 @@ Once done, finalize the installation in your terminal:
     sudo xcode-select --switch /Applications/Xcode.app
     sudo xcodebuild -license
 
-1.3 Install Mercurial
-~~~~~~~~~~~~~~~~~~~~~
-
-Mozilla's source code is hosted in Mercurial repositories. You will
-need Mercurial to download and update the code. Additionally, we'll
-put user-wide python package installations on the ``$PATH``, so that
-both ``hg`` and ``moz-phab`` will be easily accessible:
-
-.. code-block:: shell
-
-    echo 'export PATH="'"$(python3 -m site --user-base)"'/bin:$PATH"' >> ~/.zshenv
-    python3 -m pip install --user mercurial
-
-Now, restart your shell so that the ``PATH`` change took effect.
-You can test that Mercurial is installed by running:
-
-.. code-block:: shell
-
-    hg version
-
-.. note::
-
-    If you're using a shell other than ``zsh``, you'll need to manually add Python's
-    ``bin`` directory to your ``PATH``, as your shell probably won't pick up our
-    changes in ``~/.zshenv``.
-
 2. Bootstrap a copy of the Firefox source code
 ----------------------------------------------
 
@@ -74,12 +48,7 @@ the interactive setup process.
 .. code-block:: shell
 
     curl -L https://hg.mozilla.org/mozilla-central/raw-file/default/python/mozboot/bin/bootstrap.py -O
-
-    # To use Git as your VCS
     python3 bootstrap.py --vcs=git
-
-    # To use Mercurial as your VCS
-    python3 bootstrap.py
 
 .. note::
 
@@ -107,7 +76,7 @@ Now that your system is bootstrapped, you should be able to build!
 .. code-block:: shell
 
     cd mozilla-unified
-    hg up -C central
+    git pull
     ./mach build
 
 🎉 Congratulations! You've built your own home-grown Firefox!
