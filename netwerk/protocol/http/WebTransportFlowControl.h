@@ -194,6 +194,67 @@ class ReceiverFlowControlBase {
   bool mCapsulePending = false;
 };
 
+class ReceiverFlowControlStreamId : public ReceiverFlowControlBase {
+ public:
+  ReceiverFlowControlStreamId(StreamId aId, uint64_t aMax)
+      : ReceiverFlowControlBase(aMax), mId(aId) {}
+
+  Maybe<CapsuleEncoder> CreateMaxStreamDataCapsule();
+
+  Result<uint64_t, nsresult> SetConsumed(uint64_t aConsumed) {
+    if (aConsumed <= mConsumed) {
+      return 0;
+    }
+
+    if (aConsumed > mMaxAllowed) {
+      return Err(NS_ERROR_NOT_AVAILABLE);
+    }
+
+    uint64_t newConsumed = aConsumed - mConsumed;
+    mConsumed = aConsumed;
+    return newConsumed;
+  }
+
+  void AddRetired(uint64_t aCount) {
+    MOZ_ASSERT(mRetired + aCount <= mConsumed);
+
+    mRetired += aCount;
+    if (mRetired + mMaxActive / 2 > mMaxAllowed) {
+      mCapsulePending = true;
+    }
+  }
+
+ private:
+  StreamId mId;
+};
+
+class ReceiverFlowControlSession : public ReceiverFlowControlBase {
+ public:
+  explicit ReceiverFlowControlSession(uint64_t aMax)
+      : ReceiverFlowControlBase(aMax) {}
+
+  Maybe<CapsuleEncoder> CreateMaxDataCapsule();
+
+  // Return false when exceeding the flow control limit.
+  bool Consume(uint64_t aCount) {
+    if (mConsumed + aCount > mMaxAllowed) {
+      return false;
+    }
+
+    mConsumed += aCount;
+    return true;
+  }
+
+  void AddRetired(uint64_t aCount) {
+    MOZ_ASSERT(mRetired + aCount <= mConsumed);
+
+    mRetired += aCount;
+    if (mRetired + mMaxActive / 2 > mMaxAllowed) {
+      mCapsulePending = true;
+    }
+  }
+};
+
 class ReceiverFlowControlStreamType : public ReceiverFlowControlBase {
  public:
   ReceiverFlowControlStreamType(WebTransportStreamType aStreamType,

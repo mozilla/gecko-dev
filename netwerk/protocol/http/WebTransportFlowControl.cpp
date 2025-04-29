@@ -64,4 +64,31 @@ Maybe<CapsuleEncoder> ReceiverFlowControlStreamType::CreateMaxStreamsCapsule() {
   return Some(encoder);
 }
 
+Maybe<CapsuleEncoder>
+ReceiverFlowControlStreamId::CreateMaxStreamDataCapsule() {
+  if (!CapsuleNeeded()) {
+    return Nothing();
+  }
+
+  uint64_t maxAllowed = NextLimit();
+  Capsule capsule = Capsule::WebTransportMaxStreamData(maxAllowed, mId);
+  CapsuleEncoder encoder;
+  encoder.EncodeCapsule(capsule);
+  CapsuleSent(maxAllowed);
+  return Some(encoder);
+}
+
+Maybe<CapsuleEncoder> ReceiverFlowControlSession::CreateMaxDataCapsule() {
+  if (!CapsuleNeeded()) {
+    return Nothing();
+  }
+
+  uint64_t maxAllowed = NextLimit();
+  Capsule capsule = Capsule::WebTransportMaxData(maxAllowed);
+  CapsuleEncoder encoder;
+  encoder.EncodeCapsule(capsule);
+  CapsuleSent(maxAllowed);
+  return Some(encoder);
+}
+
 }  // namespace mozilla::net

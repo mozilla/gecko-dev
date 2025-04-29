@@ -20,7 +20,7 @@ NS_IMPL_ISUPPORTS(Http2WebTransportStream, nsIOutputStreamCallback,
 
 Http2WebTransportStream::Http2WebTransportStream(
     Http2WebTransportSessionImpl* aWebTransportSession, StreamId aStreamId,
-    uint64_t aInitialMaxStreamData,
+    uint64_t aInitialMaxStreamData, uint64_t aInitialLocalMaxStreamData,
     std::function<void(Result<RefPtr<WebTransportStreamBase>, nsresult>&&)>&&
         aCallback)
     : WebTransportStreamBase(aWebTransportSession->GetStreamId(),
@@ -28,7 +28,8 @@ Http2WebTransportStream::Http2WebTransportStream(
       mWebTransportSession(aWebTransportSession),
       mStreamId(aStreamId),
       mOwnerThread(GetCurrentSerialEventTarget()),
-      mFc(aStreamId, aInitialMaxStreamData) {
+      mFc(aStreamId, aInitialMaxStreamData),
+      mReceiverFc(aStreamId, aInitialLocalMaxStreamData) {
   LOG(("Http2WebTransportStream outgoing ctor:%p", this));
   mStreamRole = OUTGOING;
   mStreamType = mStreamId.StreamType();
@@ -36,12 +37,14 @@ Http2WebTransportStream::Http2WebTransportStream(
 
 Http2WebTransportStream::Http2WebTransportStream(
     Http2WebTransportSessionImpl* aWebTransportSession,
-    uint64_t aInitialMaxStreamData, StreamId aStreamId)
+    uint64_t aInitialMaxStreamData, uint64_t aInitialLocalMaxStreamData,
+    StreamId aStreamId)
     : WebTransportStreamBase(aWebTransportSession->GetStreamId(), nullptr),
       mWebTransportSession(aWebTransportSession),
       mStreamId(aStreamId),
       mOwnerThread(GetCurrentSerialEventTarget()),
-      mFc(aStreamId, aInitialMaxStreamData) {
+      mFc(aStreamId, aInitialMaxStreamData),
+      mReceiverFc(aStreamId, aInitialLocalMaxStreamData) {
   LOG(("Http2WebTransportStream incoming ctor:%p", this));
   mStreamRole = INCOMING;
   mStreamType = mStreamId.StreamType();
@@ -177,6 +180,10 @@ Http2WebTransportStream::OnOutputStreamReady(nsIAsyncOutputStream* aOut) {
       return NS_OK;
     }
 
+    // Retire when sending data to the consumer.
+    mReceiverFc.AddRetired(wrote);
+    mWebTransportSession->ReceiverFc().AddRetired(wrote);
+
     mWriteOffset += wrote;
 
     if (toWrite == wrote) {
@@ -248,6 +255,10 @@ Http2WebTransportStream::HasStreamDataBlockedCapsuleToSend() {
   return mFc.CreateStreamDataBlockedCapsule();
 }
 
+Maybe<CapsuleEncoder> Http2WebTransportStream::HasMaxStreamDataCapsuleToSend() {
+  return mReceiverFc.CreateMaxStreamDataCapsule();
+}
+
 nsresult Http2WebTransportStream::OnCapsule(Capsule&& aCapsule) {
   switch (aCapsule.Type()) {
     case CapsuleType::WT_STREAM: {
@@ -308,8 +319,20 @@ nsresult Http2WebTransportStream::HandleStreamData(bool aFin,
     case READING: {
       size_t length = aData.Length();
       if (length) {
-        mOutgoingQueue.Push(MakeUnique<StreamData>(std::move(aData)));
-        mSocketInCondition = OnOutputStreamReady(mReceiveStreamPipeOut);
+        auto newConsumed =
+            mReceiverFc.SetConsumed(mReceiverFc.Consumed() + length);
+        if (newConsumed.isErr()) {
+          mSocketInCondition = newConsumed.unwrapErr();
+        } else {
+          if (!mWebTransportSession->ReceiverFc().Consume(
+                  newConsumed.unwrap())) {
+            LOG(("Exceed session flow control limit"));
+            mSocketInCondition = NS_ERROR_NOT_AVAILABLE;
+          } else {
+            mOutgoingQueue.Push(MakeUnique<StreamData>(std::move(aData)));
+            mSocketInCondition = OnOutputStreamReady(mReceiveStreamPipeOut);
+          }
+        }
       } else if (mTotalReceived) {
         // https://www.ietf.org/archive/id/draft-ietf-webtrans-http2-10.html#section-6.4
         // Empty WT_STREAM capsules MUST NOT be used unless they open or close a
@@ -325,9 +348,7 @@ nsresult Http2WebTransportStream::HandleStreamData(bool aFin,
           countWrittenSingle, static_cast<uint32_t>(mSocketInCondition), this));
 
       if (NS_FAILED(mSocketInCondition)) {
-        if (mSocketInCondition == NS_BASE_STREAM_CLOSED) {
-          mReceiveStreamPipeOut->Close();
-        }
+        mReceiveStreamPipeOut->Close();
         mRecvState = RECV_DONE;
       } else {
         if (aFin) {
@@ -336,7 +357,6 @@ nsresult Http2WebTransportStream::HandleStreamData(bool aFin,
       }
     } break;
     case RECEIVED_FIN:
-      mSocketInCondition = NS_BASE_STREAM_CLOSED;
       mRecvState = RECV_DONE;
       break;
     case RECV_DONE:

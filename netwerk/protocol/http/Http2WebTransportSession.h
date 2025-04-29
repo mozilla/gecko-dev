@@ -52,6 +52,14 @@ struct Http2WebTransportInitialSettings {
   uint32_t mInitialLocalMaxStreamsUnidi = 16;
   // Initial limit on bidirectional streams that the peer creates.
   uint32_t mInitialLocalMaxStreamsBidi = 16;
+  // Initial flow control limit for receiving data on unidirectional streams
+  // that the peer creates.
+  uint32_t mInitialLocalMaxStreamDataUnidi = 0x100000;
+  // Initial flow control limit for receiving data on bidirectional streams
+  // that the peer creates.
+  uint32_t mInitialLocalMaxStreamDataBidi = 0x100000;
+  // Initial session-level flow control limit.
+  uint64_t mInitialLocalMaxData = 0x3FFFFFFFFFFFFFFF;
 };
 
 enum class CapsuleTransmissionPriority : uint8_t {
@@ -92,6 +100,7 @@ class Http2WebTransportSessionImpl final : public WebTransportSessionBase,
   void PrepareCapsulesToSend(
       mozilla::Queue<UniquePtr<CapsuleEncoder>>& aOutput);
   SenderFlowControlSession& SessionDataFc() { return mSessionDataFc; }
+  ReceiverFlowControlSession& ReceiverFc() { return mReceiverFc; }
 
  private:
   virtual ~Http2WebTransportSessionImpl();
@@ -153,6 +162,7 @@ class Http2WebTransportSessionImpl final : public WebTransportSessionBase,
   RefPtr<CapsuleIOHandler> mHandler;
   CapsuleQueue mCapsuleQueue;
   SenderFlowControlSession mSessionDataFc;
+  ReceiverFlowControlSession mReceiverFc;
 };
 
 class Http2WebTransportSession final : public Http2StreamTunnel,

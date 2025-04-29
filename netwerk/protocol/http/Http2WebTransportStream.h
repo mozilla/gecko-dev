@@ -39,13 +39,14 @@ class Http2WebTransportStream final : public WebTransportStreamBase {
 
   explicit Http2WebTransportStream(
       Http2WebTransportSessionImpl* aWebTransportSession, StreamId aStreamId,
-      uint64_t aInitialMaxStreamData,
+      uint64_t aInitialMaxStreamData, uint64_t aInitialLocalMaxStreamData,
       std::function<void(Result<RefPtr<WebTransportStreamBase>, nsresult>&&)>&&
           aCallback);
 
   explicit Http2WebTransportStream(
       Http2WebTransportSessionImpl* aWebTransportSession,
-      uint64_t aInitialMaxStreamData, StreamId aStreamId);
+      uint64_t aInitialMaxStreamData, uint64_t aInitialLocalMaxStreamData,
+      StreamId aStreamId);
 
   nsresult Init();
 
@@ -60,10 +61,13 @@ class Http2WebTransportStream final : public WebTransportStreamBase {
       override;
   bool RecvDone() const override;
   void SetSendOrder(Maybe<int64_t> aSendOrder) override;
+  SenderFlowControlBase* SenderFc() override { return &mFc; }
+  ReceiverFlowControlBase* ReceiverFc() override { return &mReceiverFc; }
 
   nsresult OnCapsule(Capsule&& aCapsule);
   void Close(nsresult aResult);
   Maybe<CapsuleEncoder> HasStreamDataBlockedCapsuleToSend();
+  Maybe<CapsuleEncoder> HasMaxStreamDataCapsuleToSend();
   void TakeOutputCapsule(mozilla::Queue<UniquePtr<CapsuleEncoder>>& aOutput);
 
  private:
@@ -89,6 +93,7 @@ class Http2WebTransportStream final : public WebTransportStreamBase {
   UniquePtr<StreamData> mCurrentOut;
   const RefPtr<nsISerialEventTarget> mOwnerThread;
   SenderFlowControlStreamId mFc;
+  ReceiverFlowControlStreamId mReceiverFc;
 };
 }  // namespace mozilla::net
 

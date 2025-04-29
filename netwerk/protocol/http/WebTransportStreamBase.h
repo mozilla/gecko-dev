@@ -55,6 +55,9 @@ class StreamId {
   uint64_t mId = 0;
 };
 
+class SenderFlowControlBase;
+class ReceiverFlowControlBase;
+
 class WebTransportStreamBase : public nsIInputStreamCallback,
                                public nsIOutputStreamCallback {
  public:
@@ -81,6 +84,9 @@ class WebTransportStreamBase : public nsIInputStreamCallback,
   GetReceiveStreamStats() = 0;
   virtual bool RecvDone() const = 0;
   virtual void SetSendOrder(Maybe<int64_t> aSendOrder) = 0;
+  // Used only for testing.
+  virtual SenderFlowControlBase* SenderFc() { return nullptr; }
+  virtual ReceiverFlowControlBase* ReceiverFc() { return nullptr; }
 
  protected:
   virtual ~WebTransportStreamBase();
