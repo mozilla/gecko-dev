@@ -44,7 +44,6 @@ BROWSER_CHROME_MANIFESTS += [
     "tests/browser/general/browser.toml",
     "tests/browser/hittest/browser.toml",
     "tests/browser/mac/browser.toml",
-    "tests/browser/performance/browser.toml",
     "tests/browser/pivot/browser.toml",
     "tests/browser/role/browser.toml",
     "tests/browser/scroll/browser.toml",
