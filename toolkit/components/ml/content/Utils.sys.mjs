@@ -996,3 +996,38 @@ export class RemoteSettingsManager {
     return records[0];
   }
 }
+
+const ADDON_PREFIX = "ML-ENGINE-";
+
+/**
+ * Check if an engine id is for an addon
+ *
+ * @param {string} engineId - The engine id to check
+ * @returns {boolean} True if the engine id is for an addon
+ */
+export function isAddonEngineId(engineId) {
+  return engineId.startsWith(ADDON_PREFIX);
+}
+
+/**
+ * Converts an addon id to an engine id
+ *
+ * @param {string} addonId - The addon id to convert
+ * @returns {string} The engine id
+ */
+export function addonIdToEngineId(addonId) {
+  return `${ADDON_PREFIX}${addonId}`;
+}
+
+/**
+ * Converts an engine Id into an addon id
+ *
+ * @param {string} engineId - The engine id to convert
+ * @returns {string|null} The addon id. null if the engine id is invalid
+ */
+export function engineIdToAddonId(engineId) {
+  if (!engineId.startsWith(ADDON_PREFIX)) {
+    return null;
+  }
+  return engineId.substring(ADDON_PREFIX.length);
+}

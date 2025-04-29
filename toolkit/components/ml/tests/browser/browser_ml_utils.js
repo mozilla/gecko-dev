@@ -12,6 +12,9 @@ const {
   RejectionType,
   BlockListManager,
   RemoteSettingsManager,
+  isAddonEngineId,
+  addonIdToEngineId,
+  engineIdToAddonId,
 } = ChromeUtils.importESModule("chrome://global/content/ml/Utils.sys.mjs");
 
 const { OPFS } = ChromeUtils.importESModule(
@@ -1106,4 +1109,47 @@ add_task(async function testBlockListManagerWithRS() {
   );
 
   RemoteSettingsManager.removeMocks();
+});
+
+add_task(function test_addon_engine_id_utilities() {
+  const prefix = "ML-ENGINE-";
+
+  // Valid addon ID
+  const addonId = "custom-addon";
+  const engineId = addonIdToEngineId(addonId);
+
+  Assert.equal(
+    engineId,
+    `${prefix}${addonId}`,
+    "addonIdToEngineId should add the correct prefix"
+  );
+  Assert.ok(
+    isAddonEngineId(engineId),
+    "isAddonEngineId should detect prefixed engine ID"
+  );
+  Assert.equal(
+    engineIdToAddonId(engineId),
+    addonId,
+    "engineIdToAddonId should return original addon ID"
+  );
+
+  // Invalid engine ID
+  const invalidEngineId = "ENGINE-custom-addon";
+  Assert.ok(
+    !isAddonEngineId(invalidEngineId),
+    "isAddonEngineId should reject non-prefixed engine ID"
+  );
+  Assert.equal(
+    engineIdToAddonId(invalidEngineId),
+    null,
+    "engineIdToAddonId should return null for invalid ID"
+  );
+
+  // Edge case: empty string
+  Assert.ok(!isAddonEngineId(""), "isAddonEngineId should reject empty string");
+  Assert.equal(
+    engineIdToAddonId(""),
+    null,
+    "engineIdToAddonId should return null for empty string"
+  );
 });

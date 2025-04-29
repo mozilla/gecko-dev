@@ -629,7 +629,7 @@ export class PipelineOptions {
    *
    * Throws an exception if the name or ID is invalid.
    *
-   * @param {string} field - The name of the field being validated (e.g., taskName, engineId).
+   * @param {string} field - The name of the field being validated.
    * @param {string} value - The value of the field to validate.
    * @throws {PipelineOptionsValidationError} Throws a validation error if the ID is invalid.
    * @private
@@ -786,7 +786,7 @@ export class PipelineOptions {
         }
       }
       // Validating values.
-      if (["taskName", "engineId"].includes(key)) {
+      if (key === "taskName") {
         this.#validateTaskName(key, options[key]);
       }
 

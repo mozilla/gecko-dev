@@ -30,6 +30,7 @@ ChromeUtils.defineESModuleGetters(lazy, {
   ModelHub: "chrome://global/content/ml/ModelHub.sys.mjs",
   getInferenceProcessInfo: "chrome://global/content/ml/Utils.sys.mjs",
   Progress: "chrome://global/content/ml/Utils.sys.mjs",
+  isAddonEngineId: "chrome://global/content/ml/Utils.sys.mjs",
 });
 
 XPCOMUtils.defineLazyServiceGetter(
@@ -819,7 +820,7 @@ class MLEngine {
    * @returns {string}
    */
   getGleanLabel() {
-    if (this.engineId.startsWith("ML-ENGINE-")) {
+    if (lazy.isAddonEngineId(this.engineId)) {
       return "webextension";
     }
     return this.engineId;
