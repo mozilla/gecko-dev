@@ -564,11 +564,11 @@ static uint32_t SizeOfFormEntry(const FormEntryValue& aValue) {
               formDataSize += entry.name().Length();
               const auto& entryValue = entry.value();
               switch (entryValue.type()) {
-                case IPCFormDataValue::TBlobImpl:
+                case FormDataValue::TBlobImpl:
                   formDataSize +=
                       entryValue.get_BlobImpl()->GetAllocationSize();
                   break;
-                case IPCFormDataValue::TnsString:
+                case FormDataValue::TnsString:
                   formDataSize += entryValue.get_nsString().Length();
                   break;
                 default:
