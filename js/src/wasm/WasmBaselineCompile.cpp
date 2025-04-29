@@ -7413,8 +7413,8 @@ void BaseCompiler::SignalNullCheck::emitTrapSite(BaseCompiler* bc,
                                                  FaultingCodeOffset fco,
                                                  TrapMachineInsn tmi) {
   MacroAssembler& masm = bc->masm;
-  masm.append(wasm::Trap::NullPointerDereference,
-              wasm::TrapSite(tmi, fco, bc->trapSiteDesc()));
+  masm.append(wasm::Trap::NullPointerDereference, tmi, fco.get(),
+              bc->trapSiteDesc());
 }
 
 template <typename NullCheckPolicy>

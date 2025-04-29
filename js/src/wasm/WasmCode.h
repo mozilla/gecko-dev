@@ -581,6 +581,7 @@ class CodeBlock {
   // All offsets are relative to `codeBase` not the segment base.
   FuncToCodeRangeMap funcToCodeRange;
   CodeRangeVector codeRanges;
+  InliningContext inliningContext;
   CallSites callSites;
   TrapSites trapSites;
   FuncExportVector funcExports;
@@ -659,7 +660,7 @@ class CodeBlock {
   bool lookupCallSite(void* pc, CallSite* callSite) const;
   const StackMap* lookupStackMap(uint8_t* pc) const;
   const TryNote* lookupTryNote(const void* pc) const;
-  bool lookupTrap(void* pc, Trap* kindOut, TrapSiteDesc* trapOut) const;
+  bool lookupTrap(void* pc, Trap* kindOut, TrapSite* trapOut) const;
   const CodeRangeUnwindInfo* lookupUnwindInfo(void* pc) const;
   FuncExport& lookupFuncExport(uint32_t funcIndex,
                                size_t* funcExportIndex = nullptr);
@@ -1227,7 +1228,7 @@ class Code : public ShareableBase<Code> {
     }
     return (*block)->lookupTryNote(pc);
   }
-  bool lookupTrap(void* pc, Trap* kindOut, TrapSiteDesc* trapOut) const {
+  bool lookupTrap(void* pc, Trap* kindOut, TrapSite* trapOut) const {
     const CodeBlock* block = blockMap_.lookup(pc);
     if (!block) {
       return false;

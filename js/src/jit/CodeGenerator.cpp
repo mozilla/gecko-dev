@@ -10437,8 +10437,8 @@ void EmitSignalNullCheckTrapSite(MacroAssembler& masm,
   if (!ins->maybeTrap()) {
     return;
   }
-  masm.append(wasm::Trap::NullPointerDereference,
-              wasm::TrapSite(tmi, fco, *ins->maybeTrap()));
+  masm.append(wasm::Trap::NullPointerDereference, tmi, fco.get(),
+              *ins->maybeTrap());
 }
 
 template <typename InstructionWithMaybeTrapSite, class AddressOrBaseIndex>

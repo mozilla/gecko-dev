@@ -44,6 +44,7 @@ bool CompiledCode::swap(MacroAssembler& masm) {
     return false;
   }
 
+  inliningContext.swap(masm.inliningContext());
   callSites.swap(masm.callSites());
   callSiteTargets.swap(masm.callSiteTargets());
   trapSites.swap(masm.trapSites());
@@ -219,10 +220,11 @@ bool ModuleGenerator::linkCallSites() {
   OffsetMap existingCallFarJumps;
   for (; lastPatchedCallSite_ < codeBlock_->callSites.length();
        lastPatchedCallSite_++) {
-    const CallSite& callSite = codeBlock_->callSites[lastPatchedCallSite_];
+    CallSiteKind kind = codeBlock_->callSites.kind(lastPatchedCallSite_);
+    uint32_t callerOffset =
+        codeBlock_->callSites.returnAddressOffset(lastPatchedCallSite_);
     const CallSiteTarget& target = callSiteTargets_[lastPatchedCallSite_];
-    uint32_t callerOffset = callSite.returnAddressOffset();
-    switch (callSite.kind()) {
+    switch (kind) {
       case CallSiteKind::Import:
       case CallSiteKind::Indirect:
       case CallSiteKind::IndirectFast:
@@ -239,12 +241,12 @@ bool ModuleGenerator::linkCallSites() {
         break;
       case CallSiteKind::ReturnFunc:
       case CallSiteKind::Func: {
-        auto patch = [this, callSite](uint32_t callerOffset,
-                                      uint32_t calleeOffset) {
-          if (callSite.kind() == CallSiteKind::ReturnFunc) {
+        auto patch = [this, kind](uint32_t callerOffset,
+                                  uint32_t calleeOffset) {
+          if (kind == CallSiteKind::ReturnFunc) {
             masm_->patchFarJump(CodeOffset(callerOffset), calleeOffset);
           } else {
-            MOZ_ASSERT(callSite.kind() == CallSiteKind::Func);
+            MOZ_ASSERT(kind == CallSiteKind::Func);
             masm_->patchCall(callerOffset, calleeOffset);
           }
         };
@@ -494,8 +496,15 @@ bool ModuleGenerator::linkCompiledCode(CompiledCode& code) {
     return false;
   }
 
-  code.callSites.offsetBy(offsetInModule);
-  if (!codeBlock_->callSites.appendAll(std::move(code.callSites))) {
+  InlinedCallerOffsetIndex baseInlinedCallerOffsetIndex =
+      InlinedCallerOffsetIndex(codeBlock_->inliningContext.length());
+  if (!codeBlock_->inliningContext.appendAll(std::move(code.inliningContext))) {
+    return false;
+  }
+
+  if (!codeBlock_->callSites.appendAll(std::move(code.callSites),
+                                       offsetInModule,
+                                       baseInlinedCallerOffsetIndex)) {
     return false;
   }
 
@@ -503,8 +512,9 @@ bool ModuleGenerator::linkCompiledCode(CompiledCode& code) {
     return false;
   }
 
-  code.trapSites.offsetBy(offsetInModule);
-  if (!codeBlock_->trapSites.appendAll(std::move(code.trapSites))) {
+  if (!codeBlock_->trapSites.appendAll(std::move(code.trapSites),
+                                       offsetInModule,
+                                       baseInlinedCallerOffsetIndex)) {
     return false;
   }
 
@@ -911,6 +921,7 @@ bool ModuleGenerator::finishCodeBlock(CodeBlockResult* result) {
 
   // None of the linking or far-jump operations should emit masm metadata.
 
+  MOZ_ASSERT(masm_->inliningContext().empty());
   MOZ_ASSERT(masm_->callSites().empty());
   MOZ_ASSERT(masm_->callSiteTargets().empty());
   MOZ_ASSERT(masm_->trapSites().empty());
@@ -931,9 +942,13 @@ bool ModuleGenerator::finishCodeBlock(CodeBlockResult* result) {
 
   codeBlock_->funcToCodeRange.shrinkStorageToFit();
   codeBlock_->codeRanges.shrinkStorageToFit();
+  codeBlock_->inliningContext.shrinkStorageToFit();
   codeBlock_->callSites.shrinkStorageToFit();
   codeBlock_->trapSites.shrinkStorageToFit();
   codeBlock_->tryNotes.shrinkStorageToFit();
+
+  // Mark the inlining context as done.
+  codeBlock_->inliningContext.setImmutable();
 
   // Allocate the code storage, copy/link the code from `masm_` into it, set up
   // `codeBlock_->segment / codeBase / codeLength`, and adjust the metadata
@@ -1543,6 +1558,7 @@ size_t CompiledCode::sizeOfExcludingThis(
          funcBaselineSpewers.sizeOfExcludingThis(mallocSizeOf) +
          bytes.sizeOfExcludingThis(mallocSizeOf) +
          codeRanges.sizeOfExcludingThis(mallocSizeOf) +
+         inliningContext.sizeOfExcludingThis(mallocSizeOf) +
          callSites.sizeOfExcludingThis(mallocSizeOf) +
          callSiteTargets.sizeOfExcludingThis(mallocSizeOf) +
          trapSites.sizeOfExcludingThis(mallocSizeOf) +

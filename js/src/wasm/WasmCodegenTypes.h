@@ -144,9 +144,6 @@ using ShareableBytecodeOffsetVector =
     ShareableVector<BytecodeOffset, 4, SystemAllocPolicy>;
 using SharedBytecodeOffsetVector = RefPtr<const ShareableBytecodeOffsetVector>;
 using MutableBytecodeOffsetVector = RefPtr<ShareableBytecodeOffsetVector>;
-using InlinedCallerOffsetsHashMap =
-    mozilla::HashMap<uint32_t, SharedBytecodeOffsetVector,
-                     mozilla::DefaultHasher<uint32_t>, SystemAllocPolicy>;
 
 // A TrapMachineInsn describes roughly what kind of machine instruction has
 // caused a trap.  This is used only for validation of trap placement in debug
@@ -249,23 +246,137 @@ using FaultingCodeOffsetPair =
     std::pair<FaultingCodeOffset, FaultingCodeOffset>;
 static_assert(sizeof(FaultingCodeOffsetPair) == 8);
 
+// The bytecode offsets of all the callers of a function that has been inlined.
+// See CallSiteDesc/TrapSiteDesc for uses of this.
+using InlinedCallerOffsets = BytecodeOffsetVector;
+
+// An index into InliningContext to get an InlinedCallerOffsets. This may be
+// 'None' to indicate an empty InlinedCallerOffsets.
+struct InlinedCallerOffsetIndex {
+ private:
+  // Sentinel value for an empty InlinedCallerOffsets.
+  static constexpr uint32_t NONE = UINT32_MAX;
+
+  uint32_t value_;
+
+ public:
+  // The maximum value allowed here, checked by assertions. InliningContext
+  // will OOM if this value is exceeded.
+  static constexpr uint32_t MAX = UINT32_MAX - 1;
+
+  // Construct 'none'.
+  InlinedCallerOffsetIndex() : value_(NONE) {}
+
+  // Construct a non-'none' value. The value must be less than or equal to MAX.
+  explicit InlinedCallerOffsetIndex(uint32_t index) : value_(index) {
+    MOZ_RELEASE_ASSERT(index <= MAX);
+  }
+
+  // The value of this index, if it is not nothing.
+  uint32_t value() const {
+    MOZ_RELEASE_ASSERT(!isNone());
+    return value_;
+  }
+
+  // Whether this value is none or not.
+  bool isNone() const { return value_ == NONE; }
+};
+static_assert(sizeof(InlinedCallerOffsetIndex) == sizeof(uint32_t));
+
+// A hash map from some index (either call site or trap site) to
+// InlinedCallerOffsetIndex.
+using InlinedCallerOffsetsIndexHashMap =
+    mozilla::HashMap<uint32_t, InlinedCallerOffsetIndex,
+                     mozilla::DefaultHasher<uint32_t>, SystemAllocPolicy>;
+
+// A collection of InlinedCallerOffsets for a code block.
+class InliningContext {
+  using Storage = mozilla::Vector<InlinedCallerOffsets, 0, SystemAllocPolicy>;
+  Storage storage_;
+  bool mutable_ = true;
+
+ public:
+  InliningContext() = default;
+
+  bool empty() const { return storage_.empty(); }
+  uint32_t length() const { return storage_.length(); }
+
+  void setImmutable() {
+    MOZ_RELEASE_ASSERT(mutable_);
+    mutable_ = false;
+  }
+
+  const InlinedCallerOffsets* operator[](InlinedCallerOffsetIndex index) const {
+    // Don't give out interior pointers into the vector until we've
+    // transitioned to immutable.
+    MOZ_RELEASE_ASSERT(!mutable_);
+    // Index must be in bounds.
+    MOZ_RELEASE_ASSERT(index.value() < length());
+    return &storage_[index.value()];
+  }
+
+  [[nodiscard]] bool append(InlinedCallerOffsets&& inlinedCallerOffsets,
+                            InlinedCallerOffsetIndex* index) {
+    MOZ_RELEASE_ASSERT(mutable_);
+
+    // Skip adding an entry if the offset vector is empty and just return an
+    // 'none' index.
+    if (inlinedCallerOffsets.empty()) {
+      *index = InlinedCallerOffsetIndex();
+      return true;
+    }
+
+    // OOM if we'll be growing beyond the maximum index allowed, or if we
+    // fail to append.
+    if (storage_.length() == InlinedCallerOffsetIndex::MAX ||
+        !storage_.append(std::move(inlinedCallerOffsets))) {
+      return false;
+    }
+    *index = InlinedCallerOffsetIndex(storage_.length() - 1);
+    return true;
+  }
+
+  [[nodiscard]] bool appendAll(InliningContext&& other) {
+    MOZ_RELEASE_ASSERT(mutable_);
+    if (!storage_.appendAll(std::move(other.storage_))) {
+      return false;
+    }
+
+    // OOM if we just grew beyond the maximum index allowed.
+    return storage_.length() <= InlinedCallerOffsetIndex::MAX;
+  }
+
+  void swap(InliningContext& other) {
+    MOZ_RELEASE_ASSERT(mutable_);
+    storage_.swap(other.storage_);
+  }
+
+  void shrinkStorageToFit() { storage_.shrinkStorageToFit(); }
+
+  void clear() {
+    MOZ_RELEASE_ASSERT(mutable_);
+    storage_.clear();
+  }
+
+  size_t sizeOfExcludingThis(mozilla::MallocSizeOf mallocSizeOf) const {
+    return storage_.sizeOfExcludingThis(mallocSizeOf);
+  }
+};
+
 // The fields of a TrapSite that do not depend on code generation.
 
 struct TrapSiteDesc {
-  explicit TrapSiteDesc(
-      BytecodeOffset bytecodeOffset,
-      const ShareableBytecodeOffsetVector* inlinedCallerOffsets = nullptr)
+  explicit TrapSiteDesc(BytecodeOffset bytecodeOffset,
+                        InlinedCallerOffsetIndex inlinedCallerOffsetsIndex =
+                            InlinedCallerOffsetIndex())
       : bytecodeOffset(bytecodeOffset),
-        inlinedCallerOffsets(inlinedCallerOffsets) {}
+        inlinedCallerOffsetsIndex(inlinedCallerOffsetsIndex) {}
   TrapSiteDesc() : TrapSiteDesc(BytecodeOffset(0)) {};
 
   bool isValid() const { return bytecodeOffset.isValid(); }
 
   BytecodeOffset bytecodeOffset;
-  // If this trap site has been inlined into another function, the inlined
-  // caller functions. The direct ancestor of this function (i.e. the one
-  // directly above it on the stack) is the last entry in the vector.
-  SharedBytecodeOffsetVector inlinedCallerOffsets;
+  InlinedCallerOffsetIndex inlinedCallerOffsetsIndex;
 };
 
 using MaybeTrapSiteDesc = mozilla::Maybe<TrapSiteDesc>;
@@ -276,25 +387,18 @@ using MaybeTrapSiteDesc = mozilla::Maybe<TrapSiteDesc>;
 // safe and redirects pc to the trap stub.
 
 struct TrapSite : TrapSiteDesc {
-#ifdef DEBUG
-  TrapMachineInsn insn;
-#endif
-  uint32_t pcOffset;
+  // If this trap site is in a function that was inlined, these are the call
+  // site bytecode offsets of the caller functions that this trap site was
+  // inlined into. The direct ancestor of this function (i.e. the one
+  // directly above it on the stack) is the last entry in the vector.
+  const InlinedCallerOffsets* inlinedCallerOffsets = nullptr;
 
-  TrapSite()
-      :
-#ifdef DEBUG
-        insn(TrapMachineInsn::OfficialUD),
-#endif
-        pcOffset(-1) {
-  }
-  TrapSite(TrapMachineInsn insn, FaultingCodeOffset fco,
-           const TrapSiteDesc& siteDesc)
-      : TrapSiteDesc(siteDesc),
-#ifdef DEBUG
-        insn(insn),
-#endif
-        pcOffset(fco.get()) {
+  BytecodeOffsetSpan inlinedCallerOffsetsSpan() const {
+    if (!inlinedCallerOffsets) {
+      return BytecodeOffsetSpan();
+    }
+    return BytecodeOffsetSpan(inlinedCallerOffsets->begin(),
+                              inlinedCallerOffsets->end());
   }
 };
 
@@ -315,7 +419,7 @@ class TrapSitesForKind {
 #endif
   Uint32Vector pcOffsets_;
   BytecodeOffsetVector bytecodeOffsets_;
-  InlinedCallerOffsetsHashMap inlinedCallerOffsets_;
+  InlinedCallerOffsetsIndexHashMap inlinedCallerOffsetsMap_;
 
  public:
   explicit TrapSitesForKind() = default;
@@ -353,28 +457,32 @@ class TrapSitesForKind {
   }
 
   [[nodiscard]]
-  bool append(const TrapSite& site) {
-    MOZ_ASSERT(site.bytecodeOffset.isValid());
+  bool append(TrapMachineInsn insn, uint32_t pcOffset,
+              const TrapSiteDesc& desc) {
+    MOZ_ASSERT(desc.bytecodeOffset.isValid());
 
 #ifdef DEBUG
-    if (!machineInsns_.append(site.insn)) {
+    if (!machineInsns_.append(insn)) {
       return false;
     }
 #endif
 
     uint32_t index = length();
-    if (site.inlinedCallerOffsets && !site.inlinedCallerOffsets->empty() &&
-        !inlinedCallerOffsets_.putNew(index,
-                                      std::move(site.inlinedCallerOffsets))) {
+
+    // Add an entry in our map for the trap's inlined caller offsets.
+    if (!desc.inlinedCallerOffsetsIndex.isNone() &&
+        !inlinedCallerOffsetsMap_.putNew(index,
+                                         desc.inlinedCallerOffsetsIndex)) {
       return false;
     }
 
-    return pcOffsets_.append(site.pcOffset) &&
-           bytecodeOffsets_.append(site.bytecodeOffset);
+    return pcOffsets_.append(pcOffset) &&
+           bytecodeOffsets_.append(desc.bytecodeOffset);
   }
 
   [[nodiscard]]
-  bool appendAll(TrapSitesForKind&& other) {
+  bool appendAll(TrapSitesForKind&& other, uint32_t baseCodeOffset,
+                 InlinedCallerOffsetIndex baseInlinedCallerOffsetIndex) {
     // See comment on MAX_LENGTH for details.
     mozilla::CheckedUint32 newLength =
         mozilla::CheckedUint32(length()) + other.length();
@@ -388,12 +496,27 @@ class TrapSitesForKind {
     }
 #endif
 
-    uint32_t index = length();
-    for (auto iter = other.inlinedCallerOffsets_.modIter(); !iter.done();
-         iter.next(), index++) {
-      if (!inlinedCallerOffsets_.putNew(index, std::move(iter.get().value()))) {
+    // Copy over the map of `other`s inlined caller offsets. The keys are trap
+    // site indices, and must be updated for the base index that `other` is
+    // being inserted into. The values are inlined caller offsets and must be
+    // updated for the base inlined caller offset that the associated inlining
+    // context was added to. See ModuleGenerator::linkCompiledCode.
+    uint32_t baseTrapSiteIndex = length();
+    for (auto iter = other.inlinedCallerOffsetsMap_.modIter(); !iter.done();
+         iter.next()) {
+      uint32_t newTrapSiteIndex = baseTrapSiteIndex + iter.get().key();
+      uint32_t newInlinedCallerOffsetIndex =
+          iter.get().value().value() + baseInlinedCallerOffsetIndex.value();
+
+      if (!inlinedCallerOffsetsMap_.putNew(newTrapSiteIndex,
+                                           newInlinedCallerOffsetIndex)) {
         return false;
       }
+    }
+
+    // Add the baseCodeOffset to the pcOffsets that we are adding to ourselves.
+    for (uint32_t& pcOffset : other.pcOffsets_) {
+      pcOffset += baseCodeOffset;
     }
 
     return pcOffsets_.appendAll(other.pcOffsets_) &&
@@ -406,7 +529,7 @@ class TrapSitesForKind {
 #endif
     pcOffsets_.clear();
     bytecodeOffsets_.clear();
-    inlinedCallerOffsets_.clear();
+    inlinedCallerOffsetsMap_.clear();
   }
 
   void swap(TrapSitesForKind& other) {
@@ -415,7 +538,7 @@ class TrapSitesForKind {
 #endif
     pcOffsets_.swap(other.pcOffsets_);
     bytecodeOffsets_.swap(other.bytecodeOffsets_);
-    inlinedCallerOffsets_.swap(other.inlinedCallerOffsets_);
+    inlinedCallerOffsetsMap_.swap(other.inlinedCallerOffsetsMap_);
   }
 
   void shrinkStorageToFit() {
@@ -424,16 +547,11 @@ class TrapSitesForKind {
 #endif
     pcOffsets_.shrinkStorageToFit();
     bytecodeOffsets_.shrinkStorageToFit();
-    inlinedCallerOffsets_.compact();
+    inlinedCallerOffsetsMap_.compact();
   }
 
-  void offsetBy(uint32_t offsetInModule) {
-    for (uint32_t& pcOffset : pcOffsets_) {
-      pcOffset += offsetInModule;
-    }
-  }
-
-  bool lookup(uint32_t trapInstructionOffset, TrapSiteDesc* trapOut) const;
+  bool lookup(uint32_t trapInstructionOffset,
+              const InliningContext& inliningContext, TrapSite* trapOut) const;
 
   void checkInvariants(const uint8_t* codeBase) const;
 
@@ -443,12 +561,9 @@ class TrapSitesForKind {
     result += machineInsns_.sizeOfExcludingThis(mallocSizeOf);
 #endif
     ShareableBytecodeOffsetVector::SeenSet seen;
-    for (auto iter = inlinedCallerOffsets_.iter(); !iter.done(); iter.next()) {
-      result +=
-          iter.get().value()->sizeOfIncludingThisIfNotSeen(mallocSizeOf, &seen);
-    }
     return result + pcOffsets_.sizeOfExcludingThis(mallocSizeOf) +
-           bytecodeOffsets_.sizeOfExcludingThis(mallocSizeOf);
+           bytecodeOffsets_.sizeOfExcludingThis(mallocSizeOf) +
+           inlinedCallerOffsetsMap_.shallowSizeOfExcludingThis(mallocSizeOf);
   }
 
   WASM_DECLARE_FRIEND_SERIALIZE(TrapSitesForKind);
@@ -481,14 +596,17 @@ class TrapSites {
   }
 
   [[nodiscard]]
-  bool append(Trap trap, TrapSite site) {
-    return array_[trap].append(site);
+  bool append(Trap trap, TrapMachineInsn insn, uint32_t pcOffset,
+              const TrapSiteDesc& desc) {
+    return array_[trap].append(insn, pcOffset, desc);
   }
 
   [[nodiscard]]
-  bool appendAll(TrapSites&& other) {
+  bool appendAll(TrapSites&& other, uint32_t baseCodeOffset,
+                 InlinedCallerOffsetIndex baseInlinedCallerOffsetIndex) {
     for (Trap trap : mozilla::MakeEnumeratedRange(Trap::Limit)) {
-      if (!array_[trap].appendAll(std::move(other.array_[trap]))) {
+      if (!array_[trap].appendAll(std::move(other.array_[trap]), baseCodeOffset,
+                                  baseInlinedCallerOffsetIndex)) {
         return false;
       }
     }
@@ -513,18 +631,14 @@ class TrapSites {
     }
   }
 
-  void offsetBy(uint32_t offsetInModule) {
-    for (Trap trap : mozilla::MakeEnumeratedRange(Trap::Limit)) {
-      array_[trap].offsetBy(offsetInModule);
-    }
-  }
-
   [[nodiscard]]
-  bool lookup(uint32_t trapInstructionOffset, Trap* kindOut,
-              TrapSiteDesc* trapOut) const {
+  bool lookup(uint32_t trapInstructionOffset,
+              const InliningContext& inliningContext, Trap* kindOut,
+              TrapSite* trapOut) const {
     for (Trap trap : mozilla::MakeEnumeratedRange(Trap::Limit)) {
       const TrapSitesForKind& trapSitesForKind = array_[trap];
-      if (trapSitesForKind.lookup(trapInstructionOffset, trapOut)) {
+      if (trapSitesForKind.lookup(trapInstructionOffset, inliningContext,
+                                  trapOut)) {
         *kindOut = trap;
         return true;
       }
@@ -627,7 +741,7 @@ struct TrapData {
   void* unwoundPC;
 
   Trap trap;
-  TrapSiteDesc trapSiteDesc;
+  TrapSite trapSite;
 
   // A return_call_indirect from the first function in an activation into
   // a signature mismatch may leave us with only one frame. This frame is
@@ -905,7 +1019,7 @@ class CallSiteDesc {
   // If this call site has been inlined into another function, the inlined
   // caller functions. The direct ancestor of this function (i.e. the one
   // directly above it on the stack) is the last entry in the vector.
-  SharedBytecodeOffsetVector inlinedCallerOffsets_;
+  InlinedCallerOffsetIndex inlinedCallerOffsetsIndex_;
   CallSiteKind kind_;
 
  public:
@@ -938,36 +1052,29 @@ class CallSiteDesc {
     MOZ_ASSERT(bytecodeOffset.offset() == lineOrBytecode_);
   }
   CallSiteDesc(uint32_t lineOrBytecode,
-               const ShareableBytecodeOffsetVector* inlinedCallerOffsets,
+               InlinedCallerOffsetIndex inlinedCallerOffsetsIndex,
                CallSiteKind kind)
       : lineOrBytecode_(lineOrBytecode),
-        inlinedCallerOffsets_(inlinedCallerOffsets),
+        inlinedCallerOffsetsIndex_(inlinedCallerOffsetsIndex),
         kind_(kind) {
     MOZ_ASSERT(kind == CallSiteKind(kind_));
     MOZ_ASSERT(lineOrBytecode == lineOrBytecode_);
   }
   CallSiteDesc(BytecodeOffset bytecodeOffset,
-               const ShareableBytecodeOffsetVector* inlinedCallerOffsets,
-               CallSiteKind kind)
+               uint32_t inlinedCallerOffsetsIndex, CallSiteKind kind)
       : lineOrBytecode_(bytecodeOffset.offset()),
-        inlinedCallerOffsets_(inlinedCallerOffsets),
+        inlinedCallerOffsetsIndex_(inlinedCallerOffsetsIndex),
         kind_(kind) {
     MOZ_ASSERT(kind == CallSiteKind(kind_));
     MOZ_ASSERT(bytecodeOffset.offset() == lineOrBytecode_);
   }
   uint32_t lineOrBytecode() const { return lineOrBytecode_; }
-  BytecodeOffsetSpan inlinedCallerOffsets() const {
-    if (!inlinedCallerOffsets_) {
-      return BytecodeOffsetSpan();
-    }
-    return inlinedCallerOffsets_->span();
-  }
-  const ShareableBytecodeOffsetVector* inlinedCallerOffsetsVector() const {
-    return inlinedCallerOffsets_.get();
+  InlinedCallerOffsetIndex inlinedCallerOffsetsIndex() const {
+    return inlinedCallerOffsetsIndex_;
   }
   TrapSiteDesc toTrapSiteDesc() const {
     return TrapSiteDesc(wasm::BytecodeOffset(lineOrBytecode()),
-                        inlinedCallerOffsetsVector());
+                        inlinedCallerOffsetsIndex_);
   }
   CallSiteKind kind() const { return kind_; }
   bool isImportCall() const { return kind() == CallSiteKind::Import; }
@@ -981,20 +1088,34 @@ class CallSiteDesc {
   }
 };
 
+using CallSiteDescVector = mozilla::Vector<CallSiteDesc, 0, SystemAllocPolicy>;
+
 class CallSite : public CallSiteDesc {
   uint32_t returnAddressOffset_;
+  const InlinedCallerOffsets* inlinedCallerOffsets_;
+
+  CallSite(const CallSiteDesc& desc, uint32_t returnAddressOffset,
+           const InlinedCallerOffsets* inlinedCallerOffsets)
+      : CallSiteDesc(desc),
+        returnAddressOffset_(returnAddressOffset),
+        inlinedCallerOffsets_(inlinedCallerOffsets) {}
+  friend class CallSites;
 
  public:
-  CallSite() : returnAddressOffset_(0) {}
+  CallSite() : returnAddressOffset_(0), inlinedCallerOffsets_(nullptr) {}
 
-  CallSite(CallSiteDesc desc, uint32_t returnAddressOffset)
-      : CallSiteDesc(desc), returnAddressOffset_(returnAddressOffset) {}
-
-  void offsetBy(uint32_t delta) { returnAddressOffset_ += delta; }
   uint32_t returnAddressOffset() const { return returnAddressOffset_; }
+  BytecodeOffsetSpan inlinedCallerOffsetsSpan() const {
+    if (!inlinedCallerOffsets_) {
+      return BytecodeOffsetSpan();
+    }
+    return BytecodeOffsetSpan(inlinedCallerOffsets_->begin(),
+                              inlinedCallerOffsets_->end());
+  }
+  const InlinedCallerOffsets* inlinedCallerOffsets() const {
+    return inlinedCallerOffsets_;
+  }
 };
-
-using CallSiteVector = Vector<CallSite, 0, SystemAllocPolicy>;
 
 // A collection of CallSite that is optimized for compact storage.
 //
@@ -1011,10 +1132,10 @@ class CallSites {
   CallSiteKindVector kinds_;
   Uint32Vector lineOrBytecodes_;
   Uint32Vector returnAddressOffsets_;
-  InlinedCallerOffsetsHashMap inlinedCallerOffsets_;
+  InlinedCallerOffsetsIndexHashMap inlinedCallerOffsetsMap_;
 
  public:
-  explicit CallSites() {}
+  explicit CallSites() = default;
 
   // We limit the maximum amount of call sites to fit in a uint32_t for better
   // compaction of the sparse hash map. This is dynamically enforced, but
@@ -1034,19 +1155,31 @@ class CallSites {
   bool empty() const { return kinds_.empty(); }
 
   CallSiteKind kind(size_t index) const { return kinds_[index]; }
+  BytecodeOffset bytecodeOffset(size_t index) const {
+    return BytecodeOffset(lineOrBytecodes_[index]);
+  }
+  uint32_t returnAddressOffset(size_t index) const {
+    return returnAddressOffsets_[index];
+  }
 
-  CallSite operator[](size_t index) const {
-    SharedBytecodeOffsetVector inlinedCallerOffsets;
-    if (auto entry = inlinedCallerOffsets_.readonlyThreadsafeLookup(index)) {
-      inlinedCallerOffsets = entry->value();
+  CallSite get(size_t index, const InliningContext& inliningContext) const {
+    InlinedCallerOffsetIndex inlinedCallerOffsetsIndex;
+    const InlinedCallerOffsets* inlinedCallerOffsets = nullptr;
+    if (auto entry = inlinedCallerOffsetsMap_.lookup(index)) {
+      inlinedCallerOffsetsIndex = entry->value();
+      inlinedCallerOffsets = inliningContext[entry->value()];
     }
-    return CallSite(CallSiteDesc(lineOrBytecodes_[index], inlinedCallerOffsets,
-                                 kinds_[index]),
-                    returnAddressOffsets_[index]);
+    return CallSite(CallSiteDesc(lineOrBytecodes_[index],
+                                 inlinedCallerOffsetsIndex, kinds_[index]),
+                    returnAddressOffsets_[index], inlinedCallerOffsets);
   }
 
   [[nodiscard]]
-  bool append(CallSite&& callSite) {
+  bool lookup(uint32_t returnAddressOffset,
+              const InliningContext& inliningContext, CallSite* callSite) const;
+
+  [[nodiscard]]
+  bool append(const CallSiteDesc& callSiteDesc, uint32_t returnAddressOffset) {
     // See comment on MAX_LENGTH for details.
     if (length() == MAX_LENGTH) {
       return false;
@@ -1054,23 +1187,22 @@ class CallSites {
 
     uint32_t index = length();
 
-    // If there are inline callers, then insert an entry in our hash map.
-    const ShareableBytecodeOffsetVector* inlinedCallers =
-        callSite.inlinedCallerOffsetsVector();
-    if (inlinedCallers && !inlinedCallers->empty()) {
-      if (!inlinedCallerOffsets_.putNew(
-              index, SharedBytecodeOffsetVector(inlinedCallers))) {
-        return false;
-      }
+    // If there are inline caller offsets, then insert an entry in our hash map.
+    InlinedCallerOffsetIndex inlinedCallerOffsetsIndex =
+        callSiteDesc.inlinedCallerOffsetsIndex();
+    if (!inlinedCallerOffsetsIndex.isNone() &&
+        !inlinedCallerOffsetsMap_.putNew(index, inlinedCallerOffsetsIndex)) {
+      return false;
     }
 
-    return kinds_.append(callSite.kind()) &&
-           lineOrBytecodes_.append(callSite.lineOrBytecode()) &&
-           returnAddressOffsets_.append(callSite.returnAddressOffset());
+    return kinds_.append(callSiteDesc.kind()) &&
+           lineOrBytecodes_.append(callSiteDesc.lineOrBytecode()) &&
+           returnAddressOffsets_.append(returnAddressOffset);
   }
 
   [[nodiscard]]
-  bool appendAll(CallSites&& other) {
+  bool appendAll(CallSites&& other, uint32_t baseCodeOffset,
+                 InlinedCallerOffsetIndex baseInlinedCallerOffsetIndex) {
     // See comment on MAX_LENGTH for details.
     mozilla::CheckedUint32 newLength =
         mozilla::CheckedUint32(length()) + other.length();
@@ -1078,14 +1210,29 @@ class CallSites {
       return false;
     }
 
-    uint32_t index = length();
-    for (auto iter = other.inlinedCallerOffsets_.modIter(); !iter.done();
+    // Copy over the map of `other`s inlined caller offsets. The keys are call
+    // site indices, and must be updated for the base index that `other` is
+    // being inserted into. The values are inlined caller offsets and must be
+    // updated for the base inlined caller offset that the associated inlining
+    // context was added to. See ModuleGenerator::linkCompiledCode.
+    uint32_t baseCallSiteIndex = length();
+    for (auto iter = other.inlinedCallerOffsetsMap_.modIter(); !iter.done();
          iter.next()) {
-      if (!inlinedCallerOffsets_.putNew(index++,
-                                        std::move(iter.get().value()))) {
+      uint32_t newCallSiteIndex = iter.get().key() + baseCallSiteIndex;
+      uint32_t newInlinedCallerOffsetIndex =
+          iter.get().value().value() + baseInlinedCallerOffsetIndex.value();
+
+      if (!inlinedCallerOffsetsMap_.putNew(newCallSiteIndex,
+                                           newInlinedCallerOffsetIndex)) {
         return false;
       }
     }
+
+    // Add the baseCodeOffset to the pcOffsets that we are adding to ourselves.
+    for (uint32_t& pcOffset : other.returnAddressOffsets_) {
+      pcOffset += baseCodeOffset;
+    }
+
     return kinds_.appendAll(other.kinds_) &&
            lineOrBytecodes_.appendAll(other.lineOrBytecodes_) &&
            returnAddressOffsets_.appendAll(other.returnAddressOffsets_);
@@ -1095,14 +1242,14 @@ class CallSites {
     kinds_.swap(other.kinds_);
     lineOrBytecodes_.swap(other.lineOrBytecodes_);
     returnAddressOffsets_.swap(other.returnAddressOffsets_);
-    inlinedCallerOffsets_.swap(other.inlinedCallerOffsets_);
+    inlinedCallerOffsetsMap_.swap(other.inlinedCallerOffsetsMap_);
   }
 
   void clear() {
     kinds_.clear();
     lineOrBytecodes_.clear();
     returnAddressOffsets_.clear();
-    inlinedCallerOffsets_.clear();
+    inlinedCallerOffsetsMap_.clear();
   }
 
   [[nodiscard]]
@@ -1120,30 +1267,15 @@ class CallSites {
     kinds_.shrinkStorageToFit();
     lineOrBytecodes_.shrinkStorageToFit();
     returnAddressOffsets_.shrinkStorageToFit();
-    inlinedCallerOffsets_.compact();
-  }
-
-  void offsetBy(uint32_t offsetInModule) {
-    for (uint32_t& returnAddressOffset : returnAddressOffsets_) {
-      returnAddressOffset += offsetInModule;
-    }
+    inlinedCallerOffsetsMap_.compact();
   }
 
   size_t sizeOfExcludingThis(mozilla::MallocSizeOf mallocSizeOf) const {
-    size_t size = 0;
-    ShareableBytecodeOffsetVector::SeenSet seen;
-    for (auto iter = inlinedCallerOffsets_.iter(); !iter.done(); iter.next()) {
-      size +=
-          iter.get().value()->sizeOfIncludingThisIfNotSeen(mallocSizeOf, &seen);
-    }
-    return size + kinds_.sizeOfExcludingThis(mallocSizeOf) +
+    return kinds_.sizeOfExcludingThis(mallocSizeOf) +
            lineOrBytecodes_.sizeOfExcludingThis(mallocSizeOf) +
            returnAddressOffsets_.sizeOfExcludingThis(mallocSizeOf) +
-           inlinedCallerOffsets_.shallowSizeOfExcludingThis(mallocSizeOf);
+           inlinedCallerOffsetsMap_.shallowSizeOfExcludingThis(mallocSizeOf);
   }
-
-  [[nodiscard]]
-  bool lookup(uint32_t returnAddressOffset, CallSite* callSite) const;
 
   void checkInvariants() const {
 #ifdef DEBUG
@@ -1154,9 +1286,10 @@ class CallSites {
       MOZ_ASSERT(returnAddressOffset >= last);
       last = returnAddressOffset;
     }
-    for (auto iter = inlinedCallerOffsets_.iter(); !iter.done(); iter.next()) {
+    for (auto iter = inlinedCallerOffsetsMap_.iter(); !iter.done();
+         iter.next()) {
       MOZ_ASSERT(iter.get().key() < length());
-      MOZ_ASSERT(!iter.get().value()->empty());
+      MOZ_ASSERT(!iter.get().value().isNone());
     }
 #endif
   }

@@ -522,8 +522,8 @@ struct AutoHandlingTrap {
   }
 
   Trap trap;
-  TrapSiteDesc trapDesc;
-  if (!codeBlock->lookupTrap(pc, &trap, &trapDesc)) {
+  TrapSite trapSite;
+  if (!codeBlock->lookupTrap(pc, &trap, &trapSite)) {
     return false;
   }
 
@@ -546,7 +546,7 @@ struct AutoHandlingTrap {
   // point of the trap to allow stack unwinding or resumption, both of which
   // will call finishWasmTrap().
   jit::JitActivation* activation = cx->activation()->asJit();
-  activation->startWasmTrap(trap, trapDesc, ToRegisterState(context));
+  activation->startWasmTrap(trap, trapSite, ToRegisterState(context));
   SetContextPC(context, codeBlock->code->trapCode());
   return true;
 }
@@ -985,8 +985,8 @@ bool wasm::MemoryAccessTraps(const RegisterState& regs, uint8_t* addr,
   }
 
   Trap trap;
-  TrapSiteDesc trapDesc;
-  if (!codeBlock->code->lookupTrap(regs.pc, &trap, &trapDesc)) {
+  TrapSite trapSite;
+  if (!codeBlock->code->lookupTrap(regs.pc, &trap, &trapSite)) {
     return false;
   }
   switch (trap) {
@@ -1034,7 +1034,7 @@ bool wasm::MemoryAccessTraps(const RegisterState& regs, uint8_t* addr,
 
   JSContext* cx = TlsContext.get();  // Cold simulator helper function
   jit::JitActivation* activation = cx->activation()->asJit();
-  activation->startWasmTrap(trap, trapDesc, regs);
+  activation->startWasmTrap(trap, trapSite, regs);
   *newPC = codeBlock->code->trapCode();
   return true;
 #endif
@@ -1051,14 +1051,14 @@ bool wasm::HandleIllegalInstruction(const RegisterState& regs,
   }
 
   Trap trap;
-  TrapSiteDesc trapDesc;
-  if (!codeBlock->code->lookupTrap(regs.pc, &trap, &trapDesc)) {
+  TrapSite trapSite;
+  if (!codeBlock->code->lookupTrap(regs.pc, &trap, &trapSite)) {
     return false;
   }
 
   JSContext* cx = TlsContext.get();  // Cold simulator helper function
   jit::JitActivation* activation = cx->activation()->asJit();
-  activation->startWasmTrap(trap, trapDesc, regs);
+  activation->startWasmTrap(trap, trapSite, regs);
   *newPC = codeBlock->code->trapCode();
   return true;
 #endif

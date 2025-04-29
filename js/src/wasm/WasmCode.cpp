@@ -448,6 +448,7 @@ bool Code::createManyLazyEntryStubs(const WriteGuard& guard,
 
   masm.finish();
 
+  MOZ_ASSERT(masm.inliningContext().empty());
   MOZ_ASSERT(masm.callSites().empty());
   MOZ_ASSERT(masm.callSiteTargets().empty());
   MOZ_ASSERT(masm.trapSites().empty());
@@ -1010,6 +1011,7 @@ void CodeBlock::addSizeOfMisc(MallocSizeOf mallocSizeOf, size_t* code,
   segment->addSizeOfMisc(mallocSizeOf, code, data);
   *data += funcToCodeRange.sizeOfExcludingThis(mallocSizeOf) +
            codeRanges.sizeOfExcludingThis(mallocSizeOf) +
+           inliningContext.sizeOfExcludingThis(mallocSizeOf) +
            callSites.sizeOfExcludingThis(mallocSizeOf) +
            tryNotes.sizeOfExcludingThis(mallocSizeOf) +
            codeRangeUnwindInfos.sizeOfExcludingThis(mallocSizeOf) +
@@ -1026,7 +1028,7 @@ const CodeRange* CodeBlock::lookupRange(const void* pc) const {
 
 bool CodeBlock::lookupCallSite(void* pc, CallSite* callSite) const {
   uint32_t target = ((uint8_t*)pc) - base();
-  return callSites.lookup(target, callSite);
+  return callSites.lookup(target, inliningContext, callSite);
 }
 
 const StackMap* CodeBlock::lookupStackMap(uint8_t* pc) const {
@@ -1049,11 +1051,10 @@ const wasm::TryNote* CodeBlock::lookupTryNote(const void* pc) const {
   return nullptr;
 }
 
-bool CodeBlock::lookupTrap(void* pc, Trap* kindOut,
-                           TrapSiteDesc* trapOut) const {
+bool CodeBlock::lookupTrap(void* pc, Trap* kindOut, TrapSite* trapOut) const {
   MOZ_ASSERT(containsCodePC(pc));
   uint32_t target = ((uint8_t*)pc) - base();
-  return trapSites.lookup(target, kindOut, trapOut);
+  return trapSites.lookup(target, inliningContext, kindOut, trapOut);
 }
 
 struct UnwindInfoPCOffset {

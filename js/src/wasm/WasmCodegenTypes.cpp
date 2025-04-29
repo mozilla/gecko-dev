@@ -37,19 +37,24 @@ ArgTypeVector::ArgTypeVector(const FuncType& funcType)
           ResultType::Vector(funcType.results()))) {}
 
 bool TrapSitesForKind::lookup(uint32_t trapInstructionOffset,
-                              TrapSiteDesc* trapOut) const {
+                              const InliningContext& inliningContext,
+                              TrapSite* trapOut) const {
   size_t lowerBound = 0;
   size_t upperBound = pcOffsets_.length();
 
   size_t match;
   if (BinarySearch(pcOffsets_, lowerBound, upperBound, trapInstructionOffset,
                    &match)) {
-    TrapSiteDesc desc;
-    desc.bytecodeOffset = bytecodeOffsets_[match];
-    if (auto lookup = inlinedCallerOffsets_.readonlyThreadsafeLookup(match)) {
-      desc.inlinedCallerOffsets = lookup->value();
+    TrapSite site;
+    site.bytecodeOffset = bytecodeOffsets_[match];
+    if (auto inlinedCallerOffsetsIndex =
+            inlinedCallerOffsetsMap_.lookup(match)) {
+      site.inlinedCallerOffsets =
+          inliningContext[inlinedCallerOffsetsIndex->value()];
+    } else {
+      site.inlinedCallerOffsets = nullptr;
     }
-    *trapOut = desc;
+    *trapOut = site;
     return true;
   }
   return false;
@@ -168,9 +173,9 @@ void TrapSitesForKind::checkInvariants(const uint8_t* codeBase) const {
     MOZ_ASSERT(valid, "wasm trapsite does not reference a valid insn");
   }
 
-  for (auto iter = inlinedCallerOffsets_.iter(); !iter.done(); iter.next()) {
+  for (auto iter = inlinedCallerOffsetsMap_.iter(); !iter.done(); iter.next()) {
     MOZ_ASSERT(iter.get().key() < length());
-    MOZ_ASSERT(!iter.get().value()->empty());
+    MOZ_ASSERT(!iter.get().value().isNone());
   }
 #  endif
 #endif
@@ -271,14 +276,16 @@ const CodeRange* wasm::LookupInSorted(const CodeRangeVector& codeRanges,
   return &codeRanges[match];
 }
 
-bool CallSites::lookup(uint32_t returnAddressOffset, CallSite* callSite) const {
+bool CallSites::lookup(uint32_t returnAddressOffset,
+                       const InliningContext& inliningContext,
+                       CallSite* callSite) const {
   size_t lowerBound = 0;
   size_t upperBound = returnAddressOffsets_.length();
 
   size_t match;
   if (BinarySearch(returnAddressOffsets_, lowerBound, upperBound,
                    returnAddressOffset, &match)) {
-    *callSite = (*this)[match];
+    *callSite = get(match, inliningContext);
     return true;
   }
   return false;

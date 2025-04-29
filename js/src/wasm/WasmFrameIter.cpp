@@ -92,15 +92,10 @@ WasmFrameIter::WasmFrameIter(JitActivation* activation, wasm::Frame* fp)
     MOZ_ASSERT(code_ == LookupCode(unwoundPC));
 
     const CodeRange* codeRange = code_->lookupFuncRange(unwoundPC);
-    lineOrBytecode_ = trapData.trapSiteDesc.bytecodeOffset.offset();
+    lineOrBytecode_ = trapData.trapSite.bytecodeOffset.offset();
     funcIndex_ =
         FuncIndexForLineOrBytecode(*code_, lineOrBytecode_, *codeRange);
-    if (trapData.trapSiteDesc.inlinedCallerOffsets) {
-      inlinedCallerOffsets_ =
-          trapData.trapSiteDesc.inlinedCallerOffsets->span();
-    } else {
-      inlinedCallerOffsets_ = BytecodeOffsetSpan();
-    }
+    inlinedCallerOffsets_ = trapData.trapSite.inlinedCallerOffsetsSpan();
     failedUnwindSignatureMismatch_ = trapData.failedUnwindSignatureMismatch;
 
     // The debugEnabled() relies on valid value of resumePCinCurrentFrame_
@@ -155,7 +150,7 @@ WasmFrameIter::WasmFrameIter(FrameWithInstances* fp, void* returnAddress)
   lineOrBytecode_ = site.lineOrBytecode();
   funcIndex_ =
       FuncIndexForLineOrBytecode(*code_, site.lineOrBytecode(), *codeRange);
-  inlinedCallerOffsets_ = site.inlinedCallerOffsets();
+  inlinedCallerOffsets_ = site.inlinedCallerOffsetsSpan();
 
   MOZ_ASSERT(!done());
 }
@@ -353,7 +348,7 @@ void WasmFrameIter::popFrame() {
   lineOrBytecode_ = site.lineOrBytecode();
   funcIndex_ =
       FuncIndexForLineOrBytecode(*code_, site.lineOrBytecode(), *codeRange);
-  inlinedCallerOffsets_ = site.inlinedCallerOffsets();
+  inlinedCallerOffsets_ = site.inlinedCallerOffsetsSpan();
   failedUnwindSignatureMismatch_ = false;
 
   MOZ_ASSERT(!done());

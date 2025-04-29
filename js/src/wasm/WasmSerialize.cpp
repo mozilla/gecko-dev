@@ -938,7 +938,7 @@ CoderResult CodeTrapSitesForKind(Coder<mode>& coder,
   MOZ_TRY(CodePodVector(coder, &item->pcOffsets_));
   MOZ_TRY(CodePodVector(coder, &item->bytecodeOffsets_));
   // Inlining requires lazy tiering, which does not support serialization yet.
-  MOZ_RELEASE_ASSERT(item->inlinedCallerOffsets_.empty());
+  MOZ_RELEASE_ASSERT(item->inlinedCallerOffsetsMap_.empty());
   return Ok();
 }
 
@@ -958,7 +958,7 @@ CoderResult CodeCallSites(Coder<mode>& coder, CoderArg<mode, CallSites> item) {
   MOZ_TRY(CodePodVector(coder, &item->lineOrBytecodes_));
   MOZ_TRY(CodePodVector(coder, &item->returnAddressOffsets_));
   // Inlining requires lazy tiering, which does not support serialization yet.
-  MOZ_RELEASE_ASSERT(item->inlinedCallerOffsets_.empty());
+  MOZ_RELEASE_ASSERT(item->inlinedCallerOffsetsMap_.empty());
   return Ok();
 }
 
@@ -1300,7 +1300,7 @@ CoderResult CodeFuncToCodeRangeMap(
 CoderResult CodeCodeBlock(Coder<MODE_DECODE>& coder,
                           wasm::UniqueCodeBlock* item,
                           const wasm::LinkData& linkData) {
-  WASM_VERIFY_SERIALIZATION_FOR_SIZE(wasm::CodeBlock, 2576);
+  WASM_VERIFY_SERIALIZATION_FOR_SIZE(wasm::CodeBlock, 2624);
   *item = js::MakeUnique<CodeBlock>(CodeBlock::kindFromTier(Tier::Serialized));
   if (!*item) {
     return Err(OutOfMemory());
@@ -1341,7 +1341,7 @@ template <CoderMode mode>
 CoderResult CodeCodeBlock(Coder<mode>& coder,
                           CoderArg<mode, wasm::CodeBlock> item,
                           const wasm::LinkData& linkData) {
-  WASM_VERIFY_SERIALIZATION_FOR_SIZE(wasm::CodeBlock, 2576);
+  WASM_VERIFY_SERIALIZATION_FOR_SIZE(wasm::CodeBlock, 2624);
   STATIC_ASSERT_ENCODING_OR_SIZING;
   MOZ_TRY(Magic(coder, Marker::CodeBlock));
 

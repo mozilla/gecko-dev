@@ -5643,8 +5643,7 @@ void MacroAssembler::wasmTrap(wasm::Trap trap,
   MOZ_ASSERT_IF(!oom(),
                 currentOffset() - fco.get() == WasmTrapInstructionLength);
 
-  append(trap,
-         wasm::TrapSite(wasm::TrapMachineInsn::OfficialUD, fco, trapSiteDesc));
+  append(trap, wasm::TrapMachineInsn::OfficialUD, fco.get(), trapSiteDesc);
 }
 
 std::pair<CodeOffset, uint32_t> MacroAssembler::wasmReserveStackChecked(
@@ -6531,9 +6530,8 @@ void MacroAssembler::wasmCallRef(const wasm::CallSiteDesc& desc,
   static_assert(FunctionExtended::WASM_INSTANCE_SLOT < wasm::NullPtrGuardSize);
   FaultingCodeOffset fco =
       loadPtr(Address(calleeFnObj, instanceSlotOffset), newInstanceTemp);
-  append(wasm::Trap::NullPointerDereference,
-         wasm::TrapSite(wasm::TrapMachineInsnForLoadWord(), fco,
-                        desc.toTrapSiteDesc()));
+  append(wasm::Trap::NullPointerDereference, wasm::TrapMachineInsnForLoadWord(),
+         fco.get(), desc.toTrapSiteDesc());
   branchPtr(Assembler::Equal, InstanceReg, newInstanceTemp, &fastCall);
 
   storePtr(InstanceReg,
@@ -6597,9 +6595,8 @@ void MacroAssembler::wasmReturnCallRef(
   static_assert(FunctionExtended::WASM_INSTANCE_SLOT < wasm::NullPtrGuardSize);
   FaultingCodeOffset fco =
       loadPtr(Address(calleeFnObj, instanceSlotOffset), newInstanceTemp);
-  append(wasm::Trap::NullPointerDereference,
-         wasm::TrapSite(wasm::TrapMachineInsnForLoadWord(), fco,
-                        desc.toTrapSiteDesc()));
+  append(wasm::Trap::NullPointerDereference, wasm::TrapMachineInsnForLoadWord(),
+         fco.get(), desc.toTrapSiteDesc());
   branchPtr(Assembler::Equal, InstanceReg, newInstanceTemp, &fastCall);
 
   storePtr(InstanceReg,
@@ -7953,9 +7950,8 @@ void MacroAssembler::loadWasmPinnedRegsFromInstance(
   FaultingCodeOffset fco = loadPtr(
       Address(InstanceReg, wasm::Instance::offsetOfMemory0Base()), HeapReg);
   if (trapSiteDesc) {
-    append(
-        wasm::Trap::IndirectCallToNull,
-        wasm::TrapSite(wasm::TrapMachineInsnForLoadWord(), fco, *trapSiteDesc));
+    append(wasm::Trap::IndirectCallToNull, wasm::TrapMachineInsnForLoadWord(),
+           fco.get(), *trapSiteDesc);
   }
 #else
   MOZ_ASSERT(!trapSiteDesc);

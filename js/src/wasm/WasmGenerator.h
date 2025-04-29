@@ -89,6 +89,7 @@ struct CompiledCode {
   FuncCompileOutputVector funcs;
   Bytes bytes;
   CodeRangeVector codeRanges;
+  InliningContext inliningContext;
   CallSites callSites;
   CallSiteTargetVector callSiteTargets;
   TrapSites trapSites;
@@ -110,6 +111,7 @@ struct CompiledCode {
     funcs.clear();
     bytes.clear();
     codeRanges.clear();
+    inliningContext.clear();
     callSites.clear();
     callSiteTargets.clear();
     trapSites.clear();
@@ -128,7 +130,8 @@ struct CompiledCode {
 
   bool empty() {
     return funcs.empty() && bytes.empty() && codeRanges.empty() &&
-           callSites.empty() && callSiteTargets.empty() && trapSites.empty() &&
+           inliningContext.empty() && callSites.empty() &&
+           callSiteTargets.empty() && trapSites.empty() &&
            symbolicAccesses.empty() && codeLabels.empty() && tryNotes.empty() &&
            stackMaps.empty() && codeRangeUnwindInfos.empty() &&
            callRefMetricsPatches.empty() && allocSitesPatches.empty() &&

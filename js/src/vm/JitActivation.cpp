@@ -228,7 +228,7 @@ void js::jit::JitActivation::traceIonRecovery(JSTracer* trc) {
 }
 
 void js::jit::JitActivation::startWasmTrap(wasm::Trap trap,
-                                           const wasm::TrapSiteDesc& trapDesc,
+                                           const wasm::TrapSite& trapSite,
                                            const wasm::RegisterState& state) {
   MOZ_ASSERT(!isWasmTrapping());
 
@@ -257,12 +257,11 @@ void js::jit::JitActivation::startWasmTrap(wasm::Trap trap,
   if (unwound) {
     wasm::CallSite site;
     MOZ_ALWAYS_TRUE(code.lookupCallSite(pc, &site));
-    wasmTrapData_->trapSiteDesc.bytecodeOffset =
+    wasmTrapData_->trapSite.bytecodeOffset =
         wasm::BytecodeOffset(site.lineOrBytecode());
-    wasmTrapData_->trapSiteDesc.inlinedCallerOffsets =
-        site.inlinedCallerOffsetsVector();
+    wasmTrapData_->trapSite.inlinedCallerOffsets = site.inlinedCallerOffsets();
   } else {
-    wasmTrapData_->trapSiteDesc = trapDesc;
+    wasmTrapData_->trapSite = trapSite;
   }
   wasmTrapData_->failedUnwindSignatureMismatch =
       !unwound && trap == wasm::Trap::IndirectCallBadSig;

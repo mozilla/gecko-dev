@@ -183,9 +183,8 @@ void wasm::EmitWasmPreBarrierGuard(MacroAssembler& masm, Register instance,
 
   // Emit metadata for a potential null access when reading the previous value.
   if (trapSiteDesc) {
-    masm.append(
-        wasm::Trap::NullPointerDereference,
-        wasm::TrapSite(TrapMachineInsnForLoadWord(), fco, *trapSiteDesc));
+    masm.append(wasm::Trap::NullPointerDereference,
+                TrapMachineInsnForLoadWord(), fco.get(), *trapSiteDesc);
   }
 }
 

@@ -60,8 +60,8 @@ static bool SlowCallSiteSearchByOffset(const CodeBlock& code, uint32_t offset,
   for (uint32_t callSiteIndex = 0; callSiteIndex < code.callSites.length();
        callSiteIndex++) {
     if (code.callSites.kind(callSiteIndex) == CallSiteKind::Breakpoint &&
-        code.callSites[callSiteIndex].lineOrBytecode() == offset) {
-      *callSite = code.callSites[callSiteIndex];
+        code.callSites.bytecodeOffset(callSiteIndex).offset() == offset) {
+      *callSite = code.callSites.get(callSiteIndex, code.inliningContext);
       return true;
     }
   }
@@ -80,7 +80,8 @@ bool DebugState::getAllColumnOffsets(Vector<ExprLoc>* offsets) {
     if (debugCode().callSites.kind(callSiteIndex) != CallSiteKind::Breakpoint) {
       continue;
     }
-    uint32_t offset = debugCode().callSites[callSiteIndex].lineOrBytecode();
+    uint32_t offset =
+        debugCode().callSites.bytecodeOffset(callSiteIndex).offset();
     if (!offsets->emplaceBack(
             offset,
             JS::WasmFunctionIndex::DefaultBinarySourceColumnNumberOneOrigin,
@@ -152,8 +153,7 @@ void DebugState::decrementStepperCount(JS::GCContext* gcx, Instance* instance,
     if (debugCode().callSites.kind(callSiteIndex) != CallSiteKind::Breakpoint) {
       continue;
     }
-    uint32_t offset =
-        debugCode().callSites[callSiteIndex].returnAddressOffset();
+    uint32_t offset = debugCode().callSites.returnAddressOffset(callSiteIndex);
     if (codeRange.begin() <= offset && offset <= codeRange.end()) {
       keepDebugging = keepDebugging || breakpointSites_.has(offset);
     }
