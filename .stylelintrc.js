@@ -349,5 +349,23 @@ module.exports = {
         "value-no-vendor-prefix": null,
       },
     },
+    {
+      files: ["browser/extensions/newtab/**"],
+      rules: {
+        "declaration-property-value-disallowed-list": [
+          {
+            "font-size": [
+              "/^[0-9.]+(px|em|rem|%)$/",
+              "/^[0-9.]+$/",
+              "/^(small|medium|large|x-large|xx-large)$/",
+            ],
+          },
+          {
+            message:
+              "Avoid literal font-size values. Use variables (e.g. var(--font-size-small)) or inherit/unset/etc.",
+          },
+        ],
+      },
+    },
   ],
 };

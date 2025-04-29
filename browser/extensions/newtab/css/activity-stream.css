@@ -4355,7 +4355,7 @@ main section {
 }
 
 .pocket-logged-in-cta {
-  font-size: 13px;
+  font-size: var(--font-size-small);
   margin-inline-end: 20px;
   display: flex;
   align-items: flex-start;
@@ -4374,13 +4374,7 @@ main section {
   display: inline-flex;
   justify-content: center;
   align-items: center;
-  font-size: 11px;
   margin-inline-end: 10px;
-}
-.pocket-logged-in-cta .cta-text {
-  font-weight: normal;
-  font-size: 13px;
-  line-height: 1.2307692308;
 }
 .pocket-logged-in-cta .pocket-cta-button,
 .pocket-logged-in-cta .cta-text {

@@ -271,7 +271,7 @@ $calculated-max-width-twice-widest: $break-point-widest + 2 * $card-width;
         display: flex;
         align-items: center;
         justify-content: center;
-        font-size: 64px;
+        font-size: 64px; // stylelint-disable-line declaration-property-value-disallowed-list
         font-weight: var(--font-weight-bold);
         transform: rotate(-10deg);
         top: 6px;

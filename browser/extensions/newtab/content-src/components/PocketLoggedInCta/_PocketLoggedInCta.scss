@@ -4,7 +4,7 @@
   $max-button-width: 130px;
   $min-button-height: 18px;
 
-  font-size: 13px;
+  font-size: var(--font-size-small);
   margin-inline-end: 20px;
   display: flex;
   align-items: flex-start;
@@ -25,14 +25,7 @@
     display: inline-flex;
     justify-content: center;
     align-items: center;
-    font-size: 11px;
     margin-inline-end: 10px;
-  }
-
-  .cta-text {
-    font-weight: normal;
-    font-size: 13px;
-    line-height: math.div(16, 13); // (16 / 13) -> 16px computed
   }
 
   .pocket-cta-button,
