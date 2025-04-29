@@ -15,7 +15,7 @@ ChromeUtils.defineESModuleGetters(lazy, {
   AsyncShutdown: "resource://gre/modules/AsyncShutdown.sys.mjs",
   ClientID: "resource://gre/modules/ClientID.sys.mjs",
   DoHConfigController: "resource://gre/modules/DoHConfig.sys.mjs",
-  ExperimentAPI: "resource://nimbus/ExperimentAPI.sys.mjs",
+  EnrollmentType: "resource://nimbus/ExperimentAPI.sys.mjs",
   Heuristics: "resource://gre/modules/DoHHeuristics.sys.mjs",
   NimbusFeatures: "resource://nimbus/ExperimentAPI.sys.mjs",
   Preferences: "resource://gre/modules/Preferences.sys.mjs",
@@ -385,9 +385,9 @@ export const DoHController = {
       networkID: getHashedNetworkID(),
     };
 
-    const oHTTPexperiment = lazy.ExperimentAPI.getExperimentMetaData({
-      featureId: "dooh",
-    });
+    const oHTTPexperiment = lazy.NimbusFeatures.dooh.getEnrollmentMetadata(
+      lazy.EnrollmentType.EXPERIMENT
+    );
 
     // When the OHTTP experiment is active we don't want to enable steering.
     if (results.steeredProvider && !oHTTPexperiment) {
