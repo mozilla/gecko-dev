@@ -341,6 +341,9 @@
 // AXLanguage
 - (NSString* _Nullable)moxLanguage;
 
+// AXKeyShortcutsValue
+- (NSString* _Nullable)moxKeyShortcutsValue;
+
 // AXMozDebugDescription
 - (NSString* _Nullable)moxMozDebugDescription;
 

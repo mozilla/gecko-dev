@@ -453,3 +453,21 @@ addUiaTask(
     );
   }
 );
+
+/**
+ * Test the AcceleratorKey property.
+ */
+addUiaTask(
+  `
+  <div id="button" role="button" aria-keyshortcuts="Alt+Shift+f">foo</div>
+  `,
+  async function testAcceleratorKey() {
+    await definePyVar("doc", `getDocUia()`);
+    is(
+      await runPython(`findUiaByDomId(doc, "button").CurrentAcceleratorKey`),
+      "Alt+Shift+f",
+      "button has correct AcceleratorKey"
+    );
+  },
+  { uiaEnabled: true, uiaDisabled: false }
+);

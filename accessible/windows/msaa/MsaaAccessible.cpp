@@ -865,15 +865,18 @@ MsaaAccessible::get_accKeyboardShortcut(
                                                pszKeyboardShortcut);
   }
 
-  KeyBinding keyBinding = mAcc->AccessKey();
-  if (keyBinding.IsEmpty()) {
-    if (LocalAccessible* localAcc = mAcc->AsLocal()) {
-      keyBinding = localAcc->KeyboardShortcut();
-    }
-  }
-
   nsAutoString shortcut;
-  keyBinding.ToString(shortcut);
+
+  if (!mAcc->GetStringARIAAttr(nsGkAtoms::aria_keyshortcuts, shortcut)) {
+    KeyBinding keyBinding = mAcc->AccessKey();
+    if (keyBinding.IsEmpty()) {
+      if (LocalAccessible* localAcc = mAcc->AsLocal()) {
+        keyBinding = localAcc->KeyboardShortcut();
+      }
+    }
+
+    keyBinding.ToString(shortcut);
+  }
 
   *pszKeyboardShortcut = ::SysAllocStringLen(shortcut.get(), shortcut.Length());
   return *pszKeyboardShortcut ? S_OK : E_OUTOFMEMORY;

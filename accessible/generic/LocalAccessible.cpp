@@ -4490,3 +4490,11 @@ Maybe<int32_t> LocalAccessible::GetIntARIAAttr(nsAtom* aAttrName) const {
   }
   return Nothing();
 }
+
+bool LocalAccessible::GetStringARIAAttr(nsAtom* aAttrName,
+                                        nsAString& aAttrValue) const {
+  if (dom::Element* elm = Elm()) {
+    return nsAccUtils::GetARIAAttr(elm, aAttrName, aAttrValue);
+  }
+  return false;
+}

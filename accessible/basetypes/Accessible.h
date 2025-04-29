@@ -404,6 +404,9 @@ class Accessible {
 
   virtual Maybe<int32_t> GetIntARIAAttr(nsAtom* aAttrName) const = 0;
 
+  virtual bool GetStringARIAAttr(nsAtom* aAttrName,
+                                 nsAString& aAttrValue) const = 0;
+
   /**
    * Get the relation of the given type.
    */

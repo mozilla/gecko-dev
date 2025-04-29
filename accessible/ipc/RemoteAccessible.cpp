@@ -2337,6 +2337,18 @@ Maybe<int32_t> RemoteAccessible::GetIntARIAAttr(nsAtom* aAttrName) const {
   return Nothing();
 }
 
+bool RemoteAccessible::GetStringARIAAttr(nsAtom* aAttrName,
+                                         nsAString& aAttrValue) const {
+  if (RequestDomainsIfInactive(CacheDomain::ARIA)) {
+    return false;
+  }
+  if (auto attrs = GetCachedARIAAttributes()) {
+    return attrs->GetAttribute(aAttrName, aAttrValue);
+  }
+
+  return false;
+}
+
 void RemoteAccessible::Language(nsAString& aLocale) {
   if (RequestDomainsIfInactive(CacheDomain::Text)) {
     return;

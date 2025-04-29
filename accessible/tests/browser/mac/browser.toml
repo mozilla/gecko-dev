@@ -29,6 +29,8 @@ skip-if = ["os == 'mac' && os_version == '15.30' && arch == 'aarch64' && opt"] #
 
 ["browser_aria_haspopup.js"]
 
+["browser_aria_keyshortcuts.js"]
+
 ["browser_aria_placeholder.js"]
 
 ["browser_aria_setsize.js"]

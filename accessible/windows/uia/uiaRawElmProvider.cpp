@@ -514,13 +514,14 @@ uiaRawElmProvider::GetPropertyValue(PROPERTYID aPropertyId,
   switch (aPropertyId) {
     // Accelerator Key / shortcut.
     case UIA_AcceleratorKeyPropertyId: {
-      if (!localAcc) {
-        // KeyboardShortcut is only currently relevant for LocalAccessible.
-        break;
-      }
       nsAutoString keyString;
 
-      localAcc->KeyboardShortcut().ToString(keyString);
+      if (!acc->GetStringARIAAttr(nsGkAtoms::aria_keyshortcuts, keyString)) {
+        if (localAcc) {
+          // KeyboardShortcut is only currently relevant for LocalAccessible.
+          localAcc->KeyboardShortcut().ToString(keyString);
+        }
+      }
 
       if (!keyString.IsEmpty()) {
         aPropertyValue->vt = VT_BSTR;

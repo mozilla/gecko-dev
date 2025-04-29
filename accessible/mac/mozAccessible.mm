@@ -769,6 +769,19 @@ struct RoleDescrComparator {
   return nsCocoaUtils::ToNSString(lang);
 }
 
+- (NSString*)moxKeyShortcutsValue {
+  MOZ_ASSERT(mGeckoAccessible);
+
+  nsAutoString shortcut;
+
+  if (!mGeckoAccessible->GetStringARIAAttr(nsGkAtoms::aria_keyshortcuts,
+                                           shortcut)) {
+    return nil;
+  }
+
+  return nsCocoaUtils::ToNSString(shortcut);
+}
+
 #ifndef RELEASE_OR_BETA
 - (NSString*)moxMozDebugDescription {
   NS_OBJC_BEGIN_TRY_BLOCK_RETURN;

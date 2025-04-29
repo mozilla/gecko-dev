@@ -248,6 +248,9 @@ enum CheckedState {
 // override
 - (NSString*)moxLanguage;
 
+// override
+- (NSString*)moxKeyShortcutsValue;
+
 #ifndef RELEASE_OR_BETA
 // override
 - (NSString*)moxMozDebugDescription;
