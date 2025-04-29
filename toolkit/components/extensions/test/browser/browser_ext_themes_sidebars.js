@@ -126,14 +126,13 @@ async function test_sidebar_theme(theme, isBrightText) {
       actualColor,
       "Sidebar box text color should be set."
     );
+    is(
+      rootCS.backgroundColor,
+      actualBackground,
+      "Sidebar background should be set."
+    );
+    is(rootCS.color, actualColor, "Sidebar text color should be set.");
   }
-
-  is(
-    rootCS.backgroundColor,
-    actualBackground,
-    "Sidebar background should be set."
-  );
-  is(rootCS.color, actualColor, "Sidebar text color should be set.");
   is(
     highlightCS.backgroundColor,
     actualHighlightBackground,
