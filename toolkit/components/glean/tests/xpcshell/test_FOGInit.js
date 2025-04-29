@@ -14,13 +14,6 @@ add_setup(
     // FOG needs a profile directory to put its data in.
     do_get_profile();
 
-    // Glean init (via `chrono`) gets the timezone via unprotected write.
-    // This is being worked around:
-    // https://github.com/chronotope/chrono/pull/677
-    // Until that reaches a release and we update to it (bug 1780401), ensure
-    // local time has been loaded by JS before we kick of Glean init.
-    new Date().getHours(); // used for its side effect.
-
     // We need to initialize it once, otherwise operations will be stuck in the pre-init queue.
     Services.fog.initializeFOG();
   }
