@@ -64,6 +64,7 @@ class TextInputHandler;
 - (void)setDrawsContentsIntoWindowFrame:(BOOL)aState;
 - (BOOL)drawsContentsIntoWindowFrame;
 - (NSRect)childViewFrameRectForCurrentBounds;
+- (void)updateChildViewFrameRect;
 
 // These two methods are like contentRectForFrameRect and
 // frameRectForContentRect, but they deal with the rect of the window's "main

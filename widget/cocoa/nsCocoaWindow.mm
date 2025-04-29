@@ -5779,6 +5779,8 @@ void nsCocoaWindow::UpdateFullscreenState(bool aFullScreen, bool aNativeMode) {
     return;
   }
 
+  [mWindow updateChildViewFrameRect];
+
   DispatchSizeModeEvent();
 
   if (mNativeLayerRoot) {
@@ -7537,6 +7539,10 @@ static const NSString* kStateWantsTitleDrawn = @"wantsTitleDrawn";
   return r;
 }
 
+- (void)updateChildViewFrameRect {
+  self.mainChildView.frame = self.childViewFrameRectForCurrentBounds;
+}
+
 - (NSRect)frameRectForChildViewRect:(NSRect)aChildViewRect {
   if (mDrawsIntoWindowFrame) {
     return aChildViewRect;
@@ -7955,7 +7961,7 @@ static bool ShouldShiftByMenubarHeightInFullscreen(nsCocoaWindow* aWindow) {
     self.titlebarAppearsTransparent = self.drawsContentsIntoWindowFrame;
 
     // Here we extend / shrink our mainChildView.
-    self.mainChildView.frame = self.childViewFrameRectForCurrentBounds;
+    [self updateChildViewFrameRect];
 
     auto* windowDelegate = static_cast<WindowDelegate*>(self.delegate);
     if (nsCocoaWindow* geckoWindow = windowDelegate.geckoWidget) {
