@@ -10713,7 +10713,7 @@
 # Whether to disable layer pixel alignment in scroll related stuff.
 - name: layout.scroll.disable-pixel-alignment
   type: RelaxedAtomicBool
-  value: true
+  value: false
   mirror: always
 
 # Whether scrollIntoView scrolls to `position: fixed` frames visually.
