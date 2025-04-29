@@ -25,7 +25,7 @@ inline constexpr WCHAR kCLEARKEY_SYSTEM_NAME[] = L"org.w3.clearkey";
 
 #define WMF_CLEARKEY_DEBUG 0
 
-#if WMF_CLEARKEY_DEBUG
+#ifdef WMF_CLEARKEY_DEBUG
 #  define LOG(msg, ...)                                                   \
     printf(("[Thread %lu]: D/WMFClearKey " msg "\n"),                     \
            static_cast<unsigned long>(                                    \

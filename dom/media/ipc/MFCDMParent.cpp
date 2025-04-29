@@ -437,10 +437,6 @@ void MFCDMParent::ShutdownCDM() {
   if (FAILED(rv)) {
     MFCDM_PARENT_LOG("Failed to clear PMP Host App, rv=%lx", rv);
   }
-  if (mCDMProxy) {
-    mCDMProxy->Shutdown();
-    mCDMProxy = nullptr;
-  }
   SHUTDOWN_IF_POSSIBLE(mCDM);
   mCDM = nullptr;
   MFCDM_PARENT_LOG("Shutdown CDM completed");
@@ -1378,14 +1374,12 @@ MFCDMSession* MFCDMParent::GetSession(const nsString& aSessionId) {
   return iter->second.get();
 }
 
-MFCDMProxy* MFCDMParent::GetMFCDMProxy() {
+already_AddRefed<MFCDMProxy> MFCDMParent::GetMFCDMProxy() {
   if (!mCDM) {
     return nullptr;
   }
-  if (!mCDMProxy) {
-    mCDMProxy = new MFCDMProxy(mCDM.Get(), mId);
-  }
-  return mCDMProxy;
+  RefPtr<MFCDMProxy> proxy = new MFCDMProxy(mCDM.Get(), mId);
+  return proxy.forget();
 }
 
 /* static */

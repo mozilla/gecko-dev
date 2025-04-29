@@ -30,6 +30,9 @@ void MFCDMProxy::Shutdown() {
     SHUTDOWN_IF_POSSIBLE(inputAuthorities.second);
   }
   mInputTrustAuthorities.clear();
+  if (auto* parent = MFCDMParent::GetCDMById(mCDMParentId)) {
+    parent->ShutdownCDM();
+  }
   mCDM = nullptr;
   LOG("MFCDMProxy Shutdowned");
 }
