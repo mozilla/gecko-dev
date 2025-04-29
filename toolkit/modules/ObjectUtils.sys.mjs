@@ -28,25 +28,6 @@ export var ObjectUtils = {
   },
 
   /**
-   * A thin wrapper on an object, designed to prevent client code from
-   * accessing non-existent properties because of typos.
-   *
-   * // Without `strict`
-   * let foo = { myProperty: 1 };
-   * foo.MyProperty; // undefined
-   *
-   * // With `strict`
-   * let strictFoo = ObjectUtils.strict(foo);
-   * strictFoo.myProperty; // 1
-   * strictFoo.MyProperty; // TypeError: No such property "MyProperty"
-   *
-   * Note that `strict` has no effect in non-DEBUG mode.
-   */
-  strict(obj) {
-    return _strict(obj);
-  },
-
-  /**
    * Returns `true` if `obj` is an array without elements, an object without
    * enumerable properties, or a falsy primitive; `false` otherwise.
    */
@@ -195,21 +176,3 @@ function objEquiv(a, b) {
 }
 
 // ... End of previously MIT-licensed code.
-
-function _strict(obj) {
-  if (typeof obj != "object") {
-    throw new TypeError("Expected an object");
-  }
-
-  return new Proxy(obj, {
-    get(target, name) {
-      if (name in obj) {
-        return obj[name];
-      }
-
-      let error = new TypeError(`No such property: "${name}"`);
-      Promise.reject(error); // Cause an xpcshell/mochitest failure.
-      throw error;
-    },
-  });
-}
