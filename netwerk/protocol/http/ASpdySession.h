@@ -85,9 +85,10 @@ class ASpdySession : public nsAHttpTransaction {
   virtual void SetCleanShutdown(bool) = 0;
   virtual ExtendedCONNECTSupport GetExtendedCONNECTSupport() = 0;
 
-  virtual already_AddRefed<mozilla::net::nsHttpConnection> CreateTunnelStream(
-      nsAHttpTransaction* aHttpTransaction, nsIInterfaceRequestor* aCallbacks,
-      PRIntervalTime aRtt, bool aIsExtendedCONNECT = false) = 0;
+  virtual Result<already_AddRefed<mozilla::net::nsHttpConnection>, nsresult>
+  CreateTunnelStream(nsAHttpTransaction* aHttpTransaction,
+                     nsIInterfaceRequestor* aCallbacks, PRIntervalTime aRtt,
+                     bool aIsExtendedCONNECT = false) = 0;
 
   virtual WebTransportSessionBase* GetWebTransportSession(
       nsAHttpTransaction* aTransaction) = 0;

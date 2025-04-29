@@ -587,7 +587,13 @@ WebTransportSessionProxy::OnStartRequest(nsIRequest* aRequest) {
         MOZ_ASSERT(false, "OnStartRequest cannot be called in this state.");
         break;
       case WebTransportSessionProxyState::NEGOTIATING:
-      case WebTransportSessionProxyState::CLOSE_CALLBACK_PENDING:
+      case WebTransportSessionProxyState::CLOSE_CALLBACK_PENDING: {
+        nsresult rv;
+        if (NS_SUCCEEDED(mChannel->GetStatus(&rv)) &&
+            rv == NS_ERROR_WEBTRANSPORT_SESSION_LIMIT_EXCEEDED) {
+          mReason = "WebTransport session limit exceeded"_ns;
+          mCloseStatus = 0;
+        }
         listener = mListener;
         mListener = nullptr;
         mChannel = nullptr;
@@ -595,6 +601,7 @@ WebTransportSessionProxy::OnStartRequest(nsIRequest* aRequest) {
         closeStatus = mCloseStatus;
         ChangeState(WebTransportSessionProxyState::DONE);
         break;
+      }
       case WebTransportSessionProxyState::NEGOTIATING_SUCCEEDED: {
         uint32_t status;
 

@@ -90,6 +90,7 @@ class nsHttpTransaction final : public nsAHttpTransaction,
   void RemoveConnection();
   void SetIsHttp2Websocket(bool h2ws) override { mIsHttp2Websocket = h2ws; }
   bool IsHttp2Websocket() override { return mIsHttp2Websocket; }
+  bool Closed() { return mClosed; }
 
   void SetTRRInfo(nsIRequest::TRRMode aMode,
                   TRRSkippedReason aSkipReason) override {

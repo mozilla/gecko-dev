@@ -1046,9 +1046,11 @@ bool nsHttpConnectionMgr::DispatchPendingQ(
     bool alreadyDnsAndConnectSocketOrWaitingForTLS =
         pendingTransInfo->IsAlreadyClaimedInitializingConn();
 
+    // The transaction could be closed after calling TryDispatchTransaction
     rv = TryDispatchTransaction(ent, alreadyDnsAndConnectSocketOrWaitingForTLS,
                                 pendingTransInfo);
-    if (NS_SUCCEEDED(rv) || (rv != NS_ERROR_NOT_AVAILABLE)) {
+    if (NS_SUCCEEDED(rv) || (rv != NS_ERROR_NOT_AVAILABLE) ||
+        pendingTransInfo->Transaction()->Closed()) {
       if (NS_SUCCEEDED(rv)) {
         LOG(("  dispatching pending transaction...\n"));
       } else {
@@ -1450,8 +1452,14 @@ nsresult nsHttpConnectionMgr::TryDispatchTransaction(
           // No limit for number of websockets, dispatch transaction to the
           // tunnel
           RefPtr<nsHttpConnection> connToTunnel;
-          connTCP->CreateTunnelStream(trans, getter_AddRefs(connToTunnel),
-                                      true);
+          nsresult rv = connTCP->CreateTunnelStream(
+              trans, getter_AddRefs(connToTunnel), true);
+          if (rv == NS_ERROR_WEBTRANSPORT_SESSION_LIMIT_EXCEEDED) {
+            LOG(
+                ("TryingDispatchTransaction: WebTransport session limit "
+                 "exceeded"));
+            return rv;
+          }
           ent->InsertIntoExtendedCONNECTConns(connToTunnel);
           trans->SetConnection(nullptr);
           connToTunnel
@@ -1459,7 +1467,7 @@ nsresult nsHttpConnectionMgr::TryDispatchTransaction(
           if (trans->IsWebsocketUpgrade()) {
             trans->SetIsHttp2Websocket(true);
           }
-          nsresult rv = DispatchTransaction(ent, trans, connToTunnel);
+          rv = DispatchTransaction(ent, trans, connToTunnel);
           // need to undo NonSticky bypass for transaction reset to continue
           // for correct websocket upgrade handling
           trans->MakeSticky();

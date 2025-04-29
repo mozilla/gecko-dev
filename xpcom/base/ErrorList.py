@@ -463,6 +463,9 @@ with modules["NETWORK"]:
     # Generic error for non-specific failures during service worker interception
     errors["NS_ERROR_INTERCEPTION_FAILED"] = FAILURE(100)
 
+    # WebTransport Session Limit (mWebTransportMaxSessions) Exceeded
+    errors["NS_ERROR_WEBTRANSPORT_SESSION_LIMIT_EXCEEDED"] = FAILURE(199)
+
     errors["NS_ERROR_WEBTRANSPORT_CODE_BASE"] = FAILURE(200)
     errors["NS_ERROR_WEBTRANSPORT_CODE_END"] = (
         errors["NS_ERROR_WEBTRANSPORT_CODE_BASE"] + 255

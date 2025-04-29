@@ -159,6 +159,8 @@ class Http2Session final : public ASpdySession,
     SETTINGS_TYPE_ENABLE_CONNECT_PROTOCOL = 8,
     // see rfc9218. used to disable HTTP/2 priority signals
     SETTINGS_NO_RFC7540_PRIORITIES = 9,
+    // Used to indicate support for WebTransport over HTTP/2
+    SETTINGS_WEBTRANSPORT_MAX_SESSIONS = 0x2b60,
     // Settings for WebTransport
     // https://www.ietf.org/archive/id/draft-ietf-webtrans-http2-11.html#section-10.1
     SETTINGS_WEBTRANSPORT_INITIAL_MAX_DATA = 0x2b61,
@@ -306,7 +308,7 @@ class Http2Session final : public ASpdySession,
 
   ExtendedCONNECTSupport GetExtendedCONNECTSupport() override;
 
-  already_AddRefed<nsHttpConnection> CreateTunnelStream(
+  Result<already_AddRefed<nsHttpConnection>, nsresult> CreateTunnelStream(
       nsAHttpTransaction* aHttpTransaction, nsIInterfaceRequestor* aCallbacks,
       PRIntervalTime aRtt, bool aIsExtendedCONNECT = false) override;
 
@@ -621,6 +623,10 @@ class Http2Session final : public ASpdySession,
   bool mTlsHandshakeFinished;
 
   bool mPeerFailedHandshake;
+
+  uint32_t mWebTransportMaxSessions = 0;
+
+  uint32_t mOngoingWebTransportSessions = 0;
 
  private:
   TimeStamp mLastTRRResponseTime;  // Time of the last successful TRR response
