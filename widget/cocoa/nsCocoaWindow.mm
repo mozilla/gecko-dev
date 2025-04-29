@@ -753,20 +753,20 @@ void nsCocoaWindow::Invalidate(const LayoutDeviceIntRect& aRect) {
 #pragma mark -
 
 void nsCocoaWindow::WillPaintWindow() {
-  if (nsIWidgetListener* listener = GetWidgetListener()) {
+  if (nsIWidgetListener* listener = GetPaintListener()) {
     listener->WillPaintWindow(this);
   }
 }
 
 bool nsCocoaWindow::PaintWindow(LayoutDeviceIntRegion aRegion) {
-  nsIWidgetListener* listener = GetWidgetListener();
+  nsIWidgetListener* listener = GetPaintListener();
   if (!listener) {
     return false;
   }
 
   bool returnValue = listener->PaintWindow(this, aRegion);
 
-  listener = GetWidgetListener();
+  listener = GetPaintListener();
   if (listener) {
     listener->DidPaintWindow();
   }

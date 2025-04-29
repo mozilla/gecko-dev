@@ -475,6 +475,10 @@ class nsCocoaWindow final : public nsBaseWidget {
   void CocoaSendToplevelActivateEvents();
   void CocoaSendToplevelDeactivateEvents();
 
+  nsIWidgetListener* GetPaintListener() const {
+    return mAttachedWidgetListener ? mAttachedWidgetListener : mWidgetListener;
+  }
+
   enum class TransitionType {
     Windowed,
     Fullscreen,
