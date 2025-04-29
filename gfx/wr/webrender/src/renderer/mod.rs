@@ -3516,6 +3516,7 @@ impl Renderer {
     fn composite_simple(
         &mut self,
         composite_state: &CompositeState,
+        frame_device_size: DeviceIntSize,
         fb_draw_target: DrawTarget,
         projection: &default::Transform3D<f32>,
         results: &mut RenderResults,
@@ -3822,7 +3823,7 @@ impl Renderer {
                     DrawTarget::NativeSurface {
                         offset: -layer.offset,
                         external_fbo_id: 0,
-                        dimensions: fb_draw_target.dimensions(),
+                        dimensions: frame_device_size,
                     }
                 }
                 // Native can be hit when switching compositors (disable when using Layer)
@@ -5134,6 +5135,7 @@ impl Renderer {
                 CompositorKind::Draw { .. } | CompositorKind::Layer { .. } => {
                     self.composite_simple(
                         &frame.composite_state,
+                        frame.device_rect.size(),
                         draw_target,
                         &projection,
                         results,
