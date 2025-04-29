@@ -37,6 +37,7 @@
 --ion-range-analysis=off
 --ion-range-analysis=on
 --ion-regalloc=testbed
+--ion-regalloc=simple
 --ion-scalar-replacement=off
 --ion-scalar-replacement=on
 --ion-iterator-indices=off

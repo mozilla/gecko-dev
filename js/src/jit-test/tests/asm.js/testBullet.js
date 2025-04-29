@@ -1,4 +1,4 @@
-// |jit-test| skip-if: !isAsmJSCompilationAvailable()
+// |jit-test| skip-if: !isAsmJSCompilationAvailable(); test-also=--ion-regalloc=simple
 
 setIonCheckGraphCoherency(false);
 load(libdir + 'bullet.js');
