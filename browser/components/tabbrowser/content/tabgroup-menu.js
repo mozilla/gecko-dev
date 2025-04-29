@@ -328,6 +328,7 @@
     #suggestionsLoadCancel;
     #suggestionsSeparator;
     #smartTabGroupingManager;
+    #smartTabGroupsInitiated = false;
     #suggestionsOptinContainer;
     #suggestionsOptin;
     #suggestionsRunToken;
@@ -484,6 +485,9 @@
     }
 
     #onSmartTabGroupsPrefChange(_preName, _prev, _latest) {
+      if (!this.#smartTabGroupsInitiated && this.smartTabGroupsEnabled) {
+        this.#initSuggestions();
+      }
       const icon = this.smartTabGroupsEnabled
         ? MozTabbrowserTabGroupMenu.AI_ICON
         : "";
@@ -562,6 +566,9 @@
     }
 
     #initSuggestions() {
+      if (!this.smartTabGroupsEnabled || this.#smartTabGroupsInitiated) {
+        return;
+      }
       const { SmartTabGroupingManager } = ChromeUtils.importESModule(
         "moz-src:///browser/components/tabbrowser/SmartTabGrouping.sys.mjs"
       );
@@ -647,6 +654,7 @@
         this.#suggestionsRunToken = null;
         this.#handleLoadSuggestionsCancel();
       });
+      this.#smartTabGroupsInitiated = true;
     }
 
     #populateSwatches() {
