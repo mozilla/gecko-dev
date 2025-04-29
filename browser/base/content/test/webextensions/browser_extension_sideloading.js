@@ -274,7 +274,7 @@ add_task(async function test_sideloading() {
     kSideloaded
   );
   ok(
-    panel.querySelector(".webext-perm-privatebrowsing checkbox"),
+    panel.querySelector(".webext-perm-privatebrowsing moz-checkbox"),
     "Expect incognito checkbox in sideload prompt"
   );
 

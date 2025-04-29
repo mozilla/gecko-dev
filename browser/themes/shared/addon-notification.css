@@ -101,8 +101,8 @@ html|ul.webext-perm-domains-list {
   margin-top: 0;
 }
 
-.addon-installed-notification-content > checkbox {
-  margin: 8px 4px 2px;
+.addon-webext-perm-notification-content moz-checkbox {
+  margin-block: var(--space-small);
 }
 
 .addon-webext-name {

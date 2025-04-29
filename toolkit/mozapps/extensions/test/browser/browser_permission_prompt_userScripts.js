@@ -65,15 +65,10 @@ async function triggerPermRequest(extension, perm) {
 }
 
 function getUserScriptsCheckbox(panel) {
-  // popupnotifications has one checkbox (.popup-notification-checkbox) by
-  // default, but there should not be anything else, other than potentially
-  // the userscript checkbox.
-  let checkbox = panel.querySelector(
-    "checkbox:not(.popup-notification-checkbox)"
-  );
+  let checkbox = panel.querySelector("moz-checkbox");
   if (checkbox) {
     is(
-      checkbox.textContent,
+      checkbox.label,
       PERMISSION_L10N.formatValueSync("webext-perms-description-userScripts"),
       "userScripts permission warning is the label of a checkbox"
     );

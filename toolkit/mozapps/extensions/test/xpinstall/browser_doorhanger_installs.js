@@ -146,7 +146,7 @@ function testInstallDialogIncognitoCheckbox(
   // If the incognito toggle is expected to be in the first install dialog
   // verify that it is found and visible and toggle it.
   const privateBrowsingCheckbox = installDialog.querySelector(
-    ".webext-perm-privatebrowsing checkbox"
+    ".webext-perm-privatebrowsing moz-checkbox"
   );
   is(
     !privateBrowsingCheckbox,
@@ -202,7 +202,7 @@ function testInstallDialogIncognitoCheckbox(
   );
 
   if (toggleIncognito === true) {
-    privateBrowsingCheckbox.checked = !privateBrowsingCheckbox.checked;
+    privateBrowsingCheckbox.click();
   }
 }
 

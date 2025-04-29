@@ -662,7 +662,7 @@ add_task(async function testInstallDialogShowsDataCollectionPermissions() {
         );
         Assert.ok(
           popupContentEl.permsListEl.querySelector(
-            "li.webext-perm-privatebrowsing > checkbox"
+            "li.webext-perm-privatebrowsing > moz-checkbox"
           ),
           "Expected private browsing checkbox"
         );
@@ -702,7 +702,7 @@ add_task(async function testInstallDialogShowsDataCollectionPermissions() {
         );
         Assert.ok(
           popupContentEl.permsListEl.querySelector(
-            "li.webext-perm-privatebrowsing > checkbox"
+            "li.webext-perm-privatebrowsing > moz-checkbox"
           ),
           "Expected private browsing checkbox"
         );
@@ -739,7 +739,7 @@ add_task(async function testInstallDialogShowsDataCollectionPermissions() {
         );
         Assert.ok(
           popupContentEl.permsListEl.querySelector(
-            "li.webext-perm-privatebrowsing > checkbox"
+            "li.webext-perm-privatebrowsing > moz-checkbox"
           ),
           "Expected private browsing checkbox"
         );
@@ -768,7 +768,7 @@ add_task(async function testInstallDialogShowsDataCollectionPermissions() {
         );
         Assert.ok(
           popupContentEl.permsListEl.querySelector(
-            "li.webext-perm-privatebrowsing > checkbox"
+            "li.webext-perm-privatebrowsing > moz-checkbox"
           ),
           "Expected private browsing checkbox"
         );
@@ -807,7 +807,7 @@ add_task(async function testInstallDialogShowsDataCollectionPermissions() {
         );
         Assert.ok(
           popupContentEl.permsListEl.querySelector(
-            "li.webext-perm-privatebrowsing > checkbox"
+            "li.webext-perm-privatebrowsing > moz-checkbox"
           ),
           "Expected private browsing checkbox"
         );
@@ -831,7 +831,7 @@ add_task(async function testInstallDialogShowsDataCollectionPermissions() {
         );
         Assert.ok(
           popupContentEl.permsListEl.querySelector(
-            "li.webext-perm-privatebrowsing > checkbox"
+            "li.webext-perm-privatebrowsing > moz-checkbox"
           ),
           "Expected private browsing checkbox"
         );
@@ -855,19 +855,18 @@ add_task(async function testInstallDialogShowsDataCollectionPermissions() {
           2,
           "Expected two permission entries in the list"
         );
-        let checkbox = popupContentEl.permsListEl.querySelector(
-          "li.webext-data-collection-perm-optional > checkbox"
-        );
-        Assert.ok(checkbox, "Expected technical and interaction checkbox");
-        Assert.ok(checkbox.checked, "Expected checkbox to be checked");
+        let checkboxEl =
+          popupContentEl.permsListEl.firstChild.querySelector("moz-checkbox");
+        Assert.ok(checkboxEl, "Expected technical and interaction checkbox");
+        Assert.ok(checkboxEl.checked, "Expected checkbox to be checked");
         Assert.equal(
-          popupContentEl.permsListEl.firstChild.textContent,
+          checkboxEl.label,
           LABEL_FOR_TECHNICAL_AND_INTERACTION_DATA_CHECKBOX,
           "Expected formatted data collection permission string"
         );
         Assert.ok(
           popupContentEl.permsListEl.querySelector(
-            "li.webext-perm-privatebrowsing > checkbox"
+            "li.webext-perm-privatebrowsing > moz-checkbox"
           ),
           "Expected private browsing checkbox"
         );
@@ -890,14 +889,12 @@ add_task(async function testInstallDialogShowsDataCollectionPermissions() {
           1,
           "Expected a single permission entry in the list"
         );
-        Assert.ok(
-          popupContentEl.permsListEl.querySelector(
-            "li.webext-data-collection-perm-optional > checkbox"
-          ),
-          "Expected technical and interaction checkbox"
+        let checkboxEl = popupContentEl.permsListEl.querySelector(
+          "li.webext-data-collection-perm-optional > moz-checkbox"
         );
+        Assert.ok(checkboxEl, "Expected technical and interaction checkbox");
         Assert.equal(
-          popupContentEl.permsListEl.textContent,
+          checkboxEl.label,
           LABEL_FOR_TECHNICAL_AND_INTERACTION_DATA_CHECKBOX,
           "Expected formatted data collection permission string"
         );
@@ -926,17 +923,17 @@ add_task(async function testInstallDialogShowsDataCollectionPermissions() {
           "Expected formatted data collection permission string"
         );
         const checkboxEl = popupContentEl.permsListEl.querySelector(
-          "li.webext-data-collection-perm-optional > checkbox"
+          "li.webext-data-collection-perm-optional > moz-checkbox"
         );
         Assert.ok(checkboxEl, "Expected technical and interaction checkbox");
         Assert.equal(
-          checkboxEl.parentNode.textContent,
+          checkboxEl.label,
           LABEL_FOR_TECHNICAL_AND_INTERACTION_DATA_CHECKBOX,
           "Expected formatted data collection permission string"
         );
         Assert.ok(
           popupContentEl.permsListEl.querySelector(
-            "li.webext-perm-privatebrowsing > checkbox"
+            "li.webext-perm-privatebrowsing > moz-checkbox"
           ),
           "Expected private browsing checkbox"
         );
@@ -984,7 +981,7 @@ add_task(async function testInstallDialogShowsDataCollectionPermissions() {
         );
         Assert.ok(
           popupContentEl.permsListEl.querySelector(
-            "li.webext-perm-privatebrowsing > checkbox"
+            "li.webext-perm-privatebrowsing > moz-checkbox"
           ),
           "Expected private browsing checkbox"
         );
@@ -1034,17 +1031,19 @@ add_task(async function testInstallDialogShowsDataCollectionPermissions() {
         );
         // Make sure the T&I checkbox is listed after the permissions.
         const checkboxEl =
-          popupContentEl.permsListEl.childNodes[2].querySelector("checkbox");
+          popupContentEl.permsListEl.childNodes[2].querySelector(
+            "moz-checkbox"
+          );
         Assert.ok(checkboxEl, "Expected technical and interaction checkbox");
         Assert.equal(
-          checkboxEl.parentNode.textContent,
+          checkboxEl.label,
           LABEL_FOR_TECHNICAL_AND_INTERACTION_DATA_CHECKBOX,
           "Expected formatted data collection permission string"
         );
         // Make sure the incognito checkbox is the last item.
         Assert.ok(
           popupContentEl.permsListEl.childNodes[3].querySelector(
-            "li.webext-perm-privatebrowsing > checkbox"
+            "li.webext-perm-privatebrowsing > moz-checkbox"
           ),
           "Expected private browsing checkbox"
         );
@@ -1172,7 +1171,7 @@ add_task(async function testTechnicalAndInteractionData() {
     const popupContentEl = await dialogPromise;
 
     const checkboxEl = popupContentEl.permsListEl.querySelector(
-      "li.webext-data-collection-perm-optional > checkbox"
+      "li.webext-data-collection-perm-optional > moz-checkbox"
     );
     checkboxEl.click();
 

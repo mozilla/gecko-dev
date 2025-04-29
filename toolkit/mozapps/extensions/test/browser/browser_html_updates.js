@@ -739,7 +739,7 @@ add_task(async function testPromptOnBackgroundUpdateCheck() {
   ok(promptInfo, "Got a permission prompt as expected");
   let panel = await popupPromise;
   ok(
-    !panel.querySelector(".webext-perm-privatebrowsing checkbox"),
+    !panel.querySelector(".webext-perm-privatebrowsing moz-checkbox"),
     "Expect no incognito checkbox in update prompt"
   );
 

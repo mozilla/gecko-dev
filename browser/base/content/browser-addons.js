@@ -344,17 +344,15 @@ customElements.define(
     }
 
     #createUserScriptsPermissionItems(userScriptsPermissionMessage) {
-      const doc = this.ownerDocument;
-
-      let checkboxEl = doc.createXULElement("checkbox");
+      let checkboxEl = this.ownerDocument.createElement("moz-checkbox");
       checkboxEl.label = userScriptsPermissionMessage;
       checkboxEl.checked = false;
-      checkboxEl.addEventListener("CheckboxStateChange", () => {
+      checkboxEl.addEventListener("change", () => {
         // The main "Allow" button is disabled until the checkbox is checked.
         this.#setAllowButtonEnabled(checkboxEl.checked);
       });
 
-      let warningEl = document.createElement("moz-message-bar");
+      let warningEl = this.ownerDocument.createElement("moz-message-bar");
       warningEl.setAttribute("type", "warning");
       warningEl.setAttribute(
         "message",
@@ -395,11 +393,9 @@ customElements.define(
       const { grantPrivateBrowsingAllowed } =
         this.notification.options.customElementOptions;
 
-      const doc = this.ownerDocument;
-
-      let checkboxEl = doc.createXULElement("checkbox");
+      let checkboxEl = this.ownerDocument.createElement("moz-checkbox");
       checkboxEl.checked = grantPrivateBrowsingAllowed;
-      checkboxEl.addEventListener("CheckboxStateChange", () => {
+      checkboxEl.addEventListener("change", () => {
         // NOTE: the popupnotification instances will be reused
         // and so the callback function is destructured here to
         // avoid this custom element to prevent it from being
@@ -408,7 +404,7 @@ customElements.define(
           this.notification.options.customElementOptions;
         onPrivateBrowsingAllowedChanged?.(checkboxEl.checked);
       });
-      doc.l10n.setAttributes(
+      this.ownerDocument.l10n.setAttributes(
         checkboxEl,
         "popup-notification-addon-privatebrowsing-checkbox2"
       );
@@ -423,13 +419,13 @@ customElements.define(
         "locales-preview/dataCollectionPermissions.ftl"
       );
 
-      const checkboxEl = this.ownerDocument.createXULElement("checkbox");
+      const checkboxEl = this.ownerDocument.createElement("moz-checkbox");
       this.ownerDocument.l10n.setAttributes(
         checkboxEl,
         "popup-notification-addon-technicalAndInteraction-checkbox"
       );
       checkboxEl.checked = grantTechnicalAndInteractionDataCollection;
-      checkboxEl.addEventListener("CheckboxStateChange", () => {
+      checkboxEl.addEventListener("change", () => {
         // NOTE: the popupnotification instances will be reused
         // and so the callback function is destructured here to
         // avoid this custom element to prevent it from being

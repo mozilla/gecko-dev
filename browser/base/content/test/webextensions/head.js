@@ -254,7 +254,7 @@ function checkNotification(panel, checkIcon, permissions, sideloaded) {
   ok(description.endsWith(exp.at(-1)), "Description is the expected one");
 
   const hasPBCheckbox = !!ul.querySelector(
-    "li.webext-perm-privatebrowsing > checkbox"
+    "li.webext-perm-privatebrowsing > moz-checkbox"
   );
 
   is(
@@ -283,7 +283,7 @@ function checkNotification(panel, checkIcon, permissions, sideloaded) {
       "Expect last permissions list entry to be the private browsing checkbox"
     );
     ok(
-      lastEntry.querySelector("checkbox"),
+      lastEntry.querySelector("moz-checkbox"),
       "Expect a checkbox inside the last permissions list entry"
     );
   } else {
