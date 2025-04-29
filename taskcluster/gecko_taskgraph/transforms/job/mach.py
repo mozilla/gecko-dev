@@ -25,6 +25,8 @@ mach_schema = Schema(
         # if true, perform a checkout of a comm-central based branch inside the
         # gecko checkout
         Required("comm-checkout"): bool,
+        # Prefix ENV variables with a string
+        Optional("prefix-env"): {str: str},
         # Base work directory used to set up the task.
         Optional("workdir"): str,
         # Use the specified caches.
@@ -64,6 +66,12 @@ def configure_mach(config, job, taskdesc):
             pass
 
         additional_prefix.append(python)
+
+    prefix_env = run.get("prefix-env")
+    if prefix_env:
+        del run["prefix-env"]
+        for name, prefix in prefix_env.items():
+            additional_prefix.append(f"{name}={prefix}${name}")
 
     command_prefix = " ".join(additional_prefix + ["./mach "])
 

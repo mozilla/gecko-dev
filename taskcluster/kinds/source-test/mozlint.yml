@@ -459,6 +459,8 @@ clippy:
     treeherder:
         symbol: rust(clippy)
     run:
+        prefix-env:
+            PATH: "$MOZ_FETCHES_DIR/rustc/bin/:"
         mach: lint -v -l clippy -f treeherder -f json:/builds/worker/mozlint.json -j 1 .
     when:
         files-changed:

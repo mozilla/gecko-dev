@@ -16,7 +16,10 @@ def test_basic(global_lint, config):
         ],
         "GRADLE_ANDROID_FORMAT_LINT_FOLDERS": ["tools/lint/test/files/android-format"],
     }
+    # the android linters ignore the paths argument, so just use an empty list
+    paths = []
     results = global_lint(
+        paths,
         config=config,
         topobjdir=build.topobjdir,
         root=build.topsrcdir,

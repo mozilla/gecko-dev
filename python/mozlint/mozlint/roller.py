@@ -116,7 +116,7 @@ class InterruptableQueue(Queue):
 
     def __init__(self, *args, **kwargs):
         kwargs["ctx"] = get_context()
-        super(InterruptableQueue, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
     def get(self, *args, **kwargs):
         try:
@@ -131,7 +131,7 @@ def _worker_sigint_handler(signum, frame):
     Tells workers not to process the extra jobs on the call queue that couldn't
     be canceled by the parent process.
     """
-    global SHUTDOWN
+    global SHUTDOWN  # noqa PLW0603
     SHUTDOWN = True
     orig_sigint(signum, frame)
 

@@ -9,7 +9,7 @@ from mozpack.files import FileFinder
 from mozlint import result
 
 
-def global_payload(config, **lintargs):
+def global_payload(_paths, config, **lintargs):
     # A global linter that runs the external linter to actually lint.
     finder = FileFinder(lintargs["root"])
     files = [mozpath.join(lintargs["root"], p) for p, _ in finder.find("files/**")]

@@ -212,12 +212,12 @@ def global_lint(config, root, request):
 
     ResultSummary.root = root
 
-    def wrapper(config=config, root=root, collapse_results=False, **lintargs):
+    def wrapper(paths, config=config, root=root, collapse_results=False, **lintargs):
         logger.setLevel(logging.DEBUG)
         lintargs["log"] = logging.LoggerAdapter(
             logger, {"lintname": config.get("name"), "pid": os.getpid()}
         )
-        results = func(config, root=root, **lintargs)
+        results = func(paths, config, root=root, **lintargs)
         if hasattr(request.module, "fixed") and isinstance(results, dict):
             request.module.fixed += results["fixed"]
 

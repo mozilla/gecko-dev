@@ -177,13 +177,11 @@ class GlobalType(ExternalType):
     def _lint(self, files, config, **lintargs):
         # Global lints are expensive to invoke.  Try to avoid running
         # them based on extensions and exclusions.
-        try:
-            next(expand_exclusions(files, config, lintargs["root"]))
-        except StopIteration:
-            return []
-
+        files = list(expand_exclusions(files, config, lintargs["root"]))
+        if not files:
+            return
         func = findobject(config["payload"])
-        return func(config, **lintargs)
+        return func(files, config, **lintargs)
 
 
 class LintHandler(LogHandler):

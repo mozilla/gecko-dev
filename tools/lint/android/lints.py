@@ -88,7 +88,7 @@ def gradle(log, topsrcdir=None, topobjdir=None, tasks=[], extra_args=[], verbose
         return proc.returncode
 
 
-def format(config, fix=None, **lintargs):
+def format(_paths, config, fix=None, **lintargs):
     topsrcdir = lintargs["root"]
     topobjdir = lintargs["topobjdir"]
 
@@ -157,7 +157,7 @@ def format(config, fix=None, **lintargs):
     return results
 
 
-def fenix_format(config, fix=None, **lintargs):
+def fenix_format(_paths, config, fix=None, **lintargs):
     return report_gradlew(
         config,
         fix,
@@ -166,7 +166,7 @@ def fenix_format(config, fix=None, **lintargs):
     )
 
 
-def ac_format(config, fix=None, **lintargs):
+def ac_format(_paths, config, fix=None, **lintargs):
     return report_gradlew(
         config,
         fix,
@@ -175,7 +175,7 @@ def ac_format(config, fix=None, **lintargs):
     )
 
 
-def focus_format(config, fix=None, **lintargs):
+def focus_format(_paths, config, fix=None, **lintargs):
     return report_gradlew(
         config,
         fix,
@@ -286,7 +286,7 @@ def is_excluded_file(topsrcdir, excludes, file):
     return False
 
 
-def api_lint(config, **lintargs):
+def api_lint(_paths, config, **lintargs):
     topsrcdir = lintargs["root"]
     topobjdir = lintargs["topobjdir"]
 
@@ -333,7 +333,7 @@ def api_lint(config, **lintargs):
     return results
 
 
-def javadoc(config, **lintargs):
+def javadoc(_paths, config, **lintargs):
     topsrcdir = lintargs["root"]
     topobjdir = lintargs["topobjdir"]
 
@@ -365,7 +365,7 @@ def javadoc(config, **lintargs):
     return results
 
 
-def lint(config, **lintargs):
+def lint(_paths, config, **lintargs):
     topsrcdir = lintargs["root"]
     topobjdir = lintargs["topobjdir"]
 
@@ -425,7 +425,7 @@ def _parse_checkstyle_output(config, topsrcdir=None, report_path=None):
             yield result.from_config(config, **err)
 
 
-def checkstyle(config, **lintargs):
+def checkstyle(_paths, config, **lintargs):
     topsrcdir = lintargs["root"]
     topobjdir = lintargs["topobjdir"]
 
@@ -509,7 +509,7 @@ def _parse_android_test_results(config, topsrcdir=None, report_dir=None):
                     yield result.from_config(config, **err)
 
 
-def test(config, **lintargs):
+def test(_paths, config, **lintargs):
     topsrcdir = lintargs["root"]
     topobjdir = lintargs["topobjdir"]
 
