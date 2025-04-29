@@ -85,6 +85,7 @@ UNIFIED_SOURCES += [
     'hb-ot-tag.cc',
     'hb-ot-var.cc',
     'hb-outline.cc',
+    'hb-paint-bounded.cc',
     'hb-paint-extents.cc',
     'hb-paint.cc',
     'hb-set.cc',
