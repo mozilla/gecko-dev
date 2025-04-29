@@ -25,9 +25,8 @@ The following special comment can be used to ignore the pattern in the next line
 .. parsed-literal::
 
     # lint-ignore-next-line: git-only
-    # lint-ignore-next-line: hg-only
 
-The next line exists only in ``.gitignore``. or ``.hgignore``.
+The next line exists only in ``.gitignore``.
 
 .. parsed-literal::
     # lint-ignore-next-line: syntax-difference

@@ -59,7 +59,6 @@ Formatting specific commits / revisions
 
    $ ./mach clang-format -c HEAD # Format a single git commit
    $ ./mach clang-format -c HEAD~~..HEAD # Format a range of git commits
-   $ ./mach clang-format -c . # Format a single mercurial revision
 
 The command accepts a ``-c`` argument that takes a revision number or
 commit range, and will format the lines modified by those commits.

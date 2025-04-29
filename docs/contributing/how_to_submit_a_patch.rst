@@ -112,7 +112,7 @@ choosing reviewers, and the full reviewer syntax, please see
 :ref:`Getting reviews`.
 
 You can edit the message of the current commit at any time using
-``hg commit --amend`` or ``hg histedit``.
+``git commit --amend`` or ``git rebase -i``.
 
 Also look at our :ref:`Reviewer Checklist` for a list
 of best practices for patch content that reviewers will check for or

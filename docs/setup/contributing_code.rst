@@ -102,9 +102,9 @@ Who is the right person to ask for a review?
 
 -  If you have a mentored bug: ask your mentor. They will help, or can
    easily find out. It might be them!
--  Run ``{hg, git} blame`` on the file and look for the people who have touched
+-  Run ``git blame`` on the file and look for the people who have touched
    the functions you're working on. They too are good candidates.
-   Running ``{hg, git} log`` and looking for regular reviewers might be a
+   Running ``git log`` and looking for regular reviewers might be a
    solution too.
 -  The bug itself may contain a clear indication of the best person to
    ask for a review

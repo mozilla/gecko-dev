@@ -40,8 +40,8 @@ You can see a list of the available linters by running:
     ./mach lint --list
 
 Finally, ``mozlint`` can lint the files touched by outgoing revisions or the working directory using
-the ``-o/--outgoing`` and ``-w/--workdir`` arguments respectively. These work both with mercurial and
-git. In the case of ``--outgoing``, the default remote repository the changes would be pushed to is
+the ``-o/--outgoing`` and ``-w/--workdir`` arguments respectively.
+In the case of ``--outgoing``, the default remote repository the changes would be pushed to is
 used as the comparison. If desired, a remote can be specified manually. In git, you may only want to
 lint staged commits from the working directory, this can be accomplished with ``--workdir=staged``.
 Examples:

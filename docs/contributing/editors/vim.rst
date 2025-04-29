@@ -22,7 +22,7 @@ default of :code:`nvim-lspconfig` is to search for the closest
 
 .. code ::
 
-    root_dir = lspconfig.util.root_pattern(".git", ".hg")
+    root_dir = lspconfig.util.root_pattern(".git")
 
 You also need to set some options to get full diagnostics:
 

@@ -20,11 +20,7 @@ System Requirements
 
 Required Installations
 ----------------------
--  **Mercurial:** Ensure that the ``hg`` command works from PowerShell. If it is not set up,
-   download `Mercurial/TortoiseHg <https://www.mercurial-scm.org/downloads>`_ and ensure
-   the hg directory is added to your path. For example, this could be
-   ``C:\Program Files\Mercurial`` or
-   ``C:\Program Files\TortoiseHg``.
+-  **git:** Ensure that the ``git`` command works from PowerShell.
 -  **Python:** Ensure that the ``python`` and ``pip3`` commands work from PowerShell. If it is not
    set up, download `python 3.11 <https://www.python.org/downloads/release/python-3119/>`_, and add
    the python directory
