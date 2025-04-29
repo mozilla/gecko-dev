@@ -184,7 +184,7 @@
       window.addEventListener("framefocusrequested", this);
       window.addEventListener("activate", this);
       window.addEventListener("deactivate", this);
-      window.addEventListener("TabGroupCreate", this);
+      window.addEventListener("TabGroupCreateByUser", this);
 
       this.tabContainer.init();
       this._setupInitialBrowserAndTab();
@@ -2943,14 +2943,16 @@
      * @param {string} color
      * @param {boolean} collapsed
      * @param {string} [label=]
+     * @param {boolean} [isAdoptingGroup=false]
      * @returns {MozTabbrowserTabGroup}
      */
-    _createTabGroup(id, color, collapsed, label = "") {
+    _createTabGroup(id, color, collapsed, label = "", isAdoptingGroup = false) {
       let group = document.createXULElement("tab-group", { is: "tab-group" });
       group.id = id;
       group.collapsed = collapsed;
       group.color = color;
       group.label = label;
+      group.wasCreatedByAdoption = isAdoptingGroup;
       return group;
     }
 
@@ -3014,7 +3016,13 @@
         // See: Bug 1960104 - Improve tab group ID generation in addTabGroup
         id = `${Date.now()}-${Math.round(Math.random() * 100)}`;
       }
-      let group = this._createTabGroup(id, color, false, label);
+      let group = this._createTabGroup(
+        id,
+        color,
+        false,
+        label,
+        isAdoptingGroup
+      );
       this.tabContainer.insertBefore(
         group,
         insertBefore?.group ?? insertBefore
@@ -3028,16 +3036,16 @@
         return null;
       }
 
-      group.dispatchEvent(
-        new CustomEvent("TabGroupCreate", {
-          bubbles: true,
-          detail: {
-            isAdoptingGroup,
-            isUserTriggered,
-            telemetryUserCreateSource,
-          },
-        })
-      );
+      if (isUserTriggered) {
+        group.dispatchEvent(
+          new CustomEvent("TabGroupCreateByUser", {
+            bubbles: true,
+            detail: {
+              telemetryUserCreateSource,
+            },
+          })
+        );
+      }
 
       // Fixes bug1953801 and bug1954689
       // Ensure that the tab state cache is updated immediately after creating
@@ -7119,10 +7127,8 @@
           }
           break;
         }
-        case "TabGroupCreate":
-          if (aEvent.detail.isUserTriggered) {
-            this.tabGroupMenu.openCreateModal(aEvent.target);
-          }
+        case "TabGroupCreateByUser":
+          this.tabGroupMenu.openCreateModal(aEvent.target);
           break;
         case "activate":
         // Intentional fallthrough

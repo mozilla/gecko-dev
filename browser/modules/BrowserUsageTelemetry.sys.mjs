@@ -616,8 +616,8 @@ export let BrowserUsageTelemetry = {
       case "TabPinned":
         this._onTabPinned();
         break;
-      case "TabGroupCreate":
-        this._onTabGroupCreate(event);
+      case "TabGroupCreateByUser":
+        this._onTabGroupCreateByUser(event);
         break;
       case "TabGrouped":
       case "TabUngrouped":
@@ -1194,7 +1194,7 @@ export let BrowserUsageTelemetry = {
     win.addEventListener("TabClose", this, true);
     win.addEventListener("TabPinned", this, true);
     win.addEventListener("TabSelect", this);
-    win.addEventListener("TabGroupCreate", this);
+    win.addEventListener("TabGroupCreateByUser", this);
     win.addEventListener("TabGroupRemoveRequested", this);
     win.addEventListener("TabGrouped", this);
     win.addEventListener("TabUngrouped", this);
@@ -1217,7 +1217,7 @@ export let BrowserUsageTelemetry = {
     win.removeEventListener("TabClose", this, true);
     win.removeEventListener("TabPinned", this, true);
     win.removeEventListener("TabSelect", this);
-    win.removeEventListener("TabGroupCreate", this);
+    win.removeEventListener("TabGroupCreateByUser", this);
     win.removeEventListener("TabGroupRemoveRequested", this);
     win.removeEventListener("TabGrouped", this);
     win.removeEventListener("TabUngrouped", this);
@@ -1292,17 +1292,15 @@ export let BrowserUsageTelemetry = {
     this.updateMaxTabPinnedCount(pinnedTabs);
   },
 
-  _onTabGroupCreate(event) {
-    if (event.detail.isUserTriggered) {
-      Glean.tabgroup.createGroup.record({
-        id: event.target.id,
-        layout: lazy.sidebarVerticalTabs
-          ? lazy.TabMetrics.METRIC_TABS_LAYOUT.VERTICAL
-          : lazy.TabMetrics.METRIC_TABS_LAYOUT.HORIZONTAL,
-        source: event.detail.telemetryUserCreateSource,
-        tabs: event.target.tabs.length,
-      });
-    }
+  _onTabGroupCreateByUser(event) {
+    Glean.tabgroup.createGroup.record({
+      id: event.target.id,
+      layout: lazy.sidebarVerticalTabs
+        ? lazy.TabMetrics.METRIC_TABS_LAYOUT.VERTICAL
+        : lazy.TabMetrics.METRIC_TABS_LAYOUT.HORIZONTAL,
+      source: event.detail.telemetryUserCreateSource,
+      tabs: event.target.tabs.length,
+    });
 
     this._onTabGroupChange();
   },

@@ -469,10 +469,20 @@ add_task(async function test_tabGroupMoveToNewWindow() {
 
   info("Calling adoptTabGroup and waiting for TabGroupRemoved event.");
   let removePromise = BrowserTestUtils.waitForEvent(group, "TabGroupRemoved");
-
   let fgWindow = await BrowserTestUtils.openNewBrowserWindow();
+  let tabGroupCreate = BrowserTestUtils.waitForEvent(
+    fgWindow,
+    "TabGroupCreate"
+  );
   fgWindow.gBrowser.adoptTabGroup(group, 0);
-  await removePromise;
+  let [, tabGroupCreateEvent] = await Promise.all([
+    removePromise,
+    tabGroupCreate,
+  ]);
+  Assert.ok(
+    tabGroupCreateEvent.detail.isAdoptingGroup,
+    "TabGroupCreate event should report that this tab group was creating by adoption"
+  );
 
   Assert.equal(
     gBrowser.tabGroups.length,
@@ -528,6 +538,10 @@ add_task(async function test_TabGroupEvents() {
     window,
     "TabGroupCreate"
   ).then(event => {
+    Assert.ok(
+      !event.detail.isAdoptingGroup,
+      "a tab group being created from scratch should not be treated like it was adopted from another window"
+    );
     createdGroupId = event.target.id;
   });
   group = gBrowser.addTabGroup([tab1]);
