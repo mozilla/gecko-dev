@@ -40,14 +40,18 @@ class CapsuleIOHandler {
 struct Http2WebTransportInitialSettings {
   // Initial session-level data limit.
   uint32_t mInitialMaxData = 0;
-  // Initial stream-level data limit for incoming unidirectional streams.
+  // Initial stream-level data limit for outgoing unidirectional streams.
   uint32_t mInitialMaxStreamDataUni = 0;
-  // Initial stream-level data limit for incoming bidirectional streams.
+  // Initial stream-level data limit for outgoing bidirectional streams.
   uint32_t mInitialMaxStreamDataBidi = 0;
   // Initial max unidirectional streams per session.
   uint32_t mInitialMaxStreamsUni = 0;
   // Initial max bidirectional streams per session.
   uint32_t mInitialMaxStreamsBidi = 0;
+  // Initial limit on unidirectional streams that the peer creates.
+  uint32_t mInitialLocalMaxStreamsUnidi = 16;
+  // Initial limit on bidirectional streams that the peer creates.
+  uint32_t mInitialLocalMaxStreamsBidi = 16;
 };
 
 enum class CapsuleTransmissionPriority : uint8_t {
@@ -84,6 +88,7 @@ class Http2WebTransportSessionImpl final : public WebTransportSessionBase,
   void StartReading() override;
   void Close(nsresult aReason);
 
+  void OnStreamClosed(Http2WebTransportStream* aStream);
   void SendStreamDataCapsule(UniquePtr<CapsuleEncoder>&& aData);
   void PrepareCapsulesToSend(
       mozilla::Queue<UniquePtr<CapsuleEncoder>>& aOutput);
@@ -114,6 +119,8 @@ class Http2WebTransportSessionImpl final : public WebTransportSessionBase,
   void ProcessPendingStreamCallbacks(
       mozilla::Queue<UniquePtr<PendingStreamCallback>>& aCallbacks,
       WebTransportStreamType aStreamType);
+  bool ProcessIncomingStreamCapsule(Capsule&& aCapsule, StreamId aID,
+                                    WebTransportStreamType aStreamType);
   void SendFlowControlCapsules(CapsuleTransmissionPriority aPriority);
 
   class CapsuleQueue final {
@@ -138,10 +145,11 @@ class Http2WebTransportSessionImpl final : public WebTransportSessionBase,
 
   mozilla::Queue<UniquePtr<PendingStreamCallback>> mBidiPendingStreamCallbacks;
   mozilla::Queue<UniquePtr<PendingStreamCallback>> mUnidiPendingStreamCallbacks;
+  Http2WebTransportInitialSettings mSettings;
   LocalStreamLimits mLocalStreamsFlowControl;
+  RemoteStreamLimits mRemoteStreamsFlowControl;
 
   RefPtr<CapsuleIOHandler> mHandler;
-  Http2WebTransportInitialSettings mSettings;
   CapsuleQueue mCapsuleQueue;
 };
 

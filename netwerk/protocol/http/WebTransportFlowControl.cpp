@@ -22,4 +22,18 @@ SenderFlowControlStreamType::CreateStreamsBlockedCapsule() {
   return Some(encoder);
 }
 
+Maybe<CapsuleEncoder> ReceiverFlowControlStreamType::CreateMaxStreamsCapsule() {
+  if (!CapsuleNeeded()) {
+    return Nothing();
+  }
+
+  uint64_t maxStreams = NextLimit();
+  Capsule capsule = Capsule::WebTransportMaxStreams(
+      maxStreams, mType == WebTransportStreamType::BiDi);
+  CapsuleEncoder encoder;
+  encoder.EncodeCapsule(capsule);
+  CapsuleSent(maxStreams);
+  return Some(encoder);
+}
+
 }  // namespace mozilla::net

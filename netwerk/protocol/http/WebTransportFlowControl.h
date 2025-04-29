@@ -10,6 +10,7 @@
 #include "CapsuleEncoder.h"
 #include "mozilla/Assertions.h"
 #include "mozilla/Maybe.h"
+#include "mozilla/Result.h"
 #include "mozilla/net/neqo_glue_ffi_generated.h"
 #include "WebTransportStreamBase.h"
 
@@ -123,6 +124,131 @@ class LocalStreamLimits {
  private:
   SenderFlowControlStreamType mBidirectional;
   SenderFlowControlStreamType mUnidirectional;
+};
+
+class ReceiverFlowControlBase {
+ public:
+  explicit ReceiverFlowControlBase(uint64_t aMax)
+      : mMaxActive(aMax), mMaxAllowed(aMax) {}
+
+  void Retire(uint64_t aRetired) {
+    if (aRetired <= mRetired) {
+      return;
+    }
+    mRetired = aRetired;
+    if (mRetired + mMaxActive / 2 > mMaxAllowed) {
+      mCapsulePending = true;
+    }
+  }
+
+  void SendFlowControlUpdate() {
+    if (mRetired + mMaxActive > mMaxAllowed) {
+      mCapsulePending = true;
+    }
+  }
+
+  bool CapsuleNeeded() const { return mCapsulePending; }
+  uint64_t NextLimit() const { return mRetired + mMaxActive; }
+  uint64_t MaxActive() const { return mMaxActive; }
+
+  void SetMaxActive(uint64_t aMax) {
+    mCapsulePending |= (mMaxActive < aMax);
+    mMaxActive = aMax;
+  }
+
+  uint64_t Retired() const { return mRetired; }
+  uint64_t Consumed() const { return mConsumed; }
+
+  void CapsuleSent(uint64_t aNewMax) {
+    mMaxAllowed = aNewMax;
+    mCapsulePending = false;
+  }
+
+ protected:
+  uint64_t mMaxActive = 0;
+  uint64_t mMaxAllowed = 0;
+  uint64_t mConsumed = 0;
+  uint64_t mRetired = 0;
+  bool mCapsulePending = false;
+};
+
+class ReceiverFlowControlStreamType : public ReceiverFlowControlBase {
+ public:
+  ReceiverFlowControlStreamType(WebTransportStreamType aStreamType,
+                                uint64_t aMax)
+      : ReceiverFlowControlBase(aMax), mType(aStreamType) {}
+
+  Maybe<CapsuleEncoder> CreateMaxStreamsCapsule();
+
+  bool CheckAllowed(uint64_t aNewEnd) const { return aNewEnd < mMaxAllowed; }
+
+  void AddRetired(uint64_t aCount) {
+    mRetired += aCount;
+    if (aCount > 0) {
+      SendFlowControlUpdate();
+    }
+  }
+
+ private:
+  WebTransportStreamType mType = WebTransportStreamType::BiDi;
+};
+
+class RemoteStreamLimit {
+ public:
+  RemoteStreamLimit(WebTransportStreamType aStreamType, uint64_t aMaxStreams)
+      : mStreamsFC(aStreamType, aMaxStreams) {
+    uint64_t typeBit = (aStreamType == WebTransportStreamType::BiDi) ? 0 : 2;
+    // Server initiated stream starts with 1.
+    mNextStreamId = StreamId(typeBit + 1);
+  }
+
+  bool IsAllowed(StreamId aStreamId) const {
+    uint64_t streamIndex = aStreamId >> 2;
+    return mStreamsFC.CheckAllowed(streamIndex);
+  }
+
+  Result<bool, nsresult> IsNewStream(StreamId aStreamId) const {
+    if (!IsAllowed(aStreamId)) {
+      return Err(NS_ERROR_NOT_AVAILABLE);
+    }
+
+    return aStreamId >= mNextStreamId;
+  }
+
+  StreamId TakeStreamId() {
+    StreamId newStream = mNextStreamId;
+    mNextStreamId.Next();
+    MOZ_ASSERT(IsAllowed(newStream));
+    return newStream;
+  }
+
+  ReceiverFlowControlStreamType& FlowControl() { return mStreamsFC; }
+  const ReceiverFlowControlStreamType& FlowControl() const {
+    return mStreamsFC;
+  }
+
+ private:
+  ReceiverFlowControlStreamType mStreamsFC;
+  StreamId mNextStreamId{1u};
+};
+
+class RemoteStreamLimits {
+ public:
+  RemoteStreamLimits(uint64_t aBidiMax, uint64_t aUniMax)
+      : mBidi(WebTransportStreamType::BiDi, aBidiMax),
+        mUni(WebTransportStreamType::UniDi, aUniMax) {}
+
+  RemoteStreamLimit& operator[](WebTransportStreamType aType) {
+    return aType == WebTransportStreamType::BiDi ? mBidi : mUni;
+  }
+
+  const RemoteStreamLimit& operator[](WebTransportStreamType aType) const {
+    return aType == WebTransportStreamType::BiDi ? mBidi : mUni;
+  }
+
+ private:
+  RemoteStreamLimit mBidi;
+  RemoteStreamLimit mUni;
 };
 
 }  // namespace mozilla::net

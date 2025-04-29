@@ -10,6 +10,7 @@
 #include "mozilla/net/NeqoHttp3Conn.h"
 #include "mozilla/RefPtr.h"
 #include "mozilla/Span.h"
+#include "mozilla/net/NeqoHttp3Conn.h"
 #include "nsTArray.h"
 
 namespace mozilla::net {

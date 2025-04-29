@@ -145,9 +145,14 @@ class MockWebTransportSessionEventListener
   NS_DECL_WEBTRANSPORTSESSIONEVENTLISTENERINTERNAL
 
   MockWebTransportSessionEventListener() {}
+  nsTArray<RefPtr<WebTransportStreamBase>> TakeIncomingStreams() {
+    return std::move(mIncomingStreams);
+  }
 
  private:
   virtual ~MockWebTransportSessionEventListener() = default;
+
+  nsTArray<RefPtr<WebTransportStreamBase>> mIncomingStreams;
 };
 
 NS_IMPL_ISUPPORTS(MockWebTransportSessionEventListener,
@@ -163,6 +168,7 @@ MockWebTransportSessionEventListener::OnSessionReadyInternal(
 NS_IMETHODIMP
 MockWebTransportSessionEventListener::OnIncomingStreamAvailableInternal(
     WebTransportStreamBase* aStream) {
+  mIncomingStreams.AppendElement(RefPtr{aStream});
   return NS_OK;
 }
 
@@ -477,6 +483,60 @@ TEST(TestHttp2WebTransport, OutgoingBidiStream)
   EXPECT_EQ(available, inputData.Length());
 
   ValidateData(reader, inputData);
+
+  client->Done();
+  server->Done();
+}
+
+TEST(TestHttp2WebTransport, IncomingBidiStream)
+{
+  Http2WebTransportInitialSettings settings;
+  settings.mInitialLocalMaxStreamsBidi = 1;
+  settings.mInitialLocalMaxStreamDataBidi = 512;
+  RefPtr<MockWebTransportClient> client = new MockWebTransportClient(settings);
+  RefPtr<MockWebTransportSessionEventListener> listener =
+      new MockWebTransportSessionEventListener();
+  client->Session()->SetWebTransportSessionEventListener(listener);
+
+  RefPtr<MockWebTransportServer> server = new MockWebTransportServer();
+
+  nsTArray<uint8_t> inputData;
+  CreateTestData(512, inputData);
+  nsTArray<uint8_t> cloned(inputData.Clone());
+
+  server->SendWebTransportStreamDataCapsule(1, false, std::move(cloned));
+
+  ClientProcessCapsules(server, client);
+
+  nsTArray<RefPtr<WebTransportStreamBase>> streams =
+      listener->TakeIncomingStreams();
+  ASSERT_EQ(streams.Length(), 1u);
+
+  nsCOMPtr<nsIAsyncOutputStream> writer;
+  nsCOMPtr<nsIAsyncInputStream> reader;
+  RefPtr<WebTransportStreamBase> stream = streams[0];
+  stream->GetWriterAndReader(getter_AddRefs(writer), getter_AddRefs(reader));
+
+  ValidateData(reader, inputData);
+
+  cloned = inputData.Clone();
+  server->SendWebTransportStreamDataCapsule(5, false, std::move(cloned));
+
+  ClientProcessCapsules(server, client);
+  streams = listener->TakeIncomingStreams();
+  ASSERT_EQ(streams.Length(), 0u);
+
+  client->Session()->OnStreamClosed(
+      static_cast<Http2WebTransportStream*>(stream.get()));
+
+  ServerProcessCapsules(server, client);
+
+  cloned = inputData.Clone();
+  server->SendWebTransportStreamDataCapsule(5, false, std::move(cloned));
+
+  ClientProcessCapsules(server, client);
+  streams = listener->TakeIncomingStreams();
+  ASSERT_EQ(streams.Length(), 1u);
 
   client->Done();
   server->Done();
