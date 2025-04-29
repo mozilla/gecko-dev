@@ -111,7 +111,9 @@ class RemoteWorkerService final : public nsIObserver {
           aDebuggerChildEp);
 
   void InitializeOnTargetThread(
-      mozilla::ipc::Endpoint<PRemoteWorkerServiceChild> aEndpoint);
+      mozilla::ipc::Endpoint<PRemoteWorkerServiceChild> aEndpoint,
+      mozilla::ipc::Endpoint<PRemoteWorkerDebuggerManagerChild>
+          aDebuggerMgrEndpoint);
 
   void CloseActorOnTargetThread();
 

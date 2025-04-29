@@ -3160,7 +3160,7 @@ already_AddRefed<WorkerPrivate> WorkerPrivate::Constructor(
 
   // Create remote debugger endpoint here for child binding in
   // WorkerThreadPrimaryRunnable
-  worker->CreateRemoteDebuggerEndpoints();
+  // worker->CreateRemoteDebuggerEndpoints();
 
   if (!runtimeService->RegisterWorker(*worker)) {
     aRv.Throw(NS_ERROR_UNEXPECTED);

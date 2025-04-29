@@ -275,11 +275,8 @@ nsresult RemoteWorkerService::InitializeOnMainThread(
       "InitializeThread",
       [self, endpoint = std::move(aEndpoint),
        debuggerChildEp = std::move(aDebuggerChildEp)]() mutable {
-        self->InitializeOnTargetThread(std::move(endpoint));
-
-        self->mDebuggerManagerChild =
-            MakeRefPtr<RemoteWorkerDebuggerManagerChild>();
-        debuggerChildEp.Bind(self->mDebuggerManagerChild);
+        self->InitializeOnTargetThread(std::move(endpoint),
+                                       std::move(debuggerChildEp));
       });
 
   rv = mThread->Dispatch(r.forget(), NS_DISPATCH_NORMAL);
@@ -298,9 +295,17 @@ RemoteWorkerService::RemoteWorkerService()
 RemoteWorkerService::~RemoteWorkerService() = default;
 
 void RemoteWorkerService::InitializeOnTargetThread(
-    mozilla::ipc::Endpoint<PRemoteWorkerServiceChild> aEndpoint) {
+    mozilla::ipc::Endpoint<PRemoteWorkerServiceChild> aEndpoint,
+    mozilla::ipc::Endpoint<PRemoteWorkerDebuggerManagerChild>
+        aDebuggerMgrEndpoint) {
   MOZ_ASSERT(mThread);
   MOZ_ASSERT(mThread->IsOnCurrentThread());
+
+  RefPtr<RemoteWorkerDebuggerManagerChild> debuggerManagerActor =
+      MakeRefPtr<RemoteWorkerDebuggerManagerChild>();
+  if (NS_WARN_IF(!aDebuggerMgrEndpoint.Bind(debuggerManagerActor))) {
+    return;
+  }
 
   RefPtr<RemoteWorkerServiceChild> serviceActor =
       MakeAndAddRef<RemoteWorkerServiceChild>();
@@ -308,8 +313,8 @@ void RemoteWorkerService::InitializeOnTargetThread(
     return;
   }
 
-  // Now we are ready!
-  mActor = serviceActor;
+  mDebuggerManagerChild = std::move(debuggerManagerActor);
+  mActor = std::move(serviceActor);
 }
 
 void RemoteWorkerService::CloseActorOnTargetThread() {
@@ -321,6 +326,10 @@ void RemoteWorkerService::CloseActorOnTargetThread() {
     // Here we need to shutdown the IPC protocol.
     mActor->Close();
     mActor = nullptr;
+  }
+  if (mDebuggerManagerChild) {
+    mDebuggerManagerChild->Close();
+    mDebuggerManagerChild = nullptr;
   }
 }
 
