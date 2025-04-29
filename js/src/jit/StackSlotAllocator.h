@@ -16,6 +16,7 @@ namespace jit {
 class StackSlotAllocator {
   js::Vector<uint32_t, 4, SystemAllocPolicy> normalSlots;
   js::Vector<uint32_t, 4, SystemAllocPolicy> doubleSlots;
+  js::Vector<uint32_t, 4, SystemAllocPolicy> quadSlots;
   uint32_t height_;
 
   void addAvailableSlot(uint32_t index) {
@@ -26,10 +27,14 @@ class StackSlotAllocator {
   void addAvailableDoubleSlot(uint32_t index) {
     (void)doubleSlots.append(index);
   }
+  void addAvailableQuadSlot(uint32_t index) { (void)quadSlots.append(index); }
 
   uint32_t allocateQuadSlot() {
     // This relies on the fact that any architecture specific
     // alignment of the stack pointer is done a priori.
+    if (!quadSlots.empty()) {
+      return quadSlots.popCopy();
+    }
     if (height_ % 8 != 0) {
       addAvailableSlot(height_ += 4);
     }
@@ -89,6 +94,23 @@ class StackSlotAllocator {
         return allocateDoubleSlot();
       case LStackSlot::QuadWord:
         return allocateQuadSlot();
+    }
+    MOZ_CRASH("Unknown slot width");
+  }
+
+  // This method is used by the Simple allocator to free stack slots so that
+  // they can be reused. The Backtracking allocator doesn't call this.
+  void freeSlot(LStackSlot::Width width, uint32_t slot) {
+    switch (width) {
+      case LStackSlot::Word:
+        addAvailableSlot(slot);
+        return;
+      case LStackSlot::DoubleWord:
+        addAvailableDoubleSlot(slot);
+        return;
+      case LStackSlot::QuadWord:
+        addAvailableQuadSlot(slot);
+        return;
     }
     MOZ_CRASH("Unknown slot width");
   }
