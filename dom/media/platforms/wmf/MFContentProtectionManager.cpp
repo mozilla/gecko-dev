@@ -159,12 +159,7 @@ HRESULT MFContentProtectionManager::SetPMPServer(
   return S_OK;
 }
 
-void MFContentProtectionManager::Shutdown() {
-  if (mCDMProxy) {
-    mCDMProxy->Shutdown();
-    mCDMProxy = nullptr;
-  }
-}
+void MFContentProtectionManager::Shutdown() { mCDMProxy = nullptr; }
 
 #undef LOG
 

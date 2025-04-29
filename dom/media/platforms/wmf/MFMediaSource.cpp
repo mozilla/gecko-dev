@@ -290,6 +290,7 @@ IFACEMETHODIMP MFMediaSource::Shutdown() {
   // MF_E_SHUTDOWN.
   RETURN_IF_FAILED(mMediaEventQueue->Shutdown());
   mState = State::Shutdowned;
+  mCDMProxy = nullptr;
   LOG("Shutdowned media source");
   return S_OK;
 }

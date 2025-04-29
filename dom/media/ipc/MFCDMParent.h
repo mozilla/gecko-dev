@@ -9,6 +9,7 @@
 
 #include "mozilla/Assertions.h"
 #include "mozilla/PMFCDMParent.h"
+#include "mozilla/RefPtr.h"
 #include "MFCDMExtra.h"
 #include "MFCDMSession.h"
 #include "MFPMPHostWrapper.h"
@@ -89,7 +90,7 @@ class MFCDMParent final : public PMFCDMParent {
     MOZ_ASSERT(mManagerThread->IsOnCurrentThread());
   }
 
-  already_AddRefed<MFCDMProxy> GetMFCDMProxy();
+  MFCDMProxy* GetMFCDMProxy();
 
   void ShutdownCDM();
 
@@ -156,6 +157,8 @@ class MFCDMParent final : public PMFCDMParent {
   MediaEventListener mKeyMessageListener;
   MediaEventListener mKeyChangeListener;
   MediaEventListener mExpirationListener;
+
+  RefPtr<MFCDMProxy> mCDMProxy;
 };
 
 // A helper class only used in the chrome process to handle CDM related tasks.
