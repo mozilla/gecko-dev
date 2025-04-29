@@ -67,31 +67,21 @@ def android_version(value, min_version):
     return version
 
 
-@depends("--with-android-ndk", want_bootstrap)
+@depends("--with-android-ndk")
 @imports(_from="os.path", _import="isdir")
-@imports(_from="mozboot.android", _import="get_os_name_for_android")
-@imports(_from="mozboot.android", _import="ensure_android_ndk")
-@imports(_from="mozboot.android", _import="NDK_PATH")
-def ndk(value, want_bootstrap):
+def ndk(value):
     if value:
-        ndk_path = value[0]
-        if not isdir(ndk_path):
+        if not isdir(value[0]):
             die(
                 "The path you specified with --with-android-ndk (%s) is not "
-                "a directory" % ndk_path
+                "a directory" % value[0]
             )
-        return ndk_path
-    if not want_bootstrap("android-ndk"):
-        die(
-            "You must specify --with-android-ndk=/path/to/ndk when targeting Android, "
-            "or try |mach bootstrap|."
-        )
+        return value[0]
 
-    os_name = get_os_name_for_android()
-
-    ensure_android_ndk(os_name)
-
-    return str(NDK_PATH)
+    die(
+        "You must specify --with-android-ndk=/path/to/ndk when targeting Android, "
+        "or try |mach bootstrap|."
+    )
 
 
 set_config("ANDROID_NDK", ndk)
