@@ -375,6 +375,12 @@ void AppShutdown::AdvanceShutdownPhaseInternal(
     return;
   }
 
+  // In case we missed the earlier Init (in the parent) or notification (in
+  // content processes), we ensure the flag is set from now.
+  // This should only ever be needed in some test environments, but it's cheap
+  // enough to just do it always.
+  SetImpendingShutdown();
+
   nsCOMPtr<nsIThread> thread = do_GetCurrentThread();
 
   // AppShutdownConfirmed is special in some ways as
