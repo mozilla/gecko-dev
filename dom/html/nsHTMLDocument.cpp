@@ -77,6 +77,7 @@
 #include "mozilla/dom/nsCSPContext.h"
 #include "mozilla/dom/Selection.h"
 #include "mozilla/dom/ShadowIncludingTreeIterator.h"
+#include "mozilla/glean/DomMetrics.h"
 #include "nsCharsetSource.h"
 #include "nsFocusManager.h"
 #include "nsIFrame.h"
@@ -609,6 +610,13 @@ void nsHTMLDocument::NamedGetter(JSContext* aCx, const nsAString& aName,
     if (!ToJSValue(aCx, list, &v)) {
       aRv.NoteJSContextException(aCx);
       return;
+    }
+  }
+
+  // To limit the possible performance/memory impact, only collect at most 10 properties.
+  if (mShadowedHTMLDocumentProperties.Length() <= 10 && HTMLDocument_Binding::InterfaceHasNonEventHandlerProperty(aName)) {
+    if (!mShadowedHTMLDocumentProperties.Contains(aName)) {
+      mShadowedHTMLDocumentProperties.AppendElement(aName);
     }
   }
 
