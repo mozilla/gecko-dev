@@ -3501,7 +3501,7 @@ def _ensure_l10n_central(command_context):
                 f"Automation requires l10n repositories to be checked out: {l10n_base_dir}"
             )
 
-    nightly_build = command_context.substs["NIGHTLY_BUILD"]
+    nightly_build = command_context.substs.get("NIGHTLY_BUILD")
     if nightly_build:
         git = os.environ.get("GIT", "git")
         if not l10n_base_dir.exists():
