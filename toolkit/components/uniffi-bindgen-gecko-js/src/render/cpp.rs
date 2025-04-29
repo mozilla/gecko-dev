@@ -122,7 +122,7 @@ impl CPPScaffoldingTemplate {
                     name: ffi_struct.name().to_upper_camel_case(),
                     fields: ffi_struct
                         .fields()
-                        .into_iter()
+                        .iter()
                         .map(|f| FfiFieldCpp {
                             name: f.name().to_snake_case(),
                             type_: ffi_type_name(&f.type_()),
@@ -141,8 +141,8 @@ impl CPPScaffoldingTemplate {
                     .iter()
                     .map(move |obj| PointerType {
                         object_id: object_ids.get(&c.ci, obj),
-                        name: pointer_type(&c.ci.namespace(), obj.name()),
-                        ffi_value_class: pointer_ffi_value_class(&c.ci.namespace(), obj.name()),
+                        name: pointer_type(c.ci.namespace(), obj.name()),
+                        ffi_value_class: pointer_ffi_value_class(c.ci.namespace(), obj.name()),
                         label: format!("{}::{}", c.ci.namespace(), obj.name()),
                         clone_fn: obj.ffi_object_clone().name().to_string(),
                         free_fn: obj.ffi_object_free().name().to_string(),
@@ -386,7 +386,7 @@ impl ScaffoldingCall {
             // function always returns a handle.
             return_type: callable
                 .return_type()
-                .map(|return_type| FfiType::from(return_type))
+                .map(FfiType::from)
                 .map(|return_type| ScaffoldingCallReturnType {
                     ffi_value_class: ffi_value_class(ci, &return_type),
                 }),
@@ -423,7 +423,7 @@ fn ffi_value_class(ci: &ComponentInterface, ffi_type: &FfiType) -> String {
                 let external_ty_name = ty.name().expect("External type without name");
                 let crate_name = ty.module_path().expect("External type without module path");
                 if external_ty_name == name {
-                    return pointer_ffi_value_class(crate_name_to_namespace(&crate_name), name);
+                    return pointer_ffi_value_class(crate_name_to_namespace(crate_name), name);
                 }
             }
             pointer_ffi_value_class(ci.namespace(), name)
@@ -504,9 +504,9 @@ pub fn exposed_functions(
     ci: &ComponentInterface,
 ) -> impl Iterator<Item = (&dyn Callable, &FfiFunction)> {
     ci.function_definitions()
-        .into_iter()
+        .iter()
         .map(|f| (f as &dyn Callable, f.ffi_func()))
-        .chain(ci.object_definitions().into_iter().flat_map(|o| {
+        .chain(ci.object_definitions().iter().flat_map(|o| {
             o.methods()
                 .into_iter()
                 .map(|m| (m as &dyn Callable, m.ffi_func()))

@@ -46,28 +46,25 @@ fn classes(ci: &ComponentInterface) -> Vec<String> {
     std::iter::empty()
         .chain(
             ci.object_definitions()
-                .into_iter()
+                .iter()
                 .filter(|o| o.docstring().is_some())
                 .map(|o| o.js_name()),
         )
         .chain(
             ci.record_definitions()
-                .into_iter()
                 .filter(|r| r.docstring().is_some())
                 .map(|r| r.js_name()),
         )
         .chain(
             ci.enum_definitions()
-                .into_iter()
                 .filter(|e| e.docstring().is_some())
                 .map(|e| e.js_name()),
         )
         .chain(
             ci.enum_definitions()
-                .into_iter()
                 .filter(|e| !e.is_flat())
                 .flat_map(|e| {
-                    e.variants().into_iter().filter_map(move |v| {
+                    e.variants().iter().filter_map(move |v| {
                         if ci.is_name_used_as_error(e.name()) {
                             Some(v.js_name(e.is_flat()))
                         } else {
@@ -84,7 +81,7 @@ fn classes(ci: &ComponentInterface) -> Vec<String> {
 
 fn functions(ci: &ComponentInterface) -> Vec<String> {
     ci.function_definitions()
-        .into_iter()
+        .iter()
         .filter(|f| f.docstring().is_some())
         .map(|f| f.js_name())
         .collect()

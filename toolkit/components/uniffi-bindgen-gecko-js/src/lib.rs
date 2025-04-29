@@ -71,7 +71,7 @@ fn render(out_path: Utf8PathBuf, template: impl Template) -> Result<()> {
     let contents = template.render()?;
     let mut f =
         File::create(&out_path).context(format!("Failed to create {:?}", out_path.file_name()))?;
-    write!(f, "{}\n", contents).context(format!("Failed to write to {}", out_path))
+    writeln!(f, "{}", contents).context(format!("Failed to write to {}", out_path))
 }
 
 fn render_cpp(

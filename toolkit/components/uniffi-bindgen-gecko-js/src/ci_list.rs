@@ -152,7 +152,7 @@ impl<'a> FunctionIds<'a> {
     }
 
     pub fn get(&self, ci: &ComponentInterface, func: &FfiFunction) -> usize {
-        return *self.map.get(&(ci.namespace(), func.name())).unwrap();
+        *self.map.get(&(ci.namespace(), func.name())).unwrap()
     }
 
     pub fn name(&self, ci: &ComponentInterface, func: &FfiFunction) -> String {
@@ -185,7 +185,7 @@ impl<'a> ObjectIds<'a> {
     }
 
     pub fn get(&self, ci: &ComponentInterface, obj: &Object) -> usize {
-        return *self.map.get(&(ci.namespace(), obj.name())).unwrap();
+        *self.map.get(&(ci.namespace(), obj.name())).unwrap()
     }
 
     pub fn name(&self, ci: &ComponentInterface, obj: &Object) -> String {
@@ -218,7 +218,7 @@ impl<'a> CallbackIds<'a> {
     }
 
     pub fn get(&self, ci: &ComponentInterface, cb: &CallbackInterface) -> usize {
-        return *self.map.get(&(ci.namespace(), cb.name())).unwrap();
+        *self.map.get(&(ci.namespace(), cb.name())).unwrap()
     }
 
     pub fn name(&self, ci: &ComponentInterface, cb: &CallbackInterface) -> String {

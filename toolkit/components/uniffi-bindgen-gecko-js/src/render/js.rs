@@ -28,11 +28,11 @@ fn js_arg_names(args: &[&Argument]) -> String {
 fn render_enum_literal(typ: &Type, variant_name: &str) -> String {
     if let Type::Enum { name, .. } = typ {
         // TODO: This does not support complex enum literals yet.
-        return format!(
+        format!(
             "{}.{}",
             name.to_upper_camel_case(),
             variant_name.to_shouty_snake_case()
-        );
+        )
     } else {
         panic!("Rendering an enum literal on a type that is not an enum")
     }
@@ -48,7 +48,7 @@ pub struct JSBindingsTemplate<'a> {
     pub callback_ids: &'a CallbackIds<'a>,
 }
 
-impl<'a> JSBindingsTemplate<'a> {
+impl JSBindingsTemplate<'_> {
     pub fn js_module_name(&self) -> String {
         js_module_name(self.ci.namespace())
     }
@@ -73,8 +73,8 @@ pub impl Literal {
         match self {
             Literal::Boolean(inner) => inner.to_string(),
             Literal::String(inner) => format!("\"{}\"", inner),
-            Literal::UInt(num, radix, _) => format!("{}", radix.render_num(num)),
-            Literal::Int(num, radix, _) => format!("{}", radix.render_num(num)),
+            Literal::UInt(num, radix, _) => radix.render_num(num).to_string(),
+            Literal::Int(num, radix, _) => radix.render_num(num).to_string(),
             Literal::Float(num, _) => num.clone(),
             Literal::Enum(name, typ) => render_enum_literal(typ, name),
             Literal::EmptyMap => "{}".to_string(),
@@ -174,7 +174,7 @@ pub impl Field {
         let type_docstring = format!("@type {{{}}}", self.as_type().type_name());
         let full_docstring = match self.docstring() {
             Some(docstring) => format!("{docstring}\n{type_docstring}"),
-            None => format!("{type_docstring}"),
+            None => type_docstring.to_string(),
         };
         format_docstring(&full_docstring, spaces)
     }
@@ -388,7 +388,7 @@ pub impl Constructor {
     }
 
     fn js_arg_names(&self) -> String {
-        js_arg_names(&self.arguments().as_slice())
+        js_arg_names(self.arguments().as_slice())
     }
 
     fn js_docstring(&self, spaces: usize) -> String {
