@@ -131,7 +131,7 @@
   <!-- Displays a page with all the details of an add-on. -->
   <string name="mozac_feature_addons_details">Minutagghi</string>
   <!-- Displays a page with all the permissions of an add-on. -->
-  <string name="mozac_feature_addons_permissions">Pirimisi</string>
+  <string name="mozac_feature_addons_permissions">Pirmissi</string>
   <!-- This is a button to remove (i.e. uninstall) an add-on. -->
   <string name="mozac_feature_addons_remove">Leva</string>
   <!-- This is a button to report an add-on. -->

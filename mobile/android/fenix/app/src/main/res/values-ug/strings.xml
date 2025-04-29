@@ -3506,6 +3506,22 @@
   <!-- Subtitle for a setup checklist with 6 steps completed state. %1$s is the name of the app (for example "Firefox"). -->
   <string name="setup_checklist_subtitle_6_steps_completed_state">سىز 6 باسقۇچنىڭ ھەممىسىنى تاماملىدىڭىز. %1$s نىڭ سۈرئىتى، شەخسىيىتى ۋە بىخەتەرلىكىدىن ھۇزۇرلىنىڭ.</string>
   <!--
+    ===== Setup checklist feature: Subtitles for 5 steps (Large screen devices don't support toolbar placement) =====
+
+    Subtitle for a setup checklist with 5 steps initial state. %1$s is the name of the app (for example "Firefox").
+  -->
+  <string name="setup_checklist_subtitle_5_steps_initial_state">ياخشى تور زىيارەت تەسىراتى ئۈچۈن %1$s نى تەڭشەپ 5 باسقۇچنى تاماملاڭ.</string>
+  <!-- Subtitle for a setup checklist with 5 steps when the first task is completed. -->
+  <string name="setup_checklist_subtitle_5_steps_first_step">ياخشى باشلىنىش! سىز 5 باسقۇچنىڭ 1 نى تاماملىدىڭىز.</string>
+  <!-- Subtitle for the setup checklist when the second task is completed. -->
+  <string name="setup_checklist_subtitle_5_steps_second_step">سىز 5 باسقۇچنىڭ 2 نى تاماملىدىڭىز. زور ئىلگىرىلەش!</string>
+  <!-- Subtitle for a setup checklist with 5 steps when three of the tasks are completed. -->
+  <string name="setup_checklist_subtitle_5_steps_third_step">يېرىمى تۈگىدى! ئۈچ باسقۇچ تاماملاندى 2 سى قالدى.</string>
+  <!-- Subtitle for a setup checklist with 5 steps when the fifth task is completed. -->
+  <string name="setup_checklist_subtitle_5_steps_fourth_step">تۈگەي دېدى! سىز تاماملاشقا پەقەت 1 باسقۇچ قالدى.</string>
+  <!-- Subtitle for a setup checklist with 5 steps completed state. %1$s is the name of the app (for example "Firefox"). -->
+  <string name="setup_checklist_subtitle_5_steps_completed_state">سىز 5 باسقۇچنىڭ ھەممىسىنى تاماملىدىڭىز. %1$s نىڭ سۈرئىتى، شەخسىيىتى ۋە بىخەتەرلىكىدىن ھۇزۇرلىنىڭ.</string>
+  <!--
     ===== Setup checklist feature: Task titles =====
 
     The title of the default browser task for the setup checklist

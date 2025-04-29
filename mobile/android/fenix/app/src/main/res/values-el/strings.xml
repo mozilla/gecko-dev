@@ -3191,6 +3191,8 @@
   <string name="protection_panel_no_trackers_blocked">Δεν βρέθηκαν ιχνηλάτες</string>
   <!-- Link text to navigate to privacy and security settings from the protection panel. -->
   <string name="protection_panel_privacy_and_security_settings">Ρυθμίσεις απορρήτου και ασφάλειας</string>
+  <!-- Title text for the protection panel permissions section. -->
+  <string name="protection_panel_permissions_title">Δικαιώματα</string>
   <!--
     Text for displaying the total number of trackers blocked in the trackers blocked panel.
     %d is a placeholder for the number of trackers blocked.
@@ -3386,6 +3388,8 @@
   <string name="debug_drawer_region_tools_title">Εργαλεία περιοχής</string>
   <!-- The text label for displaying current region. -->
   <string name="debug_drawer_current_region_label">Τρέχουσα περιοχή</string>
+  <!-- The text field label for overriding current region. -->
+  <string name="debug_drawer_override_current_region_label">Παράκαμψη τρέχουσας περιοχής</string>
   <!--
     Messages explaining how to exit fullscreen mode
 

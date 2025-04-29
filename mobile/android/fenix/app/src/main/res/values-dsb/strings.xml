@@ -3499,13 +3499,29 @@
   <!-- Subtitle for the setup checklist when the second task is completed. -->
   <string name="setup_checklist_subtitle_6_steps_second_step">Sćo zakóńcył 2 z 6 kšacow. Wjelicny póstup!</string>
   <!-- Subtitle for a setup checklist with 6 steps when three of the tasks are completed. -->
-  <string name="setup_checklist_subtitle_6_steps_third_step">Sćo na poł droze! Tśi kšace su zakóńcone a 32 muse se cyniś.</string>
+  <string name="setup_checklist_subtitle_6_steps_third_step">Sćo na poł droze! Tśi kšace su zakóńcone a 3 muse se cyniś.</string>
   <!-- Subtitle for a setup checklist with 6 steps when the fourth task is completed. -->
   <string name="setup_checklist_subtitle_6_steps_fourth_step">Sćo zakóńcył 4 kšace. Jano hyšći 2 kšaca!</string>
   <!-- Subtitle for a setup checklist with 6 steps when the fifth task is completed. -->
   <string name="setup_checklist_subtitle_6_steps_fifth_step">Skóro docynjone! Sćo 1 kšac wót celoweje linije pšec.</string>
   <!-- Subtitle for a setup checklist with 6 steps completed state. %1$s is the name of the app (for example "Firefox"). -->
   <string name="setup_checklist_subtitle_6_steps_completed_state">Sćo zakóńcył wšykne 6 kšacow. Wužywajśo malsnosć, priwatnosć a wěstotu %1$s.</string>
+  <!--
+    ===== Setup checklist feature: Subtitles for 5 steps (Large screen devices don't support toolbar placement) =====
+
+    Subtitle for a setup checklist with 5 steps initial state. %1$s is the name of the app (for example "Firefox").
+  -->
+  <string name="setup_checklist_subtitle_5_steps_initial_state">Dokóńcćo wšykne 5 kšacow, aby %1$s za nejlěpše dožywjenje pśeglědowanja instalěrował.</string>
+  <!-- Subtitle for a setup checklist with 5 steps when the first task is completed. -->
+  <string name="setup_checklist_subtitle_5_steps_first_step">Wjelicny start! Sćo zakóńcył 1 z 5 kšacow.</string>
+  <!-- Subtitle for the setup checklist when the second task is completed. -->
+  <string name="setup_checklist_subtitle_5_steps_second_step">Sćo zakóńcył 2 z 5 kšacow. Wjelicny póstup!</string>
+  <!-- Subtitle for a setup checklist with 5 steps when three of the tasks are completed. -->
+  <string name="setup_checklist_subtitle_5_steps_third_step">Sćo na poł droze! Tśi kšace su zakóńcone a 2 musytej se cyniś.</string>
+  <!-- Subtitle for a setup checklist with 5 steps when the fifth task is completed. -->
+  <string name="setup_checklist_subtitle_5_steps_fourth_step">Skóro docynjone! Sćo 1 kšac wót celoweje linije pšec.</string>
+  <!-- Subtitle for a setup checklist with 5 steps completed state. %1$s is the name of the app (for example "Firefox"). -->
+  <string name="setup_checklist_subtitle_5_steps_completed_state">Sćo zakóńcył wšykne 5 kšacow. Wužywajśo malsnosć, priwatnosć a wěstotu %1$s.</string>
   <!--
     ===== Setup checklist feature: Task titles =====
 
