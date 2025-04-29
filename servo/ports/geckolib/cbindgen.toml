@@ -510,6 +510,7 @@ renaming_overrides_prefixing = true
   inline bool BehavesLikeInitialValueOnBlockAxis() const;
   inline bool BehavesLikeInitialValue(LogicalAxis) const;
   inline bool HasAnchorPositioningFunction() const;
+  inline explicit StyleGenericSize(const LengthPercent &);
 """
 
 "GenericFlexBasis" = """
@@ -528,6 +529,7 @@ renaming_overrides_prefixing = true
   inline bool BehavesLikeInitialValueOnBlockAxis() const;
   inline bool BehavesLikeInitialValue(LogicalAxis) const;
   inline bool HasAnchorPositioningFunction() const;
+  inline explicit StyleGenericMaxSize(const LengthPercent &);
 """
 
 "GenericPosition" = """
@@ -1176,6 +1178,7 @@ renaming_overrides_prefixing = true
   inline nscoord ToLength() const;
   inline bool ConvertsToPercentage() const;
   inline float ToPercentage() const;
+  inline explicit StyleGenericInset(const LP &);
 """
 
 "GenericMargin" = """
@@ -1186,4 +1189,5 @@ renaming_overrides_prefixing = true
   inline bool ConvertsToPercentage() const;
   inline float ToPercentage() const;
   inline bool HasAnchorPositioningFunction() const;
+  inline explicit StyleGenericMargin(const LP &);
 """

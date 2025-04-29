@@ -1286,6 +1286,18 @@ inline StylePhysicalAxis ToStylePhysicalAxis(PhysicalAxis aAxis) {
   return static_cast<StylePhysicalAxis>(static_cast<uint8_t>(aAxis));
 }
 
+#define DEFINE_LENGTH_PERCENTAGE_CTOR(ty_)                               \
+  template <>                                                            \
+  inline Style##ty_::StyleGeneric##ty_(const StyleLengthPercentage& aLP) \
+      : tag{Tag::LengthPercentage} {                                     \
+    ::new (&length_percentage._0)(StyleLengthPercentage)(aLP);           \
+  }
+
+DEFINE_LENGTH_PERCENTAGE_CTOR(Inset)
+DEFINE_LENGTH_PERCENTAGE_CTOR(Margin)
+DEFINE_LENGTH_PERCENTAGE_CTOR(Size)
+DEFINE_LENGTH_PERCENTAGE_CTOR(MaxSize)
+
 }  // namespace mozilla
 
 #endif
