@@ -1,12 +1,13 @@
-import figma, { html } from "@figma/code-connect/html"
+import figma, { html } from "@figma/code-connect/html";
 
-const example = (props) => html`
-<moz-button
-  type=${props.type}
-  disabled=${props.disabled}
-  size=${props.size}
-  iconsrc=${props.iconSrc}
->${props.label}</moz-button>
+const example = props => html`
+  <moz-button
+    type=${props.type}
+    disabled=${props.disabled}
+    size=${props.size}
+    iconsrc=${props.iconSrc}
+    >${props.label}</moz-button
+  >
 `;
 
 // Desktop V3 (newest)
@@ -32,8 +33,8 @@ figma.connect(
       }),
     },
     example,
-  },
-)
+  }
+);
 
 // Desktop Components text only (deprecated)
 figma.connect(
@@ -56,8 +57,8 @@ figma.connect(
       }),
     },
     example,
-  },
-)
+  }
+);
 
 // Desktop Components icon only (deprecated)
 figma.connect(
@@ -82,5 +83,5 @@ figma.connect(
       }),
     },
     example,
-  },
-)
+  }
+);

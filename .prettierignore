@@ -18,6 +18,9 @@
 !toolkit/content/tests/chrome/test_preferencesBindings_setting.html
 !browser/components/preferences/tests/chrome/*.html
 
+# Include Code Connect figma files
+!toolkit/content/widgets/**/*.figma.ts
+
 # This should be re-enabled in bug 1827456.
 js/src/builtin
 

@@ -1,4 +1,4 @@
-import figma, { html } from "@figma/code-connect/html"
+import figma, { html } from "@figma/code-connect/html";
 
 // Desktop V3 (newest)
 figma.connect(
@@ -24,17 +24,17 @@ figma.connect(
         pressed: figma.boolean("Checked"),
       }),
     },
-    example: (props) => html`\
-<moz-toggle
-      label=${props.labelProps.label}
-      description=${props.labelProps.description}
-      iconsrc=${props.labelProps.iconSrc}
-      support-page=${props.labelProps.supportPage}
-      disabled=${props.toggleProps.disabled}
-      pressed=${props.toggleProps.pressed}
-></moz-toggle>`,
-  },
-)
+    example: props =>
+      html`<moz-toggle
+        label=${props.labelProps.label}
+        description=${props.labelProps.description}
+        iconsrc=${props.labelProps.iconSrc}
+        support-page=${props.labelProps.supportPage}
+        disabled=${props.toggleProps.disabled}
+        pressed=${props.toggleProps.pressed}
+      ></moz-toggle>`,
+  }
+);
 
 // Desktop Components (deprecated)
 figma.connect(
@@ -50,12 +50,12 @@ figma.connect(
         pressed: figma.boolean("Switch"),
       }),
     },
-    example: (props) => html`\
-<moz-toggle
-      label=${props.label}
-      description=${props.description}
-      disabled=${props.disabled}
-      pressed=${props.toggleProps.pressed}
-></moz-toggle>`,
-  },
-)
+    example: props =>
+      html`<moz-toggle
+        label=${props.label}
+        description=${props.description}
+        disabled=${props.disabled}
+        pressed=${props.toggleProps.pressed}
+      ></moz-toggle>`,
+  }
+);
