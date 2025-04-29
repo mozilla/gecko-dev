@@ -4471,8 +4471,13 @@ static nscoord AddIntrinsicSizeOffset(
   }
 
   // Compute size.
-  if (aType == IntrinsicISizeType::MinISize &&
+  const bool isInlineAxis =
+      aAxis == aFrame->GetWritingMode().PhysicalAxis(LogicalAxis::Inline);
+  if (aType == IntrinsicISizeType::MinISize && isInlineAxis &&
       aFrame->IsPercentageResolvedAgainstZero(aStyleSize, aStyleMaxSize)) {
+    // Apply the compressible min-content contribution rule only in aFrame's
+    // *inline* axis, to maintain web-compatibility with Chrome and Safari.
+    // https://drafts.csswg.org/css-sizing-3/#min-content-zero
     // XXX bug 1463700: this doesn't handle calc() according to spec
     result = 0;
   } else if (Maybe<nscoord> size =
