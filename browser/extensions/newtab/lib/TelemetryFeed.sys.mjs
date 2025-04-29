@@ -595,11 +595,16 @@ export class TelemetryFeed {
       },
     });
     const session = this.sessions.get(au.getPortIdOfSender(action));
+
     switch (action.data?.event) {
+      // TODO: Determine if private window should be tracked?
+      // case "OPEN_PRIVATE_WINDOW":
+      case "OPEN_NEW_WINDOW":
       case "CLICK": {
         const {
           card_type,
           corpus_item_id,
+          event_source,
           feature,
           fetchTimestamp,
           firstVisibleTimestamp,
@@ -618,6 +623,7 @@ export class TelemetryFeed {
           tile_id,
           topic,
         } = action.data.value ?? {};
+
         if (
           action.data.source === "POPULAR_TOPICS" ||
           card_type === "topics_widget"
@@ -649,6 +655,7 @@ export class TelemetryFeed {
             is_list_card,
             position: action.data.action_position,
             tile_id,
+            event_source,
             // We conditionally add in a few props.
             ...(corpus_item_id ? { corpus_item_id } : {}),
             ...(scheduled_corpus_item_id ? { scheduled_corpus_item_id } : {}),
@@ -686,6 +693,7 @@ export class TelemetryFeed {
             }
           }
         }
+
         break;
       }
       case "POCKET_THUMBS_DOWN":

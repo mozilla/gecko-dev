@@ -373,6 +373,7 @@ describe("<LinkMenu>", () => {
       typedBonus: true,
       url: "https://foo.com",
       sponsored_tile_id: 12345,
+      card_type: "organic",
     };
     const dispatch = sinon.stub();
     const propOptions = [
@@ -403,14 +404,28 @@ describe("<LinkMenu>", () => {
         type: FAKE_SITE.type,
       },
       "newtab-menu-open-new-window": {
-        url: FAKE_SITE.url,
+        card_type: FAKE_SITE.card_type,
         referrer: FAKE_SITE.referrer,
         typedBonus: FAKE_SITE.typedBonus,
+        url: FAKE_SITE.url,
         sponsored_tile_id: FAKE_SITE.sponsored_tile_id,
+        event_source: "CONTEXT_MENU",
+        topic: undefined,
+        firstVisibleTimestamp: undefined,
+        tile_id: undefined,
+        recommendation_id: undefined,
+        scheduled_corpus_item_id: undefined,
+        corpus_item_id: undefined,
+        received_rank: undefined,
+        recommended_at: undefined,
+        format: undefined,
+        is_pocket_card: false,
+        is_list_card: undefined,
       },
       "newtab-menu-open-new-private-window": {
         url: FAKE_SITE.url,
         referrer: FAKE_SITE.referrer,
+        event_source: "CONTEXT_MENU",
       },
       "newtab-menu-dismiss": [
         {
@@ -424,7 +439,7 @@ describe("<LinkMenu>", () => {
           received_rank: undefined,
           isSponsoredTopSite: undefined,
           type: "bookmark",
-          card_type: undefined,
+          card_type: FAKE_SITE.card_type,
           position: 3,
           is_pocket_card: false,
           is_list_card: undefined,

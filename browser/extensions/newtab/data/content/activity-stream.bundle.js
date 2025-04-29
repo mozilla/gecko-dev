@@ -1701,7 +1701,11 @@ const _OpenInPrivateWindow = site => ({
   icon: "new-window-private",
   action: actionCreators.OnlyToMain({
     type: actionTypes.OPEN_PRIVATE_WINDOW,
-    data: { url: site.url, referrer: site.referrer },
+    data: {
+      url: site.url,
+      referrer: site.referrer,
+      event_source: "CONTEXT_MENU",
+    },
   }),
   userEvent: "OPEN_PRIVATE_WINDOW",
 });
@@ -1760,10 +1764,24 @@ const LinkMenuOptions = {
     action: actionCreators.AlsoToMain({
       type: actionTypes.OPEN_NEW_WINDOW,
       data: {
+        card_type: site.card_type,
         referrer: site.referrer,
         typedBonus: site.typedBonus,
         url: site.url,
         sponsored_tile_id: site.sponsored_tile_id,
+        event_source: "CONTEXT_MENU",
+        topic: site.topic,
+        firstVisibleTimestamp: site.firstVisibleTimestamp,
+        tile_id: site.tile_id,
+        recommendation_id: site.recommendation_id,
+        scheduled_corpus_item_id: site.scheduled_corpus_item_id,
+        corpus_item_id: site.corpus_item_id,
+        received_rank: site.received_rank,
+        recommended_at: site.recommended_at,
+        format: site.format,
+        ...(site.flight_id ? { flight_id: site.flight_id } : {}),
+        is_pocket_card: site.type === "CardGrid",
+        is_list_card: site.is_list_card,
         ...(site.section
           ? {
               section: site.section,
@@ -1775,6 +1793,7 @@ const LinkMenuOptions = {
     }),
     userEvent: "OPEN_NEW_WINDOW",
   }),
+
   // This blocks the url for regular stories,
   // but also sends a message to DiscoveryStream with flight_id.
   // If DiscoveryStream sees this message for a flight_id
@@ -2323,18 +2342,64 @@ class _LinkMenu extends (external_React_default()).PureComponent {
           }
           dispatch(action);
           if (eventName) {
+            let value;
+            // Bug 1958135: Pass additional info to ac.OPEN_NEW_WINDOW event
+            if (action.type === "OPEN_NEW_WINDOW") {
+              const {
+                card_type,
+                corpus_item_id,
+                event_source,
+                fetchTimestamp,
+                firstVisibleTimestamp,
+                format,
+                is_list_card,
+                is_section_followed,
+                received_rank,
+                recommendation_id,
+                recommended_at,
+                scheduled_corpus_item_id,
+                section_position,
+                section,
+                selected_topics,
+                tile_id,
+                topic
+              } = action.data;
+              value = {
+                card_type,
+                corpus_item_id,
+                event_source,
+                fetchTimestamp,
+                firstVisibleTimestamp,
+                format,
+                is_list_card,
+                received_rank,
+                recommendation_id,
+                recommended_at,
+                scheduled_corpus_item_id,
+                ...(section ? {
+                  is_section_followed,
+                  section_position,
+                  section
+                } : {}),
+                selected_topics: selected_topics ? selected_topics : "",
+                tile_id,
+                topic
+              };
+            } else {
+              value = {
+                card_type: site.flight_id ? "spoc" : "organic"
+              };
+            }
             const userEventData = Object.assign({
               event: eventName,
               source,
               action_position: index,
-              value: {
-                card_type: site.flight_id ? "spoc" : "organic"
-              }
+              value
             }, siteInfo);
             dispatch(userEvent(userEventData));
-          }
-          if (impression && shouldSendImpressionStats) {
-            dispatch(impression);
+            if (impression && shouldSendImpressionStats) {
+              dispatch(impression);
+            }
           }
         };
       }
@@ -2493,6 +2558,7 @@ class _DSLinkMenu extends (external_React_default()).PureComponent {
         recommendation_id: this.props.recommendation_id,
         corpus_item_id: this.props.corpus_item_id,
         scheduled_corpus_item_id: this.props.scheduled_corpus_item_id,
+        firstVisibleTimestamp: this.props.firstVisibleTimestamp,
         recommended_at: this.props.recommended_at,
         received_rank: this.props.received_rank,
         topic: this.props.topic,
@@ -3639,6 +3705,7 @@ class _DSCard extends (external_React_default()).PureComponent {
           source: this.props.type.toUpperCase(),
           action_position: this.props.pos,
           value: {
+            event_source: "card",
             card_type: this.props.flightId ? "spoc" : "organic",
             recommendation_id: this.props.recommendation_id,
             tile_id: this.props.id,
@@ -4099,7 +4166,9 @@ class _DSCard extends (external_React_default()).PureComponent {
       section: this.props.section,
       section_position: this.props.sectionPosition,
       is_section_followed: this.props.sectionFollowed,
-      format: format,
+      fetchTimestamp: this.props.fetchTimestamp,
+      firstVisibleTimestamp: this.props.firstVisibleTimestamp,
+      format: format ? format : getActiveCardSize(window.innerWidth, this.props.sectionsClassNames, this.props.section, this.props.flightId),
       isSectionsCard: this.props.mayHaveSectionsCards,
       topic: this.props.topic,
       selected_topics: this.props.selected_topics

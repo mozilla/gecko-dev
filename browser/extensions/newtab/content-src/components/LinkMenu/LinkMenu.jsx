@@ -67,19 +67,64 @@ export class _LinkMenu extends React.PureComponent {
             }
             dispatch(action);
             if (eventName) {
+              let value;
+              // Bug 1958135: Pass additional info to ac.OPEN_NEW_WINDOW event
+              if (action.type === "OPEN_NEW_WINDOW") {
+                const {
+                  card_type,
+                  corpus_item_id,
+                  event_source,
+                  fetchTimestamp,
+                  firstVisibleTimestamp,
+                  format,
+                  is_list_card,
+                  is_section_followed,
+                  received_rank,
+                  recommendation_id,
+                  recommended_at,
+                  scheduled_corpus_item_id,
+                  section_position,
+                  section,
+                  selected_topics,
+                  tile_id,
+                  topic,
+                } = action.data;
+
+                value = {
+                  card_type,
+                  corpus_item_id,
+                  event_source,
+                  fetchTimestamp,
+                  firstVisibleTimestamp,
+                  format,
+                  is_list_card,
+                  received_rank,
+                  recommendation_id,
+                  recommended_at,
+                  scheduled_corpus_item_id,
+                  ...(section
+                    ? { is_section_followed, section_position, section }
+                    : {}),
+                  selected_topics: selected_topics ? selected_topics : "",
+                  tile_id,
+                  topic,
+                };
+              } else {
+                value = { card_type: site.flight_id ? "spoc" : "organic" };
+              }
               const userEventData = Object.assign(
                 {
                   event: eventName,
                   source,
                   action_position: index,
-                  value: { card_type: site.flight_id ? "spoc" : "organic" },
+                  value,
                 },
                 siteInfo
               );
               dispatch(userEvent(userEventData));
-            }
-            if (impression && shouldSendImpressionStats) {
-              dispatch(impression);
+              if (impression && shouldSendImpressionStats) {
+                dispatch(impression);
+              }
             }
           };
         }

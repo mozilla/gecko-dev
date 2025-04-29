@@ -12,7 +12,11 @@ const _OpenInPrivateWindow = site => ({
   icon: "new-window-private",
   action: ac.OnlyToMain({
     type: at.OPEN_PRIVATE_WINDOW,
-    data: { url: site.url, referrer: site.referrer },
+    data: {
+      url: site.url,
+      referrer: site.referrer,
+      event_source: "CONTEXT_MENU",
+    },
   }),
   userEvent: "OPEN_PRIVATE_WINDOW",
 });
@@ -71,10 +75,24 @@ export const LinkMenuOptions = {
     action: ac.AlsoToMain({
       type: at.OPEN_NEW_WINDOW,
       data: {
+        card_type: site.card_type,
         referrer: site.referrer,
         typedBonus: site.typedBonus,
         url: site.url,
         sponsored_tile_id: site.sponsored_tile_id,
+        event_source: "CONTEXT_MENU",
+        topic: site.topic,
+        firstVisibleTimestamp: site.firstVisibleTimestamp,
+        tile_id: site.tile_id,
+        recommendation_id: site.recommendation_id,
+        scheduled_corpus_item_id: site.scheduled_corpus_item_id,
+        corpus_item_id: site.corpus_item_id,
+        received_rank: site.received_rank,
+        recommended_at: site.recommended_at,
+        format: site.format,
+        ...(site.flight_id ? { flight_id: site.flight_id } : {}),
+        is_pocket_card: site.type === "CardGrid",
+        is_list_card: site.is_list_card,
         ...(site.section
           ? {
               section: site.section,
@@ -86,6 +104,7 @@ export const LinkMenuOptions = {
     }),
     userEvent: "OPEN_NEW_WINDOW",
   }),
+
   // This blocks the url for regular stories,
   // but also sends a message to DiscoveryStream with flight_id.
   // If DiscoveryStream sees this message for a flight_id

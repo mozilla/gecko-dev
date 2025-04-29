@@ -350,6 +350,7 @@ export class _DSCard extends React.PureComponent {
             source: this.props.type.toUpperCase(),
             action_position: this.props.pos,
             value: {
+              event_source: "card",
               card_type: this.props.flightId ? "spoc" : "organic",
               recommendation_id: this.props.recommendation_id,
               tile_id: this.props.id,
@@ -921,7 +922,18 @@ export class _DSCard extends React.PureComponent {
                 section={this.props.section}
                 section_position={this.props.sectionPosition}
                 is_section_followed={this.props.sectionFollowed}
-                format={format}
+                fetchTimestamp={this.props.fetchTimestamp}
+                firstVisibleTimestamp={this.props.firstVisibleTimestamp}
+                format={
+                  format
+                    ? format
+                    : getActiveCardSize(
+                        window.innerWidth,
+                        this.props.sectionsClassNames,
+                        this.props.section,
+                        this.props.flightId
+                      )
+                }
                 isSectionsCard={this.props.mayHaveSectionsCards}
                 topic={this.props.topic}
                 selected_topics={this.props.selected_topics}

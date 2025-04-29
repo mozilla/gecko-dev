@@ -304,6 +304,7 @@ describe("<DSCard>", () => {
           source: "FOO",
           action_position: 1,
           value: {
+            event_source: "card",
             card_type: "organic",
             recommendation_id: undefined,
             tile_id: "fooidx",
@@ -365,6 +366,7 @@ describe("<DSCard>", () => {
           source: "FOO",
           action_position: 1,
           value: {
+            event_source: "card",
             card_type: "spoc",
             recommendation_id: undefined,
             tile_id: "fooidx",
@@ -428,6 +430,7 @@ describe("<DSCard>", () => {
           source: "FOO",
           action_position: 1,
           value: {
+            event_source: "card",
             card_type: "organic",
             recommendation_id: undefined,
             tile_id: "fooidx",
