@@ -272,12 +272,10 @@ class Shim {
     this.manager?.onShimStateChanged(this.id);
     if (!this.enabled) {
       await this._unregisterContentScripts();
-      await this._revokeRequestsInETP(alsoClearResourceCache);
-      return browser.testUtils.shimsInactive();
+      return this._revokeRequestsInETP(alsoClearResourceCache);
     }
     await this._registerContentScripts();
-    await this._allowRequestsInETP(alsoClearResourceCache);
-    return browser.testUtils.shimsActive();
+    return this._allowRequestsInETP(alsoClearResourceCache);
   }
 
   async _registerContentScripts() {
@@ -565,14 +563,12 @@ class Shim {
 
 class Shims {
   constructor(availableShims) {
-    browser.testUtils.shimsInactive();
-
     if (!browser.trackingProtection) {
       console.error("Required experimental add-on APIs for shims unavailable");
       return;
     }
 
-    this._registerShims(availableShims);
+    this._readyPromise = this._registerShims(availableShims);
 
     onMessageFromTab(this._onMessageFromShim.bind(this));
 
@@ -643,6 +639,10 @@ class Shims {
         shim.clearUserOptIns(true);
       }
     });
+  }
+
+  ready() {
+    return this._readyPromise;
   }
 
   bindAboutCompatBroker(broker) {

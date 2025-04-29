@@ -56,14 +56,6 @@
         "paths": [["systemManufacturer"]]
       }
     },
-    "testUtils": {
-      "schema": "experiment-apis/testUtils.json",
-      "parent": {
-        "scopes": ["addon_parent"],
-        "script": "experiment-apis/testUtils.js",
-        "paths": [["testUtils"]]
-      }
-    },
     "trackingProtection": {
       "schema": "experiment-apis/trackingProtection.json",
       "parent": {

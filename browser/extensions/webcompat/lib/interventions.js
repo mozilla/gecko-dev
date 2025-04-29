@@ -12,6 +12,8 @@ class Interventions {
 
     this._interventionsEnabled = true;
 
+    this._readyPromise = new Promise(done => (this._resolveReady = done));
+
     this._availableInterventions = Object.entries(availableInterventions).map(
       ([id, obj]) => {
         obj.id = id;
@@ -20,11 +22,12 @@ class Interventions {
     );
     this._customFunctions = customFunctions;
 
-    // We do not try to enable/disable until we finish any such previous operation.
-    this._enablingOrDisablingOperationInProgress = Promise.resolve();
-
     this._activeListenersPerIntervention = new Map();
     this._contentScriptsPerIntervention = new Map();
+  }
+
+  ready() {
+    return this._readyPromise;
   }
 
   bindAboutCompatBroker(broker) {
@@ -32,22 +35,17 @@ class Interventions {
   }
 
   bootup() {
-    browser.testUtils.interventionsInactive();
     browser.aboutConfigPrefs.onPrefChange.addListener(() => {
       this.checkInterventionPref();
     }, this.INTERVENTION_PREF);
     this.checkInterventionPref();
+  }
 
-    browser.testUtils.onMessage.addListener(async ({ name, data }) => {
-      switch (name) {
-        case "UpdateInterventions": {
-          await this.disableInterventions(data);
-          await this.enableInterventions(data);
-          return data;
-        }
-      }
-      return null;
-    });
+  async updateInterventions(_data) {
+    const data = structuredClone(_data);
+    await this.disableInterventions(data);
+    await this.enableInterventions(data);
+    return data;
   }
 
   checkInterventionPref() {
@@ -87,40 +85,27 @@ class Interventions {
   }
 
   async enableInterventions(whichInterventions = this._availableInterventions) {
-    await this._enablingOrDisablingOperationInProgress;
-
-    this._enablingOrDisablingOperationInProgress = new Promise(done => {
-      this._enableInterventionsNow(whichInterventions).then(done);
+    return navigator.locks.request("intervention_lock", async () => {
+      await this._enableInterventionsNow(whichInterventions);
     });
-
-    return this._enablingOrDisablingOperationInProgress;
   }
 
   async disableInterventions(
     whichInterventions = this._availableInterventions
   ) {
-    await this._enablingOrDisablingOperationInProgress;
-
-    this._enablingOrDisablingOperationInProgress = new Promise(done => {
+    return navigator.locks.request("intervention_lock", async () => {
       for (const config of whichInterventions) {
-        this._disableInterventionNow(config);
+        await this._disableInterventionNow(config);
       }
 
       this._interventionsEnabled = false;
       this._aboutCompatBroker.portsToAboutCompatTabs.broadcast({
         interventionsChanged: false,
       });
-
-      browser.testUtils.interventionsInactive();
-      done();
     });
-
-    return this._enablingOrDisablingOperationInProgress;
   }
 
   async _enableInterventionsNow(whichInterventions) {
-    await this._enablingOrDisablingOperationInProgress;
-
     const skipped = [];
 
     const channel = await browser.appConstants.getEffectiveUpdateChannel();
@@ -175,29 +160,19 @@ class Interventions {
         this._aboutCompatBroker.filterInterventions(whichInterventions),
     });
 
-    await browser.testUtils.interventionsActive();
+    this._resolveReady();
   }
 
   async enableIntervention(config) {
-    await this._enablingOrDisablingOperationInProgress;
-
-    this._enablingOrDisablingOperationInProgress = new Promise(done => {
-      this._enableInterventionNow(config);
-      done();
+    return navigator.locks.request("intervention_lock", async () => {
+      await this._enableInterventionNow(config);
     });
-
-    return this._enablingOrDisablingOperationInProgress;
   }
 
   async disableIntervention(config) {
-    await this._enablingOrDisablingOperationInProgress;
-
-    this._enablingOrDisablingOperationInProgress = new Promise(done => {
-      this._disableInterventionNow(config);
-      done();
+    return navigator.locks.request("intervention_lock", async () => {
+      await this._disableInterventionNow(config);
     });
-
-    return this._enablingOrDisablingOperationInProgress;
   }
 
   async _enableInterventionNow(config) {

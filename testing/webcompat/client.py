@@ -339,37 +339,36 @@ class Client:
     def await_script(self, script, *args, **kwargs):
         return self.run_script(script, *args, **kwargs, await_promise=True)
 
-    def await_interventions_started(self):
-        with self.using_context("chrome"):
-            interventionsOn = self.request.node.get_closest_marker("with_interventions")
-            shimsOn = self.request.node.get_closest_marker("with_shims")
+    async def await_interventions_started(self):
+        interventionsOn = self.request.node.get_closest_marker("with_interventions")
+        shimsOn = self.request.node.get_closest_marker("with_shims")
 
-            if not interventionsOn and not shimsOn:
-                print("Not waiting for interventions/shims")
-                return
+        if not interventionsOn and not shimsOn:
+            print("Not waiting for interventions/shims")
+            return
 
-            expectedMsg = (
-                "WebCompatTests:InterventionsStatus"
-                if interventionsOn
-                else "WebCompatTests:ShimsStatus"
-            )
+        waitFor = "interventions" if interventionsOn else "shims"
 
-            print("Waiting for", expectedMsg, 'to be "active"')
-            self.execute_async_script(
-                """
-                const [expectedMsg, done] = arguments;
-                const timer = setInterval(() => {
-                  if (Services.ppmm.sharedData.get(expectedMsg) === "active") {
-                    clearInterval(timer);
-                    done();
-                  }
-                }, 100);
-            """,
-                expectedMsg,
-            )
+        print("Waiting for", waitFor, "to be ready")
+        context = await self.session.bidi_session.browsing_context.create(
+            type_hint="tab", background=True
+        )
+        await self.session.bidi_session.browsing_context.navigate(
+            context=context["context"],
+            url="about:compat",
+            wait="interactive",
+        )
+        await self.session.bidi_session.script.evaluate(
+            expression=f"window.browser.extension.getBackgroundPage().{waitFor}.ready()",
+            target=ContextTarget(context["context"]),
+            await_promise=True,
+        )
+        await self.session.bidi_session.browsing_context.close(
+            context=context["context"]
+        )
 
     async def navigate(self, url, timeout=90, no_skip=False, **kwargs):
-        self.await_interventions_started()
+        await self.await_interventions_started()
         try:
             return await asyncio.wait_for(
                 asyncio.ensure_future(self._navigate(url, **kwargs)), timeout=timeout
@@ -379,8 +378,7 @@ class Client:
                 raise t
                 return
             pytest.skip(
-                "%s: Timed out navigating to site after %s seconds. Please try again later."
-                % (self.request.fspath.basename, timeout)
+                f"{self.request.fspath.basename}: Timed out navigating to site after {timeout} seconds. Please try again later."
             )
         except webdriver.bidi.error.UnknownErrorException as e:
             if no_skip:
@@ -389,20 +387,17 @@ class Client:
             s = str(e)
             if "Address rejected" in s:
                 pytest.skip(
-                    "%s: Site not responding. Please try again later."
-                    % self.request.fspath.basename
+                    f"{self.request.fspath.basename}: Site not responding. Please try again later."
                 )
                 return
             elif "NS_ERROR_UNKNOWN_HOST" in s:
                 pytest.skip(
-                    "%s: Site appears to be down. Please try again later."
-                    % self.request.fspath.basename
+                    f"{self.request.fspath.basename}: Site appears to be down. Please try again later."
                 )
                 return
             elif "NS_ERROR_REDIRECT_LOOP" in s:
                 pytest.skip(
-                    "%s: Site is stuck in a redirect loop. Please try again later."
-                    % self.request.fspath.basename
+                    f"{self.request.fspath.basename}: Site is stuck in a redirect loop. Please try again later."
                 )
                 return
             raise e
@@ -877,15 +872,15 @@ class Client:
 
     def clear_all_cookies(self):
         self.session.transport.send(
-            "DELETE", "session/%s/cookie" % self.session.session_id
+            "DELETE", f"session/{self.session.session_id}/cookie"
         )
 
     def send_element_command(self, element, method, uri, body=None):
-        url = "element/%s/%s" % (element.id, uri)
+        url = f"element/{element.id}/{uri}"
         return self.session.send_session_command(method, url, body)
 
     def get_element_attribute(self, element, name):
-        return self.send_element_command(element, "GET", "attribute/%s" % name)
+        return self.send_element_command(element, "GET", f"attribute/{name}")
 
     def _do_is_displayed_check(self, ele, is_displayed):
         if ele is None:

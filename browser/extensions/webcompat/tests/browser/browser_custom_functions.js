@@ -1,26 +1,13 @@
 "use strict";
 
-function promiseWebCompatAddonReady() {
-  return TestUtils.waitForCondition(() => {
-    return (
-      Services.ppmm.sharedData.get("WebCompatTests:InterventionsStatus") ===
-      "active"
-    );
+add_setup(async function () {
+  // We don't send events or call official addon APIs while running
+  // these tests, so there a good chance that test-verify mode may
+  // end up seeing the addon as "idle". This pref should avoid that.
+  await SpecialPowers.pushPrefEnv({
+    set: [["extensions.background.idle.timeout", 300_000]],
   });
-}
-
-function sendWebCompatAddonCommand(name, data) {
-  return new Promise(done => {
-    const listener = {
-      receiveMessage(message) {
-        Services.cpmm.removeMessageListener(`WebCompat:${name}:Done`, listener);
-        done(message.data);
-      },
-    };
-    Services.cpmm.addMessageListener(`WebCompat:${name}:Done`, listener);
-    Services.ppmm.broadcastAsyncMessage("WebCompat", { name, data });
-  });
-}
+});
 
 async function setupTestIntervention(interventions) {
   const config = {
@@ -36,9 +23,7 @@ async function setupTestIntervention(interventions) {
     ),
   };
 
-  const results = await sendWebCompatAddonCommand("UpdateInterventions", [
-    config,
-  ]);
+  const results = await WebCompatExtension.updateInterventions([config]);
   ok(results[0].active, "Verify intervention is active");
 }
 
@@ -68,7 +53,7 @@ async function testResponseHeaderValue({
 }
 
 add_task(async function test_custom_functions() {
-  await promiseWebCompatAddonReady();
+  await WebCompatExtension.started();
 
   const tab = await BrowserTestUtils.openNewForegroundTab(
     gBrowser,
