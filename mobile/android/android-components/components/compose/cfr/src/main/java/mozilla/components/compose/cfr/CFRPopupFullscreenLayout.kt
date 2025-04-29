@@ -16,6 +16,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.platform.AbstractComposeView
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.platform.ViewRootForInspector
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
@@ -148,8 +149,6 @@ internal class CFRPopupFullscreenLayout(
     }
 
     @Composable
-    // https://bugzilla.mozilla.org/show_bug.cgi?id=1957792
-    @Suppress("ConfigurationScreenWidthHeight")
     override fun Content() {
         val anchorLocation = IntArray(2).apply {
             anchor.getLocationInWindow(this)
@@ -163,7 +162,7 @@ internal class CFRPopupFullscreenLayout(
         val popupBounds = computePopupHorizontalBounds(
             anchorMiddleXCoord = anchorXCoordMiddle,
             arrowIndicatorWidth = Pixels(Companion.getIndicatorBaseWidthForHeight(indicatorArrowHeight.value)),
-            screenWidth = Pixels(LocalConfiguration.current.screenWidthDp.dp.toPx()),
+            screenWidth = Pixels(LocalWindowInfo.current.containerSize.width),
             layoutDirection = LocalConfiguration.current.layoutDirection,
         )
 
@@ -204,8 +203,11 @@ internal class CFRPopupFullscreenLayout(
                     dismiss()
                     onDismiss(true)
                 },
-                popupWidth = if (shouldCenterPopup(LocalConfiguration.current.screenWidthDp.dp.toPx())) {
-                    (LocalConfiguration.current.screenWidthDp - 2 * CFRPopup.DEFAULT_HORIZONTAL_VIEWPORT_MARGIN_DP).dp
+                popupWidth = if (shouldCenterPopup(LocalWindowInfo.current.containerSize.width)) {
+                    with(LocalDensity.current) {
+                        LocalWindowInfo.current.containerSize.width.toDp() -
+                            (2 * CFRPopup.DEFAULT_HORIZONTAL_VIEWPORT_MARGIN_DP).dp
+                    }
                 } else {
                     properties.popupWidth
                 },
