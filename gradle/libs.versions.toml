@@ -45,7 +45,7 @@ recyclerview = "1.4.0"
 room = "2.7.0"
 savedstate = "1.2.1"
 swiperefreshlayout = "1.1.0"
-transition = "1.5.1"
+transition = "1.6.0"
 viewpager2 = "1.1.0"
 work = "2.10.0"
 
