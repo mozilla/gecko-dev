@@ -6140,10 +6140,6 @@ void nsGridContainerFrame::Tracks::ResolveIntrinsicSizeForNonSpanningItems(
     nscoord s;
     // Check if we need to apply "Automatic Minimum Size" and cache it.
     if (aGridItem.ShouldApplyAutoMinSize(wm, mAxis)) {
-      // TODO alaskanemily: This sometimes sets the flag when it wouldn't be
-      // per spec. This is needed for when MinContribution checks the flag.
-      // See bug 1951821 for this discrepency.
-      aGridItem.mState[mAxis] |= ItemState::eContentBasedAutoMinSize;
       // Clamp it if it's spanning a definite track max-sizing function.
       if (TrackSize::IsDefiniteMaxSizing(sz.mState)) {
         cache.mMinSizeClamp = aFunctions.MaxSizingFor(aRange.mStart)
