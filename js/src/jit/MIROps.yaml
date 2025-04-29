@@ -3575,10 +3575,10 @@
 - name: WasmStoreRef
   gen_boilerplate: false
 
-- name: WasmPostWriteBarrierWholeCell
+- name: WasmPostWriteBarrierImmediate
   gen_boilerplate: false
 
-- name: WasmPostWriteBarrierEdgeAtIndex
+- name: WasmPostWriteBarrierIndex
   gen_boilerplate: false
 
 - name: WasmParameter

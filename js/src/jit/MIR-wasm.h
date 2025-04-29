@@ -1541,33 +1541,38 @@ class MWasmStoreRef : public MAryInstruction<3>, public NoTypePolicy::Data {
 
 // Given a value being written to another object, update the generational store
 // buffer if the value is in the nursery and object is in the tenured heap.
-class MWasmPostWriteBarrierWholeCell : public MTernaryInstruction,
+class MWasmPostWriteBarrierImmediate : public MQuaternaryInstruction,
                                        public NoTypePolicy::Data {
-  MWasmPostWriteBarrierWholeCell(MDefinition* instance, MDefinition* object,
+  uint32_t valueOffset_;
+
+  MWasmPostWriteBarrierImmediate(MDefinition* instance, MDefinition* object,
+                                 MDefinition* valueBase, uint32_t valueOffset,
                                  MDefinition* value)
-      : MTernaryInstruction(classOpcode, instance, object, value) {
+      : MQuaternaryInstruction(classOpcode, instance, object, valueBase, value),
+        valueOffset_(valueOffset) {
     setGuard();
   }
 
  public:
-  INSTRUCTION_HEADER(WasmPostWriteBarrierWholeCell)
+  INSTRUCTION_HEADER(WasmPostWriteBarrierImmediate)
   TRIVIAL_NEW_WRAPPERS
-  NAMED_OPERANDS((0, instance), (1, object), (2, value))
+  NAMED_OPERANDS((0, instance), (1, object), (2, valueBase), (3, value))
 
   AliasSet getAliasSet() const override { return AliasSet::None(); }
+  uint32_t valueOffset() const { return valueOffset_; }
 
-  ALLOW_CLONE(MWasmPostWriteBarrierWholeCell)
+  ALLOW_CLONE(MWasmPostWriteBarrierImmediate)
 };
 
 // Given a value being written to another object, update the generational store
 // buffer if the value is in the nursery and object is in the tenured heap.
-class MWasmPostWriteBarrierEdgeAtIndex : public MAryInstruction<5>,
-                                         public NoTypePolicy::Data {
+class MWasmPostWriteBarrierIndex : public MAryInstruction<5>,
+                                   public NoTypePolicy::Data {
   uint32_t elemSize_;
 
-  MWasmPostWriteBarrierEdgeAtIndex(MDefinition* instance, MDefinition* object,
-                                   MDefinition* valueBase, MDefinition* index,
-                                   uint32_t scale, MDefinition* value)
+  MWasmPostWriteBarrierIndex(MDefinition* instance, MDefinition* object,
+                             MDefinition* valueBase, MDefinition* index,
+                             uint32_t scale, MDefinition* value)
       : MAryInstruction<5>(classOpcode), elemSize_(scale) {
     initOperand(0, instance);
     initOperand(1, object);
@@ -1578,7 +1583,7 @@ class MWasmPostWriteBarrierEdgeAtIndex : public MAryInstruction<5>,
   }
 
  public:
-  INSTRUCTION_HEADER(WasmPostWriteBarrierEdgeAtIndex)
+  INSTRUCTION_HEADER(WasmPostWriteBarrierIndex)
   TRIVIAL_NEW_WRAPPERS
   NAMED_OPERANDS((0, instance), (1, object), (2, valueBase), (3, index),
                  (4, value))
@@ -1586,7 +1591,7 @@ class MWasmPostWriteBarrierEdgeAtIndex : public MAryInstruction<5>,
   AliasSet getAliasSet() const override { return AliasSet::None(); }
   uint32_t elemSize() const { return elemSize_; }
 
-  ALLOW_CLONE(MWasmPostWriteBarrierEdgeAtIndex)
+  ALLOW_CLONE(MWasmPostWriteBarrierIndex)
 };
 
 class MWasmParameter : public MNullaryInstruction {

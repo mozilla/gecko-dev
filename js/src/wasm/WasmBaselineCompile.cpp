@@ -7253,40 +7253,8 @@ void BaseCompiler::emitPreBarrier(RegPtr valueAddr) {
   masm.bind(&skipBarrier);
 }
 
-bool BaseCompiler::emitPostBarrierWholeCell(RegRef object, RegRef value,
-                                            RegPtr temp) {
-  // We must force a sync before the guard so that locals are in a consistent
-  // location for whether or not the post-barrier call is taken.
-  sync();
-
-  // Emit guards to skip the post-barrier call if it is not needed.
-  Label skipBarrier;
-  EmitWasmPostBarrierGuard(masm, mozilla::Some(object), temp, value,
-                           &skipBarrier);
-  CheckWholeCellLastElementCache(masm, object, temp, &skipBarrier);
-
-  movePtr(RegPtr(object), temp);
-
-  // Push `object` and `value` to preserve them across the call.
-  pushRef(object);
-  pushRef(value);
-
-  pushPtr(temp);
-  if (!emitInstanceCall(SASigPostBarrierWholeCell)) {
-    return false;
-  }
-
-  // Restore `object` and `value`.
-  popRef(value);
-  popRef(object);
-
-  masm.bind(&skipBarrier);
-  return true;
-}
-
-bool BaseCompiler::emitPostBarrierEdgeImprecise(const Maybe<RegRef>& object,
-                                                RegPtr valueAddr,
-                                                RegRef value) {
+bool BaseCompiler::emitPostBarrierImprecise(const Maybe<RegRef>& object,
+                                            RegPtr valueAddr, RegRef value) {
   // We must force a sync before the guard so that locals are in a consistent
   // location for whether or not the post-barrier call is taken.
   sync();
@@ -7307,7 +7275,7 @@ bool BaseCompiler::emitPostBarrierEdgeImprecise(const Maybe<RegRef>& object,
   // instance area, and we are careful so that the GC will not run while the
   // post-barrier call is active, so push a uintptr_t value.
   pushPtr(valueAddr);
-  if (!emitInstanceCall(SASigPostBarrierEdge)) {
+  if (!emitInstanceCall(SASigPostBarrier)) {
     return false;
   }
 
@@ -7321,9 +7289,9 @@ bool BaseCompiler::emitPostBarrierEdgeImprecise(const Maybe<RegRef>& object,
   return true;
 }
 
-bool BaseCompiler::emitPostBarrierEdgePrecise(const Maybe<RegRef>& object,
-                                              RegPtr valueAddr,
-                                              RegRef prevValue, RegRef value) {
+bool BaseCompiler::emitPostBarrierPrecise(const Maybe<RegRef>& object,
+                                          RegPtr valueAddr, RegRef prevValue,
+                                          RegRef value) {
   // Push `object` and `value` to preserve them across the call.
   if (object) {
     pushRef(*object);
@@ -7333,7 +7301,7 @@ bool BaseCompiler::emitPostBarrierEdgePrecise(const Maybe<RegRef>& object,
   // Push the arguments and call the precise post-barrier
   pushPtr(valueAddr);
   pushRef(prevValue);
-  if (!emitInstanceCall(SASigPostBarrierEdgePrecise)) {
+  if (!emitInstanceCall(SASigPostBarrierPrecise)) {
     return false;
   }
 
@@ -7367,17 +7335,10 @@ bool BaseCompiler::emitBarrieredStore(const Maybe<RegRef>& object,
   masm.storePtr(value, Address(valueAddr, 0));
 
   // The post-barrier preserves object and value.
-  if (postBarrierKind == PostBarrierKind::Imprecise) {
-    return emitPostBarrierEdgeImprecise(object, valueAddr, value);
-  }
   if (postBarrierKind == PostBarrierKind::Precise) {
-    return emitPostBarrierEdgePrecise(object, valueAddr, prevValue, value);
+    return emitPostBarrierPrecise(object, valueAddr, prevValue, value);
   }
-  if (postBarrierKind == PostBarrierKind::WholeCell) {
-    // valueAddr is reused as a temp register.
-    return emitPostBarrierWholeCell(object.value(), value, valueAddr);
-  }
-  MOZ_CRASH("unknown barrier kind");
+  return emitPostBarrierImprecise(object, valueAddr, value);
 }
 
 void BaseCompiler::emitBarrieredClear(RegPtr valueAddr) {
@@ -7655,7 +7616,7 @@ bool BaseCompiler::emitGcStructSet(RegRef object, RegPtr areaBase,
 
   // emitBarrieredStore preserves object and value
   if (!emitBarrieredStore(Some(object), valueAddr, value.ref(), preBarrierKind,
-                          PostBarrierKind::WholeCell)) {
+                          PostBarrierKind::Imprecise)) {
     return false;
   }
   freeRef(value.ref());

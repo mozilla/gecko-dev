@@ -170,16 +170,13 @@ enum class PreBarrierKind {
 };
 
 enum class PostBarrierKind {
-  // Add a store buffer entry if the new value requires it, but do not attempt
-  // to remove a pre-existing entry.
-  Imprecise,
   // Remove an existing store buffer entry if the new value does not require
   // one. This is required to preserve invariants with HeapPtr when used for
   // movable storage.
   Precise,
-  // Add a store buffer entry for the entire cell (e.g. the entire struct or
-  // array who now has a field pointing into the nursery).
-  WholeCell,
+  // Add a store buffer entry if the new value requires it, but do not attempt
+  // to remove a pre-existing entry.
+  Imprecise,
 };
 
 struct BranchIfRefSubtypeRegisters {
@@ -1351,53 +1348,28 @@ struct BaseCompiler final {
   // update.  This function preserves that register.
   void emitPreBarrier(RegPtr valueAddr);
 
-  // These emit GC post-write barriers. The post-barrier is needed when we
+  // This emits a GC post-write barrier. The post-barrier is needed when we
   // replace a member field with a new value, the new value is in the nursery,
-  // and the containing object is a tenured object. The field (or the entire
-  // containing object) must then be added to the store buffer so that the
-  // nursery can be correctly collected. The field might belong to an object or
-  // be a stack slot or a register or a heap allocated value.
+  // and the containing object is a tenured object. The field must then be
+  // added to the store buffer so that the nursery can be correctly collected.
+  // The field might belong to an object or be a stack slot or a register or a
+  // heap allocated value.
   //
   // For the difference between 'precise' and 'imprecise', look at the
   // documentation on PostBarrierKind.
-
-  // Emits a post-write barrier that creates a whole-cell store buffer entry.
-  // See above for details.
   //
-  // - `object` is a pointer to the object that contains the field. This
-  //   register is preserved by this function.
-  // - `value` is the value that was stored in the field. This register is
-  //   preserved by this function.
-  // - `temp` is clobbered by this function.
-  [[nodiscard]] bool emitPostBarrierWholeCell(RegRef object, RegRef value,
-                                              RegPtr temp);
-
-  // Emits a post-write barrier of type WasmAnyRefEdge, imprecisely. See above
-  // for details.
-  //
-  // - `object` is a pointer to the object that contains the field. It is used,
-  //   if present, to skip adding a store buffer entry when the containing
-  //   object is in the nursery. This register is preserved by this function.
-  // - `valueAddr` is the address of the location that we are writing to. This
-  //   register is consumed by this function.
-  // - `value` is the value that was stored in the field. This register is
-  //   preserved by this function.
-  [[nodiscard]] bool emitPostBarrierEdgeImprecise(
+  // `object` is a pointer to the object that contains the field. It is used, if
+  // present, to skip adding a store buffer entry when the containing object is
+  // in the nursery. This register is preserved by this function.
+  // `valueAddr` is the address of the location that we are writing to. This
+  // register is consumed by this function.
+  // `prevValue` is the value that existed in the field before `value` was
+  // stored. This register is consumed by this function.
+  // `value` is the value that was stored in the field. This register is
+  // preserved by this function.
+  [[nodiscard]] bool emitPostBarrierImprecise(
       const mozilla::Maybe<RegRef>& object, RegPtr valueAddr, RegRef value);
-
-  // Emits a post-write barrier of type WasmAnyRefEdge, precisely. See above for
-  // details.
-  //
-  // - `object` is a pointer to the object that contains the field. It is used,
-  //   if present, to skip adding a store buffer entry when the containing
-  //   object is in the nursery. This register is preserved by this function.
-  // - `valueAddr` is the address of the location that we are writing to. This
-  //   register is consumed by this function.
-  // - `prevValue` is the value that existed in the field before `value` was
-  //   stored. This register is consumed by this function.
-  // - `value` is the value that was stored in the field. This register is
-  //   preserved by this function.
-  [[nodiscard]] bool emitPostBarrierEdgePrecise(
+  [[nodiscard]] bool emitPostBarrierPrecise(
       const mozilla::Maybe<RegRef>& object, RegPtr valueAddr, RegRef prevValue,
       RegRef value);
 

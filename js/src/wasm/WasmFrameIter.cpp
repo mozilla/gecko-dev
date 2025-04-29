@@ -1955,9 +1955,9 @@ static const char* ThunkedNativeToDescription(SymbolicAddress func) {
       return "call to native table.size function";
     case SymbolicAddress::RefFunc:
       return "call to native ref.func function";
-    case SymbolicAddress::PostBarrierEdge:
-    case SymbolicAddress::PostBarrierEdgePrecise:
-    case SymbolicAddress::PostBarrierWholeCell:
+    case SymbolicAddress::PostBarrier:
+    case SymbolicAddress::PostBarrierPrecise:
+    case SymbolicAddress::PostBarrierPreciseWithOffset:
       return "call to native GC postbarrier (in wasm)";
     case SymbolicAddress::ExceptionNew:
       return "call to native exception new (in wasm)";

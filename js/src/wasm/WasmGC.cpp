@@ -272,15 +272,6 @@ void wasm::EmitWasmPostBarrierGuard(MacroAssembler& masm,
                                      skipBarrier);
 }
 
-void wasm::CheckWholeCellLastElementCache(MacroAssembler& masm, Register object,
-                                          Register temp, Label* skipBarrier) {
-  masm.loadPtr(
-      Address(InstanceReg,
-              wasm::Instance::offsetOfAddressOfLastBufferedWholeCell()),
-      temp);
-  masm.branchPtr(Assembler::Equal, Address(temp, 0), object, skipBarrier);
-}
-
 #ifdef DEBUG
 bool wasm::IsPlausibleStackMapKey(const uint8_t* nextPC) {
 #  if defined(JS_CODEGEN_X64) || defined(JS_CODEGEN_X86)

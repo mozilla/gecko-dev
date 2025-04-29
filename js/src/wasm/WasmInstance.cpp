@@ -1400,29 +1400,30 @@ static int32_t MemDiscardShared(Instance* instance, I byteOffset, I byteLen,
 //
 // AnyRef support.
 
-/* static */ void Instance::postBarrierEdge(Instance* instance,
-                                            AnyRef* location) {
-  MOZ_ASSERT(SASigPostBarrierEdge.failureMode == FailureMode::Infallible);
+/* static */ void Instance::postBarrier(Instance* instance, void** location) {
+  MOZ_ASSERT(SASigPostBarrier.failureMode == FailureMode::Infallible);
   MOZ_ASSERT(location);
-  instance->storeBuffer_->putWasmAnyRef(location);
+  instance->storeBuffer_->putWasmAnyRef(
+      reinterpret_cast<wasm::AnyRef*>(location));
 }
 
-/* static */ void Instance::postBarrierEdgePrecise(Instance* instance,
-                                                   AnyRef* location,
-                                                   void* prev) {
-  MOZ_ASSERT(SASigPostBarrierEdgePrecise.failureMode ==
+/* static */ void Instance::postBarrierPrecise(Instance* instance,
+                                               void** location, void* prev) {
+  MOZ_ASSERT(SASigPostBarrierPrecise.failureMode == FailureMode::Infallible);
+  postBarrierPreciseWithOffset(instance, location, /*offset=*/0, prev);
+}
+
+/* static */ void Instance::postBarrierPreciseWithOffset(Instance* instance,
+                                                         void** base,
+                                                         uint32_t offset,
+                                                         void* prev) {
+  MOZ_ASSERT(SASigPostBarrierPreciseWithOffset.failureMode ==
              FailureMode::Infallible);
-  MOZ_ASSERT(location);
-  AnyRef next = *location;
+  MOZ_ASSERT(base);
+  wasm::AnyRef* location = (wasm::AnyRef*)(uintptr_t(base) + size_t(offset));
+  wasm::AnyRef next = *location;
   InternalBarrierMethods<AnyRef>::postBarrier(
       location, wasm::AnyRef::fromCompiledCode(prev), next);
-}
-
-/* static */ void Instance::postBarrierWholeCell(Instance* instance,
-                                                 gc::Cell* object) {
-  MOZ_ASSERT(SASigPostBarrierWholeCell.failureMode == FailureMode::Infallible);
-  MOZ_ASSERT(object);
-  instance->storeBuffer_->putWholeCell(object);
 }
 
 //////////////////////////////////////////////////////////////////////////////
@@ -2274,9 +2275,7 @@ Instance::Instance(JSContext* cx, Handle<WasmInstanceObject*> object,
       maybeDebug_(std::move(maybeDebug)),
       debugFilter_(nullptr),
       callRefMetrics_(nullptr),
-      maxInitializedGlobalsIndexPlus1_(0),
-      addressOfLastBufferedWholeCell_(
-          cx->runtime()->gc.addressOfLastBufferedWholeCell()) {
+      maxInitializedGlobalsIndexPlus1_(0) {
   for (size_t i = 0; i < N_BASELINE_SCRATCH_WORDS; i++) {
     baselineScratchWords_[i] = 0;
   }

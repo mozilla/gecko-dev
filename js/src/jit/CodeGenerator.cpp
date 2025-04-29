@@ -10708,29 +10708,29 @@ void CodeGenerator::visitWasmStoreElementRef(LWasmStoreElementRef* ins) {
   // The postbarrier is handled separately.
 }
 
-void CodeGenerator::visitWasmPostWriteBarrierWholeCell(
-    LWasmPostWriteBarrierWholeCell* lir) {
+void CodeGenerator::visitWasmPostWriteBarrierImmediate(
+    LWasmPostWriteBarrierImmediate* lir) {
   Register object = ToRegister(lir->object());
   Register value = ToRegister(lir->value());
+  Register valueBase = ToRegister(lir->valueBase());
   Register temp = ToRegister(lir->temp0());
   MOZ_ASSERT(ToRegister(lir->instance()) == InstanceReg);
   auto* ool = new (alloc()) LambdaOutOfLineCode([=](OutOfLineCode& ool) {
-    // Skip the barrier if this object was previously added to the store buffer.
-    // We perform this check out of line because in practice the prior guards
-    // eliminate most calls to the barrier.
-    wasm::CheckWholeCellLastElementCache(masm, object, temp, ool.rejoin());
-
     saveLiveVolatile(lir);
     masm.Push(InstanceReg);
     int32_t framePushedAfterInstance = masm.framePushed();
 
-    // Call Instance::postBarrierWholeCell
+    // Fold the value offset into the value base
+    Register valueAddr = valueBase;
+    masm.computeEffectiveAddress(Address(valueAddr, lir->valueOffset()), temp);
+
+    // Call Instance::postBarrier
     masm.setupWasmABICall();
     masm.passABIArg(InstanceReg);
-    masm.passABIArg(object);
+    masm.passABIArg(temp);
     int32_t instanceOffset = masm.framePushed() - framePushedAfterInstance;
     masm.callWithABI(wasm::BytecodeOffset(0),
-                     wasm::SymbolicAddress::PostBarrierWholeCell,
+                     wasm::SymbolicAddress::PostBarrier,
                      mozilla::Some(instanceOffset), ABIType::General);
 
     masm.Pop(InstanceReg);
@@ -10746,8 +10746,8 @@ void CodeGenerator::visitWasmPostWriteBarrierWholeCell(
   masm.bind(ool->rejoin());
 }
 
-void CodeGenerator::visitWasmPostWriteBarrierEdgeAtIndex(
-    LWasmPostWriteBarrierEdgeAtIndex* lir) {
+void CodeGenerator::visitWasmPostWriteBarrierIndex(
+    LWasmPostWriteBarrierIndex* lir) {
   Register object = ToRegister(lir->object());
   Register value = ToRegister(lir->value());
   Register valueBase = ToRegister(lir->valueBase());
@@ -10775,7 +10775,7 @@ void CodeGenerator::visitWasmPostWriteBarrierEdgeAtIndex(
     masm.passABIArg(temp);
     int32_t instanceOffset = masm.framePushed() - framePushedAfterInstance;
     masm.callWithABI(wasm::BytecodeOffset(0),
-                     wasm::SymbolicAddress::PostBarrierEdge,
+                     wasm::SymbolicAddress::PostBarrier,
                      mozilla::Some(instanceOffset), ABIType::General);
 
     masm.Pop(InstanceReg);
