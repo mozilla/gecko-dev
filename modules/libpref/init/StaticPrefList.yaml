@@ -8495,6 +8495,20 @@
   value: true
   mirror: always
 
+# Determines which register allocator will be used by the Ion backend for JS and
+# Wasm code. Possible values:
+#
+#  0: default register allocator (currently always the Backtracking allocator)
+#  1: always use the Backtracking allocator
+#  2: always use the Simple allocator
+#  3: always use the Backtracking Testbed allocator
+#  other values: same as 0
+- name: javascript.options.ion.regalloc
+  type: uint32_t
+  value: 0
+  mirror: always
+  set_spidermonkey_pref: startup
+
 # No-op pref for testing the SpiderMonkey pref system.
 - name: javascript.options.tests.uint32-pref
   type: uint32_t

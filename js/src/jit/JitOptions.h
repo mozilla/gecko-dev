@@ -130,7 +130,6 @@ struct DefaultJitOptions {
   uint32_t ionMaxLocalsAndArgsMainThread;
   uint32_t wasmBatchBaselineThreshold;
   uint32_t wasmBatchIonThreshold;
-  mozilla::Maybe<IonRegisterAllocator> forcedRegisterAllocator;
 #ifdef ENABLE_JS_AOT_ICS
   bool enableAOTICs;
   bool enableAOTICEnforce;

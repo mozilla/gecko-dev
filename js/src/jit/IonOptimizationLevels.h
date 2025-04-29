@@ -199,9 +199,7 @@ class OptimizationInfo {
            !JitOptions.disableRedundantGCBarriers;
   }
 
-  IonRegisterAllocator registerAllocator() const {
-    return JitOptions.forcedRegisterAllocator.valueOr(registerAllocator_);
-  }
+  IonRegisterAllocator registerAllocator() const;
 
   bool scalarReplacementEnabled() const {
     return scalarReplacement_ && !JitOptions.disableScalarReplacement;

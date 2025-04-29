@@ -13058,6 +13058,24 @@ bool SetGlobalOptionsPreJSInit(const OptionParser& op) {
   JS::Prefs::set_use_fdlibm_for_sin_cos_tan(
       op.getBoolOption("use-fdlibm-for-sin-cos-tan"));
 
+  if (const char* str = op.getStringOption("ion-regalloc")) {
+    auto allocator = jit::LookupRegisterAllocator(str);
+    if (allocator.isNothing()) {
+      return OptionFailure("ion-regalloc", str);
+    }
+    switch (*allocator) {
+      case jit::RegisterAllocator_Backtracking:
+        JS::Prefs::setAtStartup_ion_regalloc(1);
+        break;
+      case jit::RegisterAllocator_Simple:
+        JS::Prefs::setAtStartup_ion_regalloc(2);
+        break;
+      case jit::RegisterAllocator_Testbed:
+        JS::Prefs::setAtStartup_ion_regalloc(3);
+        break;
+    }
+  }
+
   if (op.getBoolOption("wasm-gc") || op.getBoolOption("wasm-relaxed-simd") ||
       op.getBoolOption("wasm-multi-memory") ||
       op.getBoolOption("wasm-memory-control") ||
@@ -13740,13 +13758,6 @@ bool SetContextJITOptions(JSContext* cx, const OptionParser& op) {
   int32_t smallFunctionLength = op.getIntOption("small-function-length");
   if (smallFunctionLength > 0) {
     jit::JitOptions.smallFunctionMaxBytecodeLength = smallFunctionLength;
-  }
-
-  if (const char* str = op.getStringOption("ion-regalloc")) {
-    jit::JitOptions.forcedRegisterAllocator = jit::LookupRegisterAllocator(str);
-    if (!jit::JitOptions.forcedRegisterAllocator.isSome()) {
-      return OptionFailure("ion-regalloc", str);
-    }
   }
 
   if (op.getBoolOption("ion-eager")) {

@@ -296,16 +296,6 @@ DefaultJitOptions::DefaultJitOptions() {
   SET_DEFAULT(ionMaxLocalsAndArgs, 10 * 1000);
   SET_DEFAULT(ionMaxLocalsAndArgsMainThread, 256);
 
-  // Force the used register allocator instead of letting the optimization
-  // pass decide.
-  const char* forcedRegisterAllocatorEnv = "JIT_OPTION_forcedRegisterAllocator";
-  if (const char* env = getenv(forcedRegisterAllocatorEnv)) {
-    forcedRegisterAllocator = LookupRegisterAllocator(env);
-    if (!forcedRegisterAllocator.isSome()) {
-      Warn(forcedRegisterAllocatorEnv, env);
-    }
-  }
-
 #if defined(JS_CODEGEN_MIPS64) || defined(JS_CODEGEN_LOONG64) || \
     defined(JS_CODEGEN_RISCV64)
   SET_DEFAULT(spectreIndexMasking, false);
