@@ -3106,9 +3106,8 @@ nsresult nsRange::GetUsedFontFaces(nsLayoutUtils::UsedFontFaceList& aResult,
   nsCOMPtr<nsINode> endContainer = mEnd.GetContainer();
 
   // Flush out layout so our frames are up to date.
-  Document* doc = mStart.GetContainer()->OwnerDoc();
-  NS_ENSURE_TRUE(doc, NS_ERROR_UNEXPECTED);
-  doc->FlushPendingNotifications(FlushType::Frames);
+  mStart.GetContainer()->OwnerDoc()->FlushPendingNotifications(
+      FlushType::Layout);
 
   // Recheck whether we're still in the document
   NS_ENSURE_TRUE(mStart.IsSetAndInComposedDoc(), NS_ERROR_UNEXPECTED);
