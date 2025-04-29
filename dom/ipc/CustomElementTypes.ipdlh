@@ -13,14 +13,14 @@ namespace mozilla {
 namespace dom {
 
 // Types used to store form-associated custom element state.
-union FormDataValue {
+union IPCFormDataValue {
   BlobImpl;
   nsString;
 };
 
 struct FormDataTuple {
   nsString name;
-  FormDataValue value;
+  IPCFormDataValue value;
 };
 
 union CustomElementFormValue {
