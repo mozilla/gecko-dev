@@ -72,6 +72,7 @@ class Benchmark:
         self.host, self.port = webserver.split(":")
 
         class CustomHandler(SimpleHTTPRequestHandler):
+            protocol_version = "HTTP/1.1"  # allow connection re-use
             doc_root = self.bench_dir
             verbose = self.debug_mode or self.config.get("verbose", False)
 
