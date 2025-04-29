@@ -150,13 +150,15 @@ bool AllocationIntegrityState::check() {
 
       LSafepoint* safepoint = ins->safepoint();
       if (safepoint) {
+        // Call instructions have an empty liveRegs set.
+        MOZ_ASSERT_IF(ins->isCall(), safepoint->liveRegs().empty());
+
+        // Temps are included in safepoints.
         for (LInstruction::TempIter temp(ins); !temp.done(); temp++) {
           uint32_t vreg = info.temps[temp.index()].virtualRegister();
           LAllocation* alloc = temp->output();
           checkSafepointAllocation(ins, vreg, *alloc);
         }
-        MOZ_ASSERT_IF(ins->isCall(), safepoint->liveRegs().emptyFloat() &&
-                                         safepoint->liveRegs().emptyGeneral());
       }
 
       size_t inputIndex = 0;
@@ -169,7 +171,7 @@ bool AllocationIntegrityState::check() {
 
         uint32_t vreg = oldInput.toUse()->virtualRegister();
 
-        if (safepoint && !oldInput.toUse()->usedAtStart()) {
+        if (safepoint) {
           checkSafepointAllocation(ins, vreg, **alloc);
         }
 
@@ -318,12 +320,6 @@ void AllocationIntegrityState::checkSafepointAllocation(LInstruction* ins,
 
   if (alloc.isAnyRegister()) {
     MOZ_ASSERT(safepoint->liveRegs().has(alloc.toAnyRegister()));
-  }
-
-  // The |this| argument slot is implicitly included in all safepoints.
-  if (alloc.isArgument() &&
-      alloc.toArgument()->index() < THIS_FRAME_ARGSLOT + sizeof(Value)) {
-    return;
   }
 
   LDefinition::Type type = virtualRegisters[vreg]
