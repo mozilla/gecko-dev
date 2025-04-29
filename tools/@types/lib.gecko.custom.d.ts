@@ -23,7 +23,7 @@ declare global {
 type Exports<M, P> = M extends keyof LazyModules ? IfKey<LazyModules[M], P> : never;
 type IfKey<T, K> = K extends keyof T ? T[K] : never;
 
-type LazyModules = import("./lib.gecko.modules").LazyModules;
+type LazyModules = import("./generated/lib.gecko.modules").LazyModules;
 
 type Widen<T> =
   T extends boolean ? boolean :

@@ -1,5 +1,5 @@
 {
-  "extends": "./tspaths.json",
+  "extends": "./generated/tspaths.json",
 
   "compilerOptions": {
     "noEmit": true,

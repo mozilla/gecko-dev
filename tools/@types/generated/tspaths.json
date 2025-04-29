@@ -1,6 +1,6 @@
 {
   "compilerOptions": {
-    "baseUrl": "../../",
+    "baseUrl": "../../..",
     "paths": {
       "chrome://browser/content/aboutlogins/aboutLoginsUtils.mjs": [
         "browser/components/aboutlogins/content/aboutLoginsUtils.mjs"
@@ -289,6 +289,9 @@
       ],
       "chrome://global/content/ml/ClusterAlgos.sys.mjs": [
         "toolkit/components/ml/content/ClusterAlgos.sys.mjs"
+      ],
+      "chrome://global/content/ml/EmbeddingsGenerator.sys.mjs": [
+        "toolkit/components/ml/content/nlp/EmbeddingsGenerator.sys.mjs"
       ],
       "chrome://global/content/ml/EngineProcess.sys.mjs": [
         "toolkit/components/ml/content/EngineProcess.sys.mjs"
@@ -1079,15 +1082,6 @@
       "resource:///modules/Discovery.sys.mjs": [
         "browser/modules/Discovery.sys.mjs"
       ],
-      "resource:///modules/DoHConfig.sys.mjs": [
-        "browser/components/doh/DoHConfig.sys.mjs"
-      ],
-      "resource:///modules/DoHController.sys.mjs": [
-        "browser/components/doh/DoHController.sys.mjs"
-      ],
-      "resource:///modules/DoHHeuristics.sys.mjs": [
-        "browser/components/doh/DoHHeuristics.sys.mjs"
-      ],
       "resource:///modules/DownloadSpamProtection.sys.mjs": [
         "browser/components/downloads/DownloadSpamProtection.sys.mjs"
       ],
@@ -1278,7 +1272,7 @@
         "browser/components/firefoxview/SyncedTabsController.sys.mjs"
       ],
       "resource:///modules/TRRPerformance.sys.mjs": [
-        "browser/components/doh/TRRPerformance.sys.mjs"
+        "toolkit/components/doh/TRRPerformance.sys.mjs"
       ],
       "resource:///modules/ThemeVariableMap.sys.mjs": [
         "browser/themes/ThemeVariableMap.sys.mjs"
@@ -1579,6 +1573,9 @@
       ],
       "resource:///modules/policies/schema.sys.mjs": [
         "tools/@types/subs/schema.sys.d.mts"
+      ],
+      "resource:///modules/profiles/ProfilesDatastoreService.sys.mjs": [
+        "browser/components/profiles/ProfilesDatastoreService.sys.mjs"
       ],
       "resource:///modules/profiles/SelectableProfile.sys.mjs": [
         "browser/components/profiles/SelectableProfile.sys.mjs"
@@ -5621,6 +5618,9 @@
       "resource://gre/modules/Color.sys.mjs": [
         "toolkit/modules/Color.sys.mjs"
       ],
+      "resource://gre/modules/ColorwayThemeMigration.sys.mjs": [
+        "toolkit/mozapps/extensions/ColorwayThemeMigration.sys.mjs"
+      ],
       "resource://gre/modules/CommonDialog.sys.mjs": [
         "toolkit/components/prompts/src/CommonDialog.sys.mjs"
       ],
@@ -5698,6 +5698,15 @@
       ],
       "resource://gre/modules/DelayedInit.sys.mjs": [
         "mobile/shared/modules/geckoview/DelayedInit.sys.mjs"
+      ],
+      "resource://gre/modules/DoHConfig.sys.mjs": [
+        "toolkit/components/doh/DoHConfig.sys.mjs"
+      ],
+      "resource://gre/modules/DoHController.sys.mjs": [
+        "toolkit/components/doh/DoHController.sys.mjs"
+      ],
+      "resource://gre/modules/DoHHeuristics.sys.mjs": [
+        "toolkit/components/doh/DoHHeuristics.sys.mjs"
       ],
       "resource://gre/modules/DownloadCore.sys.mjs": [
         "toolkit/components/downloads/DownloadCore.sys.mjs"
@@ -6215,6 +6224,12 @@
       "resource://gre/modules/PlacesQuery.sys.mjs": [
         "toolkit/components/places/PlacesQuery.sys.mjs"
       ],
+      "resource://gre/modules/PlacesSemanticHistoryDatabase.sys.mjs": [
+        "toolkit/components/places/PlacesSemanticHistoryDatabase.sys.mjs"
+      ],
+      "resource://gre/modules/PlacesSemanticHistoryManager.sys.mjs": [
+        "toolkit/components/places/PlacesSemanticHistoryManager.sys.mjs"
+      ],
       "resource://gre/modules/PlacesSyncUtils.sys.mjs": [
         "toolkit/components/places/PlacesSyncUtils.sys.mjs"
       ],
@@ -6415,6 +6430,9 @@
       ],
       "resource://gre/modules/SyncedBookmarksMirror.sys.mjs": [
         "toolkit/components/places/SyncedBookmarksMirror.sys.mjs"
+      ],
+      "resource://gre/modules/TRRPerformance.sys.mjs": [
+        "toolkit/components/doh/TRRPerformance.sys.mjs"
       ],
       "resource://gre/modules/TaskScheduler.sys.mjs": [
         "toolkit/components/taskscheduler/TaskScheduler.sys.mjs"
@@ -6844,6 +6862,9 @@
       ],
       "resource://newtab/lib/HighlightsFeed.sys.mjs": [
         "browser/extensions/newtab/lib/HighlightsFeed.sys.mjs"
+      ],
+      "resource://newtab/lib/NewTabGleanUtils.sys.mjs": [
+        "browser/extensions/newtab/lib/NewTabGleanUtils.sys.mjs"
       ],
       "resource://newtab/lib/NewTabInit.sys.mjs": [
         "browser/extensions/newtab/lib/NewTabInit.sys.mjs"
@@ -7419,7 +7440,7 @@
         "browser/base/content/test/fullscreen/DOMFullscreenTestUtils.sys.mjs"
       ],
       "resource://testing-common/DoHTestUtils.sys.mjs": [
-        "browser/components/doh/DoHTestUtils.sys.mjs"
+        "toolkit/components/doh/DoHTestUtils.sys.mjs"
       ],
       "resource://testing-common/EnterprisePolicyTesting.sys.mjs": [
         "toolkit/components/enterprisepolicies/tests/EnterprisePolicyTesting.sys.mjs"

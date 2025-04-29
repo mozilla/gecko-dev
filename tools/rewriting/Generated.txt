@@ -219,7 +219,8 @@ toolkit/components/pdfjs/PdfJsDefaultPrefs.js
 toolkit/components/pdfjs/PdfJsOverridePrefs.js
 toolkit/components/uniffi-js/GeneratedScaffolding.cpp
 toolkit/components/uniffi-bindgen-gecko-js/fixtures/generated
-tools/@types/tspaths.json
+tools/@types/generated/
+tools/@types/subs/
 tools/browsertime/package.json
 tools/browsertime/package-lock.json
 tools/ts/error_list.json

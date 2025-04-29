@@ -98,7 +98,7 @@ def setup(ctx):
 
 @SubCommand("ts", "update", description="Update tools/@types libraries.")
 def update(ctx):
-    typelib_dir = mozpath.join(ctx.topsrcdir, "tools/@types")
+    typelib_dir = mozpath.join(ctx.topsrcdir, "tools/@types/generated")
     platforms = ["darwin", "linux", "win32"]
 
     for lib in targets + platforms:
@@ -124,15 +124,19 @@ def glean(ctx):
     sys.path.append(mozpath.join(ctx.topsrcdir, "toolkit/components/glean/"))
     from metrics_index import metrics_yamls, pings_yamls
 
+    typelib_dir = mozpath.join(ctx.topsrcdir, "tools/@types/generated")
+
     maybe_setup(ctx)
-    return node(ctx, "build_glean", ctx.topsrcdir, *metrics_yamls, *pings_yamls)
+    return node(
+        ctx, "build_glean", ctx.topsrcdir, typelib_dir, *metrics_yamls, *pings_yamls
+    )
 
 
 @SubCommand("ts", "paths", description="Build module path mapping.")
 def paths(ctx):
     maybe_setup(ctx)
-    lib = mozpath.join(ctx.topsrcdir, "tools/@types/tspaths.json")
-    lazy = mozpath.join(ctx.topsrcdir, "tools/@types/lib.gecko.modules.d.ts")
+    lib = mozpath.join(ctx.topsrcdir, "tools/@types/generated/tspaths.json")
+    lazy = mozpath.join(ctx.topsrcdir, "tools/@types/generated/lib.gecko.modules.d.ts")
     return node(ctx, "build_paths", ctx.topsrcdir, lib, lazy)
 
 
