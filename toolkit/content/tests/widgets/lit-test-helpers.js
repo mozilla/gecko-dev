@@ -427,6 +427,19 @@ class InputTestHelpers extends LitTestHelpers {
       "Support link is rendered next to the description if a description is present."
     );
 
+    if (firstInput.isInlineLayout) {
+      ok(
+        !getSupportLink().getAttribute("aria-describedby"),
+        "aria-describedby is not set on the support link."
+      );
+    } else {
+      is(
+        getSupportLink().getAttribute("aria-describedby"),
+        "label description",
+        "Support link is described by the label and description elements."
+      );
+    }
+
     let getSlottedSupportLink = () =>
       secondInput.shadowRoot
         .querySelector("slot[name=support-link]")
@@ -630,7 +643,7 @@ class InputTestHelpers extends LitTestHelpers {
     let renderTarget = await this.renderTemplate(whitespaceTemplate);
     let firstInput = renderTarget.querySelector(selector);
 
-    if (firstInput.constructor.inputLayout == "block") {
+    if (!firstInput.isInlineLayout) {
       return;
     }
 

@@ -338,6 +338,10 @@ export class MozBaseInputElement extends MozLitElement {
     return this.#internals.states.has("has-label");
   }
 
+  get isInlineLayout() {
+    return this.constructor.inputLayout == "inline";
+  }
+
   click() {
     this.inputEl.click();
   }
@@ -378,7 +382,6 @@ export class MozBaseInputElement extends MozLitElement {
   }
 
   render() {
-    let isInlineLayout = this.constructor.inputLayout == "inline";
     return html`
       <link
         rel="stylesheet"
@@ -388,16 +391,17 @@ export class MozBaseInputElement extends MozLitElement {
       <span class="label-wrapper">
         <label
           is="moz-label"
+          id="label"
           part="label"
           for="input"
           shownaccesskey=${ifDefined(this.accessKey)}
-          >${isInlineLayout
+          >${this.isInlineLayout
             ? this.inputTemplate()
             : ""}${this.labelTemplate()}</label
         >${this.hasDescription ? "" : this.supportLinkTemplate()}
       </span>
       ${this.descriptionTemplate()}
-      ${!isInlineLayout ? this.inputTemplate() : ""}
+      ${!this.isInlineLayout ? this.inputTemplate() : ""}
       ${this.nestedFieldsTemplate()}
     `;
   }
@@ -436,6 +440,7 @@ export class MozBaseInputElement extends MozLitElement {
         is="moz-support-link"
         support-page=${this.supportPage}
         part="support-link"
+        aria-describedby=${this.isInlineLayout ? nothing : "label description"}
       ></a>`;
     }
     return html`<slot
