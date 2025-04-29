@@ -375,7 +375,6 @@ class Interventions {
 
   async _enableContentScripts(bug, label, intervention, matches) {
     const scriptsToReg = this._buildContentScriptRegistrations(
-      bug,
       label,
       intervention,
       matches
@@ -430,7 +429,7 @@ class Interventions {
     }
   }
 
-  _buildContentScriptRegistrations(bug, label, intervention, matches) {
+  _buildContentScriptRegistrations(label, intervention, matches) {
     const registration = {
       id: `webcompat intervention for ${label}`,
       matches,
