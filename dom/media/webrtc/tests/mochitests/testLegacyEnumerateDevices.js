@@ -161,5 +161,6 @@ async function testLegacyEnumerateDevices() {
     ["media.video_loopback_dev", "none"]
   );
   devices = await navigator.mediaDevices.enumerateDevices();
+  devices = devices.filter(({ kind }) => kind != "audiooutput");
   is(devices.length, 0, "No devices");
 }

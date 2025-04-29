@@ -8,16 +8,20 @@
 <script>
 /* global SimpleTest SpecialPowers */
 
-async function testEnumerateDevices(expectDevices) {
-  let devices = await navigator.mediaDevices.enumerateDevices();
-  if (!expectDevices) {
-    SimpleTest.is(devices.length, 0, "testEnumerateDevices: No devices");
-    return;
+async function testEnumerateDevices(header,
+                                    expectedCameras,
+                                    expectedMicrophones,
+                                    expectedSpeakers) {
+  const devices = await navigator.mediaDevices.enumerateDevices();
+  const cams = devices.filter(({kind}) => kind == "videoinput");
+  const mics = devices.filter(({kind}) => kind == "audioinput");
+  const spkr = devices.filter(({kind}) => kind == "audiooutput");
+
+  SimpleTest.is(cams.length, expectedCameras, `${header}: cameras`);
+  SimpleTest.is(mics.length, expectedMicrophones, `${header}: microphones`);
+  if (expectedSpeakers !== undefined) {
+    SimpleTest.is(spkr.length, expectedSpeakers, `${header}: speakers`);
   }
-  let cams = devices.filter((device) => device.kind == "videoinput");
-  let mics = devices.filter((device) => device.kind == "audioinput");
-  SimpleTest.ok((cams.length == 1) && (mics.length == 1),
-                "testEnumerateDevices: a microphone and a camera");
 }
 
 async function testGetUserMedia(expectDevices) {
@@ -63,14 +67,14 @@ async function testGetUserMedia(expectDevices) {
   }
 }
 
-async function testDevices() {
+async function testPreGum() {
   await SpecialPowers.pushPrefEnv({
     set: [
       ["privacy.resistFingerprinting", true],
       ["media.navigator.streams.fake", true]
     ]
   });
-  await testEnumerateDevices(true); // should list a microphone and a camera
+  await testEnumerateDevices("testPreGum w/resist", 1, 1, 0);
   await testGetUserMedia(true); // should get audio and video streams
 }
 
@@ -84,13 +88,13 @@ async function testNoDevices() {
       ["media.video_loopback_dev", "bar"]
     ]
   });
-  await testEnumerateDevices(false); // should list nothing
+  await testEnumerateDevices("testNoDevices wo/resist", 0, 0);
   await SpecialPowers.pushPrefEnv({
     set: [
       ["privacy.resistFingerprinting", true]
     ]
   });
-  await testEnumerateDevices(true); // should list a microphone and a camera
+  await testEnumerateDevices("testNoDevices w/resist", 1, 1, 1);
   await testGetUserMedia(false); // should reject with NotAllowedError
 }
 
@@ -102,7 +106,7 @@ createHTML({
 runTest(async () => {
   // Make sure enumerateDevices and getUserMedia work when
   // privacy.resistFingerprinting is true.
-  await testDevices();
+  await testPreGum();
 
   // Test that absence of devices can't be detected.
   await testNoDevices();
