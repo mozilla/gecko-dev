@@ -12,34 +12,6 @@
 using namespace mozilla;
 using namespace mozilla::net;
 
-class CapsuleParserListener : public CapsuleParser::Listener {
- public:
-  NS_INLINE_DECL_REFCOUNTING(CapsuleParserListener, override)
-
-  CapsuleParserListener() = default;
-  bool OnCapsule(Capsule&& aCapsule) override;
-  void OnCapsuleParseFailure(nsresult aError) override;
-
-  nsTArray<Capsule> GetParsedCapsules() { return std::move(mParsedCapsules); }
-
-  Maybe<nsresult> GetErrorResult() { return mError; }
-
- private:
-  virtual ~CapsuleParserListener() = default;
-
-  nsTArray<Capsule> mParsedCapsules;
-  Maybe<nsresult> mError = Nothing();
-};
-
-bool CapsuleParserListener::OnCapsule(Capsule&& aParsed) {
-  mParsedCapsules.AppendElement(std::move(aParsed));
-  return true;
-}
-
-void CapsuleParserListener::OnCapsuleParseFailure(nsresult aError) {
-  mError = Some(aError);
-}
-
 TEST(TestCapsule, UnknownCapsule)
 {
   nsTArray<uint8_t> data({0x1, 0x2});

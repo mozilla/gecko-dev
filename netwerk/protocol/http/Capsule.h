@@ -63,9 +63,20 @@ struct WebTransportStreamDataCapsule {
   }
 };
 
+struct WebTransportStreamsBlockedCapsule {
+  uint64_t mLimit = 0;
+  bool mBidi = true;
+
+  CapsuleType Type() const {
+    return mBidi ? CapsuleType::WT_STREAMS_BLOCKED_BIDI
+                 : CapsuleType::WT_STREAMS_BLOCKED_UNIDI;
+  }
+};
+
 using CapsuleValue =
     mozilla::Variant<UnknownCapsule, CloseWebTransportSessionCapsule,
-                     WebTransportMaxDataCapsule, WebTransportStreamDataCapsule>;
+                     WebTransportMaxDataCapsule, WebTransportStreamDataCapsule,
+                     WebTransportStreamsBlockedCapsule>;
 
 class Capsule final {
  public:
@@ -75,6 +86,7 @@ class Capsule final {
   static Capsule WebTransportMaxData(uint64_t aValue);
   static Capsule WebTransportStreamData(uint64_t aID, bool aFin,
                                         nsTArray<uint8_t>&& aData);
+  static Capsule WebTransportStreamsBlocked(uint64_t aLimit, bool aBidi);
 
   CapsuleType Type() const;
 
@@ -101,6 +113,13 @@ class Capsule final {
   const WebTransportStreamDataCapsule& GetWebTransportStreamDataCapsule()
       const {
     return mCapsule.as<WebTransportStreamDataCapsule>();
+  }
+  WebTransportStreamsBlockedCapsule& GetWebTransportStreamsBlockedCapsule() {
+    return mCapsule.as<WebTransportStreamsBlockedCapsule>();
+  }
+  const WebTransportStreamsBlockedCapsule&
+  GetWebTransportStreamsBlockedCapsule() const {
+    return mCapsule.as<WebTransportStreamsBlockedCapsule>();
   }
 
   template <typename CapsuleStruct>

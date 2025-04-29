@@ -175,6 +175,7 @@ UNIFIED_SOURCES += [
     "TLSTransportLayer.cpp",
     "TRRServiceChannel.cpp",
     "WebTransportCertificateVerifier.cpp",
+    "WebTransportFlowControl.cpp",
     "WebTransportSessionBase.cpp",
     "WebTransportStreamBase.cpp",
 ]

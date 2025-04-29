@@ -54,6 +54,14 @@ void CapsuleEncoder::EncodeCapsule(Capsule& aCapsule) {
         .EncodeBuffer(value.mData);
     return;
   }
+
+  if (aCapsule.mCapsule.is<WebTransportStreamsBlockedCapsule>()) {
+    auto& value = aCapsule.mCapsule.as<WebTransportStreamsBlockedCapsule>();
+    EncodeVarint(value.Type())
+        .EncodeVarint(CapsuleEncoder::VarintLength(value.mLimit))
+        .EncodeVarint(value.mLimit);
+    return;
+  }
 }
 
 CapsuleEncoder& CapsuleEncoder::EncodeByte(uint8_t aData) {

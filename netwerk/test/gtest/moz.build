@@ -33,6 +33,7 @@ UNIFIED_SOURCES += [
     "TestStandardURL.cpp",
     "TestUDPSocket.cpp",
     "TestURIMutator.cpp",
+    "TestWebTransportFlowControl.cpp",
 ]
 
 if CONFIG["OS_TARGET"] == "WINNT":

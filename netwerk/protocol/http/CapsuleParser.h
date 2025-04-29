@@ -8,6 +8,7 @@
 #define mozilla_net_capsule_parser_h
 
 #include "Capsule.h"
+#include "mozilla/Maybe.h"
 #include "mozilla/Result.h"
 #include "mozilla/Span.h"
 
@@ -58,6 +59,26 @@ class CapsuleParser final {
   Result<Capsule, nsresult> ParseCapsulePayload(CapsuleDecoder& aDecoder,
                                                 CapsuleType aType,
                                                 size_t aPayloadLength);
+};
+
+// This is mainly used for testing.
+class CapsuleParserListener : public CapsuleParser::Listener {
+ public:
+  NS_INLINE_DECL_REFCOUNTING(CapsuleParserListener, override)
+
+  CapsuleParserListener() = default;
+  bool OnCapsule(Capsule&& aCapsule) override;
+  void OnCapsuleParseFailure(nsresult aError) override;
+
+  nsTArray<Capsule> GetParsedCapsules() { return std::move(mParsedCapsules); }
+
+  Maybe<nsresult> GetErrorResult() { return mError; }
+
+ private:
+  virtual ~CapsuleParserListener() = default;
+
+  nsTArray<Capsule> mParsedCapsules;
+  Maybe<nsresult> mError = Nothing();
 };
 
 }  // namespace mozilla::net

@@ -11,6 +11,15 @@
 
 namespace mozilla::net {
 
+bool CapsuleParserListener::OnCapsule(Capsule&& aParsed) {
+  mParsedCapsules.AppendElement(std::move(aParsed));
+  return true;
+}
+
+void CapsuleParserListener::OnCapsuleParseFailure(nsresult aError) {
+  mError = Some(aError);
+}
+
 CapsuleParser::CapsuleParser(Listener* aListener) : mListener(aListener) {}
 
 bool CapsuleParser::ProcessCapsuleData(const uint8_t* aData, uint32_t aCount) {
@@ -164,10 +173,20 @@ Result<Capsule, nsresult> CapsuleParser::ParseCapsulePayload(
       break;
     case CapsuleType::WT_STREAM_DATA_BLOCKED:
       break;
-    case CapsuleType::WT_STREAMS_BLOCKED_BIDI:
-      break;
-    case CapsuleType::WT_STREAMS_BLOCKED_UNIDI:
-      break;
+    case CapsuleType::WT_STREAMS_BLOCKED_BIDI: {
+      auto value = aDecoder.DecodeVarint();
+      if (!value) {
+        return Err(NS_ERROR_UNEXPECTED);
+      }
+      return Capsule::WebTransportStreamsBlocked(*value, true);
+    }
+    case CapsuleType::WT_STREAMS_BLOCKED_UNIDI: {
+      auto value = aDecoder.DecodeVarint();
+      if (!value) {
+        return Err(NS_ERROR_UNEXPECTED);
+      }
+      return Capsule::WebTransportStreamsBlocked(*value, false);
+    }
     default:
       break;
   }
