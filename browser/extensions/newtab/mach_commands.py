@@ -7,6 +7,7 @@ import os
 import shutil
 import subprocess
 import tempfile
+import time
 from datetime import datetime
 from pathlib import Path
 
@@ -41,6 +42,47 @@ def newtab(command_context):
     """
     command_context._sub_mach(["help", "newtab"])
     return 1
+
+
+def run_mach(command_context, cmd, **kwargs):
+    return command_context._mach_context.commands.dispatch(
+        cmd, command_context._mach_context, **kwargs
+    )
+
+
+@SubCommand(
+    "newtab",
+    "watch",
+    description="Parses the current locales-report.json and produces something human readable.",
+)
+def watch(command_context):
+    processes = []
+
+    try:
+        p1 = subprocess.Popen(
+            ["./mach", "npm", "run", "watchmc", "--prefix=browser/extensions/newtab"]
+        )
+        p2 = subprocess.Popen(["./mach", "watch"])
+        processes.extend([p1, p2])
+        print("Watching subprocesses started. Press Ctrl-C to terminate them.")
+
+        while True:
+            time.sleep(1)
+
+    except KeyboardInterrupt:
+        print("\nSIGINT received. Terminating subprocesses...")
+        for p in processes:
+            p.terminate()
+        for p in processes:
+            p.wait()
+        print("All watching subprocesses terminated.")
+
+    # Rebundle to avoid having all of the sourcemaps stick around.
+    run_mach(
+        command_context,
+        "npm",
+        args=["run", "bundle", "--prefix=browser/extensions/newtab"],
+    )
 
 
 @SubCommand(
