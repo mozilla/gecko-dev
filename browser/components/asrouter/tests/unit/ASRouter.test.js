@@ -231,7 +231,12 @@ describe("ASRouter", () => {
       "pbNewtab",
     ].reduce((features, featureId) => {
       features[featureId] = {
-        getAllVariables: sandbox.stub().returns(null),
+        getEnrollmentMetadata: sandbox.stub().returns({
+          slug: "experiment-slug",
+          branch: "experiment-branch-slug",
+          isRollout: false,
+        }),
+        getAllVariables: sandbox.stub().returns(undefined),
         recordExposureEvent: sandbox.stub(),
       };
       return features;
@@ -271,11 +276,6 @@ describe("ASRouter", () => {
       },
       NimbusFeatures: fakeNimbusFeatures,
       ExperimentAPI: {
-        getExperimentMetaData: sandbox.stub().returns({
-          slug: "experiment-slug",
-          active: true,
-          branch: { slug: "experiment-branch-slug" },
-        }),
         getAllBranches: sandbox.stub().resolves([]),
         ready: sandbox.stub().resolves(),
       },
@@ -1578,17 +1578,15 @@ describe("ASRouter", () => {
     let experimentAPIStub;
     let featureIds = ["cfr", "moments-page", "infobar", "spotlight"];
     beforeEach(() => {
-      let getExperimentMetaDataStub = sandbox.stub();
       let getAllBranchesStub = sandbox.stub();
       featureIds.forEach(feature => {
         global.NimbusFeatures[feature].getAllVariables.returns({
           id: `message-${feature}`,
         });
-        getExperimentMetaDataStub.withArgs({ featureId: feature }).returns({
+        global.NimbusFeatures[feature].getEnrollmentMetadata.returns({
           slug: `slug-${feature}`,
-          branch: {
-            slug: `branch-${feature}`,
-          },
+          branch: `branch-${feature}`,
+          isRollout: false,
         });
         getAllBranchesStub.withArgs(`slug-${feature}`).resolves([
           {
@@ -1598,7 +1596,6 @@ describe("ASRouter", () => {
         ]);
       });
       experimentAPIStub = {
-        getExperimentMetaData: getExperimentMetaDataStub,
         getAllBranches: getAllBranchesStub,
       };
       globals.set("ExperimentAPI", experimentAPIStub);
@@ -2461,11 +2458,8 @@ describe("ASRouter", () => {
 
       await MessageLoaderUtils.loadMessagesForProvider(args);
 
+      assert.calledOnce(global.NimbusFeatures.spotlight.getEnrollmentMetadata);
       assert.calledOnce(global.NimbusFeatures.spotlight.getAllVariables);
-      assert.calledOnce(global.ExperimentAPI.getExperimentMetaData);
-      assert.calledWithExactly(global.ExperimentAPI.getExperimentMetaData, {
-        featureId: "spotlight",
-      });
     });
     it("should handle the case of no experiments in the ExperimentAPI", async () => {
       const args = {
@@ -2483,6 +2477,7 @@ describe("ASRouter", () => {
         featureIds: ["infobar"],
       };
       const enrollment = {
+        slug: "enrollment01",
         branch: {
           slug: "branch01",
           infobar: {
@@ -2495,8 +2490,10 @@ describe("ASRouter", () => {
       global.NimbusFeatures.infobar.getAllVariables.returns(
         enrollment.branch.infobar.value
       );
-      global.ExperimentAPI.getExperimentMetaData.returns({
-        branch: { slug: enrollment.branch.slug },
+      global.NimbusFeatures.infobar.getEnrollmentMetadata.returns({
+        slug: enrollment.slug,
+        branch: enrollment.branch.slug,
+        isRollout: false,
       });
       global.ExperimentAPI.getAllBranches.returns([
         enrollment.branch,
@@ -2544,10 +2541,10 @@ describe("ASRouter", () => {
       global.NimbusFeatures.cfr.getAllVariables.returns(
         enrollment.branch.cfr.value
       );
-      global.ExperimentAPI.getExperimentMetaData.returns({
+      global.NimbusFeatures.cfr.getEnrollmentMetadata.returns({
         slug: enrollment.slug,
-        active: true,
-        branch: { slug: enrollment.branch.slug },
+        branch: enrollment.branch.slug,
+        isRollout: false,
       });
       global.ExperimentAPI.getAllBranches.resolves([
         enrollment.branch,
@@ -2596,15 +2593,15 @@ describe("ASRouter", () => {
         },
       };
 
-      // Nedds to match the `featureIds` value to return an enrollment
+      // Needs to match the `featureIds` value to return an enrollment
       // for that feature
       global.NimbusFeatures.cfr.getAllVariables.returns(
         enrollment.branch.cfr.value
       );
-      global.ExperimentAPI.getExperimentMetaData.returns({
+      global.NimbusFeatures.cfr.getEnrollmentMetadata.returns({
         slug: enrollment.slug,
-        active: true,
-        branch: { slug: enrollment.branch.slug },
+        branch: enrollment.branch.slug,
+        isRollout: false,
       });
       global.ExperimentAPI.getAllBranches.resolves([
         enrollment.branch,
