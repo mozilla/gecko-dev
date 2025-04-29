@@ -3,6 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 import { EventEmitter } from "resource://gre/modules/EventEmitter.sys.mjs";
+import { XPCOMUtils } from "resource://gre/modules/XPCOMUtils.sys.mjs";
 
 const lazy = {};
 
@@ -11,6 +12,8 @@ ChromeUtils.defineESModuleGetters(lazy, {
     "chrome://remote/content/shared/listeners/BrowsingContextListener.sys.mjs",
   generateUUID: "chrome://remote/content/shared/UUID.sys.mjs",
   Log: "chrome://remote/content/shared/Log.sys.mjs",
+  ParentWebProgressListener:
+    "chrome://remote/content/shared/listeners/ParentWebProgressListener.sys.mjs",
   PromptListener:
     "chrome://remote/content/shared/listeners/PromptListener.sys.mjs",
   registerWebProgressListenerActor:
@@ -22,6 +25,13 @@ ChromeUtils.defineESModuleGetters(lazy, {
 });
 
 ChromeUtils.defineLazyGetter(lazy, "logger", () => lazy.Log.get());
+
+XPCOMUtils.defineLazyPreferenceGetter(
+  lazy,
+  "useParentWebProgressListener",
+  "remote.experimental-parent-navigation.enabled",
+  false
+);
 
 /**
  * @typedef {object} BrowsingContextDetails
@@ -71,6 +81,7 @@ class NavigationRegistry extends EventEmitter {
   #contextListener;
   #managers;
   #navigations;
+  #parentWebProgressListener;
   #promptListener;
 
   constructor() {
@@ -81,6 +92,10 @@ class NavigationRegistry extends EventEmitter {
 
     // Maps navigable id to NavigationInfo.
     this.#navigations = new Map();
+
+    if (lazy.useParentWebProgressListener) {
+      this.#parentWebProgressListener = new lazy.ParentWebProgressListener();
+    }
 
     this.#contextListener = new lazy.BrowsingContextListener();
     this.#contextListener.on("attached", this.#onContextAttached);
@@ -121,7 +136,11 @@ class NavigationRegistry extends EventEmitter {
    */
   startMonitoring(listener) {
     if (this.#managers.size == 0) {
-      lazy.registerWebProgressListenerActor();
+      if (lazy.useParentWebProgressListener) {
+        this.#parentWebProgressListener.startListening();
+      } else {
+        lazy.registerWebProgressListenerActor();
+      }
       this.#contextListener.startListening();
       this.#promptListener.startListening();
     }
@@ -142,7 +161,11 @@ class NavigationRegistry extends EventEmitter {
     if (this.#managers.size == 0) {
       this.#contextListener.stopListening();
       this.#promptListener.stopListening();
-      lazy.unregisterWebProgressListenerActor();
+      if (lazy.useParentWebProgressListener) {
+        this.#parentWebProgressListener.stopListening();
+      } else {
+        lazy.unregisterWebProgressListenerActor();
+      }
       // Clear the map.
       this.#navigations = new Map();
     }
