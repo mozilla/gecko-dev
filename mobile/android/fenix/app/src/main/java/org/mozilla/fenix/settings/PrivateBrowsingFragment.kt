@@ -10,6 +10,7 @@ import androidx.preference.Preference
 import androidx.preference.PreferenceFragmentCompat
 import androidx.preference.SwitchPreference
 import org.mozilla.fenix.Config
+import org.mozilla.fenix.GleanMetrics.PrivateBrowsingLocked
 import org.mozilla.fenix.HomeActivity
 import org.mozilla.fenix.R
 import org.mozilla.fenix.components.PrivateShortcutCreateManager
@@ -59,9 +60,25 @@ class PrivateBrowsingFragment : PreferenceFragmentCompat() {
         }
 
         requirePreference<SwitchPreference>(R.string.pref_key_private_browsing_locked_enabled).apply {
-            onPreferenceChangeListener = SharedPreferenceUpdater()
+            onPreferenceChangeListener = privateBrowsingLockSharedPreferenceUpdater()
             isChecked = context.settings().privateBrowsingLockedEnabled
             isVisible = Config.channel.isDebug
+        }
+    }
+
+    private fun privateBrowsingLockSharedPreferenceUpdater() = object : SharedPreferenceUpdater() {
+        override fun onPreferenceChange(preference: Preference, newValue: Any?): Boolean {
+            newValue?.let {
+                with(it as Boolean) {
+                    if (this) {
+                        PrivateBrowsingLocked.featureEnabled.record()
+                    } else {
+                        PrivateBrowsingLocked.featureDisabled.record()
+                    }
+                }
+            }
+
+            return super.onPreferenceChange(preference, newValue)
         }
     }
 }
