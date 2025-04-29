@@ -820,6 +820,7 @@ module.exports = {
   getResponseHeader,
   getResponseTime,
   getStartTime,
+  getUrl,
   getUrlBaseName,
   getUrlDetails,
   getUrlHost,

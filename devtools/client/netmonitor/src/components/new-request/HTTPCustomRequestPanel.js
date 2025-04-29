@@ -22,6 +22,7 @@ const {
   getClickedRequest,
 } = require("resource://devtools/client/netmonitor/src/selectors/index.js");
 const {
+  getUrl,
   getUrlQuery,
   parseQueryString,
 } = require("resource://devtools/client/netmonitor/src/utils/request-utils.js");
@@ -269,22 +270,18 @@ class HTTPCustomRequestPanel extends Component {
 
   onUpdateQueryParams() {
     const { urlQueryParams, url } = this.state;
-    let queryString = "";
+
+    const urlObj = getUrl(url);
+    urlObj.search = "";
+
     for (const { name, value, checked } of urlQueryParams) {
       if (checked) {
-        queryString += `${encodeURIComponent(name)}=${encodeURIComponent(
-          value
-        )}&`;
+        urlObj.searchParams.set(name, value);
       }
     }
 
-    let finalURL = url.split("?")[0];
-
-    if (queryString.length) {
-      finalURL += `?${queryString.substring(0, queryString.length - 1)}`;
-    }
     this.setState({
-      url: finalURL,
+      url: urlObj.toString(),
     });
   }
 
