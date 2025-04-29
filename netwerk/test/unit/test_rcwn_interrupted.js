@@ -49,22 +49,42 @@ const responseBody =
 
 function contentHandler(metadata, response) {
   response.processAsync();
-  do_timeout(500, () => {
-    response.setHeader("Content-Type", "text/plain");
-    response.setHeader("ETag", "Just testing");
-    response.setHeader("Cache-Control", "max-age=99999");
-    response.setHeader("Accept-Ranges", "bytes");
-    response.setHeader("Content-Length", "" + responseBody.length);
-    if (metadata.hasHeader("If-Range")) {
-      response.setStatusLine(metadata.httpVersion, 206, "Partial Content");
+  response.setHeader("Content-Type", "text/plain");
+  response.setHeader("ETag", "Just testing");
+  response.setHeader("Cache-Control", "max-age=99999");
+  response.setHeader("Accept-Ranges", "bytes");
+  response.setHeader("Content-Length", "" + responseBody.length);
+  if (metadata.hasHeader("If-Range")) {
+    response.setStatusLine(metadata.httpVersion, 206, "Partial Content");
 
-      let len = responseBody.length;
-      response.setHeader("Content-Range", "0-" + (len - 1) + "/" + len);
-    }
+    let len = responseBody.length;
+    response.setHeader("Content-Range", "0-" + (len - 1) + "/" + len);
+  }
+
+  do_timeout(500, () => {
     response.bodyOutputStream.write(responseBody, responseBody.length);
 
     response.finish();
   });
+}
+
+class CustomChannelListener extends ChannelListener {
+  constructor(closure, ctx, flags) {
+    super(closure, ctx, flags);
+
+    this._onStartPromise = new Promise(resolve => {
+      this._onStartResolve = resolve;
+    });
+  }
+
+  onStartRequest(request) {
+    this._onStartResolve();
+
+    // Call the original ChannelListener's onStartRequest method
+    if (typeof ChannelListener.prototype.onStartRequest === "function") {
+      ChannelListener.prototype.onStartRequest.call(this, request);
+    }
+  }
 }
 
 function run_test() {
@@ -82,17 +102,22 @@ function run_test() {
 
   httpProtocolHandler.EnsureHSTSDataReady().then(function () {
     var chan1 = make_channel(URL + "/content");
-    chan1.asyncOpen(
-      new ChannelListener(firstTimeThrough, null, CL_IGNORE_DELAYS)
+    let chan1listener = new CustomChannelListener(
+      firstTimeThrough,
+      null,
+      CL_IGNORE_DELAYS
     );
-    var chan2 = make_channel(URL + "/content");
-    chan2
-      .QueryInterface(Ci.nsIRaceCacheWithNetwork)
-      .test_delayCacheEntryOpeningBy(200);
-    chan2.QueryInterface(Ci.nsIRaceCacheWithNetwork).test_triggerNetwork(50);
-    chan2.asyncOpen(
-      new ChannelListener(secondTimeThrough, null, CL_IGNORE_DELAYS)
-    );
+    chan1listener._onStartPromise.then(() => {
+      var chan2 = make_channel(URL + "/content");
+      chan2
+        .QueryInterface(Ci.nsIRaceCacheWithNetwork)
+        .test_delayCacheEntryOpeningBy(200);
+      chan2.QueryInterface(Ci.nsIRaceCacheWithNetwork).test_triggerNetwork(50);
+      chan2.asyncOpen(
+        new ChannelListener(secondTimeThrough, null, CL_IGNORE_DELAYS)
+      );
+    });
+    chan1.asyncOpen(chan1listener);
   });
 
   do_test_pending();
