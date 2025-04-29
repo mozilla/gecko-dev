@@ -242,6 +242,10 @@ Result<Capsule, nsresult> CapsuleParser::ParseCapsulePayload(
       }
       return Capsule::WebTransportStreamsBlocked(*value, false);
     }
+    case CapsuleType::DATAGRAM: {
+      nsTArray<uint8_t> payload(aDecoder.GetRemaining());
+      return Capsule::WebTransportDatagram(std::move(payload));
+    }
     default:
       break;
   }

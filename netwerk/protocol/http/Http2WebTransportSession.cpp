@@ -77,7 +77,15 @@ uint64_t Http2WebTransportSessionImpl::GetStreamId() const { return mStreamId; }
 void Http2WebTransportSessionImpl::GetMaxDatagramSize() {}
 
 void Http2WebTransportSessionImpl::SendDatagram(nsTArray<uint8_t>&& aData,
-                                                uint64_t aTrackingId) {}
+                                                uint64_t aTrackingId) {
+  LOG(("Http2WebTransportSession::SendDatagram %p", this));
+
+  Capsule capsule = Capsule::WebTransportDatagram(std::move(aData));
+
+  UniquePtr<CapsuleEncoder> encoder = MakeUnique<CapsuleEncoder>();
+  encoder->EncodeCapsule(capsule);
+  EnqueueOutCapsule(CapsuleTransmissionPriority::Normal, std::move(encoder));
+}
 
 void Http2WebTransportSessionImpl::CreateOutgoingStreamInternal(
     StreamId aStreamId,
@@ -354,6 +362,9 @@ bool Http2WebTransportSessionImpl::OnCapsule(Capsule&& aCapsule) {
       break;
     case CapsuleType::WT_STREAMS_BLOCKED_UNIDI:
       LOG(("Handling WT_STREAMS_BLOCKED_UNIDI\n"));
+      break;
+    case CapsuleType::DATAGRAM:
+      LOG(("Handling DATAGRAM\n"));
       break;
     default:
       LOG(("Unhandled capsule type\n"));

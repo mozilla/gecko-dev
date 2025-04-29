@@ -1046,3 +1046,30 @@ TEST(TestHttp2WebTransport, StreamResetReliableSize)
   client->Done();
   server->Done();
 }
+
+TEST(TestHttp2WebTransport, SendAndReceiveDatagram)
+{
+  RefPtr<MockWebTransportClient> client =
+      new MockWebTransportClient(Http2WebTransportInitialSettings());
+  RefPtr<MockWebTransportServer> server = new MockWebTransportServer();
+  RefPtr<MockWebTransportSessionEventListener> listener =
+      new MockWebTransportSessionEventListener();
+  client->Session()->SetWebTransportSessionEventListener(listener);
+
+  nsTArray<uint8_t> mockData, expectedData;
+  CreateTestData(512, mockData);
+  expectedData.AppendElements(mockData);
+
+  // Send datagram from client to server
+  client->Session()->SendDatagram(std::move(mockData), 1);
+  ServerProcessCapsules(server, client);
+
+  // Verify the server received the correct datagram capsule
+  nsTArray<Capsule> received = server->GetReceivedCapsules();
+  WebTransportDatagramCapsule& parsedCapsule =
+    received[0].GetWebTransportDatagramCapsule();
+  ValidateData(parsedCapsule.mPayload, expectedData);
+
+  client->Done();
+  server->Done();
+}

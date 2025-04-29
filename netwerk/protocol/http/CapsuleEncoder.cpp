@@ -124,6 +124,15 @@ void CapsuleEncoder::EncodeCapsule(Capsule& aCapsule) {
         .EncodeVarint(value.mReliableSize);
     return;
   }
+
+  if (aCapsule.mCapsule.is<WebTransportDatagramCapsule>()) {
+    auto& value = aCapsule.mCapsule.as<WebTransportDatagramCapsule>();
+    uint64_t length = value.mPayload.Length();
+    EncodeVarint(value.Type())
+        .EncodeVarint(length)
+        .EncodeBuffer(value.mPayload);
+    return;
+  }
 }
 
 CapsuleEncoder& CapsuleEncoder::EncodeByte(uint8_t aData) {

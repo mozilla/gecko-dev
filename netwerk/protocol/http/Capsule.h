@@ -31,6 +31,7 @@ enum class CapsuleType : uint64_t {
   WT_STREAM_DATA_BLOCKED = 0x190B4D42,
   WT_STREAMS_BLOCKED_BIDI = 0x190B4D43,
   WT_STREAMS_BLOCKED_UNIDI = 0x190B4D44,
+  DATAGRAM = 0x00,
 };
 
 struct UnknownCapsule {
@@ -119,12 +120,19 @@ struct WebTransportResetStreamCapsule {
   CapsuleType Type() const { return CapsuleType::WT_RESET_STREAM; }
 };
 
+struct WebTransportDatagramCapsule {
+  nsTArray<uint8_t> mPayload;
+
+  CapsuleType Type() const { return CapsuleType::DATAGRAM; }
+};
+
 using CapsuleValue = mozilla::Variant<
     UnknownCapsule, CloseWebTransportSessionCapsule, WebTransportMaxDataCapsule,
     WebTransportStreamDataCapsule, WebTransportStreamsBlockedCapsule,
     WebTransportMaxStreamsCapsule, WebTransportStreamDataBlockedCapsule,
     WebTransportMaxStreamDataCapsule, WebTransportDataBlockedCapsule,
-    WebTransportStopSendingCapsule, WebTransportResetStreamCapsule>;
+    WebTransportStopSendingCapsule, WebTransportResetStreamCapsule,
+    WebTransportDatagramCapsule>;
 
 class Capsule final {
  public:
@@ -142,6 +150,7 @@ class Capsule final {
   static Capsule WebTransportStopSending(uint64_t aError, uint64_t aID);
   static Capsule WebTransportResetStream(uint64_t aError, uint64_t aSize,
                                          uint64_t aID);
+  static Capsule WebTransportDatagram(nsTArray<uint8_t>&& aData);
 
   CapsuleType Type() const;
 
@@ -218,6 +227,12 @@ class Capsule final {
   const WebTransportResetStreamCapsule& GetWebTransportResetStreamCapsule()
       const {
     return mCapsule.as<WebTransportResetStreamCapsule>();
+  }
+  WebTransportDatagramCapsule& GetWebTransportDatagramCapsule() {
+    return mCapsule.as<WebTransportDatagramCapsule>();
+  }
+  const WebTransportDatagramCapsule& GetWebTransportDatagramCapsule() const {
+    return mCapsule.as<WebTransportDatagramCapsule>();
   }
 
   template <typename CapsuleStruct>
