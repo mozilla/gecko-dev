@@ -236,11 +236,11 @@ std::vector<webrtc::VideoStream> VideoStreamFactory::CreateEncoderStreams(
     video_stream.max_qp = kQpMax;
 
     if (streamCount > 1) {
+      video_stream.num_temporal_layers = 2;
       if (mCodecConfig.mName == "H264") {
 #ifdef ANDROID
         video_stream.num_temporal_layers = 1;
 #else
-        video_stream.num_temporal_layers = 2;
         if (!HaveGMPFor("encode-video"_ns, {"moz-h264-temporal-svc"_ns})) {
           video_stream.num_temporal_layers = 1;
         }
