@@ -3665,11 +3665,23 @@ JS_PUBLIC_API bool JS::PropertySpecNameEqualsId(JSPropertySpec::Name name,
 JS_PUBLIC_API bool JS_Stringify(JSContext* cx, MutableHandleValue vp,
                                 HandleObject replacer, HandleValue space,
                                 JSONWriteCallback callback, void* data) {
+  return JS_StringifyWithLengthHint(cx, vp, replacer, space, callback, data, 0);
+}
+
+JS_PUBLIC_API bool JS_StringifyWithLengthHint(JSContext* cx,
+                                              MutableHandleValue vp,
+                                              HandleObject replacer,
+                                              HandleValue space,
+                                              JSONWriteCallback callback,
+                                              void* data, size_t lengthHint) {
   AssertHeapIsIdle();
   CHECK_THREAD(cx);
   cx->check(replacer, space);
   StringBuilder sb(cx);
   if (!sb.ensureTwoByteChars()) {
+    return false;
+  }
+  if (lengthHint && !sb.reserve(lengthHint)) {
     return false;
   }
   if (!Stringify(cx, vp, replacer, space, sb, StringifyBehavior::Normal)) {
