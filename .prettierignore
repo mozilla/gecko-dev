@@ -1028,6 +1028,8 @@ browser/components/pocket/content/panels/js/main.bundle.js
 
 # Ignore newtab files
 browser/extensions/newtab/logs/
+# JS file using the #include pre-processor macro, leading to syntax errors.
+browser/extensions/newtab/webext-glue/builtin-newtab.js
 
 # Ignore about:welcome files
 browser/components/aboutwelcome/logs/
@@ -1487,7 +1489,6 @@ browser/extensions/newtab/data/content/activity-stream.bundle.js
 browser/extensions/newtab/logs/
 browser/extensions/newtab/node_modules/
 browser/extensions/newtab/prerendered/
-browser/extensions/newtab/webext-glue/builtin-newtab.js
 browser/extensions/newtab/webext-glue/locales/locales-report.json
 browser/extensions/newtab/webext-glue/locales/supported-locales.json
 browser/locales/l10n-changesets.json
