@@ -406,12 +406,32 @@ class LStackSlot : public LAllocation {
     QuadWord,
   };
 
+  class SlotAndWidth {
+    uint32_t data_;
+
+    explicit SlotAndWidth(uint32_t data) : data_(data) {}
+
+   public:
+    static SlotAndWidth fromData(uint32_t data) { return SlotAndWidth(data); }
+
+    explicit SlotAndWidth(uint32_t slot, Width width) {
+      MOZ_ASSERT(slot % SLOT_ALIGNMENT == 0);
+      MOZ_ASSERT(uint32_t(width) < SLOT_ALIGNMENT);
+      data_ = slot | uint32_t(width);
+    }
+    uint32_t data() const { return data_; }
+    uint32_t slot() const { return data_ & SLOT_MASK; }
+    Width width() const { return Width(data_ & WIDTH_MASK); }
+  };
+
+  explicit LStackSlot(SlotAndWidth slotAndWidth)
+      : LAllocation(STACK_SLOT, slotAndWidth.data()) {}
+
   LStackSlot(uint32_t slot, Width width)
-      : LAllocation(STACK_SLOT, slotAndWidth(slot, width)) {}
+      : LStackSlot(SlotAndWidth(slot, width)) {}
 
-  uint32_t slot() const { return data() & SLOT_MASK; }
-
-  Width width() const { return Width(data() & WIDTH_MASK); }
+  uint32_t slot() const { return SlotAndWidth::fromData(data()).slot(); }
+  Width width() const { return SlotAndWidth::fromData(data()).width(); }
 
   // |Type| is LDefinition::Type, but can't forward declare a nested definition.
   template <typename Type>
@@ -427,13 +447,6 @@ class LStackSlot : public LAllocation {
         return 16;
     }
     MOZ_CRASH("invalid width");
-  }
-
- private:
-  static uint32_t slotAndWidth(uint32_t slot, Width width) {
-    MOZ_ASSERT(slot % SLOT_ALIGNMENT == 0);
-    MOZ_ASSERT(uint32_t(width) < SLOT_ALIGNMENT);
-    return slot | uint32_t(width);
   }
 };
 
