@@ -23,6 +23,7 @@ interface Notification : EventTarget {
   [NewObject, Func="mozilla::dom::Notification::RequestPermissionEnabledForScope"]
   static Promise<NotificationPermission> requestPermission(optional NotificationPermissionCallback permissionCallback);
 
+  [Pref="dom.webnotifications.actions.enabled"]
   static readonly attribute unsigned long maxActions;
 
   attribute EventHandler onclick;
