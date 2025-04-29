@@ -56,7 +56,7 @@ Getting the source
 ^^^^^^^^^^^^^^^^^^
 
 If you don't have a source code repository clone yet, you need to :ref:`get
-yourself a clone of Mozilla-central <Mercurial Overview>`.
+yourself a clone of Mozilla-central <Firefox Contributors' Quick Reference>`.
 
 Adjusting the build configuration
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

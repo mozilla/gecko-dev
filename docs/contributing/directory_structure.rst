@@ -9,7 +9,7 @@ using Searchfox (start at https://searchfox.org/mozilla-central/source for
 the complete firefox source code of branch HEAD).
 
 In order to modify the source, you have to acquire it either by
-downloading a :ref:`snapshot <Mercurial Overview>` of the sources or
+downloading a :ref:`snapshot <Firefox Contributors' Quick Reference>` of the sources or
 by checking out the current sources from
 :ref:`the repository <Firefox Contributors' Quick Reference>`.
 

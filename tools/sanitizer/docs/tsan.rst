@@ -102,7 +102,7 @@ Getting the source
 ^^^^^^^^^^^^^^^^^^
 
 Using that or any later revision, all you need to do is to :ref:`get yourself
-a clone of mozilla-central <Mercurial overview>`.
+a clone of mozilla-central <Firefox Contributors' Quick Reference>`.
 
 Adjusting the build configuration
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
