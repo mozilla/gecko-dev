@@ -5,6 +5,7 @@
 package org.mozilla.fenix.browser.desktopmode
 
 import android.content.Context
+import androidx.annotation.VisibleForTesting
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
@@ -47,7 +48,8 @@ class DefaultDesktopModeRepository(
     private val dataStore: DataStore<Preferences> = context.preferencesDataStore,
 ) : DesktopModeRepository {
 
-    private val defaultDesktopMode by lazy {
+    @VisibleForTesting
+    internal val defaultDesktopMode by lazy {
         context.isLargeScreenSize()
     }
 
