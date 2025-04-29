@@ -89,9 +89,9 @@ class Http2WebTransportSessionImpl final : public WebTransportSessionBase,
   void Close(nsresult aReason);
 
   void OnStreamClosed(Http2WebTransportStream* aStream);
-  void SendStreamDataCapsule(UniquePtr<CapsuleEncoder>&& aData);
   void PrepareCapsulesToSend(
       mozilla::Queue<UniquePtr<CapsuleEncoder>>& aOutput);
+  SenderFlowControlSession& SessionDataFc() { return mSessionDataFc; }
 
  private:
   virtual ~Http2WebTransportSessionImpl();
@@ -122,6 +122,7 @@ class Http2WebTransportSessionImpl final : public WebTransportSessionBase,
   bool ProcessIncomingStreamCapsule(Capsule&& aCapsule, StreamId aID,
                                     WebTransportStreamType aStreamType);
   void SendFlowControlCapsules(CapsuleTransmissionPriority aPriority);
+  bool HandleMaxStreamDataCapsule(StreamId aId, Capsule&& aCapsule);
 
   class CapsuleQueue final {
    public:
@@ -151,6 +152,7 @@ class Http2WebTransportSessionImpl final : public WebTransportSessionBase,
 
   RefPtr<CapsuleIOHandler> mHandler;
   CapsuleQueue mCapsuleQueue;
+  SenderFlowControlSession mSessionDataFc;
 };
 
 class Http2WebTransportSession final : public Http2StreamTunnel,

@@ -69,6 +69,7 @@ class SenderFlowControlBase {
   bool mBlockedCapsule = false;
 };
 
+// Flow control for stream creation.
 class SenderFlowControlStreamType : public SenderFlowControlBase {
  public:
   SenderFlowControlStreamType(WebTransportStreamType aType, uint64_t aInitial)
@@ -78,6 +79,27 @@ class SenderFlowControlStreamType : public SenderFlowControlBase {
 
  private:
   WebTransportStreamType mType;
+};
+
+// Flow control for stream data.
+class SenderFlowControlStreamId : public SenderFlowControlBase {
+ public:
+  SenderFlowControlStreamId(StreamId aId, uint64_t aInitial)
+      : SenderFlowControlBase(aInitial), mId(aId) {}
+
+  Maybe<CapsuleEncoder> CreateStreamDataBlockedCapsule();
+
+ private:
+  StreamId mId;
+};
+
+// Flow control for session data.
+class SenderFlowControlSession : public SenderFlowControlBase {
+ public:
+  explicit SenderFlowControlSession(uint64_t aInitial)
+      : SenderFlowControlBase(aInitial) {}
+
+  Maybe<CapsuleEncoder> CreateSessionDataBlockedCapsule();
 };
 
 class LocalStreamLimits {

@@ -69,6 +69,34 @@ void CapsuleEncoder::EncodeCapsule(Capsule& aCapsule) {
         .EncodeVarint(value.mLimit);
     return;
   }
+
+  if (aCapsule.mCapsule.is<WebTransportStreamDataBlockedCapsule>()) {
+    auto& value = aCapsule.mCapsule.as<WebTransportStreamDataBlockedCapsule>();
+    EncodeVarint(value.Type())
+        .EncodeVarint(CapsuleEncoder::VarintLength(value.mID) +
+                      CapsuleEncoder::VarintLength(value.mLimit))
+        .EncodeVarint(value.mID)
+        .EncodeVarint(value.mLimit);
+    return;
+  }
+
+  if (aCapsule.mCapsule.is<WebTransportMaxStreamDataCapsule>()) {
+    auto& value = aCapsule.mCapsule.as<WebTransportMaxStreamDataCapsule>();
+    EncodeVarint(value.Type())
+        .EncodeVarint(CapsuleEncoder::VarintLength(value.mID) +
+                      CapsuleEncoder::VarintLength(value.mLimit))
+        .EncodeVarint(value.mID)
+        .EncodeVarint(value.mLimit);
+    return;
+  }
+
+  if (aCapsule.mCapsule.is<WebTransportDataBlockedCapsule>()) {
+    auto& value = aCapsule.mCapsule.as<WebTransportDataBlockedCapsule>();
+    EncodeVarint(value.Type())
+        .EncodeVarint(CapsuleEncoder::VarintLength(value.mLimit))
+        .EncodeVarint(value.mLimit);
+    return;
+  }
 }
 
 CapsuleEncoder& CapsuleEncoder::EncodeByte(uint8_t aData) {

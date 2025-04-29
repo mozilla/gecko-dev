@@ -9,6 +9,7 @@
 #include <functional>
 
 #include "mozilla/Queue.h"
+#include "WebTransportFlowControl.h"
 #include "WebTransportStreamBase.h"
 
 namespace mozilla::net {
@@ -38,11 +39,13 @@ class Http2WebTransportStream final : public WebTransportStreamBase {
 
   explicit Http2WebTransportStream(
       Http2WebTransportSessionImpl* aWebTransportSession, StreamId aStreamId,
+      uint64_t aInitialMaxStreamData,
       std::function<void(Result<RefPtr<WebTransportStreamBase>, nsresult>&&)>&&
           aCallback);
 
   explicit Http2WebTransportStream(
-      Http2WebTransportSessionImpl* aWebTransportSession, StreamId aStreamId);
+      Http2WebTransportSessionImpl* aWebTransportSession,
+      uint64_t aInitialMaxStreamData, StreamId aStreamId);
 
   nsresult Init();
 
@@ -60,6 +63,8 @@ class Http2WebTransportStream final : public WebTransportStreamBase {
 
   nsresult OnCapsule(Capsule&& aCapsule);
   void Close(nsresult aResult);
+  Maybe<CapsuleEncoder> HasStreamDataBlockedCapsuleToSend();
+  void TakeOutputCapsule(mozilla::Queue<UniquePtr<CapsuleEncoder>>& aOutput);
 
  private:
   virtual ~Http2WebTransportStream();
@@ -68,6 +73,7 @@ class Http2WebTransportStream final : public WebTransportStreamBase {
                                      uint32_t, uint32_t, uint32_t*);
 
   nsresult HandleStreamData(bool aFin, nsTArray<uint8_t>&& aData);
+  nsresult HandleMaxStreamData(uint64_t aLimit);
 
   RefPtr<Http2WebTransportSessionImpl> mWebTransportSession;
   class StreamId mStreamId{0u};
@@ -79,8 +85,10 @@ class Http2WebTransportStream final : public WebTransportStreamBase {
   // When mReceiveStreamPipeOut->Write() returns NS_BASE_STREAM_WOULD_BLOCK, we
   // need to store the data in this queue.
   mozilla::Queue<UniquePtr<StreamData>> mOutgoingQueue;
+  mozilla::Queue<UniquePtr<CapsuleEncoder>> mCapsuleQueue;
   UniquePtr<StreamData> mCurrentOut;
   const RefPtr<nsISerialEventTarget> mOwnerThread;
+  SenderFlowControlStreamId mFc;
 };
 }  // namespace mozilla::net
 

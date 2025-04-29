@@ -6,6 +6,7 @@
 // HttpLog.h should generally be included first
 #include "HttpLog.h"
 
+#include <algorithm>
 #include "Http2WebTransportStream.h"
 #include "Http2WebTransportSession.h"
 #include "Capsule.h"
@@ -19,24 +20,28 @@ NS_IMPL_ISUPPORTS(Http2WebTransportStream, nsIOutputStreamCallback,
 
 Http2WebTransportStream::Http2WebTransportStream(
     Http2WebTransportSessionImpl* aWebTransportSession, StreamId aStreamId,
+    uint64_t aInitialMaxStreamData,
     std::function<void(Result<RefPtr<WebTransportStreamBase>, nsresult>&&)>&&
         aCallback)
     : WebTransportStreamBase(aWebTransportSession->GetStreamId(),
                              std::move(aCallback)),
       mWebTransportSession(aWebTransportSession),
       mStreamId(aStreamId),
-      mOwnerThread(GetCurrentSerialEventTarget()) {
+      mOwnerThread(GetCurrentSerialEventTarget()),
+      mFc(aStreamId, aInitialMaxStreamData) {
   LOG(("Http2WebTransportStream outgoing ctor:%p", this));
   mStreamRole = OUTGOING;
   mStreamType = mStreamId.StreamType();
 }
 
 Http2WebTransportStream::Http2WebTransportStream(
-    Http2WebTransportSessionImpl* aWebTransportSession, StreamId aStreamId)
+    Http2WebTransportSessionImpl* aWebTransportSession,
+    uint64_t aInitialMaxStreamData, StreamId aStreamId)
     : WebTransportStreamBase(aWebTransportSession->GetStreamId(), nullptr),
       mWebTransportSession(aWebTransportSession),
       mStreamId(aStreamId),
-      mOwnerThread(GetCurrentSerialEventTarget()) {
+      mOwnerThread(GetCurrentSerialEventTarget()),
+      mFc(aStreamId, aInitialMaxStreamData) {
   LOG(("Http2WebTransportStream incoming ctor:%p", this));
   mStreamRole = INCOMING;
   mStreamType = mStreamId.StreamType();
@@ -189,8 +194,24 @@ nsresult Http2WebTransportStream::ReadRequestSegment(
   Http2WebTransportStream* wtStream = (Http2WebTransportStream*)closure;
   LOG(("Http2WebTransportStream::ReadRequestSegment %p count=%u", wtStream,
        count));
+  *countRead = 0;
   if (!wtStream->mWebTransportSession) {
     return NS_ERROR_UNEXPECTED;
+  }
+
+  uint64_t limit =
+      std::min(wtStream->mWebTransportSession->SessionDataFc().Available(),
+               wtStream->mFc.Available());
+  if (limit < count) {
+    if (wtStream->mWebTransportSession->SessionDataFc().Available() < count) {
+      LOG(("blocked by session level flow control"));
+      wtStream->mWebTransportSession->SessionDataFc().Blocked();
+    }
+    if (wtStream->mFc.Available() < count) {
+      LOG(("blocked by stream level flow control"));
+      wtStream->mFc.Blocked();
+    }
+    return NS_BASE_STREAM_WOULD_BLOCK;
   }
 
   nsTArray<uint8_t> data;
@@ -199,9 +220,32 @@ nsresult Http2WebTransportStream::ReadRequestSegment(
                                                     std::move(data));
   UniquePtr<CapsuleEncoder> encoder = MakeUnique<CapsuleEncoder>();
   encoder->EncodeCapsule(capsule);
-  wtStream->mWebTransportSession->SendStreamDataCapsule(std::move(encoder));
+  wtStream->mCapsuleQueue.Push(std::move(encoder));
   wtStream->mTotalSent += count;
+  wtStream->mFc.Consume(count);
+  wtStream->mWebTransportSession->SessionDataFc().Consume(count);
+  *countRead = count;
   return NS_OK;
+}
+
+void Http2WebTransportStream::TakeOutputCapsule(
+    mozilla::Queue<UniquePtr<CapsuleEncoder>>& aOutput) {
+  LOG(("Http2WebTransportStream::TakeOutputCapsule %p", this));
+  if (mCapsuleQueue.IsEmpty()) {
+    mSendStreamPipeIn->AsyncWait(this, 0, 0, mOwnerThread);
+    return;
+  }
+  while (!mCapsuleQueue.IsEmpty()) {
+    UniquePtr<CapsuleEncoder> entry = mCapsuleQueue.Pop();
+    aOutput.Push(std::move(entry));
+  }
+  mSendStreamPipeIn->AsyncWait(this, 0, 0, mOwnerThread);
+}
+
+Maybe<CapsuleEncoder>
+Http2WebTransportStream::HasStreamDataBlockedCapsuleToSend() {
+  mSendStreamPipeIn->AsyncWait(this, 0, 0, mOwnerThread);
+  return mFc.CreateStreamDataBlockedCapsule();
 }
 
 nsresult Http2WebTransportStream::OnCapsule(Capsule&& aCapsule) {
@@ -215,9 +259,12 @@ nsresult Http2WebTransportStream::OnCapsule(Capsule&& aCapsule) {
     case CapsuleType::WT_STREAM_FIN:
       LOG(("Handling WT_STREAM_FIN\n"));
       break;
-    case CapsuleType::WT_MAX_STREAM_DATA:
+    case CapsuleType::WT_MAX_STREAM_DATA: {
       LOG(("Handling WT_MAX_STREAM_DATA\n"));
-      break;
+      WebTransportMaxStreamDataCapsule& maxStreamData =
+          aCapsule.GetWebTransportMaxStreamDataCapsule();
+      return HandleMaxStreamData(maxStreamData.mLimit);
+    }
     case CapsuleType::WT_STREAM_DATA_BLOCKED:
       LOG(("Handling WT_STREAM_DATA_BLOCKED\n"));
       break;
@@ -225,6 +272,11 @@ nsresult Http2WebTransportStream::OnCapsule(Capsule&& aCapsule) {
       LOG(("Unhandled capsule type\n"));
       break;
   }
+  return NS_OK;
+}
+
+nsresult Http2WebTransportStream::HandleMaxStreamData(uint64_t aLimit) {
+  mFc.Update(aLimit);
   return NS_OK;
 }
 

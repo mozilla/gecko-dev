@@ -62,6 +62,29 @@ Capsule Capsule::WebTransportMaxStreams(uint64_t aLimit, bool aBidi) {
 }
 
 // static
+Capsule Capsule::WebTransportStreamDataBlocked(uint64_t aLimit, uint64_t aID) {
+  WebTransportStreamDataBlockedCapsule capsule;
+  capsule.mLimit = aLimit;
+  capsule.mID = aID;
+  return Capsule(std::move(capsule));
+}
+
+// static
+Capsule Capsule::WebTransportMaxStreamData(uint64_t aLimit, uint64_t aID) {
+  WebTransportMaxStreamDataCapsule capsule;
+  capsule.mLimit = aLimit;
+  capsule.mID = aID;
+  return Capsule(std::move(capsule));
+}
+
+// static
+Capsule Capsule::WebTransportDataBlocked(uint64_t aLimit) {
+  WebTransportDataBlockedCapsule capsule;
+  capsule.mLimit = aLimit;
+  return Capsule(std::move(capsule));
+}
+
+// static
 Capsule Capsule::Unknown(uint64_t aType, nsTArray<uint8_t>&& aData) {
   UnknownCapsule capsule;
   capsule.mType = aType;
@@ -85,6 +108,15 @@ CapsuleType Capsule::Type() const {
         return aCapsule.Type();
       },
       [](const WebTransportMaxStreamsCapsule& aCapsule) {
+        return aCapsule.Type();
+      },
+      [](const WebTransportStreamDataBlockedCapsule& aCapsule) {
+        return aCapsule.Type();
+      },
+      [](const WebTransportMaxStreamDataCapsule& aCapsule) {
+        return aCapsule.Type();
+      },
+      [](const WebTransportDataBlockedCapsule& aCapsule) {
         return aCapsule.Type();
       });
 }

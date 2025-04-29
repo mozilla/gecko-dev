@@ -44,7 +44,8 @@ Http2WebTransportSessionImpl::Http2WebTransportSessionImpl(
     : mSettings(aSettings),
       mRemoteStreamsFlowControl(aSettings.mInitialLocalMaxStreamsBidi,
                                 aSettings.mInitialLocalMaxStreamsUnidi),
-      mHandler(aHandler) {
+      mHandler(aHandler),
+      mSessionDataFc(aSettings.mInitialMaxData) {
   LOG(("Http2WebTransportSessionImpl ctor:%p", this));
   mLocalStreamsFlowControl[WebTransportStreamType::UniDi].Update(
       mSettings.mInitialMaxStreamsUni);
@@ -85,8 +86,11 @@ void Http2WebTransportSessionImpl::CreateOutgoingStreamInternal(
        "id:%" PRIx64,
        this, (uint64_t)aStreamId));
 
-  RefPtr<Http2WebTransportStream> stream =
-      new Http2WebTransportStream(this, aStreamId, std::move(aCallback));
+  RefPtr<Http2WebTransportStream> stream = new Http2WebTransportStream(
+      this, aStreamId,
+      aStreamId.IsBiDi() ? mSettings.mInitialMaxStreamDataBidi
+                         : mSettings.mInitialMaxStreamDataUni,
+      std::move(aCallback));
   if (NS_FAILED(stream->Init())) {
     return;
   }
@@ -141,12 +145,6 @@ void Http2WebTransportSessionImpl::StartReading() {
   mHandler->StartReading();
 }
 
-void Http2WebTransportSessionImpl::SendStreamDataCapsule(
-    UniquePtr<CapsuleEncoder>&& aData) {
-  // TODO: implement SendOrder/SendGroup for stream data
-  EnqueueOutCapsule(CapsuleTransmissionPriority::Normal, std::move(aData));
-}
-
 void Http2WebTransportSessionImpl::EnqueueOutCapsule(
     CapsuleTransmissionPriority aPriority, UniquePtr<CapsuleEncoder>&& aData) {
   mCapsuleQueue[aPriority].Push(std::move(aData));
@@ -155,8 +153,12 @@ void Http2WebTransportSessionImpl::EnqueueOutCapsule(
 
 void Http2WebTransportSessionImpl::SendFlowControlCapsules(
     CapsuleTransmissionPriority aPriority) {
-  auto encoder = mLocalStreamsFlowControl[WebTransportStreamType::BiDi]
-                     .CreateStreamsBlockedCapsule();
+  auto encoder = mSessionDataFc.CreateSessionDataBlockedCapsule();
+  if (encoder) {
+    mCapsuleQueue[aPriority].Push(MakeUnique<CapsuleEncoder>(encoder.ref()));
+  }
+  encoder = mLocalStreamsFlowControl[WebTransportStreamType::BiDi]
+                .CreateStreamsBlockedCapsule();
   if (encoder) {
     mCapsuleQueue[aPriority].Push(MakeUnique<CapsuleEncoder>(encoder.ref()));
   }
@@ -177,6 +179,18 @@ void Http2WebTransportSessionImpl::SendFlowControlCapsules(
   if (encoder) {
     mCapsuleQueue[aPriority].Push(MakeUnique<CapsuleEncoder>(encoder.ref()));
   }
+  for (const auto& stream : mOutgoingStreams.Values()) {
+    encoder = stream->HasStreamDataBlockedCapsuleToSend();
+    if (encoder) {
+      mCapsuleQueue[aPriority].Push(MakeUnique<CapsuleEncoder>(encoder.ref()));
+    }
+  }
+  for (const auto& stream : mIncomingStreams.Values()) {
+    encoder = stream->HasStreamDataBlockedCapsuleToSend();
+    if (encoder) {
+      mCapsuleQueue[aPriority].Push(MakeUnique<CapsuleEncoder>(encoder.ref()));
+    }
+  }
 }
 
 void Http2WebTransportSessionImpl::PrepareCapsulesToSend(
@@ -184,6 +198,15 @@ void Http2WebTransportSessionImpl::PrepareCapsulesToSend(
   // Like neqo, flow control capsules are at level
   // CapsuleTransmissionPriority::Important.
   SendFlowControlCapsules(CapsuleTransmissionPriority::Important);
+
+  for (const auto& stream : mOutgoingStreams.Values()) {
+    stream->TakeOutputCapsule(
+        mCapsuleQueue[CapsuleTransmissionPriority::Normal]);
+  }
+  for (const auto& stream : mIncomingStreams.Values()) {
+    stream->TakeOutputCapsule(
+        mCapsuleQueue[CapsuleTransmissionPriority::Normal]);
+  }
 
   static constexpr CapsuleTransmissionPriority priorities[] = {
       CapsuleTransmissionPriority::Critical,
@@ -247,19 +270,18 @@ bool Http2WebTransportSessionImpl::OnCapsule(Capsule&& aCapsule) {
     case CapsuleType::WT_STREAM: {
       WebTransportStreamDataCapsule& streamData =
           aCapsule.GetWebTransportStreamDataCapsule();
-      if (streamData.mID & 1) {
-        StreamId id = StreamId(streamData.mID);
+      StreamId id = StreamId(streamData.mID);
+      if (id.IsServerInitiated()) {
         return ProcessIncomingStreamCapsule(std::move(aCapsule), id,
                                             id.StreamType());
       } else {
-        RefPtr<Http2WebTransportStream> stream =
-            mOutgoingStreams.Get(streamData.mID);
+        RefPtr<Http2WebTransportStream> stream = mOutgoingStreams.Get(id);
         if (!stream) {
           LOG(
               ("Http2WebTransportSessionImpl::OnCapsule - "
                "stream not found "
                "stream_id=0x%" PRIx64 " [this=%p].",
-               streamData.mID, this));
+               static_cast<uint64_t>(id), this));
           return false;
         }
         if (NS_FAILED(stream->OnCapsule(std::move(aCapsule)))) {
@@ -271,12 +293,20 @@ bool Http2WebTransportSessionImpl::OnCapsule(Capsule&& aCapsule) {
     case CapsuleType::WT_STREAM_FIN:
       LOG(("Handling WT_STREAM_FIN\n"));
       break;
-    case CapsuleType::WT_MAX_DATA:
+    case CapsuleType::WT_MAX_DATA: {
       LOG(("Handling WT_MAX_DATA\n"));
-      break;
-    case CapsuleType::WT_MAX_STREAM_DATA:
-      LOG(("Handling WT_MAX_STREAM_DATA\n"));
-      break;
+      WebTransportMaxDataCapsule& maxData =
+          aCapsule.GetWebTransportMaxDataCapsule();
+      mSessionDataFc.Update(maxData.mMaxDataSize);
+    } break;
+    case CapsuleType::WT_MAX_STREAM_DATA: {
+      WebTransportMaxStreamDataCapsule& maxStreamData =
+          aCapsule.GetWebTransportMaxStreamDataCapsule();
+      StreamId id = StreamId(maxStreamData.mID);
+      if (!HandleMaxStreamDataCapsule(id, std::move(aCapsule))) {
+        return false;
+      }
+    } break;
     case CapsuleType::WT_MAX_STREAMS_BIDI: {
       LOG(("Handling WT_MAX_STREAMS_BIDI\n"));
       WebTransportMaxStreamsCapsule& maxStreams =
@@ -316,6 +346,31 @@ bool Http2WebTransportSessionImpl::OnCapsule(Capsule&& aCapsule) {
   return true;
 }
 
+bool Http2WebTransportSessionImpl::HandleMaxStreamDataCapsule(
+    StreamId aId, Capsule&& aCapsule) {
+  RefPtr<Http2WebTransportStream> stream;
+  if (aId.IsClientInitiated()) {
+    stream = mOutgoingStreams.Get(aId);
+  } else {
+    stream = mIncomingStreams.Get(aId);
+  }
+
+  if (!stream) {
+    LOG(
+        ("Http2WebTransportSessionImpl::HandleMaxStreamDataCapsule - "
+         "stream not found "
+         "stream_id=0x%" PRIx64 " [this=%p].",
+         static_cast<uint64_t>(aId), this));
+    return false;
+  }
+
+  if (NS_FAILED(stream->OnCapsule(std::move(aCapsule)))) {
+    return false;
+  }
+
+  return true;
+}
+
 bool Http2WebTransportSessionImpl::ProcessIncomingStreamCapsule(
     Capsule&& aCapsule, StreamId aID, WebTransportStreamType aStreamType) {
   LOG(
@@ -336,7 +391,12 @@ bool Http2WebTransportSessionImpl::ProcessIncomingStreamCapsule(
 
     StreamId newStreamID =
         mRemoteStreamsFlowControl[aStreamType].TakeStreamId();
-    stream = new Http2WebTransportStream(this, newStreamID);
+    stream =
+        new Http2WebTransportStream(this,
+                                    aStreamType == WebTransportStreamType::BiDi
+                                        ? mSettings.mInitialMaxStreamDataBidi
+                                        : 0,
+                                    newStreamID);
     if (NS_FAILED(stream->Init())) {
       return false;
     }
@@ -470,6 +530,7 @@ Http2WebTransportSession::OnInputStreamReady(nsIAsyncInputStream* aIn) {
 NS_IMETHODIMP
 Http2WebTransportSession::OnOutputStreamReady(nsIAsyncOutputStream* aOut) {
   if (!mCurrentOutCapsule) {
+    mImpl->PrepareCapsulesToSend(mOutgoingQueue);
     if (mOutgoingQueue.IsEmpty()) {
       return NS_OK;
     }

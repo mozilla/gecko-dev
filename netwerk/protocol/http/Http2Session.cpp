@@ -1259,6 +1259,11 @@ Http2StreamTunnel* Http2Session::CreateTunnelStreamFromConnInfo(
         session->mInitialWebTransportMaxStreamsUnidi;
     settings.mInitialMaxStreamsBidi =
         session->mInitialWebTransportMaxStreamsBidi;
+    settings.mInitialMaxStreamDataUni =
+        session->mInitialWebTransportMaxStreamDataUnidi;
+    settings.mInitialMaxStreamDataBidi =
+        session->mInitialWebTransportMaxStreamDataBidi;
+    settings.mInitialMaxData = session->mInitialWebTransportMaxData;
     return new Http2WebTransportSession(
         session, nsISupportsPriority::PRIORITY_NORMAL, bcId, info, settings);
   }
@@ -1782,6 +1787,27 @@ nsresult Http2Session::RecvSettings(Http2Session* self) {
           return self->SessionError(PROTOCOL_ERROR);
         }
         self->mHasTransactionWaitingForExtendedCONNECT = true;
+      } break;
+
+      case SETTINGS_WEBTRANSPORT_INITIAL_MAX_DATA: {
+        if (!self->mPeerAllowsExtendedCONNECT) {
+          return self->SessionError(PROTOCOL_ERROR);
+        }
+        self->mInitialWebTransportMaxData = value;
+      } break;
+
+      case SETTINGS_WEBTRANSPORT_INITIAL_MAX_STREAM_DATA_UNI: {
+        if (!self->mPeerAllowsExtendedCONNECT) {
+          return self->SessionError(PROTOCOL_ERROR);
+        }
+        self->mInitialWebTransportMaxStreamDataUnidi = value;
+      } break;
+
+      case SETTINGS_WEBTRANSPORT_INITIAL_MAX_STREAM_DATA_BIDI: {
+        if (!self->mPeerAllowsExtendedCONNECT) {
+          return self->SessionError(PROTOCOL_ERROR);
+        }
+        self->mInitialWebTransportMaxStreamDataBidi = value;
       } break;
 
       case SETTINGS_WEBTRANSPORT_INITIAL_MAX_STREAMS_UNI: {

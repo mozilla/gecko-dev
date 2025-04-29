@@ -163,8 +163,17 @@ Result<Capsule, nsresult> CapsuleParser::ParseCapsulePayload(
       }
       return Capsule::WebTransportMaxData(*value);
     }
-    case CapsuleType::WT_MAX_STREAM_DATA:
-      break;
+    case CapsuleType::WT_MAX_STREAM_DATA: {
+      auto id = aDecoder.DecodeVarint();
+      if (!id) {
+        return Err(NS_ERROR_UNEXPECTED);
+      }
+      auto limit = aDecoder.DecodeVarint();
+      if (!limit) {
+        return Err(NS_ERROR_UNEXPECTED);
+      }
+      return Capsule::WebTransportMaxStreamData(*limit, *id);
+    }
     case CapsuleType::WT_MAX_STREAMS_BIDI: {
       auto value = aDecoder.DecodeVarint();
       if (!value) {
@@ -179,10 +188,24 @@ Result<Capsule, nsresult> CapsuleParser::ParseCapsulePayload(
       }
       return Capsule::WebTransportMaxStreams(*value, false);
     }
-    case CapsuleType::WT_DATA_BLOCKED:
-      break;
-    case CapsuleType::WT_STREAM_DATA_BLOCKED:
-      break;
+    case CapsuleType::WT_DATA_BLOCKED: {
+      auto limit = aDecoder.DecodeVarint();
+      if (!limit) {
+        return Err(NS_ERROR_UNEXPECTED);
+      }
+      return Capsule::WebTransportDataBlocked(*limit);
+    }
+    case CapsuleType::WT_STREAM_DATA_BLOCKED: {
+      auto id = aDecoder.DecodeVarint();
+      if (!id) {
+        return Err(NS_ERROR_UNEXPECTED);
+      }
+      auto limit = aDecoder.DecodeVarint();
+      if (!limit) {
+        return Err(NS_ERROR_UNEXPECTED);
+      }
+      return Capsule::WebTransportStreamDataBlocked(*limit, *id);
+    }
     case CapsuleType::WT_STREAMS_BLOCKED_BIDI: {
       auto value = aDecoder.DecodeVarint();
       if (!value) {

@@ -161,6 +161,9 @@ class Http2Session final : public ASpdySession,
     SETTINGS_NO_RFC7540_PRIORITIES = 9,
     // Settings for WebTransport
     // https://www.ietf.org/archive/id/draft-ietf-webtrans-http2-11.html#section-10.1
+    SETTINGS_WEBTRANSPORT_INITIAL_MAX_DATA = 0x2b61,
+    SETTINGS_WEBTRANSPORT_INITIAL_MAX_STREAM_DATA_UNI = 0x2b62,
+    SETTINGS_WEBTRANSPORT_INITIAL_MAX_STREAM_DATA_BIDI = 0x2b63,
     SETTINGS_WEBTRANSPORT_INITIAL_MAX_STREAMS_UNI = 0x2b64,
     SETTINGS_WEBTRANSPORT_INITIAL_MAX_STREAMS_BIDI = 0x2b65,
   };
@@ -548,6 +551,9 @@ class Http2Session final : public ASpdySession,
   // The initial value of the local stream and session window
   uint32_t mInitialRwin;
 
+  uint32_t mInitialWebTransportMaxData = 0;
+  uint32_t mInitialWebTransportMaxStreamDataBidi = 0;
+  uint32_t mInitialWebTransportMaxStreamDataUnidi = 0;
   uint32_t mInitialWebTransportMaxStreamsBidi = 0;
   uint32_t mInitialWebTransportMaxStreamsUnidi = 0;
 

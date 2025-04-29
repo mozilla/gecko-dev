@@ -9,6 +9,7 @@
 #include "Http2WebTransportStream.h"
 #include "nsString.h"
 #include "nsTArray.h"
+#include "mozilla/gtest/MozAssertions.h"
 #include "mozilla/Queue.h"
 #include "mozilla/net/NeqoHttp3Conn.h"
 #include "Capsule.h"
@@ -116,6 +117,20 @@ class MockWebTransportServer : public CapsuleParser::Listener {
                                          nsTArray<uint8_t>&& aData) {
     Capsule capsule =
         Capsule::WebTransportStreamData(aID, aFin, std::move(aData));
+    UniquePtr<CapsuleEncoder> encoder = MakeUnique<CapsuleEncoder>();
+    encoder->EncodeCapsule(capsule);
+    mOutCapsules.Push(std::move(encoder));
+  }
+
+  void SendWebTransportMaxStreamDataCapsule(uint64_t aLimit, uint64_t aID) {
+    Capsule capsule = Capsule::WebTransportMaxStreamData(aLimit, aID);
+    UniquePtr<CapsuleEncoder> encoder = MakeUnique<CapsuleEncoder>();
+    encoder->EncodeCapsule(capsule);
+    mOutCapsules.Push(std::move(encoder));
+  }
+
+  void SendWebTransportMaxDataCapsule(uint64_t aLimit) {
+    Capsule capsule = Capsule::WebTransportMaxData(aLimit);
     UniquePtr<CapsuleEncoder> encoder = MakeUnique<CapsuleEncoder>();
     encoder->EncodeCapsule(capsule);
     mOutCapsules.Push(std::move(encoder));
@@ -358,70 +373,75 @@ static void ValidateData(nsIInputStream* aStream,
   ValidateData(outputData, aExpectedData);
 }
 
-TEST(TestHttp2WebTransport, OutgoingUniStream)
-{
-  Http2WebTransportInitialSettings settings;
-  settings.mInitialMaxStreamsUni = 1;
-  RefPtr<MockWebTransportClient> client = new MockWebTransportClient(settings);
-  RefPtr<MockWebTransportServer> server = new MockWebTransportServer();
-
-  RefPtr<WebTransportStreamBase> bidiStream;
-  auto callback =
-      [&](Result<RefPtr<WebTransportStreamBase>, nsresult>&& aResult) {
-        if (aResult.isErr()) {
-          return;
-        }
-        bidiStream = aResult.unwrap();
-      };
-  client->Session()->CreateOutgoingBidirectionalStream(std::move(callback));
-  ASSERT_TRUE(bidiStream == nullptr);
-
-  ServerProcessCapsules(server, client);
-
-  nsTArray<Capsule> received = server->GetReceivedCapsules();
-  ASSERT_EQ(received.Length(), 1u);
-
-  WebTransportStreamsBlockedCapsule& streamsBlocked =
-      received[0].GetWebTransportStreamsBlockedCapsule();
-  ASSERT_EQ(streamsBlocked.mLimit, 0u);
-  ASSERT_EQ(streamsBlocked.mBidi, true);
-
-  RefPtr<WebTransportStreamBase> unidiStream;
-  auto callback1 =
-      [&](Result<RefPtr<WebTransportStreamBase>, nsresult>&& aResult) {
-        if (aResult.isErr()) {
-          return;
-        }
-        unidiStream = aResult.unwrap();
-      };
-  client->Session()->CreateOutgoingUnidirectionalStream(std::move(callback1));
-  ASSERT_TRUE(unidiStream != nullptr);
-
+static void CreateStreamAndSendData(WebTransportStreamBase* aStream,
+                                    const nsTArray<uint8_t>& aData) {
   nsCOMPtr<nsIAsyncOutputStream> writer;
   nsCOMPtr<nsIAsyncInputStream> reader;
-  unidiStream->GetWriterAndReader(getter_AddRefs(writer),
-                                  getter_AddRefs(reader));
+  aStream->GetWriterAndReader(getter_AddRefs(writer), getter_AddRefs(reader));
 
-  nsTArray<uint8_t> inputData;
-  CreateTestData(512, inputData);
   uint32_t numWritten = 0;
-  Unused << writer->Write((const char*)inputData.Elements(), inputData.Length(),
+  Unused << writer->Write((const char*)aData.Elements(), aData.Length(),
                           &numWritten);
-
   NS_ProcessPendingEvents(nullptr);
+}
 
-  ServerProcessCapsules(server, client);
-
-  received = server->GetReceivedCapsules();
+static void ValidateStreamCapsule(MockWebTransportServer* aServer,
+                                  nsTArray<uint8_t>& aExpectedData,
+                                  bool aExpectBidi) {
+  nsTArray<Capsule> received = aServer->GetReceivedCapsules();
   ASSERT_EQ(received.Length(), 1u);
 
   WebTransportStreamDataCapsule& streamData =
       received[0].GetWebTransportStreamDataCapsule();
-
   StreamId id(streamData.mID);
   ASSERT_TRUE(id.IsClientInitiated());
-  ASSERT_TRUE(id.IsUni());
-  ValidateData(streamData.mData, inputData);
+  ASSERT_EQ(id.IsBiDi(), aExpectBidi);
+  ValidateData(streamData.mData, aExpectedData);
+}
+
+TEST(TestHttp2WebTransport, OutgoingUniStream)
+{
+  Http2WebTransportInitialSettings settings;
+  settings.mInitialMaxData = 1024;
+  settings.mInitialMaxStreamsUni = 1;
+  settings.mInitialMaxStreamDataUni = 512;
+  RefPtr<MockWebTransportClient> client = new MockWebTransportClient(settings);
+  RefPtr<MockWebTransportServer> server = new MockWebTransportServer();
+
+  // Try to create bidi stream (should fail and trigger streams-blocked capsule)
+  RefPtr<WebTransportStreamBase> bidiStream;
+  client->Session()->CreateOutgoingBidirectionalStream([&](auto&& aResult) {
+    if (aResult.isOk()) {
+      bidiStream = aResult.unwrap();
+    }
+  });
+  ASSERT_TRUE(bidiStream == nullptr);
+
+  ServerProcessCapsules(server, client);
+
+  {
+    nsTArray<Capsule> received = server->GetReceivedCapsules();
+    ASSERT_EQ(received.Length(), 1u);
+    auto& capsule = received[0].GetWebTransportStreamsBlockedCapsule();
+    ASSERT_EQ(capsule.mLimit, 0u);
+    ASSERT_TRUE(capsule.mBidi);
+  }
+
+  // Create unidirectional stream and send data
+  RefPtr<WebTransportStreamBase> unidiStream;
+  client->Session()->CreateOutgoingUnidirectionalStream([&](auto&& aResult) {
+    if (aResult.isOk()) {
+      unidiStream = aResult.unwrap();
+    }
+  });
+  ASSERT_TRUE(unidiStream != nullptr);
+
+  nsTArray<uint8_t> inputData;
+  CreateTestData(512, inputData);
+  CreateStreamAndSendData(unidiStream, inputData);
+
+  ServerProcessCapsules(server, client);
+  ValidateStreamCapsule(server, inputData, /* aExpectBidi = */ false);
 
   client->Done();
   server->Done();
@@ -430,54 +450,39 @@ TEST(TestHttp2WebTransport, OutgoingUniStream)
 TEST(TestHttp2WebTransport, OutgoingBidiStream)
 {
   Http2WebTransportInitialSettings settings;
+  settings.mInitialMaxData = 1024;
   settings.mInitialMaxStreamsUni = 1;
   settings.mInitialMaxStreamsBidi = 1;
+  settings.mInitialMaxStreamDataBidi = 512;
   RefPtr<MockWebTransportClient> client = new MockWebTransportClient(settings);
   RefPtr<MockWebTransportServer> server = new MockWebTransportServer();
 
   RefPtr<WebTransportStreamBase> bidiStream;
-  auto callback =
-      [&](Result<RefPtr<WebTransportStreamBase>, nsresult>&& aResult) {
-        if (aResult.isErr()) {
-          return;
-        }
-        bidiStream = aResult.unwrap();
-      };
-  client->Session()->CreateOutgoingBidirectionalStream(std::move(callback));
+  client->Session()->CreateOutgoingBidirectionalStream([&](auto&& aResult) {
+    if (aResult.isOk()) {
+      bidiStream = aResult.unwrap();
+    }
+  });
   ASSERT_TRUE(bidiStream != nullptr);
-
-  nsCOMPtr<nsIAsyncOutputStream> writer;
-  nsCOMPtr<nsIAsyncInputStream> reader;
-  bidiStream->GetWriterAndReader(getter_AddRefs(writer),
-                                 getter_AddRefs(reader));
 
   nsTArray<uint8_t> inputData;
   CreateTestData(512, inputData);
-  uint32_t numWritten = 0;
-  Unused << writer->Write((const char*)inputData.Elements(), inputData.Length(),
-                          &numWritten);
-
-  NS_ProcessPendingEvents(nullptr);
+  CreateStreamAndSendData(bidiStream, inputData);
 
   ServerProcessCapsules(server, client);
+  ValidateStreamCapsule(server, inputData, /* aExpectBidi = */ true);
 
-  nsTArray<Capsule> received = server->GetReceivedCapsules();
-  ASSERT_EQ(received.Length(), 1u);
-
-  WebTransportStreamDataCapsule& streamData =
-      received[0].GetWebTransportStreamDataCapsule();
-
-  StreamId id(streamData.mID);
-  ASSERT_TRUE(id.IsClientInitiated());
-  ASSERT_TRUE(id.IsBiDi());
-  ValidateData(streamData.mData, inputData);
-
+  // Echo back from server
   nsTArray<uint8_t> echo;
   echo.AppendElements(inputData.Elements(), inputData.Length());
-
+  StreamId id = StreamId::From(0);
   server->SendWebTransportStreamDataCapsule(id, false, std::move(echo));
   ClientProcessCapsules(server, client);
 
+  nsCOMPtr<nsIAsyncInputStream> reader;
+  nsCOMPtr<nsIAsyncOutputStream> writer;
+  bidiStream->GetWriterAndReader(getter_AddRefs(writer),
+                                 getter_AddRefs(reader));
   uint64_t available = 0;
   Unused << reader->Available(&available);
   EXPECT_EQ(available, inputData.Length());
@@ -537,6 +542,186 @@ TEST(TestHttp2WebTransport, IncomingBidiStream)
   ClientProcessCapsules(server, client);
   streams = listener->TakeIncomingStreams();
   ASSERT_EQ(streams.Length(), 1u);
+
+  client->Done();
+  server->Done();
+}
+
+TEST(TestHttp2WebTransport, StreamDataSenderFlowControl)
+{
+  Http2WebTransportInitialSettings settings;
+  settings.mInitialMaxData = 1024;
+  settings.mInitialMaxStreamsBidi = 1;
+  settings.mInitialMaxStreamDataBidi = 100;
+  RefPtr<MockWebTransportClient> client = new MockWebTransportClient(settings);
+  RefPtr<MockWebTransportServer> server = new MockWebTransportServer();
+
+  RefPtr<WebTransportStreamBase> bidiStream;
+  auto callback =
+      [&](Result<RefPtr<WebTransportStreamBase>, nsresult>&& aResult) {
+        if (aResult.isErr()) {
+          return;
+        }
+        bidiStream = aResult.unwrap();
+      };
+  client->Session()->CreateOutgoingBidirectionalStream(std::move(callback));
+  ASSERT_TRUE(bidiStream != nullptr);
+
+  nsCOMPtr<nsIAsyncOutputStream> writer;
+  nsCOMPtr<nsIAsyncInputStream> reader;
+  bidiStream->GetWriterAndReader(getter_AddRefs(writer),
+                                 getter_AddRefs(reader));
+
+  nsTArray<uint8_t> inputData;
+  CreateTestData(100, inputData);
+  uint32_t numWritten = 0;
+  Unused << writer->Write((const char*)inputData.Elements(), inputData.Length(),
+                          &numWritten);
+
+  NS_ProcessPendingEvents(nullptr);
+
+  ServerProcessCapsules(server, client);
+
+  nsTArray<Capsule> received = server->GetReceivedCapsules();
+  ASSERT_EQ(received.Length(), 1u);
+
+  WebTransportStreamDataCapsule& streamData =
+      received[0].GetWebTransportStreamDataCapsule();
+
+  StreamId id(streamData.mID);
+  ASSERT_TRUE(id.IsClientInitiated());
+  ASSERT_TRUE(id.IsBiDi());
+  ValidateData(streamData.mData, inputData);
+
+  numWritten = 0;
+  Unused << writer->Write((const char*)inputData.Elements(), inputData.Length(),
+                          &numWritten);
+
+  NS_ProcessPendingEvents(nullptr);
+  ServerProcessCapsules(server, client);
+
+  received = server->GetReceivedCapsules();
+  ASSERT_EQ(received.Length(), 1u);
+
+  WebTransportStreamDataBlockedCapsule& blocked =
+      received[0].GetWebTransportStreamDataBlockedCapsule();
+  StreamId receivedId(blocked.mID);
+  ASSERT_EQ(id, receivedId);
+  ASSERT_EQ(blocked.mLimit, 100u);
+
+  server->SendWebTransportMaxStreamDataCapsule(300, id);
+  ClientProcessCapsules(server, client);
+
+  Unused << writer->Write((const char*)inputData.Elements(), inputData.Length(),
+                          &numWritten);
+
+  NS_ProcessPendingEvents(nullptr);
+  ServerProcessCapsules(server, client);
+
+  received = server->GetReceivedCapsules();
+  ASSERT_EQ(received.Length(), 1u);
+
+  WebTransportStreamDataCapsule& streamData1 =
+      received[0].GetWebTransportStreamDataCapsule();
+  ASSERT_EQ(streamData1.mData.Length(), 200u);
+
+  client->Done();
+  server->Done();
+}
+
+TEST(TestHttp2WebTransport, StreamDataSenderFlowControlMaxData)
+{
+  Http2WebTransportInitialSettings settings;
+  settings.mInitialMaxData = 100;
+  settings.mInitialMaxStreamsBidi = 1;
+  settings.mInitialMaxStreamDataBidi = 100;
+  RefPtr<MockWebTransportClient> client = new MockWebTransportClient(settings);
+  RefPtr<MockWebTransportServer> server = new MockWebTransportServer();
+
+  RefPtr<WebTransportStreamBase> bidiStream;
+  auto callback =
+      [&](Result<RefPtr<WebTransportStreamBase>, nsresult>&& aResult) {
+        if (aResult.isErr()) {
+          return;
+        }
+        bidiStream = aResult.unwrap();
+      };
+  client->Session()->CreateOutgoingBidirectionalStream(std::move(callback));
+  ASSERT_TRUE(bidiStream != nullptr);
+
+  nsCOMPtr<nsIAsyncOutputStream> writer;
+  nsCOMPtr<nsIAsyncInputStream> reader;
+  bidiStream->GetWriterAndReader(getter_AddRefs(writer),
+                                 getter_AddRefs(reader));
+
+  nsTArray<uint8_t> inputData;
+  CreateTestData(100, inputData);
+  uint32_t numWritten = 0;
+  Unused << writer->Write((const char*)inputData.Elements(), inputData.Length(),
+                          &numWritten);
+
+  NS_ProcessPendingEvents(nullptr);
+
+  ServerProcessCapsules(server, client);
+
+  nsTArray<Capsule> received = server->GetReceivedCapsules();
+  ASSERT_EQ(received.Length(), 1u);
+
+  WebTransportStreamDataCapsule& streamData =
+      received[0].GetWebTransportStreamDataCapsule();
+
+  StreamId id(streamData.mID);
+  ASSERT_TRUE(id.IsClientInitiated());
+  ASSERT_TRUE(id.IsBiDi());
+  ValidateData(streamData.mData, inputData);
+
+  numWritten = 0;
+  Unused << writer->Write((const char*)inputData.Elements(), inputData.Length(),
+                          &numWritten);
+
+  NS_ProcessPendingEvents(nullptr);
+  ServerProcessCapsules(server, client);
+
+  received = server->GetReceivedCapsules();
+  ASSERT_EQ(received.Length(), 2u);
+
+  WebTransportDataBlockedCapsule& sessionDataBlocked =
+      received[0].GetWebTransportDataBlockedCapsule();
+  ASSERT_EQ(sessionDataBlocked.mLimit, 100u);
+
+  WebTransportStreamDataBlockedCapsule& blocked =
+      received[1].GetWebTransportStreamDataBlockedCapsule();
+  StreamId receivedId(blocked.mID);
+  ASSERT_EQ(id, receivedId);
+  ASSERT_EQ(blocked.mLimit, 100u);
+
+  server->SendWebTransportMaxStreamDataCapsule(500, id);
+  ClientProcessCapsules(server, client);
+
+  Unused << writer->Write((const char*)inputData.Elements(), inputData.Length(),
+                          &numWritten);
+
+  NS_ProcessPendingEvents(nullptr);
+  ServerProcessCapsules(server, client);
+
+  received = server->GetReceivedCapsules();
+  ASSERT_EQ(received.Length(), 0u);
+
+  server->SendWebTransportMaxDataCapsule(1024);
+  ClientProcessCapsules(server, client);
+
+  Unused << writer->Write((const char*)inputData.Elements(), inputData.Length(),
+                          &numWritten);
+
+  NS_ProcessPendingEvents(nullptr);
+  ServerProcessCapsules(server, client);
+
+  received = server->GetReceivedCapsules();
+  ASSERT_EQ(received.Length(), 1u);
+
+  WebTransportStreamDataCapsule& streamData1 =
+      received[0].GetWebTransportStreamDataCapsule();
+  ASSERT_EQ(streamData1.mData.Length(), 300u);
 
   client->Done();
   server->Done();

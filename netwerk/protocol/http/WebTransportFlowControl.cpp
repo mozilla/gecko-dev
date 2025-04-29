@@ -22,6 +22,34 @@ SenderFlowControlStreamType::CreateStreamsBlockedCapsule() {
   return Some(encoder);
 }
 
+Maybe<CapsuleEncoder>
+SenderFlowControlStreamId::CreateStreamDataBlockedCapsule() {
+  auto blockedNeeded = BlockedNeeded();
+  if (!blockedNeeded) {
+    return Nothing();
+  }
+
+  Capsule capsule = Capsule::WebTransportStreamDataBlocked(*blockedNeeded, mId);
+  CapsuleEncoder encoder;
+  encoder.EncodeCapsule(capsule);
+  BlockedSent();
+  return Some(encoder);
+}
+
+Maybe<CapsuleEncoder>
+SenderFlowControlSession::CreateSessionDataBlockedCapsule() {
+  auto blockedNeeded = BlockedNeeded();
+  if (!blockedNeeded) {
+    return Nothing();
+  }
+
+  Capsule capsule = Capsule::WebTransportDataBlocked(*blockedNeeded);
+  CapsuleEncoder encoder;
+  encoder.EncodeCapsule(capsule);
+  BlockedSent();
+  return Some(encoder);
+}
+
 Maybe<CapsuleEncoder> ReceiverFlowControlStreamType::CreateMaxStreamsCapsule() {
   if (!CapsuleNeeded()) {
     return Nothing();
