@@ -19,6 +19,7 @@ namespace jit {
 enum IonRegisterAllocator {
   RegisterAllocator_Backtracking,
   RegisterAllocator_Testbed,
+  RegisterAllocator_Simple,
 };
 
 // Which register to use as base register to access stack slots: frame pointer,
@@ -39,6 +40,9 @@ static inline mozilla::Maybe<IonRegisterAllocator> LookupRegisterAllocator(
   }
   if (!strcmp(name, "testbed")) {
     return mozilla::Some(RegisterAllocator_Testbed);
+  }
+  if (!strcmp(name, "simple")) {
+    return mozilla::Some(RegisterAllocator_Simple);
   }
   return mozilla::Nothing();
 }

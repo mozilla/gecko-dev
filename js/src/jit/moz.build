@@ -89,6 +89,7 @@ UNIFIED_SOURCES += [
     "shared/Disassembler-shared.cpp",
     "shared/Lowering-shared.cpp",
     "ShuffleAnalysis.cpp",
+    "SimpleAllocator.cpp",
     "Sink.cpp",
     "Snapshots.cpp",
     "Trampoline.cpp",

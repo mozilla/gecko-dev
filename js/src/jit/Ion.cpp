@@ -50,6 +50,7 @@
 #include "jit/RangeAnalysis.h"
 #include "jit/ScalarReplacement.h"
 #include "jit/ScriptFromCalleeToken.h"
+#include "jit/SimpleAllocator.h"
 #include "jit/Sink.h"
 #include "jit/UnrollLoops.h"
 #include "jit/ValueNumbering.h"
@@ -1603,48 +1604,47 @@ LIRGraph* GenerateLIR(MIRGenerator* mir) {
 
 #ifdef DEBUG
   AllocationIntegrityState integrity(*lir);
-#endif
-
-  {
-    IonRegisterAllocator allocator =
-        mir->optimizationInfo().registerAllocator();
-
-    switch (allocator) {
-      case RegisterAllocator_Backtracking:
-      case RegisterAllocator_Testbed: {
-#ifdef DEBUG
-        if (JitOptions.fullDebugChecks) {
-          if (!integrity.record()) {
-            return nullptr;
-          }
-        }
-#endif
-
-        BacktrackingAllocator regalloc(mir, &lirgen, *lir,
-                                       allocator == RegisterAllocator_Testbed);
-        if (!regalloc.go()) {
-          return nullptr;
-        }
-
-#ifdef DEBUG
-        if (JitOptions.fullDebugChecks) {
-          if (!integrity.check()) {
-            return nullptr;
-          }
-        }
-#endif
-
-        gs.spewPass("Allocate Registers [Backtracking]");
-        break;
-      }
-
-      default:
-        MOZ_CRASH("Bad regalloc");
-    }
-
-    if (mir->shouldCancel("Allocate Registers")) {
+  if (JitOptions.fullDebugChecks) {
+    if (!integrity.record()) {
       return nullptr;
     }
+  }
+#endif
+
+  IonRegisterAllocator allocator = mir->optimizationInfo().registerAllocator();
+  switch (allocator) {
+    case RegisterAllocator_Backtracking:
+    case RegisterAllocator_Testbed: {
+      BacktrackingAllocator regalloc(mir, &lirgen, *lir,
+                                     allocator == RegisterAllocator_Testbed);
+      if (!regalloc.go()) {
+        return nullptr;
+      }
+      gs.spewPass("Allocate Registers [Backtracking]");
+      break;
+    }
+    case RegisterAllocator_Simple: {
+      SimpleAllocator regalloc(mir, &lirgen, *lir);
+      if (!regalloc.go()) {
+        return nullptr;
+      }
+      gs.spewPass("Allocate Registers [Simple]");
+      break;
+    }
+    default:
+      MOZ_CRASH("Bad regalloc");
+  }
+
+#ifdef DEBUG
+  if (JitOptions.fullDebugChecks) {
+    if (!integrity.check()) {
+      return nullptr;
+    }
+  }
+#endif
+
+  if (mir->shouldCancel("Allocate Registers")) {
+    return nullptr;
   }
 
   return lir;
