@@ -4,21 +4,48 @@
 
 // Tests Suggest exposure suggestions.
 
-"use strict";
-
+// Notes on the following mock suggestions:
+//
+// * `rsSuggestionType` echoes the `suggestion_type` in the RS record so that
+//   the test can verify that matched results correspond to the expected
+//   suggestions/records. It's not a necessary or special property for exposure
+//   suggestions.
+// * `score` ensures a stable sort vs. other suggestion types for the test. It's
+//   not necessary for exposure suggestions.
 const REMOTE_SETTINGS_RECORDS = [
   {
-    type: "exposure-suggestions",
-    suggestion_type: "aaa",
-    attachment: {
-      keywords: ["aaa keyword", "aaa bbb keyword", "wikipedia"],
-    },
+    type: "dynamic-suggestions",
+    suggestion_type: "test-exposure-aaa",
+    score: 1.0,
+    attachment: [
+      {
+        keywords: ["aaa keyword", "aaa bbb keyword", "wikipedia"],
+        data: {
+          result: {
+            isHiddenExposure: true,
+            payload: {
+              rsSuggestionType: "test-exposure-aaa",
+            },
+          },
+        },
+      },
+    ],
   },
   {
-    type: "exposure-suggestions",
-    suggestion_type: "bbb",
+    type: "dynamic-suggestions",
+    suggestion_type: "test-exposure-bbb",
+    score: 1.0,
     attachment: {
       keywords: ["bbb keyword", "aaa bbb keyword", "wikipedia"],
+      data: {
+        result: {
+          isHiddenExposure: true,
+          payload: {
+            rsSuggestionType: "test-exposure-bbb",
+            telemetryType: "bbb_telemetry_type",
+          },
+        },
+      },
     },
   },
   {
@@ -26,6 +53,20 @@ const REMOTE_SETTINGS_RECORDS = [
     attachment: [QuickSuggestTestUtils.wikipediaRemoteSettings()],
   },
 ];
+
+const EXPECTED_AAA_RESULT = makeExpectedResult({
+  rsSuggestionType: "test-exposure-aaa",
+});
+
+const EXPECTED_BBB_RESULT = makeExpectedResult({
+  rsSuggestionType: "test-exposure-bbb",
+  telemetryType: "bbb_telemetry_type",
+});
+
+const EXPECTED_WIKIPEDIA_RESULT = {
+  ...QuickSuggestTestUtils.wikipediaResult(),
+  exposureTelemetry: UrlbarUtils.EXPOSURE_TELEMETRY.NONE,
+};
 
 add_setup(async function () {
   // Add many exposure and AMP suggestions that have the "maxresults" keyword.
@@ -46,27 +87,66 @@ add_setup(async function () {
       })
     );
     REMOTE_SETTINGS_RECORDS.push({
-      type: "exposure-suggestions",
-      suggestion_type: "maxresults" + i,
-      attachment: { keywords: ["maxresults"] },
+      type: "dynamic-suggestions",
+      suggestion_type: "test-exposure-maxresults-" + i,
+      score: 1.0,
+      attachment: [
+        {
+          keywords: ["maxresults"],
+          data: {
+            result: {
+              isHiddenExposure: true,
+              payload: {
+                rsSuggestionType: "test-exposure-maxresults-" + i,
+              },
+            },
+          },
+        },
+      ],
     });
   }
 
   await QuickSuggestTestUtils.ensureQuickSuggestInit({
     remoteSettingsRecords: REMOTE_SETTINGS_RECORDS,
     prefs: [
-      ["quicksuggest.exposureSuggestionTypes", "aaa,bbb"],
+      [
+        "quicksuggest.dynamicSuggestionTypes",
+        "test-exposure-aaa,test-exposure-bbb",
+      ],
       ["suggest.quicksuggest.nonsponsored", true],
       ["quicksuggest.ampTopPickCharThreshold", 0],
     ],
   });
 });
 
-add_task(async function telemetryType() {
+add_task(async function telemetryType_default() {
   Assert.equal(
-    QuickSuggest.getFeature("ExposureSuggestions").getSuggestionTelemetryType(),
+    QuickSuggest.getFeature("DynamicSuggestions").getSuggestionTelemetryType({
+      data: {
+        result: {
+          isHiddenExposure: true,
+        },
+      },
+    }),
     "exposure",
-    "Telemetry type should be correct"
+    "Telemetry type should be correct when using default"
+  );
+});
+
+add_task(async function telemetryType_override() {
+  Assert.equal(
+    QuickSuggest.getFeature("DynamicSuggestions").getSuggestionTelemetryType({
+      data: {
+        result: {
+          isHiddenExposure: true,
+          payload: {
+            telemetryType: "telemetry_type_override",
+          },
+        },
+      },
+    }),
+    "telemetry_type_override",
+    "Telemetry type should be correct when overridden"
   );
 });
 
@@ -81,17 +161,17 @@ add_task(async function basic() {
     },
     {
       query: "aaa keyword",
-      expected: [makeExpectedResult("aaa")],
+      expected: [EXPECTED_AAA_RESULT],
     },
     {
       query: "bbb keyword",
-      expected: [makeExpectedResult("bbb")],
+      expected: [EXPECTED_BBB_RESULT],
     },
     {
       query: "aaa bbb keyword",
       // The order of the results is reversed since they have the same suggested
       // index, due to how the muxer handles that.
-      expected: [makeExpectedResult("bbb"), makeExpectedResult("aaa")],
+      expected: [EXPECTED_BBB_RESULT, EXPECTED_AAA_RESULT],
     },
   ];
 
@@ -137,7 +217,7 @@ add_task(async function basic() {
 // returned. This task assumes multiples types were added to remote settings in
 // the setup task.
 add_task(async function oneSuggestionType() {
-  await withExposureSuggestionTypesPref("bbb", async () => {
+  await withSuggestionTypesPref("test-exposure-bbb", async () => {
     await doQueries([
       {
         query: "aaa keyword",
@@ -145,11 +225,11 @@ add_task(async function oneSuggestionType() {
       },
       {
         query: "bbb keyword",
-        expected: [makeExpectedResult("bbb")],
+        expected: [EXPECTED_BBB_RESULT],
       },
       {
         query: "aaa bbb keyword",
-        expected: [makeExpectedResult("bbb")],
+        expected: [EXPECTED_BBB_RESULT],
       },
     ]);
   });
@@ -157,7 +237,7 @@ add_task(async function oneSuggestionType() {
 
 // When no exposure suggestion types are enabled, no results should be added.
 add_task(async function disabled() {
-  await withExposureSuggestionTypesPref("", async () => {
+  await withSuggestionTypesPref("", async () => {
     await doQueries(
       ["aaa keyword", "bbb keyword", "aaa bbb keyword"].map(query => ({
         query,
@@ -170,21 +250,15 @@ add_task(async function disabled() {
 // When another visible suggestion also matches, both it and the exposure
 // suggestion should be added.
 add_task(async function otherVisibleSuggestionsAlsoMatched_1() {
-  await withExposureSuggestionTypesPref("aaa", async () => {
+  await withSuggestionTypesPref("test-exposure-aaa", async () => {
     await doQueries([
       {
         query: "aaa keyword",
-        expected: [makeExpectedResult("aaa")],
+        expected: [EXPECTED_AAA_RESULT],
       },
       {
         query: "wikipedia",
-        expected: [
-          {
-            ...QuickSuggestTestUtils.wikipediaResult(),
-            exposureTelemetry: UrlbarUtils.EXPOSURE_TELEMETRY.NONE,
-          },
-          makeExpectedResult("aaa"),
-        ],
+        expected: [EXPECTED_WIKIPEDIA_RESULT, EXPECTED_AAA_RESULT],
       },
     ]);
   });
@@ -193,33 +267,33 @@ add_task(async function otherVisibleSuggestionsAlsoMatched_1() {
 // When another visible suggestion also matches, both it and all specified
 // exposure suggestions should be added.
 add_task(async function otherVisibleSuggestionsAlsoMatched_2() {
-  await withExposureSuggestionTypesPref("aaa,bbb", async () => {
-    await doQueries([
-      {
-        query: "aaa keyword",
-        expected: [makeExpectedResult("aaa")],
-      },
-      {
-        query: "bbb keyword",
-        expected: [makeExpectedResult("bbb")],
-      },
-      {
-        query: "aaa bbb keyword",
-        expected: [makeExpectedResult("bbb"), makeExpectedResult("aaa")],
-      },
-      {
-        query: "wikipedia",
-        expected: [
-          {
-            ...QuickSuggestTestUtils.wikipediaResult(),
-            exposureTelemetry: UrlbarUtils.EXPOSURE_TELEMETRY.NONE,
-          },
-          makeExpectedResult("bbb"),
-          makeExpectedResult("aaa"),
-        ],
-      },
-    ]);
-  });
+  await withSuggestionTypesPref(
+    "test-exposure-aaa,test-exposure-bbb",
+    async () => {
+      await doQueries([
+        {
+          query: "aaa keyword",
+          expected: [EXPECTED_AAA_RESULT],
+        },
+        {
+          query: "bbb keyword",
+          expected: [EXPECTED_BBB_RESULT],
+        },
+        {
+          query: "aaa bbb keyword",
+          expected: [EXPECTED_BBB_RESULT, EXPECTED_AAA_RESULT],
+        },
+        {
+          query: "wikipedia",
+          expected: [
+            EXPECTED_WIKIPEDIA_RESULT,
+            EXPECTED_BBB_RESULT,
+            EXPECTED_AAA_RESULT,
+          ],
+        },
+      ]);
+    }
+  );
 });
 
 // Tests with `maxResults` exposures. All should be added.
@@ -227,7 +301,9 @@ add_task(async function maxResults_exposuresOnly() {
   let maxResults = UrlbarPrefs.get("maxRichResults");
   let exposureResults = [];
   for (let i = 0; i < maxResults; i++) {
-    exposureResults.unshift(makeExpectedResult("maxresults" + i));
+    exposureResults.unshift(
+      makeExpectedResult({ rsSuggestionType: "test-exposure-maxresults-" + i })
+    );
   }
 
   await doMaxResultsTest({
@@ -242,7 +318,9 @@ add_task(async function maxResults_exposuresHistory() {
   let exposureResults = [];
   let historyResults = [];
   for (let i = 0; i < maxResults; i++) {
-    exposureResults.unshift(makeExpectedResult("maxresults" + i));
+    exposureResults.unshift(
+      makeExpectedResult({ rsSuggestionType: "test-exposure-maxresults-" + i })
+    );
     historyResults.push(
       new UrlbarResult(
         UrlbarUtils.RESULT_TYPE.URL,
@@ -266,7 +344,9 @@ add_task(async function maxResults_exposuresAmp() {
   let maxResults = UrlbarPrefs.get("maxRichResults");
   let exposureResults = [];
   for (let i = 0; i < maxResults; i++) {
-    exposureResults.unshift(makeExpectedResult("maxresults" + i));
+    exposureResults.unshift(
+      makeExpectedResult({ rsSuggestionType: "test-exposure-maxresults-" + i })
+    );
   }
 
   await doMaxResultsTest({
@@ -291,7 +371,9 @@ add_task(async function maxResults_exposuresHistoryAmp() {
   let exposureResults = [];
   let historyResults = [];
   for (let i = 0; i < maxResults; i++) {
-    exposureResults.unshift(makeExpectedResult("maxresults" + i));
+    exposureResults.unshift(
+      makeExpectedResult({ rsSuggestionType: "test-exposure-maxresults-" + i })
+    );
     historyResults.push(
       new UrlbarResult(
         UrlbarUtils.RESULT_TYPE.URL,
@@ -355,10 +437,10 @@ async function doMaxResultsTest({
   // exposure suggestions.
   let exposureTypes = [];
   for (let i = 0; i < maxResults; i++) {
-    exposureTypes.push("maxresults" + i);
+    exposureTypes.push("test-exposure-maxresults-" + i);
   }
 
-  await withExposureSuggestionTypesPref(exposureTypes.join(","), async () => {
+  await withSuggestionTypesPref(exposureTypes.join(","), async () => {
     await check_results({
       context: createContext("maxresults", {
         providers: providerNames,
@@ -383,19 +465,19 @@ add_task(async function sponsoredAndNonsponsoredDisabled() {
   UrlbarPrefs.set("suggest.quicksuggest.sponsored", false);
   UrlbarPrefs.set("suggest.quicksuggest.nonsponsored", false);
 
-  await withExposureSuggestionTypesPref("aaa", async () => {
+  await withSuggestionTypesPref("test-exposure-aaa", async () => {
     await doQueries([
       {
         query: "aaa keyword",
-        expected: [makeExpectedResult("aaa")],
+        expected: [EXPECTED_AAA_RESULT],
       },
       {
         query: "aaa bbb keyword",
-        expected: [makeExpectedResult("aaa")],
+        expected: [EXPECTED_AAA_RESULT],
       },
       {
         query: "wikipedia",
-        expected: [makeExpectedResult("aaa")],
+        expected: [EXPECTED_AAA_RESULT],
       },
       {
         query: "doesn't match",
@@ -405,34 +487,45 @@ add_task(async function sponsoredAndNonsponsoredDisabled() {
   });
 
   UrlbarPrefs.clear("suggest.quicksuggest.sponsored");
-  UrlbarPrefs.clear("suggest.quicksuggest.nonsponsored");
+  UrlbarPrefs.set("suggest.quicksuggest.nonsponsored", true);
+  await QuickSuggestTestUtils.forceSync();
 });
 
-// Tests the `quickSuggestExposureSuggestionTypes` Nimbus variable.
+// Tests the `quickSuggestDynamicSuggestionTypes` Nimbus variable with exposure
+// suggestions.
 add_task(async function nimbus() {
-  let cleanup = await UrlbarTestUtils.initNimbusFeature({
-    quickSuggestExposureSuggestionTypes: "aaa,bbb",
+  // Clear `dynamicSuggestionTypes` to make sure the value comes from the Nimbus
+  // variable and not the pref.
+  await withSuggestionTypesPref("", async () => {
+    let cleanup = await UrlbarTestUtils.initNimbusFeature({
+      quickSuggestDynamicSuggestionTypes: "test-exposure-aaa,test-exposure-bbb",
+    });
+    await QuickSuggestTestUtils.forceSync();
+    await doQueries([
+      {
+        query: "aaa keyword",
+        expected: [EXPECTED_AAA_RESULT],
+      },
+      {
+        query: "aaa bbb keyword",
+        expected: [EXPECTED_BBB_RESULT, EXPECTED_AAA_RESULT],
+      },
+      {
+        query: "wikipedia",
+        expected: [
+          EXPECTED_WIKIPEDIA_RESULT,
+          EXPECTED_BBB_RESULT,
+          EXPECTED_AAA_RESULT,
+        ],
+      },
+      {
+        query: "doesn't match",
+        expected: [],
+      },
+    ]);
+
+    await cleanup();
   });
-  await QuickSuggestTestUtils.forceSync();
-  await doQueries([
-    {
-      query: "aaa keyword",
-      expected: [makeExpectedResult("aaa")],
-    },
-    {
-      query: "aaa bbb keyword",
-      expected: [makeExpectedResult("bbb"), makeExpectedResult("aaa")],
-    },
-    {
-      query: "wikipedia",
-      expected: [makeExpectedResult("bbb"), makeExpectedResult("aaa")],
-    },
-    {
-      query: "doesn't match",
-      expected: [],
-    },
-  ]);
-  await cleanup();
 });
 
 async function doQueries(queries) {
@@ -455,36 +548,36 @@ async function doQueries(queries) {
   }
 }
 
-async function withExposureSuggestionTypesPref(prefValue, callback) {
+async function withSuggestionTypesPref(prefValue, callback) {
   // Use `Services` to get the original pref value since `UrlbarPrefs` will
   // parse the string value into a `Set`.
   let originalPrefValue = Services.prefs.getCharPref(
-    "browser.urlbar.quicksuggest.exposureSuggestionTypes"
+    "browser.urlbar.quicksuggest.dynamicSuggestionTypes"
   );
 
   // Changing the pref (or Nimbus variable) to a different value will trigger
   // ingest, so force sync afterward (or at least wait for ingest to finish).
-  UrlbarPrefs.set("quicksuggest.exposureSuggestionTypes", prefValue);
+  UrlbarPrefs.set("quicksuggest.dynamicSuggestionTypes", prefValue);
   await QuickSuggestTestUtils.forceSync();
 
   await callback();
 
-  UrlbarPrefs.set("quicksuggest.exposureSuggestionTypes", originalPrefValue);
+  UrlbarPrefs.set("quicksuggest.dynamicSuggestionTypes", originalPrefValue);
   await QuickSuggestTestUtils.forceSync();
 }
 
-function makeExpectedResult(exposureSuggestionType) {
+function makeExpectedResult({ rsSuggestionType, telemetryType = "exposure" }) {
   return {
     type: UrlbarUtils.RESULT_TYPE.DYNAMIC,
     source: UrlbarUtils.RESULT_SOURCE.SEARCH,
     heuristic: false,
     exposureTelemetry: UrlbarUtils.EXPOSURE_TELEMETRY.HIDDEN,
     payload: {
-      exposureSuggestionType,
+      telemetryType,
+      rsSuggestionType,
       source: "rust",
       dynamicType: "exposure",
-      provider: "Exposure",
-      telemetryType: "exposure",
+      provider: "Dynamic",
       isSponsored: false,
     },
   };

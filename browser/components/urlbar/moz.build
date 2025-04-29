@@ -65,7 +65,7 @@ EXTRA_JS_MODULES += [
 EXTRA_JS_MODULES["urlbar/private"] += [
     "private/AddonSuggestions.sys.mjs",
     "private/AmpSuggestions.sys.mjs",
-    "private/ExposureSuggestions.sys.mjs",
+    "private/DynamicSuggestions.sys.mjs",
     "private/FakespotSuggestions.sys.mjs",
     "private/GeolocationUtils.sys.mjs",
     "private/ImpressionCaps.sys.mjs",

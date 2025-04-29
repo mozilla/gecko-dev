@@ -387,29 +387,35 @@ urlbar:
     quickSuggestDataCollectionEnabled:
       type: boolean
       description: Whether data collection should be enabled by default. If this variable is specified, it will override the value implied by the scenario. It will never override the user's local preference to disable (or enable) data collection, if the user has already toggled that preference.
+    quickSuggestDynamicSuggestionTypes:
+      type: string
+      setPref:
+        pref: browser.urlbar.quicksuggest.dynamicSuggestionTypes
+        branch: user
+      description: >-
+        Comma-separated list of Suggest dynamic suggestion types to enable. Set
+        this variable to the `suggestion_type` defined in the remote settings
+        record that contains your suggestions. If you want to enable multiple
+        suggestion types, separate them with commas. One particular intended use
+        of this variable is to deliver hidden-exposure suggestions for testing
+        potential exposures. Hidden-exposure suggestions trigger exposure
+        telemetry based on a set of keywords you provide but they are never
+        visible. If you are testing multiple types of hidden-exposure
+        suggestions, consider using one experiment branch per type, especially
+        if you are also enabling keyword exposures. Exposure suggestions are
+        recorded in telemetry with the "rust_exposure" result type. It's not
+        necessary to include "rust_exposure" in `exposureResults`. Unless you
+        are testing other results in the same experiment branch, it's also not
+        necessary to set `showExposureResults: false`. To also record keyword
+        exposures, include "rust_exposure" in `keywordExposureResults`.
     quickSuggestEnabled:
       type: boolean
       fallbackPref: browser.urlbar.quicksuggest.enabled
-      description: Gate for the Firefox Suggest feature as a whole. If false, the Firefox Suggest preferences UI and Suggest suggestions will not be shown. If true, the preferences UI will be shown, and the user can turn suggestions on or off.
-    quickSuggestExposureSuggestionTypes:
-      type: string
-      setPref:
-        pref: browser.urlbar.quicksuggest.exposureSuggestionTypes
-        branch: user
       description: >-
-        Comma-separated list of Suggest exposure suggestion types to enable.
-        Exposure suggestions are used to test potential exposures. They trigger
-        exposure telemetry based on a set of keywords you provide but they are
-        never visible. Set this variable to the `suggestion_type` defined in the
-        remote settings record(s) that contains your keywords. If you want to
-        test multiple suggestion types, separate them with commas, but also
-        consider using one experiment branch per type, especially if you are
-        also enabling keyword exposures. Exposure suggestions are recorded in
-        telemetry with the "rust_exposure" result type. It's not necessary to
-        include "rust_exposure" in `exposureResults`. Unless you are testing
-        other results in the same experiment branch, it's also not necessary to
-        set `showExposureResults: false`. To also record keyword exposures,
-        include "rust_exposure" in `keywordExposureResults`.
+        Gate for the Firefox Suggest feature as a whole. If false, the Firefox
+        Suggest preferences UI and Suggest suggestions will not be shown. If
+        true, the preferences UI will be shown, and the user can turn
+        suggestions on or off.
     quickSuggestImpressionCapsSponsoredEnabled:
       type: boolean
       fallbackPref: browser.urlbar.quicksuggest.impressionCaps.sponsoredEnabled

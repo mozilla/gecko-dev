@@ -208,9 +208,15 @@ export class SuggestBackendRust extends SuggestBackend {
       Glean.suggest.queryTime[label].accumulateSingleSample(value);
     }
 
-    for (let suggestion of suggestions) {
-      let type = getSuggestionType(suggestion);
+    let liftedSuggestions = [];
+    for (let s of suggestions) {
+      let type = getSuggestionType(s);
       if (!type) {
+        continue;
+      }
+
+      let suggestion = liftSuggestion(s);
+      if (!suggestion) {
         continue;
       }
 
@@ -220,15 +226,16 @@ export class SuggestBackendRust extends SuggestBackend {
         suggestion.icon_blob = new Blob([suggestion.icon], {
           type: suggestion.iconMimetype ?? "",
         });
-
         delete suggestion.icon;
         delete suggestion.iconMimetype;
       }
+
+      liftedSuggestions.push(suggestion);
     }
 
-    this.logger.debug("Got suggestions", suggestions);
+    this.logger.debug("Got suggestions", liftedSuggestions);
 
-    return suggestions;
+    return liftedSuggestions;
   }
 
   cancelQuery() {
@@ -303,8 +310,9 @@ export class SuggestBackendRust extends SuggestBackend {
    *   find it useful to make a `Suggestion` object directly.
    */
   async dismissRustSuggestion(suggestion) {
+    let lowered = lowerSuggestion(suggestion);
     try {
-      await this.#store?.dismissBySuggestion(suggestion);
+      await this.#store?.dismissBySuggestion(lowered);
     } catch (error) {
       this.logger.error("Error: dismissRustSuggestion", { error, suggestion });
     }
@@ -339,8 +347,9 @@ export class SuggestBackendRust extends SuggestBackend {
    *   Whether the suggestion has been dismissed.
    */
   async isRustSuggestionDismissed(suggestion) {
+    let lowered = lowerSuggestion(suggestion);
     try {
-      return await this.#store?.isDismissedBySuggestion(suggestion);
+      return await this.#store?.isDismissedBySuggestion(lowered);
     } catch (error) {
       this.logger.error("Error: isDismissedBySuggestion", {
         error,
@@ -876,4 +885,77 @@ function getSuggestionType(suggestion) {
     }
   }
   return type;
+}
+
+/**
+ * The Rust component exports a custom UniFFI type called `JsonValue`, which is
+ * just an alias of `serde_json::Value`. The type represents any value that can
+ * be serialized as JSON, but UniFFI exports it as its JSON serialization rather
+ * than the value itself. The UniFFI JS bindings don't currently deserialize the
+ * JSON back to the underlying value, so we use this function to do it
+ * ourselves. The process of converting the exported Rust value into a more
+ * convenient JS representation is called "lifting".
+ *
+ * Currently dynamic suggestions are the only objects exported from the Rust
+ * component that include a `JsonValue`.
+ *
+ * @param {Suggestion} suggestion
+ *   A `Suggestion` instance from the Rust component.
+ * @returns {Suggestion}
+ *   If any properties of the suggestion need to be lifted, returns a new
+ *   `Suggestion` that's a copy of it except the appropriate properties are
+ *   lifted. Otherwise returns the passed-in suggestion itself.
+ */
+function liftSuggestion(suggestion) {
+  if (suggestion instanceof lazy.Suggestion.Dynamic) {
+    let { data } = suggestion;
+    if (typeof data == "string") {
+      try {
+        data = JSON.parse(data);
+      } catch (error) {
+        // This shouldn't ever happen since `suggestion.data` is serialized in
+        // the Rust component and should therefore always be valid.
+        return null;
+      }
+    }
+    return new lazy.Suggestion.Dynamic(
+      suggestion.suggestionType,
+      data,
+      suggestion.dismissalKey,
+      suggestion.score
+    );
+  }
+
+  return suggestion;
+}
+
+/**
+ * This is the opposite of `liftSuggestion()`: It converts a lifted suggestion
+ * object back to the value expected by the Rust component. This is only
+ * necessary when passing a suggestion back in to the Rust component. This
+ * process is called "lowering".
+ *
+ * @param {Suggestion|object} suggestion
+ *   A suggestion object. Technically this can be a plain JS object or a
+ *   `Suggestion` instance from the Rust component.
+ * @returns {Suggestion}
+ *   If any properties of the suggestion need to be lowered, returns a new
+ *   `Suggestion` that's a copy of it except the appropriate properties are
+ *   lowered. Otherwise returns the passed-in suggestion itself.
+ */
+function lowerSuggestion(suggestion) {
+  if (suggestion.provider == "Dynamic") {
+    let { data } = suggestion;
+    if (data !== null && data !== undefined) {
+      data = JSON.stringify(data);
+    }
+    return new lazy.Suggestion.Dynamic(
+      suggestion.suggestionType,
+      data,
+      suggestion.dismissalKey,
+      suggestion.score
+    );
+  }
+
+  return suggestion;
 }

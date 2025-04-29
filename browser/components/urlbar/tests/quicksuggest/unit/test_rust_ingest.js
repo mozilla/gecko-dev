@@ -80,50 +80,49 @@ add_task(async function disableEnable() {
 
 // For a feature whose suggestion type provider has constraints, ingest should
 // happen when the constraints change.
-// TODO Bug 1961040: Convert ExposureSuggestions to DynamicSuggestions.
-add_task({ skip_if: () => true }, async function providerConstraintsChanged() {
-  // We'll use the Exposure feature since it has provider constraints. Make sure
+add_task(async function providerConstraintsChanged() {
+  // We'll use the Dynamic feature since it has provider constraints. Make sure
   // it exists.
-  let feature = QuickSuggest.getFeature("ExposureSuggestions");
+  let feature = QuickSuggest.getFeature("DynamicSuggestions");
   Assert.ok(
     !!feature,
-    "This test expects the ExposureSuggestions feature to exist"
+    "This test expects the DynamicSuggestions feature to exist"
   );
   Assert.equal(
     feature.rustSuggestionType,
-    "Exposure",
-    "This test expects Exposure suggestions to exist"
+    "Dynamic",
+    "This test expects Dynamic suggestions to exist"
   );
 
-  let providersFilter = [SuggestionProvider.EXPOSURE];
+  let providersFilter = [SuggestionProvider.DYNAMIC];
   await withIngestStub(async ({ stub, rustBackend }) => {
-    // Set the pref to a few non-empty string values. Each time, an exposure
+    // Set the pref to a few non-empty string values. Each time, a dynamic
     // ingest should be triggered.
     for (let type of ["aaa", "bbb", "aaa,bbb"]) {
-      UrlbarPrefs.set("quicksuggest.exposureSuggestionTypes", type);
-      info("Awaiting ingest promise after setting exposureSuggestionTypes");
+      UrlbarPrefs.set("quicksuggest.dynamicSuggestionTypes", type);
+      info("Awaiting ingest promise after setting dynamicSuggestionTypes");
       await rustBackend.ingestPromise;
 
       checkIngestCounts({
         stub,
         providersFilter,
         expected: {
-          [SuggestionProvider.EXPOSURE]: 1,
+          [SuggestionProvider.DYNAMIC]: 1,
         },
       });
     }
 
     // Set the pref to an empty string. The feature should become disabled and
-    // it shouldn't trigger ingest since no exposure suggestions are enabled.
-    UrlbarPrefs.set("quicksuggest.exposureSuggestionTypes", "");
+    // it shouldn't trigger ingest since no dynamic suggestions are enabled.
+    UrlbarPrefs.set("quicksuggest.dynamicSuggestionTypes", "");
     info(
-      "Awaiting ingest promise after setting exposureSuggestionTypes to empty string"
+      "Awaiting ingest promise after setting dynamicSuggestionTypes to empty string"
     );
     await rustBackend.ingestPromise;
 
     Assert.ok(
       !feature.isEnabled,
-      "Exposure feature should be disabled after setting exposureSuggestionTypes to empty string"
+      "Dynamic feature should be disabled after setting dynamicSuggestionTypes to empty string"
     );
     checkIngestCounts({
       stub,
@@ -132,7 +131,7 @@ add_task({ skip_if: () => true }, async function providerConstraintsChanged() {
     });
   });
 
-  UrlbarPrefs.clear("quicksuggest.exposureSuggestionTypes");
+  UrlbarPrefs.clear("quicksuggest.dynamicSuggestionTypes");
   await QuickSuggest.rustBackend.ingestPromise;
 });
 

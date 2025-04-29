@@ -56,10 +56,11 @@ urlbar-keyword-exposure:
     results are matched. (A "session" begins when the user focuses the urlbar
     and ends with an engagement or abandonment.) Exposure results include all
     results defined in the `exposureResults` variable. They also include the
-    "rust_exposure" result type if the `quickSuggestExposureSuggestionTypes`
-    variable is defined. The ping will contain one `urlbar.keyword_exposure`
-    event for each instance where a result is matched during the session. The
-    ping is not submitted for sessions in private windows.
+    "rust_exposure" result type if the `quickSuggestDynamicSuggestionTypes`
+    variable is defined with a value that includes any hidden-exposure
+    suggestion types. The ping will contain one `urlbar.keyword_exposure` event
+    for each instance where a result is matched during the session. The ping is
+    not submitted for sessions in private windows.
   include_client_id: false
   bugs:
     - https://bugzilla.mozilla.org/show_bug.cgi?id=1881875
