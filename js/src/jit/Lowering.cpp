@@ -6721,22 +6721,23 @@ void LIRGenerator::visitWasmStoreRef(MWasmStoreRef* ins) {
       ins);
 }
 
-void LIRGenerator::visitWasmPostWriteBarrierImmediate(
-    MWasmPostWriteBarrierImmediate* ins) {
-  LWasmPostWriteBarrierImmediate* lir = new (alloc())
-      LWasmPostWriteBarrierImmediate(useFixed(ins->instance(), InstanceReg),
+void LIRGenerator::visitWasmPostWriteBarrierWholeCell(
+    MWasmPostWriteBarrierWholeCell* ins) {
+  LWasmPostWriteBarrierWholeCell* lir = new (alloc())
+      LWasmPostWriteBarrierWholeCell(useFixed(ins->instance(), InstanceReg),
                                      useRegister(ins->object()),
                                      useRegister(ins->value()), temp());
   add(lir, ins);
   assignWasmSafepoint(lir);
 }
 
-void LIRGenerator::visitWasmPostWriteBarrierIndex(
-    MWasmPostWriteBarrierIndex* ins) {
-  LWasmPostWriteBarrierIndex* lir = new (alloc()) LWasmPostWriteBarrierIndex(
-      useFixed(ins->instance(), InstanceReg), useRegister(ins->object()),
-      useRegister(ins->valueBase()), useRegister(ins->index()),
-      useRegister(ins->value()), temp(), ins->elemSize());
+void LIRGenerator::visitWasmPostWriteBarrierEdgeAtIndex(
+    MWasmPostWriteBarrierEdgeAtIndex* ins) {
+  LWasmPostWriteBarrierEdgeAtIndex* lir =
+      new (alloc()) LWasmPostWriteBarrierEdgeAtIndex(
+          useFixed(ins->instance(), InstanceReg), useRegister(ins->object()),
+          useRegister(ins->valueBase()), useRegister(ins->index()),
+          useRegister(ins->value()), temp(), ins->elemSize());
   add(lir, ins);
   assignWasmSafepoint(lir);
 }

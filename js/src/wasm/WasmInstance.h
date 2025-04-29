@@ -590,11 +590,9 @@ class alignas(16) Instance {
   static int32_t wake_m64(Instance* instance, uint64_t byteOffset,
                           int32_t count, uint32_t memoryIndex);
   static void* refFunc(Instance* instance, uint32_t funcIndex);
-  static void postBarrier(Instance* instance, void** location);
-  static void postBarrierPrecise(Instance* instance, void** location,
-                                 void* prev);
-  static void postBarrierPreciseWithOffset(Instance* instance, void** base,
-                                           uint32_t offset, void* prev);
+  static void postBarrierEdge(Instance* instance, AnyRef* location);
+  static void postBarrierEdgePrecise(Instance* instance, AnyRef* location,
+                                     void* prev);
   static void postBarrierWholeCell(Instance* instance, gc::Cell* object);
   static void* exceptionNew(Instance* instance, void* exceptionArg);
   static int32_t throwException(Instance* instance, void* exceptionArg);

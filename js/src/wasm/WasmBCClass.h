@@ -170,13 +170,13 @@ enum class PreBarrierKind {
 };
 
 enum class PostBarrierKind {
+  // Add a store buffer entry if the new value requires it, but do not attempt
+  // to remove a pre-existing entry.
+  Imprecise,
   // Remove an existing store buffer entry if the new value does not require
   // one. This is required to preserve invariants with HeapPtr when used for
   // movable storage.
   Precise,
-  // Add a store buffer entry if the new value requires it, but do not attempt
-  // to remove a pre-existing entry.
-  Imprecise,
   // Add a store buffer entry for the entire cell (e.g. the entire struct or
   // array who now has a field pointing into the nursery).
   WholeCell,
@@ -1382,7 +1382,7 @@ struct BaseCompiler final {
   //   register is consumed by this function.
   // - `value` is the value that was stored in the field. This register is
   //   preserved by this function.
-  [[nodiscard]] bool emitPostBarrierImprecise(
+  [[nodiscard]] bool emitPostBarrierEdgeImprecise(
       const mozilla::Maybe<RegRef>& object, RegPtr valueAddr, RegRef value);
 
   // Emits a post-write barrier of type WasmAnyRefEdge, precisely. See above for
@@ -1397,7 +1397,7 @@ struct BaseCompiler final {
   //   stored. This register is consumed by this function.
   // - `value` is the value that was stored in the field. This register is
   //   preserved by this function.
-  [[nodiscard]] bool emitPostBarrierPrecise(
+  [[nodiscard]] bool emitPostBarrierEdgePrecise(
       const mozilla::Maybe<RegRef>& object, RegPtr valueAddr, RegRef prevValue,
       RegRef value);
 

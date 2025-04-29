@@ -3058,7 +3058,7 @@ class WasmStructMemoryView : public MDefinitionVisitorDefaultNoop {
   void visitWasmStoreField(MWasmStoreField* ins);
   void visitWasmStoreFieldRef(MWasmStoreFieldRef* ins);
   void visitWasmLoadField(MWasmLoadField* ins);
-  void visitWasmPostWriteBarrierImmediate(MWasmPostWriteBarrierImmediate* ins);
+  void visitWasmPostWriteBarrierWholeCell(MWasmPostWriteBarrierWholeCell* ins);
 };
 
 void WasmStructMemoryView::setEntryBlockState(BlockState* state) {
@@ -3180,8 +3180,8 @@ void WasmStructMemoryView::visitWasmLoadField(MWasmLoadField* ins) {
   ins->block()->discard(ins);
 }
 
-void WasmStructMemoryView::visitWasmPostWriteBarrierImmediate(
-    MWasmPostWriteBarrierImmediate* ins) {
+void WasmStructMemoryView::visitWasmPostWriteBarrierWholeCell(
+    MWasmPostWriteBarrierWholeCell* ins) {
   // Skip loads made on other objects.
   if (ins->object() != struct_) {
     return;
@@ -3347,7 +3347,7 @@ static bool IsWasmStructEscaped(MDefinition* ins, MInstruction* newStruct) {
         break;
       }
 
-      case MDefinition::Opcode::WasmPostWriteBarrierImmediate: {
+      case MDefinition::Opcode::WasmPostWriteBarrierWholeCell: {
         break;
       }
 
