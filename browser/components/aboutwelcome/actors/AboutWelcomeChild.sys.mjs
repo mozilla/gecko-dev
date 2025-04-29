@@ -9,7 +9,7 @@ const lazy = {};
 ChromeUtils.defineESModuleGetters(lazy, {
   AboutWelcomeDefaults:
     "resource:///modules/aboutwelcome/AboutWelcomeDefaults.sys.mjs",
-  ExperimentAPI: "resource://nimbus/ExperimentAPI.sys.mjs",
+  EnrollmentType: "resource://nimbus/ExperimentAPI.sys.mjs",
   NimbusFeatures: "resource://nimbus/ExperimentAPI.sys.mjs",
 });
 
@@ -197,9 +197,9 @@ export class AboutWelcomeChild extends JSWindowActorChild {
     let attributionData = await this.sendQuery("AWPage:GET_ATTRIBUTION_DATA");
 
     let experimentMetadata =
-      lazy.ExperimentAPI.getExperimentMetaData({
-        featureId: "aboutwelcome",
-      }) || {};
+      lazy.NimbusFeatures.aboutwelcome.getEnrollmentMetadata(
+        lazy.EnrollmentType.EXPERIMENT
+      ) ?? {};
 
     lazy.log.debug(
       `Loading about:welcome with ${
