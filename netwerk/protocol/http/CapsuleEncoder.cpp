@@ -6,7 +6,6 @@
 
 #include "nsString.h"
 #include "nsTArray.h"
-#include "mozilla/net/NeqoHttp3Conn.h"
 
 #include "Capsule.h"
 #include "CapsuleEncoder.h"
@@ -57,6 +56,14 @@ void CapsuleEncoder::EncodeCapsule(Capsule& aCapsule) {
 
   if (aCapsule.mCapsule.is<WebTransportStreamsBlockedCapsule>()) {
     auto& value = aCapsule.mCapsule.as<WebTransportStreamsBlockedCapsule>();
+    EncodeVarint(value.Type())
+        .EncodeVarint(CapsuleEncoder::VarintLength(value.mLimit))
+        .EncodeVarint(value.mLimit);
+    return;
+  }
+
+  if (aCapsule.mCapsule.is<WebTransportMaxStreamsCapsule>()) {
+    auto& value = aCapsule.mCapsule.as<WebTransportMaxStreamsCapsule>();
     EncodeVarint(value.Type())
         .EncodeVarint(CapsuleEncoder::VarintLength(value.mLimit))
         .EncodeVarint(value.mLimit);

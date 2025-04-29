@@ -7,13 +7,12 @@
 #ifndef mozilla_net_capsule_encoder_h
 #define mozilla_net_capsule_encoder_h
 
+#include "mozilla/net/NeqoHttp3Conn.h"
 #include "mozilla/RefPtr.h"
 #include "mozilla/Span.h"
 #include "nsTArray.h"
 
 namespace mozilla::net {
-
-class NeqoEncoder;
 
 // A wrapper of neqo_common::Encoder.
 class CapsuleEncoder final {

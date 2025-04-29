@@ -1254,8 +1254,13 @@ Http2StreamTunnel* Http2Session::CreateTunnelStreamFromConnInfo(
     LOG(("Http2Session creating Http2WebTransportSession"));
     MOZ_ASSERT(session->GetExtendedCONNECTSupport() ==
                ExtendedCONNECTSupport::SUPPORTED);
+    Http2WebTransportInitialSettings settings;
+    settings.mInitialMaxStreamsUni =
+        session->mInitialWebTransportMaxStreamsUnidi;
+    settings.mInitialMaxStreamsBidi =
+        session->mInitialWebTransportMaxStreamsBidi;
     return new Http2WebTransportSession(
-        session, nsISupportsPriority::PRIORITY_NORMAL, bcId, info);
+        session, nsISupportsPriority::PRIORITY_NORMAL, bcId, info, settings);
   }
 
   if (aType == ExtendedCONNECTType::WebSocket) {
@@ -1777,6 +1782,20 @@ nsresult Http2Session::RecvSettings(Http2Session* self) {
           return self->SessionError(PROTOCOL_ERROR);
         }
         self->mHasTransactionWaitingForExtendedCONNECT = true;
+      } break;
+
+      case SETTINGS_WEBTRANSPORT_INITIAL_MAX_STREAMS_UNI: {
+        if (!self->mPeerAllowsExtendedCONNECT) {
+          return self->SessionError(PROTOCOL_ERROR);
+        }
+        self->mInitialWebTransportMaxStreamsUnidi = value;
+      } break;
+
+      case SETTINGS_WEBTRANSPORT_INITIAL_MAX_STREAMS_BIDI: {
+        if (!self->mPeerAllowsExtendedCONNECT) {
+          return self->SessionError(PROTOCOL_ERROR);
+        }
+        self->mInitialWebTransportMaxStreamsBidi = value;
       } break;
 
       default:
@@ -3891,7 +3910,10 @@ WebTransportSessionBase* Http2Session::GetWebTransportSession(
     return nullptr;
   }
   RemoveStreamFromQueues(stream);
-  return stream->GetHttp2WebTransportSession();
+
+  return static_cast<Http2WebTransportSession*>(
+             stream->GetHttp2WebTransportSession())
+      ->GetHttp2WebTransportSessionImpl();
 }
 
 already_AddRefed<HttpConnectionBase> Http2Session::TakeHttpConnection() {

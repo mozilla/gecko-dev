@@ -18,23 +18,25 @@ NS_IMPL_ISUPPORTS(Http2WebTransportStream, nsIOutputStreamCallback,
                   nsIInputStreamCallback)
 
 Http2WebTransportStream::Http2WebTransportStream(
-    Http2WebTransportSession* aWebTransportSession, StreamId aStreamId,
+    Http2WebTransportSessionImpl* aWebTransportSession, StreamId aStreamId,
     std::function<void(Result<RefPtr<WebTransportStreamBase>, nsresult>&&)>&&
         aCallback)
     : WebTransportStreamBase(aWebTransportSession->GetStreamId(),
                              std::move(aCallback)),
       mWebTransportSession(aWebTransportSession),
-      mStreamId(aStreamId) {
+      mStreamId(aStreamId),
+      mOwnerThread(GetCurrentSerialEventTarget()) {
   LOG(("Http2WebTransportStream outgoing ctor:%p", this));
   mStreamRole = OUTGOING;
   mStreamType = mStreamId.StreamType();
 }
 
 Http2WebTransportStream::Http2WebTransportStream(
-    Http2WebTransportSession* aWebTransportSession, StreamId aStreamId)
+    Http2WebTransportSessionImpl* aWebTransportSession, StreamId aStreamId)
     : WebTransportStreamBase(aWebTransportSession->GetStreamId(), nullptr),
       mWebTransportSession(aWebTransportSession),
-      mStreamId(aStreamId) {
+      mStreamId(aStreamId),
+      mOwnerThread(GetCurrentSerialEventTarget()) {
   LOG(("Http2WebTransportStream incoming ctor:%p", this));
   mStreamRole = INCOMING;
   mStreamType = mStreamId.StreamType();
@@ -86,6 +88,10 @@ nsresult Http2WebTransportStream::Init() {
 
   if (mStreamType == WebTransportStreamType::BiDi) {
     rv = InitInputPipe();
+  }
+
+  if (mSendStreamPipeIn) {
+    rv = mSendStreamPipeIn->AsyncWait(this, 0, 0, mOwnerThread);
   }
 
   return rv;

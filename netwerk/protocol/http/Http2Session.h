@@ -159,6 +159,10 @@ class Http2Session final : public ASpdySession,
     SETTINGS_TYPE_ENABLE_CONNECT_PROTOCOL = 8,
     // see rfc9218. used to disable HTTP/2 priority signals
     SETTINGS_NO_RFC7540_PRIORITIES = 9,
+    // Settings for WebTransport
+    // https://www.ietf.org/archive/id/draft-ietf-webtrans-http2-11.html#section-10.1
+    SETTINGS_WEBTRANSPORT_INITIAL_MAX_STREAMS_UNI = 0x2b64,
+    SETTINGS_WEBTRANSPORT_INITIAL_MAX_STREAMS_BIDI = 0x2b65,
   };
 
   // This should be big enough to hold all of your control packets,
@@ -543,6 +547,9 @@ class Http2Session final : public ASpdySession,
 
   // The initial value of the local stream and session window
   uint32_t mInitialRwin;
+
+  uint32_t mInitialWebTransportMaxStreamsBidi = 0;
+  uint32_t mInitialWebTransportMaxStreamsUnidi = 0;
 
   // This is a output queue of bytes ready to be written to the SSL stream.
   // When that streams returns WOULD_BLOCK on direct write the bytes get

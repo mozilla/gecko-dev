@@ -11,9 +11,11 @@
 #include "CapsuleParser.h"
 #include "Http2StreamTunnel.h"
 #include "mozilla/UniquePtr.h"
+#include "mozilla/Queue.h"
 #include "nsRefPtrHashtable.h"
 #include "nsTHashMap.h"
 #include "nsHashKeys.h"
+#include "WebTransportFlowControl.h"
 #include "WebTransportSessionBase.h"
 #include "WebTransportStreamBase.h"
 
@@ -22,24 +24,46 @@ namespace mozilla::net {
 class CapsuleEncoder;
 class Http2WebTransportStream;
 
-class Http2WebTransportSession final : public WebTransportSessionBase,
-                                       public Http2StreamTunnel,
-                                       public nsIOutputStreamCallback,
-                                       public nsIInputStreamCallback,
-                                       public CapsuleParser::Listener {
+// A handler used exclusively by Http2WebTransportSessionImpl for capsule I/O,
+// primarily responsible for sending capsules.
+class CapsuleIOHandler {
  public:
-  NS_DECL_ISUPPORTS_INHERITED
-  NS_DECL_NSIOUTPUTSTREAMCALLBACK
-  NS_DECL_NSIINPUTSTREAMCALLBACK
+  NS_INLINE_DECL_PURE_VIRTUAL_REFCOUNTING
 
-  Http2WebTransportSession(Http2Session* aSession, int32_t aPriority,
-                           uint64_t aBcId,
-                           nsHttpConnectionInfo* aConnectionInfo);
-  Http2WebTransportSession* GetHttp2WebTransportSession() override {
-    return this;
-  }
+  virtual void SendCapsule(CapsuleEncoder&& aCapsule) = 0;
+  virtual void SetSentFin() = 0;
+  virtual void StartReading() = 0;
+  virtual void OnCapsuleParseFailure(nsresult aError) = 0;
+
+ protected:
+  virtual ~CapsuleIOHandler() = default;
+};
+
+struct Http2WebTransportInitialSettings {
+  // Initial session-level data limit.
+  uint32_t mInitialMaxData = 0;
+  // Initial stream-level data limit for incoming unidirectional streams.
+  uint32_t mInitialMaxStreamDataUni = 0;
+  // Initial stream-level data limit for incoming bidirectional streams.
+  uint32_t mInitialMaxStreamDataBidi = 0;
+  // Initial max unidirectional streams per session.
+  uint32_t mInitialMaxStreamsUni = 0;
+  // Initial max bidirectional streams per session.
+  uint32_t mInitialMaxStreamsBidi = 0;
+};
+
+// Core implementation of the logic behind Http2WebTransportSession.
+// It's designed to be independently instantiated, which makes it easier to
+// test.
+class Http2WebTransportSessionImpl final : public WebTransportSessionBase,
+                                           public CapsuleParser::Listener {
+ public:
+  NS_INLINE_DECL_THREADSAFE_REFCOUNTING(Http2WebTransportSessionImpl, override)
+
+  explicit Http2WebTransportSessionImpl(
+      CapsuleIOHandler* aHandler, Http2WebTransportInitialSettings aSettings);
+
   void CloseSession(uint32_t aStatus, const nsACString& aReason) override;
-  void CloseStream(nsresult aReason) override;
   uint64_t GetStreamId() const override;
   void GetMaxDatagramSize() override;
   void SendDatagram(nsTArray<uint8_t>&& aData, uint64_t aTrackingId) override;
@@ -49,31 +73,86 @@ class Http2WebTransportSession final : public WebTransportSessionBase,
   void CreateOutgoingUnidirectionalStream(
       std::function<void(Result<RefPtr<WebTransportStreamBase>, nsresult>&&)>&&
           aCallback) override;
-
+  void SendCapsule(CapsuleEncoder&& aCapsule);
   bool OnCapsule(Capsule&& aCapsule) override;
   void OnCapsuleParseFailure(nsresult aError) override;
   void StartReading() override;
+  void Close(nsresult aReason);
 
  private:
-  friend class Http2WebTransportStream;
+  virtual ~Http2WebTransportSessionImpl();
 
+  void CreateOutgoingStreamInternal(
+      StreamId aStreamId,
+      std::function<void(Result<RefPtr<WebTransportStreamBase>, nsresult>&&)>&&
+          aCallback);
+
+  class PendingStreamCallback {
+   public:
+    explicit PendingStreamCallback(
+        std::function<void(
+            Result<RefPtr<WebTransportStreamBase>, nsresult>&&)>&& aCallback)
+        : mCallback(std::move(aCallback)) {}
+    std::function<void(Result<RefPtr<WebTransportStreamBase>, nsresult>&&)>
+    TakeCallback() {
+      return std::move(mCallback);
+    }
+
+   private:
+    std::function<void(Result<RefPtr<WebTransportStreamBase>, nsresult>&&)>
+        mCallback;
+  };
+  void ProcessPendingStreamCallbacks(
+      mozilla::Queue<UniquePtr<PendingStreamCallback>>& aCallbacks,
+      WebTransportStreamType aStreamType);
+
+  uint64_t mStreamId = 0;
+  nsRefPtrHashtable<nsUint64HashKey, Http2WebTransportStream> mOutgoingStreams;
+  nsRefPtrHashtable<nsUint64HashKey, Http2WebTransportStream> mIncomingStreams;
+
+  mozilla::Queue<UniquePtr<PendingStreamCallback>> mBidiPendingStreamCallbacks;
+  mozilla::Queue<UniquePtr<PendingStreamCallback>> mUnidiPendingStreamCallbacks;
+  LocalStreamLimits mLocalStreamsFlowControl;
+
+  RefPtr<CapsuleIOHandler> mHandler;
+  Http2WebTransportInitialSettings mSettings;
+};
+
+class Http2WebTransportSession final : public Http2StreamTunnel,
+                                       public nsIOutputStreamCallback,
+                                       public nsIInputStreamCallback,
+                                       public CapsuleIOHandler {
+ public:
+  NS_DECL_ISUPPORTS_INHERITED
+  NS_DECL_NSIOUTPUTSTREAMCALLBACK
+  NS_DECL_NSIINPUTSTREAMCALLBACK
+
+  Http2WebTransportSession(Http2Session* aSession, int32_t aPriority,
+                           uint64_t aBcId,
+                           nsHttpConnectionInfo* aConnectionInfo,
+                           Http2WebTransportInitialSettings aSettings);
+  Http2WebTransportSession* GetHttp2WebTransportSession() override {
+    return this;
+  }
+  Http2WebTransportSessionImpl* GetHttp2WebTransportSessionImpl() {
+    return mImpl;
+  }
+
+  void CloseStream(nsresult aReason) override;
+  void SendCapsule(CapsuleEncoder&& aCapsule) override;
+  void SetSentFin() override;
+  void StartReading() override;
+  void OnCapsuleParseFailure(nsresult aError) override;
+
+ private:
   virtual ~Http2WebTransportSession();
   nsresult GenerateHeaders(nsCString& aCompressedData,
                            uint8_t& aFirstFrameFlags) override;
-  void SendCapsule(CapsuleEncoder&& aCapsule);
-  void CreateOutgoingStreamInternal(
-      bool aBidi,
-      std::function<void(Result<RefPtr<WebTransportStreamBase>, nsresult>&&)>&&
-          aCallback);
-  Result<StreamId, nsresult> GetNextOutgoingStreamId(bool aBidi);
 
   size_t mWriteOffset{0};
   std::list<CapsuleEncoder> mOutgoingQueue;
+  RefPtr<Http2WebTransportSessionImpl> mImpl;
   UniquePtr<CapsuleParser> mCapsuleParser;
-
-  StreamId mNextStreamID{0};
-  nsRefPtrHashtable<nsUint64HashKey, Http2WebTransportStream> mOutgoingStreams;
-  nsRefPtrHashtable<nsUint64HashKey, Http2WebTransportStream> mIncomingStreams;
 };
 
 }  // namespace mozilla::net

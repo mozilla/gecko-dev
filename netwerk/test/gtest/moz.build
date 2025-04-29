@@ -14,6 +14,7 @@ UNIFIED_SOURCES += [
     "TestCookie.cpp",
     "TestDNSPacket.cpp",
     "TestHeaders.cpp",
+    "TestHttp2WebTransport.cpp",
     "TestHttpAtom.cpp",
     "TestHttpAuthUtils.cpp",
     "TestHttpChannel.cpp",

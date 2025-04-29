@@ -54,6 +54,14 @@ Capsule Capsule::WebTransportStreamsBlocked(uint64_t aLimit, bool aBidi) {
 }
 
 // static
+Capsule Capsule::WebTransportMaxStreams(uint64_t aLimit, bool aBidi) {
+  WebTransportMaxStreamsCapsule capsule;
+  capsule.mLimit = aLimit;
+  capsule.mBidi = aBidi;
+  return Capsule(std::move(capsule));
+}
+
+// static
 Capsule Capsule::Unknown(uint64_t aType, nsTArray<uint8_t>&& aData) {
   UnknownCapsule capsule;
   capsule.mType = aType;
@@ -74,6 +82,9 @@ CapsuleType Capsule::Type() const {
         return aCapsule.Type();
       },
       [](const WebTransportStreamsBlockedCapsule& aCapsule) {
+        return aCapsule.Type();
+      },
+      [](const WebTransportMaxStreamsCapsule& aCapsule) {
         return aCapsule.Type();
       });
 }

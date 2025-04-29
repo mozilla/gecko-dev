@@ -165,10 +165,20 @@ Result<Capsule, nsresult> CapsuleParser::ParseCapsulePayload(
     }
     case CapsuleType::WT_MAX_STREAM_DATA:
       break;
-    case CapsuleType::WT_MAX_STREAMS_BIDI:
-      break;
-    case CapsuleType::WT_MAX_STREAMS_UNIDI:
-      break;
+    case CapsuleType::WT_MAX_STREAMS_BIDI: {
+      auto value = aDecoder.DecodeVarint();
+      if (!value) {
+        return Err(NS_ERROR_UNEXPECTED);
+      }
+      return Capsule::WebTransportMaxStreams(*value, true);
+    }
+    case CapsuleType::WT_MAX_STREAMS_UNIDI: {
+      auto value = aDecoder.DecodeVarint();
+      if (!value) {
+        return Err(NS_ERROR_UNEXPECTED);
+      }
+      return Capsule::WebTransportMaxStreams(*value, false);
+    }
     case CapsuleType::WT_DATA_BLOCKED:
       break;
     case CapsuleType::WT_STREAM_DATA_BLOCKED:

@@ -14,7 +14,7 @@
 namespace mozilla::net {
 
 class Capsule;
-class Http2WebTransportSession;
+class Http2WebTransportSessionImpl;
 
 class StreamData {
  public:
@@ -37,12 +37,12 @@ class Http2WebTransportStream final : public WebTransportStreamBase {
   NS_DECL_NSIOUTPUTSTREAMCALLBACK
 
   explicit Http2WebTransportStream(
-      Http2WebTransportSession* aWebTransportSession, StreamId aStreamId,
+      Http2WebTransportSessionImpl* aWebTransportSession, StreamId aStreamId,
       std::function<void(Result<RefPtr<WebTransportStreamBase>, nsresult>&&)>&&
           aCallback);
 
   explicit Http2WebTransportStream(
-      Http2WebTransportSession* aWebTransportSession, StreamId aStreamId);
+      Http2WebTransportSessionImpl* aWebTransportSession, StreamId aStreamId);
 
   nsresult Init();
 
@@ -69,7 +69,7 @@ class Http2WebTransportStream final : public WebTransportStreamBase {
 
   nsresult HandleStreamData(bool aFin, nsTArray<uint8_t>&& aData);
 
-  RefPtr<Http2WebTransportSession> mWebTransportSession;
+  RefPtr<Http2WebTransportSessionImpl> mWebTransportSession;
   class StreamId mStreamId{0u};
   nsTArray<uint8_t> mBuffer;
   uint64_t mTotalSent = 0;
@@ -79,6 +79,7 @@ class Http2WebTransportStream final : public WebTransportStreamBase {
   // When mReceiveStreamPipeOut->Write() returns NS_BASE_STREAM_WOULD_BLOCK, we
   // need to store the data in this queue.
   std::list<StreamData> mOutgoingQueue;
+  const RefPtr<nsISerialEventTarget> mOwnerThread;
 };
 }  // namespace mozilla::net
 
