@@ -98,12 +98,8 @@ class GitRepository(Repository):
             return refs[-1][1:]  # boundary starts with a prefix `-`
         return self.head_ref
 
-    def base_ref_as_hg(self):
-        base_ref = self.base_ref
-        try:
-            return self._run("cinnabar", "git2hg", base_ref).strip()
-        except subprocess.CalledProcessError:
-            return
+    def base_ref_as_commit(self):
+        return self.base_ref
 
     @property
     def branch(self):

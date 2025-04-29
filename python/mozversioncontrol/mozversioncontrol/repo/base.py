@@ -129,11 +129,8 @@ class Repository:
         """Hash of revision the current topic branch is based on."""
 
     @abc.abstractmethod
-    def base_ref_as_hg(self):
-        """Mercurial hash of revision the current topic branch is based on.
-
-        Return None if the hg hash of the base ref could not be calculated.
-        """
+    def base_ref_as_commit(self):
+        """Git hash of revision the current topic branch is based on."""
 
     @abc.abstractproperty
     def branch(self):

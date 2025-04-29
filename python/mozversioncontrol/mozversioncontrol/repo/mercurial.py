@@ -54,8 +54,8 @@ class HgRepository(Repository):
     def base_ref(self):
         return self._run("log", "-r", "last(ancestors(.) and public())", "-T", "{node}")
 
-    def base_ref_as_hg(self):
-        return self.base_ref
+    def base_ref_as_commit(self):
+        raise Exception("unimplemented: convert hg rev to git rev")
 
     @property
     def branch(self):

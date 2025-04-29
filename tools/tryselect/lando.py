@@ -83,20 +83,18 @@ def get_stack_info(
     # Use `git` for Git-native checkouts of Firefox.
     # Use `hg` for Mercurial repos and `git-cinnabar` clones.
     base_commit_vcs = (
-        "git" if vcs.name == "git" and not vcs.is_cinnabar_repo() else "hg"
+        "git" if vcs.name in ("git", "jj") and not vcs.is_cinnabar_repo() else "hg"
     )
 
-    base_commit = vcs.base_ref_as_hg() if base_commit_vcs == "hg" else vcs.base_ref
+    base_commit = vcs.base_ref if base_commit_vcs == "hg" else vcs.base_ref_as_commit()
     if not base_commit:
-        raise ValueError(
-            "Could not determine base Mercurial commit hash for submission."
-        )
+        raise ValueError("Could not determine base commit hash for submission.")
     print("Using", base_commit, f"as the {base_commit_vcs} base commit.")
 
     # Reuse the base revision when on Mercurial to avoid multiple calls to `hg log`.
     branch_nodes_kwargs = {}
     if isinstance(vcs, HgRepository):
-        branch_nodes_kwargs["base_ref"] = base_commit
+        branch_nodes_kwargs["base_ref"] = vcs.base_ref
 
     nodes = vcs.get_branch_nodes(head, **branch_nodes_kwargs)
     if not nodes:
