@@ -2,8 +2,8 @@
 # Flank Documentation: https://flank.github.io/flank/
 gcloud:
   results-bucket: android-components_test_artifacts
-  record-video: true
-  timeout: 30m
+  record-video: false
+  timeout: 15m
   async: false
   num-flaky-test-attempts: 2
 
@@ -19,7 +19,7 @@ gcloud:
   performance-metrics: true
 
   device:
-   - model: Pixel2.arm
+   - model: MediumPhone.arm
      version: 28
      locale: en_US
 
