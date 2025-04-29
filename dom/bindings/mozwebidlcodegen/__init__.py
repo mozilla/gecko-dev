@@ -14,6 +14,7 @@ import sys
 from multiprocessing import Pool
 
 import mozpack.path as mozpath
+from Codegen import CGThing
 from mach.mixin.logging import LoggingMixin
 from mozbuild.makeutil import Makefile
 from mozbuild.pythonutil import iter_modules_in_path
@@ -590,6 +591,7 @@ class WebIDLCodegenManager(LoggingMixin):
         files = (
             mozpath.join(header_dir, "%s.h" % binding_stem),
             mozpath.join(self._codegen_dir, "%s.cpp" % binding_stem),
+            mozpath.join(header_dir, "%sFwd.h" % binding_stem),
             mozpath.join(header_dir, "%s.h" % stem) if is_event else None,
             mozpath.join(self._codegen_dir, "%s.cpp" % stem) if is_event else None,
         )
@@ -637,12 +639,12 @@ class WebIDLCodegenManager(LoggingMixin):
         stem, binding_stem, is_event, header_dir, files = self._binding_info(filename)
         root = CGBindingRoot(self._config, binding_stem, filename)
 
-        result = self._maybe_write_codegen(root, files[0], files[1])
+        result = self._maybe_write_codegen(root, files[0], files[1], files[2])
 
         if is_event:
             generated_event = CGEventRoot(self._config, stem)
             result = self._maybe_write_codegen(
-                generated_event, files[2], files[3], result
+                generated_event, files[3], files[4], result=result
             )
 
         return result, root.deps()
@@ -679,13 +681,22 @@ class WebIDLCodegenManager(LoggingMixin):
         with open(self._state_path, "w", newline="\n") as fh:
             self._state.dump(fh)
 
-    def _maybe_write_codegen(self, obj, declare_path, define_path, result=None):
+    def _maybe_write_codegen(
+        self,
+        obj: CGThing,
+        declare_path,
+        define_path,
+        forward_declare_path=None,
+        result=None,
+    ):
         assert declare_path and define_path
         if not result:
             result = (set(), set(), set())
 
         self._maybe_write_file(declare_path, obj.declare(), result)
         self._maybe_write_file(define_path, obj.define(), result)
+        if forward_declare_path is not None:
+            self._maybe_write_file(forward_declare_path, obj.forward_declare(), result)
 
         return result
 

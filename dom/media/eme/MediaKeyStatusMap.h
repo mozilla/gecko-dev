@@ -11,6 +11,7 @@
 #include "nsCycleCollectionParticipant.h"
 #include "nsWrapperCache.h"
 
+#include "mozilla/dom/BufferSourceBindingFwd.h"
 #include "mozilla/dom/TypedArray.h"
 #include "mozilla/dom/MediaKeyStatusMapBinding.h"
 #include "mozilla/CDMCaps.h"
@@ -21,8 +22,6 @@ namespace mozilla {
 class ErrorResult;
 
 namespace dom {
-
-class ArrayBufferViewOrArrayBuffer;
 
 // The MediaKeyStatusMap WebIDL interface; maps a keyId to its status.
 // Note that the underlying "map" is stored in an array, since we assume
@@ -44,10 +43,9 @@ class MediaKeyStatusMap final : public nsISupports, public nsWrapperCache {
   JSObject* WrapObject(JSContext* aCx,
                        JS::Handle<JSObject*> aGivenProto) override;
 
-  void Get(const ArrayBufferViewOrArrayBuffer& aKey,
-           OwningMediaKeyStatusOrUndefined& aOutValue,
+  void Get(const BufferSource& aKey, OwningMediaKeyStatusOrUndefined& aOutValue,
            ErrorResult& aOutRv) const;
-  bool Has(const ArrayBufferViewOrArrayBuffer& aKey) const;
+  bool Has(const BufferSource& aKey) const;
   uint32_t Size() const;
 
   uint32_t GetIterableLength() const;
@@ -83,7 +81,7 @@ class MediaKeyStatusMap final : public nsISupports, public nsWrapperCache {
     MediaKeyStatus mStatus;
   };
 
-  const KeyStatus* FindKey(const ArrayBufferViewOrArrayBuffer& aKey) const;
+  const KeyStatus* FindKey(const BufferSource& aKey) const;
 
   nsTArray<KeyStatus> mStatuses;
 };

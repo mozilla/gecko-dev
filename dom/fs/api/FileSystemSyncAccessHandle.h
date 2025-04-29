@@ -7,7 +7,7 @@
 #ifndef DOM_FS_FILESYSTEMSYNCACCESSHANDLE_H_
 #define DOM_FS_FILESYSTEMSYNCACCESSHANDLE_H_
 
-#include "mozilla/dom/BindingDeclarations.h"
+#include "mozilla/dom/BufferSourceBindingFwd.h"
 #include "mozilla/dom/PFileSystemManager.h"
 #include "mozilla/dom/quota/ForwardDecls.h"
 #include "nsCOMPtr.h"

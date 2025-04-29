@@ -14,6 +14,7 @@
 #include "mozilla/Span.h"
 #include "mozilla/dom/AudioDataBinding.h"
 #include "mozilla/dom/BindingDeclarations.h"
+#include "mozilla/dom/BufferSourceBindingFwd.h"
 #include "mozilla/dom/StructuredCloneHolder.h"
 #include "nsCycleCollectionParticipant.h"
 #include "nsWrapperCache.h"

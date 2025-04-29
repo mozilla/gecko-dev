@@ -13,6 +13,7 @@
 #include "mozilla/NotNull.h"
 #include "mozilla/Span.h"
 #include "mozilla/dom/BindingDeclarations.h"
+#include "mozilla/dom/BufferSourceBindingFwd.h"
 #include "mozilla/dom/TypedArray.h"
 #include "mozilla/dom/VideoColorSpaceBinding.h"
 #include "mozilla/dom/WebCodecsUtils.h"

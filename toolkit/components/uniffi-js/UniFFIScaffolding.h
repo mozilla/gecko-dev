@@ -11,10 +11,9 @@
 #include "mozilla/dom/RootedDictionary.h"
 #include "mozilla/dom/TypedArray.h"
 #include "mozilla/dom/UniFFIBinding.h"
+#include "mozilla/dom/UniFFIBindingFwd.h"
 
 namespace mozilla::dom {
-
-using OwningUniFFIScaffoldingValue = OwningDoubleOrArrayBufferOrUniFFIPointer;
 
 // Handle functions defined in UniFFIScaffolding.webidl
 class UniFFIScaffolding {

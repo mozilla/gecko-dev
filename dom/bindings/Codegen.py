@@ -13,6 +13,7 @@ import string
 import textwrap
 
 from Configuration import (
+    Configuration,
     Descriptor,
     MemberIsLegacyUnforgeable,
     NoSuchDescriptorError,
@@ -33,6 +34,7 @@ from WebIDL import (
     IDLNullValue,
     IDLSequenceType,
     IDLType,
+    IDLTypedef,
     IDLUndefinedValue,
 )
 
@@ -421,6 +423,10 @@ class CGThing:
     def define(self):
         """Produce code for a cpp file."""
         assert False  # Override me!
+
+    def forward_declare(self):
+        """Produce code for a header file."""
+        return ""  # This can be skipped for most of the classes
 
     def deps(self):
         """Produce the deps for a pp file"""
@@ -1069,6 +1075,11 @@ class CGList(CGThing):
     def define(self):
         return self.join(child.define() for child in self.children if child is not None)
 
+    def forward_declare(self):
+        return self.join(
+            child.forward_declare() for child in self.children if child is not None
+        )
+
     def deps(self):
         deps = set()
         for child in self.children:
@@ -1087,15 +1098,19 @@ class CGGeneric(CGThing):
     separate string for the declaration too.
     """
 
-    def __init__(self, define="", declare=""):
+    def __init__(self, define="", declare="", forward_declare=""):
         self.declareText = declare
         self.defineText = define
+        self.forwardDeclareText = forward_declare
 
     def declare(self):
         return self.declareText
 
     def define(self):
         return self.defineText
+
+    def forward_declare(self):
+        return self.forwardDeclareText
 
     def deps(self):
         return set()
@@ -1132,13 +1147,15 @@ class CGWrapper(CGThing):
 
     def __init__(
         self,
-        child,
+        child: CGThing,
         pre="",
         post="",
         declarePre=None,
         declarePost=None,
         definePre=None,
         definePost=None,
+        forwardDeclarePre=None,
+        forwardDeclarePost=None,
         declareOnly=False,
         defineOnly=False,
         reindent=False,
@@ -1149,6 +1166,8 @@ class CGWrapper(CGThing):
         self.declarePost = declarePost or post
         self.definePre = definePre or pre
         self.definePost = definePost or post
+        self.forwardDeclarePre = forwardDeclarePre or pre
+        self.forwardDeclarePost = forwardDeclarePost or post
         self.declareOnly = declareOnly
         self.defineOnly = defineOnly
         self.reindent = reindent
@@ -1168,6 +1187,14 @@ class CGWrapper(CGThing):
         if self.reindent:
             defn = self.reindentString(defn, self.definePre)
         return self.definePre + defn + self.definePost
+
+    def forward_declare(self):
+        if self.defineOnly:
+            return ""
+        decl = self.child.forward_declare()
+        if self.reindent:
+            decl = self.reindentString(decl, self.forwardDeclarePre)
+        return self.forwardDeclarePre + decl + self.forwardDeclarePost
 
     @staticmethod
     def reindentString(stringToIndent, widthString):
@@ -1272,6 +1299,12 @@ class CGNamespace(CGThing):
             return ""
         return self.pre + defn + self.post
 
+    def forward_declare(self):
+        decl = self.child.forward_declare()
+        if len(decl.strip()) == 0:
+            return ""
+        return self.pre + decl + self.post
+
     def deps(self):
         return self.child.deps()
 
@@ -1293,11 +1326,15 @@ class CGIncludeGuard(CGWrapper):
     def __init__(self, prefix, child):
         """|prefix| is the filename without the extension."""
         define = "DOM_%s_H_" % prefix.upper()
+        forward_define = "DOM_%sFWD_H_" % prefix.upper()
         CGWrapper.__init__(
             self,
             child,
             declarePre="#ifndef %s\n#define %s\n\n" % (define, define),
             declarePost="\n#endif // %s\n" % define,
+            forwardDeclarePre="#ifndef %s\n#define %s\n\n"
+            % (forward_define, forward_define),
+            forwardDeclarePost="\n#endif // %s\n" % forward_define,
         )
 
 
@@ -12661,6 +12698,46 @@ class CGMaxContiguousEnumValue(CGThing):
         return self.enum.getDeps()
 
 
+class CGUnionTypedef(CGThing):
+    def __init__(self, typedef: IDLTypedef, config: Configuration):
+        assert typedef.innerType.isUnion, "only union typedefs are supported"
+        super().__init__()
+        self.typedef = typedef
+
+        builder = ForwardDeclarationBuilder()
+        builder.forwardDeclareForType(typedef.innerType, config)
+
+        name = self.typedef.identifier.name
+        innerName = self.typedef.innerType.name
+        declare = dedent(
+            f"""
+            using {name} = {innerName};
+            using Owning{name} = Owning{innerName};
+            """
+        )
+        self.root = CGList(
+            [
+                builder.build(),
+                CGNamespace.build(
+                    ["mozilla", "dom"], CGGeneric(forward_declare=declare)
+                ),
+            ],
+            joiner="\n",
+        )
+
+    def declare(self):
+        return ""
+
+    def define(self):
+        return ""
+
+    def forward_declare(self):
+        return self.root.forward_declare()
+
+    def deps(self):
+        return self.typedef.getDeps()
+
+
 def getUnionAccessorSignatureType(type, descriptorProvider):
     """
     Returns the types that are used in the getter and setter signatures for
@@ -14579,6 +14656,9 @@ class CGClassForwardDeclare(CGThing):
     def define(self):
         # Header only
         return ""
+
+    def forward_declare(self):
+        return self.declare()
 
     def deps(self):
         return set()
@@ -16920,7 +17000,7 @@ def memberProperties(m, descriptor):
 
 
 class CGDescriptor(CGThing):
-    def __init__(self, descriptor, attributeTemplates):
+    def __init__(self, descriptor: Descriptor, attributeTemplates):
         CGThing.__init__(self)
 
         assert (
@@ -16929,6 +17009,7 @@ class CGDescriptor(CGThing):
             or descriptor.hasOrdinaryObjectPrototype()
         )
 
+        self.name = descriptor.interface.getClassName()
         self._deps = descriptor.interface.getDeps()
 
         iteratorCGThings = None
@@ -17363,6 +17444,9 @@ class CGDescriptor(CGThing):
     def define(self):
         return self.cgRoot.define()
 
+    def forward_declare(self):
+        return f"class {self.name};"
+
     def deps(self):
         return self._deps
 
@@ -17444,7 +17528,7 @@ def initIdsClassMethod(identifiers, atomCacheName):
 
 
 class CGDictionary(CGThing):
-    def __init__(self, dictionary, descriptorProvider):
+    def __init__(self, dictionary: IDLDictionary, descriptorProvider):
         self.dictionary = dictionary
         self.descriptorProvider = descriptorProvider
         self.needToInitIds = len(dictionary.members) > 0
@@ -17491,6 +17575,9 @@ class CGDictionary(CGThing):
 
     def define(self):
         return self.structs.define()
+
+    def forward_declare(self):
+        return f"struct {self.dictionary.identifier.name};"
 
     def base(self):
         if self.dictionary.parent:
@@ -18934,6 +19021,9 @@ class CGForwardDeclarations(CGWrapper):
 
         CGWrapper.__init__(self, builder.build())
 
+    def forward_declare(self):
+        return ""
+
 
 def dependencySortDictionariesAndUnionsAndCallbacks(types):
     def getDependenciesFromType(type):
@@ -18992,7 +19082,7 @@ class CGBindingRoot(CGThing):
     declare or define to generate header or cpp code (respectively).
     """
 
-    def __init__(self, config, prefix, webIDLFile):
+    def __init__(self, config: Configuration, prefix, webIDLFile):
         bindingHeaders = dict.fromkeys(
             ("mozilla/dom/NonRefcountedDOMObject.h", "MainThreadUtils.h"), True
         )
@@ -19469,6 +19559,12 @@ class CGBindingRoot(CGThing):
             "\n",
         )
 
+        unionTypedefs = config.getUnionTypedefs(webIDLFile)
+        cgUnionTypedefs = CGList(
+            [CGUnionTypedef(t, config) for t in unionTypedefs], joiner="\n"
+        )
+        curr = CGList([cgUnionTypedefs, curr], joiner="\n")
+
         # Add header includes.
         bindingHeaders = [
             header for header, include in bindingHeaders.items() if include
@@ -19509,6 +19605,9 @@ class CGBindingRoot(CGThing):
 
     def define(self):
         return stripTrailingWhitespace(self.root.define())
+
+    def forward_declare(self):
+        return stripTrailingWhitespace(self.root.forward_declare())
 
     def deps(self):
         return self.root.deps()

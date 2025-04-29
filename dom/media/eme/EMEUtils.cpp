@@ -10,6 +10,7 @@
 #include "MediaData.h"
 #include "KeySystemConfig.h"
 #include "mozilla/StaticPrefs_media.h"
+#include "mozilla/dom/BufferSourceBinding.h"
 #include "mozilla/dom/Document.h"
 #include "mozilla/dom/KeySystemNames.h"
 #include "mozilla/dom/UnionTypes.h"
@@ -33,8 +34,7 @@ LogModule* GetEMEVerboseLog() {
 }
 
 void CopyArrayBufferViewOrArrayBufferData(
-    const dom::ArrayBufferViewOrArrayBuffer& aBufferOrView,
-    nsTArray<uint8_t>& aOutData) {
+    const dom::BufferSource& aBufferOrView, nsTArray<uint8_t>& aOutData) {
   aOutData.Clear();
   Unused << dom::AppendTypedArrayDataTo(aBufferOrView, aOutData);
 }

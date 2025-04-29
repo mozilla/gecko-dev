@@ -18,6 +18,7 @@
 #include "mozilla/TaskQueue.h"
 #include "mozilla/dom/AudioDataBinding.h"
 #include "mozilla/dom/BindingDeclarations.h"
+#include "mozilla/dom/BufferSourceBindingFwd.h"
 #include "mozilla/dom/Nullable.h"
 #include "mozilla/dom/UnionTypes.h"
 #include "mozilla/dom/VideoColorSpaceBinding.h"

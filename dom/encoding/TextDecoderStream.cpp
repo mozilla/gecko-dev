@@ -9,6 +9,7 @@
 #include "nsContentUtils.h"
 #include "nsIGlobalObject.h"
 #include "mozilla/Encoding.h"
+#include "mozilla/dom/BufferSourceBinding.h"
 #include "mozilla/dom/Promise.h"
 #include "mozilla/dom/TextDecoderStreamBinding.h"
 #include "mozilla/dom/TransformerCallbackHelpers.h"
@@ -62,7 +63,7 @@ class TextDecoderStreamAlgorithms : public TransformerAlgorithmsWrapper {
   // TODO: This does not allow shared array buffers, just as the non-stream
   // TextDecoder/Encoder don't. (Bug 1561594)
   MOZ_CAN_RUN_SCRIPT void DecodeBufferSourceAndEnqueue(
-      JSContext* aCx, OwningArrayBufferViewOrArrayBuffer* aInput, bool aFlush,
+      JSContext* aCx, OwningBufferSource* aInput, bool aFlush,
       TransformStreamDefaultController& aController, ErrorResult& aRv) {
     nsString outDecodedString;
     if (aInput) {
@@ -112,7 +113,7 @@ class TextDecoderStreamAlgorithms : public TransformerAlgorithmsWrapper {
 
     // Step 1. Let bufferSource be the result of converting chunk to an
     // [AllowShared] BufferSource.
-    RootedUnion<OwningArrayBufferViewOrArrayBuffer> bufferSource(cx);
+    RootedUnion<OwningBufferSource> bufferSource(cx);
     if (!bufferSource.Init(cx, aChunk)) {
       aRv.MightThrowJSException();
       aRv.StealExceptionFromJSContext(cx);

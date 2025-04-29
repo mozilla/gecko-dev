@@ -7,6 +7,7 @@
 #ifndef mozilla_dom_textdecoder_h_
 #define mozilla_dom_textdecoder_h_
 
+#include "mozilla/dom/BufferSourceBindingFwd.h"
 #include "mozilla/dom/NonRefcountedDOMObject.h"
 #include "mozilla/dom/TextDecoderBinding.h"
 #include "mozilla/dom/TypedArray.h"
@@ -15,8 +16,6 @@
 #include "mozilla/UniquePtr.h"
 
 namespace mozilla::dom {
-
-class ArrayBufferViewOrArrayBuffer;
 
 class TextDecoderCommon {
  public:
@@ -102,7 +101,7 @@ class TextDecoder final : public NonRefcountedDOMObject,
   void InitWithEncoding(NotNull<const Encoding*> aEncoding,
                         const TextDecoderOptions& aOptions);
 
-  void Decode(const Optional<ArrayBufferViewOrArrayBuffer>& aBuffer,
+  void Decode(const Optional<BufferSource>& aBuffer,
               const TextDecodeOptions& aOptions, nsAString& aOutDecodedString,
               ErrorResult& aRv);
 

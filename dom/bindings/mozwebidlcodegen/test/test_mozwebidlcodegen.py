@@ -121,6 +121,11 @@ class TestWebIDLCodegenManager(unittest.TestCase):
                 )
             )
             self.assertTrue(
+                os.path.isfile(
+                    mozpath.join(manager._exported_header_dir, "%sBindingFwd.h" % s)
+                )
+            )
+            self.assertTrue(
                 os.path.isfile(mozpath.join(manager._codegen_dir, "%sBinding.cpp" % s))
             )
 
@@ -133,7 +138,7 @@ class TestWebIDLCodegenManager(unittest.TestCase):
 
             child = state["webidls"]["Child.webidl"]
             self.assertEqual(len(child["inputs"]), 2)
-            self.assertEqual(len(child["outputs"]), 2)
+            self.assertEqual(len(child["outputs"]), 3)
             self.assertEqual(child["sha1"], "c34c40b0fa0ac57c2834ee282efe0681e4dacc35")
 
     def test_generate_build_files_load_state(self):

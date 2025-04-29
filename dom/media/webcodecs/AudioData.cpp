@@ -9,6 +9,7 @@
 #include "mozilla/Logging.h"
 #include "mozilla/dom/AudioData.h"
 #include "mozilla/dom/AudioDataBinding.h"
+#include "mozilla/dom/BufferSourceBinding.h"
 #include "mozilla/dom/Promise.h"
 #include "mozilla/dom/StructuredCloneTags.h"
 #include "nsStringFwd.h"

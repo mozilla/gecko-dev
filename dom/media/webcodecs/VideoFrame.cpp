@@ -21,6 +21,7 @@
 #include "mozilla/StaticPrefs_dom.h"
 #include "mozilla/Try.h"
 #include "mozilla/UniquePtr.h"
+#include "mozilla/dom/BufferSourceBinding.h"
 #include "mozilla/dom/CanvasUtils.h"
 #include "mozilla/dom/DOMRect.h"
 #include "mozilla/dom/HTMLCanvasElement.h"

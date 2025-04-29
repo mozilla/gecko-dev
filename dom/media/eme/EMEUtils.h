@@ -8,6 +8,7 @@
 #define EME_LOG_H_
 
 #include "mozilla/Logging.h"
+#include "mozilla/dom/BufferSourceBindingFwd.h"
 #include "mozilla/dom/MediaKeyStatusMapBinding.h"
 #include "mozilla/dom/MediaKeySystemAccessBinding.h"
 #include "nsString.h"
@@ -22,7 +23,6 @@ class MFCDMCapabilitiesIPDL;
 struct KeySystemConfig;
 
 namespace dom {
-class ArrayBufferViewOrArrayBuffer;
 class Document;
 }  // namespace dom
 
@@ -52,8 +52,7 @@ LogModule* GetEMEVerboseLog();
 //
 // Only call this on a properly initialized ArrayBufferViewOrArrayBuffer.
 void CopyArrayBufferViewOrArrayBufferData(
-    const dom::ArrayBufferViewOrArrayBuffer& aBufferOrView,
-    nsTArray<uint8_t>& aOutData);
+    const dom::BufferSource& aBufferOrView, nsTArray<uint8_t>& aOutData);
 
 nsString KeySystemToProxyName(const nsAString& aKeySystem);
 

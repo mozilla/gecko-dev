@@ -3540,7 +3540,9 @@ class IDLTypedefType(IDLType):
 class IDLTypedef(IDLObjectWithIdentifier):
     __slots__ = ("innerType",)
 
-    def __init__(self, location, parentScope, innerType, identifier):
+    innerType: IDLType
+
+    def __init__(self, location, parentScope, innerType: IDLType, identifier):
         # Set self.innerType first, because IDLObjectWithIdentifier.__init__
         # will call our __str__, which wants to use it.
         self.innerType = innerType
@@ -9313,12 +9315,6 @@ class Parser(Tokenizer):
         self._installBuiltins(self._globalScope)
         self._productions = []
 
-        self._filename = "<builtin>"
-        self.lexer.input(Parser._builtins)
-        self._filename = None
-
-        self.parser.parse(lexer=self.lexer, tracking=True)
-
     def _installBuiltins(self, scope):
         assert isinstance(scope, IDLScope)
 
@@ -9479,14 +9475,6 @@ class Parser(Tokenizer):
 
     def reset(self):
         return Parser(lexer=self.lexer)
-
-    # Builtin IDL defined by WebIDL
-    _builtins = """
-        typedef (ArrayBufferView or ArrayBuffer) BufferSource;
-
-        // Should be replaced with `ArrayBuffer or SharedArrayBuffer`. See bug 1838639.
-        typedef ([AllowShared] ArrayBuffer or [AllowShared] ArrayBufferView) AllowSharedBufferSource;
-    """
 
 
 def main():

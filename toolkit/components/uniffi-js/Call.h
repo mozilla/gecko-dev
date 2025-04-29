@@ -9,6 +9,7 @@
 
 #include "mozilla/RefPtr.h"
 #include "mozilla/UniquePtr.h"
+#include "mozilla/dom/UniFFIBindingFwd.h"
 #include "mozilla/dom/UniFFIScaffolding.h"
 #include "mozilla/uniffi/OwnedRustBuffer.h"
 #include "mozilla/uniffi/FfiValue.h"

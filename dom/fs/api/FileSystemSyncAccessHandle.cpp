@@ -14,6 +14,7 @@
 #include "mozilla/MozPromise.h"
 #include "mozilla/TaskQueue.h"
 #include "mozilla/dom/BindingDeclarations.h"
+#include "mozilla/dom/BufferSourceBinding.h"
 #include "mozilla/dom/FileSystemAccessHandleChild.h"
 #include "mozilla/dom/FileSystemAccessHandleControlChild.h"
 #include "mozilla/dom/FileSystemHandleBinding.h"

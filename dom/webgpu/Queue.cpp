@@ -14,6 +14,7 @@
 #include "ipc/WebGPUChild.h"
 #include "mozilla/Casting.h"
 #include "mozilla/ErrorResult.h"
+#include "mozilla/dom/BufferSourceBinding.h"
 #include "mozilla/dom/HTMLImageElement.h"
 #include "mozilla/dom/HTMLCanvasElement.h"
 #include "mozilla/dom/ImageBitmap.h"
