@@ -109,7 +109,7 @@ eslint:
             - '**/*.sjs'
             - '**/*.html'
             - '**/*.xhtml'
-            - '**/*.xml'
+            - '**/*.ts'
             - 'tools/lint/eslint.yml'
             # Run when eslint or prettier policies change.
             - '**/*eslintrc*'
@@ -551,6 +551,7 @@ file-perm:
             - '**/*.rst'
             - '**/*.svg'
             - '**/*.toml'
+            - '**/*.ts'
             - '**/*.ttf'
             - '**/*.wasm'
             - '**/*.webidl'

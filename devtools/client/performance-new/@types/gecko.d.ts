@@ -245,7 +245,7 @@ declare namespace MockedExports {
           preferredWidth?: number
         ) => Promise<FaviconData>;
         // TS-TODO: Add the rest.
-      },
+      };
       toURI: (uri: string | URL | nsIURI) => nsIURI;
     };
   };

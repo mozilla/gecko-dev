@@ -24,6 +24,9 @@ module.exports = [
   // Include all js dot files.
   "!.*.js",
 
+  // Exclude TypeScript files.
+  "*.ts",
+
   // Ignore VSCode files
   ".vscode/",
 

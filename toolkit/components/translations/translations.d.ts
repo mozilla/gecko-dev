@@ -12,7 +12,7 @@
  * For Remote Settings, the JSON details about the attachment.
  */
 export interface Attachment {
-   // e.g. "2f7c0f7bbc...ca79f0850c4de",
+  // e.g. "2f7c0f7bbc...ca79f0850c4de",
   hash: string;
   // e.g. 5047568,
   size: string;
@@ -183,37 +183,36 @@ export namespace Bergamot {
     // Whether to include sentenceMappings or not. Alignments require
     // sentenceMappings and are available irrespective of this option if
     // `alignment=true`.
-    sentenceMappings: boolean
+    sentenceMappings: boolean;
   }
 }
-
 
 /**
  * The client to interact with RemoteSettings.
  * See services/settings/RemoteSettingsClient.sys.mjs
  */
 interface RemoteSettingsClient {
-  on: Function,
-  get: Function,
-  attachments: any,
+  on: Function;
+  get: Function;
+  attachments: any;
 }
 
 /**
  * A single language model file.
  */
 interface LanguageTranslationModelFile {
-  buffer: ArrayBuffer,
-  record: TranslationModelRecord,
+  buffer: ArrayBuffer;
+  record: TranslationModelRecord;
 }
 
 /**
  * The data required to construct a Bergamot Translation Model.
  */
 interface TranslationModelPayload {
-  sourceLanguage: string,
-  targetLanguage: string,
-  variant?: string,
-  languageModelFiles: LanguageTranslationModelFiles,
+  sourceLanguage: string;
+  targetLanguage: string;
+  variant?: string;
+  languageModelFiles: LanguageTranslationModelFiles;
 }
 
 /**
@@ -221,26 +220,26 @@ interface TranslationModelPayload {
  */
 interface LanguageTranslationModelFiles {
   // The machine learning language model.
-  model: LanguageTranslationModelFile,
+  model: LanguageTranslationModelFile;
   // The lexical shortlist that limits possible output of the decoder and makes
   // inference faster.
-  lex?: LanguageTranslationModelFile,
+  lex?: LanguageTranslationModelFile;
   // A model that can generate a translation quality estimation.
-  qualityModel?: LanguageTranslationModelFile,
+  qualityModel?: LanguageTranslationModelFile;
 
   // There is either a single vocab file:
-  vocab?: LanguageTranslationModelFile,
+  vocab?: LanguageTranslationModelFile;
 
   // Or there are two:
-  srcvocab?: LanguageTranslationModelFile,
-  trgvocab?: LanguageTranslationModelFile,
+  srcvocab?: LanguageTranslationModelFile;
+  trgvocab?: LanguageTranslationModelFile;
 }
 
 /**
  * This is the type that is generated when the models are loaded into wasm aligned memory.
  */
 type LanguageTranslationModelFilesAligned = {
-  [K in keyof LanguageTranslationModelFiles]: Bergamot.AlignedMemory
+  [K in keyof LanguageTranslationModelFiles]: Bergamot.AlignedMemory;
 };
 
 /**
@@ -249,9 +248,9 @@ type LanguageTranslationModelFilesAligned = {
  * and so the engine will be mocked.
  */
 interface TranslationsEnginePayload {
-  bergamotWasmArrayBuffer: ArrayBuffer,
-  translationModelPayloads: TranslationModelPayload[]
-  isMocked: boolean,
+  bergamotWasmArrayBuffer: ArrayBuffer;
+  translationModelPayloads: TranslationModelPayload[];
+  isMocked: boolean;
 }
 
 /**
@@ -263,12 +262,12 @@ export type NodeVisibility = "in-viewport" | "out-of-viewport" | "hidden";
  * Used to decide how to translate a page for full page translations.
  */
 export interface LangTags {
-  isDocLangTagSupported: boolean,
-  docLangTag: string | null,
-  userLangTag: string | null,
-  htmlLangAttribute: string | null,
-  identifiedLangTag: string | null,
-  identifiedLangConfident?: boolean,
+  isDocLangTagSupported: boolean;
+  docLangTag: string | null;
+  userLangTag: string | null;
+  htmlLangAttribute: string | null;
+  identifiedLangTag: string | null;
+  identifiedLangConfident?: boolean;
 }
 
 /**
@@ -276,10 +275,10 @@ export interface LangTags {
  * should be solvable by picking model variants, and pivoting through English.
  */
 export interface LanguagePair {
-  sourceLanguage: string,
-  targetLanguage: string,
-  sourceVariant?: string,
-  targetVariant?: string
+  sourceLanguage: string;
+  targetLanguage: string;
+  sourceVariant?: string;
+  targetVariant?: string;
 }
 
 /**
@@ -288,16 +287,16 @@ export interface LanguagePair {
  * needs and how they are resolved.
  */
 export interface NonPivotLanguagePair {
-  sourceLanguage: string,
-  targetLanguage: string,
-  variant?: string,
+  sourceLanguage: string;
+  targetLanguage: string;
+  variant?: string;
 }
 
 export interface SupportedLanguage {
-  langTag: string,
-  langTagKey: string,
-  variant: string
-  displayName: string,
+  langTag: string;
+  langTagKey: string;
+  variant: string;
+  displayName: string;
 }
 
 /**
@@ -305,51 +304,99 @@ export interface SupportedLanguage {
  * for translation language selection.
  */
 export interface SupportedLanguages {
-  languagePairs: NonPivotLanguagePair[],
-  sourceLanguages: Array<SupportedLanguage>,
-  targetLanguages: Array<SupportedLanguage>,
+  languagePairs: NonPivotLanguagePair[];
+  sourceLanguages: Array<SupportedLanguage>;
+  targetLanguages: Array<SupportedLanguage>;
 }
 
 export type TranslationErrors = "engine-load-error";
 
 export type SelectTranslationsPanelState =
   // The panel is closed.
-  | { phase: "closed"; }
+  | { phase: "closed" }
 
   // The panel is idle after successful initialization and ready to attempt translation.
-  | { phase: "idle"; sourceLanguage: string; targetLanguage: string, sourceText: string, }
+  | {
+      phase: "idle";
+      sourceLanguage: string;
+      targetLanguage: string;
+      sourceText: string;
+    }
 
   // The language dropdown menus failed to populate upon opening the panel.
   // This state contains all of the information for the try-again button to close and re-open the panel.
-  | { phase: "init-failure"; event: Event, screenX: number, screenY: number, sourceText: string, isTextSelected: boolean, langPairPromise: Promise<{sourceLanguage?: string, targetLanguage?: string}> }
+  | {
+      phase: "init-failure";
+      event: Event;
+      screenX: number;
+      screenY: number;
+      sourceText: string;
+      isTextSelected: boolean;
+      langPairPromise: Promise<{
+        sourceLanguage?: string;
+        targetLanguage?: string;
+      }>;
+    }
 
   // The translation failed to complete.
-  | { phase: "translation-failure"; sourceLanguage: string; targetLanguage: string, sourceText: string, }
+  | {
+      phase: "translation-failure";
+      sourceLanguage: string;
+      targetLanguage: string;
+      sourceText: string;
+    }
 
   // The selected language pair is determined to be translatable.
-  | { phase: "translatable"; sourceLanguage: string; targetLanguage: string, sourceText: string, }
+  | {
+      phase: "translatable";
+      sourceLanguage: string;
+      targetLanguage: string;
+      sourceText: string;
+    }
 
   // The panel is actively translating the source text.
-  | { phase: "translating"; sourceLanguage: string; targetLanguage: string, sourceText: string, }
+  | {
+      phase: "translating";
+      sourceLanguage: string;
+      targetLanguage: string;
+      sourceText: string;
+    }
 
   // The source text has been translated successfully.
-  | { phase: "translated"; sourceLanguage: string; targetLanguage: string, sourceText: string, translatedText: string, }
+  | {
+      phase: "translated";
+      sourceLanguage: string;
+      targetLanguage: string;
+      sourceText: string;
+      translatedText: string;
+    }
 
   // The source language is not currently supported by Translations in Firefox.
-  | { phase: "unsupported"; detectedLanguage: string; targetLanguage: string, sourceText: string }
+  | {
+      phase: "unsupported";
+      detectedLanguage: string;
+      targetLanguage: string;
+      sourceText: string;
+    };
 
-export type RequestTranslationsPort = (languagePair: LanguagePair) => Promise<MessagePort>
+export type RequestTranslationsPort = (
+  languagePair: LanguagePair
+) => Promise<MessagePort>;
 
 export type TranslationsPortMessages = {
-  type: "TranslationsPort:TranslationRequest",
-  translationId: string,
-  sourceText: string,
-  isHTML: boolean,
-}
+  type: "TranslationsPort:TranslationRequest";
+  translationId: string;
+  sourceText: string;
+  isHTML: boolean;
+};
 
 export type EngineStatus = "uninitialized" | "ready" | "error" | "closed";
 
 export type PortToPage =
-  | { type: "TranslationsPort:TranslationResponse", targetText: string, translationId: number }
-  | { type: "TranslationsPort:GetEngineStatusResponse", status: EngineStatus }
-  | { type: "TranslationsPort:EngineTerminated" }
+  | {
+      type: "TranslationsPort:TranslationResponse";
+      targetText: string;
+      translationId: number;
+    }
+  | { type: "TranslationsPort:GetEngineStatusResponse"; status: EngineStatus }
+  | { type: "TranslationsPort:EngineTerminated" };

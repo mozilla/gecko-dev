@@ -2,13 +2,12 @@
  * Types specific to toolkit/extensions code.
  */
 declare global {
-
   type BaseContext = import("ExtensionCommon.sys.mjs").BaseContext;
   type ExtensionChild = import("ExtensionChild.sys.mjs").ExtensionChild;
   type Extension = import("Extension.sys.mjs").Extension;
   type callback = (...any) => any;
 
-  interface nsIDOMProcessChild  {
+  interface nsIDOMProcessChild {
     getActor(name: "ProcessConduits"): ProcessConduitsChild;
   }
 
@@ -33,4 +32,4 @@ import { PointConduit, ProcessConduitsChild } from "ConduitsChild.sys.mjs";
 import { ConduitAddress } from "ConduitsParent.sys.mjs";
 
 type Conduit<Send> = PointConduit & { [s in `send${Items<Send>}`]: callback };
-type Init<Send> = ConduitAddress & { send: Send; };
+type Init<Send> = ConduitAddress & { send: Send };

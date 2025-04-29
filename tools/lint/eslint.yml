@@ -5,7 +5,7 @@ eslint:
     include: ['.']
     exclude: []
     # When adding to this list, consider updating hooks_js_format.py as well.
-    extensions: ['mjs', 'js', 'json', 'jsx', 'html', 'sjs', 'xhtml']
+    extensions: ['mjs', 'js', 'json', 'jsx', 'html', 'sjs', 'xhtml', '.ts']
     support-files:
         - '**/.eslintrc.js'
         - '.eslintrc*.js'

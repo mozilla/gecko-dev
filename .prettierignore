@@ -7,6 +7,10 @@
 !*.sjs
 !*.xhtml
 !*.html
+!*.ts
+
+# Prettier currently fails to parse this.
+toolkit/components/extensions/types/ext-tabs-base.d.ts
 
 # Exclude xhtml/html test files.
 **/test*/**/*.xhtml
@@ -17,9 +21,6 @@
 !toolkit/content/tests/widgets/*.html
 !toolkit/content/tests/chrome/test_preferencesBindings_setting.html
 !browser/components/preferences/tests/chrome/*.html
-
-# Include Code Connect figma files
-!toolkit/content/widgets/**/*.figma.ts
 
 # This should be re-enabled in bug 1827456.
 js/src/builtin
@@ -1108,6 +1109,9 @@ dom/encoding/test/file_utf16_le_bom.js
 dom/base/test/file_js_cache.js
 dom/serviceworkers/test/file_js_cache.js
 
+# .ts files that aren't TypeScript
+dom/media/test/hls/*.ts
+
 # Intentional broken files
 dom/base/test/file_js_cache_syntax_error.js
 dom/base/test/jsmodules/test_scriptNotParsedAsModule.html
@@ -1698,5 +1702,6 @@ tools/@types/subs/
 tools/browsertime/package.json
 tools/browsertime/package-lock.json
 tools/ts/error_list.json
+tools/ts/test/baselines/
 try_task_config.json
 xpcom/idl-parser/xpidl/fixtures/xpctest.d.json
