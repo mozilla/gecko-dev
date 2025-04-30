@@ -11,7 +11,7 @@ import { XPCOMUtils } from "resource://gre/modules/XPCOMUtils.sys.mjs";
 const lazy = {};
 
 ChromeUtils.defineESModuleGetters(lazy, {
-  ExperimentAPI: "resource://nimbus/ExperimentAPI.sys.mjs",
+  EnrollmentType: "resource://nimbus/ExperimentAPI.sys.mjs",
   NimbusFeatures: "resource://nimbus/ExperimentAPI.sys.mjs",
   Region: "resource://gre/modules/Region.sys.mjs",
   RemoteSettings: "resource://services-settings/remote-settings.sys.mjs",
@@ -516,26 +516,25 @@ class CategorizationRecorder {
 
     lazy.logConsole.debug("Found targetExperiment:", targetExperiment);
 
-    // Try checking if an Experiment exists, otherwise check for a Rollout.
-    let metadata =
-      lazy.ExperimentAPI.getExperimentMetaData({
-        featureId: "search",
-        slug: targetExperiment,
-      }) ??
-      lazy.ExperimentAPI.getRolloutMetaData({
-        featureId: "search",
-        slug: targetExperiment,
-      });
-    if (!metadata) {
-      lazy.logConsole.debug(
-        "No experiment or rollout found that matches targetExperiment."
+    let metadata = lazy.NimbusFeatures.search.getEnrollmentMetadata(
+      lazy.EnrollmentType.EXPERIMENT
+    );
+    if (metadata?.slug !== targetExperiment) {
+      metadata = lazy.NimbusFeatures.search.getEnrollmentMetadata(
+        lazy.EnrollmentType.ROLLOUT
       );
-      return;
+
+      if (metadata?.slug !== targetExperiment) {
+        lazy.logConsole.debug(
+          "No experiment or rollout found that matches targetExperiment."
+        );
+        return;
+      }
     }
 
     let experimentToRecord = {
       slug: metadata.slug,
-      branch: metadata.branch?.slug,
+      branch: metadata.branch,
     };
     lazy.logConsole.debug("Experiment data:", experimentToRecord);
     Glean.serp.experimentInfo.set(experimentToRecord);
