@@ -21,8 +21,10 @@
 #include "nsViewManager.h"
 #include "nsIFrame.h"
 
+#include "mozilla/dom/ChildIterator.h"
 #include "mozilla/dom/Document.h"
 #include "mozilla/dom/Element.h"
+#include "mozilla/dom/TreeIterator.h"
 #include "mozilla/Preferences.h"
 #include "mozilla/PresShell.h"
 
@@ -136,27 +138,60 @@ nsLayoutDebuggingTools::SetPagedMode(bool aPagedMode) {
   return NS_OK;
 }
 
-static void DumpContentRecur(nsIDocShell* aDocShell, FILE* out) {
+static void DumpContentRecur(nsIDocShell* aDocShell, FILE* out,
+                             bool aAnonymousSubtrees) {
 #ifdef DEBUG
-  if (nullptr != aDocShell) {
-    fprintf(out, "docshell=%p \n", static_cast<void*>(aDocShell));
-    RefPtr<Document> doc(document(aDocShell));
-    if (doc) {
-      dom::Element* root = doc->GetRootElement();
-      if (root) {
-        root->List(out);
+  if (!aDocShell) {
+    return;
+  }
+
+  fprintf(out, "docshell=%p \n", static_cast<void*>(aDocShell));
+  RefPtr<Document> doc(document(aDocShell));
+  if (!doc) {
+    fputs("no document\n", out);
+    return;
+  }
+
+  dom::Element* root = doc->GetRootElement();
+  if (!root) {
+    fputs("no root element\n", out);
+    return;
+  }
+
+  // The content tree (without anonymous subtrees).
+  root->List(out);
+
+  // The anonymous subtrees.
+  if (aAnonymousSubtrees) {
+    dom::TreeIterator<dom::StyleChildrenIterator> iter(*root);
+    while (nsIContent* current = iter.GetNext()) {
+      if (!current->IsRootOfNativeAnonymousSubtree()) {
+        continue;
       }
-    } else {
-      fputs("no document\n", out);
+
+      fputs("--\n", out);
+      if (current->IsElement() &&
+          current->AsElement()->GetPseudoElementType() ==
+              PseudoStyleType::viewTransition) {
+        fprintf(out,
+                "View Transition Tree "
+                "[parent=%p][active-view-transition=%p]:\n",
+                (void*)current->GetParent(),
+                (void*)doc->GetActiveViewTransition());
+      } else {
+        fprintf(out, "Anonymous Subtree [parent=%p]:\n",
+                (void*)current->GetParent());
+      }
+      current->List(out);
     }
   }
 #endif
 }
 
 NS_IMETHODIMP
-nsLayoutDebuggingTools::DumpContent() {
+nsLayoutDebuggingTools::DumpContent(bool aAnonymousSubtrees) {
   NS_ENSURE_TRUE(mDocShell, NS_ERROR_NOT_INITIALIZED);
-  DumpContentRecur(mDocShell, stdout);
+  DumpContentRecur(mDocShell, stdout, aAnonymousSubtrees);
   return NS_OK;
 }
 

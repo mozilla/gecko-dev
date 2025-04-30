@@ -46,6 +46,9 @@ layoutdebug-paged-mode =
 layoutdebug-deterministic-frame-dumping =
     .label = Deterministic Frame Dumping
     .accesskey = D
+layoutdebug-anonymous-subtree-dumping =
+    .label = Anonymous Subtree Dumping
+    .accesskey = A
 
 ## Dump Menu
 

@@ -33,7 +33,7 @@ interface nsILayoutDebuggingTools : nsISupports
     void setPagedMode(in boolean enabled);
 
     /* Run various tests. */
-    void dumpContent();
+    void dumpContent(in boolean anonymousSubtrees);
     void dumpFrames(in uint8_t flags);
     void dumpTextRuns();
     void dumpViews();
