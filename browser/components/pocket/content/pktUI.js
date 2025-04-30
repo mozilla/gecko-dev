@@ -45,7 +45,8 @@
 /* eslint-env mozilla/browser-window */
 
 ChromeUtils.defineESModuleGetters(this, {
-  ExperimentAPI: "resource://nimbus/ExperimentAPI.sys.mjs",
+  EnrollmentType: "resource://nimbus/ExperimentAPI.sys.mjs",
+  NimbusFeatures: "resource://nimbus/ExperimentAPI.sys.mjs",
   pktApi: "chrome://pocket/content/pktApi.sys.mjs",
   pktTelemetry: "chrome://pocket/content/pktTelemetry.sys.mjs",
   PrivateBrowsingUtils: "resource://gre/modules/PrivateBrowsingUtils.sys.mjs",
@@ -178,34 +179,24 @@ var pktUI = (function () {
       height: options.height,
     });
 
-    const saveToPocketExperiment = ExperimentAPI.getExperimentMetaData({
-      featureId: "saveToPocket",
-    });
-
-    const saveToPocketRollout = ExperimentAPI.getRolloutMetaData({
-      featureId: "saveToPocket",
-    });
-
-    const pocketNewtabExperiment = ExperimentAPI.getExperimentMetaData({
-      featureId: "pocketNewtab",
-    });
-
-    const pocketNewtabRollout = ExperimentAPI.getRolloutMetaData({
-      featureId: "pocketNewtab",
-    });
-
     // We want to know if the user is in a Pocket related experiment or rollout,
     // but we have 2 Pocket related features, so we prioritize the saveToPocket feature,
     // and experiments over rollouts.
-    const experimentMetaData =
-      saveToPocketExperiment ||
-      pocketNewtabExperiment ||
-      saveToPocketRollout ||
-      pocketNewtabRollout;
+    const experimentMetadata =
+      NimbusFeatures.saveToPocket.getEnrollmentMetadata(
+        EnrollmentType.EXPERIMENT
+      ) ??
+      NimbusFeatures.pocketNewtab.getEnrollmentMetadata(
+        EnrollmentType.EXPERIMENT
+      ) ??
+      NimbusFeatures.saveToPocket.getEnrollmentMetadata(
+        EnrollmentType.ROLLOUT
+      ) ??
+      NimbusFeatures.pocketNewtab.getEnrollmentMetadata(EnrollmentType.ROLLOUT);
 
     let utmSource = "firefox_pocket_save_button";
-    let utmCampaign = experimentMetaData?.slug;
-    let utmContent = experimentMetaData?.branch?.slug;
+    let utmCampaign = experimentMetadata?.slug;
+    let utmContent = experimentMetadata?.branch;
 
     const url = new URL(urlString);
     // A set of params shared across all panels.
