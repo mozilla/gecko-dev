@@ -617,6 +617,9 @@ class JS::Realm : public JS::shadow::Realm {
   }
 
 #ifdef DEBUG
+  bool hasActiveAutoSetNewObjectMetadata() const {
+    return numActiveAutoSetNewObjectMetadata_ > 0;
+  }
   void incNumActiveAutoSetNewObjectMetadata() {
     numActiveAutoSetNewObjectMetadata_++;
   }
