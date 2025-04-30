@@ -240,7 +240,7 @@ tasks:
 
     grizzly-osx-aarch64-opt:
         platform: osx-cross-aarch64/asan
-        worker-type: t-osx-1100-m1
+        worker-type: t-osx-1500-m4
         worker:
             env:
                 GECKO_BINARY_PATH: "$MOZ_FETCHES_DIR/Nightly.app/Contents/MacOS/firefox"
@@ -255,7 +255,7 @@ tasks:
 
     grizzly-osx-aarch64-debug:
         platform: osx-cross-aarch64/debug
-        worker-type: t-osx-1100-m1
+        worker-type: t-osx-1500-m4
         worker:
             env:
                 GECKO_BINARY_PATH: '"$MOZ_FETCHES_DIR/Firefox NightlyDebug.app/Contents/MacOS/firefox"'

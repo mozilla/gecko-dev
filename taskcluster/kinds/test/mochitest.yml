@@ -879,6 +879,8 @@ mochitest-media:
                     linux.*-ccov/opt: []
                     .*-32.*: built-projects
                     windows11.*: built-projects
+                    linux.*wayland.*: []
+                    macosx1470.*: []
                     (?!.*-qr).*: []
                     default: built-projects
     loopback-video: true

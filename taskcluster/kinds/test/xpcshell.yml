@@ -34,7 +34,7 @@ task-defaults:
                     - unittests/win_unittest.py
         requires-signed-builds:
             by-test-platform:
-                macosx1100.*: true
+                macosx1500.*: true
                 windows.*-asan/opt: false    # No XPCShell on ASAN yet
                 windows.*-mingwclang/.*: false
                 windows.*: true
@@ -211,7 +211,7 @@ xpcshell-failures:
                     - unittests/win_unittest.py
         extra-options:
             by-test-platform:
-                macosx1100.*:
+                macosx1500.*:
                     - --run-failures=apple_silicon
                     - --timeout-as-pass
                     - --crash-as-pass
