@@ -205,8 +205,10 @@ NativeLayerRootWayland::NativeLayerRootWayland(
       "%d",
       mLoggingWidget, mSurface->IsMapped());
 #endif
-  MOZ_DIAGNOSTIC_ASSERT(WaylandSurface::IsOpaqueRegionEnabled(),
-                        "Can't work without opaque region!");
+  if (!WaylandSurface::IsOpaqueRegionEnabled()) {
+    NS_WARNING(
+        "Wayland opaque region disabled, expect poor rendering performance!");
+  }
 }
 
 NativeLayerRootWayland::~NativeLayerRootWayland() {
@@ -314,7 +316,7 @@ void NativeLayerRootWayland::SetLayers(
         if (!layer->Map(&surfaceLock)) {
           continue;
         }
-        if (layer->IsOpaque()) {
+        if (layer->IsOpaque() && WaylandSurface::IsOpaqueRegionEnabled()) {
           LOG("  adding new opaque layer [%p]", layer.get());
           mMainThreadUpdateSublayers.AppendElement(layer);
         }
@@ -456,8 +458,10 @@ bool NativeLayerRootWayland::CommitToScreenLocked(
 
   // Try to map all missing surfaces
   for (RefPtr<NativeLayerWayland>& layer : mSublayers) {
-    if (!layer->IsMapped() && layer->Map(&surfaceLock) && layer->IsOpaque()) {
-      mMainThreadUpdateSublayers.AppendElement(layer);
+    if (!layer->IsMapped() && layer->Map(&surfaceLock)) {
+      if (layer->IsOpaque() && WaylandSurface::IsOpaqueRegionEnabled()) {
+        mMainThreadUpdateSublayers.AppendElement(layer);
+      }
       mNeedsLayerUpdate = true;
     }
   }
