@@ -468,3 +468,51 @@ def setup_lambdatest_options(config, tasks):
                 )
             task["worker"]["command"] = modified
         yield task
+
+
+@task_transforms.add
+def select_tasks_to_lambda(config, tasks):
+    """
+    all motionmark tests
+    unity-webgl test
+    all non-power-testing youtube-playback tests
+    all vpl (video-playback-latency) tests
+
+    """
+    tests_to_run_at_lambdatest = [
+        "motionmark-1-3",
+        "motionmark-htmlsuite-1-3",
+        "unity-webgl",
+        "video-playback-latency",
+        "youtube-playback-av1-sfr",
+        "youtube-playback-hfr",
+        "youtube-playback-vp9-sfr",
+    ]
+
+    tests_to_run_at_lambdatest.extend(
+        [f"{t}-nofis" for t in tests_to_run_at_lambdatest]
+    )
+
+    for task in tasks:
+        if "android" in task["label"] and "a55" in task["label"]:
+            if any([t in task["label"] for t in tests_to_run_at_lambdatest]):
+                if task["worker-type"] == "t-bitbar-gw-perf-a55":
+                    task["tags"]["os"] = "linux-lambda"
+                    task["worker"]["os"] = "linux-lambda"
+                    task["worker-type"] = "t-lambda-perf-a55"
+                    task["worker"]["env"][
+                        "TASKCLUSTER_WORKER_TYPE"
+                    ] = "t-lambda-perf-a55"
+                    cmds = []
+                    for cmd in task["worker"]["command"]:
+                        cmds.append(
+                            [
+                                c.replace(
+                                    "/builds/taskcluster/script.py",
+                                    "/home/ltuser/taskcluster/script.py",
+                                )
+                                for c in cmd
+                            ]
+                        )
+                    task["worker"]["command"] = cmds
+        yield task
