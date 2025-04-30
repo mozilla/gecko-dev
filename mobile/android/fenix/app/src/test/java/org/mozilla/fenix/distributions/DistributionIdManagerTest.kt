@@ -219,6 +219,12 @@ class DistributionIdManagerTest {
 
         testBrowserStoreProvider.updateDistributionId(DistributionIdManager.Distribution.DT_001.id)
         assertEquals(true, subject.isPartnershipDistribution())
+
+        testBrowserStoreProvider.updateDistributionId(DistributionIdManager.Distribution.DT_002.id)
+        assertEquals(true, subject.isPartnershipDistribution())
+
+        testBrowserStoreProvider.updateDistributionId(DistributionIdManager.Distribution.AURA_001.id)
+        assertEquals(true, subject.isPartnershipDistribution())
     }
 
     @Test
@@ -233,5 +239,50 @@ class DistributionIdManagerTest {
         val distributionId = subject.getDistributionId()
 
         assertEquals("aura-001", distributionId)
+    }
+
+    @Test
+    fun `WHEN the provider is DT AND a DT USA package is installed THEN the proper distribution ID is returned`() {
+        val subject = DistributionIdManager(
+            testContext,
+            testBrowserStoreProvider,
+            testDistributionProviderChecker,
+            isDtUsaInstalled = { true },
+        )
+
+        providerValue = "digital_turbine"
+        val distributionId = subject.getDistributionId()
+
+        assertEquals("dt-002", distributionId)
+    }
+
+    @Test
+    fun `WHEN the provider is DT AND no USA package is installed THEN the proper distribution ID is returned`() {
+        val subject = DistributionIdManager(
+            testContext,
+            testBrowserStoreProvider,
+            testDistributionProviderChecker,
+            isDtUsaInstalled = { false },
+        )
+
+        providerValue = "digital_turbine"
+        val distributionId = subject.getDistributionId()
+
+        assertEquals("Mozilla", distributionId)
+    }
+
+    @Test
+    fun `WHEN the provider is not DT AND a DT USA package is installed THEN the proper distribution ID is returned`() {
+        val subject = DistributionIdManager(
+            testContext,
+            testBrowserStoreProvider,
+            testDistributionProviderChecker,
+            isDtUsaInstalled = { true },
+        )
+
+        providerValue = "some_provider"
+        val distributionId = subject.getDistributionId()
+
+        assertEquals("Mozilla", distributionId)
     }
 }
