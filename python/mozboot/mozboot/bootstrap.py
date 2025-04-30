@@ -27,6 +27,7 @@ from mach.util import (
 )
 from mozbuild.base import MozbuildObject
 from mozfile import which
+from mozversioncontrol import get_repository_object
 from packaging.version import Version
 
 from mozboot.archlinux import ArchlinuxBootstrapper
@@ -971,21 +972,27 @@ def configure_git(
         )
         ensure_watchman(top_src_dir, git_str)
 
-    cinnabar_dir = str(update_git_tools(git, root_state_dir))
+    repo = get_repository_object(top_src_dir)
 
-    if not cinnabar:
-        if "MOZILLABUILD" in os.environ:
-            # Slightly modify the path on Windows to be correct
-            # for the copy/paste into the .bash_profile
-            cinnabar_dir = win_to_msys_path(cinnabar_dir)
+    # Only do cinnabar checks if we're a git cinnabar repo
+    if repo.is_cinnabar_repo():
+        cinnabar_dir = str(update_git_tools(git, root_state_dir))
 
-            print(
-                ADD_GIT_CINNABAR_PATH.format(
-                    prefix="%USERPROFILE%", cinnabar_dir=cinnabar_dir
+        if not cinnabar:
+            if "MOZILLABUILD" in os.environ:
+                # Slightly modify the path on Windows to be correct
+                # for the copy/paste into the .bash_profile
+                cinnabar_dir = win_to_msys_path(cinnabar_dir)
+
+                print(
+                    ADD_GIT_CINNABAR_PATH.format(
+                        prefix="%USERPROFILE%", cinnabar_dir=cinnabar_dir
+                    )
                 )
-            )
-        else:
-            print(ADD_GIT_CINNABAR_PATH.format(prefix="~", cinnabar_dir=cinnabar_dir))
+            else:
+                print(
+                    ADD_GIT_CINNABAR_PATH.format(prefix="~", cinnabar_dir=cinnabar_dir)
+                )
 
 
 def _warn_if_risky_revision(path: Path):
@@ -994,7 +1001,6 @@ def _warn_if_risky_revision(path: Path):
     # this case). This is an approximate calculation but is probably good
     # enough for our purposes.
     NUM_SECONDS_IN_MONTH = 60 * 60 * 24 * 30
-    from mozversioncontrol import get_repository_object
 
     repo = get_repository_object(path)
     if (time.time() - repo.get_commit_time()) >= NUM_SECONDS_IN_MONTH:
