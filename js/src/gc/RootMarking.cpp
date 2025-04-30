@@ -277,7 +277,7 @@ void js::TraceRuntimeWithoutEviction(JSTracer* trc) {
   rt->gc.traceRuntime(trc, session);
 }
 
-void js::gc::GCRuntime::traceRuntime(JSTracer* trc, AutoTraceSession& session) {
+void js::gc::GCRuntime::traceRuntime(JSTracer* trc, AutoHeapSession& session) {
   MOZ_ASSERT(!rt->isBeingDestroyed());
 
   gcstats::AutoPhase ap(stats(), gcstats::PhaseKind::MARK_ROOTS);

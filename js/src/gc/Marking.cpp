@@ -141,7 +141,8 @@ void js::CheckTracedThing(JSTracer* trc, T* thing) {
     JS::TracerKind kind = trc->kind();
     MOZ_ASSERT(kind == JS::TracerKind::Tenuring ||
                kind == JS::TracerKind::MinorSweeping ||
-               kind == JS::TracerKind::Moving);
+               kind == JS::TracerKind::Moving ||
+               kind == JS::TracerKind::HeapCheck);
     thing = Forwarded(thing);
   }
 

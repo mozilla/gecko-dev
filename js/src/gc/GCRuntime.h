@@ -351,7 +351,7 @@ class GCRuntime {
   void notifyRootsRemoved();
 
   enum TraceOrMarkRuntime { TraceRuntime, MarkRuntime };
-  void traceRuntime(JSTracer* trc, AutoTraceSession& session);
+  void traceRuntime(JSTracer* trc, AutoHeapSession& session);
   void traceRuntimeForMinorGC(JSTracer* trc, AutoGCSession& session);
 
   void purgeRuntimeForMinorGC();
@@ -597,6 +597,7 @@ class GCRuntime {
   void finishVerifier();
   bool isVerifyPreBarriersEnabled() const { return verifyPreData.refNoCheck(); }
   bool shouldYieldForZeal(ZealMode mode);
+  void verifyPostBarriers(AutoHeapSession& session);
 #else
   bool isVerifyPreBarriersEnabled() const { return false; }
 #endif
