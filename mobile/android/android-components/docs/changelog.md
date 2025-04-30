@@ -4,7 +4,9 @@ title: Changelog
 permalink: /changelog/
 ---
 
-# 139.0 (In Development)
+# 140.0 (In Development)
+
+# 139.0
 * **feature-downloads**
   * ⚠️ **Breaking change**: Added new `fileSizeFormatter` abstract val to `AbstractFetchDownloadService`. [Bug 1956580](https://bugzilla.mozilla.org/show_bug.cgi?id=1956580).
   * ⚠️ **Breaking change**: Added new `fileSizeFormatter` parameter to `DownloadNotification.createDownloadGroupNotification`. [Bug 1956580](https://bugzilla.mozilla.org/show_bug.cgi?id=1956580).
