@@ -872,7 +872,19 @@ def update_git_tools(git: Optional[Path], root_state_dir: Path):
     return cinnabar_dir
 
 
-def ensure_watchman(top_src_dir: Path, git_str: str):
+def set_git_config(git_str: str, topsrcdir: Path, key: str, value: str):
+    """
+    Set a git config value in the given repo and print
+    logging output indicating what was done.
+    """
+    subprocess.check_call(
+        [git_str, "config", key, value],
+        cwd=str(topsrcdir),
+    )
+    print(f'Set git config: "{key} = {value}"')
+
+
+def ensure_watchman(topsrcdir: Path, git_str: str):
     watchman = which("watchman")
 
     if not watchman:
@@ -883,8 +895,8 @@ def ensure_watchman(top_src_dir: Path, git_str: str):
 
     print("Ensuring watchman is properly configured...")
 
-    watchman_config = top_src_dir / ".git/hooks/query-watchman"
-    watchman_sample = top_src_dir / ".git/hooks/fsmonitor-watchman.sample"
+    watchman_config = topsrcdir / ".git/hooks/query-watchman"
+    watchman_sample = topsrcdir / ".git/hooks/fsmonitor-watchman.sample"
 
     if not watchman_sample.exists():
         print(
@@ -901,25 +913,23 @@ def ensure_watchman(top_src_dir: Path, git_str: str):
             ".git/hooks/query-watchman",
         ]
         print(f"Copying {watchman_sample} to {watchman_config}")
-        subprocess.check_call(copy_cmd, cwd=str(top_src_dir))
+        subprocess.check_call(copy_cmd, cwd=str(topsrcdir))
 
-    watchman_config_cmd = [
-        git_str,
-        "config",
-        "core.fsmonitor",
-        ".git/hooks/query-watchman",
-    ]
-    subprocess.check_call(watchman_config_cmd, cwd=str(top_src_dir))
+    set_git_config(
+        git_str, topsrcdir, key="core.fsmonitor", value=".git/hooks/query-watchman"
+    )
 
 
 def configure_git(
-    git: Optional[Path],
+    git: Path,
     cinnabar: Optional[Path],
     root_state_dir: Path,
-    top_src_dir: Path,
+    topsrcdir: Path,
 ):
     """Run the Git configuration steps."""
-    git_str = to_optional_str(git)
+    git_str = str(git)
+
+    print("Configuring git...")
 
     match = re.search(
         r"(\d+\.\d+\.\d+)",
@@ -943,36 +953,32 @@ def configure_git(
 
     system = platform.system()
 
-    subprocess.check_call(
-        [git_str, "config", "core.untrackedCache", "true"], cwd=str(top_src_dir)
-    )
+    # https://git-scm.com/docs/git-config#Documentation/git-config.txt-coreuntrackedCache
+    set_git_config(git_str, topsrcdir, key="core.untrackedCache", value="true")
+
     # https://git-scm.com/docs/git-config#Documentation/git-config.txt-corefsmonitor
     if system == "Windows":
         # On Windows we enable the built-in fsmonitor which is superior to Watchman.
+        set_git_config(git_str, topsrcdir, key="core.fscache", value="true")
         # https://github.com/git-for-windows/git/blob/eaeb5b51c389866f207c52f1546389a336914e07/Documentation/config/core.adoc?plain=1#L688-L692
-        # We can also enable fscache (only supported on Git-for-Windows).
-        subprocess.check_call(
-            [git_str, "config", "core.fscache", "true"], cwd=str(top_src_dir)
-        )
-        subprocess.check_call(
-            [git_str, "config", "core.fsmonitor", "true"], cwd=str(top_src_dir)
-        )
+        # We can also enable fscache (only supported on git-for-windows).
+        set_git_config(git_str, topsrcdir, key="core.fsmonitor", value="true")
     elif system == "Darwin":
         # On macOS (Darwin) we enable the built-in fsmonitor which is superior to Watchman.
-        subprocess.check_call(
-            [git_str, "config", "core.fsmonitor", "true"], cwd=str(top_src_dir)
-        )
+        set_git_config(git_str, topsrcdir, key="core.fsmonitor", value="true")
     elif system == "Linux":
         # On Linux the built-in fsmonitor isn’t available, so we unset it and attempt to set up
         # Watchman to achieve similar fsmonitor-style speedups.
         subprocess.run(
             [git_str, "config", "--unset-all", "core.fsmonitor"],
+            cwd=str(topsrcdir),
             check=False,
-            cwd=str(top_src_dir),
         )
-        ensure_watchman(top_src_dir, git_str)
+        print("Unset git config: `core.fsmonitor`")
 
-    repo = get_repository_object(top_src_dir)
+        ensure_watchman(topsrcdir, git_str)
+
+    repo = get_repository_object(topsrcdir)
 
     # Only do cinnabar checks if we're a git cinnabar repo
     if repo.is_cinnabar_repo():
