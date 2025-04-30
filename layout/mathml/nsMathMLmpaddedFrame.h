@@ -94,7 +94,7 @@ class nsMathMLmpaddedFrame final : public nsMathMLContainerFrame {
 
   void UpdateValue(const Attribute& aAttribute, Attribute::PseudoUnit aSelfUnit,
                    const ReflowOutput& aDesiredSize, nscoord& aValueToUpdate,
-                   float aFontSizeInflation);
+                   float aFontSizeInflation) const;
 };
 
 #endif /* nsMathMLmpaddedFrame_h___ */

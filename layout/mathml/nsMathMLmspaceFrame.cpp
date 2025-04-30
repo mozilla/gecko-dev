@@ -77,8 +77,8 @@ nscoord nsMathMLmspaceFrame::CalculateAttributeValue(nsAtom* aAtom,
       aAttribute.mValue.GetUnit() == eCSSUnit_Percent) {
     return 0;
   }
-  return CalcLength(aAttribute.mValue,
-                    aFontSizeInflation, this);
+  return CalcLength(PresContext(), mComputedStyle, aAttribute.mValue,
+                    aFontSizeInflation);
 }
 
 nsresult nsMathMLmspaceFrame::Place(DrawTarget* aDrawTarget,

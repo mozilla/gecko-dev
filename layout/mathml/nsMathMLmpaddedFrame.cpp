@@ -230,7 +230,7 @@ void nsMathMLmpaddedFrame::UpdateValue(const Attribute& aAttribute,
                                        Attribute::PseudoUnit aSelfUnit,
                                        const ReflowOutput& aDesiredSize,
                                        nscoord& aValueToUpdate,
-                                       float aFontSizeInflation) {
+                                       float aFontSizeInflation) const {
   nsCSSUnit unit = aAttribute.mValue.GetUnit();
   if (aAttribute.IsValid() && eCSSUnit_Null != unit) {
     nscoord scaler = 0, amount = 0;
@@ -268,8 +268,8 @@ void nsMathMLmpaddedFrame::UpdateValue(const Attribute& aAttribute,
       amount =
           NSToCoordRound(float(scaler) * aAttribute.mValue.GetPercentValue());
     } else {
-      amount = CalcLength(aAttribute.mValue,
-                          aFontSizeInflation, this);
+      amount = CalcLength(PresContext(), mComputedStyle, aAttribute.mValue,
+                          aFontSizeInflation);
     }
 
     switch (aAttribute.mSign) {

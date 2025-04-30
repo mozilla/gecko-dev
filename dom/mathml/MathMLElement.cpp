@@ -23,9 +23,6 @@
 #include "nsContentUtils.h"
 #include "nsIURI.h"
 
-// used for parsing CSS units
-#include "mozilla/dom/SVGLength.h"
-
 #include "mozilla/EventDispatcher.h"
 #include "mozilla/MappedDeclarationsBuilder.h"
 #include "mozilla/dom/MathMLElementBinding.h"
@@ -324,15 +321,29 @@ bool MathMLElement::ParseNumericValue(const nsString& aString,
   } else if (unit.EqualsLiteral("%")) {
     aCSSValue.SetPercentValue(floatValue / 100.0f);
     return true;
-  } else {
-    uint8_t unitType = SVGLength::GetUnitTypeForString(unit);
-    if (unitType == SVGLength_Binding::SVG_LENGTHTYPE_UNKNOWN) { // unexpected unit
-      if (!(aFlags & PARSE_SUPPRESS_WARNINGS)) {
-        ReportLengthParseError(aString, aDocument);
-      }
-      return false;
+  } else if (unit.LowerCaseEqualsLiteral("em"))
+    cssUnit = eCSSUnit_EM;
+  else if (unit.LowerCaseEqualsLiteral("ex"))
+    cssUnit = eCSSUnit_XHeight;
+  else if (unit.LowerCaseEqualsLiteral("px"))
+    cssUnit = eCSSUnit_Pixel;
+  else if (unit.LowerCaseEqualsLiteral("in"))
+    cssUnit = eCSSUnit_Inch;
+  else if (unit.LowerCaseEqualsLiteral("cm"))
+    cssUnit = eCSSUnit_Centimeter;
+  else if (unit.LowerCaseEqualsLiteral("mm"))
+    cssUnit = eCSSUnit_Millimeter;
+  else if (unit.LowerCaseEqualsLiteral("pt"))
+    cssUnit = eCSSUnit_Point;
+  else if (unit.LowerCaseEqualsLiteral("pc"))
+    cssUnit = eCSSUnit_Pica;
+  else if (unit.LowerCaseEqualsLiteral("q"))
+    cssUnit = eCSSUnit_Quarter;
+  else {  // unexpected unit
+    if (!(aFlags & PARSE_SUPPRESS_WARNINGS)) {
+      ReportLengthParseError(aString, aDocument);
     }
-    cssUnit = SVGLength::SpecifiedUnitTypeToCSSUnit(unitType);
+    return false;
   }
 
   aCSSValue.SetFloatValue(floatValue, cssUnit);

@@ -77,7 +77,9 @@ nsMathMLmfracFrame::TransmitAutomaticData() {
   return NS_OK;
 }
 
-nscoord nsMathMLmfracFrame::CalcLineThickness(nsString& aThicknessAttribute,
+nscoord nsMathMLmfracFrame::CalcLineThickness(nsPresContext* aPresContext,
+                                              ComputedStyle* aComputedStyle,
+                                              nsString& aThicknessAttribute,
                                               nscoord onePixel,
                                               nscoord aDefaultRuleThickness,
                                               float aFontSizeInflation) {
@@ -89,9 +91,9 @@ nscoord nsMathMLmfracFrame::CalcLineThickness(nsString& aThicknessAttribute,
   // https://w3c.github.io/mathml-core/#dfn-linethickness
   if (!aThicknessAttribute.IsEmpty()) {
     lineThickness = defaultThickness;
-    ParseAndCalcNumericValue(aThicknessAttribute, &lineThickness,
-                             dom::MathMLElement::PARSE_ALLOW_NEGATIVE,
-                             aFontSizeInflation, this);
+    ParseNumericValue(aThicknessAttribute, &lineThickness,
+                      dom::MathMLElement::PARSE_ALLOW_NEGATIVE, aPresContext,
+                      aComputedStyle, aFontSizeInflation);
     // MathML Core says a negative value is interpreted as 0.
     if (lineThickness < 0) {
       lineThickness = 0;
@@ -196,9 +198,10 @@ nsresult nsMathMLmfracFrame::Place(DrawTarget* aDrawTarget,
 
   // see if the linethickness attribute is there
   nsAutoString value;
-  mContent->AsElement()->GetAttr(nsGkAtoms::linethickness_, value);
-  mLineThickness = CalcLineThickness(value, onePixel, defaultRuleThickness,
-                                     fontSizeInflation);
+  mContent->AsElement()->GetAttr(nsGkAtoms::linethickness, value);
+  mLineThickness =
+      CalcLineThickness(presContext, mComputedStyle, value, onePixel,
+                        defaultRuleThickness, fontSizeInflation);
 
   bool displayStyle = StyleFont()->mMathStyle == StyleMathStyle::Normal;
 

@@ -416,6 +416,9 @@ static void ExtractSpacingValues(const nsAString& aString, nsAtom* aAttribute,
                                  nsIFrame* aFrame, nscoord aDefaultValue0,
                                  nscoord aDefaultValue1,
                                  float aFontSizeInflation) {
+  nsPresContext* presContext = aFrame->PresContext();
+  ComputedStyle* computedStyle = aFrame->Style();
+
   const char16_t* start = aString.BeginReading();
   const char16_t* end = aString.EndReading();
 
@@ -447,7 +450,8 @@ static void ExtractSpacingValues(const nsAString& aString, nsAtom* aAttribute,
       } else {
         newValue = aDefaultValue0;
       }
-      nsMathMLFrame::ParseAndCalcNumericValue(valueString, &newValue, 0, aFontSizeInflation, aFrame);
+      nsMathMLFrame::ParseNumericValue(valueString, &newValue, 0, presContext,
+                                       computedStyle, aFontSizeInflation);
       aSpacingArray.AppendElement(newValue);
 
       startIndex += count;

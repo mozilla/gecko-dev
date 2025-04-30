@@ -136,10 +136,6 @@ class SVGLength {
                                 uint8_t aUnitType, uint8_t aAxis,
                                 bool aApplyZoom);
 
-  static float GetPixelsPerCSSUnit(const dom::UserSpaceMetrics& aMetrics,
-                                   nsCSSUnit aCSSUnit, uint8_t aAxis,
-                                   bool aApplyZoom);
-
  private:
   float mValue;
   uint8_t mUnit;
