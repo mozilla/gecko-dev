@@ -228,17 +228,10 @@ class DMABufSurface {
                     uint32_t* aStride, int aGbmFlags, int aPlane = 0);
 #endif
 
-  // We want to keep number of opened file descriptors low so open/close
-  // DMABuf file handles only when we need them, i.e. when DMABuf is exported
-  // to another process or to EGL.
-  virtual bool OpenFileDescriptorForPlane(
-      const mozilla::MutexAutoLock& aProofOfLock, int aPlane) = 0;
-  virtual void CloseFileDescriptorForPlane(
-      const mozilla::MutexAutoLock& aProofOfLock, int aPlane,
-      bool aForceClose = false) = 0;
-  bool OpenFileDescriptors(const mozilla::MutexAutoLock& aProofOfLock);
-  void CloseFileDescriptors(const mozilla::MutexAutoLock& aProofOfLock,
-                            bool aForceClose = false);
+  virtual bool OpenFileDescriptorForPlane(int aPlane) = 0;
+
+  bool OpenFileDescriptors();
+  void CloseFileDescriptors();
 
   nsresult ReadIntoBuffer(mozilla::gl::GLContext* aGLContext, uint8_t* aData,
                           int32_t aStride, const mozilla::gfx::IntSize& aSize,
@@ -276,6 +269,7 @@ class DMABufSurface {
 
   int mGlobalRefCountFd;
   uint32_t mUID;
+
   mozilla::Mutex mSurfaceLock MOZ_UNANNOTATED;
 
   mozilla::gfx::ColorRange mColorRange = mozilla::gfx::ColorRange::LIMITED;
@@ -355,11 +349,7 @@ class DMABufSurfaceRGBA final : public DMABufSurface {
               int aWidth, int aHeight);
 
   bool ImportSurfaceDescriptor(const mozilla::layers::SurfaceDescriptor& aDesc);
-
-  bool OpenFileDescriptorForPlane(const mozilla::MutexAutoLock& aProofOfLock,
-                                  int aPlane) override;
-  void CloseFileDescriptorForPlane(const mozilla::MutexAutoLock& aProofOfLock,
-                                   int aPlane, bool aForceClose) override;
+  bool OpenFileDescriptorForPlane(int aPlane) override;
 
  private:
   int mWidth;
@@ -462,10 +452,7 @@ class DMABufSurfaceYUV final : public DMABufSurface {
   bool ImportSurfaceDescriptor(
       const mozilla::layers::SurfaceDescriptorDMABuf& aDesc);
 
-  bool OpenFileDescriptorForPlane(const mozilla::MutexAutoLock& aProofOfLock,
-                                  int aPlane) override;
-  void CloseFileDescriptorForPlane(const mozilla::MutexAutoLock& aProofOfLock,
-                                   int aPlane, bool aForceClose) override;
+  bool OpenFileDescriptorForPlane(int aPlane) override;
 
   int mWidth[DMABUF_BUFFER_PLANES];
   int mHeight[DMABUF_BUFFER_PLANES];
