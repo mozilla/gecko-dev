@@ -16,6 +16,7 @@ support-files = [
 
 ["browser_custom_functions.js"]
 support-files = ["download_server.sjs"]
+skip-if = ["true"] # Bug 1961710
 
 ["browser_interventions.js"]
 
