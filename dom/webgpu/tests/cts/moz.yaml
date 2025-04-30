@@ -46,7 +46,7 @@ vendoring:
       args:
         - run
         - --
-        - '{yaml_dir}/checkout/'
+        - '../checkout/'
 
     - action: delete-path
       path: '../../../../../testing/web-platform/mozilla/tests/webgpu/'
