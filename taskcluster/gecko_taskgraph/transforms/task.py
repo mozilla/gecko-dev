@@ -1422,9 +1422,59 @@ def build_treescript_payload(config, task, task_def):
         task_def["payload"]["ssh_user"] = worker["ssh-user"]
 
 
-@payload_builder("landoscript", schema={})
+@payload_builder(
+    "landoscript",
+    schema={
+        Required("lando-repo"): str,
+        Optional("ignore-closed-tree"): bool,
+        Optional("dontbuild"): bool,
+        Optional("l10n-bump-info"): [
+            {
+                Required("name"): str,
+                Required("path"): str,
+                Optional("l10n-repo-url"): str,
+                Optional("l10n-repo-target-branch"): str,
+                Optional("ignore-config"): object,
+                Required("platform-configs"): [
+                    {
+                        Required("platforms"): [str],
+                        Required("path"): str,
+                        Optional("format"): str,
+                    }
+                ],
+            }
+        ],
+    },
+)
 def build_landoscript_payload(config, task, task_def):
-    pass
+    worker = task["worker"]
+    task_def["payload"] = {"actions": [], "lando_repo": worker["lando-repo"]}
+    actions = task_def["payload"]["actions"]
+
+    if worker.get("ignore-closed-tree") is not None:
+        task_def["payload"]["ignore_closed_tree"] = worker["ignore-closed-tree"]
+
+    if worker.get("dontbuild"):
+        task_def["payload"]["dontbuild"] = True
+
+    if worker.get("l10n-bump-info"):
+        l10n_bump_info = []
+        l10n_repo_urls = set()
+        for lbi in worker["l10n-bump-info"]:
+            new_lbi = {}
+            if "l10n-repo-url" in lbi:
+                l10n_repo_urls.add(lbi["l10n-repo-url"])
+            for k, v in lbi.items():
+                new_lbi[k.replace("-", "_")] = lbi[k]
+            l10n_bump_info.append(new_lbi)
+
+        task_def["payload"]["l10n_bump_info"] = l10n_bump_info
+        if len(l10n_repo_urls) > 1:
+            raise Exception(
+                "Must use the same l10n-repo-url for all files in the same task!"
+            )
+        elif len(l10n_repo_urls) == 1:
+            actions.append("l10n_bump")
 
 
 @payload_builder(
