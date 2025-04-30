@@ -1658,7 +1658,6 @@ def build_landoscript_payload(config, task, task_def):
         actions.append("version_bump")
 
 
-
 @payload_builder(
     "invalid",
     schema={
