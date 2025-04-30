@@ -1439,13 +1439,13 @@ class Element : public FragmentOrElement {
   void RequestPointerLock(CallerType aCallerType);
   Attr* GetAttributeNode(const nsAString& aName);
   MOZ_CAN_RUN_SCRIPT already_AddRefed<Attr> SetAttributeNode(
-      Attr& aNewAttr, ErrorResult& aError);
+      Attr& aNewAttr, nsIPrincipal* aSubjectPrincipal, ErrorResult& aError);
   already_AddRefed<Attr> RemoveAttributeNode(Attr& aOldAttr,
                                              ErrorResult& aError);
   Attr* GetAttributeNodeNS(const nsAString& aNamespaceURI,
                            const nsAString& aLocalName);
   MOZ_CAN_RUN_SCRIPT already_AddRefed<Attr> SetAttributeNodeNS(
-      Attr& aNewAttr, ErrorResult& aError);
+      Attr& aNewAttr, nsIPrincipal* aSubjectPrincipal, ErrorResult& aError);
 
   MOZ_CAN_RUN_SCRIPT already_AddRefed<DOMRectList> GetClientRects();
   MOZ_CAN_RUN_SCRIPT already_AddRefed<DOMRect> GetBoundingClientRect();

@@ -151,12 +151,12 @@ interface Element : Node {
 
   // Obsolete methods.
   Attr? getAttributeNode(DOMString name);
-  [CEReactions, Throws]
+  [CEReactions, NeedsSubjectPrincipal=NonSystem, Throws]
   Attr? setAttributeNode(Attr newAttr);
   [CEReactions, Throws]
   Attr? removeAttributeNode(Attr oldAttr);
   Attr? getAttributeNodeNS(DOMString? namespaceURI, DOMString localName);
-  [CEReactions, Throws]
+  [CEReactions, NeedsSubjectPrincipal=NonSystem, Throws]
   Attr? setAttributeNodeNS(Attr newAttr);
 
   [Func="nsContentUtils::IsCallerChromeOrElementTransformGettersEnabled"]

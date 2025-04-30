@@ -1636,10 +1636,10 @@ Attr* Element::GetAttributeNode(const nsAString& aName) {
   return Attributes()->GetNamedItem(aName);
 }
 
-already_AddRefed<Attr> Element::SetAttributeNode(Attr& aNewAttr,
-                                                 ErrorResult& aError) {
+already_AddRefed<Attr> Element::SetAttributeNode(
+    Attr& aNewAttr, nsIPrincipal* aSubjectPrincipal, ErrorResult& aError) {
   RefPtr<nsDOMAttributeMap> attrMap = Attributes();
-  return attrMap->SetNamedItemNS(aNewAttr, aError);
+  return attrMap->SetNamedItemNS(aNewAttr, aSubjectPrincipal, aError);
 }
 
 already_AddRefed<Attr> Element::RemoveAttributeNode(Attr& aAttribute,
@@ -1726,8 +1726,8 @@ void Element::SetAttribute(
     Maybe<nsAutoString> compliantStringHolder;
     const nsAString* compliantString =
         TrustedTypeUtils::GetTrustedTypesCompliantAttributeValue(
-            *this, nameAtom, kNameSpaceID_None, aValue, compliantStringHolder,
-            aError);
+            *this, nameAtom, kNameSpaceID_None, aValue, aTriggeringPrincipal,
+            compliantStringHolder, aError);
     if (aError.Failed()) {
       return;
     }
@@ -1742,7 +1742,7 @@ void Element::SetAttribute(
   const nsAString* compliantString =
       TrustedTypeUtils::GetTrustedTypesCompliantAttributeValue(
           *this, attributeName, name->NamespaceID(), aValue,
-          compliantStringHolder, aError);
+          aTriggeringPrincipal, compliantStringHolder, aError);
   if (aError.Failed()) {
     return;
   }
@@ -1775,7 +1775,7 @@ void Element::SetAttributeNS(
   RefPtr<nsAtom> attributeName = ni->NameAtom();
   const nsAString* compliantString =
       TrustedTypeUtils::GetTrustedTypesCompliantAttributeValue(
-          *this, attributeName, ni->NamespaceID(), aValue,
+          *this, attributeName, ni->NamespaceID(), aValue, aTriggeringPrincipal,
           compliantStringHolder, aError);
   if (aError.Failed()) {
     return;
@@ -1828,10 +1828,10 @@ Attr* Element::GetAttributeNodeNSInternal(const nsAString& aNamespaceURI,
   return Attributes()->GetNamedItemNS(aNamespaceURI, aLocalName);
 }
 
-already_AddRefed<Attr> Element::SetAttributeNodeNS(Attr& aNewAttr,
-                                                   ErrorResult& aError) {
+already_AddRefed<Attr> Element::SetAttributeNodeNS(
+    Attr& aNewAttr, nsIPrincipal* aSubjectPrincipal, ErrorResult& aError) {
   RefPtr<nsDOMAttributeMap> attrMap = Attributes();
-  return attrMap->SetNamedItemNS(aNewAttr, aError);
+  return attrMap->SetNamedItemNS(aNewAttr, aSubjectPrincipal, aError);
 }
 
 already_AddRefed<nsIHTMLCollection> Element::GetElementsByTagNameNS(

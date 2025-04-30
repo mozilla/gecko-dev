@@ -7,7 +7,7 @@
  Exposed=Window]
 interface NamedNodeMap {
   getter Attr? getNamedItem(DOMString name);
-  [CEReactions, Throws, BinaryName="setNamedItemNS"]
+  [CEReactions, NeedsSubjectPrincipal=NonSystem, Throws, BinaryName="setNamedItemNS"]
   Attr? setNamedItem(Attr arg);
   [CEReactions, Throws]
   Attr removeNamedItem(DOMString name);
@@ -16,7 +16,7 @@ interface NamedNodeMap {
   readonly attribute unsigned long length;
 
   Attr? getNamedItemNS(DOMString? namespaceURI, DOMString localName);
-  [CEReactions, Throws]
+  [CEReactions, NeedsSubjectPrincipal=NonSystem, Throws]
   Attr? setNamedItemNS(Attr arg);
   [CEReactions, Throws]
   Attr removeNamedItemNS(DOMString? namespaceURI, DOMString localName);

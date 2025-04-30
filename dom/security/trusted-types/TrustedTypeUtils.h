@@ -145,11 +145,13 @@ MOZ_CAN_RUN_SCRIPT const nsAString* GetTrustedTypesCompliantAttributeValue(
     const nsINode& aElement, nsAtom* aAttributeName,
     int32_t aAttributeNamespaceID,
     const TrustedHTMLOrTrustedScriptOrTrustedScriptURLOrString& aNewValue,
-    Maybe<nsAutoString>& aResultHolder, ErrorResult& aError);
+    nsIPrincipal* aPrincipalOrNull, Maybe<nsAutoString>& aResultHolder,
+    ErrorResult& aError);
 MOZ_CAN_RUN_SCRIPT const nsAString* GetTrustedTypesCompliantAttributeValue(
     const nsINode& aElement, nsAtom* aAttributeName,
     int32_t aAttributeNamespaceID, const nsAString& aNewValue,
-    Maybe<nsAutoString>& aResultHolder, ErrorResult& aError);
+    nsIPrincipal* aPrincipalOrNull, Maybe<nsAutoString>& aResultHolder,
+    ErrorResult& aError);
 
 // https://html.spec.whatwg.org/multipage/webappapis.html#hostgetcodeforeval(argument)
 bool HostGetCodeForEval(JSContext* aCx, JS::Handle<JSObject*> aCode,
