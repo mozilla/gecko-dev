@@ -22,7 +22,8 @@ const PREF_ACCEPTED_POLICY_DATE =
   PREF_BRANCH + "dataSubmissionPolicyNotifiedTime";
 const PREF_TOS_ROLLOUT_POPULATION =
   "browser.preonboarding.onTrainRolloutPopulation";
-const PREF_TOS_ENABLED = "browser.preonboarding.enabled";
+const PREF_TOS_ROLLOUT_ENROLLED =
+  "browser.preonboarding.enrolledInOnTrainRollout";
 
 const PREF_TELEMETRY_LOG_LEVEL = "toolkit.telemetry.log.level";
 
@@ -123,7 +124,6 @@ add_setup(async function () {
   const isFirstRun = Preferences.get(PREF_FIRST_RUN, true);
   const bypassNotification = Preferences.get(PREF_BYPASS_NOTIFICATION, true);
   const currentPolicyVersion = Preferences.get(PREF_CURRENT_POLICY_VERSION, 1);
-  const TOSEnabled = Preferences.get(PREF_TOS_ENABLED, false);
 
   // Register a cleanup function to reset our preferences.
   registerCleanupFunction(() => {
@@ -131,7 +131,9 @@ add_setup(async function () {
     Preferences.set(PREF_BYPASS_NOTIFICATION, bypassNotification);
     Preferences.set(PREF_CURRENT_POLICY_VERSION, currentPolicyVersion);
     Preferences.reset(PREF_TELEMETRY_LOG_LEVEL);
-    Preferences.set(PREF_TOS_ENABLED, TOSEnabled);
+    Preferences.reset(PREF_TOS_ROLLOUT_ENROLLED);
+    Preferences.reset(PREF_TOS_ROLLOUT_POPULATION);
+
     return closeAllNotifications();
   });
 
@@ -142,8 +144,9 @@ add_setup(async function () {
   // Ensure this isn't the first run, because then we open the first run page.
   Preferences.set(PREF_FIRST_RUN, false);
   TelemetryReportingPolicy.testUpdateFirstRun();
-  // Do not enable the TOS modal
-  Preferences.set(PREF_TOS_ENABLED, false);
+  // Do not trigger ToS modal for Linux, Mac, and MSIX builds
+  Preferences.set(PREF_TOS_ROLLOUT_ENROLLED, false);
+  Preferences.set(PREF_TOS_ROLLOUT_POPULATION, 0);
 });
 
 function clearAcceptedPolicy() {
