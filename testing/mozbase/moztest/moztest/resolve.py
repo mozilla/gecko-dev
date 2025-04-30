@@ -375,30 +375,35 @@ TEST_SUITES = {
         "build_flavor": "fenix",
         "mach_command": "android-test",
         "kwargs": {"subproject": "fenix"},
+        "task_regex": ["(ui-)?test-apk-fenix($|.*(-1|[^0-9])$)"],
     },
     "focus": {
         "aliases": ("f",),
         "build_flavor": "focus",
         "mach_command": "android-test",
         "kwargs": {"subproject": "focus"},
+        "task_regex": ["(ui-)?test-apk-focus($|.*(-1|[^0-9])$)"],
     },
     "android-components": {
         "aliases": ("ac",),
         "build_flavor": "android-components",
         "mach_command": "android-test",
         "kwargs": {"subproject": "android-components"},
+        "task_regex": ["(build|test)-components($|.*(-1|[^0-9])$)"],
     },
     "geckoview": {
         "aliases": ("gv",),
         "build_flavor": "geckoview",
         "mach_command": "geckoview-junit",
         "kwargs": {"no_install": False, "mach_test": True},
+        "task_regex": ["geckoview-junit($|.*(-1|[^0-9])$)"],
     },
     "junit": {
         "aliases": ("j",),
         "build_flavor": "geckoview",
         "mach_command": "geckoview-junit",
         "kwargs": {"no_install": False, "mach_test": True},
+        "task_regex": ["geckoview-junit($|.*(-1|[^0-9])$)"],
     },
 }
 """Definitions of all test suites and the metadata needed to run and process
