@@ -34,7 +34,7 @@ interface ShadowRoot : DocumentFragment
   Element? getElementById(DOMString elementId);
 
   // https://w3c.github.io/DOM-Parsing/#the-innerhtml-mixin
-  [CEReactions, SetterThrows]
+  [CEReactions, SetterThrows, SetterNeedsSubjectPrincipal=NonSystem]
   attribute (TrustedHTML or [LegacyNullToEmptyString] DOMString) innerHTML;
 
   // When JS invokes importNode or createElement, the binding code needs to
@@ -59,7 +59,7 @@ interface ShadowRoot : DocumentFragment
 
 partial interface ShadowRoot {
   // https://html.spec.whatwg.org/#dom-shadowroot-sethtmlunsafe
-  [Throws]
+  [NeedsSubjectPrincipal=NonSystem, Throws]
   undefined setHTMLUnsafe((TrustedHTML or DOMString) html);
   DOMString getHTML(optional GetHTMLOptions options = {});
 };

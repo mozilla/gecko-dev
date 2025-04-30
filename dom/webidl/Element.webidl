@@ -262,9 +262,9 @@ partial interface Element {
 partial interface Element {
   [CEReactions, SetterNeedsSubjectPrincipal=NonSystem, Pure, SetterThrows, GetterCanOOM]
   attribute (TrustedHTML or [LegacyNullToEmptyString] DOMString) innerHTML;
-  [CEReactions, Pure, SetterThrows]
+  [CEReactions, SetterNeedsSubjectPrincipal=NonSystem, Pure, SetterThrows]
   attribute (TrustedHTML or [LegacyNullToEmptyString] DOMString) outerHTML;
-  [CEReactions, Throws]
+  [CEReactions, NeedsSubjectPrincipal=NonSystem, Throws]
   undefined insertAdjacentHTML(DOMString position, (TrustedHTML or DOMString) text);
 };
 
@@ -406,7 +406,7 @@ dictionary GetHTMLOptions {
 partial interface Element {
   // https://html.spec.whatwg.org/#dom-element-sethtmlunsafe
   /* TODO: optional SetHTMLUnsafeOptions options = {} */
-  [Throws]
+  [NeedsSubjectPrincipal=NonSystem, Throws]
   undefined setHTMLUnsafe((TrustedHTML or DOMString) html);
   DOMString getHTML(optional GetHTMLOptions options = {});
 };

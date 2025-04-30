@@ -65,6 +65,7 @@ class HTMLIFrameElement final : public nsGenericHTMLFrameElement {
   void GetSrcdoc(OwningTrustedHTMLOrString& aSrcdoc);
 
   MOZ_CAN_RUN_SCRIPT void SetSrcdoc(const TrustedHTMLOrString& aSrcdoc,
+                                    nsIPrincipal* aSubjectPrincipal,
                                     ErrorResult& aError);
 
   void GetName(DOMString& aName) { GetHTMLAttr(nsGkAtoms::name, aName); }

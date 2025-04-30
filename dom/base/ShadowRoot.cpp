@@ -885,10 +885,11 @@ nsresult ShadowRoot::Clone(dom::NodeInfo* aNodeInfo, nsINode** aResult) const {
 }
 
 void ShadowRoot::SetHTMLUnsafe(const TrustedHTMLOrString& aHTML,
+                               nsIPrincipal* aSubjectPrincipal,
                                ErrorResult& aError) {
   RefPtr<Element> host = GetHost();
   nsContentUtils::SetHTMLUnsafe(this, host, aHTML, true /*aIsShadowRoot*/,
-                                aError);
+                                aSubjectPrincipal, aError);
 }
 
 void ShadowRoot::GetInnerHTML(
@@ -897,14 +898,15 @@ void ShadowRoot::GetInnerHTML(
 }
 
 MOZ_CAN_RUN_SCRIPT void ShadowRoot::SetInnerHTML(
-    const TrustedHTMLOrNullIsEmptyString& aInnerHTML, ErrorResult& aError) {
+    const TrustedHTMLOrNullIsEmptyString& aInnerHTML,
+    nsIPrincipal* aSubjectPrincipal, ErrorResult& aError) {
   constexpr nsLiteralString sink = u"ShadowRoot innerHTML"_ns;
 
   Maybe<nsAutoString> compliantStringHolder;
   const nsAString* compliantString =
       TrustedTypeUtils::GetTrustedTypesCompliantString(
           aInnerHTML, sink, kTrustedTypesOnlySinkGroup, *this,
-          compliantStringHolder, aError);
+          aSubjectPrincipal, compliantStringHolder, aError);
   if (aError.Failed()) {
     return;
   }

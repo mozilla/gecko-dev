@@ -23,6 +23,8 @@
 #include "mozilla/RangeBoundary.h"
 #include "mozilla/RefPtr.h"
 
+class nsIPrincipal;
+
 namespace mozilla {
 class RectCallback;
 namespace dom {
@@ -216,6 +218,7 @@ class nsRange final : public mozilla::dom::AbstractRange,
       const nsAString& aString, ErrorResult& aError) const;
   MOZ_CAN_RUN_SCRIPT already_AddRefed<mozilla::dom::DocumentFragment>
   CreateContextualFragment(const mozilla::dom::TrustedHTMLOrString&,
+                           nsIPrincipal* aSubjectPrincipal,
                            ErrorResult& aError) const;
   already_AddRefed<mozilla::dom::DocumentFragment> CloneContents(
       ErrorResult& aErr);

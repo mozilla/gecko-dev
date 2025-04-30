@@ -165,13 +165,14 @@ void HTMLScriptElement::GetText(OwningTrustedScriptOrString& aValue,
 }
 
 void HTMLScriptElement::SetText(const TrustedScriptOrString& aValue,
+                                nsIPrincipal* aSubjectPrincipal,
                                 ErrorResult& aRv) {
   constexpr nsLiteralString sink = u"HTMLScriptElement text"_ns;
 
   Maybe<nsAutoString> compliantStringHolder;
   const nsAString* compliantString =
       TrustedTypeUtils::GetTrustedTypesCompliantString(
-          aValue, sink, kTrustedTypesOnlySinkGroup, *this,
+          aValue, sink, kTrustedTypesOnlySinkGroup, *this, aSubjectPrincipal,
           compliantStringHolder, aRv);
   if (aRv.Failed()) {
     return;
@@ -191,13 +192,14 @@ void HTMLScriptElement::GetInnerText(
 }
 
 void HTMLScriptElement::SetInnerText(
-    const TrustedScriptOrNullIsEmptyString& aValue, ErrorResult& aError) {
+    const TrustedScriptOrNullIsEmptyString& aValue,
+    nsIPrincipal* aSubjectPrincipal, ErrorResult& aError) {
   constexpr nsLiteralString sink = u"HTMLScriptElement innerText"_ns;
 
   Maybe<nsAutoString> compliantStringHolder;
   const nsAString* compliantString =
       TrustedTypeUtils::GetTrustedTypesCompliantString(
-          aValue, sink, kTrustedTypesOnlySinkGroup, *this,
+          aValue, sink, kTrustedTypesOnlySinkGroup, *this, aSubjectPrincipal,
           compliantStringHolder, aError);
   if (aError.Failed()) {
     return;
@@ -226,7 +228,7 @@ void HTMLScriptElement::SetTrustedScriptOrStringTextContent(
   const nsAString* compliantString =
       TrustedTypeUtils::GetTrustedTypesCompliantString(
           aTextContent.Value(), sink, kTrustedTypesOnlySinkGroup, *this,
-          compliantStringHolder, aError);
+          aSubjectPrincipal, compliantStringHolder, aError);
   if (aError.Failed()) {
     return;
   }
@@ -238,20 +240,20 @@ void HTMLScriptElement::GetSrc(OwningTrustedScriptURLOrString& aSrc) {
 }
 
 void HTMLScriptElement::SetSrc(const TrustedScriptURLOrString& aSrc,
-                               nsIPrincipal* aTriggeringPrincipal,
+                               nsIPrincipal* aSubjectPrincipal,
                                ErrorResult& aRv) {
   constexpr nsLiteralString sink = u"HTMLScriptElement src"_ns;
 
   Maybe<nsAutoString> compliantStringHolder;
   const nsAString* compliantString =
       TrustedTypeUtils::GetTrustedTypesCompliantString(
-          aSrc, sink, kTrustedTypesOnlySinkGroup, *this, compliantStringHolder,
-          aRv);
+          aSrc, sink, kTrustedTypesOnlySinkGroup, *this, aSubjectPrincipal,
+          compliantStringHolder, aRv);
   if (aRv.Failed()) {
     return;
   }
 
-  SetHTMLAttr(nsGkAtoms::src, *compliantString, aTriggeringPrincipal, aRv);
+  SetHTMLAttr(nsGkAtoms::src, *compliantString, aSubjectPrincipal, aRv);
 }
 
 // variation of this code in SVGScriptElement - check if changes

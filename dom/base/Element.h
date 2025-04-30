@@ -1668,11 +1668,13 @@ class Element : public FragmentOrElement {
   void GetOuterHTML(OwningTrustedHTMLOrNullIsEmptyString& aOuterHTML);
 
   MOZ_CAN_RUN_SCRIPT void SetOuterHTML(
-      const TrustedHTMLOrNullIsEmptyString& aOuterHTML, ErrorResult& aError);
+      const TrustedHTMLOrNullIsEmptyString& aOuterHTML,
+      nsIPrincipal* aSubjectPrincipal, ErrorResult& aError);
 
   MOZ_CAN_RUN_SCRIPT void InsertAdjacentHTML(
       const nsAString& aPosition,
-      const TrustedHTMLOrString& aTrustedHTMLOrString, ErrorResult& aError);
+      const TrustedHTMLOrString& aTrustedHTMLOrString,
+      nsIPrincipal* aSubjectPrincipal, ErrorResult& aError);
 
   void SetHTML(const nsAString& aInnerHTML, const SetHTMLOptions& aOptions,
                ErrorResult& aError);
@@ -2268,6 +2270,7 @@ class Element : public FragmentOrElement {
 
   MOZ_CAN_RUN_SCRIPT
   virtual void SetHTMLUnsafe(const TrustedHTMLOrString& aHTML,
+                             nsIPrincipal* aSubjectPrincipal,
                              ErrorResult& aError);
 
   MOZ_CAN_RUN_SCRIPT

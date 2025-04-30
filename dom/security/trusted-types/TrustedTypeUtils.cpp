@@ -412,7 +412,8 @@ template <typename ExpectedType, typename TrustedTypeOrString,
 MOZ_CAN_RUN_SCRIPT inline const nsAString* GetTrustedTypesCompliantString(
     const TrustedTypeOrString& aInput, const nsAString& aSink,
     const nsAString& aSinkGroup, NodeOrGlobalObject& aNodeOrGlobalObject,
-    Maybe<nsAutoString>& aResultHolder, ErrorResult& aError) {
+    nsIPrincipal* aPrincipalOrNull, Maybe<nsAutoString>& aResultHolder,
+    ErrorResult& aError) {
   MOZ_ASSERT(aSinkGroup == kTrustedTypesOnlySinkGroup);
   if (!StaticPrefs::dom_security_trusted_types_enabled()) {
     // A trusted type might've been created before the pref was set to `false`,
@@ -557,9 +558,11 @@ MOZ_CAN_RUN_SCRIPT inline const nsAString* GetTrustedTypesCompliantString(
   const nsAString* GetTrustedTypesCompliantString(                        \
       const _trustedTypeOrString& aInput, const nsAString& aSink,         \
       const nsAString& aSinkGroup, _nodeOrGlobalObject& aNodeOrGlobal,    \
-      Maybe<nsAutoString>& aResultHolder, ErrorResult& aError) {          \
+      nsIPrincipal* aPrincipalOrNull, Maybe<nsAutoString>& aResultHolder, \
+      ErrorResult& aError) {                                              \
     return GetTrustedTypesCompliantString<_expectedType>(                 \
-        aInput, aSink, aSinkGroup, aNodeOrGlobal, aResultHolder, aError); \
+        aInput, aSink, aSinkGroup, aNodeOrGlobal, aPrincipalOrNull,       \
+        aResultHolder, aError);                                           \
   }
 
 IMPL_GET_TRUSTED_TYPES_COMPLIANT_STRING(TrustedHTMLOrString, TrustedHTML,
@@ -589,7 +592,7 @@ GetTrustedTypesCompliantStringForTrustedHTML(const nsAString& aInput,
                                              Maybe<nsAutoString>& aResultHolder,
                                              ErrorResult& aError) {
   return GetTrustedTypesCompliantString<TrustedHTML>(
-      &aInput, aSink, aSinkGroup, aNode, aResultHolder, aError);
+      &aInput, aSink, aSinkGroup, aNode, nullptr, aResultHolder, aError);
 }
 
 MOZ_CAN_RUN_SCRIPT const nsAString*
@@ -598,7 +601,8 @@ GetTrustedTypesCompliantStringForTrustedScript(
     const nsAString& aSinkGroup, nsIGlobalObject& aGlobalObject,
     Maybe<nsAutoString>& aResultHolder, ErrorResult& aError) {
   return GetTrustedTypesCompliantString<TrustedScript>(
-      &aInput, aSink, aSinkGroup, aGlobalObject, aResultHolder, aError);
+      &aInput, aSink, aSinkGroup, aGlobalObject, nullptr, aResultHolder,
+      aError);
 }
 
 bool GetTrustedTypeDataForAttribute(const nsAtom* aElementName,
@@ -706,16 +710,16 @@ MOZ_CAN_RUN_SCRIPT const nsAString* GetTrustedTypesCompliantAttributeValue(
   switch (expectedType) {
     case TrustedType::TrustedHTML:
       return GetTrustedTypesCompliantString<TrustedHTML>(
-          input, sink, kTrustedTypesOnlySinkGroup, aElement, aResultHolder,
-          aError);
+          input, sink, kTrustedTypesOnlySinkGroup, aElement, nullptr,
+          aResultHolder, aError);
     case TrustedType::TrustedScript:
       return GetTrustedTypesCompliantString<TrustedScript>(
-          input, sink, kTrustedTypesOnlySinkGroup, aElement, aResultHolder,
-          aError);
+          input, sink, kTrustedTypesOnlySinkGroup, aElement, nullptr,
+          aResultHolder, aError);
     case TrustedType::TrustedScriptURL:
       return GetTrustedTypesCompliantString<TrustedScriptURL>(
-          input, sink, kTrustedTypesOnlySinkGroup, aElement, aResultHolder,
-          aError);
+          input, sink, kTrustedTypesOnlySinkGroup, aElement, nullptr,
+          aResultHolder, aError);
   }
   MOZ_ASSERT_UNREACHABLE();
   return nullptr;

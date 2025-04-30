@@ -78,6 +78,7 @@ class HTMLScriptElement final : public nsGenericHTMLElement,
                                   ErrorResult& aRv) const;
 
   MOZ_CAN_RUN_SCRIPT void SetText(const TrustedScriptOrString& aValue,
+                                  nsIPrincipal* aSubjectPrincipal,
                                   ErrorResult& aRv);
 
   // @param aValue will always be of type `NullIsEmptyString`.
@@ -85,7 +86,8 @@ class HTMLScriptElement final : public nsGenericHTMLElement,
       OwningTrustedScriptOrNullIsEmptyString& aValue, ErrorResult& aError);
 
   MOZ_CAN_RUN_SCRIPT void SetInnerText(
-      const TrustedScriptOrNullIsEmptyString& aValue, ErrorResult& aError);
+      const TrustedScriptOrNullIsEmptyString& aValue,
+      nsIPrincipal* aSubjectPrincipal, ErrorResult& aError);
 
   // @param aTextContent will always be of type `String`.
   MOZ_CAN_RUN_SCRIPT void GetTrustedScriptOrStringTextContent(
@@ -112,7 +114,7 @@ class HTMLScriptElement final : public nsGenericHTMLElement,
   void GetSrc(OwningTrustedScriptURLOrString& aSrc);
 
   MOZ_CAN_RUN_SCRIPT void SetSrc(const TrustedScriptURLOrString& aSrc,
-                                 nsIPrincipal* aTriggeringPrincipal,
+                                 nsIPrincipal* aSubjectPrincipal,
                                  ErrorResult& aRv);
 
   void GetType(nsAString& aType) { GetHTMLAttr(nsGkAtoms::type, aType); }

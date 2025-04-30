@@ -369,7 +369,7 @@ class WorkerGlobalScope : public WorkerGlobalScopeBase {
   int32_t SetTimeout(JSContext* aCx,
                      const FunctionOrTrustedScriptOrString& aHandler,
                      int32_t aTimeout, const Sequence<JS::Value>& aArguments,
-                     ErrorResult& aRv);
+                     nsIPrincipal* aSubjectPrincipal, ErrorResult& aRv);
 
   MOZ_CAN_RUN_SCRIPT
   void ClearTimeout(int32_t aHandle);
@@ -378,7 +378,7 @@ class WorkerGlobalScope : public WorkerGlobalScopeBase {
   int32_t SetInterval(JSContext* aCx,
                       const FunctionOrTrustedScriptOrString& aHandler,
                       int32_t aTimeout, const Sequence<JS::Value>& aArguments,
-                      ErrorResult& aRv);
+                      nsIPrincipal* aSubjectPrincipal, ErrorResult& aRv);
 
   MOZ_CAN_RUN_SCRIPT
   void ClearInterval(int32_t aHandle);
@@ -436,11 +436,10 @@ class WorkerGlobalScope : public WorkerGlobalScopeBase {
 
  private:
   MOZ_CAN_RUN_SCRIPT
-  int32_t SetTimeoutOrInterval(JSContext* aCx,
-                               const FunctionOrTrustedScriptOrString& aHandler,
-                               int32_t aTimeout,
-                               const Sequence<JS::Value>& aArguments,
-                               bool aIsInterval, ErrorResult& aRv);
+  int32_t SetTimeoutOrInterval(
+      JSContext* aCx, const FunctionOrTrustedScriptOrString& aHandler,
+      int32_t aTimeout, const Sequence<JS::Value>& aArguments, bool aIsInterval,
+      nsIPrincipal* aSubjectPrincipal, ErrorResult& aRv);
 
   RefPtr<Crypto> mCrypto;
   RefPtr<WorkerLocation> mLocation;

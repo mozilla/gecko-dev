@@ -721,7 +721,7 @@ class nsGlobalWindowInner final : public mozilla::dom::EventTarget,
       JSContext* aCx,
       const mozilla::dom::FunctionOrTrustedScriptOrString& aHandler,
       int32_t aTimeout, const mozilla::dom::Sequence<JS::Value>& /* unused */,
-      mozilla::ErrorResult& aError);
+      nsIPrincipal* aSubjectPrincipal, mozilla::ErrorResult& aError);
 
   MOZ_CAN_RUN_SCRIPT
   void ClearTimeout(int32_t aHandle);
@@ -732,7 +732,7 @@ class nsGlobalWindowInner final : public mozilla::dom::EventTarget,
       const mozilla::dom::FunctionOrTrustedScriptOrString& aHandler,
       const int32_t aTimeout,
       const mozilla::dom::Sequence<JS::Value>& /* unused */,
-      mozilla::ErrorResult& aError);
+      nsIPrincipal* aSubjectPrincipal, mozilla::ErrorResult& aError);
 
   MOZ_CAN_RUN_SCRIPT
   void ClearInterval(int32_t aHandle);
@@ -1081,7 +1081,8 @@ class nsGlobalWindowInner final : public mozilla::dom::EventTarget,
       JSContext* aCx,
       const mozilla::dom::FunctionOrTrustedScriptOrString& aHandler,
       int32_t aTimeout, const mozilla::dom::Sequence<JS::Value>& aArguments,
-      bool aIsInterval, mozilla::ErrorResult& aError);
+      bool aIsInterval, nsIPrincipal* aSubjectPrincipal,
+      mozilla::ErrorResult& aError);
 
   // Return true if |aTimeout| was cleared while its handler ran.
   MOZ_CAN_RUN_SCRIPT

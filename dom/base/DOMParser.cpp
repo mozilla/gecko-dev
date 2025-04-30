@@ -101,7 +101,8 @@ already_AddRefed<Document> DOMParser::ParseFromStringInternal(
 }
 
 already_AddRefed<Document> DOMParser::ParseFromString(
-    const TrustedHTMLOrString& aStr, SupportedType aType, ErrorResult& aRv) {
+    const TrustedHTMLOrString& aStr, SupportedType aType,
+    nsIPrincipal* aSubjectPrincipal, ErrorResult& aRv) {
   constexpr nsLiteralString sink = u"DOMParser parseFromString"_ns;
 
   MOZ_ASSERT(mOwner);
@@ -110,7 +111,7 @@ already_AddRefed<Document> DOMParser::ParseFromString(
   const nsAString* compliantString =
       TrustedTypeUtils::GetTrustedTypesCompliantString(
           aStr, sink, kTrustedTypesOnlySinkGroup, *pinnedOwner,
-          compliantStringHolder, aRv);
+          aSubjectPrincipal, compliantStringHolder, aRv);
   if (aRv.Failed()) {
     return nullptr;
   }

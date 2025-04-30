@@ -28,10 +28,10 @@ interface mixin WindowOrWorkerGlobalScope {
   DOMString atob(DOMString atob);
 
   // timers
-  [Throws]
+  [Throws, NeedsSubjectPrincipal=NonSystem]
   long setTimeout(TimerHandler handler, optional long timeout = 0, any... arguments);
   undefined clearTimeout(optional long handle = 0);
-  [Throws]
+  [Throws, NeedsSubjectPrincipal=NonSystem]
   long setInterval(TimerHandler handler, optional long timeout = 0, any... unused);
   undefined clearInterval(optional long handle = 0);
 

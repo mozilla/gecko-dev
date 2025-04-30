@@ -41,9 +41,10 @@ class SVGAnimatedString : public SVGAnimatedClassOrString {
                     bool aDoSetAttr) override;
   MOZ_CAN_RUN_SCRIPT void SetBaseValue(const TrustedScriptURLOrString& aValue,
                                        SVGElement* aSVGElement, bool aDoSetAttr,
+                                       nsIPrincipal* aSubjectPrincipal,
                                        ErrorResult& aRv) override {
     SVGAnimatedClassOrString::SetBaseValue(aValue, aSVGElement, aDoSetAttr,
-                                           aRv);
+                                           aSubjectPrincipal, aRv);
   }
   void GetBaseValue(nsAString& aValue,
                     const SVGElement* aSVGElement) const override {
@@ -114,6 +115,7 @@ class SVGAnimatedScriptHrefString final : public SVGAnimatedString {
   using TrustedScriptURLOrString = dom::TrustedScriptURLOrString;
   MOZ_CAN_RUN_SCRIPT void SetBaseValue(const TrustedScriptURLOrString& aValue,
                                        SVGElement* aSVGElement, bool aDoSetAttr,
+                                       nsIPrincipal* aSubjectPrincipal,
                                        ErrorResult& aRv) override;
   SVGAnimatedScriptHrefString() = default;
 };
