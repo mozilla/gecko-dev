@@ -43,7 +43,7 @@ import org.mozilla.fenix.ext.components
 import org.mozilla.fenix.ext.registerForActivityResult
 import org.mozilla.fenix.ext.settings
 import org.mozilla.fenix.ext.showToolbar
-import org.mozilla.fenix.settings.biometric.bindBiometricsCredentialsPromptOrShowWarning
+import org.mozilla.fenix.settings.biometric.DefaultBiometricUtils
 import org.mozilla.fenix.settings.logins.LoginsAction
 import org.mozilla.fenix.settings.logins.LoginsFragmentStore
 import org.mozilla.fenix.settings.logins.LoginsListState
@@ -96,7 +96,7 @@ class SavedLoginsFragment : SecureFragment(), MenuProvider {
                 AuthenticationStatus.AUTHENTICATION_IN_PROGRESS
             setSecureContentVisibility(false)
 
-            bindBiometricsCredentialsPromptOrShowWarning(
+            DefaultBiometricUtils().bindBiometricsCredentialsPromptOrShowWarning(
                 view = requireView(),
                 onShowPinVerification = { intent -> startForResult.launch(intent) },
                 onAuthSuccess = {

@@ -21,6 +21,7 @@ import mozilla.components.browser.state.selector.privateTabs
 import mozilla.components.browser.state.state.ContentState
 import mozilla.components.browser.state.state.TabSessionState
 import mozilla.components.support.test.robolectric.testContext
+import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -29,6 +30,7 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.mozilla.fenix.NavGraphDirections
+import org.mozilla.fenix.biometricauthentication.AuthenticationStatus
 import org.mozilla.fenix.biometricauthentication.BiometricAuthenticationNeededInfo
 import org.mozilla.fenix.databinding.FragmentTabTrayDialogBinding
 import org.mozilla.fenix.ext.components
@@ -38,6 +40,7 @@ import org.mozilla.fenix.helpers.FenixGleanTestRule
 import org.mozilla.fenix.helpers.FenixRobolectricTestRunner
 import org.mozilla.fenix.helpers.MockkRetryTestRule
 import org.mozilla.fenix.home.HomeScreenViewModel
+import org.mozilla.fenix.settings.biometric.BiometricUtils
 
 @RunWith(FenixRobolectricTestRunner::class)
 class TabsTrayFragmentTest {
@@ -53,6 +56,7 @@ class TabsTrayFragmentTest {
 
     @Before
     fun setup() {
+        mockkStatic("mozilla.components.browser.state.selector.SelectorsKt")
         context = mockk(relaxed = true)
         val inflater = LayoutInflater.from(testContext)
         tabsTrayDialogBinding = FragmentTabTrayDialogBinding.inflate(inflater)
@@ -61,6 +65,11 @@ class TabsTrayFragmentTest {
         fragment._tabsTrayDialogBinding = tabsTrayDialogBinding
         every { fragment.context } returns context
         every { fragment.viewLifecycleOwner } returns mockk(relaxed = true)
+    }
+
+    @After
+    fun teardown() {
+        unmockkStatic("mozilla.components.browser.state.selector.SelectorsKt")
     }
 
     @Test
@@ -154,9 +163,9 @@ class TabsTrayFragmentTest {
         assertEquals(1, position)
     }
 
+    // tests for shouldShowPrompt
     @Test
     fun `WHEN all valid conditions THEN shouldShowPrompt returns true`() {
-        mockkStatic("mozilla.components.browser.state.selector.SelectorsKt")
         every { fragment.requireComponents.core.store.state.privateTabs } returns listOf(
             mockk(),
             mockk(),
@@ -172,7 +181,6 @@ class TabsTrayFragmentTest {
 
     @Test
     fun `WHEN isPrivateTabPage is false THEN shouldShowPrompt returns false`() {
-        mockkStatic("mozilla.components.browser.state.selector.SelectorsKt")
         every { fragment.requireComponents.core.store.state.privateTabs } returns listOf(
             mockk(),
             mockk(),
@@ -188,7 +196,6 @@ class TabsTrayFragmentTest {
 
     @Test
     fun `WHEN hasPrivateTabs is false THEN shouldShowPrompt returns false`() {
-        mockkStatic("mozilla.components.browser.state.selector.SelectorsKt")
         every { fragment.requireComponents.core.store.state.privateTabs } returns emptyList()
         every { fragment.requireContext().settings().privateBrowsingLockedEnabled } returns true
 
@@ -201,7 +208,6 @@ class TabsTrayFragmentTest {
 
     @Test
     fun `WHEN privateBrowsingLockedEnabled is false THEN shouldShowPrompt returns false`() {
-        mockkStatic("mozilla.components.browser.state.selector.SelectorsKt")
         every { fragment.requireComponents.core.store.state.privateTabs } returns listOf(
             mockk(),
             mockk(),
@@ -217,7 +223,6 @@ class TabsTrayFragmentTest {
 
     @Test
     fun `WHEN shouldShowAuthenticationPrompt is false THEN shouldShowPrompt returns false`() {
-        mockkStatic("mozilla.components.browser.state.selector.SelectorsKt")
         every { fragment.requireComponents.core.store.state.privateTabs } returns listOf(
             mockk(),
             mockk(),
@@ -230,5 +235,115 @@ class TabsTrayFragmentTest {
             fragment.shouldShowPrompt(biometricAuthenticationNeededInfo, isPrivateTabPage = true)
 
         assertFalse(result)
+    }
+
+    // tests for onTabPageClick
+    @Test
+    fun `WHEN shouldShowPrompt is true THEN onTabPageClick sets the authentication status to authentication in progress and calls show prompt`() {
+        every { fragment.view } returns mockk()
+        every { fragment.requireComponents.core.store.state.privateTabs } returns listOf(
+            mockk(),
+            mockk(),
+        )
+        every { fragment.requireContext().settings().privateBrowsingLockedEnabled } returns true
+
+        val biometricAuthenticationNeededInfo = BiometricAuthenticationNeededInfo()
+        val biometricUtils = mockk<BiometricUtils>(relaxed = true)
+        val tabsTrayInteractor = mockk<TabsTrayInteractor>(relaxed = true)
+        val page = Page.PrivateTabs
+        fragment.onTabPageClick(
+            biometricAuthenticationNeededInfo = biometricAuthenticationNeededInfo,
+            biometricUtils = biometricUtils,
+            tabsTrayInteractor = tabsTrayInteractor,
+            page = page,
+        )
+
+        assertEquals(
+            AuthenticationStatus.AUTHENTICATION_IN_PROGRESS,
+            biometricAuthenticationNeededInfo.authenticationStatus,
+        )
+        verify {
+            biometricUtils.bindBiometricsCredentialsPromptOrShowWarning(
+                any(),
+                any(),
+                any(),
+                any(),
+                any(),
+            )
+        }
+    }
+
+    @Test
+    fun `WHEN shouldShowPrompt false and is private tab page true THEN onTabPageClick calls tabs tray interactor only`() {
+        every { fragment.view } returns mockk()
+        every { fragment.requireComponents.core.store.state.privateTabs } returns listOf(
+            mockk(),
+            mockk(),
+        )
+        every { fragment.requireContext().settings().privateBrowsingLockedEnabled } returns false
+
+        val biometricAuthenticationNeededInfo =
+            BiometricAuthenticationNeededInfo(authenticationStatus = AuthenticationStatus.AUTHENTICATED)
+        val biometricUtils = mockk<BiometricUtils>(relaxed = true)
+        val tabsTrayInteractor = mockk<TabsTrayInteractor>(relaxed = true)
+        val page = Page.PrivateTabs
+        fragment.onTabPageClick(
+            biometricAuthenticationNeededInfo = biometricAuthenticationNeededInfo,
+            biometricUtils = biometricUtils,
+            tabsTrayInteractor = tabsTrayInteractor,
+            page = page,
+        )
+
+        assertEquals(
+            AuthenticationStatus.AUTHENTICATED,  // unchanged
+            biometricAuthenticationNeededInfo.authenticationStatus,
+        )
+        verify { tabsTrayInteractor.onTrayPositionSelected(page.ordinal, false) }
+        verify(inverse = true) {
+            biometricUtils.bindBiometricsCredentialsPromptOrShowWarning(
+                any(),
+                any(),
+                any(),
+                any(),
+                any(),
+            )
+        }
+    }
+
+    @Test
+    fun `WHEN shouldShowPrompt false and not a private tab page THEN onTabPageClick sets the authentication status to not authenticated and calls tabs tray interactor`() {
+        every { fragment.view } returns mockk()
+        every { fragment.requireComponents.core.store.state.privateTabs } returns listOf(
+            mockk(),
+            mockk(),
+        )
+        every { fragment.requireContext().settings().privateBrowsingLockedEnabled } returns false
+
+        val biometricAuthenticationNeededInfo =
+            BiometricAuthenticationNeededInfo(authenticationStatus = AuthenticationStatus.AUTHENTICATED)
+        val biometricUtils = mockk<BiometricUtils>(relaxed = true)
+        val tabsTrayInteractor = mockk<TabsTrayInteractor>(relaxed = true)
+        val page = Page.NormalTabs
+        fragment.onTabPageClick(
+            biometricAuthenticationNeededInfo = biometricAuthenticationNeededInfo,
+            biometricUtils = biometricUtils,
+            tabsTrayInteractor = tabsTrayInteractor,
+            page = page,
+        )
+
+        assertEquals(
+            AuthenticationStatus.NOT_AUTHENTICATED,
+            biometricAuthenticationNeededInfo.authenticationStatus,
+        )
+        verify { tabsTrayInteractor.onTrayPositionSelected(0, false) }
+        verify(inverse = true) {
+            biometricUtils.bindBiometricsCredentialsPromptOrShowWarning(
+                any(),
+                any(),
+                any(),
+                any(),
+                any(),
+            )
+        }
     }
 }
