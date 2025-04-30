@@ -52,8 +52,8 @@ add_task(async function () {
   const firstEditor = ui.editors[0];
   is(
     firstEditor.styleSheetFriendlyIndex,
-    0,
-    "1st inline stylesheet's index is 0"
+    1,
+    "1st inline stylesheet's index is 1"
   );
 
   is(
@@ -67,8 +67,8 @@ add_task(async function () {
   const secondEditor = ui.editors[3];
   is(
     secondEditor.styleSheetFriendlyIndex,
-    1,
-    "2nd inline stylesheet's index is 1"
+    2,
+    "2nd inline stylesheet's index is 2"
   );
 
   is(
@@ -91,14 +91,14 @@ add_task(async function () {
   ok(ui.editors[4].isNew, "2nd to last editor is user-created");
   is(
     ui.editors[4].styleSheetFriendlyIndex,
-    0,
-    "2nd to last user created stylesheet's index is 0"
+    1,
+    "2nd to last user created stylesheet's index is 1"
   );
 
   ok(ui.editors[5].isNew, "Last editor is user-created");
   is(
     ui.editors[5].styleSheetFriendlyIndex,
-    1,
-    "Last user created stylesheet's index is 1"
+    2,
+    "Last user created stylesheet's index is 2"
   );
 });
