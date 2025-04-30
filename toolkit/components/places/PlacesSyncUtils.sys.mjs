@@ -206,7 +206,7 @@ const HistorySyncUtils = (PlacesSyncUtils.history = Object.freeze({
     if (visitDate > currentDate) {
       return currentDate;
     }
-    if (visitDate < BookmarkSyncUtils.EARLIEST_BOOKMARK_TIMESTAMP) {
+    if (visitDate.getTime() < BookmarkSyncUtils.EARLIEST_BOOKMARK_TIMESTAMP) {
       return new Date(BookmarkSyncUtils.EARLIEST_BOOKMARK_TIMESTAMP);
     }
     return visitDate;
@@ -216,7 +216,7 @@ const HistorySyncUtils = (PlacesSyncUtils.history = Object.freeze({
    * Fetches the frecency for the URL provided
    *
    * @param url
-   * @returns {number} The frecency of the given url
+   * @returns {Promise<number>} The frecency of the given url
    */
   async fetchURLFrecency(url) {
     let canonicalURL = lazy.PlacesUtils.SYNC_BOOKMARK_VALIDATORS.url(url);
@@ -239,7 +239,8 @@ const HistorySyncUtils = (PlacesSyncUtils.history = Object.freeze({
    *
    * @param guids
    *
-   * @returns {Array} new Array with the guids that aren't syncable
+   * @returns {Promise<string[]>}
+   *   A new array with the guids that aren't syncable.
    */
   async determineNonSyncableGuids(guids) {
     // Filter out hidden pages and transitions that we don't sync.
@@ -291,7 +292,8 @@ const HistorySyncUtils = (PlacesSyncUtils.history = Object.freeze({
    * Fetch the last 20 visits (date and type of it) corresponding to a given url
    *
    * @param url
-   * @returns {Array} Each element of the Array is an object with members: date and type
+   * @returns {Promise<{date: Date, type: number}[]>}
+   *   Each element of the Array is an object with members: date and type
    */
   async fetchVisitsForURL(url) {
     let canonicalURL = lazy.PlacesUtils.SYNC_BOOKMARK_VALIDATORS.url(url);
@@ -331,7 +333,7 @@ const HistorySyncUtils = (PlacesSyncUtils.history = Object.freeze({
    * Fetches the guid of a uri
    *
    * @param uri
-   * @returns {string} The guid of the given uri
+   * @returns {Promise<string>} The guid of the given uri.
    */
   async fetchGuidForURL(url) {
     let canonicalURL = lazy.PlacesUtils.SYNC_BOOKMARK_VALIDATORS.url(url);
@@ -353,7 +355,8 @@ const HistorySyncUtils = (PlacesSyncUtils.history = Object.freeze({
    * Fetch information about a guid (url, title and frecency)
    *
    * @param guid
-   * @returns {object} Object with three members: url, title and frecency of the given guid
+   * @returns {Promise<{url: string, title: string, frecency: number}>}
+   *   An object with three members: url, title and frecency of the given guid.
    */
   async fetchURLInfoForGuid(guid) {
     let db = await lazy.PlacesUtils.promiseDBConnection();
@@ -385,14 +388,17 @@ const HistorySyncUtils = (PlacesSyncUtils.history = Object.freeze({
   },
 
   /**
-   * Get all URLs filtered by the limit and since members of the options object.
+   * Get all URLs filtered by the specified limit and minimum visit date.
    *
-   * @param options
-   *        Options object with two members, since and limit. Both of them must be provided
-   * @returns {Array} - Up to limit number of URLs starting from the date provided by since
-   *
-   * Note that some visit types are explicitly excluded - downloads and framed
-   * links.
+   * @param {object} options
+   * @param {number} options.limit
+   *   Maximum number of URLs to return.
+   * @param {Date} options.since
+   *   Only include URLs visited after this date.
+   * @returns {Promise<string[]>}
+   *   A list of URLs, up to the given limit, that were visited after the date
+   *   provided. Note that some visit types are explicitly excluded - downloads
+   *   and framed links.
    */
   async getAllURLs(options) {
     // Check that the limit property is finite number.
@@ -428,7 +434,7 @@ const HistorySyncUtils = (PlacesSyncUtils.history = Object.freeze({
    * Insert or update the unknownFields that this client doesn't understand (yet)
    * but stores & roundtrips them to prevent other clients from losing that data
    *
-   * @param updates array of objects
+   * @param {object[]} updates array of objects
    *  an update object needs to have either a:
    *  placeId: if we're putting unknownFields for a moz_places item
    *  visitId: if we're putting unknownFields for a moz_historyvisits item
@@ -2079,7 +2085,7 @@ async function resetAllSyncStatuses(db, syncStatus) {
  * @returns {string} json object containing unknownfields, null if none found
  */
 PlacesSyncUtils.extractUnknownFields = (record, validFields) => {
-  let { unknownFields, hasUnknownFields } = Object.keys(record).reduce(
+  let result = Object.keys(record).reduce(
     ({ unknownFields, hasUnknownFields }, key) => {
       if (validFields.includes(key)) {
         return { unknownFields, hasUnknownFields };
@@ -2089,10 +2095,10 @@ PlacesSyncUtils.extractUnknownFields = (record, validFields) => {
     },
     { unknownFields: {}, hasUnknownFields: false }
   );
-  if (hasUnknownFields) {
+  if (result.hasUnknownFields) {
     // For simplicity, we store the unknown fields as a string
     // since we never operate on it and just need it for roundtripping
-    return JSON.stringify(unknownFields);
+    return JSON.stringify(result.unknownFields);
   }
   return null;
 };

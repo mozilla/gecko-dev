@@ -33,6 +33,8 @@
  *  The description of the page, if any.
  * @property {string|URL|nsIURI} [previewImageURL]
  *  The preview image URL of the page, if any.
+ * @property {string} [siteName]
+ *  The name of the site, if any.
  * @property {number} [frecency]
  *  The frecency of the page, if any.
  *  See https://firefox-source-docs.mozilla.org/browser/urlbar/ranking.html.
@@ -89,6 +91,7 @@ const ONRESULT_CHUNK_SIZE = 300;
 // This constant determines the maximum number of remove pages before we cycle.
 const REMOVE_PAGES_CHUNKLEN = 300;
 
+// eslint-disable-next-line no-shadow
 export var History = Object.freeze({
   ANNOTATION_EXPIRE_NEVER: 4,
   // Constants for the type of annotation.
@@ -151,7 +154,7 @@ export var History = Object.freeze({
     }
 
     return lazy.PlacesUtils.promiseDBConnection().then(db =>
-      fetch(db, guidOrURI, options)
+      innerFetch(db, guidOrURI, options)
     );
   },
 
@@ -232,7 +235,7 @@ export var History = Object.freeze({
    *
    * @throws (Error)
    *      If the `url` specified was for a protocol that should not be
-   *      stored (@see nsNavHistory::CanAddURI).
+   *      stored. @see nsNavHistory::CanAddURI
    * @throws (Error)
    *      If `pageInfo` has an unexpected type.
    * @throws (Error)
@@ -284,7 +287,7 @@ export var History = Object.freeze({
    *
    * @throws (Error)
    *      If the `url` specified was for a protocol that should not be
-   *      stored (@see nsNavHistory::CanAddURI).
+   *      stored. @see nsNavHistory::CanAddURI
    * @throws (Error)
    *      If `pageInfos` has an unexpected type.
    * @throws (Error)
@@ -394,11 +397,11 @@ export var History = Object.freeze({
           urlsSlice = urls.splice(0, REMOVE_PAGES_CHUNKLEN - guidsSlice.length);
         }
 
-        let pages = { guids: guidsSlice, urls: urlsSlice };
+        let pagesToRemove = { guids: guidsSlice, urls: urlsSlice };
 
         let result = await lazy.PlacesUtils.withConnectionWrapper(
           "History.sys.mjs: remove",
-          db => remove(db, pages, onResult)
+          db => remove(db, pagesToRemove, onResult)
         );
 
         removedPages = removedPages || result;
@@ -1038,7 +1041,7 @@ var notifyOnResult = async function (data, onResult) {
 };
 
 // Inner implementation of History.fetch.
-var fetch = async function (db, guidOrURL, options) {
+var innerFetch = async function (db, guidOrURL, options) {
   let whereClauseFragment = "";
   let params = {};
   if (URL.isInstance(guidOrURL)) {
@@ -1068,6 +1071,7 @@ var fetch = async function (db, guidOrURL, options) {
                FROM moz_places h ${joinFragment}
                ${whereClauseFragment}
                ${visitOrderFragment}`;
+  /** @type {PageInfo} */
   let pageInfo = null;
   let placeId = null;
   await db.executeCached(query, params, row => {
