@@ -319,7 +319,7 @@ void CookieStoreParent::GetRequestOnMainThread(
 
       if (aThirdPartyContext &&
           !CookieCommons::ShouldIncludeCrossSiteCookie(
-              cookie, aPartitionForeign, attrs.IsPrivateBrowsing(),
+              cookie, aCookieURI, aPartitionForeign, attrs.IsPrivateBrowsing(),
               aUsingStorageAccess, aIsOn3PCBExceptionList)) {
         continue;
       }
@@ -391,7 +391,8 @@ bool CookieStoreParent::SetRequestOnMainThread(
 
   if (aThirdPartyContext &&
       !CookieCommons::ShouldIncludeCrossSiteCookie(
-          aSameSite, aPartitioned && !aOriginAttributes.mPartitionKey.IsEmpty(),
+          aCookieURI, aSameSite,
+          aPartitioned && !aOriginAttributes.mPartitionKey.IsEmpty(),
           aPartitionForeign, aOriginAttributes.IsPrivateBrowsing(),
           aUsingStorageAccess, aIsOn3PCBExceptionList)) {
     return false;
@@ -502,7 +503,7 @@ bool CookieStoreParent::DeleteRequestOnMainThread(
       int32_t sameSiteAttr = cookie->SameSite();
 
       if (!CookieCommons::ShouldIncludeCrossSiteCookie(
-              sameSiteAttr,
+              aCookieURI, sameSiteAttr,
               aPartitioned && !aOriginAttributes.mPartitionKey.IsEmpty(),
               aPartitionForeign, attrs.IsPrivateBrowsing(), aUsingStorageAccess,
               aIsOn3PCBExceptionList)) {

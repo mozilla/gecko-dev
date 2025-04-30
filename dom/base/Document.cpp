@@ -6781,9 +6781,11 @@ void Document::GetCookie(nsAString& aCookie, ErrorResult& aRv) {
         continue;
       }
 
+      nsCOMPtr<nsIURI> cookieURI = cookiePrincipal->GetURI();
+
       if (thirdParty &&
           !CookieCommons::ShouldIncludeCrossSiteCookie(
-              cookie, CookieJarSettings()->GetPartitionForeign(),
+              cookie, cookieURI, CookieJarSettings()->GetPartitionForeign(),
               IsInPrivateBrowsing(), UsingStorageAccess(), on3pcbException)) {
         continue;
       }
@@ -6925,7 +6927,7 @@ void Document::SetCookie(const nsAString& aCookieString, ErrorResult& aRv) {
 
   if (thirdParty &&
       !CookieCommons::ShouldIncludeCrossSiteCookie(
-          cookie, CookieJarSettings()->GetPartitionForeign(),
+          cookie, documentURI, CookieJarSettings()->GetPartitionForeign(),
           IsInPrivateBrowsing(), UsingStorageAccess(), on3pcbException)) {
     return;
   }

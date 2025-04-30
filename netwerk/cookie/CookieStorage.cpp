@@ -701,7 +701,6 @@ void CookieStorage::AddCookie(CookieParser* aCookieParser,
           oldCookie->IsSession() == aCookie->IsSession() &&
           oldCookie->IsHttpOnly() == aCookie->IsHttpOnly() &&
           oldCookie->SameSite() == aCookie->SameSite() &&
-          oldCookie->RawSameSite() == aCookie->RawSameSite() &&
           oldCookie->SchemeMap() == aCookie->SchemeMap() &&
           // We don't want to perform this optimization if the cookie is
           // considered stale, since in this case we would need to update the

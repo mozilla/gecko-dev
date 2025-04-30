@@ -14,10 +14,13 @@ add_task(async function run_test() {
   // Close the profile.
   await promise_close_profile();
 
+  // Remove the cookie file in order to create another database file.
+  do_get_cookie_file(profile).remove(false);
+
   // Create a schema 14 database.
   let schema14db = new CookieDatabaseConnection(
     do_get_cookie_file(profile),
-    14
+    15
   );
 
   let now = Math.round(Date.now() / 1000);
@@ -36,7 +39,6 @@ add_task(async function run_test() {
     false, // isHttpOnly
     false, // isBrowserElement
     { partitionKey: "(https,example.com)" },
-    Ci.nsICookie.SAMESITE_NONE,
     Ci.nsICookie.SAMESITE_NONE,
     Ci.nsICookie.SCHEME_UNSET,
     false // isPartitioned
@@ -58,7 +60,6 @@ add_task(async function run_test() {
     false, // isBrowserElement
     { partitionKey: "(https,example.com)" },
     Ci.nsICookie.SAMESITE_NONE,
-    Ci.nsICookie.SAMESITE_NONE,
     Ci.nsICookie.SCHEME_UNSET,
     true // isPartitioned
   );
@@ -78,7 +79,6 @@ add_task(async function run_test() {
     false, // isHttpOnly
     false, // isBrowserElement
     {},
-    Ci.nsICookie.SAMESITE_NONE,
     Ci.nsICookie.SAMESITE_NONE,
     Ci.nsICookie.SCHEME_UNSET,
     false // isPartitioned
@@ -100,7 +100,6 @@ add_task(async function run_test() {
     false, // isBrowserElement
     { partitionKey: "(https,example.org)" },
     Ci.nsICookie.SAMESITE_NONE,
-    Ci.nsICookie.SAMESITE_NONE,
     Ci.nsICookie.SCHEME_UNSET,
     false // isPartitioned
   );
@@ -120,7 +119,6 @@ add_task(async function run_test() {
     false, // isHttpOnly
     false, // isBrowserElement
     { partitionKey: "(https,example.org)" },
-    Ci.nsICookie.SAMESITE_NONE,
     Ci.nsICookie.SAMESITE_NONE,
     Ci.nsICookie.SCHEME_UNSET,
     true // isPartitioned

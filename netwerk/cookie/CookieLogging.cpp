@@ -129,9 +129,7 @@ void CookieLogging::LogCookie(Cookie* aCookie) {
     MOZ_LOG(gCookieLog, LogLevel::Debug,
             ("is httpOnly: %s\n", aCookie->IsHttpOnly() ? "true" : "false"));
     MOZ_LOG(gCookieLog, LogLevel::Debug,
-            ("sameSite: %s - rawSameSite: %s\n",
-             SameSiteToString(aCookie->SameSite()),
-             SameSiteToString(aCookie->RawSameSite())));
+            ("sameSite: %s\n", SameSiteToString(aCookie->SameSite())));
     MOZ_LOG(
         gCookieLog, LogLevel::Debug,
         ("schemeMap %d (http: %s | https: %s | file: %s)\n",

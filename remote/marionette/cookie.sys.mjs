@@ -13,9 +13,10 @@ ChromeUtils.defineESModuleGetters(lazy, {
 const IPV4_PORT_EXPR = /:\d+$/;
 
 const SAMESITE_MAP = new Map([
-  ["None", Ci.nsICookie.SAMESITE_NONE],
-  ["Lax", Ci.nsICookie.SAMESITE_LAX],
-  ["Strict", Ci.nsICookie.SAMESITE_STRICT],
+  [Ci.nsICookie.SAMESITE_NONE, "None"],
+  [Ci.nsICookie.SAMESITE_LAX, "Lax"],
+  [Ci.nsICookie.SAMESITE_STRICT, "Strict"],
+  [Ci.nsICookie.SAMESITE_UNSET, "None"],
 ]);
 
 /** @namespace */
@@ -98,7 +99,7 @@ cookie.fromJSON = function (json) {
     );
   }
   if (typeof json.sameSite != "undefined") {
-    const validOptions = Array.from(SAMESITE_MAP.keys());
+    const validOptions = Array.from(SAMESITE_MAP.values());
     newCookie.sameSite = lazy.assert.in(
       json.sameSite,
       validOptions,
@@ -173,7 +174,11 @@ cookie.add = function (
   } else {
     newCookie.session = false;
   }
-  newCookie.sameSite = SAMESITE_MAP.get(newCookie.sameSite || "None");
+
+  let sameSite = [...SAMESITE_MAP].find(
+    ([, value]) => newCookie.sameSite === value
+  );
+  newCookie.sameSite = sameSite ? sameSite[0] : Ci.nsICookie.SAMESITE_UNSET;
 
   let isIpAddress = false;
   try {
@@ -307,9 +312,7 @@ cookie.iter = function* (host, currentPath = "/") {
           data.expiry = cookie.expiry;
         }
 
-        data.sameSite = [...SAMESITE_MAP].find(
-          ([, value]) => cookie.sameSite === value
-        )[0];
+        data.sameSite = SAMESITE_MAP.get(cookie.sameSite) || "None";
 
         yield data;
       }

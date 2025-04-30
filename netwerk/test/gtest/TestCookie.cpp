@@ -942,12 +942,14 @@ TEST(TestCookie, TestCookieMain)
     int32_t sameSiteAttr;
     cookie->GetSameSite(&sameSiteAttr);
     if (name.EqualsLiteral("unset")) {
-      EXPECT_TRUE(sameSiteAttr == nsICookie::SAMESITE_NONE);
+      EXPECT_TRUE(sameSiteAttr == nsICookie::SAMESITE_UNSET);
     } else if (name.EqualsLiteral("unspecified")) {
-      EXPECT_TRUE(sameSiteAttr == nsICookie::SAMESITE_NONE);
+      EXPECT_TRUE(sameSiteAttr == nsICookie::SAMESITE_UNSET);
     } else if (name.EqualsLiteral("empty")) {
-      EXPECT_TRUE(sameSiteAttr == nsICookie::SAMESITE_NONE);
+      EXPECT_TRUE(sameSiteAttr == nsICookie::SAMESITE_UNSET);
     } else if (name.EqualsLiteral("bogus")) {
+      EXPECT_TRUE(sameSiteAttr == nsICookie::SAMESITE_UNSET);
+    } else if (name.EqualsLiteral("none")) {
       EXPECT_TRUE(sameSiteAttr == nsICookie::SAMESITE_NONE);
     } else if (name.EqualsLiteral("strict")) {
       EXPECT_TRUE(sameSiteAttr == nsICookie::SAMESITE_STRICT);
@@ -996,52 +998,6 @@ TEST(TestCookie, TestCookieMain)
   // *** "noncompliant cookie" tests
   // *** IP address tests
   // *** speed tests
-}
-
-TEST(TestCookie, SameSiteLax)
-{
-  Preferences::SetBool("network.cookie.sameSite.laxByDefault", true);
-
-  nsresult rv;
-
-  nsCOMPtr<nsICookieService> cookieService =
-      do_GetService(kCookieServiceCID, &rv);
-  ASSERT_NS_SUCCEEDED(rv);
-
-  nsCOMPtr<nsICookieManager> cookieMgr =
-      do_GetService(NS_COOKIEMANAGER_CONTRACTID, &rv);
-  ASSERT_NS_SUCCEEDED(rv);
-
-  EXPECT_NS_SUCCEEDED(cookieMgr->RemoveAll());
-
-  SetACookie(cookieService, "http://samesite.test", "unset=yes");
-
-  nsTArray<RefPtr<nsICookie>> cookies;
-  EXPECT_NS_SUCCEEDED(cookieMgr->GetCookies(cookies));
-  EXPECT_EQ(cookies.Length(), (uint64_t)1);
-
-  Cookie* cookie = static_cast<Cookie*>(cookies[0].get());
-  EXPECT_EQ(cookie->RawSameSite(), nsICookie::SAMESITE_NONE);
-  EXPECT_EQ(cookie->SameSite(), nsICookie::SAMESITE_LAX);
-
-  Preferences::SetCString("network.cookie.sameSite.laxByDefault.disabledHosts",
-                          "foo.com,samesite.test,bar.net");
-
-  EXPECT_NS_SUCCEEDED(cookieMgr->RemoveAll());
-
-  cookies.SetLength(0);
-  EXPECT_NS_SUCCEEDED(cookieMgr->GetCookies(cookies));
-  EXPECT_EQ(cookies.Length(), (uint64_t)0);
-
-  SetACookie(cookieService, "http://samesite.test", "unset=yes");
-
-  cookies.SetLength(0);
-  EXPECT_NS_SUCCEEDED(cookieMgr->GetCookies(cookies));
-  EXPECT_EQ(cookies.Length(), (uint64_t)1);
-
-  cookie = static_cast<Cookie*>(cookies[0].get());
-  EXPECT_EQ(cookie->RawSameSite(), nsICookie::SAMESITE_NONE);
-  EXPECT_EQ(cookie->SameSite(), nsICookie::SAMESITE_LAX);
 }
 
 TEST(TestCookie, OnionSite)

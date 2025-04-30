@@ -29,19 +29,29 @@ async function realTest(noneRequiresSecure) {
     const {sendAsyncMessage} = this;
     let cookies = { test: null, test2: null, test3: null };
 
+    function sameSiteToString(sameSite) {
+      switch (sameSite) {
+        case Ci.nsICookie.SAMESITE_NONE: return "none";
+        case Ci.nsICookie.SAMESITE_LAX: return "lax";
+        case Ci.nsICookie.SAMESITE_STRICT: return "strict";
+        case Ci.nsICookie.SAMESITE_UNSET: return "unset";
+        default: return "ERROR!";
+      }
+    }
+
     for (let cookie of Services.cookies.cookies) {
       if (cookie.host != "example.com") continue;
 
       if (cookie.name == "test" && cookie.value == "wow") {
-        cookies.test = cookie.sameSite == Ci.nsICookie.SAMESITE_LAX ? 'lax' : 'none';
+        cookies.test = sameSiteToString(cookie.sameSite);
       }
 
       if (cookie.name == "test2" && cookie.value == "wow2") {
-        cookies.test2 = cookie.sameSite == Ci.nsICookie.SAMESITE_LAX ? 'lax' : 'none';
+        cookies.test2 = sameSiteToString(cookie.sameSite);
       }
 
       if (cookie.name == "test3" && cookie.value == "wow3") {
-        cookies.test3 = cookie.sameSite == Ci.nsICookie.SAMESITE_LAX ? 'lax' : 'none';
+        cookies.test3 = sameSiteToString(cookie.sameSite);
       }
     }
 
@@ -56,7 +66,7 @@ async function realTest(noneRequiresSecure) {
     });
   });
 
-  is(cookies.test, "lax", "Cookie set without samesite is lax by default");
+  is(cookies.test, "unset", "Cookie set without samesite is unset");
   if (noneRequiresSecure) {
     is(cookies.test2, null, "Cookie set with samesite none, but not secure");
   } else {

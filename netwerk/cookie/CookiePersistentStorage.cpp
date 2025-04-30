@@ -31,7 +31,7 @@
 // This is a hack to hide HttpOnly cookies from older browsers
 #define HTTP_ONLY_PREFIX "#HttpOnly_"
 
-constexpr auto COOKIES_SCHEMA_VERSION = 14;
+constexpr auto COOKIES_SCHEMA_VERSION = 15;
 
 // parameter indexes; see |Read|
 constexpr auto IDX_NAME = 0;
@@ -45,9 +45,8 @@ constexpr auto IDX_SECURE = 7;
 constexpr auto IDX_HTTPONLY = 8;
 constexpr auto IDX_ORIGIN_ATTRIBUTES = 9;
 constexpr auto IDX_SAME_SITE = 10;
-constexpr auto IDX_RAW_SAME_SITE = 11;
-constexpr auto IDX_SCHEME_MAP = 12;
-constexpr auto IDX_PARTITIONED_ATTRIBUTE_SET = 13;
+constexpr auto IDX_SCHEME_MAP = 11;
+constexpr auto IDX_PARTITIONED_ATTRIBUTE_SET = 12;
 
 #define COOKIES_FILE "cookies.sqlite"
 
@@ -102,9 +101,6 @@ void BindCookieParameters(mozIStorageBindingParamsArray* aParamsArray,
   MOZ_ASSERT(NS_SUCCEEDED(rv));
 
   rv = params->BindInt32ByName("sameSite"_ns, aCookie->SameSite());
-  MOZ_ASSERT(NS_SUCCEEDED(rv));
-
-  rv = params->BindInt32ByName("rawSameSite"_ns, aCookie->RawSameSite());
   MOZ_ASSERT(NS_SUCCEEDED(rv));
 
   rv = params->BindInt32ByName("schemeMap"_ns, aCookie->SchemeMap());
@@ -1505,6 +1501,38 @@ CookiePersistentStorage::OpenDBResult CookiePersistentStorage::TryInitDB(
                              "34560000 WHERE expiry > unixepoch() + 34560000"));
         NS_ENSURE_SUCCESS(rv, RESULT_RETRY);
 
+        [[fallthrough]];
+      }
+
+      case 14: {
+        nsCOMPtr<mozIStorageStatement> update;
+        rv = mSyncConn->CreateStatement(
+            nsLiteralCString("UPDATE moz_cookies SET sameSite = "
+                             ":unsetValue WHERE sameSite = :laxValue AND "
+                             "rawSameSite = :noneValue"),
+            getter_AddRefs(update));
+        NS_ENSURE_SUCCESS(rv, RESULT_RETRY);
+
+        mozStorageStatementScoper scoper(update);
+
+        rv =
+            update->BindInt32ByName("unsetValue"_ns, nsICookie::SAMESITE_UNSET);
+        MOZ_ASSERT(NS_SUCCEEDED(rv));
+
+        rv = update->BindInt32ByName("laxValue"_ns, nsICookie::SAMESITE_LAX);
+        MOZ_ASSERT(NS_SUCCEEDED(rv));
+
+        rv = update->BindInt32ByName("noneValue"_ns, nsICookie::SAMESITE_NONE);
+        MOZ_ASSERT(NS_SUCCEEDED(rv));
+
+        bool hasResult;
+        rv = update->ExecuteStep(&hasResult);
+        NS_ENSURE_SUCCESS(rv, RESULT_RETRY);
+
+        rv = mSyncConn->ExecuteSimpleSQL(nsLiteralCString(
+            "ALTER TABLE moz_cookies DROP COLUMN rawSameSite;"));
+        NS_ENSURE_SUCCESS(rv, RESULT_RETRY);
+
         // No more upgrades. Update the schema version.
         rv = mSyncConn->SetSchemaVersion(COOKIES_SCHEMA_VERSION);
         NS_ENSURE_SUCCESS(rv, RESULT_RETRY);
@@ -1552,7 +1580,6 @@ CookiePersistentStorage::OpenDBResult CookiePersistentStorage::TryInitDB(
                              "isSecure, "
                              "isHttpOnly, "
                              "sameSite, "
-                             "rawSameSite, "
                              "schemeMap, "
                              "isPartitionedAttributeSet "
                              "FROM moz_cookies"),
@@ -1774,7 +1801,6 @@ CookiePersistentStorage::OpenDBResult CookiePersistentStorage::Read() {
                                                   "isHttpOnly, "
                                                   "originAttributes, "
                                                   "sameSite, "
-                                                  "rawSameSite, "
                                                   "schemeMap, "
                                                   "isPartitionedAttributeSet "
                                                   "FROM moz_cookies"),
@@ -1855,7 +1881,6 @@ UniquePtr<CookieStruct> CookiePersistentStorage::GetCookieFromRow(
   bool isSecure = 0 != aRow->AsInt32(IDX_SECURE);
   bool isHttpOnly = 0 != aRow->AsInt32(IDX_HTTPONLY);
   int32_t sameSite = aRow->AsInt32(IDX_SAME_SITE);
-  int32_t rawSameSite = aRow->AsInt32(IDX_RAW_SAME_SITE);
   int32_t schemeMap = aRow->AsInt32(IDX_SCHEME_MAP);
   bool isPartitionedAttributeSet =
       0 != aRow->AsInt32(IDX_PARTITIONED_ATTRIBUTE_SET);
@@ -1863,7 +1888,7 @@ UniquePtr<CookieStruct> CookiePersistentStorage::GetCookieFromRow(
   // Create a new constCookie and assign the data.
   return MakeUnique<CookieStruct>(
       name, value, host, path, expiry, lastAccessed, creationTime, isHttpOnly,
-      false, isSecure, isPartitionedAttributeSet, sameSite, rawSameSite,
+      false, isSecure, isPartitionedAttributeSet, sameSite,
       static_cast<nsICookie::schemeType>(schemeMap));
 }
 
@@ -2069,7 +2094,6 @@ nsresult CookiePersistentStorage::InitDBConnInternal() {
                        "isSecure, "
                        "isHttpOnly, "
                        "sameSite, "
-                       "rawSameSite, "
                        "schemeMap, "
                        "isPartitionedAttributeSet "
                        ") VALUES ("
@@ -2084,7 +2108,6 @@ nsresult CookiePersistentStorage::InitDBConnInternal() {
                        ":isSecure, "
                        ":isHttpOnly, "
                        ":sameSite, "
-                       ":rawSameSite, "
                        ":schemeMap, "
                        ":isPartitionedAttributeSet "
                        ")"),
@@ -2129,7 +2152,6 @@ nsresult CookiePersistentStorage::CreateTableWorker(const char* aName) {
       "isHttpOnly INTEGER, "
       "inBrowserElement INTEGER DEFAULT 0, "
       "sameSite INTEGER DEFAULT 0, "
-      "rawSameSite INTEGER DEFAULT 0, "
       "schemeMap INTEGER DEFAULT 0, "
       "isPartitionedAttributeSet INTEGER DEFAULT 0, "
       "CONSTRAINT moz_uniqueid UNIQUE (name, host, path, originAttributes)"

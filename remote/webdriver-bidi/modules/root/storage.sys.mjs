@@ -66,6 +66,7 @@ const SameSiteType = {
   [Ci.nsICookie.SAMESITE_NONE]: "none",
   [Ci.nsICookie.SAMESITE_LAX]: "lax",
   [Ci.nsICookie.SAMESITE_STRICT]: "strict",
+  [Ci.nsICookie.SAMESITE_UNSET]: "none",
 };
 
 class StorageModule extends RootBiDiModule {
@@ -885,6 +886,14 @@ class StorageModule extends RootBiDiModule {
       // so we have to calculate it to match.
       if (fieldName === "size") {
         storedCookieValue = this.#getCookieSize(storedCookie);
+      }
+
+      // Let's map any SAMESITE_UNSET to SAMESITE_NONE.
+      if (
+        fieldName === "sameSite" &&
+        storedCookieValue === Ci.nsICookie.SAMESITE_UNSET
+      ) {
+        storedCookieValue = Ci.nsICookie.SAMESITE_NONE;
       }
 
       if (storedCookieValue !== value) {

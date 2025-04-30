@@ -28,7 +28,7 @@ nsCookieRule::nsCookieRule(bool aIsOptOut, const nsACString& aName,
   net::CookieStruct cookieData(nsCString(aName), nsCString(aValue),
                                nsCString(aHost), nsCString(aPath), 0, 0, 0,
                                aIsHttpOnly, aIsSession, aIsSecure, false,
-                               aSameSite, aSameSite, aSchemeMap);
+                               aSameSite, aSchemeMap);
 
   OriginAttributes attrs;
   mCookie = net::Cookie::Create(cookieData, attrs);

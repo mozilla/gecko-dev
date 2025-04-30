@@ -154,13 +154,14 @@ bool ProcessSameSiteCookieForForeignRequest(nsIChannel* aChannel,
   // Explicit SameSite=None cookies are always processed. When laxByDefault
   // is OFF then so are default cookies.
   if (aCookie->SameSite() == nsICookie::SAMESITE_NONE ||
-      (!aLaxByDefault && aCookie->IsDefaultSameSite())) {
+      (!aLaxByDefault && aCookie->SameSite() == nsICookie::SAMESITE_UNSET)) {
     return true;
   }
 
   // Lax-by-default cookies are processed even with an intermediate
   // cross-site redirect (they are treated like aIsSameSiteForeign = false).
-  if (aLaxByDefault && aCookie->IsDefaultSameSite() && aHadCrossSiteRedirects &&
+  if (aLaxByDefault && aCookie->SameSite() == nsICookie::SAMESITE_UNSET &&
+      aHadCrossSiteRedirects &&
       StaticPrefs::
           network_cookie_sameSite_laxByDefault_allowBoomerangRedirect()) {
     return true;
@@ -170,7 +171,7 @@ bool ProcessSameSiteCookieForForeignRequest(nsIChannel* aChannel,
 
   // 2 minutes of tolerance for 'SameSite=Lax by default' for cookies set
   // without a SameSite value when used for unsafe http methods.
-  if (aLaxByDefault && aCookie->IsDefaultSameSite() &&
+  if (aLaxByDefault && aCookie->SameSite() == nsICookie::SAMESITE_UNSET &&
       StaticPrefs::network_cookie_sameSite_laxPlusPOST_timeout() > 0 &&
       currentTimeInUsec - aCookie->CreationTime() <=
           (StaticPrefs::network_cookie_sameSite_laxPlusPOST_timeout() *
@@ -179,8 +180,9 @@ bool ProcessSameSiteCookieForForeignRequest(nsIChannel* aChannel,
     return true;
   }
 
-  MOZ_ASSERT((aLaxByDefault && aCookie->IsDefaultSameSite()) ||
-             aCookie->SameSite() == nsICookie::SAMESITE_LAX);
+  MOZ_ASSERT(
+      (aLaxByDefault && aCookie->SameSite() == nsICookie::SAMESITE_UNSET) ||
+      aCookie->SameSite() == nsICookie::SAMESITE_LAX);
   // We only have SameSite=Lax or lax-by-default cookies at this point.  These
   // are processed only if it's a top-level navigation
   return aIsSafeTopLevelNav;
@@ -757,7 +759,7 @@ CookieService::AddNative(nsIURI* aCookieURI, const nsACString& aHost,
                           nsCString(aPath), aExpiry, currentTimeInUsec,
                           Cookie::GenerateUniqueCreationTime(currentTimeInUsec),
                           aIsHttpOnly, aIsSession, aIsSecure, aIsPartitioned,
-                          aSameSite, aSameSite, aSchemeMap);
+                          aSameSite, aSchemeMap);
 
   if (!aCheck(cookieData)) {
     return NS_ERROR_FAILURE;
