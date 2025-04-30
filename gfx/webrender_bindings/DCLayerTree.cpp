@@ -1650,8 +1650,15 @@ void DCLayerCompositionSurface::Bind() {
   const auto& gle = gl::GLContextEGL::Cast(gl);
   const auto& egl = gle->mEgl;
 
-  const EGLint pbuffer_attribs[]{LOCAL_EGL_WIDTH, mSize.width, LOCAL_EGL_HEIGHT,
-                                 mSize.height, LOCAL_EGL_NONE};
+  const EGLint pbuffer_attribs[]{LOCAL_EGL_WIDTH,
+                                 mSize.width,
+                                 LOCAL_EGL_HEIGHT,
+                                 mSize.height,
+                                 LOCAL_EGL_TEXTURE_OFFSET_X_ANGLE,
+                                 offset.x,
+                                 LOCAL_EGL_TEXTURE_OFFSET_Y_ANGLE,
+                                 offset.y,
+                                 LOCAL_EGL_NONE};
   const auto buffer = reinterpret_cast<EGLClientBuffer>(backBuffer.get());
   EGLConfig eglConfig = mDCLayerTree->GetEGLConfig();
 

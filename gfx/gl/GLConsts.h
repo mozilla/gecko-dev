@@ -6610,6 +6610,8 @@
 #define LOCAL_EGL_YUV_SUBSAMPLE_EXT                          0x3312
 #define LOCAL_EGL_Y_AXIS_NV                                  0x3370
 #define LOCAL_EGL_Y_INVERTED_NOK                             0x307F
+#define LOCAL_EGL_TEXTURE_OFFSET_X_ANGLE                     0x3490
+#define LOCAL_EGL_TEXTURE_OFFSET_Y_ANGLE                     0x3491
 
 // GLX
 #define LOCAL_GLX_3DFX_FULLSCREEN_MODE_MESA                  0x2
