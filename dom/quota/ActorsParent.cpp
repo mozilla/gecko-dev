@@ -2902,14 +2902,13 @@ nsresult QuotaManager::LoadQuota() {
             QM_TRY(OkIf(fullOriginMetadata.mIsPrivate == metadata.mIsPrivate),
                    Err(NS_ERROR_FAILURE));
 
-            MaybeCollectUnaccessedOrigin(fullOriginMetadata);
+            MaybeCollectUnaccessedOrigin(metadata);
 
-            AddTemporaryOrigin(fullOriginMetadata);
+            AddTemporaryOrigin(metadata);
 
             QM_TRY(MOZ_TO_RESULT(InitializeOrigin(
-                fullOriginMetadata.mPersistenceType, fullOriginMetadata,
-                fullOriginMetadata.mLastAccessTime,
-                fullOriginMetadata.mPersisted, directory)));
+                metadata.mPersistenceType, metadata, metadata.mLastAccessTime,
+                metadata.mPersisted, directory)));
           } else {
             MaybeCollectUnaccessedOrigin(fullOriginMetadata);
 
