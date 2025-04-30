@@ -155,13 +155,11 @@ class BookmarkFragment : LibraryPageFragment<BookmarkNode>(), UserInteractionHan
                                             NavGraphDirections.actionGlobalSearchDialog(sessionId = null),
                                         )
                                     },
-                                    shareBookmark = { url, title ->
+                                    shareBookmarks = { bookmarks ->
                                         lifecycleHolder.navController.nav(
                                             R.id.bookmarkFragment,
                                             BookmarkFragmentDirections.actionGlobalShareFragment(
-                                                data = arrayOf(
-                                                    ShareData(url = url, title = title),
-                                                ),
+                                                data = bookmarks.asShareDataArray(),
                                             ),
                                         )
                                     },

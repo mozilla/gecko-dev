@@ -54,7 +54,7 @@ class BookmarksMiddlewareTest {
     private lateinit var exitBookmarks: () -> Unit
     private lateinit var wasPreviousAppDestinationHome: () -> Boolean
     private lateinit var navigateToSearch: () -> Unit
-    private lateinit var shareBookmark: (String, String) -> Unit
+    private lateinit var shareBookmarks: (List<BookmarkItem.Bookmark>) -> Unit
     private lateinit var showTabsTray: (Boolean) -> Unit
     private lateinit var showUrlCopiedSnackbar: () -> Unit
     private lateinit var getBrowsingMode: () -> BrowsingMode
@@ -86,7 +86,7 @@ class BookmarksMiddlewareTest {
         exitBookmarks = { }
         wasPreviousAppDestinationHome = { false }
         navigateToSearch = { }
-        shareBookmark = { _, _ -> }
+        shareBookmarks = { }
         showTabsTray = { _ -> }
         showUrlCopiedSnackbar = { }
         getBrowsingMode = { BrowsingMode.Normal }
@@ -833,11 +833,9 @@ class BookmarksMiddlewareTest {
 
     @Test
     fun `WHEN share clicked in bookmark item menu THEN share the bookmark`() {
-        var resultUrl = ""
-        var resultTitle = ""
-        shareBookmark = { sharedUrl, sharedTitle ->
-            resultUrl = sharedUrl
-            resultTitle = sharedTitle
+        var sharedBookmarks: List<BookmarkItem.Bookmark> = emptyList()
+        shareBookmarks = { shareData ->
+            sharedBookmarks = shareData
         }
         val middleware = buildMiddleware()
         val store = middleware.makeStore()
@@ -846,8 +844,13 @@ class BookmarksMiddlewareTest {
         val bookmarkItem = BookmarkItem.Bookmark(url = url, title = title, previewImageUrl = url, guid = "guid")
 
         store.dispatch(BookmarksListMenuAction.Bookmark.ShareClicked(bookmarkItem))
-        assertEquals(url, resultUrl)
-        assertEquals(title, resultTitle)
+
+        assertTrue(
+            "Expected only one bookmark is shared. Got ${sharedBookmarks.size} instead",
+            sharedBookmarks.size == 1,
+        )
+        assertEquals(url, sharedBookmarks.first().url)
+        assertEquals(title, sharedBookmarks.first().title)
     }
 
     @Test
@@ -1165,11 +1168,9 @@ class BookmarksMiddlewareTest {
 
     @Test
     fun `GIVEN selected tabs WHEN multi-select share clicked THEN share all tabs`() = runTestOnMain {
-        val sharedUrls = mutableListOf<String>()
-        val sharedTitles = mutableListOf<String>()
-        shareBookmark = { url, title ->
-            sharedUrls.add(url)
-            sharedTitles.add(title)
+        var sharedBookmarks: List<BookmarkItem.Bookmark> = emptyList()
+        shareBookmarks = { shareData ->
+            sharedBookmarks = shareData
         }
         val tree = generateBookmarkTree()
         `when`(bookmarksStorage.countBookmarksInTrees(listOf(BookmarkRoot.Menu.id, BookmarkRoot.Toolbar.id, BookmarkRoot.Unfiled.id))).thenReturn(0u)
@@ -1184,11 +1185,10 @@ class BookmarksMiddlewareTest {
 
         store.dispatch(BookmarksListMenuAction.MultiSelect.ShareClicked)
 
-        assertTrue(items.size == 2)
-        for (item in items) {
-            assertTrue(item.url in sharedUrls)
-            assertTrue(item.title in sharedTitles)
-        }
+        assertEquals(
+            items,
+            sharedBookmarks,
+        )
     }
 
     @Test
@@ -1435,7 +1435,7 @@ class BookmarksMiddlewareTest {
         wasPreviousAppDestinationHome = wasPreviousAppDestinationHome,
         navigateToSearch = navigateToSearch,
         navigateToSignIntoSync = navigateToSignIntoSync,
-        shareBookmark = shareBookmark,
+        shareBookmarks = shareBookmarks,
         showTabsTray = showTabsTray,
         resolveFolderTitle = resolveFolderTitle,
         showUrlCopiedSnackbar = showUrlCopiedSnackbar,
