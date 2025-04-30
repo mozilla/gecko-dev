@@ -83,6 +83,7 @@ browser.jar:
         content/browser/sanitizeDialog.js                   (content/sanitizeDialog.js)
         content/browser/sanitizeDialog.css                  (content/sanitizeDialog.css)
         content/browser/utilityOverlay.js                   (content/utilityOverlay.js)
+        content/browser/webext-panels.css                   (content/webext-panels.css)
         content/browser/webext-panels.js                    (content/webext-panels.js)
 *       content/browser/webext-panels.xhtml                 (content/webext-panels.xhtml)
         content/browser/navigator-toolbox.js                (content/navigator-toolbox.js)

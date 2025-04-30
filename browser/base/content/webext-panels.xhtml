@@ -25,11 +25,13 @@
       rel="stylesheet"
       href="chrome://browser/content/usercontext/usercontext.css"
     />
+    <html:link rel="stylesheet" href="chrome://browser/content/webext-panels.css"/>
 
     <html:link rel="localization" href="toolkit/branding/brandings.ftl"/>
     <html:link rel="localization" href="toolkit/global/textActions.ftl"/>
     <html:link rel="localization" href="browser/browserContext.ftl"/>
     <html:link rel="localization" href="browser/translations.ftl"/>
+    <html:link rel="localization" href="browser/sidebar.ftl"/>
   </linkset>
 
   <!-- nsContextMenu.initNavigationItems expects these elements -->
@@ -55,4 +57,5 @@
 #include browser-context.inc
     </menupopup>
   </popupset>
+  <html:sidebar-panel-header id="sidebar-panel-header"/>
 </window>
