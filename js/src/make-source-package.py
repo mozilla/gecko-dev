@@ -63,9 +63,6 @@ assert_command("TAR", tar)
 rsync = os.environ.get("RSYNC", find_command(["rsync"]))
 assert_command("RSYNC", rsync)
 
-m4 = os.environ.get("M4", find_command(["m4"]))
-assert_command("M4", m4)
-
 awk = os.environ.get("AWK", find_command(["awk"]))
 assert_command("AWK", awk)
 
@@ -97,7 +94,6 @@ tar_opts = ["-Jcf"]
 print("Environment:")
 print(f"    TAR = {tar}")
 print(f"    RSYNC = {rsync}")
-print(f"    M4 = {m4}")
 print(f"    AWK = {awk}")
 print(f"    STAGING = {staging_dir}")
 print(f"    DIST = {dist_dir}")
