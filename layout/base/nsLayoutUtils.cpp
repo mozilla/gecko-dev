@@ -817,8 +817,6 @@ FrameChildListID nsLayoutUtils::GetChildListNameFor(nsIFrame* aChildFrame) {
     LayoutFrameType childType = aChildFrame->Type();
     if (LayoutFrameType::TableColGroup == childType) {
       id = FrameChildListID::ColGroup;
-    } else if (aChildFrame->IsTableCaption()) {
-      id = FrameChildListID::Caption;
     } else {
       id = FrameChildListID::Principal;
     }
@@ -3370,12 +3368,10 @@ void nsLayoutUtils::AddBoxesForFrame(nsIFrame* aFrame,
   auto pseudoType = aFrame->Style()->GetPseudoType();
 
   if (pseudoType == PseudoStyleType::tableWrapper) {
-    AddBoxesForFrame(aFrame->PrincipalChildList().FirstChild(), aCallback);
-    if (aCallback->mIncludeCaptionBoxForTable) {
-      nsIFrame* kid =
-          aFrame->GetChildList(FrameChildListID::Caption).FirstChild();
-      if (kid) {
-        AddBoxesForFrame(kid, aCallback);
+    for (nsIFrame* kid : aFrame->PrincipalChildList()) {
+      AddBoxesForFrame(kid, aCallback);
+      if (!aCallback->mIncludeCaptionBoxForTable) {
+        break;
       }
     }
   } else if (pseudoType == PseudoStyleType::mozBlockInsideInlineWrapper ||
@@ -3401,26 +3397,11 @@ void nsLayoutUtils::GetAllInFlowBoxes(nsIFrame* aFrame,
 nsIFrame* nsLayoutUtils::GetFirstNonAnonymousFrame(nsIFrame* aFrame) {
   while (aFrame) {
     auto pseudoType = aFrame->Style()->GetPseudoType();
-
-    if (pseudoType == PseudoStyleType::tableWrapper) {
-      nsIFrame* f =
-          GetFirstNonAnonymousFrame(aFrame->PrincipalChildList().FirstChild());
-      if (f) {
-        return f;
-      }
-      nsIFrame* kid =
-          aFrame->GetChildList(FrameChildListID::Caption).FirstChild();
-      if (kid) {
-        f = GetFirstNonAnonymousFrame(kid);
-        if (f) {
-          return f;
-        }
-      }
-    } else if (pseudoType == PseudoStyleType::mozBlockInsideInlineWrapper ||
-               pseudoType == PseudoStyleType::mozMathMLAnonymousBlock) {
+    if (pseudoType == PseudoStyleType::tableWrapper ||
+        pseudoType == PseudoStyleType::mozBlockInsideInlineWrapper ||
+        pseudoType == PseudoStyleType::mozMathMLAnonymousBlock) {
       for (nsIFrame* kid : aFrame->PrincipalChildList()) {
-        nsIFrame* f = GetFirstNonAnonymousFrame(kid);
-        if (f) {
+        if (nsIFrame* f = GetFirstNonAnonymousFrame(kid)) {
           return f;
         }
       }

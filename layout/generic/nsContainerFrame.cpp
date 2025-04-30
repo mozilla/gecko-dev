@@ -1865,13 +1865,7 @@ nsIFrame* nsContainerFrame::GetFirstNonAnonBoxInSubtree(nsIFrame* aFrame) {
     // column, we'll always return the column. This is fine; we're really just
     // looking for a handle to *anything* with a meaningful content node inside
     // the table, for use in DOM comparisons to things outside of the table.)
-    if (MOZ_UNLIKELY(aFrame->IsTableWrapperFrame())) {
-      nsIFrame* captionDescendant = GetFirstNonAnonBoxInSubtree(
-          aFrame->GetChildList(FrameChildListID::Caption).FirstChild());
-      if (captionDescendant) {
-        return captionDescendant;
-      }
-    } else if (MOZ_UNLIKELY(aFrame->IsTableFrame())) {
+    if (MOZ_UNLIKELY(aFrame->IsTableFrame())) {
       nsIFrame* colgroupDescendant = GetFirstNonAnonBoxInSubtree(
           aFrame->GetChildList(FrameChildListID::ColGroup).FirstChild());
       if (colgroupDescendant) {
