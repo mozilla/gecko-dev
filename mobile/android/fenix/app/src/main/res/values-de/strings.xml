@@ -3507,6 +3507,22 @@
   <!-- Subtitle for a setup checklist with 6 steps completed state. %1$s is the name of the app (for example "Firefox"). -->
   <string name="setup_checklist_subtitle_6_steps_completed_state">Sie haben alle sechs Einrichtungs-Schritte abgeschlossen. Genießen Sie die Geschwindigkeit, Privatsphäre und Sicherheit von %1$s.</string>
   <!--
+    ===== Setup checklist feature: Subtitles for 5 steps (Large screen devices don't support toolbar placement) =====
+
+    Subtitle for a setup checklist with 5 steps initial state. %1$s is the name of the app (for example "Firefox").
+  -->
+  <string name="setup_checklist_subtitle_5_steps_initial_state">Schließen Sie alle fünf Schritte ab, um %1$s für das beste Surf-Erlebnis einzurichten.</string>
+  <!-- Subtitle for a setup checklist with 5 steps when the first task is completed. -->
+  <string name="setup_checklist_subtitle_5_steps_first_step">Toller Start! Sie haben einen von fünf Schritten abgeschlossen.</string>
+  <!-- Subtitle for the setup checklist when the second task is completed. -->
+  <string name="setup_checklist_subtitle_5_steps_second_step">Sie haben zwei von fünf Schritten abgeschlossen. Toller Fortschritt!</string>
+  <!-- Subtitle for a setup checklist with 5 steps when three of the tasks are completed. -->
+  <string name="setup_checklist_subtitle_5_steps_third_step">Die Hälfte ist geschafft! Drei Schritte sind erledigt und zwei noch übrig.</string>
+  <!-- Subtitle for a setup checklist with 5 steps when the fifth task is completed. -->
+  <string name="setup_checklist_subtitle_5_steps_fourth_step">Fast geschafft! Sie sind nur noch einen Schritt von der Ziellinie entfernt.</string>
+  <!-- Subtitle for a setup checklist with 5 steps completed state. %1$s is the name of the app (for example "Firefox"). -->
+  <string name="setup_checklist_subtitle_5_steps_completed_state">Sie haben alle fünf Einrichtungs-Schritte abgeschlossen. Genießen Sie die Geschwindigkeit, Privatsphäre und Sicherheit von %1$s.</string>
+  <!--
     ===== Setup checklist feature: Task titles =====
 
     The title of the default browser task for the setup checklist

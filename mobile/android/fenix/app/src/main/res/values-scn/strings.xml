@@ -1826,7 +1826,7 @@
   <!-- Summary of studies data on quit preference if it is set to off -->
   <string name="studies_off">Sdisattivu</string>
   <!-- Category header of a preference that allows a user to alter settings related to web permissions. -->
-  <string name="preferences_category_permissions">Pirimisi</string>
+  <string name="preferences_category_permissions">Pirmissi</string>
   <!-- Category header of a preference that allows a user to alter settings related to web content. -->
   <string name="preferences_category_content">Cuntinutu</string>
   <!-- Preference for altering the default browsing mode. When enabled, the desktop site will always be requested. -->
@@ -3197,6 +3197,8 @@
   <string name="protection_panel_no_trackers_blocked">Nuḍḍu trazzaturi truvatu</string>
   <!-- Link text to navigate to privacy and security settings from the protection panel. -->
   <string name="protection_panel_privacy_and_security_settings">Mpustazzioni di privatizza e sicurizza</string>
+  <!-- Title text for the protection panel permissions section. -->
+  <string name="protection_panel_permissions_title">Pirmissi</string>
   <!--
     Text for displaying the total number of trackers blocked in the trackers blocked panel.
     %d is a placeholder for the number of trackers blocked.

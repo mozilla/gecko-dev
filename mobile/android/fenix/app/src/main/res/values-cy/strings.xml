@@ -3507,6 +3507,22 @@
   <!-- Subtitle for a setup checklist with 6 steps completed state. %1$s is the name of the app (for example "Firefox"). -->
   <string name="setup_checklist_subtitle_6_steps_completed_state">Rydych chi wedi cwblhau pob un o\'r 6 cham gosod. Mwynhewch gyflymder, preifatrwydd a diogelwch %1$s.</string>
   <!--
+    ===== Setup checklist feature: Subtitles for 5 steps (Large screen devices don't support toolbar placement) =====
+
+    Subtitle for a setup checklist with 5 steps initial state. %1$s is the name of the app (for example "Firefox").
+  -->
+  <string name="setup_checklist_subtitle_5_steps_initial_state">Cwblhewch bob un o\'r 5 cam i osod %1$s ar gyfer y profiad pori gorau.</string>
+  <!-- Subtitle for a setup checklist with 5 steps when the first task is completed. -->
+  <string name="setup_checklist_subtitle_5_steps_first_step">Dechrau gwych! Rydych chi wedi cwblhau 1 allan o 5 cam.</string>
+  <!-- Subtitle for the setup checklist when the second task is completed. -->
+  <string name="setup_checklist_subtitle_5_steps_second_step">Rydych chi wedi cwblhau 2 allan o 5 cam. Cynnydd gwych!</string>
+  <!-- Subtitle for a setup checklist with 5 steps when three of the tasks are completed. -->
+  <string name="setup_checklist_subtitle_5_steps_third_step">Rydych chi hanner ffordd yno! Tri cham wedi gorffen a 2 i fynd.</string>
+  <!-- Subtitle for a setup checklist with 5 steps when the fifth task is completed. -->
+  <string name="setup_checklist_subtitle_5_steps_fourth_step">Bron yno! Rydych chi 1 cam yn unig i ffwrdd o\'r llinell derfyn.</string>
+  <!-- Subtitle for a setup checklist with 5 steps completed state. %1$s is the name of the app (for example "Firefox"). -->
+  <string name="setup_checklist_subtitle_5_steps_completed_state">Rydych chi wedi cwblhau pob un o\'r 5 cam gosod. Mwynhewch gyflymder, preifatrwydd a diogelwch %1$s.</string>
+  <!--
     ===== Setup checklist feature: Task titles =====
 
     The title of the default browser task for the setup checklist
