@@ -164,7 +164,7 @@ fun DownloadsScreen(
             )
         },
         floatingActionButton = {
-            if (!uiState.isSearchFieldVisible && uiState.mode is Mode.Normal) {
+            if (uiState.isSearchIconVisible) {
                 FloatingActionButton(
                     icon = painterResource(R.drawable.mozac_ic_search_24),
                     contentDescription = stringResource(R.string.download_search_placeholder),

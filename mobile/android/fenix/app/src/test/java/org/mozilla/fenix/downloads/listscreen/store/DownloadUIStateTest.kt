@@ -556,6 +556,129 @@ class DownloadUIStateTest {
     }
 
     @Test
+    fun `WHEN search is not enabled THEN search icon is not visible`() {
+        val downloadUIState = DownloadUIState(
+            items = emptyList(),
+            mode = DownloadUIState.Mode.Normal,
+            pendingDeletionIds = emptySet(),
+            isSearchEnabled = false,
+            isSearchFieldRequested = true,
+            searchQuery = "",
+        )
+
+        assertEquals(false, downloadUIState.isSearchIconVisible)
+    }
+
+    @Test
+    fun `WHEN there are not items THEN search icon is not visible`() {
+        val downloadUIState = DownloadUIState(
+            items = emptyList(),
+            mode = DownloadUIState.Mode.Normal,
+            pendingDeletionIds = emptySet(),
+            isSearchEnabled = true,
+            isSearchFieldRequested = false,
+            searchQuery = "",
+        )
+
+        assertEquals(false, downloadUIState.isSearchIconVisible)
+    }
+
+    @Test
+    fun `WHEN state is in edit mode THEN search icon is not visible`() {
+        val fileItem1 = fileItem(
+            id = "1",
+            fileName = "somefile",
+            displayedShortUrl = "firefox.com",
+            createdTime = CreatedTime.LAST_30_DAYS,
+        )
+        val fileItem2 = fileItem(
+            id = "2",
+            fileName = "anotherfile",
+            displayedShortUrl = "mozilla.org",
+            createdTime = CreatedTime.LAST_30_DAYS,
+        )
+        val fileItems = listOf(
+            fileItem1,
+            fileItem2,
+        )
+
+        val downloadUIState = DownloadUIState(
+            items = fileItems,
+            mode = DownloadUIState.Mode.Editing(
+                selectedItems = setOf(fileItem1),
+            ),
+            pendingDeletionIds = emptySet(),
+            isSearchEnabled = true,
+            isSearchFieldRequested = true,
+            searchQuery = "",
+        )
+
+        assertEquals(false, downloadUIState.isSearchIconVisible)
+    }
+
+    @Test
+    fun `WHEN search field is visible THEN search icon is not visible`() {
+        val fileItem1 = fileItem(
+            id = "1",
+            fileName = "somefile",
+            displayedShortUrl = "firefox.com",
+            createdTime = CreatedTime.LAST_30_DAYS,
+        )
+        val fileItem2 = fileItem(
+            id = "2",
+            fileName = "anotherfile",
+            displayedShortUrl = "mozilla.org",
+            createdTime = CreatedTime.LAST_30_DAYS,
+        )
+        val fileItems = listOf(
+            fileItem1,
+            fileItem2,
+        )
+
+        val downloadUIState = DownloadUIState(
+            items = fileItems,
+            mode = DownloadUIState.Mode.Normal,
+            pendingDeletionIds = emptySet(),
+            isSearchEnabled = true,
+            isSearchFieldRequested = true,
+            searchQuery = "",
+        )
+
+        assertEquals(false, downloadUIState.isSearchIconVisible)
+    }
+
+    @Test
+    fun `WHEN search field is not requested and state is in normal mode with items THEN search icon is visible`() {
+        val fileItem1 = fileItem(
+            id = "1",
+            fileName = "somefile",
+            displayedShortUrl = "firefox.com",
+            createdTime = CreatedTime.LAST_30_DAYS,
+        )
+        val fileItem2 = fileItem(
+            id = "2",
+            fileName = "anotherfile",
+            displayedShortUrl = "mozilla.org",
+            createdTime = CreatedTime.LAST_30_DAYS,
+        )
+        val fileItems = listOf(
+            fileItem1,
+            fileItem2,
+        )
+
+        val downloadUIState = DownloadUIState(
+            items = fileItems,
+            mode = DownloadUIState.Mode.Normal,
+            pendingDeletionIds = emptySet(),
+            isSearchEnabled = true,
+            isSearchFieldRequested = false,
+            searchQuery = "",
+        )
+
+        assertEquals(true, downloadUIState.isSearchIconVisible)
+    }
+
+    @Test
     fun `WHEN search is not enabled and field is requested and state is in normal mode THEN search field is not visible`() {
         val downloadUIState = DownloadUIState(
             items = emptyList(),
