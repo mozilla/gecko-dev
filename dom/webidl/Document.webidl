@@ -122,7 +122,7 @@ interface Document : Node {
 
 // https://html.spec.whatwg.org/multipage/dom.html#the-document-object
 partial interface Document {
-  [Pref="dom.webcomponents.shadowdom.declarative.enabled", Throws]
+  [Throws]
   static Document parseHTMLUnsafe((TrustedHTML or DOMString) html);
 
   [PutForwards=href, LegacyUnforgeable] readonly attribute Location? location;

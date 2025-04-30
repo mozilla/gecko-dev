@@ -5338,12 +5338,6 @@
   value: false
   mirror: always
 
-# Is support for Declarative ShadowDOM enabled?
-- name: dom.webcomponents.shadowdom.declarative.enabled
-  type: bool
-  value: true
-  mirror: always
-
 # Is the constructed flag error check disabled during adoptedStyleSheets setter?
 # https://github.com/w3c/csswg-drafts/issues/10013
 - name: dom.webcomponents.lift-adoptedstylesheets-restriction.enabled

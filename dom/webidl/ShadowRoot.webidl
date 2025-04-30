@@ -26,9 +26,7 @@ interface ShadowRoot : DocumentFragment
   readonly attribute ShadowRootMode mode;
   readonly attribute boolean delegatesFocus;
   readonly attribute SlotAssignmentMode slotAssignment;
-  [Pref="dom.webcomponents.shadowdom.declarative.enabled"]
   readonly attribute boolean clonable;
-  [Pref="dom.webcomponents.shadowdom.declarative.enabled"]
   readonly attribute boolean serializable;
   readonly attribute Element host;
   attribute EventHandler onslotchange;
@@ -61,9 +59,8 @@ interface ShadowRoot : DocumentFragment
 
 partial interface ShadowRoot {
   // https://html.spec.whatwg.org/#dom-shadowroot-sethtmlunsafe
-  [Pref="dom.webcomponents.shadowdom.declarative.enabled", Throws]
+  [Throws]
   undefined setHTMLUnsafe((TrustedHTML or DOMString) html);
-  [Pref="dom.webcomponents.shadowdom.declarative.enabled"]
   DOMString getHTML(optional GetHTMLOptions options = {});
 };
 
