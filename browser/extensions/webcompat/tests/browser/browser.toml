@@ -14,6 +14,9 @@ support-files = [
 
 ["browser_aboutcompat.js"]
 
+["browser_custom_functions.js"]
+support-files = ["download_server.sjs"]
+
 ["browser_interventions.js"]
 
 ["browser_shims.js"]
