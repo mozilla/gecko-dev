@@ -1553,6 +1553,23 @@ const MESSAGES = () => [
     },
     groups: [],
   },
+  {
+    id: "NEWTAB_PERSONALIZATION_MESSAGE",
+    template: "newtab_message",
+    content: {
+      messageType: "PersonalizedCard",
+      position: 1,
+      cardTitle: "Personalized Just for You!",
+      cardMessage:
+        "We’re customizing your feed to show content that matters to you, while ensuring your privacy is always respected.",
+      ctaText: "Manage your settings",
+      linkText: "Learn how we protect and manage data",
+    },
+    trigger: {
+      id: "newtabMessageCheck",
+    },
+    groups: [],
+  },
 ];
 
 export const PanelTestProvider = {

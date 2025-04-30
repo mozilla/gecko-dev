@@ -8389,7 +8389,7 @@ main section {
   font-size: var(--font-size-xxlarge);
   font-weight: var(--font-weight-bold);
 }
-.personalized-card-wrapper .personalized-card-inner a {
+.personalized-card-wrapper .personalized-card-inner .personalized-card-link {
   color: var(--link-color);
   font-size: var(--font-size-small);
 }
@@ -8401,7 +8401,7 @@ main section {
   .personalized-card-wrapper .personalized-card-inner img {
     justify-self: initial;
   }
-  .personalized-card-wrapper .personalized-card-inner a {
+  .personalized-card-wrapper .personalized-card-inner .personalized-card-link {
     margin-top: 8px;
     margin-bottom: 15px;
   }
@@ -8423,7 +8423,7 @@ main section {
     margin-top: -30px;
     width: 195px;
   }
-  .personalized-card-wrapper .personalized-card-inner a {
+  .personalized-card-wrapper .personalized-card-inner .personalized-card-link {
     margin-top: -60px;
     grid-column: 3;
   }
@@ -8448,7 +8448,7 @@ main section {
     margin-top: initial;
     width: 220px;
   }
-  .personalized-card-wrapper .personalized-card-inner a {
+  .personalized-card-wrapper .personalized-card-inner .personalized-card-link {
     grid-column: 4;
     margin-top: -50px;
   }
@@ -8463,7 +8463,7 @@ main section {
   .personalized-card-wrapper .personalized-card-inner .personalized-card-cta {
     margin-inline-end: 40px;
   }
-  .personalized-card-wrapper .personalized-card-inner a {
+  .personalized-card-wrapper .personalized-card-inner .personalized-card-link {
     width: 290px;
     margin-top: -60px;
   }

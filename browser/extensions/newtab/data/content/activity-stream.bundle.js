@@ -10962,10 +10962,29 @@ function InterestPicker({
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 
+
+
 const PersonalizedCard = ({
-  onDismiss
+  dispatch,
+  handleDismiss,
+  handleClick,
+  handleBlock,
+  messageData
 }) => {
   const wavingFox = "chrome://newtab/content/data/content/assets/waving-fox.svg";
+  const onDismiss = (0,external_React_namespaceObject.useCallback)(() => {
+    handleDismiss();
+    handleBlock();
+  }, [handleDismiss, handleBlock]);
+  const onToggleClick = (0,external_React_namespaceObject.useCallback)(elementId => {
+    dispatch({
+      type: actionTypes.SHOW_PERSONALIZE
+    });
+    dispatch(actionCreators.UserEvent({
+      event: "SHOW_PERSONALIZE"
+    }));
+    handleClick(elementId);
+  }, [dispatch, handleClick]);
   return /*#__PURE__*/external_React_default().createElement("aside", {
     className: "personalized-card-wrapper"
   }, /*#__PURE__*/external_React_default().createElement("div", {
@@ -10980,17 +10999,136 @@ const PersonalizedCard = ({
   }, /*#__PURE__*/external_React_default().createElement("img", {
     src: wavingFox,
     alt: ""
-  }), /*#__PURE__*/external_React_default().createElement("h2", null, "Personalized Just for You"), /*#__PURE__*/external_React_default().createElement("p", null, "We\u2019re customizing your feed to show content that matters to you, while ensuring your privacy is always respected."), /*#__PURE__*/external_React_default().createElement("moz-button", {
+  }), /*#__PURE__*/external_React_default().createElement("h2", null, messageData.content.cardTitle), /*#__PURE__*/external_React_default().createElement("p", null, messageData.content.cardMessage), /*#__PURE__*/external_React_default().createElement("moz-button", {
     type: "primary",
-    class: "personalized-card-cta"
-  }, "Manage your settings"), /*#__PURE__*/external_React_default().createElement("a", {
-    href: "https://www.mozilla.org/en-US/privacy/firefox/#notice"
-  }, "Learn how we protect and manage data")));
+    class: "personalized-card-cta",
+    onClick: () => onToggleClick("open-personalization-panel")
+  }, messageData.content.ctaText), /*#__PURE__*/external_React_default().createElement(SafeAnchor, {
+    className: "personalized-card-link",
+    dispatch: dispatch,
+    url: "https://www.mozilla.org/en-US/privacy/firefox/#notice",
+    onLinkClick: () => {
+      handleClick("link-click");
+    }
+  }, messageData.content.linkText)));
 };
+;// CONCATENATED MODULE: ./content-src/components/MessageWrapper/MessageWrapper.jsx
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this file,
+ * You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+
+
+
+
+function MessageWrapper({
+  children,
+  dispatch,
+  hiddenOverride,
+  onDismiss
+}) {
+  const message = (0,external_ReactRedux_namespaceObject.useSelector)(state => state.Messages);
+  const [isIntersecting, setIsIntersecting] = (0,external_React_namespaceObject.useState)(false);
+  const [hasRun, setHasRun] = (0,external_React_namespaceObject.useState)();
+  const handleIntersection = (0,external_React_namespaceObject.useCallback)(() => {
+    setIsIntersecting(true);
+    const isVisible = document?.visibilityState && document.visibilityState === "visible";
+    // only send impression if messageId is defined and tab is visible
+    if (isVisible && message.messageData.id) {
+      setHasRun(true);
+      dispatch(actionCreators.AlsoToMain({
+        type: actionTypes.MESSAGE_IMPRESSION,
+        data: message.messageData
+      }));
+    }
+  }, [dispatch, message]);
+  (0,external_React_namespaceObject.useEffect)(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible" && !hasRun) {
+        handleIntersection();
+      }
+    };
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    return () => {
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
+  }, [handleIntersection, hasRun]);
+  const ref = useIntersectionObserver(handleIntersection);
+  const handleClose = (0,external_React_namespaceObject.useCallback)(() => {
+    const action = {
+      type: actionTypes.MESSAGE_TOGGLE_VISIBILITY,
+      data: true
+    };
+    if (message.portID) {
+      dispatch(actionCreators.OnlyToOneContent(action, message.portID));
+    } else {
+      dispatch(actionCreators.AlsoToMain(action));
+    }
+    onDismiss?.();
+  }, [dispatch, message, onDismiss]);
+  function handleDismiss() {
+    const {
+      id
+    } = message.messageData;
+    if (id) {
+      dispatch(actionCreators.OnlyToMain({
+        type: actionTypes.MESSAGE_DISMISS,
+        data: {
+          message: message.messageData
+        }
+      }));
+    }
+    handleClose();
+  }
+  function handleBlock() {
+    const {
+      id
+    } = message.messageData;
+    if (id) {
+      dispatch(actionCreators.OnlyToMain({
+        type: actionTypes.MESSAGE_BLOCK,
+        data: id
+      }));
+    }
+  }
+  function handleClick(elementId) {
+    const {
+      id
+    } = message.messageData;
+    if (id) {
+      dispatch(actionCreators.OnlyToMain({
+        type: actionTypes.MESSAGE_CLICK,
+        data: {
+          message: message.messageData,
+          source: elementId || ""
+        }
+      }));
+    }
+  }
+  if (!message || !hiddenOverride && message.isHidden) {
+    return null;
+  }
+
+  // only display the message if `isHidden` is false
+  return /*#__PURE__*/external_React_default().createElement("div", {
+    ref: el => {
+      ref.current = [el];
+    },
+    className: "message-wrapper"
+  }, /*#__PURE__*/external_React_default().cloneElement(children, {
+    isIntersecting,
+    handleDismiss,
+    handleClick,
+    handleBlock,
+    handleClose
+  }));
+}
+
 ;// CONCATENATED MODULE: ./content-src/components/DiscoveryStreamComponents/CardSections/CardSections.jsx
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+
 
 
 
@@ -11018,10 +11156,6 @@ const CardSections_PREF_BILLBOARD_ENABLED = "newtabAdSize.billboard";
 const CardSections_PREF_LEADERBOARD_ENABLED = "newtabAdSize.leaderboard";
 const CardSections_PREF_LEADERBOARD_POSITION = "newtabAdSize.leaderboard.position";
 const CardSections_PREF_BILLBOARD_POSITION = "newtabAdSize.billboard.position";
-const PREF_INFERRED_PERSONALIZATION_ENABLED = "discoverystream.sections.personalization.inferred.enabled";
-const PREF_INFERRED_PERSONALIZATION_USER_ENABLED = "discoverystream.sections.personalization.inferred.user.enabled";
-const PREF_INFERRED_PERSONALIZATION_POSITION = "discoverystream.sections.personalization.inferred.position";
-const PREF_INFERRED_PERSONALIZATION_BLOCKED = "discoverystream.sections.personalization.inferred.blocked";
 function getLayoutData(responsiveLayouts, index) {
   let layoutData = {
     classNames: [],
@@ -11302,6 +11436,9 @@ function CardSections({
     spocs,
     sectionPersonalization
   } = (0,external_ReactRedux_namespaceObject.useSelector)(state => state.DiscoveryStream);
+  const {
+    messageData
+  } = (0,external_ReactRedux_namespaceObject.useSelector)(state => state.Messages);
   const personalizationEnabled = prefs[PREF_SECTIONS_PERSONALIZATION_ENABLED];
   const interestPickerEnabled = prefs[PREF_INTEREST_PICKER_ENABLED];
 
@@ -11375,19 +11512,19 @@ function CardSections({
       receivedFeedRank: interestPicker.receivedFeedRank
     }));
   }
-  const handleDismissP13nCard = () => {
-    dispatch(actionCreators.SetPref(PREF_INFERRED_PERSONALIZATION_BLOCKED, true));
-  };
   function displayP13nCard() {
-    const row = prefs[PREF_INFERRED_PERSONALIZATION_POSITION];
-    const cardBlocked = prefs[PREF_INFERRED_PERSONALIZATION_BLOCKED];
-    const cardEnabled = prefs[PREF_INFERRED_PERSONALIZATION_ENABLED];
-    const userEnabled = prefs[PREF_INFERRED_PERSONALIZATION_USER_ENABLED];
-    if (!cardBlocked && cardEnabled && userEnabled) {
-      sectionsToRender.splice(row, 0, /*#__PURE__*/external_React_default().createElement(PersonalizedCard, {
-        row: row,
-        onDismiss: handleDismissP13nCard
-      }));
+    if (messageData && Object.keys(messageData).length >= 1) {
+      if (messageData?.content?.messageType === "PersonalizedCard") {
+        const row = messageData.content.position;
+        sectionsToRender.splice(row, 0, /*#__PURE__*/external_React_default().createElement(MessageWrapper, {
+          dispatch: dispatch,
+          onDismiss: () => {}
+        }, /*#__PURE__*/external_React_default().createElement(PersonalizedCard, {
+          position: row,
+          dispatch: dispatch,
+          messageData: messageData
+        })));
+      }
     }
   }
   displayP13nCard();
@@ -14130,115 +14267,6 @@ function WallpaperFeatureHighlight({
     outsideClickCallback: handleDismiss
   }));
 }
-;// CONCATENATED MODULE: ./content-src/components/MessageWrapper/MessageWrapper.jsx
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this file,
- * You can obtain one at http://mozilla.org/MPL/2.0/. */
-
-
-
-
-
-function MessageWrapper({
-  children,
-  dispatch,
-  hiddenOverride,
-  onDismiss
-}) {
-  const message = (0,external_ReactRedux_namespaceObject.useSelector)(state => state.Messages);
-  const [isIntersecting, setIsIntersecting] = (0,external_React_namespaceObject.useState)(false);
-  const [hasRun, setHasRun] = (0,external_React_namespaceObject.useState)();
-  const handleIntersection = (0,external_React_namespaceObject.useCallback)(() => {
-    setIsIntersecting(true);
-    const isVisible = document?.visibilityState && document.visibilityState === "visible";
-    // only send impression if messageId is defined and tab is visible
-    if (isVisible && message.messageData.id) {
-      setHasRun(true);
-      dispatch(actionCreators.AlsoToMain({
-        type: actionTypes.MESSAGE_IMPRESSION,
-        data: message.messageData
-      }));
-    }
-  }, [dispatch, message]);
-  (0,external_React_namespaceObject.useEffect)(() => {
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === "visible" && !hasRun) {
-        handleIntersection();
-      }
-    };
-    document.addEventListener("visibilitychange", handleVisibilityChange);
-    return () => {
-      document.removeEventListener("visibilitychange", handleVisibilityChange);
-    };
-  }, [handleIntersection, hasRun]);
-  const ref = useIntersectionObserver(handleIntersection);
-  const handleClose = (0,external_React_namespaceObject.useCallback)(() => {
-    const action = {
-      type: actionTypes.MESSAGE_TOGGLE_VISIBILITY,
-      data: true
-    };
-    if (message.portID) {
-      dispatch(actionCreators.OnlyToOneContent(action, message.portID));
-    } else {
-      dispatch(actionCreators.AlsoToMain(action));
-    }
-    onDismiss();
-  }, [dispatch, message, onDismiss]);
-  function handleDismiss() {
-    const {
-      id
-    } = message.messageData;
-    if (id) {
-      dispatch(actionCreators.OnlyToMain({
-        type: actionTypes.MESSAGE_DISMISS,
-        data: {
-          message: message.messageData
-        }
-      }));
-    }
-    handleClose();
-  }
-  function handleBlock() {
-    const {
-      id
-    } = message.messageData;
-    if (id) {
-      dispatch(actionCreators.OnlyToMain({
-        type: actionTypes.MESSAGE_BLOCK,
-        data: id
-      }));
-    }
-  }
-  function handleClick(elementId) {
-    const {
-      id
-    } = message.messageData;
-    if (id) {
-      dispatch(actionCreators.OnlyToMain({
-        type: actionTypes.MESSAGE_CLICK,
-        data: {
-          message: message.messageData,
-          source: elementId || ""
-        }
-      }));
-    }
-  }
-
-  // only display the message if `isHidden` is false
-  return (!message.isHidden || hiddenOverride) && /*#__PURE__*/external_React_default().createElement("div", {
-    ref: el => {
-      ref.current = [el];
-    },
-    className: "message-wrapper"
-  }, /*#__PURE__*/external_React_default().cloneElement(children, {
-    isIntersecting,
-    handleDismiss,
-    handleClick,
-    handleBlock,
-    handleClose
-  }));
-}
-
 ;// CONCATENATED MODULE: ./content-src/components/Base/Base.jsx
 function Base_extends() { Base_extends = Object.assign ? Object.assign.bind() : function (target) { for (var i = 1; i < arguments.length; i++) { var source = arguments[i]; for (var key in source) { if (Object.prototype.hasOwnProperty.call(source, key)) { target[key] = source[key]; } } } return target; }; return Base_extends.apply(this, arguments); }
 /* This Source Code Form is subject to the terms of the Mozilla Public
