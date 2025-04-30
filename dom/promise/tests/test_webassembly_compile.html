@@ -14,7 +14,9 @@ const testingFunctions = SpecialPowers.Cu.getJSTestingFunctions();
 const wasmIsSupported = SpecialPowers.unwrap(testingFunctions.wasmIsSupported);
 const wasmHasTier2CompilationCompleted = SpecialPowers.unwrap(testingFunctions.wasmHasTier2CompilationCompleted);
 const wasmLoadedFromCache = SpecialPowers.unwrap(testingFunctions.wasmLoadedFromCache);
-const isCachingEnabled = SpecialPowers.getBoolPref("javascript.options.wasm_caching");
+const wasmLazyTieringEnabled = SpecialPowers.unwrap(testingFunctions.wasmLazyTieringEnabled);
+// Wasm caching is disabled when lazy tiering is enabled, hence the && here.
+const isCachingEnabled = SpecialPowers.getBoolPref("javascript.options.wasm_caching") && !wasmLazyTieringEnabled();
 
 // The test_webassembly_compile_sample.wasm is a medium-sized module with 100
 // functions that call each other recursively, returning a computed sum.
