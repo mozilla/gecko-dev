@@ -640,7 +640,7 @@ toolbarspring {
   min-width: 28px;
   max-width: 112px;
 
-  #nav-bar & {
+  #nav-bar &:not(#vertical-spacer) {
     flex: 80 80;
     /* Ensure flexible spacers don't shrink to nothing so they can be
      * manipulated in customize mode. */
@@ -648,7 +648,7 @@ toolbarspring {
   }
 }
 
-#nav-bar:not([customizing]) toolbarspring {
+#nav-bar:not([customizing]) toolbarspring:not(#vertical-spacer) {
   /* Allow flexible spacers to shrink further outside of customize mode. */
   min-width: 1px;
 }
