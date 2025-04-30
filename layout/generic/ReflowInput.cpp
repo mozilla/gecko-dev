@@ -815,7 +815,12 @@ void ReflowInput::InitResizeFlags(nsPresContext* aPresContext,
           ->HasPercent() ||
       !mStylePosition
            ->GetAnchorResolvedInset(LogicalSide::BEnd, wm, positionProperty)
-           ->IsAuto();
+           ->IsAuto() ||
+      // We assume orthogonal flows depend on the containing-block's BSize,
+      // as that will commonly provide the available inline size. This is not
+      // always strictly needed, but orthogonal flows are rare enough that
+      // attempting to be more precise seems overly complex.
+      wm.IsOrthogonalTo(GetCBWritingMode());
 
   // If mFrame is a flex item, and mFrame's block axis is the flex container's
   // main axis (e.g. in a column-oriented flex container with same
