@@ -422,23 +422,6 @@
       }
     ]
   },
-  "1694470": {
-    "label": "m.myvidster.com",
-    "bugs": {
-      "1694470": {
-        "issue": "broken-layout",
-        "matches": ["https://m.myvidster.com/*"]
-      }
-    },
-    "interventions": [
-      {
-        "platforms": ["android"],
-        "content_scripts": {
-          "css": ["bug1694470-myvidster.com-content-not-shown.css"]
-        }
-      }
-    ]
-  },
   "1704673": {
     "label": "app.xiaomi.com",
     "bugs": {
