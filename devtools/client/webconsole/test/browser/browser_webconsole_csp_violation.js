@@ -152,6 +152,7 @@ add_task(async function () {
       bundle.formatStringFromName("CSPEventHandlerScriptViolation", [
         "script-src 'self'",
         "script-src-attr",
+        "iQunOC0AqvwRlqLYRHadzdj8cEGCEZ48o1eX4M5ORzg=",
       ]) + `\nSource: document.body.textContent = 'JavaScript …`;
     // Future-Todo: Include line and column number.
     const VIOLATION_LOCATION = "test-csp-violation-event-handler.html";
