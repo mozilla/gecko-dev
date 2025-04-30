@@ -5,6 +5,7 @@ import {
   GlobalOverrider,
   FakeConsoleAPI,
   FakeLogger,
+  FakeNimbusFeatures,
 } from "test/unit/utils";
 import Adapter from "enzyme-adapter-react-16";
 import { chaiAssertions } from "test/schemas/pings";
@@ -488,30 +489,13 @@ const TEST_GLOBAL = {
     },
   },
   FX_MONITOR_OAUTH_CLIENT_ID: "fake_client_id",
-  ExperimentAPI: {
-    getExperimentMetaData() {},
-    getRolloutMetaData() {},
-  },
-  NimbusFeatures: {
-    glean: {
-      getVariable() {},
-    },
-    newtab: {
-      getVariable() {},
-      getAllVariables() {},
-      onUpdate() {},
-      offUpdate() {},
-    },
-    pocketNewtab: {
-      getVariable() {},
-      getAllVariables() {},
-      onUpdate() {},
-      offUpdate() {},
-    },
-    cookieBannerHandling: {
-      getVariable() {},
-    },
-  },
+  ExperimentAPI: {},
+  NimbusFeatures: FakeNimbusFeatures([
+    "glean",
+    "newtab",
+    "pocketNewtab",
+    "cookieBannerHandling",
+  ]),
   TelemetryEnvironment: {
     setExperimentActive() {},
     currentEnvironment: {
