@@ -901,11 +901,9 @@ def configure_git(
                 "full compatibility and performance."
             )
 
-    if git_version >= Version("2.17"):
-        # "core.untrackedCache" has a bug before 2.17
-        subprocess.check_call(
-            [git_str, "config", "core.untrackedCache", "true"], cwd=str(top_src_dir)
-        )
+    subprocess.check_call(
+        [git_str, "config", "core.untrackedCache", "true"], cwd=str(top_src_dir)
+    )
 
     cinnabar_dir = str(update_git_tools(git, root_state_dir))
 
