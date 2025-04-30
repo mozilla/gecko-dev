@@ -8,7 +8,7 @@ URL = "https://www.techradar.com/"
 @pytest.mark.asyncio
 @pytest.mark.with_interventions
 async def test_enabled(client):
-    await client.navigate(URL, wait="load")
+    await client.navigate(URL, wait="none")
     client.test_future_plc_trending_scrollbar(shouldFail=False)
 
 
@@ -17,5 +17,5 @@ async def test_enabled(client):
 @pytest.mark.asyncio
 @pytest.mark.without_interventions
 async def test_disabled(client):
-    await client.navigate(URL, wait="load")
+    await client.navigate(URL, wait="none")
     client.test_future_plc_trending_scrollbar(shouldFail=True)

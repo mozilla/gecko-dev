@@ -8,7 +8,7 @@ URL = "https://www.livescience.com/"
 @pytest.mark.asyncio
 @pytest.mark.with_interventions
 async def test_enabled(client):
-    await client.navigate(URL)
+    await client.navigate(URL, wait="none")
     client.test_future_plc_trending_scrollbar(shouldFail=False)
 
 
@@ -16,6 +16,6 @@ async def test_enabled(client):
 @pytest.mark.need_visible_scrollbars
 @pytest.mark.asyncio
 @pytest.mark.without_interventions
-async def test_disabled(client):
+async def test_disabled(client, wait="none"):
     await client.navigate(URL)
     client.test_future_plc_trending_scrollbar(shouldFail=True)
