@@ -3177,30 +3177,6 @@
       }
     ]
   },
-  "1945830": {
-    "label": "aliexpress.com",
-    "bugs": {
-      "1926506": {
-        "issue": "extra-scrollbars",
-        "matches": ["*://*.aliexpress.com/*"]
-      },
-      "1945830": {
-        "issue": "broken-layout",
-        "matches": ["*://*.aliexpress.com/*"]
-      }
-    },
-    "interventions": [
-      {
-        "platforms": ["desktop"],
-        "content_scripts": {
-          "css": [
-            "bug1926506-aliexpress.com-hide-extra-scrollbars.css",
-            "bug1945830-aliexpress.com-country-flags-fix.css"
-          ]
-        }
-      }
-    ]
-  },
   "1947105": {
     "label": "pexels.com",
     "bugs": {
