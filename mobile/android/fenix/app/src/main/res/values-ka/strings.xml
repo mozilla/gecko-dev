@@ -1484,6 +1484,10 @@
   <string name="download_delete_item_1" moz:removedIn="138" tools:ignore="UnusedResources">მოცილება</string>
   <!-- Text for the button to delete a single downloaded file item -->
   <string name="download_delete_item">წაშლა</string>
+  <!-- Content description for the toolbar "Navigate back" button -->
+  <string name="download_navigate_back_description">გადასვლა უკან</string>
+  <!-- Content description for the toolbar "Navigate up" button -->
+  <string name="download_navigate_up_description">ზემოთ გადასვლა</string>
   <!-- Text for the button to share the download URL -->
   <string name="download_share_url">URL-ბმულის გაზიარება</string>
   <!-- Text for the button to share the download file -->
@@ -3194,6 +3198,8 @@
   <string name="protection_panel_no_trackers_blocked">მეთვალყურეები არაა ნაპოვნი</string>
   <!-- Link text to navigate to privacy and security settings from the protection panel. -->
   <string name="protection_panel_privacy_and_security_settings">პირადულობისა და უსაფრთხოების პარამეტრები</string>
+  <!-- Title text for the protection panel permissions section. -->
+  <string name="protection_panel_permissions_title">ნებართვები</string>
   <!--
     Text for displaying the total number of trackers blocked in the trackers blocked panel.
     %d is a placeholder for the number of trackers blocked.
@@ -3501,6 +3507,22 @@
   <string name="setup_checklist_subtitle_6_steps_fifth_step">თითქმის მზადაა! მხოლოდ 1 ნაბიჯიღა გაშორებთ დასრულებამდე.</string>
   <!-- Subtitle for a setup checklist with 6 steps completed state. %1$s is the name of the app (for example "Firefox"). -->
   <string name="setup_checklist_subtitle_6_steps_completed_state">თქვენ გაიარეთ 6-ივე ნაბიჯი გასამართად. გამოიყენეთ %1$s და დატკბით სიჩქარით, პირადულობითა და უსაფრთხოებით.</string>
+  <!--
+    ===== Setup checklist feature: Subtitles for 5 steps (Large screen devices don't support toolbar placement) =====
+
+    Subtitle for a setup checklist with 5 steps initial state. %1$s is the name of the app (for example "Firefox").
+  -->
+  <string name="setup_checklist_subtitle_5_steps_initial_state">შეასრულეთ 5-ივე ნაბიჯი, რომ გამართოთ %1$s ვებსივრცით სრულყოფილად სარგებლობისთვის.</string>
+  <!-- Subtitle for a setup checklist with 5 steps when the first task is completed. -->
+  <string name="setup_checklist_subtitle_5_steps_first_step">მშვენიერი დასაწყისია! შესრულებულია 1 ნაბიჯი 5-იდან.</string>
+  <!-- Subtitle for the setup checklist when the second task is completed. -->
+  <string name="setup_checklist_subtitle_5_steps_second_step">5 ნაბიჯიდან 2 შესრულებულია. მშვენიერი წინსვლაა!</string>
+  <!-- Subtitle for a setup checklist with 5 steps when three of the tasks are completed. -->
+  <string name="setup_checklist_subtitle_5_steps_third_step">ნახევარი უკვე გავლილია! სამი ნაბიჯი შესრულდა და 2 წინაა.</string>
+  <!-- Subtitle for a setup checklist with 5 steps when the fifth task is completed. -->
+  <string name="setup_checklist_subtitle_5_steps_fourth_step">თითქმის მზადაა! მხოლოდ 1 ნაბიჯიღა გაშორებთ დასრულებამდე.</string>
+  <!-- Subtitle for a setup checklist with 5 steps completed state. %1$s is the name of the app (for example "Firefox"). -->
+  <string name="setup_checklist_subtitle_5_steps_completed_state">თქვენ გაიარეთ 5-ივე ნაბიჯი გასამართად. გამოიყენეთ %1$s და დატკბით სიჩქარით, პირადულობითა და უსაფრთხოებით.</string>
   <!--
     ===== Setup checklist feature: Task titles =====
 

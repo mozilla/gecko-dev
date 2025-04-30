@@ -648,6 +648,8 @@
   <string name="onboarding_marketing_title" tools:ignore="BrandUsage,UnusedResources">Orepytyvõ Firefox oiko porãve hag̃ua</string>
   <!-- Marketing onboarding page body. 'Firefox' is intentionally hardcoded. -->
   <string name="onboarding_marketing_body" tools:ignore="BrandUsage,UnusedResources">Eikuaaukávo mba’éichapa eikuaára’e Firefox ha ijeporu, orepytyvõ emoherakuã hag̃ua ore kundahára hetave tapichápe.</string>
+  <!-- Marketing onboarding page opt-in checkbox. 'Mozilla' is intentionally hardcoded. -->
+  <string name="onboarding_marketing_opt_in_checkbox" tools:ignore="UnusedResources">Emoherakuã’imi mba’ekuaarã marketing Mozilla-pegua kundahára ndive. Ko’ã mba’ekuaarã noñevendemo’ãi ha ndohechaukamo’ãi ñemurã.</string>
   <!-- Marketing onboarding page clickable link text to "learn more" on how data is used. -->
   <string name="onboarding_marketing_learn_more" tools:ignore="UnusedResources">Mba’éichapa jaiporu umi mba’ekuaarã</string>
   <!-- Marketing onboarding page button label. Button to confirm choice and start browsing. -->
@@ -3183,6 +3185,8 @@
   <string name="protection_panel_no_trackers_blocked">Ndojejuhúi tapykuehoha</string>
   <!-- Link text to navigate to privacy and security settings from the protection panel. -->
   <string name="protection_panel_privacy_and_security_settings">Ñemigua ha tekorosãrã ñemboheko</string>
+  <!-- Title text for the protection panel permissions section. -->
+  <string name="protection_panel_permissions_title">Ñemoneĩ</string>
   <!--
     Text for displaying the total number of trackers blocked in the trackers blocked panel.
     %d is a placeholder for the number of trackers blocked.
@@ -3462,6 +3466,8 @@
   <string name="setup_checklist_subtitle_3_steps_first_step">¡Eñepyrũ porã! Emoĩmba 1 pe 3 jeku’égui.</string>
   <!-- Subtitle for a setup checklist with 3 steps when two of the tasks are completed. -->
   <string name="setup_checklist_subtitle_3_steps_second_step">¡Oĩpotaite! Mokõi jeku’e hu’ãmava ha 1 hemby.</string>
+  <!-- Subtitle for a setup checklist with 3 steps completed state. %1$s is the name of the app (for example "Firefox"). -->
+  <string name="setup_checklist_subtitle_3_steps_completed_state">Ejapóma ko’ã 3 jeku’e. Eiporu vy’ápe pya’ekue, tekoñemi ha tekorosã %1$s ndive.</string>
   <!--
     ===== Setup checklist feature: Subtitles for 6 steps =====
 
@@ -3478,6 +3484,24 @@
   <string name="setup_checklist_subtitle_6_steps_fourth_step">Emohu’ãma 4 jeku’e. ¡Mokõintema opyta!</string>
   <!-- Subtitle for a setup checklist with 6 steps when the fifth task is completed. -->
   <string name="setup_checklist_subtitle_6_steps_fifth_step">¡Oĩmbotaitéma! Eiméma ag̃uiete tenda eg̃uahẽsehápegui.</string>
+  <!-- Subtitle for a setup checklist with 6 steps completed state. %1$s is the name of the app (for example "Firefox"). -->
+  <string name="setup_checklist_subtitle_6_steps_completed_state">Ejapóma ko’ã 6 jeku’e ñembohekogua. Eiporu vy’ápe pya’ekue, tekoñemi ha tekorosã %1$s ndive.</string>
+  <!--
+    ===== Setup checklist feature: Subtitles for 5 steps (Large screen devices don't support toolbar placement) =====
+
+    Subtitle for a setup checklist with 5 steps initial state. %1$s is the name of the app (for example "Firefox").
+  -->
+  <string name="setup_checklist_subtitle_5_steps_initial_state">Ejapo ko’ã 6 jeku’e emboheko hag̃ua %1$s eime porãve hag̃ua eikundahávo.</string>
+  <!-- Subtitle for a setup checklist with 5 steps when the first task is completed. -->
+  <string name="setup_checklist_subtitle_5_steps_first_step">¡Eñepyrũ porã! Emoĩmbáma 1 pe 3 jeku’e rehegua.</string>
+  <!-- Subtitle for the setup checklist when the second task is completed. -->
+  <string name="setup_checklist_subtitle_5_steps_second_step">Emoĩmbáma 2 pe 5 jeku’égui. ¡Tuicháma emotenonde!</string>
+  <!-- Subtitle for a setup checklist with 5 steps when three of the tasks are completed. -->
+  <string name="setup_checklist_subtitle_5_steps_third_step">¡Eiméma tape ku’ápe! Mbohapy jeku’e hu’ãma ha 2 hemby.</string>
+  <!-- Subtitle for a setup checklist with 5 steps when the fifth task is completed. -->
+  <string name="setup_checklist_subtitle_5_steps_fourth_step">¡Oĩmbotaitéma! Eiméma 1 jeku’épe upe eg̃uahẽsehágui.</string>
+  <!-- Subtitle for a setup checklist with 5 steps completed state. %1$s is the name of the app (for example "Firefox"). -->
+  <string name="setup_checklist_subtitle_5_steps_completed_state">Ejapóma 5 jeku’e ñembohekogua. Eiporu vy’ápe pya’ekue, tekoñemi ha tekorosã %1$s ndive.</string>
   <!--
     ===== Setup checklist feature: Task titles =====
 
