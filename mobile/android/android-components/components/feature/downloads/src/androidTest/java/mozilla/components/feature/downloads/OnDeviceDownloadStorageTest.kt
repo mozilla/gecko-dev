@@ -5,6 +5,7 @@
 package mozilla.components.feature.downloads
 
 import android.content.Context
+import androidx.core.database.getStringOrNull
 import androidx.room.Room
 import androidx.room.testing.MigrationTestHelper
 import androidx.test.core.app.ApplicationProvider
@@ -18,6 +19,7 @@ import mozilla.components.feature.downloads.db.toDownloadEntity
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Rule
@@ -147,6 +149,38 @@ class OnDeviceDownloadStorageTest {
 
             // The download 1 must keep its url.
             assertEquals("url", cursor.getString(cursor.getColumnIndexOrThrow("url")))
+        }
+    }
+
+    @Test
+    fun migrate4to5() {
+        helper.createDatabase(MIGRATION_TEST_DB, 4).apply {
+            query("SELECT * FROM downloads").use { cursor ->
+                assertEquals(false, cursor.columnNames.contains("etag"))
+            }
+
+            execSQL(
+                "INSERT INTO " +
+                    "downloads " +
+                    "(id, url, file_name, content_type,content_length,status,destination_directory,created_at) " +
+                    "VALUES " +
+                    "(1,'https://mozilla.com/somefile','file_name','content_type',1,1,'destination_directory',1)",
+            )
+
+            close()
+        }
+
+        val dbVersion5 = helper.runMigrationsAndValidate(MIGRATION_TEST_DB, 5, true, Migrations.migration_4_5)
+
+        dbVersion5.query("SELECT * FROM downloads").use { cursor ->
+            // The existing entries remain
+            assertEquals(1, cursor.count)
+            // etag column is present
+            assertEquals(true, cursor.columnNames.contains("etag"))
+
+            cursor.moveToFirst()
+            // The existing entries set etag to null
+            assertNull(cursor.getStringOrNull(cursor.getColumnIndexOrThrow("etag")))
         }
     }
 
