@@ -18,14 +18,13 @@ const bundle = Services.strings.createBundle(
   "chrome://global/locale/security/csp.properties"
 );
 const CSP_VIOLATION_MSG = bundle.formatStringFromName(
-  "CSPInlineStyleViolation2",
-  [
-    "style-src 'none'",
-    "style-src-attr",
-    "XBKVkpJmKaKin70wlNAoKU9dT+ck0/JGPaIo1Gm0PW0=",
-  ]
+  "CSPInlineStyleViolation",
+  ["style-src 'none'", "style-src-attr"]
 );
-const CSP_TOO_MANY_REPORTS_MSG = bundle.GetStringFromName("tooManyReports");
+const CSP_TOO_MANY_REPORTS_MSG = bundle.formatStringFromName(
+  "tooManyReports",
+  []
+);
 
 add_task(async function () {
   // Reduce the limit to reduce the log spam.

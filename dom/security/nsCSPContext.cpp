@@ -554,10 +554,10 @@ nsCSPContext::GetAllowsWasmEval(bool* outShouldReportViolation,
 }
 
 // Helper function to report inline violations
-void nsCSPContext::ReportInlineViolation(
+void nsCSPContext::reportInlineViolation(
     CSPDirective aDirective, Element* aTriggeringElement,
     nsICSPEventListener* aCSPEventListener, const nsAString& aNonce,
-    bool aReportSample, const nsAString& aSourceCode,
+    bool aReportSample, const nsAString& aSample,
     const nsAString& aViolatedDirective,
     const nsAString& aViolatedDirectiveString, CSPDirective aEffectiveDirective,
     uint32_t aViolatedPolicyIndex,  // TODO, use report only flag for that
@@ -594,17 +594,6 @@ void nsCSPContext::ReportInlineViolation(
     loc.mColumn = aColumnNumber;
   }
 
-  nsAutoCString hashSHA256;
-  // We optionally include the hash to create more helpful error messages.
-  nsCOMPtr<nsICryptoHash> hasher;
-  if (NS_SUCCEEDED(NS_NewCryptoHash(nsICryptoHash::SHA256, getter_AddRefs(hasher)))) {
-    NS_ConvertUTF16toUTF8 source(aSourceCode);
-    if (NS_SUCCEEDED(hasher->Update(
-            reinterpret_cast<const uint8_t*>(source.get()), source.Length()))) {
-      (void) hasher->Finish(true, hashSHA256);
-    }
-  }
-
   CSPViolationData cspViolationData{
       aViolatedPolicyIndex,
       CSPViolationData::Resource{
@@ -614,8 +603,7 @@ void nsCSPContext::ReportInlineViolation(
       loc.mLine,
       loc.mColumn,
       aTriggeringElement,
-      aSourceCode,
-      hashSHA256};
+      aSample};
 
   AsyncReportViolation(aCSPEventListener, std::move(cspViolationData),
                        mSelfURI,            // aOriginalURI
@@ -729,7 +717,7 @@ nsCSPContext::GetAllowsInline(CSPDirective aDirective, bool aHasUnsafeHash,
           aDirective, violatedDirective, violatedDirectiveString,
           &reportSample);
 
-      ReportInlineViolation(aDirective, aTriggeringElement, aCSPEventListener,
+      reportInlineViolation(aDirective, aTriggeringElement, aCSPEventListener,
                             aNonce, reportSample, content, violatedDirective,
                             violatedDirectiveString, aDirective, i, aLineNumber,
                             aColumnNumber);
@@ -1679,21 +1667,21 @@ class CSPReportSenderRunnable final : public Runnable {
                 CSPDirective::STYLE_SRC_ATTR_DIRECTIVE ||
             mCSPViolationData.mEffectiveDirective ==
                 CSPDirective::STYLE_SRC_ELEM_DIRECTIVE) {
-          errorName = mReportOnlyFlag ? "CSPROInlineStyleViolation2"
-                                      : "CSPInlineStyleViolation2";
+          errorName = mReportOnlyFlag ? "CSPROInlineStyleViolation"
+                                      : "CSPInlineStyleViolation";
         } else if (mCSPViolationData.mEffectiveDirective ==
                    CSPDirective::SCRIPT_SRC_ATTR_DIRECTIVE) {
-          errorName = mReportOnlyFlag ? "CSPROEventHandlerScriptViolation2"
-                                      : "CSPEventHandlerScriptViolation2";
+          errorName = mReportOnlyFlag ? "CSPROEventHandlerScriptViolation"
+                                      : "CSPEventHandlerScriptViolation";
         } else {
           MOZ_ASSERT(mCSPViolationData.mEffectiveDirective ==
                      CSPDirective::SCRIPT_SRC_ELEM_DIRECTIVE);
-          errorName = mReportOnlyFlag ? "CSPROInlineScriptViolation2"
-                                      : "CSPInlineScriptViolation2";
+          errorName = mReportOnlyFlag ? "CSPROInlineScriptViolation"
+                                      : "CSPInlineScriptViolation";
         }
 
-        AutoTArray<nsString, 3> params = {mViolatedDirectiveNameAndValue,
-                                          effectiveDirective, NS_ConvertUTF8toUTF16(mCSPViolationData.mHashSHA256)};
+        AutoTArray<nsString, 2> params = {mViolatedDirectiveNameAndValue,
+                                          effectiveDirective};
         mCSPContext->logToConsole(
             errorName, params, mCSPViolationData.mSourceFile,
             mCSPViolationData.mSample, mCSPViolationData.mLineNumber,

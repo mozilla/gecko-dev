@@ -45,8 +45,7 @@ CSPViolationData::CSPViolationData(uint32_t aViolatedPolicyIndex,
                                    const CSPDirective aEffectiveDirective,
                                    const nsACString& aSourceFile,
                                    uint32_t aLineNumber, uint32_t aColumnNumber,
-                                   Element* aElement, const nsAString& aSample,
-                                   const nsACString& aHashSHA256)
+                                   Element* aElement, const nsAString& aSample)
     : mViolatedPolicyIndex{aViolatedPolicyIndex},
       mResource{std::move(aResource)},
       mEffectiveDirective{aEffectiveDirective},
@@ -63,9 +62,7 @@ CSPViolationData::CSPViolationData(uint32_t aViolatedPolicyIndex,
                BlockedContentSourceOrUnknown() ==
                    BlockedContentSource::TrustedTypesPolicy)
                   ? nsString(aSample)
-                  : MaybeTruncateSampleWithEllipsis(aSample)},
-      mHashSHA256{aHashSHA256}
-      {}
+                  : MaybeTruncateSampleWithEllipsis(aSample)} {}
 
 // Required for `mElement`, since its destructor requires a definition of
 // `Element`.

@@ -57,38 +57,8 @@ let gExceptionsList = [
     key: "MathML_DeprecatedMathVariantWarning",
     type: "single-quote",
   },
-  // These error messages contain references to the CSP keywords like 'unsafe-eval',
+  // These error messages contain references to the CSP keywords 'unsafe-eval'/'wasm-unsafe-eval',
   // and those keywords contain actual single-quotes: https://w3c.github.io/webappsec-csp/#grammardef-keyword-source
-  {
-    file: "csp.properties",
-    key: "CSPInlineStyleViolation2",
-    type: "single-quote",
-  },
-  {
-    file: "csp.properties",
-    key: "CSPROInlineStyleViolation2",
-    type: "single-quote",
-  },
-  {
-    file: "csp.properties",
-    key: "CSPInlineScriptViolation2",
-    type: "single-quote",
-  },
-  {
-    file: "csp.properties",
-    key: "CSPROInlineScriptViolation2",
-    type: "single-quote",
-  },
-  {
-    file: "csp.properties",
-    key: "CSPEventHandlerScriptViolation2",
-    type: "single-quote",
-  },
-  {
-    file: "csp.properties",
-    key: "CSPROEventHandlerScriptViolation2",
-    type: "single-quote",
-  },
   {
     file: "csp.properties",
     key: "CSPEvalScriptViolation",

@@ -40,14 +40,11 @@ struct CSPViolationData {
   // line-numbers are expected to be 1-origin.
   //
   // @param aSample Will be truncated if necessary.
-  // @param aHashSHA256 The source code sha256 hash (encoded as base64) for
-  // inline scripts and styles.
-  //                    https://w3c.github.io/webappsec-csp/#grammardef-hash-source
   CSPViolationData(uint32_t aViolatedPolicyIndex, Resource&& aResource,
                    const CSPDirective aEffectiveDirective,
                    const nsACString& aSourceFile, uint32_t aLineNumber,
                    uint32_t aColumnNumber, Element* aElement,
-                   const nsAString& aSample, const nsACString& aHashSHA256 = ""_ns);
+                   const nsAString& aSample);
 
   ~CSPViolationData();
 
@@ -64,7 +61,6 @@ struct CSPViolationData {
   const uint32_t mColumnNumber;
   RefPtr<Element> mElement;
   const nsString mSample;
-  const nsCString mHashSHA256;
 };
 }  // namespace mozilla::dom
 
