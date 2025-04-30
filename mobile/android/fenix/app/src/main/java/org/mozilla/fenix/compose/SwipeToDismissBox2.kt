@@ -109,8 +109,6 @@ class SwipeToDismissState2(
     /**
      * [AnchoredDraggableState] for the underlying [Modifier.anchoredHorizontalDraggable].
      */
-    // https://bugzilla.mozilla.org/show_bug.cgi?id=1957790
-    @Suppress("DEPRECATION")
     val anchoredDraggableState: AnchoredDraggableState<SwipeToDismissDirections> = AnchoredDraggableState(
         initialValue = SwipeToDismissDirections.Settled,
         positionalThreshold = with(density) { { DISMISS_THRESHOLD_DP.toPx() } },
@@ -158,8 +156,6 @@ class SwipeToDismissState2(
 }
 
 @OptIn(ExperimentalFoundationApi::class)
-// https://bugzilla.mozilla.org/show_bug.cgi?id=1957790
-@Suppress("DEPRECATION")
 private fun Modifier.anchoredHorizontalDraggable(
     state: SwipeToDismissState2,
     scope: CoroutineScope,
