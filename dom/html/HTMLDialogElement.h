@@ -46,7 +46,7 @@ class HTMLDialogElement final : public nsGenericHTMLElement {
                       nsIPrincipal* aMaybeScriptedPrincipal,
                       nsAttrValue& aResult) override;
 
-  bool Open() const;
+  bool Open() const { return GetBoolAttr(nsGkAtoms::open); }
   void SetOpen(bool aOpen, ErrorResult& aError) {
     SetHTMLBoolAttr(nsGkAtoms::open, aOpen, aError);
   }
