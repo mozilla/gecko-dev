@@ -419,6 +419,16 @@ void gc::GCRuntime::endVerifyPreBarriers() {
 
 /*** Barrier Verifier Scheduling ***/
 
+void gc::VerifyBarriers(JSRuntime* rt, VerifierType type) {
+  if (type == PreBarrierVerifier) {
+    rt->gc.verifyPreBarriers();
+  }
+
+  if (type == PostBarrierVerifier) {
+    rt->gc.verifyPostBarriers();
+  }
+}
+
 void gc::GCRuntime::verifyPreBarriers() {
   if (verifyPreData) {
     endVerifyPreBarriers();
@@ -427,9 +437,11 @@ void gc::GCRuntime::verifyPreBarriers() {
   }
 }
 
-void gc::VerifyBarriers(JSRuntime* rt, VerifierType type) {
-  if (type == PreBarrierVerifier) {
-    rt->gc.verifyPreBarriers();
+void gc::GCRuntime::verifyPostBarriers() {
+  if (hasZealMode(ZealMode::VerifierPost)) {
+    clearZealMode(ZealMode::VerifierPost);
+  } else {
+    setZeal(uint8_t(ZealMode::VerifierPost), JS::ShellDefaultGCZealFrequency);
   }
 }
 

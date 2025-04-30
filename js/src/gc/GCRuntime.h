@@ -388,6 +388,7 @@ class GCRuntime {
   void setNextScheduled(uint32_t count);
   void verifyPreBarriers();
   void maybeVerifyPreBarriers(bool always);
+  void verifyPostBarriers();
   bool selectForMarking(JSObject* object);
   void clearSelectedForMarking();
   void setDeterministic(bool enable);
