@@ -12,6 +12,7 @@
 #include "mozilla/dom/ServiceWorkerUtils.h"
 
 class nsIGlobalWindow;
+class nsIPrincipal;
 
 namespace mozilla::dom {
 
@@ -54,7 +55,7 @@ class ServiceWorkerContainer final : public DOMEventTargetHelper {
 
   MOZ_CAN_RUN_SCRIPT already_AddRefed<Promise> Register(
       const TrustedScriptURLOrUSVString& aScriptURL,
-      const RegistrationOptions& aOptions, const CallerType aCallerType,
+      const RegistrationOptions& aOptions, nsIPrincipal* aSubjectPrincipal,
       ErrorResult& aRv);
 
   already_AddRefed<ServiceWorker> GetController();

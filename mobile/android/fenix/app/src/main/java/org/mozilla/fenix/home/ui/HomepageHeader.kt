@@ -20,17 +20,24 @@ import androidx.compose.material.Icon
 import androidx.compose.material.IconToggleButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.res.dimensionResource
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.testTag
+import androidx.compose.ui.semantics.testTagsAsResourceId
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.unit.dp
 import org.mozilla.fenix.R
 import org.mozilla.fenix.browser.browsingmode.BrowsingMode
+import org.mozilla.fenix.home.ui.HomepageTestTag.homepageWordMarkLogo
+import org.mozilla.fenix.home.ui.HomepageTestTag.homepageWordMarkText
+import org.mozilla.fenix.home.ui.HomepageTestTag.privateBrowsingHomepageButton
 import org.mozilla.fenix.theme.FirefoxTheme
 import org.mozilla.fenix.theme.Theme
 
@@ -59,26 +66,38 @@ fun HomepageHeader(browsingMode: BrowsingMode, browsingModeChanged: (BrowsingMod
     }
 }
 
+@OptIn(ExperimentalComposeUiApi::class)
 @Composable
 private fun WordmarkLogo() {
     Image(
         modifier = Modifier
             .height(40.dp)
+            .semantics {
+                testTagsAsResourceId = true
+                testTag = homepageWordMarkLogo
+            }
             .padding(end = 10.dp),
         painter = painterResource(getAttr(R.attr.fenixWordmarkLogo)),
         contentDescription = null,
     )
 }
 
+@OptIn(ExperimentalComposeUiApi::class)
 @Composable
 private fun WordmarkText() {
     Image(
-        modifier = Modifier.height(dimensionResource(R.dimen.wordmark_text_height)),
+        modifier = Modifier
+            .semantics {
+                testTagsAsResourceId = true
+                testTag = homepageWordMarkText
+            }
+            .height(dimensionResource(R.dimen.wordmark_text_height)),
         painter = painterResource(getAttr(R.attr.fenixWordmarkText)),
         contentDescription = stringResource(R.string.app_name),
     )
 }
 
+@OptIn(ExperimentalComposeUiApi::class)
 @Composable
 private fun PrivateBrowsingButton(
     browsingMode: BrowsingMode,
@@ -90,7 +109,11 @@ private fun PrivateBrowsingButton(
                 color = colorResource(getAttr(R.attr.mozac_ic_private_mode_circle_fill_background_color)),
                 shape = CircleShape,
             )
-            .size(40.dp),
+            .size(40.dp)
+            .semantics {
+                testTagsAsResourceId = true
+                testTag = privateBrowsingHomepageButton
+            },
         checked = browsingMode.isPrivate,
         onCheckedChange = {
             browsingModeChanged(BrowsingMode.fromBoolean(!browsingMode.isPrivate))

@@ -391,7 +391,8 @@ button.text-link .button-text {
       color: var(--button-text-color-hover);
       background-color: var(--button-background-color-hover);
     }
-    &:hover:active {
+    &:hover:active,
+    &[open] {
       color: var(--button-text-color-active);
       background-color: var(--button-background-color-active);
     }
@@ -399,12 +400,13 @@ button.text-link .button-text {
     &.primary {
       color: var(--button-text-color-primary);
       background-color: var(--color-accent-primary);
-
       &:hover {
         color: var(--button-text-color-primary-hover);
         background-color: var(--color-accent-primary-hover);
       }
-      &:hover:active {
+      &:hover:active,
+      &[open] {
+        color: var(--button-text-color-primary-active);
         background-color: var(--color-accent-primary-active);
       }
     }

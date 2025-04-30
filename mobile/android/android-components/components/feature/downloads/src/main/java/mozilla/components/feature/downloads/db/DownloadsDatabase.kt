@@ -17,7 +17,7 @@ import mozilla.components.browser.state.state.content.DownloadState
 /**
  * Internal database for saving downloads.
  */
-@Database(entities = [DownloadEntity::class], version = 4)
+@Database(entities = [DownloadEntity::class], version = 5)
 @TypeConverters(StatusConverter::class)
 internal abstract class DownloadsDatabase : RoomDatabase() {
     abstract fun downloadDao(): DownloadDao
@@ -38,6 +38,7 @@ internal abstract class DownloadsDatabase : RoomDatabase() {
                 Migrations.migration_1_2,
                 Migrations.migration_2_3,
                 Migrations.migration_3_4,
+                Migrations.migration_4_5,
             ).build().also {
                 instance = it
             }
@@ -71,6 +72,12 @@ internal object Migrations {
         override fun migrate(db: SupportSQLiteDatabase) {
             // Clear any data urls.
             db.execSQL("UPDATE downloads SET url='' WHERE url LIKE 'data:%' ")
+        }
+    }
+
+    val migration_4_5 = object : Migration(4, 5) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL("ALTER TABLE downloads ADD COLUMN etag TEXT")
         }
     }
 }

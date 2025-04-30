@@ -8,6 +8,12 @@ pub struct Camera {
     pub forward: Vec4,
 }
 
+impl Default for Camera {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl Camera {
     pub fn new() -> Self {
         Self {

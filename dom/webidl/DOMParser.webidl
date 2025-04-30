@@ -23,7 +23,7 @@ interface DOMParser {
   [Throws]
   constructor();
 
-  [NewObject, Throws, UseCounter]
+  [NewObject, NeedsSubjectPrincipal=NonSystem, Throws, UseCounter]
   Document parseFromString((TrustedHTML or DOMString) str, SupportedType type);
 
   // Mozilla-specific stuff

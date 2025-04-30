@@ -17,7 +17,6 @@ const lazy = {};
 ChromeUtils.defineESModuleGetters(lazy, {
   BrowserWindowTracker: "resource:///modules/BrowserWindowTracker.sys.mjs",
   CustomizableUI: "resource:///modules/CustomizableUI.sys.mjs",
-  ExperimentAPI: "resource://nimbus/ExperimentAPI.sys.mjs",
   NimbusFeatures: "resource://nimbus/ExperimentAPI.sys.mjs",
   PrefUtils: "resource://normandy/lib/PrefUtils.sys.mjs",
   SidebarState: "resource:///modules/SidebarState.sys.mjs",
@@ -66,14 +65,11 @@ export const SidebarManager = {
     const featureId = "sidebar";
     lazy.NimbusFeatures[featureId].onUpdate(() => {
       // Set prefs only if we have an enrollment that's new
-      const feature = { featureId };
-      const enrollment =
-        lazy.ExperimentAPI.getExperimentMetaData(feature) ??
-        lazy.ExperimentAPI.getRolloutMetaData(feature);
+      const enrollment = lazy.NimbusFeatures[featureId].getEnrollmentMetadata();
       if (!enrollment) {
         return;
       }
-      const slug = enrollment.slug + ":" + enrollment.branch.slug;
+      const slug = enrollment.slug + ":" + enrollment.branch;
       if (slug == lazy.sidebarNimbus) {
         return;
       }

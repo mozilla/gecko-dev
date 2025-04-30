@@ -47,15 +47,15 @@ class HomeScreenTest : TestSetup() {
         }.goBack {
             verifyHomeWordmark()
             verifyHomePrivateBrowsingButton()
-            verifyExistingTopSitesTabs("Wikipedia")
-            verifyExistingTopSitesTabs("Top Articles")
-            verifyExistingTopSitesTabs("Google")
-            verifyCollectionsHeader()
-            verifyNoCollectionsText()
+            verifyExistingTopSitesTabs(activityTestRule, "Wikipedia")
+            verifyExistingTopSitesTabs(activityTestRule, "Top Articles")
+            verifyExistingTopSitesTabs(activityTestRule, "Google")
+            verifyCollectionsHeader(activityTestRule)
+            verifyNoCollectionsText(activityTestRule)
             scrollToPocketProvokingStories()
             verifyThoughtProvokingStories(true)
             verifyStoriesByTopicItems()
-            verifyCustomizeHomepageButton(true)
+            verifyCustomizeHomepageButton(activityTestRule, true)
             verifyNavigationToolbar()
             verifyHomeMenuButton()
             verifyTabButton()
@@ -91,7 +91,7 @@ class HomeScreenTest : TestSetup() {
         }.enterURLAndEnterToBrowser(firstWebPage.url) {
             verifyPageContent(firstWebPage.content)
             verifyUrl(firstWebPage.url.toString())
-        }.goToHomescreen {
+        }.goToHomescreen(activityTestRule) {
             verifyJumpBackInSectionIsDisplayed()
             verifyJumpBackInItemTitle(activityTestRule, firstWebPage.title)
             verifyJumpBackInItemWithUrl(activityTestRule, firstWebPage.url.toString())
@@ -105,7 +105,7 @@ class HomeScreenTest : TestSetup() {
         }.enterURLAndEnterToBrowser(secondWebPage.url) {
             verifyPageContent(secondWebPage.content)
             verifyUrl(secondWebPage.url.toString())
-        }.goToHomescreen {
+        }.goToHomescreen(activityTestRule) {
             verifyJumpBackInSectionIsDisplayed()
             verifyJumpBackInItemTitle(activityTestRule, secondWebPage.title)
             verifyJumpBackInItemWithUrl(activityTestRule, secondWebPage.url.toString())
@@ -123,7 +123,7 @@ class HomeScreenTest : TestSetup() {
         }
 
         homeScreen {
-            verifyJumpBackInSectionIsNotDisplayed()
+            verifyJumpBackInSectionIsNotDisplayed(activityTestRule)
         }
     }
 
@@ -134,20 +134,20 @@ class HomeScreenTest : TestSetup() {
 
         navigationToolbar {
         }.enterURLAndEnterToBrowser(defaultWebPage.url) {
-        }.goToHomescreen {
-        }.openCustomizeHomepage {
+        }.goToHomescreen(activityTestRule) {
+        }.openCustomizeHomepage(activityTestRule) {
             clickShortcutsButton()
             clickJumpBackInButton()
             clickRecentBookmarksButton()
             clickRecentSearchesButton()
             clickPocketButton()
         }.goBackToHomeScreen {
-            verifyCustomizeHomepageButton(false)
+            verifyCustomizeHomepageButton(activityTestRule, false)
         }.openThreeDotMenu {
         }.openCustomizeHome {
             clickShortcutsButton()
         }.goBackToHomeScreen {
-            verifyCustomizeHomepageButton(true)
+            verifyCustomizeHomepageButton(activityTestRule, true)
         }
     }
 }

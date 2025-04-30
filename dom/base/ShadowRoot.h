@@ -21,6 +21,7 @@
 
 class nsAtom;
 class nsIContent;
+class nsIPrincipal;
 
 namespace mozilla {
 
@@ -250,13 +251,15 @@ class ShadowRoot final : public DocumentFragment, public DocumentOrShadowRoot {
   }
 
   MOZ_CAN_RUN_SCRIPT
-  void SetHTMLUnsafe(const TrustedHTMLOrString& aHTML, ErrorResult& aError);
+  void SetHTMLUnsafe(const TrustedHTMLOrString& aHTML,
+                     nsIPrincipal* aSubjectPrincipal, ErrorResult& aError);
 
   // @param aInnerHTML will always be of type `NullIsEmptyString`.
   void GetInnerHTML(OwningTrustedHTMLOrNullIsEmptyString& aInnerHTML);
 
   MOZ_CAN_RUN_SCRIPT void SetInnerHTML(
-      const TrustedHTMLOrNullIsEmptyString& aInnerHTML, ErrorResult& aError);
+      const TrustedHTMLOrNullIsEmptyString& aInnerHTML,
+      nsIPrincipal* aSubjectPrincipal, ErrorResult& aError);
 
   void GetHTML(const GetHTMLOptions& aOptions, nsAString& aResult);
 

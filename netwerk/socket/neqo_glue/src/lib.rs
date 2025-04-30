@@ -285,6 +285,7 @@ impl NeqoHttp3Conn {
             .idle_timeout(Duration::from_secs(idle_timeout.into()))
             // Disabled on OpenBSD. See <https://bugzilla.mozilla.org/show_bug.cgi?id=1952304>.
             .pmtud_iface_mtu(cfg!(not(target_os = "openbsd")))
+            // MLKEM support is configured further below. By default, disable it.
             .mlkem(false);
 
         // Set a short timeout when fuzzing.

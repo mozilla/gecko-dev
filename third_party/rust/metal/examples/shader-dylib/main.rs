@@ -10,8 +10,6 @@ use winit::{
     raw_window_handle::{HasWindowHandle, RawWindowHandle},
 };
 
-use std::mem;
-
 struct App {
     pub _device: Device,
     pub command_queue: CommandQueue,
@@ -23,13 +21,7 @@ struct App {
 
 fn select_device() -> Option<Device> {
     let devices = Device::all();
-    for device in devices {
-        if device.supports_dynamic_libraries() {
-            return Some(device);
-        }
-    }
-
-    None
+    devices.into_iter().find(|d| d.supports_dynamic_libraries())
 }
 
 impl App {
@@ -37,7 +29,7 @@ impl App {
         let device = select_device().expect("no device found that supports dynamic libraries");
         let command_queue = device.new_command_queue();
 
-        let layer = MetalLayer::new();
+        let mut layer = MetalLayer::new();
         layer.set_device(&device);
         layer.set_pixel_format(MTLPixelFormat::BGRA8Unorm);
         layer.set_presents_with_transaction(false);
@@ -46,7 +38,7 @@ impl App {
             if let Ok(RawWindowHandle::AppKit(rw)) = window.window_handle().map(|wh| wh.as_raw()) {
                 let view = rw.ns_view.as_ptr() as cocoa_id;
                 view.setWantsLayer(YES);
-                view.setLayer(mem::transmute(layer.as_ref()));
+                view.setLayer(<*mut _>::cast(layer.as_mut()));
             }
         }
         let draw_size = window.inner_size();
@@ -132,12 +124,12 @@ impl App {
         {
             let encoder = command_buffer.new_compute_command_encoder();
             encoder.set_compute_pipeline_state(&self.image_fill_cps);
-            encoder.set_texture(0, Some(&drawable.texture()));
+            encoder.set_texture(0, Some(drawable.texture()));
             encoder.dispatch_threads(threads_per_grid, threads_per_threadgroup);
             encoder.end_encoding();
         }
 
-        command_buffer.present_drawable(&drawable);
+        command_buffer.present_drawable(drawable);
         command_buffer.commit();
     }
 }

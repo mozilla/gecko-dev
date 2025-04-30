@@ -14,12 +14,12 @@ interface HTMLTemplateElement : HTMLElement {
   [HTMLConstructor] constructor();
 
   readonly attribute DocumentFragment content;
-  [CEReactions, Pref="dom.webcomponents.shadowdom.declarative.enabled"]
+  [CEReactions]
   attribute DOMString shadowRootMode;
-  [CEReactions, SetterThrows, Pref="dom.webcomponents.shadowdom.declarative.enabled"]
+  [CEReactions, SetterThrows]
   attribute boolean shadowRootDelegatesFocus;
-  [CEReactions, SetterThrows, Pref="dom.webcomponents.shadowdom.declarative.enabled"]
+  [CEReactions, SetterThrows]
   attribute boolean shadowRootClonable;
-  [CEReactions, SetterThrows, Pref="dom.webcomponents.shadowdom.declarative.enabled"]
+  [CEReactions, SetterThrows]
   attribute boolean shadowRootSerializable;
 };

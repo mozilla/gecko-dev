@@ -151,12 +151,12 @@ interface Element : Node {
 
   // Obsolete methods.
   Attr? getAttributeNode(DOMString name);
-  [CEReactions, Throws]
+  [CEReactions, NeedsSubjectPrincipal=NonSystem, Throws]
   Attr? setAttributeNode(Attr newAttr);
   [CEReactions, Throws]
   Attr? removeAttributeNode(Attr oldAttr);
   Attr? getAttributeNodeNS(DOMString? namespaceURI, DOMString localName);
-  [CEReactions, Throws]
+  [CEReactions, NeedsSubjectPrincipal=NonSystem, Throws]
   Attr? setAttributeNodeNS(Attr newAttr);
 
   [Func="nsContentUtils::IsCallerChromeOrElementTransformGettersEnabled"]
@@ -262,9 +262,9 @@ partial interface Element {
 partial interface Element {
   [CEReactions, SetterNeedsSubjectPrincipal=NonSystem, Pure, SetterThrows, GetterCanOOM]
   attribute (TrustedHTML or [LegacyNullToEmptyString] DOMString) innerHTML;
-  [CEReactions, Pure, SetterThrows]
+  [CEReactions, SetterNeedsSubjectPrincipal=NonSystem, Pure, SetterThrows]
   attribute (TrustedHTML or [LegacyNullToEmptyString] DOMString) outerHTML;
-  [CEReactions, Throws]
+  [CEReactions, NeedsSubjectPrincipal=NonSystem, Throws]
   undefined insertAdjacentHTML(DOMString position, (TrustedHTML or DOMString) text);
 };
 
@@ -273,9 +273,7 @@ dictionary ShadowRootInit {
   required ShadowRootMode mode;
   boolean delegatesFocus = false;
   SlotAssignmentMode slotAssignment = "named";
-  [Pref="dom.webcomponents.shadowdom.declarative.enabled"]
   boolean clonable = false;
-  [Pref="dom.webcomponents.shadowdom.declarative.enabled"]
   boolean serializable = false;
 };
 
@@ -408,9 +406,8 @@ dictionary GetHTMLOptions {
 partial interface Element {
   // https://html.spec.whatwg.org/#dom-element-sethtmlunsafe
   /* TODO: optional SetHTMLUnsafeOptions options = {} */
-  [Pref="dom.webcomponents.shadowdom.declarative.enabled", Throws]
+  [NeedsSubjectPrincipal=NonSystem, Throws]
   undefined setHTMLUnsafe((TrustedHTML or DOMString) html);
-  [Pref="dom.webcomponents.shadowdom.declarative.enabled"]
   DOMString getHTML(optional GetHTMLOptions options = {});
 };
 

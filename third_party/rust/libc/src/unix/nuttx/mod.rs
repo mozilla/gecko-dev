@@ -1,16 +1,10 @@
-use c_void;
-use in6_addr;
-use in_addr_t;
-use timespec;
-use DIR;
+use crate::prelude::*;
+use crate::{in6_addr, in_addr_t, timespec, DIR};
 
 pub type nlink_t = u16;
 pub type ino_t = u16;
 pub type blkcnt_t = u64;
 pub type blksize_t = i16;
-pub type c_char = i8;
-pub type c_long = isize;
-pub type c_ulong = usize;
 pub type cc_t = u8;
 pub type clock_t = i64;
 pub type dev_t = i32;
@@ -58,23 +52,34 @@ s! {
 
     pub struct passwd {
         pub pw_name: *const c_char,
+        pub pw_passwd: *const c_char,
         pub pw_uid: u32,
         pub pw_gid: u32,
         pub pw_gecos: *const c_char,
         pub pw_dir: *const c_char,
         pub pw_shell: *const c_char,
-        __reserved: [usize; __DEFAULT_RESERVED_SIZE__]
+        __reserved: [usize; __DEFAULT_RESERVED_SIZE__],
     }
 
-    pub struct sem_t { __val: [usize; __SEM_SIZE__] }
+    pub struct sem_t {
+        __val: [usize; __SEM_SIZE__],
+    }
 
-    pub struct pthread_attr_t { __val: [usize; __PTHREAD_ATTR_SIZE__] }
+    pub struct pthread_attr_t {
+        __val: [usize; __PTHREAD_ATTR_SIZE__],
+    }
 
-    pub struct pthread_mutex_t { __val: [usize; __PTHREAD_MUTEX_SIZE__] }
+    pub struct pthread_mutex_t {
+        __val: [usize; __PTHREAD_MUTEX_SIZE__],
+    }
 
-    pub struct pthread_cond_t { __val: [usize; __PTHREAD_COND_SIZE__] }
+    pub struct pthread_cond_t {
+        __val: [usize; __PTHREAD_COND_SIZE__],
+    }
 
-    pub struct pthread_condattr_t { __val: [usize; __PTHREAD_CONDATTR_SIZE__] }
+    pub struct pthread_condattr_t {
+        __val: [usize; __PTHREAD_CONDATTR_SIZE__],
+    }
 
     pub struct Dl_info {
         pub dli_fname: *const c_char,
@@ -122,7 +127,7 @@ s! {
         pub tm_yday: i32,
         pub tm_isdst: i32,
         pub tm_gmtoff: isize,
-        pub tm_zone: *const i8,
+        pub tm_zone: *const c_char,
         __reserved: [usize; __DEFAULT_RESERVED_SIZE__],
     }
 
@@ -159,7 +164,7 @@ s! {
 
     pub struct dirent {
         pub d_type: u8,
-        pub d_name: [i8; __NAME_MAX__ + 1],
+        pub d_name: [c_char; __NAME_MAX__ + 1],
     }
 
     pub struct fd_set {
@@ -194,16 +199,16 @@ s! {
 
     pub struct sockaddr_in {
         pub sin_family: sa_family_t,
-        pub sin_port: ::in_port_t,
-        pub sin_addr: ::in_addr,
+        pub sin_port: crate::in_port_t,
+        pub sin_addr: crate::in_addr,
         pub sin_zero: [u8; 8],
     }
 
     pub struct sockaddr_in6 {
         pub sin6_family: sa_family_t,
-        pub sin6_port: ::in_port_t,
+        pub sin6_port: crate::in_port_t,
         pub sin6_flowinfo: u32,
-        pub sin6_addr: ::in6_addr,
+        pub sin6_addr: crate::in6_addr,
         pub sin6_scope_id: u32,
     }
 
@@ -241,6 +246,7 @@ s! {
 // for example, struct passwd, https://pubs.opengroup.org/onlinepubs/009695399/basedefs/pwd.h.html,
 // POSIX only defines following fields in struct passwd:
 // char    *pw_name   User's login name.
+// char    *pw_passwd Encrypted password.
 // uid_t    pw_uid    Numerical user ID.
 // gid_t    pw_gid    Numerical group ID.
 // char    *pw_dir    Initial working directory.
@@ -550,6 +556,7 @@ extern "C" {
     pub fn clock_gettime(clockid: clockid_t, tp: *mut timespec) -> i32;
     pub fn futimens(fd: i32, times: *const timespec) -> i32;
     pub fn pthread_condattr_setclock(attr: *mut pthread_condattr_t, clock_id: clockid_t) -> i32;
-    pub fn pthread_set_name_np(thread: pthread_t, name: *const c_char) -> i32;
+    pub fn pthread_setname_np(thread: pthread_t, name: *const c_char) -> i32;
+    pub fn pthread_getname_np(thread: pthread_t, name: *mut c_char, len: usize) -> i32;
     pub fn getrandom(buf: *mut c_void, buflen: usize, flags: u32) -> isize;
 }

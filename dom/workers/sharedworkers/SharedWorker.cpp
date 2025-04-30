@@ -137,7 +137,7 @@ already_AddRefed<SharedWorker> SharedWorker::Constructor(
   nsCOMPtr<nsIGlobalObject> global = do_QueryInterface(window);
   const nsAString* compliantString =
       TrustedTypeUtils::GetTrustedTypesCompliantString(
-          aScriptURL, sink, kTrustedTypesOnlySinkGroup, *global,
+          aScriptURL, sink, kTrustedTypesOnlySinkGroup, *global, principal,
           compliantStringHolder, aRv);
   if (aRv.Failed()) {
     return nullptr;

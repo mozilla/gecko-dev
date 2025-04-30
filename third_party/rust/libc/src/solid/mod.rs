@@ -2,24 +2,16 @@
 //!
 //! [SOLID]: https://solid.kmckk.com/
 
-pub type c_schar = i8;
-pub type c_uchar = u8;
-pub type c_short = i16;
-pub type c_ushort = u16;
-pub type c_int = i32;
-pub type c_uint = u32;
-pub type c_float = f32;
-pub type c_double = f64;
-pub type c_longlong = i64;
-pub type c_ulonglong = u64;
+use crate::prelude::*;
+
 pub type intmax_t = i64;
 pub type uintmax_t = u64;
 
 pub type uintptr_t = usize;
 pub type intptr_t = isize;
 pub type ptrdiff_t = isize;
-pub type size_t = ::uintptr_t;
-pub type ssize_t = ::intptr_t;
+pub type size_t = crate::uintptr_t;
+pub type ssize_t = intptr_t;
 
 pub type clock_t = c_uint;
 pub type time_t = i64;
@@ -209,15 +201,15 @@ pub const O_EXCL: c_int = 0x400;
 pub const O_TEXT: c_int = 0x100;
 pub const O_BINARY: c_int = 0x200;
 pub const O_TRUNC: c_int = 0x20;
-pub const S_IEXEC: c_short = 0x0040;
-pub const S_IWRITE: c_short = 0x0080;
-pub const S_IREAD: c_short = 0x0100;
-pub const S_IFCHR: c_short = 0x2000;
-pub const S_IFDIR: c_short = 0x4000;
-pub const S_IFMT: c_short = 0o160000;
-pub const S_IFIFO: c_short = 0o0010000;
-pub const S_IFBLK: c_short = 0o0060000;
-pub const S_IFREG: c_short = 0o0100000;
+pub const S_IEXEC: c_short = 0o0100;
+pub const S_IWRITE: c_short = 0o0200;
+pub const S_IREAD: c_short = 0o0400;
+pub const S_IFCHR: c_short = 0o2_0000;
+pub const S_IFDIR: c_short = 0o4_0000;
+pub const S_IFMT: c_short = 0o16_0000;
+pub const S_IFIFO: c_short = 0o1_0000;
+pub const S_IFBLK: c_short = 0o6_0000;
+pub const S_IFREG: c_short = 0o10_0000;
 
 pub const LC_ALL: c_int = 0;
 pub const LC_COLLATE: c_int = 1;
@@ -405,16 +397,16 @@ pub const SIGPWR: c_int = 32;
 
 #[cfg_attr(feature = "extra_traits", derive(Debug))]
 pub enum FILE {}
-impl ::Copy for FILE {}
-impl ::Clone for FILE {
+impl Copy for FILE {}
+impl Clone for FILE {
     fn clone(&self) -> FILE {
         *self
     }
 }
 #[cfg_attr(feature = "extra_traits", derive(Debug))]
 pub enum fpos_t {}
-impl ::Copy for fpos_t {}
-impl ::Clone for fpos_t {
+impl Copy for fpos_t {}
+impl Clone for fpos_t {
     fn clone(&self) -> fpos_t {
         *self
     }
@@ -538,7 +530,7 @@ extern "C" {
     pub fn _Exit(arg1: c_int) -> !;
     pub fn abort() -> !;
     pub fn abs(arg1: c_int) -> c_int;
-    pub fn atexit(arg1: ::Option<unsafe extern "C" fn()>) -> c_int;
+    pub fn atexit(arg1: Option<unsafe extern "C" fn()>) -> c_int;
     pub fn atoi(arg1: *const c_char) -> c_int;
     pub fn atol(arg1: *const c_char) -> c_long;
     pub fn itoa(arg1: c_int, arg2: *mut c_char, arg3: c_int) -> *mut c_char;
@@ -549,7 +541,7 @@ extern "C" {
         arg2: *const c_void,
         arg3: size_t,
         arg4: size_t,
-        arg5: ::Option<unsafe extern "C" fn(arg1: *const c_void, arg2: *const c_void) -> c_int>,
+        arg5: Option<unsafe extern "C" fn(arg1: *const c_void, arg2: *const c_void) -> c_int>,
     ) -> *mut c_void;
     pub fn calloc(arg1: size_t, arg2: size_t) -> *mut c_void;
     pub fn div(arg1: c_int, arg2: c_int) -> div_t;
@@ -563,7 +555,7 @@ extern "C" {
         arg1: *mut c_void,
         arg2: size_t,
         arg3: size_t,
-        arg4: ::Option<unsafe extern "C" fn(arg1: *const c_void, arg2: *const c_void) -> c_int>,
+        arg4: Option<unsafe extern "C" fn(arg1: *const c_void, arg2: *const c_void) -> c_int>,
     );
     pub fn rand() -> c_int;
     pub fn realloc(arg1: *mut c_void, arg2: size_t) -> *mut c_void;
@@ -601,7 +593,7 @@ extern "C" {
     pub fn strtoll(arg1: *const c_char, arg2: *mut *mut c_char, arg3: c_int) -> c_longlong;
     pub fn strtoull(arg1: *const c_char, arg2: *mut *mut c_char, arg3: c_int) -> c_ulonglong;
     pub fn aligned_alloc(arg1: size_t, arg2: size_t) -> *mut c_void;
-    pub fn at_quick_exit(arg1: ::Option<unsafe extern "C" fn()>) -> c_int;
+    pub fn at_quick_exit(arg1: Option<unsafe extern "C" fn()>) -> c_int;
     pub fn quick_exit(arg1: c_int);
     pub fn setenv(arg1: *const c_char, arg2: *const c_char, arg3: c_int) -> c_int;
     pub fn unsetenv(arg1: *const c_char) -> c_int;
@@ -619,13 +611,13 @@ extern "C" {
         arg1: *mut c_void,
         arg2: size_t,
         arg3: size_t,
-        arg4: ::Option<unsafe extern "C" fn(arg1: *const c_void, arg2: *const c_void) -> c_int>,
+        arg4: Option<unsafe extern "C" fn(arg1: *const c_void, arg2: *const c_void) -> c_int>,
     ) -> c_int;
     pub fn mergesort(
         arg1: *mut c_void,
         arg2: size_t,
         arg3: size_t,
-        arg4: ::Option<unsafe extern "C" fn(arg1: *const c_void, arg2: *const c_void) -> c_int>,
+        arg4: Option<unsafe extern "C" fn(arg1: *const c_void, arg2: *const c_void) -> c_int>,
     ) -> c_int;
     pub fn radixsort(
         arg1: *mut *const c_uchar,
@@ -861,34 +853,14 @@ extern "C" {
     pub fn newlocale(arg1: c_int, arg2: *const c_char, arg3: locale_t) -> locale_t;
 
     // langinfo.h
-    pub fn nl_langinfo(item: ::nl_item) -> *mut ::c_char;
-    pub fn nl_langinfo_l(item: ::nl_item, locale: locale_t) -> *mut ::c_char;
+    pub fn nl_langinfo(item: crate::nl_item) -> *mut c_char;
+    pub fn nl_langinfo_l(item: crate::nl_item, locale: locale_t) -> *mut c_char;
 
     // malloc.h
-    pub fn memalign(align: ::size_t, size: ::size_t) -> *mut ::c_void;
+    pub fn memalign(align: size_t, size: size_t) -> *mut c_void;
 
     // sys/types.h
     pub fn lseek(arg1: c_int, arg2: __off_t, arg3: c_int) -> __off_t;
-}
-
-cfg_if! {
-    if #[cfg(libc_core_cvoid)] {
-        pub use ::ffi::c_void;
-    } else {
-        // Use repr(u8) as LLVM expects `void*` to be the same as `i8*` to help
-        // enable more optimization opportunities around it recognizing things
-        // like malloc/free.
-        #[repr(u8)]
-        #[allow(missing_copy_implementations)]
-        #[allow(missing_debug_implementations)]
-        pub enum c_void {
-            // Two dummy variants so the #[repr] attribute can be used.
-            #[doc(hidden)]
-            __variant1,
-            #[doc(hidden)]
-            __variant2,
-        }
-    }
 }
 
 cfg_if! {

@@ -43,6 +43,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.testTag
 import androidx.compose.ui.semantics.testTagsAsResourceId
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -58,6 +59,7 @@ import org.mozilla.fenix.compose.MenuItem
 import org.mozilla.fenix.compose.PagerIndicator
 import org.mozilla.fenix.home.fake.FakeHomepagePreview
 import org.mozilla.fenix.home.sessioncontrol.TopSiteInteractor
+import org.mozilla.fenix.home.topsites.TopSitesTestTag.topSiteCardFavicon
 import org.mozilla.fenix.settings.SupportUtils
 import org.mozilla.fenix.theme.FirefoxTheme
 import org.mozilla.fenix.wallpapers.WallpaperState
@@ -424,13 +426,19 @@ private fun TopSiteItem(
  * @param topSite The [TopSite] to display.
  * @param backgroundColor The background [Color] of the card.
  */
+@OptIn(ExperimentalComposeUiApi::class)
 @Composable
 private fun TopSiteFaviconCard(
     topSite: TopSite,
     backgroundColor: Color,
 ) {
     Card(
-        modifier = Modifier.size(TOP_SITES_FAVICON_CARD_SIZE.dp),
+        modifier = Modifier
+            .semantics {
+                testTagsAsResourceId = true
+                testTag = topSiteCardFavicon
+            }
+            .size(TOP_SITES_FAVICON_CARD_SIZE.dp),
         shape = RoundedCornerShape(8.dp),
         backgroundColor = backgroundColor,
         elevation = 6.dp,
@@ -456,7 +464,8 @@ private fun FaviconImage(painter: Painter) {
     Image(
         painter = painter,
         contentDescription = null,
-        modifier = Modifier.size(TOP_SITES_FAVICON_SIZE.dp),
+        modifier = Modifier
+            .size(TOP_SITES_FAVICON_SIZE.dp),
         contentScale = ContentScale.Crop,
     )
 }

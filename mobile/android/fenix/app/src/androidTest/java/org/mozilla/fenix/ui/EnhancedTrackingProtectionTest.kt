@@ -467,7 +467,7 @@ class EnhancedTrackingProtectionTest : TestSetup() {
             verifyTrackingProtectionWebContent("analytics not blocked")
             verifyTrackingProtectionWebContent("Fingerprinting blocked")
             verifyTrackingProtectionWebContent("Cryptomining blocked")
-        }.goToHomescreen {
+        }.goToHomescreen(activityTestRule) {
         }.togglePrivateBrowsingMode()
         navigationToolbar {
         }.enterURLAndEnterToBrowser(trackingPage.url) {

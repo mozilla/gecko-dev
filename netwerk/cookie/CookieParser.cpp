@@ -355,12 +355,6 @@ void CookieParser::GetTokenValue(nsACString::const_char_iterator& aIter,
   }
 }
 
-static inline void SetSameSiteAttribute(CookieStruct& aCookieData,
-                                        int32_t aValue) {
-  aCookieData.sameSite() = aValue;
-  aCookieData.rawSameSite() = aValue;
-}
-
 // Tests for control characters, defined by RFC 5234 to be %x00-1F / %x7F.
 // An exception is made for HTAB as the cookie spec treats that as whitespace.
 static bool ContainsControlChars(const nsACString& aString) {
@@ -370,13 +364,6 @@ static bool ContainsControlChars(const nsACString& aString) {
   return std::find_if(start, end, [](unsigned char c) {
            return (c <= 0x1F && c != 0x09) || c == 0x7F;
          }) != end;
-}
-
-static inline void SetSameSiteAttributeDefault(CookieStruct& aCookieData) {
-  // Set cookie with SameSite attribute that is treated as Default
-  // and doesn't requires changing the DB schema.
-  aCookieData.sameSite() = nsICookie::SAMESITE_LAX;
-  aCookieData.rawSameSite() = nsICookie::SAMESITE_NONE;
 }
 
 // static
@@ -428,8 +415,7 @@ void CookieParser::ParseAttributes(nsCString& aCookieHeader,
   mCookieData.isSecure() = false;
   mCookieData.isHttpOnly() = false;
   mCookieData.isPartitioned() = false;
-
-  SetSameSiteAttributeDefault(mCookieData);
+  mCookieData.sameSite() = nsICookie::SAMESITE_UNSET;
 
   nsDependentCSubstring tokenString(cookieStart, cookieStart);
   nsDependentCSubstring tokenValue(cookieStart, cookieStart);
@@ -493,14 +479,14 @@ void CookieParser::ParseAttributes(nsCString& aCookieHeader,
 
     } else if (tokenString.LowerCaseEqualsLiteral(kSameSite)) {
       if (tokenValue.LowerCaseEqualsLiteral(kSameSiteLax)) {
-        SetSameSiteAttribute(mCookieData, nsICookie::SAMESITE_LAX);
+        mCookieData.sameSite() = nsICookie::SAMESITE_LAX;
       } else if (tokenValue.LowerCaseEqualsLiteral(kSameSiteStrict)) {
-        SetSameSiteAttribute(mCookieData, nsICookie::SAMESITE_STRICT);
+        mCookieData.sameSite() = nsICookie::SAMESITE_STRICT;
       } else if (tokenValue.LowerCaseEqualsLiteral(kSameSiteNone)) {
-        SetSameSiteAttribute(mCookieData, nsICookie::SAMESITE_NONE);
+        mCookieData.sameSite() = nsICookie::SAMESITE_NONE;
       } else {
         // Reset to Default if unknown token value (see Bug 1682450)
-        SetSameSiteAttributeDefault(mCookieData);
+        mCookieData.sameSite() = nsICookie::SAMESITE_UNSET;
         mWarnings.mInvalidSameSiteAttribute = true;
       }
     }
@@ -530,8 +516,7 @@ void CookieParser::ParseAttributes(nsCString& aCookieHeader,
     return;
   }
 
-  if (mCookieData.rawSameSite() == nsICookie::SAMESITE_NONE &&
-      mCookieData.sameSite() == nsICookie::SAMESITE_LAX) {
+  if (mCookieData.sameSite() == nsICookie::SAMESITE_UNSET) {
     bool laxByDefault =
         StaticPrefs::network_cookie_sameSite_laxByDefault() &&
         !nsContentUtils::IsURIInPrefList(
@@ -546,8 +531,6 @@ void CookieParser::ParseAttributes(nsCString& aCookieHeader,
 
   // Cookie accepted.
   aAcceptedByParser = true;
-
-  MOZ_ASSERT(Cookie::ValidateSameSite(mCookieData));
 }
 
 namespace {
@@ -1005,10 +988,13 @@ void CookieParser::Parse(const nsACString& aBaseDomain, bool aRequireHostMatch,
       StaticPrefs::network_cookie_sameSite_laxByDefault() &&
       !nsContentUtils::IsURIInPrefList(
           mHostURI, "network.cookie.sameSite.laxByDefault.disabledHosts");
-  auto effectiveSameSite =
-      laxByDefault ? mCookieData.sameSite() : mCookieData.rawSameSite();
-  if ((effectiveSameSite != nsICookie::SAMESITE_NONE) &&
-      aIsForeignAndNotAddon) {
+  uint32_t sameSite = mCookieData.sameSite();
+  if (sameSite == nsICookie::SAMESITE_UNSET) {
+    sameSite =
+        laxByDefault ? nsICookie::SAMESITE_LAX : nsICookie::SAMESITE_NONE;
+  }
+
+  if (sameSite != nsICookie::SAMESITE_NONE && aIsForeignAndNotAddon) {
     COOKIE_LOGFAILURE(SET_COOKIE, mHostURI, mCookieString,
                       "failed the samesite tests");
     RejectCookie(RejectedForNonSameSiteness);

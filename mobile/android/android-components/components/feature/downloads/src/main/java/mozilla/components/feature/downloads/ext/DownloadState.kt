@@ -10,6 +10,7 @@ import mozilla.components.concept.fetch.Headers
 import mozilla.components.concept.fetch.Headers.Names.CONTENT_DISPOSITION
 import mozilla.components.concept.fetch.Headers.Names.CONTENT_LENGTH
 import mozilla.components.concept.fetch.Headers.Names.CONTENT_TYPE
+import mozilla.components.concept.fetch.Headers.Names.E_TAG
 import mozilla.components.support.ktx.kotlin.decode
 import mozilla.components.support.ktx.kotlin.sanitizeFileName
 import mozilla.components.support.utils.DownloadUtils
@@ -46,6 +47,7 @@ internal fun DownloadState.withResponse(headers: Headers, stream: InputStream?):
         fileName = newFileName?.decode()?.sanitizeFileName(),
         contentType = contentType,
         contentLength = contentLength ?: headers[CONTENT_LENGTH]?.toLongOrNull(),
+        etag = headers[E_TAG],
     )
 }
 

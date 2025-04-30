@@ -8,17 +8,7 @@
 #![allow(deprecated)]
 #![allow(non_snake_case)]
 #![allow(non_upper_case_globals)]
-// Silence clippy warnings as a stopgap to get CI working.
-#![allow(clippy::enum_variant_names)]
-#![allow(clippy::identity_op)]
-#![allow(clippy::let_and_return)]
-#![allow(clippy::missing_safety_doc)]
-#![allow(clippy::missing_transmute_annotations)]
-#![allow(clippy::new_ret_no_self)]
-#![allow(clippy::new_without_default)]
-#![allow(clippy::too_many_arguments)]
-#![allow(clippy::transmute_ptr_to_ref)]
-#![allow(clippy::unit_arg)]
+#![allow(clippy::new_without_default, clippy::new_ret_no_self)]
 
 #[macro_use]
 pub extern crate objc;
@@ -27,7 +17,13 @@ pub extern crate foreign_types;
 #[macro_use]
 pub extern crate paste;
 
-use std::{borrow::Borrow, marker::PhantomData, mem, ops::Deref, os::raw::c_void};
+use std::{
+    borrow::Borrow,
+    ffi::{c_char, c_void},
+    marker::PhantomData,
+    mem,
+    ops::Deref,
+};
 
 use core_graphics_types::{base::CGFloat, geometry::CGSize};
 use foreign_types::ForeignType;
@@ -66,8 +62,8 @@ impl NSRange {
 
 fn nsstring_as_str(nsstr: &objc::runtime::Object) -> &str {
     let bytes = unsafe {
-        let bytes: *const std::os::raw::c_char = msg_send![nsstr, UTF8String];
-        bytes as *const u8
+        let bytes: *const c_char = msg_send![nsstr, UTF8String];
+        bytes.cast()
     };
     let len: NSUInteger = unsafe { msg_send![nsstr, length] };
     unsafe {
@@ -80,7 +76,7 @@ fn nsstring_from_str(string: &str) -> *mut objc::runtime::Object {
     const UTF8_ENCODING: usize = 4;
 
     let cls = class!(NSString);
-    let bytes = string.as_ptr() as *const c_void;
+    let bytes = string.as_ptr().cast::<c_void>();
     unsafe {
         let obj: *mut objc::runtime::Object = msg_send![cls, alloc];
         let obj: *mut objc::runtime::Object = msg_send![
@@ -153,13 +149,13 @@ macro_rules! foreign_obj_type {
 
             #[inline]
             fn deref(&self) -> &Self::Target {
-                unsafe { &*(self as *const Self as *const Self::Target)  }
+                unsafe { std::mem::transmute(self) }
             }
         }
 
         impl ::std::convert::From<$owned_ident> for $parent_ident {
             fn from(item: $owned_ident) -> Self {
-                unsafe { Self::from_ptr(::std::mem::transmute(item.into_ptr())) }
+                unsafe { Self::from_ptr(item.into_ptr().cast()) }
             }
         }
     };
@@ -206,7 +202,7 @@ macro_rules! try_objc {
             let value = $body;
             if !$err_name.is_null() {
                 let desc: *mut Object = msg_send![$err_name, localizedDescription];
-                let compile_error: *const std::os::raw::c_char = msg_send![desc, UTF8String];
+                let compile_error: *const c_char = msg_send![desc, UTF8String];
                 let message = CStr::from_ptr(compile_error).to_string_lossy().into_owned();
                 return Err(message);
             }
@@ -360,7 +356,7 @@ where
 
     #[inline]
     fn deref(&self) -> &ArrayRef<T> {
-        unsafe { mem::transmute(self.as_ptr()) }
+        unsafe { std::mem::transmute(self) }
     }
 }
 
@@ -370,7 +366,7 @@ where
     T::Ref: objc::Message + 'static,
 {
     fn borrow(&self) -> &ArrayRef<T> {
-        unsafe { mem::transmute(self.as_ptr()) }
+        unsafe { std::mem::transmute(self) }
     }
 }
 
@@ -610,12 +606,12 @@ pub use {
 
 #[inline]
 unsafe fn obj_drop<T>(p: *mut T) {
-    msg_send![(p as *mut Object), release]
+    msg_send![p.cast::<Object>(), release]
 }
 
 #[inline]
 unsafe fn obj_clone<T: 'static>(p: *mut T) -> *mut T {
-    msg_send![(p as *mut Object), retain]
+    msg_send![p.cast::<Object>(), retain]
 }
 
 #[allow(non_camel_case_types)]

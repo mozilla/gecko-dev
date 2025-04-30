@@ -10,10 +10,16 @@
 # See Cargo.toml.orig for the original contents.
 
 [package]
-edition = "2018"
+edition = "2021"
+rust-version = "1.56"
 name = "parking_lot"
-version = "0.12.1"
+version = "0.12.3"
 authors = ["Amanieu d'Antras <amanieu@gmail.com>"]
+build = false
+autobins = false
+autoexamples = false
+autotests = false
+autobenches = false
 description = "More compact and efficient implementations of the standard synchronization primitives."
 readme = "README.md"
 keywords = [
@@ -26,6 +32,33 @@ keywords = [
 categories = ["concurrency"]
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/Amanieu/parking_lot"
+
+[package.metadata.docs.rs]
+features = [
+    "arc_lock",
+    "serde",
+    "deadlock_detection",
+]
+rustdoc-args = ["--generate-link-to-definition"]
+
+[package.metadata.playground]
+features = [
+    "arc_lock",
+    "serde",
+    "deadlock_detection",
+]
+
+[lib]
+name = "parking_lot"
+path = "src/lib.rs"
+
+[[test]]
+name = "issue_392"
+path = "tests/issue_392.rs"
+
+[[test]]
+name = "issue_203"
+path = "tests/issue_203.rs"
 
 [dependencies.lock_api]
 version = "0.4.6"

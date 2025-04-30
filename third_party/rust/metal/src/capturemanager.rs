@@ -78,6 +78,7 @@ impl CaptureManagerRef {
     ///   2. Setting the environment variable `METAL_CAPTURE_ENABLED=1`
     ///   3. Adding an info.plist file containing the `MetalCaptureEnabled` key set to `YES`
     pub fn start_capture(&self, descriptor: &CaptureDescriptorRef) -> Result<(), String> {
+        #[allow(clippy::unit_arg)]
         unsafe {
             Ok(try_objc! { err =>
                 msg_send![self, startCaptureWithDescriptor: descriptor

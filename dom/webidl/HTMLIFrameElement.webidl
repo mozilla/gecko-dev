@@ -19,7 +19,7 @@ interface HTMLIFrameElement : HTMLElement {
 
   [CEReactions, SetterNeedsSubjectPrincipal=NonSystem, SetterThrows, Pure]
            attribute DOMString src;
-  [CEReactions, SetterThrows, Pure]
+  [CEReactions, SetterNeedsSubjectPrincipal=NonSystem, SetterThrows, Pure]
            attribute (TrustedHTML or DOMString) srcdoc;
   [CEReactions, SetterThrows, Pure]
            attribute DOMString name;

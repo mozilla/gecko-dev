@@ -31,6 +31,7 @@ interface nsICookie : nsISupports {
     const uint32_t SAMESITE_NONE   = 0;
     const uint32_t SAMESITE_LAX    = 1;
     const uint32_t SAMESITE_STRICT = 2;
+    const uint32_t SAMESITE_UNSET = 256;
 
     /**
      * the name of the cookie

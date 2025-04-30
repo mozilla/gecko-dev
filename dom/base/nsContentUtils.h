@@ -1895,7 +1895,8 @@ class nsContentUtils {
   static void SetHTMLUnsafe(mozilla::dom::FragmentOrElement* aTarget,
                             Element* aContext,
                             const mozilla::dom::TrustedHTMLOrString& aSource,
-                            bool aIsShadowRoot, mozilla::ErrorResult& aError);
+                            bool aIsShadowRoot, nsIPrincipal* aSubjectPrincipal,
+                            mozilla::ErrorResult& aError);
   /**
    * Invoke the fragment parsing algorithm (innerHTML) using the HTML parser.
    *

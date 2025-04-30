@@ -21,6 +21,9 @@ add_task(async function test_schema_13_db() {
   // Close the profile.
   await promise_close_profile();
 
+  // Remove the cookie file in order to create another database file.
+  do_get_cookie_file(profile).remove(false);
+
   // Open CookieDatabaseConnection to manipulate DB without using services.
   let schema13db = new CookieDatabaseConnection(
     do_get_cookie_file(profile),
@@ -46,7 +49,6 @@ add_task(async function test_schema_13_db() {
       false,
       false,
       {},
-      Ci.nsICookie.SAMESITE_NONE,
       Ci.nsICookie.SAMESITE_NONE,
       Ci.nsICookie.SCHEME_UNSET,
       !!(i % 2) // isPartitioned

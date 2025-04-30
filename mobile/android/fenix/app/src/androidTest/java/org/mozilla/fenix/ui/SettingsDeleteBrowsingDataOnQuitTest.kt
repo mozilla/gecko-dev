@@ -95,7 +95,7 @@ class SettingsDeleteBrowsingDataOnQuitTest : TestSetup() {
         }
         navigationToolbar {
         }.enterURLAndEnterToBrowser(testPage.url) {
-        }.goToHomescreen {
+        }.goToHomescreen(composeTestRule) {
         }.openThreeDotMenu {
             clickQuit()
             restartApp(composeTestRule.activityRule)
@@ -121,7 +121,7 @@ class SettingsDeleteBrowsingDataOnQuitTest : TestSetup() {
         }
         navigationToolbar {
         }.enterURLAndEnterToBrowser(genericPage.url) {
-        }.goToHomescreen {
+        }.goToHomescreen(composeTestRule) {
         }.openThreeDotMenu {
             clickQuit()
             restartApp(composeTestRule.activityRule)
@@ -154,7 +154,7 @@ class SettingsDeleteBrowsingDataOnQuitTest : TestSetup() {
         }.enterURLAndEnterToBrowser(storageWritePage.url) {
             clickPageObject(MatcherHelper.itemWithText("Set cookies"))
             verifyPageContent("Values written to storage")
-        }.goToHomescreen {
+        }.goToHomescreen(composeTestRule) {
         }.openThreeDotMenu {
             clickQuit()
             restartApp(composeTestRule.activityRule)
@@ -187,7 +187,7 @@ class SettingsDeleteBrowsingDataOnQuitTest : TestSetup() {
             openPageAndDownloadFile(url = downloadTestPage.toUri(), downloadFile = "smallZip.zip")
             verifyDownloadCompleteNotificationPopup()
         }.closeDownloadPrompt {
-        }.goToHomescreen {
+        }.goToHomescreen(composeTestRule) {
         }.openThreeDotMenu {
             clickQuit()
             mDevice.waitForIdle()
@@ -222,7 +222,7 @@ class SettingsDeleteBrowsingDataOnQuitTest : TestSetup() {
             selectRememberPermissionDecision()
         }.clickPagePermissionButton(false) {
             verifyPageContent("Microphone not allowed")
-        }.goToHomescreen {
+        }.goToHomescreen(composeTestRule) {
         }.openThreeDotMenu {
             clickQuit()
             mDevice.waitForIdle()
@@ -249,10 +249,10 @@ class SettingsDeleteBrowsingDataOnQuitTest : TestSetup() {
             exitMenu()
         }
         homeScreen {
-            verifyExistingTopSitesTabs(pocketTopArticles)
-        }.openTopSiteTabWithTitle(pocketTopArticles) {
+            verifyExistingTopSitesTabs(composeTestRule, pocketTopArticles)
+        }.openTopSiteTabWithTitle(composeTestRule, pocketTopArticles) {
             verifyPocketPageContent()
-        }.goToHomescreen {
+        }.goToHomescreen(composeTestRule) {
         }.openThreeDotMenu {
             clickQuit()
             mDevice.waitForIdle()

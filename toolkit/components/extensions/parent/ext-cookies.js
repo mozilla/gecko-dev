@@ -6,11 +6,14 @@
 
 var { ExtensionError } = ExtensionUtils;
 
-const SAME_SITE_STATUSES = [
-  "no_restriction", // Index 0 = Ci.nsICookie.SAMESITE_NONE
-  "lax", // Index 1 = Ci.nsICookie.SAMESITE_LAX
-  "strict", // Index 2 = Ci.nsICookie.SAMESITE_STRICT
-];
+const SAME_SITE_STATUSES = new Map([
+  [Ci.nsICookie.SAMESITE_NONE, "no_restriction"],
+  [Ci.nsICookie.SAMESITE_LAX, "lax"],
+  [Ci.nsICookie.SAMESITE_STRICT, "strict"],
+
+  // FIXME: this should be "unspecified". Bug 1550032.
+  [Ci.nsICookie.SAMESITE_UNSET, "no_restriction"],
+]);
 
 const isIPv4 = host => {
   let match = /^(\d+)\.(\d+)\.(\d+)\.(\d+)$/.exec(host);
@@ -135,7 +138,7 @@ const convertCookie = ({ cookie, isPrivate }) => {
     path: cookie.path,
     secure: cookie.isSecure,
     httpOnly: cookie.isHttpOnly,
-    sameSite: SAME_SITE_STATUSES[cookie.sameSite],
+    sameSite: SAME_SITE_STATUSES.get(cookie.sameSite),
     session: cookie.isSession,
     firstPartyDomain: cookie.originAttributes.firstPartyDomain || "",
     partitionKey: getExtPartitionKey(cookie),
@@ -694,7 +697,14 @@ this.cookies = class extends ExtensionAPIPersistent {
             });
           }
 
-          let sameSite = SAME_SITE_STATUSES.indexOf(details.sameSite);
+          let sameSite = Ci.nsICookie.SAMESITE_UNSET;
+          for (const [k, v] of SAME_SITE_STATUSES) {
+            // details.sameSite is always set and one of the values,
+            // enforced by "sameSite" in schemas/cookies.json
+            if (details.sameSite === v) {
+              sameSite = k;
+            }
+          }
 
           let schemeType = Ci.nsICookie.SCHEME_UNSET;
           if (uri.scheme === "https") {

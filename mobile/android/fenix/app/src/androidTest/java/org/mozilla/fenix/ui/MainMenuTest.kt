@@ -103,11 +103,11 @@ class MainMenuTest : TestSetup() {
         }.openThreeDotMenu {
         }.openWhatsNew {
             verifyWhatsNewURL()
-        }.goToHomescreen {
+        }.goToHomescreen(composeTestRule) {
         }.openThreeDotMenu {
         }.openHelp {
             verifyHelpUrl()
-        }.goToHomescreen {
+        }.goToHomescreen(composeTestRule) {
         }.openThreeDotMenu {
         }.openCustomizeHome {
             verifyHomePageView()

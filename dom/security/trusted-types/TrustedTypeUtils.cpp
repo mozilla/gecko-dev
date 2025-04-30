@@ -34,6 +34,7 @@
 #include "mozilla/dom/UnionTypes.h"
 #include "mozilla/dom/WindowOrWorkerGlobalScopeBinding.h"
 #include "mozilla/dom/nsCSPUtils.h"
+#include "mozilla/extensions/WebExtensionPolicy.h"
 
 #include "nsContentUtils.h"
 #include "nsIContentSecurityPolicy.h"
@@ -412,7 +413,8 @@ template <typename ExpectedType, typename TrustedTypeOrString,
 MOZ_CAN_RUN_SCRIPT inline const nsAString* GetTrustedTypesCompliantString(
     const TrustedTypeOrString& aInput, const nsAString& aSink,
     const nsAString& aSinkGroup, NodeOrGlobalObject& aNodeOrGlobalObject,
-    Maybe<nsAutoString>& aResultHolder, ErrorResult& aError) {
+    nsIPrincipal* aPrincipalOrNull, Maybe<nsAutoString>& aResultHolder,
+    ErrorResult& aError) {
   MOZ_ASSERT(aSinkGroup == kTrustedTypesOnlySinkGroup);
   if (!StaticPrefs::dom_security_trusted_types_enabled()) {
     // A trusted type might've been created before the pref was set to `false`,
@@ -422,6 +424,14 @@ MOZ_CAN_RUN_SCRIPT inline const nsAString* GetTrustedTypesCompliantString(
 
   if (IsTrustedType(aInput)) {
     return GetAsTrustedType(aInput);
+  }
+
+  // Exempt web extension content scripts from trusted types policies defined by
+  // the page in which they are running.
+  if (auto* principal = BasePrincipal::Cast(aPrincipalOrNull)) {
+    if (principal->ContentScriptAddonPolicyCore()) {
+      return GetAsString(aInput);
+    }
   }
 
   // Below, we use fast paths when there are no require-trusted-types-for
@@ -557,9 +567,11 @@ MOZ_CAN_RUN_SCRIPT inline const nsAString* GetTrustedTypesCompliantString(
   const nsAString* GetTrustedTypesCompliantString(                        \
       const _trustedTypeOrString& aInput, const nsAString& aSink,         \
       const nsAString& aSinkGroup, _nodeOrGlobalObject& aNodeOrGlobal,    \
-      Maybe<nsAutoString>& aResultHolder, ErrorResult& aError) {          \
+      nsIPrincipal* aPrincipalOrNull, Maybe<nsAutoString>& aResultHolder, \
+      ErrorResult& aError) {                                              \
     return GetTrustedTypesCompliantString<_expectedType>(                 \
-        aInput, aSink, aSinkGroup, aNodeOrGlobal, aResultHolder, aError); \
+        aInput, aSink, aSinkGroup, aNodeOrGlobal, aPrincipalOrNull,       \
+        aResultHolder, aError);                                           \
   }
 
 IMPL_GET_TRUSTED_TYPES_COMPLIANT_STRING(TrustedHTMLOrString, TrustedHTML,
@@ -589,7 +601,7 @@ GetTrustedTypesCompliantStringForTrustedHTML(const nsAString& aInput,
                                              Maybe<nsAutoString>& aResultHolder,
                                              ErrorResult& aError) {
   return GetTrustedTypesCompliantString<TrustedHTML>(
-      &aInput, aSink, aSinkGroup, aNode, aResultHolder, aError);
+      &aInput, aSink, aSinkGroup, aNode, nullptr, aResultHolder, aError);
 }
 
 MOZ_CAN_RUN_SCRIPT const nsAString*
@@ -598,7 +610,8 @@ GetTrustedTypesCompliantStringForTrustedScript(
     const nsAString& aSinkGroup, nsIGlobalObject& aGlobalObject,
     Maybe<nsAutoString>& aResultHolder, ErrorResult& aError) {
   return GetTrustedTypesCompliantString<TrustedScript>(
-      &aInput, aSink, aSinkGroup, aGlobalObject, aResultHolder, aError);
+      &aInput, aSink, aSinkGroup, aGlobalObject, nullptr, aResultHolder,
+      aError);
 }
 
 bool GetTrustedTypeDataForAttribute(const nsAtom* aElementName,
@@ -662,7 +675,8 @@ template <typename TrustedTypeOrStringArg>
 MOZ_CAN_RUN_SCRIPT const nsAString* GetTrustedTypesCompliantAttributeValue(
     const nsINode& aElement, nsAtom* aAttributeName,
     int32_t aAttributeNamespaceID, const TrustedTypeOrStringArg& aNewValue,
-    Maybe<nsAutoString>& aResultHolder, ErrorResult& aError) {
+    nsIPrincipal* aPrincipalOrNull, Maybe<nsAutoString>& aResultHolder,
+    ErrorResult& aError) {
   if (!StaticPrefs::dom_security_trusted_types_enabled()) {
     // A trusted type might've been created before the pref was set to `false`,
     // so we cannot assume aNewValue.IsString().
@@ -706,16 +720,16 @@ MOZ_CAN_RUN_SCRIPT const nsAString* GetTrustedTypesCompliantAttributeValue(
   switch (expectedType) {
     case TrustedType::TrustedHTML:
       return GetTrustedTypesCompliantString<TrustedHTML>(
-          input, sink, kTrustedTypesOnlySinkGroup, aElement, aResultHolder,
-          aError);
+          input, sink, kTrustedTypesOnlySinkGroup, aElement, aPrincipalOrNull,
+          aResultHolder, aError);
     case TrustedType::TrustedScript:
       return GetTrustedTypesCompliantString<TrustedScript>(
-          input, sink, kTrustedTypesOnlySinkGroup, aElement, aResultHolder,
-          aError);
+          input, sink, kTrustedTypesOnlySinkGroup, aElement, aPrincipalOrNull,
+          aResultHolder, aError);
     case TrustedType::TrustedScriptURL:
       return GetTrustedTypesCompliantString<TrustedScriptURL>(
-          input, sink, kTrustedTypesOnlySinkGroup, aElement, aResultHolder,
-          aError);
+          input, sink, kTrustedTypesOnlySinkGroup, aElement, aPrincipalOrNull,
+          aResultHolder, aError);
   }
   MOZ_ASSERT_UNREACHABLE();
   return nullptr;
@@ -725,20 +739,22 @@ MOZ_CAN_RUN_SCRIPT const nsAString* GetTrustedTypesCompliantAttributeValue(
     const nsINode& aElement, nsAtom* aAttributeName,
     int32_t aAttributeNamespaceID,
     const TrustedHTMLOrTrustedScriptOrTrustedScriptURLOrString& aNewValue,
-    Maybe<nsAutoString>& aResultHolder, ErrorResult& aError) {
+    nsIPrincipal* aPrincipalOrNull, Maybe<nsAutoString>& aResultHolder,
+    ErrorResult& aError) {
   return GetTrustedTypesCompliantAttributeValue<
       TrustedHTMLOrTrustedScriptOrTrustedScriptURLOrString>(
-      aElement, aAttributeName, aAttributeNamespaceID, aNewValue, aResultHolder,
-      aError);
+      aElement, aAttributeName, aAttributeNamespaceID, aNewValue,
+      aPrincipalOrNull, aResultHolder, aError);
 }
 
 MOZ_CAN_RUN_SCRIPT const nsAString* GetTrustedTypesCompliantAttributeValue(
     const nsINode& aElement, nsAtom* aAttributeName,
     int32_t aAttributeNamespaceID, const nsAString& aNewValue,
-    Maybe<nsAutoString>& aResultHolder, ErrorResult& aError) {
+    nsIPrincipal* aPrincipalOrNull, Maybe<nsAutoString>& aResultHolder,
+    ErrorResult& aError) {
   return GetTrustedTypesCompliantAttributeValue<const nsAString*>(
       aElement, aAttributeName, aAttributeNamespaceID, &aNewValue,
-      aResultHolder, aError);
+      aPrincipalOrNull, aResultHolder, aError);
 }
 
 bool HostGetCodeForEval(JSContext* aCx, JS::Handle<JSObject*> aCode,

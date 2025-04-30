@@ -2399,7 +2399,7 @@ bool BufferAllocator::IsMediumAlloc(void* alloc) {
 }
 
 bool BufferAllocator::needLockToAccessBufferMap() const {
-  MOZ_ASSERT(CurrentThreadCanAccessZone(zone) || CurrentThreadIsGCMarking());
+  MOZ_ASSERT(CurrentThreadCanAccessZone(zone) || CurrentThreadIsPerformingGC());
   return minorState.refNoCheck() == State::Sweeping ||
          majorState.refNoCheck() == State::Sweeping;
 }
@@ -2419,7 +2419,7 @@ LargeBuffer* BufferAllocator::lookupLargeBuffer(void* alloc, MaybeLock& lock) {
   MOZ_ASSERT(ptr);
   LargeBuffer* buffer = ptr->value();
   MOZ_ASSERT(buffer->data() == alloc);
-  MOZ_ASSERT(buffer->zone() == zone);
+  MOZ_ASSERT(buffer->zoneFromAnyThread() == zone);
   return buffer;
 }
 

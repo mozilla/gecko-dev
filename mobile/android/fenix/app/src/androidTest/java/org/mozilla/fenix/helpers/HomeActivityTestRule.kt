@@ -71,7 +71,7 @@ class HomeActivityTestRule(
         isPageLoadTranslationsPromptEnabled: Boolean = false,
         isMicrosurveyEnabled: Boolean = settings.microsurveyFeatureEnabled,
         shouldUseBottomToolbar: Boolean = settings.shouldUseBottomToolbar,
-        isComposeHomepageEnabled: Boolean = false,
+        isComposeHomepageEnabled: Boolean = true,
     ) : this(initialTouchMode, launchActivity, skipOnboarding) {
         this.isHomeOnboardingDialogEnabled = isHomeOnboardingDialogEnabled
         this.isPocketEnabled = isPocketEnabled
@@ -199,7 +199,7 @@ class HomeActivityIntentTestRule internal constructor(
         isMicrosurveyEnabled: Boolean = settings.microsurveyFeatureEnabled,
         shouldUseBottomToolbar: Boolean = settings.shouldUseBottomToolbar,
         onboardingFeatureEnabled: Boolean = true,
-        isComposeHomepageEnabled: Boolean = false,
+        isComposeHomepageEnabled: Boolean = true,
     ) : this(initialTouchMode, launchActivity, skipOnboarding) {
         this.isHomeOnboardingDialogEnabled = isHomeOnboardingDialogEnabled
         this.isPocketEnabled = isPocketEnabled

@@ -160,7 +160,7 @@ void Attr::SetValue(const nsAString& aValue, nsIPrincipal* aTriggeringPrincipal,
   const nsAString* compliantString =
       TrustedTypeUtils::GetTrustedTypesCompliantAttributeValue(
           *element, nameAtom, mNodeInfo->NamespaceID(), aValue,
-          compliantStringHolder, aRv);
+          aTriggeringPrincipal, compliantStringHolder, aRv);
   if (aRv.Failed()) {
     return;
   }

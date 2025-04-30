@@ -53,6 +53,7 @@ data class DownloadState(
     val createdTime: Long = System.currentTimeMillis(),
     val response: Response? = null,
     val notificationId: Int? = null,
+    val etag: String? = null,
 ) {
     val filePath: String
         get() = directoryPath + File.separatorChar + fileName

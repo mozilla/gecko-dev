@@ -5206,6 +5206,7 @@ void Document::EnsureInitializeInternalCommandDataHashtable() {
 Document::InternalCommandData Document::ConvertToInternalCommand(
     const nsAString& aHTMLCommandName,
     const TrustedHTMLOrString* aValue /* = nullptr */,
+    nsIPrincipal* aSubjectPrincipal /* = nullptr */,
     ErrorResult* aRv /* = nullptr */,
     nsAString* aAdjustedValue /* = nullptr */) {
   MOZ_ASSERT(!aAdjustedValue || aAdjustedValue->IsEmpty());
@@ -5244,8 +5245,8 @@ Document::InternalCommandData Document::ConvertToInternalCommand(
   if (commandData.mCommand == Command::InsertHTML) {
     constexpr nsLiteralString sink = u"Document execCommand"_ns;
     compliantString = TrustedTypeUtils::GetTrustedTypesCompliantString(
-        *aValue, sink, kTrustedTypesOnlySinkGroup, *this, compliantStringHolder,
-        *aRv);
+        *aValue, sink, kTrustedTypesOnlySinkGroup, *this, aSubjectPrincipal,
+        compliantStringHolder, *aRv);
     if (aRv->Failed()) {
       return InternalCommandData();
     }
@@ -5586,8 +5587,8 @@ bool Document::ExecCommand(const nsAString& aHTMLCommandName, bool aShowUI,
   //  this might add some ugly JS dependencies?
 
   nsAutoString adjustedValue;
-  InternalCommandData commandData =
-      ConvertToInternalCommand(aHTMLCommandName, &aValue, &aRv, &adjustedValue);
+  InternalCommandData commandData = ConvertToInternalCommand(
+      aHTMLCommandName, &aValue, &aSubjectPrincipal, &aRv, &adjustedValue);
   switch (commandData.mCommand) {
     case Command::DoNothing:
       return false;
@@ -6780,9 +6781,11 @@ void Document::GetCookie(nsAString& aCookie, ErrorResult& aRv) {
         continue;
       }
 
+      nsCOMPtr<nsIURI> cookieURI = cookiePrincipal->GetURI();
+
       if (thirdParty &&
           !CookieCommons::ShouldIncludeCrossSiteCookie(
-              cookie, CookieJarSettings()->GetPartitionForeign(),
+              cookie, cookieURI, CookieJarSettings()->GetPartitionForeign(),
               IsInPrivateBrowsing(), UsingStorageAccess(), on3pcbException)) {
         continue;
       }
@@ -6924,7 +6927,7 @@ void Document::SetCookie(const nsAString& aCookieString, ErrorResult& aRv) {
 
   if (thirdParty &&
       !CookieCommons::ShouldIncludeCrossSiteCookie(
-          cookie, CookieJarSettings()->GetPartitionForeign(),
+          cookie, documentURI, CookieJarSettings()->GetPartitionForeign(),
           IsInPrivateBrowsing(), UsingStorageAccess(), on3pcbException)) {
     return;
   }
@@ -20200,13 +20203,13 @@ static already_AddRefed<Document> CreateHTMLDocument(GlobalObject& aGlobal,
 /* static */
 already_AddRefed<Document> Document::ParseHTMLUnsafe(
     GlobalObject& aGlobal, const TrustedHTMLOrString& aHTML,
-    ErrorResult& aError) {
+    nsIPrincipal* aSubjectPrincipal, ErrorResult& aError) {
   nsCOMPtr<nsIGlobalObject> global = do_QueryInterface(aGlobal.GetAsSupports());
   constexpr nsLiteralString sink = u"Document parseHTMLUnsafe"_ns;
   Maybe<nsAutoString> compliantStringHolder;
   const nsAString* compliantString =
       TrustedTypeUtils::GetTrustedTypesCompliantString(
-          aHTML, sink, kTrustedTypesOnlySinkGroup, *global,
+          aHTML, sink, kTrustedTypesOnlySinkGroup, *global, aSubjectPrincipal,
           compliantStringHolder, aError);
   if (aError.Failed()) {
     return nullptr;

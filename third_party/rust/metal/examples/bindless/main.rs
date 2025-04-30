@@ -70,7 +70,7 @@ fn main() {
         let textures = (0..BINDLESS_TEXTURE_COUNT)
             .map(|i| {
                 heap.new_texture(&texture_descriptor)
-                    .expect(&format!("Failed to allocate texture {}", i))
+                    .unwrap_or_else(|| panic!("Failed to allocate texture {}", i))
             })
             .collect::<Vec<_>>();
 

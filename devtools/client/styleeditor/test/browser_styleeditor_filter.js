@@ -8,6 +8,7 @@ requestLongerTimeout(2);
 // Check that the stylesheets list can be filtered
 
 const INITIAL_INLINE_STYLE_SHEETS_COUNT = 100;
+const INITIAL_CONSTRUCTED_STYLE_SHEETS_COUNT = 10;
 
 const TEST_URI =
   "data:text/html;charset=UTF-8," +
@@ -22,6 +23,13 @@ const TEST_URI =
             .map((_, i) => `<style>/* inline ${i} */</style>`)
             .join("\n")}
           <link rel="stylesheet" type="text/css" href="${TEST_BASE_HTTPS}pretty.css">
+          <script>
+            for (let i = 0; i < ${INITIAL_CONSTRUCTED_STYLE_SHEETS_COUNT}; i++) {
+              let s = new CSSStyleSheet();
+              s.replace("/* constructed " + i + " */");
+              document.adoptedStyleSheets.push(s);
+            }
+          </script>
         </head>
         <body>
         </body>
@@ -34,7 +42,9 @@ add_task(async function () {
   const { panelWindow } = panel;
   is(
     ui.editors.length,
-    INITIAL_INLINE_STYLE_SHEETS_COUNT + 2,
+    INITIAL_INLINE_STYLE_SHEETS_COUNT +
+      INITIAL_CONSTRUCTED_STYLE_SHEETS_COUNT +
+      2,
     "correct number of editors"
   );
 
@@ -75,15 +85,17 @@ add_task(async function () {
 
   await onEditorSelected;
   is(
-    ui.selectedEditor,
-    ui.editors.at(-1),
+    ui.selectedEditor.styleSheet.href,
+    "https://example.com/browser/devtools/client/styleeditor/test/pretty.css",
     "When the selected stylesheet is filtered out, the first visible one gets selected"
   );
+
   is(
     filterInput.ownerGlobal.document.activeElement,
     filterInput,
     "Even when a stylesheet was automatically opened, the filter input is still focused"
   );
+  await waitFor(() => ui.selectedEditor.sourceEditor);
   ok(!ui.selectedEditor.sourceEditor.hasFocus(), "Editor doesn't have focus.");
 
   info(
@@ -119,6 +131,8 @@ add_task(async function () {
       "<inline style sheet #18>",
       "<inline style sheet #19>",
       "<inline style sheet #100>",
+      "<constructed style sheet #1>",
+      "<constructed style sheet #10>",
     ],
     `List is showing inline stylesheets whose index start with "1"`
   );
@@ -270,7 +284,9 @@ add_task(async function () {
   onEditorSelected = ui.once("editor-selected");
   await reloadPageAndWaitForStyleSheets(
     ui,
-    INITIAL_INLINE_STYLE_SHEETS_COUNT + 2
+    INITIAL_INLINE_STYLE_SHEETS_COUNT +
+      INITIAL_CONSTRUCTED_STYLE_SHEETS_COUNT +
+      2
   );
   await onEditorSelected;
   Assert.deepEqual(

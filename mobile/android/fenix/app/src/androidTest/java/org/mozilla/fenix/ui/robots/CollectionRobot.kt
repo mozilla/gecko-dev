@@ -5,10 +5,14 @@
 package org.mozilla.fenix.ui.robots
 
 import android.util.Log
+import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsNotDisplayed
 import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.ComposeTestRule
+import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.swipeLeft
@@ -22,19 +26,14 @@ import androidx.test.uiautomator.UiSelector
 import androidx.test.uiautomator.Until
 import org.mozilla.fenix.R
 import org.mozilla.fenix.helpers.Constants.TAG
-import org.mozilla.fenix.helpers.DataGenerationHelper.getStringResource
 import org.mozilla.fenix.helpers.MatcherHelper.assertItemTextEquals
 import org.mozilla.fenix.helpers.MatcherHelper.assertUIObjectExists
-import org.mozilla.fenix.helpers.MatcherHelper.assertUIObjectIsGone
 import org.mozilla.fenix.helpers.MatcherHelper.itemContainingText
-import org.mozilla.fenix.helpers.MatcherHelper.itemWithDescription
 import org.mozilla.fenix.helpers.MatcherHelper.itemWithResId
 import org.mozilla.fenix.helpers.MatcherHelper.itemWithText
 import org.mozilla.fenix.helpers.TestAssetHelper.waitingTime
-import org.mozilla.fenix.helpers.TestAssetHelper.waitingTimeShort
 import org.mozilla.fenix.helpers.TestHelper.mDevice
 import org.mozilla.fenix.helpers.TestHelper.packageName
-import org.mozilla.fenix.helpers.TestHelper.scrollToElementByText
 import org.mozilla.fenix.helpers.click
 import org.mozilla.fenix.helpers.ext.waitNotNull
 
@@ -88,20 +87,32 @@ class CollectionRobot {
         Log.i(TAG, "saveTabsSelectedForCollection: Clicked \"Save\" button")
     }
 
-    fun verifyTabSavedInCollection(title: String, visible: Boolean = true) {
+    fun verifyTabSavedInCollection(composeTestRule: ComposeTestRule, title: String, visible: Boolean = true) {
         if (visible) {
-            scrollToElementByText(title)
-            assertUIObjectExists(collectionListItem(title))
+            Log.i(TAG, "verifyTabSavedInCollection: Trying to verify that tab with title: $title is displayed")
+            composeTestRule.onNodeWithText(title).assertIsDisplayed()
+            Log.i(TAG, "verifyTabSavedInCollection: Verified that tab with title: $title is displayed")
         } else {
-            assertUIObjectIsGone(collectionListItem(title))
+            Log.i(TAG, "verifyTabSavedInCollection: Trying to verify that tab with title: $title is not displayed")
+            composeTestRule.onNodeWithText(title).assertIsNotDisplayed()
+            Log.i(TAG, "verifyTabSavedInCollection: Verified that tab with title: $title is not displayed")
         }
     }
 
     fun verifyCollectionTabUrl(visible: Boolean, url: String) =
         assertUIObjectExists(itemContainingText(url), exists = visible)
 
-    fun verifyShareCollectionButtonIsVisible(visible: Boolean) =
-        assertUIObjectExists(shareCollectionButton(), exists = visible)
+    fun verifyShareCollectionButtonIsVisible(composeTestRule: ComposeTestRule, visible: Boolean) {
+        if (visible) {
+            Log.i(TAG, "verifyShareCollectionButtonIsVisible: Trying to verify that the share button is displayed")
+            composeTestRule.onNodeWithContentDescription("Share").assertIsDisplayed()
+            Log.i(TAG, "verifyShareCollectionButtonIsVisible: Verified that the share button is displayed")
+        } else {
+            Log.i(TAG, "verifyShareCollectionButtonIsVisible: Trying to verify that the share button is not displayed")
+            composeTestRule.onNodeWithContentDescription("Share").assertIsNotDisplayed()
+            Log.i(TAG, "verifyShareCollectionButtonIsVisible: Verified that the share button is not displayed")
+        }
+    }
 
     fun verifyCollectionMenuIsVisible(visible: Boolean, rule: ComposeTestRule) {
         if (visible) {
@@ -149,6 +160,7 @@ class CollectionRobot {
         Log.i(TAG, "selectRenameCollection: Waited for $waitingTime ms for collection name text field to exist")
     }
 
+    @OptIn(ExperimentalTestApi::class)
     fun selectAddTabToCollection(rule: ComposeTestRule) {
         Log.i(TAG, "selectAddTabToCollection: Trying to verify \"Add tab\" menu option is displayed")
         rule.onNode(hasText("Add tab")).assertIsDisplayed()
@@ -156,10 +168,12 @@ class CollectionRobot {
         Log.i(TAG, "selectAddTabToCollection: Trying to click \"Add tab\" menu option")
         rule.onNode(hasText("Add tab")).performClick()
         Log.i(TAG, "selectAddTabToCollection: Clicked \"Add tab\" menu option")
-
-        mDevice.waitNotNull(Until.findObject(By.text("Select Tabs")))
+        Log.i(TAG, "selectAddTabToCollection: Waiting for the \"Add tab\" menu option to not exist")
+        rule.waitUntilDoesNotExist(hasText("Add tab"))
+        Log.i(TAG, "selectAddTabToCollection: Waited for the \"Add tab\" menu option to not exist")
     }
 
+    @OptIn(ExperimentalTestApi::class)
     fun selectDeleteCollection(rule: ComposeTestRule) {
         Log.i(TAG, "selectDeleteCollection: Trying to verify \"Delete collection\" menu option is displayed")
         rule.onNode(hasText("Delete collection")).assertIsDisplayed()
@@ -167,6 +181,9 @@ class CollectionRobot {
         Log.i(TAG, "selectDeleteCollection: Trying to click \"Delete collection\" menu option")
         rule.onNode(hasText("Delete collection")).performClick()
         Log.i(TAG, "selectDeleteCollection: Clicked \"Delete collection\" menu option")
+        Log.i(TAG, "selectDeleteCollection: Waiting for the \"Delete collection\" menu option to not exist")
+        rule.waitUntilDoesNotExist(hasText("Delete collection"))
+        Log.i(TAG, "selectDeleteCollection: Waited for the \"Delete collection\" menu option to not exist")
     }
 
     fun verifyCollectionItemRemoveButtonIsVisible(title: String, visible: Boolean) =
@@ -206,14 +223,13 @@ class CollectionRobot {
 
     class Transition {
         fun collapseCollection(
+            composeTestRule: ComposeTestRule,
             title: String,
             interact: HomeScreenRobot.() -> Unit,
         ): HomeScreenRobot.Transition {
-            assertUIObjectExists(itemContainingText(title))
-            Log.i(TAG, "collapseCollection: Trying to click collection $title and wait for $waitingTimeShort ms for a new window")
-            itemContainingText(title).clickAndWaitForNewWindow(waitingTimeShort)
-            Log.i(TAG, "collapseCollection: Clicked collection $title and waited for $waitingTimeShort ms for a new window")
-            assertUIObjectExists(itemWithDescription(getStringResource(R.string.remove_tab_from_collection)), exists = false)
+            Log.i(TAG, "collapseCollection: Trying to click the collection with title: $title")
+            composeTestRule.onNodeWithText(title).performClick()
+            Log.i(TAG, "collapseCollection: Clicked the collection with title: $title")
 
             HomeScreenRobot().interact()
             return HomeScreenRobot.Transition()
@@ -256,12 +272,13 @@ class CollectionRobot {
             return BrowserRobot.Transition()
         }
 
-        fun clickShareCollectionButton(interact: ShareOverlayRobot.() -> Unit): ShareOverlayRobot.Transition {
+        @OptIn(ExperimentalTestApi::class)
+        fun clickShareCollectionButton(composeTestRule: ComposeTestRule, interact: ShareOverlayRobot.() -> Unit): ShareOverlayRobot.Transition {
             Log.i(TAG, "clickShareCollectionButton: Waiting for $waitingTime ms for share collection button to exist")
-            shareCollectionButton().waitForExists(waitingTime)
+            composeTestRule.waitUntilExactlyOneExists(hasContentDescription("Share"), waitingTime)
             Log.i(TAG, "clickShareCollectionButton: Waited for $waitingTime ms for share collection button to exist")
             Log.i(TAG, "clickShareCollectionButton: Trying to click share collection button")
-            shareCollectionButton().click()
+            composeTestRule.onNodeWithContentDescription("Share").performClick()
             Log.i(TAG, "clickShareCollectionButton: Clicked share collection button")
 
             ShareOverlayRobot().interact()
@@ -281,8 +298,6 @@ private fun collectionThreeDotButton(rule: ComposeTestRule) =
     rule.onNode(hasContentDescription("Collection menu"))
 
 private fun collectionListItem(title: String) = mDevice.findObject(UiSelector().text(title))
-
-private fun shareCollectionButton() = itemWithDescription("Share")
 
 private fun removeTabFromCollectionButton(title: String) =
     mDevice.findObject(

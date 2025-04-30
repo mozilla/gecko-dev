@@ -873,8 +873,8 @@ class Zone : public js::ZoneAllocator, public js::gc::GraphNodeBase<JS::Zone> {
   js::gc::AllocSite* tenuringAllocSite() {
     return &pretenuring.tenuringAllocSite;
   }
-  uint32_t nurseryAllocCount(JS::TraceKind kind) const {
-    return pretenuring.nurseryAllocCount(kind);
+  uint32_t nurseryPromotedCount(JS::TraceKind kind) const {
+    return pretenuring.nurseryPromotedCount(kind);
   }
 
 #ifdef JSGC_HASH_TABLE_CHECKS

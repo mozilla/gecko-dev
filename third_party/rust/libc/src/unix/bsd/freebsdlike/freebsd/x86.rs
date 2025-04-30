@@ -1,12 +1,13 @@
-pub type c_char = i8;
-pub type c_long = i32;
-pub type c_ulong = u32;
+use crate::prelude::*;
+
+pub type clock_t = c_ulong;
 pub type wchar_t = i32;
 pub type time_t = i32;
 pub type suseconds_t = i32;
 pub type register_t = i32;
 
 s_no_extra_traits! {
+    #[repr(align(16))]
     pub struct mcontext_t {
         pub mc_onstack: register_t,
         pub mc_gs: register_t,
@@ -28,38 +29,16 @@ s_no_extra_traits! {
         pub mc_eflags: register_t,
         pub mc_esp: register_t,
         pub mc_ss: register_t,
-        pub mc_len: ::c_int,
-        pub mc_fpformat: ::c_int,
-        pub mc_ownedfp: ::c_int,
+        pub mc_len: c_int,
+        pub mc_fpformat: c_int,
+        pub mc_ownedfp: c_int,
         pub mc_flags: register_t,
-        pub mc_fpstate: [[::c_int; 32]; 4],
+        pub mc_fpstate: [c_int; 128],
         pub mc_fsbase: register_t,
         pub mc_gsbase: register_t,
         pub mc_xfpustate: register_t,
         pub mc_xfpustate_len: register_t,
-        pub mc_spare2: [::c_int; 4],
-    }
-}
-
-s! {
-    pub struct ucontext_t {
-        pub uc_sigmask: ::sigset_t,
-        pub uc_mcontext: ::mcontext_t,
-        pub uc_link: *mut ::ucontext_t,
-        pub uc_stack: ::stack_t,
-        pub uc_flags: ::c_int,
-        __spare__: [::c_int; 4],
-    }
-}
-
-// should be pub(crate), but that requires Rust 1.18.0
-cfg_if! {
-    if #[cfg(libc_const_size_of)] {
-        #[doc(hidden)]
-        pub const _ALIGNBYTES: usize = ::mem::size_of::<::c_long>() - 1;
-    } else {
-        #[doc(hidden)]
-        pub const _ALIGNBYTES: usize = 4 - 1;
+        pub mc_spare2: [c_int; 4],
     }
 }
 
@@ -67,41 +46,49 @@ cfg_if! {
     if #[cfg(feature = "extra_traits")] {
         impl PartialEq for mcontext_t {
             fn eq(&self, other: &mcontext_t) -> bool {
-                self.mc_onstack == other.mc_onstack &&
-                self.mc_gs == other.mc_gs &&
-                self.mc_fs == other.mc_fs &&
-                self.mc_es == other.mc_es &&
-                self.mc_ds == other.mc_ds &&
-                self.mc_edi == other.mc_edi &&
-                self.mc_esi == other.mc_esi &&
-                self.mc_ebp == other.mc_ebp &&
-                self.mc_isp == other.mc_isp &&
-                self.mc_ebx == other.mc_ebx &&
-                self.mc_edx == other.mc_edx &&
-                self.mc_ecx == other.mc_ecx &&
-                self.mc_eax == other.mc_eax &&
-                self.mc_trapno == other.mc_trapno &&
-                self.mc_err == other.mc_err &&
-                self.mc_eip == other.mc_eip &&
-                self.mc_cs == other.mc_cs &&
-                self.mc_eflags == other.mc_eflags &&
-                self.mc_esp == other.mc_esp &&
-                self.mc_ss == other.mc_ss &&
-                self.mc_len == other.mc_len &&
-                self.mc_fpformat == other.mc_fpformat &&
-                self.mc_ownedfp == other.mc_ownedfp &&
-                self.mc_flags == other.mc_flags &&
-                self.mc_fpstate.iter().zip(other.mc_fpstate.iter()).all(|(a, b)| a == b) &&
-                self.mc_fsbase == other.mc_fsbase &&
-                self.mc_gsbase == other.mc_gsbase &&
-                self.mc_xfpustate == other.mc_xfpustate &&
-                self.mc_xfpustate_len == other.mc_xfpustate_len &&
-                self.mc_spare2.iter().zip(other.mc_spare2.iter()).all(|(a, b)| a == b)
+                self.mc_onstack == other.mc_onstack
+                    && self.mc_gs == other.mc_gs
+                    && self.mc_fs == other.mc_fs
+                    && self.mc_es == other.mc_es
+                    && self.mc_ds == other.mc_ds
+                    && self.mc_edi == other.mc_edi
+                    && self.mc_esi == other.mc_esi
+                    && self.mc_ebp == other.mc_ebp
+                    && self.mc_isp == other.mc_isp
+                    && self.mc_ebx == other.mc_ebx
+                    && self.mc_edx == other.mc_edx
+                    && self.mc_ecx == other.mc_ecx
+                    && self.mc_eax == other.mc_eax
+                    && self.mc_trapno == other.mc_trapno
+                    && self.mc_err == other.mc_err
+                    && self.mc_eip == other.mc_eip
+                    && self.mc_cs == other.mc_cs
+                    && self.mc_eflags == other.mc_eflags
+                    && self.mc_esp == other.mc_esp
+                    && self.mc_ss == other.mc_ss
+                    && self.mc_len == other.mc_len
+                    && self.mc_fpformat == other.mc_fpformat
+                    && self.mc_ownedfp == other.mc_ownedfp
+                    && self.mc_flags == other.mc_flags
+                    && self
+                        .mc_fpstate
+                        .iter()
+                        .zip(other.mc_fpstate.iter())
+                        .all(|(a, b)| a == b)
+                    && self.mc_fsbase == other.mc_fsbase
+                    && self.mc_gsbase == other.mc_gsbase
+                    && self.mc_xfpustate == other.mc_xfpustate
+                    && self.mc_xfpustate_len == other.mc_xfpustate_len
+                    && self
+                        .mc_spare2
+                        .iter()
+                        .zip(other.mc_spare2.iter())
+                        .all(|(a, b)| a == b)
             }
         }
         impl Eq for mcontext_t {}
-        impl ::fmt::Debug for mcontext_t {
-            fn fmt(&self, f: &mut ::fmt::Formatter) -> ::fmt::Result {
+        impl fmt::Debug for mcontext_t {
+            fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
                 f.debug_struct("mcontext_t")
                     .field("mc_onstack", &self.mc_onstack)
                     .field("mc_gs", &self.mc_gs)
@@ -136,8 +123,8 @@ cfg_if! {
                     .finish()
             }
         }
-        impl ::hash::Hash for mcontext_t {
-            fn hash<H: ::hash::Hasher>(&self, state: &mut H) {
+        impl hash::Hash for mcontext_t {
+            fn hash<H: hash::Hasher>(&self, state: &mut H) {
                 self.mc_onstack.hash(state);
                 self.mc_gs.hash(state);
                 self.mc_fs.hash(state);
@@ -173,6 +160,11 @@ cfg_if! {
     }
 }
 
-pub const MINSIGSTKSZ: ::size_t = 2048; // 512 * 4
+pub(crate) const _ALIGNBYTES: usize = mem::size_of::<c_long>() - 1;
 
-pub const KINFO_FILE_SIZE: ::c_int = 1392;
+pub const MINSIGSTKSZ: size_t = 2048; // 512 * 4
+
+pub const BIOCSRTIMEOUT: c_ulong = 0x8008426d;
+pub const BIOCGRTIMEOUT: c_ulong = 0x4008426e;
+pub const KINFO_FILE_SIZE: c_int = 1392;
+pub const TIOCTIMESTAMP: c_ulong = 0x40087459;

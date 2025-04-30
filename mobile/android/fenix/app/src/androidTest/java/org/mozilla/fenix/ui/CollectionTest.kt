@@ -63,7 +63,7 @@ class CollectionTest : TestSetup() {
         }.openNewTab {
         }.submitQuery(secondWebPage.url.toString()) {
             mDevice.waitForIdle()
-        }.goToHomescreen {
+        }.goToHomescreen(composeTestRule) {
         }.clickSaveTabsToCollectionButton(composeTestRule) {
             longClickTab(firstWebPage.title)
             selectTab(secondWebPage.title, numberOfSelectedTabs = 2)
@@ -78,7 +78,7 @@ class CollectionTest : TestSetup() {
         }
 
         homeScreen {
-            verifyCollectionIsDisplayed(collectionName)
+            verifyCollectionIsDisplayed(composeTestRule, collectionName)
         }
     }
 
@@ -113,36 +113,36 @@ class CollectionTest : TestSetup() {
             )
 
         homeScreen {
-            verifyCollectionIsDisplayed(collectionName)
-        }.expandCollection(collectionName) {
-            verifyTabSavedInCollection(webPage.title)
-            verifyTabSavedInCollection(webPage2.title)
-            verifyShareCollectionButtonIsVisible(true)
+            verifyCollectionIsDisplayed(composeTestRule, collectionName)
+        }.expandCollection(composeTestRule, collectionName) {
+            verifyTabSavedInCollection(composeTestRule, webPage.title)
+            verifyTabSavedInCollection(composeTestRule, webPage2.title)
+            verifyShareCollectionButtonIsVisible(composeTestRule, true)
             verifyCollectionMenuIsVisible(true, composeTestRule)
             verifyCollectionItemRemoveButtonIsVisible(webPage.title, true)
-        }.collapseCollection(collectionName) {}
+        }.collapseCollection(composeTestRule, collectionName) {}
 
         collectionRobot {
-            verifyTabSavedInCollection(webPage.title, false)
-            verifyShareCollectionButtonIsVisible(false)
+            verifyTabSavedInCollection(composeTestRule, webPage.title, false)
+            verifyShareCollectionButtonIsVisible(composeTestRule, false)
             verifyCollectionMenuIsVisible(false, composeTestRule)
             verifyCollectionTabUrl(false, webPageUrl)
             verifyCollectionItemRemoveButtonIsVisible(webPage.title, false)
         }
 
         homeScreen {
-            verifyCollectionIsDisplayed(collectionName)
-        }.expandCollection(collectionName) {
-            verifyTabSavedInCollection(webPage.title)
+            verifyCollectionIsDisplayed(composeTestRule, collectionName)
+        }.expandCollection(composeTestRule, collectionName) {
+            verifyTabSavedInCollection(composeTestRule, webPage.title)
             verifyCollectionTabUrl(true, webPageUrl)
-            verifyShareCollectionButtonIsVisible(true)
+            verifyShareCollectionButtonIsVisible(composeTestRule, true)
             verifyCollectionMenuIsVisible(true, composeTestRule)
             verifyCollectionItemRemoveButtonIsVisible(webPage.title, true)
-        }.collapseCollection(collectionName) {}
+        }.collapseCollection(composeTestRule, collectionName) {}
 
         collectionRobot {
-            verifyTabSavedInCollection(webPage.title, false)
-            verifyShareCollectionButtonIsVisible(false)
+            verifyTabSavedInCollection(composeTestRule, webPage.title, false)
+            verifyShareCollectionButtonIsVisible(composeTestRule, false)
             verifyCollectionMenuIsVisible(false, composeTestRule)
             verifyCollectionTabUrl(false, webPageUrl)
             verifyCollectionItemRemoveButtonIsVisible(webPage.title, false)
@@ -164,8 +164,8 @@ class CollectionTest : TestSetup() {
             )
 
         homeScreen {
-            verifyCollectionIsDisplayed(collectionName)
-        }.expandCollection(collectionName) {
+            verifyCollectionIsDisplayed(composeTestRule, collectionName)
+        }.expandCollection(composeTestRule, collectionName) {
             clickCollectionThreeDotButton(composeTestRule)
             selectOpenTabs(composeTestRule)
         }
@@ -191,9 +191,9 @@ class CollectionTest : TestSetup() {
             )
 
         homeScreen {
-            verifyCollectionIsDisplayed(collectionName)
-        }.expandCollection(collectionName) {
-        }.clickShareCollectionButton {
+            verifyCollectionIsDisplayed(composeTestRule, collectionName)
+        }.expandCollection(composeTestRule, collectionName) {
+        }.clickShareCollectionButton(composeTestRule) {
             verifyShareTabsOverlay(firstWebsite.title, secondWebsite.title)
             verifySharingWithSelectedApp(sharingApp, urlString, collectionName)
         }
@@ -214,8 +214,8 @@ class CollectionTest : TestSetup() {
             )
 
         homeScreen {
-            verifyCollectionIsDisplayed(collectionName)
-        }.expandCollection(collectionName) {
+            verifyCollectionIsDisplayed(composeTestRule, collectionName)
+        }.expandCollection(composeTestRule, collectionName) {
             clickCollectionThreeDotButton(composeTestRule)
             selectDeleteCollection(composeTestRule)
         }
@@ -223,16 +223,16 @@ class CollectionTest : TestSetup() {
         homeScreen {
             verifySnackBarText("Collection deleted")
             clickSnackbarButton(composeTestRule, "UNDO")
-            verifyCollectionIsDisplayed(collectionName, true)
-            verifyCollectionIsDisplayed(collectionName)
-        }.expandCollection(collectionName) {
+            verifyCollectionIsDisplayed(composeTestRule, collectionName, true)
+            verifyCollectionIsDisplayed(composeTestRule, collectionName)
+        }.expandCollection(composeTestRule, collectionName) {
             clickCollectionThreeDotButton(composeTestRule)
             selectDeleteCollection(composeTestRule)
         }
 
         homeScreen {
             verifySnackBarText("Collection deleted")
-            verifyNoCollectionsText()
+            verifyNoCollectionsText(composeTestRule)
         }
     }
 
@@ -256,11 +256,11 @@ class CollectionTest : TestSetup() {
         }.openSaveToCollection {
         }.selectExistingCollection(collectionName) {
             verifySnackBarText("Tab saved!")
-        }.goToHomescreen {
-            verifyCollectionIsDisplayed(collectionName)
-        }.expandCollection(collectionName) {
-            verifyTabSavedInCollection(firstWebPage.title)
-            verifyTabSavedInCollection(secondWebPage.title)
+        }.goToHomescreen(composeTestRule) {
+            verifyCollectionIsDisplayed(composeTestRule, collectionName)
+        }.expandCollection(composeTestRule, collectionName) {
+            verifyTabSavedInCollection(composeTestRule, firstWebPage.title)
+            verifyTabSavedInCollection(composeTestRule, secondWebPage.title)
         }
     }
 
@@ -278,15 +278,15 @@ class CollectionTest : TestSetup() {
 
         navigationToolbar {
         }.enterURLAndEnterToBrowser(secondWebPage.url) {
-        }.goToHomescreen {
-            verifyCollectionIsDisplayed(collectionName)
-        }.expandCollection(collectionName) {
+        }.goToHomescreen(composeTestRule) {
+            verifyCollectionIsDisplayed(composeTestRule, collectionName)
+        }.expandCollection(composeTestRule, collectionName) {
             clickCollectionThreeDotButton(composeTestRule)
             selectAddTabToCollection(composeTestRule)
             verifyTabsSelectedCounterText(1)
             saveTabsSelectedForCollection()
             verifySnackBarText("Tab saved!")
-            verifyTabSavedInCollection(secondWebPage.title)
+            verifyTabSavedInCollection(composeTestRule, secondWebPage.title)
         }
     }
 
@@ -302,14 +302,14 @@ class CollectionTest : TestSetup() {
             )
 
         homeScreen {
-            verifyCollectionIsDisplayed(collectionName)
-        }.expandCollection(collectionName) {
+            verifyCollectionIsDisplayed(composeTestRule, collectionName)
+        }.expandCollection(composeTestRule, collectionName) {
             clickCollectionThreeDotButton(composeTestRule)
             selectRenameCollection(composeTestRule)
         }.typeCollectionNameAndSave(secondCollectionName) {}
 
         homeScreen {
-            verifyCollectionIsDisplayed(secondCollectionName)
+            verifyCollectionIsDisplayed(composeTestRule, secondCollectionName)
         }
     }
 
@@ -331,8 +331,8 @@ class CollectionTest : TestSetup() {
             )
             verifySnackBarText("Collection saved!")
         }.closeTabDrawer {
-        }.goToHomescreen {
-            verifyCollectionIsDisplayed(collectionName)
+        }.goToHomescreen(composeTestRule) {
+            verifyCollectionIsDisplayed(composeTestRule, collectionName)
         }
     }
 
@@ -348,22 +348,22 @@ class CollectionTest : TestSetup() {
             )
 
         homeScreen {
-            verifyCollectionIsDisplayed(collectionName)
-        }.expandCollection(collectionName) {
-            verifyTabSavedInCollection(webPage.title, true)
+            verifyCollectionIsDisplayed(composeTestRule, collectionName)
+        }.expandCollection(composeTestRule, collectionName) {
+            verifyTabSavedInCollection(composeTestRule, webPage.title, true)
             removeTabFromCollection(webPage.title)
         }
         homeScreen {
             verifySnackBarText("Collection deleted")
             clickSnackbarButton(composeTestRule, "UNDO")
-            verifyCollectionIsDisplayed(collectionName)
-        }.expandCollection(collectionName) {
-            verifyTabSavedInCollection(webPage.title, true)
+            verifyCollectionIsDisplayed(composeTestRule, collectionName)
+        }.expandCollection(composeTestRule, collectionName) {
+            verifyTabSavedInCollection(composeTestRule, webPage.title, true)
             removeTabFromCollection(webPage.title)
-            verifyTabSavedInCollection(webPage.title, false)
+            verifyTabSavedInCollection(composeTestRule, webPage.title, false)
         }
         homeScreen {
-            verifyCollectionIsDisplayed(collectionName, false)
+            verifyCollectionIsDisplayed(composeTestRule, collectionName, false)
         }
     }
 
@@ -379,19 +379,19 @@ class CollectionTest : TestSetup() {
             )
 
         homeScreen {
-            verifyCollectionIsDisplayed(collectionName)
-        }.expandCollection(collectionName) {
+            verifyCollectionIsDisplayed(composeTestRule, collectionName)
+        }.expandCollection(composeTestRule, collectionName) {
             swipeTabLeft(testPage.title, composeTestRule)
-            verifyTabSavedInCollection(testPage.title, false)
+            verifyTabSavedInCollection(composeTestRule, testPage.title, false)
         }
         homeScreen {
             verifySnackBarText("Collection deleted")
             clickSnackbarButton(composeTestRule, "UNDO")
-            verifyCollectionIsDisplayed(collectionName)
-        }.expandCollection(collectionName) {
-            verifyTabSavedInCollection(testPage.title, true)
+            verifyCollectionIsDisplayed(composeTestRule, collectionName)
+        }.expandCollection(composeTestRule, collectionName) {
+            verifyTabSavedInCollection(composeTestRule, testPage.title, true)
             swipeTabLeft(testPage.title, composeTestRule)
-            verifyTabSavedInCollection(testPage.title, false)
+            verifyTabSavedInCollection(composeTestRule, testPage.title, false)
         }
     }
 
@@ -407,19 +407,19 @@ class CollectionTest : TestSetup() {
             )
 
         homeScreen {
-            verifyCollectionIsDisplayed(collectionName)
-        }.expandCollection(collectionName) {
+            verifyCollectionIsDisplayed(composeTestRule, collectionName)
+        }.expandCollection(composeTestRule, collectionName) {
             swipeTabRight(testPage.title, composeTestRule)
-            verifyTabSavedInCollection(testPage.title, false)
+            verifyTabSavedInCollection(composeTestRule, testPage.title, false)
         }
         homeScreen {
             verifySnackBarText("Collection deleted")
             clickSnackbarButton(composeTestRule, "UNDO")
-            verifyCollectionIsDisplayed(collectionName)
-        }.expandCollection(collectionName) {
-            verifyTabSavedInCollection(testPage.title, true)
+            verifyCollectionIsDisplayed(composeTestRule, collectionName)
+        }.expandCollection(composeTestRule, collectionName) {
+            verifyTabSavedInCollection(composeTestRule, testPage.title, true)
             swipeTabRight(testPage.title, composeTestRule)
-            verifyTabSavedInCollection(testPage.title, false)
+            verifyTabSavedInCollection(composeTestRule, testPage.title, false)
         }
     }
 
@@ -449,10 +449,10 @@ class CollectionTest : TestSetup() {
 
         composeTabDrawer(composeTestRule) {
         }.closeTabDrawer {
-        }.goToHomescreen {
-        }.expandCollection(collectionName) {
-            verifyTabSavedInCollection(firstWebPage.title)
-            verifyTabSavedInCollection(secondWebPage.title)
+        }.goToHomescreen(composeTestRule) {
+        }.expandCollection(composeTestRule, collectionName) {
+            verifyTabSavedInCollection(composeTestRule, firstWebPage.title)
+            verifyTabSavedInCollection(composeTestRule, secondWebPage.title)
         }
     }
 

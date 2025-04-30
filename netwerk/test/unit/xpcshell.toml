@@ -1160,6 +1160,8 @@ skip-if = ["os == 'win' && os_version == '11.26100' && processor == 'x86_64' && 
 
 ["test_schema_14_migration.js"]
 
+["test_schema_15_migration.js"]
+
 ["test_schema_2_migration.js"]
 
 ["test_schema_3_migration.js"]

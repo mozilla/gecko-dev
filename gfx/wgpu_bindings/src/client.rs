@@ -23,7 +23,7 @@ use nsstring::{nsACString, nsString};
 use std::fmt::Write;
 use std::{borrow::Cow, ptr};
 
-use self::render_pass::RenderPassDepthStencilAttachment;
+use self::render_pass::{FfiRenderPassColorAttachment, RenderPassDepthStencilAttachment};
 
 pub mod render_pass;
 
@@ -864,7 +864,7 @@ pub unsafe extern "C" fn wgpu_compute_pass_destroy(pass: *mut crate::command::Re
 #[repr(C)]
 pub struct RenderPassDescriptor<'a> {
     pub label: Option<&'a nsACString>,
-    pub color_attachments: *const wgc::command::RenderPassColorAttachment<id::TextureViewId>,
+    pub color_attachments: *const FfiRenderPassColorAttachment,
     pub color_attachments_length: usize,
     pub depth_stencil_attachment: Option<&'a RenderPassDepthStencilAttachment>,
     pub timestamp_writes: Option<&'a PassTimestampWrites<'a>>,
@@ -905,7 +905,7 @@ pub unsafe extern "C" fn wgpu_command_encoder_begin_render_pass(
 
     let color_attachments: Vec<_> = make_slice(color_attachments, color_attachments_length)
         .iter()
-        .map(|format| Some(format.clone()))
+        .map(|format| Some(format.clone().to_wgpu()))
         .collect();
     let depth_stencil_attachment = depth_stencil_attachment.cloned().map(|dsa| dsa.to_wgpu());
     let pass = crate::command::RecordedRenderPass::new(&wgc::command::RenderPassDescriptor {

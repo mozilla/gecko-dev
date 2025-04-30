@@ -28,7 +28,7 @@ interface HTMLScriptElement : HTMLElement {
   attribute DOMString? crossOrigin;
   [CEReactions, SetterThrows]
   attribute DOMString referrerPolicy;
-  [CEReactions, Throws]
+  [CEReactions, SetterNeedsSubjectPrincipal=NonSystem, Throws]
   attribute (TrustedScript or DOMString) text;
   [Pref="dom.element.blocking.enabled", SameObject, PutForwards=value]
   readonly attribute DOMTokenList blocking;
@@ -54,7 +54,7 @@ partial interface HTMLScriptElement {
 
 // https://w3c.github.io/trusted-types/dist/spec/#enforcement-in-scripts
 partial interface HTMLScriptElement {
-  [CEReactions, Throws] attribute (TrustedScript or [LegacyNullToEmptyString] DOMString) innerText;
+  [CEReactions, SetterNeedsSubjectPrincipal=NonSystem, Throws] attribute (TrustedScript or [LegacyNullToEmptyString] DOMString) innerText;
   [CEReactions, SetterThrows, GetterCanOOM,
    SetterNeedsSubjectPrincipal=NonSystem, BinaryName="trustedScriptOrStringTextContent"] attribute (TrustedScript or DOMString)? textContent;
 };

@@ -2,6 +2,105 @@
 
 ## [Unreleased]
 
+## [0.4.26] - 2025-02-18
+
+## What's Changed
+* Derive `Clone` for `kv::Value` by @SpriteOvO in https://github.com/rust-lang/log/pull/668
+* Add `spdlog-rs` link to crate doc by @SpriteOvO in https://github.com/rust-lang/log/pull/669
+
+
+**Full Changelog**: https://github.com/rust-lang/log/compare/0.4.25...0.4.26
+
+## [0.4.25] - 2025-01-14
+
+## What's Changed
+* Revert loosening of kv cargo features by @KodrAus in https://github.com/rust-lang/log/pull/662
+
+
+**Full Changelog**: https://github.com/rust-lang/log/compare/0.4.24...0.4.25
+
+## [0.4.24] - 2025-01-11
+
+## What's Changed
+* Fix up kv feature activation by @KodrAus in https://github.com/rust-lang/log/pull/659
+
+
+**Full Changelog**: https://github.com/rust-lang/log/compare/0.4.23...0.4.24
+
+## [0.4.23] - 2025-01-10 (yanked)
+
+## What's Changed
+* Fix some typos by @Kleinmarb in https://github.com/rust-lang/log/pull/637
+* Add logforth to implementation by @tisonkun in https://github.com/rust-lang/log/pull/638
+* Add `spdlog-rs` link to README by @SpriteOvO in https://github.com/rust-lang/log/pull/639
+* Add correct lifetime to kv::Value::to_borrowed_str by @stevenroose in https://github.com/rust-lang/log/pull/643
+* docs: Add logforth as an impl by @tisonkun in https://github.com/rust-lang/log/pull/642
+* Add clang_log implementation by @DDAN-17 in https://github.com/rust-lang/log/pull/646
+* Bind lifetimes of &str returned from Key by the lifetime of 'k rather than the lifetime of the Key struct by @gbbosak in https://github.com/rust-lang/log/pull/648
+* Fix up key lifetimes and add method to try get a borrowed key by @KodrAus in https://github.com/rust-lang/log/pull/653
+* Add Ftail implementation by @tjardoo in https://github.com/rust-lang/log/pull/652
+
+## New Contributors
+* @Kleinmarb made their first contribution in https://github.com/rust-lang/log/pull/637
+* @tisonkun made their first contribution in https://github.com/rust-lang/log/pull/638
+* @SpriteOvO made their first contribution in https://github.com/rust-lang/log/pull/639
+* @stevenroose made their first contribution in https://github.com/rust-lang/log/pull/643
+* @DDAN-17 made their first contribution in https://github.com/rust-lang/log/pull/646
+* @gbbosak made their first contribution in https://github.com/rust-lang/log/pull/648
+* @tjardoo made their first contribution in https://github.com/rust-lang/log/pull/652
+
+**Full Changelog**: https://github.com/rust-lang/log/compare/0.4.22...0.4.23
+
+## [0.4.22] - 2024-06-27
+
+## What's Changed
+* Add some clarifications to the library docs by @KodrAus in https://github.com/rust-lang/log/pull/620
+* Add links to `colog` crate by @chrivers in https://github.com/rust-lang/log/pull/621
+* adding line_number test + updating some testing infrastructure by @DIvkov575 in https://github.com/rust-lang/log/pull/619
+* Clarify the actual set of functions that can race in _racy variants by @KodrAus in https://github.com/rust-lang/log/pull/623
+* Replace deprecated std::sync::atomic::spin_loop_hint() by @Catamantaloedis in https://github.com/rust-lang/log/pull/625
+* Check usage of max_level features by @Thomasdezeeuw in https://github.com/rust-lang/log/pull/627
+* Remove unneeded import by @Thomasdezeeuw in https://github.com/rust-lang/log/pull/628
+* Loosen orderings for logger initialization in https://github.com/rust-lang/log/pull/632. Originally by @pwoolcoc in https://github.com/rust-lang/log/pull/599
+* Use Location::caller() for file and line info in https://github.com/rust-lang/log/pull/633. Originally by @Cassy343 in https://github.com/rust-lang/log/pull/520
+
+## New Contributors
+* @chrivers made their first contribution in https://github.com/rust-lang/log/pull/621
+* @DIvkov575 made their first contribution in https://github.com/rust-lang/log/pull/619
+* @Catamantaloedis made their first contribution in https://github.com/rust-lang/log/pull/625
+
+**Full Changelog**: https://github.com/rust-lang/log/compare/0.4.21...0.4.22
+
+## [0.4.21] - 2024-02-27
+
+## What's Changed
+* Minor clippy nits by @nyurik in https://github.com/rust-lang/log/pull/578
+* Simplify Display impl by @nyurik in https://github.com/rust-lang/log/pull/579
+* Set all crates to 2021 edition by @nyurik in https://github.com/rust-lang/log/pull/580
+* Various changes based on review by @Thomasdezeeuw in https://github.com/rust-lang/log/pull/583
+* Fix typo in file_static() method doc by @dimo414 in https://github.com/rust-lang/log/pull/590
+* Specialize empty key value pairs by @EFanZh in https://github.com/rust-lang/log/pull/576
+* Fix incorrect lifetime in Value::to_str() by @peterjoel in https://github.com/rust-lang/log/pull/587
+* Remove some API of the key-value feature by @Thomasdezeeuw in https://github.com/rust-lang/log/pull/585
+* Add logcontrol-log and log-reload by @swsnr in https://github.com/rust-lang/log/pull/595
+* Add Serialization section to kv::Value docs by @Thomasdezeeuw in https://github.com/rust-lang/log/pull/593
+* Rename Value::to_str to to_cow_str by @Thomasdezeeuw in https://github.com/rust-lang/log/pull/592
+* Clarify documentation and simplify initialization of `STATIC_MAX_LEVEL` by @ptosi in https://github.com/rust-lang/log/pull/594
+* Update docs to 2021 edition, test by @nyurik in https://github.com/rust-lang/log/pull/577
+* Add "alterable_logger" link to README.md by @brummer-simon in https://github.com/rust-lang/log/pull/589
+* Normalize line ending by @EFanZh in https://github.com/rust-lang/log/pull/602
+* Remove `ok_or` in favor of `Option::ok_or` by @AngelicosPhosphoros in https://github.com/rust-lang/log/pull/607
+* Use `Acquire` ordering for initialization check by @AngelicosPhosphoros in https://github.com/rust-lang/log/pull/610
+* Get structured logging API ready for stabilization by @KodrAus in https://github.com/rust-lang/log/pull/613
+
+## New Contributors
+* @nyurik made their first contribution in https://github.com/rust-lang/log/pull/578
+* @dimo414 made their first contribution in https://github.com/rust-lang/log/pull/590
+* @peterjoel made their first contribution in https://github.com/rust-lang/log/pull/587
+* @ptosi made their first contribution in https://github.com/rust-lang/log/pull/594
+* @brummer-simon made their first contribution in https://github.com/rust-lang/log/pull/589
+* @AngelicosPhosphoros made their first contribution in https://github.com/rust-lang/log/pull/607
+
 ## [0.4.20] - 2023-07-11
 
 * Remove rustversion dev-dependency by @Thomasdezeeuw in https://github.com/rust-lang/log/pull/568
@@ -14,7 +113,7 @@
 
 ## [0.4.18] - 2023-05-28
 
-* fix markdown links (again) by @hellow554 in https://github.com/rust-lang/log/pull/513
+* fix Markdown links (again) by @hellow554 in https://github.com/rust-lang/log/pull/513
 * add cargo doc to workflow by @hellow554 in https://github.com/rust-lang/log/pull/515
 * Apply Clippy lints by @hellow554 in https://github.com/rust-lang/log/pull/516
 * Replace ad-hoc eq_ignore_ascii_case with slice::eq_ignore_ascii_case by @glandium in https://github.com/rust-lang/log/pull/519
@@ -49,7 +148,7 @@
 * Improvements to test coverage.
 * Improvements to documentation.
 * Add key-value support to the `log!` macros.
-* Tighten `kv_unstable` internal dependencies so they don't bump past their current alpha.
+* Tighten `kv_unstable` internal dependencies, so they don't bump past their current alpha.
 * Add a simple visit API to `kv_unstable`.
 * Support `NonZero*` integers as values in structured logging
 * Support static strings as keys in structured logging
@@ -99,7 +198,7 @@ as either a map of `{key: value, ..}` or as a list of `[(key, value), ..]`.
 
 ### Fixed
 
-* Fixed the `log!` macros so they work in expression context (this regressed in `0.4.9`, which has been yanked).
+* Fixed the `log!` macros, so they work in expression context (this regressed in `0.4.9`, which has been yanked).
 
 ## [0.4.9] - 2019-12-12 (yanked)
 
@@ -210,7 +309,7 @@ version using log 0.4.x to avoid losing module and file information.
 * The `logger` free function returns a reference to the logger implementation. This, along with the
     ability to construct `Record`s, makes it possible to bridge from another logging framework to
     this one without digging into the private internals of the crate. The standard `error!` `warn!`,
-    etc, macros now exclusively use the public API of the crate rather than "secret" internal APIs.
+    etc., macros now exclusively use the public API of the crate rather than "secret" internal APIs.
 * `Log::flush` has been added to allow crates to tell the logging implementation to ensure that all
     "in flight" log events have been persisted. This can be used, for example, just before an
     application exits to ensure that asynchronous log sinks finish their work.
@@ -248,7 +347,13 @@ version using log 0.4.x to avoid losing module and file information.
 
 Look at the [release tags] for information about older releases.
 
-[Unreleased]: https://github.com/rust-lang-nursery/log/compare/0.4.18...HEAD
+[Unreleased]: https://github.com/rust-lang-nursery/log/compare/0.4.26...HEAD
+[0.4.26]: https://github.com/rust-lang/log/compare/0.4.25...0.4.26
+[0.4.25]: https://github.com/rust-lang/log/compare/0.4.24...0.4.25
+[0.4.24]: https://github.com/rust-lang/log/compare/0.4.23...0.4.24
+[0.4.23]: https://github.com/rust-lang/log/compare/0.4.22...0.4.23
+[0.4.22]: https://github.com/rust-lang/log/compare/0.4.21...0.4.22
+[0.4.21]: https://github.com/rust-lang/log/compare/0.4.20...0.4.21
 [0.4.20]: https://github.com/rust-lang-nursery/log/compare/0.4.19...0.4.20
 [0.4.19]: https://github.com/rust-lang-nursery/log/compare/0.4.18...0.4.19
 [0.4.18]: https://github.com/rust-lang-nursery/log/compare/0.4.17...0.4.18

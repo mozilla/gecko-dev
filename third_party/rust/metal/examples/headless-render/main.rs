@@ -1,8 +1,6 @@
-use std::mem;
-use std::path::PathBuf;
-
 use std::fs::File;
 use std::io::BufWriter;
+use std::path::PathBuf;
 
 use metal::{
     Buffer, Device, DeviceRef, LibraryRef, MTLClearColor, MTLLoadAction, MTLOrigin, MTLPixelFormat,
@@ -16,8 +14,8 @@ const VIEW_WIDTH: u64 = 512;
 const VIEW_HEIGHT: u64 = 512;
 const TOTAL_BYTES: usize = (VIEW_WIDTH * VIEW_HEIGHT * 4) as usize;
 
-const VERTEX_SHADER: &'static str = "triangle_vertex";
-const FRAGMENT_SHADER: &'static str = "triangle_fragment";
+const VERTEX_SHADER: &str = "triangle_vertex";
+const FRAGMENT_SHADER: &str = "triangle_fragment";
 
 // [2 bytes position, 3 bytes color] * 3
 #[rustfmt::skip]
@@ -54,10 +52,10 @@ fn main() {
     let vertex_buffer = create_vertex_buffer(&device);
 
     let render_pass_descriptor = RenderPassDescriptor::new();
-    initialize_color_attachment(&render_pass_descriptor, &texture);
+    initialize_color_attachment(render_pass_descriptor, &texture);
 
     let command_buffer = command_queue.new_command_buffer();
-    let rc_encoder = command_buffer.new_render_command_encoder(&render_pass_descriptor);
+    let rc_encoder = command_buffer.new_render_command_encoder(render_pass_descriptor);
     rc_encoder.set_render_pipeline_state(&pipeline_state);
     rc_encoder.set_vertex_buffer(0, Some(&vertex_buffer), 0);
     rc_encoder.draw_primitives(MTLPrimitiveType::Triangle, 0, 3);
@@ -84,7 +82,7 @@ fn save_image(texture: &TextureRef) {
     let mut image = vec![0; TOTAL_BYTES];
 
     texture.get_bytes(
-        image.as_mut_ptr() as *mut std::ffi::c_void,
+        image.as_mut_ptr().cast(),
         VIEW_WIDTH * 4,
         MTLRegion {
             origin: MTLOrigin { x: 0, y: 0, z: 0 },
@@ -100,7 +98,7 @@ fn save_image(texture: &TextureRef) {
     let out_file =
         PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("examples/headless-render/out.png");
     let file = File::create(&out_file).unwrap();
-    let ref mut w = BufWriter::new(file);
+    let w = &mut BufWriter::new(file);
 
     let mut encoder = png::Encoder::new(w, VIEW_WIDTH as u32, VIEW_HEIGHT as u32);
     encoder.set_color(ColorType::Rgba);
@@ -143,8 +141,8 @@ fn prepare_pipeline_state(device: &DeviceRef, library: &LibraryRef) -> RenderPip
 
 fn create_vertex_buffer(device: &DeviceRef) -> Buffer {
     device.new_buffer_with_data(
-        VERTEX_ATTRIBS.as_ptr() as *const _,
-        (VERTEX_ATTRIBS.len() * mem::size_of::<f32>()) as u64,
+        VERTEX_ATTRIBS.as_ptr().cast(),
+        size_of_val(&VERTEX_ATTRIBS) as u64,
         MTLResourceOptions::CPUCacheModeDefaultCache | MTLResourceOptions::StorageModeManaged,
     )
 }

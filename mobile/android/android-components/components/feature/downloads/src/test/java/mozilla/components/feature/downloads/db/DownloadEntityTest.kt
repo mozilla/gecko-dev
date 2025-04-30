@@ -26,6 +26,7 @@ class DownloadEntityTest {
             status = DownloadState.Status.DOWNLOADING,
             destinationDirectory = Environment.DIRECTORY_MUSIC,
             createdAt = 33,
+            etag = "etag",
         )
 
         val downloadState = downloadEntity.toDownloadState()
@@ -38,6 +39,7 @@ class DownloadEntityTest {
         assertEquals(downloadEntity.status, downloadState.status)
         assertEquals(downloadEntity.destinationDirectory, downloadState.destinationDirectory)
         assertEquals(downloadEntity.createdAt, downloadState.createdTime)
+        assertEquals(downloadEntity.etag, downloadState.etag)
     }
 
     @Test
@@ -52,6 +54,7 @@ class DownloadEntityTest {
             destinationDirectory = Environment.DIRECTORY_MUSIC,
             private = true,
             createdTime = 33,
+            etag = "etag",
         )
 
         val downloadEntity = downloadState.toDownloadEntity()
@@ -64,6 +67,7 @@ class DownloadEntityTest {
         assertEquals(downloadState.status, downloadEntity.status)
         assertEquals(downloadState.destinationDirectory, downloadEntity.destinationDirectory)
         assertEquals(downloadState.createdTime, downloadEntity.createdAt)
+        assertEquals(downloadState.etag, downloadEntity.etag)
     }
 
     @Test

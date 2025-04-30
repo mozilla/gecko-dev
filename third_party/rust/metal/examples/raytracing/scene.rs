@@ -1,4 +1,4 @@
-use std::{ffi::c_void, mem::size_of, sync::Arc};
+use std::sync::Arc;
 
 use glam::{Mat4, Vec3, Vec4};
 use rand::{thread_rng, Rng};
@@ -11,7 +11,7 @@ pub struct Scene {
     pub device: Device,
     pub camera: Camera,
     pub geometries: Vec<Arc<dyn Geometry>>,
-    pub geometry_instances: Vec<Arc<GeometryInstance>>,
+    pub geometry_instances: Vec<GeometryInstance>,
     pub lights: Vec<AreaLight>,
     pub lights_buffer: Buffer,
 }
@@ -83,24 +83,24 @@ impl Scene {
             for x in -1..2 {
                 let transform =
                     Mat4::from_translation(Vec3::new(x as f32 * 2.5, y as f32 * 2.5, 0.0));
-                geometry_instances.push(Arc::new(GeometryInstance {
+                geometry_instances.push(GeometryInstance {
                     geometry: light_mesh.clone(),
                     transform,
                     mask: GEOMETRY_MASK_LIGHT,
                     index_in_scene: 0,
-                }));
-                geometry_instances.push(Arc::new(GeometryInstance {
+                });
+                geometry_instances.push(GeometryInstance {
                     geometry: geometry_mesh.clone(),
                     transform,
                     mask: GEOMETRY_MASK_TRIANGLE,
                     index_in_scene: 1,
-                }));
-                geometry_instances.push(Arc::new(GeometryInstance {
+                });
+                geometry_instances.push(GeometryInstance {
                     geometry: sphere_geometry.clone(),
                     transform,
                     mask: GEOMETRY_MASK_SPHERE,
                     index_in_scene: 2,
-                }));
+                });
                 lights.push(AreaLight {
                     position: Vec4::new(x as f32 * 2.5, y as f32 * 2.5 + 1.98, 0.0, 0.0),
                     forward: Vec4::new(0.0, -1.0, 0.0, 0.0),
@@ -116,8 +116,8 @@ impl Scene {
             }
         }
         let lights_buffer = device.new_buffer_with_data(
-            lights.as_ptr() as *const c_void,
-            (lights.len() * size_of::<AreaLight>()) as NSUInteger,
+            lights.as_ptr().cast(),
+            size_of_val(lights.as_slice()) as NSUInteger,
             get_managed_buffer_storage_mode(),
         );
         lights_buffer.did_modify_range(NSRange::new(0, lights_buffer.length()));

@@ -6166,23 +6166,23 @@ nsGlobalWindowInner* nsGlobalWindowInner::InnerForSetTimeoutOrInterval(
 int32_t nsGlobalWindowInner::SetTimeout(
     JSContext* aCx, const FunctionOrTrustedScriptOrString& aHandler,
     int32_t aTimeout, const Sequence<JS::Value>& aArguments,
-    ErrorResult& aError) {
+    nsIPrincipal* aSubjectPrincipal, ErrorResult& aError) {
   return SetTimeoutOrInterval(aCx, aHandler, aTimeout, aArguments, false,
-                              aError);
+                              aSubjectPrincipal, aError);
 }
 
 int32_t nsGlobalWindowInner::SetInterval(
     JSContext* aCx, const FunctionOrTrustedScriptOrString& aHandler,
     const int32_t aTimeout, const Sequence<JS::Value>& aArguments,
-    ErrorResult& aError) {
+    nsIPrincipal* aSubjectPrincipal, ErrorResult& aError) {
   return SetTimeoutOrInterval(aCx, aHandler, aTimeout, aArguments, true,
-                              aError);
+                              aSubjectPrincipal, aError);
 }
 
 int32_t nsGlobalWindowInner::SetTimeoutOrInterval(
     JSContext* aCx, const FunctionOrTrustedScriptOrString& aHandler,
     int32_t aTimeout, const Sequence<JS::Value>& aArguments, bool aIsInterval,
-    ErrorResult& aError) {
+    nsIPrincipal* aSubjectPrincipal, ErrorResult& aError) {
   nsGlobalWindowInner* inner = InnerForSetTimeoutOrInterval(aError);
   if (!inner) {
     return -1;
@@ -6191,7 +6191,8 @@ int32_t nsGlobalWindowInner::SetTimeoutOrInterval(
   if (inner != this) {
     RefPtr<nsGlobalWindowInner> innerRef(inner);
     return innerRef->SetTimeoutOrInterval(aCx, aHandler, aTimeout, aArguments,
-                                          aIsInterval, aError);
+                                          aIsInterval, aSubjectPrincipal,
+                                          aError);
   }
 
   DebuggerNotificationDispatch(
@@ -6229,8 +6230,8 @@ int32_t nsGlobalWindowInner::SetTimeoutOrInterval(
   const nsAString* compliantString =
       TrustedTypeUtils::GetTrustedTypesCompliantString(
           aHandler, aIsInterval ? sinkSetInterval : sinkSetTimeout,
-          kTrustedTypesOnlySinkGroup, *pinnedGlobal, compliantStringHolder,
-          aError);
+          kTrustedTypesOnlySinkGroup, *pinnedGlobal, aSubjectPrincipal,
+          compliantStringHolder, aError);
   if (aError.Failed()) {
     return 0;
   }

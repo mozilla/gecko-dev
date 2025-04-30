@@ -668,7 +668,7 @@ void WorkerGlobalScope::ImportScripts(
       const nsAString* compliantString =
           TrustedTypeUtils::GetTrustedTypesCompliantString(
               scriptURL, sink, kTrustedTypesOnlySinkGroup, *pinnedGlobal,
-              compliantStringHolder, aRv);
+              nullptr, compliantStringHolder, aRv);
       if (aRv.Failed()) {
         return;
       }
@@ -694,8 +694,9 @@ void WorkerGlobalScope::ImportScripts(
 int32_t WorkerGlobalScope::SetTimeout(
     JSContext* aCx, const FunctionOrTrustedScriptOrString& aHandler,
     const int32_t aTimeout, const Sequence<JS::Value>& aArguments,
-    ErrorResult& aRv) {
-  return SetTimeoutOrInterval(aCx, aHandler, aTimeout, aArguments, false, aRv);
+    nsIPrincipal* aSubjectPrincipal, ErrorResult& aRv) {
+  return SetTimeoutOrInterval(aCx, aHandler, aTimeout, aArguments, false,
+                              aSubjectPrincipal, aRv);
 }
 
 void WorkerGlobalScope::ClearTimeout(int32_t aHandle) {
@@ -709,8 +710,9 @@ void WorkerGlobalScope::ClearTimeout(int32_t aHandle) {
 int32_t WorkerGlobalScope::SetInterval(
     JSContext* aCx, const FunctionOrTrustedScriptOrString& aHandler,
     const int32_t aTimeout, const Sequence<JS::Value>& aArguments,
-    ErrorResult& aRv) {
-  return SetTimeoutOrInterval(aCx, aHandler, aTimeout, aArguments, true, aRv);
+    nsIPrincipal* aSubjectPrincipal, ErrorResult& aRv) {
+  return SetTimeoutOrInterval(aCx, aHandler, aTimeout, aArguments, true,
+                              aSubjectPrincipal, aRv);
 }
 
 void WorkerGlobalScope::ClearInterval(int32_t aHandle) {
@@ -724,7 +726,7 @@ void WorkerGlobalScope::ClearInterval(int32_t aHandle) {
 int32_t WorkerGlobalScope::SetTimeoutOrInterval(
     JSContext* aCx, const FunctionOrTrustedScriptOrString& aHandler,
     const int32_t aTimeout, const Sequence<JS::Value>& aArguments,
-    bool aIsInterval, ErrorResult& aRv) {
+    bool aIsInterval, nsIPrincipal* aSubjectPrincipal, ErrorResult& aRv) {
   AssertIsOnWorkerThread();
 
   DebuggerNotificationDispatch(
@@ -751,8 +753,8 @@ int32_t WorkerGlobalScope::SetTimeoutOrInterval(
   const nsAString* compliantString =
       TrustedTypeUtils::GetTrustedTypesCompliantString(
           aHandler, aIsInterval ? sinkSetInterval : sinkSetTimeout,
-          kTrustedTypesOnlySinkGroup, *pinnedGlobal, compliantStringHolder,
-          aRv);
+          kTrustedTypesOnlySinkGroup, *pinnedGlobal, aSubjectPrincipal,
+          compliantStringHolder, aRv);
   if (aRv.Failed()) {
     return 0;
   }

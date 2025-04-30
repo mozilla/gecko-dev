@@ -19,6 +19,7 @@
 
 class nsAtom;
 class nsINode;
+class nsIPrincipal;
 
 namespace mozilla {
 class ErrorResult;
@@ -147,8 +148,8 @@ class nsDOMAttributeMap final : public nsISupports, public nsWrapperCache {
 
   Attr* GetNamedItemNS(const nsAString& aNamespaceURI,
                        const nsAString& aLocalName);
-  MOZ_CAN_RUN_SCRIPT already_AddRefed<Attr> SetNamedItemNS(Attr& aNode,
-                                                           ErrorResult& aError);
+  MOZ_CAN_RUN_SCRIPT already_AddRefed<Attr> SetNamedItemNS(
+      Attr& aNode, nsIPrincipal* aSubjectPrincipal, ErrorResult& aError);
   already_AddRefed<Attr> RemoveNamedItemNS(const nsAString& aNamespaceURI,
                                            const nsAString& aLocalName,
                                            ErrorResult& aError);

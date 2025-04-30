@@ -392,13 +392,14 @@ void HTMLIFrameElement::GetSrcdoc(OwningTrustedHTMLOrString& aSrcdoc) {
 }
 
 void HTMLIFrameElement::SetSrcdoc(const TrustedHTMLOrString& aSrcdoc,
+                                  nsIPrincipal* aSubjectPrincipal,
                                   ErrorResult& aError) {
   constexpr nsLiteralString sink = u"HTMLIFrameElement srcdoc"_ns;
 
   Maybe<nsAutoString> compliantStringHolder;
   const nsAString* compliantString =
       TrustedTypeUtils::GetTrustedTypesCompliantString(
-          aSrcdoc, sink, kTrustedTypesOnlySinkGroup, *this,
+          aSrcdoc, sink, kTrustedTypesOnlySinkGroup, *this, aSubjectPrincipal,
           compliantStringHolder, aError);
   if (aError.Failed()) {
     return;

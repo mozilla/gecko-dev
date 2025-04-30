@@ -150,7 +150,7 @@ class NavigationToolbarTest : TestSetup() {
         navigationToolbar {
         }.enterURLAndEnterToBrowser(genericURL.url) {
             mDevice.waitForIdle()
-        }.goToHomescreen {
+        }.goToHomescreen(composeTestRule) {
             verifyHomeScreen()
         }
     }
@@ -162,13 +162,13 @@ class NavigationToolbarTest : TestSetup() {
         val genericURL = TestAssetHelper.getGenericAsset(mockWebServer, 1)
 
         homeScreen {
-            togglePrivateBrowsingModeOnOff()
+            togglePrivateBrowsingModeOnOff(composeTestRule = composeTestRule)
         }
 
         navigationToolbar {
         }.enterURLAndEnterToBrowser(genericURL.url) {
             mDevice.waitForIdle()
-        }.goToHomescreen {
+        }.goToHomescreen(composeTestRule) {
             verifyHomeScreen()
         }
     }

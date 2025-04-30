@@ -2729,7 +2729,8 @@ already_AddRefed<DocumentFragment> nsRange::CreateContextualFragment(
 }
 
 already_AddRefed<DocumentFragment> nsRange::CreateContextualFragment(
-    const TrustedHTMLOrString& aFragment, ErrorResult& aRv) const {
+    const TrustedHTMLOrString& aFragment, nsIPrincipal* aSubjectPrincipal,
+    ErrorResult& aRv) const {
   if (!mIsPositioned) {
     aRv.Throw(NS_ERROR_FAILURE);
     return nullptr;
@@ -2741,7 +2742,7 @@ already_AddRefed<DocumentFragment> nsRange::CreateContextualFragment(
   nsCOMPtr<nsINode> node = mStart.GetContainer();
   const nsAString* compliantString =
       TrustedTypeUtils::GetTrustedTypesCompliantString(
-          aFragment, sink, kTrustedTypesOnlySinkGroup, *node,
+          aFragment, sink, kTrustedTypesOnlySinkGroup, *node, aSubjectPrincipal,
           compliantStringHolder, aRv);
   if (aRv.Failed()) {
     return nullptr;

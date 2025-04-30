@@ -166,7 +166,7 @@ JSObject* ServiceWorkerContainer::WrapObject(
 
 already_AddRefed<Promise> ServiceWorkerContainer::Register(
     const TrustedScriptURLOrUSVString& aScriptURL,
-    const RegistrationOptions& aOptions, const CallerType aCallerType,
+    const RegistrationOptions& aOptions, nsIPrincipal* aSubjectPrincipal,
     ErrorResult& aRv) {
   AUTO_PROFILER_MARKER_UNTYPED("SWC Register", DOM, {});
 
@@ -196,7 +196,7 @@ already_AddRefed<Promise> ServiceWorkerContainer::Register(
   const nsAString* compliantString =
       TrustedTypeUtils::GetTrustedTypesCompliantString(
           aScriptURL, sink, kTrustedTypesOnlySinkGroup, *global,
-          compliantStringHolder, aRv);
+          aSubjectPrincipal, compliantStringHolder, aRv);
   if (aRv.Failed()) {
     return nullptr;
   }

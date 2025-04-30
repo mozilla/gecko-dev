@@ -259,7 +259,7 @@ class SearchTest : TestSetup() {
                 verifySearchEngineIcon(it)
             }.submitQuery("mozilla ") {
                 verifyUrl("mozilla")
-            }.goToHomescreen {}
+            }.goToHomescreen(activityTestRule) {}
         }
     }
 
@@ -318,7 +318,7 @@ class SearchTest : TestSetup() {
         }.openTabDrawer(activityTestRule) {
         }.openThreeDotMenu {
         }.closeAllTabs {
-            verifyRecentlyVisitedSearchGroupDisplayed(shouldBeDisplayed = true, searchTerm = queryString, groupSize = 3)
+            verifyRecentlyVisitedSearchGroupDisplayed(activityTestRule, shouldBeDisplayed = true, searchTerm = queryString, groupSize = 3)
         }
     }
 
@@ -359,8 +359,8 @@ class SearchTest : TestSetup() {
         }.openTabDrawer(activityTestRule) {
         }.openThreeDotMenu {
         }.closeAllTabs {
-            verifyRecentlyVisitedSearchGroupDisplayed(shouldBeDisplayed = true, searchTerm = queryString, groupSize = 3)
-        }.openRecentlyVisitedSearchGroupHistoryList(queryString) {
+            verifyRecentlyVisitedSearchGroupDisplayed(activityTestRule, shouldBeDisplayed = true, searchTerm = queryString, groupSize = 3)
+        }.openRecentlyVisitedSearchGroupHistoryList(activityTestRule, queryString) {
             verifyTestPageUrl(firstPageUrl)
             verifyTestPageUrl(secondPageUrl)
             verifyTestPageUrl(originPageUrl)
@@ -387,7 +387,7 @@ class SearchTest : TestSetup() {
         }.openTabDrawer(activityTestRule) {
         }.openThreeDotMenu {
         }.closeAllTabs {
-            verifyRecentlyVisitedSearchGroupDisplayed(shouldBeDisplayed = true, searchTerm = queryString, groupSize = 3)
+            verifyRecentlyVisitedSearchGroupDisplayed(activityTestRule, shouldBeDisplayed = true, searchTerm = queryString, groupSize = 3)
         }
     }
 
@@ -415,8 +415,8 @@ class SearchTest : TestSetup() {
         }.openTabDrawer(activityTestRule) {
         }.openThreeDotMenu {
         }.closeAllTabs {
-            togglePrivateBrowsingModeOnOff()
-            verifyRecentlyVisitedSearchGroupDisplayed(shouldBeDisplayed = false, searchTerm = queryString, groupSize = 3)
+            togglePrivateBrowsingModeOnOff(composeTestRule = activityTestRule)
+            verifyRecentlyVisitedSearchGroupDisplayed(activityTestRule, shouldBeDisplayed = false, searchTerm = queryString, groupSize = 3)
         }.openThreeDotMenu {
         }.openHistory {
             verifyHistoryItemExists(shouldExist = false, item = "3 sites")
@@ -424,6 +424,7 @@ class SearchTest : TestSetup() {
     }
 
     // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/1592269
+    @Ignore("Bug causing inconsistencies, see: https://bugzilla.mozilla.org/show_bug.cgi?id=1943051 for more info")
     @SmokeTest
     @Test
     fun deleteIndividualHistoryItemsFromSearchGroupTest() {
@@ -449,8 +450,8 @@ class SearchTest : TestSetup() {
         }.openTabDrawer(activityTestRule) {
         }.openThreeDotMenu {
         }.closeAllTabs {
-            verifyRecentlyVisitedSearchGroupDisplayed(shouldBeDisplayed = true, searchTerm = queryString, groupSize = 3)
-        }.openRecentlyVisitedSearchGroupHistoryList(queryString) {
+            verifyRecentlyVisitedSearchGroupDisplayed(activityTestRule, shouldBeDisplayed = true, searchTerm = queryString, groupSize = 3)
+        }.openRecentlyVisitedSearchGroupHistoryList(activityTestRule, queryString) {
             clickDeleteHistoryButton(firstPageUrl.toString())
             TestHelper.longTapSelectItem(secondPageUrl)
             multipleSelectionToolbar {
@@ -461,7 +462,7 @@ class SearchTest : TestSetup() {
         }
         homeScreen {
             // checking that the group is removed when only 1 item is left
-            verifyRecentlyVisitedSearchGroupDisplayed(shouldBeDisplayed = false, searchTerm = queryString, groupSize = 1)
+            verifyRecentlyVisitedSearchGroupDisplayed(activityTestRule, shouldBeDisplayed = false, searchTerm = queryString, groupSize = 1)
         }
     }
 
@@ -491,15 +492,15 @@ class SearchTest : TestSetup() {
         }.openTabDrawer(activityTestRule) {
         }.openThreeDotMenu {
         }.closeAllTabs {
-            verifyRecentlyVisitedSearchGroupDisplayed(shouldBeDisplayed = true, searchTerm = queryString, groupSize = 3)
-        }.openRecentlyVisitedSearchGroupHistoryList(queryString) {
+            verifyRecentlyVisitedSearchGroupDisplayed(activityTestRule, shouldBeDisplayed = true, searchTerm = queryString, groupSize = 3)
+        }.openRecentlyVisitedSearchGroupHistoryList(activityTestRule, queryString) {
             clickDeleteAllHistoryButton()
             confirmDeleteAllHistory()
             verifySnackBarText(expectedText = "Group deleted")
             verifyHistoryItemExists(shouldExist = false, firstPageUrl.toString())
         }.goBack {}
         homeScreen {
-            verifyRecentlyVisitedSearchGroupDisplayed(shouldBeDisplayed = false, queryString, groupSize = 3)
+            verifyRecentlyVisitedSearchGroupDisplayed(activityTestRule, shouldBeDisplayed = false, queryString, groupSize = 3)
         }.openThreeDotMenu {
         }.openHistory {
             verifySearchGroupDisplayed(shouldBeDisplayed = false, queryString, groupSize = 3)
@@ -534,12 +535,12 @@ class SearchTest : TestSetup() {
         }.openTabDrawer(activityTestRule) {
         }.openThreeDotMenu {
         }.closeAllTabs {
-            verifyRecentlyVisitedSearchGroupDisplayed(shouldBeDisplayed = true, searchTerm = queryString, groupSize = 3)
-        }.openRecentlyVisitedSearchGroupHistoryList(queryString) {
+            verifyRecentlyVisitedSearchGroupDisplayed(activityTestRule, shouldBeDisplayed = true, searchTerm = queryString, groupSize = 3)
+        }.openRecentlyVisitedSearchGroupHistoryList(activityTestRule, queryString) {
         }.openWebsiteFromSearchGroup(firstPageUrl) {
             verifyUrl(firstPageUrl.toString())
-        }.goToHomescreen {
-        }.openRecentlyVisitedSearchGroupHistoryList(queryString) {
+        }.goToHomescreen(activityTestRule) {
+        }.openRecentlyVisitedSearchGroupHistoryList(activityTestRule, queryString) {
             TestHelper.longTapSelectItem(firstPageUrl)
             TestHelper.longTapSelectItem(secondPageUrl)
             Espresso.openActionBarOverflowOrOptionsMenu(activityTestRule.activity)
@@ -581,8 +582,8 @@ class SearchTest : TestSetup() {
         }.openTabDrawer(activityTestRule) {
         }.openThreeDotMenu {
         }.closeAllTabs {
-            verifyRecentlyVisitedSearchGroupDisplayed(shouldBeDisplayed = true, searchTerm = queryString, groupSize = 3)
-        }.openRecentlyVisitedSearchGroupHistoryList(queryString) {
+            verifyRecentlyVisitedSearchGroupDisplayed(activityTestRule, shouldBeDisplayed = true, searchTerm = queryString, groupSize = 3)
+        }.openRecentlyVisitedSearchGroupHistoryList(activityTestRule, queryString) {
             TestHelper.longTapSelectItem(firstPageUrl)
         }
 
@@ -892,7 +893,7 @@ class SearchTest : TestSetup() {
         }.openNavigationToolbar {
         }.clickUrlbar {
         }.submitQuery("test page 1") {
-        }.goToHomescreen {
+        }.goToHomescreen(activityTestRule) {
         }.togglePrivateBrowsingMode()
 
         homeScreen {

@@ -238,8 +238,8 @@ class SettingsDeleteBrowsingDataTest : TestSetup() {
         val pocketTopArticles = getStringResource(R.string.pocket_pinned_top_articles)
 
         homeScreen {
-            verifyExistingTopSitesTabs(pocketTopArticles)
-        }.openTopSiteTabWithTitle(pocketTopArticles) {
+            verifyExistingTopSitesTabs(composeTestRule, pocketTopArticles)
+        }.openTopSiteTabWithTitle(composeTestRule, pocketTopArticles) {
             verifyPocketPageContent()
         }.openTabDrawer(composeTestRule) {
         }.openNewTab {

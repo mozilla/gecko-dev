@@ -47,6 +47,9 @@ already_AddRefed<Worker> Worker::Constructor(
     return nullptr;
   }
 
+  // TODO(Bug 1963277) This doen't work for content scripts.
+  nsCOMPtr<nsIPrincipal> principal = aGlobal.GetSubjectPrincipal();
+
   // The spec only mentions Window and WorkerGlobalScope global objects, but
   // Gecko can actually call the constructor with other ones, so we just skip
   // trusted types handling in that case.
@@ -62,7 +65,7 @@ already_AddRefed<Worker> Worker::Constructor(
   if (performTrustedTypeConversion) {
     constexpr nsLiteralString sink = u"Worker constructor"_ns;
     compliantString = TrustedTypeUtils::GetTrustedTypesCompliantString(
-        aScriptURL, sink, kTrustedTypesOnlySinkGroup, *globalObject,
+        aScriptURL, sink, kTrustedTypesOnlySinkGroup, *globalObject, principal,
         compliantStringHolder, aRv);
     if (aRv.Failed()) {
       return nullptr;

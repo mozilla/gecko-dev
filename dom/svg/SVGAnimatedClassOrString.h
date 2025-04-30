@@ -10,6 +10,8 @@
 #include "nsStringFwd.h"
 #include "mozilla/AlreadyAddRefed.h"
 
+class nsIPrincipal;
+
 namespace mozilla {
 
 class ErrorResult;
@@ -31,7 +33,7 @@ class SVGAnimatedClassOrString {
                             bool aDoSetAttr) = 0;
   MOZ_CAN_RUN_SCRIPT virtual void SetBaseValue(
       const TrustedScriptURLOrString& aValue, SVGElement* aSVGElement,
-      bool aDoSetAttr, ErrorResult& aRv);
+      bool aDoSetAttr, nsIPrincipal* aSubjectPrincipal, ErrorResult& aRv);
   virtual void GetBaseValue(nsAString& aValue,
                             const SVGElement* aSVGElement) const = 0;
   virtual void GetBaseValue(OwningTrustedScriptURLOrString& aValue,

@@ -57,9 +57,6 @@ class Cookie final : public nsICookie {
       const OriginAttributes& aOriginAttributes);
 
  public:
-  // Returns false if rawSameSite has an invalid value, compared to sameSite.
-  static bool ValidateSameSite(const CookieStruct& aCookieData);
-
   // Generate a unique and monotonically increasing creation time. See comment
   // in Cookie.cpp.
   static int64_t GenerateUniqueCreationTime(int64_t aCreationTime);
@@ -105,11 +102,6 @@ class Cookie final : public nsICookie {
     return mOriginAttributes;
   }
   inline int32_t SameSite() const { return mData.sameSite(); }
-  inline int32_t RawSameSite() const { return mData.rawSameSite(); }
-  inline bool IsDefaultSameSite() const {
-    return SameSite() == nsICookie::SAMESITE_LAX &&
-           RawSameSite() == nsICookie::SAMESITE_NONE;
-  }
   inline uint8_t SchemeMap() const { return mData.schemeMap(); }
 
   // setters

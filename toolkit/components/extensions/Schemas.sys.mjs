@@ -302,14 +302,14 @@ const POSTPROCESSORS = {
       throw new Error(msg);
     }
 
-    // no valid environment found, proceed to throwing an error
+    // no valid environment found, raise a warning and ignore background property
     const msg = `background requires at least one of ${
       WebExtensionPolicy.backgroundServiceWorkerEnabled
         ? '"service_worker", '
         : ""
     }"scripts" or "page".`;
-    context.logError(context.makeError(msg));
-    throw new Error(msg);
+    context.logWarning(context.makeError(msg));
+    return null;
   },
 
   checkValidRequiredDataCollection(value, context) {

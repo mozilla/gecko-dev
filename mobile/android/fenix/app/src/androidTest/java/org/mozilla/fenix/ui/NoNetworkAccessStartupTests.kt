@@ -4,6 +4,7 @@
 
 package org.mozilla.fenix.ui
 
+import androidx.compose.ui.test.junit4.AndroidComposeTestRule
 import androidx.core.net.toUri
 import androidx.test.filters.SdkSuppress
 import org.junit.Rule
@@ -24,7 +25,10 @@ import org.mozilla.fenix.ui.robots.navigationToolbar
 class NoNetworkAccessStartupTests : TestSetup() {
 
     @get:Rule
-    val activityTestRule = HomeActivityTestRule.withDefaultSettingsOverrides(launchActivity = false)
+    val composeTestRule =
+        AndroidComposeTestRule(
+            HomeActivityTestRule.withDefaultSettingsOverrides(launchActivity = false),
+        ) { it.activity }
 
     // Test running on beta/release builds in CI:
     // caution when making changes to it, so they don't block the builds
@@ -34,7 +38,7 @@ class NoNetworkAccessStartupTests : TestSetup() {
     fun noNetworkConnectionStartupTest() {
         setNetworkEnabled(false)
 
-        activityTestRule.launchActivity(null)
+        composeTestRule.activityRule.launchActivity(null)
 
         homeScreen {
             verifyHomeScreen()
@@ -47,7 +51,7 @@ class NoNetworkAccessStartupTests : TestSetup() {
     fun networkInterruptedFromBrowserToHomeTest() {
         val url = "example.com"
 
-        activityTestRule.launchActivity(null)
+        composeTestRule.activityRule.launchActivity(null)
 
         navigationToolbar {
         }.enterURLAndEnterToBrowser(url.toUri()) {}
@@ -55,7 +59,7 @@ class NoNetworkAccessStartupTests : TestSetup() {
         setNetworkEnabled(false)
 
         browserScreen {
-        }.goToHomescreen {
+        }.goToHomescreen(composeTestRule) {
             verifyHomeScreen()
         }
     }
@@ -65,7 +69,7 @@ class NoNetworkAccessStartupTests : TestSetup() {
     fun testPageReloadAfterNetworkInterrupted() {
         val url = "example.com"
 
-        activityTestRule.launchActivity(null)
+        composeTestRule.activityRule.launchActivity(null)
 
         navigationToolbar {
         }.enterURLAndEnterToBrowser(url.toUri()) {}
@@ -84,7 +88,7 @@ class NoNetworkAccessStartupTests : TestSetup() {
     fun testSignInPageWithNoNetworkConnection() {
         setNetworkEnabled(false)
 
-        activityTestRule.launchActivity(null)
+        composeTestRule.activityRule.launchActivity(null)
 
         homeScreen {
         }.openThreeDotMenu {

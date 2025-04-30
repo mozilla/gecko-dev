@@ -104,7 +104,7 @@ class AllocSite {
   // processSite().
   uint32_t nurseryAllocCount = 0;
 
-  // Number of nursery allocations at this site that were tenured since it was
+  // Number of nursery allocations at this site that were promoted since it was
   // last processed by processSite().
   uint32_t nurseryPromotedCount : 24;
 
@@ -350,9 +350,8 @@ class PretenuringZone {
   // get the pretenuring decision wrong.
   uint32_t highNurserySurvivalCount = 0;
 
-  // Total allocation count by trace kind (ignoring optimized
-  // allocations). Calculated during nursery collection.
-  uint32_t nurseryAllocCounts[NurseryTraceKinds] = {0};
+  // Total promotion count by trace kind. Calculated during nursery collection.
+  uint32_t nurseryPromotedCounts[NurseryTraceKinds] = {0};
 
   explicit PretenuringZone(JS::Zone* zone) {
     for (uint32_t i = 0; i < NurseryTraceKinds; i++) {
@@ -395,13 +394,10 @@ class PretenuringZone {
   bool shouldResetNurseryAllocSites();
   bool shouldResetPretenuredAllocSites();
 
-  uint32_t& nurseryAllocCount(JS::TraceKind kind) {
+  uint32_t nurseryPromotedCount(JS::TraceKind kind) const {
     size_t i = size_t(kind);
-    MOZ_ASSERT(i < NurseryTraceKinds);
-    return nurseryAllocCounts[i];
-  }
-  uint32_t nurseryAllocCount(JS::TraceKind kind) const {
-    return const_cast<PretenuringZone*>(this)->nurseryAllocCount(kind);
+    MOZ_ASSERT(i < std::size(nurseryPromotedCounts));
+    return nurseryPromotedCounts[i];
   }
 };
 

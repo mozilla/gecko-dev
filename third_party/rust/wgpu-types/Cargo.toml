@@ -74,10 +74,10 @@ features = [
 ]
 
 [dependencies.log]
-version = "0.4"
+version = "0.4.21"
 
 [dependencies.serde]
-version = "1"
+version = "1.0.219"
 features = [
     "alloc",
     "derive",
@@ -86,24 +86,24 @@ optional = true
 default-features = false
 
 [dependencies.thiserror]
-version = "2"
+version = "2.0.3"
 optional = true
 default-features = false
 
 [dev-dependencies.serde]
-version = "1"
+version = "1.0.219"
 features = ["derive"]
 default-features = false
 
 [dev-dependencies.serde_json]
-version = "1.0.140"
+version = "1.0.118"
 
 [target.'cfg(target_arch = "wasm32")'.dependencies.js-sys]
-version = "0.3.70"
+version = "0.3.77"
 default-features = false
 
 [target.'cfg(target_arch = "wasm32")'.dependencies.web-sys]
-version = "0.3.74"
+version = "0.3.77"
 features = [
     "ImageBitmap",
     "ImageData",

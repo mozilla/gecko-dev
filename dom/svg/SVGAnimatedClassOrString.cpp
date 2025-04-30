@@ -35,7 +35,7 @@ void SVGAnimatedClassOrString::RemoveTearoff() {
 
 void SVGAnimatedClassOrString::SetBaseValue(
     const TrustedScriptURLOrString& aValue, SVGElement* aSVGElement,
-    bool aDoSetAttr, ErrorResult&) {
+    bool aDoSetAttr, nsIPrincipal*, ErrorResult&) {
   // The spec is not super explicit, but it makes sense to default to the
   // associated data value for TrustedScriptURL values.
   // https://github.com/w3c/svgwg/issues/961

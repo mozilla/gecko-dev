@@ -1529,6 +1529,144 @@ def build_treescript_payload(config, task, task_def):
 
 
 @payload_builder(
+    "landoscript",
+    schema={
+        Required("lando-repo"): str,
+        Optional("hg-repo-url"): str,
+        Optional("ignore-closed-tree"): bool,
+        Optional("dontbuild"): bool,
+        Optional("tags"): [Any("buildN", "release", None)],
+        Optional("android-l10n-import-info"): {
+            Required("from-repo-url"): str,
+            Required("toml-info"): [
+                {
+                    Required("toml-path"): str,
+                    Required("dest-path"): str,
+                }
+            ],
+        },
+        Optional("android-l10n-sync-info"): {
+            Required("from-branch"): str,
+            Required("toml-info"): [
+                {
+                    Required("toml-path"): str,
+                }
+            ],
+        },
+        Optional("l10n-bump-info"): [
+            {
+                Required("name"): str,
+                Required("path"): str,
+                Optional("l10n-repo-url"): str,
+                Optional("l10n-repo-target-branch"): str,
+                Optional("ignore-config"): object,
+                Required("platform-configs"): [
+                    {
+                        Required("platforms"): [str],
+                        Required("path"): str,
+                        Optional("format"): str,
+                    }
+                ],
+            }
+        ],
+        Optional("bump-files"): [str],
+    },
+)
+def build_landoscript_payload(config, task, task_def):
+    worker = task["worker"]
+    release_config = get_release_config(config)
+    task_def["payload"] = {"actions": [], "lando_repo": worker["lando-repo"]}
+    actions = task_def["payload"]["actions"]
+
+    if worker.get("ignore-closed-tree") is not None:
+        task_def["payload"]["ignore_closed_tree"] = worker["ignore-closed-tree"]
+
+    if worker.get("dontbuild"):
+        task_def["payload"]["dontbuild"] = True
+
+    if worker.get("android-l10n-import-info"):
+        android_l10n_import_info = {}
+        for k, v in worker["android-l10n-import-info"].items():
+            android_l10n_import_info[k.replace("-", "_")] = worker[
+                "android-l10n-import-info"
+            ][k]
+        android_l10n_import_info["toml_info"] = [
+            {
+                param_name.replace("-", "_"): param_value
+                for param_name, param_value in entry.items()
+            }
+            for entry in worker["android-l10n-import-info"]["toml-info"]
+        ]
+        task_def["payload"]["android_l10n_import_info"] = android_l10n_import_info
+        actions.append("android_l10n_import")
+
+    if worker.get("android-l10n-sync-info"):
+        android_l10n_sync_info = {}
+        for k, v in worker["android-l10n-sync-info"].items():
+            android_l10n_sync_info[k.replace("-", "_")] = worker[
+                "android-l10n-sync-info"
+            ][k]
+        android_l10n_sync_info["toml_info"] = [
+            {
+                param_name.replace("-", "_"): param_value
+                for param_name, param_value in entry.items()
+            }
+            for entry in worker["android-l10n-sync-info"]["toml-info"]
+        ]
+        task_def["payload"]["android_l10n_sync_info"] = android_l10n_sync_info
+        actions.append("android_l10n_sync")
+
+    if worker.get("l10n-bump-info"):
+        l10n_bump_info = []
+        l10n_repo_urls = set()
+        for lbi in worker["l10n-bump-info"]:
+            new_lbi = {}
+            if "l10n-repo-url" in lbi:
+                l10n_repo_urls.add(lbi["l10n-repo-url"])
+            for k, v in lbi.items():
+                new_lbi[k.replace("-", "_")] = lbi[k]
+            l10n_bump_info.append(new_lbi)
+
+        task_def["payload"]["l10n_bump_info"] = l10n_bump_info
+        if len(l10n_repo_urls) > 1:
+            raise Exception(
+                "Must use the same l10n-repo-url for all files in the same task!"
+            )
+        elif len(l10n_repo_urls) == 1:
+            actions.append("l10n_bump")
+
+    if worker.get("tags"):
+        tag_names = []
+        product = task["shipping-product"].upper()
+        version = release_config["version"].replace(".", "_")
+        buildnum = release_config["build_number"]
+        if "buildN" in worker["tags"]:
+            tag_names.extend(
+                [
+                    f"{product}_{version}_BUILD{buildnum}",
+                ]
+            )
+        if "release" in worker["tags"]:
+            tag_names.extend([f"{product}_{version}_RELEASE"])
+        tag_info = {
+            "tags": tag_names,
+            "hg_repo_url": worker["hg-repo-url"],
+            "revision": config.params[
+                "{}head_rev".format(worker.get("repo-param-prefix", ""))
+            ],
+        }
+        task_def["payload"]["tag_info"] = tag_info
+        actions.append("tag")
+
+    if worker.get("bump-files"):
+        bump_info = {}
+        bump_info["next_version"] = release_config["next_version"]
+        bump_info["files"] = worker["bump-files"]
+        task_def["payload"]["version_bump_info"] = bump_info
+        actions.append("version_bump")
+
+
+@payload_builder(
     "invalid",
     schema={
         # an invalid task is one which should never actually be created; this is used in

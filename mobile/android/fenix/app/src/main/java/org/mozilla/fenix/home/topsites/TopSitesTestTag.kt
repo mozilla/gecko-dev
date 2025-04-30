@@ -9,6 +9,7 @@ internal object TopSitesTestTag {
 
     const val topSiteItemRoot = "$topSites.top_site_item"
     const val topSiteTitle = "$topSiteItemRoot.top_site_title"
+    const val topSiteCardFavicon = "$topSiteItemRoot.top_site_card_favicon"
 
     // Contextual/DropDown menu
     const val topSiteContextualMenu = "$topSites.top_site_contextual_menu"
