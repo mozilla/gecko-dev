@@ -38,6 +38,7 @@ SpecialPowers.registerConsoleListener(msg => {
     contains("blocked an event handler");
     contains("from being executed");
     contains("Source: alert('onload');");
+    contains("'sha256-DZiWoZjxgAy1DmtJHfc8u0JhSZm1YuniGAI+cc1R2x0='");
     add("event handler");
   } else if (errorMessage.includes("(img-src)")) {
     contains("blocked the loading of a resource");
@@ -46,6 +47,7 @@ SpecialPowers.registerConsoleListener(msg => {
   } else if (errorMessage.includes("an inline script")) {
     contains("(script-src-elem)");
     contains("from being executed");
+    contains("'sha256-DOE4qvVpP5+5S6sGuxFDf68+sW1dM9qbvA+i2Feh/Y8='");
     add("inline script");
   } else if (errorMessage.includes("a script")) {
     contains("(script-src-elem)");
@@ -62,9 +64,13 @@ SpecialPowers.registerConsoleListener(msg => {
     contains("from being executed");
     contains("Missing 'unsafe-eval'")
     add("eval");
+  } else if (errorMessage.includes("an inline style")) {
+    contains("(style-src-attr)");
+    contains("'sha256-C8uD/9cXZAvqgnwxgdb67jgkSDq7f8xjP8F6lhY1Gtk='");
+    add("style attribute");
   }
 
-  if (errors.length == 6) {
+  if (errors.length == 7) {
     SimpleTest.executeSoon(cleanup);
   }
 });

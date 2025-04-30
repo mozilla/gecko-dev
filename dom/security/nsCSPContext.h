@@ -183,11 +183,11 @@ class nsCSPContext : public nsIContentSecurityPolicy {
                        bool aSendContentLocationInViolationReports);
 
   // helper to report inline script/style violations
-  void reportInlineViolation(CSPDirective aDirective,
+  void ReportInlineViolation(CSPDirective aDirective,
                              mozilla::dom::Element* aTriggeringElement,
                              nsICSPEventListener* aCSPEventListener,
                              const nsAString& aNonce, bool aReportSample,
-                             const nsAString& aSample,
+                             const nsAString& aSourceCode,
                              const nsAString& aViolatedDirective,
                              const nsAString& aViolatedDirectiveString,
                              CSPDirective aEffectiveDirective,

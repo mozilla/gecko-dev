@@ -43,15 +43,27 @@ add_task(async function () {
     const TEST_VIOLATION =
       "https://example.com/browser/devtools/client/webconsole/" +
       "test/browser/test-csp-violation-inline.html";
-    const CSP_VIOLATION = bundle.formatStringFromName(
-      "CSPInlineStyleViolation",
-      ["style-src 'self'", "style-src-elem"]
+    const CSP_VIOLATION_HTML = bundle.formatStringFromName(
+      "CSPInlineStyleViolation2",
+      [
+        "style-src 'self'",
+        "style-src-elem",
+        "2YwGc88jHsmwFRHOYQiYrTWXjjokG0k/LG89vhXpsCc=",
+      ]
+    );
+    const CSP_VIOLATION_JS = bundle.formatStringFromName(
+      "CSPInlineStyleViolation2",
+      [
+        "style-src 'self'",
+        "style-src-elem",
+        "rAXgW7xeVBDlyedTG70gxFgD1Hm7EOWm6dPGHUDj6BE=",
+      ]
     );
     const VIOLATION_LOCATION_HTML = "test-csp-violation-inline.html:18:1";
     const VIOLATION_LOCATION_JS = "test-csp-violation-inline.html:14:25";
     await navigateTo(TEST_VIOLATION);
     // Triggering the Violation via HTML
-    let msg = await waitFor(() => findErrorMessage(hud, CSP_VIOLATION));
+    let msg = await waitFor(() => findErrorMessage(hud, CSP_VIOLATION_HTML));
     let locationNode = msg.querySelector(".message-location");
     info(`EXPECT ${VIOLATION_LOCATION_HTML} GOT: ${locationNode.textContent}`);
     Assert.equal(
@@ -64,7 +76,7 @@ add_task(async function () {
     msg = await executeAndWaitForErrorMessage(
       hud,
       "window.violate()",
-      CSP_VIOLATION
+      CSP_VIOLATION_JS
     );
     locationNode = msg.node.querySelector(".message-location");
     info(`EXPECT ${VIOLATION_LOCATION_JS} GOT: ${locationNode.textContent}`);
@@ -149,9 +161,10 @@ add_task(async function () {
       "https://example.com/browser/devtools/client/webconsole/" +
       "test/browser/test-csp-violation-event-handler.html";
     const CSP_VIOLATION =
-      bundle.formatStringFromName("CSPEventHandlerScriptViolation", [
+      bundle.formatStringFromName("CSPEventHandlerScriptViolation2", [
         "script-src 'self'",
         "script-src-attr",
+        "iQunOC0AqvwRlqLYRHadzdj8cEGCEZ48o1eX4M5ORzg=",
       ]) + `\nSource: document.body.textContent = 'JavaScript …`;
     // Future-Todo: Include line and column number.
     const VIOLATION_LOCATION = "test-csp-violation-event-handler.html";
