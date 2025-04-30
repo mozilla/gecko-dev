@@ -18,6 +18,10 @@
 #include "gfxMathTable.h"
 #include "nsPresContextInlines.h"
 
+// used for parsing CSS units
+#include "mozilla/dom/SVGAnimatedLength.h"
+#include "mozilla/dom/SVGLength.h"
+
 // used to map attributes into CSS rules
 #include "mozilla/ServoStyleSet.h"
 #include "nsDisplayList.h"
@@ -182,33 +186,21 @@ void nsMathMLFrame::GetAxisHeight(DrawTarget* aDrawTarget,
 }
 
 /* static */
-nscoord nsMathMLFrame::CalcLength(nsPresContext* aPresContext,
-                                  ComputedStyle* aComputedStyle,
-                                  const nsCSSValue& aCSSValue,
-                                  float aFontSizeInflation) {
+nscoord nsMathMLFrame::CalcLength(const nsCSSValue& aCSSValue,
+                                  float aFontSizeInflation, nsIFrame* aFrame) {
   NS_ASSERTION(aCSSValue.IsLengthUnit(), "not a length unit");
 
-  if (aCSSValue.IsPixelLengthUnit()) {
-    return aCSSValue.GetPixelLength();
-  }
-
   nsCSSUnit unit = aCSSValue.GetUnit();
+  mozilla::dom::NonSVGFrameUserSpaceMetrics userSpaceMetrics(aFrame);
 
-  if (eCSSUnit_EM == unit) {
-    const nsStyleFont* font = aComputedStyle->StyleFont();
-    return font->mFont.size.ScaledBy(aCSSValue.GetFloatValue()).ToAppUnits();
-  }
+  // The axis is only relevant for percentages, so it doesn't matter what we use
+  // here.
+  auto axis = SVGContentUtils::X;
 
-  if (eCSSUnit_XHeight == unit) {
-    RefPtr<nsFontMetrics> fm = nsLayoutUtils::GetFontMetricsForComputedStyle(
-        aComputedStyle, aPresContext, aFontSizeInflation);
-    nscoord xHeight = fm->XHeight();
-    return NSToCoordRound(aCSSValue.GetFloatValue() * (float)xHeight);
-  }
-
-  // MathML doesn't specify other CSS units such as rem or ch
-  NS_ERROR("Unsupported unit");
-  return 0;
+  return nsPresContext::CSSPixelsToAppUnits(
+      aCSSValue.GetFloatValue() *
+      SVGLength::GetPixelsPerCSSUnit(userSpaceMetrics, unit, axis,
+                                     /* aApplyZoom = */ true));
 }
 
 /* static */
@@ -228,15 +220,15 @@ void nsMathMLFrame::GetSupDropFromChild(nsIFrame* aChild, nscoord& aSupDrop,
 }
 
 /* static */
-void nsMathMLFrame::ParseNumericValue(const nsString& aString,
-                                      nscoord* aLengthValue, uint32_t aFlags,
-                                      nsPresContext* aPresContext,
-                                      ComputedStyle* aComputedStyle,
-                                      float aFontSizeInflation) {
+void nsMathMLFrame::ParseAndCalcNumericValue(const nsString& aString,
+                                             nscoord* aLengthValue,
+                                             uint32_t aFlags,
+                                             float aFontSizeInflation,
+                                             nsIFrame* aFrame) {
   nsCSSValue cssValue;
 
-  if (!dom::MathMLElement::ParseNumericValue(aString, cssValue, aFlags,
-                                             aPresContext->Document())) {
+  if (!dom::MathMLElement::ParseNumericValue(
+          aString, cssValue, aFlags, aFrame->PresContext()->Document())) {
     // Invalid attribute value. aLengthValue remains unchanged, so the default
     // length value is used.
     return;
@@ -244,17 +236,15 @@ void nsMathMLFrame::ParseNumericValue(const nsString& aString,
 
   nsCSSUnit unit = cssValue.GetUnit();
 
+  // Since we're reusing the SVG code to calculate unit lengths,
+  // which handles percentage values specially, we have to deal
+  // with percentages early on.
   if (unit == eCSSUnit_Percent) {
-    // Relative units. A multiple of the default length value is used.
-    *aLengthValue = NSToCoordRound(
-        *aLengthValue * (unit == eCSSUnit_Percent ? cssValue.GetPercentValue()
-                                                  : cssValue.GetFloatValue()));
+    *aLengthValue = NSToCoordRound(*aLengthValue * cssValue.GetPercentValue());
     return;
   }
 
-  // Absolute units.
-  *aLengthValue =
-      CalcLength(aPresContext, aComputedStyle, cssValue, aFontSizeInflation);
+  *aLengthValue = CalcLength(cssValue, aFontSizeInflation, aFrame);
 }
 
 namespace mozilla {

@@ -233,6 +233,28 @@ float SVGLength::GetPixelsPerUnit(const UserSpaceMetrics& aMetrics,
   return value;
 }
 
+/*static*/
+float SVGLength::GetPixelsPerCSSUnit(const UserSpaceMetrics& aMetrics,
+                                     nsCSSUnit aCSSUnit, uint8_t aAxis,
+                                     bool aApplyZoom) {
+  uint8_t unitType;
+  switch (aCSSUnit) {
+#define SVG_LENGTH_EMPTY_UNIT(id, cssValue)
+#define SVG_LENGTH_UNIT(id, name, cssValue) \
+  case cssValue:                            \
+    unitType = id;                          \
+    break;
+#include "mozilla/dom/SVGLengthUnits.h"
+#undef SVG_LENGTH_UNIT
+#undef SVG_LENGTH_EMPTY_UNIT
+    default:
+      MOZ_ASSERT_UNREACHABLE("Unknown CSS unit to SVG mapping");
+      unitType = SVG_LENGTHTYPE_UNKNOWN;
+      break;
+  }
+  return GetPixelsPerUnit(aMetrics, unitType, aAxis, aApplyZoom);
+}
+
 /* static */
 nsCSSUnit SVGLength::SpecifiedUnitTypeToCSSUnit(uint8_t aSpecifiedUnit) {
   switch (aSpecifiedUnit) {

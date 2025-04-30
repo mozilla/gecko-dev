@@ -261,8 +261,6 @@ void nsMathMLmoFrame::ProcessOperatorData() {
     return;
   }
 
-  nsPresContext* presContext = PresContext();
-
   // beware of bug 133814 - there is a two-way dependency in the
   // embellished hierarchy: our embellished ancestors need to set
   // their flags based on some of our state (set above), and here we
@@ -397,8 +395,7 @@ void nsMathMLmoFrame::ProcessOperatorData() {
           !cssValue.GetFloatValue()) {
         leadingSpace = 0;
       } else if (cssValue.IsLengthUnit()) {
-        leadingSpace = CalcLength(presContext, mComputedStyle, cssValue,
-                                  fontSizeInflation);
+        leadingSpace = CalcLength(cssValue, fontSizeInflation, this);
       }
       mFlags |= NS_MATHML_OPERATOR_LSPACE_ATTR;
     }
@@ -426,8 +423,7 @@ void nsMathMLmoFrame::ProcessOperatorData() {
           !cssValue.GetFloatValue()) {
         trailingSpace = 0;
       } else if (cssValue.IsLengthUnit()) {
-        trailingSpace = CalcLength(presContext, mComputedStyle, cssValue,
-                                   fontSizeInflation);
+        trailingSpace = CalcLength(cssValue, fontSizeInflation, this);
       }
       mFlags |= NS_MATHML_OPERATOR_RSPACE_ATTR;
     }
@@ -518,8 +514,7 @@ void nsMathMLmoFrame::ProcessOperatorData() {
       } else if (eCSSUnit_Percent == unit) {
         mMinSize = cssValue.GetPercentValue();
       } else if (eCSSUnit_Null != unit) {
-        mMinSize = float(CalcLength(presContext, mComputedStyle, cssValue,
-                                    fontSizeInflation));
+        mMinSize = float(CalcLength(cssValue, fontSizeInflation, this));
         mFlags |= NS_MATHML_OPERATOR_MINSIZE_ABSOLUTE;
       }
     }
@@ -549,8 +544,7 @@ void nsMathMLmoFrame::ProcessOperatorData() {
       } else if (eCSSUnit_Percent == unit) {
         mMaxSize = cssValue.GetPercentValue();
       } else if (eCSSUnit_Null != unit) {
-        mMaxSize = float(CalcLength(presContext, mComputedStyle, cssValue,
-                                    fontSizeInflation));
+        mMaxSize = float(CalcLength(cssValue, fontSizeInflation, this));
         mFlags |= NS_MATHML_OPERATOR_MAXSIZE_ABSOLUTE;
       }
     }
