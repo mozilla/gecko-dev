@@ -232,6 +232,18 @@ add_task(async function test_extension_sidebar_toggle() {
   Assert.equal(events?.length, 2, "Two events were reported.");
 });
 
+add_task(async function test_review_checker_sidebar_toggle() {
+  const gleanEvent = Glean.shopping.sidebarToggle;
+  await testSidebarToggle("viewReviewCheckerSidebar", gleanEvent);
+  for (const { extra } of gleanEvent.testGetValue()) {
+    Assert.equal(
+      extra.version,
+      getExpectedVersionString(),
+      "Event has the correct sidebar version."
+    );
+  }
+});
+
 add_task(async function test_contextual_manager_toggle() {
   await SpecialPowers.pushPrefEnv({
     set: [["browser.contextual-password-manager.enabled", true]],
@@ -351,6 +363,18 @@ add_task(async function test_customize_bookmarks_enabled() {
     "viewBookmarksSidebar",
     Glean.sidebarCustomize.bookmarksEnabled
   );
+});
+
+add_task(async function test_customize_review_checker_enabled() {
+  await SpecialPowers.pushPrefEnv({
+    set: [["browser.shopping.experience2023.integratedSidebar", true]],
+  });
+  await testCustomizeToggle(
+    "viewReviewCheckerSidebar",
+    Glean.sidebarCustomize.shoppingReviewCheckerEnabled
+  );
+  await SpecialPowers.popPrefEnv();
+  await SidebarController.waitUntilStable();
 });
 
 add_task(async function test_customize_extensions_clicked() {
@@ -560,6 +584,7 @@ async function testIconClick(expanded) {
   await SpecialPowers.pushPrefEnv({
     set: [
       ["browser.ml.chat.enabled", true],
+      ["browser.shopping.experience2023.integratedSidebar", true],
       [VERTICAL_TABS_PREF, true],
     ],
   });
@@ -567,6 +592,7 @@ async function testIconClick(expanded) {
 
   const { sidebarMain } = SidebarController;
   const gleanEvents = new Map([
+    ["viewReviewCheckerSidebar", Glean.sidebar.shoppingReviewCheckerIconClick],
     ["viewGenaiChatSidebar", Glean.sidebar.chatbotIconClick],
     ["viewTabsSidebar", Glean.sidebar.syncedTabsIconClick],
     ["viewHistorySidebar", Glean.sidebar.historyIconClick],
@@ -653,10 +679,65 @@ async function testIconClick(expanded) {
   Services.fog.testResetFOG();
 }
 
+async function testIconClickReviewChecker(expanded) {
+  const { sidebarMain } = SidebarController;
+
+  await SidebarController.initializeUIState({
+    launcherVisible: true,
+    launcherExpanded: expanded,
+    command: "",
+  });
+  Assert.equal(
+    SidebarController.sidebarMain.expanded,
+    expanded,
+    `The launcher is ${expanded ? "expanded" : "collapsed"}`
+  );
+  Assert.ok(!SidebarController._state.panelOpen, "No panel is open");
+
+  let reviewCheckerButton = sidebarMain.shadowRoot.querySelector(
+    "moz-button[view='viewReviewCheckerSidebar']"
+  );
+  EventUtils.synthesizeMouseAtCenter(reviewCheckerButton, {});
+
+  let event = Glean.sidebar.shoppingReviewCheckerIconClick.testGetValue();
+  Assert.equal(event?.length, 1, "One event was reported.");
+  Assert.deepEqual(
+    event?.[0].extra,
+    { sidebar_open: `${expanded}` },
+    `Event indicates the sidebar was ${expanded ? "expanded" : "collapsed"}.`
+  );
+
+  await SpecialPowers.popPrefEnv();
+  await SidebarController.initializeUIState({
+    launcherExpanded: false,
+    launcherVisible: true,
+    command: "",
+  });
+  Services.fog.testResetFOG();
+}
+
 add_task(async function test_icon_click_collapsed_sidebar() {
   await testIconClick(false);
 });
 
 add_task(async function test_icon_click_expanded_sidebar() {
   await testIconClick(true);
+});
+
+add_task(async function test_review_checker_icon_click_collapsed_sidebar() {
+  await SpecialPowers.pushPrefEnv({
+    set: [["browser.shopping.experience2023.integratedSidebar", true]],
+  });
+  await testIconClickReviewChecker(false);
+  await SpecialPowers.popPrefEnv();
+  await SidebarController.waitUntilStable();
+});
+
+add_task(async function test_review_checker_icon_click_expanded_sidebar() {
+  await SpecialPowers.pushPrefEnv({
+    set: [["browser.shopping.experience2023.integratedSidebar", true]],
+  });
+  await testIconClickReviewChecker(true);
+  await SpecialPowers.popPrefEnv();
+  await SidebarController.waitUntilStable();
 });

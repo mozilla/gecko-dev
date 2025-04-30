@@ -8,6 +8,9 @@
  * and provides APIs for sidebar extensions, etc.
  */
 
+var { ShoppingUtils } = ChromeUtils.importESModule(
+  "resource:///modules/ShoppingUtils.sys.mjs"
+);
 const { DeferredTask } = ChromeUtils.importESModule(
   "resource://gre/modules/DeferredTask.sys.mjs"
 );
@@ -17,6 +20,7 @@ const toolsNameMap = {
   viewTabsSidebar: "syncedtabs",
   viewHistorySidebar: "history",
   viewBookmarksSidebar: "bookmarks",
+  viewReviewCheckerSidebar: "reviewchecker",
   viewCPMSidebar: "passwords",
 };
 const EXPAND_ON_HOVER_DEBOUNCE_RATE_MS = 200;
@@ -166,6 +170,24 @@ var SidebarController = {
         gleanClickEvent: Glean.sidebar.chatbotIconClick,
       }
     );
+
+    if (!PrivateBrowsingUtils.isWindowPrivate(window)) {
+      this.registerPrefSidebar(
+        "browser.shopping.experience2023.integratedSidebar",
+        "viewReviewCheckerSidebar",
+        {
+          elementId: "sidebar-switcher-review-checker",
+          url: "chrome://browser/content/shopping/review-checker.xhtml",
+          menuId: "menu_reviewCheckerSidebar",
+          menuL10nId: "menu-view-review-checker",
+          revampL10nId: "sidebar-menu-review-checker-label",
+          iconUrl: "chrome://browser/content/shopping/assets/shopping.svg",
+          gleanEvent: Glean.shopping.sidebarToggle,
+          gleanClickEvent: Glean.sidebar.shoppingReviewCheckerIconClick,
+          recordSidebarVersion: true,
+        }
+      );
+    }
 
     this.registerPrefSidebar(
       "browser.contextual-password-manager.enabled",
