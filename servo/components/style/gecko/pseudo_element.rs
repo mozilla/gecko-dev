@@ -67,6 +67,8 @@ impl ::selectors::parser::PseudoElement for PseudoElement {
     /// flat tree parent, which might not be the originating element.
     #[inline]
     fn is_element_backed(&self) -> bool {
+        // Note: We doen't include ::view-transition here because it inherits from the originating
+        // element, instead of the snapshot containing block.
         self.is_named_view_transition() || *self == PseudoElement::DetailsContent
     }
 }
