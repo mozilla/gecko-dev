@@ -230,10 +230,10 @@ module.exports = function (config) {
               },
             "content-src/components/DiscoveryStreamComponents/CardSections/CardSections.jsx":
               {
-                statements: 84.55,
-                lines: 84.03,
+                statements: 86.05,
+                lines: 85.48,
                 functions: 79.31,
-                branches: 53.62,
+                branches: 54.41,
               },
             "content-src/components/DiscoveryStreamComponents/SectionContextMenu/SectionContextMenu.jsx":
               {

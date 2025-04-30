@@ -36,7 +36,7 @@
       font-weight: var(--font-weight-bold);
     }
 
-    .personalized-card-link {
+    a {
       color: var(--link-color);
       font-size: var(--font-size-small);
     }
@@ -50,7 +50,7 @@
         justify-self: initial;
       }
 
-      .personalized-card-link {
+      a {
         margin-top: 8px;
         margin-bottom: 15px;
       }
@@ -76,7 +76,7 @@
         width: 195px;
       }
 
-      .personalized-card-link {
+      a {
         margin-top: -60px;
         grid-column: 3;
       }
@@ -106,7 +106,7 @@
         width: 220px;
       }
 
-      .personalized-card-link {
+      a {
         grid-column:  4;
         margin-top: -50px;
       }
@@ -125,7 +125,7 @@
         margin-inline-end: 40px;
       }
 
-      .personalized-card-link {
+      a {
         width: 290px;
         margin-top: -60px;
       }

@@ -53,7 +53,7 @@ function MessageWrapper({ children, dispatch, hiddenOverride, onDismiss }) {
     } else {
       dispatch(ac.AlsoToMain(action));
     }
-    onDismiss?.();
+    onDismiss();
   }, [dispatch, message, onDismiss]);
 
   function handleDismiss() {
@@ -93,26 +93,24 @@ function MessageWrapper({ children, dispatch, hiddenOverride, onDismiss }) {
     }
   }
 
-  if (!message || (!hiddenOverride && message.isHidden)) {
-    return null;
-  }
-
   // only display the message if `isHidden` is false
   return (
-    <div
-      ref={el => {
-        ref.current = [el];
-      }}
-      className="message-wrapper"
-    >
-      {React.cloneElement(children, {
-        isIntersecting,
-        handleDismiss,
-        handleClick,
-        handleBlock,
-        handleClose,
-      })}
-    </div>
+    (!message.isHidden || hiddenOverride) && (
+      <div
+        ref={el => {
+          ref.current = [el];
+        }}
+        className="message-wrapper"
+      >
+        {React.cloneElement(children, {
+          isIntersecting,
+          handleDismiss,
+          handleClick,
+          handleBlock,
+          handleClose,
+        })}
+      </div>
+    )
   );
 }
 

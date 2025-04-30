@@ -2,33 +2,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-import React, { useCallback } from "react";
-import { SafeAnchor } from "../SafeAnchor/SafeAnchor";
-import { actionCreators as ac, actionTypes as at } from "common/Actions.mjs";
+import React from "react";
 
-export const PersonalizedCard = ({
-  dispatch,
-  handleDismiss,
-  handleClick,
-  handleBlock,
-  messageData,
-}) => {
+export const PersonalizedCard = ({ onDismiss }) => {
   const wavingFox =
     "chrome://newtab/content/data/content/assets/waving-fox.svg";
-
-  const onDismiss = useCallback(() => {
-    handleDismiss();
-    handleBlock();
-  }, [handleDismiss, handleBlock]);
-
-  const onToggleClick = useCallback(
-    elementId => {
-      dispatch({ type: at.SHOW_PERSONALIZE });
-      dispatch(ac.UserEvent({ event: "SHOW_PERSONALIZE" }));
-      handleClick(elementId);
-    },
-    [dispatch, handleClick]
-  );
 
   return (
     <aside className="personalized-card-wrapper">
@@ -42,25 +20,17 @@ export const PersonalizedCard = ({
       </div>
       <div className="personalized-card-inner">
         <img src={wavingFox} alt="" />
-        <h2>{messageData.content.cardTitle}</h2>
-        <p>{messageData.content.cardMessage}</p>
-        <moz-button
-          type="primary"
-          class="personalized-card-cta"
-          onClick={() => onToggleClick("open-personalization-panel")}
-        >
-          {messageData.content.ctaText}
+        <h2>Personalized Just for You</h2>
+        <p>
+          We’re customizing your feed to show content that matters to you, while
+          ensuring your privacy is always respected.
+        </p>
+        <moz-button type="primary" class="personalized-card-cta">
+          Manage your settings
         </moz-button>
-        <SafeAnchor
-          className="personalized-card-link"
-          dispatch={dispatch}
-          url="https://www.mozilla.org/en-US/privacy/firefox/#notice"
-          onLinkClick={() => {
-            handleClick("link-click");
-          }}
-        >
-          {messageData.content.linkText}
-        </SafeAnchor>
+        <a href="https://www.mozilla.org/en-US/privacy/firefox/#notice">
+          Learn how we protect and manage data
+        </a>
       </div>
     </aside>
   );
