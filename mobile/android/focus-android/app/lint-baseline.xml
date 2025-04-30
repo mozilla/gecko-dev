@@ -2115,17 +2115,6 @@
 
     <issue
         id="UnusedResources"
-        message="The resource `R.anim.fab_reveal` appears to be unused"
-        errorLine1="&lt;set xmlns:android=&quot;http://schemas.android.com/apk/res/android&quot;"
-        errorLine2="^">
-        <location
-            file="src/main/res/anim/fab_reveal.xml"
-            line="5"
-            column="1"/>
-    </issue>
-
-    <issue
-        id="UnusedResources"
         message="The resource `R.drawable.find_in_page_background` appears to be unused"
         errorLine1="&lt;layer-list xmlns:android=&quot;http://schemas.android.com/apk/res/android&quot;"
         errorLine2="^">
