@@ -1,0 +1,12 @@
+[DEFAULT]
+subsuite = "a11y"
+support-files = [
+  "head.js",
+  "!/accessible/tests/browser/shared-head.js",
+  "!/accessible/tests/mochitest/*.js",
+]
+skip-if = ["tsan"] # Bug 1963506
+
+["browser_manyMutations.js"]
+
+["browser_spellingErrors.js"]
