@@ -113,7 +113,7 @@ class Repository:
 
     @property
     def has_git_cinnabar(self):
-        """True if the repository is using git cinnabar."""
+        """True if git cinnabar is installed."""
         return False
 
     @abc.abstractproperty
@@ -123,6 +123,11 @@ class Repository:
     @abc.abstractproperty
     def head_ref(self):
         """Hash of HEAD revision."""
+
+    @property
+    @abc.abstractmethod
+    def is_cinnabar_repo(self) -> bool:
+        """True if the repo is a git cinnabar repo"""
 
     @abc.abstractproperty
     def base_ref(self):
@@ -134,6 +139,10 @@ class Repository:
 
         Return None if the hg hash of the base ref could not be calculated.
         """
+
+    @abc.abstractmethod
+    def base_ref_as_commit(self):
+        """Git hash of revision the current topic branch is based on."""
 
     @abc.abstractproperty
     def branch(self):

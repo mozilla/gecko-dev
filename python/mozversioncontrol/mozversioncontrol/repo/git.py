@@ -105,6 +105,9 @@ class GitRepository(Repository):
         except subprocess.CalledProcessError:
             return
 
+    def base_ref_as_commit(self):
+        return self.base_ref
+
     @property
     def branch(self):
         # This mimics `git branch --show-current` for older versions of git.
