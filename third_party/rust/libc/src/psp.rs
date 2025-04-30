@@ -4,16 +4,8 @@
 //! by the linker. Crates that use these definitions must, somewhere in the
 //! crate graph, include a stub provider crate such as the `psp` crate.
 
-pub type c_schar = i8;
-pub type c_uchar = u8;
-pub type c_short = i16;
-pub type c_ushort = u16;
-pub type c_int = i32;
-pub type c_uint = u32;
-pub type c_float = f32;
-pub type c_double = f64;
-pub type c_longlong = i64;
-pub type c_ulonglong = u64;
+use crate::prelude::*;
+
 pub type intmax_t = i64;
 pub type uintmax_t = u64;
 
@@ -22,30 +14,6 @@ pub type ptrdiff_t = isize;
 pub type intptr_t = isize;
 pub type uintptr_t = usize;
 pub type ssize_t = isize;
-
-pub type c_char = u8;
-pub type c_long = i64;
-pub type c_ulong = u64;
-
-cfg_if! {
-    if #[cfg(libc_core_cvoid)] {
-        pub use ::ffi::c_void;
-    } else {
-        // Use repr(u8) as LLVM expects `void*` to be the same as `i8*` to help
-        // enable more optimization opportunities around it recognizing things
-        // like malloc/free.
-        #[repr(u8)]
-        #[allow(missing_copy_implementations)]
-        #[allow(missing_debug_implementations)]
-        pub enum c_void {
-            // Two dummy variants so the #[repr] attribute can be used.
-            #[doc(hidden)]
-            __variant1,
-            #[doc(hidden)]
-            __variant2,
-        }
-    }
-}
 
 pub type SceKernelVTimerHandler = unsafe extern "C" fn(
     uid: SceUid,
@@ -74,16 +42,16 @@ pub type IoPermissions = i32;
 pub type UmdCallback = fn(unknown: i32, event: i32) -> i32;
 
 pub type SceMpegRingbufferCb =
-    ::Option<unsafe extern "C" fn(data: *mut c_void, num_packets: i32, param: *mut c_void) -> i32>;
+    Option<unsafe extern "C" fn(data: *mut c_void, num_packets: i32, param: *mut c_void) -> i32>;
 
-pub type GuCallback = ::Option<extern "C" fn(id: i32, arg: *mut c_void)>;
+pub type GuCallback = Option<extern "C" fn(id: i32, arg: *mut c_void)>;
 pub type GuSwapBuffersCallback =
-    ::Option<extern "C" fn(display: *mut *mut c_void, render: *mut *mut c_void)>;
+    Option<extern "C" fn(display: *mut *mut c_void, render: *mut *mut c_void)>;
 
 pub type SceNetAdhocctlHandler =
-    ::Option<unsafe extern "C" fn(flag: i32, error: i32, unknown: *mut c_void)>;
+    Option<unsafe extern "C" fn(flag: i32, error: i32, unknown: *mut c_void)>;
 
-pub type AdhocMatchingCallback = ::Option<
+pub type AdhocMatchingCallback = Option<
     unsafe extern "C" fn(
         matching_id: i32,
         event: i32,
@@ -93,15 +61,15 @@ pub type AdhocMatchingCallback = ::Option<
     ),
 >;
 
-pub type SceNetApctlHandler = ::Option<
+pub type SceNetApctlHandler = Option<
     unsafe extern "C" fn(oldState: i32, newState: i32, event: i32, error: i32, pArg: *mut c_void),
 >;
 
-pub type HttpMallocFunction = ::Option<unsafe extern "C" fn(size: usize) -> *mut c_void>;
+pub type HttpMallocFunction = Option<unsafe extern "C" fn(size: usize) -> *mut c_void>;
 pub type HttpReallocFunction =
-    ::Option<unsafe extern "C" fn(p: *mut c_void, size: usize) -> *mut c_void>;
-pub type HttpFreeFunction = ::Option<unsafe extern "C" fn(p: *mut c_void)>;
-pub type HttpPasswordCB = ::Option<
+    Option<unsafe extern "C" fn(p: *mut c_void, size: usize) -> *mut c_void>;
+pub type HttpFreeFunction = Option<unsafe extern "C" fn(p: *mut c_void)>;
+pub type HttpPasswordCB = Option<
     unsafe extern "C" fn(
         request: i32,
         auth_type: HttpAuthType,
@@ -1401,7 +1369,7 @@ s! {
     pub struct sockaddr {
         pub sa_len: u8,
         pub sa_family: u8,
-        pub sa_data: [u8;14],
+        pub sa_data: [u8; 14],
     }
 
     pub struct in_addr {
@@ -1448,9 +1416,9 @@ s! {
     }
 
     pub struct GeCallbackData {
-        pub signal_func: ::Option<extern "C" fn(id: i32, arg: *mut c_void)>,
+        pub signal_func: Option<extern "C" fn(id: i32, arg: *mut c_void)>,
         pub signal_arg: *mut c_void,
-        pub finish_func: ::Option<extern "C" fn(id: i32, arg: *mut c_void)>,
+        pub finish_func: Option<extern "C" fn(id: i32, arg: *mut c_void)>,
         pub finish_arg: *mut c_void,
     }
 

@@ -10,8 +10,10 @@
 # See Cargo.toml.orig for the original contents.
 
 [package]
+edition = "2021"
+rust-version = "1.63"
 name = "libc"
-version = "0.2.161"
+version = "0.2.171"
 authors = ["The Rust Project Developers"]
 build = "build.rs"
 exclude = [
@@ -20,6 +22,7 @@ exclude = [
     "/.cirrus.yml",
     "/triagebot.toml",
 ]
+autolib = false
 autobins = false
 autoexamples = false
 autotests = false
@@ -48,10 +51,7 @@ repository = "https://github.com/rust-lang/libc"
 [package.metadata.docs.rs]
 cargo-args = ["-Zbuild-std=core"]
 default-target = "x86_64-unknown-linux-gnu"
-features = [
-    "const-extern-fn",
-    "extra_traits",
-]
+features = ["extra_traits"]
 targets = [
     "aarch64-apple-darwin",
     "aarch64-apple-ios",
@@ -80,7 +80,6 @@ targets = [
     "armv7-wrs-vxworks-eabihf",
     "armv7r-none-eabi",
     "armv7r-none-eabihf",
-    "i586-pc-windows-msvc",
     "i586-unknown-linux-gnu",
     "i586-unknown-linux-musl",
     "i686-linux-android",
@@ -139,7 +138,6 @@ targets = [
     "thumbv7neon-unknown-linux-gnueabihf",
     "wasm32-unknown-emscripten",
     "wasm32-unknown-unknown",
-    "wasm32-wasi",
     "x86_64-apple-darwin",
     "x86_64-apple-ios",
     "x86_64-fortanix-unknown-sgx",
@@ -163,18 +161,6 @@ targets = [
     "x86_64-wrs-vxworks",
 ]
 
-[lib]
-name = "libc"
-path = "src/lib.rs"
-
-[[test]]
-name = "const_fn"
-path = "tests/const_fn.rs"
-
-[dependencies.rustc-std-workspace-core]
-version = "1.0.0"
-optional = true
-
 [features]
 align = []
 const-extern-fn = []
@@ -186,3 +172,15 @@ rustc-dep-of-std = [
 ]
 std = []
 use_std = ["std"]
+
+[lib]
+name = "libc"
+path = "src/lib.rs"
+
+[[test]]
+name = "const_fn"
+path = "tests/const_fn.rs"
+
+[dependencies.rustc-std-workspace-core]
+version = "1.0.0"
+optional = true

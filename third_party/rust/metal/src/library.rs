@@ -9,8 +9,7 @@ use super::*;
 
 use objc::runtime::{BOOL, NO, YES};
 
-use std::ffi::CStr;
-use std::os::raw::c_char;
+use std::ffi::{c_char, CStr};
 use std::ptr;
 
 /// Only available on (macos(10.12), ios(10.0)
@@ -495,13 +494,12 @@ impl CompileOptionsRef {
         unsafe {
             let libraries: *mut Object = msg_send![self, libraries];
             let count: NSUInteger = msg_send![libraries, count];
-            let ret = (0..count)
+            (0..count)
                 .map(|i| {
                     let lib = msg_send![libraries, objectAtIndex: i];
                     DynamicLibrary::from_ptr(lib)
                 })
-                .collect();
-            ret
+                .collect()
         }
     }
 
@@ -611,13 +609,12 @@ impl LibraryRef {
         unsafe {
             let names: *mut Object = msg_send![self, functionNames];
             let count: NSUInteger = msg_send![names, count];
-            let ret = (0..count)
+            (0..count)
                 .map(|i| {
                     let name = msg_send![names, objectAtIndex: i];
                     nsstring_as_str(name).to_string()
                 })
-                .collect();
-            ret
+                .collect()
         }
     }
 
@@ -859,13 +856,12 @@ impl LinkedFunctionsRef {
         unsafe {
             let functions: *mut Object = msg_send![self, functions];
             let count: NSUInteger = msg_send![functions, count];
-            let ret = (0..count)
+            (0..count)
                 .map(|i| {
                     let f = msg_send![functions, objectAtIndex: i];
                     Function::from_ptr(f)
                 })
-                .collect();
-            ret
+                .collect()
         }
     }
 
@@ -880,13 +876,12 @@ impl LinkedFunctionsRef {
         unsafe {
             let functions: *mut Object = msg_send![self, binaryFunctions];
             let count: NSUInteger = msg_send![functions, count];
-            let ret = (0..count)
+            (0..count)
                 .map(|i| {
                     let f = msg_send![functions, objectAtIndex: i];
                     Function::from_ptr(f)
                 })
-                .collect();
-            ret
+                .collect()
         }
     }
 

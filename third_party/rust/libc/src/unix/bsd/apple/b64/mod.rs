@@ -1,7 +1,6 @@
 //! 64-bit specific Apple (ios/darwin) definitions
 
-pub type c_long = i64;
-pub type c_ulong = u64;
+use crate::prelude::*;
 
 s! {
     pub struct timeval32 {
@@ -10,14 +9,14 @@ s! {
     }
 
     pub struct if_data {
-        pub ifi_type: ::c_uchar,
-        pub ifi_typelen: ::c_uchar,
-        pub ifi_physical: ::c_uchar,
-        pub ifi_addrlen: ::c_uchar,
-        pub ifi_hdrlen: ::c_uchar,
-        pub ifi_recvquota: ::c_uchar,
-        pub ifi_xmitquota: ::c_uchar,
-        pub ifi_unused1: ::c_uchar,
+        pub ifi_type: c_uchar,
+        pub ifi_typelen: c_uchar,
+        pub ifi_physical: c_uchar,
+        pub ifi_addrlen: c_uchar,
+        pub ifi_hdrlen: c_uchar,
+        pub ifi_recvquota: c_uchar,
+        pub ifi_xmitquota: c_uchar,
+        pub ifi_unused1: c_uchar,
         pub ifi_mtu: u32,
         pub ifi_metric: u32,
         pub ifi_baudrate: u32,
@@ -42,22 +41,22 @@ s! {
     }
 
     pub struct bpf_hdr {
-        pub bh_tstamp: ::timeval32,
+        pub bh_tstamp: crate::timeval32,
         pub bh_caplen: u32,
         pub bh_datalen: u32,
-        pub bh_hdrlen: ::c_ushort,
+        pub bh_hdrlen: c_ushort,
     }
 }
 
 s_no_extra_traits! {
     pub struct pthread_attr_t {
         __sig: c_long,
-        __opaque: [::c_char; 56]
+        __opaque: [c_char; 56],
     }
 
     pub struct pthread_once_t {
         __sig: c_long,
-        __opaque: [::c_char; __PTHREAD_ONCE_SIZE__],
+        __opaque: [c_char; __PTHREAD_ONCE_SIZE__],
     }
 }
 
@@ -66,23 +65,24 @@ cfg_if! {
         impl PartialEq for pthread_attr_t {
             fn eq(&self, other: &pthread_attr_t) -> bool {
                 self.__sig == other.__sig
-                    && self.__opaque
-                    .iter()
-                    .zip(other.__opaque.iter())
-                    .all(|(a,b)| a == b)
+                    && self
+                        .__opaque
+                        .iter()
+                        .zip(other.__opaque.iter())
+                        .all(|(a, b)| a == b)
             }
         }
         impl Eq for pthread_attr_t {}
-        impl ::fmt::Debug for pthread_attr_t {
-            fn fmt(&self, f: &mut ::fmt::Formatter) -> ::fmt::Result {
+        impl fmt::Debug for pthread_attr_t {
+            fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
                 f.debug_struct("pthread_attr_t")
                     .field("__sig", &self.__sig)
-                // FIXME: .field("__opaque", &self.__opaque)
+                    // FIXME(debug): .field("__opaque", &self.__opaque)
                     .finish()
             }
         }
-        impl ::hash::Hash for pthread_attr_t {
-            fn hash<H: ::hash::Hasher>(&self, state: &mut H) {
+        impl hash::Hash for pthread_attr_t {
+            fn hash<H: hash::Hasher>(&self, state: &mut H) {
                 self.__sig.hash(state);
                 self.__opaque.hash(state);
             }
@@ -90,22 +90,23 @@ cfg_if! {
         impl PartialEq for pthread_once_t {
             fn eq(&self, other: &pthread_once_t) -> bool {
                 self.__sig == other.__sig
-                    && self.__opaque
-                    .iter()
-                    .zip(other.__opaque.iter())
-                    .all(|(a,b)| a == b)
+                    && self
+                        .__opaque
+                        .iter()
+                        .zip(other.__opaque.iter())
+                        .all(|(a, b)| a == b)
             }
         }
         impl Eq for pthread_once_t {}
-        impl ::fmt::Debug for pthread_once_t {
-            fn fmt(&self, f: &mut ::fmt::Formatter) -> ::fmt::Result {
+        impl fmt::Debug for pthread_once_t {
+            fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
                 f.debug_struct("pthread_once_t")
                     .field("__sig", &self.__sig)
                     .finish()
             }
         }
-        impl ::hash::Hash for pthread_once_t {
-            fn hash<H: ::hash::Hasher>(&self, state: &mut H) {
+        impl hash::Hash for pthread_once_t {
+            fn hash<H: hash::Hasher>(&self, state: &mut H) {
                 self.__sig.hash(state);
                 self.__opaque.hash(state);
             }
@@ -115,7 +116,7 @@ cfg_if! {
 
 #[doc(hidden)]
 #[deprecated(since = "0.2.55")]
-pub const NET_RT_MAXID: ::c_int = 11;
+pub const NET_RT_MAXID: c_int = 11;
 
 pub const __PTHREAD_MUTEX_SIZE__: usize = 56;
 pub const __PTHREAD_COND_SIZE__: usize = 40;
@@ -124,26 +125,22 @@ pub const __PTHREAD_ONCE_SIZE__: usize = 8;
 pub const __PTHREAD_RWLOCK_SIZE__: usize = 192;
 pub const __PTHREAD_RWLOCKATTR_SIZE__: usize = 16;
 
-pub const TIOCTIMESTAMP: ::c_ulong = 0x40107459;
-pub const TIOCDCDTIMESTAMP: ::c_ulong = 0x40107458;
+pub const TIOCTIMESTAMP: c_ulong = 0x40107459;
+pub const TIOCDCDTIMESTAMP: c_ulong = 0x40107458;
 
-pub const BIOCSETF: ::c_ulong = 0x80104267;
-pub const BIOCSRTIMEOUT: ::c_ulong = 0x8010426d;
-pub const BIOCGRTIMEOUT: ::c_ulong = 0x4010426e;
-pub const BIOCSETFNR: ::c_ulong = 0x8010427e;
+pub const BIOCSETF: c_ulong = 0x80104267;
+pub const BIOCSRTIMEOUT: c_ulong = 0x8010426d;
+pub const BIOCGRTIMEOUT: c_ulong = 0x4010426e;
+pub const BIOCSETFNR: c_ulong = 0x8010427e;
 
 const _PTHREAD_ONCE_SIG_INIT: c_long = 0x30B1BCBA;
-pub const PTHREAD_ONCE_INIT: ::pthread_once_t = ::pthread_once_t {
+pub const PTHREAD_ONCE_INIT: crate::pthread_once_t = crate::pthread_once_t {
     __sig: _PTHREAD_ONCE_SIG_INIT,
     __opaque: [0; 8],
 };
 
 extern "C" {
-    pub fn exchangedata(
-        path1: *const ::c_char,
-        path2: *const ::c_char,
-        options: ::c_uint,
-    ) -> ::c_int;
+    pub fn exchangedata(path1: *const c_char, path2: *const c_char, options: c_uint) -> c_int;
 }
 
 cfg_if! {

@@ -30,11 +30,12 @@ impl ToKey for str {
     }
 }
 
-/// A key in a structured key-value pair.
+/// A key in a key-value.
 // These impls must only be based on the as_str() representation of the key
 // If a new field (such as an optional index) is added to the key they must not affect comparison
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Key<'k> {
+    // NOTE: This may become `Cow<'k, str>`
     key: &'k str,
 }
 
@@ -45,13 +46,21 @@ impl<'k> Key<'k> {
     }
 
     /// Get a borrowed string from this key.
+    ///
+    /// The lifetime of the returned string is bound to the borrow of `self` rather
+    /// than to `'k`.
     pub fn as_str(&self) -> &str {
         self.key
     }
 
-    /// Try get a string borrowed for the `'k` lifetime from this key.
+    /// Try get a borrowed string for the lifetime `'k` from this key.
+    ///
+    /// If the key is a borrow of a longer lived string, this method will return `Some`.
+    /// If the key is internally buffered, this method will return `None`.
     pub fn to_borrowed_str(&self) -> Option<&'k str> {
-        // NOTE: This API leaves room for keys to be owned
+        // NOTE: If the internals of `Key` support buffering this
+        // won't be unconditionally `Some` anymore. We want to keep
+        // this option open
         Some(self.key)
     }
 }
@@ -99,15 +108,12 @@ mod std_support {
     }
 }
 
-#[cfg(feature = "kv_unstable_sval")]
+#[cfg(feature = "kv_sval")]
 mod sval_support {
     use super::*;
 
-    extern crate sval;
-    extern crate sval_ref;
-
-    use self::sval::Value;
-    use self::sval_ref::ValueRef;
+    use sval::Value;
+    use sval_ref::ValueRef;
 
     impl<'a> Value for Key<'a> {
         fn stream<'sval, S: sval::Stream<'sval> + ?Sized>(
@@ -119,22 +125,17 @@ mod sval_support {
     }
 
     impl<'a> ValueRef<'a> for Key<'a> {
-        fn stream_ref<S: self::sval::Stream<'a> + ?Sized>(
-            &self,
-            stream: &mut S,
-        ) -> self::sval::Result {
+        fn stream_ref<S: sval::Stream<'a> + ?Sized>(&self, stream: &mut S) -> sval::Result {
             self.key.stream(stream)
         }
     }
 }
 
-#[cfg(feature = "kv_unstable_serde")]
+#[cfg(feature = "kv_serde")]
 mod serde_support {
     use super::*;
 
-    extern crate serde;
-
-    use self::serde::{Serialize, Serializer};
+    use serde::{Serialize, Serializer};
 
     impl<'a> Serialize for Key<'a> {
         fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
@@ -153,5 +154,10 @@ mod tests {
     #[test]
     fn key_from_string() {
         assert_eq!("a key", Key::from_str("a key").as_str());
+    }
+
+    #[test]
+    fn key_to_borrowed() {
+        assert_eq!("a key", Key::from_str("a key").to_borrowed_str().unwrap());
     }
 }

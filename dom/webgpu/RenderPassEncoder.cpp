@@ -168,17 +168,23 @@ ffi::WGPURecordedRenderPass* BeginRenderPass(
     return nullptr;
   }
 
-  std::array<ffi::WGPURenderPassColorAttachment, WGPUMAX_COLOR_ATTACHMENTS>
+  std::array<ffi::WGPUFfiRenderPassColorAttachment, WGPUMAX_COLOR_ATTACHMENTS>
       colorDescs = {};
   desc.color_attachments = colorDescs.data();
   desc.color_attachments_length = aDesc.mColorAttachments.Length();
 
   for (size_t i = 0; i < aDesc.mColorAttachments.Length(); ++i) {
     const auto& ca = aDesc.mColorAttachments[i];
-    ffi::WGPURenderPassColorAttachment& cd = colorDescs[i];
+    ffi::WGPUFfiRenderPassColorAttachment& cd = colorDescs[i];
     cd.view = ca.mView->mId;
     cd.store_op = ConvertStoreOp(ca.mStoreOp);
 
+    if (ca.mDepthSlice.WasPassed()) {
+      cd.depth_slice.tag = ffi::WGPUFfiOption_u32_Some_u32;
+      cd.depth_slice.some = ca.mDepthSlice.Value();
+    } else {
+      cd.depth_slice.tag = ffi::WGPUFfiOption_u32_None_u32;
+    }
     if (ca.mResolveTarget.WasPassed()) {
       cd.resolve_target = ca.mResolveTarget.Value().mId;
     }

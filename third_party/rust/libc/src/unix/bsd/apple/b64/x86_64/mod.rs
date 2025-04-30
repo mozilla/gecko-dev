@@ -1,12 +1,14 @@
-pub type boolean_t = ::c_uint;
+use crate::prelude::*;
+
+pub type boolean_t = c_uint;
 pub type mcontext_t = *mut __darwin_mcontext64;
 
 s! {
     pub struct ucontext_t {
-        pub uc_onstack: ::c_int,
-        pub uc_sigmask: ::sigset_t,
-        pub uc_stack: ::stack_t,
-        pub uc_link: *mut ::ucontext_t,
+        pub uc_onstack: c_int,
+        pub uc_sigmask: crate::sigset_t,
+        pub uc_stack: crate::stack_t,
+        pub uc_link: *mut crate::ucontext_t,
         pub uc_mcsize: usize,
         pub uc_mcontext: mcontext_t,
     }
@@ -49,9 +51,9 @@ s! {
     }
 
     pub struct __darwin_x86_float_state64 {
-        pub __fpu_reserved: [::c_int; 2],
-        __fpu_fcw: ::c_short,
-        __fpu_fsw: ::c_short,
+        pub __fpu_reserved: [c_int; 2],
+        __fpu_fcw: c_short,
+        __fpu_fsw: c_short,
         pub __fpu_ftw: u8,
         pub __fpu_rsrv1: u8,
         pub __fpu_fop: u16,
@@ -91,90 +93,86 @@ s! {
         // allows us to auto-implement traits for it since the length of the
         // array is less than 32
         __fpu_rsrv4: [u32; 24],
-        pub __fpu_reserved1: ::c_int,
+        pub __fpu_reserved1: c_int,
     }
 
     pub struct __darwin_mmst_reg {
-        pub __mmst_reg: [::c_char; 10],
-        pub __mmst_rsrv: [::c_char; 6],
+        pub __mmst_reg: [c_char; 10],
+        pub __mmst_rsrv: [c_char; 6],
     }
 
     pub struct __darwin_xmm_reg {
-        pub __xmm_reg: [::c_char; 16],
+        pub __xmm_reg: [c_char; 16],
     }
 
     pub struct malloc_introspection_t {
-        _private: [::uintptr_t; 16], // FIXME: keeping private for now
+        _private: [crate::uintptr_t; 16], // FIXME(macos): keeping private for now
     }
 
     pub struct malloc_zone_t {
-        _reserved1: *mut ::c_void,
-        _reserved2: *mut ::c_void,
-        pub size: ::Option<unsafe extern "C" fn(
-            zone: *mut malloc_zone_t,
-            ptr: *const ::c_void,
-        ) -> ::size_t>,
-        pub malloc: ::Option<unsafe extern "C" fn(
-            zone: *mut malloc_zone_t,
-            size: ::size_t,
-        ) -> *mut ::c_void>,
-        pub calloc: ::Option<unsafe extern "C" fn(
-            zone: *mut malloc_zone_t,
-            num_items: ::size_t,
-            size: ::size_t,
-        ) -> *mut ::c_void>,
-        pub valloc: ::Option<unsafe extern "C" fn(
-            zone: *mut malloc_zone_t,
-            size: ::size_t
-        ) -> *mut ::c_void>,
-        pub free: ::Option<unsafe extern "C" fn(
-            zone: *mut malloc_zone_t,
-            ptr: *mut ::c_void
-        )>,
-        pub realloc: ::Option<unsafe extern "C" fn(
-            zone: *mut malloc_zone_t,
-            ptr: *mut ::c_void,
-            size: ::size_t,
-        ) -> *mut ::c_void>,
-        pub destroy: ::Option<unsafe extern "C" fn(zone: *mut malloc_zone_t)>,
-        pub zone_name: *const ::c_char,
-        pub batch_malloc: ::Option<unsafe extern "C" fn(
-            zone: *mut malloc_zone_t,
-            size: ::size_t,
-            results: *mut *mut ::c_void,
-            num_requested: ::c_uint,
-        ) -> ::c_uint>,
-        pub batch_free: ::Option<unsafe extern "C" fn(
-            zone: *mut malloc_zone_t,
-            to_be_freed: *mut *mut ::c_void,
-            num_to_be_freed: ::c_uint,
-        )>,
+        _reserved1: *mut c_void,
+        _reserved2: *mut c_void,
+        pub size:
+            Option<unsafe extern "C" fn(zone: *mut malloc_zone_t, ptr: *const c_void) -> size_t>,
+        pub malloc:
+            Option<unsafe extern "C" fn(zone: *mut malloc_zone_t, size: size_t) -> *mut c_void>,
+        pub calloc: Option<
+            unsafe extern "C" fn(
+                zone: *mut malloc_zone_t,
+                num_items: size_t,
+                size: size_t,
+            ) -> *mut c_void,
+        >,
+        pub valloc:
+            Option<unsafe extern "C" fn(zone: *mut malloc_zone_t, size: size_t) -> *mut c_void>,
+        pub free: Option<unsafe extern "C" fn(zone: *mut malloc_zone_t, ptr: *mut c_void)>,
+        pub realloc: Option<
+            unsafe extern "C" fn(
+                zone: *mut malloc_zone_t,
+                ptr: *mut c_void,
+                size: size_t,
+            ) -> *mut c_void,
+        >,
+        pub destroy: Option<unsafe extern "C" fn(zone: *mut malloc_zone_t)>,
+        pub zone_name: *const c_char,
+        pub batch_malloc: Option<
+            unsafe extern "C" fn(
+                zone: *mut malloc_zone_t,
+                size: size_t,
+                results: *mut *mut c_void,
+                num_requested: c_uint,
+            ) -> c_uint,
+        >,
+        pub batch_free: Option<
+            unsafe extern "C" fn(
+                zone: *mut malloc_zone_t,
+                to_be_freed: *mut *mut c_void,
+                num_to_be_freed: c_uint,
+            ),
+        >,
         pub introspect: *mut malloc_introspection_t,
-        pub version: ::c_uint,
-        pub memalign: ::Option<unsafe extern "C" fn(
-            zone: *mut malloc_zone_t,
-            alignment: ::size_t,
-            size: ::size_t,
-        ) -> *mut ::c_void>,
-        pub free_definite_size: ::Option<unsafe extern "C" fn(
-            zone: *mut malloc_zone_t,
-            ptr: *mut ::c_void,
-            size: ::size_t
-        )>,
-        pub pressure_relief: ::Option<unsafe extern "C" fn(
-            zone: *mut malloc_zone_t,
-            goal: ::size_t,
-        ) -> ::size_t>,
-        pub claimed_address: ::Option<unsafe extern "C" fn(
-            zone: *mut malloc_zone_t,
-            ptr: *mut ::c_void,
-        ) -> ::boolean_t>,
+        pub version: c_uint,
+        pub memalign: Option<
+            unsafe extern "C" fn(
+                zone: *mut malloc_zone_t,
+                alignment: size_t,
+                size: size_t,
+            ) -> *mut c_void,
+        >,
+        pub free_definite_size:
+            Option<unsafe extern "C" fn(zone: *mut malloc_zone_t, ptr: *mut c_void, size: size_t)>,
+        pub pressure_relief:
+            Option<unsafe extern "C" fn(zone: *mut malloc_zone_t, goal: size_t) -> size_t>,
+        pub claimed_address: Option<
+            unsafe extern "C" fn(zone: *mut malloc_zone_t, ptr: *mut c_void) -> crate::boolean_t,
+        >,
     }
 }
 
-cfg_if! {
-    if #[cfg(libc_align)] {
-        mod align;
-        pub use self::align::*;
+s_no_extra_traits! {
+    #[allow(missing_debug_implementations)]
+    #[repr(align(16))]
+    pub struct max_align_t {
+        priv_: [f64; 2],
     }
 }

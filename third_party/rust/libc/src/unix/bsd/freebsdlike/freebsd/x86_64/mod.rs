@@ -1,6 +1,6 @@
-pub type c_char = i8;
-pub type c_long = i64;
-pub type c_ulong = u64;
+use crate::prelude::*;
+
+pub type clock_t = i32;
 pub type wchar_t = i32;
 pub type time_t = i64;
 pub type suseconds_t = i64;
@@ -81,17 +81,63 @@ s_no_extra_traits! {
         pub xmm_pad: [u8; 224],
     }
 
-    #[cfg(libc_union)]
     pub union __c_anonymous_elf64_auxv_union {
-        pub a_val: ::c_long,
-        pub a_ptr: *mut ::c_void,
+        pub a_val: c_long,
+        pub a_ptr: *mut c_void,
         pub a_fcn: extern "C" fn(),
     }
 
     pub struct Elf64_Auxinfo {
-        pub a_type: ::c_long,
-        #[cfg(libc_union)]
+        pub a_type: c_long,
         pub a_un: __c_anonymous_elf64_auxv_union,
+    }
+
+    #[allow(missing_debug_implementations)]
+    #[repr(align(16))]
+    pub struct max_align_t {
+        priv_: [f64; 4],
+    }
+
+    #[repr(align(16))]
+    pub struct mcontext_t {
+        pub mc_onstack: register_t,
+        pub mc_rdi: register_t,
+        pub mc_rsi: register_t,
+        pub mc_rdx: register_t,
+        pub mc_rcx: register_t,
+        pub mc_r8: register_t,
+        pub mc_r9: register_t,
+        pub mc_rax: register_t,
+        pub mc_rbx: register_t,
+        pub mc_rbp: register_t,
+        pub mc_r10: register_t,
+        pub mc_r11: register_t,
+        pub mc_r12: register_t,
+        pub mc_r13: register_t,
+        pub mc_r14: register_t,
+        pub mc_r15: register_t,
+        pub mc_trapno: u32,
+        pub mc_fs: u16,
+        pub mc_gs: u16,
+        pub mc_addr: register_t,
+        pub mc_flags: u32,
+        pub mc_es: u16,
+        pub mc_ds: u16,
+        pub mc_err: register_t,
+        pub mc_rip: register_t,
+        pub mc_cs: register_t,
+        pub mc_rflags: register_t,
+        pub mc_rsp: register_t,
+        pub mc_ss: register_t,
+        pub mc_len: c_long,
+        pub mc_fpformat: c_long,
+        pub mc_ownedfp: c_long,
+        pub mc_fpstate: [c_long; 64],
+        pub mc_fsbase: register_t,
+        pub mc_gsbase: register_t,
+        pub mc_xfpustate: register_t,
+        pub mc_xfpustate_len: register_t,
+        pub mc_spare: [c_long; 4],
     }
 }
 
@@ -99,18 +145,19 @@ cfg_if! {
     if #[cfg(feature = "extra_traits")] {
         impl PartialEq for fpreg32 {
             fn eq(&self, other: &fpreg32) -> bool {
-                self.fpr_env == other.fpr_env &&
-                    self.fpr_acc == other.fpr_acc &&
-                    self.fpr_ex_sw == other.fpr_ex_sw &&
-                    self.fpr_pad
+                self.fpr_env == other.fpr_env
+                    && self.fpr_acc == other.fpr_acc
+                    && self.fpr_ex_sw == other.fpr_ex_sw
+                    && self
+                        .fpr_pad
                         .iter()
                         .zip(other.fpr_pad.iter())
-                        .all(|(a,b)| a == b)
+                        .all(|(a, b)| a == b)
             }
         }
         impl Eq for fpreg32 {}
-        impl ::fmt::Debug for fpreg32 {
-            fn fmt(&self, f: &mut ::fmt::Formatter) -> ::fmt::Result {
+        impl fmt::Debug for fpreg32 {
+            fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
                 f.debug_struct("fpreg32")
                     .field("fpr_env", &&self.fpr_env[..])
                     .field("fpr_acc", &self.fpr_acc)
@@ -119,8 +166,8 @@ cfg_if! {
                     .finish()
             }
         }
-        impl ::hash::Hash for fpreg32 {
-            fn hash<H: ::hash::Hasher>(&self, state: &mut H) {
+        impl hash::Hash for fpreg32 {
+            fn hash<H: hash::Hasher>(&self, state: &mut H) {
                 self.fpr_env.hash(state);
                 self.fpr_acc.hash(state);
                 self.fpr_ex_sw.hash(state);
@@ -130,15 +177,15 @@ cfg_if! {
 
         impl PartialEq for fpreg {
             fn eq(&self, other: &fpreg) -> bool {
-                self.fpr_env == other.fpr_env &&
-                    self.fpr_acc == other.fpr_acc &&
-                    self.fpr_xacc == other.fpr_xacc &&
-                    self.fpr_spare == other.fpr_spare
+                self.fpr_env == other.fpr_env
+                    && self.fpr_acc == other.fpr_acc
+                    && self.fpr_xacc == other.fpr_xacc
+                    && self.fpr_spare == other.fpr_spare
             }
         }
         impl Eq for fpreg {}
-        impl ::fmt::Debug for fpreg {
-            fn fmt(&self, f: &mut ::fmt::Formatter) -> ::fmt::Result {
+        impl fmt::Debug for fpreg {
+            fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
                 f.debug_struct("fpreg")
                     .field("fpr_env", &self.fpr_env)
                     .field("fpr_acc", &self.fpr_acc)
@@ -147,8 +194,8 @@ cfg_if! {
                     .finish()
             }
         }
-        impl ::hash::Hash for fpreg {
-            fn hash<H: ::hash::Hasher>(&self, state: &mut H) {
+        impl hash::Hash for fpreg {
+            fn hash<H: hash::Hasher>(&self, state: &mut H) {
                 self.fpr_env.hash(state);
                 self.fpr_acc.hash(state);
                 self.fpr_xacc.hash(state);
@@ -158,18 +205,19 @@ cfg_if! {
 
         impl PartialEq for xmmreg {
             fn eq(&self, other: &xmmreg) -> bool {
-                self.xmm_env == other.xmm_env &&
-                    self.xmm_acc == other.xmm_acc &&
-                    self.xmm_reg == other.xmm_reg &&
-                    self.xmm_pad
+                self.xmm_env == other.xmm_env
+                    && self.xmm_acc == other.xmm_acc
+                    && self.xmm_reg == other.xmm_reg
+                    && self
+                        .xmm_pad
                         .iter()
                         .zip(other.xmm_pad.iter())
-                        .all(|(a,b)| a == b)
+                        .all(|(a, b)| a == b)
             }
         }
         impl Eq for xmmreg {}
-        impl ::fmt::Debug for xmmreg {
-            fn fmt(&self, f: &mut ::fmt::Formatter) -> ::fmt::Result {
+        impl fmt::Debug for xmmreg {
+            fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
                 f.debug_struct("xmmreg")
                     .field("xmm_env", &self.xmm_env)
                     .field("xmm_acc", &self.xmm_acc)
@@ -178,8 +226,8 @@ cfg_if! {
                     .finish()
             }
         }
-        impl ::hash::Hash for xmmreg {
-            fn hash<H: ::hash::Hasher>(&self, state: &mut H) {
+        impl hash::Hash for xmmreg {
+            fn hash<H: hash::Hasher>(&self, state: &mut H) {
                 self.xmm_env.hash(state);
                 self.xmm_acc.hash(state);
                 self.xmm_reg.hash(state);
@@ -187,70 +235,176 @@ cfg_if! {
             }
         }
 
-        #[cfg(libc_union)]
+        // FIXME(msrv): suggested method was added in 1.85
+        #[allow(unpredictable_function_pointer_comparisons)]
         impl PartialEq for __c_anonymous_elf64_auxv_union {
             fn eq(&self, other: &__c_anonymous_elf64_auxv_union) -> bool {
-                unsafe { self.a_val == other.a_val
+                unsafe {
+                    self.a_val == other.a_val
                         || self.a_ptr == other.a_ptr
-                        || self.a_fcn == other.a_fcn }
+                        || self.a_fcn == other.a_fcn
+                }
             }
         }
-        #[cfg(libc_union)]
         impl Eq for __c_anonymous_elf64_auxv_union {}
-        #[cfg(libc_union)]
-        impl ::fmt::Debug for __c_anonymous_elf64_auxv_union {
-            fn fmt(&self, f: &mut ::fmt::Formatter) -> ::fmt::Result {
-                f.debug_struct("a_val")
-                    .field("a_val", unsafe { &self.a_val })
-                    .finish()
-            }
-        }
-        #[cfg(not(libc_union))]
         impl PartialEq for Elf64_Auxinfo {
             fn eq(&self, other: &Elf64_Auxinfo) -> bool {
-                self.a_type == other.a_type
-            }
-        }
-        #[cfg(libc_union)]
-        impl PartialEq for Elf64_Auxinfo {
-            fn eq(&self, other: &Elf64_Auxinfo) -> bool {
-                self.a_type == other.a_type
-                    && self.a_un == other.a_un
+                self.a_type == other.a_type && self.a_un == other.a_un
             }
         }
         impl Eq for Elf64_Auxinfo {}
-        #[cfg(not(libc_union))]
-        impl ::fmt::Debug for Elf64_Auxinfo {
-            fn fmt(&self, f: &mut ::fmt::Formatter) -> ::fmt::Result {
-                f.debug_struct("Elf64_Auxinfo")
-                    .field("a_type", &self.a_type)
-                    .finish()
-            }
-        }
-        #[cfg(libc_union)]
-        impl ::fmt::Debug for Elf64_Auxinfo {
-            fn fmt(&self, f: &mut ::fmt::Formatter) -> ::fmt::Result {
+        impl fmt::Debug for Elf64_Auxinfo {
+            fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
                 f.debug_struct("Elf64_Auxinfo")
                     .field("a_type", &self.a_type)
                     .field("a_un", &self.a_un)
                     .finish()
             }
         }
+
+        impl PartialEq for mcontext_t {
+            fn eq(&self, other: &mcontext_t) -> bool {
+                self.mc_onstack == other.mc_onstack
+                    && self.mc_rdi == other.mc_rdi
+                    && self.mc_rsi == other.mc_rsi
+                    && self.mc_rdx == other.mc_rdx
+                    && self.mc_rcx == other.mc_rcx
+                    && self.mc_r8 == other.mc_r8
+                    && self.mc_r9 == other.mc_r9
+                    && self.mc_rax == other.mc_rax
+                    && self.mc_rbx == other.mc_rbx
+                    && self.mc_rbp == other.mc_rbp
+                    && self.mc_r10 == other.mc_r10
+                    && self.mc_r11 == other.mc_r11
+                    && self.mc_r12 == other.mc_r12
+                    && self.mc_r13 == other.mc_r13
+                    && self.mc_r14 == other.mc_r14
+                    && self.mc_r15 == other.mc_r15
+                    && self.mc_trapno == other.mc_trapno
+                    && self.mc_fs == other.mc_fs
+                    && self.mc_gs == other.mc_gs
+                    && self.mc_addr == other.mc_addr
+                    && self.mc_flags == other.mc_flags
+                    && self.mc_es == other.mc_es
+                    && self.mc_ds == other.mc_ds
+                    && self.mc_err == other.mc_err
+                    && self.mc_rip == other.mc_rip
+                    && self.mc_cs == other.mc_cs
+                    && self.mc_rflags == other.mc_rflags
+                    && self.mc_rsp == other.mc_rsp
+                    && self.mc_ss == other.mc_ss
+                    && self.mc_len == other.mc_len
+                    && self.mc_fpformat == other.mc_fpformat
+                    && self.mc_ownedfp == other.mc_ownedfp
+                    && self
+                        .mc_fpstate
+                        .iter()
+                        .zip(other.mc_fpstate.iter())
+                        .all(|(a, b)| a == b)
+                    && self.mc_fsbase == other.mc_fsbase
+                    && self.mc_gsbase == other.mc_gsbase
+                    && self.mc_xfpustate == other.mc_xfpustate
+                    && self.mc_xfpustate_len == other.mc_xfpustate_len
+                    && self.mc_spare == other.mc_spare
+            }
+        }
+        impl Eq for mcontext_t {}
+        impl fmt::Debug for mcontext_t {
+            fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+                f.debug_struct("mcontext_t")
+                    .field("mc_onstack", &self.mc_onstack)
+                    .field("mc_rdi", &self.mc_rdi)
+                    .field("mc_rsi", &self.mc_rsi)
+                    .field("mc_rdx", &self.mc_rdx)
+                    .field("mc_rcx", &self.mc_rcx)
+                    .field("mc_r8", &self.mc_r8)
+                    .field("mc_r9", &self.mc_r9)
+                    .field("mc_rax", &self.mc_rax)
+                    .field("mc_rbx", &self.mc_rbx)
+                    .field("mc_rbp", &self.mc_rbp)
+                    .field("mc_r10", &self.mc_r10)
+                    .field("mc_r11", &self.mc_r11)
+                    .field("mc_r12", &self.mc_r12)
+                    .field("mc_r13", &self.mc_r13)
+                    .field("mc_r14", &self.mc_r14)
+                    .field("mc_r15", &self.mc_r15)
+                    .field("mc_trapno", &self.mc_trapno)
+                    .field("mc_fs", &self.mc_fs)
+                    .field("mc_gs", &self.mc_gs)
+                    .field("mc_addr", &self.mc_addr)
+                    .field("mc_flags", &self.mc_flags)
+                    .field("mc_es", &self.mc_es)
+                    .field("mc_ds", &self.mc_ds)
+                    .field("mc_err", &self.mc_err)
+                    .field("mc_rip", &self.mc_rip)
+                    .field("mc_cs", &self.mc_cs)
+                    .field("mc_rflags", &self.mc_rflags)
+                    .field("mc_rsp", &self.mc_rsp)
+                    .field("mc_ss", &self.mc_ss)
+                    .field("mc_len", &self.mc_len)
+                    .field("mc_fpformat", &self.mc_fpformat)
+                    .field("mc_ownedfp", &self.mc_ownedfp)
+                    // FIXME(debug): .field("mc_fpstate", &self.mc_fpstate)
+                    .field("mc_fsbase", &self.mc_fsbase)
+                    .field("mc_gsbase", &self.mc_gsbase)
+                    .field("mc_xfpustate", &self.mc_xfpustate)
+                    .field("mc_xfpustate_len", &self.mc_xfpustate_len)
+                    .field("mc_spare", &self.mc_spare)
+                    .finish()
+            }
+        }
+        impl hash::Hash for mcontext_t {
+            fn hash<H: hash::Hasher>(&self, state: &mut H) {
+                self.mc_onstack.hash(state);
+                self.mc_rdi.hash(state);
+                self.mc_rsi.hash(state);
+                self.mc_rdx.hash(state);
+                self.mc_rcx.hash(state);
+                self.mc_r8.hash(state);
+                self.mc_r9.hash(state);
+                self.mc_rax.hash(state);
+                self.mc_rbx.hash(state);
+                self.mc_rbp.hash(state);
+                self.mc_r10.hash(state);
+                self.mc_r11.hash(state);
+                self.mc_r12.hash(state);
+                self.mc_r13.hash(state);
+                self.mc_r14.hash(state);
+                self.mc_r15.hash(state);
+                self.mc_trapno.hash(state);
+                self.mc_fs.hash(state);
+                self.mc_gs.hash(state);
+                self.mc_addr.hash(state);
+                self.mc_flags.hash(state);
+                self.mc_es.hash(state);
+                self.mc_ds.hash(state);
+                self.mc_err.hash(state);
+                self.mc_rip.hash(state);
+                self.mc_cs.hash(state);
+                self.mc_rflags.hash(state);
+                self.mc_rsp.hash(state);
+                self.mc_ss.hash(state);
+                self.mc_len.hash(state);
+                self.mc_fpformat.hash(state);
+                self.mc_ownedfp.hash(state);
+                self.mc_fpstate.hash(state);
+                self.mc_fsbase.hash(state);
+                self.mc_gsbase.hash(state);
+                self.mc_xfpustate.hash(state);
+                self.mc_xfpustate_len.hash(state);
+                self.mc_spare.hash(state);
+            }
+        }
     }
 }
 
-// should be pub(crate), but that requires Rust 1.18.0
-cfg_if! {
-    if #[cfg(libc_const_size_of)] {
-        #[doc(hidden)]
-        pub const _ALIGNBYTES: usize = ::mem::size_of::<::c_long>() - 1;
-    } else {
-        #[doc(hidden)]
-        pub const _ALIGNBYTES: usize = 8 - 1;
-    }
-}
-pub const MAP_32BIT: ::c_int = 0x00080000;
-pub const MINSIGSTKSZ: ::size_t = 2048; // 512 * 4
+pub(crate) const _ALIGNBYTES: usize = mem::size_of::<c_long>() - 1;
+
+pub const BIOCSRTIMEOUT: c_ulong = 0x8010426d;
+pub const BIOCGRTIMEOUT: c_ulong = 0x4010426e;
+
+pub const MAP_32BIT: c_int = 0x00080000;
+pub const MINSIGSTKSZ: size_t = 2048; // 512 * 4
 
 pub const _MC_HASSEGS: u32 = 0x1;
 pub const _MC_HASBASES: u32 = 0x2;
@@ -263,11 +417,6 @@ pub const _MC_FPOWNED_NONE: c_long = 0x20000;
 pub const _MC_FPOWNED_FPU: c_long = 0x20001;
 pub const _MC_FPOWNED_PCB: c_long = 0x20002;
 
-pub const KINFO_FILE_SIZE: ::c_int = 1392;
+pub const KINFO_FILE_SIZE: c_int = 1392;
 
-cfg_if! {
-    if #[cfg(libc_align)] {
-        mod align;
-        pub use self::align::*;
-    }
-}
+pub const TIOCTIMESTAMP: c_ulong = 0x40107459;

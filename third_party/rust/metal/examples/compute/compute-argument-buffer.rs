@@ -7,7 +7,7 @@
 
 use metal::*;
 use objc::rc::autoreleasepool;
-use std::mem;
+use std::mem::size_of_val;
 
 static LIBRARY_SRC: &str = include_str!("compute-argument-buffer.metal");
 
@@ -22,16 +22,16 @@ fn main() {
         ];
 
         let buffer = device.new_buffer_with_data(
-            unsafe { mem::transmute(data.as_ptr()) },
-            (data.len() * mem::size_of::<u32>()) as u64,
+            data.as_ptr().cast(),
+            size_of_val(&data) as u64,
             MTLResourceOptions::CPUCacheModeDefaultCache,
         );
 
         let sum = {
             let data = [0u32];
             device.new_buffer_with_data(
-                unsafe { mem::transmute(data.as_ptr()) },
-                (data.len() * mem::size_of::<u32>()) as u64,
+                data.as_ptr().cast(),
+                size_of_val(&data) as u64,
                 MTLResourceOptions::CPUCacheModeDefaultCache,
             )
         };
@@ -87,9 +87,7 @@ fn main() {
         command_buffer.commit();
         command_buffer.wait_until_completed();
 
-        let ptr = sum.contents() as *mut u32;
-        unsafe {
-            assert_eq!(465, *ptr);
-        }
+        let sum = unsafe { *sum.contents().cast::<u32>() };
+        assert_eq!(465, sum);
     });
 }

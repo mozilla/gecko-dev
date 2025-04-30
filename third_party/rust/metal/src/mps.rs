@@ -449,13 +449,12 @@ impl InstanceAccelerationStructureRef {
         unsafe {
             let acs: *mut Object = msg_send![self, accelerationStructures];
             let count: NSUInteger = msg_send![acs, count];
-            let ret = (0..count)
+            (0..count)
                 .map(|i| {
                     let ac = msg_send![acs, objectAtIndex: i];
                     PolygonAccelerationStructure::from_ptr(ac)
                 })
-                .collect();
-            ret
+                .collect()
         }
     }
 

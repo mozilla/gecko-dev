@@ -346,6 +346,7 @@ unsafe impl lock_api::RawRwLockUpgrade for RawRwLock {
     unsafe fn unlock_upgradable(&self) {
         self.deadlock_release();
         let state = self.state.load(Ordering::Relaxed);
+        #[allow(clippy::collapsible_if)]
         if state & PARKED_BIT == 0 {
             if self
                 .state
@@ -399,6 +400,7 @@ unsafe impl lock_api::RawRwLockUpgradeFair for RawRwLock {
     unsafe fn unlock_upgradable_fair(&self) {
         self.deadlock_release();
         let state = self.state.load(Ordering::Relaxed);
+        #[allow(clippy::collapsible_if)]
         if state & PARKED_BIT == 0 {
             if self
                 .state
@@ -540,6 +542,7 @@ impl RawRwLock {
         let mut state = self.state.load(Ordering::Relaxed);
         loop {
             // This mirrors the condition in try_lock_shared_fast
+            #[allow(clippy::collapsible_if)]
             if state & WRITER_BIT != 0 {
                 if !recursive || state & READERS_MASK == 0 {
                     return false;
@@ -688,6 +691,7 @@ impl RawRwLock {
                 }
 
                 // This is the same condition as try_lock_shared_fast
+                #[allow(clippy::collapsible_if)]
                 if *state & WRITER_BIT != 0 {
                     if !recursive || *state & READERS_MASK == 0 {
                         return false;
@@ -923,8 +927,8 @@ impl RawRwLock {
         self.lock_upgradable();
     }
 
-    /// Common code for waking up parked threads after releasing WRITER_BIT or
-    /// UPGRADABLE_BIT.
+    /// Common code for waking up parked threads after releasing `WRITER_BIT` or
+    /// `UPGRADABLE_BIT`.
     ///
     /// # Safety
     ///

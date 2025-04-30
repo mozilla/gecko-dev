@@ -1,6 +1,7 @@
+use std::path::PathBuf;
+
 use metal::*;
 use objc::rc::autoreleasepool;
-use std::path::PathBuf;
 
 const NUM_SAMPLES: u64 = 2;
 
@@ -18,7 +19,7 @@ fn main() {
 
         let counter_sample_buffer = create_counter_sample_buffer(&device);
         let destination_buffer = device.new_buffer(
-            (std::mem::size_of::<u64>() * NUM_SAMPLES as usize) as u64,
+            (size_of::<u64>() * NUM_SAMPLES as usize) as u64,
             MTLResourceOptions::StorageModeShared,
         );
 
@@ -68,12 +69,10 @@ fn main() {
         let mut gpu_end = 0;
         device.sample_timestamps(&mut cpu_end, &mut gpu_end);
 
-        let ptr = sum.contents() as *mut u32;
-        println!("Compute shader sum: {}", unsafe { *ptr });
+        let sum = unsafe { *sum.contents().cast::<u32>() };
+        println!("Compute shader sum: {}", sum);
 
-        unsafe {
-            assert_eq!(num_elements, *ptr);
-        }
+        assert_eq!(num_elements, sum);
 
         handle_timestamps(&destination_buffer, cpu_start, cpu_end, gpu_start, gpu_end);
     });
@@ -117,9 +116,9 @@ fn resolve_samples_into_buffer(
     let blit_encoder = command_buffer.new_blit_command_encoder();
     blit_encoder.resolve_counters(
         counter_sample_buffer,
-        crate::NSRange::new(0_u64, NUM_SAMPLES),
+        crate::NSRange::new(0u64, NUM_SAMPLES),
         destination_buffer,
-        0_u64,
+        0u64,
     );
     blit_encoder.end_encoding();
 }
@@ -133,7 +132,7 @@ fn handle_timestamps(
 ) {
     let samples = unsafe {
         std::slice::from_raw_parts(
-            resolved_sample_buffer.contents() as *const u64,
+            resolved_sample_buffer.contents().cast::<u64>(),
             NUM_SAMPLES as usize,
         )
     };
@@ -170,16 +169,16 @@ fn create_input_and_output_buffers(
     let data = vec![1u32; num_elements as usize];
 
     let buffer = device.new_buffer_with_data(
-        unsafe { std::mem::transmute(data.as_ptr()) },
-        (data.len() * std::mem::size_of::<u32>()) as u64,
+        data.as_ptr().cast(),
+        size_of_val(data.as_slice()) as u64,
         MTLResourceOptions::CPUCacheModeDefaultCache,
     );
 
     let sum = {
         let data = [0u32];
         device.new_buffer_with_data(
-            unsafe { std::mem::transmute(data.as_ptr()) },
-            (data.len() * std::mem::size_of::<u32>()) as u64,
+            data.as_ptr().cast(),
+            size_of_val(&data) as u64,
             MTLResourceOptions::CPUCacheModeDefaultCache,
         )
     };

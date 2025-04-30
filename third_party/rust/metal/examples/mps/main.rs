@@ -1,6 +1,4 @@
 use metal::*;
-use std::ffi::c_void;
-use std::mem;
 
 #[repr(C)]
 struct Vertex {
@@ -27,7 +25,7 @@ fn main() {
 
     // Simple vertex/index buffer data
 
-    let vertices: [Vertex; 3] = [
+    let vertices = [
         Vertex {
             xyz: [0.25, 0.25, 0.0],
         },
@@ -39,9 +37,7 @@ fn main() {
         },
     ];
 
-    let vertex_stride = mem::size_of::<Vertex>();
-
-    let indices: [u32; 3] = [0, 1, 2];
+    let indices = [0, 1, 2];
 
     // Vertex data should be stored in private or managed buffers on discrete GPU systems (AMD, NVIDIA).
     // Private buffers are stored entirely in GPU memory and cannot be accessed by the CPU. Managed
@@ -49,14 +45,14 @@ fn main() {
     let buffer_opts = MTLResourceOptions::StorageModeManaged;
 
     let vertex_buffer = device.new_buffer_with_data(
-        vertices.as_ptr() as *const c_void,
-        (vertex_stride * vertices.len()) as u64,
+        vertices.as_ptr().cast(),
+        size_of_val(&vertices) as u64,
         buffer_opts,
     );
 
     let index_buffer = device.new_buffer_with_data(
-        indices.as_ptr() as *const c_void,
-        (mem::size_of::<u32>() * indices.len()) as u64,
+        indices.as_ptr().cast(),
+        size_of_val(&indices) as u64,
         buffer_opts,
     );
 
@@ -65,7 +61,7 @@ fn main() {
         .expect("Failed to create acceleration structure");
 
     acceleration_structure.set_vertex_buffer(Some(&vertex_buffer));
-    acceleration_structure.set_vertex_stride(vertex_stride as u64);
+    acceleration_structure.set_vertex_stride(size_of::<Vertex>() as u64);
     acceleration_structure.set_index_buffer(Some(&index_buffer));
     acceleration_structure.set_index_type(mps::MPSDataType::UInt32);
     acceleration_structure.set_triangle_count(1);
@@ -75,9 +71,9 @@ fn main() {
     let ray_intersector =
         mps::RayIntersector::from_device(&device).expect("Failed to create ray intersector");
 
-    ray_intersector.set_ray_stride(mem::size_of::<Ray>() as u64);
+    ray_intersector.set_ray_stride(size_of::<Ray>() as u64);
     ray_intersector.set_ray_data_type(mps::MPSRayDataType::OriginMinDistanceDirectionMaxDistance);
-    ray_intersector.set_intersection_stride(mem::size_of::<Intersection>() as u64);
+    ray_intersector.set_intersection_stride(size_of::<Intersection>() as u64);
     ray_intersector.set_intersection_data_type(
         mps::MPSIntersectionDataType::DistancePrimitiveIndexCoordinates,
     );
@@ -85,12 +81,12 @@ fn main() {
     // Create a buffer to hold generated rays and intersection results
     let ray_count = 1024;
     let ray_buffer = device.new_buffer(
-        (mem::size_of::<Ray>() * ray_count) as u64,
+        (size_of::<Ray>() * ray_count) as u64,
         MTLResourceOptions::StorageModePrivate,
     );
 
     let intersection_buffer = device.new_buffer(
-        (mem::size_of::<Intersection>() * ray_count) as u64,
+        (size_of::<Intersection>() * ray_count) as u64,
         MTLResourceOptions::StorageModePrivate,
     );
 

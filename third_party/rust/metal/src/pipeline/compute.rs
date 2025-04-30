@@ -186,13 +186,12 @@ impl ComputePipelineDescriptorRef {
         unsafe {
             let libraries: *mut Object = msg_send![self, insertLibraries];
             let count: NSUInteger = msg_send![libraries, count];
-            let ret = (0..count)
+            (0..count)
                 .map(|i| {
                     let lib = msg_send![libraries, objectAtIndex: i];
                     DynamicLibrary::from_ptr(lib)
                 })
-                .collect();
-            ret
+                .collect()
         }
     }
 
@@ -208,13 +207,12 @@ impl ComputePipelineDescriptorRef {
         unsafe {
             let archives: *mut Object = msg_send![self, binaryArchives];
             let count: NSUInteger = msg_send![archives, count];
-            let ret = (0..count)
+            (0..count)
                 .map(|i| {
                     let a = msg_send![archives, objectAtIndex: i];
                     BinaryArchive::from_ptr(a)
                 })
-                .collect();
-            ret
+                .collect()
         }
     }
 

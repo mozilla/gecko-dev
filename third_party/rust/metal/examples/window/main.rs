@@ -9,10 +9,8 @@ extern crate objc;
 
 use cocoa::{appkit::NSView, base::id as cocoa_id};
 use core_graphics_types::geometry::CGSize;
-
 use metal::*;
 use objc::{rc::autoreleasepool, runtime::YES};
-use std::mem;
 
 use winit::{
     event::{Event, WindowEvent},
@@ -42,7 +40,7 @@ struct ClearRect {
     pub color: Color,
 }
 
-fn prepare_pipeline_state<'a>(
+fn prepare_pipeline_state(
     device: &DeviceRef,
     library: &LibraryRef,
     vertex_shader: &str,
@@ -96,7 +94,7 @@ fn main() {
 
     let device = Device::system_default().expect("no device found");
 
-    let layer = MetalLayer::new();
+    let mut layer = MetalLayer::new();
     layer.set_device(&device);
     layer.set_pixel_format(MTLPixelFormat::BGRA8Unorm);
     layer.set_presents_with_transaction(false);
@@ -105,7 +103,7 @@ fn main() {
         if let Ok(RawWindowHandle::AppKit(rw)) = window.window_handle().map(|wh| wh.as_raw()) {
             let view = rw.ns_view.as_ptr() as cocoa_id;
             view.setWantsLayer(YES);
-            view.setLayer(mem::transmute(layer.as_ref()));
+            view.setLayer(<*mut _>::cast(layer.as_mut()));
         }
     }
 
@@ -134,15 +132,15 @@ fn main() {
         ];
 
         device.new_buffer_with_data(
-            vertex_data.as_ptr() as *const _,
-            (vertex_data.len() * mem::size_of::<f32>()) as u64,
+            vertex_data.as_ptr().cast(),
+            size_of_val(&vertex_data) as u64,
             MTLResourceOptions::CPUCacheModeDefaultCache | MTLResourceOptions::StorageModeManaged,
         )
     };
 
     let mut r = 0.0f32;
 
-    let clear_rect = vec![ClearRect {
+    let clear_rect = ClearRect {
         rect: Rect {
             x: -1.0,
             y: -1.0,
@@ -155,11 +153,11 @@ fn main() {
             b: 0.5,
             a: 1.0,
         },
-    }];
+    };
 
     let clear_rect_buffer = device.new_buffer_with_data(
-        clear_rect.as_ptr() as *const _,
-        mem::size_of::<ClearRect>() as u64,
+        (&raw const clear_rect).cast(),
+        size_of::<ClearRect>() as u64,
         MTLResourceOptions::CPUCacheModeDefaultCache | MTLResourceOptions::StorageModeManaged,
     );
 
@@ -201,14 +199,14 @@ fn main() {
                             unsafe {
                                 std::ptr::copy(
                                     vertex_data.as_ptr(),
-                                    p as *mut f32,
-                                    (vertex_data.len() * mem::size_of::<f32>()) as usize,
+                                    p.cast(),
+                                    size_of_val(&vertex_data),
                                 );
                             }
 
                             vbuf.did_modify_range(crate::NSRange::new(
-                                0 as u64,
-                                (vertex_data.len() * mem::size_of::<f32>()) as u64,
+                                0u64,
+                                size_of_val(&vertex_data) as u64,
                             ));
 
                             let drawable = match layer.next_drawable() {
@@ -219,13 +217,13 @@ fn main() {
                             let render_pass_descriptor = RenderPassDescriptor::new();
 
                             prepare_render_pass_descriptor(
-                                &render_pass_descriptor,
+                                render_pass_descriptor,
                                 drawable.texture(),
                             );
 
                             let command_buffer = command_queue.new_command_buffer();
                             let encoder =
-                                command_buffer.new_render_command_encoder(&render_pass_descriptor);
+                                command_buffer.new_render_command_encoder(render_pass_descriptor);
 
                             encoder.set_scissor_rect(MTLScissorRect {
                                 x: 20,
@@ -254,7 +252,7 @@ fn main() {
                             encoder.draw_primitives(MTLPrimitiveType::Triangle, 0, 3);
                             encoder.end_encoding();
 
-                            command_buffer.present_drawable(&drawable);
+                            command_buffer.present_drawable(drawable);
                             command_buffer.commit();
 
                             r += 0.01f32;

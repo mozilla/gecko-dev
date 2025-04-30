@@ -5,9 +5,10 @@
 // http://opensource.org/licenses/MIT>, at your option. This file may not be
 // copied, modified, or distributed except according to those terms.
 
+use std::ffi::CStr;
+
 use super::*;
 use block::{Block, RcBlock};
-use std::ptr;
 
 #[cfg(feature = "dispatch")]
 use dispatch;
@@ -63,18 +64,18 @@ impl SharedEventRef {
                 *mut BlockBase<(&SharedEventRef, u64), ()>,
             >(block);
             (*block).flags |= BLOCK_HAS_SIGNATURE | BLOCK_HAS_COPY_DISPOSE;
-            (*block).extra = ptr::addr_of!(BLOCK_EXTRA);
+            (*block).extra = &raw const BLOCK_EXTRA;
             let () = msg_send![self, notifyListener:listener atValue:value block:block];
         }
 
         extern "C" fn dtor(_: *mut BlockBase<(&SharedEventRef, u64), ()>) {}
 
-        const SIGNATURE: &[u8] = b"v16@?0Q8\0";
-        const SIGNATURE_PTR: *const i8 = &SIGNATURE[0] as *const u8 as *const i8;
+        const SIGNATURE: &CStr = c"v16@?0Q8";
+        const SIGNATURE_PTR: *const i8 = SIGNATURE.as_ptr().cast();
         static mut BLOCK_EXTRA: BlockExtra<(&SharedEventRef, u64), ()> = BlockExtra {
-            unknown0: 0 as *mut i32,
-            unknown1: 0 as *mut i32,
-            unknown2: 0 as *mut i32,
+            unknown0: std::ptr::null_mut(),
+            unknown1: std::ptr::null_mut(),
+            unknown2: std::ptr::null_mut(),
             dtor,
             signature: &SIGNATURE_PTR,
         };

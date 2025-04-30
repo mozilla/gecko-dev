@@ -10,11 +10,18 @@
 # See Cargo.toml.orig for the original contents.
 
 [package]
+edition = "2021"
 rust-version = "1.60.0"
 name = "log"
-version = "0.4.20"
+version = "0.4.26"
 authors = ["The Rust Project Developers"]
+build = false
 exclude = ["rfcs/**/*"]
+autolib = false
+autobins = false
+autoexamples = false
+autotests = false
+autobenches = false
 description = """
 A lightweight logging facade for Rust
 """
@@ -29,20 +36,66 @@ repository = "https://github.com/rust-lang/log"
 features = [
     "std",
     "serde",
-    "kv_unstable_std",
-    "kv_unstable_sval",
-    "kv_unstable_serde",
+    "kv_std",
+    "kv_sval",
+    "kv_serde",
 ]
 
-[[test]]
-name = "filters"
-path = "tests/filters.rs"
-harness = false
+[features]
+kv = []
+kv_serde = [
+    "kv_std",
+    "value-bag/serde",
+    "serde",
+]
+kv_std = [
+    "std",
+    "kv",
+    "value-bag/error",
+]
+kv_sval = [
+    "kv",
+    "value-bag/sval",
+    "sval",
+    "sval_ref",
+]
+kv_unstable = [
+    "kv",
+    "value-bag",
+]
+kv_unstable_serde = [
+    "kv_serde",
+    "kv_unstable_std",
+]
+kv_unstable_std = [
+    "kv_std",
+    "kv_unstable",
+]
+kv_unstable_sval = [
+    "kv_sval",
+    "kv_unstable",
+]
+max_level_debug = []
+max_level_error = []
+max_level_info = []
+max_level_off = []
+max_level_trace = []
+max_level_warn = []
+release_max_level_debug = []
+release_max_level_error = []
+release_max_level_info = []
+release_max_level_off = []
+release_max_level_trace = []
+release_max_level_warn = []
+std = []
 
-[[test]]
-name = "macros"
-path = "tests/macros.rs"
-harness = true
+[lib]
+name = "log"
+path = "src/lib.rs"
+
+[[bench]]
+name = "value"
+path = "benches/value.rs"
 
 [dependencies.serde]
 version = "1.0"
@@ -60,7 +113,8 @@ optional = true
 default-features = false
 
 [dependencies.value-bag]
-version = "1.4"
+version = "1.7"
+features = ["inline-i128"]
 optional = true
 default-features = false
 
@@ -72,6 +126,9 @@ default-features = false
 version = "1.0"
 features = ["derive"]
 
+[dev-dependencies.serde_json]
+version = "1.0"
+
 [dev-dependencies.serde_test]
 version = "1.0"
 
@@ -82,37 +139,5 @@ version = "2.1"
 version = "2.1"
 
 [dev-dependencies.value-bag]
-version = "1.4"
+version = "1.7"
 features = ["test"]
-
-[features]
-kv_unstable = ["value-bag"]
-kv_unstable_serde = [
-    "kv_unstable_std",
-    "value-bag/serde",
-    "serde",
-]
-kv_unstable_std = [
-    "std",
-    "kv_unstable",
-    "value-bag/error",
-]
-kv_unstable_sval = [
-    "kv_unstable",
-    "value-bag/sval",
-    "sval",
-    "sval_ref",
-]
-max_level_debug = []
-max_level_error = []
-max_level_info = []
-max_level_off = []
-max_level_trace = []
-max_level_warn = []
-release_max_level_debug = []
-release_max_level_error = []
-release_max_level_info = []
-release_max_level_off = []
-release_max_level_trace = []
-release_max_level_warn = []
-std = []

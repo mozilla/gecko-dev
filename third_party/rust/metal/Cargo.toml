@@ -11,8 +11,9 @@
 
 [package]
 edition = "2021"
+rust-version = "1.82"
 name = "metal"
-version = "0.31.0"
+version = "0.32.0"
 authors = ["gfx-rs developers"]
 build = false
 exclude = [
@@ -133,7 +134,7 @@ version = "2"
 version = "0.1.6"
 
 [dependencies.core-graphics-types]
-version = "0.1.3"
+version = "0.2.0"
 default-features = false
 
 [dependencies.dispatch]

@@ -105,7 +105,7 @@ name = "wgpu_core"
 path = "src/lib.rs"
 
 [dependencies.arrayvec]
-version = "0.7.6"
+version = "0.7.1"
 default-features = false
 
 [dependencies.bit-set]
@@ -128,10 +128,10 @@ features = [
 optional = true
 
 [dependencies.document-features]
-version = "0.2.11"
+version = "0.2.10"
 
 [dependencies.hashbrown]
-version = "0.15.2"
+version = "0.15"
 features = [
     "default-hasher",
     "inline-more",
@@ -139,23 +139,23 @@ features = [
 default-features = false
 
 [dependencies.indexmap]
-version = "2.7.1"
+version = "2.7"
 default-features = false
 
 [dependencies.log]
-version = "0.4"
+version = "0.4.21"
 
 [dependencies.naga]
 version = "25.0.0"
 path = "../naga"
 
 [dependencies.once_cell]
-version = "1.21.3"
+version = "1.21"
 features = ["std"]
 default-features = false
 
 [dependencies.parking_lot]
-version = "0.12.1"
+version = "0.12.3"
 
 [dependencies.profiling]
 version = "1"
@@ -171,11 +171,11 @@ version = "0.10"
 optional = true
 
 [dependencies.rustc-hash]
-version = "1"
+version = "1.1"
 default-features = false
 
 [dependencies.serde]
-version = "1"
+version = "1.0.219"
 features = [
     "default",
     "derive",
@@ -184,10 +184,10 @@ optional = true
 default-features = false
 
 [dependencies.smallvec]
-version = "1"
+version = "1.9"
 
 [dependencies.thiserror]
-version = "2"
+version = "2.0.3"
 default-features = false
 
 [dependencies.wgpu-hal]
@@ -212,7 +212,7 @@ path = "platform-deps/windows-linux-android"
 optional = true
 
 [target.'cfg(not(target_has_atomic = "64"))'.dependencies.portable-atomic]
-version = "1"
+version = "1.2"
 optional = true
 
 [target.'cfg(target_os = "emscripten")'.dependencies.wgpu-core-deps-emscripten]

@@ -7,7 +7,7 @@
 
 use metal::*;
 
-const PROGRAM: &'static str = "";
+const PROGRAM: &str = "";
 
 fn main() {
     let device = Device::system_default().expect("no device found");
