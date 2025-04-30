@@ -142,7 +142,6 @@
 #include "mozilla/css/Loader.h"
 #include "mozilla/css/Rule.h"
 #include "mozilla/css/SheetParsingMode.h"
-#include "mozilla/dom/AncestorIterator.h"
 #include "mozilla/dom/AnonymousContent.h"
 #include "mozilla/dom/BlobURLProtocolHandler.h"
 #include "mozilla/dom/BrowserChild.h"
@@ -14999,34 +14998,18 @@ size_t Document::CountFullscreenElements() const {
 // https://github.com/whatwg/html/issues/9143
 // We need to consider the precedence between active modal dialog, topmost auto
 // popover and fullscreen element once it's specified.
-// TODO: https://bugzilla.mozilla.org/show_bug.cgi?id=1859702 This can be
-// removed after CloseWatcher has shipped.
 void Document::HandleEscKey() {
   for (const nsWeakPtr& weakPtr : Reversed(mTopLayer)) {
     nsCOMPtr<Element> element(do_QueryReferent(weakPtr));
     if (RefPtr popoverHTMLEl = nsGenericHTMLElement::FromNodeOrNull(element)) {
       if (element->IsAutoPopover() && element->IsPopoverOpen()) {
         popoverHTMLEl->HidePopover(IgnoreErrors());
-        return;
+        break;
       }
     }
-    if (RefPtr dialogElement = HTMLDialogElement::FromNodeOrNull(element)) {
-      if (dialogElement->GetClosedBy() != HTMLDialogElement::ClosedBy::None) {
-        const mozilla::dom::Optional<nsAString> returnValue;
-        dialogElement->RequestClose(returnValue);
-        return;
-      }
-    }
-  }
-  // Not all dialogs exist in the top layer, so despite already iterating
-  // through all top layer elements we also need to iterate over non-modal
-  // dialogs, as they may have a specified `closedby` value which may allow them
-  // to be closed via Escape key.
-  for (RefPtr<HTMLDialogElement> dialog : Reversed(mOpenDialogs)) {
-    if (dialog->GetClosedBy() != HTMLDialogElement::ClosedBy::None) {
-      const mozilla::dom::Optional<nsAString> returnValue;
-      dialog->RequestClose(returnValue);
-      return;
+    if (auto* dialog = HTMLDialogElement::FromNodeOrNull(element)) {
+      dialog->QueueCancelDialog();
+      break;
     }
   }
 }
@@ -15437,37 +15420,6 @@ void Document::RemoveModalDialog(HTMLDialogElement& aDialogElement) {
   DebugOnly<Element*> removedElement = TopLayerPop(aDialogElement);
   MOZ_ASSERT(removedElement == &aDialogElement);
   aDialogElement.RemoveStates(ElementState::MODAL);
-}
-
-void Document::AddOpenDialog(HTMLDialogElement& aElement) {
-  MOZ_ASSERT(aElement.IsInComposedDoc(),
-             "Disconnected Dialogs shouldn't go in Open Dialogs list");
-  MOZ_ASSERT(!mOpenDialogs.Contains(&aElement),
-             "Dialog already in Open Dialogs list!");
-  mOpenDialogs.AppendElement(&aElement);
-}
-
-void Document::RemoveOpenDialog(HTMLDialogElement& aElement) {
-  mOpenDialogs.RemoveElement(&aElement);
-}
-
-void Document::SetLastDialogPointerdownTarget(HTMLDialogElement& aElement) {
-  mLastDialogPointerdownTarget = do_GetWeakReference(&aElement);
-}
-
-HTMLDialogElement* Document::GetLastDialogPointerdownTarget() {
-  nsCOMPtr<Element> element(do_QueryReferent(mLastDialogPointerdownTarget));
-  return HTMLDialogElement::FromNodeOrNull(element);
-}
-
-bool Document::HasOpenDialogs() const { return !mOpenDialogs.IsEmpty(); }
-
-HTMLDialogElement* Document::GetTopMostOpenDialog() {
-  return mOpenDialogs.SafeLastElement(nullptr);
-}
-
-bool Document::DialogIsInOpenDialogsList(HTMLDialogElement& aDialog) {
-  return mOpenDialogs.Contains(&aDialog);
 }
 
 Element* Document::TopLayerPop(FunctionRef<bool(Element*)> aPredicate) {
