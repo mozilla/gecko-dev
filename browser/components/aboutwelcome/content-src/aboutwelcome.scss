@@ -1600,6 +1600,7 @@ html {
     margin-block: 60px 10px;
     transition: var(--transition);
     height: 80px;
+    user-select: none;
 
     &.cta-top {
       margin-top: 25px;
