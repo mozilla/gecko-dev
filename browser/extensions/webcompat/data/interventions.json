@@ -719,21 +719,6 @@
       }
     ]
   },
-  "1776897": {
-    "label": "www.edencast.fr",
-    "bugs": {
-      "1712759": {
-        "issue": "broken-audio",
-        "matches": ["*://www.edencast.fr/zoomcast*"]
-      }
-    },
-    "interventions": [
-      {
-        "platforms": ["all"],
-        "ua_string": ["add_Chrome"]
-      }
-    ]
-  },
   "1778168": {
     "label": "watch.antennaplus.gr",
     "bugs": {
