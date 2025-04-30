@@ -755,9 +755,7 @@ export const ContentAnalysis = {
     promise
       .catch(() => {
         // need a catch clause to avoid an unhandled JS exception
-        // when we programmatically close the dialog.
-        // Since this only happens when we are programmatically closing
-        // the dialog, no need to log the exception.
+        // when we programmatically close the dialog or close the tab.
       })
       .finally(() => {
         // This is also called if the tab/window is closed while a request is
@@ -766,9 +764,14 @@ export const ContentAnalysis = {
           // TODO: Is this useful?  I think no.
           this._removeSlowCAMessage(aUserActionId, aRequestToken);
         }
-        this.contentAnalysis.cancelAllRequestsAssociatedWithUserAction(
-          aUserActionId
-        );
+        // If aUserActionId is still in userActionToBusyDialogMap,
+        // this means the dialog wasn't closed by _disconnectFromView(),
+        // so cancel the operation.
+        if (this.userActionToBusyDialogMap.has(aUserActionId)) {
+          this.contentAnalysis.cancelAllRequestsAssociatedWithUserAction(
+            aUserActionId
+          );
+        }
       });
     return {
       dialogBrowsingContext: aBrowsingContext,
