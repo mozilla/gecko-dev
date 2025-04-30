@@ -295,7 +295,7 @@ class TabsTrayFragmentTest {
         )
 
         assertEquals(
-            AuthenticationStatus.AUTHENTICATED,  // unchanged
+            AuthenticationStatus.AUTHENTICATED, // unchanged
             biometricAuthenticationNeededInfo.authenticationStatus,
         )
         verify { tabsTrayInteractor.onTrayPositionSelected(page.ordinal, false) }
