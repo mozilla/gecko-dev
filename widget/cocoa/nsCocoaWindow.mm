@@ -744,7 +744,8 @@ void nsCocoaWindow::Invalidate(const LayoutDeviceIntRect& aRect) {
       "Shouldn't need to invalidate with accelerated OMTC layers!");
 
   EnsureContentLayerForMainThreadPainting();
-  mContentLayerInvalidRegion.OrWith(aRect.Intersect(LayoutDeviceIntRect(LayoutDeviceIntPoint(), GetClientBounds().Size())));
+  mContentLayerInvalidRegion.OrWith(aRect.Intersect(
+      LayoutDeviceIntRect(LayoutDeviceIntPoint(), GetClientBounds().Size())));
   [mChildView markLayerForDisplay];
 
   NS_OBJC_END_TRY_IGNORE_BLOCK;
@@ -6264,13 +6265,10 @@ void nsCocoaWindow::BackingScaleFactorChanged() {
     mNativeLayerRoot->SetBackingScale(newScale);
   }
   NotifyAPZOfDPIChange();
-
-  if (!mWidgetListener || mWidgetListener->GetAppWindow()) {
-    return;
-  }
-
-  if (PresShell* presShell = mWidgetListener->GetPresShell()) {
-    presShell->BackingScaleFactorChanged();
+  if (mWidgetListener) {
+    if (PresShell* presShell = mWidgetListener->GetPresShell()) {
+      presShell->BackingScaleFactorChanged();
+    }
   }
 }
 
