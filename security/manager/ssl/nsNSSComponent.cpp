@@ -1618,8 +1618,15 @@ void nsNSSComponent::PrepareForShutdown() {
 
   // Release the default CertVerifier. This will cause any held NSS resources
   // to be released.
-  MutexAutoLock lock(mMutex);
-  mDefaultCertVerifier = nullptr;
+  {
+    MutexAutoLock lock(mMutex);
+    mDefaultCertVerifier = nullptr;
+  }
+
+  // Unload osclientcerts so it drops any held resources and stops its
+  // background thread.
+  AsyncLoadOrUnloadOSClientCertsModule(false);
+
   // We don't actually shut down NSS - XPCOM does, after all threads have been
   // joined and the component manager has been shut down (and so there shouldn't
   // be any XPCOM objects holding NSS resources).

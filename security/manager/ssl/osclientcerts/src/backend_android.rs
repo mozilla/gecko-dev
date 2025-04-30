@@ -7,7 +7,7 @@ use pkcs11_bindings::*;
 use rsclientcerts::error::{Error, ErrorType};
 use rsclientcerts::manager::{ClientCertsBackend, CryptokiObject, Sign};
 use rsclientcerts::util::*;
-use sha2::{Sha256, Digest};
+use sha2::{Digest, Sha256};
 use std::ffi::{c_char, c_void, CString};
 
 type FindObjectsCallback = Option<
@@ -184,11 +184,7 @@ pub struct Key {
 }
 
 impl Key {
-    fn new(
-        modulus: Option<&[u8]>,
-        ec_params: Option<&[u8]>,
-        cert: &[u8],
-    ) -> Result<Key, Error> {
+    fn new(modulus: Option<&[u8]>, ec_params: Option<&[u8]>, cert: &[u8]) -> Result<Key, Error> {
         let id = Sha256::digest(cert).to_vec();
         let key_type = if modulus.is_some() { CKK_RSA } else { CKK_EC };
         // If this is an EC key, the frontend will have provided an SPKI.
@@ -412,6 +408,12 @@ impl FindObjectsContext {
 }
 
 pub struct Backend {}
+
+impl Backend {
+    pub fn new() -> Result<Backend, Error> {
+        Ok(Backend {})
+    }
+}
 
 impl ClientCertsBackend for Backend {
     type Cert = Cert;
