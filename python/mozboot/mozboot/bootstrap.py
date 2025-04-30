@@ -157,12 +157,7 @@ Proceed at your own peril.
 
 # The built-in fsmonitor Windows/macOS for git 2.37+ is better than using the watchman hook.
 # Linux users will still need watchman and to enable the hook.
-MINIMUM_RECOMMENDED_GIT_VERSION = Version("2.37")
-OLD_GIT_WARNING = """
-You are running an older version of git ("{old_version}").
-We recommend upgrading to at least version "{minimum_recommended_version}" to improve
-performance.
-""".strip()
+MINIMUM_GIT_VERSION = Version("2.37")
 
 # Dev Drives were added in 22621.2338 and should be available in all subsequent versions
 DEV_DRIVE_MINIMUM_VERSION = Version("10.0.22621.2338")
@@ -182,6 +177,12 @@ DEV_DRIVE_DETECTION_ERROR = """
 Error encountered while checking for Dev Drive.
  Reason: {} (skipping)
 """
+
+
+class GitVersionError(Exception):
+    """Raised when the installed git version is too old."""
+
+    pass
 
 
 def check_for_hgrc_state_dir_mismatch(state_dir):
@@ -888,13 +889,17 @@ def configure_git(
         raise Exception("Could not find git version")
     git_version = Version(match.group(1))
 
-    if git_version < MINIMUM_RECOMMENDED_GIT_VERSION:
-        print(
-            OLD_GIT_WARNING.format(
-                old_version=git_version,
-                minimum_recommended_version=MINIMUM_RECOMMENDED_GIT_VERSION,
+    moz_automation = os.environ.get("MOZ_AUTOMATION")
+    # This hard error is to force users to upgrade for performance benefits. If a CI worker on an old
+    # distro gets here, but can't upgrade to a newer git version, that's not a blocker, so we skip
+    # this check in CI to avoid that scenario.
+    if not moz_automation:
+        if git_version < MINIMUM_GIT_VERSION:
+            raise GitVersionError(
+                f"Your version of git ({git_version}) is too old. "
+                f"Please upgrade to at least version '{MINIMUM_GIT_VERSION}' to ensure "
+                "full compatibility and performance."
             )
-        )
 
     if git_version >= Version("2.17"):
         # "core.untrackedCache" has a bug before 2.17
