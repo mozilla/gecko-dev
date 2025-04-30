@@ -52,7 +52,7 @@ interface BiometricUtils {
 /**
  * Default implementation of [BiometricUtils].
  */
-class DefaultBiometricUtils : BiometricUtils {
+object DefaultBiometricUtils : BiometricUtils {
     @Suppress("Deprecation")
     override fun bindBiometricsCredentialsPromptOrShowWarning(
         @StringRes titleRes: Int,

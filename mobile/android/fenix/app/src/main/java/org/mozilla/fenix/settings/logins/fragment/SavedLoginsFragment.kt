@@ -96,7 +96,7 @@ class SavedLoginsFragment : SecureFragment(), MenuProvider {
                 AuthenticationStatus.AUTHENTICATION_IN_PROGRESS
             setSecureContentVisibility(false)
 
-            DefaultBiometricUtils().bindBiometricsCredentialsPromptOrShowWarning(
+            DefaultBiometricUtils.bindBiometricsCredentialsPromptOrShowWarning(
                 view = requireView(),
                 onShowPinVerification = { intent -> startForResult.launch(intent) },
                 onAuthSuccess = {

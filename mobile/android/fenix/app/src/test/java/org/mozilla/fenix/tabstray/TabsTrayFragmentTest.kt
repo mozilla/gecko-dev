@@ -274,7 +274,7 @@ class TabsTrayFragmentTest {
     }
 
     @Test
-    fun `WHEN shouldShowPrompt false and is private tab page true THEN onTabPageClick calls tabs tray interactor only`() {
+    fun `WHEN shouldShowPrompt is false and tab page is private THEN onTabPageClick calls tabs tray interactor only`() {
         every { fragment.view } returns mockk()
         every { fragment.requireComponents.core.store.state.privateTabs } returns listOf(
             mockk(),
@@ -311,7 +311,7 @@ class TabsTrayFragmentTest {
     }
 
     @Test
-    fun `WHEN shouldShowPrompt false and not a private tab page THEN onTabPageClick sets the authentication status to not authenticated and calls tabs tray interactor`() {
+    fun `WHEN shouldShowPrompt is false and not a private tab page THEN onTabPageClick sets the authentication status to not authenticated and calls tabs tray interactor`() {
         every { fragment.view } returns mockk()
         every { fragment.requireComponents.core.store.state.privateTabs } returns listOf(
             mockk(),

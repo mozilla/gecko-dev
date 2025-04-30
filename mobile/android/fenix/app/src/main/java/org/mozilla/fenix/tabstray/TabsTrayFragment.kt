@@ -736,7 +736,7 @@ class TabsTrayFragment : AppCompatDialogFragment() {
     internal fun onTabPageClick(
         biometricAuthenticationNeededInfo: BiometricAuthenticationNeededInfo =
             BiometricAuthenticationManager.biometricAuthenticationNeededInfo,
-        biometricUtils: BiometricUtils = DefaultBiometricUtils(),
+        biometricUtils: BiometricUtils = DefaultBiometricUtils,
         tabsTrayInteractor: TabsTrayInteractor,
         page: Page,
     ) {
