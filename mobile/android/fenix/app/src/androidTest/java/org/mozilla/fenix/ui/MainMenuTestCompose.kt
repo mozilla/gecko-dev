@@ -464,15 +464,15 @@ class MainMenuTestCompose : TestSetup() {
         }.clickAddToShortcutsButton() {
             verifySnackBarText(getStringResource(R.string.snackbar_added_to_shortcuts))
         }.goToHomescreenWithRedesignedToolbar {
-            verifyExistingTopSitesTabs(testPage.title)
-        }.openTopSiteTabWithTitle(testPage.title) {
+            verifyExistingTopSitesTabs(composeTestRule, testPage.title)
+        }.openTopSiteTabWithTitle(composeTestRule, testPage.title) {
         }.openThreeDotMenuFromRedesignedToolbar(composeTestRule) {
             expandMainMenu()
             clickSaveButton()
         }.clickRemoveFromShortcutsButton {
             verifySnackBarText(getStringResource(R.string.snackbar_top_site_removed))
         }.goToHomescreenWithRedesignedToolbar {
-            verifyNotExistingTopSitesList(testPage.title)
+            verifyNotExistingTopSiteItem(composeTestRule, testPage.title)
         }
     }
 
@@ -531,9 +531,9 @@ class MainMenuTestCompose : TestSetup() {
         }.selectExistingCollection(collectionTitle) {
             verifySnackBarText("Tab saved!")
         }.goToHomescreenWithRedesignedToolbar {
-        }.expandCollection(collectionTitle) {
-            verifyTabSavedInCollection(firstTestPage.title)
-            verifyTabSavedInCollection(secondTestPage.title)
+        }.expandCollection(composeTestRule, collectionTitle) {
+            verifyTabSavedInCollection(composeTestRule, firstTestPage.title)
+            verifyTabSavedInCollection(composeTestRule, secondTestPage.title)
         }
     }
 

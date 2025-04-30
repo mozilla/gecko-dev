@@ -58,6 +58,10 @@ class SettingsPrivateBrowsingTest : TestSetup() {
 
         setOpenLinksInPrivateOn()
 
+        homeScreen {
+            verifyHomeComponent(activityTestRule)
+        }
+
         AppAndSystemHelper.openAppFromExternalLink(firstWebPage.url.toString())
 
         browserScreen {
@@ -65,9 +69,13 @@ class SettingsPrivateBrowsingTest : TestSetup() {
         }.openTabDrawer(activityTestRule) {
             verifyPrivateBrowsingButtonIsSelected()
         }.closeTabDrawer {
-        }.goToHomescreen { }
+        }.goToHomescreen(activityTestRule) { }
 
         setOpenLinksInPrivateOff()
+
+        homeScreen {
+            verifyHomeComponent(activityTestRule)
+        }
 
         // We need to open a different link, otherwise it will open the same session
         AppAndSystemHelper.openAppFromExternalLink(secondWebPage.url.toString())
@@ -85,6 +93,10 @@ class SettingsPrivateBrowsingTest : TestSetup() {
         val defaultWebPage = TestAssetHelper.getGenericAsset(mockWebServer, 1)
 
         setOpenLinksInPrivateOn()
+
+        homeScreen {
+            verifyHomeComponent(activityTestRule)
+        }
 
         navigationToolbar {
         }.enterURLAndEnterToBrowser(defaultWebPage.url) {
@@ -114,6 +126,10 @@ class SettingsPrivateBrowsingTest : TestSetup() {
         }
 
         setOpenLinksInPrivateOff()
+
+        homeScreen {
+            verifyHomeComponent(activityTestRule)
+        }
 
         addToHomeScreen {
         }.searchAndOpenHomeScreenShortcut(pageShortcutName) {
@@ -150,7 +166,6 @@ private fun setOpenLinksInPrivateOn() {
         clickOpenLinksInPrivateTabSwitch()
     }.goBack {
     }.goBack {
-        verifyHomeComponent()
     }
 }
 
@@ -163,6 +178,5 @@ private fun setOpenLinksInPrivateOff() {
         verifyOpenLinksInPrivateTabOff()
     }.goBack {
     }.goBack {
-        verifyHomeComponent()
     }
 }

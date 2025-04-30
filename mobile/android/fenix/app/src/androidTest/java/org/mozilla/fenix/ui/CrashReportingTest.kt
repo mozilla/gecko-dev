@@ -83,8 +83,8 @@ class CrashReportingTest : TestSetup() {
             verifyExistingOpenTabs(firstWebPage.title)
             verifyExistingOpenTabs(secondWebPage.title)
         }.closeTabDrawer {
-        }.goToHomescreen {
-            verifyExistingTopSitesList()
+        }.goToHomescreen(activityTestRule) {
+            verifyExistingTopSitesList(activityTestRule)
         }.openThreeDotMenu {
             verifySettingsButton()
         }

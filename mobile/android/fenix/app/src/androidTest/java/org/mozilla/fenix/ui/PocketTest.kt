@@ -49,7 +49,6 @@ class PocketTest : TestSetup() {
                 }.openSettings {
                 }.goBack {
                     verifyThoughtProvokingStories(true)
-                    verifyStoriesByTopicItems()
                 }
 
                 break
@@ -93,7 +92,6 @@ class PocketTest : TestSetup() {
         runWithCondition(isNetworkConnected()) {
             homeScreen {
                 verifyThoughtProvokingStories(true)
-                scrollToPocketProvokingStories()
                 firstPocketStoryPublisher = getProvokingStoryPublisher(1)
             }.clickPocketStoryItem(firstPocketStoryPublisher, 1) {
                 verifyUrl(Constants.POCKET_RECOMMENDED_STORIES_UTM_PARAM)

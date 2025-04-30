@@ -316,7 +316,7 @@ class TabbedBrowsingTest : TestSetup() {
         navigationToolbar {
         }.enterURLAndEnterToBrowser(firstWebPage.url) {
             waitForPageToLoad()
-        }.goToHomescreen {
+        }.goToHomescreen(composeTestRule) {
         }.openNavigationToolbar {
         }.enterURLAndEnterToBrowser(secondWebPage.url) {
             waitForPageToLoad()
@@ -382,7 +382,7 @@ class TabbedBrowsingTest : TestSetup() {
         navigationToolbar {
         }.enterURLAndEnterToBrowser(firstWebPage.url) {
             waitForPageToLoad()
-        }.goToHomescreen {
+        }.goToHomescreen(composeTestRule) {
         }.openNavigationToolbar {
         }.enterURLAndEnterToBrowser(secondWebPage.url) {
             waitForPageToLoad()
@@ -498,7 +498,7 @@ class TabbedBrowsingTest : TestSetup() {
 
         navigationToolbar {
         }.enterURLAndEnterToBrowser(defaultWebPage.url) {
-        }.goToHomescreen {
+        }.goToHomescreen(composeTestRule) {
         }.togglePrivateBrowsingMode()
 
         closeApp(composeTestRule.activityRule)

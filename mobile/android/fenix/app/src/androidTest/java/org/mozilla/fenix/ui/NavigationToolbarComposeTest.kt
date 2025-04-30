@@ -164,7 +164,7 @@ class NavigationToolbarComposeTest : TestSetup() {
             verifyExistingOpenTabs(secondWebPage.title)
         }.closeTabDrawer {
         }.goToHomescreenWithRedesignedToolbar {
-            verifyExistingTopSitesList()
+            verifyExistingTopSitesList(composeTestRule)
         }.openThreeDotMenuFromRedesignedToolbar(composeTestRule) {
             verifySettingsButton()
         }

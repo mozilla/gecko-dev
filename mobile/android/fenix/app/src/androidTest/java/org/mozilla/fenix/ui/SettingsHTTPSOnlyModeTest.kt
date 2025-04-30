@@ -159,7 +159,7 @@ class SettingsHTTPSOnlyModeTest : TestSetup() {
         navigationToolbar {
         }.enterURLAndEnterToBrowser(insecureHttpPage.toUri()) {
             verifyPageContent("http.badssl.com")
-        }.goToHomescreen {
+        }.goToHomescreen(activityTestRule) {
         }.togglePrivateBrowsingMode()
         navigationToolbar {
         }.enterURLAndEnterToBrowser(secondHttpPageUrl.toUri()) {

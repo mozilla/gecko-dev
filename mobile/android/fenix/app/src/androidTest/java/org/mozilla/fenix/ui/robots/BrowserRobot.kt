@@ -16,6 +16,7 @@ import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotDisplayed
 import androidx.compose.ui.test.assertIsNotEnabled
+import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.ComposeTestRule
 import androidx.compose.ui.test.onNodeWithTag
@@ -76,6 +77,7 @@ import org.mozilla.fenix.helpers.TestHelper.waitForAppWindowToBeUpdated
 import org.mozilla.fenix.helpers.TestHelper.waitForObjects
 import org.mozilla.fenix.helpers.click
 import org.mozilla.fenix.helpers.ext.waitNotNull
+import org.mozilla.fenix.home.ui.HomepageTestTag.homepage
 import org.mozilla.fenix.settings.SupportUtils
 import org.mozilla.fenix.tabstray.TabsTrayTestTag
 import org.mozilla.fenix.webcompat.BrokenSiteReporterTestTags.brokenSiteReporterSendButton
@@ -1408,7 +1410,8 @@ class BrowserRobot {
             return NotificationRobot.Transition()
         }
 
-        fun goToHomescreen(interact: HomeScreenRobot.() -> Unit): HomeScreenRobot.Transition {
+        @OptIn(ExperimentalTestApi::class)
+        fun goToHomescreen(composeTestRule: ComposeTestRule, interact: HomeScreenRobot.() -> Unit): HomeScreenRobot.Transition {
             Log.i(TAG, "goToHomescreen: Trying to click the go to home screen button.")
             onView(
                 allOf(
@@ -1416,10 +1419,10 @@ class BrowserRobot {
                     isDescendantOfA(withId(R.id.toolbar)),
                 ),
             ).click()
-            Log.i(TAG, "goToHomescreen: Waiting for $waitingTime ms for for home screen layout or jump back in contextual hint to exist")
-            mDevice.findObject(UiSelector().resourceId("$packageName:id/homeLayout"))
-                .waitForExists(waitingTime)
-            Log.i(TAG, "goToHomescreen: Waited for $waitingTime ms for for home screen layout or jump back in contextual hint to exist")
+            Log.i(TAG, "goToHomescreen: Clicked the go to home screen button.")
+            Log.i(TAG, "goToHomescreen: Waiting for home screen to exist")
+            composeTestRule.waitUntilAtLeastOneExists(hasTestTag(homepage))
+            Log.i(TAG, "goToHomescreen: Waited for home screen to exist")
 
             HomeScreenRobot().interact()
             return HomeScreenRobot.Transition()

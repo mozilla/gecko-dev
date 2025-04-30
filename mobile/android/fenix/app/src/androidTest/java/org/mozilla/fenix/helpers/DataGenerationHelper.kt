@@ -129,11 +129,11 @@ object DataGenerationHelper {
         Log.i(TAG, "getSponsoredShortcutTitle: Trying to get the title of the sponsored shortcut at position: ${position - 1}")
         val sponsoredShortcut = mDevice.findObject(
             UiSelector()
-                .resourceId("${TestHelper.packageName}:id/top_site_item")
+                .resourceId("top_sites_list.top_site_item")
                 .index(position - 1),
         ).getChild(
             UiSelector()
-                .resourceId("${TestHelper.packageName}:id/top_site_title"),
+                .resourceId("top_sites_list.top_site_item.top_site_title"),
         ).text
         Log.i(TAG, "getSponsoredShortcutTitle: The sponsored shortcut at position: ${position - 1} has title: $sponsoredShortcut")
         return sponsoredShortcut
