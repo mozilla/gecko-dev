@@ -34,7 +34,6 @@
   "loadOneOrMoreURIs",
   "openLocation",
   "gLastOpenDirectory",
-  "getLoadContext",
   "readFromClipboard",
   "UpdateUrlbarSearchSplitterState",
   "UpdatePopupNotificationsVisibility",
