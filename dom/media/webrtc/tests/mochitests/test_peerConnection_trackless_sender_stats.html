@@ -42,8 +42,8 @@
           is(sender.track, null, "Sender track removed");
           let stats = await sender.getStats();
           ok(stats instanceof window.RTCStatsReport, "Stats is instance of RTCStatsReport");
-          // Number of stats in the report. This should be 0.
-          is(stats.size, 0, "Trackless sender stats report is empty");
+          // Number of stats in the report. This should not be 0.
+          ok(stats.size > 0, "Replace track with null should still return stats");
         }
       }
     );

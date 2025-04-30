@@ -199,11 +199,6 @@ already_AddRefed<Promise> RTCRtpSender::GetStats(ErrorResult& aError) {
     return promise.forget();
   }
 
-  if (!mSenderTrack) {
-    promise->MaybeResolve(new RTCStatsReport(mWindow));
-    return promise.forget();
-  }
-
   mTransceiver->ChainToDomPromiseWithCodecStats(GetStatsInternal(), promise);
   return promise.forget();
 }
@@ -212,7 +207,7 @@ nsTArray<RefPtr<dom::RTCStatsPromise>> RTCRtpSender::GetStatsInternal(
     bool aSkipIceStats) {
   MOZ_ASSERT(NS_IsMainThread());
   nsTArray<RefPtr<RTCStatsPromise>> promises(2);
-  if (!mSenderTrack || !mPipeline) {
+  if (!mPipeline) {
     return promises;
   }
 
