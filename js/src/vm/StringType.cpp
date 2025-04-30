@@ -1845,9 +1845,10 @@ void JSExternalString::dumpOwnRepresentationFields(
 }
 #endif /* defined(DEBUG) || defined(JS_JITSPEW) || defined(JS_CACHEIR_SPEW) */
 
-JSLinearString* js::NewDependentString(JSContext* cx, JSString* baseArg,
-                                       size_t start, size_t length,
-                                       gc::Heap heap) {
+template <JS::ContractBaseChain contract>
+static JSLinearString* NewDependentStringHelper(JSContext* cx,
+                                                JSString* baseArg, size_t start,
+                                                size_t length, gc::Heap heap) {
   if (length == 0) {
     return cx->emptyString();
   }
@@ -1891,7 +1892,27 @@ JSLinearString* js::NewDependentString(JSContext* cx, JSString* baseArg,
     return NewInlineString<Latin1Char>(cx, rootedBase, start, length, heap);
   }
 
-  return JSDependentString::new_(cx, base, start, length, heap);
+  return JSDependentString::newImpl_<contract>(cx, base, start, length, heap);
+}
+
+JSLinearString* js::NewDependentString(JSContext* cx, JSString* baseArg,
+                                       size_t start, size_t length,
+                                       gc::Heap heap) {
+  return NewDependentStringHelper<JS::ContractBaseChain::Contract>(
+      cx, baseArg, start, length, heap);
+}
+
+JSLinearString* js::NewDependentStringForTesting(JSContext* cx,
+                                                 JSString* baseArg,
+                                                 size_t start, size_t length,
+                                                 JS::ContractBaseChain contract,
+                                                 gc::Heap heap) {
+  if (contract == JS::ContractBaseChain::Contract) {
+    return NewDependentStringHelper<JS::ContractBaseChain::Contract>(
+        cx, baseArg, start, length, heap);
+  }
+  return NewDependentStringHelper<JS::ContractBaseChain::AllowLong>(
+      cx, baseArg, start, length, heap);
 }
 
 static constexpr bool CanStoreCharsAsLatin1(const JS::Latin1Char* s,
@@ -2518,6 +2539,53 @@ JS_PUBLIC_API JSString* JS::NewStringFromKnownLiveUTF8Buffer(
     JSContext* cx, mozilla::StringBuffer* buffer, size_t length) {
   return ::NewStringFromUTF8Buffer(cx, buffer, length);
 }
+
+template <typename CharT>
+static bool PtrIsWithinRange(const CharT* ptr,
+                             const mozilla::Range<const CharT>& valid) {
+  return size_t(ptr - valid.begin().get()) <= valid.length();
+}
+
+/* static */
+template <typename CharT>
+size_t JSLinearString::maybeCloneCharsOnPromotionTyped(JSLinearString* str) {
+  MOZ_ASSERT(!InCollectedNurseryRegion(str), "str should have been promoted");
+  MOZ_ASSERT(str->isDependent());
+  JSLinearString* root = str->asDependent().rootBaseDuringMinorGC();
+  if (!root->isTenured()) {
+    // Can still fixup the original chars pointer.
+    return 0;
+  }
+
+  // If the base has not moved its chars, continue using them.
+  JS::AutoCheckCannotGC nogc;
+  const CharT* chars = str->chars<CharT>(nogc);
+  if (PtrIsWithinRange(chars, root->range<CharT>(nogc))) {
+    return 0;
+  }
+
+  // Clone the chars.
+  js::AutoEnterOOMUnsafeRegion oomUnsafe;
+  size_t len = str->length();
+  size_t nbytes = len * sizeof(CharT);
+  CharT* data =
+      str->zone()->pod_arena_malloc<CharT>(js::StringBufferArena, len);
+  if (!data) {
+    oomUnsafe.crash("cloning at-risk dependent string");
+  }
+  js_memcpy(data, chars, nbytes);
+
+  // Overwrite the dest string with a new linear string.
+  new (str) JSLinearString(data, len, false /* hasBuffer */);
+  str->zone()->addCellMemory(str, nbytes, js::MemoryUse::StringContents);
+
+  return nbytes;
+}
+
+template size_t JSLinearString::maybeCloneCharsOnPromotionTyped<JS::Latin1Char>(
+    JSLinearString* str);
+template size_t JSLinearString::maybeCloneCharsOnPromotionTyped<char16_t>(
+    JSLinearString* str);
 
 #if defined(DEBUG) || defined(JS_JITSPEW) || defined(JS_CACHEIR_SPEW)
 void JSExtensibleString::dumpOwnRepresentationFields(
