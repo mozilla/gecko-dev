@@ -50449,7 +50449,8 @@ class WidgetAnnotation extends Annotation {
       const appearanceDict = appearanceStream.dict = new Dict(xref);
       appearanceDict.set("Subtype", Name.get("Form"));
       appearanceDict.set("Resources", resources);
-      appearanceDict.set("BBox", [0, 0, this.width, this.height]);
+      const bbox = rotation % 180 === 0 ? [0, 0, this.width, this.height] : [0, 0, this.height, this.width];
+      appearanceDict.set("BBox", bbox);
       const rotationMatrix = this.getRotationMatrix(annotationStorage);
       if (rotationMatrix !== IDENTITY_MATRIX) {
         appearanceDict.set("Matrix", rotationMatrix);
@@ -57148,7 +57149,7 @@ class WorkerMessageHandler {
       docId,
       apiVersion
     } = docParams;
-    const workerVersion = "5.2.135";
+    const workerVersion = "5.2.145";
     if (apiVersion !== workerVersion) {
       throw new Error(`The API version "${apiVersion}" does not match ` + `the Worker version "${workerVersion}".`);
     }
@@ -57673,8 +57674,8 @@ class WorkerMessageHandler {
 
 ;// ./src/pdf.worker.js
 
-const pdfjsVersion = "5.2.135";
-const pdfjsBuild = "b47b248e1";
+const pdfjsVersion = "5.2.145";
+const pdfjsBuild = "b8de9a372";
 globalThis.pdfjsWorker = {
   WorkerMessageHandler: WorkerMessageHandler
 };

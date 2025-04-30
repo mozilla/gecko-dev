@@ -2189,6 +2189,10 @@ class App extends PDFObject {
   popUpMenuEx() {}
   removeToolButton() {}
   response(cQuestion, cTitle = "", cDefault = "", bPassword = "", cLabel = "") {
+    if (!this._document.obj._userActivation) {
+      return null;
+    }
+    this._document.obj._userActivation = false;
     if (cQuestion && typeof cQuestion === "object") {
       cDefault = cQuestion.cDefault;
       cQuestion = cQuestion.cQuestion;
@@ -4043,8 +4047,8 @@ function initSandbox(params) {
 
 ;// ./src/pdf.scripting.js
 
-const pdfjsVersion = "5.2.135";
-const pdfjsBuild = "b47b248e1";
+const pdfjsVersion = "5.2.145";
+const pdfjsBuild = "b8de9a372";
 globalThis.pdfjsScripting = {
   initSandbox: initSandbox
 };
