@@ -8,6 +8,6 @@ embedHelperLib.initEmbedShim({
   shimId: "TwitterEmbed",
   scriptURL: "https://platform.twitter.com/widgets.js",
   embedLogoURL: "https://smartblock.firefox.etp/x-logo.svg",
-  embedSelector: ".twitter-tweet, .twitter-timeline",
+  embedSelector: ".twitter-tweet, .twitter-timeline, .twitter-video",
   isTestShim: false,
 });
