@@ -3509,11 +3509,11 @@
 
     Subtitle for a setup checklist with 5 steps initial state. %1$s is the name of the app (for example "Firefox").
   -->
-  <string name="setup_checklist_subtitle_5_steps_initial_state">Complete los 5 pasos para configurar %1$s para la mejor experiencia de navegación.</string>
+  <string name="setup_checklist_subtitle_5_steps_initial_state">Completá los 5 pasos para configurar %1$s para la mejor experiencia de navegación.</string>
   <!-- Subtitle for a setup checklist with 5 steps when the first task is completed. -->
-  <string name="setup_checklist_subtitle_5_steps_first_step">¡Buen comienzo! Ha completado 1 de 5 pasos.</string>
+  <string name="setup_checklist_subtitle_5_steps_first_step">¡Buen comienzo! Completaste 1 de 5 pasos.</string>
   <!-- Subtitle for the setup checklist when the second task is completed. -->
-  <string name="setup_checklist_subtitle_5_steps_second_step">Completó 2 de 5 pasos. ¡Gran progreso!</string>
+  <string name="setup_checklist_subtitle_5_steps_second_step">Completaste 2 de 5 pasos. ¡Gran progreso!</string>
   <!-- Subtitle for a setup checklist with 5 steps when three of the tasks are completed. -->
   <string name="setup_checklist_subtitle_5_steps_third_step">¡Estás a mitad de camino! Tres pasos terminados y 2 restantes.</string>
   <!-- Subtitle for a setup checklist with 5 steps when the fifth task is completed. -->
@@ -3570,4 +3570,10 @@
   <string name="pbm_authentication_unlock">Desbloquear</string>
   <!-- Title text instructing the user to unlock private tabs -->
   <string name="pbm_authentication_unlock_private_tabs">Desbloquear pestañas privadas</string>
+  <!-- Title text for the contextual feature recommendation (CFR) suggesting the user enable a screen lock to protect private tabs -->
+  <string name="private_tab_cfr_title" tools:ignore="UnusedResources">¿Usar el bloqueo de pantalla para ocultar pestañas privadas?</string>
+  <!-- Negative button text for the contextual feature recommendation (CFR) dismissing the screen lock suggestion -->
+  <string name="private_tab_cfr_negative" tools:ignore="UnusedResources">No, gracias</string>
+  <!-- Positive button text for the contextual feature recommendation (CFR) enabling screen lock for private tabs -->
+  <string name="private_tab_cfr_positive" tools:ignore="UnusedResources">Bloquear pestañas</string>
 </resources>

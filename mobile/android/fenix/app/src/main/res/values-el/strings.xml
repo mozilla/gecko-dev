@@ -130,6 +130,8 @@
   <string name="address_bar_swipe_cfr_title" tools:ignore="UnusedResources" moz:removedIn="139">Σύρετε τη γραμμή εργαλείων για εναλλαγή καρτελών</string>
   <!-- Text for the message displayed in the contextual feature recommendation popup promoting swipe of address bar. -->
   <string name="address_bar_swipe_cfr_message" tools:ignore="UnusedResources" moz:removedIn="139">Σύρετε προς τα αριστερά ή τα δεξιά για εναλλαγή. Σύρετε προς τα αριστερά στην τελευταία σας καρτέλα για να ανοίξετε μια νέα.</string>
+  <!-- Text for the message displayed in the contextual feature recommendation popup promoting swipe of address bar. -->
+  <string name="address_bar_swipe_cfr_message_2">Σύρετε τη γραμμή εργαλείων αριστερά ή δεξιά για εναλλαγή καρτελών.</string>
   <!-- Text for the info dialog when camera permissions have been denied but user tries to access a camera feature. -->
   <string name="camera_permissions_needed_message">Απαιτείται πρόσβαση στην κάμερα. Μεταβείτε στις Ρυθμίσεις Android, πατήστε «Δικαιώματα» και επιλέξτε «Να επιτρέπεται».</string>
   <!-- Text for the positive action button to go to Android Settings to grant permissions. -->
@@ -1482,6 +1484,10 @@
   <string name="download_delete_item_1" moz:removedIn="138" tools:ignore="UnusedResources">Αφαίρεση</string>
   <!-- Text for the button to delete a single downloaded file item -->
   <string name="download_delete_item">Διαγραφή</string>
+  <!-- Content description for the toolbar "Navigate back" button -->
+  <string name="download_navigate_back_description">Πλοήγηση προς τα πίσω</string>
+  <!-- Content description for the toolbar "Navigate up" button -->
+  <string name="download_navigate_up_description">Πλοήγηση προς τα πάνω</string>
   <!-- Text for the button to share the download URL -->
   <string name="download_share_url">Κοινή χρήση URL</string>
   <!-- Text for the button to share the download file -->
@@ -3386,10 +3392,18 @@
     and the current region (device's detected location) for testing purposes.
   -->
   <string name="debug_drawer_region_tools_title">Εργαλεία περιοχής</string>
+  <!-- The description of the Region tools in the Debug Drawer -->
+  <string name="debug_drawer_regin_tools_description">Παρακάμπτει προσωρινά τις τιμές αρχικής και τρέχουσας περιοχής για λόγους δοκιμής.</string>
+  <!-- The text label for displaying home region. -->
+  <string name="debug_drawer_home_region_label">Αρχική περιοχή</string>
   <!-- The text label for displaying current region. -->
   <string name="debug_drawer_current_region_label">Τρέχουσα περιοχή</string>
+  <!-- The text field label for overriding home region. -->
+  <string name="debug_drawer_override_home_region_label">Παράκαμψη αρχικής περιοχής</string>
   <!-- The text field label for overriding current region. -->
   <string name="debug_drawer_override_current_region_label">Παράκαμψη τρέχουσας περιοχής</string>
+  <!-- The title of the button for overriding home and current region. -->
+  <string name="debug_drawer_override_region">Παράκαμψη αρχικής και τρέχουσας περιοχής</string>
   <!--
     Messages explaining how to exit fullscreen mode
 
@@ -3452,10 +3466,62 @@
   <string name="text_field_eye_trailing_icon_default_content_description" moz:removedIn="139" tools:ignore="UnusedResources">Εμφάνιση κρυφού κειμένου</string>
   <!-- The default content description for the cross trailing icon button in TextField -->
   <string name="text_field_cross_trailing_icon_default_content_description" moz:removedIn="139" tools:ignore="UnusedResources">Απαλοιφή κειμένου</string>
+  <!--
+    Setup checklist feature
+
+    ===== Setup checklist feature: Title =====
+
+    Title for the setup checklist feature when the state is 'incomplete'. %1$s is the name of the app (for example "Firefox").
+  -->
+  <string name="setup_checklist_title_state_incomplete">Ολοκλήρωση της ρύθμισης του %1$s</string>
   <!-- Title for the setup checklist feature when the state is 'completed' -->
   <string name="setup_checklist_title_state_completed">Συγχαρητήρια!</string>
+  <!--
+    ===== Setup checklist feature: Subtitles for 3 steps =====
+
+    Subtitle for a setup checklist with 3 steps initial step. %1$s is the name of the app (for example "Firefox").
+  -->
+  <string name="setup_checklist_subtitle_3_steps_initial_state">Ολοκληρώστε αυτά τα 3 βήματα για την καλύτερη δυνατή εμπειρία περιήγησης με το %1$s.</string>
+  <!-- Subtitle for a setup checklist with 3 steps when the first task is completed. -->
+  <string name="setup_checklist_subtitle_3_steps_first_step">Τέλεια αρχή! Έχετε ολοκληρώσει 1 από τα 3 βήματα.</string>
+  <!-- Subtitle for a setup checklist with 3 steps when two of the tasks are completed. -->
+  <string name="setup_checklist_subtitle_3_steps_second_step">Σχεδόν τελειώσατε! Έχετε ολοκληρώσει δύο βήματα και απομένει 1.</string>
+  <!-- Subtitle for a setup checklist with 3 steps completed state. %1$s is the name of the app (for example "Firefox"). -->
+  <string name="setup_checklist_subtitle_3_steps_completed_state">Έχετε ολοκληρώσει και τα 3 βήματα. Απολαύστε την ταχύτητα, το απόρρητο και την ασφάλεια του %1$s.</string>
+  <!--
+    ===== Setup checklist feature: Subtitles for 6 steps =====
+
+    Subtitle for a setup checklist with 6 steps initial state. %1$s is the name of the app (for example "Firefox").
+  -->
+  <string name="setup_checklist_subtitle_6_steps_initial_state">Ολοκληρώστε και τα 6 βήματα για την καλύτερη δυνατή εμπειρία περιήγησης με το %1$s.</string>
+  <!-- Subtitle for a setup checklist with 6 steps when the first task is completed. -->
+  <string name="setup_checklist_subtitle_6_steps_first_step">Τέλεια αρχή! Έχετε ολοκληρώσει 1 από τα 6 βήματα.</string>
+  <!-- Subtitle for the setup checklist when the second task is completed. -->
+  <string name="setup_checklist_subtitle_6_steps_second_step">Έχετε ολοκληρώσει 2 από τα 6 βήματα. Εξαιρετική πρόοδος!</string>
+  <!-- Subtitle for a setup checklist with 6 steps when three of the tasks are completed. -->
+  <string name="setup_checklist_subtitle_6_steps_third_step">Έχετε φτάσει στη μέση! Έχετε ολοκληρώσει τρία βήματα και απομένουν 3.</string>
   <!-- Subtitle for a setup checklist with 6 steps when the fourth task is completed. -->
   <string name="setup_checklist_subtitle_6_steps_fourth_step">Έχετε ολοκληρώσει 4 βήματα. Απομένουν μόνο 2!</string>
+  <!-- Subtitle for a setup checklist with 6 steps when the fifth task is completed. -->
+  <string name="setup_checklist_subtitle_6_steps_fifth_step">Σχεδόν τελειώσατε! Βρίσκεστε μόλις 1 βήμα μακριά από τη γραμμή τερματισμού.</string>
+  <!-- Subtitle for a setup checklist with 6 steps completed state. %1$s is the name of the app (for example "Firefox"). -->
+  <string name="setup_checklist_subtitle_6_steps_completed_state">Έχετε ολοκληρώσει και τα 6 βήματα. Απολαύστε την ταχύτητα, το απόρρητο και την ασφάλεια του %1$s.</string>
+  <!--
+    ===== Setup checklist feature: Subtitles for 5 steps (Large screen devices don't support toolbar placement) =====
+
+    Subtitle for a setup checklist with 5 steps initial state. %1$s is the name of the app (for example "Firefox").
+  -->
+  <string name="setup_checklist_subtitle_5_steps_initial_state">Ολοκληρώστε και τα 5 βήματα για την καλύτερη δυνατή εμπειρία περιήγησης με το %1$s.</string>
+  <!-- Subtitle for a setup checklist with 5 steps when the first task is completed. -->
+  <string name="setup_checklist_subtitle_5_steps_first_step">Τέλεια αρχή! Έχετε ολοκληρώσει 1 από τα 5 βήματα.</string>
+  <!-- Subtitle for the setup checklist when the second task is completed. -->
+  <string name="setup_checklist_subtitle_5_steps_second_step">Έχετε ολοκληρώσει 2 από τα 5 βήματα. Εξαιρετική πρόοδος!</string>
+  <!-- Subtitle for a setup checklist with 5 steps when three of the tasks are completed. -->
+  <string name="setup_checklist_subtitle_5_steps_third_step">Έχετε φτάσει στη μέση! Έχετε ολοκληρώσει τρία βήματα και απομένουν 2.</string>
+  <!-- Subtitle for a setup checklist with 5 steps when the fifth task is completed. -->
+  <string name="setup_checklist_subtitle_5_steps_fourth_step">Σχεδόν τελειώσατε! Βρίσκεστε μόλις 1 βήμα μακριά από τη γραμμή τερματισμού.</string>
+  <!-- Subtitle for a setup checklist with 5 steps completed state. %1$s is the name of the app (for example "Firefox"). -->
+  <string name="setup_checklist_subtitle_5_steps_completed_state">Έχετε ολοκληρώσει και τα 5 βήματα. Απολαύστε την ταχύτητα, το απόρρητο και την ασφάλεια του %1$s.</string>
   <!--
     ===== Setup checklist feature: Task titles =====
 
@@ -3482,6 +3548,12 @@
   <string name="setup_checklist_group_customize">Προσαρμόστε το %1$s σας</string>
   <!-- The title of the 'helpful tools' group in the setup checklist -->
   <string name="setup_checklist_group_helpful_tools">Χρήσιμα εργαλεία</string>
+  <!--
+    ===== Setup checklist feature: Button =====
+
+    Text for the 'remove' button for the setup checklist
+  -->
+  <string name="setup_checklist_button_remove">Αφαίρεση λίστας</string>
   <!--
     ===== Setup checklist feature: Accessibility =====
 

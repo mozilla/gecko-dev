@@ -3507,6 +3507,22 @@
   <!-- Subtitle for a setup checklist with 6 steps completed state. %1$s is the name of the app (for example "Firefox"). -->
   <string name="setup_checklist_subtitle_6_steps_completed_state">Шумо ҳамаи 6 қадамро иҷро кардед. Аз беҳтарин суръат, махфият ва амнияти браузери «%1$s» истифода баред.</string>
   <!--
+    ===== Setup checklist feature: Subtitles for 5 steps (Large screen devices don't support toolbar placement) =====
+
+    Subtitle for a setup checklist with 5 steps initial state. %1$s is the name of the app (for example "Firefox").
+  -->
+  <string name="setup_checklist_subtitle_5_steps_initial_state">Барои танзим кардани «%1$s» ба мақсадҳои таҷрибаи тамошобинии беҳтарин, лутфан, ҳамаи 5 қадами зеринро иҷро намоед.</string>
+  <!-- Subtitle for a setup checklist with 5 steps when the first task is completed. -->
+  <string name="setup_checklist_subtitle_5_steps_first_step">Оғози олӣ! Шумо қадами 1-умро аз 5 қадами умумӣ иҷро кардед.</string>
+  <!-- Subtitle for the setup checklist when the second task is completed. -->
+  <string name="setup_checklist_subtitle_5_steps_second_step">Шумо қадами 1-умро аз 5 қадами умумӣ иҷро кардед. Пешравии бузург!</string>
+  <!-- Subtitle for a setup checklist with 5 steps when three of the tasks are completed. -->
+  <string name="setup_checklist_subtitle_5_steps_third_step">Шумо дар ними роҳ қарор доред! Се қадам иҷро шуд ва танҳо 2 қадами дигар монд.</string>
+  <!-- Subtitle for a setup checklist with 5 steps when the fifth task is completed. -->
+  <string name="setup_checklist_subtitle_5_steps_fourth_step">Қариб ҳамааш тайёр аст! Барои расидан ба марра танҳо 1 қадами дигар монд.</string>
+  <!-- Subtitle for a setup checklist with 5 steps completed state. %1$s is the name of the app (for example "Firefox"). -->
+  <string name="setup_checklist_subtitle_5_steps_completed_state">Шумо ҳамаи 5 қадамро иҷро кардед. Аз беҳтарин суръат, махфият ва амнияти браузери «%1$s» истифода баред.</string>
+  <!--
     ===== Setup checklist feature: Task titles =====
 
     The title of the default browser task for the setup checklist

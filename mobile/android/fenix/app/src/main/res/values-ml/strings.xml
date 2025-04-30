@@ -1262,6 +1262,8 @@
   <string name="studies_remove">മാറ്റുക</string>
   <!-- Title of the active section on the studies list -->
   <string name="studies_active">സജീവം</string>
+  <!-- Description for studies -->
+  <string name="studies_description_3">എല്ലാവൎക്കും കിട്ടുന്നതിനു് മുമ്പെ പുതിയ സവിശേഷകൾ ഉപയോഗിച്ചു നോക്കുക.</string>
   <!-- Title of the Studies data preference -->
   <string name="studies_title">പാഠനങ്ങൾ സ്ഥാപിച്ചിട്ടു് അവയെ നടത്തുക</string>
   <!-- Learn more link for studies, links to an article for more information about studies. -->
@@ -1700,6 +1702,8 @@
   <string name="preference_phone_feature_notification">അറിയിപ്പ്</string>
   <!-- Preference for altering the persistent storage access for all websites -->
   <string name="preference_phone_feature_persistent_storage">സ്ഥിരമായ സംഭരണം</string>
+  <!-- Preference for altering the storage access setting for all websites -->
+  <string name="preference_phone_feature_cross_origin_storage_access">വെബിടക്കുറുകെ കുക്കികൾ</string>
   <!-- Preference for altering the EME access for all websites -->
   <string name="preference_phone_feature_media_key_system_access">DRM- നിയന്ത്രിത ഉള്ളടക്കം</string>
   <!-- Label that indicates that a permission must be asked always -->
@@ -2113,6 +2117,8 @@
   <string name="preference_enhanced_tracking_protection_custom_cookies_3">എല്ലാ മൂന്നാം കക്ഷി കുക്കികളും (വെബ്‌സൈറ്റുകൾ തകരാൻ കാരണമായേക്കാം)</string>
   <!-- Option for enhanced tracking protection for the custom protection settings for cookies -->
   <string name="preference_enhanced_tracking_protection_custom_cookies_4">എല്ലാ കുക്കികളും (വെബ്‌സൈറ്റുകൾ തകരാൻ ഇടയാക്കും)</string>
+  <!-- Option for enhanced tracking protection for the custom protection settings for cookies -->
+  <string name="preference_enhanced_tracking_protection_custom_cookies_5">വെബിടക്കുറുകെ കുക്കികളെ അകറ്റുക</string>
   <!-- Preference for Global Privacy Control for the custom privacy settings for Global Privacy Control. '&amp;' is replaced with the ampersand symbol: & -->
   <string name="preference_enhanced_tracking_protection_custom_global_privacy_control">ദത്ത പങ്കിടുകയോ വിൽക്കുകയോ ചെയ്യരുതെന്ന് വെബ്‌സൈറ്റുകളോട് പറയുക</string>
   <!-- Preference for enhanced tracking protection for the custom protection settings for tracking content -->
@@ -2137,6 +2143,8 @@
   <string name="etp_social_media_trackers_description">വെബിലുടനീളം താങ്കളുടെ തിരയൽ പ്രവർത്തനം പിന്തുടരാനുള്ള സോഷ്യൽ നെറ്റ്‌വർക്കുകളുടെ കഴിവ് പരിമിതപ്പെടുത്തുന്നു.</string>
   <!-- Category of trackers (cross-site tracking cookies) that can be blocked by Enhanced Tracking Protection -->
   <string name="etp_cookies_title">ക്രോസ്-സൈറ്റ് പിന്തുടരൽ കുക്കികൾ</string>
+  <!-- Category of trackers (cross-site tracking cookies) that can be blocked by Enhanced Tracking Protection -->
+  <string name="etp_cookies_title_2">വെബിടക്കുറുകെ കുക്കികൾ</string>
   <!-- Description of cross-site tracking cookies that can be blocked by Enhanced Tracking Protection -->
   <string name="etp_cookies_description">താങ്കളുടെ തിരച്ചിൽദത്ത സമാഹരിക്കാൻ നിരവധി സൈറ്റുകളിൽ പരസ്യ ശൃംഘലകളും അനലിറ്റിക്സ് കമ്പനികളും ഉപയോഗിക്കുന്ന കൂക്കികളെ തടയുന്നു.</string>
   <!-- Category of trackers (cryptominers) that can be blocked by Enhanced Tracking Protection -->
@@ -3316,6 +3324,12 @@
   <string name="setup_checklist_subtitle_6_steps_third_step">പകുതി കഴിഞ്ഞു, ഇനിയും 3 പടികൾ മാത്രം മിച്ചമിരിപ്പുണ്ടു്.</string>
   <!-- Subtitle for a setup checklist with 6 steps when the fourth task is completed. -->
   <string name="setup_checklist_subtitle_6_steps_fourth_step">4 പടികൾ കഴിഞ്ഞിരിക്കുന്നു. ഇനി രണ്ടു പടി മാത്രം മിച്ചം!</string>
+  <!-- Subtitle for a setup checklist with 5 steps when the first task is completed. -->
+  <string name="setup_checklist_subtitle_5_steps_first_step">നല്ല തുടക്കം. താങ്ങൾ 5-ൽ 1 പടി തീൎത്തു.</string>
+  <!-- Subtitle for the setup checklist when the second task is completed. -->
+  <string name="setup_checklist_subtitle_5_steps_second_step">5-ൽ 2 എണ്ണം കിഴിഞ്ഞു. നല്ലോണം പോയിക്കൊണ്ടിരിക്കുന്നു!</string>
+  <!-- Subtitle for a setup checklist with 5 steps when three of the tasks are completed. -->
+  <string name="setup_checklist_subtitle_5_steps_third_step">പകുതി കഴിഞ്ഞു, ഇനിയും 2 പടികൾ മാത്രം മിച്ചമിരിപ്പുണ്ടു്.</string>
   <!--
     ===== Setup checklist feature: Task titles =====
 

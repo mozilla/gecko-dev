@@ -3505,6 +3505,22 @@
   <!-- Subtitle for a setup checklist with 6 steps completed state. %1$s is the name of the app (for example "Firefox"). -->
   <string name="setup_checklist_subtitle_6_steps_completed_state">Դուք ավարտել եք բոլոր 6 քայլերը: Վայելեք %1$s-ի արագությունը, գաղտնիությունը և անվտանգությունը:</string>
   <!--
+    ===== Setup checklist feature: Subtitles for 5 steps (Large screen devices don't support toolbar placement) =====
+
+    Subtitle for a setup checklist with 5 steps initial state. %1$s is the name of the app (for example "Firefox").
+  -->
+  <string name="setup_checklist_subtitle_5_steps_initial_state">Կատարեք բոլոր 5 քայլերը՝ %1$s-ը կարգավորելու և դիտարկումների լավագույն փորձառության համար:</string>
+  <!-- Subtitle for a setup checklist with 5 steps when the first task is completed. -->
+  <string name="setup_checklist_subtitle_5_steps_first_step">Հիանալի սկիզբ: Դուք կատարել եք 5 քայլերից 1-ը:</string>
+  <!-- Subtitle for the setup checklist when the second task is completed. -->
+  <string name="setup_checklist_subtitle_5_steps_second_step">Դուք կատարել եք 5 քայլերից 2-ը: Մեծ առաջընթաց:</string>
+  <!-- Subtitle for a setup checklist with 5 steps when three of the tasks are completed. -->
+  <string name="setup_checklist_subtitle_5_steps_third_step">Գրեթե պատրաստ է: Երեք քայլ ավարտվեց, և մնում է 2-ը:</string>
+  <!-- Subtitle for a setup checklist with 5 steps when the fifth task is completed. -->
+  <string name="setup_checklist_subtitle_5_steps_fourth_step">Գրեթե պատրաստ է: Դուք ընդամենը 1 քայլ եք հեռու ավարտելուց:</string>
+  <!-- Subtitle for a setup checklist with 5 steps completed state. %1$s is the name of the app (for example "Firefox"). -->
+  <string name="setup_checklist_subtitle_5_steps_completed_state">Դուք ավարտել եք բոլոր 5 քայլերը: Վայելեք %1$s-ի արագությունը, գաղտնիությունը և անվտանգությունը:</string>
+  <!--
     ===== Setup checklist feature: Task titles =====
 
     The title of the default browser task for the setup checklist
