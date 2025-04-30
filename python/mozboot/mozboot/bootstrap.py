@@ -155,8 +155,9 @@ Proceed at your own peril.
 """
 
 
-# Version 2.24 changes the "core.commitGraph" setting to be "True" by default.
-MINIMUM_RECOMMENDED_GIT_VERSION = Version("2.24")
+# The built-in fsmonitor Windows/macOS for git 2.37+ is better than using the watchman hook.
+# Linux users will still need watchman and to enable the hook.
+MINIMUM_RECOMMENDED_GIT_VERSION = Version("2.37")
 OLD_GIT_WARNING = """
 You are running an older version of git ("{old_version}").
 We recommend upgrading to at least version "{minimum_recommended_version}" to improve
