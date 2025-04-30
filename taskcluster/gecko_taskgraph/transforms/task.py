@@ -1561,6 +1561,7 @@ def build_treescript_payload(config, task, task_def):
                 ],
             }
         ],
+        Optional("bump-files"): [str],
     },
 )
 def build_landoscript_payload(config, task, task_def):
@@ -1648,6 +1649,13 @@ def build_landoscript_payload(config, task, task_def):
         }
         task_def["payload"]["tag_info"] = tag_info
         actions.append("tag")
+
+    if worker.get("bump-files"):
+        bump_info = {}
+        bump_info["next_version"] = release_config["next_version"]
+        bump_info["files"] = worker["bump-files"]
+        task_def["payload"]["version_bump_info"] = bump_info
+        actions.append("version_bump")
 
 
 
