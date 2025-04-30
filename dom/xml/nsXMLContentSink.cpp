@@ -54,7 +54,6 @@
 #include "mozilla/dom/ScriptLoader.h"
 #include "mozilla/dom/txMozillaXSLTProcessor.h"
 #include "mozilla/dom/nsCSPUtils.h"
-#include "mozilla/intl/LocaleService.h"
 #include "mozilla/CycleCollectedJSContext.h"
 #include "mozilla/LoadInfo.h"
 #include "mozilla/UseCounter.h"
@@ -1371,6 +1370,12 @@ nsXMLContentSink::ReportError(const char16_t* aErrorText,
   }
 
   // prepare to set <parsererror> as the document root
+  rv = HandleProcessingInstruction(
+      u"xml-stylesheet",
+      u"href=\"chrome://global/locale/intl.css\" type=\"text/css\"");
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  const char16_t* noAtts[] = {0, 0};
 
   constexpr auto errorNs =
       u"http://www.mozilla.org/newlayout/xml/parsererror.xml"_ns;
@@ -1379,12 +1384,7 @@ nsXMLContentSink::ReportError(const char16_t* aErrorText,
   parsererror.Append((char16_t)0xFFFF);
   parsererror.AppendLiteral("parsererror");
 
-  const char16_t* dirAttr[] = {u"dir", u"ltr", 0, 0};
-  if (intl::LocaleService::GetInstance()->IsAppLocaleRTL() &&
-      !nsContentUtils::SpoofLocaleEnglish(mDocument)) {
-    dirAttr[1] = u"rtl";
-  }
-  rv = HandleStartElement(parsererror.get(), dirAttr, 0, 2, 0);
+  rv = HandleStartElement(parsererror.get(), noAtts, 0, (uint32_t)-1, 0);
   NS_ENSURE_SUCCESS(rv, rv);
 
   rv = HandleCharacterData(aErrorText, NS_strlen(aErrorText), false);
@@ -1394,7 +1394,6 @@ nsXMLContentSink::ReportError(const char16_t* aErrorText,
   sourcetext.Append((char16_t)0xFFFF);
   sourcetext.AppendLiteral("sourcetext");
 
-  const char16_t* noAtts[] = {0, 0};
   rv = HandleStartElement(sourcetext.get(), noAtts, 0, (uint32_t)-1, 0);
   NS_ENSURE_SUCCESS(rv, rv);
 
