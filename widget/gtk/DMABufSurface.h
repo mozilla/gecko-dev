@@ -179,10 +179,12 @@ class DMABufSurface {
 
   // If global reference counter was created by GlobalRefCountCreate()
   // returns true when there's an active surface reference.
-  bool IsGlobalRefSet() const;
+  bool IsGlobalRefSet();
 
   // Add/Remove additional reference to the surface global reference counter.
   void GlobalRefAdd();
+  void GlobalRefAddLocked(const mozilla::MutexAutoLock& aProofOfLock);
+
   void GlobalRefRelease();
 
   static void DeleteSnapshotGLContext();

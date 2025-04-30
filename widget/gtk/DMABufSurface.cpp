@@ -229,7 +229,8 @@ nsAutoCString DMABufSurface::GetDebugTag() const {
   tag.AppendPrintf("[%p]", this);
   return tag;
 }
-bool DMABufSurface::IsGlobalRefSet() const {
+bool DMABufSurface::IsGlobalRefSet() {
+  MutexAutoLock lock(mSurfaceLock);
   if (!mGlobalRefCountFd) {
     return false;
   }
@@ -241,6 +242,7 @@ bool DMABufSurface::IsGlobalRefSet() const {
 
 void DMABufSurface::GlobalRefRelease() {
 #ifdef HAVE_EVENTFD
+  MutexAutoLock lock(mSurfaceLock);
   if (!mGlobalRefCountFd) {
     return;
   }
@@ -262,9 +264,9 @@ void DMABufSurface::GlobalRefRelease() {
 #endif
 }
 
-void DMABufSurface::GlobalRefAdd() {
+void DMABufSurface::GlobalRefAddLocked(const MutexAutoLock& aProofOfLock) {
 #ifdef HAVE_EVENTFD
-  LOGDMABUFREF("DMABufSurface::GlobalRefAdd UID %d", mUID);
+  LOGDMABUFREF("DMABufSurface::GlobalRefAddLocked UID %d", mUID);
   MOZ_DIAGNOSTIC_ASSERT(mGlobalRefCountFd);
   uint64_t counter = 1;
   if (write(mGlobalRefCountFd, &counter, sizeof(counter)) != sizeof(counter)) {
@@ -275,9 +277,16 @@ void DMABufSurface::GlobalRefAdd() {
 #endif
 }
 
+void DMABufSurface::GlobalRefAdd() {
+  LOGDMABUFREF("DMABufSurface::GlobalRefAdd UID %d", mUID);
+  MutexAutoLock lock(mSurfaceLock);
+  GlobalRefAddLocked(lock);
+}
+
 void DMABufSurface::GlobalRefCountCreate() {
 #ifdef HAVE_EVENTFD
   LOGDMABUFREF("DMABufSurface::GlobalRefCountCreate UID %d", mUID);
+  MutexAutoLock lock(mSurfaceLock);
   MOZ_DIAGNOSTIC_ASSERT(!mGlobalRefCountFd);
   // Create global ref count initialized to 0,
   // i.e. is not referenced after create.
@@ -294,15 +303,17 @@ void DMABufSurface::GlobalRefCountCreate() {
 
 void DMABufSurface::GlobalRefCountImport(int aFd) {
 #ifdef HAVE_EVENTFD
+  MutexAutoLock lock(mSurfaceLock);
   mGlobalRefCountFd = aFd;
   if (mGlobalRefCountFd) {
     LOGDMABUFREF("DMABufSurface::GlobalRefCountImport UID %d", mUID);
-    GlobalRefAdd();
+    GlobalRefAddLocked(lock);
   }
 #endif
 }
 
 int DMABufSurface::GlobalRefCountExport() {
+  MutexAutoLock lock(mSurfaceLock);
 #ifdef MOZ_LOGGING
   if (mGlobalRefCountFd) {
     LOGDMABUFREF("DMABufSurface::GlobalRefCountExport UID %d", mUID);
@@ -312,6 +323,7 @@ int DMABufSurface::GlobalRefCountExport() {
 }
 
 void DMABufSurface::GlobalRefCountDelete() {
+  MutexAutoLock lock(mSurfaceLock);
   if (mGlobalRefCountFd) {
     LOGDMABUFREF("DMABufSurface::GlobalRefCountDelete UID %d", mUID);
     close(mGlobalRefCountFd);
