@@ -375,7 +375,7 @@ add_task(async function () {
       );
       info("Waiting for openInsecureButton to be enabled.");
       function callback() {
-        if (!openInsecureButton.inert) {
+        if (!openInsecureButton.classList.contains("disabled")) {
           observer.disconnect();
           content.requestAnimationFrame(() => {
             content.requestAnimationFrame(() => {
@@ -385,7 +385,7 @@ add_task(async function () {
         }
       }
       const observer = new content.MutationObserver(callback);
-      observer.observe(openInsecureButton, { attributeFilter: ["inert"] });
+      observer.observe(openInsecureButton, { attributeFilter: ["class"] });
       callback();
     });
 

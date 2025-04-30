@@ -81,7 +81,7 @@ function waitForAndClickOpenInsecureButton(browser) {
     );
     info("Waiting for openInsecureButton to be enabled.");
     function callback() {
-      if (!openInsecureButton.inert) {
+      if (!openInsecureButton.classList.contains("disabled")) {
         info("openInsecureButton was enabled, waiting two frames.");
         observer.disconnect();
         content.requestAnimationFrame(() => {
@@ -93,7 +93,7 @@ function waitForAndClickOpenInsecureButton(browser) {
       }
     }
     const observer = new content.MutationObserver(callback);
-    observer.observe(openInsecureButton, { attributeFilter: ["inert"] });
+    observer.observe(openInsecureButton, { attributeFilter: ["class"] });
     callback();
   });
 }
