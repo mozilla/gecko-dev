@@ -90,9 +90,6 @@ class JujutsuRepository(Repository):
         # callers should be aware when they're dropping down to git semantics.
         return self.resolve_to_change("@")
 
-    def is_cinnabar_repo(self) -> bool:
-        return self._git.is_cinnabar_repo()
-
     @property
     def base_ref(self):
         ref = self.resolve_to_change("latest(roots(::@ & mutable())-)")
@@ -104,8 +101,12 @@ class JujutsuRepository(Repository):
         ).rstrip()
         return commit
 
-    def base_ref_as_commit(self):
-        return self.resolve_to_commit(self.base_ref)
+    def base_ref_as_hg(self):
+        base_ref = self.resolve_to_commit(self.base_ref)
+        try:
+            return self._git._run("cinnabar", "git2hg", base_ref).strip()
+        except subprocess.CalledProcessError:
+            return
 
     @property
     def branch(self):
