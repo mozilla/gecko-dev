@@ -7,7 +7,7 @@
 gcloud:
   results-bucket: fenix_test_artifacts
   record-video: true
-  timeout: 15m
+  timeout: 30m
   async: false
   num-flaky-test-attempts: 1
 
