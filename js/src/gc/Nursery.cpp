@@ -1070,11 +1070,11 @@ void js::Nursery::renderProfileJSON(JSONPrinter& json) const {
   json.property("bytes_tenured", previousGC.tenuredBytes);
   json.property("cells_tenured", previousGC.tenuredCells);
   json.property("strings_tenured",
-                stats().getStat(gcstats::STAT_STRINGS_TENURED));
+                stats().getStat(gcstats::STAT_STRINGS_PROMOTED));
   json.property("strings_deduplicated",
                 stats().getStat(gcstats::STAT_STRINGS_DEDUPLICATED));
   json.property("bigints_tenured",
-                stats().getStat(gcstats::STAT_BIGINTS_TENURED));
+                stats().getStat(gcstats::STAT_BIGINTS_PROMOTED));
   json.property("bytes_used", previousGC.nurseryUsedBytes);
   json.property("cur_capacity", previousGC.nurseryCapacity);
   const size_t newCapacity = capacity();
@@ -1830,8 +1830,8 @@ size_t js::Nursery::doPretenuring(JSRuntime* rt, JS::GCReason reason,
   size_t zonesWhereStringsDisabled = 0;
   size_t zonesWhereBigIntsDisabled = 0;
 
-  uint32_t numStringsTenured = 0;
-  uint32_t numBigIntsTenured = 0;
+  uint32_t numStringsPromoted = 0;
+  uint32_t numBigIntsPromoted = 0;
   for (ZonesIter zone(gc, SkipAtoms); !zone.done(); zone.next()) {
     bool disableNurseryStrings =
         zone->allocNurseryStrings() &&
@@ -1854,10 +1854,13 @@ size_t js::Nursery::doPretenuring(JSRuntime* rt, JS::GCReason reason,
       }
       updateAllocFlagsForZone(zone);
     }
+
+    numStringsPromoted += zone->nurseryPromotedCount(JS::TraceKind::String);
+    numBigIntsPromoted += zone->nurseryPromotedCount(JS::TraceKind::BigInt);
   }
 
-  stats().setStat(gcstats::STAT_STRINGS_TENURED, numStringsTenured);
-  stats().setStat(gcstats::STAT_BIGINTS_TENURED, numBigIntsTenured);
+  stats().setStat(gcstats::STAT_STRINGS_PROMOTED, numStringsPromoted);
+  stats().setStat(gcstats::STAT_BIGINTS_PROMOTED, numBigIntsPromoted);
 
   if (reportPretenuring() && zonesWhereStringsDisabled) {
     fprintf(stderr,

@@ -61,14 +61,14 @@ enum Count {
 
 // Stats can be set with Statistics::setStat(). They're not reset automatically.
 enum Stat {
-  // Number of strings tenured.
-  STAT_STRINGS_TENURED,
+  // Number of strings promoted.
+  STAT_STRINGS_PROMOTED,
 
   // Number of strings deduplicated.
   STAT_STRINGS_DEDUPLICATED,
 
-  // Number of BigInts tenured.
-  STAT_BIGINTS_TENURED,
+  // Number of BigInts promoted.
+  STAT_BIGINTS_PROMOTED,
 
   STAT_LIMIT
 };
