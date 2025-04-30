@@ -86,8 +86,10 @@ const embedHelperLib = (() => {
       const SMARTBLOCK_PLACEHOLDER_HTML_STRING = `
         <style>
           #smartblock-placeholder-wrapper {
-            min-height: 225px;
-            width: 400px;
+            min-height: 137px;
+            min-width: 216px;
+            max-height: 225px;
+            max-width: 400px;
             padding: 32px 24px;
   
             display: block;
