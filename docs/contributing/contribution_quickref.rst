@@ -104,7 +104,7 @@ Once the System is bootstrapped, run:
 
 .. code-block:: shell
 
-    $ cd firefox
+    $ cd mozilla-unified
     $ ./mach build
 
 which will check for dependencies and start the build.

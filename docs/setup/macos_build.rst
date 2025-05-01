@@ -64,7 +64,7 @@ Now that your system is bootstrapped, you should be able to build!
 
 .. code-block:: shell
 
-    cd firefox
+    cd mozilla-unified
     git pull
     ./mach build
 
@@ -163,7 +163,7 @@ Below is an example for manual setup.
 
 .. code-block:: shell
 
-   cd firefox
+   cd mozilla-unified
    # Creates virtual environment for <your-desired-version> in folder .venv
    python3.<your-desired-version> -m venv .venv
    # Activates virtual environment

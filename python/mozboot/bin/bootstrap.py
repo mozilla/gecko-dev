@@ -44,7 +44,6 @@ VCS_HUMAN_READABLE = {
     "git-cinnabar": "Git",
 }
 GIT_REPO = "https://github.com/mozilla-firefox/firefox"
-HG_REPO = "https://hg.mozilla.org/mozilla-unified"
 
 
 def which(name):
@@ -87,8 +86,7 @@ def validate_clone_dest(dest: Path):
 
 
 def input_clone_dest(vcs, no_interactive):
-    repo = GIT_REPO if vcs == "git" else HG_REPO
-    repo_name = repo.rpartition("/")[2]
+    repo_name = "mozilla-unified"
     print(f"Cloning into {repo_name} using {VCS_HUMAN_READABLE[vcs]}...")
     while True:
         dest = None
@@ -129,7 +127,7 @@ def hg_clone_firefox(hg: Path, dest: Path, head_repo, head_rev):
     # unless someone complains about it.
     with open(dest / ".hg" / "hgrc", "a") as fh:
         fh.write("[paths]\n")
-        fh.write(f"default = {HG_REPO}\n")
+        fh.write("default = https://hg.mozilla.org/mozilla-unified\n")
         fh.write("\n")
 
         # The server uses aggressivemergedeltas which can blow up delta chain
@@ -148,7 +146,7 @@ def hg_clone_firefox(hg: Path, dest: Path, head_repo, head_rev):
     # that the server can process more easily.
     # This is the same thing that robustcheckout does on automation.
     res = subprocess.call(
-        [str(hg), "pull", HG_REPO], cwd=str(dest)
+        [str(hg), "pull", "https://hg.mozilla.org/mozilla-unified"], cwd=str(dest)
     )
     if not res and head_repo:
         res = subprocess.call(
@@ -253,7 +251,7 @@ def git_cinnabar_clone_firefox(git: Path, dest: Path, head_repo, head_rev):
                 "remote.origin.fetch=refs/heads/central:refs/remotes/origin/main",
                 "clone",
                 "--no-checkout",
-                f"hg::{HG_REPO}",
+                "hg::https://hg.mozilla.org/mozilla-unified",
                 str(dest),
             ],
             env=env,

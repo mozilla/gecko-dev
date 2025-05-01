@@ -124,7 +124,7 @@ Now that your system is bootstrapped, you should be able to build!
 
 .. code-block:: shell
 
-    cd c:/mozilla-source/firefox
+    cd c:/mozilla-source/mozilla-unified
     hg up -C central
     ./mach build
 
@@ -206,7 +206,7 @@ Python failed to find files in directories
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Python can sometimes fail to find files in directories when path length limits are reached,
-even when the root directory is kept relatively short: ``C:\mozilla-source\firefox``. This can be resolved by
+even when the root directory is kept relatively short: ``C:\mozilla-source\mozilla-unified``. This can be resolved by
 `turning Windows long paths on <https://learn.microsoft.com/en-us/windows/win32/fileio/maximum-file-path-limitation?tabs=registry>`_.
 
 ``PYTHON`` environment variable
