@@ -49,6 +49,10 @@ input {
   color: GrayText;
 }
 
+:host(:focus-within) {
+  outline: auto;
+}
+
 .textbox-search-icons {
   align-items: center;
   justify-items: center;

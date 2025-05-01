@@ -257,14 +257,6 @@ bool nsNativeThemeGTK::GetGtkWidgetAndState(StyleAppearance aAppearance,
       }
       break;
     }
-    case StyleAppearance::NumberInput:
-    case StyleAppearance::PasswordInput:
-    case StyleAppearance::Textfield:
-      aGtkWidgetType = MOZ_GTK_ENTRY;
-      break;
-    case StyleAppearance::Textarea:
-      aGtkWidgetType = MOZ_GTK_TEXT_VIEW;
-      break;
     case StyleAppearance::Listbox:
       aGtkWidgetType = MOZ_GTK_TREEVIEW;
       break;
@@ -927,6 +919,10 @@ bool nsNativeThemeGTK::IsWidgetAlwaysNonNative(nsIFrame* aFrame,
                                                StyleAppearance aAppearance) {
   return Theme::IsWidgetAlwaysNonNative(aFrame, aAppearance) ||
          aAppearance == StyleAppearance::MozMenulistArrowButton ||
+         aAppearance == StyleAppearance::Textfield ||
+         aAppearance == StyleAppearance::NumberInput ||
+         aAppearance == StyleAppearance::PasswordInput ||
+         aAppearance == StyleAppearance::Textarea ||
          aAppearance == StyleAppearance::Checkbox ||
          aAppearance == StyleAppearance::Radio;
 }
@@ -1001,41 +997,6 @@ LayoutDeviceIntSize nsNativeThemeGTK::GetMinimumWidgetSize(
       result.width += border.LeftRight();
       result.height += border.TopBottom();
     } break;
-    case StyleAppearance::NumberInput:
-    case StyleAppearance::PasswordInput:
-    case StyleAppearance::Textfield: {
-      gint contentHeight = 0;
-      gint borderPaddingHeight = 0;
-      moz_gtk_get_entry_min_height(&contentHeight, &borderPaddingHeight);
-
-      // Scale the min content height proportionately with the font-size if it's
-      // smaller than the default one. This prevents <input type=text
-      // style="font-size: .5em"> from keeping a ridiculously large size, for
-      // example.
-      const gfxFloat fieldFontSizeInCSSPixels = [] {
-        gfxFontStyle fieldFontStyle;
-        nsAutoString unusedFontName;
-        DebugOnly<bool> result = LookAndFeel::GetFont(
-            LookAndFeel::FontID::MozField, unusedFontName, fieldFontStyle);
-        MOZ_ASSERT(result, "GTK look and feel supports the field font");
-        // NOTE: GetFont returns font sizes in CSS pixels, and we want just
-        // that.
-        return fieldFontStyle.size;
-      }();
-
-      const gfxFloat fontSize = aFrame->StyleFont()->mFont.size.ToCSSPixels();
-      if (fieldFontSizeInCSSPixels > fontSize) {
-        contentHeight =
-            std::round(contentHeight * fontSize / fieldFontSizeInCSSPixels);
-      }
-
-      gint height = contentHeight + borderPaddingHeight;
-      if (aFrame->GetWritingMode().IsVertical()) {
-        result.width = height;
-      } else {
-        result.height = height;
-      }
-    } break;
     default:
       break;
   }
@@ -1097,10 +1058,6 @@ nsNativeThemeGTK::ThemeSupportsWidget(nsPresContext* aPresContext,
     case StyleAppearance::Tab:
     // case StyleAppearance::Tabpanel:
     case StyleAppearance::Tabpanels:
-    case StyleAppearance::NumberInput:
-    case StyleAppearance::PasswordInput:
-    case StyleAppearance::Textfield:
-    case StyleAppearance::Textarea:
     case StyleAppearance::Range:
     case StyleAppearance::RangeThumb:
     case StyleAppearance::Splitter:
@@ -1139,10 +1096,6 @@ bool nsNativeThemeGTK::ThemeDrawsFocusForWidget(nsIFrame* aFrame,
   switch (aAppearance) {
     case StyleAppearance::Button:
     case StyleAppearance::Menulist:
-    case StyleAppearance::Textarea:
-    case StyleAppearance::Textfield:
-    case StyleAppearance::NumberInput:
-    case StyleAppearance::PasswordInput:
       return true;
     default:
       return false;
