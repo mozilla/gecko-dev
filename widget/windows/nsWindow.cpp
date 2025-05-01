@@ -1435,12 +1435,7 @@ static int32_t RoundDown(double aDouble) {
 }
 
 float nsWindow::GetDPI() {
-  float dpi = 96.0f;
-  nsCOMPtr<nsIScreen> screen = GetWidgetScreen();
-  if (screen) {
-    screen->GetDpi(&dpi);
-  }
-  return dpi;
+  return GetDefaultScaleInternal() * 96.0f;
 }
 
 double nsWindow::GetDefaultScaleInternal() {
