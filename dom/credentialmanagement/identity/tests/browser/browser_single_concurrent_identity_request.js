@@ -10,12 +10,14 @@ add_task(async function test_concurrent_identity_credential() {
   let tab = await BrowserTestUtils.openNewForegroundTab(gBrowser, TEST_URL);
 
   let requestCredential = async function () {
+    content.document.notifyUserGestureActivation();
     let promise = content.navigator.credentials.get({
       identity: {
+        mode: "active",
         providers: [
           {
             configURL:
-              "https://example.net/tests/dom/credentialmanagement/identity/tests/browser/server_manifest.json",
+              "https://example.net/browser/dom/credentialmanagement/identity/tests/browser/server_manifest.json",
             clientId: "browser",
             nonce: "nonce",
           },
