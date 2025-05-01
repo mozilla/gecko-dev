@@ -437,9 +437,11 @@ body {
   }
 }
 
-/* stylelint-disable-next-line media-query-no-invalid */
-@media not -moz-pref("sidebar.verticalTabs") {
-  #vertical-spacer {
+#vertical-spacer {
+  min-width: 20px;
+
+  /* stylelint-disable-next-line media-query-no-invalid */
+  @media not -moz-pref("sidebar.verticalTabs") {
     display: none;
   }
 }

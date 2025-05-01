@@ -359,7 +359,7 @@ add_task(async function insertBeforeFirstItemInOverflow() {
   await TestUtils.waitForCondition(() => {
     return (
       libraryButton.getAttribute("overflowedItem") == "true" &&
-      libraryButton.previousElementSibling?.id == "vertical-spacer"
+      !libraryButton.previousElementSibling
     );
   }, "Library button is overflowed");
 
