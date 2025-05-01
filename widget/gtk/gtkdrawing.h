@@ -134,8 +134,6 @@ enum WidgetNodeType : int {
   /* Paints a GtkScale thumb. */
   MOZ_GTK_SCALE_THUMB_HORIZONTAL,
   MOZ_GTK_SCALE_THUMB_VERTICAL,
-  /* Paints a GtkEntry. */
-  MOZ_GTK_ENTRY,
   /* Paints a GtkExpander. */
   MOZ_GTK_EXPANDER,
   /* Paints a GtkTextView or gets the style context corresponding to the
