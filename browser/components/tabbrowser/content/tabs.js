@@ -1248,7 +1248,7 @@
               color: draggedTab._dragData.tabGroupCreationColor,
               telemetryUserCreateSource: "drag",
             });
-          } else if (dropIndex !== undefined || dropElement) {
+          } else {
             moveTabs();
           }
         }
