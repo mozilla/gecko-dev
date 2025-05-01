@@ -12,6 +12,7 @@ import mozilla.components.lib.state.ext.observeAsComposableState
 import org.mozilla.fenix.components.components
 import org.mozilla.fenix.compose.ComposeViewHolder
 import org.mozilla.fenix.home.sessioncontrol.SetupChecklistInteractor
+import org.mozilla.fenix.utils.isLargeScreenSize
 
 /**
  * View holder for the Setup Checklist feature.
@@ -32,7 +33,7 @@ class SetupChecklistViewHolder(
         val setupChecklistState =
             appStore.observeAsComposableState { state -> state.setupChecklistState }.value
 
-        if (setupChecklistState != null && setupChecklistState.isVisible) {
+        if (!composeView.context.isLargeScreenSize() && setupChecklistState != null && setupChecklistState.isVisible) {
             SetupChecklist(
                 setupChecklistState = setupChecklistState,
                 interactor = interactor,
