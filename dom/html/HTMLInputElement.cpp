@@ -3947,7 +3947,6 @@ nsresult HTMLInputElement::PostHandleEvent(EventChainPostVisitor& aVisitor) {
               aVisitor.mEventStatus = nsEventStatus_eConsumeNoDefault;
             }
           }
-
         } break;  // eKeyPress
 
         case eMouseDown:
