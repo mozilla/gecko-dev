@@ -53,15 +53,13 @@ NS_IMPL_ISUPPORTS(nsNativeTheme, nsITimerCallback, nsINamed)
   if (isXULElement) {
     if (aAppearance == StyleAppearance::Checkbox ||
         aAppearance == StyleAppearance::Radio ||
-        aAppearance == StyleAppearance::ToolbarbuttonDropdown ||
-        aAppearance == StyleAppearance::ButtonArrowUp ||
 #ifdef MOZ_WIDGET_GTK
         aAppearance == StyleAppearance::MozWindowButtonClose ||
         aAppearance == StyleAppearance::MozWindowButtonMinimize ||
         aAppearance == StyleAppearance::MozWindowButtonRestore ||
         aAppearance == StyleAppearance::MozWindowButtonMaximize ||
 #endif
-        aAppearance == StyleAppearance::ButtonArrowDown) {
+        false) {
       aFrame = aFrame->GetParent();
       frameContent = aFrame->GetContent();
     }

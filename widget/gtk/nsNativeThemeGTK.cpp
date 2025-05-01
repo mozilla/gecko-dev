@@ -184,14 +184,10 @@ bool nsNativeThemeGTK::GetGtkWidgetAndState(StyleAppearance aAppearance,
     aState->isDefault = IsDefaultButton(aFrame);
     aState->canDefault = FALSE;  // XXX fix me
 
-    if (aAppearance == StyleAppearance::Button ||
-        aAppearance == StyleAppearance::Toolbarbutton ||
-        aAppearance == StyleAppearance::ToolbarbuttonDropdown ||
-        aAppearance == StyleAppearance::MozWindowButtonMinimize ||
+    if (aAppearance == StyleAppearance::MozWindowButtonMinimize ||
         aAppearance == StyleAppearance::MozWindowButtonRestore ||
         aAppearance == StyleAppearance::MozWindowButtonMaximize ||
-        aAppearance == StyleAppearance::MozWindowButtonClose ||
-        aAppearance == StyleAppearance::Menulist) {
+        aAppearance == StyleAppearance::MozWindowButtonClose) {
       aState->active &= aState->inHover;
     }
 
@@ -200,18 +196,6 @@ bool nsNativeThemeGTK::GetGtkWidgetAndState(StyleAppearance aAppearance,
       // actually has element focus, so we check the focused attribute
       // to see whether to draw in the focused state.
       aState->focused = elementState.HasState(ElementState::FOCUSRING);
-
-      // A button with drop down menu open or an activated toggle button
-      // should always appear depressed.
-      if (aAppearance == StyleAppearance::Button ||
-          aAppearance == StyleAppearance::Toolbarbutton ||
-          aAppearance == StyleAppearance::ToolbarbuttonDropdown ||
-          aAppearance == StyleAppearance::Menulist) {
-        bool menuOpen = IsOpenButton(aFrame);
-        aState->depressed = IsCheckedButton(aFrame) || menuOpen;
-        // we must not highlight buttons with open drop down menus on hover.
-        aState->inHover = aState->inHover && !menuOpen;
-      }
     }
 
     if (aAppearance == StyleAppearance::MozWindowTitlebar ||
@@ -226,14 +210,6 @@ bool nsNativeThemeGTK::GetGtkWidgetAndState(StyleAppearance aAppearance,
   }
 
   switch (aAppearance) {
-    case StyleAppearance::Button:
-      if (aWidgetFlags) *aWidgetFlags = GTK_RELIEF_NORMAL;
-      aGtkWidgetType = MOZ_GTK_BUTTON;
-      break;
-    case StyleAppearance::Toolbarbutton:
-      if (aWidgetFlags) *aWidgetFlags = GTK_RELIEF_NONE;
-      aGtkWidgetType = MOZ_GTK_TOOLBAR_BUTTON;
-      break;
     case StyleAppearance::Range: {
       if (IsRangeHorizontal(aFrame)) {
         if (aWidgetFlags) *aWidgetFlags = GTK_ORIENTATION_HORIZONTAL;
@@ -256,23 +232,6 @@ bool nsNativeThemeGTK::GetGtkWidgetAndState(StyleAppearance aAppearance,
     }
     case StyleAppearance::Listbox:
       aGtkWidgetType = MOZ_GTK_TREEVIEW;
-      break;
-    case StyleAppearance::Menulist:
-      aGtkWidgetType = MOZ_GTK_DROPDOWN;
-      if (aWidgetFlags)
-        *aWidgetFlags =
-            IsFrameContentNodeInNamespace(aFrame, kNameSpaceID_XHTML);
-      break;
-    case StyleAppearance::ToolbarbuttonDropdown:
-    case StyleAppearance::ButtonArrowDown:
-    case StyleAppearance::ButtonArrowUp:
-      aGtkWidgetType = MOZ_GTK_TOOLBARBUTTON_ARROW;
-      if (aWidgetFlags) {
-        *aWidgetFlags = GTK_ARROW_DOWN;
-
-        if (aAppearance == StyleAppearance::ButtonArrowUp)
-          *aWidgetFlags = GTK_ARROW_UP;
-      }
       break;
     case StyleAppearance::ProgressBar:
       aGtkWidgetType = MOZ_GTK_PROGRESSBAR;
@@ -580,30 +539,6 @@ static void DrawThemeWithCairo(gfxContext* aContext, DrawTarget* aDrawTarget,
   }
 }
 
-CSSIntMargin nsNativeThemeGTK::GetExtraSizeForWidget(
-    nsIFrame* aFrame, StyleAppearance aAppearance) {
-  CSSIntMargin extra;
-  // Allow an extra one pixel above and below the thumb for certain
-  // GTK2 themes (Ximian Industrial, Bluecurve, Misty, at least);
-  // We modify the frame's overflow area.  See bug 297508.
-  switch (aAppearance) {
-    case StyleAppearance::Button: {
-      if (IsDefaultButton(aFrame)) {
-        // Some themes draw a default indicator outside the widget,
-        // include that in overflow
-        moz_gtk_button_get_default_overflow(&extra.top.value, &extra.left.value,
-                                            &extra.bottom.value,
-                                            &extra.right.value);
-        break;
-      }
-      return {};
-    }
-    default:
-      return {};
-  }
-  return extra;
-}
-
 NS_IMETHODIMP
 nsNativeThemeGTK::DrawWidgetBackground(gfxContext* aContext, nsIFrame* aFrame,
                                        StyleAppearance aAppearance,
@@ -792,10 +727,8 @@ CSSIntMargin nsNativeThemeGTK::GetCachedWidgetBorder(
       moz_gtk_get_widget_border(gtkWidgetType, &result.left.value,
                                 &result.top.value, &result.right.value,
                                 &result.bottom.value, aDirection);
-      if (gtkWidgetType != MOZ_GTK_DROPDOWN) {  // depends on aDirection
-        mBorderCacheValid[cacheIndex] |= cacheBit;
-        mBorderCache[gtkWidgetType] = result;
-      }
+      mBorderCacheValid[cacheIndex] |= cacheBit;
+      mBorderCache[gtkWidgetType] = result;
     }
   }
   FixupForVerticalWritingMode(aFrame->GetWritingMode(), &result);
@@ -844,9 +777,6 @@ bool nsNativeThemeGTK::GetWidgetPadding(nsDeviceContext* aContext,
     case StyleAppearance::MozWindowButtonMinimize:
     case StyleAppearance::MozWindowButtonMaximize:
     case StyleAppearance::MozWindowButtonRestore:
-    case StyleAppearance::ToolbarbuttonDropdown:
-    case StyleAppearance::ButtonArrowUp:
-    case StyleAppearance::ButtonArrowDown:
     case StyleAppearance::RangeThumb:
       aResult->SizeTo(0, 0, 0, 0);
       return true;
@@ -865,12 +795,7 @@ bool nsNativeThemeGTK::GetWidgetOverflow(nsDeviceContext* aContext,
     return Theme::GetWidgetOverflow(aContext, aFrame, aAppearance,
                                     aOverflowRect);
   }
-  auto overflow = GetExtraSizeForWidget(aFrame, aAppearance);
-  if (overflow == CSSIntMargin()) {
-    return false;
-  }
-  aOverflowRect->Inflate(CSSIntMargin::ToAppUnits(overflow));
-  return true;
+  return false;
 }
 
 auto nsNativeThemeGTK::IsWidgetNonNative(nsIFrame* aFrame,
@@ -904,7 +829,10 @@ bool nsNativeThemeGTK::IsWidgetAlwaysNonNative(nsIFrame* aFrame,
          aAppearance == StyleAppearance::PasswordInput ||
          aAppearance == StyleAppearance::Textarea ||
          aAppearance == StyleAppearance::Checkbox ||
-         aAppearance == StyleAppearance::Radio;
+         aAppearance == StyleAppearance::Radio ||
+         aAppearance == StyleAppearance::Button ||
+         aAppearance == StyleAppearance::Toolbarbutton ||
+         aAppearance == StyleAppearance::Menulist;
 }
 
 LayoutDeviceIntSize nsNativeThemeGTK::GetMinimumWidgetSize(
@@ -932,12 +860,6 @@ LayoutDeviceIntSize nsNativeThemeGTK::GetMinimumWidgetSize(
                                        &result.width);
       }
     } break;
-    case StyleAppearance::ToolbarbuttonDropdown:
-    case StyleAppearance::ButtonArrowUp:
-    case StyleAppearance::ButtonArrowDown: {
-      moz_gtk_get_arrow_size(MOZ_GTK_TOOLBARBUTTON_ARROW, &result.width,
-                             &result.height);
-    } break;
     case StyleAppearance::MozWindowButtonClose: {
       const ToolbarButtonGTKMetrics* metrics =
           GetToolbarButtonMetrics(MOZ_GTK_HEADER_BAR_BUTTON_CLOSE);
@@ -960,21 +882,6 @@ LayoutDeviceIntSize nsNativeThemeGTK::GetMinimumWidgetSize(
       result.height = metrics->minSizeWithBorder.height;
       break;
     }
-    case StyleAppearance::Button:
-    case StyleAppearance::Menulist: {
-      if (aAppearance == StyleAppearance::Menulist) {
-        // Include the arrow size.
-        moz_gtk_get_arrow_size(MOZ_GTK_DROPDOWN, &result.width, &result.height);
-      }
-      // else the minimum size is missing consideration of container
-      // descendants; the value returned here will not be helpful, but the
-      // box model may consider border and padding with child minimum sizes.
-
-      CSSIntMargin border =
-          GetCachedWidgetBorder(aFrame, aAppearance, GetTextDirection(aFrame));
-      result.width += border.LeftRight();
-      result.height += border.TopBottom();
-    } break;
     default:
       break;
   }
@@ -1015,18 +922,6 @@ nsNativeThemeGTK::ThemeSupportsWidget(nsPresContext* aPresContext,
   }
 
   switch (aAppearance) {
-    // Combobox dropdowns don't support native theming in vertical mode.
-    case StyleAppearance::Menulist:
-      if (aFrame && aFrame->GetWritingMode().IsVertical()) {
-        return false;
-      }
-      [[fallthrough]];
-
-    case StyleAppearance::Button:
-    case StyleAppearance::Toolbarbutton:
-    case StyleAppearance::ToolbarbuttonDropdown:
-    case StyleAppearance::ButtonArrowUp:
-    case StyleAppearance::ButtonArrowDown:
     case StyleAppearance::Listbox:
     case StyleAppearance::ProgressBar:
     case StyleAppearance::Progresschunk:
@@ -1054,9 +949,7 @@ nsNativeThemeGTK::ThemeSupportsWidget(nsPresContext* aPresContext,
 NS_IMETHODIMP_(bool)
 nsNativeThemeGTK::WidgetIsContainer(StyleAppearance aAppearance) {
   // XXXdwh At some point flesh all of this out.
-  if (aAppearance == StyleAppearance::RangeThumb ||
-      aAppearance == StyleAppearance::ButtonArrowUp ||
-      aAppearance == StyleAppearance::ButtonArrowDown) {
+  if (aAppearance == StyleAppearance::RangeThumb) {
     return false;
   }
   return true;
@@ -1067,13 +960,7 @@ bool nsNativeThemeGTK::ThemeDrawsFocusForWidget(nsIFrame* aFrame,
   if (IsWidgetNonNative(aFrame, aAppearance) != NonNative::No) {
     return Theme::ThemeDrawsFocusForWidget(aFrame, aAppearance);
   }
-  switch (aAppearance) {
-    case StyleAppearance::Button:
-    case StyleAppearance::Menulist:
-      return true;
-    default:
-      return false;
-  }
+  return false;
 }
 
 bool nsNativeThemeGTK::ThemeNeedsComboboxDropmarker() { return false; }

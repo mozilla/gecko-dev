@@ -76,12 +76,11 @@
 
 .expander-up > .button-box {
   appearance: auto;
-  -moz-default-appearance: button-arrow-up;
+  -moz-default-appearance: -moz-menulist-arrow-button;
 }
 
 .expander-down > .button-box {
-  appearance: auto;
-  -moz-default-appearance: button-arrow-down;
+  transform: scaleY(-1);
 }
 
 /* Downloads pane */
