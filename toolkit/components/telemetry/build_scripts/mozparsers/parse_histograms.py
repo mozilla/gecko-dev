@@ -112,7 +112,7 @@ class Histogram:
         """Initialize a histogram named name with the given definition.
         definition is a dict-like object that must contain at least the keys:
 
-         - 'kind': The kind of histogram.  Must be one of 'boolean', 'flag',
+         - 'kind': The kind of histogram.  Must be one of 'boolean',
            'count', 'enumerated', 'linear', or 'exponential'.
          - 'description': A textual description of the histogram.
          - 'strict_type_checks': A boolean indicating whether to use the new, stricter type checks.
@@ -147,7 +147,7 @@ class Histogram:
 
     def kind(self):
         """Return the kind of the histogram.
-        Will be one of 'boolean', 'flag', 'count', 'enumerated', 'categorical', 'linear',
+        Will be one of 'boolean', 'count', 'enumerated', 'categorical', 'linear',
         or 'exponential'."""
         return self._kind
 
@@ -229,7 +229,6 @@ class Histogram:
         """Return an array of lower bounds for each bucket in the histogram."""
         bucket_fns = {
             "boolean": linear_buckets,
-            "flag": linear_buckets,
             "count": linear_buckets,
             "enumerated": linear_buckets,
             "categorical": linear_buckets,
@@ -248,7 +247,6 @@ class Histogram:
     def compute_bucket_parameters(self, definition):
         bucket_fns = {
             "boolean": Histogram.boolean_flag_bucket_parameters,
-            "flag": Histogram.boolean_flag_bucket_parameters,
             "count": Histogram.boolean_flag_bucket_parameters,
             "enumerated": Histogram.enumerated_bucket_parameters,
             "categorical": Histogram.categorical_bucket_parameters,
@@ -269,7 +267,6 @@ class Histogram:
 
         table = {
             "boolean": ALWAYS_ALLOWED_KEYS,
-            "flag": ALWAYS_ALLOWED_KEYS,
             "count": ALWAYS_ALLOWED_KEYS,
             "enumerated": ALWAYS_ALLOWED_KEYS + ["n_values"],
             "categorical": ALWAYS_ALLOWED_KEYS + ["labels", "n_values"],
@@ -285,7 +282,7 @@ class Histogram:
         if kind not in table:
             ParserError(
                 'Unknown kind "%s" for histogram "%s".' % (kind, name)
-            ).handle_later()
+            ).handle_now()
         allowed_keys = table[kind]
 
         self.check_name(name)
@@ -672,7 +669,6 @@ class Histogram:
         # Pick a Telemetry implementation type.
         types = {
             "boolean": "BOOLEAN",
-            "flag": "FLAG",
             "count": "COUNT",
             "enumerated": "LINEAR",
             "categorical": "CATEGORICAL",

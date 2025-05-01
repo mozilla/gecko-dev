@@ -352,17 +352,13 @@ class TestParser(unittest.TestCase):
             "kind": ["TEST_HISTOGRAM_ALLOWLIST_KIND"],
         }
 
-        hist = parse_histograms.Histogram(
+        self.assertRaises(
+            SystemExit,
+            parse_histograms.Histogram,
             "TEST_HISTOGRAM_ALLOWLIST_KIND",
             histograms["TEST_HISTOGRAM_ALLOWLIST_KIND"],
             strict_type_checks=True,
         )
-
-        ParserError.exit_func()
-        self.assertEqual(hist.expiration(), "never")
-        self.assertEqual(hist.kind(), "flag")
-        self.assertEqual(hist.record_in_processes(), ["main", "content"])
-        self.assertEqual(hist.keyed(), False)
 
         parse_histograms.allowlists = None
 

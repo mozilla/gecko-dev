@@ -164,10 +164,6 @@ def static_asserts_for_boolean(output, histogram):
     pass
 
 
-def static_asserts_for_flag(output, histogram):
-    pass
-
-
 def static_asserts_for_count(output, histogram):
     pass
 
@@ -214,7 +210,6 @@ def write_histogram_static_asserts(output, histograms):
 
     table = {
         "boolean": static_asserts_for_boolean,
-        "flag": static_asserts_for_flag,
         "count": static_asserts_for_count,
         "enumerated": static_asserts_for_enumerated,
         "categorical": static_asserts_for_enumerated,
