@@ -1,0 +1,209 @@
+{
+  "version": ["sessionrestore", 1],
+  "windows": [
+    {
+      "tabs": [
+        {
+          "entries": [
+            {
+              "url": "about:newtab",
+              "title": "New Tab",
+              "cacheKey": 0,
+              "ID": 2565551423,
+              "docshellUUID": "{6096d5d1-dc70-4efa-ac9d-c556add40764}",
+              "resultPrincipalURI": null,
+              "hasUserInteraction": true,
+              "triggeringPrincipal_base64": "{\"3\":{}}",
+              "docIdentifier": 4,
+              "persist": true
+            }
+          ],
+          "lastAccessed": 1733437387706,
+          "hidden": false,
+          "searchMode": null,
+          "userContextId": 0,
+          "attributes": {},
+          "index": 3,
+          "requestedIndex": 0,
+          "formdata": {
+            "url": "about:preferences",
+            "id": {
+              "downloadFolder": "Downloads"
+            }
+          },
+          "image": "chrome://global/skin/icons/settings.svg"
+        },
+        {
+          "entries": [
+            {
+              "url": "about:newtab",
+              "title": "New Tab",
+              "cacheKey": 0,
+              "ID": 2565452543,
+              "docshellUUID": "{b8a57d6f-e51d-451e-8ddc-c9c3a9bd5553}",
+              "resultPrincipalURI": null,
+              "hasUserInteraction": true,
+              "triggeringPrincipal_base64": "{\"3\":{}}",
+              "docIdentifier": 5,
+              "persist": true
+            },
+            {
+              "url": "about:support",
+              "title": "Troubleshooting Information",
+              "cacheKey": 0,
+              "ID": 2565452544,
+              "docshellUUID": "{b8a57d6f-e51d-451e-8ddc-c9c3a9bd5553}",
+              "resultPrincipalURI": null,
+              "presState": [
+                {
+                  "stateKey": "0>html>0",
+                  "scroll": "0,27360"
+                }
+              ],
+              "principalToInherit_base64": "{\"0\":{\"0\":\"moz-nullprincipal:{ede6dd15-b24f-4315-8594-843064ea277e}\"}}",
+              "hasUserInteraction": true,
+              "triggeringPrincipal_base64": "{\"3\":{}}",
+              "docIdentifier": 6,
+              "persist": true
+            }
+          ],
+          "lastAccessed": 1733437283240,
+          "hidden": false,
+          "searchMode": null,
+          "userContextId": 0,
+          "attributes": {},
+          "index": 2,
+          "scroll": {
+            "scroll": "0,522"
+          },
+          "userTypedValue": "",
+          "userTypedClear": 0,
+          "image": "chrome://branding/content/icon32.png"
+        }
+      ],
+      "groups": [],
+      "closedGroups": [],
+      "selected": 1,
+      "_closedTabs": [],
+      "_lastClosedTabGroupCount": -1,
+      "chromeFlags": 2150633470,
+      "sizemodeBeforeMinimized": "normal",
+      "width": 1280,
+      "height": 704,
+      "screenX": 24,
+      "screenY": 4,
+      "sizemode": "normal",
+      "sidebar": {
+        "expanded": false,
+        "hidden": false,
+        "launcherWidth": null
+      },
+      "zIndex": 1,
+      "title": "Settings",
+      "_shouldRestore": true,
+      "closedAt": 1733437387713,
+      "closedId": 2
+    }
+  ],
+  "selectedWindow": 0,
+  "_closedWindows": [],
+  "savedGroups": [],
+  "session": {
+    "lastUpdate": 1733437387870,
+    "startTime": 1733436963037,
+    "recentCrashes": 0
+  },
+  "global": {},
+  "cookies": [
+    {
+      "host": "addons.mozilla.org",
+      "value": "3d1882196fb68ee6fdeea7db4c0724409d0d0c1784d0ab35aa3729c3118eab7a",
+      "path": "/",
+      "name": "taarId",
+      "secure": true,
+      "httponly": true,
+      "expiry": 1733436967845,
+      "originAttributes": {
+        "firstPartyDomain": "",
+        "geckoViewSessionContextId": "",
+        "partitionKey": "",
+        "privateBrowsingId": 0,
+        "userContextId": 3
+      },
+      "sameSite": 1,
+      "schemeMap": 2
+    },
+    {
+      "host": "addons.mozilla.org",
+      "value": "3d1882196fb68ee6fdeea7db4c0724409d0d0c1784d0ab35aa3729c3118eab7a",
+      "path": "/",
+      "name": "taarId",
+      "secure": true,
+      "httponly": true,
+      "expiry": 1733436967845,
+      "originAttributes": {
+        "firstPartyDomain": "",
+        "geckoViewSessionContextId": "",
+        "partitionKey": "",
+        "privateBrowsingId": 0,
+        "userContextId": 4
+      },
+      "sameSite": 1,
+      "schemeMap": 2
+    },
+    {
+      "host": "addons.mozilla.org",
+      "value": "3d1882196fb68ee6fdeea7db4c0724409d0d0c1784d0ab35aa3729c3118eab7a",
+      "path": "/",
+      "name": "taarId",
+      "secure": true,
+      "httponly": true,
+      "expiry": 1733436967845,
+      "originAttributes": {
+        "firstPartyDomain": "",
+        "geckoViewSessionContextId": "",
+        "partitionKey": "",
+        "privateBrowsingId": 0,
+        "userContextId": 0
+      },
+      "sameSite": 1,
+      "schemeMap": 2
+    },
+    {
+      "host": "addons.mozilla.org",
+      "value": "3d1882196fb68ee6fdeea7db4c0724409d0d0c1784d0ab35aa3729c3118eab7a",
+      "path": "/",
+      "name": "taarId",
+      "secure": true,
+      "httponly": true,
+      "expiry": 1733436967845,
+      "originAttributes": {
+        "firstPartyDomain": "",
+        "geckoViewSessionContextId": "",
+        "partitionKey": "",
+        "privateBrowsingId": 0,
+        "userContextId": 1
+      },
+      "sameSite": 1,
+      "schemeMap": 2
+    },
+    {
+      "host": "addons.mozilla.org",
+      "value": "3d1882196fb68ee6fdeea7db4c0724409d0d0c1784d0ab35aa3729c3118eab7a",
+      "path": "/",
+      "name": "taarId",
+      "secure": true,
+      "httponly": true,
+      "expiry": 1733436967845,
+      "originAttributes": {
+        "firstPartyDomain": "",
+        "geckoViewSessionContextId": "",
+        "partitionKey": "",
+        "privateBrowsingId": 0,
+        "userContextId": 2
+      },
+      "sameSite": 1,
+      "schemeMap": 2
+    }
+  ]
+}
