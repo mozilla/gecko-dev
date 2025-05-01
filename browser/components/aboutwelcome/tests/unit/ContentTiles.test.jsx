@@ -11,7 +11,7 @@ describe("ContentTiles component", () => {
   let wrapper;
   let handleAction;
   let setActiveMultiSelect;
-  let setActiveSingleSelectSelection;
+  let setActiveSingleSelect;
   let globals;
 
   const CHECKLIST_TILE = {
@@ -78,7 +78,7 @@ describe("ContentTiles component", () => {
     sandbox = sinon.createSandbox();
     handleAction = sandbox.stub();
     setActiveMultiSelect = sandbox.stub();
-    setActiveSingleSelectSelection = sandbox.stub();
+    setActiveSingleSelect = sandbox.stub();
     globals = new GlobalOverrider();
     globals.set({
       AWSendToDeviceEmailsSupported: () => Promise.resolve(),
@@ -434,7 +434,7 @@ describe("ContentTiles component", () => {
         handleAction={() => {}}
         activeMultiSelect={null}
         setActiveMultiSelect={setActiveMultiSelect}
-        setActiveSingleSelectSelection={setActiveSingleSelectSelection}
+        setActiveSingleSelect={setActiveSingleSelect}
       />
     );
 
@@ -654,141 +654,5 @@ describe("ContentTiles component", () => {
     );
 
     wrapper.unmount();
-  });
-
-  it("should select defaults of single select tiles independently of one another", () => {
-    const SINGLE_SELECT_1 = {
-      type: "single-select",
-      selected: "test1",
-      data: [
-        {
-          id: "test1",
-          label: {
-            raw: "test1 label",
-          },
-        },
-        {
-          defaultValue: true,
-          id: "test2",
-          label: {
-            raw: "test2 label",
-          },
-        },
-      ],
-    };
-
-    const SINGLE_SELECT_2 = {
-      type: "single-select",
-      selected: "test4",
-      data: [
-        {
-          id: "test3",
-          label: {
-            raw: "test3 label",
-          },
-        },
-        {
-          defaultValue: true,
-          id: "test4",
-          label: {
-            raw: "test4 label",
-          },
-        },
-      ],
-    };
-
-    const content = { tiles: [SINGLE_SELECT_1, SINGLE_SELECT_2] };
-    wrapper = mount(
-      <ContentTiles
-        content={content}
-        setActiveSingleSelectSelection={setActiveSingleSelectSelection}
-        handleAction={handleAction}
-      />
-    );
-    wrapper.update();
-
-    sinon.assert.calledWithExactly(
-      setActiveSingleSelectSelection.getCall(0),
-      "test1",
-      "single-select-0"
-    );
-
-    sinon.assert.calledWithExactly(
-      setActiveSingleSelectSelection.getCall(1),
-      "test4",
-      "single-select-1"
-    );
-    wrapper.unmount();
-  });
-
-  it("should handle interactions with multiple single select tiles independently of one another", () => {
-    const SINGLE_SELECT_1 = {
-      type: "single-select",
-      selected: "test1",
-      data: [
-        {
-          id: "test1",
-          label: {
-            raw: "test1 label",
-          },
-        },
-        {
-          defaultValue: true,
-          id: "test2",
-          label: {
-            raw: "test2 label",
-          },
-        },
-      ],
-    };
-
-    const SINGLE_SELECT_2 = {
-      type: "single-select",
-      selected: "test4",
-      data: [
-        {
-          id: "test3",
-          label: {
-            raw: "test3 label",
-          },
-        },
-        {
-          defaultValue: true,
-          id: "test4",
-          label: {
-            raw: "test4 label",
-          },
-        },
-      ],
-    };
-
-    const content = { tiles: [SINGLE_SELECT_1, SINGLE_SELECT_2] };
-    wrapper = mount(
-      <ContentTiles
-        content={content}
-        setActiveSingleSelectSelection={setActiveSingleSelectSelection}
-        handleAction={handleAction}
-      />
-    );
-
-    wrapper.update();
-
-    const tile2 = wrapper.find('input[value="test2"]');
-    tile2.simulate("click");
-
-    sinon.assert.calledWithExactly(
-      setActiveSingleSelectSelection.getCall(2),
-      "test2",
-      "single-select-0"
-    );
-
-    const tile3 = wrapper.find('input[value="test3"]');
-    tile3.simulate("click");
-
-    sinon.assert.calledWithExactly(
-      setActiveSingleSelectSelection.getCall(3),
-      "test3",
-      "single-select-1"
-    );
   });
 });

@@ -9,12 +9,11 @@ import { AboutWelcomeUtils } from "../lib/aboutwelcome-utils.mjs";
 
 // This component was formerly "Themes" and continues to support theme
 export const SingleSelect = ({
-  activeSingleSelectSelections = {}, // This now holds all active selections keyed by `singleSelectId`
+  activeSingleSelect,
   activeTheme,
   content,
   handleAction,
-  setActiveSingleSelectSelection,
-  singleSelectId,
+  setActiveSingleSelect,
 }) => {
   const category = content.tiles?.category?.type || content.tiles?.type;
   const isSingleSelect = category === "single-select";
@@ -49,12 +48,10 @@ export const SingleSelect = ({
   // When screen renders for first time or user navigates back, update state to
   // check default option.
   useEffect(() => {
-    if (isSingleSelect && !activeSingleSelectSelections[singleSelectId]) {
+    if (isSingleSelect && !activeSingleSelect) {
       let newActiveSingleSelect =
         content.tiles?.selected || content.tiles?.data[0].id;
-
-      setActiveSingleSelectSelection(newActiveSingleSelect, singleSelectId);
-
+      setActiveSingleSelect(newActiveSingleSelect);
       let selectedTile = content.tiles?.data.find(
         opt => opt.id === newActiveSingleSelect
       );
@@ -68,7 +65,7 @@ export const SingleSelect = ({
         handleAction({ currentTarget: { value: selectedTile.id } });
       }
     }
-  }, [activeSingleSelectSelections]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const CONFIGURABLE_STYLES = [
     "background",
@@ -82,7 +79,7 @@ export const SingleSelect = ({
   ];
 
   return (
-    <div className={`tiles-single-select-container`}>
+    <div className="tiles-single-select-container">
       <div>
         <fieldset className={`tiles-single-select-section ${category}`}>
           <Localized text={content.subtitle}>
@@ -106,13 +103,12 @@ export const SingleSelect = ({
               }
               const selected =
                 (theme && theme === activeTheme) ||
-                (isSingleSelect &&
-                  activeSingleSelectSelections[singleSelectId] === value);
+                (isSingleSelect && activeSingleSelect === value);
               const valOrObj = val => (typeof val === "object" ? val : {});
 
               const handleClick = evt => {
                 if (isSingleSelect) {
-                  setActiveSingleSelectSelection(value, singleSelectId); // Update selection for the specific component
+                  setActiveSingleSelect(value);
                 }
                 handleAction(evt);
               };
