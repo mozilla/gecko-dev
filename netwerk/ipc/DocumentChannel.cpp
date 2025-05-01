@@ -127,13 +127,27 @@ void DocumentChannel::ShutdownListeners(nsresult aStatusCode) {
 void DocumentChannel::DisconnectChildListeners(
     const nsresult& aStatus, const nsresult& aLoadGroupStatus) {
   MOZ_ASSERT(NS_FAILED(aStatus));
-  mStatus = aLoadGroupStatus;
-  // Make sure we remove from the load group before
-  // setting mStatus, as existing tests expect the
-  // status to be successful when we disconnect.
-  if (mLoadGroup) {
-    mLoadGroup->RemoveRequest(this, nullptr, aStatus);
-    mLoadGroup = nullptr;
+
+  // In the case where the channel was redirected to be downloaded by the
+  // nsExternalHelperAppService in the parent process, we'll be called with a
+  // different aLoadGroupStatus and aStatus.
+  //
+  // Before DocumentChannel was implemented, the channel would have been removed
+  // from the load group by the nsExternalHelperAppService. This simulates that
+  // behaviour by removing the load group when the channel is no longer in use.
+  //
+  // We cannot unconditionally remove the channel from the load group here, as
+  // that may unblock load events too early if new navigations will be started
+  // by channel listeners. See bug 1961008.
+  if (aStatus != aLoadGroupStatus) {
+    MOZ_ASSERT(aStatus == NS_BINDING_RETARGETED);
+    MOZ_ASSERT(NS_SUCCEEDED(aLoadGroupStatus));
+
+    mStatus = aLoadGroupStatus;
+    if (mLoadGroup) {
+      mLoadGroup->RemoveRequest(this, nullptr, aStatus);
+      mLoadGroup = nullptr;
+    }
   }
 
   ShutdownListeners(aStatus);
