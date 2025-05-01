@@ -1,4 +1,4 @@
-const { ExperimentFakes } = ChromeUtils.importESModule(
+const { NimbusTestUtils } = ChromeUtils.importESModule(
   "resource://testing-common/NimbusTestUtils.sys.mjs"
 );
 
@@ -165,7 +165,7 @@ add_task(
 add_task(async function test_experimenter_feature_value_changes_UI() {
   const rsSandbox = await stubRemoteSettingsAllowList();
   for (const firstOfferVersion of Object.keys(autocompleteUXTreatments)) {
-    const doExperimentCleanup = await ExperimentFakes.enrollWithFeatureConfig({
+    const doExperimentCleanup = await NimbusTestUtils.enrollWithFeatureConfig({
       featureId: "email-autocomplete-relay",
       value: { firstOfferVersion },
     });
