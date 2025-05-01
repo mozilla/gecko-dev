@@ -87,6 +87,8 @@ export var ChildCrashHandler = {
             ? "BACKGROUND_CHILD"
             : "FOREGROUND_CHILD";
 
+        const processType = aSubject.get("processType");
+
         lazy.EventDispatcher.instance.sendRequest({
           type: "GeckoView:ChildCrashReport",
           minidumpPath,
@@ -94,6 +96,7 @@ export var ChildCrashHandler = {
           success: true,
           fatal: false,
           processVisibility,
+          processType,
           remoteType,
         });
 

@@ -32,6 +32,7 @@ class CrashMetadataEventProcessorTest {
             minidumpPath = null,
             extrasPath = null,
             processVisibility = null,
+            processType = null,
             remoteType = null,
             breadcrumbs = arrayListOf(),
         )
@@ -52,6 +53,7 @@ class CrashMetadataEventProcessorTest {
             minidumpPath = null,
             extrasPath = null,
             processVisibility = null,
+            processType = null,
             remoteType = null,
             breadcrumbs = arrayListOf(),
             runtimeTags = mapOf(CrashReporter.RELEASE_RUNTIME_TAG to actualRelease),

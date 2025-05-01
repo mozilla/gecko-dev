@@ -93,6 +93,12 @@ internal data class CrashEntity(
     var processVisibility: String?,
 
     /**
+     * The process type name reported by the crashing process.
+     */
+    @ColumnInfo(name = "processType", defaultValue = "null")
+    var processType: String?,
+
+    /**
      * Path to a file containing extra metadata about the crash. The file contains key-value pairs
      * in the form `Key=Value`. Be aware, it may contain sensitive data such as the URI that was
      * loaded at the time of the crash.
@@ -121,6 +127,7 @@ internal fun CrashEntity.toCrash(): Crash {
             minidumpPath = this.minidumpPath,
             extrasPath = this.extrasPath,
             processVisibility = this.processVisibility,
+            processType = this.processType,
             breadcrumbs = deserializeBreadcrumbs(),
             remoteType = this.remoteType,
             runtimeTags = this.runtimeTags,
@@ -205,6 +212,7 @@ private fun Crash.NativeCodeCrash.toEntity(): CrashEntity =
         stacktrace = "<native crash>",
         minidumpPath = minidumpPath,
         processVisibility = processVisibility,
+        processType = processType,
         extrasPath = extrasPath,
         remoteType = remoteType,
     )
@@ -220,6 +228,7 @@ private fun Crash.UncaughtExceptionCrash.toEntity(): CrashEntity =
         stacktrace = throwable.getStacktraceAsString(),
         minidumpPath = null,
         processVisibility = null,
+        processType = null,
         extrasPath = null,
         remoteType = null,
     )

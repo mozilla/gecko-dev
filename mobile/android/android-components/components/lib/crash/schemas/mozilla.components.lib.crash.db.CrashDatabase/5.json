@@ -2,11 +2,11 @@
   "formatVersion": 1,
   "database": {
     "version": 5,
-    "identityHash": "0069aae46c8ea7218c68b7443862e63a",
+    "identityHash": "114208fd3dc7b54e5f31a33bf2ba8afb",
     "entities": [
       {
         "tableName": "crashes",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`crashType` TEXT NOT NULL DEFAULT 'UNCAUGHT', `uuid` TEXT NOT NULL, `runtime_tags` TEXT NOT NULL DEFAULT '{}', `breadcrumbs` TEXT DEFAULT null, `created_at` INTEGER NOT NULL, `stacktrace` TEXT NOT NULL, `throwable` BLOB, `minidumpPath` TEXT DEFAULT null, `processVisibility` TEXT DEFAULT null, `extrasPath` TEXT DEFAULT null, `remoteType` TEXT DEFAULT null, PRIMARY KEY(`uuid`))",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`crashType` TEXT NOT NULL DEFAULT 'UNCAUGHT', `uuid` TEXT NOT NULL, `runtime_tags` TEXT NOT NULL DEFAULT '{}', `breadcrumbs` TEXT DEFAULT null, `created_at` INTEGER NOT NULL, `stacktrace` TEXT NOT NULL, `throwable` BLOB, `minidumpPath` TEXT DEFAULT null, `processVisibility` TEXT DEFAULT null, `processType` TEXT DEFAULT null, `extrasPath` TEXT DEFAULT null, `remoteType` TEXT DEFAULT null, PRIMARY KEY(`uuid`))",
         "fields": [
           {
             "fieldPath": "crashType",
@@ -60,6 +60,12 @@
           {
             "fieldPath": "processVisibility",
             "columnName": "processVisibility",
+            "affinity": "TEXT",
+            "defaultValue": "null"
+          },
+          {
+            "fieldPath": "processType",
+            "columnName": "processType",
             "affinity": "TEXT",
             "defaultValue": "null"
           },
@@ -121,7 +127,7 @@
     ],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '0069aae46c8ea7218c68b7443862e63a')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '114208fd3dc7b54e5f31a33bf2ba8afb')"
     ]
   }
 }

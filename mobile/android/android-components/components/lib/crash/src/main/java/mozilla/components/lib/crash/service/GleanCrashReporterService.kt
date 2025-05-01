@@ -599,29 +599,7 @@ class GleanCrashReporterService(
                 )
         }
 
-        // The `processType` property on a crash is a bit confusing because it does not map to the actual process types
-        // (like main, content, gpu, etc.). This property indicates what UI we should show to users given that "main"
-        // crashes essentially kill the app, "foreground child" crashes are likely tab crashes, and "background child"
-        // crashes are occurring in other processes (like GPU and extensions) for which users shouldn't notice anything
-        // (because there shouldn't be any noticeable impact in the app and the processes will be recreated
-        // automatically).
-        val processType = when (crash.processVisibility) {
-            Crash.NativeCodeCrash.PROCESS_VISIBILITY_MAIN -> "main"
-
-            Crash.NativeCodeCrash.PROCESS_VISIBILITY_BACKGROUND_CHILD -> {
-                when (crash.remoteType) {
-                    // The extensions process is a content process as per:
-                    // https://firefox-source-docs.mozilla.org/dom/ipc/process_model.html#webextensions
-                    "extension" -> "content"
-
-                    else -> "utility"
-                }
-            }
-
-            Crash.NativeCodeCrash.PROCESS_VISIBILITY_FOREGROUND_CHILD -> "content"
-
-            else -> "main"
-        }
+        val processType = crash.processType ?: "main"
 
         if (crash.minidumpPath != null && crash.extrasPath != null) {
             MinidumpAnalyzer.load()?.run(crash.minidumpPath, crash.extrasPath, false)

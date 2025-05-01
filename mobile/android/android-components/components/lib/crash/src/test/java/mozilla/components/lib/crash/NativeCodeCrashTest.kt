@@ -27,6 +27,7 @@ class NativeCodeCrashTest {
             "/data/data/org.mozilla.samples.browser/files/mozilla/Crash Reports/pending/3ba5f665-8422-dc8e-a88e-fc65c081d304.dmp",
         )
         intent.putExtra("processVisibility", "FOREGROUND_CHILD")
+        intent.putExtra("processType", "content")
         intent.putExtra(
             "extrasPath",
             "/data/data/org.mozilla.samples.browser/files/mozilla/Crash Reports/pending/3ba5f665-8422-dc8e-a88e-fc65c081d304.extra",
@@ -41,6 +42,7 @@ class NativeCodeCrashTest {
         )
         assertEquals(crash.isFatal, false)
         assertEquals(crash.processVisibility, Crash.NativeCodeCrash.PROCESS_VISIBILITY_FOREGROUND_CHILD)
+        assertEquals(crash.processType, "content")
         assertEquals(
             "/data/data/org.mozilla.samples.browser/files/mozilla/Crash Reports/pending/3ba5f665-8422-dc8e-a88e-fc65c081d304.dmp",
             crash.minidumpPath,
@@ -59,6 +61,7 @@ class NativeCodeCrashTest {
             "minidumpPath",
             "extrasPath",
             Crash.NativeCodeCrash.PROCESS_VISIBILITY_FOREGROUND_CHILD,
+            processType = "content",
             breadcrumbs = arrayListOf(),
             remoteType = null,
         )

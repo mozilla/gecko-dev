@@ -839,6 +839,7 @@ package org.mozilla.geckoview {
     field public static final String CRASHED_PROCESS_VISIBILITY_FOREGROUND_CHILD = "FOREGROUND_CHILD";
     field public static final String CRASHED_PROCESS_VISIBILITY_MAIN = "MAIN";
     field public static final Parcelable.Creator<GeckoRuntime> CREATOR;
+    field public static final String EXTRA_CRASH_PROCESS_TYPE = "processType";
     field public static final String EXTRA_CRASH_PROCESS_VISIBILITY = "processVisibility";
     field public static final String EXTRA_CRASH_REMOTE_TYPE = "remoteType";
     field public static final String EXTRA_EXTRAS_PATH = "extrasPath";

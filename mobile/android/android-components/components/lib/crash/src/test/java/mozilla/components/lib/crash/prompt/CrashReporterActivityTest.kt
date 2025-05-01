@@ -163,6 +163,7 @@ class CrashReporterActivityTest {
             "",
             "",
             Crash.NativeCodeCrash.PROCESS_VISIBILITY_MAIN,
+            processType = "main",
             breadcrumbs = arrayListOf(),
             remoteType = null,
         )
@@ -187,6 +188,7 @@ class CrashReporterActivityTest {
             "",
             "",
             Crash.NativeCodeCrash.PROCESS_VISIBILITY_BACKGROUND_CHILD,
+            processType = "utility",
             breadcrumbs = arrayListOf(),
             remoteType = null,
         )
@@ -211,6 +213,7 @@ class CrashReporterActivityTest {
             "",
             "",
             Crash.NativeCodeCrash.PROCESS_VISIBILITY_BACKGROUND_CHILD,
+            processType = "utility",
             breadcrumbs = arrayListOf(),
             remoteType = null,
         )

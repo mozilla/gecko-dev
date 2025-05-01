@@ -33,6 +33,7 @@ private const val INTENT_UUID = "uuid"
 private const val INTENT_MINIDUMP_PATH = "minidumpPath"
 private const val INTENT_EXTRAS_PATH = "extrasPath"
 private const val INTENT_PROCESS_VISIBILITY = "processVisibility"
+private const val INTENT_PROCESS_TYPE = "processType"
 private const val INTENT_REMOTE_TYPE = "remoteType"
 
 /**
@@ -113,6 +114,8 @@ sealed class Crash {
      *                      loaded at the time of the crash.
      * @property processVisibility The type of process the crash occurred in. Affects whether or not the crash is fatal
      *                       or whether the application can recover from it.
+     * @property processType The name of the type of process the crash occurred in. This matches the process types
+     *                       reported by gecko.
      * @property breadcrumbs List of breadcrumbs to send with the crash report.
      * @property remoteType The type of child process (when available).
      * @property runtimeTags Runtime tags that should be attached to any report associated with this crash.
@@ -123,6 +126,7 @@ sealed class Crash {
         val minidumpPath: String?,
         val extrasPath: String?,
         @ProcessVisibility val processVisibility: String?,
+        val processType: String?,
         override val breadcrumbs: ArrayList<Breadcrumb>,
         val remoteType: String?,
         override val runtimeTags: Map<String, String> = emptyMap(),
@@ -133,6 +137,7 @@ sealed class Crash {
             putString(INTENT_MINIDUMP_PATH, minidumpPath)
             putString(INTENT_EXTRAS_PATH, extrasPath)
             putString(INTENT_PROCESS_VISIBILITY, processVisibility)
+            putString(INTENT_PROCESS_TYPE, processType)
             putLong(INTENT_CRASH_TIMESTAMP, timestamp)
             putParcelableArrayList(INTENT_BREADCRUMBS, breadcrumbs)
             putString(INTENT_REMOTE_TYPE, remoteType)
@@ -182,6 +187,7 @@ sealed class Crash {
                 minidumpPath = bundle.getString(INTENT_MINIDUMP_PATH, null),
                 extrasPath = bundle.getString(INTENT_EXTRAS_PATH, null),
                 processVisibility = bundle.getString(INTENT_PROCESS_VISIBILITY, PROCESS_VISIBILITY_MAIN),
+                processType = bundle.getString(INTENT_PROCESS_TYPE, "main"),
                 breadcrumbs = bundle.getParcelableArrayListCompat(
                     INTENT_BREADCRUMBS,
                     Breadcrumb::class.java,

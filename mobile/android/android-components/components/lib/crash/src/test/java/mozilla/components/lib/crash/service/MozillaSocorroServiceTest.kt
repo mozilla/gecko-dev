@@ -50,6 +50,7 @@ class MozillaSocorroServiceTest {
             "",
             "",
             Crash.NativeCodeCrash.PROCESS_VISIBILITY_FOREGROUND_CHILD,
+            processType = "content",
             breadcrumbs = arrayListOf(),
             remoteType = null,
         )
@@ -133,6 +134,7 @@ class MozillaSocorroServiceTest {
                 "dump.path",
                 "extras.path",
                 processVisibility = Crash.NativeCodeCrash.PROCESS_VISIBILITY_MAIN,
+                processType = "main",
                 breadcrumbs = arrayListOf(Breadcrumb(message = "Hello World", date = "2018-06-12T19:30+00:00".toDate("yyyy-MM-dd'T'HH:mmXXX"))),
                 remoteType = null,
             )
@@ -188,6 +190,7 @@ class MozillaSocorroServiceTest {
                 "test/minidumps/3fa772dc-dc89-c08d-c03e-7f441c50821e.ini",
                 "test/file/66dd8af2-643c-ca11-5178-e61c6819f827",
                 processVisibility = Crash.NativeCodeCrash.PROCESS_VISIBILITY_MAIN,
+                processType = "main",
                 breadcrumbs = arrayListOf(),
                 remoteType = null,
             )
@@ -229,6 +232,7 @@ class MozillaSocorroServiceTest {
                 "test/minidumps/test.dmp",
                 "test/file/test.extra",
                 processVisibility = Crash.NativeCodeCrash.PROCESS_VISIBILITY_MAIN,
+                processType = "main",
                 breadcrumbs = arrayListOf(),
                 remoteType = null,
             )
@@ -270,6 +274,7 @@ class MozillaSocorroServiceTest {
                 "test/minidumps/3fa772dc-dc89-c08d-c03e-7f441c50821e.dmp",
                 "test/file/66dd8af2-643c-ca11-5178-e61c6819f827.extra",
                 processVisibility = Crash.NativeCodeCrash.PROCESS_VISIBILITY_MAIN,
+                processType = "main",
                 breadcrumbs = arrayListOf(),
                 remoteType = null,
             )
@@ -318,6 +323,7 @@ class MozillaSocorroServiceTest {
                 "dump.path",
                 "extras.path",
                 processVisibility = Crash.NativeCodeCrash.PROCESS_VISIBILITY_MAIN,
+                processType = "main",
                 breadcrumbs = arrayListOf(),
                 remoteType = null,
             )
@@ -379,6 +385,7 @@ class MozillaSocorroServiceTest {
                 "dump.path",
                 "extras.path",
                 processVisibility = Crash.NativeCodeCrash.PROCESS_VISIBILITY_FOREGROUND_CHILD,
+                processType = "content",
                 breadcrumbs = arrayListOf(),
                 remoteType = null,
             )
@@ -510,6 +517,7 @@ class MozillaSocorroServiceTest {
                 null,
                 null,
                 Crash.NativeCodeCrash.PROCESS_VISIBILITY_FOREGROUND_CHILD,
+                processType = "content",
                 breadcrumbs = arrayListOf(),
                 remoteType = null,
             )
@@ -674,6 +682,7 @@ class MozillaSocorroServiceTest {
                 "dump.path",
                 "extras.path",
                 processVisibility = Crash.NativeCodeCrash.PROCESS_VISIBILITY_MAIN,
+                processType = "main",
                 breadcrumbs = arrayListOf(),
                 remoteType = null,
             )
@@ -718,6 +727,7 @@ class MozillaSocorroServiceTest {
                 "dump.path",
                 "extras.path",
                 processVisibility = Crash.NativeCodeCrash.PROCESS_VISIBILITY_MAIN,
+                processType = "main",
                 breadcrumbs = arrayListOf(),
                 remoteType = null,
                 runtimeTags = mapOf(CrashReporter.RELEASE_RUNTIME_TAG to version),

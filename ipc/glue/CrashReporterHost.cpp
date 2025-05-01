@@ -91,8 +91,7 @@ void CrashReporterHost::FinalizeCrashReport() {
   MOZ_ASSERT(!mFinalized);
   MOZ_ASSERT(HasMinidump());
 
-  mExtraAnnotations[CrashReporter::Annotation::ProcessType] =
-      XRE_ChildProcessTypeToAnnotation(mProcessType);
+  mExtraAnnotations[CrashReporter::Annotation::ProcessType] = ProcessType();
 
   char startTime[32];
   SprintfLiteral(startTime, "%lld", static_cast<long long>(mStartTime));
@@ -107,6 +106,10 @@ void CrashReporterHost::DeleteCrashReport() {
   if (mFinalized && HasMinidump()) {
     CrashReporter::DeleteMinidumpFilesForID(mDumpID, Some(u"browser"_ns));
   }
+}
+
+const char* CrashReporterHost::ProcessType() const {
+  return XRE_ChildProcessTypeToAnnotation(mProcessType);
 }
 
 /* static */

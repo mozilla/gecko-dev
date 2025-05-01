@@ -89,6 +89,7 @@ class SentryServiceTest {
             minidumpPath = "",
             extrasPath = "",
             processVisibility = Crash.NativeCodeCrash.PROCESS_VISIBILITY_MAIN,
+            processType = "main",
             breadcrumbs = breadcrumbs,
             remoteType = null,
         )
@@ -115,6 +116,7 @@ class SentryServiceTest {
             minidumpPath = "",
             extrasPath = "",
             processVisibility = Crash.NativeCodeCrash.PROCESS_VISIBILITY_FOREGROUND_CHILD,
+            processType = "content",
             breadcrumbs = breadcrumbs,
             remoteType = null,
         )
@@ -141,6 +143,7 @@ class SentryServiceTest {
             minidumpPath = "",
             extrasPath = "",
             processVisibility = Crash.NativeCodeCrash.PROCESS_VISIBILITY_BACKGROUND_CHILD,
+            processType = "utility",
             breadcrumbs = breadcrumbs,
             remoteType = null,
         )
@@ -167,6 +170,7 @@ class SentryServiceTest {
             minidumpPath = "",
             extrasPath = "",
             processVisibility = Crash.NativeCodeCrash.PROCESS_VISIBILITY_FOREGROUND_CHILD,
+            processType = "content",
             breadcrumbs = breadcrumbs,
             remoteType = null,
         )
@@ -192,6 +196,7 @@ class SentryServiceTest {
             minidumpPath = "",
             extrasPath = "",
             processVisibility = Crash.NativeCodeCrash.PROCESS_VISIBILITY_MAIN,
+            processType = "main",
             breadcrumbs = breadcrumbs,
             remoteType = null,
         )
