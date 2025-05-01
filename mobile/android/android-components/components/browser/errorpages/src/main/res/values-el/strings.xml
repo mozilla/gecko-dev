@@ -18,8 +18,8 @@
   <!-- The error message shown when a website sends has an invalid or expired SSL certificate. -->
   <string name="mozac_browser_errorpages_security_bad_cert_message">
       &lt;ul&gt;
-        &lt;li&gt;Ενδέχεται να υπάρχει πρόβλημα με τη διαμόρφωση του διακομιστή, ή κάποιος προσπαθεί να μιμηθεί το διακομιστή.&lt;/li&gt;
-        &lt;li&gt;Αν έχετε συνδεθεί με επιτυχία σε αυτό το διακομιστή στο παρελθόν, το σφάλμα ίσως είναι προσωρινό και μπορείτε να δοκιμάσετε ξανά αργότερα.&lt;/li&gt;
+        &lt;li&gt;Ενδέχεται να υπάρχει πρόβλημα με τη διαμόρφωση του διακομιστή ή κάποιος προσπαθεί να μιμηθεί τον διακομιστή.&lt;/li&gt;
+        &lt;li&gt;Αν είχατε συνδεθεί με επιτυχία σε αυτό τον διακομιστή στο παρελθόν, το σφάλμα ενδέχεται να είναι προσωρινό και μπορείτε να δοκιμάσετε ξανά αργότερα.&lt;/li&gt;
       &lt;/ul&gt;
     </string>
   <!-- The text shown inside the advanced button used to expand the advanced options. It's only shown when a website has an invalid SSL certificate. -->
@@ -85,7 +85,7 @@
       &lt;/ul&gt;
     </string>
   <!-- The document title and heading of the error page shown when a website responds in an unexpected way and the browser cannot continue. -->
-  <string name="mozac_browser_errorpages_unknown_socket_type_title">Απρόσμενη απάντηση από το διακομιστή</string>
+  <string name="mozac_browser_errorpages_unknown_socket_type_title">Απρόσμενη απάντηση από τον διακομιστή</string>
   <!-- The error message shown when a website responds in an unexpected way and the browser cannot continue. -->
   <string name="mozac_browser_errorpages_unknown_socket_type_message">
       &lt;p&gt;Ο ιστότοπος απάντησε με απρόσμενο τρόπο στο αίτημα δικτύου και το πρόγραμμα περιήγησης δεν μπορεί να συνεχίσει.&lt;/p&gt;

@@ -1041,9 +1041,12 @@ pref("browser.tabs.groups.smart.enabled", true);
 pref("browser.tabs.groups.smart.enabled", false);
 #endif
 
-// KMEANS_WITH_ANCHOR or NEAREST_NEIGHBOR
+// KMEANS_WITH_ANCHOR or NEAREST_NEIGHBOR or LOGISTIC_REGRESSION
 pref("browser.tabs.groups.smart.suggestOtherTabsMethod", "NEAREST_NEIGHBOR");
-
+pref("browser.tabs.groups.smart.topicModelRevision", "latest");
+pref("browser.tabs.groups.smart.embeddingModelRevision", "latest");
+// value should be <= 1000 to be correctly converted (275 -> 0.275)
+pref("browser.tabs.groups.smart.nearestNeighborThresholdInt", 275);
 pref("browser.tabs.groups.smart.optin", false);
 
 pref("browser.tabs.dragDrop.createGroup.delayMS", 240);
@@ -1787,11 +1790,6 @@ pref("browser.partnerlink.campaign.topsites", "amzn_2020_a1");
 
 // Activates preloading of the new tab url.
 pref("browser.newtab.preload", true);
-
-// If an on-train limited rollout of the preonboarding modal is enabled, the
-// percentage of the Mac, Linux, and MSIX population to enroll. Default to 25% of
-// population (2500 / 10000).
-pref("browser.preonboarding.onTrainRolloutPopulation",  2500);
 
 // Show "Download Firefox for mobile" QR code modal on newtab
 pref("browser.newtabpage.activity-stream.mobileDownloadModal.enabled", false);

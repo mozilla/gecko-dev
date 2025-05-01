@@ -6,9 +6,12 @@ package org.mozilla.fenix.library.bookmarks
 
 import android.content.Context
 import mozilla.appservices.places.BookmarkRoot
+import mozilla.components.concept.engine.prompt.ShareData
 import mozilla.components.concept.storage.BookmarkNode
 import mozilla.components.concept.storage.BookmarkNodeType
 import org.mozilla.fenix.R
+import org.mozilla.fenix.library.bookmarks.ui.BookmarkItem
+import org.mozilla.fenix.library.bookmarks.ui.BookmarkItem.Bookmark
 
 fun rootTitles(context: Context, withMobileRoot: Boolean): Map<String, String> = if (withMobileRoot) {
     mapOf(
@@ -77,3 +80,12 @@ fun BookmarkNode.flatNodeList(excludeSubtreeRoot: String?, depth: Int = 0): List
  * Whether the [BookmarkNode] is any of the [BookmarkRoot]s.
  */
 fun BookmarkNode.inRoots() = enumValues<BookmarkRoot>().any { it.id == guid }
+
+/**
+ * Converts a List of [BookmarkItem.Bookmark]s to an Array of [ShareData]. Used for sharing one or
+ * more bookmarks
+ */
+internal fun List<Bookmark>.asShareDataArray(): Array<ShareData> {
+    return map { ShareData(title = it.title, url = it.url) }
+        .toTypedArray()
+}

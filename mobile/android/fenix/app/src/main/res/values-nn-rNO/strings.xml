@@ -3570,4 +3570,10 @@
   <string name="pbm_authentication_unlock">Lås opp</string>
   <!-- Title text instructing the user to unlock private tabs -->
   <string name="pbm_authentication_unlock_private_tabs">Lås opp private faner</string>
+  <!-- Title text for the contextual feature recommendation (CFR) suggesting the user enable a screen lock to protect private tabs -->
+  <string name="private_tab_cfr_title" tools:ignore="UnusedResources">Bruke skjermlås til å skjule private faner?</string>
+  <!-- Negative button text for the contextual feature recommendation (CFR) dismissing the screen lock suggestion -->
+  <string name="private_tab_cfr_negative" tools:ignore="UnusedResources">Nei takk</string>
+  <!-- Positive button text for the contextual feature recommendation (CFR) enabling screen lock for private tabs -->
+  <string name="private_tab_cfr_positive" tools:ignore="UnusedResources">Lås faner</string>
 </resources>

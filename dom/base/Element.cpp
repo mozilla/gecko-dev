@@ -4207,7 +4207,7 @@ static void GetAnimationsOfViewTransitionTree(
     return;
   }
 
-  Element* root = vt->GetRoot();
+  Element* root = vt->GetViewTransitionTreeRoot();
   if (!root) {
     return;
   }

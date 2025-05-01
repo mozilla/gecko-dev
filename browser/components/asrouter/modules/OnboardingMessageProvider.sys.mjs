@@ -1408,7 +1408,7 @@ const BASE_MESSAGES = () => [
 
 const PREONBOARDING_MESSAGES = () => [
   {
-    id: "ON_TRAIN_ROLLOUT",
+    id: "NEW_USER_TOU_ONBOARDING",
     enabled: true,
     requireAction: true,
     currentPolicyVersion: 3,

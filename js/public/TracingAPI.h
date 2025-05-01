@@ -48,6 +48,7 @@ enum class TracerKind {
   UnmarkGray,
   VerifyTraceProtoAndIface,
   CompartmentCheck,
+  HeapCheck
 };
 
 enum class WeakMapTraceAction {

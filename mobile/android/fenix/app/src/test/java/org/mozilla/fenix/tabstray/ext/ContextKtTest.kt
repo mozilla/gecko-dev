@@ -9,9 +9,6 @@ import android.content.res.Resources
 import android.util.DisplayMetrics
 import io.mockk.every
 import io.mockk.mockk
-import io.mockk.mockkStatic
-import io.mockk.spyk
-import io.mockk.unmockkStatic
 import org.junit.Assert.assertEquals
 import org.junit.Test
 
@@ -19,21 +16,18 @@ class ContextKtTest {
 
     @Test
     fun `WHEN screen density is very low THEN numberOfGridColumns will still be a minimum of 2`() {
-        mockkStatic("org.mozilla.fenix.tabstray.ext.ContextKt")
-
         val context = mockk<Context>()
         val resources = mockk<Resources>()
-        val displayMetrics = spyk<DisplayMetrics> {
+        val displayMetrics = DisplayMetrics().apply {
             widthPixels = 1
             density = 1f
         }
+
         every { context.resources } returns resources
         every { resources.displayMetrics } returns displayMetrics
 
         val result = context.numberOfGridColumns
 
         assertEquals(2, result)
-
-        unmockkStatic("org.mozilla.fenix.tabstray.ext.ContextKt")
     }
 }

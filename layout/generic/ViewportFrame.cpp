@@ -218,10 +218,10 @@ nsDisplayWrapList* ViewportFrame::BuildDisplayListForTopLayer(
   }
 
   if (dom::ViewTransition* vt = doc->GetActiveViewTransition()) {
-    if (dom::Element* root = vt->GetRoot()) {
+    if (dom::Element* root = vt->GetSnapshotContainingBlock()) {
       if (nsIFrame* frame = root->GetPrimaryFrame()) {
         MOZ_ASSERT(frame->StyleDisplay()->mTopLayer != StyleTopLayer::None,
-                   "ua.css should ensure this");
+                   "the snapshot containing block should ensure this");
         MOZ_ASSERT(frame->HasAnyStateBits(NS_FRAME_OUT_OF_FLOW));
         BuildDisplayListForTopLayerFrame(aBuilder, frame, &topLayerList);
       }

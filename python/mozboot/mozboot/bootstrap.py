@@ -27,6 +27,7 @@ from mach.util import (
 )
 from mozbuild.base import MozbuildObject
 from mozfile import which
+from mozversioncontrol import get_repository_object
 from packaging.version import Version
 
 from mozboot.archlinux import ArchlinuxBootstrapper
@@ -155,13 +156,9 @@ Proceed at your own peril.
 """
 
 
-# Version 2.24 changes the "core.commitGraph" setting to be "True" by default.
-MINIMUM_RECOMMENDED_GIT_VERSION = Version("2.24")
-OLD_GIT_WARNING = """
-You are running an older version of git ("{old_version}").
-We recommend upgrading to at least version "{minimum_recommended_version}" to improve
-performance.
-""".strip()
+# The built-in fsmonitor Windows/macOS for git 2.37+ is better than using the watchman hook.
+# Linux users will still need watchman and to enable the hook.
+MINIMUM_GIT_VERSION = Version("2.37")
 
 # Dev Drives were added in 22621.2338 and should be available in all subsequent versions
 DEV_DRIVE_MINIMUM_VERSION = Version("10.0.22621.2338")
@@ -181,6 +178,12 @@ DEV_DRIVE_DETECTION_ERROR = """
 Error encountered while checking for Dev Drive.
  Reason: {} (skipping)
 """
+
+
+class GitVersionError(Exception):
+    """Raised when the installed git version is too old."""
+
+    pass
 
 
 def check_for_hgrc_state_dir_mismatch(state_dir):
@@ -869,15 +872,64 @@ def update_git_tools(git: Optional[Path], root_state_dir: Path):
     return cinnabar_dir
 
 
+def set_git_config(git_str: str, topsrcdir: Path, key: str, value: str):
+    """
+    Set a git config value in the given repo and print
+    logging output indicating what was done.
+    """
+    subprocess.check_call(
+        [git_str, "config", key, value],
+        cwd=str(topsrcdir),
+    )
+    print(f'Set git config: "{key} = {value}"')
+
+
+def ensure_watchman(topsrcdir: Path, git_str: str):
+    watchman = which("watchman")
+
+    if not watchman:
+        print(
+            "watchman is not installed. Please install `watchman` and "
+            "re-run `./mach vcs-setup` to enable faster git commands."
+        )
+
+    print("Ensuring watchman is properly configured...")
+
+    watchman_config = topsrcdir / ".git/hooks/query-watchman"
+    watchman_sample = topsrcdir / ".git/hooks/fsmonitor-watchman.sample"
+
+    if not watchman_sample.exists():
+        print(
+            "watchman is installed but the sample hook (expected here: "
+            f"{watchman_sample}) was not found. Please acquire it and copy"
+            f" it into `.git/hooks/` and re-run `./mach vcs-setup`."
+        )
+        return
+
+    if not watchman_config.exists():
+        copy_cmd = [
+            "cp",
+            ".git/hooks/fsmonitor-watchman.sample",
+            ".git/hooks/query-watchman",
+        ]
+        print(f"Copying {watchman_sample} to {watchman_config}")
+        subprocess.check_call(copy_cmd, cwd=str(topsrcdir))
+
+    set_git_config(
+        git_str, topsrcdir, key="core.fsmonitor", value=".git/hooks/query-watchman"
+    )
+
+
 def configure_git(
-    git: Optional[Path],
+    git: Path,
     cinnabar: Optional[Path],
     root_state_dir: Path,
-    top_src_dir: Path,
+    topsrcdir: Path,
 ):
     """Run the Git configuration steps."""
+    git_str = str(git)
 
-    git_str = to_optional_str(git)
+    print("Configuring git...")
 
     match = re.search(
         r"(\d+\.\d+\.\d+)",
@@ -887,35 +939,66 @@ def configure_git(
         raise Exception("Could not find git version")
     git_version = Version(match.group(1))
 
-    if git_version < MINIMUM_RECOMMENDED_GIT_VERSION:
-        print(
-            OLD_GIT_WARNING.format(
-                old_version=git_version,
-                minimum_recommended_version=MINIMUM_RECOMMENDED_GIT_VERSION,
+    moz_automation = os.environ.get("MOZ_AUTOMATION")
+    # This hard error is to force users to upgrade for performance benefits. If a CI worker on an old
+    # distro gets here, but can't upgrade to a newer git version, that's not a blocker, so we skip
+    # this check in CI to avoid that scenario.
+    if not moz_automation:
+        if git_version < MINIMUM_GIT_VERSION:
+            raise GitVersionError(
+                f"Your version of git ({git_version}) is too old. "
+                f"Please upgrade to at least version '{MINIMUM_GIT_VERSION}' to ensure "
+                "full compatibility and performance."
             )
+
+    system = platform.system()
+
+    # https://git-scm.com/docs/git-config#Documentation/git-config.txt-coreuntrackedCache
+    set_git_config(git_str, topsrcdir, key="core.untrackedCache", value="true")
+
+    # https://git-scm.com/docs/git-config#Documentation/git-config.txt-corefsmonitor
+    if system == "Windows":
+        # On Windows we enable the built-in fsmonitor which is superior to Watchman.
+        set_git_config(git_str, topsrcdir, key="core.fscache", value="true")
+        # https://github.com/git-for-windows/git/blob/eaeb5b51c389866f207c52f1546389a336914e07/Documentation/config/core.adoc?plain=1#L688-L692
+        # We can also enable fscache (only supported on git-for-windows).
+        set_git_config(git_str, topsrcdir, key="core.fsmonitor", value="true")
+    elif system == "Darwin":
+        # On macOS (Darwin) we enable the built-in fsmonitor which is superior to Watchman.
+        set_git_config(git_str, topsrcdir, key="core.fsmonitor", value="true")
+    elif system == "Linux":
+        # On Linux the built-in fsmonitor isn’t available, so we unset it and attempt to set up
+        # Watchman to achieve similar fsmonitor-style speedups.
+        subprocess.run(
+            [git_str, "config", "--unset-all", "core.fsmonitor"],
+            cwd=str(topsrcdir),
+            check=False,
         )
+        print("Unset git config: `core.fsmonitor`")
 
-    if git_version >= Version("2.17"):
-        # "core.untrackedCache" has a bug before 2.17
-        subprocess.check_call(
-            [git_str, "config", "core.untrackedCache", "true"], cwd=str(top_src_dir)
-        )
+        ensure_watchman(topsrcdir, git_str)
 
-    cinnabar_dir = str(update_git_tools(git, root_state_dir))
+    repo = get_repository_object(topsrcdir)
 
-    if not cinnabar:
-        if "MOZILLABUILD" in os.environ:
-            # Slightly modify the path on Windows to be correct
-            # for the copy/paste into the .bash_profile
-            cinnabar_dir = win_to_msys_path(cinnabar_dir)
+    # Only do cinnabar checks if we're a git cinnabar repo
+    if repo.is_cinnabar_repo():
+        cinnabar_dir = str(update_git_tools(git, root_state_dir))
 
-            print(
-                ADD_GIT_CINNABAR_PATH.format(
-                    prefix="%USERPROFILE%", cinnabar_dir=cinnabar_dir
+        if not cinnabar:
+            if "MOZILLABUILD" in os.environ:
+                # Slightly modify the path on Windows to be correct
+                # for the copy/paste into the .bash_profile
+                cinnabar_dir = win_to_msys_path(cinnabar_dir)
+
+                print(
+                    ADD_GIT_CINNABAR_PATH.format(
+                        prefix="%USERPROFILE%", cinnabar_dir=cinnabar_dir
+                    )
                 )
-            )
-        else:
-            print(ADD_GIT_CINNABAR_PATH.format(prefix="~", cinnabar_dir=cinnabar_dir))
+            else:
+                print(
+                    ADD_GIT_CINNABAR_PATH.format(prefix="~", cinnabar_dir=cinnabar_dir)
+                )
 
 
 def _warn_if_risky_revision(path: Path):
@@ -924,7 +1007,6 @@ def _warn_if_risky_revision(path: Path):
     # this case). This is an approximate calculation but is probably good
     # enough for our purposes.
     NUM_SECONDS_IN_MONTH = 60 * 60 * 24 * 30
-    from mozversioncontrol import get_repository_object
 
     repo = get_repository_object(path)
     if (time.time() - repo.get_commit_time()) >= NUM_SECONDS_IN_MONTH:

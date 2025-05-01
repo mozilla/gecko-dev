@@ -44,6 +44,9 @@ tasks:
         attributes:
             build_platform: linux64-snap
             build_type: opt
+        index:
+            product: firefox
+            job-name: snap-amd64-nightly-opt
         worker:
             docker-image: {in-tree: snap-build-core24}
             max-run-time: 9000
@@ -60,6 +63,9 @@ tasks:
         attributes:
             build_platform: linux64-snap
             build_type: debug
+        index:
+            product: firefox
+            job-name: snap-amd64-nightly-debug
         worker:
             docker-image: {in-tree: snap-build-core24}
             max-run-time: 7200
@@ -76,6 +82,9 @@ tasks:
         attributes:
             build_platform: linux-armhf-snap
             build_type: opt
+        index:
+            product: firefox
+            job-name: snap-armhf-nightly-opt
         worker:
             docker-image: {in-tree: snap-build-core24}
             max-run-time: 9000
@@ -92,6 +101,9 @@ tasks:
         attributes:
             build_platform: linux-armhf-snap
             build_type: debug
+        index:
+            product: firefox
+            job-name: snap-armhg-nightly-debug
         worker:
             docker-image: {in-tree: snap-build-core24}
             max-run-time: 7200
@@ -108,6 +120,9 @@ tasks:
         attributes:
             build_platform: linux-arm64-snap
             build_type: opt
+        index:
+            product: firefox
+            job-name: snap-arm64-nightly-opt
         worker:
             docker-image: {in-tree: snap-build-core24}
             max-run-time: 9000
@@ -124,6 +139,9 @@ tasks:
         attributes:
             build_platform: linux-arm64-snap
             build_type: debug
+        index:
+            product: firefox
+            job-name: snap-arm64-nightly-debug
         worker:
             docker-image: {in-tree: snap-build-core24}
             max-run-time: 7200
@@ -140,6 +158,9 @@ tasks:
         attributes:
             build_platform: linux64-snap
             build_type: opt
+        index:
+            product: firefox
+            job-name: snap-amd64-beta-opt
         worker:
             docker-image: {in-tree: snap-build-core22}
             max-run-time: 9000
@@ -156,6 +177,9 @@ tasks:
         attributes:
             build_platform: linux64-snap
             build_type: debug
+        index:
+            product: firefox
+            job-name: snap-amd64-beta-debug
         worker:
             docker-image: {in-tree: snap-build-core22}
             max-run-time: 7200
@@ -172,6 +196,9 @@ tasks:
         attributes:
             build_platform: linux64-snap
             build_type: opt
+        index:
+            product: firefox
+            job-name: snap-amd64-betacore24-opt
         worker:
             docker-image: {in-tree: snap-build-core24}
             max-run-time: 9000
@@ -188,6 +215,9 @@ tasks:
         attributes:
             build_platform: linux64-snap
             build_type: debug
+        index:
+            product: firefox
+            job-name: snap-amd64-betacore24-debug
         worker:
             docker-image: {in-tree: snap-build-core24}
             max-run-time: 7200
@@ -204,6 +234,9 @@ tasks:
         attributes:
             build_platform: linux64-snap
             build_type: opt
+        index:
+            product: firefox
+            job-name: snap-amd64-stable-opt
         worker:
             docker-image: {in-tree: snap-build-core22}
             max-run-time: 9000
@@ -220,6 +253,9 @@ tasks:
         attributes:
             build_platform: linux64-snap
             build_type: debug
+        index:
+            product: firefox
+            job-name: snap-amd64-stable-debug
         worker:
             docker-image: {in-tree: snap-build-core22}
             max-run-time: 7200
@@ -236,6 +272,9 @@ tasks:
         attributes:
             build_platform: linux64-snap
             build_type: opt
+        index:
+            product: firefox
+            job-name: snap-amd64-stablecore24-opt
         worker:
             docker-image: {in-tree: snap-build-core24}
             max-run-time: 9000
@@ -252,6 +291,9 @@ tasks:
         attributes:
             build_platform: linux64-snap
             build_type: debug
+        index:
+            product: firefox
+            job-name: snap-amd64-stablecore24-debug
         worker:
             docker-image: {in-tree: snap-build-core24}
             max-run-time: 7200
@@ -268,6 +310,9 @@ tasks:
         attributes:
             build_platform: linux64-snap
             build_type: opt
+        index:
+            product: firefox
+            job-name: snap-amd64-esr128-opt
         worker:
             docker-image: {in-tree: snap-build-core22}
             max-run-time: 9000
@@ -284,6 +329,9 @@ tasks:
         attributes:
             build_platform: linux64-snap
             build_type: debug
+        index:
+            product: firefox
+            job-name: snap-amd64-esr128-debug
         worker:
             docker-image: {in-tree: snap-build-core22}
             max-run-time: 7200

@@ -86,3 +86,10 @@ ul > li {
     opacity: 1;
   }
 }
+
+/* We need this extra class instead of just adding a "disabled" attribute to the
+ * button, as we still need to receive JS events from it. */
+button.disabled {
+  opacity: var(--button-opacity-disabled);
+  color: var(--button-text-color-disabled);
+}

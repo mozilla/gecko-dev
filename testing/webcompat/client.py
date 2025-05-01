@@ -1185,20 +1185,6 @@ class Client:
     async def ensure_InstallTrigger_undefined(self):
         return await self.make_preload_script("delete InstallTrigger")
 
-    async def test_entrata_banner_hidden(self, url, iframe_css=None):
-        # some sites take a while to load, but they always have the browser
-        # warning popup, it just isn't shown until the page finishes loading.
-        await self.navigate(url, wait="none")
-        if iframe_css:
-            frame = self.await_css(iframe_css)
-            self.switch_frame(frame)
-        self.await_css("#browser-warning-popup", timeout=120)
-        try:
-            self.await_css("#browser-warning-popup", is_displayed=True, timeout=2)
-            return False
-        except webdriver.error.NoSuchElementException:
-            return True
-
     def test_future_plc_trending_scrollbar(self, shouldFail=False):
         trending_list = self.await_css(".trending__list")
         if not trending_list:

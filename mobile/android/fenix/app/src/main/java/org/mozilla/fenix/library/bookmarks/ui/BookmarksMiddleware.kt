@@ -37,7 +37,8 @@ private const val WARN_OPEN_ALL_SIZE = 15
  * @param wasPreviousAppDestinationHome Check whether the previous destination before entering bookmarks was home.
  * @param navigateToSearch Navigate to search.
  * @param navigateToSignIntoSync Invoked when handling [SignIntoSyncClicked].
- * @param shareBookmark Invoked when the share option is selected from a menu.
+ * @param shareBookmarks Invoked when the share option is selected from a menu. Allows sharing of
+ * one or more bookmarks
  * @param showTabsTray Invoked after opening tabs from menus.
  * @param resolveFolderTitle Invoked to lookup user-friendly bookmark titles.
  * @param showUrlCopiedSnackbar Invoked when a bookmark url is copied.
@@ -57,7 +58,7 @@ internal class BookmarksMiddleware(
     private val wasPreviousAppDestinationHome: () -> Boolean,
     private val navigateToSearch: () -> Unit,
     private val navigateToSignIntoSync: () -> Unit,
-    private val shareBookmark: (url: String, title: String) -> Unit,
+    private val shareBookmarks: (List<BookmarkItem.Bookmark>) -> Unit = {},
     private val showTabsTray: (isPrivateMode: Boolean) -> Unit,
     private val resolveFolderTitle: (BookmarkNode) -> String,
     private val showUrlCopiedSnackbar: () -> Unit,
@@ -484,7 +485,7 @@ internal class BookmarksMiddleware(
             }
 
             is BookmarksListMenuAction.Bookmark.ShareClicked -> {
-                shareBookmark(bookmark.url, bookmark.title)
+                shareBookmarks(listOf(bookmark))
             }
 
             is BookmarksListMenuAction.Bookmark.OpenInNormalTabClicked -> {
@@ -563,8 +564,8 @@ internal class BookmarksMiddleware(
             }
 
             BookmarksListMenuAction.MultiSelect.ShareClicked -> {
-                preReductionState.selectedItems.filterIsInstance<BookmarkItem.Bookmark>()
-                    .forEach { shareBookmark(it.url, it.title) }
+                val selectedItems = preReductionState.selectedItems.filterIsInstance<BookmarkItem.Bookmark>()
+                shareBookmarks(selectedItems)
             }
             is BookmarksListMenuAction.SortMenu -> scope.launch {
                 saveBookmarkSortOrder(store.state.sortOrder)

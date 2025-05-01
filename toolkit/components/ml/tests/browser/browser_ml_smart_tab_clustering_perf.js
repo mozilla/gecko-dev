@@ -115,7 +115,7 @@ add_task(async function test_clustering_nearest_neighbors() {
     groupedIndices: [1],
     alreadyGroupedIndices: [],
     groupLabel: "Travel Planning",
-    threshold: 0.3,
+    thresholdMills: 300,
   });
   const endTime = performance.now();
   singleTabMetrics["SINGLE-TAB-LATENCY"].push(endTime - startTime);

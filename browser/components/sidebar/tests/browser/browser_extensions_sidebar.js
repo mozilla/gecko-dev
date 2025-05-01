@@ -62,6 +62,21 @@ add_task(async function test_extension_sidebar_actions() {
   );
   await BrowserTestUtils.browserLoaded(browser, false, panelUrl);
 
+  // Panel can be closed.
+  const promiseClosed = BrowserTestUtils.waitForEvent(
+    SidebarController._box,
+    "sidebar-hide"
+  );
+  const headerEl = SidebarController.browser.contentDocument.getElementById(
+    "sidebar-panel-header"
+  );
+  EventUtils.synthesizeMouseAtCenter(
+    headerEl.closeButton,
+    {},
+    SidebarController.browser.contentWindow
+  );
+  await promiseClosed;
+
   await extension.unload();
   await sidebar.updateComplete;
   is(

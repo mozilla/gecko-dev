@@ -1109,6 +1109,7 @@ const AVAILABLE_SHIMS = [
       "*://platform.twitter.com/*",
       "*://syndication.twitter.com/*",
       "*://cdn.syndication.twimg.com/*",
+      "*://video.twimg.com/*",
       "*://pbs.twimg.com/*",
       "*://abs.twimg.com/*",
       "*://abs-0.twimg.com/*",

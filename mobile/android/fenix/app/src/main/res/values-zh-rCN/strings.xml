@@ -3570,4 +3570,10 @@
   <string name="pbm_authentication_unlock">解锁</string>
   <!-- Title text instructing the user to unlock private tabs -->
   <string name="pbm_authentication_unlock_private_tabs">解锁隐私标签页</string>
+  <!-- Title text for the contextual feature recommendation (CFR) suggesting the user enable a screen lock to protect private tabs -->
+  <string name="private_tab_cfr_title" tools:ignore="UnusedResources">要使用屏幕锁定方式来隐藏隐私标签页吗？</string>
+  <!-- Negative button text for the contextual feature recommendation (CFR) dismissing the screen lock suggestion -->
+  <string name="private_tab_cfr_negative" tools:ignore="UnusedResources">不用了</string>
+  <!-- Positive button text for the contextual feature recommendation (CFR) enabling screen lock for private tabs -->
+  <string name="private_tab_cfr_positive" tools:ignore="UnusedResources">锁定标签页</string>
 </resources>

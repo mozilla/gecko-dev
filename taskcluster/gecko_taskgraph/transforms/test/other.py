@@ -185,8 +185,6 @@ def set_treeherder_machine_platform(config, tasks):
     translation = {
         # Linux64 build platform for asan is specified differently to
         # treeherder.
-        "macosx1100-64/opt": "osx-1100/opt",
-        "macosx1100-64-shippable/opt": "osx-1100-shippable/opt",
         "macosx1400-64/opt": "osx-1300/opt",
         "macosx1400-64-shippable/opt": "osx-1400-shippable/opt",
         "macosx1500-64/opt": "osx-1500/opt",
@@ -770,12 +768,10 @@ def handle_tier(config, tasks):
                 "macosx1470-64/debug",
                 "macosx1470-64-shippable/opt",
                 "macosx1470-64-devedition/opt",
-                "macosx1100-64-shippable-qr/opt",
-                "macosx1100-64-qr/debug",
                 "macosx1400-64-shippable-qr/opt",
                 "macosx1400-64-qr/debug",
-                "macosx1500-64-shippable-qr/opt",
-                "macosx1500-64-qr/debug",
+                "macosx1500-64-shippable/opt",
+                "macosx1500-64/debug",
                 "android-em-7.0-x86_64-shippable/opt",
                 "android-em-7.0-x86_64-shippable-lite/opt",
                 "android-em-7.0-x86_64/debug",

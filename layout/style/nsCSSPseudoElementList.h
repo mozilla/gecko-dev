@@ -63,6 +63,11 @@ CSS_PSEUDO_ELEMENT(viewTransitionOld, ":view-transition-old",
                    CSS_PSEUDO_ELEMENT_ENABLED_IN_UA_SHEETS)
 CSS_PSEUDO_ELEMENT(viewTransitionNew, ":view-transition-new",
                    CSS_PSEUDO_ELEMENT_ENABLED_IN_UA_SHEETS)
+// The internal implementation usage for View transition to create the snapshot
+// containing block concept.
+CSS_PSEUDO_ELEMENT(mozSnapshotContainingBlock,
+                   ":-moz-snapshot-containing-block",
+                   CSS_PSEUDO_ELEMENT_ENABLED_IN_UA_SHEETS)
 
 // XXXbz should we really allow random content to style these?  Maybe
 // use our flags to prevent that?

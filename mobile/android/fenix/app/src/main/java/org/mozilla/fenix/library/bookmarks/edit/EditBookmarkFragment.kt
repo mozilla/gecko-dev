@@ -37,7 +37,6 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import mozilla.appservices.places.uniffi.PlacesApiException
 import mozilla.components.concept.engine.EngineSession
-import mozilla.components.concept.engine.prompt.ShareData
 import mozilla.components.concept.storage.BookmarkInfo
 import mozilla.components.concept.storage.BookmarkNode
 import mozilla.components.concept.storage.BookmarkNodeType
@@ -66,6 +65,7 @@ import org.mozilla.fenix.ext.setToolbarColors
 import org.mozilla.fenix.ext.settings
 import org.mozilla.fenix.library.bookmarks.BookmarkFragmentDirections
 import org.mozilla.fenix.library.bookmarks.BookmarksSharedViewModel
+import org.mozilla.fenix.library.bookmarks.asShareDataArray
 import org.mozilla.fenix.library.bookmarks.composeRootTitles
 import org.mozilla.fenix.library.bookmarks.friendlyRootTitle
 import org.mozilla.fenix.library.bookmarks.ui.BookmarksDestinations
@@ -132,13 +132,11 @@ class EditBookmarkFragment : Fragment(R.layout.fragment_edit_bookmark), MenuProv
                                     exitBookmarks = { lifecycleHolder.navController.popBackStack() },
                                     wasPreviousAppDestinationHome = { false },
                                     navigateToSearch = { },
-                                    shareBookmark = { url, title ->
+                                    shareBookmarks = { bookmarks ->
                                         lifecycleHolder.navController.nav(
                                             R.id.bookmarkFragment,
                                             BookmarkFragmentDirections.actionGlobalShareFragment(
-                                                data = arrayOf(
-                                                    ShareData(url = url, title = title),
-                                                ),
+                                                data = bookmarks.asShareDataArray(),
                                             ),
                                         )
                                     },

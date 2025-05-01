@@ -54,6 +54,16 @@
   }
 }
 
+/* This is needed for Windows 10, see bug 1961257 */
+@media (-moz-windows-accent-color-in-titlebar) {
+  :root[customtitlebar][sizemode="normal"] #navigator-toolbox {
+    border-top: .5px solid ActiveBorder;
+    &:-moz-window-inactive {
+      border-top-color: InactiveBorder;
+    }
+  }
+}
+
 /* Titlebar */
 
 .titlebar-buttonbox {

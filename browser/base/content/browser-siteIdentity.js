@@ -617,6 +617,9 @@ var gIdentityHandler = {
       if (this._popupInitialized) {
         PanelMultiView.hidePopup(this._identityPopup);
       }
+      // Ensure the browser is focused again, otherwise we may not trigger the
+      // security delay on a potential error page following this reload.
+      gBrowser.selectedBrowser.focus();
       return;
     }
     // Otherwise we just refresh the interface

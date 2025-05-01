@@ -2507,17 +2507,6 @@
 
     <issue
         id="UnusedResources"
-        message="The resource `R.string.menu_rights` appears to be unused"
-        errorLine1="    &lt;string name=&quot;menu_rights&quot; moz:removedIn=&quot;137&quot;>Your Rights&lt;/string>"
-        errorLine2="            ~~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/res/values/strings.xml"
-            line="62"
-            column="13"/>
-    </issue>
-
-    <issue
-        id="UnusedResources"
         message="The resource `R.string.menu_trackers_blocked_title` appears to be unused"
         errorLine1="    &lt;string name=&quot;menu_trackers_blocked_title&quot;>Trackers blocked&lt;/string>"
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
@@ -2980,61 +2969,6 @@
 
     <issue
         id="UnusedResources"
-        message="The resource `R.string.your_rights_content1` appears to be unused"
-        errorLine1="    &lt;string name=&quot;your_rights_content1&quot; moz:removedIn=&quot;137&quot;>&lt;![CDATA[%1$s is free and open source software made by Mozilla and other contributors.]]&gt;&lt;/string>"
-        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/res/values/strings.xml"
-            line="614"
-            column="13"/>
-    </issue>
-
-    <issue
-        id="UnusedResources"
-        message="The resource `R.string.your_rights_content2` appears to be unused"
-        errorLine1="    &lt;string name=&quot;your_rights_content2&quot; moz:removedIn=&quot;137&quot; tools:ignore=&quot;IncorrectStraightDoubleQuote&quot;>&lt;![CDATA[%1$s is made available to you under the terms of the &lt;a href=&quot;%2$s&quot;>Mozilla Public License&lt;/a> and other open source licenses.]]&gt;&lt;/string>"
-        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/res/values/strings.xml"
-            line="619"
-            column="13"/>
-    </issue>
-
-    <issue
-        id="UnusedResources"
-        message="The resource `R.string.your_rights_content3` appears to be unused"
-        errorLine1="    &lt;string name=&quot;your_rights_content3&quot; moz:removedIn=&quot;137&quot; tools:ignore=&quot;BrandUsage,IncorrectStraightDoubleQuote&quot;>&lt;![CDATA[You are not granted any rights or licenses to the trademarks of the Mozilla Foundation or any party, including the Mozilla, Firefox or %1$s names or logos. Additional information may be found &lt;a href=&quot;%2$s&quot;>here&lt;/a>.]]&gt;&lt;/string>"
-        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/res/values/strings.xml"
-            line="624"
-            column="13"/>
-    </issue>
-
-    <issue
-        id="UnusedResources"
-        message="The resource `R.string.your_rights_content4` appears to be unused"
-        errorLine1="    &lt;string name=&quot;your_rights_content4&quot; moz:removedIn=&quot;137&quot; tools:ignore=&quot;IncorrectStraightDoubleQuote&quot;>&lt;![CDATA[Additional source code for %1$s is available under various other free and open source &lt;a href=&quot;%2$s&quot;>licenses&lt;/a>.]]&gt;&lt;/string>"
-        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/res/values/strings.xml"
-            line="629"
-            column="13"/>
-    </issue>
-
-    <issue
-        id="UnusedResources"
-        message="The resource `R.string.your_rights_content5` appears to be unused"
-        errorLine1="    &lt;string name=&quot;your_rights_content5&quot; moz:removedIn=&quot;137&quot; tools:ignore=&quot;IncorrectStraightDoubleQuote&quot;>&lt;![CDATA[%1$s also uses blocklists provided by Disconnect, Inc. as separate and independent works under the &lt;a href=&quot;%2$s&quot;>GNU General Public License v3&lt;/a>, and available &lt;a href=&quot;%3$s&quot;>here&lt;/a>.]]&gt;&lt;/string>"
-        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/res/values/strings.xml"
-            line="635"
-            column="13"/>
-    </issue>
-
-    <issue
-        id="UnusedResources"
         message="The resource `R.string.gv_prompt_username_hint` appears to be unused"
         errorLine1="    &lt;string name=&quot;gv_prompt_username_hint&quot;>Username&lt;/string>"
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
@@ -3184,17 +3118,6 @@
         <location
             file="src/main/res/values/strings.xml"
             line="676"
-            column="13"/>
-    </issue>
-
-    <issue
-        id="UnusedResources"
-        message="The resource `R.string.studies_restart_app` appears to be unused"
-        errorLine1="    &lt;string name=&quot;studies_restart_app&quot; moz:removedIn=&quot;137&quot;>The application will quit to apply changes&lt;/string>"
-        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/res/values/strings.xml"
-            line="832"
             column="13"/>
     </issue>
 

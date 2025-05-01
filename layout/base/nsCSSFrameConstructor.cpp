@@ -2138,8 +2138,7 @@ nsIFrame* nsCSSFrameConstructor::ConstructTable(nsFrameConstructorState& aState,
   // Set the table wrapper frame's secondary childlist lists
   if (captionList.NotEmpty()) {
     captionList.ApplySetParent(newFrame);
-    newFrame->SetInitialChildList(FrameChildListID::Caption,
-                                  std::move(captionList));
+    newFrame->AppendFrames(FrameChildListID::Principal, std::move(captionList));
   }
 
   return newFrame;
@@ -6650,7 +6649,8 @@ void nsCSSFrameConstructor::ContentAppended(nsIContent* aFirstNewContent,
     NS_ASSERTION(LayoutFrameType::Table == frameType, "how did that happen?");
     nsContainerFrame* outerTable = parentFrame->GetParent();
     captionList.ApplySetParent(outerTable);
-    AppendFrames(outerTable, FrameChildListID::Caption, std::move(captionList));
+    AppendFrames(outerTable, FrameChildListID::Principal,
+                 std::move(captionList));
   }
 
   LAYOUT_PHASE_TEMP_EXIT();
@@ -7153,17 +7153,18 @@ void nsCSSFrameConstructor::ContentRangeInserted(nsIContent* aStartChild,
 
     // If the parent of our current prevSibling is different from the frame
     // we'll actually use as the parent, then the calculated insertion
-    // point is now invalid (bug 341382).
-    if (captionPrevSibling && captionPrevSibling->GetParent() != outerTable) {
-      captionPrevSibling = nullptr;
+    // point is now invalid (bug 341382). Insert right after the table frame
+    // instead.
+    if (!captionPrevSibling || captionPrevSibling->GetParent() != outerTable) {
+      captionPrevSibling = outerTable->PrincipalChildList().FirstChild();
     }
 
     captionList.ApplySetParent(outerTable);
     if (captionIsAppend) {
-      AppendFrames(outerTable, FrameChildListID::Caption,
+      AppendFrames(outerTable, FrameChildListID::Principal,
                    std::move(captionList));
     } else {
-      InsertFrames(outerTable, FrameChildListID::Caption, captionPrevSibling,
+      InsertFrames(outerTable, FrameChildListID::Principal, captionPrevSibling,
                    std::move(captionList));
     }
   }
@@ -7219,9 +7220,13 @@ static bool IsSyntheticColGroup(const nsIFrame* aFrame) {
          static_cast<const nsTableColGroupFrame*>(aFrame)->IsSynthetic();
 }
 
-static bool IsOnlyNonWhitespaceFrameInList(const nsFrameList& aFrameList,
-                                           const nsIFrame* aFrame) {
+static bool IsOnlyNonWhitespaceFrameInList(
+    const nsFrameList& aFrameList, const nsIFrame* aFrame,
+    const nsIFrame* aIgnoreFrame = nullptr) {
   for (const nsIFrame* f : aFrameList) {
+    if (f == aIgnoreFrame) {
+      continue;
+    }
     if (f == aFrame) {
       // If we have continuations, ignore them too.
       aFrame = aFrame->GetNextContinuation();
@@ -7272,7 +7277,7 @@ static bool IsOnlyMeaningfulChildOfWrapperPseudo(nsIFrame* aFrame,
     // We can't remove the table if there are any captions present (captions are
     // never anonymous themselves), because table wrapper always relies on
     // having a table frame.
-    if (!wrapper->GetChildList(FrameChildListID::Caption).IsEmpty()) {
+    if (!wrapper->PrincipalChildList().OnlyChild()) {
       return false;
     }
     // Similarly we can't remove the table if there's still a non-anonymous col
@@ -7293,14 +7298,15 @@ static bool IsOnlyMeaningfulChildOfWrapperPseudo(nsIFrame* aFrame,
   }
   if (aFrame->IsTableCaption()) {
     MOZ_ASSERT(aParent->IsTableWrapperFrame());
-    MOZ_ASSERT(aParent->PrincipalChildList().OnlyChild());
-    MOZ_ASSERT(aParent->PrincipalChildList().OnlyChild()->IsTableFrame());
-    return IsOnlyNonWhitespaceFrameInList(
-               aParent->GetChildList(FrameChildListID::Caption), aFrame) &&
+    auto* table = aParent->PrincipalChildList().FirstChild();
+    MOZ_ASSERT(table);
+    MOZ_ASSERT(table->IsTableFrame());
+    return IsOnlyNonWhitespaceFrameInList(aParent->PrincipalChildList(), aFrame,
+                                          /* aIgnoreFrame = */ table) &&
            // This checks for both colgroups and the principal list of the table
            // frame.
            AllChildListsAreEffectivelyEmpty(
-               aParent->PrincipalChildList().OnlyChild());
+               aParent->PrincipalChildList().FirstChild());
   }
   MOZ_ASSERT(!aFrame->IsTableColGroupFrame());
   return IsOnlyNonWhitespaceFrameInList(aParent->PrincipalChildList(), aFrame);
@@ -7855,18 +7861,16 @@ nsIFrame* nsCSSFrameConstructor::CreateContinuingOuterTableFrame(
 
   newFrame->Init(aContent, aParentFrame, aFrame);
 
-  // Create a continuing inner table frame, and if there's a caption then
-  // replicate the caption
+  // Create a continuing inner table frame. Note we don't replicate the
+  // captions: a comment used to hint at that, but the code dealing with that
+  // never worked and was removed in bug 309322.
   nsFrameList newChildFrames;
 
-  nsIFrame* childFrame = aFrame->PrincipalChildList().FirstChild();
-  if (childFrame) {
+  if (nsIFrame* childFrame = aFrame->PrincipalChildList().FirstChild()) {
+    MOZ_ASSERT(childFrame->IsTableFrame());
     nsIFrame* continuingTableFrame =
         CreateContinuingFrame(childFrame, newFrame);
     newChildFrames.AppendFrame(nullptr, continuingTableFrame);
-
-    NS_ASSERTION(!childFrame->GetNextSibling(),
-                 "there can be only one inner table frame");
   }
 
   // Set the table wrapper's initial child list

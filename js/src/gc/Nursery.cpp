@@ -1720,15 +1720,20 @@ js::Nursery::CollectionResult js::Nursery::doCollection(AutoGCSession& session,
   runtime()->caches().stringToAtomCache.purge();
   endProfile(ProfileKey::PurgeStringToAtomCache);
 
+#ifdef JS_GC_ZEAL
   // Make sure hashtables have been updated after the collection.
   startProfile(ProfileKey::CheckHashTables);
-#ifdef JS_GC_ZEAL
   if (gc->hasZealMode(ZealMode::CheckHashTablesOnMinorGC)) {
     runtime()->caches().checkEvalCacheAfterMinorGC();
     gc->checkHashTablesAfterMovingGC();
   }
-#endif
   endProfile(ProfileKey::CheckHashTables);
+
+  // Check for missing post barriers.
+  if (gc->hasZealMode(ZealMode::VerifierPost)) {
+    gc->verifyPostBarriers(session);
+  }
+#endif
 
   if (semispaceEnabled_) {
     // On the next collection, tenure everything before |tenureThreshold_|.

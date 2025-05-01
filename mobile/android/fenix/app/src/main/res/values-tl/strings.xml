@@ -107,6 +107,12 @@
   <!-- Text for the negative action button -->
   <string name="open_in_app_cfr_negative_button_text">Alisin</string>
   <!--
+    Toolbar "contextual feature recommendation" (CFR)
+
+    Text for the title displayed in the contextual feature recommendation popup promoting the navigation bar.
+  -->
+  <string name="navbar_cfr_title">Mas mabilis na mag-browse gamit ang bagong pag-navigate</string>
+  <!--
     Address bar swipe "contextual feature recommendation" (CFR)
 
     Text for the title displayed in the contextual feature recommendation popup promoting swipe of address bar.
@@ -131,9 +137,14 @@
   <!-- Text for the banner message to tell users about our inactive tabs feature. -->
   <string name="tab_tray_inactive_onboarding_message">Ang mga tab na hindi mo natingnan sa loob ng dalawang linggo ay inilipat dito.</string>
   <!-- Text for the action link to go to Settings for inactive tabs. -->
-  <string name="tab_tray_inactive_onboarding_button_text">I-off sa mga setting</string>
+  <string name="tab_tray_inactive_onboarding_button_text">Isara sa mga setting</string>
   <!-- Text for title for the auto-close dialog of the inactive tabs. -->
-  <string name="tab_tray_inactive_auto_close_title">Awtomatikong isara pagkatapos ng isang buwan?</string>
+  <string name="tab_tray_inactive_auto_close_title">Kusang isara pagkatapos ng isang buwan?</string>
+  <!--
+    Text for the body for the auto-close dialog of the inactive tabs.
+    %1$s is the name of the app (for example "Firefox").
+  -->
+  <string name="tab_tray_inactive_auto_close_body_2">Kayang isara ng %1$s ang mga tab na hindi mo natingnan sa nakaraang buwan.</string>
   <!-- Content description for close button in the auto-close dialog of the inactive tabs. -->
   <string name="tab_tray_inactive_auto_close_button_content_description">Isara</string>
   <!-- Text for turn on auto close tabs button in the auto-close dialog of the inactive tabs. -->
@@ -173,7 +184,7 @@
     Header text for a section on the home screen that displays grouped highlights from the
     user's browsing history, such as topics they have researched or explored on the web
   -->
-  <string name="history_metadata_header_2">Kamakailang binisita</string>
+  <string name="history_metadata_header_2">Binisita kamakailan</string>
   <!--
     Text for the menu button to remove a grouped highlight from the user's browsing history
     in the Recently visited section
@@ -250,7 +261,7 @@
   <!-- Browser menu button that saves the current tab to a collection -->
   <string name="browser_menu_save_to_collection">I-save sa collection…</string>
   <!-- Browser menu button that saves the current tab to a collection -->
-  <string name="browser_menu_save_to_collection_2">i-Save sa koleksyon</string>
+  <string name="browser_menu_save_to_collection_2">I-save sa collection</string>
   <!-- Browser menu button that open a share menu to share the current site -->
   <string name="browser_menu_share">Ibahagi</string>
   <!-- Browser menu button that open a share menu to share the current site -->
@@ -316,6 +327,10 @@
   <!-- Content description (not visible, for screen readers etc.) for main menu settings button. -->
   <string name="browser_main_menu_content_description_settings_button">Mga setting</string>
   <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
+  <string name="browser_menu_tools_description_with_translate_without_report_site">Reader View, Isalin, I-print, Ibahagi, Buksan sa app</string>
+  <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu when the "Report broken site" feature is available -->
+  <string name="browser_menu_tools_description_with_report_site_2">Reader View, Mag-ulat ng sirang site, I-print, Ibahagi, Buksan sa app</string>
+  <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
   <string name="browser_menu_tools_description_without_report_site">Reader View, Mag-print, Magbahagi, Buksan ang app</string>
   <!--
     Browser menu label that navigates to the save sub-menu, which contains various save related menu items such as
@@ -352,6 +367,12 @@
     %1$s is the name of the app (for example "Firefox").
   -->
   <string name="browser_menu_delete_browsing_data_on_quit">Isara ang %1$s</string>
+  <!--
+    Menu "contextual feature recommendation" (CFR)
+
+    Text for the title in the contextual feature recommendation popup promoting the menu feature.
+  -->
+  <string name="menu_cfr_title">Bago: streamlined menu</string>
   <!--
     Extensions management fragment
 
@@ -533,7 +554,7 @@
   <!-- Title for the privacy preferences dialog shown during onboarding. Note: The word "Firefox" should NOT be translated. -->
   <string name="onboarding_preferences_dialog_title" tools:ignore="BrandUsage">Tulungan kaming pagandahin ang Firefox</string>
   <!-- Title for the crash reporting option in the privacy preferences dialog shown during onboarding. -->
-  <string name="onboarding_preferences_dialog_crash_reporting_title">Awtomatikong magpadala ng mga crash report</string>
+  <string name="onboarding_preferences_dialog_crash_reporting_title">Kusang magpadala ng mga crash report</string>
   <!-- Description for the crash reporting option in the privacy preferences dialog shown during onboarding. -->
   <string name="onboarding_preferences_dialog_crash_reporting_description">Nakatutulong sa amin ang mga crash report para masuri at maayos ang mga issue sa browser. Maaaring maglaman ito ng personal o sensitibong data.</string>
   <!-- Learn more link for the crash reporting option in the privacy preferences dialog shown during onboarding. -->
@@ -560,6 +581,8 @@
   <string name="onboarding_term_of_service_line_two_link_text">Paunawa sa Privacy</string>
   <!-- Line three of the terms of service onboarding page. 'Firefox' and 'Mozilla' are intentionally hardcoded. %1$s is replaced by an active link using onboarding_term_of_service_line_three_link_text as text (“Manage”). -->
   <string name="onboarding_term_of_service_line_three" tools:ignore="BrandUsage">Para tulungang mapaganda ang browser, nagpapadala ang Firefox ng mga diagnostic at interaction data sa Mozilla. %1$s</string>
+  <!-- Used as text for the link in onboarding_term_of_service_line_three. -->
+  <string name="onboarding_term_of_service_line_three_link_text">Pamahalaan</string>
   <!-- Marketing onboarding page title. 'Firefox' is intentionally hardcoded. -->
   <string name="onboarding_marketing_title" tools:ignore="BrandUsage,UnusedResources">Tulungan kaming palaguin ang Firefox</string>
   <!-- Marketing onboarding page body. 'Firefox' is intentionally hardcoded. -->
@@ -606,6 +629,12 @@
   <!-- Action label for options that can be selected. Talkback will append this to say "Double tap to select". -->
   <string name="onboarding_customize_theme_a11y_action_label_select">pumili</string>
   <!--
+    Widget Picker
+
+    Widget description for widget picker screen
+  -->
+  <string name="widget_picket_description">Mabilisang paghahanap</string>
+  <!--
     Search Widget
 
     Content description for searching with a widget. %1$s is the name of the app (for example "Firefox").
@@ -629,6 +658,12 @@
   <string name="preferences_category_about">Tungkol sa</string>
   <!-- Preference category for settings related to changing the default search engine -->
   <string name="preferences_category_select_default_search_engine">Pumili ng isa</string>
+  <!-- Preference for settings related to managing search shortcuts for the quick search menu -->
+  <string name="preferences_manage_search_shortcuts_2">Pamahalaan ang mga alternatibong search engine</string>
+  <!-- Summary for preference for settings related to managing search shortcuts for the quick search menu -->
+  <string name="preferences_manage_search_shortcuts_summary">Baguhin ang mga engine na natatanaw sa menu ng paghahanap</string>
+  <!-- Preference category for settings related to managing search shortcuts for the quick search menu -->
+  <string name="preferences_category_engines_in_search_menu">Mga engine na natatanaw sa menu ng paghahanap</string>
   <!-- Preference for settings related to changing the default search engine -->
   <string name="preferences_default_search_engine">Default na search engine</string>
   <!-- Preference for settings related to Search -->
@@ -639,6 +674,8 @@
   <string name="preferences_search_engines_suggestions">Mga mungkahi mula sa mga search engine</string>
   <!-- Preference Category for settings related to Search address bar -->
   <string name="preferences_settings_address_bar">Mga kagustuhan sa address bar</string>
+  <!-- Preference Category for settings to Firefox Suggest -->
+  <string name="preference_search_address_bar_fx_suggest" tools:ignore="BrandUsage">Address bar - Firefox Suggest</string>
   <!-- Preference link to Learn more about Firefox Suggest -->
   <string name="preference_search_learn_about_fx_suggest" tools:ignore="BrandUsage">Alamin ang tungkol sa Firefox Suggest</string>
   <!-- Preference link to rating Fenix on the Play Store -->
@@ -842,7 +879,9 @@
     Title for the customize home screen section with recently visited. Recently visited is
     a section where users see a list of tabs that they have visited in the past few days
   -->
-  <string name="customize_toggle_recently_visited">Kamakailang binisita</string>
+  <string name="customize_toggle_recently_visited">Binisita kamakailan</string>
+  <!-- Title for the customize home screen section with Pocket. -->
+  <string name="customize_toggle_pocket_2">Mga istoryang mapapaisip ka</string>
   <!-- Title for the customize home screen section with sponsored Pocket stories. -->
   <string name="customize_toggle_pocket_sponsored">Mga na-sponsor na kwento</string>
   <!-- Title for the opening wallpaper settings screen -->
@@ -889,6 +928,22 @@
   <string name="addon_ga_message_body" tools:ignore="BrandUsage,UnusedResources">Tingnan ang higit sa 100 mga bagong extension para mas maging personal ang Firefox mo.</string>
   <!-- Button text of the Nimbus message for extensions general availability. -->
   <string name="addon_ga_message_button_2" tools:ignore="UnusedResources">Tumuklas ng mga extension</string>
+  <!--
+    Extension process crash dialog to user
+
+    Title of the extension crash dialog shown to the user when enough errors have occurred with extensions and they need to be temporarily disabled
+  -->
+  <string name="extension_process_crash_dialog_title">Pansamantalang naka-disable ang mga extension</string>
+  <!-- Button text on the extension crash dialog to prompt the user to try restarting the extensions but the dialog will reappear if it is unsuccessful again -->
+  <string name="extension_process_crash_dialog_retry_button_text" tools:ignore="UnusedResources">Subukang i-restart ang mga extension</string>
+  <!-- Button text on the extension crash dialog to prompt the user to continue with all extensions disabled. -->
+  <string name="extension_process_crash_dialog_disable_extensions_button_text">Magpatuloy na naka-disable ang mga extension</string>
+  <!--
+    Account Preferences
+
+    Preference for managing your account via accounts.firefox.com
+  -->
+  <string name="preferences_manage_account">Pamahalaan ang account</string>
   <!-- Summary of the preference for managing your account via accounts.firefox.com. -->
   <string name="preferences_manage_account_summary">Baguhin ang iyong password, i-manage ang pagkolekta ng data, o burahin ang iyong account</string>
   <!-- Preference for triggering sync -->
@@ -981,7 +1036,7 @@
   <string name="preferences_daily_usage_ping_description">Natutulungan nito ang Mozilla na tantyahin ang bilang ng mga aktibong user.</string>
   <string name="preferences_daily_usage_ping_learn_more">Alamin ang tungkol sa daily usage ping</string>
   <!-- Preference switch title for automatically submitting crash reports -->
-  <string name="preferences_automatically_send_crashes_title">Awtomatikong magpadala ng mga crash report</string>
+  <string name="preferences_automatically_send_crashes_title">Kusang magpadala ng mga crash report</string>
   <!-- Learn more link for crash reporting preference -->
   <string name="onboarding_preferences_dialog_crash_reporting_learn_more">Alamin ang tungkol sa mga crash report</string>
   <!-- Title for studies preferences -->
@@ -1414,7 +1469,7 @@
   <!-- Broken site reason text for buttons, links, and other content -->
   <string name="webcompat_reporter_reason_content">Mga button, link, o iba pang nilalaman</string>
   <!-- Broken site reason text for sign in or sign out -->
-  <string name="webcompat_reporter_reason_account">Sign-in o sign-out</string>
+  <string name="webcompat_reporter_reason_account">Pag-sign in o pag-sign out</string>
   <!-- Broken site reason text for ad blocker -->
   <string name="webcompat_reporter_reason_ad_blocker">Ad blocker</string>
   <!-- Broken site reason text for something else -->
@@ -1434,7 +1489,7 @@
   <!-- Unsubmitted crash dialog title, %s is the name of the app (for example "Firefox"). -->
   <string name="unsubmitted_crash_dialog_title">Kinailangang mag-restart ng %s</string>
   <!-- Unsubmitted crash dialog checkbox label for automatically sending reports in the future -->
-  <string name="unsubmitted_crash_dialog_checkbox_label">Awtomatikong magpadala ng mga crash report</string>
+  <string name="unsubmitted_crash_dialog_checkbox_label">Kusang magpadala ng mga crash report</string>
   <!-- Unsubmitted crash dialog negative button to dismiss the dialog -->
   <string name="unsubmitted_crash_dialog_negative_button">Isara</string>
   <!-- Unsubmitted crash dialog positive button to submit crash report -->
@@ -1476,11 +1531,11 @@
   <!-- Bookmark overflow menu delete button -->
   <string name="bookmark_menu_delete_button">Burahin</string>
   <!-- Bookmark overflow menu save button -->
-  <string name="bookmark_menu_save_button">i-Save</string>
+  <string name="bookmark_menu_save_button">I-save</string>
   <!-- Label for button to sort bookmarks by newest in the bookmark sorting overflow menu. -->
-  <string name="bookmark_sort_menu_newest">Pagsunud-sunurin, pinakabago</string>
+  <string name="bookmark_sort_menu_newest">Ayon sa pinakabago</string>
   <!-- Label for button to sort bookmarks by oldest in the bookmark sorting overflow menu. -->
-  <string name="bookmark_sort_menu_oldest">Pagsunud-sunurin, pinakaluma</string>
+  <string name="bookmark_sort_menu_oldest">Ayon sa pinakaluma</string>
   <!-- Label for button to sort bookmarks in alphabetical order in the bookmark sorting overflow menu. -->
   <string name="bookmark_sort_menu_a_to_z">Pagsunud-sunurin, A-Z</string>
   <!-- Label for button to sort bookmarks in reverse alphabetical order in the bookmark sorting overflow menu. -->
@@ -1624,13 +1679,13 @@
   <!-- Label for site specific setting that indicates that all video and audio autoplay is allowed -->
   <string name="quick_setting_option_autoplay_allowed">Payagan ang audio at video</string>
   <!-- Label that indicates that video and audio autoplay is only allowed over Wi-Fi -->
-  <string name="preference_option_autoplay_allowed_wifi_only2">Harangin ang audio at video kapag naka-cellular data lamang</string>
+  <string name="preference_option_autoplay_allowed_wifi_only2">Harangin ang audio at video kapag naka-cellular data lang</string>
   <!-- Subtext that explains 'autoplay on Wi-Fi only' option -->
   <string name="preference_option_autoplay_allowed_wifi_subtext">Aandar ang audio at video kapag naka-Wi-Fi</string>
   <!-- Label for global setting that indicates that video autoplay is allowed, but audio autoplay is blocked -->
-  <string name="preference_option_autoplay_block_audio2">Harangin ang audio lamang</string>
+  <string name="preference_option_autoplay_block_audio2">Harangin lang ang audio</string>
   <!-- Label for site specific setting that indicates that video autoplay is allowed, but audio autoplay is blocked -->
-  <string name="quick_setting_option_autoplay_block_audio">Harangin ang audio lamang</string>
+  <string name="quick_setting_option_autoplay_block_audio">Harangin lang ang audio</string>
   <!-- Label for global setting that indicates that all video and audio autoplay is blocked -->
   <string name="preference_option_autoplay_blocked3">Harangin ang audio at video</string>
   <!-- Label for site specific setting that indicates that all video and audio autoplay is blocked -->
@@ -1692,7 +1747,7 @@
   <!-- Content description (not visible, for screen readers etc.): button to close the collection creator -->
   <string name="create_collection_close">Isara</string>
   <!-- Button to save currently selected tabs in the "select tabs" step of the collection creator -->
-  <string name="create_collection_save">i-Save</string>
+  <string name="create_collection_save">I-save</string>
   <!-- Snackbar action to view the collection the user just created or updated -->
   <string name="create_collection_view">Tingnan</string>
   <!-- Text for the OK button from collection dialogs -->
@@ -1713,7 +1768,7 @@
   -->
   <string name="share_button_content_description">Ibahagi</string>
   <!-- Text for the Save to PDF feature in the share menu -->
-  <string name="share_save_to_pdf">i-Save bilang PDF</string>
+  <string name="share_save_to_pdf">I-save bilang PDF</string>
   <!-- Text for error message when generating a PDF file Text. -->
   <string name="unable_to_save_to_pdf_error">Hindi makabuo ng PDF</string>
   <!-- Text for standard error snackbar dismiss button. -->
@@ -1845,7 +1900,7 @@
   <!-- Message for copying the URL via long press on the toolbar -->
   <string name="url_copied">Kopyahin ang URL</string>
   <!-- Sample text for accessibility font size -->
-  <string name="accessibility_text_size_sample_text_1">Ito ay halimbawa lamang. Nandito ang tekstong ito para maipakita ang itsura kapag nilakihan o niliitan ang sukat sa setting na ito.</string>
+  <string name="accessibility_text_size_sample_text_1">Halimbawa lang ito. Nandito ang tekstong ito para maipakita ang itsura kapag nilakihan o niliitan ang sukat sa setting na ito.</string>
   <!-- Summary for Accessibility Text Size Scaling Preference -->
   <string name="preference_accessibility_text_size_summary">Palakihin o paliitin ang teksto sa mga website</string>
   <!-- Title for Accessibility Text Size Scaling Preference -->
@@ -2278,10 +2333,16 @@
   <string name="preferences_credit_cards_sync_cards">Mag-sync ng mga card</string>
   <!-- Preference option for adding a card -->
   <string name="preferences_credit_cards_add_credit_card_2">Magdagdag ng card</string>
+  <!-- Preference option for managing saved cards -->
+  <string name="preferences_credit_cards_manage_saved_cards_2">Pamahalaan ang mga card</string>
   <!-- Preference option for adding an address -->
   <string name="preferences_addresses_add_address">Magdagdag ng tirahan</string>
+  <!-- Preference option for managing saved addresses -->
+  <string name="preferences_addresses_manage_addresses">Pamahalaan ang mga tirahan</string>
   <!-- Preference for saving and filling addresses -->
   <string name="preferences_addresses_save_and_autofill_addresses_2">I-save ang maglagay ng mga address</string>
+  <!-- Preference summary for saving and filling address data -->
+  <string name="preferences_addresses_save_and_autofill_addresses_summary_2">Kasama ang mga numero ng telepono at email address</string>
   <!-- Title of the "Add card" screen -->
   <string name="credit_cards_add_card">Magdagdag ng card</string>
   <!-- Title of the "Edit card" screen -->
@@ -2305,11 +2366,11 @@
   <!-- The text for the positive button on "Delete card" dialog -->
   <string name="credit_cards_delete_dialog_button">Burahin</string>
   <!-- The title for the "Save" menu item for saving a credit card -->
-  <string name="credit_cards_menu_save">i-Save</string>
+  <string name="credit_cards_menu_save">I-save</string>
   <!-- The text for the "Save" button for saving a credit card -->
-  <string name="credit_cards_save_button">i-Save</string>
+  <string name="credit_cards_save_button">I-save</string>
   <!-- The text for the "Cancel" button for cancelling adding, updating or deleting a credit card -->
-  <string name="credit_cards_cancel_button">Kaselahin</string>
+  <string name="credit_cards_cancel_button">Ikansela</string>
   <!-- Title of the "Saved cards" screen -->
   <string name="credit_cards_saved_cards">Mga naka-save na card</string>
   <!-- Error message for card number validation -->
@@ -2326,10 +2387,14 @@
   <string name="credit_cards_warning_dialog_later">Mamaya</string>
   <!-- Title of PIN verification dialog to direct users to re-enter their device credentials to access their credit cards -->
   <string name="credit_cards_biometric_prompt_message_pin">I-unlock ang iyong device</string>
+  <!-- Message displayed in biometric prompt for authentication, before allowing users to use their stored payment method information -->
+  <string name="credit_cards_biometric_prompt_unlock_message_2">I-unlock para magamit ang mga naka-save na payment method</string>
   <!-- Title of the "Add address" screen -->
   <string name="addresses_add_address">Maglagay ng tirahan</string>
   <!-- Title of the "Edit address" screen -->
   <string name="addresses_edit_address">Baguhin ang tirahan</string>
+  <!-- Title of the "Manage addresses" screen -->
+  <string name="addresses_manage_addresses">Pamahalaan ang mga tirahan</string>
   <!-- The header for the name of an address. Name represents a person's full name, typically made up of a first, middle and last name, e.g. John Joe Doe. -->
   <string name="addresses_name">Pangalan</string>
   <!-- The header for the street address of an address -->
@@ -2378,12 +2443,20 @@
   <string name="search_add_custom_engine_name_label">Pangalan</string>
   <!-- Placeholder text shown in the Search Engine Name text field before a user enters text -->
   <string name="search_add_custom_engine_name_hint_2">Pangalan ng search engine</string>
+  <!-- Label for the TextField in which user enters custom search engine URL -->
+  <string name="search_add_custom_engine_url_label">Search string URL</string>
   <!-- Placeholder text shown in the Search String TextField before a user enters text -->
   <string name="search_add_custom_engine_search_string_hint_2">URL na gagamitin sa paghahanap</string>
   <!-- Description text for the Search String TextField. The %s is part of the string -->
   <string name="search_add_custom_engine_search_string_example" formatted="false">Palitan ang query ng “%s”. Halimbawa:\nhttps://www.google.com/search?q=%s</string>
   <!-- Accessibility description for the form in which details about the custom search engine are entered -->
   <string name="search_add_custom_engine_form_description">Pasadyang detalye ng search engine</string>
+  <!-- Label for the TextField in which user enters custom search engine suggestion URL -->
+  <string name="search_add_custom_engine_suggest_url_label">Search suggestion API (opsyonal)</string>
+  <!-- Placeholder text shown in the Search Suggestion String TextField before a user enters text -->
+  <string name="search_add_custom_engine_suggest_string_hint">Search suggestion API URL</string>
+  <!-- Description text for the Search Suggestion String TextField. The %s is part of the string -->
+  <string name="search_add_custom_engine_suggest_string_example_2" formatted="false">Palitan ang query ng “%s”. Halimbawa:\nhttps://suggestqueries.google.com/complete/search?client=firefox&amp;q=%s</string>
   <!-- The text for the "Save" button for saving a custom search engine -->
   <string name="search_custom_engine_save_button">I-save</string>
   <!-- Text shown when a user leaves the name field empty -->
@@ -2410,6 +2483,8 @@
   <string name="phone_feature_blocked_step_feature">3. i-Toggle ang &lt;b&gt;%1$s&lt;/b&gt; sa nakabukas</string>
   <!-- Label that indicates a site is using a insecure connection -->
   <string name="quick_settings_sheet_insecure_connection_2">Ang koneksyon ay hindi ligtas</string>
+  <!-- Label that indicates a site is displaying a local document -->
+  <string name="quick_settings_sheet_local_page">Nakaimbak na iyong device ang pahinang ito.</string>
   <!-- Label to clear site data -->
   <string name="clear_site_data">Burahin ang mga cookie at site data</string>
   <!-- Confirmation message for a dialog confirming if the user wants to delete all data for current site. %s is the domain of the site. -->
@@ -2519,6 +2594,34 @@
   <string name="top_sites_edit_dialog_save">I-save</string>
   <!-- Error message when the user entered an invalid URL -->
   <string name="top_sites_edit_dialog_url_error">Maglagay ng wastong URL</string>
+  <!-- Label for the URL edit field in the edit top site dialog. -->
+  <string name="top_sites_edit_dialog_url_title">URL</string>
+  <!--
+    Inactive tabs in the tabs tray
+
+    Title text displayed in the tabs tray when a tab has been unused for 14 days.
+  -->
+  <string name="inactive_tabs_title">Mga di-aktibong tab</string>
+  <!-- Content description for closing all inactive tabs -->
+  <string name="inactive_tabs_delete_all">Isara lahat ng di-aktibong tab</string>
+  <!-- Content description for expanding the inactive tabs section. -->
+  <string name="inactive_tabs_expand_content_description">I-expand ang mga di-aktibong tab</string>
+  <!-- Content description for collapsing the inactive tabs section. -->
+  <string name="inactive_tabs_collapse_content_description">I-collapse ang mga di-aktibong tab</string>
+  <!--
+    Inactive tabs auto-close message in the tabs tray
+
+    The header text of the auto-close message when the user is asked if they want to turn on the auto-closing of inactive tabs.
+  -->
+  <string name="inactive_tabs_auto_close_message_header" tools:ignore="UnusedResources">Kusang isara pagkatapos ng isang buwan?</string>
+  <!-- A description below the header to notify the user what the inactive tabs auto-close feature is. -->
+  <string name="inactive_tabs_auto_close_message_description" tools:ignore="BrandUsage,UnusedResources">Pwedeng isara ng Firefox ang mga tab na hindi mo natingnan sa nakaraang buwan.</string>
+  <!--
+    Awesome bar suggestion's headers
+
+    Search suggestions title for Firefox Suggest.
+  -->
+  <string name="firefox_suggest_header" tools:ignore="BrandUsage">Firefox Suggest</string>
   <!--
     Search suggestions title for trending search suggestions.
     %s is a placeholder for the name of the search engine providing the trending search suggestions.
@@ -2526,8 +2629,16 @@
   <string name="trending_searches_header_2">Mga nagte-trend sa %s</string>
   <!-- Title for search suggestions when Google is the default search suggestion engine. -->
   <string name="google_search_engine_suggestion_header">Paghahanap sa Google</string>
+  <!-- Title for search suggestions when the default search suggestion engine is anything other than Google. %s is default search engine name. -->
+  <string name="other_default_search_engine_suggestion_header">Paghahanap sa %s</string>
   <!-- Title for recent search suggestions. -->
   <string name="recent_searches_header">Mga Hinahanap Kamakailan</string>
+  <!--
+    Default browser experiment
+
+    Default browser card title
+  -->
+  <string name="default_browser_experiment_card_title">Palitan ang iyong default browser</string>
   <!-- Default browser card text -->
   <string name="default_browser_experiment_card_text" tools:ignore="BrandUsage">Set links from websites, emails, and messages to open automatically in Firefox.</string>
   <!-- Content description for close button in collection placeholder. -->
@@ -2538,16 +2649,40 @@
   <string name="action_bar_up_description">Mag-navigate pataas</string>
   <!-- Content description for privacy content close button -->
   <string name="privacy_content_close_button_content_description">Isara</string>
+  <!-- Header text for a section on the home screen. -->
+  <string name="pocket_stories_categories_header">Mga kwento ayon sa paksa</string>
+  <!-- Text of a button allowing users to access an external url for more Pocket recommendations. -->
+  <string name="pocket_stories_placeholder_text">Tumuklas pa</string>
+  <!-- Title of an app feature. Smaller than a heading. %s is "Pocket". -->
+  <string name="pocket_stories_feature_title_2">Pinatatakbo ng %s.</string>
+  <!-- Caption for describing a certain feature. %s is a link using pocket_stories_feature_learn_more as text, which will load an url in a new tab when clicked. -->
+  <string name="pocket_stories_feature_caption" tools:ignore="BrandUsage">Parte ng pamilyang Firefox. %s</string>
   <!-- Clickable text for opening an external link for more information about Pocket. -->
   <string name="pocket_stories_feature_learn_more">Matuto ng higit pa</string>
+  <!-- Text indicating that the Pocket story that also displays this text is a sponsored story by other 3rd party entity. -->
+  <string name="pocket_stories_sponsor_indication">Naka-sponsor</string>
   <!-- Paragraph explaining product review highlights. %s is the name of the retailer (e.g. Amazon). -->
   <string name="review_quality_check_explanation_body_highlights" moz:removedIn="136" tools:ignore="UnusedResources">Ang &lt;b&gt;Mga Highlight&lt;/b&gt; ay mula sa %s pagsisiyasat sa huling 80 araw na sa tingin namin ay maaasahan.</string>
+  <!--
+    Accessibility services actions labels. These will be appended to accessibility actions like "Double tap to.." but not by or applications but by services like Talkback.
+
+    Action label for elements that can be collapsed if interacting with them. Talkback will append this to say "Double tap to collapse".
+  -->
+  <string name="a11y_action_label_collapse">i-collapse</string>
+  <!-- Current state for elements that can be collapsed if interacting with them. Talkback will dictate this after a state change. -->
+  <string name="a11y_state_label_collapsed">naka-collapse</string>
   <!-- Action label for elements that can be expanded if interacting with them. Talkback will append this to say "Double tap to expand". -->
   <string name="a11y_action_label_expand">palawigin</string>
+  <!-- Current state for elements that can be expanded if interacting with them. Talkback will dictate this after a state change. -->
+  <string name="a11y_state_label_expanded">naka-expand</string>
+  <!-- Action label for links to a website containing documentation about a wallpaper collection. Talkback will append this to say "Double tap to open link to learn more about this collection". -->
+  <string name="a11y_action_label_wallpaper_collection_learn_more">buksan ang link para matuto pa tungkol sa koleksyong ito</string>
   <!-- Action label for links that point to an article. Talkback will append this to say "Double tap to read the article". -->
   <string name="a11y_action_label_read_article">basahin ang artikulo</string>
   <!-- Action label for links to the Firefox Pocket website. Talkback will append this to say "Double tap to open link to learn more". -->
   <string name="a11y_action_label_pocket_learn_more">buksan ang link para matuto pa</string>
+  <!-- Content description for headings announced by accessibility service. %s is the text of the heading. Talkback will announce the text and then speak the word "Heading" indicating to the user that this text is a heading for a section. -->
+  <string name="a11y_heading">%s, Heading</string>
   <!-- Title for dialog displayed when trying to access links present in a text. -->
   <string name="a11y_links_title">Mga link</string>
   <!-- Translations feature -->
@@ -2638,6 +2773,8 @@
   <string name="translation_settings_automatic_translation">Kusang pagsasalin</string>
   <!-- Button text for the button that will take the user to the never translate these sites dialog. On the never translate these sites dialog, the user can set if translations should never occur on certain websites. -->
   <string name="translation_settings_automatic_never_translate_sites">Huwag kailanman isalin ang mga site na ito</string>
+  <!-- Button text for the button that will take the user to the download languages dialog. On the download languages dialog, the user can manage which languages they would like to download for translations. -->
+  <string name="translation_settings_download_language">Mag-download ng mga wika</string>
   <!--
     Automatic translation preference screen
 
@@ -2684,6 +2821,12 @@
   <string name="never_translate_site_dialog_confirm_delete_preference">Burahin</string>
   <!-- The Delete site dialogue negative button will appear when the user clicks on a list item. The dialog will be dismissed. -->
   <string name="never_translate_site_dialog_cancel_preference">Ikansela</string>
+  <!--
+    Download languages preference screen
+
+    Title of the toolbar for the translation feature screen where users may download different languages for translation.
+  -->
+  <string name="download_languages_translations_toolbar_title_preference">Mag-download ng mga wika</string>
   <!-- Screen header presenting the download language preference feature. It will appear under the toolbar. %1$s is a link using download_languages_header_learn_more_preference as text ("Learn more"). Talkback will append this to say "Double tap to open link to learn more". -->
   <string name="download_languages_header_preference">Mag-download ng kumpletong wika para sa mas mabilis na pagsasalin at sa pagsasalin offline. %1$s</string>
   <!-- Clickable text from the screen header that links to a website. -->
@@ -2714,8 +2857,20 @@
   <string name="download_languages_item_content_description_not_downloaded_state">I-download</string>
   <!-- Additional information for the dialog used by the translations feature to confirm deleting a language. %1$s is the name of the app (for example "Firefox"). -->
   <string name="delete_language_file_dialog_message">Kung buburahin mo ang wikang ito, magda-download lang ng bahagyang wika ang %1$s sa iyong cache habang nagsasalin.</string>
+  <!--
+    Title for the dialog used by the translations feature to confirm deleting all languages file.
+    The dialog will be presented when the user requests deletion of all languages file.
+    %1$s is the size in kilobytes or megabytes of the language file.
+  -->
+  <string name="delete_language_all_languages_file_dialog_title">Burahin lahat ng mga wika (%1$s)?</string>
+  <!-- Button text on the dialog used by the translations feature to confirm deleting a language. -->
+  <string name="delete_language_file_dialog_positive_button_text">Burahin</string>
+  <!-- Button text on the dialog used by the translations feature to cancel deleting a language. -->
+  <string name="delete_language_file_dialog_negative_button_text">Ikansela</string>
   <!-- Button text on the data saving mode warning dialog used by the translations feature to allow users to confirm they wish to continue and download the language file and perform a translation. -->
   <string name="download_language_file_dialog_positive_button_text_all_languages">I-download at isalin</string>
+  <!-- Button text on the data saving mode warning dialog used by the translations feature to allow users to cancel the action and not perform a download of the language file. -->
+  <string name="download_language_file_dialog_negative_button_text">Ikansela</string>
   <!--
     Unified Trust Panel
 
@@ -2724,6 +2879,8 @@
   <string name="protection_panel_header_secure">Ligtas</string>
   <!-- Text for the protection panel header when the site is not secure. -->
   <string name="protection_panel_header_not_secure">Hindi ligtas</string>
+  <!-- Title text for the protection panel banner when the site is not secure. -->
+  <string name="protection_panel_banner_not_secure_title">Mag-ingat sa site na ito</string>
   <!-- Description text for the Enhanced Tracking Protection toggle when tracking protection is enabled. -->
   <string name="protection_panel_etp_toggle_enabled_description">Kung mukhang may sira sa site na ito, subukang isara ang mga proteksyon.</string>
   <!--
@@ -2775,6 +2932,8 @@
   <string name="debug_drawer_tab_tools_tab_count_private">Pribado</string>
   <!-- The total tab count category in the tab count section in Tab Tools. -->
   <string name="debug_drawer_tab_tools_tab_count_total">Kabuuan</string>
+  <!-- The error message of the text field in the tab creation tool when the text field has characters other than digits -->
+  <string name="debug_drawer_tab_tools_tab_quantity_non_digits_error">Mangyaring magpasok ng mga positibong numero lamang</string>
   <!-- The error message of the text field in the tab creation tool when the text field is a zero -->
   <string name="debug_drawer_tab_tools_tab_quantity_non_zero_error">Mangyaring maglagay ng numerong higit sa zero</string>
   <!-- The button text to add tabs to the active tab group in the tab creation tool. -->
@@ -2829,8 +2988,122 @@
   <string name="microsurvey_prompt_search_title" tools:ignore="BrandUsage,UnusedResources">Tulungang pagandahin ang paghahanap sa Firefox. Saglit lang ito</string>
   <!-- Text shown in prompt for sync microsurvey. Note: The word "Firefox" should NOT be translated. -->
   <string name="microsurvey_prompt_sync_title" tools:ignore="BrandUsage,UnusedResources">Tulungang pagandahin ang pag-sync sa Firefox. Saglit lang ito</string>
+  <!-- Text shown in the survey title for printing microsurvey. Note: The word "Firefox" should NOT be translated. -->
+  <string name="microsurvey_survey_printing_title" tools:ignore="BrandUsage,UnusedResources">Gaano ka nasiyahan sa pag-print sa Firefox?</string>
+  <!-- Text shown in the survey title for homepage microsurvey. Note: The word "Firefox" should NOT be translated. -->
+  <string name="microsurvey_homepage_title" tools:ignore="BrandUsage,UnusedResources">Gaano ka nasiyahan sa iyong Firefox homepage?</string>
+  <!-- Text shown in the survey title for search experience microsurvey. Note: The word "Firefox" should NOT be translated. -->
+  <string name="microsurvey_search_title" tools:ignore="BrandUsage,UnusedResources">Gaano ka nasiyahan sa karanasan sa paghahanap sa Firefox?</string>
+  <!-- Text shown in the survey title for sync experience microsurvey. Note: The word "Firefox" should NOT be translated. -->
+  <string name="microsurvey_sync_title" tools:ignore="BrandUsage,UnusedResources">Gaano ka nasiyahan sa karanasan sa pag-sync sa Firefox?</string>
+  <!--
+    Accessibility
+
+    Content description for the survey application icon. Note: The word "Firefox" should NOT be translated.
+  -->
+  <string name="microsurvey_app_icon_content_description" tools:ignore="BrandUsage">Logo ng Firefox</string>
+  <!-- Content description for the survey feature icon. -->
+  <string name="microsurvey_feature_icon_content_description">Survey feature icon</string>
+  <!-- Content description (not visible, for screen readers etc.) for closing microsurvey bottom sheet. -->
+  <string name="microsurvey_close_handle_content_description">Isara ang survey</string>
+  <!-- Content description for "X" button that is closing microsurvey. -->
+  <string name="microsurvey_close_button_content_description">Isara</string>
+  <!--
+    Debug drawer logins
+
+    The title of the Logins feature in the Debug Drawer.
+  -->
+  <string name="debug_drawer_logins_title">Mga login</string>
+  <!-- The title of the logins section in the Logins feature. %s is the site domain. -->
+  <string name="debug_drawer_logins_current_domain_label">Kasalukuyang domain: %s</string>
+  <!-- The label for a button to add a new fake login for the current domain in the Logins feature. -->
+  <string name="debug_drawer_logins_add_login_button">Magdagdag ng pekeng login sa domain na ito</string>
+  <!-- Content description for delete button. %s is the username of the login. -->
+  <string name="debug_drawer_logins_delete_login_button_content_description">Burahin ang login na may username na %s</string>
+  <!--
+    Debug drawer addresses
+
+    The title of the Addresses feature in the Debug Drawer.
+  -->
+  <string name="debug_drawer_addresses_title">Mga tirahan</string>
+  <!-- The title of the header for the section for managing addresses. -->
+  <string name="debug_drawer_addresses_management_header">Pamahalaan ang mga tirahan</string>
+  <!-- The title of the button in the debug drawer for adding a new address. -->
+  <string name="debug_drawer_add_new_address">Magdagdag ng tirahan para sa napiling locale</string>
+  <!-- The title of the button for deleting in the debug drawer all addresses. -->
+  <string name="debug_drawer_delete_all_addresses">Burahin lahat ng mga tirahan</string>
+  <!--
+    Debug drawer "contextual feature recommendation" (CFR) tools
+
+    The title of the CFR Tools feature in the Debug Drawer
+  -->
+  <string name="debug_drawer_cfr_tools_title">CFR Tools</string>
+  <!-- The title of the reset CFR section in CFR Tools -->
+  <string name="debug_drawer_cfr_tools_reset_cfr_title">Reset CFRs</string>
+  <!--
+    Glean debug tools
+
+    The title of the glean debugging feature
+  -->
+  <string name="glean_debug_tools_title">Glean Debug Tools</string>
   <!-- The text label for displaying home region. -->
   <string name="debug_drawer_home_region_label">Home region</string>
+  <!-- The text label for displaying current region. -->
+  <string name="debug_drawer_current_region_label">Kasalukuyang rehiyon</string>
+  <!--
+    Messages explaining how to exit fullscreen mode
+
+    Message shown to explain how to exit fullscreen mode when gesture navigation is enabled.
+
+    Localisation note: this text should be as short as possible, max 68 chars
+  -->
+  <string name="exit_fullscreen_with_gesture_short">I-drag mula sa taas at gamitin ang back gesture para makaalis</string>
+  <!--
+    Message shown to explain how to exit fullscreen mode when using back button navigation.
+
+    Localisation note: this text should be as short as possible, max 68 chars
+  -->
+  <string name="exit_fullscreen_with_back_button_short">I-drag mula sa taas at pindutin ang back para makaalis</string>
+  <!--
+    Beta Label Component !
+
+    Text shown as a label or tag to indicate a feature or area is still undergoing active development. Note that here "Beta" should not be translated, as it is used as an icon styled element.
+  -->
+  <string name="beta_feature">BETA</string>
+  <!--
+    Root certificate expiration warnings
+
+    These strings for homepage cards and push notifications to be pushed to users running outdated versions of Firefox. We want to encourage these users to update to the latest version so their extensions and other features don't stop working when Firefox's old root certificate expires on 2025-03-14. For more information, see this SUMO article: https://support.mozilla.org/kb/root-certificate-expiration !
+
+    Homepage card button to open Google Play Store. "Update" is a verb.
+  -->
+  <string name="certificate_warning_homepage_card_update_now_button" tools:ignore="UnusedResources">Mag-update na ngayon</string>
+  <!-- Homepage card title about old Firefox version. "Update" is a verb. Note: The word "Firefox" should NOT be translated. -->
+  <string name="certificate_warning_homepage_card_hca1_title" tools:ignore="BrandUsage,UnusedResources">I-update ang iyong Firefox browser</string>
+  <!-- Homepage card message about old Firefox version -->
+  <string name="certificate_warning_homepage_card_hca1_message" tools:ignore="UnusedResources">May root certificate na mag-eexpire na magdudulot para tumigil ang ilang mga feature sa Marso 14.</string>
+  <!-- Homepage card title about old Firefox version. "Update" is a verb. -->
+  <string name="certificate_warning_homepage_card_hcr1_title" tools:ignore="UnusedResources">Mag-update bago Marso 14</string>
+  <!-- Homepage card title about old Firefox version. Note: The word "Firefox" should NOT be translated. -->
+  <string name="certificate_warning_homepage_card_hcw3_title" tools:ignore="BrandUsage,UnusedResources">Huling pagkakataon para mapanatili ang iyong Firefox</string>
+  <!-- Homepage card message about old Firefox version. Note: The word "Firefox" should NOT be translated. -->
+  <string name="certificate_warning_homepage_card_hcw3_message" tools:ignore="BrandUsage,UnusedResources">Ang iyong bersyon ng Firefox ay titigil nang gumana pagdating ng Marso 14 dahil may mag-eexpire na root certificate.</string>
+  <!-- Push notification title about old Firefox version. "Update" is a noun. -->
+  <string name="certificate_warning_push_notification_update_recommended_title" tools:ignore="UnusedResources">Nirerekomendang mag-update</string>
+  <!-- Push notification message about old Firefox version -->
+  <string name="certificate_warning_push_notification_pnr1_message" tools:ignore="UnusedResources">Titigil nang gumana ang mga add-on at ilang mga feature sa Marso 14.</string>
+  <!-- Push notification title about old Firefox version. Note: The word "Firefox" should NOT be translated. -->
+  <string name="certificate_warning_push_notification_pnw2_title" tools:ignore="BrandUsage,UnusedResources">Gumagamit ka ng lumang bersyon ng Firefox</string>
+  <!-- Push notification message about old Firefox version. "Update" is a verb. -->
+  <string name="certificate_warning_push_notification_pnw2_message" tools:ignore="UnusedResources">Mag-update bago mag-Marso 14 para patuloy na makagamit ng mga add-on at ibang mga feature.</string>
+  <!-- Push notification message about old Firefox version -->
+  <string name="certificate_warning_push_notification_pnw3_message" tools:ignore="UnusedResources">May ilang mga feature na titigil nang gumana bukas.</string>
+  <!--
+    TextField Design System Component
+
+    The default content description for the eye trailing icon button in TextField
+  -->
+  <string name="text_field_eye_trailing_icon_default_content_description" moz:removedIn="139" tools:ignore="UnusedResources">Ipakita ang nakatagong text</string>
   <!--
     Setup checklist feature
 
@@ -2869,6 +3142,12 @@
   <string name="setup_checklist_task_explore_extensions">Tumuklas ng mga extension</string>
   <!-- The title of the search widget task for the setup checklist -->
   <string name="setup_checklist_task_search_widget">Ikabit ang search widget</string>
+  <!--
+    ===== Setup checklist feature: Group titles =====
+
+    The title of the 'essentials' group in the setup checklist. %1$s is the name of the app (for example "Firefox").
+  -->
+  <string name="setup_checklist_group_essentials">%1$s essentials</string>
   <!-- The title of the 'customize' group in the setup checklist. %1$s is the name of the app (for example "Firefox"). -->
   <string name="setup_checklist_group_customize">Ipasadya ang iyong %1$s</string>
   <!--
@@ -2881,4 +3160,6 @@
   <string name="pbm_authentication_unlock">I-unlock</string>
   <!-- Title text instructing the user to unlock private tabs -->
   <string name="pbm_authentication_unlock_private_tabs">I-unlock ang mga pribadong tab</string>
+  <!-- Negative button text for the contextual feature recommendation (CFR) dismissing the screen lock suggestion -->
+  <string name="private_tab_cfr_negative" tools:ignore="UnusedResources">Salamat na lang</string>
 </resources>

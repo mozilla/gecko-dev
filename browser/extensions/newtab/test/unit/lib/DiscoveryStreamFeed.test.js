@@ -2082,15 +2082,13 @@ describe("DiscoveryStreamFeed", () => {
     });
     it("should dispatch to at.DISCOVERY_STREAM_PREFS_SETUP with proper data", async () => {
       sandbox.spy(feed.store, "dispatch");
-      globals.set("ExperimentAPI", {
-        getExperimentMetaData: () => ({
+      sandbox
+        .stub(global.NimbusFeatures.pocketNewtab, "getEnrollmentMetadata")
+        .returns({
           slug: "experimentId",
-          branch: {
-            slug: "branchId",
-          },
-        }),
-        getRolloutMetaData: () => ({}),
-      });
+          branch: "branchId",
+          isRollout: false,
+        });
       global.Services.prefs.getBoolPref
         .withArgs("extensions.pocket.enabled")
         .returns(true);

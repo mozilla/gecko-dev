@@ -56,6 +56,7 @@ enum class State {
   D(RootsChange, 1)                      \
   D(Alloc, 2)                            \
   D(VerifierPre, 4)                      \
+  D(VerifierPost, 5)                     \
   D(YieldBeforeRootMarking, 6)           \
   D(GenerationalGC, 7)                   \
   D(YieldBeforeMarking, 8)               \

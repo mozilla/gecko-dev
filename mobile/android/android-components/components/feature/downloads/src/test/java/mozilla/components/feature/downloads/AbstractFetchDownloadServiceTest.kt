@@ -1405,17 +1405,6 @@ class AbstractFetchDownloadServiceTest {
     }
 
     @Test
-    fun `performDownload - don't make a client request when download is completed`() {
-        val responseFromDownloadState = mock<Response>()
-        val download = spy(DownloadState("https://example.com/file.txt", "file.txt", response = responseFromDownloadState, contentLength = 1000))
-        val downloadJob = DownloadJobState(currentBytesCopied = 1000, state = download, status = DOWNLOADING)
-
-        service.performDownload(downloadJob)
-
-        verify(service).verifyDownload(downloadJob)
-    }
-
-    @Test
     @Config(sdk = [28])
     fun `onDestroy cancels all running jobs when using legacy file stream`() = runBlocking {
         val download = DownloadState("https://example.com/file.txt", "file.txt")

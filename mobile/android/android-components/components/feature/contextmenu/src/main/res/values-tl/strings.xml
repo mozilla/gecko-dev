@@ -7,7 +7,7 @@
   <!-- Text for context menu item to open the image in a new tab. -->
   <string name="mozac_feature_contextmenu_open_image_in_new_tab">Buksan ang larawan sa bagong tab</string>
   <!-- Text for context menu item to save / download the link. -->
-  <string name="mozac_feature_contextmenu_download_link">i-Download ang link</string>
+  <string name="mozac_feature_contextmenu_download_link">I-download ang link</string>
   <!-- Text for context menu item to share the link with an other app. -->
   <string name="mozac_feature_contextmenu_share_link">Ibahagi ang link</string>
   <!-- Text for context menu item to share the image with an other app. -->
@@ -15,13 +15,13 @@
   <!-- Text for context menu item to copy the link to the clipboard. -->
   <string name="mozac_feature_contextmenu_copy_link">Kopyahin ang link</string>
   <!-- Text for context menu item to copy the URL pointing to the image to the clipboard. -->
-  <string name="mozac_feature_contextmenu_copy_image_location">Koyahin ang lokasyon ng larawan</string>
+  <string name="mozac_feature_contextmenu_copy_image_location">Kopyahin ang lokasyon ng larawan</string>
   <!-- Text for context menu item to save / download the image. -->
-  <string name="mozac_feature_contextmenu_save_image">I-save ang imahe</string>
+  <string name="mozac_feature_contextmenu_save_image">I-save ang larawan</string>
   <!-- Text for context menu item to copy the image to the clipboard. -->
   <string name="mozac_feature_contextmenu_copy_image">Kopyahin ang larawan</string>
   <!-- Text for context menu item to save / download the file. -->
-  <string name="mozac_feature_contextmenu_save_file_to_device">i-Save ang file sa device</string>
+  <string name="mozac_feature_contextmenu_save_file_to_device">I-save ang file sa device</string>
   <!-- Text for confirmation "snackbar" shown after opening a link in a new tab. -->
   <string name="mozac_feature_contextmenu_snackbar_new_tab_opened">Nagbukas ng bagong tab</string>
   <!-- Text for confirmation "snackbar" shown after opening a link in a new private tab. -->

@@ -1425,10 +1425,6 @@ var gLastOpenDirectory = {
   },
 };
 
-function getLoadContext() {
-  return window.docShell.QueryInterface(Ci.nsILoadContext);
-}
-
 function readFromClipboard() {
   var url;
 
@@ -1437,7 +1433,7 @@ function readFromClipboard() {
     var trans = Cc["@mozilla.org/widget/transferable;1"].createInstance(
       Ci.nsITransferable
     );
-    trans.init(getLoadContext());
+    trans.init(window.docShell.QueryInterface(Ci.nsILoadContext));
 
     trans.addDataFlavor("text/plain");
 

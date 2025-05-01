@@ -100,7 +100,7 @@ class SearchEngineSelectorRepository(
     ): AttachmentModel? {
         iconsList.forEach { icon ->
             icon.engineIdentifier.forEach { patternIdPrefix ->
-                if (engineIdentifier.startsWith(patternIdPrefix)) {
+                if (patternIdPrefix.startsWith(engineIdentifier)) {
                     return icon.attachment
                 }
             }

@@ -473,13 +473,37 @@ parsererror|sourcetext {
 
 /* :root section moved to the other root selectors for performance */
 
-:root::view-transition {
+/* ::-moz-snapshot-containing-block is a wrapper of ::view-transition, so we set
+ * some necessary properties here, instead of in ::view-transition. */
+:root::-moz-snapshot-containing-block {
+  /* The snapshot containing block is considered to be an absolute positioning
+   * containing block and a fixed positioning containing block for
+   * ::view-transition and its descendants.
+   * Note that we use will-change property to make sure this pseudo-element
+   * establish a fixed positioning containing block. */
+  will-change: -moz-fixed-pos-containing-block;
+  /* The snapshot containing block itself should be fixed positioned. It doesn't
+   * move when scrolling. */
   position: fixed;
+  /* The snapshot containing block origin refers to the top-left corner of the
+   * snapshot containing block.
+   * The snapshot containing block size refers to the width and height of the
+   * snapshot containing block as a tuple of two numbers. */
   inset: 0;
-
+  /* Avoid hit-testing on this pseudo-element.
+   * Note that this doesn't affect `::view-transition` because that inherits
+   * directly from the root. */
+  pointer-events: none;
   /* Gecko implementation detail to make sure view transitions render in the
    * top layer */
-  -moz-top-layer: auto !important;
+  -moz-top-layer: auto;
+}
+
+:root::view-transition {
+  /* This is confusing and we probably should use "position: absolute".
+   * https://github.com/w3c/csswg-drafts/issues/12116 */
+  position: fixed;
+  inset: 0;
 }
 
 :root::view-transition-group(*) {

@@ -55,11 +55,11 @@ async function showPreonboardingModal({
     ["browser.startup.homepage_override.mstone", ""],
     ["startup.homepage_welcome_url", "about:welcome"],
     ["toolkit.telemetry.log.level", "trace"],
+    [TelemetryUtils.Preferences.BypassNotification, false],
   ];
   const PREFS_TO_CLEAR = [
     [TelemetryUtils.Preferences.AcceptedPolicyDate],
     [TelemetryUtils.Preferences.AcceptedPolicyVersion],
-    [TelemetryUtils.Preferences.BypassNotification],
   ];
   await SpecialPowers.pushPrefEnv({
     set: PREFS_TO_SET,

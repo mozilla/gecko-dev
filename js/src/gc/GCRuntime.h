@@ -351,7 +351,7 @@ class GCRuntime {
   void notifyRootsRemoved();
 
   enum TraceOrMarkRuntime { TraceRuntime, MarkRuntime };
-  void traceRuntime(JSTracer* trc, AutoTraceSession& session);
+  void traceRuntime(JSTracer* trc, AutoHeapSession& session);
   void traceRuntimeForMinorGC(JSTracer* trc, AutoGCSession& session);
 
   void purgeRuntimeForMinorGC();
@@ -388,6 +388,7 @@ class GCRuntime {
   void setNextScheduled(uint32_t count);
   void verifyPreBarriers();
   void maybeVerifyPreBarriers(bool always);
+  void verifyPostBarriers();
   bool selectForMarking(JSObject* object);
   void clearSelectedForMarking();
   void setDeterministic(bool enable);
@@ -597,6 +598,7 @@ class GCRuntime {
   void finishVerifier();
   bool isVerifyPreBarriersEnabled() const { return verifyPreData.refNoCheck(); }
   bool shouldYieldForZeal(ZealMode mode);
+  void verifyPostBarriers(AutoHeapSession& session);
 #else
   bool isVerifyPreBarriersEnabled() const { return false; }
 #endif

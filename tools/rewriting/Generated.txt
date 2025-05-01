@@ -207,6 +207,7 @@ mobile/android/focus-android/gradle/wrapper/
 mobile/android/focus-android/quality/detekt-baseline.xml
 mobile/locales/l10n-changesets.json
 mobile/locales/l10n-onchange-changesets.json
+docs/mots/index.rst
 node_modules/
 python/mozperftest/mozperftest/tests/data/
 security/manager/tools/KnownRootHashes.json

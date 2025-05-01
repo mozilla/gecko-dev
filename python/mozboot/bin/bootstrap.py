@@ -258,27 +258,6 @@ def git_clone_firefox(git: Path, dest: Path, watchman: Path, head_repo, head_rev
             env=env,
         )
 
-        watchman_sample = dest / ".git/hooks/fsmonitor-watchman.sample"
-        # Older versions of git didn't include fsmonitor-watchman.sample.
-        if watchman and watchman_sample.exists():
-            print("Configuring watchman")
-            watchman_config = dest / ".git/hooks/query-watchman"
-            if not watchman_config.exists():
-                print(f"Copying {watchman_sample} to {watchman_config}")
-                copy_args = [
-                    "cp",
-                    ".git/hooks/fsmonitor-watchman.sample",
-                    ".git/hooks/query-watchman",
-                ]
-                subprocess.check_call(copy_args, cwd=str(dest))
-
-            config_args = [
-                str(git),
-                "config",
-                "core.fsmonitor",
-                ".git/hooks/query-watchman",
-            ]
-            subprocess.check_call(config_args, cwd=str(dest), env=env)
         return dest
     finally:
         if tempdir:

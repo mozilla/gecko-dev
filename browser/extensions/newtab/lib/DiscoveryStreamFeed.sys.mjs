@@ -6,7 +6,6 @@ const lazy = {};
 ChromeUtils.defineESModuleGetters(lazy, {
   ClientEnvironmentBase:
     "resource://gre/modules/components-utils/ClientEnvironment.sys.mjs",
-  ExperimentAPI: "resource://nimbus/ExperimentAPI.sys.mjs",
   NimbusFeatures: "resource://nimbus/ExperimentAPI.sys.mjs",
   NewTabUtils: "resource://gre/modules/NewTabUtils.sys.mjs",
   pktApi: "chrome://pocket/content/pktApi.sys.mjs",
@@ -307,21 +306,12 @@ export class DiscoveryStreamFeed {
   }
 
   setupPrefs(isStartup = false) {
-    const pocketNewtabExperiment = lazy.ExperimentAPI.getExperimentMetaData({
-      featureId: "pocketNewtab",
-    });
-
-    const pocketNewtabRollout = lazy.ExperimentAPI.getRolloutMetaData({
-      featureId: "pocketNewtab",
-    });
-
-    // We want to know if the user is in an experiment or rollout,
-    // but we prioritize experiments over rollouts.
-    const experimentMetaData = pocketNewtabExperiment || pocketNewtabRollout;
+    const experimentMetadata =
+      lazy.NimbusFeatures.pocketNewtab.getEnrollmentMetadata();
 
     let utmSource = "pocket-newtab";
-    let utmCampaign = experimentMetaData?.slug;
-    let utmContent = experimentMetaData?.branch?.slug;
+    let utmCampaign = experimentMetadata?.slug;
+    let utmContent = experimentMetadata?.branch;
 
     this.store.dispatch(
       ac.BroadcastToContent({
@@ -1645,20 +1635,13 @@ export class DiscoveryStreamFeed {
   }
 
   getExperimentInfo() {
-    const pocketNewtabExperiment = lazy.ExperimentAPI.getExperimentMetaData({
-      featureId: "pocketNewtab",
-    });
-
-    const pocketNewtabRollout = lazy.ExperimentAPI.getRolloutMetaData({
-      featureId: "pocketNewtab",
-    });
-
     // We want to know if the user is in an experiment or rollout,
     // but we prioritize experiments over rollouts.
-    const experimentMetaData = pocketNewtabExperiment || pocketNewtabRollout;
+    const experimentMetadata =
+      lazy.NimbusFeatures.pocketNewtab.getEnrollmentMetadata();
 
-    let experimentName = experimentMetaData?.slug || "";
-    let experimentBranch = experimentMetaData?.branch?.slug || "";
+    let experimentName = experimentMetadata?.slug ?? "";
+    let experimentBranch = experimentMetadata?.branch ?? "";
 
     return {
       experimentName,

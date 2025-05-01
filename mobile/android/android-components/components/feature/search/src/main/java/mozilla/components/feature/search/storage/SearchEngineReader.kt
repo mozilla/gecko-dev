@@ -34,7 +34,7 @@ internal const val URL_TYPE_SEARCH_HTML = "text/html"
 internal const val URL_REL_MOBILE = "mobile"
 internal const val IMAGE_URI_PREFIX = "data:image/png;base64,"
 internal const val GOOGLE_ID = "google"
-private const val TARGET_SIZE = 16
+private const val TARGET_SIZE = 32
 private const val MAX_SIZE = 32
 private const val URL_PREFIX = "https://firefox-settings-attachments.cdn.mozilla.net/"
 

@@ -418,8 +418,6 @@ uint8_t* jit::LazyLinkTopActivation(JSContext* cx,
 
 /* static */
 void JitRuntime::TraceAtomZoneRoots(JSTracer* trc) {
-  MOZ_ASSERT(!JS::RuntimeHeapIsMinorCollecting());
-
   // Shared stubs are allocated in the atoms zone, so do not iterate
   // them after the atoms heap after it has been "finished."
   if (trc->runtime()->atomsAreFinished()) {

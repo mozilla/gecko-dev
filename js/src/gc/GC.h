@@ -168,7 +168,7 @@ void FinishGC(JSContext* cx, JS::GCReason = JS::GCReason::FINISH_GC);
 
 void WaitForBackgroundTasks(JSContext* cx);
 
-enum VerifierType { PreBarrierVerifier };
+enum VerifierType { PreBarrierVerifier, PostBarrierVerifier };
 
 #ifdef JS_GC_ZEAL
 

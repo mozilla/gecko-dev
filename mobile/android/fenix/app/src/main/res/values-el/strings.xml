@@ -1606,7 +1606,7 @@
 
     Title text displayed on the tab crash page. %1$s is the name of the app (for example "Firefox").
   -->
-  <string name="tab_crash_title_2">Συγγνώμη. Το %1$s δεν μπορεί να φορτώσει αυτή τη σελίδα.</string>
+  <string name="tab_crash_title_2">Συγγνώμη. Το %1$s δεν μπορεί να φορτώσει αυτήν τη σελίδα.</string>
   <!-- Send crash report checkbox text on the tab crash page -->
   <string name="tab_crash_send_report">Αποστολή αναφοράς κατάρρευσης στη Mozilla</string>
   <!-- Close tab button text on the tab crash page -->
@@ -3572,4 +3572,10 @@
   <string name="pbm_authentication_unlock">Ξεκλείδωμα</string>
   <!-- Title text instructing the user to unlock private tabs -->
   <string name="pbm_authentication_unlock_private_tabs">Ξεκλείδωμα ιδιωτικών καρτελών</string>
+  <!-- Title text for the contextual feature recommendation (CFR) suggesting the user enable a screen lock to protect private tabs -->
+  <string name="private_tab_cfr_title" tools:ignore="UnusedResources">Χρήση κλειδώματος οθόνης για την απόκρυψη ιδιωτικών καρτελών;</string>
+  <!-- Negative button text for the contextual feature recommendation (CFR) dismissing the screen lock suggestion -->
+  <string name="private_tab_cfr_negative" tools:ignore="UnusedResources">Όχι, ευχαριστώ</string>
+  <!-- Positive button text for the contextual feature recommendation (CFR) enabling screen lock for private tabs -->
+  <string name="private_tab_cfr_positive" tools:ignore="UnusedResources">Κλείδωμα καρτελών</string>
 </resources>

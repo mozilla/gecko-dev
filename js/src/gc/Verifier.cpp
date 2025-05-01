@@ -419,6 +419,16 @@ void gc::GCRuntime::endVerifyPreBarriers() {
 
 /*** Barrier Verifier Scheduling ***/
 
+void gc::VerifyBarriers(JSRuntime* rt, VerifierType type) {
+  if (type == PreBarrierVerifier) {
+    rt->gc.verifyPreBarriers();
+  }
+
+  if (type == PostBarrierVerifier) {
+    rt->gc.verifyPostBarriers();
+  }
+}
+
 void gc::GCRuntime::verifyPreBarriers() {
   if (verifyPreData) {
     endVerifyPreBarriers();
@@ -427,9 +437,11 @@ void gc::GCRuntime::verifyPreBarriers() {
   }
 }
 
-void gc::VerifyBarriers(JSRuntime* rt, VerifierType type) {
-  if (type == PreBarrierVerifier) {
-    rt->gc.verifyPreBarriers();
+void gc::GCRuntime::verifyPostBarriers() {
+  if (hasZealMode(ZealMode::VerifierPost)) {
+    clearZealMode(ZealMode::VerifierPost);
+  } else {
+    setZeal(uint8_t(ZealMode::VerifierPost), JS::ShellDefaultGCZealFrequency);
   }
 }
 
@@ -810,8 +822,8 @@ void GCRuntime::finishMarkingValidation() {
 class HeapCheckTracerBase : public JS::CallbackTracer {
  public:
   explicit HeapCheckTracerBase(JSRuntime* rt, JS::TraceOptions options);
-  bool traceHeap(AutoTraceSession& session);
-  virtual void checkCell(Cell* cell, const char* name) = 0;
+  bool traceHeap(AutoHeapSession& session);
+  virtual bool checkCell(Cell* cell, const char* name) = 0;
 
  protected:
   void dumpCellInfo(Cell* cell);
@@ -848,7 +860,7 @@ class HeapCheckTracerBase : public JS::CallbackTracer {
 
 HeapCheckTracerBase::HeapCheckTracerBase(JSRuntime* rt,
                                          JS::TraceOptions options)
-    : CallbackTracer(rt, JS::TracerKind::Callback, options),
+    : CallbackTracer(rt, JS::TracerKind::HeapCheck, options),
       failures(0),
       rt(rt),
       oom(false),
@@ -856,14 +868,17 @@ HeapCheckTracerBase::HeapCheckTracerBase(JSRuntime* rt,
 
 void HeapCheckTracerBase::onChild(JS::GCCellPtr thing, const char* name) {
   Cell* cell = thing.asCell();
-  checkCell(cell, name);
-
   if (visited.lookup(cell)) {
     return;
   }
 
   if (!visited.put(cell)) {
     oom = true;
+    return;
+  }
+
+  if (!checkCell(cell, name)) {
+    // Don't trace through known bad cell.
     return;
   }
 
@@ -878,7 +893,7 @@ void HeapCheckTracerBase::onChild(JS::GCCellPtr thing, const char* name) {
   }
 }
 
-bool HeapCheckTracerBase::traceHeap(AutoTraceSession& session) {
+bool HeapCheckTracerBase::traceHeap(AutoHeapSession& session) {
   // The analysis thinks that traceRuntime might GC by calling a GC callback.
   JS::AutoSuppressGCAnalysis nogc;
   if (!rt->isBeingDestroyed()) {
@@ -930,13 +945,14 @@ void HeapCheckTracerBase::dumpCellPath(const char* name) {
 
 class CheckHeapTracer final : public HeapCheckTracerBase {
  public:
-  enum GCType { Moving, NonMoving };
+  enum GCType { Moving, NonMoving, VerifyPostBarriers };
 
   explicit CheckHeapTracer(JSRuntime* rt, GCType type);
-  void check(AutoTraceSession& session);
+  void check(AutoHeapSession& session);
 
  private:
-  void checkCell(Cell* cell, const char* name) override;
+  bool checkCell(Cell* cell, const char* name) override;
+  bool cellIsValid(Cell* cell);
   GCType gcType;
 };
 
@@ -948,18 +964,35 @@ inline static bool IsValidGCThingPointer(Cell* cell) {
   return (uintptr_t(cell) & CellAlignMask) == 0;
 }
 
-void CheckHeapTracer::checkCell(Cell* cell, const char* name) {
-  // Moving
-  if (!IsValidGCThingPointer(cell) ||
-      ((gcType == GCType::Moving) && !IsGCThingValidAfterMovingGC(cell)) ||
-      ((gcType == GCType::NonMoving) && cell->isForwarded())) {
-    failures++;
-    fprintf(stderr, "Bad pointer %p\n", cell);
-    dumpCellPath(name);
+bool CheckHeapTracer::checkCell(Cell* cell, const char* name) {
+  if (cellIsValid(cell)) {
+    return true;
   }
+
+  failures++;
+  fprintf(stderr, "Bad pointer %p\n", cell);
+  dumpCellPath(name);
+  return false;
 }
 
-void CheckHeapTracer::check(AutoTraceSession& session) {
+bool CheckHeapTracer::cellIsValid(Cell* cell) {
+  if (!IsValidGCThingPointer(cell)) {
+    return false;
+  }
+
+  if (gcType == GCType::Moving) {
+    return IsGCThingValidAfterMovingGC(cell);
+  }
+
+  if (gcType == GCType::NonMoving) {
+    return !cell->isForwarded();
+  }
+
+  MOZ_ASSERT(gcType == GCType::VerifyPostBarriers);
+  return !runtime()->gc.nursery().inCollectedRegion(cell);
+}
+
+void CheckHeapTracer::check(AutoHeapSession& session) {
   if (!traceHeap(session)) {
     return;
   }
@@ -989,10 +1022,11 @@ void js::gc::CheckHeapAfterGC(JSRuntime* rt) {
 class CheckGrayMarkingTracer final : public HeapCheckTracerBase {
  public:
   explicit CheckGrayMarkingTracer(JSRuntime* rt);
-  bool check(AutoTraceSession& session);
+  bool check(AutoHeapSession& session);
 
  private:
-  void checkCell(Cell* cell, const char* name) override;
+  bool checkCell(Cell* cell, const char* name) override;
+  bool isBlackToGrayEdge(Cell* parent, Cell* child);
 };
 
 CheckGrayMarkingTracer::CheckGrayMarkingTracer(JSRuntime* rt)
@@ -1001,34 +1035,42 @@ CheckGrayMarkingTracer::CheckGrayMarkingTracer(JSRuntime* rt)
   // Weak gray->black edges are allowed.
 }
 
-void CheckGrayMarkingTracer::checkCell(Cell* cell, const char* name) {
+bool CheckGrayMarkingTracer::checkCell(Cell* cell, const char* name) {
   Cell* parent = parentCell();
   if (!parent) {
-    return;
+    return true;
   }
 
-  if (parent->isMarkedBlack() && cell->isMarkedGray()) {
-    failures++;
+  if (!isBlackToGrayEdge(parent, cell)) {
+    return true;
+  }
 
-    fprintf(stderr, "Found black to gray edge to ");
-    dumpCellInfo(cell);
-    fprintf(stderr, "\n");
-    dumpCellPath(name);
+  failures++;
+
+  fprintf(stderr, "Found black to gray edge to ");
+  dumpCellInfo(cell);
+  fprintf(stderr, "\n");
+  dumpCellPath(name);
 
 #  ifdef DEBUG
-    if (parent->is<JSObject>()) {
-      fprintf(stderr, "\nSource: ");
-      DumpObject(parent->as<JSObject>(), stderr);
-    }
-    if (cell->is<JSObject>()) {
-      fprintf(stderr, "\nTarget: ");
-      DumpObject(cell->as<JSObject>(), stderr);
-    }
-#  endif
+  if (parent->is<JSObject>()) {
+    fprintf(stderr, "\nSource: ");
+    DumpObject(parent->as<JSObject>(), stderr);
   }
+  if (cell->is<JSObject>()) {
+    fprintf(stderr, "\nTarget: ");
+    DumpObject(cell->as<JSObject>(), stderr);
+  }
+#  endif
+
+  return false;
 }
 
-bool CheckGrayMarkingTracer::check(AutoTraceSession& session) {
+bool CheckGrayMarkingTracer::isBlackToGrayEdge(Cell* parent, Cell* child) {
+  return parent->isMarkedBlack() && child->isMarkedGray();
+}
+
+bool CheckGrayMarkingTracer::check(AutoHeapSession& session) {
   if (!traceHeap(session)) {
     return true;  // Ignore failure.
   }
@@ -1139,6 +1181,15 @@ bool js::gc::CheckWeakMapEntryMarking(const WeakMapBase* map, Cell* key,
 }
 
 #endif  // defined(JS_GC_ZEAL) || defined(DEBUG)
+
+#ifdef JS_GC_ZEAL
+void GCRuntime::verifyPostBarriers(AutoHeapSession& session) {
+  // Walk the entire heap to check for pointers into the nursery that should
+  // have been tracked by the store buffer.
+  CheckHeapTracer tracer(rt, CheckHeapTracer::GCType::VerifyPostBarriers);
+  tracer.check(session);
+}
+#endif
 
 // Return whether an arbitrary pointer is within a cell with the given
 // traceKind. Only for assertions and js::debug::* APIs.

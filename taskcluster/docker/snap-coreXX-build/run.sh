@@ -130,33 +130,34 @@ elif [ "${USE_SNAP_FROM_STORE_OR_MC}" = "store" ]; then
 else
   mkdir from-mc && cd from-mc
 
-  # index.gecko.v2.mozilla-central.latest.firefox.amd64-esr-debug
-  #  => https://firefox-ci-tc.services.mozilla.com/api/index/v1/task/gecko.v2.mozilla-central.latest.firefox.amd64-esr-debug/artifacts/public%2Fbuild%2Ffirefox.snap
-  # index.gecko.v2.mozilla-central.revision.bf0897ec442e625c185407cc615a6adc0e40fa75.firefox.amd64-esr-debug
-  #  => https://firefox-ci-tc.services.mozilla.com/api/index/v1/task/gecko.v2.mozilla-central.revision.bf0897ec442e625c185407cc615a6adc0e40fa75.firefox.amd64-esr-debug/artifacts/public%2Fbuild%2Ffirefox.snap
-  # index.gecko.v2.mozilla-central.latest.firefox.amd64-nightly
-  #  => https://firefox-ci-tc.services.mozilla.com/api/index/v1/task/gecko.v2.mozilla-central.latest.firefox.amd64-nightly/artifacts/public%2Fbuild%2Ffirefox.snap
-  # index.gecko.v2.mozilla-central.revision.bf0897ec442e625c185407cc615a6adc0e40fa75.firefox.amd64-nightly
-  #  => https://firefox-ci-tc.services.mozilla.com/api/index/v1/task/gecko.v2.mozilla-central.revision.bf0897ec442e625c185407cc615a6adc0e40fa75.firefox.amd64-nightly/artifacts/public%2Fbuild%2Ffirefox.snap
-
-  # Remove "-" so we get e.g., esr128 from esr-128
-  INDEX_NAME=${BRANCH//-/}
-  if [ "${INDEX_NAME}" = "try" ]; then
-    INDEX_NAME=nightly
-  fi;
-
-  if [ "${DEBUG}" = "--debug" ]; then
-    INDEX_NAME="${INDEX_NAME}-debug"
-  fi;
-
+  # index.gecko.v2.mozilla-central.latest.firefox.snap-amd64-esr-debug
+  #  => https://firefox-ci-tc.services.mozilla.com/api/index/v1/task/gecko.v2.mozilla-central.latest.firefox.snap-amd64-esr-debug/artifacts/public%2Fbuild%2Ffirefox.snap
+  # index.gecko.v2.mozilla-central.revision.bf0897ec442e625c185407cc615a6adc0e40fa75.firefox.snap-amd64-esr-debug
+  #  => https://firefox-ci-tc.services.mozilla.com/api/index/v1/task/gecko.v2.mozilla-central.revision.bf0897ec442e625c185407cc615a6adc0e40fa75.firefox.snap-amd64-esr-debug/artifacts/public%2Fbuild%2Ffirefox.snap
+  # index.gecko.v2.mozilla-central.latest.firefox.snap-amd64-nightly
+  #  => https://firefox-ci-tc.services.mozilla.com/api/index/v1/task/gecko.v2.mozilla-central.latest.firefox.snap-amd64-nightly/artifacts/public%2Fbuild%2Ffirefox.snap
+  # index.gecko.v2.mozilla-central.revision.bf0897ec442e625c185407cc615a6adc0e40fa75.firefox.snap-amd64-nightly
+  #  => https://firefox-ci-tc.services.mozilla.com/api/index/v1/task/gecko.v2.mozilla-central.revision.bf0897ec442e625c185407cc615a6adc0e40fa75.firefox.snap-amd64-nightly/artifacts/public%2Fbuild%2Ffirefox.snap
+  
   TASKCLUSTER_API_ROOT="https://firefox-ci-tc.services.mozilla.com/api"
+  if [ "${USE_SNAP_FROM_STORE_OR_MC}" != "task" ]; then
+    # Remove "-" so we get e.g., esr128 from esr-128
+    INDEX_NAME=${BRANCH//-/}
+    if [ "${INDEX_NAME}" = "try" ]; then
+      INDEX_NAME=nightly
+    fi;
+  
+    if [ "${DEBUG}" = "--debug" ]; then
+      INDEX_NAME="${INDEX_NAME}-debug"
+    fi;
+  
+    URL_TASK="${TASKCLUSTER_API_ROOT}/index/v1/task/gecko.v2.mozilla-central.${USE_SNAP_FROM_STORE_OR_MC}.firefox.snap-${ARCH}-${INDEX_NAME}"
+    PKGS_TASK_ID=$(curl "${URL_TASK}" | jq -r '.taskId')
 
-  URL_TASK="${TASKCLUSTER_API_ROOT}/index/v1/task/gecko.v2.mozilla-central.${USE_SNAP_FROM_STORE_OR_MC}.firefox.${ARCH}-${INDEX_NAME}"
-  PKGS_TASK_ID=$(curl "${URL_TASK}" | jq -r '.taskId')
-
-  if [ -z "${PKGS_TASK_ID}" ]; then
-    echo "Failure to find matching taskId for ${USE_SNAP_FROM_STORE_OR_MC} + ${INDEX_NAME}"
-    exit 1
+    if [ -z "${PKGS_TASK_ID}" ]; then
+      echo "Failure to find matching taskId for ${USE_SNAP_FROM_STORE_OR_MC} + ${INDEX_NAME}"
+      exit 1
+    fi
   fi
 
   PKGS_URL="${TASKCLUSTER_API_ROOT}/queue/v1/task/${PKGS_TASK_ID}/artifacts"

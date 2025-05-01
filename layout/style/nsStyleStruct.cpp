@@ -3322,7 +3322,11 @@ nsChangeHint nsStyleUIReset::CalcDifference(
   }
 
   if (mViewTransitionName != aNewData.mViewTransitionName) {
-    hint |= nsChangeHint_NeutralChange;
+    if (HasViewTransitionName() != aNewData.HasViewTransitionName()) {
+      hint |= nsChangeHint_RepaintFrame;
+    } else {
+      hint |= nsChangeHint_NeutralChange;
+    }
   }
 
   if (!hint &&
