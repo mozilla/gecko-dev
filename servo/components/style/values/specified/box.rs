@@ -1502,10 +1502,6 @@ pub enum Appearance {
     #[parse(condition = "ParserContext::chrome_rules_enabled")]
     ButtonArrowDown,
     #[parse(condition = "ParserContext::chrome_rules_enabled")]
-    ButtonArrowNext,
-    #[parse(condition = "ParserContext::chrome_rules_enabled")]
-    ButtonArrowPrevious,
-    #[parse(condition = "ParserContext::chrome_rules_enabled")]
     ButtonArrowUp,
     /// Menu Popup background.
     #[parse(condition = "ParserContext::chrome_rules_enabled")]

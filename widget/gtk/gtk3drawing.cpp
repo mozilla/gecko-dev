@@ -774,20 +774,7 @@ static gint moz_gtk_arrow_paint(cairo_t* cr, GdkRectangle* rect,
   GdkRectangle arrow_rect;
   gdouble arrow_angle;
 
-  if (direction == GTK_TEXT_DIR_RTL) {
-    if (arrow_type == GTK_ARROW_LEFT) {
-      arrow_type = GTK_ARROW_RIGHT;
-    } else if (arrow_type == GTK_ARROW_RIGHT) {
-      arrow_type = GTK_ARROW_LEFT;
-    }
-  }
   switch (arrow_type) {
-    case GTK_ARROW_LEFT:
-      arrow_angle = ARROW_LEFT;
-      break;
-    case GTK_ARROW_RIGHT:
-      arrow_angle = ARROW_RIGHT;
-      break;
     case GTK_ARROW_DOWN:
       arrow_angle = ARROW_DOWN;
       break;
