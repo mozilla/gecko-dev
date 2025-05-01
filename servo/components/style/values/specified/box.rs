@@ -1507,9 +1507,6 @@ pub enum Appearance {
     ButtonArrowPrevious,
     #[parse(condition = "ParserContext::chrome_rules_enabled")]
     ButtonArrowUp,
-    /// A dual toolbar button (e.g., a Back button with a dropdown)
-    #[parse(condition = "ParserContext::chrome_rules_enabled")]
-    Dualbutton,
     /// Menu Popup background.
     #[parse(condition = "ParserContext::chrome_rules_enabled")]
     Menupopup,
