@@ -20,7 +20,7 @@ add_task(async function test_basic_restore_tabgroup() {
   let aboutMozillaTab = BrowserTestUtils.addTab(win.gBrowser, "about:mozilla");
   let tabGroup = win.gBrowser.addTabGroup([aboutRobotsTab, aboutMozillaTab], {
     color: "blue",
-    label: "about pages",
+    label: "my about pages",
   });
   tabGroup.collapsed = true;
 
