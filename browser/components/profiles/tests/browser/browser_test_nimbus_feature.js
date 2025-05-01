@@ -4,7 +4,7 @@
 "use strict";
 
 ChromeUtils.defineESModuleGetters(this, {
-  ExperimentFakes: "resource://testing-common/NimbusTestUtils.sys.mjs",
+  NimbusTestUtils: "resource://testing-common/NimbusTestUtils.sys.mjs",
 });
 
 const PROFILES_PREF_NAME = "browser.profiles.enabled";
@@ -23,7 +23,7 @@ add_task(async function test_nimbus_feature_enable() {
   });
 
   info("Enrolling in selectableProfiles experiment");
-  let experimentCleanup = await ExperimentFakes.enrollWithFeatureConfig({
+  let experimentCleanup = await NimbusTestUtils.enrollWithFeatureConfig({
     featureId: "selectableProfiles",
     value: {
       enabled: true,
@@ -62,7 +62,7 @@ add_task(async function test_nimbus_feature_disable() {
   });
 
   info("Disable experiment");
-  let experimentCleanup = await ExperimentFakes.enrollWithFeatureConfig({
+  let experimentCleanup = await NimbusTestUtils.enrollWithFeatureConfig({
     featureId: "selectableProfiles",
     value: {
       enabled: false,
