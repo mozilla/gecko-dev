@@ -18,6 +18,10 @@ MOZ_SRC_FILES += [
     "TabUnloader.sys.mjs",
 ]
 
+TESTING_JS_MODULES += [
+    "test/TabGroupTestUtils.sys.mjs",
+]
+
 BROWSER_CHROME_MANIFESTS += [
     "test/browser/smarttabgrouping/browser.toml",
     "test/browser/statuspanel/browser.toml",

@@ -1,5 +1,11 @@
 "use strict";
 
+const lazy = {};
+
+ChromeUtils.defineESModuleGetters(lazy, {
+  TabGroupTestUtils: "resource://testing-common/TabGroupTestUtils.sys.mjs",
+});
+
 const ORIG_STATE = SessionStore.getBrowserState();
 
 add_task(async function test_closingTabGroupAddsClosedGroup() {
@@ -25,7 +31,7 @@ add_task(async function test_closingTabGroupAddsClosedGroup() {
     "Window state starts with no closed groups"
   );
 
-  await win.gBrowser.removeTabGroup(group);
+  await lazy.TabGroupTestUtils.removeTabGroup(group);
 
   windowState = ss.getWindowState(win).windows[0];
   Assert.equal(
@@ -66,7 +72,7 @@ add_task(async function test_closedTabGroupSkipsNotWorthSavingTabs() {
     "Window state starts with no closed groups"
   );
 
-  await win.gBrowser.removeTabGroup(group);
+  await lazy.TabGroupTestUtils.removeTabGroup(group);
 
   windowState = ss.getWindowState(win).windows[0];
   Assert.equal(
@@ -128,9 +134,7 @@ add_task(async function test_closedTabCountsRespectTabGroups() {
     })
   );
 
-  let removePromise = BrowserTestUtils.waitForEvent(group, "TabGroupRemoved");
-  win.gBrowser.removeTabGroup(group);
-  await removePromise;
+  await lazy.TabGroupTestUtils.removeTabGroup(group);
 
   Assert.equal(
     SessionStore.getClosedTabCount(),
@@ -169,7 +173,7 @@ add_task(async function test_purgingSessionHistoryClearsClosedTabGroups() {
   await TabStateFlusher.flush(tab.linkedBrowser);
 
   let group = win.gBrowser.addTabGroup([tab]);
-  await win.gBrowser.removeTabGroup(group);
+  await lazy.TabGroupTestUtils.removeTabGroup(group);
 
   let windowState = ss.getWindowState(win).windows[0];
   Assert.equal(
