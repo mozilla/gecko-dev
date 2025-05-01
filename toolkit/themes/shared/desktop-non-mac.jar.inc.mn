@@ -10,6 +10,7 @@
 
 #include desktop-jar.inc.mn
 
+  skin/classic/global/button.css                           (../../windows/global/button.css)
   skin/classic/global/dialog.css                           (../../windows/global/dialog.css)
   skin/classic/global/wizard.css                           (../../windows/global/wizard.css)
 
