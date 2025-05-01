@@ -2534,6 +2534,12 @@
   value: false
   mirror: always
 
+# https://github.com/whatwg/html/pull/10737
+- name: dom.dialog.light-dismiss.enabled
+  type: bool
+  value: false
+  mirror: always
+
 # Disable custom highlight API; implementation pending.
 - name: dom.customHighlightAPI.enabled
   type: RelaxedAtomicBool
