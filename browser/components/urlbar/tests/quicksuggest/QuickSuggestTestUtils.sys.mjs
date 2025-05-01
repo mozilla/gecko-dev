@@ -8,8 +8,8 @@ const lazy = {};
 ChromeUtils.defineESModuleGetters(lazy, {
   AmpSuggestions: "resource:///modules/urlbar/private/AmpSuggestions.sys.mjs",
   ExperimentAPI: "resource://nimbus/ExperimentAPI.sys.mjs",
-  ExperimentFakes: "resource://testing-common/NimbusTestUtils.sys.mjs",
   ExperimentManager: "resource://nimbus/lib/ExperimentManager.sys.mjs",
+  NimbusTestUtils: "resource://testing-common/NimbusTestUtils.sys.mjs",
   QuickSuggest: "resource:///modules/QuickSuggest.sys.mjs",
   Region: "resource://gre/modules/Region.sys.mjs",
   RemoteSettingsServer:
@@ -1332,7 +1332,7 @@ class _QuickSuggestTestUtils {
     await lazy.ExperimentAPI.ready();
 
     let doExperimentCleanup =
-      await lazy.ExperimentFakes.enrollWithFeatureConfig({
+      await lazy.NimbusTestUtils.enrollWithFeatureConfig({
         enabled: true,
         featureId: "urlbar",
         value: valueOverrides,

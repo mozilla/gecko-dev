@@ -15,11 +15,11 @@ ChromeUtils.defineESModuleGetters(lazy, {
   BrowserUIUtils: "resource:///modules/BrowserUIUtils.sys.mjs",
   BrowserWindowTracker: "resource:///modules/BrowserWindowTracker.sys.mjs",
   ExperimentAPI: "resource://nimbus/ExperimentAPI.sys.mjs",
-  ExperimentFakes: "resource://testing-common/NimbusTestUtils.sys.mjs",
   ExperimentManager: "resource://nimbus/lib/ExperimentManager.sys.mjs",
   FormHistoryTestUtils:
     "resource://testing-common/FormHistoryTestUtils.sys.mjs",
   NimbusFeatures: "resource://nimbus/ExperimentAPI.sys.mjs",
+  NimbusTestUtils: "resource://testing-common/NimbusTestUtils.sys.mjs",
   PrivateBrowsingUtils: "resource://gre/modules/PrivateBrowsingUtils.sys.mjs",
   TestUtils: "resource://testing-common/TestUtils.sys.mjs",
   UrlbarController: "resource:///modules/UrlbarController.sys.mjs",
@@ -1269,9 +1269,9 @@ export var UrlbarTestUtils = {
     await lazy.ExperimentAPI.ready();
 
     this.info(
-      `initNimbusFeature awaiting ExperimentFakes.enrollWithFeatureConfig`
+      `initNimbusFeature awaiting NimbusTestUtils.enrollWithFeatureConfig`
     );
-    const doCleanup = await lazy.ExperimentFakes.enrollWithFeatureConfig(
+    const doCleanup = await lazy.NimbusTestUtils.enrollWithFeatureConfig(
       {
         featureId: lazy.NimbusFeatures[feature].featureId,
         value: { enabled: true, ...value },
