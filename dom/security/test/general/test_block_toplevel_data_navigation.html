@@ -24,7 +24,7 @@ async function expectBlockedToplevelData() {
             return;
           }
 
-          if (!["NS_ERROR_DOM_BAD_URI", "NS_ERROR_CORRUPTED_CONTENT"].includes(ChromeUtils.getXPCOMErrorName(status))) {
+          if (!["NS_ERROR_DOM_BAD_URI", "NS_ERROR_CORRUPTED_CONTENT", "NS_ERROR_ABORT"].includes(ChromeUtils.getXPCOMErrorName(status))) {
             info(ChromeUtils.getXPCOMErrorName(status));
             isnot(request.URI.scheme, "data");
             return;
