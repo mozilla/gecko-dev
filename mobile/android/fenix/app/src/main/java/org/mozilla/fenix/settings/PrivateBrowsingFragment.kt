@@ -6,6 +6,9 @@ package org.mozilla.fenix.settings
 
 import android.os.Bundle
 import android.view.WindowManager
+import androidx.biometric.BiometricManager
+import androidx.biometric.BiometricManager.Authenticators.DEVICE_CREDENTIAL
+import androidx.biometric.BiometricPrompt
 import androidx.preference.Preference
 import androidx.preference.PreferenceFragmentCompat
 import androidx.preference.SwitchPreference
@@ -60,25 +63,55 @@ class PrivateBrowsingFragment : PreferenceFragmentCompat() {
         }
 
         requirePreference<SwitchPreference>(R.string.pref_key_private_browsing_locked_enabled).apply {
-            onPreferenceChangeListener = privateBrowsingLockSharedPreferenceUpdater()
+            isPersistent = false
             isChecked = context.settings().privateBrowsingLockedEnabled
             isVisible = Config.channel.isDebug
-        }
-    }
 
-    private fun privateBrowsingLockSharedPreferenceUpdater() = object : SharedPreferenceUpdater() {
-        override fun onPreferenceChange(preference: Preference, newValue: Any?): Boolean {
-            newValue?.let {
-                with(it as Boolean) {
-                    if (this) {
-                        PrivateBrowsingLocked.featureEnabled.record()
-                    } else {
-                        PrivateBrowsingLocked.featureDisabled.record()
-                    }
-                }
+            setOnPreferenceChangeListener { preference, newValue ->
+                val enablePrivateBrowsingLock = newValue as? Boolean
+                    ?: return@setOnPreferenceChangeListener false
+
+                val biometricPrompt = BiometricPrompt(
+                    this@PrivateBrowsingFragment,
+                    object : BiometricPrompt.AuthenticationCallback() {
+                        override fun onAuthenticationSucceeded(result: BiometricPrompt.AuthenticationResult) {
+                            super.onAuthenticationSucceeded(result)
+
+                            context.settings().privateBrowsingLockedEnabled =
+                                enablePrivateBrowsingLock
+
+                            if (enablePrivateBrowsingLock) {
+                                PrivateBrowsingLocked.featureEnabled.record()
+                            } else {
+                                PrivateBrowsingLocked.featureDisabled.record()
+                            }
+
+                            PrivateBrowsingLocked.authSuccess.record()
+
+                            // Update switch state manually
+                            (preference as? SwitchPreference)?.isChecked = enablePrivateBrowsingLock
+                        }
+
+                        override fun onAuthenticationFailed() {
+                            super.onAuthenticationFailed()
+                            PrivateBrowsingLocked.authFailure.record()
+                        }
+                    },
+                )
+
+                val promptInfo = BiometricPrompt.PromptInfo.Builder()
+                    .setTitle(requireContext().getString(R.string.pbm_authentication_unlock_private_tabs))
+                    .setAllowedAuthenticators(
+                        DEVICE_CREDENTIAL or BiometricManager.Authenticators.BIOMETRIC_WEAK,
+                    )
+                    .build()
+
+                PrivateBrowsingLocked.promptShown.record()
+                biometricPrompt.authenticate(promptInfo)
+
+                // Cancel toggle change until biometric is successful
+                false
             }
-
-            return super.onPreferenceChange(preference, newValue)
         }
     }
 }
