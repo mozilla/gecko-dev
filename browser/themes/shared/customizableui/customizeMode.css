@@ -145,6 +145,10 @@ toolbarpaletteitem {
   > toolbarspring {
     outline: 1px solid;
     opacity: .6;
+
+    &[removable="false"] {
+      outline: 1px dashed;
+    }
   }
 
   toolbarbutton[disabled] {
