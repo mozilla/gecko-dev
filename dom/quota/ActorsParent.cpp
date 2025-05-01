@@ -4299,7 +4299,7 @@ nsresult QuotaManager::UpgradeStorage(const int32_t aOldVersion,
   MOZ_ASSERT(aNewVersion <= kStorageVersion);
   MOZ_ASSERT(aConnection);
 
-  for (const PersistenceType persistenceType : kAllPersistenceTypes) {
+  for (const PersistenceType persistenceType : kAllPersistenceTypesButPrivate) {
     QM_TRY_UNWRAP(auto directory,
                   QM_NewLocalFile(GetStoragePath(persistenceType)));
 
