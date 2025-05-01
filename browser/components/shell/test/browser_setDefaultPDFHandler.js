@@ -3,8 +3,8 @@
 
 ChromeUtils.defineESModuleGetters(this, {
   ExperimentAPI: "resource://nimbus/ExperimentAPI.sys.mjs",
-  ExperimentFakes: "resource://testing-common/NimbusTestUtils.sys.mjs",
   NimbusFeatures: "resource://nimbus/ExperimentAPI.sys.mjs",
+  NimbusTestUtils: "resource://testing-common/NimbusTestUtils.sys.mjs",
   sinon: "resource://testing-common/Sinon.sys.mjs",
 });
 
@@ -53,7 +53,7 @@ add_task(async function ready() {
 Assert.ok(AppConstants.platform == "win", "Platform is Windows");
 
 add_task(async function remoteEnableWithPDF() {
-  let doCleanup = await ExperimentFakes.enrollWithFeatureConfig(
+  let doCleanup = await NimbusTestUtils.enrollWithFeatureConfig(
     {
       featureId: NimbusFeatures.shellService.featureId,
       value: {
@@ -89,7 +89,7 @@ add_task(async function remoteEnableWithPDF() {
 });
 
 add_task(async function remoteEnableWithPDF_testOnlyReplaceBrowsers() {
-  let doCleanup = await ExperimentFakes.enrollWithFeatureConfig(
+  let doCleanup = await NimbusTestUtils.enrollWithFeatureConfig(
     {
       featureId: NimbusFeatures.shellService.featureId,
       value: {
@@ -151,7 +151,7 @@ add_task(async function remoteEnableWithPDF_testOnlyReplaceBrowsers() {
 });
 
 add_task(async function remoteEnableWithoutPDF() {
-  let doCleanup = await ExperimentFakes.enrollWithFeatureConfig(
+  let doCleanup = await NimbusTestUtils.enrollWithFeatureConfig(
     {
       featureId: NimbusFeatures.shellService.featureId,
       value: {
@@ -183,7 +183,7 @@ add_task(async function remoteEnableWithoutPDF() {
 });
 
 add_task(async function remoteDisable() {
-  let doCleanup = await ExperimentFakes.enrollWithFeatureConfig(
+  let doCleanup = await NimbusTestUtils.enrollWithFeatureConfig(
     {
       featureId: NimbusFeatures.shellService.featureId,
       value: {
