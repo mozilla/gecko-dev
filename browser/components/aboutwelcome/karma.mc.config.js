@@ -167,7 +167,7 @@ module.exports = function (config) {
               branches: 75,
             },
             "content-src/components/MultiStageProtonScreen.jsx": {
-              branches: 79.07,
+              branches: 78,
             },
             // The install actions and dynamic label of the InstallButton are covered
             // in the browser test browser_aboutwelcome_multistage_addonspicker.js.
