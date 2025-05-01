@@ -4,11 +4,8 @@
 
 const lazy = {};
 ChromeUtils.defineESModuleGetters(lazy, {
-  ExperimentAPI: "resource://nimbus/ExperimentAPI.sys.mjs",
   NimbusFeatures: "resource://nimbus/ExperimentAPI.sys.mjs",
 });
-
-const FEATURE_ID = "legacyHeartbeat";
 
 /**
  * A bridge between Nimbus and Normandy's Heartbeat implementation.
@@ -21,23 +18,11 @@ export const LegacyHeartbeat = {
       return null;
     }
 
-    let isRollout = false;
-    let enrollmentData = lazy.ExperimentAPI.getExperimentMetaData({
-      featureId: FEATURE_ID,
-    });
-
-    if (!enrollmentData) {
-      enrollmentData = lazy.ExperimentAPI.getRolloutMetaData({
-        featureId: FEATURE_ID,
-      });
-      isRollout = true;
-    }
-
+    const { slug, isRollout } =
+      lazy.NimbusFeatures.legacyHeartbeat.getEnrollmentMetadata();
     return {
-      id: `nimbus:${enrollmentData.slug}`,
-      name: `Nimbus legacyHeartbeat ${isRollout ? "rollout" : "experiment"} ${
-        enrollmentData.slug
-      }`,
+      id: `nimbus:${slug}`,
+      name: `Nimbus legacyHeartbeat ${isRollout ? "rollout" : "experiment"} ${slug}`,
       action: "show-heartbeat",
       arguments: survey,
       capabilities: ["action.show-heartbeat"],
