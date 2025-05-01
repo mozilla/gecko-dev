@@ -795,7 +795,10 @@ void ReflowInput::InitResizeFlags(nsPresContext* aPresContext,
     } else {
       SetBResize(IsIResize());
     }
-    SetBResize(IsBResize() || mFrame->IsSubtreeDirty());
+    SetBResize(IsBResize() || mFrame->IsSubtreeDirty() ||
+               // For an inner table frame, copy IsBResize from its wrapper.
+               (aFrameType == LayoutFrameType::Table &&
+                mParentReflowInput->IsBResize()));
   } else {
     // We have a non-'auto' block-size, i.e., a length.  Set the BResize
     // flag to whether the size is actually different.
