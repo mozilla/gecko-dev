@@ -472,6 +472,7 @@ RefPtr<FaviconPromise> nsFaviconService::AsyncGetFaviconForPage(
   RefPtr<Database> DB = Database::GetDatabase();
   if (MOZ_UNLIKELY(!DB)) {
     promise->Reject(NS_ERROR_UNEXPECTED, __func__);
+    return promise;
   }
 
   nsresult rv = DB->DispatchToAsyncThread(runnable);
