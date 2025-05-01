@@ -243,22 +243,19 @@ nsFaviconService::SetFaviconForPage(nsIURI* aPageURI, nsIURI* aFaviconURI,
     return result.StealNSResult();
   }
 
-  nsresult rv = NS_OK;
   auto guard = MakeScopeExit([&]() {
-    if (NS_SUCCEEDED(rv)) {
-      promise->MaybeResolveWithUndefined();
-      promise.forget(aPromise);
-    }
+    promise->MaybeResolveWithUndefined();
+    promise.forget(aPromise);
   });
 
   if (!aDataURL->SchemeIs("data")) {
-    return (rv = NS_ERROR_INVALID_ARG);
+    return NS_ERROR_INVALID_ARG;
   }
 
   NS_ENSURE_ARG(canStoreIconForPage(aPageURI));
 
   if (AppShutdown::IsInOrBeyond(ShutdownPhase::AppShutdownConfirmed)) {
-    return (rv = NS_OK);
+    return NS_OK;
   }
 
   PRTime now = PR_Now();
@@ -267,6 +264,7 @@ nsFaviconService::SetFaviconForPage(nsIURI* aPageURI, nsIURI* aFaviconURI,
     aExpiration = now + MAX_FAVICON_EXPIRATION;
   }
 
+  nsresult rv;
   nsCOMPtr<nsIIOService> ioService = do_GetIOService(&rv);
   NS_ENSURE_SUCCESS(rv, rv);
   nsCOMPtr<nsIProtocolHandler> protocolHandler;
@@ -276,7 +274,7 @@ nsFaviconService::SetFaviconForPage(nsIURI* aPageURI, nsIURI* aFaviconURI,
   nsCOMPtr<nsIPrincipal> loadingPrincipal =
       NullPrincipal::CreateWithoutOriginAttributes();
   if (MOZ_UNLIKELY(!(loadingPrincipal))) {
-    return (rv = NS_ERROR_NULL_POINTER);
+    return NS_ERROR_NULL_POINTER;
   }
 
   nsCOMPtr<nsILoadInfo> loadInfo = new mozilla::net::LoadInfo(
@@ -300,7 +298,7 @@ nsFaviconService::SetFaviconForPage(nsIURI* aPageURI, nsIURI* aFaviconURI,
   rv = stream->Available(&available64);
   NS_ENSURE_SUCCESS(rv, rv);
   if (available64 == 0 || available64 > UINT32_MAX / sizeof(uint8_t)) {
-    return (rv = NS_ERROR_FILE_TOO_BIG);
+    return NS_ERROR_FILE_TOO_BIG;
   }
   uint32_t available = (uint32_t)available64;
 
@@ -311,7 +309,7 @@ nsFaviconService::SetFaviconForPage(nsIURI* aPageURI, nsIURI* aFaviconURI,
   rv = stream->Read(TO_CHARBUFFER(buffer.Elements()), available, &numRead);
   NS_ENSURE_SUCCESS(rv, rv);
   if (numRead != available) {
-    return (rv = NS_ERROR_UNEXPECTED);
+    return NS_ERROR_UNEXPECTED;
   }
 
   nsAutoCString mimeType;
@@ -319,7 +317,7 @@ nsFaviconService::SetFaviconForPage(nsIURI* aPageURI, nsIURI* aFaviconURI,
   NS_ENSURE_SUCCESS(rv, rv);
   if (!imgLoader::SupportImageWithMimeType(
           mimeType, AcceptedMimeTypes::IMAGES_AND_DOCUMENTS)) {
-    return (rv = NS_ERROR_UNEXPECTED);
+    return NS_ERROR_UNEXPECTED;
   }
 
   // If URI is a Data URI, mime type returned by channel may be incorrect, since
@@ -407,10 +405,13 @@ nsFaviconService::SetFaviconForPage(nsIURI* aPageURI, nsIURI* aFaviconURI,
       new AsyncSetIconForPage(icon, page, promise);
   RefPtr<Database> DB = Database::GetDatabase();
   if (MOZ_UNLIKELY(!DB)) {
-    return (rv = NS_ERROR_UNEXPECTED);
+    return NS_ERROR_UNEXPECTED;
   }
 
-  DB->DispatchToAsyncThread(event);
+  rv = DB->DispatchToAsyncThread(event);
+  if (NS_FAILED(rv)) {
+    return rv;
+  }
 
   guard.release();
   promise.forget(aPromise);
@@ -472,7 +473,11 @@ RefPtr<FaviconPromise> nsFaviconService::AsyncGetFaviconForPage(
   if (MOZ_UNLIKELY(!DB)) {
     promise->Reject(NS_ERROR_UNEXPECTED, __func__);
   }
-  DB->DispatchToAsyncThread(runnable);
+
+  nsresult rv = DB->DispatchToAsyncThread(runnable);
+  if (NS_FAILED(rv)) {
+    promise->Reject(rv, __func__);
+  }
 
   return promise;
 }

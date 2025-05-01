@@ -136,15 +136,24 @@ class Database final : public nsIObserver, public nsSupportsWeakReference {
    *
    * @param aEvent
    *        The runnable to be dispatched.
+   * @param nsresult
    */
-  void DispatchToAsyncThread(nsIRunnable* aEvent) {
-    if (mClosed || NS_FAILED(EnsureConnection())) {
-      return;
+  nsresult DispatchToAsyncThread(nsIRunnable* aEvent) {
+    if (mClosed) {
+      return NS_ERROR_NOT_AVAILABLE;
     }
+
+    nsresult rv = EnsureConnection();
+    if (NS_FAILED(rv)) {
+      return rv;
+    }
+
     nsCOMPtr<nsIEventTarget> target = do_GetInterface(mMainConn);
-    if (target) {
-      (void)target->Dispatch(aEvent, NS_DISPATCH_NORMAL);
+    if (!target) {
+      return NS_ERROR_NOT_AVAILABLE;
     }
+
+    return target->Dispatch(aEvent, NS_DISPATCH_NORMAL);
   }
 
   //////////////////////////////////////////////////////////////////////////////
