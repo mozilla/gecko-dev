@@ -6,7 +6,7 @@
 const { ExperimentAPI } = ChromeUtils.importESModule(
   "resource://nimbus/ExperimentAPI.sys.mjs"
 );
-const { ExperimentFakes } = ChromeUtils.importESModule(
+const { NimbusTestUtils } = ChromeUtils.importESModule(
   "resource://testing-common/NimbusTestUtils.sys.mjs"
 );
 const { ContentRelevancyManager } = ChromeUtils.importESModule(
@@ -38,7 +38,7 @@ add_task(async function test_NimbusIntegration_enable() {
   gSandbox.spy(TimerManager.prototype, "registerTimer");
 
   await ExperimentAPI.ready();
-  const doExperimentCleanup = await ExperimentFakes.enrollWithFeatureConfig({
+  const doExperimentCleanup = await NimbusTestUtils.enrollWithFeatureConfig({
     featureId: "contentRelevancy",
     value: {
       enabled: true,
@@ -74,7 +74,7 @@ add_task(async function test_NimbusIntegration_disable() {
   gSandbox.spy(TimerManager.prototype, "registerTimer");
 
   await ExperimentAPI.ready();
-  const doExperimentCleanup = await ExperimentFakes.enrollWithFeatureConfig({
+  const doExperimentCleanup = await NimbusTestUtils.enrollWithFeatureConfig({
     featureId: "contentRelevancy",
     value: {
       enabled: false,
