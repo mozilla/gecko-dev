@@ -1,0 +1,40 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Multiple Configs With the Wrong Account Endpoint Test</title>
+  <script src="/tests/SimpleTest/SimpleTest.js"></script>
+  <script src="head.js"></script>
+  <link rel="stylesheet" href="/tests/SimpleTest/test.css"/>
+  <script>
+    SimpleTest.waitForExplicitFinish();
+    SpecialPowers.pushPrefEnv({ set: [["dom.security.credentialmanagement.identity.test_well_known_path", "/tests/dom/credentialmanagement/identity/tests/mochitest/web-identity-multiple-config" ]] }).then(() => {
+      setupTest("well_known_multiple_config_wrong_account_endpoint")
+    }).then(
+      function () {
+        return navigator.credentials.get({
+          identity: {
+            providers: [{
+              configURL: "https://example.net/tests/dom/credentialmanagement/identity/tests/mochitest/server_manifest.sjs",
+              clientId: "mochitest",
+              nonce: "nonce"
+            }]
+          }
+        });
+      }
+    ).then(() => {
+      ok(false, "incorrectly got a credential");
+    }).catch(() => {
+      ok(true, "correctly got an error");
+    }).finally(async () => {
+      await SpecialPowers.popPrefEnv();
+      SimpleTest.finish();
+    })
+  </script>
+</head>
+<body>
+<p id="display"></p>
+<div id="content" style="display: none">This makes sure we get an error when the account endpoint doesn't match the one in the well-known file. If we don't have a matching account endpoint in our well-known file we need to fail to get the credential. For this test our well known will be ./web-identity-multiple-config, and our account endpoint ends with server_well_known_multiple_config_wrong_account_endpoint_accounts.sjs. </div>
+<pre id="test"></pre>
+</body>
+</html>

@@ -18,6 +18,7 @@
 #include "mozilla/ExpandedPrincipal.h"
 #include "mozilla/IdentityCredentialRequestManager.h"
 #include "mozilla/NullPrincipal.h"
+#include "mozilla/Preferences.h"
 #include "nsICredentialChooserService.h"
 #include "nsIEffectiveTLDService.h"
 #include "nsIGlobalObject.h"
@@ -1244,9 +1245,15 @@ IdentityCredential::FetchRootManifest(nsIPrincipal* aPrincipal,
   rv = etld->GetSite(configURI, manifestURIString);
   if (NS_FAILED(rv)) {
     return IdentityCredential::GetRootManifestPromise::CreateAndReject(
-        NS_ERROR_INVALID_ARG, __func__);
+      NS_ERROR_INVALID_ARG, __func__);
   }
-  manifestURIString.AppendLiteral("/.well-known/web-identity");
+  nsAutoCString wellKnownPathForTesting;
+  rv = Preferences::GetCString("dom.security.credentialmanagement.identity.test_well_known_path", wellKnownPathForTesting);
+  if (NS_SUCCEEDED(rv) && !wellKnownPathForTesting.IsVoid() && !wellKnownPathForTesting.IsEmpty()) {
+    manifestURIString.Append(wellKnownPathForTesting);
+  } else {
+    manifestURIString.AppendLiteral("/.well-known/web-identity");
+  }
   nsCOMPtr<nsIURI> manifestURI;
   rv = NS_NewURI(getter_AddRefs(manifestURI), manifestURIString, nullptr);
   if (NS_FAILED(rv)) {
