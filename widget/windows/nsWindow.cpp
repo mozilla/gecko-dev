@@ -2598,6 +2598,9 @@ bool nsWindow::UpdateNonClientMargins(bool aReflowWindow) {
   }
 
   const nsSizeMode sizeMode = mFrameState->GetSizeMode();
+  if (sizeMode == nsSizeMode_Minimized) {
+    return false;
+  }
 
   const bool hasCaption =
       bool(mBorderStyle & (BorderStyle::All | BorderStyle::Title |
@@ -2641,9 +2644,7 @@ bool nsWindow::UpdateNonClientMargins(bool aReflowWindow) {
       hasCaption ? WinUtils::GetSystemMetricsForDpi(SM_CYCAPTION, dpi) : 0;
 
   metrics.mOffset = {};
-  if (sizeMode == nsSizeMode_Minimized) {
-    // Use default frame size for minimized windows (so, do nothing).
-  } else if (sizeMode == nsSizeMode_Fullscreen) {
+  if (sizeMode == nsSizeMode_Fullscreen) {
     // Remove the default frame from the top of our fullscreen window.  This
     // makes the whole caption part of our client area, allowing us to draw
     // in the whole caption area.  Additionally remove the default frame from
