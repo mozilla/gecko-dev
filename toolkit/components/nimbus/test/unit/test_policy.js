@@ -28,7 +28,7 @@ add_task(async function testPolicyDisablesNimbus() {
     "Policy engine is active"
   );
 
-  const loader = ExperimentFakes.rsLoader();
+  const loader = NimbusTestUtils.stubs.rsLoader();
   const manager = loader.manager;
   await manager.onStartup();
 

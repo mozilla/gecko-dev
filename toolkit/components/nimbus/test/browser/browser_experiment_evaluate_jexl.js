@@ -23,7 +23,7 @@ add_setup(async function setup() {
 let CONTEXT;
 
 const FAKE_CONTEXT = {
-  experiment: ExperimentFakes.recipe("fake-test-experiment"),
+  experiment: NimbusTestUtils.factories.recipe("fake-test-experiment"),
   source: "browser_experiment_evaluate_jexl",
 };
 
@@ -70,11 +70,11 @@ add_task(async function test_evaluate_active_experiments_activeExperiments() {
   // Init the store before we use it
   await ExperimentManager.onStartup();
 
-  let recipe = ExperimentFakes.recipe(slug);
+  let recipe = NimbusTestUtils.factories.recipe(slug);
   recipe.branches[0].slug = "mochitest-active-foo";
   delete recipe.branches[1];
 
-  const doExperimentCleanup = await ExperimentFakes.enrollmentHelper(recipe);
+  const doExperimentCleanup = await NimbusTestUtils.enroll(recipe);
 
   Assert.equal(
     await CONTEXT.evaluateJexl(`"${slug}" in activeExperiments`, FAKE_CONTEXT),

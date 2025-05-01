@@ -127,10 +127,7 @@ add_setup(function setup() {
   Services.telemetry.clearEvents();
 
   registerCleanupFunction(
-    ExperimentTestUtils.addTestFeatures(
-      PREF_FEATURES[USER],
-      PREF_FEATURES[DEFAULT]
-    )
+    NimbusTestUtils.addTestFeatures(PREF_FEATURES[USER], PREF_FEATURES[DEFAULT])
   );
 });
 
@@ -432,7 +429,7 @@ add_task(async function test_prefFlips() {
     );
 
     info("Enrolling...");
-    const cleanupExperiment = await ExperimentFakes.enrollWithFeatureConfig(
+    const cleanupExperiment = await NimbusTestUtils.enrollWithFeatureConfig(
       {
         featureId: FEATURE_ID,
         value: featureValue,
@@ -1526,7 +1523,7 @@ add_task(async function test_prefFlips_unenrollment() {
 
     info("Enrolling...");
     for (const { slug, isRollout = false } of enrollmentOrder) {
-      await ExperimentFakes.enrollWithFeatureConfig(FEATURE_CONFIGS[slug], {
+      await NimbusTestUtils.enrollWithFeatureConfig(FEATURE_CONFIGS[slug], {
         slug: `${slug}-${isRollout ? "rollout" : "experiment"}`,
         manager,
         isRollout,
@@ -1961,7 +1958,7 @@ add_task(async function test_prefFlip_setPref_restore() {
 
     info("Enrolling...");
     for (const slug of enrollmentOrder) {
-      await ExperimentFakes.enrollWithFeatureConfig(FEATURE_CONFIGS[slug], {
+      await NimbusTestUtils.enrollWithFeatureConfig(FEATURE_CONFIGS[slug], {
         manager,
         slug,
       });
@@ -2057,30 +2054,20 @@ add_task(async function test_prefFlip_setPref_restore() {
 });
 
 add_task(async function test_prefFlips_cacheOriginalValues() {
-  const recipe = ExperimentFakes.recipe("prefFlips-test", {
-    bucketConfig: {
-      ...ExperimentFakes.recipe.bucketConfig,
-      count: 1000,
-    },
-    branches: [
-      {
-        ...ExperimentFakes.recipe.branches[0],
-        features: [
-          {
-            featureId: FEATURE_ID,
-            value: {
-              prefs: {
-                "test.pref.please.ignore": {
-                  branch: "user",
-                  value: "test-value",
-                },
-              },
-            },
+  const recipe = NimbusTestUtils.factories.recipe.withFeatureConfig(
+    "prefFlips-test",
+    {
+      featureId: FEATURE_ID,
+      value: {
+        prefs: {
+          "test.pref.please.ignore": {
+            branch: "user",
+            value: "test-value",
           },
-        ],
+        },
       },
-    ],
-  });
+    }
+  );
 
   const { manager, cleanup } = await setupTest();
 
@@ -2128,30 +2115,20 @@ add_task(async function test_prefFlips_cacheOriginalValues() {
 });
 
 add_task(async function test_prefFlips_restore_unenroll() {
-  const recipe = ExperimentFakes.recipe("prefFlips-test", {
-    bucketConfig: {
-      ...ExperimentFakes.recipe.bucketConfig,
-      count: 1000,
-    },
-    branches: [
-      {
-        ...ExperimentFakes.recipe.branches[0],
-        features: [
-          {
-            featureId: FEATURE_ID,
-            value: {
-              prefs: {
-                "test.pref.please.ignore": {
-                  branch: "user",
-                  value: "test-value",
-                },
-              },
-            },
+  const recipe = NimbusTestUtils.factories.recipe.withFeatureConfig(
+    "prefFlips-test",
+    {
+      featureId: FEATURE_ID,
+      value: {
+        prefs: {
+          "test.pref.please.ignore": {
+            branch: "user",
+            value: "test-value",
           },
-        ],
+        },
       },
-    ],
-  });
+    }
+  );
 
   // Set up a previous ExperimentStore on disk.
   let storePath;
@@ -2175,7 +2152,7 @@ add_task(async function test_prefFlips_restore_unenroll() {
       lastSeen: new Date().toJSON(),
     };
 
-    const store = ExperimentFakes.store();
+    const store = NimbusTestUtils.stubs.store();
     await store.init();
     store.set(enrollment.slug, enrollment);
     storePath = await NimbusTestUtils.saveStore(store);
@@ -2211,27 +2188,17 @@ add_task(async function test_prefFlips_failed() {
 
   Services.prefs.getDefaultBranch(null).setStringPref(PREF, "test-value");
 
-  const recipe = ExperimentFakes.recipe("prefFlips-test", {
-    branches: [
-      {
-        ...ExperimentFakes.recipe.branches[0],
-        features: [
-          {
-            featureId: FEATURE_ID,
-            value: {
-              prefs: {
-                [PREF]: { branch: "user", value: 123 },
-              },
-            },
-          },
-        ],
+  const recipe = NimbusTestUtils.factories.recipe.withFeatureConfig(
+    "prefFlips-test",
+    {
+      featureId: FEATURE_ID,
+      value: {
+        prefs: {
+          [PREF]: { branch: "user", value: 123 },
+        },
       },
-    ],
-    bucketConfig: {
-      ...ExperimentFakes.recipe.bucketConfig,
-      count: 1000,
-    },
-  });
+    }
+  );
 
   const { manager, cleanup } = await setupTest();
   await manager.enroll(recipe);
@@ -2286,28 +2253,18 @@ add_task(async function test_prefFlips_failed_multiple_prefs() {
 
   Services.prefs.getDefaultBranch(null).setStringPref(BAD_PREF, "test-value");
 
-  const recipe = ExperimentFakes.recipe("prefFlips-test", {
-    branches: [
-      {
-        ...ExperimentFakes.recipe.branches[0],
-        features: [
-          {
-            featureId: FEATURE_ID,
-            value: {
-              prefs: {
-                [GOOD_PREF]: { branch: USER, value: 123 },
-                [BAD_PREF]: { branch: USER, value: 123 },
-              },
-            },
-          },
-        ],
+  const recipe = NimbusTestUtils.factories.recipe.withFeatureConfig(
+    "prefFlips-test",
+    {
+      featureId: FEATURE_ID,
+      value: {
+        prefs: {
+          [GOOD_PREF]: { branch: USER, value: 123 },
+          [BAD_PREF]: { branch: USER, value: 123 },
+        },
       },
-    ],
-    bucketConfig: {
-      ...ExperimentFakes.recipe.bucketConfig,
-      count: 1000,
-    },
-  });
+    }
+  );
 
   const { sandbox, manager, cleanup } = await setupTest();
 
@@ -2424,7 +2381,7 @@ add_task(async function test_prefFlips_failed_experiment_and_rollout_1() {
 
     info("Enrolling...");
     for (const slug of enrollmentOrder) {
-      await ExperimentFakes.enrollWithFeatureConfig(
+      await NimbusTestUtils.enrollWithFeatureConfig(
         {
           featureId: FEATURE_ID,
           value: FEATURE_VALUES[slug],
@@ -2537,7 +2494,7 @@ add_task(async function test_prefFlips_failed_experiment_and_rollout_2() {
 
     info("Enrolling...");
     for (const slug of enrollmentOrder) {
-      await ExperimentFakes.enrollWithFeatureConfig(
+      await NimbusTestUtils.enrollWithFeatureConfig(
         {
           featureId: FEATURE_ID,
           value: FEATURE_VALUES[slug],
@@ -2587,7 +2544,7 @@ add_task(async function test_prefFlips_update_failure() {
   PrefUtils.setPref("pref.one", "default-value", { branch: DEFAULT });
   PrefUtils.setPref("pref.two", "default-value", { branch: DEFAULT });
 
-  const cleanupExperiment = await ExperimentFakes.enrollWithFeatureConfig(
+  const cleanupExperiment = await NimbusTestUtils.enrollWithFeatureConfig(
     {
       featureId: FEATURE_ID,
       value: {
@@ -2603,7 +2560,7 @@ add_task(async function test_prefFlips_update_failure() {
   Assert.equal(Services.prefs.getStringPref("pref.one"), "one");
   Assert.equal(Services.prefs.getStringPref("pref.two"), "two");
 
-  await ExperimentFakes.enrollWithFeatureConfig(
+  await NimbusTestUtils.enrollWithFeatureConfig(
     {
       featureId: FEATURE_ID,
       value: {
@@ -2638,30 +2595,20 @@ add_task(async function test_prefFlips_update_failure() {
 add_task(async function test_prefFlips_restore_failure() {
   const PREF = "foo.bar.baz";
 
-  const recipe = ExperimentFakes.recipe("prefFlips-test", {
-    branches: [
-      {
-        ...ExperimentFakes.recipe.branches[0],
-        features: [
-          {
-            featureId: FEATURE_ID,
-            value: {
-              prefs: {
-                [PREF]: {
-                  branch: DEFAULT,
-                  value: "recipe-value",
-                },
-              },
-            },
+  const recipe = NimbusTestUtils.factories.recipe.withFeatureConfig(
+    "prefFlips-test",
+    {
+      featureId: FEATURE_ID,
+      value: {
+        prefs: {
+          [PREF]: {
+            branch: DEFAULT,
+            value: "recipe-value",
           },
-        ],
+        },
       },
-    ],
-    bucketConfig: {
-      ...ExperimentFakes.recipe.bucketConfig,
-      count: 1000,
-    },
-  });
+    }
+  );
 
   let storePath;
   {
@@ -2684,7 +2631,7 @@ add_task(async function test_prefFlips_restore_failure() {
       lastSeen: new Date().toJSON(),
     };
 
-    const store = ExperimentFakes.store();
+    const store = NimbusTestUtils.stubs.store();
     await store.init();
     store.set(prevEnrollment.slug, prevEnrollment);
     storePath = await NimbusTestUtils.saveStore(store);
@@ -2713,28 +2660,18 @@ add_task(
   async function test_prefFlips_reenroll_set_default_branch_wrong_type() {
     const PREF = "test.pref.please.ignore";
 
-    const recipe = ExperimentFakes.recipe("invalid", {
-      isRollout: true,
-      bucketConfig: {
-        ...ExperimentFakes.recipe.bucketConfig,
-        count: 1000,
-      },
-      branches: [
-        {
-          ...ExperimentFakes.recipe.branches[0],
-          features: [
-            {
-              featureId: FEATURE_ID,
-              value: {
-                prefs: {
-                  [PREF]: { value: 123, branch: DEFAULT },
-                },
-              },
-            },
-          ],
+    const recipe = NimbusTestUtils.factories.recipe.withFeatureConfig(
+      "prefFlips-test",
+      {
+        featureId: FEATURE_ID,
+        value: {
+          prefs: {
+            [PREF]: { value: 123, branch: DEFAULT },
+          },
         },
-      ],
-    });
+      },
+      { isRollout: true }
+    );
 
     const { manager, cleanup } = await setupTest();
 

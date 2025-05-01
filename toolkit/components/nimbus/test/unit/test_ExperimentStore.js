@@ -152,15 +152,14 @@ add_task(async function test_initOnUpdateEventsFire() {
 add_task(async function test_getExperimentForGroup() {
   const { store, cleanup } = await setupTest();
 
-  const experiment = NimbusTestUtils.factories.experiment("foo", {
-    branch: {
-      ratio: 1,
-      slug: "variant",
-      features: [{ featureId: "purple", value: {} }],
-    },
-  });
+  const experiment = NimbusTestUtils.factories.experiment.withFeatureConfig(
+    "foo",
+    {
+      featureId: "purple",
+    }
+  );
 
-  store.addEnrollment(ExperimentFakes.experiment("bar"));
+  store.addEnrollment(NimbusTestUtils.factories.experiment("bar"));
   store.addEnrollment(experiment);
 
   Assert.equal(
@@ -179,32 +178,23 @@ add_task(async function test_hasExperimentForFeature() {
   const { store, cleanup } = await setupTest();
 
   store.addEnrollment(
-    ExperimentFakes.experiment("foo", {
-      branch: {
-        ratio: 1,
-        slug: "variant",
-        features: [{ featureId: "green", value: {} }],
-      },
+    NimbusTestUtils.factories.experiment.withFeatureConfig("foo", {
+      featureId: "green",
     })
   );
   store.addEnrollment(
-    ExperimentFakes.experiment("foo2", {
-      branch: {
-        ratio: 1,
-        slug: "variant",
-        features: [{ featureId: "yellow", value: {} }],
-      },
+    NimbusTestUtils.factories.experiment.withFeatureConfig("foo2", {
+      featureId: "yellow",
     })
   );
   store.addEnrollment(
-    ExperimentFakes.experiment("bar_expired", {
-      active: false,
-      branch: {
-        ratio: 1,
-        slug: "variant",
-        features: [{ featureId: "purple", value: {} }],
-      },
-    })
+    NimbusTestUtils.factories.experiment.withFeatureConfig(
+      "bar_expired",
+      { featureId: "purple" },
+      {
+        active: false,
+      }
+    )
   );
   Assert.equal(
     store.hasExperimentForFeature(),
@@ -313,7 +303,14 @@ add_task(async function test_updateExperiment() {
 
   const features = [{ featureId: "cfr", value: {} }];
   const experiment = Object.freeze(
-    ExperimentFakes.experiment("foo", { features, active: true })
+    NimbusTestUtils.factories.experiment("foo", {
+      branch: {
+        slug: "treatment",
+        ratio: 1,
+        features,
+      },
+      active: true,
+    })
   );
 
   store.addEnrollment(experiment);
@@ -337,9 +334,12 @@ add_task(async function test_sync_access_before_init() {
 
   Assert.equal(store.getAll().length, 0, "Start with an empty store");
 
-  const experiment = ExperimentFakes.experiment("foo", {
-    features: [{ featureId: "newtab", value: {} }],
-  });
+  const experiment = NimbusTestUtils.factories.experiment.withFeatureConfig(
+    "foo",
+    {
+      featureId: "newtab",
+    }
+  );
   store.addEnrollment(experiment);
 
   const prefValue = JSON.parse(
@@ -368,9 +368,12 @@ add_task(async function test_sync_access_before_init() {
 add_task(async function test_sync_access_update() {
   const { store, cleanup } = await setupTest();
 
-  const experiment = ExperimentFakes.experiment("foo", {
-    features: [{ featureId: "aboutwelcome", value: {} }],
-  });
+  const experiment = NimbusTestUtils.factories.experiment.withFeatureConfig(
+    "foo",
+    {
+      featureId: "aboutwelcome",
+    }
+  );
 
   store.addEnrollment(experiment);
   store.updateExperiment("foo", {
@@ -408,8 +411,8 @@ add_task(async function test_sync_features_only() {
   const { store, cleanup } = await setupTest();
 
   store.addEnrollment(
-    NimbusTestUtils.factories.experiment("foo", {
-      features: [{ featureId: "cfr", value: {} }],
+    NimbusTestUtils.factories.experiment.withFeatureConfig("foo", {
+      featureId: "cfr",
     })
   );
 
@@ -428,17 +431,19 @@ add_task(async function test_sync_features_only() {
 add_task(async function test_sync_access_unenroll() {
   const { store, cleanup } = await setupTest();
 
-  let experiment = ExperimentFakes.experiment("foo", {
-    features: [{ featureId: "aboutwelcome", value: {} }],
-    active: true,
-  });
+  let experiment = NimbusTestUtils.factories.experiment.withFeatureConfig(
+    "foo",
+    {
+      featureId: "aboutwelcome",
+    }
+  );
 
   await store.init();
 
   store.addEnrollment(experiment);
   store.updateExperiment("foo", { active: false });
 
-  const newStore = ExperimentFakes.store();
+  const newStore = NimbusTestUtils.stubs.store();
   Assert.equal(newStore.getAll().length, 0, "Unenrolled experiment is deleted");
 
   cleanup();
@@ -447,12 +452,14 @@ add_task(async function test_sync_access_unenroll() {
 add_task(async function test_sync_access_unenroll_2() {
   const { store, cleanup } = await setupTest();
 
-  let experiment1 = ExperimentFakes.experiment("foo", {
-    features: [{ featureId: "newtab", value: {} }],
-  });
-  let experiment2 = ExperimentFakes.experiment("bar", {
-    features: [{ featureId: "aboutwelcome", value: {} }],
-  });
+  let experiment1 = NimbusTestUtils.factories.experiment.withFeatureConfig(
+    "foo",
+    { featureId: "newtab" }
+  );
+  let experiment2 = NimbusTestUtils.factories.experiment.withFeatureConfig(
+    "bar",
+    { featureId: "aboutwelcome" }
+  );
 
   await store.init();
 
@@ -461,7 +468,7 @@ add_task(async function test_sync_access_unenroll_2() {
 
   Assert.equal(store.getAll().length, 2, "2/2 experiments");
 
-  const newStore = ExperimentFakes.store();
+  const newStore = NimbusTestUtils.stubs.store();
 
   Assert.ok(
     newStore.getExperimentForFeature("aboutwelcome"),
@@ -502,7 +509,7 @@ add_task(async function test_sync_access_unenroll_2() {
 
 add_task(async function test_getRolloutForFeature_fromStore() {
   const { store, cleanup } = await setupTest();
-  const rollout = ExperimentFakes.rollout("foo");
+  const rollout = NimbusTestUtils.factories.rollout("foo");
 
   await store.init();
   store.addEnrollment(rollout);
@@ -520,18 +527,15 @@ add_task(async function test_getRolloutForFeature_fromStore() {
 
 add_task(async function test_getRolloutForFeature_fromSyncCache() {
   const { store, cleanup } = await setupTest();
-  const rollout = ExperimentFakes.rollout("foo", {
-    branch: {
-      slug: "early-startup",
-      ratio: 1,
-      features: [{ featureId: "aboutwelcome", value: { enabled: true } }],
-    },
+  const rollout = NimbusTestUtils.factories.rollout.withFeatureConfig("foo", {
+    featureId: "aboutwelcome",
+    value: { enabled: true },
   });
 
   store.addEnrollment(rollout);
   // New uninitialized store will return data from sync cache
   // before init
-  const newStore = ExperimentFakes.store();
+  const newStore = NimbusTestUtils.stubs.store();
 
   Assert.ok(
     Services.prefs.getStringPref(`${SYNC_DEFAULTS_PREF_BRANCH}aboutwelcome`),
@@ -559,12 +563,9 @@ add_task(async function test_remoteRollout() {
   });
   const featureUpdateStub = sinon.stub();
 
-  const rollout = ExperimentFakes.rollout("foo", {
-    branch: {
-      slug: "early-startup",
-      ratio: 1,
-      features: [{ featureId: "aboutwelcome", value: { enabled: true } }],
-    },
+  const rollout = NimbusTestUtils.factories.rollout.withFeatureConfig("foo", {
+    featureId: "aboutwelcome",
+    value: { enabled: true },
   });
 
   store.on("featureUpdate:aboutwelcome", featureUpdateStub);
@@ -612,8 +613,9 @@ add_task(async function test_syncDataStore_setDefault() {
     "Pref is empty"
   );
 
-  const rollout = ExperimentFakes.rollout("foo", {
-    features: [{ featureId: "aboutwelcome", value: { remote: true } }],
+  const rollout = NimbusTestUtils.factories.rollout.withFeatureConfig("foo", {
+    featureId: "aboutwelcome",
+    value: { remote: true },
   });
   store.addEnrollment(rollout);
 
@@ -630,18 +632,10 @@ add_task(async function test_syncDataStore_setDefault() {
 add_task(async function test_syncDataStore_getDefault() {
   const { store, cleanup } = await setupTest();
 
-  const rollout = ExperimentFakes.rollout("aboutwelcome-slug", {
-    branch: {
-      slug: "branch",
-      ratio: 1,
-      features: [
-        {
-          featureId: "aboutwelcome",
-          value: { remote: true },
-        },
-      ],
-    },
-  });
+  const rollout = NimbusTestUtils.factories.rollout.withFeatureConfig(
+    "aboutwelcome-slug",
+    { featureId: "aboutwelcome", value: { remote: true } }
+  );
 
   await store.addEnrollment(rollout);
 
@@ -669,8 +663,9 @@ add_task(async function test_addEnrollment_rollout() {
 
   const stub = sandbox.stub();
   const value = { bar: true };
-  const rollout = ExperimentFakes.rollout("foo", {
-    features: [{ featureId: "aboutwelcome", value }],
+  const rollout = NimbusTestUtils.factories.rollout.withFeatureConfig("foo", {
+    featureId: "aboutwelcome",
+    value,
   });
 
   store._onFeatureUpdate("aboutwelcome", stub);
@@ -712,27 +707,22 @@ add_task(async function test_storeValuePerPref_returnsSameValue_allTypes() {
       json: { type: "json" },
     },
   };
-  const experiment = ExperimentFakes.experiment("foo", {
-    branch: {
-      slug: "variant",
-      ratio: 1,
-      features: [
-        {
-          // Ensure it gets saved to prefs
-          featureId: "purple",
-          value: {
-            string: "string",
-            bool: true,
-            array: [1, 2, 3],
-            number1: 42,
-            number2: 0,
-            number3: -5,
-            json: { jsonValue: true },
-          },
-        },
-      ],
-    },
-  });
+  const experiment = NimbusTestUtils.factories.experiment.withFeatureConfig(
+    "foo",
+    {
+      // Ensure it gets saved to prefs
+      featureId: "purple",
+      value: {
+        string: "string",
+        bool: true,
+        array: [1, 2, 3],
+        number1: 42,
+        number2: 0,
+        number3: -5,
+        json: { jsonValue: true },
+      },
+    }
+  );
 
   store.addEnrollment(experiment);
   const branch = Services.prefs.getBranch(`${SYNC_DATA_PREF_BRANCH}purple.`);
@@ -774,22 +764,28 @@ add_task(async function test_cleanupOldRecipes() {
   const ONE_YEAR = 365.25 * 24 * 3600 * 1000;
   const ONE_MONTH = Math.floor(ONE_YEAR / 12);
 
-  const active = ExperimentFakes.experiment("active-6hrs", {
+  const active = NimbusTestUtils.factories.experiment("active-6hrs", {
     active: true,
     lastSeen: new Date(NOW - SIX_HOURS),
   });
 
-  const inactiveToday = ExperimentFakes.experiment("inactive-recent", {
-    active: false,
-    lastSeen: new Date(NOW - SIX_HOURS),
-  });
+  const inactiveToday = NimbusTestUtils.factories.experiment(
+    "inactive-recent",
+    {
+      active: false,
+      lastSeen: new Date(NOW - SIX_HOURS),
+    }
+  );
 
-  const inactiveSixMonths = ExperimentFakes.experiment("inactive-6mo", {
-    active: false,
-    lastSeen: new Date(NOW - 6 * ONE_MONTH),
-  });
+  const inactiveSixMonths = NimbusTestUtils.factories.experiment(
+    "inactive-6mo",
+    {
+      active: false,
+      lastSeen: new Date(NOW - 6 * ONE_MONTH),
+    }
+  );
 
-  const inactiveUnderTwelveMonths = ExperimentFakes.experiment(
+  const inactiveUnderTwelveMonths = NimbusTestUtils.factories.experiment(
     "inactive-under-12mo",
     {
       active: false,
@@ -797,7 +793,7 @@ add_task(async function test_cleanupOldRecipes() {
     }
   );
 
-  const inactiveOverTwelveMonths = ExperimentFakes.experiment(
+  const inactiveOverTwelveMonths = NimbusTestUtils.factories.experiment(
     "inactive-over-12mo",
     {
       active: false,
@@ -805,9 +801,12 @@ add_task(async function test_cleanupOldRecipes() {
     }
   );
 
-  const inactiveNoLastSeen = ExperimentFakes.experiment("inactive-unknown", {
-    active: false,
-  });
+  const inactiveNoLastSeen = NimbusTestUtils.factories.experiment(
+    "inactive-unknown",
+    {
+      active: false,
+    }
+  );
   delete inactiveNoLastSeen.lastSeen;
 
   store.addEnrollment(active);

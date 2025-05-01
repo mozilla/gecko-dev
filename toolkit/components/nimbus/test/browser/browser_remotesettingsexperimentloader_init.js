@@ -7,19 +7,6 @@ const { NimbusTelemetry } = ChromeUtils.importESModule(
   "resource://nimbus/lib/Telemetry.sys.mjs"
 );
 
-function getRecipe(slug) {
-  return ExperimentFakes.recipe(slug, {
-    bucketConfig: {
-      start: 0,
-      // Make sure the experiment enrolls
-      count: 10000,
-      total: 10000,
-      namespace: "mochitest",
-      randomizationUnit: "normandy_id",
-    },
-  });
-}
-
 add_task(async function test_double_feature_enrollment() {
   const sandbox = sinon.createSandbox();
   sandbox.stub(NimbusTelemetry, "recordEnrollmentFailure");
@@ -30,8 +17,8 @@ add_task(async function test_double_feature_enrollment() {
     "Clean state"
   );
 
-  let recipe1 = getRecipe("foo" + Math.random());
-  let recipe2 = getRecipe("bar" + Math.random());
+  let recipe1 = NimbusTestUtils.factories.recipe("foo" + Math.random());
+  let recipe2 = NimbusTestUtils.factories.recipe("bar" + Math.random());
 
   await ExperimentManager.enroll(recipe1, "test_double_feature_enrollment");
   await ExperimentManager.enroll(recipe2, "test_double_feature_enrollment");
@@ -55,6 +42,6 @@ add_task(async function test_double_feature_enrollment() {
     )
   );
 
-  ExperimentFakes.cleanupAll([recipe1.slug]);
+  NimbusTestUtils.cleanupManager([recipe1.slug]);
   sandbox.restore();
 });

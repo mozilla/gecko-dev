@@ -77,7 +77,7 @@ add_task(async function test_experiment_expose_Telemetry() {
   });
 
   const cleanupFeature = NimbusTestUtils.addTestFeatures(feature);
-  const cleanup = await ExperimentFakes.enrollWithFeatureConfig({
+  const cleanup = await NimbusTestUtils.enrollWithFeatureConfig({
     featureId: "test-feature",
     value: { enabled: false },
   });
@@ -113,7 +113,7 @@ add_task(async function test_rollout_expose_Telemetry() {
     description: "Test feature",
     exposureDescription: "Used in tests",
   };
-  const cleanup = await ExperimentFakes.enrollWithFeatureConfig(
+  const cleanup = await NimbusTestUtils.enrollWithFeatureConfig(
     {
       featureId: "test-feature",
       value: { enabled: false },

@@ -102,26 +102,12 @@ add_task(async function testGetFromChildNewEnrollment() {
 
   // Enroll in an experiment in the parent process.
   await ExperimentAPI._manager.enroll(
-    ExperimentFakes.recipe("foo", {
-      bucketConfig: {
-        ...ExperimentFakes.recipe.bucketConfig,
-        count: 1000,
+    NimbusTestUtils.factories.recipe.withFeatureConfig("foo", {
+      featureId: "testFeature",
+      value: {
+        enabled: true,
+        testInt: 123,
       },
-      branches: [
-        {
-          slug: "control",
-          ratio: 1,
-          features: [
-            {
-              featureId: "testFeature",
-              value: {
-                enabled: true,
-                testInt: 123,
-              },
-            },
-          ],
-        },
-      ],
     })
   );
 
@@ -245,26 +231,13 @@ add_task(async function testGetFromChildExistingEnrollment() {
   Services.ppmm.releaseCachedProcesses();
 
   await ExperimentAPI._manager.enroll(
-    ExperimentFakes.recipe("qux", {
-      bucketConfig: {
-        ...ExperimentFakes.recipe.bucketConfig,
-        count: 1000,
+    NimbusTestUtils.factories.recipe.withFeatureConfig("qux", {
+      branchSlug: "treatment",
+      featureId: "testFeature",
+      value: {
+        enabled: false,
+        testInt: 456,
       },
-      branches: [
-        {
-          slug: "treatment",
-          ratio: 1,
-          features: [
-            {
-              featureId: "testFeature",
-              value: {
-                enabled: false,
-                testInt: 456,
-              },
-            },
-          ],
-        },
-      ],
     })
   );
 

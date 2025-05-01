@@ -164,8 +164,11 @@ add_task(async function testNimbusTargetingContextAllKeysPresent() {
 
   // Glean doesn't serializer empty arrays, so lets put some entries into activeExperiments and
   // activeRollouts so that they appear in the context.
-  manager.store.set("experiment", ExperimentFakes.experiment("experiment"));
-  manager.store.set("rollout", ExperimentFakes.rollout("rollout"));
+  manager.store.set(
+    "experiment",
+    NimbusTestUtils.factories.experiment("experiment")
+  );
+  manager.store.set("rollout", NimbusTestUtils.factories.rollout("rollout"));
 
   // Stub this for userMonthlyActivity
   sandbox
@@ -309,20 +312,23 @@ add_task(async function testExperimentMetrics() {
 
   manager.store.set(
     "experiment-1",
-    ExperimentFakes.experiment("experiment-1", {
-      branch: ExperimentFakes.recipe.branches[0],
+    NimbusTestUtils.factories.experiment("experiment-1", {
+      branch: NimbusTestUtils.factories.recipe.branches[0],
     })
   );
   manager.store.set(
     "experiment-2",
-    ExperimentFakes.experiment("experiment-2", {
-      branch: ExperimentFakes.recipe.branches[1],
+    NimbusTestUtils.factories.experiment("experiment-2", {
+      branch: NimbusTestUtils.factories.recipe.branches[1],
     })
   );
   manager.store.set(
     "rollout-1",
-    ExperimentFakes.rollout("rollout-1", {
-      branch: { ...ExperimentFakes.recipe.branches[0], slug: "rollout" },
+    NimbusTestUtils.factories.rollout("rollout-1", {
+      branch: {
+        ...NimbusTestUtils.factories.recipe.branches[0],
+        slug: "rollout",
+      },
     })
   );
 

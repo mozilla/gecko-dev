@@ -98,7 +98,7 @@ const FEATURE = new ExperimentFeature(FEATURE_ID, {
 add_setup(function setup() {
   Services.fog.initializeFOG();
 
-  registerCleanupFunction(ExperimentTestUtils.addTestFeatures(FEATURE));
+  registerCleanupFunction(NimbusTestUtils.addTestFeatures(FEATURE));
 });
 
 function setupTest({ ...args } = {}) {
@@ -106,26 +106,26 @@ function setupTest({ ...args } = {}) {
 }
 
 add_task(async function test_schema() {
-  const recipe = ExperimentFakes.recipe("foo");
+  const recipe = NimbusTestUtils.factories.recipe("foo");
 
   info("Testing recipe without a localizations entry");
-  await ExperimentTestUtils.validateExperiment(recipe);
+  await NimbusTestUtils.validateExperiment(recipe);
 
   info("Testing recipe with a 'null' localizations entry");
-  await ExperimentTestUtils.validateExperiment({
+  await NimbusTestUtils.validateExperiment({
     ...recipe,
     localizations: null,
   });
 
   info("Testing recipe with a valid localizations entry");
-  await ExperimentTestUtils.validateExperiment({
+  await NimbusTestUtils.validateExperiment({
     ...recipe,
     localizations: LOCALIZATIONS,
   });
 
   info("Testing recipe with an invalid localizations entry");
   await Assert.rejects(
-    ExperimentTestUtils.validateExperiment({
+    NimbusTestUtils.validateExperiment({
       ...recipe,
       localizations: [],
     }),
@@ -185,24 +185,13 @@ add_task(function test_substituteLocalizations() {
 add_task(async function test_getLocalizedValue() {
   const { manager, cleanup } = await setupTest();
 
-  const experiment = ExperimentFakes.recipe("experiment", {
-    branches: [
-      {
-        slug: "control",
-        ratio: 1,
-        features: [
-          {
-            featureId: FEATURE_ID,
-            value: DEEPLY_NESTED_VALUE,
-          },
-        ],
-      },
-    ],
-    localizations: LOCALIZATIONS,
-  });
+  const experiment = NimbusTestUtils.factories.recipe.withFeatureConfig(
+    "experiment",
+    { featureId: FEATURE_ID, value: DEEPLY_NESTED_VALUE },
+    { localizations: LOCALIZATIONS }
+  );
 
-  const doExperimentCleanup =
-    await ExperimentFakes.enrollmentHelper(experiment);
+  const doExperimentCleanup = await NimbusTestUtils.enroll(experiment);
 
   const enrollment = manager.store.getExperimentForFeature(FEATURE_ID);
 
@@ -231,31 +220,24 @@ add_task(async function test_getLocalizedValue() {
 add_task(async function test_getLocalizedValue_unenroll_missingEntry() {
   const { manager, cleanup } = await setupTest();
 
-  const experiment = ExperimentFakes.recipe("experiment", {
-    branches: [
-      {
-        slug: "control",
-        ratio: 1,
-        features: [
-          {
-            featureId: FEATURE_ID,
-            value: {
-              bar: {
-                $l10n: {
-                  id: "BOGUS",
-                  comment: "Bogus localization",
-                  text: "Original text",
-                },
-              },
-            },
+  const experiment = NimbusTestUtils.factories.recipe.withFeatureConfig(
+    "experiment",
+    {
+      featureId: FEATURE_ID,
+      value: {
+        bar: {
+          $l10n: {
+            id: "BOGUS",
+            comment: "Bogus localization",
+            text: "Original text",
           },
-        ],
+        },
       },
-    ],
-    localizations: LOCALIZATIONS,
-  });
+    },
+    { localizations: LOCALIZATIONS }
+  );
 
-  await ExperimentFakes.enrollmentHelper(experiment);
+  await NimbusTestUtils.enroll(experiment);
 
   const enrollment = manager.store.getExperimentForFeature(FEATURE_ID);
 
@@ -307,33 +289,24 @@ add_task(async function test_getLocalizedValue_unenroll_missingEntry() {
   await manager.onStartup();
   await manager.store.ready();
 
-  const experiment = ExperimentFakes.recipe("experiment", {
-    branches: [
-      {
-        slug: "control",
-        ratio: 1,
-        features: [
-          {
-            featureId: FEATURE_ID,
-            value: {
-              bar: {
-                $l10n: {
-                  id: "BOGUS",
-                  comment: "Bogus localization",
-                  text: "Original text",
-                },
-              },
-            },
+  const experiment = NimbusTestUtils.factories.recipe.withFeatureConfig(
+    "experiment",
+    {
+      featureId: FEATURE_ID,
+      value: {
+        bar: {
+          $l10n: {
+            id: "BOGUS",
+            comment: "Bogus localization",
+            text: "Original text",
           },
-        ],
+        },
       },
-    ],
-    localizations: {
-      "en-CA": {},
     },
-  });
+    { localizations: { "en-CA": {} } }
+  );
 
-  await ExperimentFakes.enrollmentHelper(experiment);
+  await NimbusTestUtils.enroll(experiment);
 
   const enrollment = manager.store.getExperimentForFeature(FEATURE_ID);
 
@@ -382,24 +355,13 @@ add_task(async function test_getLocalizedValue_unenroll_missingEntry() {
 add_task(async function test_getVariables() {
   const { cleanup } = await setupTest();
 
-  const experiment = ExperimentFakes.recipe("experiment", {
-    branches: [
-      {
-        slug: "control",
-        ratio: 1,
-        features: [
-          {
-            featureId: FEATURE_ID,
-            value: DEEPLY_NESTED_VALUE,
-          },
-        ],
-      },
-    ],
-    localizations: LOCALIZATIONS,
-  });
+  const experiment = NimbusTestUtils.factories.recipe.withFeatureConfig(
+    "experiment",
+    { featureId: FEATURE_ID, value: DEEPLY_NESTED_VALUE },
+    { localizations: LOCALIZATIONS }
+  );
 
-  const doExperimentCleanup =
-    await ExperimentFakes.enrollmentHelper(experiment);
+  const doExperimentCleanup = await NimbusTestUtils.enroll(experiment);
 
   Assert.deepEqual(
     FEATURE.getAllVariables(),
@@ -448,51 +410,37 @@ add_task(async function test_getVariables_fallback() {
   );
 
   const recipes = {
-    experiment: ExperimentFakes.recipe("experiment", {
-      branches: [
-        {
-          slug: "control",
-          ratio: 1,
-          features: [
-            {
-              featureId: FEATURE_ID,
-              value: {
-                foo: DEEPLY_NESTED_VALUE.foo,
-              },
-            },
-          ],
-        },
-      ],
-      localizations: {
-        "en-US": {
-          foo: LOCALIZATIONS["en-US"].foo,
-        },
+    experiment: NimbusTestUtils.factories.recipe.withFeatureConfig(
+      "experiment",
+      {
+        featureId: FEATURE_ID,
+        value: { foo: DEEPLY_NESTED_VALUE.foo },
       },
-    }),
+      {
+        localizations: {
+          "en-US": {
+            foo: LOCALIZATIONS["en-US"].foo,
+          },
+        },
+      }
+    ),
 
-    rollout: ExperimentFakes.recipe("rollout", {
-      isRollout: true,
-      branches: [
-        {
-          slug: "control",
-          ratio: 1,
-          features: [
-            {
-              featureId: FEATURE_ID,
-              value: {
-                bar: DEEPLY_NESTED_VALUE.bar,
-              },
-            },
-          ],
-        },
-      ],
-      localizations: {
-        "en-US": {
-          qux: LOCALIZATIONS["en-US"].qux,
-          grault: LOCALIZATIONS["en-US"].grault,
-        },
+    rollout: NimbusTestUtils.factories.recipe.withFeatureConfig(
+      "rollout",
+      {
+        featureId: FEATURE_ID,
+        value: { bar: DEEPLY_NESTED_VALUE.bar },
       },
-    }),
+      {
+        isRollout: true,
+        localizations: {
+          "en-US": {
+            qux: LOCALIZATIONS["en-US"].qux,
+            grault: LOCALIZATIONS["en-US"].grault,
+          },
+        },
+      }
+    ),
   };
 
   const experimentCleanup = {};
@@ -525,9 +473,7 @@ add_task(async function test_getVariables_fallback() {
   );
 
   // Enroll in the rollout.
-  experimentCleanup.rollout = await ExperimentFakes.enrollmentHelper(
-    recipes.rollout
-  );
+  experimentCleanup.rollout = await NimbusTestUtils.enroll(recipes.rollout);
 
   Assert.deepEqual(
     FEATURE.getAllVariables({ defaultValues: { waldo: ["default-value"] } }),
@@ -557,7 +503,7 @@ add_task(async function test_getVariables_fallback() {
   );
 
   // Enroll in the experiment.
-  experimentCleanup.experiment = await ExperimentFakes.enrollmentHelper(
+  experimentCleanup.experiment = await NimbusTestUtils.enroll(
     recipes.experiment
   );
 
@@ -675,48 +621,21 @@ add_task(async function test_getVariables_fallback_unenroll() {
   );
 
   const recipes = [
-    ExperimentFakes.recipe("experiment", {
-      branches: [
-        {
-          slug: "control",
-          ratio: 1,
-          features: [
-            {
-              featureId: FEATURE_ID,
-              value: {
-                foo: DEEPLY_NESTED_VALUE.foo,
-              },
-            },
-          ],
-        },
-      ],
-      localizations: {},
-    }),
+    NimbusTestUtils.factories.recipe.withFeatureConfig(
+      "experiment",
+      { featureId: FEATURE_ID, value: { foo: DEEPLY_NESTED_VALUE.foo } },
+      { localizations: {} }
+    ),
 
-    ExperimentFakes.recipe("rollout", {
-      isRollout: true,
-      branches: [
-        {
-          slug: "control",
-          ratio: 1,
-          features: [
-            {
-              featureId: FEATURE_ID,
-              value: {
-                bar: DEEPLY_NESTED_VALUE.bar,
-              },
-            },
-          ],
-        },
-      ],
-      localizations: {
-        "en-US": {},
-      },
-    }),
+    NimbusTestUtils.factories.recipe.withFeatureConfig(
+      "rollout",
+      { featureId: FEATURE_ID, value: { bar: DEEPLY_NESTED_VALUE.bar } },
+      { isRollout: true, localizations: { "en-US": {} } }
+    ),
   ];
 
   for (const recipe of recipes) {
-    await ExperimentFakes.enrollmentHelper(recipe);
+    await NimbusTestUtils.enroll(recipe);
   }
 
   Assert.deepEqual(FEATURE.getAllVariables(), {
@@ -788,25 +707,11 @@ add_task(async function test_updateRecipes() {
 
   sandbox.stub(manager, "onRecipe");
 
-  const recipe = ExperimentFakes.recipe("foo", {
-    bucketConfig: {
-      ...ExperimentFakes.recipe.bucketConfig,
-      count: 1000,
-    },
-    branches: [
-      {
-        slug: "control",
-        features: [
-          {
-            featureId: FEATURE_ID,
-            value: DEEPLY_NESTED_VALUE,
-          },
-        ],
-        ratio: 1,
-      },
-    ],
-    localizations: LOCALIZATIONS,
-  });
+  const recipe = NimbusTestUtils.factories.recipe.withFeatureConfig(
+    "foo",
+    { featureId: FEATURE_ID, value: DEEPLY_NESTED_VALUE },
+    { localizations: LOCALIZATIONS }
+  );
 
   loader.remoteSettingsClients.experiments.get.resolves([recipe]);
   await loader.updateRecipes();
@@ -827,26 +732,11 @@ async function test_updateRecipes_missingLocale({
 } = {}) {
   const { sandbox, loader, manager, cleanup } = await setupTest();
 
-  const recipe = ExperimentFakes.recipe("foo", {
-    bucketConfig: {
-      ...ExperimentFakes.recipe.bucketConfig,
-      count: 1000,
-    },
-    branches: [
-      {
-        slug: "control",
-        features: [
-          {
-            featureId: FEATURE_ID,
-            value: DEEPLY_NESTED_VALUE,
-          },
-        ],
-        ratio: 1,
-      },
-    ],
-    localizations: {},
-    featureValidationOptOut,
-  });
+  const recipe = NimbusTestUtils.factories.recipe.withFeatureConfig(
+    "foo",
+    { featureId: FEATURE_ID, value: DEEPLY_NESTED_VALUE },
+    { localizations: {}, featureValidationOptOut }
+  );
 
   sandbox.spy(manager, "onRecipe");
   sandbox.stub(manager, "enroll");
@@ -900,23 +790,11 @@ add_task(test_updateRecipes_missingLocale);
 add_task(async function test_updateRecipes_missingEntry() {
   const { sandbox, loader, manager, cleanup } = await setupTest();
 
-  const recipe = ExperimentFakes.recipe("foo", {
-    branches: [
-      {
-        slug: "control",
-        features: [
-          {
-            featureId: FEATURE_ID,
-            value: DEEPLY_NESTED_VALUE,
-          },
-        ],
-        ratio: 1,
-      },
-    ],
-    localizations: {
-      "en-US": {},
-    },
-  });
+  const recipe = NimbusTestUtils.factories.recipe.withFeatureConfig(
+    "foo",
+    { featureId: FEATURE_ID, value: DEEPLY_NESTED_VALUE },
+    { localizations: { "en-US": {} } }
+  );
 
   sandbox.spy(manager, "onRecipe");
   sandbox.stub(manager, "enroll");
@@ -1000,21 +878,11 @@ add_task(async function test_updateRecipes_validationDisabled_flag() {
 add_task(async function test_updateRecipes_unenroll_missingEntry() {
   const { sandbox, loader, manager, cleanup } = await setupTest();
 
-  const recipe = ExperimentFakes.recipe("foo", {
-    branches: [
-      {
-        slug: "control",
-        features: [
-          {
-            featureId: FEATURE_ID,
-            value: DEEPLY_NESTED_VALUE,
-          },
-        ],
-        ratio: 1,
-      },
-    ],
-    localizations: LOCALIZATIONS,
-  });
+  const recipe = NimbusTestUtils.factories.recipe.withFeatureConfig(
+    "foo",
+    { featureId: FEATURE_ID, value: DEEPLY_NESTED_VALUE },
+    { localizations: LOCALIZATIONS }
+  );
 
   const badRecipe = { ...recipe, localizations: { "en-US": {} } };
 
@@ -1144,21 +1012,16 @@ add_task(async function test_updateRecipes_unenroll_missingEntry() {
 add_task(async function test_updateRecipes_unenroll_missingLocale() {
   const { sandbox, manager, loader, cleanup } = await setupTest();
 
-  const recipe = ExperimentFakes.recipe("foo", {
-    branches: [
-      {
-        slug: "control",
-        features: [
-          {
-            featureId: FEATURE_ID,
-            value: DEEPLY_NESTED_VALUE,
-          },
-        ],
-        ratio: 1,
-      },
-    ],
-    localizations: LOCALIZATIONS,
-  });
+  const recipe = NimbusTestUtils.factories.recipe.withFeatureConfig(
+    "foo",
+    {
+      featureId: FEATURE_ID,
+      value: DEEPLY_NESTED_VALUE,
+    },
+    {
+      localizations: LOCALIZATIONS,
+    }
+  );
 
   const badRecipe = { ...recipe, localizations: {} };
 

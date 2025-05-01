@@ -85,14 +85,14 @@ add_task(async function test_init_with_opt_in() {
 });
 
 add_task(async function test_updateRecipes() {
-  const passRecipe = ExperimentFakes.recipe("pass", {
+  const passRecipe = NimbusTestUtils.factories.recipe("pass", {
     bucketConfig: {
-      ...ExperimentFakes.recipe.bucketConfig,
+      ...NimbusTestUtils.factories.recipe.bucketConfig,
       count: 0,
     },
     targeting: "true",
   });
-  const failRecipe = ExperimentFakes.recipe("fail", {
+  const failRecipe = NimbusTestUtils.factories.recipe("fail", {
     targeting: "false",
   });
 
@@ -141,7 +141,7 @@ add_task(async function test_enrollmentsContextFirstStartup() {
 
   Assert.ok(
     await ctx.checkTargeting(
-      ExperimentFakes.recipe("is-first-startup", {
+      NimbusTestUtils.factories.recipe("is-first-startup", {
         targeting: "isFirstStartup",
       })
     ),
@@ -152,7 +152,7 @@ add_task(async function test_enrollmentsContextFirstStartup() {
 
   Assert.ok(
     await ctx.checkTargeting(
-      ExperimentFakes.recipe("not-first-startup", {
+      NimbusTestUtils.factories.recipe("not-first-startup", {
         targeting: "!isFirstStartup",
       })
     ),
@@ -192,12 +192,12 @@ add_task(async function test_checkTargeting() {
 add_task(async function test_checkExperimentSelfReference() {
   const loader = NimbusTestUtils.stubs.rsLoader();
   const ctx = new EnrollmentsContext(loader.manager);
-  const PASS_FILTER_RECIPE = ExperimentFakes.recipe("foo", {
+  const PASS_FILTER_RECIPE = NimbusTestUtils.factories.recipe("foo", {
     targeting:
       "experiment.slug == 'foo' && experiment.branches[0].slug == 'control'",
   });
 
-  const FAIL_FILTER_RECIPE = ExperimentFakes.recipe("foo", {
+  const FAIL_FILTER_RECIPE = NimbusTestUtils.factories.recipe("foo", {
     targeting: "experiment.slug == 'bar'",
   });
 
@@ -216,7 +216,7 @@ add_task(async function test_checkExperimentSelfReference() {
 add_task(async function test_optIn_debug_disabled() {
   info("Testing users cannot opt-in when nimbus.debug is false");
 
-  const recipe = ExperimentFakes.recipe("foo");
+  const recipe = NimbusTestUtils.factories.recipe("foo");
   const { sandbox, loader, initExperimentAPI, cleanup } =
     await NimbusTestUtils.setupTest({
       init: false,

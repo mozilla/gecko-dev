@@ -10,33 +10,19 @@ const {
 
 function mockLabsRecipes(targeting = "true") {
   return Object.entries(LABS_MIGRATION_FEATURE_MAP).map(([featureId, slug]) =>
-    ExperimentFakes.recipe(slug, {
-      isRollout: true,
-      isFirefoxLabsOptIn: true,
-      firefoxLabsTitle: `${featureId}-placeholder-title`,
-      firefoxLabsDescription: `${featureId}-placeholder-desc`,
-      firefoxLabsDescriptionLinks: null,
-      firefoxLabsGroup: "placeholder",
-      bucketConfig: {
-        ...ExperimentFakes.recipe.bucketConfig,
-        count: 1000,
-      },
-      branches: [
-        {
-          slug: "control",
-          ratio: 1,
-          features: [
-            {
-              featureId,
-              value: {
-                enabled: true,
-              },
-            },
-          ],
-        },
-      ],
-      targeting,
-    })
+    NimbusTestUtils.factories.recipe.withFeatureConfig(
+      slug,
+      { featureId, value: { enabled: true } },
+      {
+        isRollout: true,
+        isFirefoxLabsOptIn: true,
+        firefoxLabsTitle: `${featureId}-placeholder-title`,
+        firefoxLabsDescription: `${featureId}-placeholder-desc`,
+        firefoxLabsDescriptionLinks: null,
+        firefoxLabsGroup: "placeholder",
+        targeting,
+      }
+    )
   );
 }
 
@@ -433,7 +419,7 @@ add_task(async function test_migration_firefoxLabsEnrollments_idempotent() {
   // Get the store into a partially migrated state (i.e., we have enrolled in at least one
   // experiment but the migration pref has not updated).
   {
-    const manager = ExperimentFakes.manager();
+    const manager = NimbusTestUtils.stubs.manager();
     await manager.onStartup();
 
     manager.enroll(recipes[0], "rs-loader", { branchSlug: "control" });

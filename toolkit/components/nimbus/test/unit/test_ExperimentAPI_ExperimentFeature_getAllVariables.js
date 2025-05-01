@@ -84,7 +84,7 @@ add_task(
       "should return the AW experiment value"
     );
 
-    ExperimentFakes.cleanupAll([recipe.slug], { manager });
+    NimbusTestUtils.cleanupManager([recipe.slug], { manager });
     Assert.deepEqual(
       featureInstance.getAllVariables().screens.length,
       0,
@@ -134,7 +134,7 @@ add_task(
     Assert.equal(allVariables.screens.length, 1, "Returns experiment value");
     Assert.ok(!allVariables.source, "Does not include rollout value");
 
-    ExperimentFakes.cleanupAll([recipe.slug, rollout.slug], { manager });
+    NimbusTestUtils.cleanupManager([recipe.slug, rollout.slug], { manager });
 
     cleanup();
   }
