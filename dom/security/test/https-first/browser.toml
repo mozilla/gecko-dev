@@ -72,6 +72,9 @@ support-files = [
 ["browser_navigation.js"]
 support-files = ["file_navigation.html"]
 
+["browser_nohttps_download.js"]
+support-files = ["file_nohttps_download.html", "file_nohttps_download.sjs"]
+
 ["browser_redirect_exemption_clearing.js"]
 support-files = ["file_redirect_exemption_clearing.sjs"]
 
