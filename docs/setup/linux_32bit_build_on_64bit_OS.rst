@@ -28,7 +28,7 @@ These steps were verified to work as of June 2020.
        libx11-xcb-dev:i386 libpulse-dev:i386 libdrm-dev:i386
 
 #. Then, create a ``mozconfig`` file in your Firefox code directory
-   (probably ``mozilla-unified``) that looks like the following example:
+   (probably ``firefox``) that looks like the following example:
 
    .. code::
 
