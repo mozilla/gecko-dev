@@ -5,7 +5,6 @@
 package org.mozilla.samples.compose.browser
 
 import android.app.Application
-import mozilla.appservices.Megazord
 import mozilla.components.feature.fxsuggest.GlobalFxSuggestDependencyProvider
 import mozilla.components.support.rusthttp.RustHttpConfig
 
@@ -18,7 +17,6 @@ class BrowserApplication : Application() {
     override fun onCreate() {
         super.onCreate()
 
-        Megazord.init()
         RustHttpConfig.setClient(lazy { components.client })
 
         GlobalFxSuggestDependencyProvider.initialize(components.fxSuggestStorage)

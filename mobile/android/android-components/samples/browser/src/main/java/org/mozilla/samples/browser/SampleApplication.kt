@@ -9,7 +9,6 @@ import kotlinx.coroutines.DelicateCoroutinesApi
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
-import mozilla.appservices.Megazord
 import mozilla.components.browser.state.action.SystemAction
 import mozilla.components.browser.storage.sync.GlobalPlacesDependencyProvider
 import mozilla.components.feature.addons.update.GlobalAddonDependencyProvider
@@ -53,7 +52,6 @@ class SampleApplication : Application() {
     override fun onCreate() {
         super.onCreate()
 
-        Megazord.init()
         RustLog.enable()
 
         Log.addSink(AndroidLogSink())
