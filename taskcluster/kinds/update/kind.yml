@@ -5,6 +5,7 @@
 loader: taskgraph.loader.transform:loader
 
 kind-dependencies:
+    - build
     - toolchain
 
 transforms:
@@ -25,42 +26,35 @@ tasks:
         description: Test updates on Win64
         run-on-projects: []
         treeherder:
-            symbol: update-test(firefox)
+            symbol: update-test(standard)
             platform: windows2012-64/opt
+        dependencies:
+            build: build-win64-shippable/opt
+        fetches:
+            build:
+                - artifact: target.zip
         index:
             product: firefox
             job-name: update-test-win64
         run:
-            using: run-task
-            cwd: "{checkout}"
-            command: >-
-                ./mach update-test
+            using: mach
+            mach: update-test --binary_path ${MOZ_FETCHES_DIR}/firefox/firefox.exe
 
     macosx64-firefox:
-        worker-type: t-osx-1100-m1
+        worker-type: t-osx-1015-r8
         description: Test updates on macOS
         run-on-projects: []
         treeherder:
-            symbol: update-test(firefox)
-            platform: macosx/opt
+            symbol: update-test(standard)
+            platform: macosx1015-64-qr/opt
+        dependencies:
+            build: build-macosx64-shippable/opt
+        fetches:
+            build:
+                - artifact: target.dmg
         index:
             product: firefox
             job-name: update-test-macOS
         run:
-            using: run-task
-            cwd: "{checkout}"
-            command: >-
-                ./mach update-test
-
-    linux64-firefox:
-        worker-type: t-linux-talos-1804
-        description: Test updates on Linux
-        run-on-projects: []
-        treeherder:
-            symbol: update-test(firefox)
-            platform: linux64/opt
-        run:
-            using: run-task
-            cwd: "{checkout}"
-            command: >-
-                ./mach update-test
+            using: mach
+            mach: update-test --binary_path ${MOZ_FETCHES_DIR}/target.dmg
