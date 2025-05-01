@@ -107,19 +107,21 @@ public class TestCrashHandler extends Service {
      * Tests should call this to notify the crash handler that the next crash it sees is intentional
      * and that its intent should be checked for correctness.
      *
-     * @param expectedProcessType The type of process the incoming crash is expected to be for.
+     * @param expectedProcessVisibility The visibility of the process the incoming crash is expected
+     *     to be for.
      * @param expectedRemoteType The type of content process the incoming crash is expected to be
      *     for.
      */
     public void setEvalNextCrashDump(
-        final String expectedProcessType, final String expectedRemoteType) {
+        final String expectedProcessVisibility, final String expectedRemoteType) {
       setEvalResult(null);
       mReceiver.post(
           new Runnable() {
             @Override
             public void run() {
               final Bundle bundle = new Bundle();
-              bundle.putString(GeckoRuntime.EXTRA_CRASH_PROCESS_TYPE, expectedProcessType);
+              bundle.putString(
+                  GeckoRuntime.EXTRA_CRASH_PROCESS_VISIBILITY, expectedProcessVisibility);
               bundle.putString(GeckoRuntime.EXTRA_CRASH_REMOTE_TYPE, expectedRemoteType);
               final Message msg = Message.obtain(null, MSG_EVAL_NEXT_CRASH_DUMP, bundle);
               msg.replyTo = mMessenger;
@@ -179,7 +181,7 @@ public class TestCrashHandler extends Service {
 
   private static final class MessageHandler extends Handler {
     private Messenger mReplyToMessenger;
-    private String mExpectedProcessType;
+    private String mExpectedProcessVisibility;
     private String mExpectedRemoteType;
 
     MessageHandler() {}
@@ -189,7 +191,7 @@ public class TestCrashHandler extends Service {
       if (msg.what == MSG_EVAL_NEXT_CRASH_DUMP) {
         mReplyToMessenger = msg.replyTo;
         Bundle bundle = (Bundle) msg.obj;
-        mExpectedProcessType = bundle.getString(GeckoRuntime.EXTRA_CRASH_PROCESS_TYPE);
+        mExpectedProcessVisibility = bundle.getString(GeckoRuntime.EXTRA_CRASH_PROCESS_VISIBILITY);
         mExpectedRemoteType = bundle.getString(GeckoRuntime.EXTRA_CRASH_REMOTE_TYPE);
         return;
       }
@@ -214,8 +216,8 @@ public class TestCrashHandler extends Service {
       mReplyToMessenger = null;
     }
 
-    public String getExpectedProcessType() {
-      return mExpectedProcessType;
+    public String getExpectedProcessVisibility() {
+      return mExpectedProcessVisibility;
     }
 
     public String getExpectedRemoteType() {
@@ -274,14 +276,19 @@ public class TestCrashHandler extends Service {
       return new EvalResult(false, "Extras file should exist");
     }
 
-    final String expectedProcessType = mMsgHandler.getExpectedProcessType();
-    final String processType = intent.getStringExtra(GeckoRuntime.EXTRA_CRASH_PROCESS_TYPE);
-    if (processType == null) {
-      return new EvalResult(false, "Intent missing process type");
+    final String expectedProcessVisibility = mMsgHandler.getExpectedProcessVisibility();
+    final String processVisibility =
+        intent.getStringExtra(GeckoRuntime.EXTRA_CRASH_PROCESS_VISIBILITY);
+    if (processVisibility == null) {
+      return new EvalResult(false, "Intent missing process visibility");
     }
-    if (!processType.equals(expectedProcessType)) {
+    if (!processVisibility.equals(expectedProcessVisibility)) {
       return new EvalResult(
-          false, "Expected process type " + expectedProcessType + ", found " + processType);
+          false,
+          "Expected process visibility "
+              + expectedProcessVisibility
+              + ", found "
+              + processVisibility);
     }
 
     final String expectedRemoteType = mMsgHandler.getExpectedRemoteType();

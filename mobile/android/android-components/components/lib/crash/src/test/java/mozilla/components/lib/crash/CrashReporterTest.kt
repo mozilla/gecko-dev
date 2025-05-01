@@ -261,7 +261,7 @@ class CrashReporterTest {
             0,
             "dump.path",
             "extras.path",
-            processType = Crash.NativeCodeCrash.PROCESS_TYPE_MAIN,
+            processVisibility = Crash.NativeCodeCrash.PROCESS_VISIBILITY_MAIN,
             breadcrumbs = arrayListOf(),
             remoteType = null,
         )
@@ -295,7 +295,7 @@ class CrashReporterTest {
             0,
             "dump.path",
             "extras.path",
-            processType = Crash.NativeCodeCrash.PROCESS_TYPE_MAIN,
+            processVisibility = Crash.NativeCodeCrash.PROCESS_VISIBILITY_MAIN,
             breadcrumbs = arrayListOf(),
             remoteType = null,
         )
@@ -589,7 +589,7 @@ class CrashReporterTest {
                 0,
                 "",
                 "",
-                Crash.NativeCodeCrash.PROCESS_TYPE_FOREGROUND_CHILD,
+                Crash.NativeCodeCrash.PROCESS_VISIBILITY_FOREGROUND_CHILD,
                 breadcrumbs = arrayListOf(),
                 remoteType = null,
             ),
@@ -738,7 +738,7 @@ class CrashReporterTest {
                 0,
                 "",
                 "",
-                Crash.NativeCodeCrash.PROCESS_TYPE_FOREGROUND_CHILD,
+                Crash.NativeCodeCrash.PROCESS_VISIBILITY_FOREGROUND_CHILD,
                 breadcrumbs = arrayListOf(),
                 remoteType = null,
             ),
@@ -784,7 +784,7 @@ class CrashReporterTest {
             0,
             "dump.path",
             "extras.path",
-            processType = Crash.NativeCodeCrash.PROCESS_TYPE_FOREGROUND_CHILD,
+            processVisibility = Crash.NativeCodeCrash.PROCESS_VISIBILITY_FOREGROUND_CHILD,
             breadcrumbs = arrayListOf(),
             remoteType = null,
         )
@@ -801,7 +801,7 @@ class CrashReporterTest {
         assertEquals("dump.path", receivedCrash.minidumpPath)
         assertEquals("extras.path", receivedCrash.extrasPath)
         assertEquals(false, receivedCrash.isFatal)
-        assertEquals(Crash.NativeCodeCrash.PROCESS_TYPE_FOREGROUND_CHILD, receivedCrash.processType)
+        assertEquals(Crash.NativeCodeCrash.PROCESS_VISIBILITY_FOREGROUND_CHILD, receivedCrash.processVisibility)
     }
 
     @Test
@@ -822,7 +822,7 @@ class CrashReporterTest {
             0,
             "dump.path",
             "extras.path",
-            processType = Crash.NativeCodeCrash.PROCESS_TYPE_MAIN,
+            processVisibility = Crash.NativeCodeCrash.PROCESS_VISIBILITY_MAIN,
             breadcrumbs = arrayListOf(),
             remoteType = null,
         )
@@ -849,7 +849,7 @@ class CrashReporterTest {
             0,
             "dump.path",
             "extras.path",
-            processType = Crash.NativeCodeCrash.PROCESS_TYPE_BACKGROUND_CHILD,
+            processVisibility = Crash.NativeCodeCrash.PROCESS_VISIBILITY_BACKGROUND_CHILD,
             breadcrumbs = arrayListOf(),
             remoteType = null,
         )
@@ -878,7 +878,7 @@ class CrashReporterTest {
             0,
             "dump.path",
             "extras.path",
-            processType = Crash.NativeCodeCrash.PROCESS_TYPE_FOREGROUND_CHILD,
+            processVisibility = Crash.NativeCodeCrash.PROCESS_VISIBILITY_FOREGROUND_CHILD,
             breadcrumbs = arrayListOf(),
             remoteType = null,
         )
@@ -908,7 +908,7 @@ class CrashReporterTest {
             0,
             "dump.path",
             "extras.path",
-            processType = Crash.NativeCodeCrash.PROCESS_TYPE_FOREGROUND_CHILD,
+            processVisibility = Crash.NativeCodeCrash.PROCESS_VISIBILITY_FOREGROUND_CHILD,
             breadcrumbs = arrayListOf(),
             remoteType = null,
         )
@@ -1072,7 +1072,7 @@ class CrashReporterTest {
             stacktrace = "<native crash>",
             throwableData = null,
             minidumpPath = null,
-            processType = null,
+            processVisibility = null,
             extrasPath = null,
             remoteType = null,
         )
@@ -1103,7 +1103,7 @@ class CrashReporterTest {
             stacktrace = "<native crash>",
             throwableData = null,
             minidumpPath = null,
-            processType = null,
+            processVisibility = null,
             extrasPath = null,
             remoteType = null,
         )
@@ -1116,7 +1116,7 @@ class CrashReporterTest {
             stacktrace = "<native crash>",
             throwableData = null,
             minidumpPath = null,
-            processType = null,
+            processVisibility = null,
             extrasPath = null,
             remoteType = null,
         )
@@ -1152,7 +1152,7 @@ class CrashReporterTest {
             stacktrace = "<native crash>",
             throwableData = null,
             minidumpPath = null,
-            processType = null,
+            processVisibility = null,
             extrasPath = null,
             remoteType = null,
         )
@@ -1165,7 +1165,7 @@ class CrashReporterTest {
             stacktrace = "<native crash>",
             throwableData = null,
             minidumpPath = null,
-            processType = null,
+            processVisibility = null,
             extrasPath = null,
             remoteType = null,
         )
@@ -1199,7 +1199,7 @@ class CrashReporterTest {
             stacktrace = "<native crash>",
             throwableData = null,
             minidumpPath = null,
-            processType = null,
+            processVisibility = null,
             extrasPath = null,
             remoteType = null,
         )

@@ -1,0 +1,127 @@
+{
+  "formatVersion": 1,
+  "database": {
+    "version": 5,
+    "identityHash": "0069aae46c8ea7218c68b7443862e63a",
+    "entities": [
+      {
+        "tableName": "crashes",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`crashType` TEXT NOT NULL DEFAULT 'UNCAUGHT', `uuid` TEXT NOT NULL, `runtime_tags` TEXT NOT NULL DEFAULT '{}', `breadcrumbs` TEXT DEFAULT null, `created_at` INTEGER NOT NULL, `stacktrace` TEXT NOT NULL, `throwable` BLOB, `minidumpPath` TEXT DEFAULT null, `processVisibility` TEXT DEFAULT null, `extrasPath` TEXT DEFAULT null, `remoteType` TEXT DEFAULT null, PRIMARY KEY(`uuid`))",
+        "fields": [
+          {
+            "fieldPath": "crashType",
+            "columnName": "crashType",
+            "affinity": "TEXT",
+            "notNull": true,
+            "defaultValue": "'UNCAUGHT'"
+          },
+          {
+            "fieldPath": "uuid",
+            "columnName": "uuid",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "runtimeTags",
+            "columnName": "runtime_tags",
+            "affinity": "TEXT",
+            "notNull": true,
+            "defaultValue": "'{}'"
+          },
+          {
+            "fieldPath": "breadcrumbs",
+            "columnName": "breadcrumbs",
+            "affinity": "TEXT",
+            "defaultValue": "null"
+          },
+          {
+            "fieldPath": "createdAt",
+            "columnName": "created_at",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "stacktrace",
+            "columnName": "stacktrace",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "throwableData",
+            "columnName": "throwable",
+            "affinity": "BLOB"
+          },
+          {
+            "fieldPath": "minidumpPath",
+            "columnName": "minidumpPath",
+            "affinity": "TEXT",
+            "defaultValue": "null"
+          },
+          {
+            "fieldPath": "processVisibility",
+            "columnName": "processVisibility",
+            "affinity": "TEXT",
+            "defaultValue": "null"
+          },
+          {
+            "fieldPath": "extrasPath",
+            "columnName": "extrasPath",
+            "affinity": "TEXT",
+            "defaultValue": "null"
+          },
+          {
+            "fieldPath": "remoteType",
+            "columnName": "remoteType",
+            "affinity": "TEXT",
+            "defaultValue": "null"
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "uuid"
+          ]
+        }
+      },
+      {
+        "tableName": "reports",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT, `crash_uuid` TEXT NOT NULL, `service_id` TEXT NOT NULL, `report_id` TEXT NOT NULL)",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "crashUuid",
+            "columnName": "crash_uuid",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "serviceId",
+            "columnName": "service_id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "reportId",
+            "columnName": "report_id",
+            "affinity": "TEXT",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "id"
+          ]
+        }
+      }
+    ],
+    "setupQueries": [
+      "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '0069aae46c8ea7218c68b7443862e63a')"
+    ]
+  }
+}

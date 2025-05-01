@@ -582,16 +582,16 @@ class GleanCrashReporterService(
     }
 
     override fun record(crash: Crash.NativeCodeCrash) {
-        when (crash.processType) {
-            Crash.NativeCodeCrash.PROCESS_TYPE_MAIN ->
+        when (crash.processVisibility) {
+            Crash.NativeCodeCrash.PROCESS_VISIBILITY_MAIN ->
                 recordCrashAction(GleanCrashAction.Count(MAIN_PROCESS_NATIVE_CODE_CRASH_KEY))
-            Crash.NativeCodeCrash.PROCESS_TYPE_FOREGROUND_CHILD ->
+            Crash.NativeCodeCrash.PROCESS_VISIBILITY_FOREGROUND_CHILD ->
                 recordCrashAction(
                     GleanCrashAction.Count(
                         FOREGROUND_CHILD_PROCESS_NATIVE_CODE_CRASH_KEY,
                     ),
                 )
-            Crash.NativeCodeCrash.PROCESS_TYPE_BACKGROUND_CHILD ->
+            Crash.NativeCodeCrash.PROCESS_VISIBILITY_BACKGROUND_CHILD ->
                 recordCrashAction(
                     GleanCrashAction.Count(
                         BACKGROUND_CHILD_PROCESS_NATIVE_CODE_CRASH_KEY,
@@ -605,10 +605,10 @@ class GleanCrashReporterService(
         // crashes are occurring in other processes (like GPU and extensions) for which users shouldn't notice anything
         // (because there shouldn't be any noticeable impact in the app and the processes will be recreated
         // automatically).
-        val processType = when (crash.processType) {
-            Crash.NativeCodeCrash.PROCESS_TYPE_MAIN -> "main"
+        val processType = when (crash.processVisibility) {
+            Crash.NativeCodeCrash.PROCESS_VISIBILITY_MAIN -> "main"
 
-            Crash.NativeCodeCrash.PROCESS_TYPE_BACKGROUND_CHILD -> {
+            Crash.NativeCodeCrash.PROCESS_VISIBILITY_BACKGROUND_CHILD -> {
                 when (crash.remoteType) {
                     // The extensions process is a content process as per:
                     // https://firefox-source-docs.mozilla.org/dom/ipc/process_model.html#webextensions
@@ -618,7 +618,7 @@ class GleanCrashReporterService(
                 }
             }
 
-            Crash.NativeCodeCrash.PROCESS_TYPE_FOREGROUND_CHILD -> "content"
+            Crash.NativeCodeCrash.PROCESS_VISIBILITY_FOREGROUND_CHILD -> "content"
 
             else -> "main"
         }

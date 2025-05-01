@@ -98,5 +98,9 @@ add_task(async function test_extensions_process_crash() {
     "expected a child crash report"
   );
   Assert.equal("extension", aData?.remoteType, "expected remote type");
-  Assert.equal("BACKGROUND_CHILD", aData?.processType, "expected process type");
+  Assert.equal(
+    "BACKGROUND_CHILD",
+    aData?.processVisibility,
+    "expected process type"
+  );
 });

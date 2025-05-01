@@ -53,6 +53,7 @@ import java.lang.Boolean;
 import java.lang.CharSequence;
 import java.lang.Class;
 import java.lang.Comparable;
+import java.lang.Deprecated;
 import java.lang.Double;
 import java.lang.Exception;
 import java.lang.Float;
@@ -87,6 +88,7 @@ import org.mozilla.geckoview.CompositorController;
 import org.mozilla.geckoview.ContentBlocking;
 import org.mozilla.geckoview.ContentBlockingController;
 import org.mozilla.geckoview.CrashHandler;
+import org.mozilla.geckoview.DeprecationSchedule;
 import org.mozilla.geckoview.ExperimentDelegate;
 import org.mozilla.geckoview.GeckoDisplay;
 import org.mozilla.geckoview.GeckoResult;
@@ -830,11 +832,14 @@ package org.mozilla.geckoview {
     method @UiThread public void setWebNotificationDelegate(@Nullable WebNotificationDelegate);
     method @AnyThread public void shutdown();
     field public static final String ACTION_CRASHED = "org.mozilla.gecko.ACTION_CRASHED";
-    field public static final String CRASHED_PROCESS_TYPE_BACKGROUND_CHILD = "BACKGROUND_CHILD";
-    field public static final String CRASHED_PROCESS_TYPE_FOREGROUND_CHILD = "FOREGROUND_CHILD";
-    field public static final String CRASHED_PROCESS_TYPE_MAIN = "MAIN";
+    field @Deprecated @DeprecationSchedule(id="GeckoRuntime-CRASHED_PROCESS_TYPE_BACKGROUND_CHILD",version=142) public static final String CRASHED_PROCESS_TYPE_BACKGROUND_CHILD = "BACKGROUND_CHILD";
+    field @Deprecated @DeprecationSchedule(id="GeckoRuntime-CRASHED_PROCESS_TYPE_FOREGROUND_CHILD",version=142) public static final String CRASHED_PROCESS_TYPE_FOREGROUND_CHILD = "FOREGROUND_CHILD";
+    field @Deprecated @DeprecationSchedule(id="GeckoRuntime-CRASHED_PROCESS_TYPE_MAIN",version=142) public static final String CRASHED_PROCESS_TYPE_MAIN = "MAIN";
+    field public static final String CRASHED_PROCESS_VISIBILITY_BACKGROUND_CHILD = "BACKGROUND_CHILD";
+    field public static final String CRASHED_PROCESS_VISIBILITY_FOREGROUND_CHILD = "FOREGROUND_CHILD";
+    field public static final String CRASHED_PROCESS_VISIBILITY_MAIN = "MAIN";
     field public static final Parcelable.Creator<GeckoRuntime> CREATOR;
-    field public static final String EXTRA_CRASH_PROCESS_TYPE = "processType";
+    field public static final String EXTRA_CRASH_PROCESS_VISIBILITY = "processVisibility";
     field public static final String EXTRA_CRASH_REMOTE_TYPE = "remoteType";
     field public static final String EXTRA_EXTRAS_PATH = "extrasPath";
     field public static final String EXTRA_MINIDUMP_PATH = "minidumpPath";
@@ -844,7 +849,10 @@ package org.mozilla.geckoview {
     method @Nullable @UiThread public GeckoResult<Intent> onStartActivityForResult(@NonNull PendingIntent);
   }
 
-  @Retention(value=RetentionPolicy.SOURCE) public static interface GeckoRuntime.CrashedProcessType {
+  @Deprecated @DeprecationSchedule(id="GeckoRuntime-CrashedProcessType",version=142) @Retention(value=RetentionPolicy.SOURCE) public static interface GeckoRuntime.CrashedProcessType {
+  }
+
+  @Retention(value=RetentionPolicy.SOURCE) public static interface GeckoRuntime.CrashedProcessVisibility {
   }
 
   public static interface GeckoRuntime.Delegate {

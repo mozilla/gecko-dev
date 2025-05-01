@@ -365,7 +365,8 @@ public class CrashHandler implements Thread.UncaughtExceptionHandler {
         intent.putExtra(GeckoRuntime.EXTRA_MINIDUMP_PATH, dumpFile);
         intent.putExtra(GeckoRuntime.EXTRA_EXTRAS_PATH, extraFile);
         intent.putExtra(
-            GeckoRuntime.EXTRA_CRASH_PROCESS_TYPE, GeckoRuntime.CRASHED_PROCESS_TYPE_MAIN);
+            GeckoRuntime.EXTRA_CRASH_PROCESS_VISIBILITY,
+            GeckoRuntime.CRASHED_PROCESS_VISIBILITY_MAIN);
         intent.setClass(context, mHandlerService);
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -393,8 +394,8 @@ public class CrashHandler implements Thread.UncaughtExceptionHandler {
                 GeckoRuntime.EXTRA_EXTRAS_PATH,
                 extraFile,
                 "--es",
-                GeckoRuntime.EXTRA_CRASH_PROCESS_TYPE,
-                GeckoRuntime.CRASHED_PROCESS_TYPE_MAIN);
+                GeckoRuntime.EXTRA_CRASH_PROCESS_VISIBILITY,
+                GeckoRuntime.CRASHED_PROCESS_VISIBILITY_MAIN);
       } else {
         final String startServiceCommand;
         if (deviceSdkVersion >= 26) {
@@ -420,8 +421,8 @@ public class CrashHandler implements Thread.UncaughtExceptionHandler {
                 GeckoRuntime.EXTRA_EXTRAS_PATH,
                 extraFile,
                 "--es",
-                GeckoRuntime.EXTRA_CRASH_PROCESS_TYPE,
-                GeckoRuntime.CRASHED_PROCESS_TYPE_MAIN);
+                GeckoRuntime.EXTRA_CRASH_PROCESS_VISIBILITY,
+                GeckoRuntime.CRASHED_PROCESS_VISIBILITY_MAIN);
       }
 
       pb.start().waitFor();

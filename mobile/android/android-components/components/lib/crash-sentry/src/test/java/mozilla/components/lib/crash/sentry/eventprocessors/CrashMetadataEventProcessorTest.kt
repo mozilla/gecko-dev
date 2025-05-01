@@ -31,7 +31,7 @@ class CrashMetadataEventProcessorTest {
             timestamp = System.currentTimeMillis(),
             minidumpPath = null,
             extrasPath = null,
-            processType = null,
+            processVisibility = null,
             remoteType = null,
             breadcrumbs = arrayListOf(),
         )
@@ -51,7 +51,7 @@ class CrashMetadataEventProcessorTest {
             timestamp = System.currentTimeMillis(),
             minidumpPath = null,
             extrasPath = null,
-            processType = null,
+            processVisibility = null,
             remoteType = null,
             breadcrumbs = arrayListOf(),
             runtimeTags = mapOf(CrashReporter.RELEASE_RUNTIME_TAG to actualRelease),

@@ -18,6 +18,10 @@ exclude: true
 - Added [`CompositorController.onPipModeChanged`][139.1] to [`CompositorController`][65.1] to inform GeckoSession of changes to and from picture-in-picture mode.
 - ⚠️Increased `compileSdkVersion` to 36 (Android 16)
 - Added [`getLowMemoryDetection()`][139.2] on `GeckoRuntimeSettings` and [`lowMemoryDetection(boolean)`][139.3] on `GeckoRuntimeSettings.Builder` to control the low-memory detection machinery.
+- ⚠️ Renamed `EXTRA_CRASH_PROCESS_TYPE` to `EXTRA_CRASH_PROCESS_VISIBILITY` in `ACTION_CRASHED`
+  intents to avoid confusion with "process type" terminology in crash handling code. The
+  `CRASHED_PROCESS_TYPE_*` constants are also deprecated (to be removed in v142) and equivalent
+  `CRASHED_PROCESS_VISIBILITY_*` constants have been added. ([bug 1959799]({{bugzilla}}1959799)
 
 [139.1]: {{javadoc_uri}}/CompositorController.html#onPipModeChanged
 [139.2]: {{javadoc_uri}}/GeckoRuntimeSettings.html#getLowMemoryDetection
@@ -1709,4 +1713,4 @@ to allow adding gecko profiler markers.
 [65.24]: {{javadoc_uri}}/CrashReporter.html#sendCrashReport(android.content.Context,android.os.Bundle,java.lang.String)
 [65.25]: {{javadoc_uri}}/GeckoResult.html
 
-[api-version]: 3bd4ce6a972868cd2c50cce9047b0b4cb87376b7
+[api-version]: 180571bc68aaafea55894810a4a437e2ad368edd

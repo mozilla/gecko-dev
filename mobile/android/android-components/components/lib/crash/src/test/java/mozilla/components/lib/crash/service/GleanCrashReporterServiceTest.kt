@@ -92,7 +92,7 @@ class GleanCrashReporterServiceTest {
                 0,
                 "",
                 "",
-                Crash.NativeCodeCrash.PROCESS_TYPE_MAIN,
+                Crash.NativeCodeCrash.PROCESS_VISIBILITY_MAIN,
                 breadcrumbs = arrayListOf(),
                 remoteType = null,
             ),
@@ -100,7 +100,7 @@ class GleanCrashReporterServiceTest {
                 0,
                 "",
                 "",
-                Crash.NativeCodeCrash.PROCESS_TYPE_FOREGROUND_CHILD,
+                Crash.NativeCodeCrash.PROCESS_VISIBILITY_FOREGROUND_CHILD,
                 breadcrumbs = arrayListOf(),
                 remoteType = "web",
             ),
@@ -108,7 +108,7 @@ class GleanCrashReporterServiceTest {
                 0,
                 "",
                 "",
-                Crash.NativeCodeCrash.PROCESS_TYPE_BACKGROUND_CHILD,
+                Crash.NativeCodeCrash.PROCESS_VISIBILITY_BACKGROUND_CHILD,
                 breadcrumbs = arrayListOf(),
                 remoteType = null,
             ),
@@ -199,7 +199,7 @@ class GleanCrashReporterServiceTest {
                 0,
                 "",
                 "",
-                Crash.NativeCodeCrash.PROCESS_TYPE_MAIN,
+                Crash.NativeCodeCrash.PROCESS_VISIBILITY_MAIN,
                 breadcrumbs = arrayListOf(),
                 remoteType = null,
             )
@@ -207,7 +207,7 @@ class GleanCrashReporterServiceTest {
                 0,
                 "",
                 "",
-                Crash.NativeCodeCrash.PROCESS_TYPE_FOREGROUND_CHILD,
+                Crash.NativeCodeCrash.PROCESS_VISIBILITY_FOREGROUND_CHILD,
                 breadcrumbs = arrayListOf(),
                 remoteType = "web",
             )
@@ -215,7 +215,7 @@ class GleanCrashReporterServiceTest {
                 0,
                 "",
                 "",
-                Crash.NativeCodeCrash.PROCESS_TYPE_BACKGROUND_CHILD,
+                Crash.NativeCodeCrash.PROCESS_VISIBILITY_BACKGROUND_CHILD,
                 breadcrumbs = arrayListOf(),
                 remoteType = null,
             )
@@ -223,7 +223,7 @@ class GleanCrashReporterServiceTest {
                 0,
                 "",
                 "",
-                Crash.NativeCodeCrash.PROCESS_TYPE_BACKGROUND_CHILD,
+                Crash.NativeCodeCrash.PROCESS_VISIBILITY_BACKGROUND_CHILD,
                 breadcrumbs = arrayListOf(),
                 remoteType = "extension",
             )
@@ -406,7 +406,7 @@ class GleanCrashReporterServiceTest {
             12340000,
             "",
             "",
-            Crash.NativeCodeCrash.PROCESS_TYPE_MAIN,
+            Crash.NativeCodeCrash.PROCESS_VISIBILITY_MAIN,
             breadcrumbs = arrayListOf(),
             remoteType = null,
         )
@@ -457,7 +457,7 @@ class GleanCrashReporterServiceTest {
             12340000,
             null,
             null,
-            Crash.NativeCodeCrash.PROCESS_TYPE_MAIN,
+            Crash.NativeCodeCrash.PROCESS_VISIBILITY_MAIN,
             breadcrumbs = arrayListOf(
                 Breadcrumb(
                     message = "Breadcrumb-1",
@@ -651,7 +651,7 @@ class GleanCrashReporterServiceTest {
             12340000,
             "",
             extrasFile.path,
-            Crash.NativeCodeCrash.PROCESS_TYPE_MAIN,
+            Crash.NativeCodeCrash.PROCESS_VISIBILITY_MAIN,
             breadcrumbs = arrayListOf(),
             remoteType = null,
         )

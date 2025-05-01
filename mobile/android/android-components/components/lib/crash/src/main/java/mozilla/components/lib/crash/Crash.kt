@@ -32,7 +32,7 @@ private const val INTENT_RUNTIME_TAGS = "runtimeTags"
 private const val INTENT_UUID = "uuid"
 private const val INTENT_MINIDUMP_PATH = "minidumpPath"
 private const val INTENT_EXTRAS_PATH = "extrasPath"
-private const val INTENT_PROCESS_TYPE = "processType"
+private const val INTENT_PROCESS_VISIBILITY = "processVisibility"
 private const val INTENT_REMOTE_TYPE = "remoteType"
 
 /**
@@ -111,7 +111,7 @@ sealed class Crash {
      * @property extrasPath Path to a file containing extra metadata about the crash. The file contains key-value pairs
      *                      in the form `Key=Value`. Be aware, it may contain sensitive data such as the URI that was
      *                      loaded at the time of the crash.
-     * @property processType The type of process the crash occurred in. Affects whether or not the crash is fatal
+     * @property processVisibility The type of process the crash occurred in. Affects whether or not the crash is fatal
      *                       or whether the application can recover from it.
      * @property breadcrumbs List of breadcrumbs to send with the crash report.
      * @property remoteType The type of child process (when available).
@@ -122,7 +122,7 @@ sealed class Crash {
         override val timestamp: Long,
         val minidumpPath: String?,
         val extrasPath: String?,
-        @ProcessType val processType: String?,
+        @ProcessVisibility val processVisibility: String?,
         override val breadcrumbs: ArrayList<Breadcrumb>,
         val remoteType: String?,
         override val runtimeTags: Map<String, String> = emptyMap(),
@@ -132,7 +132,7 @@ sealed class Crash {
             putString(INTENT_UUID, uuid)
             putString(INTENT_MINIDUMP_PATH, minidumpPath)
             putString(INTENT_EXTRAS_PATH, extrasPath)
-            putString(INTENT_PROCESS_TYPE, processType)
+            putString(INTENT_PROCESS_VISIBILITY, processVisibility)
             putLong(INTENT_CRASH_TIMESTAMP, timestamp)
             putParcelableArrayList(INTENT_BREADCRUMBS, breadcrumbs)
             putString(INTENT_REMOTE_TYPE, remoteType)
@@ -145,40 +145,43 @@ sealed class Crash {
          * may be able to recover.
          */
         val isFatal: Boolean
-            get() = processType == PROCESS_TYPE_MAIN
+            get() = processVisibility == PROCESS_VISIBILITY_MAIN
 
         companion object {
             /**
              * Indicates a crash occurred in the main process and is therefore fatal.
              */
-            const val PROCESS_TYPE_MAIN = "MAIN"
+            const val PROCESS_VISIBILITY_MAIN = "MAIN"
 
             /**
              * Indicates a crash occurred in a foreground child process. The application may be
              * able to recover from this crash, but it was likely noticeable to the user.
              */
-            const val PROCESS_TYPE_FOREGROUND_CHILD = "FOREGROUND_CHILD"
+            const val PROCESS_VISIBILITY_FOREGROUND_CHILD = "FOREGROUND_CHILD"
 
             /**
              * Indicates a crash occurred in a background child process. This should have been
              * recovered from automatically, and will have had minimal impact to the user, if any.
              */
-            const val PROCESS_TYPE_BACKGROUND_CHILD = "BACKGROUND_CHILD"
+            const val PROCESS_VISIBILITY_BACKGROUND_CHILD = "BACKGROUND_CHILD"
 
+            /**
+             * Process visibility strings.
+             */
             @StringDef(
-                PROCESS_TYPE_MAIN,
-                PROCESS_TYPE_FOREGROUND_CHILD,
-                PROCESS_TYPE_BACKGROUND_CHILD,
+                PROCESS_VISIBILITY_MAIN,
+                PROCESS_VISIBILITY_FOREGROUND_CHILD,
+                PROCESS_VISIBILITY_BACKGROUND_CHILD,
             )
             @Retention(AnnotationRetention.SOURCE)
-            annotation class ProcessType
+            annotation class ProcessVisibility
 
             @Suppress("UNCHECKED_CAST", "DEPRECATION")
             internal fun fromBundle(bundle: Bundle) = NativeCodeCrash(
                 uuid = bundle.getString(INTENT_UUID) ?: UUID.randomUUID().toString(),
                 minidumpPath = bundle.getString(INTENT_MINIDUMP_PATH, null),
                 extrasPath = bundle.getString(INTENT_EXTRAS_PATH, null),
-                processType = bundle.getString(INTENT_PROCESS_TYPE, PROCESS_TYPE_MAIN),
+                processVisibility = bundle.getString(INTENT_PROCESS_VISIBILITY, PROCESS_VISIBILITY_MAIN),
                 breadcrumbs = bundle.getParcelableArrayListCompat(
                     INTENT_BREADCRUMBS,
                     Breadcrumb::class.java,

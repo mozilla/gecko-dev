@@ -82,7 +82,7 @@ export var ChildCrashHandler = {
 
         // Report GPU and extension process crashes as occuring in a background
         // process, and others as foreground.
-        const processType =
+        const processVisibility =
           aTopic === "compositor:process-aborted" || remoteType === "extension"
             ? "BACKGROUND_CHILD"
             : "FOREGROUND_CHILD";
@@ -93,7 +93,7 @@ export var ChildCrashHandler = {
           extrasPath,
           success: true,
           fatal: false,
-          processType,
+          processVisibility,
           remoteType,
         });
 

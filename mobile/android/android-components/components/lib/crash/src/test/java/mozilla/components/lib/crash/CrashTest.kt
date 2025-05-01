@@ -22,7 +22,7 @@ class CrashTest {
             123,
             "/data/data/org.mozilla.samples.browser/files/mozilla/Crash Reports/pending/3ba5f665-8422-dc8e-a88e-fc65c081d304.dmp",
             "/data/data/org.mozilla.samples.browser/files/mozilla/Crash Reports/pending/3ba5f665-8422-dc8e-a88e-fc65c081d304.extra",
-            Crash.NativeCodeCrash.PROCESS_TYPE_FOREGROUND_CHILD,
+            Crash.NativeCodeCrash.PROCESS_VISIBILITY_FOREGROUND_CHILD,
             breadcrumbs = arrayListOf(),
             remoteType = "web",
         )
@@ -35,7 +35,7 @@ class CrashTest {
 
         assertEquals(recoveredCrash.timestamp, 123)
         assertEquals(recoveredCrash.isFatal, false)
-        assertEquals(recoveredCrash.processType, Crash.NativeCodeCrash.PROCESS_TYPE_FOREGROUND_CHILD)
+        assertEquals(recoveredCrash.processVisibility, Crash.NativeCodeCrash.PROCESS_VISIBILITY_FOREGROUND_CHILD)
         assertEquals(
             "/data/data/org.mozilla.samples.browser/files/mozilla/Crash Reports/pending/3ba5f665-8422-dc8e-a88e-fc65c081d304.dmp",
             recoveredCrash.minidumpPath,

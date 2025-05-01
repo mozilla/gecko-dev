@@ -30,7 +30,7 @@ class CrashNotificationTest {
             timestamp = 0,
             minidumpPath = "",
             extrasPath = "",
-            processType = Crash.NativeCodeCrash.PROCESS_TYPE_FOREGROUND_CHILD,
+            processVisibility = Crash.NativeCodeCrash.PROCESS_VISIBILITY_FOREGROUND_CHILD,
             breadcrumbs = arrayListOf(),
             remoteType = null,
         )
@@ -51,7 +51,7 @@ class CrashNotificationTest {
             timestamp = 0,
             minidumpPath = "",
             extrasPath = "",
-            processType = Crash.NativeCodeCrash.PROCESS_TYPE_MAIN,
+            processVisibility = Crash.NativeCodeCrash.PROCESS_VISIBILITY_MAIN,
             breadcrumbs = arrayListOf(),
             remoteType = null,
         )
@@ -72,7 +72,7 @@ class CrashNotificationTest {
             timestamp = 0,
             minidumpPath = "",
             extrasPath = "",
-            processType = Crash.NativeCodeCrash.PROCESS_TYPE_BACKGROUND_CHILD,
+            processVisibility = Crash.NativeCodeCrash.PROCESS_VISIBILITY_BACKGROUND_CHILD,
             breadcrumbs = arrayListOf(),
             remoteType = null,
         )
