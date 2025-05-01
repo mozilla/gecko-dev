@@ -146,8 +146,10 @@ function menulistShown()
 
   // Skip menulist3 as it has a label that scrolling doesn't need normally deal with.
   if (test.scroll >= 0) {
-    is(Math.round(menulist.menupopup.childNodes[test.scroll].getBoundingClientRect().top),
-       Math.round(menulist.menupopup.getBoundingClientRect().top + bpmTop),
+    // Allow 1px difference because the root font-size might be fractional so that every
+    // em-based metrics also would be fractional.
+    isfuzzy(menulist.menupopup.childNodes[test.scroll].getBoundingClientRect().top,
+            menulist.menupopup.getBoundingClientRect().top + bpmTop, 1,
        "Popup scroll at correct position");
   }
 
