@@ -7,4 +7,5 @@ GeckoViewOpenWindow
 #endif
 #ifdef ANDROID
 *ffi*
+FT*
 #endif
