@@ -91,7 +91,7 @@ interface nsIWebAuthnService : nsISupports
     // Adds a virtual (software) authenticator for use in tests (particularly
     // tests run via WebDriver). See
     // https://w3c.github.io/webauthn/#sctn-automation-add-virtual-authenticator.
-    uint64_t addVirtualAuthenticator(
+    ACString addVirtualAuthenticator(
         in ACString protocol,
         in ACString transport,
         in boolean hasResidentKey,
@@ -102,12 +102,12 @@ interface nsIWebAuthnService : nsISupports
     // Removes a previously-added virtual authenticator, as identified by its
     // id. See
     // https://w3c.github.io/webauthn/#sctn-automation-remove-virtual-authenticator
-    void removeVirtualAuthenticator(in uint64_t authenticatorId);
+    void removeVirtualAuthenticator(in ACString authenticatorId);
 
     // Adds a credential to a previously-added authenticator. See
     // https://w3c.github.io/webauthn/#sctn-automation-add-credential
     void addCredential(
-        in uint64_t authenticatorId,
+        in ACString authenticatorId,
         in ACString credentialId,
         in boolean isResidentCredential,
         in ACString rpId,
@@ -117,19 +117,19 @@ interface nsIWebAuthnService : nsISupports
 
     // Gets all credentials that have been added to a virtual authenticator.
     // See https://w3c.github.io/webauthn/#sctn-automation-get-credentials
-    Array<nsICredentialParameters> getCredentials(in uint64_t authenticatorId);
+    Array<nsICredentialParameters> getCredentials(in ACString authenticatorId);
 
     // Removes a credential from a virtual authenticator. See
     // https://w3c.github.io/webauthn/#sctn-automation-remove-credential
-    void removeCredential(in uint64_t authenticatorId, in ACString credentialId);
+    void removeCredential(in ACString authenticatorId, in ACString credentialId);
 
     // Removes all credentials from a virtual authenticator. See
     // https://w3c.github.io/webauthn/#sctn-automation-remove-all-credentials
-    void removeAllCredentials(in uint64_t authenticatorId);
+    void removeAllCredentials(in ACString authenticatorId);
 
     // Sets the "isUserVerified" bit on a virtual authenticator. See
     // https://w3c.github.io/webauthn/#sctn-automation-set-user-verified
-    void setUserVerified(in uint64_t authenticatorId, in boolean isUserVerified);
+    void setUserVerified(in ACString authenticatorId, in boolean isUserVerified);
 
     // about:webauthn-specific functions
     void listen();

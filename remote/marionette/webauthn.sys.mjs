@@ -58,7 +58,7 @@ webauthn.removeVirtualAuthenticator = function (authenticatorId) {
 /**
  * Adds a credential to a previously-added virtual authenticator.
  *
- * @param {id} authenticatorId the id of the virtual authenticator
+ * @param {string} authenticatorId the id of the virtual authenticator
  * @param {string} credentialId a probabilistically-unique byte sequence
  *                 identifying a public key credential source and its
  *                 authentication assertions (encoded using Base64url
@@ -97,7 +97,7 @@ webauthn.addCredential = function (
 /**
  * Gets all credentials from a virtual authenticator.
  *
- * @param {id} authenticatorId the id of the virtual authenticator
+ * @param {string} authenticatorId the id of the virtual authenticator
  * @returns {object} the credentials on the authenticator
  */
 webauthn.getCredentials = function (authenticatorId) {
@@ -107,7 +107,7 @@ webauthn.getCredentials = function (authenticatorId) {
 /**
  * Removes a credential from a virtual authenticator.
  *
- * @param {id} authenticatorId the id of the virtual authenticator
+ * @param {string} authenticatorId the id of the virtual authenticator
  * @param {string} credentialId the id of the credential
  */
 webauthn.removeCredential = function (authenticatorId, credentialId) {
@@ -117,7 +117,7 @@ webauthn.removeCredential = function (authenticatorId, credentialId) {
 /**
  * Removes all credentials from a virtual authenticator.
  *
- * @param {id} authenticatorId the id of the virtual authenticator
+ * @param {string} authenticatorId the id of the virtual authenticator
  */
 webauthn.removeAllCredentials = function (authenticatorId) {
   lazy.webauthnService.removeAllCredentials(authenticatorId);
@@ -126,7 +126,7 @@ webauthn.removeAllCredentials = function (authenticatorId) {
 /**
  * Sets the "isUserVerified" bit on a virtual authenticator.
  *
- * @param {id} authenticatorId the id of the virtual authenticator
+ * @param {string} authenticatorId the id of the virtual authenticator
  * @param {bool} isUserVerified the value to set the "isUserVerified" bit to
  */
 webauthn.setUserVerified = function (authenticatorId, isUserVerified) {

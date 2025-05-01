@@ -299,62 +299,63 @@ WebAuthnService::SelectionCallback(uint64_t aTransactionId, uint64_t aIndex) {
 
 NS_IMETHODIMP
 WebAuthnService::AddVirtualAuthenticator(
-    const nsACString& protocol, const nsACString& transport,
-    bool hasResidentKey, bool hasUserVerification, bool isUserConsenting,
-    bool isUserVerified, uint64_t* retval) {
+    const nsACString& aProtocol, const nsACString& aTransport,
+    bool aHasResidentKey, bool aHasUserVerification, bool aIsUserConsenting,
+    bool aIsUserVerified, nsACString& aRetval) {
   return SelectedService()->AddVirtualAuthenticator(
-      protocol, transport, hasResidentKey, hasUserVerification,
-      isUserConsenting, isUserVerified, retval);
+      aProtocol, aTransport, aHasResidentKey, aHasUserVerification,
+      aIsUserConsenting, aIsUserVerified, aRetval);
 }
 
 NS_IMETHODIMP
-WebAuthnService::RemoveVirtualAuthenticator(uint64_t authenticatorId) {
-  return SelectedService()->RemoveVirtualAuthenticator(authenticatorId);
+WebAuthnService::RemoveVirtualAuthenticator(
+    const nsACString& aAuthenticatorId) {
+  return SelectedService()->RemoveVirtualAuthenticator(aAuthenticatorId);
 }
 
 NS_IMETHODIMP
-WebAuthnService::AddCredential(uint64_t authenticatorId,
-                               const nsACString& credentialId,
-                               bool isResidentCredential,
-                               const nsACString& rpId,
-                               const nsACString& privateKey,
-                               const nsACString& userHandle,
-                               uint32_t signCount) {
-  return SelectedService()->AddCredential(authenticatorId, credentialId,
-                                          isResidentCredential, rpId,
-                                          privateKey, userHandle, signCount);
+WebAuthnService::AddCredential(const nsACString& aAuthenticatorId,
+                               const nsACString& aCredentialId,
+                               bool aIsResidentCredential,
+                               const nsACString& aRpId,
+                               const nsACString& aPrivateKey,
+                               const nsACString& aUserHandle,
+                               uint32_t aSignCount) {
+  return SelectedService()->AddCredential(aAuthenticatorId, aCredentialId,
+                                          aIsResidentCredential, aRpId,
+                                          aPrivateKey, aUserHandle, aSignCount);
 }
 
 NS_IMETHODIMP
 WebAuthnService::GetCredentials(
-    uint64_t authenticatorId,
-    nsTArray<RefPtr<nsICredentialParameters>>& retval) {
-  return SelectedService()->GetCredentials(authenticatorId, retval);
+    const nsACString& aAuthenticatorId,
+    nsTArray<RefPtr<nsICredentialParameters>>& aRetval) {
+  return SelectedService()->GetCredentials(aAuthenticatorId, aRetval);
 }
 
 NS_IMETHODIMP
-WebAuthnService::RemoveCredential(uint64_t authenticatorId,
-                                  const nsACString& credentialId) {
-  return SelectedService()->RemoveCredential(authenticatorId, credentialId);
+WebAuthnService::RemoveCredential(const nsACString& aAuthenticatorId,
+                                  const nsACString& aCredentialId) {
+  return SelectedService()->RemoveCredential(aAuthenticatorId, aCredentialId);
 }
 
 NS_IMETHODIMP
-WebAuthnService::RemoveAllCredentials(uint64_t authenticatorId) {
-  return SelectedService()->RemoveAllCredentials(authenticatorId);
+WebAuthnService::RemoveAllCredentials(const nsACString& aAuthenticatorId) {
+  return SelectedService()->RemoveAllCredentials(aAuthenticatorId);
 }
 
 NS_IMETHODIMP
-WebAuthnService::SetUserVerified(uint64_t authenticatorId,
-                                 bool isUserVerified) {
-  return SelectedService()->SetUserVerified(authenticatorId, isUserVerified);
+WebAuthnService::SetUserVerified(const nsACString& aAuthenticatorId,
+                                 bool aIsUserVerified) {
+  return SelectedService()->SetUserVerified(aAuthenticatorId, aIsUserVerified);
 }
 
 NS_IMETHODIMP
 WebAuthnService::Listen() { return SelectedService()->Listen(); }
 
 NS_IMETHODIMP
-WebAuthnService::RunCommand(const nsACString& cmd) {
-  return SelectedService()->RunCommand(cmd);
+WebAuthnService::RunCommand(const nsACString& aCmd) {
+  return SelectedService()->RunCommand(aCmd);
 }
 
 }  // namespace mozilla::dom
