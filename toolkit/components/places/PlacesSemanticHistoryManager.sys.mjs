@@ -137,6 +137,21 @@ export class PlacesSemanticHistoryManager {
   }
 
   /**
+   * Determines if semantic search can be used based on preferences
+   * and hardware qualification criteria
+   *
+   * @returns {boolean} - Returns `true` if semantic search can be used,
+   *   else false
+   */
+  canUseSemanticSearch() {
+    return (
+      this.qualifiedForSemanticSearch &&
+      Services.prefs.getBoolPref("browser.ml.enable", true) &&
+      Services.prefs.getBoolPref("places.semanticHistory.featureGate", false)
+    );
+  }
+
+  /**
    * Observes changes to the "pages-rank-changed" and
    * "history-cleared" topics.
    *
@@ -484,7 +499,9 @@ export class PlacesSemanticHistoryManager {
    * @returns {Promise<object>} - The result of the engine's inference pipeline.
    */
   async infer(queryContext) {
+    const inferStartTime = Cu.now();
     let results = [];
+    await this.embedder.ensureEngine();
     let tensor = await this.embedder.embed(queryContext.searchString);
 
     if (!tensor) {
@@ -557,10 +574,18 @@ export class PlacesSemanticHistoryManager {
     }
 
     results.sort((a, b) => a.distance - b.distance);
+
+    // Add a duration marker, representing a span of time, with some additional text
+    ChromeUtils.addProfilerMarker(
+      "semanticHistorySearch",
+      inferStartTime,
+      "semanticHistorySearch details"
+    );
+
     return { results, metrics };
   }
 
-  // for easier testing purpose
+  // for easier testing purpose.
   async engineRun(request) {
     return await this.#engine.run(request);
   }

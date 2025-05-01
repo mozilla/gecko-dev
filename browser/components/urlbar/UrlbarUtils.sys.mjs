@@ -63,6 +63,7 @@ export var UrlbarUtils = {
     HEURISTIC_SEARCH_TIP: "heuristicSearchTip",
     HEURISTIC_TEST: "heuristicTest",
     HEURISTIC_TOKEN_ALIAS_ENGINE: "heuristicTokenAliasEngine",
+    HISTORY_SEMANTIC: "historySemantic",
     INPUT_HISTORY: "inputHistory",
     OMNIBOX: "extension",
     RECENT_SEARCH: "recentSearch",
@@ -568,6 +569,8 @@ export var UrlbarUtils = {
         return UrlbarUtils.RESULT_GROUP.ABOUT_PAGES;
       case "InputHistory":
         return UrlbarUtils.RESULT_GROUP.INPUT_HISTORY;
+      case "SemanticHistorySearch":
+        return UrlbarUtils.RESULT_GROUP.HISTORY_SEMANTIC;
       case "UrlbarProviderQuickSuggest":
         return UrlbarUtils.RESULT_GROUP.GENERAL_PARENT;
       default:

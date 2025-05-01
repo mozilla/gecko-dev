@@ -72,3 +72,59 @@ add_task(async function test_shutdown_no_error() {
     "DB connection close() should be called once"
   );
 });
+
+add_task(async function test_canUseSemanticSearch_all_conditions_met() {
+  let manager = new createPlacesSemanticHistoryManager();
+
+  Services.prefs.setBoolPref("browser.ml.enable", true);
+  Services.prefs.setBoolPref("places.semanticHistory.featureGate", true);
+
+  manager.qualifiedForSemanticSearch = true;
+
+  Assert.ok(
+    manager.canUseSemanticSearch(),
+    "Semantic search should be enabled when all conditions met."
+  );
+});
+
+add_task(async function test_canUseSemanticSearch_ml_disabled() {
+  let manager = new createPlacesSemanticHistoryManager();
+
+  Services.prefs.setBoolPref("browser.ml.enable", false);
+  Services.prefs.setBoolPref("places.semanticHistory.featureGate", true);
+
+  manager.qualifiedForSemanticSearch = true;
+
+  Assert.ok(
+    !manager.canUseSemanticSearch(),
+    "Semantic search should be disabled when ml disabled."
+  );
+});
+
+add_task(async function test_canUseSemanticSearch_featureGate_disabled() {
+  let manager = new createPlacesSemanticHistoryManager();
+
+  Services.prefs.setBoolPref("browser.ml.enable", true);
+  Services.prefs.setBoolPref("places.semanticHistory.featureGate", false);
+
+  manager.qualifiedForSemanticSearch = true;
+
+  Assert.ok(
+    !manager.canUseSemanticSearch(),
+    "Semantic search should be disabled when featureGate disabled."
+  );
+});
+
+add_task(async function test_canUseSemanticSearch_not_qualified() {
+  let manager = new createPlacesSemanticHistoryManager();
+
+  Services.prefs.setBoolPref("browser.ml.enable", true);
+  Services.prefs.setBoolPref("places.semanticHistory.featureGate", true);
+
+  manager.qualifiedForSemanticSearch = false;
+
+  Assert.ok(
+    !manager.canUseSemanticSearch(),
+    "Semantic search should be disabled when not qualified."
+  );
+});

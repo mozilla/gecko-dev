@@ -72,6 +72,8 @@ var localProviderModules = {
     "resource:///modules/UrlbarProviderSearchTips.sys.mjs",
   UrlbarProviderSearchSuggestions:
     "resource:///modules/UrlbarProviderSearchSuggestions.sys.mjs",
+  UrlbarProviderSemanticHistorySearch:
+    "resource:///modules/UrlbarProviderSemanticHistorySearch.sys.mjs",
   UrlbarProviderTabToSearch:
     "resource:///modules/UrlbarProviderTabToSearch.sys.mjs",
   UrlbarProviderTokenAliasEngines:

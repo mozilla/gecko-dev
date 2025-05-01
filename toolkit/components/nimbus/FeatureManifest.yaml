@@ -506,6 +506,26 @@ urlbar:
         branch: default
         pref: browser.urlbar.recentsearches.maxResults
       description: The maximum number of recent searches to show.
+    semanticHistoryEnable:
+      type: boolean
+      setPref:
+        branch: user
+        pref: places.semanticHistory.featureGate
+      description: use semanticHistory Search feature.
+    suggestSemanticHistory:
+      type: boolean
+      setPref:
+        branch: user
+        pref: browser.urlbar.suggest.semanticHistory
+      description: Whether semanticHistory Search will be enabled.
+    suggestSemanticHistoryMinLength:
+      type: int
+      setPref:
+        branch: user
+        pref: browser.urlbar.suggest.semanticHistory.minLength
+      description: >-
+        Minimum length of search query when history semantic
+        search will be enabled.
     suggestCalculator:
       type: boolean
       setPref:
