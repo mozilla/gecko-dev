@@ -105,8 +105,6 @@
   --tab-group-color-gray-pale: #F2F9FF;
 
   --tab-group-label-text-dark: var(--color-gray-100);
-  /* 5px of padding-block are adding to .tabbrowser-tab */
-  --tab-height-with-margin-padding: calc(5px + var(--tab-min-height) + (2 * var(--tab-block-margin)));
 }
 
 /* stylelint-disable-next-line media-query-no-invalid */
@@ -1353,8 +1351,7 @@ tab-group {
 /* Vertical tabs styling */
 
 #tabbrowser-arrowscrollbox[orient="vertical"] {
-  /* Don't allow resizing below the height of 3 tabs */
-  min-height: calc(3 * var(--tab-height-with-margin-padding));
+  min-height: 1px;
 
   &::part(scrollbutton-up),
   &::part(scrollbutton-down) {
@@ -1427,8 +1424,8 @@ tab-group {
 }
 
 #vertical-pinned-tabs-container {
-  /* Don't allow resizing below the height of 1 row of pinned tabs */
-  min-height: var(--tab-height-with-margin-padding);
+  /* Fit slightly more than 5 tabs + padding before overflowing */
+  max-height: calc(5 * var(--tabstrip-min-height) + var(--space-large));
 
   &:empty {
     display: none;
@@ -1476,10 +1473,6 @@ tab-group {
     }
   }
 
-  &::part(items-wrapper) {
-    flex: 0 1 0;
-  }
-
   :root:not([sidebar-expand-on-hover]) & {
     --tab-inline-padding: calc((var(--tab-collapsed-background-width) + 2 *
       var(--tab-pinned-margin-inline-expanded) - var(--icon-size-default)) / 2);
@@ -1495,7 +1488,6 @@ tab-group {
           minmax(var(--tab-pinned-min-width-expanded), auto)
         );
         display: grid;
-        grid-auto-rows: var(--tab-height-with-margin-padding);
       }
 
       .tab-label-container {
@@ -1532,29 +1524,23 @@ tab-group {
   }
 }
 
-#vertical-pinned-tabs-splitter {
+#vertical-pinned-tabs-container-separator {
   display: block;
-  border-top: var(--tabstrip-inner-border);
+  border-bottom: var(--tabstrip-inner-border);
   margin-inline: var(--tab-inner-inline-margin);
-  min-height: 2px;
 
   #vertical-pinned-tabs-container:empty + & {
     display: none;
   }
 
-  &:hover {
-    background-color: var(--focus-outline-color);
-    border-radius: var(--border-radius-medium);
-  }
-
   /* stylelint-disable-next-line media-query-no-invalid */
   @media not -moz-pref("sidebar.visibility", "expand-on-hover") {
-    /* We need these rules to apply at all times when the sidebar.visibility
-    pref is not set to "expand-on-hover" as opposed to when the "sidebar-expand-on-hover" attribute
-    has not been added to root. There are certain scenarios when that attribute is temporarily
-    removed from root such as when toggling the sidebar to expand with the toolbar button. */
+  /* We need these rules to apply at all times when the sidebar.visibility
+  pref is not set to "expand-on-hover" as opposed to when the "sidebar-expand-on-hover" attribute
+  has not been added to root. There are certain scenarios when that attribute is temporarily
+  removed from root such as when toggling the sidebar to expand with the toolbar button. */
     #tabbrowser-tabs[expanded] > & {
-      border: none;
+      display: none;
     }
   }
 }

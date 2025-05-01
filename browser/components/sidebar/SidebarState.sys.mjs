@@ -32,20 +32,11 @@ XPCOMUtils.defineLazyPreferenceGetter(
  *   When sidebar.visibility pref value is "always-show", the toolbar button serves to toggle this property
  * @property {boolean} launcherDragActive
  *   Whether the launcher is currently being dragged.
- * @property {boolean} pinnedTabsDragActive
- *   Whether the pinned tabs container is currently being dragged.
  * @property {boolean} launcherHoverActive
  *   Whether the launcher is currently being hovered.
  * @property {number} launcherWidth
  *   Current width of the sidebar launcher.
  * @property {number} expandedLauncherWidth
- *   Width of the expanded launcher
- * @property {number} pinnedTabsHeight
- *   Current height of the pinned tabs container
- * @property {number} expandedPinnedTabsHeight
- *   Height of the pinned tabs container when the sidebar is expanded
- * @property {number} collapsedPinnedTabsHeight
- *   Height of the pinned tabs container when the sidebar is collapsed
  */
 
 const LAUNCHER_MINIMUM_WIDTH = 100;
@@ -75,7 +66,6 @@ export class SidebarState {
     launcherHoverActive: false,
     launcherVisible: false,
     panelOpen: false,
-    pinnedTabsDragActive: false,
   });
 
   /**
@@ -130,26 +120,6 @@ export class SidebarState {
    */
   get #panelEl() {
     return this.#controller._box;
-  }
-
-  /**
-   * Get the pinned tabs container element.
-   *
-   * @returns {XULElement}
-   */
-  get #pinnedTabsContainerEl() {
-    return this.#controller._pinnedTabsContainer;
-  }
-
-  /**
-   * Get the items-wrapper part of the pinned tabs container element.
-   *
-   * @returns {XULElement}
-   */
-  get #pinnedTabsItemsWrapper() {
-    return this.#pinnedTabsContainerEl.shadowRoot.querySelector(
-      "[part=items-wrapper]"
-    );
   }
 
   /**
@@ -223,10 +193,6 @@ export class SidebarState {
         case "panelOpen":
           // we need to know if we have a command value before finalizing panelOpen
           break;
-        case "expandedPinnedTabsHeight":
-        case "collapsedPinnedTabsHeight":
-          this.#updatePinnedTabsHeight();
-          break;
         default:
           this[key] = value;
       }
@@ -274,9 +240,6 @@ export class SidebarState {
       expandedLauncherWidth: convertToInt(this.expandedLauncherWidth),
       launcherExpanded: this.launcherExpanded,
       launcherVisible: this.launcherVisible,
-      pinnedTabsHeight: this.pinnedTabsHeight,
-      expandedPinnedTabsHeight: this.expandedPinnedTabsHeight,
-      collapsedPinnedTabsHeight: this.collapsedPinnedTabsHeight,
     };
     // omit any properties with undefined values'
     for (let [key, value] of Object.entries(props)) {
@@ -325,24 +288,6 @@ export class SidebarState {
 
   set panelWidth(width) {
     this.#launcherContainerEl.style.maxWidth = `calc(${SIDEBAR_MAXIMUM_WIDTH} - ${width}px)`;
-  }
-
-  get expandedPinnedTabsHeight() {
-    return this.#props.expandedPinnedTabsHeight;
-  }
-
-  set expandedPinnedTabsHeight(height) {
-    this.#props.expandedPinnedTabsHeight = height;
-    this.#updatePinnedTabsHeight();
-  }
-
-  get collapsedPinnedTabsHeight() {
-    return this.#props.collapsedPinnedTabsHeight;
-  }
-
-  set collapsedPinnedTabsHeight(height) {
-    this.#props.collapsedPinnedTabsHeight = height;
-    this.#updatePinnedTabsHeight();
   }
 
   get defaultLauncherVisible() {
@@ -445,12 +390,6 @@ export class SidebarState {
     if (!this.launcherDragActive) {
       this.#updateLauncherWidth();
     }
-    if (
-      !this.pinnedTabsDragActive &&
-      this.#controller.sidebarRevampVisibility !== "expand-on-hover"
-    ) {
-      this.#updatePinnedTabsHeight();
-    }
   }
 
   get launcherDragActive() {
@@ -488,34 +427,6 @@ export class SidebarState {
     }
     const rootEl = this.#controllerGlobal.document.documentElement;
     rootEl.toggleAttribute("sidebar-launcher-drag-active", active);
-  }
-
-  get pinnedTabsDragActive() {
-    return this.#props.pinnedTabsDragActive;
-  }
-
-  set pinnedTabsDragActive(active) {
-    this.#props.pinnedDragActive = active;
-
-    let itemsWrapperHeight =
-      this.#controllerGlobal.windowUtils.getBoundsWithoutFlushing(
-        this.#pinnedTabsItemsWrapper
-      ).height;
-    if (this.pinnedTabsHeight > itemsWrapperHeight) {
-      this.pinnedTabsHeight = itemsWrapperHeight;
-      if (this.#props.launcherExpanded) {
-        this.expandedPinnedTabsHeight = this.pinnedTabsHeight;
-      } else {
-        this.collapsedPinnedTabsHeight = this.pinnedTabsHeight;
-      }
-    } else if (!active) {
-      // Store the user-preferred pinned tabs height.
-      if (this.#props.launcherExpanded) {
-        this.expandedPinnedTabsHeight = this.pinnedTabsHeight;
-      } else {
-        this.collapsedPinnedTabsHeight = this.pinnedTabsHeight;
-      }
-    }
   }
 
   get launcherHoverActive() {
@@ -565,31 +476,6 @@ export class SidebarState {
       "customWidth",
       !!this.expandedLauncherWidth
     );
-  }
-
-  get pinnedTabsHeight() {
-    return this.#props.pinnedTabsHeight;
-  }
-
-  set pinnedTabsHeight(height) {
-    this.#props.pinnedTabsHeight = height;
-    if (this.launcherExpanded) {
-      this.expandedPinnedTabsHeight = height;
-    } else {
-      this.collapsedPinnedTabsHeight = height;
-    }
-  }
-
-  /**
-   * When the sidebar is expanded/collapsed, resize the pinned tabs container to the user-preferred
-   * height (if available).
-   */
-  #updatePinnedTabsHeight() {
-    if (this.launcherExpanded && this.expandedPinnedTabsHeight) {
-      this.#pinnedTabsContainerEl.style.height = `${this.expandedPinnedTabsHeight}px`;
-    } else if (!this.launcherExpanded && this.collapsedPinnedTabsHeight) {
-      this.#pinnedTabsContainerEl.style.height = `${this.collapsedPinnedTabsHeight}px`;
-    }
   }
 
   #updateTabbrowser(isSidebarShown) {

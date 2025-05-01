@@ -31,7 +31,7 @@ async function dragLauncher(deltaX, shouldExpand) {
   info(`Drag the launcher by ${deltaX} px.`);
   const { sidebarMain, _launcherSplitter: splitter } = SidebarController;
   EventUtils.synthesizeMouseAtCenter(splitter, { type: "mousedown" });
-  await mouseMoveInChunksHorizontal(splitter, deltaX, 10);
+  await mouseMoveInChunks(splitter, deltaX, 10);
   EventUtils.synthesizeMouse(splitter, 0, 0, { type: "mouseup" });
 
   info(`The sidebar should be ${shouldExpand ? "expanded" : "collapsed"}.`);
@@ -44,24 +44,7 @@ async function dragLauncher(deltaX, shouldExpand) {
   AccessibilityUtils.resetEnv();
 }
 
-async function dragPinnedTabs(deltaY) {
-  AccessibilityUtils.setEnv({ mustHaveAccessibleRule: false });
-
-  // Let the pinned tabs splitter stabilize before attempting a drag-and-drop.
-  await waitForRepaint();
-
-  info(`Drag the launcher by ${deltaY} px.`);
-  const { _pinnedTabsSplitter: splitter } = SidebarController;
-  EventUtils.synthesizeMouseAtCenter(splitter, { type: "mousedown" });
-  await mouseMoveInChunksVertical(splitter, deltaY, 10);
-  EventUtils.synthesizeMouse(splitter, 0, 0, { type: "mouseup" });
-
-  info(`The pinned tabs container has been expanded.`);
-
-  AccessibilityUtils.resetEnv();
-}
-
-async function mouseMoveInChunksHorizontal(el, deltaX, numberOfChunks) {
+async function mouseMoveInChunks(el, deltaX, numberOfChunks) {
   let chunkIndex = 0;
   const chunkSize = deltaX / numberOfChunks;
   const finished = Promise.withResolvers();
@@ -81,33 +64,8 @@ async function mouseMoveInChunksHorizontal(el, deltaX, numberOfChunks) {
   await finished.promise;
 }
 
-async function mouseMoveInChunksVertical(el, deltaY, numberOfChunks) {
-  let chunkIndex = 0;
-  const chunkSize = deltaY / numberOfChunks;
-  const finished = Promise.withResolvers();
-
-  function synthesizeMouseMove() {
-    info(`chunkSize: ${chunkSize}`);
-    // mousemove by a single chunk. Queue up the next chunk if necessary.
-    EventUtils.synthesizeMouse(el, 0, chunkSize, { type: "mousemove" });
-    if (++chunkIndex === numberOfChunks) {
-      finished.resolve();
-    } else {
-      requestAnimationFrame(synthesizeMouseMove);
-    }
-  }
-
-  await waitForRepaint();
-  requestAnimationFrame(synthesizeMouseMove);
-  await finished.promise;
-}
-
 function getLauncherWidth({ SidebarController } = window) {
   return SidebarController.sidebarContainer.style.width;
-}
-
-function getPinnedTabsHeight({ SidebarController } = window) {
-  return SidebarController._pinnedTabsContainer.clientHeight;
 }
 
 add_task(async function test_drag_expand_and_collapse() {
@@ -201,37 +159,4 @@ add_task(async function test_resize_after_toggling_revamp() {
     parseInt(originalWidth),
     "Vertical tab strip was resized."
   );
-
-  await dragLauncher(-200, true);
-});
-
-add_task(async function test_resize_of_pinned_tabs() {
-  await SidebarController.initializeUIState({
-    launcherExpanded: true,
-  });
-
-  info("Open 10 new tabs using the new tab button.");
-  for (let i = 0; i < 10; i++) {
-    await BrowserTestUtils.openNewForegroundTab(
-      gBrowser,
-      `data:text/html,<title>${i + 1}</title>`
-    );
-    gBrowser.pinTab(gBrowser.selectedTab);
-  }
-  await SidebarController.waitUntilStable();
-
-  info("Resize the pinned tabs container.");
-  const originalHeight = getPinnedTabsHeight();
-  await dragPinnedTabs(20, true);
-  const newHeight = getPinnedTabsHeight();
-  info(`original: ${originalHeight}, new: ${newHeight}`);
-  Assert.greater(
-    parseInt(newHeight),
-    parseInt(originalHeight),
-    "Pinned tabs container was resized."
-  );
-
-  while (gBrowser.tabs.length > 1) {
-    BrowserTestUtils.removeTab(gBrowser.tabs.at(-1));
-  }
 });
