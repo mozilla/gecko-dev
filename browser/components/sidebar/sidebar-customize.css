@@ -27,7 +27,7 @@
   color: currentColor;
 
   .customize-close-button::part(button) {
-    background-image: url("chrome://global/skin/icons/close-12.svg");
+    background-image: url("resource://content-accessible/close-12.svg");
   }
 }
 

@@ -81,7 +81,7 @@ input {
 }
 
 .textbox-search-clear {
-  list-style-image: url(resource://content-accessible/searchfield-cancel.svg);
+  list-style-image: url(resource://content-accessible/close-12.svg);
 }
 
 .textbox-search-icon:not([disabled]) {
