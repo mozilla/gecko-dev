@@ -1062,6 +1062,10 @@ void js::Nursery::renderProfileJSON(JSONPrinter& json) const {
     return;
   }
 
+  // The profiler data uses the term 'tenured' for compatibility with the
+  // existing data format, although 'promoted' would be more accurate given
+  // support for semispace nursery.
+
   json.beginObject();
 
   json.property("status", "complete");
@@ -1086,6 +1090,14 @@ void js::Nursery::renderProfileJSON(JSONPrinter& json) const {
   }
   if (!timeInChunkAlloc_.IsZero()) {
     json.property("chunk_alloc_us", timeInChunkAlloc_, json.MICROSECONDS);
+  }
+
+  // This calculation includes the whole collection time, not just the time
+  // spent promoting.
+  double totalTime = profileDurations_[ProfileKey::Total].ToSeconds();
+  if (totalTime > 0.0) {
+    double tenuredAllocRate = double(previousGC.tenuredBytes) / totalTime;
+    json.property("tenured_allocation_rate", size_t(tenuredAllocRate));
   }
 
   // These counters only contain consistent data if the profiler is enabled,
