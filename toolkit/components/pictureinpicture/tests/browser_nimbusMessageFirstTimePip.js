@@ -3,7 +3,7 @@
 
 "use strict";
 
-const { ExperimentFakes } = ChromeUtils.importESModule(
+const { NimbusTestUtils } = ChromeUtils.importESModule(
   "resource://testing-common/NimbusTestUtils.sys.mjs"
 );
 
@@ -64,7 +64,7 @@ add_task(async function test_experiment_control() {
  * This tests that the experiment message is shown for the PiP toggle
  */
 add_task(async function test_experiment_message() {
-  let doExperimentCleanup = await ExperimentFakes.enrollWithFeatureConfig({
+  let doExperimentCleanup = await NimbusTestUtils.enrollWithFeatureConfig({
     featureId: "pictureinpicture",
     value: {
       title: PIP_EXPERIMENT_TITLE,

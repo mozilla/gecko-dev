@@ -3,7 +3,7 @@
 
 "use strict";
 
-const { ExperimentFakes } = ChromeUtils.importESModule(
+const { NimbusTestUtils } = ChromeUtils.importESModule(
   "resource://testing-common/NimbusTestUtils.sys.mjs"
 );
 
@@ -64,7 +64,7 @@ add_task(async function test_experiment_control() {
  * This tests that the experiment is showing the icon only
  */
 add_task(async function test_experiment_iconOnly() {
-  let experimentCleanup = await ExperimentFakes.enrollWithFeatureConfig({
+  let experimentCleanup = await NimbusTestUtils.enrollWithFeatureConfig({
     featureId: "pictureinpicture",
     value: {
       showIconOnly: true,
