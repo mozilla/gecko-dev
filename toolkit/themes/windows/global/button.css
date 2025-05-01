@@ -29,8 +29,13 @@ button {
     color: -moz-buttonactivetext;
   }
 
-  &:where(:focus-visible) {
-    outline: auto;
+  &:focus-visible {
+    outline: var(--default-focusring);
+    outline-offset: calc(-1 * var(--default-focusring-width) - 2px);
+    @media (prefers-color-scheme: dark) {
+      outline: 1px auto;
+      outline-offset: initial;
+    }
   }
 
   &:where([disabled="true"]) {
@@ -47,4 +52,13 @@ button {
 .button-text {
   margin: 0;
   text-align: center;
+}
+
+/* ::::: menu buttons ::::: */
+
+.button-menu-dropmarker {
+  appearance: none;
+  content: url("chrome://global/skin/icons/arrow-down-12.svg");
+  -moz-context-properties: fill;
+  fill: currentColor;
 }

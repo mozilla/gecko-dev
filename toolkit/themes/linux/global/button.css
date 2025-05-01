@@ -1,0 +1,62 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+/* ===== button.css =====================================================
+  == Styles used by the XUL button element.
+  ======================================================================= */
+
+@namespace url("http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul");
+
+/* :::::::::: button :::::::::: */
+
+button {
+  margin: 1px 5px 2px;
+  min-width: 6.3em;
+  color: ButtonText;
+  text-shadow: none;
+}
+
+.button-text {
+  margin: 0;
+  margin-inline-start: 2px;
+  text-align: center;
+}
+
+/* .......... hover state .......... */
+
+button:where(:hover:not([checked="true"])) {
+  color: -moz-buttonhovertext;
+}
+
+/* .......... active state .......... */
+
+button:where(:hover:active, [open="true"]) {
+  color: -moz-buttonactivetext;
+}
+
+/* .......... disabled state .......... */
+
+button:where([disabled="true"]) {
+  color: GrayText;
+}
+
+/* .......... focused state .......... */
+
+button:where(:focus-visible) {
+  outline: auto;
+}
+
+/* ::::: menu buttons ::::: */
+
+.button-menu-dropmarker {
+  appearance: auto;
+  -moz-default-appearance: toolbarbutton-dropdown;
+}
+
+/* ::::: plain buttons ::::: */
+
+button.plain {
+  margin: 0 !important;
+  padding: 0 !important;
+}

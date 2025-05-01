@@ -696,7 +696,6 @@ nsresult nsLookAndFeel::PerThemeData::GetColor(ColorID aID,
     case ColorID::MozCombobox:
       aColor = mWindow.mBg;
       break;
-    case ColorID::MozComboboxtext:
     case ColorID::Windowtext:
       aColor = mWindow.mFg;
       break;
@@ -925,6 +924,9 @@ nsresult nsLookAndFeel::PerThemeData::GetColor(ColorID aID,
       break;
     case ColorID::Visitedtext:
       aColor = mNativeVisitedHyperLinkText;
+      break;
+    case ColorID::MozComboboxtext:
+      aColor = mComboBoxText;
       break;
     case ColorID::MozColheader:
       aColor = mMozColHeader.mBg;
@@ -2312,6 +2314,11 @@ void nsLookAndFeel::PerThemeData::Init() {
   if (!NS_GET_A(mButtonActive.mBg)) {
     mButtonActive.mBg = mWindow.mBg;
   }
+
+  // Combobox text color
+  style = GetStyleContext(MOZ_GTK_COMBOBOX_ENTRY_TEXTAREA);
+  gtk_style_context_get_color(style, GTK_STATE_FLAG_NORMAL, &color);
+  mComboBoxText = GDK_RGBA_TO_NS_RGBA(color);
 
   // GTK's guide to fancy odd row background colors:
   // 1) Check if a theme explicitly defines an odd row color

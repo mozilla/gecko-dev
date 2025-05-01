@@ -140,6 +140,10 @@ class nsLookAndFeel final : public nsXPLookAndFeel {
     nscolor mOddCellBackground = kWhite;
     nscolor mNativeHyperLinkText = kBlack;
     nscolor mNativeVisitedHyperLinkText = kBlack;
+    // FIXME: This doesn't seem like it'd be sound since we use Window for
+    // -moz-Combobox... But I guess we rely on chrome code not setting
+    // appearance: none on selects or overriding the color if they do.
+    nscolor mComboBoxText = kBlack;
     ColorPair mField;
     ColorPair mWindow;
     ColorPair mDialog;

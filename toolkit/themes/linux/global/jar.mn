@@ -6,6 +6,7 @@
 
 toolkit.jar:
    skin/classic/global/autocomplete.css
+   skin/classic/global/button.css
    skin/classic/global/global.css
    skin/classic/global/menulist.css
    skin/classic/global/richlistbox.css

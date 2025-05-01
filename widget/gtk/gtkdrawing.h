@@ -110,6 +110,12 @@ enum GtkTabFlags {
 enum WidgetNodeType : int {
   /* Paints a GtkButton. flags is a GtkReliefStyle. */
   MOZ_GTK_BUTTON,
+  /* Paints a button with image and no text */
+  MOZ_GTK_TOOLBAR_BUTTON,
+  /* Paints a toggle button */
+  MOZ_GTK_TOGGLE_BUTTON,
+  /* Paints a button arrow */
+  MOZ_GTK_BUTTON_ARROW,
 
   /* Vertical GtkScrollbar counterparts */
   MOZ_GTK_SCROLLBAR_VERTICAL,
@@ -128,6 +134,8 @@ enum WidgetNodeType : int {
   /* Paints a GtkScale thumb. */
   MOZ_GTK_SCALE_THUMB_HORIZONTAL,
   MOZ_GTK_SCALE_THUMB_VERTICAL,
+  /* Paints a GtkEntry. */
+  MOZ_GTK_ENTRY,
   /* Paints a GtkExpander. */
   MOZ_GTK_EXPANDER,
   /* Paints a GtkTextView or gets the style context corresponding to the
@@ -137,6 +145,10 @@ enum WidgetNodeType : int {
   MOZ_GTK_TEXT_VIEW_TEXT,
   /* The "selection" node of a GtkTextView.text */
   MOZ_GTK_TEXT_VIEW_TEXT_SELECTION,
+  /* Paints a GtkOptionMenu. */
+  MOZ_GTK_DROPDOWN,
+  /* Paints an entry in an editable option menu */
+  MOZ_GTK_DROPDOWN_ENTRY,
 
   /* Paints a GtkToolTip */
   MOZ_GTK_TOOLTIP,
@@ -207,6 +219,22 @@ enum WidgetNodeType : int {
   MOZ_GTK_HEADERBAR_FIXED_MAXIMIZED,
   /* Window container for all widgets */
   MOZ_GTK_WINDOW_CONTAINER,
+  /* Used for widget tree construction. */
+  MOZ_GTK_COMBOBOX,
+  /* Paints a GtkComboBox button widget. */
+  MOZ_GTK_COMBOBOX_BUTTON,
+  /* Paints a GtkComboBox arrow widget. */
+  MOZ_GTK_COMBOBOX_ARROW,
+  /* Paints a GtkComboBox separator widget. */
+  MOZ_GTK_COMBOBOX_SEPARATOR,
+  /* Used for widget tree construction. */
+  MOZ_GTK_COMBOBOX_ENTRY,
+  /* Paints a GtkComboBox entry widget. */
+  MOZ_GTK_COMBOBOX_ENTRY_TEXTAREA,
+  /* Paints a GtkComboBox entry button widget. */
+  MOZ_GTK_COMBOBOX_ENTRY_BUTTON,
+  /* Paints a GtkComboBox entry arrow widget. */
+  MOZ_GTK_COMBOBOX_ENTRY_ARROW,
   /* Used for scrolled window shell. */
   MOZ_GTK_SCROLLED_WINDOW,
   /* Paints a GtkHeaderBar */
@@ -350,6 +378,16 @@ gint moz_gtk_get_scalethumb_metrics(GtkOrientation orient, gint* thumb_length,
  * returns:    MOZ_GTK_SUCCESS if there was no error, an error code otherwise
  */
 gint moz_gtk_get_tab_scroll_arrow_size(gint* width, gint* height);
+
+/**
+ * Get the desired size of an arrow in a button
+ *
+ * widgetType: [IN]  the widget for which to get the arrow size
+ * width:      [OUT] the desired width
+ * height:     [OUT] the desired height
+ */
+void moz_gtk_get_arrow_size(WidgetNodeType widgetType, gint* width,
+                            gint* height);
 
 /**
  * Get the minimum height of a entry widget

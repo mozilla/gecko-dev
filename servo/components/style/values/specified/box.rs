@@ -1498,6 +1498,18 @@ pub enum Appearance {
     Textfield,
     /// The dropdown button(s) that open up a dropdown list.
     MenulistButton,
+    /// Various arrows that go in buttons
+    #[parse(condition = "ParserContext::chrome_rules_enabled")]
+    ButtonArrowDown,
+    #[parse(condition = "ParserContext::chrome_rules_enabled")]
+    ButtonArrowNext,
+    #[parse(condition = "ParserContext::chrome_rules_enabled")]
+    ButtonArrowPrevious,
+    #[parse(condition = "ParserContext::chrome_rules_enabled")]
+    ButtonArrowUp,
+    /// A dual toolbar button (e.g., a Back button with a dropdown)
+    #[parse(condition = "ParserContext::chrome_rules_enabled")]
+    Dualbutton,
     /// Menu Popup background.
     #[parse(condition = "ParserContext::chrome_rules_enabled")]
     Menupopup,
@@ -1572,6 +1584,9 @@ pub enum Appearance {
     /// A single toolbar button (with no associated dropdown).
     #[parse(condition = "ParserContext::chrome_rules_enabled")]
     Toolbarbutton,
+    /// The dropdown portion of a toolbar button
+    #[parse(condition = "ParserContext::chrome_rules_enabled")]
+    ToolbarbuttonDropdown,
     /// A tooltip.
     #[parse(condition = "ParserContext::chrome_rules_enabled")]
     Tooltip,
