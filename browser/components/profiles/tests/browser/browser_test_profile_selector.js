@@ -208,3 +208,274 @@ add_task(async function test_selector_window() {
 
   await closed;
 });
+
+add_task(async function test_selector_window_launch_profile_with_keyboard() {
+  await initGroupDatabase();
+  let profile = SelectableProfileService.currentProfile;
+
+  let cuiTestUtils = new CustomizableUITestUtils(window);
+
+  for (let key of ["KEY_Enter", " "]) {
+    info(`Running test with key: ${key === " " ? "Space" : key}`);
+    await cuiTestUtils.openMainMenu();
+
+    let profilesButton = PanelMultiView.getViewNode(
+      document,
+      "appMenu-profiles-button"
+    );
+    let subview = PanelMultiView.getViewNode(document, "PanelUI-profiles");
+
+    let viewShown = BrowserTestUtils.waitForEvent(subview, "ViewShown");
+    profilesButton.click();
+    await viewShown;
+
+    let manageButton = PanelMultiView.getViewNode(
+      document,
+      "profiles-manage-profiles-button"
+    );
+
+    let windowOpened = BrowserTestUtils.domWindowOpenedAndLoaded();
+
+    await cuiTestUtils.hidePanelMultiView(cuiTestUtils.PanelUI.panel, () =>
+      manageButton.click()
+    );
+
+    let dialog = await windowOpened;
+    await promiseFocus(dialog);
+    Assert.equal(dialog.location, "about:profilemanager");
+
+    let deactivated = BrowserTestUtils.waitForEvent(dialog, "deactivate");
+    await SimpleTest.promiseFocus(window);
+    await deactivated;
+
+    await cuiTestUtils.openMainMenu();
+    viewShown = BrowserTestUtils.waitForEvent(subview, "ViewShown");
+    profilesButton.click();
+    await viewShown;
+
+    let activated = promiseFocus(dialog);
+    await cuiTestUtils.hidePanelMultiView(cuiTestUtils.PanelUI.panel, () =>
+      manageButton.click()
+    );
+    await activated;
+
+    let closed = BrowserTestUtils.domWindowClosed(dialog);
+
+    const profileSelector = dialog.document.querySelector("profile-selector");
+    await profileSelector.updateComplete;
+
+    sendCommandLine.resetHistory();
+
+    let profileCard = profileSelector.profileCards[0].profileCard;
+    // Focus the profile card
+    profileCard.focus({ focusVisible: true });
+    await TestUtils.waitForCondition(
+      () => profileCard === Services.focus.focusedElement
+    );
+
+    EventUtils.synthesizeKey(key, {}, dialog);
+
+    let expected = ["--profiles-activate"];
+
+    Assert.equal(
+      sendCommandLine.callCount,
+      1,
+      "Should have attempted to remote to one instance"
+    );
+    Assert.deepEqual(
+      sendCommandLine.firstCall.args,
+      [profile.path, expected, true],
+      "Expected sendCommandLine arguments"
+    );
+
+    expected.unshift("--profile", profile.path);
+
+    if (Services.appinfo.OS === "Darwin") {
+      expected.unshift("-foreground");
+    }
+
+    await closed;
+  }
+});
+
+add_task(
+  async function test_selector_window_launch_edit_profile_with_keyboard() {
+    await initGroupDatabase();
+    let profile = SelectableProfileService.currentProfile;
+
+    let cuiTestUtils = new CustomizableUITestUtils(window);
+
+    for (let key of ["KEY_Enter", " "]) {
+      info(`Running test with key: ${key === " " ? "Space" : key}`);
+      await cuiTestUtils.openMainMenu();
+
+      let profilesButton = PanelMultiView.getViewNode(
+        document,
+        "appMenu-profiles-button"
+      );
+      let subview = PanelMultiView.getViewNode(document, "PanelUI-profiles");
+
+      let viewShown = BrowserTestUtils.waitForEvent(subview, "ViewShown");
+      profilesButton.click();
+      await viewShown;
+
+      let manageButton = PanelMultiView.getViewNode(
+        document,
+        "profiles-manage-profiles-button"
+      );
+
+      let windowOpened = BrowserTestUtils.domWindowOpenedAndLoaded();
+
+      await cuiTestUtils.hidePanelMultiView(cuiTestUtils.PanelUI.panel, () =>
+        manageButton.click()
+      );
+
+      let dialog = await windowOpened;
+      await promiseFocus(dialog);
+      Assert.equal(dialog.location, "about:profilemanager");
+
+      let deactivated = BrowserTestUtils.waitForEvent(dialog, "deactivate");
+      await SimpleTest.promiseFocus(window);
+      await deactivated;
+
+      await cuiTestUtils.openMainMenu();
+      viewShown = BrowserTestUtils.waitForEvent(subview, "ViewShown");
+      profilesButton.click();
+      await viewShown;
+
+      let activated = promiseFocus(dialog);
+      await cuiTestUtils.hidePanelMultiView(cuiTestUtils.PanelUI.panel, () =>
+        manageButton.click()
+      );
+      await activated;
+
+      let closed = BrowserTestUtils.domWindowClosed(dialog);
+
+      const profileSelector = dialog.document.querySelector("profile-selector");
+      await profileSelector.updateComplete;
+
+      sendCommandLine.resetHistory();
+
+      let editButton = profileSelector.profileCards[0].editButton;
+      // Focus the profile card edit button
+      editButton.focus({ focusVisible: true });
+      await TestUtils.waitForCondition(
+        () => "button" === Services.focus.focusedElement.localName
+      );
+
+      EventUtils.synthesizeKey(key, {}, dialog);
+
+      let expected = ["-url", "about:editprofile"];
+
+      Assert.equal(
+        sendCommandLine.callCount,
+        1,
+        "Should have attempted to remote to one instance"
+      );
+      Assert.deepEqual(
+        sendCommandLine.firstCall.args,
+        [profile.path, expected, true],
+        "Expected sendCommandLine arguments"
+      );
+
+      expected.unshift("--profile", profile.path);
+
+      if (Services.appinfo.OS === "Darwin") {
+        expected.unshift("-foreground");
+      }
+
+      await closed;
+    }
+  }
+);
+
+add_task(
+  async function test_selector_window_launch_delete_profile_with_keyboard() {
+    await initGroupDatabase();
+    let profile = SelectableProfileService.currentProfile;
+
+    let cuiTestUtils = new CustomizableUITestUtils(window);
+
+    for (let key of ["KEY_Enter", " "]) {
+      info(`Running test with key: ${key === " " ? "Space" : key}`);
+      await cuiTestUtils.openMainMenu();
+
+      let profilesButton = PanelMultiView.getViewNode(
+        document,
+        "appMenu-profiles-button"
+      );
+      let subview = PanelMultiView.getViewNode(document, "PanelUI-profiles");
+
+      let viewShown = BrowserTestUtils.waitForEvent(subview, "ViewShown");
+      profilesButton.click();
+      await viewShown;
+
+      let manageButton = PanelMultiView.getViewNode(
+        document,
+        "profiles-manage-profiles-button"
+      );
+
+      let windowOpened = BrowserTestUtils.domWindowOpenedAndLoaded();
+
+      await cuiTestUtils.hidePanelMultiView(cuiTestUtils.PanelUI.panel, () =>
+        manageButton.click()
+      );
+
+      let dialog = await windowOpened;
+      await promiseFocus(dialog);
+      Assert.equal(dialog.location, "about:profilemanager");
+
+      let deactivated = BrowserTestUtils.waitForEvent(dialog, "deactivate");
+      await SimpleTest.promiseFocus(window);
+      await deactivated;
+
+      await cuiTestUtils.openMainMenu();
+      viewShown = BrowserTestUtils.waitForEvent(subview, "ViewShown");
+      profilesButton.click();
+      await viewShown;
+
+      let activated = promiseFocus(dialog);
+      await cuiTestUtils.hidePanelMultiView(cuiTestUtils.PanelUI.panel, () =>
+        manageButton.click()
+      );
+      await activated;
+
+      let closed = BrowserTestUtils.domWindowClosed(dialog);
+
+      const profileSelector = dialog.document.querySelector("profile-selector");
+      await profileSelector.updateComplete;
+
+      sendCommandLine.resetHistory();
+
+      let deleteButton = profileSelector.profileCards[0].deleteButton;
+      // Focus the profile card delete button
+      deleteButton.focus({ focusVisible: true });
+      await TestUtils.waitForCondition(
+        () => "button" === Services.focus.focusedElement.localName
+      );
+
+      EventUtils.synthesizeKey(key, {}, dialog);
+
+      let expected = ["-url", "about:deleteprofile"];
+
+      Assert.equal(
+        sendCommandLine.callCount,
+        1,
+        "Should have attempted to remote to one instance"
+      );
+      Assert.deepEqual(
+        sendCommandLine.firstCall.args,
+        [profile.path, expected, true],
+        "Expected sendCommandLine arguments"
+      );
+
+      expected.unshift("--profile", profile.path);
+
+      if (Services.appinfo.OS === "Darwin") {
+        expected.unshift("-foreground");
+      }
+
+      await closed;
+    }
+  }
+);
