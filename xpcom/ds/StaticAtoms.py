@@ -250,7 +250,6 @@ STATIC_ATOMS = [
     Atom("clip", "clip"),
     Atom("close", "close"),
     Atom("closed", "closed"),
-    Atom("closedby", "closedby"),
     Atom("closemenu", "closemenu"),
     Atom("code", "code"),
     Atom("codebase", "codebase"),

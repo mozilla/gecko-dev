@@ -17,13 +17,6 @@ namespace mozilla::dom {
 
 class HTMLDialogElement final : public nsGenericHTMLElement {
  public:
-  enum class ClosedBy : uint8_t {
-    Auto,
-    None,
-    Any,
-    CloseRequest,
-  };
-
   explicit HTMLDialogElement(
       already_AddRefed<mozilla::dom::NodeInfo>&& aNodeInfo)
       : nsGenericHTMLElement(std::move(aNodeInfo)),
@@ -32,19 +25,6 @@ class HTMLDialogElement final : public nsGenericHTMLElement {
   NS_IMPL_FROMNODE_HTML_WITH_TAG(HTMLDialogElement, dialog)
 
   nsresult Clone(dom::NodeInfo* aNodeInfo, nsINode** aResult) const override;
-
-  ClosedBy GetClosedBy() const;
-  void GetClosedBy(nsAString& aValue) const;
-  void SetClosedBy(const nsAString& aClosedby, ErrorResult& aError) {
-    SetHTMLAttr(nsGkAtoms::closedby, aClosedby, aError);
-  }
-  bool ParseClosedByAttribute(const nsAString& aValue, nsAttrValue& aResult);
-
-  // nsIContent
-  bool ParseAttribute(int32_t aNamespaceID, nsAtom* aAttribute,
-                      const nsAString& aValue,
-                      nsIPrincipal* aMaybeScriptedPrincipal,
-                      nsAttrValue& aResult) override;
 
   bool Open() const { return GetBoolAttr(nsGkAtoms::open); }
   void SetOpen(bool aOpen, ErrorResult& aError) {
@@ -61,7 +41,6 @@ class HTMLDialogElement final : public nsGenericHTMLElement {
     mRequestCloseReturnValue = aReturnValue;
   }
 
-  nsresult BindToTree(BindContext&, nsINode&) override;
   void UnbindFromTree(UnbindContext&) override;
 
   MOZ_CAN_RUN_SCRIPT_BOUNDARY void Close(
@@ -104,11 +83,7 @@ class HTMLDialogElement final : public nsGenericHTMLElement {
   void RemoveFromTopLayerIfNeeded();
   void StorePreviouslyFocusedElement();
   MOZ_CAN_RUN_SCRIPT_BOUNDARY void QueueToggleEventTask();
-  void SetDialogCloseWatcherIfNeeded();
-  void SetCloseWatcherEnabledState();
-
-  void SetupSteps();
-  void CleanupSteps();
+  void SetDialogCloseWatcher();
 
   nsWeakPtr mPreviouslyFocusedElement;
 

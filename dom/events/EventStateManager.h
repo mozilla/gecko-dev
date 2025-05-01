@@ -1313,12 +1313,6 @@ class EventStateManager : public nsSupportsWeakReference, public nsIObserver {
   MOZ_CAN_RUN_SCRIPT void LightDismissOpenPopovers(WidgetEvent* aEvent,
                                                    nsIContent* aTargetContent);
 
-  /**
-   * https://html.spec.whatwg.org/multipage/interactive-elements.html#light-dismiss-open-dialogs
-   */
-  MOZ_CAN_RUN_SCRIPT void LightDismissOpenDialogs(WidgetEvent* aEvent,
-                                                  nsIContent* aTargetContent);
-
   already_AddRefed<EventStateManager> ESMFromContentOrThis(
       nsIContent* aContent);
 
