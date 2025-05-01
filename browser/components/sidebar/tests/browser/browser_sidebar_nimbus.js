@@ -1,7 +1,7 @@
 /* Any copyright is dedicated to the Public Domain.
    https://creativecommons.org/publicdomain/zero/1.0/ */
 
-const { ExperimentFakes } = ChromeUtils.importESModule(
+const { NimbusTestUtils } = ChromeUtils.importESModule(
   "resource://testing-common/NimbusTestUtils.sys.mjs"
 );
 
@@ -17,7 +17,7 @@ add_task(async function test_nimbus_user_prefs() {
     "No user nimbus pref yet"
   );
 
-  let cleanup = await ExperimentFakes.enrollWithFeatureConfig({
+  let cleanup = await NimbusTestUtils.enrollWithFeatureConfig({
     featureId: "sidebar",
     value: {
       verticalTabs: true,
@@ -46,7 +46,7 @@ add_task(async function test_nimbus_rollout_experiment() {
   const nimbus = "sidebar.nimbus";
   await SpecialPowers.pushPrefEnv({ clear: [[revamp]] });
 
-  const cleanRollout = await ExperimentFakes.enrollWithFeatureConfig(
+  const cleanRollout = await NimbusTestUtils.enrollWithFeatureConfig(
     {
       featureId: "sidebar",
       value: { revamp: true },
@@ -58,7 +58,7 @@ add_task(async function test_nimbus_rollout_experiment() {
   const nimbusValue = Services.prefs.getStringPref(nimbus);
   Assert.ok(nimbusValue, "Set some nimbus slug");
 
-  const cleanExperiment = await ExperimentFakes.enrollWithFeatureConfig({
+  const cleanExperiment = await NimbusTestUtils.enrollWithFeatureConfig({
     featureId: "sidebar",
     value: { revamp: false },
   });
@@ -85,19 +85,11 @@ add_task(async function test_nimbus_multi_feature() {
   const chatbot = "browser.ml.chat.test";
   Assert.ok(!Services.prefs.prefHasUserValue(chatbot), "chatbot is default");
 
-  const cleanup = await ExperimentFakes.enrollmentHelper(
-    ExperimentFakes.recipe("foo", {
-      branches: [
-        {
-          slug: "variant",
-          features: [
-            {
-              featureId: "chatbot",
-              value: { prefs: { test: { value: true } } },
-            },
-          ],
-        },
-      ],
+  const cleanup = await NimbusTestUtils.enroll(
+    NimbusTestUtils.factories.recipe.withFeatureConfig("foo", {
+      branchSlug: "variant",
+      featureId: "chatbot",
+      value: { prefs: { test: { value: true } } },
     })
   );
 
@@ -119,7 +111,7 @@ add_task(async function test_nimbus_minimum_version() {
   const revamp = "sidebar.revamp";
   const nimbus = "sidebar.nimbus";
   await SpecialPowers.pushPrefEnv({ clear: [[revamp]] });
-  let cleanup = await ExperimentFakes.enrollWithFeatureConfig({
+  let cleanup = await NimbusTestUtils.enrollWithFeatureConfig({
     featureId: "sidebar",
     value: {
       minVersion: AppConstants.MOZ_APP_VERSION_DISPLAY + ".1",
@@ -135,7 +127,7 @@ add_task(async function test_nimbus_minimum_version() {
 
   cleanup();
 
-  cleanup = await ExperimentFakes.enrollWithFeatureConfig({
+  cleanup = await NimbusTestUtils.enrollWithFeatureConfig({
     featureId: "sidebar",
     value: {
       minVersion: AppConstants.MOZ_APP_VERSION_DISPLAY,
