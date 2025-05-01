@@ -14,44 +14,39 @@ button {
   margin: 1px 5px 2px;
   min-width: 6.3em;
   color: ButtonText;
+  background-color: ButtonFace;
   text-shadow: none;
+  border: 1px solid ThreeDLightShadow;
+  padding: 2px 3px;
+
+  &:where(:hover:not([checked="true"])) {
+    background-color: -moz-buttonhoverface;
+    color: -moz-buttonhovertext;
+  }
+
+  &:where(:hover:active, [open="true"]) {
+    background-color: -moz-buttonactiveface;
+    color: -moz-buttonactivetext;
+  }
+
+  &:where([disabled="true"]) {
+    color: GrayText;
+    background-color: ButtonFace;
+  }
+
+  &:where(:focus-visible) {
+    outline: auto;
+  }
+
+  &.plain {
+    margin: 0 !important;
+    padding: 0 !important;
+  }
 }
 
 .button-text {
   margin: 0;
-  margin-inline-start: 2px;
   text-align: center;
-}
-
-/* .......... hover state .......... */
-
-button:where(:hover:not([checked="true"])) {
-  color: -moz-buttonhovertext;
-}
-
-/* .......... active state .......... */
-
-button:where(:hover:active, [open="true"]) {
-  color: -moz-buttonactivetext;
-}
-
-/* .......... disabled state .......... */
-
-button:where([disabled="true"]) {
-  color: GrayText;
-}
-
-/* .......... focused state .......... */
-
-button:where(:focus-visible) {
-  outline: auto;
-}
-
-/* ::::: menu buttons ::::: */
-
-.button-menu-dropmarker {
-  appearance: auto;
-  -moz-default-appearance: toolbarbutton-dropdown;
 }
 
 /* ::::: plain buttons ::::: */

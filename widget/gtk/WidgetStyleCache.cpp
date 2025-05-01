@@ -108,44 +108,6 @@ static GtkWidget* CreateButtonWidget() {
   return widget;
 }
 
-static GtkWidget* CreateToggleButtonWidget() {
-  GtkWidget* widget = gtk_toggle_button_new();
-  AddToWindowContainer(widget);
-  return widget;
-}
-
-static GtkWidget* CreateButtonArrowWidget() {
-  GtkWidget* widget = gtk_arrow_new(GTK_ARROW_DOWN, GTK_SHADOW_OUT);
-  gtk_container_add(GTK_CONTAINER(GetWidget(MOZ_GTK_TOGGLE_BUTTON)), widget);
-  gtk_widget_show(widget);
-  return widget;
-}
-
-static GtkWidget* CreateComboBoxWidget() {
-  GtkWidget* widget = gtk_combo_box_new();
-  AddToWindowContainer(widget);
-  return widget;
-}
-
-typedef struct {
-  GType type;
-  GtkWidget** widget;
-} GtkInnerWidgetInfo;
-
-static void GetInnerWidget(GtkWidget* widget, gpointer client_data) {
-  auto info = static_cast<GtkInnerWidgetInfo*>(client_data);
-
-  if (G_TYPE_CHECK_INSTANCE_TYPE(widget, info->type)) {
-    *info->widget = widget;
-  }
-}
-
-static GtkWidget* CreateComboBoxEntryWidget() {
-  GtkWidget* widget = gtk_combo_box_new_with_entry();
-  AddToWindowContainer(widget);
-  return widget;
-}
-
 static GtkWidget* CreateScrolledWindowWidget() {
   GtkWidget* widget = gtk_scrolled_window_new(nullptr, nullptr);
   AddToWindowContainer(widget);
@@ -508,10 +470,6 @@ static GtkWidget* CreateWidget(WidgetNodeType aAppearance) {
       return CreateFrameWidget();
     case MOZ_GTK_BUTTON:
       return CreateButtonWidget();
-    case MOZ_GTK_TOGGLE_BUTTON:
-      return CreateToggleButtonWidget();
-    case MOZ_GTK_BUTTON_ARROW:
-      return CreateButtonArrowWidget();
     case MOZ_GTK_SCROLLED_WINDOW:
       return CreateScrolledWindowWidget();
     case MOZ_GTK_TREEVIEW:
