@@ -10,22 +10,34 @@ class TestApplyUpdate(MarionetteTestCase):
         self.about_fx_url = "chrome://browser/content/aboutDialog.xhtml"
 
     def test_update_is_applied(self):
-        # self.marionette.quit()
         self.marionette.set_pref("app.update.disabledForTesting", False)
+        self.marionette.set_pref("remote.system-access-check.enabled", False)
         self.marionette.set_pref("app.update.log", True)
+        self.marionette.set_pref("remote.log.level", "Trace")
         self.marionette.navigate(self.about_fx_url)
+        self.marionette.set_context(self.marionette.CONTEXT_CONTENT)
 
-        wait = Wait(self.marionette)
-        wait_long = Wait(self.marionette, timeout=200)
-
-        wait.until(expected.element_displayed(By.ID, "downloadAndInstallButton"))
+        Wait(self.marionette, timeout=10).until(
+            expected.element_displayed(By.ID, "downloadAndInstallButton")
+        )
         self.marionette.find_element(By.ID, "downloadAndInstallButton").click()
-        wait_long.until(expected.element_displayed(By.ID, "updateButton"))
-        self.marionette.restart()
+
+        Wait(self.marionette, timeout=200).until(
+            expected.element_displayed(By.ID, "updateButton")
+        )
+
+        self.marionette.restart(
+            callback=lambda: self.marionette.find_element(By.ID, "updateButton").click()
+        )
 
         self.marionette.set_pref("app.update.disabledForTesting", False)
+        self.marionette.set_pref("remote.system-access-check.enabled", False)
+        self.marionette.set_pref("app.update.log", True)
+        self.marionette.set_pref("remote.log.level", "Trace")
         self.marionette.navigate(self.about_fx_url)
-        wait_long.until(expected.element_displayed(By.ID, "noUpdatesFound"))
+        Wait(self.marionette, timeout=200).until(
+            expected.element_displayed(By.ID, "noUpdatesFound")
+        )
 
     def tearDown(self):
         MarionetteTestCase.tearDown(self)
