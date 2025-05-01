@@ -53,7 +53,7 @@ the interactive setup process.
 
     curl -L https://raw.githubusercontent.com/mozilla-firefox/firefox/refs/heads/main/python/mozboot/bin/bootstrap.py
 
-    python3 bootstrap.py --vcs=git
+    python3 bootstrap.py
 
 Choosing a build type
 ~~~~~~~~~~~~~~~~~~~~~

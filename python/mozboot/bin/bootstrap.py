@@ -41,7 +41,9 @@ WINDOWS = sys.platform.startswith("win32") or sys.platform.startswith("msys")
 VCS_HUMAN_READABLE = {
     "hg": "Mercurial",
     "git": "Git",
+    "git-cinnabar": "Git",
 }
+GIT_REPO = "https://github.com/mozilla-firefox/firefox"
 
 
 def which(name):
@@ -166,7 +168,42 @@ def hg_clone_firefox(hg: Path, dest: Path, head_repo, head_rev):
     return dest
 
 
-def git_clone_firefox(git: Path, dest: Path, watchman: Path, head_repo, head_rev):
+def git_clone_firefox(git: Path, dest: Path, head_repo, head_rev):
+    if head_repo and "hg.mozilla.org" in head_repo:
+        print("GECKO_HEAD_REPOSITORY cannot be a Mercurial repository when using Git")
+        return None
+
+    subprocess.check_call(
+        [
+            str(git),
+            "clone",
+            "-n",
+            GIT_REPO,
+            str(dest),
+        ],
+    )
+    subprocess.check_call([str(git), "config", "pull.ff", "only"], cwd=str(dest))
+
+    if head_repo:
+        subprocess.check_call(
+            [str(git), "fetch", head_repo, head_rev],
+            cwd=str(dest),
+        )
+
+    subprocess.check_call(
+        [
+            str(git),
+            "checkout",
+            "FETCH_HEAD" if head_rev else "main",
+            "--",
+        ],
+        cwd=str(dest),
+    )
+
+    return dest
+
+
+def git_cinnabar_clone_firefox(git: Path, dest: Path, head_repo, head_rev):
     tempdir = None
     cinnabar = None
     env = dict(os.environ)
@@ -207,7 +244,7 @@ def git_clone_firefox(git: Path, dest: Path, watchman: Path, head_repo, head_rev
                 "-c",
                 "fetch.prune=true",
                 "-c",
-                "cinnabar.graft=https://github.com/mozilla-firefox/firefox",
+                f"cinnabar.graft={GIT_REPO}",
                 "-c",
                 "cinnabar.refs=bookmarks",
                 "-c",
@@ -334,7 +371,7 @@ def clone(options):
             return None
         binary = hg
     else:
-        binary = which(vcs)
+        binary = which("git")
         if not binary:
             print("Git is not installed.")
             print("Try installing git using your system package manager.")
@@ -353,9 +390,10 @@ def clone(options):
 
     if vcs == "hg":
         return hg_clone_firefox(binary, dest, head_repo, head_rev)
+    elif vcs == "git-cinnabar":
+        return git_cinnabar_clone_firefox(binary, dest, head_repo, head_rev)
     else:
-        watchman = which("watchman")
-        return git_clone_firefox(binary, dest, watchman, head_repo, head_rev)
+        return git_clone_firefox(binary, dest, head_repo, head_rev)
 
 
 def bootstrap(srcdir: Path, application_choice, no_interactive, no_system_changes):
@@ -389,8 +427,8 @@ def main(args):
     parser.add_option(
         "--vcs",
         dest="vcs",
-        default="hg",
-        choices=["git", "hg"],
+        default="git",
+        choices=["git", "git-cinnabar", "hg"],
         help="VCS (hg or git) to use for downloading the source code, "
         "instead of using the default interactive prompt.",
     )

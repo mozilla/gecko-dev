@@ -72,10 +72,6 @@ the interactive setup process.
     cd mozilla-source
     wget https://hg.mozilla.org/mozilla-central/raw-file/default/python/mozboot/bin/bootstrap.py
 
-    # To use Git as your VCS
-    python3 bootstrap.py --vcs=git
-
-    # To use Mercurial as your VCS
     python3 bootstrap.py
 .. note::
 
@@ -84,17 +80,6 @@ the interactive setup process.
     necessary to add the Microsoft Defender Antivirus exclusions automatically. You
     should select ``Yes`` on the UAC prompt, otherwise you will need
     to :ref:`follow some manual steps below <Ensure antivirus exclusions>`.
-
-.. note::
-
-    To use ``git``, you can grab the source code in "git" form by running the
-    bootstrap script with the ``vcs`` parameter:
-
-    .. code-block:: shell
-
-        python3 bootstrap.py --vcs=git
-
-    This uses `Git Cinnabar <https://github.com/glandium/git-cinnabar/>`_ under the hood.
 
 Choosing a build type
 ~~~~~~~~~~~~~~~~~~~~~

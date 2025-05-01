@@ -48,18 +48,7 @@ the interactive setup process.
 .. code-block:: shell
 
     curl -L https://hg.mozilla.org/mozilla-central/raw-file/default/python/mozboot/bin/bootstrap.py -O
-    python3 bootstrap.py --vcs=git
-
-.. note::
-
-    To use ``git``, you can grab the source code in "git" form by running the
-    bootstrap script with the ``vcs`` parameter:
-
-    .. code-block:: shell
-
-         python3 bootstrap.py --vcs=git
-
-    This uses `Git Cinnabar <https://github.com/glandium/git-cinnabar/>`_ under the hood.
+    python3 bootstrap.py
 
 Choosing a build type
 ~~~~~~~~~~~~~~~~~~~~~
