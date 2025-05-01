@@ -697,9 +697,17 @@ open class HomeActivity : LocaleAwareAppCompatActivity(), NavHostActivity {
         val hasPrivateTabs = components.core.store.state.privateTabs.isNotEmpty()
         val biometricLockEnabled = settings().privateBrowsingLockedEnabled
         val isPrivateMode = browsingModeManager.mode.isPrivate
-        val isScreenBlocked = settings().isPrivateScreenBlocked
+        val isPrivateScreenLocked = settings().isPrivateScreenLocked
 
-        return isPrivateMode && hasPrivateTabs && biometricLockEnabled && isScreenBlocked
+        return isPrivateMode && hasPrivateTabs && biometricLockEnabled && isPrivateScreenLocked
+    }
+
+    override fun onRestart() {
+        super.onRestart()
+
+        if (browsingModeManager.mode.isPrivate && components.core.store.state.privateTabs.isNotEmpty()) {
+            settings().isPrivateScreenLocked = true
+        }
     }
 
     final override fun onStart() {
@@ -727,8 +735,6 @@ open class HomeActivity : LocaleAwareAppCompatActivity(), NavHostActivity {
         val startTimeProfiler = components.core.engine.profiler?.getProfilerTime()
 
         super.onStop()
-
-        settings().isPrivateScreenBlocked = true
 
         // Diagnostic breadcrumb for "Display already aquired" crash:
         // https://github.com/mozilla-mobile/android-components/issues/7960

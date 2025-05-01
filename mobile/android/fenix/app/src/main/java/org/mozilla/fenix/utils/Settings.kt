@@ -336,7 +336,7 @@ class Settings(private val appContext: Context) : PreferencesHolder {
         default = false,
     )
 
-    var isPrivateScreenBlocked by booleanPreference(
+    var isPrivateScreenLocked by booleanPreference(
         appContext.getPreferenceKey(R.string.pref_key_private_screen_locked),
         default = false,
     )

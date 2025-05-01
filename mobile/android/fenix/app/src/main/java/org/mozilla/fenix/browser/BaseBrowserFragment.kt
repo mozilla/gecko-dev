@@ -428,6 +428,10 @@ abstract class BaseBrowserFragment :
         val originalContext = ActivityContextWrapper.getOriginalContext(activity)
         binding.engineView.setActivityContext(originalContext)
 
+        if (!activity.browsingModeManager.mode.isPrivate && requireContext().settings().openPrivateTabsCount > 0) {
+            requireContext().settings().isPrivateScreenLocked = true
+        }
+
         startForResult = registerForActivityResult { result ->
             listOf(
                 promptsFeature,
@@ -2683,8 +2687,6 @@ abstract class BaseBrowserFragment :
         _browserToolbarView = null
         _browserToolbarInteractor = null
         _binding = null
-
-        requireContext().settings().isPrivateScreenBlocked = false
     }
 
     override fun onAttach(context: Context) {
