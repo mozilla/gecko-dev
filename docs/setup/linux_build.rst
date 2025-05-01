@@ -69,7 +69,7 @@ Now that your system is bootstrapped, you should be able to build!
 
 .. code-block:: shell
 
-    cd mozilla-unified
+    cd firefox
     git pull
     ./mach build
 
