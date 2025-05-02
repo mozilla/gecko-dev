@@ -651,8 +651,14 @@ class PeerConnectionIntegrationWrapper : public PeerConnectionObserver,
     return event_log_factory_;
   }
 
-  const cricket::Candidate& last_candidate_gathered() const {
-    return last_candidate_gathered_;
+  cricket::Candidate last_candidate_gathered() const {
+    if (last_gathered_ice_candidate_) {
+      return last_gathered_ice_candidate_->candidate();
+    }
+    return cricket::Candidate();
+  }
+  const IceCandidateInterface* last_gathered_ice_candidate() const {
+    return last_gathered_ice_candidate_.get();
   }
   const cricket::IceCandidateErrorEvent& error_event() const {
     return error_event_;
@@ -875,8 +881,12 @@ class PeerConnectionIntegrationWrapper : public PeerConnectionObserver,
         CreateSessionDescription(type, msg);
     if (received_sdp_munger_) {
       received_sdp_munger_(desc);
+      if (!desc) {
+        // Answer was "taken" by munger...so that it can be applied later ?
+        RTC_LOG(LS_INFO) << debug_name_ << ": answer NOT applied";
+        return;
+      }
     }
-
     EXPECT_TRUE(SetRemoteDescription(std::move(desc)));
     // Set the RtpReceiverObserver after receivers are created.
     ResetRtpReceiverObservers();
@@ -1103,7 +1113,9 @@ class PeerConnectionIntegrationWrapper : public PeerConnectionObserver,
       return;
     }
     SendIceMessage(candidate->sdp_mid(), candidate->sdp_mline_index(), ice_sdp);
-    last_candidate_gathered_ = candidate->candidate();
+    last_gathered_ice_candidate_ =
+        CreateIceCandidate(candidate->sdp_mid(), candidate->sdp_mline_index(),
+                           candidate->candidate());
   }
 
   void OnIceCandidateError(const std::string& address,
@@ -1155,7 +1167,7 @@ class PeerConnectionIntegrationWrapper : public PeerConnectionObserver,
   SignalingMessageReceiver* signaling_message_receiver_ = nullptr;
   int signaling_delay_ms_ = 0;
   bool signal_ice_candidates_ = true;
-  cricket::Candidate last_candidate_gathered_;
+  std::unique_ptr<IceCandidateInterface> last_gathered_ice_candidate_;
   cricket::IceCandidateErrorEvent error_event_;
 
   // Store references to the video sources we've created, so that we can stop
