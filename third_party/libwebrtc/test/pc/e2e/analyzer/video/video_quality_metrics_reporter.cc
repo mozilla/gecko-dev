@@ -84,7 +84,7 @@ void VideoQualityMetricsReporter::OnStatsReports(
     if (!s->kind.has_value() || *s->kind != "video") {
       continue;
     }
-    sample.scalability_mode = s->scalability_mode;
+    sample.scalability_modes.push_back(s->scalability_mode);
     if (s->timestamp() > sample.sample_time) {
       sample.sample_time = s->timestamp();
     }
@@ -105,7 +105,7 @@ void VideoQualityMetricsReporter::OnStatsReports(
   }
 
   StatsSample prev_sample = last_stats_sample_[std::string(pc_label)];
-  if (prev_sample.scalability_mode != sample.scalability_mode) {
+  if (prev_sample.scalability_modes != sample.scalability_modes) {
     // Counters are reset when the scalability mode changes.
     prev_sample.bytes_sent = DataSize::Zero();
     prev_sample.header_bytes_sent = DataSize::Zero();

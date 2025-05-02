@@ -14,6 +14,7 @@
 #include <map>
 #include <optional>
 #include <string>
+#include <vector>
 
 #include "absl/strings/string_view.h"
 #include "api/numerics/samples_stats_counter.h"
@@ -53,7 +54,7 @@ class VideoQualityMetricsReporter
 
  private:
   struct StatsSample {
-    std::optional<std::string> scalability_mode;
+    std::vector<std::optional<std::string>> scalability_modes;
     DataSize bytes_sent = DataSize::Zero();
     DataSize header_bytes_sent = DataSize::Zero();
     DataSize retransmitted_bytes_sent = DataSize::Zero();
