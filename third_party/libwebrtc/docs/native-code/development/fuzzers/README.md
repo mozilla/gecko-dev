@@ -14,7 +14,7 @@ You will also need to download libfuzzer specific libraries, which are not downl
 ## Compiling locally
 To build the fuzzers residing in the [test/fuzzers][fuzzers] directory, use
 ```
-$ gn gen out/fuzzers --args='use_libfuzzer=true optimize_for_fuzzing=true'
+$ gn gen out/fuzzers --args='enable_rust = true enable_rust_cxx = true optimize_for_fuzzing = true use_fuzztest_wrapper = true use_libfuzzer = true'
 ```
 Depending on the fuzzer additional arguments like `is_asan`, `is_msan` or `is_ubsan_security` might be required.
 
