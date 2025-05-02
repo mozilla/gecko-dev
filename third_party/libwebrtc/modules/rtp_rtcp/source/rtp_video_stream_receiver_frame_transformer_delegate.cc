@@ -108,7 +108,7 @@ class TransformableVideoReceiverFrame
     if (auto& absolute_capture_time =
             frame_->GetRtpVideoHeader().absolute_capture_time) {
       if (absolute_capture_time->estimated_capture_clock_offset) {
-        return TimeDelta::Micros(UQ32x32ToInt64Us(
+        return TimeDelta::Micros(Q32x32ToInt64Us(
             *absolute_capture_time->estimated_capture_clock_offset));
       }
     }

@@ -166,7 +166,7 @@ TEST(RtpVideoStreamReceiverFrameTransformerDelegateTest,
   AbsoluteCaptureTime absolute_capture_time = {
       .absolute_capture_timestamp = Int64MsToUQ32x32(capture_time.ms()),
       .estimated_capture_clock_offset =
-          Int64MsToUQ32x32(sender_capture_time_offset.ms())};
+          Int64MsToQ32x32(sender_capture_time_offset.ms())};
   video_header.absolute_capture_time = absolute_capture_time;
 
   RTPVideoHeader::GenericDescriptorInfo& generic =
@@ -205,6 +205,40 @@ TEST(RtpVideoStreamReceiverFrameTransformerDelegateTest,
       });
   // The delegate creates a transformable frame from the RtpFrameObject.
   delegate->TransformFrame(CreateRtpFrameObject(video_header, csrcs));
+}
+
+TEST(RtpVideoStreamReceiverFrameTransformerDelegateTest,
+     TransformableFrameWithNegativeSenderCaptureTimeOffsetIsCorrect) {
+  TestRtpVideoFrameReceiver receiver;
+  auto mock_frame_transformer =
+      rtc::make_ref_counted<NiceMock<MockFrameTransformer>>();
+  SimulatedClock clock(0);
+  auto delegate =
+      rtc::make_ref_counted<RtpVideoStreamReceiverFrameTransformerDelegate>(
+          &receiver, &clock, mock_frame_transformer, rtc::Thread::Current(),
+          1111);
+  delegate->Init();
+  RTPVideoHeader video_header;
+  Timestamp capture_time = Timestamp::Millis(1234);
+  TimeDelta sender_capture_time_offset = TimeDelta::Millis(-56);
+  AbsoluteCaptureTime absolute_capture_time = {
+      .absolute_capture_timestamp = Int64MsToUQ32x32(capture_time.ms()),
+      .estimated_capture_clock_offset =
+          Int64MsToQ32x32(sender_capture_time_offset.ms())};
+  video_header.absolute_capture_time = absolute_capture_time;
+
+  EXPECT_CALL(*mock_frame_transformer, Transform)
+      .WillOnce([&](std::unique_ptr<TransformableFrameInterface>
+                        transformable_frame) {
+        auto frame =
+            absl::WrapUnique(static_cast<TransformableVideoFrameInterface*>(
+                transformable_frame.release()));
+        ASSERT_TRUE(frame);
+        EXPECT_GE(frame->ReceiveTime()->us(), 0);
+        EXPECT_EQ(frame->CaptureTime(), capture_time);
+        EXPECT_EQ(frame->SenderCaptureTimeOffset(), sender_capture_time_offset);
+      });
+  delegate->TransformFrame(CreateRtpFrameObject(video_header, /*csrcs=*/{}));
 }
 
 TEST(RtpVideoStreamReceiverFrameTransformerDelegateTest,
