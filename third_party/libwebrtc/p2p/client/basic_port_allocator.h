@@ -11,21 +11,31 @@
 #ifndef P2P_CLIENT_BASIC_PORT_ALLOCATOR_H_
 #define P2P_CLIENT_BASIC_PORT_ALLOCATOR_H_
 
+#include <cstdint>
+#include <functional>
 #include <memory>
+#include <optional>
 #include <string>
 #include <vector>
 
+#include "absl/base/attributes.h"
 #include "absl/strings/string_view.h"
+#include "api/candidate.h"
 #include "api/field_trials_view.h"
 #include "api/task_queue/pending_task_safety_flag.h"
+#include "api/transport/enums.h"
+#include "api/transport/field_trial_based_config.h"
 #include "api/turn_customizer.h"
+#include "p2p/base/port.h"
 #include "p2p/base/port_allocator.h"
+#include "p2p/base/port_interface.h"
 #include "p2p/client/relay_port_factory_interface.h"
-#include "p2p/client/turn_port_factory.h"
 #include "rtc_base/checks.h"
+#include "rtc_base/ip_address.h"
 #include "rtc_base/memory/always_valid_pointer.h"
 #include "rtc_base/network.h"
 #include "rtc_base/network/received_packet.h"
+#include "rtc_base/socket_address.h"
 #include "rtc_base/system/rtc_export.h"
 #include "rtc_base/thread.h"
 #include "rtc_base/thread_annotations.h"

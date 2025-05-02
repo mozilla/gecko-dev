@@ -13,13 +13,19 @@
 #include <stdint.h>
 
 #include <memory>
+#include <set>
+#include <string>
 #include <utility>
+#include <vector>
 
 #include "p2p/base/basic_packet_socket_factory.h"
 #include "p2p/test/test_stun_server.h"
 #include "rtc_base/gunit.h"
 #include "rtc_base/ip_address.h"
+#include "rtc_base/network.h"
+#include "rtc_base/socket_address.h"
 #include "rtc_base/ssl_adapter.h"
+#include "rtc_base/thread.h"
 #include "rtc_base/virtual_socket_server.h"
 #include "test/gtest.h"
 

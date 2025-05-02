@@ -11,6 +11,9 @@
 #ifndef P2P_STUNPROBER_STUN_PROBER_H_
 #define P2P_STUNPROBER_STUN_PROBER_H_
 
+#include <cstddef>
+#include <cstdint>
+#include <functional>
 #include <memory>
 #include <set>
 #include <string>
@@ -22,6 +25,7 @@
 #include "rtc_base/network.h"
 #include "rtc_base/socket_address.h"
 #include "rtc_base/system/rtc_export.h"
+#include "rtc_base/third_party/sigslot/sigslot.h"
 #include "rtc_base/thread.h"
 
 namespace rtc {

@@ -15,7 +15,6 @@
 #include <string>
 
 #include "p2p/base/port_interface.h"
-#include "rtc_base/ref_count.h"
 
 namespace rtc {
 class AsyncPacketSocket;

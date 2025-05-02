@@ -13,8 +13,11 @@
 #include <memory>
 #include <utility>
 
+#include "p2p/base/port.h"
 #include "p2p/base/port_allocator.h"
 #include "p2p/base/turn_port.h"
+#include "p2p/client/relay_port_factory_interface.h"
+#include "rtc_base/async_packet_socket.h"
 
 namespace cricket {
 
