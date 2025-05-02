@@ -417,9 +417,9 @@ HistoryStore.prototype = {
       lazy.PlacesSyncUtils.bookmarks.EARLIEST_BOOKMARK_TIMESTAMP;
     if (curVisitsAsArray.length == 20) {
       let oldestVisit = curVisitsAsArray[curVisitsAsArray.length - 1];
-      oldestAllowed = lazy.PlacesSyncUtils.history.clampVisitDate(
-        lazy.PlacesUtils.toDate(oldestVisit.date).getTime()
-      );
+      oldestAllowed = lazy.PlacesSyncUtils.history
+        .clampVisitDate(lazy.PlacesUtils.toDate(oldestVisit.date))
+        .getTime();
     }
 
     let i, k;

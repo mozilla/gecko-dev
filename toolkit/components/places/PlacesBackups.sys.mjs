@@ -18,6 +18,15 @@ ChromeUtils.defineLazyGetter(
     /^bookmarks-([0-9-]+)(?:_([0-9]+)){0,1}(?:_([a-z0-9=_+-]{24,})){0,1}\.(json(lz4)?)$/i
 );
 
+/**
+ * Limits the number of backup files by deleting old backups.
+ *
+ * @param {number} aMaxBackups
+ * @param {string[]} backupFiles
+ *
+ * @returns {Promise<void>}
+ *   Resolves when the oldest files have been deleted.
+ */
 async function limitBackups(aMaxBackups, backupFiles) {
   if (
     typeof aMaxBackups == "number" &&
@@ -34,6 +43,14 @@ async function limitBackups(aMaxBackups, backupFiles) {
 
 /**
  * Appends meta-data information to a given filename.
+ *
+ * @param {string} aFilename
+ *   The file name.
+ * @param {{count: string|number, hash: string}} aMetaData
+ *   Metadata related to the file.
+ *
+ * @returns {string}
+ *   The filename with appended metadata information.
  */
 function appendMetaDataToFilename(aFilename, aMetaData) {
   let matches = aFilename.match(lazy.filenamesRegex);
@@ -52,7 +69,11 @@ function appendMetaDataToFilename(aFilename, aMetaData) {
 /**
  * Gets the hash from a backup filename.
  *
- * @returns the extracted hash or null.
+ * @param {string} aFilename
+ *   The backup file name.
+ *
+ * @returns {null|string}
+ *   The extracted hash or null.
  */
 function getHashFromFilename(aFilename) {
   let matches = aFilename.match(lazy.filenamesRegex);
@@ -64,6 +85,11 @@ function getHashFromFilename(aFilename) {
 
 /**
  * Given two filenames, checks if they contain the same date.
+ *
+ * @param {string} aSourceName
+ * @param {string} aTargetName
+ *
+ * @returns {boolean}
  */
 function isFilenameWithSameDate(aSourceName, aTargetName) {
   let sourceMatches = aSourceName.match(lazy.filenamesRegex);
@@ -75,7 +101,11 @@ function isFilenameWithSameDate(aSourceName, aTargetName) {
 /**
  * Given a filename, searches for another backup with the same date.
  *
- * @returns path string or null.
+ * @param {string} aFilename
+ *   The name of the backup file.
+ *
+ * @returns {Promise<string|null>}
+ *   Resolves to a path string or null.
  */
 function getBackupFileForSameDate(aFilename) {
   return (async function () {
@@ -105,8 +135,8 @@ export var PlacesBackups = {
   /**
    * Gets backup folder asynchronously.
    *
-   * @returns {Promise}
-   * @resolve the folder (the folder string path).
+   * @returns {Promise<string>}
+   *   A promise that resolves to the folder string path.
    */
   getBackupFolder: function PB_getBackupFolder() {
     return (async () => {
@@ -122,6 +152,9 @@ export var PlacesBackups = {
     })();
   },
 
+  /**
+   * @returns {string}
+   */
   get profileRelativeFolderPath() {
     return "bookmarkbackups";
   },
@@ -129,8 +162,8 @@ export var PlacesBackups = {
   /**
    * Cache current backups in a sorted (by date DESC) array.
    *
-   * @returns {Promise}
-   * @resolve a sorted array of string paths.
+   * @returns {Promise<string[]>}
+   *   A sorted array of string paths.
    */
   getBackupFiles: function PB_getBackupFiles() {
     return (async () => {
@@ -166,7 +199,7 @@ export var PlacesBackups = {
       this._backupFiles.sort((a, b) => {
         let aDate = this.getDateForFile(a);
         let bDate = this.getDateForFile(b);
-        return bDate - aDate;
+        return bDate.getTime() - aDate.getTime();
       });
 
       return this._backupFiles;
@@ -183,9 +216,11 @@ export var PlacesBackups = {
   /**
    * Generates a ISO date string (YYYY-MM-DD) from a Date object.
    *
-   * @param dateObj
-   *        The date object to parse.
-   * @returns an ISO date string.
+   * @param {Date} dateObj
+   *   The date object to parse.
+   *
+   * @returns {string}
+   *   An ISO date string.
    */
   toISODateString: function toISODateString(dateObj) {
     if (!dateObj || dateObj.constructor.name != "Date" || !dateObj.getTime()) {
@@ -202,13 +237,13 @@ export var PlacesBackups = {
   /**
    * Creates a filename for bookmarks backup files.
    *
-   * @param [optional] aDateObj
-   *                   Date object used to build the filename.
-   *                   Will use current date if empty.
-   * @param [optional] bool - aCompress
-   *                   Determines if file extension is json or jsonlz4
-                       Default is json
-   * @returns A bookmarks backup filename.
+   * @param {Date} [aDateObj]
+   *   Date object used to build the filename. Will use current date if empty.
+   * @param {boolean} [aCompress]
+   *   Determines if the file extension is json or jsonlz4. Default is json.
+   *
+   * @returns {string}
+   *   A bookmarks backup filename.
    */
   getFilenameForDate: function PB_getFilenameForDate(aDateObj, aCompress) {
     let dateObj = aDateObj || new Date();
@@ -226,8 +261,11 @@ export var PlacesBackups = {
    * Creates a Date object from a backup file.  The date is the backup
    * creation date.
    *
-   * @param {Sring} aBackupFile The path of the backup.
-   * @returns {Date} A Date object for the backup's creation time.
+   * @param {string} aBackupFile
+   *   The path of the backup.
+   *
+   * @returns {Date}
+   *   A Date object for the backup's creation time.
    */
   getDateForFile: function PB_getDateForFile(aBackupFile) {
     let filename = PathUtils.filename(aBackupFile);
@@ -241,8 +279,8 @@ export var PlacesBackups = {
   /**
    * Get the most recent backup file.
    *
-   * @returns {Promise}
-   * @result the path to the file.
+   * @returns {Promise<string|null>}
+   *   The path to the file or null if no valid backup was found.
    */
   getMostRecentBackup: function PB_getMostRecentBackup() {
     return (async () => {
@@ -264,14 +302,19 @@ export var PlacesBackups = {
    * If the backup is older than the last session, the calculated time is
    * reported to telemetry.
    *
-   * @param [maxDays] The maximum number of days a backup can be old.
+   * @param {object} [options={}]
+   * @param {number} [options.maxDays]
+   *   The maximum number of days a backup can be old.
+   *
+   * @returns {Promise<boolean>}
+   *   Resolves to true if a recent backup is available.
    */
   async hasRecentBackup({ maxDays = 3 } = {}) {
     let lastBackupFile = await PlacesBackups.getMostRecentBackup();
     if (!lastBackupFile) {
       return false;
     }
-    let lastBackupTime = PlacesBackups.getDateForFile(lastBackupFile);
+    let lastBackupTime = PlacesBackups.getDateForFile(lastBackupFile).getTime();
     let profileLastUse = Services.appinfo.replacedLockTime || Date.now();
     if (lastBackupTime > profileLastUse) {
       return true;
@@ -285,10 +328,11 @@ export var PlacesBackups = {
   /**
    * Serializes bookmarks using JSON, and writes to the supplied file.
    *
-   * @param aFilePath
-   *        path for the "bookmarks.json" file to be created.
-   * @returns {Promise}
-   * @resolves the number of serialized uri nodes.
+   * @param {string} aFilePath
+   *   Path for the "bookmarks.json" file to be created.
+   *
+   * @returns {Promise<number>}
+   *   The number of serialized uri nodes.
    */
   async saveBookmarksToJSONFile(aFilePath) {
     let { count: nodeCount, hash: hash } =
@@ -359,14 +403,14 @@ export var PlacesBackups = {
    * Creates a dated backup in <profile>/bookmarkbackups.
    * Stores the bookmarks using a lz4 compressed JSON file.
    *
-   * @param [optional] int aMaxBackups
-   *                       The maximum number of backups to keep.  If set to 0
-   *                       all existing backups are removed and aForceBackup is
-   *                       ignored, so a new one won't be created.
-   * @param [optional] bool aForceBackup
-   *                        Forces creating a backup even if one was already
-   *                        created that day (overwrites).
-   * @returns {Promise}
+   * @param {number} [aMaxBackups]
+   *   The maximum number of backups to keep.  If set to 0 all existing backups
+   *   are removed and aForceBackup is ignored, so a new one won't be created.
+   * @param {boolean} [aForceBackup]
+   *   Forces creating a backup even if one was already created that day
+   *   (overwrites).
+   *
+   * @returns {Promise<void>}
    */
   create: function PB_create(aMaxBackups, aForceBackup) {
     return (async () => {
@@ -453,10 +497,11 @@ export var PlacesBackups = {
   /**
    * Gets the bookmark count for backup file.
    *
-   * @param aFilePath
-   *        File path The backup file.
+   * @param {string} aFilePath
+   *   The file path to the backup file.
    *
-   * @returns the bookmark count or null.
+   * @returns {string|null}
+   *   The bookmark count or null.
    */
   getBookmarkCountForFile: function PB_getBookmarkCountForFile(aFilePath) {
     let count = null;
@@ -472,8 +517,10 @@ export var PlacesBackups = {
    * Gets a bookmarks tree representation usable to create backups in different
    * file formats.  The root or the tree is PlacesUtils.bookmarks.rootGuid.
    *
-   * @returns {object}
-   *   an object representing a tree with the places root as its root.
+   * @returns {Promise<[object, number]>}
+   *   An array containing two values:
+   *   The first value is an object representing a tree with the places root as
+   *   its root. The second value the number of items the root has.
    *   Each bookmark is represented by an object having these properties:
    *   - id: the item id (make this not enumerable after bug 824502)
    *   - title: the title
