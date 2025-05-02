@@ -39,10 +39,9 @@ namespace mozilla::widget {
 #define BUFFER_BPP 4
 
 #ifdef MOZ_LOGGING
-MOZ_RUNINIT int WaylandBufferSHM::mDumpSerial =
+MOZ_RUNINIT int WaylandBuffer::mDumpSerial =
     PR_GetEnv("MOZ_WAYLAND_DUMP_WL_BUFFERS") ? 1 : 0;
-MOZ_RUNINIT char* WaylandBufferSHM::mDumpDir =
-    PR_GetEnv("MOZ_WAYLAND_DUMP_DIR");
+MOZ_RUNINIT char* WaylandBuffer::mDumpDir = PR_GetEnv("MOZ_WAYLAND_DUMP_DIR");
 #endif
 
 /* static */
@@ -291,8 +290,8 @@ void WaylandBufferSHM::DumpToFile(const char* aHint) {
       filename.Append(mDumpDir);
       filename.Append('/');
     }
-    filename.Append(
-        nsPrintfCString("firefox-wl-buffer-%.5d-%s.png", mDumpSerial++, aHint));
+    filename.Append(nsPrintfCString("firefox-wl-sw-buffer-%.5d-%s.png",
+                                    mDumpSerial++, aHint));
     cairo_surface_write_to_png(surface, filename.get());
     LOGWAYLAND("Dumped wl_buffer to %s\n", filename.get());
   }
@@ -361,5 +360,22 @@ WaylandBufferDMABUF::~WaylandBufferDMABUF() {
   // We can delete wl_buffer as it not attached.
   DeleteWlBuffer();
 }
+
+#ifdef MOZ_LOGGING
+void WaylandBufferDMABUF::DumpToFile(const char* aHint) {
+  if (!mDumpSerial) {
+    return;
+  }
+  nsCString filename;
+  if (mDumpDir) {
+    filename.Append(mDumpDir);
+    filename.Append('/');
+  }
+  filename.AppendPrintf("firefox-wl-buffer-dmabuf-%.5d-%s.png", mDumpSerial++,
+                        aHint);
+  mDMABufSurface->DumpToFile(filename.get());
+  LOGWAYLAND("Dumped wl_buffer to %s\n", filename.get());
+}
+#endif
 
 }  // namespace mozilla::widget
