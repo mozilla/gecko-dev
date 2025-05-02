@@ -252,6 +252,8 @@ var SidebarController = {
   lastOpenedId: null,
 
   _box: null,
+  _pinnedTabsContainer: null,
+  _pinnedTabsItemsWrapper: null,
   // The constructor of this label accesses the browser element due to the
   // control="sidebar" attribute, so avoid getting this label during startup.
   get _title() {
@@ -334,6 +336,10 @@ var SidebarController = {
     return this._launcherSplitter.getAttribute("state") === "dragging";
   },
 
+  get isPinnedTabsDragging() {
+    return this._pinnedTabsSplitter.getAttribute("state") === "dragging";
+  },
+
   init() {
     // Initialize global state manager.
     this.SidebarManager;
@@ -343,10 +349,20 @@ var SidebarController = {
       this._state = new this.SidebarState(this);
     }
 
+    this._pinnedTabsContainer = document.getElementById(
+      "vertical-pinned-tabs-container"
+    );
+    this._pinnedTabsItemsWrapper =
+      this._pinnedTabsContainer.shadowRoot.querySelector(
+        "[part=items-wrapper]"
+      );
     this._box = document.getElementById("sidebar-box");
     this._splitter = document.getElementById("sidebar-splitter");
     this._launcherSplitter = document.getElementById(
       "sidebar-launcher-splitter"
+    );
+    this._pinnedTabsSplitter = document.getElementById(
+      "vertical-pinned-tabs-splitter"
     );
     this._reversePositionButton = document.getElementById(
       "sidebar-reverse-position"
@@ -416,6 +432,7 @@ var SidebarController = {
         this._splitter.addEventListener("command", this._browserResizeObserver);
       }
       this._enableLauncherDragging();
+      this._enablePinnedTabsSplitterDragging();
 
       // Record Glean metrics.
       this.recordVisibilitySetting();
@@ -436,6 +453,7 @@ var SidebarController = {
         this._switcherListenersAdded = true;
       }
       this._disableLauncherDragging();
+      this._disablePinnedTabsDragging();
     }
     // We need to update the tab strip for vertical tabs during init
     // as there will be no tabstrip-orientation-change event
@@ -514,6 +532,7 @@ var SidebarController = {
     }
     this._splitter.removeEventListener("command", this._browserResizeObserver);
     this._disableLauncherDragging();
+    this._disablePinnedTabsDragging();
   },
 
   /**
@@ -1314,6 +1333,66 @@ var SidebarController = {
   },
 
   /**
+   * Enable the splitter which can be used to resize the pinned tabs container.
+   */
+  _enablePinnedTabsSplitterDragging() {
+    if (!this._pinnedTabsSplitter.hidden) {
+      // Already showing the launcher splitter with observers connected.
+      // Nothing to do.
+      return;
+    }
+    this._pinnedTabsResizeObserver = new ResizeObserver(([entry]) => {
+      if (this.isPinnedTabsDragging) {
+        this._state.pinnedTabsDragActive = true;
+      }
+      if (
+        (entry.contentBoxSize[0].blockSize ===
+          this._state.expandedPinnedTabsHeight &&
+          this._state.launcherExpanded) ||
+        (entry.contentBoxSize[0].blockSize ===
+          this._state.collapsedPinnedTabsHeight &&
+          !this._state.launcherExpanded)
+      ) {
+        // condition already met, no need to re-update
+        return;
+      }
+      this._state.pinnedTabsHeight = entry.contentBoxSize[0].blockSize;
+    });
+
+    this._itemsWrapperResizeObserver = new ResizeObserver(async () => {
+      await window.promiseDocumentFlushed(() => {
+        // Adjust pinned tabs container height if needed
+        let itemsWrapperHeight = window.windowUtils.getBoundsWithoutFlushing(
+          this._pinnedTabsItemsWrapper
+        ).height;
+        requestAnimationFrame(() => {
+          if (this._state.pinnedTabsHeight > itemsWrapperHeight) {
+            this._state.pinnedTabsHeight = itemsWrapperHeight;
+            if (this._state.launcherExpanded) {
+              this._state.expandedPinnedTabsHeight =
+                this._state.pinnedTabsHeight;
+            } else {
+              this._state.collapsedPinnedTabsHeight =
+                this._state.pinnedTabsHeight;
+            }
+          }
+        });
+      });
+    });
+    this._pinnedTabsResizeObserver.observe(this._pinnedTabsContainer);
+    this._itemsWrapperResizeObserver.observe(this._pinnedTabsItemsWrapper);
+
+    this._pinnedTabsDropHandler = () =>
+      (this._state.pinnedTabsDragActive = false);
+    this._pinnedTabsSplitter.addEventListener(
+      "command",
+      this._pinnedTabsDropHandler
+    );
+
+    this._pinnedTabsSplitter.hidden = false;
+  },
+
+  /**
    * Disable the launcher splitter and remove any active observers.
    */
   _disableLauncherDragging() {
@@ -1326,6 +1405,20 @@ var SidebarController = {
     );
 
     this._launcherSplitter.hidden = true;
+  },
+
+  /**
+   * Disable the pinned tabs splitter and remove any active observers.
+   */
+  _disablePinnedTabsDragging() {
+    if (this._pinnedTabsResizeObserver) {
+      this._pinnedTabsResizeObserver.disconnect();
+    }
+    if (this._itemsWrapperResizeObserver) {
+      this._itemsWrapperResizeObserver.disconnect();
+    }
+
+    this._pinnedTabsSplitter.hidden = true;
   },
 
   _loadSidebarExtension(commandID) {
@@ -2020,6 +2113,11 @@ var SidebarController = {
         this.mouseOverTask?.finalize();
       }
     }
+
+    document.documentElement.toggleAttribute(
+      "sidebar-expand-on-hover",
+      isEnabled
+    );
   },
 
   /**
@@ -2183,6 +2281,11 @@ XPCOMUtils.defineLazyPreferenceGetter(
       !SidebarController.inSingleTabWindow
     ) {
       SidebarController.recordTabsLayoutSetting(newValue);
+      if (newValue) {
+        SidebarController._enablePinnedTabsSplitterDragging();
+      } else {
+        SidebarController._disablePinnedTabsDragging();
+      }
     }
   }
 );

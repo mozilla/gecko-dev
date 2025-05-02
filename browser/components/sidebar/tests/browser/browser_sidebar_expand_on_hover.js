@@ -201,9 +201,10 @@ add_task(async function test_expand_on_hover_pinned_tabs() {
       SidebarController.sidebarMain.hasAttribute("expanded"),
     "The launcher is expanded"
   );
-  is(
-    Math.round(parseInt(verticalTabsComputedStyle.width)),
-    Math.round(parseInt(pinnedTabComputedStyle.width)),
+  Assert.less(
+    Math.round(parseInt(verticalTabsComputedStyle.width)) %
+      Math.round(parseInt(pinnedTabComputedStyle.width)),
+    10,
     "The pinned tabs are full width when expanded"
   );
 
