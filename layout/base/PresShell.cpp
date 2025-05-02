@@ -11493,6 +11493,28 @@ nsIFrame* PresShell::GetAbsoluteContainingBlock(nsIFrame* aFrame) {
       aFrame, nsCSSFrameConstructor::ABS_POS);
 }
 
+nsIFrame* PresShell::GetAnchorPosAnchor(const nsAtom* aName) {
+  MOZ_ASSERT(aName);
+  if (auto entry = mAnchorPosAnchors.Lookup(aName)) {
+    return entry.Data();
+  }
+  return nullptr;
+}
+
+void PresShell::AddAnchorPosAnchor(const nsAtom* aName, nsIFrame* aFrame) {
+  MOZ_ASSERT(aName);
+  mAnchorPosAnchors.InsertOrUpdate(aName, aFrame);
+}
+
+void PresShell::RemoveAnchorPosAnchor(const nsAtom* aName, nsIFrame* aFrame) {
+  MOZ_ASSERT(aName);
+  if (auto entry = mAnchorPosAnchors.Lookup(aName)) {
+    if (entry.Data() == aFrame) {
+      entry.Remove();
+    }
+  }
+}
+
 void PresShell::ActivenessMaybeChanged() {
   if (!mDocument) {
     return;

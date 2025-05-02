@@ -383,6 +383,8 @@ struct AnchorResolvedMarginHelper {
     return value;
   }
 
+  // XXXjwatt: We need to store/pass the nsIFrame so that we can call
+  // nsIFrame::FindAnchorPosAnchor().
   static AnchorResolvedMargin FromUnresolved(
       const mozilla::StyleMargin& aValue,
       mozilla::StylePositionProperty aPosition) {
@@ -1682,6 +1684,8 @@ struct MOZ_NEEDS_MEMMOVABLE_MEMBERS nsStyleDisplay {
     return mozilla::StylePositionProperty::Sticky == mPosition ||
            mozilla::StylePositionProperty::Fixed == mPosition;
   }
+
+  bool HasAnchorName() const { return !mAnchorName.IsEmpty(); }
 
   bool IsRubyDisplayType() const { return mDisplay.IsRuby(); }
 

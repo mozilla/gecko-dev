@@ -3709,6 +3709,13 @@ class nsIFrame : public nsQueryFrame {
   virtual bool IsFloatContainingBlock() const { return false; }
 
   /**
+   * If this frame is absolute positioned, attempts to lookup and return the
+   * Archor Positioning anchor given by aAnchorSpec.
+   * https://drafts.csswg.org/css-anchor-position-1/#target
+   */
+  nsIFrame* FindAnchorPosAnchor(const nsAtom* aAnchorSpec) const;
+
+  /**
    * Marks all display items created by this frame as needing a repaint,
    * and calls SchedulePaint() if requested and one is not already pending.
    *
@@ -4711,6 +4718,8 @@ class nsIFrame : public nsQueryFrame {
   inline bool IsAbsPosContainingBlock() const;
   inline bool IsFixedPosContainingBlock() const;
   inline bool IsRelativelyOrStickyPositioned() const;
+  // TODO: create implicit anchor and explicit anchor versions of this method:
+  inline bool HasAnchorPosName() const;
 
   // Note: In general, you'd want to call IsRelativelyOrStickyPositioned()
   // unless you want to deal with "position:relative" and "position:sticky"

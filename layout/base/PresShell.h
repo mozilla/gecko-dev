@@ -738,6 +738,11 @@ class PresShell final : public nsStubDocumentObserver,
 
   nsIFrame* GetAbsoluteContainingBlock(nsIFrame* aFrame);
 
+  // https://drafts.csswg.org/css-anchor-position-1/#target
+  nsIFrame* GetAnchorPosAnchor(const nsAtom* aName);
+  void AddAnchorPosAnchor(const nsAtom* aName, nsIFrame* aFrame);
+  void RemoveAnchorPosAnchor(const nsAtom* aName, nsIFrame* aFrame);
+
 #ifdef MOZ_REFLOW_PERF
   void DumpReflows();
   void CountReflows(const char* aName, nsIFrame* aFrame);
@@ -3022,6 +3027,8 @@ class PresShell final : public nsStubDocumentObserver,
 
   // A hash table of heap allocated weak frames.
   nsTHashSet<WeakFrame*> mWeakFrames;
+
+  nsTHashMap<RefPtr<const nsAtom>, nsIFrame*> mAnchorPosAnchors;
 
   // Reflow roots that need to be reflowed.
   DepthOrderedFrameList mDirtyRoots;

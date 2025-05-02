@@ -65,6 +65,10 @@ bool nsIFrame::IsRelativelyOrStickyPositioned() const {
   return StyleDisplay()->IsRelativelyOrStickyPositioned(this);
 }
 
+bool nsIFrame::HasAnchorPosName() const {
+  return StyleDisplay()->HasAnchorName();
+}
+
 bool nsIFrame::IsRelativelyPositioned() const {
   return StyleDisplay()->IsRelativelyPositioned(this);
 }
