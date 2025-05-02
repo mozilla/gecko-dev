@@ -760,6 +760,25 @@ security:
         type: string
     telemetry_mirror: Security_Fissionprincipals_Contentparent
 
+  shadowed_html_document_property_access:
+    type: event
+    description: >
+      When accessing a property on the HTMLDocument like (document.currentScript),
+      if that property was shadowed/"clobbered" (e.g. using <img name=currentScript>), the
+      name of the shadowed built-in property is collected.
+    bugs:
+      - https://bugzil.la/1955578
+    data_reviews:
+      - https://bugzil.la/1955578
+    notification_emails:
+      - tschuster@mozilla.com
+    expires: 145
+    extra_keys:
+      name:
+        description: >
+          Name of the shadowed HTML property that was accessed.
+        type: string
+
 dom.contentprocess:
   build_id_mismatch:
     type: counter
