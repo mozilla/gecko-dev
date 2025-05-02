@@ -10,8 +10,10 @@
     SimpleTest.waitForExplicitFinish();
     setupTest("account_label", "https://test1.example.com").then(
       function () {
+        SpecialPowers.wrap(document).notifyUserGestureActivation();
         return navigator.credentials.get({
           identity: {
+            mode: "active",
             providers: [{
               configURL: "https://test1.example.com/tests/dom/credentialmanagement/identity/tests/mochitest/server_manifest_account_label.sjs",
               clientId: "mochitest",
