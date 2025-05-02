@@ -32,12 +32,6 @@
 namespace webrtc {
 namespace webrtc_pc_e2e {
 
-struct VideoBweStats {
-  SamplesStatsCounter available_send_bandwidth;
-  SamplesStatsCounter transmission_bitrate;
-  SamplesStatsCounter retransmission_bitrate;
-};
-
 class VideoQualityMetricsReporter
     : public PeerConnectionE2EQualityTestFixture::QualityMetricsReporter {
  public:
@@ -53,19 +47,21 @@ class VideoQualityMetricsReporter
   void StopAndReportResults() override;
 
  private:
+  struct VideoBweStats {
+    SamplesStatsCounter available_send_bandwidth;
+    SamplesStatsCounter transmission_bitrate;
+    SamplesStatsCounter retransmission_bitrate;
+  };
   struct StatsSample {
     std::vector<std::optional<std::string>> scalability_modes;
+    std::optional<Timestamp> timestamp;
     DataSize bytes_sent = DataSize::Zero();
     DataSize header_bytes_sent = DataSize::Zero();
     DataSize retransmitted_bytes_sent = DataSize::Zero();
-
-    Timestamp sample_time = Timestamp::Zero();
   };
 
-  std::string GetTestCaseName(const std::string& peer_name) const;
   void ReportVideoBweResults(const std::string& peer_name,
                              const VideoBweStats& video_bwe_stats);
-  Timestamp Now() const { return clock_->CurrentTime(); }
 
   Clock* const clock_;
   test::MetricsLogger* const metrics_logger_;
@@ -73,13 +69,13 @@ class VideoQualityMetricsReporter
   std::string test_case_name_;
   std::optional<Timestamp> start_time_;
 
-  Mutex video_bwe_stats_lock_;
+  Mutex stats_lock_;
   // Map between a peer connection label (provided by the framework) and
   // its video BWE stats.
   std::map<std::string, VideoBweStats> video_bwe_stats_
-      RTC_GUARDED_BY(video_bwe_stats_lock_);
+      RTC_GUARDED_BY(stats_lock_);
   std::map<std::string, StatsSample> last_stats_sample_
-      RTC_GUARDED_BY(video_bwe_stats_lock_);
+      RTC_GUARDED_BY(stats_lock_);
 };
 
 }  // namespace webrtc_pc_e2e

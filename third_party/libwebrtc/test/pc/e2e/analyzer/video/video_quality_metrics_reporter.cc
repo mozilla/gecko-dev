@@ -10,8 +10,10 @@
 
 #include "test/pc/e2e/analyzer/video/video_quality_metrics_reporter.h"
 
+#include <algorithm>
 #include <map>
 #include <string>
+#include <vector>
 
 #include "absl/strings/string_view.h"
 #include "api/numerics/samples_stats_counter.h"
@@ -55,7 +57,7 @@ void VideoQualityMetricsReporter::Start(
     absl::string_view test_case_name,
     const TrackIdStreamInfoMap* /*reporter_helper*/) {
   test_case_name_ = std::string(test_case_name);
-  start_time_ = Now();
+  start_time_ = clock_->CurrentTime();
 }
 
 void VideoQualityMetricsReporter::OnStatsReports(
@@ -64,7 +66,8 @@ void VideoQualityMetricsReporter::OnStatsReports(
   RTC_CHECK(start_time_)
       << "Please invoke Start(...) method before calling OnStatsReports(...)";
 
-  auto transport_stats = report->GetStatsOfType<RTCTransportStats>();
+  std::vector<const RTCTransportStats*> transport_stats =
+      report->GetStatsOfType<RTCTransportStats>();
   if (transport_stats.size() == 0u ||
       !transport_stats[0]->selected_candidate_pair_id.has_value()) {
     return;
@@ -78,16 +81,14 @@ void VideoQualityMetricsReporter::OnStatsReports(
   const RTCIceCandidatePairStats ice_candidate_pair_stats =
       report->Get(selected_ice_id)->cast_to<const RTCIceCandidatePairStats>();
 
-  auto outbound_rtp_stats = report->GetStatsOfType<RTCOutboundRtpStreamStats>();
-  StatsSample sample;
-  for (auto& s : outbound_rtp_stats) {
+  StatsSample sample = {.timestamp = *start_time_};
+  for (const RTCOutboundRtpStreamStats* s :
+       report->GetStatsOfType<RTCOutboundRtpStreamStats>()) {
     if (!s->kind.has_value() || *s->kind != "video") {
       continue;
     }
     sample.scalability_modes.push_back(s->scalability_mode);
-    if (s->timestamp() > sample.sample_time) {
-      sample.sample_time = s->timestamp();
-    }
+    sample.timestamp = std::max(*sample.timestamp, s->timestamp());
     sample.retransmitted_bytes_sent +=
         DataSize::Bytes(s->retransmitted_bytes_sent.value_or(0ul));
     sample.bytes_sent += DataSize::Bytes(s->bytes_sent.value_or(0ul));
@@ -95,7 +96,7 @@ void VideoQualityMetricsReporter::OnStatsReports(
         DataSize::Bytes(s->header_bytes_sent.value_or(0ul));
   }
 
-  MutexLock lock(&video_bwe_stats_lock_);
+  MutexLock lock(&stats_lock_);
   VideoBweStats& video_bwe_stats = video_bwe_stats_[std::string(pc_label)];
   if (ice_candidate_pair_stats.available_outgoing_bitrate.has_value()) {
     video_bwe_stats.available_send_bandwidth.AddSample(
@@ -105,22 +106,20 @@ void VideoQualityMetricsReporter::OnStatsReports(
   }
 
   StatsSample prev_sample = last_stats_sample_[std::string(pc_label)];
-  if (prev_sample.scalability_modes != sample.scalability_modes) {
-    // Counters are reset when the scalability mode changes.
-    prev_sample.bytes_sent = DataSize::Zero();
-    prev_sample.header_bytes_sent = DataSize::Zero();
-    prev_sample.retransmitted_bytes_sent = DataSize::Zero();
-  }
-  if (prev_sample.sample_time.IsZero()) {
-    prev_sample.sample_time = start_time_.value();
-  }
   last_stats_sample_[std::string(pc_label)] = sample;
 
-  TimeDelta time_between_samples = sample.sample_time - prev_sample.sample_time;
+  TimeDelta time_between_samples =
+      *sample.timestamp - prev_sample.timestamp.value_or(*start_time_);
   if (time_between_samples.IsZero()) {
     return;
   }
 
+  if (prev_sample.scalability_modes != sample.scalability_modes) {
+    // Change in video config can trigger the counters to be reset.
+    prev_sample.bytes_sent = DataSize::Zero();
+    prev_sample.header_bytes_sent = DataSize::Zero();
+    prev_sample.retransmitted_bytes_sent = DataSize::Zero();
+  }
   DataRate retransmission_bitrate =
       (sample.retransmitted_bytes_sent - prev_sample.retransmitted_bytes_sent) /
       time_between_samples;
@@ -135,21 +134,16 @@ void VideoQualityMetricsReporter::OnStatsReports(
 }
 
 void VideoQualityMetricsReporter::StopAndReportResults() {
-  MutexLock video_bwemutex_(&video_bwe_stats_lock_);
+  MutexLock lock(&stats_lock_);
   for (const auto& item : video_bwe_stats_) {
     ReportVideoBweResults(item.first, item.second);
   }
 }
 
-std::string VideoQualityMetricsReporter::GetTestCaseName(
-    const std::string& peer_name) const {
-  return test_case_name_ + "/" + peer_name;
-}
-
 void VideoQualityMetricsReporter::ReportVideoBweResults(
     const std::string& peer_name,
     const VideoBweStats& video_bwe_stats) {
-  std::string test_case_name = GetTestCaseName(peer_name);
+  std::string test_case_name = test_case_name_ + "/" + peer_name;
   // TODO(bugs.webrtc.org/14757): Remove kExperimentalTestNameMetadataKey.
   std::map<std::string, std::string> metric_metadata{
       {MetricMetadataKey::kPeerMetadataKey, peer_name},
