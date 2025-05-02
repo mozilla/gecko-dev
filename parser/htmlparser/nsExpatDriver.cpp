@@ -1014,8 +1014,8 @@ nsresult nsExpatDriver::HandleError() {
     doc = do_QueryInterface(mOriginalSink->GetTarget());
   }
 
-  bool spoofEnglish =
-      nsContentUtils::SpoofLocaleEnglish() && (!doc || !doc->AllowsL10n());
+  bool spoofEnglish = nsContentUtils::ShouldResistFingerprinting(
+      doc, mozilla::RFPTarget::JSLocale);
   nsParserMsgUtils::GetLocalizedStringByID(
       spoofEnglish ? XMLPARSER_PROPERTIES_en_US : XMLPARSER_PROPERTIES, code,
       description);

@@ -64,7 +64,7 @@ bool SVGTests::IsConditionalProcessingAttribute(
 static int32_t FindBestLanguage(const nsTArray<nsCString>& aAvailLangs,
                                 const Document* aDoc) {
   AutoTArray<nsCString, 16> reqLangs;
-  if (nsContentUtils::SpoofLocaleEnglish(aDoc)) {
+  if (aDoc->ShouldResistFingerprinting(RFPTarget::JSLocale)) {
     reqLangs.AppendElements(Span(std::array{"en-US", "en"}));
   } else {
     nsCString acceptLangs;

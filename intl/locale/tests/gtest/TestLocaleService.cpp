@@ -99,10 +99,15 @@ TEST(Intl_Locale_LocaleService, GetWebExposedLocales)
   ASSERT_TRUE(pvLocales.Length() > 0);
   ASSERT_TRUE(pvLocales[0].Equals("zh-TW"_ns));
 
+  mozilla::Preferences::SetBool("privacy.resistFingerprinting", true);
   mozilla::Preferences::SetInt("privacy.spoof_english", 2);
   LocaleService::GetInstance()->GetWebExposedLocales(pvLocales);
   ASSERT_EQ(1u, pvLocales.Length());
   ASSERT_TRUE(pvLocales[0].Equals("en-US"_ns));
+
+  mozilla::Preferences::ClearUser("privacy.spoof_english");
+  mozilla::Preferences::ClearUser("privacy.resistFingerprinting");
+  mozilla::Preferences::ClearUser("intl.locale.privacy.web_exposed");
 }
 
 TEST(Intl_Locale_LocaleService, GetRequestedLocales)

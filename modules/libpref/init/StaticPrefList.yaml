@@ -15634,6 +15634,7 @@
   type: RelaxedAtomicUint32
   value: 0
   mirror: always
+  do_not_use_directly: true
 
 # Send "do not track" HTTP header, disabled by default.
 - name: privacy.donottrackheader.enabled

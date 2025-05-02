@@ -368,6 +368,8 @@ class nsContentUtils {
                                          RFPTarget aTarget);
   static bool ShouldResistFingerprinting(nsIDocShell* aDocShell,
                                          RFPTarget aTarget);
+  static bool ShouldResistFingerprinting(const Document* aDocument,
+                                         RFPTarget aTarget);
   // These functions are the new, nuanced functions
   static bool ShouldResistFingerprinting(nsIChannel* aChannel,
                                          RFPTarget aTarget);
@@ -1310,9 +1312,6 @@ class nsContentUtils {
   static void ReportEmptyGetElementByIdArg(const Document* aDoc);
 
   static void LogMessageToConsole(const char* aMsg);
-
-  static bool SpoofLocaleEnglish();
-  static bool SpoofLocaleEnglish(const Document* aDocument);
 
   /**
    * Get the localized string named |aKey| in properties file |aFile|.

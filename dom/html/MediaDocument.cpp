@@ -329,8 +329,7 @@ nsresult MediaDocument::LinkScript(const nsAString& aScript) {
 void MediaDocument::FormatStringFromName(const char* aName,
                                          const nsTArray<nsString>& aParams,
                                          nsAString& aResult) {
-  bool spoofLocale = nsContentUtils::SpoofLocaleEnglish() && !AllowsL10n();
-  if (!spoofLocale) {
+  if (!ShouldResistFingerprinting(RFPTarget::JSLocale)) {
     if (!mStringBundle) {
       nsCOMPtr<nsIStringBundleService> stringService =
           mozilla::components::StringBundle::Service();

@@ -298,7 +298,7 @@ Maybe<bool> nsRFPService::HandleExeptionalRFPTargets(
   // prompt we show when privacy.spoof_english is set to 0.
   if (aTarget == RFPTarget::JSLocale) {
     return Some(IsTargetActiveForMode(aTarget, aMode) &&
-                StaticPrefs::privacy_spoof_english() == 2);
+                StaticPrefs::privacy_spoof_english_DoNotUseDirectly() == 2);
   }
 
   // We don't spoof the pointerId on multi-touch devices.
