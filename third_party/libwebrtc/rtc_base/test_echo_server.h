@@ -27,50 +27,60 @@
 #include "rtc_base/third_party/sigslot/sigslot.h"
 #include "rtc_base/thread.h"
 
-namespace rtc {
+namespace webrtc {
 
 // A test echo server, echoes back any packets sent to it.
 // Useful for unit tests.
 class TestEchoServer : public sigslot::has_slots<> {
  public:
-  TestEchoServer(Thread* thread, const SocketAddress& addr);
+  TestEchoServer(rtc::Thread* thread, const rtc::SocketAddress& addr);
   ~TestEchoServer() override;
 
   TestEchoServer(const TestEchoServer&) = delete;
   TestEchoServer& operator=(const TestEchoServer&) = delete;
 
-  SocketAddress address() const { return server_socket_->GetLocalAddress(); }
+  rtc::SocketAddress address() const {
+    return server_socket_->GetLocalAddress();
+  }
 
  private:
-  void OnAccept(Socket* socket) {
-    Socket* raw_socket = socket->Accept(nullptr);
+  void OnAccept(rtc::Socket* socket) {
+    rtc::Socket* raw_socket = socket->Accept(nullptr);
     if (raw_socket) {
-      AsyncTCPSocket* packet_socket = new AsyncTCPSocket(raw_socket);
+      rtc::AsyncTCPSocket* packet_socket = new rtc::AsyncTCPSocket(raw_socket);
       packet_socket->RegisterReceivedPacketCallback(
           [&](rtc::AsyncPacketSocket* socket,
               const rtc::ReceivedPacket& packet) { OnPacket(socket, packet); });
       packet_socket->SubscribeCloseEvent(
-          this, [this](AsyncPacketSocket* s, int err) { OnClose(s, err); });
+          this,
+          [this](rtc::AsyncPacketSocket* s, int err) { OnClose(s, err); });
       client_sockets_.push_back(packet_socket);
     }
   }
-  void OnPacket(AsyncPacketSocket* socket, const rtc::ReceivedPacket& packet) {
+  void OnPacket(rtc::AsyncPacketSocket* socket,
+                const rtc::ReceivedPacket& packet) {
     rtc::PacketOptions options;
     socket->Send(packet.payload().data(), packet.payload().size(), options);
   }
-  void OnClose(AsyncPacketSocket* socket, int err) {
+  void OnClose(rtc::AsyncPacketSocket* socket, int err) {
     ClientList::iterator it = absl::c_find(client_sockets_, socket);
     client_sockets_.erase(it);
     // `OnClose` is triggered by socket Close callback, deleting `socket` while
     // processing that callback might be unsafe.
-    Thread::Current()->PostTask([socket = absl::WrapUnique(socket)] {});
+    rtc::Thread::Current()->PostTask([socket = absl::WrapUnique(socket)] {});
   }
 
-  typedef std::list<AsyncTCPSocket*> ClientList;
-  std::unique_ptr<Socket> server_socket_;
+  typedef std::list<rtc::AsyncTCPSocket*> ClientList;
+  std::unique_ptr<rtc::Socket> server_socket_;
   ClientList client_sockets_;
 };
 
+}  //  namespace webrtc
+
+// Re-export symbols from the webrtc namespace for backwards compatibility.
+// TODO(bugs.webrtc.org/4222596): Remove once all references are updated.
+namespace rtc {
+using ::webrtc::TestEchoServer;
 }  // namespace rtc
 
 #endif  // RTC_BASE_TEST_ECHO_SERVER_H_
