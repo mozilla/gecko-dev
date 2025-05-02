@@ -238,16 +238,6 @@ def set_code_review_env(config, jobs):
 
 
 @transforms.add
-def set_worker_exit_code(config, jobs):
-    for job in jobs:
-        worker = job["worker"]
-        worker.setdefault("retry-exit-status", [])
-        if 137 not in worker["retry-exit-status"]:
-            worker["retry-exit-status"].append(137)
-        yield job
-
-
-@transforms.add
 def remove_optimization_on_central(config, jobs):
     """
     For pushes to mozilla-central run all source-test tasks that are enabled for
