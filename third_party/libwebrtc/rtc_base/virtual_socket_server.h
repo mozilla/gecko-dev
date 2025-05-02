@@ -23,6 +23,7 @@
 #include "rtc_base/checks.h"
 #include "rtc_base/event.h"
 #include "rtc_base/fake_clock.h"
+#include "rtc_base/socket_address_pair.h"
 #include "rtc_base/socket_server.h"
 #include "rtc_base/synchronization/mutex.h"
 
@@ -30,7 +31,6 @@ namespace rtc {
 
 class VirtualSocketPacket;
 class VirtualSocketServer;
-class SocketAddressPair;
 
 // Implements the socket interface using the virtual network. Packets are
 // passed in tasks using the thread of the socket server.
@@ -434,7 +434,7 @@ class VirtualSocketServer : public SocketServer {
   static bool CanInteractWith(VirtualSocket* local, VirtualSocket* remote);
 
   typedef std::map<SocketAddress, VirtualSocket*> AddressMap;
-  typedef std::map<SocketAddressPair, VirtualSocket*> ConnectionMap;
+  typedef std::map<webrtc::SocketAddressPair, VirtualSocket*> ConnectionMap;
 
   // May be null if the test doesn't use a fake clock, or it does but doesn't
   // use ProcessMessagesUntilIdle.

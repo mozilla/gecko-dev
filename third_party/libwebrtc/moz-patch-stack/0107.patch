@@ -33,7 +33,7 @@ index 5632b989fc..cb7b81978a 100644
  #else
    return std::unique_ptr<SocketServer>(new rtc::PhysicalSocketServer);
 diff --git a/rtc_base/virtual_socket_server.cc b/rtc_base/virtual_socket_server.cc
-index 51a9901dab..b48bbca770 100644
+index de4e181742..eb2e9305e5 100644
 --- a/rtc_base/virtual_socket_server.cc
 +++ b/rtc_base/virtual_socket_server.cc
 @@ -24,7 +24,9 @@

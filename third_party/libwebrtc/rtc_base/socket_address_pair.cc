@@ -10,10 +10,10 @@
 
 #include "rtc_base/socket_address_pair.h"
 
-namespace rtc {
+namespace webrtc {
 
-SocketAddressPair::SocketAddressPair(const SocketAddress& src,
-                                     const SocketAddress& dest)
+SocketAddressPair::SocketAddressPair(const rtc::SocketAddress& src,
+                                     const rtc::SocketAddress& dest)
     : src_(src), dest_(dest) {}
 
 bool SocketAddressPair::operator==(const SocketAddressPair& p) const {
@@ -36,4 +36,4 @@ size_t SocketAddressPair::Hash() const {
   return src_.Hash() ^ dest_.Hash();
 }
 
-}  // namespace rtc
+}  // namespace webrtc

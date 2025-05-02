@@ -26,15 +26,15 @@ namespace rtc {
 
 RouteCmp::RouteCmp(NAT* nat) : symmetric(nat->IsSymmetric()) {}
 
-size_t RouteCmp::operator()(const SocketAddressPair& r) const {
+size_t RouteCmp::operator()(const webrtc::SocketAddressPair& r) const {
   size_t h = r.source().Hash();
   if (symmetric)
     h ^= r.destination().Hash();
   return h;
 }
 
-bool RouteCmp::operator()(const SocketAddressPair& r1,
-                          const SocketAddressPair& r2) const {
+bool RouteCmp::operator()(const webrtc::SocketAddressPair& r1,
+                          const webrtc::SocketAddressPair& r2) const {
   if (r1.source() < r2.source())
     return true;
   if (r2.source() < r1.source())
@@ -179,7 +179,7 @@ void NATServer::OnInternalUDPPacket(AsyncPacketSocket* socket,
   size_t length = UnpackAddressFromNAT(packet.payload(), &dest_addr);
 
   // Find the translation for these addresses (allocating one if necessary).
-  SocketAddressPair route(packet.source_address(), dest_addr);
+  webrtc::SocketAddressPair route(packet.source_address(), dest_addr);
   InternalMap::iterator iter = int_map_->find(route);
   if (iter == int_map_->end()) {
     Translate(route);
@@ -230,7 +230,7 @@ void NATServer::OnExternalUDPPacket(AsyncPacketSocket* socket,
                              iter->second->route.source(), options);
 }
 
-void NATServer::Translate(const SocketAddressPair& route) {
+void NATServer::Translate(const webrtc::SocketAddressPair& route) {
   external_socket_thread_.BlockingCall([&] {
     AsyncUDPSocket* socket = AsyncUDPSocket::Create(external_, external_ip_);
 
@@ -254,7 +254,7 @@ bool NATServer::ShouldFilterOut(TransEntry* entry,
   return entry->AllowlistContains(ext_addr);
 }
 
-NATServer::TransEntry::TransEntry(const SocketAddressPair& r,
+NATServer::TransEntry::TransEntry(const webrtc::SocketAddressPair& r,
                                   AsyncUDPSocket* s,
                                   NAT* nat)
     : route(r), socket(s) {
