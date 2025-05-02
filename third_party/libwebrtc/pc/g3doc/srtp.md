@@ -23,9 +23,10 @@ The implementation supports the following cipher suites:
 *   SRTP_AEAD_AES_128_GCM
 *   SRTP_AEAD_AES_256_GCM
 
-The SRTP_AES128_CM_HMAC_SHA1_32 cipher suite is accepted for audio-only
-connections if offered by the other side. It is not actively supported, see
-[SelectCrypto][2] for details.
+The SRTP_AES128_CM_HMAC_SHA1_32 cipher suite is not enabled by default and
+off in Chromium. When enabled, it is accepted for audio-only connections if
+offered by the other side. It is not actively supported, see [SelectCrypto][2]
+for details.
 
 The cipher suite ordering allows a non-WebRTC peer to prefer GCM cipher suites,
 however they are not selected as default by two instances of the WebRTC library.
