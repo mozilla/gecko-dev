@@ -77,15 +77,32 @@ static CSSToCSSMatrix4x4Flagged EffectiveTransform(nsIFrame* aFrame) {
   return matrix;
 }
 
+// Let the rect be snapshot containing block if capturedElement is the document
+// element, otherwise, capturedElement’s border box. NOTE: Needs ink overflow
+// rect instead to get the correct rendering, see
+// https://github.com/w3c/csswg-drafts/issues/12092.
+// TODO(emilio, bug 1961139): Maybe revisit this.
+static inline nsRect CapturedRect(const nsIFrame* aFrame) {
+  return aFrame->Style()->IsRootElementStyle()
+             ? ViewTransition::SnapshotContainingBlockRect(
+                   aFrame->PresContext())
+             : aFrame->InkOverflowRectRelativeToSelf();
+}
+static inline nsSize CapturedSize(const nsIFrame* aFrame,
+                                  const nsSize& aSnapshotContainingBlockSize) {
+  return aFrame->Style()->IsRootElementStyle()
+             ? aSnapshotContainingBlockSize
+             : aFrame->InkOverflowRectRelativeToSelf().Size();
+}
+
 static RefPtr<gfx::DataSourceSurface> CaptureFallbackSnapshot(
     nsIFrame* aFrame) {
   VT_LOG_DEBUG("CaptureFallbackSnapshot(%s)", aFrame->ListTag().get());
   nsPresContext* pc = aFrame->PresContext();
-  const bool isRoot = aFrame->Style()->IsRootElementStyle();
-  nsIFrame* frameToCapture =
-      isRoot ? pc->PresShell()->GetCanvasFrame() : aFrame;
-  const nsRect rect = isRoot ? ViewTransition::SnapshotContainingBlockRect(pc)
-                             : aFrame->InkOverflowRectRelativeToSelf();
+  nsIFrame* frameToCapture = aFrame->Style()->IsRootElementStyle()
+                                 ? pc->PresShell()->GetCanvasFrame()
+                                 : aFrame;
+  const nsRect& rect = CapturedRect(aFrame);
   const auto surfaceRect = LayoutDeviceIntRect::FromAppUnitsToOutside(
       rect, pc->AppUnitsPerDevPixel());
 
@@ -126,8 +143,9 @@ struct OldSnapshotData {
 
   OldSnapshotData() = default;
 
-  explicit OldSnapshotData(nsIFrame* aFrame)
-      : mSize(aFrame->InkOverflowRectRelativeToSelf().Size()) {
+  explicit OldSnapshotData(nsIFrame* aFrame,
+                           const nsSize& aSnapshotContainingBlockSize)
+      : mSize(CapturedSize(aFrame, aSnapshotContainingBlockSize)) {
     if (!StaticPrefs::dom_viewTransitions_wr_old_capture()) {
       mFallback = CaptureFallbackSnapshot(aFrame);
     }
@@ -191,11 +209,9 @@ struct CapturedElementOldState {
 
   CapturedElementOldState(nsIFrame* aFrame,
                           const nsSize& aSnapshotContainingBlockSize)
-      : mSnapshot(aFrame),
+      : mSnapshot(aFrame, aSnapshotContainingBlockSize),
         mTriedImage(true),
-        mSize(aFrame->Style()->IsRootElementStyle()
-                  ? aSnapshotContainingBlockSize
-                  : aFrame->InkOverflowRect().Size()),
+        mSize(CapturedSize(aFrame, aSnapshotContainingBlockSize)),
         mTransform(EffectiveTransform(aFrame)),
         mWritingMode(aFrame->StyleVisibility()->mWritingMode),
         mDirection(aFrame->StyleVisibility()->mDirection),
@@ -851,15 +867,12 @@ bool ViewTransition::UpdatePseudoElementStyles(bool aNeedsInvalidation) {
       return false;
     }
     auto* rule = EnsureRule(capturedElement.mGroupRule);
-    // Let newRect be snapshot containing block if capturedElement is the
-    // document element, otherwise, capturedElement’s border box.
-    // NOTE: Needs ink overflow rect instead to get the correct rendering, see
-    // https://github.com/w3c/csswg-drafts/issues/12092.
-    // TODO(emilio, bug 1961139): Maybe revisit this.
-    auto newRect = frame->Style()->IsRootElementStyle()
-                       ? SnapshotContainingBlockRect()
-                       : frame->InkOverflowRectRelativeToSelf();
-    auto size = CSSPixel::FromAppUnits(newRect);
+    // Note: mInitialSnapshotContainingBlockSize should be the same as the
+    // current snapshot containing block size because the caller checks it
+    // before calling us.
+    const auto& newSize =
+        CapturedSize(frame, mInitialSnapshotContainingBlockSize);
+    auto size = CSSPixel::FromAppUnits(newSize);
     // NOTE(emilio): Intentionally not short-circuiting. Int cast is needed to
     // silence warning.
     bool groupStyleChanged =
@@ -894,8 +907,7 @@ bool ViewTransition::UpdatePseudoElementStyles(bool aNeedsInvalidation) {
     // 5. Live capturing (nothing to do here regarding the capture itself, but
     // if the size has changed, then we need to invalidate the new frame).
     auto oldSize = capturedElement.mNewSnapshotSize;
-    capturedElement.mNewSnapshotSize =
-        frame->InkOverflowRectRelativeToSelf().Size();
+    capturedElement.mNewSnapshotSize = newSize;
     if (oldSize != capturedElement.mNewSnapshotSize && aNeedsInvalidation) {
       frame->PresShell()->FrameNeedsReflow(
           frame, IntrinsicDirty::FrameAndAncestors, NS_FRAME_IS_DIRTY);
@@ -1245,8 +1257,11 @@ Maybe<SkipTransitionReason> ViewTransition::CaptureNewState() {
       mNames.AppendElement(name);
     }
     capturedElement->mNewElement = aFrame->GetContent()->AsElement();
+    // Note: mInitialSnapshotContainingBlockSize should be the same as the
+    // current snapshot containing block size at this moment because the caller
+    // checks it before calling us.
     capturedElement->mNewSnapshotSize =
-        aFrame->InkOverflowRectRelativeToSelf().Size();
+        CapturedSize(aFrame, mInitialSnapshotContainingBlockSize);
     SetCaptured(aFrame, true);
     return true;
   });
