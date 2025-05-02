@@ -213,6 +213,32 @@ class CreateEngineSessionMiddlewareTest {
     }
 
     @Test
+    fun `creating engine session for custom tab with desktopMode enabled`() {
+        val engine: Engine = mock()
+        val engineSession: EngineSession = mock()
+        whenever(engine.createSession(anyBoolean(), any())).thenReturn(engineSession)
+
+        val middleware = CreateEngineSessionMiddleware(engine, scope)
+        val customTab = createCustomTab("https://www.mozilla.org", id = "1", desktopMode = true)
+        val store = BrowserStore(
+            initialState = BrowserState(customTabs = listOf(customTab)),
+            middleware = listOf(middleware),
+        )
+        assertNull(store.state.findCustomTab(customTab.id)?.engineState?.engineSession)
+
+        val followupAction = ContentAction.UpdateTitleAction(customTab.id, "test")
+        store.dispatch(EngineAction.CreateEngineSessionAction(customTab.id, followupAction = followupAction)).joinBlocking()
+
+        store.waitUntilIdle()
+        dispatcher.scheduler.advanceUntilIdle()
+
+        verify(engine, times(1)).createSession(false)
+        assertEquals(engineSession, store.state.findCustomTab(customTab.id)?.engineState?.engineSession)
+        assertEquals(followupAction.title, store.state.findCustomTab(customTab.id)?.content?.title)
+        verify(engineSession).toggleDesktopMode(eq(true), eq(false))
+    }
+
+    @Test
     fun `set desktop mode on based on tab's property once engine session is created`() = runTestOnMain {
         val engine: Engine = mock()
         val engineSession: EngineSession = mock()

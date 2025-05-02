@@ -46,6 +46,7 @@ class CustomTabsUseCases(
                 source = source,
                 config = customTabConfig,
                 initialLoadFlags = loadUrlFlags,
+                desktopMode = store.state.desktopMode,
             )
 
             store.dispatch(CustomTabListAction.AddCustomTabAction(tab))

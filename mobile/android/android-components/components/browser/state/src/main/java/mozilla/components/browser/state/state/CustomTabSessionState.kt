@@ -79,6 +79,7 @@ fun createCustomTab(
     private: Boolean = false,
     webAppManifest: WebAppManifest? = null,
     initialLoadFlags: EngineSession.LoadUrlFlags = EngineSession.LoadUrlFlags.none(),
+    desktopMode: Boolean = false,
 ): CustomTabSessionState {
     return CustomTabSessionState(
         id = id,
@@ -88,6 +89,7 @@ fun createCustomTab(
             title = title,
             private = private,
             webAppManifest = webAppManifest,
+            desktopMode = desktopMode,
         ),
         config = config,
         mediaSessionState = mediaSessionState,
