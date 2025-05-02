@@ -23,7 +23,7 @@
 
 using std::vector;
 
-namespace rtc {
+namespace webrtc {
 
 static const char kPad = '=';
 static const unsigned char pd = 0xFD;  // Padding
@@ -276,4 +276,4 @@ bool Base64::DecodeFromArrayTemplate(const char* data,
   return success;
 }
 
-}  // namespace rtc
+}  // namespace webrtc

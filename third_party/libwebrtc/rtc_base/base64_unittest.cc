@@ -337,7 +337,7 @@ size_t Base64Escape(const unsigned char* src,
                     char* dest,
                     size_t szdest) {
   std::string escaped;
-  Base64::EncodeFromArray((const char*)src, szsrc, &escaped);
+  webrtc::Base64::EncodeFromArray((const char*)src, szsrc, &escaped);
   memcpy(dest, escaped.data(), std::min(escaped.size(), szdest));
   return escaped.size();
 }
@@ -347,14 +347,15 @@ size_t Base64Unescape(const char* src,
                       char* dest,
                       size_t szdest) {
   std::string unescaped;
-  EXPECT_TRUE(
-      Base64::DecodeFromArray(src, szsrc, Base64::DO_LAX, &unescaped, nullptr));
+  EXPECT_TRUE(webrtc::Base64::DecodeFromArray(
+      src, szsrc, webrtc::Base64::DO_LAX, &unescaped, nullptr));
   memcpy(dest, unescaped.data(), std::min(unescaped.size(), szdest));
   return unescaped.size();
 }
 
 size_t Base64Unescape(const char* src, size_t szsrc, std::string* s) {
-  EXPECT_TRUE(Base64::DecodeFromArray(src, szsrc, Base64::DO_LAX, s, nullptr));
+  EXPECT_TRUE(webrtc::Base64::DecodeFromArray(
+      src, szsrc, webrtc::Base64::DO_LAX, s, nullptr));
   return s->size();
 }
 
@@ -1365,11 +1366,11 @@ TEST(Base64, LargeSample) {
 bool DecodeTest(const char* encoded,
                 size_t expect_unparsed,
                 const char* decoded,
-                Base64::DecodeFlags flags) {
+                webrtc::Base64::DecodeFlags flags) {
   std::string result;
   size_t consumed = 0, encoded_len = strlen(encoded);
-  bool success =
-      Base64::DecodeFromArray(encoded, encoded_len, flags, &result, &consumed);
+  bool success = webrtc::Base64::DecodeFromArray(encoded, encoded_len, flags,
+                                                 &result, &consumed);
   size_t unparsed = encoded_len - consumed;
   EXPECT_EQ(expect_unparsed, unparsed)
       << "\"" << encoded << "\" -> \"" << decoded << "\"";
@@ -1377,8 +1378,9 @@ bool DecodeTest(const char* encoded,
   return success;
 }
 
-#define Flags(x, y, z) \
-  Base64::DO_PARSE_##x | Base64::DO_PAD_##y | Base64::DO_TERM_##z
+#define Flags(x, y, z)                                        \
+  webrtc::Base64::DO_PARSE_##x | webrtc::Base64::DO_PAD_##y | \
+      webrtc::Base64::DO_TERM_##z
 
 TEST(Base64, DecodeParseOptions) {
   // Trailing whitespace
@@ -1440,14 +1442,14 @@ TEST(Base64, GetNextBase64Char) {
   // The table looks like this:
   // "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/"
   char next_char;
-  EXPECT_TRUE(Base64::GetNextBase64Char('A', &next_char));
+  EXPECT_TRUE(webrtc::Base64::GetNextBase64Char('A', &next_char));
   EXPECT_EQ('B', next_char);
-  EXPECT_TRUE(Base64::GetNextBase64Char('Z', &next_char));
+  EXPECT_TRUE(webrtc::Base64::GetNextBase64Char('Z', &next_char));
   EXPECT_EQ('a', next_char);
-  EXPECT_TRUE(Base64::GetNextBase64Char('/', &next_char));
+  EXPECT_TRUE(webrtc::Base64::GetNextBase64Char('/', &next_char));
   EXPECT_EQ('A', next_char);
-  EXPECT_FALSE(Base64::GetNextBase64Char('&', &next_char));
-  EXPECT_FALSE(Base64::GetNextBase64Char('Z', nullptr));
+  EXPECT_FALSE(webrtc::Base64::GetNextBase64Char('&', &next_char));
+  EXPECT_FALSE(webrtc::Base64::GetNextBase64Char('Z', nullptr));
 }
 
 }  // namespace

@@ -288,7 +288,7 @@ void CheckCertChainReports(const StatsReports& reports,
 
     std::string der_base64;
     EXPECT_TRUE(GetValue(report, StatsReport::kStatsValueNameDer, &der_base64));
-    std::string der = rtc::Base64::Decode(der_base64, rtc::Base64::DO_STRICT);
+    std::string der = Base64::Decode(der_base64, Base64::DO_STRICT);
     EXPECT_EQ(ders[i], der);
 
     std::string fingerprint_algorithm;
