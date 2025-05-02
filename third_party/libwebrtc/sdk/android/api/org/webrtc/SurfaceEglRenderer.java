@@ -41,6 +41,10 @@ public class SurfaceEglRenderer extends EglRenderer implements SurfaceHolder.Cal
     super(name);
   }
 
+  public SurfaceEglRenderer(String name, VideoFrameDrawer videoFrameDrawer) {
+    super(name, videoFrameDrawer);
+  }
+
   /**
    * Initialize this class, sharing resources with `sharedContext`. The custom `drawer` will be used
    * for drawing frames on the EGLSurface. This class is responsible for calling release() on
