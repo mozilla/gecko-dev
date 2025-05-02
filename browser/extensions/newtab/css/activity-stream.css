@@ -8355,9 +8355,6 @@ main section {
 .report-content-form form moz-radio-group {
   height: 100%;
 }
-.report-content-form::backdrop {
-  background: rgba(0, 0, 0, 0.3);
-}
 
 .personalized-card-wrapper {
   background-color: var(--background-color-canvas);
