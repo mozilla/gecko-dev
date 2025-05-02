@@ -184,9 +184,10 @@
       'rtc_p2p_unittests': {},
       'rtc_pc_unittests': {},
       'rtc_stats_unittests': {},
-      'rtc_unittests': {
-        'mixins': ['shards-6'],
-      },
+      # TODO: b/402029695 - Re-enable these tests.
+      # 'rtc_unittests': {
+      #   'mixins': ['shards-6'],
+      # },
       'sdk_framework_unittests': {
         'mixins': ['xcodebuild_sim_runner']
       },
