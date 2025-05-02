@@ -90,6 +90,8 @@ class LargestContentfulPaint final : public PerformanceEntry {
   DOMHighResTimeStamp RenderTime() const;
   DOMHighResTimeStamp LoadTime() const;
   DOMHighResTimeStamp StartTime() const override;
+  DOMHighResTimeStamp PaintTime() const { return RenderTime(); }
+  Nullable<DOMHighResTimeStamp> GetPresentationTime() const { return nullptr; }
 
   unsigned long Size() const { return mSize; }
   void GetId(nsAString& aId) const {

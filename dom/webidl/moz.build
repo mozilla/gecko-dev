@@ -801,6 +801,7 @@ WEBIDL_FILES = [
     "OscillatorNode.webidl",
     "PaintRequest.webidl",
     "PaintRequestList.webidl",
+    "PaintTimingMixin.webidl",
     "PaintWorkletGlobalScope.webidl",
     "PannerNode.webidl",
     "ParentNode.webidl",

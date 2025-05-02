@@ -33,6 +33,8 @@ class PerformancePaintTiming final : public PerformanceEntry {
                        JS::Handle<JSObject*> aGivenProto) override;
 
   DOMHighResTimeStamp StartTime() const override;
+  DOMHighResTimeStamp PaintTime() const { return StartTime(); }
+  Nullable<DOMHighResTimeStamp> GetPresentationTime() const { return nullptr; }
 
   size_t SizeOfIncludingThis(
       mozilla::MallocSizeOf aMallocSizeOf) const override;
