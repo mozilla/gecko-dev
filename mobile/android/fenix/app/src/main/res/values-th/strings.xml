@@ -127,6 +127,8 @@
   <string name="address_bar_swipe_cfr_title" tools:ignore="UnusedResources" moz:removedIn="139">กวาดแถบเครื่องมือเพื่อสลับแท็บ</string>
   <!-- Text for the message displayed in the contextual feature recommendation popup promoting swipe of address bar. -->
   <string name="address_bar_swipe_cfr_message" tools:ignore="UnusedResources" moz:removedIn="139">กวาดไปทางซ้ายหรือขวาเพื่อสลับ กวาดไปทางซ้ายบนแท็บล่าสุดของคุณเพื่อเปิดแท็บใหม่</string>
+  <!-- Text for the message displayed in the contextual feature recommendation popup promoting swipe of address bar. -->
+  <string name="address_bar_swipe_cfr_message_2">ปัดแถบเครื่องมือไปทางซ้ายหรือขวาเพื่อสลับแท็บ</string>
   <!-- Text for the info dialog when camera permissions have been denied but user tries to access a camera feature. -->
   <string name="camera_permissions_needed_message">จำเป็นต้องมีการเข้าถึงกล้อง ไปที่การตั้งค่า Android แตะสิทธิอนุญาต แล้วแตะอนุญาต</string>
   <!-- Text for the positive action button to go to Android Settings to grant permissions. -->
@@ -3419,8 +3421,26 @@
   <string name="text_field_eye_trailing_icon_default_content_description" moz:removedIn="139" tools:ignore="UnusedResources">แสดงข้อความที่ซ่อนอยู่</string>
   <!-- The default content description for the cross trailing icon button in TextField -->
   <string name="text_field_cross_trailing_icon_default_content_description" moz:removedIn="139" tools:ignore="UnusedResources">ล้างข้อความ</string>
+  <!--
+    Setup checklist feature
+
+    ===== Setup checklist feature: Title =====
+
+    Title for the setup checklist feature when the state is 'incomplete'. %1$s is the name of the app (for example "Firefox").
+  -->
+  <string name="setup_checklist_title_state_incomplete">ตั้งค่า %1$s ให้เสร็จ</string>
   <!-- Title for the setup checklist feature when the state is 'completed' -->
   <string name="setup_checklist_title_state_completed">ขอแสดงความยินดี!</string>
+  <!--
+    ===== Setup checklist feature: Subtitles for 3 steps =====
+
+    Subtitle for a setup checklist with 3 steps initial step. %1$s is the name of the app (for example "Firefox").
+  -->
+  <string name="setup_checklist_subtitle_3_steps_initial_state">ทำตาม 3 ขั้นตอนเหล่านี้เพื่อตั้งค่า %1$s ให้ได้รับประสบการณ์การท่องเว็บที่ดีที่สุด</string>
+  <!-- Subtitle for a setup checklist with 3 steps when two of the tasks are completed. -->
+  <string name="setup_checklist_subtitle_3_steps_second_step">ใกล้เสร็จแล้ว! เสร็จไปแล้ว 2 ขั้นตอน เหลืออีกแค่ 1 ขั้นตอน</string>
+  <!-- Subtitle for a setup checklist with 3 steps completed state. %1$s is the name of the app (for example "Firefox"). -->
+  <string name="setup_checklist_subtitle_3_steps_completed_state">คุณได้ทำทั้ง 3 ขั้นตอนแล้ว เพลิดเพลินไปกับความเร็ว ความเป็นส่วนตัว และความปลอดภัยของ %1$s</string>
   <!--
     ===== Setup checklist feature: Task titles =====
 
@@ -3457,4 +3477,6 @@
   <string name="pbm_authentication_leave_private_tabs">ออกจากแท็บส่วนตัว</string>
   <!-- Label for the primary action button to unlock private tabs -->
   <string name="pbm_authentication_unlock">ปลดล็อก</string>
+  <!-- Title text instructing the user to unlock private tabs -->
+  <string name="pbm_authentication_unlock_private_tabs">ปลดล็อคแท็บส่วนตัว</string>
 </resources>

@@ -1382,6 +1382,8 @@
   <string name="tab_tray_multiselect_share_content_description">Nda skedat e përzgjedhura</string>
   <!-- Content description for tabs tray multiselect menu -->
   <string name="tab_tray_multiselect_menu_content_description">Menu skedash të përzgjedhura</string>
+  <!-- Title text displayed for a homepage tab in the tabs tray. -->
+  <string name="tab_tray_homepage_tab">Kreu</string>
   <!-- Content description (not visible, for screen readers etc.): Removes tab from collection button. Removes the selected tab from collection when pressed -->
   <string name="remove_tab_from_collection">Hiq skedë prej koleksionit</string>
   <!-- Text for button to enter multiselect mode in tabs tray -->
@@ -1479,6 +1481,10 @@
   <string name="download_delete_item_1" moz:removedIn="138" tools:ignore="UnusedResources">Hiqe</string>
   <!-- Text for the button to delete a single downloaded file item -->
   <string name="download_delete_item">Fshije</string>
+  <!-- Content description for the toolbar "Navigate back" button -->
+  <string name="download_navigate_back_description">Shko mbrapsht</string>
+  <!-- Content description for the toolbar "Navigate up" button -->
+  <string name="download_navigate_up_description">Lëvizni për sipër</string>
   <!-- Text for the button to share the download URL -->
   <string name="download_share_url">Ndani URL-në me të tjerë</string>
   <!-- Text for the button to share the download file -->
@@ -1522,6 +1528,8 @@
   <string name="download_search_placeholder">Kërko te shkarkimet</string>
   <!-- Text to indicate that no downloads match the search query. -->
   <string name="download_search_no_results_found">S’u gjetën përfundime</string>
+  <!-- Text for the "Select all" button, which selects all downloaded items in the downloads list. -->
+  <string name="download_select_all_items">Përzgjidhe krejt</string>
   <!--
     Downloads Content Type Filters
 
@@ -3186,6 +3194,8 @@
   <string name="protection_panel_no_trackers_blocked">S’u gjetën gjurmues</string>
   <!-- Link text to navigate to privacy and security settings from the protection panel. -->
   <string name="protection_panel_privacy_and_security_settings">Rregullime privatësi dhe sigurie</string>
+  <!-- Title text for the protection panel permissions section. -->
+  <string name="protection_panel_permissions_title">Leje</string>
   <!--
     Text for displaying the total number of trackers blocked in the trackers blocked panel.
     %d is a placeholder for the number of trackers blocked.
@@ -3431,6 +3441,12 @@
   <string name="text_field_eye_trailing_icon_default_content_description" moz:removedIn="139" tools:ignore="UnusedResources">Shfaq tekst të fshehur</string>
   <!-- The default content description for the cross trailing icon button in TextField -->
   <string name="text_field_cross_trailing_icon_default_content_description" moz:removedIn="139" tools:ignore="UnusedResources">Spastroje tekstin</string>
+  <!-- Title for the setup checklist feature when the state is 'completed' -->
+  <string name="setup_checklist_title_state_completed">Përgëzime!</string>
+  <!-- The title of the sign-in task for the setup checklist -->
+  <string name="setup_checklist_task_account_sync">Bëni hyrjen në llogarinë tuaj</string>
+  <!-- The title of the explore extensions task for the setup checklist -->
+  <string name="setup_checklist_task_explore_extensions">Eksploroni zgjerime</string>
   <!--
     ===== Setup checklist feature: Accessibility =====
 

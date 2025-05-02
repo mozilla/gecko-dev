@@ -261,6 +261,8 @@
   <string name="browser_menu_customize_home_1">Kohanda avalehte</string>
   <!-- Browser menu label that navigates to the Password screen -->
   <string name="browser_menu_passwords">Paroolid</string>
+  <!-- Browser menu label for navigating to the Web Compat Reporter feature, which provides users the ability to send bug reports for broken sites. -->
+  <string name="browser_menu_webcompat_reporter">Teata katkisest saidist…</string>
   <!-- Browser menu label for the print feature -->
   <string name="browser_menu_print">Prindi…</string>
   <!--
@@ -381,6 +383,8 @@
   <string name="preferences_https_only_title">Ainult HTTPS-režiim</string>
   <!-- Text for indicating cookie banner handling is off this site, this is shown as part of the protections panel with the tracking protection toggle -->
   <string name="reduce_cookie_banner_off_for_site">Sellel saidil väljas</string>
+  <!-- Text for cancel button indicating that cookie banner reduction is not supported for the current site, this is shown as part of the cookie banner details view. -->
+  <string name="cookie_banner_handling_details_site_is_not_supported_cancel_button">Loobu</string>
   <!-- Text for indicating cookie banner handling is on this site, this is shown as part of the protections panel with the tracking protection toggle -->
   <string name="reduce_cookie_banner_on_for_site">Sellel saidil sees</string>
   <!-- Description of the preference to enable "HTTPS-Only" mode. -->
@@ -820,6 +824,8 @@
   <string name="download_share_file">Jaga faili</string>
   <!-- Alert dialog confirmation before deleting multiple download items, this is the positive action. -->
   <string name="download_delete_multi_select_dialog_confirm">Kustuta</string>
+  <!-- Alert dialog confirmation before deleting multiple download items, this is the negative action. -->
+  <string name="download_delete_multi_select_dialog_cancel">Loobu</string>
   <!-- Text for the header that groups the downloads the past 7 days -->
   <string name="download_time_period_last_7_days">Viimased 7 päeva</string>
   <!-- Text for the header that groups the downloads the past 30 days -->
@@ -838,6 +844,46 @@
   <string name="download_content_type_filter_document">Dokumendid</string>
   <!-- Text for the filter button to show all other file types in the downloads list -->
   <string name="download_content_type_filter_other_1">Muud</string>
+  <!--
+    WebCompat Reporter
+
+    The title of the Web Compat Reporter feature. This is displayed in the top app bar.
+  -->
+  <string name="webcompat_reporter_screen_title">Katkisest saidist teavitamine</string>
+  <!-- The description of the Web Compat Reporter feature. %1$s is the name of the app (for example "Firefox"). -->
+  <string name="webcompat_reporter_description">Aita muuta %1$s kõigi jaoks paremaks. Mozilla töötajad kasutavad sinu saadetud teavet veebisaidi probleemide lahendamiseks.</string>
+  <!-- The text field label of the URL text field. This is displayed above the user-inputted URL. -->
+  <string name="webcompat_reporter_label_url">URL</string>
+  <!-- The error message of the URL text field when an invalid URL has been entered. -->
+  <string name="webcompat_reporter_url_error_invalid">Palun sisesta korrektne URL</string>
+  <!-- The label/title of a field in the Web Compat Reporter feature for explaining a high-level reason why the site is broken. -->
+  <string name="webcompat_reporter_label_whats_broken_2">Mis on katki?</string>
+  <!-- The placeholder text for the dropdown where a user selects a high-level reason why the site is broken. -->
+  <string name="webcompat_reporter_choose_reason">Vali põhjus</string>
+  <!-- The error message of the dropdown, prompting the user to select a high-level reason why the site is broken. -->
+  <string name="webcompat_reporter_choose_reason_error">Palun vali põhjus</string>
+  <!-- The label/title of an optional field in the Web Compat Reporter feature for adding additional information. -->
+  <string name="webcompat_reporter_label_description">Kirjelda probleemi (valikuline)</string>
+  <!-- The button text for navigating away from the feature to provide more information on the broken site's bug report. -->
+  <string name="webcompat_reporter_send_more_info">Saada lisateavet</string>
+  <!-- The button text for the cancel button to leave the Web Compat Reporter feature. -->
+  <string name="webcompat_reporter_cancel">Loobu</string>
+  <!-- The button text for the send button to submit the provided form data. -->
+  <string name="webcompat_reporter_send">Saada</string>
+  <!-- Text for a snackbar to confirm the successful submission of a WebCompat report. -->
+  <string name="webcompat_reporter_success_snackbar_text">Raport on saadetud</string>
+  <!-- Button text for closing or dismissing the snackbar shown after successfully submitting a WebCompat report. -->
+  <string name="webcompat_reporter_dismiss_success_snackbar_text">Sulge</string>
+  <!--
+    These reason strings are dropdown options on a WebCompat reporter form, indicating what is broken on the site.
+
+    Broken site reason text for site slow or not working
+  -->
+  <string name="webcompat_reporter_reason_slow">Sait on aeglane või ei tööta</string>
+  <!-- Broken site reason text for images or videos -->
+  <string name="webcompat_reporter_reason_media">Pildid või videod</string>
+  <!-- Broken site reason text for buttons, links, and other content -->
+  <string name="webcompat_reporter_reason_content">Nupud, lingid ja muu sisu</string>
   <!--
     Crashes
 
@@ -862,6 +908,8 @@
   <string name="bookmark_delete_negative">Loobu</string>
   <!-- Screen title for adding a bookmarks folder -->
   <string name="bookmark_add_folder">Kausta lisamine</string>
+  <!-- Snackbar title that confirms a bookmark was saved into a folder. %s is the name of the folder the bookmark was saved into. -->
+  <string name="bookmark_saved_in_folder_snackbar">Salvestatud kausta „%s”</string>
   <!-- Snackbar edit button shown after a bookmark has been created. -->
   <string name="edit_bookmark_snackbar_action">MUUDA</string>
   <!-- Bookmark overflow menu edit button -->
@@ -893,6 +941,8 @@
   <string name="bookmark_url_label">URL</string>
   <!-- Bookmark FOLDER editing field label -->
   <string name="bookmark_folder_label">KAUST</string>
+  <!-- Text indicating which folder a bookmark or folder will be saved in -->
+  <string name="bookmark_save_in_label">Salvestatakse</string>
   <!-- Bookmark NAME editing field label -->
   <string name="bookmark_name_label">NIMI</string>
   <!-- Bookmark add folder screen title -->
@@ -916,6 +966,8 @@
   <string name="bookmark_deletion_multiple_snackbar_message_3">Valitud kaustade kustutamine</string>
   <!-- Bookmark undo button for deletion snackbar action -->
   <string name="bookmark_undo_deletion">VÕTA TAGASI</string>
+  <!-- Bookmark snackbar message for deleting a single item. %s is the title of the item being deleted -->
+  <string name="bookmark_delete_single_item">%s kustutati</string>
   <!-- Text for the button to search all bookmarks -->
   <string name="bookmark_search">Sisesta otsitav fraas</string>
   <!--
@@ -1360,6 +1412,8 @@
   <string name="preference_etp_smartblock_description">Mõned allpool märgitud jälitajad on sellel lehel osaliselt lubatud, sest suhtlesid nendega *.</string>
   <!-- Text displayed that links to website about enhanced tracking protection SmartBlock -->
   <string name="preference_etp_smartblock_learn_more">Rohkem teavet</string>
+  <!-- Cancel button text for provider textfield under "DNS over HTTPS" -->
+  <string name="preference_doh_provider_custom_dialog_cancel">Loobu</string>
   <!-- About page link text to open support link -->
   <string name="about_support">Kasutajatugi</string>
   <!-- About page link text to list of past crashes (like about:crashes on desktop) -->
@@ -1753,6 +1807,14 @@
   <string name="experiments_snackbar_button">Mine sätetesse</string>
   <!-- Translations feature -->
 
+  <!-- The Delete site dialogue negative button will appear when the user clicks on a list item. The dialog will be dismissed. -->
+  <string name="never_translate_site_dialog_cancel_preference">Loobu</string>
   <!-- Text that will appear beside a core or pivot language package name to show that the language is necessary for the translation feature to function. -->
   <string name="download_languages_default_system_language_require_preference">nõutud</string>
+  <!-- Button text on the dialog used by the translations feature to cancel deleting a language. -->
+  <string name="delete_language_file_dialog_negative_button_text">Loobu</string>
+  <!-- Button text on the data saving mode warning dialog used by the translations feature to allow users to cancel the action and not perform a download of the language file. -->
+  <string name="download_language_file_dialog_negative_button_text">Loobu</string>
+  <!-- Button text on the clear site data dialog to allow users to cancel the action and not clear the site data. -->
+  <string name="clear_site_data_dialog_negative_button_text">Loobu</string>
 </resources>
