@@ -1,0 +1,7 @@
+{
+  "provider_urls": [
+    "https://example.net/tests/dom/credentialmanagement/identity/tests/mochitest/does-not-exist",
+    "https://example.net/tests/dom/credentialmanagement/identity/tests/mochitest/server_manifest.sjs"
+  ],
+  "accounts_endpoint": "https://example.net/tests/dom/credentialmanagement/identity/tests/mochitest/server_simple_accounts.sjs"
+}
