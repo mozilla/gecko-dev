@@ -75,12 +75,6 @@ static GtkWidget* CreateMenuBarWidget() {
   return widget;
 }
 
-static GtkWidget* CreateProgressWidget() {
-  GtkWidget* widget = gtk_progress_bar_new();
-  AddToWindowContainer(widget);
-  return widget;
-}
-
 static GtkWidget* CreateTooltipWidget() {
   MOZ_ASSERT(gtk_check_version(3, 20, 0) != nullptr,
              "CreateTooltipWidget should be used for Gtk < 3.20 only.");
@@ -164,12 +158,6 @@ static GtkWidget* CreateHPanedWidget() {
 
 static GtkWidget* CreateVPanedWidget() {
   GtkWidget* widget = gtk_paned_new(GTK_ORIENTATION_VERTICAL);
-  AddToWindowContainer(widget);
-  return widget;
-}
-
-static GtkWidget* CreateScaleWidget(GtkOrientation aOrientation) {
-  GtkWidget* widget = gtk_scale_new(aOrientation, nullptr);
   AddToWindowContainer(widget);
   return widget;
 }
@@ -456,8 +444,6 @@ static GtkWidget* CreateWidget(WidgetNodeType aAppearance) {
       return CreateWindowWidget();
     case MOZ_GTK_WINDOW_CONTAINER:
       return CreateWindowContainerWidget();
-    case MOZ_GTK_PROGRESSBAR:
-      return CreateProgressWidget();
     case MOZ_GTK_SCROLLBAR_VERTICAL:
       return CreateScrollbarWidget(aAppearance, GTK_ORIENTATION_VERTICAL);
     case MOZ_GTK_MENUPOPUP:
@@ -480,10 +466,6 @@ static GtkWidget* CreateWidget(WidgetNodeType aAppearance) {
       return CreateHPanedWidget();
     case MOZ_GTK_SPLITTER_VERTICAL:
       return CreateVPanedWidget();
-    case MOZ_GTK_SCALE_HORIZONTAL:
-      return CreateScaleWidget(GTK_ORIENTATION_HORIZONTAL);
-    case MOZ_GTK_SCALE_VERTICAL:
-      return CreateScaleWidget(GTK_ORIENTATION_VERTICAL);
     case MOZ_GTK_NOTEBOOK:
       return CreateNotebookWidget();
     case MOZ_GTK_HEADERBAR_WINDOW:
@@ -764,13 +746,6 @@ static GtkStyleContext* GetCssNodeStyleInternal(WidgetNodeType aNodeType) {
       style = CreateChildCSSNode(GTK_STYLE_CLASS_SLIDER,
                                  MOZ_GTK_SCROLLBAR_TROUGH_VERTICAL);
       break;
-    case MOZ_GTK_PROGRESS_TROUGH:
-      /* Progress bar background (trough) */
-      style = CreateChildCSSNode(GTK_STYLE_CLASS_TROUGH, MOZ_GTK_PROGRESSBAR);
-      break;
-    case MOZ_GTK_PROGRESS_CHUNK:
-      style = CreateChildCSSNode("progress", MOZ_GTK_PROGRESS_TROUGH);
-      break;
     case MOZ_GTK_SCROLLED_WINDOW:
       // TODO - create from CSS node
       style = CreateSubStyleWithClass(MOZ_GTK_SCROLLED_WINDOW,
@@ -813,28 +788,6 @@ static GtkStyleContext* GetCssNodeStyleInternal(WidgetNodeType aNodeType) {
       break;
     case MOZ_GTK_SPLITTER_SEPARATOR_VERTICAL:
       style = CreateChildCSSNode("separator", MOZ_GTK_SPLITTER_VERTICAL);
-      break;
-    case MOZ_GTK_SCALE_CONTENTS_HORIZONTAL:
-      style = CreateChildCSSNode("contents", MOZ_GTK_SCALE_HORIZONTAL);
-      break;
-    case MOZ_GTK_SCALE_CONTENTS_VERTICAL:
-      style = CreateChildCSSNode("contents", MOZ_GTK_SCALE_VERTICAL);
-      break;
-    case MOZ_GTK_SCALE_TROUGH_HORIZONTAL:
-      style = CreateChildCSSNode(GTK_STYLE_CLASS_TROUGH,
-                                 MOZ_GTK_SCALE_CONTENTS_HORIZONTAL);
-      break;
-    case MOZ_GTK_SCALE_TROUGH_VERTICAL:
-      style = CreateChildCSSNode(GTK_STYLE_CLASS_TROUGH,
-                                 MOZ_GTK_SCALE_CONTENTS_VERTICAL);
-      break;
-    case MOZ_GTK_SCALE_THUMB_HORIZONTAL:
-      style = CreateChildCSSNode(GTK_STYLE_CLASS_SLIDER,
-                                 MOZ_GTK_SCALE_TROUGH_HORIZONTAL);
-      break;
-    case MOZ_GTK_SCALE_THUMB_VERTICAL:
-      style = CreateChildCSSNode(GTK_STYLE_CLASS_SLIDER,
-                                 MOZ_GTK_SCALE_TROUGH_VERTICAL);
       break;
     case MOZ_GTK_TAB_TOP: {
       // TODO - create from CSS node
@@ -894,15 +847,6 @@ static GtkStyleContext* GetWidgetStyleInternal(WidgetNodeType aNodeType) {
       style = CreateSubStyleWithClass(MOZ_GTK_SCROLLBAR_VERTICAL,
                                       GTK_STYLE_CLASS_SLIDER);
       break;
-    case MOZ_GTK_PROGRESS_TROUGH:
-      style =
-          CreateSubStyleWithClass(MOZ_GTK_PROGRESSBAR, GTK_STYLE_CLASS_TROUGH);
-      break;
-    case MOZ_GTK_PROGRESS_CHUNK:
-      style = CreateSubStyleWithClass(MOZ_GTK_PROGRESSBAR,
-                                      GTK_STYLE_CLASS_PROGRESSBAR);
-      gtk_style_context_remove_class(style, GTK_STYLE_CLASS_TROUGH);
-      break;
     case MOZ_GTK_SCROLLED_WINDOW:
       style = CreateSubStyleWithClass(MOZ_GTK_SCROLLED_WINDOW,
                                       GTK_STYLE_CLASS_FRAME);
@@ -936,22 +880,6 @@ static GtkStyleContext* GetWidgetStyleInternal(WidgetNodeType aNodeType) {
     case MOZ_GTK_SPLITTER_SEPARATOR_VERTICAL:
       style = CreateSubStyleWithClass(MOZ_GTK_SPLITTER_VERTICAL,
                                       GTK_STYLE_CLASS_PANE_SEPARATOR);
-      break;
-    case MOZ_GTK_SCALE_TROUGH_HORIZONTAL:
-      style = CreateSubStyleWithClass(MOZ_GTK_SCALE_HORIZONTAL,
-                                      GTK_STYLE_CLASS_TROUGH);
-      break;
-    case MOZ_GTK_SCALE_TROUGH_VERTICAL:
-      style = CreateSubStyleWithClass(MOZ_GTK_SCALE_VERTICAL,
-                                      GTK_STYLE_CLASS_TROUGH);
-      break;
-    case MOZ_GTK_SCALE_THUMB_HORIZONTAL:
-      style = CreateSubStyleWithClass(MOZ_GTK_SCALE_HORIZONTAL,
-                                      GTK_STYLE_CLASS_SLIDER);
-      break;
-    case MOZ_GTK_SCALE_THUMB_VERTICAL:
-      style = CreateSubStyleWithClass(MOZ_GTK_SCALE_VERTICAL,
-                                      GTK_STYLE_CLASS_SLIDER);
       break;
     case MOZ_GTK_TAB_TOP:
       style = CreateSubStyleWithClass(MOZ_GTK_NOTEBOOK, GTK_STYLE_CLASS_TOP);

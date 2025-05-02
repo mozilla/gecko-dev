@@ -117,17 +117,6 @@ enum WidgetNodeType : int {
   MOZ_GTK_SCROLLBAR_TROUGH_VERTICAL,
   MOZ_GTK_SCROLLBAR_THUMB_VERTICAL,
 
-  /* Paints a GtkScale. */
-  MOZ_GTK_SCALE_HORIZONTAL,
-  MOZ_GTK_SCALE_VERTICAL,
-  /* Paints a GtkScale trough. */
-  MOZ_GTK_SCALE_CONTENTS_HORIZONTAL,
-  MOZ_GTK_SCALE_CONTENTS_VERTICAL,
-  MOZ_GTK_SCALE_TROUGH_HORIZONTAL,
-  MOZ_GTK_SCALE_TROUGH_VERTICAL,
-  /* Paints a GtkScale thumb. */
-  MOZ_GTK_SCALE_THUMB_HORIZONTAL,
-  MOZ_GTK_SCALE_THUMB_VERTICAL,
   /* Paints a GtkExpander. */
   MOZ_GTK_EXPANDER,
   /* Paints a GtkTextView or gets the style context corresponding to the
@@ -150,16 +139,6 @@ enum WidgetNodeType : int {
   MOZ_GTK_FRAME_BORDER,
   /* Paints a resize grip for a GtkTextView */
   MOZ_GTK_RESIZER,
-  /* Paints a GtkProgressBar. */
-  MOZ_GTK_PROGRESSBAR,
-  /* Paints a trough (track) of a GtkProgressBar */
-  MOZ_GTK_PROGRESS_TROUGH,
-  /* Paints a progress chunk of a GtkProgressBar. */
-  MOZ_GTK_PROGRESS_CHUNK,
-  /* Paints a progress chunk of an indeterminated GtkProgressBar. */
-  MOZ_GTK_PROGRESS_CHUNK_INDETERMINATE,
-  /* Paints a progress chunk of a vertical indeterminated GtkProgressBar. */
-  MOZ_GTK_PROGRESS_CHUNK_VERTICAL_INDETERMINATE,
   /* Used as root style of whole GtkNotebook widget */
   MOZ_GTK_NOTEBOOK,
   /* Used as root style of active GtkNotebook area which contains tabs and

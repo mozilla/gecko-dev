@@ -475,99 +475,6 @@ static gint moz_gtk_header_bar_button_paint(cairo_t* cr, GdkRectangle* aRect,
   return MOZ_GTK_SUCCESS;
 }
 
-/**
- * Get minimum widget size as sum of margin, padding, border and
- * min-width/min-height.
- */
-static void moz_gtk_get_widget_min_size(GtkStyleContext* style, int* width,
-                                        int* height) {
-  GtkStateFlags state_flags = gtk_style_context_get_state(style);
-  gtk_style_context_get(style, state_flags, "min-height", height, "min-width",
-                        width, nullptr);
-
-  GtkBorder border, padding, margin;
-  gtk_style_context_get_border(style, state_flags, &border);
-  gtk_style_context_get_padding(style, state_flags, &padding);
-  gtk_style_context_get_margin(style, state_flags, &margin);
-
-  *width += border.left + border.right + margin.left + margin.right +
-            padding.left + padding.right;
-  *height += border.top + border.bottom + margin.top + margin.bottom +
-             padding.top + padding.bottom;
-}
-
-/* See gtk_range_draw() for reference. */
-static gint moz_gtk_scale_paint(cairo_t* cr, GdkRectangle* rect,
-                                GtkWidgetState* state, GtkOrientation flags,
-                                GtkTextDirection direction) {
-  GtkStateFlags state_flags = GetStateFlagsFromGtkWidgetState(state);
-  gint x, y, width, height, min_width, min_height;
-  GtkStyleContext* style;
-  GtkBorder margin;
-
-  moz_gtk_get_scale_metrics(flags, &min_width, &min_height);
-
-  WidgetNodeType widget = (flags == GTK_ORIENTATION_HORIZONTAL)
-                              ? MOZ_GTK_SCALE_TROUGH_HORIZONTAL
-                              : MOZ_GTK_SCALE_TROUGH_VERTICAL;
-  style = GetStyleContext(widget, state->image_scale, direction, state_flags);
-  gtk_style_context_get_margin(style, state_flags, &margin);
-
-  // Clamp the dimension perpendicular to the direction that the slider crosses
-  // to the minimum size.
-  if (flags == GTK_ORIENTATION_HORIZONTAL) {
-    width = rect->width - (margin.left + margin.right);
-    height = min_height - (margin.top + margin.bottom);
-    x = rect->x + margin.left;
-    y = rect->y + (rect->height - height) / 2;
-  } else {
-    width = min_width - (margin.left + margin.right);
-    height = rect->height - (margin.top + margin.bottom);
-    x = rect->x + (rect->width - width) / 2;
-    y = rect->y + margin.top;
-  }
-
-  gtk_render_background(style, cr, x, y, width, height);
-  gtk_render_frame(style, cr, x, y, width, height);
-
-  if (state->focused)
-    gtk_render_focus(style, cr, rect->x, rect->y, rect->width, rect->height);
-
-  return MOZ_GTK_SUCCESS;
-}
-
-static gint moz_gtk_scale_thumb_paint(cairo_t* cr, GdkRectangle* rect,
-                                      GtkWidgetState* state,
-                                      GtkOrientation flags,
-                                      GtkTextDirection direction) {
-  GtkStateFlags state_flags = GetStateFlagsFromGtkWidgetState(state);
-  GtkStyleContext* style;
-  gint thumb_width, thumb_height, x, y;
-
-  /* determine the thumb size, and position the thumb in the center in the
-   * opposite axis
-   */
-  if (flags == GTK_ORIENTATION_HORIZONTAL) {
-    moz_gtk_get_scalethumb_metrics(GTK_ORIENTATION_HORIZONTAL, &thumb_width,
-                                   &thumb_height);
-    x = rect->x;
-    y = rect->y + (rect->height - thumb_height) / 2;
-  } else {
-    moz_gtk_get_scalethumb_metrics(GTK_ORIENTATION_VERTICAL, &thumb_height,
-                                   &thumb_width);
-    x = rect->x + (rect->width - thumb_width) / 2;
-    y = rect->y;
-  }
-
-  WidgetNodeType widget = (flags == GTK_ORIENTATION_HORIZONTAL)
-                              ? MOZ_GTK_SCALE_THUMB_HORIZONTAL
-                              : MOZ_GTK_SCALE_THUMB_VERTICAL;
-  style = GetStyleContext(widget, state->image_scale, direction, state_flags);
-  gtk_render_slider(style, cr, x, y, thumb_width, thumb_height, flags);
-
-  return MOZ_GTK_SUCCESS;
-}
-
 static gint moz_gtk_hpaned_paint(cairo_t* cr, GdkRectangle* rect,
                                  GtkWidgetState* state) {
   GtkStyleContext* style =
@@ -647,65 +554,6 @@ static gint moz_gtk_frame_paint(cairo_t* cr, GdkRectangle* rect,
   GtkStyleContext* style =
       GetStyleContext(MOZ_GTK_FRAME, state->image_scale, direction);
   gtk_render_frame(style, cr, rect->x, rect->y, rect->width, rect->height);
-  return MOZ_GTK_SUCCESS;
-}
-
-static gint moz_gtk_progressbar_paint(cairo_t* cr, GdkRectangle* rect,
-                                      GtkWidgetState* state,
-                                      GtkTextDirection direction) {
-  GtkStyleContext* style =
-      GetStyleContext(MOZ_GTK_PROGRESS_TROUGH, state->image_scale, direction);
-  gtk_render_background(style, cr, rect->x, rect->y, rect->width, rect->height);
-  gtk_render_frame(style, cr, rect->x, rect->y, rect->width, rect->height);
-
-  return MOZ_GTK_SUCCESS;
-}
-
-static gint moz_gtk_progress_chunk_paint(cairo_t* cr, GdkRectangle* rect,
-                                         GtkWidgetState* state,
-                                         GtkTextDirection direction,
-                                         WidgetNodeType widget) {
-  GtkStyleContext* style =
-      GetStyleContext(MOZ_GTK_PROGRESS_CHUNK, state->image_scale, direction);
-
-  if (widget == MOZ_GTK_PROGRESS_CHUNK_INDETERMINATE ||
-      widget == MOZ_GTK_PROGRESS_CHUNK_VERTICAL_INDETERMINATE) {
-    /**
-     * The bar's size and the bar speed are set depending of the progress'
-     * size. These could also be constant for all progress bars easily.
-     */
-    gboolean vertical =
-        (widget == MOZ_GTK_PROGRESS_CHUNK_VERTICAL_INDETERMINATE);
-
-    /* The size of the dimension we are going to use for the animation. */
-    const gint progressSize = vertical ? rect->height : rect->width;
-
-    /* The bar is using a fifth of the element size, based on GtkProgressBar
-     * activity-blocks property. */
-    const gint barSize = MAX(1, progressSize / 5);
-
-    /* Represents the travel that has to be done for a complete cycle. */
-    const gint travel = 2 * (progressSize - barSize);
-
-    /* period equals to travel / pixelsPerMillisecond
-     * where pixelsPerMillisecond equals progressSize / 1000.0.
-     * This is equivalent to 1600. */
-    static const guint period = 1600;
-    const gint t = PR_IntervalToMilliseconds(PR_IntervalNow()) % period;
-    const gint dx = travel * t / period;
-
-    if (vertical) {
-      rect->y += (dx < travel / 2) ? dx : travel - dx;
-      rect->height = barSize;
-    } else {
-      rect->x += (dx < travel / 2) ? dx : travel - dx;
-      rect->width = barSize;
-    }
-  }
-
-  gtk_render_background(style, cr, rect->x, rect->y, rect->width, rect->height);
-  gtk_render_frame(style, cr, rect->x, rect->y, rect->width, rect->height);
-
   return MOZ_GTK_SUCCESS;
 }
 
@@ -981,24 +829,12 @@ gint moz_gtk_get_widget_border(WidgetNodeType widget, gint* left, gint* top,
     case MOZ_GTK_TABPANELS:
       w = GetWidget(MOZ_GTK_TABPANELS);
       break;
-    case MOZ_GTK_PROGRESSBAR:
-      w = GetWidget(MOZ_GTK_PROGRESSBAR);
-      break;
-    case MOZ_GTK_SCALE_HORIZONTAL:
-    case MOZ_GTK_SCALE_VERTICAL:
-      w = GetWidget(widget);
-      break;
     case MOZ_GTK_FRAME:
       w = GetWidget(MOZ_GTK_FRAME);
       break;
     /* These widgets have no borders, since they are not containers. */
     case MOZ_GTK_SPLITTER_HORIZONTAL:
     case MOZ_GTK_SPLITTER_VERTICAL:
-    case MOZ_GTK_SCALE_THUMB_HORIZONTAL:
-    case MOZ_GTK_SCALE_THUMB_VERTICAL:
-    case MOZ_GTK_PROGRESS_CHUNK:
-    case MOZ_GTK_PROGRESS_CHUNK_INDETERMINATE:
-    case MOZ_GTK_PROGRESS_CHUNK_VERTICAL_INDETERMINATE:
     case MOZ_GTK_HEADER_BAR:
     case MOZ_GTK_HEADER_BAR_MAXIMIZED:
     case MOZ_GTK_HEADER_BAR_BUTTON_CLOSE:
@@ -1079,71 +915,6 @@ gint moz_gtk_get_tab_scroll_arrow_size(gint* width, gint* height) {
   return MOZ_GTK_SUCCESS;
 }
 
-void moz_gtk_get_scale_metrics(GtkOrientation orient, gint* scale_width,
-                               gint* scale_height) {
-  if (gtk_check_version(3, 20, 0) != nullptr) {
-    WidgetNodeType widget = (orient == GTK_ORIENTATION_HORIZONTAL)
-                                ? MOZ_GTK_SCALE_HORIZONTAL
-                                : MOZ_GTK_SCALE_VERTICAL;
-
-    gint thumb_length, thumb_height, trough_border;
-    moz_gtk_get_scalethumb_metrics(orient, &thumb_length, &thumb_height);
-
-    GtkStyleContext* style = GetStyleContext(widget);
-    gtk_style_context_get_style(style, "trough-border", &trough_border, NULL);
-
-    if (orient == GTK_ORIENTATION_HORIZONTAL) {
-      *scale_width = thumb_length + trough_border * 2;
-      *scale_height = thumb_height + trough_border * 2;
-    } else {
-      *scale_width = thumb_height + trough_border * 2;
-      *scale_height = thumb_length + trough_border * 2;
-    }
-  } else {
-    WidgetNodeType widget = (orient == GTK_ORIENTATION_HORIZONTAL)
-                                ? MOZ_GTK_SCALE_TROUGH_HORIZONTAL
-                                : MOZ_GTK_SCALE_TROUGH_VERTICAL;
-    moz_gtk_get_widget_min_size(GetStyleContext(widget), scale_width,
-                                scale_height);
-  }
-}
-
-gint moz_gtk_get_scalethumb_metrics(GtkOrientation orient, gint* thumb_length,
-                                    gint* thumb_height) {
-  if (gtk_check_version(3, 20, 0) != nullptr) {
-    WidgetNodeType widget = (orient == GTK_ORIENTATION_HORIZONTAL)
-                                ? MOZ_GTK_SCALE_HORIZONTAL
-                                : MOZ_GTK_SCALE_VERTICAL;
-    GtkStyleContext* style = GetStyleContext(widget);
-    gtk_style_context_get_style(style, "slider_length", thumb_length,
-                                "slider_width", thumb_height, NULL);
-  } else {
-    WidgetNodeType widget = (orient == GTK_ORIENTATION_HORIZONTAL)
-                                ? MOZ_GTK_SCALE_THUMB_HORIZONTAL
-                                : MOZ_GTK_SCALE_THUMB_VERTICAL;
-    GtkStyleContext* style = GetStyleContext(widget);
-
-    gint min_width, min_height;
-    GtkStateFlags state = gtk_style_context_get_state(style);
-    gtk_style_context_get(style, state, "min-width", &min_width, "min-height",
-                          &min_height, nullptr);
-    GtkBorder margin;
-    gtk_style_context_get_margin(style, state, &margin);
-    gint margin_width = margin.left + margin.right;
-    gint margin_height = margin.top + margin.bottom;
-
-    // Negative margin of slider element also determines its minimal size
-    // so use bigger of those two values.
-    if (min_width < -margin_width) min_width = -margin_width;
-    if (min_height < -margin_height) min_height = -margin_height;
-
-    *thumb_length = min_width;
-    *thumb_height = min_height;
-  }
-
-  return MOZ_GTK_SUCCESS;
-}
-
 /* cairo_t *cr argument has to be a system-cairo. */
 gint moz_gtk_widget_paint(WidgetNodeType widget, cairo_t* cr,
                           GdkRectangle* rect, GtkWidgetState* state, gint flags,
@@ -1159,26 +930,12 @@ gint moz_gtk_widget_paint(WidgetNodeType widget, cairo_t* cr,
     case MOZ_GTK_HEADER_BAR_BUTTON_MAXIMIZE_RESTORE:
       return moz_gtk_header_bar_button_paint(
           cr, rect, state, (GtkReliefStyle)flags, widget, direction);
-    case MOZ_GTK_SCALE_HORIZONTAL:
-    case MOZ_GTK_SCALE_VERTICAL:
-      return moz_gtk_scale_paint(cr, rect, state, (GtkOrientation)flags,
-                                 direction);
-    case MOZ_GTK_SCALE_THUMB_HORIZONTAL:
-    case MOZ_GTK_SCALE_THUMB_VERTICAL:
-      return moz_gtk_scale_thumb_paint(cr, rect, state, (GtkOrientation)flags,
-                                       direction);
     case MOZ_GTK_TREEVIEW:
       return moz_gtk_treeview_paint(cr, rect, state, direction);
     case MOZ_GTK_FRAME:
       return moz_gtk_frame_paint(cr, rect, state, direction);
     case MOZ_GTK_RESIZER:
       return moz_gtk_resizer_paint(cr, rect, state, direction);
-    case MOZ_GTK_PROGRESSBAR:
-      return moz_gtk_progressbar_paint(cr, rect, state, direction);
-    case MOZ_GTK_PROGRESS_CHUNK:
-    case MOZ_GTK_PROGRESS_CHUNK_INDETERMINATE:
-    case MOZ_GTK_PROGRESS_CHUNK_VERTICAL_INDETERMINATE:
-      return moz_gtk_progress_chunk_paint(cr, rect, state, direction, widget);
     case MOZ_GTK_TAB_TOP:
     case MOZ_GTK_TAB_BOTTOM:
       return moz_gtk_tab_paint(cr, rect, state, (GtkTabFlags)flags, direction,

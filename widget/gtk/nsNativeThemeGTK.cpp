@@ -210,42 +210,9 @@ bool nsNativeThemeGTK::GetGtkWidgetAndState(StyleAppearance aAppearance,
   }
 
   switch (aAppearance) {
-    case StyleAppearance::Range: {
-      if (IsRangeHorizontal(aFrame)) {
-        if (aWidgetFlags) *aWidgetFlags = GTK_ORIENTATION_HORIZONTAL;
-        aGtkWidgetType = MOZ_GTK_SCALE_HORIZONTAL;
-      } else {
-        if (aWidgetFlags) *aWidgetFlags = GTK_ORIENTATION_VERTICAL;
-        aGtkWidgetType = MOZ_GTK_SCALE_VERTICAL;
-      }
-      break;
-    }
-    case StyleAppearance::RangeThumb: {
-      if (IsRangeHorizontal(aFrame)) {
-        if (aWidgetFlags) *aWidgetFlags = GTK_ORIENTATION_HORIZONTAL;
-        aGtkWidgetType = MOZ_GTK_SCALE_THUMB_HORIZONTAL;
-      } else {
-        if (aWidgetFlags) *aWidgetFlags = GTK_ORIENTATION_VERTICAL;
-        aGtkWidgetType = MOZ_GTK_SCALE_THUMB_VERTICAL;
-      }
-      break;
-    }
     case StyleAppearance::Listbox:
       aGtkWidgetType = MOZ_GTK_TREEVIEW;
       break;
-    case StyleAppearance::ProgressBar:
-      aGtkWidgetType = MOZ_GTK_PROGRESSBAR;
-      break;
-    case StyleAppearance::Progresschunk: {
-      nsIFrame* stateFrame = aFrame->GetParent();
-      ElementState elementState = GetContentState(stateFrame, aAppearance);
-
-      aGtkWidgetType = elementState.HasState(ElementState::INDETERMINATE)
-                           ? IsVerticalProgress(stateFrame)
-                                 ? MOZ_GTK_PROGRESS_CHUNK_VERTICAL_INDETERMINATE
-                                 : MOZ_GTK_PROGRESS_CHUNK_INDETERMINATE
-                           : MOZ_GTK_PROGRESS_CHUNK;
-    } break;
     case StyleAppearance::Tabpanels:
       aGtkWidgetType = MOZ_GTK_TABPANELS;
       break;
@@ -656,14 +623,6 @@ nsNativeThemeGTK::DrawWidgetBackground(gfxContext* aContext, nsIFrame* aFrame,
     }
   }
 
-  // Indeterminate progress bar are animated.
-  if (gtkWidgetType == MOZ_GTK_PROGRESS_CHUNK_INDETERMINATE ||
-      gtkWidgetType == MOZ_GTK_PROGRESS_CHUNK_VERTICAL_INDETERMINATE) {
-    if (!QueueAnimatedContentForRefresh(aFrame->GetContent(), 30)) {
-      NS_WARNING("unable to animate widget!");
-    }
-  }
-
   return NS_OK;
 }
 
@@ -777,7 +736,6 @@ bool nsNativeThemeGTK::GetWidgetPadding(nsDeviceContext* aContext,
     case StyleAppearance::MozWindowButtonMinimize:
     case StyleAppearance::MozWindowButtonMaximize:
     case StyleAppearance::MozWindowButtonRestore:
-    case StyleAppearance::RangeThumb:
       aResult->SizeTo(0, 0, 0, 0);
       return true;
     default:
@@ -832,7 +790,11 @@ bool nsNativeThemeGTK::IsWidgetAlwaysNonNative(nsIFrame* aFrame,
          aAppearance == StyleAppearance::Radio ||
          aAppearance == StyleAppearance::Button ||
          aAppearance == StyleAppearance::Toolbarbutton ||
-         aAppearance == StyleAppearance::Menulist;
+         aAppearance == StyleAppearance::Menulist ||
+         aAppearance == StyleAppearance::ProgressBar ||
+         aAppearance == StyleAppearance::Progresschunk ||
+         aAppearance == StyleAppearance::Range ||
+         aAppearance == StyleAppearance::RangeThumb;
 }
 
 LayoutDeviceIntSize nsNativeThemeGTK::GetMinimumWidgetSize(
@@ -849,15 +811,6 @@ LayoutDeviceIntSize nsNativeThemeGTK::GetMinimumWidgetSize(
         moz_gtk_splitter_get_metrics(GTK_ORIENTATION_HORIZONTAL, &result.width);
       } else {
         moz_gtk_splitter_get_metrics(GTK_ORIENTATION_VERTICAL, &result.height);
-      }
-    } break;
-    case StyleAppearance::RangeThumb: {
-      if (IsRangeHorizontal(aFrame)) {
-        moz_gtk_get_scalethumb_metrics(GTK_ORIENTATION_HORIZONTAL,
-                                       &result.width, &result.height);
-      } else {
-        moz_gtk_get_scalethumb_metrics(GTK_ORIENTATION_VERTICAL, &result.width,
-                                       &result.width);
       }
     } break;
     case StyleAppearance::MozWindowButtonClose: {
@@ -923,13 +876,9 @@ nsNativeThemeGTK::ThemeSupportsWidget(nsPresContext* aPresContext,
 
   switch (aAppearance) {
     case StyleAppearance::Listbox:
-    case StyleAppearance::ProgressBar:
-    case StyleAppearance::Progresschunk:
     case StyleAppearance::Tab:
     // case StyleAppearance::Tabpanel:
     case StyleAppearance::Tabpanels:
-    case StyleAppearance::Range:
-    case StyleAppearance::RangeThumb:
     case StyleAppearance::Splitter:
     case StyleAppearance::MozWindowButtonClose:
     case StyleAppearance::MozWindowButtonMinimize:
@@ -949,9 +898,6 @@ nsNativeThemeGTK::ThemeSupportsWidget(nsPresContext* aPresContext,
 NS_IMETHODIMP_(bool)
 nsNativeThemeGTK::WidgetIsContainer(StyleAppearance aAppearance) {
   // XXXdwh At some point flesh all of this out.
-  if (aAppearance == StyleAppearance::RangeThumb) {
-    return false;
-  }
   return true;
 }
 
