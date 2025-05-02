@@ -221,8 +221,7 @@ class VideoStreamAdapter {
       const VideoStreamInputState& input_state) const
       RTC_RUN_ON(&sequence_checker_);
 
-  RTC_NO_UNIQUE_ADDRESS SequenceChecker sequence_checker_
-      RTC_GUARDED_BY(&sequence_checker_);
+  RTC_NO_UNIQUE_ADDRESS SequenceChecker sequence_checker_;
   // Gets the input state which is the basis of all adaptations.
   // Thread safe.
   VideoStreamInputStateProvider* input_state_provider_;
