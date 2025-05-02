@@ -1967,6 +1967,7 @@ dependencies = [
  "inherent",
  "log",
  "mozbuild",
+ "nserror",
  "nsstring",
  "once_cell",
  "serde",
@@ -1975,6 +1976,7 @@ dependencies = [
  "thin-vec",
  "time 0.1.45",
  "uuid",
+ "wr_malloc_size_of",
  "xpcom",
 ]
 

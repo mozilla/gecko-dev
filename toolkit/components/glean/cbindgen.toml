@@ -14,7 +14,7 @@ line_length = 100
 tab_width = 2
 language = "C++"
 namespaces = ["mozilla::glean::impl"]
-includes = ["nsTArray.h", "nsString.h"]
+includes = ["nsTArray.h", "nsString.h", "nsIMemoryReporter.h"]
 
 [export.rename]
 "ThinVec" = "nsTArray"

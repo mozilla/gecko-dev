@@ -655,6 +655,16 @@ void FOG::InitMemoryReporter() { RegisterWeakMemoryReporter(this); }
 
 MOZ_DEFINE_MALLOC_SIZE_OF(FOGMallocSizeOf)
 
+// Rust doesn't support weak-linking, so MFBT_API functions like
+// moz_malloc_size_of need a C++ wrapper that uses the regular ABI
+//
+// We're not using MOZ_DEFINE_MALLOC_SIZE_OF here because that makes the
+// function `static`, which would make it not visible outside this file
+extern "C" size_t fog_malloc_size_of(const void* aPtr) {
+  MOZ_REPORT(aPtr);
+  return moz_malloc_size_of(aPtr);
+}
+
 NS_IMETHODIMP
 FOG::CollectReports(nsIHandleReportCallback* aHandleReport, nsISupports* aData,
                     bool aAnonymize) {
@@ -663,6 +673,7 @@ FOG::CollectReports(nsIHandleReportCallback* aHandleReport, nsISupports* aData,
   MOZ_COLLECT_REPORT("explicit/fog/impl", KIND_HEAP, UNITS_BYTES,
                      aMallocSizeOf(this),
                      "Memory used by the FOG core implementation");
+  glean::impl::fog_collect_reports(aHandleReport, aData, aAnonymize);
 
   return NS_OK;
 }

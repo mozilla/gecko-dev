@@ -18,6 +18,15 @@ pub enum Ping {
     Child,
 }
 
+impl malloc_size_of::MallocSizeOf for Ping {
+    fn size_of(&self, ops: &mut malloc_size_of::MallocSizeOfOps) -> usize {
+        match self {
+            Ping::Child => 0,
+            Ping::Parent { inner, .. } => inner.size_of(ops),
+        }
+    }
+}
+
 impl Ping {
     /// Create a new ping type for the given name, whether to include the client ID and whether to
     /// send this ping empty.
