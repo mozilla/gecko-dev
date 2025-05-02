@@ -449,7 +449,6 @@ class DafsaAppendStateMachine:
             front_node = new_node
 
         front_node.add_child(self.suffix_cursor.node)
-        return None  # Done!
 
 
 def _duplicate_fork_nodes(stack, fork_index, prefix_index, remove_parent_link=True):
