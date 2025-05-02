@@ -362,6 +362,16 @@ pub struct LabeledMetric<T: AllowLabeled, E> {
     permit_unordered_ipc: bool,
 }
 
+impl<T, E> malloc_size_of::MallocSizeOf for LabeledMetric<T, E>
+where
+    T: AllowLabeled,
+    T::GleanMetric: malloc_size_of::MallocSizeOf,
+{
+    fn size_of(&self, ops: &mut malloc_size_of::MallocSizeOfOps) -> usize {
+        self.core.size_of(ops)
+    }
+}
+
 impl<T, E> LabeledMetric<T, E>
 where
     T: AllowLabeled + Clone,

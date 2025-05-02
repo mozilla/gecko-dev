@@ -14,6 +14,27 @@ include!(mozbuild::objdir_path!(
 
 use crate::private::{EventMetric, ExtraKeys};
 
+#[cfg(feature = "with_gecko")]
+extern "C" {
+    fn fog_malloc_size_of(ptr: *const ::xpcom::reexports::libc::c_void) -> usize;
+}
+
+#[cfg(feature = "with_gecko")]
+thread_local! {
+    static METRIC_MEMORY_USAGE: std::cell::RefCell<usize> = std::cell::RefCell::new(0);
+    static METRIC_MEM_OPS: std::cell::RefCell<::malloc_size_of::MallocSizeOfOps> = std::cell::RefCell::new(::malloc_size_of::MallocSizeOfOps::new(fog_malloc_size_of, None));
+}
+
+#[cfg(feature = "with_gecko")]
+pub(crate) fn count_memory_usage(size: usize) {
+    METRIC_MEMORY_USAGE.with_borrow_mut(|usg| *usg += size);
+}
+
+#[cfg(feature = "with_gecko")]
+pub(crate) fn metric_memory_usage() -> usize {
+    METRIC_MEMORY_USAGE.with(|c| *c.borrow())
+}
+
 /// Helper to get the number of allowed extra keys for a given event metric.
 fn extra_keys_len<K: ExtraKeys>(_event: &EventMetric<K>) -> usize {
     K::ALLOWED_KEYS.len()

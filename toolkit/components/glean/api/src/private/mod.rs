@@ -798,3 +798,62 @@ mod truncation_tests {
         check_one(pad(1021) + "🇯🇵", pad(1021) + "");
     }
 }
+
+macro_rules! impl_malloc_size_of_metric {
+    ($($ty:ident),+ $(,)?) => {
+        $(
+            impl malloc_size_of::MallocSizeOf for $ty {
+                fn size_of(&self, ops: &mut malloc_size_of::MallocSizeOfOps) -> usize {
+                    match self {
+                        $ty::Child { .. } => 0,
+                        $ty::Parent { inner, .. } => inner.size_of(ops),
+                    }
+                }
+            }
+        )+
+    };
+}
+
+impl_malloc_size_of_metric!(
+    CounterMetric,
+    CustomDistributionMetric,
+    DatetimeMetric,
+    DenominatorMetric,
+    MemoryDistributionMetric,
+    NumeratorMetric,
+    QuantityMetric,
+    RateMetric,
+    StringMetric,
+    StringListMetric,
+    TextMetric,
+    TimespanMetric,
+    TimingDistributionMetric,
+    UrlMetric,
+    UuidMetric,
+);
+
+impl malloc_size_of::MallocSizeOf for BooleanMetric {
+    fn size_of(&self, ops: &mut malloc_size_of::MallocSizeOfOps) -> usize {
+        match self {
+            BooleanMetric::Child(_) | BooleanMetric::UnorderedChild(_) => 0,
+            BooleanMetric::Parent { inner, .. } => inner.size_of(ops),
+        }
+    }
+}
+
+impl<K> malloc_size_of::MallocSizeOf for EventMetric<K> {
+    fn size_of(&self, ops: &mut malloc_size_of::MallocSizeOfOps) -> usize {
+        match self {
+            EventMetric::Child(_c) => 0,
+            EventMetric::Parent { inner, .. } => inner.size_of(ops),
+        }
+    }
+}
+impl<K> malloc_size_of::MallocSizeOf for ObjectMetric<K> {
+    fn size_of(&self, ops: &mut malloc_size_of::MallocSizeOfOps) -> usize {
+        match self {
+            ObjectMetric::Child => 0,
+            ObjectMetric::Parent { inner, .. } => inner.size_of(ops),
+        }
+    }
+}

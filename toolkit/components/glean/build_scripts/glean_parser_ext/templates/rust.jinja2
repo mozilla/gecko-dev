@@ -188,7 +188,7 @@ pub mod {{ category_name|snake_case }} {
             {% else %}
             {{ common_metric_data(obj)|indent(12) }};
             {% endif %}
-        {{ obj|ctor }}(BaseMetricId({{obj|metric_id}}), meta
+        let metric = {{ obj|ctor }}(BaseMetricId({{obj|metric_id}}), meta
         {%- for arg_name in extra_args if not obj.labeled and obj[arg_name] is defined and arg_name not in common_metric_data_args and arg_name != 'allowed_extra_keys' -%}
             , {{ obj[arg_name]|rust }}
         {%- endfor -%}
@@ -199,7 +199,21 @@ pub mod {{ category_name|snake_case }} {
         {%- else -%}
         None
         {%- endif -%})
+        {% endif %};
+        {% if obj.type == "event" or obj.type == "object" or obj.labeled %}
+        {#
+          event/object metrics don't have a map.
+          They don't allocate anymore after instantiation, so it's enough to measure once.
+        #}
+        #[cfg(feature = "with_gecko")]
+        {
+            crate::metrics::METRIC_MEM_OPS.with_borrow_mut(|ops| {
+                use malloc_size_of::MallocSizeOf;
+                super::count_memory_usage(metric.size_of(ops));
+            });
+        }
         {% endif %}
+        metric
     });
     {% endif %}
 
@@ -215,7 +229,62 @@ pub(crate) mod __glean_metric_maps {
 
     use crate::metrics::extra_keys_len;
     use crate::private::*;
+    use malloc_size_of::MallocSizeOf;
     use once_cell::sync::Lazy;
+
+    /// Measure the allocation size of all labeled metrics.
+    ///
+    /// Labeled metrics do allocate additional memory at runtime for the cache of instantiated submetrics.
+    /// These are included in the `size_of` measurement automatically.
+    ///
+    /// **Note**: This function grows with the number of labeled metrics!
+    /// If it becomes too big we need to think about further optimizations.
+    fn fog_labeled_alloc_size(ops: &mut malloc_size_of::MallocSizeOfOps) -> usize {
+        let mut n = 0;
+        {% for labeled_type, labeleds_by_id in labeleds_by_id_by_type.items() %}
+          {% for metric_id, (labeled, _) in labeleds_by_id.items() %}
+          n += super::{{labeled}}.size_of(ops);
+          {% endfor %}
+        {% endfor %}
+        n
+    }
+
+    fn fog_submetric_alloc_size(ops: &mut malloc_size_of::MallocSizeOfOps) -> usize {
+        let mut n = 0;
+
+        n += once_cell::sync::Lazy::get(&submetric_maps::LABELED_METRICS_TO_IDS).map(|m| {
+            let lock = m.read().unwrap();
+            (*lock).size_of(ops)
+        }).unwrap_or(0);
+        n += once_cell::sync::Lazy::get(&submetric_maps::LABELED_ENUMS_TO_IDS).map(|m| {
+            let lock = m.read().unwrap();
+            (*lock).size_of(ops)
+        }).unwrap_or(0);
+
+        {% for typ, metrics in metric_by_type.items() %}
+        {% if typ.0 in ('BOOLEAN_MAP', 'COUNTER_MAP', 'CUSTOM_DISTRIBUTION_MAP', 'MEMORY_DISTRIBUTION_MAP', 'QUANTITY_MAP', 'STRING_MAP', 'TIMING_DISTRIBUTION_MAP') %}
+            n += once_cell::sync::Lazy::get(&submetric_maps::{{typ.0}}).map(|m| {
+                // The values are behind an `Arc`. We don't want to measure them.
+                // We only measure the enclosing size of the values.
+                let lock = m.read().unwrap();
+                malloc_size_of::MallocShallowSizeOf::shallow_size_of(&*lock, ops)
+            }).unwrap_or(0);
+        {% endif %}
+        {% endfor%}
+        n
+    }
+
+    pub fn fog_map_alloc_size(ops: &mut malloc_size_of::MallocSizeOfOps) -> usize {
+        let mut n = 0;
+        {% for typ, metrics in metric_by_type.items() %}
+        n += {{typ.0}}.size_of(ops);
+        {% endfor %}
+
+        n += fog_labeled_alloc_size(ops);
+        n += fog_submetric_alloc_size(ops);
+
+        n
+    }
 
 {% for typ, metrics in metric_by_type.items() %}
     pub static {{typ.0}}: Lazy<HashMap<BaseMetricId, &Lazy<{{typ.1}}>>> = Lazy::new(|| {

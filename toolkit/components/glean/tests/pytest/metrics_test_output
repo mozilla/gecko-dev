@@ -35,7 +35,9 @@ pub mod test {
                 disabled: false,
                 ..Default::default()
             };
-        BooleanMetric::new(BaseMetricId(1), meta)
+        let metric = BooleanMetric::new(BaseMetricId(1), meta)
+;
+        metric
     });
 
     #[allow(non_upper_case_globals)]
@@ -53,7 +55,9 @@ pub mod test {
                 disabled: false,
                 ..Default::default()
             };
-        CounterMetric::new(BaseMetricId(2), meta)
+        let metric = CounterMetric::new(BaseMetricId(2), meta)
+;
+        metric
     });
 
     #[allow(non_upper_case_globals)]
@@ -71,7 +75,9 @@ pub mod test {
                 disabled: false,
                 ..Default::default()
             };
-        CustomDistributionMetric::new(BaseMetricId(3), meta, 0, 100, 100, HistogramType::Linear)
+        let metric = CustomDistributionMetric::new(BaseMetricId(3), meta, 0, 100, 100, HistogramType::Linear)
+;
+        metric
     });
 
     #[allow(non_upper_case_globals)]
@@ -91,7 +97,16 @@ pub mod test {
                     ..Default::default()
                 },
             };
-        LabeledMetric::new(BaseMetricId(4), meta, None)
+        let metric = LabeledMetric::new(BaseMetricId(4), meta, None)
+;
+        #[cfg(feature = "with_gecko")]
+        {
+            crate::metrics::METRIC_MEM_OPS.with_borrow_mut(|ops| {
+                use malloc_size_of::MallocSizeOf;
+                super::count_memory_usage(metric.size_of(ops));
+            });
+        }
+        metric
     });
 
     #[repr(u16)]
@@ -159,7 +174,16 @@ pub mod test {
                     ..Default::default()
                 },
             };
-        LabeledMetric::new(BaseMetricId(5), meta, Some(vec![::std::borrow::Cow::from("eight_labels"), ::std::borrow::Cow::from("five_labels"), ::std::borrow::Cow::from("four_labels"), ::std::borrow::Cow::from("nine_labels"), ::std::borrow::Cow::from("one_label"), ::std::borrow::Cow::from("seven_labels"), ::std::borrow::Cow::from("six_labels"), ::std::borrow::Cow::from("ten_labels"), ::std::borrow::Cow::from("three_labels"), ::std::borrow::Cow::from("two_labels")]))
+        let metric = LabeledMetric::new(BaseMetricId(5), meta, Some(vec![::std::borrow::Cow::from("eight_labels"), ::std::borrow::Cow::from("five_labels"), ::std::borrow::Cow::from("four_labels"), ::std::borrow::Cow::from("nine_labels"), ::std::borrow::Cow::from("one_label"), ::std::borrow::Cow::from("seven_labels"), ::std::borrow::Cow::from("six_labels"), ::std::borrow::Cow::from("ten_labels"), ::std::borrow::Cow::from("three_labels"), ::std::borrow::Cow::from("two_labels")]))
+;
+        #[cfg(feature = "with_gecko")]
+        {
+            crate::metrics::METRIC_MEM_OPS.with_borrow_mut(|ops| {
+                use malloc_size_of::MallocSizeOf;
+                super::count_memory_usage(metric.size_of(ops));
+            });
+        }
+        metric
     });
 
     #[allow(non_upper_case_globals)]
@@ -179,7 +203,16 @@ pub mod test {
                     ..Default::default()
                 },
             };
-        LabeledMetric::new(BaseMetricId(6), meta, None)
+        let metric = LabeledMetric::new(BaseMetricId(6), meta, None)
+;
+        #[cfg(feature = "with_gecko")]
+        {
+            crate::metrics::METRIC_MEM_OPS.with_borrow_mut(|ops| {
+                use malloc_size_of::MallocSizeOf;
+                super::count_memory_usage(metric.size_of(ops));
+            });
+        }
+        metric
     });
 
     #[repr(u16)]
@@ -223,7 +256,16 @@ pub mod test {
                     ..Default::default()
                 },
             };
-        LabeledMetric::new(BaseMetricId(7), meta, Some(vec![::std::borrow::Cow::from("one_label"), ::std::borrow::Cow::from("two_labels")]))
+        let metric = LabeledMetric::new(BaseMetricId(7), meta, Some(vec![::std::borrow::Cow::from("one_label"), ::std::borrow::Cow::from("two_labels")]))
+;
+        #[cfg(feature = "with_gecko")]
+        {
+            crate::metrics::METRIC_MEM_OPS.with_borrow_mut(|ops| {
+                use malloc_size_of::MallocSizeOf;
+                super::count_memory_usage(metric.size_of(ops));
+            });
+        }
+        metric
     });
 
     #[allow(non_upper_case_globals)]
@@ -243,7 +285,16 @@ pub mod test {
                     ..Default::default()
                 },
             };
-        LabeledMetric::new(BaseMetricId(8), meta, None)
+        let metric = LabeledMetric::new(BaseMetricId(8), meta, None)
+;
+        #[cfg(feature = "with_gecko")]
+        {
+            crate::metrics::METRIC_MEM_OPS.with_borrow_mut(|ops| {
+                use malloc_size_of::MallocSizeOf;
+                super::count_memory_usage(metric.size_of(ops));
+            });
+        }
+        metric
     });
 
     #[repr(u16)]
@@ -287,7 +338,16 @@ pub mod test {
                     ..Default::default()
                 },
             };
-        LabeledMetric::new(BaseMetricId(9), meta, Some(vec![::std::borrow::Cow::from("one_label"), ::std::borrow::Cow::from("two_labels")]))
+        let metric = LabeledMetric::new(BaseMetricId(9), meta, Some(vec![::std::borrow::Cow::from("one_label"), ::std::borrow::Cow::from("two_labels")]))
+;
+        #[cfg(feature = "with_gecko")]
+        {
+            crate::metrics::METRIC_MEM_OPS.with_borrow_mut(|ops| {
+                use malloc_size_of::MallocSizeOf;
+                super::count_memory_usage(metric.size_of(ops));
+            });
+        }
+        metric
     });
 
     #[allow(non_upper_case_globals)]
@@ -305,7 +365,9 @@ pub mod test {
                 disabled: false,
                 ..Default::default()
             };
-        MemoryDistributionMetric::new(BaseMetricId(10), meta, MemoryUnit::Kilobyte)
+        let metric = MemoryDistributionMetric::new(BaseMetricId(10), meta, MemoryUnit::Kilobyte)
+;
+        metric
     });
 
     #[allow(non_upper_case_globals)]
@@ -323,7 +385,9 @@ pub mod test {
                 disabled: false,
                 ..Default::default()
             };
-        StringListMetric::new(BaseMetricId(11), meta)
+        let metric = StringListMetric::new(BaseMetricId(11), meta)
+;
+        metric
     });
 
     #[allow(non_upper_case_globals)]
@@ -341,7 +405,9 @@ pub mod test {
                 disabled: false,
                 ..Default::default()
             };
-        StringMetric::new(BaseMetricId(12), meta)
+        let metric = StringMetric::new(BaseMetricId(12), meta)
+;
+        metric
     });
 
     #[allow(non_upper_case_globals)]
@@ -359,7 +425,9 @@ pub mod test {
                 disabled: false,
                 ..Default::default()
             };
-        TextMetric::new(BaseMetricId(13), meta)
+        let metric = TextMetric::new(BaseMetricId(13), meta)
+;
+        metric
     });
 
     #[allow(non_upper_case_globals)]
@@ -377,7 +445,9 @@ pub mod test {
                 disabled: false,
                 ..Default::default()
             };
-        TimespanMetric::new(BaseMetricId(14), meta, TimeUnit::Millisecond)
+        let metric = TimespanMetric::new(BaseMetricId(14), meta, TimeUnit::Millisecond)
+;
+        metric
     });
 
     #[allow(non_upper_case_globals)]
@@ -395,7 +465,9 @@ pub mod test {
                 disabled: false,
                 ..Default::default()
             };
-        TimingDistributionMetric::new(BaseMetricId(15), meta, TimeUnit::Nanosecond)
+        let metric = TimingDistributionMetric::new(BaseMetricId(15), meta, TimeUnit::Nanosecond)
+;
+        metric
     });
 
     #[allow(non_upper_case_globals)]
@@ -413,7 +485,9 @@ pub mod test {
                 disabled: false,
                 ..Default::default()
             };
-        BooleanMetric::with_unordered_ipc(BaseMetricId(16), meta)
+        let metric = BooleanMetric::with_unordered_ipc(BaseMetricId(16), meta)
+;
+        metric
     });
 
     #[allow(non_upper_case_globals)]
@@ -433,7 +507,16 @@ pub mod test {
                     ..Default::default()
                 },
             };
-        LabeledMetric::with_unordered_ipc(BaseMetricId(17), meta, None)
+        let metric = LabeledMetric::with_unordered_ipc(BaseMetricId(17), meta, None)
+;
+        #[cfg(feature = "with_gecko")]
+        {
+            crate::metrics::METRIC_MEM_OPS.with_borrow_mut(|ops| {
+                use malloc_size_of::MallocSizeOf;
+                super::count_memory_usage(metric.size_of(ops));
+            });
+        }
+        metric
     });
 
 }
@@ -476,7 +559,16 @@ pub mod test_nested {
                 disabled: false,
                 ..Default::default()
             };
-        ObjectMetric::new(BaseMetricId(18), meta)
+        let metric = ObjectMetric::new(BaseMetricId(18), meta)
+;
+        #[cfg(feature = "with_gecko")]
+        {
+            crate::metrics::METRIC_MEM_OPS.with_borrow_mut(|ops| {
+                use malloc_size_of::MallocSizeOf;
+                super::count_memory_usage(metric.size_of(ops));
+            });
+        }
+        metric
     });
 
     #[allow(non_upper_case_globals)]
@@ -494,7 +586,9 @@ pub mod test_nested {
                 disabled: false,
                 ..Default::default()
             };
-        DatetimeMetric::new(BaseMetricId(19), meta, TimeUnit::Millisecond)
+        let metric = DatetimeMetric::new(BaseMetricId(19), meta, TimeUnit::Millisecond)
+;
+        metric
     });
 
     #[allow(non_upper_case_globals)]
@@ -512,7 +606,16 @@ pub mod test_nested {
                 disabled: false,
                 ..Default::default()
             };
-        EventMetric::new(BaseMetricId(20), meta)
+        let metric = EventMetric::new(BaseMetricId(20), meta)
+;
+        #[cfg(feature = "with_gecko")]
+        {
+            crate::metrics::METRIC_MEM_OPS.with_borrow_mut(|ops| {
+                use malloc_size_of::MallocSizeOf;
+                super::count_memory_usage(metric.size_of(ops));
+            });
+        }
+        metric
     });
 
     #[derive(Default, Debug, Clone, Hash, Eq, PartialEq)]
@@ -551,7 +654,16 @@ pub mod test_nested {
                 disabled: false,
                 ..Default::default()
             };
-        EventMetric::new(BaseMetricId(21), meta)
+        let metric = EventMetric::new(BaseMetricId(21), meta)
+;
+        #[cfg(feature = "with_gecko")]
+        {
+            crate::metrics::METRIC_MEM_OPS.with_borrow_mut(|ops| {
+                use malloc_size_of::MallocSizeOf;
+                super::count_memory_usage(metric.size_of(ops));
+            });
+        }
+        metric
     });
 
     #[allow(non_upper_case_globals)]
@@ -569,7 +681,9 @@ pub mod test_nested {
                 disabled: false,
                 ..Default::default()
             };
-        DenominatorMetric::new(BaseMetricId(22), meta, vec![CommonMetricData {name: "rate_with_external_denominator".into(), category: "test.nested".into(), send_in_pings: vec!["metrics".into()], lifetime: Lifetime::Ping, disabled: false,  ..Default::default()}, CommonMetricData {name: "rate_with_external_denominator".into(), category: "test2.nested".into(), send_in_pings: vec!["metrics".into()], lifetime: Lifetime::Ping, disabled: true,  ..Default::default()}])
+        let metric = DenominatorMetric::new(BaseMetricId(22), meta, vec![CommonMetricData {name: "rate_with_external_denominator".into(), category: "test.nested".into(), send_in_pings: vec!["metrics".into()], lifetime: Lifetime::Ping, disabled: false,  ..Default::default()}, CommonMetricData {name: "rate_with_external_denominator".into(), category: "test2.nested".into(), send_in_pings: vec!["metrics".into()], lifetime: Lifetime::Ping, disabled: true,  ..Default::default()}])
+;
+        metric
     });
 
     #[allow(non_upper_case_globals)]
@@ -615,7 +729,9 @@ pub mod test_nested {
                 disabled: false,
                 ..Default::default()
             };
-        QuantityMetric::new(BaseMetricId(25), meta)
+        let metric = QuantityMetric::new(BaseMetricId(25), meta)
+;
+        metric
     });
 
     #[allow(non_upper_case_globals)]
@@ -633,7 +749,9 @@ pub mod test_nested {
                 disabled: false,
                 ..Default::default()
             };
-        RateMetric::new(BaseMetricId(26), meta)
+        let metric = RateMetric::new(BaseMetricId(26), meta)
+;
+        metric
     });
 
     #[allow(non_upper_case_globals)]
@@ -651,7 +769,9 @@ pub mod test_nested {
                 disabled: false,
                 ..Default::default()
             };
-        NumeratorMetric::new(BaseMetricId(27), meta)
+        let metric = NumeratorMetric::new(BaseMetricId(27), meta)
+;
+        metric
     });
 
     #[allow(non_upper_case_globals)]
@@ -669,7 +789,9 @@ pub mod test_nested {
                 disabled: false,
                 ..Default::default()
             };
-        UuidMetric::new(BaseMetricId(28), meta)
+        let metric = UuidMetric::new(BaseMetricId(28), meta)
+;
+        metric
     });
 
 }
@@ -699,7 +821,9 @@ pub mod test2 {
                 disabled: true,
                 ..Default::default()
             };
-        BooleanMetric::new(BaseMetricId(29), meta)
+        let metric = BooleanMetric::new(BaseMetricId(29), meta)
+;
+        metric
     });
 
     #[allow(non_upper_case_globals)]
@@ -717,7 +841,9 @@ pub mod test2 {
                 disabled: true,
                 ..Default::default()
             };
-        CounterMetric::new(BaseMetricId(30), meta)
+        let metric = CounterMetric::new(BaseMetricId(30), meta)
+;
+        metric
     });
 
     #[allow(non_upper_case_globals)]
@@ -735,7 +861,9 @@ pub mod test2 {
                 disabled: true,
                 ..Default::default()
             };
-        CustomDistributionMetric::new(BaseMetricId(31), meta, 0, 100, 100, HistogramType::Linear)
+        let metric = CustomDistributionMetric::new(BaseMetricId(31), meta, 0, 100, 100, HistogramType::Linear)
+;
+        metric
     });
 
     #[allow(non_upper_case_globals)]
@@ -755,7 +883,16 @@ pub mod test2 {
                     ..Default::default()
                 },
             };
-        LabeledMetric::new(BaseMetricId(32), meta, None)
+        let metric = LabeledMetric::new(BaseMetricId(32), meta, None)
+;
+        #[cfg(feature = "with_gecko")]
+        {
+            crate::metrics::METRIC_MEM_OPS.with_borrow_mut(|ops| {
+                use malloc_size_of::MallocSizeOf;
+                super::count_memory_usage(metric.size_of(ops));
+            });
+        }
+        metric
     });
 
     #[repr(u16)]
@@ -823,7 +960,16 @@ pub mod test2 {
                     ..Default::default()
                 },
             };
-        LabeledMetric::new(BaseMetricId(33), meta, Some(vec![::std::borrow::Cow::from("eight_labels"), ::std::borrow::Cow::from("five_labels"), ::std::borrow::Cow::from("four_labels"), ::std::borrow::Cow::from("nine_labels"), ::std::borrow::Cow::from("one_label"), ::std::borrow::Cow::from("seven_labels"), ::std::borrow::Cow::from("six_labels"), ::std::borrow::Cow::from("ten_labels"), ::std::borrow::Cow::from("three_labels"), ::std::borrow::Cow::from("two_labels")]))
+        let metric = LabeledMetric::new(BaseMetricId(33), meta, Some(vec![::std::borrow::Cow::from("eight_labels"), ::std::borrow::Cow::from("five_labels"), ::std::borrow::Cow::from("four_labels"), ::std::borrow::Cow::from("nine_labels"), ::std::borrow::Cow::from("one_label"), ::std::borrow::Cow::from("seven_labels"), ::std::borrow::Cow::from("six_labels"), ::std::borrow::Cow::from("ten_labels"), ::std::borrow::Cow::from("three_labels"), ::std::borrow::Cow::from("two_labels")]))
+;
+        #[cfg(feature = "with_gecko")]
+        {
+            crate::metrics::METRIC_MEM_OPS.with_borrow_mut(|ops| {
+                use malloc_size_of::MallocSizeOf;
+                super::count_memory_usage(metric.size_of(ops));
+            });
+        }
+        metric
     });
 
     #[allow(non_upper_case_globals)]
@@ -843,7 +989,16 @@ pub mod test2 {
                     ..Default::default()
                 },
             };
-        LabeledMetric::new(BaseMetricId(34), meta, None)
+        let metric = LabeledMetric::new(BaseMetricId(34), meta, None)
+;
+        #[cfg(feature = "with_gecko")]
+        {
+            crate::metrics::METRIC_MEM_OPS.with_borrow_mut(|ops| {
+                use malloc_size_of::MallocSizeOf;
+                super::count_memory_usage(metric.size_of(ops));
+            });
+        }
+        metric
     });
 
     #[repr(u16)]
@@ -887,7 +1042,16 @@ pub mod test2 {
                     ..Default::default()
                 },
             };
-        LabeledMetric::new(BaseMetricId(35), meta, Some(vec![::std::borrow::Cow::from("one_label"), ::std::borrow::Cow::from("two_labels")]))
+        let metric = LabeledMetric::new(BaseMetricId(35), meta, Some(vec![::std::borrow::Cow::from("one_label"), ::std::borrow::Cow::from("two_labels")]))
+;
+        #[cfg(feature = "with_gecko")]
+        {
+            crate::metrics::METRIC_MEM_OPS.with_borrow_mut(|ops| {
+                use malloc_size_of::MallocSizeOf;
+                super::count_memory_usage(metric.size_of(ops));
+            });
+        }
+        metric
     });
 
     #[allow(non_upper_case_globals)]
@@ -907,7 +1071,16 @@ pub mod test2 {
                     ..Default::default()
                 },
             };
-        LabeledMetric::new(BaseMetricId(36), meta, None)
+        let metric = LabeledMetric::new(BaseMetricId(36), meta, None)
+;
+        #[cfg(feature = "with_gecko")]
+        {
+            crate::metrics::METRIC_MEM_OPS.with_borrow_mut(|ops| {
+                use malloc_size_of::MallocSizeOf;
+                super::count_memory_usage(metric.size_of(ops));
+            });
+        }
+        metric
     });
 
     #[repr(u16)]
@@ -951,7 +1124,16 @@ pub mod test2 {
                     ..Default::default()
                 },
             };
-        LabeledMetric::new(BaseMetricId(37), meta, Some(vec![::std::borrow::Cow::from("one_label"), ::std::borrow::Cow::from("two_labels")]))
+        let metric = LabeledMetric::new(BaseMetricId(37), meta, Some(vec![::std::borrow::Cow::from("one_label"), ::std::borrow::Cow::from("two_labels")]))
+;
+        #[cfg(feature = "with_gecko")]
+        {
+            crate::metrics::METRIC_MEM_OPS.with_borrow_mut(|ops| {
+                use malloc_size_of::MallocSizeOf;
+                super::count_memory_usage(metric.size_of(ops));
+            });
+        }
+        metric
     });
 
     #[allow(non_upper_case_globals)]
@@ -969,7 +1151,9 @@ pub mod test2 {
                 disabled: true,
                 ..Default::default()
             };
-        MemoryDistributionMetric::new(BaseMetricId(38), meta, MemoryUnit::Kilobyte)
+        let metric = MemoryDistributionMetric::new(BaseMetricId(38), meta, MemoryUnit::Kilobyte)
+;
+        metric
     });
 
     #[allow(non_upper_case_globals)]
@@ -987,7 +1171,9 @@ pub mod test2 {
                 disabled: true,
                 ..Default::default()
             };
-        StringListMetric::new(BaseMetricId(39), meta)
+        let metric = StringListMetric::new(BaseMetricId(39), meta)
+;
+        metric
     });
 
     #[allow(non_upper_case_globals)]
@@ -1005,7 +1191,9 @@ pub mod test2 {
                 disabled: true,
                 ..Default::default()
             };
-        StringMetric::new(BaseMetricId(40), meta)
+        let metric = StringMetric::new(BaseMetricId(40), meta)
+;
+        metric
     });
 
     #[allow(non_upper_case_globals)]
@@ -1023,7 +1211,9 @@ pub mod test2 {
                 disabled: true,
                 ..Default::default()
             };
-        TextMetric::new(BaseMetricId(41), meta)
+        let metric = TextMetric::new(BaseMetricId(41), meta)
+;
+        metric
     });
 
     #[allow(non_upper_case_globals)]
@@ -1041,7 +1231,9 @@ pub mod test2 {
                 disabled: true,
                 ..Default::default()
             };
-        TimespanMetric::new(BaseMetricId(42), meta, TimeUnit::Millisecond)
+        let metric = TimespanMetric::new(BaseMetricId(42), meta, TimeUnit::Millisecond)
+;
+        metric
     });
 
     #[allow(non_upper_case_globals)]
@@ -1059,7 +1251,9 @@ pub mod test2 {
                 disabled: true,
                 ..Default::default()
             };
-        TimingDistributionMetric::new(BaseMetricId(43), meta, TimeUnit::Nanosecond)
+        let metric = TimingDistributionMetric::new(BaseMetricId(43), meta, TimeUnit::Nanosecond)
+;
+        metric
     });
 
     #[allow(non_upper_case_globals)]
@@ -1077,7 +1271,9 @@ pub mod test2 {
                 disabled: true,
                 ..Default::default()
             };
-        BooleanMetric::with_unordered_ipc(BaseMetricId(44), meta)
+        let metric = BooleanMetric::with_unordered_ipc(BaseMetricId(44), meta)
+;
+        metric
     });
 
     #[allow(non_upper_case_globals)]
@@ -1097,7 +1293,16 @@ pub mod test2 {
                     ..Default::default()
                 },
             };
-        LabeledMetric::with_unordered_ipc(BaseMetricId(45), meta, None)
+        let metric = LabeledMetric::with_unordered_ipc(BaseMetricId(45), meta, None)
+;
+        #[cfg(feature = "with_gecko")]
+        {
+            crate::metrics::METRIC_MEM_OPS.with_borrow_mut(|ops| {
+                use malloc_size_of::MallocSizeOf;
+                super::count_memory_usage(metric.size_of(ops));
+            });
+        }
+        metric
     });
 
 }
@@ -1140,7 +1345,16 @@ pub mod test2_nested {
                 disabled: true,
                 ..Default::default()
             };
-        ObjectMetric::new(BaseMetricId(46), meta)
+        let metric = ObjectMetric::new(BaseMetricId(46), meta)
+;
+        #[cfg(feature = "with_gecko")]
+        {
+            crate::metrics::METRIC_MEM_OPS.with_borrow_mut(|ops| {
+                use malloc_size_of::MallocSizeOf;
+                super::count_memory_usage(metric.size_of(ops));
+            });
+        }
+        metric
     });
 
     #[allow(non_upper_case_globals)]
@@ -1158,7 +1372,9 @@ pub mod test2_nested {
                 disabled: true,
                 ..Default::default()
             };
-        DatetimeMetric::new(BaseMetricId(47), meta, TimeUnit::Millisecond)
+        let metric = DatetimeMetric::new(BaseMetricId(47), meta, TimeUnit::Millisecond)
+;
+        metric
     });
 
     #[allow(non_upper_case_globals)]
@@ -1176,7 +1392,16 @@ pub mod test2_nested {
                 disabled: true,
                 ..Default::default()
             };
-        EventMetric::new(BaseMetricId(48), meta)
+        let metric = EventMetric::new(BaseMetricId(48), meta)
+;
+        #[cfg(feature = "with_gecko")]
+        {
+            crate::metrics::METRIC_MEM_OPS.with_borrow_mut(|ops| {
+                use malloc_size_of::MallocSizeOf;
+                super::count_memory_usage(metric.size_of(ops));
+            });
+        }
+        metric
     });
 
     #[derive(Default, Debug, Clone, Hash, Eq, PartialEq)]
@@ -1211,7 +1436,16 @@ pub mod test2_nested {
                 disabled: true,
                 ..Default::default()
             };
-        EventMetric::new(BaseMetricId(49), meta)
+        let metric = EventMetric::new(BaseMetricId(49), meta)
+;
+        #[cfg(feature = "with_gecko")]
+        {
+            crate::metrics::METRIC_MEM_OPS.with_borrow_mut(|ops| {
+                use malloc_size_of::MallocSizeOf;
+                super::count_memory_usage(metric.size_of(ops));
+            });
+        }
+        metric
     });
 
     #[allow(non_upper_case_globals)]
@@ -1271,7 +1505,9 @@ pub mod test2_nested {
                 disabled: true,
                 ..Default::default()
             };
-        QuantityMetric::new(BaseMetricId(53), meta)
+        let metric = QuantityMetric::new(BaseMetricId(53), meta)
+;
+        metric
     });
 
     #[allow(non_upper_case_globals)]
@@ -1289,7 +1525,9 @@ pub mod test2_nested {
                 disabled: true,
                 ..Default::default()
             };
-        RateMetric::new(BaseMetricId(54), meta)
+        let metric = RateMetric::new(BaseMetricId(54), meta)
+;
+        metric
     });
 
     #[allow(non_upper_case_globals)]
@@ -1307,7 +1545,9 @@ pub mod test2_nested {
                 disabled: true,
                 ..Default::default()
             };
-        NumeratorMetric::new(BaseMetricId(55), meta)
+        let metric = NumeratorMetric::new(BaseMetricId(55), meta)
+;
+        metric
     });
 
     #[allow(non_upper_case_globals)]
@@ -1325,7 +1565,9 @@ pub mod test2_nested {
                 disabled: true,
                 ..Default::default()
             };
-        UuidMetric::new(BaseMetricId(56), meta)
+        let metric = UuidMetric::new(BaseMetricId(56), meta)
+;
+        metric
     });
 
 }
@@ -1337,7 +1579,115 @@ pub(crate) mod __glean_metric_maps {
 
     use crate::metrics::extra_keys_len;
     use crate::private::*;
+    use malloc_size_of::MallocSizeOf;
     use once_cell::sync::Lazy;
+
+    /// Measure the allocation size of all labeled metrics.
+    ///
+    /// Labeled metrics do allocate additional memory at runtime for the cache of instantiated submetrics.
+    /// These are included in the `size_of` measurement automatically.
+    ///
+    /// **Note**: This function grows with the number of labeled metrics!
+    /// If it becomes too big we need to think about further optimizations.
+    fn fog_labeled_alloc_size(ops: &mut malloc_size_of::MallocSizeOfOps) -> usize {
+        let mut n = 0;
+          n += super::test::labeled_boolean_metric.size_of(ops);
+          n += super::test::labeled_boolean_metric_labels.size_of(ops);
+          n += super::test::unordered_labeled_boolean_metric.size_of(ops);
+          n += super::test2::labeled_boolean_metric.size_of(ops);
+          n += super::test2::labeled_boolean_metric_labels.size_of(ops);
+          n += super::test2::unordered_labeled_boolean_metric.size_of(ops);
+          n += super::test::labeled_counter_metric.size_of(ops);
+          n += super::test::labeled_counter_metric_labels.size_of(ops);
+          n += super::test2::labeled_counter_metric.size_of(ops);
+          n += super::test2::labeled_counter_metric_labels.size_of(ops);
+          n += super::test::labeled_string_metric.size_of(ops);
+          n += super::test::labeled_string_metric_labels.size_of(ops);
+          n += super::test2::labeled_string_metric.size_of(ops);
+          n += super::test2::labeled_string_metric_labels.size_of(ops);
+        n
+    }
+
+    fn fog_submetric_alloc_size(ops: &mut malloc_size_of::MallocSizeOfOps) -> usize {
+        let mut n = 0;
+
+        n += once_cell::sync::Lazy::get(&submetric_maps::LABELED_METRICS_TO_IDS).map(|m| {
+            let lock = m.read().unwrap();
+            (*lock).size_of(ops)
+        }).unwrap_or(0);
+        n += once_cell::sync::Lazy::get(&submetric_maps::LABELED_ENUMS_TO_IDS).map(|m| {
+            let lock = m.read().unwrap();
+            (*lock).size_of(ops)
+        }).unwrap_or(0);
+
+            n += once_cell::sync::Lazy::get(&submetric_maps::BOOLEAN_MAP).map(|m| {
+                // The values are behind an `Arc`. We don't want to measure them.
+                // We only measure the enclosing size of the values.
+                let lock = m.read().unwrap();
+                malloc_size_of::MallocShallowSizeOf::shallow_size_of(&*lock, ops)
+            }).unwrap_or(0);
+            n += once_cell::sync::Lazy::get(&submetric_maps::COUNTER_MAP).map(|m| {
+                // The values are behind an `Arc`. We don't want to measure them.
+                // We only measure the enclosing size of the values.
+                let lock = m.read().unwrap();
+                malloc_size_of::MallocShallowSizeOf::shallow_size_of(&*lock, ops)
+            }).unwrap_or(0);
+            n += once_cell::sync::Lazy::get(&submetric_maps::CUSTOM_DISTRIBUTION_MAP).map(|m| {
+                // The values are behind an `Arc`. We don't want to measure them.
+                // We only measure the enclosing size of the values.
+                let lock = m.read().unwrap();
+                malloc_size_of::MallocShallowSizeOf::shallow_size_of(&*lock, ops)
+            }).unwrap_or(0);
+            n += once_cell::sync::Lazy::get(&submetric_maps::MEMORY_DISTRIBUTION_MAP).map(|m| {
+                // The values are behind an `Arc`. We don't want to measure them.
+                // We only measure the enclosing size of the values.
+                let lock = m.read().unwrap();
+                malloc_size_of::MallocShallowSizeOf::shallow_size_of(&*lock, ops)
+            }).unwrap_or(0);
+            n += once_cell::sync::Lazy::get(&submetric_maps::STRING_MAP).map(|m| {
+                // The values are behind an `Arc`. We don't want to measure them.
+                // We only measure the enclosing size of the values.
+                let lock = m.read().unwrap();
+                malloc_size_of::MallocShallowSizeOf::shallow_size_of(&*lock, ops)
+            }).unwrap_or(0);
+            n += once_cell::sync::Lazy::get(&submetric_maps::TIMING_DISTRIBUTION_MAP).map(|m| {
+                // The values are behind an `Arc`. We don't want to measure them.
+                // We only measure the enclosing size of the values.
+                let lock = m.read().unwrap();
+                malloc_size_of::MallocShallowSizeOf::shallow_size_of(&*lock, ops)
+            }).unwrap_or(0);
+            n += once_cell::sync::Lazy::get(&submetric_maps::QUANTITY_MAP).map(|m| {
+                // The values are behind an `Arc`. We don't want to measure them.
+                // We only measure the enclosing size of the values.
+                let lock = m.read().unwrap();
+                malloc_size_of::MallocShallowSizeOf::shallow_size_of(&*lock, ops)
+            }).unwrap_or(0);
+        n
+    }
+
+    pub fn fog_map_alloc_size(ops: &mut malloc_size_of::MallocSizeOfOps) -> usize {
+        let mut n = 0;
+        n += BOOLEAN_MAP.size_of(ops);
+        n += COUNTER_MAP.size_of(ops);
+        n += CUSTOM_DISTRIBUTION_MAP.size_of(ops);
+        n += MEMORY_DISTRIBUTION_MAP.size_of(ops);
+        n += STRING_LIST_MAP.size_of(ops);
+        n += STRING_MAP.size_of(ops);
+        n += TEXT_MAP.size_of(ops);
+        n += TIMESPAN_MAP.size_of(ops);
+        n += TIMING_DISTRIBUTION_MAP.size_of(ops);
+        n += DATETIME_MAP.size_of(ops);
+        n += DENOMINATOR_MAP.size_of(ops);
+        n += QUANTITY_MAP.size_of(ops);
+        n += RATE_MAP.size_of(ops);
+        n += NUMERATOR_MAP.size_of(ops);
+        n += UUID_MAP.size_of(ops);
+
+        n += fog_labeled_alloc_size(ops);
+        n += fog_submetric_alloc_size(ops);
+
+        n
+    }
 
     pub static BOOLEAN_MAP: Lazy<HashMap<BaseMetricId, &Lazy<BooleanMetric>>> = Lazy::new(|| {
         let mut map = HashMap::with_capacity(4);

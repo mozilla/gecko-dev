@@ -65,11 +65,25 @@ unsafe extern "C" fn fog_collect_reports(
 
     extern "C" {
         fn fog_malloc_size_of(ptr: *const xpcom::reexports::libc::c_void) -> usize;
+        fn fog_malloc_enclosing_size_of(ptr: *const xpcom::reexports::libc::c_void) -> usize;
     }
-    let mut ops = malloc_size_of::MallocSizeOfOps::new(fog_malloc_size_of, None);
+    let mut ops = malloc_size_of::MallocSizeOfOps::new(
+        fog_malloc_size_of,
+        Some(fog_malloc_enclosing_size_of),
+    );
 
+    let map_size = metrics::__glean_metric_maps::fog_map_alloc_size(&mut ops);
+    let metric_size = metrics::metric_memory_usage();
+    let total_metric_size = map_size + metric_size;
     let ping_size = pings::fog_ping_alloc_size(&mut ops);
 
+    moz_collect_report!(
+        callback,
+        "explicit/fog/metrics",
+        total_metric_size,
+        "Memory used by all FOG metrics",
+        data
+    );
     moz_collect_report!(
         callback,
         "explicit/fog/pings",

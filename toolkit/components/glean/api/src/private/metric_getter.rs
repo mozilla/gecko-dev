@@ -676,6 +676,13 @@ impl BaseMetricId {
     }
 }
 
+impl malloc_size_of::MallocSizeOf for BaseMetricId {
+    #[inline(always)]
+    fn size_of(&self, _: &mut malloc_size_of::MallocSizeOfOps) -> usize {
+        0
+    }
+}
+
 #[cfg(feature = "with_gecko")]
 impl BaseMetricId {
     // Wraps the result of `lookup_canonical_metric_name` so that it's
@@ -735,6 +742,12 @@ impl std::ops::Deref for BaseMetricId {
 #[derive(Debug, PartialEq, Eq, Hash, Copy, Clone, Deserialize, Serialize)]
 #[repr(transparent)]
 pub struct SubMetricId(pub(crate) u32);
+
+impl malloc_size_of::MallocSizeOf for SubMetricId {
+    fn size_of(&self, _ops: &mut malloc_size_of::MallocSizeOfOps) -> usize {
+        0
+    }
+}
 
 impl SubMetricId {
     pub fn new(id: u32) -> Self {
