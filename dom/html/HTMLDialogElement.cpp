@@ -365,6 +365,10 @@ void HTMLDialogElement::ShowModal(ErrorResult& aError) {
 
   // 3. If subject's node document is not fully active, then throw an
   // "InvalidStateError" DOMException.
+  if (!OwnerDoc()->IsFullyActive()) {
+    return aError.ThrowInvalidStateError("The owner document is not fully active");
+  }
+
   // 4. If subject is not connected, then throw an "InvalidStateError"
   // DOMException.
   if (!IsInComposedDoc()) {
