@@ -200,7 +200,7 @@ class PeerConnectionRampUpTest : public ::testing::Test {
     auto observer = std::make_unique<MockPeerConnectionObserver>();
     PeerConnectionDependencies dependencies(observer.get());
     dependencies.tls_cert_verifier =
-        std::make_unique<rtc::TestCertificateVerifier>();
+        std::make_unique<TestCertificateVerifier>();
 
     auto result = pc_factory->CreatePeerConnectionOrError(
         config, std::move(dependencies));

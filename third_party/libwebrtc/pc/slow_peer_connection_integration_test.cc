@@ -197,20 +197,20 @@ TEST_P(PeerConnectionIntegrationTest,
   client_2_config.type = PeerConnectionInterface::kRelay;
 
   // Get a copy to the pointer so we can verify calls later.
-  rtc::TestCertificateVerifier* client_1_cert_verifier =
-      new rtc::TestCertificateVerifier();
+  TestCertificateVerifier* client_1_cert_verifier =
+      new TestCertificateVerifier();
   client_1_cert_verifier->verify_certificate_ = false;
-  rtc::TestCertificateVerifier* client_2_cert_verifier =
-      new rtc::TestCertificateVerifier();
+  TestCertificateVerifier* client_2_cert_verifier =
+      new TestCertificateVerifier();
   client_2_cert_verifier->verify_certificate_ = false;
 
   // Create the dependencies with the test certificate verifier.
   PeerConnectionDependencies client_1_deps(nullptr);
   client_1_deps.tls_cert_verifier =
-      std::unique_ptr<rtc::TestCertificateVerifier>(client_1_cert_verifier);
+      std::unique_ptr<TestCertificateVerifier>(client_1_cert_verifier);
   PeerConnectionDependencies client_2_deps(nullptr);
   client_2_deps.tls_cert_verifier =
-      std::unique_ptr<rtc::TestCertificateVerifier>(client_2_cert_verifier);
+      std::unique_ptr<TestCertificateVerifier>(client_2_cert_verifier);
 
   ASSERT_TRUE(CreatePeerConnectionWrappersWithConfigAndDeps(
       client_1_config, std::move(client_1_deps), client_2_config,
