@@ -3454,9 +3454,12 @@ already_AddRefed<gfxFont> gfxFontGroup::FindFontForChar(
   // If it's an emoji codepoint and we found a named-family candidate (not a
   // generic) in the font list, we accept it even if it doesn't match the
   // presentation (so authors can deliberately request that do not match the
-  // Unicode emoji default presentation style for a given character).
+  // Unicode emoji default presentation style for a given character). But don't
+  // do this if a particular presentation was explicitly requested in the text.
   if (candidateFont &&
-      candidateMatchType.generic == StyleGenericFontFamily::None) {
+      candidateMatchType.generic == StyleGenericFontFamily::None &&
+      presentation != FontPresentation::EmojiExplicit &&
+      presentation != FontPresentation::TextExplicit) {
     *aMatchType = candidateMatchType;
     return candidateFont.forget();
   }
