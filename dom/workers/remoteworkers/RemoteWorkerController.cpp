@@ -476,6 +476,7 @@ bool RemoteWorkerController::PendingServiceWorkerOp::MaybeStart(
     if (mArgs.type() ==
         ServiceWorkerOpArgs::TServiceWorkerTerminateWorkerOpArgs) {
       aOwner->CancelAllPendingOps();
+      MaybeReportServiceWorkerShutdownProgress(mArgs, true);
       Cancel();
 
       aOwner->mState = RemoteWorkerController::eTerminated;
