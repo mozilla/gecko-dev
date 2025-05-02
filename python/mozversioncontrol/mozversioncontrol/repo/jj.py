@@ -174,7 +174,7 @@ class JujutsuRepository(Repository):
 
     def diff_stream(self, rev=None, extensions=(), exclude_file=None, context=8):
         if rev is None:
-            rev = "latest((@ | @-) ~ empty())"
+            rev = "latest((@ ~ empty()) | @-)"
         rev = self.resolve_to_commit(rev)
         return self._git.diff_stream(
             rev=rev, extensions=extensions, exclude_file=exclude_file, context=context
@@ -361,7 +361,7 @@ class JujutsuRepository(Repository):
             "operation", "log", "-n1", "--no-graph", "-T", "id.short(16)"
         ).rstrip()
         try:
-            self._run("new", "-m", commit_message, "latest((@ | @-) ~ empty())")
+            self._run("new", "-m", commit_message, "latest((@ ~ empty()) | @-)")
             for path, content in (changed_files or {}).items():
                 p = self.path / Path(path)
                 p.parent.mkdir(parents=True, exist_ok=True)

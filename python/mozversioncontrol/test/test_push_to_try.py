@@ -147,7 +147,7 @@ def test_push_to_try(repo, monkeypatch):
                 "-T",
                 "id.short(16)",
             ),
-            (str(tool), "new", "-m", "commit message", "latest((@ | @-) ~ empty())"),
+            (str(tool), "new", "-m", "commit message", "latest((@ ~ empty()) | @-)"),
             (str(tool), "log", "-n0"),
             (
                 str(tool),
