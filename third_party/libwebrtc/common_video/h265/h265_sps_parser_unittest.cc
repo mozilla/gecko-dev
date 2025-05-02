@@ -36,7 +36,7 @@ void WriteSps(uint16_t width,
               bool long_term_ref_pics_present_flag,
               rtc::Buffer* out_buffer) {
   uint8_t rbsp[kSpsBufferMaxSize] = {0};
-  rtc::BitBufferWriter writer(rbsp, kSpsBufferMaxSize);
+  BitBufferWriter writer(rbsp, kSpsBufferMaxSize);
   // sps_video_parameter_set_id
   writer.WriteBits(0, 4);
   // sps_max_sub_layers_minus1

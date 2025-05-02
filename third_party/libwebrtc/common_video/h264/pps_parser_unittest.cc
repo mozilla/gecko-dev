@@ -38,7 +38,7 @@ void WritePps(const PpsParser::PpsState& pps,
               int pic_size_in_map_units,
               rtc::Buffer* out_buffer) {
   uint8_t data[kPpsBufferMaxSize] = {0};
-  rtc::BitBufferWriter bit_buffer(data, kPpsBufferMaxSize);
+  BitBufferWriter bit_buffer(data, kPpsBufferMaxSize);
 
   // pic_parameter_set_id: ue(v)
   bit_buffer.WriteExponentialGolomb(pps.id);

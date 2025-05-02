@@ -195,7 +195,7 @@ static const webrtc::ColorSpace kColorSpaceBt709LimitedRange(
 // level_idc, to make sure the parser doesn't eat all 0x3 bytes.
 void GenerateFakeSps(const VuiHeader& vui, rtc::Buffer* out_buffer) {
   uint8_t rbsp[kSpsBufferMaxSize] = {0};
-  rtc::BitBufferWriter writer(rbsp, kSpsBufferMaxSize);
+  BitBufferWriter writer(rbsp, kSpsBufferMaxSize);
   // Profile byte.
   writer.WriteUInt8(0);
   // Constraint sets and reserved zero bits.
