@@ -20,18 +20,10 @@ use style_traits::{CssWriter, KeywordsCollectFn, ParseError};
 use style_traits::{SpecifiedValueInfo, StyleParseErrorKind, ToCss};
 
 #[cfg(not(feature = "servo"))]
-fn flexbox_enabled() -> bool {
-    true
-}
-#[cfg(not(feature = "servo"))]
 fn grid_enabled() -> bool {
     true
 }
 
-#[cfg(feature = "servo")]
-fn flexbox_enabled() -> bool {
-    style_config::get_bool("layout.flexbox.enabled")
-}
 #[cfg(feature = "servo")]
 fn grid_enabled() -> bool {
     style_config::get_bool("layout.grid.enabled")
@@ -411,8 +403,8 @@ impl DisplayKeyword {
             "contents" => Full(Display::Contents),
             "inline-block" => Full(Display::InlineBlock),
             "inline-table" => Full(Display::InlineTable),
-            "-webkit-flex" if flexbox_enabled() => Full(Display::Flex),
-            "inline-flex" | "-webkit-inline-flex" if flexbox_enabled() => Full(Display::InlineFlex),
+            "-webkit-flex" => Full(Display::Flex),
+            "inline-flex" | "-webkit-inline-flex" => Full(Display::InlineFlex),
             "inline-grid" if grid_enabled() => Full(Display::InlineGrid),
             "table-caption" => Full(Display::TableCaption),
             "table-row-group" => Full(Display::TableRowGroup),
@@ -445,7 +437,7 @@ impl DisplayKeyword {
             /// <display-inside> = flow | flow-root | table | flex | grid | ruby
             /// https://drafts.csswg.org/css-display/#typedef-display-inside
             "flow" => Inside(DisplayInside::Flow),
-            "flex" if flexbox_enabled() => Inside(DisplayInside::Flex),
+            "flex" => Inside(DisplayInside::Flex),
             "flow-root" => Inside(DisplayInside::FlowRoot),
             "table" => Inside(DisplayInside::Table),
             "grid" if grid_enabled() => Inside(DisplayInside::Grid),
