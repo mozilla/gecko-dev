@@ -2817,7 +2817,7 @@ TEST_P(WebRtcVoiceEngineTestFake, RecvWithMultipleStreams) {
   unsigned char packets[4][sizeof(kPcmuFrame)];
   for (size_t i = 0; i < arraysize(packets); ++i) {
     memcpy(packets[i], kPcmuFrame, sizeof(kPcmuFrame));
-    rtc::SetBE32(packets[i] + 8, static_cast<uint32_t>(i));
+    webrtc::SetBE32(packets[i] + 8, static_cast<uint32_t>(i));
   }
 
   const cricket::FakeAudioReceiveStream& s1 = GetRecvStream(ssrc1);
@@ -2910,9 +2910,9 @@ TEST_P(WebRtcVoiceEngineTestFake,
   // Deliver a couple packets with unsignaled SSRCs.
   unsigned char packet[sizeof(kPcmuFrame)];
   memcpy(packet, kPcmuFrame, sizeof(kPcmuFrame));
-  rtc::SetBE32(&packet[8], 0x1234);
+  webrtc::SetBE32(&packet[8], 0x1234);
   DeliverPacket(packet, sizeof(packet));
-  rtc::SetBE32(&packet[8], 0x5678);
+  webrtc::SetBE32(&packet[8], 0x5678);
   DeliverPacket(packet, sizeof(packet));
 
   // Verify that the receive streams were created.
@@ -2934,7 +2934,7 @@ TEST_P(WebRtcVoiceEngineTestFake, RecvMultipleUnsignaled) {
 
   // Note that SSRC = 0 is not supported.
   for (uint32_t ssrc = 1; ssrc < (1 + kMaxUnsignaledRecvStreams); ++ssrc) {
-    rtc::SetBE32(&packet[8], ssrc);
+    webrtc::SetBE32(&packet[8], ssrc);
     DeliverPacket(packet, sizeof(packet));
 
     // Verify we have one new stream for each loop iteration.
@@ -2945,7 +2945,7 @@ TEST_P(WebRtcVoiceEngineTestFake, RecvMultipleUnsignaled) {
 
   // Sending on the same SSRCs again should not create new streams.
   for (uint32_t ssrc = 1; ssrc < (1 + kMaxUnsignaledRecvStreams); ++ssrc) {
-    rtc::SetBE32(&packet[8], ssrc);
+    webrtc::SetBE32(&packet[8], ssrc);
     DeliverPacket(packet, sizeof(packet));
 
     EXPECT_EQ(kMaxUnsignaledRecvStreams, call_.GetAudioReceiveStreams().size());
@@ -2955,7 +2955,7 @@ TEST_P(WebRtcVoiceEngineTestFake, RecvMultipleUnsignaled) {
 
   // Send on another SSRC, the oldest unsignaled stream (SSRC=1) is replaced.
   constexpr uint32_t kAnotherSsrc = 667;
-  rtc::SetBE32(&packet[8], kAnotherSsrc);
+  webrtc::SetBE32(&packet[8], kAnotherSsrc);
   DeliverPacket(packet, sizeof(packet));
 
   const auto& streams = call_.GetAudioReceiveStreams();
@@ -2980,7 +2980,7 @@ TEST_P(WebRtcVoiceEngineTestFake, RecvUnsignaledAfterSignaled) {
 
   // Add a known stream, send packet and verify we got it.
   const uint32_t signaled_ssrc = 1;
-  rtc::SetBE32(&packet[8], signaled_ssrc);
+  webrtc::SetBE32(&packet[8], signaled_ssrc);
   EXPECT_TRUE(AddRecvStream(signaled_ssrc));
   DeliverPacket(packet, sizeof(packet));
   EXPECT_TRUE(
@@ -2990,7 +2990,7 @@ TEST_P(WebRtcVoiceEngineTestFake, RecvUnsignaledAfterSignaled) {
   // Note that the first unknown SSRC cannot be 0, because we only support
   // creating receive streams for SSRC!=0.
   const uint32_t unsignaled_ssrc = 7011;
-  rtc::SetBE32(&packet[8], unsignaled_ssrc);
+  webrtc::SetBE32(&packet[8], unsignaled_ssrc);
   DeliverPacket(packet, sizeof(packet));
   EXPECT_TRUE(
       GetRecvStream(unsignaled_ssrc).VerifyLastPacket(packet, sizeof(packet)));
@@ -2999,7 +2999,7 @@ TEST_P(WebRtcVoiceEngineTestFake, RecvUnsignaledAfterSignaled) {
   DeliverPacket(packet, sizeof(packet));
   EXPECT_EQ(2, GetRecvStream(unsignaled_ssrc).received_packets());
 
-  rtc::SetBE32(&packet[8], signaled_ssrc);
+  webrtc::SetBE32(&packet[8], signaled_ssrc);
   DeliverPacket(packet, sizeof(packet));
   EXPECT_EQ(2, GetRecvStream(signaled_ssrc).received_packets());
   EXPECT_EQ(2u, call_.GetAudioReceiveStreams().size());
@@ -3473,7 +3473,7 @@ TEST_P(WebRtcVoiceEngineTestFake, SetOutputVolumeUnsignaledRecvStream) {
   // Spawn an unsignaled stream by sending a packet - gain should be 2.
   unsigned char pcmuFrame2[sizeof(kPcmuFrame)];
   memcpy(pcmuFrame2, kPcmuFrame, sizeof(kPcmuFrame));
-  rtc::SetBE32(&pcmuFrame2[8], kSsrcX);
+  webrtc::SetBE32(&pcmuFrame2[8], kSsrcX);
   DeliverPacket(pcmuFrame2, sizeof(pcmuFrame2));
   EXPECT_DOUBLE_EQ(2, GetRecvStream(kSsrcX).gain());
 
@@ -3535,7 +3535,7 @@ TEST_P(WebRtcVoiceEngineTestFake,
   // Spawn an unsignaled stream by sending a packet - delay should be 100.
   unsigned char pcmuFrame2[sizeof(kPcmuFrame)];
   memcpy(pcmuFrame2, kPcmuFrame, sizeof(kPcmuFrame));
-  rtc::SetBE32(&pcmuFrame2[8], kSsrcX);
+  webrtc::SetBE32(&pcmuFrame2[8], kSsrcX);
   DeliverPacket(pcmuFrame2, sizeof(pcmuFrame2));
   EXPECT_EQ(
       100, receive_channel_->GetBaseMinimumPlayoutDelayMs(kSsrcX).value_or(-1));
@@ -3740,7 +3740,7 @@ TEST_P(WebRtcVoiceEngineTestFake, SetRawAudioSinkUnsignaledRecvStream) {
   // and the previous unsignaled stream should lose it.
   unsigned char pcmuFrame2[sizeof(kPcmuFrame)];
   memcpy(pcmuFrame2, kPcmuFrame, sizeof(kPcmuFrame));
-  rtc::SetBE32(&pcmuFrame2[8], kSsrcX);
+  webrtc::SetBE32(&pcmuFrame2[8], kSsrcX);
   DeliverPacket(pcmuFrame2, sizeof(pcmuFrame2));
   if (kMaxUnsignaledRecvStreams > 1) {
     EXPECT_EQ(nullptr, GetRecvStream(kSsrc1).sink());

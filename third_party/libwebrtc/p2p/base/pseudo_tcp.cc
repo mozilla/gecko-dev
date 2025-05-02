@@ -142,19 +142,19 @@ const uint32_t IDLE_TIMEOUT = 90 * 1000;  // 90 seconds;
 //////////////////////////////////////////////////////////////////////
 
 inline void long_to_bytes(uint32_t val, void* buf) {
-  *static_cast<uint32_t*>(buf) = rtc::HostToNetwork32(val);
+  *static_cast<uint32_t*>(buf) = webrtc::HostToNetwork32(val);
 }
 
 inline void short_to_bytes(uint16_t val, void* buf) {
-  *static_cast<uint16_t*>(buf) = rtc::HostToNetwork16(val);
+  *static_cast<uint16_t*>(buf) = webrtc::HostToNetwork16(val);
 }
 
 inline uint32_t bytes_to_long(const void* buf) {
-  return rtc::NetworkToHost32(*static_cast<const uint32_t*>(buf));
+  return webrtc::NetworkToHost32(*static_cast<const uint32_t*>(buf));
 }
 
 inline uint16_t bytes_to_short(const void* buf) {
-  return rtc::NetworkToHost16(*static_cast<const uint16_t*>(buf));
+  return webrtc::NetworkToHost16(*static_cast<const uint16_t*>(buf));
 }
 
 //////////////////////////////////////////////////////////////////////

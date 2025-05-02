@@ -1133,8 +1133,8 @@ class JsepTransport2HeaderExtensionTest
     memcpy(rtp_packet_data, kPcmuFrameWithExtensions, rtp_len);
     // In order to be able to run this test function multiple times we can not
     // use the same sequence number twice. Increase the sequence number by one.
-    rtc::SetBE16(reinterpret_cast<uint8_t*>(rtp_packet_data) + 2,
-                 ++sequence_number_);
+    webrtc::SetBE16(reinterpret_cast<uint8_t*>(rtp_packet_data) + 2,
+                    ++sequence_number_);
     rtc::CopyOnWriteBuffer rtp_packet(rtp_packet_data, rtp_len, packet_size);
 
     int packet_count_before = received_packet_count_;

@@ -267,7 +267,7 @@ int AsyncTCPSocket::Send(const void* pv,
   if (!IsOutBufferEmpty())
     return static_cast<int>(cb);
 
-  PacketLength pkt_len = HostToNetwork16(static_cast<PacketLength>(cb));
+  PacketLength pkt_len = webrtc::HostToNetwork16(static_cast<PacketLength>(cb));
   AppendToOutBuffer(&pkt_len, kPacketLenSize);
   AppendToOutBuffer(pv, cb);
 
@@ -296,7 +296,7 @@ size_t AsyncTCPSocket::ProcessInput(rtc::ArrayView<const uint8_t> data) {
     if (bytes_left < kPacketLenSize)
       return processed_bytes;
 
-    PacketLength pkt_len = rtc::GetBE16(data.data() + processed_bytes);
+    PacketLength pkt_len = webrtc::GetBE16(data.data() + processed_bytes);
     if (bytes_left < kPacketLenSize + pkt_len)
       return processed_bytes;
 

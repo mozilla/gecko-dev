@@ -523,10 +523,10 @@ class ChannelTest : public ::testing::Test, public sigslot::has_slots<> {
   rtc::Buffer CreateRtpData(uint32_t ssrc, int sequence_number, int pl_type) {
     rtc::Buffer data(rtp_packet_.data(), rtp_packet_.size());
     // Set SSRC in the rtp packet copy.
-    rtc::SetBE32(data.data() + 8, ssrc);
-    rtc::SetBE16(data.data() + 2, sequence_number);
+    webrtc::SetBE32(data.data() + 8, ssrc);
+    webrtc::SetBE16(data.data() + 2, sequence_number);
     if (pl_type >= 0) {
-      rtc::Set8(data.data(), 1, static_cast<uint8_t>(pl_type));
+      webrtc::Set8(data.data(), 1, static_cast<uint8_t>(pl_type));
     }
     return data;
   }

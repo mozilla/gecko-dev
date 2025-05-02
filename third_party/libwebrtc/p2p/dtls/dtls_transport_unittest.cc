@@ -225,8 +225,8 @@ class DtlsTestClient : public sigslot::has_slots<> {
       // against, and make sure that it doesn't look like DTLS.
       memset(packet.get(), sent & 0xff, size);
       packet[0] = (srtp) ? kRtpLeadByte : 0x00;
-      rtc::SetBE32(packet.get() + kPacketNumOffset,
-                   static_cast<uint32_t>(sent));
+      webrtc::SetBE32(packet.get() + kPacketNumOffset,
+                      static_cast<uint32_t>(sent));
 
       // Only set the bypass flag if we've activated DTLS.
       int flags = (certificate_ && srtp) ? PF_SRTP_BYPASS : 0;
@@ -265,7 +265,7 @@ class DtlsTestClient : public sigslot::has_slots<> {
     if (size != packet_size_ || (data[0] != 0 && (data[0]) != 0x80)) {
       return false;
     }
-    uint32_t packet_num = rtc::GetBE32(data + kPacketNumOffset);
+    uint32_t packet_num = webrtc::GetBE32(data + kPacketNumOffset);
     for (size_t i = kPacketHeaderLen; i < size; ++i) {
       if (data[i] != (packet_num & 0xff)) {
         return false;
@@ -282,7 +282,7 @@ class DtlsTestClient : public sigslot::has_slots<> {
     if (size <= packet_size_) {
       return false;
     }
-    uint32_t packet_num = rtc::GetBE32(data + kPacketNumOffset);
+    uint32_t packet_num = webrtc::GetBE32(data + kPacketNumOffset);
     int num_matches = 0;
     for (size_t i = kPacketNumOffset; i < size; ++i) {
       if (data[i] == (packet_num & 0xff)) {

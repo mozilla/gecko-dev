@@ -269,7 +269,7 @@ void SocketAddress::ToSockAddr(sockaddr_in* saddr) const {
     return;
   }
   saddr->sin_family = AF_INET;
-  saddr->sin_port = HostToNetwork16(port_);
+  saddr->sin_port = webrtc::HostToNetwork16(port_);
   if (IPIsAny(ip_)) {
     saddr->sin_addr.s_addr = INADDR_ANY;
   } else {
@@ -280,8 +280,8 @@ void SocketAddress::ToSockAddr(sockaddr_in* saddr) const {
 bool SocketAddress::FromSockAddr(const sockaddr_in& saddr) {
   if (saddr.sin_family != AF_INET)
     return false;
-  SetIP(NetworkToHost32(saddr.sin_addr.s_addr));
-  SetPort(NetworkToHost16(saddr.sin_port));
+  SetIP(webrtc::NetworkToHost32(saddr.sin_addr.s_addr));
+  SetPort(webrtc::NetworkToHost16(saddr.sin_port));
   literal_ = false;
   return true;
 }
@@ -295,13 +295,13 @@ static size_t ToSockAddrStorageHelper(sockaddr_storage* addr,
   if (addr->ss_family == AF_INET6) {
     sockaddr_in6* saddr = reinterpret_cast<sockaddr_in6*>(addr);
     saddr->sin6_addr = ip.ipv6_address();
-    saddr->sin6_port = HostToNetwork16(port);
+    saddr->sin6_port = webrtc::HostToNetwork16(port);
     saddr->sin6_scope_id = scope_id;
     return sizeof(sockaddr_in6);
   } else if (addr->ss_family == AF_INET) {
     sockaddr_in* saddr = reinterpret_cast<sockaddr_in*>(addr);
     saddr->sin_addr = ip.ipv4_address();
-    saddr->sin_port = HostToNetwork16(port);
+    saddr->sin_port = webrtc::HostToNetwork16(port);
     return sizeof(sockaddr_in);
   }
   return 0;
@@ -323,12 +323,12 @@ bool SocketAddressFromSockAddrStorage(const sockaddr_storage& addr,
   if (addr.ss_family == AF_INET) {
     const sockaddr_in* saddr = reinterpret_cast<const sockaddr_in*>(&addr);
     *out = SocketAddress(IPAddress(saddr->sin_addr),
-                         NetworkToHost16(saddr->sin_port));
+                         webrtc::NetworkToHost16(saddr->sin_port));
     return true;
   } else if (addr.ss_family == AF_INET6) {
     const sockaddr_in6* saddr = reinterpret_cast<const sockaddr_in6*>(&addr);
     *out = SocketAddress(IPAddress(saddr->sin6_addr),
-                         NetworkToHost16(saddr->sin6_port));
+                         webrtc::NetworkToHost16(saddr->sin6_port));
     out->SetScopeID(saddr->sin6_scope_id);
     return true;
   }

@@ -136,9 +136,9 @@ size_t AsyncStunTCPSocket::GetExpectedLength(const void* data,
                                              int* pad_bytes) {
   *pad_bytes = 0;
   PacketLength pkt_len =
-      rtc::GetBE16(static_cast<const char*>(data) + kPacketLenOffset);
+      webrtc::GetBE16(static_cast<const char*>(data) + kPacketLenOffset);
   size_t expected_pkt_len;
-  uint16_t msg_type = rtc::GetBE16(data);
+  uint16_t msg_type = webrtc::GetBE16(data);
   if (IsStunMessage(msg_type)) {
     // STUN message.
     expected_pkt_len = kStunHeaderSize + pkt_len;

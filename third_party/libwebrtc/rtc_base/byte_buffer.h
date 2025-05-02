@@ -61,21 +61,21 @@ class ByteBufferWriterT {
     WriteBytesInternal(reinterpret_cast<const value_type*>(&val), 1);
   }
   void WriteUInt16(uint16_t val) {
-    uint16_t v = HostToNetwork16(val);
+    uint16_t v = webrtc::HostToNetwork16(val);
     WriteBytesInternal(reinterpret_cast<const value_type*>(&v), 2);
   }
   void WriteUInt24(uint32_t val) {
-    uint32_t v = HostToNetwork32(val);
+    uint32_t v = webrtc::HostToNetwork32(val);
     value_type* start = reinterpret_cast<value_type*>(&v);
     ++start;
     WriteBytesInternal(start, 3);
   }
   void WriteUInt32(uint32_t val) {
-    uint32_t v = HostToNetwork32(val);
+    uint32_t v = webrtc::HostToNetwork32(val);
     WriteBytesInternal(reinterpret_cast<const value_type*>(&v), 4);
   }
   void WriteUInt64(uint64_t val) {
-    uint64_t v = HostToNetwork64(val);
+    uint64_t v = webrtc::HostToNetwork64(val);
     WriteBytesInternal(reinterpret_cast<const value_type*>(&v), 8);
   }
   // Serializes an unsigned varint in the format described by

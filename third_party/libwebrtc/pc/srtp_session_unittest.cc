@@ -147,7 +147,7 @@ TEST_F(SrtpSessionTest, TestGetSendStreamPacketIndex) {
   int64_t index;
   EXPECT_TRUE(s1_.ProtectRtp(rtp_packet_, &index));
   // `index` will be shifted by 16.
-  int64_t be64_index = static_cast<int64_t>(NetworkToHost64(1 << 16));
+  int64_t be64_index = static_cast<int64_t>(webrtc::NetworkToHost64(1 << 16));
   EXPECT_EQ(be64_index, index);
 }
 
@@ -214,35 +214,35 @@ TEST_F(SrtpSessionTest, TestReplay) {
                              kEncryptedHeaderExtensionIds));
 
   // Initial sequence number.
-  SetBE16(rtp_packet_.MutableData<uint8_t>() + 2, seqnum_big);
+  webrtc::SetBE16(rtp_packet_.MutableData<uint8_t>() + 2, seqnum_big);
   EXPECT_TRUE(s1_.ProtectRtp(rtp_packet_));
   rtp_packet_.SetData(kPcmuFrame, sizeof(kPcmuFrame));
 
   // Replay within the 1024 window should succeed.
-  SetBE16(rtp_packet_.MutableData<uint8_t>() + 2,
-          seqnum_big - replay_window + 1);
+  webrtc::SetBE16(rtp_packet_.MutableData<uint8_t>() + 2,
+                  seqnum_big - replay_window + 1);
   EXPECT_TRUE(s1_.ProtectRtp(rtp_packet_));
   rtp_packet_.SetData(kPcmuFrame, sizeof(kPcmuFrame));
 
   // Replay out side of the 1024 window should fail.
-  SetBE16(rtp_packet_.MutableData<uint8_t>() + 2,
-          seqnum_big - replay_window - 1);
+  webrtc::SetBE16(rtp_packet_.MutableData<uint8_t>() + 2,
+                  seqnum_big - replay_window - 1);
   EXPECT_FALSE(s1_.ProtectRtp(rtp_packet_));
   rtp_packet_.SetData(kPcmuFrame, sizeof(kPcmuFrame));
 
   // Increment sequence number to a small number.
-  SetBE16(rtp_packet_.MutableData<uint8_t>() + 2, seqnum_small);
+  webrtc::SetBE16(rtp_packet_.MutableData<uint8_t>() + 2, seqnum_small);
   EXPECT_TRUE(s1_.ProtectRtp(rtp_packet_));
 
   // Replay around 0 but out side of the 1024 window should fail.
-  SetBE16(rtp_packet_.MutableData<uint8_t>() + 2,
-          kMaxSeqnum + seqnum_small - replay_window - 1);
+  webrtc::SetBE16(rtp_packet_.MutableData<uint8_t>() + 2,
+                  kMaxSeqnum + seqnum_small - replay_window - 1);
   EXPECT_FALSE(s1_.ProtectRtp(rtp_packet_));
   rtp_packet_.SetData(kPcmuFrame, sizeof(kPcmuFrame));
 
   // Replay around 0 but within the 1024 window should succeed.
   for (uint16_t seqnum = 65000; seqnum < 65003; ++seqnum) {
-    SetBE16(rtp_packet_.MutableData<uint8_t>() + 2, seqnum);
+    webrtc::SetBE16(rtp_packet_.MutableData<uint8_t>() + 2, seqnum);
     EXPECT_TRUE(s1_.ProtectRtp(rtp_packet_));
     rtp_packet_.SetData(kPcmuFrame, sizeof(kPcmuFrame));
   }
@@ -252,7 +252,7 @@ TEST_F(SrtpSessionTest, TestReplay) {
   // without the fix, the loop above would keep incrementing local sequence
   // number in libsrtp, eventually the new sequence number would go out side
   // of the window.
-  SetBE16(rtp_packet_.MutableData<uint8_t>() + 2, seqnum_small + 1);
+  webrtc::SetBE16(rtp_packet_.MutableData<uint8_t>() + 2, seqnum_small + 1);
   EXPECT_TRUE(s1_.ProtectRtp(rtp_packet_));
 }
 

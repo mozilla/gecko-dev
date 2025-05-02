@@ -186,7 +186,7 @@ class FakeNetworkInterface : public MediaChannelNetworkInterface {
  private:
   void SetRtpSsrc(uint32_t ssrc, rtc::CopyOnWriteBuffer& buffer) {
     RTC_CHECK_GE(buffer.size(), 12);
-    rtc::SetBE32(buffer.MutableData() + 8, ssrc);
+    webrtc::SetBE32(buffer.MutableData() + 8, ssrc);
   }
 
   void GetNumRtpBytesAndPackets(uint32_t ssrc, int* bytes, int* packets) {

@@ -176,7 +176,7 @@ void TurnServer::OnInternalPacket(rtc::AsyncPacketSocket* socket,
   InternalSocketMap::iterator iter = server_sockets_.find(socket);
   RTC_DCHECK(iter != server_sockets_.end());
   TurnServerConnection conn(packet.source_address(), iter->second, socket);
-  uint16_t msg_type = rtc::GetBE16(packet.payload().data());
+  uint16_t msg_type = webrtc::GetBE16(packet.payload().data());
   if (!IsTurnChannelData(msg_type)) {
     // This is a STUN message.
     HandleStunMessage(&conn, packet.payload());
@@ -773,7 +773,7 @@ void TurnServerAllocation::HandleChannelBindRequest(const TurnMessage* msg) {
 void TurnServerAllocation::HandleChannelData(
     rtc::ArrayView<const uint8_t> payload) {
   // Extract the channel number from the data.
-  uint16_t channel_id = rtc::GetBE16(payload.data());
+  uint16_t channel_id = webrtc::GetBE16(payload.data());
   auto channel = FindChannel(channel_id);
   if (channel != channels_.end()) {
     // Send the data to the peer address.

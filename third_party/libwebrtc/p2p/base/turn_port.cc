@@ -779,7 +779,7 @@ bool TurnPort::HandleIncomingPacket(rtc::AsyncPacketSocket* socket,
   // Check the message type, to see if is a Channel Data message.
   // The message will either be channel data, a TURN data indication, or
   // a response to a previous request.
-  uint16_t msg_type = rtc::GetBE16(packet.payload().data());
+  uint16_t msg_type = webrtc::GetBE16(packet.payload().data());
   if (IsTurnChannelData(msg_type)) {
     HandleChannelData(msg_type, data, size, packet_time_us);
     return true;
@@ -1112,7 +1112,7 @@ void TurnPort::HandleChannelData(uint16_t channel_id,
   //   +-------------------------------+
 
   // Extract header fields from the message.
-  uint16_t len = rtc::GetBE16(data + 2);
+  uint16_t len = webrtc::GetBE16(data + 2);
   if (len > size - TURN_CHANNEL_HEADER_SIZE) {
     RTC_LOG(LS_WARNING) << ToString()
                         << ": Received TURN channel data message with "

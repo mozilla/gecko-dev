@@ -518,7 +518,8 @@ bool SrtpSession::GetSendStreamPacketIndex(rtc::CopyOnWriteBuffer& buffer,
   int64_t extended_seq_num = (roc << 16) + seq_num;
 
   // Shift extended sequence number, put into network byte order
-  *index = static_cast<int64_t>(rtc::NetworkToHost64(extended_seq_num << 16));
+  *index =
+      static_cast<int64_t>(webrtc::NetworkToHost64(extended_seq_num << 16));
   return true;
 }
 

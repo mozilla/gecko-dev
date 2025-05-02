@@ -89,7 +89,7 @@ index a2ea218a8b..23a8f4f3f3 100644
  #include <new>
  #include <string>
 diff --git a/rtc_base/byte_order.h b/rtc_base/byte_order.h
-index 0b70e0e129..767b462e09 100644
+index 0d7a54f6d5..05879338fd 100644
 --- a/rtc_base/byte_order.h
 +++ b/rtc_base/byte_order.h
 @@ -90,6 +90,8 @@
