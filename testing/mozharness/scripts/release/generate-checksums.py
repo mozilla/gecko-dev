@@ -64,13 +64,6 @@ class ChecksumsGenerator(BaseScript, VirtualenvMixin):
                 "help": "dummy option",
             },
         ],
-        [
-            ["--build-pool"],
-            {
-                "dest": "build_pool",
-                "help": "dummy option",
-            },
-        ],
     ] + virtualenv_config_options
 
     def __init__(self):

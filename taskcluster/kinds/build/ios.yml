@@ -22,6 +22,7 @@ task-defaults:
             app_name: mobile/ios
             stage_platform: ios
             disable_package_metrics: true
+            upload_env: {"UPLOAD_PATH": "/builds/worker/artifacts"}
     use-sccache: true
     fetches:
         toolchain:

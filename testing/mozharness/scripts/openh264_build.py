@@ -85,13 +85,6 @@ class OpenH264Build(TransferMixin, VCSScript, TooltoolMixin):
                 "help": "dummy option",
             },
         ],
-        [
-            ["--build-pool"],
-            {
-                "dest": "build_pool",
-                "help": "dummy option",
-            },
-        ],
     ]
 
     def __init__(

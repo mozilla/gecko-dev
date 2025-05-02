@@ -154,7 +154,6 @@ def mozharness_on_docker_worker_setup(config, job, taskdesc):
             "MH_BRANCH": config.params["project"],
             "MOZ_SOURCE_CHANGESET": get_branch_rev(config),
             "MOZ_SOURCE_REPO": get_branch_repo(config),
-            "MH_BUILD_POOL": "taskcluster",
             "MOZ_BUILD_DATE": config.params["moz_build_date"],
             "MOZ_SCM_LEVEL": config.params["level"],
             "PYTHONUNBUFFERED": "1",

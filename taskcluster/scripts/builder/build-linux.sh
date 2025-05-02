@@ -24,7 +24,6 @@ echo "running as" $(id)
 
 : MH_CUSTOM_BUILD_VARIANT_CFG   ${MH_CUSTOM_BUILD_VARIANT_CFG}
 : MH_BRANCH                     ${MH_BRANCH:=mozilla-central}
-: MH_BUILD_POOL                 ${MH_BUILD_POOL:=staging}
 
 : WORKSPACE                     ${WORKSPACE:=/builds/worker/workspace}
 : MOZ_OBJDIR                    ${MOZ_OBJDIR:=$WORKSPACE/obj-build}
@@ -121,5 +120,4 @@ $GECKO_PATH/mach python -- \
   $options \
   --log-level=debug \
   --work-dir=$WORKSPACE \
-  --branch=${MH_BRANCH} \
-  --build-pool=${MH_BUILD_POOL}
+  --branch=${MH_BRANCH}

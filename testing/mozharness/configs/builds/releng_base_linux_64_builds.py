@@ -10,7 +10,8 @@ config = {
     # if you are updating this with custom 64 bit keys/values please add them
     # below under the '64 bit specific' code block otherwise, update in this
     # code block and also make sure this is synced with
-    # releng_base_linux_64_builds.py
+    # releng_base_linux_32_builds.py
+    # note: overridden by MOZHARNESS_ACTIONS in TaskCluster tasks
     "default_actions": [
         "clobber",
         "build",
@@ -34,11 +35,9 @@ config = {
         },
     ],
     "vcs_share_base": "/builds/hg-shared",
-    #########################################################################
-    #########################################################################
-    ###### 64 bit specific ######
-    "platform": "linux64",
-    "stage_platform": "linux64",
+    "upload_env": {
+        "UPLOAD_PATH": "/builds/worker/artifacts",
+    },
     "env": {
         "MOZBUILD_STATE_PATH": os.path.join(os.getcwd(), ".mozbuild"),
         "DISPLAY": ":2",
@@ -49,11 +48,14 @@ config = {
         "TOOLTOOL_HOME": "/builds",
         "MOZ_CRASHREPORTER_NO_REPORT": "1",
         "LC_ALL": "C",
-        ## 64 bit specific
-        "PATH": "/usr/local/bin:/bin:" "/usr/bin:/usr/local/sbin:/usr/sbin:" "/sbin",
-        ##
+        "PATH": "/usr/local/bin:/bin:/usr/bin:/usr/local/sbin:/usr/sbin:/sbin",
     },
-    "mozconfig_platform": "linux64",
     "mozconfig_variant": "nightly",
+    #########################################################################
+    #########################################################################
+    ###### 64 bit specific ######
+    "platform": "linux64",
+    "stage_platform": "linux64",
+    "mozconfig_platform": "linux64",
     #########################################################################
 }

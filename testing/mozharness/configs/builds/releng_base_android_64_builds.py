@@ -32,6 +32,9 @@ config = {
     ],
     "vcs_share_base": "/builds/hg-shared",
     "multi_locale": True,
+    "upload_env": {
+        "UPLOAD_PATH": "/builds/worker/artifacts",
+    },
     #########################################################################
     #########################################################################
     "platform": "android",
