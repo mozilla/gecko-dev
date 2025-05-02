@@ -5571,7 +5571,8 @@ class MacroAssembler : public MacroAssemblerSpecific {
  public:
   void createGCObject(Register result, Register temp,
                       const TemplateObject& templateObj, gc::Heap initialHeap,
-                      Label* fail, bool initContents = true);
+                      Label* fail, bool initContents = true,
+                      const AllocSiteInput& allocSite = AllocSiteInput());
 
   void createPlainGCObject(Register result, Register shape, Register temp,
                            Register temp2, uint32_t numFixedSlots,
@@ -5591,7 +5592,8 @@ class MacroAssembler : public MacroAssemblerSpecific {
 
   void createFunctionClone(Register result, Register canonical,
                            Register envChain, Register temp,
-                           gc::AllocKind allocKind, Label* fail);
+                           gc::AllocKind allocKind, Label* fail,
+                           const AllocSiteInput& allocSite);
 
   void initGCThing(Register obj, Register temp,
                    const TemplateObject& templateObj, bool initContents = true);

@@ -6642,10 +6642,14 @@ class MStringReplace : public MTernaryInstruction,
 };
 
 class MLambda : public MBinaryInstruction, public SingleObjectPolicy::Data {
-  MLambda(MDefinition* envChain, MConstant* cst)
-      : MBinaryInstruction(classOpcode, envChain, cst) {
+  MLambda(MDefinition* envChain, MConstant* cst, gc::Heap initialHeap)
+      : MBinaryInstruction(classOpcode, envChain, cst),
+        initialHeap_(initialHeap) {
     setResultType(MIRType::Object);
   }
+
+  // Heap where the lambda should be allocated.
+  gc::Heap initialHeap_;
 
  public:
   INSTRUCTION_HEADER(Lambda)
@@ -6656,6 +6660,8 @@ class MLambda : public MBinaryInstruction, public SingleObjectPolicy::Data {
   JSFunction* templateFunction() const {
     return &functionOperand()->toObject().as<JSFunction>();
   }
+
+  gc::Heap initialHeap() const { return initialHeap_; }
 
   [[nodiscard]] bool writeRecoverData(
       CompactBufferWriter& writer) const override;

@@ -1022,7 +1022,7 @@ inline bool BytecodeCallOpCanHaveInlinableNative(JSOp op) {
 inline bool BytecodeOpCanHaveAllocSite(JSOp op) {
   return BytecodeCallOpCanHaveInlinableNative(op) || op == JSOp::NewArray ||
          op == JSOp::NewObject || op == JSOp::NewInit || op == JSOp::CallIter ||
-         op == JSOp::CallContentIter;
+         op == JSOp::CallContentIter || op == JSOp::Lambda;
 }
 
 class MOZ_RAII CloseIterIRGenerator : public IRGenerator {

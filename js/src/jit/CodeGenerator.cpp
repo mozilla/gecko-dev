@@ -3771,21 +3771,36 @@ void CodeGenerator::visitLambda(LLambda* lir) {
   Register envChain = ToRegister(lir->environmentChain());
   Register output = ToRegister(lir->output());
   Register tempReg = ToRegister(lir->temp0());
+  gc::Heap heap = lir->mir()->initialHeap();
 
   JSFunction* fun = lir->mir()->templateFunction();
+  MOZ_ASSERT(fun->isTenured());
 
-  using Fn = JSObject* (*)(JSContext*, HandleFunction, HandleObject);
-  OutOfLineCode* ool = oolCallVM<Fn, js::Lambda>(
-      lir, ArgList(ImmGCPtr(fun), envChain), StoreRegisterTo(output));
+  using Fn = JSObject* (*)(JSContext*, HandleFunction, HandleObject, gc::Heap);
+  OutOfLineCode* ool = oolCallVM<Fn, js::LambdaOptimizedFallback>(
+      lir, ArgList(ImmGCPtr(fun), envChain, Imm32(uint32_t(heap))),
+      StoreRegisterTo(output));
 
   TemplateObject templateObject(fun);
-  masm.createGCObject(output, tempReg, templateObject, gc::Heap::Default,
-                      ool->entry());
+  masm.createGCObject(output, tempReg, templateObject, heap, ool->entry(),
+                      /* initContents = */ true,
+                      AllocSiteInput(gc::CatchAllAllocSite::Optimized));
 
   masm.storeValue(JSVAL_TYPE_OBJECT, envChain,
                   Address(output, JSFunction::offsetOfEnvironment()));
-  // No post barrier needed because output is guaranteed to be allocated in
-  // the nursery.
+
+  // If we specified the tenured heap then we need a post barrier. Otherwise no
+  // post barrier needed as the output is guaranteed to be allocated in the
+  // nursery.
+  if (heap == gc::Heap::Tenured) {
+    Label skipBarrier;
+    masm.branchPtrInNurseryChunk(Assembler::NotEqual, envChain, tempReg,
+                                 &skipBarrier);
+    saveVolatile(tempReg);
+    emitPostWriteBarrier(output);
+    restoreVolatile(tempReg);
+    masm.bind(&skipBarrier);
+  }
 
   masm.bind(ool->rejoin());
 }

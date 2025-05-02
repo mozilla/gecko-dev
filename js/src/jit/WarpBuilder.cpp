@@ -3604,7 +3604,7 @@ bool WarpBuilder::buildIC(BytecodeLocation loc, CacheKind kind,
       MDefinition* env = current->environmentChain();
       JSFunction* fun = loc.getFunction(script_);
       MConstant* funConst = constant(ObjectValue(*fun));
-      auto* ins = MLambda::New(alloc(), env, funConst);
+      auto* ins = MLambda::New(alloc(), env, funConst, gc::Heap::Default);
       current->add(ins);
       current->push(ins);
       return resumeAfter(ins, loc);

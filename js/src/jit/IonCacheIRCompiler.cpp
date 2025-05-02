@@ -2344,7 +2344,8 @@ bool IonCacheIRCompiler::emitNewPlainObjectResult(uint32_t numFixedSlots,
 }
 
 bool IonCacheIRCompiler::emitNewFunctionCloneResult(uint32_t canonicalOffset,
-                                                    gc::AllocKind allocKind) {
+                                                    gc::AllocKind allocKind,
+                                                    uint32_t siteOffset) {
   MOZ_CRASH("Lambda ICs not used in ion");
 }
 

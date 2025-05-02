@@ -4220,14 +4220,16 @@ bool BaselineCacheIRCompiler::emitNewPlainObjectResult(uint32_t numFixedSlots,
 }
 
 bool BaselineCacheIRCompiler::emitNewFunctionCloneResult(
-    uint32_t canonicalOffset, gc::AllocKind allocKind) {
+    uint32_t canonicalOffset, gc::AllocKind allocKind, uint32_t siteOffset) {
   JitSpew(JitSpew_Codegen, "%s", __FUNCTION__);
 
   AutoOutputRegister output(*this);
   AutoScratchRegisterMaybeOutput result(allocator, masm, output);
+  AutoScratchRegisterMaybeOutputType site(allocator, masm, output);
   AutoScratchRegister canonical(allocator, masm);
   AutoScratchRegister envChain(allocator, masm);
   AutoScratchRegister scratch(allocator, masm);
+  MOZ_ASSERT(result.get() != site.get());
 
   // Load the canonical function and the frame's environment chain.
   masm.loadPtr(stubAddress(canonicalOffset), canonical);
@@ -4235,12 +4237,16 @@ bool BaselineCacheIRCompiler::emitNewFunctionCloneResult(
                   BaselineFrame::reverseOffsetOfEnvironmentChain());
   masm.loadPtr(envAddr, envChain);
 
+  Address siteAddr(stubAddress(siteOffset));
+  masm.loadPtr(siteAddr, site);
+
   allocator.discardStack(masm);
 
   // Try to allocate a new function object in JIT code.
   Label done, fail;
+
   masm.createFunctionClone(result, canonical, envChain, scratch, allocKind,
-                           &fail);
+                           &fail, AllocSiteInput(site));
   masm.jump(&done);
 
   {
@@ -4249,11 +4255,13 @@ bool BaselineCacheIRCompiler::emitNewFunctionCloneResult(
     AutoStubFrame stubFrame(*this);
     stubFrame.enter(masm, scratch);
 
+    masm.Push(site);
     masm.Push(envChain);
     masm.Push(canonical);
 
-    using Fn = JSObject* (*)(JSContext*, HandleFunction, HandleObject);
-    callVM<Fn, js::Lambda>(masm);
+    using Fn =
+        JSObject* (*)(JSContext*, HandleFunction, HandleObject, gc::AllocSite*);
+    callVM<Fn, js::LambdaBaselineFallback>(masm);
 
     stubFrame.leave(masm);
     masm.storeCallPointerResult(result);

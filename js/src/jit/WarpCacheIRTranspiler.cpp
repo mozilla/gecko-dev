@@ -6888,10 +6888,13 @@ bool WarpCacheIRTranspiler::emitNewArrayObjectResult(uint32_t length,
   return true;
 }
 
-bool WarpCacheIRTranspiler::emitNewFunctionCloneResult(
-    uint32_t canonicalOffset, gc::AllocKind allocKind) {
+bool WarpCacheIRTranspiler::emitNewFunctionCloneResult(uint32_t canonicalOffset,
+                                                       gc::AllocKind allocKind,
+                                                       uint32_t siteOffset) {
   JSObject* fun = tenuredObjectStubField(canonicalOffset);
   MOZ_ASSERT(fun->is<JSFunction>());
+
+  gc::Heap heap = allocSiteInitialHeapField(siteOffset);
 
   MDefinition* env = currentBlock()->environmentChain();
 
@@ -6907,7 +6910,7 @@ bool WarpCacheIRTranspiler::emitNewFunctionCloneResult(
 
   MConstant* funConst = constant(ObjectValue(*fun));
 
-  auto* ins = MLambda::New(alloc(), env, funConst);
+  auto* ins = MLambda::New(alloc(), env, funConst, heap);
   addEffectful(ins);
   pushResult(ins);
   return resumeAfter(ins);

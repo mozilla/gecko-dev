@@ -3261,6 +3261,7 @@
   args:
     canonical: ObjectField
     allocKind: AllocKindImm
+    site: AllocSiteField
 
 - name: ConcatStringsResult
   shared: true

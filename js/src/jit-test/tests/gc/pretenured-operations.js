@@ -39,6 +39,9 @@ check(() => { return Array(150); });
 check(() => { return new Array(); });
 check(() => { return new Array(150); });
 
+// Lambda objects.
+check(() => { return () => 0 });
+
 // DOM Allocations
 let fdo = new FakeDOMObject();
 check(() => { return fdo.doBar(); })
