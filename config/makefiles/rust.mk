@@ -325,6 +325,10 @@ RUSTC_BOOTSTRAP := 1
 endif
 endif
 
+ifeq (WINNT_clang,$(OS_ARCH)_$(CC_TYPE))
+RUSTFLAGS += -C dlltool=$(LLVM_DLLTOOL)
+endif
+
 $(target_rust_ltoable): RUSTFLAGS:=$(rustflags_override) $(rustflags_sancov) $(RUSTFLAGS) $(rust_pgo_flags) \
 								$(if $(MOZ_LTO_RUST_CROSS),\
 								    -Clinker-plugin-lto \
