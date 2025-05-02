@@ -10,6 +10,7 @@ ChromeUtils.defineESModuleGetters(lazy, {
   actions: "chrome://remote/content/shared/webdriver/Actions.sys.mjs",
   assert: "chrome://remote/content/shared/webdriver/Assert.sys.mjs",
   error: "chrome://remote/content/shared/webdriver/Errors.sys.mjs",
+  event: "chrome://remote/content/shared/webdriver/Event.sys.mjs",
   pprint: "chrome://remote/content/shared/Format.sys.mjs",
   TabManager: "chrome://remote/content/shared/TabManager.sys.mjs",
 });
@@ -36,6 +37,7 @@ class InputModule extends RootBiDiModule {
       dispatchEvent: this.#dispatchEvent.bind(this),
       getClientRects: this.#getClientRects.bind(this),
       getInViewCentrePoint: this.#getInViewCentrePoint.bind(this),
+      toBrowserWindowCoordinates: this.#toBrowserWindowCoordinates.bind(this),
     };
   }
 
@@ -76,6 +78,34 @@ class InputModule extends RootBiDiModule {
    *     Promise that resolves once the event is dispatched.
    */
   #dispatchEvent(eventName, context, details) {
+    if (
+      eventName === "synthesizeWheelAtPoint" &&
+      lazy.actions.useAsyncWheelEvents
+    ) {
+      details.eventData.asyncEnabled = true;
+    }
+
+    // TODO: Call the _dispatchEvent method of the windowglobal module once
+    // chrome support was added for the message handler.
+    if (details.eventData.asyncEnabled) {
+      switch (eventName) {
+        case "synthesizeWheelAtPoint":
+          lazy.event.synthesizeWheelAtPoint(
+            details.x,
+            details.y,
+            details.eventData,
+            context.topChromeWindow
+          );
+          break;
+        default:
+          throw new Error(
+            `${eventName} is not a supported type for dispatching`
+          );
+      }
+
+      return Promise.resolve();
+    }
+
     return this._forwardToWindowGlobal("_dispatchEvent", context.id, {
       eventName,
       details,
@@ -194,6 +224,23 @@ class InputModule extends RootBiDiModule {
     if (this.#inputStates.has(context)) {
       this.#inputStates.delete(context);
     }
+  }
+
+  /**
+   * Convert a position or rect in browser coordinates of CSS units.
+   *
+   * @param {object} position - Object with the coordinates to convert.
+   * @param {number} position.x - X coordinate.
+   * @param {number} position.y - Y coordinate.
+   * @param {BrowsingContext} context - The Browsing Context to convert the
+   *     coordinates for.
+   */
+  #toBrowserWindowCoordinates(position, context) {
+    return this._forwardToWindowGlobal(
+      "_toBrowserWindowCoordinates",
+      context.id,
+      { position }
+    );
   }
 
   /**

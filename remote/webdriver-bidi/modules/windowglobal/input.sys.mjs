@@ -7,6 +7,8 @@ import { WindowGlobalBiDiModule } from "chrome://remote/content/webdriver-bidi/m
 const lazy = {};
 
 ChromeUtils.defineESModuleGetters(lazy, {
+  LayoutUtils: "resource://gre/modules/LayoutUtils.sys.mjs",
+
   AnimationFramePromise: "chrome://remote/content/shared/Sync.sys.mjs",
   assertTargetInViewPort:
     "chrome://remote/content/shared/webdriver/Actions.sys.mjs",
@@ -136,6 +138,26 @@ class InputModule extends WindowGlobalBiDiModule {
     const { rect } = options;
 
     return lazy.dom.getInViewCentrePoint(rect, this.messageHandler.window);
+  }
+
+  /**
+   * Convert a position or rect in browser coordinates of CSS units.
+   */
+  _toBrowserWindowCoordinates(options) {
+    const { position } = options;
+
+    const [x, y] = position;
+    const window = this.messageHandler.window;
+    const dpr = window.devicePixelRatio;
+
+    const val = lazy.LayoutUtils.rectToTopLevelWidgetRect(window, {
+      left: x,
+      top: y,
+      height: 0,
+      width: 0,
+    });
+
+    return [val.x / dpr, val.y / dpr];
   }
 
   async setFiles(options) {

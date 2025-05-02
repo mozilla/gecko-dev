@@ -5,6 +5,8 @@
 const lazy = {};
 
 ChromeUtils.defineESModuleGetters(lazy, {
+  LayoutUtils: "resource://gre/modules/LayoutUtils.sys.mjs",
+
   accessibility:
     "chrome://remote/content/shared/webdriver/Accessibility.sys.mjs",
   AnimationFramePromise: "chrome://remote/content/shared/Sync.sys.mjs",
@@ -137,6 +139,22 @@ export class MarionetteCommandsChild extends JSWindowActorChild {
     return lazy.dom.getInViewCentrePoint(rect, this.contentWindow);
   }
 
+  #toBrowserWindowCoordinates(options, _context) {
+    const { position } = options;
+
+    const [x, y] = position;
+    const dpr = this.contentWindow.devicePixelRatio;
+
+    const val = lazy.LayoutUtils.rectToTopLevelWidgetRect(this.contentWindow, {
+      left: x,
+      top: y,
+      height: 0,
+      width: 0,
+    });
+
+    return [val.x / dpr, val.y / dpr];
+  }
+
   // eslint-disable-next-line complexity
   async receiveMessage(msg) {
     if (!this.contentWindow) {
@@ -171,6 +189,9 @@ export class MarionetteCommandsChild extends JSWindowActorChild {
           break;
         case "MarionetteCommandsParent:_finalizeAction":
           this.#finalizeAction();
+          break;
+        case "MarionetteCommandsParent:_toBrowserWindowCoordinates":
+          result = this.#toBrowserWindowCoordinates(data);
           break;
         case "MarionetteCommandsParent:clearElement":
           this.clearElement(data);

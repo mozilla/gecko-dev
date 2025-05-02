@@ -1019,11 +1019,11 @@ function synthesizeTouchAtCenter(aTarget, aEvent = {}, aWindow = window) {
  * @property {number} [aEvent.deltaMode=WheelEvent.DOM_DELTA_PIXEL] - Delta Mode
  *     for scrolling (pixel, line, or page), which must be one of the
  *     `WheelEvent.DOM_DELTA_*` constants.
- * @property {number} [aEvent.deltaX] - Floating-point value in CSS pixels to
+ * @property {number} [aEvent.deltaX=0] - Floating-point value in CSS pixels to
  *     scroll in the x direction.
- * @property {number} [aEvent.deltaY] - Floating-point value in CSS pixels to
+ * @property {number} [aEvent.deltaY=0] - Floating-point value in CSS pixels to
  *     scroll in the y direction.
- * @property {number} [aEvent.deltaZ] - Floating-point value in CSS pixels to
+ * @property {number} [aEvent.deltaZ=0] - Floating-point value in CSS pixels to
  *     scroll in the z direction.
  * @property {number} [aEvent.expectedOverflowDeltaX] - Decimal value
  *     indicating horizontal scroll overflow. Only the sign is checked: `0`,

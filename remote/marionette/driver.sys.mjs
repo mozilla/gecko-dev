@@ -121,6 +121,7 @@ class ActionsHelper {
       dispatchEvent: this.dispatchEvent.bind(this),
       getClientRects: this.getClientRects.bind(this),
       getInViewCentrePoint: this.getInViewCentrePoint.bind(this),
+      toBrowserWindowCoordinates: this.toBrowserWindowCoordinates.bind(this),
     };
   }
 
@@ -165,6 +166,14 @@ class ActionsHelper {
    *     Promise that resolves once the event is dispatched.
    */
   dispatchEvent(eventName, browsingContext, details) {
+    if (
+      eventName === "synthesizeWheelAtPoint" &&
+      lazy.actions.useAsyncWheelEvents
+    ) {
+      browsingContext = browsingContext.topChromeWindow.browsingContext;
+      details.eventData.asyncEnabled = true;
+    }
+
     return this.#getActor(browsingContext).dispatchEvent(eventName, details);
   }
 
@@ -272,6 +281,19 @@ class ActionsHelper {
     if (this.#driver._inputStates.has(browsingContext)) {
       this.#driver._inputStates.delete(browsingContext);
     }
+  }
+
+  /**
+   * Convert a position or rect in browser coordinates of CSS units.
+   *
+   * @param {object} position - Object with the coordinates to convert.
+   * @param {number} position.x - X coordinate.
+   * @param {number} position.y - Y coordinate.
+   * @param {BrowsingContext} browsingContext - The Browsing Context to convert the
+   *     coordinates for.
+   */
+  toBrowserWindowCoordinates(position, browsingContext) {
+    return this.#getActor(browsingContext).toBrowserWindowCoordinates(position);
   }
 }
 

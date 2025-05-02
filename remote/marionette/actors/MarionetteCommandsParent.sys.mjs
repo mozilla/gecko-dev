@@ -57,6 +57,15 @@ export class MarionetteCommandsParent extends JSWindowActorParent {
     });
   }
 
+  toBrowserWindowCoordinates(position, _context) {
+    return this.sendQuery(
+      "MarionetteCommandsParent:_toBrowserWindowCoordinates",
+      {
+        position,
+      }
+    );
+  }
+
   async sendQuery(name, serializedValue) {
     const seenNodes = lazy.getSeenNodesForBrowsingContext(
       webDriverSessionId,

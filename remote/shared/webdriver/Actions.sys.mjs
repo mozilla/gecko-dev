@@ -2,6 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+import { XPCOMUtils } from "resource://gre/modules/XPCOMUtils.sys.mjs";
+
 const lazy = {};
 
 ChromeUtils.defineESModuleGetters(lazy, {
@@ -19,9 +21,7 @@ ChromeUtils.defineESModuleGetters(lazy, {
   Sleep: "chrome://remote/content/marionette/sync.sys.mjs",
 });
 
-ChromeUtils.defineLazyGetter(lazy, "logger", () =>
-  lazy.Log.get(lazy.Log.TYPES.MARIONETTE)
-);
+ChromeUtils.defineLazyGetter(lazy, "logger", () => lazy.Log.get());
 
 // TODO? With ES 2016 and Symbol you can make a safer approximation
 // to an enum e.g. https://gist.github.com/xmlking/e86e4f15ec32b12c4689
@@ -48,6 +48,14 @@ const MODIFIER_NAME_LOOKUP = {
   Control: "ctrl",
   Meta: "meta",
 };
+
+// Flag, that indicates if an async widget event should be used when dispatching a wheel scroll event.
+XPCOMUtils.defineLazyPreferenceGetter(
+  actions,
+  "useAsyncWheelEvents",
+  "remote.events.async.wheel.enabled",
+  false
+);
 
 /**
  * Object containing various callback functions to be used when deserializing
@@ -1809,19 +1817,30 @@ class WheelScrollAction extends WheelAction {
    *     Promise that is resolved once the action is complete.
    */
   async dispatch(state, inputSource, tickDuration, options) {
-    const { assertInViewPort, context } = options;
+    const { assertInViewPort, context, toBrowserWindowCoordinates } = options;
 
-    lazy.logger.trace(
-      `Dispatch ${this.constructor.name} with id: ${this.id} deltaX: ${this.deltaX} deltaY: ${this.deltaY}`
-    );
-
-    const scrollCoordinates = await this.origin.getTargetCoordinates(
+    let scrollCoordinates = await this.origin.getTargetCoordinates(
       inputSource,
       [this.x, this.y],
       options
     );
 
     await assertInViewPort(scrollCoordinates, context);
+
+    lazy.logger.trace(
+      `Dispatch ${this.constructor.name} with id: ${this.id} ` +
+        `pageX: ${scrollCoordinates[0]} pageY: ${scrollCoordinates[1]} ` +
+        `deltaX: ${this.deltaX} deltaY: ${this.deltaY} ` +
+        `async: ${actions.useAsyncWheelEvents}`
+    );
+
+    // Only convert coordinates if those are for a content process
+    if (context.isContent && actions.useAsyncWheelEvents) {
+      scrollCoordinates = await toBrowserWindowCoordinates(
+        scrollCoordinates,
+        context
+      );
+    }
 
     const startX = 0;
     const startY = 0;
@@ -1884,6 +1903,10 @@ class WheelScrollAction extends WheelAction {
       deltaZ: 0,
     });
     eventData.update(state);
+
+    lazy.logger.trace(
+      `WheelScrollAction.performOneWheelScrollStep [${deltaX},${deltaY}]`
+    );
 
     await dispatchEvent("synthesizeWheelAtPoint", context, {
       x: scrollCoordinates[0],
@@ -2810,22 +2833,40 @@ class Sequence extends Array {
 
 /**
  * Representation of an input event.
+ *
+ * @param {object} [options={}]
+ * @param {boolean} [options.altKey] - If set to `true`, the Alt key will be
+ *     considered pressed.
+ * @param {boolean} [options.ctrlKey] - If set to `true`, the Ctrl key will be
+ *     considered pressed.
+ * @param {boolean} [options.metaKey] - If set to `true`, the Meta key will be
+ *     considered pressed.
+ * @param {boolean} [options.shiftKey] - If set to `true`, the Shift key will be
+ *     considered pressed.
  */
 class InputEventData {
-  /**
-   * Creates a new {@link InputEventData} instance.
-   */
-  constructor() {
-    this.altKey = false;
-    this.shiftKey = false;
-    this.ctrlKey = false;
-    this.metaKey = false;
+  constructor(options = {}) {
+    const { altKey, ctrlKey, metaKey, shiftKey } = options;
+
+    this.altKey = altKey;
+    this.ctrlKey = ctrlKey;
+    this.metaKey = metaKey;
+    this.shiftKey = shiftKey;
   }
 
   /**
    * Update the input data based on global and input state
    */
-  update() {}
+  update(state) {
+    for (const [, otherInputSource] of state.inputSourcesByType("key")) {
+      // set modifier properties based on whether any corresponding keys are
+      // pressed on any key input source
+      this.altKey = otherInputSource.alt || this.altKey;
+      this.ctrlKey = otherInputSource.ctrl || this.ctrlKey;
+      this.metaKey = otherInputSource.meta || this.metaKey;
+      this.shiftKey = otherInputSource.shift || this.shiftKey;
+    }
+  }
 
   toString() {
     return `${this.constructor.name} ${JSON.stringify(this)}`;
@@ -2950,47 +2991,28 @@ class MouseEventData extends PointerEventData {
 }
 
 /**
- * Representation of a wheel scroll event.
+ * Representation of a wheel input event.
  */
 class WheelEventData extends InputEventData {
   /**
    * Creates a new {@link WheelEventData} instance.
    *
-   * @param {object} options
-   * @param {number} options.deltaX
-   *     Scroll delta X.
-   * @param {number} options.deltaY
-   *     Scroll delta Y.
-   * @param {number} options.deltaZ
-   *     Scroll delta Z (current always 0).
-   * @param {number=} options.deltaMode
-   *     Scroll delta mode (current always 0).
+   * @param {object} [options={}]
+   * @param {number} [options.deltaX=0] - Floating-point value in CSS pixels to
+   *     scroll in the x direction.
+   * @param {number} [options.deltaY=0] - Floating-point value in CSS pixels to
+   *     scroll in the y direction.
+   *
+   * @see event.synthesizeWheelAtPoint
+   * @see InputEventData
    */
   constructor(options) {
-    super();
+    super(options);
 
-    const { deltaX, deltaY, deltaZ, deltaMode = 0 } = options;
-
+    const { deltaX, deltaY } = options;
     this.deltaX = deltaX;
     this.deltaY = deltaY;
-    this.deltaZ = deltaZ;
-    this.deltaMode = deltaMode;
-
-    this.altKey = false;
-    this.ctrlKey = false;
-    this.metaKey = false;
-    this.shiftKey = false;
-  }
-
-  update(state) {
-    // set modifier properties based on whether any corresponding keys are
-    // pressed on any key input source
-    for (const [, otherInputSource] of state.inputSourcesByType("key")) {
-      this.altKey = otherInputSource.alt || this.altKey;
-      this.ctrlKey = otherInputSource.ctrl || this.ctrlKey;
-      this.metaKey = otherInputSource.meta || this.metaKey;
-      this.shiftKey = otherInputSource.shift || this.shiftKey;
-    }
+    this.deltaZ = 0;
   }
 }
 
