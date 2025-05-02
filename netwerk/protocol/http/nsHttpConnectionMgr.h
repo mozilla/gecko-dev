@@ -399,7 +399,7 @@ class nsHttpConnectionMgr final : public HttpConnectionMgrShell,
   // these methods track this time.
   bool InThrottlingTimeWindow();
 
-  // Two hashtalbes keeping track of active transactions regarding window id and
+  // Two hashtables keeping track of active transactions regarding window id and
   // throttling. Used by the throttling algorithm to obtain number of
   // transactions for the active tab and for inactive tabs according their
   // throttle status. mActiveTransactions[0] are all unthrottled transactions,
