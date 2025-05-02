@@ -103,7 +103,7 @@ tasks:
             build_type: debug
         index:
             product: firefox
-            job-name: snap-armhg-nightly-debug
+            job-name: snap-armhf-nightly-debug
         worker:
             docker-image: {in-tree: snap-build-core24}
             max-run-time: 7200
