@@ -251,9 +251,6 @@ newtab-pocket-learn-more = เรียนรู้เพิ่มเติม
 newtab-pocket-cta-button = รับ { -pocket-brand-name }
 newtab-pocket-cta-text = บันทึกเรื่องราวที่คุณรักลงใน { -pocket-brand-name } และเติมเต็มสมองของคุณด้วยบทความที่น่าหลงใหล
 newtab-pocket-pocket-firefox-family = { -pocket-brand-name } เป็นส่วนหนึ่งของตระกูล { -brand-product-name }
-# A save to Pocket button that shows over the card thumbnail on hover.
-newtab-pocket-image =
-    .aria-label = { -pocket-brand-name }
 newtab-pocket-save = บันทึก
 newtab-pocket-saved = บันทึกแล้ว
 
@@ -387,7 +384,6 @@ newtab-wallpaper-starry-canyon = คืนที่เต็มไปด้ว�
 newtab-wallpaper-suspension-bridge = ภาพถ่ายสะพานแขวนสีเทาในช่วงกลางวัน
 newtab-wallpaper-sand-dunes = เนินทรายสีขาว
 newtab-wallpaper-palm-trees = ภาพเงาของต้นมะพร้าวในช่วงชั่วโมงทองคำ
-newtab-wallpaper-forest-trees = ต้นไม้ที่ถูกปกคลุมด้วยหมอก
 # Variables
 #   $author_string (String) - The name of the creator of the photo.
 #   $webpage_string (String) - The name of the webpage where the photo is located.
@@ -513,7 +509,7 @@ newtab-section-confirm-block-topic-p2 = หัวข้อที่ถูกป�
 #   $topic (string) - Name of topic that user is blocking
 newtab-section-block-topic-button = ปิดกั้น { $topic }
 
-## Panel in the Customize menu section to manage followed and blocked topics
+## Strings for custom wallpaper highlight
 
 newtab-section-mangage-topics-title = หัวข้อ
 newtab-section-manage-topics-button-v2 =
@@ -522,3 +518,9 @@ newtab-section-mangage-topics-followed-topics = ติดตามอยู่
 newtab-section-mangage-topics-followed-topics-empty-state = คุณยังไม่ได้ติดตามหัวข้อใดๆ
 newtab-section-mangage-topics-blocked-topics = ปิดกั้นอยู่
 newtab-section-mangage-topics-blocked-topics-empty-state = คุณยังไม่ได้ปิดกั้นหัวข้อใดๆ
+
+## Strings for download mobile highlight
+
+
+## Strings for reporting ads and content
+

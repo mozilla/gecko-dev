@@ -117,6 +117,7 @@ newtab-menu-delete-pocket = Izbriši iz { -pocket-brand-name }a
 newtab-menu-archive-pocket = Arhiviraj v { -pocket-brand-name }
 newtab-menu-show-privacy-info = Naši pokrovitelji in vaša zasebnost
 newtab-menu-about-fakespot = O { -fakespot-brand-name(sklon: "mestnik") }
+newtab-menu-report-content = Prijavi to vsebino
 # Context menu option to personalize New Tab recommended stories by blocking a section of stories,
 # e.g. "Sports". "Block" is a verb here.
 newtab-menu-section-block = Prepovej
@@ -128,6 +129,7 @@ newtab-menu-section-unfollow = Nehaj slediti temi
 
 newtab-menu-manage-sponsored-content = Upravljanje sponzorirane vsebine
 newtab-menu-our-sponsors-and-your-privacy = Naši pokrovitelji in vaša zasebnost
+newtab-menu-report-this-ad = Prijavi ta oglas
 
 ## Message displayed in a modal window to explain privacy and provide context for sponsored content.
 
@@ -250,9 +252,6 @@ newtab-pocket-learn-more = Več o tem
 newtab-pocket-cta-button = Prenesi { -pocket-brand-name }
 newtab-pocket-cta-text = Shranite zgodbe, ki jih imate radi, v { -pocket-brand-name }, in napolnite svoje misli z navdušujočim branjem.
 newtab-pocket-pocket-firefox-family = { -pocket-brand-name } je del družine { -brand-product-name }
-# A save to Pocket button that shows over the card thumbnail on hover.
-newtab-pocket-image =
-    .aria-label = { -pocket-brand-name }
 newtab-pocket-save = Shrani
 newtab-pocket-saved = Shranjeno
 
@@ -390,7 +389,6 @@ newtab-wallpaper-suspension-bridge = Siva fotografija visečega mostu podnevi
 newtab-wallpaper-sand-dunes = Bele peščene sipine
 newtab-wallpaper-palm-trees = Silhueta kokosovih palm med zlato uro
 newtab-wallpaper-blue-flowers = Posnetek cvetočih rož z modrimi listi od blizu
-newtab-wallpaper-forest-trees = Drevesa, prekrita z meglo
 # Variables
 #   $author_string (String) - The name of the creator of the photo.
 #   $webpage_string (String) - The name of the webpage where the photo is located.
@@ -516,7 +514,7 @@ newtab-section-confirm-block-topic-p2 = Blokirane teme se ne bodo več prikazova
 #   $topic (string) - Name of topic that user is blocking
 newtab-section-block-topic-button = Blokiraj { $topic }
 
-## Panel in the Customize menu section to manage followed and blocked topics
+## Strings for custom wallpaper highlight
 
 newtab-section-mangage-topics-title = Teme
 newtab-section-manage-topics-button-v2 =
@@ -526,4 +524,30 @@ newtab-section-mangage-topics-followed-topics-empty-state = Ne spremljate še no
 newtab-section-mangage-topics-blocked-topics = Blokirano
 newtab-section-mangage-topics-blocked-topics-empty-state = Prepovedali niste še nobene teme.
 newtab-custom-wallpaper-title = Ozadja po meri so tu
+# 'Make firefox yours" means to customize or personalize
+newtab-custom-wallpaper-subtitle = Naložite lastno ozadje ali izberite poljubno barvo, ki bo { -brand-product-name(sklon: "dajalnik") } dodala vašo osebno noto.
 newtab-custom-wallpaper-cta = Preizkusite
+
+## Strings for download mobile highlight
+
+
+## Strings for reporting ads and content
+
+newtab-report-content-why-reporting-this =
+    .label = Zakaj to prijavljate?
+newtab-report-ads-reason-not-interested =
+    .label = Ne zanima me
+newtab-report-ads-reason-inappropriate =
+    .label = Zdi se mi neprimerno
+newtab-report-ads-reason-seen-it-too-many-times =
+    .label = Že prevečkrat videno
+newtab-report-content-wrong-category =
+    .label = Napačna kategorija
+newtab-report-content-outdated =
+    .label = Zastarelo
+newtab-report-content-inappropriate-offensive =
+    .label = Neprimerno ali žaljivo
+newtab-report-content-spam-misleading =
+    .label = Vsiljivo ali zavajajoče
+newtab-report-cancel = Prekliči
+newtab-report-submit = Pošlji

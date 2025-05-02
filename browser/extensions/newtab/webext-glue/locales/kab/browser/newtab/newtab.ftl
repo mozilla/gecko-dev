@@ -8,6 +8,9 @@
 newtab-page-title = Iccer amaynut
 newtab-settings-button =
     .title = Sagen asebter n yiccer-ik amaynut
+newtab-personalize-settings-icon-label =
+    .title = Sagen iccer amaynut
+    .aria-label = Iɣewwaren
 newtab-settings-dialog-label =
     .aria-label = Iɣewwaṛen
 newtab-personalize-icon-label =
@@ -114,12 +117,18 @@ newtab-menu-delete-pocket = Kkes si { -pocket-brand-name }
 newtab-menu-archive-pocket = Ḥrez di { -pocket-brand-name }
 newtab-menu-show-privacy-info = Wid yettbeddan fell-aɣ akked tudert-ik tabaḍnit
 newtab-menu-about-fakespot = Γef { -fakespot-brand-name }
+newtab-menu-report-content = Ccetki ɣef ugbur-a
 # Context menu option to personalize New Tab recommended stories by blocking a section of stories,
 # e.g. "Sports". "Block" is a verb here.
 newtab-menu-section-block = Sewḥel
+# "Follow", "unfollow", and "following" are social media terms that refer to subscribing to or unsubscribing from a section of stories.
+# e.g. Following the travel section of stories.
+newtab-menu-section-unfollow = Ur ṭṭafar ara asentel-a
 
 ## Context menu options for sponsored stories and new ad formats on New Tab.
 
+newtab-menu-manage-sponsored-content = Sefrek agbur yesεan bab
+newtab-menu-report-this-ad = Ccetki ɣef udellel-a
 
 ## Message displayed in a modal window to explain privacy and provide context for sponsored content.
 
@@ -239,9 +248,6 @@ newtab-pocket-learn-more = Issin ugar
 newtab-pocket-cta-button = Awi-d { -pocket-brand-name }
 newtab-pocket-cta-text = Sekles tiqṣiḍin i tḥemmleḍ deg { -pocket-brand-name }, sedhu allaɣ-ik s tɣuri ifazen.
 newtab-pocket-pocket-firefox-family = { -pocket-brand-name } d yiwen seg twacult n { -brand-product-name }
-# A save to Pocket button that shows over the card thumbnail on hover.
-newtab-pocket-image =
-    .aria-label = { -pocket-brand-name }
 newtab-pocket-save = Sekles
 newtab-pocket-saved = Yettwasekles
 
@@ -407,6 +413,12 @@ newtab-topic-selection-button-update-interests = Leqqem ismenyaf-ik
 ## Confirmation modal for blocking a section
 
 
-## Panel in the Customize menu section to manage followed and blocked topics
+## Strings for custom wallpaper highlight
 
 newtab-section-mangage-topics-blocked-topics = Iwḥel
+
+## Strings for download mobile highlight
+
+
+## Strings for reporting ads and content
+

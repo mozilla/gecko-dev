@@ -252,9 +252,6 @@ newtab-pocket-learn-more = Les meir
 newtab-pocket-cta-button = Last ned { -pocket-brand-name }
 newtab-pocket-cta-text = Lagre artiklane du synest er interessante i { -pocket-brand-name }, og stimuler tankane dine med fasinerande lesemateriell.
 newtab-pocket-pocket-firefox-family = { -pocket-brand-name } er ein del av { -brand-product-name }-familien.
-# A save to Pocket button that shows over the card thumbnail on hover.
-newtab-pocket-image =
-    .aria-label = { -pocket-brand-name }
 newtab-pocket-save = Lagre
 newtab-pocket-saved = Lagra
 
@@ -326,6 +323,7 @@ newtab-wallpaper-custom-color = Vel ein farge
 # Variables
 #   $file_size (number) - The number of the maximum image file size (in MB) that may be uploaded
 newtab-wallpaper-error-max-file-size = Bildet overskreid filstorleiksgrensa på { $file_size }MB. Prøv å laste opp ei mindre fil.
+newtab-wallpaper-error-file-type = Vi klarte ikkje å laste opp fila di. Prøv igjen med ein annan filtype.
 newtab-wallpaper-light-red-panda = Raudpanda
 newtab-wallpaper-light-mountain = Kvitt fjell
 newtab-wallpaper-light-sky = Himmel med lilla og rosa skyer
@@ -389,7 +387,6 @@ newtab-wallpaper-suspension-bridge = Foto av grå hengebru på dagtid
 newtab-wallpaper-sand-dunes = Kvite sanddyner
 newtab-wallpaper-palm-trees = Silhuett av kokospalmar i den gylne timen
 newtab-wallpaper-blue-flowers = Nærbiletfotografering av blåblada blomstrar i bløming
-newtab-wallpaper-forest-trees = Tre dekte av tåke
 # Variables
 #   $author_string (String) - The name of the creator of the photo.
 #   $webpage_string (String) - The name of the webpage where the photo is located.
@@ -510,11 +507,12 @@ newtab-section-unblock-button = Opphev blokkeringa
 
 newtab-section-cancel-button = Ikkje no
 newtab-section-confirm-block-topic-p1 = Er du sikker på at du vil blokkere dette emnet?
+newtab-section-confirm-block-topic-p2 = Blokkerte emne vil ikkje lenger visast i kanalen din.
 # Variables:
 #   $topic (string) - Name of topic that user is blocking
 newtab-section-block-topic-button = Blokker { $topic }
 
-## Panel in the Customize menu section to manage followed and blocked topics
+## Strings for custom wallpaper highlight
 
 newtab-section-mangage-topics-title = Emne
 newtab-section-manage-topics-button-v2 =
@@ -523,4 +521,38 @@ newtab-section-mangage-topics-followed-topics = Følgt
 newtab-section-mangage-topics-followed-topics-empty-state = Du har ikkje følgt nokon emne enno.
 newtab-section-mangage-topics-blocked-topics = Blokkert
 newtab-section-mangage-topics-blocked-topics-empty-state = Du har ikkje blokkert nokon emne enno.
+newtab-custom-wallpaper-title = No får du tilpassa bakgrunnsbilde
+# 'Make firefox yours" means to customize or personalize
+newtab-custom-wallpaper-subtitle = Last opp ditt eige bakgrunnsbilde eller vel ein farge for å gjere { -brand-product-name } til din.
 newtab-custom-wallpaper-cta = Prøv det
+
+## Strings for download mobile highlight
+
+newtab-download-mobile-highlight-title = Last ned { -brand-product-name } for mobil
+# "Scan the code" refers to scanning the QR code that appears above the body text that leads to Firefox for mobile download.
+newtab-download-mobile-highlight-body-variant-a = Skann koden for å surfe trygt medan du er på farta.
+newtab-download-mobile-highlight-body-variant-b = Hald fram der du slutta når du synkroniserer faner, passord, og meir.
+newtab-download-mobile-highlight-body-variant-c = Visste du at du kan ta med { -brand-product-name } på farta? Same nettlesar. I lomma.
+newtab-download-mobile-highlight-image =
+    .aria-label = QR-kode for å laste ned { -brand-product-name } for mobil
+
+## Strings for reporting ads and content
+
+newtab-report-content-why-reporting-this =
+    .label = Kvifor rapporterer du dette?
+newtab-report-ads-reason-not-interested =
+    .label = Eg er ikkje interessert
+newtab-report-ads-reason-inappropriate =
+    .label = Det er upassande
+newtab-report-ads-reason-seen-it-too-many-times =
+    .label = Eg har sett den altfor mange gongar
+newtab-report-content-wrong-category =
+    .label = Feil kategori
+newtab-report-content-outdated =
+    .label = Utdatert
+newtab-report-content-inappropriate-offensive =
+    .label = Upassande eller krenkande
+newtab-report-content-spam-misleading =
+    .label = Spam eller villeiande
+newtab-report-cancel = Avbryt
+newtab-report-submit = Send inn

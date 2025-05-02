@@ -253,9 +253,6 @@ newtab-pocket-learn-more = Läs mer
 newtab-pocket-cta-button = Hämta { -pocket-brand-name }
 newtab-pocket-cta-text = Spara de historier som du tycker är intressant i { -pocket-brand-name } och stimulera dina tankar med fascinerande läsmaterial.
 newtab-pocket-pocket-firefox-family = { -pocket-brand-name } är en del av familjen { -brand-product-name }
-# A save to Pocket button that shows over the card thumbnail on hover.
-newtab-pocket-image =
-    .aria-label = { -pocket-brand-name }
 newtab-pocket-save = Spara
 newtab-pocket-saved = Sparad
 
@@ -391,7 +388,6 @@ newtab-wallpaper-suspension-bridge = Grå fotografering av helhängbro under dag
 newtab-wallpaper-sand-dunes = Vita sanddyner
 newtab-wallpaper-palm-trees = Silhuett av kokospalmer under gyllene timmen
 newtab-wallpaper-blue-flowers = Närbild fotografi av blommor med blå kronblad i blom
-newtab-wallpaper-forest-trees = Träd täckta med dimma
 # Variables
 #   $author_string (String) - The name of the creator of the photo.
 #   $webpage_string (String) - The name of the webpage where the photo is located.
@@ -517,7 +513,7 @@ newtab-section-confirm-block-topic-p2 = Blockerade ämnen kommer inte längre at
 #   $topic (string) - Name of topic that user is blocking
 newtab-section-block-topic-button = Blockera { $topic }
 
-## Panel in the Customize menu section to manage followed and blocked topics
+## Strings for custom wallpaper highlight
 
 newtab-section-mangage-topics-title = Ämnen
 newtab-section-manage-topics-button-v2 =
@@ -530,3 +526,36 @@ newtab-custom-wallpaper-title = Anpassade bakgrundsbilder finns här
 # 'Make firefox yours" means to customize or personalize
 newtab-custom-wallpaper-subtitle = Ladda upp din egen bakgrundsbild eller välj en anpassad färg för att göra { -brand-product-name } till din.
 newtab-custom-wallpaper-cta = Prova den
+
+## Strings for download mobile highlight
+
+newtab-download-mobile-highlight-title = Hämta { -brand-product-name } för mobil
+# "Scan the code" refers to scanning the QR code that appears above the body text that leads to Firefox for mobile download.
+newtab-download-mobile-highlight-body-variant-a = Skanna koden för att säkert surfa när du är på språng.
+newtab-download-mobile-highlight-body-variant-b = Fortsätt där du slutade när du synkroniserar dina flikar, lösenord och mer.
+newtab-download-mobile-highlight-body-variant-c = Visste du att du kan ta med { -brand-product-name } när du är på språng? Samma webbläsare. I fickan.
+newtab-download-mobile-highlight-image =
+    .aria-label = QR-kod för att ladda ner { -brand-product-name } för mobil
+
+## Strings for reporting ads and content
+
+newtab-report-content-why-reporting-this =
+    .label = Varför anmäler du detta?
+newtab-report-ads-reason-not-interested =
+    .label = Jag är inte intresserad
+newtab-report-ads-reason-inappropriate =
+    .label = Det är olämpligt
+newtab-report-ads-reason-seen-it-too-many-times =
+    .label = Jag har sett den alldeles för många gånger
+newtab-report-content-wrong-category =
+    .label = Fel kategori
+newtab-report-content-outdated =
+    .label = Föråldrad
+newtab-report-content-inappropriate-offensive =
+    .label = Olämplig eller kränkande
+newtab-report-content-spam-misleading =
+    .label = Skräppost eller vilseledande
+newtab-report-cancel = Avbryt
+newtab-report-submit = Skicka in
+newtab-toast-thanks-for-reporting =
+    .message = Tack för att du rapporterade detta.

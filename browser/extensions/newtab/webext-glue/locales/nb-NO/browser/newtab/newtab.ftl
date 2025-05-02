@@ -248,9 +248,6 @@ newtab-pocket-learn-more = Les mer
 newtab-pocket-cta-button = Hent { -pocket-brand-name }
 newtab-pocket-cta-text = Lagre artiklene du synes er interessante i { -pocket-brand-name }, og stimuler dine tanker med fasinerende lesermateriell.
 newtab-pocket-pocket-firefox-family = { -pocket-brand-name } er en del av { -brand-product-name }-familien.
-# A save to Pocket button that shows over the card thumbnail on hover.
-newtab-pocket-image =
-    .aria-label = { -pocket-brand-name }
 newtab-pocket-save = Lagre
 newtab-pocket-saved = Lagret
 
@@ -381,7 +378,6 @@ newtab-wallpaper-white-mountains = Hvite fjell
 newtab-wallpaper-starry-canyon = Blå stjerneklar natt
 newtab-wallpaper-sand-dunes = Hvite sanddyner
 newtab-wallpaper-palm-trees = Silhuett av kokospalmer under den gyldne timen
-newtab-wallpaper-forest-trees = Trær dekket med tåke
 # Variables
 #   $author_string (String) - The name of the creator of the photo.
 #   $webpage_string (String) - The name of the webpage where the photo is located.
@@ -505,7 +501,7 @@ newtab-section-confirm-block-topic-p2 = Blokkerte emner vil ikke lenger vises i 
 #   $topic (string) - Name of topic that user is blocking
 newtab-section-block-topic-button = Blokker { $topic }
 
-## Panel in the Customize menu section to manage followed and blocked topics
+## Strings for custom wallpaper highlight
 
 newtab-section-mangage-topics-title = Emner
 newtab-section-manage-topics-button-v2 =
@@ -514,3 +510,9 @@ newtab-section-mangage-topics-followed-topics = Fulgt
 newtab-section-mangage-topics-followed-topics-empty-state = Du har ikke fulgt noen emner ennå.
 newtab-section-mangage-topics-blocked-topics = Blokkert
 newtab-section-mangage-topics-blocked-topics-empty-state = Du har ikke blokkert noen emner ennå.
+
+## Strings for download mobile highlight
+
+
+## Strings for reporting ads and content
+

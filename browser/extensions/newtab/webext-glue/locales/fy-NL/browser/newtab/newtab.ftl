@@ -253,9 +253,6 @@ newtab-pocket-learn-more = Mear ynfo
 newtab-pocket-cta-button = { -pocket-brand-name } brûke
 newtab-pocket-cta-text = Bewarje de ferhalen dy’t jo ynteressant fine yn { -pocket-brand-name }, en stimulearje jo tinzen mei boeiende lêsstof.
 newtab-pocket-pocket-firefox-family = { -pocket-brand-name } is ûnderdiel fan de { -brand-product-name }-famylje
-# A save to Pocket button that shows over the card thumbnail on hover.
-newtab-pocket-image =
-    .aria-label = { -pocket-brand-name }
 newtab-pocket-save = Bewarje
 newtab-pocket-saved = Bewarre
 
@@ -391,7 +388,6 @@ newtab-wallpaper-suspension-bridge = Foto’s fan in folsleine hingbrêge oerdei
 newtab-wallpaper-sand-dunes = Wite sândunen
 newtab-wallpaper-palm-trees = Silhûet fan kokospalms wylst gouden oere
 newtab-wallpaper-blue-flowers = Close-upfotografy fan blauwe blommen yn bloei
-newtab-wallpaper-forest-trees = Beammen bedekt mei mist
 # Variables
 #   $author_string (String) - The name of the creator of the photo.
 #   $webpage_string (String) - The name of the webpage where the photo is located.
@@ -517,7 +513,7 @@ newtab-section-confirm-block-topic-p2 = Blokkearre ûnderwerpen ferskine net mea
 #   $topic (string) - Name of topic that user is blocking
 newtab-section-block-topic-button = { $topic } blokkearje
 
-## Panel in the Customize menu section to manage followed and blocked topics
+## Strings for custom wallpaper highlight
 
 newtab-section-mangage-topics-title = Underwerpen
 newtab-section-manage-topics-button-v2 =
@@ -530,3 +526,36 @@ newtab-custom-wallpaper-title = Hjir fine jo oanpaste eftergrûnen
 # 'Make firefox yours" means to customize or personalize
 newtab-custom-wallpaper-subtitle = Laad jo eigen eftergrûn op of kies in oanpaste kleur om { -brand-product-name } fan josels te meitsjen.
 newtab-custom-wallpaper-cta = Probearje
+
+## Strings for download mobile highlight
+
+newtab-download-mobile-highlight-title = { -brand-product-name } foar mobyl downloade
+# "Scan the code" refers to scanning the QR code that appears above the body text that leads to Firefox for mobile download.
+newtab-download-mobile-highlight-body-variant-a = Scan de koade om feilich ûnderweis te navigearjen.
+newtab-download-mobile-highlight-body-variant-b = Gean troch wêr’t jo bleaun wiene wannear’t jo jo ljepblêden, wachtwurden en mear syngronisearje.
+newtab-download-mobile-highlight-body-variant-c = Wisten jo dat jo { -brand-product-name } ek ûnderweis meinimme kinne? Deselde browser. Yn jo bûse.
+newtab-download-mobile-highlight-image =
+    .aria-label = QR-koade om { -brand-product-name } foar mobyl te downloaden
+
+## Strings for reporting ads and content
+
+newtab-report-content-why-reporting-this =
+    .label = Wêrom melde jo dit?
+newtab-report-ads-reason-not-interested =
+    .label = Ik bin net ynteressearre
+newtab-report-ads-reason-inappropriate =
+    .label = It is net geskikt
+newtab-report-ads-reason-seen-it-too-many-times =
+    .label = Ik haw it te faak sjoen
+newtab-report-content-wrong-category =
+    .label = Ferkearde kategory
+newtab-report-content-outdated =
+    .label = Ferâldere
+newtab-report-content-inappropriate-offensive =
+    .label = Unpaslik of beledigjend
+newtab-report-content-spam-misleading =
+    .label = Spam of misliedend
+newtab-report-cancel = Annulearje
+newtab-report-submit = Yntsjinje
+newtab-toast-thanks-for-reporting =
+    .message = Tank foar it melden.

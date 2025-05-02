@@ -249,9 +249,6 @@ newtab-pocket-learn-more = 了解更多
 newtab-pocket-cta-button = 取得 { -pocket-brand-name }
 newtab-pocket-cta-text = 將您喜愛的故事儲存到 { -pocket-brand-name }，閱讀一篇篇好文章。
 newtab-pocket-pocket-firefox-family = { -pocket-brand-name } 是 { -brand-product-name } 產品家族的一部份
-# A save to Pocket button that shows over the card thumbnail on hover.
-newtab-pocket-image =
-    .aria-label = { -pocket-brand-name }
 newtab-pocket-save = 儲存
 newtab-pocket-saved = 已儲存
 
@@ -387,7 +384,6 @@ newtab-wallpaper-suspension-bridge = 白天的灰色吊橋照片
 newtab-wallpaper-sand-dunes = 白色沙丘
 newtab-wallpaper-palm-trees = 在魔術光下的椰子樹剪影
 newtab-wallpaper-blue-flowers = 盛開的藍色花朵特寫
-newtab-wallpaper-forest-trees = 被濃霧遮蓋住的樹
 # Variables
 #   $author_string (String) - The name of the creator of the photo.
 #   $webpage_string (String) - The name of the webpage where the photo is located.
@@ -513,7 +509,7 @@ newtab-section-confirm-block-topic-p2 = 將主題封鎖後就不會再顯示於�
 #   $topic (string) - Name of topic that user is blocking
 newtab-section-block-topic-button = 封鎖 { $topic }
 
-## Panel in the Customize menu section to manage followed and blocked topics
+## Strings for custom wallpaper highlight
 
 newtab-section-mangage-topics-title = 主題
 newtab-section-manage-topics-button-v2 =
@@ -526,3 +522,36 @@ newtab-custom-wallpaper-title = 可以在這裡自訂背景圖片
 # 'Make firefox yours" means to customize or personalize
 newtab-custom-wallpaper-subtitle = 上傳您自己的背景圖，或挑選一組色彩，讓 { -brand-product-name } 有您的風格。
 newtab-custom-wallpaper-cta = 試試看
+
+## Strings for download mobile highlight
+
+newtab-download-mobile-highlight-title = 下載 { -brand-product-name } 行動版
+# "Scan the code" refers to scanning the QR code that appears above the body text that leads to Firefox for mobile download.
+newtab-download-mobile-highlight-body-variant-a = 掃描 QR Code 隨時隨地安全上網。
+newtab-download-mobile-highlight-body-variant-b = 同步分頁標籤、網站密碼與更多資訊，讓您隨時切換裝置繼續上網。
+newtab-download-mobile-highlight-body-variant-c = 您知道 { -brand-product-name } 可以隨身帶著走嗎？把同一套瀏覽器，放進口袋。
+newtab-download-mobile-highlight-image =
+    .aria-label = { -brand-product-name } 行動版的下載 QR Code
+
+## Strings for reporting ads and content
+
+newtab-report-content-why-reporting-this =
+    .label = 為什麼您會如此回報？
+newtab-report-ads-reason-not-interested =
+    .label = 我對此資訊沒興趣
+newtab-report-ads-reason-inappropriate =
+    .label = 此資訊不適當
+newtab-report-ads-reason-seen-it-too-many-times =
+    .label = 我看到此資訊太多次
+newtab-report-content-wrong-category =
+    .label = 分類不正確
+newtab-report-content-outdated =
+    .label = 已過時
+newtab-report-content-inappropriate-offensive =
+    .label = 不正當或者冒犯人
+newtab-report-content-spam-misleading =
+    .label = 是垃圾內容或誤導性內容
+newtab-report-cancel = 取消
+newtab-report-submit = 送出
+newtab-toast-thanks-for-reporting =
+    .message = 感謝您回報此問題。

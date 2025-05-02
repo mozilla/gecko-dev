@@ -249,9 +249,6 @@ newtab-pocket-learn-more = Saznaj više
 newtab-pocket-cta-button = Nabavi { -pocket-brand-name }
 newtab-pocket-cta-text = Spremi priče koje ti se sviđaju u { -pocket-brand-name } i napuni si mozak vrhunskim štivom.
 newtab-pocket-pocket-firefox-family = { -pocket-brand-name } je dio { -brand-product-name } obitelji
-# A save to Pocket button that shows over the card thumbnail on hover.
-newtab-pocket-image =
-    .aria-label = { -pocket-brand-name }
 newtab-pocket-save = Spremi
 newtab-pocket-saved = Spremljeno
 
@@ -378,7 +375,6 @@ newtab-wallpaper-storm-sky = Olujno nebo
 newtab-wallpaper-sky-with-pink-clouds = Nebo s ružičastim oblacima
 newtab-wallpaper-red-panda-yawns-in-a-tree = Crvena panda zijeva na drvetu
 newtab-wallpaper-white-mountains = Bijele planine
-newtab-wallpaper-forest-trees = Drveće prekriveno maglom
 # Variables
 #   $author_string (String) - The name of the creator of the photo.
 #   $webpage_string (String) - The name of the webpage where the photo is located.
@@ -494,7 +490,7 @@ newtab-section-cancel-button = Ne sada
 #   $topic (string) - Name of topic that user is blocking
 newtab-section-block-topic-button = Blokiraj temu „{ $topic }”
 
-## Panel in the Customize menu section to manage followed and blocked topics
+## Strings for custom wallpaper highlight
 
 newtab-section-mangage-topics-title = Teme
 newtab-section-manage-topics-button-v2 =
@@ -503,3 +499,9 @@ newtab-section-mangage-topics-followed-topics = Praćene
 newtab-section-mangage-topics-followed-topics-empty-state = Još nisi pratio/la nijednu temu.
 newtab-section-mangage-topics-blocked-topics = Blokirane
 newtab-section-mangage-topics-blocked-topics-empty-state = Još nisi blokirao/la nijednu temu.
+
+## Strings for download mobile highlight
+
+
+## Strings for reporting ads and content
+

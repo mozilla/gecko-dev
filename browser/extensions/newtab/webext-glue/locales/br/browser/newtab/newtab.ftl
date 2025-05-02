@@ -123,6 +123,7 @@ newtab-menu-section-block = Stankañ
 
 ## Context menu options for sponsored stories and new ad formats on New Tab.
 
+newtab-menu-our-sponsors-and-your-privacy = Hor c’hevelerien hag ho puhez prevez
 
 ## Message displayed in a modal window to explain privacy and provide context for sponsored content.
 
@@ -238,9 +239,6 @@ newtab-pocket-learn-more = Gouzout hiroc’h
 newtab-pocket-cta-button = Staliañ { -pocket-brand-name }
 newtab-pocket-cta-text = Enrollit pennadoù a-zoare e { -pocket-brand-name } ha magit ho spered gant lennadennoù boemus.
 newtab-pocket-pocket-firefox-family = { -pocket-brand-name } a zo ul lodenn eus familh { -brand-product-name }
-# A save to Pocket button that shows over the card thumbnail on hover.
-newtab-pocket-image =
-    .aria-label = { -pocket-brand-name }
 newtab-pocket-save = Enrollañ
 newtab-pocket-saved = Enrollet
 
@@ -342,6 +340,8 @@ newtab-wallpaper-storm-sky = Oabl arnevek
 newtab-wallpaper-sky-with-pink-clouds = Oabl gant koumoul roz
 newtab-wallpaper-red-panda-yawns-in-a-tree = Panda ruz o vazailhat en ur wezenn
 newtab-wallpaper-white-mountains = Menezioù gwenn
+newtab-wallpaper-starry-canyon = Bolz an neñv steredennet glas
+newtab-wallpaper-sand-dunes = Tevennoù traezh gwenn
 # Variables
 #   $author_string (String) - The name of the creator of the photo.
 #   $webpage_string (String) - The name of the webpage where the photo is located.
@@ -357,6 +357,9 @@ feature-highlight-wallpaper =
 
 ## Celestial
 
+newtab-wallpaper-celestial-lunar-eclipse = Fallaenn loar
+newtab-wallpaper-celestial-starry-sky = Neñv steredennet
+newtab-wallpaper-celestial-river = Skeudenn-loarell ur stêr
 
 ## New Tab Weather
 
@@ -417,11 +420,21 @@ newtab-section-blocked-button = Stanket
 
 ## Confirmation modal for blocking a section
 
+newtab-section-cancel-button = Ket bremañ
 # Variables:
 #   $topic (string) - Name of topic that user is blocking
 newtab-section-block-topic-button = Stankañ { $topic }
 
-## Panel in the Customize menu section to manage followed and blocked topics
+## Strings for custom wallpaper highlight
 
 newtab-section-mangage-topics-followed-topics = O heuliañ
 newtab-section-mangage-topics-blocked-topics = Stanket
+newtab-custom-wallpaper-cta = Esaeañ
+
+## Strings for download mobile highlight
+
+
+## Strings for reporting ads and content
+
+newtab-report-cancel = Nullañ
+newtab-report-submit = Kas

@@ -254,9 +254,6 @@ newtab-pocket-learn-more = Læs mere
 newtab-pocket-cta-button = Hent { -pocket-brand-name }
 newtab-pocket-cta-text = Gem dine yndlingshistorier i { -pocket-brand-name } og hav dem altid ved hånden.
 newtab-pocket-pocket-firefox-family = { -pocket-brand-name } er en del af { -brand-product-name }-familien
-# A save to Pocket button that shows over the card thumbnail on hover.
-newtab-pocket-image =
-    .aria-label = { -pocket-brand-name }
 newtab-pocket-save = Gem
 newtab-pocket-saved = Gemt
 
@@ -392,7 +389,6 @@ newtab-wallpaper-suspension-bridge = Fotografi af grå hængebro om dagen
 newtab-wallpaper-sand-dunes = Hvide klitter
 newtab-wallpaper-palm-trees = Silhuet med kokospalmer i den gyldne time
 newtab-wallpaper-blue-flowers = Nærbillede af blomster med blå kronblade.
-newtab-wallpaper-forest-trees = Træer indhyllet i tåge
 # Variables
 #   $author_string (String) - The name of the creator of the photo.
 #   $webpage_string (String) - The name of the webpage where the photo is located.
@@ -518,7 +514,7 @@ newtab-section-confirm-block-topic-p2 = Det blokerede emner vil ikke længere bl
 #   $topic (string) - Name of topic that user is blocking
 newtab-section-block-topic-button = Bloker { $topic }
 
-## Panel in the Customize menu section to manage followed and blocked topics
+## Strings for custom wallpaper highlight
 
 newtab-section-mangage-topics-title = Emner
 newtab-section-manage-topics-button-v2 =
@@ -531,3 +527,27 @@ newtab-custom-wallpaper-title = Nu kan du vælge din egen baggrund
 # 'Make firefox yours" means to customize or personalize
 newtab-custom-wallpaper-subtitle = Upload din egen baggrund eller vælg en farve for at gøre { -brand-product-name } til din egen.
 newtab-custom-wallpaper-cta = Prøv det
+
+## Strings for download mobile highlight
+
+
+## Strings for reporting ads and content
+
+newtab-report-content-why-reporting-this =
+    .label = Hvorfor rapporterer du dette?
+newtab-report-ads-reason-not-interested =
+    .label = Jeg er ikke interesseret
+newtab-report-ads-reason-inappropriate =
+    .label = Det er upassende
+newtab-report-ads-reason-seen-it-too-many-times =
+    .label = Jeg har set det for mange gange
+newtab-report-content-wrong-category =
+    .label = Forkert kategori
+newtab-report-content-outdated =
+    .label = Forældet
+newtab-report-content-inappropriate-offensive =
+    .label = Upassende eller stødende
+newtab-report-content-spam-misleading =
+    .label = Spam eller vildledende
+newtab-report-cancel = Annuller
+newtab-report-submit = Indsend

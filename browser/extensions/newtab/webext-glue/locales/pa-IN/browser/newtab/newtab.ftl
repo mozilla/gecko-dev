@@ -117,6 +117,7 @@ newtab-menu-delete-pocket = { -pocket-brand-name } ਤੋਂ ਹਟਾਓ
 newtab-menu-archive-pocket = { -pocket-brand-name } ਵਿੱਚ ਪੁਰਾਲੇਖਬੱਧ ਕਰੋ
 newtab-menu-show-privacy-info = ਸਾਡੇ ਸਪਾਂਸਰ ਅਤੇ ਤੁਹਾਡੀ ਪਰਦੇਦਾਰੀ
 newtab-menu-about-fakespot = { -fakespot-brand-name } ਬਾਰੇ
+newtab-menu-report-content = ਇਸ ਸਮੱਗਰੀ ਬਾਰੇ ਰਿਪੋਰਟ ਕਰੋ
 # Context menu option to personalize New Tab recommended stories by blocking a section of stories,
 # e.g. "Sports". "Block" is a verb here.
 newtab-menu-section-block = ਪਾਬੰਦੀ
@@ -128,6 +129,7 @@ newtab-menu-section-unfollow = ਵਿਸ਼ੇ ਨੂੰ ਅਣ-ਫ਼ਾਲੋ ਕ
 
 newtab-menu-manage-sponsored-content = ਸਪੌਂਸਰ ਕੀਤੀ ਸਮੱਗਰੀ ਦਾ ਇੰਤਜ਼ਾਮ
 newtab-menu-our-sponsors-and-your-privacy = ਸਾਡੇ ਸਪੌਂਸਰ ਅਤੇ ਤੁਹਾਡੀ ਪਰਦੇਦਾਰੀ
+newtab-menu-report-this-ad = ਇਸ ਇਸ਼ਤਿਹਾਰ ਬਾਰੇ ਰਿਪੋਰਟ ਕਰੋ
 
 ## Message displayed in a modal window to explain privacy and provide context for sponsored content.
 
@@ -250,9 +252,6 @@ newtab-pocket-learn-more = ਹੋਰ ਜਾਣੋ
 newtab-pocket-cta-button = { -pocket-brand-name } ਲਵੋ
 newtab-pocket-cta-text = { -pocket-brand-name } ਵਿਚ ਆਪਣੀਆਂ ਕਹਾਣੀਆਂ ਨੂੰ ਸੁਰੱਖਿਅਤ ਕਰੋ, ਅਤੇ ਆਪਣੇ ਮਨ ਨੂੰ ਦਿਲਚਸਪ ਪੜ੍ਹ ਕੇ ਮਜਬੂਰ ਕਰੋ।
 newtab-pocket-pocket-firefox-family = { -pocket-brand-name } { -brand-product-name } ਗਰੁੱਪ ਦਾ ਭਾਗ ਹੈ
-# A save to Pocket button that shows over the card thumbnail on hover.
-newtab-pocket-image =
-    .aria-label = { -pocket-brand-name }
 newtab-pocket-save = ਸੰਭਾਲੋ
 newtab-pocket-saved = ਸੰਭਾਲਿਆ
 
@@ -388,7 +387,6 @@ newtab-wallpaper-suspension-bridge = ਦਿਨ ਵੇਲੇ ਸਲੇਟੀ ਪ�
 newtab-wallpaper-sand-dunes = ਚਿੱਟੇ ਰੇਤ ਦੇ ਟਿੱਬੇ
 newtab-wallpaper-palm-trees = ਸਵੱਖਤੇ ਸੋਨੇ ਰੰਗੇ ਚਾਨਣ ਵਿੱਚ ਨਾਰੀਅਲ ਦੇ ਰੁੱਖਾਂ ਦੀ ਛਾਂ
 newtab-wallpaper-blue-flowers = ਖਿੜੇ ਹੋਏ ਨੀਲੇ-ਪੰਖੜੀਆਂ ਵਾਲੇ ਫੁੱਲਾਂ ਦੀ ਨੇੜਿਓ ਫੋਟੋਗਰਾਫ਼ੀ
-newtab-wallpaper-forest-trees = ਧੁੰਦ ਵਿੱਚ ਢੱਕੇ ਹੋਏ ਦਰਖ਼ਤ
 # Variables
 #   $author_string (String) - The name of the creator of the photo.
 #   $webpage_string (String) - The name of the webpage where the photo is located.
@@ -514,7 +512,7 @@ newtab-section-confirm-block-topic-p2 = ਪਾਬੰਦੀ ਲਾਏ ਵਿਸ਼�
 #   $topic (string) - Name of topic that user is blocking
 newtab-section-block-topic-button = { $topic } ਉੱਤੇ ਪਾਬੰਦੀ ਲਾਓ
 
-## Panel in the Customize menu section to manage followed and blocked topics
+## Strings for custom wallpaper highlight
 
 newtab-section-mangage-topics-title = ਵਿਸ਼ੇ:
 newtab-section-manage-topics-button-v2 =
@@ -523,3 +521,34 @@ newtab-section-mangage-topics-followed-topics = ਫ਼ਾਲੋ ਕੀਤੇ
 newtab-section-mangage-topics-followed-topics-empty-state = ਤੁਸੀਂ ਹਾਲੇ ਕਿਸੇ ਵੀ ਵਿਸ਼ੇ ਨੂੰ ਫ਼ਾਲੋ ਨਹੀਂ ਕੀਤਾ ਹੈ।
 newtab-section-mangage-topics-blocked-topics = ਪਾਬੰਦੀ ਲਗਾਏ
 newtab-section-mangage-topics-blocked-topics-empty-state = ਤੁਸੀਂ ਹਾਲੇ ਕਿਸੇ ਵੀ ਵਿਸ਼ੇ ਉੱਤੇ ਪਾਬੰਦੀ ਨਹੀਂ ਲਾਈ ਹੈ।
+newtab-custom-wallpaper-title = ਪਸੰਦੀਦਾ ਵਾਲਪੇਪਰ ਇੱਥੇ ਹਨ
+# 'Make firefox yours" means to customize or personalize
+newtab-custom-wallpaper-subtitle = { -brand-product-name } ਨੂੰ ਆਪਣਾ ਬਣਾਉਣ ਵਾਸਤੇ ਖੁਦ ਦਾ ਵਾਲਪੇਪਰ ਅੱਪਲੋਡ ਕਰੋ ਜਾਂ ਕਸਟਮ ਰੰਗ ਚੁਣੋ।
+newtab-custom-wallpaper-cta = ਅਜ਼ਮਾਓ
+
+## Strings for download mobile highlight
+
+newtab-download-mobile-highlight-title = ਮੋਬਾਈਲ ਲਈ { -brand-product-name } ਨੂੰ ਡਾਊਨਲੋਡ ਕਰੋ
+
+## Strings for reporting ads and content
+
+newtab-report-content-why-reporting-this =
+    .label = ਤੁਸੀਂ ਇਸ ਬਾਰੇ ਰਿਪੋਰਟ ਕਿਉਂ ਕਰ ਰਹੇ ਹੋ?
+newtab-report-ads-reason-not-interested =
+    .label = ਮੇਰੀ ਦਿਲਚਸਪੀ ਨਹੀਂ ਹੈ
+newtab-report-ads-reason-inappropriate =
+    .label = ਇਹ ਬੇਤੁਕਾ ਹੈ
+newtab-report-ads-reason-seen-it-too-many-times =
+    .label = ਮੈਂ ਇਸ ਨੂੰ ਬਹੁਤ ਵਾਰ ਦੇਖਿਆ
+newtab-report-content-wrong-category =
+    .label = ਗਲਤ ਵਰਗ
+newtab-report-content-outdated =
+    .label = ਪੁਰਾਣਾ
+newtab-report-content-inappropriate-offensive =
+    .label = ਬੇਤੁਕੀ ਜਾਂ ਅਪਮਾਨਜਨਕ
+newtab-report-content-spam-misleading =
+    .label = ਸਪੈਮ ਜਾਂ ਗੁੰਮਰਾਹਕੁੰਨ
+newtab-report-cancel = ਰੱਦ ਕਰੋ
+newtab-report-submit = ਭੇਜੋ
+newtab-toast-thanks-for-reporting =
+    .message = ਇਸ ਬਾਰੇ ਜਾਣਕਾਰੀ ਦੇਣ ਲਈ ਤੁਹਾਡਾ ਧੰਨਵਾਦ!

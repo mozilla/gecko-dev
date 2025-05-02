@@ -253,9 +253,6 @@ newtab-pocket-learn-more = Ulteriuras infurmaziuns
 newtab-pocket-cta-button = Obtegnair { -pocket-brand-name }
 newtab-pocket-cta-text = Memorisescha ils artitgels che ta plaschan en { -pocket-brand-name } e procura per inspiraziun cuntinuanta cun lectura fascinanta.
 newtab-pocket-pocket-firefox-family = { -pocket-brand-name } fa part da la paletta da products { -brand-product-name }
-# A save to Pocket button that shows over the card thumbnail on hover.
-newtab-pocket-image =
-    .aria-label = { -pocket-brand-name }
 newtab-pocket-save = Memorisar
 newtab-pocket-saved = Memorisà
 
@@ -391,7 +388,6 @@ newtab-wallpaper-suspension-bridge = Fotografia d’ina punt pendenta grischa da
 newtab-wallpaper-sand-dunes = Dunas da sablun alvas
 newtab-wallpaper-palm-trees = Siluetta da palmas da cocos sin il far notg
 newtab-wallpaper-blue-flowers = Flurs cun petals blaus en fluriziun fotografads da datiers
-newtab-wallpaper-forest-trees = Plantas en la tschajera
 # Variables
 #   $author_string (String) - The name of the creator of the photo.
 #   $webpage_string (String) - The name of the webpage where the photo is located.
@@ -517,7 +513,7 @@ newtab-section-confirm-block-topic-p2 = Temas bloccads na vegnan betg pli a cump
 #   $topic (string) - Name of topic that user is blocking
 newtab-section-block-topic-button = Bloccar { $topic }
 
-## Panel in the Customize menu section to manage followed and blocked topics
+## Strings for custom wallpaper highlight
 
 newtab-section-mangage-topics-title = Temas
 newtab-section-manage-topics-button-v2 =
@@ -530,3 +526,27 @@ newtab-custom-wallpaper-title = Ussa pos ti utilisar funds davos persunalisads
 # 'Make firefox yours" means to customize or personalize
 newtab-custom-wallpaper-subtitle = Transferescha tes agen maletg per il fund davos u tscherna ina colur tenor giavisch per persunalisar tes { -brand-product-name }.
 newtab-custom-wallpaper-cta = Empruvar
+
+## Strings for download mobile highlight
+
+
+## Strings for reporting ads and content
+
+newtab-report-content-why-reporting-this =
+    .label = Pertge annunzias ti quai?
+newtab-report-ads-reason-not-interested =
+    .label = Quai na m’interessa betg
+newtab-report-ads-reason-inappropriate =
+    .label = Igl è deplazzà
+newtab-report-ads-reason-seen-it-too-many-times =
+    .label = Jau hai vis quai memia savens
+newtab-report-content-wrong-category =
+    .label = Categoria sbagliada
+newtab-report-content-outdated =
+    .label = Obsolet
+newtab-report-content-inappropriate-offensive =
+    .label = Deplazzà u offendent
+newtab-report-content-spam-misleading =
+    .label = Spam u engianus
+newtab-report-cancel = Interrumper
+newtab-report-submit = Trametter

@@ -249,9 +249,6 @@ newtab-pocket-learn-more = En savoir plus
 newtab-pocket-cta-button = Installer { -pocket-brand-name }
 newtab-pocket-cta-text = Enregistrez les articles que vous aimez dans { -pocket-brand-name }, et stimulez votre imagination avec des lectures fascinantes.
 newtab-pocket-pocket-firefox-family = { -pocket-brand-name } fait partie de la famille { -brand-product-name }
-# A save to Pocket button that shows over the card thumbnail on hover.
-newtab-pocket-image =
-    .aria-label = { -pocket-brand-name }
 newtab-pocket-save = Enregistrer
 newtab-pocket-saved = Enregistrée
 
@@ -387,7 +384,6 @@ newtab-wallpaper-suspension-bridge = Photographie diurne en noir et blanc d’un
 newtab-wallpaper-sand-dunes = Dunes de sable blanc
 newtab-wallpaper-palm-trees = Silhouette de cocotiers pendant un crépuscule doré
 newtab-wallpaper-blue-flowers = Macrophotographie d’une fleur éclose aux pétales bleus
-newtab-wallpaper-forest-trees = Arbres dans le brouillard
 # Variables
 #   $author_string (String) - The name of the creator of the photo.
 #   $webpage_string (String) - The name of the webpage where the photo is located.
@@ -513,7 +509,7 @@ newtab-section-confirm-block-topic-p2 = Les sujets bloqués n’apparaîtront pl
 #   $topic (string) - Name of topic that user is blocking
 newtab-section-block-topic-button = Bloquer { $topic }
 
-## Panel in the Customize menu section to manage followed and blocked topics
+## Strings for custom wallpaper highlight
 
 newtab-section-mangage-topics-title = Sujets
 newtab-section-manage-topics-button-v2 =
@@ -523,3 +519,27 @@ newtab-section-mangage-topics-followed-topics-empty-state = Vous n’avez pas en
 newtab-section-mangage-topics-blocked-topics = Bloqués
 newtab-section-mangage-topics-blocked-topics-empty-state = Vous n’avez pas encore bloqué de sujet.
 newtab-custom-wallpaper-cta = Essayer
+
+## Strings for download mobile highlight
+
+
+## Strings for reporting ads and content
+
+newtab-report-content-why-reporting-this =
+    .label = Pourquoi signalez-vous ce contenu ?
+newtab-report-ads-reason-not-interested =
+    .label = Je ne suis pas intéressé·e
+newtab-report-ads-reason-inappropriate =
+    .label = Il est inapproprié
+newtab-report-ads-reason-seen-it-too-many-times =
+    .label = Je l’ai vu trop de fois
+newtab-report-content-wrong-category =
+    .label = Mauvaise catégorie
+newtab-report-content-outdated =
+    .label = Obsolète
+newtab-report-content-inappropriate-offensive =
+    .label = Inapproprié ou choquant
+newtab-report-content-spam-misleading =
+    .label = Spam ou trompeur
+newtab-report-cancel = Annuler
+newtab-report-submit = Envoyer

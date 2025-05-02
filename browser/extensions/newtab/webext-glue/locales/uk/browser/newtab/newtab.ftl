@@ -117,6 +117,7 @@ newtab-menu-delete-pocket = Видалити з { -pocket-brand-name }
 newtab-menu-archive-pocket = Архівувати в { -pocket-brand-name }
 newtab-menu-show-privacy-info = Наші спонсори і ваша приватність
 newtab-menu-about-fakespot = Про { -fakespot-brand-name }
+newtab-menu-report-content = Повідомити про цей вміст
 # Context menu option to personalize New Tab recommended stories by blocking a section of stories,
 # e.g. "Sports". "Block" is a verb here.
 newtab-menu-section-block = Блокувати
@@ -128,6 +129,7 @@ newtab-menu-section-unfollow = Відписатися від теми
 
 newtab-menu-manage-sponsored-content = Керувати спонсорованим вмістом
 newtab-menu-our-sponsors-and-your-privacy = Наші спонсори і ваша приватність
+newtab-menu-report-this-ad = Повідомити про це оголошення
 
 ## Message displayed in a modal window to explain privacy and provide context for sponsored content.
 
@@ -251,9 +253,6 @@ newtab-pocket-learn-more = Докладніше
 newtab-pocket-cta-button = Отримати { -pocket-brand-name }
 newtab-pocket-cta-text = Зберігайте улюблені статті в { -pocket-brand-name } і задовольніть себе захопливим читанням.
 newtab-pocket-pocket-firefox-family = { -pocket-brand-name } є частиною родини { -brand-product-name }
-# A save to Pocket button that shows over the card thumbnail on hover.
-newtab-pocket-image =
-    .aria-label = { -pocket-brand-name }
 newtab-pocket-save = Зберегти
 newtab-pocket-saved = Збережено
 
@@ -390,7 +389,6 @@ newtab-wallpaper-suspension-bridge = Фотографія сірого підв�
 newtab-wallpaper-sand-dunes = Білі піщані дюни
 newtab-wallpaper-palm-trees = Силует кокосових пальм у час золотої години
 newtab-wallpaper-blue-flowers = Фотографія блакитних квітів у розквіті
-newtab-wallpaper-forest-trees = Дерева вкриті туманом
 # Variables
 #   $author_string (String) - The name of the creator of the photo.
 #   $webpage_string (String) - The name of the webpage where the photo is located.
@@ -516,7 +514,7 @@ newtab-section-confirm-block-topic-p2 = Заблоковані теми біль
 #   $topic (string) - Name of topic that user is blocking
 newtab-section-block-topic-button = Заблокувати { $topic }
 
-## Panel in the Customize menu section to manage followed and blocked topics
+## Strings for custom wallpaper highlight
 
 newtab-section-mangage-topics-title = Теми
 newtab-section-manage-topics-button-v2 =
@@ -529,3 +527,27 @@ newtab-custom-wallpaper-title = Користувацькі шпалери
 # 'Make firefox yours" means to customize or personalize
 newtab-custom-wallpaper-subtitle = Вивантажте власне зображення або виберіть особливий колір, щоб персоналізувати { -brand-product-name }.
 newtab-custom-wallpaper-cta = Спробувати
+
+## Strings for download mobile highlight
+
+
+## Strings for reporting ads and content
+
+newtab-report-content-why-reporting-this =
+    .label = Чому ви повідомляєте про це?
+newtab-report-ads-reason-not-interested =
+    .label = Мене це не цікавить
+newtab-report-ads-reason-inappropriate =
+    .label = Це недоречно
+newtab-report-ads-reason-seen-it-too-many-times =
+    .label = Показується занадто часто
+newtab-report-content-wrong-category =
+    .label = Невідповідна категорія
+newtab-report-content-outdated =
+    .label = Застаріле
+newtab-report-content-inappropriate-offensive =
+    .label = Недоречно або образливо
+newtab-report-content-spam-misleading =
+    .label = Спам або введення в оману
+newtab-report-cancel = Скасувати
+newtab-report-submit = Надіслати

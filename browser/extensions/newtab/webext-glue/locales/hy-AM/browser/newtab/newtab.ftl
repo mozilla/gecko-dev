@@ -240,9 +240,6 @@ newtab-pocket-more-recommendations = Լրացուցիչ առաջարկությո
 newtab-pocket-learn-more = Իմանալ ավելին
 newtab-pocket-cta-button = Ստանալ { -pocket-brand-name }
 newtab-pocket-cta-text = Խնայեք ձեր սիրած պատմությունները { -pocket-brand-name }, և ձեր միտքը վառեցրեք հետաքրքրաշարժ ընթերցանությամբ:
-# A save to Pocket button that shows over the card thumbnail on hover.
-newtab-pocket-image =
-    .aria-label = { -pocket-brand-name }
 newtab-pocket-save = Պահել
 newtab-pocket-saved = Պահված է
 
@@ -469,7 +466,7 @@ newtab-section-cancel-button = Ոչ հիմա
 #   $topic (string) - Name of topic that user is blocking
 newtab-section-block-topic-button = Արգելափակել { $topic }-ը
 
-## Panel in the Customize menu section to manage followed and blocked topics
+## Strings for custom wallpaper highlight
 
 newtab-section-mangage-topics-title = Թեմաներ
 newtab-section-manage-topics-button-v2 =
@@ -477,3 +474,9 @@ newtab-section-manage-topics-button-v2 =
 newtab-section-mangage-topics-followed-topics = Հետևված
 newtab-section-mangage-topics-blocked-topics = Արգելափակված
 newtab-custom-wallpaper-cta = Փորձել
+
+## Strings for download mobile highlight
+
+
+## Strings for reporting ads and content
+

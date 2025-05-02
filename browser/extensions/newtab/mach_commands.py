@@ -4,16 +4,19 @@
 
 import json
 import os
+import re
 import shutil
 import subprocess
 import tempfile
 import time
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
+import requests
 from colorama import Fore, Style
 from mach.decorators import (
     Command,
+    CommandArgument,
     SubCommand,
 )
 
@@ -28,6 +31,16 @@ REPORT_PATH = Path(WEBEXT_LOCALES_PATH, "locales-report.json")
 REPORT_LEFT_JUSTIFY_CHARS = 15
 FLUENT_FILE_ANCESTRY = Path("browser", "newtab")
 SUPPORTED_LOCALES_PATH = Path(WEBEXT_LOCALES_PATH, "supported-locales.json")
+
+# We query whattrainisitnow.com to get some key dates for both beta and
+# release in order to compute whether or not strings have been available on
+# the beta channel long enough to consider falling back (currently, that's
+# 3 weeks of time on the beta channel).
+BETA_SCHEDULE_QUERY = "https://whattrainisitnow.com/api/release/schedule/?version=beta"
+RELEASE_SCHEDULE_QUERY = (
+    "https://whattrainisitnow.com/api/release/schedule/?version=release"
+)
+BETA_FALLBACK_THRESHOLD = timedelta(weeks=3)
 
 
 @Command(
@@ -138,6 +151,11 @@ def update_locales(command_context):
     dest_en_ftl_path.parent.mkdir(parents=True, exist_ok=True)
     shutil.copy2(LOCAL_EN_US_PATH, dest_en_ftl_path)
 
+    # Step 4.5: Now compute the commit dates of each of the strings inside of
+    # LOCAL_EN_US_PATH.
+    print("Computing local message commit dates…")
+    message_dates = get_message_dates(LOCAL_EN_US_PATH)
+
     # Step 5: Now compare that en-US Fluent file with all of the ones we just
     # cloned and create a report with how many strings are still missing.
     print("Generating localization report…")
@@ -176,6 +194,7 @@ def update_locales(command_context):
                 "revision": revision,
                 "updated": datetime.utcnow().isoformat(),
             },
+            "message_dates": message_dates,
         }
         with open(REPORT_PATH, "w") as file:
             json.dump(report, file)
@@ -201,38 +220,203 @@ def update_locales(command_context):
     description="Parses the current locales-report.json and produces something human readable.",
     virtualenv_name="newtab",
 )
-def locales_report(command_context):
+@CommandArgument(
+    "--details", default=None, help="Which locale to pull up details about"
+)
+def locales_report(command_context, details):
     with open(REPORT_PATH) as file:
         report = json.load(file)
-        display_report(report)
+        display_report(report, details)
 
 
-def display_report(report):
-    meta = report["meta"]
+def get_message_dates(fluent_file_path):
+    """Computes the landing dates of strings in fluent_file_path.
+
+    This is returned as a dict of Fluent message names mapped
+    to ISO-formatted dates for their landings.
+    """
+    result = subprocess.run(
+        ["git", "blame", "--line-porcelain", fluent_file_path],
+        stdout=subprocess.PIPE,
+        text=True,
+    )
+
+    pattern = re.compile(r"^([a-z-]+[^\s]+) ")
+    entries = {}
+    entry = {}
+
+    for line in result.stdout.splitlines():
+        if line.startswith("\t"):
+            code = line[1:]
+            match = pattern.match(code)
+            if match:
+                key = match.group(1)
+                timestamp = int(entry.get("committer-time", 0))
+                commit_time = datetime.fromtimestamp(timestamp)
+                # Only store the first time it was introduced (which blame gives us)
+                entries[key] = commit_time.isoformat()
+            entry = {}
+        else:
+            if " " in line:
+                key, val = line.split(" ", 1)
+                entry[key] = val
+
+    return entries
+
+
+def get_date_manually():
+    """Requests a date from the user in yyyy/mm/dd format.
+
+    This will loop until a valid date is computed. Returns a datetime.
+    """
+    while True:
+        try:
+            typed_chars = input("Enter date manually (yyyy/mm/dd): ")
+            manual_date = datetime.strptime(typed_chars, "%Y/%m/%d")
+            return manual_date
+        except ValueError:
+            print("Invalid date format. Please use yyyy/mm/dd.")
+
+
+def display_report(report, details=None):
+    """Displays a report about the current newtab localization state.
+
+    This report is calculated using the REPORT_PATH file generated
+    via the update-locales command, along with the merge-to-beta
+    dates of the most recent beta and release versions of the browser,
+    as well as the current date.
+
+    Details about a particular locale can be requested via the details
+    argument.
+    """
     print("New Tab locales report")
-    print("Locales last updated: %s" % meta["updated"])
-    print("From %s - revision: %s" % (meta["repository"], meta["revision"]))
+    # We need some key dates to determine which strings are currently awaiting
+    # translations on the beta channel, and which strings are just missing
+    # (where missing means that they've been available for translation on the
+    # beta channel for more than the BETA_FALLBACK_THRESHOLD, and are still
+    # not available).
+    #
+    # We need to get the last merge date of the current beta, and the merge
+    # date of the current release.
+    try:
+        response = requests.get(BETA_SCHEDULE_QUERY, timeout=10)
+        response.raise_for_status()
+        beta_merge_date = datetime.fromisoformat(response.json()["merge_day"])
+    except (requests.RequestException, requests.HTTPError):
+        print(f"Failed to compute last beta merge day for {FLUENT_FILE}.")
+        beta_merge_date = get_date_manually()
+
+    beta_merge_date = beta_merge_date.replace(tzinfo=timezone.utc)
+    print(f"Beta date: {beta_merge_date}")
+
+    # The release query needs to be different because the endpoint doesn't
+    # actually tell us the merge-to-beta date for the version on the release
+    # channel. We guesstimate it by getting at the build date for the first
+    # beta of that version, and finding the last prior Monday.
+    try:
+        response = requests.get(RELEASE_SCHEDULE_QUERY, timeout=10)
+        response.raise_for_status()
+        release_merge_date = datetime.fromisoformat(response.json()["beta_1"])
+        # weekday() defaults to Monday.
+        release_merge_date = release_merge_date - timedelta(
+            days=release_merge_date.weekday()
+        )
+    except (requests.RequestException, requests.HTTPError):
+        print(
+            f"Failed to compute the merge-to-beta day the current release for {FLUENT_FILE}."
+        )
+        release_merge_date = get_date_manually()
+
+    release_merge_date = release_merge_date.replace(tzinfo=timezone.utc)
+    print(f"Release merge-to-beta date: {release_merge_date}")
+
+    # These two dates will be used later on when we start calculating which
+    # untranslated strings should be considered "pending" (we're still waiting
+    # for them to be on beta for at least 3 weeks), and which should be
+    # considered "missing" (they've been on beta for more than 3 weeks and
+    # still aren't translated).
+
+    meta = report["meta"]
+    message_date_strings = report["message_dates"]
+    # Convert each message date into a datetime object
+    message_dates = {
+        key: datetime.fromisoformat(value).replace(tzinfo=timezone.utc)
+        for key, value in message_date_strings.items()
+    }
+
+    print(f"Locales last updated: {meta['updated']}")
+    print(f"From {meta['repository']} - revision: {meta['revision']}")
     print("------")
-    sorted_locales = sorted(report["locales"].keys(), key=lambda x: x.lower())
+    if details:
+        if details not in report["locales"]:
+            print(f"Unknown locale '{details}'")
+            return
+        sorted_locales = [details]
+    else:
+        sorted_locales = sorted(report["locales"].keys(), key=lambda x: x.lower())
     for locale in sorted_locales:
         print(Style.RESET_ALL, end="")
+        # import pdb;pdb.set_trace()
         if report["locales"][locale]["missing"]:
             missing_translations = report["locales"][locale]["missing"][
                 str(FLUENT_FILE_ANCESTRY.joinpath(FLUENT_FILE))
             ]
-            total_missing_translations = len(missing_translations)
-            if total_missing_translations > 10:
+            # For each missing string, see if any of them have been in the
+            # en-US locale for less than BETA_FALLBACK_THRESHOLD. If so, these
+            # strings haven't been on the beta channel long enough to consider
+            # falling back. We're still awaiting translations on them.
+            total_pending_translations = 0
+            total_missing_translations = 0
+            for missing_translation in missing_translations:
+                message_id = missing_translation.split(".")[0]
+                if message_dates[message_id] < release_merge_date:
+                    # Anything landed prior to the most recent release
+                    # merge-to-beta date has clearly been around long enough
+                    # to be translated. This is a "missing" string.
+                    total_missing_translations = total_missing_translations + 1
+                    if details:
+                        print(
+                            Fore.YELLOW
+                            + f"Missing: {message_dates[message_id]}: {message_id}"
+                        )
+                elif message_dates[message_id] < beta_merge_date and (
+                    datetime.now(timezone.utc) - beta_merge_date
+                    > BETA_FALLBACK_THRESHOLD
+                ):
+                    # Anything that landed after the release merge to beta, but
+                    # before the most recent merge to beta, we'll consider its
+                    # age to be the beta_merge_date, rather than the
+                    # message_dates entry. If we compare the beta_merge_date
+                    # with the current time and see that BETA_FALLBACK_THRESHOLD
+                    # has passed, then the string is missing.
+                    total_missing_translations = total_missing_translations + 1
+                    if details:
+                        print(
+                            Fore.YELLOW
+                            + f"Missing: {message_dates[message_id]}: {message_id}"
+                        )
+                else:
+                    # Otherwise, this string has not been on beta long enough
+                    # to have been translated. This is a pending string.
+                    total_pending_translations = total_pending_translations + 1
+                    if details:
+                        print(
+                            Fore.RED
+                            + f"Pending: {message_dates[message_id]}: {message_id}"
+                        )
+
+            if total_pending_translations > 10:
                 color = Fore.RED
             else:
                 color = Fore.YELLOW
             print(
                 color
-                + "%s%s missing translations"
-                % (locale.ljust(REPORT_LEFT_JUSTIFY_CHARS), total_missing_translations)
+                + f"{locale.ljust(REPORT_LEFT_JUSTIFY_CHARS)}{total_pending_translations} pending translations, {total_missing_translations} missing translations"
             )
+
         else:
             print(
                 Fore.GREEN
-                + "%s0 missing translations" % locale.ljust(REPORT_LEFT_JUSTIFY_CHARS)
+                + f"{locale.ljust(REPORT_LEFT_JUSTIFY_CHARS)}0 missing translations"
             )
     print(Style.RESET_ALL, end="")

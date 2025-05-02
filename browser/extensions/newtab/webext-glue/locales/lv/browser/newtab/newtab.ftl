@@ -248,9 +248,6 @@ newtab-pocket-learn-more = Uzzināt vairāk
 newtab-pocket-cta-button = Izmēģiniet { -pocket-brand-name }
 newtab-pocket-cta-text = Saglabājiet interesantus stāstus { -pocket-brand-name } un barojiet savu prātu ar interesantu lasāmvielu.
 newtab-pocket-pocket-firefox-family = { -pocket-brand-name } ir daļa no { -brand-product-name } saimes
-# A save to Pocket button that shows over the card thumbnail on hover.
-newtab-pocket-image =
-    .aria-label = { -pocket-brand-name }
 newtab-pocket-save = Saglabāt
 newtab-pocket-saved = Saglabāts
 
@@ -478,5 +475,11 @@ newtab-section-unfollow-button = Pārtraukt sekošanu
 
 newtab-section-cancel-button = Ne tagad
 
-## Panel in the Customize menu section to manage followed and blocked topics
+## Strings for custom wallpaper highlight
+
+
+## Strings for download mobile highlight
+
+
+## Strings for reporting ads and content
 

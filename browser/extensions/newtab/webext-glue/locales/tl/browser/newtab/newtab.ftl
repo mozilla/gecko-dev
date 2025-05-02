@@ -20,6 +20,9 @@ newtab-personalize-dialog-label =
 newtab-search-box-search-button =
     .title = Hanapin
     .aria-label = Hanapin
+# Variables:
+#   $engine (string) - The name of the user's default search engine
+newtab-search-box-handoff-text = Maghanap gamit ang { $engine } o maglagay ng address
 newtab-search-box-handoff-text-no-engine = Maghanap o ilagay ang address
 newtab-search-box-handoff-input-no-engine =
     .placeholder = Hanapin o ilagay ang address
@@ -211,6 +214,7 @@ newtab-pocket-more-recommendations = Karagdagang Rekomendasyon
 newtab-pocket-learn-more = Alamin
 newtab-pocket-cta-button = Kunin ang { -pocket-brand-name }
 newtab-pocket-cta-text = I-save sa { -pocket-brand-name } ang mga kwentong iyong nagustuhan, at palawigin ang iyong pagiisip sa mga nakabibighaning babasahin.
+newtab-pocket-save = I-save
 
 ## Thumbs up and down buttons that shows over a newtab stories card thumbnail on hover.
 
@@ -241,6 +245,8 @@ newtab-custom-row-selector =
 newtab-custom-sponsored-sites = Mga naka-sponsor na shortcut
 newtab-custom-pocket-title = Inirerekomenda ng { -pocket-brand-name }
 newtab-custom-pocket-subtitle = Natatanging nilalaman na inorganisa ng { -pocket-brand-name }, bahagi ng pamilyang { -brand-product-name }
+newtab-custom-pocket-sponsored = Mga naka-sponsor na kwento
+newtab-custom-pocket-show-recent-saves = Ipakita ang mga na-save kamakailan
 newtab-custom-recent-title = Kamakailang aktibidad
 newtab-custom-recent-subtitle = Isang pagpipilian ng mga kamakailang site at nilalaman
 newtab-custom-recent-toggle =
@@ -286,5 +292,11 @@ newtab-custom-settings = Mamahala ng higit pang mga setting
 ## Confirmation modal for blocking a section
 
 
-## Panel in the Customize menu section to manage followed and blocked topics
+## Strings for custom wallpaper highlight
+
+
+## Strings for download mobile highlight
+
+
+## Strings for reporting ads and content
 

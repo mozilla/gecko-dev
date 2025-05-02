@@ -117,6 +117,7 @@ newtab-menu-delete-pocket = احذف من { -pocket-brand-name }
 newtab-menu-archive-pocket = أرشِف في { -pocket-brand-name }
 newtab-menu-show-privacy-info = رُعاتنا الرسميّون وخصوصيّتك
 newtab-menu-about-fakespot = عن { -fakespot-brand-name }
+newtab-menu-report-content = أبلغ عن هذا المحتوى
 # Context menu option to personalize New Tab recommended stories by blocking a section of stories,
 # e.g. "Sports". "Block" is a verb here.
 newtab-menu-section-block = احجب
@@ -126,6 +127,7 @@ newtab-menu-section-unfollow = ألغِ متابعة الموضوع
 
 ## Context menu options for sponsored stories and new ad formats on New Tab.
 
+newtab-menu-report-this-ad = أبلغ عن هذا الإعلان
 
 ## Message displayed in a modal window to explain privacy and provide context for sponsored content.
 
@@ -242,9 +244,6 @@ newtab-pocket-more-recommendations = مقترحات أخرى
 newtab-pocket-learn-more = اطّلع على المزيد
 newtab-pocket-cta-button = نزِّل { -pocket-brand-name }
 newtab-pocket-cta-text = احفظ القصص التي تحبّها في { -pocket-brand-name }، وزوّد عقلك بمقالات رائعة.
-# A save to Pocket button that shows over the card thumbnail on hover.
-newtab-pocket-image =
-    .aria-label = { -pocket-brand-name }
 newtab-pocket-save = احفظ
 newtab-pocket-saved = حُفظت
 
@@ -309,6 +308,8 @@ newtab-custom-settings = أدِر المزيد من الإعدادات
 
 newtab-wallpaper-title = الخلفيات
 newtab-wallpaper-reset = صفّر إلى المبدئي
+newtab-wallpaper-upload-image = ارفع صورة
+newtab-wallpaper-custom-color = اختر لونًا
 newtab-wallpaper-light-red-panda = باندا أحمر
 newtab-wallpaper-light-mountain = جبل ابيض
 newtab-wallpaper-light-sky = سماء مع غيوم أرجوانية ووردية
@@ -372,6 +373,12 @@ feature-highlight-wallpaper =
 newtab-weather-see-forecast =
     .title = أظهِر التوقعات في { $provider }
 newtab-weather-menu-change-location = غيّر المكان
+newtab-weather-menu-weather-display = عرض الطقس
+# Display options are:
+# - Simple: Displays a current weather condition icon and the current temperature
+# - Detailed: Include simple information plus a short text summary: e.g. "Mostly cloudy"
+newtab-weather-menu-weather-display-option-simple = بسيط
+newtab-weather-menu-weather-display-option-detailed = مفصل
 newtab-weather-menu-learn-more = اطّلع على المزيد
 
 ## Topic Labels
@@ -393,11 +400,27 @@ newtab-section-unfollow-button = ألغِ المتابعة
 ## "Block", "unblocked", and "blocked" are social media terms that refer to hiding a section of stories.
 ## e.g. Blocked the politics section of stories.
 
+newtab-section-block-button = احجب
+newtab-section-blocked-button = حُجبت
+newtab-section-unblock-button = ألعِ الحجب
 
 ## Confirmation modal for blocking a section
 
 newtab-section-cancel-button = ليس الآن
 
-## Panel in the Customize menu section to manage followed and blocked topics
+## Strings for custom wallpaper highlight
 
+newtab-section-mangage-topics-title = المواضيع
 newtab-custom-wallpaper-cta = جربه
+
+## Strings for download mobile highlight
+
+
+## Strings for reporting ads and content
+
+newtab-report-ads-reason-inappropriate =
+    .label = غير مناسب
+newtab-report-content-outdated =
+    .label = قديم
+newtab-report-cancel = ألغِ
+newtab-report-submit = أرسِل

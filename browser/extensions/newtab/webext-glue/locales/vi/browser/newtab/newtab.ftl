@@ -253,9 +253,6 @@ newtab-pocket-learn-more = Tìm hiểu thêm
 newtab-pocket-cta-button = Sử dụng { -pocket-brand-name }
 newtab-pocket-cta-text = Lưu những câu chuyện bạn yêu thích trong { -pocket-brand-name } và vui vẻ khi đọc chúng.
 newtab-pocket-pocket-firefox-family = { -pocket-brand-name } là một phần của gia đình { -brand-product-name }
-# A save to Pocket button that shows over the card thumbnail on hover.
-newtab-pocket-image =
-    .aria-label = { -pocket-brand-name }
 newtab-pocket-save = Lưu
 newtab-pocket-saved = Đã lưu
 
@@ -390,7 +387,6 @@ newtab-wallpaper-suspension-bridge = Ảnh cầu treo màu xám chụp vào ban 
 newtab-wallpaper-sand-dunes = Đồi cát trắng
 newtab-wallpaper-palm-trees = Hình bóng của cây cọ dừa trong giờ vàng
 newtab-wallpaper-blue-flowers = Ảnh chụp cận cảnh những bông hoa cánh xanh đang nở
-newtab-wallpaper-forest-trees = Cây phủ đầy sương mù
 # Variables
 #   $author_string (String) - The name of the creator of the photo.
 #   $webpage_string (String) - The name of the webpage where the photo is located.
@@ -516,7 +512,7 @@ newtab-section-confirm-block-topic-p2 = Chủ đề bị chặn sẽ không còn
 #   $topic (string) - Name of topic that user is blocking
 newtab-section-block-topic-button = Chặn { $topic }
 
-## Panel in the Customize menu section to manage followed and blocked topics
+## Strings for custom wallpaper highlight
 
 newtab-section-mangage-topics-title = Các chủ đề
 newtab-section-manage-topics-button-v2 =
@@ -529,3 +525,36 @@ newtab-custom-wallpaper-title = Hình nền tùy chỉnh ở đây
 # 'Make firefox yours" means to customize or personalize
 newtab-custom-wallpaper-subtitle = Tải lên hình nền của bạn hoặc chọn một màu tùy chỉnh để biến { -brand-product-name } thành của riêng bạn.
 newtab-custom-wallpaper-cta = Thử ngay
+
+## Strings for download mobile highlight
+
+newtab-download-mobile-highlight-title = Tải xuống { -brand-product-name } dành cho di động
+# "Scan the code" refers to scanning the QR code that appears above the body text that leads to Firefox for mobile download.
+newtab-download-mobile-highlight-body-variant-a = Quét mã để duyệt web an toàn khi đang di chuyển.
+newtab-download-mobile-highlight-body-variant-b = Tiếp tục từ nơi bạn dừng lại khi đồng bộ hóa các thẻ, mật khẩu và nhiều thứ khác.
+newtab-download-mobile-highlight-body-variant-c = Bạn có biết bạn có thể mang theo { -brand-product-name } khi đang di chuyển? Cùng một trình duyệt. Trong túi của bạn.
+newtab-download-mobile-highlight-image =
+    .aria-label = Mã QR để tải xuống { -brand-product-name } dành cho di động
+
+## Strings for reporting ads and content
+
+newtab-report-content-why-reporting-this =
+    .label = Tại sao bạn báo cáo điều này?
+newtab-report-ads-reason-not-interested =
+    .label = Tôi không quan tâm
+newtab-report-ads-reason-inappropriate =
+    .label = Không phù hợp
+newtab-report-ads-reason-seen-it-too-many-times =
+    .label = Tôi đã nhìn thấy nó quá nhiều lần
+newtab-report-content-wrong-category =
+    .label = Sai danh mục
+newtab-report-content-outdated =
+    .label = Đã lỗi thời
+newtab-report-content-inappropriate-offensive =
+    .label = Không phù hợp hoặc xúc phạm
+newtab-report-content-spam-misleading =
+    .label = Spam hoặc gây hiểu lầm
+newtab-report-cancel = Hủy bỏ
+newtab-report-submit = Gửi
+newtab-toast-thanks-for-reporting =
+    .message = Cảm ơn bạn đã báo cáo điều này.

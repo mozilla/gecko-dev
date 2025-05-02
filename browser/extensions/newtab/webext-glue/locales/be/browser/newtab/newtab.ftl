@@ -117,6 +117,7 @@ newtab-menu-delete-pocket = Выдаліць з { -pocket-brand-name }
 newtab-menu-archive-pocket = Архіваваць у { -pocket-brand-name }
 newtab-menu-show-privacy-info = Нашы спонсары і ваша прыватнасць
 newtab-menu-about-fakespot = Пра { -fakespot-brand-name }
+newtab-menu-report-content = Паскардзіцца на гэта змесціва
 # Context menu option to personalize New Tab recommended stories by blocking a section of stories,
 # e.g. "Sports". "Block" is a verb here.
 newtab-menu-section-block = Блакаваць
@@ -128,6 +129,7 @@ newtab-menu-section-unfollow = Адпісацца ад тэмы
 
 newtab-menu-manage-sponsored-content = Кіраваць спонсарскім змесцівам
 newtab-menu-our-sponsors-and-your-privacy = Нашы спонсары і ваша прыватнасць
+newtab-menu-report-this-ad = Паскардзіцца на гэту рэкламу
 
 ## Message displayed in a modal window to explain privacy and provide context for sponsored content.
 
@@ -251,9 +253,6 @@ newtab-pocket-learn-more = Падрабязней
 newtab-pocket-cta-button = Атрымаць { -pocket-brand-name }
 newtab-pocket-cta-text = Захоўвайце ўлюбёныя гісторыі ў { -pocket-brand-name }, і сілкуйце свой розум добрай чытанкай.
 newtab-pocket-pocket-firefox-family = { -pocket-brand-name } уваходзіць у сямейства { -brand-product-name }
-# A save to Pocket button that shows over the card thumbnail on hover.
-newtab-pocket-image =
-    .aria-label = { -pocket-brand-name }
 newtab-pocket-save = Захаваць
 newtab-pocket-saved = Захавана
 
@@ -390,7 +389,6 @@ newtab-wallpaper-suspension-bridge = Фатаграфія шэрага поўн�
 newtab-wallpaper-sand-dunes = Белыя пясчаныя выдмы
 newtab-wallpaper-palm-trees = Сілуэт какосавых пальмаў у залаты час
 newtab-wallpaper-blue-flowers = Фатаграфія буйным планам кветак з блакітнымі пялёсткамі
-newtab-wallpaper-forest-trees = Дрэвы, пакрытыя туманам
 # Variables
 #   $author_string (String) - The name of the creator of the photo.
 #   $webpage_string (String) - The name of the webpage where the photo is located.
@@ -516,7 +514,7 @@ newtab-section-confirm-block-topic-p2 = Заблакаваныя тэмы бол
 #   $topic (string) - Name of topic that user is blocking
 newtab-section-block-topic-button = Заблакаваць { $topic }
 
-## Panel in the Customize menu section to manage followed and blocked topics
+## Strings for custom wallpaper highlight
 
 newtab-section-mangage-topics-title = Тэмы
 newtab-section-manage-topics-button-v2 =
@@ -525,3 +523,40 @@ newtab-section-mangage-topics-followed-topics = Падпіскі
 newtab-section-mangage-topics-followed-topics-empty-state = Вы яшчэ не падпісаліся ні на адну тэму.
 newtab-section-mangage-topics-blocked-topics = Заблакаваны
 newtab-section-mangage-topics-blocked-topics-empty-state = Вы яшчэ не заблакавалі ніводнай тэмы.
+newtab-custom-wallpaper-title = Карыстальніцкія шпалеры тут
+# 'Make firefox yours" means to customize or personalize
+newtab-custom-wallpaper-subtitle = Зацягніце свае шпалеры або выберыце ўласны колер, каб зрабіць { -brand-product-name } сваім.
+newtab-custom-wallpaper-cta = Паспрабаваць
+
+## Strings for download mobile highlight
+
+newtab-download-mobile-highlight-title = Сцягнуць { -brand-product-name } для мабільных прылад
+# "Scan the code" refers to scanning the QR code that appears above the body text that leads to Firefox for mobile download.
+newtab-download-mobile-highlight-body-variant-a = Скануйце код, каб бяспечна аглядаць на хадзе.
+newtab-download-mobile-highlight-body-variant-b = Працягвайце з таго месца, дзе спыніліся, сінхранізуючы карткі, паролі і іншае.
+newtab-download-mobile-highlight-body-variant-c = Ці ведаеце вы, што { -brand-product-name } можна браць у дарогу? Той жа браўзер. У кішэні.
+newtab-download-mobile-highlight-image =
+    .aria-label = QR-код для сцягвання { -brand-product-name } для мабільных прылад
+
+## Strings for reporting ads and content
+
+newtab-report-content-why-reporting-this =
+    .label = Чаму вы паведамляеце пра гэта?
+newtab-report-ads-reason-not-interested =
+    .label = Мне не цікава
+newtab-report-ads-reason-inappropriate =
+    .label = Гэта недарэчна
+newtab-report-ads-reason-seen-it-too-many-times =
+    .label = Я бачыў гэта занадта шмат разоў
+newtab-report-content-wrong-category =
+    .label = Няправільная катэгорыя
+newtab-report-content-outdated =
+    .label = Устарэлае
+newtab-report-content-inappropriate-offensive =
+    .label = Недарэчнае або абразлівае
+newtab-report-content-spam-misleading =
+    .label = Спам або зман
+newtab-report-cancel = Скасаваць
+newtab-report-submit = Даслаць
+newtab-toast-thanks-for-reporting =
+    .message = Дзякуй, што паведамілі пра гэта.

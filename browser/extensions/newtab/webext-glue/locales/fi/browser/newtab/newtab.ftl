@@ -253,9 +253,6 @@ newtab-pocket-learn-more = Lue lisää
 newtab-pocket-cta-button = Hanki { -pocket-brand-name }
 newtab-pocket-cta-text = Tallenna tykkäämäsi tekstit { -pocket-brand-name }iin ja ravitse mieltäsi kiinnostavilla teksteillä.
 newtab-pocket-pocket-firefox-family = { -pocket-brand-name } on osa { -brand-product-name }-perhettä
-# A save to Pocket button that shows over the card thumbnail on hover.
-newtab-pocket-image =
-    .aria-label = { -pocket-brand-name }
 newtab-pocket-save = Tallenna
 newtab-pocket-saved = Tallennettu
 
@@ -391,7 +388,6 @@ newtab-wallpaper-suspension-bridge = Harmaa riippusilta päiväsaikaan
 newtab-wallpaper-sand-dunes = Valkoiset hiekkadyynit
 newtab-wallpaper-palm-trees = Kookospalmujen siluetti auringonnousun aikana
 newtab-wallpaper-blue-flowers = Lähikuva siniterälehtisistä kukista
-newtab-wallpaper-forest-trees = Puut sumun peitossa
 # Variables
 #   $author_string (String) - The name of the creator of the photo.
 #   $webpage_string (String) - The name of the webpage where the photo is located.
@@ -517,7 +513,7 @@ newtab-section-confirm-block-topic-p2 = Estetyt aiheet eivät enää näy syött
 #   $topic (string) - Name of topic that user is blocking
 newtab-section-block-topic-button = Estä { $topic }
 
-## Panel in the Customize menu section to manage followed and blocked topics
+## Strings for custom wallpaper highlight
 
 newtab-section-mangage-topics-title = Aiheet
 newtab-section-manage-topics-button-v2 =
@@ -530,3 +526,27 @@ newtab-custom-wallpaper-title = Mukautetut taustakuvat ovat täällä
 # 'Make firefox yours" means to customize or personalize
 newtab-custom-wallpaper-subtitle = Valitse oma taustakuvasi tai mukautettu väri ja tee { -brand-product-name }ista mieluisesi.
 newtab-custom-wallpaper-cta = Kokeile
+
+## Strings for download mobile highlight
+
+
+## Strings for reporting ads and content
+
+newtab-report-content-why-reporting-this =
+    .label = Miksi ilmoitat tästä?
+newtab-report-ads-reason-not-interested =
+    .label = En ole kiinnostunut
+newtab-report-ads-reason-inappropriate =
+    .label = Se on sopimatonta
+newtab-report-ads-reason-seen-it-too-many-times =
+    .label = Olen nähnyt sen liian monta kertaa
+newtab-report-content-wrong-category =
+    .label = Väärä luokka
+newtab-report-content-outdated =
+    .label = Vanhentunut
+newtab-report-content-inappropriate-offensive =
+    .label = Sopimaton tai loukkaava
+newtab-report-content-spam-misleading =
+    .label = Roskapostia tai harhaanjohtavaa
+newtab-report-cancel = Peruuta
+newtab-report-submit = Lähetä

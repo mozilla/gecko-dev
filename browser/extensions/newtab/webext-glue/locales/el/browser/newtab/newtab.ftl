@@ -253,9 +253,6 @@ newtab-pocket-learn-more = Μάθετε περισσότερα
 newtab-pocket-cta-button = Αποκτήστε το { -pocket-brand-name }
 newtab-pocket-cta-text = Αποθηκεύστε τις ιστορίες που αγαπάτε στο { -pocket-brand-name } και τροφοδοτήστε το μυαλό σας με εκπληκτικά κείμενα.
 newtab-pocket-pocket-firefox-family = Το { -pocket-brand-name } ανήκει στην οικογένεια του { -brand-product-name }
-# A save to Pocket button that shows over the card thumbnail on hover.
-newtab-pocket-image =
-    .aria-label = { -pocket-brand-name }
 newtab-pocket-save = Αποθήκευση
 newtab-pocket-saved = Αποθηκεύτηκε
 
@@ -391,7 +388,6 @@ newtab-wallpaper-suspension-bridge = Γκρι φωτογραφία με μια �
 newtab-wallpaper-sand-dunes = Λευκοί αμμόλοφοι
 newtab-wallpaper-palm-trees = Φιγούρες κοκοφοινίκων κατά τη «χρυσή ώρα»
 newtab-wallpaper-blue-flowers = Κοντινή φωτογραφία ανθισμένων λουλουδιών με μπλε πέταλα
-newtab-wallpaper-forest-trees = Δέντρα που καλύπτονται από ομίχλη
 # Variables
 #   $author_string (String) - The name of the creator of the photo.
 #   $webpage_string (String) - The name of the webpage where the photo is located.
@@ -517,7 +513,7 @@ newtab-section-confirm-block-topic-p2 = Τα αποκλεισμένα θέματ
 #   $topic (string) - Name of topic that user is blocking
 newtab-section-block-topic-button = Αποκλεισμός του «{ $topic }»
 
-## Panel in the Customize menu section to manage followed and blocked topics
+## Strings for custom wallpaper highlight
 
 newtab-section-mangage-topics-title = Θέματα
 newtab-section-manage-topics-button-v2 =
@@ -530,3 +526,36 @@ newtab-custom-wallpaper-title = Οι προσαρμοσμένες ταπετσα
 # 'Make firefox yours" means to customize or personalize
 newtab-custom-wallpaper-subtitle = Μεταφορτώστε τη δική σας ταπετσαρία ή επιλέξτε ένα προσαρμοσμένο χρώμα για να κάνετε το { -brand-product-name } δικό σας.
 newtab-custom-wallpaper-cta = Δοκιμή
+
+## Strings for download mobile highlight
+
+newtab-download-mobile-highlight-title = Λήψη του { -brand-product-name } για κινητές συσκευές
+# "Scan the code" refers to scanning the QR code that appears above the body text that leads to Firefox for mobile download.
+newtab-download-mobile-highlight-body-variant-a = Σαρώστε τον κωδικό για ασφαλή περιήγηση εν κινήσει.
+newtab-download-mobile-highlight-body-variant-b = Συνεχίστε από εκεί που σταματήσατε με τον συγχρονισμό καρτελών, κωδικών πρόσβασης και άλλων δεδομένων.
+newtab-download-mobile-highlight-body-variant-c = Γνωρίζατε ότι μπορείτε να χρησιμοποιείτε το { -brand-product-name } εν κινήσει; Το ίδιο πρόγραμμα περιήγησης, στην τσέπη σας.
+newtab-download-mobile-highlight-image =
+    .aria-label = Κωδικός QR για τη λήψη του { -brand-product-name } για κινητές συσκευές
+
+## Strings for reporting ads and content
+
+newtab-report-content-why-reporting-this =
+    .label = Γιατί το αναφέρετε αυτό;
+newtab-report-ads-reason-not-interested =
+    .label = Δεν ενδιαφέρομαι
+newtab-report-ads-reason-inappropriate =
+    .label = Είναι ακατάλληλο
+newtab-report-ads-reason-seen-it-too-many-times =
+    .label = Το έχω δει πάρα πολλές φορές
+newtab-report-content-wrong-category =
+    .label = Λάθος κατηγορία
+newtab-report-content-outdated =
+    .label = Παρωχημένο
+newtab-report-content-inappropriate-offensive =
+    .label = Ακατάλληλο ή προσβλητικό
+newtab-report-content-spam-misleading =
+    .label = Ανεπιθύμητο ή παραπλανητικό
+newtab-report-cancel = Ακύρωση
+newtab-report-submit = Υποβολή
+newtab-toast-thanks-for-reporting =
+    .message = Ευχαριστούμε για την αναφορά σας.

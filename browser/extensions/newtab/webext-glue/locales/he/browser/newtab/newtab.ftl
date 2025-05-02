@@ -247,9 +247,6 @@ newtab-pocket-learn-more = מידע נוסף
 newtab-pocket-cta-button = קבלת { -pocket-brand-name }
 newtab-pocket-cta-text = שמירת הסיפורים שאהבת ב־{ -pocket-brand-name } על מנת למלא את מחשבתך בקריאה מרתקת.
 newtab-pocket-pocket-firefox-family = ‏{ -pocket-brand-name } הוא חלק ממשפחת { -brand-product-name }
-# A save to Pocket button that shows over the card thumbnail on hover.
-newtab-pocket-image =
-    .aria-label = { -pocket-brand-name }
 newtab-pocket-save = שמירה
 newtab-pocket-saved = נשמר
 
@@ -385,7 +382,6 @@ newtab-wallpaper-suspension-bridge = תצלום של גשר תלוי אפור ב
 newtab-wallpaper-sand-dunes = דיונות חול לבן
 newtab-wallpaper-palm-trees = צללית של עצי דקל קוקוס במהלך שעת הזהב
 newtab-wallpaper-blue-flowers = צילום תקריב של פרחים כחולי כותרת בפריחה
-newtab-wallpaper-forest-trees = עצים מכוסים בערפל
 # Variables
 #   $author_string (String) - The name of the creator of the photo.
 #   $webpage_string (String) - The name of the webpage where the photo is located.
@@ -511,7 +507,7 @@ newtab-section-confirm-block-topic-p2 = נושאים חסומים לא יופי�
 #   $topic (string) - Name of topic that user is blocking
 newtab-section-block-topic-button = חסימת { $topic }
 
-## Panel in the Customize menu section to manage followed and blocked topics
+## Strings for custom wallpaper highlight
 
 newtab-section-mangage-topics-title = נושאים
 newtab-section-manage-topics-button-v2 =
@@ -524,3 +520,36 @@ newtab-custom-wallpaper-title = טפטים מותאמים אישית נמצאי�
 # 'Make firefox yours" means to customize or personalize
 newtab-custom-wallpaper-subtitle = ניתן להעלות טפט משלך או לבחור בצבע מותאם אישית כדי להפוך את { -brand-product-name } לשלך.
 newtab-custom-wallpaper-cta = בואו ננסה
+
+## Strings for download mobile highlight
+
+newtab-download-mobile-highlight-title = הורדת { -brand-product-name } לנייד
+# "Scan the code" refers to scanning the QR code that appears above the body text that leads to Firefox for mobile download.
+newtab-download-mobile-highlight-body-variant-a = יש לסרוק את הקוד כדי לגלוש בבטחה בדרכים.
+newtab-download-mobile-highlight-body-variant-b = ניתן להמשיך מאיפה שהפסקת על־ידי סנכרון הלשוניות, הססמאות ועוד.
+newtab-download-mobile-highlight-body-variant-c = ידעת שניתן לקחת את { -brand-product-name } לדרכים? אותו הדפדפן, בכיס שלך.
+newtab-download-mobile-highlight-image =
+    .aria-label = קוד QR להורדת { -brand-product-name } לנייד
+
+## Strings for reporting ads and content
+
+newtab-report-content-why-reporting-this =
+    .label = על מה הדיווח?
+newtab-report-ads-reason-not-interested =
+    .label = אין לי עניין בזה
+newtab-report-ads-reason-inappropriate =
+    .label = זה לא הולם
+newtab-report-ads-reason-seen-it-too-many-times =
+    .label = ראיתי את זה יותר מדי פעמים
+newtab-report-content-wrong-category =
+    .label = קטגוריה שגויה
+newtab-report-content-outdated =
+    .label = מיושן
+newtab-report-content-inappropriate-offensive =
+    .label = בלתי הולם או פוגעני
+newtab-report-content-spam-misleading =
+    .label = ספאם או הטעיה
+newtab-report-cancel = ביטול
+newtab-report-submit = שליחה
+newtab-toast-thanks-for-reporting =
+    .message = תודה שדיווחת על זה.

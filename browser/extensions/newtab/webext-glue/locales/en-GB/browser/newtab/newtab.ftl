@@ -253,9 +253,6 @@ newtab-pocket-learn-more = Learn more
 newtab-pocket-cta-button = Get { -pocket-brand-name }
 newtab-pocket-cta-text = Save the stories you love in { -pocket-brand-name }, and fuel your mind with fascinating reads.
 newtab-pocket-pocket-firefox-family = { -pocket-brand-name } is part of the { -brand-product-name } family
-# A save to Pocket button that shows over the card thumbnail on hover.
-newtab-pocket-image =
-    .aria-label = { -pocket-brand-name }
 newtab-pocket-save = Save
 newtab-pocket-saved = Saved
 
@@ -391,7 +388,6 @@ newtab-wallpaper-suspension-bridge = Grey full-suspension bridge photography dur
 newtab-wallpaper-sand-dunes = White sand dunes
 newtab-wallpaper-palm-trees = Silhouette of coconut palm trees during golden hour
 newtab-wallpaper-blue-flowers = Closeup photography of blue-petaled flowers in bloom
-newtab-wallpaper-forest-trees = Trees covered with fog
 # Variables
 #   $author_string (String) - The name of the creator of the photo.
 #   $webpage_string (String) - The name of the webpage where the photo is located.
@@ -517,7 +513,7 @@ newtab-section-confirm-block-topic-p2 = Blocked topics will no longer appear in 
 #   $topic (string) - Name of topic that user is blocking
 newtab-section-block-topic-button = Block { $topic }
 
-## Panel in the Customize menu section to manage followed and blocked topics
+## Strings for custom wallpaper highlight
 
 newtab-section-mangage-topics-title = Topics
 newtab-section-manage-topics-button-v2 =
@@ -530,3 +526,34 @@ newtab-custom-wallpaper-title = Custom wallpapers are here
 # 'Make firefox yours" means to customize or personalize
 newtab-custom-wallpaper-subtitle = Upload your own wallpaper or pick a custom colour to make { -brand-product-name } yours.
 newtab-custom-wallpaper-cta = Try it
+
+## Strings for download mobile highlight
+
+newtab-download-mobile-highlight-title = Download { -brand-product-name } for mobile
+# "Scan the code" refers to scanning the QR code that appears above the body text that leads to Firefox for mobile download.
+newtab-download-mobile-highlight-body-variant-a = Scan the code to securely browse on the go.
+newtab-download-mobile-highlight-body-variant-b = Pick up where you left off when you synchronise your tabs, passwords, and more.
+newtab-download-mobile-highlight-body-variant-c = Did you know you can take { -brand-product-name } on the go? Same browser. In your pocket.
+newtab-download-mobile-highlight-image =
+    .aria-label = QR code to download { -brand-product-name } for mobile
+
+## Strings for reporting ads and content
+
+newtab-report-content-why-reporting-this =
+    .label = Why are you reporting this?
+newtab-report-ads-reason-not-interested =
+    .label = I’m not interested
+newtab-report-ads-reason-inappropriate =
+    .label = It’s inappropriate
+newtab-report-ads-reason-seen-it-too-many-times =
+    .label = I’ve seen it too many times
+newtab-report-content-wrong-category =
+    .label = Wrong category
+newtab-report-content-outdated =
+    .label = Outdated
+newtab-report-content-inappropriate-offensive =
+    .label = Inappropriate or offensive
+newtab-report-content-spam-misleading =
+    .label = Spam or misleading
+newtab-report-cancel = Cancel
+newtab-report-submit = Submit

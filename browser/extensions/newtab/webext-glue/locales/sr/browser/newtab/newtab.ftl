@@ -238,9 +238,6 @@ newtab-pocket-learn-more = Сазнајте више
 newtab-pocket-cta-button = Преузми { -pocket-brand-name(case: "acc") }
 newtab-pocket-cta-text = Сачувајте приче које вам се свиђају у { -pocket-brand-name(case: "loc") } и уживајте у врхунском штиву.
 newtab-pocket-pocket-firefox-family = { -pocket-brand-name } је члан { -brand-product-name } породице
-# A save to Pocket button that shows over the card thumbnail on hover.
-newtab-pocket-image =
-    .aria-label = { -pocket-brand-name }
 newtab-pocket-save = Сачувај
 newtab-pocket-saved = Сачувано
 
@@ -464,5 +461,11 @@ newtab-topic-selection-button-pick-interests = Одаберите ваша ин�
 ## Confirmation modal for blocking a section
 
 
-## Panel in the Customize menu section to manage followed and blocked topics
+## Strings for custom wallpaper highlight
+
+
+## Strings for download mobile highlight
+
+
+## Strings for reporting ads and content
 

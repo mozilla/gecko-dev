@@ -117,6 +117,7 @@ newtab-menu-delete-pocket = Usuń z { -pocket-brand-name }
 newtab-menu-archive-pocket = Archiwizuj w { -pocket-brand-name }
 newtab-menu-show-privacy-info = Nasi sponsorzy i Twoja prywatność
 newtab-menu-about-fakespot = Informacje o { -fakespot-brand-name }
+newtab-menu-report-content = Zgłoś tę treść
 # Context menu option to personalize New Tab recommended stories by blocking a section of stories,
 # e.g. "Sports". "Block" is a verb here.
 newtab-menu-section-block = Blokuj
@@ -128,6 +129,7 @@ newtab-menu-section-unfollow = Przestań obserwować temat
 
 newtab-menu-manage-sponsored-content = Zarządzaj sponsorowanymi treściami
 newtab-menu-our-sponsors-and-your-privacy = Nasi sponsorzy i Twoja prywatność
+newtab-menu-report-this-ad = Zgłoś tę reklamę
 
 ## Message displayed in a modal window to explain privacy and provide context for sponsored content.
 
@@ -250,9 +252,6 @@ newtab-pocket-learn-more = Więcej informacji
 newtab-pocket-cta-button = Pobierz { -pocket-brand-name }
 newtab-pocket-cta-text = Zachowuj artykuły w { -pocket-brand-name }, aby wrócić później do ich lektury.
 newtab-pocket-pocket-firefox-family = { -pocket-brand-name } jest częścią rodziny { -brand-product-name(case: "gen") }
-# A save to Pocket button that shows over the card thumbnail on hover.
-newtab-pocket-image =
-    .aria-label = { -pocket-brand-name }
 newtab-pocket-save = Wyślij
 newtab-pocket-saved = Wysłano
 
@@ -389,7 +388,6 @@ newtab-wallpaper-suspension-bridge = Szary most wiszący sfotografowany w ciąg
 newtab-wallpaper-sand-dunes = Białe wydmy
 newtab-wallpaper-palm-trees = Sylwetka palm kokosowych przed zachodem słońca
 newtab-wallpaper-blue-flowers = Zbliżenie na kwitnące niebieskie kwiatki
-newtab-wallpaper-forest-trees = Drzewa pokryte mgłą
 # Variables
 #   $author_string (String) - The name of the creator of the photo.
 #   $webpage_string (String) - The name of the webpage where the photo is located.
@@ -515,7 +513,7 @@ newtab-section-confirm-block-topic-p2 = Zablokowane tematy nie będą już wyśw
 #   $topic (string) - Name of topic that user is blocking
 newtab-section-block-topic-button = Zablokuj temat „{ $topic }”
 
-## Panel in the Customize menu section to manage followed and blocked topics
+## Strings for custom wallpaper highlight
 
 newtab-section-mangage-topics-title = Tematy
 newtab-section-manage-topics-button-v2 =
@@ -524,3 +522,31 @@ newtab-section-mangage-topics-followed-topics = Obserwowane
 newtab-section-mangage-topics-followed-topics-empty-state = Żadne tematy nie są jeszcze obserwowane.
 newtab-section-mangage-topics-blocked-topics = Zablokowane
 newtab-section-mangage-topics-blocked-topics-empty-state = Żadne tematy nie są jeszcze zablokowane.
+newtab-custom-wallpaper-title = Własne tapety już tu są
+# 'Make firefox yours" means to customize or personalize
+newtab-custom-wallpaper-subtitle = Ustaw własną tapetę lub wybierz dowolny kolor, aby { -brand-product-name } stał się Twój.
+newtab-custom-wallpaper-cta = Wypróbuj
+
+## Strings for download mobile highlight
+
+
+## Strings for reporting ads and content
+
+newtab-report-content-why-reporting-this =
+    .label = Dlaczego to zgłaszasz?
+newtab-report-ads-reason-not-interested =
+    .label = Nie interesuje mnie
+newtab-report-ads-reason-inappropriate =
+    .label = Jest niestosowna
+newtab-report-ads-reason-seen-it-too-many-times =
+    .label = Pojawiła się zbyt wiele razy
+newtab-report-content-wrong-category =
+    .label = Błędna kategoria
+newtab-report-content-outdated =
+    .label = Przestarzała
+newtab-report-content-inappropriate-offensive =
+    .label = Niestosowna lub obraźliwa
+newtab-report-content-spam-misleading =
+    .label = Spam lub wprowadza w błąd
+newtab-report-cancel = Anuluj
+newtab-report-submit = Wyślij

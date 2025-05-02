@@ -251,9 +251,6 @@ newtab-pocket-learn-more = Маълумоти бештар
 newtab-pocket-cta-button = «{ -pocket-brand-name }»-ро бор кунед
 newtab-pocket-cta-text = Ҳикояҳоеро, ки дӯст медоред, дар { -pocket-brand-name } нигоҳ доред ва ба зеҳни худ аз хониши дилрабо қувват диҳед.
 newtab-pocket-pocket-firefox-family = { -pocket-brand-name } қисми оилаи { -brand-product-name } мебошад
-# A save to Pocket button that shows over the card thumbnail on hover.
-newtab-pocket-image =
-    .aria-label = { -pocket-brand-name }
 newtab-pocket-save = Нигоҳ доштан
 newtab-pocket-saved = Нигоҳ дошта шуд
 
@@ -389,7 +386,6 @@ newtab-wallpaper-suspension-bridge = Акси пули хокистариран�
 newtab-wallpaper-sand-dunes = Хомаҳои регии сафед
 newtab-wallpaper-palm-trees = Акси сиёҳи дарахтҳои ҷавзи ҳиндӣ дар соати тиллоӣ
 newtab-wallpaper-blue-flowers = Аксҳои наздиктарини гулҳо бо гулбаргҳои кабуд дар гулгулшукуфоӣ
-newtab-wallpaper-forest-trees = Дарахтҳои бо туман пӯшидашуда
 # Variables
 #   $author_string (String) - The name of the creator of the photo.
 #   $webpage_string (String) - The name of the webpage where the photo is located.
@@ -515,7 +511,7 @@ newtab-section-confirm-block-topic-p2 = Мавзуъҳои манъшуда ди
 #   $topic (string) - Name of topic that user is blocking
 newtab-section-block-topic-button = Манъ кардани { $topic }
 
-## Panel in the Customize menu section to manage followed and blocked topics
+## Strings for custom wallpaper highlight
 
 newtab-section-mangage-topics-title = Мавзуъҳо
 newtab-section-manage-topics-button-v2 =
@@ -528,3 +524,36 @@ newtab-custom-wallpaper-title = Тасвирҳои заминаи фармоиш
 # 'Make firefox yours" means to customize or personalize
 newtab-custom-wallpaper-subtitle = Барои ба таври худ танзим кардани «{ -brand-product-name }», тасвири заминаи худро бор кунед ё ранги дилхоҳеро интихоб намоед.
 newtab-custom-wallpaper-cta = Озмоед
+
+## Strings for download mobile highlight
+
+newtab-download-mobile-highlight-title = Браузери «{ -brand-product-name }»-ро ба телефони мобилии худ боргирӣ кунед
+# "Scan the code" refers to scanning the QR code that appears above the body text that leads to Firefox for mobile download.
+newtab-download-mobile-highlight-body-variant-a = Барои тамошобинии бехатар дар Интернет, рамзеро тасвирбардорӣ намоед.
+newtab-download-mobile-highlight-body-variant-b = Вақте ки шумо варақаҳо, ниҳонвожаҳо ва чизҳои дигареро ҳамоҳанг месозед, ба он ҷое, ки шумо ба қарибӣ тамошо кардаед, баргардонед.
+newtab-download-mobile-highlight-body-variant-c = Оё шумо медонистед, ки метавонед «{ -brand-product-name }»-ро ба даст оред? Ҳамон браузери шинос — акнун дар кисаи шумо.
+newtab-download-mobile-highlight-image =
+    .aria-label = Рамзи «QR» барои боргирӣ кардани версияи мобилии «{ -brand-product-name }»
+
+## Strings for reporting ads and content
+
+newtab-report-content-why-reporting-this =
+    .label = Чаро шумо дар бораи ин гузориш медиҳед?
+newtab-report-ads-reason-not-interested =
+    .label = Ман шавқманд нестам
+newtab-report-ads-reason-inappropriate =
+    .label = Ин номуносиб аст
+newtab-report-ads-reason-seen-it-too-many-times =
+    .label = Ман онро аз ҳад зиёд дидаам
+newtab-report-content-wrong-category =
+    .label = Категорияи нодуруст
+newtab-report-content-outdated =
+    .label = Ғайримуҳим
+newtab-report-content-inappropriate-offensive =
+    .label = Номуносиб ё таҳқиромез
+newtab-report-content-spam-misleading =
+    .label = Маълумоти номатлуб ё фиребанда
+newtab-report-cancel = Бекор кардан
+newtab-report-submit = Пешниҳод кардан
+newtab-toast-thanks-for-reporting =
+    .message = Ташаккур барои гузориши шумо дар бораи ин масъала.

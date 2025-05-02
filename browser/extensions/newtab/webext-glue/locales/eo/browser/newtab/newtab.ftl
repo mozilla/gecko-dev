@@ -117,6 +117,7 @@ newtab-menu-delete-pocket = Forigi el { -pocket-brand-name }
 newtab-menu-archive-pocket = Arĥivi en { -pocket-brand-name }
 newtab-menu-show-privacy-info = Niaj patronoj kaj via privateco
 newtab-menu-about-fakespot = Pri { -fakespot-brand-name }
+newtab-menu-report-content = Raporti tiun ĉi enhavon
 # Context menu option to personalize New Tab recommended stories by blocking a section of stories,
 # e.g. "Sports". "Block" is a verb here.
 newtab-menu-section-block = Bloki
@@ -126,6 +127,9 @@ newtab-menu-section-unfollow = Ne plu sekvi temon
 
 ## Context menu options for sponsored stories and new ad formats on New Tab.
 
+newtab-menu-manage-sponsored-content = Administri patronitan enhavon
+newtab-menu-our-sponsors-and-your-privacy = Niaj patronoj kaj via privateco
+newtab-menu-report-this-ad = Raporti tiun ĉi reklamon
 
 ## Message displayed in a modal window to explain privacy and provide context for sponsored content.
 
@@ -245,9 +249,6 @@ newtab-pocket-learn-more = Pli da informo
 newtab-pocket-cta-button = Instali { -pocket-brand-name }
 newtab-pocket-cta-text = Konservu viajn ŝatatajn artikolojn en { -pocket-brand-name }, kaj stimulu vian menson per ravaj legaĵoj.
 newtab-pocket-pocket-firefox-family = { -pocket-brand-name } estas parto de la familio { -brand-product-name }
-# A save to Pocket button that shows over the card thumbnail on hover.
-newtab-pocket-image =
-    .aria-label = { -pocket-brand-name }
 newtab-pocket-save = Konservi
 newtab-pocket-saved = Konservitaj
 
@@ -382,7 +383,7 @@ newtab-wallpaper-starry-canyon = Blua steloplena nokto
 newtab-wallpaper-suspension-bridge = Griza foto de pendponto dum tago
 newtab-wallpaper-sand-dunes = Blankaj sablomontetoj
 newtab-wallpaper-palm-trees = Konturo de kokosaj palmarboj dum sunsubiro
-newtab-wallpaper-forest-trees = Arboj kovritaj de nebulo
+newtab-wallpaper-blue-flowers = Deproksima foto de blu-petalaj floroj en florado
 # Variables
 #   $author_string (String) - The name of the creator of the photo.
 #   $webpage_string (String) - The name of the webpage where the photo is located.
@@ -508,7 +509,7 @@ newtab-section-confirm-block-topic-p2 = Blokitaj temoj ne plu aperos en via info
 #   $topic (string) - Name of topic that user is blocking
 newtab-section-block-topic-button = Bloki { $topic }
 
-## Panel in the Customize menu section to manage followed and blocked topics
+## Strings for custom wallpaper highlight
 
 newtab-section-mangage-topics-title = Temoj
 newtab-section-manage-topics-button-v2 =
@@ -517,3 +518,31 @@ newtab-section-mangage-topics-followed-topics = Sekvataj
 newtab-section-mangage-topics-followed-topics-empty-state = Vi ankoraŭ sekvas neniun temon.
 newtab-section-mangage-topics-blocked-topics = Blokitaj
 newtab-section-mangage-topics-blocked-topics-empty-state = Vi ankoraŭ blokas neniun temon.
+newtab-custom-wallpaper-title = Tie ĉi troviĝas personecigitaj ekranfonoj
+# 'Make firefox yours" means to customize or personalize
+newtab-custom-wallpaper-subtitle = Alŝutu vian propran ekranfonon aŭ elektu koloron por personecigi { -brand-product-name }.
+newtab-custom-wallpaper-cta = Provi
+
+## Strings for download mobile highlight
+
+
+## Strings for reporting ads and content
+
+newtab-report-content-why-reporting-this =
+    .label = Kial vi raportas tion ĉi?
+newtab-report-ads-reason-not-interested =
+    .label = Tio ne interesas min
+newtab-report-ads-reason-inappropriate =
+    .label = Tio estas neadekvata
+newtab-report-ads-reason-seen-it-too-many-times =
+    .label = Mi vidis tion tro multe da fojoj
+newtab-report-content-wrong-category =
+    .label = Malĝusta kategorio
+newtab-report-content-outdated =
+    .label = Kaduka
+newtab-report-content-inappropriate-offensive =
+    .label = Neadekvata aŭ ofenda
+newtab-report-content-spam-misleading =
+    .label = Truda aŭ trompa
+newtab-report-cancel = Nuligi
+newtab-report-submit = Sendi

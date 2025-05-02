@@ -117,6 +117,7 @@ newtab-menu-delete-pocket = { -pocket-brand-name }-тен өшіру
 newtab-menu-archive-pocket = { -pocket-brand-name }-те архивтеу
 newtab-menu-show-privacy-info = Біздің демеушілеріміз және сіздің жекелігіңіз
 newtab-menu-about-fakespot = { -fakespot-brand-name } туралы
+newtab-menu-report-content = Бұл мазмұн туралы хабарлау
 # Context menu option to personalize New Tab recommended stories by blocking a section of stories,
 # e.g. "Sports". "Block" is a verb here.
 newtab-menu-section-block = Блоктау
@@ -126,6 +127,9 @@ newtab-menu-section-unfollow = Тақырыпқа жазылудан бас та
 
 ## Context menu options for sponsored stories and new ad formats on New Tab.
 
+newtab-menu-manage-sponsored-content = Демеуші мазмұнын басқару
+newtab-menu-our-sponsors-and-your-privacy = Біздің демеушілеріміз және сіздің жекелігіңіз
+newtab-menu-report-this-ad = Бұл жарнаманы хабарлау
 
 ## Message displayed in a modal window to explain privacy and provide context for sponsored content.
 
@@ -249,9 +253,6 @@ newtab-pocket-learn-more = Көбірек білу
 newtab-pocket-cta-button = { -pocket-brand-name }-ті алу
 newtab-pocket-cta-text = Өзіңіз ұнатқан хикаяларды { -pocket-brand-name } ішіне сақтап, миіңізді тамаша оқумен толықтырыңыз.
 newtab-pocket-pocket-firefox-family = { -pocket-brand-name } өнімі { -brand-product-name } отбасының мүшесі болып табылады
-# A save to Pocket button that shows over the card thumbnail on hover.
-newtab-pocket-image =
-    .aria-label = { -pocket-brand-name }
 newtab-pocket-save = Сақтау
 newtab-pocket-saved = Сақталған
 
@@ -380,11 +381,12 @@ newtab-wallpaper-storm-sky = Дауылды аспан
 newtab-wallpaper-sky-with-pink-clouds = Қызғылт бұлттары бар аспан
 newtab-wallpaper-red-panda-yawns-in-a-tree = Қызыл панда ағашта есінейді
 newtab-wallpaper-white-mountains = Ақ таулар
+newtab-wallpaper-hot-air-balloons = Күндізгі ауа шарларының әртүрлі түсі
 newtab-wallpaper-starry-canyon = Көк жұлдызды түн
 newtab-wallpaper-suspension-bridge = Сұр түсті толық аспалы көпірдің күндізгі фотосуреті
 newtab-wallpaper-sand-dunes = Ақ құмды төбелер
 newtab-wallpaper-palm-trees = Алтын сағатта кокос пальмаларының сұлбасы
-newtab-wallpaper-forest-trees = Тұман басқан ағаштар
+newtab-wallpaper-blue-flowers = Гүлдеп тұрған көк жапырақты гүлдердің жақын пландағы фотосуреті
 # Variables
 #   $author_string (String) - The name of the creator of the photo.
 #   $webpage_string (String) - The name of the webpage where the photo is located.
@@ -409,6 +411,9 @@ newtab-wallpaper-category-title-celestial = Аспан
 newtab-wallpaper-celestial-lunar-eclipse = Айдың тұтылуы
 newtab-wallpaper-celestial-earth-night = Төменгі Жер орбитасынан түнгі сурет
 newtab-wallpaper-celestial-starry-sky = Жұлдызды аспан
+newtab-wallpaper-celestial-eclipse-time-lapse = Ай тұтылуының таймлапсы
+newtab-wallpaper-celestial-black-hole = Қара құрдымы бар галактика суреті
+newtab-wallpaper-celestial-river = Өзеннің жерсеріктік суреті
 
 ## New Tab Weather
 
@@ -502,6 +507,32 @@ newtab-section-unblock-button = Бұғаттаудан шығару
 
 newtab-section-cancel-button = Қазір емес
 
-## Panel in the Customize menu section to manage followed and blocked topics
+## Strings for custom wallpaper highlight
 
 newtab-section-mangage-topics-title = Тақырыптар
+newtab-section-manage-topics-button-v2 =
+    .label = Темаларды басқару
+
+## Strings for download mobile highlight
+
+newtab-download-mobile-highlight-image =
+    .aria-label = Мобильді { -brand-product-name } жүктеп алу үшін QR коды
+
+## Strings for reporting ads and content
+
+newtab-report-ads-reason-not-interested =
+    .label = Маған бұл қызықты емес
+newtab-report-ads-reason-inappropriate =
+    .label = Бұл орынсыз
+newtab-report-ads-reason-seen-it-too-many-times =
+    .label = Мен оны тым көп рет көрдім
+newtab-report-content-wrong-category =
+    .label = Қате санат
+newtab-report-content-outdated =
+    .label = Ескірген
+newtab-report-content-inappropriate-offensive =
+    .label = Орынсыз немесе қорлайтын
+newtab-report-content-spam-misleading =
+    .label = Спам немесе жаңылыстыру
+newtab-report-cancel = Бас тарту
+newtab-report-submit = Жіберу

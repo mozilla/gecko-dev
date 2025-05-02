@@ -253,9 +253,6 @@ newtab-pocket-learn-more = 더 알아보기
 newtab-pocket-cta-button = { -pocket-brand-name } 받기
 newtab-pocket-cta-text = 좋아하는 이야기를 { -pocket-brand-name }에 저장하고 재미있게 읽어 보세요.
 newtab-pocket-pocket-firefox-family = { -pocket-brand-name }은 { -brand-product-name } 제품군의 일부입니다.
-# A save to Pocket button that shows over the card thumbnail on hover.
-newtab-pocket-image =
-    .aria-label = { -pocket-brand-name }
 newtab-pocket-save = 저장
 newtab-pocket-saved = 저장됨
 
@@ -390,7 +387,6 @@ newtab-wallpaper-suspension-bridge = 낮 동안 회색 전체 현수교 사진
 newtab-wallpaper-sand-dunes = 하얀 모래언덕
 newtab-wallpaper-palm-trees = 골든 아워의 코코넛 야자수 실루엣
 newtab-wallpaper-blue-flowers = 푸른 꽃잎이 만발한 꽃의 근접 촬영 사진
-newtab-wallpaper-forest-trees = 안개로 덮인 나무
 # Variables
 #   $author_string (String) - The name of the creator of the photo.
 #   $webpage_string (String) - The name of the webpage where the photo is located.
@@ -516,7 +512,7 @@ newtab-section-confirm-block-topic-p2 = 차단된 주제는 더 이상 피드에
 #   $topic (string) - Name of topic that user is blocking
 newtab-section-block-topic-button = { $topic } 차단
 
-## Panel in the Customize menu section to manage followed and blocked topics
+## Strings for custom wallpaper highlight
 
 newtab-section-mangage-topics-title = 주제
 newtab-section-manage-topics-button-v2 =
@@ -529,3 +525,36 @@ newtab-custom-wallpaper-title = 사용자 지정 배경 화면이 있습니다
 # 'Make firefox yours" means to customize or personalize
 newtab-custom-wallpaper-subtitle = 자신만의 배경 화면을 업로드하거나 사용자 지정 색상을 선택하여 나만의 { -brand-product-name }로 만들 수 있습니다.
 newtab-custom-wallpaper-cta = 사용해 보기
+
+## Strings for download mobile highlight
+
+newtab-download-mobile-highlight-title = 모바일용 { -brand-product-name } 다운로드
+# "Scan the code" refers to scanning the QR code that appears above the body text that leads to Firefox for mobile download.
+newtab-download-mobile-highlight-body-variant-a = 코드를 스캔하면 이동 중에도 안전하게 탐색할 수 있습니다.
+newtab-download-mobile-highlight-body-variant-b = 탭, 비밀번호 등을 동기화할 때 중단한 부분부터 다시 시작하세요.
+newtab-download-mobile-highlight-body-variant-c = 이동 중에도 { -brand-product-name }를 가져갈 수 있다는 사실을 알고 계셨나요? 같은 브라우저. 주머니에 넣고 다니세요.
+newtab-download-mobile-highlight-image =
+    .aria-label = 모바일용 { -brand-product-name } 다운로드를 위한 QR 코드
+
+## Strings for reporting ads and content
+
+newtab-report-content-why-reporting-this =
+    .label = 보고하는 이유?
+newtab-report-ads-reason-not-interested =
+    .label = 관심 없음
+newtab-report-ads-reason-inappropriate =
+    .label = 부적절함
+newtab-report-ads-reason-seen-it-too-many-times =
+    .label = 너무 많이 본 경우
+newtab-report-content-wrong-category =
+    .label = 잘못된 분류
+newtab-report-content-outdated =
+    .label = 오래됨
+newtab-report-content-inappropriate-offensive =
+    .label = 부적절하거나 불쾌감을 주는 내용
+newtab-report-content-spam-misleading =
+    .label = 스팸 또는 오해의 소지가 있는 내용
+newtab-report-cancel = 취소
+newtab-report-submit = 보내기
+newtab-toast-thanks-for-reporting =
+    .message = 신고해 주셔서 감사합니다.

@@ -249,9 +249,6 @@ newtab-pocket-learn-more = Ďalšie informácie
 newtab-pocket-cta-button = Získajte { -pocket-brand-name }
 newtab-pocket-cta-text = Ukladajte si články do { -pocket-brand-name(case: "gen") } a užívajte si skvelé čítanie.
 newtab-pocket-pocket-firefox-family = { -pocket-brand-name } je súčasťou rodiny { -brand-product-name(case: "gen") }
-# A save to Pocket button that shows over the card thumbnail on hover.
-newtab-pocket-image =
-    .aria-label = { -pocket-brand-name }
 newtab-pocket-save = Uložiť
 newtab-pocket-saved = Uložené
 
@@ -388,7 +385,6 @@ newtab-wallpaper-suspension-bridge = Sivá fotografia celoodpruženého mosta po
 newtab-wallpaper-sand-dunes = Biele pieskové duny
 newtab-wallpaper-palm-trees = Silueta kokosových paliem počas zlatej hodiny
 newtab-wallpaper-blue-flowers = Detailná fotografia kvetov s modrými okvetnými lístkami
-newtab-wallpaper-forest-trees = Stromy pokryté hmlou
 # Variables
 #   $author_string (String) - The name of the creator of the photo.
 #   $webpage_string (String) - The name of the webpage where the photo is located.
@@ -514,7 +510,7 @@ newtab-section-confirm-block-topic-p2 = Zablokované témy sa už nebudú zobraz
 #   $topic (string) - Name of topic that user is blocking
 newtab-section-block-topic-button = Blokovať { $topic }
 
-## Panel in the Customize menu section to manage followed and blocked topics
+## Strings for custom wallpaper highlight
 
 newtab-section-mangage-topics-title = Témy
 newtab-section-manage-topics-button-v2 =
@@ -527,3 +523,36 @@ newtab-custom-wallpaper-title = Vlastné tapety sú tu
 # 'Make firefox yours" means to customize or personalize
 newtab-custom-wallpaper-subtitle = Nahrajte svoju vlastnú tapetu alebo si vyberte vlastnú farbu a prispôsobte si svoj { -brand-product-name }.
 newtab-custom-wallpaper-cta = Vyskúšajte to
+
+## Strings for download mobile highlight
+
+newtab-download-mobile-highlight-title = Stiahnite si { -brand-product-name } pre mobilné zariadenia
+# "Scan the code" refers to scanning the QR code that appears above the body text that leads to Firefox for mobile download.
+newtab-download-mobile-highlight-body-variant-a = Naskenujte kód a bezpečne prehliadajte na cestách.
+newtab-download-mobile-highlight-body-variant-b = Pokračujte tam, kde ste prestali. Synchronizujete svoje karty, heslá a ďalšie položky.
+newtab-download-mobile-highlight-body-variant-c = Vedeli ste, že { -brand-product-name } si môžete vziať na cesty? Rovnaký prehliadač. Vo vrecku.
+newtab-download-mobile-highlight-image =
+    .aria-label = QR kód na stiahnutie { -brand-product-name(case: "gen") } pre mobilné zariadenia
+
+## Strings for reporting ads and content
+
+newtab-report-content-why-reporting-this =
+    .label = Prečo to nahlasujete?
+newtab-report-ads-reason-not-interested =
+    .label = Nemám záujem
+newtab-report-ads-reason-inappropriate =
+    .label = Je to nevhodné
+newtab-report-ads-reason-seen-it-too-many-times =
+    .label = Videl som to príliš veľakrát
+newtab-report-content-wrong-category =
+    .label = Nesprávna kategória
+newtab-report-content-outdated =
+    .label = Zastarané
+newtab-report-content-inappropriate-offensive =
+    .label = Nevhodné alebo urážlivé
+newtab-report-content-spam-misleading =
+    .label = Spam alebo zavádzanie
+newtab-report-cancel = Zrušiť
+newtab-report-submit = Odoslať
+newtab-toast-thanks-for-reporting =
+    .message = Ďakujeme za nahlásenie.

@@ -247,9 +247,6 @@ newtab-pocket-learn-more = Mësoni më tepër
 newtab-pocket-cta-button = Merreni { -pocket-brand-name }-in
 newtab-pocket-cta-text = Ruajini në { -pocket-brand-name } shkrimet që doni dhe ushqejeni mendjen me lexime të mahnitshme.
 newtab-pocket-pocket-firefox-family = { -pocket-brand-name } është pjesë e familjes { -brand-product-name }
-# A save to Pocket button that shows over the card thumbnail on hover.
-newtab-pocket-image =
-    .aria-label = { -pocket-brand-name }
 newtab-pocket-save = Ruaje
 newtab-pocket-saved = U ruajt
 
@@ -385,7 +382,6 @@ newtab-wallpaper-suspension-bridge = Fotografi e një ure të varur gri gjatë d
 newtab-wallpaper-sand-dunes = Duna ranore të bardha
 newtab-wallpaper-palm-trees = Siluetë pemësh arrash kokosi gjatë orës së artë
 newtab-wallpaper-blue-flowers = Foto nga afër lulesh me petale të kaltra në lulëzim
-newtab-wallpaper-forest-trees = Pemë të mbuluara nga mjegull
 # Variables
 #   $author_string (String) - The name of the creator of the photo.
 #   $webpage_string (String) - The name of the webpage where the photo is located.
@@ -510,7 +506,7 @@ newtab-section-confirm-block-topic-p2 = Subjektet e bllokuar s’do të shfaqen 
 #   $topic (string) - Name of topic that user is blocking
 newtab-section-block-topic-button = Bllokoje { $topic }
 
-## Panel in the Customize menu section to manage followed and blocked topics
+## Strings for custom wallpaper highlight
 
 newtab-section-mangage-topics-title = Tema
 newtab-section-manage-topics-button-v2 =
@@ -523,3 +519,17 @@ newtab-custom-wallpaper-title = Mbërritën sfonde vetjake
 # 'Make firefox yours" means to customize or personalize
 newtab-custom-wallpaper-subtitle = Ngarkoni sfondin tuaj vetjak, ose zgjidhni një ngjyrë vetjake, për ta bërë { -brand-product-name }-in si e doni.
 newtab-custom-wallpaper-cta = Provojeni
+
+## Strings for download mobile highlight
+
+
+## Strings for reporting ads and content
+
+newtab-report-ads-reason-not-interested =
+    .label = S’më intereson
+newtab-report-content-outdated =
+    .label = E vjetruar
+newtab-report-content-inappropriate-offensive =
+    .label = E papërshtatshme ose fyese
+newtab-report-cancel = Anuloje
+newtab-report-submit = Parashtroje

@@ -249,9 +249,6 @@ newtab-pocket-learn-more = 详细了解
 newtab-pocket-cta-button = 获取 { -pocket-brand-name }
 newtab-pocket-cta-text = 将您喜爱的故事保存到 { -pocket-brand-name }，用精彩的读物为思想注入活力。
 newtab-pocket-pocket-firefox-family = { -pocket-brand-name } 是 { -brand-product-name } 系列产品的一部分
-# A save to Pocket button that shows over the card thumbnail on hover.
-newtab-pocket-image =
-    .aria-label = { -pocket-brand-name }
 newtab-pocket-save = 保存
 newtab-pocket-saved = 已保存
 
@@ -386,7 +383,6 @@ newtab-wallpaper-suspension-bridge = 白天时的灰色全悬索桥照片
 newtab-wallpaper-sand-dunes = 白色沙丘
 newtab-wallpaper-palm-trees = 魔术光下的椰子树侧影
 newtab-wallpaper-blue-flowers = 蓝瓣花绽放的近景照片
-newtab-wallpaper-forest-trees = 浓雾掩映的树木
 # Variables
 #   $author_string (String) - The name of the creator of the photo.
 #   $webpage_string (String) - The name of the webpage where the photo is located.
@@ -512,7 +508,7 @@ newtab-section-confirm-block-topic-p2 = 将不再向您推送被屏蔽的主题�
 #   $topic (string) - Name of topic that user is blocking
 newtab-section-block-topic-button = 屏蔽“{ $topic }”
 
-## Panel in the Customize menu section to manage followed and blocked topics
+## Strings for custom wallpaper highlight
 
 newtab-section-mangage-topics-title = 主题
 newtab-section-manage-topics-button-v2 =
@@ -522,4 +518,39 @@ newtab-section-mangage-topics-followed-topics-empty-state = 没有已关注的�
 newtab-section-mangage-topics-blocked-topics = 已屏蔽
 newtab-section-mangage-topics-blocked-topics-empty-state = 没有已屏蔽的主题
 newtab-custom-wallpaper-title = 在此处自定义壁纸
+# 'Make firefox yours" means to customize or personalize
+newtab-custom-wallpaper-subtitle = 自行上传壁纸或选取自定义颜色，让 { -brand-product-name } 更有个性。
 newtab-custom-wallpaper-cta = 试试看
+
+## Strings for download mobile highlight
+
+newtab-download-mobile-highlight-title = 下载移动版 { -brand-product-name }
+# "Scan the code" refers to scanning the QR code that appears above the body text that leads to Firefox for mobile download.
+newtab-download-mobile-highlight-body-variant-a = 扫码下载移动版本，随时随地安全浏览。
+newtab-download-mobile-highlight-body-variant-b = 同步标签页、密码等信息，随时从上次看到的地方继续浏览。
+newtab-download-mobile-highlight-body-variant-c = 您还可以将 { -brand-product-name } 随身带着走。相同体验，装入口袋。
+newtab-download-mobile-highlight-image =
+    .aria-label = 移动版 { -brand-product-name } 的下载二维码
+
+## Strings for reporting ads and content
+
+newtab-report-content-why-reporting-this =
+    .label = 此内容存在什么问题？
+newtab-report-ads-reason-not-interested =
+    .label = 不感兴趣
+newtab-report-ads-reason-inappropriate =
+    .label = 内容不当
+newtab-report-ads-reason-seen-it-too-many-times =
+    .label = 推荐次数过多
+newtab-report-content-wrong-category =
+    .label = 分类错误
+newtab-report-content-outdated =
+    .label = 过时
+newtab-report-content-inappropriate-offensive =
+    .label = 不适宜或具有冒犯性
+newtab-report-content-spam-misleading =
+    .label = 垃圾信息或具有误导性
+newtab-report-cancel = 取消
+newtab-report-submit = 提交
+newtab-toast-thanks-for-reporting =
+    .message = 感谢反馈。

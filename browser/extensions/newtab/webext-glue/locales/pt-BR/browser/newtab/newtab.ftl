@@ -249,9 +249,6 @@ newtab-pocket-learn-more = Saiba mais
 newtab-pocket-cta-button = Adicionar o { -pocket-brand-name }
 newtab-pocket-cta-text = Salve as histórias que você gosta no { -pocket-brand-name } e abasteça sua mente com leituras fascinantes.
 newtab-pocket-pocket-firefox-family = O { -pocket-brand-name } faz parte da família { -brand-product-name }
-# A save to Pocket button that shows over the card thumbnail on hover.
-newtab-pocket-image =
-    .aria-label = { -pocket-brand-name }
 newtab-pocket-save = Salvar
 newtab-pocket-saved = Salvo
 
@@ -387,7 +384,6 @@ newtab-wallpaper-suspension-bridge = Fotografia de ponte totalmente suspensa cin
 newtab-wallpaper-sand-dunes = Dunas de areia branca
 newtab-wallpaper-palm-trees = Silhueta de coqueiros durante o entardecer
 newtab-wallpaper-blue-flowers = Fotografia de perto de flores de pétalas azuis a desabrochar
-newtab-wallpaper-forest-trees = Árvores cobertas de neblina
 # Variables
 #   $author_string (String) - The name of the creator of the photo.
 #   $webpage_string (String) - The name of the webpage where the photo is located.
@@ -513,7 +509,7 @@ newtab-section-confirm-block-topic-p2 = Tópicos bloqueados não aparecerão mai
 #   $topic (string) - Name of topic that user is blocking
 newtab-section-block-topic-button = Bloquear { $topic }
 
-## Panel in the Customize menu section to manage followed and blocked topics
+## Strings for custom wallpaper highlight
 
 newtab-section-mangage-topics-title = Tópicos
 newtab-section-manage-topics-button-v2 =
@@ -526,3 +522,36 @@ newtab-custom-wallpaper-title = Agora você pode usar fundos de tela personaliza
 # 'Make firefox yours" means to customize or personalize
 newtab-custom-wallpaper-subtitle = Envie seu próprio fundo de tela ou escolha uma cor personalizada para deixar o { -brand-product-name } do seu jeito.
 newtab-custom-wallpaper-cta = Experimentar
+
+## Strings for download mobile highlight
+
+newtab-download-mobile-highlight-title = Instale o { -brand-product-name } para dispositivos móveis
+# "Scan the code" refers to scanning the QR code that appears above the body text that leads to Firefox for mobile download.
+newtab-download-mobile-highlight-body-variant-a = Capture o código para navegar com segurança em qualquer lugar.
+newtab-download-mobile-highlight-body-variant-b = Continue de onde parou ao sincronizar suas abas, senhas e muito mais.
+newtab-download-mobile-highlight-body-variant-c = Sabia que você pode levar o { -brand-product-name } para qualquer lugar? O mesmo navegador. No seu bolso.
+newtab-download-mobile-highlight-image =
+    .aria-label = Código QR para instalar o { -brand-product-name } de dispositivos móveis
+
+## Strings for reporting ads and content
+
+newtab-report-content-why-reporting-this =
+    .label = Por que você está relatando isto?
+newtab-report-ads-reason-not-interested =
+    .label = Não estou interessado
+newtab-report-ads-reason-inappropriate =
+    .label = É inapropriado
+newtab-report-ads-reason-seen-it-too-many-times =
+    .label = Já vi isso demais.
+newtab-report-content-wrong-category =
+    .label = Categoria errada
+newtab-report-content-outdated =
+    .label = Desatualizado
+newtab-report-content-inappropriate-offensive =
+    .label = Impróprio ou ofensivo
+newtab-report-content-spam-misleading =
+    .label = Spam ou enganoso
+newtab-report-cancel = Cancelar
+newtab-report-submit = Enviar
+newtab-toast-thanks-for-reporting =
+    .message = Obrigado por informar isto.

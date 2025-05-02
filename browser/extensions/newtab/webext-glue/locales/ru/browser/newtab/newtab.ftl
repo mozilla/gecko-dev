@@ -253,9 +253,6 @@ newtab-pocket-learn-more = Подробнее
 newtab-pocket-cta-button = Загрузить { -pocket-brand-name }
 newtab-pocket-cta-text = Сохраняйте интересные статьи в { -pocket-brand-name } и подпитывайте свой ум увлекательным чтением.
 newtab-pocket-pocket-firefox-family = { -pocket-brand-name } является частью семейства { -brand-product-name }
-# A save to Pocket button that shows over the card thumbnail on hover.
-newtab-pocket-image =
-    .aria-label = { -pocket-brand-name }
 newtab-pocket-save = Сохранить
 newtab-pocket-saved = Сохранено
 
@@ -392,7 +389,6 @@ newtab-wallpaper-suspension-bridge = Фотография серого подв�
 newtab-wallpaper-sand-dunes = Белые песчаные дюны
 newtab-wallpaper-palm-trees = Силуэт кокосовых пальм в золотой час
 newtab-wallpaper-blue-flowers = Крупный план распускающихся цветов с голубыми цветами
-newtab-wallpaper-forest-trees = Деревья, окутанные туманом
 # Variables
 #   $author_string (String) - The name of the creator of the photo.
 #   $webpage_string (String) - The name of the webpage where the photo is located.
@@ -518,7 +514,7 @@ newtab-section-confirm-block-topic-p2 = Заблокированные темы 
 #   $topic (string) - Name of topic that user is blocking
 newtab-section-block-topic-button = Заблокировать { $topic }
 
-## Panel in the Customize menu section to manage followed and blocked topics
+## Strings for custom wallpaper highlight
 
 newtab-section-mangage-topics-title = Темы
 newtab-section-manage-topics-button-v2 =
@@ -531,3 +527,34 @@ newtab-custom-wallpaper-title = Пользовательские обои зде
 # 'Make firefox yours" means to customize or personalize
 newtab-custom-wallpaper-subtitle = Загрузите свои обои или выберите цвет оформления, чтобы настроить { -brand-product-name } под себя.
 newtab-custom-wallpaper-cta = Попробовать
+
+## Strings for download mobile highlight
+
+newtab-download-mobile-highlight-title = Скачать { -brand-product-name } для мобильных устройств
+# "Scan the code" refers to scanning the QR code that appears above the body text that leads to Firefox for mobile download.
+newtab-download-mobile-highlight-body-variant-a = Отсканируйте код, чтобы безопасно работать в Интернете.
+newtab-download-mobile-highlight-body-variant-b = Продолжайте с того места, где вы остановились, при синхронизации вкладок, паролей и многого другого.
+newtab-download-mobile-highlight-body-variant-c = Знаете ли вы, что { -brand-product-name } можно брать с собой? Тот же браузер. У вас в кармане.
+newtab-download-mobile-highlight-image =
+    .aria-label = QR-код для загрузки { -brand-product-name } для мобильных устройств
+
+## Strings for reporting ads and content
+
+newtab-report-content-why-reporting-this =
+    .label = Почему вы сообщаете об этом?
+newtab-report-ads-reason-not-interested =
+    .label = Мне не интересно
+newtab-report-ads-reason-inappropriate =
+    .label = Это неуместно
+newtab-report-ads-reason-seen-it-too-many-times =
+    .label = Я вижу это слишком много раз
+newtab-report-content-wrong-category =
+    .label = Неверная категория
+newtab-report-content-outdated =
+    .label = Неактуальное
+newtab-report-content-inappropriate-offensive =
+    .label = Неуместное или оскорбительное
+newtab-report-content-spam-misleading =
+    .label = Спам или вводящее в заблуждение
+newtab-report-cancel = Отмена
+newtab-report-submit = Отправить

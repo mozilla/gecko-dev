@@ -58,7 +58,7 @@ newtab-topsites-title-input =
     .placeholder = Settu inn titil
 newtab-topsites-url-label = Vefslóð
 newtab-topsites-url-input =
-    .placeholder = Slá inn eða líma vefslóð
+    .placeholder = Skrifaðu eða límdu vefslóð
 newtab-topsites-url-validation = Gildrar vefslóðar krafist
 newtab-topsites-image-url-label = Sérsniðin myndslóð
 newtab-topsites-use-image-link = Nota sérsniðna mynd…
@@ -253,9 +253,6 @@ newtab-pocket-learn-more = Frekari upplýsingar
 newtab-pocket-cta-button = Sækja { -pocket-brand-name }
 newtab-pocket-cta-text = Vistaðu sögurnar sem þú elskar í { -pocket-brand-name } og fáðu innblástur í huga þinn með heillandi lesningu.
 newtab-pocket-pocket-firefox-family = { -pocket-brand-name } er hluti af { -brand-product-name } fjölskyldunni
-# A save to Pocket button that shows over the card thumbnail on hover.
-newtab-pocket-image =
-    .aria-label = { -pocket-brand-name }
 newtab-pocket-save = Vista
 newtab-pocket-saved = Vistað
 
@@ -391,7 +388,6 @@ newtab-wallpaper-suspension-bridge = Ljósmynd af gráum hengibrúm í dagsbirtu
 newtab-wallpaper-sand-dunes = Hvítar sandöldur
 newtab-wallpaper-palm-trees = Skuggamynd af kókospálmatrjám við sólarlag
 newtab-wallpaper-blue-flowers = Nærmynd af bláblöðóttum blómum í blóma
-newtab-wallpaper-forest-trees = Tré þakin þoku
 # Variables
 #   $author_string (String) - The name of the creator of the photo.
 #   $webpage_string (String) - The name of the webpage where the photo is located.
@@ -517,7 +513,7 @@ newtab-section-confirm-block-topic-p2 = Umfjöllunarefni sem lokað er á munu e
 #   $topic (string) - Name of topic that user is blocking
 newtab-section-block-topic-button = Loka á { $topic }
 
-## Panel in the Customize menu section to manage followed and blocked topics
+## Strings for custom wallpaper highlight
 
 newtab-section-mangage-topics-title = Umfjöllunarefni
 newtab-section-manage-topics-button-v2 =
@@ -528,3 +524,27 @@ newtab-section-mangage-topics-blocked-topics = Lokað á
 newtab-section-mangage-topics-blocked-topics-empty-state = Þú hefur ekki lokað á neitt umfjöllunarefni ennþá.
 newtab-custom-wallpaper-title = Sérsniðnir bakgrunnar eru hér
 newtab-custom-wallpaper-cta = Prófaðu það
+
+## Strings for download mobile highlight
+
+
+## Strings for reporting ads and content
+
+newtab-report-content-why-reporting-this =
+    .label = Af hverju ertu að tilkynna þetta?
+newtab-report-ads-reason-not-interested =
+    .label = Ég hef ekki áhuga
+newtab-report-ads-reason-inappropriate =
+    .label = Þetta er óviðeigandi
+newtab-report-ads-reason-seen-it-too-many-times =
+    .label = Ég hef séð það of oft
+newtab-report-content-wrong-category =
+    .label = Rangur flokkur
+newtab-report-content-outdated =
+    .label = Úrelt
+newtab-report-content-inappropriate-offensive =
+    .label = Óviðeigandi eða særandi
+newtab-report-content-spam-misleading =
+    .label = Ruslpóstur eða villandi
+newtab-report-cancel = Hætta við
+newtab-report-submit = Senda inn

@@ -253,9 +253,6 @@ newtab-pocket-learn-more = Dalšne informacije
 newtab-pocket-cta-button = { -pocket-brand-name } wobstaraś
 newtab-pocket-cta-text = Składujśo tšojeńka, kótarež se wam spódobuju, w { -pocket-brand-name } a žywśo swój duch z fasciněrujucymi cytańkami.
 newtab-pocket-pocket-firefox-family = { -pocket-brand-name } jo źěl swójźby { -brand-product-name }
-# A save to Pocket button that shows over the card thumbnail on hover.
-newtab-pocket-image =
-    .aria-label = { -pocket-brand-name }
 newtab-pocket-save = Składowaś
 newtab-pocket-saved = Skłaźony
 
@@ -393,7 +390,6 @@ newtab-wallpaper-suspension-bridge = Šera fotografija wisatego mosta wódnjo
 newtab-wallpaper-sand-dunes = Běłe změty pěska
 newtab-wallpaper-palm-trees = Silueta bomow kokosowych palmow w złotej góźinje
 newtab-wallpaper-blue-flowers = Fotografija kwětkow z módrymi łopjenkami w kwiśenju z bliskosći
-newtab-wallpaper-forest-trees = Z kurjawu pókšyte bomy
 # Variables
 #   $author_string (String) - The name of the creator of the photo.
 #   $webpage_string (String) - The name of the webpage where the photo is located.
@@ -519,7 +515,7 @@ newtab-section-confirm-block-topic-p2 = Blokěrowane temy se wěcej we wašom ka
 #   $topic (string) - Name of topic that user is blocking
 newtab-section-block-topic-button = { $topic } blokěrowaś
 
-## Panel in the Customize menu section to manage followed and blocked topics
+## Strings for custom wallpaper highlight
 
 newtab-section-mangage-topics-title = Temy
 newtab-section-manage-topics-button-v2 =
@@ -532,3 +528,34 @@ newtab-custom-wallpaper-title = How su swójske slězynowe wobraze
 # 'Make firefox yours" means to customize or personalize
 newtab-custom-wallpaper-subtitle = Nagrajśo swójski slězynowy wobraz abo wubjeŕśo swójsku barwu, aby se { -brand-product-name } pśiswójł.
 newtab-custom-wallpaper-cta = Wopytajśo jen
+
+## Strings for download mobile highlight
+
+newtab-download-mobile-highlight-title = { -brand-product-name } za mobilny rěd ześěgnuś
+# "Scan the code" refers to scanning the QR code that appears above the body text that leads to Firefox for mobile download.
+newtab-download-mobile-highlight-body-variant-a = Scannujśo kod, aby pó droze wěsćej pśeglědował.
+newtab-download-mobile-highlight-body-variant-b = Pókšacujśo, źož sćo pśestał, gaž swóje rejtariki, gronidła a wěcej synchronizěrujośo.
+newtab-download-mobile-highlight-body-variant-c = Sćo wěźeł, až móžośo { -brand-product-name } pó droze sobu wześ? Samski wobglědowak. We wašej tašy.
+newtab-download-mobile-highlight-image =
+    .aria-label = QR-kod za ześěgnjenje { -brand-product-name } za mobilne rědy
+
+## Strings for reporting ads and content
+
+newtab-report-content-why-reporting-this =
+    .label = Cogodla dawaśo to k wěsći?
+newtab-report-ads-reason-not-interested =
+    .label = Njejsom zajmowany
+newtab-report-ads-reason-inappropriate =
+    .label = Jo njepśigódne
+newtab-report-ads-reason-seen-it-too-many-times =
+    .label = Som to pśecesto wiźeł
+newtab-report-content-wrong-category =
+    .label = Wopacna kategorija
+newtab-report-content-outdated =
+    .label = Zestarjety
+newtab-report-content-inappropriate-offensive =
+    .label = Njepśistojny abo kśiwźecy
+newtab-report-content-spam-misleading =
+    .label = Spam abo torjecy
+newtab-report-cancel = Pśetergnuś
+newtab-report-submit = Wótpósłaś

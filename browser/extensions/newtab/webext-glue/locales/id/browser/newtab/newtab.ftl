@@ -249,9 +249,6 @@ newtab-pocket-learn-more = Pelajari lebih lanjut
 newtab-pocket-cta-button = Dapatkan { -pocket-brand-name }
 newtab-pocket-cta-text = Simpan cerita yang anda sukai di { -pocket-brand-name }, dan dapatkan bacaan menarik untuk Anda.
 newtab-pocket-pocket-firefox-family = { -pocket-brand-name } adalah bagian dari keluarga { -brand-product-name }
-# A save to Pocket button that shows over the card thumbnail on hover.
-newtab-pocket-image =
-    .aria-label = { -pocket-brand-name }
 newtab-pocket-save = Simpan
 newtab-pocket-saved = Disimpan
 
@@ -386,7 +383,6 @@ newtab-wallpaper-suspension-bridge = Fotografi jembatan full-suspension abu-abu 
 newtab-wallpaper-sand-dunes = Bukit pasir putih
 newtab-wallpaper-palm-trees = Siluet pohon kelapa saat golden hour
 newtab-wallpaper-blue-flowers = Foto jarak dekat bunga berkelopak biru yang sedang mekar
-newtab-wallpaper-forest-trees = Pepohonan tertutup kabut
 # Variables
 #   $author_string (String) - The name of the creator of the photo.
 #   $webpage_string (String) - The name of the webpage where the photo is located.
@@ -512,7 +508,7 @@ newtab-section-confirm-block-topic-p2 = Topik yang diblokir tidak akan muncul la
 #   $topic (string) - Name of topic that user is blocking
 newtab-section-block-topic-button = Blokir { $topic }
 
-## Panel in the Customize menu section to manage followed and blocked topics
+## Strings for custom wallpaper highlight
 
 newtab-section-mangage-topics-title = Topik
 newtab-section-manage-topics-button-v2 =
@@ -525,3 +521,17 @@ newtab-custom-wallpaper-title = Wallpaper kustom ada di sini
 # 'Make firefox yours" means to customize or personalize
 newtab-custom-wallpaper-subtitle = Unggah wallpaper sendiri atau pilih warna kustom untuk menjadikan { -brand-product-name } lebih personal.
 newtab-custom-wallpaper-cta = Coba sekarang
+
+## Strings for download mobile highlight
+
+
+## Strings for reporting ads and content
+
+newtab-report-content-why-reporting-this =
+    .label = Mengapa Anda melaporkan ini?
+newtab-report-ads-reason-not-interested =
+    .label = Saya tidak tertarik
+newtab-report-ads-reason-inappropriate =
+    .label = Tidak pantas
+newtab-report-cancel = Batal
+newtab-report-submit = Kirim

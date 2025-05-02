@@ -253,9 +253,6 @@ newtab-pocket-learn-more = További tudnivalók
 newtab-pocket-cta-button = { -pocket-brand-name } beszerzése
 newtab-pocket-cta-text = Mentse az Ön által kedvelt történeteket a { -pocket-brand-name }be, és töltse fel elméjét lebilincselő olvasnivalókkal.
 newtab-pocket-pocket-firefox-family = A { -pocket-brand-name } a { -brand-product-name } család része
-# A save to Pocket button that shows over the card thumbnail on hover.
-newtab-pocket-image =
-    .aria-label = { -pocket-brand-name }
 newtab-pocket-save = Mentés
 newtab-pocket-saved = Mentve
 
@@ -391,7 +388,6 @@ newtab-wallpaper-suspension-bridge = Fénykép egy szürke függőhídról, napk
 newtab-wallpaper-sand-dunes = Fehér homokdűnék
 newtab-wallpaper-palm-trees = Kókuszpálmák sziluettje alkonyatkor
 newtab-wallpaper-blue-flowers = Közeli fénykép kék szirmú virágokról virágzás közben
-newtab-wallpaper-forest-trees = Fák ködben
 # Variables
 #   $author_string (String) - The name of the creator of the photo.
 #   $webpage_string (String) - The name of the webpage where the photo is located.
@@ -517,7 +513,7 @@ newtab-section-confirm-block-topic-p2 = A blokkolt témák többé nem fognak me
 #   $topic (string) - Name of topic that user is blocking
 newtab-section-block-topic-button = { $topic } blokkolása
 
-## Panel in the Customize menu section to manage followed and blocked topics
+## Strings for custom wallpaper highlight
 
 newtab-section-mangage-topics-title = Témák
 newtab-section-manage-topics-button-v2 =
@@ -530,3 +526,27 @@ newtab-custom-wallpaper-title = Itt vannak az egyéni háttérképek
 # 'Make firefox yours" means to customize or personalize
 newtab-custom-wallpaper-subtitle = Töltse fel a saját háttérképét, vagy válasszon egy egyéni háttérszínt, hogy a { -brand-product-name } a sajátja legyen.
 newtab-custom-wallpaper-cta = Próbálja ki
+
+## Strings for download mobile highlight
+
+
+## Strings for reporting ads and content
+
+newtab-report-content-why-reporting-this =
+    .label = Miért jelenti ezt be?
+newtab-report-ads-reason-not-interested =
+    .label = Nem érdekel
+newtab-report-ads-reason-inappropriate =
+    .label = Nem megfelelő
+newtab-report-ads-reason-seen-it-too-many-times =
+    .label = Túl sokszor láttam
+newtab-report-content-wrong-category =
+    .label = Hibás kategória
+newtab-report-content-outdated =
+    .label = Elavult
+newtab-report-content-inappropriate-offensive =
+    .label = Nem megfelelő vagy sértő
+newtab-report-content-spam-misleading =
+    .label = Kéretlen vagy félrevezető
+newtab-report-cancel = Mégse
+newtab-report-submit = Elküldés
