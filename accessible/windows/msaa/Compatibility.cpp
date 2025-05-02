@@ -228,6 +228,12 @@ bool Compatibility::IsUiaEnabled() {
   }
   // Bug 1956415: Some screen readers break when native UIA is enabled, so don't
   // enable it when they're detected.
+  // Call InitConsumers() if we haven't already. It's safe to call this multiple
+  // times, but it still does a small amount of work and we can easily avoid
+  // unnecessary calls here.
+  if (!(sConsumers & UIAUTOMATION)) {
+    InitConsumers();
+  }
   return !IsJAWS() && !IsOldJAWS() && !IsVisperoShared() &&
          !(sConsumers & NVDA);
 }
