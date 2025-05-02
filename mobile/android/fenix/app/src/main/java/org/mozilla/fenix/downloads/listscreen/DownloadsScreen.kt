@@ -208,45 +208,48 @@ private fun ToolbarEditActions(
     toolbarConfig: ToolbarConfig,
     onItemDeleteClick: (FileItem) -> Unit,
 ) {
-    var showMenu by remember { mutableStateOf(false) }
+    // IconButton and DropdownMenu in a common parent so the menu position is calculated correctly.
+    Row {
+        var showMenu by remember { mutableStateOf(false) }
 
-    IconButton(onClick = { showMenu = true }) {
-        Icon(
-            painter = painterResource(R.drawable.mozac_ic_ellipsis_vertical_24),
-            contentDescription = stringResource(
-                R.string.content_description_menu,
+        IconButton(onClick = { showMenu = true }) {
+            Icon(
+                painter = painterResource(R.drawable.mozac_ic_ellipsis_vertical_24),
+                contentDescription = stringResource(
+                    R.string.content_description_menu,
+                ),
+                tint = toolbarConfig.iconColor,
+            )
+        }
+
+        DropdownMenu(
+            expanded = showMenu,
+            menuItems = listOf(
+                MenuItem.TextItem(
+                    text = Text.Resource(R.string.download_select_all_items),
+                    level = MenuItem.FixedItem.Level.Default,
+                    onClick = { downloadsStore.dispatch(DownloadUIAction.AddAllItemsForRemoval) },
+                ),
+                MenuItem.TextItem(
+                    text = Text.Resource(R.string.download_delete_item),
+                    level = MenuItem.FixedItem.Level.Critical,
+                    onClick = {
+                        when (downloadsStore.state.mode.selectedItems.size) {
+                            1 -> {
+                                onItemDeleteClick(downloadsStore.state.mode.selectedItems.first())
+                                downloadsStore.dispatch(DownloadUIAction.ExitEditMode)
+                            }
+
+                            else -> downloadsStore.dispatch(
+                                DownloadUIAction.UpdateDeleteDialogVisibility(true),
+                            )
+                        }
+                    },
+                ),
             ),
-            tint = toolbarConfig.iconColor,
+            onDismissRequest = { showMenu = false },
         )
     }
-
-    DropdownMenu(
-        expanded = showMenu,
-        menuItems = listOf(
-            MenuItem.TextItem(
-                text = Text.Resource(R.string.download_select_all_items),
-                level = MenuItem.FixedItem.Level.Default,
-                onClick = { downloadsStore.dispatch(DownloadUIAction.AddAllItemsForRemoval) },
-            ),
-            MenuItem.TextItem(
-                text = Text.Resource(R.string.download_delete_item),
-                level = MenuItem.FixedItem.Level.Critical,
-                onClick = {
-                    when (downloadsStore.state.mode.selectedItems.size) {
-                        1 -> {
-                            onItemDeleteClick(downloadsStore.state.mode.selectedItems.first())
-                            downloadsStore.dispatch(DownloadUIAction.ExitEditMode)
-                        }
-
-                        else -> downloadsStore.dispatch(
-                            DownloadUIAction.UpdateDeleteDialogVisibility(true),
-                        )
-                    }
-                },
-            ),
-        ),
-        onDismissRequest = { showMenu = false },
-    )
 }
 
 /**
