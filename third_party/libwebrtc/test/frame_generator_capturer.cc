@@ -75,7 +75,7 @@ void FrameGeneratorCapturer::SetFakeColorSpace(
 bool FrameGeneratorCapturer::Init() {
   // This check is added because frame_generator_ might be file based and should
   // not crash because a file moved.
-  if (frame_generator_.get() == nullptr)
+  if (frame_generator_ == nullptr)
     return false;
 
   frame_task_ = RepeatingTaskHandle::DelayedStart(
@@ -92,23 +92,23 @@ bool FrameGeneratorCapturer::Init() {
 void FrameGeneratorCapturer::InsertFrame() {
   MutexLock lock(&lock_);
   if (sending_) {
-    // TODO(srte): Use more advanced frame rate control to allow arbitrary
-    // fractions.
     int decimation =
         std::round(static_cast<double>(source_fps_) / target_capture_fps_);
-    for (int i = 1; i < decimation; ++i)
+    for (int i = 1; i < decimation; ++i) {
       frame_generator_->SkipNextFrame();
+    }
 
     FrameGeneratorInterface::VideoFrameData frame_data =
         frame_generator_->NextFrame();
-    VideoFrame frame = VideoFrame::Builder()
-                           .set_video_frame_buffer(frame_data.buffer)
-                           .set_rotation(fake_rotation_)
-                           .set_timestamp_us(clock_->TimeInMicroseconds())
-                           .set_update_rect(frame_data.update_rect)
-                           .set_color_space(fake_color_space_)
-                           .build();
-    TestVideoCapturer::OnFrame(frame);
+    last_frame_captured_ = frame_data.buffer;
+    TestVideoCapturer::OnFrame(
+        VideoFrame::Builder()
+            .set_video_frame_buffer(frame_data.buffer)
+            .set_rotation(fake_rotation_)
+            .set_timestamp_us(clock_->TimeInMicroseconds())
+            .set_update_rect(frame_data.update_rect)
+            .set_color_space(fake_color_space_)
+            .build());
   }
 }
 
@@ -203,6 +203,19 @@ void FrameGeneratorCapturer::RemoveSink(
     rtc::VideoSinkInterface<VideoFrame>* sink) {
   TestVideoCapturer::RemoveSink(sink);
   ChangeFramerate(GetSinkWants().max_framerate_fps);
+}
+
+void FrameGeneratorCapturer::RequestRefreshFrame() {
+  MutexLock lock(&lock_);
+  if (sending_ && last_frame_captured_ != nullptr) {
+    TestVideoCapturer::OnFrame(
+        VideoFrame::Builder()
+            .set_video_frame_buffer(last_frame_captured_)
+            .set_rotation(fake_rotation_)
+            .set_timestamp_us(clock_->TimeInMicroseconds())
+            .set_color_space(fake_color_space_)
+            .build());
+  }
 }
 
 void FrameGeneratorCapturer::ForceFrame() {

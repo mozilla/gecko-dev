@@ -11,15 +11,16 @@
 #define TEST_FRAME_GENERATOR_CAPTURER_H_
 
 #include <cstddef>
-#include <cstdint>
 #include <memory>
 #include <optional>
 
+#include "api/scoped_refptr.h"
 #include "api/task_queue/task_queue_base.h"
 #include "api/task_queue/task_queue_factory.h"
 #include "api/test/frame_generator_interface.h"
 #include "api/video/color_space.h"
 #include "api/video/video_frame.h"
+#include "api/video/video_frame_buffer.h"
 #include "api/video/video_rotation.h"
 #include "api/video/video_sink_interface.h"
 #include "api/video/video_source_interface.h"
@@ -75,6 +76,7 @@ class FrameGeneratorCapturer : public TestVideoCapturer {
   void AddOrUpdateSink(rtc::VideoSinkInterface<VideoFrame>* sink,
                        const rtc::VideoSinkWants& wants) override;
   void RemoveSink(rtc::VideoSinkInterface<VideoFrame>* sink) override;
+  void RequestRefreshFrame() override;
 
   void ForceFrame();
   void SetFakeRotation(VideoRotation rotation);
@@ -89,11 +91,12 @@ class FrameGeneratorCapturer : public TestVideoCapturer {
 
   Clock* const clock_;
   RepeatingTaskHandle frame_task_;
-  bool sending_;
+  bool sending_ RTC_GUARDED_BY(&lock_);
   SinkWantsObserver* sink_wants_observer_ RTC_GUARDED_BY(&lock_);
 
   Mutex lock_;
   std::unique_ptr<FrameGeneratorInterface> frame_generator_;
+  rtc::scoped_refptr<VideoFrameBuffer> last_frame_captured_;
 
   int source_fps_ RTC_GUARDED_BY(&lock_);
   int target_capture_fps_ RTC_GUARDED_BY(&lock_);

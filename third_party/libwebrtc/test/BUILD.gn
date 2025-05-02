@@ -156,6 +156,7 @@ rtc_library("frame_generator_capturer") {
   deps = [
     ":test_video_capturer",
     "../api:frame_generator_api",
+    "../api:scoped_refptr",
     "../api/task_queue",
     "../api/units:time_delta",
     "../api/video:video_frame",
