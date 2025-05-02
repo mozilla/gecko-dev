@@ -130,7 +130,7 @@ union NetAddr {
   bool operator==(const NetAddr& other) const;
   bool operator<(const NetAddr& other) const;
 
-  // Use the default copy constructor/assignment operator, which will memmove
+  // Use the default copy constructor/assignment operator, which will memcpy
   // under the hood.
   NetAddr(const NetAddr&) = default;
   inline NetAddr& operator=(const NetAddr& other) = default;
