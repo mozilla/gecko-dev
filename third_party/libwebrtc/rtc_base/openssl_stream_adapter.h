@@ -70,7 +70,7 @@ namespace rtc {
 class OpenSSLStreamAdapter final : public SSLStreamAdapter {
  public:
   OpenSSLStreamAdapter(
-      std::unique_ptr<StreamInterface> stream,
+      std::unique_ptr<webrtc::StreamInterface> stream,
       absl::AnyInvocable<void(SSLHandshakeError)> handshake_error,
       const webrtc::FieldTrialsView* field_trials = nullptr);
   ~OpenSSLStreamAdapter() override;
@@ -93,14 +93,14 @@ class OpenSSLStreamAdapter final : public SSLStreamAdapter {
   void SetMaxProtocolVersion(SSLProtocolVersion version) override;
   void SetInitialRetransmissionTimeout(int timeout_ms) override;
 
-  StreamResult Read(rtc::ArrayView<uint8_t> data,
-                    size_t& read,
-                    int& error) override;
-  StreamResult Write(rtc::ArrayView<const uint8_t> data,
-                     size_t& written,
-                     int& error) override;
+  webrtc::StreamResult Read(rtc::ArrayView<uint8_t> data,
+                            size_t& read,
+                            int& error) override;
+  webrtc::StreamResult Write(rtc::ArrayView<const uint8_t> data,
+                             size_t& written,
+                             int& error) override;
   void Close() override;
-  StreamState GetState() const override;
+  webrtc::StreamState GetState() const override;
 
   std::optional<absl::string_view> GetTlsCipherSuiteName() const override;
 
@@ -199,7 +199,7 @@ class OpenSSLStreamAdapter final : public SSLStreamAdapter {
            !peer_certificate_digest_value_.empty();
   }
 
-  const std::unique_ptr<StreamInterface> stream_;
+  const std::unique_ptr<webrtc::StreamInterface> stream_;
   absl::AnyInvocable<void(SSLHandshakeError)> handshake_error_;
 
   rtc::Thread* const owner_;

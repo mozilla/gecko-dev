@@ -117,13 +117,13 @@ enum { SSE_MSG_TRUNC = 0xff0001 };
 // Used to send back UMA histogram value. Logged when Dtls handshake fails.
 enum class SSLHandshakeError { UNKNOWN, INCOMPATIBLE_CIPHERSUITE, MAX_VALUE };
 
-class SSLStreamAdapter : public StreamInterface {
+class SSLStreamAdapter : public webrtc::StreamInterface {
  public:
   // Instantiate an SSLStreamAdapter wrapping the given stream,
   // (using the selected implementation for the platform).
   // Caller is responsible for freeing the returned object.
   static std::unique_ptr<SSLStreamAdapter> Create(
-      std::unique_ptr<StreamInterface> stream,
+      std::unique_ptr<webrtc::StreamInterface> stream,
       absl::AnyInvocable<void(SSLHandshakeError)> handshake_error = nullptr,
       const webrtc::FieldTrialsView* field_trials = nullptr);
 

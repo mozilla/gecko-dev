@@ -76,7 +76,7 @@ static bool IsRtpPacket(rtc::ArrayView<const uint8_t> payload) {
 StreamInterfaceChannel::StreamInterfaceChannel(
     IceTransportInternal* ice_transport)
     : ice_transport_(ice_transport),
-      state_(rtc::SS_OPEN),
+      state_(webrtc::SS_OPEN),
       packets_(kMaxPendingPackets, kMaxDtlsPacketLen) {}
 
 void StreamInterfaceChannel::SetDtlsStunPiggybackController(
@@ -89,16 +89,16 @@ rtc::StreamResult StreamInterfaceChannel::Read(rtc::ArrayView<uint8_t> buffer,
                                                int& /* error */) {
   RTC_DCHECK_RUN_ON(&callback_sequence_);
 
-  if (state_ == rtc::SS_CLOSED)
-    return rtc::SR_EOS;
-  if (state_ == rtc::SS_OPENING)
-    return rtc::SR_BLOCK;
+  if (state_ == webrtc::SS_CLOSED)
+    return webrtc::SR_EOS;
+  if (state_ == webrtc::SS_OPENING)
+    return webrtc::SR_BLOCK;
 
   if (!packets_.ReadFront(buffer.data(), buffer.size(), &read)) {
-    return rtc::SR_BLOCK;
+    return webrtc::SR_BLOCK;
   }
 
-  return rtc::SR_SUCCESS;
+  return webrtc::SR_SUCCESS;
 }
 
 rtc::StreamResult StreamInterfaceChannel::Write(
@@ -112,7 +112,7 @@ rtc::StreamResult StreamInterfaceChannel::Write(
   if (dtls_stun_piggyback_controller_ &&
       dtls_stun_piggyback_controller_->MaybeConsumePacket(data)) {
     written = data.size();
-    return rtc::SR_SUCCESS;
+    return webrtc::SR_SUCCESS;
   }
 
   // Always succeeds, since this is an unreliable transport anyway.
@@ -122,7 +122,7 @@ rtc::StreamResult StreamInterfaceChannel::Write(
   ice_transport_->SendPacket(reinterpret_cast<const char*>(data.data()),
                              data.size(), packet_options);
   written = data.size();
-  return rtc::SR_SUCCESS;
+  return webrtc::SR_SUCCESS;
 }
 
 bool StreamInterfaceChannel::OnPacketReceived(const char* data, size_t size) {
@@ -138,7 +138,7 @@ bool StreamInterfaceChannel::OnPacketReceived(const char* data, size_t size) {
     // packet currently in packets_.
     RTC_LOG(LS_ERROR) << "Failed to write packet to queue.";
   }
-  FireEvent(rtc::SE_READ, 0);
+  FireEvent(webrtc::SE_READ, 0);
   return ret;
 }
 
@@ -150,7 +150,7 @@ rtc::StreamState StreamInterfaceChannel::GetState() const {
 void StreamInterfaceChannel::Close() {
   RTC_DCHECK_RUN_ON(&callback_sequence_);
   packets_.Clear();
-  state_ = rtc::SS_CLOSED;
+  state_ = webrtc::SS_CLOSED;
 }
 
 DtlsTransport::DtlsTransport(IceTransportInternal* ice_transport,
@@ -508,7 +508,7 @@ int DtlsTransport::SendPacket(const char* data,
         return (dtls_->WriteAll(
                     rtc::MakeArrayView(reinterpret_cast<const uint8_t*>(data),
                                        size),
-                    written, error) == rtc::SR_SUCCESS)
+                    written, error) == webrtc::SR_SUCCESS)
                    ? static_cast<int>(size)
                    : -1;
       }
@@ -801,12 +801,12 @@ void DtlsTransport::OnDtlsEvent(int sig, int err) {
   RTC_DCHECK_RUN_ON(&thread_checker_);
   RTC_DCHECK(dtls_);
 
-  if (sig & rtc::SE_OPEN) {
+  if (sig & webrtc::SE_OPEN) {
     // This is the first time.
     RTC_LOG(LS_INFO) << ToString() << ": DTLS handshake complete.";
     // The check for OPEN shouldn't be necessary but let's make
     // sure we don't accidentally frob the state if it's closed.
-    if (dtls_->GetState() == rtc::SS_OPEN) {
+    if (dtls_->GetState() == webrtc::SS_OPEN) {
       int ssl_version_bytes;
       bool ret = dtls_->GetSslVersionBytes(&ssl_version_bytes);
       RTC_DCHECK(ret);
@@ -818,7 +818,7 @@ void DtlsTransport::OnDtlsEvent(int sig, int err) {
       set_writable(true);
     }
   }
-  if (sig & rtc::SE_READ) {
+  if (sig & webrtc::SE_READ) {
     uint8_t buf[kMaxDtlsPacketLen];
     size_t read;
     int read_error;
@@ -827,7 +827,7 @@ void DtlsTransport::OnDtlsEvent(int sig, int err) {
     // one packet, so read all of them.
     do {
       ret = dtls_->Read(buf, read, read_error);
-      if (ret == rtc::SR_SUCCESS) {
+      if (ret == webrtc::SR_SUCCESS) {
         // TODO(bugs.webrtc.org/15368): It should be possible to use information
         // from the original packet here to populate socket address and
         // timestamp.
@@ -835,13 +835,13 @@ void DtlsTransport::OnDtlsEvent(int sig, int err) {
             rtc::MakeArrayView(buf, read), rtc::SocketAddress(),
             webrtc::Timestamp::Micros(rtc::TimeMicros()),
             rtc::EcnMarking::kNotEct, rtc::ReceivedPacket::kDtlsDecrypted));
-      } else if (ret == rtc::SR_EOS) {
+      } else if (ret == webrtc::SR_EOS) {
         // Remote peer shut down the association with no error.
         RTC_LOG(LS_INFO) << ToString() << ": DTLS transport closed by remote";
         set_writable(false);
         set_dtls_state(webrtc::DtlsTransportState::kClosed);
         NotifyOnClose();
-      } else if (ret == rtc::SR_ERROR) {
+      } else if (ret == webrtc::SR_ERROR) {
         // Remote peer shut down the association with an error.
         RTC_LOG(LS_INFO)
             << ToString()
@@ -851,10 +851,10 @@ void DtlsTransport::OnDtlsEvent(int sig, int err) {
         set_dtls_state(webrtc::DtlsTransportState::kFailed);
         NotifyOnClose();
       }
-    } while (ret == rtc::SR_SUCCESS);
+    } while (ret == webrtc::SR_SUCCESS);
   }
-  if (sig & rtc::SE_CLOSE) {
-    RTC_DCHECK(sig == rtc::SE_CLOSE);  // SE_CLOSE should be by itself.
+  if (sig & webrtc::SE_CLOSE) {
+    RTC_DCHECK(sig == webrtc::SE_CLOSE);  // SE_CLOSE should be by itself.
     set_writable(false);
     if (!err) {
       RTC_LOG(LS_INFO) << ToString() << ": DTLS transport closed";

@@ -189,7 +189,7 @@ static BIO_METHOD* BIO_stream_method() {
   return method;
 }
 
-static BIO* BIO_new_stream(StreamInterface* stream) {
+static BIO* BIO_new_stream(webrtc::StreamInterface* stream) {
   BIO* ret = BIO_new(BIO_stream_method());
   if (ret == nullptr) {
     return nullptr;
@@ -218,15 +218,16 @@ static int stream_read(BIO* b, char* out, int outl) {
   if (!out) {
     return -1;
   }
-  StreamInterface* stream = static_cast<StreamInterface*>(BIO_get_data(b));
+  webrtc::StreamInterface* stream =
+      static_cast<webrtc::StreamInterface*>(BIO_get_data(b));
   BIO_clear_retry_flags(b);
   size_t read;
   int error;
-  StreamResult result = stream->Read(
+  webrtc::StreamResult result = stream->Read(
       rtc::MakeArrayView(reinterpret_cast<uint8_t*>(out), outl), read, error);
-  if (result == SR_SUCCESS) {
+  if (result == webrtc::SR_SUCCESS) {
     return webrtc::checked_cast<int>(read);
-  } else if (result == SR_BLOCK) {
+  } else if (result == webrtc::SR_BLOCK) {
     BIO_set_retry_read(b);
   }
   return -1;
@@ -236,16 +237,17 @@ static int stream_write(BIO* b, const char* in, int inl) {
   if (!in) {
     return -1;
   }
-  StreamInterface* stream = static_cast<StreamInterface*>(BIO_get_data(b));
+  webrtc::StreamInterface* stream =
+      static_cast<webrtc::StreamInterface*>(BIO_get_data(b));
   BIO_clear_retry_flags(b);
   size_t written;
   int error;
-  StreamResult result = stream->Write(
+  webrtc::StreamResult result = stream->Write(
       rtc::MakeArrayView(reinterpret_cast<const uint8_t*>(in), inl), written,
       error);
-  if (result == SR_SUCCESS) {
+  if (result == webrtc::SR_SUCCESS) {
     return webrtc::checked_cast<int>(written);
-  } else if (result == SR_BLOCK) {
+  } else if (result == webrtc::SR_BLOCK) {
     BIO_set_retry_write(b);
   }
   return -1;
@@ -260,9 +262,10 @@ static long stream_ctrl(BIO* b, int cmd, long num, void* ptr) {
     case BIO_CTRL_RESET:
       return 0;
     case BIO_CTRL_EOF: {
-      StreamInterface* stream = static_cast<StreamInterface*>(ptr);
+      webrtc::StreamInterface* stream =
+          static_cast<webrtc::StreamInterface*>(ptr);
       // 1 means end-of-stream.
-      return (stream->GetState() == SS_CLOSED) ? 1 : 0;
+      return (stream->GetState() == webrtc::SS_CLOSED) ? 1 : 0;
     }
     case BIO_CTRL_WPENDING:
     case BIO_CTRL_PENDING:
@@ -285,7 +288,7 @@ static long stream_ctrl(BIO* b, int cmd, long num, void* ptr) {
 /////////////////////////////////////////////////////////////////////////////
 
 OpenSSLStreamAdapter::OpenSSLStreamAdapter(
-    std::unique_ptr<StreamInterface> stream,
+    std::unique_ptr<webrtc::StreamInterface> stream,
     absl::AnyInvocable<void(SSLHandshakeError)> handshake_error,
     const webrtc::FieldTrialsView* field_trials)
     : stream_(std::move(stream)),
@@ -359,7 +362,7 @@ SSLPeerCertificateDigestError OpenSSLStreamAdapter::SetPeerCertificateDigest(
     // Post the event asynchronously to unwind the stack. The caller
     // of ContinueSSL may be the same object listening for these
     // events and may not be prepared for reentrancy.
-    PostEvent(SE_OPEN | SE_READ | SE_WRITE, 0);
+    PostEvent(webrtc::SE_OPEN | webrtc::SE_READ | webrtc::SE_WRITE, 0);
   }
   return SSLPeerCertificateDigestError::NONE;
 }
@@ -522,7 +525,7 @@ int OpenSSLStreamAdapter::StartSSL() {
     return -1;
   }
 
-  if (stream_->GetState() != SS_OPEN) {
+  if (stream_->GetState() != webrtc::SS_OPEN) {
     state_ = SSL_WAIT;
     return 0;
   }
@@ -554,9 +557,10 @@ void OpenSSLStreamAdapter::SetInitialRetransmissionTimeout(int timeout_ms) {
 //
 // StreamInterface Implementation
 //
-StreamResult OpenSSLStreamAdapter::Write(rtc::ArrayView<const uint8_t> data,
-                                         size_t& written,
-                                         int& error) {
+webrtc::StreamResult OpenSSLStreamAdapter::Write(
+    rtc::ArrayView<const uint8_t> data,
+    size_t& written,
+    int& error) {
   RTC_DLOG(LS_VERBOSE) << "OpenSSLStreamAdapter::Write(" << data.size() << ")";
 
   switch (state_) {
@@ -565,23 +569,23 @@ StreamResult OpenSSLStreamAdapter::Write(rtc::ArrayView<const uint8_t> data,
       return stream_->Write(data, written, error);
     case SSL_WAIT:
     case SSL_CONNECTING:
-      return SR_BLOCK;
+      return webrtc::SR_BLOCK;
     case SSL_CONNECTED:
       if (WaitingToVerifyPeerCertificate()) {
-        return SR_BLOCK;
+        return webrtc::SR_BLOCK;
       }
       break;
     case SSL_ERROR:
     case SSL_CLOSED:
     default:
       error = ssl_error_code_;
-      return SR_ERROR;
+      return webrtc::SR_ERROR;
   }
 
   // OpenSSL will return an error if we try to write zero bytes
   if (data.size() == 0) {
     written = 0;
-    return SR_SUCCESS;
+    return webrtc::SR_SUCCESS;
   }
 
   ssl_write_needs_read_ = false;
@@ -595,26 +599,26 @@ StreamResult OpenSSLStreamAdapter::Write(rtc::ArrayView<const uint8_t> data,
       RTC_DCHECK_GT(code, 0);
       RTC_DCHECK_LE(code, data.size());
       written = code;
-      return SR_SUCCESS;
+      return webrtc::SR_SUCCESS;
     case SSL_ERROR_WANT_READ:
       RTC_DLOG(LS_VERBOSE) << " -- error want read";
       ssl_write_needs_read_ = true;
-      return SR_BLOCK;
+      return webrtc::SR_BLOCK;
     case SSL_ERROR_WANT_WRITE:
       RTC_DLOG(LS_VERBOSE) << " -- error want write";
-      return SR_BLOCK;
+      return webrtc::SR_BLOCK;
     case SSL_ERROR_ZERO_RETURN:
     default:
       Error("SSL_write", (ssl_error ? ssl_error : -1), 0, false);
       error = ssl_error_code_;
-      return SR_ERROR;
+      return webrtc::SR_ERROR;
   }
   // not reached
 }
 
-StreamResult OpenSSLStreamAdapter::Read(rtc::ArrayView<uint8_t> data,
-                                        size_t& read,
-                                        int& error) {
+webrtc::StreamResult OpenSSLStreamAdapter::Read(rtc::ArrayView<uint8_t> data,
+                                                size_t& read,
+                                                int& error) {
   RTC_DLOG(LS_VERBOSE) << "OpenSSLStreamAdapter::Read(" << data.size() << ")";
   switch (state_) {
     case SSL_NONE:
@@ -622,24 +626,24 @@ StreamResult OpenSSLStreamAdapter::Read(rtc::ArrayView<uint8_t> data,
       return stream_->Read(data, read, error);
     case SSL_WAIT:
     case SSL_CONNECTING:
-      return SR_BLOCK;
+      return webrtc::SR_BLOCK;
     case SSL_CONNECTED:
       if (WaitingToVerifyPeerCertificate()) {
-        return SR_BLOCK;
+        return webrtc::SR_BLOCK;
       }
       break;
     case SSL_CLOSED:
-      return SR_EOS;
+      return webrtc::SR_EOS;
     case SSL_ERROR:
     default:
       error = ssl_error_code_;
-      return SR_ERROR;
+      return webrtc::SR_ERROR;
   }
 
   // Don't trust OpenSSL with zero byte reads
   if (data.size() == 0) {
     read = 0;
-    return SR_SUCCESS;
+    return webrtc::SR_SUCCESS;
   }
 
   ssl_read_needs_write_ = false;
@@ -663,25 +667,25 @@ StreamResult OpenSSLStreamAdapter::Read(rtc::ArrayView<uint8_t> data,
           RTC_DLOG(LS_INFO) << " -- short DTLS read. flushing";
           FlushInput(pending);
           error = SSE_MSG_TRUNC;
-          return SR_ERROR;
+          return webrtc::SR_ERROR;
         }
       }
-      return SR_SUCCESS;
+      return webrtc::SR_SUCCESS;
     case SSL_ERROR_WANT_READ:
       RTC_DLOG(LS_VERBOSE) << " -- error want read";
-      return SR_BLOCK;
+      return webrtc::SR_BLOCK;
     case SSL_ERROR_WANT_WRITE:
       RTC_DLOG(LS_VERBOSE) << " -- error want write";
       ssl_read_needs_write_ = true;
-      return SR_BLOCK;
+      return webrtc::SR_BLOCK;
     case SSL_ERROR_ZERO_RETURN:
       RTC_DLOG(LS_VERBOSE) << " -- remote side closed";
       Close();
-      return SR_EOS;
+      return webrtc::SR_EOS;
     default:
       Error("SSL_read", (ssl_error ? ssl_error : -1), 0, false);
       error = ssl_error_code_;
-      return SR_ERROR;
+      return webrtc::SR_ERROR;
   }
   // not reached
 }
@@ -717,18 +721,18 @@ void OpenSSLStreamAdapter::Close() {
   stream_->Close();
 }
 
-StreamState OpenSSLStreamAdapter::GetState() const {
+webrtc::StreamState OpenSSLStreamAdapter::GetState() const {
   switch (state_) {
     case SSL_WAIT:
     case SSL_CONNECTING:
-      return SS_OPENING;
+      return webrtc::SS_OPENING;
     case SSL_CONNECTED:
       if (WaitingToVerifyPeerCertificate()) {
-        return SS_OPENING;
+        return webrtc::SS_OPENING;
       }
-      return SS_OPEN;
+      return webrtc::SS_OPEN;
     default:
-      return SS_CLOSED;
+      return webrtc::SS_CLOSED;
   }
   // not reached
 }
@@ -738,11 +742,11 @@ void OpenSSLStreamAdapter::OnEvent(int events, int err) {
   int events_to_signal = 0;
   int signal_error = 0;
 
-  if ((events & SE_OPEN)) {
+  if ((events & webrtc::SE_OPEN)) {
     RTC_DLOG(LS_VERBOSE) << "OpenSSLStreamAdapter::OnEvent SE_OPEN";
     if (state_ != SSL_WAIT) {
       RTC_DCHECK(state_ == SSL_NONE);
-      events_to_signal |= SE_OPEN;
+      events_to_signal |= webrtc::SE_OPEN;
     } else {
       state_ = SSL_CONNECTING;
       if (int err = BeginSSL()) {
@@ -752,36 +756,36 @@ void OpenSSLStreamAdapter::OnEvent(int events, int err) {
     }
   }
 
-  if ((events & (SE_READ | SE_WRITE))) {
+  if ((events & (webrtc::SE_READ | webrtc::SE_WRITE))) {
     RTC_DLOG(LS_VERBOSE) << "OpenSSLStreamAdapter::OnEvent"
-                         << ((events & SE_READ) ? " SE_READ" : "")
-                         << ((events & SE_WRITE) ? " SE_WRITE" : "");
+                         << ((events & webrtc::SE_READ) ? " SE_READ" : "")
+                         << ((events & webrtc::SE_WRITE) ? " SE_WRITE" : "");
     if (state_ == SSL_NONE) {
-      events_to_signal |= events & (SE_READ | SE_WRITE);
+      events_to_signal |= events & (webrtc::SE_READ | webrtc::SE_WRITE);
     } else if (state_ == SSL_CONNECTING) {
       if (int err = ContinueSSL()) {
         Error("ContinueSSL", err, 0, true);
         return;
       }
     } else if (state_ == SSL_CONNECTED) {
-      if (((events & SE_READ) && ssl_write_needs_read_) ||
-          (events & SE_WRITE)) {
+      if (((events & webrtc::SE_READ) && ssl_write_needs_read_) ||
+          (events & webrtc::SE_WRITE)) {
         RTC_DLOG(LS_VERBOSE) << " -- onStreamWriteable";
-        events_to_signal |= SE_WRITE;
+        events_to_signal |= webrtc::SE_WRITE;
       }
-      if (((events & SE_WRITE) && ssl_read_needs_write_) ||
-          (events & SE_READ)) {
+      if (((events & webrtc::SE_WRITE) && ssl_read_needs_write_) ||
+          (events & webrtc::SE_READ)) {
         RTC_DLOG(LS_VERBOSE) << " -- onStreamReadable";
-        events_to_signal |= SE_READ;
+        events_to_signal |= webrtc::SE_READ;
       }
     }
   }
 
-  if ((events & SE_CLOSE)) {
+  if ((events & webrtc::SE_CLOSE)) {
     RTC_DLOG(LS_VERBOSE) << "OpenSSLStreamAdapter::OnEvent(SE_CLOSE, " << err
                          << ")";
     Cleanup(0);
-    events_to_signal |= SE_CLOSE;
+    events_to_signal |= webrtc::SE_CLOSE;
     // SE_CLOSE is the only event that uses the final parameter to OnEvent().
     RTC_DCHECK(signal_error == 0);
     signal_error = err;
@@ -903,7 +907,7 @@ int OpenSSLStreamAdapter::ContinueSSL() {
         // The caller of ContinueSSL may be the same object listening for these
         // events and may not be prepared for reentrancy.
         // PostEvent(SE_OPEN | SE_READ | SE_WRITE, 0);
-        FireEvent(SE_OPEN | SE_READ | SE_WRITE, 0);
+        FireEvent(webrtc::SE_OPEN | webrtc::SE_READ | webrtc::SE_WRITE, 0);
       }
       break;
     case SSL_ERROR_WANT_READ:
@@ -950,7 +954,7 @@ void OpenSSLStreamAdapter::Error(absl::string_view context,
   ssl_error_code_ = err;
   Cleanup(alert);
   if (signal) {
-    FireEvent(SE_CLOSE, err);
+    FireEvent(webrtc::SE_CLOSE, err);
   }
 }
 

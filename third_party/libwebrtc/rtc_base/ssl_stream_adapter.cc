@@ -81,7 +81,7 @@ bool IsGcmCryptoSuite(int crypto_suite) {
 }
 
 std::unique_ptr<SSLStreamAdapter> SSLStreamAdapter::Create(
-    std::unique_ptr<StreamInterface> stream,
+    std::unique_ptr<webrtc::StreamInterface> stream,
     absl::AnyInvocable<void(SSLHandshakeError)> handshake_error,
     const webrtc::FieldTrialsView* field_trials) {
   return std::make_unique<OpenSSLStreamAdapter>(
