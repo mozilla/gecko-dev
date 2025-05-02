@@ -524,7 +524,7 @@ bool StunMessage::ValidateFingerprint(const char* data, size_t size) {
   uint32_t fingerprint =
       rtc::GetBE32(fingerprint_attr_data + kStunAttributeHeaderSize);
   return ((fingerprint ^ STUN_FINGERPRINT_XOR_VALUE) ==
-          rtc::ComputeCrc32(data, size - fingerprint_attr_size));
+          webrtc::ComputeCrc32(data, size - fingerprint_attr_size));
 }
 
 // static
@@ -569,7 +569,7 @@ bool StunMessage::AddFingerprint() {
 
   int msg_len_for_crc32 = static_cast<int>(
       buf.Length() - kStunAttributeHeaderSize - fingerprint_attr->length());
-  uint32_t c = rtc::ComputeCrc32(buf.Data(), msg_len_for_crc32);
+  uint32_t c = webrtc::ComputeCrc32(buf.Data(), msg_len_for_crc32);
 
   // Insert the correct CRC-32, XORed with a constant, into the attribute.
   fingerprint_attr->SetValue(c ^ STUN_FINGERPRINT_XOR_VALUE);
