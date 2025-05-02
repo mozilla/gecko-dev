@@ -18,6 +18,7 @@
 #include "nsLoadGroup.h"
 #include "nsNetUtil.h"
 #include "nsIHttpChannel.h"
+#include "nsIScriptChannel.h"
 #include "nsIWebNavigation.h"
 #include "nsIWebProgressListener2.h"
 
@@ -405,26 +406,32 @@ NS_IMETHODIMP
 nsDocLoader::OnStartRequest(nsIRequest* request) {
   // called each time a request is added to the group.
 
-  // Some docloaders deal with background requests in their OnStartRequest
-  // override, but here we don't want to do anything with them, so return early.
   nsLoadFlags loadFlags = 0;
   request->GetLoadFlags(&loadFlags);
-  if (loadFlags & nsIRequest::LOAD_BACKGROUND) {
-    return NS_OK;
-  }
 
   if (MOZ_LOG_TEST(gDocLoaderLog, LogLevel::Debug)) {
     nsAutoCString name;
     request->GetName(name);
 
     uint32_t count = 0;
-    if (mLoadGroup) mLoadGroup->GetActiveCount(&count);
+    if (mLoadGroup) {
+      mLoadGroup->GetActiveCount(&count);
+    }
 
     MOZ_LOG(gDocLoaderLog, LogLevel::Debug,
             ("DocLoader:%p: OnStartRequest[%p](%s) mIsLoadingDocument=%s, %u "
-             "active URLs",
+             "active URLs, loadFlags=%" PRIu32,
              this, request, name.get(), (mIsLoadingDocument ? "true" : "false"),
-             count));
+             count, static_cast<uint32_t>(loadFlags)));
+  }
+
+  // Some docloaders deal with background requests in their OnStartRequest
+  // override, but here we don't want to do anything with them, so return early.
+  if (loadFlags & nsIRequest::LOAD_BACKGROUND) {
+    if (nsCOMPtr<nsIScriptChannel> scriptChannel = do_QueryInterface(request)) {
+      mIsLoadingJavascriptURI = scriptChannel->GetIsDocumentLoad();
+    }
+    return NS_OK;
   }
 
   bool justStartedLoading = false;
@@ -433,6 +440,7 @@ nsDocLoader::OnStartRequest(nsIRequest* request) {
     justStartedLoading = true;
     mIsLoadingDocument = true;
     mDocumentOpenedButNotLoaded = false;
+    mIsLoadingJavascriptURI = false;
     ClearInternalProgress();  // only clear our progress if we are starting a
                               // new load....
   }
@@ -502,32 +510,70 @@ nsDocLoader::OnStartRequest(nsIRequest* request) {
 // TODO: Convert this to MOZ_CAN_RUN_SCRIPT (bug 1415230)
 MOZ_CAN_RUN_SCRIPT_BOUNDARY NS_IMETHODIMP
 nsDocLoader::OnStopRequest(nsIRequest* aRequest, nsresult aStatus) {
-  // Some docloaders deal with background requests in their OnStopRequest
-  // override, but here we don't want to do anything with them, so return early.
   nsLoadFlags lf = 0;
   aRequest->GetLoadFlags(&lf);
-  if (lf & nsIRequest::LOAD_BACKGROUND) {
-    return NS_OK;
-  }
-
-  nsresult rv = NS_OK;
 
   if (MOZ_LOG_TEST(gDocLoaderLog, LogLevel::Debug)) {
     nsAutoCString name;
     aRequest->GetName(name);
 
     uint32_t count = 0;
-    if (mLoadGroup) mLoadGroup->GetActiveCount(&count);
+    if (mLoadGroup) {
+      mLoadGroup->GetActiveCount(&count);
+    }
 
     MOZ_LOG(gDocLoaderLog, LogLevel::Debug,
-            ("DocLoader:%p: OnStopRequest[%p](%s) status=%" PRIx32
+            ("DocLoader:%p: OnStopRequest[%p](%s) status=%" PRIu32
              " mIsLoadingDocument=%s, mDocumentOpenedButNotLoaded=%s,"
-             " %u active URLs",
+             " mIsLoadingJavascriptURI=%s, %u active URLs, loadFlags=%" PRIu32,
              this, aRequest, name.get(), static_cast<uint32_t>(aStatus),
              (mIsLoadingDocument ? "true" : "false"),
-             (mDocumentOpenedButNotLoaded ? "true" : "false"), count));
+             (mDocumentOpenedButNotLoaded ? "true" : "false"),
+             (mIsLoadingJavascriptURI ? "true" : "false"), count,
+             static_cast<uint32_t>(lf)));
   }
 
+  // Some docloaders deal with background requests in their OnStopRequest
+  // override, but here we don't want to do anything with them, so return early.
+  if (lf & nsIRequest::LOAD_BACKGROUND) {
+    if (nsCOMPtr<nsIScriptChannel> scriptChannel =
+            do_QueryInterface(aRequest)) {
+      if (mIsLoadingJavascriptURI && scriptChannel->GetIsDocumentLoad()) {
+        // If there is no valid execution result from javascript URL,
+        // nsJSChannel stops further process. However, we might still need to
+        // file a load event per https://github.com/whatwg/html/issues/1895.
+        if (NS_FAILED(aStatus)) {
+          RefPtr<Document> doc = do_GetInterface(GetAsSupports(this));
+          // XXX: There's a difference between browsers — Blink fires the load
+          // event as long as the current document is an initial document,
+          // whereas WebKit seems to fire the load event only during the initial
+          // load and does not fire it for the top-level document.
+          // Our behavior aligns more closely with WebKit's.
+          if (doc && doc->IsInitialDocument()) {
+            nsCOMPtr<nsIChannel> channel = do_QueryInterface(aRequest);
+            MOZ_ASSERT(channel, "How can the request not be a channel?");
+
+            nsCOMPtr<nsILoadInfo> loadInfo;
+            channel->GetLoadInfo(getter_AddRefs(loadInfo));
+            if (loadInfo && loadInfo->GetOriginalFrameSrcLoad()) {
+              DocLoaderIsEmpty(false);
+              return NS_OK;
+            }
+          }
+        }
+
+        // In the case where the execution result is valid, the result will be
+        // placed into nsStringInputStream. nsJSChannel will then open the
+        // nsInputSteamChannel as the "real" document channel to continue
+        // loading process. Since there will be a "real" documeht channel, we no
+        // longer need to track whether we are loading a javascipt URI.
+        mIsLoadingJavascriptURI = false;
+      }
+    }
+    return NS_OK;
+  }
+
+  nsresult rv = NS_OK;
   bool fireTransferring = false;
 
   //
@@ -708,7 +754,8 @@ void nsDocLoader::DocLoaderIsEmpty(bool aFlushLayout,
     NS_ASSERTION(!mIsFlushingLayout, "Someone screwed up");
     // We may not have a document request if we are in a
     // document.open() situation.
-    NS_ASSERTION(mDocumentRequest || mDocumentOpenedButNotLoaded,
+    NS_ASSERTION(mDocumentRequest || mDocumentOpenedButNotLoaded ||
+                     mIsLoadingJavascriptURI,
                  "No Document Request!");
 
     // The load group for this DocumentLoader is idle.  Flush if we need to.
@@ -735,7 +782,8 @@ void nsDocLoader::DocLoaderIsEmpty(bool aFlushLayout,
     //
     // Note, mDocumentRequest can be null while mDocumentOpenedButNotLoaded is
     // false if the flushing above re-entered this method.
-    if (IsBusy() || (!mDocumentRequest && !mDocumentOpenedButNotLoaded)) {
+    if (IsBusy() || (!mDocumentRequest && !mDocumentOpenedButNotLoaded &&
+                     !mIsLoadingJavascriptURI)) {
       return;
     }
 
@@ -785,8 +833,9 @@ void nsDocLoader::DocLoaderIsEmpty(bool aFlushLayout,
         NotifyDoneWithOnload(parent);
       }
     } else {
-      MOZ_ASSERT(mDocumentOpenedButNotLoaded);
+      MOZ_ASSERT(mDocumentOpenedButNotLoaded || mIsLoadingJavascriptURI);
       mDocumentOpenedButNotLoaded = false;
+      mIsLoadingJavascriptURI = false;
 
       // Make sure we do the ChildEnteringOnload/ChildDoneWithOnload even if we
       // plan to skip firing our own load event, because otherwise we might

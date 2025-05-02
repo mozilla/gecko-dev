@@ -332,6 +332,11 @@ class nsDocLoader : public nsIDocumentLoader,
    */
   bool mDocumentOpenedButNotLoaded;
 
+  /**
+   * This flag indicates that the loader is loading javascipt URI.
+   */
+  bool mIsLoadingJavascriptURI = false;
+
   bool mNotifyAboutBackgroundRequests;
 
   static const PLDHashTableOps sRequestInfoHashOps;
@@ -361,7 +366,8 @@ class nsDocLoader : public nsIDocumentLoader,
    * load event yet.
    */
   bool IsBlockingLoadEvent() const {
-    return mIsLoadingDocument || mDocumentOpenedButNotLoaded;
+    return mIsLoadingDocument || mDocumentOpenedButNotLoaded ||
+           mIsLoadingJavascriptURI;
   }
 
   RefPtr<mozilla::intl::Localization> mL10n;
