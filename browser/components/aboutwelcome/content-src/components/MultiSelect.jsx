@@ -214,7 +214,7 @@ export const MultiSelect = ({
               )}
               onChange={handleChange}
               ref={el => (refs.current[id] = el)}
-              aria-describedby={description ? `${id}-description` : null}
+              aria-labelledby={`${label ? `${id}-label` : ""} ${description ? `${id}-description` : ""}`}
               tabIndex={isPicker ? "-1" : "0"}
             />
             {isPicker && (
@@ -226,7 +226,7 @@ export const MultiSelect = ({
             )}
             {label ? (
               <Localized text={label}>
-                <label htmlFor={id}></label>
+                <label id={`${id}-label`} htmlFor={id}></label>
               </Localized>
             ) : null}
             {description ? (

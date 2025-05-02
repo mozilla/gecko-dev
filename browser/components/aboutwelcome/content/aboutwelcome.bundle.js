@@ -2933,7 +2933,7 @@ const MultiSelect = ({
     style: _lib_aboutwelcome_utils_mjs__WEBPACK_IMPORTED_MODULE_2__.AboutWelcomeUtils.getValidStyle(icon?.style, MULTI_SELECT_ICON_STYLES),
     onChange: handleChange,
     ref: el => refs.current[id] = el,
-    "aria-describedby": description ? `${id}-description` : null,
+    "aria-labelledby": `${label ? `${id}-label` : ""} ${description ? `${id}-description` : ""}`,
     tabIndex: isPicker ? "-1" : "0"
   }), isPicker && /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(PickerIcon, {
     emoji: pickerEmoji,
@@ -2942,6 +2942,7 @@ const MultiSelect = ({
   }), label ? /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(_MSLocalized__WEBPACK_IMPORTED_MODULE_1__.Localized, {
     text: label
   }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("label", {
+    id: `${id}-label`,
     htmlFor: id
   })) : null, description ? /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(_MSLocalized__WEBPACK_IMPORTED_MODULE_1__.Localized, {
     text: description
