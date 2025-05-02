@@ -380,6 +380,6 @@ class JujutsuRepository(Repository):
             "-n1",
             "-T",
             "committer.timestamp()",
-            str(path),
+            '"%s"' % str(path).replace("\\", "\\\\"),
         ).rstrip()
         return datetime.strptime(date, "%Y-%m-%d %H:%M:%S.%f %z")
