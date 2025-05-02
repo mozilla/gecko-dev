@@ -47,7 +47,7 @@ the interactive setup process.
 
 .. code-block:: shell
 
-    curl -L https://hg.mozilla.org/mozilla-central/raw-file/default/python/mozboot/bin/bootstrap.py -O
+    curl -L https://raw.githubusercontent.com/mozilla-firefox/firefox/refs/heads/main/python/mozboot/bin/bootstrap.py -O
     python3 bootstrap.py
 
 Choosing a build type
