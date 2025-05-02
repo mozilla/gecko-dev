@@ -401,27 +401,6 @@ SamplerThread::SamplerThread(PSLockRef aLock, uint32_t aActivityGeneration,
       mActivityGeneration(aActivityGeneration),
       mIntervalMicroseconds(
           std::max(1, int(floor(aIntervalMilliseconds * 1000 + 0.5)))) {
-#if defined(USE_LUL_STACKWALK)
-  lul::LUL* lul = CorePS::Lul(aLock);
-  if (!lul && ProfilerFeature::HasStackWalkEnabled(aFeatures)) {
-    CorePS::SetLul(aLock, MakeUnique<lul::LUL>(logging_sink_for_LUL));
-    // Read all the unwind info currently available.
-    lul = CorePS::Lul(aLock);
-    read_procmaps(lul);
-
-    // Switch into unwind mode. After this point, we can't add or remove any
-    // unwind info to/from this LUL instance. The only thing we can do with
-    // it is Unwind() calls.
-    lul->EnableUnwinding();
-
-    // Has a test been requested?
-    if (getenv("MOZ_PROFILER_LUL_TEST")) {
-      int nTests = 0, nTestsPassed = 0;
-      RunLulUnitTests(&nTests, &nTestsPassed, lul);
-    }
-  }
-#endif
-
   // Start the sampling thread. It repeatedly sends a SIGPROF signal. Sending
   // the signal ourselves instead of relying on itimer provides much better
   // accuracy.
