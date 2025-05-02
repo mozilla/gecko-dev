@@ -135,13 +135,11 @@ void HTMLDialogElement::Close(
     return;
   }
 
-  if (StaticPrefs::dom_element_dialog_toggle_events_enabled()) {
-    FireToggleEvent(u"open"_ns, u"closed"_ns, u"beforetoggle"_ns);
-    if (!Open()) {
-      return;
-    }
-    QueueToggleEventTask();
+  FireToggleEvent(u"open"_ns, u"closed"_ns, u"beforetoggle"_ns);
+  if (!Open()) {
+    return;
   }
+  QueueToggleEventTask();
 
   if (aReturnValue.WasPassed()) {
     SetReturnValue(aReturnValue.Value());
@@ -229,19 +227,17 @@ void HTMLDialogElement::Show(ErrorResult& aError) {
   // with the cancelable attribute initialized to true, the oldState attribute
   // initialized to "closed", and the newState attribute initialized to "open"
   // at this is false, then return.
-  if (StaticPrefs::dom_element_dialog_toggle_events_enabled()) {
-    if (FireToggleEvent(u"closed"_ns, u"open"_ns, u"beforetoggle"_ns)) {
-      return;
-    }
-
-    // 4. If this has an open attribute, then return.
-    if (Open()) {
-      return;
-    }
-
-    // 5. Queue a dialog toggle event task given this, "closed", and "open".
-    QueueToggleEventTask();
+  if (FireToggleEvent(u"closed"_ns, u"open"_ns, u"beforetoggle"_ns)) {
+    return;
   }
+
+  // 4. If this has an open attribute, then return.
+  if (Open()) {
+    return;
+  }
+
+  // 5. Queue a dialog toggle event task given this, "closed", and "open".
+  QueueToggleEventTask();
 
   // 6. Add an open attribute to this, whose value is the empty string.
   SetOpen(true, IgnoreErrors());
@@ -387,30 +383,28 @@ void HTMLDialogElement::ShowModal(ErrorResult& aError) {
         "Dialog element is already an open popover.");
   }
 
-  if (StaticPrefs::dom_element_dialog_toggle_events_enabled()) {
-    // 6. If the result of firing an event named beforetoggle, using
-    // ToggleEvent, with the cancelable attribute initialized to true, the
-    // oldState attribute initialized to "closed", and the newState attribute
-    // initialized to "open" at subject is false, then return.
-    if (FireToggleEvent(u"closed"_ns, u"open"_ns, u"beforetoggle"_ns)) {
-      return;
-    }
-
-    // 7. If subject has an open attribute, then return.
-    // 8. If subject is not connected, then return.
-    // 9. If subject is in the popover showing state, then return.
-    if (Open() || !IsInComposedDoc() || IsPopoverOpen()) {
-      return;
-    }
-
-    // 10. Queue a dialog toggle event task given subject, "closed", and "open".
-    QueueToggleEventTask();
+  // 6. If the result of firing an event named beforetoggle, using
+  // ToggleEvent, with the cancelable attribute initialized to true, the
+  // oldState attribute initialized to "closed", and the newState attribute
+  // initialized to "open" at subject is false, then return.
+  if (FireToggleEvent(u"closed"_ns, u"open"_ns, u"beforetoggle"_ns)) {
+    return;
   }
 
-  // 12. Set is modal of subject to true.
+  // 7. If subject has an open attribute, then return.
+  // 8. If subject is not connected, then return.
+  // 9. If subject is in the popover showing state, then return.
+  if (Open() || !IsInComposedDoc() || IsPopoverOpen()) {
+    return;
+  }
+
+  // 10. Queue a dialog toggle event task given subject, "closed", and "open".
+  QueueToggleEventTask();
 
   // 11. Add an open attribute to subject, whose value is the empty string.
   SetOpen(true, aError);
+
+  // 12. Set is modal of subject to true.
 
   // 13. Assert: subject's node document's open dialogs list does not contain
   // subject.
