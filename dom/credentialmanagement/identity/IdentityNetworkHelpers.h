@@ -24,8 +24,11 @@ class IdentityNetworkHelpers {
   static RefPtr<MozPromise<IdentityProviderWellKnown, nsresult, true>>
   FetchWellKnownHelper(nsIURI* aWellKnown, nsIPrincipal* aTriggeringPrincipal);
 
-  static RefPtr<MozPromise<IdentityProviderAPIConfig, nsresult, true>>
-  FetchConfigHelper(nsIURI* aConfig, nsIPrincipal* aTriggeringPrincipal);
+  static RefPtr<MozPromise<
+      std::tuple<Maybe<IdentityProviderWellKnown>, IdentityProviderAPIConfig>,
+      nsresult, true>>
+  FetchConfigHelper(nsIURI* aConfig, nsIPrincipal* aTriggeringPrincipal,
+                    Maybe<IdentityProviderWellKnown> aWellKnownConfig);
 
   static RefPtr<MozPromise<IdentityProviderAccountList, nsresult, true>>
   FetchAccountsHelper(nsIURI* aAccountsEndpoint,
