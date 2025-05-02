@@ -243,7 +243,7 @@ browser {
         background-image: url(resource://gre-resources/password.svg);
       }
       &[data-l10n-id*=switch] {
-        background-image: url(chrome://browser/skin/import-export.svg);
+        background-image: url(chrome://global/skin/icons/arrows-updown.svg);
       }
       &[data-l10n-id*=price] {
         background-image: url(chrome://browser/content/shopping/assets/price.svg);

@@ -178,7 +178,7 @@
 }
 
 #maintenanceButton {
-  list-style-image: url("chrome://browser/skin/import-export.svg");
+  list-style-image: url("chrome://global/skin/icons/arrows-updown.svg");
 }
 
 /* Search bar */

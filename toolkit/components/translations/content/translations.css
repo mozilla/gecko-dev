@@ -58,7 +58,7 @@ select#language-to {
 .language-swap-icon {
   width: 20px;
   height: 20px;
-  background-image: url('chrome://global/content/translations/icons/swap-languages.svg');
+  background-image: url('chrome://global/skin/icons/arrows-updown.svg');
   background-size: contain;
   margin: 0 auto;
   -moz-context-properties: fill;
