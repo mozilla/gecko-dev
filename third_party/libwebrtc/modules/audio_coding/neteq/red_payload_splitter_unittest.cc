@@ -283,8 +283,8 @@ TEST(RedPayloadSplitter, TwoPacketsThreePayloads) {
 // 0 = CNGnb
 // 1 = PCMu
 // 2 = DTMF (AVT)
-// 3 = iLBC
-// We expect the method CheckRedPayloads to discard the iLBC packet, since it
+// 3 = PCMa
+// We expect the method CheckRedPayloads to discard the PCMa packet, since it
 // is a non-CNG, non-DTMF payload of another type than the first speech payload
 // found in the list (which is PCMu).
 TEST(RedPayloadSplitter, CheckRedPayloads) {
@@ -304,7 +304,7 @@ TEST(RedPayloadSplitter, CheckRedPayloads) {
   decoder_database.RegisterPayload(1, SdpAudioFormat("pcmu", 8000, 1));
   decoder_database.RegisterPayload(2,
                                    SdpAudioFormat("telephone-event", 8000, 1));
-  decoder_database.RegisterPayload(3, SdpAudioFormat("ilbc", 8000, 1));
+  decoder_database.RegisterPayload(1, SdpAudioFormat("pcma", 8000, 1));
 
   RedPayloadSplitter splitter;
   splitter.CheckRedPayloads(&packet_list, decoder_database);

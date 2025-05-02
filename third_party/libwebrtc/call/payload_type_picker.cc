@@ -168,7 +168,9 @@ PayloadTypePicker::PayloadTypePicker() {
 
       // Payload type assignments currently used by WebRTC.
       // Includes data to reduce collisions (and thus reassignments)
-      {{cricket::kIlbcCodecName, 8000, 1}, 102},
+      // TODO(bugs.webrtc.org/400630582): Delete this, it's only for test
+      // stability.
+      {{"reserved-do-not-use", 0, 0}, 102},
       {{cricket::kCnCodecName, 16000, 1}, 105},
       {{cricket::kCnCodecName, 32000, 1}, 106},
       {{cricket::kOpusCodecName,

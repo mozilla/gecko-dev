@@ -92,7 +92,7 @@ Codec CreateRedAudioCodec(absl::string_view encoding_id) {
 
 const Codec kAudioCodecs1[] = {CreateAudioCodec(111, "opus", 48000, 2),
                                CreateRedAudioCodec("111"),
-                               CreateAudioCodec(102, "iLBC", 8000, 1),
+                               CreateAudioCodec(102, "G722", 16000, 1),
                                CreateAudioCodec(0, "PCMU", 8000, 1),
                                CreateAudioCodec(8, "PCMA", 8000, 1),
                                CreateAudioCodec(107, "CN", 48000, 1)};
@@ -100,11 +100,11 @@ const Codec kAudioCodecs1[] = {CreateAudioCodec(111, "opus", 48000, 2),
 const Codec kAudioCodecs2[] = {
     CreateAudioCodec(126, "foo", 16000, 1),
     CreateAudioCodec(0, "PCMU", 8000, 1),
-    CreateAudioCodec(127, "iLBC", 8000, 1),
+    CreateAudioCodec(127, "G722", 16000, 1),
 };
 
 const Codec kAudioCodecsAnswer[] = {
-    CreateAudioCodec(102, "iLBC", 8000, 1),
+    CreateAudioCodec(102, "G722", 16000, 1),
     CreateAudioCodec(0, "PCMU", 8000, 1),
 };
 
@@ -4628,7 +4628,7 @@ TEST_P(MediaProtocolTest, TestAudioVideoAcceptance) {
       f1_.CreateOfferOrError(opts, nullptr).MoveValue();
   ASSERT_TRUE(offer.get());
   // Set the protocol for all the contents.
-  for (auto& content : offer.get()->contents()) {
+  for (auto& content : offer->contents()) {
     content.media_description()->set_protocol(GetParam());
   }
   std::unique_ptr<SessionDescription> answer =
