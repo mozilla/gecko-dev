@@ -319,7 +319,7 @@ tasks:
         run:
             using: run-task
             command: >-
-              ./run.sh esr-128 amd64
+              ./run.sh esr amd64
         treeherder:
             platform: linux64-snap/opt
             symbol: B-esr(amd64)
@@ -338,7 +338,7 @@ tasks:
         run:
             using: run-task
             command: >-
-              ./run.sh esr-128 amd64 --debug
+              ./run.sh esr amd64 --debug
         treeherder:
             platform: linux64-snap/debug
             symbol: B-esr(amd64)
