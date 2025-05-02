@@ -66,6 +66,7 @@ class SettingsSubMenuAboutRobot {
         val geckoVersion =
             org.mozilla.geckoview.BuildConfig.MOZ_APP_VERSION + "-" + org.mozilla.geckoview.BuildConfig.MOZ_APP_BUILDID
         val asVersion = mozilla.components.Build.applicationServicesVersion
+        val osVersion = Build.VERSION.RELEASE
         Log.i(TAG, "verifyVersionNumber: Trying to verify that the about section contains build version: $buildNVersion")
         onView(withId(R.id.about_text)).check(matches(withText(containsString(buildNVersion))))
         Log.i(TAG, "verifyVersionNumber: Verified that the about section contains build version: $buildNVersion")
@@ -75,6 +76,9 @@ class SettingsSubMenuAboutRobot {
         Log.i(TAG, "verifyVersionNumber: Trying to verify that the about section contains android services version: $asVersion")
         onView(withId(R.id.about_text)).check(matches(withText(containsString(asVersion))))
         Log.i(TAG, "verifyVersionNumber: Verified that the about section contains android services version: $asVersion")
+        Log.i(TAG, "verifyVersionNumber: Trying to verify that the about section contains Android version: $osVersion")
+        onView(withId(R.id.about_text)).check(matches(withText(containsString("Android $osVersion"))))
+        Log.i(TAG, "verifyVersionNumber: Verified that the about section contains Android version: $osVersion")
     }
 
     fun verifyProductCompany() {

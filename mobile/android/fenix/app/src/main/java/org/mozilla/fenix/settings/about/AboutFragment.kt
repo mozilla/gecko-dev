@@ -6,6 +6,7 @@ package org.mozilla.fenix.settings.about
 
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.os.Build
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
@@ -103,9 +104,11 @@ class AboutFragment : Fragment(), AboutPageListener {
                 GeckoViewBuildConfig.MOZ_APP_VERSION + "-" + GeckoViewBuildConfig.MOZ_APP_BUILDID
             val appServicesAbbreviation = getString(R.string.app_services_abbreviation)
             val appServicesVersion = mozilla.components.Build.applicationServicesVersion
+            val operatingSystemAbbrevation = "OS"
+            val operatingSystemVersion = "Android ${Build.VERSION.RELEASE}"
 
             String.format(
-                "%s (Build #%s)%s\n%s: %s\n%s: %s",
+                "%s (Build #%s)%s\n%s: %s\n%s: %s\n%s: %s",
                 packageInfo.versionName,
                 versionCode,
                 maybeFenixVcsHash,
@@ -113,6 +116,8 @@ class AboutFragment : Fragment(), AboutPageListener {
                 geckoVersion,
                 appServicesAbbreviation,
                 appServicesVersion,
+                operatingSystemAbbrevation,
+                operatingSystemVersion,
             )
         } catch (e: PackageManager.NameNotFoundException) {
             ""
