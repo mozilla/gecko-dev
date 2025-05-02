@@ -10,6 +10,8 @@
 
 #include "media/base/media_constants.h"
 
+#include <cstddef>
+
 namespace cricket {
 
 const int kVideoCodecClockrate = 90000;
@@ -58,6 +60,7 @@ const char kCodecParamSPropStereo[] = "sprop-stereo";
 const char kCodecParamStereo[] = "stereo";
 const char kCodecParamUseInbandFec[] = "useinbandfec";
 const char kCodecParamUseDtx[] = "usedtx";
+const char kCodecParamCbr[] = "cbr";
 const char kCodecParamMaxAverageBitrate[] = "maxaveragebitrate";
 const char kCodecParamMaxPlaybackRate[] = "maxplaybackrate";
 

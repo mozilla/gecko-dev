@@ -143,10 +143,99 @@ SdpMungingType DetermineAudioSdpMungingType(
     return SdpMungingType::kAudioCodecsAddedL16;
   }
 
+  // Audio NACK is not offered by default.
+  bool created_nack =
+      absl::c_find_if(last_created_media_description->codecs(),
+                      [](const cricket::Codec codec) {
+                        return codec.HasFeedbackParam(
+                            cricket::FeedbackParam(cricket::kRtcpFbParamNack));
+                      }) != last_created_media_description->codecs().end();
+  bool set_nack =
+      absl::c_find_if(media_description_to_set->codecs(),
+                      [](const cricket::Codec codec) {
+                        return codec.HasFeedbackParam(
+                            cricket::FeedbackParam(cricket::kRtcpFbParamNack));
+                      }) != media_description_to_set->codecs().end();
+  if (!created_nack && set_nack) {
+    RTC_LOG(LS_WARNING) << "SDP munging: audio nack enabled.";
+    return SdpMungingType::kAudioCodecsRtcpFbAudioNack;
+  }
+
   if (last_created_media_description->codecs().size() <
       media_description_to_set->codecs().size()) {
     RTC_LOG(LS_WARNING) << "SDP munging: audio codecs added.";
     return SdpMungingType::kAudioCodecsAdded;
+  }
+
+  // Opus FEC is on by default. Should not be munged, can be controlled by
+  // the other side.
+  bool created_opus_fec =
+      absl::c_find_if(last_created_media_description->codecs(),
+                      [](const cricket::Codec codec) {
+                        std::string value;
+                        return codec.name == cricket::kOpusCodecName &&
+                               codec.GetParam(cricket::kCodecParamUseInbandFec,
+                                              &value) &&
+                               value == cricket::kParamValueTrue;
+                      }) != last_created_media_description->codecs().end();
+  bool set_opus_fec =
+      absl::c_find_if(
+          media_description_to_set->codecs(), [](const cricket::Codec codec) {
+            std::string value;
+            return codec.name == cricket::kOpusCodecName &&
+                   codec.GetParam(cricket::kCodecParamUseInbandFec, &value) &&
+                   value == cricket::kParamValueTrue;
+          }) != media_description_to_set->codecs().end();
+  if (created_opus_fec && !set_opus_fec) {
+    RTC_LOG(LS_WARNING) << "SDP munging: Opus FEC disabled.";
+    return SdpMungingType::kAudioCodecsFmtpOpusFec;
+  }
+  // Opus DTX is off by default. Should not be munged, can be controlled by
+  // the other side.
+  bool created_opus_dtx =
+      absl::c_find_if(last_created_media_description->codecs(),
+                      [](const cricket::Codec codec) {
+                        std::string value;
+                        return codec.name == cricket::kOpusCodecName &&
+                               codec.GetParam(cricket::kCodecParamUseDtx,
+                                              &value) &&
+                               value == cricket::kParamValueTrue;
+                      }) != last_created_media_description->codecs().end();
+  bool set_opus_dtx =
+      absl::c_find_if(
+          media_description_to_set->codecs(), [](const cricket::Codec codec) {
+            std::string value;
+            return codec.name == cricket::kOpusCodecName &&
+                   codec.GetParam(cricket::kCodecParamUseDtx, &value) &&
+                   value == cricket::kParamValueTrue;
+          }) != media_description_to_set->codecs().end();
+  if (!created_opus_dtx && set_opus_dtx) {
+    RTC_LOG(LS_WARNING) << "SDP munging: Opus DTX enabled.";
+    return SdpMungingType::kAudioCodecsFmtpOpusDtx;
+  }
+
+  // Opus CBR is off by default. Should not be munged, can be controlled by
+  // the other side.
+  bool created_opus_cbr =
+      absl::c_find_if(last_created_media_description->codecs(),
+                      [](const cricket::Codec codec) {
+                        std::string value;
+                        return codec.name == cricket::kOpusCodecName &&
+                               codec.GetParam(cricket::kCodecParamCbr,
+                                              &value) &&
+                               value == cricket::kParamValueTrue;
+                      }) != last_created_media_description->codecs().end();
+  bool set_opus_cbr =
+      absl::c_find_if(
+          media_description_to_set->codecs(), [](const cricket::Codec codec) {
+            std::string value;
+            return codec.name == cricket::kOpusCodecName &&
+                   codec.GetParam(cricket::kCodecParamCbr, &value) &&
+                   value == cricket::kParamValueTrue;
+          }) != media_description_to_set->codecs().end();
+  if (!created_opus_cbr && set_opus_cbr) {
+    RTC_LOG(LS_WARNING) << "SDP munging: Opus CBR enabled.";
+    return SdpMungingType::kAudioCodecsFmtpOpusCbr;
   }
   return SdpMungingType::kNoModification;
 }

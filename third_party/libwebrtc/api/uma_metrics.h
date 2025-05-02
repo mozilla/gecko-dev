@@ -204,7 +204,11 @@ enum SdpMungingType {
   kAudioCodecsReordered = 62,
   kAudioCodecsAddedMultiOpus = 63,
   kAudioCodecsAddedL16 = 64,
+  kAudioCodecsRtcpFbAudioNack = 65,
+  kAudioCodecsFmtpOpusFec = 66,
+  kAudioCodecsFmtpOpusCbr = 67,
   kAudioCodecsFmtpOpusStereo = 68,
+  kAudioCodecsFmtpOpusDtx = 69,
   kAudioCodecsFmtp = 70,
   kAudioCodecsRtcpFb = 71,
   // Video-related munging.

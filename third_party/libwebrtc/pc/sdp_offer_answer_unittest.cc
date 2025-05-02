@@ -2075,6 +2075,76 @@ TEST_F(SdpOfferAnswerMungingTest, OpusStereo) {
       ElementsAre(Pair(SdpMungingType::kAudioCodecsFmtpOpusStereo, 1)));
 }
 
+TEST_F(SdpOfferAnswerMungingTest, OpusFec) {
+  auto pc = CreatePeerConnection();
+  pc->AddAudioTrack("audio_track", {});
+
+  auto offer = pc->CreateOffer();
+  auto& contents = offer->description()->contents();
+  ASSERT_EQ(contents.size(), 1u);
+  auto* media_description = contents[0].media_description();
+  ASSERT_TRUE(media_description);
+  std::vector<cricket::Codec> codecs = media_description->codecs();
+  for (auto& codec : codecs) {
+    if (codec.name == cricket::kOpusCodecName) {
+      // Enabled by default so we need to remove the parameter.
+      EXPECT_TRUE(codec.RemoveParam(cricket::kCodecParamUseInbandFec));
+    }
+  }
+  media_description->set_codecs(codecs);
+  RTCError error;
+  EXPECT_TRUE(pc->SetLocalDescription(std::move(offer), &error));
+  EXPECT_THAT(
+      metrics::Samples("WebRTC.PeerConnection.SdpMunging.Offer.Initial"),
+      ElementsAre(Pair(SdpMungingType::kAudioCodecsFmtpOpusFec, 1)));
+}
+
+TEST_F(SdpOfferAnswerMungingTest, OpusDtx) {
+  auto pc = CreatePeerConnection();
+  pc->AddAudioTrack("audio_track", {});
+
+  auto offer = pc->CreateOffer();
+  auto& contents = offer->description()->contents();
+  ASSERT_EQ(contents.size(), 1u);
+  auto* media_description = contents[0].media_description();
+  ASSERT_TRUE(media_description);
+  std::vector<cricket::Codec> codecs = media_description->codecs();
+  for (auto& codec : codecs) {
+    if (codec.name == cricket::kOpusCodecName) {
+      codec.SetParam(cricket::kCodecParamUseDtx, cricket::kParamValueTrue);
+    }
+  }
+  media_description->set_codecs(codecs);
+  RTCError error;
+  EXPECT_TRUE(pc->SetLocalDescription(std::move(offer), &error));
+  EXPECT_THAT(
+      metrics::Samples("WebRTC.PeerConnection.SdpMunging.Offer.Initial"),
+      ElementsAre(Pair(SdpMungingType::kAudioCodecsFmtpOpusDtx, 1)));
+}
+
+TEST_F(SdpOfferAnswerMungingTest, OpusCbr) {
+  auto pc = CreatePeerConnection();
+  pc->AddAudioTrack("audio_track", {});
+
+  auto offer = pc->CreateOffer();
+  auto& contents = offer->description()->contents();
+  ASSERT_EQ(contents.size(), 1u);
+  auto* media_description = contents[0].media_description();
+  ASSERT_TRUE(media_description);
+  std::vector<cricket::Codec> codecs = media_description->codecs();
+  for (auto& codec : codecs) {
+    if (codec.name == cricket::kOpusCodecName) {
+      codec.SetParam(cricket::kCodecParamCbr, cricket::kParamValueTrue);
+    }
+  }
+  media_description->set_codecs(codecs);
+  RTCError error;
+  EXPECT_TRUE(pc->SetLocalDescription(std::move(offer), &error));
+  EXPECT_THAT(
+      metrics::Samples("WebRTC.PeerConnection.SdpMunging.Offer.Initial"),
+      ElementsAre(Pair(SdpMungingType::kAudioCodecsFmtpOpusCbr, 1)));
+}
+
 TEST_F(SdpOfferAnswerMungingTest, AudioCodecsRemoved) {
   auto pc = CreatePeerConnection();
   pc->AddAudioTrack("audio_track", {});
@@ -2405,6 +2475,27 @@ TEST_F(SdpOfferAnswerMungingTest, AudioCodecsRtcpFb) {
   EXPECT_THAT(
       metrics::Samples("WebRTC.PeerConnection.SdpMunging.Offer.Initial"),
       ElementsAre(Pair(SdpMungingType::kAudioCodecsRtcpFb, 1)));
+}
+
+TEST_F(SdpOfferAnswerMungingTest, AudioCodecsRtcpFbNack) {
+  auto pc = CreatePeerConnection();
+  pc->AddAudioTrack("audio_track", {});
+
+  auto offer = pc->CreateOffer();
+  auto& contents = offer->description()->contents();
+  ASSERT_EQ(contents.size(), 1u);
+  auto* media_description = contents[0].media_description();
+  ASSERT_TRUE(media_description);
+  auto codecs = media_description->codecs();
+  ASSERT_GT(codecs.size(), 0u);
+  codecs[0].feedback_params.Add(cricket::FeedbackParam("nack"));
+  media_description->set_codecs(codecs);
+
+  RTCError error;
+  EXPECT_TRUE(pc->SetLocalDescription(std::move(offer), &error));
+  EXPECT_THAT(
+      metrics::Samples("WebRTC.PeerConnection.SdpMunging.Offer.Initial"),
+      ElementsAre(Pair(SdpMungingType::kAudioCodecsRtcpFbAudioNack, 1)));
 }
 
 TEST_F(SdpOfferAnswerMungingTest, VideoCodecsRtcpFb) {
