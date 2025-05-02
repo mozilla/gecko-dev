@@ -183,7 +183,7 @@ class VirtualSocketServerTest : public ::testing::Test {
     socket->Bind(EmptySocketAddressWithFamily(default_address.family()));
     SocketAddress client1_any_addr = socket->GetLocalAddress();
     EXPECT_TRUE(client1_any_addr.IsAnyIP());
-    auto client1 = std::make_unique<TestClient>(
+    auto client1 = std::make_unique<webrtc::TestClient>(
         std::make_unique<AsyncUDPSocket>(socket), &fake_clock_);
 
     // Create client2 bound to the address route.
@@ -191,7 +191,7 @@ class VirtualSocketServerTest : public ::testing::Test {
     socket2->Bind(SocketAddress(default_address, 0));
     SocketAddress client2_addr = socket2->GetLocalAddress();
     EXPECT_FALSE(client2_addr.IsAnyIP());
-    auto client2 = std::make_unique<TestClient>(
+    auto client2 = std::make_unique<webrtc::TestClient>(
         std::make_unique<AsyncUDPSocket>(socket2), &fake_clock_);
 
     // Client1 sends to client2, client2 should see the default address as
@@ -214,10 +214,10 @@ class VirtualSocketServerTest : public ::testing::Test {
     // Make sure VSS didn't switch families on us.
     EXPECT_EQ(server_addr.family(), initial_addr.family());
 
-    auto client1 = std::make_unique<TestClient>(
+    auto client1 = std::make_unique<webrtc::TestClient>(
         std::make_unique<AsyncUDPSocket>(socket), &fake_clock_);
     Socket* socket2 = ss_.CreateSocket(initial_addr.family(), SOCK_DGRAM);
-    auto client2 = std::make_unique<TestClient>(
+    auto client2 = std::make_unique<webrtc::TestClient>(
         std::make_unique<AsyncUDPSocket>(socket2), &fake_clock_);
 
     SocketAddress client2_addr;
@@ -231,7 +231,7 @@ class VirtualSocketServerTest : public ::testing::Test {
 
     SocketAddress empty = EmptySocketAddressWithFamily(initial_addr.family());
     for (int i = 0; i < 10; i++) {
-      client2 = std::make_unique<TestClient>(
+      client2 = std::make_unique<webrtc::TestClient>(
           absl::WrapUnique(AsyncUDPSocket::Create(&ss_, empty)), &fake_clock_);
 
       SocketAddress next_client2_addr;
@@ -814,12 +814,12 @@ class VirtualSocketServerTest : public ::testing::Test {
     Socket* socket = ss_.CreateSocket(AF_INET, SOCK_DGRAM);
     socket->Bind(server_addr);
     SocketAddress bound_server_addr = socket->GetLocalAddress();
-    auto client1 = std::make_unique<TestClient>(
+    auto client1 = std::make_unique<webrtc::TestClient>(
         std::make_unique<AsyncUDPSocket>(socket), &fake_clock_);
 
     Socket* socket2 = ss_.CreateSocket(AF_INET, SOCK_DGRAM);
     socket2->Bind(client_addr);
-    auto client2 = std::make_unique<TestClient>(
+    auto client2 = std::make_unique<webrtc::TestClient>(
         std::make_unique<AsyncUDPSocket>(socket2), &fake_clock_);
     SocketAddress client2_addr;
 
@@ -1024,7 +1024,7 @@ TEST_F(VirtualSocketServerTest, SetSendingBlockedWithUdpSocket) {
       absl::WrapUnique(ss_.CreateSocket(kIPv4AnyAddress.family(), SOCK_DGRAM));
   socket1->Bind(kIPv4AnyAddress);
   socket2->Bind(kIPv4AnyAddress);
-  auto client1 = std::make_unique<TestClient>(
+  auto client1 = std::make_unique<webrtc::TestClient>(
       std::make_unique<AsyncUDPSocket>(socket1), &fake_clock_);
 
   ss_.SetSendingBlocked(true);

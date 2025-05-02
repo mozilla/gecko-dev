@@ -21,7 +21,7 @@
 #include "rtc_base/network/received_packet.h"
 #include "rtc_base/synchronization/mutex.h"
 
-namespace rtc {
+namespace webrtc {
 
 // A simple client that can send TCP or UDP data and check that it receives
 // what it expects to receive. Useful for testing server functionality.
@@ -32,9 +32,9 @@ class TestClient : public sigslot::has_slots<> {
     Packet(const rtc::ReceivedPacket& received_packet);
     Packet(const Packet& p);
 
-    SocketAddress addr;
+    rtc::SocketAddress addr;
     Buffer buf;
-    std::optional<webrtc::Timestamp> packet_time;
+    std::optional<Timestamp> packet_time;
   };
 
   // Default timeout for NextPacket reads.
@@ -42,33 +42,35 @@ class TestClient : public sigslot::has_slots<> {
 
   // Creates a client that will send and receive with the given socket and
   // will post itself messages with the given thread.
-  explicit TestClient(std::unique_ptr<AsyncPacketSocket> socket);
+  explicit TestClient(std::unique_ptr<rtc::AsyncPacketSocket> socket);
   // Create a test client that will use a fake clock. NextPacket needs to wait
   // for a packet to be received, and thus it needs to advance the fake clock
   // if the test is using one, rather than just sleeping.
-  TestClient(std::unique_ptr<AsyncPacketSocket> socket,
-             ThreadProcessingFakeClock* fake_clock);
+  TestClient(std::unique_ptr<rtc::AsyncPacketSocket> socket,
+             rtc::ThreadProcessingFakeClock* fake_clock);
   ~TestClient() override;
 
   TestClient(const TestClient&) = delete;
   TestClient& operator=(const TestClient&) = delete;
 
-  SocketAddress address() const { return socket_->GetLocalAddress(); }
-  SocketAddress remote_address() const { return socket_->GetRemoteAddress(); }
+  rtc::SocketAddress address() const { return socket_->GetLocalAddress(); }
+  rtc::SocketAddress remote_address() const {
+    return socket_->GetRemoteAddress();
+  }
 
   // Checks that the socket moves to the specified connect state.
-  bool CheckConnState(AsyncPacketSocket::State state);
+  bool CheckConnState(rtc::AsyncPacketSocket::State state);
 
   // Checks that the socket is connected to the remote side.
   bool CheckConnected() {
-    return CheckConnState(AsyncPacketSocket::STATE_CONNECTED);
+    return CheckConnState(rtc::AsyncPacketSocket::STATE_CONNECTED);
   }
 
   // Sends using the clients socket.
   int Send(const char* buf, size_t size);
 
   // Sends using the clients socket to the given destination.
-  int SendTo(const char* buf, size_t size, const SocketAddress& dest);
+  int SendTo(const char* buf, size_t size, const rtc::SocketAddress& dest);
 
   // Returns the next packet received by the client or null if none is received
   // within the specified timeout.
@@ -76,13 +78,13 @@ class TestClient : public sigslot::has_slots<> {
 
   // Checks that the next packet has the given contents. Returns the remote
   // address that the packet was sent from.
-  bool CheckNextPacket(const char* buf, size_t len, SocketAddress* addr);
+  bool CheckNextPacket(const char* buf, size_t len, rtc::SocketAddress* addr);
 
   // Checks that no packets have arrived or will arrive in the next second.
   bool CheckNoPacket();
 
   int GetError();
-  int SetOption(Socket::Option opt, int value);
+  int SetOption(rtc::Socket::Option opt, int value);
 
   bool ready_to_send() const { return ready_to_send_count() > 0; }
 
@@ -93,22 +95,28 @@ class TestClient : public sigslot::has_slots<> {
   // Timeout for reads when no packet is expected.
   static const int kNoPacketTimeoutMs = 1000;
   // Workaround for the fact that AsyncPacketSocket::GetConnState doesn't exist.
-  Socket::ConnState GetState();
+  rtc::Socket::ConnState GetState();
 
-  void OnPacket(AsyncPacketSocket* socket,
+  void OnPacket(rtc::AsyncPacketSocket* socket,
                 const rtc::ReceivedPacket& received_packet);
-  void OnReadyToSend(AsyncPacketSocket* socket);
-  bool CheckTimestamp(std::optional<webrtc::Timestamp> packet_timestamp);
+  void OnReadyToSend(rtc::AsyncPacketSocket* socket);
+  bool CheckTimestamp(std::optional<Timestamp> packet_timestamp);
   void AdvanceTime(int ms);
 
-  ThreadProcessingFakeClock* fake_clock_ = nullptr;
-  webrtc::Mutex mutex_;
-  std::unique_ptr<AsyncPacketSocket> socket_;
+  rtc::ThreadProcessingFakeClock* fake_clock_ = nullptr;
+  Mutex mutex_;
+  std::unique_ptr<rtc::AsyncPacketSocket> socket_;
   std::vector<std::unique_ptr<Packet>> packets_;
   int ready_to_send_count_ = 0;
-  std::optional<webrtc::Timestamp> prev_packet_timestamp_;
+  std::optional<Timestamp> prev_packet_timestamp_;
 };
 
+}  //  namespace webrtc
+
+// Re-export symbols from the webrtc namespace for backwards compatibility.
+// TODO(bugs.webrtc.org/4222596): Remove once all references are updated.
+namespace rtc {
+using ::webrtc::TestClient;
 }  // namespace rtc
 
 #endif  // RTC_BASE_TEST_CLIENT_H_

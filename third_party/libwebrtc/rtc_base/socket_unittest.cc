@@ -1060,9 +1060,9 @@ void SocketTest::UdpInternal(const IPAddress& loopback) {
   delete socket;
 
   // Test send/receive behavior.
-  auto client1 = std::make_unique<TestClient>(
+  auto client1 = std::make_unique<webrtc::TestClient>(
       absl::WrapUnique(AsyncUDPSocket::Create(socket_factory_, addr1)));
-  auto client2 = std::make_unique<TestClient>(
+  auto client2 = std::make_unique<webrtc::TestClient>(
       absl::WrapUnique(AsyncUDPSocket::Create(socket_factory_, empty)));
 
   SocketAddress addr2;
@@ -1075,7 +1075,7 @@ void SocketTest::UdpInternal(const IPAddress& loopback) {
   EXPECT_EQ(addr3, addr1);
   // TODO: figure out what the intent is here
   for (int i = 0; i < 10; ++i) {
-    client2 = std::make_unique<TestClient>(
+    client2 = std::make_unique<webrtc::TestClient>(
         absl::WrapUnique(AsyncUDPSocket::Create(socket_factory_, empty)));
 
     SocketAddress addr4;
@@ -1102,7 +1102,7 @@ void SocketTest::UdpReadyToSend(const IPAddress& loopback) {
   SocketAddress test_addr(dest, 2345);
 
   // Test send
-  auto client = std::make_unique<TestClient>(
+  auto client = std::make_unique<webrtc::TestClient>(
       absl::WrapUnique(AsyncUDPSocket::Create(socket_factory_, empty)));
   int test_packet_size = 1200;
   std::unique_ptr<char[]> test_packet(new char[test_packet_size]);
@@ -1282,20 +1282,22 @@ void SocketTest::UdpSocketRecvTimestampUseRtcEpoch(const IPAddress& loopback) {
   SocketAddress address = socket->GetLocalAddress();
   socket = nullptr;
 
-  auto client1 = std::make_unique<TestClient>(
+  auto client1 = std::make_unique<webrtc::TestClient>(
       absl::WrapUnique(AsyncUDPSocket::Create(socket_factory_, address)));
-  auto client2 = std::make_unique<TestClient>(
+  auto client2 = std::make_unique<webrtc::TestClient>(
       absl::WrapUnique(AsyncUDPSocket::Create(socket_factory_, empty)));
 
   SocketAddress addr2;
   client2->SendTo("foo", 3, address);
-  std::unique_ptr<TestClient::Packet> packet_1 = client1->NextPacket(10000);
+  std::unique_ptr<webrtc::TestClient::Packet> packet_1 =
+      client1->NextPacket(10000);
   ASSERT_TRUE(packet_1 != nullptr);
   EXPECT_NEAR(packet_1->packet_time->us(), rtc::TimeMicros(), 1000'000);
 
   Thread::SleepMs(100);
   client2->SendTo("bar", 3, address);
-  std::unique_ptr<TestClient::Packet> packet_2 = client1->NextPacket(10000);
+  std::unique_ptr<webrtc::TestClient::Packet> packet_2 =
+      client1->NextPacket(10000);
   ASSERT_TRUE(packet_2 != nullptr);
   EXPECT_GT(packet_2->packet_time->us(), packet_1->packet_time->us());
   EXPECT_NEAR(packet_2->packet_time->us(), rtc::TimeMicros(), 1000'000);

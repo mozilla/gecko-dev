@@ -45,7 +45,7 @@
 namespace rtc {
 namespace {
 
-bool CheckReceive(TestClient* client,
+bool CheckReceive(webrtc::TestClient* client,
                   bool should_receive,
                   const char* buf,
                   size_t size) {
@@ -53,14 +53,14 @@ bool CheckReceive(TestClient* client,
                           : client->CheckNoPacket();
 }
 
-TestClient* CreateTestClient(SocketFactory* factory,
-                             const SocketAddress& local_addr) {
-  return new TestClient(
+webrtc::TestClient* CreateTestClient(SocketFactory* factory,
+                                     const SocketAddress& local_addr) {
+  return new webrtc::TestClient(
       absl::WrapUnique(AsyncUDPSocket::Create(factory, local_addr)));
 }
 
-TestClient* CreateTCPTestClient(Socket* socket) {
-  return new TestClient(std::make_unique<AsyncTCPSocket>(socket));
+webrtc::TestClient* CreateTCPTestClient(Socket* socket) {
+  return new webrtc::TestClient(std::make_unique<AsyncTCPSocket>(socket));
 }
 
 // Tests that when sending from internal_addr to external_addrs through the
@@ -86,10 +86,10 @@ void TestSend(SocketServer* internal,
   NATSocketFactory* natsf = new NATSocketFactory(
       internal, nat->internal_udp_address(), nat->internal_tcp_address());
 
-  TestClient* in;
+  webrtc::TestClient* in;
   th_int.BlockingCall([&] { in = CreateTestClient(natsf, internal_addr); });
 
-  TestClient* out[4];
+  webrtc::TestClient* out[4];
   th_ext.BlockingCall([&] {
     for (int i = 0; i < 4; i++)
       out[i] = CreateTestClient(external, external_addrs[i]);
@@ -147,10 +147,10 @@ void TestRecv(SocketServer* internal,
   NATSocketFactory* natsf = new NATSocketFactory(
       internal, nat->internal_udp_address(), nat->internal_tcp_address());
 
-  TestClient* in = nullptr;
+  webrtc::TestClient* in = nullptr;
   th_int.BlockingCall([&] { in = CreateTestClient(natsf, internal_addr); });
 
-  TestClient* out[4];
+  webrtc::TestClient* out[4];
   th_ext.BlockingCall([&] {
     for (int i = 0; i < 4; i++)
       out[i] = CreateTestClient(external, external_addrs[i]);
@@ -413,8 +413,9 @@ TEST_F(NatTcpTest, DISABLED_TestConnectOut) {
   EXPECT_EQ(client_->GetRemoteAddress(), server_->GetLocalAddress());
   EXPECT_EQ(accepted_->GetRemoteAddress().ipaddr(), ext_addr_.ipaddr());
 
-  std::unique_ptr<rtc::TestClient> in(CreateTCPTestClient(client_.release()));
-  std::unique_ptr<rtc::TestClient> out(
+  std::unique_ptr<webrtc::TestClient> in(
+      CreateTCPTestClient(client_.release()));
+  std::unique_ptr<webrtc::TestClient> out(
       CreateTCPTestClient(accepted_.release()));
 
   const char* buf = "test_packet";

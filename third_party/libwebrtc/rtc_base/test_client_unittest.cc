@@ -24,47 +24,49 @@
 #include "rtc_base/thread.h"
 #include "test/gtest.h"
 
-namespace rtc {
-namespace {
-
 #define MAYBE_SKIP_IPV4                        \
-  if (!HasIPv4Enabled()) {                     \
+  if (!::rtc::HasIPv4Enabled()) {              \
     RTC_LOG(LS_INFO) << "No IPv4... skipping"; \
     return;                                    \
   }
 
 #define MAYBE_SKIP_IPV6                        \
-  if (!HasIPv6Enabled()) {                     \
+  if (!::rtc::HasIPv6Enabled()) {              \
     RTC_LOG(LS_INFO) << "No IPv6... skipping"; \
     return;                                    \
   }
 
-void TestUdpInternal(const SocketAddress& loopback) {
+namespace webrtc {
+namespace {
+
+void TestUdpInternal(const rtc::SocketAddress& loopback) {
   rtc::PhysicalSocketServer socket_server;
   rtc::AutoSocketServerThread main_thread(&socket_server);
-  Socket* socket = socket_server.CreateSocket(loopback.family(), SOCK_DGRAM);
+  rtc::Socket* socket =
+      socket_server.CreateSocket(loopback.family(), SOCK_DGRAM);
   socket->Bind(loopback);
 
-  TestClient client(std::make_unique<AsyncUDPSocket>(socket));
-  SocketAddress addr = client.address(), from;
+  TestClient client(std::make_unique<rtc::AsyncUDPSocket>(socket));
+  rtc::SocketAddress addr = client.address(), from;
   EXPECT_EQ(3, client.SendTo("foo", 3, addr));
   EXPECT_TRUE(client.CheckNextPacket("foo", 3, &from));
   EXPECT_EQ(from, addr);
   EXPECT_TRUE(client.CheckNoPacket());
 }
 
-void TestTcpInternal(const SocketAddress& loopback) {
+void TestTcpInternal(const rtc::SocketAddress& loopback) {
   rtc::PhysicalSocketServer socket_server;
   rtc::AutoSocketServerThread main_thread(&socket_server);
   webrtc::TestEchoServer server(&main_thread, loopback);
 
-  Socket* socket = socket_server.CreateSocket(loopback.family(), SOCK_STREAM);
-  std::unique_ptr<AsyncTCPSocket> tcp_socket = absl::WrapUnique(
-      AsyncTCPSocket::Create(socket, loopback, server.address()));
+  rtc::Socket* socket =
+      socket_server.CreateSocket(loopback.family(), SOCK_STREAM);
+  std::unique_ptr<rtc::AsyncTCPSocket> tcp_socket = absl::WrapUnique(
+      rtc::AsyncTCPSocket::Create(socket, loopback, server.address()));
   ASSERT_TRUE(tcp_socket != nullptr);
 
   TestClient client(std::move(tcp_socket));
-  SocketAddress addr = client.address(), from;
+  rtc::SocketAddress addr = client.address(), from;
   EXPECT_TRUE(client.CheckConnected());
   EXPECT_EQ(3, client.Send("foo", 3));
   EXPECT_TRUE(client.CheckNextPacket("foo", 3, &from));
@@ -75,7 +77,7 @@ void TestTcpInternal(const SocketAddress& loopback) {
 // Tests whether the TestClient can send UDP to itself.
 TEST(TestClientTest, TestUdpIPv4) {
   MAYBE_SKIP_IPV4;
-  TestUdpInternal(SocketAddress("127.0.0.1", 0));
+  TestUdpInternal(rtc::SocketAddress("127.0.0.1", 0));
 }
 
 #if defined(WEBRTC_LINUX)
@@ -85,13 +87,13 @@ TEST(TestClientTest, TestUdpIPv4) {
 #endif
 TEST(TestClientTest, MAYBE_TestUdpIPv6) {
   MAYBE_SKIP_IPV6;
-  TestUdpInternal(SocketAddress("::1", 0));
+  TestUdpInternal(rtc::SocketAddress("::1", 0));
 }
 
 // Tests whether the TestClient can connect to a server and exchange data.
 TEST(TestClientTest, TestTcpIPv4) {
   MAYBE_SKIP_IPV4;
-  TestTcpInternal(SocketAddress("127.0.0.1", 0));
+  TestTcpInternal(rtc::SocketAddress("127.0.0.1", 0));
 }
 
 #if defined(WEBRTC_LINUX)
@@ -101,8 +103,8 @@ TEST(TestClientTest, TestTcpIPv4) {
 #endif
 TEST(TestClientTest, MAYBE_TestTcpIPv6) {
   MAYBE_SKIP_IPV6;
-  TestTcpInternal(SocketAddress("::1", 0));
+  TestTcpInternal(rtc::SocketAddress("::1", 0));
 }
 
 }  // namespace
-}  // namespace rtc
+}  // namespace webrtc
