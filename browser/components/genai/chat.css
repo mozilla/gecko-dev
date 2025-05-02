@@ -245,7 +245,7 @@ browser {
         background-image: url(chrome://global/skin/icons/arrows-updown.svg);
       }
       &[data-l10n-id*=price] {
-        background-image: url(chrome://browser/content/shopping/assets/price.svg);
+        background-image: url(chrome://browser/skin/price.svg);
       }
     }
   }

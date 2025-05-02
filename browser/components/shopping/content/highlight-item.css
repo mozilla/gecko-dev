@@ -19,7 +19,7 @@
   grid-column-start: 1;
 
   &.price {
-    content: url("chrome://browser/content/shopping/assets/price.svg");
+    content: url("chrome://browser/skin/price.svg");
   }
 
   &.quality {
