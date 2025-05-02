@@ -367,6 +367,15 @@ static inline void TraceWholeCell(TenuringTracer& mover, JSObject* object) {
   mover.traceObject(object);
 }
 
+void JSDependentString::setBase(JSLinearString* newBase) {
+  MOZ_ASSERT(newBase->canOwnDependentChars());
+  d.s.u3.base = newBase;
+  if (isTenured() && !newBase->isTenured()) {
+    MOZ_ASSERT(!InCollectedNurseryRegion(newBase));
+    newBase->storeBuffer()->putWholeCell(this);
+  }
+}
+
 static void TraceWholeCell(TenuringTracer& mover, JSString* str) {
   if (str->isDependent()) {
     // For tenured dependent strings -> nursery base string edges, promote the

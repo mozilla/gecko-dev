@@ -785,9 +785,6 @@ class JSString : public js::gc::CellWithLengthAndFlags {
 
   inline bool canOwnDependentChars() const;
 
-  // Only called by the GC during nursery collection.
-  inline void setBase(JSLinearString* newBase);
-
   bool tryReplaceWithAtomRef(JSAtom* atom);
 
   void traceBase(JSTracer* trc);
@@ -1309,6 +1306,9 @@ class JSDependentString : public JSLinearString {
   static inline JSLinearString* new_(JSContext* cx, JSLinearString* base,
                                      size_t start, size_t length,
                                      js::gc::Heap heap);
+
+  // Only called by the GC during nursery collection.
+  void setBase(JSLinearString* newBase);
 
   template <typename T>
   void relocateBaseAndChars(JSLinearString* base, T chars, size_t offset) {
@@ -2354,12 +2354,6 @@ inline bool JSString::canOwnDependentChars() const {
   // A string that could own the malloced chars used by another (dependent)
   // string. It will not have a base and must be linear and non-inline.
   return isLinear() && !isInline() && !hasBase();
-}
-
-inline void JSString::setBase(JSLinearString* newBase) {
-  MOZ_ASSERT(hasBase());
-  MOZ_ASSERT(!newBase->isInline());
-  d.s.u3.base = newBase;
 }
 
 template <>
