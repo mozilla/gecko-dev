@@ -441,6 +441,7 @@ class Bootstrapper:
 
         if sys.platform.startswith("win"):
             self._check_for_dev_drive(checkout_root)
+            self._add_microsoft_defender_antivirus_exclusions(checkout_root, state_dir)
 
         if self.instance.no_system_changes:
             self.maybe_install_private_packages_or_exit(application, checkout_type)
@@ -571,6 +572,69 @@ class Bootstrapper:
                 DEV_DRIVE_DETECTION_ERROR.format(f"CalledProcessError: {error.stderr}")
             )
             pass
+
+    def _add_microsoft_defender_antivirus_exclusions(
+        self, topsrcdir: Path, state_dir: Path
+    ):
+        if self.no_system_changes:
+            return
+
+        if os.environ.get("MOZ_AUTOMATION"):
+            return
+
+        # This will trigger a UAC prompt, and since it really only needs to be done
+        # once, we can put a flag_file in the state_dir once we've done it and check
+        # for its existence to prevent us from doing it again.
+        flag_file = state_dir / ".ANTIVIRUS_EXCLUSIONS_DONE"
+        if flag_file.exists():
+            return
+
+        powershell_exe = which("powershell")
+
+        if not powershell_exe:
+            return
+
+        import ctypes
+
+        powershell_exe = str(powershell_exe)
+        paths = []
+
+        # checkout root
+        paths.append(topsrcdir)
+
+        # MOZILLABUILD
+        mozillabuild_dir = os.getenv("MOZILLABUILD")
+        if mozillabuild_dir:
+            paths.append(mozillabuild_dir)
+
+        # .mozbuild
+        paths.append(state_dir)
+
+        joined_paths = "\n".join(f" '{p}'" for p in paths)
+        print(
+            "Attempting to add exclusion paths to Microsoft Defender Antivirus for:\n"
+            f"{joined_paths}"
+        )
+        print(
+            "Note: This will trigger a UAC prompt. If you decline, no exclusions will be added."
+        )
+        print(
+            f"This step will not run again unless you delete the following file: '{flag_file}'\n"
+        )
+
+        args = ";".join(f"Add-MpPreference -ExclusionPath '{path}'" for path in paths)
+        command = f'-Command "{args}"'
+
+        # This will attempt to run as administrator by triggering a UAC prompt
+        # for admin credentials. If "No" is selected, no exclusions are added.
+        ctypes.windll.shell32.ShellExecuteW(
+            None, "runas", powershell_exe, command, None, 0
+        )
+
+        try:
+            flag_file.touch(exist_ok=True)
+        except OSError as e:
+            print(f"Could not write flag_file '{flag_file}': {e}")
 
     def _default_mozconfig_path(self):
         return Path(self.mach_context.topdir) / "mozconfig"
