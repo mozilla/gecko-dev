@@ -235,7 +235,8 @@ class DtlsTransport : public DtlsTransportInternal {
 
   void OnWritableState(rtc::PacketTransportInternal* transport);
   void OnReadPacket(rtc::PacketTransportInternal* transport,
-                    const rtc::ReceivedPacket& packet);
+                    const rtc::ReceivedPacket& packet,
+                    bool piggybacked);
   void OnSentPacket(rtc::PacketTransportInternal* transport,
                     const rtc::SentPacket& sent_packet);
   void OnReadyToSend(rtc::PacketTransportInternal* transport);
@@ -247,6 +248,7 @@ class DtlsTransport : public DtlsTransportInternal {
   bool HandleDtlsPacket(rtc::ArrayView<const uint8_t> payload);
   void OnDtlsHandshakeError(rtc::SSLHandshakeError error);
   void ConfigureHandshakeTimeout();
+  void DisablePiggybackingAndRestart();
 
   void set_receiving(bool receiving);
   void set_writable(bool writable);

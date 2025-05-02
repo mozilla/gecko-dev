@@ -356,6 +356,8 @@ class DtlsTestClient : public sigslot::has_slots<> {
     }
   }
 
+  absl::string_view name() { return name_; }
+
  private:
   std::string name_;
   rtc::scoped_refptr<rtc::RTCCertificate> certificate_;
@@ -378,7 +380,9 @@ class DtlsTestClient : public sigslot::has_slots<> {
 // variable.
 class DtlsTransportTestBase {
  public:
-  DtlsTransportTestBase() : client1_("P1"), client2_("P2"), use_dtls_(false) {}
+  DtlsTransportTestBase() : client1_("P1"), client2_("P2"), use_dtls_(false) {
+    start_time_ns_ = fake_clock_.TimeNanos();
+  }
 
   void SetMaxProtocolVersions(rtc::SSLProtocolVersion c1,
                               rtc::SSLProtocolVersion c2) {
@@ -464,12 +468,75 @@ class DtlsTransportTestBase {
                 webrtc::IsRtcOk());
   }
 
+  void AddPacketLogging() {
+    client1_.fake_ice_transport()->set_packet_recv_filter(
+        [&](auto packet, auto timestamp_us) {
+          return LogRecv(client1_.name(), packet);
+        });
+    client2_.fake_ice_transport()->set_packet_recv_filter(
+        [&](auto packet, auto timestamp_us) {
+          return LogRecv(client2_.name(), packet);
+        });
+    client1_.set_writable_callback([&]() {});
+    client2_.set_writable_callback([&]() {});
+
+    client1_.fake_ice_transport()->set_packet_send_filter(
+        [&](auto data, auto len, auto options, auto flags) {
+          return LogSend(client1_.name(), /* drop=*/false, data, len);
+        });
+    client2_.fake_ice_transport()->set_packet_send_filter(
+        [&](auto data, auto len, auto options, auto flags) {
+          return LogSend(client2_.name(), /* drop=*/false, data, len);
+        });
+  }
+
+  void ClearPacketFilters() {
+    client1_.fake_ice_transport()->set_packet_send_filter(nullptr);
+    client2_.fake_ice_transport()->set_packet_send_filter(nullptr);
+    client1_.fake_ice_transport()->set_packet_recv_filter(nullptr);
+    client2_.fake_ice_transport()->set_packet_recv_filter(nullptr);
+  }
+
+  bool LogRecv(absl::string_view name, const rtc::CopyOnWriteBuffer& packet) {
+    auto timestamp_ms = (fake_clock_.TimeNanos() - start_time_ns_) / 1000000;
+    RTC_LOG(LS_INFO) << "time=" << timestamp_ms << " : " << name
+                     << ": ReceivePacket packet len=" << packet.size()
+                     << ", data[0]: " << static_cast<uint8_t>(packet.data()[0]);
+    return false;
+  }
+
+  bool LogSend(absl::string_view name,
+               bool drop,
+               const char* data,
+               size_t len) {
+    auto timestamp_ms = (fake_clock_.TimeNanos() - start_time_ns_) / 1000000;
+    if (drop) {
+      RTC_LOG(LS_INFO) << "time=" << timestamp_ms << " : " << name
+                       << ": dropping packet len=" << len
+                       << ", data[0]: " << static_cast<uint8_t>(data[0]);
+    } else {
+      RTC_LOG(LS_INFO) << "time=" << timestamp_ms << " : " << name
+                       << ": SendPacket, len=" << len
+                       << ", data[0]: " << static_cast<uint8_t>(data[0]);
+    }
+    return drop;
+  }
+
+  template <typename Fn>
+  bool WaitUntil(Fn func) {
+    return webrtc::WaitUntil(func, IsTrue(),
+                             {.timeout = webrtc::TimeDelta::Millis(kTimeout),
+                              .clock = &fake_clock_})
+        .ok();
+  }
+
  protected:
   rtc::AutoThread main_thread_;
   rtc::ScopedFakeClock fake_clock_;
   DtlsTestClient client1_;
   DtlsTestClient client2_;
   bool use_dtls_;
+  uint64_t start_time_ns_;
   rtc::SSLProtocolVersion ssl_expected_version_;
 };
 
@@ -593,6 +660,32 @@ static const struct {
 struct EndpointConfig {
   rtc::SSLProtocolVersion max_protocol_version;
   bool dtls_in_stun = false;
+  std::optional<IceRole> ice_role;
+  std::optional<rtc::SSLRole> ssl_role;
+
+  template <typename Sink>
+  friend void AbslStringify(Sink& sink, const EndpointConfig& config) {
+    sink.Append("[ dtls: ");
+    sink.Append(config.ssl_role == rtc::SSL_SERVER ? "server/" : "client/");
+    switch (config.max_protocol_version) {
+      case rtc::SSL_PROTOCOL_DTLS_10:
+        sink.Append("1.0");
+        break;
+      case rtc::SSL_PROTOCOL_DTLS_12:
+        sink.Append("1.2");
+        break;
+      case rtc::SSL_PROTOCOL_DTLS_13:
+        sink.Append("1.3");
+        break;
+      default:
+        sink.Append("<unknown>");
+        break;
+    }
+    absl::Format(&sink, " dtls_in_stun: %u ice: ", config.dtls_in_stun);
+    sink.Append(config.ice_role == ICEROLE_CONTROLLED ? "controlled"
+                                                      : "controlling");
+    sink.Append(" ]");
+  }
 };
 
 class DtlsTransportVersionTest
@@ -602,20 +695,24 @@ class DtlsTransportVersionTest
  public:
   void Prepare() {
     PrepareDtls(rtc::KT_DEFAULT);
-    SetMaxProtocolVersions(std::get<0>(GetParam()).max_protocol_version,
-                           std::get<1>(GetParam()).max_protocol_version);
+    const auto& config1 = std::get<0>(GetParam());
+    const auto& config2 = std::get<1>(GetParam());
+    SetMaxProtocolVersions(config1.max_protocol_version,
+                           config2.max_protocol_version);
 
-    client1_.SetupTransports(ICEROLE_CONTROLLING);
-    client2_.SetupTransports(ICEROLE_CONTROLLED);
-    client1_.dtls_transport()->SetDtlsRole(rtc::SSL_CLIENT);
-    client2_.dtls_transport()->SetDtlsRole(rtc::SSL_SERVER);
+    client1_.SetupTransports(config1.ice_role.value_or(ICEROLE_CONTROLLING));
+    client2_.SetupTransports(config2.ice_role.value_or(ICEROLE_CONTROLLED));
+    client1_.dtls_transport()->SetDtlsRole(
+        config1.ssl_role.value_or(rtc::SSL_CLIENT));
+    client2_.dtls_transport()->SetDtlsRole(
+        config2.ssl_role.value_or(rtc::SSL_SERVER));
 
-    if (std::get<0>(GetParam()).dtls_in_stun) {
+    if (config1.dtls_in_stun) {
       auto config = client1_.fake_ice_transport()->config();
       config.dtls_handshake_in_stun = true;
       client1_.fake_ice_transport()->SetIceConfig(config);
     }
-    if (std::get<1>(GetParam()).dtls_in_stun) {
+    if (config2.dtls_in_stun) {
       auto config = client2_.fake_ice_transport()->config();
       config.dtls_handshake_in_stun = true;
       client2_.fake_ice_transport()->SetIceConfig(config);
@@ -625,6 +722,9 @@ class DtlsTransportVersionTest
                                  client2_.certificate());
     SetRemoteFingerprintFromCert(client2_.dtls_transport(),
                                  client1_.certificate());
+
+    client1_.fake_ice_transport()->set_rtt_estimate(50, true);
+    client2_.fake_ice_transport()->set_rtt_estimate(50, true);
   }
 
   // Run DTLS handshake.
@@ -632,10 +732,6 @@ class DtlsTransportVersionTest
   // - drop packets as specified in `packets_to_drop`
   std::pair</* dtls_version_bytes*/ int, std::vector<HandshakeTestEvent>>
   RunHandshake(std::set<unsigned> packets_to_drop) {
-    start_time_ns_ = fake_clock_.TimeNanos();
-    client1_.fake_ice_transport()->set_rtt_estimate(50, true);
-    client2_.fake_ice_transport()->set_rtt_estimate(50, true);
-
     std::vector<HandshakeTestEvent> events;
     client1_.fake_ice_transport()->set_packet_recv_filter(
         [&](auto packet, auto timestamp_us) {
@@ -694,20 +790,12 @@ class DtlsTransportVersionTest
     client2_.SendIcePing();
     client1_.SendIcePingConf();
 
-    EXPECT_THAT(webrtc::WaitUntil(
-                    [&] {
-                      return client1_.dtls_transport()->writable() &&
-                             client2_.dtls_transport()->writable();
-                    },
-                    IsTrue(),
-                    {.timeout = webrtc::TimeDelta::Millis(kTimeout),
-                     .clock = &fake_clock_}),
-                webrtc::IsRtcOk());
+    EXPECT_TRUE(WaitUntil([&] {
+      return client1_.dtls_transport()->writable() &&
+             client2_.dtls_transport()->writable();
+    }));
 
-    client1_.fake_ice_transport()->set_packet_send_filter(nullptr);
-    client2_.fake_ice_transport()->set_packet_send_filter(nullptr);
-    client1_.fake_ice_transport()->set_packet_recv_filter(nullptr);
-    client2_.fake_ice_transport()->set_packet_recv_filter(nullptr);
+    ClearPacketFilters();
 
     auto dtls_version_bytes = client1_.GetVersionBytes();
     EXPECT_EQ(dtls_version_bytes, client2_.GetVersionBytes());
@@ -732,34 +820,6 @@ class DtlsTransportVersionTest
       }
     }
     return {};
-  }
-
- private:
-  uint64_t start_time_ns_;
-
-  bool LogRecv(absl::string_view name, const rtc::CopyOnWriteBuffer& packet) {
-    auto timestamp_ms = (fake_clock_.TimeNanos() - start_time_ns_) / 1000000;
-    RTC_LOG(LS_INFO) << "time=" << timestamp_ms << " : " << name
-                     << ": ReceivePacket packet len=" << packet.size()
-                     << ", data[0]: " << static_cast<uint8_t>(packet.data()[0]);
-    return false;
-  }
-
-  bool LogSend(absl::string_view name,
-               bool drop,
-               const char* data,
-               size_t len) {
-    auto timestamp_ms = (fake_clock_.TimeNanos() - start_time_ns_) / 1000000;
-    if (drop) {
-      RTC_LOG(LS_INFO) << "time=" << timestamp_ms << " : " << name
-                       << ": dropping packet len=" << len
-                       << ", data[0]: " << static_cast<uint8_t>(data[0]);
-    } else {
-      RTC_LOG(LS_INFO) << "time=" << timestamp_ms << " : " << name
-                       << ": SendPacket, len=" << len
-                       << ", data[0]: " << static_cast<uint8_t>(data[0]);
-    }
-    return drop;
   }
 };
 
@@ -949,15 +1009,10 @@ TEST_F(DtlsTransportTest, TestRenegotiateBeforeConnect) {
   Negotiate();
   Negotiate();
   EXPECT_TRUE(client1_.Connect(&client2_, false));
-  EXPECT_THAT(webrtc::WaitUntil(
-                  [&] {
-                    return client1_.dtls_transport()->writable() &&
-                           client2_.dtls_transport()->writable();
-                  },
-                  IsTrue(),
-                  {.timeout = webrtc::TimeDelta::Millis(kTimeout),
-                   .clock = &fake_clock_}),
-              webrtc::IsRtcOk());
+  EXPECT_TRUE(WaitUntil([&] {
+    return client1_.dtls_transport()->writable() &&
+           client2_.dtls_transport()->writable();
+  }));
   TestTransfer(1000, 100, true);
 }
 
@@ -1024,19 +1079,12 @@ TEST_F(DtlsTransportTest, TestRetransmissionSchedule) {
   // Make client2_ writable, but not client1_.
   // This means client1_ will send DTLS client hellos but get no response.
   EXPECT_TRUE(client2_.Connect(&client1_, true));
-  EXPECT_THAT(
-      webrtc::WaitUntil(
-          [&] { return client2_.fake_ice_transport()->writable(); }, IsTrue(),
-          {.timeout = webrtc::TimeDelta::Millis(kTimeout),
-           .clock = &fake_clock_}),
-      webrtc::IsRtcOk());
+  EXPECT_TRUE(
+      WaitUntil([&] { return client2_.fake_ice_transport()->writable(); }));
 
   // Wait for the first client hello to be sent.
-  EXPECT_THAT(webrtc::WaitUntil(
-                  [&] { return client1_.received_dtls_client_hellos(); }, Eq(1),
-                  {.timeout = webrtc::TimeDelta::Millis(kTimeout),
-                   .clock = &fake_clock_}),
-              webrtc::IsRtcOk());
+  EXPECT_TRUE(
+      WaitUntil([&] { return client1_.received_dtls_client_hellos(); }));
   EXPECT_FALSE(client1_.fake_ice_transport()->writable());
 
   static int timeout_schedule_ms[] = {50,   100,  200,   400,   800,   1600,
@@ -1115,49 +1163,29 @@ class DtlsEventOrderingTest
           break;
         case CALLER_WRITABLE:
           EXPECT_TRUE(client1_.Connect(&client2_, true));
-          EXPECT_THAT(
-              webrtc::WaitUntil(
-                  [&] { return client1_.fake_ice_transport()->writable(); },
-                  IsTrue(),
-                  {.timeout = webrtc::TimeDelta::Millis(kTimeout),
-                   .clock = &fake_clock_}),
-              webrtc::IsRtcOk());
+          EXPECT_TRUE(WaitUntil(
+              [&] { return client1_.fake_ice_transport()->writable(); }));
           break;
         case CALLER_RECEIVES_CLIENTHELLO:
           // Sanity check that a ClientHello hasn't already been received.
           EXPECT_EQ(0, client1_.received_dtls_client_hellos());
           // Making client2_ writable will cause it to send the ClientHello.
           EXPECT_TRUE(client2_.Connect(&client1_, true));
-          EXPECT_THAT(
-              webrtc::WaitUntil(
-                  [&] { return client2_.fake_ice_transport()->writable(); },
-                  IsTrue(),
-                  {.timeout = webrtc::TimeDelta::Millis(kTimeout),
-                   .clock = &fake_clock_}),
-              webrtc::IsRtcOk());
-          EXPECT_THAT(
-              webrtc::WaitUntil(
-                  [&] { return client1_.received_dtls_client_hellos(); }, Eq(1),
-                  {.timeout = webrtc::TimeDelta::Millis(kTimeout),
-                   .clock = &fake_clock_}),
-              webrtc::IsRtcOk());
+          EXPECT_TRUE(WaitUntil(
+              [&] { return client2_.fake_ice_transport()->writable(); }));
+          EXPECT_TRUE(WaitUntil(
+              [&] { return client1_.received_dtls_client_hellos() == 1; }));
           break;
         case HANDSHAKE_FINISHES:
           // Sanity check that the handshake hasn't already finished.
           EXPECT_FALSE(client1_.dtls_transport()->IsDtlsConnected() ||
                        client1_.dtls_transport()->dtls_state() ==
                            webrtc::DtlsTransportState::kFailed);
-          EXPECT_THAT(
-              webrtc::WaitUntil(
-                  [&] {
-                    return client1_.dtls_transport()->IsDtlsConnected() ||
-                           client1_.dtls_transport()->dtls_state() ==
-                               webrtc::DtlsTransportState::kFailed;
-                  },
-                  IsTrue(),
-                  {.timeout = webrtc::TimeDelta::Millis(kTimeout),
-                   .clock = &fake_clock_}),
-              webrtc::IsRtcOk());
+          EXPECT_TRUE(WaitUntil([&] {
+            return client1_.dtls_transport()->IsDtlsConnected() ||
+                   client1_.dtls_transport()->dtls_state() ==
+                       webrtc::DtlsTransportState::kFailed;
+          }));
           break;
       }
     }
@@ -1165,18 +1193,12 @@ class DtlsEventOrderingTest
     webrtc::DtlsTransportState expected_final_state =
         valid_fingerprint ? webrtc::DtlsTransportState::kConnected
                           : webrtc::DtlsTransportState::kFailed;
-    EXPECT_THAT(webrtc::WaitUntil(
-                    [&] { return client1_.dtls_transport()->dtls_state(); },
-                    Eq(expected_final_state),
-                    {.timeout = webrtc::TimeDelta::Millis(kTimeout),
-                     .clock = &fake_clock_}),
-                webrtc::IsRtcOk());
-    EXPECT_THAT(webrtc::WaitUntil(
-                    [&] { return client2_.dtls_transport()->dtls_state(); },
-                    Eq(expected_final_state),
-                    {.timeout = webrtc::TimeDelta::Millis(kTimeout),
-                     .clock = &fake_clock_}),
-                webrtc::IsRtcOk());
+    EXPECT_TRUE(WaitUntil([&] {
+      return client1_.dtls_transport()->dtls_state() == expected_final_state;
+    }));
+    EXPECT_TRUE(WaitUntil([&] {
+      return client2_.dtls_transport()->dtls_state() == expected_final_state;
+    }));
 
     // Transports should be writable iff there was a valid fingerprint.
     EXPECT_EQ(valid_fingerprint, client1_.dtls_transport()->writable());
@@ -1227,5 +1249,148 @@ INSTANTIATE_TEST_SUITE_P(
                                             CALLER_WRITABLE, HANDSHAKE_FINISHES,
                                             CALLER_RECEIVES_FINGERPRINT}),
         ::testing::Bool()));
+
+class DtlsTransportDtlsInStunTest : public DtlsTransportVersionTest {
+ public:
+  DtlsTransportDtlsInStunTest() {}
+};
+
+std::vector<std::tuple<EndpointConfig, EndpointConfig>> AllEndpointVariants() {
+  std::vector<std::tuple<EndpointConfig, EndpointConfig>> v;
+  for (auto ice_role : {ICEROLE_CONTROLLING, ICEROLE_CONTROLLED}) {
+    for (auto ssl_role : {rtc::SSL_CLIENT, rtc::SSL_SERVER}) {
+      for (auto version1 : {
+               rtc::SSL_PROTOCOL_DTLS_12,
+               rtc::SSL_PROTOCOL_DTLS_13,
+           }) {
+        for (auto version2 : {
+                 rtc::SSL_PROTOCOL_DTLS_12,
+                 rtc::SSL_PROTOCOL_DTLS_13,
+             }) {
+          for (auto dtls_in_stun1 : {false, true}) {
+            for (auto dtls_in_stun2 : {false, true}) {
+              v.push_back(std::make_tuple(
+                  EndpointConfig{
+                      .max_protocol_version = version1,
+                      .dtls_in_stun = dtls_in_stun1,
+                      .ice_role = ice_role,
+                      .ssl_role = ssl_role,
+                  },
+                  EndpointConfig{
+                      .max_protocol_version = version2,
+                      .dtls_in_stun = dtls_in_stun2,
+                      .ice_role = ice_role == ICEROLE_CONTROLLING
+                                      ? ICEROLE_CONTROLLED
+                                      : ICEROLE_CONTROLLING,
+                      .ssl_role = ssl_role == rtc::SSL_CLIENT ? rtc::SSL_SERVER
+                                                              : rtc::SSL_CLIENT,
+                  }));
+            }
+          }
+        }
+      }
+    }
+  }
+  return v;
+}
+
+TEST_P(DtlsTransportDtlsInStunTest, Handshake1) {
+  Prepare();
+  AddPacketLogging();
+
+  RTC_LOG(LS_INFO) << "client1: " << std::get<0>(GetParam());
+  RTC_LOG(LS_INFO) << "client2: " << std::get<1>(GetParam());
+
+  ASSERT_TRUE(client1_.ConnectIceTransport(&client2_));
+
+  for (int i = 1; i < 3; i++) {
+    client1_.SendIcePing();
+    ASSERT_TRUE(WaitUntil([&] {
+      return client2_.fake_ice_transport()->GetCountOfReceivedStunMessages(
+                 STUN_BINDING_REQUEST) == i;
+    }));
+    client2_.SendIcePingConf();
+    ASSERT_TRUE(WaitUntil([&] {
+      return client1_.fake_ice_transport()->GetCountOfReceivedStunMessages(
+                 STUN_BINDING_RESPONSE) == i;
+    }));
+    client2_.SendIcePing();
+    ASSERT_TRUE(WaitUntil([&] {
+      return client1_.fake_ice_transport()->GetCountOfReceivedStunMessages(
+                 STUN_BINDING_REQUEST) == i;
+    }));
+    client1_.SendIcePingConf();
+    ASSERT_TRUE(WaitUntil([&] {
+      return client2_.fake_ice_transport()->GetCountOfReceivedStunMessages(
+                 STUN_BINDING_RESPONSE) == i;
+    }));
+    if (client1_.dtls_transport()->writable() &&
+        client2_.dtls_transport()->writable()) {
+      break;
+    }
+  }
+
+  EXPECT_TRUE(WaitUntil([&] {
+    return client1_.dtls_transport()->writable() &&
+           client2_.dtls_transport()->writable();
+  }));
+
+  EXPECT_TRUE(client1_.dtls_transport()->writable());
+  EXPECT_TRUE(client2_.dtls_transport()->writable());
+
+  ClearPacketFilters();
+}
+
+TEST_P(DtlsTransportDtlsInStunTest, Handshake2) {
+  Prepare();
+  AddPacketLogging();
+
+  RTC_LOG(LS_INFO) << "client1: " << std::get<0>(GetParam());
+  RTC_LOG(LS_INFO) << "client2: " << std::get<1>(GetParam());
+
+  ASSERT_TRUE(client1_.ConnectIceTransport(&client2_));
+
+  for (int i = 1; i < 3; i++) {
+    client1_.SendIcePing();
+    client2_.SendIcePing();
+    ASSERT_TRUE(WaitUntil([&] {
+      return client1_.fake_ice_transport()->GetCountOfReceivedStunMessages(
+                 STUN_BINDING_REQUEST) == i;
+    }));
+    ASSERT_TRUE(WaitUntil([&] {
+      return client2_.fake_ice_transport()->GetCountOfReceivedStunMessages(
+                 STUN_BINDING_REQUEST) == i;
+    }));
+    client1_.SendIcePingConf();
+    client2_.SendIcePingConf();
+
+    ASSERT_TRUE(WaitUntil([&] {
+      return client1_.fake_ice_transport()->GetCountOfReceivedStunMessages(
+                 STUN_BINDING_RESPONSE) == i;
+    }));
+    ASSERT_TRUE(WaitUntil([&] {
+      return client2_.fake_ice_transport()->GetCountOfReceivedStunMessages(
+                 STUN_BINDING_RESPONSE) == i;
+    }));
+    if (client1_.dtls_transport()->writable() &&
+        client2_.dtls_transport()->writable()) {
+      break;
+    }
+  }
+
+  EXPECT_TRUE(WaitUntil([&] {
+    return client1_.dtls_transport()->writable() &&
+           client2_.dtls_transport()->writable();
+  }));
+
+  EXPECT_TRUE(client1_.dtls_transport()->writable());
+  EXPECT_TRUE(client2_.dtls_transport()->writable());
+
+  ClearPacketFilters();
+}
+
+INSTANTIATE_TEST_SUITE_P(DtlsTransportDtlsInStunTest,
+                         DtlsTransportDtlsInStunTest,
+                         testing::ValuesIn(AllEndpointVariants()));
 
 }  // namespace cricket

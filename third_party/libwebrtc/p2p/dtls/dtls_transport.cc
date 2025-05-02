@@ -171,6 +171,12 @@ DtlsTransport::DtlsTransport(IceTransportInternal* ice_transport,
             piggybacked_dtls_callback_(
                 this, rtc::ReceivedPacket(piggybacked_dtls_packet,
                                           rtc::SocketAddress()));
+          },
+          [this]() {
+            if (!dtls_) {
+              return;
+            }
+            DisablePiggybackingAndRestart();
           }) {
   RTC_DCHECK(ice_transport_);
   ConnectToIceTransport();
@@ -563,7 +569,7 @@ void DtlsTransport::ConnectToIceTransport() {
   ice_transport_->RegisterReceivedPacketCallback(
       this, [&](rtc::PacketTransportInternal* transport,
                 const rtc::ReceivedPacket& packet) {
-        OnReadPacket(transport, packet);
+        OnReadPacket(transport, packet, /* piggybacked= */ false);
       });
 
   ice_transport_->SignalSentPacket.connect(this, &DtlsTransport::OnSentPacket);
@@ -595,7 +601,7 @@ void DtlsTransport::ConnectToIceTransport() {
     if (!IsDtlsPacket(packet.payload())) {
       return;
     }
-    OnReadPacket(ice_transport_, packet);
+    OnReadPacket(ice_transport_, packet, /* piggybacked= */ true);
   });
 }
 
@@ -632,17 +638,7 @@ void DtlsTransport::OnWritableState(rtc::PacketTransportInternal* transport) {
       (dtls_state() == webrtc::DtlsTransportState::kConnecting ||
        dtls_state() == webrtc::DtlsTransportState::kNew)) {
     RTC_LOG(LS_INFO) << "DTLS piggybacking not supported, restarting...";
-    dtls_.reset(nullptr);
-    set_dtls_state(webrtc::DtlsTransportState::kNew);
-    set_writable(false);
-
-    if (!SetupDtls(/* disable_piggybacking= */ true)) {
-      RTC_LOG(LS_ERROR)
-          << "Failed to setup DTLS again after attempted piggybacking.";
-      set_dtls_state(webrtc::DtlsTransportState::kFailed);
-      return;
-    }
-    // SetupDtls has called MaybeStartDtls() already.
+    DisablePiggybackingAndRestart();
     return;
   }
 
@@ -676,6 +672,21 @@ void DtlsTransport::OnWritableState(rtc::PacketTransportInternal* transport) {
   }
 }
 
+void DtlsTransport::DisablePiggybackingAndRestart() {
+  dtls_.reset(nullptr);
+  set_dtls_state(webrtc::DtlsTransportState::kNew);
+  set_writable(false);
+
+  if (!SetupDtls(/* disable_piggybacking= */ true)) {
+    RTC_LOG(LS_ERROR)
+        << "Failed to setup DTLS again after attempted piggybacking.";
+    set_dtls_state(webrtc::DtlsTransportState::kFailed);
+    return;
+  }
+  // SetupDtls has called MaybeStartDtls() already.
+  return;
+}
+
 void DtlsTransport::OnReceivingState(rtc::PacketTransportInternal* transport) {
   RTC_DCHECK_RUN_ON(&thread_checker_);
   RTC_DCHECK(transport == ice_transport_);
@@ -690,7 +701,8 @@ void DtlsTransport::OnReceivingState(rtc::PacketTransportInternal* transport) {
 }
 
 void DtlsTransport::OnReadPacket(rtc::PacketTransportInternal* transport,
-                                 const rtc::ReceivedPacket& packet) {
+                                 const rtc::ReceivedPacket& packet,
+                                 bool piggybacked) {
   RTC_DCHECK_RUN_ON(&thread_checker_);
   RTC_DCHECK(transport == ice_transport_);
 

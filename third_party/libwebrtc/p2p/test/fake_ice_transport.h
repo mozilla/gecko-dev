@@ -394,9 +394,6 @@ class FakeIceTransport : public IceTransportInternal {
                               const rtc::PacketOptions& options,
                               int /* flags */)> func) {
     RTC_DCHECK_RUN_ON(network_thread_);
-    RTC_DLOG(LS_INFO) << this << ": "
-                      << ((func == nullptr) ? "Clearing" : "Setting")
-                      << " packet send filter func";
     packet_send_filter_func_ = std::move(func);
   }
 
@@ -405,9 +402,6 @@ class FakeIceTransport : public IceTransportInternal {
       absl::AnyInvocable<bool(const rtc::CopyOnWriteBuffer& packet,
                               uint32_t time_ms)> func) {
     RTC_DCHECK_RUN_ON(network_thread_);
-    RTC_DLOG(LS_INFO) << this << ": "
-                      << ((func == nullptr) ? "Clearing" : "Setting")
-                      << " packet recv filter func";
     packet_recv_filter_func_ = std::move(func);
   }
 
@@ -424,7 +418,11 @@ class FakeIceTransport : public IceTransportInternal {
   }
   void SetDtlsStunPiggybackCallbacks(
       DtlsStunPiggybackCallbacks&& callbacks) override {
-    RTC_LOG(LS_INFO) << name_ << ": SetDtlsStunPiggybackCallbacks";
+    if (!callbacks.empty()) {
+      RTC_LOG(LS_INFO) << name_ << ": SetDtlsStunPiggybackCallbacks";
+    } else if (!dtls_stun_piggyback_callbacks_.empty()) {
+      RTC_LOG(LS_INFO) << name_ << ": ResetDtlsStunPiggybackCallbacks";
+    }
     dtls_stun_piggyback_callbacks_ = std::move(callbacks);
   }
 
@@ -478,6 +476,10 @@ class FakeIceTransport : public IceTransportInternal {
         rtc::PacketType::kIceConnectivityCheckResponse;
     SendPacketInternal(rtc::CopyOnWriteBuffer(buf.DataView()), options, 0);
     return true;
+  }
+
+  int GetCountOfReceivedStunMessages(int type) {
+    return received_stun_messages_per_type[type];
   }
 
  private:
@@ -553,6 +555,8 @@ class FakeIceTransport : public IceTransportInternal {
       if (msg->type() == STUN_BINDING_RESPONSE) {
         set_writable(true);
       }
+
+      received_stun_messages_per_type[msg->type()]++;
       return;
     }
 
@@ -617,6 +621,7 @@ class FakeIceTransport : public IceTransportInternal {
   absl::AnyInvocable<bool(const rtc::CopyOnWriteBuffer&, uint64_t)>
       packet_recv_filter_func_ RTC_GUARDED_BY(network_thread_) = nullptr;
   DtlsStunPiggybackCallbacks dtls_stun_piggyback_callbacks_;
+  std::map<int, int> received_stun_messages_per_type;
 };
 
 class FakeIceTransportWrapper : public webrtc::IceTransportInterface {

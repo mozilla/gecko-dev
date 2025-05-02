@@ -28,8 +28,11 @@
 namespace cricket {
 
 DtlsStunPiggybackController::DtlsStunPiggybackController(
-    absl::AnyInvocable<void(rtc::ArrayView<const uint8_t>)> dtls_data_callback)
-    : dtls_data_callback_(std::move(dtls_data_callback)) {}
+    absl::AnyInvocable<void(rtc::ArrayView<const uint8_t>)> dtls_data_callback,
+    absl::AnyInvocable<void()> disable_piggybacking_callback)
+    : dtls_data_callback_(std::move(dtls_data_callback)),
+      disable_piggybacking_callback_(std::move(disable_piggybacking_callback)) {
+}
 
 DtlsStunPiggybackController::~DtlsStunPiggybackController() {}
 
@@ -115,6 +118,7 @@ void DtlsStunPiggybackController::ReportDataPiggybacked(
     state_ = State::OFF;
     pending_packet_.Clear();
     RTC_LOG(LS_INFO) << "DTLS-STUN piggybacking not supported by peer.";
+    disable_piggybacking_callback_();
     return;
   }
 

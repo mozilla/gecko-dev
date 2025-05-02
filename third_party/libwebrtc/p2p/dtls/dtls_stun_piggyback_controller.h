@@ -35,7 +35,8 @@ class DtlsStunPiggybackController {
   // piggybacked.
   DtlsStunPiggybackController(
       absl::AnyInvocable<void(rtc::ArrayView<const uint8_t>)>
-          dtls_data_callback);
+          dtls_data_callback,
+      absl::AnyInvocable<void()> disable_piggybacking_callback);
   ~DtlsStunPiggybackController();
 
   // Initially set from IceConfig.dtls_handshake_in_stun
@@ -88,6 +89,7 @@ class DtlsStunPiggybackController {
   State state_ RTC_GUARDED_BY(sequence_checker_) = State::TENTATIVE;
   rtc::Buffer pending_packet_ RTC_GUARDED_BY(sequence_checker_);
   absl::AnyInvocable<void(rtc::ArrayView<const uint8_t>)> dtls_data_callback_;
+  absl::AnyInvocable<void()> disable_piggybacking_callback_;
 
   std::set<uint16_t> handshake_messages_received_
       RTC_GUARDED_BY(sequence_checker_);
