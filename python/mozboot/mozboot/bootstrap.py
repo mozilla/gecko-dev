@@ -106,9 +106,6 @@ Would you like to run a configuration wizard to ensure Mercurial is
 optimally configured? (This will also ensure 'version-control-tools' is up-to-date)"""
 
 CONFIGURE_GIT = """
-Mozilla recommends using git-cinnabar to work with mozilla-central (or
-mozilla-unified).
-
 Would you like to run a few configuration steps to ensure Git is
 optimally configured?"""
 
