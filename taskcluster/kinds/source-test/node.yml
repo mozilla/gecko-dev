@@ -4,7 +4,7 @@
 ---
 task-defaults:
     platform: linux1804-64/opt
-    worker-type: t-linux-xlarge-source
+    worker-type: t-linux-docker
     worker:
         docker-image: {in-tree: "ubuntu1804-test"}
         max-run-time: 1800

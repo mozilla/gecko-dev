@@ -10,7 +10,7 @@ task-defaults:
             default: true
     worker-type:
         by-platform:
-            linux1804-64.*: t-linux-xlarge-source
+            linux1804-64.*: t-linux-docker
             macosx1470-64.*: t-osx-1400-r8
             windows11-64.*: win11-64-24h2-source
     worker:

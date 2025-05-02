@@ -8,7 +8,7 @@ task-defaults:
     run:
         using: run-task
         cwd: '{checkout}'
-    worker-type: t-linux-xlarge-source
+    worker-type: t-linux-docker
     worker:
         artifacts:
             - type: directory

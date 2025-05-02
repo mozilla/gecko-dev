@@ -5,7 +5,7 @@
 task-defaults:
     run-on-projects: ["trunk"]
     platform: linux64/debug
-    worker-type: t-linux-xlarge-source
+    worker-type: t-linux-docker
     attributes:
         code-review: true
     worker:

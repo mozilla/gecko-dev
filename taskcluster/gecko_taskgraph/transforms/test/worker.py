@@ -6,11 +6,12 @@ from taskgraph.transforms.base import TransformSequence
 
 # default worker types keyed by instance-size
 LINUX_WORKER_TYPES = {
-    "large": "t-linux-large",
-    "large-noscratch": "t-linux-large-noscratch",
-    "xlarge": "t-linux-xlarge",
-    "xlarge-noscratch": "t-linux-xlarge-noscratch",
-    "default": "t-linux-large-noscratch",
+    "large": "t-linux-docker",
+    "large-noscratch": "t-linux-docker-noscratch",
+    "xlarge": "t-linux-docker",
+    "xlarge-noscratch": "t-linux-docker-noscratch",
+    "large-dw": "t-linux-large-noscratch",
+    "default": "t-linux-docker-noscratch",
 }
 
 # windows worker types keyed by test-platform and virtualization

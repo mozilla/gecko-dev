@@ -607,6 +607,9 @@ def enable_code_coverage(config, tasks):
             task["instance-size"] = "xlarge-noscratch"
             if "jittest" in task["test-name"]:
                 task["instance-size"] = "xlarge"
+            elif task["suite"] == "xpcshell" and "linux" in task["build-platform"]:
+                # TODO figure out OOM/timeout issues on d2g (bug 1962414)
+                task["instance-size"] = "large-dw"
 
             # Temporarily disable Mac tests on mozilla-central
             if "mac" in task["build-platform"]:

@@ -121,7 +121,14 @@ test_description_schema = Schema(
         Required("instance-size"): optionally_keyed_by(
             "test-platform",
             "variant",
-            Any("default", "large", "large-noscratch", "xlarge", "xlarge-noscratch"),
+            Any(
+                "default",
+                "large",
+                "large-noscratch",
+                "xlarge",
+                "xlarge-noscratch",
+                "large-dw",
+            ),
         ),
         # type of virtualization or hardware required by test.
         Required("virtualization"): optionally_keyed_by(

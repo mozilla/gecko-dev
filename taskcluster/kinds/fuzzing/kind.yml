@@ -58,7 +58,7 @@ tasks:
 
     grizzly-linux32-opt:
         platform: linux32/asan
-        worker-type: t-linux-xlarge-source
+        worker-type: t-linux-docker
         worker:
             docker-image: {in-tree: ubuntu1804-test}
             env:
@@ -77,7 +77,7 @@ tasks:
 
     grizzly-linux32-debug:
         platform: linux32/debug
-        worker-type: t-linux-xlarge-source
+        worker-type: t-linux-docker
         worker:
             docker-image: {in-tree: ubuntu1804-test}
             env:
