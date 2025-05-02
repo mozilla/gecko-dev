@@ -181,6 +181,19 @@ already_AddRefed<dom::Promise> Instance::RequestAdapter(
     return promise.forget();
   }
 
+  if (aOptions.mXrCompatible) {
+    dom::AutoJSAPI api;
+    if (api.Init(mOwner)) {
+      JS::WarnUTF8(
+          api.cx(),
+          "User requested a WebGPU adapter with `xrCompatible: true`, "
+          "but WebXR sessions are not yet supported in WebGPU. Returning "
+          "a regular adapter for now. Subscribe to "
+          "<https://bugzilla.mozilla.org/show_bug.cgi?id=1963829>"
+          " for updates on its development in Firefox.");
+    }
+  }
+
   bridge->InstanceRequestAdapter(aOptions)->Then(
       GetCurrentSerialEventTarget(), __func__,
       [promise, instance, bridge](ipc::ByteBuf aInfoBuf) {
