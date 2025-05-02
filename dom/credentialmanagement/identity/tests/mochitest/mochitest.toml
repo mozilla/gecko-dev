@@ -43,8 +43,6 @@ support-files = [
   "server_accounts_redirect_idtoken.sjs",
   "server_idtoken_redirect_accounts.sjs",
   "server_idtoken_redirect_idtoken.sjs",
-  "web-identity-multiple-config",
-  "web-identity-multiple-config^headers^",
 ]
 
 ["test_account_label.html"]
@@ -78,9 +76,5 @@ support-files = [
 ["test_two_accounts.html"]
 
 ["test_two_providers.html"]
-
-["test_well_known_multiple_config_simple.html"]
-
-["test_well_known_multiple_config_wrong_account_endpoint.html"]
 
 ["test_wrong_provider_in_manifest.html"]
