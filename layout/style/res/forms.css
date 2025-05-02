@@ -925,11 +925,11 @@ input::-moz-reveal {
   /* Needed to prevent regression of Bug 502258 */
   max-height: 100%;
   max-width: 100%;
-  background-image: url("resource://gre-resources/password.svg");
+  background-image: url("chrome://global/skin/icons/eye.svg");
 }
 
 input:-moz-revealed::-moz-reveal {
-  background-image: url("resource://gre-resources/password-hide.svg");
+  background-image: url("chrome://global/skin/icons/eye-slash.svg");
 }
 
 input:-moz-value-empty::-moz-reveal,

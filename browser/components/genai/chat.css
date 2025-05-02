@@ -238,9 +238,8 @@ browser {
       &[data-l10n-id*=generate] {
         background-image: url(chrome://global/skin/icons/edit-outline.svg);
       }
-      /* Bug 1920563 these reused icons probably should be renamed */
       &[data-l10n-id*=analyze] {
-        background-image: url(resource://gre-resources/password.svg);
+        background-image: url(chrome://global/skin/icons/eye.svg);
       }
       &[data-l10n-id*=switch] {
         background-image: url(chrome://global/skin/icons/arrows-updown.svg);

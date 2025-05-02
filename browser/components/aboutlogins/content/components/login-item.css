@@ -205,7 +205,7 @@ moz-button-group,
 
 .reveal-password-checkbox {
   appearance: none;
-  background-image: url("resource://gre-resources/password.svg");
+  background-image: url("chrome://global/skin/icons/eye.svg");
   margin-inline: 10px 0;
   cursor: pointer;
   -moz-context-properties: fill;
@@ -222,7 +222,7 @@ moz-button-group,
   }
 
   &:checked {
-    background-image: url("resource://gre-resources/password-hide.svg");
+    background-image: url("chrome://global/skin/icons/eye-slash.svg");
   }
 }
 

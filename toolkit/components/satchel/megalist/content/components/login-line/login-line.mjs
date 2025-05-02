@@ -186,10 +186,8 @@ class ConcealedLoginLine extends MozLitElement {
 
   #revealIconSrc() {
     return this.visible
-      ? /* eslint-disable-next-line mozilla/no-browser-refs-in-toolkit */
-        "chrome://browser/content/aboutlogins/icons/password-hide.svg"
-      : /* eslint-disable-next-line mozilla/no-browser-refs-in-toolkit */
-        "chrome://browser/content/aboutlogins/icons/password.svg";
+      ? "chrome://global/skin/icons/eye-slash.svg"
+      : "chrome://global/skin/icons/eye.svg";
   }
 
   async #onRevealButtonClick() {

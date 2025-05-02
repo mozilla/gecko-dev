@@ -48,8 +48,8 @@ class LoginPasswordField extends MozLitElement {
 
   #revealIconSrc(concealed) {
     return concealed
-      ? "chrome://browser/content/aboutlogins/icons/password-hide.svg"
-      : "chrome://browser/content/aboutlogins/icons/password.svg";
+      ? "chrome://global/skin/icons/eye-slash.svg"
+      : "chrome://global/skin/icons/eye.svg";
   }
 
   updated(changedProperties) {
