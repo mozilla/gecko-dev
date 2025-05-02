@@ -14,4 +14,8 @@
       height: 100%;
     }
   }
+
+  &::backdrop {
+    background: $black-25;
+  }
 }
