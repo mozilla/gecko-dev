@@ -298,21 +298,15 @@ export class PlacesFeed {
       lazy.NimbusFeatures.pocketNewtab.getVariable("sendToPocket");
     // An experiment to send the user directly to Pocket's signup page.
     if (sendToPocket && !lazy.pktApi.isUserLoggedIn()) {
-      let pocketNewtabExperiment = lazy.ExperimentAPI.getExperimentMetaData({
-        featureId: "pocketNewtab",
-      });
-      if (!pocketNewtabExperiment) {
-        pocketNewtabExperiment = lazy.ExperimentAPI.getRolloutMetaData({
-          featureId: "pocketNewtab",
-        });
-      }
+      let pocketNewtabExperiment =
+        lazy.NimbusFeatures.pocketNewtab.getEnrollmentMetadata();
       const pocketSiteHost = Services.prefs.getStringPref(
         "extensions.pocket.site"
       ); // getpocket.com
       let utmSource = "firefox_newtab_save_button";
       // We want to know if the user is in a Pocket newtab related experiment.
       let utmCampaign = pocketNewtabExperiment?.slug;
-      let utmContent = pocketNewtabExperiment?.branch?.slug;
+      let utmContent = pocketNewtabExperiment?.branch;
 
       const url = new URL(`https://${pocketSiteHost}/signup`);
       url.searchParams.append("utm_source", utmSource);
