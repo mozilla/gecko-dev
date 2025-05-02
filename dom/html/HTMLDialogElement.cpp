@@ -279,6 +279,11 @@ void HTMLDialogElement::Show(ErrorResult& aError) {
   FocusDialog();
 }
 
+bool HTMLDialogElement::Open() const {
+  MOZ_ASSERT(GetBoolAttr(nsGkAtoms::open) == State().HasState(ElementState::OPEN));
+  return State().HasState(ElementState::OPEN);
+}
+
 bool HTMLDialogElement::IsInTopLayer() const {
   return State().HasState(ElementState::MODAL);
 }
@@ -454,7 +459,6 @@ void HTMLDialogElement::AfterSetAttr(int32_t aNameSpaceID, nsAtom* aName,
                                      bool aNotify) {
   nsGenericHTMLElement::AfterSetAttr(aNameSpaceID, aName, aValue, aOldValue,
                                      aMaybeScriptedPrincipal, aNotify);
-
   // XXX: https://github.com/whatwg/html/pull/10954
   // Attribute change Steps for HTMLDialogElement
   // 1. If namespace is not null, then return.
@@ -484,7 +488,7 @@ void HTMLDialogElement::AfterSetAttr(int32_t aNameSpaceID, nsAtom* aName,
   bool wasOpen = !!aOldValue;
   bool isOpen = !!aValue;
 
-  MOZ_ASSERT(Open() == isOpen);
+  MOZ_ASSERT(GetBoolAttr(nsGkAtoms::open) == isOpen);
   SetStates(ElementState::OPEN, isOpen);
 
   // 3. If value is null, and oldValue is not null, then run the dialog
