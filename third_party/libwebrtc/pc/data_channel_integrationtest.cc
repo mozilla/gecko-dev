@@ -59,6 +59,7 @@ namespace {
 using ::testing::Eq;
 using ::testing::IsTrue;
 using ::testing::Ne;
+using ::testing::ValuesIn;
 
 // All tests in this file require SCTP support.
 #ifdef WEBRTC_HAVE_SCTP
@@ -129,6 +130,15 @@ void MakeActiveSctpOffer(std::unique_ptr<SessionDescriptionInterface>& desc) {
   auto& transport_infos = desc->description()->transport_infos();
   for (auto& transport_info : transport_infos) {
     transport_info.description.connection_role = cricket::CONNECTIONROLE_ACTIVE;
+  }
+}
+
+void MakeOfferHavePassiveDtlsRole(
+    std::unique_ptr<SessionDescriptionInterface>& desc) {
+  auto& transport_infos = desc->description()->transport_infos();
+  for (auto& transport_info : transport_infos) {
+    transport_info.description.connection_role =
+        cricket::CONNECTIONROLE_PASSIVE;
   }
 }
 
@@ -1476,20 +1486,40 @@ TEST_F(DataChannelIntegrationTestUnifiedPlan,
 
 class DataChannelIntegrationTestUnifiedPlanFieldTrials
     : public DataChannelIntegrationTestUnifiedPlan,
-      public ::testing::WithParamInterface<
-          std::tuple</* callee-DTLS-active=*/bool, std::string>> {
+      public ::testing::WithParamInterface<std::tuple<
+          /* callee-DTLS-active=*/bool,
+          /* caller-field-trials=*/const char*,
+          /* callee-field-trials=*/const char*,
+          /* callee2-field-trials=*/const char*>> {
  protected:
   DataChannelIntegrationTestUnifiedPlanFieldTrials() {
-    SetFieldTrials(std::get<1>(GetParam()));
+    const bool callee_active = std::get<0>(GetParam());
+    RTC_LOG(LS_INFO) << "dtls_active: " << (callee_active ? "callee" : "caller")
+                     << " field-trials: caller: " << std::get<1>(GetParam())
+                     << " callee: " << std::get<2>(GetParam())
+                     << " callee2: " << std::get<3>(GetParam());
+
+    SetFieldTrials(kCallerName, std::get<1>(GetParam()));
+    SetFieldTrials(kCalleeName, std::get<2>(GetParam()));
+    SetFieldTrials("Callee2", std::get<3>(GetParam()));
   }
 
  private:
 };
 
+// TODO(webrtc:367395350/jonaso): Add "WebRTC-IceHandshakeDtls/Enabled/"...
+// when it works for this testcase...
+static const char* kTrialsVariants[] = {
+    "",
+    "WebRTC-ForceDtls13/Enabled/",
+};
+
 INSTANTIATE_TEST_SUITE_P(DataChannelIntegrationTestUnifiedPlanFieldTrials,
                          DataChannelIntegrationTestUnifiedPlanFieldTrials,
                          Combine(testing::Bool(),
-                                 Values("", "WebRTC-ForceDtls13/Enabled/")));
+                                 ValuesIn(kTrialsVariants),
+                                 ValuesIn(kTrialsVariants),
+                                 ValuesIn(kTrialsVariants)));
 
 TEST_P(DataChannelIntegrationTestUnifiedPlanFieldTrials, DtlsRestart) {
   RTCConfiguration config;
@@ -1504,11 +1534,7 @@ TEST_P(DataChannelIntegrationTestUnifiedPlanFieldTrials, DtlsRestart) {
                                              /*reset_encoder_factory=*/false,
                                              /*reset_decoder_factory=*/false);
 
-  if (std::get<0>(GetParam())) {
-    callee()->SetReceivedSdpMunger(MakeActiveSctpOffer);
-    callee2->SetReceivedSdpMunger(MakeActiveSctpOffer);
-  }
-
+  const bool callee_active = std::get<0>(GetParam());
   ConnectFakeSignaling();
 
   DataChannelInit dc_init;
@@ -1521,11 +1547,21 @@ TEST_P(DataChannelIntegrationTestUnifiedPlanFieldTrials, DtlsRestart) {
   std::unique_ptr<SessionDescriptionInterface> offer;
   callee()->SetReceivedSdpMunger(
       [&](std::unique_ptr<SessionDescriptionInterface>& sdp) {
+        if (callee_active) {
+          MakeOfferHavePassiveDtlsRole(sdp);
+        } else {
+          MakeActiveSctpOffer(sdp);
+        }
         offer = sdp->Clone();
       });
   callee()->SetGeneratedSdpMunger(
-      [](std::unique_ptr<SessionDescriptionInterface>& sdp) {
+      [&](std::unique_ptr<SessionDescriptionInterface>& sdp) {
         SetSdpType(sdp, SdpType::kPrAnswer);
+        if (callee_active) {
+          MakeActiveSctpOffer(sdp);
+        } else {
+          MakeOfferHavePassiveDtlsRole(sdp);
+        }
       });
   std::unique_ptr<SessionDescriptionInterface> answer;
   caller()->SetReceivedSdpMunger(
@@ -1545,6 +1581,26 @@ TEST_P(DataChannelIntegrationTestUnifiedPlanFieldTrials, DtlsRestart) {
                         Eq(DataChannelInterface::kOpen)),
               IsRtcOk());
 
+  ASSERT_THAT(
+      WaitUntil([&] { return caller()->pc()->peer_connection_state(); },
+                Eq(PeerConnectionInterface::PeerConnectionState::kConnected)),
+      IsRtcOk());
+  ASSERT_THAT(
+      WaitUntil([&] { return callee()->pc()->peer_connection_state(); },
+                Eq(PeerConnectionInterface::PeerConnectionState::kConnected)),
+      IsRtcOk());
+
+  if (callee_active) {
+    ASSERT_THAT(caller()->dtls_transport_role(),
+                Eq(DtlsTransportTlsRole::kServer));
+    ASSERT_THAT(callee()->dtls_transport_role(),
+                Eq(DtlsTransportTlsRole::kClient));
+  } else {
+    ASSERT_THAT(caller()->dtls_transport_role(),
+                Eq(DtlsTransportTlsRole::kClient));
+    ASSERT_THAT(callee()->dtls_transport_role(),
+                Eq(DtlsTransportTlsRole::kServer));
+  }
   callee2->set_signaling_message_receiver(caller());
 
   std::atomic<int> caller_sent_on_dc(0);
@@ -1612,6 +1668,18 @@ TEST_P(DataChannelIntegrationTestUnifiedPlanFieldTrials, DtlsRestart) {
       WaitUntil([&] { return callee2->data_observer()->last_message(); },
                 Eq("KESO")),
       IsRtcOk());
+
+  if (callee_active) {
+    EXPECT_THAT(caller()->dtls_transport_role(),
+                Eq(DtlsTransportTlsRole::kServer));
+    EXPECT_THAT(callee2->dtls_transport_role(),
+                Eq(DtlsTransportTlsRole::kClient));
+  } else {
+    EXPECT_THAT(caller()->dtls_transport_role(),
+                Eq(DtlsTransportTlsRole::kClient));
+    EXPECT_THAT(callee2->dtls_transport_role(),
+                Eq(DtlsTransportTlsRole::kServer));
+  }
 }
 
 #endif  // WEBRTC_HAVE_SCTP

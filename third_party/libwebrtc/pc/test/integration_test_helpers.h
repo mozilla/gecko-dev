@@ -690,7 +690,12 @@ class PeerConnectionIntegrationWrapper : public PeerConnectionObserver,
 
   bool SetRemoteDescription(std::unique_ptr<SessionDescriptionInterface> desc) {
     auto observer = rtc::make_ref_counted<FakeSetRemoteDescriptionObserver>();
-    RTC_LOG(LS_INFO) << debug_name_ << ": SetRemoteDescription SDP:" << desc;
+    std::string sdp;
+    EXPECT_TRUE(desc->ToString(&sdp));
+    RTC_LOG(LS_INFO) << debug_name_
+                     << ": SetRemoteDescription SDP: type=" << desc->type()
+                     << " contents=\n"
+                     << sdp;
     pc()->SetRemoteDescription(std::move(desc), observer);  // desc.release());
     RemoveUnusedVideoRenderers();
     EXPECT_THAT(
@@ -746,6 +751,12 @@ class PeerConnectionIntegrationWrapper : public PeerConnectionObserver,
     });
   }
 
+  std::optional<DtlsTransportTlsRole> dtls_transport_role() {
+    return network_thread_->BlockingCall([&] {
+      return pc()->GetSctpTransport()->dtls_transport()->Information().role();
+    });
+  }
+
   // Setting the local description and sending the SDP message over the fake
   // signaling channel are combined into the same method because the SDP
   // message needs to be sent as soon as SetLocalDescription finishes, without
@@ -758,7 +769,9 @@ class PeerConnectionIntegrationWrapper : public PeerConnectionObserver,
     SdpType type = desc->GetType();
     std::string sdp;
     EXPECT_TRUE(desc->ToString(&sdp));
-    RTC_LOG(LS_INFO) << debug_name_ << ": local SDP contents=\n" << sdp;
+    RTC_LOG(LS_INFO) << debug_name_ << ": local SDP type=" << desc->type()
+                     << " contents=\n"
+                     << sdp;
     pc()->SetLocalDescription(observer.get(), desc.release());
     RemoveUnusedVideoRenderers();
     // As mentioned above, we need to send the message immediately after
@@ -1347,6 +1360,9 @@ class MockIceTransportFactory : public IceTransportFactory {
 // of everything else (including "PeerConnectionFactory"s).
 class PeerConnectionIntegrationBaseTest : public ::testing::Test {
  public:
+  static constexpr char kCallerName[] = "Caller";
+  static constexpr char kCalleeName[] = "Callee";
+
   explicit PeerConnectionIntegrationBaseTest(SdpSemantics sdp_semantics)
       : sdp_semantics_(sdp_semantics),
         ss_(new rtc::VirtualSocketServer()),
@@ -1411,6 +1427,15 @@ class PeerConnectionIntegrationBaseTest : public ::testing::Test {
     field_trials_ = std::string(field_trials);
   }
 
+  // Sets field trials to pass to created PeerConnectionWrapper key:ed on
+  // debug_name. Must be called before PeerConnectionWrappers are created.
+  void SetFieldTrials(absl::string_view debug_name,
+                      absl::string_view field_trials) {
+    RTC_CHECK(caller_ == nullptr);
+    RTC_CHECK(callee_ == nullptr);
+    field_trials_overrides_[std::string(debug_name)] = field_trials;
+  }
+
   // When `event_log_factory` is null, the default implementation of the event
   // log factory will be used.
   std::unique_ptr<PeerConnectionIntegrationWrapper> CreatePeerConnectionWrapper(
@@ -1434,9 +1459,14 @@ class PeerConnectionIntegrationBaseTest : public ::testing::Test {
     std::unique_ptr<PeerConnectionIntegrationWrapper> client(
         new PeerConnectionIntegrationWrapper(debug_name));
 
+    std::string field_trials = field_trials_;
+    auto it = field_trials_overrides_.find(debug_name);
+    if (it != field_trials_overrides_.end()) {
+      field_trials = it->second;
+    }
     if (!client->Init(options, &modified_config, std::move(dependencies),
                       fss_.get(), network_thread_.get(), worker_thread_.get(),
-                      FieldTrials::CreateNoGlobal(field_trials_),
+                      FieldTrials::CreateNoGlobal(field_trials),
                       std::move(event_log_factory), reset_encoder_factory,
                       reset_decoder_factory, create_media_engine)) {
       return nullptr;
@@ -1473,13 +1503,13 @@ class PeerConnectionIntegrationBaseTest : public ::testing::Test {
     // callee PeerConnections.
     SdpSemantics original_semantics = sdp_semantics_;
     sdp_semantics_ = caller_semantics;
-    caller_ = CreatePeerConnectionWrapper("Caller", nullptr, nullptr,
+    caller_ = CreatePeerConnectionWrapper(kCallerName, nullptr, nullptr,
                                           PeerConnectionDependencies(nullptr),
                                           nullptr,
                                           /*reset_encoder_factory=*/false,
                                           /*reset_decoder_factory=*/false);
     sdp_semantics_ = callee_semantics;
-    callee_ = CreatePeerConnectionWrapper("Callee", nullptr, nullptr,
+    callee_ = CreatePeerConnectionWrapper(kCalleeName, nullptr, nullptr,
                                           PeerConnectionDependencies(nullptr),
                                           nullptr,
                                           /*reset_encoder_factory=*/false,
@@ -1491,12 +1521,12 @@ class PeerConnectionIntegrationBaseTest : public ::testing::Test {
   bool CreatePeerConnectionWrappersWithConfig(
       const PeerConnectionInterface::RTCConfiguration& caller_config,
       const PeerConnectionInterface::RTCConfiguration& callee_config) {
-    caller_ = CreatePeerConnectionWrapper("Caller", nullptr, &caller_config,
+    caller_ = CreatePeerConnectionWrapper(kCallerName, nullptr, &caller_config,
                                           PeerConnectionDependencies(nullptr),
                                           nullptr,
                                           /*reset_encoder_factory=*/false,
                                           /*reset_decoder_factory=*/false);
-    callee_ = CreatePeerConnectionWrapper("Callee", nullptr, &callee_config,
+    callee_ = CreatePeerConnectionWrapper(kCalleeName, nullptr, &callee_config,
                                           PeerConnectionDependencies(nullptr),
                                           nullptr,
                                           /*reset_encoder_factory=*/false,
@@ -1510,12 +1540,12 @@ class PeerConnectionIntegrationBaseTest : public ::testing::Test {
       const PeerConnectionInterface::RTCConfiguration& callee_config,
       PeerConnectionDependencies callee_dependencies) {
     caller_ =
-        CreatePeerConnectionWrapper("Caller", nullptr, &caller_config,
+        CreatePeerConnectionWrapper(kCallerName, nullptr, &caller_config,
                                     std::move(caller_dependencies), nullptr,
                                     /*reset_encoder_factory=*/false,
                                     /*reset_decoder_factory=*/false);
     callee_ =
-        CreatePeerConnectionWrapper("Callee", nullptr, &callee_config,
+        CreatePeerConnectionWrapper(kCalleeName, nullptr, &callee_config,
                                     std::move(callee_dependencies), nullptr,
                                     /*reset_encoder_factory=*/false,
                                     /*reset_decoder_factory=*/false);
@@ -1525,12 +1555,12 @@ class PeerConnectionIntegrationBaseTest : public ::testing::Test {
   bool CreatePeerConnectionWrappersWithOptions(
       const PeerConnectionFactory::Options& caller_options,
       const PeerConnectionFactory::Options& callee_options) {
-    caller_ = CreatePeerConnectionWrapper("Caller", &caller_options, nullptr,
+    caller_ = CreatePeerConnectionWrapper(kCallerName, &caller_options, nullptr,
                                           PeerConnectionDependencies(nullptr),
                                           nullptr,
                                           /*reset_encoder_factory=*/false,
                                           /*reset_decoder_factory=*/false);
-    callee_ = CreatePeerConnectionWrapper("Callee", &callee_options, nullptr,
+    callee_ = CreatePeerConnectionWrapper(kCalleeName, &callee_options, nullptr,
                                           PeerConnectionDependencies(nullptr),
                                           nullptr,
                                           /*reset_encoder_factory=*/false,
@@ -1541,10 +1571,10 @@ class PeerConnectionIntegrationBaseTest : public ::testing::Test {
   bool CreatePeerConnectionWrappersWithFakeRtcEventLog() {
     PeerConnectionInterface::RTCConfiguration default_config;
     caller_ = CreatePeerConnectionWrapperWithFakeRtcEventLog(
-        "Caller", nullptr, &default_config,
+        kCallerName, nullptr, &default_config,
         PeerConnectionDependencies(nullptr));
     callee_ = CreatePeerConnectionWrapperWithFakeRtcEventLog(
-        "Callee", nullptr, &default_config,
+        kCalleeName, nullptr, &default_config,
         PeerConnectionDependencies(nullptr));
     return caller_ && callee_;
   }
@@ -1565,12 +1595,12 @@ class PeerConnectionIntegrationBaseTest : public ::testing::Test {
 
   bool CreateOneDirectionalPeerConnectionWrappers(bool caller_to_callee) {
     caller_ = CreatePeerConnectionWrapper(
-        "Caller", nullptr, nullptr, PeerConnectionDependencies(nullptr),
+        kCallerName, nullptr, nullptr, PeerConnectionDependencies(nullptr),
         nullptr,
         /*reset_encoder_factory=*/!caller_to_callee,
         /*reset_decoder_factory=*/caller_to_callee);
     callee_ = CreatePeerConnectionWrapper(
-        "Callee", nullptr, nullptr, PeerConnectionDependencies(nullptr),
+        kCalleeName, nullptr, nullptr, PeerConnectionDependencies(nullptr),
         nullptr,
         /*reset_encoder_factory=*/caller_to_callee,
         /*reset_decoder_factory=*/!caller_to_callee);
@@ -1578,13 +1608,13 @@ class PeerConnectionIntegrationBaseTest : public ::testing::Test {
   }
 
   bool CreatePeerConnectionWrappersWithoutMediaEngine() {
-    caller_ = CreatePeerConnectionWrapper("Caller", nullptr, nullptr,
+    caller_ = CreatePeerConnectionWrapper(kCallerName, nullptr, nullptr,
                                           PeerConnectionDependencies(nullptr),
                                           nullptr,
                                           /*reset_encoder_factory=*/false,
                                           /*reset_decoder_factory=*/false,
                                           /*create_media_engine=*/false);
-    callee_ = CreatePeerConnectionWrapper("Callee", nullptr, nullptr,
+    callee_ = CreatePeerConnectionWrapper(kCalleeName, nullptr, nullptr,
                                           PeerConnectionDependencies(nullptr),
                                           nullptr,
                                           /*reset_encoder_factory=*/false,
@@ -1886,6 +1916,7 @@ class PeerConnectionIntegrationBaseTest : public ::testing::Test {
   std::unique_ptr<PeerConnectionIntegrationWrapper> caller_;
   std::unique_ptr<PeerConnectionIntegrationWrapper> callee_;
   std::string field_trials_;
+  std::map<std::string, std::string> field_trials_overrides_;
 };
 
 }  // namespace webrtc
