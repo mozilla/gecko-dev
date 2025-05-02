@@ -145,15 +145,25 @@ def setup_vscode(command_context, interactive):
             "*.jsm": "javascript",
             "*.sjs": "javascript",
         },
-        # Note, the top-level editor settings are left as default to allow the
-        # user's defaults (if any) to take effect.
-        "[javascript][javascriptreact][typescript][typescriptreact][json][jsonc][html]": {
-            "editor.defaultFormatter": "esbenp.prettier-vscode",
-            "editor.formatOnSave": True,
-        },
         "files.exclude": {"obj-*": True, relobjdir: True},
         "files.watcherExclude": {"obj-*": True, relobjdir: True},
     }
+    # These are added separately because vscode doesn't override user settings
+    # otherwise which leads to the wrong auto-formatting.
+    prettier_languages = [
+        "javascript",
+        "javascriptreact",
+        "typescript",
+        "typescriptreact",
+        "json",
+        "jsonc",
+        "html",
+    ]
+    for lang in prettier_languages:
+        new_settings[f"[{lang}]"] = {
+            "editor.defaultFormatter": "esbenp.prettier-vscode",
+            "editor.formatOnSave": True,
+        }
 
     import difflib
 
@@ -200,6 +210,7 @@ def setup_vscode(command_context, interactive):
             "[javascript][javascriptreact][typescript][typescriptreact]",
             "[javascript][javascriptreact][typescript][typescriptreact][json]",
             "[javascript][javascriptreact][typescript][typescriptreact][json][html]",
+            "[javascript][javascriptreact][typescript][typescriptreact][json][jsonc][html]",
         ]
         for entry in deprecated:
             if entry in old_settings:
