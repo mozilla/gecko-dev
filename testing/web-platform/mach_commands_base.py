@@ -75,6 +75,8 @@ class WebPlatformTestsRunner:
 
         log_buffer = CriticalLogBuffer()
         logger.add_handler(log_buffer)
+
+        result = 1
         try:
             result = wptrunner.start(**kwargs)
         finally:
