@@ -18,7 +18,6 @@ add_task(async function test_clobbered_properties() {
     Glean.security.shadowedHtmlDocumentPropertyAccess.testGetValue()
   );
 
-
   is(result.length, 1, "Got one metric");
   is(
     result[0].extra.name,
