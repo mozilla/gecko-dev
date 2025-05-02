@@ -15,6 +15,7 @@ EXTRA_JS_MODULES.sessionstore = [
     "PageWireframes.sys.mjs",
     "RecentlyClosedTabsAndWindowsMenuUtils.sys.mjs",
     "RunState.sys.mjs",
+    "session.schema.json",
     "SessionCookies.sys.mjs",
     "SessionFile.sys.mjs",
     "SessionLogger.sys.mjs",

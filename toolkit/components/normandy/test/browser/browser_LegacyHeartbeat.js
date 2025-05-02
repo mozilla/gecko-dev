@@ -21,7 +21,7 @@ const { Normandy } = ChromeUtils.importESModule(
 const { ExperimentAPI } = ChromeUtils.importESModule(
   "resource://nimbus/ExperimentAPI.sys.mjs"
 );
-const { ExperimentFakes } = ChromeUtils.importESModule(
+const { NimbusTestUtils } = ChromeUtils.importESModule(
   "resource://testing-common/NimbusTestUtils.sys.mjs"
 );
 const { RecipeRunner } = ChromeUtils.importESModule(
@@ -139,7 +139,7 @@ decorate_task(
   async function testLegacyHeartbeatTrigger({ heartbeatClassStub }) {
     const sandbox = sinon.createSandbox();
 
-    const doEnrollmentCleanup = await ExperimentFakes.enrollWithFeatureConfig({
+    const doEnrollmentCleanup = await NimbusTestUtils.enrollWithFeatureConfig({
       featureId: "legacyHeartbeat",
       value: {
         survey: SURVEY,
@@ -170,7 +170,7 @@ decorate_task(
   async function testLegacyHeartbeatPingPayload() {
     const sandbox = sinon.createSandbox();
 
-    const doEnrollmentCleanup = await ExperimentFakes.enrollWithFeatureConfig({
+    const doEnrollmentCleanup = await NimbusTestUtils.enrollWithFeatureConfig({
       featureId: "legacyHeartbeat",
       value: {
         survey: SURVEY,

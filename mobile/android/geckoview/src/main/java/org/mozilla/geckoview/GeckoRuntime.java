@@ -101,8 +101,16 @@ public final class GeckoRuntime implements Parcelable {
 
   /**
    * This is a key for extra data sent with {@link #ACTION_CRASHED}. The value is a String matching
-   * one of the `CRASHED_PROCESS_TYPE_*` constants, describing what type of process the crash
+   * one of the `CRASHED_PROCESS_VISIBILITY_*` constants, describing what type of process the crash
    * occurred in.
+   *
+   * @see GeckoSession.ContentDelegate#onCrash(GeckoSession)
+   */
+  public static final String EXTRA_CRASH_PROCESS_VISIBILITY = "processVisibility";
+
+  /**
+   * This is a key for extra data sent with {@link #ACTION_CRASHED}. The value is a String
+   * identifier for the process type where the crash occurred.
    *
    * @see GeckoSession.ContentDelegate#onCrash(GeckoSession)
    */
@@ -117,27 +125,43 @@ public final class GeckoRuntime implements Parcelable {
   public static final String EXTRA_CRASH_REMOTE_TYPE = "remoteType";
 
   /**
-   * Value for {@link #EXTRA_CRASH_PROCESS_TYPE} indicating the main application process was
+   * Value for {@link #EXTRA_CRASH_PROCESS_VISIBILITY} indicating the main application process was
    * affected by the crash, which is therefore fatal.
    */
-  public static final String CRASHED_PROCESS_TYPE_MAIN = "MAIN";
+  public static final String CRASHED_PROCESS_VISIBILITY_MAIN = "MAIN";
+
+  @Deprecated
+  @DeprecationSchedule(id = "GeckoRuntime-CRASHED_PROCESS_TYPE_MAIN", version = 142)
+  public static final String CRASHED_PROCESS_TYPE_MAIN = CRASHED_PROCESS_VISIBILITY_MAIN;
 
   /**
-   * Value for {@link #EXTRA_CRASH_PROCESS_TYPE} indicating a foreground child process, such as a
-   * content process, crashed. The application may be able to recover from this crash, but it was
-   * likely noticable to the user.
+   * Value for {@link #EXTRA_CRASH_PROCESS_VISIBILITY} indicating a foreground child process, such
+   * as a content process, crashed. The application may be able to recover from this crash, but it
+   * was likely noticable to the user.
    */
-  public static final String CRASHED_PROCESS_TYPE_FOREGROUND_CHILD = "FOREGROUND_CHILD";
+  public static final String CRASHED_PROCESS_VISIBILITY_FOREGROUND_CHILD = "FOREGROUND_CHILD";
+
+  @Deprecated
+  @DeprecationSchedule(id = "GeckoRuntime-CRASHED_PROCESS_TYPE_FOREGROUND_CHILD", version = 142)
+  public static final String CRASHED_PROCESS_TYPE_FOREGROUND_CHILD =
+      CRASHED_PROCESS_VISIBILITY_FOREGROUND_CHILD;
 
   /**
-   * Value for {@link #EXTRA_CRASH_PROCESS_TYPE} indicating a background child process crashed. This
-   * should have been recovered from automatically, and will have had minimal impact to the user, if
-   * any.
+   * Value for {@link #EXTRA_CRASH_PROCESS_VISIBILITY} indicating a background child process
+   * crashed. This should have been recovered from automatically, and will have had minimal impact
+   * to the user, if any.
    */
-  public static final String CRASHED_PROCESS_TYPE_BACKGROUND_CHILD = "BACKGROUND_CHILD";
+  public static final String CRASHED_PROCESS_VISIBILITY_BACKGROUND_CHILD = "BACKGROUND_CHILD";
+
+  @Deprecated
+  @DeprecationSchedule(id = "GeckoRuntime-CRASHED_PROCESS_TYPE_BACKGROUND_CHILD", version = 142)
+  public static final String CRASHED_PROCESS_TYPE_BACKGROUND_CHILD =
+      CRASHED_PROCESS_VISIBILITY_BACKGROUND_CHILD;
 
   private final MemoryController mMemoryController = new MemoryController();
 
+  @Deprecated
+  @DeprecationSchedule(id = "GeckoRuntime-CrashedProcessType", version = 142)
   @Retention(RetentionPolicy.SOURCE)
   @StringDef(
       value = {
@@ -146,6 +170,15 @@ public final class GeckoRuntime implements Parcelable {
         CRASHED_PROCESS_TYPE_BACKGROUND_CHILD
       })
   public @interface CrashedProcessType {}
+
+  @Retention(RetentionPolicy.SOURCE)
+  @StringDef(
+      value = {
+        CRASHED_PROCESS_VISIBILITY_MAIN,
+        CRASHED_PROCESS_VISIBILITY_FOREGROUND_CHILD,
+        CRASHED_PROCESS_VISIBILITY_BACKGROUND_CHILD
+      })
+  public @interface CrashedProcessVisibility {}
 
   private final class LifecycleListener implements LifecycleObserver {
     private boolean mPaused = false;
@@ -344,6 +377,8 @@ public final class GeckoRuntime implements Parcelable {
             final Intent i = new Intent(ACTION_CRASHED, null, context, crashHandler);
             i.putExtra(EXTRA_MINIDUMP_PATH, message.getString(EXTRA_MINIDUMP_PATH));
             i.putExtra(EXTRA_EXTRAS_PATH, message.getString(EXTRA_EXTRAS_PATH));
+            i.putExtra(
+                EXTRA_CRASH_PROCESS_VISIBILITY, message.getString(EXTRA_CRASH_PROCESS_VISIBILITY));
             i.putExtra(EXTRA_CRASH_PROCESS_TYPE, message.getString(EXTRA_CRASH_PROCESS_TYPE));
             i.putExtra(EXTRA_CRASH_REMOTE_TYPE, message.getString(EXTRA_CRASH_REMOTE_TYPE));
 

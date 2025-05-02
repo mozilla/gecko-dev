@@ -378,6 +378,38 @@ class MachSiteManager:
             )
 
     def ensure(self, *, force=False):
+        root = None
+        if self._virtualenv_root:
+            root = self._virtualenv_root
+        else:
+            workspace = os.environ.get("WORKSPACE")
+            if os.environ.get("MOZ_AUTOMATION") and workspace:
+                # In CI, put Mach virtualenv in the $WORKSPACE dir, which
+                # should be cleaned between jobs.
+                root = os.path.join(workspace, "mach_virtualenv")
+
+        # Although `root` should never be `None` here, let's guard against
+        # that edge case by skipping the FileLock step if it is.
+        if root:
+            lock_file = Path(root).with_suffix(".lock")
+            timeout = 60
+
+            # In the scenario where multiple processes try to create a mach site that does not yet
+            # exist, they will trample each other when attempting to create it. To resolve this, we
+            # use a file lock. The first process to reach the lock will create it and ensure it is up
+            # to date, while the other(s) wait(s). Once the first releases the lock, the others will
+            # continue one-by-one and determine it's up-to-date.
+            try:
+                with FileLock(lock_file, timeout=timeout):
+                    self._ensure(force=force)
+            except Timeout:
+                self._log(
+                    f"Could not acquire the lock at {lock_file} for the mach site after {timeout} seconds."
+                )
+        else:
+            self._ensure(force=force)
+
+    def _ensure(self, force=False):
         result = self._up_to_date()
         if force or not result.is_up_to_date:
             if Path(sys.prefix) == Path(self._metadata.prefix):

@@ -3256,11 +3256,12 @@
 
 - name: NewFunctionCloneResult
   shared: false
-  transpile: false
+  transpile: true
   cost_estimate: 4
   args:
     canonical: ObjectField
     allocKind: AllocKindImm
+    site: AllocSiteField
 
 - name: ConcatStringsResult
   shared: true

@@ -410,6 +410,15 @@ LazyInstantiator::MaybeResolveRoot() {
     }                                \
   }
 
+#define RESOLVE_ROOT_UIA_RETURN_IF_FAIL                                        \
+  RESOLVE_ROOT                                                                 \
+  if (!mWeakUia) {                                                             \
+    /* UIA was previously enabled, allowing QueryInterface to a UIA interface. \
+     * It was subsequently disabled before we could resolve the root.          \
+     */                                                                        \
+    return E_FAIL;                                                             \
+  }
+
 IMPL_IUNKNOWN_QUERY_HEAD(LazyInstantiator)
 if (NS_WARN_IF(!NS_IsMainThread())) {
   // Bug 1814780, bug 1949617: The COM marshaler sometimes calls QueryInterface
@@ -797,8 +806,9 @@ STDMETHODIMP
 LazyInstantiator::get_ProviderOptions(
     __RPC__out enum ProviderOptions* aOptions) {
   // This method is called before a UIA connection is fully established and thus
-  // before we can detect the client. We must not call RESOLVE_ROOT here because
-  // this might turn out to be a client we want to block.
+  // before we can detect the client. We must not call
+  // RESOLVE_ROOT_UIA_RETURN_IF_FAIL here because this might turn out to be a
+  // client we want to block.
   if (!aOptions) {
     return E_INVALIDARG;
   }
@@ -809,14 +819,14 @@ LazyInstantiator::get_ProviderOptions(
 STDMETHODIMP
 LazyInstantiator::GetPatternProvider(
     PATTERNID aPatternId, __RPC__deref_out_opt IUnknown** aPatternProvider) {
-  RESOLVE_ROOT;
+  RESOLVE_ROOT_UIA_RETURN_IF_FAIL;
   return mWeakUia->GetPatternProvider(aPatternId, aPatternProvider);
 }
 
 STDMETHODIMP
 LazyInstantiator::GetPropertyValue(PROPERTYID aPropertyId,
                                    __RPC__out VARIANT* aPropertyValue) {
-  RESOLVE_ROOT;
+  RESOLVE_ROOT_UIA_RETURN_IF_FAIL;
   return mWeakUia->GetPropertyValue(aPropertyId, aPropertyValue);
 }
 
@@ -824,8 +834,9 @@ STDMETHODIMP
 LazyInstantiator::get_HostRawElementProvider(
     __RPC__deref_out_opt IRawElementProviderSimple** aRawElmProvider) {
   // This method is called before a UIA connection is fully established and thus
-  // before we can detect the client. We must not call RESOLVE_ROOT here because
-  // this might turn out to be a client we want to block.
+  // before we can detect the client. We must not call
+  // RESOLVE_ROOT_UIA_RETURN_IF_FAIL here because this might turn out to be a
+  // client we want to block.
   if (!aRawElmProvider) {
     return E_INVALIDARG;
   }

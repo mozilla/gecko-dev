@@ -46,7 +46,7 @@ input {
 }
 
 .clear-icon {
-  background-image: url(chrome://global/skin/icons/close-12.svg);
+  background-image: url(resource://content-accessible/close-12.svg);
   background-position: center;
   background-repeat: no-repeat;
   background-size: 16px;

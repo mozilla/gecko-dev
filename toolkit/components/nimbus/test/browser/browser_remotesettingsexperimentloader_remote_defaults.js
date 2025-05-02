@@ -37,49 +37,26 @@ const BAR_FAKE_FEATURE_MANIFEST = {
   },
 };
 
-const ENSURE_ENROLLMENT = {
-  targeting: "true",
-  bucketConfig: {
-    namespace: "nimbus-test-utils",
-    randomizationUnit: "normandy_id",
-    start: 0,
-    count: 1000,
-    total: 1000,
-  },
-};
-
-const REMOTE_CONFIGURATION_FOO = ExperimentFakes.recipe("foo-rollout", {
-  isRollout: true,
-  branches: [
+const REMOTE_CONFIGURATION_FOO =
+  NimbusTestUtils.factories.recipe.withFeatureConfig(
+    "foo-rollout",
     {
-      slug: "foo-rollout-branch",
-      ratio: 1,
-      features: [
-        {
-          featureId: "foo",
-          value: { remoteValue: 42, enabled: true },
-        },
-      ],
+      branchSlug: "foo-rollout-branch",
+      featureId: "foo",
+      value: { remoteValue: 42, enabled: true },
     },
-  ],
-  ...ENSURE_ENROLLMENT,
-});
-const REMOTE_CONFIGURATION_BAR = ExperimentFakes.recipe("bar-rollout", {
-  isRollout: true,
-  branches: [
+    { isRollout: true }
+  );
+const REMOTE_CONFIGURATION_BAR =
+  NimbusTestUtils.factories.recipe.withFeatureConfig(
+    "bar-rollout",
     {
-      slug: "bar-rollout-branch",
-      ratio: 1,
-      features: [
-        {
-          featureId: "bar",
-          value: { remoteValue: 3, enabled: true },
-        },
-      ],
+      branchSlug: "bar-rollout-branch",
+      featureId: "bar",
+      value: { remoteValue: 3, enabled: true },
     },
-  ],
-  ...ENSURE_ENROLLMENT,
-});
+    { isRollout: true }
+  );
 
 const SYNC_DEFAULTS_PREF_BRANCH = "nimbus.syncdefaultsstore.";
 
@@ -109,7 +86,7 @@ add_task(async function test_remote_fetch_and_ready() {
   // manifest, not NimbusFeatures.
   FeatureManifest.foo = FOO_FAKE_FEATURE_MANIFEST;
   FeatureManifest.bar = BAR_FAKE_FEATURE_MANIFEST;
-  const cleanupTestFeatures = ExperimentTestUtils.addTestFeatures(
+  const cleanupTestFeatures = NimbusTestUtils.addTestFeatures(
     fooInstance,
     barInstance
   );
@@ -303,7 +280,7 @@ add_task(async function test_finalizeRemoteConfigs_cleanup() {
     },
   });
 
-  const cleanupTestFeatures = ExperimentTestUtils.addTestFeatures(
+  const cleanupTestFeatures = NimbusTestUtils.addTestFeatures(
     featureFoo,
     featureBar
   );
@@ -313,7 +290,7 @@ add_task(async function test_finalizeRemoteConfigs_cleanup() {
   FeatureManifest.foo = featureFoo.manifest;
   FeatureManifest.bar = featureBar.manifest;
 
-  let fooCleanup = await ExperimentFakes.enrollWithFeatureConfig(
+  let fooCleanup = await NimbusTestUtils.enrollWithFeatureConfig(
     {
       featureId: "foo",
       value: { foo: true },
@@ -325,7 +302,7 @@ add_task(async function test_finalizeRemoteConfigs_cleanup() {
       source: "rs-loader",
     }
   );
-  await ExperimentFakes.enrollWithFeatureConfig(
+  await NimbusTestUtils.enrollWithFeatureConfig(
     {
       featureId: "bar",
       value: { bar: true },
@@ -450,46 +427,30 @@ add_task(async function remote_defaults_active_remote_defaults() {
     variables: { enabled: { type: "boolean" } },
   });
 
-  const cleanupTestFeatures = ExperimentTestUtils.addTestFeatures(
+  const cleanupTestFeatures = NimbusTestUtils.addTestFeatures(
     barFeature,
     fooFeature
   );
 
-  let rollout1 = ExperimentFakes.recipe("bar", {
-    branches: [
-      {
-        slug: "bar-rollout-branch",
-        ratio: 1,
-        features: [
-          {
-            featureId: "bar",
-            value: { enabled: true },
-          },
-        ],
-      },
-    ],
-    isRollout: true,
-    ...ENSURE_ENROLLMENT,
-    targeting: "true",
-  });
+  let rollout1 = NimbusTestUtils.factories.recipe.withFeatureConfig(
+    "bar",
+    {
+      branchSlug: "bar-rollout-branch",
+      featureId: "bar",
+      value: { enabled: true },
+    },
+    { isRollout: true, targeting: "true" }
+  );
 
-  let rollout2 = ExperimentFakes.recipe("foo", {
-    branches: [
-      {
-        slug: "foo-rollout-branch",
-        ratio: 1,
-        features: [
-          {
-            featureId: "foo",
-            value: { enabled: true },
-          },
-        ],
-      },
-    ],
-    isRollout: true,
-    ...ENSURE_ENROLLMENT,
-    targeting: "'bar' in activeRollouts",
-  });
+  let rollout2 = NimbusTestUtils.factories.recipe.withFeatureConfig(
+    "foo",
+    {
+      branchSlug: "foo-rollout-branch",
+      featureId: "foo",
+      value: { enabled: true },
+    },
+    { isRollout: true, targeting: "'bar' in activeRollouts" }
+  );
 
   // Order is important, rollout2 won't match at first
   const { cleanup } = await setup([rollout2, rollout1]);
@@ -546,10 +507,10 @@ add_task(async function remote_defaults_variables_storage() {
 
   // TODO(bug 1959831): isEarlyStartup is checked directly on the feature
   // manifest, not NimbusFeatures.
-  const featureCleanup = ExperimentTestUtils.addTestFeatures(barFeature);
+  const featureCleanup = NimbusTestUtils.addTestFeatures(barFeature);
   FeatureManifest.bar = barFeature.manifest;
 
-  let doCleanup = await ExperimentFakes.enrollWithFeatureConfig(
+  let doCleanup = await NimbusTestUtils.enrollWithFeatureConfig(
     {
       featureId: "bar",
       value: rolloutValue,

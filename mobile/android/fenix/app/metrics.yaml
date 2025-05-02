@@ -2311,6 +2311,34 @@ private_browsing_locked:
       - android-probes@mozilla.com
     expires: never
 
+  banner_negative_clicked:
+    type: event
+    description: |
+      Logged when the user clicks the negative ("No thanks") button on the Private Browsing Mode Lock banner prompt.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1962614
+    data_reviews:
+      - https://phabricator.services.mozilla.com/D247195
+    data_sensitivity:
+      - interaction
+    notification_emails:
+      - android-probes@mozilla.com
+    expires: never
+
+  banner_positive_clicked:
+    type: event
+    description: |
+      Logged when the user clicks the positive ("Lock tabs") button on the Private Browsing Mode Lock banner prompt.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1962614
+    data_reviews:
+      - https://phabricator.services.mozilla.com/D247195
+    data_sensitivity:
+      - interaction
+    notification_emails:
+      - android-probes@mozilla.com
+    expires: never
+
 search_shortcuts:
   selected:
     type: event

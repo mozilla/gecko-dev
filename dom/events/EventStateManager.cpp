@@ -37,6 +37,7 @@
 #include "mozilla/dom/DragEvent.h"
 #include "mozilla/dom/Event.h"
 #include "mozilla/dom/FrameLoaderBinding.h"
+#include "mozilla/dom/HTMLDialogElement.h"
 #include "mozilla/dom/HTMLLabelElement.h"
 #include "mozilla/dom/HTMLInputElement.h"
 #include "mozilla/dom/MouseEventBinding.h"
@@ -1136,6 +1137,7 @@ nsresult EventStateManager::PreHandleEvent(nsPresContext* aPresContext,
         }
 
         LightDismissOpenPopovers(aEvent, aTargetContent);
+        LightDismissOpenDialogs(aEvent, aTargetContent);
       }
       [[fallthrough]];
     case eMouseMove:
@@ -1170,6 +1172,7 @@ nsresult EventStateManager::PreHandleEvent(nsPresContext* aPresContext,
     }
     case ePointerUp:
       LightDismissOpenPopovers(aEvent, aTargetContent);
+      LightDismissOpenDialogs(aEvent, aTargetContent);
       GenerateMouseEnterExit(mouseEvent);
       if (mouseEvent->mInputSource != MouseEvent_Binding::MOZ_SOURCE_MOUSE) {
         NotifyTargetUserActivation(aEvent, aTargetContent);
@@ -1505,6 +1508,89 @@ void EventStateManager::LightDismissOpenPopovers(WidgetEvent* aEvent,
   }
   RefPtr<Document> doc(ancestor->OwnerDoc());
   doc->HideAllPopoversUntil(*ancestor, false, true);
+}
+
+// https://html.spec.whatwg.org/multipage/interactive-elements.html#run-light-dismiss-activities
+// https://html.spec.whatwg.org/multipage/interactive-elements.html#light-dismiss-open-dialogs
+void EventStateManager::LightDismissOpenDialogs(WidgetEvent* aEvent,
+                                                nsIContent* aTargetContent) {
+  // 1. Assert: event's isTrusted attribute is true.
+  // 2. Let document be event's target's node document.
+  // (Skipped - not applicable)
+
+  if (!StaticPrefs::dom_dialog_light_dismiss_enabled()) {
+    return;
+  }
+
+  MOZ_ASSERT(aEvent->mMessage == ePointerDown || aEvent->mMessage == ePointerUp,
+             "Light dismiss must be called for pointer up/down only");
+
+  if (aEvent->mFlags.mDefaultPrevented || !aEvent->IsTrusted() ||
+      !aTargetContent) {
+    return;
+  }
+
+  auto* doc = aTargetContent->OwnerDoc();
+
+  // 3. If document's open dialogs list is empty, then return.
+  if (!doc->HasOpenDialogs()) {
+    return;
+  }
+
+  // 4. Let ancestor be the result of running nearest clicked dialog given
+  // event.
+  RefPtr<HTMLDialogElement> ancestor =
+      aTargetContent->NearestClickedDialog(aEvent);
+
+  // 5. If event's type is "pointerdown", then set document's dialog pointerdown
+  // target to ancestor.
+  if (aEvent->mMessage == ePointerDown) {
+    // XXX: "document's dialog pointerdown target" can be null, but
+    // `SetLastDialogPointerdownTarget` takes `&` to avoid incidental nullptrs,
+    // meaning we need to nullcheck `ancestor` & call
+    // `ClearLastDialogPointerdownTarget` instead.
+    if (!ancestor) {
+      doc->ClearLastDialogPointerdownTarget();
+    } else {
+      doc->SetLastDialogPointerdownTarget(*ancestor);
+    }
+    return;
+  }
+
+  MOZ_ASSERT(aEvent->mMessage == ePointerUp);
+
+  // 6.1 Let sameTarget be true if ancestor is document's dialog pointerdown
+  // target.
+  RefPtr<HTMLDialogElement> lastDialog = doc->GetLastDialogPointerdownTarget();
+  bool sameTarget = ancestor == lastDialog;
+
+  // 6.2 Set document's dialog pointerdown target to null.
+  doc->ClearLastDialogPointerdownTarget();
+
+  // 6.3 If sameTarget is false, then return.
+  if (!sameTarget) {
+    return;
+  }
+
+  // 6.4 Let topmostDialog be the last element of document's open dialogs list.
+  RefPtr<HTMLDialogElement> topmostDialog = doc->GetTopMostOpenDialog();
+
+  // 6.5 If ancestor is topmostDialog, then return.
+  if (ancestor == topmostDialog) {
+    return;
+  }
+
+  // 6.6 If topmostDialog's computed closed-by state is not Any, then return.
+  if (!topmostDialog ||
+      topmostDialog->GetClosedBy() != HTMLDialogElement::ClosedBy::Any) {
+    return;
+  }
+
+  // 7. Assert: topmostDialog's close watcher is not null.
+
+  // 8. Request to close topmostDialog's close watcher with false.
+  const mozilla::dom::Optional<nsAString> returnValue;
+  topmostDialog->RequestClose(returnValue);
 }
 
 already_AddRefed<EventStateManager> EventStateManager::ESMFromContentOrThis(

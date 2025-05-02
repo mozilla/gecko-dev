@@ -232,7 +232,7 @@ export class SidebarState {
    * @returns {SidebarStateProps}
    */
   getProperties() {
-    return {
+    const props = {
       command: this.command,
       panelOpen: this.panelOpen,
       panelWidth: this.panelWidth,
@@ -241,6 +241,13 @@ export class SidebarState {
       launcherExpanded: this.launcherExpanded,
       launcherVisible: this.launcherVisible,
     };
+    // omit any properties with undefined values'
+    for (let [key, value] of Object.entries(props)) {
+      if (value === undefined) {
+        delete props[key];
+      }
+    }
+    return props;
   }
 
   get panelOpen() {

@@ -15837,13 +15837,18 @@ AttachDecision LambdaIRGenerator::tryAttachFunctionClone() {
     return AttachDecision::NoAction;
   }
 
+  gc::AllocSite* site = maybeCreateAllocSite();
+  if (!site) {
+    return AttachDecision::NoAction;
+  }
+
   writer.guardNoAllocationMetadataBuilder(
       cx_->realm()->addressOfMetadataBuilder());
 
   gc::AllocKind allocKind = canonicalFunction_->getAllocKind();
   MOZ_ASSERT(allocKind == gc::AllocKind::FUNCTION ||
              allocKind == gc::AllocKind::FUNCTION_EXTENDED);
-  writer.newFunctionCloneResult(canonicalFunction_, allocKind);
+  writer.newFunctionCloneResult(canonicalFunction_, allocKind, site);
   writer.returnFromIC();
 
   trackAttached("Lambda.FunctionClone");

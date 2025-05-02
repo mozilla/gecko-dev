@@ -3562,9 +3562,9 @@ GeckoDriver.prototype.addVirtualAuthenticator = function (cmd) {
 GeckoDriver.prototype.removeVirtualAuthenticator = function (cmd) {
   const { authenticatorId } = cmd.parameters;
 
-  lazy.assert.positiveInteger(
+  lazy.assert.string(
     authenticatorId,
-    lazy.pprint`Expected "authenticatorId" to be a positiveInteger, got ${authenticatorId}`
+    lazy.pprint`Expected "authenticatorId" to be a string, got ${authenticatorId}`
   );
 
   lazy.webauthn.removeVirtualAuthenticator(authenticatorId);
@@ -3581,9 +3581,9 @@ GeckoDriver.prototype.addCredential = function (cmd) {
     signCount,
   } = cmd.parameters;
 
-  lazy.assert.positiveInteger(
+  lazy.assert.string(
     authenticatorId,
-    lazy.pprint`Expected "authenticatorId" to be a positiveInteger, got ${authenticatorId}`
+    lazy.pprint`Expected "authenticatorId" to be a string, got ${authenticatorId}`
   );
   lazy.assert.string(
     credentialId,
@@ -3626,9 +3626,9 @@ GeckoDriver.prototype.addCredential = function (cmd) {
 GeckoDriver.prototype.getCredentials = function (cmd) {
   const { authenticatorId } = cmd.parameters;
 
-  lazy.assert.positiveInteger(
+  lazy.assert.string(
     authenticatorId,
-    lazy.pprint`Expected "authenticatorId" to be a positiveInteger, got ${authenticatorId}`
+    lazy.pprint`Expected "authenticatorId" to be a string, got ${authenticatorId}`
   );
 
   return lazy.webauthn.getCredentials(authenticatorId);
@@ -3637,9 +3637,9 @@ GeckoDriver.prototype.getCredentials = function (cmd) {
 GeckoDriver.prototype.removeCredential = function (cmd) {
   const { authenticatorId, credentialId } = cmd.parameters;
 
-  lazy.assert.positiveInteger(
+  lazy.assert.string(
     authenticatorId,
-    lazy.pprint`Expected "authenticatorId" to be a positiveInteger, got ${authenticatorId}`
+    lazy.pprint`Expected "authenticatorId" to be a string, got ${authenticatorId}`
   );
   lazy.assert.string(
     credentialId,
@@ -3652,9 +3652,9 @@ GeckoDriver.prototype.removeCredential = function (cmd) {
 GeckoDriver.prototype.removeAllCredentials = function (cmd) {
   const { authenticatorId } = cmd.parameters;
 
-  lazy.assert.positiveInteger(
+  lazy.assert.string(
     authenticatorId,
-    lazy.pprint`Expected "authenticatorId" to be a positiveInteger, got ${authenticatorId}`
+    lazy.pprint`Expected "authenticatorId" to be a string, got ${authenticatorId}`
   );
 
   lazy.webauthn.removeAllCredentials(authenticatorId);
@@ -3663,9 +3663,9 @@ GeckoDriver.prototype.removeAllCredentials = function (cmd) {
 GeckoDriver.prototype.setUserVerified = function (cmd) {
   const { authenticatorId, isUserVerified } = cmd.parameters;
 
-  lazy.assert.positiveInteger(
+  lazy.assert.string(
     authenticatorId,
-    lazy.pprint`Expected "authenticatorId" to be a positiveInteger, got ${authenticatorId}`
+    lazy.pprint`Expected "authenticatorId" to be a string, got ${authenticatorId}`
   );
   lazy.assert.boolean(
     isUserVerified,

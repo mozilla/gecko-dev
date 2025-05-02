@@ -42,6 +42,7 @@
 #include "mozilla/dom/Event.h"
 #include "mozilla/dom/Exceptions.h"
 #include "mozilla/dom/Link.h"
+#include "mozilla/dom/HTMLDialogElement.h"
 #include "mozilla/dom/HTMLDetailsElement.h"
 #include "mozilla/dom/HTMLImageElement.h"
 #include "mozilla/dom/HTMLMediaElement.h"
@@ -3435,6 +3436,50 @@ Element* nsINode::GetTopmostClickedPopover() const {
       return el;
     }
   }
+  return nullptr;
+}
+
+// https://html.spec.whatwg.org/multipage/interactive-elements.html#nearest-clicked-dialog
+HTMLDialogElement* nsINode::NearestClickedDialog(mozilla::WidgetEvent* aEvent) {
+  // 1. Let target be event's target.
+  // (Skipped - `this`).
+
+  WidgetPointerEvent* pointerEvent = aEvent->AsPointerEvent();
+  if (!pointerEvent) {
+    return nullptr;
+  }
+
+  // 2. If target is a dialog element, target has an open attribute, target's is
+  // modal is true...
+  RefPtr dialogElement = HTMLDialogElement::FromNode(this);
+  if (dialogElement && dialogElement->IsInTopLayer()) {
+    // ... , and event's clientX and clientY are outside the bounds of target,
+    // then return null.
+    auto* frame = dialogElement->GetPrimaryFrame();
+    if (!frame) {
+      return nullptr;
+    }
+    nsPoint point = nsLayoutUtils::GetEventCoordinatesRelativeTo(
+        aEvent, pointerEvent->mRefPoint, RelativeTo{frame});
+    nsRect frameRect = frame->GetRectRelativeToSelf();
+    if (!frameRect.Contains(point)) {
+      return nullptr;
+    }
+  }
+
+  // 3. Let currentNode be target.
+  // 4. While currentNode is not null:
+  // 4.2 Set currentNode to currentNode's parent in the flat tree.
+  for (auto* currentNode :
+       InclusiveFlatTreeAncestorsOfType<HTMLDialogElement>()) {
+    // 4.1 If currentNode is a dialog element and currentNode has an open
+    // attribute, then return currentNode.
+    if (currentNode->Open()) {
+      return currentNode;
+    }
+  }
+
+  // 5. Return null.
   return nullptr;
 }
 

@@ -8,8 +8,8 @@ import { RemotePageChild } from "resource://gre/actors/RemotePageChild.sys.mjs";
 const lazy = {};
 
 ChromeUtils.defineESModuleGetters(lazy, {
+  EnrollmentType: "resource://nimbus/ExperimentAPI.sys.mjs",
   NimbusFeatures: "resource://nimbus/ExperimentAPI.sys.mjs",
-  ExperimentAPI: "resource://nimbus/ExperimentAPI.sys.mjs",
 });
 
 export class AboutPrivateBrowsingChild extends RemotePageChild {
@@ -38,13 +38,13 @@ export class AboutPrivateBrowsingChild extends RemotePageChild {
   }
 
   PrivateBrowsingRecordClick(source) {
-    const experiment = lazy.ExperimentAPI.getExperimentMetaData({
-      featureId: "pbNewtab",
-    });
-    if (experiment) {
+    const metadata = lazy.NimbusFeatures.pbNewtab.getEnrollmentMetadata(
+      lazy.EnrollmentType.EXPERIMENT
+    );
+    if (metadata) {
       Glean.aboutprivatebrowsing["click" + source].record();
     }
-    return experiment;
+    return !!metadata;
   }
 
   PrivateBrowsingShouldHideDefault() {

@@ -7,9 +7,9 @@
 "use strict";
 
 ChromeUtils.defineESModuleGetters(this, {
-  ExperimentFakes: "resource://testing-common/NimbusTestUtils.sys.mjs",
   MerinoClient: "resource:///modules/MerinoClient.sys.mjs",
   NimbusFeatures: "resource://nimbus/ExperimentAPI.sys.mjs",
+  NimbusTestUtils: "resource://testing-common/NimbusTestUtils.sys.mjs",
 });
 
 // Set the `merino.timeoutMs` pref to a large value so that the client will not
@@ -712,7 +712,7 @@ async function fetchAndCheckSuggestions({
 }
 
 async function withExperiment(values, callback) {
-  const doExperimentCleanup = await ExperimentFakes.enrollWithFeatureConfig(
+  const doExperimentCleanup = await NimbusTestUtils.enrollWithFeatureConfig(
     {
       featureId: NimbusFeatures.urlbar.featureId,
       value: {

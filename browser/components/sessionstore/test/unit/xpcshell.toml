@@ -24,6 +24,11 @@ skip-if = [
   "os == 'win' && os_version == '11.26100' && processor == 'x86_64' && opt && condprof", # Bug 1769154
 ]
 
+["test_session_schema.js"]
+support-files = [
+  "data/sessionstore_complete.json",
+]
+
 ["test_startup_invalid_session.js"]
 skip-if = [
   "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && opt && condprof", # Bug 1769154

@@ -431,7 +431,8 @@ void MacroAssembler::allocateObject(Register result, Register temp,
 void MacroAssembler::createGCObject(Register obj, Register temp,
                                     const TemplateObject& templateObj,
                                     gc::Heap initialHeap, Label* fail,
-                                    bool initContents /* = true */) {
+                                    bool initContents /* = true */,
+                                    const AllocSiteInput& allocSite) {
   gc::AllocKind allocKind = templateObj.getAllocKind();
   MOZ_ASSERT(gc::IsObjectAllocKind(allocKind));
 
@@ -442,7 +443,8 @@ void MacroAssembler::createGCObject(Register obj, Register temp,
     nDynamicSlots = ntemplate.numDynamicSlots();
   }
 
-  allocateObject(obj, temp, allocKind, nDynamicSlots, initialHeap, fail);
+  allocateObject(obj, temp, allocKind, nDynamicSlots, initialHeap, fail,
+                 allocSite);
   initGCThing(obj, temp, templateObj, initContents);
 }
 
@@ -541,7 +543,8 @@ void MacroAssembler::createArrayWithFixedElements(
 
 void MacroAssembler::createFunctionClone(Register result, Register canonical,
                                          Register envChain, Register temp,
-                                         gc::AllocKind allocKind, Label* fail) {
+                                         gc::AllocKind allocKind, Label* fail,
+                                         const AllocSiteInput& allocSite) {
   MOZ_ASSERT(allocKind == gc::AllocKind::FUNCTION ||
              allocKind == gc::AllocKind::FUNCTION_EXTENDED);
   MOZ_ASSERT(result != temp);
@@ -549,7 +552,8 @@ void MacroAssembler::createFunctionClone(Register result, Register canonical,
   // Allocate object.
   size_t numDynamicSlots = 0;
   gc::Heap initialHeap = gc::Heap::Default;
-  allocateObject(result, temp, allocKind, numDynamicSlots, initialHeap, fail);
+  allocateObject(result, temp, allocKind, numDynamicSlots, initialHeap, fail,
+                 allocSite);
 
   // Initialize shape field.
   loadPtr(Address(canonical, JSObject::offsetOfShape()), temp);
@@ -568,6 +572,7 @@ void MacroAssembler::createFunctionClone(Register result, Register canonical,
   // Initialize NativeFuncOrInterpretedEnvSlot.
   storeValue(JSVAL_TYPE_OBJECT, envChain,
              Address(result, JSFunction::offsetOfEnvironment()));
+
 #ifdef DEBUG
   // The new function must be allocated in the nursery if the nursery is
   // enabled. Assert no post-barrier is needed.

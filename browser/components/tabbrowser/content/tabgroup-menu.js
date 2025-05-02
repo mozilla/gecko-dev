@@ -355,7 +355,8 @@
         this,
         "smartTabGroupsOptin",
         "browser.tabs.groups.smart.optin",
-        false
+        false,
+        this.#onSmartTabGroupsOptInPrefChange.bind(this)
       );
     }
 
@@ -474,6 +475,7 @@
       this.panel.addEventListener("popuphidden", this);
       this.panel.addEventListener("keypress", this);
       this.#swatchesContainer.addEventListener("change", this);
+      Glean.tabgroup.smartTabEnabled.set(this.smartTabGroupsPrefEnabled);
     }
 
     get smartTabGroupsEnabled() {
@@ -481,6 +483,14 @@
         this.smartTabGroupsUserEnabled &&
         this.smartTabGroupsFeatureConfigEnabled &&
         !PrivateBrowsingUtils.isWindowPrivate(this.ownerGlobal)
+      );
+    }
+
+    get smartTabGroupsPrefEnabled() {
+      return (
+        this.smartTabGroupsUserEnabled &&
+        this.smartTabGroupsFeatureConfigEnabled &&
+        this.smartTabGroupsOptin
       );
     }
 
@@ -494,6 +504,17 @@
 
       this.#suggestionButton.iconSrc = icon;
       this.#suggestionsMessage.iconSrc = icon;
+      Glean.tabgroup.smartTab.record({
+        enabled: this.smartTabGroupsPrefEnabled,
+      });
+      Glean.tabgroup.smartTabEnabled.set(this.smartTabGroupsPrefEnabled);
+    }
+
+    #onSmartTabGroupsOptInPrefChange(_preName, _prev, _latest) {
+      Glean.tabgroup.smartTab.record({
+        enabled: this.smartTabGroupsPrefEnabled,
+      });
+      Glean.tabgroup.smartTabEnabled.set(this.smartTabGroupsPrefEnabled);
     }
 
     #initSmartTabGroupsOptin() {

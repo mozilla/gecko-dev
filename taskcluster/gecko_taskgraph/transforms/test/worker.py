@@ -238,7 +238,7 @@ def set_worker_type(config, tasks):
                 task["worker-type"] = "t-bitbar-gw-perf-s24"
         elif test_platform.startswith("android-hw-a55"):
             if task["suite"] != "raptor":
-                task["worker-type"] = "t-bitbar-gw-unit-a55"
+                task["worker-type"] = "t-lambda-perf-a55"
             else:
                 task["worker-type"] = "t-bitbar-gw-perf-a55"
         elif test_platform.startswith("android-em-7.0-x86"):

@@ -3,7 +3,7 @@
 
 "use strict";
 
-const { ExperimentFakes } = ChromeUtils.importESModule(
+const { NimbusTestUtils } = ChromeUtils.importESModule(
   "resource://testing-common/NimbusTestUtils.sys.mjs"
 );
 
@@ -62,7 +62,7 @@ add_task(async function test_experiment_control_toggle_style() {
  * variable `oldToggle` is false.
  */
 add_task(async function test_experiment_toggle_style() {
-  let doExperimentCleanup = await ExperimentFakes.enrollWithFeatureConfig({
+  let doExperimentCleanup = await NimbusTestUtils.enrollWithFeatureConfig({
     featureId: "pictureinpicture",
     value: {
       oldToggle: false,

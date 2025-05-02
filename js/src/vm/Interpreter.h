@@ -534,7 +534,13 @@ bool GetPendingExceptionStack(JSContext* cx, MutableHandleValue vp);
 bool GetProperty(JSContext* cx, HandleValue value, Handle<PropertyName*> name,
                  MutableHandleValue vp);
 
-JSObject* Lambda(JSContext* cx, HandleFunction fun, HandleObject parent);
+JSObject* LambdaBaselineFallback(JSContext* cx, HandleFunction fun,
+                                 HandleObject parent, gc::AllocSite* site);
+JSObject* LambdaOptimizedFallback(JSContext* cx, HandleFunction fun,
+                                  HandleObject parent, gc::Heap heap);
+JSObject* Lambda(JSContext* cx, HandleFunction fun, HandleObject parent,
+                 gc::Heap heap = gc::Heap::Default,
+                 gc::AllocSite* site = nullptr);
 
 bool SetObjectElement(JSContext* cx, HandleObject obj, HandleValue index,
                       HandleValue value, bool strict);

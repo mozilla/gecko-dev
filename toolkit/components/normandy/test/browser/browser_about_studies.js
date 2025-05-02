@@ -6,7 +6,7 @@ const { PreferenceExperiments } = ChromeUtils.importESModule(
 const { RecipeRunner } = ChromeUtils.importESModule(
   "resource://normandy/lib/RecipeRunner.sys.mjs"
 );
-const { ExperimentFakes } = ChromeUtils.importESModule(
+const { NimbusTestUtils } = ChromeUtils.importESModule(
   "resource://testing-common/NimbusTestUtils.sys.mjs"
 );
 const { ExperimentManager } = ChromeUtils.importESModule(
@@ -646,7 +646,7 @@ decorate_task(
 );
 
 add_task(async function test_nimbus_about_studies_experiment() {
-  const recipe = ExperimentFakes.recipe("about-studies-foo");
+  const recipe = NimbusTestUtils.factories.recipe("about-studies-foo");
   await ExperimentManager.enroll(recipe);
   const activeBranchSlug = ExperimentAPI.getActiveBranch({
     slug: recipe.slug,
@@ -718,7 +718,9 @@ add_task(async function test_nimbus_about_studies_experiment() {
 });
 
 add_task(async function test_nimbus_about_studies_rollout() {
-  let recipe = ExperimentFakes.recipe("test_nimbus_about_studies_rollout");
+  let recipe = NimbusTestUtils.factories.recipe(
+    "test_nimbus_about_studies_rollout"
+  );
   let rollout = {
     ...recipe,
     branches: [recipe.branches[0]],
@@ -863,8 +865,10 @@ add_task(async function test_forceEnroll() {
 
   add_task(async function test_inactive_rollouts_under_completed_studies() {
     // Adds an active experiment and rollout
-    const experiment = ExperimentFakes.recipe("my-testing-experiment");
-    const rollout = ExperimentFakes.recipe("my-testing-rollout", {
+    const experiment = NimbusTestUtils.factories.recipe(
+      "my-testing-experiment"
+    );
+    const rollout = NimbusTestUtils.factories.recipe("my-testing-rollout", {
       isRollout: true,
     });
 

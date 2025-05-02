@@ -113,7 +113,7 @@ add_task(async function test_onRecipe_enroll() {
   sandbox.spy(manager, "enroll");
   sandbox.spy(manager, "updateEnrollment");
 
-  const recipe = ExperimentFakes.recipe("foo");
+  const recipe = NimbusTestUtils.factories.recipe("foo");
 
   Assert.deepEqual(
     manager.store.getAllActiveExperiments(),

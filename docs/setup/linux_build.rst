@@ -53,7 +53,7 @@ the interactive setup process.
 
     curl -L https://raw.githubusercontent.com/mozilla-firefox/firefox/refs/heads/main/python/mozboot/bin/bootstrap.py
 
-    python3 bootstrap.py --vcs=git
+    python3 bootstrap.py
 
 Choosing a build type
 ~~~~~~~~~~~~~~~~~~~~~
@@ -69,7 +69,7 @@ Now that your system is bootstrapped, you should be able to build!
 
 .. code-block:: shell
 
-    cd mozilla-unified
+    cd firefox
     git pull
     ./mach build
 

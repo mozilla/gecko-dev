@@ -51,7 +51,7 @@ function setupTest({ ...args } = {}) {
 }
 
 add_task(async function test_updateRecipes_invalidFeatureId() {
-  const badRecipe = ExperimentFakes.recipe("foo", {
+  const badRecipe = NimbusTestUtils.factories.recipe("foo", {
     branches: [
       {
         slug: "control",
@@ -98,7 +98,7 @@ add_task(async function test_updateRecipes_invalidFeatureId() {
 });
 
 add_task(async function test_updateRecipes_invalidFeatureValue() {
-  const badRecipe = ExperimentFakes.recipe("foo", {
+  const badRecipe = NimbusTestUtils.factories.recipe("foo", {
     branches: [
       {
         slug: "control",
@@ -149,7 +149,7 @@ add_task(async function test_updateRecipes_invalidFeatureValue() {
 });
 
 add_task(async function test_updateRecipes_invalidRecipe() {
-  const badRecipe = ExperimentFakes.recipe("foo");
+  const badRecipe = NimbusTestUtils.factories.recipe("foo");
   delete badRecipe.slug;
 
   const { sandbox, loader, manager, cleanup } = await setupTest();
@@ -173,12 +173,7 @@ add_task(async function test_updateRecipes_invalidRecipe() {
 });
 
 add_task(async function test_updateRecipes_invalidRecipeAfterUpdate() {
-  const recipe = ExperimentFakes.recipe("foo", {
-    bucketConfig: {
-      ...ExperimentFakes.recipe.bucketConfig,
-      count: 1000,
-    },
-  });
+  const recipe = NimbusTestUtils.factories.recipe("foo");
 
   const badRecipe = { ...recipe };
   delete badRecipe.branches;
@@ -237,11 +232,7 @@ add_task(async function test_updateRecipes_invalidBranchAfterUpdate() {
     msgs.find(m => m.id === "MULTISTAGE_SPOTLIGHT_MESSAGE")
   );
 
-  const recipe = ExperimentFakes.recipe("recipe", {
-    bucketConfig: {
-      ...ExperimentFakes.recipe.bucketConfig,
-      count: 1000,
-    },
+  const recipe = NimbusTestUtils.factories.recipe("recipe", {
     branches: [
       {
         slug: "control",
@@ -334,12 +325,7 @@ add_task(async function test_updateRecipes_invalidBranchAfterUpdate() {
 });
 
 add_task(async function test_updateRecipes_simpleFeatureInvalidAfterUpdate() {
-  const recipe = ExperimentFakes.recipe("recipe", {
-    bucketConfig: {
-      ...ExperimentFakes.recipe.bucketConfig,
-      count: 1000,
-    },
-  });
+  const recipe = NimbusTestUtils.factories.recipe("recipe");
   const badRecipe = {
     ...recipe,
     branches: [
@@ -447,18 +433,14 @@ add_task(async function test_updateRecipes_simpleFeatureInvalidAfterUpdate() {
 });
 
 add_task(async function test_updateRecipes_validationTelemetry() {
-  const invalidRecipe = ExperimentFakes.recipe("invalid-recipe");
+  const invalidRecipe = NimbusTestUtils.factories.recipe("invalid-recipe");
   delete invalidRecipe.channel;
 
-  const invalidBranch = ExperimentFakes.recipe("invalid-branch");
+  const invalidBranch = NimbusTestUtils.factories.recipe("invalid-branch");
   invalidBranch.branches[0].features[0].value.testInt = "hello";
   invalidBranch.branches[1].features[0].value.testInt = "world";
 
-  const invalidFeature = ExperimentFakes.recipe("invalid-feature", {
-    bucketConfig: {
-      ...ExperimentFakes.recipe.bucketConfig,
-      count: 1000,
-    },
+  const invalidFeature = NimbusTestUtils.factories.recipe("invalid-feature", {
     branches: [
       {
         slug: "control",
@@ -568,28 +550,14 @@ add_task(async function test_updateRecipes_validationTelemetry() {
 add_task(async function test_updateRecipes_validationDisabled() {
   Services.prefs.setBoolPref("nimbus.validation.enabled", false);
 
-  const invalidRecipe = ExperimentFakes.recipe("invalid-recipe", {
-    bucketConfig: {
-      ...ExperimentFakes.recipe.bucketConfig,
-      count: 1000,
-    },
-  });
+  const invalidRecipe = NimbusTestUtils.factories.recipe("invalid-recipe");
   delete invalidRecipe.channel;
 
-  const invalidBranch = ExperimentFakes.recipe("invalid-branch", {
-    bucketConfig: {
-      ...ExperimentFakes.recipe.bucketConfig,
-      count: 1000,
-    },
-  });
+  const invalidBranch = NimbusTestUtils.factories.recipe("invalid-branch");
   invalidBranch.branches[0].features[0].value.testInt = "hello";
   invalidBranch.branches[1].features[0].value.testInt = "world";
 
-  const invalidFeature = ExperimentFakes.recipe("invalid-feature", {
-    bucketConfig: {
-      ...ExperimentFakes.recipe.bucketConfig,
-      count: 1000,
-    },
+  const invalidFeature = NimbusTestUtils.factories.recipe("invalid-feature", {
     branches: [
       {
         slug: "control",
@@ -644,24 +612,10 @@ add_task(async function test_updateRecipes_validationDisabled() {
 });
 
 add_task(async function test_updateRecipes_appId() {
-  const recipe = ExperimentFakes.recipe("background-task-recipe", {
-    bucketConfig: {
-      ...ExperimentFakes.recipe.bucketConfig,
-      count: 1000,
-    },
-    branches: [
-      {
-        slug: "control",
-        ratio: 1,
-        features: [
-          {
-            featureId: "backgroundTaskMessage",
-            value: {},
-          },
-        ],
-      },
-    ],
-  });
+  const recipe = NimbusTestUtils.factories.recipe.withFeatureConfig(
+    "background-task-recipe",
+    { featureId: "backgroundTaskMessage" }
+  );
 
   const { sandbox, loader, manager, cleanup } = await setupTest();
 
@@ -707,11 +661,7 @@ add_task(async function test_updateRecipes_appId() {
 });
 
 add_task(async function test_updateRecipes_withPropNotInManifest() {
-  const recipe = ExperimentFakes.recipe("foo", {
-    bucketConfig: {
-      ...ExperimentFakes.recipe.bucketConfig,
-      count: 1000,
-    },
+  const recipe = NimbusTestUtils.factories.recipe("foo", {
     branches: [
       {
         features: [
@@ -754,23 +704,11 @@ add_task(async function test_updateRecipes_withPropNotInManifest() {
 });
 
 add_task(async function test_updateRecipes_recipeAppId() {
-  const recipe = ExperimentFakes.recipe("mobile-experiment", {
-    appId: "org.mozilla.firefox",
-    branches: [
-      {
-        slug: "control",
-        ratio: 1,
-        features: [
-          {
-            featureId: "mobile-feature",
-            value: {
-              enabled: true,
-            },
-          },
-        ],
-      },
-    ],
-  });
+  const recipe = NimbusTestUtils.factories.recipe.withFeatureConfig(
+    "mobile-experiment",
+    { featureId: "mobile-feature", value: { enabled: true } },
+    { appId: "org.mozilla.firefox" }
+  );
 
   const { sandbox, loader, manager, cleanup } = await setupTest();
   sandbox.stub(manager, "onRecipe");
@@ -784,51 +722,21 @@ add_task(async function test_updateRecipes_recipeAppId() {
 });
 
 add_task(async function test_updateRecipes_featureValidationOptOut() {
-  const invalidFeatureRecipe = ExperimentFakes.recipe("invalid-recipe", {
-    bucketConfig: {
-      ...ExperimentFakes.recipe.bucketConfig,
-      count: 1000,
-    },
-    branches: [
-      {
-        slug: "control",
-        ratio: 1,
-        features: [
-          {
-            featureId: "testFeature",
-            value: {
-              enabled: "true",
-              testInt: false,
-            },
-          },
-        ],
-      },
-    ],
-  });
+  const invalidFeatureRecipe =
+    NimbusTestUtils.factories.recipe.withFeatureConfig("invalid-recipe", {
+      featureId: "testFeature",
+      value: { enabled: "true", testInt: false },
+    });
 
   const message = await PanelTestProvider.getMessages().then(msgs =>
     msgs.find(m => m.id === "MULTISTAGE_SPOTLIGHT_MESSAGE")
   );
   delete message.template;
 
-  const invalidMsgRecipe = ExperimentFakes.recipe("invalid-recipe", {
-    bucketConfig: {
-      ...ExperimentFakes.recipe.bucketConfig,
-      count: 1000,
-    },
-    branches: [
-      {
-        slug: "control",
-        ratio: 1,
-        features: [
-          {
-            featureId: "spotlight",
-            value: message,
-          },
-        ],
-      },
-    ],
-  });
+  const invalidMsgRecipe = NimbusTestUtils.factories.recipe.withFeatureConfig(
+    "invalid-recipe",
+    { featureId: "spotlight", value: message }
+  );
 
   for (const invalidRecipe of [invalidFeatureRecipe, invalidMsgRecipe]) {
     const optOutRecipe = {
@@ -872,23 +780,11 @@ add_task(async function test_updateRecipes_invalidFeature_mismatch() {
   info(
     "Testing that we do not submit validation telemetry when the targeting does not match"
   );
-  const recipe = ExperimentFakes.recipe("recipe", {
-    branches: [
-      {
-        slug: "control",
-        ratio: 1,
-        features: [
-          {
-            featureId: "bogus",
-            value: {
-              bogus: "bogus",
-            },
-          },
-        ],
-      },
-    ],
-    targeting: "false",
-  });
+  const recipe = NimbusTestUtils.factories.recipe.withFeatureConfig(
+    "recipe",
+    { featureId: "bogus", value: { bogus: "bogus" } },
+    { targeting: "false" }
+  );
 
   const { sandbox, loader, manager, cleanup } = await setupTest();
 
@@ -929,49 +825,15 @@ add_task(async function test_updateRecipes_invalidFeature_mismatch() {
 });
 
 add_task(async function test_updateRecipes_rollout_bucketing() {
-  const experiment = ExperimentFakes.recipe("experiment", {
-    branches: [
-      {
-        slug: "control",
-        ratio: 1,
-        features: [
-          {
-            featureId: "testFeature",
-            value: {},
-          },
-        ],
-      },
-    ],
-    bucketConfig: {
-      namespace: "nimbus-test-utils",
-      randomizationUnit: "normandy_id",
-      start: 0,
-      count: 1000,
-      total: 1000,
-    },
-  });
-  const rollout = ExperimentFakes.recipe("rollout", {
-    isRollout: true,
-    branches: [
-      {
-        slug: "rollout",
-        ratio: 1,
-        features: [
-          {
-            featureId: "testFeature",
-            value: {},
-          },
-        ],
-      },
-    ],
-    bucketConfig: {
-      namespace: "nimbus-test-utils",
-      randomizationUnit: "normandy_id",
-      start: 0,
-      count: 1000,
-      total: 1000,
-    },
-  });
+  const experiment = NimbusTestUtils.factories.recipe.withFeatureConfig(
+    "experiment",
+    { featureId: "testFeature" }
+  );
+  const rollout = NimbusTestUtils.factories.recipe.withFeatureConfig(
+    "rollout",
+    { branchSlug: "rollout", featureId: "testFeature" },
+    { isRollout: true }
+  );
 
   const { loader, manager, cleanup } = await setupTest();
 
@@ -1154,7 +1016,7 @@ add_task(async function test_rollout_reenroll_optout() {
 });
 
 add_task(async function test_active_and_past_experiment_targeting() {
-  const cleanupFeatures = ExperimentTestUtils.addTestFeatures(
+  const cleanupFeatures = NimbusTestUtils.addTestFeatures(
     new ExperimentFeature("feature-a", {
       isEarlyStartup: false,
       variables: {},
@@ -1166,71 +1028,36 @@ add_task(async function test_active_and_past_experiment_targeting() {
     new ExperimentFeature("feature-c", { isEarlyStartup: false, variables: {} })
   );
 
-  const experimentA = ExperimentFakes.recipe("experiment-a", {
-    branches: [
-      {
-        ...ExperimentFakes.recipe.branches[0],
-        features: [{ featureId: "feature-a", value: {} }],
-      },
-    ],
-    bucketConfig: {
-      ...ExperimentFakes.recipe.bucketConfig,
-      count: 1000,
-    },
-  });
-  const experimentB = ExperimentFakes.recipe("experiment-b", {
-    branches: [
-      {
-        ...ExperimentFakes.recipe.branches[0],
-        features: [{ featureId: "feature-b", value: {} }],
-      },
-    ],
-    bucketConfig: experimentA.bucketConfig,
-    targeting: "'experiment-a' in activeExperiments",
-  });
-  const experimentC = ExperimentFakes.recipe("experiment-c", {
-    branches: [
-      {
-        ...ExperimentFakes.recipe.branches[0],
-        features: [{ featureId: "feature-c", value: {} }],
-      },
-    ],
-    bucketConfig: experimentA.bucketConfig,
-    targeting: "'experiment-a' in previousExperiments",
-  });
+  const experimentA = NimbusTestUtils.factories.recipe.withFeatureConfig(
+    "experiment-a",
+    { featureId: "feature-a" }
+  );
+  const experimentB = NimbusTestUtils.factories.recipe.withFeatureConfig(
+    "experiment-b",
+    { featureId: "feature-b" },
+    { targeting: "'experiment-a' in activeExperiments" }
+  );
+  const experimentC = NimbusTestUtils.factories.recipe.withFeatureConfig(
+    "experiment-c",
+    { featureId: "feature-c" },
+    { targeting: "'experiment-a' in previousExperiments" }
+  );
 
-  const rolloutA = ExperimentFakes.recipe("rollout-a", {
-    branches: [
-      {
-        ...ExperimentFakes.recipe.branches[0],
-        features: [{ featureId: "feature-a", value: {} }],
-      },
-    ],
-    bucketConfig: experimentA.bucketConfig,
-    isRollout: true,
-  });
-  const rolloutB = ExperimentFakes.recipe("rollout-b", {
-    branches: [
-      {
-        ...ExperimentFakes.recipe.branches[0],
-        features: [{ featureId: "feature-b", value: {} }],
-      },
-    ],
-    bucketConfig: experimentA.bucketConfig,
-    targeting: "'rollout-a' in activeRollouts",
-    isRollout: true,
-  });
-  const rolloutC = ExperimentFakes.recipe("rollout-c", {
-    branches: [
-      {
-        ...ExperimentFakes.recipe.branches[0],
-        features: [{ featureId: "feature-c", value: {} }],
-      },
-    ],
-    bucketConfig: experimentA.bucketConfig,
-    targeting: "'rollout-a' in previousRollouts",
-    isRollout: true,
-  });
+  const rolloutA = NimbusTestUtils.factories.recipe.withFeatureConfig(
+    "rollout-a",
+    { featureId: "feature-a" },
+    { isRollout: true }
+  );
+  const rolloutB = NimbusTestUtils.factories.recipe.withFeatureConfig(
+    "rollout-b",
+    { featureId: "feature-b" },
+    { targeting: "'rollout-a' in activeRollouts", isRollout: true }
+  );
+  const rolloutC = NimbusTestUtils.factories.recipe.withFeatureConfig(
+    "rollout-c",
+    { featureId: "feature-c" },
+    { targeting: "'rollout-a' in previousRollouts", isRollout: true }
+  );
 
   const { loader, manager, cleanup } = await setupTest();
 
@@ -1285,7 +1112,7 @@ add_task(async function test_active_and_past_experiment_targeting() {
 });
 
 add_task(async function test_enrollment_targeting() {
-  const cleanupFeatures = ExperimentTestUtils.addTestFeatures(
+  const cleanupFeatures = NimbusTestUtils.addTestFeatures(
     new ExperimentFeature("feature-a", {
       isEarlyStartup: false,
       variables: {},
@@ -1309,20 +1136,11 @@ add_task(async function test_enrollment_targeting() {
     featureId,
     { targeting = "true", isRollout = false } = {}
   ) {
-    return ExperimentFakes.recipe(name, {
-      branches: [
-        {
-          ...ExperimentFakes.recipe.branches[0],
-          features: [{ featureId, value: {} }],
-        },
-      ],
-      bucketConfig: {
-        ...ExperimentFakes.recipe.bucketConfig,
-        count: 1000,
-      },
-      targeting,
-      isRollout,
-    });
+    return NimbusTestUtils.factories.recipe.withFeatureConfig(
+      name,
+      { featureId },
+      { targeting, isRollout }
+    );
   }
 
   const experimentA = recipe("experiment-a", "feature-a", {
@@ -1469,14 +1287,14 @@ add_task(async function test_enrollment_targeting() {
 add_task(async function test_update_experiments_ordered_by_published_date() {
   // These are intentionally out of order so that we can test the order below.
   const recipes = [
-    ExperimentFakes.recipe("published-date-2", {
+    NimbusTestUtils.factories.recipe("published-date-2", {
       publishedDate: "2024-01-05T12:00:00Z",
     }),
-    ExperimentFakes.recipe("no-published-date-1"),
-    ExperimentFakes.recipe("published-date-1", {
+    NimbusTestUtils.factories.recipe("no-published-date-1"),
+    NimbusTestUtils.factories.recipe("published-date-1", {
       publishedDate: "2024-01-03T12:00:00Z",
     }),
-    ExperimentFakes.recipe("no-published-date-2"),
+    NimbusTestUtils.factories.recipe("no-published-date-2"),
   ];
 
   const { sandbox, loader, manager, cleanup } = await setupTest();
@@ -1529,23 +1347,10 @@ add_task(
 
 add_task(
   async function test_record_is_ready_set_value_for_nimbus_is_ready_feature() {
-    const recipe = ExperimentFakes.recipe("foo", {
-      branches: [
-        {
-          slug: "wsup",
-          ratio: 1,
-          features: [
-            {
-              featureId: "nimbusIsReady",
-              value: { eventCount: 3 },
-            },
-          ],
-        },
-      ],
-      bucketConfig: {
-        ...ExperimentFakes.recipe.bucketConfig,
-        count: 1000,
-      },
+    const recipe = NimbusTestUtils.factories.recipe.withFeatureConfig("foo", {
+      branchSlug: "wsup",
+      featureId: "nimbusIsReady",
+      value: { eventCount: 3 },
     });
 
     const { loader, manager, cleanup } = await NimbusTestUtils.setupTest();
@@ -1570,41 +1375,20 @@ add_task(
 
 add_task(async function test_updateRecipes_secure() {
   // This recipe is allowed from the secure collection but not the regular collection.
-  const prefFlipRecipe = ExperimentFakes.recipe("pref-flip", {
-    bucketConfig: {
-      ...ExperimentFakes.recipe.bucketConfig,
-      count: 1000,
-    },
+  const prefFlipRecipe = NimbusTestUtils.factories.recipe.withFeatureConfig(
+    "pref-flip",
+    {
+      featureId: "prefFlips",
+      value: { prefs: {} },
+    }
+  );
+
+  const testFeatureRecipe = NimbusTestUtils.factories.recipe("test-feature");
+
+  const multiFeatureRecipe = NimbusTestUtils.factories.recipe("multi-feature", {
     branches: [
       {
-        ...ExperimentFakes.recipe.branches[0],
-        features: [
-          {
-            featureId: "prefFlips",
-            value: {
-              prefs: {},
-            },
-          },
-        ],
-      },
-    ],
-  });
-
-  const testFeatureRecipe = ExperimentFakes.recipe("test-feature", {
-    bucketConfig: {
-      ...ExperimentFakes.recipe.bucketConfig,
-      count: 1000,
-    },
-  });
-
-  const multiFeatureRecipe = ExperimentFakes.recipe("mutli-feature", {
-    bucketConfig: {
-      ...ExperimentFakes.recipe.bucketConfig,
-      count: 1000,
-    },
-    branches: [
-      {
-        ...ExperimentFakes.recipe.branches[0],
+        ...NimbusTestUtils.factories.recipe.branches[0],
         features: [
           prefFlipRecipe.branches[0].features[0],
           testFeatureRecipe.branches[0].features[0],
@@ -1679,11 +1463,7 @@ add_task(async function test_updateRecipes_secure() {
 add_task(async function test_updateRecipesClearsOptIns() {
   const now = new Date().getTime();
   const recipes = [
-    ExperimentFakes.recipe("opt-in-1", {
-      bucketConfig: {
-        ...ExperimentFakes.recipe.bucketConfig,
-        count: 1000,
-      },
+    NimbusTestUtils.factories.recipe("opt-in-1", {
       isFirefoxLabsOptIn: true,
       firefoxLabsTitle: "opt-in-1-title",
       firefoxLabsDescription: "opt-in-1-desc",
@@ -1691,15 +1471,10 @@ add_task(async function test_updateRecipesClearsOptIns() {
       firefoxLabsGroup: "group",
       requiresRestart: false,
       isRollout: true,
-      branches: [ExperimentFakes.recipe.branches[0]],
       targeting: "true",
       publishedDate: new Date(now).toISOString(),
     }),
-    ExperimentFakes.recipe("opt-in-2", {
-      bucketConfig: {
-        ...ExperimentFakes.recipe.bucketConfig,
-        count: 1000,
-      },
+    NimbusTestUtils.factories.recipe("opt-in-2", {
       isFirefoxLabsOptIn: true,
       firefoxLabsTitle: "opt-in-2-title",
       firefoxLabsDescription: "opt-in-2-desc",
@@ -1707,7 +1482,6 @@ add_task(async function test_updateRecipesClearsOptIns() {
       firefoxLabsGroup: "group",
       requiresRestart: false,
       isRollout: true,
-      branches: [ExperimentFakes.recipe.branches[0]],
       targeting: "false",
       publishedDate: new Date(now + 10000).toISOString(),
     }),
@@ -1730,19 +1504,15 @@ add_task(async function test_updateRecipesClearsOptIns() {
 add_task(async function test_updateRecipes_optInsStayEnrolled() {
   info("testing opt-ins stay enrolled after update");
 
-  const recipe = ExperimentFakes.recipe("opt-in", {
-    bucketConfig: {
-      ...ExperimentFakes.recipe.bucketConfig,
-      count: 1000,
-    },
+  const recipe = NimbusTestUtils.factories.recipe("opt-in", {
     branches: [
       {
-        ...ExperimentFakes.recipe.branches[0],
+        ...NimbusTestUtils.factories.recipe.branches[0],
         slug: "branch-0",
         firefoxLabsTitle: "branch-0-title",
       },
       {
-        ...ExperimentFakes.recipe.branches[1],
+        ...NimbusTestUtils.factories.recipe.branches[1],
         slug: "branch-1",
         firefoxLabsTitle: "branch-1-title",
       },
@@ -1774,19 +1544,15 @@ add_task(async function test_updateRecipes_optInsStayEnrolled() {
 add_task(async function test_updateRecipes_optInsUnerollOnFalseTargeting() {
   info("testing opt-ins unenroll after targeting becomes false");
 
-  const recipe = ExperimentFakes.recipe("opt-in", {
-    bucketConfig: {
-      ...ExperimentFakes.recipe.bucketConfig,
-      count: 1000,
-    },
+  const recipe = NimbusTestUtils.factories.recipe("opt-in", {
     branches: [
       {
-        ...ExperimentFakes.recipe.branches[0],
+        ...NimbusTestUtils.factories.recipe.branches[0],
         slug: "branch-0",
         firefoxLabsTitle: "branch-0-title",
       },
       {
-        ...ExperimentFakes.recipe.branches[1],
+        ...NimbusTestUtils.factories.recipe.branches[1],
         slug: "branch-1",
         firefoxLabsTitle: "branch-1-title",
       },
@@ -1817,14 +1583,10 @@ add_task(async function test_updateRecipes_optInsUnerollOnFalseTargeting() {
 add_task(async function test_updateRecipes_bucketingCausesOptInUnenrollments() {
   info("testing opt-in rollouts unenroll after if bucketing changes");
 
-  const recipe = ExperimentFakes.recipe("opt-in", {
-    bucketConfig: {
-      ...ExperimentFakes.recipe.bucketConfig,
-      count: 1000,
-    },
+  const recipe = NimbusTestUtils.factories.recipe("opt-in", {
     branches: [
       {
-        ...ExperimentFakes.recipe.branches[0],
+        ...NimbusTestUtils.factories.recipe.branches[0],
         slug: "branch-0",
       },
     ],
@@ -1857,14 +1619,10 @@ add_task(async function test_updateRecipes_reEnrollRolloutOptin() {
     "testing opt-in rollouts do not re-enroll automatically if bucketing changes"
   );
 
-  const recipe = ExperimentFakes.recipe("opt-in", {
-    bucketConfig: {
-      ...ExperimentFakes.recipe.bucketConfig,
-      count: 1000,
-    },
+  const recipe = NimbusTestUtils.factories.recipe("opt-in", {
     branches: [
       {
-        ...ExperimentFakes.recipe.branches[0],
+        ...NimbusTestUtils.factories.recipe.branches[0],
         slug: "branch-0",
       },
     ],
@@ -1914,26 +1672,12 @@ add_task(async function test_updateRecipes_enrollmentStatus_telemetry() {
     new ExperimentFeature("test-feature-8", { variables: {} }),
   ];
 
-  const cleanupFeatures = ExperimentTestUtils.addTestFeatures(...features);
+  const cleanupFeatures = NimbusTestUtils.addTestFeatures(...features);
 
   function recipe(slug, featureId, value = null) {
-    return ExperimentFakes.recipe(slug, {
-      bucketConfig: {
-        ...ExperimentFakes.recipe.bucketConfig,
-        count: 1000,
-      },
-      branches: [
-        {
-          ratio: 1,
-          slug: "control",
-          features: [
-            {
-              featureId,
-              value: value ?? {},
-            },
-          ],
-        },
-      ],
+    return NimbusTestUtils.factories.recipe.withFeatureConfig(slug, {
+      featureId,
+      value: value ?? {},
     });
   }
   const { loader, manager, cleanup } = await setupTest();
@@ -2092,26 +1836,11 @@ add_task(async function test_updateRecipes_enrollmentStatus_notEnrolled() {
     new ExperimentFeature("test-feature-8", { variables: {} }),
   ];
 
-  const cleanupFeatures = ExperimentTestUtils.addTestFeatures(...features);
+  const cleanupFeatures = NimbusTestUtils.addTestFeatures(...features);
 
   function recipe(slug, featureId) {
-    return ExperimentFakes.recipe(slug, {
-      bucketConfig: {
-        ...ExperimentFakes.recipe.bucketConfig,
-        count: 1000,
-      },
-      branches: [
-        {
-          ratio: 1,
-          slug: "control",
-          features: [
-            {
-              featureId,
-              value: {},
-            },
-          ],
-        },
-      ],
+    return NimbusTestUtils.factories.recipe.withFeatureConfig(slug, {
+      featureId,
     });
   }
 
@@ -2127,7 +1856,7 @@ add_task(async function test_updateRecipes_enrollmentStatus_notEnrolled() {
     {
       ...recipe("targeting-only", "test-feature-2"),
       bucketConfig: {
-        ...ExperimentFakes.recipe.bucketConfig,
+        ...NimbusTestUtils.factories.recipe.bucketConfig,
         count: 0,
       },
     },
@@ -2204,11 +1933,7 @@ add_task(async function test_updateRecipes_enrollmentStatus_notEnrolled() {
 });
 
 add_task(async function test_updateRecipesWithPausedEnrollment() {
-  const recipe = ExperimentFakes.recipe("foo", {
-    bucketConfig: {
-      ...ExperimentFakes.recipe.bucketConfig,
-      count: 1000,
-    },
+  const recipe = NimbusTestUtils.factories.recipe("foo", {
     isEnrollmentPaused: true,
   });
 
@@ -2242,12 +1967,7 @@ add_task(async function test_updateRecipesUnenrollsNotSeenRecipes() {
   sandbox.spy(TelemetryEnvironment, "setExperimentInactive");
   sandbox.spy(manager, "updateEnrollment");
 
-  const recipe = ExperimentFakes.recipe("rollout", {
-    bucketConfig: {
-      ...ExperimentFakes.recipe.bucketConfig,
-      count: 1000,
-    },
-    branches: [ExperimentFakes.recipe.branches[0]],
+  const recipe = NimbusTestUtils.factories.recipe("rollout", {
     isRollout: true,
   });
 
@@ -2334,11 +2054,7 @@ add_task(async function test_updateRecipesUnenrollsNotSeenRecipes() {
 add_task(async function test_updateRecipesUnenrollsTargetingMismatch() {
   const { loader, manager, cleanup } = await setupTest();
 
-  const recipe = ExperimentFakes.recipe("only-once", {
-    bucketConfig: {
-      ...ExperimentFakes.recipe.bucketConfig,
-      count: 1000,
-    },
+  const recipe = NimbusTestUtils.factories.recipe("only-once", {
     targeting: "!(experiment.slug in activeExperiments)",
   });
 

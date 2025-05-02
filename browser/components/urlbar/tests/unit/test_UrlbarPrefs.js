@@ -109,6 +109,10 @@ add_task(function makeResultGroups_true() {
                   group: UrlbarUtils.RESULT_GROUP.INPUT_HISTORY,
                 },
                 {
+                  availableSpan: 2,
+                  group: UrlbarUtils.RESULT_GROUP.HISTORY_SEMANTIC,
+                },
+                {
                   flexChildren: true,
                   children: [
                     {
@@ -184,6 +188,10 @@ add_task(function makeResultGroups_false() {
                 {
                   availableSpan: 3,
                   group: UrlbarUtils.RESULT_GROUP.INPUT_HISTORY,
+                },
+                {
+                  availableSpan: 2,
+                  group: UrlbarUtils.RESULT_GROUP.HISTORY_SEMANTIC,
                 },
                 {
                   flexChildren: true,

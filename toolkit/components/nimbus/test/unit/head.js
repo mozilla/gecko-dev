@@ -12,10 +12,9 @@ const {
   ExperimentAPI,
   NimbusFeatures,
 } = ChromeUtils.importESModule("resource://nimbus/ExperimentAPI.sys.mjs");
-const { ExperimentFakes, ExperimentTestUtils, NimbusTestUtils } =
-  ChromeUtils.importESModule(
-    "resource://testing-common/NimbusTestUtils.sys.mjs"
-  );
+const { NimbusTestUtils } = ChromeUtils.importESModule(
+  "resource://testing-common/NimbusTestUtils.sys.mjs"
+);
 
 ChromeUtils.defineESModuleGetters(this, {
   ObjectUtils: "resource://gre/modules/ObjectUtils.sys.mjs",

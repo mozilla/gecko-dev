@@ -153,7 +153,7 @@ class CrashReporterActivity : AppCompatActivity() {
     @VisibleForTesting
     internal fun isRecoverableBackgroundCrash(crash: Crash): Boolean {
         return crash is Crash.NativeCodeCrash &&
-            crash.processType == Crash.NativeCodeCrash.PROCESS_TYPE_BACKGROUND_CHILD
+            crash.processVisibility == Crash.NativeCodeCrash.PROCESS_VISIBILITY_BACKGROUND_CHILD
     }
 
     companion object {

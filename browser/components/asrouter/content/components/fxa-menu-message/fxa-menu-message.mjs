@@ -88,7 +88,7 @@ export default class FxAMenuMessage extends MozLitElement {
                   id="close-button"
                   @click=${this.handleClose}
                   type="ghost"
-                  iconsrc="chrome://global/skin/icons/close-12.svg"
+                  iconsrc="resource://content-accessible/close-12.svg"
                   tabindex="2"
                   data-l10n-id="fxa-menu-message-close-button"
                 >
@@ -124,7 +124,7 @@ export default class FxAMenuMessage extends MozLitElement {
                 id="close-button"
                 @click=${this.handleClose}
                 type="ghost"
-                iconsrc="chrome://global/skin/icons/close-12.svg"
+                iconsrc="resource://content-accessible/close-12.svg"
                 tabindex="2"
                 data-l10n-id="fxa-menu-message-close-button"
               >

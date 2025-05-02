@@ -46,7 +46,7 @@ add_task(async function test_ExperimentFeature_test_helper_ready() {
 
   const featureInstance = new ExperimentFeature("foo", FAKE_FEATURE_MANIFEST);
 
-  const cleanupExperiment = await ExperimentFakes.enrollWithFeatureConfig(
+  const cleanupExperiment = await NimbusTestUtils.enrollWithFeatureConfig(
     {
       featureId: "foo",
       value: { remoteValue: "mochitest", enabled: true },
@@ -194,7 +194,7 @@ add_task(async function test_allow_multiple_exposure_events() {
   // Clear any pre-existing data in Glean
   Services.fog.testResetFOG();
 
-  let doExperimentCleanup = await ExperimentFakes.enrollWithFeatureConfig(
+  let doExperimentCleanup = await NimbusTestUtils.enrollWithFeatureConfig(
     {
       featureId: "foo",
       value: { enabled: false },
@@ -230,7 +230,7 @@ add_task(async function test_onUpdate_after_store_ready() {
     FAKE_FEATURE_MANIFEST
   );
 
-  const rollout = ExperimentFakes.rollout("foo", {
+  const rollout = NimbusTestUtils.factories.rollout("foo", {
     branch: {
       slug: "slug",
       features: [

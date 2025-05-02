@@ -146,7 +146,8 @@ class JSFunction : public js::NativeObject {
  public:
   static inline JSFunction* create(JSContext* cx, js::gc::AllocKind kind,
                                    js::gc::Heap heap,
-                                   js::Handle<js::SharedShape*> shape);
+                                   js::Handle<js::SharedShape*> shape,
+                                   js::gc::AllocSite* site = nullptr);
 
   /* Call objects must be created for each invocation of this function. */
   bool needsCallObject() const;
@@ -899,7 +900,9 @@ class FunctionExtended : public JSFunction {
 
 extern JSFunction* CloneFunctionReuseScript(JSContext* cx, HandleFunction fun,
                                             HandleObject enclosingEnv,
-                                            HandleObject proto);
+                                            HandleObject proto,
+                                            gc::Heap heap = gc::Heap::Default,
+                                            gc::AllocSite* site = nullptr);
 
 extern JSFunction* CloneAsmJSModuleFunction(JSContext* cx, HandleFunction fun);
 

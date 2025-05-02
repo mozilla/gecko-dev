@@ -379,7 +379,7 @@ export const NimbusTestUtils = {
       // We want calls to `store.addEnrollment` to implicitly validate the
       // enrollment before saving to store
       lazy.sinon.stub(manager.store, "addEnrollment").callsFake(enrollment => {
-        ExperimentTestUtils.validateEnrollment(enrollment);
+        NimbusTestUtils.validateEnrollment(enrollment);
         return addEnrollment(enrollment);
       });
 

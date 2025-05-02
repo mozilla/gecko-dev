@@ -27,17 +27,14 @@ ChromeUtils.defineLazyGetter(
 const FEEDBACK_LINK =
   "https://connect.mozilla.org/t5/discussions/try-out-link-previews-on-firefox-labs/td-p/92012";
 
+window.MozXULElement.insertFTLIfNeeded("preview/linkPreview.ftl");
+
 /**
  * Class representing a link preview element.
  *
  * @augments MozLitElement
  */
 class LinkPreviewCard extends MozLitElement {
-  // Error message to display when we can't generate a preview
-  static ERROR_CARD_MESSAGE = "We can't preview this link";
-  // Text for the link to visit the original URL when in error state
-  static VISIT_LINK_TEXT = "Visit link";
-
   // Number of placeholder rows to show when loading
   static PLACEHOLDER_COUNT = 3;
 
@@ -138,12 +135,16 @@ class LinkPreviewCard extends MozLitElement {
       <div class="og-card">
         <div class="og-card-content">
           <div class="og-error-content">
-            <p class="og-error-message">
-              ${LinkPreviewCard.ERROR_CARD_MESSAGE}
-            </p>
-            <a class="og-card-title" @click=${this.handleLink} href=${pageUrl}>
-              ${LinkPreviewCard.VISIT_LINK_TEXT}
-            </a>
+            <p
+              class="og-error-message"
+              data-l10n-id="link-preview-error-message"
+            ></p>
+            <a
+              class="og-card-title"
+              @click=${this.handleLink}
+              data-l10n-id="link-preview-visit-link"
+              href=${pageUrl}
+            ></a>
           </div>
         </div>
       </div>

@@ -291,7 +291,7 @@ class HomeFragment : Fragment() {
         )
     }
 
-    @Suppress("LongMethod")
+    @Suppress("LongMethod", "CyclomaticComplexMethod")
     override fun onCreateView(
         inflater: LayoutInflater,
         container: ViewGroup?,
@@ -576,6 +576,10 @@ class HomeFragment : Fragment() {
             )
 
             updateSessionControlView()
+        }
+
+        if (!activity.browsingModeManager.mode.isPrivate && requireContext().settings().openPrivateTabsCount > 0) {
+            requireContext().settings().isPrivateScreenLocked = true
         }
 
         disableAppBarDragging()
@@ -1389,8 +1393,6 @@ class HomeFragment : Fragment() {
 
         bundleArgs.clear()
         lastAppliedWallpaperName = Wallpaper.defaultName
-
-        requireContext().settings().isPrivateScreenBlocked = false
     }
 
     override fun onStart() {

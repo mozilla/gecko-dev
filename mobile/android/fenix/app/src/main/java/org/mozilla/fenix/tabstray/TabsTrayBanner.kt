@@ -42,6 +42,7 @@ import mozilla.components.compose.base.Divider
 import mozilla.components.compose.base.annotation.LightDarkPreview
 import mozilla.components.compose.base.menu.DropdownMenu
 import mozilla.components.compose.base.menu.MenuItem
+import org.mozilla.fenix.GleanMetrics.PrivateBrowsingLocked
 import org.mozilla.fenix.R
 import org.mozilla.fenix.compose.Banner
 import org.mozilla.fenix.compose.BottomSheetHandle
@@ -59,30 +60,31 @@ private const val TAB_COUNT_SHOW_CFR = 6
  * Top-level UI for displaying the banner in [TabsTray].
  *
  * @param selectedPage The current page the Tabs Tray is on.
- * @param normalTabCount The total of open normal tabs.
- * @param privateTabCount The total of open private tabs.
- * @param syncedTabCount The total of open synced tabs.
- * @param selectionMode [TabsTrayState.Mode] indicating whether the Tabs Tray is in single selection.
- * @param isInDebugMode True for debug variant or if secret menu is enabled for this session.
- * @param shouldShowTabAutoCloseBanner Whether the tab auto closer banner should be displayed.
+ * @param normalTabCount The total number of open normal tabs.
+ * @param privateTabCount The total number of open private tabs.
+ * @param syncedTabCount The total number of open synced tabs.
+ * @param selectionMode [TabsTrayState.Mode] indicating the current selection mode (e.g., normal, multi-select).
+ * @param isInDebugMode True if the debug variant is active or the secret menu is enabled for the session.
+ * @param shouldShowTabAutoCloseBanner Whether the tab auto-close banner should be displayed.
+ * @param shouldShowLockPbmBanner Whether the lock private browsing mode banner should be displayed.
  * @param onTabPageIndicatorClicked Invoked when the user clicks on a tab page indicator.
- * @param onSaveToCollectionClick Invoked when the user clicks on the save to collection button from
- * the multi select banner.
- * @param onShareSelectedTabsClick Invoked when the user clicks on the share button from the multi select banner.
- * @param onShareAllTabsClick Invoked when the user clicks on the share menu item.
- * @param onTabSettingsClick Invoked when the user clicks on the tab settings menu item.
- * @param onRecentlyClosedClick Invoked when the user clicks on the recently closed tabs menu item.
- * @param onAccountSettingsClick Invoked when the user clicks on the account settings menu item.
- * @param onDeleteAllTabsClick Invoked when user interacts with the close all tabs menu item.
- * @param onDeleteSelectedTabsClick Invoked when user interacts with the close menu item.
- * @param onBookmarkSelectedTabsClick Invoked when user interacts with the bookmark menu item.
- * @param onForceSelectedTabsAsInactiveClick Invoked when user interacts with the make inactive menu item.
- * @param onDismissClick Invoked when accessibility services or UI automation requests dismissal.
- * @param onTabAutoCloseBannerViewOptionsClick Invoked when the user clicks to view the auto close options.
- * @param onTabAutoCloseBannerDismiss Invoked when the user clicks to dismiss the auto close banner.
- * @param onTabAutoCloseBannerShown Invoked when the auto close banner has been shown to the user.
- * @param onEnterMultiselectModeClick Invoked when user enters the multiselect mode.
- * @param onExitSelectModeClick Invoked when user exits the multiselect mode.
+ * @param onSaveToCollectionClick Invoked when the user clicks the "Save to Collection" button in multi-select mode.
+ * @param onShareSelectedTabsClick Invoked when the user clicks the "Share" button in multi-select mode.
+ * @param onShareAllTabsClick Invoked when the user clicks the "Share All Tabs" menu item.
+ * @param onTabSettingsClick Invoked when the user clicks the "Tab Settings" menu item.
+ * @param onRecentlyClosedClick Invoked when the user clicks the "Recently Closed Tabs" menu item.
+ * @param onAccountSettingsClick Invoked when the user clicks the "Account Settings" menu item.
+ * @param onDeleteAllTabsClick Invoked when the user clicks the "Close All Tabs" menu item.
+ * @param onDeleteSelectedTabsClick Invoked when the user clicks the "Close Selected Tabs" menu item.
+ * @param onBookmarkSelectedTabsClick Invoked when the user clicks the "Bookmark Selected Tabs" menu item.
+ * @param onForceSelectedTabsAsInactiveClick Invoked when the user clicks the "Mark Tabs as Inactive" menu item.
+ * @param onDismissClick Invoked when accessibility services or UI automation request a dismissal.
+ * @param onTabAutoCloseBannerViewOptionsClick Invoked when the user clicks to view auto-close settings from the banner.
+ * @param onTabsTrayPbmLockedClick Invoked when the user interacts with the lock private browsing mode banner.
+ * @param onTabAutoCloseBannerDismiss Invoked when the user dismisses the auto-close banner.
+ * @param onTabAutoCloseBannerShown Invoked when the auto-close banner is shown to the user.
+ * @param onEnterMultiselectModeClick Invoked when the user enters multi-select mode.
+ * @param onExitSelectModeClick Invoked when the user exits multi-select mode.
  */
 @Suppress("LongParameterList", "LongMethod")
 @Composable
@@ -94,6 +96,7 @@ fun TabsTrayBanner(
     selectionMode: TabsTrayState.Mode,
     isInDebugMode: Boolean,
     shouldShowTabAutoCloseBanner: Boolean,
+    shouldShowLockPbmBanner: Boolean,
     onTabPageIndicatorClicked: (Page) -> Unit,
     onSaveToCollectionClick: () -> Unit,
     onShareSelectedTabsClick: () -> Unit,
@@ -107,6 +110,7 @@ fun TabsTrayBanner(
     onForceSelectedTabsAsInactiveClick: () -> Unit,
     onDismissClick: () -> Unit,
     onTabAutoCloseBannerViewOptionsClick: () -> Unit,
+    onTabsTrayPbmLockedClick: () -> Unit,
     onTabAutoCloseBannerDismiss: () -> Unit,
     onTabAutoCloseBannerShown: () -> Unit,
     onEnterMultiselectModeClick: () -> Unit,
@@ -117,11 +121,20 @@ fun TabsTrayBanner(
             selectionMode is TabsTrayState.Mode.Select
         }
     }
-    val showTabAutoCloseBanner by remember(shouldShowTabAutoCloseBanner, normalTabCount, privateTabCount) {
+    val showTabAutoCloseBanner by remember(
+        shouldShowTabAutoCloseBanner,
+        normalTabCount,
+        privateTabCount,
+    ) {
         derivedStateOf {
-            shouldShowTabAutoCloseBanner && max(normalTabCount, privateTabCount) >= TAB_COUNT_SHOW_CFR
+            shouldShowTabAutoCloseBanner && max(
+                normalTabCount,
+                privateTabCount,
+            ) >= TAB_COUNT_SHOW_CFR
         }
     }
+
+    val showLockPbmBanner by remember { mutableStateOf(shouldShowLockPbmBanner) }
     var hasAcknowledgedBanner by remember { mutableStateOf(false) }
 
     val menuItems = selectionMode.getMenuItems(
@@ -129,7 +142,6 @@ fun TabsTrayBanner(
         onBookmarkSelectedTabsClick = onBookmarkSelectedTabsClick,
         onCloseSelectedTabsClick = onDeleteSelectedTabsClick,
         onMakeSelectedTabsInactive = onForceSelectedTabsAsInactiveClick,
-
         selectedPage = selectedPage,
         normalTabCount = normalTabCount,
         privateTabCount = privateTabCount,
@@ -164,26 +176,84 @@ fun TabsTrayBanner(
             )
         }
 
-        if (!hasAcknowledgedBanner && showTabAutoCloseBanner) {
+        if (!hasAcknowledgedBanner && (showTabAutoCloseBanner || showLockPbmBanner)) {
             onTabAutoCloseBannerShown()
 
             Divider()
 
-            Banner(
-                message = stringResource(id = R.string.tab_tray_close_tabs_banner_message),
-                button1Text = stringResource(id = R.string.tab_tray_close_tabs_banner_negative_button_text),
-                button2Text = stringResource(id = R.string.tab_tray_close_tabs_banner_positive_button_text),
-                onButton1Click = {
-                    hasAcknowledgedBanner = true
-                    onTabAutoCloseBannerViewOptionsClick()
-                },
-                onButton2Click = {
-                    hasAcknowledgedBanner = true
-                    onTabAutoCloseBannerDismiss()
-                },
-            )
+            if (showTabAutoCloseBanner) {
+                Banner(
+                    message = stringResource(id = R.string.tab_tray_close_tabs_banner_message),
+                    button1Text = stringResource(id = R.string.tab_tray_close_tabs_banner_negative_button_text),
+                    button2Text = stringResource(id = R.string.tab_tray_close_tabs_banner_positive_button_text),
+                    onButton1Click = {
+                        hasAcknowledgedBanner = true
+                        onTabAutoCloseBannerViewOptionsClick()
+                    },
+                    onButton2Click = {
+                        hasAcknowledgedBanner = true
+                        onTabAutoCloseBannerDismiss()
+                    },
+                )
+            } else if (showLockPbmBanner) {
+                Banner(
+                    message = stringResource(id = R.string.private_tab_cfr_title),
+                    button1Text = stringResource(id = R.string.private_tab_cfr_positive),
+                    button2Text = stringResource(id = R.string.private_tab_cfr_negative),
+                    onButton1Click = {
+                        hasAcknowledgedBanner = true
+                        PrivateBrowsingLocked.bannerNegativeClicked.record()
+                        onTabAutoCloseBannerDismiss()
+                    },
+                    onButton2Click = {
+                        hasAcknowledgedBanner = true
+                        PrivateBrowsingLocked.bannerPositiveClicked.record()
+                        onTabsTrayPbmLockedClick()
+                        onTabAutoCloseBannerDismiss()
+                    },
+                )
+            }
         }
     }
+}
+
+/**
+ * A reusable banner component for the Tabs Tray UI that supports two action buttons.
+ *
+ * This composable ensures a consistent layout and behavior for banners by:
+ * - Displaying a custom message with two buttons.
+ * - Triggering a common `onAcknowledge` callback before executing each button's individual action.
+ *
+ * @param message The message text to display in the banner.
+ * @param button1Text The label for the first button (typically a dismiss or settings action).
+ * @param button2Text The label for the second button (typically a confirm or proceed action).
+ * @param onAcknowledge A callback triggered before any button is pressed,
+ * typically used to mark the banner as acknowledged.
+ * @param onButton1Click The action to perform when the first button is clicked.
+ * @param onButton2Click The action to perform when the second button is clicked.
+ */
+@Composable
+private fun TabsTrayCustomBanner(
+    message: String,
+    button1Text: String,
+    button2Text: String,
+    onAcknowledge: () -> Unit,
+    onButton1Click: () -> Unit,
+    onButton2Click: () -> Unit,
+) {
+    Banner(
+        message = message,
+        button1Text = button1Text,
+        button2Text = button2Text,
+        onButton1Click = {
+            onAcknowledge()
+            onButton1Click()
+        },
+        onButton2Click = {
+            onAcknowledge()
+            onButton2Click()
+        },
+    )
 }
 
 @Suppress("LongMethod")
@@ -235,7 +305,8 @@ private fun TabPageBanner(
                     selectedContentColor = selectedColor,
                     unselectedContentColor = inactiveColor,
                 ) {
-                    val tabCounterAlpha = LocalContentColor.current.copy(alpha = LocalContentAlpha.current)
+                    val tabCounterAlpha =
+                        LocalContentColor.current.copy(alpha = LocalContentAlpha.current)
                     TabCounter(
                         tabCount = normalTabCount,
                         textColor = tabCounterAlpha,
@@ -297,7 +368,6 @@ private fun TabPageBanner(
                     onDismissRequest = {
                         showMenu = false
                     },
-
                 )
                 Icon(
                     painter = painterResource(R.drawable.ic_menu),
@@ -432,6 +502,7 @@ private fun TabsTrayBannerInfinityPreview() {
 private fun TabsTrayBannerAutoClosePreview() {
     TabsTrayBannerPreviewRoot(
         shouldShowTabAutoCloseBanner = true,
+        shouldShowLockPbmBanner = true,
     )
 }
 
@@ -474,6 +545,7 @@ private fun TabsTrayBannerPreviewRoot(
     privateTabCount: Int = 10,
     syncedTabCount: Int = 10,
     shouldShowTabAutoCloseBanner: Boolean = false,
+    shouldShowLockPbmBanner: Boolean = false,
 ) {
     val normalTabs = generateFakeTabsList(normalTabCount)
     val privateTabs = generateFakeTabsList(privateTabCount)
@@ -499,6 +571,7 @@ private fun TabsTrayBannerPreviewRoot(
                 selectionMode = selectMode,
                 isInDebugMode = true,
                 shouldShowTabAutoCloseBanner = shouldShowTabAutoCloseBanner,
+                shouldShowLockPbmBanner = shouldShowLockPbmBanner,
                 onTabPageIndicatorClicked = { page ->
                     tabsTrayStore.dispatch(TabsTrayAction.PageSelected(page))
                 },
@@ -514,6 +587,7 @@ private fun TabsTrayBannerPreviewRoot(
                 onForceSelectedTabsAsInactiveClick = {},
                 onDismissClick = {},
                 onTabAutoCloseBannerViewOptionsClick = {},
+                onTabsTrayPbmLockedClick = {},
                 onTabAutoCloseBannerDismiss = {},
                 onTabAutoCloseBannerShown = {},
                 onEnterMultiselectModeClick = {
@@ -527,7 +601,10 @@ private fun TabsTrayBannerPreviewRoot(
     }
 }
 
-private fun generateFakeTabsList(tabCount: Int = 10, isPrivate: Boolean = false): List<TabSessionState> =
+private fun generateFakeTabsList(
+    tabCount: Int = 10,
+    isPrivate: Boolean = false,
+): List<TabSessionState> =
     List(tabCount) { index ->
         TabSessionState(
             id = "tabId$index-$isPrivate",

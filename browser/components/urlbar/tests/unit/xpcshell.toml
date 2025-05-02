@@ -13,6 +13,8 @@ support-files = ["data/engine.xml"]
 
 ["test_UrlbarPrefs.js"]
 
+["test_UrlbarProviderSemanticHistorySearch.js"]
+
 ["test_UrlbarQueryContext.js"]
 
 ["test_UrlbarQueryContext_restrictSource.js"]

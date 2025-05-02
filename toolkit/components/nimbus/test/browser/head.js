@@ -8,10 +8,9 @@ const { _ExperimentFeature: ExperimentFeature, ExperimentAPI } =
 const { ExperimentManager } = ChromeUtils.importESModule(
   "resource://nimbus/lib/ExperimentManager.sys.mjs"
 );
-const { ExperimentFakes, ExperimentTestUtils, NimbusTestUtils } =
-  ChromeUtils.importESModule(
-    "resource://testing-common/NimbusTestUtils.sys.mjs"
-  );
+const { NimbusTestUtils } = ChromeUtils.importESModule(
+  "resource://testing-common/NimbusTestUtils.sys.mjs"
+);
 const { sinon } = ChromeUtils.importESModule(
   "resource://testing-common/Sinon.sys.mjs"
 );
@@ -34,7 +33,7 @@ add_setup(async function () {
   sandbox
     .stub(ExperimentManager.store, "addEnrollment")
     .callsFake(enrollment => {
-      ExperimentTestUtils.validateEnrollment(enrollment);
+      NimbusTestUtils.validateEnrollment(enrollment);
       return origAddExperiment(enrollment);
     });
 

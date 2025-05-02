@@ -395,49 +395,51 @@ AndroidWebAuthnService::SelectionCallback(uint64_t aTransactionId,
 
 NS_IMETHODIMP
 AndroidWebAuthnService::AddVirtualAuthenticator(
-    const nsACString& protocol, const nsACString& transport,
-    bool hasResidentKey, bool hasUserVerification, bool isUserConsenting,
-    bool isUserVerified, uint64_t* _retval) {
+    const nsACString& aProtocol, const nsACString& aTransport,
+    bool aHasResidentKey, bool aHasUserVerification, bool aIsUserConsenting,
+    bool aIsUserVerified, nsACString& aRetval) {
   return NS_ERROR_NOT_IMPLEMENTED;
 }
 
 NS_IMETHODIMP
-AndroidWebAuthnService::RemoveVirtualAuthenticator(uint64_t authenticatorId) {
+AndroidWebAuthnService::RemoveVirtualAuthenticator(
+    const nsACString& aAuthenticatorId) {
   return NS_ERROR_NOT_IMPLEMENTED;
 }
 
 NS_IMETHODIMP
-AndroidWebAuthnService::AddCredential(uint64_t authenticatorId,
-                                      const nsACString& credentialId,
-                                      bool isResidentCredential,
-                                      const nsACString& rpId,
-                                      const nsACString& privateKey,
-                                      const nsACString& userHandle,
-                                      uint32_t signCount) {
+AndroidWebAuthnService::AddCredential(const nsACString& aAuthenticatorId,
+                                      const nsACString& aCredentialId,
+                                      bool aIsResidentCredential,
+                                      const nsACString& aRpId,
+                                      const nsACString& aPrivateKey,
+                                      const nsACString& aUserHandle,
+                                      uint32_t aSignCount) {
   return NS_ERROR_NOT_IMPLEMENTED;
 }
 
 NS_IMETHODIMP
 AndroidWebAuthnService::GetCredentials(
-    uint64_t authenticatorId,
-    nsTArray<RefPtr<nsICredentialParameters>>& _retval) {
+    const nsACString& aAuthenticatorId,
+    nsTArray<RefPtr<nsICredentialParameters>>& _aRetval) {
   return NS_ERROR_NOT_IMPLEMENTED;
 }
 
 NS_IMETHODIMP
-AndroidWebAuthnService::RemoveCredential(uint64_t authenticatorId,
-                                         const nsACString& credentialId) {
+AndroidWebAuthnService::RemoveCredential(const nsACString& aAuthenticatorId,
+                                         const nsACString& aCredentialId) {
   return NS_ERROR_NOT_IMPLEMENTED;
 }
 
 NS_IMETHODIMP
-AndroidWebAuthnService::RemoveAllCredentials(uint64_t authenticatorId) {
+AndroidWebAuthnService::RemoveAllCredentials(
+    const nsACString& aAuthenticatorId) {
   return NS_ERROR_NOT_IMPLEMENTED;
 }
 
 NS_IMETHODIMP
-AndroidWebAuthnService::SetUserVerified(uint64_t authenticatorId,
-                                        bool isUserVerified) {
+AndroidWebAuthnService::SetUserVerified(const nsACString& aAuthenticatorId,
+                                        bool aIsUserVerified) {
   return NS_ERROR_NOT_IMPLEMENTED;
 }
 
@@ -445,7 +447,7 @@ NS_IMETHODIMP
 AndroidWebAuthnService::Listen() { return NS_ERROR_NOT_IMPLEMENTED; }
 
 NS_IMETHODIMP
-AndroidWebAuthnService::RunCommand(const nsACString& cmd) {
+AndroidWebAuthnService::RunCommand(const nsACString& aCmd) {
   return NS_ERROR_NOT_IMPLEMENTED;
 }
 

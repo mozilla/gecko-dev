@@ -12,11 +12,7 @@ function setupTest({ ...ctx }) {
 add_task(async function test_all() {
   const { sandbox, manager, initExperimentAPI, cleanup } = await setupTest({
     experiments: [
-      ExperimentFakes.recipe("opt-in-rollout", {
-        bucketConfig: {
-          ...ExperimentFakes.recipe.bucketConfig,
-          count: 1000,
-        },
+      NimbusTestUtils.factories.recipe("opt-in-rollout", {
         isRollout: true,
         isFirefoxLabsOptIn: true,
         firefoxLabsTitle: "title",
@@ -25,14 +21,10 @@ add_task(async function test_all() {
         firefoxLabsGroup: "group",
         requiresRestart: false,
       }),
-      ExperimentFakes.recipe("opt-in-experiment", {
-        bucketConfig: {
-          ...ExperimentFakes.recipe.bucketConfig,
-          count: 1000,
-        },
+      NimbusTestUtils.factories.recipe("opt-in-experiment", {
         branches: [
           {
-            ...ExperimentFakes.recipe.branches[0],
+            ...NimbusTestUtils.factories.recipe.branches[0],
             firefoxLabsTitle: "title",
           },
         ],
@@ -43,11 +35,7 @@ add_task(async function test_all() {
         firefoxLabsGroup: "group",
         requiresRestart: false,
       }),
-      ExperimentFakes.recipe("targeting-fail", {
-        bucketConfig: {
-          ...ExperimentFakes.recipe.bucketConfig,
-          count: 1000,
-        },
+      NimbusTestUtils.factories.recipe("targeting-fail", {
         targeting: "false",
         isRollout: true,
         isFirefoxLabsOptIn: true,
@@ -57,9 +45,9 @@ add_task(async function test_all() {
         firefoxLabsGroup: "group",
         requiresRestart: false,
       }),
-      ExperimentFakes.recipe("bucketing-fail", {
+      NimbusTestUtils.factories.recipe("bucketing-fail", {
         bucketConfig: {
-          ...ExperimentFakes.recipe.bucketConfig,
+          ...NimbusTestUtils.factories.recipe.bucketConfig,
           count: 0,
         },
         isRollout: true,
@@ -70,8 +58,8 @@ add_task(async function test_all() {
         firefoxLabsGroup: "group",
         requiresRestart: false,
       }),
-      ExperimentFakes.recipe("experiment"),
-      ExperimentFakes.recipe("rollout", { isRollout: true }),
+      NimbusTestUtils.factories.recipe("experiment"),
+      NimbusTestUtils.factories.recipe("rollout", { isRollout: true }),
     ],
     init: false,
   });
@@ -94,26 +82,19 @@ add_task(async function test_all() {
 });
 
 add_task(async function test_enroll() {
-  const recipe = ExperimentFakes.recipe("opt-in", {
-    bucketConfig: {
-      ...ExperimentFakes.recipe.bucketConfig,
-      count: 1000,
-    },
-    branches: [
-      {
-        slug: "control",
-        ratio: 1,
-        features: [{ featureId: "nimbus-qa-1", value: {} }],
-      },
-    ],
-    isRollout: true,
-    isFirefoxLabsOptIn: true,
-    firefoxLabsTitle: "placeholder",
-    firefoxLabsDescription: "placeholder",
-    firefoxLabsDescriptionLinks: null,
-    firefoxLabsGroup: "placeholder",
-    requiresRestart: false,
-  });
+  const recipe = NimbusTestUtils.factories.recipe.withFeatureConfig(
+    "opt-in",
+    { featureId: "nimbus-qa-1" },
+    {
+      isRollout: true,
+      isFirefoxLabsOptIn: true,
+      firefoxLabsTitle: "placeholder",
+      firefoxLabsDescription: "placeholder",
+      firefoxLabsDescriptionLinks: null,
+      firefoxLabsGroup: "placeholder",
+      requiresRestart: false,
+    }
+  );
 
   const { sandbox, manager, initExperimentAPI, cleanup } = await setupTest({
     experiments: [recipe],
@@ -186,17 +167,7 @@ add_task(async function test_enroll() {
 });
 
 add_task(async function test_reenroll() {
-  const recipe = ExperimentFakes.recipe("opt-in", {
-    bucketConfig: {
-      ...ExperimentFakes.recipe.bucketConfig,
-      count: 1000,
-    },
-    branches: [
-      {
-        ...ExperimentFakes.recipe.branches[0],
-        slug: "control",
-      },
-    ],
+  const recipe = NimbusTestUtils.factories.recipe("opt-in", {
     isFirefoxLabsOptIn: true,
     firefoxLabsTitle: "placeholder",
     firefoxLabsDescription: "placeholder",
@@ -247,50 +218,24 @@ add_task(async function test_reenroll() {
 add_task(async function test_unenroll() {
   const { manager, cleanup } = await setupTest({
     experiments: [
-      ExperimentFakes.recipe("rollout", {
-        bucketConfig: {
-          ...ExperimentFakes.recipe.bucketConfig,
-          count: 1000,
-        },
-        isRollout: true,
-        branches: [
-          {
-            slug: "control",
-            ratio: 1,
-            features: [
-              {
-                featureId: "nimbus-qa-1",
-                value: {},
-              },
-            ],
-          },
-        ],
-      }),
-      ExperimentFakes.recipe("opt-in", {
-        bucketConfig: {
-          ...ExperimentFakes.recipe.bucketConfig,
-          count: 1000,
-        },
-        isRollout: true,
-        branches: [
-          {
-            slug: "control",
-            ratio: 1,
-            features: [
-              {
-                featureId: "nimbus-qa-2",
-                value: {},
-              },
-            ],
-          },
-        ],
-        isFirefoxLabsOptIn: true,
-        firefoxLabsTitle: "title",
-        firefoxLabsDescription: "description",
-        firefoxLabsDescriptionLinks: null,
-        firefoxLabsGroup: "group",
-        requiresRestart: false,
-      }),
+      NimbusTestUtils.factories.recipe.withFeatureConfig(
+        "rollout",
+        { featureId: "nimbus-qa-1" },
+        { isRollout: true }
+      ),
+      NimbusTestUtils.factories.recipe.withFeatureConfig(
+        "opt-in",
+        { featureId: "nimbus-qa-2" },
+        {
+          isRollout: true,
+          isFirefoxLabsOptIn: true,
+          firefoxLabsTitle: "title",
+          firefoxLabsDescription: "description",
+          firefoxLabsDescriptionLinks: null,
+          firefoxLabsGroup: "group",
+          requiresRestart: false,
+        }
+      ),
     ],
   });
 

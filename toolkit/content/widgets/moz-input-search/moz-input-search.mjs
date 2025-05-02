@@ -14,7 +14,6 @@ import MozInputText from "chrome://global/content/elements/moz-input-text.mjs";
  * @property {string} name - The name of the input control
  * @property {string} value - The value of the input control
  * @property {boolean} disabled - The disabled state of the input control
- * @property {string} iconSrc - The src for an optional icon
  * @property {string} description - The text for the description element that helps describe the input control
  * @property {string} supportPage - Name of the SUMO support page to link to.
  * @property {string} placeholder - Text to display when the input has no value.

@@ -405,6 +405,7 @@ AbortReasonOr<WarpScriptSnapshot*> WarpScriptOracle::createScriptSnapshot() {
         if (IsAsmJSModule(fun)) {
           return abort(AbortReason::Disable, "asm.js module function lambda");
         }
+        MOZ_TRY(maybeInlineIC(opSnapshots, loc));
         break;
       }
 

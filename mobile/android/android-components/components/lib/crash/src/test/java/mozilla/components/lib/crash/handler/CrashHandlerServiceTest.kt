@@ -80,7 +80,7 @@ class CrashHandlerServiceTest {
     fun `CrashHandlerService forwards main process native code crash to crash reporter`() = runTestOnMain {
         doNothing().`when`(reporter)!!.sendCrashReport(any(), any())
 
-        intent.putExtra("processType", "MAIN")
+        intent.putExtra("processVisibility", "MAIN")
         service!!.handleCrashIntent(intent, coroutinesTestRule.scope)
         verify(reporter)!!.onCrash(any(), any())
         verify(reporter)!!.sendCrashReport(any(), any())
@@ -91,7 +91,7 @@ class CrashHandlerServiceTest {
     fun `CrashHandlerService forwards foreground child process native code crash to crash reporter`() = runTestOnMain {
         doNothing().`when`(reporter)!!.sendCrashReport(any(), any())
 
-        intent.putExtra("processType", "FOREGROUND_CHILD")
+        intent.putExtra("processVisibility", "FOREGROUND_CHILD")
         service!!.handleCrashIntent(intent, coroutinesTestRule.scope)
         verify(reporter)!!.onCrash(any(), any())
         verify(reporter)!!.sendNonFatalCrashIntent(any(), any())
@@ -102,7 +102,7 @@ class CrashHandlerServiceTest {
     fun `CrashHandlerService forwards background child process native code crash to crash reporter`() = runTestOnMain {
         doNothing().`when`(reporter)!!.sendCrashReport(any(), any())
 
-        intent.putExtra("processType", "BACKGROUND_CHILD")
+        intent.putExtra("processVisibility", "BACKGROUND_CHILD")
         service!!.handleCrashIntent(intent, coroutinesTestRule.scope)
         verify(reporter)!!.onCrash(any(), any())
         verify(reporter)!!.sendCrashReport(any(), any())

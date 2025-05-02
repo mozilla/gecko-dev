@@ -1910,8 +1910,25 @@ class Document : public nsINode,
    */
   MOZ_CAN_RUN_SCRIPT void ProcessCloseRequest();
 
+  /**
+   * When pointer events on the document occur, close the top-most
+   * light-dismiss dialog as mLastDialogPointerdownTarget.
+   */
+  MOZ_CAN_RUN_SCRIPT void HandleLightDismissOpenDialogs(WidgetEvent*);
+
   void AddModalDialog(HTMLDialogElement&);
   void RemoveModalDialog(HTMLDialogElement&);
+  void AddOpenDialog(HTMLDialogElement&);
+  void RemoveOpenDialog(HTMLDialogElement&);
+  bool HasOpenDialogs() const;
+  HTMLDialogElement* GetTopMostOpenDialog();
+  bool DialogIsInOpenDialogsList(HTMLDialogElement&);
+
+  void SetLastDialogPointerdownTarget(HTMLDialogElement&);
+  void ClearLastDialogPointerdownTarget() {
+    mLastDialogPointerdownTarget = nullptr;
+  }
+  HTMLDialogElement* GetLastDialogPointerdownTarget();
 
   /**
    * Called when a frame in a child process has entered fullscreen or when a
@@ -5363,6 +5380,14 @@ class Document : public nsINode,
 
   // Stack of top layer elements.
   nsTArray<nsWeakPtr> mTopLayer;
+
+  // Stack of open dialogs
+  // https://html.spec.whatwg.org/#open-dialogs-list
+  nsTArray<HTMLDialogElement*> mOpenDialogs;
+
+  // The last dialog pointer-down target
+  // https://html.spec.whatwg.org/#dialog-pointerdown-target
+  nsWeakPtr mLastDialogPointerdownTarget;
 
   // The root of the doc tree in which this document is in. This is only
   // non-null when this document is in fullscreen mode.

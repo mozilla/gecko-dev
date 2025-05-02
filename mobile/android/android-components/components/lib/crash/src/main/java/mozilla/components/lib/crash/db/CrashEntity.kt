@@ -89,6 +89,12 @@ internal data class CrashEntity(
      * The type of process the crash occurred in. Affects whether or not the crash is fatal
      * or whether the application can recover from it.
      */
+    @ColumnInfo(name = "processVisibility", defaultValue = "null")
+    var processVisibility: String?,
+
+    /**
+     * The process type name reported by the crashing process.
+     */
     @ColumnInfo(name = "processType", defaultValue = "null")
     var processType: String?,
 
@@ -120,6 +126,7 @@ internal fun CrashEntity.toCrash(): Crash {
             timestamp = this.createdAt,
             minidumpPath = this.minidumpPath,
             extrasPath = this.extrasPath,
+            processVisibility = this.processVisibility,
             processType = this.processType,
             breadcrumbs = deserializeBreadcrumbs(),
             remoteType = this.remoteType,
@@ -204,6 +211,7 @@ private fun Crash.NativeCodeCrash.toEntity(): CrashEntity =
         throwableData = null,
         stacktrace = "<native crash>",
         minidumpPath = minidumpPath,
+        processVisibility = processVisibility,
         processType = processType,
         extrasPath = extrasPath,
         remoteType = remoteType,
@@ -219,6 +227,7 @@ private fun Crash.UncaughtExceptionCrash.toEntity(): CrashEntity =
         throwableData = throwable.serialize(),
         stacktrace = throwable.getStacktraceAsString(),
         minidumpPath = null,
+        processVisibility = null,
         processType = null,
         extrasPath = null,
         remoteType = null,

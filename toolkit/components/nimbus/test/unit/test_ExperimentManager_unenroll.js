@@ -157,10 +157,10 @@ add_task(async function test_unenroll_rollout_opt_out() {
 
 add_task(async function test_unenroll_uploadPref() {
   const { manager, cleanup } = await setupTest();
-  const recipe = ExperimentFakes.recipe("foo");
+  const recipe = NimbusTestUtils.factories.recipe("foo");
 
   await manager.onStartup();
-  await ExperimentFakes.enrollmentHelper(recipe, { manager });
+  await NimbusTestUtils.enroll(recipe, { manager });
 
   Assert.equal(
     manager.store.get(recipe.slug).active,
@@ -184,12 +184,7 @@ add_task(async function test_setExperimentInactive_called() {
   const { sandbox, manager, cleanup } = await setupTest();
   sandbox.spy(TelemetryEnvironment, "setExperimentInactive");
 
-  const experiment = ExperimentFakes.recipe("foo", {
-    bucketConfig: {
-      ...ExperimentFakes.recipe.bucketConfig,
-      count: 1000,
-    },
-  });
+  const experiment = NimbusTestUtils.factories.recipe("foo");
 
   await manager.enroll(experiment);
 
@@ -307,7 +302,7 @@ add_task(async function test_undefined_reason() {
 add_task(async function test_remove_rollouts() {
   const { sandbox, manager, cleanup } = await setupTest();
   sandbox.spy(manager.store, "updateExperiment");
-  const rollout = ExperimentFakes.rollout("foo");
+  const rollout = NimbusTestUtils.factories.rollout("foo");
 
   await manager.enroll(
     NimbusTestUtils.factories.recipe("foo", { isRollout: true })
@@ -338,12 +333,8 @@ add_task(async function test_unenroll_individualOptOut_statusTelemetry() {
   const { manager, cleanup } = await setupTest();
 
   await manager.enroll(
-    ExperimentFakes.recipe("foo", {
-      bucketConfig: {
-        ...ExperimentFakes.recipe.bucketConfig,
-        count: 1000,
-      },
-      branches: [ExperimentFakes.recipe.branches[0]],
+    NimbusTestUtils.factories.recipe.withFeatureConfig("foo", {
+      featureId: "testFeature",
     })
   );
 

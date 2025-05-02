@@ -178,9 +178,9 @@ class SentryService(
     @VisibleForTesting
     internal fun createMessage(crash: Crash.NativeCodeCrash): String {
         val fatal = crash.isFatal.toString()
-        val processType = crash.processType
+        val processVisibility = crash.processVisibility
 
-        return "NativeCodeCrash(fatal=$fatal, processType=$processType)"
+        return "NativeCodeCrash(fatal=$fatal, processVisibility=$processVisibility)"
     }
 }
 

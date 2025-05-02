@@ -1403,9 +1403,11 @@ template <typename T>
 inline void MinorSweepingTracer::onEdge(T** thingp, const char* name) {
   T* thing = *thingp;
   if (thing->isTenured()) {
+    MOZ_ASSERT(!IsForwarded(thing));
     return;
   }
 
+  MOZ_ASSERT(runtime()->gc.nursery().inCollectedRegion(thing));
   if (IsForwarded(thing)) {
     *thingp = Forwarded(thing);
     return;

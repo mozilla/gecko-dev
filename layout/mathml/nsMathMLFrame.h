@@ -121,15 +121,13 @@ class nsMathMLFrame : public nsIMathMLFrame {
   // All values are stored in twips.
   // @pre  aLengthValue is the default length value of the attribute.
   // @post aLengthValue is the length value computed from the attribute.
-  static void ParseNumericValue(const nsString& aString, nscoord* aLengthValue,
-                                uint32_t aFlags, nsPresContext* aPresContext,
-                                mozilla::ComputedStyle* aComputedStyle,
-                                float aFontSizeInflation);
+  static void ParseAndCalcNumericValue(const nsString& aString,
+                                       nscoord* aLengthValue, uint32_t aFlags,
+                                       float aFontSizeInflation,
+                                       nsIFrame* aFrame);
 
-  static nscoord CalcLength(nsPresContext* aPresContext,
-                            mozilla::ComputedStyle* aComputedStyle,
-                            const nsCSSValue& aCSSValue,
-                            float aFontSizeInflation);
+  static nscoord CalcLength(const nsCSSValue& aCSSValue,
+                            float aFontSizeInflation, nsIFrame* aFrame);
 
   static eMathMLFrameType GetMathMLFrameTypeFor(nsIFrame* aFrame) {
     if (aFrame->IsMathMLFrame()) {

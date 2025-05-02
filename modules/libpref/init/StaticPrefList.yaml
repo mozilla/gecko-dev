@@ -2534,6 +2534,12 @@
   value: false
   mirror: always
 
+# https://github.com/whatwg/html/pull/10737
+- name: dom.dialog.light-dismiss.enabled
+  type: bool
+  value: false
+  mirror: always
+
 # Disable custom highlight API; implementation pending.
 - name: dom.customHighlightAPI.enabled
   type: RelaxedAtomicBool
@@ -2561,13 +2567,13 @@
 # Disable cookie-store API
 - name: dom.cookieStore.enabled
   type: RelaxedAtomicBool
-  value: @IS_NIGHTLY_BUILD@
+  value: true
   mirror: always
 
 # Disable cookie-store manager API
 - name: dom.cookieStore.manager.enabled
   type: RelaxedAtomicBool
-  value: false
+  value: true
   mirror: always
 
 # Is support for CSSPseudoElement enabled?

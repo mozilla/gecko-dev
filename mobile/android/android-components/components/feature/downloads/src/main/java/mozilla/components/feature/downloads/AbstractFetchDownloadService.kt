@@ -736,7 +736,14 @@ abstract class AbstractFetchDownloadService : Service() {
         val headers = MutableHeaders()
 
         if (isResumingDownload) {
-            headers.append(RANGE, "bytes=${currentDownloadJobState.currentBytesCopied}-")
+            logger.debug("Resuming download")
+            if (currentDownloadJobState.currentBytesCopied == download.contentLength) {
+                logger.debug("Already at 100%, verifying download")
+                verifyDownload(currentDownloadJobState)
+                return
+            } else {
+                headers.append(RANGE, "bytes=${currentDownloadJobState.currentBytesCopied}-")
+            }
         }
 
         var isUsingHttpClient = false

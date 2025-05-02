@@ -479,6 +479,12 @@ const PREF_URLBAR_DEFAULTS = new Map([
   // How old history results have to be to be deduplicated.
   ["deduplication.thresholdDays", 0],
 
+  // Whether semanticHistory search will be enabled.
+  ["suggest.semanticHistory", false],
+
+  // semanticHistory search query minLength threshold to be enabled.
+  ["suggest.semanticHistory.minLength", 5],
+
   // When using switch to tabs, if set to true this will move the tab into the
   // active window.
   ["switchTabs.adoptIntoActiveWindow", false],
@@ -712,6 +718,10 @@ function makeResultGroups({ showSearchSuggestionsFirst }) {
           {
             availableSpan: 3,
             group: lazy.UrlbarUtils.RESULT_GROUP.INPUT_HISTORY,
+          },
+          {
+            availableSpan: 2,
+            group: lazy.UrlbarUtils.RESULT_GROUP.HISTORY_SEMANTIC,
           },
           {
             flexChildren: true,

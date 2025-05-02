@@ -11,7 +11,7 @@ ChromeUtils.defineLazyGetter(this, "fetchSchema", () => {
 });
 
 const MATCHING_ROLLOUT = Object.freeze(
-  ExperimentFakes.rollout("matching-rollout", {
+  NimbusTestUtils.factories.rollout("matching-rollout", {
     branch: {
       slug: "slug",
       ratio: 1,

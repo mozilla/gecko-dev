@@ -13,7 +13,7 @@ ChromeUtils.defineESModuleGetters(this, {
   CATEGORIZATION_SETTINGS:
     "moz-src:///browser/components/search/SERPCategorization.sys.mjs",
   ExperimentAPI: "resource://nimbus/ExperimentAPI.sys.mjs",
-  ExperimentFakes: "resource://testing-common/NimbusTestUtils.sys.mjs",
+  NimbusTestUtils: "resource://testing-common/NimbusTestUtils.sys.mjs",
   SearchSERPTelemetry:
     "moz-src:///browser/components/search/SearchSERPTelemetry.sys.mjs",
   SERPCategorizationRecorder:
@@ -128,7 +128,7 @@ add_task(async function test_1_non_search_experiment() {
   resetTelemetry();
   await ExperimentAPI.ready();
 
-  let doExperimentCleanup = await ExperimentFakes.enrollWithFeatureConfig(
+  let doExperimentCleanup = await NimbusTestUtils.enrollWithFeatureConfig(
     {
       featureId: "notSearch",
     },
@@ -168,7 +168,7 @@ add_task(async function test_1_search_experiment_no_targetExperiment() {
   resetTelemetry();
   await ExperimentAPI.ready();
 
-  let doExperimentCleanup = await ExperimentFakes.enrollWithFeatureConfig(
+  let doExperimentCleanup = await NimbusTestUtils.enrollWithFeatureConfig(
     {
       featureId: "search",
       value: {
@@ -210,7 +210,7 @@ add_task(async function test_1_search_experiment_with_targetExperiment() {
   resetTelemetry();
   await ExperimentAPI.ready();
 
-  let doExperimentCleanup = await ExperimentFakes.enrollWithFeatureConfig(
+  let doExperimentCleanup = await NimbusTestUtils.enrollWithFeatureConfig(
     {
       featureId: "search",
       value: {
@@ -258,7 +258,7 @@ add_task(async function test_1_search_rollout_with_targetExperiment() {
   resetTelemetry();
   await ExperimentAPI.ready();
 
-  let doExperimentCleanup = await ExperimentFakes.enrollWithFeatureConfig(
+  let doExperimentCleanup = await NimbusTestUtils.enrollWithFeatureConfig(
     {
       featureId: "search",
       value: {
@@ -307,7 +307,7 @@ add_task(
     resetTelemetry();
     await ExperimentAPI.ready();
 
-    let doExperimentCleanup1 = await ExperimentFakes.enrollWithFeatureConfig(
+    let doExperimentCleanup1 = await NimbusTestUtils.enrollWithFeatureConfig(
       {
         featureId: "notSearch",
       },
@@ -316,7 +316,7 @@ add_task(
       }
     );
 
-    let doExperimentCleanup2 = await ExperimentFakes.enrollWithFeatureConfig(
+    let doExperimentCleanup2 = await NimbusTestUtils.enrollWithFeatureConfig(
       {
         featureId: "search",
         value: {
@@ -377,7 +377,7 @@ add_task(
 
     await ExperimentAPI.ready();
 
-    let doExperimentCleanup1 = await ExperimentFakes.enrollWithFeatureConfig(
+    let doExperimentCleanup1 = await NimbusTestUtils.enrollWithFeatureConfig(
       {
         featureId: "notSearch",
       },
@@ -386,7 +386,7 @@ add_task(
       }
     );
 
-    let doExperimentCleanup2 = await ExperimentFakes.enrollWithFeatureConfig(
+    let doExperimentCleanup2 = await NimbusTestUtils.enrollWithFeatureConfig(
       {
         featureId: "search",
         value: {

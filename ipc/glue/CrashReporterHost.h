@@ -101,6 +101,8 @@ class CrashReporterHost {
   const nsCString& AdditionalMinidumps() const {
     return mExtraAnnotations[CrashReporter::Annotation::additional_minidumps];
   }
+  // Get the process type string.
+  const char* ProcessType() const;
 
   // This is a static helper function to notify the crash service that a
   // crash has occurred and record the crash with telemetry. This can be called

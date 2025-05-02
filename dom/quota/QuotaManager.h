@@ -271,10 +271,6 @@ class QuotaManager final : public BackgroundThreadObject {
   Result<Ok, nsresult> EnsureTemporaryOriginDirectoryCreated(
       const OriginMetadata& aOriginMetadata);
 
-  static nsresult CreateDirectoryMetadata(
-      nsIFile& aDirectory, int64_t aTimestamp,
-      const OriginMetadata& aOriginMetadata);
-
   static nsresult CreateDirectoryMetadata2(
       nsIFile& aDirectory, int64_t aTimestamp, bool aPersisted,
       const OriginMetadata& aOriginMetadata);

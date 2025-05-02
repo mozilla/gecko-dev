@@ -795,7 +795,10 @@ void ReflowInput::InitResizeFlags(nsPresContext* aPresContext,
     } else {
       SetBResize(IsIResize());
     }
-    SetBResize(IsBResize() || mFrame->IsSubtreeDirty());
+    SetBResize(IsBResize() || mFrame->IsSubtreeDirty() ||
+               // For an inner table frame, copy IsBResize from its wrapper.
+               (aFrameType == LayoutFrameType::Table &&
+                mParentReflowInput->IsBResize()));
   } else {
     // We have a non-'auto' block-size, i.e., a length.  Set the BResize
     // flag to whether the size is actually different.
@@ -815,7 +818,12 @@ void ReflowInput::InitResizeFlags(nsPresContext* aPresContext,
           ->HasPercent() ||
       !mStylePosition
            ->GetAnchorResolvedInset(LogicalSide::BEnd, wm, positionProperty)
-           ->IsAuto();
+           ->IsAuto() ||
+      // We assume orthogonal flows depend on the containing-block's BSize,
+      // as that will commonly provide the available inline size. This is not
+      // always strictly needed, but orthogonal flows are rare enough that
+      // attempting to be more precise seems overly complex.
+      (mCBReflowInput && mCBReflowInput->GetWritingMode().IsOrthogonalTo(wm));
 
   // If mFrame is a flex item, and mFrame's block axis is the flex container's
   // main axis (e.g. in a column-oriented flex container with same

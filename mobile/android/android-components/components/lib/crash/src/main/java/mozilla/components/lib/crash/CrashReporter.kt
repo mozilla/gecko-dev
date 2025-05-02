@@ -392,7 +392,8 @@ class CrashReporter internal constructor(
             // and can notify the app. Background child process crashes will be recovered from
             // automatically, and main process crashes cannot be recovered from, so we do not
             // send the intent for those.
-            crash is Crash.NativeCodeCrash && crash.processType == Crash.NativeCodeCrash.PROCESS_TYPE_FOREGROUND_CHILD
+            crash is Crash.NativeCodeCrash &&
+                crash.processVisibility == Crash.NativeCodeCrash.PROCESS_VISIBILITY_FOREGROUND_CHILD
         }
     }
 

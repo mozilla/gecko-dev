@@ -32,6 +32,10 @@ static const PersistenceType kAllPersistenceTypes[] = {
     PERSISTENCE_TYPE_PERSISTENT, PERSISTENCE_TYPE_TEMPORARY,
     PERSISTENCE_TYPE_DEFAULT, PERSISTENCE_TYPE_PRIVATE};
 
+static const PersistenceType kAllPersistenceTypesButPrivate[] = {
+    PERSISTENCE_TYPE_PERSISTENT, PERSISTENCE_TYPE_TEMPORARY,
+    PERSISTENCE_TYPE_DEFAULT};
+
 static const PersistenceType kBestEffortPersistenceTypes[] = {
     PERSISTENCE_TYPE_TEMPORARY, PERSISTENCE_TYPE_DEFAULT,
     PERSISTENCE_TYPE_PRIVATE};

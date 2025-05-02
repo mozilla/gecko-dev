@@ -635,6 +635,10 @@ static OPUS_INLINE opus_int64 silk_max_64(opus_int64 a, opus_int64 b)
 #include "mips/sigproc_fix_mipsr1.h"
 #endif
 
+#ifdef OPUS_XTENSA_LX7
+#include "xtensa/SigProc_FIX_lx7.h"
+#endif
+
 
 #ifdef  __cplusplus
 }

@@ -1,3 +1,7 @@
+const { TabGroupTestUtils } = ChromeUtils.importESModule(
+  "resource://testing-common/TabGroupTestUtils.sys.mjs"
+);
+
 function promiseTabLoadEvent(tab, url) {
   info("Wait tab event: load");
 
@@ -593,13 +597,7 @@ function loadTestSubscript(filePath) {
  * @returns {Promise<void>}
  */
 async function removeTabGroup(group) {
-  if (!group.parentNode) {
-    ok(false, "group was already removed");
-    return;
-  }
-  let removePromise = BrowserTestUtils.waitForEvent(group, "TabGroupRemoved");
-  await group.ownerGlobal.gBrowser.removeTabGroup(group, { animate: false });
-  await removePromise;
+  return TabGroupTestUtils.removeTabGroup(group);
 }
 
 /**

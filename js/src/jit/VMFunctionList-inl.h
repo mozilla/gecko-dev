@@ -248,7 +248,8 @@ namespace jit {
   _(IsArrayFromJit, js::IsArrayFromJit)                                        \
   _(IsPossiblyWrappedTypedArray, js::jit::IsPossiblyWrappedTypedArray)         \
   _(IsPrototypeOf, js::IsPrototypeOf)                                          \
-  _(Lambda, js::Lambda)                                                        \
+  _(LambdaBaselineFallback, js::LambdaBaselineFallback)                        \
+  _(LambdaOptimizedFallback, js::LambdaOptimizedFallback)                      \
   _(LeaveWith, js::jit::LeaveWith)                                             \
   _(LinearizeForCharAccess, js::jit::LinearizeForCharAccess)                   \
   _(LoadAliasedDebugVar, js::LoadAliasedDebugVar)                              \

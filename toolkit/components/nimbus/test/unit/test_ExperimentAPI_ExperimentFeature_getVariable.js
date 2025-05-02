@@ -119,7 +119,7 @@ add_task(async function test_ExperimentFeature_getVariable_precedence() {
   );
 
   // Experiment values
-  const doExperimentCleanup = await ExperimentFakes.enrollWithFeatureConfig(
+  const doExperimentCleanup = await NimbusTestUtils.enrollWithFeatureConfig(
     {
       featureId: FEATURE_ID,
       value: {
@@ -161,7 +161,7 @@ add_task(async function test_ExperimentFeature_getVariable_partial_values() {
     true
   );
   await manager.enroll(rollout, "test");
-  const doExperimentCleanup = await ExperimentFakes.enrollWithFeatureConfig(
+  const doExperimentCleanup = await NimbusTestUtils.enrollWithFeatureConfig(
     {
       featureId: FEATURE_ID,
       value: {},

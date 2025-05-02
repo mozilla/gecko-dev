@@ -177,6 +177,7 @@ ChromeUtils.defineESModuleGetters(lazy, {
   DevToolsShim: "chrome://devtools-startup/content/DevToolsShim.sys.mjs",
   E10SUtils: "resource://gre/modules/E10SUtils.sys.mjs",
   HomePage: "resource:///modules/HomePage.sys.mjs",
+  JsonSchema: "resource://gre/modules/JsonSchema.sys.mjs",
   PrivacyFilter: "resource://gre/modules/sessionstore/PrivacyFilter.sys.mjs",
   sessionStoreLogger: "resource:///modules/sessionstore/SessionLogger.sys.mjs",
   RunState: "resource:///modules/sessionstore/RunState.sys.mjs",
@@ -931,6 +932,18 @@ export var SessionStore = {
    */
   shouldSaveTabGroup(group) {
     return SessionStoreInternal.shouldSaveTabGroup(group);
+  },
+
+  /**
+   * Validates that a state object matches the schema
+   * defined in browser/components/sessionstore/session.schema.json
+   *
+   * @param {Object} [state] State object to validate. If not provided,
+   *   will validate the current session state.
+   * @returns {Promise} A promise which resolves to a validation result object
+   */
+  validateState(state) {
+    return SessionStoreInternal.validateState(state);
   },
 };
 
@@ -8267,6 +8280,41 @@ var SessionStoreInternal = {
     removeWhere(closedWinData.groups, tabGroup => tabGroup.id == tabGroupId);
     removeWhere(closedWinData.tabs, tab => tab.groupId == tabGroupId);
     this._closedObjectsChanged = true;
+  },
+
+  /**
+   * Validates that a state object matches the schema
+   * defined in browser/components/sessionstore/session.schema.json
+   *
+   * @param {Object} [state] State object to validate. If not provided,
+   *   will validate the current session state.
+   * @returns {Promise} A promise which resolves to a validation result object
+   */
+  async validateState(state) {
+    if (!state) {
+      state = this.getCurrentState();
+      // Don't include the last session state in getBrowserState().
+      delete state.lastSessionState;
+      // Don't include any deferred initial state.
+      delete state.deferredInitialState;
+    }
+    const schema = await fetch(
+      "resource:///modules/sessionstore/session.schema.json"
+    ).then(rsp => rsp.json());
+
+    let result;
+    try {
+      result = lazy.JsonSchema.validate(state, schema);
+      if (!result.valid) {
+        console.warn(
+          "Session state didn't validate against the schema",
+          result.errors
+        );
+      }
+    } catch (ex) {
+      console.error(`Error validating session state: ${ex.message}`, ex);
+    }
+    return result;
   },
 };
 

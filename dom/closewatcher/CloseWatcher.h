@@ -48,6 +48,8 @@ class CloseWatcher : public DOMEventTargetHelper, public AbortFollower {
 
   bool IsActive() const;
 
+  void SetEnabled(bool aEnabled) { mEnabled = aEnabled; }
+
   void DisconnectFromOwner() override {
     Destroy();
     DOMEventTargetHelper::DisconnectFromOwner();
@@ -57,6 +59,10 @@ class CloseWatcher : public DOMEventTargetHelper, public AbortFollower {
   virtual ~CloseWatcher() = default;
 
   bool mIsRunningCancelAction = false;
+
+  // https://html.spec.whatwg.org/multipage/interaction.html#create-close-watcher-getenabledstate
+  // HTMLDialogElement can enable/disable close watcher using ClosedBy=none
+  bool mEnabled = true;
 };
 
 }  // namespace mozilla::dom

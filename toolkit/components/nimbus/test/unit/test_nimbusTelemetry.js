@@ -40,53 +40,34 @@ add_task(
       "Testing the interaction of gleanMetricConfiguration with submission of enrollment status and targeting context telemetry"
     );
 
-    const experiment = ExperimentFakes.recipe("experiment", {
-      bucketConfig: {
-        ...ExperimentFakes.recipe.bucketConfig,
-        count: 1000,
-      },
-      branches: [
-        {
-          slug: "control",
-          ratio: 1,
-          features: [
-            {
-              featureId: "nimbusTelemetry",
-              value: {
-                gleanMetricConfiguration: {
-                  metrics_enabled: {
-                    "nimbus_targeting_environment.targeting_context_value": true,
-                  },
-                },
-              },
+    const experiment = NimbusTestUtils.factories.recipe.withFeatureConfig(
+      "experiment",
+      {
+        featureId: "nimbusTelemetry",
+        value: {
+          gleanMetricConfiguration: {
+            metrics_enabled: {
+              "nimbus_targeting_environment.targeting_context_value": true,
             },
-          ],
+          },
         },
-      ],
-    });
+      }
+    );
 
-    const rollout = ExperimentFakes.recipe("rollout", {
-      bucketConfig: experiment.bucketConfig,
-      isRollout: true,
-      branches: [
-        {
-          slug: "control",
-          ratio: 1,
-          features: [
-            {
-              featureId: "nimbusTelemetry",
-              value: {
-                gleanMetricConfiguration: {
-                  metrics_enabled: {
-                    "nimbus_events.enrollment_status": true,
-                  },
-                },
-              },
+    const rollout = NimbusTestUtils.factories.recipe.withFeatureConfig(
+      "rollout",
+      {
+        featureId: "nimbusTelemetry",
+        value: {
+          gleanMetricConfiguration: {
+            metrics_enabled: {
+              "nimbus_events.enrollment_status": true,
             },
-          ],
+          },
         },
-      ],
-    });
+      },
+      { isRollout: true }
+    );
 
     const { manager, cleanup } = await setupTest();
 
@@ -322,7 +303,7 @@ add_task(
   async function test_nimbusTargetingEnvironment_recordAttrs() {
     const { manager, cleanup } = await setupTest();
 
-    const cleanupExperiment = await ExperimentFakes.enrollWithFeatureConfig(
+    const cleanupExperiment = await NimbusTestUtils.enrollWithFeatureConfig(
       {
         featureId: "nimbusTelemetry",
         value: {

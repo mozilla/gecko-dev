@@ -104,7 +104,7 @@ add_task(async function test_getExperimentMetaData_safe() {
  */
 add_task(async function test_getRecipe() {
   const { sandbox, cleanup } = await NimbusTestUtils.setupTest();
-  const RECIPE = ExperimentFakes.recipe("foo");
+  const RECIPE = NimbusTestUtils.factories.recipe("foo");
   const collectionName = Services.prefs.getStringPref(COLLECTION_ID_PREF);
   sandbox.stub(ExperimentAPI._remoteSettingsClient, "get").resolves([RECIPE]);
 
@@ -138,7 +138,7 @@ add_task(async function test_getRecipe_Failure() {
  */
 add_task(async function test_getAllBranches() {
   const { sandbox, cleanup } = await NimbusTestUtils.setupTest();
-  const RECIPE = ExperimentFakes.recipe("foo");
+  const RECIPE = NimbusTestUtils.factories.recipe("foo");
   sandbox.stub(ExperimentAPI._remoteSettingsClient, "get").resolves([RECIPE]);
 
   const branches = await ExperimentAPI.getAllBranches("foo");
@@ -155,7 +155,7 @@ add_task(async function test_getAllBranches() {
 add_task(async function test_getAllBranches_featureIdAccessor() {
   const { sandbox, cleanup } = await NimbusTestUtils.setupTest();
 
-  const RECIPE = ExperimentFakes.recipe("foo");
+  const RECIPE = NimbusTestUtils.factories.recipe("foo");
   sandbox.stub(ExperimentAPI._remoteSettingsClient, "get").resolves([RECIPE]);
 
   const branches = await ExperimentAPI.getAllBranches("foo");
@@ -180,7 +180,7 @@ add_task(async function test_getAllBranches_featureIdAccessor() {
 add_task(async function test_getAllBranches_backwardsCompat() {
   const { sandbox, cleanup } = await NimbusTestUtils.setupTest();
 
-  const RECIPE = ExperimentFakes.recipe("foo");
+  const RECIPE = NimbusTestUtils.factories.recipe("foo");
   delete RECIPE.branches[0].features;
   delete RECIPE.branches[1].features;
   let feature = {
@@ -229,7 +229,7 @@ add_task(async function test_addEnrollment_eventEmit_add() {
   const store = manager.store;
 
   const featureStub = sandbox.stub();
-  const experiment = ExperimentFakes.experiment("foo", {
+  const experiment = NimbusTestUtils.factories.experiment("foo", {
     branch: {
       slug: "variant",
       ratio: 1,
@@ -262,7 +262,7 @@ add_task(async function test_updateExperiment_eventEmit_add_and_update() {
   const store = manager.store;
 
   const featureStub = sandbox.stub();
-  const experiment = ExperimentFakes.experiment("foo", {
+  const experiment = NimbusTestUtils.factories.experiment("foo", {
     branch: {
       slug: "variant",
       ratio: 1,
@@ -297,7 +297,7 @@ add_task(async function test_updateExperiment_eventEmit_off() {
   const store = manager.store;
 
   const featureStub = sandbox.stub();
-  const experiment = ExperimentFakes.experiment("foo", {
+  const experiment = NimbusTestUtils.factories.experiment("foo", {
     branch: {
       slug: "variant",
       ratio: 1,
@@ -323,7 +323,7 @@ add_task(async function test_getActiveBranch() {
   const { manager, cleanup } = await NimbusTestUtils.setupTest();
   const store = manager.store;
 
-  const experiment = ExperimentFakes.experiment("foo", {
+  const experiment = NimbusTestUtils.factories.experiment("foo", {
     branch: {
       slug: "variant",
       ratio: 1,
@@ -365,7 +365,7 @@ add_task(async function test_getActiveBranch_storeFailure() {
   const { sandbox, manager, cleanup } = await NimbusTestUtils.setupTest();
   const store = manager.store;
 
-  const experiment = ExperimentFakes.experiment("foo", {
+  const experiment = NimbusTestUtils.factories.experiment("foo", {
     branch: {
       slug: "variant",
       ratio: 1,
@@ -394,7 +394,7 @@ add_task(async function test_getActiveBranch_noActivationEvent() {
   const { sandbox, manager, cleanup } = await NimbusTestUtils.setupTest();
   const store = manager.store;
 
-  const experiment = ExperimentFakes.experiment("foo", {
+  const experiment = NimbusTestUtils.factories.experiment("foo", {
     branch: {
       slug: "variant",
       ratio: 1,

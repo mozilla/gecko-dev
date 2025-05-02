@@ -36,7 +36,7 @@ add_task(async function test_prefs_priority() {
       }
 
       enrollmentCleanup.push(
-        await ExperimentFakes.enrollWithFeatureConfig(config, {
+        await NimbusTestUtils.enrollWithFeatureConfig(config, {
           isRollout: enrollmentKind === ROLLOUT,
         })
       );

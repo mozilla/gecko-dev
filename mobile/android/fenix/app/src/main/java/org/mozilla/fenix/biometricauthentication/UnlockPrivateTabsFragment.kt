@@ -93,7 +93,7 @@ class UnlockPrivateTabsFragment : Fragment() {
     private fun onAuthSuccess() {
         PrivateBrowsingLocked.authSuccess.record()
 
-        requireContext().settings().isPrivateScreenBlocked = false
+        requireContext().settings().isPrivateScreenLocked = false
 
         BiometricAuthenticationManager.biometricAuthenticationNeededInfo.apply {
             authenticationStatus = AuthenticationStatus.AUTHENTICATED

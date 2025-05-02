@@ -239,6 +239,7 @@ class TabsTrayFragment : AppCompatDialogFragment() {
                         requireComponents.settings.showSecretDebugMenuThisSession,
                     shouldShowTabAutoCloseBanner = requireContext().settings().shouldShowAutoCloseTabsBanner &&
                         requireContext().settings().canShowCfr,
+                    shouldShowLockPbmBanner = !requireContext().settings().privateBrowsingLockedEnabled,
                     shouldShowInactiveTabsAutoCloseDialog =
                     requireContext().settings()::shouldShowInactiveTabsAutoCloseDialog,
                     onTabPageClick = { page ->
@@ -323,6 +324,9 @@ class TabsTrayFragment : AppCompatDialogFragment() {
                     onBookmarkSelectedTabsClick = tabsTrayInteractor::onBookmarkSelectedTabsClicked,
                     onForceSelectedTabsAsInactiveClick = tabsTrayInteractor::onForceSelectedTabsAsInactiveClicked,
                     onTabsTrayDismiss = ::onTabsTrayDismissed,
+                    onTabsTrayPbmLockedClick = {
+                        requireContext().settings().privateBrowsingLockedEnabled = true
+                    },
                     onTabAutoCloseBannerViewOptionsClick = {
                         navigationInteractor.onTabSettingsClicked()
                         requireContext().settings().shouldShowAutoCloseTabsBanner = false
@@ -756,7 +760,7 @@ class TabsTrayFragment : AppCompatDialogFragment() {
 
                     tabsTrayInteractor.onTrayPositionSelected(page.ordinal, false)
 
-                    requireContext().settings().isPrivateScreenBlocked = false
+                    requireContext().settings().isPrivateScreenLocked = false
                 },
                 onAuthFailure = {
                     biometricAuthenticationNeededInfo.apply {

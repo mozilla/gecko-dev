@@ -329,6 +329,8 @@ $schema: moz://mozilla.org/schemas/glean/tags/1-0-0
   description: The Bugzilla component which applies to this object.
 'Firefox :: Bookmarks & History':
   description: The Bugzilla component which applies to this object.
+'Firefox :: Data Loss Prevention':
+  description: The Bugzilla component which applies to this object.
 'Firefox :: Distributions':
   description: The Bugzilla component which applies to this object.
 'Firefox :: Downloads Panel':
@@ -406,8 +408,6 @@ $schema: moz://mozilla.org/schemas/glean/tags/1-0-0
 'Firefox :: Top Sites':
   description: The Bugzilla component which applies to this object.
 'Firefox :: Tours':
-  description: The Bugzilla component which applies to this object.
-'Firefox :: Translation':
   description: The Bugzilla component which applies to this object.
 'Firefox :: Translations':
   description: The Bugzilla component which applies to this object.
@@ -518,8 +518,6 @@ $schema: moz://mozilla.org/schemas/glean/tags/1-0-0
 'Toolkit :: Gecko Trace':
   description: The Bugzilla component which applies to this object.
 'Toolkit :: General':
-  description: The Bugzilla component which applies to this object.
-'Toolkit :: IOUtils and PathUtils':
   description: The Bugzilla component which applies to this object.
 'Toolkit :: Password Manager':
   description: The Bugzilla component which applies to this object.

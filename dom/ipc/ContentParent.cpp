@@ -1890,6 +1890,7 @@ void ContentParent::ActorDestroy(ActorDestroyReason why) {
       props->SetPropertyAsBool(u"abnormal"_ns, true);
 
       nsAutoString dumpID;
+      nsAutoCString processType;
       // There's a window in which child processes can crash
       // after IPC is established, but before a crash reporter
       // is created.
@@ -1909,12 +1910,17 @@ void ContentParent::ActorDestroy(ActorDestroyReason why) {
         if (mCrashReporter->HasMinidump()) {
           dumpID = mCrashReporter->MinidumpID();
         }
+        processType = mCrashReporter->ProcessType();
       } else {
         HandleOrphanedMinidump(&dumpID);
+        processType = XRE_GeckoProcessTypeToString(GeckoProcessType_Content);
       }
 
       if (!dumpID.IsEmpty()) {
         props->SetPropertyAsAString(u"dumpID"_ns, dumpID);
+      }
+      if (!processType.IsEmpty()) {
+        props->SetPropertyAsACString(u"processType"_ns, processType);
       }
     }
     nsAutoString cpId;

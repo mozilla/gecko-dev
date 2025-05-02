@@ -1,0 +1,451 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "properties": {
+    "version": {
+      "type": "array",
+      "items": {
+        "type": ["string", "integer"]
+      }
+    },
+    "windows": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/openWindow"
+      }
+    },
+    "_closedWindows": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/closedWindow"
+      }
+    },
+    "savedGroups": {
+      "type": "array"
+    },
+    "session": {
+      "type": "object",
+      "properties": {
+        "lastUpdate": {
+          "type": "integer"
+        },
+        "startTime": {
+          "type": "integer"
+        },
+        "recentCrashes": {
+          "type": "integer"
+        }
+      }
+    },
+    "global": {
+      "type": "object"
+    },
+    "cookies": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/cookie"
+      }
+    },
+    "browserConsole": {
+      "type": "boolean"
+    },
+    "browserToolbox": {
+      "type": "boolean"
+    },
+    "selectedWindow": {
+      "type": "integer"
+    }
+  },
+  "required": ["version", "windows"],
+  "definitions": {
+    "cookie": {
+      "type": "object",
+      "properties": {
+        "host": {
+          "type": "string"
+        },
+        "value": {
+          "type": "string"
+        },
+        "path": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "secure": {
+          "type": "boolean"
+        },
+        "httponly": {
+          "type": "boolean"
+        },
+        "expiry": {
+          "type": "integer"
+        },
+        "originAttributes": {
+          "type": "object",
+          "properties": {
+            "firstPartyDomain": {
+              "type": "string"
+            },
+            "geckoViewSessionContextId": {
+              "type": "string"
+            },
+            "partitionKey": {
+              "type": "string"
+            },
+            "privateBrowsingId": {
+              "type": "integer"
+            },
+            "userContextId": {
+              "type": "integer"
+            }
+          }
+        },
+        "sameSite": {
+          "type": "integer"
+        },
+        "schemeMap": {
+          "type": "integer"
+        }
+      },
+      "required": []
+    },
+    "sidebar": {
+      "type": "object",
+      "properties": {
+        "command": {
+          "type": ["null", "string"]
+        },
+        "panelOpen": {
+          "type": "boolean"
+        },
+        "panelWidth": {
+          "type": ["null", "number"]
+        },
+        "launcherVisible": {
+          "type": "boolean"
+        },
+        "launcherExpanded": {
+          "type": "boolean"
+        },
+        "launcherWidth": {
+          "type": ["null", "number"]
+        }
+      },
+      "required": []
+    },
+    "window": {
+      "type": "object",
+      "properties": {
+        "extData": {
+          "type": "object"
+        },
+        "sidebar": {
+          "$ref": "#/definitions/sidebar"
+        },
+        "selected": {
+          "type": "integer"
+        },
+        "title": {
+          "type": "string"
+        },
+        "tabs": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/tab"
+          }
+        },
+        "_closedTabs": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/tab"
+          }
+        },
+        "_lastClosedTabGroupCount": {
+          "type": "integer"
+        },
+        "chromeFlags": {
+          "type": "integer"
+        },
+        "height": {
+          "type": "integer"
+        },
+        "hidden": {
+          "type": "string"
+        },
+        "isPopup": {
+          "type": "boolean"
+        },
+        "screenX": {
+          "type": "integer"
+        },
+        "screenY": {
+          "type": "integer"
+        },
+        "sizemode": {
+          "type": "string",
+          "enum": ["normal", "maximized", "minimized", "fullscreen"]
+        },
+        "sizemodeBeforeMinimized": {
+          "type": "string",
+          "enum": ["normal", "maximized", "minimized", "fullscreen"]
+        },
+        "width": {
+          "type": "integer"
+        },
+        "zIndex": {
+          "type": "integer"
+        },
+        "workspaceID": {
+          "type": ["null", "string"]
+        }
+      },
+      "required": ["tabs"]
+    },
+    "openWindow": {
+      "type": "object",
+      "allOf": [
+        {
+          "$ref": "#/definitions/window"
+        }
+      ],
+      "properties": {
+        "__lastSessionWindowID": {
+          "type": "string"
+        },
+        "busy": {
+          "type": "boolean"
+        }
+      },
+      "required": [],
+      "additionalProperties": true
+    },
+    "closedWindow": {
+      "type": "object",
+      "allOf": [
+        {
+          "$ref": "#/definitions/window"
+        },
+        {
+          "type": "object",
+          "properties": {
+            "closedAt": {
+              "type": "integer"
+            },
+            "closedId": {
+              "type": "integer"
+            }
+          }
+        }
+      ],
+      "required": ["closedAt", "closedId"],
+      "additionalProperties": false
+    },
+    "tab": {
+      "type": "object",
+      "properties": {
+        "entries": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/entry"
+          }
+        },
+        "removeAfterRestore": {
+          "type": "boolean"
+        },
+        "lastAccessed": {
+          "type": "integer"
+        },
+        "hidden": {
+          "type": "boolean"
+        },
+        "searchMode": {
+          "type": "null"
+        },
+        "userContextId": {
+          "type": "integer"
+        },
+        "attributes": {
+          "type": "object"
+        },
+        "index": {
+          "type": "integer"
+        },
+        "requestedIndex": {
+          "type": "integer"
+        },
+        "image": {
+          "type": ["null", "string"]
+        },
+        "storage": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "object"
+          }
+        }
+      },
+      "required": [
+        "entries",
+        "lastAccessed",
+        "hidden",
+        "userContextId",
+        "index"
+      ]
+    },
+    "openTab": {
+      "type": "object",
+      "allOf": [
+        {
+          "$ref": "#/definitions/tab"
+        }
+      ]
+    },
+    "closedTab": {
+      "type": "object",
+      "properties": {
+        "state": {
+          "$ref": "#/definitions/tab"
+        },
+        "closedInGroup": {
+          "type": "boolean"
+        },
+        "removeAfterRestore": {},
+        "permanentKey": {
+          "type": "object"
+        },
+        "title": {
+          "type": "string"
+        },
+        "image": {
+          "type": ["null", "string"]
+        },
+        "pos": {
+          "type": "integer"
+        },
+        "closedAt": {
+          "type": "integer"
+        },
+        "closedId": {
+          "type": "integer"
+        },
+        "sourceWindowId": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "state",
+        "title",
+        "pos",
+        "closedAt",
+        "sourceWindowId",
+        "closedId"
+      ]
+    },
+    "entry": {
+      "type": "object",
+      "properties": {
+        "url": {
+          "type": "string"
+        },
+        "title": {
+          "type": "string"
+        },
+        "subframe": {
+          "type": "boolean"
+        },
+        "persist": {
+          "type": "boolean"
+        },
+        "principalToInherit_base64": {
+          "type": "string"
+        },
+        "scrollRestorationIsManual": {
+          "type": "boolean"
+        },
+        "hasUserInteraction": {
+          "type": "boolean"
+        },
+        "triggeringPrincipal_base64": {
+          "type": "string"
+        },
+        "resultPrincipalURI": {
+          "type": ["null", "string"]
+        },
+        "scroll": {
+          "type": "string"
+        },
+        "presState": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/presStateItem"
+          }
+        },
+        "loadReplace": {
+          "type": "boolean"
+        },
+        "loadReplace2": {
+          "type": "boolean"
+        },
+        "csp": {
+          "type": "string"
+        },
+        "contentType": {
+          "type": "string"
+        },
+        "cacheKey": {
+          "type": "integer"
+        },
+        "ID": {
+          "type": "integer"
+        },
+        "srcdocData": {
+          "type": "string"
+        },
+        "isSrcdocEntry": {
+          "type": "boolean"
+        },
+        "baseURI": {
+          "type": "string"
+        },
+        "docIdentifier": {
+          "type": "integer"
+        },
+        "structuredCloneState": {
+          "type": "string"
+        },
+        "structuredCloneVersion": {
+          "type": "integer"
+        },
+        "docshellUUID": {
+          "type": "string"
+        },
+        "referrerInfo": {
+          "type": "string"
+        },
+        "originalURI": {
+          "type": "string"
+        },
+        "children": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/entry"
+          }
+        }
+      },
+      "additionalProperties": false,
+      "required": ["url", "title", "hasUserInteraction"]
+    },
+    "presStateItem": {
+      "type": "object",
+      "properties": {
+        "stateKey": {
+          "type": "string"
+        },
+        "scroll": {
+          "type": "string"
+        }
+      }
+    }
+  }
+}

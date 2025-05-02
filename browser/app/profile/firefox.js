@@ -675,6 +675,17 @@ pref("browser.urlbar.contextualSearch.enabled", true);
 // Feature gate pref for addon suggestions in the urlbar.
 pref("browser.urlbar.addons.featureGate", true);
 
+// Feature gate pref for semanticHistory
+pref("places.semanticHistory.featureGate", false);
+
+// If `places.semanticHistory.featureGate` is enabled
+// then this will control whether semantic search will be enabled
+// for history.
+pref("browser.urlbar.suggest.semanticHistory", false);
+
+// Minimum length threshold for semantic history search
+pref("browser.urlbar.suggest.semanticHistory.minLength", 5);
+
 // If `browser.urlbar.addons.featureGate` is true, this controls whether
 // addons suggestions are turned on.
 pref("browser.urlbar.suggest.addons", true);

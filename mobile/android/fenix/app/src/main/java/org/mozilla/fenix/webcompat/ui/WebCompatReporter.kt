@@ -31,6 +31,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.onFocusEvent
@@ -188,42 +189,51 @@ fun WebCompatReporter(
                 ),
             )
 
-            Text(
-                text = stringResource(id = R.string.webcompat_reporter_send_more_info),
-                modifier = Modifier
-                    .clickable {
-                        store.dispatch(WebCompatReporterAction.SendMoreInfoClicked)
-                    }.padding(vertical = 16.dp),
-                style = FirefoxTheme.typography.body2,
-                color = FirefoxTheme.colors.textAccent,
-                textDecoration = TextDecoration.Underline,
-            )
-
             Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.End,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 16.dp),
+                verticalAlignment = Alignment.CenterVertically,
             ) {
-                TextButton(
-                    text = stringResource(id = R.string.webcompat_reporter_cancel),
-                    onClick = {
-                        store.dispatch(WebCompatReporterAction.CancelClicked)
-                    },
-                    upperCaseText = false,
+                Text(
+                    text = stringResource(id = R.string.webcompat_reporter_send_more_info),
+                    modifier = Modifier
+                        .clickable {
+                            store.dispatch(WebCompatReporterAction.SendMoreInfoClicked)
+                        },
+                    style = FirefoxTheme.typography.body2,
+                    color = FirefoxTheme.colors.textAccent,
+                    textDecoration = TextDecoration.Underline,
                 )
 
-                Spacer(modifier = Modifier.width(10.dp))
+                Spacer(modifier = Modifier.width(24.dp))
 
-                PrimaryButton(
-                    text = stringResource(id = R.string.webcompat_reporter_send),
-                    modifier = Modifier
-                        .wrapContentSize()
-                        .semantics {
-                            testTagsAsResourceId = true
-                            testTag = brokenSiteReporterSendButton
-                        },
-                    enabled = state.isSubmitEnabled,
+                Row(
+                    modifier = Modifier.weight(1f),
+                    horizontalArrangement = Arrangement.End,
                 ) {
-                    store.dispatch(WebCompatReporterAction.SendReportClicked)
+                    TextButton(
+                        text = stringResource(id = R.string.webcompat_reporter_cancel),
+                        onClick = {
+                            store.dispatch(WebCompatReporterAction.CancelClicked)
+                        },
+                        upperCaseText = false,
+                    )
+
+                    Spacer(modifier = Modifier.width(10.dp))
+
+                    PrimaryButton(
+                        text = stringResource(id = R.string.webcompat_reporter_send),
+                        modifier = Modifier
+                            .wrapContentSize()
+                            .semantics {
+                                testTagsAsResourceId = true
+                                testTag = brokenSiteReporterSendButton
+                            },
+                        enabled = state.isSubmitEnabled,
+                    ) {
+                        store.dispatch(WebCompatReporterAction.SendReportClicked)
+                    }
                 }
             }
         }

@@ -27,7 +27,7 @@ import kotlinx.coroutines.Dispatchers.IO
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.async
 import kotlinx.coroutines.launch
-import mozilla.appservices.Megazord
+import mozilla.appservices.RustComponentsInitializer
 import mozilla.appservices.autofill.AutofillApiException
 import mozilla.components.browser.state.action.SystemAction
 import mozilla.components.browser.state.action.TranslationsAction
@@ -118,7 +118,6 @@ import org.mozilla.fenix.wallpapers.Wallpaper
 import java.util.UUID
 import java.util.concurrent.TimeUnit
 import kotlin.math.roundToLong
-import mozilla.appservices.init_rust_components.initialize as InitializeRustComponents
 
 private const val RAM_THRESHOLD_MEGABYTES = 1024
 private const val BYTES_TO_MEGABYTES_CONVERSION = 1024.0 * 1024.0
@@ -527,10 +526,7 @@ open class FenixApplication : LocaleAwareApplication(), Provider {
      */
     private fun beginSetupMegazord() {
         // Rust components must be initialized at the very beginning, before any other Rust call, ...
-        InitializeRustComponents()
-
-        // ... then Megazord.init() must be called as soon as possible, ...
-        Megazord.init()
+        RustComponentsInitializer.init()
 
         initializeRustErrors(components.analytics.crashReporter)
         // ... but RustHttpConfig.setClient() and RustLog.enable() can be called later.

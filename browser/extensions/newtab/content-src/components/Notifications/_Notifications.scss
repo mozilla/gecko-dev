@@ -2,7 +2,7 @@
   position: fixed;
   inset-inline-end: var(--space-medium);
   inset-block-end: var(--space-medium);
-  z-index: 1;
+  z-index: 10;
 }
 
 .notification-feed-item {
