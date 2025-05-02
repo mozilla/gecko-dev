@@ -13,13 +13,22 @@
 #include <map>
 #include <string>
 
+#include "absl/strings/string_view.h"
+#include "api/numerics/samples_stats_counter.h"
+#include "api/scoped_refptr.h"
 #include "api/stats/rtc_stats.h"
+#include "api/stats/rtc_stats_report.h"
 #include "api/stats/rtcstats_objects.h"
 #include "api/test/metrics/metric.h"
+#include "api/test/metrics/metrics_logger.h"
+#include "api/test/track_id_stream_info_map.h"
 #include "api/units/data_rate.h"
+#include "api/units/data_size.h"
 #include "api/units/time_delta.h"
 #include "api/units/timestamp.h"
 #include "rtc_base/checks.h"
+#include "rtc_base/synchronization/mutex.h"
+#include "system_wrappers/include/clock.h"
 #include "test/pc/e2e/metric_metadata_keys.h"
 
 namespace webrtc {
@@ -28,7 +37,6 @@ namespace {
 
 using ::webrtc::test::ImprovementDirection;
 using ::webrtc::test::Unit;
-using ::webrtc::webrtc_pc_e2e::MetricMetadataKey;
 
 SamplesStatsCounter BytesPerSecondToKbps(const SamplesStatsCounter& counter) {
   return counter * 0.008;
@@ -73,12 +81,10 @@ void VideoQualityMetricsReporter::OnStatsReports(
   auto outbound_rtp_stats = report->GetStatsOfType<RTCOutboundRtpStreamStats>();
   StatsSample sample;
   for (auto& s : outbound_rtp_stats) {
-    if (!s->kind.has_value()) {
+    if (!s->kind.has_value() || *s->kind != "video") {
       continue;
     }
-    if (!(*s->kind == "video")) {
-      continue;
-    }
+    sample.scalability_mode = s->scalability_mode;
     if (s->timestamp() > sample.sample_time) {
       sample.sample_time = s->timestamp();
     }
@@ -99,6 +105,12 @@ void VideoQualityMetricsReporter::OnStatsReports(
   }
 
   StatsSample prev_sample = last_stats_sample_[std::string(pc_label)];
+  if (prev_sample.scalability_mode != sample.scalability_mode) {
+    // Counters are reset when the scalability mode changes.
+    prev_sample.bytes_sent = DataSize::Zero();
+    prev_sample.header_bytes_sent = DataSize::Zero();
+    prev_sample.retransmitted_bytes_sent = DataSize::Zero();
+  }
   if (prev_sample.sample_time.IsZero()) {
     prev_sample.sample_time = start_time_.value();
   }

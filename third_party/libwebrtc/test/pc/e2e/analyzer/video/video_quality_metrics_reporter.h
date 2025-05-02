@@ -12,16 +12,21 @@
 #define TEST_PC_E2E_ANALYZER_VIDEO_VIDEO_QUALITY_METRICS_REPORTER_H_
 
 #include <map>
+#include <optional>
 #include <string>
 
 #include "absl/strings/string_view.h"
 #include "api/numerics/samples_stats_counter.h"
+#include "api/scoped_refptr.h"
+#include "api/stats/rtc_stats_report.h"
 #include "api/test/metrics/metrics_logger.h"
 #include "api/test/peerconnection_quality_test_fixture.h"
 #include "api/test/track_id_stream_info_map.h"
 #include "api/units/data_size.h"
 #include "api/units/timestamp.h"
 #include "rtc_base/synchronization/mutex.h"
+#include "rtc_base/thread_annotations.h"
+#include "system_wrappers/include/clock.h"
 
 namespace webrtc {
 namespace webrtc_pc_e2e {
@@ -48,6 +53,7 @@ class VideoQualityMetricsReporter
 
  private:
   struct StatsSample {
+    std::optional<std::string> scalability_mode;
     DataSize bytes_sent = DataSize::Zero();
     DataSize header_bytes_sent = DataSize::Zero();
     DataSize retransmitted_bytes_sent = DataSize::Zero();
