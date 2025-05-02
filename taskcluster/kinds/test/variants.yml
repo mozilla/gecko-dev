@@ -511,6 +511,19 @@ draw-snapshot:
             extra-options:
                 - "--setpref=reftest.use-draw-snapshot=true"
 
+async-event-dispatching:
+    description: "{description} with async widget event dispatching"
+    component: "Remote Protocol::Agent"
+    expiration: "2025-10-01"
+    suffix: "async"
+    mozinfo: "remote_async"
+    replace:
+        tier: 3
+    merge:
+        mozharness:
+            extra-options:
+                - "--setpref=remote.events.async.wheel.enabled=true"
+
 vertical-tabs:
     description: "{description} limited to tests identified as being applicable to also run with vertical tabs enabled"
     component: "Firefox::Tabbed Browser"
