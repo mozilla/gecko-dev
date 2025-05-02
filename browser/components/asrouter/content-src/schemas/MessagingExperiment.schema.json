@@ -556,8 +556,62 @@
               ]
             },
             "text": {
-              "$ref": "chrome://browser/content/asrouter/schemas/MessagingExperiment.schema.json#/$defs/localizableText",
-              "description": "The text show in the notification box."
+              "description": "Either a single localizableText, or an array of raw strings and/or localizableText objects. localizableText can contain an optional href property for the text to be rendered as a link.",
+              "oneOf": [
+                {
+                  "$ref": "file:///InfoBar.schema.json#/$defs/plainText"
+                },
+                {
+                  "allOf": [
+                    {
+                      "$ref": "chrome://browser/content/asrouter/schemas/MessagingExperiment.schema.json#/$defs/localizableText"
+                    },
+                    {
+                      "not": {
+                        "required": [
+                          "href"
+                        ]
+                      }
+                    }
+                  ]
+                },
+                {
+                  "$ref": "file:///InfoBar.schema.json#/$defs/localizableTextWithHref"
+                },
+                {
+                  "$ref": "file:///InfoBar.schema.json#/$defs/rawTextWithHref"
+                },
+                {
+                  "type": "array",
+                  "items": {
+                    "oneOf": [
+                      {
+                        "$ref": "file:///InfoBar.schema.json#/$defs/plainText"
+                      },
+                      {
+                        "allOf": [
+                          {
+                            "$ref": "chrome://browser/content/asrouter/schemas/MessagingExperiment.schema.json#/$defs/localizableText"
+                          },
+                          {
+                            "not": {
+                              "required": [
+                                "href"
+                              ]
+                            }
+                          }
+                        ]
+                      },
+                      {
+                        "$ref": "file:///InfoBar.schema.json#/$defs/localizableTextWithHref"
+                      },
+                      {
+                        "$ref": "file:///InfoBar.schema.json#/$defs/rawTextWithHref"
+                      }
+                    ]
+                  }
+                }
+              ]
             },
             "priority": {
               "description": "Infobar priority level https://searchfox.org/mozilla-central/rev/3aef835f6cb12e607154d56d68726767172571e4/toolkit/content/widgets/notificationbox.js#387",
@@ -640,6 +694,43 @@
           "description": "Target for links or buttons",
           "type": "string",
           "format": "uri"
+        },
+        "localizableTextWithHref": {
+          "description": "Everything a localizableText allows, plus a required href",
+          "allOf": [
+            {
+              "$ref": "chrome://browser/content/asrouter/schemas/MessagingExperiment.schema.json#/$defs/localizableText"
+            },
+            {
+              "type": "object",
+              "properties": {
+                "href": {
+                  "$ref": "file:///InfoBar.schema.json#/$defs/linkUrl"
+                }
+              },
+              "required": [
+                "href"
+              ],
+              "additionalProperties": true
+            }
+          ]
+        },
+        "rawTextWithHref": {
+          "description": "A literal text chunk that must include href",
+          "type": "object",
+          "properties": {
+            "raw": {
+              "type": "string"
+            },
+            "href": {
+              "$ref": "file:///InfoBar.schema.json#/$defs/linkUrl"
+            }
+          },
+          "required": [
+            "raw",
+            "href"
+          ],
+          "additionalProperties": false
         }
       }
     },

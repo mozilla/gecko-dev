@@ -1361,6 +1361,48 @@ const MESSAGES = () => [
     },
     groups: [],
   },
+  {
+    id: "UNIVERSAL_INFOBAR_WITH_EMBEDDED_LINKS",
+    content: {
+      text: [
+        "Read the release notes ",
+        {
+          raw: "here. ",
+          href: "https://www.mozilla.org/en-US/firefox/releases/",
+        },
+        {
+          string_id: "cookie-banner-blocker-onboarding-learn-more",
+          href: "https://mozilla.org/privacy/firefox/?v=product",
+        },
+        "!",
+      ],
+      type: "universal",
+      dismissable: false,
+      buttons: [
+        {
+          label: "Continue",
+          action: {
+            type: "SET_PREF",
+            data: {
+              pref: {
+                name: "universal-infobar-test-pref",
+                value: true,
+              },
+            },
+          },
+          primary: true,
+          accessKey: "C",
+        },
+      ],
+    },
+    trigger: {
+      id: "defaultBrowserCheck",
+    },
+    template: "infobar",
+    frequency: {
+      lifetime: 100,
+    },
+  },
 ];
 
 export const PanelTestProvider = {
