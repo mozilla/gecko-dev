@@ -38,12 +38,13 @@
 //   EXPECT_EQ("hello", capture);
 //   /* See unit-tests for more examples */
 
+#include "absl/base/macros.h"
 #include "rtc_base/third_party/sigslot/sigslot.h"
 
 namespace rtc {
 
 // Base version for testing signals that passes no arguments.
-class SigslotTester0 : public sigslot::has_slots<> {
+class ABSL_DEPRECATE_AND_INLINE() SigslotTester0 : public sigslot::has_slots<> {
  public:
   explicit SigslotTester0(sigslot::signal0<>* signal) : callback_count_(0) {
     signal->connect(this, &SigslotTester0::OnSignalCallback);
@@ -67,7 +68,7 @@ class SigslotTester0 : public sigslot::has_slots<> {
 //   non-const value types suitable for use as lvalues.
 
 template <class A1, class C1>
-class SigslotTester1 : public sigslot::has_slots<> {
+class ABSL_DEPRECATE_AND_INLINE() SigslotTester1 : public sigslot::has_slots<> {
  public:
   SigslotTester1(sigslot::signal1<A1>* signal, C1* capture1)
       : callback_count_(0), capture1_(capture1) {
@@ -90,7 +91,7 @@ class SigslotTester1 : public sigslot::has_slots<> {
 };
 
 template <class A1, class A2, class C1, class C2>
-class SigslotTester2 : public sigslot::has_slots<> {
+class ABSL_DEPRECATE_AND_INLINE() SigslotTester2 : public sigslot::has_slots<> {
  public:
   SigslotTester2(sigslot::signal2<A1, A2>* signal, C1* capture1, C2* capture2)
       : callback_count_(0), capture1_(capture1), capture2_(capture2) {
@@ -115,7 +116,7 @@ class SigslotTester2 : public sigslot::has_slots<> {
 };
 
 template <class A1, class A2, class A3, class C1, class C2, class C3>
-class SigslotTester3 : public sigslot::has_slots<> {
+class ABSL_DEPRECATE_AND_INLINE() SigslotTester3 : public sigslot::has_slots<> {
  public:
   SigslotTester3(sigslot::signal3<A1, A2, A3>* signal,
                  C1* capture1,
@@ -155,7 +156,7 @@ template <class A1,
           class C2,
           class C3,
           class C4>
-class SigslotTester4 : public sigslot::has_slots<> {
+class ABSL_DEPRECATE_AND_INLINE() SigslotTester4 : public sigslot::has_slots<> {
  public:
   SigslotTester4(sigslot::signal4<A1, A2, A3, A4>* signal,
                  C1* capture1,
@@ -201,7 +202,7 @@ template <class A1,
           class C3,
           class C4,
           class C5>
-class SigslotTester5 : public sigslot::has_slots<> {
+class ABSL_DEPRECATE_AND_INLINE() SigslotTester5 : public sigslot::has_slots<> {
  public:
   SigslotTester5(sigslot::signal5<A1, A2, A3, A4, A5>* signal,
                  C1* capture1,

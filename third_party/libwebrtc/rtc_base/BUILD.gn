@@ -1802,6 +1802,7 @@ rtc_library("rtc_base_tests_utils") {
     "synchronization:mutex",
     "third_party/sigslot",
     "//third_party/abseil-cpp/absl/algorithm:container",
+    "//third_party/abseil-cpp/absl/base:core_headers",
     "//third_party/abseil-cpp/absl/memory",
     "//third_party/abseil-cpp/absl/strings:string_view",
   ]
@@ -2139,7 +2140,6 @@ if (rtc_include_tests) {
         "rolling_accumulator_unittest.cc",
         "rtc_certificate_generator_unittest.cc",
         "rtc_certificate_unittest.cc",
-        "sigslot_tester_unittest.cc",
         "test_client_unittest.cc",
         "thread_unittest.cc",
         "unique_id_generator_unittest.cc",
