@@ -590,11 +590,12 @@ class Bootstrapper:
             print(f'Your requested configuration has been written to "{path}".')
 
     def _show_mozconfig_suggestion(self, raw_mozconfig):
-        suggestion = MOZCONFIG_SUGGESTION_TEMPLATE % (
-            self._default_mozconfig_path(),
-            raw_mozconfig,
-        )
-        print(suggestion, end="")
+        if raw_mozconfig:
+            suggestion = MOZCONFIG_SUGGESTION_TEMPLATE % (
+                self._default_mozconfig_path(),
+                raw_mozconfig,
+            )
+            print(suggestion, end="")
 
     def _check_default_mozconfig_mismatch(
         self, current_mozconfig_info, expected_application, expected_raw_mozconfig
