@@ -3051,16 +3051,7 @@ bool WarpBuilder::build_InitElemInc(BytecodeLocation loc) {
 
 bool WarpBuilder::build_Lambda(BytecodeLocation loc) {
   MOZ_ASSERT(usesEnvironmentChain());
-
-  MDefinition* env = current->environmentChain();
-
-  JSFunction* fun = loc.getFunction(script_);
-  MConstant* funConst = constant(ObjectValue(*fun));
-
-  auto* ins = MLambda::New(alloc(), env, funConst);
-  current->add(ins);
-  current->push(ins);
-  return resumeAfter(ins, loc);
+  return buildIC(loc, CacheKind::Lambda, {});
 }
 
 bool WarpBuilder::build_FunWithProto(BytecodeLocation loc) {
@@ -3609,10 +3600,18 @@ bool WarpBuilder::buildIC(BytecodeLocation loc, CacheKind kind,
       current->push(ins);
       return resumeAfter(ins, loc);
     }
+    case CacheKind::Lambda: {
+      MDefinition* env = current->environmentChain();
+      JSFunction* fun = loc.getFunction(script_);
+      MConstant* funConst = constant(ObjectValue(*fun));
+      auto* ins = MLambda::New(alloc(), env, funConst);
+      current->add(ins);
+      current->push(ins);
+      return resumeAfter(ins, loc);
+    }
     case CacheKind::LazyConstant:
     case CacheKind::ToBool:
     case CacheKind::Call:
-    case CacheKind::Lambda:
     case CacheKind::GetImport:
       // We're currently not using an IC or transpiling CacheIR for these kinds.
       MOZ_CRASH("Unexpected kind");

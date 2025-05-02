@@ -6888,6 +6888,31 @@ bool WarpCacheIRTranspiler::emitNewArrayObjectResult(uint32_t length,
   return true;
 }
 
+bool WarpCacheIRTranspiler::emitNewFunctionCloneResult(
+    uint32_t canonicalOffset, gc::AllocKind allocKind) {
+  JSObject* fun = tenuredObjectStubField(canonicalOffset);
+  MOZ_ASSERT(fun->is<JSFunction>());
+
+  MDefinition* env = currentBlock()->environmentChain();
+
+  // The environment chain must be an object, but the MIR type can be Value when
+  // phis are involved.
+  if (env->type() != MIRType::Object) {
+    MOZ_ASSERT(env->type() == MIRType::Value);
+    auto* unbox =
+        MUnbox::New(alloc(), env, MIRType::Object, MUnbox::Infallible);
+    current->add(unbox);
+    env = unbox;
+  }
+
+  MConstant* funConst = constant(ObjectValue(*fun));
+
+  auto* ins = MLambda::New(alloc(), env, funConst);
+  addEffectful(ins);
+  pushResult(ins);
+  return resumeAfter(ins);
+}
+
 bool WarpCacheIRTranspiler::emitCloseIterScriptedResult(ObjOperandId iterId,
                                                         ObjOperandId calleeId,
                                                         CompletionKind kind,
