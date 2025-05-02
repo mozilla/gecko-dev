@@ -13,6 +13,7 @@ import mozilla.components.browser.engine.fission.GeckoWebContentIsolationMapper.
 import mozilla.components.browser.engine.gecko.activity.GeckoActivityDelegate
 import mozilla.components.browser.engine.gecko.activity.GeckoScreenOrientationDelegate
 import mozilla.components.browser.engine.gecko.ext.getAntiTrackingPolicy
+import mozilla.components.browser.engine.gecko.ext.getEtpCategory
 import mozilla.components.browser.engine.gecko.ext.getEtpLevel
 import mozilla.components.browser.engine.gecko.ext.getStrictSocialTrackingProtection
 import mozilla.components.browser.engine.gecko.integration.LocaleSettingUpdater
@@ -1121,6 +1122,10 @@ class GeckoEngine(
                     with(runtime.settings.contentBlocking) {
                         if (enhancedTrackingProtectionLevel != value.getEtpLevel()) {
                             enhancedTrackingProtectionLevel = value.getEtpLevel()
+                        }
+
+                        if (getEnhancedTrackingProtectionCategory() != policy.getEtpCategory()) {
+                            setEnhancedTrackingProtectionCategory(policy.getEtpCategory())
                         }
 
                         if (strictSocialTrackingProtection != value.getStrictSocialTrackingProtection()) {

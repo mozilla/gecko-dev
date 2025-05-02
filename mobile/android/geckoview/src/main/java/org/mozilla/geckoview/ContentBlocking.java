@@ -194,6 +194,23 @@ public class ContentBlocking {
       }
 
       /**
+       * Set the ETP behavior category.
+       *
+       * <p>Note that there is a difference between ETP "level" and ETP "category". Level refers to
+       * whether content blocking should use the regular or the strict list, or should be disabled
+       * entirely. While "category" refers to the preset of anti-tracking features under the ETP
+       * umbrella that should be enabled.
+       *
+       * @param category The category of ETP blocking to use.
+       * @return The Builder instance.
+       */
+      public @NonNull Builder enhancedTrackingProtectionCategory(
+          final @CBEtpCategory int category) {
+        getSettings().setEnhancedTrackingProtectionCategory(category);
+        return this;
+      }
+
+      /**
        * Set whether or not email tracker blocking is enabled in private mode.
        *
        * @param enabled A boolean indicating whether or not email tracker blocking should be enabled
@@ -381,6 +398,9 @@ public class ContentBlocking {
         new Pref<Boolean>("privacy.trackingprotection.annotate_channels", false);
     /* package */ final Pref<Boolean> mEtpStrict =
         new Pref<Boolean>("privacy.annotate_channels.strict_list.enabled", false);
+
+    /* package */ final Pref<String> mEtpCategory =
+        new Pref<String>("browser.contentblocking.category", "standard");
 
     /* package */ final Pref<Integer> mCbhMode =
         new Pref<Integer>(
@@ -631,6 +651,11 @@ public class ContentBlocking {
     /**
      * Set the ETP behavior level.
      *
+     * <p>Note that there is a difference between ETP "level" and ETP "category". Level refers to
+     * whether content blocking should use the regular or the strict list, or should be disabled
+     * entirely. While "category" refers to the preset of anti-tracking features under the ETP
+     * umbrella that should be enabled.
+     *
      * @param level The level of ETP blocking to use; must be one of {@link
      *     ContentBlocking.EtpLevel} flags. Only takes effect if the cookie behavior is {@link
      *     ContentBlocking.CookieBehavior#ACCEPT_NON_TRACKERS} or {@link
@@ -641,6 +666,26 @@ public class ContentBlocking {
       mEtpEnabled.commit(
           level == ContentBlocking.EtpLevel.DEFAULT || level == ContentBlocking.EtpLevel.STRICT);
       mEtpStrict.commit(level == ContentBlocking.EtpLevel.STRICT);
+      return this;
+    }
+
+    /**
+     * Set the ETP behavior category.
+     *
+     * @param category The category of ETP blocking to use.
+     * @return This Settings instance.
+     */
+    public @NonNull Settings setEnhancedTrackingProtectionCategory(
+        final @CBEtpCategory int category) {
+
+      if (category == ContentBlocking.EtpCategory.STANDARD) {
+        mEtpCategory.commit("standard");
+      } else if (category == ContentBlocking.EtpCategory.STRICT) {
+        mEtpCategory.commit("strict");
+      } else if (category == ContentBlocking.EtpCategory.CUSTOM) {
+        mEtpCategory.commit("custom");
+      }
+
       return this;
     }
 
@@ -696,6 +741,22 @@ public class ContentBlocking {
         return ContentBlocking.EtpLevel.DEFAULT;
       }
       return ContentBlocking.EtpLevel.NONE;
+    }
+
+    /**
+     * Get the set ETP behavior category.
+     *
+     * @return The current ETP category; one of {@link ContentBlocking.EtpCategory}.
+     */
+    public @CBEtpCategory int getEnhancedTrackingProtectionCategory() {
+      final String category = mEtpCategory.get();
+      if ("strict".equals(category)) {
+        return ContentBlocking.EtpCategory.STRICT;
+      } else if ("standard".equals(category)) {
+        return ContentBlocking.EtpCategory.STANDARD;
+      } else {
+        return ContentBlocking.EtpCategory.CUSTOM;
+      }
     }
 
     /**
@@ -1608,6 +1669,22 @@ public class ContentBlocking {
      * Enable ETP for all of the default lists as well as the content list. May break many sites!
      */
     public static final int STRICT = 2;
+  }
+
+  @Retention(RetentionPolicy.SOURCE)
+  @IntDef({EtpCategory.STANDARD, EtpCategory.STRICT, EtpCategory.CUSTOM})
+  public @interface CBEtpCategory {}
+
+  /** Possible settings for ETP category. */
+  public static class EtpCategory {
+    // The default ETP category, balancing privacy and web compatibility.
+    public static final int STANDARD = 0;
+    // The strict ETP category, blocking more trackers but potentially breaking
+    // more sites.
+    public static final int STRICT = 1;
+    // The custom ETP category, allowing the user to choose which anti-tracking
+    // to enable.
+    public static final int CUSTOM = 2;
   }
 
   /** Holds content block event details. */
