@@ -297,7 +297,7 @@ IdentityCredential::GetCredentialInMainProcess(
     }
   } else {
     // Otherwise we are in "Passive Mode" and since this doesn't require user
-    // activation we constrain the credentials that are allowed to be be shown 
+    // activation we constrain the credentials that are allowed to be be shown
     // to the user so they don't get annoyed.
     // Specifically, they need to have this credential registered for use on this
     // website.
