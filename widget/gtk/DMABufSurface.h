@@ -125,7 +125,7 @@ class DMABufSurface {
   int32_t GetFOURCCFormat() const { return mFOURCCFormat; };
   virtual int GetTextureCount() = 0;
 
-#ifdef DEBUG
+#ifdef MOZ_LOGGING
   bool IsMapped(int aPlane = 0) { return (mMappedRegion[aPlane] != nullptr); };
   void Unmap(int aPlane = 0);
 #endif
@@ -192,7 +192,8 @@ class DMABufSurface {
   // Release all underlying data.
   virtual void ReleaseSurface() = 0;
 
-#ifdef DEBUG
+#ifdef MOZ_LOGGING
+  virtual void Clear(unsigned int aValue) {};
   virtual void DumpToFile(const char* pFile) {};
 #endif
 
@@ -225,7 +226,7 @@ class DMABufSurface {
 
   void ReleaseDMABuf();
 
-#ifdef DEBUG
+#ifdef MOZ_LOGGING
   void* MapInternal(uint32_t aX, uint32_t aY, uint32_t aWidth, uint32_t aHeight,
                     uint32_t* aStride, int aGbmFlags, int aPlane = 0);
 #endif
@@ -258,7 +259,7 @@ class DMABufSurface {
   struct gbm_bo* mGbmBufferObject[DMABUF_BUFFER_PLANES];
   uint32_t mGbmBufferFlags;
 
-#ifdef DEBUG
+#ifdef MOZ_LOGGING
   void* mMappedRegion[DMABUF_BUFFER_PLANES];
   void* mMappedRegionData[DMABUF_BUFFER_PLANES];
   uint32_t mMappedRegionStride[DMABUF_BUFFER_PLANES];
@@ -301,7 +302,7 @@ class DMABufSurfaceRGBA final : public DMABufSurface {
   mozilla::gfx::SurfaceFormat GetFormat() override;
   bool HasAlpha();
 
-#ifdef DEBUG
+#ifdef MOZ_LOGGING
   void* MapReadOnly(uint32_t aX, uint32_t aY, uint32_t aWidth, uint32_t aHeight,
                     uint32_t* aStride = nullptr);
   void* MapReadOnly(uint32_t* aStride = nullptr);
@@ -312,6 +313,7 @@ class DMABufSurfaceRGBA final : public DMABufSurface {
   uint32_t GetMappedRegionStride(int aPlane = 0) {
     return mMappedRegionStride[aPlane];
   };
+  virtual void Clear(unsigned int aValue) override;
 #endif
 
   bool CreateTexture(mozilla::gl::GLContext* aGLContext,
@@ -326,7 +328,7 @@ class DMABufSurfaceRGBA final : public DMABufSurface {
 
   int GetTextureCount() override { return 1; };
 
-#ifdef DEBUG
+#ifdef MOZ_LOGGING
   void DumpToFile(const char* pFile) override;
 #endif
 
