@@ -911,6 +911,7 @@ if (rtc_include_tests) {
       ":candidate_pair_interface",
       ":connection",
       ":connection_info",
+      ":dtls_stun_piggyback_controller",
       ":ice_transport_internal",
       ":port",
       ":transport_description",

@@ -32,6 +32,7 @@
 #include "p2p/base/ice_transport_internal.h"
 #include "p2p/base/port.h"
 #include "p2p/base/transport_description.h"
+#include "p2p/dtls/dtls_stun_piggyback_callbacks.h"
 #include "rtc_base/async_packet_socket.h"
 #include "rtc_base/checks.h"
 #include "rtc_base/copy_on_write_buffer.h"
@@ -116,6 +117,24 @@ class FakeIceTransport : public IceTransportInternal {
       dest_ = nullptr;
       set_writable(false);
     }
+  }
+
+  void SetDestinationNotWritable(FakeIceTransport* dest) {
+    RTC_DCHECK_RUN_ON(network_thread_);
+    if (dest == dest_) {
+      return;
+    }
+    RTC_DCHECK(!dest || !dest_)
+        << "Changing fake destination from one to another is not supported.";
+
+    if (dest) {
+      RTC_DCHECK_RUN_ON(dest->network_thread_);
+      dest->dest_ = this;
+    } else if (dest_) {
+      RTC_DCHECK_RUN_ON(dest_->network_thread_);
+      dest_->dest_ = nullptr;
+    }
+    dest_ = dest;
   }
 
   void SetTransportState(webrtc::IceTransportState state,
@@ -415,6 +434,61 @@ class FakeIceTransport : public IceTransportInternal {
     }
   }
 
+  void ResetDtlsStunPiggybackCallbacks() override {
+    dtls_stun_piggyback_callbacks_.reset();
+  }
+  void SetDtlsStunPiggybackCallbacks(
+      DtlsStunPiggybackCallbacks&& callbacks) override {
+    RTC_LOG(LS_INFO) << name_ << ": SetDtlsStunPiggybackCallbacks";
+    dtls_stun_piggyback_callbacks_ = std::move(callbacks);
+  }
+
+  bool SendIcePing() {
+    RTC_DCHECK_RUN_ON(network_thread_);
+    RTC_DLOG(LS_INFO) << name_ << ": SendIcePing()";
+    auto msg = std::make_unique<IceMessage>(STUN_BINDING_REQUEST);
+    MaybeAddDtlsPiggybackingAttributes(msg.get());
+    msg->AddFingerprint();
+    rtc::ByteBufferWriter buf;
+    msg->Write(&buf);
+    SendPacketInternal(rtc::CopyOnWriteBuffer(buf.DataView()));
+    return true;
+  }
+
+  void MaybeAddDtlsPiggybackingAttributes(StunMessage* msg) {
+    if (dtls_stun_piggyback_callbacks_.empty()) {
+      return;
+    }
+
+    const auto& [attr, ack] = dtls_stun_piggyback_callbacks_.send_data(
+        static_cast<StunMessageType>(msg->type()));
+
+    RTC_DLOG(LS_INFO) << name_ << ": Adding attr: " << attr.has_value()
+                      << " ack: " << ack.has_value() << " to stun message: "
+                      << StunMethodToString(msg->type());
+
+    if (attr) {
+      msg->AddAttribute(std::make_unique<StunByteStringAttribute>(
+          STUN_ATTR_META_DTLS_IN_STUN, *attr));
+    }
+    if (ack) {
+      msg->AddAttribute(std::make_unique<StunByteStringAttribute>(
+          STUN_ATTR_META_DTLS_IN_STUN_ACK, *ack));
+    }
+  }
+
+  bool SendIcePingConf() {
+    RTC_DCHECK_RUN_ON(network_thread_);
+    RTC_DLOG(LS_INFO) << name_ << ": SendIcePingConf()";
+    auto msg = std::make_unique<IceMessage>(STUN_BINDING_RESPONSE);
+    MaybeAddDtlsPiggybackingAttributes(msg.get());
+    msg->AddFingerprint();
+    rtc::ByteBufferWriter buf;
+    msg->Write(&buf);
+    SendPacketInternal(rtc::CopyOnWriteBuffer(buf.DataView()));
+    return true;
+  }
+
  private:
   void set_writable(bool writable)
       RTC_EXCLUSIVE_LOCKS_REQUIRED(network_thread_) {
@@ -449,6 +523,25 @@ class FakeIceTransport : public IceTransportInternal {
   void ReceivePacketInternal(const rtc::CopyOnWriteBuffer& packet) {
     RTC_DCHECK_RUN_ON(network_thread_);
     auto now = rtc::TimeMicros();
+    if (auto msg = GetStunMessage(packet)) {
+      const auto* dtls_piggyback_attr =
+          msg->GetByteString(STUN_ATTR_META_DTLS_IN_STUN);
+      const auto* dtls_piggyback_ack =
+          msg->GetByteString(STUN_ATTR_META_DTLS_IN_STUN_ACK);
+      RTC_DLOG(LS_INFO) << name_ << ": Got STUN message: "
+                        << StunMethodToString(msg->type())
+                        << " attr: " << (dtls_piggyback_attr != nullptr)
+                        << " ack: " << (dtls_piggyback_ack != nullptr);
+      if (!dtls_stun_piggyback_callbacks_.empty()) {
+        dtls_stun_piggyback_callbacks_.recv_data(dtls_piggyback_attr,
+                                                 dtls_piggyback_ack);
+      }
+
+      if (msg->type() == STUN_BINDING_RESPONSE) {
+        set_writable(true);
+      }
+      return;
+    }
     if (packet_recv_filter_func_ && packet_recv_filter_func_(packet, now)) {
       RTC_DLOG(LS_INFO) << name_
                         << ": dropping packet at receiver len=" << packet.size()
@@ -458,6 +551,18 @@ class FakeIceTransport : public IceTransportInternal {
       NotifyPacketReceived(rtc::ReceivedPacket::CreateFromLegacy(
           packet.data(), packet.size(), now));
     }
+  }
+
+  std::unique_ptr<IceMessage> GetStunMessage(
+      const rtc::CopyOnWriteBuffer& packet) {
+    if (!StunMessage::ValidateFingerprint(packet.data<char>(), packet.size())) {
+      return nullptr;
+    }
+
+    std::unique_ptr<IceMessage> stun_msg(new IceMessage());
+    rtc::ByteBufferReader buf(rtc::MakeArrayView(packet.data(), packet.size()));
+    RTC_CHECK(stun_msg->Read(&buf));
+    return stun_msg;
   }
 
   const std::string name_;
@@ -497,6 +602,7 @@ class FakeIceTransport : public IceTransportInternal {
       packet_send_filter_func_ RTC_GUARDED_BY(network_thread_) = nullptr;
   absl::AnyInvocable<bool(const rtc::CopyOnWriteBuffer&, uint64_t)>
       packet_recv_filter_func_ RTC_GUARDED_BY(network_thread_) = nullptr;
+  DtlsStunPiggybackCallbacks dtls_stun_piggyback_callbacks_;
 };
 
 class FakeIceTransportWrapper : public webrtc::IceTransportInterface {

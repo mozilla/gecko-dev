@@ -38,6 +38,11 @@ class DtlsStunPiggybackController {
           dtls_data_callback);
   ~DtlsStunPiggybackController();
 
+  // Initially set from IceConfig.dtls_handshake_in_stun
+  // but is also set to FALSE before restarting handshake.
+  void SetEnabled(bool enabled);
+  bool enabled() const;
+
   enum class State {
     // We don't know if peer support DTLS piggybacked in STUN.
     // We will piggyback DTLS until we get a piggybacked response
@@ -79,6 +84,7 @@ class DtlsStunPiggybackController {
                              const StunByteStringAttribute* ack);
 
  private:
+  bool enabled_ RTC_GUARDED_BY(sequence_checker_) = false;
   State state_ RTC_GUARDED_BY(sequence_checker_) = State::TENTATIVE;
   rtc::Buffer pending_packet_ RTC_GUARDED_BY(sequence_checker_);
   absl::AnyInvocable<void(rtc::ArrayView<const uint8_t>)> dtls_data_callback_;

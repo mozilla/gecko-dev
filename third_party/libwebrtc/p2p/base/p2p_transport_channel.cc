@@ -313,7 +313,7 @@ void P2PTransportChannel::AddConnection(Connection* connection) {
       [this](webrtc::RTCErrorOr<const StunUInt64Attribute*> delta_ack) {
         GoogDeltaAckReceived(std::move(delta_ack));
       });
-  if (config_.dtls_handshake_in_stun) {
+  if (!dtls_stun_piggyback_callbacks_.empty()) {
     connection->RegisterDtlsPiggyback(DtlsStunPiggybackCallbacks(
         [&](auto request) {
           return dtls_stun_piggyback_callbacks_.send_data(request);
@@ -2246,8 +2246,9 @@ void P2PTransportChannel::SetWritable(bool writable) {
   }
   SignalWritableState(this);
 
-  if (config_.dtls_handshake_in_stun &&
+  if (writable_ && selected_connection_ &&
       !dtls_stun_piggyback_callbacks_.empty()) {
+    // TODO(webrtc:367395350): Move this into DtlsTransport somehow.
     // Need to STUN ping here to get the last bit of the DTLS handshake across
     // as quickly as possible. Only done when DTLS-in-STUN is configured
     // and the data callback has not been reset due to lack of support.

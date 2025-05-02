@@ -18,6 +18,7 @@
 #include <optional>
 #include <set>
 #include <string>
+#include <tuple>
 #include <utility>
 #include <vector>
 
@@ -52,10 +53,9 @@
 #include "test/gtest.h"
 #include "test/wait_until.h"
 
-#define MAYBE_SKIP_TEST(feature)                                  \
-  if (!(rtc::SSLStreamAdapter::feature())) {                      \
-    RTC_LOG(LS_INFO) << #feature " feature disabled... skipping"; \
-    return;                                                       \
+#define MAYBE_SKIP_TEST(feature)                              \
+  if (!(rtc::SSLStreamAdapter::feature())) {                  \
+    GTEST_SKIP() << #feature " feature disabled... skipping"; \
   }
 
 namespace cricket {
@@ -154,6 +154,16 @@ class DtlsTestClient : public sigslot::has_slots<> {
                                          asymmetric);
     return true;
   }
+
+  // Connect the fake ICE transports so that packets flows from one to other.
+  bool ConnectIceTransport(DtlsTestClient* peer) {
+    fake_ice_transport()->SetDestinationNotWritable(peer->fake_ice_transport());
+    return true;
+  }
+
+  bool SendIcePing() { return fake_ice_transport_->SendIcePing(); }
+
+  bool SendIcePingConf() { return fake_ice_transport_->SendIcePingConf(); }
 
   int received_dtls_client_hellos() const {
     return received_dtls_client_hellos_;
@@ -576,15 +586,41 @@ static const struct {
     {rtc::kDtls13VersionBytes, dtls_13_handshake_events},
 };
 
+struct EndpointConfig {
+  rtc::SSLProtocolVersion max_protocol_version;
+  bool dtls_in_stun = false;
+};
+
 class DtlsTransportVersionTest
     : public DtlsTransportTestBase,
       public ::testing::TestWithParam<
-          ::testing::tuple<rtc::SSLProtocolVersion, rtc::SSLProtocolVersion>> {
+          std::tuple<EndpointConfig, EndpointConfig>> {
  public:
   void Prepare() {
     PrepareDtls(rtc::KT_DEFAULT);
-    SetMaxProtocolVersions(::testing::get<0>(GetParam()),
-                           ::testing::get<1>(GetParam()));
+    SetMaxProtocolVersions(std::get<0>(GetParam()).max_protocol_version,
+                           std::get<1>(GetParam()).max_protocol_version);
+
+    client1_.SetupTransports(ICEROLE_CONTROLLING);
+    client2_.SetupTransports(ICEROLE_CONTROLLED);
+    client1_.dtls_transport()->SetDtlsRole(rtc::SSL_CLIENT);
+    client2_.dtls_transport()->SetDtlsRole(rtc::SSL_SERVER);
+
+    if (std::get<0>(GetParam()).dtls_in_stun) {
+      auto config = client1_.fake_ice_transport()->config();
+      config.dtls_handshake_in_stun = true;
+      client1_.fake_ice_transport()->SetIceConfig(config);
+    }
+    if (std::get<1>(GetParam()).dtls_in_stun) {
+      auto config = client2_.fake_ice_transport()->config();
+      config.dtls_handshake_in_stun = true;
+      client2_.fake_ice_transport()->SetIceConfig(config);
+    }
+
+    SetRemoteFingerprintFromCert(client1_.dtls_transport(),
+                                 client2_.certificate());
+    SetRemoteFingerprintFromCert(client2_.dtls_transport(),
+                                 client1_.certificate());
   }
 
   // Run DTLS handshake.
@@ -592,8 +628,6 @@ class DtlsTransportVersionTest
   // - drop packets as specified in `packets_to_drop`
   std::pair</* dtls_version_bytes*/ int, std::vector<HandshakeTestEvent>>
   RunHandshake(std::set<unsigned> packets_to_drop) {
-    Negotiate(/* client1_server= */ false);
-
     std::vector<HandshakeTestEvent> events;
     auto start_time_ns = fake_clock_.TimeNanos();
     client1_.fake_ice_transport()->set_rtt_estimate(50, true);
@@ -642,7 +676,11 @@ class DtlsTransportVersionTest
           return LogSend("server", diff_ms, drop, data, len);
         });
 
-    EXPECT_TRUE(client1_.Connect(&client2_, false));
+    EXPECT_TRUE(client1_.ConnectIceTransport(&client2_));
+    client1_.SendIcePing();
+    client2_.SendIcePingConf();
+    client2_.SendIcePing();
+    client1_.SendIcePingConf();
 
     EXPECT_THAT(webrtc::WaitUntil(
                     [&] {
@@ -661,12 +699,13 @@ class DtlsTransportVersionTest
 
     auto dtls_version_bytes = client1_.GetVersionBytes();
     EXPECT_EQ(dtls_version_bytes, client2_.GetVersionBytes());
-    return std::make_pair(*dtls_version_bytes, std::move(events));
+    return std::make_pair(dtls_version_bytes.value_or(0), std::move(events));
   }
 
   int GetExpectedDtlsVersionBytes() {
-    int version = std::min(static_cast<int>(::testing::get<0>(GetParam())),
-                           static_cast<int>(::testing::get<1>(GetParam())));
+    int version = std::min(
+        static_cast<int>(std::get<0>(GetParam()).max_protocol_version),
+        static_cast<int>(std::get<1>(GetParam()).max_protocol_version));
     if (version == rtc::SSL_PROTOCOL_DTLS_13) {
       return rtc::kDtls13VersionBytes;
     } else {
@@ -711,17 +750,40 @@ class DtlsTransportVersionTest
   }
 };
 
+static const EndpointConfig kEndpointVariants[] = {
+    {
+        .max_protocol_version = rtc::SSL_PROTOCOL_DTLS_10,
+        .dtls_in_stun = false,
+    },
+    {
+        .max_protocol_version = rtc::SSL_PROTOCOL_DTLS_12,
+        .dtls_in_stun = false,
+    },
+    {
+        .max_protocol_version = rtc::SSL_PROTOCOL_DTLS_13,
+        .dtls_in_stun = false,
+    },
+    {
+        .max_protocol_version = rtc::SSL_PROTOCOL_DTLS_10,
+        .dtls_in_stun = true,
+    },
+    {
+        .max_protocol_version = rtc::SSL_PROTOCOL_DTLS_12,
+        .dtls_in_stun = true,
+    },
+    {
+        .max_protocol_version = rtc::SSL_PROTOCOL_DTLS_13,
+        .dtls_in_stun = true,
+    },
+};
+
 // Will test every combination of 1.0/1.2/1.3 on the client and server.
 // DTLS will negotiate an effective version (the min of client & sewrver).
 INSTANTIATE_TEST_SUITE_P(
     DtlsTransportVersionTest,
     DtlsTransportVersionTest,
-    ::testing::Combine(::testing::Values(rtc::SSL_PROTOCOL_DTLS_10,
-                                         rtc::SSL_PROTOCOL_DTLS_12,
-                                         rtc::SSL_PROTOCOL_DTLS_13),
-                       ::testing::Values(rtc::SSL_PROTOCOL_DTLS_10,
-                                         rtc::SSL_PROTOCOL_DTLS_12,
-                                         rtc::SSL_PROTOCOL_DTLS_13)));
+    ::testing::Combine(testing::ValuesIn(kEndpointVariants),
+                       testing::ValuesIn(kEndpointVariants)));
 
 // Test that an acceptable cipher suite is negotiated when different versions
 // of DTLS are supported. Note that it's IsAcceptableCipher that does the actual
@@ -732,6 +794,10 @@ TEST_P(DtlsTransportVersionTest, CipherSuiteNegotiation) {
 }
 
 TEST_P(DtlsTransportVersionTest, HandshakeFlights) {
+  if (std::get<0>(GetParam()).dtls_in_stun &&
+      std::get<1>(GetParam()).dtls_in_stun) {
+    GTEST_SKIP() << "This test does not support dtls in stun";
+  }
   Prepare();
   auto [dtls_version_bytes, events] = RunHandshake({});
 
@@ -743,6 +809,10 @@ TEST_P(DtlsTransportVersionTest, HandshakeFlights) {
 
 TEST_P(DtlsTransportVersionTest, HandshakeLoseFirstClientPacket) {
   MAYBE_SKIP_TEST(IsBoringSsl);
+  if (std::get<0>(GetParam()).dtls_in_stun &&
+      std::get<1>(GetParam()).dtls_in_stun) {
+    GTEST_SKIP() << "This test does not support dtls in stun";
+  }
 
   Prepare();
   auto [dtls_version_bytes, events] = RunHandshake({/* packet_num= */ 0});
@@ -758,6 +828,10 @@ TEST_P(DtlsTransportVersionTest, HandshakeLoseFirstClientPacket) {
 
 TEST_P(DtlsTransportVersionTest, HandshakeLoseSecondClientPacket) {
   MAYBE_SKIP_TEST(IsBoringSsl);
+  if (std::get<0>(GetParam()).dtls_in_stun &&
+      std::get<1>(GetParam()).dtls_in_stun) {
+    GTEST_SKIP() << "This test does not support dtls in stun";
+  }
 
   Prepare();
   auto [dtls_version_bytes, events] = RunHandshake({/* packet_num= */ 2});
@@ -817,7 +891,7 @@ TEST_P(DtlsTransportVersionTest, HandshakeLoseSecondClientPacket) {
       };
       break;
     default:
-      RTC_CHECK(false) << "Unknown dtls version bytes: " << dtls_version_bytes;
+      FAIL() << "Unknown dtls version bytes: " << dtls_version_bytes;
   }
   EXPECT_EQ(events, expect);
 }

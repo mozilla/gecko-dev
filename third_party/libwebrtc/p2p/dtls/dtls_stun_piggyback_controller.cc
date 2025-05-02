@@ -175,4 +175,17 @@ void DtlsStunPiggybackController::ReportDataPiggybacked(
   dtls_data_callback_(data->array_view());
 }
 
+void DtlsStunPiggybackController::SetEnabled(bool enabled) {
+  RTC_DCHECK_RUN_ON(&sequence_checker_);
+  enabled_ = enabled;
+  if (!enabled) {
+    state_ = State::OFF;
+  }
+}
+
+bool DtlsStunPiggybackController::enabled() const {
+  RTC_DCHECK_RUN_ON(&sequence_checker_);
+  return enabled_;
+}
+
 }  // namespace cricket
