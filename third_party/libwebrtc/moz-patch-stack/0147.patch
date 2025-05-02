@@ -1,33 +1,23 @@
-From: Jan Grulich <jgrulich@redhat.com>
-Date: Mon, 24 Mar 2025 10:09:00 +0000
-Subject: Bug 1954903 - WebRTC backport: PipeWire camera: drop redundant
- <pipewire/core.h> include r=pehrsons,webrtc-reviewers
+From: Michael Froman <mfroman@mozilla.com>
+Date: Fri, 7 Mar 2025 17:43:00 -0600
+Subject: Bug 1952339 - (fix-68e7b00928) add default param to emplace() to fix
+ compile issue
 
-We already include main <pipewire/pipewire.h> header, which includes all
-the PipeWire headers, making <pipewire/core.h> to be included twice.
-
-This breaks Firefox builds, where using system libraries we have to list
-all system headers, making Firefox to unnecessarily list "core.h" header
-in the list, while "pipewire.h" should be enough.
-
-This is a simple backport of an WebRTC upstream change.
-Upstream commit: 537158885bc60ffe64c2c0c8a7c89d74cb7c105b
-
-Differential Revision: https://phabricator.services.mozilla.com/D242277
-Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/ff19ec147fca0f7179d7fe9f478e1aef8bfe3e57
+Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/26c916591791b13a3d8888066c22c5ba49c86c47
 ---
- modules/video_capture/linux/pipewire_session.h | 1 -
- 1 file changed, 1 deletion(-)
+ call/rtp_config.cc | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
 
-diff --git a/modules/video_capture/linux/pipewire_session.h b/modules/video_capture/linux/pipewire_session.h
-index 1f3a00614f..aed3fbb1bf 100644
---- a/modules/video_capture/linux/pipewire_session.h
-+++ b/modules/video_capture/linux/pipewire_session.h
-@@ -11,7 +11,6 @@
- #ifndef MODULES_VIDEO_CAPTURE_LINUX_PIPEWIRE_SESSION_H_
- #define MODULES_VIDEO_CAPTURE_LINUX_PIPEWIRE_SESSION_H_
- 
--#include <pipewire/core.h>
- #include <pipewire/pipewire.h>
- 
- #include <deque>
+diff --git a/call/rtp_config.cc b/call/rtp_config.cc
+index 115912cd46..5e08467d1f 100644
+--- a/call/rtp_config.cc
++++ b/call/rtp_config.cc
+@@ -258,7 +258,7 @@ RtpStreamConfig RtpConfig::GetStreamConfig(size_t index) const {
+   stream_config.raw_payload = raw_payload;
+   if (!rtx.ssrcs.empty()) {
+     RTC_DCHECK_EQ(ssrcs.size(), rtx.ssrcs.size());
+-    auto& stream_config_rtx = stream_config.rtx.emplace();
++    auto& stream_config_rtx = stream_config.rtx.emplace(RtpStreamConfig::Rtx());
+     stream_config_rtx.ssrc = rtx.ssrcs[index];
+     stream_config_rtx.payload_type = rtx.payload_type;
+   }

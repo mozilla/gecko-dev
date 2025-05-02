@@ -1,23 +1,22 @@
 From: Michael Froman <mfroman@mozilla.com>
-Date: Fri, 7 Mar 2025 17:43:00 -0600
-Subject: Bug 1952339 - (fix-68e7b00928) add default param to emplace() to fix
- compile issue
+Date: Fri, 7 Feb 2025 16:26:00 -0600
+Subject: Bug 1942428 - (fix-e500d46600) upstream removed p2p:rtc_p2p
 
-Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/26c916591791b13a3d8888066c22c5ba49c86c47
+Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/0155a8718d5d7f23b8391a1d04b1196e30127dad
 ---
- call/rtp_config.cc | 2 +-
+ BUILD.gn | 2 +-
  1 file changed, 1 insertion(+), 1 deletion(-)
 
-diff --git a/call/rtp_config.cc b/call/rtp_config.cc
-index 115912cd46..5e08467d1f 100644
---- a/call/rtp_config.cc
-+++ b/call/rtp_config.cc
-@@ -258,7 +258,7 @@ RtpStreamConfig RtpConfig::GetStreamConfig(size_t index) const {
-   stream_config.raw_payload = raw_payload;
-   if (!rtx.ssrcs.empty()) {
-     RTC_DCHECK_EQ(ssrcs.size(), rtx.ssrcs.size());
--    auto& stream_config_rtx = stream_config.rtx.emplace();
-+    auto& stream_config_rtx = stream_config.rtx.emplace(RtpStreamConfig::Rtx());
-     stream_config_rtx.ssrc = rtx.ssrcs[index];
-     stream_config_rtx.payload_type = rtx.payload_type;
-   }
+diff --git a/BUILD.gn b/BUILD.gn
+index d3caa21e77..f0f6d6a103 100644
+--- a/BUILD.gn
++++ b/BUILD.gn
+@@ -599,7 +599,7 @@ if (!build_with_chromium) {
+         "api/video_codecs:video_encoder_factory_template_libvpx_vp9_adapter",
+         "api/video_codecs:video_encoder_factory_template_open_h264_adapter",
+         "logging:rtc_event_log_api",
+-        "p2p:rtc_p2p",
++#        "p2p:rtc_p2p",
+         "pc:libjingle_peerconnection",
+         "pc:rtc_pc",
+         "sdk",

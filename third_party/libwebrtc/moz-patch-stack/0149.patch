@@ -1,63 +1,55 @@
 From: Jan Grulich <jgrulich@redhat.com>
-Date: Mon, 14 Apr 2025 16:37:00 +0000
-Subject: Bug 1954903 - Update libwebrtc GN configs r=webrtc-reviewers,mjf
+Date: Mon, 24 Mar 2025 10:37:00 +0000
+Subject: Bug 1953080 - WebRTC backport: Fix build with Pipewire 1.4
+ r=pehrsons,webrtc-reviewers
 
-Update GN config files for the special handling in gn_processor.py for
-gbm, drm and PipeWire libraries.
+Pipewire 1.4 changed some functions from taking void*
+to taking the actual type they expect, which makes
+some code that built with 1.2 no longer build with 1.4.
 
-Also remove libwebrtc/third_party/[gbm,drm,pipewire] libs for which we
-now have a special handling in gn_processor.py.
+For older versions, this is effectively a no-op.
 
-Differential Revision: https://phabricator.services.mozilla.com/D242101
-Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/506d4efaf2dc29472623beff64cc2bd0d5555afd
+This is a simple backport of an WebRTC upstream change.
+Upstream commit: 0a9787897f3d36055130b0532967d31c31e8408f
+
+Differential Revision: https://phabricator.services.mozilla.com/D241023
+Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/4662f430e6c0e6312ac7a0a8b7d06844d88515b7
 ---
- modules/desktop_capture/BUILD.gn | 4 ++++
- modules/portal/BUILD.gn          | 4 +---
- modules/video_capture/BUILD.gn   | 2 +-
- 3 files changed, 6 insertions(+), 4 deletions(-)
+ AUTHORS                                         | 1 +
+ modules/video_capture/linux/pipewire_session.cc | 4 ++--
+ 2 files changed, 3 insertions(+), 2 deletions(-)
 
-diff --git a/modules/desktop_capture/BUILD.gn b/modules/desktop_capture/BUILD.gn
-index 2245146890..5b66f2c3ff 100644
---- a/modules/desktop_capture/BUILD.gn
-+++ b/modules/desktop_capture/BUILD.gn
-@@ -554,6 +554,10 @@ rtc_library("desktop_capture") {
-       "../../rtc_base:sanitizer",
-       "../portal",
-     ]
-+
-+    if (build_with_mozilla) {
-+      defines += [ "WEBRTC_USE_PIPEWIRE" ]
-+    }
-   }
+diff --git a/AUTHORS b/AUTHORS
+index 5698ada0fe..4fb9455791 100644
+--- a/AUTHORS
++++ b/AUTHORS
+@@ -63,6 +63,7 @@ Hans Knoechel <hans@hans-knoechel.de>
+ Helmut Januschka <helmut@januschka.com>
+ Hugues Ekra <hekra01@gmail.com>
+ Hyungjoo Na <element11sodium@gmail.com>
++Ilya Katsnelson <me@0upti.me>
+ Jake Hilton <jakehilton@gmail.com>
+ James H. Brown <jbrown@burgoyne.com>
+ Jan Grulich <grulja@gmail.com>
+diff --git a/modules/video_capture/linux/pipewire_session.cc b/modules/video_capture/linux/pipewire_session.cc
+index b58ea755c6..6e7e407358 100644
+--- a/modules/video_capture/linux/pipewire_session.cc
++++ b/modules/video_capture/linux/pipewire_session.cc
+@@ -88,7 +88,7 @@ PipeWireNode::PipeWireNode(PipeWireSession* session,
+       .param = OnNodeParam,
+   };
  
-   if (rtc_enable_win_wgc) {
-diff --git a/modules/portal/BUILD.gn b/modules/portal/BUILD.gn
-index 6828388b31..49b91a61b7 100644
---- a/modules/portal/BUILD.gn
-+++ b/modules/portal/BUILD.gn
-@@ -137,11 +137,9 @@ if (!build_with_mozilla) {
-       deps -= [ ":pipewire_stubs" ]
-       defines -= [ "WEBRTC_DLOPEN_PIPEWIRE" ]
-       public_deps = [
--        "../../third_party/pipewire",
--        "../../third_party/drm",
--        "../../third_party/gbm",
-         "../../third_party/libepoxy"
-       ]
-+      defines += [ "WEBRTC_USE_PIPEWIRE" ]
-     }
-   }
+-  pw_node_add_listener(proxy_, &node_listener_, &node_events, this);
++  pw_node_add_listener(reinterpret_cast<pw_node*>(proxy_), &node_listener_, &node_events, this);
  }
-diff --git a/modules/video_capture/BUILD.gn b/modules/video_capture/BUILD.gn
-index 42a5011b49..294ef9f0fd 100644
---- a/modules/video_capture/BUILD.gn
-+++ b/modules/video_capture/BUILD.gn
-@@ -110,7 +110,7 @@ if (!build_with_chromium || is_linux || is_chromeos) {
-         ]
-         if (build_with_mozilla) {
-           configs -= [ "../portal:pipewire_base" ]
--          public_deps = [ "../../third_party/pipewire" ]
-+          defines = [ "WEBRTC_USE_PIPEWIRE" ]
-         }
+ 
+ // static
+@@ -120,7 +120,7 @@ void PipeWireNode::OnNodeInfo(void* data, const pw_node_info* info) {
+       uint32_t id = info->params[i].id;
+       if (id == SPA_PARAM_EnumFormat &&
+           info->params[i].flags & SPA_PARAM_INFO_READ) {
+-        pw_node_enum_params(that->proxy_, 0, id, 0, UINT32_MAX, nullptr);
++        pw_node_enum_params(reinterpret_cast<pw_node*>(that->proxy_), 0, id, 0, UINT32_MAX, nullptr);
+         break;
        }
      }
