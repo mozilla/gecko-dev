@@ -147,7 +147,8 @@ void PeerConnectionFactory::SetOptions(const Options& options) {
 RtpCapabilities PeerConnectionFactory::GetRtpSenderCapabilities(
     cricket::MediaType kind) const {
   RTC_DCHECK_RUN_ON(signaling_thread());
-  cricket::CodecVendor codec_vendor(media_engine(), context_->use_rtx());
+  cricket::CodecVendor codec_vendor(media_engine(), context_->use_rtx(),
+                                    context_->env().field_trials());
   switch (kind) {
     case cricket::MEDIA_TYPE_AUDIO: {
       cricket::Codecs cricket_codecs;
@@ -175,7 +176,8 @@ RtpCapabilities PeerConnectionFactory::GetRtpSenderCapabilities(
 RtpCapabilities PeerConnectionFactory::GetRtpReceiverCapabilities(
     cricket::MediaType kind) const {
   RTC_DCHECK_RUN_ON(signaling_thread());
-  cricket::CodecVendor codec_vendor(media_engine(), context_->use_rtx());
+  cricket::CodecVendor codec_vendor(media_engine(), context_->use_rtx(),
+                                    context_->env().field_trials());
   switch (kind) {
     case cricket::MEDIA_TYPE_AUDIO: {
       cricket::Codecs cricket_codecs;

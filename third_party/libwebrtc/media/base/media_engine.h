@@ -19,6 +19,8 @@
 #include "api/array_view.h"
 #include "api/audio/audio_device.h"
 #include "api/audio_codecs/audio_codec_pair_id.h"
+#include "api/audio_codecs/audio_decoder_factory.h"
+#include "api/audio_codecs/audio_encoder_factory.h"
 #include "api/audio_options.h"
 #include "api/crypto/crypto_options.h"
 #include "api/field_trials_view.h"
@@ -130,6 +132,9 @@ class VoiceEngineInterface : public RtpHeaderExtensionQueryInterface {
   }
   virtual const std::vector<Codec>& LegacySendCodecs() const = 0;
   virtual const std::vector<Codec>& LegacyRecvCodecs() const = 0;
+
+  virtual webrtc::AudioEncoderFactory* encoder_factory() const = 0;
+  virtual webrtc::AudioDecoderFactory* decoder_factory() const = 0;
 
   // Starts AEC dump using existing file, a maximum file size in bytes can be
   // specified. Logging is stopped just before the size limit is exceeded.

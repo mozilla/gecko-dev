@@ -1,5 +1,5 @@
 /*
- *  Copyright 2004 The WebRTC project authors. All Rights Reserved.
+ *  Copyright 2025 The WebRTC project authors. All Rights Reserved.
  *
  *  Use of this source code is governed by a BSD-style license
  *  that can be found in the LICENSE file in the root of the source
@@ -22,6 +22,7 @@
 #include "absl/algorithm/container.h"
 #include "absl/strings/match.h"
 #include "absl/strings/string_view.h"
+#include "api/field_trials_view.h"
 #include "api/media_types.h"
 #include "api/rtc_error.h"
 #include "api/rtp_parameters.h"
@@ -36,6 +37,7 @@
 #include "pc/media_options.h"
 #include "pc/rtp_media_utils.h"
 #include "pc/session_description.h"
+#include "pc/typed_codec_vendor.h"
 #include "pc/used_ids.h"
 #include "rtc_base/checks.h"
 #include "rtc_base/logging.h"
@@ -769,43 +771,25 @@ webrtc::RTCErrorOr<Codecs> CodecVendor::GetNegotiatedCodecsForAnswer(
   return negotiated_codecs.codecs();
 }
 
-TypedCodecVendor::TypedCodecVendor(MediaEngineInterface* media_engine,
-                                   MediaType type,
-                                   bool is_sender,
-                                   bool rtx_enabled) {
-  // TODO: https://issues.webrtc.org/360058654 - move codec selection here
-  // when field trial WebRTC-PayloadTypesInTransport is enabled.
-  if (type == MEDIA_TYPE_AUDIO) {
-    if (is_sender) {
-      codecs_ = CodecList::CreateFromTrustedData(
-          media_engine->voice().LegacySendCodecs());
-    } else {
-      codecs_ = CodecList::CreateFromTrustedData(
-          media_engine->voice().LegacyRecvCodecs());
-    }
-  } else {
-    if (is_sender) {
-      codecs_ = CodecList::CreateFromTrustedData(
-          media_engine->video().LegacySendCodecs(rtx_enabled));
-    } else {
-      codecs_ = CodecList::CreateFromTrustedData(
-          media_engine->video().LegacyRecvCodecs(rtx_enabled));
-    }
-  }
-}
-
-CodecVendor::CodecVendor(MediaEngineInterface* media_engine, bool rtx_enabled) {
-  // Null media_engine is permitted in order to allow unit testing where
+CodecVendor::CodecVendor(MediaEngineInterface* media_engine,
+                         bool rtx_enabled,
+                         const webrtc::FieldTrialsView&
+                             trials) {  // Null media_engine is permitted in
+                                        // order to allow unit testing where
   // the codecs are explicitly set by the test.
   if (media_engine) {
-    audio_send_codecs_ = TypedCodecVendor(media_engine, MEDIA_TYPE_AUDIO,
-                                          /* is_sender= */ true, rtx_enabled);
-    audio_recv_codecs_ = TypedCodecVendor(media_engine, MEDIA_TYPE_AUDIO,
-                                          /* is_sender= */ false, rtx_enabled);
-    video_send_codecs_ = TypedCodecVendor(media_engine, MEDIA_TYPE_VIDEO,
-                                          /* is_sender= */ true, rtx_enabled);
-    video_recv_codecs_ = TypedCodecVendor(media_engine, MEDIA_TYPE_VIDEO,
-                                          /* is_sender= */ false, rtx_enabled);
+    audio_send_codecs_ =
+        TypedCodecVendor(media_engine, MEDIA_TYPE_AUDIO,
+                         /* is_sender= */ true, rtx_enabled, trials);
+    audio_recv_codecs_ =
+        TypedCodecVendor(media_engine, MEDIA_TYPE_AUDIO,
+                         /* is_sender= */ false, rtx_enabled, trials);
+    video_send_codecs_ =
+        TypedCodecVendor(media_engine, MEDIA_TYPE_VIDEO,
+                         /* is_sender= */ true, rtx_enabled, trials);
+    video_recv_codecs_ =
+        TypedCodecVendor(media_engine, MEDIA_TYPE_VIDEO,
+                         /* is_sender= */ false, rtx_enabled, trials);
   }
 }
 

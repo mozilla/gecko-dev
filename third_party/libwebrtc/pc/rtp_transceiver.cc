@@ -120,7 +120,9 @@ RtpTransceiver::RtpTransceiver(cricket::MediaType media_type,
       unified_plan_(false),
       media_type_(media_type),
       context_(context),
-      codec_vendor_(context->media_engine(), /* use_rtx= */ false) {
+      codec_vendor_(context->media_engine(),
+                    /* use_rtx= */ false,
+                    context->env().field_trials()) {
   RTC_DCHECK(media_type == cricket::MEDIA_TYPE_AUDIO ||
              media_type == cricket::MEDIA_TYPE_VIDEO);
   RTC_DCHECK(context_);
@@ -139,7 +141,9 @@ RtpTransceiver::RtpTransceiver(
       context_(context),
       header_extensions_to_negotiate_(
           std::move(header_extensions_to_negotiate)),
-      codec_vendor_(context->media_engine(), context->use_rtx()),
+      codec_vendor_(context->media_engine(),
+                    context->use_rtx(),
+                    context->env().field_trials()),
       on_negotiation_needed_(std::move(on_negotiation_needed)) {
   RTC_DCHECK(context_);
   RTC_DCHECK(media_type_ == cricket::MEDIA_TYPE_AUDIO ||

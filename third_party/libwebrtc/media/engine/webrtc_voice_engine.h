@@ -118,6 +118,13 @@ class WebRtcVoiceEngine final : public VoiceEngineInterface {
 
   const std::vector<Codec>& LegacySendCodecs() const override;
   const std::vector<Codec>& LegacyRecvCodecs() const override;
+
+  webrtc::AudioEncoderFactory* encoder_factory() const override {
+    return encoder_factory_.get();
+  }
+  webrtc::AudioDecoderFactory* decoder_factory() const override {
+    return decoder_factory_.get();
+  }
   std::vector<webrtc::RtpHeaderExtensionCapability> GetRtpHeaderExtensions()
       const override;
 

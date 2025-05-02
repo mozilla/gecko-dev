@@ -49,7 +49,6 @@
 #include "pc/used_ids.h"
 #include "rtc_base/checks.h"
 #include "rtc_base/logging.h"
-#include "rtc_base/strings/string_builder.h"
 #include "rtc_base/unique_id_generator.h"
 
 #ifdef RTC_ENABLE_H265
@@ -693,7 +692,8 @@ MediaSessionDescriptionFactory::MediaSessionDescriptionFactory(
           transport_desc_factory_->trials().IsEnabled(
               "WebRTC-PayloadTypesInTransport")) {
   RTC_CHECK(transport_desc_factory_);
-  codec_vendor_ = std::make_unique<CodecVendor>(media_engine, rtx_enabled);
+  codec_vendor_ = std::make_unique<CodecVendor>(
+      media_engine, rtx_enabled, transport_desc_factory_->trials());
 }
 
 RtpHeaderExtensions

@@ -12,11 +12,12 @@
 
 #include <stddef.h>
 
+#include <memory>
 #include <string>
 #include <vector>
 
 #include "absl/strings/string_view.h"
-#include "call/payload_type.h"
+#include "api/field_trials.h"
 #include "media/base/codec.h"
 #include "media/base/codec_list.h"
 #include "media/base/media_constants.h"
@@ -53,7 +54,9 @@ const Codec kAudioCodecsAnswer[] = {
 };
 
 TEST(CodecVendorTest, TestSetAudioCodecs) {
-  CodecVendor codec_vendor(nullptr, false);
+  std::unique_ptr<webrtc::FieldTrials> trials =
+      webrtc::FieldTrials::CreateNoGlobal("");
+  CodecVendor codec_vendor(nullptr, false, *trials);
   std::vector<Codec> send_codecs = MAKE_VECTOR(kAudioCodecs1);
   std::vector<Codec> recv_codecs = MAKE_VECTOR(kAudioCodecs2);
 

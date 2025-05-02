@@ -422,7 +422,9 @@ rtc_library("codec_vendor") {
     ":media_options",
     ":rtp_media_utils",
     ":session_description",
+    ":typed_codec_vendor",
     ":used_ids",
+    "../api:field_trials_view",
     "../api:rtc_error",
     "../api:rtp_parameters",
     "../api:rtp_transceiver_direction",
@@ -439,6 +441,24 @@ rtc_library("codec_vendor") {
     "../rtc_base:unique_id_generator",
     "//third_party/abseil-cpp/absl/algorithm:container",
     "//third_party/abseil-cpp/absl/strings",
+    "//third_party/abseil-cpp/absl/strings:string_view",
+  ]
+}
+
+rtc_library("typed_codec_vendor") {
+  visibility = [ ":*" ]
+  sources = [
+    "typed_codec_vendor.cc",
+    "typed_codec_vendor.h",
+  ]
+  deps = [
+    "../api:field_trials_view",
+    "../api:rtp_parameters",
+    "../api/audio_codecs:audio_codecs_api",
+    "../media:codec",
+    "../media:codec_list",
+    "../media:media_constants",
+    "../media:media_engine",
     "//third_party/abseil-cpp/absl/strings:string_view",
   ]
 }
@@ -2086,6 +2106,7 @@ if (rtc_include_tests && !build_with_chromium) {
       "../api:audio_options_api",
       "../api:candidate",
       "../api:dtls_transport_interface",
+      "../api:field_trials",
       "../api:ice_transport_factory",
       "../api:ice_transport_interface",
       "../api:libjingle_peerconnection_api",

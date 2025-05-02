@@ -29,6 +29,8 @@
 #include "absl/strings/string_view.h"
 #include "api/audio/audio_device.h"
 #include "api/audio_codecs/audio_codec_pair_id.h"
+#include "api/audio_codecs/audio_decoder_factory.h"
+#include "api/audio_codecs/audio_encoder_factory.h"
 #include "api/audio_options.h"
 #include "api/call/audio_sink.h"
 #include "api/crypto/crypto_options.h"
@@ -815,6 +817,12 @@ class FakeVoiceEngine : public VoiceEngineInterface {
   // TODO: https://issues.webrtc.org/360058654 - stop faking codecs here.
   const std::vector<Codec>& LegacySendCodecs() const override;
   const std::vector<Codec>& LegacyRecvCodecs() const override;
+  webrtc::AudioEncoderFactory* encoder_factory() const override {
+    return nullptr;
+  }
+  webrtc::AudioDecoderFactory* decoder_factory() const override {
+    return nullptr;
+  }
   void SetCodecs(const std::vector<Codec>& codecs);
   void SetRecvCodecs(const std::vector<Codec>& codecs);
   void SetSendCodecs(const std::vector<Codec>& codecs);
