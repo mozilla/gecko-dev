@@ -39,7 +39,7 @@ class TestParser(unittest.TestCase):
             "A11Y_INSTANTIATED_FLAG": {
                 "record_in_processes": ["main", "content"],
                 "expires_in_version": "never",
-                "kind": "flag",
+                "kind": "boolean",
                 "description": "has accessibility support been instantiated",
                 "new_field": "Its a new field",
             }
@@ -52,7 +52,7 @@ class TestParser(unittest.TestCase):
             strict_type_checks=False,
         )
         self.assertEqual(hist.expiration(), "never")
-        self.assertEqual(hist.kind(), "flag")
+        self.assertEqual(hist.kind(), "boolean")
         self.assertEqual(hist.record_in_processes(), ["main", "content"])
 
     def test_non_numeric_expressions(self):
@@ -93,7 +93,7 @@ class TestParser(unittest.TestCase):
     def test_no_products(self):
         SAMPLE_HISTOGRAM = {
             "TEST_EMPTY_PRODUCTS": {
-                "kind": "flag",
+                "kind": "boolean",
                 "description": "sample",
             }
         }
@@ -105,7 +105,7 @@ class TestParser(unittest.TestCase):
             strict_type_checks=False,
         )
 
-        self.assertEqual(hist.kind(), "flag")
+        self.assertEqual(hist.kind(), "boolean")
         # bug 1486072: absent `product` key becomes None instead of ["all"]
         self.assertEqual(hist.products(), None)
 
