@@ -1611,10 +1611,8 @@ LIRGraph* GenerateLIR(MIRGenerator* mir) {
 
   IonRegisterAllocator allocator = mir->optimizationInfo().registerAllocator();
   switch (allocator) {
-    case RegisterAllocator_Backtracking:
-    case RegisterAllocator_Testbed: {
-      BacktrackingAllocator regalloc(mir, &lirgen, *lir,
-                                     allocator == RegisterAllocator_Testbed);
+    case RegisterAllocator_Backtracking: {
+      BacktrackingAllocator regalloc(mir, &lirgen, *lir);
       if (!regalloc.go()) {
         return nullptr;
       }

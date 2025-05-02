@@ -18,7 +18,6 @@ namespace jit {
 // Possible register allocators which may be used.
 enum IonRegisterAllocator {
   RegisterAllocator_Backtracking,
-  RegisterAllocator_Testbed,
   RegisterAllocator_Simple,
 };
 
@@ -37,9 +36,6 @@ static inline mozilla::Maybe<IonRegisterAllocator> LookupRegisterAllocator(
     const char* name) {
   if (!strcmp(name, "backtracking")) {
     return mozilla::Some(RegisterAllocator_Backtracking);
-  }
-  if (!strcmp(name, "testbed")) {
-    return mozilla::Some(RegisterAllocator_Testbed);
   }
   if (!strcmp(name, "simple")) {
     return mozilla::Some(RegisterAllocator_Simple);

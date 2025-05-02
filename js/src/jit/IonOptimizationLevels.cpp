@@ -102,8 +102,6 @@ IonRegisterAllocator OptimizationInfo::registerAllocator() const {
       return RegisterAllocator_Backtracking;
     case 2:
       return RegisterAllocator_Simple;
-    case 3:
-      return RegisterAllocator_Testbed;
   }
   MOZ_CRASH("Unreachable");
 }

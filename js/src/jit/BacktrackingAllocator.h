@@ -672,9 +672,6 @@ class BacktrackingAllocator : protected RegisterAllocator {
   Vector<CodePosition, 12, SystemAllocPolicy> entryPositions;
   Vector<CodePosition, 12, SystemAllocPolicy> exitPositions;
 
-  // This flag is set when testing new allocator modifications.
-  bool testbed;
-
   using VirtualRegBitSet = SparseBitSet<BackgroundSystemAllocPolicy>;
   Vector<VirtualRegBitSet, 0, JitAllocPolicy> liveIn;
   Vector<VirtualRegister, 0, JitAllocPolicy> vregs;
@@ -939,10 +936,8 @@ class BacktrackingAllocator : protected RegisterAllocator {
   // Top level of the register allocation machinery, and the only externally
   // visible bit.
  public:
-  BacktrackingAllocator(MIRGenerator* mir, LIRGenerator* lir, LIRGraph& graph,
-                        bool testbed)
+  BacktrackingAllocator(MIRGenerator* mir, LIRGenerator* lir, LIRGraph& graph)
       : RegisterAllocator(mir, lir, graph),
-        testbed(testbed),
         liveIn(mir->alloc()),
         vregs(mir->alloc()),
         safepoints_(mir->alloc()),

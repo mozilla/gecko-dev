@@ -1558,12 +1558,6 @@ size_t BacktrackingAllocator::computeSpillWeight(LiveBundle* bundle) {
     }
   }
 
-  // Bundles with fixed uses are given a higher spill weight, since they must
-  // be allocated to a specific register.
-  if (testbed && fixed) {
-    usesTotal *= 2;
-  }
-
   // Compute spill weight as a use density, lowering the weight for long
   // lived bundles with relatively few uses.
   size_t lifetimeTotal = computePriority(bundle);
@@ -3096,15 +3090,6 @@ bool BacktrackingAllocator::trySplitAcrossHotcode(LiveBundle* bundle,
   }
   LiveBundle* preBundle = nullptr;
   LiveBundle* postBundle = nullptr;
-  LiveBundle* coldBundle = nullptr;
-
-  if (testbed) {
-    coldBundle = LiveBundle::FallibleNew(
-        alloc(), bundle->spillSet(), bundle->spillParent(), getNextBundleId());
-    if (!coldBundle) {
-      return false;
-    }
-  }
 
   // Accumulate the ranges of hot and cold code in the bundle. Note that
   // we are only comparing with the single hot range found, so the cold code
@@ -3122,46 +3107,32 @@ bool BacktrackingAllocator::trySplitAcrossHotcode(LiveBundle* bundle,
     }
 
     if (!coldPre.empty()) {
-      if (testbed) {
-        if (!coldBundle->addRangeAndDistributeUses(alloc(), range, coldPre.from,
-                                                   coldPre.to)) {
-          return false;
-        }
-      } else {
+      if (!preBundle) {
+        preBundle =
+            LiveBundle::FallibleNew(alloc(), bundle->spillSet(),
+                                    bundle->spillParent(), getNextBundleId());
         if (!preBundle) {
-          preBundle =
-              LiveBundle::FallibleNew(alloc(), bundle->spillSet(),
-                                      bundle->spillParent(), getNextBundleId());
-          if (!preBundle) {
-            return false;
-          }
-        }
-        if (!preBundle->addRangeAndDistributeUses(alloc(), range, coldPre.from,
-                                                  coldPre.to)) {
           return false;
         }
+      }
+      if (!preBundle->addRangeAndDistributeUses(alloc(), range, coldPre.from,
+                                                coldPre.to)) {
+        return false;
       }
     }
 
     if (!coldPost.empty()) {
-      if (testbed) {
-        if (!coldBundle->addRangeAndDistributeUses(
-                alloc(), range, coldPost.from, coldPost.to)) {
-          return false;
-        }
-      } else {
+      if (!postBundle) {
+        postBundle =
+            LiveBundle::FallibleNew(alloc(), bundle->spillSet(),
+                                    bundle->spillParent(), getNextBundleId());
         if (!postBundle) {
-          postBundle =
-              LiveBundle::FallibleNew(alloc(), bundle->spillSet(),
-                                      bundle->spillParent(), getNextBundleId());
-          if (!postBundle) {
-            return false;
-          }
-        }
-        if (!postBundle->addRangeAndDistributeUses(
-                alloc(), range, coldPost.from, coldPost.to)) {
           return false;
         }
+      }
+      if (!postBundle->addRangeAndDistributeUses(
+              alloc(), range, coldPost.from, coldPost.to)) {
+        return false;
       }
     }
   }
@@ -3173,19 +3144,12 @@ bool BacktrackingAllocator::trySplitAcrossHotcode(LiveBundle* bundle,
     return false;
   }
 
-  if (testbed) {
-    MOZ_ASSERT(coldBundle->numRanges() != 0);
-    if (!newBundles.append(coldBundle)) {
-      return false;
-    }
-  } else {
-    MOZ_ASSERT(preBundle || postBundle);
-    if (preBundle && !newBundles.append(preBundle)) {
-      return false;
-    }
-    if (postBundle && !newBundles.append(postBundle)) {
-      return false;
-    }
+  MOZ_ASSERT(preBundle || postBundle);
+  if (preBundle && !newBundles.append(preBundle)) {
+    return false;
+  }
+  if (postBundle && !newBundles.append(postBundle)) {
+    return false;
   }
 
   *success = true;

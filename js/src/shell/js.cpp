@@ -12690,7 +12690,6 @@ bool InitOptionParser(OptionParser& op) {
           "Specify Ion register allocation:\n"
           "  backtracking: Priority based backtracking register allocation "
           "(default)\n"
-          "  testbed: Backtracking allocator with experimental features\n"
           "  simple: Simple register allocator optimized for compile time") ||
       !op.addBoolOption(
           '\0', "ion-eager",
@@ -12718,7 +12717,7 @@ bool InitOptionParser(OptionParser& op) {
                         "Always baseline-compile methods") ||
 #ifdef ENABLE_PORTABLE_BASELINE_INTERP
       !op.addBoolOption('\0', "portable-baseline-eager",
-                        "Always use the porbale baseline interpreter") ||
+                        "Always use the portable baseline interpreter") ||
       !op.addBoolOption('\0', "portable-baseline",
                         "Enable Portable Baseline Interpreter (default)") ||
       !op.addBoolOption('\0', "no-portable-baseline",
@@ -13069,9 +13068,6 @@ bool SetGlobalOptionsPreJSInit(const OptionParser& op) {
         break;
       case jit::RegisterAllocator_Simple:
         JS::Prefs::setAtStartup_ion_regalloc(2);
-        break;
-      case jit::RegisterAllocator_Testbed:
-        JS::Prefs::setAtStartup_ion_regalloc(3);
         break;
     }
   }
