@@ -1497,7 +1497,10 @@ RefPtr<GenericPromise> ServiceWorkerPrivate::GetIdlePromise() {
   mIdlePromiseObtained = true;
 #endif
 
-  return mIdlePromiseHolder.Ensure(__func__);
+  RefPtr<GenericPromise> promise = mIdlePromiseHolder.Ensure(__func__);
+  mIdlePromiseHolder.UseDirectTaskDispatch(__func__);
+
+  return promise;
 }
 
 namespace {
