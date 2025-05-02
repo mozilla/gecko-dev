@@ -9,6 +9,8 @@ extern crate byteorder;
 #[cfg(any(target_os = "macos", target_os = "ios"))]
 #[macro_use]
 extern crate core_foundation;
+#[macro_use]
+extern crate cstr;
 extern crate env_logger;
 #[cfg(any(target_os = "macos", target_os = "ios"))]
 #[macro_use]
@@ -23,13 +25,17 @@ extern crate rsclientcerts;
 extern crate sha2;
 #[cfg(all(target_os = "windows", not(target_arch = "aarch64")))]
 extern crate winapi;
+#[macro_use]
 extern crate xpcom;
 
+use nserror::{nsresult, NS_OK};
 use pkcs11_bindings::*;
 use rsclientcerts::manager::Manager;
 use std::convert::TryInto;
+use std::os::raw::c_char;
 use std::sync::Mutex;
 use std::thread;
+use xpcom::interfaces::{nsIObserverService, nsISupports};
 
 #[cfg(target_os = "android")]
 mod backend_android;
@@ -93,6 +99,28 @@ macro_rules! log_with_thread_id {
     };
 }
 
+#[xpcom(implement(nsIObserver), nonatomic)]
+struct ShutdownObserver {}
+
+impl ShutdownObserver {
+    xpcom_method!(observe => Observe(_subject: *const nsISupports, topic: *const c_char, _data: *const u16));
+    /// Ensure any OS-backed resources are released on the proper thread before all non-main
+    /// threads are shut down. Also remove this observer.
+    fn observe(
+        &self,
+        _subject: &nsISupports,
+        topic: *const c_char,
+        _data: *const u16,
+    ) -> Result<(), nsresult> {
+        // Ignore errors since we're shutting down and there's no sensible way to handle them.
+        let _ = C_Finalize(std::ptr::null_mut());
+        if let Ok(service) = xpcom::components::Observer::service::<nsIObserverService>() {
+            let _ = unsafe { service.RemoveObserver(self.coerce(), topic) };
+        }
+        Ok(())
+    }
+}
+
 /// This gets called to initialize the module. For this implementation, this consists of
 /// instantiating the `Manager`.
 extern "C" fn C_Initialize(_pInitArgs: CK_VOID_PTR) -> CK_RV {
@@ -124,6 +152,27 @@ extern "C" fn C_Initialize(_pInitArgs: CK_VOID_PTR) -> CK_RV {
         }
         None => {}
     }
+
+    // Register an observer to release any OS-backed resources on the background thread at shutdown,
+    // before the background thread goes away. Ideally this will have already happened due to
+    // nsNSSComponent shutting down, but if there are any lingering network connections, this module
+    // may not have been unloaded yet.
+    if let Ok(main_thread) = moz_task::get_main_thread() {
+        moz_task::spawn_onto("register shutdown observer", main_thread.coerce(), async {
+            if let Ok(service) = xpcom::components::Observer::service::<nsIObserverService>() {
+                let observer = ShutdownObserver::allocate(InitShutdownObserver {});
+                unsafe {
+                    let _ = service.AddObserver(
+                        observer.coerce(),
+                        cstr!("xpcom-shutdown").as_ptr(),
+                        false,
+                    );
+                };
+            }
+        })
+        .detach();
+    }
+
     log_with_thread_id!(debug, "C_Initialize: CKR_OK");
     CKR_OK
 }
