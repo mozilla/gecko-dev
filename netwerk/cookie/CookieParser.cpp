@@ -744,12 +744,9 @@ bool CookieParser::GetExpiry(CookieStruct& aCookieData,
     // Because if current time be set in the future, but the cookie expire
     // time be set less than current time and more than server time.
     // The cookie item have to be used to the expired cookie.
-    if (maxageCap) {
-      aCookieData.expiry() = std::min(expires, aCurrentTime + maxageCap);
-    } else {
-      aCookieData.expiry() = expires;
-    }
 
+    aCookieData.expiry() =
+        CookieCommons::MaybeReduceExpiry(aCurrentTime, expires);
     return false;
   }
 

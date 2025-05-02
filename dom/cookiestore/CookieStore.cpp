@@ -30,6 +30,15 @@ namespace mozilla::dom {
 
 namespace {
 
+int64_t ComputeExpiry(const CookieInit& aOptions) {
+  if (aOptions.mExpires.IsNull()) {  // Session cookie
+    return INT64_MAX;
+  }
+
+  return CookieCommons::MaybeReduceExpiry(
+      PR_Now() / PR_USEC_PER_SEC, aOptions.mExpires.Value() / PR_MSEC_PER_SEC);
+}
+
 int32_t SameSiteToConst(const CookieSameSite& aSameSite) {
   switch (aSameSite) {
     case CookieSameSite::Strict:
@@ -442,10 +451,7 @@ already_AddRefed<Promise> CookieStore::Set(const CookieInit& aOptions,
                 isOn3PCBExceptionList, nsString(aOptions.mName),
                 nsString(aOptions.mValue),
                 // If expires is not set, it's a session cookie.
-                aOptions.mExpires.IsNull(),
-                aOptions.mExpires.IsNull()
-                    ? INT64_MAX
-                    : static_cast<int64_t>(aOptions.mExpires.Value() / 1000),
+                aOptions.mExpires.IsNull(), ComputeExpiry(aOptions),
                 aOptions.mDomain, path, SameSiteToConst(aOptions.mSameSite),
                 aOptions.mPartitioned, operationID);
         if (NS_WARN_IF(!ipcPromise)) {

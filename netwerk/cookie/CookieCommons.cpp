@@ -1059,5 +1059,17 @@ void CookieCommons::GetServerDateHeader(nsIChannel* aChannel,
   Unused << channel->GetResponseHeader("Date"_ns, aServerDateHeader);
 }
 
+// static
+int64_t CookieCommons::MaybeReduceExpiry(int64_t aCurrentTimeInSec,
+                                         int64_t aExpiryInSec) {
+  int64_t maxageCap = StaticPrefs::network_cookie_maxageCap();
+
+  if (maxageCap) {
+    aExpiryInSec = std::min(aExpiryInSec, aCurrentTimeInSec + maxageCap);
+  }
+
+  return aExpiryInSec;
+}
+
 }  // namespace net
 }  // namespace mozilla
