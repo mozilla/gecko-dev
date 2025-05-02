@@ -53,7 +53,9 @@ tasks:
                 ./mach update-test
 
     linux64-firefox:
-        worker-type: t-linux-talos-1804
+        worker-type: t-linux-xlarge-source
+        worker:
+            docker-image: {in-tree: ubuntu2404-test}
         description: Test updates on Linux
         run-on-projects: []
         treeherder:
@@ -63,4 +65,4 @@ tasks:
             using: run-task
             cwd: "{checkout}"
             command: >-
-                ./mach update-test
+                . $HOME/scripts/xvfb.sh && start_xvfb '1600x1200x24' 0 && ./mach update-test
