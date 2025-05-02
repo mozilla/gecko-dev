@@ -425,8 +425,6 @@ RtpVideoSender::RtpVideoSender(
       rtp_config_(rtp_config),
       transport_(transport),
       independent_frame_ids_(
-          !env.field_trials().IsDisabled(
-              "WebRTC-Video-SimulcastIndependentFrameIds") &&
           env.field_trials().IsDisabled("WebRTC-GenericDescriptorAuth")),
       transport_overhead_bytes_per_packet_(0),
       encoder_target_rate_bps_(0),
