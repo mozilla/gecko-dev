@@ -340,27 +340,12 @@ class FakeIceTransport : public IceTransportInternal {
       return -1;
     }
 
-    if (packet_send_filter_func_ &&
-        packet_send_filter_func_(data, len, options, flags)) {
-      RTC_DLOG(LS_INFO) << name_ << ": dropping packet len=" << len
-                        << ", data[0]: " << static_cast<uint8_t>(data[0]);
-    } else {
-      send_packet_.AppendData(data, len);
-      if (!combine_outgoing_packets_ || send_packet_.size() > len) {
-        rtc::CopyOnWriteBuffer packet(std::move(send_packet_));
-        if (async_) {
-          network_thread_->PostDelayedTask(
-              SafeTask(task_safety_.flag(),
-                       [this, packet] {
-                         RTC_DCHECK_RUN_ON(network_thread_);
-                         FakeIceTransport::SendPacketInternal(packet);
-                       }),
-              TimeDelta::Millis(async_delay_ms_));
-        } else {
-          SendPacketInternal(packet);
-        }
-      }
+    send_packet_.AppendData(data, len);
+    if (!combine_outgoing_packets_ || send_packet_.size() > len) {
+      rtc::CopyOnWriteBuffer packet(std::move(send_packet_));
+      SendPacketInternal(packet, options, flags);
     }
+
     rtc::SentPacket sent_packet(options.packet_id, rtc::TimeMillis());
     SignalSentPacket(this, sent_packet);
     return static_cast<int>(len);
@@ -451,7 +436,10 @@ class FakeIceTransport : public IceTransportInternal {
     msg->AddFingerprint();
     rtc::ByteBufferWriter buf;
     msg->Write(&buf);
-    SendPacketInternal(rtc::CopyOnWriteBuffer(buf.DataView()));
+    rtc::PacketOptions options;
+    options.info_signaled_after_sent.packet_type =
+        rtc::PacketType::kIceConnectivityCheck;
+    SendPacketInternal(rtc::CopyOnWriteBuffer(buf.DataView()), options, 0);
     return true;
   }
 
@@ -485,7 +473,10 @@ class FakeIceTransport : public IceTransportInternal {
     msg->AddFingerprint();
     rtc::ByteBufferWriter buf;
     msg->Write(&buf);
-    SendPacketInternal(rtc::CopyOnWriteBuffer(buf.DataView()));
+    rtc::PacketOptions options;
+    options.info_signaled_after_sent.packet_type =
+        rtc::PacketType::kIceConnectivityCheckResponse;
+    SendPacketInternal(rtc::CopyOnWriteBuffer(buf.DataView()), options, 0);
     return true;
   }
 
@@ -512,11 +503,33 @@ class FakeIceTransport : public IceTransportInternal {
     SignalReceivingState(this);
   }
 
-  void SendPacketInternal(const rtc::CopyOnWriteBuffer& packet)
+  void SendPacketInternal(const rtc::CopyOnWriteBuffer& packet,
+                          const rtc::PacketOptions& options,
+                          int flags)
       RTC_EXCLUSIVE_LOCKS_REQUIRED(network_thread_) {
-    if (dest_) {
-      last_sent_packet_ = packet;
-      dest_->ReceivePacketInternal(packet);
+    last_sent_packet_ = packet;
+    if (packet_send_filter_func_ &&
+        packet_send_filter_func_(packet.data<char>(), packet.size(), options,
+                                 flags)) {
+      RTC_DLOG(LS_INFO) << name_ << ": dropping packet len=" << packet.size()
+                        << ", data[0]: "
+                        << static_cast<uint8_t>(packet.data()[0]);
+      return;
+    }
+    if (async_) {
+      network_thread_->PostDelayedTask(
+          SafeTask(task_safety_.flag(),
+                   [this, packet] {
+                     RTC_DCHECK_RUN_ON(network_thread_);
+                     if (dest_) {
+                       dest_->ReceivePacketInternal(packet);
+                     }
+                   }),
+          TimeDelta::Millis(async_delay_ms_));
+    } else {
+      if (dest_) {
+        dest_->ReceivePacketInternal(packet);
+      }
     }
   }
 
@@ -542,6 +555,7 @@ class FakeIceTransport : public IceTransportInternal {
       }
       return;
     }
+
     if (packet_recv_filter_func_ && packet_recv_filter_func_(packet, now)) {
       RTC_DLOG(LS_INFO) << name_
                         << ": dropping packet at receiver len=" << packet.size()

@@ -109,15 +109,18 @@ class DtlsTestClient : public sigslot::has_slots<> {
   void SetupMaxProtocolVersion(rtc::SSLProtocolVersion version) {
     ssl_max_version_ = version;
   }
+  void set_async_delay(int async_delay_ms) { async_delay_ms_ = async_delay_ms; }
+
   // Set up fake ICE transport and real DTLS transport under test.
-  void SetupTransports(IceRole role, int async_delay_ms = 0) {
+  void SetupTransports(IceRole role) {
     dtls_transport_ = nullptr;
     fake_ice_transport_ = nullptr;
 
     fake_ice_transport_.reset(
         new FakeIceTransport(absl::StrCat("fake-", name_), 0));
-    fake_ice_transport_->SetAsync(true);
-    fake_ice_transport_->SetAsyncDelay(async_delay_ms);
+    fake_ice_transport_->set_rtt_estimate(
+        async_delay_ms_ ? std::optional<int>(async_delay_ms_) : std::nullopt,
+        /* async= */ true);
     fake_ice_transport_->SetIceRole(role);
     // Hook the raw packets so that we can verify they are encrypted.
     fake_ice_transport_->RegisterReceivedPacketCallback(
@@ -365,6 +368,7 @@ class DtlsTestClient : public sigslot::has_slots<> {
   int received_dtls_server_hellos_ = 0;
   rtc::SentPacket sent_packet_;
   absl::AnyInvocable<void()> writable_func_;
+  int async_delay_ms_ = 100;
 };
 
 // Base class for DtlsTransportTest and DtlsEventOrderingTest, which
@@ -628,22 +632,20 @@ class DtlsTransportVersionTest
   // - drop packets as specified in `packets_to_drop`
   std::pair</* dtls_version_bytes*/ int, std::vector<HandshakeTestEvent>>
   RunHandshake(std::set<unsigned> packets_to_drop) {
-    std::vector<HandshakeTestEvent> events;
-    auto start_time_ns = fake_clock_.TimeNanos();
+    start_time_ns_ = fake_clock_.TimeNanos();
     client1_.fake_ice_transport()->set_rtt_estimate(50, true);
     client2_.fake_ice_transport()->set_rtt_estimate(50, true);
 
+    std::vector<HandshakeTestEvent> events;
     client1_.fake_ice_transport()->set_packet_recv_filter(
         [&](auto packet, auto timestamp_us) {
           events.push_back(EV_CLIENT_RECV);
-          return LogRecv("client", packet,
-                         (timestamp_us - start_time_ns / 1000) / 1000);
+          return LogRecv("client", packet);
         });
     client2_.fake_ice_transport()->set_packet_recv_filter(
         [&](auto packet, auto timestamp_us) {
           events.push_back(EV_SERVER_RECV);
-          return LogRecv("server", packet,
-                         (timestamp_us - start_time_ns / 1000) / 1000);
+          return LogRecv("server", packet);
         });
     client1_.set_writable_callback(
         [&]() { events.push_back(EV_CLIENT_WRITABLE); });
@@ -653,6 +655,12 @@ class DtlsTransportVersionTest
     unsigned packet_num = 0;
     client1_.fake_ice_transport()->set_packet_send_filter(
         [&](auto data, auto len, auto options, auto flags) {
+          auto packet_type = options.info_signaled_after_sent.packet_type;
+          if (packet_type == rtc::PacketType::kIceConnectivityCheck ||
+              packet_type == rtc::PacketType::kIceConnectivityCheckResponse) {
+            // Ignore stun pings for now.
+            return LogSend("client-stun", /* drop= */ false, data, len);
+          }
           bool drop = packets_to_drop.find(packet_num) != packets_to_drop.end();
           packet_num++;
           if (!drop) {
@@ -660,11 +668,16 @@ class DtlsTransportVersionTest
           } else {
             events.push_back(EV_CLIENT_SEND_DROPPED);
           }
-          auto diff_ms = (fake_clock_.TimeNanos() - start_time_ns) / 1000000;
-          return LogSend("client", diff_ms, drop, data, len);
+          return LogSend("client", drop, data, len);
         });
     client2_.fake_ice_transport()->set_packet_send_filter(
         [&](auto data, auto len, auto options, auto flags) {
+          auto packet_type = options.info_signaled_after_sent.packet_type;
+          if (packet_type == rtc::PacketType::kIceConnectivityCheck ||
+              packet_type == rtc::PacketType::kIceConnectivityCheckResponse) {
+            // Ignore stun pings for now.
+            return LogSend("server-stun", /* drop= */ false, data, len);
+          }
           bool drop = packets_to_drop.find(packet_num) != packets_to_drop.end();
           packet_num++;
           if (!drop) {
@@ -672,8 +685,7 @@ class DtlsTransportVersionTest
           } else {
             events.push_back(EV_SERVER_SEND_DROPPED);
           }
-          auto diff_ms = (fake_clock_.TimeNanos() - start_time_ns) / 1000000;
-          return LogSend("server", diff_ms, drop, data, len);
+          return LogSend("server", drop, data, len);
         });
 
     EXPECT_TRUE(client1_.ConnectIceTransport(&client2_));
@@ -723,9 +735,10 @@ class DtlsTransportVersionTest
   }
 
  private:
-  bool LogRecv(absl::string_view name,
-               const rtc::CopyOnWriteBuffer& packet,
-               uint64_t timestamp_ms) {
+  uint64_t start_time_ns_;
+
+  bool LogRecv(absl::string_view name, const rtc::CopyOnWriteBuffer& packet) {
+    auto timestamp_ms = (fake_clock_.TimeNanos() - start_time_ns_) / 1000000;
     RTC_LOG(LS_INFO) << "time=" << timestamp_ms << " : " << name
                      << ": ReceivePacket packet len=" << packet.size()
                      << ", data[0]: " << static_cast<uint8_t>(packet.data()[0]);
@@ -733,10 +746,10 @@ class DtlsTransportVersionTest
   }
 
   bool LogSend(absl::string_view name,
-               uint64_t timestamp_ms,
                bool drop,
                const char* data,
                size_t len) {
+    auto timestamp_ms = (fake_clock_.TimeNanos() - start_time_ns_) / 1000000;
     if (drop) {
       RTC_LOG(LS_INFO) << "time=" << timestamp_ms << " : " << name
                        << ": dropping packet len=" << len
@@ -999,6 +1012,12 @@ TEST_F(DtlsTransportTest, TestRetransmissionSchedule) {
   MAYBE_SKIP_TEST(IsBoringSsl);
 
   PrepareDtls(rtc::KT_DEFAULT);
+
+  // This test is written with assumption of 0 delay
+  // which affect the hard coded schedule below.
+  client1_.set_async_delay(0);
+  client2_.set_async_delay(0);
+
   // Exchange fingerprints and set SSL roles.
   Negotiate();
 
@@ -1015,7 +1034,8 @@ TEST_F(DtlsTransportTest, TestRetransmissionSchedule) {
   // Wait for the first client hello to be sent.
   EXPECT_THAT(webrtc::WaitUntil(
                   [&] { return client1_.received_dtls_client_hellos(); }, Eq(1),
-                  {.timeout = webrtc::TimeDelta::Millis(kTimeout)}),
+                  {.timeout = webrtc::TimeDelta::Millis(kTimeout),
+                   .clock = &fake_clock_}),
               webrtc::IsRtcOk());
   EXPECT_FALSE(client1_.fake_ice_transport()->writable());
 
@@ -1073,12 +1093,8 @@ class DtlsEventOrderingTest
     // remote fingerprint on callee, but neither is writable and the caller
     // doesn't have the callee's fingerprint.
     PrepareDtls(rtc::KT_DEFAULT);
-    // Simulate packets being sent and arriving asynchronously.
-    // Otherwise the entire DTLS handshake would occur in one clock tick, and
-    // we couldn't inject method calls in the middle of it.
-    int simulated_delay_ms = 10;
-    client1_.SetupTransports(ICEROLE_CONTROLLING, simulated_delay_ms);
-    client2_.SetupTransports(ICEROLE_CONTROLLED, simulated_delay_ms);
+    client1_.SetupTransports(ICEROLE_CONTROLLING);
+    client2_.SetupTransports(ICEROLE_CONTROLLED);
     // Similar to how NegotiateOrdering works.
     client1_.dtls_transport()->SetDtlsRole(rtc::SSL_SERVER);
     client2_.dtls_transport()->SetDtlsRole(rtc::SSL_CLIENT);

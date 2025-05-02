@@ -2248,6 +2248,7 @@ void P2PTransportChannel::SetWritable(bool writable) {
 
   if (writable_ && selected_connection_ &&
       !dtls_stun_piggyback_callbacks_.empty()) {
+    // TODO(webrtc:367395350): Construct test that fail w/o this extra ping!
     // TODO(webrtc:367395350): Move this into DtlsTransport somehow.
     // Need to STUN ping here to get the last bit of the DTLS handshake across
     // as quickly as possible. Only done when DTLS-in-STUN is configured

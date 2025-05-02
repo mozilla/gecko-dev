@@ -60,10 +60,12 @@ namespace cricket {
 
 using ::testing::IsTrue;
 
-class DtlsIceIntegrationTest
-    : public ::testing::TestWithParam<
-          std::tuple<bool, bool, rtc::SSLProtocolVersion>>,
-      public sigslot::has_slots<> {
+class DtlsIceIntegrationTest : public ::testing::TestWithParam<std::tuple<
+                                   /* client_piggyback= */ bool,
+                                   /* server_piggyback= */ bool,
+                                   rtc::SSLProtocolVersion,
+                                   /* client_dtls_is_ice_controlling= */ bool>>,
+                               public sigslot::has_slots<> {
  public:
   void CandidateC2S(IceTransportInternal*, const Candidate& c) {
     thread_.PostTask([this, c = c]() { server_ice_->AddRemoteCandidate(c); });
@@ -123,12 +125,20 @@ class DtlsIceIntegrationTest
     // Setup ICE.
     client_ice_->SetIceParameters(client_ice_parameters_);
     client_ice_->SetRemoteIceParameters(server_ice_parameters_);
-    client_ice_->SetIceRole(ICEROLE_CONTROLLING);
+    if (std::get<3>(GetParam())) {
+      client_ice_->SetIceRole(ICEROLE_CONTROLLING);
+    } else {
+      client_ice_->SetIceRole(ICEROLE_CONTROLLED);
+    }
     client_ice_->SignalCandidateGathered.connect(
         this, &DtlsIceIntegrationTest::CandidateC2S);
     server_ice_->SetIceParameters(server_ice_parameters_);
     server_ice_->SetRemoteIceParameters(client_ice_parameters_);
-    server_ice_->SetIceRole(ICEROLE_CONTROLLED);
+    if (std::get<3>(GetParam())) {
+      server_ice_->SetIceRole(ICEROLE_CONTROLLED);
+    } else {
+      server_ice_->SetIceRole(ICEROLE_CONTROLLING);
+    }
     server_ice_->SignalCandidateGathered.connect(
         this, &DtlsIceIntegrationTest::CandidateS2C);
 
@@ -225,14 +235,10 @@ TEST_P(DtlsIceIntegrationTest, SmokeTest) {
 INSTANTIATE_TEST_SUITE_P(
     DtlsStunPiggybackingIntegrationTest,
     DtlsIceIntegrationTest,
-    ::testing::Values(std::make_tuple(false, false, rtc::SSL_PROTOCOL_DTLS_12),
-                      std::make_tuple(true, false, rtc::SSL_PROTOCOL_DTLS_12),
-                      std::make_tuple(false, true, rtc::SSL_PROTOCOL_DTLS_12),
-                      std::make_tuple(true, true, rtc::SSL_PROTOCOL_DTLS_12),
-
-                      std::make_tuple(false, false, rtc::SSL_PROTOCOL_DTLS_13),
-                      std::make_tuple(true, false, rtc::SSL_PROTOCOL_DTLS_13),
-                      std::make_tuple(false, true, rtc::SSL_PROTOCOL_DTLS_13),
-                      std::make_tuple(true, true, rtc::SSL_PROTOCOL_DTLS_13)));
+    ::testing::Combine(testing::Bool(),
+                       testing::Bool(),
+                       testing::Values(rtc::SSL_PROTOCOL_DTLS_12,
+                                       rtc::SSL_PROTOCOL_DTLS_13),
+                       testing::Bool()));
 
 }  // namespace cricket
