@@ -29,7 +29,7 @@ figma.connect(
         description=${props.labelProps.description}
         label=${props.labelProps.label}
         support-page=${props.labelProps.supportPage}
-        iconcrc=${props.labelProps.iconSrc}
+        iconsrc=${props.labelProps.iconSrc}
       ></moz-checkbox>
     `,
   }
