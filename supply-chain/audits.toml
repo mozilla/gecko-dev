@@ -6802,7 +6802,7 @@ end = "2025-05-31"
 criteria = "safe-to-deploy"
 user-id = 3618 # David Tolnay (dtolnay)
 start = "2019-02-28"
-end = "2024-04-25"
+end = "2026-04-30"
 
 [[trusted.serde_repr]]
 criteria = "safe-to-deploy"

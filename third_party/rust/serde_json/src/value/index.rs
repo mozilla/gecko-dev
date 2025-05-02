@@ -12,9 +12,9 @@ use core::ops;
 /// trait is implemented for strings which are used as the index into a JSON
 /// map, and for `usize` which is used as the index into a JSON array.
 ///
-/// [`get`]: ../enum.Value.html#method.get
-/// [`get_mut`]: ../enum.Value.html#method.get_mut
-/// [square-bracket indexing operator]: ../enum.Value.html#impl-Index%3CI%3E
+/// [`get`]: Value::get
+/// [`get_mut`]: Value::get_mut
+/// [square-bracket indexing operator]: Value#impl-Index%3CI%3E-for-Value
 ///
 /// This trait is sealed and cannot be implemented for types outside of
 /// `serde_json`.
@@ -137,7 +137,7 @@ mod private {
     impl Sealed for usize {}
     impl Sealed for str {}
     impl Sealed for alloc::string::String {}
-    impl<'a, T> Sealed for &'a T where T: ?Sized + Sealed {}
+    impl<T> Sealed for &T where T: ?Sized + Sealed {}
 }
 
 /// Used in panic messages.

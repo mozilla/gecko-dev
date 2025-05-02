@@ -261,9 +261,9 @@ impl serde::Serializer for Serializer {
         })
     }
 
-    fn serialize_map(self, _len: Option<usize>) -> Result<Self::SerializeMap> {
+    fn serialize_map(self, len: Option<usize>) -> Result<Self::SerializeMap> {
         Ok(SerializeMap::Map {
-            map: Map::new(),
+            map: Map::with_capacity(len.unwrap_or(0)),
             next_key: None,
         })
     }
@@ -486,39 +486,47 @@ impl serde::Serializer for MapKeySerializer {
     }
 
     fn serialize_bool(self, value: bool) -> Result<String> {
-        Ok(value.to_string())
+        Ok(if value { "true" } else { "false" }.to_owned())
     }
 
     fn serialize_i8(self, value: i8) -> Result<String> {
-        Ok(value.to_string())
+        Ok(itoa::Buffer::new().format(value).to_owned())
     }
 
     fn serialize_i16(self, value: i16) -> Result<String> {
-        Ok(value.to_string())
+        Ok(itoa::Buffer::new().format(value).to_owned())
     }
 
     fn serialize_i32(self, value: i32) -> Result<String> {
-        Ok(value.to_string())
+        Ok(itoa::Buffer::new().format(value).to_owned())
     }
 
     fn serialize_i64(self, value: i64) -> Result<String> {
-        Ok(value.to_string())
+        Ok(itoa::Buffer::new().format(value).to_owned())
+    }
+
+    fn serialize_i128(self, value: i128) -> Result<String> {
+        Ok(itoa::Buffer::new().format(value).to_owned())
     }
 
     fn serialize_u8(self, value: u8) -> Result<String> {
-        Ok(value.to_string())
+        Ok(itoa::Buffer::new().format(value).to_owned())
     }
 
     fn serialize_u16(self, value: u16) -> Result<String> {
-        Ok(value.to_string())
+        Ok(itoa::Buffer::new().format(value).to_owned())
     }
 
     fn serialize_u32(self, value: u32) -> Result<String> {
-        Ok(value.to_string())
+        Ok(itoa::Buffer::new().format(value).to_owned())
     }
 
     fn serialize_u64(self, value: u64) -> Result<String> {
-        Ok(value.to_string())
+        Ok(itoa::Buffer::new().format(value).to_owned())
+    }
+
+    fn serialize_u128(self, value: u128) -> Result<String> {
+        Ok(itoa::Buffer::new().format(value).to_owned())
     }
 
     fn serialize_f32(self, value: f32) -> Result<String> {

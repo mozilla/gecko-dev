@@ -112,7 +112,7 @@ pub use crate::raw::{to_raw_value, RawValue};
 /// Represents any valid JSON value.
 ///
 /// See the [`serde_json::value` module documentation](self) for usage examples.
-#[derive(Clone, Eq, PartialEq)]
+#[derive(Clone, Eq, PartialEq, Hash)]
 pub enum Value {
     /// Represents a JSON null value.
     ///
@@ -860,6 +860,32 @@ impl Value {
     /// ```
     pub fn take(&mut self) -> Value {
         mem::replace(self, Value::Null)
+    }
+
+    /// Reorders the entries of all `Value::Object` nested within this JSON
+    /// value according to `str`'s usual ordering.
+    ///
+    /// If serde_json's "preserve_order" feature is not enabled, this method
+    /// does no work because all JSON maps are always kept in a sorted state.
+    ///
+    /// If serde_json's "preserve_order" feature is enabled, this method
+    /// destroys the original source order or insertion order of the JSON
+    /// objects in favor of an alphanumerical order that matches how a BTreeMap
+    /// with the same contents would be ordered.
+    pub fn sort_all_objects(&mut self) {
+        #[cfg(feature = "preserve_order")]
+        {
+            match self {
+                Value::Object(map) => {
+                    map.sort_keys();
+                    map.values_mut().for_each(Value::sort_all_objects);
+                }
+                Value::Array(list) => {
+                    list.iter_mut().for_each(Value::sort_all_objects);
+                }
+                _ => {}
+            }
+        }
     }
 }
 
