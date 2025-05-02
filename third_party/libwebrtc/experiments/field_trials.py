@@ -188,6 +188,9 @@ ACTIVE_FIELD_TRIALS: FrozenSet[FieldTrial] = frozenset([
     FieldTrial('WebRTC-IceHandshakeDtls',
                367395350,
                date(2026, 1, 1)),
+    FieldTrial('WebRTC-H265-QualityScaling',
+               402154973,
+               date(2026, 1, 1)),
     # keep-sorted end
 ])  # yapf: disable
 

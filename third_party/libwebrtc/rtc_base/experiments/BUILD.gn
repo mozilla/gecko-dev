@@ -66,6 +66,7 @@ rtc_library("quality_scaling_experiment") {
     "../../api:field_trials_view",
     "../../api/transport:field_trial_based_config",
     "../../api/video_codecs:video_codecs_api",
+    "../../rtc_base/experiments:field_trial_parser",
     "//third_party/abseil-cpp/absl/strings",
   ]
 }
