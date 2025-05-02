@@ -12,7 +12,6 @@
 
 #include <stdint.h>
 
-#include <algorithm>
 #include <cstddef>
 #include <functional>
 #include <iterator>
@@ -29,7 +28,6 @@
 #include "api/audio_codecs/audio_codec_pair_id.h"
 #include "api/audio_options.h"
 #include "api/crypto/crypto_options.h"
-#include "api/field_trials_view.h"
 #include "api/jsep.h"
 #include "api/media_types.h"
 #include "api/rtc_error.h"
@@ -121,7 +119,8 @@ RtpTransceiver::RtpTransceiver(cricket::MediaType media_type,
     : thread_(GetCurrentTaskQueueOrThread()),
       unified_plan_(false),
       media_type_(media_type),
-      context_(context) {
+      context_(context),
+      codec_vendor_(context->media_engine(), /* use_rtx= */ false) {
   RTC_DCHECK(media_type == cricket::MEDIA_TYPE_AUDIO ||
              media_type == cricket::MEDIA_TYPE_VIDEO);
   RTC_DCHECK(context_);
@@ -140,6 +139,7 @@ RtpTransceiver::RtpTransceiver(
       context_(context),
       header_extensions_to_negotiate_(
           std::move(header_extensions_to_negotiate)),
+      codec_vendor_(context->media_engine(), context->use_rtx()),
       on_negotiation_needed_(std::move(on_negotiation_needed)) {
   RTC_DCHECK(context_);
   RTC_DCHECK(media_type_ == cricket::MEDIA_TYPE_AUDIO ||
@@ -147,8 +147,8 @@ RtpTransceiver::RtpTransceiver(
   RTC_DCHECK_EQ(sender->media_type(), receiver->media_type());
   sender->internal()->SetSendCodecs(
       sender->media_type() == cricket::MEDIA_TYPE_VIDEO
-          ? media_engine()->video().send_codecs(false)
-          : media_engine()->voice().send_codecs());
+          ? codec_vendor_.video_send_codecs().codecs()
+          : codec_vendor_.audio_send_codecs().codecs());
   senders_.push_back(sender);
   receivers_.push_back(receiver);
 
@@ -402,8 +402,8 @@ void RtpTransceiver::AddSender(
 
   std::vector<cricket::Codec> send_codecs =
       media_type() == cricket::MEDIA_TYPE_VIDEO
-          ? media_engine()->video().send_codecs(false)
-          : media_engine()->voice().send_codecs();
+          ? codec_vendor_.video_send_codecs().codecs()
+          : codec_vendor_.audio_send_codecs().codecs();
   sender->internal()->SetSendCodecs(send_codecs);
   senders_.push_back(sender);
 }
@@ -679,11 +679,11 @@ RTCError RtpTransceiver::UpdateCodecPreferencesCaches(
   // Get codec capabilities from media engine.
   std::vector<cricket::Codec> send_codecs, recv_codecs;
   if (media_type_ == cricket::MEDIA_TYPE_AUDIO) {
-    send_codecs = media_engine()->voice().send_codecs();
-    recv_codecs = media_engine()->voice().recv_codecs();
+    send_codecs = codec_vendor_.audio_send_codecs().codecs();
+    recv_codecs = codec_vendor_.audio_recv_codecs().codecs();
   } else if (media_type_ == cricket::MEDIA_TYPE_VIDEO) {
-    send_codecs = media_engine()->video().send_codecs();
-    recv_codecs = media_engine()->video().recv_codecs(context()->use_rtx());
+    send_codecs = codec_vendor_.video_send_codecs().codecs();
+    recv_codecs = codec_vendor_.video_recv_codecs().codecs();
   }
   RTCError error = VerifyCodecPreferences(codecs, send_codecs, recv_codecs);
   if (!error.ok()) {

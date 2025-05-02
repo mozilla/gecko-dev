@@ -10,6 +10,17 @@
 
 #include "media/base/media_engine.h"
 
+#include <cstdint>
+#include <optional>
+#include <vector>
+
+#include "api/audio/audio_device.h"
+#include "api/rtp_parameters.h"
+#include "api/rtp_transceiver_direction.h"
+#include "api/scoped_refptr.h"
+#include "call/audio_state.h"
+#include "media/base/codec.h"
+#include "rtc_base/system/file_wrapper.h"
 #include "test/gmock.h"
 #include "test/gtest.h"
 
@@ -70,8 +81,8 @@ class MostlyMockVoiceEngineInterface : public VoiceEngineInterface {
               GetAudioState,
               (),
               (const, override));
-  MOCK_METHOD(std::vector<Codec>&, send_codecs, (), (const, override));
-  MOCK_METHOD(std::vector<Codec>&, recv_codecs, (), (const, override));
+  MOCK_METHOD(std::vector<Codec>&, LegacySendCodecs, (), (const, override));
+  MOCK_METHOD(std::vector<Codec>&, LegacyRecvCodecs, (), (const, override));
   MOCK_METHOD(bool,
               StartAecDump,
               (webrtc::FileWrapper file, int64_t max_size_bytes),

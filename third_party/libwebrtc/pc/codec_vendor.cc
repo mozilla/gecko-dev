@@ -26,6 +26,7 @@
 #include "api/rtc_error.h"
 #include "api/rtp_parameters.h"
 #include "api/rtp_transceiver_direction.h"
+#include "call/payload_type.h"
 #include "media/base/codec.h"
 #include "media/base/codec_comparators.h"
 #include "media/base/codec_list.h"
@@ -39,6 +40,7 @@
 #include "rtc_base/checks.h"
 #include "rtc_base/logging.h"
 #include "rtc_base/string_encode.h"
+#include "rtc_base/strings/string_builder.h"
 #include "rtc_base/unique_id_generator.h"
 
 #ifdef RTC_ENABLE_H265
@@ -771,21 +773,23 @@ TypedCodecVendor::TypedCodecVendor(MediaEngineInterface* media_engine,
                                    MediaType type,
                                    bool is_sender,
                                    bool rtx_enabled) {
+  // TODO: https://issues.webrtc.org/360058654 - move codec selection here
+  // when field trial WebRTC-PayloadTypesInTransport is enabled.
   if (type == MEDIA_TYPE_AUDIO) {
     if (is_sender) {
-      codecs_ =
-          CodecList::CreateFromTrustedData(media_engine->voice().send_codecs());
+      codecs_ = CodecList::CreateFromTrustedData(
+          media_engine->voice().LegacySendCodecs());
     } else {
-      codecs_ =
-          CodecList::CreateFromTrustedData(media_engine->voice().recv_codecs());
+      codecs_ = CodecList::CreateFromTrustedData(
+          media_engine->voice().LegacyRecvCodecs());
     }
   } else {
     if (is_sender) {
       codecs_ = CodecList::CreateFromTrustedData(
-          media_engine->video().send_codecs(rtx_enabled));
+          media_engine->video().LegacySendCodecs(rtx_enabled));
     } else {
       codecs_ = CodecList::CreateFromTrustedData(
-          media_engine->video().recv_codecs(rtx_enabled));
+          media_engine->video().LegacyRecvCodecs(rtx_enabled));
     }
   }
 }

@@ -39,6 +39,7 @@
 #include "media/base/media_config.h"
 #include "media/base/media_engine.h"
 #include "pc/channel_interface.h"
+#include "pc/codec_vendor.h"
 #include "pc/connection_context.h"
 #include "pc/proxy.h"
 #include "pc/rtp_receiver.h"
@@ -357,6 +358,7 @@ class RtpTransceiver : public RtpTransceiverInterface {
   // PushdownMediaDescription().
   cricket::RtpHeaderExtensions negotiated_header_extensions_
       RTC_GUARDED_BY(thread_);
+  cricket::CodecVendor codec_vendor_;
 
   const std::function<void()> on_negotiation_needed_;
 };

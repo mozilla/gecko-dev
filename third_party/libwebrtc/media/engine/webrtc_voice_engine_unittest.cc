@@ -205,7 +205,7 @@ std::vector<cricket::Codec> AddIdToCodecs(
 std::vector<cricket::Codec> ReceiveCodecsWithId(
     cricket::WebRtcVoiceEngine& engine) {
   webrtc::PayloadTypePicker pt_mapper;
-  std::vector<cricket::Codec> codecs = engine.recv_codecs();
+  std::vector<cricket::Codec> codecs = engine.LegacyRecvCodecs();
   return AddIdToCodecs(pt_mapper, std::move(codecs));
 }
 
@@ -907,7 +907,7 @@ class WebRtcVoiceEngineTestFake : public ::testing::TestWithParam<bool> {
         receive_channel_.get());
   }
   std::vector<cricket::Codec> SendCodecsWithId() {
-    std::vector<cricket::Codec> codecs = engine_->send_codecs();
+    std::vector<cricket::Codec> codecs = engine_->LegacySendCodecs();
     return AddIdToCodecs(pt_mapper_, std::move(codecs));
   }
 
@@ -3903,7 +3903,7 @@ TEST(WebRtcVoiceEngineTest, HasCorrectPayloadTypeMapping) {
         webrtc::MockAudioDecoderFactory::CreateUnusedFactory(), nullptr, apm,
         nullptr, env.field_trials());
     engine.Init();
-    for (const cricket::Codec& codec : engine.send_codecs()) {
+    for (const cricket::Codec& codec : engine.LegacySendCodecs()) {
       auto is_codec = [&codec](const char* name, int clockrate = 0) {
         return absl::EqualsIgnoreCase(codec.name, name) &&
                (clockrate == 0 || codec.clockrate == clockrate);
@@ -4083,7 +4083,7 @@ TEST(WebRtcVoiceEngineTest, CollectRecvCodecs) {
         &env.task_queue_factory(), adm.get(), unused_encoder_factory,
         mock_decoder_factory, nullptr, apm, nullptr, env.field_trials());
     engine.Init();
-    auto codecs = engine.recv_codecs();
+    auto codecs = engine.LegacyRecvCodecs();
     EXPECT_EQ(7u, codecs.size());
 
     // Rather than just ASSERTing that there are enough codecs, ensure that we
@@ -4170,7 +4170,7 @@ TEST(WebRtcVoiceEngineTest, CollectRecvCodecsWithLatePtAssignment) {
         &env.task_queue_factory(), adm.get(), unused_encoder_factory,
         mock_decoder_factory, nullptr, apm, nullptr, env.field_trials());
     engine.Init();
-    auto codecs = engine.recv_codecs();
+    auto codecs = engine.LegacyRecvCodecs();
     EXPECT_EQ(7u, codecs.size());
 
     // Rather than just ASSERTing that there are enough codecs, ensure that we

@@ -63,6 +63,7 @@
 #include "call/call.h"
 #include "call/flexfec_receive_stream.h"
 #include "call/packet_receiver.h"
+#include "call/payload_type.h"
 #include "call/payload_type_picker.h"
 #include "call/receive_stream.h"
 #include "call/rtp_config.h"
@@ -861,13 +862,13 @@ WebRtcVideoEngine::CreateReceiveChannel(
       call, config, options, crypto_options, decoder_factory_.get());
 }
 
-std::vector<Codec> WebRtcVideoEngine::send_codecs(bool include_rtx) const {
+std::vector<Codec> WebRtcVideoEngine::LegacySendCodecs(bool include_rtx) const {
   return GetPayloadTypesAndDefaultCodecs(encoder_factory_.get(),
                                          /*is_decoder_factory=*/false,
                                          include_rtx, trials_);
 }
 
-std::vector<Codec> WebRtcVideoEngine::recv_codecs(bool include_rtx) const {
+std::vector<Codec> WebRtcVideoEngine::LegacyRecvCodecs(bool include_rtx) const {
   return GetPayloadTypesAndDefaultCodecs(decoder_factory_.get(),
                                          /*is_decoder_factory=*/true,
                                          include_rtx, trials_);

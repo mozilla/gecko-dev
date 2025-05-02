@@ -12,23 +12,41 @@
 
 #include <cstdint>
 #include <cstdio>
+#include <memory>
+#include <string>
 #include <utility>
 #include <vector>
 
 #include "absl/strings/match.h"
+#include "absl/strings/string_view.h"
+#include "api/audio_options.h"
 #include "api/environment/environment.h"
 #include "api/environment/environment_factory.h"
 #include "api/ice_transport_interface.h"
+#include "api/make_ref_counted.h"
+#include "api/media_stream_interface.h"
+#include "api/media_types.h"
+#include "api/peer_connection_interface.h"
+#include "api/rtc_error.h"
+#include "api/rtp_parameters.h"
+#include "api/scoped_refptr.h"
 #include "api/sequence_checker.h"
 #include "api/transport/bitrate_settings.h"
+#include "api/transport/network_control.h"
 #include "api/units/data_rate.h"
+#include "call/call_config.h"
 #include "call/rtp_transport_controller_send_factory.h"
+#include "media/base/codec.h"
 #include "media/base/media_engine.h"
 #include "p2p/base/basic_async_resolver_factory.h"
 #include "p2p/base/default_ice_transport_factory.h"
+#include "p2p/base/ice_transport_internal.h"
+#include "p2p/base/port.h"
 #include "p2p/base/port_allocator.h"
 #include "p2p/client/basic_port_allocator.h"
 #include "pc/audio_track.h"
+#include "pc/codec_vendor.h"
+#include "pc/connection_context.h"
 #include "pc/ice_server_parsing.h"
 #include "pc/local_audio_source.h"
 #include "pc/media_factory.h"
@@ -129,17 +147,18 @@ void PeerConnectionFactory::SetOptions(const Options& options) {
 RtpCapabilities PeerConnectionFactory::GetRtpSenderCapabilities(
     cricket::MediaType kind) const {
   RTC_DCHECK_RUN_ON(signaling_thread());
+  cricket::CodecVendor codec_vendor(media_engine(), context_->use_rtx());
   switch (kind) {
     case cricket::MEDIA_TYPE_AUDIO: {
       cricket::Codecs cricket_codecs;
-      cricket_codecs = media_engine()->voice().send_codecs();
+      cricket_codecs = codec_vendor.audio_send_codecs().codecs();
       auto extensions =
           GetDefaultEnabledRtpHeaderExtensions(media_engine()->voice());
       return ToRtpCapabilities(cricket_codecs, extensions);
     }
     case cricket::MEDIA_TYPE_VIDEO: {
       cricket::Codecs cricket_codecs;
-      cricket_codecs = media_engine()->video().send_codecs(context_->use_rtx());
+      cricket_codecs = codec_vendor.video_send_codecs().codecs();
       auto extensions =
           GetDefaultEnabledRtpHeaderExtensions(media_engine()->video());
       return ToRtpCapabilities(cricket_codecs, extensions);
@@ -156,17 +175,18 @@ RtpCapabilities PeerConnectionFactory::GetRtpSenderCapabilities(
 RtpCapabilities PeerConnectionFactory::GetRtpReceiverCapabilities(
     cricket::MediaType kind) const {
   RTC_DCHECK_RUN_ON(signaling_thread());
+  cricket::CodecVendor codec_vendor(media_engine(), context_->use_rtx());
   switch (kind) {
     case cricket::MEDIA_TYPE_AUDIO: {
       cricket::Codecs cricket_codecs;
-      cricket_codecs = media_engine()->voice().recv_codecs();
+      cricket_codecs = codec_vendor.audio_recv_codecs().codecs();
       auto extensions =
           GetDefaultEnabledRtpHeaderExtensions(media_engine()->voice());
       return ToRtpCapabilities(cricket_codecs, extensions);
     }
     case cricket::MEDIA_TYPE_VIDEO: {
       cricket::Codecs cricket_codecs =
-          media_engine()->video().recv_codecs(context_->use_rtx());
+          codec_vendor.video_recv_codecs().codecs();
       auto extensions =
           GetDefaultEnabledRtpHeaderExtensions(media_engine()->video());
       return ToRtpCapabilities(cricket_codecs, extensions);

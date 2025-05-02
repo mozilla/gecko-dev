@@ -12,7 +12,9 @@
 
 #include <cstddef>
 #include <map>
+#include <vector>
 
+#include "api/rtc_error.h"
 #include "media/base/codec.h"
 #include "media/base/media_constants.h"
 #include "rtc_base/checks.h"
@@ -71,7 +73,8 @@ RTCError CheckInputConsistency(const std::vector<Codec>& codecs) {
           LOG_AND_RETURN_ERROR(RTCErrorType::INVALID_PARAMETER,
                                "Non-numeric argument to rtx apt parameter");
         }
-        if (pt_to_index.count(associated_pt) != 1) {
+        if (codec.id != Codec::kIdNotSet &&
+            pt_to_index.count(associated_pt) != 1) {
           RTC_LOG(LS_WARNING)
               << "Surprising condition: RTX codec APT not found: " << codec
               << " points to a PT that occurs "

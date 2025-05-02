@@ -192,6 +192,16 @@ struct RTC_EXPORT RtpCodecCapability : public RtpCodec {
            scalability_modes == o.scalability_modes;
   }
   bool operator!=(const RtpCodecCapability& o) const { return !(*this == o); }
+
+  template <typename Sink>
+  friend void AbslStringify(Sink& sink, const RtpCodecCapability& cap) {
+    if (cap.kind == cricket::MEDIA_TYPE_AUDIO) {
+      absl::Format(&sink, "[audio/%s/%d/%d]", cap.name,
+                   cap.clock_rate.value_or(0), cap.num_channels.value_or(1));
+    } else {
+      absl::Format(&sink, "[video/%s]", cap.name);
+    }
+  }
 };
 
 // Used in RtpCapabilities and RtpTransceiverInterface's header extensions query

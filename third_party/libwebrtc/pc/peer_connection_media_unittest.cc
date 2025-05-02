@@ -881,7 +881,7 @@ void AddComfortNoiseCodecsToSend(cricket::FakeMediaEngine* media_engine) {
   const cricket::Codec kComfortNoiseCodec16k =
       cricket::CreateAudioCodec(103, cricket::kCnCodecName, 16000, 1);
 
-  auto codecs = media_engine->voice().send_codecs();
+  auto codecs = media_engine->voice().LegacySendCodecs();
   codecs.push_back(kComfortNoiseCodec8k);
   codecs.push_back(kComfortNoiseCodec16k);
   media_engine->SetAudioCodecs(codecs);
@@ -1496,7 +1496,7 @@ bool CompareCodecs(const std::vector<RtpCodecCapability>& capabilities,
 TEST_F(PeerConnectionMediaTestUnifiedPlan,
        SetCodecPreferencesAudioMissingRecvCodec) {
   auto fake_engine = std::make_unique<FakeMediaEngine>();
-  auto send_codecs = fake_engine->voice().send_codecs();
+  auto send_codecs = fake_engine->voice().LegacySendCodecs();
   send_codecs.push_back(cricket::CreateAudioCodec(send_codecs.back().id + 1,
                                                   "send_only_codec", 0, 1));
   fake_engine->SetAudioSendCodecs(send_codecs);
@@ -1539,7 +1539,7 @@ TEST_F(PeerConnectionMediaTestUnifiedPlan,
 TEST_F(PeerConnectionMediaTestUnifiedPlan,
        SetCodecPreferencesAudioRejectsOnlyRtxRedFec) {
   auto fake_engine = std::make_unique<FakeMediaEngine>();
-  auto audio_codecs = fake_engine->voice().send_codecs();
+  auto audio_codecs = fake_engine->voice().LegacySendCodecs();
   audio_codecs.push_back(cricket::CreateAudioRtxCodec(
       audio_codecs.back().id + 1, audio_codecs.back().id));
   audio_codecs.push_back(cricket::CreateAudioCodec(
@@ -1628,7 +1628,7 @@ TEST_F(PeerConnectionMediaTestUnifiedPlan,
 TEST_F(PeerConnectionMediaTestUnifiedPlan,
        SetCodecPreferencesVideoRejectsOnlyRtxRedFec) {
   auto fake_engine = std::make_unique<FakeMediaEngine>();
-  auto video_codecs = fake_engine->video().send_codecs();
+  auto video_codecs = fake_engine->video().LegacySendCodecs();
   video_codecs.push_back(cricket::CreateVideoRtxCodec(
       video_codecs.back().id + 1, video_codecs.back().id));
   video_codecs.push_back(cricket::CreateVideoCodec(video_codecs.back().id + 1,
@@ -1725,7 +1725,7 @@ TEST_F(PeerConnectionMediaTestUnifiedPlan,
 
 TEST_F(PeerConnectionMediaTestUnifiedPlan, SetCodecPreferencesVideoWithRtx) {
   auto caller_fake_engine = std::make_unique<FakeMediaEngine>();
-  auto caller_video_codecs = caller_fake_engine->video().send_codecs();
+  auto caller_video_codecs = caller_fake_engine->video().LegacySendCodecs();
   caller_video_codecs.push_back(cricket::CreateVideoCodec(
       caller_video_codecs.back().id + 1, cricket::kVp8CodecName));
   caller_video_codecs.push_back(cricket::CreateVideoRtxCodec(
@@ -1770,7 +1770,7 @@ TEST_F(PeerConnectionMediaTestUnifiedPlan, SetCodecPreferencesVideoWithRtx) {
 TEST_F(PeerConnectionMediaTestUnifiedPlan,
        SetCodecPreferencesVideoCodecsNegotiation) {
   auto caller_fake_engine = std::make_unique<FakeMediaEngine>();
-  auto caller_video_codecs = caller_fake_engine->video().send_codecs();
+  auto caller_video_codecs = caller_fake_engine->video().LegacySendCodecs();
   caller_video_codecs.push_back(cricket::CreateVideoCodec(
       caller_video_codecs.back().id + 1, cricket::kVp8CodecName));
   caller_video_codecs.push_back(cricket::CreateVideoRtxCodec(
@@ -1834,7 +1834,7 @@ TEST_F(PeerConnectionMediaTestUnifiedPlan,
 TEST_F(PeerConnectionMediaTestUnifiedPlan,
        SetCodecPreferencesVideoCodecsNegotiationReverseOrder) {
   auto caller_fake_engine = std::make_unique<FakeMediaEngine>();
-  auto caller_video_codecs = caller_fake_engine->video().send_codecs();
+  auto caller_video_codecs = caller_fake_engine->video().LegacySendCodecs();
   caller_video_codecs.push_back(cricket::CreateVideoCodec(
       caller_video_codecs.back().id + 1, cricket::kVp8CodecName));
   caller_video_codecs.push_back(cricket::CreateVideoRtxCodec(
@@ -2116,5 +2116,4 @@ INSTANTIATE_TEST_SUITE_P(PeerConnectionMediaTest,
                          PeerConnectionMediaTest,
                          Values(SdpSemantics::kPlanB_DEPRECATED,
                                 SdpSemantics::kUnifiedPlan));
-
 }  // namespace webrtc

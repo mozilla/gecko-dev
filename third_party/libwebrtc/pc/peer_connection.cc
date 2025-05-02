@@ -80,6 +80,7 @@
 #include "p2p/base/transport_info.h"
 #include "p2p/dtls/dtls_transport_internal.h"
 #include "pc/channel_interface.h"
+#include "pc/codec_vendor.h"
 #include "pc/connection_context.h"
 #include "pc/data_channel_utils.h"
 #include "pc/dtls_transport.h"
@@ -1083,10 +1084,11 @@ PeerConnection::AddTransceiver(
   std::vector<cricket::Codec> codecs;
   // Gather the current codec capabilities to allow checking scalabilityMode and
   // codec selection against supported values.
+  cricket::CodecVendor codec_vendor(context_->media_engine(), false);
   if (media_type == cricket::MEDIA_TYPE_VIDEO) {
-    codecs = context_->media_engine()->video().send_codecs(false);
+    codecs = codec_vendor.video_send_codecs().codecs();
   } else {
-    codecs = context_->media_engine()->voice().send_codecs();
+    codecs = codec_vendor.audio_send_codecs().codecs();
   }
 
   auto result = cricket::CheckRtpParametersValues(
