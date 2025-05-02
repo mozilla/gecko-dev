@@ -4,7 +4,7 @@ diff --git a/.arcconfig b/.arcconfig
 @@ -1,5 +1,5 @@
  {
    "phabricator.uri" : "https://phabricator.services.mozilla.com/",
--  "repository.callsign": "MOZILLACENTRAL",
+-  "repository.callsign": "FIREFOXAUTOLAND",
 +  "repository.callsign": "ELM",
    "history.immutable": false
  }
