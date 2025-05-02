@@ -16,6 +16,7 @@ use crate::CommonMetricData;
 use crate::Glean;
 
 use chrono::{DateTime, Datelike, FixedOffset, TimeZone, Timelike};
+use malloc_size_of_derive::MallocSizeOf;
 
 /// A datetime type.
 ///
@@ -23,7 +24,7 @@ use chrono::{DateTime, Datelike, FixedOffset, TimeZone, Timelike};
 pub type ChronoDatetime = DateTime<FixedOffset>;
 
 /// Representation of a date, time and timezone.
-#[derive(Clone, PartialEq, Eq)]
+#[derive(Clone, PartialEq, Eq, MallocSizeOf)]
 pub struct Datetime {
     /// The year, e.g. 2021.
     pub year: i32,

@@ -4,6 +4,8 @@
 
 use std::marker::PhantomData;
 
+use malloc_size_of::MallocSizeOf;
+
 use glean_core::metrics::{JsonValue, MetricIdentifier};
 use glean_core::traits;
 
@@ -23,6 +25,12 @@ use crate::ErrorType;
 pub struct ObjectMetric<K> {
     pub(crate) inner: glean_core::metrics::ObjectMetric,
     object_type: PhantomData<K>,
+}
+
+impl<K> MallocSizeOf for ObjectMetric<K> {
+    fn size_of(&self, ops: &mut malloc_size_of::MallocSizeOfOps) -> usize {
+        self.inner.size_of(ops)
+    }
 }
 
 impl<'a, K> MetricIdentifier<'a> for ObjectMetric<K> {

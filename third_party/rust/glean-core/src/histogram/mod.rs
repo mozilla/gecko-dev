@@ -7,6 +7,7 @@
 use std::any::TypeId;
 use std::collections::HashMap;
 
+use malloc_size_of_derive::MallocSizeOf;
 use once_cell::sync::OnceCell;
 use serde::{Deserialize, Serialize};
 
@@ -21,7 +22,7 @@ mod functional;
 mod linear;
 
 /// Different kinds of histograms.
-#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, MallocSizeOf)]
 #[serde(rename_all = "lowercase")]
 pub enum HistogramType {
     /// A histogram with linear distributed buckets.
@@ -59,7 +60,7 @@ impl TryFrom<i32> for HistogramType {
 /// assert_eq!(10, hist.count());
 /// assert_eq!(55, hist.sum());
 /// ```
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, MallocSizeOf)]
 pub struct Histogram<B> {
     /// Mapping bucket's minimum to sample count.
     values: HashMap<u64, u64>,

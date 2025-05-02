@@ -16,6 +16,7 @@ use std::time::{Duration, Instant};
 
 use crate::ErrorKind;
 
+use malloc_size_of::MallocSizeOf;
 use rkv::{StoreError, StoreOptions};
 
 /// Unwrap a `Result`s `Ok` value or do the specified action.
@@ -141,6 +142,34 @@ pub struct Database {
     /// Times an Rkv write-commit took.
     /// Re-applied as samples in a timing distribution later.
     pub(crate) write_timings: RefCell<Vec<i64>>,
+}
+
+impl MallocSizeOf for Database {
+    fn size_of(&self, _ops: &mut malloc_size_of::MallocSizeOfOps) -> usize {
+        // TODO(bug 1960592): Fill in gaps.
+
+        /*
+        let mut n = 0;
+
+        n += 0; // self.rkv.size_of(ops) -- not implemented.
+        n += 0; // self.user_store.size_of(ops) -- not implemented.
+
+        n += self
+            .ping_lifetime_data
+            .as_ref()
+            .map(|_data| {
+                // TODO(bug 1960592): servo's malloc_size_of implements it for BTreeMap.
+                //let lock = data.read().unwrap();
+                //(*lock).size_of(ops)
+                0
+            })
+            .unwrap_or(0);
+
+        n
+        */
+
+        0
+    }
 }
 
 impl std::fmt::Debug for Database {

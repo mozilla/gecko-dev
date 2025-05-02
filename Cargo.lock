@@ -2641,9 +2641,9 @@ dependencies = [
 
 [[package]]
 name = "glean"
-version = "64.1.1"
+version = "64.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "95024f4707705270208e36983976cbac235dd7fc33c9f1cb0dee396ec1ce295d"
+checksum = "3bbaa151992ac45799a3779a3ff9d9ce1412a91f982b54f95ac85124e96f870c"
 dependencies = [
  "crossbeam-channel",
  "glean-core",
@@ -2651,13 +2651,14 @@ dependencies = [
  "log",
  "once_cell",
  "whatsys",
+ "wr_malloc_size_of",
 ]
 
 [[package]]
 name = "glean-core"
-version = "64.1.1"
+version = "64.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5ca0df94fb37669287b77e8aa300913ad1d14426d7f9e443b0ce1185349c817e"
+checksum = "ec64dd5ecb37f04def90b179759c8906c95c895c392b444b5b67f868ffa4bedc"
 dependencies = [
  "android_logger",
  "bincode",
@@ -2665,6 +2666,7 @@ dependencies = [
  "crossbeam-channel",
  "flate2",
  "log",
+ "malloc_size_of_derive",
  "once_cell",
  "oslog",
  "rkv",
@@ -2674,6 +2676,7 @@ dependencies = [
  "time 0.1.45",
  "uniffi",
  "uuid",
+ "wr_malloc_size_of",
  "zeitstempel",
 ]
 
@@ -7847,6 +7850,7 @@ version = "0.2.0"
 dependencies = [
  "app_units",
  "euclid",
+ "once_cell",
 ]
 
 [[package]]

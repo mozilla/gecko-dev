@@ -4,6 +4,8 @@
 
 //! Policies for ping storage, uploading and requests.
 
+use malloc_size_of_derive::MallocSizeOf;
+
 const MAX_RECOVERABLE_FAILURES: u32 = 3;
 const MAX_WAIT_ATTEMPTS: u32 = 3;
 const MAX_PING_BODY_SIZE: usize = 1024 * 1024; // 1 MB
@@ -18,7 +20,7 @@ const MAX_PENDING_PINGS_DIRECTORY_SIZE: u64 = 10 * 1024 * 1024; // 10MB
 const MAX_PENDING_PINGS_COUNT: u64 = 250;
 
 /// A struct holding the values for all the policies related to ping storage, uploading and requests.
-#[derive(Debug)]
+#[derive(Debug, MallocSizeOf)]
 pub struct Policy {
     /// The maximum recoverable failures allowed per uploading window.
     ///

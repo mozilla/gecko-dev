@@ -8,6 +8,7 @@ use std::collections::HashMap;
 use std::sync::atomic::Ordering;
 
 use chrono::{DateTime, FixedOffset};
+use malloc_size_of::MallocSizeOf;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 pub use serde_json::Value as JsonValue;
@@ -150,6 +151,32 @@ pub enum Metric {
     Text(String),
     /// An Object metric. See [`ObjectMetric`] for more information.
     Object(String),
+}
+
+impl MallocSizeOf for Metric {
+    fn size_of(&self, ops: &mut malloc_size_of::MallocSizeOfOps) -> usize {
+        match self {
+            Metric::Boolean(m) => m.size_of(ops),
+            Metric::Counter(m) => m.size_of(ops),
+            // Custom distributions are in the same section, no matter what bucketing.
+            Metric::CustomDistributionExponential(m) => m.size_of(ops),
+            Metric::CustomDistributionLinear(m) => m.size_of(ops),
+            Metric::Datetime(_a, b) => b.size_of(ops),
+            Metric::Experiment(m) => m.size_of(ops),
+            Metric::Quantity(m) => m.size_of(ops),
+            Metric::Rate(a, b) => a.size_of(ops) + b.size_of(ops),
+            Metric::String(m) => m.size_of(ops),
+            Metric::StringList(m) => m.size_of(ops),
+            Metric::Timespan(a, b) => a.size_of(ops) + b.size_of(ops),
+            Metric::TimingDistribution(m) => m.size_of(ops),
+            Metric::Url(m) => m.size_of(ops),
+            Metric::Uuid(m) => m.size_of(ops),
+            Metric::MemoryDistribution(m) => m.size_of(ops),
+            Metric::Jwe(m) => m.size_of(ops),
+            Metric::Text(m) => m.size_of(ops),
+            Metric::Object(m) => m.size_of(ops),
+        }
+    }
 }
 
 /// A [`MetricType`] describes common behavior across all metrics.
@@ -312,3 +339,34 @@ impl Metric {
         }
     }
 }
+
+macro_rules! impl_malloc_size_of_for_metric {
+    ($ty:ident) => {
+        impl ::malloc_size_of::MallocSizeOf for $ty {
+            fn size_of(&self, ops: &mut malloc_size_of::MallocSizeOfOps) -> usize {
+                // Note: `meta` is likely s behind an `Arc`.
+                // `size_of` should only be called from a single thread to avoid double-counting.
+                self.meta().size_of(ops)
+            }
+        }
+    };
+}
+
+impl_malloc_size_of_for_metric!(BooleanMetric);
+impl_malloc_size_of_for_metric!(CounterMetric);
+impl_malloc_size_of_for_metric!(CustomDistributionMetric);
+impl_malloc_size_of_for_metric!(DatetimeMetric);
+impl_malloc_size_of_for_metric!(DenominatorMetric);
+impl_malloc_size_of_for_metric!(EventMetric);
+impl_malloc_size_of_for_metric!(ExperimentMetric);
+impl_malloc_size_of_for_metric!(MemoryDistributionMetric);
+impl_malloc_size_of_for_metric!(NumeratorMetric);
+impl_malloc_size_of_for_metric!(ObjectMetric);
+impl_malloc_size_of_for_metric!(QuantityMetric);
+impl_malloc_size_of_for_metric!(RateMetric);
+impl_malloc_size_of_for_metric!(StringMetric);
+impl_malloc_size_of_for_metric!(StringListMetric);
+impl_malloc_size_of_for_metric!(TextMetric);
+impl_malloc_size_of_for_metric!(TimespanMetric);
+impl_malloc_size_of_for_metric!(UrlMetric);
+impl_malloc_size_of_for_metric!(UuidMetric);

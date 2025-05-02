@@ -4,6 +4,8 @@
 
 use std::sync::atomic::{AtomicU8, Ordering};
 
+use malloc_size_of_derive::MallocSizeOf;
+
 use crate::error::{Error, ErrorKind};
 use crate::metrics::labeled::validate_dynamic_label;
 use crate::Glean;
@@ -12,7 +14,7 @@ use serde::{Deserialize, Serialize};
 /// The supported metrics' lifetimes.
 ///
 /// A metric's lifetime determines when its stored data gets reset.
-#[derive(Copy, Clone, Debug, PartialEq, Eq, Deserialize, Serialize, Default)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq, Deserialize, Serialize, Default, MallocSizeOf)]
 #[repr(i32)] // Use i32 to be compatible with our JNA definition
 #[serde(rename_all = "lowercase")]
 pub enum Lifetime {
@@ -50,7 +52,7 @@ impl TryFrom<i32> for Lifetime {
 }
 
 /// The common set of data shared across all different metric types.
-#[derive(Default, Debug, Clone, Deserialize, Serialize)]
+#[derive(Default, Debug, Clone, Deserialize, Serialize, MallocSizeOf)]
 pub struct CommonMetricData {
     /// The metric's name.
     pub name: String,
@@ -73,9 +75,10 @@ pub struct CommonMetricData {
     pub dynamic_label: Option<String>,
 }
 
-#[derive(Default, Debug)]
+#[derive(Default, Debug, MallocSizeOf)]
 pub struct CommonMetricDataInternal {
     pub inner: CommonMetricData,
+    #[ignore_malloc_size_of = "atomic integers never allocate (bug 1960589)"]
     pub disabled: AtomicU8,
 }
 
