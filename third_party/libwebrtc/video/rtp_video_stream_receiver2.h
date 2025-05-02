@@ -381,8 +381,7 @@ class RtpVideoStreamReceiver2 : public LossNotificationSender,
   VideoStreamBufferControllerStatsObserver* const vcm_receive_statistics_;
   video_coding::PacketBuffer packet_buffer_
       RTC_GUARDED_BY(packet_sequence_checker_);
-  // h26x_packet_buffer_ is nullptr if codec list doens't contain H.264 or
-  // H.265, or field trial WebRTC-Video-H26xPacketBuffer is not enabled.
+  // `h26x_packet_buffer_` is null if codec list doens't contain H.264 or H.265.
   std::unique_ptr<H26xPacketBuffer> h26x_packet_buffer_
       RTC_GUARDED_BY(packet_sequence_checker_);
   UniqueTimestampCounter frame_counter_
