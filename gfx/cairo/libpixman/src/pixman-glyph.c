@@ -391,7 +391,8 @@ box32_intersect (pixman_box32_t *dest,
     return dest->x2 > dest->x1 && dest->y2 > dest->y1;
 }
 
-#if defined(__GNUC__) && !defined(__x86_64__) && !defined(__amd64__)
+#if defined(__GNUC__) && defined(__i386__) && !defined(__x86_64__) &&          \
+    !defined(__amd64__)
 __attribute__((__force_align_arg_pointer__))
 #endif
 PIXMAN_EXPORT void
@@ -418,10 +419,10 @@ pixman_composite_glyphs_no_mask (pixman_op_t            op,
 
     _pixman_image_validate (src);
     _pixman_image_validate (dest);
-    
+
     dest_format = dest->common.extended_format_code;
     dest_flags = dest->common.flags;
-    
+
     pixman_region32_init (&region);
     if (!_pixman_compute_composite_region32 (
 	    &region,
@@ -452,9 +453,9 @@ pixman_composite_glyphs_no_mask (pixman_op_t            op,
 	glyph_box.y1 = dest_y + glyphs[i].y - glyph->origin_y;
 	glyph_box.x2 = glyph_box.x1 + glyph->image->bits.width;
 	glyph_box.y2 = glyph_box.y1 + glyph->image->bits.height;
-	
+
 	pbox = pixman_region32_rectangles (&region, &n);
-	
+
 	info.mask_image = glyph_img;
 
 	while (n--)
@@ -588,7 +589,7 @@ add_glyphs (pixman_glyph_cache_t *cache,
 	glyph_box.y1 = glyphs[i].y - glyph->origin_y + off_y;
 	glyph_box.x2 = glyph_box.x1 + glyph->image->bits.width;
 	glyph_box.y2 = glyph_box.y1 + glyph->image->bits.height;
-	
+
 	if (box32_intersect (&composite_box, &glyph_box, &dest_box))
 	{
 	    int src_x = composite_box.x1 - glyph_box.x1;
@@ -623,7 +624,7 @@ out:
  *
  * Then (mask_x, mask_y) in the infinite mask and (src_x, src_y) in the source
  * image are both aligned with (dest_x, dest_y) in the destination image. Then
- * these three images are composited within the 
+ * these three images are composited within the
  *
  *       (dest_x, dest_y, dst_x + width, dst_y + height)
  *

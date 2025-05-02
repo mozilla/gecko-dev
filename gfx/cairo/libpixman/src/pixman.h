@@ -758,6 +758,173 @@ void                    pixman_region32_reset              (pixman_region32_t   
 
 PIXMAN_API
 void			pixman_region32_clear		   (pixman_region32_t *region);
+/*
+ * 64 bit fractional regions
+ */
+typedef struct pixman_region64f_data	pixman_region64f_data_t;
+typedef struct pixman_box64f		pixman_box64f_t;
+typedef struct pixman_rectangle64f	pixman_rectangle64f_t;
+typedef struct pixman_region64f		pixman_region64f_t;
+
+struct pixman_region64f_data {
+    long		size;
+    long		numRects;
+/*  pixman_box64f_t	rects[size];   in memory but not explicitly declared */
+};
+
+struct pixman_rectangle64f
+{
+    double x, y;
+    double width, height;
+};
+
+struct pixman_box64f
+{
+    double x1, y1, x2, y2;
+};
+
+struct pixman_region64f
+{
+    pixman_box64f_t          extents;
+    pixman_region64f_data_t  *data;
+};
+
+/* creation/destruction */
+PIXMAN_API
+void                    pixman_region64f_init              (pixman_region64f_t *region);
+
+PIXMAN_API
+void                    pixman_region64f_init_rect         (pixman_region64f_t *region,
+							    int                 x,
+							    int                 y,
+							    unsigned int        width,
+							    unsigned int        height);
+
+PIXMAN_API
+void                    pixman_region64f_init_rectf        (pixman_region64f_t *region,
+							    double              x,
+							    double              y,
+							    double              width,
+							    double              height);
+
+PIXMAN_API
+pixman_bool_t           pixman_region64f_init_rects        (pixman_region64f_t *region,
+							    const pixman_box64f_t *boxes,
+							    int                 count);
+
+PIXMAN_API
+void                    pixman_region64f_init_with_extents (pixman_region64f_t    *region,
+							    const pixman_box64f_t *extents);
+
+PIXMAN_API
+void                    pixman_region64f_init_from_image   (pixman_region64f_t *region,
+							    pixman_image_t     *image);
+
+PIXMAN_API
+void                    pixman_region64f_fini              (pixman_region64f_t *region);
+
+
+/* manipulation */
+PIXMAN_API
+void                    pixman_region64f_translate         (pixman_region64f_t *region,
+							    int                 x,
+							    int                 y);
+
+PIXMAN_API
+pixman_bool_t           pixman_region64f_copy              (pixman_region64f_t       *dest,
+							    const pixman_region64f_t *source);
+
+PIXMAN_API
+pixman_bool_t           pixman_region64f_intersect         (pixman_region64f_t       *new_reg,
+							    const pixman_region64f_t *reg1,
+							    const pixman_region64f_t *reg2);
+
+PIXMAN_API
+pixman_bool_t           pixman_region64f_union             (pixman_region64f_t       *new_reg,
+							    const pixman_region64f_t *reg1,
+							    const pixman_region64f_t *reg2);
+
+PIXMAN_API
+pixman_bool_t		pixman_region64f_intersect_rect    (pixman_region64f_t       *dest,
+							    const pixman_region64f_t *source,
+							    int                       x,
+							    int                       y,
+							    unsigned int              width,
+							    unsigned int              height);
+
+PIXMAN_API
+pixman_bool_t		pixman_region64f_intersect_rectf   (pixman_region64f_t       *dest,
+							    const pixman_region64f_t *source,
+							    double                    x,
+							    double                    y,
+							    double                    width,
+							    double                    height);
+
+PIXMAN_API
+pixman_bool_t           pixman_region64f_union_rect        (pixman_region64f_t       *dest,
+							    const pixman_region64f_t *source,
+							    int                       x,
+							    int                       y,
+							    unsigned int              width,
+							    unsigned int              height);
+
+PIXMAN_API
+pixman_bool_t           pixman_region64f_union_rectf       (pixman_region64f_t       *dest,
+							    const pixman_region64f_t *source,
+							    double                    x,
+							    double                    y,
+							    double                    width,
+							    double                    height);
+
+PIXMAN_API
+pixman_bool_t           pixman_region64f_subtract          (pixman_region64f_t       *reg_d,
+							    const pixman_region64f_t *reg_m,
+							    const pixman_region64f_t *reg_s);
+
+PIXMAN_API
+pixman_bool_t           pixman_region64f_inverse           (pixman_region64f_t       *new_reg,
+							    const pixman_region64f_t *reg1,
+							    const pixman_box64f_t    *inv_rect);
+
+PIXMAN_API
+pixman_bool_t           pixman_region64f_contains_point    (const pixman_region64f_t *region,
+							    int                       x,
+							    int                       y,
+							    pixman_box64f_t          *box);
+
+PIXMAN_API
+pixman_region_overlap_t pixman_region64f_contains_rectangle(const pixman_region64f_t *region,
+							    const pixman_box64f_t    *prect);
+
+PIXMAN_API
+pixman_bool_t           pixman_region64f_empty             (const pixman_region64f_t *region);
+
+PIXMAN_API
+pixman_bool_t           pixman_region64f_not_empty         (const pixman_region64f_t *region);
+
+PIXMAN_API
+pixman_box64f_t *       pixman_region64f_extents           (const pixman_region64f_t *region);
+
+PIXMAN_API
+int                     pixman_region64f_n_rects           (const pixman_region64f_t *region);
+
+PIXMAN_API
+pixman_box64f_t *       pixman_region64f_rectangles        (const pixman_region64f_t *region,
+							    int                      *n_rects);
+
+PIXMAN_API
+pixman_bool_t           pixman_region64f_equal             (const pixman_region64f_t *region1,
+							    const pixman_region64f_t *region2);
+
+PIXMAN_API
+pixman_bool_t           pixman_region64f_selfcheck         (pixman_region64f_t *region);
+
+PIXMAN_API
+void                    pixman_region64f_reset             (pixman_region64f_t    *region,
+							    const pixman_box64f_t *box);
+
+PIXMAN_API
+void			pixman_region64f_clear		   (pixman_region64f_t *region);
 
 
 /* Copy / Fill / Misc */
@@ -883,6 +1050,10 @@ typedef enum {
     PIXMAN_rgba_float =	PIXMAN_FORMAT_BYTE(128,PIXMAN_TYPE_RGBA_FLOAT,32,32,32,32),
 /* 96bpp formats */
     PIXMAN_rgb_float =	PIXMAN_FORMAT_BYTE(96,PIXMAN_TYPE_RGBA_FLOAT,0,32,32,32),
+
+/* 64bpp formats */
+    /* [63:0] A:B:G:R 16:16:16:16 native endian */
+    PIXMAN_a16b16g16r16 = PIXMAN_FORMAT_BYTE(64,PIXMAN_TYPE_ABGR,16,16,16,16),
 
 /* 32bpp formats */
     PIXMAN_a8r8g8b8 =	 PIXMAN_FORMAT(32,PIXMAN_TYPE_ARGB,8,8,8,8),
@@ -1024,6 +1195,10 @@ pixman_bool_t   pixman_image_set_clip_region         (pixman_image_t            
 PIXMAN_API
 pixman_bool_t   pixman_image_set_clip_region32       (pixman_image_t               *image,
 						      const pixman_region32_t            *region);
+
+PIXMAN_API
+pixman_bool_t   pixman_image_set_clip_region64f      (pixman_image_t               *image,
+						      const pixman_region64f_t           *region);
 
 PIXMAN_API
 void		pixman_image_set_has_client_clip     (pixman_image_t               *image,
@@ -1180,6 +1355,20 @@ void          pixman_image_composite32        (pixman_op_t        op,
 					       int32_t            dest_y,
 					       int32_t            width,
 					       int32_t            height);
+
+PIXMAN_API
+void          pixman_image_composite64f       (pixman_op_t        op,
+					       pixman_image_t    *src,
+					       pixman_image_t    *mask,
+					       pixman_image_t    *dest,
+					       double             src_x,
+					       double             src_y,
+					       double             mask_x,
+					       double             mask_y,
+					       double             dest_x,
+					       double             dest_y,
+					       double             width,
+					       double             height);
 
 /* Executive Summary: This function is a no-op that only exists
  * for historical reasons.

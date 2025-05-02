@@ -894,6 +894,10 @@ pixman_region32_copy_from_region16 (pixman_region32_t *dst,
                                     const pixman_region16_t *src);
 
 pixman_bool_t
+pixman_region32_copy_from_region64f (pixman_region32_t *dst,
+                                     const pixman_region64f_t *src);
+
+pixman_bool_t
 pixman_region16_copy_from_region32 (pixman_region16_t *dst,
                                     const pixman_region32_t *src);
 

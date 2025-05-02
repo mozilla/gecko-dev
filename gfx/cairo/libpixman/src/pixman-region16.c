@@ -35,6 +35,7 @@
 typedef pixman_box16_t		box_type_t;
 typedef pixman_region16_data_t	region_data_type_t;
 typedef pixman_region16_t	region_type_t;
+typedef int                     primitive_t;
 typedef int32_t                 overflow_int_t;
 
 typedef struct {
@@ -45,6 +46,8 @@ typedef struct {
 
 #define PIXMAN_REGION_MAX INT16_MAX
 #define PIXMAN_REGION_MIN INT16_MIN
+
+#define PRINT_SPECIFIER "%d"
 
 #include "pixman-region.c"
 

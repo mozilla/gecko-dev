@@ -739,6 +739,24 @@ pixman_image_composite (pixman_op_t      op,
                               mask_x, mask_y, dest_x, dest_y, width, height);
 }
 
+PIXMAN_EXPORT void
+pixman_image_composite64f (pixman_op_t      op,
+                           pixman_image_t * src,
+                           pixman_image_t * mask,
+                           pixman_image_t * dest,
+                           double           src_x,
+                           double           src_y,
+                           double           mask_x,
+                           double           mask_y,
+                           double           dest_x,
+                           double           dest_y,
+                           double           width,
+                           double           height)
+{
+    pixman_image_composite32 (op, src, mask, dest, src_x, src_y, 
+                              mask_x, mask_y, dest_x, dest_y, width, height);
+}
+
 PIXMAN_EXPORT pixman_bool_t
 pixman_blt (uint32_t *src_bits,
             uint32_t *dst_bits,
@@ -854,7 +872,7 @@ pixman_image_fill_rectangles (pixman_op_t                 op,
                               int                         n_rects,
                               const pixman_rectangle16_t *rects)
 {
-    pixman_box32_t stack_boxes[6];
+    pixman_box32_t stack_boxes[6] = {0};
     pixman_box32_t *boxes;
     pixman_bool_t result;
     int i;

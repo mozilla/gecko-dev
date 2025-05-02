@@ -474,25 +474,21 @@
     PF lsl, DUMMY, PF_X, #mask_bpp_shift
     PF prfm, PREFETCH_MODE, [PF_MASK, DUMMY]
 .endif
-    PF ble, 71f
+    PF ble, 72f
     PF sub, PF_X, PF_X, ORIG_W
     PF subs, PF_CTL, PF_CTL, #0x10
-71:
     PF ble, 72f
 .if src_bpp_shift >= 0
-    PF lsl, DUMMY, SRC_STRIDE, #src_bpp_shift
-    PF ldrsb, DUMMY, [PF_SRC, DUMMY]
-    PF add, PF_SRC, PF_SRC, #1
+    PF add, PF_SRC, PF_SRC, SRC_STRIDE, lsl #src_bpp_shift
+    PF ldrsb, DUMMY, [PF_SRC]
 .endif
 .if dst_r_bpp != 0
-    PF lsl, DUMMY, DST_STRIDE, #dst_bpp_shift
-    PF ldrsb, DUMMY, [PF_DST, DUMMY]
-    PF add, PF_DST, PF_DST, #1
+    PF add, PF_DST, PF_DST, DST_STRIDE, lsl #dst_bpp_shift
+    PF ldrsb, DUMMY, [PF_DST]
 .endif
 .if mask_bpp_shift >= 0
-    PF lsl, DUMMY, MASK_STRIDE, #mask_bpp_shift
-    PF ldrsb, DUMMY, [PF_MASK, DUMMY]
-    PF add, PF_MASK, PF_MASK, #1
+    PF add, PF_MASK, PF_MASK, MASK_STRIDE, lsl #mask_bpp_shift
+    PF ldrsb, DUMMY, [PF_MASK]
 .endif
 72:
 .endif
@@ -858,8 +854,7 @@
     PF mov,     PF_DST, DST_R
     PF mov,     PF_MASK, MASK
     /* PF_CTL = \prefetch_distance | ((h - 1) << 4) */
-    PF lsl,     DUMMY, H, #4
-    PF mov,     PF_CTL, DUMMY
+    PF lsl,     PF_CTL, H, #4
     PF add,     PF_CTL, PF_CTL, #(\prefetch_distance - 0x10)
 
     \init

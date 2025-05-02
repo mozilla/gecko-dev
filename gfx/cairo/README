@@ -58,6 +58,4 @@ pixman-export.patch: make sure pixman symbols are not exported in libxul
 
 pixman-interp.patch: use lower quality interpolation by default on mobile
 
-pixman-neon.patch: fix for a build failure with clang on armhf linux
-
 pixman-rename.patch: include pixman-rename.h for renaming of external symbols

@@ -305,16 +305,14 @@
         mov         v28.d[0], v14.d[0]
         mov         v29.d[0], v14.d[1]
                                     PF ble, 10f
-                                    PF lsl, DUMMY, SRC_STRIDE, #src_bpp_shift
-                                    PF ldrsb, DUMMY, [PF_SRC, DUMMY]
-                                    PF add, PF_SRC, PF_SRC, #1
+                                    PF add, PF_SRC, PF_SRC, SRC_STRIDE, lsl #src_bpp_shift
+                                    PF ldrsb, DUMMY, [PF_SRC]
 10:
     raddhn      v20.8b, v10.8h, v17.8h
     raddhn      v23.8b, v11.8h, v19.8h
                                     PF ble, 10f
-                                    PF lsl, DUMMY, DST_STRIDE, #dst_bpp_shift
-                                    PF ldrsb, DUMMY, [PF_DST, DUMMY]
-                                    PF add, PF_DST, PF_SRC, #1
+                                    PF add, PF_DST, PF_DST, DST_STRIDE, lsl #dst_bpp_shift
+                                    PF ldrsb, DUMMY, [PF_DST]
 10:
     raddhn      v22.8b, v12.8h, v18.8h
         st1         {v14.8h}, [DST_W], #16
@@ -497,9 +495,8 @@ generate_composite_function \
     ushll       v14.8h, v2.8b, #7
     sli         v14.8h, v14.8h, #1
                                     PF ble, 10f
-                                    PF lsl, DUMMY, SRC_STRIDE, #src_bpp_shift
-                                    PF ldrsb, DUMMY, [PF_SRC, DUMMY]
-                                    PF add, PF_SRC, PF_SRC, #1
+                                    PF add, PF_SRC, PF_SRC, SRC_STRIDE, lsl #src_bpp_shift
+                                    PF ldrsb, DUMMY, [PF_SRC]
 10:
     ushll       v9.8h, v0.8b, #7
     sli         v9.8h, v9.8h, #1
@@ -585,12 +582,10 @@ generate_composite_function \
 10:
     uqadd       v28.8b, v0.8b, v4.8b
                                     PF ble, 10f
-                                    PF lsl, DUMMY, SRC_STRIDE, #src_bpp_shift
-                                    PF ldrsb, DUMMY, [PF_SRC, DUMMY]
-                                    PF add, PF_SRC, PF_SRC, #1
-                                    PF lsl, DUMMY, DST_STRIDE, #dst_bpp_shift
-                                    PF ldrsb, DUMMY, [PF_DST, DUMMY]
-                                    PF add, PF_DST, PF_DST, #1
+                                    PF add, PF_SRC, PF_SRC, SRC_STRIDE, lsl #src_bpp_shift
+                                    PF ldrsb, DUMMY, [PF_SRC]
+                                    PF add, PF_DST, PF_DST, DST_STRIDE, lsl #dst_bpp_shift
+                                    PF ldrsb, DUMMY, [PF_DST]
 10:
     uqadd       v29.8b, v1.8b, v5.8b
     uqadd       v30.8b, v2.8b, v6.8b
@@ -631,12 +626,10 @@ generate_composite_function \
 10:
     uqadd       v28.8b, v0.8b, v4.8b
                                     PF ble, 10f
-                                    PF lsl, DUMMY, SRC_STRIDE, #src_bpp_shift
-                                    PF ldrsb, DUMMY, [PF_SRC, DUMMY]
-                                    PF add, PF_SRC, PF_SRC, #1
-                                    PF lsl, DUMMY, DST_STRIDE, #dst_bpp_shift
-                                    PF ldrsb, DUMMY, [PF_DST, DUMMY]
-                                    PF add, PF_DST, PF_DST, #1
+                                    PF add, PF_SRC, PF_SRC, SRC_STRIDE, lsl #src_bpp_shift
+                                    PF ldrsb, DUMMY, [PF_SRC]
+                                    PF add, PF_DST, PF_DST, DST_STRIDE, lsl #dst_bpp_shift
+                                    PF ldrsb, DUMMY, [PF_DST]
 10:
     uqadd       v29.8b, v1.8b, v5.8b
     uqadd       v30.8b, v2.8b, v6.8b
@@ -719,15 +712,13 @@ generate_composite_function_single_scanline \
 10:
     umull      v9.8h, v22.8b, v5.8b
                                     PF ble, 10f
-                                    PF lsl, DUMMY, SRC_STRIDE, #src_bpp_shift
-                                    PF ldrsb, DUMMY, [PF_SRC, DUMMY]
-                                    PF add, PF_SRC, PF_SRC, #1
+                                    PF add, PF_SRC, PF_SRC, SRC_STRIDE, lsl #src_bpp_shift
+                                    PF ldrsb, DUMMY, [PF_SRC]
 10:
     umull      v10.8h, v22.8b, v6.8b
                                     PF ble, 10f
-                                    PF lsl, DUMMY, DST_STRIDE, #dst_bpp_shift
-                                    PF ldrsb, DUMMY, [PF_DST, DUMMY]
-                                    PF add, PF_DST, PF_DST, #1
+                                    PF add, PF_DST, PF_DST, DST_STRIDE, lsl #dst_bpp_shift
+                                    PF ldrsb, DUMMY, [PF_DST]
 10:
      umull     v11.8h, v22.8b, v7.8b
 .endm
@@ -793,15 +784,13 @@ generate_composite_function_single_scanline \
 10:
     umull      v9.8h, v22.8b, v5.8b
                                     PF ble, 10f
-                                    PF lsl, DUMMY, SRC_STRIDE, #src_bpp_shift
-                                    PF ldrsb, DUMMY, [PF_SRC, DUMMY]
-                                    PF add, PF_SRC, PF_SRC, #1
+                                    PF add, PF_SRC, PF_SRC, SRC_STRIDE, lsl #src_bpp_shift
+                                    PF ldrsb, DUMMY, [PF_SRC]
 10:
     umull      v10.8h, v22.8b, v6.8b
                                     PF ble, 10f
-                                    PF lsl, DUMMY, DST_STRIDE, #dst_bpp_shift
-                                    PF ldrsb, DUMMY, [PF_DST, DUMMY]
-                                    PF add, PF_DST, PF_DST, #1
+                                    PF add, PF_DST, PF_DST, DST_STRIDE, lsl #dst_bpp_shift
+                                    PF ldrsb, DUMMY, [PF_DST]
 10:
     umull      v11.8h, v22.8b, v7.8b
 .endm
@@ -886,9 +875,8 @@ generate_composite_function_single_scanline \
                                     PF subs, PF_CTL, PF_CTL, #0x10
     umull       v11.8h, v24.8b, v7.8b
                                     PF ble, 10f
-                                    PF lsl, DUMMY, DST_STRIDE, #dst_bpp_shift
-                                    PF ldrsb, DUMMY, [PF_DST, DUMMY]
-                                    PF add, PF_DST, PF_DST, #1
+                                    PF add, PF_DST, PF_DST, DST_STRIDE, lsl #dst_bpp_shift
+                                    PF ldrsb, DUMMY, [PF_DST]
 10:
         st4         {v28.8b, v29.8b, v30.8b, v31.8b}, [DST_W], #32
 .endm
@@ -950,9 +938,8 @@ generate_composite_function \
     umull       v9.8h, v22.8b, v5.8b
     umull       v10.8h, v22.8b, v6.8b
                                     PF blt, 10f
-                                    PF lsl, DUMMY, DST_STRIDE, #dst_bpp_shift
-                                    PF ldrsb, DUMMY, [PF_DST, DUMMY]
-                                    PF add, PF_DST, PF_DST, #1
+                                    PF add, PF_DST, PF_DST, DST_STRIDE, lsl #dst_bpp_shift
+                                    PF ldrsb, DUMMY, [PF_DST]
 10:
     umull       v11.8h, v22.8b, v7.8b
 .endm
@@ -1436,9 +1423,8 @@ generate_composite_function \
 10:
     umull          v11.8h, v24.8b, v3.8b
                                     PF ble, 10f
-                                    PF lsl, DUMMY, MASK_STRIDE, #mask_bpp_shift
-                                    PF ldrsb, DUMMY, [PF_MASK, DUMMY]
-                                    PF add, PF_MASK, PF_MASK, #1
+                                    PF add, PF_MASK, PF_MASK, MASK_STRIDE, lsl #mask_bpp_shift
+                                    PF ldrsb, DUMMY, [PF_MASK]
 10:
         st4        {v28.8b, v29.8b, v30.8b, v31.8b}, [DST_W], #32
     ursra       v8.8h, v8.8h, #8
@@ -1517,9 +1503,8 @@ generate_composite_function \
 10:
     umull       v3.8h,  v27.8b, v16.8b
                                     PF ble, 10f
-                                    PF lsl, DUMMY, MASK_STRIDE, #mask_bpp_shift
-                                    PF ldrsb, DUMMY, [PF_MASK, DUMMY]
-                                    PF add, PF_MASK, PF_MASK, #1
+                                    PF add, PF_MASK, PF_MASK, MASK_STRIDE, lsl #mask_bpp_shift
+                                    PF ldrsb, DUMMY, [PF_MASK]
 10:
         st1         {v28.8b, v29.8b, v30.8b, v31.8b}, [DST_W], #32
     ursra       v0.8h, v0.8h,  #8
@@ -1628,15 +1613,13 @@ generate_composite_function \
 10:
     umull       v19.8h, v24.8b, v11.8b
                                     PF ble, 10f
-                                    PF lsl, DUMMY, DST_STRIDE, #dst_bpp_shift
-                                    PF ldrsb, DUMMY, [PF_DST, DUMMY]
-                                    PF add, PF_DST, PF_DST, #1
+                                    PF add, PF_DST, PF_DST, DST_STRIDE, lsl #dst_bpp_shift
+                                    PF ldrsb, DUMMY, [PF_DST]
 10:
         uqadd       v28.8b, v0.8b, v28.8b
                                     PF ble, 10f
-                                    PF lsl, DUMMY, MASK_STRIDE, #mask_bpp_shift
-                                    PF ldrsb, DUMMY, [PF_MASK, DUMMY]
-                                    PF add, PF_MASK, PF_MASK, #1
+                                    PF add, PF_MASK, PF_MASK, MASK_STRIDE, lsl #mask_bpp_shift
+                                    PF ldrsb, DUMMY, [PF_MASK]
 10:
         uqadd        v29.8b, v1.8b, v29.8b
         uqadd        v30.8b, v2.8b, v30.8b
@@ -2699,9 +2682,8 @@ generate_composite_function \
                                     PF sub, PF_X, PF_X, ORIG_W
                                     PF subs, PF_CTL, PF_CTL, #0x10
                                     PF ble, 10f
-                                    PF lsl, DUMMY, SRC_STRIDE, #src_bpp_shift
-                                    PF ldrsb, DUMMY, [PF_SRC, DUMMY]
-                                    PF add, PF_SRC, PF_SRC, #1
+                                    PF add, PF_SRC, PF_SRC, SRC_STRIDE, lsl #src_bpp_shift
+                                    PF ldrsb, DUMMY, [PF_SRC]
 10:
 .endm
 
@@ -2768,9 +2750,8 @@ generate_composite_function \
                                     PF sub, PF_X, PF_X, ORIG_W
                                     PF subs, PF_CTL, PF_CTL, #0x10
                                     PF ble, 10f
-                                    PF lsl, DUMMY, SRC_STRIDE, #src_bpp_shift
-                                    PF ldrsb, DUMMY, [PF_SRC, DUMMY]
-                                    PF add, PF_SRC, PF_SRC, #1
+                                    PF add, PF_SRC, PF_SRC, SRC_STRIDE, lsl #src_bpp_shift
+                                    PF ldrsb, DUMMY, [PF_SRC]
 10:
 .endm
 
