@@ -149,8 +149,6 @@ h2 {
 #manage-protections,
 .etp-card .icon.dark,
 .proxy-card .icon.dark,
-.vpn-card .icon.dark,
-.vpn-banner .icon.dark,
 a.hidden,
 .loading .card-body,
 .lockwise-card.hidden,
@@ -212,16 +210,12 @@ a.hidden,
   }
 
   .etp-card .icon.dark,
-  .proxy-card .icon.dark,
-  .vpn-card .icon.dark,
-  .vpn-banner .icon.dark {
+  .proxy-card .icon.dark {
     display: block;
   }
 
   .etp-card .icon.light,
-  .proxy-card .icon.light,
-  .vpn-card .icon.light,
-  .vpn-banner .icon.light {
+  .proxy-card .icon.light {
     display: none;
   }
 }
