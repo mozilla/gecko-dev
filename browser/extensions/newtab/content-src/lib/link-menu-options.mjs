@@ -572,7 +572,7 @@ export const LinkMenuOptions = {
 
   ReportContent: site => {
     return {
-      id: "newtab-menu-report-content",
+      id: "newtab-menu-report",
       action: ac.AlsoToMain({
         type: at.REPORT_CONTENT_OPEN,
         data: {

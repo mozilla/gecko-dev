@@ -31,13 +31,13 @@ export class _DSLinkMenu extends React.PureComponent {
 
       TOP_STORIES_CONTEXT_MENU_OPTIONS = [
         "CheckBookmark",
-        ...(this.props.section ? ["ReportContent"] : []),
         ...saveToPocketOptions,
         "Separator",
         "OpenInNewWindow",
         "OpenInPrivateWindow",
         "Separator",
         "BlockUrl",
+        ...(this.props.section ? ["ReportContent"] : []),
       ];
     }
 
