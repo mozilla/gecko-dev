@@ -59,6 +59,7 @@ WEBRTC_ONLY_DEPS = [
     'src/testing',
     'src/third_party',
     'src/third_party/clang_format/script',
+    'src/third_party/grpc/src',
     'src/third_party/gtest-parallel',
     'src/third_party/kotlin_stdlib',
     'src/third_party/pipewire/linux-amd64',
