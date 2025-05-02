@@ -2608,8 +2608,16 @@ void TextInputHandler::InsertText(NSString* aString,
   // If mCurrentKeyEvent.mKeyEvent is null, the text should be inputted as
   // composition events.
   nsEventStatus status = nsEventStatus_eIgnore;
-  bool keyPressDispatched = mDispatcher->MaybeDispatchKeypressEvents(
-      keypressEvent, status, currentKeyEvent);
+  bool keyPressDispatched = [&]() {
+    // If text content is chrome process, OnTextChange etc will be dispatched
+    // synchronously. We don't want to dismiss text substitution panel at this
+    // point.
+    AutoRestore<bool> block(mBlockDismissTextSubstitutionPanel);
+    mBlockDismissTextSubstitutionPanel = true;
+
+    return mDispatcher->MaybeDispatchKeypressEvents(keypressEvent, status,
+                                                    currentKeyEvent);
+  }();
   bool keyPressHandled = (status == nsEventStatus_eConsumeNoDefault);
 
   // WebKit and text editor dismisses autocorrect panel by space, then process
@@ -3112,9 +3120,17 @@ bool TextInputHandler::DoCommandBySelector(const char* aSelector) {
     currentKeyEvent->InitKeyEvent(this, keypressEvent, false);
 
     nsEventStatus status = nsEventStatus_eIgnore;
-    currentKeyEvent->mKeyPressDispatched =
-        mDispatcher->MaybeDispatchKeypressEvents(keypressEvent, status,
-                                                 currentKeyEvent);
+    // If text content is chrome process, OnTextChange etc will be dispatched
+    // synchronously. We don't want to dismiss text substitution panel at this
+    // point.
+    {
+      AutoRestore<bool> block(mBlockDismissTextSubstitutionPanel);
+      mBlockDismissTextSubstitutionPanel = true;
+
+      currentKeyEvent->mKeyPressDispatched =
+          mDispatcher->MaybeDispatchKeypressEvents(keypressEvent, status,
+                                                   currentKeyEvent);
+    }
     currentKeyEvent->mKeyPressHandled =
         (status == nsEventStatus_eConsumeNoDefault);
     MOZ_LOG_KEY_OR_IME(
@@ -5022,8 +5038,10 @@ void IMEInputHandler::HandleTextSubstitution(
   }
 
   // Dismiss text substitution panel since this text change might be script etc
-  mProcessTextSubstitution = false;
-  DismissTextSubstitutionPanel();
+  if (!mBlockDismissTextSubstitutionPanel) {
+    mProcessTextSubstitution = false;
+    DismissTextSubstitutionPanel();
+  }
 
   // Set new text substitution data to show its panel by current changed text.
   //
@@ -5254,6 +5272,11 @@ void IMEInputHandler::ShowTextSubstitutionPanel() {
 
 void IMEInputHandler::DismissTextSubstitutionPanel() {
   NS_OBJC_BEGIN_TRY_IGNORE_BLOCK;
+
+  MOZ_LOG(gIMELog, LogLevel::Info,
+          ("%p IMEInputHandler::DismissTextSubstitutionPanel, "
+           "mProcessTextSubstitution=%s",
+           this, mProcessTextSubstitution ? "true" : "false"));
 
   NSSpellChecker* spellchecker = [NSSpellChecker sharedSpellChecker];
   if (!spellchecker) {
