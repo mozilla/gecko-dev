@@ -348,9 +348,9 @@ class ApmDataDumper {
 #endif
   }
 
-  void DumpRaw([[maybe_unused]] absl::string_view name,
-               [[maybe_unused]] rtc::ArrayView<const size_t> v,
-               [[maybe_unused]] int dump_set = kDefaultDumpSet) {
+  void DumpRaw(absl::string_view name,
+               rtc::ArrayView<const size_t> v,
+               int dump_set = kDefaultDumpSet) {
 #if WEBRTC_APM_DEBUG_DUMP == 1
     if (dump_set_to_use_ && *dump_set_to_use_ != dump_set)
       return;

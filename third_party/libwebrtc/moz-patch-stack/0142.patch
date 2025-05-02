@@ -1,40 +1,49 @@
 From: Andreas Pehrson <apehrson@mozilla.com>
 Date: Tue, 28 Jan 2025 21:45:00 +0000
-Subject: Bug 1938047 - Link adapted_video_track_source.cc and generate webrtc
- moz.build files. r=ng,webrtc-reviewers
+Subject: Bug 1938047 - Hook up VideoStreamFactory with EncoderInfo like the
+ libwebrtc factory. r=webrtc-reviewers,dbaker
 
-Differential Revision: https://phabricator.services.mozilla.com/D234863
-Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/b6dd815fc9d2df718a1b48b96f58f99c0cfb7e19
+This is necessary for the factory to factor in the encoder's resolution
+alignment requirements when calculating stream resolutions.
+
+Differential Revision: https://phabricator.services.mozilla.com/D235702
+Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/8b5653392e88ccd0c2b0675c761bb22733364225
 ---
- media/BUILD.gn | 11 -----------
- 1 file changed, 11 deletions(-)
+ video/config/video_encoder_config.h | 4 ++++
+ video/video_stream_encoder.cc       | 1 +
+ 2 files changed, 5 insertions(+)
 
-diff --git a/media/BUILD.gn b/media/BUILD.gn
-index 775fcedd26..28400a116a 100644
---- a/media/BUILD.gn
-+++ b/media/BUILD.gn
-@@ -53,11 +53,6 @@ rtc_library("rtc_media_base") {
-     "base/video_broadcaster.h",  # Used downstream
-     "base/video_common.h",  # Used downstream
-   ]
--  if (build_with_mozilla) {
--    sources -= [
--      "base/adapted_video_track_source.h",
--    ]
--  }
-   deps = [
-     ":adapted_video_track_source",
-     ":codec",
-@@ -137,12 +132,6 @@ rtc_library("adapted_video_track_source") {
-     "base/adapted_video_track_source.cc",
-     "base/adapted_video_track_source.h",
-   ]
--  if (build_with_mozilla) {
--    sources -= [
--      "base/adapted_video_track_source.cc",
--      "base/adapted_video_track_source.h",
--    ]
--  }
-   deps = [
-     ":video_adapter",
-     ":video_broadcaster",
+diff --git a/video/config/video_encoder_config.h b/video/config/video_encoder_config.h
+index 59ee866f53..b062ca6563 100644
+--- a/video/config/video_encoder_config.h
++++ b/video/config/video_encoder_config.h
+@@ -23,6 +23,7 @@
+ #include "api/video_codecs/scalability_mode.h"
+ #include "api/video_codecs/sdp_video_format.h"
+ #include "api/video_codecs/video_codec.h"
++#include "api/video_codecs/video_encoder.h"
+ #include "rtc_base/ref_count.h"
+ 
+ namespace webrtc {
+@@ -151,6 +152,9 @@ class VideoEncoderConfig {
+         int frame_height,
+         const VideoEncoderConfig& encoder_config) = 0;
+ 
++    // Mozilla: Patching in necessary info our custom VideoStreamFactory will need to know.
++    virtual void SetEncoderInfo(const VideoEncoder::EncoderInfo& info) {}
++
+    protected:
+     ~VideoStreamFactoryInterface() override {}
+   };
+diff --git a/video/video_stream_encoder.cc b/video/video_stream_encoder.cc
+index 9db694119e..621b3db3d2 100644
+--- a/video/video_stream_encoder.cc
++++ b/video/video_stream_encoder.cc
+@@ -1030,6 +1030,7 @@ void VideoStreamEncoder::ReconfigureEncoder() {
+   std::vector<VideoStream> streams;
+   if (encoder_config_.video_stream_factory) {
+     // Note: only tests set their own EncoderStreamFactory...
++    encoder_config_.video_stream_factory->SetEncoderInfo(encoder_->GetEncoderInfo());
+     streams = encoder_config_.video_stream_factory->CreateEncoderStreams(
+         env_.field_trials(), last_frame_info_->width, last_frame_info_->height,
+         encoder_config_);

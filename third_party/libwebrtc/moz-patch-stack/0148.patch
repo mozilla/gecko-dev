@@ -1,33 +1,55 @@
 From: Jan Grulich <jgrulich@redhat.com>
-Date: Mon, 24 Mar 2025 10:09:00 +0000
-Subject: Bug 1954903 - WebRTC backport: PipeWire camera: drop redundant
- <pipewire/core.h> include r=pehrsons,webrtc-reviewers
+Date: Mon, 24 Mar 2025 10:37:00 +0000
+Subject: Bug 1953080 - WebRTC backport: Fix build with Pipewire 1.4
+ r=pehrsons,webrtc-reviewers
 
-We already include main <pipewire/pipewire.h> header, which includes all
-the PipeWire headers, making <pipewire/core.h> to be included twice.
+Pipewire 1.4 changed some functions from taking void*
+to taking the actual type they expect, which makes
+some code that built with 1.2 no longer build with 1.4.
 
-This breaks Firefox builds, where using system libraries we have to list
-all system headers, making Firefox to unnecessarily list "core.h" header
-in the list, while "pipewire.h" should be enough.
+For older versions, this is effectively a no-op.
 
 This is a simple backport of an WebRTC upstream change.
-Upstream commit: 537158885bc60ffe64c2c0c8a7c89d74cb7c105b
+Upstream commit: 0a9787897f3d36055130b0532967d31c31e8408f
 
-Differential Revision: https://phabricator.services.mozilla.com/D242277
-Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/ff19ec147fca0f7179d7fe9f478e1aef8bfe3e57
+Differential Revision: https://phabricator.services.mozilla.com/D241023
+Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/4662f430e6c0e6312ac7a0a8b7d06844d88515b7
 ---
- modules/video_capture/linux/pipewire_session.h | 1 -
- 1 file changed, 1 deletion(-)
+ AUTHORS                                         | 1 +
+ modules/video_capture/linux/pipewire_session.cc | 4 ++--
+ 2 files changed, 3 insertions(+), 2 deletions(-)
 
-diff --git a/modules/video_capture/linux/pipewire_session.h b/modules/video_capture/linux/pipewire_session.h
-index 1f3a00614f..aed3fbb1bf 100644
---- a/modules/video_capture/linux/pipewire_session.h
-+++ b/modules/video_capture/linux/pipewire_session.h
-@@ -11,7 +11,6 @@
- #ifndef MODULES_VIDEO_CAPTURE_LINUX_PIPEWIRE_SESSION_H_
- #define MODULES_VIDEO_CAPTURE_LINUX_PIPEWIRE_SESSION_H_
+diff --git a/AUTHORS b/AUTHORS
+index 5698ada0fe..4fb9455791 100644
+--- a/AUTHORS
++++ b/AUTHORS
+@@ -63,6 +63,7 @@ Hans Knoechel <hans@hans-knoechel.de>
+ Helmut Januschka <helmut@januschka.com>
+ Hugues Ekra <hekra01@gmail.com>
+ Hyungjoo Na <element11sodium@gmail.com>
++Ilya Katsnelson <me@0upti.me>
+ Jake Hilton <jakehilton@gmail.com>
+ James H. Brown <jbrown@burgoyne.com>
+ Jan Grulich <grulja@gmail.com>
+diff --git a/modules/video_capture/linux/pipewire_session.cc b/modules/video_capture/linux/pipewire_session.cc
+index b58ea755c6..6e7e407358 100644
+--- a/modules/video_capture/linux/pipewire_session.cc
++++ b/modules/video_capture/linux/pipewire_session.cc
+@@ -88,7 +88,7 @@ PipeWireNode::PipeWireNode(PipeWireSession* session,
+       .param = OnNodeParam,
+   };
  
--#include <pipewire/core.h>
- #include <pipewire/pipewire.h>
+-  pw_node_add_listener(proxy_, &node_listener_, &node_events, this);
++  pw_node_add_listener(reinterpret_cast<pw_node*>(proxy_), &node_listener_, &node_events, this);
+ }
  
- #include <deque>
+ // static
+@@ -120,7 +120,7 @@ void PipeWireNode::OnNodeInfo(void* data, const pw_node_info* info) {
+       uint32_t id = info->params[i].id;
+       if (id == SPA_PARAM_EnumFormat &&
+           info->params[i].flags & SPA_PARAM_INFO_READ) {
+-        pw_node_enum_params(that->proxy_, 0, id, 0, UINT32_MAX, nullptr);
++        pw_node_enum_params(reinterpret_cast<pw_node*>(that->proxy_), 0, id, 0, UINT32_MAX, nullptr);
+         break;
+       }
+     }
