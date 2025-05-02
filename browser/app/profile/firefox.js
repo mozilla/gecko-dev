@@ -1041,9 +1041,12 @@ pref("browser.tabs.groups.smart.enabled", true);
 pref("browser.tabs.groups.smart.enabled", false);
 #endif
 
-// KMEANS_WITH_ANCHOR or NEAREST_NEIGHBOR
+// KMEANS_WITH_ANCHOR or NEAREST_NEIGHBOR or LOGISTIC_REGRESSION
 pref("browser.tabs.groups.smart.suggestOtherTabsMethod", "NEAREST_NEIGHBOR");
-
+pref("browser.tabs.groups.smart.topicModelRevision", "latest");
+pref("browser.tabs.groups.smart.embeddingModelRevision", "latest");
+// value should be <= 1000 to be correctly converted (275 -> 0.275)
+pref("browser.tabs.groups.smart.nearestNeighborThresholdInt", 275);
 pref("browser.tabs.groups.smart.optin", false);
 
 pref("browser.tabs.dragDrop.createGroup.delayMS", 240);

@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+import { XPCOMUtils } from "resource://gre/modules/XPCOMUtils.sys.mjs";
 import { createEngine } from "chrome://global/content/ml/EngineProcess.sys.mjs";
 import {
   cosSim,
@@ -26,6 +27,39 @@ ChromeUtils.defineESModuleGetters(lazy, {
   Progress: "chrome://global/content/ml/Utils.sys.mjs",
 });
 
+const LATEST_MODEL_REVISION = "latest";
+
+// Methods for suggesting tabs that are similar to current tab
+export const SUGGEST_OTHER_TABS_METHODS = {
+  KMEANS_WITH_ANCHOR: "KMEANS_WITH_ANCHOR",
+  NEAREST_NEIGHBOR: "NEAREST_NEIGHBOR",
+  LOGISTIC_REGRESSION: "LOGISTIC_REGRESSION",
+};
+
+XPCOMUtils.defineLazyPreferenceGetter(
+  lazy,
+  "suggestOtherTabsMethod",
+  "browser.tabs.groups.smart.suggestOtherTabsMethod"
+);
+
+XPCOMUtils.defineLazyPreferenceGetter(
+  lazy,
+  "topicModelRevision",
+  "browser.tabs.groups.smart.topicModelRevision"
+);
+
+XPCOMUtils.defineLazyPreferenceGetter(
+  lazy,
+  "embeddingModelRevision",
+  "browser.tabs.groups.smart.embeddingModelRevision"
+);
+
+XPCOMUtils.defineLazyPreferenceGetter(
+  lazy,
+  "nearestNeighborThresholdInt",
+  "browser.tabs.groups.smart.nearestNeighborThresholdInt"
+);
+
 const EMBED_TEXT_KEY = "combined_text";
 export const CLUSTER_METHODS = {
   KMEANS: "KMEANS",
@@ -43,19 +77,11 @@ export const PREGROUPED_HANDLING_METHODS = {
   IGNORE: "IGNORE", // We always group with the anchor items in the 0 cluster, and never let them be reassinged
 };
 
-// Methods for suggesting tabs that are similar to current tab
-export const SUGGEST_OTHER_TABS_METHODS = {
-  KMEANS_WITH_ANCHOR: "KMEANS_WITH_ANCHOR",
-  NEAREST_NEIGHBOR: "NEAREST_NEIGHBOR",
-  LOGISTIC_REGRESSION: "LOGISTIC_REGRESSION",
-};
-
 const EXPECTED_TOPIC_MODEL_OBJECTS = 6;
 const EXPECTED_EMBEDDING_MODEL_OBJECTS = 4;
 
 export const DIM_REDUCTION_METHODS = {};
 const MISSING_ANCHOR_IN_CLUSTER_PENALTY = 0.2;
-const NEAREST_NEIGHBOR_DEFAULT_THRESHOLD = 0.275;
 const MAX_NN_GROUPED_TABS = 4;
 const MAX_SUGGESTED_TABS = 10;
 
@@ -191,11 +217,7 @@ export class SmartTabGroupingManager {
       .filter(a => a >= 0);
 
     let suggestedTabs;
-    const suggestOtherTabsMethod = Services.prefs.getStringPref(
-      "browser.tabs.groups.smart.suggestOtherTabsMethod",
-      SUGGEST_OTHER_TABS_METHODS.NEAREST_NEIGHBOR
-    );
-    switch (suggestOtherTabsMethod) {
+    switch (lazy.suggestOtherTabsMethod) {
       case SUGGEST_OTHER_TABS_METHODS.KMEANS_WITH_ANCHOR:
         suggestedTabs = await this.generateClusters(
           allTabs,
@@ -278,7 +300,7 @@ export class SmartTabGroupingManager {
     groupedIndices,
     alreadyGroupedIndices,
     groupLabel = "",
-    threshold = NEAREST_NEIGHBOR_DEFAULT_THRESHOLD,
+    thresholdMills = lazy.nearestNeighborThresholdInt,
     precomputedEmbeddings = [],
     depth = 0,
   }) {
@@ -322,7 +344,9 @@ export class SmartTabGroupingManager {
           closestScore = cosineSim;
         }
       }
-      if (closestScore > threshold) {
+      // threshold could also be set via a nimbus experiment, in which case
+      // it will be an int <= 1000
+      if (closestScore > thresholdMills / 1000) {
         closestTabs.push([allTabs[tabsToAssignIndices[i]], closestScore]);
         similarTabsIndices.push(tabsToAssignIndices[i]);
       }
@@ -337,7 +361,7 @@ export class SmartTabGroupingManager {
         groupedIndices: similarTabsIndices,
         alreadyGroupedIndices: alreadyGroupedIndices.concat(groupedIndices),
         groupLabel,
-        threshold,
+        thresholdMills,
         precomputedEmbeddings: embeddings,
         depth: depth - 1,
       });
@@ -587,6 +611,29 @@ export class SmartTabGroupingManager {
   }
 
   /**
+   * Get updated config for the ml engine
+   *
+   * @param {object} initData
+   * @param {string} featureId
+   * @return {*}
+   */
+  static getUpdatedInitData(initData, featureId) {
+    // we're setting a specific modelRevision through about:config or Nimbus
+    if (
+      featureId === SMART_TAB_GROUPING_CONFIG.topicGeneration.featureId &&
+      lazy.topicModelRevision !== LATEST_MODEL_REVISION
+    ) {
+      initData.modelRevision = lazy.topicModelRevision;
+    } else if (
+      featureId === SMART_TAB_GROUPING_CONFIG.embedding.featureId &&
+      lazy.embeddingModelRevision !== LATEST_MODEL_REVISION
+    ) {
+      initData.modelRevision = lazy.embeddingModelRevision;
+    }
+    return initData;
+  }
+
+  /**
    * Creates an ML engine for a given config.
    * @param {*} engineConfig
    * @param {function} progressCallback
@@ -611,6 +658,8 @@ export class SmartTabGroupingManager {
       modelId,
       modelRevision,
     };
+
+    initData = SmartTabGroupingManager.getUpdatedInitData(initData, featureId);
     return await createEngine(initData, progressCallback);
   }
 
