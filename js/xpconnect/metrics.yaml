@@ -11,49 +11,6 @@ $tags:
   - 'Core :: XPConnect'
 
 
-performance.clone.deserialize:
-  size:
-    description: >
-      Size of deserialized data, in bytes
-    type: memory_distribution
-    memory_unit: byte
-    bugs:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1717631
-    data_reviews:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1717631#c4
-    notification_emails:
-      - sfink@mozilla.com
-    expires: never
-
-  items:
-    description: >
-      Size of deserialized data, in items
-    type: custom_distribution
-    unit: Serialized items
-    histogram_type: exponential
-    range_max: 2147483646
-    bucket_count: 50
-    bugs:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1717631
-    data_reviews:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1717631#c4
-    notification_emails:
-      - sfink@mozilla.com
-    expires: never
-
-  time:
-    description: >
-      Time spent deserializing structured data
-    type: timing_distribution
-    time_unit: microsecond
-    bugs:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1717631
-    data_reviews:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1717631#c4
-    notification_emails:
-      - sfink@mozilla.com
-    expires: never
-
 javascript.ion:
   compile_time:
     type: timing_distribution
@@ -1052,24 +1009,3 @@ script.preloader:
       - plawless@mozilla.com
     expires: never
     telemetry_mirror: SCRIPT_PRELOADER_WAIT_TIME
-
-glam_experiment:
-  time:
-    type: timing_distribution
-    disabled: true
-    time_unit: microsecond
-    description: >
-      Duplicate of:
-      `performance.clone.deserialize.time`
-
-      Intended for the purpose of testing client side sampling of data. This
-      metric is disabled by default and will be enabled only for the purpose
-      of the experiment. See Bug 1947604 for more information.
-    bugs:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1947604
-    data_reviews:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1717631#c4
-    notification_emails:
-      - tlong@mozilla.com
-      - efilho@mozilla.com
-    expires: 146

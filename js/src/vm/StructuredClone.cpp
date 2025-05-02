@@ -3955,8 +3955,6 @@ bool JSStructuredCloneReader::readObjectField(HandleObject obj,
 
 // Perform the whole recursive reading procedure.
 bool JSStructuredCloneReader::read(MutableHandleValue vp, size_t nbytes) {
-  auto startTime = mozilla::TimeStamp::Now();
-
   if (!readHeader()) {
     return false;
   }
@@ -4101,18 +4099,6 @@ bool JSStructuredCloneReader::read(MutableHandleValue vp, size_t nbytes) {
     return false;
   }
 #endif
-
-// See Bugs 1957731 and 1898515.
-#ifndef MOZ_WIDGET_ANDROID
-  JSRuntime* rt = context()->runtime();
-  rt->metrics().DESERIALIZE_BYTES(nbytes);
-  rt->metrics().DESERIALIZE_ITEMS(numItemsRead);
-  mozilla::TimeDuration elapsed = mozilla::TimeStamp::Now() - startTime;
-  rt->metrics().DESERIALIZE_US(elapsed);
-#else
-  (void)startTime;
-#endif
-
   return true;
 }
 

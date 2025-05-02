@@ -60,9 +60,6 @@ class JS_PUBLIC_API JSObject;
   _(GC_TIME_BETWEEN_S, TimeDuration_S)          \
   _(GC_TIME_BETWEEN_SLICES_MS, TimeDuration_MS) \
   _(GC_SLICE_COUNT, QuantityDistribution)       \
-  _(DESERIALIZE_BYTES, MemoryDistribution)      \
-  _(DESERIALIZE_ITEMS, QuantityDistribution)    \
-  _(DESERIALIZE_US, TimeDuration_US)            \
   _(GC_EFFECTIVENESS, MemoryDistribution)       \
   _(GC_PARALLEL_MARK, Boolean)                  \
   _(GC_PARALLEL_MARK_SPEEDUP, Integer)          \

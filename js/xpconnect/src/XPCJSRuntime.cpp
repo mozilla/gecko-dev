@@ -2605,26 +2605,6 @@ static void AccumulateTelemetryCallback(JSMetric id, uint32_t sample) {
   // clang-format on
 
   switch (id) {
-// Disable clone.deserialize metrics on Android for perf (bug 1898515).
-#ifndef MOZ_WIDGET_ANDROID
-    case JSMetric::DESERIALIZE_BYTES:
-      glean::performance_clone_deserialize::size.Accumulate(sample);
-      break;
-    case JSMetric::DESERIALIZE_ITEMS:
-      glean::performance_clone_deserialize::items.AccumulateSingleSample(
-          sample);
-      break;
-    case JSMetric::DESERIALIZE_US:
-      glean::performance_clone_deserialize::time.AccumulateRawDuration(
-          TimeDuration::FromMicroseconds(sample));
-      // GLAM EXPERIMENT
-      // This metric is temporary, disabled by default, and will be enabled only
-      // for the purpose of experimenting with client-side sampling of data for
-      // GLAM use. See Bug 1947604 for more information.
-      glean::glam_experiment::time.AccumulateRawDuration(
-          TimeDuration::FromMicroseconds(sample));
-      break;
-#endif  // MOZ_WIDGET_ANDROID
     case JSMetric::GC_MS:
       glean::javascript_gc::total_time.AccumulateRawDuration(
           TimeDuration::FromMilliseconds(sample));
