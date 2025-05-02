@@ -11,11 +11,17 @@
 #ifndef PC_TEST_MOCK_CHANNEL_INTERFACE_H_
 #define PC_TEST_MOCK_CHANNEL_INTERFACE_H_
 
+#include <functional>
 #include <string>
 #include <vector>
 
+#include "absl/strings/string_view.h"
+#include "api/jsep.h"
+#include "api/media_types.h"
 #include "media/base/media_channel.h"
+#include "media/base/stream_params.h"
 #include "pc/channel_interface.h"
+#include "pc/rtp_transport_internal.h"
 #include "test/gmock.h"
 
 namespace cricket {

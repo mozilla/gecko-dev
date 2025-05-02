@@ -24,6 +24,7 @@
 #include <stdint.h>
 
 #include <memory>
+#include <optional>
 
 #include "api/audio/audio_device.h"
 #include "api/audio/audio_device_defines.h"

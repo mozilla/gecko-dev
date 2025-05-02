@@ -11,6 +11,8 @@
 #ifndef PC_TEST_FAKE_PERIODIC_VIDEO_TRACK_SOURCE_H_
 #define PC_TEST_FAKE_PERIODIC_VIDEO_TRACK_SOURCE_H_
 
+#include "api/video/video_frame.h"
+#include "api/video/video_source_interface.h"
 #include "pc/test/fake_periodic_video_source.h"
 #include "pc/video_track_source.h"
 

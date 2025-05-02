@@ -19,6 +19,7 @@
 #include "call/call.h"
 #include "call/call_config.h"
 #include "media/base/fake_media_engine.h"
+#include "media/base/media_engine.h"
 #include "pc/media_factory.h"
 #include "rtc_base/checks.h"
 

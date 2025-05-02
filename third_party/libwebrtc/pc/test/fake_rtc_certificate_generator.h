@@ -11,15 +11,18 @@
 #ifndef PC_TEST_FAKE_RTC_CERTIFICATE_GENERATOR_H_
 #define PC_TEST_FAKE_RTC_CERTIFICATE_GENERATOR_H_
 
+#include <cstdint>
 #include <optional>
 #include <string>
 #include <utility>
 
-#include "api/peer_connection_interface.h"
+#include "api/scoped_refptr.h"
 #include "api/task_queue/task_queue_base.h"
 #include "api/units/time_delta.h"
+#include "rtc_base/checks.h"
 #include "rtc_base/rtc_certificate.h"
 #include "rtc_base/rtc_certificate_generator.h"
+#include "rtc_base/ssl_identity.h"
 
 // RSA with mod size 1024, pub exp 0x10001.
 static const rtc::RTCCertificatePEM kRsaPems[] = {

@@ -16,7 +16,6 @@
 
 #include "api/jsep.h"
 #include "api/rtp_transceiver_interface.h"
-#include "pc/session_description.h"
 #include "pc/simulcast_description.h"
 
 namespace webrtc {

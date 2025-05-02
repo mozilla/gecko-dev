@@ -11,6 +11,10 @@
 #ifndef PC_TEST_SRTP_TEST_UTIL_H_
 #define PC_TEST_SRTP_TEST_UTIL_H_
 
+#include <cstdint>
+
+#include "rtc_base/buffer.h"
+#include "rtc_base/checks.h"
 #include "rtc_base/ssl_stream_adapter.h"
 
 namespace rtc {

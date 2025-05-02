@@ -11,13 +11,25 @@
 #ifndef PC_TEST_FAKE_DATA_CHANNEL_CONTROLLER_H_
 #define PC_TEST_FAKE_DATA_CHANNEL_CONTROLLER_H_
 
+#include <cstddef>
 #include <set>
 #include <string>
 #include <utility>
 
+#include "absl/algorithm/container.h"
+#include "absl/strings/string_view.h"
+#include "api/data_channel_interface.h"
 #include "api/priority.h"
+#include "api/rtc_error.h"
+#include "api/scoped_refptr.h"
+#include "api/sequence_checker.h"
+#include "api/transport/data_channel_transport_interface.h"
 #include "pc/sctp_data_channel.h"
+#include "pc/sctp_utils.h"
 #include "rtc_base/checks.h"
+#include "rtc_base/copy_on_write_buffer.h"
+#include "rtc_base/thread.h"
+#include "rtc_base/thread_annotations.h"
 #include "rtc_base/weak_ptr.h"
 
 class FakeDataChannelController

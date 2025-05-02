@@ -12,6 +12,8 @@
 #define PC_TEST_FAKE_VIDEO_TRACK_RENDERER_H_
 
 #include "api/media_stream_interface.h"
+#include "api/scoped_refptr.h"
+#include "api/video/video_source_interface.h"
 #include "media/base/fake_video_renderer.h"
 
 namespace webrtc {
