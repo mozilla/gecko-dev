@@ -3680,8 +3680,7 @@ void ScrollContainerFrame::MaybeCreateTopLayerAndWrapRootItems(
   };
 
   if (rootStyleFrame &&
-      rootStyleFrame->HasAnyStateBits(NS_FRAME_CAPTURED_IN_VIEW_TRANSITION) &&
-      StaticPrefs::dom_viewTransitions_live_capture()) {
+      rootStyleFrame->HasAnyStateBits(NS_FRAME_CAPTURED_IN_VIEW_TRANSITION)) {
     SerializeList();
     rootResultList.AppendNewToTop<nsDisplayViewTransitionCapture>(
         aBuilder, this, &rootResultList, aBuilder->CurrentActiveScrolledRoot(),

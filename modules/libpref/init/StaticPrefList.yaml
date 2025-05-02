@@ -5007,12 +5007,6 @@
   value: true
   mirror: always
 
-# Whether view transitions use webrender for live-capture
-- name: dom.viewTransitions.live-capture
-  type: bool
-  value: true
-  mirror: always
-
 # Is support for WebVR APIs enabled?
 # Disabled everywhere, but not removed.
 - name: dom.vr.enabled
