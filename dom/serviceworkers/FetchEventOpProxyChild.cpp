@@ -73,7 +73,7 @@ void FetchEventOpProxyChild::Initialize(
     mPreloadResponseAvailablePromise =
         MakeRefPtr<FetchEventPreloadResponseAvailablePromise::Private>(
             __func__);
-    mPreloadResponseAvailablePromise->UseSynchronousTaskDispatch(__func__);
+    mPreloadResponseAvailablePromise->UseDirectTaskDispatch(__func__);
     if (aArgs.preloadResponse().isSome()) {
       mPreloadResponseAvailablePromiseResolved = true;
       mPreloadResponseAvailablePromise->Resolve(
@@ -82,7 +82,7 @@ void FetchEventOpProxyChild::Initialize(
 
     mPreloadResponseTimingPromise =
         MakeRefPtr<FetchEventPreloadResponseTimingPromise::Private>(__func__);
-    mPreloadResponseTimingPromise->UseSynchronousTaskDispatch(__func__);
+    mPreloadResponseTimingPromise->UseDirectTaskDispatch(__func__);
     if (aArgs.preloadResponseTiming().isSome()) {
       mPreloadResponseTimingPromise->Resolve(
           aArgs.preloadResponseTiming().ref(), __func__);
@@ -90,7 +90,7 @@ void FetchEventOpProxyChild::Initialize(
 
     mPreloadResponseEndPromise =
         MakeRefPtr<FetchEventPreloadResponseEndPromise::Private>(__func__);
-    mPreloadResponseEndPromise->UseSynchronousTaskDispatch(__func__);
+    mPreloadResponseEndPromise->UseDirectTaskDispatch(__func__);
     if (aArgs.preloadResponseEndArgs().isSome()) {
       mPreloadResponseEndPromiseResolved = true;
       mPreloadResponseEndPromise->Resolve(aArgs.preloadResponseEndArgs().ref(),

@@ -45,9 +45,9 @@ FetchServicePromises::FetchServicePromises()
           MakeRefPtr<FetchServiceResponseTimingPromise::Private>(__func__)),
       mEndPromise(
           MakeRefPtr<FetchServiceResponseEndPromise::Private>(__func__)) {
-  mAvailablePromise->UseSynchronousTaskDispatch(__func__);
-  mTimingPromise->UseSynchronousTaskDispatch(__func__);
-  mEndPromise->UseSynchronousTaskDispatch(__func__);
+  mAvailablePromise->UseDirectTaskDispatch(__func__);
+  mTimingPromise->UseDirectTaskDispatch(__func__);
+  mEndPromise->UseDirectTaskDispatch(__func__);
 }
 
 RefPtr<FetchServiceResponseAvailablePromise>
