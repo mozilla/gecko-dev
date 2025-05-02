@@ -26,6 +26,7 @@ class WaylandSurfaceLock;
 
 namespace mozilla::layers {
 class NativeLayerWaylandExternal;
+class NativeLayerWaylandRender;
 
 struct LayerState {
   bool mIsVisible : 1;
@@ -131,8 +132,11 @@ class NativeLayerRootWayland final : public NativeLayerRoot {
 
 class NativeLayerWayland : public NativeLayer {
  public:
-  virtual NativeLayerWayland* AsNativeLayerWayland() override { return this; }
+  NativeLayerWayland* AsNativeLayerWayland() override { return this; }
   virtual NativeLayerWaylandExternal* AsNativeLayerWaylandExternal() {
+    return nullptr;
+  }
+  virtual NativeLayerWaylandRender* AsNativeLayerWaylandRender() {
     return nullptr;
   }
 
@@ -265,6 +269,10 @@ class NativeLayerWayland : public NativeLayer {
 
 class NativeLayerWaylandRender final : public NativeLayerWayland {
  public:
+  NativeLayerWaylandRender* AsNativeLayerWaylandRender() override {
+    return this;
+  }
+
   RefPtr<gfx::DrawTarget> NextSurfaceAsDrawTarget(
       const gfx::IntRect& aDisplayRect, const gfx::IntRegion& aUpdateRegion,
       gfx::BackendType aBackendType) override;
@@ -297,7 +305,7 @@ class NativeLayerWaylandRender final : public NativeLayerWayland {
 class NativeLayerWaylandExternal final : public NativeLayerWayland {
  public:
   // Overridden methods
-  virtual NativeLayerWaylandExternal* AsNativeLayerWaylandExternal() override {
+  NativeLayerWaylandExternal* AsNativeLayerWaylandExternal() override {
     return this;
   }
   RefPtr<gfx::DrawTarget> NextSurfaceAsDrawTarget(
