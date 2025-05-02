@@ -79,7 +79,6 @@ dictionary IdentityCredentialInit {
 [GenerateInit]
 dictionary IdentityProviderWellKnown {
   required sequence<UTF8String> provider_urls;
-  UTF8String accounts_endpoint;
 };
 
 // https://w3c-fedid.github.io/FedCM/#dictdef-identityprovidericon

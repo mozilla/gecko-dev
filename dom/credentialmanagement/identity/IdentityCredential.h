@@ -42,8 +42,6 @@ class IdentityCredential final : public Credential {
   typedef MozPromise<IdentityProviderRequestOptions, nsresult, true>
       GetIdentityProviderRequestOptionsPromise;
   typedef MozPromise<bool, nsresult, true> ValidationPromise;
-  typedef MozPromise<Maybe<IdentityProviderWellKnown>, nsresult, true>
-      GetRootManifestPromise;
   typedef MozPromise<IdentityProviderAPIConfig, nsresult, true>
       GetManifestPromise;
   typedef std::tuple<IdentityProviderRequestOptions, IdentityProviderAPIConfig>
@@ -195,20 +193,20 @@ class IdentityCredential final : public Credential {
       const IdentityProviderAPIConfig& aManifest);
 
   // Performs a Fetch for the root manifest of the provided identity provider
-  // if needed and validates its structure. The returned promise resolves
-  // if a regular manifest fetch can proceed, with a root manifest value if
-  // one was fetched
+  // and validates it as correct. The returned promise resolves with a bool
+  // that is true if everything is valid.
   //
   //  Arguments:
   //    aPrincipal: the caller of navigator.credentials.get()'s principal
   //    aProvider: the provider to validate the root manifest of
   //  Return value:
-  //    promise that resolves to a root manifest if one is fetched. Will reject
+  //    promise that resolves to a bool that indicates success. Will reject
   //    when there are network or other errors.
   //  Side effects:
-  //    Network request to the IDP's well-known if it is needed
+  //    Network request to the IDP's well-known from inside a NullPrincipal
+  //    sandbox
   //
-  static RefPtr<GetRootManifestPromise> FetchRootManifest(
+  static RefPtr<ValidationPromise> CheckRootManifest(
       nsIPrincipal* aPrincipal, const IdentityProviderConfig& aProvider);
 
   // Performs a Fetch for the internal manifest of the provided identity
@@ -224,7 +222,7 @@ class IdentityCredential final : public Credential {
   //    Network request to the URL in aProvider as the manifest from inside a
   //    NullPrincipal sandbox
   //
-  static RefPtr<GetManifestPromise> FetchManifest(
+  static RefPtr<GetManifestPromise> FetchInternalManifest(
       nsIPrincipal* aPrincipal, const IdentityProviderConfig& aProvider);
 
   // Performs a Fetch for the account list from the provided identity
