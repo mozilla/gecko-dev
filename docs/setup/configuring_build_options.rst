@@ -326,7 +326,7 @@ directory within each repository.
    builds."
 
 -  .. rubric:: Firefox, `Debugging Build (macOS
-      64bits) <http://hg.mozilla.org/mozilla-central/file/tip/browser/config/mozconfigs/macosx64/debug>`__
+      64bits) <https://github.com/mozilla-firefox/firefox/blob/main/browser/config/mozconfigs/macosx64/debug>`__
       :name: Firefox.2C_Default_Release_Configuration
 
 Building multiple projects from the same source tree
