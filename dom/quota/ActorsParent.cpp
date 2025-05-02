@@ -8214,9 +8214,6 @@ nsresult StorageOperationBase::CreateDirectoryMetadata2(
     const OriginMetadata& aOriginMetadata) {
   AssertIsOnIOThread();
 
-  QM_TRY(ArtificialFailure(
-      nsIQuotaArtificialFailure::CATEGORY_CREATE_DIRECTORY_METADATA2));
-
   QM_TRY_INSPECT(const auto& file, MOZ_TO_RESULT_INVOKE_MEMBER_TYPED(
                                        nsCOMPtr<nsIFile>, aDirectory, Clone));
 
@@ -8237,17 +8234,17 @@ nsresult StorageOperationBase::CreateDirectoryMetadata2(
   // Reserved data 2
   QM_TRY(MOZ_TO_RESULT(stream->Write32(0)));
 
-  // Currently unused (used to be suffix).
-  QM_TRY(MOZ_TO_RESULT(stream->WriteStringZ("")));
+  // The suffix isn't used right now, but we might need it in future. It's
+  // a bit of redundancy we can live with given how painful is to upgrade
+  // metadata files.
+  QM_TRY(MOZ_TO_RESULT(stream->WriteStringZ(aOriginMetadata.mSuffix.get())));
 
-  // Currently unused (used to be group).
-  QM_TRY(MOZ_TO_RESULT(stream->WriteStringZ("")));
+  QM_TRY(MOZ_TO_RESULT(stream->WriteStringZ(aOriginMetadata.mGroup.get())));
 
-  QM_TRY(MOZ_TO_RESULT(
-      stream->WriteStringZ(aOriginMetadata.mStorageOrigin.get())));
+  QM_TRY(MOZ_TO_RESULT(stream->WriteStringZ(aOriginMetadata.mOrigin.get())));
 
-  // Currently used for isPrivate (used to be used for isApp).
-  QM_TRY(MOZ_TO_RESULT(stream->WriteBoolean(aOriginMetadata.mIsPrivate)));
+  // Currently unused (used to be isApp).
+  QM_TRY(MOZ_TO_RESULT(stream->WriteBoolean(false)));
 
   QM_TRY(MOZ_TO_RESULT(stream->Flush()));
 
