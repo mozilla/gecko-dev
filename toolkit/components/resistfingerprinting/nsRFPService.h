@@ -32,6 +32,12 @@
 // reason is that it is easy to detect the real platform. So there is no benefit
 // for hiding the platform: it only brings breakages, like keyboard shortcuts
 // won't work in macOS if we spoof it as a Windows platform.
+
+// We use this value for Desktop mode in Android.
+// That's why it is defined here, outside of
+// the platform-specific definitions.
+#define SPOOFED_UA_OS_OTHER "X11; Linux x86_64"
+
 #ifdef XP_WIN
 #  define SPOOFED_UA_OS "Windows NT 10.0; Win64; x64"
 #  define SPOOFED_APPVERSION "5.0 (Windows)"
@@ -50,7 +56,7 @@
 #else
 // For Linux and other platforms, like BSDs, SunOS and etc, we will use Linux
 // platform.
-#  define SPOOFED_UA_OS "X11; Linux x86_64"
+#  define SPOOFED_UA_OS SPOOFED_UA_OS_OTHER
 #  define SPOOFED_APPVERSION "5.0 (X11)"
 #  define SPOOFED_OSCPU "Linux x86_64"
 #  define SPOOFED_MAX_TOUCH_POINTS 10
@@ -269,7 +275,8 @@ class nsRFPService final : public nsIObserver, public nsIRFPService {
   // --------------------------------------------------------------------------
 
   // This method generates the spoofed value of User Agent.
-  static void GetSpoofedUserAgent(nsACString& userAgent);
+  static void GetSpoofedUserAgent(nsACString& userAgent,
+                                  bool aAndroidDesktopMode = false);
 
   // --------------------------------------------------------------------------
 

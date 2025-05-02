@@ -11,12 +11,20 @@ ChromeUtils.defineESModuleGetters(lazy, {
 });
 
 ChromeUtils.defineLazyGetter(lazy, "MOBILE_USER_AGENT", function () {
+  if (ChromeUtils.shouldResistFingerprinting("HttpUserAgent", null)) {
+    return Services.rfp.getSpoofedUserAgent(false);
+  }
+
   return Cc["@mozilla.org/network/protocol;1?name=http"].getService(
     Ci.nsIHttpProtocolHandler
   ).userAgent;
 });
 
 ChromeUtils.defineLazyGetter(lazy, "DESKTOP_USER_AGENT", function () {
+  if (ChromeUtils.shouldResistFingerprinting("HttpUserAgent", null)) {
+    return Services.rfp.getSpoofedUserAgent(true);
+  }
+
   return lazy.MOBILE_USER_AGENT.replace(
     /Android \d.+?; [a-zA-Z]+/,
     "X11; Linux x86_64"

@@ -2473,22 +2473,20 @@ bool ChromeUtils::ShouldResistFingerprinting(
     nsIRFPTargetSetIDL* aOverriddenFingerprintingSettings,
     const Optional<bool>& aIsPBM) {
   RFPTarget target;
+#define JSRFP_TARGET_TO_RFP_TARGET(rfptarget) \
+  case JSRFPTarget::rfptarget:                \
+    target = RFPTarget::rfptarget;            \
+    break;
   switch (aTarget) {
-    case JSRFPTarget::RoundWindowSize:
-      target = RFPTarget::RoundWindowSize;
-      break;
-    case JSRFPTarget::SiteSpecificZoom:
-      target = RFPTarget::SiteSpecificZoom;
-      break;
-    case JSRFPTarget::CSSPrefersColorScheme:
-      target = RFPTarget::CSSPrefersColorScheme;
-      break;
-    case JSRFPTarget::JSLocalePrompt:
-      target = RFPTarget::JSLocalePrompt;
-      break;
+    JSRFP_TARGET_TO_RFP_TARGET(RoundWindowSize);
+    JSRFP_TARGET_TO_RFP_TARGET(SiteSpecificZoom);
+    JSRFP_TARGET_TO_RFP_TARGET(CSSPrefersColorScheme);
+    JSRFP_TARGET_TO_RFP_TARGET(JSLocalePrompt);
+    JSRFP_TARGET_TO_RFP_TARGET(HttpUserAgent);
     default:
       MOZ_CRASH("Unhandled JSRFPTarget enum value");
   }
+#undef JSRFP_TARGET_TO_RFP_TARGET
 
   bool isPBM = false;
   if (aIsPBM.WasPassed()) {

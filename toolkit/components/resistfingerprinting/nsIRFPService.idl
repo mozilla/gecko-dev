@@ -79,6 +79,9 @@ interface nsIRFPService : nsISupports
    */
   void cleanRandomKeyByOriginAttributesPattern(in AString aPattern);
 
+  [binaryname(GetSpoofedUserAgentService)]
+  ACString getSpoofedUserAgent(in boolean aDesktopMode);
+
   /**
    * Test function for generating and return the fingerprinting randomization
    * key for the given channel.

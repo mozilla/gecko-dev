@@ -1000,7 +1000,8 @@ uint32_t nsRFPService::GetSpoofedPresentedFrames(double aTime, uint32_t aWidth,
 // User-Agent/Version Stuff
 
 /* static */
-void nsRFPService::GetSpoofedUserAgent(nsACString& userAgent) {
+void nsRFPService::GetSpoofedUserAgent(nsACString& userAgent,
+                                       bool aAndroidDesktopMode /* = false */) {
   // This function generates the spoofed value of User Agent.
   // We spoof the values of the platform and Firefox version, which could be
   // used as fingerprinting sources to identify individuals.
@@ -1016,16 +1017,30 @@ void nsRFPService::GetSpoofedUserAgent(nsACString& userAgent) {
 
   // "Mozilla/5.0 (%s; rv:%d.0) Gecko/%d Firefox/%d.0"
   userAgent.AssignLiteral("Mozilla/5.0 (");
-  userAgent.AppendLiteral(SPOOFED_UA_OS);
+  if (aAndroidDesktopMode) {
+    userAgent.AppendLiteral(SPOOFED_UA_OS_OTHER);
+  } else {
+    userAgent.AppendLiteral(SPOOFED_UA_OS);
+  }
   userAgent.AppendLiteral("; rv:" MOZILLA_UAVERSION ") Gecko/");
 #if defined(ANDROID)
-  userAgent.AppendLiteral(MOZILLA_UAVERSION);
+  if (aAndroidDesktopMode) {
+    userAgent.AppendLiteral(LEGACY_UA_GECKO_TRAIL);
+  } else {
+    userAgent.AppendLiteral(MOZILLA_UAVERSION);
+  }
 #else
   userAgent.AppendLiteral(LEGACY_UA_GECKO_TRAIL);
 #endif
   userAgent.AppendLiteral(" Firefox/" MOZILLA_UAVERSION);
 
   MOZ_ASSERT(userAgent.Length() <= preallocatedLength);
+}
+
+NS_IMETHODIMP nsRFPService::GetSpoofedUserAgentService(bool aDesktopMode,
+                                                       nsACString& aUserAgent) {
+  nsRFPService::GetSpoofedUserAgent(aUserAgent, aDesktopMode);
+  return NS_OK;
 }
 
 /* static */

@@ -1161,6 +1161,7 @@ enum JSRFPTarget {
   "SiteSpecificZoom",
   "CSSPrefersColorScheme",
   "JSLocalePrompt",
+  "HttpUserAgent",
 };
 
 #ifdef XP_UNIX

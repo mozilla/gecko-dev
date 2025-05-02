@@ -1268,6 +1268,57 @@ class NavigationDelegateTest : BaseSessionTest() {
         )
     }
 
+    @Test fun desktopModeRFP() {
+        mainSession.loadUri("https://example.com")
+        sessionRule.waitForPageStop()
+
+        val majorVersion = BuildConfig.MOZILLA_VERSION.split(".")[0]
+
+        val rfpUADesktopString = "Mozilla/5.0 (X11; Linux x86_64; rv:$majorVersion.0) Gecko/20100101 Firefox/$majorVersion.0"
+
+        sessionRule.runtime.settings.setFingerprintingProtection(true)
+        sessionRule.runtime.settings.setFingerprintingProtectionOverrides("-AllTargets,+HttpUserAgent")
+
+        mainSession.settings.userAgentMode = GeckoSessionSettings.USER_AGENT_MODE_DESKTOP
+        mainSession.reload()
+        mainSession.waitForPageStop()
+
+        assertThat(
+            "User agent should be set to $rfpUADesktopString",
+            getUserAgent(),
+            equalTo(rfpUADesktopString),
+        )
+
+        var userAgent = sessionRule.waitForResult(mainSession.userAgent)
+        assertThat(
+            "User agent should be reported as $rfpUADesktopString",
+            userAgent,
+            containsString(rfpUADesktopString),
+        )
+
+        val rfpUAMobileString = "Mozilla/5.0 (Android 10; Mobile; rv:$majorVersion.0) Gecko/$majorVersion.0 Firefox/$majorVersion.0"
+
+        mainSession.settings.userAgentMode = GeckoSessionSettings.USER_AGENT_MODE_MOBILE
+        mainSession.reload()
+        mainSession.waitForPageStop()
+
+        assertThat(
+            "User agent should be set to $rfpUAMobileString",
+            getUserAgent(),
+            equalTo(rfpUAMobileString),
+        )
+
+        userAgent = sessionRule.waitForResult(mainSession.userAgent)
+        assertThat(
+            "User agent should be reported as $rfpUAMobileString",
+            userAgent,
+            containsString(rfpUAMobileString),
+        )
+
+        sessionRule.runtime.settings.setFingerprintingProtection(false)
+        sessionRule.runtime.settings.setFingerprintingProtectionOverrides("")
+    }
+
     private fun getUserAgent(session: GeckoSession = mainSession): String {
         return session.evaluateJS("window.navigator.userAgent") as String
     }
