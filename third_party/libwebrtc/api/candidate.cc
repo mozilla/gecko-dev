@@ -196,7 +196,8 @@ bool Candidate::operator!=(const Candidate& o) const {
 }
 
 Candidate Candidate::ToSanitizedCopy(bool use_hostname_address,
-                                     bool filter_related_address) const {
+                                     bool filter_related_address,
+                                     bool filter_ufrag) const {
   Candidate copy(*this);
   if (use_hostname_address) {
     rtc::IPAddress ip;
@@ -219,6 +220,10 @@ Candidate Candidate::ToSanitizedCopy(bool use_hostname_address,
     copy.set_related_address(
         rtc::EmptySocketAddressWithFamily(copy.address().family()));
   }
+  if (filter_ufrag) {
+    copy.set_username("");
+  }
+
   return copy;
 }
 

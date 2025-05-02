@@ -229,8 +229,16 @@ class RTC_EXPORT Candidate {
   // to the wildcard address (i.e. 0.0.0.0 for IPv4 and :: for IPv6). Note that
   // setting both booleans to false returns an identical copy to the original
   // candidate.
+  // The username fragment may be filtered, e.g. for prflx candidates before
+  // any remote ice parameters have been set.
+  [[deprecated("Use variant with filter_ufrag")]] Candidate ToSanitizedCopy(
+      bool use_hostname_address,
+      bool filter_related_address) const {
+    return ToSanitizedCopy(use_hostname_address, filter_related_address, false);
+  }
   Candidate ToSanitizedCopy(bool use_hostname_address,
-                            bool filter_related_address) const;
+                            bool filter_related_address,
+                            bool filter_ufrag) const;
 
   // Computes and populates the `foundation()` field.
   // Foundation:  An arbitrary string that is the same for two candidates

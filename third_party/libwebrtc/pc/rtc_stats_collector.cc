@@ -1031,7 +1031,10 @@ const std::string& ProduceIceCandidateStats(Timestamp timestamp,
       candidate_stats->related_port =
           static_cast<int32_t>(related_address.port());
     }
-    candidate_stats->username_fragment = candidate.username();
+    const std::string& username = candidate.username();
+    if (!username.empty()) {
+      candidate_stats->username_fragment = username;
+    }
     if (candidate.protocol() == "tcp") {
       candidate_stats->tcp_type = candidate.tcptype();
     }

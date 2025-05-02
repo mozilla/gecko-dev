@@ -10,15 +10,24 @@
 
 #include "p2p/base/port_allocator.h"
 
+#include <cstdint>
 #include <iterator>
+#include <memory>
 #include <optional>
 #include <set>
 #include <utility>
+#include <vector>
 
 #include "absl/strings/string_view.h"
+#include "api/candidate.h"
+#include "api/transport/enums.h"
 #include "p2p/base/ice_credentials_iterator.h"
+#include "p2p/base/port.h"
+#include "p2p/base/port_interface.h"
+#include "p2p/base/transport_description.h"
 #include "rtc_base/checks.h"
 #include "rtc_base/crypto_random.h"
+#include "rtc_base/socket_address.h"
 
 namespace cricket {
 
@@ -319,7 +328,8 @@ Candidate PortAllocator::SanitizeCandidate(const Candidate& c) const {
       ((c.is_stun() && filter_stun_related_address) ||
        (c.is_relay() && filter_turn_related_address) ||
        (c.is_prflx() && filter_prflx_related_address));
-  return c.ToSanitizedCopy(use_hostname_address, filter_related_address);
+  return c.ToSanitizedCopy(use_hostname_address, filter_related_address,
+                           /*filter_ufrag=*/false);
 }
 
 }  // namespace cricket
