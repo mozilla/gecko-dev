@@ -25,8 +25,9 @@
 #include "api/rtc_error.h"
 #include "api/scoped_refptr.h"
 #include "api/task_queue/task_queue_base.h"
-#include "call/payload_type.h"
 #include "p2p/base/transport_description_factory.h"
+#include "pc/codec_vendor.h"
+#include "pc/media_options.h"
 #include "pc/media_session.h"
 #include "pc/sdp_state_provider.h"
 #include "rtc_base/rtc_certificate.h"
@@ -54,7 +55,7 @@ class WebRtcSessionDescriptionFactory {
       rtc::scoped_refptr<rtc::RTCCertificate> certificate,
       std::function<void(const rtc::scoped_refptr<rtc::RTCCertificate>&)>
           on_certificate_ready,
-      PayloadTypeSuggester* pt_suggester,
+      cricket::CodecLookupHelper* codec_lookup_helper,
       const FieldTrialsView& field_trials);
   ~WebRtcSessionDescriptionFactory();
 

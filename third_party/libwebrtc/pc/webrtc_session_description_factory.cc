@@ -30,8 +30,9 @@
 #include "api/rtc_error.h"
 #include "api/scoped_refptr.h"
 #include "api/sequence_checker.h"
-#include "call/payload_type.h"
+#include "pc/codec_vendor.h"
 #include "pc/connection_context.h"
+#include "pc/media_options.h"
 #include "pc/media_session.h"
 #include "pc/sdp_state_provider.h"
 #include "pc/session_description.h"
@@ -118,7 +119,7 @@ WebRtcSessionDescriptionFactory::WebRtcSessionDescriptionFactory(
     rtc::scoped_refptr<rtc::RTCCertificate> certificate,
     std::function<void(const rtc::scoped_refptr<rtc::RTCCertificate>&)>
         on_certificate_ready,
-    PayloadTypeSuggester* pt_suggester,
+    cricket::CodecLookupHelper* codec_lookup_helper,
     const FieldTrialsView& field_trials)
     : signaling_thread_(context->signaling_thread()),
       transport_desc_factory_(field_trials),
@@ -126,7 +127,7 @@ WebRtcSessionDescriptionFactory::WebRtcSessionDescriptionFactory(
                             context->use_rtx(),
                             context->ssrc_generator(),
                             &transport_desc_factory_,
-                            pt_suggester),
+                            codec_lookup_helper),
       // RFC 4566 suggested a Network Time Protocol (NTP) format timestamp
       // as the session id and session version. To simplify, it should be fine
       // to just use a random number as session id and start version from

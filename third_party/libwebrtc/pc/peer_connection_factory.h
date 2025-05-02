@@ -20,6 +20,7 @@
 
 #include "absl/strings/string_view.h"
 #include "api/audio_options.h"
+#include "api/environment/environment.h"
 #include "api/fec_controller.h"
 #include "api/field_trials_view.h"
 #include "api/media_stream_interface.h"
@@ -37,10 +38,8 @@
 #include "api/transport/sctp_transport_factory_interface.h"
 #include "call/call.h"
 #include "call/rtp_transport_controller_send_factory_interface.h"
-#include "p2p/base/port_allocator.h"
+#include "media/base/media_engine.h"
 #include "pc/connection_context.h"
-#include "rtc_base/checks.h"
-#include "rtc_base/rtc_certificate_generator.h"
 #include "rtc_base/thread.h"
 #include "rtc_base/thread_annotations.h"
 

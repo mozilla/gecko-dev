@@ -63,6 +63,7 @@
 #include "p2p/base/port_allocator.h"
 #include "p2p/base/transport_description.h"
 #include "pc/channel_interface.h"
+#include "pc/codec_vendor.h"
 #include "pc/connection_context.h"
 #include "pc/data_channel_controller.h"
 #include "pc/data_channel_utils.h"
@@ -727,6 +728,8 @@ class PeerConnection : public PeerConnectionInternal,
   // Administration of senders, receivers and transceivers
   // Accessed on both signaling and network thread. Const after Initialize().
   std::unique_ptr<RtpTransmissionManager> rtp_manager_;
+
+  std::unique_ptr<cricket::CodecLookupHelper> codec_lookup_helper_;
 
   // This variable needs to be the last one in the class.
   WeakPtrFactory<PeerConnection> weak_factory_;

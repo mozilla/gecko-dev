@@ -301,6 +301,8 @@ class RtpTransceiver : public RtpTransceiverInterface {
   void OnNegotiationUpdate(SdpType sdp_type,
                            const cricket::MediaContentDescription* content);
 
+  cricket::CodecVendor* codec_vendor() { return &codec_vendor_; }
+
  private:
   cricket::MediaEngineInterface* media_engine() const {
     return context_->media_engine();

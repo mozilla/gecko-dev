@@ -486,7 +486,13 @@ rtc_source_set("peer_connection_factory_proxy") {
   sources = [ "peer_connection_factory_proxy.h" ]
   deps = [
     ":proxy",
+    "../api:audio_options_api",
     "../api:libjingle_peerconnection_api",
+    "../api:media_stream_interface",
+    "../api:rtc_error",
+    "../api:rtp_parameters",
+    "../api:scoped_refptr",
+    "//third_party/abseil-cpp/absl/strings:string_view",
   ]
 }
 
@@ -931,15 +937,32 @@ rtc_source_set("peer_connection_internal") {
   visibility = [ ":*" ]
   sources = [ "peer_connection_internal.h" ]
   deps = [
+    ":data_channel_utils",
     ":jsep_transport_controller",
     ":peer_connection_message_handler",
     ":rtp_transceiver",
     ":rtp_transmission_manager",
     ":sctp_data_channel",
+    ":session_description",
+    ":transport_stats",
+    ":usage_pattern",
+    "../api:candidate",
+    "../api:field_trials_view",
     "../api:libjingle_peerconnection_api",
+    "../api:media_stream_interface",
+    "../api:rtc_error",
+    "../api:rtp_parameters",
+    "../api:scoped_refptr",
     "../api/audio:audio_device",
+    "../api/crypto:options",
     "../call:call_interfaces",
+    "../call:payload_type_picker",
     "../modules/audio_device",
+    "../p2p:port",
+    "../p2p:port_allocator",
+    "../rtc_base:ssl",
+    "../rtc_base:ssl_adapter",
+    "//third_party/abseil-cpp/absl/strings:string_view",
   ]
 }
 
@@ -1061,11 +1084,13 @@ rtc_source_set("sdp_offer_answer") {
   deps = [
     ":channel",
     ":channel_interface",
+    ":codec_vendor",
     ":connection_context",
     ":data_channel_controller",
     ":dtls_transport",
     ":jsep_transport_controller",
     ":legacy_stats_collector",
+    ":media_options",
     ":media_session",
     ":media_stream",
     ":media_stream_observer",
@@ -1127,6 +1152,7 @@ rtc_source_set("sdp_offer_answer") {
     "../rtc_base:event_tracer",
     "../rtc_base:logging",
     "../rtc_base:macromagic",
+    "../rtc_base:rtc_certificate_generator",
     "../rtc_base:rtc_operations_chain",
     "../rtc_base:ssl",
     "../rtc_base:ssl_adapter",
@@ -1226,6 +1252,7 @@ rtc_source_set("peer_connection") {
     "../api/units:time_delta",
     "../api/video:video_codec_constants",
     "../call:call_interfaces",
+    "../call:payload_type",
     "../call:payload_type_picker",
     "../media:codec",
     "../media:media_channel",
@@ -1435,7 +1462,9 @@ rtc_source_set("webrtc_session_description_factory") {
     "webrtc_session_description_factory.h",
   ]
   deps = [
+    ":codec_vendor",
     ":connection_context",
+    ":media_options",
     ":media_session",
     ":sdp_state_provider",
     ":session_description",
@@ -2107,6 +2136,7 @@ if (rtc_include_tests && !build_with_chromium) {
       "../api:candidate",
       "../api:dtls_transport_interface",
       "../api:field_trials",
+      "../api:field_trials_view",
       "../api:ice_transport_factory",
       "../api:ice_transport_interface",
       "../api:libjingle_peerconnection_api",
@@ -2549,6 +2579,7 @@ if (rtc_include_tests && !build_with_chromium) {
       "../rtc_base:refcount",
       "../rtc_base:rtc_base_tests_utils",
       "../rtc_base:rtc_certificate_generator",
+      "../rtc_base:rtc_event",
       "../rtc_base:rtc_json",
       "../rtc_base:safe_conversions",
       "../rtc_base:socket_address",
@@ -2564,6 +2595,7 @@ if (rtc_include_tests && !build_with_chromium) {
       "../rtc_base/synchronization:mutex",
       "../rtc_base/third_party/base64",
       "../rtc_base/third_party/sigslot",
+      "../system_wrappers",
       "../system_wrappers:metrics",
       "../test:audio_codec_mocks",
       "../test:rtc_expect_death",

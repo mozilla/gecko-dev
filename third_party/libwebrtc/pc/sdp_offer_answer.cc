@@ -64,10 +64,12 @@
 #include "p2p/base/transport_description_factory.h"
 #include "p2p/base/transport_info.h"
 #include "pc/channel_interface.h"
+#include "pc/codec_vendor.h"
 #include "pc/connection_context.h"
 #include "pc/dtls_transport.h"
 #include "pc/jsep_transport_controller.h"
 #include "pc/legacy_stats_collector.h"
+#include "pc/media_options.h"
 #include "pc/media_session.h"
 #include "pc/media_stream.h"
 #include "pc/media_stream_observer.h"
@@ -92,6 +94,7 @@
 #include "rtc_base/logging.h"
 #include "rtc_base/operations_chain.h"
 #include "rtc_base/rtc_certificate.h"
+#include "rtc_base/rtc_certificate_generator.h"
 #include "rtc_base/ssl_stream_adapter.h"
 #include "rtc_base/string_encode.h"
 #include "rtc_base/strings/string_builder.h"
@@ -1426,11 +1429,11 @@ std::unique_ptr<SdpOfferAnswerHandler> SdpOfferAnswerHandler::Create(
     std::unique_ptr<webrtc::VideoBitrateAllocatorFactory>
         video_bitrate_allocator_factory,
     ConnectionContext* context,
-    PayloadTypeSuggester* pt_suggester) {
+    cricket::CodecLookupHelper* codec_lookup_helper) {
   auto handler = absl::WrapUnique(new SdpOfferAnswerHandler(pc, context));
   handler->Initialize(configuration, std::move(cert_generator),
                       std::move(video_bitrate_allocator_factory), context,
-                      pt_suggester);
+                      codec_lookup_helper);
   return handler;
 }
 
@@ -1440,7 +1443,7 @@ void SdpOfferAnswerHandler::Initialize(
     std::unique_ptr<webrtc::VideoBitrateAllocatorFactory>
         video_bitrate_allocator_factory,
     ConnectionContext* context,
-    PayloadTypeSuggester* pt_suggester) {
+    cricket::CodecLookupHelper* codec_lookup_helper) {
   RTC_DCHECK_RUN_ON(signaling_thread());
   // 100 kbps is used by default, but can be overriden by a non-standard
   // RTCConfiguration value (not available on Web).
@@ -1473,7 +1476,7 @@ void SdpOfferAnswerHandler::Initialize(
             RTC_DCHECK_RUN_ON(signaling_thread());
             transport_controller_s()->SetLocalCertificate(certificate);
           },
-          pt_suggester, pc_->trials());
+          codec_lookup_helper, pc_->trials());
 
   if (pc_->options()->disable_encryption) {
     RTC_LOG(LS_INFO)

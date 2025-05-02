@@ -27,7 +27,6 @@
 #include "api/rtc_error.h"
 #include "api/rtp_parameters.h"
 #include "api/rtp_transceiver_direction.h"
-#include "call/payload_type.h"
 #include "media/base/codec.h"
 #include "media/base/codec_list.h"
 #include "media/base/media_constants.h"
@@ -684,16 +683,15 @@ MediaSessionDescriptionFactory::MediaSessionDescriptionFactory(
     bool rtx_enabled,
     rtc::UniqueRandomIdGenerator* ssrc_generator,
     const TransportDescriptionFactory* transport_desc_factory,
-    webrtc::PayloadTypeSuggester* pt_suggester)
+    CodecLookupHelper* codec_lookup_helper)
     : ssrc_generator_(ssrc_generator),
       transport_desc_factory_(transport_desc_factory),
-      pt_suggester_(pt_suggester),
+      codec_lookup_helper_(codec_lookup_helper),
       payload_types_in_transport_trial_enabled_(
           transport_desc_factory_->trials().IsEnabled(
               "WebRTC-PayloadTypesInTransport")) {
   RTC_CHECK(transport_desc_factory_);
-  codec_vendor_ = std::make_unique<CodecVendor>(
-      media_engine, rtx_enabled, transport_desc_factory_->trials());
+  RTC_CHECK(codec_lookup_helper_);
 }
 
 RtpHeaderExtensions
@@ -738,12 +736,12 @@ MediaSessionDescriptionFactory::CreateOfferOrError(
 
   CodecList offer_audio_codecs;
   CodecList offer_video_codecs;
-  if (codec_vendor_) {
-    RTCError error = codec_vendor_->GetCodecsForOffer(
-        current_active_contents, offer_audio_codecs, offer_video_codecs);
-    if (!error.ok()) {
-      return error;
-    }
+
+  // TODO: issues.webrtc.org/360058654 - Get codecs when we know the right mid.
+  RTCError error = codec_lookup_helper_->CodecVendor("")->GetCodecsForOffer(
+      current_active_contents, offer_audio_codecs, offer_video_codecs);
+  if (!error.ok()) {
+    return error;
   }
 
   AudioVideoRtpHeaderExtensions extensions_with_ids =
@@ -893,13 +891,12 @@ MediaSessionDescriptionFactory::CreateAnswerOrError(
   // sections.
   CodecList answer_audio_codecs;
   CodecList answer_video_codecs;
-  if (codec_vendor_) {
-    RTCError error = codec_vendor_->GetCodecsForAnswer(
-        current_active_contents, *offer, answer_audio_codecs,
-        answer_video_codecs);
-    if (!error.ok()) {
-      return error;
-    }
+  // TODO: issues.webrtc.org/360058654 - do this when we have the MID.
+  RTCError error = codec_lookup_helper_->CodecVendor("")->GetCodecsForAnswer(
+      current_active_contents, *offer, answer_audio_codecs,
+      answer_video_codecs);
+  if (!error.ok()) {
+    return error;
   }
 
   auto answer = std::make_unique<SessionDescription>();
@@ -1206,10 +1203,11 @@ RTCError MediaSessionDescriptionFactory::AddRtpContentForOffer(
              media_description_options.type == MEDIA_TYPE_VIDEO);
 
   std::vector<Codec> codecs_to_include;
+  std::string mid = media_description_options.mid;
   webrtc::RTCErrorOr<std::vector<Codec>> error_or_filtered_codecs =
-      codec_vendor_->GetNegotiatedCodecsForOffer(
+      codec_lookup_helper_->CodecVendor(mid)->GetNegotiatedCodecsForOffer(
           media_description_options, session_options, current_content,
-          *pt_suggester_, codecs);
+          *codec_lookup_helper_->PayloadTypeSuggester(), codecs);
   if (!error_or_filtered_codecs.ok()) {
     return error_or_filtered_codecs.MoveError();
   }
@@ -1365,10 +1363,11 @@ RTCError MediaSessionDescriptionFactory::AddRtpContentForAnswer(
 
   std::vector<Codec> codecs_to_include;
   webrtc::RTCErrorOr<std::vector<Codec>> error_or_filtered_codecs =
-      codec_vendor_->GetNegotiatedCodecsForAnswer(
-          media_description_options, session_options, offer_rtd, answer_rtd,
-          current_content, offer_content_description->codecs(), *pt_suggester_,
-          codecs);
+      codec_lookup_helper_->CodecVendor(media_description_options.mid)
+          ->GetNegotiatedCodecsForAnswer(
+              media_description_options, session_options, offer_rtd, answer_rtd,
+              current_content, offer_content_description->codecs(),
+              *codec_lookup_helper_->PayloadTypeSuggester(), codecs);
   if (!error_or_filtered_codecs.ok()) {
     return error_or_filtered_codecs.MoveError();
   }

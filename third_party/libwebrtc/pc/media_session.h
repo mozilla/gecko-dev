@@ -19,8 +19,7 @@
 
 #include "api/media_types.h"
 #include "api/rtc_error.h"
-#include "call/payload_type.h"
-#include "media/base/codec.h"
+#include "media/base/codec_list.h"
 #include "media/base/stream_params.h"
 #include "p2p/base/ice_credentials_iterator.h"
 #include "p2p/base/transport_description.h"
@@ -58,7 +57,7 @@ class MediaSessionDescriptionFactory {
                                  bool rtx_enabled,
                                  rtc::UniqueRandomIdGenerator* ssrc_generator,
                                  const TransportDescriptionFactory* factory,
-                                 webrtc::PayloadTypeSuggester* pt_suggester);
+                                 CodecLookupHelper* codec_lookup_helper);
 
   RtpHeaderExtensions filtered_rtp_header_extensions(
       RtpHeaderExtensions extensions) const;
@@ -78,8 +77,6 @@ class MediaSessionDescriptionFactory {
       const SessionDescription* offer,
       const MediaSessionOptions& options,
       const SessionDescription* current_description) const;
-
-  CodecVendor* CodecVendorForTesting() { return codec_vendor_.get(); }
 
  private:
   struct AudioVideoRtpHeaderExtensions {
@@ -188,10 +185,8 @@ class MediaSessionDescriptionFactory {
       ssrc_generator_;
   bool enable_encrypted_rtp_header_extensions_ = true;
   const TransportDescriptionFactory* transport_desc_factory_;
-  // Payoad type tracker interface. Must live longer than this object.
-  webrtc::PayloadTypeSuggester* pt_suggester_;
+  CodecLookupHelper* codec_lookup_helper_;
   bool payload_types_in_transport_trial_enabled_;
-  std::unique_ptr<CodecVendor> codec_vendor_;
 };
 
 // Convenience functions.

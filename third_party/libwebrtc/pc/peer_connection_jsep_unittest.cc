@@ -20,9 +20,7 @@
 #include <vector>
 
 #include "absl/strings/string_view.h"
-#include "api/audio/audio_device.h"
 #include "api/enable_media_with_defaults.h"
-#include "api/field_trials_view.h"
 #include "api/jsep.h"
 #include "api/media_stream_interface.h"
 #include "api/media_types.h"
@@ -35,14 +33,9 @@
 #include "api/rtp_transceiver_interface.h"
 #include "api/scoped_refptr.h"
 #include "api/task_queue/default_task_queue_factory.h"
-#include "api/task_queue/task_queue_factory.h"
 #include "api/transport/field_trial_based_config.h"
-#include "api/transport/sctp_transport_factory_interface.h"
-#include "media/base/media_engine.h"
 #include "media/base/stream_params.h"
-#include "media/engine/webrtc_media_engine.h"
 #include "p2p/base/p2p_constants.h"
-#include "p2p/base/port_allocator.h"
 #include "p2p/base/transport_info.h"
 #include "pc/channel_interface.h"
 #include "pc/media_session.h"
@@ -50,7 +43,6 @@
 #include "pc/sdp_utils.h"
 #include "pc/session_description.h"
 #include "pc/test/mock_peer_connection_observers.h"
-#include "rtc_base/rtc_certificate_generator.h"
 #include "rtc_base/thread.h"
 #include "test/gtest.h"
 #ifdef WEBRTC_ANDROID

@@ -11,6 +11,7 @@
 #ifndef PC_CODEC_VENDOR_H_
 #define PC_CODEC_VENDOR_H_
 
+#include <string>
 #include <vector>
 
 #include "api/field_trials_view.h"
@@ -115,6 +116,16 @@ class CodecVendor {
 
   TypedCodecVendor video_send_codecs_;
   TypedCodecVendor video_recv_codecs_;
+};
+
+// A class to assist in looking up data for a codec mapping.
+// Pure virtual to allow implementations that depend on things that
+// codec_vendor.h should not depend on.
+class CodecLookupHelper {
+ public:
+  virtual ~CodecLookupHelper() = default;
+  virtual webrtc::PayloadTypeSuggester* PayloadTypeSuggester() = 0;
+  virtual cricket::CodecVendor* CodecVendor(const std::string& mid) = 0;
 };
 
 }  // namespace cricket

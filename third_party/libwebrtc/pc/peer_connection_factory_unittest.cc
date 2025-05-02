@@ -11,13 +11,13 @@
 #include "pc/peer_connection_factory.h"
 
 #include <algorithm>
+#include <cstddef>
+#include <cstdio>
 #include <memory>
 #include <utility>
 #include <vector>
 
 #include "api/audio/audio_device.h"
-#include "api/audio/audio_mixer.h"
-#include "api/audio/audio_processing.h"
 #include "api/audio_codecs/builtin_audio_decoder_factory.h"
 #include "api/audio_codecs/builtin_audio_encoder_factory.h"
 #include "api/create_peerconnection_factory.h"
@@ -29,8 +29,15 @@
 #include "api/jsep.h"
 #include "api/make_ref_counted.h"
 #include "api/media_stream_interface.h"
+#include "api/media_types.h"
+#include "api/packet_socket_factory.h"
+#include "api/peer_connection_interface.h"
+#include "api/rtp_parameters.h"
+#include "api/scoped_refptr.h"
 #include "api/task_queue/default_task_queue_factory.h"
 #include "api/test/mock_packet_socket_factory.h"
+#include "api/units/time_delta.h"
+#include "api/video_codecs/scalability_mode.h"
 #include "api/video_codecs/video_decoder_factory_template.h"
 #include "api/video_codecs/video_decoder_factory_template_dav1d_adapter.h"
 #include "api/video_codecs/video_decoder_factory_template_libvpx_vp8_adapter.h"
@@ -42,18 +49,22 @@
 #include "api/video_codecs/video_encoder_factory_template_libvpx_vp9_adapter.h"
 #include "api/video_codecs/video_encoder_factory_template_open_h264_adapter.h"
 #include "media/base/fake_frame_source.h"
+#include "media/base/media_constants.h"
 #include "modules/audio_processing/include/mock_audio_processing.h"
+#include "p2p/base/basic_packet_socket_factory.h"
 #include "p2p/base/port.h"
 #include "p2p/base/port_allocator.h"
 #include "p2p/base/port_interface.h"
 #include "p2p/test/fake_port_allocator.h"
+#include "pc/connection_context.h"
 #include "pc/test/fake_audio_capture_module.h"
 #include "pc/test/fake_video_track_source.h"
-#include "pc/test/mock_peer_connection_observers.h"
-#include "rtc_base/gunit.h"
+#include "rtc_base/event.h"
 #include "rtc_base/internal/default_socket_server.h"
-#include "rtc_base/rtc_certificate_generator.h"
+#include "rtc_base/network.h"
 #include "rtc_base/socket_address.h"
+#include "rtc_base/socket_server.h"
+#include "rtc_base/thread.h"
 #include "rtc_base/time_utils.h"
 #include "test/gmock.h"
 #include "test/gtest.h"

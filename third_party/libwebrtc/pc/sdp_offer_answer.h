@@ -38,13 +38,14 @@
 #include "api/set_remote_description_observer_interface.h"
 #include "api/uma_metrics.h"
 #include "api/video/video_bitrate_allocator_factory.h"
-#include "call/payload_type.h"
 #include "media/base/media_channel.h"
 #include "media/base/stream_params.h"
 #include "p2p/base/port_allocator.h"
+#include "pc/codec_vendor.h"
 #include "pc/connection_context.h"
 #include "pc/data_channel_controller.h"
 #include "pc/jsep_transport_controller.h"
+#include "pc/media_options.h"
 #include "pc/media_session.h"
 #include "pc/media_stream_observer.h"
 #include "pc/peer_connection_internal.h"
@@ -57,6 +58,7 @@
 #include "pc/transceiver_list.h"
 #include "pc/webrtc_session_description_factory.h"
 #include "rtc_base/operations_chain.h"
+#include "rtc_base/rtc_certificate_generator.h"
 #include "rtc_base/ssl_stream_adapter.h"
 #include "rtc_base/thread.h"
 #include "rtc_base/thread_annotations.h"
@@ -84,7 +86,7 @@ class SdpOfferAnswerHandler : public SdpStateProvider {
       std::unique_ptr<webrtc::VideoBitrateAllocatorFactory>
           video_bitrate_allocator_factory,
       ConnectionContext* context,
-      PayloadTypeSuggester* pt_suggester);
+      cricket::CodecLookupHelper* codec_lookup_helper);
 
   void ResetSessionDescFactory() {
     RTC_DCHECK_RUN_ON(signaling_thread());
@@ -219,7 +221,7 @@ class SdpOfferAnswerHandler : public SdpStateProvider {
       std::unique_ptr<webrtc::VideoBitrateAllocatorFactory>
           video_bitrate_allocator_factory,
       ConnectionContext* context,
-      PayloadTypeSuggester* pt_suggester);
+      cricket::CodecLookupHelper* codec_lookup_helper);
 
   rtc::Thread* signaling_thread() const;
   rtc::Thread* network_thread() const;
