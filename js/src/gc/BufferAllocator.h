@@ -303,9 +303,10 @@ class BufferAllocator : public SlimLinkedListElement<BufferAllocator> {
   // Large buffers that have been swept.
   MutexData<LargeAllocList> sweptLargeTenuredAllocs;
 
-  // Flag to indicate that swept chunks are available to be merged in the
-  // sweptMediumMixedChunks or sweptMediumTenuredChunks lists.
-  mozilla::Atomic<bool, mozilla::Relaxed> sweptChunksAvailable;
+  // Flag to indicate that data from minor sweeping is available to be
+  // merged. This includes chunks in the sweptMediumMixedChunks or
+  // sweptMediumTenuredChunks lists and the minorSweepingFinished flag.
+  mozilla::Atomic<bool, mozilla::Relaxed> hasMinorSweepDataToMerge;
 
   // GC state for minor and major GC.
   MainThreadData<State> minorState;
