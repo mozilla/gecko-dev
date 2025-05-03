@@ -1408,7 +1408,6 @@ STATIC_ATOMS = [
     Atom("direction", "direction"),
     Atom("disable", "disable"),
     Atom("disc", "disc"),
-    Atom("discard", "discard"),
     Atom("discrete", "discrete"),
     Atom("divisor", "divisor"),
     Atom("dominant_baseline", "dominant-baseline"),

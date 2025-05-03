@@ -537,7 +537,6 @@ module.exports = {
     SVGComponentTransferFunctionElement: false,
     SVGDefsElement: false,
     SVGDescElement: false,
-    SVGDiscardElement: false,
     SVGElement: false,
     SVGEllipseElement: false,
     SVGFEBlendElement: false,
