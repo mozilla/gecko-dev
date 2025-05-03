@@ -34,12 +34,13 @@ export var UsageReporting = {
 
     this._initPromise = (async () => {
       let profileID = await lazy.ClientID.getUsageProfileID();
+      let profileGroupID = await lazy.ClientID.getUsageProfileGroupID();
       const uploadEnabled = Services.prefs.getBoolPref(
         "datareporting.usage.uploadEnabled",
         false
       );
       this._log.trace(
-        `${SLUG}: uploadEnabled=${uploadEnabled}, profileID='${profileID}'`
+        `${SLUG}: uploadEnabled=${uploadEnabled}, profileID='${profileID}', profileGroupID='${profileGroupID}'`
       );
 
       // Usage deletion requests can always be sent.  They are
@@ -54,14 +55,14 @@ export var UsageReporting = {
         uploadEnabled &&
         profileID == lazy.TelemetryUtils.knownUsageProfileID
       ) {
-        await lazy.ClientID.resetUsageProfileIdentifier();
-        this._log.info(`${SLUG}: Reset usage profile identifier.`);
+        await lazy.ClientID.resetUsageProfileIdentifiers();
+        this._log.info(`${SLUG}: Reset usage profile identifiers.`);
       } else if (
         !uploadEnabled &&
         profileID != lazy.TelemetryUtils.knownUsageProfileID
       ) {
-        await lazy.ClientID.setCanaryUsageProfileIdentifier();
-        this._log.info(`${SLUG}: Set canary usage profile identifier.`);
+        await lazy.ClientID.setCanaryUsageProfileIdentifiers();
+        this._log.info(`${SLUG}: Set canary usage profile identifiers.`);
       } else {
         // Great!  We've got a consistent state.  Glean has our profile
         // identifier to include in pings, if enabled.
@@ -115,9 +116,9 @@ export var UsageReporting = {
           "and resetting identifier."
       );
       // Must be _after_ the usage reporting ping is enabled, or the next
-      // submission may not contain the new identifier.  This call will enable
+      // submission may not contain the new identifiers.  This call will enable
       // the ping.
-      await lazy.ClientID.resetUsageProfileIdentifier();
+      await lazy.ClientID.resetUsageProfileIdentifiers();
     } else {
       // Falling edge: disable "usage-reporting" ping, send "usage-deletion-request" ping.
       this._log.trace(
@@ -127,8 +128,8 @@ export var UsageReporting = {
       GleanPings.usageDeletionRequest.submit("set_upload_enabled");
 
       // Must be _after_ the deletion request is sent, or the request will not
-      // contain the previous identifier.  This call will disable the ping.
-      await lazy.ClientID.setCanaryUsageProfileIdentifier();
+      // contain the previous identifiers.  This call will disable the ping.
+      await lazy.ClientID.setCanaryUsageProfileIdentifiers();
     }
   },
 
