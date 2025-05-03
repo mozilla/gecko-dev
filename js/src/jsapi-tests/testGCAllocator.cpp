@@ -622,6 +622,67 @@ BEGIN_TEST(testBufferAllocator_realloc) {
 }
 END_TEST(testBufferAllocator_realloc)
 
+BEGIN_TEST(testBufferAllocator_reallocInPlace) {
+  AutoLeaveZeal leaveZeal(cx);
+
+  Rooted<BufferHolderObject*> holder(cx, BufferHolderObject::create(cx));
+  CHECK(holder);
+
+  JS::NonIncrementalGC(cx, JS::GCOptions::Shrink, JS::GCReason::API);
+
+  Zone* zone = cx->zone();
+  size_t initialGCHeapSize = zone->gcHeapSize.bytes();
+  size_t initialMallocHeapSize = zone->mallocHeapSize.bytes();
+
+  // Check that we resize some buffers in place if the sizes allow.
+
+  // Grow medium -> medium: supported if free space after allocation
+  // We should be able to grow in place if it's the last thing allocated.
+  // *** If this starts failing we may need to allocate a new zone ***
+  CHECK(TestRealloc(1024, 2048, true));
+
+  // Shrink medium -> medium: supported
+  CHECK(TestRealloc(2048, 1024, true));
+
+  // Grow large -> large: not supported
+  CHECK(TestRealloc(1 * 1024 * 1024, 2 * 1024 * 1024, false));
+
+  // Shrink large -> large: supported on non-Windows platforms
+#ifdef XP_WIN
+  CHECK(TestRealloc(2* 1024 * 1024, 1 * 1024 * 1024, false));
+#else
+  CHECK(TestRealloc(2* 1024 * 1024, 1 * 1024 * 1024, true));
+#endif
+
+  JS_GC(cx);
+  CHECK(zone->gcHeapSize.bytes() == initialGCHeapSize);
+  CHECK(zone->mallocHeapSize.bytes() == initialMallocHeapSize);
+
+  return true;
+}
+
+bool TestRealloc(size_t fromSize, size_t toSize, bool expectedInPlace) {
+  fprintf(stderr, "TestRealloc %zu -> %zu %u\n",
+          fromSize, toSize, unsigned(expectedInPlace));
+
+  Zone* zone = cx->zone();
+  void* alloc = AllocBuffer(zone, fromSize, false);
+  CHECK(alloc);
+
+  void* newAlloc = ReallocBuffer(zone, alloc, toSize, false);
+  CHECK(newAlloc);
+
+  if (expectedInPlace) {
+    CHECK(newAlloc == alloc);
+  } else {
+    CHECK(newAlloc != alloc);
+  }
+
+  FreeBuffer(zone, newAlloc);
+  return true;
+}
+END_TEST(testBufferAllocator_reallocInPlace)
+
 BEGIN_TEST(testBufferAllocator_predicatesOnOtherAllocs) {
   if (!cx->runtime()->gc.nursery().isEnabled()) {
     fprintf(stderr, "Skipping test as nursery is disabled.\n");
