@@ -62,8 +62,12 @@ const char* ServiceWorkerShutdownState::GetProgressString() const {
 
 void ServiceWorkerShutdownState::SetProgress(Progress aProgress) {
   MOZ_ASSERT(aProgress != Progress::EndGuard_);
+  // The Shutdown progress should be increased step by step. However, it could
+  // directly get into ShutdownCompleted state when shutting down starts during
+  // ServiceWorker spawning.
   MOZ_RELEASE_ASSERT(UnderlyingProgressValue(mProgress) + 1 ==
-                     UnderlyingProgressValue(aProgress));
+                         UnderlyingProgressValue(aProgress) ||
+                     aProgress == Progress::ShutdownCompleted);
 
   mProgress = aProgress;
 }
