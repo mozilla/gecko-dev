@@ -8,6 +8,11 @@
   <string name="mozac_feature_downloads_completed_notification_text2">การดาวน์โหลดเสร็จสมบูรณ์</string>
   <!-- Text shown on the second row of an failed download notification. The filename is shown on the first row. -->
   <string name="mozac_feature_downloads_failed_notification_text2">การดาวน์โหลดล้มเหลว</string>
+  <!--
+    Alert dialog confirmation before downloading a previously downloaded file, this is the title.
+    %1$s will be replaced with the size of the file.
+  -->
+  <string name="mozac_feature_downloads_again_dialog_title" tools:ignore="UnusedResources">ดาวน์โหลดไฟล์อีกครั้ง? (%1$s)</string>
   <!-- Alert dialog confirmation before download a file, this is the title. %1$s will be replaced with the name of the file. -->
   <string name="mozac_feature_downloads_dialog_title2" moz:removedIn="138" tools:ignore="UnusedResources">การดาวน์โหลด (%1$s)</string>
   <!-- Alert dialog confirmation before download a file, this is the positive action. -->
