@@ -1041,7 +1041,7 @@ void BufferAllocator::sweepForMinorCollection() {
 
       // Signal to the main thread that swept data is available by setting this
       // relaxed atomic flag.
-      sweptChunksAvailable = true;
+      hasMinorSweepDataToMerge = true;
     }
   }
 
@@ -1058,9 +1058,12 @@ void BufferAllocator::sweepForMinorCollection() {
   }
 
   // Signal to main thread to update minorState.
-  AutoLock lock(this);
-  MOZ_ASSERT(!minorSweepingFinished);
-  minorSweepingFinished = true;
+  {
+    AutoLock lock(this);
+    MOZ_ASSERT(!minorSweepingFinished);
+    minorSweepingFinished = true;
+    hasMinorSweepDataToMerge = true;
+  }
 }
 
 void BufferAllocator::startMajorCollection(MaybeLock& lock) {
@@ -1130,7 +1133,7 @@ void BufferAllocator::sweepForMajorCollection(bool shouldDecommit) {
 
       // Signal to the main thread that swept data is available by setting this
       // relaxed atomic flag.
-      sweptChunksAvailable = true;
+      hasMinorSweepDataToMerge = true;
     }
   }
 
@@ -1303,7 +1306,7 @@ void BufferAllocator::mergeSweptData(const AutoLock& lock) {
 
   largeTenuredAllocs.ref().prepend(std::move(sweptLargeTenuredAllocs.ref()));
 
-  sweptChunksAvailable = false;
+  hasMinorSweepDataToMerge = false;
 
   if (minorSweepingFinished) {
     MOZ_ASSERT(minorState == State::Sweeping);
@@ -1494,7 +1497,7 @@ void BufferAllocator::checkGCStateNotInUse(const AutoLock& lock) {
 
     MOZ_ASSERT(!majorStartedWhileMinorSweeping);
     MOZ_ASSERT(!majorFinishedWhileMinorSweeping);
-    MOZ_ASSERT(!sweptChunksAvailable);
+    MOZ_ASSERT(!hasMinorSweepDataToMerge);
     MOZ_ASSERT(!minorSweepingFinished);
     MOZ_ASSERT(!majorSweepingFinished);
   }
@@ -1705,7 +1708,7 @@ void* BufferAllocator::bumpAllocOrRetry(size_t sizeClass, bool inGC) {
     return ptr;
   }
 
-  if (sweptChunksAvailable) {
+  if (hasMinorSweepDataToMerge) {
     // Avoid taking the lock unless we know there is data to merge. This reduces
     // context switches.
     mergeSweptData();
@@ -2084,21 +2087,29 @@ void BufferAllocator::freeMedium(void* alloc) {
 
 bool BufferAllocator::isSweepingChunk(BufferChunk* chunk) {
   if (minorState == State::Sweeping && chunk->hasNurseryOwnedAllocs) {
+    // We are currently sweeping nursery owned allocations.
+
     // TODO: We could set a flag for nursery chunks allocated during minor
     // collection to allow operations on chunks that are not being swept here.
 
-    if (!sweptChunksAvailable) {
-      // We are currently sweeping nursery owned allocations.
+    if (!hasMinorSweepDataToMerge) {
+#ifdef DEBUG
+      {
+        AutoLock lock(this);
+        MOZ_ASSERT_IF(!hasMinorSweepDataToMerge, !minorSweepingFinished);
+      }
+#endif
+
+      // Likely no data to merge so don't bother taking the lock.
       return true;
     }
 
-    // Merge swept data, which may update hasNurseryOwnedAllocs.
+    // Merge swept data and recheck.
     //
     // TODO: It would be good to know how often this helps and if it is
     // worthwhile.
     mergeSweptData();
-    if (chunk->hasNurseryOwnedAllocs) {
-      // We are currently sweeping nursery owned allocations.
+    if (minorState == State::Sweeping && chunk->hasNurseryOwnedAllocs) {
       return true;
     }
   }
