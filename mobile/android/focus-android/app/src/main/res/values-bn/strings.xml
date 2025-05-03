@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<resources xmlns:moz="http://mozac.org/tools" xmlns:tools="http://schemas.android.com/tools">
+<resources xmlns:tools="http://schemas.android.com/tools">
   <!--
     #######################################################################################
 
@@ -50,7 +50,6 @@
   <string name="menu_settings">সেটিং</string>
   <string name="menu_about">পরিচিতি</string>
   <string name="menu_help">সহায়তা</string>
-  <string name="menu_rights" moz:removedIn="137">আপনার অধিকারসমূহ</string>
   <!--
     Menu item: This is the label for a menu entry that shows how many trackers have been blocked
     for the currently loaded website. The number of blocked trackers is shown below this label.
@@ -405,11 +404,6 @@
     item in the list of browsers. Clicking it will open the app store installed on the device (usually that's Google Play).
   -->
   <string name="download_firefox" tools:ignore="BrandUsage">Firefox ডাউনলোড করুন</string>
-  <!--
-    Text shown in the "Your rights" screen.
-    %1$s will be replaced with the name of the app (e.g. Firefox Focus)
-  -->
-  <string name="your_rights_content1" moz:removedIn="137">%1$s হল Mozilla এবং অন্যান্য অবদানকারীর দ্বারা তৈরি ফ্রি এবং ওপেনসোর্স সফটওয়্যার।</string>
   <!-- Text shown in prompts for GeckoView -->
   <string name="gv_prompt_username_hint">ব্যবহারকারীর নাম</string>
   <string name="gv_prompt_password_hint">পাসওয়ার্ড</string>

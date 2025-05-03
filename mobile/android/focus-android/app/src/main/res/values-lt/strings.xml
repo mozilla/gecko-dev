@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<resources xmlns:moz="http://mozac.org/tools" xmlns:tools="http://schemas.android.com/tools">
+<resources xmlns:tools="http://schemas.android.com/tools">
   <!--
     #######################################################################################
 
@@ -55,7 +55,6 @@
   <string name="menu_settings">Nustatymai</string>
   <string name="menu_about">Apie</string>
   <string name="menu_help">Žinynas</string>
-  <string name="menu_rights" moz:removedIn="137">Jūsų teisės</string>
   <!--
     Menu item: This is the label for a menu entry that shows how many trackers have been blocked
     for the currently loaded website. The number of blocked trackers is shown below this label.
@@ -464,36 +463,6 @@
     item in the list of browsers. Clicking it will open the app store installed on the device (usually that's Google Play).
   -->
   <string name="download_firefox" tools:ignore="BrandUsage">Parsisiųsti „Firefox“</string>
-  <!--
-    Text shown in the "Your rights" screen.
-    %1$s will be replaced with the name of the app (e.g. Firefox Focus)
-  -->
-  <string name="your_rights_content1" moz:removedIn="137">„%1$s“ yra laisvoji atviroji programa, kuriama „Mozillos“ ir kitų bendradarbių.</string>
-  <!--
-    Text shown in the "Your rights" screen.
-    %1$s will be replaced with the name of the app (e.g. Firefox Focus)
-    %2$s will be replaced with a URL linking to the MPL (e.g. https://www.mozilla.org/en-US/MPL/)
-  -->
-  <string name="your_rights_content2" moz:removedIn="137" tools:ignore="IncorrectStraightDoubleQuote">Jums leidžiama naudotis „%1$s“ programa, vadovaujantis &lt;a href="%2$s"&gt;„Mozillos“ viešąja licencija&lt;/a&gt; ir kitomis atviromis licencijomis.</string>
-  <!--
-    Text shown in the "Your rights" screen.
-    %1$s will be replaced with the name of the app (e.g. Firefox Focus)
-    %2$s will be replaced with a URL linking to the trademark policy (e.g. https://www.mozilla.org/foundation/trademarks/policy/)
-  -->
-  <string name="your_rights_content3" moz:removedIn="137" tools:ignore="BrandUsage,IncorrectStraightDoubleQuote">Jums nesuteikiamos jokios prekės ženklo teisės ar licencijos į „Mozilla Foundation“ ar kitų šalių prekės ženklus, tame tarpe – į „Mozilla“, „Firefox“ ar „%1$s“ vardus ar logotipus. Papildomą informaciją apie prekės ženklus galite rasti &lt;a href="%2$s"&gt;čia&lt;/a&gt;.</string>
-  <!--
-    Text shown in the "Your rights" screen.
-    %1$s will be replaced with the name of the app (e.g. Firefox Focus)
-    %2$s will be replaced with a URL linking to the list of licenses used by the dependencies.
-  -->
-  <string name="your_rights_content4" moz:removedIn="137" tools:ignore="IncorrectStraightDoubleQuote">Papildoma „%1$s“ pirminis kodas yra pateikiamas su įvairiomis kitomis, laisvomis ir atviromis &lt;a href="%2$s"&gt;licencijomis&lt;/a&gt;.</string>
-  <!--
-    Text shown in the "Your rights" screen.
-    %1$s will be replaced with the name of the app (e.g. Firefox Focus)
-    %2$s will be replaced with a URL linking to the GPL
-    %3$s will be replaced with a URL linking to the tracking protection wiki page (e.g. https://wiki.mozilla.org/Security/Tracking_protection#Lists)
-  -->
-  <string name="your_rights_content5" moz:removedIn="137" tools:ignore="IncorrectStraightDoubleQuote">„%1$s“ naudoja blokavimo sąrašus, kuriuos teikia „Disconnect, Inc.“, kaip atskirus ir nepriklausomus darbus vadovaujantis &lt;a href="%2$s"&gt;„GNU General Public License v3“&lt;/a&gt; licencija, ir pasiekiamus &lt;a href="%3$s"&gt;čia&lt;/a&gt;.</string>
   <!-- Text shown in prompts for GeckoView -->
   <string name="gv_prompt_username_hint">Naudotojo vardas</string>
   <string name="gv_prompt_password_hint">Slaptažodis</string>
@@ -562,8 +531,6 @@
   <string name="preference_studies_summary" tools:ignore="BrandUsage">„Firefox“ retkarčiais gali įdiegti ir vykdyti tyrimus.</string>
   <!-- Learn more link for studies, links to an article for more information about studies. -->
   <string name="studies_learn_more">Sužinoti daugiau</string>
-  <!-- Dialog message shown when some changes are made on studies -->
-  <string name="studies_restart_app" moz:removedIn="137">Norint pritaikyti pakeitimus, programa bus uždaryta</string>
   <!-- Title of the remove studies button -->
   <string name="studies_remove">Pašalinti</string>
   <!-- Title of the active section on the studies list -->

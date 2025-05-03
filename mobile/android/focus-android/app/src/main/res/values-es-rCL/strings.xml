@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<resources xmlns:moz="http://mozac.org/tools" xmlns:tools="http://schemas.android.com/tools">
+<resources xmlns:tools="http://schemas.android.com/tools">
   <!--
     #######################################################################################
 
@@ -55,7 +55,6 @@
   <string name="menu_settings">Ajustes</string>
   <string name="menu_about">Acerca de</string>
   <string name="menu_help">Ayuda</string>
-  <string name="menu_rights" moz:removedIn="137">Tus derechos</string>
   <string name="menu_terms_of_use">Términos de uso</string>
   <!--
     Menu item: This is the label for a menu entry that shows how many trackers have been blocked
@@ -488,8 +487,6 @@
   <!-- Text for the link used in onboarding_first_screen_privacy_notice_text -->
   <string name="onboarding_first_screen_privacy_notice_link">Política de privacidad.</string>
   <!-- New Onboarding flow first screen button label -->
-  <string name="onboarding_first_screen_button_text" moz:removedIn="137" tools:ignore="UnusedResources">Empezar</string>
-  <!-- New Onboarding flow first screen button label -->
   <string name="onboarding_first_screen_button_agree_and_continue">Aceptar y continuar</string>
   <!-- In the first screen of new onboarding flow, additional accessibility description for content that contain urls. -->
   <string name="a11y_link_available">Enlace disponible</string>
@@ -570,36 +567,6 @@
     item in the list of browsers. Clicking it will open the app store installed on the device (usually that's Google Play).
   -->
   <string name="download_firefox" tools:ignore="BrandUsage">Bajar Firefox</string>
-  <!--
-    Text shown in the "Your rights" screen.
-    %1$s will be replaced with the name of the app (e.g. Firefox Focus)
-  -->
-  <string name="your_rights_content1" moz:removedIn="137">%1$s es un programa gratuito y de código abierto hecho por Mozilla y otros contribuidores.</string>
-  <!--
-    Text shown in the "Your rights" screen.
-    %1$s will be replaced with the name of the app (e.g. Firefox Focus)
-    %2$s will be replaced with a URL linking to the MPL (e.g. https://www.mozilla.org/en-US/MPL/)
-  -->
-  <string name="your_rights_content2" moz:removedIn="137" tools:ignore="IncorrectStraightDoubleQuote">%1$s está disponible para ti bajo los términos de la &lt;a href="%2$s"&gt;Licencia Pública de Mozilla&lt;/a&gt; y otras licencias de código abierto.</string>
-  <!--
-    Text shown in the "Your rights" screen.
-    %1$s will be replaced with the name of the app (e.g. Firefox Focus)
-    %2$s will be replaced with a URL linking to the trademark policy (e.g. https://www.mozilla.org/foundation/trademarks/policy/)
-  -->
-  <string name="your_rights_content3" moz:removedIn="137" tools:ignore="BrandUsage,IncorrectStraightDoubleQuote">No se le ha concedido ningún derecho de marca o licencia sobre las marcas comerciales de la fundación Mozilla o de cualquier parte, incluyendo los logos o nombres de Mozilla, Firefox o %1$s. Puede encontrar Información adicional &lt;a href="%2$s"&gt;aquí&lt;/a&gt;.</string>
-  <!--
-    Text shown in the "Your rights" screen.
-    %1$s will be replaced with the name of the app (e.g. Firefox Focus)
-    %2$s will be replaced with a URL linking to the list of licenses used by the dependencies.
-  -->
-  <string name="your_rights_content4" moz:removedIn="137" tools:ignore="IncorrectStraightDoubleQuote">Código fuente adicional para %1$s está disponible bajo variadas &lt;a href="%2$s"&gt;licencias&lt;/a&gt; gratuitas y de código abierto.</string>
-  <!--
-    Text shown in the "Your rights" screen.
-    %1$s will be replaced with the name of the app (e.g. Firefox Focus)
-    %2$s will be replaced with a URL linking to the GPL
-    %3$s will be replaced with a URL linking to the tracking protection wiki page (e.g. https://wiki.mozilla.org/Security/Tracking_protection#Lists)
-  -->
-  <string name="your_rights_content5" moz:removedIn="137" tools:ignore="IncorrectStraightDoubleQuote">%1$s también hace uso de listas de bloqueo proveídas por Disconnect, Inc. como trabajos separados e independientes bajo la &lt;a href="%2$s"&gt;GPLv3 (GNU General Public License v3)&lt;/a&gt;, y se encuentra disponible &lt;a href="%3$s"&gt;aquí&lt;/a&gt;.</string>
   <!-- Text shown in prompts for GeckoView -->
   <string name="gv_prompt_username_hint">Nombre de usuario</string>
   <string name="gv_prompt_password_hint">Contraseña</string>
@@ -746,8 +713,6 @@
   <string name="preference_studies_summary" tools:ignore="BrandUsage">Firefox podría instalar y realizar experimentos de vez en cuando.</string>
   <!-- Learn more link for studies, links to an article for more information about studies. -->
   <string name="studies_learn_more">Aprender más</string>
-  <!-- Dialog message shown when some changes are made on studies -->
-  <string name="studies_restart_app" moz:removedIn="137">La aplicación se cerrará para aplicar cambios</string>
   <!-- Title of the remove studies button -->
   <string name="studies_remove">Eliminar</string>
   <!-- Title of the active section on the studies list -->

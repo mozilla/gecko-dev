@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<resources xmlns:moz="http://mozac.org/tools" xmlns:tools="http://schemas.android.com/tools">
+<resources xmlns:tools="http://schemas.android.com/tools">
   <!--
     #######################################################################################
 
@@ -55,7 +55,6 @@
   <string name="menu_settings">Stillingar</string>
   <string name="menu_about">Um hugbúnaðinn</string>
   <string name="menu_help">Hjálp</string>
-  <string name="menu_rights" moz:removedIn="137">Réttindi þín</string>
   <string name="menu_terms_of_use">Notkunarskilmálar</string>
   <!--
     Menu item: This is the label for a menu entry that shows how many trackers have been blocked
@@ -488,8 +487,6 @@
   <!-- Text for the link used in onboarding_first_screen_privacy_notice_text -->
   <string name="onboarding_first_screen_privacy_notice_link">stefnu okkar um meðferð persónuupplýsinga.</string>
   <!-- New Onboarding flow first screen button label -->
-  <string name="onboarding_first_screen_button_text" moz:removedIn="137" tools:ignore="UnusedResources">Hefjast handa</string>
-  <!-- New Onboarding flow first screen button label -->
   <string name="onboarding_first_screen_button_agree_and_continue">Samþykkja og halda áfram</string>
   <!-- In the first screen of new onboarding flow, additional accessibility description for content that contain urls. -->
   <string name="a11y_link_available">Tengill í boði</string>
@@ -570,36 +567,6 @@
     item in the list of browsers. Clicking it will open the app store installed on the device (usually that's Google Play).
   -->
   <string name="download_firefox" tools:ignore="BrandUsage">Sækja Firefox</string>
-  <!--
-    Text shown in the "Your rights" screen.
-    %1$s will be replaced with the name of the app (e.g. Firefox Focus)
-  -->
-  <string name="your_rights_content1" moz:removedIn="137">%1$s er frjáls og opinn hugbúnaður gerður af Mozilla og öðrum þátttakendum.</string>
-  <!--
-    Text shown in the "Your rights" screen.
-    %1$s will be replaced with the name of the app (e.g. Firefox Focus)
-    %2$s will be replaced with a URL linking to the MPL (e.g. https://www.mozilla.org/en-US/MPL/)
-  -->
-  <string name="your_rights_content2" moz:removedIn="137" tools:ignore="IncorrectStraightDoubleQuote">%1$s er þér aðgengilegt samkvæmt skilmálum &lt;a href="%2$s"&gt;Mozilla Public License&lt;/a&gt; og annarra notkunarleyfa opins hugbúnaðar.</string>
-  <!--
-    Text shown in the "Your rights" screen.
-    %1$s will be replaced with the name of the app (e.g. Firefox Focus)
-    %2$s will be replaced with a URL linking to the trademark policy (e.g. https://www.mozilla.org/foundation/trademarks/policy/)
-  -->
-  <string name="your_rights_content3" moz:removedIn="137" tools:ignore="BrandUsage,IncorrectStraightDoubleQuote">Þú hefur ekki réttindi á eða leyfi til að nota vörumerki eða hefur leyfi fyrir vörumerkjum frá Mozilla-stofnunni eða öðrum aðilum, innifelur það í sér án allra takmarkana nönf eða fyrirtækismerki Mozilla, Firefox eða %1$s . Meiri upplýsingar fást &lt;a href="%2$s"&gt;hér&lt;/a&gt;.</string>
-  <!--
-    Text shown in the "Your rights" screen.
-    %1$s will be replaced with the name of the app (e.g. Firefox Focus)
-    %2$s will be replaced with a URL linking to the list of licenses used by the dependencies.
-  -->
-  <string name="your_rights_content4" moz:removedIn="137" tools:ignore="IncorrectStraightDoubleQuote">Viðbótargrunnkóði fyrir %1$s er tiltækur með ýmsum öðrum ókeypis og opnum &lt;a href="%2$s"&gt;hugbúnaðarleyfum&lt;/a&gt;.</string>
-  <!--
-    Text shown in the "Your rights" screen.
-    %1$s will be replaced with the name of the app (e.g. Firefox Focus)
-    %2$s will be replaced with a URL linking to the GPL
-    %3$s will be replaced with a URL linking to the tracking protection wiki page (e.g. https://wiki.mozilla.org/Security/Tracking_protection#Lists)
-  -->
-  <string name="your_rights_content5" moz:removedIn="137" tools:ignore="IncorrectStraightDoubleQuote">%1$s notar einnig útilokunarlista frá Disconnect, Inc. sem aðskilin og sjálfstæð verk samkvæmt &lt;a href="%2$s"&gt;almenna GNU General Public notkunarleyfinu útg.3&lt;/a&gt; og er tiltækt &lt;a href="%3$s"&gt;hér&lt;/a&gt;.</string>
   <!-- Text shown in prompts for GeckoView -->
   <string name="gv_prompt_username_hint">Notandanafn</string>
   <string name="gv_prompt_password_hint">Lykilorð</string>
@@ -746,8 +713,6 @@
   <string name="preference_studies_summary" tools:ignore="BrandUsage">Firefox kann að setja upp og keyra rannsóknir af og til.</string>
   <!-- Learn more link for studies, links to an article for more information about studies. -->
   <string name="studies_learn_more">Fræðast meira</string>
-  <!-- Dialog message shown when some changes are made on studies -->
-  <string name="studies_restart_app" moz:removedIn="137">Forritið hættir til að virkja breytingar</string>
   <!-- Title of the remove studies button -->
   <string name="studies_remove">Fjarlægja</string>
   <!-- Title of the active section on the studies list -->

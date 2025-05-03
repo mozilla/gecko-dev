@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<resources xmlns:moz="http://mozac.org/tools" xmlns:tools="http://schemas.android.com/tools">
+<resources xmlns:tools="http://schemas.android.com/tools">
   <!--
     #######################################################################################
 
@@ -55,7 +55,6 @@
   <string name="menu_settings">Atô</string>
   <string name="menu_about">Bhaih</string>
   <string name="menu_help">Beunantu</string>
-  <string name="menu_rights" moz:removedIn="137">Hak Droeneuh</string>
   <!--
     Menu item: This is the label for a menu entry that shows how many trackers have been blocked
     for the currently loaded website. The number of blocked trackers is shown below this label.
@@ -454,8 +453,6 @@
   <string name="onboarding_first_screen_title">Neupiyôh bak %1$s</string>
   <!-- New Onboarding flow first screen subtitle the one that appears under title -->
   <string name="onboarding_first_screen_subtitle">Bagah. Rahsia. Hana karu.</string>
-  <!-- New Onboarding flow first screen button label -->
-  <string name="onboarding_first_screen_button_text" moz:removedIn="137" tools:ignore="UnusedResources">Puphôn</string>
   <!--
     Onboarding second screen: Title
 

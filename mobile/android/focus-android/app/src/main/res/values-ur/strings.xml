@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<resources xmlns:moz="http://mozac.org/tools" xmlns:tools="http://schemas.android.com/tools">
+<resources xmlns:tools="http://schemas.android.com/tools">
   <!--
     #######################################################################################
 
@@ -55,7 +55,6 @@
   <string name="menu_settings">سیٹنگیں</string>
   <string name="menu_about">کے بارے میں</string>
   <string name="menu_help">مدد</string>
-  <string name="menu_rights" moz:removedIn="137">آپ کے حقوق</string>
   <!--
     Menu item: This is the label for a menu entry that shows how many trackers have been blocked
     for the currently loaded website. The number of blocked trackers is shown below this label.
@@ -393,8 +392,6 @@
   <string name="onboarding_first_screen_title">%1$s میں خوشامدید </string>
   <!-- New Onboarding flow first screen subtitle the one that appears under title -->
   <string name="onboarding_first_screen_subtitle">تیز۔ نجی۔ کوئی خلفشار نہیں۔</string>
-  <!-- New Onboarding flow first screen button label -->
-  <string name="onboarding_first_screen_button_text" moz:removedIn="137" tools:ignore="UnusedResources">شروع کریں</string>
   <!-- First run tour (Default browser): Title -->
   <string name="firstrun_defaultbrowser_title">آپ کی نجی نوعیت کو پاور اپ کرے</string>
   <!-- First run tour (Default browser): Text. -->
@@ -541,8 +538,6 @@
   <string name="preference_studies">مطالعہ</string>
   <!-- Learn more link for studies, links to an article for more information about studies. -->
   <string name="studies_learn_more">مزید سیکھیں</string>
-  <!-- Dialog message shown when some changes are made on studies -->
-  <string name="studies_restart_app" moz:removedIn="137">تبدیلیاں لاگو کرنے کے لیے ایپلیکیشن چھوڑ دی جائے گی۔</string>
   <!-- Title of the remove studies button -->
   <string name="studies_remove">ہٹائیں</string>
   <!-- Title of the active section on the studies list -->

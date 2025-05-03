@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<resources xmlns:moz="http://mozac.org/tools" xmlns:tools="http://schemas.android.com/tools">
+<resources xmlns:tools="http://schemas.android.com/tools">
   <!--
     #######################################################################################
 
@@ -55,7 +55,6 @@
   <string name="menu_settings">Setélan</string>
   <string name="menu_about">Ngeunaan</string>
   <string name="menu_help">Pitulung</string>
-  <string name="menu_rights" moz:removedIn="137">Hak Anjeun</string>
   <!--
     Menu item: This is the label for a menu entry that shows how many trackers have been blocked
     for the currently loaded website. The number of blocked trackers is shown below this label.
@@ -460,8 +459,6 @@
   <string name="onboarding_first_screen_title">Wilujeng sumping di %1$s</string>
   <!-- New Onboarding flow first screen subtitle the one that appears under title -->
   <string name="onboarding_first_screen_subtitle">Gancang. Pribadi. Teu élodan.</string>
-  <!-- New Onboarding flow first screen button label -->
-  <string name="onboarding_first_screen_button_text" moz:removedIn="137" tools:ignore="UnusedResources">Mitembeyan</string>
   <!--
     Onboarding second screen: Title
 
@@ -539,36 +536,6 @@
     item in the list of browsers. Clicking it will open the app store installed on the device (usually that's Google Play).
   -->
   <string name="download_firefox" tools:ignore="BrandUsage">Undeur Firefox</string>
-  <!--
-    Text shown in the "Your rights" screen.
-    %1$s will be replaced with the name of the app (e.g. Firefox Focus)
-  -->
-  <string name="your_rights_content1" moz:removedIn="137">%1$s téh aplikasi bébas sarta sumber nembrak nu dijieun ku Mozilla jeung kontributor séjénna.</string>
-  <!--
-    Text shown in the "Your rights" screen.
-    %1$s will be replaced with the name of the app (e.g. Firefox Focus)
-    %2$s will be replaced with a URL linking to the MPL (e.g. https://www.mozilla.org/en-US/MPL/)
-  -->
-  <string name="your_rights_content2" moz:removedIn="137" tools:ignore="IncorrectStraightDoubleQuote">%1$s disanggakeun dina katangtuan &lt;a href="%2$s"&gt;Lisénsi Publik Mozilla&lt;/a&gt; jeung lisénsi sumber nembrak lianna.</string>
-  <!--
-    Text shown in the "Your rights" screen.
-    %1$s will be replaced with the name of the app (e.g. Firefox Focus)
-    %2$s will be replaced with a URL linking to the trademark policy (e.g. https://www.mozilla.org/foundation/trademarks/policy/)
-  -->
-  <string name="your_rights_content3" moz:removedIn="137" tools:ignore="BrandUsage,IncorrectStraightDoubleQuote">Anjeun teu dibéré idin atawa lisénsi nanaon kana mérek dagang Mozilla Foundation atawa pihak mana ogé, kaasup ngaran atawa logo Mozilla, Firefox, atawa %1$s. Embaran leuwih lengkep bisa dibaca &lt;a href="%2$s"&gt;di dieu&lt;/a&gt;.</string>
-  <!--
-    Text shown in the "Your rights" screen.
-    %1$s will be replaced with the name of the app (e.g. Firefox Focus)
-    %2$s will be replaced with a URL linking to the list of licenses used by the dependencies.
-  -->
-  <string name="your_rights_content4" moz:removedIn="137" tools:ignore="IncorrectStraightDoubleQuote">Kodeu sumber lianna pikeun %1$s nyampak dina rupa-rupa &lt;a href="%2$s"&gt;lisénsi&lt;/a&gt; bébas jeung sumber nembrak séjénna.</string>
-  <!--
-    Text shown in the "Your rights" screen.
-    %1$s will be replaced with the name of the app (e.g. Firefox Focus)
-    %2$s will be replaced with a URL linking to the GPL
-    %3$s will be replaced with a URL linking to the tracking protection wiki page (e.g. https://wiki.mozilla.org/Security/Tracking_protection#Lists)
-  -->
-  <string name="your_rights_content5" moz:removedIn="137" tools:ignore="IncorrectStraightDoubleQuote">%1$s ogé maké daptar peungpeukan nu disayagakeun ku Disconnect, Inc. minangka karya anu misah jeung indepénden dina &lt;a href="%2$s"&gt;GNU General Public License v3&lt;/a&gt;, sarta sayaga&lt;a href="%3$s"&gt;di dieu&lt;/a&gt;.</string>
   <!-- Text shown in prompts for GeckoView -->
   <string name="gv_prompt_username_hint">Sandiasma</string>
   <string name="gv_prompt_password_hint">Kecap sandi</string>
@@ -715,8 +682,6 @@
   <string name="preference_studies_summary" tools:ignore="BrandUsage">Firefox bisa masang jeung ngajalankeun studi iraha baé.</string>
   <!-- Learn more link for studies, links to an article for more information about studies. -->
   <string name="studies_learn_more">Lenyepan</string>
-  <!-- Dialog message shown when some changes are made on studies -->
-  <string name="studies_restart_app" moz:removedIn="137">Aplikasi bakal kaluar pikeun nerapkeun parobahan</string>
   <!-- Title of the remove studies button -->
   <string name="studies_remove">Piceun</string>
   <!-- Title of the active section on the studies list -->

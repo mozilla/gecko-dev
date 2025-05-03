@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<resources xmlns:moz="http://mozac.org/tools" xmlns:tools="http://schemas.android.com/tools">
+<resources xmlns:tools="http://schemas.android.com/tools">
   <!--
     #######################################################################################
 
@@ -55,7 +55,6 @@
   <string name="menu_settings">설정</string>
   <string name="menu_about">정보</string>
   <string name="menu_help">도움말</string>
-  <string name="menu_rights" moz:removedIn="137">사용자 권리</string>
   <string name="menu_terms_of_use">이용 약관</string>
   <!--
     Menu item: This is the label for a menu entry that shows how many trackers have been blocked
@@ -488,8 +487,6 @@
   <!-- Text for the link used in onboarding_first_screen_privacy_notice_text -->
   <string name="onboarding_first_screen_privacy_notice_link">개인정보 보호정책</string>
   <!-- New Onboarding flow first screen button label -->
-  <string name="onboarding_first_screen_button_text" moz:removedIn="137" tools:ignore="UnusedResources">시작하기</string>
-  <!-- New Onboarding flow first screen button label -->
   <string name="onboarding_first_screen_button_agree_and_continue">동의 및 계속</string>
   <!-- In the first screen of new onboarding flow, additional accessibility description for content that contain urls. -->
   <string name="a11y_link_available">링크 사용 가능</string>
@@ -570,36 +567,6 @@
     item in the list of browsers. Clicking it will open the app store installed on the device (usually that's Google Play).
   -->
   <string name="download_firefox" tools:ignore="BrandUsage">Firefox 다운로드</string>
-  <!--
-    Text shown in the "Your rights" screen.
-    %1$s will be replaced with the name of the app (e.g. Firefox Focus)
-  -->
-  <string name="your_rights_content1" moz:removedIn="137">%1$s는 Mozilla와 다른 공헌자들이 만들고 배포하는 무료 오픈 소스 소프트웨어 입니다.</string>
-  <!--
-    Text shown in the "Your rights" screen.
-    %1$s will be replaced with the name of the app (e.g. Firefox Focus)
-    %2$s will be replaced with a URL linking to the MPL (e.g. https://www.mozilla.org/en-US/MPL/)
-  -->
-  <string name="your_rights_content2" moz:removedIn="137" tools:ignore="IncorrectStraightDoubleQuote">%1$s는 &lt;a href="%2$s"&gt;Mozilla 공개 라이선스&lt;/a&gt; 및 기타 다른 오픈 소스 라이선스 이용 약관에 따라 제공됩니다.</string>
-  <!--
-    Text shown in the "Your rights" screen.
-    %1$s will be replaced with the name of the app (e.g. Firefox Focus)
-    %2$s will be replaced with a URL linking to the trademark policy (e.g. https://www.mozilla.org/foundation/trademarks/policy/)
-  -->
-  <string name="your_rights_content3" moz:removedIn="137" tools:ignore="BrandUsage,IncorrectStraightDoubleQuote">귀하는 Mozilla와 Firefox, %1$s 명칭이나 로고를 포함한 Mozilla 재단 및 다른 서비스 제공자 소유의 지적재산권으로 보호받는 권리나 라이선스가 부여되는 것이 아님을 인지하셔야 합니다. 추가적인 정보는 &lt;a href="%2$s"&gt;다음&lt;/a&gt;을 참고하시기 바랍니다.</string>
-  <!--
-    Text shown in the "Your rights" screen.
-    %1$s will be replaced with the name of the app (e.g. Firefox Focus)
-    %2$s will be replaced with a URL linking to the list of licenses used by the dependencies.
-  -->
-  <string name="your_rights_content4" moz:removedIn="137" tools:ignore="IncorrectStraightDoubleQuote">%1$s의 소스 코드는 기타 다양한 무료 및 오픈 소스 &lt;a href="%2$s"&gt;라이선스&lt;/a&gt; 계약에 따라 제공됩니다.</string>
-  <!--
-    Text shown in the "Your rights" screen.
-    %1$s will be replaced with the name of the app (e.g. Firefox Focus)
-    %2$s will be replaced with a URL linking to the GPL
-    %3$s will be replaced with a URL linking to the tracking protection wiki page (e.g. https://wiki.mozilla.org/Security/Tracking_protection#Lists)
-  -->
-  <string name="your_rights_content5" moz:removedIn="137" tools:ignore="IncorrectStraightDoubleQuote">%1$s는 Disconnect, Inc에서 제공하는 차단목록에서 &lt;a href="%2$s"&gt;GNU General Public License v3&lt;/a&gt;를 바탕으로 자체적으로 별도로 관리하는 차단목록을 사용합니다. 자세한 내용은 &lt;a href="%3$s"&gt;다음&lt;/a&gt;에서 확인할 수 있습니다.</string>
   <!-- Text shown in prompts for GeckoView -->
   <string name="gv_prompt_username_hint">사용자명</string>
   <string name="gv_prompt_password_hint">비밀번호</string>
@@ -746,8 +713,6 @@
   <string name="preference_studies_summary" tools:ignore="BrandUsage">Firefox가 때때로 연구를 설치하고 실행할 수 있습니다.</string>
   <!-- Learn more link for studies, links to an article for more information about studies. -->
   <string name="studies_learn_more">자세히 알아보기</string>
-  <!-- Dialog message shown when some changes are made on studies -->
-  <string name="studies_restart_app" moz:removedIn="137">변경 사항을 적용하기 위해 애플리케이션이 종료됩니다</string>
   <!-- Title of the remove studies button -->
   <string name="studies_remove">삭제</string>
   <!-- Title of the active section on the studies list -->

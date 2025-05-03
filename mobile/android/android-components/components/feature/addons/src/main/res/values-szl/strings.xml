@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<resources xmlns:tools="http://schemas.android.com/tools" xmlns:moz="http://schemas.android.com/apk/res-auto">
+<resources xmlns:tools="http://schemas.android.com/tools">
   <!-- Description for privacy add-on permission. -->
   <string name="mozac_feature_addons_permissions_privacy_description">Czytanie i zmiynianie nasztalowań prywatności</string>
   <!-- Description for all_urls add-on permission. -->
@@ -34,8 +34,6 @@
   <string name="mozac_feature_addons_permissions_content_description_item">%1$s, %2$d ze %3$d</string>
   <!-- Description for tabs add-on permission. -->
   <string name="mozac_feature_addons_permissions_tabs_description">Dostymp do kart przeglōndarki</string>
-  <!-- Description for unlimited_storage permission. -->
-  <string name="mozac_feature_addons_permissions_unlimited_storage_description" moz:removedIn="137" tools:ignore="UnusedResources">Chrōniynie bezlimitowyj wielości danych po strōnie klijynta</string>
   <!-- Description for navigation permission. -->
   <string name="mozac_feature_addons_permissions_web_navigation_description">Dostymp do aktywności przeglōndarki przi nawigacyji</string>
   <!-- Description for bookmarks permission. -->

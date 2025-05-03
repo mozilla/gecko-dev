@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<resources xmlns:tools="http://schemas.android.com/tools" xmlns:moz="http://schemas.android.com/apk/res-auto">
+<resources xmlns:tools="http://schemas.android.com/tools">
   <!-- Description for privacy add-on permission. -->
   <string name="mozac_feature_addons_permissions_privacy_description">讀取或修改隱私設定</string>
   <!-- Description for all_urls add-on permission. -->
@@ -36,8 +36,6 @@
   <string name="mozac_feature_addons_permissions_content_description_item">%1$s（第 %2$d 組，共 %3$d 組）</string>
   <!-- Description for tabs add-on permission. -->
   <string name="mozac_feature_addons_permissions_tabs_description">存取瀏覽器分頁</string>
-  <!-- Description for unlimited_storage permission. -->
-  <string name="mozac_feature_addons_permissions_unlimited_storage_description" moz:removedIn="137" tools:ignore="UnusedResources">在客戶端儲存無限量資料</string>
   <!-- Description for navigation permission. -->
   <string name="mozac_feature_addons_permissions_web_navigation_description">在上網時了解瀏覽器行為狀態</string>
   <!-- Description for bookmarks permission. -->

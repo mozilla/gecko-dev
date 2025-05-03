@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<resources xmlns:tools="http://schemas.android.com/tools" xmlns:moz="http://schemas.android.com/apk/res-auto">
+<resources xmlns:tools="http://schemas.android.com/tools">
   <!-- Description for privacy add-on permission. -->
   <string name="mozac_feature_addons_permissions_privacy_description">پردیداری سیٹنگاں نوں پڑھن تے بدلݨ</string>
   <!-- Description for all_urls add-on permission. -->
@@ -34,8 +34,6 @@
   <string name="mozac_feature_addons_permissions_content_description_item">%1$s، %3$d وچوں %2$d</string>
   <!-- Description for tabs add-on permission. -->
   <string name="mozac_feature_addons_permissions_tabs_description">ایپ دیاں ٹیباں لئی پہنچݨا</string>
-  <!-- Description for unlimited_storage permission. -->
-  <string name="mozac_feature_addons_permissions_unlimited_storage_description" moz:removedIn="137" tools:ignore="UnusedResources">بے حد دا ڈیٹا رکھݨا</string>
   <!-- Description for navigation permission. -->
   <string name="mozac_feature_addons_permissions_web_navigation_description">ورتدے دوران ایپ دی سرگرمی نوں پہنچݨا</string>
   <!-- Description for bookmarks permission. -->

@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<resources xmlns:moz="http://mozac.org/tools" xmlns:tools="http://schemas.android.com/tools">
+<resources xmlns:tools="http://schemas.android.com/tools">
   <!--
     #######################################################################################
 
@@ -55,7 +55,6 @@
   <string name="menu_settings">සැකසුම්</string>
   <string name="menu_about">පිළිබඳව</string>
   <string name="menu_help">උදව්</string>
-  <string name="menu_rights" moz:removedIn="137">ඔබගේ අයිතීන්</string>
   <string name="menu_terms_of_use">භාවිත නියම</string>
   <!--
     Menu item: This is the label for a menu entry that shows how many trackers have been blocked
@@ -488,8 +487,6 @@
   <!-- Text for the link used in onboarding_first_screen_privacy_notice_text -->
   <string name="onboarding_first_screen_privacy_notice_link">රහස්‍යතා දැන්වීම</string>
   <!-- New Onboarding flow first screen button label -->
-  <string name="onboarding_first_screen_button_text" moz:removedIn="137" tools:ignore="UnusedResources">පටන් ගන්න</string>
-  <!-- New Onboarding flow first screen button label -->
   <string name="onboarding_first_screen_button_agree_and_continue">එකඟ වී ඉදිරියට</string>
   <!-- In the first screen of new onboarding flow, additional accessibility description for content that contain urls. -->
   <string name="a11y_link_available">සබැඳිය තිබේ</string>
@@ -570,36 +567,6 @@
     item in the list of browsers. Clicking it will open the app store installed on the device (usually that's Google Play).
   -->
   <string name="download_firefox" tools:ignore="BrandUsage">ෆයර්ෆොක්ස් බාගන්න</string>
-  <!--
-    Text shown in the "Your rights" screen.
-    %1$s will be replaced with the name of the app (e.g. Firefox Focus)
-  -->
-  <string name="your_rights_content1" moz:removedIn="137">%1$s යනු මොසිල්ලා සහ අනෙකුත් දායකයින් විසින් සාදන ලද නොමිලේ හා විවෘත කේත මෘදුකාංගයකි.</string>
-  <!--
-    Text shown in the "Your rights" screen.
-    %1$s will be replaced with the name of the app (e.g. Firefox Focus)
-    %2$s will be replaced with a URL linking to the MPL (e.g. https://www.mozilla.org/en-US/MPL/)
-  -->
-  <string name="your_rights_content2" moz:removedIn="137" tools:ignore="IncorrectStraightDoubleQuote">&lt;a href="%2$s"&gt;මොසිල්ලා පොදු බලපත්‍රය&lt;/a&gt; සහ අනෙකුත් විවෘත මූලාශ්‍ර බලපත්‍රවල නියම යටතේ ඔබට %1$s ලබා ගැනීමට හැකිය.</string>
-  <!--
-    Text shown in the "Your rights" screen.
-    %1$s will be replaced with the name of the app (e.g. Firefox Focus)
-    %2$s will be replaced with a URL linking to the trademark policy (e.g. https://www.mozilla.org/foundation/trademarks/policy/)
-  -->
-  <string name="your_rights_content3" moz:removedIn="137" tools:ignore="BrandUsage,IncorrectStraightDoubleQuote">Mozilla පදනමේ හෝ Mozilla, Firefox හෝ %1$s ආදී නම් හෝ ලාංඡන ඇතුළුව ඕනෑම පාර්ශ්වයක වෙළඳ ලකුණු සඳහා ඔබට කිසිදු අයිතියක් හෝ බලපත්‍රයක් ලබා දී නැත. අතිරේක තොරතුරු &lt;a href="%2$s"&gt;මෙතැන&lt;/a&gt; තිබේ.</string>
-  <!--
-    Text shown in the "Your rights" screen.
-    %1$s will be replaced with the name of the app (e.g. Firefox Focus)
-    %2$s will be replaced with a URL linking to the list of licenses used by the dependencies.
-  -->
-  <string name="your_rights_content4" moz:removedIn="137" tools:ignore="IncorrectStraightDoubleQuote">%1$s සඳහා අතිරේක මූලාශ්‍ර කේත වෙනත් විවිධ නොමිලේ සහ විවෘත මූලාශ්‍ර &lt;a href="%2$s"&gt;බලපත්‍ර&lt;/a&gt; යටතේ තිබේ.</string>
-  <!--
-    Text shown in the "Your rights" screen.
-    %1$s will be replaced with the name of the app (e.g. Firefox Focus)
-    %2$s will be replaced with a URL linking to the GPL
-    %3$s will be replaced with a URL linking to the tracking protection wiki page (e.g. https://wiki.mozilla.org/Security/Tracking_protection#Lists)
-  -->
-  <string name="your_rights_content5" moz:removedIn="137" tools:ignore="IncorrectStraightDoubleQuote">ඩිස්කනෙක්ට් සමාගම වෙතින් සපයන ලද අවහිර ලේඛනයක් ද %1$s භාවිතා කරයි. එය &lt;a href="%2$s"&gt;ජීඑන්යූ සාමාන්‍ය පොදු බලපත්‍රය අනු. 3&lt;/a&gt; යටතේ ස්වාධීන ව්‍යාපෘතියකි, සහ &lt;a href="%3$s"&gt;මෙහි&lt;/a&gt; තිබේ.</string>
   <!-- Text shown in prompts for GeckoView -->
   <string name="gv_prompt_username_hint">පරිශ්‍රීලක නාමය</string>
   <string name="gv_prompt_password_hint">මුරපදය</string>
@@ -746,8 +713,6 @@
   <string name="preference_studies_summary" tools:ignore="BrandUsage">ෆයර්ෆොක්ස් මගින් කලින් කලට අධ්‍යන ස්ථාපනය කර ධාවනය කරයි.</string>
   <!-- Learn more link for studies, links to an article for more information about studies. -->
   <string name="studies_learn_more">තව දැනගන්න</string>
-  <!-- Dialog message shown when some changes are made on studies -->
-  <string name="studies_restart_app" moz:removedIn="137">වෙනස්කම් යෙදීම සඳහා යෙදුම ඉවත් වනු ඇත</string>
   <!-- Title of the remove studies button -->
   <string name="studies_remove">ඉවත් කරන්න</string>
   <!-- Title of the active section on the studies list -->

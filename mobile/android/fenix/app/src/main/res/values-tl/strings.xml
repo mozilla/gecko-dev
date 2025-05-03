@@ -3161,5 +3161,5 @@
   <!-- Title text instructing the user to unlock private tabs -->
   <string name="pbm_authentication_unlock_private_tabs">I-unlock ang mga pribadong tab</string>
   <!-- Negative button text for the contextual feature recommendation (CFR) dismissing the screen lock suggestion -->
-  <string name="private_tab_cfr_negative" tools:ignore="UnusedResources">Salamat na lang</string>
+  <string name="private_tab_cfr_negative">Salamat na lang</string>
 </resources>

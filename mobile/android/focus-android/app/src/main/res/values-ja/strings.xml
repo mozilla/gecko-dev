@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<resources xmlns:moz="http://mozac.org/tools" xmlns:tools="http://schemas.android.com/tools">
+<resources xmlns:tools="http://schemas.android.com/tools">
   <!--
     #######################################################################################
 
@@ -55,7 +55,6 @@
   <string name="menu_settings">設定</string>
   <string name="menu_about">製品情報</string>
   <string name="menu_help">ヘルプ</string>
-  <string name="menu_rights" moz:removedIn="137">あなたの権利</string>
   <string name="menu_terms_of_use">利用規約</string>
   <!--
     Menu item: This is the label for a menu entry that shows how many trackers have been blocked
@@ -488,8 +487,6 @@
   <!-- Text for the link used in onboarding_first_screen_privacy_notice_text -->
   <string name="onboarding_first_screen_privacy_notice_link">プライバシー通知</string>
   <!-- New Onboarding flow first screen button label -->
-  <string name="onboarding_first_screen_button_text" moz:removedIn="137" tools:ignore="UnusedResources">はじめる</string>
-  <!-- New Onboarding flow first screen button label -->
   <string name="onboarding_first_screen_button_agree_and_continue">同意して続ける</string>
   <!-- In the first screen of new onboarding flow, additional accessibility description for content that contain urls. -->
   <string name="a11y_link_available">リンクあり</string>
@@ -570,36 +567,6 @@
     item in the list of browsers. Clicking it will open the app store installed on the device (usually that's Google Play).
   -->
   <string name="download_firefox" tools:ignore="BrandUsage">Firefox をダウンロード</string>
-  <!--
-    Text shown in the "Your rights" screen.
-    %1$s will be replaced with the name of the app (e.g. Firefox Focus)
-  -->
-  <string name="your_rights_content1" moz:removedIn="137">%1$s は Mozilla や他の貢献者によって開発されているフリーでオープンソースのソフトウェアです。</string>
-  <!--
-    Text shown in the "Your rights" screen.
-    %1$s will be replaced with the name of the app (e.g. Firefox Focus)
-    %2$s will be replaced with a URL linking to the MPL (e.g. https://www.mozilla.org/en-US/MPL/)
-  -->
-  <string name="your_rights_content2" moz:removedIn="137" tools:ignore="IncorrectStraightDoubleQuote">%1$s は &lt;a href="%2$s"&gt;Mozilla Public License&lt;/a&gt; およびその他オープンソースライセンスの条件に基づいて使用することができます。</string>
-  <!--
-    Text shown in the "Your rights" screen.
-    %1$s will be replaced with the name of the app (e.g. Firefox Focus)
-    %2$s will be replaced with a URL linking to the trademark policy (e.g. https://www.mozilla.org/foundation/trademarks/policy/)
-  -->
-  <string name="your_rights_content3" moz:removedIn="137" tools:ignore="BrandUsage,IncorrectStraightDoubleQuote">ユーザーには、Mozilla、Firefox、%1$s の名称やロゴを含む Mozilla Foundation または第三者の商標に関するいかなる権利やライセンスも付与されていません。詳しい情報は &lt;a href="%2$s"&gt;Mozilla 商標ポリシー&lt;/a&gt; をご覧ください。</string>
-  <!--
-    Text shown in the "Your rights" screen.
-    %1$s will be replaced with the name of the app (e.g. Firefox Focus)
-    %2$s will be replaced with a URL linking to the list of licenses used by the dependencies.
-  -->
-  <string name="your_rights_content4" moz:removedIn="137" tools:ignore="IncorrectStraightDoubleQuote">%1$s の追加のソースコードは様々な他のフリーでオープンソースの &lt;a href="%2$s"&gt;ライセンス&lt;/a&gt; に基づいて公開されています。</string>
-  <!--
-    Text shown in the "Your rights" screen.
-    %1$s will be replaced with the name of the app (e.g. Firefox Focus)
-    %2$s will be replaced with a URL linking to the GPL
-    %3$s will be replaced with a URL linking to the tracking protection wiki page (e.g. https://wiki.mozilla.org/Security/Tracking_protection#Lists)
-  -->
-  <string name="your_rights_content5" moz:removedIn="137" tools:ignore="IncorrectStraightDoubleQuote">%1$s は Disconnect, Inc. によって提供されているブロックリストも &lt;a href="%2$s"&gt;GNU General Public License v3&lt;/a&gt; の下で単独のリソースとして使用しており、それらは &lt;a href="%3$s"&gt;こちら&lt;/a&gt; から入手可能です。</string>
   <!-- Text shown in prompts for GeckoView -->
   <string name="gv_prompt_username_hint">ユーザー名</string>
   <string name="gv_prompt_password_hint">パスワード</string>
@@ -746,8 +713,6 @@
   <string name="preference_studies_summary" tools:ignore="BrandUsage">Firefox が調査をインストールして実行することがあります。</string>
   <!-- Learn more link for studies, links to an article for more information about studies. -->
   <string name="studies_learn_more">詳細情報</string>
-  <!-- Dialog message shown when some changes are made on studies -->
-  <string name="studies_restart_app" moz:removedIn="137">変更を適用するためアプリケーションを終了します</string>
   <!-- Title of the remove studies button -->
   <string name="studies_remove">削除</string>
   <!-- Title of the active section on the studies list -->
