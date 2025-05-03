@@ -15,6 +15,41 @@ add_setup(async function setup() {
   });
 });
 
+add_task(async function test_button_visibility_by_loaded_on_background() {
+  info("Open valid page that loads slow");
+  let tab1 = await BrowserTestUtils.openNewForegroundTab({
+    gBrowser,
+    opening:
+      getRootDirectory(gTestPath).replace(
+        "chrome://mochitests/content",
+        "https://www.example.com"
+      ) + "slow-page.sjs",
+    waitForLoad: false,
+  });
+  await assertState(true, "invalid");
+
+  info("Open a new tab");
+  let tab2 = await BrowserTestUtils.openNewForegroundTab(gBrowser);
+  await assertState(true, "invalid");
+
+  info("Wait until loading the slow page on background");
+  // eslint-disable-next-line mozilla/no-arbitrary-setTimeout
+  await new Promise(r => setTimeout(r, 5000));
+  await TestUtils.waitForCondition(
+    () =>
+      !gURLBar.getBrowserState(tab1.linkedBrowser)
+        .isUnifiedSearchButtonAvailable
+  );
+
+  info("Select the previous tab");
+  gBrowser.selectedTab = tab1;
+  await assertState(false, "valid");
+
+  info("Clean up");
+  BrowserTestUtils.removeTab(tab2);
+  BrowserTestUtils.removeTab(tab1);
+});
+
 add_task(async function test_button_visibility_by_pageproxystate() {
   info("Open pageproxystate valid page");
   let tab = await BrowserTestUtils.openNewForegroundTab(

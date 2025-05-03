@@ -275,6 +275,7 @@ export class UrlbarInput {
     this.window.addEventListener("unload", this);
 
     this.window.gBrowser.tabContainer.addEventListener("TabSelect", this);
+    this.window.gBrowser.addTabsProgressListener(this);
 
     this.window.addEventListener("customizationstarting", this);
     this.window.addEventListener("aftercustomization", this);
@@ -664,6 +665,29 @@ export class UrlbarInput {
     } catch (ex) {}
 
     return uri;
+  }
+
+  /**
+   * Function for tabs progress listener.
+   *
+   * @param {nsIBrowser} browser
+   * @param {nsIWebProgress} webProgress
+   *   The nsIWebProgress instance that fired the notification.
+   * @param {nsIRequest} request
+   *   The associated nsIRequest.  This may be null in some cases.
+   * @param {nsIURI} location
+   *   The URI of the location that is being loaded.
+   */
+  onLocationChange(browser, webProgress, request, location) {
+    if (
+      webProgress.isTopLevel &&
+      browser != this.window.gBrowser.selectedBrowser &&
+      !this.window.isBlankPageURL(location.spec)
+    ) {
+      // If the page is loaded on background tab, make Unified Search Button
+      // unavailable when back to the tab.
+      this.getBrowserState(browser).isUnifiedSearchButtonAvailable = false;
+    }
   }
 
   /**
