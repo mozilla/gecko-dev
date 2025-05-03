@@ -440,23 +440,32 @@ impl NeqoHttp3Conn {
             add("datagram", s.datagram);
         }
 
-        if static_prefs::pref!("network.http.http3.ecn") && stats.frame_rx.handshake_done != 0 {
-            let tx_ect0_sum: u64 = stats.ecn_tx.into_values().map(|v| v[IpTosEcn::Ect0]).sum();
-            let tx_ce_sum: u64 = stats.ecn_tx.into_values().map(|v| v[IpTosEcn::Ce]).sum();
-            if tx_ect0_sum > 0 {
-                if let Ok(ratio) = i64::try_from((tx_ce_sum * PRECISION_FACTOR) / tx_ect0_sum) {
-                    glean::http_3_ecn_ce_ect0_ratio_sent.accumulate_single_sample_signed(ratio);
+        if !static_prefs::pref!("network.http.http3.use_nspr_for_io")
+            && static_prefs::pref!("network.http.http3.ecn_report")
+            && stats.frame_rx.handshake_done != 0
+        {
+            let rx_ect0_sum: u64 = stats.ecn_rx.into_values().map(|v| v[IpTosEcn::Ect0]).sum();
+            let rx_ce_sum: u64 = stats.ecn_rx.into_values().map(|v| v[IpTosEcn::Ce]).sum();
+            if rx_ect0_sum > 0 {
+                if let Ok(ratio) = i64::try_from((rx_ce_sum * PRECISION_FACTOR) / rx_ect0_sum) {
+                    glean::http_3_ecn_ce_ect0_ratio_received.accumulate_single_sample_signed(ratio);
                 } else {
                     let msg = "Failed to convert ratio to i64 for use with glean";
                     qwarn!("{msg}");
                     debug_assert!(false, "{msg}");
                 }
             }
-            let rx_ect0_sum: u64 = stats.ecn_rx.into_values().map(|v| v[IpTosEcn::Ect0]).sum();
-            let rx_ce_sum: u64 = stats.ecn_rx.into_values().map(|v| v[IpTosEcn::Ce]).sum();
-            if rx_ect0_sum > 0 {
-                if let Ok(ratio) = i64::try_from((rx_ce_sum * PRECISION_FACTOR) / rx_ect0_sum) {
-                    glean::http_3_ecn_ce_ect0_ratio_received.accumulate_single_sample_signed(ratio);
+        }
+
+        if !static_prefs::pref!("network.http.http3.use_nspr_for_io")
+            && static_prefs::pref!("network.http.http3.ecn_mark")
+            && stats.frame_rx.handshake_done != 0
+        {
+            let tx_ect0_sum: u64 = stats.ecn_tx.into_values().map(|v| v[IpTosEcn::Ect0]).sum();
+            let tx_ce_sum: u64 = stats.ecn_tx.into_values().map(|v| v[IpTosEcn::Ce]).sum();
+            if tx_ect0_sum > 0 {
+                if let Ok(ratio) = i64::try_from((tx_ce_sum * PRECISION_FACTOR) / tx_ect0_sum) {
+                    glean::http_3_ecn_ce_ect0_ratio_sent.accumulate_single_sample_signed(ratio);
                 } else {
                     let msg = "Failed to convert ratio to i64 for use with glean";
                     qwarn!("{msg}");
@@ -735,7 +744,7 @@ pub unsafe extern "C" fn neqo_http3conn_process_input(
             });
 
             // Override `dgrams` ECN marks according to prefs.
-            let ecn_enabled = static_prefs::pref!("network.http.http3.ecn");
+            let ecn_enabled = static_prefs::pref!("network.http.http3.ecn_report");
             let dgrams = dgrams.map(|mut d| {
                 if !ecn_enabled {
                     d.set_tos(IpTos::default());
@@ -838,7 +847,7 @@ pub extern "C" fn neqo_http3conn_process_output_and_send(
             .unwrap_or_else(|| conn.conn.process_output(Instant::now()));
         match output {
             Output::Datagram(mut dg) => {
-                if !static_prefs::pref!("network.http.http3.ecn") {
+                if !static_prefs::pref!("network.http.http3.ecn_mark") {
                     dg.set_tos(IpTos::default());
                 }
 

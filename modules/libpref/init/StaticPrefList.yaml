@@ -14690,12 +14690,21 @@
   type: RelaxedAtomicBool
   value: @IS_NOT_EARLY_BETA_OR_EARLIER@
   mirror: always
+  rust: true
 
-# Send and receive IP ECN marks. Noop if network.http.http3.use_nspr_for_io is
-# true.
-- name: network.http.http3.ecn
+# Set IP ECN marks on HTTP3/QUIC UDP datagrams. Noop if
+# network.http.http3.use_nspr_for_io is true.
+- name: network.http.http3.ecn_mark
   type: RelaxedAtomicBool
   value: @IS_EARLY_BETA_OR_EARLIER@
+  mirror: always
+  rust: true
+
+# Report IP ECN marks from HTTP3/QUIC UDP datagrams via QUIC ACKs back to the
+# sender. Noop if network.http.http3.use_nspr_for_io is true.
+- name: network.http.http3.ecn_report
+  type: RelaxedAtomicBool
+  value: true
   mirror: always
   rust: true
 
