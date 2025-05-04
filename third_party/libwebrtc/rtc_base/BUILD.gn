@@ -1751,7 +1751,6 @@ rtc_library("rtc_base_tests_utils") {
     "proxy_server.h",
     "server_socket_adapters.cc",
     "server_socket_adapters.h",
-    "sigslot_tester.h",
     "test_base64.h",
     "test_certificate_verifier.h",
     "test_echo_server.cc",
