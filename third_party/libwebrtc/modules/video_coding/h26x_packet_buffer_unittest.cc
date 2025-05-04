@@ -547,40 +547,6 @@ TEST(H26xPacketBufferTest, IdrIsKeyframeFuaRequiresFirstFragmet) {
       SizeIs(2));
 }
 
-TEST(H26xPacketBufferTest, ReorderedRtpPackets) {
-  H26xPacketBuffer packet_buffer(/*h264_allow_idr_only_keyframes=*/true);
-
-  RTC_UNUSED(packet_buffer.InsertPacket(H264Packet(kH264StapA)
-                                            .Sps()
-                                            .Pps()
-                                            .SeqNum(1)
-                                            .Time(0)
-                                            .AsFirstPacket()
-                                            .AsFirstFragment()
-                                            .Build()));
-
-  RTC_UNUSED(packet_buffer.InsertPacket(
-      H264Packet(kH264FuA).Idr().SeqNum(2).Time(0).Build()));
-
-  RTC_UNUSED(packet_buffer.InsertPacket(
-      H264Packet(kH264FuA).Idr().SeqNum(3).Time(0).Build()));
-
-  RTC_UNUSED(packet_buffer.InsertPacket(
-      H264Packet(kH264FuA).Idr().SeqNum(5).Time(0).Build()));
-
-  RTC_UNUSED(packet_buffer.InsertPacket(
-      H264Packet(kH264FuA).Idr().AsFirstFragment().SeqNum(6).Time(0).Build()));
-
-  RTC_UNUSED(packet_buffer.InsertPacket(
-      H264Packet(kH264FuA).Idr().SeqNum(7).Time(0).Marker().Build()));
-
-  EXPECT_THAT(
-      packet_buffer
-          .InsertPacket(H264Packet(kH264FuA).Idr().SeqNum(4).Time(0).Build())
-          .packets,
-      SizeIs(7));
-}
-
 TEST(H26xPacketBufferTest, SpsPpsIdrIsKeyframeSingleNalus) {
   H26xPacketBuffer packet_buffer(/*h264_allow_idr_only_keyframes=*/false);
 
@@ -967,7 +933,6 @@ TEST(H26xPacketBufferTest, FrameBoundariesAreSet) {
                                             .Idr()
                                             .SeqNum(1)
                                             .Time(1)
-                                            .AsFirstPacket()
                                             .Marker()
                                             .Build());
 
@@ -976,7 +941,7 @@ TEST(H26xPacketBufferTest, FrameBoundariesAreSet) {
   EXPECT_TRUE(key.packets[0]->video_header.is_last_packet_in_frame);
 
   RTC_UNUSED(packet_buffer.InsertPacket(
-      H264Packet(kH264FuA).Slice().SeqNum(2).Time(2).AsFirstPacket().Build()));
+      H264Packet(kH264FuA).Slice().SeqNum(2).Time(2).Build()));
   RTC_UNUSED(packet_buffer.InsertPacket(
       H264Packet(kH264FuA).Slice().SeqNum(3).Time(2).Build()));
   auto delta = packet_buffer.InsertPacket(

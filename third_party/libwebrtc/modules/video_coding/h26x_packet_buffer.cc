@@ -207,12 +207,6 @@ H26xPacketBuffer::InsertResult H26xPacketBuffer::FindFrames(
         auto& prev_packet = GetPacket(seq_num_start - 1);
 
         if (prev_packet == nullptr || prev_packet->timestamp != rtp_timestamp) {
-          const auto& current_packet = GetPacket(seq_num_start);
-          if (!current_packet->video_header.is_first_packet_in_frame) {
-            // First packet of the frame is missing.
-            return result;
-          }
-
           if (MaybeAssembleFrame(seq_num_start, seq_num, result)) {
             // Frame was assembled, continue to look for more frames.
             break;

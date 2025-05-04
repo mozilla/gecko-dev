@@ -85,7 +85,7 @@ class H26xPacketBuffer {
   // received without SPS/PPS.
   void InsertSpsPpsNalus(const std::vector<uint8_t>& sps,
                          const std::vector<uint8_t>& pps);
-  // Insert start code and parameter sets for H.264 payload, also update header
+  // Insert start code and paramter sets for H.264 payload, also update header
   // if parameter sets are inserted. Return false if required SPS or PPS is not
   // found.
   bool FixH264Packet(Packet& packet);
