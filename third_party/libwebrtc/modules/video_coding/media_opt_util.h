@@ -45,10 +45,6 @@ enum FilterPacketLossMode {
 // common to media optimization and the jitter buffer.
 constexpr int64_t kLowRttNackMs = 20;
 
-// If the RTT is higher than this an extra RTT wont be added to to the jitter
-// buffer delay.
-constexpr int kMaxRttDelayThreshold = 500;
-
 struct VCMProtectionParameters {
   VCMProtectionParameters();
 
