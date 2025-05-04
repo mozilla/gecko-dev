@@ -177,7 +177,7 @@ class ReceiveStatisticsProxy : public VideoStreamBufferControllerStatsObserver,
   SampleCounter oneway_delay_counter_ RTC_GUARDED_BY(main_thread_);
   std::unique_ptr<VideoQualityObserver> video_quality_observer_
       RTC_GUARDED_BY(main_thread_);
-  mutable rtc::MovingMaxCounter<int> interframe_delay_max_moving_
+  mutable MovingMaxCounter<int> interframe_delay_max_moving_
       RTC_GUARDED_BY(main_thread_);
   std::map<VideoContentType, ContentSpecificStats> content_specific_stats_
       RTC_GUARDED_BY(main_thread_);
@@ -197,7 +197,7 @@ class ReceiveStatisticsProxy : public VideoStreamBufferControllerStatsObserver,
   int64_t sum_missed_render_deadline_ms_ RTC_GUARDED_BY(main_thread_);
   // Mutable because calling Max() on MovingMaxCounter is not const. Yet it is
   // called from const GetStats().
-  mutable rtc::MovingMaxCounter<TimingFrameInfo> timing_frame_info_counter_
+  mutable MovingMaxCounter<TimingFrameInfo> timing_frame_info_counter_
       RTC_GUARDED_BY(main_thread_);
   std::optional<int> num_unique_frames_ RTC_GUARDED_BY(main_thread_);
   std::optional<int64_t> last_estimated_playout_ntp_timestamp_ms_

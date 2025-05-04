@@ -202,7 +202,7 @@ index 47f53d4ef2..67770da4f0 100644
    RTC_DCHECK_RUN_ON(&main_thread_);
    last_codec_type_ = codec_type;
 diff --git a/video/receive_statistics_proxy.h b/video/receive_statistics_proxy.h
-index ff06bfbcc4..19b7bb4878 100644
+index 0800e84103..7c4ae845fa 100644
 --- a/video/receive_statistics_proxy.h
 +++ b/video/receive_statistics_proxy.h
 @@ -95,6 +95,7 @@ class ReceiveStatisticsProxy : public VideoStreamBufferControllerStatsObserver,
