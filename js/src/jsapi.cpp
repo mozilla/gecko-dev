@@ -4266,10 +4266,6 @@ extern MOZ_NEVER_INLINE JS_PUBLIC_API void JS_AbortIfWrongThread(
   }
 }
 
-JS_PUBLIC_API void JS_SetParallelParsingEnabled(JSContext* cx, bool enabled) {
-  cx->runtime()->setParallelParsingEnabled(enabled);
-}
-
 JS_PUBLIC_API void JS_SetOffthreadBaselineCompilationEnabled(JSContext* cx,
                                                              bool enabled) {
   cx->runtime()->setOffthreadBaselineCompilationEnabled(enabled);

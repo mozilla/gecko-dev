@@ -142,7 +142,6 @@ JSRuntime::JSRuntime(JSRuntime* parentRuntime)
       afterWaitCallback(nullptr),
       offthreadBaselineCompilationEnabled_(false),
       offthreadIonCompilationEnabled_(true),
-      parallelParsingEnabled_(true),
       autoWritableJitCodeActive_(false),
       oomCallback(nullptr),
       debuggerMallocSizeOf(ReturnZeroSize),

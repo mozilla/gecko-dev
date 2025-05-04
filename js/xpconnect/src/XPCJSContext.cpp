@@ -1001,9 +1001,6 @@ static void ReloadPrefsCallback(const char* pref, void* aXpccx) {
       contextOptions.disableOptionsForSafeMode();
     }
   }
-
-  JS_SetParallelParsingEnabled(
-      cx, StaticPrefs::javascript_options_parallel_parsing());
 }
 
 XPCJSContext::~XPCJSContext() {

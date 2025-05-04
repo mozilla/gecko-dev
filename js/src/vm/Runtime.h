@@ -973,8 +973,6 @@ struct JSRuntime {
       offthreadBaselineCompilationEnabled_;
   mozilla::Atomic<bool, mozilla::SequentiallyConsistent>
       offthreadIonCompilationEnabled_;
-  mozilla::Atomic<bool, mozilla::SequentiallyConsistent>
-      parallelParsingEnabled_;
 
   js::MainThreadData<bool> autoWritableJitCodeActive_;
 
@@ -997,11 +995,6 @@ struct JSRuntime {
   bool canUseOffthreadIonCompilation() const {
     return offthreadIonCompilationEnabled_;
   }
-  void setParallelParsingEnabled(bool value) {
-    parallelParsingEnabled_ = value;
-  }
-  bool canUseParallelParsing() const { return parallelParsingEnabled_; }
-
   void toggleAutoWritableJitCodeActive(bool b) {
     MOZ_ASSERT(autoWritableJitCodeActive_ != b,
                "AutoWritableJitCode should not be nested.");

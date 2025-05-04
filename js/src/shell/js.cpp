@@ -6488,7 +6488,7 @@ static bool OffThreadCompileToStencil(JSContext* cx, unsigned argc, Value* vp) {
     mozilla::PodCopy(ownedChars.get(), chars, length);
   }
 
-  if (!cx->runtime()->canUseParallelParsing() || !js::CanUseExtraThreads()) {
+  if (!js::CanUseExtraThreads()) {
     JS_ReportErrorASCII(cx, "cannot compile code on helper thread");
     return false;
   }
@@ -6602,7 +6602,7 @@ static bool OffThreadCompileModuleToStencil(JSContext* cx, unsigned argc,
     mozilla::PodCopy(ownedChars.get(), chars, length);
   }
 
-  if (!cx->runtime()->canUseParallelParsing() || !js::CanUseExtraThreads()) {
+  if (!js::CanUseExtraThreads()) {
     JS_ReportErrorASCII(cx, "cannot compile code on worker thread");
     return false;
   }
@@ -6681,7 +6681,7 @@ static bool OffThreadDecodeStencil(JSContext* cx, unsigned argc, Value* vp) {
     return false;
   }
 
-  if (!cx->runtime()->canUseParallelParsing() || !js::CanUseExtraThreads()) {
+  if (!js::CanUseExtraThreads()) {
     JS_ReportErrorASCII(cx, "cannot compile code on worker thread");
     return false;
   }
