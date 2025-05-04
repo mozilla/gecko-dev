@@ -41,8 +41,6 @@ class MockDataChannelInterface
   MOCK_METHOD(std::string, label, (), (const, override));
   MOCK_METHOD(bool, reliable, (), (const, override));
   MOCK_METHOD(bool, ordered, (), (const, override));
-  MOCK_METHOD(uint16_t, maxRetransmitTime, (), (const, override));
-  MOCK_METHOD(uint16_t, maxRetransmits, (), (const, override));
   MOCK_METHOD(std::optional<int>, maxRetransmitsOpt, (), (const, override));
   MOCK_METHOD(std::optional<int>, maxPacketLifeTime, (), (const, override));
   MOCK_METHOD(std::string, protocol, (), (const, override));

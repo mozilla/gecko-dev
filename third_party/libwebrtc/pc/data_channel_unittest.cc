@@ -172,12 +172,6 @@ TEST_F(SctpDataChannelTest, VerifyConfigurationGetters) {
   EXPECT_EQ(channel_->priority(), PriorityValue(Priority::kLow));
   EXPECT_EQ(channel_->maxPacketLifeTime(), init_.maxRetransmitTime);
   EXPECT_EQ(channel_->maxRetransmitsOpt(), init_.maxRetransmits);
-  // TODO: issues.webrtc.org/42220231 - remove when deprecation done
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wdeprecated-declarations"
-  EXPECT_EQ(channel_->maxRetransmitTime(), static_cast<uint16_t>(-1));
-  EXPECT_EQ(channel_->maxRetransmits(), static_cast<uint16_t>(-1));
-#pragma clang diagnostic pop
 
   // Check the non-const part of the configuration.
   EXPECT_EQ(channel_->id(), init_.id);

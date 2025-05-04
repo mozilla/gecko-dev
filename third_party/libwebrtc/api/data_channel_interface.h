@@ -160,11 +160,6 @@ class RTC_EXPORT DataChannelInterface : public RefCountInterface {
   // implemented these APIs. They should all just return the values the
   // DataChannel was created with.
   virtual bool ordered() const;
-  // TODO(hta): Deprecate and remove the following two functions.
-  [[deprecated("Use maxPacketLifeTime")]] virtual uint16_t maxRetransmitTime()
-      const;
-  [[deprecated("Use maxRetransmitsOpt")]] virtual uint16_t maxRetransmits()
-      const;
   virtual std::optional<int> maxRetransmitsOpt() const;
   virtual std::optional<int> maxPacketLifeTime() const;
   virtual std::string protocol() const;

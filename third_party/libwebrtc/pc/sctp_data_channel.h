@@ -155,10 +155,6 @@ class SctpDataChannel : public DataChannelInterface {
   bool reliable() const override;
   bool ordered() const override;
 
-  // Backwards compatible accessors
-  uint16_t maxRetransmitTime() const override;
-  uint16_t maxRetransmits() const override;
-
   std::optional<int> maxPacketLifeTime() const override;
   std::optional<int> maxRetransmitsOpt() const override;
   std::string protocol() const override;
