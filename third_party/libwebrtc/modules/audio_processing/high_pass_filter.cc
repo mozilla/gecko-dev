@@ -19,18 +19,21 @@ namespace webrtc {
 namespace {
 // [B,A] = butter(2,100/8000,'high')
 constexpr CascadedBiQuadFilter::BiQuadCoefficients
-    kHighPassFilterCoefficients16kHz = {{0.97261f, -1.94523f, 0.97261f},
-                                        {-1.94448f, 0.94598f}};
+    kHighPassFilterCoefficients16kHz = {
+        {0.972613898f, -1.945227797f, 0.972613898f},
+        {-1.944477658f, 0.945977936f}};
 
 // [B,A] = butter(2,100/16000,'high')
 constexpr CascadedBiQuadFilter::BiQuadCoefficients
-    kHighPassFilterCoefficients32kHz = {{0.98621f, -1.97242f, 0.98621f},
-                                        {-1.97223f, 0.97261f}};
+    kHighPassFilterCoefficients32kHz = {
+        {0.986211925f, -1.972423849f, 0.986211925f},
+        {-1.972233729f, 0.972613969f}};
 
 // [B,A] = butter(2,100/24000,'high')
 constexpr CascadedBiQuadFilter::BiQuadCoefficients
-    kHighPassFilterCoefficients48kHz = {{0.99079f, -1.98157f, 0.99079f},
-                                        {-1.98149f, 0.98166f}};
+    kHighPassFilterCoefficients48kHz = {
+        {0.990786698f, -1.981573396f, 0.990786698f},
+        {-1.981488509f, 0.981658283f}};
 
 constexpr size_t kNumberOfHighPassBiQuads = 1;
 

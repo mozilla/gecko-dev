@@ -1823,7 +1823,7 @@ TEST_F(ApmTest, Process) {
       const int kMaxOutputAverageNear = 26;
 #else
       const int kMaxOutputAverageOffset = 0;
-      const int kMaxOutputAverageNear = kIntNear;
+      const int kMaxOutputAverageNear = 7;
 #endif
       EXPECT_NEAR(test->analog_level_average(), analog_level_average, kIntNear);
       EXPECT_NEAR(test->max_output_average(),
