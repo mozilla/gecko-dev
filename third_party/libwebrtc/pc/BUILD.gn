@@ -2420,6 +2420,7 @@ if (rtc_include_tests && !build_with_chromium) {
       ":pc_test_utils",
       ":peer_connection",
       ":peer_connection_factory",
+      ":peer_connection_factory_proxy",
       ":peer_connection_internal",
       ":peer_connection_proxy",
       ":peerconnection_wrapper",

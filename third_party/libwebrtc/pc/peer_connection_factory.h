@@ -39,6 +39,8 @@
 #include "call/call.h"
 #include "call/rtp_transport_controller_send_factory_interface.h"
 #include "media/base/media_engine.h"
+#include "p2p/base/port_allocator.h"
+#include "pc/codec_vendor.h"
 #include "pc/connection_context.h"
 #include "rtc_base/thread.h"
 #include "rtc_base/thread_annotations.h"
@@ -107,6 +109,7 @@ class PeerConnectionFactory : public PeerConnectionFactoryInterface {
   }
 
   cricket::MediaEngineInterface* media_engine() const;
+  cricket::CodecVendor& CodecVendorForTesting() { return codec_vendor_; }
 
  protected:
   // Constructor used by the static Create() method. Modifies the dependencies.
@@ -134,6 +137,7 @@ class PeerConnectionFactory : public PeerConnectionFactoryInterface {
   rtc::scoped_refptr<ConnectionContext> context_;
   PeerConnectionFactoryInterface::Options options_
       RTC_GUARDED_BY(signaling_thread());
+  cricket::CodecVendor codec_vendor_;
   std::unique_ptr<RtcEventLogFactoryInterface> event_log_factory_;
   std::unique_ptr<FecControllerFactoryInterface> fec_controller_factory_;
   std::unique_ptr<NetworkStatePredictorFactoryInterface>

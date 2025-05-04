@@ -72,27 +72,30 @@ using RTCOfferAnswerOptions = PeerConnectionInterface::RTCOfferAnswerOptions;
 using ::testing::Bool;
 using ::testing::Combine;
 using ::testing::ElementsAre;
+using ::testing::Gt;
 using ::testing::HasSubstr;
 using ::testing::NotNull;
 using ::testing::Values;
 
-cricket::MediaSendChannelInterface* SendChannelInternal(
+RtpTransceiver* RtpTransceiverInternal(
     rtc::scoped_refptr<RtpTransceiverInterface> transceiver) {
   auto transceiver_with_internal = static_cast<
       RefCountedObject<RtpTransceiverProxyWithInternal<RtpTransceiver>>*>(
       transceiver.get());
   auto transceiver_internal =
       static_cast<RtpTransceiver*>(transceiver_with_internal->internal());
+  return transceiver_internal;
+}
+
+cricket::MediaSendChannelInterface* SendChannelInternal(
+    rtc::scoped_refptr<RtpTransceiverInterface> transceiver) {
+  auto transceiver_internal = RtpTransceiverInternal(transceiver);
   return transceiver_internal->channel()->media_send_channel();
 }
 
 cricket::MediaReceiveChannelInterface* ReceiveChannelInternal(
     rtc::scoped_refptr<RtpTransceiverInterface> transceiver) {
-  auto transceiver_with_internal = static_cast<
-      RefCountedObject<RtpTransceiverProxyWithInternal<RtpTransceiver>>*>(
-      transceiver.get());
-  auto transceiver_internal =
-      static_cast<RtpTransceiver*>(transceiver_with_internal->internal());
+  auto transceiver_internal = RtpTransceiverInternal(transceiver);
   return transceiver_internal->channel()->media_receive_channel();
 }
 
@@ -1550,7 +1553,8 @@ TEST_F(PeerConnectionMediaTestUnifiedPlan,
 
   auto caller = CreatePeerConnectionWithAudio(std::move(fake_engine));
 
-  auto transceiver = caller->pc()->GetTransceivers().front();
+  auto transceiver =
+      RtpTransceiverInternal(caller->pc()->GetTransceivers().front());
   auto codecs =
       caller->pc_factory()
           ->GetRtpSenderCapabilities(cricket::MediaType::MEDIA_TYPE_AUDIO)
@@ -1564,7 +1568,7 @@ TEST_F(PeerConnectionMediaTestUnifiedPlan,
                                       codec.name == cricket::kUlpfecCodecName);
                            });
   codecs_only_rtx_red_fec.erase(it, codecs_only_rtx_red_fec.end());
-
+  ASSERT_THAT(codecs_only_rtx_red_fec.size(), Gt(0));
   auto result = transceiver->SetCodecPreferences(codecs_only_rtx_red_fec);
   EXPECT_EQ(RTCErrorType::INVALID_MODIFICATION, result.type());
 }

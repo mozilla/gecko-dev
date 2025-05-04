@@ -559,7 +559,10 @@ bool FakeVideoMediaReceiveChannel::GetStats(VideoMediaReceiveInfo* /* info */) {
   return false;
 }
 
-FakeVoiceEngine::FakeVoiceEngine() {
+FakeVoiceEngine::FakeVoiceEngine()
+    : encoder_factory_(webrtc::make_ref_counted<FakeVoiceEncoderFactory>(this)),
+      decoder_factory_(
+          webrtc::make_ref_counted<FakeVoiceDecoderFactory>(this)) {
   // Add a fake audio codec. Note that the name must not be "" as there are
   // sanity checks against that.
   SetCodecs({cricket::CreateAudioCodec(101, "fake_audio_codec", 8000, 1)});

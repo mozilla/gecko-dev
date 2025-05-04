@@ -818,10 +818,10 @@ class FakeVoiceEngine : public VoiceEngineInterface {
   const std::vector<Codec>& LegacySendCodecs() const override;
   const std::vector<Codec>& LegacyRecvCodecs() const override;
   webrtc::AudioEncoderFactory* encoder_factory() const override {
-    return nullptr;
+    return encoder_factory_.get();
   }
   webrtc::AudioDecoderFactory* decoder_factory() const override {
-    return nullptr;
+    return decoder_factory_.get();
   }
   void SetCodecs(const std::vector<Codec>& codecs);
   void SetRecvCodecs(const std::vector<Codec>& codecs);
@@ -837,8 +837,66 @@ class FakeVoiceEngine : public VoiceEngineInterface {
       std::vector<webrtc::RtpHeaderExtensionCapability> header_extensions);
 
  private:
+  class FakeVoiceEncoderFactory : public webrtc::AudioEncoderFactory {
+   public:
+    explicit FakeVoiceEncoderFactory(FakeVoiceEngine* owner) : owner_(owner) {}
+    std::vector<webrtc::AudioCodecSpec> GetSupportedEncoders() override {
+      // The reason for this convoluted mapping is because there are
+      // too many tests that expect to push codecs into the fake voice
+      // engine's "send_codecs/recv_codecs" and have them show up later.
+      std::vector<webrtc::AudioCodecSpec> specs;
+      for (const auto& codec : owner_->send_codecs_) {
+        specs.push_back(webrtc::AudioCodecSpec{
+            {codec.name, codec.clockrate, codec.channels},
+            {codec.clockrate, codec.channels, codec.bitrate}});
+      }
+      return specs;
+    }
+    std::optional<webrtc::AudioCodecInfo> QueryAudioEncoder(
+        const webrtc::SdpAudioFormat& format) override {
+      return std::nullopt;
+    }
+    absl::Nullable<std::unique_ptr<webrtc::AudioEncoder>> Create(
+        const webrtc::Environment& env,
+        const webrtc::SdpAudioFormat& format,
+        Options options) override {
+      return nullptr;
+    }
+    FakeVoiceEngine* owner_;
+  };
+  class FakeVoiceDecoderFactory : public webrtc::AudioDecoderFactory {
+   public:
+    explicit FakeVoiceDecoderFactory(FakeVoiceEngine* owner) : owner_(owner) {}
+    std::vector<webrtc::AudioCodecSpec> GetSupportedDecoders() override {
+      // The reason for this convoluted mapping is because there are
+      // too many tests that expect to push codecs into the fake voice
+      // engine's "send_codecs/recv_codecs" and have them show up later.
+      std::vector<webrtc::AudioCodecSpec> specs;
+      for (const auto& codec : owner_->recv_codecs_) {
+        specs.push_back(webrtc::AudioCodecSpec{
+            {codec.name, codec.clockrate, codec.channels},
+            {codec.clockrate, codec.channels, codec.bitrate}});
+      }
+      return specs;
+    }
+    bool IsSupportedDecoder(const webrtc::SdpAudioFormat& format) override {
+      return false;
+    }
+    absl::Nullable<std::unique_ptr<webrtc::AudioDecoder>> Create(
+        const webrtc::Environment& env,
+        const webrtc::SdpAudioFormat& format,
+        std::optional<webrtc::AudioCodecPairId> codec_pair_id) override {
+      return nullptr;
+    }
+
+   private:
+    FakeVoiceEngine* owner_;
+  };
+
   std::vector<Codec> recv_codecs_;
   std::vector<Codec> send_codecs_;
+  webrtc::scoped_refptr<FakeVoiceEncoderFactory> encoder_factory_;
+  webrtc::scoped_refptr<FakeVoiceDecoderFactory> decoder_factory_;
   std::vector<webrtc::RtpHeaderExtensionCapability> header_extensions_;
 
   friend class FakeMediaEngine;

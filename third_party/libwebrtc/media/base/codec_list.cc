@@ -63,6 +63,15 @@ RTCError CheckInputConsistency(const std::vector<Codec>& codecs) {
         // TODO: https://issues.webrtc.org/384756622 - reject codec earlier and
         // enable check. RTC_DCHECK(apt_it != codec.params.end()); Until that is
         // fixed:
+        if (codec.id == Codec::kIdNotSet) {
+          // Should not have an apt parameter.
+          if (apt_it != codec.params.end()) {
+            RTC_LOG(LS_WARNING) << "Surprising condition: RTX codec without "
+                                << "PT has an apt parameter";
+          }
+          // Stop checking the associated PT.
+          break;
+        }
         if (apt_it == codec.params.end()) {
           RTC_LOG(LS_WARNING) << "Surprising condition: RTX codec without"
                               << " apt parameter: " << codec;
@@ -70,6 +79,8 @@ RTCError CheckInputConsistency(const std::vector<Codec>& codecs) {
         }
         int associated_pt;
         if (!(rtc::FromString(apt_it->second, &associated_pt))) {
+          RTC_LOG(LS_ERROR) << "Non-numeric argument to rtx apt: " << codec
+                            << " apt=" << apt_it->second;
           LOG_AND_RETURN_ERROR(RTCErrorType::INVALID_PARAMETER,
                                "Non-numeric argument to rtx apt parameter");
         }
