@@ -878,10 +878,23 @@ void RtpVideoStreamReceiver2::OnInsertedPacket(
 
   bool frame_boundary = true;
   for (auto& packet : result.packets) {
-    // PacketBuffer promisses frame boundaries are correctly set on each
-    // packet. Document that assumption with the DCHECKs.
-    RTC_DCHECK_EQ(frame_boundary, packet->is_first_packet_in_frame());
     int64_t unwrapped_rtp_seq_num = packet->sequence_number;
+
+    // Every time `FrameDecoded` is called outdated information is cleaned up,
+    // and because of that `packet_infos_` might not contain any information
+    // about some of the packets in the assembled frame. To avoid creating a
+    // frame with missing `packet_infos_`, simply drop this (old/duplicate)
+    // frame.
+    if (unwrapped_rtp_seq_num <= last_decoded_unwrapped_seq_num_) {
+      continue;
+    }
+
+    // If some packets were skipped make sure the next frame still start on a
+    // `frame_boundary`.
+    if (frame_boundary != packet->is_first_packet_in_frame()) {
+      continue;
+    }
+
     RTC_DCHECK_GT(packet_infos_.count(unwrapped_rtp_seq_num), 0);
     RtpPacketInfo& packet_info = packet_infos_[unwrapped_rtp_seq_num];
     if (packet->is_first_packet_in_frame()) {
@@ -1370,9 +1383,10 @@ void RtpVideoStreamReceiver2::FrameDecoded(int64_t picture_id) {
   }
 
   if (seq_num != -1) {
-    int64_t unwrapped_rtp_seq_num = rtp_seq_num_unwrapper_.Unwrap(seq_num);
-    packet_infos_.erase(packet_infos_.begin(),
-                        packet_infos_.upper_bound(unwrapped_rtp_seq_num));
+    last_decoded_unwrapped_seq_num_ = rtp_seq_num_unwrapper_.Unwrap(seq_num);
+    packet_infos_.erase(
+        packet_infos_.begin(),
+        packet_infos_.upper_bound(*last_decoded_unwrapped_seq_num_));
     uint32_t num_packets_cleared = packet_buffer_.ClearTo(seq_num);
     if (num_packets_cleared > 0) {
       TRACE_EVENT2("webrtc",

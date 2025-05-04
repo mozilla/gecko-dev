@@ -410,6 +410,8 @@ class RtpVideoStreamReceiver2 : public LossNotificationSender,
 
   std::map<int64_t, uint16_t> last_seq_num_for_pic_id_
       RTC_GUARDED_BY(packet_sequence_checker_);
+  std::optional<int64_t> last_decoded_unwrapped_seq_num_
+      RTC_GUARDED_BY(packet_sequence_checker_);
   video_coding::H264SpsPpsTracker tracker_
       RTC_GUARDED_BY(packet_sequence_checker_);
 
