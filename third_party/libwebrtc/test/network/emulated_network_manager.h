@@ -38,8 +38,7 @@ class EmulatedNetworkManager : public EmulatedNetworkManagerInterface {
       absl::Nonnull<EndpointsContainer*> endpoints_container);
   ~EmulatedNetworkManager() override;
 
-  void EnableEndpoint(absl::Nonnull<EmulatedEndpointImpl*> endpoint);
-  void DisableEndpoint(absl::Nonnull<EmulatedEndpointImpl*> endpoint);
+  void UpdateNetworks();
 
   absl::Nonnull<rtc::Thread*> network_thread() override {
     return network_thread_.get();

@@ -147,15 +147,16 @@ void NetworkEmulationManagerImpl::EnableEndpoint(EmulatedEndpoint* endpoint) {
   EmulatedNetworkManager* network_manager =
       endpoint_to_network_manager_[endpoint];
   RTC_CHECK(network_manager);
-  network_manager->EnableEndpoint(static_cast<EmulatedEndpointImpl*>(endpoint));
+  static_cast<EmulatedEndpointImpl*>(endpoint)->Enable();
+  network_manager->UpdateNetworks();
 }
 
 void NetworkEmulationManagerImpl::DisableEndpoint(EmulatedEndpoint* endpoint) {
   EmulatedNetworkManager* network_manager =
       endpoint_to_network_manager_[endpoint];
   RTC_CHECK(network_manager);
-  network_manager->DisableEndpoint(
-      static_cast<EmulatedEndpointImpl*>(endpoint));
+  static_cast<EmulatedEndpointImpl*>(endpoint)->Disable();
+  network_manager->UpdateNetworks();
 }
 
 EmulatedRoute* NetworkEmulationManagerImpl::CreateRoute(
@@ -314,12 +315,7 @@ NetworkEmulationManagerImpl::CreateEmulatedNetworkManagerInterface(
       time_controller_.get(), task_queue_.Get(), endpoints_container.get());
   for (auto* endpoint : endpoints) {
     // Associate endpoint with network manager.
-    bool insertion_result =
-        endpoint_to_network_manager_.insert({endpoint, network_manager.get()})
-            .second;
-    RTC_CHECK(insertion_result)
-        << "Endpoint ip=" << endpoint->GetPeerLocalAddress().ToString()
-        << " is already used for another network";
+    endpoint_to_network_manager_[endpoint] = network_manager.get();
   }
 
   EmulatedNetworkManagerInterface* out = network_manager.get();

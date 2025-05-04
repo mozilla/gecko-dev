@@ -340,10 +340,10 @@ class EmulatedEndpointImpl : public EmulatedEndpoint {
   uint16_t NextPort() RTC_EXCLUSIVE_LOCKS_REQUIRED(receiver_lock_);
 
   Mutex receiver_lock_;
-  RTC_NO_UNIQUE_ADDRESS SequenceChecker enabled_state_checker_;
+  mutable Mutex enable_state_mutex_;
 
   const Options options_;
-  bool is_enabled_ RTC_GUARDED_BY(enabled_state_checker_);
+  bool is_enabled_ RTC_GUARDED_BY(enable_state_mutex_);
   Clock* const clock_;
   const absl::Nonnull<TaskQueueBase*> task_queue_;
   std::unique_ptr<rtc::Network> network_;

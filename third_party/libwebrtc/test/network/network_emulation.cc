@@ -621,7 +621,6 @@ EmulatedEndpointImpl::EmulatedEndpointImpl(
       prefix, prefix_length, options_.type);
   network_->AddIP(options_.ip);
 
-  enabled_state_checker_.Detach();
   RTC_LOG(LS_INFO) << "Created emulated endpoint " << options_.log_name
                    << "; id=" << options_.id;
 }
@@ -776,19 +775,19 @@ void EmulatedEndpointImpl::OnPacketReceived(EmulatedIpPacket packet) {
 }
 
 void EmulatedEndpointImpl::Enable() {
-  RTC_DCHECK_RUN_ON(&enabled_state_checker_);
+  MutexLock lock(&enable_state_mutex_);
   RTC_CHECK(!is_enabled_);
   is_enabled_ = true;
 }
 
 void EmulatedEndpointImpl::Disable() {
-  RTC_DCHECK_RUN_ON(&enabled_state_checker_);
+  MutexLock lock(&enable_state_mutex_);
   RTC_CHECK(is_enabled_);
   is_enabled_ = false;
 }
 
 bool EmulatedEndpointImpl::Enabled() const {
-  RTC_DCHECK_RUN_ON(&enabled_state_checker_);
+  MutexLock lock(&enable_state_mutex_);
   return is_enabled_;
 }
 

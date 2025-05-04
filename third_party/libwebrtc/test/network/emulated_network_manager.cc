@@ -90,22 +90,10 @@ EmulatedNetworkManager::ReleaseNetworkManager() {
   return std::move(network_manager_);
 }
 
-void EmulatedNetworkManager::EnableEndpoint(EmulatedEndpointImpl* endpoint) {
-  RTC_CHECK(endpoints_container_->HasEndpoint(endpoint))
-      << "No such interface: " << endpoint->GetPeerLocalAddress().ToString();
-  network_thread_->PostTask([this, endpoint]() {
-    endpoint->Enable();
-    network_manager_ptr_->UpdateNetworksOnce();
-  });
-}
-
-void EmulatedNetworkManager::DisableEndpoint(EmulatedEndpointImpl* endpoint) {
-  RTC_CHECK(endpoints_container_->HasEndpoint(endpoint))
-      << "No such interface: " << endpoint->GetPeerLocalAddress().ToString();
-  network_thread_->PostTask([this, endpoint]() {
-    endpoint->Disable();
-    network_manager_ptr_->UpdateNetworksOnce();
-  });
+void EmulatedNetworkManager::UpdateNetworks() {
+  absl::Nonnull<NetworkManagerImpl*> network_manager = network_manager_ptr_;
+  network_thread_->PostTask(
+      [network_manager] { network_manager->UpdateNetworksOnce(); });
 }
 
 void EmulatedNetworkManager::NetworkManagerImpl::StartUpdating() {
