@@ -96,8 +96,8 @@ class StunProberTest : public ::testing::Test {
                  const std::vector<rtc::SocketAddress>& addrs,
                  bool check_results) {
     rtc::Network ipv4_network1("test_eth0", "Test Network Adapter 1",
-                               rtc::IPAddress(0x12345600U), 24);
-    ipv4_network1.AddIP(rtc::IPAddress(0x12345678));
+                               webrtc::IPAddress(0x12345600U), 24);
+    ipv4_network1.AddIP(webrtc::IPAddress(0x12345678));
     std::vector<const rtc::Network*> networks;
     networks.push_back(&ipv4_network1);
 

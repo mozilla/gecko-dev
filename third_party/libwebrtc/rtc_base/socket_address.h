@@ -42,7 +42,7 @@ class RTC_EXPORT SocketAddress {
 
   // Creates the address with the given IP and port.
   // DCHECKs that port is in valid range (0 to 2^16-1).
-  SocketAddress(const IPAddress& ip, int port);
+  SocketAddress(const webrtc::IPAddress& ip, int port);
 
   // Creates a copy of the given address.
   SocketAddress(const SocketAddress& addr);
@@ -64,7 +64,7 @@ class RTC_EXPORT SocketAddress {
   void SetIP(uint32_t ip_as_host_order_integer);
 
   // Changes the IP of this address to the given one, and clears the hostname.
-  void SetIP(const IPAddress& ip);
+  void SetIP(const webrtc::IPAddress& ip);
 
   // Changes the hostname of this address to the given one.
   // Does not resolve the address; use Resolve to do so.
@@ -77,7 +77,7 @@ class RTC_EXPORT SocketAddress {
 
   // Sets the IP address while retaining the hostname.  Useful for bypassing
   // DNS for a pre-resolved IP.
-  void SetResolvedIP(const IPAddress& ip);
+  void SetResolvedIP(const webrtc::IPAddress& ip);
 
   // Changes the port of this address to the given one.
   // DCHECKs that port is in valid range (0 to 2^16-1).
@@ -90,7 +90,7 @@ class RTC_EXPORT SocketAddress {
   // Returns 0 for non-v4 addresses.
   uint32_t ip() const;
 
-  const IPAddress& ipaddr() const;
+  const webrtc::IPAddress& ipaddr() const;
 
   int family() const { return ip_.family(); }
 
@@ -184,7 +184,7 @@ class RTC_EXPORT SocketAddress {
 
  private:
   std::string hostname_;
-  IPAddress ip_;
+  webrtc::IPAddress ip_;
   uint16_t port_;
   int scope_id_;
   bool literal_;  // Indicates that 'hostname_' contains a literal IP string.

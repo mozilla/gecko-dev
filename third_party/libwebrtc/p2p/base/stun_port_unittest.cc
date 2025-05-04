@@ -102,12 +102,12 @@ constexpr uint64_t kTiebreakerDefault = 44444;
 
 class FakeMdnsResponder : public webrtc::MdnsResponderInterface {
  public:
-  void CreateNameForAddress(const rtc::IPAddress& addr,
+  void CreateNameForAddress(const webrtc::IPAddress& addr,
                             NameCreatedCallback callback) override {
     callback(addr, kMsdnAddress.HostAsSensitiveURIString());
   }
 
-  void RemoveNameForAddress(const rtc::IPAddress& addr,
+  void RemoveNameForAddress(const webrtc::IPAddress& addr,
                             NameRemovedCallback callback) override {}
 };
 
@@ -132,7 +132,7 @@ class StunPortTestBase : public ::testing::Test, public sigslot::has_slots<> {
                          {kStunServerAddr1, kStunServerAddr2},
                          kNatAddr) {}
 
-  StunPortTestBase(const rtc::IPAddress address,
+  StunPortTestBase(const webrtc::IPAddress address,
                    const std::set<rtc::SocketAddress>& stun_server_addresses,
                    const rtc::SocketAddress& nat_server_address)
       : ss_(new rtc::VirtualSocketServer()),
@@ -285,7 +285,7 @@ class StunPortTestBase : public ::testing::Test, public sigslot::has_slots<> {
     stun_keepalive_lifetime_ = lifetime;
   }
 
-  rtc::Network* MakeNetwork(const rtc::IPAddress& addr) {
+  rtc::Network* MakeNetwork(const webrtc::IPAddress& addr) {
     networks_.emplace_back("unittest", "unittest", addr, 32);
     networks_.back().AddIP(addr);
     return &networks_.back();

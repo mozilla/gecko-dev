@@ -64,10 +64,10 @@ EmulatedNetworkStats PopulateStats(std::vector<EmulatedEndpoint*> endpoints,
   return stats;
 }
 
-std::map<rtc::IPAddress, std::string> PopulateIpToPeer(
+std::map<IPAddress, std::string> PopulateIpToPeer(
     const std::map<std::string, std::vector<EmulatedEndpoint*>>&
         peer_endpoints) {
-  std::map<rtc::IPAddress, std::string> out;
+  std::map<IPAddress, std::string> out;
   for (const auto& entry : peer_endpoints) {
     for (const EmulatedEndpoint* const endpoint : entry.second) {
       RTC_CHECK(out.find(endpoint->GetPeerLocalAddress()) == out.end())
@@ -244,7 +244,7 @@ StatsBasedNetworkQualityMetricsReporter::NetworkLayerStatsCollector::
     const NetworkLayerStats& stats = peer_to_stats[peer_name];
     for (const auto& income_stats_entry :
          stats.endpoints_stats.incoming_stats_per_source) {
-      const rtc::IPAddress& source_ip = income_stats_entry.first;
+      const IPAddress& source_ip = income_stats_entry.first;
       auto it = ip_to_peer_.find(source_ip);
       if (it == ip_to_peer_.end()) {
         // Source IP is unknown for this collector, so will be skipped.

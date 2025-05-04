@@ -34,7 +34,7 @@ class AsyncDnsResolverResultImpl : public AsyncDnsResolverResult {
   friend class AsyncDnsResolver;
   RTC_NO_UNIQUE_ADDRESS webrtc::SequenceChecker sequence_checker_;
   rtc::SocketAddress addr_ RTC_GUARDED_BY(sequence_checker_);
-  std::vector<rtc::IPAddress> addresses_ RTC_GUARDED_BY(sequence_checker_);
+  std::vector<IPAddress> addresses_ RTC_GUARDED_BY(sequence_checker_);
   int error_ RTC_GUARDED_BY(sequence_checker_);
 };
 

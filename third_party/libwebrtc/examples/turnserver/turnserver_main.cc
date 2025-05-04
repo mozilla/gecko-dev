@@ -64,8 +64,8 @@ int main(int argc, char* argv[]) {
     return 1;
   }
 
-  rtc::IPAddress ext_addr;
-  if (!IPFromString(argv[2], &ext_addr)) {
+  webrtc::IPAddress ext_addr;
+  if (!webrtc::IPFromString(argv[2], &ext_addr)) {
     std::cerr << "Unable to parse IP address: " << argv[2] << std::endl;
     return 1;
   }

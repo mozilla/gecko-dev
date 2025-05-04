@@ -70,43 +70,43 @@ class SocketTest : public ::testing::Test {
   void TestSocketSendRecvWithEcnIPV4();
   void TestSocketSendRecvWithEcnIPV6();
 
-  const IPAddress kIPv4Loopback;
-  const IPAddress kIPv6Loopback;
+  const webrtc::IPAddress kIPv4Loopback;
+  const webrtc::IPAddress kIPv6Loopback;
 
  protected:
-  void TcpInternal(const IPAddress& loopback,
+  void TcpInternal(const webrtc::IPAddress& loopback,
                    size_t data_size,
                    ptrdiff_t max_send_size);
 
  private:
-  void ConnectInternal(const IPAddress& loopback);
-  void ConnectWithDnsLookupInternal(const IPAddress& loopback,
+  void ConnectInternal(const webrtc::IPAddress& loopback);
+  void ConnectWithDnsLookupInternal(const webrtc::IPAddress& loopback,
                                     absl::string_view host);
-  void ConnectFailInternal(const IPAddress& loopback);
+  void ConnectFailInternal(const webrtc::IPAddress& loopback);
 
-  void ConnectWithDnsLookupFailInternal(const IPAddress& loopback);
-  void ConnectWithClosedSocketInternal(const IPAddress& loopback);
-  void ConnectWhileNotClosedInternal(const IPAddress& loopback);
-  void ServerCloseDuringConnectInternal(const IPAddress& loopback);
-  void ClientCloseDuringConnectInternal(const IPAddress& loopback);
-  void ServerCloseInternal(const IPAddress& loopback);
-  void CloseInClosedCallbackInternal(const IPAddress& loopback);
-  void DeleteInReadCallbackInternal(const IPAddress& loopback);
-  void SocketServerWaitInternal(const IPAddress& loopback);
-  void SingleFlowControlCallbackInternal(const IPAddress& loopback);
-  void UdpInternal(const IPAddress& loopback);
-  void UdpReadyToSend(const IPAddress& loopback);
-  void GetSetOptionsInternal(const IPAddress& loopback);
-  void SocketRecvTimestamp(const IPAddress& loopback);
-  void UdpSocketRecvTimestampUseRtcEpoch(const IPAddress& loopback);
-  void SocketSendRecvWithEcn(const IPAddress& loopback);
+  void ConnectWithDnsLookupFailInternal(const webrtc::IPAddress& loopback);
+  void ConnectWithClosedSocketInternal(const webrtc::IPAddress& loopback);
+  void ConnectWhileNotClosedInternal(const webrtc::IPAddress& loopback);
+  void ServerCloseDuringConnectInternal(const webrtc::IPAddress& loopback);
+  void ClientCloseDuringConnectInternal(const webrtc::IPAddress& loopback);
+  void ServerCloseInternal(const webrtc::IPAddress& loopback);
+  void CloseInClosedCallbackInternal(const webrtc::IPAddress& loopback);
+  void DeleteInReadCallbackInternal(const webrtc::IPAddress& loopback);
+  void SocketServerWaitInternal(const webrtc::IPAddress& loopback);
+  void SingleFlowControlCallbackInternal(const webrtc::IPAddress& loopback);
+  void UdpInternal(const webrtc::IPAddress& loopback);
+  void UdpReadyToSend(const webrtc::IPAddress& loopback);
+  void GetSetOptionsInternal(const webrtc::IPAddress& loopback);
+  void SocketRecvTimestamp(const webrtc::IPAddress& loopback);
+  void UdpSocketRecvTimestampUseRtcEpoch(const webrtc::IPAddress& loopback);
+  void SocketSendRecvWithEcn(const webrtc::IPAddress& loopback);
 
   SocketFactory* socket_factory_;
 };
 
 // For unbound sockets, GetLocalAddress / GetRemoteAddress return AF_UNSPEC
 // values on Windows, but an empty address of the same family on Linux/MacOS X.
-bool IsUnspecOrEmptyIP(const IPAddress& address);
+bool IsUnspecOrEmptyIP(const webrtc::IPAddress& address);
 
 }  // namespace rtc
 

@@ -407,14 +407,14 @@ class StunAddressAttribute : public StunAttribute {
   }
 
   const rtc::SocketAddress& GetAddress() const { return address_; }
-  const rtc::IPAddress& ipaddr() const { return address_.ipaddr(); }
+  const webrtc::IPAddress& ipaddr() const { return address_.ipaddr(); }
   uint16_t port() const { return address_.port(); }
 
   void SetAddress(const rtc::SocketAddress& addr) {
     address_ = addr;
     EnsureAddressLength();
   }
-  void SetIP(const rtc::IPAddress& ip) {
+  void SetIP(const webrtc::IPAddress& ip) {
     address_.SetIP(ip);
     EnsureAddressLength();
   }
@@ -457,7 +457,7 @@ class StunXorAddressAttribute : public StunAddressAttribute {
   bool Write(rtc::ByteBufferWriter* buf) const override;
 
  private:
-  rtc::IPAddress GetXoredIP() const;
+  webrtc::IPAddress GetXoredIP() const;
   StunMessage* owner_;
 };
 

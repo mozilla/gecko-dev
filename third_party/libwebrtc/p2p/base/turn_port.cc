@@ -547,7 +547,7 @@ void TurnPort::OnSocketConnect(rtc::AsyncPacketSocket* socket) {
                           << ", rather than an address associated with network:"
                           << Network()->ToString()
                           << ". Still allowing it since it's localhost.";
-    } else if (IPIsAny(Network()->GetBestIP())) {
+    } else if (webrtc::IPIsAny(Network()->GetBestIP())) {
       RTC_LOG(LS_WARNING)
           << ToString() << ": Socket is bound to the address:"
           << socket_address.ToSensitiveNameAndAddressString()
@@ -1243,7 +1243,7 @@ void TurnPort::ResetNonce() {
   realm_.clear();
 }
 
-bool TurnPort::HasPermission(const rtc::IPAddress& ipaddr) const {
+bool TurnPort::HasPermission(const webrtc::IPAddress& ipaddr) const {
   return absl::c_any_of(entries_, [&ipaddr](const auto& e) {
     return e->address().ipaddr() == ipaddr;
   });

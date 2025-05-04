@@ -64,7 +64,7 @@ const int kHighestNetworkPreference = 127;
 
 struct AddressList {
   std::unique_ptr<Network> net;
-  std::vector<InterfaceAddress> ips;
+  std::vector<webrtc::InterfaceAddress> ips;
 };
 
 bool SortNetworks(const Network* a, const Network* b) {
@@ -76,13 +76,14 @@ bool SortNetworks(const Network* a, const Network* b) {
     return a->type() < b->type();
   }
 
-  IPAddress ip_a = a->GetBestIP();
-  IPAddress ip_b = b->GetBestIP();
+  webrtc::IPAddress ip_a = a->GetBestIP();
+  webrtc::IPAddress ip_b = b->GetBestIP();
 
   // After type, networks are sorted by IP address precedence values
   // from RFC 3484-bis
-  if (IPAddressPrecedence(ip_a) != IPAddressPrecedence(ip_b)) {
-    return IPAddressPrecedence(ip_a) > IPAddressPrecedence(ip_b);
+  if (webrtc::IPAddressPrecedence(ip_a) != webrtc::IPAddressPrecedence(ip_b)) {
+    return webrtc::IPAddressPrecedence(ip_a) >
+           webrtc::IPAddressPrecedence(ip_b);
   }
 
   // TODO(mallinath) - Add VPN and Link speed conditions while sorting.
@@ -143,7 +144,8 @@ uint16_t ComputeNetworkCostByType(int type,
 }
 
 #if !defined(__native_client__)
-bool IsIgnoredIPv6(bool allow_mac_based_ipv6, const InterfaceAddress& ip) {
+bool IsIgnoredIPv6(bool allow_mac_based_ipv6,
+                   const webrtc::InterfaceAddress& ip) {
   if (ip.family() != AF_INET6) {
     return false;
   }
@@ -151,19 +153,19 @@ bool IsIgnoredIPv6(bool allow_mac_based_ipv6, const InterfaceAddress& ip) {
   // Link-local addresses require scope id to be bound successfully.
   // However, our IPAddress structure doesn't carry that so the
   // information is lost and causes binding failure.
-  if (IPIsLinkLocal(ip)) {
+  if (webrtc::IPIsLinkLocal(ip)) {
     RTC_LOG(LS_VERBOSE) << "Ignore link local IP:" << ip.ToSensitiveString();
     return true;
   }
 
   // Any MAC based IPv6 should be avoided to prevent the MAC tracking.
-  if (IPIsMacBased(ip) && !allow_mac_based_ipv6) {
+  if (webrtc::IPIsMacBased(ip) && !allow_mac_based_ipv6) {
     RTC_LOG(LS_INFO) << "Ignore Mac based IP:" << ip.ToSensitiveString();
     return true;
   }
 
   // Ignore deprecated IPv6.
-  if (ip.ipv6_flags() & IPV6_ADDRESS_FLAG_DEPRECATED) {
+  if (ip.ipv6_flags() & webrtc::IPV6_ADDRESS_FLAG_DEPRECATED) {
     RTC_LOG(LS_INFO) << "Ignore deprecated IP:" << ip.ToSensitiveString();
     return true;
   }
@@ -222,7 +224,7 @@ bool CompareNetworks(const std::unique_ptr<Network>& a,
 }  // namespace webrtc_network_internal
 
 std::string MakeNetworkKey(absl::string_view name,
-                           const IPAddress& prefix,
+                           const webrtc::IPAddress& prefix,
                            int prefix_length) {
   webrtc::StringBuilder ost;
   ost << name << "%" << prefix.ToString() << "/" << prefix_length;
@@ -298,8 +300,9 @@ NetworkManager::EnumerationPermission NetworkManager::enumeration_permission()
   return ENUMERATION_ALLOWED;
 }
 
-bool NetworkManager::GetDefaultLocalAddress(int /* family */,
-                                            IPAddress* /* addr */) const {
+bool NetworkManager::GetDefaultLocalAddress(
+    int /* family */,
+    webrtc::IPAddress* /* addr */) const {
   return false;
 }
 
@@ -318,7 +321,7 @@ NetworkManagerBase::enumeration_permission() const {
 std::unique_ptr<Network> NetworkManagerBase::CreateNetwork(
     absl::string_view name,
     absl::string_view description,
-    const IPAddress& prefix,
+    const webrtc::IPAddress& prefix,
     int prefix_length,
     AdapterType type) const {
   return std::make_unique<Network>(name, description, prefix, prefix_length,
@@ -328,7 +331,7 @@ std::unique_ptr<Network> NetworkManagerBase::CreateNetwork(
 std::vector<const Network*> NetworkManagerBase::GetAnyAddressNetworks() {
   std::vector<const Network*> networks;
   if (!ipv4_any_address_network_) {
-    const rtc::IPAddress ipv4_any_address(INADDR_ANY);
+    const webrtc::IPAddress ipv4_any_address(INADDR_ANY);
     ipv4_any_address_network_ =
         CreateNetwork("any", "any", ipv4_any_address, 0, ADAPTER_TYPE_ANY);
     ipv4_any_address_network_->set_default_local_address_provider(this);
@@ -338,7 +341,7 @@ std::vector<const Network*> NetworkManagerBase::GetAnyAddressNetworks() {
   networks.push_back(ipv4_any_address_network_.get());
 
   if (!ipv6_any_address_network_) {
-    const rtc::IPAddress ipv6_any_address(in6addr_any);
+    const webrtc::IPAddress ipv6_any_address(in6addr_any);
     ipv6_any_address_network_ =
         CreateNetwork("any", "any", ipv6_any_address, 0, ADAPTER_TYPE_ANY);
     ipv6_any_address_network_->set_default_local_address_provider(this);
@@ -376,7 +379,7 @@ void NetworkManagerBase::MergeNetworkList(
     bool might_add_to_merged_list = false;
     std::string key = MakeNetworkKey(network->name(), network->prefix(),
                                      network->prefix_length());
-    const std::vector<InterfaceAddress>& addresses = network->GetIPs();
+    const std::vector<webrtc::InterfaceAddress>& addresses = network->GetIPs();
     if (consolidated_address_list.find(key) ==
         consolidated_address_list.end()) {
       AddressList addrlist;
@@ -477,8 +480,9 @@ void NetworkManagerBase::MergeNetworkList(
   }
 }
 
-void NetworkManagerBase::set_default_local_addresses(const IPAddress& ipv4,
-                                                     const IPAddress& ipv6) {
+void NetworkManagerBase::set_default_local_addresses(
+    const webrtc::IPAddress& ipv4,
+    const webrtc::IPAddress& ipv6) {
   if (ipv4.family() == AF_INET) {
     default_local_ipv4_address_ = ipv4;
   }
@@ -487,8 +491,9 @@ void NetworkManagerBase::set_default_local_addresses(const IPAddress& ipv4,
   }
 }
 
-bool NetworkManagerBase::GetDefaultLocalAddress(int family,
-                                                IPAddress* ipaddr) const {
+bool NetworkManagerBase::GetDefaultLocalAddress(
+    int family,
+    webrtc::IPAddress* ipaddr) const {
   if (family == AF_INET && !default_local_ipv4_address_.IsNil()) {
     *ipaddr = default_local_ipv4_address_;
     return true;
@@ -508,11 +513,11 @@ bool NetworkManagerBase::GetDefaultLocalAddress(int family,
 }
 
 Network* NetworkManagerBase::GetNetworkFromAddress(
-    const rtc::IPAddress& ip) const {
+    const webrtc::IPAddress& ip) const {
   for (Network* network : networks_) {
     const auto& ips = network->GetIPs();
     if (absl::c_any_of(ips, [&](const InterfaceAddress& existing_ip) {
-          return ip == static_cast<rtc::IPAddress>(existing_ip);
+          return ip == static_cast<webrtc::IPAddress>(existing_ip);
         })) {
       return network;
     }
@@ -599,9 +604,9 @@ void BasicNetworkManager::ConvertIfAddrs(
 
   for (struct ifaddrs* cursor = interfaces; cursor != nullptr;
        cursor = cursor->ifa_next) {
-    IPAddress prefix;
-    IPAddress mask;
-    InterfaceAddress ip;
+    webrtc::IPAddress prefix;
+    webrtc::IPAddress mask;
+    webrtc::InterfaceAddress ip;
     int scope_id = 0;
 
     // Some interfaces may not have address assigned.
@@ -634,8 +639,8 @@ void BasicNetworkManager::ConvertIfAddrs(
           reinterpret_cast<sockaddr_in6*>(cursor->ifa_addr)->sin6_scope_id;
     }
 
-    int prefix_length = CountIPMaskBits(mask);
-    prefix = TruncateIP(ip, prefix_length);
+    int prefix_length = webrtc::CountIPMaskBits(mask);
+    prefix = webrtc::TruncateIP(ip, prefix_length);
     std::string key =
         MakeNetworkKey(std::string(cursor->ifa_name), prefix, prefix_length);
 
@@ -1022,14 +1027,15 @@ void BasicNetworkManager::StopNetworkMonitor() {
   }
 }
 
-IPAddress BasicNetworkManager::QueryDefaultLocalAddress(int family) const {
+webrtc::IPAddress BasicNetworkManager::QueryDefaultLocalAddress(
+    int family) const {
   RTC_DCHECK(family == AF_INET || family == AF_INET6);
 
   std::unique_ptr<Socket> socket(
       socket_factory_->CreateSocket(family, SOCK_DGRAM));
   if (!socket) {
     RTC_LOG_ERR(LS_ERROR) << "Socket creation failed";
-    return IPAddress();
+    return webrtc::IPAddress();
   }
 
   if (socket->Connect(SocketAddress(
@@ -1041,7 +1047,7 @@ IPAddress BasicNetworkManager::QueryDefaultLocalAddress(int family) const {
       // the network is V4- or V6-only.
       RTC_LOG(LS_INFO) << "Connect failed with " << socket->GetError();
     }
-    return IPAddress();
+    return webrtc::IPAddress();
   }
   return socket->GetLocalAddress().ipaddr();
 }
@@ -1089,7 +1095,7 @@ void BasicNetworkManager::DumpNetworks() {
 
 NetworkBindingResult BasicNetworkManager::BindSocketToNetwork(
     int socket_fd,
-    const IPAddress& address) {
+    const webrtc::IPAddress& address) {
   RTC_DCHECK_RUN_ON(thread_);
   std::string if_name;
   if (bind_using_ifname_) {
@@ -1103,7 +1109,7 @@ NetworkBindingResult BasicNetworkManager::BindSocketToNetwork(
 
 Network::Network(absl::string_view name,
                  absl::string_view desc,
-                 const IPAddress& prefix,
+                 const webrtc::IPAddress& prefix,
                  int prefix_length,
                  AdapterType type)
     : name_(name),
@@ -1122,7 +1128,8 @@ Network::~Network() = default;
 
 // Sets the addresses of this network. Returns true if the address set changed.
 // Change detection is short circuited if the changed argument is true.
-bool Network::SetIPs(const std::vector<InterfaceAddress>& ips, bool changed) {
+bool Network::SetIPs(const std::vector<webrtc::InterfaceAddress>& ips,
+                     bool changed) {
   // Detect changes with a nested loop; n-squared but we expect on the order
   // of 2-3 addresses per network.
   changed = changed || ips.size() != ips_.size();
@@ -1140,51 +1147,51 @@ bool Network::SetIPs(const std::vector<InterfaceAddress>& ips, bool changed) {
 }
 
 // Select the best IP address to use from this Network.
-IPAddress Network::GetBestIP() const {
+webrtc::IPAddress Network::GetBestIP() const {
   if (ips_.size() == 0) {
-    return IPAddress();
+    return webrtc::IPAddress();
   }
 
   if (prefix_.family() == AF_INET) {
-    return static_cast<IPAddress>(ips_.at(0));
+    return static_cast<webrtc::IPAddress>(ips_.at(0));
   }
 
-  InterfaceAddress selected_ip, link_local_ip, ula_ip;
+  webrtc::InterfaceAddress selected_ip, link_local_ip, ula_ip;
 
   for (const InterfaceAddress& ip : ips_) {
     // Ignore any address which has been deprecated already.
-    if (ip.ipv6_flags() & IPV6_ADDRESS_FLAG_DEPRECATED)
+    if (ip.ipv6_flags() & webrtc::IPV6_ADDRESS_FLAG_DEPRECATED)
       continue;
 
-    if (IPIsLinkLocal(ip)) {
+    if (webrtc::IPIsLinkLocal(ip)) {
       link_local_ip = ip;
       continue;
     }
 
     // ULA address should only be returned when we have no other
     // global IP.
-    if (IPIsULA(static_cast<const IPAddress&>(ip))) {
+    if (webrtc::IPIsULA(static_cast<const webrtc::IPAddress&>(ip))) {
       ula_ip = ip;
       continue;
     }
     selected_ip = ip;
 
     // Search could stop once a temporary non-deprecated one is found.
-    if (ip.ipv6_flags() & IPV6_ADDRESS_FLAG_TEMPORARY)
+    if (ip.ipv6_flags() & webrtc::IPV6_ADDRESS_FLAG_TEMPORARY)
       break;
   }
 
-  if (IPIsUnspec(selected_ip)) {
-    if (!IPIsUnspec(link_local_ip)) {
+  if (webrtc::IPIsUnspec(selected_ip)) {
+    if (!webrtc::IPIsUnspec(link_local_ip)) {
       // No proper global IPv6 address found, use link local address instead.
       selected_ip = link_local_ip;
-    } else if (!IPIsUnspec(ula_ip)) {
+    } else if (!webrtc::IPIsUnspec(ula_ip)) {
       // No proper global and link local address found, use ULA instead.
       selected_ip = ula_ip;
     }
   }
 
-  return static_cast<IPAddress>(selected_ip);
+  return static_cast<webrtc::IPAddress>(selected_ip);
 }
 
 webrtc::MdnsResponderInterface* Network::GetMdnsResponder() const {
@@ -1272,12 +1279,12 @@ void BasicNetworkManager::set_vpn_list(const std::vector<NetworkMask>& vpn) {
   }
 }
 
-bool BasicNetworkManager::IsConfiguredVpn(IPAddress prefix,
+bool BasicNetworkManager::IsConfiguredVpn(webrtc::IPAddress prefix,
                                           int prefix_length) const {
   RTC_DCHECK_RUN_ON(thread_);
   for (const auto& vpn : vpn_) {
     if (prefix_length >= vpn.prefix_length()) {
-      auto copy = TruncateIP(prefix, vpn.prefix_length());
+      auto copy = webrtc::TruncateIP(prefix, vpn.prefix_length());
       if (copy == vpn.address()) {
         return true;
       }

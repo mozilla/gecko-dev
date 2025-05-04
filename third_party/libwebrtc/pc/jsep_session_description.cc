@@ -74,7 +74,7 @@ void UpdateConnectionAddress(
     hostname = candidate_addr.hostname();
   }
   rtc::SocketAddress connection_addr(ip, port);
-  if (rtc::IPIsUnspec(connection_addr.ipaddr()) && !hostname.empty()) {
+  if (IPIsUnspec(connection_addr.ipaddr()) && !hostname.empty()) {
     // When a hostname candidate becomes the (default) connection address,
     // we use the dummy address 0.0.0.0 and port 9 in the c= and the m= lines.
     //

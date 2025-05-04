@@ -67,7 +67,7 @@ class StunProber::Requester : public sigslot::has_slots<> {
     // Server reflexive address from STUN response for this given request.
     rtc::SocketAddress srflx_addr;
 
-    rtc::IPAddress server_addr;
+    webrtc::IPAddress server_addr;
 
     int64_t rtt() { return received_time_ms - sent_time_ms; }
     void ProcessResponse(rtc::ArrayView<const uint8_t> payload);
@@ -100,7 +100,7 @@ class StunProber::Requester : public sigslot::has_slots<> {
   }
 
  private:
-  Request* GetRequestByAddress(const rtc::IPAddress& ip);
+  Request* GetRequestByAddress(const webrtc::IPAddress& ip);
 
   StunProber* prober_;
 
@@ -225,7 +225,7 @@ void StunProber::Requester::OnStunResponseReceived(
 }
 
 StunProber::Requester::Request* StunProber::Requester::GetRequestByAddress(
-    const rtc::IPAddress& ipaddr) {
+    const webrtc::IPAddress& ipaddr) {
   RTC_DCHECK(thread_checker_.IsCurrent());
   for (auto* request : requests_) {
     if (request->server_addr == ipaddr) {
@@ -488,12 +488,12 @@ bool StunProber::GetStats(StunProber::Stats* prob_stats) const {
   NatType nat_type = NATTYPE_INVALID;
 
   // Track of how many srflx IP that we have seen.
-  std::set<rtc::IPAddress> srflx_ips;
+  std::set<webrtc::IPAddress> srflx_ips;
 
   // If we're not receiving any response on a given IP, all requests sent to
   // that IP should be ignored as this could just be an DNS error.
-  std::map<rtc::IPAddress, int> num_response_per_server;
-  std::map<rtc::IPAddress, int> num_request_per_server;
+  std::map<webrtc::IPAddress, int> num_response_per_server;
+  std::map<webrtc::IPAddress, int> num_request_per_server;
 
   for (auto* requester : requesters_) {
     std::map<rtc::SocketAddress, int> num_response_per_srflx_addr;

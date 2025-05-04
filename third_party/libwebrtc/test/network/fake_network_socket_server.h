@@ -44,7 +44,7 @@ class FakeNetworkSocketServer : public rtc::SocketServer {
 
  protected:
   friend class FakeNetworkSocket;
-  EmulatedEndpointImpl* GetEndpointNode(const rtc::IPAddress& ip);
+  EmulatedEndpointImpl* GetEndpointNode(const IPAddress& ip);
   void Unregister(FakeNetworkSocket* socket);
 
  private:

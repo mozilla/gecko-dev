@@ -554,14 +554,14 @@ bool Port::GetStunMessage(const char* data,
 
 bool Port::IsCompatibleAddress(const rtc::SocketAddress& addr) {
   // Get a representative IP for the Network this port is configured to use.
-  rtc::IPAddress ip = network_->GetBestIP();
+  webrtc::IPAddress ip = network_->GetBestIP();
   // We use single-stack sockets, so families must match.
   if (addr.family() != ip.family()) {
     return false;
   }
   // Link-local IPv6 ports can only connect to other link-local IPv6 ports.
   if (ip.family() == AF_INET6 &&
-      (IPIsLinkLocal(ip) != IPIsLinkLocal(addr.ipaddr()))) {
+      (webrtc::IPIsLinkLocal(ip) != webrtc::IPIsLinkLocal(addr.ipaddr()))) {
     return false;
   }
   return true;

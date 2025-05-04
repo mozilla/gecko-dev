@@ -15,11 +15,10 @@
 #include <utility>
 
 #include "absl/strings/string_view.h"
+#include "rtc_base/ip_address.h"
 #include "rtc_base/network_constants.h"
 
 namespace rtc {
-
-class IPAddress;
 
 enum class NetworkBindingResult {
   SUCCESS = 0,   // No error
@@ -49,7 +48,7 @@ class NetworkBinderInterface {
   // special bind call to put packets on a non-default network interface.
   virtual NetworkBindingResult BindSocketToNetwork(
       int socket_fd,
-      const IPAddress& address) = 0;
+      const webrtc::IPAddress& address) = 0;
   virtual ~NetworkBinderInterface() {}
 };
 
@@ -114,7 +113,7 @@ class NetworkMonitorInterface {
   // name. Only implemented on Android.
   virtual NetworkBindingResult BindSocketToNetwork(
       int /* socket_fd */,
-      const IPAddress& /* address */,
+      const webrtc::IPAddress& /* address */,
       absl::string_view /* interface_name */) {
     return NetworkBindingResult::NOT_IMPLEMENTED;
   }

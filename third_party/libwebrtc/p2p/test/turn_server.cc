@@ -694,7 +694,7 @@ void TurnServerAllocation::HandleCreatePermissionRequest(
   }
 
   if (server_->reject_private_addresses_ &&
-      rtc::IPIsPrivate(peer_attr->GetAddress().ipaddr())) {
+      webrtc::IPIsPrivate(peer_attr->GetAddress().ipaddr())) {
     SendErrorResponse(msg, STUN_ERROR_FORBIDDEN, STUN_ERROR_REASON_FORBIDDEN);
     return;
   }
@@ -821,11 +821,11 @@ TimeDelta TurnServerAllocation::ComputeLifetime(const TurnMessage& msg) {
   return kDefaultAllocationTimeout;
 }
 
-bool TurnServerAllocation::HasPermission(const rtc::IPAddress& addr) {
+bool TurnServerAllocation::HasPermission(const webrtc::IPAddress& addr) {
   return FindPermission(addr) != perms_.end();
 }
 
-void TurnServerAllocation::AddPermission(const rtc::IPAddress& addr) {
+void TurnServerAllocation::AddPermission(const webrtc::IPAddress& addr) {
   auto perm = FindPermission(addr);
   if (perm == perms_.end()) {
     perm = perms_.insert(perms_.end(), {.peer = addr});
@@ -838,7 +838,7 @@ void TurnServerAllocation::AddPermission(const rtc::IPAddress& addr) {
 }
 
 TurnServerAllocation::PermissionList::iterator
-TurnServerAllocation::FindPermission(const rtc::IPAddress& addr) {
+TurnServerAllocation::FindPermission(const webrtc::IPAddress& addr) {
   return absl::c_find_if(perms_,
                          [&](const Permission& p) { return p.peer == addr; });
 }

@@ -150,14 +150,14 @@ class VirtualSocketServerTest : public ::testing::Test {
   VirtualSocketServerTest()
       : ss_(&fake_clock_),
         thread_(&ss_),
-        kIPv4AnyAddress(IPAddress(INADDR_ANY), 0),
-        kIPv6AnyAddress(IPAddress(in6addr_any), 0) {}
+        kIPv4AnyAddress(webrtc::IPAddress(INADDR_ANY), 0),
+        kIPv6AnyAddress(webrtc::IPAddress(in6addr_any), 0) {}
 
   void CheckPortIncrementalization(const SocketAddress& post,
                                    const SocketAddress& pre) {
     EXPECT_EQ(post.port(), pre.port() + 1);
-    IPAddress post_ip = post.ipaddr();
-    IPAddress pre_ip = pre.ipaddr();
+    webrtc::IPAddress post_ip = post.ipaddr();
+    webrtc::IPAddress pre_ip = pre.ipaddr();
     EXPECT_EQ(pre_ip.family(), post_ip.family());
     if (post_ip.family() == AF_INET) {
       in_addr pre_ipv4 = pre_ip.ipv4_address();
@@ -175,7 +175,7 @@ class VirtualSocketServerTest : public ::testing::Test {
   // Test a client can bind to the any address, and all sent packets will have
   // the default source address. Also, it can receive packets sent to the
   // default address.
-  void TestDefaultSourceAddress(const IPAddress& default_address) {
+  void TestDefaultSourceAddress(const webrtc::IPAddress& default_address) {
     ss_.SetDefaultSourceAddress(default_address);
 
     // Create client1 bound to the any address.
@@ -845,24 +845,24 @@ class VirtualSocketServerTest : public ::testing::Test {
 };
 
 TEST_F(VirtualSocketServerTest, basic_v4) {
-  SocketAddress ipv4_test_addr(IPAddress(INADDR_ANY), 5000);
+  SocketAddress ipv4_test_addr(webrtc::IPAddress(INADDR_ANY), 5000);
   BasicTest(ipv4_test_addr);
 }
 
 TEST_F(VirtualSocketServerTest, basic_v6) {
-  SocketAddress ipv6_test_addr(IPAddress(in6addr_any), 5000);
+  SocketAddress ipv6_test_addr(webrtc::IPAddress(in6addr_any), 5000);
   BasicTest(ipv6_test_addr);
 }
 
 TEST_F(VirtualSocketServerTest, TestDefaultRoute_v4) {
-  IPAddress ipv4_default_addr(0x01020304);
+  webrtc::IPAddress ipv4_default_addr(0x01020304);
   TestDefaultSourceAddress(ipv4_default_addr);
 }
 
 TEST_F(VirtualSocketServerTest, TestDefaultRoute_v6) {
-  IPAddress ipv6_default_addr;
-  EXPECT_TRUE(
-      IPFromString("2401:fa00:4:1000:be30:5bff:fee5:c3", &ipv6_default_addr));
+  webrtc::IPAddress ipv6_default_addr;
+  EXPECT_TRUE(webrtc::IPFromString("2401:fa00:4:1000:be30:5bff:fee5:c3",
+                                   &ipv6_default_addr));
   TestDefaultSourceAddress(ipv6_default_addr);
 }
 

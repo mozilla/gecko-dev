@@ -62,7 +62,7 @@ bool CompareNetworks(const std::unique_ptr<Network>& a,
 // Network objects are keyed on interface name, network prefix and the
 // length of that prefix.
 std::string MakeNetworkKey(absl::string_view name,
-                           const IPAddress& prefix,
+                           const webrtc::IPAddress& prefix,
                            int prefix_length);
 
 // Utility function that attempts to determine an adapter type by an interface
@@ -77,7 +77,8 @@ class DefaultLocalAddressProvider {
   // The default local address is the local address used in multi-homed endpoint
   // when the any address (0.0.0.0 or ::) is used as the local address. It's
   // important to check the return value as a IP family may not be enabled.
-  virtual bool GetDefaultLocalAddress(int family, IPAddress* ipaddr) const = 0;
+  virtual bool GetDefaultLocalAddress(int family,
+                                      webrtc::IPAddress* ipaddr) const = 0;
 };
 
 class MdnsResponderProvider {
@@ -94,10 +95,10 @@ class MdnsResponderProvider {
 // Network/mask in CIDR representation.
 class NetworkMask {
  public:
-  NetworkMask(const IPAddress& addr, int prefix_length)
+  NetworkMask(const webrtc::IPAddress& addr, int prefix_length)
       : address_(addr), prefix_length_(prefix_length) {}
 
-  const IPAddress& address() const { return address_; }
+  const webrtc::IPAddress& address() const { return address_; }
   int prefix_length() const { return prefix_length_; }
 
   bool operator==(const NetworkMask& o) const {
@@ -105,7 +106,7 @@ class NetworkMask {
   }
 
  private:
-  IPAddress address_;
+  webrtc::IPAddress address_;
   // Length of valid bits in address_ (for ipv4 valid range is 0-32)
   int prefix_length_;
 };
@@ -171,7 +172,8 @@ class RTC_EXPORT NetworkManager : public DefaultLocalAddressProvider,
 
   // Dumps the current list of networks in the network manager.
   virtual void DumpNetworks() {}
-  bool GetDefaultLocalAddress(int family, IPAddress* ipaddr) const override;
+  bool GetDefaultLocalAddress(int family,
+                              webrtc::IPAddress* ipaddr) const override;
 
   struct Stats {
     int ipv4_network_count;
@@ -193,7 +195,7 @@ class RTC_EXPORT Network {
  public:
   Network(absl::string_view name,
           absl::string_view description,
-          const IPAddress& prefix,
+          const webrtc::IPAddress& prefix,
           int prefix_length)
       : Network(name,
                 description,
@@ -203,7 +205,7 @@ class RTC_EXPORT Network {
 
   Network(absl::string_view name,
           absl::string_view description,
-          const IPAddress& prefix,
+          const webrtc::IPAddress& prefix,
           int prefix_length,
           AdapterType type);
 
@@ -238,7 +240,7 @@ class RTC_EXPORT Network {
   const std::string& description() const { return description_; }
 
   // Returns the prefix for this network.
-  const IPAddress& prefix() const { return prefix_; }
+  const webrtc::IPAddress& prefix() const { return prefix_; }
   // Returns the length, in bits, of this network's prefix.
   int prefix_length() const { return prefix_length_; }
 
@@ -268,17 +270,20 @@ class RTC_EXPORT Network {
 
   // Note that when not specifying any flag, it's treated as case global
   // IPv6 address
-  IPAddress GetBestIP() const;
+  webrtc::IPAddress GetBestIP() const;
 
   // Adds an active IP address to this network. Does not check for duplicates.
-  void AddIP(const InterfaceAddress& ip) { ips_.push_back(ip); }
-  void AddIP(const IPAddress& ip) { ips_.push_back(rtc::InterfaceAddress(ip)); }
+  void AddIP(const webrtc::InterfaceAddress& ip) { ips_.push_back(ip); }
+  void AddIP(const webrtc::IPAddress& ip) {
+    ips_.push_back(webrtc::InterfaceAddress(ip));
+  }
 
   // Sets the network's IP address list. Returns true if new IP addresses were
   // detected. Passing true to already_changed skips this check.
-  bool SetIPs(const std::vector<InterfaceAddress>& ips, bool already_changed);
+  bool SetIPs(const std::vector<webrtc::InterfaceAddress>& ips,
+              bool already_changed);
   // Get the list of IP Addresses associated with this network.
-  const std::vector<InterfaceAddress>& GetIPs() const { return ips_; }
+  const std::vector<webrtc::InterfaceAddress>& GetIPs() const { return ips_; }
   // Clear the network's list of addresses.
   void ClearIPs() { ips_.clear(); }
   // Returns the mDNS responder that can be used to obfuscate the local IP
@@ -389,10 +394,10 @@ class RTC_EXPORT Network {
   const MdnsResponderProvider* mdns_responder_provider_ = nullptr;
   std::string name_;
   std::string description_;
-  IPAddress prefix_;
+  webrtc::IPAddress prefix_;
   int prefix_length_;
   std::string key_;
-  std::vector<InterfaceAddress> ips_;
+  std::vector<webrtc::InterfaceAddress> ips_;
   int scope_id_;
   bool ignored_;
   AdapterType type_;
@@ -415,7 +420,8 @@ class RTC_EXPORT NetworkManagerBase : public NetworkManager {
 
   EnumerationPermission enumeration_permission() const override;
 
-  bool GetDefaultLocalAddress(int family, IPAddress* ipaddr) const override;
+  bool GetDefaultLocalAddress(int family,
+                              webrtc::IPAddress* ipaddr) const override;
 
   // Check if MAC address in |bytes| is one of the pre-defined
   // MAC addresses for know VPNs.
@@ -439,10 +445,10 @@ class RTC_EXPORT NetworkManagerBase : public NetworkManager {
     enumeration_permission_ = state;
   }
 
-  void set_default_local_addresses(const IPAddress& ipv4,
-                                   const IPAddress& ipv6);
+  void set_default_local_addresses(const webrtc::IPAddress& ipv4,
+                                   const webrtc::IPAddress& ipv6);
 
-  Network* GetNetworkFromAddress(const rtc::IPAddress& ip) const;
+  Network* GetNetworkFromAddress(const webrtc::IPAddress& ip) const;
 
   // To enable subclasses to get the networks list, without interfering with
   // refactoring of the interface GetNetworks method.
@@ -450,7 +456,7 @@ class RTC_EXPORT NetworkManagerBase : public NetworkManager {
 
   std::unique_ptr<Network> CreateNetwork(absl::string_view name,
                                          absl::string_view description,
-                                         const IPAddress& prefix,
+                                         const webrtc::IPAddress& prefix,
                                          int prefix_length,
                                          AdapterType type) const;
 
@@ -465,8 +471,8 @@ class RTC_EXPORT NetworkManagerBase : public NetworkManager {
   std::unique_ptr<rtc::Network> ipv4_any_address_network_;
   std::unique_ptr<rtc::Network> ipv6_any_address_network_;
 
-  IPAddress default_local_ipv4_address_;
-  IPAddress default_local_ipv6_address_;
+  webrtc::IPAddress default_local_ipv4_address_;
+  webrtc::IPAddress default_local_ipv6_address_;
   // We use 16 bits to save the bandwidth consumption when sending the network
   // id over the Internet. It is OK that the 16-bit integer overflows to get a
   // network id 0 because we only compare the network ids in the old and the new
@@ -511,7 +517,7 @@ class RTC_EXPORT BasicNetworkManager : public NetworkManagerBase,
   void set_vpn_list(const std::vector<NetworkMask>& vpn) override;
 
   // Check if |prefix| is configured as VPN.
-  bool IsConfiguredVpn(IPAddress prefix, int prefix_length) const;
+  bool IsConfiguredVpn(webrtc::IPAddress prefix, int prefix_length) const;
 
   // Bind a socket to interface that ip address belong to.
   // Implementation look up interface name and calls
@@ -519,8 +525,9 @@ class RTC_EXPORT BasicNetworkManager : public NetworkManagerBase,
   // The interface name is needed as e.g ipv4 over ipv6 addresses
   // are not exposed using Android functions, but it is possible
   // bind an ipv4 address to the interface.
-  NetworkBindingResult BindSocketToNetwork(int socket_fd,
-                                           const IPAddress& address) override;
+  NetworkBindingResult BindSocketToNetwork(
+      int socket_fd,
+      const webrtc::IPAddress& address) override;
 
  protected:
 #if defined(WEBRTC_POSIX)
@@ -546,7 +553,8 @@ class RTC_EXPORT BasicNetworkManager : public NetworkManagerBase,
   // This function connects a UDP socket to a public address and returns the
   // local address associated it. Since it binds to the "any" address
   // internally, it returns the default local address on a multi-homed endpoint.
-  IPAddress QueryDefaultLocalAddress(int family) const RTC_RUN_ON(thread_);
+  webrtc::IPAddress QueryDefaultLocalAddress(int family) const
+      RTC_RUN_ON(thread_);
 
  private:
   friend class NetworkTest;

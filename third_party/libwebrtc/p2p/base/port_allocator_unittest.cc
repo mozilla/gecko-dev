@@ -342,8 +342,8 @@ TEST_F(PortAllocatorTest,
 TEST_F(PortAllocatorTest, SanitizeIpv4NonLiteralMdnsObfuscationEnabled) {
   // Create the candidate with an empty hostname.
   allocator_->SetMdnsObfuscationEnabledForTesting(true);
-  rtc::IPAddress ip;
-  EXPECT_TRUE(IPFromString(kIpv4Address, &ip));
+  webrtc::IPAddress ip;
+  EXPECT_TRUE(webrtc::IPFromString(kIpv4Address, &ip));
   cricket::Candidate input(1, "udp", rtc::SocketAddress(ip, 443), 1, "username",
                            "password", IceCandidateType::kHost, 1, "foundation",
                            1, 1);

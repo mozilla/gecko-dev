@@ -73,8 +73,8 @@ class FirewallSocketServer : public SocketServer {
   // No matter how many addresses are added (including INADDR_ANY), the server
   // will still allow creating outgoing TCP connections, since they don't
   // require explicitly binding a socket.
-  void SetUnbindableIps(const std::vector<rtc::IPAddress>& unbindable_ips);
-  bool IsBindableIp(const rtc::IPAddress& ip);
+  void SetUnbindableIps(const std::vector<webrtc::IPAddress>& unbindable_ips);
+  bool IsBindableIp(const webrtc::IPAddress& ip);
 
   Socket* CreateSocket(int family, int type) override;
 
@@ -96,7 +96,7 @@ class FirewallSocketServer : public SocketServer {
     SocketAddress dst;
   };
   std::vector<Rule> rules_;
-  std::vector<rtc::IPAddress> unbindable_ips_;
+  std::vector<webrtc::IPAddress> unbindable_ips_;
   bool should_delete_server_;
   bool udp_sockets_enabled_;
   bool tcp_sockets_enabled_;

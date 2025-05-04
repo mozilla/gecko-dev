@@ -36,15 +36,15 @@ const std::string kTestV6AddrFullAnonymizedString =
 TEST(SocketAddressTest, TestDefaultCtor) {
   SocketAddress addr;
   EXPECT_FALSE(addr.IsUnresolvedIP());
-  EXPECT_EQ(IPAddress(), addr.ipaddr());
+  EXPECT_EQ(webrtc::IPAddress(), addr.ipaddr());
   EXPECT_EQ(0, addr.port());
   EXPECT_EQ("", addr.hostname());
 }
 
 TEST(SocketAddressTest, TestIPPortCtor) {
-  SocketAddress addr(IPAddress(0x01020304), 5678);
+  SocketAddress addr(webrtc::IPAddress(0x01020304), 5678);
   EXPECT_FALSE(addr.IsUnresolvedIP());
-  EXPECT_EQ(IPAddress(0x01020304U), addr.ipaddr());
+  EXPECT_EQ(webrtc::IPAddress(0x01020304U), addr.ipaddr());
   EXPECT_EQ(5678, addr.port());
   EXPECT_EQ("", addr.hostname());
   EXPECT_EQ("1.2.3.4:5678", addr.ToString());
@@ -53,7 +53,7 @@ TEST(SocketAddressTest, TestIPPortCtor) {
 TEST(SocketAddressTest, TestIPv4StringPortCtor) {
   SocketAddress addr("1.2.3.4", 5678);
   EXPECT_FALSE(addr.IsUnresolvedIP());
-  EXPECT_EQ(IPAddress(0x01020304U), addr.ipaddr());
+  EXPECT_EQ(webrtc::IPAddress(0x01020304U), addr.ipaddr());
   EXPECT_EQ(5678, addr.port());
   EXPECT_EQ("1.2.3.4", addr.hostname());
   EXPECT_EQ("1.2.3.4:5678", addr.ToString());
@@ -61,7 +61,7 @@ TEST(SocketAddressTest, TestIPv4StringPortCtor) {
 
 TEST(SocketAddressTest, TestIPv6StringPortCtor) {
   SocketAddress addr2(kTestV6AddrString, 1234);
-  IPAddress tocheck(kTestV6Addr);
+  webrtc::IPAddress tocheck(kTestV6Addr);
 
   EXPECT_FALSE(addr2.IsUnresolvedIP());
   EXPECT_EQ(tocheck, addr2.ipaddr());
@@ -74,7 +74,7 @@ TEST(SocketAddressTest, TestSpecialStringPortCtor) {
   // inet_addr doesn't handle this address properly.
   SocketAddress addr("255.255.255.255", 5678);
   EXPECT_FALSE(addr.IsUnresolvedIP());
-  EXPECT_EQ(IPAddress(0xFFFFFFFFU), addr.ipaddr());
+  EXPECT_EQ(webrtc::IPAddress(0xFFFFFFFFU), addr.ipaddr());
   EXPECT_EQ(5678, addr.port());
   EXPECT_EQ("255.255.255.255", addr.hostname());
   EXPECT_EQ("255.255.255.255:5678", addr.ToString());
@@ -83,7 +83,7 @@ TEST(SocketAddressTest, TestSpecialStringPortCtor) {
 TEST(SocketAddressTest, TestHostnamePortCtor) {
   SocketAddress addr("a.b.com", 5678);
   EXPECT_TRUE(addr.IsUnresolvedIP());
-  EXPECT_EQ(IPAddress(), addr.ipaddr());
+  EXPECT_EQ(webrtc::IPAddress(), addr.ipaddr());
   EXPECT_EQ(5678, addr.port());
   EXPECT_EQ("a.b.com", addr.hostname());
   EXPECT_EQ("a.b.com:5678", addr.ToString());
@@ -93,7 +93,7 @@ TEST(SocketAddressTest, TestCopyCtor) {
   SocketAddress from("1.2.3.4", 5678);
   SocketAddress addr(from);
   EXPECT_FALSE(addr.IsUnresolvedIP());
-  EXPECT_EQ(IPAddress(0x01020304U), addr.ipaddr());
+  EXPECT_EQ(webrtc::IPAddress(0x01020304U), addr.ipaddr());
   EXPECT_EQ(5678, addr.port());
   EXPECT_EQ("1.2.3.4", addr.hostname());
   EXPECT_EQ("1.2.3.4:5678", addr.ToString());
@@ -101,49 +101,49 @@ TEST(SocketAddressTest, TestCopyCtor) {
 
 TEST(SocketAddressTest, TestAssign) {
   SocketAddress from("1.2.3.4", 5678);
-  SocketAddress addr(IPAddress(0x88888888), 9999);
+  SocketAddress addr(webrtc::IPAddress(0x88888888), 9999);
   addr = from;
   EXPECT_FALSE(addr.IsUnresolvedIP());
-  EXPECT_EQ(IPAddress(0x01020304U), addr.ipaddr());
+  EXPECT_EQ(webrtc::IPAddress(0x01020304U), addr.ipaddr());
   EXPECT_EQ(5678, addr.port());
   EXPECT_EQ("1.2.3.4", addr.hostname());
   EXPECT_EQ("1.2.3.4:5678", addr.ToString());
 }
 
 TEST(SocketAddressTest, TestSetIPPort) {
-  SocketAddress addr(IPAddress(0x88888888), 9999);
-  addr.SetIP(IPAddress(0x01020304));
+  SocketAddress addr(webrtc::IPAddress(0x88888888), 9999);
+  addr.SetIP(webrtc::IPAddress(0x01020304));
   addr.SetPort(5678);
   EXPECT_FALSE(addr.IsUnresolvedIP());
-  EXPECT_EQ(IPAddress(0x01020304U), addr.ipaddr());
+  EXPECT_EQ(webrtc::IPAddress(0x01020304U), addr.ipaddr());
   EXPECT_EQ(5678, addr.port());
   EXPECT_EQ("", addr.hostname());
   EXPECT_EQ("1.2.3.4:5678", addr.ToString());
 }
 
 TEST(SocketAddressTest, TestSetIPFromString) {
-  SocketAddress addr(IPAddress(0x88888888), 9999);
+  SocketAddress addr(webrtc::IPAddress(0x88888888), 9999);
   addr.SetIP("1.2.3.4");
   addr.SetPort(5678);
   EXPECT_FALSE(addr.IsUnresolvedIP());
-  EXPECT_EQ(IPAddress(0x01020304U), addr.ipaddr());
+  EXPECT_EQ(webrtc::IPAddress(0x01020304U), addr.ipaddr());
   EXPECT_EQ(5678, addr.port());
   EXPECT_EQ("1.2.3.4", addr.hostname());
   EXPECT_EQ("1.2.3.4:5678", addr.ToString());
 }
 
 TEST(SocketAddressTest, TestSetIPFromHostname) {
-  SocketAddress addr(IPAddress(0x88888888), 9999);
+  SocketAddress addr(webrtc::IPAddress(0x88888888), 9999);
   addr.SetIP("a.b.com");
   addr.SetPort(5678);
   EXPECT_TRUE(addr.IsUnresolvedIP());
-  EXPECT_EQ(IPAddress(), addr.ipaddr());
+  EXPECT_EQ(webrtc::IPAddress(), addr.ipaddr());
   EXPECT_EQ(5678, addr.port());
   EXPECT_EQ("a.b.com", addr.hostname());
   EXPECT_EQ("a.b.com:5678", addr.ToString());
-  addr.SetResolvedIP(IPAddress(0x01020304));
+  addr.SetResolvedIP(webrtc::IPAddress(0x01020304));
   EXPECT_FALSE(addr.IsUnresolvedIP());
-  EXPECT_EQ(IPAddress(0x01020304U), addr.ipaddr());
+  EXPECT_EQ(webrtc::IPAddress(0x01020304U), addr.ipaddr());
   EXPECT_EQ("a.b.com", addr.hostname());
   EXPECT_EQ("a.b.com:5678", addr.ToString());
 }
@@ -152,7 +152,7 @@ TEST(SocketAddressTest, TestFromIPv4String) {
   SocketAddress addr;
   EXPECT_TRUE(addr.FromString("1.2.3.4:5678"));
   EXPECT_FALSE(addr.IsUnresolvedIP());
-  EXPECT_EQ(IPAddress(0x01020304U), addr.ipaddr());
+  EXPECT_EQ(webrtc::IPAddress(0x01020304U), addr.ipaddr());
   EXPECT_EQ(5678, addr.port());
   EXPECT_EQ("1.2.3.4", addr.hostname());
   EXPECT_EQ("1.2.3.4:5678", addr.ToString());
@@ -171,7 +171,7 @@ TEST(SocketAddressTest, TestFromHostname) {
   SocketAddress addr;
   EXPECT_TRUE(addr.FromString("a.b.com:5678"));
   EXPECT_TRUE(addr.IsUnresolvedIP());
-  EXPECT_EQ(IPAddress(), addr.ipaddr());
+  EXPECT_EQ(webrtc::IPAddress(), addr.ipaddr());
   EXPECT_EQ(5678, addr.port());
   EXPECT_EQ("a.b.com", addr.hostname());
   EXPECT_EQ("a.b.com:5678", addr.ToString());
@@ -183,7 +183,7 @@ TEST(SocketAddressTest, TestToFromSockAddr) {
   from.ToSockAddr(&addr_in);
   EXPECT_TRUE(addr.FromSockAddr(addr_in));
   EXPECT_FALSE(addr.IsUnresolvedIP());
-  EXPECT_EQ(IPAddress(0x01020304U), addr.ipaddr());
+  EXPECT_EQ(webrtc::IPAddress(0x01020304U), addr.ipaddr());
   EXPECT_EQ(5678, addr.port());
   EXPECT_EQ("", addr.hostname());
   EXPECT_EQ("1.2.3.4:5678", addr.ToString());
@@ -195,7 +195,7 @@ TEST(SocketAddressTest, TestToFromSockAddrStorage) {
   from.ToSockAddrStorage(&addr_storage);
   EXPECT_TRUE(SocketAddressFromSockAddrStorage(addr_storage, &addr));
   EXPECT_FALSE(addr.IsUnresolvedIP());
-  EXPECT_EQ(IPAddress(0x01020304U), addr.ipaddr());
+  EXPECT_EQ(webrtc::IPAddress(0x01020304U), addr.ipaddr());
   EXPECT_EQ(5678, addr.port());
   EXPECT_EQ("", addr.hostname());
   EXPECT_EQ("1.2.3.4:5678", addr.ToString());
@@ -204,7 +204,7 @@ TEST(SocketAddressTest, TestToFromSockAddrStorage) {
   from.ToDualStackSockAddrStorage(&addr_storage);
   EXPECT_TRUE(SocketAddressFromSockAddrStorage(addr_storage, &addr));
   EXPECT_FALSE(addr.IsUnresolvedIP());
-  EXPECT_EQ(IPAddress(kMappedV4Addr), addr.ipaddr());
+  EXPECT_EQ(webrtc::IPAddress(kMappedV4Addr), addr.ipaddr());
   EXPECT_EQ(5678, addr.port());
   EXPECT_EQ("", addr.hostname());
   EXPECT_EQ("[::ffff:1.2.3.4]:5678", addr.ToString());
@@ -216,7 +216,7 @@ TEST(SocketAddressTest, TestToFromSockAddrStorage) {
   from.ToSockAddrStorage(&addr_storage);
   EXPECT_TRUE(SocketAddressFromSockAddrStorage(addr_storage, &addr));
   EXPECT_FALSE(addr.IsUnresolvedIP());
-  EXPECT_EQ(IPAddress(kTestV6Addr), addr.ipaddr());
+  EXPECT_EQ(webrtc::IPAddress(kTestV6Addr), addr.ipaddr());
   EXPECT_EQ(5678, addr.port());
   EXPECT_EQ("", addr.hostname());
   EXPECT_EQ(kTestV6AddrFullString, addr.ToString());
@@ -226,7 +226,7 @@ TEST(SocketAddressTest, TestToFromSockAddrStorage) {
   from.ToDualStackSockAddrStorage(&addr_storage);
   EXPECT_TRUE(SocketAddressFromSockAddrStorage(addr_storage, &addr));
   EXPECT_FALSE(addr.IsUnresolvedIP());
-  EXPECT_EQ(IPAddress(kTestV6Addr), addr.ipaddr());
+  EXPECT_EQ(webrtc::IPAddress(kTestV6Addr), addr.ipaddr());
   EXPECT_EQ(5678, addr.port());
   EXPECT_EQ("", addr.hostname());
   EXPECT_EQ(kTestV6AddrFullString, addr.ToString());
@@ -338,14 +338,14 @@ TEST(SocketAddressTest, TestToSensitiveNameAndAddressString) {
   SocketAddress ipv4OnlyLiteral("1.2.3.4", 5678);
   EXPECT_EQ("1.2.3.x:5678", ipv4OnlyLiteral.ToSensitiveNameAndAddressString());
 
-  SocketAddress ipv4OnlyAddress(IPAddress(0x01020304), 5678);
+  SocketAddress ipv4OnlyAddress(webrtc::IPAddress(0x01020304), 5678);
   EXPECT_EQ("1.2.3.x:5678", ipv4OnlyAddress.ToSensitiveNameAndAddressString());
 
   SocketAddress hostOnly("webrtc.org", 443);
   EXPECT_EQ("webrtc.org:443", hostOnly.ToSensitiveNameAndAddressString());
 
   SocketAddress hostAndIpv4("webrtc.org", 80);
-  hostAndIpv4.SetResolvedIP(IPAddress(0x01020304));
+  hostAndIpv4.SetResolvedIP(webrtc::IPAddress(0x01020304));
   EXPECT_EQ("webrtc.org:80 (1.2.3.x:80)",
             hostAndIpv4.ToSensitiveNameAndAddressString());
 
@@ -353,12 +353,12 @@ TEST(SocketAddressTest, TestToSensitiveNameAndAddressString) {
   EXPECT_EQ(kTestV6AddrFullAnonymizedString,
             ipv6OnlyLiteral.ToSensitiveNameAndAddressString());
 
-  SocketAddress ipv6OnlyAddress(IPAddress(kTestV6Addr), 5678);
+  SocketAddress ipv6OnlyAddress(webrtc::IPAddress(kTestV6Addr), 5678);
   EXPECT_EQ(kTestV6AddrFullAnonymizedString,
             ipv6OnlyAddress.ToSensitiveNameAndAddressString());
 
   SocketAddress hostAndIpv6("webrtc.org", 5678);
-  hostAndIpv6.SetResolvedIP(IPAddress(kTestV6Addr));
+  hostAndIpv6.SetResolvedIP(webrtc::IPAddress(kTestV6Addr));
   EXPECT_EQ("webrtc.org:5678 (" + kTestV6AddrFullAnonymizedString + ")",
             hostAndIpv6.ToSensitiveNameAndAddressString());
 }

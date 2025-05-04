@@ -26,7 +26,7 @@ namespace rtc {
 size_t PackAddressForNAT(char* buf,
                          size_t buf_size,
                          const SocketAddress& remote_addr) {
-  const IPAddress& ip = remote_addr.ipaddr();
+  const webrtc::IPAddress& ip = remote_addr.ipaddr();
   int family = ip.family();
   buf[0] = 0;
   buf[1] = family;
@@ -59,12 +59,12 @@ size_t UnpackAddressFromNAT(rtc::ArrayView<const uint8_t> buf,
       *(reinterpret_cast<const uint16_t*>(&buf.data()[2])));
   if (family == AF_INET) {
     const in_addr* v4addr = reinterpret_cast<const in_addr*>(&buf.data()[4]);
-    *remote_addr = SocketAddress(IPAddress(*v4addr), port);
+    *remote_addr = SocketAddress(webrtc::IPAddress(*v4addr), port);
     return kNATEncodedIPv4AddressSize;
   } else if (family == AF_INET6) {
     RTC_DCHECK(buf.size() >= 20);
     const in6_addr* v6addr = reinterpret_cast<const in6_addr*>(&buf.data()[4]);
-    *remote_addr = SocketAddress(IPAddress(*v6addr), port);
+    *remote_addr = SocketAddress(webrtc::IPAddress(*v6addr), port);
     return kNATEncodedIPv6AddressSize;
   }
   return 0U;
@@ -103,7 +103,7 @@ class NATSocket : public Socket, public sigslot::has_slots<> {
     // If we're not already bound (meaning `socket_` is null), bind to ANY
     // address.
     if (!socket_) {
-      result = BindInternal(SocketAddress(GetAnyIP(family_), 0));
+      result = BindInternal(SocketAddress(webrtc::GetAnyIP(family_), 0));
       if (result < 0) {
         return result;
       }

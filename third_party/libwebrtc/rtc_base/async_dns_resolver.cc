@@ -38,7 +38,7 @@ int ResolveHostname(absl::string_view hostname,
 #else   // notdef(__native_client__)
 int ResolveHostname(absl::string_view hostname,
                     int family,
-                    std::vector<rtc::IPAddress>& addresses) {
+                    std::vector<IPAddress>& addresses) {
   addresses.clear();
   struct addrinfo* result = nullptr;
   struct addrinfo hints = {0};
@@ -69,7 +69,7 @@ int ResolveHostname(absl::string_view hostname,
   struct addrinfo* cursor = result;
   for (; cursor; cursor = cursor->ai_next) {
     if (family == AF_UNSPEC || cursor->ai_family == family) {
-      rtc::IPAddress ip;
+      IPAddress ip;
       if (IPFromAddrInfo(cursor, &ip)) {
         addresses.push_back(ip);
       }
@@ -150,7 +150,7 @@ void AsyncDnsResolver::Start(const rtc::SocketAddress& addr,
   auto thread_function = [this, addr, family, flag = safety_.flag(),
                           caller_task_queue = webrtc::TaskQueueBase::Current(),
                           state = state_] {
-    std::vector<rtc::IPAddress> addresses;
+    std::vector<IPAddress> addresses;
     int error = ResolveHostname(addr.hostname(), family, addresses);
     // We assume that the caller task queue is still around if the
     // AsyncDnsResolver has not been destroyed.

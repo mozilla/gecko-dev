@@ -103,19 +103,19 @@ class FakePortAllocatorSession : public PortAllocatorSession {
         factory_(factory),
         ipv4_network_("network",
                       "unittest",
-                      rtc::IPAddress(INADDR_LOOPBACK),
+                      webrtc::IPAddress(INADDR_LOOPBACK),
                       32),
         ipv6_network_("network",
                       "unittest",
-                      rtc::IPAddress(in6addr_loopback),
+                      webrtc::IPAddress(in6addr_loopback),
                       64),
         port_(),
         port_config_count_(0),
         stun_servers_(allocator->stun_servers()),
         turn_servers_(allocator->turn_servers()),
         field_trials_(field_trials) {
-    ipv4_network_.AddIP(rtc::IPAddress(INADDR_LOOPBACK));
-    ipv6_network_.AddIP(rtc::IPAddress(in6addr_loopback));
+    ipv4_network_.AddIP(webrtc::IPAddress(INADDR_LOOPBACK));
+    ipv6_network_.AddIP(webrtc::IPAddress(in6addr_loopback));
   }
 
   void SetCandidateFilter(uint32_t filter) override {

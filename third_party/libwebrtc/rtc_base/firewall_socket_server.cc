@@ -194,11 +194,11 @@ bool FirewallSocketServer::Check(FirewallProtocol p,
 }
 
 void FirewallSocketServer::SetUnbindableIps(
-    const std::vector<rtc::IPAddress>& unbindable_ips) {
+    const std::vector<webrtc::IPAddress>& unbindable_ips) {
   unbindable_ips_ = unbindable_ips;
 }
 
-bool FirewallSocketServer::IsBindableIp(const rtc::IPAddress& ip) {
+bool FirewallSocketServer::IsBindableIp(const webrtc::IPAddress& ip) {
   return !absl::c_linear_search(unbindable_ips_, ip);
 }
 

@@ -103,7 +103,7 @@ class StatsBasedNetworkQualityMetricsReporter
         RTC_GUARDED_BY(mutex_);
     std::map<std::string, std::vector<EmulatedNetworkNode*>> peer_downlinks_
         RTC_GUARDED_BY(mutex_);
-    std::map<rtc::IPAddress, std::string> ip_to_peer_ RTC_GUARDED_BY(mutex_);
+    std::map<IPAddress, std::string> ip_to_peer_ RTC_GUARDED_BY(mutex_);
     NetworkEmulationManager* const network_emulation_;
   };
 

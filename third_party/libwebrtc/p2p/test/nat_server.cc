@@ -52,7 +52,7 @@ AddrCmp::AddrCmp(NAT* nat)
 size_t AddrCmp::operator()(const SocketAddress& a) const {
   size_t h = 0;
   if (use_ip)
-    h ^= HashIP(a.ipaddr());
+    h ^= webrtc::HashIP(a.ipaddr());
   if (use_port)
     h ^= a.port() | (a.port() << 16);
   return h;

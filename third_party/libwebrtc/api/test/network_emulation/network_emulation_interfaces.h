@@ -215,7 +215,7 @@ struct EmulatedNetworkStats {
 
   // List of IP addresses that were used to send data considered in this stats
   // object.
-  std::vector<rtc::IPAddress> local_addresses;
+  std::vector<IPAddress> local_addresses;
 
   // Overall outgoing stats for all IP addresses which were requested.
   EmulatedNetworkOutgoingStats overall_outgoing_stats;
@@ -224,10 +224,9 @@ struct EmulatedNetworkStats {
   // on requested interfaces.
   EmulatedNetworkIncomingStats overall_incoming_stats;
 
-  std::map<rtc::IPAddress, EmulatedNetworkOutgoingStats>
+  std::map<IPAddress, EmulatedNetworkOutgoingStats>
       outgoing_stats_per_destination;
-  std::map<rtc::IPAddress, EmulatedNetworkIncomingStats>
-      incoming_stats_per_source;
+  std::map<IPAddress, EmulatedNetworkIncomingStats> incoming_stats_per_source;
 
   // Duration between packet was received on network interface and was
   // dispatched to the network in microseconds.
@@ -291,7 +290,7 @@ class EmulatedEndpoint : public EmulatedNetworkReceiverInterface {
   // Unbinds default receiver. Do nothing if no default receiver was bound
   // before.
   virtual void UnbindDefaultReceiver() = 0;
-  virtual rtc::IPAddress GetPeerLocalAddress() const = 0;
+  virtual IPAddress GetPeerLocalAddress() const = 0;
 
  private:
   // Ensure that there can be no other subclass than EmulatedEndpointImpl. This

@@ -104,7 +104,7 @@ class TurnServerAllocation final {
   };
   struct Permission {
     webrtc::ScopedTaskSafety pending_delete;
-    rtc::IPAddress peer;
+    webrtc::IPAddress peer;
   };
   using PermissionList = std::list<Permission>;
   using ChannelList = std::list<Channel>;
@@ -121,9 +121,9 @@ class TurnServerAllocation final {
                         const rtc::ReceivedPacket& packet);
 
   static webrtc::TimeDelta ComputeLifetime(const TurnMessage& msg);
-  bool HasPermission(const rtc::IPAddress& addr);
-  void AddPermission(const rtc::IPAddress& addr);
-  PermissionList::iterator FindPermission(const rtc::IPAddress& addr);
+  bool HasPermission(const webrtc::IPAddress& addr);
+  void AddPermission(const webrtc::IPAddress& addr);
+  PermissionList::iterator FindPermission(const webrtc::IPAddress& addr);
   ChannelList::iterator FindChannel(int channel_id);
   ChannelList::iterator FindChannel(const rtc::SocketAddress& addr);
 

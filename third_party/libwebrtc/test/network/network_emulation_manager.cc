@@ -117,7 +117,7 @@ NetworkEmulationManagerImpl::NodeBuilder() {
 
 EmulatedEndpointImpl* NetworkEmulationManagerImpl::CreateEndpoint(
     EmulatedEndpointConfig config) {
-  std::optional<rtc::IPAddress> ip = config.ip;
+  std::optional<IPAddress> ip = config.ip;
   if (!ip) {
     switch (config.generated_ip_family) {
       case EmulatedEndpointConfig::IpAddressFamily::kIpv4:
@@ -355,11 +355,10 @@ void NetworkEmulationManagerImpl::GetStats(
       });
 }
 
-std::optional<rtc::IPAddress>
-NetworkEmulationManagerImpl::GetNextIPv4Address() {
+std::optional<IPAddress> NetworkEmulationManagerImpl::GetNextIPv4Address() {
   uint32_t addresses_count = kMaxIPv4Address - kMinIPv4Address;
   for (uint32_t i = 0; i < addresses_count; i++) {
-    rtc::IPAddress ip(next_ip4_address_);
+    IPAddress ip(next_ip4_address_);
     if (next_ip4_address_ == kMaxIPv4Address) {
       next_ip4_address_ = kMinIPv4Address;
     } else {

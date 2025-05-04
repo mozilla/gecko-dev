@@ -304,7 +304,7 @@ class BasicPortAllocatorTestBase : public ::testing::Test,
                            const SocketAddress& pattern) {
     return address.ipaddr() == pattern.ipaddr() &&
            ((pattern.port() == 0 &&
-             (address.port() != 0 || IPIsAny(address.ipaddr()))) ||
+             (address.port() != 0 || webrtc::IPIsAny(address.ipaddr()))) ||
             (pattern.port() != 0 && address.port() == pattern.port()));
   }
 
@@ -536,12 +536,12 @@ class BasicPortAllocatorTest : public FakeClockBase,
   // it should be ignore.
   void CheckDisableAdapterEnumeration(
       uint32_t total_ports,
-      const rtc::IPAddress& host_candidate_addr,
-      const rtc::IPAddress& stun_candidate_addr,
-      const rtc::IPAddress& relay_candidate_udp_transport_addr,
-      const rtc::IPAddress& relay_candidate_tcp_transport_addr) {
+      const webrtc::IPAddress& host_candidate_addr,
+      const webrtc::IPAddress& stun_candidate_addr,
+      const webrtc::IPAddress& relay_candidate_udp_transport_addr,
+      const webrtc::IPAddress& relay_candidate_tcp_transport_addr) {
     network_manager_.set_default_local_addresses(kPrivateAddr.ipaddr(),
-                                                 rtc::IPAddress());
+                                                 webrtc::IPAddress());
     if (!session_) {
       ASSERT_TRUE(CreateSession(ICE_CANDIDATE_COMPONENT_RTP));
     }
@@ -566,7 +566,7 @@ class BasicPortAllocatorTest : public FakeClockBase,
     if (!stun_candidate_addr.IsNil()) {
       rtc::SocketAddress related_address(host_candidate_addr, 0);
       if (host_candidate_addr.IsNil()) {
-        related_address.SetIP(rtc::GetAnyIP(stun_candidate_addr.family()));
+        related_address.SetIP(webrtc::GetAnyIP(stun_candidate_addr.family()));
       }
       EXPECT_TRUE(HasCandidateWithRelatedAddr(
           candidates_, IceCandidateType::kSrflx, "udp",
@@ -1429,8 +1429,8 @@ TEST_F(BasicPortAllocatorTest,
   ResetWithStunServerNoNat(kStunAddr);
   allocator().SetCandidateFilter(CF_RELAY);
   // Expect to see no ports and no candidates.
-  CheckDisableAdapterEnumeration(0U, rtc::IPAddress(), rtc::IPAddress(),
-                                 rtc::IPAddress(), rtc::IPAddress());
+  CheckDisableAdapterEnumeration(0U, webrtc::IPAddress(), webrtc::IPAddress(),
+                                 webrtc::IPAddress(), webrtc::IPAddress());
 }
 
 // Test that even with multiple interfaces, the result should still be a single
@@ -1454,7 +1454,7 @@ TEST_F(BasicPortAllocatorTest,
   // TURN/UDP candidates.
   CheckDisableAdapterEnumeration(5U, kPrivateAddr.ipaddr(),
                                  kNatUdpAddr.ipaddr(), kTurnUdpExtAddr.ipaddr(),
-                                 rtc::IPAddress());
+                                 webrtc::IPAddress());
 }
 
 // Test that we should get a default private, STUN, TURN/UDP and TURN/TCP
@@ -1477,8 +1477,8 @@ TEST_F(BasicPortAllocatorTest,
        TestDisableAdapterEnumerationWithoutNatOrServers) {
   ResetWithNoServersOrNat();
   // Expect to see 2 ports: STUN and TCP ports, one default private candidate.
-  CheckDisableAdapterEnumeration(2U, kPrivateAddr.ipaddr(), rtc::IPAddress(),
-                                 rtc::IPAddress(), rtc::IPAddress());
+  CheckDisableAdapterEnumeration(2U, kPrivateAddr.ipaddr(), webrtc::IPAddress(),
+                                 webrtc::IPAddress(), webrtc::IPAddress());
 }
 
 // Test that when adapter enumeration is disabled, with
@@ -1491,8 +1491,8 @@ TEST_F(BasicPortAllocatorTest,
   session_->set_flags(PORTALLOCATOR_DISABLE_DEFAULT_LOCAL_CANDIDATE);
   // Expect to see 2 ports: STUN and TCP ports, localhost candidate and STUN
   // candidate.
-  CheckDisableAdapterEnumeration(2U, rtc::IPAddress(), rtc::IPAddress(),
-                                 rtc::IPAddress(), rtc::IPAddress());
+  CheckDisableAdapterEnumeration(2U, webrtc::IPAddress(), webrtc::IPAddress(),
+                                 webrtc::IPAddress(), webrtc::IPAddress());
 }
 
 // Test that when adapter enumeration is disabled, with
@@ -1508,8 +1508,8 @@ TEST_F(BasicPortAllocatorTest,
   session_->set_flags(PORTALLOCATOR_DISABLE_DEFAULT_LOCAL_CANDIDATE);
   // Expect to see 2 ports: STUN and TCP ports, localhost candidate and STUN
   // candidate.
-  CheckDisableAdapterEnumeration(2U, rtc::IPAddress(), kClientAddr.ipaddr(),
-                                 rtc::IPAddress(), rtc::IPAddress());
+  CheckDisableAdapterEnumeration(2U, webrtc::IPAddress(), kClientAddr.ipaddr(),
+                                 webrtc::IPAddress(), webrtc::IPAddress());
 }
 
 // Test that when adapter enumeration is disabled, with
@@ -1521,8 +1521,8 @@ TEST_F(BasicPortAllocatorTest,
   ASSERT_TRUE(CreateSession(ICE_CANDIDATE_COMPONENT_RTP));
   session_->set_flags(PORTALLOCATOR_DISABLE_DEFAULT_LOCAL_CANDIDATE);
   // Expect to see 2 ports: STUN and TCP ports, and single STUN candidate.
-  CheckDisableAdapterEnumeration(2U, rtc::IPAddress(), kNatUdpAddr.ipaddr(),
-                                 rtc::IPAddress(), rtc::IPAddress());
+  CheckDisableAdapterEnumeration(2U, webrtc::IPAddress(), kNatUdpAddr.ipaddr(),
+                                 webrtc::IPAddress(), webrtc::IPAddress());
 }
 
 // Test that we disable relay over UDP, and only TCP is used when connecting to
@@ -2294,7 +2294,7 @@ TEST_F(BasicPortAllocatorTest, TestSharedSocketNoUdpAllowed) {
 // automatically.
 TEST_F(BasicPortAllocatorTest, TestNetworkPermissionBlocked) {
   network_manager_.set_default_local_addresses(kPrivateAddr.ipaddr(),
-                                               rtc::IPAddress());
+                                               webrtc::IPAddress());
   network_manager_.set_enumeration_permission(
       rtc::NetworkManager::ENUMERATION_BLOCKED);
   allocator().set_flags(allocator().flags() | PORTALLOCATOR_DISABLE_RELAY |
@@ -2790,7 +2790,7 @@ TEST_F(BasicPortAllocatorTest, HostCandidateAddressIsReplacedByHostname) {
     } else if (candidate.is_stun()) {
       // For a srflx candidate, the related address should be set to 0.0.0.0 or
       // ::0
-      EXPECT_TRUE(IPIsAny(raddr.ipaddr()));
+      EXPECT_TRUE(webrtc::IPIsAny(raddr.ipaddr()));
       EXPECT_EQ(raddr.port(), 0);
       ++num_srflx_candidates;
     } else if (candidate.is_relay()) {

@@ -28,7 +28,7 @@
 #include "rtc_base/net_helpers.h"
 #include "rtc_base/string_utils.h"
 
-namespace rtc {
+namespace webrtc {
 
 // Prefixes used for categorizing IPv6 addresses.
 static const in6_addr kV4MappedPrefix = {
@@ -554,22 +554,22 @@ int IPAddressPrecedence(const IPAddress& ip) {
 
 IPAddress GetLoopbackIP(int family) {
   if (family == AF_INET) {
-    return rtc::IPAddress(INADDR_LOOPBACK);
+    return IPAddress(INADDR_LOOPBACK);
   }
   if (family == AF_INET6) {
-    return rtc::IPAddress(in6addr_loopback);
+    return IPAddress(in6addr_loopback);
   }
-  return rtc::IPAddress();
+  return IPAddress();
 }
 
 IPAddress GetAnyIP(int family) {
   if (family == AF_INET) {
-    return rtc::IPAddress(INADDR_ANY);
+    return IPAddress(INADDR_ANY);
   }
   if (family == AF_INET6) {
-    return rtc::IPAddress(in6addr_any);
+    return IPAddress(in6addr_any);
   }
-  return rtc::IPAddress();
+  return IPAddress();
 }
 
-}  // namespace rtc
+}  // namespace webrtc

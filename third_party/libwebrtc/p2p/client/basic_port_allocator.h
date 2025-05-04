@@ -402,7 +402,7 @@ class AllocationSequence {
   bool network_failed_ = false;
   const rtc::Network* network_;
   // Compared with the new best IP in DisableEquivalentPhases.
-  rtc::IPAddress previous_best_ip_;
+  webrtc::IPAddress previous_best_ip_;
   PortConfiguration* config_;
   State state_;
   uint32_t flags_;

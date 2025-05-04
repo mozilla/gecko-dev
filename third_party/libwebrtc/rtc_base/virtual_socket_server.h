@@ -232,8 +232,8 @@ class VirtualSocketServer : public SocketServer {
   // socket is bound to the 'any' address, e.g. 0.0.0.0. (If not set, the 'any'
   // address is used as the source address on outgoing virtual packets, exposed
   // to recipient's RecvFrom).
-  IPAddress GetDefaultSourceAddress(int family);
-  void SetDefaultSourceAddress(const IPAddress& from_addr);
+  webrtc::IPAddress GetDefaultSourceAddress(int family);
+  void SetDefaultSourceAddress(const webrtc::IPAddress& from_addr);
 
   // Limits the network bandwidth (maximum bytes per second).  Zero means that
   // all sends occur instantly.  Defaults to 0.
@@ -300,8 +300,8 @@ class VirtualSocketServer : public SocketServer {
   // If SetAlternativeLocalAddress(A, B) is called, then when something
   // attempts to bind a socket to address A, it will get a socket bound to
   // address B instead.
-  void SetAlternativeLocalAddress(const rtc::IPAddress& address,
-                                  const rtc::IPAddress& alternative);
+  void SetAlternativeLocalAddress(const webrtc::IPAddress& address,
+                                  const webrtc::IPAddress& alternative);
 
   typedef std::pair<double, double> Point;
   typedef std::vector<Point> Function;
@@ -376,7 +376,7 @@ class VirtualSocketServer : public SocketServer {
 
  protected:
   // Returns a new IP not used before in this network.
-  IPAddress GetNextIP(int family);
+  webrtc::IPAddress GetNextIP(int family);
 
   // Find the socket bound to the given address
   VirtualSocket* LookupBinding(const SocketAddress& addr);
@@ -450,8 +450,8 @@ class VirtualSocketServer : public SocketServer {
   AddressMap* bindings_;
   ConnectionMap* connections_;
 
-  IPAddress default_source_address_v4_;
-  IPAddress default_source_address_v6_;
+  webrtc::IPAddress default_source_address_v4_;
+  webrtc::IPAddress default_source_address_v6_;
 
   mutable webrtc::Mutex mutex_;
 
@@ -466,8 +466,8 @@ class VirtualSocketServer : public SocketServer {
   // Used for testing.
   uint32_t sent_packets_ RTC_GUARDED_BY(mutex_) = 0;
 
-  std::map<rtc::IPAddress, int> delay_by_ip_;
-  std::map<rtc::IPAddress, rtc::IPAddress> alternative_address_mapping_;
+  std::map<webrtc::IPAddress, int> delay_by_ip_;
+  std::map<webrtc::IPAddress, webrtc::IPAddress> alternative_address_mapping_;
   std::unique_ptr<Function> delay_dist_;
 
   double drop_prob_ RTC_GUARDED_BY(mutex_);

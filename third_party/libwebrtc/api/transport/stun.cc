@@ -910,7 +910,7 @@ bool StunAddressAttribute::Read(ByteBufferReader* buf) {
                                            sizeof(v4addr)))) {
       return false;
     }
-    rtc::IPAddress ipaddr(v4addr);
+    webrtc::IPAddress ipaddr(v4addr);
     SetAddress(rtc::SocketAddress(ipaddr, port));
   } else if (stun_family == STUN_ADDRESS_IPV6) {
     in6_addr v6addr;
@@ -921,7 +921,7 @@ bool StunAddressAttribute::Read(ByteBufferReader* buf) {
                                            sizeof(v6addr)))) {
       return false;
     }
-    rtc::IPAddress ipaddr(v6addr);
+    webrtc::IPAddress ipaddr(v6addr);
     SetAddress(rtc::SocketAddress(ipaddr, port));
   } else {
     return false;
@@ -972,15 +972,15 @@ void StunXorAddressAttribute::SetOwner(StunMessage* owner) {
   owner_ = owner;
 }
 
-rtc::IPAddress StunXorAddressAttribute::GetXoredIP() const {
+webrtc::IPAddress StunXorAddressAttribute::GetXoredIP() const {
   if (owner_) {
-    rtc::IPAddress ip = ipaddr();
+    webrtc::IPAddress ip = ipaddr();
     switch (ip.family()) {
       case AF_INET: {
         in_addr v4addr = ip.ipv4_address();
         v4addr.s_addr =
             (v4addr.s_addr ^ webrtc::HostToNetwork32(kStunMagicCookie));
-        return rtc::IPAddress(v4addr);
+        return webrtc::IPAddress(v4addr);
       }
       case AF_INET6: {
         in6_addr v6addr = ip.ipv6_address();
@@ -997,7 +997,7 @@ rtc::IPAddress StunXorAddressAttribute::GetXoredIP() const {
           ip_as_ints[1] = (ip_as_ints[1] ^ transactionid_as_ints[0]);
           ip_as_ints[2] = (ip_as_ints[2] ^ transactionid_as_ints[1]);
           ip_as_ints[3] = (ip_as_ints[3] ^ transactionid_as_ints[2]);
-          return rtc::IPAddress(v6addr);
+          return webrtc::IPAddress(v6addr);
         }
         break;
       }
@@ -1005,14 +1005,14 @@ rtc::IPAddress StunXorAddressAttribute::GetXoredIP() const {
   }
   // Invalid ip family or transaction ID, or missing owner.
   // Return an AF_UNSPEC address.
-  return rtc::IPAddress();
+  return webrtc::IPAddress();
 }
 
 bool StunXorAddressAttribute::Read(ByteBufferReader* buf) {
   if (!StunAddressAttribute::Read(buf))
     return false;
   uint16_t xoredport = port() ^ (kStunMagicCookie >> 16);
-  rtc::IPAddress xored_ip = GetXoredIP();
+  webrtc::IPAddress xored_ip = GetXoredIP();
   SetAddress(rtc::SocketAddress(xored_ip, xoredport));
   return true;
 }
@@ -1023,7 +1023,7 @@ bool StunXorAddressAttribute::Write(ByteBufferWriter* buf) const {
     RTC_LOG(LS_ERROR) << "Error writing xor-address attribute: unknown family.";
     return false;
   }
-  rtc::IPAddress xored_ip = GetXoredIP();
+  webrtc::IPAddress xored_ip = GetXoredIP();
   if (xored_ip.family() == AF_UNSPEC) {
     return false;
   }

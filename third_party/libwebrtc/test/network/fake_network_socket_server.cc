@@ -271,7 +271,7 @@ FakeNetworkSocketServer::FakeNetworkSocketServer(
 FakeNetworkSocketServer::~FakeNetworkSocketServer() = default;
 
 EmulatedEndpointImpl* FakeNetworkSocketServer::GetEndpointNode(
-    const rtc::IPAddress& ip) {
+    const IPAddress& ip) {
   return endpoints_container_->LookupByLocalAddress(ip);
 }
 

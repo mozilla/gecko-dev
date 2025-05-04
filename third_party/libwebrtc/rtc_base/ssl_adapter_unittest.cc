@@ -39,7 +39,7 @@ using ::testing::Return;
 static const webrtc::TimeDelta kTimeout = webrtc::TimeDelta::Millis(5000);
 
 static rtc::Socket* CreateSocket() {
-  rtc::SocketAddress address(rtc::IPAddress(INADDR_ANY), 0);
+  rtc::SocketAddress address(webrtc::IPAddress(INADDR_ANY), 0);
 
   rtc::Socket* socket = rtc::Thread::Current()->socketserver()->CreateSocket(
       address.family(), SOCK_STREAM);

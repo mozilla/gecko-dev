@@ -318,7 +318,7 @@ class TurnPort : public Port {
   bool UpdateNonce(StunMessage* response);
   void ResetNonce();
 
-  bool HasPermission(const rtc::IPAddress& ipaddr) const;
+  bool HasPermission(const webrtc::IPAddress& ipaddr) const;
   TurnEntry* FindEntry(const rtc::SocketAddress& address) const;
   TurnEntry* FindEntry(uint16_t channel_id) const;
 

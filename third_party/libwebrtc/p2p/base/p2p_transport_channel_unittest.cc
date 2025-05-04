@@ -1208,9 +1208,9 @@ class P2PTransportChannelTest : public P2PTransportChannelTestBase {
         } else if (config == BLOCK_ALL_BUT_OUTGOING_HTTP) {
           // Block all TCP to/from the endpoint except 80/443 out
           fw()->AddRule(true, rtc::FP_TCP, kPublicAddrs[endpoint],
-                        SocketAddress(rtc::IPAddress(INADDR_ANY), 80));
+                        SocketAddress(webrtc::IPAddress(INADDR_ANY), 80));
           fw()->AddRule(true, rtc::FP_TCP, kPublicAddrs[endpoint],
-                        SocketAddress(rtc::IPAddress(INADDR_ANY), 443));
+                        SocketAddress(webrtc::IPAddress(INADDR_ANY), 443));
           fw()->AddRule(false, rtc::FP_TCP, rtc::FD_ANY,
                         kPublicAddrs[endpoint]);
         }
@@ -1917,7 +1917,7 @@ TEST_F(P2PTransportChannelTest, CanOnlyMakeOutgoingTcpConnections) {
   // In order to simulate nothing working but outgoing TCP connections, prevent
   // the endpoint from binding to its interface's address as well as the
   // "any" addresses. It can then only make a connection by using "Connect()".
-  fw()->SetUnbindableIps({rtc::GetAnyIP(AF_INET), rtc::GetAnyIP(AF_INET6),
+  fw()->SetUnbindableIps({webrtc::GetAnyIP(AF_INET), webrtc::GetAnyIP(AF_INET6),
                           kPublicAddrs[0].ipaddr()});
   CreateChannels(env);
   // Expect a IceCandidateType::kPrflx candidate on the side that can only make
@@ -6603,11 +6603,11 @@ class MockMdnsResponder : public webrtc::MdnsResponderInterface {
  public:
   MOCK_METHOD(void,
               CreateNameForAddress,
-              (const rtc::IPAddress&, NameCreatedCallback),
+              (const webrtc::IPAddress&, NameCreatedCallback),
               (override));
   MOCK_METHOD(void,
               RemoveNameForAddress,
-              (const rtc::IPAddress&, NameRemovedCallback),
+              (const webrtc::IPAddress&, NameRemovedCallback),
               (override));
 };
 

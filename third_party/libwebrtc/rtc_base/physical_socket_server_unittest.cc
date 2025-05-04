@@ -94,7 +94,8 @@ class FakePhysicalSocketServer : public PhysicalSocketServer {
 
 class FakeNetworkBinder : public NetworkBinderInterface {
  public:
-  NetworkBindingResult BindSocketToNetwork(int, const IPAddress&) override {
+  NetworkBindingResult BindSocketToNetwork(int,
+                                           const webrtc::IPAddress&) override {
     ++num_binds_;
     return result_;
   }
@@ -126,8 +127,8 @@ class PhysicalSocketTest : public SocketTest {
         fail_accept_(false),
         max_send_size_(-1) {}
 
-  void ConnectInternalAcceptError(const IPAddress& loopback);
-  void WritableAfterPartialWrite(const IPAddress& loopback);
+  void ConnectInternalAcceptError(const webrtc::IPAddress& loopback);
+  void WritableAfterPartialWrite(const webrtc::IPAddress& loopback);
 
   FakePhysicalSocketServer server_;
   rtc::AutoSocketServerThread thread_;
@@ -199,7 +200,8 @@ TEST_F(PhysicalSocketTest, TestConnectFailIPv4) {
   SocketTest::TestConnectFailIPv4();
 }
 
-void PhysicalSocketTest::ConnectInternalAcceptError(const IPAddress& loopback) {
+void PhysicalSocketTest::ConnectInternalAcceptError(
+    const webrtc::IPAddress& loopback) {
   webrtc::testing::StreamSink sink;
   SocketAddress accept_addr;
 
@@ -289,7 +291,8 @@ TEST_F(PhysicalSocketTest, TestConnectAcceptErrorIPv6) {
   ConnectInternalAcceptError(kIPv6Loopback);
 }
 
-void PhysicalSocketTest::WritableAfterPartialWrite(const IPAddress& loopback) {
+void PhysicalSocketTest::WritableAfterPartialWrite(
+    const webrtc::IPAddress& loopback) {
   // Simulate a really small maximum send size.
   const int kMaxSendSize = 128;
   SetMaxSendSize(kMaxSendSize);

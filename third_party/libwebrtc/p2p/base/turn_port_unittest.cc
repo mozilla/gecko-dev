@@ -1221,8 +1221,8 @@ TEST_F(TurnPortTest, TurnTcpAllocationNotDiscardedIfNotBoundToBestIP) {
 // between rtc::IPAddress and rtc::InterfaceAddress.
 TEST_F(TurnPortTest, TCPPortNotDiscardedIfBoundToTemporaryIP) {
   networks_.emplace_back("unittest", "unittest", kLocalIPv6Addr.ipaddr(), 32);
-  networks_.back().AddIP(rtc::InterfaceAddress(
-      kLocalIPv6Addr.ipaddr(), rtc::IPV6_ADDRESS_FLAG_TEMPORARY));
+  networks_.back().AddIP(webrtc::InterfaceAddress(
+      kLocalIPv6Addr.ipaddr(), webrtc::IPV6_ADDRESS_FLAG_TEMPORARY));
 
   // Set up TURN server to use TCP (this logic only exists for TCP).
   turn_server_.AddInternalSocket(kTurnIPv6IntAddr, PROTO_TCP);

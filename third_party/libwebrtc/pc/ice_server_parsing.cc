@@ -279,7 +279,7 @@ RTCError ParseIceServerUrl(
           server.hostname.empty() ? address : server.hostname;
       rtc::SocketAddress socket_address(hostname, port);
       if (!server.hostname.empty()) {
-        rtc::IPAddress ip;
+        IPAddress ip;
         if (!IPFromString(address, &ip)) {
           // When hostname is set, the server address must be a
           // resolved ip address.

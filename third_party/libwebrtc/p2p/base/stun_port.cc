@@ -483,7 +483,7 @@ bool UDPPort::MaybeSetDefaultLocalAddress(rtc::SocketAddress* addr) const {
       !Network()->default_local_address_provider()) {
     return true;
   }
-  rtc::IPAddress default_address;
+  webrtc::IPAddress default_address;
   bool result =
       Network()->default_local_address_provider()->GetDefaultLocalAddress(
           addr->family(), &default_address);

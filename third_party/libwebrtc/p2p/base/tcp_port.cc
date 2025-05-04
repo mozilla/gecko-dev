@@ -470,7 +470,7 @@ void TCPConnection::OnConnect(rtc::AsyncPacketSocket* socket) {
                           << ", rather than an address associated with network:"
                           << port_->Network()->ToString()
                           << ". Still allowing it since it's localhost.";
-    } else if (IPIsAny(port_->Network()->GetBestIP())) {
+    } else if (webrtc::IPIsAny(port_->Network()->GetBestIP())) {
       RTC_LOG(LS_WARNING)
           << "Socket is bound to the address:"
           << socket_address.ipaddr().ToSensitiveString()

@@ -218,7 +218,7 @@ void TestFilters(SocketServer* internal,
            true, true);
 }
 
-bool TestConnectivity(const SocketAddress& src, const IPAddress& dst) {
+bool TestConnectivity(const SocketAddress& src, const webrtc::IPAddress& dst) {
   // The physical NAT tests require connectivity to the selected ip from the
   // internal address used for the NAT. Things like firewalls can break that, so
   // check to see if it's worth even trying with this ip.
@@ -266,7 +266,7 @@ void TestPhysicalInternal(const SocketAddress& int_addr) {
   // Find an available IP with matching family. The test breaks if int_addr
   // can't talk to ip, so check for connectivity as well.
   for (const Network* const network : networks) {
-    const IPAddress& ip = network->GetBestIP();
+    const webrtc::IPAddress& ip = network->GetBestIP();
     if (ip.family() == int_addr.family() && TestConnectivity(int_addr, ip)) {
       ext_addr2.SetIP(ip);
       break;
@@ -308,7 +308,9 @@ namespace {
 class TestVirtualSocketServer : public VirtualSocketServer {
  public:
   // Expose this publicly
-  IPAddress GetNextIP(int af) { return VirtualSocketServer::GetNextIP(af); }
+  webrtc::IPAddress GetNextIP(int af) {
+    return VirtualSocketServer::GetNextIP(af);
+  }
 };
 
 }  // namespace

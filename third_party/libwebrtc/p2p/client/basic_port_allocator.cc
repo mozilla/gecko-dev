@@ -716,7 +716,7 @@ std::vector<const rtc::Network*> BasicPortAllocatorSession::GetNetworks() {
   if (flags() & PORTALLOCATOR_DISABLE_LINK_LOCAL_NETWORKS) {
     NetworkFilter link_local_filter(
         [](const rtc::Network* network) {
-          return IPIsLinkLocal(network->prefix());
+          return webrtc::IPIsLinkLocal(network->prefix());
         },
         "link-local");
     FilterNetworks(&networks, link_local_filter);
@@ -736,7 +736,7 @@ std::vector<const rtc::Network*> BasicPortAllocatorSession::GetNetworks() {
       // On iOS, a device connected to the computer will get a link-local
       // network for communicating with the computer, however this network can't
       // be used to connect to a peer outside the network.
-      if (rtc::IPIsLinkLocal(network->GetBestIP())) {
+      if (webrtc::IPIsLinkLocal(network->GetBestIP())) {
         continue;
       }
       lowest_cost = std::min<uint16_t>(

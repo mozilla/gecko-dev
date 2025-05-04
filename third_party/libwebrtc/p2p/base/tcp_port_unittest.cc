@@ -225,8 +225,8 @@ TEST_F(TCPPortTest, TCPPortNotDiscardedIfNotBoundToBestIP) {
 // between rtc::IPAddress and rtc::InterfaceAddress.
 TEST_F(TCPPortTest, TCPPortNotDiscardedIfBoundToTemporaryIP) {
   networks_.emplace_back("unittest", "unittest", kLocalIPv6Addr.ipaddr(), 32);
-  networks_.back().AddIP(rtc::InterfaceAddress(
-      kLocalIPv6Addr.ipaddr(), rtc::IPV6_ADDRESS_FLAG_TEMPORARY));
+  networks_.back().AddIP(webrtc::InterfaceAddress(
+      kLocalIPv6Addr.ipaddr(), webrtc::IPV6_ADDRESS_FLAG_TEMPORARY));
 
   auto local_port = CreateTCPPort(&networks_.back());
   auto remote_port = CreateTCPPort(kRemoteIPv6Addr);

@@ -207,7 +207,7 @@ EmulatedNetworkNode* CreateEmulatedNodeWithDefaultBuiltInConfig(
 TEST(NetworkEmulationManagerTest, GeneratedIpv4AddressDoesNotCollide) {
   NetworkEmulationManagerImpl network_manager(
       {.time_mode = TimeMode::kRealTime});
-  std::set<rtc::IPAddress> ips;
+  std::set<IPAddress> ips;
   EmulatedEndpointConfig config;
   config.generated_ip_family = EmulatedEndpointConfig::IpAddressFamily::kIpv4;
   for (int i = 0; i < 1000; i++) {
@@ -221,7 +221,7 @@ TEST(NetworkEmulationManagerTest, GeneratedIpv4AddressDoesNotCollide) {
 TEST(NetworkEmulationManagerTest, GeneratedIpv6AddressDoesNotCollide) {
   NetworkEmulationManagerImpl network_manager(
       {.time_mode = TimeMode::kRealTime});
-  std::set<rtc::IPAddress> ips;
+  std::set<IPAddress> ips;
   EmulatedEndpointConfig config;
   config.generated_ip_family = EmulatedEndpointConfig::IpAddressFamily::kIpv6;
   for (int i = 0; i < 1000; i++) {
@@ -310,8 +310,8 @@ TEST(NetworkEmulationManagerTest, Run) {
     EXPECT_EQ(st.PacketsDiscardedNoReceiver(), 0l);
     EXPECT_EQ(st.BytesDiscardedNoReceiver().bytes(), 0l);
 
-    rtc::IPAddress bob_ip = bob_endpoint->GetPeerLocalAddress();
-    std::map<rtc::IPAddress, EmulatedNetworkIncomingStats> source_st =
+    IPAddress bob_ip = bob_endpoint->GetPeerLocalAddress();
+    std::map<IPAddress, EmulatedNetworkIncomingStats> source_st =
         st.incoming_stats_per_source;
     ASSERT_EQ(source_st.size(), 1lu);
     EXPECT_EQ(source_st.at(bob_ip).packets_received, 2000l);
@@ -320,7 +320,7 @@ TEST(NetworkEmulationManagerTest, Run) {
     EXPECT_EQ(source_st.at(bob_ip).packets_discarded_no_receiver, 0l);
     EXPECT_EQ(source_st.at(bob_ip).bytes_discarded_no_receiver.bytes(), 0l);
 
-    std::map<rtc::IPAddress, EmulatedNetworkOutgoingStats> dest_st =
+    std::map<IPAddress, EmulatedNetworkOutgoingStats> dest_st =
         st.outgoing_stats_per_destination;
     ASSERT_EQ(dest_st.size(), 1lu);
     EXPECT_EQ(dest_st.at(bob_ip).packets_sent, 2000l);
@@ -352,8 +352,8 @@ TEST(NetworkEmulationManagerTest, Run) {
     EXPECT_TRUE(st.FirstPacketReceivedTime().IsFinite());
     EXPECT_TRUE(st.LastPacketReceivedTime().IsFinite());
 
-    rtc::IPAddress alice_ip = alice_endpoint->GetPeerLocalAddress();
-    std::map<rtc::IPAddress, EmulatedNetworkIncomingStats> source_st =
+    IPAddress alice_ip = alice_endpoint->GetPeerLocalAddress();
+    std::map<IPAddress, EmulatedNetworkIncomingStats> source_st =
         st.incoming_stats_per_source;
     ASSERT_EQ(source_st.size(), 1lu);
     EXPECT_EQ(source_st.at(alice_ip).packets_received, 2000l);
@@ -362,7 +362,7 @@ TEST(NetworkEmulationManagerTest, Run) {
     EXPECT_EQ(source_st.at(alice_ip).packets_discarded_no_receiver, 0l);
     EXPECT_EQ(source_st.at(alice_ip).bytes_discarded_no_receiver.bytes(), 0l);
 
-    std::map<rtc::IPAddress, EmulatedNetworkOutgoingStats> dest_st =
+    std::map<IPAddress, EmulatedNetworkOutgoingStats> dest_st =
         st.outgoing_stats_per_destination;
     ASSERT_EQ(dest_st.size(), 1lu);
     EXPECT_EQ(dest_st.at(alice_ip).packets_sent, 2000l);
@@ -542,12 +542,12 @@ TEST(NetworkEmulationManagerTest, DebugStatsCollectedInDebugMode) {
   const int64_t single_packet_size = data.size() + kOverheadIpv4Udp;
   std::atomic<int> received_stats_count{0};
   nt1->GetStats([&](EmulatedNetworkStats st) {
-    rtc::IPAddress bob_ip = bob_endpoint->GetPeerLocalAddress();
-    std::map<rtc::IPAddress, EmulatedNetworkIncomingStats> source_st =
+    IPAddress bob_ip = bob_endpoint->GetPeerLocalAddress();
+    std::map<IPAddress, EmulatedNetworkIncomingStats> source_st =
         st.incoming_stats_per_source;
     ASSERT_EQ(source_st.size(), 1lu);
 
-    std::map<rtc::IPAddress, EmulatedNetworkOutgoingStats> dest_st =
+    std::map<IPAddress, EmulatedNetworkOutgoingStats> dest_st =
         st.outgoing_stats_per_destination;
     ASSERT_EQ(dest_st.size(), 1lu);
 
@@ -727,7 +727,7 @@ TEST(NetworkEmulationManagerTest, EndpointCanSendWithDifferentSourceIp) {
   NetworkEmulationManagerImpl network_manager(
       {.time_mode = TimeMode::kSimulated});
   EmulatedEndpointConfig endpoint_config;
-  endpoint_config.ip = rtc::IPAddress(kEndpointIp);
+  endpoint_config.ip = IPAddress(kEndpointIp);
   endpoint_config.allow_send_packet_with_different_source_ip = true;
   auto endpoint = network_manager.CreateEndpoint(endpoint_config);
 
@@ -750,7 +750,7 @@ TEST(NetworkEmulationManagerTest,
   auto sender_endpoint =
       network_manager.CreateEndpoint(EmulatedEndpointConfig());
   EmulatedEndpointConfig endpoint_config;
-  endpoint_config.ip = rtc::IPAddress(kDestEndpointIp);
+  endpoint_config.ip = IPAddress(kDestEndpointIp);
   endpoint_config.allow_receive_packets_with_different_dest_ip = true;
   auto receiver_endpoint = network_manager.CreateEndpoint(endpoint_config);
 
