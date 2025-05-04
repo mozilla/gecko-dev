@@ -33,7 +33,7 @@ DesktopCapturer::SourceId FullScreenWindowDetector::FindFullScreenWindow(
 
 void FullScreenWindowDetector::UpdateWindowListIfNeeded(
     DesktopCapturer::SourceId original_source_id,
-    rtc::FunctionView<bool(DesktopCapturer::SourceList*)> get_sources) {
+    FunctionView<bool(DesktopCapturer::SourceList*)> get_sources) {
   const bool skip_update = previous_source_id_ != original_source_id;
   previous_source_id_ = original_source_id;
 

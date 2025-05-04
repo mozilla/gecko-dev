@@ -723,7 +723,7 @@ void Thread::Stop() {
   Join();
 }
 
-void Thread::BlockingCallImpl(rtc::FunctionView<void()> functor,
+void Thread::BlockingCallImpl(webrtc::FunctionView<void()> functor,
                               const webrtc::Location& /* location */) {
   TRACE_EVENT0("webrtc", "Thread::BlockingCall");
 

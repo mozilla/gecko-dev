@@ -47,7 +47,7 @@ class CompileTimeTestForGuardedBy {
   ::webrtc::SequenceChecker sequence_checker_;
 };
 
-void RunOnDifferentThread(rtc::FunctionView<void()> run) {
+void RunOnDifferentThread(FunctionView<void()> run) {
   rtc::Event thread_has_run_event;
   rtc::PlatformThread::SpawnJoinable(
       [&] {

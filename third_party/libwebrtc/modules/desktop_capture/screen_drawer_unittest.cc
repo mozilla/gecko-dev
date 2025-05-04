@@ -33,7 +33,7 @@ namespace webrtc {
 namespace {
 
 void TestScreenDrawerLock(
-    rtc::FunctionView<std::unique_ptr<ScreenDrawerLock>()> ctor) {
+    FunctionView<std::unique_ptr<ScreenDrawerLock>()> ctor) {
   constexpr int kLockDurationMs = 100;
 
   std::atomic<bool> created(false);
@@ -43,7 +43,7 @@ void TestScreenDrawerLock(
    public:
     Task(std::atomic<bool>* created,
          const std::atomic<bool>& ready,
-         rtc::FunctionView<std::unique_ptr<ScreenDrawerLock>()> ctor)
+         FunctionView<std::unique_ptr<ScreenDrawerLock>()> ctor)
         : created_(created), ready_(ready), ctor_(ctor) {}
 
     ~Task() = default;
@@ -73,7 +73,7 @@ void TestScreenDrawerLock(
    private:
     std::atomic<bool>* const created_;
     const std::atomic<bool>& ready_;
-    const rtc::FunctionView<std::unique_ptr<ScreenDrawerLock>()> ctor_;
+    const FunctionView<std::unique_ptr<ScreenDrawerLock>()> ctor_;
   } task(&created, ready, ctor);
 
   auto lock_thread = rtc::PlatformThread::SpawnJoinable(

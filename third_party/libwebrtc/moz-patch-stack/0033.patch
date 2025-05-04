@@ -27,7 +27,7 @@ index 6e5bd18fef..831e6c2815 100644
    stats.header_and_padding_bytes_sent =
        call_stats.header_and_padding_bytes_sent;
 diff --git a/audio/channel_send.cc b/audio/channel_send.cc
-index 7b000341cc..b4087ec512 100644
+index 75f512fb26..0f2a36da23 100644
 --- a/audio/channel_send.cc
 +++ b/audio/channel_send.cc
 @@ -80,6 +80,31 @@ constexpr TimeDelta kMinRetransmissionWindow = TimeDelta::Millis(30);
@@ -97,7 +97,7 @@ index 7b000341cc..b4087ec512 100644
    StreamDataCounters rtp_stats;
    StreamDataCounters rtx_stats;
 diff --git a/audio/channel_send.h b/audio/channel_send.h
-index 8cd5b4e875..9335f63f0d 100644
+index 86d5427a00..353f808a93 100644
 --- a/audio/channel_send.h
 +++ b/audio/channel_send.h
 @@ -49,6 +49,7 @@ struct CallSendStatistics {

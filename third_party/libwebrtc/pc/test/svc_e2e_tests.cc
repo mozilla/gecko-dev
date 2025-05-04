@@ -76,8 +76,8 @@ CreateTestFixture(absl::string_view test_case_name,
                   TimeController& time_controller,
                   std::pair<EmulatedNetworkManagerInterface*,
                             EmulatedNetworkManagerInterface*> network_links,
-                  rtc::FunctionView<void(PeerConfigurer*)> alice_configurer,
-                  rtc::FunctionView<void(PeerConfigurer*)> bob_configurer,
+                  FunctionView<void(PeerConfigurer*)> alice_configurer,
+                  FunctionView<void(PeerConfigurer*)> bob_configurer,
                   std::unique_ptr<VideoQualityAnalyzerInterface>
                       video_quality_analyzer = nullptr) {
   auto fixture = webrtc_pc_e2e::CreatePeerConnectionE2EQualityTestFixture(

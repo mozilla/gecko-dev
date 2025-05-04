@@ -169,9 +169,9 @@ class ChannelSend : public ChannelSendInterface,
   void SetEncoder(int payload_type,
                   const SdpAudioFormat& encoder_format,
                   std::unique_ptr<AudioEncoder> encoder) override;
-  void ModifyEncoder(rtc::FunctionView<void(std::unique_ptr<AudioEncoder>*)>
-                         modifier) override;
-  void CallEncoder(rtc::FunctionView<void(AudioEncoder*)> modifier) override;
+  void ModifyEncoder(
+      FunctionView<void(std::unique_ptr<AudioEncoder>*)> modifier) override;
+  void CallEncoder(FunctionView<void(AudioEncoder*)> modifier) override;
 
   // API methods
   void StartSend() override;
@@ -648,14 +648,14 @@ void ChannelSend::SetEncoder(int payload_type,
 }
 
 void ChannelSend::ModifyEncoder(
-    rtc::FunctionView<void(std::unique_ptr<AudioEncoder>*)> modifier) {
+    FunctionView<void(std::unique_ptr<AudioEncoder>*)> modifier) {
   // This method can be called on the worker thread, module process thread
   // or network thread. Audio coding is thread safe, so we do not need to
   // enforce the calling thread.
   audio_coding_->ModifyEncoder(modifier);
 }
 
-void ChannelSend::CallEncoder(rtc::FunctionView<void(AudioEncoder*)> modifier) {
+void ChannelSend::CallEncoder(FunctionView<void(AudioEncoder*)> modifier) {
   ModifyEncoder([modifier](std::unique_ptr<AudioEncoder>* encoder_ptr) {
     if (*encoder_ptr) {
       modifier(encoder_ptr->get());

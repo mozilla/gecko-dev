@@ -154,7 +154,7 @@ PeerConnectionWrapper::CreateRollback() {
 }
 
 std::unique_ptr<SessionDescriptionInterface> PeerConnectionWrapper::CreateSdp(
-    rtc::FunctionView<void(CreateSessionDescriptionObserver*)> fn,
+    FunctionView<void(CreateSessionDescriptionObserver*)> fn,
     std::string* error_out) {
   auto observer = rtc::make_ref_counted<MockCreateSessionDescriptionObserver>();
   fn(observer.get());
@@ -216,7 +216,7 @@ bool PeerConnectionWrapper::SetRemoteDescription(
 }
 
 bool PeerConnectionWrapper::SetSdp(
-    rtc::FunctionView<void(SetSessionDescriptionObserver*)> fn,
+    FunctionView<void(SetSessionDescriptionObserver*)> fn,
     std::string* error_out) {
   auto observer = rtc::make_ref_counted<MockSetSessionDescriptionObserver>();
   fn(observer.get());

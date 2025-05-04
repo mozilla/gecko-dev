@@ -310,7 +310,7 @@ class RTC_LOCKABLE RTC_EXPORT Thread : public webrtc::TaskQueueBase {
   // NOTE: Blocking calls are DISCOURAGED, consider if what you're doing can
   // be achieved with PostTask() and callbacks instead.
   void BlockingCall(
-      FunctionView<void()> functor,
+      webrtc::FunctionView<void()> functor,
       const webrtc::Location& location = webrtc::Location::Current()) {
     BlockingCallImpl(std::move(functor), location);
   }
@@ -423,7 +423,7 @@ class RTC_LOCKABLE RTC_EXPORT Thread : public webrtc::TaskQueueBase {
                            const PostDelayedTaskTraits& traits,
                            const webrtc::Location& location) override;
 
-  virtual void BlockingCallImpl(FunctionView<void()> functor,
+  virtual void BlockingCallImpl(webrtc::FunctionView<void()> functor,
                                 const webrtc::Location& location);
 
   // Perform initialization, subclasses must call this from their constructor
