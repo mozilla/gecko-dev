@@ -84,15 +84,15 @@ using ::webrtc::RTCErrorType;
 using ::webrtc::SafeTask;
 using ::webrtc::TimeDelta;
 
-cricket::PortInterface::CandidateOrigin GetOrigin(
-    cricket::PortInterface* port,
-    cricket::PortInterface* origin_port) {
+webrtc::PortInterface::CandidateOrigin GetOrigin(
+    webrtc::PortInterface* port,
+    webrtc::PortInterface* origin_port) {
   if (!origin_port)
-    return cricket::PortInterface::ORIGIN_MESSAGE;
+    return webrtc::PortInterface::ORIGIN_MESSAGE;
   else if (port == origin_port)
-    return cricket::PortInterface::ORIGIN_THIS_PORT;
+    return webrtc::PortInterface::ORIGIN_THIS_PORT;
   else
-    return cricket::PortInterface::ORIGIN_OTHER_PORT;
+    return webrtc::PortInterface::ORIGIN_OTHER_PORT;
 }
 
 uint32_t GetWeakPingIntervalInFieldTrial(
@@ -901,7 +901,7 @@ void P2PTransportChannel::MaybeStartGathering() {
 
 // A new port is available, attempt to make connections for it
 void P2PTransportChannel::OnPortReady(PortAllocatorSession* /* session */,
-                                      PortInterface* port) {
+                                      webrtc::PortInterface* port) {
   RTC_DCHECK_RUN_ON(network_thread_);
 
   // Set in-effect options on the new port
@@ -980,9 +980,9 @@ void P2PTransportChannel::OnCandidatesAllocationDone(
 }
 
 // Handle stun packets
-void P2PTransportChannel::OnUnknownAddress(PortInterface* port,
+void P2PTransportChannel::OnUnknownAddress(webrtc::PortInterface* port,
                                            const rtc::SocketAddress& address,
-                                           ProtocolType proto,
+                                           webrtc::ProtocolType proto,
                                            IceMessage* stun_msg,
                                            const std::string& remote_username,
                                            bool port_muxed) {
@@ -1069,7 +1069,7 @@ void P2PTransportChannel::OnUnknownAddress(PortInterface* port,
         component(), ProtoToString(proto), address, remote_candidate_priority,
         remote_username, remote_password, IceCandidateType::kPrflx,
         remote_generation, "", network_id, network_cost);
-    if (proto == PROTO_TCP) {
+    if (proto == webrtc::PROTO_TCP) {
       remote_candidate.set_tcptype(TCPTYPE_ACTIVE_STR);
     }
 
@@ -1102,8 +1102,8 @@ void P2PTransportChannel::OnUnknownAddress(PortInterface* port,
     }
   }
 
-  Connection* connection =
-      port->CreateConnection(remote_candidate, PortInterface::ORIGIN_THIS_PORT);
+  Connection* connection = port->CreateConnection(
+      remote_candidate, webrtc::PortInterface::ORIGIN_THIS_PORT);
   if (!connection) {
     // This could happen in some scenarios. For example, a TurnPort may have
     // had a refresh request timeout, so it won't create connections.
@@ -1137,7 +1137,7 @@ void P2PTransportChannel::OnCandidateFilterChanged(uint32_t prev_filter,
   }
 }
 
-void P2PTransportChannel::OnRoleConflict(PortInterface* /* port */) {
+void P2PTransportChannel::OnRoleConflict(webrtc::PortInterface* /* port */) {
   SignalRoleConflict(this);  // STUN ping will be sent when SetRole is called
                              // from Transport.
 }
@@ -1353,8 +1353,9 @@ void P2PTransportChannel::RemoveAllRemoteCandidates() {
 // Creates connections from all of the ports that we care about to the given
 // remote candidate.  The return value is true if we created a connection from
 // the origin port.
-bool P2PTransportChannel::CreateConnections(const Candidate& remote_candidate,
-                                            PortInterface* origin_port) {
+bool P2PTransportChannel::CreateConnections(
+    const Candidate& remote_candidate,
+    webrtc::PortInterface* origin_port) {
   RTC_DCHECK_RUN_ON(network_thread_);
 
   // If we've already seen the new remote candidate (in the current candidate
@@ -1376,7 +1377,7 @@ bool P2PTransportChannel::CreateConnections(const Candidate& remote_candidate,
   // to make sure that the origin port is included, even if it was pruned,
   // since that may be the only port that can create this connection.
   bool created = false;
-  std::vector<PortInterface*>::reverse_iterator it;
+  std::vector<webrtc::PortInterface*>::reverse_iterator it;
   for (it = ports_.rbegin(); it != ports_.rend(); ++it) {
     if (CreateConnection(*it, remote_candidate, origin_port)) {
       if (*it == origin_port)
@@ -1397,9 +1398,9 @@ bool P2PTransportChannel::CreateConnections(const Candidate& remote_candidate,
 
 // Setup a connection object for the local and remote candidate combination.
 // And then listen to connection object for changes.
-bool P2PTransportChannel::CreateConnection(PortInterface* port,
+bool P2PTransportChannel::CreateConnection(webrtc::PortInterface* port,
                                            const Candidate& remote_candidate,
-                                           PortInterface* origin_port) {
+                                           webrtc::PortInterface* origin_port) {
   RTC_DCHECK_RUN_ON(network_thread_);
   if (!port->SupportsProtocol(remote_candidate.protocol())) {
     return false;
@@ -1425,8 +1426,9 @@ bool P2PTransportChannel::CreateConnection(PortInterface* port,
                                    remote_candidate.generation()) {
     // Don't create a connection if this is a candidate we received in a
     // message and we are not allowed to make outgoing connections.
-    PortInterface::CandidateOrigin origin = GetOrigin(port, origin_port);
-    if (origin == PortInterface::ORIGIN_MESSAGE && incoming_only_) {
+    webrtc::PortInterface::CandidateOrigin origin =
+        GetOrigin(port, origin_port);
+    if (origin == webrtc::PortInterface::ORIGIN_MESSAGE && incoming_only_) {
       return false;
     }
     Connection* connection = port->CreateConnection(remote_candidate, origin);
@@ -1493,7 +1495,7 @@ bool P2PTransportChannel::IsDuplicateRemoteCandidate(
 // Maintain our remote candidate list, adding this new remote one.
 void P2PTransportChannel::RememberRemoteCandidate(
     const Candidate& remote_candidate,
-    PortInterface* origin_port) {
+    webrtc::PortInterface* origin_port) {
   RTC_DCHECK_RUN_ON(network_thread_);
   // Remove any candidates whose generation is older than this one.  The
   // presence of a new generation indicates that the old ones are not useful.
@@ -1688,7 +1690,8 @@ void P2PTransportChannel::OnStartedPinging() {
   regathering_controller_->Start();
 }
 
-bool P2PTransportChannel::IsPortPruned(const PortInterface* port) const {
+bool P2PTransportChannel::IsPortPruned(
+    const webrtc::PortInterface* port) const {
   RTC_DCHECK_RUN_ON(network_thread_);
   return !absl::c_linear_search(ports_, port);
 }
@@ -2129,7 +2132,7 @@ void P2PTransportChannel::RemoveConnection(Connection* connection) {
 
 // When a port is destroyed, remove it from our list of ports to use for
 // connection attempts.
-void P2PTransportChannel::OnPortDestroyed(PortInterface* port) {
+void P2PTransportChannel::OnPortDestroyed(webrtc::PortInterface* port) {
   RTC_DCHECK_RUN_ON(network_thread_);
 
   ports_.erase(std::remove(ports_.begin(), ports_.end(), port), ports_.end());
@@ -2142,7 +2145,7 @@ void P2PTransportChannel::OnPortDestroyed(PortInterface* port) {
 
 void P2PTransportChannel::OnPortsPruned(
     PortAllocatorSession* /* session */,
-    const std::vector<PortInterface*>& ports) {
+    const std::vector<webrtc::PortInterface*>& ports) {
   RTC_DCHECK_RUN_ON(network_thread_);
   for (PortInterface* port : ports) {
     if (PrunePort(port)) {
@@ -2179,7 +2182,7 @@ void P2PTransportChannel::PruneAllPorts() {
   ports_.clear();
 }
 
-bool P2PTransportChannel::PrunePort(PortInterface* port) {
+bool P2PTransportChannel::PrunePort(webrtc::PortInterface* port) {
   RTC_DCHECK_RUN_ON(network_thread_);
   auto it = absl::c_find(ports_, port);
   // Don't need to do anything if the port has been deleted from the port

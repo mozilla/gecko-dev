@@ -248,7 +248,7 @@ class PeerConnectionRampUpTest : public ::testing::Test {
                 IsRtcOk());
   }
 
-  void CreateTurnServer(cricket::ProtocolType type,
+  void CreateTurnServer(ProtocolType type,
                         const std::string& common_name = "test turn server") {
     rtc::Thread* thread = network_thread();
     rtc::SocketFactory* factory = &firewall_socket_server_;
@@ -354,7 +354,7 @@ class PeerConnectionRampUpTest : public ::testing::Test {
 };
 
 TEST_F(PeerConnectionRampUpTest, Bwe_After_TurnOverTCP) {
-  CreateTurnServer(cricket::ProtocolType::PROTO_TCP);
+  CreateTurnServer(ProtocolType::PROTO_TCP);
   PeerConnectionInterface::IceServer ice_server;
   std::string ice_server_url = "turn:" + std::string(kTurnInternalAddress) +
                                ":" + std::to_string(kTurnInternalPort) +
@@ -377,7 +377,7 @@ TEST_F(PeerConnectionRampUpTest, Bwe_After_TurnOverTCP) {
 }
 
 TEST_F(PeerConnectionRampUpTest, Bwe_After_TurnOverUDP) {
-  CreateTurnServer(cricket::ProtocolType::PROTO_UDP);
+  CreateTurnServer(ProtocolType::PROTO_UDP);
   PeerConnectionInterface::IceServer ice_server;
   std::string ice_server_url = "turn:" + std::string(kTurnInternalAddress) +
                                ":" + std::to_string(kTurnInternalPort);
@@ -400,7 +400,7 @@ TEST_F(PeerConnectionRampUpTest, Bwe_After_TurnOverUDP) {
 }
 
 TEST_F(PeerConnectionRampUpTest, Bwe_After_TurnOverTLS) {
-  CreateTurnServer(cricket::ProtocolType::PROTO_TLS, kTurnInternalAddress);
+  CreateTurnServer(ProtocolType::PROTO_TLS, kTurnInternalAddress);
   PeerConnectionInterface::IceServer ice_server;
   std::string ice_server_url = "turns:" + std::string(kTurnInternalAddress) +
                                ":" + std::to_string(kTurnInternalPort) +

@@ -86,13 +86,13 @@ bool IceCredentialsChanged(absl::string_view old_ufrag,
 // Adds the port on which the candidate originated.
 class RemoteCandidate : public Candidate {
  public:
-  RemoteCandidate(const Candidate& c, PortInterface* origin_port)
+  RemoteCandidate(const Candidate& c, webrtc::PortInterface* origin_port)
       : Candidate(c), origin_port_(origin_port) {}
 
-  PortInterface* origin_port() { return origin_port_; }
+  webrtc::PortInterface* origin_port() { return origin_port_; }
 
  private:
-  PortInterface* origin_port_;
+  webrtc::PortInterface* origin_port_;
 };
 
 // P2PTransportChannel manages the candidates and connection process to keep
@@ -187,11 +187,11 @@ class RTC_EXPORT P2PTransportChannel : public IceTransportInternal,
 
   // Note: These are only for testing purpose.
   // `ports_` and `pruned_ports` should not be changed from outside.
-  const std::vector<PortInterface*>& ports() {
+  const std::vector<webrtc::PortInterface*>& ports() {
     RTC_DCHECK_RUN_ON(network_thread_);
     return ports_;
   }
-  const std::vector<PortInterface*>& pruned_ports() {
+  const std::vector<webrtc::PortInterface*>& pruned_ports() {
     RTC_DCHECK_RUN_ON(network_thread_);
     return pruned_ports_;
   }
@@ -298,23 +298,23 @@ class RTC_EXPORT P2PTransportChannel : public IceTransportInternal,
   webrtc::IceTransportState ComputeIceTransportState() const;
 
   bool CreateConnections(const Candidate& remote_candidate,
-                         PortInterface* origin_port);
-  bool CreateConnection(PortInterface* port,
+                         webrtc::PortInterface* origin_port);
+  bool CreateConnection(webrtc::PortInterface* port,
                         const Candidate& remote_candidate,
-                        PortInterface* origin_port);
+                        webrtc::PortInterface* origin_port);
   bool FindConnection(const Connection* connection) const;
 
   uint32_t GetRemoteCandidateGeneration(const Candidate& candidate);
   bool IsDuplicateRemoteCandidate(const Candidate& candidate);
   void RememberRemoteCandidate(const Candidate& remote_candidate,
-                               PortInterface* origin_port);
+                               webrtc::PortInterface* origin_port);
   void PingConnection(Connection* conn);
   void AddAllocatorSession(std::unique_ptr<PortAllocatorSession> session);
   void AddConnection(Connection* connection);
 
-  void OnPortReady(PortAllocatorSession* session, PortInterface* port);
+  void OnPortReady(PortAllocatorSession* session, webrtc::PortInterface* port);
   void OnPortsPruned(PortAllocatorSession* session,
-                     const std::vector<PortInterface*>& ports);
+                     const std::vector<webrtc::PortInterface*>& ports);
   void OnCandidatesReady(PortAllocatorSession* session,
                          const std::vector<Candidate>& candidates);
   void OnCandidateError(PortAllocatorSession* session,
@@ -322,9 +322,9 @@ class RTC_EXPORT P2PTransportChannel : public IceTransportInternal,
   void OnCandidatesRemoved(PortAllocatorSession* session,
                            const std::vector<Candidate>& candidates);
   void OnCandidatesAllocationDone(PortAllocatorSession* session);
-  void OnUnknownAddress(PortInterface* port,
+  void OnUnknownAddress(webrtc::PortInterface* port,
                         const rtc::SocketAddress& addr,
-                        ProtocolType proto,
+                        webrtc::ProtocolType proto,
                         IceMessage* stun_msg,
                         const std::string& remote_username,
                         bool port_muxed);
@@ -332,11 +332,11 @@ class RTC_EXPORT P2PTransportChannel : public IceTransportInternal,
 
   // When a port is destroyed, remove it from both lists `ports_`
   // and `pruned_ports_`.
-  void OnPortDestroyed(PortInterface* port);
+  void OnPortDestroyed(webrtc::PortInterface* port);
   // When pruning a port, move it from `ports_` to `pruned_ports_`.
   // Returns true if the port is found and removed from `ports_`.
-  bool PrunePort(PortInterface* port);
-  void OnRoleConflict(PortInterface* port);
+  bool PrunePort(webrtc::PortInterface* port);
+  void OnRoleConflict(webrtc::PortInterface* port);
 
   void OnConnectionStateChange(Connection* connection);
   void OnReadPacket(Connection* connection, const rtc::ReceivedPacket& packet);
@@ -375,7 +375,7 @@ class RTC_EXPORT P2PTransportChannel : public IceTransportInternal,
   }
 
   // Indicates if the given local port has been pruned.
-  bool IsPortPruned(const PortInterface* port) const;
+  bool IsPortPruned(const webrtc::PortInterface* port) const;
 
   // Indicates if the given remote candidate has been pruned.
   bool IsRemoteCandidatePruned(const Candidate& cand) const;
@@ -423,12 +423,13 @@ class RTC_EXPORT P2PTransportChannel : public IceTransportInternal,
       RTC_GUARDED_BY(network_thread_);
   // `ports_` contains ports that are used to form new connections when
   // new remote candidates are added.
-  std::vector<PortInterface*> ports_ RTC_GUARDED_BY(network_thread_);
+  std::vector<webrtc::PortInterface*> ports_ RTC_GUARDED_BY(network_thread_);
   // `pruned_ports_` contains ports that have been removed from `ports_` and
   // are not being used to form new connections, but that aren't yet destroyed.
   // They may have existing connections, and they still fire signals such as
   // SignalUnknownAddress.
-  std::vector<PortInterface*> pruned_ports_ RTC_GUARDED_BY(network_thread_);
+  std::vector<webrtc::PortInterface*> pruned_ports_
+      RTC_GUARDED_BY(network_thread_);
 
   Connection* selected_connection_ RTC_GUARDED_BY(network_thread_) = nullptr;
   std::vector<Connection*> connections_ RTC_GUARDED_BY(network_thread_);

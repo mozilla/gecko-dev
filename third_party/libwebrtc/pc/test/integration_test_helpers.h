@@ -1638,7 +1638,7 @@ class PeerConnectionIntegrationBaseTest : public ::testing::Test {
   cricket::TestTurnServer* CreateTurnServer(
       rtc::SocketAddress internal_address,
       rtc::SocketAddress external_address,
-      cricket::ProtocolType type = cricket::ProtocolType::PROTO_UDP,
+      ProtocolType type = ProtocolType::PROTO_UDP,
       const std::string& common_name = "test turn server") {
     rtc::Thread* thread = network_thread();
     rtc::SocketFactory* socket_factory = fss_.get();

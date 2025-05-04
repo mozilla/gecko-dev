@@ -51,15 +51,15 @@ using ::webrtc::TaskQueueBase;
 using ::webrtc::TimeDelta;
 
 rtc::PacketInfoProtocolType ConvertProtocolTypeToPacketInfoProtocolType(
-    cricket::ProtocolType type) {
+    webrtc::ProtocolType type) {
   switch (type) {
-    case cricket::ProtocolType::PROTO_UDP:
+    case webrtc::ProtocolType::PROTO_UDP:
       return rtc::PacketInfoProtocolType::kUdp;
-    case cricket::ProtocolType::PROTO_TCP:
+    case webrtc::ProtocolType::PROTO_TCP:
       return rtc::PacketInfoProtocolType::kTcp;
-    case cricket::ProtocolType::PROTO_SSLTCP:
+    case webrtc::ProtocolType::PROTO_SSLTCP:
       return rtc::PacketInfoProtocolType::kSsltcp;
-    case cricket::ProtocolType::PROTO_TLS:
+    case webrtc::ProtocolType::PROTO_TLS:
       return rtc::PacketInfoProtocolType::kTls;
     default:
       return rtc::PacketInfoProtocolType::kUnknown;
@@ -76,14 +76,15 @@ static const char* const PROTO_NAMES[] = {UDP_PROTOCOL_NAME, TCP_PROTOCOL_NAME,
                                           SSLTCP_PROTOCOL_NAME,
                                           TLS_PROTOCOL_NAME};
 
-const char* ProtoToString(ProtocolType proto) {
+const char* ProtoToString(webrtc::ProtocolType proto) {
   return PROTO_NAMES[proto];
 }
 
-std::optional<ProtocolType> StringToProto(absl::string_view proto_name) {
-  for (size_t i = 0; i <= PROTO_LAST; ++i) {
+std::optional<webrtc::ProtocolType> StringToProto(
+    absl::string_view proto_name) {
+  for (size_t i = 0; i <= webrtc::PROTO_LAST; ++i) {
     if (absl::EqualsIgnoreCase(PROTO_NAMES[i], proto_name)) {
-      return static_cast<ProtocolType>(i);
+      return static_cast<webrtc::ProtocolType>(i);
     }
   }
   return std::nullopt;
@@ -317,7 +318,8 @@ void Port::AddOrReplaceConnection(Connection* conn) {
   }
 }
 
-void Port::OnReadPacket(const rtc::ReceivedPacket& packet, ProtocolType proto) {
+void Port::OnReadPacket(const rtc::ReceivedPacket& packet,
+                        webrtc::ProtocolType proto) {
   const char* data = reinterpret_cast<const char*>(packet.payload().data());
   size_t size = packet.payload().size();
   const rtc::SocketAddress& addr = packet.source_address();
@@ -826,7 +828,7 @@ void Port::DestroyIfDead() {
 }
 
 void Port::SubscribePortDestroyed(
-    std::function<void(PortInterface*)> callback) {
+    std::function<void(webrtc::PortInterface*)> callback) {
   port_destroyed_callback_list_.AddReceiver(callback);
 }
 

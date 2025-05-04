@@ -1101,18 +1101,17 @@ bool ParseCandidate(absl::string_view message,
   }
   SocketAddress address(connection_address, port);
 
-  std::optional<cricket::ProtocolType> protocol =
-      cricket::StringToProto(transport);
+  std::optional<ProtocolType> protocol = cricket::StringToProto(transport);
   if (!protocol) {
     return ParseFailed(first_line, "Unsupported transport type.", error);
   }
   bool tcp_protocol = false;
   switch (*protocol) {
     // Supported protocols.
-    case cricket::PROTO_UDP:
+    case PROTO_UDP:
       break;
-    case cricket::PROTO_TCP:
-    case cricket::PROTO_SSLTCP:
+    case PROTO_TCP:
+    case PROTO_SSLTCP:
       tcp_protocol = true;
       break;
     default:

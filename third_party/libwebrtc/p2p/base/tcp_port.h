@@ -77,7 +77,7 @@ class TCPPort : public Port {
   int SetOption(rtc::Socket::Option opt, int value) override;
   int GetError() override;
   bool SupportsProtocol(absl::string_view protocol) const override;
-  ProtocolType GetProtocol() const override;
+  webrtc::ProtocolType GetProtocol() const override;
 
  protected:
   TCPPort(const PortParametersRef& args,
@@ -182,7 +182,7 @@ class TCPConnection : public Connection, public sigslot::has_slots<> {
   void OnDestroyed(Connection* c);
 
   TCPPort* tcp_port() {
-    RTC_DCHECK_EQ(port()->GetProtocol(), PROTO_TCP);
+    RTC_DCHECK_EQ(port()->GetProtocol(), webrtc::PROTO_TCP);
     return static_cast<TCPPort*>(port());
   }
 

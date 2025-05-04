@@ -154,7 +154,7 @@ class FakePortAllocatorSession : public PortAllocatorSession {
     SignalIceRegathering(this, IceRegatheringReason::NETWORK_FAILURE);
   }
 
-  std::vector<PortInterface*> ReadyPorts() const override {
+  std::vector<webrtc::PortInterface*> ReadyPorts() const override {
     return ready_ports_;
   }
   std::vector<Candidate> ReadyCandidates() const override {
@@ -203,7 +203,7 @@ class FakePortAllocatorSession : public PortAllocatorSession {
     allocation_done_ = true;
     SignalCandidatesAllocationDone(this);
   }
-  void OnPortDestroyed(cricket::PortInterface* /* port */) {
+  void OnPortDestroyed(webrtc::PortInterface* /* port */) {
     // Don't want to double-delete port if it deletes itself.
     port_.release();
   }
@@ -216,7 +216,7 @@ class FakePortAllocatorSession : public PortAllocatorSession {
   std::unique_ptr<cricket::Port> port_;
   int port_config_count_;
   std::vector<Candidate> candidates_;
-  std::vector<PortInterface*> ready_ports_;
+  std::vector<webrtc::PortInterface*> ready_ports_;
   bool allocation_done_ = false;
   bool is_cleared = false;
   ServerAddresses stun_servers_;

@@ -51,9 +51,9 @@ const int TURN_SERVER_PORT = 3478;
 // Encapsulates the client's connection to the server.
 class TurnServerConnection {
  public:
-  TurnServerConnection() : proto_(PROTO_UDP), socket_(NULL) {}
+  TurnServerConnection() : proto_(webrtc::PROTO_UDP), socket_(NULL) {}
   TurnServerConnection(const rtc::SocketAddress& src,
-                       ProtocolType proto,
+                       webrtc::ProtocolType proto,
                        rtc::AsyncPacketSocket* socket);
   const rtc::SocketAddress& src() const { return src_; }
   rtc::AsyncPacketSocket* socket() { return socket_; }
@@ -64,7 +64,7 @@ class TurnServerConnection {
  private:
   rtc::SocketAddress src_;
   rtc::SocketAddress dst_;
-  cricket::ProtocolType proto_;
+  webrtc::ProtocolType proto_;
   rtc::AsyncPacketSocket* socket_;
 };
 
@@ -246,13 +246,14 @@ class TurnServer : public sigslot::has_slots<> {
   }
 
   // Starts listening for packets from internal clients.
-  void AddInternalSocket(rtc::AsyncPacketSocket* socket, ProtocolType proto);
+  void AddInternalSocket(rtc::AsyncPacketSocket* socket,
+                         webrtc::ProtocolType proto);
   // Starts listening for the connections on this socket. When someone tries
   // to connect, the connection will be accepted and a new internal socket
   // will be added.
   void AddInternalServerSocket(
       rtc::Socket* socket,
-      ProtocolType proto,
+      webrtc::ProtocolType proto,
       std::unique_ptr<rtc::SSLAdapterFactory> ssl_adapter_factory = nullptr);
   // Specifies the factory to use for creating external sockets.
   void SetExternalSocketFactory(rtc::PacketSocketFactory* factory,
@@ -329,9 +330,10 @@ class TurnServer : public sigslot::has_slots<> {
   void DestroyInternalSocket(rtc::AsyncPacketSocket* socket)
       RTC_RUN_ON(thread_);
 
-  typedef std::map<rtc::AsyncPacketSocket*, ProtocolType> InternalSocketMap;
+  typedef std::map<rtc::AsyncPacketSocket*, webrtc::ProtocolType>
+      InternalSocketMap;
   struct ServerSocketInfo {
-    ProtocolType proto;
+    webrtc::ProtocolType proto;
     // If non-null, used to wrap accepted sockets.
     std::unique_ptr<rtc::SSLAdapterFactory> ssl_adapter_factory;
   };

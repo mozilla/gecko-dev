@@ -177,7 +177,7 @@ RTCError ParseIceServerUrl(
 
   RTC_DCHECK(stun_servers != nullptr);
   RTC_DCHECK(turn_servers != nullptr);
-  cricket::ProtocolType turn_transport_type = cricket::PROTO_UDP;
+  ProtocolType turn_transport_type = PROTO_UDP;
   RTC_DCHECK(!url.empty());
   std::vector<absl::string_view> tokens = rtc::split(url, '?');
   absl::string_view uri_without_transport = tokens[0];
@@ -196,10 +196,9 @@ RTCError ParseIceServerUrl(
           "ICE server parsing failed: Transport parameter missing value.");
     }
 
-    std::optional<cricket::ProtocolType> proto =
+    std::optional<ProtocolType> proto =
         cricket::StringToProto(transport_tokens[1]);
-    if (!proto ||
-        (*proto != cricket::PROTO_UDP && *proto != cricket::PROTO_TCP)) {
+    if (!proto || (*proto != PROTO_UDP && *proto != PROTO_TCP)) {
       LOG_AND_RETURN_ERROR(
           RTCErrorType::SYNTAX_ERROR,
           "ICE server parsing failed: Transport parameter should "
@@ -232,7 +231,7 @@ RTCError ParseIceServerUrl(
   int default_port = kDefaultStunPort;
   if (service_type == ServiceType::TURNS) {
     default_port = kDefaultStunTlsPort;
-    turn_transport_type = cricket::PROTO_TLS;
+    turn_transport_type = PROTO_TLS;
   }
 
   if (hoststring.find('@') != absl::string_view::npos) {

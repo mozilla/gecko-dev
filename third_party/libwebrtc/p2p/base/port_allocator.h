@@ -160,18 +160,18 @@ struct RTC_EXPORT RelayServerConfig {
   RelayServerConfig(const rtc::SocketAddress& address,
                     absl::string_view username,
                     absl::string_view password,
-                    ProtocolType proto);
+                    webrtc::ProtocolType proto);
   RelayServerConfig(absl::string_view address,
                     int port,
                     absl::string_view username,
                     absl::string_view password,
-                    ProtocolType proto);
+                    webrtc::ProtocolType proto);
   // Legacy constructor where "secure" and PROTO_TCP implies PROTO_TLS.
   RelayServerConfig(absl::string_view address,
                     int port,
                     absl::string_view username,
                     absl::string_view password,
-                    ProtocolType proto,
+                    webrtc::ProtocolType proto,
                     bool secure);
   RelayServerConfig(const RelayServerConfig&);
   ~RelayServerConfig();
@@ -259,19 +259,21 @@ class RTC_EXPORT PortAllocatorSession : public sigslot::has_slots<> {
   //
   // Ports and candidates are not guaranteed to be in the same order as the
   // signals were emitted in.
-  virtual std::vector<PortInterface*> ReadyPorts() const = 0;
+  virtual std::vector<webrtc::PortInterface*> ReadyPorts() const = 0;
   virtual std::vector<Candidate> ReadyCandidates() const = 0;
   virtual bool CandidatesAllocationDone() const = 0;
   // Marks all ports in the current session as "pruned" so that they may be
   // destroyed if no connection is using them.
   virtual void PruneAllPorts() {}
 
-  sigslot::signal2<PortAllocatorSession*, PortInterface*> SignalPortReady;
+  sigslot::signal2<PortAllocatorSession*, webrtc::PortInterface*>
+      SignalPortReady;
   // Fires this signal when the network of the ports failed (either because the
   // interface is down, or because there is no connection on the interface),
   // or when TURN ports are pruned because a higher-priority TURN port becomes
   // ready(pairable).
-  sigslot::signal2<PortAllocatorSession*, const std::vector<PortInterface*>&>
+  sigslot::signal2<PortAllocatorSession*,
+                   const std::vector<webrtc::PortInterface*>&>
       SignalPortsPruned;
   sigslot::signal2<PortAllocatorSession*, const std::vector<Candidate>&>
       SignalCandidatesReady;

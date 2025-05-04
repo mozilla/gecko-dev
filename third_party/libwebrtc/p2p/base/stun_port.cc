@@ -338,8 +338,8 @@ bool UDPPort::SupportsProtocol(absl::string_view protocol) const {
   return protocol == UDP_PROTOCOL_NAME;
 }
 
-ProtocolType UDPPort::GetProtocol() const {
-  return PROTO_UDP;
+webrtc::ProtocolType UDPPort::GetProtocol() const {
+  return webrtc::PROTO_UDP;
 }
 
 void UDPPort::GetStunStats(std::optional<StunStats>* stats) {
@@ -392,13 +392,13 @@ void UDPPort::OnReadPacket(rtc::AsyncPacketSocket* socket,
   if (Connection* conn = GetConnection(packet.source_address())) {
     conn->OnReadPacket(packet);
   } else {
-    Port::OnReadPacket(packet, PROTO_UDP);
+    Port::OnReadPacket(packet, webrtc::PROTO_UDP);
   }
 }
 
 void UDPPort::OnSentPacket(rtc::AsyncPacketSocket* /* socket */,
                            const rtc::SentPacket& sent_packet) {
-  PortInterface::SignalSentPacket(sent_packet);
+  webrtc::PortInterface::SignalSentPacket(sent_packet);
 }
 
 void UDPPort::OnReadyToSend(rtc::AsyncPacketSocket* /* socket */) {

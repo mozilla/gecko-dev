@@ -105,6 +105,10 @@ specific_include_rules = {
     "+rtc_base/socket_address.h",
   ],
 
+  "turn_customizer\.h": [
+    "+p2p/base/port_interface.h",
+  ],
+
   "peer_connection_interface\.h": [
     "+call/rtp_transport_controller_send_factory_interface.h",
     "+media/base/media_config.h",

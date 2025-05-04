@@ -127,7 +127,7 @@ class TurnPort : public Port {
   }
   const RelayCredentials& credentials() const { return credentials_; }
 
-  ProtocolType GetProtocol() const override;
+  webrtc::ProtocolType GetProtocol() const override;
 
   virtual TlsCertPolicy GetTlsCertPolicy() const;
   virtual void SetTlsCertPolicy(TlsCertPolicy tls_cert_policy);
@@ -142,8 +142,9 @@ class TurnPort : public Port {
   void Release();
 
   void PrepareAddress() override;
-  Connection* CreateConnection(const Candidate& c,
-                               PortInterface::CandidateOrigin origin) override;
+  Connection* CreateConnection(
+      const Candidate& c,
+      webrtc::PortInterface::CandidateOrigin origin) override;
   int SendTo(const void* data,
              size_t size,
              const rtc::SocketAddress& addr,
@@ -308,7 +309,7 @@ class TurnPort : public Port {
   void DispatchPacket(const char* data,
                       size_t size,
                       const rtc::SocketAddress& remote_addr,
-                      ProtocolType proto,
+                      webrtc::ProtocolType proto,
                       int64_t packet_time_us);
 
   bool ScheduleRefresh(uint32_t lifetime);

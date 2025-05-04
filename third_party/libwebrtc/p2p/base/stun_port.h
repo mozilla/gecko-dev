@@ -131,7 +131,7 @@ class RTC_EXPORT UDPPort : public Port {
                             const rtc::ReceivedPacket& packet) override;
 
   bool SupportsProtocol(absl::string_view protocol) const override;
-  ProtocolType GetProtocol() const override;
+  webrtc::ProtocolType GetProtocol() const override;
 
   void GetStunStats(std::optional<StunStats>* stats) override;
 

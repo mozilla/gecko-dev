@@ -28,7 +28,7 @@ class TestTurnCustomizer : public webrtc::TurnCustomizer {
     STUN_ATTR_COUNTER = 0xFF02  // Number
   };
 
-  void MaybeModifyOutgoingStunMessage(cricket::PortInterface* port,
+  void MaybeModifyOutgoingStunMessage(webrtc::PortInterface* port,
                                       cricket::StunMessage* message) override {
     modify_cnt_++;
 
@@ -40,7 +40,7 @@ class TestTurnCustomizer : public webrtc::TurnCustomizer {
     return;
   }
 
-  bool AllowChannelData(cricket::PortInterface* port,
+  bool AllowChannelData(webrtc::PortInterface* port,
                         const void* data,
                         size_t size,
                         bool payload) override {

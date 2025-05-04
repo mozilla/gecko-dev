@@ -120,14 +120,14 @@ class CandidateStats {
 
 typedef std::vector<CandidateStats> CandidateStatsList;
 
-const char* ProtoToString(ProtocolType proto);
-std::optional<ProtocolType> StringToProto(absl::string_view proto_name);
+const char* ProtoToString(webrtc::ProtocolType proto);
+std::optional<webrtc::ProtocolType> StringToProto(absl::string_view proto_name);
 
 struct ProtocolAddress {
   rtc::SocketAddress address;
-  ProtocolType proto;
+  webrtc::ProtocolType proto;
 
-  ProtocolAddress(const rtc::SocketAddress& a, ProtocolType p)
+  ProtocolAddress(const rtc::SocketAddress& a, webrtc::ProtocolType p)
       : address(a), proto(p) {}
 
   bool operator==(const ProtocolAddress& o) const {
@@ -169,7 +169,8 @@ typedef std::set<rtc::SocketAddress> ServerAddresses;
 // Represents a local communication mechanism that can be used to create
 // connections to similar mechanisms of the other client.  Subclasses of this
 // one add support for specific mechanisms like local UDP ports.
-class RTC_EXPORT Port : public PortInterface, public sigslot::has_slots<> {
+class RTC_EXPORT Port : public webrtc::PortInterface,
+                        public sigslot::has_slots<> {
  public:
   // A struct containing common arguments to creating a port. See also
   // CreateRelayPortArgs.
@@ -278,7 +279,7 @@ class RTC_EXPORT Port : public PortInterface, public sigslot::has_slots<> {
   sigslot::signal1<Port*> SignalPortError;
 
   void SubscribePortDestroyed(
-      std::function<void(PortInterface*)> callback) override;
+      std::function<void(webrtc::PortInterface*)> callback) override;
   void SendPortDestroyed(Port* port);
   // Returns a map containing all of the connections of this port, keyed by the
   // remote address.
@@ -395,7 +396,8 @@ class RTC_EXPORT Port : public PortInterface, public sigslot::has_slots<> {
   // Called when a packet is received from an unknown address that is not
   // currently a connection.  If this is an authenticated STUN binding request,
   // then we will signal the client.
-  void OnReadPacket(const rtc::ReceivedPacket& packet, ProtocolType proto);
+  void OnReadPacket(const rtc::ReceivedPacket& packet,
+                    webrtc::ProtocolType proto);
 
   [[deprecated(
       "Use OnReadPacket(const rtc::ReceivedPacket& packet, ProtocolType "
@@ -403,7 +405,7 @@ class RTC_EXPORT Port : public PortInterface, public sigslot::has_slots<> {
   OnReadPacket(const char* data,
                size_t size,
                const rtc::SocketAddress& addr,
-               ProtocolType proto) {
+               webrtc::ProtocolType proto) {
     OnReadPacket(rtc::ReceivedPacket::CreateFromLegacy(
                      data, size, /*packet_time_us = */ -1, addr),
                  proto);
@@ -508,7 +510,7 @@ class RTC_EXPORT Port : public PortInterface, public sigslot::has_slots<> {
   MdnsNameRegistrationStatus mdns_name_registration_status_ =
       MdnsNameRegistrationStatus::kNotStarted;
 
-  webrtc::CallbackList<PortInterface*> port_destroyed_callback_list_;
+  webrtc::CallbackList<webrtc::PortInterface*> port_destroyed_callback_list_;
 
   // Keep as the last member variable.
   rtc::WeakPtrFactory<Port> weak_factory_;

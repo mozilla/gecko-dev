@@ -154,7 +154,7 @@ class RTC_EXPORT BasicPortAllocatorSession : public PortAllocatorSession {
   bool IsCleared() const override;
   bool IsStopped() const override;
   // These will all be cricket::Ports.
-  std::vector<PortInterface*> ReadyPorts() const override;
+  std::vector<webrtc::PortInterface*> ReadyPorts() const override;
   std::vector<Candidate> ReadyCandidates() const override;
   bool CandidatesAllocationDone() const override;
   void RegatherOnFailedNetworks() override;
@@ -249,8 +249,8 @@ class RTC_EXPORT BasicPortAllocatorSession : public PortAllocatorSession {
   void OnCandidateError(Port* port, const IceCandidateErrorEvent& event);
   void OnPortComplete(Port* port);
   void OnPortError(Port* port);
-  void OnProtocolEnabled(AllocationSequence* seq, ProtocolType proto);
-  void OnPortDestroyed(PortInterface* port);
+  void OnProtocolEnabled(AllocationSequence* seq, webrtc::ProtocolType proto);
+  void OnPortDestroyed(webrtc::PortInterface* port);
   void MaybeSignalCandidatesAllocationDone();
   void OnPortAllocationComplete();
   PortData* FindPort(Port* port);
@@ -325,11 +325,11 @@ struct RTC_EXPORT PortConfiguration {
 
   // Determines whether the given relay server supports the given protocol.
   bool SupportsProtocol(const RelayServerConfig& relay,
-                        ProtocolType type) const;
-  bool SupportsProtocol(ProtocolType type) const;
+                        webrtc::ProtocolType type) const;
+  bool SupportsProtocol(webrtc::ProtocolType type) const;
   // Helper method returns the server addresses for the matching RelayType and
   // Protocol type.
-  ServerAddresses GetRelayServerAddresses(ProtocolType type) const;
+  ServerAddresses GetRelayServerAddresses(webrtc::ProtocolType type) const;
 };
 
 class UDPPort;
@@ -384,7 +384,7 @@ class AllocationSequence {
  private:
   void CreateTurnPort(const RelayServerConfig& config, int relative_priority);
 
-  typedef std::vector<ProtocolType> ProtocolList;
+  typedef std::vector<webrtc::ProtocolType> ProtocolList;
 
   void Process(int epoch);
   bool IsFlagSet(uint32_t flag) { return ((flags_ & flag) != 0); }
@@ -396,7 +396,7 @@ class AllocationSequence {
   void OnReadPacket(rtc::AsyncPacketSocket* socket,
                     const rtc::ReceivedPacket& packet);
 
-  void OnPortDestroyed(PortInterface* port);
+  void OnPortDestroyed(webrtc::PortInterface* port);
 
   BasicPortAllocatorSession* session_;
   bool network_failed_ = false;

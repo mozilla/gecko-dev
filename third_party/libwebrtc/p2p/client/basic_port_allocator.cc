@@ -68,14 +68,14 @@ const int PHASE_TCP = 2;
 const int kNumPhases = 3;
 
 // Gets protocol priority: UDP > TCP > SSLTCP == TLS.
-int GetProtocolPriority(cricket::ProtocolType protocol) {
+int GetProtocolPriority(webrtc::ProtocolType protocol) {
   switch (protocol) {
-    case cricket::PROTO_UDP:
+    case webrtc::PROTO_UDP:
       return 2;
-    case cricket::PROTO_TCP:
+    case webrtc::PROTO_TCP:
       return 1;
-    case cricket::PROTO_SSLTCP:
-    case cricket::PROTO_TLS:
+    case webrtc::PROTO_SSLTCP:
+    case webrtc::PROTO_TLS:
       return 0;
     default:
       RTC_DCHECK_NOTREACHED();
@@ -511,16 +511,17 @@ void BasicPortAllocatorSession::SetStunKeepaliveIntervalForReadyPorts(
     // IceCandidateType::kHost but uses the protocol PROTO_TCP.
     if (port->Type() == IceCandidateType::kSrflx ||
         (port->Type() == IceCandidateType::kHost &&
-         port->GetProtocol() == PROTO_UDP)) {
+         port->GetProtocol() == webrtc::PROTO_UDP)) {
       static_cast<UDPPort*>(port)->set_stun_keepalive_delay(
           stun_keepalive_interval);
     }
   }
 }
 
-std::vector<PortInterface*> BasicPortAllocatorSession::ReadyPorts() const {
+std::vector<webrtc::PortInterface*> BasicPortAllocatorSession::ReadyPorts()
+    const {
   RTC_DCHECK_RUN_ON(network_thread_);
-  std::vector<PortInterface*> ret;
+  std::vector<webrtc::PortInterface*> ret;
   for (const PortData& data : ports_) {
     if (data.ready()) {
       ret.push_back(data.port());
@@ -1198,7 +1199,7 @@ void BasicPortAllocatorSession::MaybeSignalCandidatesAllocationDone() {
   }
 }
 
-void BasicPortAllocatorSession::OnPortDestroyed(PortInterface* port) {
+void BasicPortAllocatorSession::OnPortDestroyed(webrtc::PortInterface* port) {
   RTC_DCHECK_RUN_ON(network_thread_);
   for (std::vector<PortData>::iterator iter = ports_.begin();
        iter != ports_.end(); ++iter) {
@@ -1241,7 +1242,7 @@ BasicPortAllocatorSession::GetUnprunedPorts(
 void BasicPortAllocatorSession::PrunePortsAndRemoveCandidates(
     const std::vector<PortData*>& port_data_list) {
   RTC_DCHECK_RUN_ON(network_thread_);
-  std::vector<PortInterface*> pruned_ports;
+  std::vector<webrtc::PortInterface*> pruned_ports;
   std::vector<Candidate> removed_candidates;
   for (PortData* data : port_data_list) {
     // Prune the port so that it may be destroyed.
@@ -1352,7 +1353,7 @@ void AllocationSequence::DisableEquivalentPhases(const rtc::Network* network,
   if (absl::c_any_of(session_->ports_,
                      [this](const BasicPortAllocatorSession::PortData& p) {
                        return !p.pruned() && p.port()->Network() == network_ &&
-                              p.port()->GetProtocol() == PROTO_UDP &&
+                              p.port()->GetProtocol() == webrtc::PROTO_UDP &&
                               p.port()->Type() == IceCandidateType::kHost &&
                               !p.error();
                      })) {
@@ -1363,7 +1364,7 @@ void AllocationSequence::DisableEquivalentPhases(const rtc::Network* network,
   if (absl::c_any_of(session_->ports_,
                      [this](const BasicPortAllocatorSession::PortData& p) {
                        return !p.pruned() && p.port()->Network() == network_ &&
-                              p.port()->GetProtocol() == PROTO_TCP &&
+                              p.port()->GetProtocol() == webrtc::PROTO_TCP &&
                               p.port()->Type() == IceCandidateType::kHost &&
                               !p.error();
                      })) {
@@ -1604,7 +1605,7 @@ void AllocationSequence::CreateTurnPort(const RelayServerConfig& config,
        ++relay_port) {
     // Skip UDP connections to relay servers if it's disallowed.
     if (IsFlagSet(PORTALLOCATOR_DISABLE_UDP_RELAY) &&
-        relay_port->proto == PROTO_UDP) {
+        relay_port->proto == webrtc::PROTO_UDP) {
       continue;
     }
 
@@ -1639,7 +1640,7 @@ void AllocationSequence::CreateTurnPort(const RelayServerConfig& config,
     // TODO(mallinath) - Enable shared socket mode for TURN ports. Disabled
     // due to webrtc bug https://code.google.com/p/webrtc/issues/detail?id=3537
     if (IsFlagSet(PORTALLOCATOR_ENABLE_SHARED_SOCKET) &&
-        relay_port->proto == PROTO_UDP && udp_socket_) {
+        relay_port->proto == webrtc::PROTO_UDP && udp_socket_) {
       port = session_->allocator()->relay_port_factory()->Create(
           args, udp_socket_.get());
 
@@ -1706,7 +1707,7 @@ void AllocationSequence::OnReadPacket(rtc::AsyncPacketSocket* socket,
   }
 }
 
-void AllocationSequence::OnPortDestroyed(PortInterface* port) {
+void AllocationSequence::OnPortDestroyed(webrtc::PortInterface* port) {
   if (udp_port_ == port) {
     udp_port_ = NULL;
     return;
@@ -1749,7 +1750,7 @@ ServerAddresses PortConfiguration::StunServers() {
   // Every UDP TURN server should also be used as a STUN server if
   // use_turn_server_as_stun_server is not disabled or the stun servers are
   // empty.
-  ServerAddresses turn_servers = GetRelayServerAddresses(PROTO_UDP);
+  ServerAddresses turn_servers = GetRelayServerAddresses(webrtc::PROTO_UDP);
   for (const rtc::SocketAddress& turn_server : turn_servers) {
     if (stun_servers.find(turn_server) == stun_servers.end()) {
       stun_servers.insert(turn_server);
@@ -1763,7 +1764,7 @@ void PortConfiguration::AddRelay(const RelayServerConfig& config) {
 }
 
 bool PortConfiguration::SupportsProtocol(const RelayServerConfig& relay,
-                                         ProtocolType type) const {
+                                         webrtc::ProtocolType type) const {
   PortList::const_iterator relay_port;
   for (relay_port = relay.ports.begin(); relay_port != relay.ports.end();
        ++relay_port) {
@@ -1773,7 +1774,7 @@ bool PortConfiguration::SupportsProtocol(const RelayServerConfig& relay,
   return false;
 }
 
-bool PortConfiguration::SupportsProtocol(ProtocolType type) const {
+bool PortConfiguration::SupportsProtocol(webrtc::ProtocolType type) const {
   for (size_t i = 0; i < relays.size(); ++i) {
     if (SupportsProtocol(relays[i], type))
       return true;
@@ -1782,7 +1783,7 @@ bool PortConfiguration::SupportsProtocol(ProtocolType type) const {
 }
 
 ServerAddresses PortConfiguration::GetRelayServerAddresses(
-    ProtocolType type) const {
+    webrtc::ProtocolType type) const {
   ServerAddresses servers;
   for (size_t i = 0; i < relays.size(); ++i) {
     if (SupportsProtocol(relays[i], type)) {

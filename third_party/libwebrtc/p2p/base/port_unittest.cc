@@ -189,7 +189,7 @@ class TestPort : public Port {
     return true;
   }
 
-  virtual ProtocolType GetProtocol() const { return PROTO_UDP; }
+  virtual webrtc::ProtocolType GetProtocol() const { return webrtc::PROTO_UDP; }
 
   // Exposed for testing candidate building.
   void AddCandidateAddress(const rtc::SocketAddress& addr) {
@@ -248,7 +248,7 @@ class TestPort : public Port {
  private:
   void OnSentPacket(rtc::AsyncPacketSocket* socket,
                     const rtc::SentPacket& sent_packet) {
-    PortInterface::SignalSentPacket(sent_packet);
+    webrtc::PortInterface::SignalSentPacket(sent_packet);
   }
   std::unique_ptr<rtc::BufferT<uint8_t>> last_stun_buf_;
   std::unique_ptr<IceMessage> last_stun_msg_;
@@ -357,9 +357,9 @@ class TestChannel : public sigslot::has_slots<> {
     return conn_->Send(data, len, options);
   }
 
-  void OnUnknownAddress(PortInterface* port,
+  void OnUnknownAddress(webrtc::PortInterface* port,
                         const SocketAddress& addr,
-                        ProtocolType proto,
+                        webrtc::ProtocolType proto,
                         IceMessage* msg,
                         const std::string& rf,
                         bool /*port_muxed*/) {
@@ -391,7 +391,7 @@ class TestChannel : public sigslot::has_slots<> {
     remote_address_.Clear();
   }
 
-  void OnSrcPortDestroyed(PortInterface* port) {
+  void OnSrcPortDestroyed(webrtc::PortInterface* port) {
     Port* destroyed_src = port_.release();
     ASSERT_EQ(destroyed_src, port);
   }
@@ -469,10 +469,10 @@ class PortTest : public ::testing::Test, public sigslot::has_slots<> {
                      ntype == NAT_OPEN_CONE, true, ntype != NAT_SYMMETRIC,
                      true);
   }
-  void TestLocalToRelay(ProtocolType proto) {
+  void TestLocalToRelay(webrtc::ProtocolType proto) {
     auto port1 = CreateUdpPort(kLocalAddr1);
     port1->SetIceRole(cricket::ICEROLE_CONTROLLING);
-    auto port2 = CreateRelayPort(kLocalAddr2, proto, PROTO_UDP);
+    auto port2 = CreateRelayPort(kLocalAddr2, proto, webrtc::PROTO_UDP);
     port2->SetIceRole(cricket::ICEROLE_CONTROLLED);
     TestConnectivity("udp", std::move(port1), RelayName(proto),
                      std::move(port2), false, true, true, true);
@@ -498,11 +498,11 @@ class PortTest : public ::testing::Test, public sigslot::has_slots<> {
                      ntype1 != NAT_SYMMETRIC, ntype2 != NAT_SYMMETRIC,
                      ntype1 + ntype2 < (NAT_PORT_RESTRICTED + NAT_SYMMETRIC));
   }
-  void TestStunToRelay(NATType ntype, ProtocolType proto) {
+  void TestStunToRelay(NATType ntype, webrtc::ProtocolType proto) {
     nat_server1_ = CreateNatServer(kNatAddr1, ntype);
     auto port1 = CreateStunPort(kLocalAddr1, &nat_socket_factory1_);
     port1->SetIceRole(cricket::ICEROLE_CONTROLLING);
-    auto port2 = CreateRelayPort(kLocalAddr2, proto, PROTO_UDP);
+    auto port2 = CreateRelayPort(kLocalAddr2, proto, webrtc::PROTO_UDP);
     port2->SetIceRole(cricket::ICEROLE_CONTROLLED);
     TestConnectivity(StunName(ntype), std::move(port1), RelayName(proto),
                      std::move(port2), false, ntype != NAT_SYMMETRIC, true,
@@ -516,18 +516,18 @@ class PortTest : public ::testing::Test, public sigslot::has_slots<> {
     TestConnectivity("tcp", std::move(port1), "tcp", std::move(port2), true,
                      false, true, true);
   }
-  void TestTcpToRelay(ProtocolType proto) {
+  void TestTcpToRelay(webrtc::ProtocolType proto) {
     auto port1 = CreateTcpPort(kLocalAddr1);
     port1->SetIceRole(cricket::ICEROLE_CONTROLLING);
-    auto port2 = CreateRelayPort(kLocalAddr2, proto, PROTO_TCP);
+    auto port2 = CreateRelayPort(kLocalAddr2, proto, webrtc::PROTO_TCP);
     port2->SetIceRole(cricket::ICEROLE_CONTROLLED);
     TestConnectivity("tcp", std::move(port1), RelayName(proto),
                      std::move(port2), false, false, true, true);
   }
-  void TestSslTcpToRelay(ProtocolType proto) {
+  void TestSslTcpToRelay(webrtc::ProtocolType proto) {
     auto port1 = CreateTcpPort(kLocalAddr1);
     port1->SetIceRole(cricket::ICEROLE_CONTROLLING);
-    auto port2 = CreateRelayPort(kLocalAddr2, proto, PROTO_SSLTCP);
+    auto port2 = CreateRelayPort(kLocalAddr2, proto, webrtc::PROTO_SSLTCP);
     port2->SetIceRole(cricket::ICEROLE_CONTROLLED);
     TestConnectivity("ssltcp", std::move(port1), RelayName(proto),
                      std::move(port2), false, false, true, true);
@@ -612,24 +612,24 @@ class PortTest : public ::testing::Test, public sigslot::has_slots<> {
     return port;
   }
   std::unique_ptr<Port> CreateRelayPort(const SocketAddress& addr,
-                                        ProtocolType int_proto,
-                                        ProtocolType ext_proto) {
+                                        webrtc::ProtocolType int_proto,
+                                        webrtc::ProtocolType ext_proto) {
     return CreateTurnPort(addr, &socket_factory_, int_proto, ext_proto);
   }
   std::unique_ptr<TurnPort> CreateTurnPort(const SocketAddress& addr,
                                            PacketSocketFactory* socket_factory,
-                                           ProtocolType int_proto,
-                                           ProtocolType ext_proto) {
+                                           webrtc::ProtocolType int_proto,
+                                           webrtc::ProtocolType ext_proto) {
     SocketAddress server_addr =
-        int_proto == PROTO_TCP ? kTurnTcpIntAddr : kTurnUdpIntAddr;
+        int_proto == webrtc::PROTO_TCP ? kTurnTcpIntAddr : kTurnUdpIntAddr;
     return CreateTurnPort(addr, socket_factory, int_proto, ext_proto,
                           server_addr);
   }
   std::unique_ptr<TurnPort> CreateTurnPort(
       const SocketAddress& addr,
       PacketSocketFactory* socket_factory,
-      ProtocolType int_proto,
-      ProtocolType ext_proto,
+      webrtc::ProtocolType int_proto,
+      webrtc::ProtocolType ext_proto,
       const rtc::SocketAddress& server_addr) {
     RelayServerConfig config;
     config.credentials = kRelayCredentials;
@@ -668,15 +668,15 @@ class PortTest : public ::testing::Test, public sigslot::has_slots<> {
         return "stun(?)";
     }
   }
-  static const char* RelayName(ProtocolType proto) {
+  static const char* RelayName(webrtc::ProtocolType proto) {
     switch (proto) {
-      case PROTO_UDP:
+      case webrtc::PROTO_UDP:
         return "turn(udp)";
-      case PROTO_TCP:
+      case webrtc::PROTO_TCP:
         return "turn(tcp)";
-      case PROTO_SSLTCP:
+      case webrtc::PROTO_SSLTCP:
         return "turn(ssltcp)";
-      case PROTO_TLS:
+      case webrtc::PROTO_TLS:
         return "turn(tls)";
       default:
         return "turn(?)";
@@ -919,15 +919,15 @@ class PortTest : public ::testing::Test, public sigslot::has_slots<> {
     return port;
   }
 
-  void OnRoleConflict(PortInterface* port) { role_conflict_ = true; }
+  void OnRoleConflict(webrtc::PortInterface* port) { role_conflict_ = true; }
   bool role_conflict() const { return role_conflict_; }
 
-  void ConnectToSignalDestroyed(PortInterface* port) {
+  void ConnectToSignalDestroyed(webrtc::PortInterface* port) {
     port->SubscribePortDestroyed(
         [this](PortInterface* port) { OnDestroyed(port); });
   }
 
-  void OnDestroyed(PortInterface* port) { ++ports_destroyed_; }
+  void OnDestroyed(webrtc::PortInterface* port) { ++ports_destroyed_; }
   int ports_destroyed() const { return ports_destroyed_; }
 
   rtc::BasicPacketSocketFactory* nat_socket_factory1() {
@@ -1280,7 +1280,7 @@ TEST_F(PortTest, TestLocalToSymNat) {
 
 // Flaky: https://code.google.com/p/webrtc/issues/detail?id=3316.
 TEST_F(PortTest, DISABLED_TestLocalToTurn) {
-  TestLocalToRelay(PROTO_UDP);
+  TestLocalToRelay(webrtc::PROTO_UDP);
 }
 
 // Cone NAT -> XXXX
@@ -1305,7 +1305,7 @@ TEST_F(PortTest, TestConeNatToSymNat) {
 }
 
 TEST_F(PortTest, TestConeNatToTurn) {
-  TestStunToRelay(NAT_OPEN_CONE, PROTO_UDP);
+  TestStunToRelay(NAT_OPEN_CONE, webrtc::PROTO_UDP);
 }
 
 // Address-restricted NAT -> XXXX
@@ -1330,7 +1330,7 @@ TEST_F(PortTest, TestARNatToSymNat) {
 }
 
 TEST_F(PortTest, TestARNatToTurn) {
-  TestStunToRelay(NAT_ADDR_RESTRICTED, PROTO_UDP);
+  TestStunToRelay(NAT_ADDR_RESTRICTED, webrtc::PROTO_UDP);
 }
 
 // Port-restricted NAT -> XXXX
@@ -1356,7 +1356,7 @@ TEST_F(PortTest, TestPRNatToSymNat) {
 }
 
 TEST_F(PortTest, TestPRNatToTurn) {
-  TestStunToRelay(NAT_PORT_RESTRICTED, PROTO_UDP);
+  TestStunToRelay(NAT_PORT_RESTRICTED, webrtc::PROTO_UDP);
 }
 
 // Symmetric NAT -> XXXX
@@ -1383,7 +1383,7 @@ TEST_F(PortTest, TestSymNatToSymNat) {
 }
 
 TEST_F(PortTest, TestSymNatToTurn) {
-  TestStunToRelay(NAT_SYMMETRIC, PROTO_UDP);
+  TestStunToRelay(NAT_SYMMETRIC, webrtc::PROTO_UDP);
 }
 
 // Outbound TCP -> XXXX
@@ -2004,16 +2004,16 @@ TEST_F(PortTest, TestDefaultDscpValue) {
   EXPECT_EQ(0, stunport->SetOption(rtc::Socket::OPT_DSCP, rtc::DSCP_AF41));
   EXPECT_EQ(0, stunport->GetOption(rtc::Socket::OPT_DSCP, &dscp));
   EXPECT_EQ(rtc::DSCP_AF41, dscp);
-  auto turnport1 =
-      CreateTurnPort(kLocalAddr1, nat_socket_factory1(), PROTO_UDP, PROTO_UDP);
+  auto turnport1 = CreateTurnPort(kLocalAddr1, nat_socket_factory1(),
+                                  webrtc::PROTO_UDP, webrtc::PROTO_UDP);
   // Socket is created in PrepareAddress.
   turnport1->PrepareAddress();
   EXPECT_EQ(0, turnport1->SetOption(rtc::Socket::OPT_DSCP, rtc::DSCP_CS7));
   EXPECT_EQ(0, turnport1->GetOption(rtc::Socket::OPT_DSCP, &dscp));
   EXPECT_EQ(rtc::DSCP_CS7, dscp);
   // This will verify correct value returned without the socket.
-  auto turnport2 =
-      CreateTurnPort(kLocalAddr1, nat_socket_factory1(), PROTO_UDP, PROTO_UDP);
+  auto turnport2 = CreateTurnPort(kLocalAddr1, nat_socket_factory1(),
+                                  webrtc::PROTO_UDP, webrtc::PROTO_UDP);
   EXPECT_EQ(0, turnport2->SetOption(rtc::Socket::OPT_DSCP, rtc::DSCP_CS6));
   EXPECT_EQ(0, turnport2->GetOption(rtc::Socket::OPT_DSCP, &dscp));
   EXPECT_EQ(rtc::DSCP_CS6, dscp);
@@ -2949,8 +2949,8 @@ TEST_F(PortTest, TestCandidateFoundation) {
   EXPECT_NE(udpport2->Candidates()[0].foundation(),
             stunport->Candidates()[0].foundation());
   // Verifying TURN candidate foundation.
-  auto turnport1 =
-      CreateTurnPort(kLocalAddr1, nat_socket_factory1(), PROTO_UDP, PROTO_UDP);
+  auto turnport1 = CreateTurnPort(kLocalAddr1, nat_socket_factory1(),
+                                  webrtc::PROTO_UDP, webrtc::PROTO_UDP);
   turnport1->PrepareAddress();
   ASSERT_THAT(webrtc::WaitUntil(
                   [&] { return turnport1->Candidates().size(); }, Eq(1U),
@@ -2962,8 +2962,8 @@ TEST_F(PortTest, TestCandidateFoundation) {
             turnport1->Candidates()[0].foundation());
   EXPECT_NE(stunport->Candidates()[0].foundation(),
             turnport1->Candidates()[0].foundation());
-  auto turnport2 =
-      CreateTurnPort(kLocalAddr1, nat_socket_factory1(), PROTO_UDP, PROTO_UDP);
+  auto turnport2 = CreateTurnPort(kLocalAddr1, nat_socket_factory1(),
+                                  webrtc::PROTO_UDP, webrtc::PROTO_UDP);
   turnport2->PrepareAddress();
   ASSERT_THAT(webrtc::WaitUntil(
                   [&] { return turnport2->Candidates().size(); }, Eq(1U),
@@ -2977,8 +2977,9 @@ TEST_F(PortTest, TestCandidateFoundation) {
   SocketAddress kTurnUdpExtAddr2("99.99.98.5", 0);
   TestTurnServer turn_server2(rtc::Thread::Current(), vss(), kTurnUdpIntAddr2,
                               kTurnUdpExtAddr2);
-  auto turnport3 = CreateTurnPort(kLocalAddr1, nat_socket_factory1(), PROTO_UDP,
-                                  PROTO_UDP, kTurnUdpIntAddr2);
+  auto turnport3 =
+      CreateTurnPort(kLocalAddr1, nat_socket_factory1(), webrtc::PROTO_UDP,
+                     webrtc::PROTO_UDP, kTurnUdpIntAddr2);
   turnport3->PrepareAddress();
   ASSERT_THAT(webrtc::WaitUntil(
                   [&] { return turnport3->Candidates().size(); }, Eq(1U),
@@ -2990,9 +2991,9 @@ TEST_F(PortTest, TestCandidateFoundation) {
   // Start a TCP turn server, and check that two turn candidates have
   // different foundations if their relay protocols are different.
   TestTurnServer turn_server3(rtc::Thread::Current(), vss(), kTurnTcpIntAddr,
-                              kTurnUdpExtAddr, PROTO_TCP);
-  auto turnport4 =
-      CreateTurnPort(kLocalAddr1, nat_socket_factory1(), PROTO_TCP, PROTO_UDP);
+                              kTurnUdpExtAddr, webrtc::PROTO_TCP);
+  auto turnport4 = CreateTurnPort(kLocalAddr1, nat_socket_factory1(),
+                                  webrtc::PROTO_TCP, webrtc::PROTO_UDP);
   turnport4->PrepareAddress();
   ASSERT_THAT(webrtc::WaitUntil(
                   [&] { return turnport4->Candidates().size(); }, Eq(1U),
@@ -3026,8 +3027,8 @@ TEST_F(PortTest, TestCandidateRelatedAddress) {
             stunport->GetLocalAddress());
   // Verifying the related address for TURN candidate.
   // For TURN related address must be equal to the mapped address.
-  auto turnport =
-      CreateTurnPort(kLocalAddr1, nat_socket_factory1(), PROTO_UDP, PROTO_UDP);
+  auto turnport = CreateTurnPort(kLocalAddr1, nat_socket_factory1(),
+                                 webrtc::PROTO_UDP, webrtc::PROTO_UDP);
   turnport->PrepareAddress();
   ASSERT_THAT(webrtc::WaitUntil(
                   [&] { return turnport->Candidates().size(); }, Eq(1U),
@@ -4074,8 +4075,8 @@ TEST_F(PortTest, TestSupportsProtocol) {
   EXPECT_TRUE(tcp_port->SupportsProtocol(SSLTCP_PROTOCOL_NAME));
   EXPECT_FALSE(tcp_port->SupportsProtocol(UDP_PROTOCOL_NAME));
 
-  auto turn_port =
-      CreateTurnPort(kLocalAddr1, nat_socket_factory1(), PROTO_UDP, PROTO_UDP);
+  auto turn_port = CreateTurnPort(kLocalAddr1, nat_socket_factory1(),
+                                  webrtc::PROTO_UDP, webrtc::PROTO_UDP);
   EXPECT_TRUE(turn_port->SupportsProtocol(UDP_PROTOCOL_NAME));
   EXPECT_FALSE(turn_port->SupportsProtocol(TCP_PROTOCOL_NAME));
 }

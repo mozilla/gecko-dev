@@ -31,12 +31,14 @@ namespace rtc {
 class Network;
 struct PacketOptions;
 }  // namespace rtc
-
 namespace cricket {
 class Connection;
 class IceMessage;
 class StunMessage;
 class StunStats;
+}  // namespace cricket
+
+namespace webrtc {
 
 enum ProtocolType {
   PROTO_UDP,
@@ -53,12 +55,12 @@ class PortInterface {
  public:
   virtual ~PortInterface();
 
-  virtual webrtc::IceCandidateType Type() const = 0;
+  virtual IceCandidateType Type() const = 0;
   virtual const rtc::Network* Network() const = 0;
 
   // Methods to set/get ICE role and tiebreaker values.
-  virtual void SetIceRole(IceRole role) = 0;
-  virtual IceRole GetIceRole() const = 0;
+  virtual void SetIceRole(cricket::IceRole role) = 0;
+  virtual cricket::IceRole GetIceRole() const = 0;
 
   virtual void SetIceTiebreaker(uint64_t tiebreaker) = 0;
   virtual uint64_t IceTiebreaker() const = 0;
@@ -75,12 +77,14 @@ class PortInterface {
   virtual void PrepareAddress() = 0;
 
   // Returns the connection to the given address or NULL if none exists.
-  virtual Connection* GetConnection(const rtc::SocketAddress& remote_addr) = 0;
+  virtual cricket::Connection* GetConnection(
+      const rtc::SocketAddress& remote_addr) = 0;
 
   // Creates a new connection to the given address.
   enum CandidateOrigin { ORIGIN_THIS_PORT, ORIGIN_OTHER_PORT, ORIGIN_MESSAGE };
-  virtual Connection* CreateConnection(const Candidate& remote_candidate,
-                                       CandidateOrigin origin) = 0;
+  virtual cricket::Connection* CreateConnection(
+      const cricket::Candidate& remote_candidate,
+      CandidateOrigin origin) = 0;
 
   // Functions on the underlying socket(s).
   virtual int SetOption(rtc::Socket::Option opt, int value) = 0;
@@ -89,7 +93,7 @@ class PortInterface {
 
   virtual ProtocolType GetProtocol() const = 0;
 
-  virtual const std::vector<Candidate>& Candidates() const = 0;
+  virtual const std::vector<cricket::Candidate>& Candidates() const = 0;
 
   // Sends the given packet to the given address, provided that the address is
   // that of a connection or an address that has sent to us already.
@@ -105,14 +109,14 @@ class PortInterface {
   sigslot::signal6<PortInterface*,
                    const rtc::SocketAddress&,
                    ProtocolType,
-                   IceMessage*,
+                   cricket::IceMessage*,
                    const std::string&,
                    bool>
       SignalUnknownAddress;
 
   // Sends a response message (normal or error) to the given request.  One of
   // these methods should be called as a response to SignalUnknownAddress.
-  virtual void SendBindingErrorResponse(StunMessage* message,
+  virtual void SendBindingErrorResponse(cricket::StunMessage* message,
                                         const rtc::SocketAddress& addr,
                                         int error_code,
                                         absl::string_view reason) = 0;
@@ -120,7 +124,7 @@ class PortInterface {
   // Signaled when this port decides to delete itself because it no longer has
   // any usefulness.
   virtual void SubscribePortDestroyed(
-      std::function<void(PortInterface*)> callback) = 0;
+      std::function<void(webrtc::PortInterface*)> callback) = 0;
 
   // Signaled when Port discovers ice role conflict with the peer.
   sigslot::signal1<PortInterface*> SignalRoleConflict;
@@ -139,19 +143,19 @@ class PortInterface {
 
   virtual std::string ToString() const = 0;
 
-  virtual void GetStunStats(std::optional<StunStats>* stats) = 0;
+  virtual void GetStunStats(std::optional<cricket::StunStats>* stats) = 0;
 
   // Removes and deletes a connection object. `DestroyConnection` will
   // delete the connection object directly whereas `DestroyConnectionAsync`
   // defers the `delete` operation to when the call stack has been unwound.
   // Async may be needed when deleting a connection object from within a
   // callback.
-  virtual void DestroyConnection(Connection* conn) = 0;
+  virtual void DestroyConnection(cricket::Connection* conn) = 0;
 
-  virtual void DestroyConnectionAsync(Connection* conn) = 0;
+  virtual void DestroyConnectionAsync(cricket::Connection* conn) = 0;
 
   // The thread on which this port performs its I/O.
-  virtual webrtc::TaskQueueBase* thread() = 0;
+  virtual TaskQueueBase* thread() = 0;
 
   // The factory used to create the sockets of this port.
   virtual rtc::PacketSocketFactory* socket_factory() const = 0;
@@ -164,7 +168,7 @@ class PortInterface {
   virtual const std::string& content_name() const = 0;
 
   // Called when the Connection discovers a local peer reflexive candidate.
-  virtual void AddPrflxCandidate(const Candidate& local) = 0;
+  virtual void AddPrflxCandidate(const cricket::Candidate& local) = 0;
 
  protected:
   PortInterface();
@@ -181,28 +185,40 @@ class PortInterface {
   virtual bool GetStunMessage(const char* data,
                               size_t size,
                               const rtc::SocketAddress& addr,
-                              std::unique_ptr<IceMessage>* out_msg,
+                              std::unique_ptr<cricket::IceMessage>* out_msg,
                               std::string* out_username) = 0;
 
   // This method will return local and remote username fragements from the
   // stun username attribute if present.
-  virtual bool ParseStunUsername(const StunMessage* stun_msg,
+  virtual bool ParseStunUsername(const cricket::StunMessage* stun_msg,
                                  std::string* local_username,
                                  std::string* remote_username) const = 0;
   virtual std::string CreateStunUsername(
       absl::string_view remote_username) const = 0;
 
   virtual bool MaybeIceRoleConflict(const rtc::SocketAddress& addr,
-                                    IceMessage* stun_msg,
+                                    cricket::IceMessage* stun_msg,
                                     absl::string_view remote_ufrag) = 0;
 
   virtual int16_t network_cost() const = 0;
 
   // Connection and Port are entangled; functions exposed to Port only
   // should not be public.
-  friend class Connection;
+  friend class cricket::Connection;
 };
 
+}  //  namespace webrtc
+
+// Re-export symbols from the webrtc namespace for backwards compatibility.
+// TODO(bugs.webrtc.org/4222596): Remove once all references are updated.
+namespace cricket {
+using ::webrtc::PortInterface;
+using ::webrtc::PROTO_LAST;
+using ::webrtc::PROTO_SSLTCP;
+using ::webrtc::PROTO_TCP;
+using ::webrtc::PROTO_TLS;
+using ::webrtc::PROTO_UDP;
+using ::webrtc::ProtocolType;
 }  // namespace cricket
 
 #endif  // P2P_BASE_PORT_INTERFACE_H_

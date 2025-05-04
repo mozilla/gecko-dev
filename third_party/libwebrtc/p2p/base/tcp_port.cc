@@ -260,8 +260,8 @@ bool TCPPort::SupportsProtocol(absl::string_view protocol) const {
   return protocol == TCP_PROTOCOL_NAME || protocol == SSLTCP_PROTOCOL_NAME;
 }
 
-ProtocolType TCPPort::GetProtocol() const {
-  return PROTO_TCP;
+webrtc::ProtocolType TCPPort::GetProtocol() const {
+  return webrtc::PROTO_TCP;
 }
 
 void TCPPort::OnNewConnection(rtc::AsyncListenSocket* socket,
@@ -316,12 +316,12 @@ rtc::AsyncPacketSocket* TCPPort::GetIncoming(const rtc::SocketAddress& addr,
 
 void TCPPort::OnReadPacket(rtc::AsyncPacketSocket* socket,
                            const rtc::ReceivedPacket& packet) {
-  Port::OnReadPacket(packet, PROTO_TCP);
+  Port::OnReadPacket(packet, webrtc::PROTO_TCP);
 }
 
 void TCPPort::OnSentPacket(rtc::AsyncPacketSocket* socket,
                            const rtc::SentPacket& sent_packet) {
-  PortInterface::SignalSentPacket(sent_packet);
+  webrtc::PortInterface::SignalSentPacket(sent_packet);
 }
 
 void TCPPort::OnReadyToSend(rtc::AsyncPacketSocket* socket) {
@@ -343,7 +343,8 @@ TCPConnection::TCPConnection(rtc::WeakPtr<Port> tcp_port,
       pretending_to_be_writable_(false),
       reconnection_timeout_(cricket::CONNECTION_WRITE_CONNECT_TIMEOUT) {
   RTC_DCHECK_RUN_ON(network_thread_);
-  RTC_DCHECK_EQ(port()->GetProtocol(), PROTO_TCP);  // Needs to be TCPPort.
+  RTC_DCHECK_EQ(port()->GetProtocol(),
+                webrtc::PROTO_TCP);  // Needs to be TCPPort.
 
   SignalDestroyed.connect(this, &TCPConnection::OnDestroyed);
 

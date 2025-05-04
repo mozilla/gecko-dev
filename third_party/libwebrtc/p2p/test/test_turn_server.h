@@ -57,7 +57,7 @@ class TestTurnServer : public TurnAuthInterface {
                  rtc::SocketFactory* socket_factory,
                  const rtc::SocketAddress& int_addr,
                  const rtc::SocketAddress& udp_ext_addr,
-                 ProtocolType int_protocol = PROTO_UDP,
+                 webrtc::ProtocolType int_protocol = webrtc::PROTO_UDP,
                  bool ignore_bad_cert = true,
                  absl::string_view common_name = "test turn server")
       : server_(thread), socket_factory_(socket_factory) {
@@ -92,20 +92,20 @@ class TestTurnServer : public TurnAuthInterface {
   }
 
   void AddInternalSocket(const rtc::SocketAddress& int_addr,
-                         ProtocolType proto,
+                         webrtc::ProtocolType proto,
                          bool ignore_bad_cert = true,
                          absl::string_view common_name = "test turn server") {
     RTC_DCHECK(thread_checker_.IsCurrent());
-    if (proto == cricket::PROTO_UDP) {
+    if (proto == webrtc::PROTO_UDP) {
       server_.AddInternalSocket(
           rtc::AsyncUDPSocket::Create(socket_factory_, int_addr), proto);
-    } else if (proto == cricket::PROTO_TCP || proto == cricket::PROTO_TLS) {
+    } else if (proto == webrtc::PROTO_TCP || proto == webrtc::PROTO_TLS) {
       // For TCP we need to create a server socket which can listen for incoming
       // new connections.
       rtc::Socket* socket = socket_factory_->CreateSocket(AF_INET, SOCK_STREAM);
       socket->Bind(int_addr);
       socket->Listen(5);
-      if (proto == cricket::PROTO_TLS) {
+      if (proto == webrtc::PROTO_TLS) {
         // For TLS, wrap the TCP socket with an SSL adapter. The adapter must
         // be configured with a self-signed certificate for testing.
         // Additionally, the client will not present a valid certificate, so we

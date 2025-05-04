@@ -36,7 +36,7 @@ RelayServerConfig::RelayServerConfig() {}
 RelayServerConfig::RelayServerConfig(const rtc::SocketAddress& address,
                                      absl::string_view username,
                                      absl::string_view password,
-                                     ProtocolType proto)
+                                     webrtc::ProtocolType proto)
     : credentials(username, password) {
   ports.push_back(ProtocolAddress(address, proto));
 }
@@ -45,7 +45,7 @@ RelayServerConfig::RelayServerConfig(absl::string_view address,
                                      int port,
                                      absl::string_view username,
                                      absl::string_view password,
-                                     ProtocolType proto)
+                                     webrtc::ProtocolType proto)
     : RelayServerConfig(rtc::SocketAddress(address, port),
                         username,
                         password,
@@ -56,13 +56,14 @@ RelayServerConfig::RelayServerConfig(absl::string_view address,
                                      int port,
                                      absl::string_view username,
                                      absl::string_view password,
-                                     ProtocolType proto,
+                                     webrtc::ProtocolType proto,
                                      bool secure)
-    : RelayServerConfig(address,
-                        port,
-                        username,
-                        password,
-                        (proto == PROTO_TCP && secure ? PROTO_TLS : proto)) {}
+    : RelayServerConfig(
+          address,
+          port,
+          username,
+          password,
+          (proto == webrtc::PROTO_TCP && secure ? webrtc::PROTO_TLS : proto)) {}
 
 RelayServerConfig::RelayServerConfig(const RelayServerConfig&) = default;
 

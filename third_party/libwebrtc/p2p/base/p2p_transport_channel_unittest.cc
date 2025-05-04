@@ -216,11 +216,11 @@ std::unique_ptr<cricket::BasicPortAllocator> CreateBasicPortAllocator(
   turn_server.credentials = kRelayCredentials;
   if (!turn_server_udp.IsNil()) {
     turn_server.ports.push_back(
-        cricket::ProtocolAddress(turn_server_udp, cricket::PROTO_UDP));
+        cricket::ProtocolAddress(turn_server_udp, webrtc::PROTO_UDP));
   }
   if (!turn_server_tcp.IsNil()) {
     turn_server.ports.push_back(
-        cricket::ProtocolAddress(turn_server_tcp, cricket::PROTO_TCP));
+        cricket::ProtocolAddress(turn_server_tcp, webrtc::PROTO_TCP));
   }
   std::vector<cricket::RelayServerConfig> turn_servers(1, turn_server);
 
@@ -2069,14 +2069,14 @@ TEST_F(P2PTransportChannelTest, TestIceConfigWillPassDownToPort) {
                          .clock = &clock}),
       webrtc::IsRtcOk());
 
-  const std::vector<PortInterface*> ports_before = ep1_ch1()->ports();
+  const std::vector<webrtc::PortInterface*> ports_before = ep1_ch1()->ports();
   for (size_t i = 0; i < ports_before.size(); ++i) {
     EXPECT_EQ(ICEROLE_CONTROLLING, ports_before[i]->GetIceRole());
   }
 
   ep1_ch1()->SetIceRole(ICEROLE_CONTROLLED);
 
-  const std::vector<PortInterface*> ports_after = ep1_ch1()->ports();
+  const std::vector<webrtc::PortInterface*> ports_after = ep1_ch1()->ports();
   for (size_t i = 0; i < ports_after.size(); ++i) {
     EXPECT_EQ(ICEROLE_CONTROLLED, ports_before[i]->GetIceRole());
   }
@@ -2868,10 +2868,11 @@ TEST_F(P2PTransportChannelMultihomedTest, TestFailoverWithManyConnections) {
   rtc::ScopedFakeClock clock;
   const Environment env = CreateEnvironment();
   CreatePortAllocators(env);
-  test_turn_server()->AddInternalSocket(kTurnTcpIntAddr, PROTO_TCP);
+  test_turn_server()->AddInternalSocket(kTurnTcpIntAddr, webrtc::PROTO_TCP);
   RelayServerConfig turn_server;
   turn_server.credentials = kRelayCredentials;
-  turn_server.ports.push_back(ProtocolAddress(kTurnTcpIntAddr, PROTO_TCP));
+  turn_server.ports.push_back(
+      ProtocolAddress(kTurnTcpIntAddr, webrtc::PROTO_TCP));
   GetAllocator(0)->AddTurnServerForTesting(turn_server);
   GetAllocator(1)->AddTurnServerForTesting(turn_server);
   // Enable IPv6
@@ -4320,8 +4321,8 @@ TEST_F(P2PTransportChannelPingTest, PingingStartedAsSoonAsPossible) {
                                                              prflx_priority));
   Port* port = GetPort(&ch);
   ASSERT_NE(nullptr, port);
-  port->SignalUnknownAddress(port, rtc::SocketAddress("1.1.1.1", 1), PROTO_UDP,
-                             &request, kIceUfrag[1], false);
+  port->SignalUnknownAddress(port, rtc::SocketAddress("1.1.1.1", 1),
+                             webrtc::PROTO_UDP, &request, kIceUfrag[1], false);
   Connection* conn = GetConnectionTo(&ch, "1.1.1.1", 1);
   ASSERT_NE(nullptr, conn);
 
@@ -4522,15 +4523,15 @@ TEST_F(P2PTransportChannelPingTest, ConnectionResurrection) {
 
   Port* port = GetPort(&ch);
   // conn1 should be resurrected with original priority.
-  port->SignalUnknownAddress(port, rtc::SocketAddress("1.1.1.1", 1), PROTO_UDP,
-                             &request, kIceUfrag[1], false);
+  port->SignalUnknownAddress(port, rtc::SocketAddress("1.1.1.1", 1),
+                             webrtc::PROTO_UDP, &request, kIceUfrag[1], false);
   conn1 = WaitForConnectionTo(&ch, "1.1.1.1", 1);
   ASSERT_TRUE(conn1 != nullptr);
   EXPECT_EQ(conn1->remote_candidate().priority(), remote_priority);
 
   // conn3, a real prflx connection, should have prflx priority.
-  port->SignalUnknownAddress(port, rtc::SocketAddress("3.3.3.3", 1), PROTO_UDP,
-                             &request, kIceUfrag[1], false);
+  port->SignalUnknownAddress(port, rtc::SocketAddress("3.3.3.3", 1),
+                             webrtc::PROTO_UDP, &request, kIceUfrag[1], false);
   Connection* conn3 = WaitForConnectionTo(&ch, "3.3.3.3", 1);
   ASSERT_TRUE(conn3 != nullptr);
   EXPECT_EQ(conn3->remote_candidate().priority(), prflx_priority);
@@ -4827,8 +4828,8 @@ TEST_F(P2PTransportChannelPingTest, TestSelectConnectionFromUnknownAddress) {
   request.AddAttribute(std::make_unique<StunUInt32Attribute>(STUN_ATTR_PRIORITY,
                                                              prflx_priority));
   TestUDPPort* port = static_cast<TestUDPPort*>(GetPort(&ch));
-  port->SignalUnknownAddress(port, rtc::SocketAddress("1.1.1.1", 1), PROTO_UDP,
-                             &request, kIceUfrag[1], false);
+  port->SignalUnknownAddress(port, rtc::SocketAddress("1.1.1.1", 1),
+                             webrtc::PROTO_UDP, &request, kIceUfrag[1], false);
   Connection* conn1 = WaitForConnectionTo(&ch, "1.1.1.1", 1);
   ASSERT_TRUE(conn1 != nullptr);
   EXPECT_EQ(conn1->stats().sent_ping_responses, 1u);
@@ -4855,8 +4856,8 @@ TEST_F(P2PTransportChannelPingTest, TestSelectConnectionFromUnknownAddress) {
   // Another request with unknown address, it will not be set as the selected
   // connection because the selected connection was nominated by the controlling
   // side.
-  port->SignalUnknownAddress(port, rtc::SocketAddress("3.3.3.3", 3), PROTO_UDP,
-                             &request, kIceUfrag[1], false);
+  port->SignalUnknownAddress(port, rtc::SocketAddress("3.3.3.3", 3),
+                             webrtc::PROTO_UDP, &request, kIceUfrag[1], false);
   Connection* conn3 = WaitForConnectionTo(&ch, "3.3.3.3", 3);
   ASSERT_TRUE(conn3 != nullptr);
   EXPECT_EQ(conn3->stats().sent_ping_responses, 1u);
@@ -4867,8 +4868,8 @@ TEST_F(P2PTransportChannelPingTest, TestSelectConnectionFromUnknownAddress) {
   // selected as the selected connection.
   request.AddAttribute(
       std::make_unique<StunByteStringAttribute>(STUN_ATTR_USE_CANDIDATE));
-  port->SignalUnknownAddress(port, rtc::SocketAddress("4.4.4.4", 4), PROTO_UDP,
-                             &request, kIceUfrag[1], false);
+  port->SignalUnknownAddress(port, rtc::SocketAddress("4.4.4.4", 4),
+                             webrtc::PROTO_UDP, &request, kIceUfrag[1], false);
   Connection* conn4 = WaitForConnectionTo(&ch, "4.4.4.4", 4);
   ASSERT_TRUE(conn4 != nullptr);
   EXPECT_EQ(conn4->stats().sent_ping_responses, 1u);
@@ -4885,8 +4886,8 @@ TEST_F(P2PTransportChannelPingTest, TestSelectConnectionFromUnknownAddress) {
   // port->set_sent_binding_response(false);
   ch.SetRemoteIceParameters(kIceParams[2]);
   ch.SetRemoteIceParameters(kIceParams[3]);
-  port->SignalUnknownAddress(port, rtc::SocketAddress("5.5.5.5", 5), PROTO_UDP,
-                             &request, kIceUfrag[2], false);
+  port->SignalUnknownAddress(port, rtc::SocketAddress("5.5.5.5", 5),
+                             webrtc::PROTO_UDP, &request, kIceUfrag[2], false);
   Connection* conn5 = WaitForConnectionTo(&ch, "5.5.5.5", 5);
   ASSERT_TRUE(conn5 != nullptr);
   EXPECT_EQ(conn5->stats().sent_ping_responses, 1u);
@@ -4939,8 +4940,8 @@ TEST_F(P2PTransportChannelPingTest, TestSelectConnectionBasedOnMediaReceived) {
   request.AddAttribute(
       std::make_unique<StunByteStringAttribute>(STUN_ATTR_USE_CANDIDATE));
   Port* port = GetPort(&ch);
-  port->SignalUnknownAddress(port, rtc::SocketAddress("3.3.3.3", 3), PROTO_UDP,
-                             &request, kIceUfrag[1], false);
+  port->SignalUnknownAddress(port, rtc::SocketAddress("3.3.3.3", 3),
+                             webrtc::PROTO_UDP, &request, kIceUfrag[1], false);
   Connection* conn3 = WaitForConnectionTo(&ch, "3.3.3.3", 3);
   ASSERT_TRUE(conn3 != nullptr);
   EXPECT_NE(conn3, ch.selected_connection());  // Not writable yet.
@@ -5611,7 +5612,7 @@ TEST_F(P2PTransportChannelPingTest, TestIceRoleUpdatedOnRemovedPort) {
 
   // Make a fake signal to remove the ports in the p2ptransportchannel. then
   // change the ICE role and expect it to be updated.
-  std::vector<PortInterface*> ports(1, conn->PortForTest());
+  std::vector<webrtc::PortInterface*> ports(1, conn->PortForTest());
   ch.allocator_session()->SignalPortsPruned(ch.allocator_session(), ports);
   ch.SetIceRole(ICEROLE_CONTROLLED);
   EXPECT_EQ(ICEROLE_CONTROLLED, conn->PortForTest()->GetIceRole());
@@ -5671,7 +5672,7 @@ TEST_F(P2PTransportChannelPingTest, TestPortDestroyedAfterTimeoutAndPruned) {
   }
   EXPECT_EQ(nullptr, GetConnectionTo(&ch, "1.1.1.1", 1));
   // Port will not be removed because it is not pruned yet.
-  PortInterface* port = GetPort(&ch);
+  webrtc::PortInterface* port = GetPort(&ch);
   ASSERT_NE(nullptr, port);
 
   // If the session prunes all ports, the port will be destroyed.
@@ -5988,10 +5989,10 @@ TEST_F(P2PTransportChannelMostLikelyToWorkFirstTest,
 TEST_F(P2PTransportChannelMostLikelyToWorkFirstTest, TestTcpTurn) {
   const Environment env = CreateEnvironment();
   // Add a Tcp Turn server.
-  turn_server()->AddInternalSocket(kTurnTcpIntAddr, PROTO_TCP);
+  turn_server()->AddInternalSocket(kTurnTcpIntAddr, webrtc::PROTO_TCP);
   RelayServerConfig config;
   config.credentials = kRelayCredentials;
-  config.ports.push_back(ProtocolAddress(kTurnTcpIntAddr, PROTO_TCP));
+  config.ports.push_back(ProtocolAddress(kTurnTcpIntAddr, webrtc::PROTO_TCP));
   CreatePortAllocator(env).AddTurnServerForTesting(config);
 
   P2PTransportChannel& ch = StartTransportChannel(env, true, 500);

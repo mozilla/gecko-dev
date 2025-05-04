@@ -135,7 +135,7 @@ void CheckStunKeepaliveIntervalOfAllReadyPorts(
   for (const auto* port : ready_ports) {
     if (port->Type() == IceCandidateType::kSrflx ||
         (port->Type() == IceCandidateType::kHost &&
-         port->GetProtocol() == cricket::PROTO_UDP)) {
+         port->GetProtocol() == webrtc::PROTO_UDP)) {
       EXPECT_EQ(
           static_cast<const cricket::UDPPort*>(port)->stun_keepalive_delay(),
           expected);
@@ -233,10 +233,10 @@ class BasicPortAllocatorTestBase : public ::testing::Test,
     turn_server.credentials = credentials;
 
     if (!udp_turn.IsNil()) {
-      turn_server.ports.push_back(ProtocolAddress(udp_turn, PROTO_UDP));
+      turn_server.ports.push_back(ProtocolAddress(udp_turn, webrtc::PROTO_UDP));
     }
     if (!tcp_turn.IsNil()) {
-      turn_server.ports.push_back(ProtocolAddress(tcp_turn, PROTO_TCP));
+      turn_server.ports.push_back(ProtocolAddress(tcp_turn, webrtc::PROTO_TCP));
     }
     return turn_server;
   }
@@ -310,9 +310,9 @@ class BasicPortAllocatorTestBase : public ::testing::Test,
 
   // Returns the number of ports that have matching type, protocol and
   // address.
-  static int CountPorts(const std::vector<PortInterface*>& ports,
+  static int CountPorts(const std::vector<webrtc::PortInterface*>& ports,
                         IceCandidateType type,
-                        ProtocolType protocol,
+                        webrtc::ProtocolType protocol,
                         const SocketAddress& client_addr) {
     return absl::c_count_if(
         ports, [type, protocol, client_addr](PortInterface* port) {
@@ -391,7 +391,7 @@ class BasicPortAllocatorTestBase : public ::testing::Test,
   // Check if all ports allocated have send-buffer size `expected`. If
   // `expected` == -1, check if GetOptions returns SOCKET_ERROR.
   void CheckSendBufferSizesOfAllPorts(int expected) {
-    std::vector<PortInterface*>::iterator it;
+    std::vector<webrtc::PortInterface*>::iterator it;
     for (it = ports_.begin(); it < ports_.end(); ++it) {
       int send_buffer_size;
       if (expected == -1) {
@@ -410,7 +410,7 @@ class BasicPortAllocatorTestBase : public ::testing::Test,
  protected:
   BasicPortAllocator& allocator() { return *allocator_; }
 
-  void OnPortReady(PortAllocatorSession* ses, PortInterface* port) {
+  void OnPortReady(PortAllocatorSession* ses, webrtc::PortInterface* port) {
     RTC_LOG(LS_INFO) << "OnPortReady: " << port->ToString();
     ports_.push_back(port);
     // Make sure the new port is added to ReadyPorts.
@@ -418,7 +418,7 @@ class BasicPortAllocatorTestBase : public ::testing::Test,
     EXPECT_THAT(ready_ports, Contains(port));
   }
   void OnPortsPruned(PortAllocatorSession* ses,
-                     const std::vector<PortInterface*>& pruned_ports) {
+                     const std::vector<webrtc::PortInterface*>& pruned_ports) {
     RTC_LOG(LS_INFO) << "Number of ports pruned: " << pruned_ports.size();
     auto ready_ports = ses->ReadyPorts();
     auto new_end = ports_.end();
@@ -512,7 +512,7 @@ class BasicPortAllocatorTestBase : public ::testing::Test,
   rtc::FakeNetworkManager network_manager_;
   std::unique_ptr<BasicPortAllocator> allocator_;
   std::unique_ptr<PortAllocatorSession> session_;
-  std::vector<PortInterface*> ports_;
+  std::vector<webrtc::PortInterface*> ports_;
   std::vector<Candidate> candidates_;
   bool candidate_allocation_done_;
   webrtc::test::ScopedKeyValueConfig field_trials_;
@@ -593,7 +593,7 @@ class BasicPortAllocatorTest : public FakeClockBase,
   }
 
   void TestIPv6TurnPortPrunesIPv4TurnPort() {
-    turn_server_.AddInternalSocket(kTurnUdpIntIPv6Addr, PROTO_UDP);
+    turn_server_.AddInternalSocket(kTurnUdpIntIPv6Addr, webrtc::PROTO_UDP);
     // Add two IP addresses on the same interface.
     AddInterface(kClientAddr, "net1");
     AddInterface(kClientIPv6Addr, "net1");
@@ -622,13 +622,13 @@ class BasicPortAllocatorTest : public FakeClockBase,
     // Three ports (one IPv4 STUN, one IPv6 STUN and one TURN) will be ready.
     EXPECT_EQ(3U, session_->ReadyPorts().size());
     EXPECT_EQ(3U, ports_.size());
-    EXPECT_EQ(
-        1, CountPorts(ports_, IceCandidateType::kHost, PROTO_UDP, kClientAddr));
-    EXPECT_EQ(1, CountPorts(ports_, IceCandidateType::kHost, PROTO_UDP,
+    EXPECT_EQ(1, CountPorts(ports_, IceCandidateType::kHost, webrtc::PROTO_UDP,
+                            kClientAddr));
+    EXPECT_EQ(1, CountPorts(ports_, IceCandidateType::kHost, webrtc::PROTO_UDP,
                             kClientIPv6Addr));
-    EXPECT_EQ(1, CountPorts(ports_, IceCandidateType::kRelay, PROTO_UDP,
+    EXPECT_EQ(1, CountPorts(ports_, IceCandidateType::kRelay, webrtc::PROTO_UDP,
                             kClientIPv6Addr));
-    EXPECT_EQ(0, CountPorts(ports_, IceCandidateType::kRelay, PROTO_UDP,
+    EXPECT_EQ(0, CountPorts(ports_, IceCandidateType::kRelay, webrtc::PROTO_UDP,
                             kClientAddr));
 
     // Now that we remove candidates when a TURN port is pruned, there will be
@@ -646,7 +646,7 @@ class BasicPortAllocatorTest : public FakeClockBase,
   void TestTurnPortPrunesWithUdpAndTcpPorts(
       webrtc::PortPrunePolicy prune_policy,
       bool tcp_pruned) {
-    turn_server_.AddInternalSocket(kTurnTcpIntAddr, PROTO_TCP);
+    turn_server_.AddInternalSocket(kTurnTcpIntAddr, webrtc::PROTO_TCP);
     AddInterface(kClientAddr);
     allocator_.reset(
         new BasicPortAllocator(&network_manager_, &socket_factory_));
@@ -673,13 +673,13 @@ class BasicPortAllocatorTest : public FakeClockBase,
     // found in `ready_ports`, and when it is pruned, it is not found in
     // `ready_ports`, so we only need to verify the content in one of them.
     EXPECT_EQ(2U, ports_.size());
-    EXPECT_EQ(
-        1, CountPorts(ports_, IceCandidateType::kHost, PROTO_UDP, kClientAddr));
+    EXPECT_EQ(1, CountPorts(ports_, IceCandidateType::kHost, webrtc::PROTO_UDP,
+                            kClientAddr));
     int num_udp_ports = tcp_pruned ? 1 : 0;
     EXPECT_EQ(num_udp_ports, CountPorts(ports_, IceCandidateType::kRelay,
-                                        PROTO_UDP, kClientAddr));
+                                        webrtc::PROTO_UDP, kClientAddr));
     EXPECT_EQ(1 - num_udp_ports, CountPorts(ports_, IceCandidateType::kRelay,
-                                            PROTO_TCP, kClientAddr));
+                                            webrtc::PROTO_TCP, kClientAddr));
 
     // Now that we remove candidates when a TURN port is pruned, `candidates_`
     // should only contains two candidates regardless whether the TCP TURN port
@@ -699,9 +699,9 @@ class BasicPortAllocatorTest : public FakeClockBase,
   }
 
   void TestEachInterfaceHasItsOwnTurnPorts() {
-    turn_server_.AddInternalSocket(kTurnTcpIntAddr, PROTO_TCP);
-    turn_server_.AddInternalSocket(kTurnUdpIntIPv6Addr, PROTO_UDP);
-    turn_server_.AddInternalSocket(kTurnTcpIntIPv6Addr, PROTO_TCP);
+    turn_server_.AddInternalSocket(kTurnTcpIntAddr, webrtc::PROTO_TCP);
+    turn_server_.AddInternalSocket(kTurnUdpIntIPv6Addr, webrtc::PROTO_UDP);
+    turn_server_.AddInternalSocket(kTurnTcpIntIPv6Addr, webrtc::PROTO_TCP);
     // Add two interfaces both having IPv4 and IPv6 addresses.
     AddInterface(kClientAddr, "net1", rtc::ADAPTER_TYPE_WIFI);
     AddInterface(kClientIPv6Addr, "net1", rtc::ADAPTER_TYPE_WIFI);
@@ -733,25 +733,25 @@ class BasicPortAllocatorTest : public FakeClockBase,
     // use.
     EXPECT_EQ(10U, session_->ReadyPorts().size());
     EXPECT_EQ(10U, ports_.size());
-    EXPECT_EQ(
-        1, CountPorts(ports_, IceCandidateType::kHost, PROTO_UDP, kClientAddr));
-    EXPECT_EQ(1, CountPorts(ports_, IceCandidateType::kHost, PROTO_UDP,
+    EXPECT_EQ(1, CountPorts(ports_, IceCandidateType::kHost, webrtc::PROTO_UDP,
+                            kClientAddr));
+    EXPECT_EQ(1, CountPorts(ports_, IceCandidateType::kHost, webrtc::PROTO_UDP,
                             kClientAddr2));
-    EXPECT_EQ(1, CountPorts(ports_, IceCandidateType::kHost, PROTO_UDP,
+    EXPECT_EQ(1, CountPorts(ports_, IceCandidateType::kHost, webrtc::PROTO_UDP,
                             kClientIPv6Addr));
-    EXPECT_EQ(1, CountPorts(ports_, IceCandidateType::kHost, PROTO_UDP,
+    EXPECT_EQ(1, CountPorts(ports_, IceCandidateType::kHost, webrtc::PROTO_UDP,
                             kClientIPv6Addr2));
-    EXPECT_EQ(
-        1, CountPorts(ports_, IceCandidateType::kHost, PROTO_TCP, kClientAddr));
-    EXPECT_EQ(1, CountPorts(ports_, IceCandidateType::kHost, PROTO_TCP,
+    EXPECT_EQ(1, CountPorts(ports_, IceCandidateType::kHost, webrtc::PROTO_TCP,
+                            kClientAddr));
+    EXPECT_EQ(1, CountPorts(ports_, IceCandidateType::kHost, webrtc::PROTO_TCP,
                             kClientAddr2));
-    EXPECT_EQ(1, CountPorts(ports_, IceCandidateType::kHost, PROTO_TCP,
+    EXPECT_EQ(1, CountPorts(ports_, IceCandidateType::kHost, webrtc::PROTO_TCP,
                             kClientIPv6Addr));
-    EXPECT_EQ(1, CountPorts(ports_, IceCandidateType::kHost, PROTO_TCP,
+    EXPECT_EQ(1, CountPorts(ports_, IceCandidateType::kHost, webrtc::PROTO_TCP,
                             kClientIPv6Addr2));
-    EXPECT_EQ(1, CountPorts(ports_, IceCandidateType::kRelay, PROTO_UDP,
+    EXPECT_EQ(1, CountPorts(ports_, IceCandidateType::kRelay, webrtc::PROTO_UDP,
                             kClientIPv6Addr));
-    EXPECT_EQ(1, CountPorts(ports_, IceCandidateType::kRelay, PROTO_UDP,
+    EXPECT_EQ(1, CountPorts(ports_, IceCandidateType::kRelay, webrtc::PROTO_UDP,
                             kClientIPv6Addr2));
 
     // Now that we remove candidates when TURN ports are pruned, there will be
@@ -1386,7 +1386,7 @@ TEST_F(BasicPortAllocatorTest, TestGetAllPortsNoAdapters) {
   // Default config uses GTURN and no NAT, so replace that with the
   // desired setup (NAT, STUN server, TURN server, UDP/TCP).
   ResetWithStunServerAndNat(kStunAddr);
-  turn_server_.AddInternalSocket(kTurnTcpIntAddr, PROTO_TCP);
+  turn_server_.AddInternalSocket(kTurnTcpIntAddr, webrtc::PROTO_TCP);
   AddTurnServers(kTurnUdpIntAddr, kTurnTcpIntAddr);
   AddTurnServers(kTurnUdpIntIPv6Addr, kTurnTcpIntIPv6Addr);
   ASSERT_TRUE(CreateSession(ICE_CANDIDATE_COMPONENT_RTP));
@@ -1398,15 +1398,15 @@ TEST_F(BasicPortAllocatorTest, TestGetAllPortsNoAdapters) {
            .clock = &fake_clock}),
       webrtc::IsRtcOk());
   EXPECT_EQ(4U, ports_.size());
-  EXPECT_EQ(1,
-            CountPorts(ports_, IceCandidateType::kSrflx, PROTO_UDP, kAnyAddr));
-  EXPECT_EQ(1,
-            CountPorts(ports_, IceCandidateType::kHost, PROTO_TCP, kAnyAddr));
+  EXPECT_EQ(1, CountPorts(ports_, IceCandidateType::kSrflx, webrtc::PROTO_UDP,
+                          kAnyAddr));
+  EXPECT_EQ(1, CountPorts(ports_, IceCandidateType::kHost, webrtc::PROTO_TCP,
+                          kAnyAddr));
   // Two TURN ports, using UDP/TCP for the first hop to the TURN server.
-  EXPECT_EQ(1,
-            CountPorts(ports_, IceCandidateType::kRelay, PROTO_UDP, kAnyAddr));
-  EXPECT_EQ(1,
-            CountPorts(ports_, IceCandidateType::kRelay, PROTO_TCP, kAnyAddr));
+  EXPECT_EQ(1, CountPorts(ports_, IceCandidateType::kRelay, webrtc::PROTO_UDP,
+                          kAnyAddr));
+  EXPECT_EQ(1, CountPorts(ports_, IceCandidateType::kRelay, webrtc::PROTO_TCP,
+                          kAnyAddr));
   // The "any" address port should be in the signaled ready ports, but the host
   // candidate for it is useless and shouldn't be signaled. So we only have
   // STUN/TURN candidates.
@@ -1460,7 +1460,7 @@ TEST_F(BasicPortAllocatorTest,
 // Test that we should get a default private, STUN, TURN/UDP and TURN/TCP
 // candidates when both TURN/UDP and TURN/TCP servers are specified.
 TEST_F(BasicPortAllocatorTest, TestDisableAdapterEnumerationBehindNatWithTcp) {
-  turn_server_.AddInternalSocket(kTurnTcpIntAddr, PROTO_TCP);
+  turn_server_.AddInternalSocket(kTurnTcpIntAddr, webrtc::PROTO_TCP);
   AddInterface(kPrivateAddr);
   ResetWithStunServerAndNat(kStunAddr);
   AddTurnServers(kTurnUdpIntAddr, kTurnTcpIntAddr);
@@ -1528,7 +1528,7 @@ TEST_F(BasicPortAllocatorTest,
 // Test that we disable relay over UDP, and only TCP is used when connecting to
 // the relay server.
 TEST_F(BasicPortAllocatorTest, TestDisableUdpTurn) {
-  turn_server_.AddInternalSocket(kTurnTcpIntAddr, PROTO_TCP);
+  turn_server_.AddInternalSocket(kTurnTcpIntAddr, webrtc::PROTO_TCP);
   AddInterface(kClientAddr);
   ResetWithStunServerAndNat(kStunAddr);
   AddTurnServers(kTurnUdpIntAddr, kTurnTcpIntAddr);
@@ -1892,7 +1892,7 @@ TEST_F(BasicPortAllocatorTest, TestSharedSocketWithNat) {
 
 // Test TURN port in shared socket mode with UDP and TCP TURN server addresses.
 TEST_F(BasicPortAllocatorTest, TestSharedSocketWithoutNatUsingTurn) {
-  turn_server_.AddInternalSocket(kTurnTcpIntAddr, PROTO_TCP);
+  turn_server_.AddInternalSocket(kTurnTcpIntAddr, webrtc::PROTO_TCP);
   AddInterface(kClientAddr);
   allocator_.reset(new BasicPortAllocator(&network_manager_, &socket_factory_));
   allocator_->Initialize();
@@ -2032,15 +2032,15 @@ TEST_F(BasicPortAllocatorTestWithRealClock,
   // IPv6-only machine.
   MAYBE_SKIP_IPV4;
   turn_server_.AddInternalSocket(rtc::SocketAddress("127.0.0.1", 3478),
-                                 PROTO_UDP);
+                                 webrtc::PROTO_UDP);
   AddInterface(kClientAddr);
   allocator_.reset(new BasicPortAllocator(&network_manager_, &socket_factory_));
   allocator_->Initialize();
   RelayServerConfig turn_server;
   RelayCredentials credentials(kTurnUsername, kTurnPassword);
   turn_server.credentials = credentials;
-  turn_server.ports.push_back(
-      ProtocolAddress(rtc::SocketAddress("localhost", 3478), PROTO_UDP));
+  turn_server.ports.push_back(ProtocolAddress(
+      rtc::SocketAddress("localhost", 3478), webrtc::PROTO_UDP));
   allocator_->AddTurnServerForTesting(turn_server);
 
   allocator_->set_step_delay(kMinimumStepDelay);
@@ -2151,7 +2151,7 @@ TEST_F(BasicPortAllocatorTest, TestSharedSocketWithNatUsingTurnAsStun) {
 // a UDP STUN server, as this could leak our IP address. Thus we should only
 // expect two ports, a UDPPort and TurnPort.
 TEST_F(BasicPortAllocatorTest, TestSharedSocketWithNatUsingTurnTcpOnly) {
-  turn_server_.AddInternalSocket(kTurnTcpIntAddr, PROTO_TCP);
+  turn_server_.AddInternalSocket(kTurnTcpIntAddr, webrtc::PROTO_TCP);
   AddInterface(kClientAddr);
   ResetWithStunServerAndNat(rtc::SocketAddress());
   AddTurnServers(rtc::SocketAddress(), kTurnTcpIntAddr);
@@ -2755,7 +2755,7 @@ TEST_F(BasicPortAllocatorTest, HostCandidateAddressIsReplacedByHostname) {
   // Default config uses GTURN and no NAT, so replace that with the
   // desired setup (NAT, STUN server, TURN server, UDP/TCP).
   ResetWithStunServerAndNat(kStunAddr);
-  turn_server_.AddInternalSocket(kTurnTcpIntAddr, PROTO_TCP);
+  turn_server_.AddInternalSocket(kTurnTcpIntAddr, webrtc::PROTO_TCP);
   AddTurnServers(kTurnUdpIntAddr, kTurnTcpIntAddr);
   AddTurnServers(kTurnUdpIntIPv6Addr, kTurnTcpIntIPv6Addr);
 

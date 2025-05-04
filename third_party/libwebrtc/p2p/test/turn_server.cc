@@ -96,7 +96,7 @@ TurnServer::~TurnServer() {
 }
 
 void TurnServer::AddInternalSocket(rtc::AsyncPacketSocket* socket,
-                                   ProtocolType proto) {
+                                   webrtc::ProtocolType proto) {
   RTC_DCHECK_RUN_ON(thread_);
   RTC_DCHECK(server_sockets_.end() == server_sockets_.find(socket));
   server_sockets_[socket] = proto;
@@ -109,7 +109,7 @@ void TurnServer::AddInternalSocket(rtc::AsyncPacketSocket* socket,
 
 void TurnServer::AddInternalServerSocket(
     rtc::Socket* socket,
-    ProtocolType proto,
+    webrtc::ProtocolType proto,
     std::unique_ptr<rtc::SSLAdapterFactory> ssl_adapter_factory) {
   RTC_DCHECK_RUN_ON(thread_);
 
@@ -503,7 +503,7 @@ void TurnServer::DestroyAllocation(TurnServerAllocation* allocation) {
   // by all allocations.
   // Note: We may not find a socket if it's a TCP socket that was closed, and
   // the allocation is only now timing out.
-  if (iter != server_sockets_.end() && iter->second != cricket::PROTO_UDP) {
+  if (iter != server_sockets_.end() && iter->second != webrtc::PROTO_UDP) {
     DestroyInternalSocket(socket);
   }
 
@@ -527,7 +527,7 @@ void TurnServer::DestroyInternalSocket(rtc::AsyncPacketSocket* socket) {
 }
 
 TurnServerConnection::TurnServerConnection(const rtc::SocketAddress& src,
-                                           ProtocolType proto,
+                                           webrtc::ProtocolType proto,
                                            rtc::AsyncPacketSocket* socket)
     : src_(src),
       dst_(socket->GetRemoteAddress()),
