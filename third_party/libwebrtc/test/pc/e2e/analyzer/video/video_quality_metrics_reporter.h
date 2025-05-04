@@ -53,7 +53,6 @@ class VideoQualityMetricsReporter
     SamplesStatsCounter retransmission_bitrate;
   };
   struct StatsSample {
-    std::vector<std::optional<std::string>> scalability_modes;
     std::optional<Timestamp> timestamp;
     DataSize bytes_sent = DataSize::Zero();
     DataSize header_bytes_sent = DataSize::Zero();

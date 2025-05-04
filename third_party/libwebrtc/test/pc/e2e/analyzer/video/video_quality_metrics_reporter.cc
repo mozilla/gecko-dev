@@ -87,7 +87,6 @@ void VideoQualityMetricsReporter::OnStatsReports(
     if (!s->kind.has_value() || *s->kind != "video") {
       continue;
     }
-    sample.scalability_modes.push_back(s->scalability_mode);
     sample.timestamp = std::max(*sample.timestamp, s->timestamp());
     sample.retransmitted_bytes_sent +=
         DataSize::Bytes(s->retransmitted_bytes_sent.value_or(0ul));
@@ -114,8 +113,10 @@ void VideoQualityMetricsReporter::OnStatsReports(
     return;
   }
 
-  if (prev_sample.scalability_modes != sample.scalability_modes) {
-    // Change in video config can trigger the counters to be reset.
+  // TODO: b/40644448 - Remove the code once the counters are not reset.
+  if (prev_sample.bytes_sent > sample.bytes_sent ||
+      prev_sample.header_bytes_sent > sample.header_bytes_sent ||
+      prev_sample.retransmitted_bytes_sent > sample.retransmitted_bytes_sent) {
     prev_sample.bytes_sent = DataSize::Zero();
     prev_sample.header_bytes_sent = DataSize::Zero();
     prev_sample.retransmitted_bytes_sent = DataSize::Zero();
