@@ -74,5 +74,5 @@
   <!-- Alert dialog confirmation before cancelling downloads, this is the positive action. -->
   <string name="mozac_feature_downloads_cancel_active_downloads_accept">I kansela and download</string>
   <!-- Alert dialog confirmation before cancelling downloads, this is the negative action. Leaves user in Private browsing -->
-  <string name="mozac_feature_downloads_cancel_active_private_downloads_deny">Manatili sa Pribadong pag Browse</string>
+  <string name="mozac_feature_downloads_cancel_active_private_downloads_deny">Manatili sa pribadong pag-browse</string>
 </resources>

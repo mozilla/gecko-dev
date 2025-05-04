@@ -616,8 +616,12 @@ Tiktiwin tigejdanin yuzzlen ur nṣeḥḥi ara
   <string name="onboarding_preferences_dialog_positive_button">Immed</string>
   <!-- Terms of service onboarding title card label. 'Firefox' intentionally hardcoded here -->
   <string name="onboarding_welcome_to_firefox" tools:ignore="BrandUsage">Anṣuf ar Firefox</string>
+  <!-- Terms of service sub header label. -->
+  <string name="onboarding_terms_of_service_sub_header_2">Tinigin taruradt, taɣellsant deg uẓeṭṭa</string>
   <!-- Terms of service onboarding page continue button label. -->
   <string name="onboarding_term_of_service_agree_and_continue_button_label">Qbel syen kemmel</string>
+  <!-- Used as text for the link in onboarding_term_of_service_line_one_2. -->
+  <string name="onboarding_term_of_service_line_one_link_text_2" tools:ignore="BrandUsage">Tiwtiln n useqdec n Fiefox</string>
   <!-- Used as text for the link in onboarding_term_of_service_line_two. -->
   <string name="onboarding_term_of_service_line_two_link_text">Tasertit n tbaḍnit</string>
   <!-- Used as text for the link in onboarding_term_of_service_line_three. -->
@@ -642,14 +646,24 @@ Tiktiwin tigejdanin yuzzlen ur nṣeḥḥi ara
   <string name="onboarding_customize_theme_title" tools:ignore="UnusedResources">Fren asentel</string>
   <!-- Onboarding sub header for theme selection card, used by Nimbus experiments. -->
   <string name="onboarding_customize_theme_description" tools:ignore="UnusedResources">Wali web s tafat taceεlalt i tebɣiḍ.</string>
+  <!-- Onboarding label for 'Save and start browsing' button, used by Nimbus experiments. -->
+  <string name="onboarding_save_and_start_button">Sekles syen bdu tunigin</string>
   <!-- Onboarding theme selection card label for 'dark' option, used by Nimbus experiments. -->
   <string name="onboarding_customize_theme_dark_option">Aberkan</string>
   <!-- Onboarding theme selection card label for 'light' option, used by Nimbus experiments. -->
   <string name="onboarding_customize_theme_light_option">Aceɛlal</string>
   <!-- Onboarding theme selection card label for 'System auto' option, used by Nimbus experiments. -->
   <string name="onboarding_customize_theme_system_option">Anagraw awurman</string>
+  <!-- Onboarding theme selection card content description for the theme selection image. %1$s is placeholder for either 'system', 'light' or 'dark'. -->
+  <string name="onboarding_customize_theme_content_description">Tugna n usentel %1$s</string>
   <!-- Action label for options that can be selected. Talkback will append this to say "Double tap to select". -->
   <string name="onboarding_customize_theme_a11y_action_label_select">fren</string>
+  <!--
+    Widget Picker
+
+    Widget description for widget picker screen
+  -->
+  <string name="widget_picket_description">Bdu anadi uzrib</string>
   <!--
     Search Widget
 
@@ -847,6 +861,8 @@ Tiktiwin tigejdanin yuzzlen ur nṣeḥḥi ara
   <string name="preferences_show_nonsponsored_suggestions_summary">Awi isumar seg web yeqqnen ɣer unadi-k·m</string>
   <!-- Preference for link sharing -->
   <string name="preferences_link_sharing">Beṭṭu n useɣwen</string>
+  <!-- Snackbar message shown when user shares a link -->
+  <string name="link_shared_snackbar_message">Aseɣwen yettwabḍa</string>
   <!-- Snackbar action label shown when user shares a link -->
   <string name="link_shared_snackbar_action">Sefrek iɣewwaren</string>
   <!-- Preference for open links in third party apps -->
@@ -1066,6 +1082,8 @@ Tiktiwin tigejdanin yuzzlen ur nṣeḥḥi ara
   <string name="exceptions_empty_message_learn_more_link">Issin ugar</string>
   <!-- Preference switch for usage and technical data collection -->
   <string name="preference_usage_data_1" tools:ignore="UnusedResources" moz:removedIn="138">Isefka n tetiknikt d umyigew</string>
+  <!-- Preference switch for usage and technical data collection -->
+  <string name="preference_usage_data_2">Azen isefka itiknikanen akked wid n umyigew</string>
   <!-- Preference switch for usage and technical learn more link -->
   <string name="preference_usage_data_learn_more">Issin ugar</string>
   <!-- Preference switch title for automatically submitting crash reports -->
@@ -1256,8 +1274,17 @@ Tiktiwin tigejdanin yuzzlen ur nṣeḥḥi ara
   <string name="studies_remove">Kkes</string>
   <!-- Title of the active section on the studies list -->
   <string name="studies_active">Rmed</string>
+  <!-- Title of the Studies data preference -->
+  <string name="studies_title">Sbedd syen bdu almad</string>
   <!-- Learn more link for studies, links to an article for more information about studies. -->
   <string name="studies_learn_more">Issin ugar</string>
+  <!--
+    Sessions
+
+    Title for the list of tabs in the current private session used by a11y services
+    The %1$s will be replaced by the number of opened private tabs
+  -->
+  <string name="tabs_header_private_tabs_counter_title">Acaren usligen yeldin: %1$s. Sit i ubeddel n yiccer.</string>
   <!-- Content description (not visible, for screen readers etc.): Add tab button. Adds a news tab when pressed -->
   <string name="add_tab">Rnu iccer</string>
   <!-- Content description (not visible, for screen readers etc.): Add tab button. Adds a news tab when pressed -->
@@ -1351,8 +1378,15 @@ Tiktiwin tigejdanin yuzzlen ur nṣeḥḥi ara
     Text for the snackbar to confirm that multiple downloads items have been removed
   -->
   <string name="download_delete_multiple_items_snackbar_1" moz:removedIn="138" tools:ignore="UnusedResources">Isadaren ttwakksen</string>
+  <!--
+    Text for the snackbar to confirm that a multiple download items have been removed. %1$s is the number of removed download items.
+    %1$d is the number of items deleted.
+  -->
+  <string name="download_delete_multiple_items_snackbar_2">Iferdisen i yettwakksen: %1$d</string>
   <!-- Text for the snackbar to confirm that a single download item has been removed. %1$s is the name of the download item. -->
   <string name="download_delete_single_item_snackbar" moz:removedIn="138" tools:ignore="UnusedResources">Yettwakkes %1$s</string>
+  <!-- Text for the snackbar to confirm that a single download item has been removed. %1$s is the name of the download item. -->
+  <string name="download_delete_single_item_snackbar_2">Yettwakkes “%1$s”</string>
   <!-- Text for the snackbar to confirm that downloads are in progress. -->
   <string name="download_in_progress_snackbar" tools:ignore="UnusedResources">Asader iteddu…</string>
   <!-- Text for the snackbar action button to view in progress download details. -->
@@ -1378,6 +1412,8 @@ Tiktiwin tigejdanin yuzzlen ur nṣeḥḥi ara
   <string name="download_delete_item">Kkes</string>
   <!-- Content description for the toolbar "Navigate back" button -->
   <string name="download_navigate_back_description">Inig ar deffir</string>
+  <!-- Content description for the toolbar "Navigate up" button -->
+  <string name="download_navigate_up_description">Inig d asawen</string>
   <!-- Text for the button to share the download URL -->
   <string name="download_share_url">Bḍu URL</string>
   <!-- Text for the button to share the download file -->
@@ -2185,14 +2221,22 @@ Tiktiwin tigejdanin yuzzlen ur nṣeḥḥi ara
   <string name="preference_doh_increased_protection_info_1">Seqdec asaǧǧaw i tferneḍ</string>
   <!-- Title displayed for "Max Protection" option under "DNS over HTTPS" -->
   <string name="preference_doh_max_protection">Ammesten unnig</string>
+  <!-- Bullet point 1 for "Max Protection" information page under "DNS over HTTPS" -->
+  <string name="preference_doh_max_protection_info_1">Seqdec kan asaǧǧaw i tferneḍ</string>
+  <!-- Bullet point 2 for "Max Protection" information page under "DNS over HTTPS" -->
+  <string name="preference_doh_max_protection_info_2">Ttɛeggin-d yal ma yili ulac DNS aɣellsan</string>
   <!-- Title displayed for "Off" option under "DNS over HTTPS" -->
   <string name="preference_doh_off">Yensa</string>
+  <!-- Summary displayed for "Off" option under "DNS over HTTPS" -->
+  <string name="preference_doh_off_summary">Seqdec aqeddacn uṣeggem DNS s wudem amezwer</string>
   <!-- Text displayed above provider dropdown under "DNS over HTTPS" -->
   <string name="preference_doh_choose_provider">Fren asaǧǧaw</string>
   <!-- Text displayed for "Default provider" under "DNS over HTTPS" providers -->
   <string name="preference_doh_provider_default">(amezwer)</string>
   <!-- Text displayed for "Custom" under "DNS over HTTPS" providers -->
   <string name="preference_doh_provider_custom">Udmawan</string>
+  <!-- Text displayed for "Custom provider" dialog under "DNS over HTTPS" -->
+  <string name="preference_doh_provider_custom_dialog_title">Asaǧǧaw udmawan</string>
   <!-- Text displayed above provider textfield under "DNS over HTTPS" -->
   <string name="preference_doh_provider_custom_dialog_textfield">Imefki</string>
   <!-- Error text displayed for provider textfield under "DNS over HTTPS" if the URL is invalid -->
@@ -3231,6 +3275,16 @@ Tiktiwin tigejdanin yuzzlen ur nṣeḥḥi ara
   <string name="setup_checklist_task_explore_extensions">Snirem isiɣzaf</string>
   <!-- The title of the 'helpful tools' group in the setup checklist -->
   <string name="setup_checklist_group_helpful_tools">Ifecka yelhan</string>
+  <!--
+    ===== Setup checklist feature: Accessibility =====
+
+    Accessibility description for a check mark on a completed task
+  -->
+  <string name="a11y_completed_task_description">Tawuri yemmden</string>
+  <!-- Accessibility description for the task icon -->
+  <string name="a11y_task_icon_description">Tignit n temsekrit</string>
   <!-- Label for the primary action button to unlock private tabs -->
   <string name="pbm_authentication_unlock">Serreḥ</string>
+  <!-- Negative button text for the contextual feature recommendation (CFR) dismissing the screen lock suggestion -->
+  <string name="private_tab_cfr_negative">Ala, tanemmirt</string>
 </resources>

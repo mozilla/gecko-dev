@@ -1931,6 +1931,10 @@
   <string name="sync_add_new_device_learn_button">Беттерді жіберу туралы көбірек білу…</string>
   <!-- Text for the button to connect another device -->
   <string name="sync_add_new_device_connect_button">Басқа құрылғыны байланыстыру…</string>
+  <!-- A message template for the shared link with a footer. %1$s is the shared link, %2$s is the app name (e.g. Firefox) and %3$s is a download link for the app. -->
+  <string name="sent_from_firefox_template" tools:ignore="UnusedResources">%1$s\n\n%2$s арқылы жіберілді 🦊 Мобильді браузерді қолданып көріңіз: %3$s</string>
+  <!-- A short message template for the shared link with a footer. %1$s is the shared link, %2$s is the app name (e.g. Firefox) and %3$s is a download link for the app. -->
+  <string name="sent_from_firefox_template_short" tools:ignore="UnusedResources">%1$s\n\n%2$s арқылы жіберілді 🦊 %3$s</string>
   <!--
     Notifications
 
@@ -2289,6 +2293,24 @@
   <string name="preference_doh_add_site_description">Сайтты қосу</string>
   <!-- Title displayed for "Default Protection" option under "DNS over HTTPS" -->
   <string name="preference_doh_default_protection">Қалыпты қорғаныс</string>
+  <!-- Summary displayed for "Default Protection" option under "DNS over HTTPS". %1$s is the name of the application (e.g. Fenix). -->
+  <string name="preference_doh_default_protection_summary">%1$s жекелігіңізді қорғау үшін қауіпсіз DNS қашан пайдалану керектігін шешеді.</string>
+  <!-- Bullet point 1 for "Default Protection" information page under "DNS over HTTPS" -->
+  <string name="preference_doh_default_protection_info_1">Сіз тандаған провайдерді пайдалану</string>
+  <!-- Bullet point 2 for "Default Protection" information page under "DNS over HTTPS" -->
+  <string name="preference_doh_default_protection_info_2">Қауіпсіз DNS провайдеріне қатысты мәселе болса, үнсіз келісім DNS провайдерін пайдалану</string>
+  <!-- Bullet point 3 for "Default Protection" information page under "DNS over HTTPS". %1$s is replaced by a link using `preference_doh_learn_more` at text ("Learn More"). -->
+  <string name="preference_doh_default_protection_info_3">Мүмкін болса, жергілікті провайдерді пайдалану. %1$s</string>
+  <!-- Bullet point 4 for "Default Protection" information page under "DNS over HTTPS" -->
+  <string name="preference_doh_default_protection_info_4">VPN, ата-аналық бақылау немесе кәсіпорын саясаттары белсенді болғанда сөндіру</string>
+  <!-- Title displayed for "Increased Protection" option under "DNS over HTTPS" -->
+  <string name="preference_doh_increased_protection">Жақсартылған қорғаныс</string>
+  <!-- Summary displayed for "Increased Protection" option under "DNS over HTTPS" -->
+  <string name="preference_doh_increased_protection_summary">Сіз қауіпсіз DNS пайдалану уақытын өзіңіз басқарасыз және провайдеріңізді таңдайсыз.</string>
+  <!-- Bullet point 1 for "Increased Protection" information page under "DNS over HTTPS" -->
+  <string name="preference_doh_increased_protection_info_1">Сіз тандаған провайдерді пайдалану</string>
+  <!-- Bullet point 2 for "Increased Protection" information page under "DNS over HTTPS" -->
+  <string name="preference_doh_increased_protection_info_2">Үнсіз келісім DNS провайдерін тек қауіпсіз DNS провайдеріне қатысты мәселе болса, пайдалану</string>
   <!-- Title displayed for "Max Protection" option under "DNS over HTTPS" -->
   <string name="preference_doh_max_protection">Максималды қорғаныс</string>
   <!-- Summary displayed for "Max Protection" option under "DNS over HTTPS". %1$s is the name of the application (e.g. Fenix). -->
@@ -3482,4 +3504,6 @@
   <string name="pbm_authentication_unlock">Босату</string>
   <!-- Title text instructing the user to unlock private tabs -->
   <string name="pbm_authentication_unlock_private_tabs">Жекелік беттер бұғаттауын ашу</string>
+  <!-- Negative button text for the contextual feature recommendation (CFR) dismissing the screen lock suggestion -->
+  <string name="private_tab_cfr_negative">Жоқ, рахмет</string>
 </resources>

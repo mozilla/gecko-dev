@@ -30,6 +30,8 @@
     %1$d will be replaced by an integer indicating the number of additional domains for which this web extension is requesting permission.
   -->
   <string name="mozac_feature_addons_permissions_extra_domains_description_plural" tools:ignore="PluralsCandidate">i-Access ang iyong data sa %1$d pang mga domain</string>
+  <!-- When an add-on requires access to domains, this entry is used to describe the total number of domains. Underneath it will be the list of all the domains. %1$d is the number of all the domains that will be shown to the user as required. -->
+  <string name="mozac_feature_addons_permissions_all_domain_count_description" tools:ignore="PluralsCandidate">I-access ang iyong data sa mga site sa %1$d domain</string>
   <!-- Content description for a permission item, for an installed add-on details page. %1$s will be replaced with the permission text name, %2$d will be replaced with the permission position in the list and %3$d will be replaced with the total number of permissions in the list.Taking as an example "Read and modify privacy settings" the whole text will read Read and modify privacy settings, 2 of 6. -->
   <string name="mozac_feature_addons_permissions_content_description_item">%1$s, %2$d ng %3$d</string>
   <!-- Description for tabs add-on permission. -->
@@ -80,6 +82,8 @@
   <string name="mozac_feature_addons_permissions_trial_ml_description">Mag-download at magpatakbo ng mga AI model sa iyong device</string>
   <!-- Description for userScripts permission. -->
   <string name="mozac_feature_addons_permissions_user_scripts_description">Payagan ang mga hindi beripikadong third-party script para ma-access ang iyong data</string>
+  <!-- The text shown when an extension requests the userScripts permission, near the usual description of the userScripts permission -->
+  <string name="mozac_feature_addons_permissions_user_scripts_extra_warning">Maaaring maging panganib sa seguridad at pribasiya ang mga di-beripikadong script. Magpatakbo lang ng mga script mula sa mga extension na pinagkakatiwalaan mo.</string>
   <!-- Description for devtools permission. -->
   <string name="mozac_feature_addons_permissions_devtools_description">i-Extend ang mga developer tool para ma-access sa iyong data sa mga nakabukas na tab</string>
   <!-- Description for text button that expands the list of domain permissions -->
@@ -162,6 +166,8 @@
   <string name="mozac_feature_addons_addons_manager">Add-ons Manager</string>
   <!-- The title of the "crash" notification in the extensions manager -->
   <string name="mozac_feature_extensions_manager_notification_title_text">Pansamantalang naka-disable ang mga extension</string>
+  <!-- The content of the "crash" notification in the extensions manager -->
+  <string name="mozac_feature_extensions_manager_notification_content_text">May isa o higit pang mga extension na tumigil gumana, na nagdulot para maging unstable ang iyong sistema.</string>
   <!-- Button to re-enable the extensions in the "crash" notification -->
   <string name="mozac_feature_extensions_manager_notification_restart_button">Mag-restart ng mga extension</string>
   <!-- Button in the extensions manager that opens AMO in a tab -->
@@ -216,6 +222,8 @@
   <string name="mozac_feature_addons_failed_to_install_incompatible_error">Hindi ma-install ang %1$s dahil hindi ito angkop sa %2$s %3$s.</string>
   <!-- Text shown when attempting to install a (hard) blocked add-on. %1$s is the add-on name. %2$s is the app name. -->
   <string name="mozac_feature_addons_blocklisted_2">Nilalabag ng %1$s ang mga polisiya ng Mozilla kaya hindi ito mai-install sa %2$s.</string>
+  <!-- Text shown when attempting to install an add-on that can only be install via Enterprise Policies, which is not supported on Android.  %1$s is the add-on name. -->
+  <string name="mozac_feature_addons_admin_install_only">Hindi kayang ma-install ang %1$s dahil maaari lamang itong ma-install ng isang organisasyong gumagamit ng mga enterprise policy, mga policy na hindi suportado sa platform na ito.</string>
   <!-- Text shown when attempting to install an add-on that is soft-blocked. %1$s is the add-on name. %2$s is the app name. -->
   <string name="mozac_feature_addons_soft_blocked_1">Nilalabag ng %1$s ang mga polisiya ng Mozilla kaya hindi ito mai-install sa %2$s.</string>
   <!-- Text shown after successfully enabled an add-on. %1$s is the add-on name. -->
@@ -256,6 +264,8 @@
   <string name="mozac_feature_addons_updater_dialog_status">Katayuan:</string>
   <!-- Text shown in the dialog when add-on installation is completed. %1$s is the add-on name. %2$s is the app name. -->
   <string name="mozac_feature_addons_installed_dialog_title">Naidagdag na ang %1$s sa %2$s</string>
+  <!-- Text shown in the dialog when add-on installation is completed. %1$s is the add-on name. %2$s is the app name. -->
+  <string name="mozac_feature_addons_installed_dialog_description_2">I-access ang %1$s mula sa %2$s menu.</string>
   <!-- Confirmation button text for the dialog when add-on installation is completed. -->
   <string name="mozac_feature_addons_installed_dialog_okay_button_2">OK</string>
   <!-- "Learn more" link displayed below an add-on status message. -->
@@ -264,4 +274,12 @@
   <string name="mozac_feature_addons_status_see_details">Tingnan ang detalye</string>
   <!-- Status message below an add-on in the add-ons manager when this add-on has been blocklisted. %1$s is the add-on name. -->
   <string name="mozac_feature_addons_status_blocklisted_1">Hinarang at na-disable ang extension na ito dahil sa paglabag sa polisiya ng Mozilla.</string>
+  <!-- Status message below an add-on in the add-ons manager when this add-on has been soft-blocked. -->
+  <string name="mozac_feature_addons_status_softblocked_1">Pinaghigpitan ang extension na ito dahil sa paglabag sa mga polisiya ng Mozilla at ngayo\'y hindi pinagana. Maaari mo itong paganahin uli, pero ito ay maaaring magdulot ng panganib.</string>
+  <!-- Status message below an add-on in the add-ons manager when this add-on has been soft-blocked but the user re-enabled it. -->
+  <string name="mozac_feature_addons_status_softblocked_re_enabled">Lumalabag ang extension na ito sa mga patakaran ng Mozilla. Maaaring delikado ang paggamit dito.</string>
+  <!-- Status message below an add-on in the add-ons manager when this add-on hasn't been signed correctly. %1$s is the add-on name. -->
+  <string name="mozac_feature_addons_status_unsigned">Hindi maberipikang ligtas ang %1$s kung kaya\'t ito ay hindi pinagana.</string>
+  <!-- Status message below an add-on in the add-ons manager when this add-on isn't compatible with the application version. %1$s is the add-on name, %2$s is the app name and %3$s is the app version. -->
+  <string name="mozac_feature_addons_status_incompatible">Hindi tugma ang %1$s sa bersyon mo ng %2$s (bersyong %3$s).</string>
 </resources>

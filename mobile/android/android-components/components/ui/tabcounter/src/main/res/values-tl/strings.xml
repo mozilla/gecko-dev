@@ -5,6 +5,11 @@
     The %1$s will be replaced by the number of opened tabs
   -->
   <string name="mozac_tab_counter_open_tab_tray">Mga Nakabukas na Tab: %1$s. Mag-tap para lumipat ng tab.</string>
+  <!--
+    Message announced to the user when tab tray is selected used by a11y services
+    The %1$s will be replaced by the number of opened tabs
+  -->
+  <string name="mozac_open_tab_counter_tab_tray">Mga Nakabukas na Di-pribadong Tab: %1$s. I-tap para lumipat ng tab.</string>
   <!-- Browser menu button that creates a new tab -->
   <string name="mozac_browser_menu_new_tab">Bagong tab</string>
   <!-- Browser menu button that creates a private tab -->
