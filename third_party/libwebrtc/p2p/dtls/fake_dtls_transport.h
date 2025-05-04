@@ -144,7 +144,7 @@ class FakeDtlsTransport : public DtlsTransportInternal {
       }
       // If the `dtls_role_` is unset, set it to SSL_CLIENT by default.
       if (!dtls_role_) {
-        dtls_role_ = std::move(rtc::SSL_CLIENT);
+        dtls_role_ = std::move(webrtc::SSL_CLIENT);
       }
       SetDtlsState(webrtc::DtlsTransportState::kConnected);
       ice_transport_->SetDestination(
@@ -167,7 +167,7 @@ class FakeDtlsTransport : public DtlsTransportInternal {
   webrtc::RTCError SetRemoteParameters(absl::string_view alg,
                                        const uint8_t* digest,
                                        size_t digest_len,
-                                       std::optional<rtc::SSLRole> role) {
+                                       std::optional<webrtc::SSLRole> role) {
     if (role) {
       SetDtlsRole(*role);
     }
@@ -181,11 +181,11 @@ class FakeDtlsTransport : public DtlsTransportInternal {
         rtc::SSLFingerprint(alg, rtc::MakeArrayView(digest, digest_len));
     return true;
   }
-  bool SetDtlsRole(rtc::SSLRole role) override {
+  bool SetDtlsRole(webrtc::SSLRole role) override {
     dtls_role_ = std::move(role);
     return true;
   }
-  bool GetDtlsRole(rtc::SSLRole* role) const override {
+  bool GetDtlsRole(webrtc::SSLRole* role) const override {
     if (!dtls_role_) {
       return false;
     }
@@ -249,10 +249,10 @@ class FakeDtlsTransport : public DtlsTransportInternal {
     }
     return do_dtls_;
   }
-  void set_ssl_max_protocol_version(rtc::SSLProtocolVersion version) {
+  void set_ssl_max_protocol_version(webrtc::SSLProtocolVersion version) {
     ssl_max_version_ = version;
   }
-  rtc::SSLProtocolVersion ssl_max_protocol_version() const {
+  webrtc::SSLProtocolVersion ssl_max_protocol_version() const {
     return ssl_max_version_;
   }
 
@@ -321,10 +321,10 @@ class FakeDtlsTransport : public DtlsTransportInternal {
   rtc::scoped_refptr<rtc::RTCCertificate> local_cert_;
   rtc::FakeSSLCertificate* remote_cert_ = nullptr;
   bool do_dtls_ = false;
-  rtc::SSLProtocolVersion ssl_max_version_ = rtc::SSL_PROTOCOL_DTLS_12;
+  webrtc::SSLProtocolVersion ssl_max_version_ = webrtc::SSL_PROTOCOL_DTLS_12;
   rtc::SSLFingerprint dtls_fingerprint_;
-  std::optional<rtc::SSLRole> dtls_role_;
-  int crypto_suite_ = rtc::kSrtpAes128CmSha1_80;
+  std::optional<webrtc::SSLRole> dtls_role_;
+  int crypto_suite_ = webrtc::kSrtpAes128CmSha1_80;
   std::optional<int> ssl_cipher_suite_;
 
   webrtc::DtlsTransportState dtls_state_ = webrtc::DtlsTransportState::kNew;

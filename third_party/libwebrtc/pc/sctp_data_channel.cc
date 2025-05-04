@@ -123,9 +123,9 @@ bool InternalDataChannelInit::IsValid() const {
   return true;
 }
 
-std::optional<StreamId> SctpSidAllocator::AllocateSid(rtc::SSLRole role) {
+std::optional<StreamId> SctpSidAllocator::AllocateSid(SSLRole role) {
   RTC_DCHECK_RUN_ON(&sequence_checker_);
-  int potential_sid = (role == rtc::SSL_CLIENT) ? 0 : 1;
+  int potential_sid = (role == SSL_CLIENT) ? 0 : 1;
   while (potential_sid <= static_cast<int>(cricket::kMaxSctpSid)) {
     StreamId sid(potential_sid);
     if (used_sids_.insert(sid).second)

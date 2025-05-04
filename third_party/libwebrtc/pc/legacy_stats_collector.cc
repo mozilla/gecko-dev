@@ -1006,11 +1006,10 @@ void LegacyStatsCollector::ExtractSessionInfo_s(SessionStats& session_stats) {
                               remote_cert_report_id);
       }
       int srtp_crypto_suite = channel_iter.srtp_crypto_suite;
-      if (srtp_crypto_suite != rtc::kSrtpInvalidCryptoSuite &&
-          rtc::SrtpCryptoSuiteToName(srtp_crypto_suite).length()) {
-        channel_report->AddString(
-            StatsReport::kStatsValueNameSrtpCipher,
-            rtc::SrtpCryptoSuiteToName(srtp_crypto_suite));
+      if (srtp_crypto_suite != kSrtpInvalidCryptoSuite &&
+          SrtpCryptoSuiteToName(srtp_crypto_suite).length()) {
+        channel_report->AddString(StatsReport::kStatsValueNameSrtpCipher,
+                                  SrtpCryptoSuiteToName(srtp_crypto_suite));
       }
       if (channel_iter.tls_cipher_suite_name) {
         channel_report->AddString(

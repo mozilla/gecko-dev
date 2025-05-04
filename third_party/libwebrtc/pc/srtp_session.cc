@@ -561,7 +561,7 @@ bool SrtpSession::DoSetKey(int type,
   // Enable external HMAC authentication only for outgoing streams and only
   // for cipher suites that support it (i.e. only non-GCM cipher suites).
   if (type == ssrc_any_outbound && IsExternalAuthEnabled() &&
-      !rtc::IsGcmCryptoSuite(crypto_suite)) {
+      !webrtc::IsGcmCryptoSuite(crypto_suite)) {
     policy.rtp.auth_type = EXTERNAL_HMAC_SHA1;
   }
   if (!extension_ids.empty()) {

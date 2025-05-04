@@ -112,7 +112,7 @@ class TestTurnServer : public TurnAuthInterface {
         // must not fail when checking the peer's identity.
         std::unique_ptr<rtc::SSLAdapterFactory> ssl_adapter_factory =
             rtc::SSLAdapterFactory::Create();
-        ssl_adapter_factory->SetRole(rtc::SSL_SERVER);
+        ssl_adapter_factory->SetRole(webrtc::SSL_SERVER);
         ssl_adapter_factory->SetIdentity(
             rtc::SSLIdentity::Create(common_name, rtc::KeyParams()));
         ssl_adapter_factory->SetIgnoreBadCert(ignore_bad_cert);

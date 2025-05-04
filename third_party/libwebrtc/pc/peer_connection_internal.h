@@ -96,7 +96,7 @@ class PeerConnectionSdpMethods {
   virtual LegacyStatsCollector* legacy_stats() = 0;
   // Returns the observer. Will crash on CHECK if the observer is removed.
   virtual PeerConnectionObserver* Observer() const = 0;
-  virtual std::optional<rtc::SSLRole> GetSctpSslRole_n() = 0;
+  virtual std::optional<SSLRole> GetSctpSslRole_n() = 0;
   virtual PeerConnectionInterface::IceConnectionState
   ice_connection_state_internal() = 0;
   virtual void SetIceConnectionState(
@@ -197,8 +197,7 @@ class PeerConnectionInternal : public PeerConnectionInterface,
   virtual bool IceRestartPending(const std::string& content_name) const = 0;
 
   // Get SSL role for an arbitrary m= section (handles bundling correctly).
-  virtual bool GetSslRole(const std::string& content_name,
-                          rtc::SSLRole* role) = 0;
+  virtual bool GetSslRole(const std::string& content_name, SSLRole* role) = 0;
   // Functions needed by DataChannelController
   virtual void NoteDataAddedEvent() {}
   // Handler for sctp data channel state changes.

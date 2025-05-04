@@ -152,7 +152,7 @@ void StreamInterfaceChannel::Close() {
 DtlsTransport::DtlsTransport(IceTransportInternal* ice_transport,
                              const webrtc::CryptoOptions& crypto_options,
                              webrtc::RtcEventLog* event_log,
-                             rtc::SSLProtocolVersion max_version)
+                             webrtc::SSLProtocolVersion max_version)
     : component_(ice_transport->component()),
       ice_transport_(ice_transport),
       downward_(nullptr),
@@ -231,7 +231,7 @@ rtc::scoped_refptr<rtc::RTCCertificate> DtlsTransport::GetLocalCertificate()
   return local_certificate_;
 }
 
-bool DtlsTransport::SetDtlsRole(rtc::SSLRole role) {
+bool DtlsTransport::SetDtlsRole(webrtc::SSLRole role) {
   if (dtls_) {
     RTC_DCHECK(dtls_role_);
     if (*dtls_role_ != role) {
@@ -246,7 +246,7 @@ bool DtlsTransport::SetDtlsRole(rtc::SSLRole role) {
   return true;
 }
 
-bool DtlsTransport::GetDtlsRole(rtc::SSLRole* role) const {
+bool DtlsTransport::GetDtlsRole(webrtc::SSLRole* role) const {
   if (!dtls_role_) {
     return false;
   }
@@ -273,7 +273,7 @@ webrtc::RTCError DtlsTransport::SetRemoteParameters(
     absl::string_view digest_alg,
     const uint8_t* digest,
     size_t digest_len,
-    std::optional<rtc::SSLRole> role) {
+    std::optional<webrtc::SSLRole> role) {
   rtc::Buffer remote_fingerprint_value(digest, digest_len);
   bool is_dtls_restart =
       dtls_active_ && remote_fingerprint_value_ != remote_fingerprint_value;
@@ -341,9 +341,9 @@ bool DtlsTransport::SetRemoteFingerprint(absl::string_view digest_alg,
     // This can occur if DTLS is set up before a remote fingerprint is
     // received. For instance, if we set up DTLS due to receiving an early
     // ClientHello.
-    rtc::SSLPeerCertificateDigestError err = dtls_->SetPeerCertificateDigest(
+    webrtc::SSLPeerCertificateDigestError err = dtls_->SetPeerCertificateDigest(
         remote_fingerprint_algorithm_, remote_fingerprint_value_);
-    if (err != rtc::SSLPeerCertificateDigestError::NONE) {
+    if (err != webrtc::SSLPeerCertificateDigestError::NONE) {
       RTC_LOG(LS_ERROR) << ToString()
                         << ": Couldn't set DTLS certificate digest.";
       set_dtls_state(webrtc::DtlsTransportState::kFailed);
@@ -351,7 +351,7 @@ bool DtlsTransport::SetRemoteFingerprint(absl::string_view digest_alg,
       // this means the fingerprint was formatted correctly but didn't match
       // the certificate from the DTLS handshake. Thus the DTLS state should go
       // to "failed", but SetRemoteDescription shouldn't fail.
-      return err == rtc::SSLPeerCertificateDigestError::VERIFICATION_FAILED;
+      return err == webrtc::SSLPeerCertificateDigestError::VERIFICATION_FAILED;
     }
     return true;
   }
@@ -400,7 +400,7 @@ bool DtlsTransport::SetupDtls(bool disable_piggybacking) {
       downward_ptr->SetDtlsStunPiggybackController(
           &dtls_stun_piggyback_controller_);
     }
-    dtls_ = rtc::SSLStreamAdapter::Create(
+    dtls_ = webrtc::SSLStreamAdapter::Create(
         std::move(downward),
         [this](rtc::SSLHandshakeError error) { OnDtlsHandshakeError(error); },
         ice_transport_->field_trials());
@@ -424,7 +424,7 @@ bool DtlsTransport::SetupDtls(bool disable_piggybacking) {
   if (remote_fingerprint_value_.size() &&
       dtls_->SetPeerCertificateDigest(remote_fingerprint_algorithm_,
                                       remote_fingerprint_value_) !=
-          rtc::SSLPeerCertificateDigestError::NONE) {
+          webrtc::SSLPeerCertificateDigestError::NONE) {
     RTC_LOG(LS_ERROR) << ToString()
                       << ": Couldn't set DTLS certificate digest.";
     return false;
@@ -466,7 +466,7 @@ bool DtlsTransport::GetSslVersionBytes(int* version) const {
 
 uint16_t DtlsTransport::GetSslPeerSignatureAlgorithm() const {
   if (dtls_state() != webrtc::DtlsTransportState::kConnected) {
-    return rtc::kSslSignatureAlgorithmUnknown;  // "not applicable"
+    return webrtc::kSslSignatureAlgorithmUnknown;  // "not applicable"
   }
   return dtls_->GetPeerSignatureAlgorithm();
 }
@@ -721,7 +721,7 @@ void DtlsTransport::OnReadPacket(rtc::PacketTransportInternal* transport,
         // the peer has chosen the client role, and proceed with the handshake.
         // The fingerprint will be verified when it's set.
         if (!dtls_ && local_certificate_) {
-          SetDtlsRole(rtc::SSL_SERVER);
+          SetDtlsRole(webrtc::SSL_SERVER);
           SetupDtls();
         }
       } else {
@@ -799,8 +799,8 @@ void DtlsTransport::OnDtlsEvent(int sig, int err) {
       bool ret = dtls_->GetSslVersionBytes(&ssl_version_bytes);
       RTC_DCHECK(ret);
       dtls_stun_piggyback_controller_.SetDtlsHandshakeComplete(
-          dtls_role_ == rtc::SSL_CLIENT,
-          ssl_version_bytes == rtc::kDtls13VersionBytes);
+          dtls_role_ == webrtc::SSL_CLIENT,
+          ssl_version_bytes == webrtc::kDtls13VersionBytes);
       downward_->SetDtlsStunPiggybackController(nullptr);
       set_dtls_state(webrtc::DtlsTransportState::kConnected);
       set_writable(true);
@@ -887,7 +887,7 @@ void DtlsTransport::MaybeStartDtls() {
     // Now that the handshake has started, we can process a cached ClientHello
     // (if one exists).
     if (cached_client_hello_.size()) {
-      if (*dtls_role_ == rtc::SSL_SERVER) {
+      if (*dtls_role_ == webrtc::SSL_SERVER) {
         RTC_LOG(LS_INFO) << ToString()
                          << ": Handling cached DTLS ClientHello packet.";
         if (!HandleDtlsPacket(cached_client_hello_)) {
@@ -950,7 +950,7 @@ void DtlsTransport::set_dtls_state(webrtc::DtlsTransportState state) {
   SendDtlsState(this, state);
 }
 
-void DtlsTransport::OnDtlsHandshakeError(rtc::SSLHandshakeError error) {
+void DtlsTransport::OnDtlsHandshakeError(webrtc::SSLHandshakeError error) {
   SendDtlsHandshakeError(error);
 }
 

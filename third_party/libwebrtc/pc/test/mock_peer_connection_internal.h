@@ -285,7 +285,7 @@ class MockPeerConnectionInternal : public PeerConnectionInternal {
   MOCK_METHOD(cricket::PortAllocator*, port_allocator, (), (override));
   MOCK_METHOD(LegacyStatsCollector*, legacy_stats, (), (override));
   MOCK_METHOD(PeerConnectionObserver*, Observer, (), (const, override));
-  MOCK_METHOD(std::optional<rtc::SSLRole>, GetSctpSslRole_n, (), (override));
+  MOCK_METHOD(std::optional<SSLRole>, GetSctpSslRole_n, (), (override));
   MOCK_METHOD(PeerConnectionInterface::IceConnectionState,
               ice_connection_state_internal,
               (),
@@ -365,7 +365,7 @@ class MockPeerConnectionInternal : public PeerConnectionInternal {
   MOCK_METHOD(bool, IceRestartPending, (const std::string&), (const, override));
   MOCK_METHOD(bool,
               GetSslRole,
-              (const std::string&, rtc::SSLRole*),
+              (const std::string&, webrtc::SSLRole*),
               (override));
   MOCK_METHOD(void, NoteDataAddedEvent, (), (override));
   MOCK_METHOD(void,

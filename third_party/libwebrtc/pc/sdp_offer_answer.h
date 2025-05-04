@@ -117,8 +117,7 @@ class SdpOfferAnswerHandler : public SdpStateProvider {
 
   bool NeedsIceRestart(const std::string& content_name) const override;
   bool IceRestartPending(const std::string& content_name) const override;
-  std::optional<rtc::SSLRole> GetDtlsRole(
-      const std::string& mid) const override;
+  std::optional<SSLRole> GetDtlsRole(const std::string& mid) const override;
 
   void RestartIce();
 
@@ -169,7 +168,7 @@ class SdpOfferAnswerHandler : public SdpStateProvider {
   // directly getting the information from the transport.
   // This is used for allocating stream ids for data channels.
   // See also `InternalDataChannelInit::fallback_ssl_role`.
-  std::optional<rtc::SSLRole> GuessSslRole() const;
+  std::optional<SSLRole> GuessSslRole() const;
 
   // Destroys all media BaseChannels.
   void DestroyMediaChannels();

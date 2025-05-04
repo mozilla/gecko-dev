@@ -108,7 +108,7 @@ void DtlsTransport::UpdateInformation() {
     if (internal_dtls_transport_->dtls_state() ==
         DtlsTransportState::kConnected) {
       bool success = true;
-      rtc::SSLRole internal_role;
+      SSLRole internal_role;
       std::optional<DtlsTransportTlsRole> role;
       int ssl_cipher_suite;
       int tls_version;
@@ -116,10 +116,10 @@ void DtlsTransport::UpdateInformation() {
       success &= internal_dtls_transport_->GetDtlsRole(&internal_role);
       if (success) {
         switch (internal_role) {
-          case rtc::SSL_CLIENT:
+          case SSL_CLIENT:
             role = DtlsTransportTlsRole::kClient;
             break;
-          case rtc::SSL_SERVER:
+          case SSL_SERVER:
             role = DtlsTransportTlsRole::kServer;
             break;
         }

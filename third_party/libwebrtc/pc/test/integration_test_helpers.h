@@ -129,8 +129,8 @@ static const char kDataChannelLabel[] = "data_channel";
 
 // SRTP cipher name negotiated by the tests. This must be updated if the
 // default changes.
-static const int kDefaultSrtpCryptoSuite = rtc::kSrtpAes128CmSha1_80;
-static const int kDefaultSrtpCryptoSuiteGcm = rtc::kSrtpAeadAes256Gcm;
+static const int kDefaultSrtpCryptoSuite = kSrtpAes128CmSha1_80;
+static const int kDefaultSrtpCryptoSuiteGcm = kSrtpAeadAes256Gcm;
 
 static const SocketAddress kDefaultLocalAddress("192.168.1.1", 0);
 
@@ -1883,9 +1883,8 @@ class PeerConnectionIntegrationBaseTest : public ::testing::Test {
     ASSERT_THAT(WaitUntil([&] { return DtlsConnected(); }, ::testing::IsTrue()),
                 IsRtcOk());
     EXPECT_THAT(
-        WaitUntil(
-            [&] { return caller()->OldGetStats()->SrtpCipher(); },
-            ::testing::Eq(rtc::SrtpCryptoSuiteToName(expected_cipher_suite))),
+        WaitUntil([&] { return caller()->OldGetStats()->SrtpCipher(); },
+                  ::testing::Eq(SrtpCryptoSuiteToName(expected_cipher_suite))),
         IsRtcOk());
   }
 

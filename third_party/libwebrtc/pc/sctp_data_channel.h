@@ -78,7 +78,7 @@ struct InternalDataChannelInit : public DataChannelInit {
   // stream ids in situations where we cannot determine the SSL role from the
   // transport for purposes of generating a stream ID.
   // See: https://www.rfc-editor.org/rfc/rfc8832.html#name-protocol-overview
-  std::optional<rtc::SSLRole> fallback_ssl_role;
+  std::optional<SSLRole> fallback_ssl_role;
 };
 
 // Helper class to allocate unique IDs for SCTP DataChannels.
@@ -89,7 +89,7 @@ class SctpSidAllocator {
   // SSL_CLIENT, the allocated id starts from 0 and takes even numbers;
   // otherwise, the id starts from 1 and takes odd numbers.
   // If a `StreamId` cannot be allocated, `std::nullopt` is returned.
-  std::optional<StreamId> AllocateSid(rtc::SSLRole role);
+  std::optional<StreamId> AllocateSid(SSLRole role);
 
   // Attempts to reserve a specific sid. Returns false if it's unavailable.
   bool ReserveSid(StreamId sid);

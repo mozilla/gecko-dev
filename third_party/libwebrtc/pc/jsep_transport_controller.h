@@ -112,7 +112,7 @@ class JsepTransportController : public PayloadTypeSuggester,
     // upon setting a local transport description that indicates an ICE
     // restart.
     bool redetermine_role_on_ice_restart = true;
-    rtc::SSLProtocolVersion ssl_max_version = rtc::SSL_PROTOCOL_DTLS_12;
+    SSLProtocolVersion ssl_max_version = SSL_PROTOCOL_DTLS_12;
     // `crypto_options` is used to determine if created DTLS transports
     // negotiate GCM crypto suites or not.
     CryptoOptions crypto_options;
@@ -140,7 +140,7 @@ class JsepTransportController : public PayloadTypeSuggester,
 
     // Factory for SCTP transports.
     SctpTransportFactoryInterface* sctp_factory = nullptr;
-    std::function<void(rtc::SSLHandshakeError)> on_dtls_handshake_error_;
+    std::function<void(webrtc::SSLHandshakeError)> on_dtls_handshake_error_;
   };
 
   // The ICE related events are fired on the `network_thread`.
@@ -235,7 +235,7 @@ class JsepTransportController : public PayloadTypeSuggester,
   std::unique_ptr<rtc::SSLCertChain> GetRemoteSSLCertChain(
       const std::string& mid) const;
   // Get negotiated role, if one has been negotiated.
-  std::optional<rtc::SSLRole> GetDtlsRole(const std::string& mid) const;
+  std::optional<SSLRole> GetDtlsRole(const std::string& mid) const;
 
   // Suggest a payload type for a given codec on a given media section.
   // Media section is indicated by MID.
@@ -487,7 +487,7 @@ class JsepTransportController : public PayloadTypeSuggester,
   void OnUnDemuxableRtpPacketReceived_n(const RtpPacketReceived& packet)
       RTC_RUN_ON(network_thread_);
 
-  void OnDtlsHandshakeError(rtc::SSLHandshakeError error);
+  void OnDtlsHandshakeError(SSLHandshakeError error);
 
   bool OnTransportChanged(const std::string& mid,
                           cricket::JsepTransport* transport);

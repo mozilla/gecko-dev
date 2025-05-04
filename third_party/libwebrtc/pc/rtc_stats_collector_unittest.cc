@@ -2941,7 +2941,7 @@ TEST_F(RTCStatsCollectorTest, CollectRTCTransportStatsWithCrypto) {
   rtp_transport_channel_stats.ice_transport_stats
       .selected_candidate_pair_changes = 1;
   rtp_transport_channel_stats.ssl_version_bytes = 0x0203;
-  rtp_transport_channel_stats.dtls_role = rtc::SSL_CLIENT;
+  rtp_transport_channel_stats.dtls_role = SSL_CLIENT;
   rtp_transport_channel_stats.ice_transport_stats.ice_role =
       cricket::ICEROLE_CONTROLLING;
   rtp_transport_channel_stats.ice_transport_stats.ice_local_username_fragment =
@@ -2950,7 +2950,7 @@ TEST_F(RTCStatsCollectorTest, CollectRTCTransportStatsWithCrypto) {
       IceTransportState::kConnected;
   rtp_transport_channel_stats.tls_cipher_suite_name =
       "TLS_RSA_WITH_AES_128_CBC_SHA";
-  rtp_transport_channel_stats.srtp_crypto_suite = rtc::kSrtpAes128CmSha1_80;
+  rtp_transport_channel_stats.srtp_crypto_suite = kSrtpAes128CmSha1_80;
   pc_->SetTransportStats(kTransportName, {rtp_transport_channel_stats});
 
   // Get stats

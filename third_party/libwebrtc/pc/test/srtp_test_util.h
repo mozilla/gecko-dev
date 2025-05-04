@@ -26,12 +26,12 @@ static const rtc::ZeroOnFreeBuffer<uint8_t> kTestKey2{
 
 static int rtp_auth_tag_len(int crypto_suite) {
   switch (crypto_suite) {
-    case kSrtpAes128CmSha1_32:
+    case webrtc::kSrtpAes128CmSha1_32:
       return 4;
-    case kSrtpAes128CmSha1_80:
+    case webrtc::kSrtpAes128CmSha1_80:
       return 10;
-    case kSrtpAeadAes128Gcm:
-    case kSrtpAeadAes256Gcm:
+    case webrtc::kSrtpAeadAes128Gcm:
+    case webrtc::kSrtpAeadAes256Gcm:
       return 16;
     default:
       RTC_CHECK_NOTREACHED();
@@ -40,11 +40,11 @@ static int rtp_auth_tag_len(int crypto_suite) {
 
 static int rtcp_auth_tag_len(int crypto_suite) {
   switch (crypto_suite) {
-    case kSrtpAes128CmSha1_32:
-    case kSrtpAes128CmSha1_80:
+    case webrtc::kSrtpAes128CmSha1_32:
+    case webrtc::kSrtpAes128CmSha1_80:
       return 10;
-    case kSrtpAeadAes128Gcm:
-    case kSrtpAeadAes256Gcm:
+    case webrtc::kSrtpAeadAes128Gcm:
+    case webrtc::kSrtpAeadAes256Gcm:
       return 16;
     default:
       RTC_CHECK_NOTREACHED();

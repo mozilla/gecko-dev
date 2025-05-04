@@ -520,8 +520,8 @@ TEST_P(DataChannelIntegrationTest, EndToEndCallWithSctpDataChannelHarmfulMtu) {
       WaitUntil([&] { return callee()->data_observer()->IsOpen(); }, IsTrue()),
       IsRtcOk());
 
-  if (caller()->tls_version() == rtc::kDtls13VersionBytes) {
-    ASSERT_EQ(caller()->tls_version(), rtc::kDtls13VersionBytes);
+  if (caller()->tls_version() == kDtls13VersionBytes) {
+    ASSERT_EQ(caller()->tls_version(), kDtls13VersionBytes);
     GTEST_SKIP() << "DTLS1.3 fragments packets larger than MTU";
   }
 

@@ -34,7 +34,7 @@ class OpenSSLSessionCache final {
   // Creates a new OpenSSLSessionCache using the provided the SSL_CTX and
   // the ssl_mode. The SSL_CTX will be up_refed. ssl_ctx cannot be nullptr,
   // the constructor immediately dchecks this.
-  OpenSSLSessionCache(SSLMode ssl_mode, SSL_CTX* ssl_ctx);
+  OpenSSLSessionCache(webrtc::SSLMode ssl_mode, SSL_CTX* ssl_ctx);
   // Frees the cached SSL_SESSIONS and then frees the SSL_CTX.
   ~OpenSSLSessionCache();
 
@@ -50,12 +50,12 @@ class OpenSSLSessionCache final {
   SSL_CTX* GetSSLContext() const;
   // The SSL Mode tht the OpenSSLSessionCache was constructed with. This cannot
   // be changed after launch.
-  SSLMode GetSSLMode() const;
+  webrtc::SSLMode GetSSLMode() const;
 
  private:
   // Holds the SSL Mode that the OpenSSLCache was initialized with. This is
   // immutable after creation and cannot change.
-  const SSLMode ssl_mode_;
+  const webrtc::SSLMode ssl_mode_;
   /// SSL Context for all shared cached sessions. This SSL_CTX is initialized
   //  with SSL_CTX_set_session_cache_mode(ctx, SSL_SESS_CACHE_CLIENT); Meaning
   //  all client sessions will be added to the cache internal to the context.

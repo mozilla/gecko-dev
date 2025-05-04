@@ -287,7 +287,8 @@ TEST_P(JsepTransport2WithRtcpMux, SetDtlsParameters) {
   // transport descriptions.
   auto role = jsep_transport_->GetDtlsRole();
   ASSERT_TRUE(role);
-  EXPECT_EQ(rtc::SSL_SERVER, role);  // Because remote description was "active".
+  EXPECT_EQ(webrtc::SSL_SERVER,
+            role);  // Because remote description was "active".
   auto fake_dtls =
       static_cast<FakeDtlsTransport*>(jsep_transport_->rtp_dtls_transport());
   EXPECT_EQ(remote_description.transport_desc.identity_fingerprint->ToString(),
@@ -338,7 +339,7 @@ TEST_P(JsepTransport2WithRtcpMux, SetDtlsParametersWithPassiveAnswer) {
   // transport descriptions.
   auto role = jsep_transport_->GetDtlsRole();
   ASSERT_TRUE(role);
-  EXPECT_EQ(rtc::SSL_CLIENT,
+  EXPECT_EQ(webrtc::SSL_CLIENT,
             role);  // Because remote description was "passive".
   auto fake_dtls =
       static_cast<FakeDtlsTransport*>(jsep_transport_->rtp_dtls_transport());
@@ -519,7 +520,7 @@ TEST_P(JsepTransport2WithRtcpMux, ValidDtlsRoleNegotiation) {
                                                          param.local_type)
                       .ok());
     }
-    EXPECT_EQ(rtc::SSL_CLIENT, *jsep_transport_->GetDtlsRole());
+    EXPECT_EQ(webrtc::SSL_CLIENT, *jsep_transport_->GetDtlsRole());
   }
 
   // Parameters which set the SSL role to SSL_SERVER.
@@ -564,7 +565,7 @@ TEST_P(JsepTransport2WithRtcpMux, ValidDtlsRoleNegotiation) {
                                                          param.local_type)
                       .ok());
     }
-    EXPECT_EQ(rtc::SSL_SERVER, *jsep_transport_->GetDtlsRole());
+    EXPECT_EQ(webrtc::SSL_SERVER, *jsep_transport_->GetDtlsRole());
   }
 }
 
@@ -820,9 +821,9 @@ TEST_F(JsepTransport2Test, RemoteOfferWithCurrentNegotiatedDtlsRole) {
           .ok());
 
   // Sanity check that role was actually negotiated.
-  std::optional<rtc::SSLRole> role = jsep_transport_->GetDtlsRole();
+  std::optional<webrtc::SSLRole> role = jsep_transport_->GetDtlsRole();
   ASSERT_TRUE(role);
-  EXPECT_EQ(rtc::SSL_CLIENT, *role);
+  EXPECT_EQ(webrtc::SSL_CLIENT, *role);
 
   // Subsequent offer with current negotiated role of "passive".
   remote_desc.transport_desc.connection_role = CONNECTIONROLE_PASSIVE;
@@ -865,9 +866,9 @@ TEST_F(JsepTransport2Test, RemoteOfferThatChangesNegotiatedDtlsRole) {
           .ok());
 
   // Sanity check that role was actually negotiated.
-  std::optional<rtc::SSLRole> role = jsep_transport_->GetDtlsRole();
+  std::optional<webrtc::SSLRole> role = jsep_transport_->GetDtlsRole();
   ASSERT_TRUE(role);
-  EXPECT_EQ(rtc::SSL_CLIENT, *role);
+  EXPECT_EQ(webrtc::SSL_CLIENT, *role);
 
   // Subsequent offer with current negotiated role of "passive".
   remote_desc.transport_desc.connection_role = CONNECTIONROLE_ACTIVE;
@@ -916,9 +917,9 @@ TEST_F(JsepTransport2Test, RemoteOfferThatChangesFingerprintAndDtlsRole) {
           .ok());
 
   // Sanity check that role was actually negotiated.
-  std::optional<rtc::SSLRole> role = jsep_transport_->GetDtlsRole();
+  std::optional<webrtc::SSLRole> role = jsep_transport_->GetDtlsRole();
   ASSERT_TRUE(role);
-  EXPECT_EQ(rtc::SSL_CLIENT, *role);
+  EXPECT_EQ(webrtc::SSL_CLIENT, *role);
 
   // Subsequent exchange with new remote fingerprint and different role.
   local_desc.transport_desc.connection_role = CONNECTIONROLE_PASSIVE;
@@ -933,7 +934,7 @@ TEST_F(JsepTransport2Test, RemoteOfferThatChangesFingerprintAndDtlsRole) {
 
   role = jsep_transport_->GetDtlsRole();
   ASSERT_TRUE(role);
-  EXPECT_EQ(rtc::SSL_SERVER, *role);
+  EXPECT_EQ(webrtc::SSL_SERVER, *role);
 }
 
 // Testing that a legacy client that doesn't use the setup attribute will be
@@ -965,11 +966,11 @@ TEST_F(JsepTransport2Test, DtlsSetupWithLegacyAsAnswerer) {
           ->SetRemoteJsepTransportDescription(remote_desc, SdpType::kAnswer)
           .ok());
 
-  std::optional<rtc::SSLRole> role = jsep_transport_->GetDtlsRole();
+  std::optional<webrtc::SSLRole> role = jsep_transport_->GetDtlsRole();
   ASSERT_TRUE(role);
   // Since legacy answer omitted setup atribute, and we offered actpass, we
   // should act as passive (server).
-  EXPECT_EQ(rtc::SSL_SERVER, *role);
+  EXPECT_EQ(webrtc::SSL_SERVER, *role);
 }
 
 // Tests that when the RTCP mux is successfully negotiated, the RTCP transport
@@ -1169,8 +1170,8 @@ TEST_P(JsepTransport2HeaderExtensionTest, EncryptedHeaderExtensionNegotiation) {
     auto fake_dtls2 =
         static_cast<FakeDtlsTransport*>(jsep_transport2_->rtp_dtls_transport());
 
-    fake_dtls1->SetSrtpCryptoSuite(rtc::kSrtpAeadAes256Gcm);
-    fake_dtls2->SetSrtpCryptoSuite(rtc::kSrtpAeadAes256Gcm);
+    fake_dtls1->SetSrtpCryptoSuite(webrtc::kSrtpAeadAes256Gcm);
+    fake_dtls2->SetSrtpCryptoSuite(webrtc::kSrtpAeadAes256Gcm);
   }
 
   if (scenario == Scenario::kDtlsBeforeCallerSendOffer) {

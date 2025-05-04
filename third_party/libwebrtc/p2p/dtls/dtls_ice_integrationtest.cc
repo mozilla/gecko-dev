@@ -74,7 +74,7 @@ using ::webrtc::NetworkEmulationManager;
 class DtlsIceIntegrationTest : public ::testing::TestWithParam<std::tuple<
                                    /* client_piggyback= */ bool,
                                    /* server_piggyback= */ bool,
-                                   rtc::SSLProtocolVersion,
+                                   webrtc::SSLProtocolVersion,
                                    /* client_dtls_is_ice_controlling= */ bool>>,
                                public sigslot::has_slots<> {
  public:
@@ -190,7 +190,7 @@ class DtlsIceIntegrationTest : public ::testing::TestWithParam<std::tuple<
       // Setup DTLS.
       ep.dtls->SetLocalCertificate(client ? client_certificate
                                           : server_certificate);
-      ep.dtls->SetDtlsRole(client ? rtc::SSL_SERVER : rtc::SSL_CLIENT);
+      ep.dtls->SetDtlsRole(client ? webrtc::SSL_SERVER : webrtc::SSL_CLIENT);
       SetRemoteFingerprintFromCert(
           *ep.dtls.get(), client ? server_certificate : client_certificate);
     });
@@ -361,8 +361,8 @@ INSTANTIATE_TEST_SUITE_P(
     DtlsIceIntegrationTest,
     ::testing::Combine(testing::Bool(),
                        testing::Bool(),
-                       testing::Values(rtc::SSL_PROTOCOL_DTLS_12,
-                                       rtc::SSL_PROTOCOL_DTLS_13),
+                       testing::Values(webrtc::SSL_PROTOCOL_DTLS_12,
+                                       webrtc::SSL_PROTOCOL_DTLS_13),
                        testing::Bool()));
 
 }  // namespace cricket

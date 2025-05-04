@@ -106,7 +106,7 @@ class DtlsTestClient : public sigslot::has_slots<> {
   const rtc::scoped_refptr<rtc::RTCCertificate>& certificate() {
     return certificate_;
   }
-  void SetupMaxProtocolVersion(rtc::SSLProtocolVersion version) {
+  void SetupMaxProtocolVersion(webrtc::SSLProtocolVersion version) {
     ssl_max_version_ = version;
   }
   void set_async_delay(int async_delay_ms) { async_delay_ms_ = async_delay_ms; }
@@ -184,8 +184,8 @@ class DtlsTestClient : public sigslot::has_slots<> {
     return std::nullopt;
   }
 
-  void CheckRole(rtc::SSLRole role) {
-    if (role == rtc::SSL_CLIENT) {
+  void CheckRole(webrtc::SSLRole role) {
+    if (role == webrtc::SSL_CLIENT) {
       ASSERT_EQ(0, received_dtls_client_hellos_);
       ASSERT_GT(received_dtls_server_hellos_, 0);
     } else {
@@ -210,8 +210,8 @@ class DtlsTestClient : public sigslot::has_slots<> {
     bool rv = dtls_transport_->GetSslCipherSuite(&cipher);
     if (dtls_transport_->IsDtlsActive()) {
       ASSERT_TRUE(rv);
-      EXPECT_TRUE(
-          rtc::SSLStreamAdapter::IsAcceptableCipher(cipher, rtc::KT_DEFAULT));
+      EXPECT_TRUE(webrtc::SSLStreamAdapter::IsAcceptableCipher(
+          cipher, rtc::KT_DEFAULT));
     } else {
       ASSERT_FALSE(rv);
     }
@@ -365,7 +365,7 @@ class DtlsTestClient : public sigslot::has_slots<> {
   std::unique_ptr<DtlsTransport> dtls_transport_;
   size_t packet_size_ = 0u;
   std::set<int> received_;
-  rtc::SSLProtocolVersion ssl_max_version_ = rtc::SSL_PROTOCOL_DTLS_12;
+  webrtc::SSLProtocolVersion ssl_max_version_ = webrtc::SSL_PROTOCOL_DTLS_12;
   int received_dtls_client_hellos_ = 0;
   int received_dtls_server_hellos_ = 0;
   rtc::SentPacket sent_packet_;
@@ -384,8 +384,8 @@ class DtlsTransportTestBase {
     start_time_ns_ = fake_clock_.TimeNanos();
   }
 
-  void SetMaxProtocolVersions(rtc::SSLProtocolVersion c1,
-                              rtc::SSLProtocolVersion c2) {
+  void SetMaxProtocolVersions(webrtc::SSLProtocolVersion c1,
+                              webrtc::SSLProtocolVersion c2) {
     client1_.SetupMaxProtocolVersion(c1);
     client2_.SetupMaxProtocolVersion(c2);
   }
@@ -418,20 +418,22 @@ class DtlsTransportTestBase {
 
     // Check that we used the right roles.
     if (use_dtls_) {
-      client1_.CheckRole(client1_server ? rtc::SSL_SERVER : rtc::SSL_CLIENT);
-      client2_.CheckRole(client1_server ? rtc::SSL_CLIENT : rtc::SSL_SERVER);
+      client1_.CheckRole(client1_server ? webrtc::SSL_SERVER
+                                        : webrtc::SSL_CLIENT);
+      client2_.CheckRole(client1_server ? webrtc::SSL_CLIENT
+                                        : webrtc::SSL_SERVER);
     }
 
     if (use_dtls_) {
       // Check that we negotiated the right ciphers. Since GCM ciphers are not
       // negotiated by default, we should end up with kSrtpAes128CmSha1_80.
-      client1_.CheckSrtp(rtc::kSrtpAes128CmSha1_80);
-      client2_.CheckSrtp(rtc::kSrtpAes128CmSha1_80);
+      client1_.CheckSrtp(webrtc::kSrtpAes128CmSha1_80);
+      client2_.CheckSrtp(webrtc::kSrtpAes128CmSha1_80);
     } else {
       // If DTLS isn't actually being used, GetSrtpCryptoSuite should return
       // false.
-      client1_.CheckSrtp(rtc::kSrtpInvalidCryptoSuite);
-      client2_.CheckSrtp(rtc::kSrtpInvalidCryptoSuite);
+      client1_.CheckSrtp(webrtc::kSrtpInvalidCryptoSuite);
+      client2_.CheckSrtp(webrtc::kSrtpInvalidCryptoSuite);
     }
 
     client1_.CheckSsl();
@@ -443,10 +445,10 @@ class DtlsTransportTestBase {
   void Negotiate(bool client1_server = true) {
     client1_.SetupTransports(ICEROLE_CONTROLLING);
     client2_.SetupTransports(ICEROLE_CONTROLLED);
-    client1_.dtls_transport()->SetDtlsRole(client1_server ? rtc::SSL_SERVER
-                                                          : rtc::SSL_CLIENT);
-    client2_.dtls_transport()->SetDtlsRole(client1_server ? rtc::SSL_CLIENT
-                                                          : rtc::SSL_SERVER);
+    client1_.dtls_transport()->SetDtlsRole(client1_server ? webrtc::SSL_SERVER
+                                                          : webrtc::SSL_CLIENT);
+    client2_.dtls_transport()->SetDtlsRole(client1_server ? webrtc::SSL_CLIENT
+                                                          : webrtc::SSL_SERVER);
     if (client2_.certificate()) {
       SetRemoteFingerprintFromCert(client1_.dtls_transport(),
                                    client2_.certificate());
@@ -537,7 +539,7 @@ class DtlsTransportTestBase {
   DtlsTestClient client2_;
   bool use_dtls_;
   uint64_t start_time_ns_;
-  rtc::SSLProtocolVersion ssl_expected_version_;
+  webrtc::SSLProtocolVersion ssl_expected_version_;
 };
 
 class DtlsTransportTest : public DtlsTransportTestBase,
@@ -598,7 +600,8 @@ TEST_F(DtlsTransportTest, KeyingMaterialExporter) {
   EXPECT_TRUE(client1_.dtls_transport()->GetSrtpCryptoSuite(&crypto_suite));
   int key_len;
   int salt_len;
-  EXPECT_TRUE(rtc::GetSrtpKeyAndSaltLengths(crypto_suite, &key_len, &salt_len));
+  EXPECT_TRUE(
+      webrtc::GetSrtpKeyAndSaltLengths(crypto_suite, &key_len, &salt_len));
   rtc::ZeroOnFreeBuffer<uint8_t> client1_out(2 * (key_len + salt_len));
   rtc::ZeroOnFreeBuffer<uint8_t> client2_out(2 * (key_len + salt_len));
   EXPECT_TRUE(client1_.dtls_transport()->ExportSrtpKeyingMaterial(client1_out));
@@ -653,28 +656,28 @@ static const struct {
   int version_bytes;
   const std::vector<HandshakeTestEvent>& events;
 } kEventsPerVersion[] = {
-    {rtc::kDtls12VersionBytes, dtls_12_handshake_events},
-    {rtc::kDtls13VersionBytes, dtls_13_handshake_events},
+    {webrtc::kDtls12VersionBytes, dtls_12_handshake_events},
+    {webrtc::kDtls13VersionBytes, dtls_13_handshake_events},
 };
 
 struct EndpointConfig {
-  rtc::SSLProtocolVersion max_protocol_version;
+  webrtc::SSLProtocolVersion max_protocol_version;
   bool dtls_in_stun = false;
   std::optional<IceRole> ice_role;
-  std::optional<rtc::SSLRole> ssl_role;
+  std::optional<webrtc::SSLRole> ssl_role;
 
   template <typename Sink>
   friend void AbslStringify(Sink& sink, const EndpointConfig& config) {
     sink.Append("[ dtls: ");
-    sink.Append(config.ssl_role == rtc::SSL_SERVER ? "server/" : "client/");
+    sink.Append(config.ssl_role == webrtc::SSL_SERVER ? "server/" : "client/");
     switch (config.max_protocol_version) {
-      case rtc::SSL_PROTOCOL_DTLS_10:
+      case webrtc::SSL_PROTOCOL_DTLS_10:
         sink.Append("1.0");
         break;
-      case rtc::SSL_PROTOCOL_DTLS_12:
+      case webrtc::SSL_PROTOCOL_DTLS_12:
         sink.Append("1.2");
         break;
-      case rtc::SSL_PROTOCOL_DTLS_13:
+      case webrtc::SSL_PROTOCOL_DTLS_13:
         sink.Append("1.3");
         break;
       default:
@@ -703,9 +706,9 @@ class DtlsTransportVersionTest
     client1_.SetupTransports(config1.ice_role.value_or(ICEROLE_CONTROLLING));
     client2_.SetupTransports(config2.ice_role.value_or(ICEROLE_CONTROLLED));
     client1_.dtls_transport()->SetDtlsRole(
-        config1.ssl_role.value_or(rtc::SSL_CLIENT));
+        config1.ssl_role.value_or(webrtc::SSL_CLIENT));
     client2_.dtls_transport()->SetDtlsRole(
-        config2.ssl_role.value_or(rtc::SSL_SERVER));
+        config2.ssl_role.value_or(webrtc::SSL_SERVER));
 
     if (config1.dtls_in_stun) {
       auto config = client1_.fake_ice_transport()->config();
@@ -806,10 +809,10 @@ class DtlsTransportVersionTest
     int version = std::min(
         static_cast<int>(std::get<0>(GetParam()).max_protocol_version),
         static_cast<int>(std::get<1>(GetParam()).max_protocol_version));
-    if (version == rtc::SSL_PROTOCOL_DTLS_13) {
-      return rtc::kDtls13VersionBytes;
+    if (version == webrtc::SSL_PROTOCOL_DTLS_13) {
+      return webrtc::kDtls13VersionBytes;
     } else {
-      return rtc::kDtls12VersionBytes;
+      return webrtc::kDtls12VersionBytes;
     }
   }
 
@@ -825,27 +828,27 @@ class DtlsTransportVersionTest
 
 static const EndpointConfig kEndpointVariants[] = {
     {
-        .max_protocol_version = rtc::SSL_PROTOCOL_DTLS_10,
+        .max_protocol_version = webrtc::SSL_PROTOCOL_DTLS_10,
         .dtls_in_stun = false,
     },
     {
-        .max_protocol_version = rtc::SSL_PROTOCOL_DTLS_12,
+        .max_protocol_version = webrtc::SSL_PROTOCOL_DTLS_12,
         .dtls_in_stun = false,
     },
     {
-        .max_protocol_version = rtc::SSL_PROTOCOL_DTLS_13,
+        .max_protocol_version = webrtc::SSL_PROTOCOL_DTLS_13,
         .dtls_in_stun = false,
     },
     {
-        .max_protocol_version = rtc::SSL_PROTOCOL_DTLS_10,
+        .max_protocol_version = webrtc::SSL_PROTOCOL_DTLS_10,
         .dtls_in_stun = true,
     },
     {
-        .max_protocol_version = rtc::SSL_PROTOCOL_DTLS_12,
+        .max_protocol_version = webrtc::SSL_PROTOCOL_DTLS_12,
         .dtls_in_stun = true,
     },
     {
-        .max_protocol_version = rtc::SSL_PROTOCOL_DTLS_13,
+        .max_protocol_version = webrtc::SSL_PROTOCOL_DTLS_13,
         .dtls_in_stun = true,
     },
 };
@@ -912,7 +915,7 @@ TEST_P(DtlsTransportVersionTest, HandshakeLoseSecondClientPacket) {
   std::vector<HandshakeTestEvent> expect;
 
   switch (dtls_version_bytes) {
-    case rtc::kDtls12VersionBytes:
+    case webrtc::kDtls12VersionBytes:
       expect = {
           // Flight 1
           EV_CLIENT_SEND,
@@ -937,7 +940,7 @@ TEST_P(DtlsTransportVersionTest, HandshakeLoseSecondClientPacket) {
           EV_CLIENT_WRITABLE,
       };
       break;
-    case rtc::kDtls13VersionBytes:
+    case webrtc::kDtls13VersionBytes:
       expect = {
           // Flight 1
           EV_CLIENT_SEND,
@@ -1144,8 +1147,8 @@ class DtlsEventOrderingTest
     client1_.SetupTransports(ICEROLE_CONTROLLING);
     client2_.SetupTransports(ICEROLE_CONTROLLED);
     // Similar to how NegotiateOrdering works.
-    client1_.dtls_transport()->SetDtlsRole(rtc::SSL_SERVER);
-    client2_.dtls_transport()->SetDtlsRole(rtc::SSL_CLIENT);
+    client1_.dtls_transport()->SetDtlsRole(webrtc::SSL_SERVER);
+    client2_.dtls_transport()->SetDtlsRole(webrtc::SSL_CLIENT);
     SetRemoteFingerprintFromCert(client2_.dtls_transport(),
                                  client1_.certificate());
 
@@ -1258,14 +1261,14 @@ class DtlsTransportDtlsInStunTest : public DtlsTransportVersionTest {
 std::vector<std::tuple<EndpointConfig, EndpointConfig>> AllEndpointVariants() {
   std::vector<std::tuple<EndpointConfig, EndpointConfig>> v;
   for (auto ice_role : {ICEROLE_CONTROLLING, ICEROLE_CONTROLLED}) {
-    for (auto ssl_role : {rtc::SSL_CLIENT, rtc::SSL_SERVER}) {
+    for (auto ssl_role : {webrtc::SSL_CLIENT, webrtc::SSL_SERVER}) {
       for (auto version1 : {
-               rtc::SSL_PROTOCOL_DTLS_12,
-               rtc::SSL_PROTOCOL_DTLS_13,
+               webrtc::SSL_PROTOCOL_DTLS_12,
+               webrtc::SSL_PROTOCOL_DTLS_13,
            }) {
         for (auto version2 : {
-                 rtc::SSL_PROTOCOL_DTLS_12,
-                 rtc::SSL_PROTOCOL_DTLS_13,
+                 webrtc::SSL_PROTOCOL_DTLS_12,
+                 webrtc::SSL_PROTOCOL_DTLS_13,
              }) {
           for (auto dtls_in_stun1 : {false, true}) {
             for (auto dtls_in_stun2 : {false, true}) {
@@ -1282,8 +1285,9 @@ std::vector<std::tuple<EndpointConfig, EndpointConfig>> AllEndpointVariants() {
                       .ice_role = ice_role == ICEROLE_CONTROLLING
                                       ? ICEROLE_CONTROLLED
                                       : ICEROLE_CONTROLLING,
-                      .ssl_role = ssl_role == rtc::SSL_CLIENT ? rtc::SSL_SERVER
-                                                              : rtc::SSL_CLIENT,
+                      .ssl_role = ssl_role == webrtc::SSL_CLIENT
+                                      ? webrtc::SSL_SERVER
+                                      : webrtc::SSL_CLIENT,
                   }));
             }
           }

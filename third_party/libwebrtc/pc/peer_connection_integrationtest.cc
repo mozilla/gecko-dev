@@ -1647,7 +1647,7 @@ TEST_P(PeerConnectionIntegrationTest,
 // Test that DTLS 1.0 is used if both sides only support DTLS 1.0.
 TEST_P(PeerConnectionIntegrationTest, EndToEndCallWithDtls10) {
   PeerConnectionFactory::Options dtls_10_options;
-  dtls_10_options.ssl_max_version = rtc::SSL_PROTOCOL_DTLS_10;
+  dtls_10_options.ssl_max_version = SSL_PROTOCOL_DTLS_10;
   ASSERT_TRUE(CreatePeerConnectionWrappersWithOptions(dtls_10_options,
                                                       dtls_10_options));
   ConnectFakeSignaling();
@@ -1667,7 +1667,7 @@ TEST_P(PeerConnectionIntegrationTest, EndToEndCallWithDtls10) {
 // Test getting cipher stats and UMA metrics when DTLS 1.0 is negotiated.
 TEST_P(PeerConnectionIntegrationTest, Dtls10CipherStatsAndUmaMetrics) {
   PeerConnectionFactory::Options dtls_10_options;
-  dtls_10_options.ssl_max_version = rtc::SSL_PROTOCOL_DTLS_10;
+  dtls_10_options.ssl_max_version = SSL_PROTOCOL_DTLS_10;
   ASSERT_TRUE(CreatePeerConnectionWrappersWithOptions(dtls_10_options,
                                                       dtls_10_options));
   ConnectFakeSignaling();
@@ -1678,22 +1678,21 @@ TEST_P(PeerConnectionIntegrationTest, Dtls10CipherStatsAndUmaMetrics) {
               IsRtcOk());
   EXPECT_THAT(WaitUntil(
                   [&] {
-                    return rtc::SSLStreamAdapter::IsAcceptableCipher(
+                    return SSLStreamAdapter::IsAcceptableCipher(
                         caller()->OldGetStats()->DtlsCipher(), rtc::KT_DEFAULT);
                   },
                   ::testing::IsTrue()),
               IsRtcOk());
   EXPECT_THAT(
-      WaitUntil(
-          [&] { return caller()->OldGetStats()->SrtpCipher(); },
-          ::testing::Eq(rtc::SrtpCryptoSuiteToName(kDefaultSrtpCryptoSuite))),
+      WaitUntil([&] { return caller()->OldGetStats()->SrtpCipher(); },
+                ::testing::Eq(SrtpCryptoSuiteToName(kDefaultSrtpCryptoSuite))),
       IsRtcOk());
 }
 
 // Test getting cipher stats and UMA metrics when DTLS 1.2 is negotiated.
 TEST_P(PeerConnectionIntegrationTest, Dtls12CipherStatsAndUmaMetrics) {
   PeerConnectionFactory::Options dtls_12_options;
-  dtls_12_options.ssl_max_version = rtc::SSL_PROTOCOL_DTLS_12;
+  dtls_12_options.ssl_max_version = SSL_PROTOCOL_DTLS_12;
   ASSERT_TRUE(CreatePeerConnectionWrappersWithOptions(dtls_12_options,
                                                       dtls_12_options));
   ConnectFakeSignaling();
@@ -1704,15 +1703,14 @@ TEST_P(PeerConnectionIntegrationTest, Dtls12CipherStatsAndUmaMetrics) {
               IsRtcOk());
   EXPECT_THAT(WaitUntil(
                   [&] {
-                    return rtc::SSLStreamAdapter::IsAcceptableCipher(
+                    return SSLStreamAdapter::IsAcceptableCipher(
                         caller()->OldGetStats()->DtlsCipher(), rtc::KT_DEFAULT);
                   },
                   ::testing::IsTrue()),
               IsRtcOk());
   EXPECT_THAT(
-      WaitUntil(
-          [&] { return caller()->OldGetStats()->SrtpCipher(); },
-          ::testing::Eq(rtc::SrtpCryptoSuiteToName(kDefaultSrtpCryptoSuite))),
+      WaitUntil([&] { return caller()->OldGetStats()->SrtpCipher(); },
+                ::testing::Eq(SrtpCryptoSuiteToName(kDefaultSrtpCryptoSuite))),
       IsRtcOk());
 }
 
@@ -1720,9 +1718,9 @@ TEST_P(PeerConnectionIntegrationTest, Dtls12CipherStatsAndUmaMetrics) {
 // callee only supports 1.0.
 TEST_P(PeerConnectionIntegrationTest, CallerDtls12ToCalleeDtls10) {
   PeerConnectionFactory::Options caller_options;
-  caller_options.ssl_max_version = rtc::SSL_PROTOCOL_DTLS_12;
+  caller_options.ssl_max_version = SSL_PROTOCOL_DTLS_12;
   PeerConnectionFactory::Options callee_options;
-  callee_options.ssl_max_version = rtc::SSL_PROTOCOL_DTLS_10;
+  callee_options.ssl_max_version = SSL_PROTOCOL_DTLS_10;
   ASSERT_TRUE(
       CreatePeerConnectionWrappersWithOptions(caller_options, callee_options));
   ConnectFakeSignaling();
@@ -1743,9 +1741,9 @@ TEST_P(PeerConnectionIntegrationTest, CallerDtls12ToCalleeDtls10) {
 // callee supports 1.2.
 TEST_P(PeerConnectionIntegrationTest, CallerDtls10ToCalleeDtls12) {
   PeerConnectionFactory::Options caller_options;
-  caller_options.ssl_max_version = rtc::SSL_PROTOCOL_DTLS_10;
+  caller_options.ssl_max_version = SSL_PROTOCOL_DTLS_10;
   PeerConnectionFactory::Options callee_options;
-  callee_options.ssl_max_version = rtc::SSL_PROTOCOL_DTLS_12;
+  callee_options.ssl_max_version = SSL_PROTOCOL_DTLS_12;
   ASSERT_TRUE(
       CreatePeerConnectionWrappersWithOptions(caller_options, callee_options));
   ConnectFakeSignaling();
@@ -1771,7 +1769,7 @@ TEST_P(PeerConnectionIntegrationTest,
   PeerConnectionFactory::Options callee_options;
   callee_options.crypto_options.srtp.enable_aes128_sha1_32_crypto_cipher =
       false;
-  int expected_cipher_suite = rtc::kSrtpAes128CmSha1_80;
+  int expected_cipher_suite = kSrtpAes128CmSha1_80;
   TestNegotiatedCipherSuite(caller_options, callee_options,
                             expected_cipher_suite);
 }
@@ -1783,7 +1781,7 @@ TEST_P(PeerConnectionIntegrationTest,
       false;
   PeerConnectionFactory::Options callee_options;
   callee_options.crypto_options.srtp.enable_aes128_sha1_32_crypto_cipher = true;
-  int expected_cipher_suite = rtc::kSrtpAes128CmSha1_80;
+  int expected_cipher_suite = kSrtpAes128CmSha1_80;
   TestNegotiatedCipherSuite(caller_options, callee_options,
                             expected_cipher_suite);
 }
@@ -1793,7 +1791,7 @@ TEST_P(PeerConnectionIntegrationTest, Aes128Sha1_32_CipherUsedWhenSupported) {
   caller_options.crypto_options.srtp.enable_aes128_sha1_32_crypto_cipher = true;
   PeerConnectionFactory::Options callee_options;
   callee_options.crypto_options.srtp.enable_aes128_sha1_32_crypto_cipher = true;
-  int expected_cipher_suite = rtc::kSrtpAes128CmSha1_32;
+  int expected_cipher_suite = kSrtpAes128CmSha1_32;
   TestNegotiatedCipherSuite(caller_options, callee_options,
                             expected_cipher_suite);
 }

@@ -2241,14 +2241,14 @@ void PeerConnection::StopRtcEventLog_w() {
   env_.event_log().StopLogging();
 }
 
-std::optional<rtc::SSLRole> PeerConnection::GetSctpSslRole_n() {
+std::optional<SSLRole> PeerConnection::GetSctpSslRole_n() {
   RTC_DCHECK_RUN_ON(network_thread());
   return sctp_mid_n_ ? transport_controller_->GetDtlsRole(*sctp_mid_n_)
                      : std::nullopt;
 }
 
 bool PeerConnection::GetSslRole(const std::string& content_name,
-                                rtc::SSLRole* role) {
+                                SSLRole* role) {
   RTC_DCHECK_RUN_ON(signaling_thread());
   if (!local_description() || !remote_description()) {
     RTC_LOG(LS_INFO)
@@ -2478,10 +2478,10 @@ void PeerConnection::OnTransportControllerCandidateChanged(
 }
 
 void PeerConnection::OnTransportControllerDtlsHandshakeError(
-    rtc::SSLHandshakeError error) {
-  RTC_HISTOGRAM_ENUMERATION(
-      "WebRTC.PeerConnection.DtlsHandshakeError", static_cast<int>(error),
-      static_cast<int>(rtc::SSLHandshakeError::MAX_VALUE));
+    SSLHandshakeError error) {
+  RTC_HISTOGRAM_ENUMERATION("WebRTC.PeerConnection.DtlsHandshakeError",
+                            static_cast<int>(error),
+                            static_cast<int>(SSLHandshakeError::MAX_VALUE));
 }
 
 // Returns the media index for a local ice candidate given the content name.
@@ -2845,28 +2845,28 @@ void PeerConnection::ReportNegotiatedCiphers(
 
   int srtp_crypto_suite = stats.channel_stats[0].srtp_crypto_suite;
   int ssl_cipher_suite = stats.channel_stats[0].ssl_cipher_suite;
-  if (srtp_crypto_suite == rtc::kSrtpInvalidCryptoSuite &&
-      ssl_cipher_suite == rtc::kTlsNullWithNullNull) {
+  if (srtp_crypto_suite == kSrtpInvalidCryptoSuite &&
+      ssl_cipher_suite == kTlsNullWithNullNull) {
     return;
   }
 
-  if (ssl_cipher_suite != rtc::kTlsNullWithNullNull) {
+  if (ssl_cipher_suite != kTlsNullWithNullNull) {
     for (cricket::MediaType media_type : media_types) {
       switch (media_type) {
         case cricket::MEDIA_TYPE_AUDIO:
           RTC_HISTOGRAM_ENUMERATION_SPARSE(
               "WebRTC.PeerConnection.SslCipherSuite.Audio", ssl_cipher_suite,
-              rtc::kSslCipherSuiteMaxValue);
+              kSslCipherSuiteMaxValue);
           break;
         case cricket::MEDIA_TYPE_VIDEO:
           RTC_HISTOGRAM_ENUMERATION_SPARSE(
               "WebRTC.PeerConnection.SslCipherSuite.Video", ssl_cipher_suite,
-              rtc::kSslCipherSuiteMaxValue);
+              kSslCipherSuiteMaxValue);
           break;
         case cricket::MEDIA_TYPE_DATA:
           RTC_HISTOGRAM_ENUMERATION_SPARSE(
               "WebRTC.PeerConnection.SslCipherSuite.Data", ssl_cipher_suite,
-              rtc::kSslCipherSuiteMaxValue);
+              kSslCipherSuiteMaxValue);
           break;
         default:
           RTC_DCHECK_NOTREACHED();
@@ -2877,26 +2877,23 @@ void PeerConnection::ReportNegotiatedCiphers(
 
   uint16_t ssl_peer_signature_algorithm =
       stats.channel_stats[0].ssl_peer_signature_algorithm;
-  if (ssl_peer_signature_algorithm != rtc::kSslSignatureAlgorithmUnknown) {
+  if (ssl_peer_signature_algorithm != kSslSignatureAlgorithmUnknown) {
     for (cricket::MediaType media_type : media_types) {
       switch (media_type) {
         case cricket::MEDIA_TYPE_AUDIO:
           RTC_HISTOGRAM_ENUMERATION_SPARSE(
               "WebRTC.PeerConnection.SslPeerSignatureAlgorithm.Audio",
-              ssl_peer_signature_algorithm,
-              rtc::kSslSignatureAlgorithmMaxValue);
+              ssl_peer_signature_algorithm, kSslSignatureAlgorithmMaxValue);
           break;
         case cricket::MEDIA_TYPE_VIDEO:
           RTC_HISTOGRAM_ENUMERATION_SPARSE(
               "WebRTC.PeerConnection.SslPeerSignatureAlgorithm.Video",
-              ssl_peer_signature_algorithm,
-              rtc::kSslSignatureAlgorithmMaxValue);
+              ssl_peer_signature_algorithm, kSslSignatureAlgorithmMaxValue);
           break;
         case cricket::MEDIA_TYPE_DATA:
           RTC_HISTOGRAM_ENUMERATION_SPARSE(
               "WebRTC.PeerConnection.SslPeerSignatureAlgorithm.Data",
-              ssl_peer_signature_algorithm,
-              rtc::kSslSignatureAlgorithmMaxValue);
+              ssl_peer_signature_algorithm, kSslSignatureAlgorithmMaxValue);
           break;
         default:
           RTC_DCHECK_NOTREACHED();

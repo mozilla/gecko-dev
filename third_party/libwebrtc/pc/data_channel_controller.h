@@ -90,7 +90,7 @@ class DataChannelController : public SctpDataChannelControllerInterface,
   RTCErrorOr<rtc::scoped_refptr<DataChannelInterface>>
   InternalCreateDataChannelWithProxy(const std::string& label,
                                      const InternalDataChannelInit& config);
-  void AllocateSctpSids(rtc::SSLRole role);
+  void AllocateSctpSids(SSLRole role);
 
   // Check if data channels are currently tracked. Used to decide whether a
   // rejected m=application section should be reoffered.
@@ -131,7 +131,7 @@ class DataChannelController : public SctpDataChannelControllerInterface,
   // If the pool has been exhausted or a sid has already been reserved, an
   // error will be returned.
   RTCError ReserveOrAllocateSid(std::optional<StreamId>& sid,
-                                std::optional<rtc::SSLRole> fallback_ssl_role)
+                                std::optional<SSLRole> fallback_ssl_role)
       RTC_RUN_ON(network_thread());
 
   // Called when all data channels need to be notified of a transport channel

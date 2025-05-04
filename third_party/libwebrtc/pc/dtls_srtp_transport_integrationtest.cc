@@ -96,7 +96,7 @@ class DtlsSrtpTransportIntegrationTest : public ::testing::Test {
       cricket::FakeIceTransport* ice_transport) {
     return std::make_unique<cricket::DtlsTransport>(
         ice_transport, webrtc::CryptoOptions(),
-        /*event_log=*/nullptr, rtc::SSL_PROTOCOL_DTLS_12);
+        /*event_log=*/nullptr, webrtc::SSL_PROTOCOL_DTLS_12);
   }
   void SetRemoteFingerprintFromCert(
       cricket::DtlsTransport* transport,
@@ -112,9 +112,9 @@ class DtlsSrtpTransportIntegrationTest : public ::testing::Test {
 
   void Connect() {
     client_dtls_transport_->SetLocalCertificate(client_certificate_);
-    client_dtls_transport_->SetDtlsRole(rtc::SSL_SERVER);
+    client_dtls_transport_->SetDtlsRole(webrtc::SSL_SERVER);
     server_dtls_transport_->SetLocalCertificate(server_certificate_);
-    server_dtls_transport_->SetDtlsRole(rtc::SSL_CLIENT);
+    server_dtls_transport_->SetDtlsRole(webrtc::SSL_CLIENT);
 
     SetRemoteFingerprintFromCert(server_dtls_transport_.get(),
                                  client_certificate_);
@@ -147,8 +147,8 @@ class DtlsSrtpTransportIntegrationTest : public ::testing::Test {
         server_dtls_transport_->GetSrtpCryptoSuite(&selected_crypto_suite));
     int key_len;
     int salt_len;
-    ASSERT_TRUE(rtc::GetSrtpKeyAndSaltLengths((selected_crypto_suite), &key_len,
-                                              &salt_len));
+    ASSERT_TRUE(webrtc::GetSrtpKeyAndSaltLengths((selected_crypto_suite),
+                                                 &key_len, &salt_len));
 
     // Extract the keys. The order depends on the role!
     rtc::ZeroOnFreeBuffer<uint8_t> dtls_buffer(key_len * 2 + salt_len * 2);

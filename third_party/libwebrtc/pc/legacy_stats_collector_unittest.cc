@@ -668,7 +668,7 @@ class LegacyStatsCollectorTest : public ::testing::Test {
     // Fake stats to process.
     TransportChannelStats channel_stats;
     channel_stats.component = 1;
-    channel_stats.srtp_crypto_suite = rtc::kSrtpAes128CmSha1_80;
+    channel_stats.srtp_crypto_suite = kSrtpAes128CmSha1_80;
     channel_stats.tls_cipher_suite_name = "cipher_suite_for_test";
     pc->SetTransportStats(kTransportName, channel_stats);
 
@@ -720,8 +720,7 @@ class LegacyStatsCollectorTest : public ::testing::Test {
     std::string srtp_crypto_suite =
         ExtractStatsValue(StatsReport::kStatsReportTypeComponent, reports,
                           StatsReport::kStatsValueNameSrtpCipher);
-    EXPECT_EQ(rtc::SrtpCryptoSuiteToName(rtc::kSrtpAes128CmSha1_80),
-              srtp_crypto_suite);
+    EXPECT_EQ(SrtpCryptoSuiteToName(kSrtpAes128CmSha1_80), srtp_crypto_suite);
   }
 
  private:

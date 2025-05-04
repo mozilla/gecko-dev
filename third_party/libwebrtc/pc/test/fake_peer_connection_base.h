@@ -339,8 +339,7 @@ class FakePeerConnectionBase : public PeerConnectionInternal {
     return false;
   }
 
-  bool GetSslRole(const std::string& content_name,
-                  rtc::SSLRole* role) override {
+  bool GetSslRole(const std::string& content_name, SSLRole* role) override {
     return false;
   }
   const PeerConnectionInterface::RTCConfiguration* configuration()
@@ -366,9 +365,7 @@ class FakePeerConnectionBase : public PeerConnectionInternal {
   cricket::PortAllocator* port_allocator() override { return nullptr; }
   LegacyStatsCollector* legacy_stats() override { return nullptr; }
   PeerConnectionObserver* Observer() const override { return nullptr; }
-  std::optional<rtc::SSLRole> GetSctpSslRole_n() override {
-    return std::nullopt;
-  }
+  std::optional<SSLRole> GetSctpSslRole_n() override { return std::nullopt; }
   PeerConnectionInterface::IceConnectionState ice_connection_state_internal()
       override {
     return PeerConnectionInterface::IceConnectionState::kIceConnectionNew;

@@ -310,7 +310,7 @@ class PeerConnection : public PeerConnectionInternal,
       const std::string& transport_name) override;
   bool IceRestartPending(const std::string& content_name) const override;
   bool NeedsIceRestart(const std::string& content_name) const override;
-  bool GetSslRole(const std::string& content_name, rtc::SSLRole* role) override;
+  bool GetSslRole(const std::string& content_name, SSLRole* role) override;
 
   // Functions needed by DataChannelController
   void NoteDataAddedEvent() override { NoteUsageEvent(UsageEvent::DATA_ADDED); }
@@ -322,7 +322,7 @@ class PeerConnection : public PeerConnectionInternal,
            sdp_handler_->signaling_state() == PeerConnectionInterface::kClosed;
   }
   // Get current SSL role used by SCTP's underlying transport.
-  std::optional<rtc::SSLRole> GetSctpSslRole_n() override;
+  std::optional<SSLRole> GetSctpSslRole_n() override;
 
   void OnSctpDataChannelStateChanged(
       int channel_id,
@@ -585,7 +585,7 @@ class PeerConnection : public PeerConnectionInternal,
   void OnTransportControllerCandidateChanged(
       const cricket::CandidatePairChangeEvent& event)
       RTC_RUN_ON(signaling_thread());
-  void OnTransportControllerDtlsHandshakeError(rtc::SSLHandshakeError error);
+  void OnTransportControllerDtlsHandshakeError(SSLHandshakeError error);
 
   // Invoked when TransportController connection completion is signaled.
   // Reports stats for all transports in use.

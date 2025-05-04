@@ -469,13 +469,13 @@ class SSLStreamAdapterTestBase : public ::testing::Test,
       std::unique_ptr<ScopedFieldTrials> trial(
           client_experiment.empty() ? nullptr
                                     : new ScopedFieldTrials(client_experiment));
-      client_ssl_ = rtc::SSLStreamAdapter::Create(CreateClientStream());
+      client_ssl_ = webrtc::SSLStreamAdapter::Create(CreateClientStream());
     }
     {
       std::unique_ptr<ScopedFieldTrials> trial(
           server_experiment.empty() ? nullptr
                                     : new ScopedFieldTrials(server_experiment));
-      server_ssl_ = rtc::SSLStreamAdapter::Create(CreateServerStream());
+      server_ssl_ = webrtc::SSLStreamAdapter::Create(CreateServerStream());
     }
     client_ssl_->SetEventCallback(
         [this](int events, int err) { OnClientEvent(events, err); });
@@ -515,11 +515,11 @@ class SSLStreamAdapterTestBase : public ::testing::Test,
     rtc::Buffer client_digest(0, EVP_MAX_MD_SIZE);
     size_t client_digest_len;
     bool rv;
-    rtc::SSLPeerCertificateDigestError err;
-    rtc::SSLPeerCertificateDigestError expected_err =
+    webrtc::SSLPeerCertificateDigestError err;
+    webrtc::SSLPeerCertificateDigestError expected_err =
         expect_success
-            ? rtc::SSLPeerCertificateDigestError::NONE
-            : rtc::SSLPeerCertificateDigestError::VERIFICATION_FAILED;
+            ? webrtc::SSLPeerCertificateDigestError::NONE
+            : webrtc::SSLPeerCertificateDigestError::VERIFICATION_FAILED;
 
     RTC_LOG(LS_INFO) << "Setting peer identities by digest";
     RTC_DCHECK(server_identity());
@@ -555,8 +555,8 @@ class SSLStreamAdapterTestBase : public ::testing::Test,
     identities_set_ = true;
   }
 
-  void SetupProtocolVersions(rtc::SSLProtocolVersion server_version,
-                             rtc::SSLProtocolVersion client_version) {
+  void SetupProtocolVersions(webrtc::SSLProtocolVersion server_version,
+                             webrtc::SSLProtocolVersion client_version) {
     server_ssl_->SetMaxProtocolVersion(server_version);
     client_ssl_->SetMaxProtocolVersion(client_version);
   }
@@ -715,11 +715,11 @@ class SSLStreamAdapterTestBase : public ::testing::Test,
     }
 
     // Set the peer certificate digest for the client.
-    rtc::SSLPeerCertificateDigestError err;
-    rtc::SSLPeerCertificateDigestError expected_err =
+    webrtc::SSLPeerCertificateDigestError err;
+    webrtc::SSLPeerCertificateDigestError expected_err =
         valid_identity
-            ? rtc::SSLPeerCertificateDigestError::NONE
-            : rtc::SSLPeerCertificateDigestError::VERIFICATION_FAILED;
+            ? webrtc::SSLPeerCertificateDigestError::NONE
+            : webrtc::SSLPeerCertificateDigestError::VERIFICATION_FAILED;
     err =
         client_ssl_->SetPeerCertificateDigest(digest_algorithm_, server_digest);
     EXPECT_EQ(expected_err, err);
@@ -885,8 +885,8 @@ class SSLStreamAdapterTestBase : public ::testing::Test,
   rtc::KeyParams server_key_type_;
   std::string digest_algorithm_;
   size_t digest_length_;
-  std::unique_ptr<rtc::SSLStreamAdapter> client_ssl_;
-  std::unique_ptr<rtc::SSLStreamAdapter> server_ssl_;
+  std::unique_ptr<webrtc::SSLStreamAdapter> client_ssl_;
+  std::unique_ptr<webrtc::SSLStreamAdapter> server_ssl_;
   int delay_;
   size_t mtu_;
   int loss_;
@@ -1143,7 +1143,8 @@ TEST_P(SSLStreamAdapterTestDTLSHandshake, TestDTLSConnect) {
 // DTLS 1.2 has different cipher suite than 1.3.
 TEST_P(SSLStreamAdapterTestDTLSHandshake, TestGetSslCipherSuite) {
   webrtc::test::ScopedFieldTrials trials("WebRTC-ForceDtls13/Off/");
-  SetupProtocolVersions(rtc::SSL_PROTOCOL_DTLS_12, rtc::SSL_PROTOCOL_DTLS_12);
+  SetupProtocolVersions(webrtc::SSL_PROTOCOL_DTLS_12,
+                        webrtc::SSL_PROTOCOL_DTLS_12);
   TestHandshake();
 
   int client_cipher;
@@ -1152,7 +1153,7 @@ TEST_P(SSLStreamAdapterTestDTLSHandshake, TestGetSslCipherSuite) {
   ASSERT_TRUE(GetSslCipherSuite(false, &server_cipher));
 
   ASSERT_EQ(client_cipher, server_cipher);
-  ASSERT_TRUE(rtc::SSLStreamAdapter::IsAcceptableCipher(
+  ASSERT_TRUE(webrtc::SSLStreamAdapter::IsAcceptableCipher(
       server_cipher, ::testing::get<1>(GetParam()).type()));
 }
 
@@ -1275,7 +1276,7 @@ TEST_F(SSLStreamAdapterTestDTLS, TestDTLSDelayedIdentityWithBogusDigest) {
 
 // Test DTLS-SRTP with SrtpAes128CmSha1_80
 TEST_F(SSLStreamAdapterTestDTLS, TestDTLSSrtpAes128CmSha1_80) {
-  const std::vector<int> crypto_suites = {rtc::kSrtpAes128CmSha1_80};
+  const std::vector<int> crypto_suites = {webrtc::kSrtpAes128CmSha1_80};
   SetDtlsSrtpCryptoSuites(crypto_suites, true);
   SetDtlsSrtpCryptoSuites(crypto_suites, false);
   TestHandshake();
@@ -1286,12 +1287,12 @@ TEST_F(SSLStreamAdapterTestDTLS, TestDTLSSrtpAes128CmSha1_80) {
   ASSERT_TRUE(GetDtlsSrtpCryptoSuite(false, &server_cipher));
 
   ASSERT_EQ(client_cipher, server_cipher);
-  ASSERT_EQ(client_cipher, rtc::kSrtpAes128CmSha1_80);
+  ASSERT_EQ(client_cipher, webrtc::kSrtpAes128CmSha1_80);
 }
 
 // Test DTLS-SRTP with SrtpAes128CmSha1_32
 TEST_F(SSLStreamAdapterTestDTLS, TestDTLSSrtpAes128CmSha1_32) {
-  const std::vector<int> crypto_suites = {rtc::kSrtpAes128CmSha1_32};
+  const std::vector<int> crypto_suites = {webrtc::kSrtpAes128CmSha1_32};
   SetDtlsSrtpCryptoSuites(crypto_suites, true);
   SetDtlsSrtpCryptoSuites(crypto_suites, false);
   TestHandshake();
@@ -1302,13 +1303,13 @@ TEST_F(SSLStreamAdapterTestDTLS, TestDTLSSrtpAes128CmSha1_32) {
   ASSERT_TRUE(GetDtlsSrtpCryptoSuite(false, &server_cipher));
 
   ASSERT_EQ(client_cipher, server_cipher);
-  ASSERT_EQ(client_cipher, rtc::kSrtpAes128CmSha1_32);
+  ASSERT_EQ(client_cipher, webrtc::kSrtpAes128CmSha1_32);
 }
 
 // Test DTLS-SRTP with incompatible cipher suites -- should not converge.
 TEST_F(SSLStreamAdapterTestDTLS, TestDTLSSrtpIncompatibleCipherSuites) {
-  SetDtlsSrtpCryptoSuites({rtc::kSrtpAes128CmSha1_80}, true);
-  SetDtlsSrtpCryptoSuites({rtc::kSrtpAes128CmSha1_32}, false);
+  SetDtlsSrtpCryptoSuites({webrtc::kSrtpAes128CmSha1_80}, true);
+  SetDtlsSrtpCryptoSuites({webrtc::kSrtpAes128CmSha1_32}, false);
   TestHandshake();
 
   int client_cipher;
@@ -1320,8 +1321,8 @@ TEST_F(SSLStreamAdapterTestDTLS, TestDTLSSrtpIncompatibleCipherSuites) {
 // Test DTLS-SRTP with each side being mixed -- should select the stronger
 // cipher.
 TEST_F(SSLStreamAdapterTestDTLS, TestDTLSSrtpMixed) {
-  const std::vector<int> crypto_suites = {rtc::kSrtpAes128CmSha1_80,
-                                          rtc::kSrtpAes128CmSha1_32};
+  const std::vector<int> crypto_suites = {webrtc::kSrtpAes128CmSha1_80,
+                                          webrtc::kSrtpAes128CmSha1_32};
   SetDtlsSrtpCryptoSuites(crypto_suites, true);
   SetDtlsSrtpCryptoSuites(crypto_suites, false);
   TestHandshake();
@@ -1332,12 +1333,12 @@ TEST_F(SSLStreamAdapterTestDTLS, TestDTLSSrtpMixed) {
   ASSERT_TRUE(GetDtlsSrtpCryptoSuite(false, &server_cipher));
 
   ASSERT_EQ(client_cipher, server_cipher);
-  ASSERT_EQ(client_cipher, rtc::kSrtpAes128CmSha1_80);
+  ASSERT_EQ(client_cipher, webrtc::kSrtpAes128CmSha1_80);
 }
 
 // Test DTLS-SRTP with SrtpAeadAes128Gcm.
 TEST_F(SSLStreamAdapterTestDTLS, TestDTLSSrtpAeadAes128Gcm) {
-  std::vector<int> crypto_suites = {rtc::kSrtpAeadAes128Gcm};
+  std::vector<int> crypto_suites = {webrtc::kSrtpAeadAes128Gcm};
   SetDtlsSrtpCryptoSuites(crypto_suites, true);
   SetDtlsSrtpCryptoSuites(crypto_suites, false);
   TestHandshake();
@@ -1348,12 +1349,12 @@ TEST_F(SSLStreamAdapterTestDTLS, TestDTLSSrtpAeadAes128Gcm) {
   ASSERT_TRUE(GetDtlsSrtpCryptoSuite(false, &server_cipher));
 
   ASSERT_EQ(client_cipher, server_cipher);
-  ASSERT_EQ(client_cipher, rtc::kSrtpAeadAes128Gcm);
+  ASSERT_EQ(client_cipher, webrtc::kSrtpAeadAes128Gcm);
 }
 
 // Test DTLS-SRTP with all GCM-256 ciphers.
 TEST_F(SSLStreamAdapterTestDTLS, TestDTLSSrtpGCM256) {
-  std::vector<int> crypto_suites = {rtc::kSrtpAeadAes256Gcm};
+  std::vector<int> crypto_suites = {webrtc::kSrtpAeadAes256Gcm};
   SetDtlsSrtpCryptoSuites(crypto_suites, true);
   SetDtlsSrtpCryptoSuites(crypto_suites, false);
   TestHandshake();
@@ -1364,13 +1365,13 @@ TEST_F(SSLStreamAdapterTestDTLS, TestDTLSSrtpGCM256) {
   ASSERT_TRUE(GetDtlsSrtpCryptoSuite(false, &server_cipher));
 
   ASSERT_EQ(client_cipher, server_cipher);
-  ASSERT_EQ(client_cipher, rtc::kSrtpAeadAes256Gcm);
+  ASSERT_EQ(client_cipher, webrtc::kSrtpAeadAes256Gcm);
 }
 
 // Test DTLS-SRTP with incompatbile GCM-128/-256 ciphers -- should not converge.
 TEST_F(SSLStreamAdapterTestDTLS, TestDTLSSrtpIncompatibleGcmCipherSuites) {
-  SetDtlsSrtpCryptoSuites({rtc::kSrtpAeadAes128Gcm}, true);
-  SetDtlsSrtpCryptoSuites({rtc::kSrtpAeadAes256Gcm}, false);
+  SetDtlsSrtpCryptoSuites({webrtc::kSrtpAeadAes128Gcm}, true);
+  SetDtlsSrtpCryptoSuites({webrtc::kSrtpAeadAes256Gcm}, false);
   TestHandshake();
 
   int client_cipher;
@@ -1381,8 +1382,8 @@ TEST_F(SSLStreamAdapterTestDTLS, TestDTLSSrtpIncompatibleGcmCipherSuites) {
 
 // Test DTLS-SRTP with both GCM-128/-256 ciphers -- should select GCM-256.
 TEST_F(SSLStreamAdapterTestDTLS, TestDTLSSrtpGCMMixed) {
-  std::vector<int> crypto_suites = {rtc::kSrtpAeadAes256Gcm,
-                                    rtc::kSrtpAeadAes128Gcm};
+  std::vector<int> crypto_suites = {webrtc::kSrtpAeadAes256Gcm,
+                                    webrtc::kSrtpAeadAes128Gcm};
   SetDtlsSrtpCryptoSuites(crypto_suites, true);
   SetDtlsSrtpCryptoSuites(crypto_suites, false);
   TestHandshake();
@@ -1393,7 +1394,7 @@ TEST_F(SSLStreamAdapterTestDTLS, TestDTLSSrtpGCMMixed) {
   ASSERT_TRUE(GetDtlsSrtpCryptoSuite(false, &server_cipher));
 
   ASSERT_EQ(client_cipher, server_cipher);
-  ASSERT_EQ(client_cipher, rtc::kSrtpAeadAes256Gcm);
+  ASSERT_EQ(client_cipher, webrtc::kSrtpAeadAes256Gcm);
 }
 
 // Test SRTP cipher suite lengths.
@@ -1401,33 +1402,33 @@ TEST_F(SSLStreamAdapterTestDTLS, TestDTLSSrtpKeyAndSaltLengths) {
   int key_len;
   int salt_len;
 
-  ASSERT_FALSE(rtc::GetSrtpKeyAndSaltLengths(rtc::kSrtpInvalidCryptoSuite,
-                                             &key_len, &salt_len));
+  ASSERT_FALSE(webrtc::GetSrtpKeyAndSaltLengths(webrtc::kSrtpInvalidCryptoSuite,
+                                                &key_len, &salt_len));
 
-  ASSERT_TRUE(rtc::GetSrtpKeyAndSaltLengths(rtc::kSrtpAes128CmSha1_32, &key_len,
-                                            &salt_len));
+  ASSERT_TRUE(webrtc::GetSrtpKeyAndSaltLengths(webrtc::kSrtpAes128CmSha1_32,
+                                               &key_len, &salt_len));
   ASSERT_EQ(128 / 8, key_len);
   ASSERT_EQ(112 / 8, salt_len);
 
-  ASSERT_TRUE(rtc::GetSrtpKeyAndSaltLengths(rtc::kSrtpAes128CmSha1_80, &key_len,
-                                            &salt_len));
+  ASSERT_TRUE(webrtc::GetSrtpKeyAndSaltLengths(webrtc::kSrtpAes128CmSha1_80,
+                                               &key_len, &salt_len));
   ASSERT_EQ(128 / 8, key_len);
   ASSERT_EQ(112 / 8, salt_len);
 
-  ASSERT_TRUE(rtc::GetSrtpKeyAndSaltLengths(rtc::kSrtpAeadAes128Gcm, &key_len,
-                                            &salt_len));
+  ASSERT_TRUE(webrtc::GetSrtpKeyAndSaltLengths(webrtc::kSrtpAeadAes128Gcm,
+                                               &key_len, &salt_len));
   ASSERT_EQ(128 / 8, key_len);
   ASSERT_EQ(96 / 8, salt_len);
 
-  ASSERT_TRUE(rtc::GetSrtpKeyAndSaltLengths(rtc::kSrtpAeadAes256Gcm, &key_len,
-                                            &salt_len));
+  ASSERT_TRUE(webrtc::GetSrtpKeyAndSaltLengths(webrtc::kSrtpAeadAes256Gcm,
+                                               &key_len, &salt_len));
   ASSERT_EQ(256 / 8, key_len);
   ASSERT_EQ(96 / 8, salt_len);
 }
 
 // Test the DTLS-SRTP key exporter
 TEST_F(SSLStreamAdapterTestDTLS, TestDTLSSrtpExporter) {
-  const std::vector<int> crypto_suites = {rtc::kSrtpAes128CmSha1_80};
+  const std::vector<int> crypto_suites = {webrtc::kSrtpAes128CmSha1_80};
   SetDtlsSrtpCryptoSuites(crypto_suites, true);
   SetDtlsSrtpCryptoSuites(crypto_suites, false);
 
@@ -1436,8 +1437,8 @@ TEST_F(SSLStreamAdapterTestDTLS, TestDTLSSrtpExporter) {
   EXPECT_TRUE(GetDtlsSrtpCryptoSuite(/*client=*/false, &selected_crypto_suite));
   int key_len;
   int salt_len;
-  ASSERT_TRUE(rtc::GetSrtpKeyAndSaltLengths(selected_crypto_suite, &key_len,
-                                            &salt_len));
+  ASSERT_TRUE(webrtc::GetSrtpKeyAndSaltLengths(selected_crypto_suite, &key_len,
+                                               &salt_len));
   rtc::ZeroOnFreeBuffer<uint8_t> client_out(2 * (key_len + salt_len));
   rtc::ZeroOnFreeBuffer<uint8_t> server_out(2 * (key_len + salt_len));
 
@@ -1505,23 +1506,23 @@ TEST_F(SSLStreamAdapterTestDTLSFromPEMStrings, TestDTLSGetPeerCertificate) {
 #pragma clang diagnostic ignored "-Wdeprecated-declarations"
 TEST_F(SSLStreamAdapterTestDTLSFromPEMStrings,
        DeprecatedSetPeerCertificateDigest) {
-  rtc::SSLPeerCertificateDigestError error;
+  webrtc::SSLPeerCertificateDigestError error;
   // Pass in a wrong length to trigger an error.
   bool ret = client_ssl_->SetPeerCertificateDigest(rtc::DIGEST_SHA_256, {},
                                                    /*length=*/0, &error);
   EXPECT_FALSE(ret);
-  EXPECT_EQ(error, rtc::SSLPeerCertificateDigestError::INVALID_LENGTH);
+  EXPECT_EQ(error, webrtc::SSLPeerCertificateDigestError::INVALID_LENGTH);
 }
 #pragma clang diagnostic pop
 
 struct SSLStreamAdapterTestDTLSHandshakeVersion
     : public SSLStreamAdapterTestDTLS,
       public WithParamInterface<std::tuple<
-          /* client*/ rtc::SSLProtocolVersion,
-          /* server*/ rtc::SSLProtocolVersion>> {
-  rtc::SSLProtocolVersion GetMin(
-      const std::vector<rtc::SSLProtocolVersion>& array) {
-    rtc::SSLProtocolVersion min = array[0];
+          /* client*/ webrtc::SSLProtocolVersion,
+          /* server*/ webrtc::SSLProtocolVersion>> {
+  webrtc::SSLProtocolVersion GetMin(
+      const std::vector<webrtc::SSLProtocolVersion>& array) {
+    webrtc::SSLProtocolVersion min = array[0];
     for (const auto& e : array) {
       if (static_cast<int>(e) < static_cast<int>(min)) {
         min = e;
@@ -1529,14 +1530,14 @@ struct SSLStreamAdapterTestDTLSHandshakeVersion
     }
     return min;
   }
-  uint16_t AsDtlsVersionBytes(rtc::SSLProtocolVersion version) {
+  uint16_t AsDtlsVersionBytes(webrtc::SSLProtocolVersion version) {
     switch (version) {
-      case rtc::SSL_PROTOCOL_DTLS_10:
-        return rtc::kDtls10VersionBytes;
-      case rtc::SSL_PROTOCOL_DTLS_12:
-        return rtc::kDtls12VersionBytes;
-      case rtc::SSL_PROTOCOL_DTLS_13:
-        return rtc::kDtls13VersionBytes;
+      case webrtc::SSL_PROTOCOL_DTLS_10:
+        return webrtc::kDtls10VersionBytes;
+      case webrtc::SSL_PROTOCOL_DTLS_12:
+        return webrtc::kDtls12VersionBytes;
+      case webrtc::SSL_PROTOCOL_DTLS_13:
+        return webrtc::kDtls13VersionBytes;
       default:
         break;
     }
@@ -1544,11 +1545,12 @@ struct SSLStreamAdapterTestDTLSHandshakeVersion
   }
 };
 
-INSTANTIATE_TEST_SUITE_P(
-    SSLStreamAdapterTestDTLSHandshakeVersion,
-    SSLStreamAdapterTestDTLSHandshakeVersion,
-    Combine(Values(rtc::SSL_PROTOCOL_DTLS_12, rtc::SSL_PROTOCOL_DTLS_13),
-            Values(rtc::SSL_PROTOCOL_DTLS_12, rtc::SSL_PROTOCOL_DTLS_13)));
+INSTANTIATE_TEST_SUITE_P(SSLStreamAdapterTestDTLSHandshakeVersion,
+                         SSLStreamAdapterTestDTLSHandshakeVersion,
+                         Combine(Values(webrtc::SSL_PROTOCOL_DTLS_12,
+                                        webrtc::SSL_PROTOCOL_DTLS_13),
+                                 Values(webrtc::SSL_PROTOCOL_DTLS_12,
+                                        webrtc::SSL_PROTOCOL_DTLS_13)));
 
 TEST_P(SSLStreamAdapterTestDTLSHandshakeVersion, TestGetSslVersionBytes) {
   webrtc::test::ScopedFieldTrials trials("WebRTC-ForceDtls13/Off/");
@@ -1562,9 +1564,9 @@ TEST_P(SSLStreamAdapterTestDTLSHandshakeVersion, TestGetSslVersionBytes) {
   ASSERT_TRUE(GetSslVersionBytes(true, &client_version));
   ASSERT_TRUE(GetSslVersionBytes(false, &server_version));
 
-  rtc::SSLProtocolVersion expect =
+  webrtc::SSLProtocolVersion expect =
       GetMin({client, server,
-              rtc::SSLStreamAdapter::GetMaxSupportedDTLSProtocolVersion()});
+              webrtc::SSLStreamAdapter::GetMaxSupportedDTLSProtocolVersion()});
 
   auto expect_bytes = AsDtlsVersionBytes(expect);
   EXPECT_EQ(client_version, expect_bytes);
@@ -1584,6 +1586,6 @@ TEST_P(SSLStreamAdapterTestDTLSHandshakeVersion, TestGetSslCipherSuite) {
   ASSERT_TRUE(GetSslCipherSuite(false, &server_cipher));
 
   ASSERT_EQ(client_cipher, server_cipher);
-  ASSERT_TRUE(rtc::SSLStreamAdapter::IsAcceptableCipher(server_cipher,
-                                                        rtc::KT_DEFAULT));
+  ASSERT_TRUE(webrtc::SSLStreamAdapter::IsAcceptableCipher(server_cipher,
+                                                           rtc::KT_DEFAULT));
 }

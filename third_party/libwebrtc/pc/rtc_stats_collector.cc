@@ -2006,17 +2006,16 @@ void RTCStatsCollector::ProduceTransportStats_n(
 
       if (channel_stats.dtls_role) {
         transport_stats->dtls_role =
-            *channel_stats.dtls_role == rtc::SSL_CLIENT ? "client" : "server";
+            *channel_stats.dtls_role == SSL_CLIENT ? "client" : "server";
       } else {
         transport_stats->dtls_role = "unknown";
       }
 
       transport_stats->dtls_cipher = channel_stats.tls_cipher_suite_name;
-      if (channel_stats.srtp_crypto_suite != rtc::kSrtpInvalidCryptoSuite &&
-          rtc::SrtpCryptoSuiteToName(channel_stats.srtp_crypto_suite)
-              .length()) {
+      if (channel_stats.srtp_crypto_suite != kSrtpInvalidCryptoSuite &&
+          SrtpCryptoSuiteToName(channel_stats.srtp_crypto_suite).length()) {
         transport_stats->srtp_cipher =
-            rtc::SrtpCryptoSuiteToName(channel_stats.srtp_crypto_suite);
+            SrtpCryptoSuiteToName(channel_stats.srtp_crypto_suite);
       }
       report->AddStats(std::move(transport_stats));
     }

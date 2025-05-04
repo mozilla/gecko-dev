@@ -237,7 +237,7 @@ bool JsepTransportController::NeedsIceRestart(
   return transport->needs_ice_restart();
 }
 
-std::optional<rtc::SSLRole> JsepTransportController::GetDtlsRole(
+std::optional<SSLRole> JsepTransportController::GetDtlsRole(
     const std::string& mid) const {
   // TODO(tommi): Remove this hop. Currently it's called from the signaling
   // thread during negotiations, potentially multiple times.
@@ -250,7 +250,7 @@ std::optional<rtc::SSLRole> JsepTransportController::GetDtlsRole(
 
   const cricket::JsepTransport* t = GetJsepTransportForMid(mid);
   if (!t) {
-    return std::optional<rtc::SSLRole>();
+    return std::optional<SSLRole>();
   }
   return t->GetDtlsRole();
 }
@@ -1543,8 +1543,7 @@ void JsepTransportController::OnUnDemuxableRtpPacketReceived_n(
   config_.un_demuxable_packet_handler(packet);
 }
 
-void JsepTransportController::OnDtlsHandshakeError(
-    rtc::SSLHandshakeError error) {
+void JsepTransportController::OnDtlsHandshakeError(SSLHandshakeError error) {
   config_.on_dtls_handshake_error_(error);
 }
 

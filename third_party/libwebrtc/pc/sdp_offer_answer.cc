@@ -3374,7 +3374,7 @@ bool SdpOfferAnswerHandler::NeedsIceRestart(
   return pc_->NeedsIceRestart(content_name);
 }
 
-std::optional<rtc::SSLRole> SdpOfferAnswerHandler::GetDtlsRole(
+std::optional<SSLRole> SdpOfferAnswerHandler::GetDtlsRole(
     const std::string& mid) const {
   RTC_DCHECK_RUN_ON(signaling_thread());
   return transport_controller_s()->GetDtlsRole(mid);
@@ -3452,11 +3452,11 @@ void SdpOfferAnswerHandler::AllocateSctpSids() {
     return;
   }
 
-  std::optional<rtc::SSLRole> guessed_role = GuessSslRole();
+  std::optional<SSLRole> guessed_role = GuessSslRole();
   network_thread()->BlockingCall(
       [&, data_channel_controller = data_channel_controller()] {
         RTC_DCHECK_RUN_ON(network_thread());
-        std::optional<rtc::SSLRole> role = pc_->GetSctpSslRole_n();
+        std::optional<SSLRole> role = pc_->GetSctpSslRole_n();
         if (!role)
           role = guessed_role;
         if (role)
@@ -3464,7 +3464,7 @@ void SdpOfferAnswerHandler::AllocateSctpSids() {
       });
 }
 
-std::optional<rtc::SSLRole> SdpOfferAnswerHandler::GuessSslRole() const {
+std::optional<SSLRole> SdpOfferAnswerHandler::GuessSslRole() const {
   RTC_DCHECK_RUN_ON(signaling_thread());
   if (!pc_->sctp_mid())
     return std::nullopt;
@@ -3504,7 +3504,7 @@ std::optional<rtc::SSLRole> SdpOfferAnswerHandler::GuessSslRole() const {
   // * "Guessing" should always be correct if we get an SCTP session and are not
   //   the offerer.
 
-  return is_caller() ? rtc::SSL_SERVER : rtc::SSL_CLIENT;
+  return is_caller() ? SSL_SERVER : SSL_CLIENT;
 }
 
 bool SdpOfferAnswerHandler::CheckIfNegotiationIsNeeded() {

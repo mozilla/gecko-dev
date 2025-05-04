@@ -101,7 +101,7 @@ class FakeDtlsTransportFactory : public cricket::DtlsTransportFactory {
   std::unique_ptr<cricket::DtlsTransportInternal> CreateDtlsTransport(
       cricket::IceTransportInternal* ice,
       const CryptoOptions& crypto_options,
-      rtc::SSLProtocolVersion max_version) override {
+      SSLProtocolVersion max_version) override {
     return std::make_unique<FakeDtlsTransport>(
         static_cast<cricket::FakeIceTransport*>(ice));
   }
@@ -674,8 +674,7 @@ TEST_F(JsepTransportControllerTest, GetDtlsRole) {
           ->SetLocalDescription(SdpType::kOffer, offer_desc.get(), nullptr)
           .ok());
 
-  std::optional<rtc::SSLRole> role =
-      transport_controller_->GetDtlsRole(kAudioMid1);
+  std::optional<SSLRole> role = transport_controller_->GetDtlsRole(kAudioMid1);
   // The DTLS role is not decided yet.
   EXPECT_FALSE(role);
   EXPECT_TRUE(transport_controller_
@@ -685,7 +684,7 @@ TEST_F(JsepTransportControllerTest, GetDtlsRole) {
   role = transport_controller_->GetDtlsRole(kAudioMid1);
 
   ASSERT_TRUE(role);
-  EXPECT_EQ(rtc::SSL_CLIENT, *role);
+  EXPECT_EQ(SSL_CLIENT, *role);
 }
 
 TEST_F(JsepTransportControllerTest, GetStats) {

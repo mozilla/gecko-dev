@@ -145,7 +145,7 @@ class JsepTransport {
 
   // Returns role if negotiated, or empty std::optional if it hasn't been
   // negotiated yet.
-  std::optional<rtc::SSLRole> GetDtlsRole() const;
+  std::optional<webrtc::SSLRole> GetDtlsRole() const;
 
   bool GetStats(TransportStats* stats) const;
 
@@ -270,7 +270,7 @@ class JsepTransport {
       webrtc::SdpType local_description_type,
       ConnectionRole local_connection_role,
       ConnectionRole remote_connection_role,
-      std::optional<rtc::SSLRole>* negotiated_dtls_role);
+      std::optional<webrtc::SSLRole>* negotiated_dtls_role);
 
   // Pushes down the ICE parameters from the remote description.
   void SetRemoteIceParameters(const IceParameters& ice_parameters,
@@ -279,7 +279,7 @@ class JsepTransport {
   // Pushes down the DTLS parameters obtained via negotiation.
   static webrtc::RTCError SetNegotiatedDtlsParameters(
       DtlsTransportInternal* dtls_transport,
-      std::optional<rtc::SSLRole> dtls_role,
+      std::optional<webrtc::SSLRole> dtls_role,
       rtc::SSLFingerprint* remote_fingerprint);
 
   bool GetTransportStats(DtlsTransportInternal* dtls_transport,

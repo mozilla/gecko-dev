@@ -1528,7 +1528,7 @@ class RTC_EXPORT PeerConnectionFactoryInterface
     // Sets the maximum supported protocol version. The highest version
     // supported by both ends will be used for the connection, i.e. if one
     // party supports DTLS 1.0 and the other DTLS 1.2, DTLS 1.0 will be used.
-    rtc::SSLProtocolVersion ssl_max_version = rtc::SSL_PROTOCOL_DTLS_12;
+    SSLProtocolVersion ssl_max_version = SSL_PROTOCOL_DTLS_12;
 
     // Sets crypto related options, e.g. enabled cipher suites.
     CryptoOptions crypto_options = {};

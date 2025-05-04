@@ -205,12 +205,12 @@ OpenSSLAdapter::OpenSSLAdapter(Socket* socket,
       ssl_session_cache_(ssl_session_cache),
       ssl_cert_verifier_(ssl_cert_verifier),
       state_(SSL_NONE),
-      role_(SSL_CLIENT),
+      role_(webrtc::SSL_CLIENT),
       ssl_read_needs_write_(false),
       ssl_write_needs_read_(false),
       ssl_(nullptr),
       ssl_ctx_(nullptr),
-      ssl_mode_(SSL_MODE_TLS),
+      ssl_mode_(webrtc::SSL_MODE_TLS),
       ignore_bad_cert_(false),
       custom_cert_verifier_status_(false) {
   // If a factory is used, take a reference on the factory's SSL_CTX.
@@ -240,7 +240,7 @@ void OpenSSLAdapter::SetEllipticCurves(const std::vector<std::string>& curves) {
   elliptic_curves_ = curves;
 }
 
-void OpenSSLAdapter::SetMode(SSLMode mode) {
+void OpenSSLAdapter::SetMode(webrtc::SSLMode mode) {
   RTC_DCHECK(!ssl_ctx_);
   RTC_DCHECK(state_ == SSL_NONE);
   ssl_mode_ = mode;
@@ -263,7 +263,7 @@ void OpenSSLAdapter::SetIdentity(std::unique_ptr<SSLIdentity> identity) {
 #endif
 }
 
-void OpenSSLAdapter::SetRole(SSLRole role) {
+void OpenSSLAdapter::SetRole(webrtc::SSLRole role) {
   role_ = role;
 }
 
@@ -392,7 +392,8 @@ int OpenSSLAdapter::ContinueSSL() {
   // Clear the DTLS timer
   timer_.reset();
 
-  int code = (role_ == SSL_CLIENT) ? SSL_connect(ssl_) : SSL_accept(ssl_);
+  int code =
+      (role_ == webrtc::SSL_CLIENT) ? SSL_connect(ssl_) : SSL_accept(ssl_);
   switch (SSL_get_error(ssl_, code)) {
     case SSL_ERROR_NONE:
       if (!SSLPostConnectionCheck(ssl_, ssl_host_name_)) {
@@ -934,7 +935,8 @@ int OpenSSLAdapter::NewSSLSessionCallback(SSL* ssl, SSL_SESSION* session) {
   return 1;  // We've taken ownership of the session; OpenSSL shouldn't free it.
 }
 
-SSL_CTX* OpenSSLAdapter::CreateContext(SSLMode mode, bool enable_cache) {
+SSL_CTX* OpenSSLAdapter::CreateContext(webrtc::SSLMode mode,
+                                       bool enable_cache) {
 #ifdef WEBRTC_USE_CRYPTO_BUFFER_CALLBACK
   // If X509 objects aren't used, we can use these methods to avoid
   // linking the sizable crypto/x509 code.
@@ -942,7 +944,7 @@ SSL_CTX* OpenSSLAdapter::CreateContext(SSLMode mode, bool enable_cache) {
                                                    : TLS_with_buffers_method());
 #else
   SSL_CTX* ctx =
-      SSL_CTX_new(mode == SSL_MODE_DTLS ? DTLS_method() : TLS_method());
+      SSL_CTX_new(mode == webrtc::SSL_MODE_DTLS ? DTLS_method() : TLS_method());
 #endif
   if (ctx == nullptr) {
     unsigned long error = ERR_get_error();  // NOLINT: type used by OpenSSL.
@@ -1027,7 +1029,7 @@ OpenSSLAdapterFactory::OpenSSLAdapterFactory() = default;
 
 OpenSSLAdapterFactory::~OpenSSLAdapterFactory() = default;
 
-void OpenSSLAdapterFactory::SetMode(SSLMode mode) {
+void OpenSSLAdapterFactory::SetMode(webrtc::SSLMode mode) {
   RTC_DCHECK(!ssl_session_cache_);
   ssl_mode_ = mode;
 }
@@ -1043,7 +1045,7 @@ void OpenSSLAdapterFactory::SetIdentity(std::unique_ptr<SSLIdentity> identity) {
   identity_ = std::move(identity);
 }
 
-void OpenSSLAdapterFactory::SetRole(SSLRole role) {
+void OpenSSLAdapterFactory::SetRole(webrtc::SSLRole role) {
   RTC_DCHECK(!ssl_session_cache_);
   ssl_role_ = role;
 }

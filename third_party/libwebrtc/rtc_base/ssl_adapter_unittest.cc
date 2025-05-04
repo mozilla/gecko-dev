@@ -62,7 +62,7 @@ class SSLAdapterTestDummy : public sigslot::has_slots<> {
   explicit SSLAdapterTestDummy() : socket_(CreateSocket()) {}
   virtual ~SSLAdapterTestDummy() = default;
 
-  void CreateSSLAdapter(rtc::Socket* socket, rtc::SSLRole role) {
+  void CreateSSLAdapter(rtc::Socket* socket, webrtc::SSLRole role) {
     ssl_adapter_.reset(rtc::SSLAdapter::Create(socket));
 
     // Ignore any certificate errors for the purpose of testing.
@@ -143,7 +143,7 @@ class SSLAdapterTestDummy : public sigslot::has_slots<> {
 class SSLAdapterTestDummyClient : public SSLAdapterTestDummy {
  public:
   explicit SSLAdapterTestDummyClient() : SSLAdapterTestDummy() {
-    CreateSSLAdapter(socket_.release(), rtc::SSL_CLIENT);
+    CreateSSLAdapter(socket_.release(), webrtc::SSL_CLIENT);
   }
 
   int Connect(absl::string_view hostname, const rtc::SocketAddress& address) {
@@ -185,7 +185,7 @@ class SSLAdapterTestDummyServer : public SSLAdapterTestDummy {
 
  protected:
   void OnReadEvent(rtc::Socket* socket) {
-    CreateSSLAdapter(socket_->Accept(nullptr), rtc::SSL_SERVER);
+    CreateSSLAdapter(socket_->Accept(nullptr), webrtc::SSL_SERVER);
     ssl_adapter_->SetIdentity(ssl_identity_->Clone());
     if (ssl_adapter_->StartSSL(GetHostname()) != 0) {
       RTC_LOG(LS_ERROR) << "Starting SSL from server failed.";
