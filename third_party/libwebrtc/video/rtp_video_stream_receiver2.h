@@ -309,7 +309,8 @@ class RtpVideoStreamReceiver2 : public LossNotificationSender,
   // This function assumes that it's being called from only one thread.
   void ParseAndHandleEncapsulatingHeader(const RtpPacketReceived& packet)
       RTC_RUN_ON(packet_sequence_checker_);
-  void NotifyReceiverOfEmptyPacket(uint16_t seq_num, bool is_h26x)
+  void NotifyReceiverOfEmptyPacket(uint16_t seq_num,
+                                   std::optional<VideoCodecType> codec)
       RTC_RUN_ON(packet_sequence_checker_);
   bool IsRedEnabled() const;
   void InsertSpsPpsIntoTracker(uint8_t payload_type)
@@ -329,7 +330,9 @@ class RtpVideoStreamReceiver2 : public LossNotificationSender,
                           FrameInstrumentationData>& frame_instrumentation_data,
       int spatial_idx);
 
-  bool IsH26xPayloadType(uint8_t payload_type) const
+  std::optional<VideoCodecType> GetCodecFromPayloadType(
+      uint8_t payload_type) const RTC_RUN_ON(packet_sequence_checker_);
+  bool UseH26xPacketBuffer(std::optional<VideoCodecType> codec) const
       RTC_RUN_ON(packet_sequence_checker_);
 
   const Environment env_;
@@ -381,7 +384,9 @@ class RtpVideoStreamReceiver2 : public LossNotificationSender,
   VideoStreamBufferControllerStatsObserver* const vcm_receive_statistics_;
   video_coding::PacketBuffer packet_buffer_
       RTC_GUARDED_BY(packet_sequence_checker_);
-  // `h26x_packet_buffer_` is null if codec list doens't contain H.264 or H.265.
+  // h26x_packet_buffer_ is applicable to H.264 and H.265. For H.265 it is
+  // always used but for H.264 it is only used if WebRTC-Video-H26xPacketBuffer
+  // is enabled, see condition inside UseH26xPacketBuffer().
   std::unique_ptr<H26xPacketBuffer> h26x_packet_buffer_
       RTC_GUARDED_BY(packet_sequence_checker_);
   UniqueTimestampCounter frame_counter_

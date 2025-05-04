@@ -765,7 +765,11 @@ class RtpVideoStreamReceiver2TestH264
 
 INSTANTIATE_TEST_SUITE_P(SpsPpsIdrIsKeyframeAndH26xPacketBuffer,
                          RtpVideoStreamReceiver2TestH264,
-                         Values("", "WebRTC-SpsPpsIdrIsH264Keyframe/Enabled/"));
+                         Values("",
+                                "WebRTC-SpsPpsIdrIsH264Keyframe/Enabled/",
+                                "WebRTC-Video-H26xPacketBuffer/Enabled/",
+                                "WebRTC-SpsPpsIdrIsH264Keyframe/Enabled/"
+                                "WebRTC-Video-H26xPacketBuffer/Enabled/"));
 
 TEST_P(RtpVideoStreamReceiver2TestH264, InBandSpsPps) {
   constexpr int kH264PayloadType = 98;
@@ -865,7 +869,8 @@ TEST_P(RtpVideoStreamReceiver2TestH264, OutOfBandFmtpSpsPps) {
   // IDR frames without SPS/PPS are not returned by
   // |H26xPacketBuffer.InsertPacket| until SPS and PPS are received when
   // WebRTC-SpsPpsIdrIsH264Keyframe is enabled.
-  if (!env_.field_trials().IsEnabled("WebRTC-SpsPpsIdrIsH264Keyframe")) {
+  if (!env_.field_trials().IsEnabled("WebRTC-SpsPpsIdrIsH264Keyframe") ||
+      !env_.field_trials().IsEnabled("WebRTC-Video-H26xPacketBuffer")) {
     EXPECT_CALL(mock_on_complete_frame_callback_, DoOnCompleteFrame(_));
   }
   rtp_video_stream_receiver_->OnReceivedPayloadData(data, rtp_packet,
@@ -939,17 +944,30 @@ TEST_P(RtpVideoStreamReceiver2TestH264, ForceSpsPpsIdrIsKeyframe) {
   // IDR frames without SPS/PPS are not returned by
   // |H26xPacketBuffer.InsertPacket| until SPS and PPS are received, while
   // |PacketBuffer| returns it as a delta frame.
-  EXPECT_CALL(mock_on_complete_frame_callback_, DoOnCompleteFrame).Times(0);
+  if (env_.field_trials().IsEnabled("WebRTC-Video-H26xPacketBuffer")) {
+    EXPECT_CALL(mock_on_complete_frame_callback_, DoOnCompleteFrame).Times(0);
+  } else {
+    EXPECT_CALL(mock_on_complete_frame_callback_, DoOnCompleteFrame)
+        .WillOnce(
+            [&](EncodedFrame* frame) { EXPECT_FALSE(frame->is_keyframe()); });
+  }
   rtp_video_stream_receiver_->OnReceivedPayloadData(idr_data, rtp_packet,
                                                     idr_video_header, 0);
 }
 
-class RtpVideoStreamReceiver2TestPadding : public RtpVideoStreamReceiver2Test {
+class RtpVideoStreamReceiver2TestPadding
+    : public RtpVideoStreamReceiver2Test,
+      public ::testing::WithParamInterface<std::string> {
  protected:
-  RtpVideoStreamReceiver2TestPadding() : RtpVideoStreamReceiver2Test("") {}
+  RtpVideoStreamReceiver2TestPadding()
+      : RtpVideoStreamReceiver2Test(GetParam()) {}
 };
 
-TEST_F(RtpVideoStreamReceiver2TestPadding, PaddingInMediaStream) {
+INSTANTIATE_TEST_SUITE_P(PaddingInMediaStreamAndH26xPacketBuffer,
+                         RtpVideoStreamReceiver2TestPadding,
+                         Values("", "WebRTC-Video-H26xPacketBuffer/Enabled/"));
+
+TEST_P(RtpVideoStreamReceiver2TestPadding, PaddingInMediaStream) {
   RtpPacketReceived rtp_packet;
   RTPVideoHeader video_header = GetDefaultH264VideoHeader();
   rtc::CopyOnWriteBuffer data({'1', '2', '3'});
@@ -986,7 +1004,7 @@ TEST_F(RtpVideoStreamReceiver2TestPadding, PaddingInMediaStream) {
                                                     video_header, 0);
 }
 
-TEST_F(RtpVideoStreamReceiver2TestPadding, EmptyPaddingInMediaStream) {
+TEST_P(RtpVideoStreamReceiver2TestPadding, EmptyPaddingInMediaStream) {
   constexpr int kH264PayloadType = 98;
   RtpPacketReceived rtp_packet_idr, rtp_packet_padding, rtp_packet_slice;
   // Example Stap-A packet with SPS, PPS, and IDR.

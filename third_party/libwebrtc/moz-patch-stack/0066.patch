@@ -214,7 +214,7 @@ index 0800e84103..7c4ae845fa 100644
                                     int current_delay_ms,
                                     int target_delay_ms,
 diff --git a/video/rtp_video_stream_receiver2.cc b/video/rtp_video_stream_receiver2.cc
-index 52713be2ea..29566aa0a0 100644
+index 4ff56aa577..b372245e4e 100644
 --- a/video/rtp_video_stream_receiver2.cc
 +++ b/video/rtp_video_stream_receiver2.cc
 @@ -286,6 +286,7 @@ RtpVideoStreamReceiver2::RtpVideoStreamReceiver2(
@@ -233,7 +233,7 @@ index 52713be2ea..29566aa0a0 100644
        packet_buffer_(kPacketBufferStartSize,
                       PacketBufferMaxSize(env_.field_trials())),
        reference_finder_(std::make_unique<RtpFrameReferenceFinder>()),
-@@ -1378,7 +1380,8 @@ void RtpVideoStreamReceiver2::FrameDecoded(int64_t picture_id) {
+@@ -1391,7 +1393,8 @@ void RtpVideoStreamReceiver2::FrameDecoded(int64_t picture_id) {
      packet_infos_.erase(
          packet_infos_.begin(),
          packet_infos_.upper_bound(*last_decoded_unwrapped_seq_num_));
@@ -244,7 +244,7 @@ index 52713be2ea..29566aa0a0 100644
    }
  }
 diff --git a/video/rtp_video_stream_receiver2.h b/video/rtp_video_stream_receiver2.h
-index 53c5528b51..ae0a699eda 100644
+index 3deedb4fcf..1b49f2166b 100644
 --- a/video/rtp_video_stream_receiver2.h
 +++ b/video/rtp_video_stream_receiver2.h
 @@ -53,6 +53,7 @@
@@ -263,14 +263,14 @@ index 53c5528b51..ae0a699eda 100644
        // The KeyFrameRequestSender is optional; if not provided, key frame
        // requests are sent via the internal RtpRtcp module.
        OnCompleteFrameCallback* complete_frame_callback,
-@@ -376,6 +378,7 @@ class RtpVideoStreamReceiver2 : public LossNotificationSender,
+@@ -379,6 +381,7 @@ class RtpVideoStreamReceiver2 : public LossNotificationSender,
    std::unique_ptr<LossNotificationController> loss_notification_controller_
        RTC_GUARDED_BY(packet_sequence_checker_);
  
 +  VideoStreamBufferControllerStatsObserver* const vcm_receive_statistics_;
    video_coding::PacketBuffer packet_buffer_
        RTC_GUARDED_BY(packet_sequence_checker_);
-   // `h26x_packet_buffer_` is null if codec list doens't contain H.264 or H.265.
+   // h26x_packet_buffer_ is applicable to H.264 and H.265. For H.265 it is
 diff --git a/video/video_receive_stream2.cc b/video/video_receive_stream2.cc
 index a631cf3c7e..4555472ccb 100644
 --- a/video/video_receive_stream2.cc

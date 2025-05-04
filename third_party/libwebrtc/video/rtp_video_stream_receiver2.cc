@@ -744,7 +744,7 @@ bool RtpVideoStreamReceiver2::OnReceivedPayloadData(
 
   if (codec_payload.size() == 0) {
     NotifyReceiverOfEmptyPacket(packet->seq_num(),
-                                IsH26xPayloadType(packet->payload_type));
+                                GetCodecFromPayloadType(packet->payload_type));
     rtcp_feedback_buffer_.SendBufferedRtcpFeedback();
     return false;
   }
@@ -759,7 +759,8 @@ bool RtpVideoStreamReceiver2::OnReceivedPayloadData(
     }
   }
 
-  if (packet->codec() == kVideoCodecH264 && !h26x_packet_buffer_) {
+  if (packet->codec() == kVideoCodecH264 &&
+      !UseH26xPacketBuffer(packet->codec())) {
     video_coding::H264SpsPpsTracker::FixedBitstream fixed =
         tracker_.CopyAndFixBitstream(
             rtc::MakeArrayView(codec_payload.cdata(), codec_payload.size()),
@@ -784,9 +785,7 @@ bool RtpVideoStreamReceiver2::OnReceivedPayloadData(
   rtcp_feedback_buffer_.SendBufferedRtcpFeedback();
   frame_counter_.Add(packet->timestamp);
 
-  if ((packet->codec() == kVideoCodecH264 ||
-       packet->codec() == kVideoCodecH265) &&
-      h26x_packet_buffer_) {
+  if (h26x_packet_buffer_ && UseH26xPacketBuffer(packet->codec())) {
     OnInsertedPacket(h26x_packet_buffer_->InsertPacket(std::move(packet)));
   } else {
     OnInsertedPacket(packet_buffer_.InsertPacket(std::move(packet)));
@@ -1193,13 +1192,26 @@ RtpVideoStreamReceiver2::GetSenderReportStats() const {
   return rtp_rtcp_->GetSenderReportStats();
 }
 
-bool RtpVideoStreamReceiver2::IsH26xPayloadType(uint8_t payload_type) const {
+std::optional<VideoCodecType> RtpVideoStreamReceiver2::GetCodecFromPayloadType(
+    uint8_t payload_type) const {
   RTC_DCHECK_RUN_ON(&packet_sequence_checker_);
   auto it = pt_codec_.find(payload_type);
   if (it == pt_codec_.end()) {
-    return false;
+    return std::nullopt;
   }
-  return it->second == kVideoCodecH264 || it->second == kVideoCodecH265;
+  return it->second;
+}
+
+bool RtpVideoStreamReceiver2::UseH26xPacketBuffer(
+    std::optional<VideoCodecType> codec) const {
+  RTC_DCHECK_RUN_ON(&packet_sequence_checker_);
+  if (codec == kVideoCodecH265) {
+    return true;
+  }
+  if (codec == kVideoCodecH264) {
+    return env_.field_trials().IsEnabled("WebRTC-Video-H26xPacketBuffer");
+  }
+  return false;
 }
 
 void RtpVideoStreamReceiver2::ManageFrame(
@@ -1216,7 +1228,7 @@ void RtpVideoStreamReceiver2::ReceivePacket(const RtpPacketReceived& packet) {
     // TODO(nisse): Could drop empty packets earlier, but need to figure out how
     // they should be counted in stats.
     NotifyReceiverOfEmptyPacket(packet.SequenceNumber(),
-                                IsH26xPayloadType(packet.PayloadType()));
+                                GetCodecFromPayloadType(packet.PayloadType()));
     return;
   }
   if (packet.PayloadType() == red_payload_type_) {
@@ -1287,7 +1299,7 @@ void RtpVideoStreamReceiver2::ParseAndHandleEncapsulatingHeader(
     // Notify video_receiver about received FEC packets to avoid NACKing these
     // packets.
     NotifyReceiverOfEmptyPacket(packet.SequenceNumber(),
-                                IsH26xPayloadType(packet.PayloadType()));
+                                GetCodecFromPayloadType(packet.PayloadType()));
   }
   if (ulpfec_receiver_->AddReceivedRedPacket(packet)) {
     ulpfec_receiver_->ProcessReceivedFec();
@@ -1297,14 +1309,15 @@ void RtpVideoStreamReceiver2::ParseAndHandleEncapsulatingHeader(
 // In the case of a video stream without picture ids and no rtx the
 // RtpFrameReferenceFinder will need to know about padding to
 // correctly calculate frame references.
-void RtpVideoStreamReceiver2::NotifyReceiverOfEmptyPacket(uint16_t seq_num,
-                                                          bool is_h26x) {
+void RtpVideoStreamReceiver2::NotifyReceiverOfEmptyPacket(
+    uint16_t seq_num,
+    std::optional<VideoCodecType> codec) {
   RTC_DCHECK_RUN_ON(&packet_sequence_checker_);
   RTC_DCHECK_RUN_ON(&worker_task_checker_);
 
   OnCompleteFrames(reference_finder_->PaddingReceived(seq_num));
 
-  if (is_h26x && h26x_packet_buffer_) {
+  if (h26x_packet_buffer_ && UseH26xPacketBuffer(codec)) {
     OnInsertedPacket(h26x_packet_buffer_->InsertPadding(seq_num));
   } else {
     OnInsertedPacket(packet_buffer_.InsertPadding(seq_num));
@@ -1457,7 +1470,8 @@ void RtpVideoStreamReceiver2::InsertSpsPpsIntoTracker(uint8_t payload_type) {
   tracker_.InsertSpsPpsNalus(sprop_decoder.sps_nalu(),
                              sprop_decoder.pps_nalu());
 
-  if (h26x_packet_buffer_) {
+  if (h26x_packet_buffer_ &&
+      UseH26xPacketBuffer(GetCodecFromPayloadType(payload_type))) {
     h26x_packet_buffer_->SetSpropParameterSets(sprop_base64_it->second);
   }
 }
