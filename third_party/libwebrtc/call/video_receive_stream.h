@@ -30,6 +30,7 @@
 #include "api/rtp_headers.h"
 #include "api/scoped_refptr.h"
 #include "api/units/time_delta.h"
+#include "api/units/timestamp.h"
 #include "api/video/recordable_encoded_frame.h"
 #include "api/video/video_content_type.h"
 #include "api/video/video_frame.h"

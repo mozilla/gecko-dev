@@ -15,7 +15,6 @@
 #include <cstdint>
 #include <map>
 #include <memory>
-#include <optional>
 #include <vector>
 
 #include "absl/base/nullability.h"
@@ -34,7 +33,6 @@
 #include "api/units/data_size.h"
 #include "api/units/frequency.h"
 #include "api/video/encoded_image.h"
-#include "api/video/video_codec_type.h"
 #include "api/video/video_layers_allocation.h"
 #include "api/video_codecs/video_encoder.h"
 #include "call/rtp_config.h"

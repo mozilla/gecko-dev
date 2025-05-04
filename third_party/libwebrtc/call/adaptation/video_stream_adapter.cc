@@ -11,21 +11,30 @@
 #include "call/adaptation/video_stream_adapter.h"
 
 #include <algorithm>
+#include <cstddef>
+#include <cstdint>
 #include <limits>
 #include <optional>
 #include <utility>
 
 #include "absl/types/variant.h"
+#include "api/adaptation/resource.h"
+#include "api/field_trials_view.h"
+#include "api/rtp_parameters.h"
+#include "api/scoped_refptr.h"
 #include "api/sequence_checker.h"
 #include "api/video/video_adaptation_counters.h"
-#include "api/video/video_adaptation_reason.h"
-#include "api/video_codecs/video_encoder.h"
+#include "api/video/video_codec_type.h"
+#include "api/video_codecs/video_codec.h"
+#include "call/adaptation/adaptation_constraint.h"
 #include "call/adaptation/video_source_restrictions.h"
 #include "call/adaptation/video_stream_input_state.h"
+#include "call/adaptation/video_stream_input_state_provider.h"
 #include "modules/video_coding/svc/scalability_mode_util.h"
 #include "rtc_base/checks.h"
 #include "rtc_base/logging.h"
 #include "rtc_base/numerics/safe_conversions.h"
+#include "video/video_stream_encoder_observer.h"
 
 namespace webrtc {
 

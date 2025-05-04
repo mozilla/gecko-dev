@@ -59,6 +59,7 @@
 #include "modules/video_coding/fec_controller_default.h"
 #include "modules/video_coding/include/video_codec_interface.h"
 #include "rtc_base/buffer.h"
+#include "rtc_base/checks.h"
 #include "rtc_base/rate_limiter.h"
 #include "test/explicit_key_value_config.h"
 #include "test/gmock.h"

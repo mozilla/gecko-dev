@@ -10,6 +10,10 @@
 
 #include "call/adaptation/broadcast_resource_listener.h"
 
+#include <vector>
+
+#include "api/adaptation/resource.h"
+#include "api/scoped_refptr.h"
 #include "call/adaptation/test/fake_resource.h"
 #include "call/adaptation/test/mock_resource_listener.h"
 #include "test/gmock.h"

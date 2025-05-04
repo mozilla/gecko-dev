@@ -476,7 +476,7 @@ index 7769526e07..f56ce3ce54 100644
  if (rtc_include_tests) {
    rtc_source_set("test_feedback_generator_interface") {
 diff --git a/call/BUILD.gn b/call/BUILD.gn
-index 7e13144381..5646f6bff5 100644
+index 1e136c143f..e68b2a9304 100644
 --- a/call/BUILD.gn
 +++ b/call/BUILD.gn
 @@ -48,7 +48,7 @@ rtc_library("call_interfaces") {
@@ -488,7 +488,7 @@ index 7e13144381..5646f6bff5 100644
      "../api:scoped_refptr",
      "../api:transport_api",
      "../api/adaptation:resource_adaptation_api",
-@@ -379,6 +379,12 @@ rtc_library("call") {
+@@ -352,6 +352,12 @@ rtc_library("call") {
      "//third_party/abseil-cpp/absl/functional:bind_front",
      "//third_party/abseil-cpp/absl/strings:string_view",
    ]

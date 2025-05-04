@@ -10,12 +10,12 @@
 
 #include "call/adaptation/test/fake_resource.h"
 
-#include <algorithm>
 #include <string>
-#include <utility>
 
 #include "absl/strings/string_view.h"
+#include "api/adaptation/resource.h"
 #include "api/make_ref_counted.h"
+#include "api/scoped_refptr.h"
 
 namespace webrtc {
 

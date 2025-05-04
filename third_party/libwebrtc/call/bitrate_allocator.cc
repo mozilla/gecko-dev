@@ -18,7 +18,6 @@
 #include <map>
 #include <optional>
 #include <string>
-#include <utility>
 #include <vector>
 
 #include "absl/algorithm/container.h"

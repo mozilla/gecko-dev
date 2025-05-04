@@ -11,6 +11,7 @@
 #include "call/adaptation/video_source_restrictions.h"
 
 #include <algorithm>
+#include <cstddef>
 #include <limits>
 #include <optional>
 #include <string>

@@ -114,10 +114,10 @@ index e607a182c2..5f2c5d0f2a 100644
  
  }  // namespace webrtc
 diff --git a/call/video_receive_stream.h b/call/video_receive_stream.h
-index 352d016dde..574d8cea6d 100644
+index ebff602498..75eaf298b0 100644
 --- a/call/video_receive_stream.h
 +++ b/call/video_receive_stream.h
-@@ -116,6 +116,8 @@ class VideoReceiveStreamInterface : public MediaReceiveStreamInterface {
+@@ -117,6 +117,8 @@ class VideoReceiveStreamInterface : public MediaReceiveStreamInterface {
      // https://www.w3.org/TR/webrtc-stats/#dom-rtcvideoreceiverstats-framesdropped
      uint32_t frames_dropped = 0;
      uint32_t frames_decoded = 0;

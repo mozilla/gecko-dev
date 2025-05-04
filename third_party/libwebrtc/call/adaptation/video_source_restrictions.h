@@ -11,9 +11,9 @@
 #ifndef CALL_ADAPTATION_VIDEO_SOURCE_RESTRICTIONS_H_
 #define CALL_ADAPTATION_VIDEO_SOURCE_RESTRICTIONS_H_
 
+#include <cstddef>
 #include <optional>
 #include <string>
-#include <utility>
 
 namespace webrtc {
 
