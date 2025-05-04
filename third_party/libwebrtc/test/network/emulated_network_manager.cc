@@ -21,7 +21,6 @@
 #include "api/task_queue/task_queue_base.h"
 #include "api/test/network_emulation/network_emulation_interfaces.h"
 #include "api/test/time_controller.h"
-#include "p2p/base/basic_packet_socket_factory.h"
 #include "rtc_base/checks.h"
 #include "rtc_base/network.h"
 #include "rtc_base/thread_annotations.h"
@@ -69,19 +68,12 @@ EmulatedNetworkManager::EmulatedNetworkManager(
       network_thread_(
           time_controller->CreateThread("net_thread",
                                         absl::WrapUnique(socket_server_))),
-      packet_socket_factory_(socket_server_),
       network_manager_(
           std::make_unique<NetworkManagerImpl>(network_thread_.get(),
                                                endpoints_container)),
       network_manager_ptr_(network_manager_.get()) {}
 
 EmulatedNetworkManager::~EmulatedNetworkManager() = default;
-
-rtc::NetworkManager* EmulatedNetworkManager::network_manager() {
-  RTC_CHECK(network_manager_ != nullptr)
-      << "network_manager() can't be used together with ReleaseNetworkManager.";
-  return network_manager_.get();
-}
 
 absl::Nonnull<std::unique_ptr<rtc::NetworkManager>>
 EmulatedNetworkManager::ReleaseNetworkManager() {

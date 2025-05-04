@@ -16,12 +16,10 @@
 #include <vector>
 
 #include "absl/base/nullability.h"
-#include "api/packet_socket_factory.h"
 #include "api/task_queue/task_queue_base.h"
 #include "api/test/network_emulation/network_emulation_interfaces.h"
 #include "api/test/network_emulation_manager.h"
 #include "api/test/time_controller.h"
-#include "p2p/base/basic_packet_socket_factory.h"
 #include "rtc_base/network.h"
 #include "rtc_base/socket_server.h"
 #include "rtc_base/thread.h"
@@ -42,10 +40,6 @@ class EmulatedNetworkManager : public EmulatedNetworkManagerInterface {
 
   absl::Nonnull<rtc::Thread*> network_thread() override {
     return network_thread_.get();
-  }
-  absl::Nonnull<rtc::NetworkManager*> network_manager() override;
-  absl::Nonnull<rtc::PacketSocketFactory*> packet_socket_factory() override {
-    return &packet_socket_factory_;
   }
   absl::Nonnull<rtc::SocketFactory*> socket_factory() override {
     return socket_server_;
@@ -68,10 +62,7 @@ class EmulatedNetworkManager : public EmulatedNetworkManagerInterface {
   // Socket server is owned by the `network_thread_'
   const absl::Nonnull<rtc::SocketServer*> socket_server_;
 
-  // The `network_thread_` must outlive `packet_socket_factory_`, because they
-  // both refer to the `socket_server_` that is owned by `network_thread_`.
   const absl::Nonnull<std::unique_ptr<rtc::Thread>> network_thread_;
-  rtc::BasicPacketSocketFactory packet_socket_factory_;
   absl::Nullable<std::unique_ptr<NetworkManagerImpl>> network_manager_;
 
   // Keep pointer to the network manager when it is extracted to be injected

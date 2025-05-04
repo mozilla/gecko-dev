@@ -23,7 +23,6 @@
 #include "absl/strings/string_view.h"
 #include "api/array_view.h"
 #include "api/field_trials_view.h"
-#include "api/packet_socket_factory.h"
 #include "api/test/network_emulation/cross_traffic.h"
 #include "api/test/network_emulation/network_emulation_interfaces.h"
 #include "api/test/simulated_network.h"
@@ -134,24 +133,6 @@ class EmulatedNetworkManagerInterface {
   // for WebRTC to properly setup network emulation. Returned thread is owned
   // by EmulatedNetworkManagerInterface implementation.
   virtual absl::Nonnull<rtc::Thread*> network_thread() = 0;
-
-  // Returns network manager that have to be injected into
-  // WebRTC to properly setup network emulation. Returned manager is owned by
-  // EmulatedNetworkManagerInterface implementation.
-  // Deprecated in favor of injecting NetworkManager into PeerConnectionFactory
-  // instead of creating and injecting BasicPortAllocator into PeerConnection.
-  [[deprecated("bugs.webrtc.org/42232556")]]  //
-  virtual absl::Nonnull<rtc::NetworkManager*>
-  network_manager() = 0;
-
-  // Returns packet socket factory that have to be injected
-  // into WebRTC to properly setup network emulation. Returned factory is owned
-  // by EmulatedNetworkManagerInterface implementation.
-  // Deprecated in favor of injecting SocketFactory into PeerConnectionFactory
-  // instead of creating and injecting BasicPortAllocator into PeerConnection.
-  [[deprecated("bugs.webrtc.org/42232556")]]  //
-  virtual absl::Nonnull<rtc::PacketSocketFactory*>
-  packet_socket_factory() = 0;
 
   // Returns objects to pass to PeerConnectionFactoryDependencies.
   virtual absl::Nonnull<rtc::SocketFactory*> socket_factory() = 0;
