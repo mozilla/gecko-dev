@@ -37,6 +37,7 @@
 #include "api/ice_transport_interface.h"
 #include "api/rtc_error.h"
 #include "api/sequence_checker.h"
+#include "api/task_queue/pending_task_safety_flag.h"
 #include "api/transport/enums.h"
 #include "api/transport/stun.h"
 #include "api/units/time_delta.h"
@@ -2245,15 +2246,58 @@ void P2PTransportChannel::SetWritable(bool writable) {
   }
   SignalWritableState(this);
 
-  if (writable_ && selected_connection_ &&
-      !dtls_stun_piggyback_callbacks_.empty()) {
-    // TODO(webrtc:367395350): Construct test that fail w/o this extra ping!
-    // TODO(webrtc:367395350): Move this into DtlsTransport somehow.
-    // Need to STUN ping here to get the last bit of the DTLS handshake across
-    // as quickly as possible. Only done when DTLS-in-STUN is configured
-    // and the data callback has not been reset due to lack of support.
-    SendPingRequestInternal(selected_connection_);
+  if (config_.dtls_handshake_in_stun) {
+    // TODO (jonaso, webrtc:367395350): Switch to upcoming
+    // DTLSv1_set_timeout_duration. Remove once we can get DTLS to handle
+    // retransmission also when handshake is not complete but we become writable
+    // (e.g. by setting a good timeout).
+    SendPeriodicPingUntilDtlsConnected();
   }
+}
+
+// TODO (jonaso, webrtc:367395350): Switch to upcoming
+// DTLSv1_set_timeout_duration. Remove once we can get DTLS to handle
+// retransmission also when handshake is not complete but we become writable
+// (e.g. by setting a good timeout).
+void P2PTransportChannel::SendPeriodicPingUntilDtlsConnected() {
+  RTC_DCHECK_RUN_ON(network_thread_);
+  if (pending_ping_until_dtls_connected_ == true) {
+    // SendPeriodicPingUntilDtlsConnected is called in two places
+    // a) Either by PostTask, in which case pending_ping_until_dtls_connected_
+    // is FALSE b) When Ice get connected, in which it is unknown if
+    // pending_ping_until_dtls_connected_.
+    return;
+  }
+  if (writable_ && config_.dtls_handshake_in_stun &&
+      !dtls_stun_piggyback_callbacks_.empty()) {
+    auto has_data_to_send =
+        dtls_stun_piggyback_callbacks_.send_data(STUN_BINDING_REQUEST);
+    if (!has_data_to_send.first && !has_data_to_send.second) {
+      // No data to send, we're done.
+      return;
+    }
+    // writable_ is TRUE => we must have a selected_connection_ ?
+    RTC_DCHECK(selected_connection_ != nullptr);
+    SendPingRequestInternal(selected_connection_);
+    RTC_LOG(LS_INFO) << ToString() << ": Sending extra ping for DTLS";
+  }
+
+  const auto rtt_ms = GetRttEstimate().value_or(100);
+  const int delay_ms =
+      std::max(kMinDtlsHandshakeTimeoutMs,
+               std::min(kMaxDtlsHandshakeTimeoutMs, 2 * rtt_ms));
+
+  // Set pending before we post task.
+  pending_ping_until_dtls_connected_ = true;
+  network_thread_->PostDelayedHighPrecisionTask(
+      webrtc::SafeTask(safety_flag_.flag(),
+                       [this] {
+                         RTC_DCHECK_RUN_ON(network_thread_);
+                         // Clear pending then the PostTask runs.
+                         pending_ping_until_dtls_connected_ = false;
+                         SendPeriodicPingUntilDtlsConnected();
+                       }),
+      TimeDelta::Millis(delay_ms));
 }
 
 void P2PTransportChannel::SetReceiving(bool receiving) {

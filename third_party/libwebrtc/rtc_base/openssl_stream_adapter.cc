@@ -550,8 +550,14 @@ void OpenSSLStreamAdapter::SetMaxProtocolVersion(SSLProtocolVersion version) {
 }
 
 void OpenSSLStreamAdapter::SetInitialRetransmissionTimeout(int timeout_ms) {
-  RTC_DCHECK(ssl_ctx_ == nullptr);
   dtls_handshake_timeout_ms_ = timeout_ms;
+#ifdef OPENSSL_IS_BORINGSSL
+  if (ssl_ctx_ != nullptr && ssl_mode_ == SSL_MODE_DTLS) {
+    // TODO (jonaso, webrtc:367395350): Switch to upcoming
+    // DTLSv1_set_timeout_duration.
+    DTLSv1_set_initial_timeout_duration(ssl_, dtls_handshake_timeout_ms_);
+  }
+#endif
 }
 
 //

@@ -61,10 +61,6 @@ static const size_t kMinRtpPacketLen = 12;
 // So, temporarily increasing it to 2 to see if that makes a difference.
 static const size_t kMaxPendingPackets = 2;
 
-// Minimum and maximum values for the initial DTLS handshake timeout. We'll pick
-// an initial timeout based on ICE RTT estimates, but clamp it to this range.
-static const int kMinHandshakeTimeoutMs = 50;
-static const int kMaxHandshakeTimeoutMs = 3000;
 // This effectively disables the handshake timeout.
 static const int kDisabledHandshakeTimeoutMs = 3600 * 1000 * 24;
 
@@ -629,30 +625,22 @@ void DtlsTransport::OnWritableState(rtc::PacketTransportInternal* transport) {
     return;
   }
 
-  // The opportunistic attempt to do DTLS piggybacking failed.
-  // Recreate the DTLS session. Note: this assumes we can consider
-  // the previous DTLS session state beyond repair and no packet
-  // reached the peer.
-  if (dtls_stun_piggyback_controller_.enabled() && dtls_ &&
-      !was_ever_connected_ && !IsDtlsPiggybackSupportedByPeer() &&
-      (dtls_state() == webrtc::DtlsTransportState::kConnecting ||
-       dtls_state() == webrtc::DtlsTransportState::kNew)) {
-    RTC_LOG(LS_INFO) << "DTLS piggybacking not supported, restarting...";
-    DisablePiggybackingAndRestart();
-    return;
-  }
-
   switch (dtls_state()) {
     case webrtc::DtlsTransportState::kNew:
       MaybeStartDtls();
       break;
     case webrtc::DtlsTransportState::kConnected:
-      was_ever_connected_ = true;
       // Note: SignalWritableState fired by set_writable.
       set_writable(ice_transport_->writable());
       break;
     case webrtc::DtlsTransportState::kConnecting:
       // Do nothing.
+      if (dtls_stun_piggyback_controller_.enabled() && dtls_) {
+        // If DTLS piggybacking is enabled, we set the timeout
+        // on the DTLS object (which is then different from the
+        // inital kDisabledHandshakeTimeoutMs)
+        ConfigureHandshakeTimeout();
+      }
       break;
     case webrtc::DtlsTransportState::kFailed:
       // Should not happen. Do nothing.
@@ -970,23 +958,23 @@ void DtlsTransport::ConfigureHandshakeTimeout() {
   RTC_DCHECK(dtls_);
   bool uses_dtls_in_stun = dtls_stun_piggyback_controller_.enabled();
   std::optional<int> rtt_ms = ice_transport_->GetRttEstimate();
-  if (uses_dtls_in_stun) {
+  if (rtt_ms) {
+    // Limit the timeout to a reasonable range in case the ICE RTT takes
+    // extreme values.
+    int initial_timeout_ms =
+        std::max(kMinDtlsHandshakeTimeoutMs,
+                 std::min(kMaxDtlsHandshakeTimeoutMs, 2 * (*rtt_ms)));
+    RTC_LOG(LS_INFO) << ToString() << ": configuring DTLS handshake timeout "
+                     << initial_timeout_ms << "ms based on ICE RTT " << *rtt_ms;
+
+    dtls_->SetInitialRetransmissionTimeout(initial_timeout_ms);
+  } else if (uses_dtls_in_stun) {
     // Configure a very high timeout to effectively disable the DTLS timeout
     // and avoid fragmented resends. This is ok since DTLS-in-STUN caches
     // the handshake pacets and resends them using the pacing of ICE.
     RTC_LOG(LS_INFO) << ToString() << ": configuring DTLS handshake timeout "
                      << kDisabledHandshakeTimeoutMs << "ms for DTLS-in-STUN";
     dtls_->SetInitialRetransmissionTimeout(kDisabledHandshakeTimeoutMs);
-  } else if (rtt_ms) {
-    // Limit the timeout to a reasonable range in case the ICE RTT takes
-    // extreme values.
-    int initial_timeout_ms =
-        std::max(kMinHandshakeTimeoutMs,
-                 std::min(kMaxHandshakeTimeoutMs, 2 * (*rtt_ms)));
-    RTC_LOG(LS_INFO) << ToString() << ": configuring DTLS handshake timeout "
-                     << initial_timeout_ms << "ms based on ICE RTT " << *rtt_ms;
-
-    dtls_->SetInitialRetransmissionTimeout(initial_timeout_ms);
   } else {
     RTC_LOG(LS_INFO)
         << ToString()
