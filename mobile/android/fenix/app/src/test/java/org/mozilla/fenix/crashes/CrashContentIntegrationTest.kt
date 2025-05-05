@@ -54,7 +54,7 @@ class CrashContentIntegrationTest {
         )
         appStore = AppStore()
         settings = mockk {
-            every { getBottomToolbarHeight(any()) } returns 100
+            every { getBottomToolbarHeight() } returns 100
             every { getTopToolbarHeight(any()) } returns 100
         }
     }

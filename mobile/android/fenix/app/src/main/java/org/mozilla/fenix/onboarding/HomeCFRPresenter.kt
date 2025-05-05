@@ -104,10 +104,6 @@ class HomeCFRPresenter(
         var result: Result = Result.None
         val count = recyclerView.adapter?.itemCount ?: return result
 
-        if (context.settings().navigationToolbarEnabled && context.settings().shouldShowNavigationBarCFR) {
-            return result
-        }
-
         for (index in count downTo 0) {
             val viewHolder = recyclerView.findViewHolderForAdapterPosition(index)
 

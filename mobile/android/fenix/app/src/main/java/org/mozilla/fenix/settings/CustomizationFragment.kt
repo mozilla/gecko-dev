@@ -64,20 +64,10 @@ class CustomizationFragment : PreferenceFragmentCompat() {
         } else {
             setupToolbarCategory()
         }
-        val isNavBarEnabled = requireContext().settings().navigationToolbarEnabled
-        if (isNavBarEnabled) {
-            setupNavBarEnabledSettingsUpdates()
-        }
+
         // if tab strip is enabled, swipe toolbar to switch tabs should not be enabled so the
         // preference is not shown
         setupGesturesCategory(isSwipeToolbarToSwitchTabsVisible = !tabletAndTabStripEnabled)
-    }
-
-    // Changes to some settings page copy for when the Toolbar(NavBar) is enabled
-    private fun setupNavBarEnabledSettingsUpdates() {
-        val scrollToEnable: SwitchPreference =
-            requirePreference(R.string.pref_key_dynamic_toolbar)
-        scrollToEnable.setTitle(R.string.preference_gestures_dynamic_toolbar_2)
     }
 
     private fun setupRadioGroups() {

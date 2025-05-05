@@ -46,7 +46,6 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.mozilla.fenix.GleanMetrics.Events
-import org.mozilla.fenix.GleanMetrics.NavigationBar
 import org.mozilla.fenix.GleanMetrics.ReaderMode
 import org.mozilla.fenix.GleanMetrics.Translations
 import org.mozilla.fenix.HomeActivity
@@ -419,8 +418,7 @@ class DefaultBrowserToolbarControllerTest {
     }
 
     @Test
-    fun `WHEN new tab button is clicked and navigation bar is enabled THEN navigate to homepage`() {
-        every { activity.settings().navigationToolbarEnabled } returns true
+    fun `WHEN new tab button is clicked THEN navigate to homepage`() {
         val controller = createController()
         controller.handleNewTabButtonClick()
 
@@ -430,10 +428,12 @@ class DefaultBrowserToolbarControllerTest {
             )
         }
 
-        assertNotNull(NavigationBar.browserNewTabTapped.testGetValue())
-        val recordedEvents = NavigationBar.browserNewTabTapped.testGetValue()!!
+        assertNotNull(Events.browserToolbarAction.testGetValue())
+        val recordedEvents = Events.browserToolbarAction.testGetValue()!!
+        val eventExtra = recordedEvents.single().extra
         assertEquals(1, recordedEvents.size)
-        assertEquals(null, recordedEvents.single().extra)
+        assertNotNull(eventExtra)
+        assertEquals(eventExtra?.get("item"), "new_tab")
     }
 
     @Test
@@ -455,15 +455,16 @@ class DefaultBrowserToolbarControllerTest {
     }
 
     @Test
-    fun `WHEN new tab button is long clicked and navigation toolbar enabled THEN record the navigation bar telemetry event`() {
-        every { activity.settings().navigationToolbarEnabled } returns true
+    fun `WHEN new tab button is long clicked THEN record the navigation bar telemetry event`() {
         val controller = createController()
         controller.handleNewTabButtonLongClick()
 
-        assertNotNull(NavigationBar.browserNewTabLongTapped.testGetValue())
-        val recordedEvents = NavigationBar.browserNewTabLongTapped.testGetValue()!!
+        assertNotNull(Events.browserToolbarAction.testGetValue())
+        val recordedEvents = Events.browserToolbarAction.testGetValue()!!
+        val eventExtra = recordedEvents.single().extra
         assertEquals(1, recordedEvents.size)
-        assertEquals(null, recordedEvents.single().extra)
+        assertNotNull(eventExtra)
+        assertEquals(eventExtra?.get("item"), "new_tab_long_press")
     }
 
     @Test

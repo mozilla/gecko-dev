@@ -34,8 +34,6 @@ class DeepLinkTest : TestSetup() {
         AndroidComposeTestRule(
             HomeActivityIntentTestRule(
                 isHomeOnboardingDialogEnabled = false,
-                isNavigationBarCFREnabled = false,
-                isNavigationToolbarEnabled = false,
                 isMenuRedesignEnabled = false,
                 isMenuRedesignCFREnabled = false,
             ),
