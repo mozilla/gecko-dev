@@ -12,7 +12,7 @@ ChromeUtils.defineESModuleGetters(lazy, {
   PageLoadStrategy:
     "chrome://remote/content/shared/webdriver/Capabilities.sys.mjs",
   ProgressListener: "chrome://remote/content/shared/Navigate.sys.mjs",
-  TimedPromise: "chrome://remote/content/marionette/sync.sys.mjs",
+  TimedPromise: "chrome://remote/content/shared/Sync.sys.mjs",
   truncate: "chrome://remote/content/shared/Format.sys.mjs",
 });
 

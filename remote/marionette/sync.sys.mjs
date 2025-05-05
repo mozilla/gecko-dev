@@ -2,8 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-import { AppConstants } from "resource://gre/modules/AppConstants.sys.mjs";
-
 const lazy = {};
 
 ChromeUtils.defineESModuleGetters(lazy, {
@@ -16,8 +14,6 @@ ChromeUtils.defineLazyGetter(lazy, "logger", () =>
 );
 
 const { TYPE_ONE_SHOT, TYPE_REPEATING_SLACK } = Ci.nsITimer;
-
-const PROMISE_TIMEOUT = AppConstants.DEBUG ? 4500 : 1500;
 
 /**
  * Runs a Promise-like function off the main thread until it is resolved
@@ -123,93 +119,6 @@ export function PollPromise(func, { timeout = null, interval = 10 } = {}) {
     evalFn();
 
     timer.init(evalFn, interval, TYPE_REPEATING_SLACK);
-  }).then(
-    res => {
-      timer.cancel();
-      return res;
-    },
-    err => {
-      timer.cancel();
-      throw err;
-    }
-  );
-}
-
-/**
- * Represents the timed, eventual completion (or failure) of an
- * asynchronous operation, and its resulting value.
- *
- * In contrast to a regular Promise, it times out after ``timeout``.
- *
- * @param {Function} fn
- *     Function to run, which will have its ``reject``
- *     callback invoked after the ``timeout`` duration is reached.
- *     It is given two callbacks: ``resolve(value)`` and
- *     ``reject(error)``.
- * @param {object=} options
- * @param {string} options.errorMessage
- *     Message to use for the thrown error.
- * @param {number=} options.timeout
- *     ``condition``'s ``reject`` callback will be called
- *     after this timeout, given in milliseconds.
- *     By default 1500 ms in an optimised build and 4500 ms in
- *     debug builds.
- * @param {Error=} options.throws
- *     When the ``timeout`` is hit, this error class will be
- *     thrown.  If it is null, no error is thrown and the promise is
- *     instead resolved on timeout with a TimeoutError.
- *
- * @returns {Promise.<*>}
- *     Timed promise.
- *
- * @throws {TypeError}
- *     If `timeout` is not a number.
- * @throws {RangeError}
- *     If `timeout` is not an unsigned integer.
- */
-export function TimedPromise(fn, options = {}) {
-  const {
-    errorMessage = "TimedPromise timed out",
-    timeout = PROMISE_TIMEOUT,
-    throws = lazy.error.TimeoutError,
-  } = options;
-
-  const timer = Cc["@mozilla.org/timer;1"].createInstance(Ci.nsITimer);
-
-  if (typeof fn != "function") {
-    throw new TypeError();
-  }
-  if (typeof timeout != "number") {
-    throw new TypeError();
-  }
-  if (!Number.isInteger(timeout) || timeout < 0) {
-    throw new RangeError();
-  }
-
-  return new Promise((resolve, reject) => {
-    let trace;
-
-    // Reject only if |throws| is given.  Otherwise it is assumed that
-    // the user is OK with the promise timing out.
-    let bail = () => {
-      const message = `${errorMessage} after ${timeout} ms`;
-      if (throws !== null) {
-        let err = new throws(message);
-        reject(err);
-      } else {
-        lazy.logger.warn(message, trace);
-        resolve();
-      }
-    };
-
-    trace = lazy.error.stack();
-    timer.initWithCallback({ notify: bail }, timeout, TYPE_ONE_SHOT);
-
-    try {
-      fn(resolve, reject);
-    } catch (e) {
-      reject(e);
-    }
   }).then(
     res => {
       timer.cancel();

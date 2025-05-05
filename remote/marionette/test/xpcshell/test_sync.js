@@ -6,7 +6,6 @@ const {
   DebounceCallback,
   PollPromise,
   Sleep,
-  TimedPromise,
   waitForMessage,
   waitForObserverTopic,
 } = ChromeUtils.importESModule(
@@ -167,57 +166,6 @@ add_task(async function test_PollPromise_interval() {
     { timeout: 100, interval: 100 }
   );
   equal(2, nevals);
-});
-
-add_task(function test_TimedPromise_funcTypes() {
-  for (let type of ["foo", 42, null, undefined, true, [], {}]) {
-    Assert.throws(() => new TimedPromise(type), /TypeError/);
-  }
-  new TimedPromise(resolve => resolve());
-  new TimedPromise(function (resolve) {
-    resolve();
-  });
-});
-
-add_task(function test_TimedPromise_timeoutTypes() {
-  for (let timeout of ["foo", null, true, [], {}]) {
-    Assert.throws(
-      () => new TimedPromise(resolve => resolve(), { timeout }),
-      /TypeError/
-    );
-  }
-  for (let timeout of [1.2, -1]) {
-    Assert.throws(
-      () => new TimedPromise(resolve => resolve(), { timeout }),
-      /RangeError/
-    );
-  }
-  new TimedPromise(resolve => resolve(), { timeout: 42 });
-});
-
-add_task(async function test_TimedPromise_errorMessage() {
-  try {
-    await new TimedPromise(() => {}, { timeout: 0 });
-    ok(false, "Expected Timeout error not raised");
-  } catch (e) {
-    ok(
-      e.message.includes("TimedPromise timed out after"),
-      "Expected default error message found"
-    );
-  }
-
-  try {
-    await new TimedPromise(() => {}, {
-      errorMessage: "Not found",
-      timeout: 0,
-    });
-    ok(false, "Expected Timeout error not raised");
-  } catch (e) {
-    ok(
-      e.message.includes("Not found after"),
-      "Expected custom error message found"
-    );
-  }
 });
 
 add_task(async function test_Sleep() {

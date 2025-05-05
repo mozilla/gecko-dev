@@ -46,7 +46,7 @@ what you need:
 
 ```javascript
 const { TimedPromise } = ChromeUtils.importESModule(
-  "chrome://remote/content/marionette/sync.sys.mjs"
+  "chrome://remote/content/shared/Sync.sys.mjs"
 );
 ```
 

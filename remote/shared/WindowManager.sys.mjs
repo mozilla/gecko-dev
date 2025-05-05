@@ -15,7 +15,7 @@ ChromeUtils.defineESModuleGetters(lazy, {
   generateUUID: "chrome://remote/content/shared/UUID.sys.mjs",
   Log: "chrome://remote/content/shared/Log.sys.mjs",
   TabManager: "chrome://remote/content/shared/TabManager.sys.mjs",
-  TimedPromise: "chrome://remote/content/marionette/sync.sys.mjs",
+  TimedPromise: "chrome://remote/content/shared/Sync.sys.mjs",
   UserContextManager:
     "chrome://remote/content/shared/UserContextManager.sys.mjs",
   waitForObserverTopic: "chrome://remote/content/marionette/sync.sys.mjs",

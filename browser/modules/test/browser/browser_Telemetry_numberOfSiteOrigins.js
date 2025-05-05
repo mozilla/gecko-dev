@@ -18,10 +18,6 @@ const gTestRoot = getRootDirectory(gTestPath).replace(
   "http://mochi.test:8888"
 );
 
-const { TimedPromise } = ChromeUtils.importESModule(
-  "chrome://remote/content/marionette/sync.sys.mjs"
-);
-
 async function run_test(count) {
   const histogram = TelemetryTestUtils.getAndClearHistogram(
     "FX_NUMBER_OF_UNIQUE_SITE_ORIGINS_ALL_TABS"

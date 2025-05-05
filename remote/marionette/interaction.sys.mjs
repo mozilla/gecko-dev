@@ -15,7 +15,7 @@ ChromeUtils.defineESModuleGetters(lazy, {
   event: "chrome://remote/content/shared/webdriver/Event.sys.mjs",
   Log: "chrome://remote/content/shared/Log.sys.mjs",
   pprint: "chrome://remote/content/shared/Format.sys.mjs",
-  TimedPromise: "chrome://remote/content/marionette/sync.sys.mjs",
+  TimedPromise: "chrome://remote/content/shared/Sync.sys.mjs",
 });
 
 ChromeUtils.defineLazyGetter(lazy, "logger", () =>

@@ -6,8 +6,13 @@ const { setTimeout } = ChromeUtils.importESModule(
   "resource://gre/modules/Timer.sys.mjs"
 );
 
-const { AnimationFramePromise, Deferred, EventPromise, PollPromise } =
-  ChromeUtils.importESModule("chrome://remote/content/shared/Sync.sys.mjs");
+const {
+  AnimationFramePromise,
+  Deferred,
+  EventPromise,
+  PollPromise,
+  TimedPromise,
+} = ChromeUtils.importESModule("chrome://remote/content/shared/Sync.sys.mjs");
 
 const { Log } = ChromeUtils.importESModule(
   "resource://gre/modules/Log.sys.mjs"
@@ -452,4 +457,55 @@ add_task(async function test_PollPromise_resolve() {
   Assert.equal(appender.messages.length, 1);
   Assert.equal(appender.messages[0].level, Log.Level.Warn);
   Assert.equal(appender.messages[0].message, "PollingFailed after 100 ms");
+});
+
+add_task(function test_TimedPromise_funcTypes() {
+  for (let type of ["foo", 42, null, undefined, true, [], {}]) {
+    Assert.throws(() => new TimedPromise(type), /TypeError/);
+  }
+  new TimedPromise(resolve => resolve());
+  new TimedPromise(function (resolve) {
+    resolve();
+  });
+});
+
+add_task(function test_TimedPromise_timeoutTypes() {
+  for (let timeout of ["foo", null, true, [], {}]) {
+    Assert.throws(
+      () => new TimedPromise(resolve => resolve(), { timeout }),
+      /TypeError/
+    );
+  }
+  for (let timeout of [1.2, -1]) {
+    Assert.throws(
+      () => new TimedPromise(resolve => resolve(), { timeout }),
+      /RangeError/
+    );
+  }
+  new TimedPromise(resolve => resolve(), { timeout: 42 });
+});
+
+add_task(async function test_TimedPromise_errorMessage() {
+  try {
+    await new TimedPromise(() => {}, { timeout: 0 });
+    ok(false, "Expected Timeout error not raised");
+  } catch (e) {
+    ok(
+      e.message.includes("TimedPromise timed out after"),
+      "Expected default error message found"
+    );
+  }
+
+  try {
+    await new TimedPromise(() => {}, {
+      errorMessage: "Not found",
+      timeout: 0,
+    });
+    ok(false, "Expected Timeout error not raised");
+  } catch (e) {
+    ok(
+      e.message.includes("Not found after"),
+      "Expected custom error message found"
+    );
+  }
 });
