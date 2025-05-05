@@ -330,9 +330,10 @@ class Settings(private val appContext: Context) : PreferencesHolder {
         default = false,
     )
 
-    var privateBrowsingLockedEnabled by booleanPreference(
+    var privateBrowsingLockedEnabled by lazyFeatureFlagPreference(
         appContext.getPreferenceKey(R.string.pref_key_private_browsing_locked_enabled),
-        default = false,
+        featureFlag = FeatureFlags.privateBrowsingLock,
+        default = { false },
     )
 
     var isPrivateScreenLocked by booleanPreference(
