@@ -120,9 +120,8 @@ class IdentityCredential final : public Credential {
 
   static RefPtr<GetIPCIdentityCredentialPromise> GetCredentialInMainProcess(
       nsIPrincipal* aPrincipal, CanonicalBrowsingContext* aBrowsingContext,
-      IdentityCredentialRequestOptions&& aOptions,
-      const CredentialMediationRequirement& aMediationRequirement,
-      bool aHasUserActivation);
+      const IdentityCredentialRequestOptions& aOptions,
+      const CredentialMediationRequirement& aMediationRequirement);
 
   static nsresult CanSilentlyCollect(nsIPrincipal* aPrincipal,
                                      nsIPrincipal* aIDPPrincipal,
