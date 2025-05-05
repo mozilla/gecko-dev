@@ -10,6 +10,10 @@ function clickHandler() {
 document.getElementById("click-target").onclick = clickTargetClicked;
 function clickTargetClicked() {
   console.log("clicked");
+  requestAF(function rafCallback() {});
+}
+function requestAF(cb) {
+  requestAnimationFrame(cb);
 }
 
 document.getElementById("xhr-button").onmousedown = xhrHandler;

@@ -27,12 +27,12 @@ function getThrownMessage(completion) {
 }
 module.exports.getThrownMessage = getThrownMessage;
 
-function logEvent({ threadActor, frame, level, expression, bindings }) {
-  const { sourceActor, line, column } =
-    threadActor.sourcesManager.getFrameLocation(frame);
+function evalAndLogEvent({ threadActor, frame, level, expression, bindings }) {
+  const frameLocation = threadActor.sourcesManager.getFrameLocation(frame);
+  const { sourceActor, line } = frameLocation;
   const displayName = formatDisplayName(frame);
 
-  // TODO remove this branch when (#1592584) lands (#1609540)
+  // TODO remove this branch when (#1749668) lands (#1609540)
   if (isWorker) {
     threadActor.targetActor._consoleActor.evaluateJS({
       text: `console.log(...${expression})`,
@@ -78,12 +78,55 @@ function logEvent({ threadActor, frame, level, expression, bindings }) {
 
   ChromeUtils.addProfilerMarker("Debugger log point", undefined, value);
 
+  emitConsoleMessage(threadActor, frameLocation, value, level);
+
+  return undefined;
+}
+
+function logEvent({ threadActor, frame }) {
+  const frameLocation = threadActor.sourcesManager.getFrameLocation(frame);
+  const { sourceActor, line } = frameLocation;
+
+  // TODO remove this branch when (#1749668) lands (#1609540)
+  if (isWorker) {
+    const bindings = {};
+    for (let i = 0; i < frame.arguments.length; i++) {
+      bindings[`x${i}`] = frame.arguments[i];
+    }
+    threadActor.targetActor._consoleActor.evaluateJS({
+      text: `console.log(${Object.keys(bindings).join(",")})`,
+      bindings,
+      url: sourceActor.url,
+      lineNumber: line,
+      disableBreaks: true,
+    });
+
+    return undefined;
+  }
+
+  const args = [];
+  for (const arg of frame.arguments) {
+    args.push(
+      arg && typeof arg.unsafeDereference === "function"
+        ? arg.unsafeDereference()
+        : arg
+    );
+  }
+
+  emitConsoleMessage(threadActor, frameLocation, args, "logPoint");
+
+  return undefined;
+}
+
+function emitConsoleMessage(threadActor, frameLocation, args, level) {
   const targetActor = threadActor.targetActor;
+  const { sourceActor, line, column } = frameLocation;
+
   const message = {
     filename: sourceActor.url,
     lineNumber: line,
     columnNumber: column,
-    arguments: value,
+    arguments: args,
     level,
     timeStamp: ChromeUtils.dateNow(),
     chromeContext:
@@ -107,8 +150,7 @@ function logEvent({ threadActor, frame, level, expression, bindings }) {
     // from the WebConsoleActor, and only support the ConsoleMessageWatcher codepath.
     targetActor._consoleActor.onConsoleAPICall(message);
   }
-
-  return undefined;
 }
 
+module.exports.evalAndLogEvent = evalAndLogEvent;
 module.exports.logEvent = logEvent;

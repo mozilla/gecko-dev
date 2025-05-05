@@ -60,7 +60,7 @@ async function invokeAndAssertBreakpoints(dbg) {
   await assertPausedAtSourceAndLine(
     dbg,
     findSource(dbg, "event-breakpoints.js").id,
-    20
+    24
   );
   await resume(dbg);
 }
