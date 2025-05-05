@@ -542,6 +542,48 @@ tabgroup:
     no_lint:
       - COMMON_PREFIX
 
+  smart_tab:
+    type: event
+    description: >
+      Recorded when any pref cause smart tabs to be enabled / disabled
+    notification_emails:
+      - rrando@mozilla.com
+      - vbaungally@mozilla.com
+    bugs:
+      - https://bugzil.la/1962228
+    data_reviews:
+      - https://bugzil.la/1962228
+    data_sensitivity:
+      - interaction
+    extra_keys:
+      enabled:
+        description: whether the preference was enabled or disabled in any way
+        type: boolean
+    expires: never
+    no_lint:
+      - COMMON_PREFIX
+
+  smart_tab_enabled:
+    # metrics
+    type: boolean
+    lifetime: application
+    description: >
+      Records if the user has smart tab groups enabled
+    notification_emails:
+      - rrando@mozilla.com
+      - vbaungally@mozilla.com
+    bugs:
+      - https://bugzil.la/1962228
+    data_reviews:
+      - https://bugzil.la/1962228
+    data_sensitivity:
+      - interaction
+    expires: never
+    send_in_pings:
+      - metrics
+    no_lint:
+      - COMMON_PREFIX
+
 browser.tabswitch:
   update:
     type: timing_distribution
