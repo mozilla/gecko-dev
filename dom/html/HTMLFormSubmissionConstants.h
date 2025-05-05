@@ -14,23 +14,23 @@
 #define NS_FORM_ENCTYPE_MULTIPART 1
 #define NS_FORM_ENCTYPE_TEXTPLAIN 2
 
-static const nsAttrValue::EnumTable kFormMethodTable[] = {
+static constexpr nsAttrValue::EnumTableEntry kFormMethodTable[] = {
     {"get", NS_FORM_METHOD_GET},
     {"post", NS_FORM_METHOD_POST},
-    {"dialog", NS_FORM_METHOD_DIALOG},
-    {nullptr, 0}};
+    {"dialog", NS_FORM_METHOD_DIALOG}};
 
 // Default method is 'get'.
-static const nsAttrValue::EnumTable* kFormDefaultMethod = &kFormMethodTable[0];
+static constexpr const nsAttrValue::EnumTableEntry* kFormDefaultMethod =
+    &kFormMethodTable[0];
 
-static const nsAttrValue::EnumTable kFormEnctypeTable[] = {
+static constexpr nsAttrValue::EnumTableEntry kFormEnctypeTable[] = {
     {"multipart/form-data", NS_FORM_ENCTYPE_MULTIPART},
     {"application/x-www-form-urlencoded", NS_FORM_ENCTYPE_URLENCODED},
     {"text/plain", NS_FORM_ENCTYPE_TEXTPLAIN},
-    {nullptr, 0}};
+};
 
 // Default method is 'application/x-www-form-urlencoded'.
-static const nsAttrValue::EnumTable* kFormDefaultEnctype =
+static constexpr const nsAttrValue::EnumTableEntry* kFormDefaultEnctype =
     &kFormEnctypeTable[1];
 
 #endif  // mozilla_dom_HTMLFormSubmissionConstants_h

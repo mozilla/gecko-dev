@@ -91,15 +91,6 @@ static void PrintReqURL(imgIRequest* req) {
 }
 #endif /* DEBUG_chb */
 
-const nsAttrValue::EnumTable nsImageLoadingContent::kDecodingTable[] = {
-    {"auto", nsImageLoadingContent::ImageDecodingType::Auto},
-    {"async", nsImageLoadingContent::ImageDecodingType::Async},
-    {"sync", nsImageLoadingContent::ImageDecodingType::Sync},
-    {nullptr, 0}};
-
-const nsAttrValue::EnumTable* nsImageLoadingContent::kDecodingTableDefault =
-    &nsImageLoadingContent::kDecodingTable[0];
-
 nsImageLoadingContent::nsImageLoadingContent()
     : mObserverList(nullptr),
       mOutstandingDecodePromises(0),

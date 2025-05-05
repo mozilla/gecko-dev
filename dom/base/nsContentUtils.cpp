@@ -572,62 +572,66 @@ enum AutocompleteCategory {
 #undef AUTOCOMPLETE_CATEGORY
 };
 
-static const nsAttrValue::EnumTable kAutocompleteUnsupportedFieldNameTable[] = {
+static constexpr nsAttrValue::EnumTableEntry
+    kAutocompleteUnsupportedFieldNameTable[]{
 #define AUTOCOMPLETE_UNSUPPORTED_FIELD_NAME(name_, value_) \
   {value_, eAutocompleteUnsupportedFieldName_##name_},
 #include "AutocompleteFieldList.h"
 #undef AUTOCOMPLETE_UNSUPPORTED_FIELD_NAME
-    {nullptr, 0}};
+    };
 
-static const nsAttrValue::EnumTable kAutocompleteNoPersistFieldNameTable[] = {
+static constexpr nsAttrValue::EnumTableEntry
+    kAutocompleteNoPersistFieldNameTable[] = {
 #define AUTOCOMPLETE_NO_PERSIST_FIELD_NAME(name_, value_) \
   {value_, eAutocompleteNoPersistFieldName_##name_},
 #include "AutocompleteFieldList.h"
 #undef AUTOCOMPLETE_NO_PERSIST_FIELD_NAME
-    {nullptr, 0}};
-
-static const nsAttrValue::EnumTable
+};
+static constexpr nsAttrValue::EnumTableEntry
     kAutocompleteUnsupportedContactFieldHintTable[] = {
 #define AUTOCOMPLETE_UNSUPPORTED_FIELD_CONTACT_HINT(name_, value_) \
   {value_, eAutocompleteUnsupportedFieldContactHint_##name_},
 #include "AutocompleteFieldList.h"
 #undef AUTOCOMPLETE_UNSUPPORTED_FIELD_CONTACT_HINT
-        {nullptr, 0}};
+};
 
-static const nsAttrValue::EnumTable kAutocompleteFieldNameTable[] = {
+static constexpr nsAttrValue::EnumTableEntry kAutocompleteFieldNameTable[] = {
 #define AUTOCOMPLETE_FIELD_NAME(name_, value_) \
   {value_, eAutocompleteFieldName_##name_},
 #include "AutocompleteFieldList.h"
 #undef AUTOCOMPLETE_FIELD_NAME
-    {nullptr, 0}};
+};
 
-static const nsAttrValue::EnumTable kAutocompleteContactFieldNameTable[] = {
+static constexpr nsAttrValue::EnumTableEntry
+    kAutocompleteContactFieldNameTable[] = {
 #define AUTOCOMPLETE_CONTACT_FIELD_NAME(name_, value_) \
   {value_, eAutocompleteFieldName_##name_},
 #include "AutocompleteFieldList.h"
 #undef AUTOCOMPLETE_CONTACT_FIELD_NAME
-    {nullptr, 0}};
+};
 
-static const nsAttrValue::EnumTable kAutocompleteFieldHintTable[] = {
+static constexpr nsAttrValue::EnumTableEntry kAutocompleteFieldHintTable[] = {
 #define AUTOCOMPLETE_FIELD_HINT(name_, value_) \
   {value_, eAutocompleteFieldHint_##name_},
 #include "AutocompleteFieldList.h"
 #undef AUTOCOMPLETE_FIELD_HINT
-    {nullptr, 0}};
+};
 
-static const nsAttrValue::EnumTable kAutocompleteContactFieldHintTable[] = {
+static constexpr nsAttrValue::EnumTableEntry
+    kAutocompleteContactFieldHintTable[] = {
 #define AUTOCOMPLETE_FIELD_CONTACT_HINT(name_, value_) \
   {value_, eAutocompleteFieldContactHint_##name_},
 #include "AutocompleteFieldList.h"
 #undef AUTOCOMPLETE_FIELD_CONTACT_HINT
-    {nullptr, 0}};
+};
 
-static const nsAttrValue::EnumTable kAutocompleteCredentialTypeTable[] = {
+static constexpr nsAttrValue::EnumTableEntry
+    kAutocompleteCredentialTypeTable[] = {
 #define AUTOCOMPLETE_CREDENTIAL_TYPE(name_, value_) \
   {value_, eAutocompleteCredentialType_##name_},
 #include "AutocompleteFieldList.h"
 #undef AUTOCOMPLETE_CREDENTIAL_TYPE
-    {nullptr, 0}};
+};
 
 namespace {
 

@@ -239,7 +239,7 @@ void MiscContainer::Evict() {
   }
 }
 
-nsTArray<const nsAttrValue::EnumTable*>* nsAttrValue::sEnumTableArray = nullptr;
+nsTArray<nsAttrValue::EnumTableSpan>* nsAttrValue::sEnumTableArray = nullptr;
 
 nsAttrValue::nsAttrValue() : mBits(0) {}
 
@@ -262,7 +262,7 @@ nsAttrValue::~nsAttrValue() { ResetIfSet(); }
 /* static */
 void nsAttrValue::Init() {
   MOZ_ASSERT(!sEnumTableArray, "nsAttrValue already initialized");
-  sEnumTableArray = new nsTArray<const EnumTable*>;
+  sEnumTableArray = new nsTArray<EnumTableSpan>;
 }
 
 /* static */
@@ -791,19 +791,17 @@ void nsAttrValue::GetEnumString(nsAString& aResult, bool aRealTag) const {
                              ? static_cast<uint32_t>(GetIntInternal())
                              : GetMiscContainer()->mValue.mEnumValue;
   int16_t val = allEnumBits >> NS_ATTRVALUE_ENUMTABLEINDEX_BITS;
-  const EnumTable* table = sEnumTableArray->ElementAt(
+  EnumTableSpan table = sEnumTableArray->ElementAt(
       allEnumBits & NS_ATTRVALUE_ENUMTABLEINDEX_MASK);
-
-  while (table->tag) {
-    if (table->value == val) {
-      aResult.AssignASCII(table->tag);
+  for (const auto& entry : table) {
+    if (entry.value == val) {
+      aResult.AssignASCII(entry.tag);
       if (!aRealTag &&
           allEnumBits & NS_ATTRVALUE_ENUMTABLE_VALUE_NEEDS_TO_UPPER) {
         nsContentUtils::ASCIIToUpper(aResult);
       }
       return;
     }
-    table++;
   }
 
   MOZ_ASSERT_UNREACHABLE("couldn't find value in EnumTable");
@@ -1528,8 +1526,19 @@ mozilla::StringBuffer* nsAttrValue::GetStoredStringBuffer() const {
   return nullptr;
 }
 
-int16_t nsAttrValue::GetEnumTableIndex(const EnumTable* aTable) {
-  int16_t index = sEnumTableArray->IndexOf(aTable);
+/**
+ * Compares two `EnumTableItem` spans by comparing their data pointer.
+ */
+struct EnumTablesHaveEqualContent {
+  bool Equals(const nsAttrValue::EnumTableSpan& aSpan1,
+              const nsAttrValue::EnumTableSpan& aSpan2) const {
+    return aSpan1.Elements() == aSpan2.Elements();
+  }
+};
+
+int16_t nsAttrValue::GetEnumTableIndex(EnumTableSpan aTable) {
+  int16_t index =
+      sEnumTableArray->IndexOf(aTable, 0, EnumTablesHaveEqualContent());
   if (index < 0) {
     index = sEnumTableArray->Length();
     NS_ASSERTION(index <= NS_ATTRVALUE_ENUMTABLEINDEX_MAXVALUE,
@@ -1540,47 +1549,43 @@ int16_t nsAttrValue::GetEnumTableIndex(const EnumTable* aTable) {
   return index;
 }
 
-int32_t nsAttrValue::EnumTableEntryToValue(const EnumTable* aEnumTable,
-                                           const EnumTable* aTableEntry) {
+int32_t nsAttrValue::EnumTableEntryToValue(EnumTableSpan aEnumTable,
+                                           const EnumTableEntry& aTableEntry) {
   int16_t index = GetEnumTableIndex(aEnumTable);
   int32_t value =
-      (aTableEntry->value << NS_ATTRVALUE_ENUMTABLEINDEX_BITS) + index;
+      (aTableEntry.value << NS_ATTRVALUE_ENUMTABLEINDEX_BITS) + index;
   return value;
 }
 
 bool nsAttrValue::ParseEnumValue(const nsAString& aValue,
-                                 const EnumTable* aTable, bool aCaseSensitive,
-                                 const EnumTable* aDefaultValue) {
+                                 EnumTableSpan aTable,
+                                 bool aCaseSensitive,
+                                 const EnumTableEntry* aDefaultValue) {
   ResetIfSet();
-  const EnumTable* tableEntry = aTable;
-
-  while (tableEntry->tag) {
-    if (aCaseSensitive ? aValue.EqualsASCII(tableEntry->tag)
-                       : aValue.LowerCaseEqualsASCII(tableEntry->tag)) {
+  for (const auto& tableEntry : aTable) {
+    if (aCaseSensitive ? aValue.EqualsASCII(tableEntry.tag)
+                       : aValue.LowerCaseEqualsASCII(tableEntry.tag)) {
       int32_t value = EnumTableEntryToValue(aTable, tableEntry);
 
-      bool equals = aCaseSensitive || aValue.EqualsASCII(tableEntry->tag);
+      bool equals = aCaseSensitive || aValue.EqualsASCII(tableEntry.tag);
       if (!equals) {
         nsAutoString tag;
-        tag.AssignASCII(tableEntry->tag);
+        tag.AssignASCII(tableEntry.tag);
         nsContentUtils::ASCIIToUpper(tag);
         if ((equals = tag.Equals(aValue))) {
           value |= NS_ATTRVALUE_ENUMTABLE_VALUE_NEEDS_TO_UPPER;
         }
       }
       SetIntValueAndType(value, eEnum, equals ? nullptr : &aValue);
-      NS_ASSERTION(GetEnumValue() == tableEntry->value,
+      NS_ASSERTION(GetEnumValue() == tableEntry.value,
                    "failed to store enum properly");
 
       return true;
     }
-    tableEntry++;
   }
 
   if (aDefaultValue) {
-    MOZ_ASSERT(aTable <= aDefaultValue && aDefaultValue < tableEntry,
-               "aDefaultValue not inside aTable?");
-    SetIntValueAndType(EnumTableEntryToValue(aTable, aDefaultValue), eEnum,
+    SetIntValueAndType(EnumTableEntryToValue(aTable, *aDefaultValue), eEnum,
                        &aValue);
     return true;
   }

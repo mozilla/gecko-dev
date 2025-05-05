@@ -151,7 +151,7 @@ namespace mozilla::dom {
 static int32_t gSelectTextFieldOnFocus;
 UploadLastDir* HTMLInputElement::gUploadLastDir;
 
-static const nsAttrValue::EnumTable kInputTypeTable[] = {
+static constexpr nsAttrValue::EnumTableEntry kInputTypeTable[] = {
     {"button", FormControlType::InputButton},
     {"checkbox", FormControlType::InputCheckbox},
     {"color", FormControlType::InputColor},
@@ -176,19 +176,20 @@ static const nsAttrValue::EnumTable kInputTypeTable[] = {
     // "text" must be last for ParseAttribute to work right.  If you add things
     // before it, please update kInputDefaultType.
     {"text", FormControlType::InputText},
-    {nullptr, 0}};
+};
 
 // Default type is 'text'.
-static const nsAttrValue::EnumTable* kInputDefaultType =
-    &kInputTypeTable[std::size(kInputTypeTable) - 2];
+static constexpr const nsAttrValue::EnumTableEntry* kInputDefaultType =
+    &kInputTypeTable[std::size(kInputTypeTable) - 1];
 
-static const nsAttrValue::EnumTable kCaptureTable[] = {
+static constexpr nsAttrValue::EnumTableEntry kCaptureTable[] = {
     {"user", nsIFilePicker::captureUser},
     {"environment", nsIFilePicker::captureEnv},
     {"", nsIFilePicker::captureDefault},
-    {nullptr, nsIFilePicker::captureNone}};
+};
 
-static const nsAttrValue::EnumTable* kCaptureDefault = &kCaptureTable[2];
+static constexpr const nsAttrValue::EnumTableEntry* kCaptureDefault =
+    &kCaptureTable[2];
 
 using namespace blink;
 
@@ -5444,18 +5445,14 @@ bool HTMLInputElement::ParseAttribute(int32_t aNamespaceID, nsAtom* aAttribute,
                                       const nsAString& aValue,
                                       nsIPrincipal* aMaybeScriptedPrincipal,
                                       nsAttrValue& aResult) {
-  // We can't make these static_asserts because kInputDefaultType and
-  // kInputTypeTable aren't constexpr.
-  MOZ_ASSERT(
+  static_assert(
       FormControlType(kInputDefaultType->value) == FormControlType::InputText,
       "Someone forgot to update kInputDefaultType when adding a new "
       "input type.");
-  MOZ_ASSERT(kInputTypeTable[std::size(kInputTypeTable) - 1].tag == nullptr,
-             "Last entry in the table must be the nullptr guard");
-  MOZ_ASSERT(
-      FormControlType(kInputTypeTable[std::size(kInputTypeTable) - 2].value) ==
+  static_assert(
+      FormControlType(kInputTypeTable[std::size(kInputTypeTable) - 1].value) ==
           FormControlType::InputText,
-      "Next to last entry in the table must be the \"text\" entry");
+      "Last entry in the table must be the \"text\" entry");
 
   if (aNamespaceID == kNameSpaceID_None) {
     if (aAttribute == nsGkAtoms::type) {
@@ -5465,7 +5462,8 @@ bool HTMLInputElement::ParseAttribute(int32_t aNamespaceID, nsAtom* aAttribute,
         // There's no public way to set an nsAttrValue to an enum value, but we
         // can just re-parse with a table that doesn't have any types other than
         // "text" in it.
-        aResult.ParseEnumValue(aValue, kInputDefaultType, false,
+        MOZ_ASSERT(&Span(kInputTypeTable).Last<1>()[0] == kInputDefaultType);
+        aResult.ParseEnumValue(aValue, Span(kInputTypeTable).Last<1>(), false,
                                kInputDefaultType);
       }
 

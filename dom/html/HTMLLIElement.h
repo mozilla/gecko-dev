@@ -39,8 +39,8 @@ class HTMLLIElement final : public nsGenericHTMLElement {
     SetHTMLIntAttr(nsGkAtoms::value, aValue, rv);
   }
 
-  static const nsAttrValue::EnumTable kULTypeTable[];
-  static const nsAttrValue::EnumTable kOLTypeTable[];
+  static const nsAttrValue::EnumTableEntry kULTypeTable[];
+  static const nsAttrValue::EnumTableEntry kOLTypeTable[];
 
  protected:
   virtual ~HTMLLIElement();

@@ -3872,18 +3872,13 @@ bool IsFontMimeType(const nsAString& aType) {
   return false;
 }
 
-static const nsAttrValue::EnumTable kAsAttributeTable[] = {
-    {"", DESTINATION_INVALID},
-    {"audio", DESTINATION_AUDIO},
-    {"font", DESTINATION_FONT},
-    {"image", DESTINATION_IMAGE},
-    {"script", DESTINATION_SCRIPT},
-    {"style", DESTINATION_STYLE},
-    {"track", DESTINATION_TRACK},
-    {"video", DESTINATION_VIDEO},
-    {"fetch", DESTINATION_FETCH},
-    {"json", DESTINATION_JSON},
-    {nullptr, 0}};
+static constexpr nsAttrValue::EnumTableEntry kAsAttributeTable[] = {
+    {"", DESTINATION_INVALID},      {"audio", DESTINATION_AUDIO},
+    {"font", DESTINATION_FONT},     {"image", DESTINATION_IMAGE},
+    {"script", DESTINATION_SCRIPT}, {"style", DESTINATION_STYLE},
+    {"track", DESTINATION_TRACK},   {"video", DESTINATION_VIDEO},
+    {"fetch", DESTINATION_FETCH},   {"json", DESTINATION_JSON},
+};
 
 void ParseAsValue(const nsAString& aValue, nsAttrValue& aResult) {
   DebugOnly<bool> success =
