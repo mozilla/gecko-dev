@@ -592,9 +592,9 @@ let interfaceNamesInGlobalScope = [
   // IMPORTANT: Do not change this list without review from a DOM peer!
   { name: "History", insecureContext: true },
   // IMPORTANT: Do not change this list without review from a DOM peer!
-  { name: "Highlight", insecureContext: true, nightly: true },
+  { name: "Highlight", insecureContext: true },
   // IMPORTANT: Do not change this list without review from a DOM peer!
-  { name: "HighlightRegistry", insecureContext: true, nightly: true },
+  { name: "HighlightRegistry", insecureContext: true },
   // IMPORTANT: Do not change this list without review from a DOM peer!
   { name: "HTMLAllCollection", insecureContext: true },
   // IMPORTANT: Do not change this list without review from a DOM peer!
