@@ -2222,7 +2222,7 @@ html {
           flex-direction: column;
 
           .header-title {
-            font-weight: 590;
+            font-weight: var(--font-weight-bold);
             line-height: 1.5;
           }
 

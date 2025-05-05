@@ -428,7 +428,7 @@ body:not(:fullscreen) #fullscreen {
 }
 
 .bold {
-  font-weight: 590;
+  font-weight: var(--font-weight-bold);
 }
 
 .box > input[type="radio"] {

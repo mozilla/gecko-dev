@@ -40,7 +40,7 @@
 }
 
 .highlight-label {
-  font-weight: 590;
+  font-weight: var(--font-weight-bold);
   grid-column-start: 2;
   grid-row-start: 1;
 }

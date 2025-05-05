@@ -365,7 +365,7 @@
     align-items: center;
     justify-content: center;
     color: #000000;
-    font-weight: 590;
+    font-weight: var(--font-weight-bold);
     padding: 0.27em 0.5em;
     margin-inline: -1px 1em;
     margin-block: calc(-0.27em - 1px);
