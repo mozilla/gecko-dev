@@ -46,6 +46,8 @@ import mozilla.components.concept.engine.mediaquery.PreferredColorScheme
 import mozilla.components.concept.fetch.Client
 import mozilla.components.feature.awesomebar.provider.SessionAutocompleteProvider
 import mozilla.components.feature.customtabs.store.CustomTabsServiceStore
+import mozilla.components.feature.downloads.DateTimeProvider
+import mozilla.components.feature.downloads.DefaultDateTimeProvider
 import mozilla.components.feature.downloads.DefaultFileSizeFormatter
 import mozilla.components.feature.downloads.DownloadMiddleware
 import mozilla.components.feature.downloads.FileSizeFormatter
@@ -399,6 +401,11 @@ class Core(
      * [FileSizeFormatter] used to format the size of the file items.
      */
     val fileSizeFormatter: FileSizeFormatter by lazyMonitored { DefaultFileSizeFormatter(context.applicationContext) }
+
+    /**
+     * [DateTimeProvider] used to provide date and time information.
+     */
+    val dateTimeProvider: DateTimeProvider by lazyMonitored { DefaultDateTimeProvider() }
 
     /**
      * The [RelationChecker] checks Digital Asset Links relationships for Trusted Web Activities.

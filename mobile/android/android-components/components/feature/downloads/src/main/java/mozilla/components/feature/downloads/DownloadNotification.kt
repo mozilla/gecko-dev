@@ -33,6 +33,7 @@ import mozilla.components.feature.downloads.AbstractFetchDownloadService.Compani
 import mozilla.components.feature.downloads.AbstractFetchDownloadService.DownloadJobState
 import mozilla.components.support.utils.PendingIntentUtils
 import kotlin.random.Random
+import kotlin.time.Duration.Companion.seconds
 
 @Suppress("LargeClass")
 internal object DownloadNotification {
@@ -99,12 +100,11 @@ internal object DownloadNotification {
                 NotificationCompat.BigTextStyle()
                     .setBigContentTitle(downloadState.fileName.orEmpty())
                     .setSummaryText(
-                        if (downloadJobState.isIndeterminate()) {
-                            ""
-                        } else {
-                            "${PERCENTAGE_MULTIPLIER * downloadJobState.currentBytesCopied /
-                                downloadJobState.state.contentLength!!}%"
-                        },
+                        formatDownloadTimeRemaining(
+                            context = context,
+                            downloadEstimator = downloadJobState.downloadEstimator,
+                            curBytes = downloadState.currentBytesCopied,
+                        ),
                     ),
             )
             .setSmallIcon(R.drawable.mozac_feature_download_ic_ongoing_download)
@@ -398,4 +398,18 @@ internal fun DownloadJobState.getStatusDescription(
 
         CANCELLED, INITIATED -> ""
     }
+}
+
+private fun formatDownloadTimeRemaining(
+    context: Context,
+    downloadEstimator: DownloadEstimator?,
+    curBytes: Long?,
+): String {
+    val timeRemaining = downloadEstimator?.estimatedRemainingTime(curBytes ?: 0)
+    if (timeRemaining == null) return ""
+    val formattedTimeRemaining = timeRemaining.seconds.toString()
+    return context.getString(
+        R.string.mozac_feature_downloads_time_remaining,
+        formattedTimeRemaining,
+    )
 }
