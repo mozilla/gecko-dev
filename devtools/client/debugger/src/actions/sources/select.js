@@ -36,7 +36,6 @@ import {
   hasSourceActor,
   hasPrettyTab,
   isSourceActorWithSourceMap,
-  getSourceByActorId,
   getSelectedFrame,
   getCurrentThread,
 } from "../../selectors/index";
@@ -110,24 +109,6 @@ export function selectMayBePrettyPrintedLocation(location) {
       location = createLocation({ source: prettySource });
     }
     await dispatch(selectLocation(location));
-  };
-}
-
-export function selectSourceBySourceActorID(sourceActorId, options) {
-  return async thunkArgs => {
-    const { dispatch, getState } = thunkArgs;
-    const source = getSourceByActorId(getState(), sourceActorId);
-    if (!source) {
-      throw new Error(`Unable to find source actor with id ${sourceActorId}`);
-    }
-
-    const generatedLocation = createLocation({ ...options, source });
-
-    const originalLocation = await getOriginalLocation(
-      generatedLocation,
-      thunkArgs
-    );
-    return dispatch(selectLocation(originalLocation));
   };
 }
 
