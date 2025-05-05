@@ -10,6 +10,9 @@ const {
 export function getSelectedTraceIndex(state) {
   return state.tracerFrames?.selectedTraceIndex;
 }
+export function getSelectedTraceLocation(state) {
+  return state.tracerFrames?.selectedTraceLocation;
+}
 export function getFilteredTopTraces(state) {
   return state.tracerFrames?.mutableFilteredTopTraces || [];
 }
