@@ -7,11 +7,7 @@
 
 namespace mozilla::dom {
 
-RemoteWorkerDebuggerManagerChild::RemoteWorkerDebuggerManagerChild() {
-  MOZ_ASSERT_DEBUG_OR_FUZZING(
-      RemoteWorkerService::Thread() &&
-      RemoteWorkerService::Thread()->IsOnCurrentThread());
-}
+RemoteWorkerDebuggerManagerChild::RemoteWorkerDebuggerManagerChild() {}
 
 RemoteWorkerDebuggerManagerChild::~RemoteWorkerDebuggerManagerChild() {}
 
