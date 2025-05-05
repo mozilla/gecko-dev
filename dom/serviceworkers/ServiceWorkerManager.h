@@ -43,6 +43,10 @@ namespace ipc {
 class PrincipalInfo;
 }  // namespace ipc
 
+namespace net {
+class CookieStruct;
+}
+
 namespace dom {
 
 class ContentParent;
@@ -261,8 +265,7 @@ class ServiceWorkerManager final : public nsIServiceWorkerManager,
 
   nsresult SendCookieChangeEvent(const OriginAttributes& aOriginAttributes,
                                  const nsACString& aScope,
-                                 const nsAString& aCookieName,
-                                 const nsAString& aCookieValue,
+                                 const net::CookieStruct& aCookie,
                                  bool aCookieDeleted);
 
   nsresult SendPushEvent(const nsACString& aOriginAttributes,

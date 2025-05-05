@@ -86,7 +86,7 @@ mozilla::ipc::IPCResult CookieStoreParent::RecvGetRequest(
                aPartitionedOriginAttributes, aThirdPartyContext,
                aPartitionForeign, aUsingStorageAccess, aIsOn3PCBExceptionList,
                aMatchName, aName, aPath, aOnlyFirstMatch]() {
-                CopyableTArray<CookieData> results;
+                CopyableTArray<CookieStruct> results;
                 self->GetRequestOnMainThread(
                     uri, aOriginAttributes, aPartitionedOriginAttributes,
                     aThirdPartyContext, aPartitionForeign, aUsingStorageAccess,
@@ -269,7 +269,7 @@ void CookieStoreParent::GetRequestOnMainThread(
     bool aThirdPartyContext, bool aPartitionForeign, bool aUsingStorageAccess,
     bool aIsOn3PCBExceptionList, bool aMatchName, const nsAString& aName,
     const nsACString& aPath, bool aOnlyFirstMatch,
-    nsTArray<CookieData>& aResults) {
+    nsTArray<CookieStruct>& aResults) {
   nsresult rv;
   MOZ_ASSERT(NS_IsMainThread());
 
@@ -303,7 +303,7 @@ void CookieStoreParent::GetRequestOnMainThread(
     attrsList.AppendElement(aPartitionedOriginAttributes.value());
   }
 
-  nsTArray<CookieData> list;
+  nsTArray<CookieStruct> list;
 
   for (const OriginAttributes& attrs : attrsList) {
     nsTArray<RefPtr<Cookie>> cookies;
@@ -332,9 +332,7 @@ void CookieStoreParent::GetRequestOnMainThread(
         continue;
       }
 
-      CookieData* data = list.AppendElement();
-      data->name() = NS_ConvertUTF8toUTF16(cookie->Name());
-      data->value() = NS_ConvertUTF8toUTF16(cookie->Value());
+      list.AppendElement(cookie->ToIPC());
 
       if (aOnlyFirstMatch) {
         break;

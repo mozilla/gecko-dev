@@ -937,15 +937,14 @@ nsresult ServiceWorkerPrivate::SendLifeCycleEvent(
 }
 
 nsresult ServiceWorkerPrivate::SendCookieChangeEvent(
-    const nsAString& aCookieName, const nsAString& aCookieValue,
-    bool aCookieDeleted, RefPtr<ServiceWorkerRegistrationInfo> aRegistration) {
+    const net::CookieStruct& aCookie, bool aCookieDeleted,
+    RefPtr<ServiceWorkerRegistrationInfo> aRegistration) {
   AssertIsOnMainThread();
   MOZ_ASSERT(mInfo);
   MOZ_ASSERT(aRegistration);
 
   ServiceWorkerCookieChangeEventOpArgs args;
-  args.name() = aCookieName;
-  args.value() = aCookieValue;
+  args.cookie() = aCookie;
   args.deleted() = aCookieDeleted;
 
   if (mInfo->State() == ServiceWorkerState::Activating) {

@@ -1098,8 +1098,7 @@ ServiceWorkerManager::SendPushEvent(const nsACString& aOriginAttributes,
 
 nsresult ServiceWorkerManager::SendCookieChangeEvent(
     const OriginAttributes& aOriginAttributes, const nsACString& aScope,
-    const nsAString& aCookieName, const nsAString& aCookieValue,
-    bool aCookieDeleted) {
+    const net::CookieStruct& aCookie, bool aCookieDeleted) {
   nsCOMPtr<nsIPrincipal> principal;
   MOZ_TRY_VAR(principal, ScopeToPrincipal(aScope, aOriginAttributes));
 
@@ -1117,7 +1116,7 @@ nsresult ServiceWorkerManager::SendCookieChangeEvent(
   }
 
   return serviceWorker->WorkerPrivate()->SendCookieChangeEvent(
-      aCookieName, aCookieValue, aCookieDeleted, registration);
+      aCookie, aCookieDeleted, registration);
 }
 
 nsresult ServiceWorkerManager::SendPushEvent(
