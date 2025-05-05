@@ -19,6 +19,7 @@ use crate::properties::longhands::float::computed_value::T as Float;
 use crate::properties::longhands::position::computed_value::T as Position;
 use crate::properties::{self, ComputedValues, StyleBuilder};
 
+#[cfg(feature = "gecko")]
 use selectors::parser::PseudoElement;
 
 /// A struct that implements all the adjustment methods.

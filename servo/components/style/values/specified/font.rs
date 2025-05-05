@@ -1950,3 +1950,20 @@ impl ToComputedValue for LineHeight {
         }
     }
 }
+
+/// Flags for the query_font_metrics() function.
+#[repr(C)]
+pub struct QueryFontMetricsFlags(u8);
+
+bitflags! {
+    impl QueryFontMetricsFlags: u8 {
+        /// Should we use the user font set?
+        const USE_USER_FONT_SET = 1 << 0;
+        /// Does the caller need the `ch` unit (width of the ZERO glyph)?
+        const NEEDS_CH = 1 << 1;
+        /// Does the caller need the `ic` unit (width of the WATER ideograph)?
+        const NEEDS_IC = 1 << 2;
+        /// Does the caller need math scales to be retrieved?
+        const NEEDS_MATH_SCALES = 1 << 3;
+    }
+}

@@ -18,7 +18,6 @@ use crate::computed_value_flags::ComputedValueFlags;
 use crate::context::QuirksMode;
 use crate::custom_properties::ComputedCustomProperties;
 use crate::font_metrics::{FontMetrics, FontMetricsOrientation};
-use crate::gecko::media_queries::QueryFontMetricsFlags;
 use crate::media_queries::Device;
 #[cfg(feature = "gecko")]
 use crate::properties;
@@ -28,6 +27,7 @@ use crate::stylesheets::container_rule::{
     ContainerInfo, ContainerSizeQuery, ContainerSizeQueryResult,
 };
 use crate::stylist::Stylist;
+use crate::values::specified::font::QueryFontMetricsFlags;
 use crate::values::specified::length::FontBaseSize;
 use crate::{ArcSlice, Atom, One};
 use euclid::{default, Point2D, Rect, Size2D};

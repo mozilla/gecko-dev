@@ -635,7 +635,7 @@ cbindgen-types = [
     { gecko = "StyleMargin", servo = "crate::values::computed::length::Margin" },
     { gecko = "StyleGenericAnchorFunction", servo = "crate::values::generics::position::GenericAnchorFunction" },
     { gecko = "StylePositionProperty", servo = "crate::values::computed::PositionProperty" },
-    { gecko = "StyleQueryFontMetricsFlags", servo = "crate::gecko::media_queries::QueryFontMetricsFlags" },
+    { gecko = "StyleQueryFontMetricsFlags", servo = "crate::values::specified::font::QueryFontMetricsFlags" },
 ]
 
 mapped-generic-types = [

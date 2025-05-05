@@ -17,7 +17,9 @@ use crate::properties::ComputedValues;
 use crate::values::computed::{CSSPixelLength, Context, Length, LineHeight, NonNegativeLength, Resolution};
 use crate::values::computed::font::GenericFontFamily;
 use crate::values::specified::color::{ColorSchemeFlags, ForcedColors};
-use crate::values::specified::font::{FONT_MEDIUM_LINE_HEIGHT_PX, FONT_MEDIUM_PX};
+use crate::values::specified::font::{
+    FONT_MEDIUM_LINE_HEIGHT_PX, FONT_MEDIUM_PX, QueryFontMetricsFlags,
+};
 use crate::values::specified::ViewportVariant;
 use crate::values::KeyframesName;
 use app_units::{Au, AU_PER_PX};
@@ -38,8 +40,7 @@ pub trait FontMetricsProvider: Debug + Sync {
         vertical: bool,
         font: &Font,
         base_size: CSSPixelLength,
-        in_media_query: bool,
-        retrieve_math_scales: bool,
+        flags: QueryFontMetricsFlags,
     ) -> FontMetrics;
     /// Gets the base size given a generic font family.
     fn base_size_for_generic(&self, generic: GenericFontFamily) -> Length;
@@ -268,16 +269,14 @@ impl Device {
         vertical: bool,
         font: &Font,
         base_size: CSSPixelLength,
-        in_media_query: bool,
-        retrieve_math_scales: bool,
+        flags: QueryFontMetricsFlags,
     ) -> FontMetrics {
         self.used_font_metrics.store(true, Ordering::Relaxed);
         self.font_metrics_provider.query_font_metrics(
             vertical,
             font,
             base_size,
-            in_media_query,
-            retrieve_math_scales,
+            flags,
         )
     }
 

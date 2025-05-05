@@ -4,7 +4,6 @@
 
 //! Computed values for font properties
 
-use crate::gecko::media_queries::QueryFontMetricsFlags;
 use crate::parser::{Parse, ParserContext};
 use crate::values::animated::ToAnimatedValue;
 use crate::values::computed::{
@@ -32,8 +31,8 @@ pub use crate::values::computed::Length as MozScriptMinSize;
 pub use crate::values::specified::font::MozScriptSizeMultiplier;
 pub use crate::values::specified::font::{FontPalette, FontSynthesis, FontSynthesisStyle};
 pub use crate::values::specified::font::{
-    FontVariantAlternates, FontVariantEastAsian, FontVariantLigatures, FontVariantNumeric, XLang,
-    XTextScale,
+    FontVariantAlternates, FontVariantEastAsian, FontVariantLigatures, FontVariantNumeric,
+    QueryFontMetricsFlags, XLang, XTextScale,
 };
 pub use crate::values::specified::Integer as SpecifiedInteger;
 pub use crate::values::specified::Number as SpecifiedNumber;

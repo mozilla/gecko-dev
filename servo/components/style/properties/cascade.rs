@@ -1355,7 +1355,7 @@ impl<'b> Cascade<'b> {
         }
 
         let (new_size, new_unconstrained_size) = {
-            use crate::gecko::media_queries::QueryFontMetricsFlags;
+            use crate::values::specified::font::QueryFontMetricsFlags;
 
             let builder = &context.builder;
             let font = builder.get_font();
