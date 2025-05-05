@@ -12,23 +12,22 @@
   --page-nav-button-background-color-active: var(--button-background-color-ghost-active);
   --page-nav-button-background-color-selected: color-mix(in srgb, currentColor 8%, transparent);
   --page-nav-button-padding: var(--space-small) var(--space-medium);
-  --page-nav-button-width: 240px;
 
   border-radius: var(--border-radius-small);
 
-  &:focus-visible {
-    outline-offset: var(--page-nav-focus-outline-inset);
-  }
-
   @media (max-width: 52rem) {
     --page-nav-button-padding: var(--space-small);
-    --page-nav-button-width: 120px;
   }
+}
+
+:host(:not([hidden])) {
+  display: flex;
+  flex-direction: column;
 }
 
 :host([iconsrc]) {
   @media (max-width: 52rem) {
-    --page-nav-button-width: var(--button-size-icon);
+    width: var(--button-size-icon);
   }
 }
 
@@ -43,7 +42,6 @@ button {
   align-items: center;
   font-family: inherit;
   font-size: inherit;
-  width: var(--page-nav-button-width);
   font-weight: normal;
   border-radius: var(--page-nav-button-border-radius);
   color: var(--page-nav-button-text-color);
@@ -105,7 +103,7 @@ a[href]:focus-visible,
 button:focus-visible,
 button[selected]:focus-visible {
   outline: var(--focus-outline);
-  outline-offset: 0;
+  outline-offset: var(--page-nav-focus-outline-inset);
   border-radius: var(--border-radius-small);
 }
 

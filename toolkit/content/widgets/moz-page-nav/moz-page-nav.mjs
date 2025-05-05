@@ -2,11 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-import {
-  html,
-  when,
-  classMap,
-} from "chrome://global/content/vendor/lit.all.mjs";
+import { html, when } from "chrome://global/content/vendor/lit.all.mjs";
 import { MozLitElement } from "chrome://global/content/lit-utils.mjs";
 // eslint-disable-next-line import/no-unassigned-import
 import "chrome://global/content/elements/moz-support-link.mjs";
@@ -93,23 +89,17 @@ export default class MozPageNav extends MozLitElement {
   }
 
   render() {
-    let hasNavIcons = [
-      ...(this.pageNavButtons ?? []),
-      ...(this.secondaryNavButtons ?? []),
-    ].some(button => button.iconSrc);
     return html`
       <link
         rel="stylesheet"
         href="chrome://global/content/elements/moz-page-nav.css"
       />
-      <nav class=${classMap({ "has-nav-icons": hasNavIcons })}>
-        <div class="page-nav-heading-wrapper">
-          <div class="logo"></div>
-          <h1 class="page-nav-heading" id="page-nav-heading">
-            ${this.heading}
-          </h1>
-        </div>
-        <slot name="subheading"></slot>
+      <div class="page-nav-heading-wrapper">
+        <div class="logo"></div>
+        <h1 class="page-nav-heading" id="page-nav-heading">${this.heading}</h1>
+      </div>
+      <slot name="subheading"></slot>
+      <nav>
         <div
           class="primary-nav-group"
           role="tablist"

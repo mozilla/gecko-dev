@@ -33,21 +33,26 @@ moz-page-nav-search-input =
   },
 };
 
-const Template = ({ hasFooterLinks, hasIcons, showSearch }) => {
+const Template = ({ hasFooterLinks, hasIcons, showSearch, scrollable }) => {
   let iconSrc = hasIcons
     ? "chrome://global/skin/icons/settings.svg"
     : undefined;
+
+  let maxHeight = scrollable ? "190px" : "initial";
+
   return html`
     <style>
       #page {
         height: 100%;
         display: flex;
+        max-height: ${maxHeight};
 
         @media (max-width: 52rem) {
           grid-template-columns: 82px 1fr;
         }
       }
       moz-page-nav {
+        height: 100%;
         margin-inline-start: 10px;
         --page-nav-margin-top: 10px;
 
@@ -109,7 +114,12 @@ const Template = ({ hasFooterLinks, hasIcons, showSearch }) => {
 };
 
 export const Default = Template.bind({});
-Default.args = { hasFooterLinks: false, hasIcons: true, showSearch: false };
+Default.args = {
+  hasFooterLinks: false,
+  hasIcons: true,
+  showSearch: false,
+  scrollable: false,
+};
 
 export const WithFooterLinks = Template.bind({});
 WithFooterLinks.args = { ...Default.args, hasFooterLinks: true };
@@ -119,3 +129,6 @@ WithoutIcons.args = { ...Default.args, hasIcons: false };
 
 export const WithSearch = Template.bind({});
 WithSearch.args = { ...Default.args, showSearch: true };
+
+export const WithSearchScroll = Template.bind({});
+WithSearchScroll.args = { ...Default.args, showSearch: true, scrollable: true };
