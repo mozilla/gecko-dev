@@ -69,11 +69,11 @@ interface CfrPreferencesRepository {
 }
 
 /**
- * The default implementation of [DefaultCfrPreferencesRepository].
+ * The default implementation of [CfrPreferencesRepository].
  *
- * @param context the Android context.
- * @param lifecycleOwner the lifecycle owner used for the SharedPreferences API.
- * @param coroutineScope the coroutine scope used for emitting flows.
+ * @param context The Android context.
+ * @param lifecycleOwner The lifecycle owner used for the SharedPreferences API.
+ * @param coroutineScope The coroutine scope used for emitting flows.
  */
 class DefaultCfrPreferencesRepository(
     private val context: Context,
