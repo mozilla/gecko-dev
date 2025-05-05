@@ -768,6 +768,10 @@
   <string name="preferences_add_private_browsing_shortcut">Lisää yksityisen selauksen pikakuvake</string>
   <!-- Preference for enabling "HTTPS-Only" mode -->
   <string name="preferences_https_only_title">Vain HTTPS -tila</string>
+  <!-- Preference title for using the screen lock to hide tabs in private browsing -->
+  <string name="preferences_pbm_lock_screen_title">Käytä näytön lukitusta piilottaaksesi välilehdet yksityisessä selailussa</string>
+  <!-- Informs the user how to access the tabs when "Use screen lock to hide tabs in private browsing" is enabled -->
+  <string name="preferences_pbm_lock_screen_summary">Näytä välilehdet sormenjäljellä, kasvojentunnistuksella tai PIN-koodilla.</string>
   <!-- Label for cookie banner section in quick settings panel. -->
   <string name="cookie_banner_blocker">Evästeilmoitusten esto</string>
   <!-- Preference for removing cookie/consent banners from sites automatically in private mode. See reduce_cookie_banner_summary for additional context. -->
@@ -3457,6 +3461,20 @@
   <string name="setup_checklist_subtitle_6_steps_fifth_step">Melkein valmista! Olet yhden vaiheen päässä maaliviivasta.</string>
   <!-- Subtitle for a setup checklist with 6 steps completed state. %1$s is the name of the app (for example "Firefox"). -->
   <string name="setup_checklist_subtitle_6_steps_completed_state">Olet suorittanut kaikki kuusi vaihetta. Nauti %1$sin nopeudesta, yksityisyydestä ja turvallisuudesta.</string>
+  <!--
+    ===== Setup checklist feature: Subtitles for 5 steps (Large screen devices don't support toolbar placement) =====
+
+    Subtitle for a setup checklist with 5 steps initial state. %1$s is the name of the app (for example "Firefox").
+  -->
+  <string name="setup_checklist_subtitle_5_steps_initial_state">Suorita kaikki viisi vaihetta määrittääksesi %1$sin parasta selauskokemusta varten.</string>
+  <!-- Subtitle for a setup checklist with 5 steps when the first task is completed. -->
+  <string name="setup_checklist_subtitle_5_steps_first_step">Hieno aloitus! Olet suorittanut yhden viidestä vaiheesta.</string>
+  <!-- Subtitle for the setup checklist when the second task is completed. -->
+  <string name="setup_checklist_subtitle_5_steps_second_step">Olet suorittanut kaksi vaihetta viidestä. Hienoa edistystä!</string>
+  <!-- Subtitle for a setup checklist with 5 steps when the fifth task is completed. -->
+  <string name="setup_checklist_subtitle_5_steps_fourth_step">Melkein valmista! Olet yhden vaiheen päässä maaliviivasta.</string>
+  <!-- Subtitle for a setup checklist with 5 steps completed state. %1$s is the name of the app (for example "Firefox"). -->
+  <string name="setup_checklist_subtitle_5_steps_completed_state">Olet suorittanut kaikki viisi vaihetta. Nauti %1$sin nopeudesta, yksityisyydestä ja turvallisuudesta.</string>
   <!--
     ===== Setup checklist feature: Task titles =====
 

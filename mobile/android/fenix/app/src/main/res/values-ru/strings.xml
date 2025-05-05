@@ -3570,4 +3570,10 @@
   <string name="pbm_authentication_unlock">Разблокировать</string>
   <!-- Title text instructing the user to unlock private tabs -->
   <string name="pbm_authentication_unlock_private_tabs">Разблокировать приватные вкладки</string>
+  <!-- Title text for the contextual feature recommendation (CFR) suggesting the user enable a screen lock to protect private tabs -->
+  <string name="private_tab_cfr_title">Использовать блокировку экрана, чтобы скрывать приватные вкладки?</string>
+  <!-- Negative button text for the contextual feature recommendation (CFR) dismissing the screen lock suggestion -->
+  <string name="private_tab_cfr_negative">Нет, спасибо</string>
+  <!-- Positive button text for the contextual feature recommendation (CFR) enabling screen lock for private tabs -->
+  <string name="private_tab_cfr_positive">Заблокировать вкладки</string>
 </resources>

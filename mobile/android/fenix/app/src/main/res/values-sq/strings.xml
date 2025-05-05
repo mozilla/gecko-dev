@@ -2356,7 +2356,7 @@
   <!-- Preference to access list of login exceptions that we don't use DNS over HTTPS -->
   <string name="preference_doh_exceptions">Përjashtime</string>
   <!-- Description of "exceptions" for "DNS over HTTPS". %1$s is the name of the app (for example "Firefox"). -->
-  <string name="preference_doh_exceptions_summary">%1$s-i s’do të përdor DNS të siguruar në këto sajte dhe nënpërkatësitë e tyre.</string>
+  <string name="preference_doh_exceptions_summary">%1$s-i s’do të përdorë DNS të siguruar në këto sajte dhe nënpërkatësitë e tyre.</string>
   <!-- Text displayed that links to adding website domain for "DNS over HTTPS" exceptions. -->
   <string name="preference_doh_exceptions_add">Shtoni sajt</string>
   <!-- Text displayed above the input field when adding exceptions for "DNS over HTTPS". -->

@@ -3503,6 +3503,22 @@
   <!-- Subtitle for a setup checklist with 6 steps completed state. %1$s is the name of the app (for example "Firefox"). -->
   <string name="setup_checklist_subtitle_6_steps_completed_state">Has completado los 6 pasos de configuración. Disfruta de la velocidad, privacidad y seguridad de %1$s.</string>
   <!--
+    ===== Setup checklist feature: Subtitles for 5 steps (Large screen devices don't support toolbar placement) =====
+
+    Subtitle for a setup checklist with 5 steps initial state. %1$s is the name of the app (for example "Firefox").
+  -->
+  <string name="setup_checklist_subtitle_5_steps_initial_state">Completa los 5 pasos para configurar %1$s para la mejor experiencia de navegación.</string>
+  <!-- Subtitle for a setup checklist with 5 steps when the first task is completed. -->
+  <string name="setup_checklist_subtitle_5_steps_first_step">¡Buen comienzo! Has completado 1 de 5 pasos.</string>
+  <!-- Subtitle for the setup checklist when the second task is completed. -->
+  <string name="setup_checklist_subtitle_5_steps_second_step">Has completado 2 de 5 pasos. ¡Gran progreso!</string>
+  <!-- Subtitle for a setup checklist with 5 steps when three of the tasks are completed. -->
+  <string name="setup_checklist_subtitle_5_steps_third_step">¡Estás a mitad de camino! Tres pasos terminados y 2 restantes.</string>
+  <!-- Subtitle for a setup checklist with 5 steps when the fifth task is completed. -->
+  <string name="setup_checklist_subtitle_5_steps_fourth_step">¡Ya casi está! Estás a solo 1 paso de la línea de meta.</string>
+  <!-- Subtitle for a setup checklist with 5 steps completed state. %1$s is the name of the app (for example "Firefox"). -->
+  <string name="setup_checklist_subtitle_5_steps_completed_state">Has completado los 5 pasos de configuración. Disfruta de la velocidad, privacidad y seguridad de %1$s.</string>
+  <!--
     ===== Setup checklist feature: Task titles =====
 
     The title of the default browser task for the setup checklist
@@ -3552,4 +3568,10 @@
   <string name="pbm_authentication_unlock">Desbloquear</string>
   <!-- Title text instructing the user to unlock private tabs -->
   <string name="pbm_authentication_unlock_private_tabs">Desbloquear pestañas privadas</string>
+  <!-- Title text for the contextual feature recommendation (CFR) suggesting the user enable a screen lock to protect private tabs -->
+  <string name="private_tab_cfr_title">¿Usar el bloqueo de pantalla para ocultar pestañas privadas?</string>
+  <!-- Negative button text for the contextual feature recommendation (CFR) dismissing the screen lock suggestion -->
+  <string name="private_tab_cfr_negative">No, gracias</string>
+  <!-- Positive button text for the contextual feature recommendation (CFR) enabling screen lock for private tabs -->
+  <string name="private_tab_cfr_positive">Bloquear pestañas</string>
 </resources>

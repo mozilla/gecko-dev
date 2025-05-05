@@ -3193,6 +3193,8 @@
   <string name="protection_panel_no_trackers_blocked">Ingen sporings-mekanismer fundet</string>
   <!-- Link text to navigate to privacy and security settings from the protection panel. -->
   <string name="protection_panel_privacy_and_security_settings">Privatlivs- og sikkerhedsindstillinger</string>
+  <!-- Title text for the protection panel permissions section. -->
+  <string name="protection_panel_permissions_title">Tilladelser</string>
   <!--
     Text for displaying the total number of trackers blocked in the trackers blocked panel.
     %d is a placeholder for the number of trackers blocked.
@@ -3501,6 +3503,22 @@
   <!-- Subtitle for a setup checklist with 6 steps completed state. %1$s is the name of the app (for example "Firefox"). -->
   <string name="setup_checklist_subtitle_6_steps_completed_state">Du har gennemført alle 6 trin. Nyd hastigheden, privatlivet og sikkerheden med %1$s.</string>
   <!--
+    ===== Setup checklist feature: Subtitles for 5 steps (Large screen devices don't support toolbar placement) =====
+
+    Subtitle for a setup checklist with 5 steps initial state. %1$s is the name of the app (for example "Firefox").
+  -->
+  <string name="setup_checklist_subtitle_5_steps_initial_state">Udfør alle 5 trin for at sætte %1$s op for den bedste oplevelse på nettet.</string>
+  <!-- Subtitle for a setup checklist with 5 steps when the first task is completed. -->
+  <string name="setup_checklist_subtitle_5_steps_first_step">Godt begyndt! Du har gennemført 1 ud af 5 trin.</string>
+  <!-- Subtitle for the setup checklist when the second task is completed. -->
+  <string name="setup_checklist_subtitle_5_steps_second_step">Du har gennemført 2 ud af 5 trin. Godt gået!</string>
+  <!-- Subtitle for a setup checklist with 5 steps when three of the tasks are completed. -->
+  <string name="setup_checklist_subtitle_5_steps_third_step">Du er halvvejs! Tre trin udført og 2 trin tilbage.</string>
+  <!-- Subtitle for a setup checklist with 5 steps when the fifth task is completed. -->
+  <string name="setup_checklist_subtitle_5_steps_fourth_step">Næsten færdig! Du er kun 1 trin fra målstregen.</string>
+  <!-- Subtitle for a setup checklist with 5 steps completed state. %1$s is the name of the app (for example "Firefox"). -->
+  <string name="setup_checklist_subtitle_5_steps_completed_state">Du har gennemført alle 5 trin. Nyd hastigheden, privatlivet og sikkerheden med %1$s.</string>
+  <!--
     ===== Setup checklist feature: Task titles =====
 
     The title of the default browser task for the setup checklist
@@ -3550,4 +3568,10 @@
   <string name="pbm_authentication_unlock">Lås op</string>
   <!-- Title text instructing the user to unlock private tabs -->
   <string name="pbm_authentication_unlock_private_tabs">Lås private faneblade op</string>
+  <!-- Title text for the contextual feature recommendation (CFR) suggesting the user enable a screen lock to protect private tabs -->
+  <string name="private_tab_cfr_title">Brug skærmlås til at skjule private faneblade?</string>
+  <!-- Negative button text for the contextual feature recommendation (CFR) dismissing the screen lock suggestion -->
+  <string name="private_tab_cfr_negative">Nej tak</string>
+  <!-- Positive button text for the contextual feature recommendation (CFR) enabling screen lock for private tabs -->
+  <string name="private_tab_cfr_positive">Lås faneblade</string>
 </resources>
