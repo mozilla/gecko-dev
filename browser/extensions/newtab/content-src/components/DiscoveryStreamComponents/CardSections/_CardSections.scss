@@ -1,3 +1,5 @@
+// Bug 1964453: Some styles here may appear duplicative — due to @includes and media queries, certain rules are intentionally overwritten rather than relying on cascade behavior.
+
 @mixin section-card-small {
   grid-row: span 1;
   grid-column: span 1;
@@ -121,6 +123,7 @@
       .title {
         -webkit-line-clamp: 3;
         margin-block: 0 var(--space-small);
+        font-size: var(--font-size-root);
       }
 
       .excerpt {
@@ -175,6 +178,7 @@
 
         .excerpt {
           -webkit-line-clamp: 4;
+          font-size: var(--font-size-root);
         }
       }
 

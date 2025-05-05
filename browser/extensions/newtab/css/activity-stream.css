@@ -5289,6 +5289,7 @@ main section {
   .ds-section-grid.ds-card-grid .col-1-medium .meta .info-wrap .title {
     -webkit-line-clamp: 3;
     margin-block: 0 var(--space-small);
+    font-size: var(--font-size-root);
   }
   .ds-section-grid.ds-card-grid .col-1-medium .meta .info-wrap .excerpt {
     display: block;
@@ -5329,6 +5330,7 @@ main section {
   }
   .ds-section-grid.ds-card-grid .col-1-large.ds-card.sections-card-ui .meta .excerpt {
     -webkit-line-clamp: 4;
+    font-size: var(--font-size-root);
   }
   .ds-section-grid.ds-card-grid .col-1-large.ds-card.sections-card-ui .card-stp-button-hover-background {
     inset-inline-start: 0;
@@ -5465,6 +5467,7 @@ main section {
   .ds-section-grid.ds-card-grid .col-2-medium .meta .info-wrap .title {
     -webkit-line-clamp: 3;
     margin-block: 0 var(--space-small);
+    font-size: var(--font-size-root);
   }
   .ds-section-grid.ds-card-grid .col-2-medium .meta .info-wrap .excerpt {
     display: block;
@@ -5505,6 +5508,7 @@ main section {
   }
   .ds-section-grid.ds-card-grid .col-2-large.ds-card.sections-card-ui .meta .excerpt {
     -webkit-line-clamp: 4;
+    font-size: var(--font-size-root);
   }
   .ds-section-grid.ds-card-grid .col-2-large.ds-card.sections-card-ui .card-stp-button-hover-background {
     inset-inline-start: 0;
@@ -5642,6 +5646,7 @@ main section {
   .ds-section-grid.ds-card-grid .col-3-medium .meta .info-wrap .title {
     -webkit-line-clamp: 3;
     margin-block: 0 var(--space-small);
+    font-size: var(--font-size-root);
   }
   .ds-section-grid.ds-card-grid .col-3-medium .meta .info-wrap .excerpt {
     display: block;
@@ -5682,6 +5687,7 @@ main section {
   }
   .ds-section-grid.ds-card-grid .col-3-large.ds-card.sections-card-ui .meta .excerpt {
     -webkit-line-clamp: 4;
+    font-size: var(--font-size-root);
   }
   .ds-section-grid.ds-card-grid .col-3-large.ds-card.sections-card-ui .card-stp-button-hover-background {
     inset-inline-start: 0;
@@ -5818,6 +5824,7 @@ main section {
   .ds-section-grid.ds-card-grid .col-4-medium .meta .info-wrap .title {
     -webkit-line-clamp: 3;
     margin-block: 0 var(--space-small);
+    font-size: var(--font-size-root);
   }
   .ds-section-grid.ds-card-grid .col-4-medium .meta .info-wrap .excerpt {
     display: block;
@@ -5858,6 +5865,7 @@ main section {
   }
   .ds-section-grid.ds-card-grid .col-4-large.ds-card.sections-card-ui .meta .excerpt {
     -webkit-line-clamp: 4;
+    font-size: var(--font-size-root);
   }
   .ds-section-grid.ds-card-grid .col-4-large.ds-card.sections-card-ui .card-stp-button-hover-background {
     inset-inline-start: 0;
