@@ -79,7 +79,7 @@ def test_query_paths_variants(run_mach, capfd, variant):
         "fuzzy",
         "--no-push",
         "-q",
-        "^test-linux '64-qr/debug-mochitest-browser-chrome%s-" % variant,
+        "^test-linux !ioi !vt '64-qr/debug-mochitest-browser-chrome%s-" % variant,
     ]
     assert run_mach(cmd) == 0
 
@@ -90,10 +90,8 @@ def test_query_paths_variants(run_mach, capfd, variant):
         expected = ["test-linux1804-64-qr/debug-mochitest-browser-chrome%s-*" % variant]
     else:
         expected = [
-            "test-linux1804-64-qr/debug-mochitest-browser-chrome-ioi",
             "test-linux1804-64-qr/debug-mochitest-browser-chrome-spi-nw-*",
             "test-linux1804-64-qr/debug-mochitest-browser-chrome-swr-*",
-            "test-linux1804-64-qr/debug-mochitest-browser-chrome-vt",
         ]
 
     delim = "Calculated try_task_config.json:"
@@ -133,7 +131,7 @@ def test_query_tags(run_mach, capfd, tag):
         "--tag",
         tag,
         "-q",
-        "^test-linux '64-qr/debug- !http !spi !swr !nofis !headless !xorig !async !ioi",
+        "^test-linux '64-qr/debug- !http !spi !swr !nofis !headless !xorig !async !ioi !vt",
     ]
     if tag == "not_a_valid_tag":
         assert run_mach(cmd) == 1
@@ -144,7 +142,6 @@ def test_query_tags(run_mach, capfd, tag):
         print(output)
 
         expected = [
-            "test-linux1804-64-qr/debug-mochitest-browser-chrome-vt",
             "test-linux1804-64-qr/debug-mochitest-devtools-chrome-*",
             "test-linux1804-64-qr/debug-mochitest-chrome-1proc-*",
             "test-linux1804-64-qr/debug-mochitest-chrome-gpu-1proc",
@@ -155,6 +152,9 @@ def test_query_tags(run_mach, capfd, tag):
             "test-linux1804-64-qr/debug-test-verify-gpu",
             "test-linux1804-64-qr/debug-test-verify-wpt",
         ]
+
+        if tag == "webextensions":
+            expected.remove("test-linux1804-64-qr/debug-mochitest-devtools-chrome-*")
 
         delim = "Calculated try_task_config.json:"
         index = output.find(delim)
