@@ -27,15 +27,42 @@ ChromeUtils.defineLazyGetter(lazy, "logger", () =>
  *
  * @param {ChromeWindow} win
  *     Window to request the animation frame from.
+ * @param {object=} options
+ * @param {number=} options.timeout
+ *     Timeout duration in milliseconds.
+ *     This copes with navigating away from hidden iframes: if
+ *     fragmentNavigated happens before their animation finishes, this would
+ *     never resolve otherwise. By default 1500 ms in an optimised build and
+ *     4500 ms in debug builds. Specify null to disable the timeout.
  *
  * @returns {Promise}
+ *
+ * @throws {TypeError}
+ * @throws {RangeError}
  */
-export function AnimationFramePromise(win) {
-  const animationFramePromise = new Promise(resolve => {
+export function AnimationFramePromise(win, options = {}) {
+  const { timeout = PROMISE_TIMEOUT } = options;
+
+  if (timeout !== null) {
+    if (typeof timeout != "number") {
+      throw new TypeError("timeout must be a number or null");
+    }
+
+    if (!Number.isInteger(timeout) || timeout < 0) {
+      throw new RangeError("timeout must be a non-negative integer");
+    }
+  }
+
+  const request = resolve => {
     executeSoon(() => {
       win.requestAnimationFrame(resolve);
     });
-  });
+  };
+
+  const animationFramePromise =
+    timeout !== null
+      ? new TimedPromise(request, { throws: null, timeout })
+      : new Promise(request);
 
   // Abort if the underlying window is no longer active (closed, BFCache)
   const unloadPromise = new EventPromise(win, "pagehide");

@@ -88,16 +88,36 @@ class MockAppender extends Log.Appender {
 }
 
 add_task(async function test_AnimationFramePromise() {
-  let called = false;
-  let win = {
-    addEventListener(_event, _listener) {},
-    requestAnimationFrame(callback) {
-      called = true;
-      callback();
-    },
-  };
-  await AnimationFramePromise(win);
-  ok(called);
+  for (const options of [
+    undefined, // default options
+    {}, //empty options
+    { timeout: null }, // disabled timeout
+    { timeout: 1234 }, // custom timeout
+  ]) {
+    let called = false;
+    let win = {
+      addEventListener(_event, _listener) {},
+      requestAnimationFrame(callback) {
+        called = true;
+        callback();
+      },
+    };
+    await AnimationFramePromise(win, options);
+    ok(called);
+  }
+});
+
+const mockNoopWindow = {
+  addEventListener(_event, _listener) {},
+  requestAnimationFrame(_callback) {},
+};
+
+add_task(async function test_AnimationFramePromiseDefaultTimeout() {
+  await AnimationFramePromise(mockNoopWindow);
+});
+
+add_task(async function test_AnimationFramePromiseCustomTimeout() {
+  await AnimationFramePromise(mockNoopWindow, { timeout: 10 });
 });
 
 add_task(async function test_AnimationFramePromiseAbortOnPageHide() {
@@ -124,6 +144,24 @@ add_task(async function test_AnimationFramePromiseAbortOnPageHide() {
   resolvePageHideEvent({});
 
   await trackedPromise;
+});
+
+add_task(async function test_AnimationFramePromiseTimeoutErrors() {
+  // not an number or null
+  for (const val of ["foo", true, [], {}]) {
+    Assert.throws(
+      () => AnimationFramePromise(mockNoopWindow, { timeout: val }),
+      /TypeError: timeout must be a number or null/
+    );
+  }
+
+  // not a nonnegative integer
+  for (const val of [-1, -100000, -1.2, 1.2]) {
+    Assert.throws(
+      () => AnimationFramePromise(mockNoopWindow, { timeout: val }),
+      /RangeError: timeout must be a non-negative integer/
+    );
+  }
 });
 
 add_task(async function test_DeferredPending() {
