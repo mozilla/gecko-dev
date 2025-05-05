@@ -194,6 +194,68 @@ export const ExperimentAPI = {
   },
 
   /**
+   * Used by getExperimentMetaData and getRolloutMetaData
+   *
+   * @param {{slug: string, featureId: string}} options Enrollment identifier
+   * @param isRollout Is enrollment an experiment or a rollout
+   * @returns {object} Enrollment metadata
+   */
+  _getEnrollmentMetaData({ slug, featureId }, isRollout) {
+    if (!slug && !featureId) {
+      throw new Error(
+        "getEnrollmentMetaData(options) must include a slug or a feature."
+      );
+    }
+
+    if (featureId && (NimbusFeatures[featureId]?.allowCoenrollment ?? false)) {
+      throw new Error(
+        "Co-enrolling features must use the getAllEnrollments or getAllEnrollmentMetadata APIs"
+      );
+    }
+
+    let experimentData;
+    try {
+      if (slug) {
+        experimentData = this._manager.store.get(slug);
+      } else if (featureId) {
+        if (isRollout) {
+          experimentData = this._manager.store.getRolloutForFeature(featureId);
+        } else {
+          experimentData =
+            this._manager.store.getExperimentForFeature(featureId);
+        }
+      }
+    } catch (e) {
+      console.error(e);
+    }
+    if (experimentData) {
+      return {
+        slug: experimentData.slug,
+        active: experimentData.active,
+        branch: { slug: experimentData.branch.slug },
+      };
+    }
+
+    return null;
+  },
+
+  /**
+   * Return experiment slug its status and the enrolled branch slug
+   * Does NOT send exposure event because you only have access to the slugs
+   */
+  getExperimentMetaData(options) {
+    return this._getEnrollmentMetaData(options);
+  },
+
+  /**
+   * Return rollout slug its status and the enrolled branch slug
+   * Does NOT send exposure event because you only have access to the slugs
+   */
+  getRolloutMetaData(options) {
+    return this._getEnrollmentMetaData(options, true);
+  },
+
+  /**
    * Return FeatureConfig from first active experiment where it can be found
    * @param {{slug: string, featureId: string }}
    * @returns {Branch | null}

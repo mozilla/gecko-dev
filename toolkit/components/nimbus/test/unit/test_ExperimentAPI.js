@@ -12,6 +12,93 @@ add_setup(function () {
   Services.fog.initializeFOG();
 });
 
+add_task(async function test_getExperimentMetaData() {
+  const { sandbox, manager, cleanup } = await NimbusTestUtils.setupTest();
+
+  const expected = NimbusTestUtils.factories.recipe.withFeatureConfig("foo", {
+    featureId: "testFeature",
+  });
+
+  let exposureStub = sandbox.stub(NimbusTelemetry, "recordExposure");
+
+  await manager.enroll(expected, "test");
+
+  let metadata = ExperimentAPI.getExperimentMetaData({ slug: expected.slug });
+
+  Assert.equal(
+    Object.keys(metadata.branch).length,
+    1,
+    "Should only expose one property"
+  );
+  Assert.equal(
+    metadata.branch.slug,
+    expected.branches[0].slug,
+    "Should have the slug prop"
+  );
+
+  Assert.ok(exposureStub.notCalled, "Not called for this method");
+
+  manager.unenroll(expected.slug);
+  cleanup();
+});
+
+add_task(async function test_getRolloutMetaData() {
+  const { sandbox, manager, cleanup } = await NimbusTestUtils.setupTest();
+
+  const expected = NimbusTestUtils.factories.recipe("foo", { isRollout: true });
+
+  let exposureStub = sandbox.stub(NimbusTelemetry, "recordExposure");
+
+  await manager.enroll(expected, "test");
+
+  let metadata = ExperimentAPI.getExperimentMetaData({ slug: expected.slug });
+
+  Assert.equal(
+    Object.keys(metadata.branch).length,
+    1,
+    "Should only expose one property"
+  );
+  Assert.equal(
+    metadata.branch.slug,
+    expected.branches[0].slug,
+    "Should have the slug prop"
+  );
+
+  Assert.ok(exposureStub.notCalled, "Not called for this method");
+
+  manager.unenroll(expected.slug);
+  cleanup();
+});
+
+add_task(async function test_getExperimentMetaData_safe() {
+  const { sandbox, manager, cleanup } = await NimbusTestUtils.setupTest();
+
+  const exposureStub = sandbox.stub(NimbusTelemetry, "recordExposure");
+  sandbox.stub(manager.store, "get").throws();
+  sandbox.stub(manager.store, "getExperimentForFeature").throws();
+
+  try {
+    const metadata = ExperimentAPI.getExperimentMetaData({ slug: "foo" });
+    Assert.equal(metadata, null, "Should not throw");
+  } catch (e) {
+    Assert.ok(false, "Error should be caught in ExperimentAPI");
+  }
+
+  Assert.ok(manager.store.get.calledOnce);
+
+  try {
+    const metadata = ExperimentAPI.getExperimentMetaData({ featureId: "foo" });
+    Assert.equal(metadata, null, "Should not throw");
+  } catch (e) {
+    Assert.ok(false, "Error should be caught in ExperimentAPI");
+  }
+
+  Assert.ok(manager.store.getExperimentForFeature.calledOnce);
+  Assert.ok(exposureStub.notCalled, "Not called for this feature");
+
+  cleanup();
+});
+
 /**
  * #getRecipe
  */
@@ -677,6 +764,16 @@ add_task(async function testCoenrollingTraditionalApis() {
       { featureId: "foo" },
       { isRollout: true }
     )
+  );
+
+  Assert.throws(
+    () => ExperimentAPI.getExperimentMetaData({ featureId: "foo" }),
+    /Co-enrolling features must use the getAllEnrollments or getAllEnrollmentMetadata APIs/
+  );
+
+  Assert.throws(
+    () => ExperimentAPI.getRolloutMetaData({ featureId: "foo" }),
+    /Co-enrolling features must use the getAllEnrollments or getAllEnrollmentMetadata APIs/
   );
 
   Assert.throws(

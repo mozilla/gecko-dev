@@ -10,11 +10,6 @@ const TELEMETRY_OBJECT = "nimbus_experiment";
 const EXPERIMENT_TYPE = "nimbus";
 const EVENT_FILTER = { category: TELEMETRY_CATEGORY };
 
-const TEST_FEATURE = new ExperimentFeature("test-feature", {
-  description: "Test feature",
-  exposureDescription: "Used in tests",
-});
-
 add_setup(async function () {
   let sandbox = sinon.createSandbox();
   // stub the `observe` method to make sure the Experiment Manager
@@ -24,36 +19,33 @@ add_setup(async function () {
     set: [["app.shield.optoutstudies.enabled", true]],
   });
 
-  const cleanupFeature = NimbusTestUtils.addTestFeatures(TEST_FEATURE);
-
   registerCleanupFunction(async () => {
     await SpecialPowers.popPrefEnv();
     sandbox.restore();
-
-    cleanupFeature();
   });
 });
 
 add_task(async function test_experiment_enroll_unenroll_Telemetry() {
   Services.telemetry.clearEvents();
   const cleanup = await NimbusTestUtils.enrollWithFeatureConfig({
-    featureId: TEST_FEATURE.featureId,
+    featureId: "test-feature",
     value: { enabled: false },
   });
 
-  const metadata =
-    NimbusFeatures[TEST_FEATURE.featureId].getEnrollmentMetadata();
+  const experiment = ExperimentAPI.getExperimentMetaData({
+    featureId: "test-feature",
+  });
 
-  Assert.ok(!!metadata, "Should be enrolled in the experiment");
+  Assert.ok(!!experiment, "Should be enrolled in the experiment");
   TelemetryTestUtils.assertEvents(
     [
       {
         method: "enroll",
         object: TELEMETRY_OBJECT,
-        value: metadata.slug,
+        value: experiment.slug,
         extra: {
           experimentType: EXPERIMENT_TYPE,
-          branch: metadata.branch,
+          branch: experiment.branch.slug,
         },
       },
     ],
@@ -67,10 +59,10 @@ add_task(async function test_experiment_enroll_unenroll_Telemetry() {
       {
         method: "unenroll",
         object: TELEMETRY_OBJECT,
-        value: metadata.slug,
+        value: experiment.slug,
         extra: {
           reason: "unknown",
-          branch: metadata.branch,
+          branch: experiment.branch.slug,
         },
       },
     ],
@@ -79,25 +71,33 @@ add_task(async function test_experiment_enroll_unenroll_Telemetry() {
 });
 
 add_task(async function test_experiment_expose_Telemetry() {
+  const feature = new ExperimentFeature("test-feature", {
+    description: "Test feature",
+    exposureDescription: "Used in tests",
+  });
+
+  const cleanupFeature = NimbusTestUtils.addTestFeatures(feature);
   const cleanup = await NimbusTestUtils.enrollWithFeatureConfig({
-    featureId: TEST_FEATURE.featureId,
+    featureId: "test-feature",
     value: { enabled: false },
   });
 
-  const meta = NimbusFeatures[TEST_FEATURE.featureId].getEnrollmentMetadata();
+  let experiment = ExperimentAPI.getExperimentMetaData({
+    featureId: "test-feature",
+  });
 
   Services.telemetry.clearEvents();
-  TEST_FEATURE.recordExposureEvent();
+  feature.recordExposureEvent();
 
   TelemetryTestUtils.assertEvents(
     [
       {
         method: "expose",
         object: TELEMETRY_OBJECT,
-        value: meta.slug,
+        value: experiment.slug,
         extra: {
-          branchSlug: meta.branch,
-          featureId: TEST_FEATURE.featureId,
+          branchSlug: experiment.branch.slug,
+          featureId: "test-feature",
         },
       },
     ],
@@ -105,33 +105,42 @@ add_task(async function test_experiment_expose_Telemetry() {
   );
 
   cleanup();
+  cleanupFeature();
 });
 
 add_task(async function test_rollout_expose_Telemetry() {
+  const featureManifest = {
+    description: "Test feature",
+    exposureDescription: "Used in tests",
+  };
   const cleanup = await NimbusTestUtils.enrollWithFeatureConfig(
     {
-      featureId: TEST_FEATURE.featureId,
+      featureId: "test-feature",
       value: { enabled: false },
     },
     { isRollout: true }
   );
 
-  const meta = NimbusFeatures[TEST_FEATURE.featureId].getEnrollmentMetadata();
+  let rollout = ExperimentAPI.getRolloutMetaData({
+    featureId: "test-feature",
+  });
 
-  Assert.ok(!!meta, "Found enrolled experiment");
+  Assert.ok(rollout.slug, "Found enrolled experiment");
+
+  const feature = new ExperimentFeature("test-feature", featureManifest);
 
   Services.telemetry.clearEvents();
-  TEST_FEATURE.recordExposureEvent();
+  feature.recordExposureEvent();
 
   TelemetryTestUtils.assertEvents(
     [
       {
         method: "expose",
         object: TELEMETRY_OBJECT,
-        value: meta.slug,
+        value: rollout.slug,
         extra: {
-          branchSlug: meta.branch,
-          featureId: TEST_FEATURE.featureId,
+          branchSlug: rollout.branch.slug,
+          featureId: feature.featureId,
         },
       },
     ],
