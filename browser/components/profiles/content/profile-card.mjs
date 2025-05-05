@@ -105,7 +105,7 @@ export class ProfileCard extends MozLitElement {
         rel="stylesheet"
         href="chrome://browser/content/profiles/profile-card.css"
       />
-      <moz-card
+      <div
         data-l10n-id="profile-card"
         data-l10n-args=${JSON.stringify({ profileName: this.profile.name })}
         class="profile-card"
@@ -137,7 +137,7 @@ export class ProfileCard extends MozLitElement {
             ></moz-button
           ></moz-button-group>
         </div>
-      </moz-card>`;
+      </div>`;
   }
 }
 
