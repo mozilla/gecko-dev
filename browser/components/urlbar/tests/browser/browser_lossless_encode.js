@@ -11,30 +11,42 @@ add_task(async function () {
   let tests = [
     ["https://example.com/   test", "https://example.com/%20%20 test"],
     [
-      "https://example.com/   \u0702test",
-      "https://example.com/%20%20 \u0702test",
+      "https://example.com/   \u{0702}test",
+      "https://example.com/%20%20 \u{0702}test",
     ],
     [
-      "https://example.com/ \u200C \u200C test",
+      "https://example.com/ \u{200C} \u{200C} test",
       "https://example.com/%20\u200C%20\u200C test",
     ],
     [
-      "https://example.com/\u2800test",
-      `https://example.com/${enc("\u2800")}test`,
+      "https://example.com/\u{2800}test",
+      `https://example.com/${enc("\u{2800}")}test`,
     ],
     [
-      "https://example.com/\u000Btest",
-      `https://example.com/${enc("\u000B")}test`,
+      "https://example.com/\u{000B}test",
+      `https://example.com/${enc("\u{000B}")}test`,
     ],
     [
-      "https://example.com/\u200D\u200C\u200Dtest",
-      `https://example.com/\u200D\u200C\u200Dtest`,
+      "https://example.com/\u{200D}\u{200C}\u{200D}test",
+      "https://example.com/\u{200D}\u{200C}\u{200D}test",
     ],
     [
       "javascript: (() => { alert('test'); } })();",
       "javascript: (() => { alert('test'); } })();",
     ],
     ["https://example.com/ %3Dtest", `https://example.com/ %3Dtest`],
+    [
+      "https://example.com/\u{E012A}test",
+      `https://example.com/${enc("\u{E012A}")}test`,
+    ],
+    [
+      "https://example.com/a\u{200C}\u{200D}b",
+      "https://example.com/a\u{200C}\u{200D}b",
+    ],
+    [
+      "https://example.com/a\u{00AD}\u{034F}\u{061C}b",
+      `https://example.com/a${enc("\u{00AD}\u{034F}\u{061C}")}b`,
+    ],
   ];
 
   await BrowserTestUtils.withNewTab(
