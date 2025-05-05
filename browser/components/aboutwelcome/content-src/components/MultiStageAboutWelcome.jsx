@@ -199,12 +199,11 @@ export const MultiStageAboutWelcome = props => {
   // multi select screen.
   const [activeMultiSelects, setActiveMultiSelects] = useState({});
 
-  // Save the active single select state for each screen as an object keyed
+  // Save the active single select state for each screen as string value keyed
   // by screen id. Similar to above, this allows us to remember the state of
   // each screen's single select picker when navigating back and forth between
-  // screens, and allows us to have multiple single selects on a screen.
-  const [activeSingleSelectSelections, setActiveSingleSelectSelections] =
-    useState({});
+  // screens.
+  const [activeSingleSelects, setActiveSingleSelects] = useState({});
 
   // Get the active theme so the rendering code can make it selected
   // by default.
@@ -284,25 +283,14 @@ export const MultiStageAboutWelcome = props => {
             });
           };
 
-          const setActiveSingleSelectSelection = (
-            valueOrFn,
-            singleSelectId
-          ) => {
-            setActiveSingleSelectSelections(prevState => {
-              const currentScreenSelections = prevState[currentScreen.id] || {};
-
-              return {
-                ...prevState,
-                [currentScreen.id]: {
-                  ...currentScreenSelections,
-                  [singleSelectId]:
-                    typeof valueOrFn === "function"
-                      ? valueOrFn(prevState[currentScreen.id])
-                      : valueOrFn,
-                },
-              };
-            });
-          };
+          const setActiveSingleSelect = valueOrFn =>
+            setActiveSingleSelects(prevState => ({
+              ...prevState,
+              [currentScreen.id]:
+                typeof valueOrFn === "function"
+                  ? valueOrFn(prevState[currentScreen.id])
+                  : valueOrFn,
+            }));
 
           return index === order ? (
             <WelcomeScreen
@@ -328,10 +316,8 @@ export const MultiStageAboutWelcome = props => {
               activeMultiSelect={activeMultiSelects[currentScreen.id]}
               setActiveMultiSelect={setActiveMultiSelect}
               autoAdvance={currentScreen.auto_advance}
-              activeSingleSelectSelections={
-                activeSingleSelectSelections[currentScreen.id]
-              }
-              setActiveSingleSelectSelection={setActiveSingleSelectSelection}
+              activeSingleSelect={activeSingleSelects[currentScreen.id]}
+              setActiveSingleSelect={setActiveSingleSelect}
               negotiatedLanguage={negotiatedLanguage}
               langPackInstallPhase={langPackInstallPhase}
               forceHideStepsIndicator={currentScreen.force_hide_steps_indicator}
@@ -496,63 +482,8 @@ export class WelcomeScreen extends React.PureComponent {
     return AboutWelcomeUtils.handleUserAction({ type, data });
   }
 
-  logTelemetry({ value, event, source, props }) {
-    AboutWelcomeUtils.sendActionTelemetry(props.messageId, source, event.name);
-
-    // Send additional telemetry if a messaging surface like feature callout is
-    // dismissed via the dismiss button. Other causes of dismissal will be
-    // handled separately by the messaging surface's own code.
-    if (value === "dismiss_button" && !event.name) {
-      AboutWelcomeUtils.sendDismissTelemetry(props.messageId, source);
-    }
-  }
-
-  async handleMigrationIfNeeded(action, props) {
-    const hasMigrate = a =>
-      a.type === "SHOW_MIGRATION_WIZARD" ||
-      (a.type === "MULTI_ACTION" && a.data?.actions?.some(hasMigrate));
-
-    if (hasMigrate(action)) {
-      await window.AWWaitForMigrationClose();
-      AboutWelcomeUtils.sendActionTelemetry(props.messageId, "migrate_close");
-    }
-  }
-
-  applyThemeIfNeeded(action, event) {
-    if (!action.theme) {
-      return;
-    }
-
-    const themeToUse =
-      action.theme === "<event>"
-        ? event.currentTarget.value
-        : this.props.initialTheme || action.theme;
-
-    this.props.setActiveTheme(themeToUse);
-    window.AWSelectTheme(themeToUse);
-  }
-
-  handlePickerAction(value) {
-    const tileGroups = Array.isArray(this.props.content.tiles)
-      ? this.props.content.tiles
-      : [this.props.content.tiles];
-
-    for (const tile of tileGroups) {
-      if (!tile?.data) {
-        continue;
-      }
-
-      for (const opt of tile.data) {
-        if (opt.id === value) {
-          AboutWelcomeUtils.handleUserAction(opt.action);
-          return;
-        }
-      }
-    }
-  }
-
   async handleAction(event) {
-    const { props } = this;
+    let { props } = this;
     const value =
       event.currentTarget.value ?? event.currentTarget.getAttribute("value");
     const source = event.source || value;
@@ -565,27 +496,20 @@ export class WelcomeScreen extends React.PureComponent {
       targetContent = { action: event.action };
     }
 
-    if (!targetContent) {
+    if (!(targetContent && targetContent.action)) {
       return;
-    }
-
-    let action;
-    if (Array.isArray(targetContent)) {
-      for (const tile of targetContent) {
-        const matchedTile = tile.data.find(t => t.id === value);
-        if (matchedTile?.action) {
-          action = matchedTile.action;
-          break;
-        }
-      }
-    } else if (!targetContent.action) {
-      return;
-    } else {
-      action = targetContent.action;
     }
     // Send telemetry before waiting on actions
-    this.logTelemetry({ value, event, source, props });
+    AboutWelcomeUtils.sendActionTelemetry(props.messageId, source, event.name);
 
+    // Send additional telemetry if a messaging surface like feature callout is
+    // dismissed via the dismiss button. Other causes of dismissal will be
+    // handled separately by the messaging surface's own code.
+    if (value === "dismiss_button" && !event.name) {
+      AboutWelcomeUtils.sendDismissTelemetry(props.messageId, source);
+    }
+
+    let { action } = targetContent;
     action = JSON.parse(JSON.stringify(action));
 
     if (action.collectSelect) {
@@ -619,14 +543,32 @@ export class WelcomeScreen extends React.PureComponent {
         AboutWelcomeUtils.handleUserAction(action);
       }
       // Wait until migration closes to complete the action
-      await this.handleMigrationIfNeeded(action, props);
+      const hasMigrate = a =>
+        a.type === "SHOW_MIGRATION_WIZARD" ||
+        (a.type === "MULTI_ACTION" && a.data?.actions?.some(hasMigrate));
+      if (hasMigrate(action)) {
+        await window.AWWaitForMigrationClose();
+        AboutWelcomeUtils.sendActionTelemetry(props.messageId, "migrate_close");
+      }
     }
 
     // A special tiles.action.theme value indicates we should use the event's value vs provided value.
-    this.applyThemeIfNeeded(action, event);
+    if (action.theme) {
+      let themeToUse =
+        action.theme === "<event>"
+          ? event.currentTarget.value
+          : this.props.initialTheme || action.theme;
+      this.props.setActiveTheme(themeToUse);
+      window.AWSelectTheme(themeToUse);
+    }
 
     if (action.picker) {
-      this.handlePickerAction(value);
+      let options = props.content.tiles.data;
+      options.forEach(opt => {
+        if (opt.id === value) {
+          AboutWelcomeUtils.handleUserAction(opt.action);
+        }
+      });
     }
 
     // If the action has persistActiveTheme: true, we set the initial theme to the currently active theme
@@ -759,10 +701,8 @@ export class WelcomeScreen extends React.PureComponent {
         setScreenMultiSelects={this.props.setScreenMultiSelects}
         activeMultiSelect={this.props.activeMultiSelect}
         setActiveMultiSelect={this.props.setActiveMultiSelect}
-        activeSingleSelectSelections={this.props.activeSingleSelectSelections}
-        setActiveSingleSelectSelection={
-          this.props.setActiveSingleSelectSelection
-        }
+        activeSingleSelect={this.props.activeSingleSelect}
+        setActiveSingleSelect={this.props.setActiveSingleSelect}
         totalNumberOfScreens={this.props.totalNumberOfScreens}
         appAndSystemLocaleInfo={this.props.appAndSystemLocaleInfo}
         negotiatedLanguage={this.props.negotiatedLanguage}
