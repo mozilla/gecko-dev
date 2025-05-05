@@ -7727,6 +7727,14 @@ void Document::RemoveChildNode(nsIContent* aKid, bool aNotify,
     // Destroy the link map up front before we mess with the child list.
     DestroyElementMaps();
 
+    // Skip any active view transition, since the view transition pseudo-element
+    // tree is attached to our root element. This is not in the spec (yet), but
+    // prevents the view transition pseudo tree from being in an inconsistent
+    // state. See https://github.com/w3c/csswg-drafts/issues/12149
+    if (RefPtr transition = mActiveViewTransition) {
+      transition->SkipTransition(SkipTransitionReason::RootRemoved);
+    }
+
     // Notify early so that we can clear the cached element after notifying,
     // without having to slow down nsINode::RemoveChildNode.
     if (aNotify) {

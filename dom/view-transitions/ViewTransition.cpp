@@ -1550,6 +1550,10 @@ void ViewTransition::SkipTransition(
         readyPromise->MaybeRejectWithInvalidStateError(
             "Duplicate view-transition-name value while capturing new state");
         break;
+      case SkipTransitionReason::RootRemoved:
+        readyPromise->MaybeRejectWithInvalidStateError(
+            "Skipped view transition due to root element going away");
+        break;
       case SkipTransitionReason::Resize:
         readyPromise->MaybeRejectWithInvalidStateError(
             "Skipped view transition due to viewport resize");

@@ -58,6 +58,7 @@ class ViewTransitionUpdateCallback;
 enum class SkipTransitionReason : uint8_t {
   JS,
   DocumentHidden,
+  RootRemoved,
   ClobberedActiveTransition,
   Timeout,
   UpdateCallbackRejected,
