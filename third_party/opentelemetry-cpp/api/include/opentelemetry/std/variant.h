@@ -220,9 +220,13 @@ inline constexpr bool holds_alternative(const variant<Ts...> &v) noexcept
   return v.index() == I;
 }
 
-template <typename T, typename... Ts>
-inline constexpr bool holds_alternative(const variant<Ts...> &v) noexcept
+template <typename T, template<typename...> typename U, typename... Ts>
+inline constexpr bool holds_alternative(const U<Ts...> &v) noexcept
 {
+  // Clang 18.1.7 on Ubuntu 24.04 does not disambiguate between this
+  // and std::holds_alternative if argument type is std::variant<Ts...>
+  static_assert(std::is_same_v<U<Ts...>, std::variant<Ts...>>,
+                "Unsupported argument type");
   return std::holds_alternative<T, Ts...>(v);
 }
 
