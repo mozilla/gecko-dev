@@ -6,7 +6,7 @@
 const { ExperimentAPI } = ChromeUtils.importESModule(
   "resource://nimbus/ExperimentAPI.sys.mjs"
 );
-const { ExperimentFakes } = ChromeUtils.importESModule(
+const { NimbusTestUtils } = ChromeUtils.importESModule(
   "resource://testing-common/NimbusTestUtils.sys.mjs"
 );
 const WebProtocolHandlerRegistrar = ChromeUtils.importESModule(
@@ -121,7 +121,7 @@ function test_rollout(
    * case which uses the rolled out feature.
    */
   Services.fog.testResetFOG();
-  return ExperimentFakes.enrollWithFeatureConfig(
+  return NimbusTestUtils.enrollWithFeatureConfig(
     {
       featureId: NimbusFeatures.mailto.featureId,
       value: {
