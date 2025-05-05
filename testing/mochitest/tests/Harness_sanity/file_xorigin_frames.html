@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Page that embeds two cross-origin frames</title>
+<body>
+<script>
+async function addFrame(id, filename) {
+  let url = new URL(filename, document.URL);
+  url.hostname = url.hostname === "example.com" ? "example.org" : "example.com";
+
+  let f = document.createElement("iframe");
+  f.id = id;
+  f.src = url.href;
+  await new Promise(resolve => {
+    f.onload = resolve;
+    document.body.append(f);
+  });
+}
+
+if (window === top) {
+  window.loadedPromise = Promise.all([
+    addFrame("frame1", "?this_is_child_frame_1"),
+    addFrame("frame2", "?this_is_child_frame_2"),
+  ]).then(() => "frames_all_loaded");
+} else {
+  document.body.append("This is child frame: " + location);
+}
+</script>

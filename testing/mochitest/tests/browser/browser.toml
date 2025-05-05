@@ -8,6 +8,9 @@ skip-if = [
   "verify",
 ]
 
+["browser_SpecialPowersForProcessSpawn.js"]
+support-files = ["../Harness_sanity/file_xorigin_frames.html"]
+
 ["browser_add_task.js"]
 
 ["browser_async.js"]

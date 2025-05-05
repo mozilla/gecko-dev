@@ -303,6 +303,7 @@ export class SpecialPowersChild extends JSWindowActorChild {
 
       case "Assert":
         {
+          // Handles info & Assert reports from SpecialPowersSandbox.sys.mjs.
           if ("info" in message.data) {
             (this.xpcshellScope || this.SimpleTest).info(message.data.info);
             break;
@@ -311,12 +312,11 @@ export class SpecialPowersChild extends JSWindowActorChild {
           // An assertion has been done in a mochitest chrome script
           let { name, passed, stack, diag, expectFail } = message.data;
 
-          let { SimpleTest } = this;
-          if (SimpleTest) {
-            let expected = expectFail ? "fail" : "pass";
-            SimpleTest.record(passed, name, diag, stack, expected);
-          } else if (this.xpcshellScope) {
+          if (this.xpcshellScope) {
             this.xpcshellScope.do_report_result(passed, name, stack);
+          } else if (this.SimpleTest) {
+            let expected = expectFail ? "fail" : "pass";
+            this.SimpleTest.record(passed, name, diag, stack, expected);
           } else {
             // Well, this is unexpected.
             dump(name + "\n");
@@ -1506,6 +1506,13 @@ export class SpecialPowersChild extends JSWindowActorChild {
    * The sandbox also has access to an Assert object, as provided by
    * Assert.sys.mjs. Any assertion methods called before the task resolves
    * will be relayed back to the test environment of the caller.
+   * Assertions triggered after a task returns may be relayed back if
+   * setAsDefaultAssertHandler() has been called, until this SpecialPowers
+   * instance is destroyed.
+   *
+   * If your assertions need to outlive this SpecialPowers instance,
+   * use SpecialPowersForProcess from SpecialPowersProcessActor.sys.mjs,
+   * which lives until the specified child process terminates.
    *
    * @param {BrowsingContext or FrameLoaderOwner or WindowProxy} target
    *        The target in which to run the task. This may be any element

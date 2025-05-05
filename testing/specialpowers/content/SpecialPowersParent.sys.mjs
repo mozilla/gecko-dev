@@ -194,10 +194,21 @@ export class SpecialPowersParent extends JSWindowActorParent {
         esModuleURI: "resource://testing-common/SpecialPowersParent.sys.mjs",
       },
     });
+    ChromeUtils.registerProcessActor("SpecialPowersProcessActor", {
+      child: {
+        esModuleURI:
+          "resource://testing-common/SpecialPowersProcessActor.sys.mjs",
+      },
+      parent: {
+        esModuleURI:
+          "resource://testing-common/SpecialPowersProcessActor.sys.mjs",
+      },
+    });
   }
 
   static unregisterActor() {
     ChromeUtils.unregisterWindowActor("SpecialPowers");
+    ChromeUtils.unregisterProcessActor("SpecialPowersProcessActor");
   }
 
   init() {

@@ -30,6 +30,7 @@ modules = [
     "content/SpecialPowersChild.sys.mjs",
     "content/SpecialPowersEventUtils.sys.mjs",
     "content/SpecialPowersParent.sys.mjs",
+    "content/SpecialPowersProcessActor.sys.mjs",
     "content/SpecialPowersSandbox.sys.mjs",
     "content/WrapPrivileged.sys.mjs",
 ]

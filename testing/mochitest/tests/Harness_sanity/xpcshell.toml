@@ -1,5 +1,9 @@
 [DEFAULT]
 
+["test_SpecialPowersForProcessSpawn.js"]
+prefs = ["dom.security.https_first=false"] #Disable https-first because createHttpServer does not support https
+support-files = ["file_xorigin_frames.html"]
+
 ["test_SpecialPowersSandbox.js"]
 prefs = ["dom.security.https_first=false"] #Disable https-first because createHttpServer does not support https
 

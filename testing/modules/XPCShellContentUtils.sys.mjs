@@ -23,6 +23,8 @@ ChromeUtils.defineESModuleGetters(lazy, {
   ContentTask: "resource://testing-common/ContentTask.sys.mjs",
   HttpServer: "resource://testing-common/httpd.sys.mjs",
   SpecialPowersParent: "resource://testing-common/SpecialPowersParent.sys.mjs",
+  SpecialPowersForProcess:
+    "resource://testing-common/SpecialPowersProcessActor.sys.mjs",
   TestUtils: "resource://testing-common/TestUtils.sys.mjs",
 });
 
@@ -257,6 +259,15 @@ export class ContentPage {
 
   spawn(params, task) {
     return this.SpecialPowers.spawn(this.browser, params, task);
+  }
+
+  // Get a SpecialPowersForProcess instance associated with the content process
+  // of the currently loaded page. This allows callers to spawn() tasks that
+  // outlive the page (for as long as the page's process is around).
+  getCurrentContentProcessSpecialPowers() {
+    const testScope = XPCShellContentUtils.currentScope;
+    const domProcess = this.browsingContext.currentWindowGlobal.domProcess;
+    return new lazy.SpecialPowersForProcess(testScope, domProcess);
   }
 
   // Like spawn(), but uses the legacy ContentTask infrastructure rather than
