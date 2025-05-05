@@ -76,7 +76,7 @@ Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/b86cb7278bc4e5571
  api/rtp_sender_setparameters_callback.h       | 28 +++++++++++
  api/task_queue/BUILD.gn                       |  2 +
  api/transport/BUILD.gn                        |  2 +
- call/BUILD.gn                                 |  8 +++-
+ call/BUILD.gn                                 |  2 +-
  call/audio_send_stream.h                      |  2 +-
  call/video_send_stream.h                      |  2 +-
  common_audio/BUILD.gn                         |  4 --
@@ -99,7 +99,7 @@ Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/b86cb7278bc4e5571
  test/BUILD.gn                                 | 10 ++++
  video/BUILD.gn                                |  4 +-
  webrtc.gni                                    | 32 ++++++++-----
- 31 files changed, 311 insertions(+), 97 deletions(-)
+ 31 files changed, 305 insertions(+), 97 deletions(-)
  create mode 100644 api/rtp_sender_setparameters_callback.cc
  create mode 100644 api/rtp_sender_setparameters_callback.h
  create mode 100644 common_audio/intrin.h
@@ -476,7 +476,7 @@ index 7769526e07..f56ce3ce54 100644
  if (rtc_include_tests) {
    rtc_source_set("test_feedback_generator_interface") {
 diff --git a/call/BUILD.gn b/call/BUILD.gn
-index 1e136c143f..e68b2a9304 100644
+index 1e136c143f..8a47e3dd55 100644
 --- a/call/BUILD.gn
 +++ b/call/BUILD.gn
 @@ -48,7 +48,7 @@ rtc_library("call_interfaces") {
@@ -488,19 +488,6 @@ index 1e136c143f..e68b2a9304 100644
      "../api:scoped_refptr",
      "../api:transport_api",
      "../api/adaptation:resource_adaptation_api",
-@@ -352,6 +352,12 @@ rtc_library("call") {
-     "//third_party/abseil-cpp/absl/functional:bind_front",
-     "//third_party/abseil-cpp/absl/strings:string_view",
-   ]
-+  if (build_with_mozilla) { # See Bug 1820869.
-+    deps -= [
-+      ":fake_network",
-+      ":simulated_network",
-+    ]
-+  }
- }
- 
- rtc_library("payload_type_picker") {
 diff --git a/call/audio_send_stream.h b/call/audio_send_stream.h
 index 768ba0b19e..2d2cc89b08 100644
 --- a/call/audio_send_stream.h

@@ -358,12 +358,6 @@ rtc_library("call") {
     "//third_party/abseil-cpp/absl/functional:bind_front",
     "//third_party/abseil-cpp/absl/strings:string_view",
   ]
-  if (build_with_mozilla) { # See Bug 1820869.
-    deps -= [
-      ":fake_network",
-      ":simulated_network",
-    ]
-  }
 }
 
 rtc_library("payload_type_picker") {
