@@ -320,6 +320,10 @@ class LandoAPI:
         """URL of the Lando Try endpoint."""
         return f"https://{self.api_url}/try/patches"
 
+    def lando_try_status_api_url(self, job_id: int) -> str:
+        """URL of the Lando Try Job Status endpoint."""
+        return f"https://{self.api_url}/landing_jobs/{job_id}"
+
     @property
     def api_headers(self) -> dict[str, str]:
         """Headers for use accessing and authenticating against the API."""
@@ -460,6 +464,10 @@ def push_to_lando_try(
         f"Landing job id: {job_id}."
     )
     print(success_msg)
+
+    lando_api_status_url = lando_api.lando_try_status_api_url(job_id)
+    print(f"Lando Job Status API: {lando_api_status_url}")
+
     # Send a notification only if the push took an unexpectedly long time
     if duration > 30:
         build.notify(success_msg)
