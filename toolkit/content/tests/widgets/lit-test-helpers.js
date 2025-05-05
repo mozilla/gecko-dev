@@ -115,12 +115,12 @@ class InputTestHelpers extends LitTestHelpers {
     let { activatedProperty } = this;
 
     function trackEvent(event) {
-      let reactiveProps = event.target.constructor.properties;
+      let reactiveProps = event.target.constructor?.properties;
       seenEvents.push({
         type: event.type,
-        value: event.target.value,
+        value: event.currentTarget.value,
         localName: event.currentTarget.localName,
-        ...(reactiveProps.hasOwnProperty(activatedProperty) && {
+        ...(reactiveProps?.hasOwnProperty(activatedProperty) && {
           [activatedProperty]: event.target[activatedProperty],
         }),
       });

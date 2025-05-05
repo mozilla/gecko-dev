@@ -72,6 +72,8 @@ skip-if = [
 
 ["test_moz_toggle.html"]
 
+["test_moz_visual_picker.html"]
+
 ["test_panel_item_accesskey.html"]
 
 ["test_panel_item_checkbox.html"]

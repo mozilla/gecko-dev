@@ -874,6 +874,14 @@
             "chrome://global/content/elements/moz-support-link.mjs",
           ],
           ["moz-toggle", "chrome://global/content/elements/moz-toggle.mjs"],
+          [
+            "moz-visual-picker",
+            "chrome://global/content/elements/moz-visual-picker.mjs",
+          ],
+          [
+            "moz-visual-picker-item",
+            "chrome://global/content/elements/moz-visual-picker.mjs",
+          ],
         ]) {
           if (!customElements.get(tag)) {
             customElements.setElementCreationCallback(
