@@ -1500,8 +1500,7 @@ bool nsLookAndFeel::ConfigureAltTheme() {
 }
 
 // We override some adwaita colors from GTK3 to LibAdwaita, see:
-// https://gnome.pages.gitlab.gnome.org/libadwaita/doc/1.7/css-variables.html
-// https://gitlab.gnome.org/GNOME/libadwaita/-/blob/690c0a70315c74b95b2cb5fa29622370b3195b0d/src/stylesheet/_defaults.scss
+// https://gnome.pages.gitlab.gnome.org/libadwaita/doc/main/named-colors.html
 void nsLookAndFeel::MaybeApplyColorOverrides() {
   auto& dark = mSystemTheme.mIsDark ? mSystemTheme : mAltTheme;
   auto& light = mSystemTheme.mIsDark ? mAltTheme : mSystemTheme;
@@ -1534,88 +1533,35 @@ void nsLookAndFeel::MaybeApplyColorOverrides() {
   }
 
   if (StaticPrefs::widget_gtk_libadwaita_colors_enabled()) {
-    // https://gitlab.gnome.org/GNOME/libadwaita/-/blob/main/src/stylesheet/widgets/_buttons.scss
-    // (which is somewhat confusingly also reused for fields).
-    auto ApplyLibadwaitaButtonColors = [](PerThemeData& aTheme) {
-      aTheme.mButtonBorder = NS_TRANSPARENT;
-      aTheme.mButton = aTheme.mButtonHover = aTheme.mButtonActive =
-          aTheme.mField = aTheme.mWindow;
-      // Window background combined with 10%, 15% and 30% of the foreground
-      // color, respectively.
-      aTheme.mButton.mBg = aTheme.mField.mBg = NS_ComposeColors(
-          aTheme.mWindow.mBg,
-          NS_RGBA(NS_GET_R(aTheme.mWindow.mFg), NS_GET_G(aTheme.mWindow.mFg),
-                  NS_GET_B(aTheme.mWindow.mFg), 26));
-      aTheme.mButtonHover.mBg = NS_ComposeColors(
-          aTheme.mWindow.mBg,
-          NS_RGBA(NS_GET_R(aTheme.mWindow.mFg), NS_GET_G(aTheme.mWindow.mFg),
-                  NS_GET_B(aTheme.mWindow.mFg), 39));
-      aTheme.mButtonActive.mBg = NS_ComposeColors(
-          aTheme.mWindow.mBg,
-          NS_RGBA(NS_GET_R(aTheme.mWindow.mFg), NS_GET_G(aTheme.mWindow.mFg),
-                  NS_GET_B(aTheme.mWindow.mFg), 77));
-    };
-
     if (light.mFamily == ThemeFamily::Adwaita) {
       // #323232 is rgba(0,0,0,.8) over #fafafa.
-      light.mWindow.mBg = NS_RGB(0xfa, 0xfa, 0xfb);
-      light.mWindow.mFg =
-          NS_ComposeColors(light.mWindow.mBg, NS_RGBA(0, 0, 6, 204));
-      light.mDialog = light.mWindow;
-
-      ApplyLibadwaitaButtonColors(light);
-
-      // FIXME(emilio): This is _technically_ not right, but the Firefox
-      // front-end relies on this right now to not look really ugly. Arguably
-      // Menu backgrounds or so is what should be used for the urlbar popups,
-      // rather than Field...
-      light.mField.mBg = NS_RGB(0xff, 0xff, 0xff);
-
-      // rgba(0,0,6,.8) over the background.
-      light.mSidebar.mBg = NS_RGB(0xeb, 0xeb, 0xed);
-      light.mSidebar.mFg =
-          NS_ComposeColors(light.mSidebar.mBg, NS_RGBA(0, 0, 6, 204));
+      light.mWindow =
+          light.mDialog = {NS_RGB(0xfa, 0xfa, 0xfa), NS_RGB(0x32, 0x32, 0x32)};
+      light.mField = {NS_RGB(0xff, 0xff, 0xff), NS_RGB(0x32, 0x32, 0x32)};
 
       // We use the sidebar colors for the headerbar in light mode background
       // because it creates much better contrast. GTK headerbar colors are
-      // white, and meant to "blend" with the contents otherwise, but that
-      // doesn't work fine for Firefox's toolbars.
-      light.mHeaderBar = light.mTitlebar = light.mHeaderBarInactive =
-          light.mTitlebarInactive = light.mSidebar;
-
-      // headerbar_backdrop_color
-      light.mHeaderBarInactive.mBg = light.mTitlebarInactive.mBg =
-          light.mWindow.mBg;
-
+      // white, and meant to "blend" with the contents otherwise. #2f2f2f is
+      // rgba(0,0,0,.8) over #ebebeb.
+      light.mSidebar = light.mHeaderBar = light.mTitlebar = {
+          NS_RGB(0xeb, 0xeb, 0xeb), NS_RGB(0x2f, 0x2f, 0x2f)};
+      light.mHeaderBarInactive = light.mTitlebarInactive = {
+          NS_RGB(0xf2, 0xf2, 0xf2), NS_RGB(0x2f, 0x2f, 0x2f)};
       light.mThreeDShadow = NS_RGB(0xe0, 0xe0, 0xe0);
       light.mSidebarBorder = NS_RGBA(0, 0, 0, 18);
-
-      // popover_bg_color, popover_fg_color
-      light.mMenu.mBg = NS_RGB(0xff, 0xff, 0xff);
-      light.mMenu.mFg =
-          NS_ComposeColors(light.mMenu.mBg, NS_RGBA(0, 0, 6, 204));
     }
 
     if (dark.mFamily == ThemeFamily::Adwaita) {
-      dark.mWindow = {NS_RGB(0x22, 0x22, 0x26), NS_RGB(0xff, 0xff, 0xff)};
-      dark.mDialog = {NS_RGB(0x36, 0x36, 0x3a), NS_RGB(0xff, 0xff, 0xff)};
-
-      ApplyLibadwaitaButtonColors(dark);
-
-      dark.mSidebar = dark.mHeaderBar = dark.mTitlebar =
-          dark.mHeaderBarInactive = dark.mTitlebarInactive = {
-              NS_RGB(0x2e, 0x2e, 0x32), NS_RGB(0xff, 0xff, 0xff)};
-
-      // headerbar_backdrop_color
-      dark.mHeaderBarInactive.mBg = dark.mTitlebarInactive.mBg =
-          dark.mWindow.mBg;
-
+      dark.mWindow = {NS_RGB(0x24, 0x24, 0x24), NS_RGB(0xff, 0xff, 0xff)};
+      dark.mDialog = {NS_RGB(0x38, 0x38, 0x38), NS_RGB(0xff, 0xff, 0xff)};
+      dark.mField = {NS_RGB(0x3a, 0x3a, 0x3a), NS_RGB(0xff, 0xff, 0xff)};
+      dark.mSidebar = dark.mHeaderBar =
+          dark.mTitlebar = {NS_RGB(0x30, 0x30, 0x30), NS_RGB(0xff, 0xff, 0xff)};
+      dark.mHeaderBarInactive = dark.mTitlebarInactive = {
+          NS_RGB(0x24, 0x24, 0x24), NS_RGB(0xff, 0xff, 0xff)};
       // headerbar_shade_color
       dark.mThreeDShadow = NS_RGB(0x1f, 0x1f, 0x1f);
       dark.mSidebarBorder = NS_RGBA(0, 0, 0, 92);
-
-      // popover_bg_color, popover_fg_color
-      dark.mMenu = {NS_RGB(0x36, 0x36, 0x3a), NS_RGB(0xff, 0xff, 0xff)};
     }
   }
 
