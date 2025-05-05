@@ -103,4 +103,73 @@ class URLRendererTest {
             assertEquals(Color.GREEN, suffixSpans[0].foregroundColor)
         }
     }
+
+    private suspend fun testRenderWithColoredUrl(
+        testUrl: String,
+        expectedRegistrableDomainSpan: Pair<Int, Int>,
+    ) {
+        val configuration = ToolbarFeature.UrlRenderConfiguration(
+            publicSuffixList = PublicSuffixList(testContext, Dispatchers.Unconfined),
+            registrableDomainColor = Color.RED,
+            urlColor = Color.GREEN,
+            renderStyle = ToolbarFeature.RenderStyle.ColoredUrl,
+        )
+
+        val toolbar: Toolbar = mock()
+
+        val renderer = URLRenderer(toolbar, configuration)
+
+        renderer.updateUrl(testUrl)
+
+        val captor = argumentCaptor<CharSequence>()
+        verify(toolbar).url = captor.capture()
+
+        assertNotNull(captor.value)
+        assertTrue(captor.value is SpannableStringBuilder)
+        val url = captor.value as SpannableStringBuilder
+
+        assertEquals(testUrl, url.toString())
+
+        val spans = url.getSpans(0, url.length, ForegroundColorSpan::class.java)
+
+        assertEquals(2, spans.size)
+        assertEquals(Color.GREEN, spans[0].foregroundColor)
+        assertEquals(Color.RED, spans[1].foregroundColor)
+
+        assertEquals(0, url.getSpanStart(spans[0]))
+        assertEquals(testUrl.length, url.getSpanEnd(spans[0]))
+
+        assertEquals(expectedRegistrableDomainSpan.first, url.getSpanStart(spans[1]))
+        assertEquals(expectedRegistrableDomainSpan.second, url.getSpanEnd(spans[1]))
+    }
+
+    @Test
+    fun `Render with simple URL`() {
+        runTestOnMain {
+            testRenderWithColoredUrl(
+                testUrl = "https://www.mozilla.org/",
+                expectedRegistrableDomainSpan = 12 to 23,
+            )
+        }
+    }
+
+    @Test
+    fun `Render with URL containing domain with trailing period`() {
+        runTestOnMain {
+            testRenderWithColoredUrl(
+                testUrl = "https://www.mozilla.org./",
+                expectedRegistrableDomainSpan = 12 to 23,
+            )
+        }
+    }
+
+    @Test
+    fun `Render with URL containing repeated domain`() {
+        runTestOnMain {
+            testRenderWithColoredUrl(
+                testUrl = "https://mozilla.org.mozilla.org/",
+                expectedRegistrableDomainSpan = 20 to 31,
+            )
+        }
+    }
 }

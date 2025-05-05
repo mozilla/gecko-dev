@@ -94,17 +94,20 @@ private suspend fun SpannableStringBuilder.colorRegistrableDomain(
     configuration: ToolbarFeature.UrlRenderConfiguration,
 ) {
     val url = toString()
-    val host = url.toUri().host ?: return
+    val host = url.toUri().host?.removeSuffix(".") ?: return
 
     val registrableDomain = configuration
         .publicSuffixList
         .getPublicSuffixPlusOne(host)
         .await() ?: return
 
-    val index = url.indexOf(registrableDomain)
-    if (index == -1) {
+    val indexOfHost = url.indexOf(host)
+    val indexOfRegistrableDomain = host.lastIndexOf(registrableDomain)
+    if (indexOfHost == -1 || indexOfRegistrableDomain == -1) {
         return
     }
+
+    val index = indexOfHost + indexOfRegistrableDomain
 
     setSpan(
         ForegroundColorSpan(configuration.registrableDomainColor),
