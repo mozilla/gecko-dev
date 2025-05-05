@@ -10,7 +10,6 @@ directory.
 import json
 import os
 
-import six
 from createprecomplete import generate_precomplete
 
 import mozpack.path as mozpath
@@ -92,7 +91,7 @@ class L10NRepackFormatterMixin:
                 root, ext = mozpath.splitext(mozpath.basename(path))
                 self._dictionaries[root] = path
         elif path.endswith("/built_in_addons.json"):
-            data = json.loads(six.ensure_text(file.open().read()))
+            data = json.loads(file.open().read())
             data["dictionaries"] = self._dictionaries
             # The GeneratedFile content is only really generated after
             # all calls to formatter.add.

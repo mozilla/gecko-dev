@@ -8,8 +8,6 @@ import os
 import re
 from collections import deque
 
-import six
-
 import mozpack.path as mozpath
 from mozbuild.preprocessor import Preprocessor
 from mozpack.chrome.manifest import (
@@ -279,12 +277,12 @@ class SimplePackager:
             self._file_queue.append(self.formatter.add, path, file)
             if mozpath.basename(path) == "install.rdf":
                 addon = True
-                install_rdf = six.ensure_text(file.open().read())
+                install_rdf = file.open().read().decode()
                 if self.UNPACK_ADDON_RE.search(install_rdf):
                     addon = "unpacked"
                 self._add_addon(mozpath.dirname(path), addon)
             elif mozpath.basename(path) == "manifest.json":
-                manifest = six.ensure_text(file.open().read())
+                manifest = file.open().read()
                 try:
                     parsed = json.loads(manifest)
                 except ValueError:

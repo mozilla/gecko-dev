@@ -3,8 +3,7 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 import codecs
-
-from six.moves.urllib.parse import urlparse
+from urllib.parse import urlparse
 
 import mozpack.path as mozpath
 from mozpack.chrome.manifest import (
