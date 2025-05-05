@@ -262,14 +262,14 @@ wr_malloc_size_of = { path = "gfx/wr/wr_malloc_size_of" }
 objc = { git = "https://github.com/glandium/rust-objc", rev = "4de89f5aa9851ceca4d40e7ac1e2759410c04324" }
 
 # application-services overrides to make updating them all simpler.
-interrupt-support = { git = "https://github.com/mozilla/application-services", rev = "280db3a3a06a8f517151ff0b84b5ce67fcc7afd6" }
-relevancy = { git = "https://github.com/mozilla/application-services", rev = "280db3a3a06a8f517151ff0b84b5ce67fcc7afd6" }
-search = { git = "https://github.com/mozilla/application-services", rev = "280db3a3a06a8f517151ff0b84b5ce67fcc7afd6" }
-sql-support = { git = "https://github.com/mozilla/application-services", rev = "280db3a3a06a8f517151ff0b84b5ce67fcc7afd6" }
-suggest = { git = "https://github.com/mozilla/application-services", rev = "280db3a3a06a8f517151ff0b84b5ce67fcc7afd6" }
-sync15 = { git = "https://github.com/mozilla/application-services", rev = "280db3a3a06a8f517151ff0b84b5ce67fcc7afd6" }
-tabs = { git = "https://github.com/mozilla/application-services", rev = "280db3a3a06a8f517151ff0b84b5ce67fcc7afd6" }
-viaduct = { git = "https://github.com/mozilla/application-services", rev = "280db3a3a06a8f517151ff0b84b5ce67fcc7afd6" }
-webext-storage = { git = "https://github.com/mozilla/application-services", rev = "280db3a3a06a8f517151ff0b84b5ce67fcc7afd6" }
+interrupt-support = { git = "https://github.com/mozilla/application-services", rev = "40ae79e2825fa242a349e17fcfc84fb99fd92197" }
+relevancy = { git = "https://github.com/mozilla/application-services", rev = "40ae79e2825fa242a349e17fcfc84fb99fd92197" }
+search = { git = "https://github.com/mozilla/application-services", rev = "40ae79e2825fa242a349e17fcfc84fb99fd92197" }
+sql-support = { git = "https://github.com/mozilla/application-services", rev = "40ae79e2825fa242a349e17fcfc84fb99fd92197" }
+suggest = { git = "https://github.com/mozilla/application-services", rev = "40ae79e2825fa242a349e17fcfc84fb99fd92197" }
+sync15 = { git = "https://github.com/mozilla/application-services", rev = "40ae79e2825fa242a349e17fcfc84fb99fd92197" }
+tabs = { git = "https://github.com/mozilla/application-services", rev = "40ae79e2825fa242a349e17fcfc84fb99fd92197" }
+viaduct = { git = "https://github.com/mozilla/application-services", rev = "40ae79e2825fa242a349e17fcfc84fb99fd92197" }
+webext-storage = { git = "https://github.com/mozilla/application-services", rev = "40ae79e2825fa242a349e17fcfc84fb99fd92197" }
 
 allocator-api2 = { path = "third_party/rust/allocator-api2" }

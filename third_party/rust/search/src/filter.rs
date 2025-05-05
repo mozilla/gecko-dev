@@ -11,8 +11,9 @@ use crate::{
     JSONEngineUrls, JSONEngineVariant, JSONSearchConfigurationRecords, RefinedSearchConfig,
     SearchEngineDefinition, SearchEngineUrl, SearchEngineUrls, SearchUserEnvironment,
 };
-use crate::{sort_helpers, JSONEngineOrdersRecord};
+use crate::{sort_helpers, JSONAvailableLocalesRecord, JSONEngineOrdersRecord};
 use remote_settings::RemoteSettingsRecord;
+use std::collections::HashSet;
 
 impl From<JSONEngineUrl> for SearchEngineUrl {
     fn from(url: JSONEngineUrl) -> Self {
@@ -143,7 +144,7 @@ pub(crate) struct FilterRecordsResult {
 pub(crate) trait Filter {
     fn filter_records(
         &self,
-        user_environment: &SearchUserEnvironment,
+        user_environment: &mut SearchUserEnvironment,
         overrides: Option<Vec<JSONOverridesRecord>>,
     ) -> Result<FilterRecordsResult, Error>;
 }
@@ -158,12 +159,48 @@ fn apply_overrides(engines: &mut [SearchEngineDefinition], overrides: &[JSONOver
     }
 }
 
+fn negotiate_languages(user_environment: &mut SearchUserEnvironment, available_locales: &[String]) {
+    let user_locale = user_environment.locale.to_lowercase();
+
+    let available_locales_set: HashSet<String> = available_locales
+        .iter()
+        .map(|locale| locale.to_lowercase())
+        .collect();
+
+    if available_locales_set.contains(&user_locale) {
+        return;
+    }
+    if user_locale.starts_with("en-") {
+        user_environment.locale = "en-us".to_string();
+        return;
+    }
+    if let Some(index) = user_locale.find('-') {
+        let base_locale = &user_locale[..index];
+        if available_locales_set.contains(base_locale) {
+            user_environment.locale = base_locale.to_string();
+        }
+    }
+}
+
 impl Filter for Vec<RemoteSettingsRecord> {
     fn filter_records(
         &self,
-        user_environment: &SearchUserEnvironment,
+        user_environment: &mut SearchUserEnvironment,
         overrides: Option<Vec<JSONOverridesRecord>>,
     ) -> Result<FilterRecordsResult, Error> {
+        let mut available_locales = Vec::new();
+        for record in self {
+            if let Some(val) = record.fields.get("recordType") {
+                if *val == "availableLocales" {
+                    let stringified = serde_json::to_string(&record.fields)?;
+                    let locales_record: Option<JSONAvailableLocalesRecord> =
+                        serde_json::from_str(&stringified)?;
+                    available_locales = locales_record.unwrap().locales;
+                }
+            }
+        }
+        negotiate_languages(user_environment, &available_locales);
+
         let mut engines = Vec::new();
         let mut default_engines_record = None;
         let mut engine_orders_record = None;
@@ -188,6 +225,9 @@ impl Filter for Vec<RemoteSettingsRecord> {
                 Some(val) if *val == "engineOrders" => {
                     engine_orders_record = serde_json::from_str(&stringified)?;
                 }
+                Some(val) if *val == "availableLocales" => {
+                    // Handled above
+                }
                 // These cases are acceptable - we expect the potential for new
                 // record types/options so that we can be flexible.
                 Some(_val) => {}
@@ -210,9 +250,17 @@ impl Filter for Vec<RemoteSettingsRecord> {
 impl Filter for Vec<JSONSearchConfigurationRecords> {
     fn filter_records(
         &self,
-        user_environment: &SearchUserEnvironment,
+        user_environment: &mut SearchUserEnvironment,
         overrides: Option<Vec<JSONOverridesRecord>>,
     ) -> Result<FilterRecordsResult, Error> {
+        let mut available_locales = Vec::new();
+        for record in self {
+            if let JSONSearchConfigurationRecords::AvailableLocales(locales_record) = record {
+                available_locales = locales_record.locales.clone();
+            }
+        }
+        negotiate_languages(user_environment, &available_locales);
+
         let mut engines = Vec::new();
         let mut default_engines_record = None;
         let mut engine_orders_record = None;
@@ -228,6 +276,9 @@ impl Filter for Vec<JSONSearchConfigurationRecords> {
                 }
                 JSONSearchConfigurationRecords::EngineOrders(engine_orders) => {
                     engine_orders_record = Some(engine_orders)
+                }
+                JSONSearchConfigurationRecords::AvailableLocales(_) => {
+                    // Handled above
                 }
                 JSONSearchConfigurationRecords::Unknown => {
                     // Prevents panics if a new record type is added in future.
@@ -246,6 +297,7 @@ impl Filter for Vec<JSONSearchConfigurationRecords> {
         })
     }
 }
+
 pub(crate) fn filter_engine_configuration_impl(
     user_environment: SearchUserEnvironment,
     configuration: &impl Filter,
@@ -256,7 +308,7 @@ pub(crate) fn filter_engine_configuration_impl(
     user_environment.region = user_environment.region.to_lowercase();
     user_environment.version = user_environment.version.to_lowercase();
 
-    let filtered_result = configuration.filter_records(&user_environment, overrides);
+    let filtered_result = configuration.filter_records(&mut user_environment, overrides);
 
     filtered_result.map(|result| {
         let (default_engine_id, default_private_engine_id) = determine_default_engines(
@@ -1325,6 +1377,63 @@ mod tests {
             default_engine_private_id.unwrap(),
             "engine4wildcardmatch",
             "Should have returned the specific default for private mode when using a wildcard match"
+        );
+    }
+
+    #[test]
+    fn test_locale_matched_exactly() {
+        let mut user_env = SearchUserEnvironment {
+            locale: "en-CA".into(),
+            ..Default::default()
+        };
+        negotiate_languages(&mut user_env, &["en-CA".to_string(), "fr".to_string()]);
+        assert_eq!(
+            user_env.locale, "en-CA",
+            "Should return user locale unchanged if in available locales"
+        );
+    }
+
+    #[test]
+    fn test_locale_fallback_to_base_locale() {
+        let mut user_env = SearchUserEnvironment {
+            locale: "de-AT".into(),
+            ..Default::default()
+        };
+        negotiate_languages(&mut user_env, &["de".to_string()]);
+        assert_eq!(
+            user_env.locale, "de",
+            "Should fallback to base locale if base is in available locales"
+        );
+    }
+
+    static ENGLISH_LOCALES: &[&str] = &["en-AU", "en-IE", "en-RU", "en-ZA"];
+
+    #[test]
+    fn test_english_locales_fallbacks_to_en_us() {
+        for user_locale in ENGLISH_LOCALES {
+            let mut user_env = SearchUserEnvironment {
+                locale: user_locale.to_string(),
+                ..Default::default()
+            };
+            negotiate_languages(&mut user_env, &["en-US".to_string()]);
+            assert_eq!(
+                user_env.locale, "en-us",
+                "Should remap {} to en-us when en-us is available",
+                user_locale
+            );
+        }
+    }
+
+    #[test]
+    fn test_locale_unmatched() {
+        let mut user_env = SearchUserEnvironment {
+            locale: "fr-CA".into(),
+            ..Default::default()
+        };
+        negotiate_languages(&mut user_env, &["de".to_string(), "en-US".to_string()]);
+        assert_eq!(
+            user_env.locale, "fr-CA",
+            "Should leave locale unchanged if no match or english locale fallback is not found"
         );
     }
 }

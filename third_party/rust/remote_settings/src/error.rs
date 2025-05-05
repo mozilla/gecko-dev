@@ -30,7 +30,9 @@ pub enum Error {
     #[error("JSON Error: {0}")]
     JSONError(#[from] serde_json::Error),
     #[error("Error writing downloaded attachment: {0}")]
-    FileError(#[from] std::io::Error),
+    AttachmentFileError(std::io::Error),
+    #[error("Error creating storage dir: {0}")]
+    CreateDirError(std::io::Error),
     /// An error has occurred while sending a request.
     #[error("Error sending request: {0}")]
     RequestError(#[from] viaduct::Error),
@@ -87,7 +89,7 @@ impl GetErrorHandling for Error {
             _ => ErrorHandling::convert(RemoteSettingsError::Other {
                 reason: self.to_string(),
             })
-            .report_error("logins-unexpected"),
+            .report_error("remote-settings-unexpected"),
         }
     }
 }

@@ -234,8 +234,8 @@ impl RemoteSettings {
         path: String,
     ) -> ApiResult<()> {
         let resp = self.client.get_attachment(&attachment_id)?;
-        let mut file = File::create(path)?;
-        file.write_all(&resp)?;
+        let mut file = File::create(path).map_err(Error::AttachmentFileError)?;
+        file.write_all(&resp).map_err(Error::AttachmentFileError)?;
         Ok(())
     }
 }

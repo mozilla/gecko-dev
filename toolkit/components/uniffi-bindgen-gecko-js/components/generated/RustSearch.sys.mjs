@@ -615,7 +615,7 @@ export class JsonEngineUrl {
         }
         /**
          * The PrePath and FilePath of the URL. May include variables for engines
-         * which have a variable FilePath, e.g. `{searchTerm}` for when a search
+         * which have a variable FilePath, e.g. `{searchTerms}` for when a search
          * term is within the path of the url.
          * @type {?string}
          */
@@ -633,7 +633,7 @@ export class JsonEngineUrl {
         this.params = params;
         /**
          * The name of the query parameter for the search term. Automatically
-         * appended to the end of the query. This may be skipped if `{searchTerm}`
+         * appended to the end of the query. This may be skipped if `{searchTerms}`
          * is included in the base.
          * @type {?string}
          */
@@ -1343,7 +1343,7 @@ export class SearchEngineUrl {
         }
         /**
          * The PrePath and FilePath of the URL. May include variables for engines
-         * which have a variable FilePath, e.g. `{searchTerm}` for when a search
+         * which have a variable FilePath, e.g. `{searchTerms}` for when a search
          * term is within the path of the url.
          * @type {string}
          */
@@ -1361,7 +1361,7 @@ export class SearchEngineUrl {
         this.params = params;
         /**
          * The name of the query parameter for the search term. Automatically
-         * appended to the end of the query. This may be skipped if `{searchTerm}`
+         * appended to the end of the query. This may be skipped if `{searchTerms}`
          * is included in the base.
          * @type {?string}
          */
