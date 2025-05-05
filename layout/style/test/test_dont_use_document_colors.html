@@ -141,6 +141,8 @@ function systemColor(c) {
     if (alphaString.includes(".")) {
       while (alphaString[alphaString.length - 1] == "0")
         alphaString = alphaString.substring(0, alphaString.length - 1);
+      if (alphaString == "0.")
+        alphaString = "0";
     }
     return `rgba(${r}, ${g}, ${b}, ${alphaString})`;
 }
