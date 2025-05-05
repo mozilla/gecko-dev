@@ -1859,7 +1859,7 @@ nsIFrame* nsContainerFrame::GetFirstNonAnonBoxInSubtree(nsIFrame* aFrame) {
     // Otherwise, descend to its first child and repeat.
 
     // SPECIAL CASE: if we're dealing with an anonymous table, then it might
-    // be wrapping something non-anonymous in its caption or col-group lists
+    // be wrapping something non-anonymous in its col-group list
     // (instead of its principal child list), so we have to look there.
     // (Note: For anonymous tables that have a non-anon cell *and* a non-anon
     // column, we'll always return the column. This is fine; we're really just

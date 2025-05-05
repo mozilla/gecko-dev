@@ -2131,11 +2131,11 @@ nsIFrame* nsCSSFrameConstructor::ConstructTable(nsFrameConstructorState& aState,
   nsFrameList captionList;
   PullOutCaptionFrames(childList, captionList);
 
-  // Set the inner table frame's initial primary list
+  // Set the inner table frame's principal child list.
   innerFrame->SetInitialChildList(FrameChildListID::Principal,
                                   std::move(childList));
 
-  // Set the table wrapper frame's secondary childlist lists
+  // Append caption frames to the table wrapper frame's principal child list.
   if (captionList.NotEmpty()) {
     captionList.ApplySetParent(newFrame);
     newFrame->AppendFrames(FrameChildListID::Principal, std::move(captionList));
@@ -6701,11 +6701,12 @@ void nsCSSFrameConstructor::ContentInserted(nsIContent* aChild,
 // pass the first node in the range to GetInsertionPrevSibling, and if
 // IsValidSibling (the only place GetInsertionPrevSibling might look at the
 // passed in node itself) needs to resolve style on the node we record this and
-// return that this range needs to be split up and inserted separately. Table
-// captions need extra attention as we need to determine where to insert them
-// in the caption list, while skipping any nodes in the range being inserted
-// (because when we treat the caption frames the other nodes have had their
-// frames constructed but not yet inserted into the frame tree).
+// return that this range needs to be split up and inserted separately.
+// Table captions require special handling, as we need to determine where to
+// insert them in the table wrapper frame's principal child list while skipping
+// any nodes in the range being inserted. This is because when we process the
+// caption frames, the other nodes have already had their frames constructed,
+// but those frames have not yet been inserted into the frame tree.
 void nsCSSFrameConstructor::ContentRangeInserted(nsIContent* aStartChild,
                                                  nsIContent* aEndChild,
                                                  InsertionKind aInsertionKind) {
@@ -7111,8 +7112,8 @@ void nsCSSFrameConstructor::ContentRangeInserted(nsIContent* aStartChild,
     CheckForFirstLineInsertion(insertion.mParentFrame, captionList);
   }
 
-  // We might have captions; put them into the caption list of the
-  // table wrapper frame.
+  // We might have captions; put them into the principal child list of the table
+  // wrapper frame.
   if (captionList.NotEmpty()) {
     NS_ASSERTION(LayoutFrameType::Table == frameType ||
                      LayoutFrameType::TableWrapper == frameType,
