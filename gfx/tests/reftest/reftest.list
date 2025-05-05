@@ -48,3 +48,4 @@ fuzzy-if(winWidget,0-1,0-13) == 1873708-emoji-canvas-filter.html 1873708-emoji-c
 != 1870240-colrv1-cycle.html 1870240-colrv1-cycle-notref.html
 == 1909933.html 1909933-ref.html
 fuzzy(0-2,0-6229) random-if(Android) == 1912431-emoji-globalAlpha.html 1912431-emoji-globalAlpha-ref.html
+skip-if(!cocoaWidget) == 1964225-1.html 1964225-1-ref.html
