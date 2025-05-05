@@ -77,11 +77,9 @@ let wllamaModule = null;
  */
 export class LlamaPipeline {
   wllama = null;
-  #errorFactory = null;
 
-  constructor(wllama, errorFactory) {
+  constructor(wllama) {
     this.wllama = wllama;
-    this.#errorFactory = errorFactory;
   }
 
   static async initialize(
@@ -102,8 +100,7 @@ export class LlamaPipeline {
       useMlock = true,
       kvCacheDtype = "q8_0",
       numThreadsDecoding = 0,
-    } = {},
-    errorFactory
+    } = {}
   ) {
     if (!wllamaModule) {
       wllamaModule = await wllamaPromise;
@@ -179,7 +176,7 @@ export class LlamaPipeline {
 
     lazy.console.debug("Init time", performance.now() - startInitTime);
 
-    return new LlamaPipeline(wllama, errorFactory);
+    return new LlamaPipeline(wllama);
   }
 
   /**
@@ -330,8 +327,7 @@ export class LlamaPipeline {
 
       return { done: true, finalOutput: output, ok: true, metrics: [] };
     } catch (error) {
-      const backendError = this.#errorFactory(error);
-      port?.postMessage({ done: true, ok: false, error: backendError });
+      port?.postMessage({ done: true, ok: false, error });
 
       inferenceProgressCallback?.({
         ok: false,
@@ -344,7 +340,7 @@ export class LlamaPipeline {
         statusText: Progress.ProgressStatusText.DONE,
       });
 
-      throw backendError;
+      throw error;
     }
   }
 }

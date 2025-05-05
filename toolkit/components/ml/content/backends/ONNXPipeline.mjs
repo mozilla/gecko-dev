@@ -305,17 +305,14 @@ export class ONNXPipeline {
   #isReady = false;
   #config = null;
   #metrics = null;
-  #errorFactory = null;
 
   /**
    * Creates an instance of a Pipeline.
    *
    * @param {object} mlEngineWorker - Implements the Cache interface and used to get models
    * @param {object} config - The configuration options
-   * @param {*} errorFactory - error class passed by the backend factory.
    */
-  constructor(mlEngineWorker, config, errorFactory) {
-    this.#errorFactory = errorFactory;
+  constructor(mlEngineWorker, config) {
     this.#mlEngineWorker = mlEngineWorker;
     this.#metrics = [];
     // Setting up the Transformers.js environment
@@ -463,10 +460,9 @@ export class ONNXPipeline {
    * @param {object} mlEngineWorker - Implements the Cache interface and used to get models
    * @param {ArrayBuffer} runtime - The runtime wasm file.
    * @param {PipelineOptions} options - The options for initialization.
-   * @param {*} errorFactory - error class passed by the backend factory.
    * @returns {Promise<Pipeline>} The initialized pipeline instance.
    */
-  static async initialize(mlEngineWorker, runtime, options, errorFactory) {
+  static async initialize(mlEngineWorker, runtime, options) {
     let snapShot = {
       when: Date.now(),
       ...(await mlEngineWorker.getInferenceProcessInfo()),
@@ -508,7 +504,7 @@ export class ONNXPipeline {
     if (lazy.console.logLevel != config.logLevel) {
       lazy.console.logLevel = config.logLevel;
     }
-    const pipeline = new ONNXPipeline(mlEngineWorker, config, errorFactory);
+    const pipeline = new ONNXPipeline(mlEngineWorker, config);
     await pipeline.ensurePipelineIsReady();
     await pipeline.#metricsSnapShot({
       name: "initializationStart",
@@ -542,12 +538,7 @@ export class ONNXPipeline {
           this.#config.modelId != "test-echo"
         ) {
           lazy.console.debug("Initializing pipeline");
-          try {
-            this.#genericPipelineFunction = await this.#genericPipelineFunction;
-          } catch (error) {
-            lazy.console.debug("Error initializing pipeline", error);
-            throw this.#errorFactory(error);
-          }
+          this.#genericPipelineFunction = await this.#genericPipelineFunction;
         } else {
           lazy.console.debug("Initializing model, tokenizer and processor");
 
@@ -558,7 +549,7 @@ export class ONNXPipeline {
             this.#isReady = true;
           } catch (error) {
             lazy.console.debug("Error initializing pipeline", error);
-            throw this.#errorFactory(error);
+            throw error;
           }
         }
       } finally {

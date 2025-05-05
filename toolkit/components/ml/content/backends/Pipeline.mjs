@@ -26,7 +26,6 @@ ChromeUtils.defineESModuleGetters(
 export async function getBackend(consumer, wasm, options) {
   const pipelineOptions = new lazy.PipelineOptions(options);
   var factory;
-  let backendName = pipelineOptions.backend || "onnx";
 
   switch (pipelineOptions.backend) {
     case "onnx":
@@ -39,27 +38,5 @@ export async function getBackend(consumer, wasm, options) {
       factory = lazy.ONNXPipeline.initialize;
   }
 
-  const BackendErrorWithName = err => new BackendError(backendName, err);
-  return await factory(consumer, wasm, pipelineOptions, BackendErrorWithName);
-}
-
-/**
- * Wraps a runtime error the backend can use to throw errors.
- *
- * Sometimes onnx sends us back integer values.
- */
-export class BackendError extends Error {
-  constructor(backendName, backendError) {
-    const capitalizedBackend =
-      backendName.charAt(0).toUpperCase() + backendName.slice(1);
-    if (backendError instanceof Error) {
-      super(backendError.message);
-      this.stack = backendError.stack;
-    } else {
-      super(`Backend error: ${String(backendError)}`);
-    }
-    this.backendError = backendError;
-    this.name = `${capitalizedBackend}BackendError`;
-    this.backendName = backendName;
-  }
+  return await factory(consumer, wasm, pipelineOptions);
 }
