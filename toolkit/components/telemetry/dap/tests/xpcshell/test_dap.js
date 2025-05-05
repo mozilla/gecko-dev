@@ -14,10 +14,10 @@ const { AppConstants } = ChromeUtils.importESModule(
 const lazy = {};
 
 ChromeUtils.defineESModuleGetters(lazy, {
-  ExperimentFakes: "resource://testing-common/NimbusTestUtils.sys.mjs",
   ExperimentManager: "resource://nimbus/lib/ExperimentManager.sys.mjs",
   DAPTelemetrySender: "resource://gre/modules/DAPTelemetrySender.sys.mjs",
   DAPVisitCounter: "resource://gre/modules/DAPVisitCounter.sys.mjs",
+  NimbusTestUtils: "resource://testing-common/NimbusTestUtils.sys.mjs",
 });
 
 const BinaryInputStream = Components.Constructor(
@@ -184,7 +184,7 @@ add_task(
 
     // Enroll experiment
     let doExperimentCleanup =
-      await lazy.ExperimentFakes.enrollWithFeatureConfig({
+      await lazy.NimbusTestUtils.enrollWithFeatureConfig({
         featureId: "dapTelemetry",
         value: {
           enabled: true,
