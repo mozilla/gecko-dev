@@ -32,24 +32,28 @@ import MozillaAppServices
 
 ## Initializing the Curated Recommendations Client
 
-The `CuratedRecommendationsClient` requires a `userAgentHeader` and optionally accepts a `baseHost` for customizing the target environment. By default, it uses the production host.
+The `CuratedRecommendationsClient` is initialized using a `CuratedRecommendationsConfig` object. This includes a required `userAgentHeader` and an optional `baseHost`. If `baseHost` is not provided, the client will default to the production host.
 
 :::{tab-set-code}
 ```kotlin
 
-val client = CuratedRecommendationsClient(
-    baseHost = "https://merino.services.mozilla.com",
+val config = CuratedRecommendationsConfig(
+    baseHost = "https://merino.services.mozilla.com"
     userAgentHeader = "Mozilla/5.0"
 )
+
+val client = CuratedRecommendationsClient(config)
 
 ```
 
 ```swift
 
-let client = CuratedRecommendationsClient(
-    baseHost: "https://merino.services.mozilla.com",
+let config = CuratedRecommendationsConfig(
+    baseHost: "https://merino.services.mozilla.com"
     userAgentHeader: "Mozilla/5.0"
 )
+
+let client = try CuratedRecommendationsClient(config: config)
 
 ```
 :::
