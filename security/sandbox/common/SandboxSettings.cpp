@@ -146,13 +146,18 @@ int GetEffectiveContentSandboxLevel() {
     return 0;
   }
   int level = StaticPrefs::security_sandbox_content_level_DoNotUseDirectly();
-// On Windows and macOS, enforce a minimum content sandbox level of 1 (except on
-// Nightly, where it can be set to 0).
 #if !defined(NIGHTLY_BUILD) && (defined(XP_WIN) || defined(XP_MACOSX))
-  if (level < 1) {
-    level = 1;
-  }
+  // On non-Nightly Windows and macOS, enforce a minimum sandbox level of 1.
+  static const int minimumLevel = 1;
+#elif defined(NIGHTLY_BUILD) && defined(XP_WIN)
+  // On Windows Nightly, enforce a minimum sandbox level of 6.
+  static const int minimumLevel = 6;
+#else
+  static const int minimumLevel = 0;
 #endif
+  if (level < minimumLevel) {
+    level = minimumLevel;
+  }
 #ifdef XP_LINUX
   // Level 1 was a configuration with default-deny seccomp-bpf but
   // which allowed direct filesystem access; that required additional
