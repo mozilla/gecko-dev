@@ -4,6 +4,7 @@
 
 package org.mozilla.fenix.downloads.listscreen.middleware
 
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -29,7 +30,7 @@ class DownloadDeleteMiddleware(
     private val dispatcher: CoroutineDispatcher = Dispatchers.Main,
 ) : Middleware<DownloadUIState, DownloadUIAction> {
 
-    private var deleteJob: Job? = null
+    private var lastDeleteOperation: DeleteOperation? = null
 
     /*
      * CoroutineScope used to launch the delete operation. This is a custom CoroutineScope with
@@ -48,7 +49,7 @@ class DownloadDeleteMiddleware(
             is DownloadUIAction.AddPendingDeletionSet ->
                 startDelayedRemoval(context, action.itemIds, undoDelayProvider.undoDelay)
 
-            is DownloadUIAction.UndoPendingDeletionSet -> deleteJob?.cancel()
+            is DownloadUIAction.UndoPendingDeletion -> lastDeleteOperation?.cancel()
             else -> {
                 // no - op
             }
@@ -60,10 +61,30 @@ class DownloadDeleteMiddleware(
         items: Set<String>,
         delay: Long,
     ) {
-        deleteJob = coroutineScope.launch {
-            delay(delay)
-            items.forEach { removeDownloadUseCase(it) }
-            context.dispatch(DownloadUIAction.FileItemDeletedSuccessfully)
+        val job = coroutineScope.launch {
+            try {
+                delay(delay)
+                items.forEach { removeDownloadUseCase(it) }
+                context.dispatch(DownloadUIAction.FileItemDeletedSuccessfully)
+            } catch (e: CancellationException) {
+                context.store.dispatch(DownloadUIAction.UndoPendingDeletionSet(items))
+            } finally {
+                // This avoids mistakenly clearing lastDeleteOperation if another job was started before
+                // this one finished.
+                if (lastDeleteOperation?.items == items) {
+                    lastDeleteOperation = null
+                }
+            }
+        }
+        lastDeleteOperation = DeleteOperation(job, items)
+    }
+
+    private data class DeleteOperation(
+        private val deleteJob: Job,
+        val items: Set<String>,
+    ) {
+        fun cancel() {
+            deleteJob.cancel(CancellationException("Undo deletion"))
         }
     }
 }

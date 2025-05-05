@@ -41,6 +41,11 @@ sealed interface DownloadUIAction : Action {
     data class AddPendingDeletionSet(val itemIds: Set<String>) : DownloadUIAction
 
     /**
+     * [DownloadUIAction] to undo the last pending deletion of a set of downloaded files.
+     */
+    data object UndoPendingDeletion : DownloadUIAction
+
+    /**
      * [DownloadUIAction] to undo a set of [FileItem] IDs from the pending deletion set.
      */
     data class UndoPendingDeletionSet(val itemIds: Set<String>) : DownloadUIAction

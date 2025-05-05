@@ -105,10 +105,12 @@ class DownloadMiddleware(
     private fun removeDownload(
         downloadId: String,
         store: Store<BrowserState, BrowserAction>,
-    ) = scope.launch {
-        store.state.downloads[downloadId]?.let {
-            downloadStorage.remove(it)
-            logger.debug("Removed download ${it.fileName} from the storage")
+    ) {
+        val downloadToDelete = store.state.downloads[downloadId] ?: return
+
+        scope.launch {
+            downloadStorage.remove(downloadToDelete)
+            logger.debug("Removed download ${downloadToDelete.fileName} from the storage")
         }
     }
 

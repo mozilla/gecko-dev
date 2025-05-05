@@ -5,20 +5,15 @@
 package org.mozilla.fenix.downloads.listscreen.store
 
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import mozilla.components.browser.state.action.BrowserAction
-import mozilla.components.browser.state.action.DownloadAction
 import mozilla.components.browser.state.state.BrowserState
 import mozilla.components.browser.state.state.content.DownloadState
 import mozilla.components.browser.state.store.BrowserStore
 import mozilla.components.feature.downloads.DownloadsUseCases
 import mozilla.components.support.test.libstate.ext.waitUntilIdle
-import mozilla.components.support.test.middleware.CaptureActionsMiddleware
 import mozilla.components.support.test.rule.MainCoroutineRule
-import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotSame
 import org.junit.Assert.assertSame
-import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -38,22 +33,12 @@ class DownloadUIStoreTest {
     val coroutineTestRule = MainCoroutineRule()
     private val dispatcher = coroutineTestRule.testDispatcher
     private val scope = coroutineTestRule.scope
-    private lateinit var browserStoreMiddleware: CaptureActionsMiddleware<BrowserState, BrowserAction>
 
     private val fakeFormatter = FakeFileSizeFormatter()
     private val today = LocalDate.of(2025, 5, 31)
+    private val older = LocalDate.of(2025, 4, 20)
     private val fakeDateTimeProvider = FakeDateTimeProvider(today)
     private val zoneId = fakeDateTimeProvider.currentZoneId()
-
-    @Before
-    fun setup() {
-        browserStoreMiddleware = CaptureActionsMiddleware()
-    }
-
-    @After
-    fun teardown() {
-        browserStoreMiddleware.reset()
-    }
 
     private val fileItem1 = FileItem(
         id = "1",
@@ -82,12 +67,24 @@ class DownloadUIStoreTest {
         id = "2",
         url = "url",
         fileName = "title",
-        filePath = "url",
+        filePath = "downloads/title",
         formattedSize = "77",
         displayedShortUrl = "url",
         contentType = "jpg",
         status = DownloadState.Status.COMPLETED,
         createdTime = CreatedTime.OLDER,
+    )
+
+    private val downloadState2 = DownloadState(
+        id = "2",
+        url = "url",
+        createdTime = older.toEpochMilli(zoneId),
+        fileName = "title",
+        status = DownloadState.Status.COMPLETED,
+        contentLength = 77,
+        destinationDirectory = "downloads",
+        directoryPath = "downloads",
+        contentType = "jpg",
     )
 
     @Test
@@ -305,10 +302,6 @@ class DownloadUIStoreTest {
         dispatcher.scheduler.advanceTimeBy(UNDO_DELAY_PASSED.milliseconds)
         assertEquals(store.state.pendingDeletionIds, deleteItemSet)
         assertEquals(expectedUIStateAfterDeleteAction, store.state)
-
-        browserStoreMiddleware.assertLastAction(DownloadAction.RemoveDownloadAction::class) { action ->
-            assertEquals(fileItem1.id, action.downloadId)
-        }
     }
 
     @Test
@@ -317,22 +310,28 @@ class DownloadUIStoreTest {
             BrowserState(downloads = mapOf("1" to downloadState1)),
         )
 
-        val deleteItemSet = setOf(fileItem1.id)
-        store.dispatch(DownloadUIAction.AddPendingDeletionSet(deleteItemSet))
-        val expectedUIState = DownloadUIState(
+        val deleteItemSet = setOf("1")
+        val expectedUIStateBeforeDeleteAction = DownloadUIState(
             items = listOf(fileItem1),
             mode = DownloadUIState.Mode.Normal,
-            pendingDeletionIds = deleteItemSet,
+            pendingDeletionIds = emptySet(),
         )
-        assertEquals(expectedUIState, store.state)
 
-        store.dispatch(DownloadUIAction.UndoPendingDeletionSet(deleteItemSet))
-        assertEquals(store.state.pendingDeletionIds, emptySet<String>())
+        val expectedUIStateAfterDeleteAction = DownloadUIState(
+            items = listOf(fileItem1),
+            mode = DownloadUIState.Mode.Normal,
+            pendingDeletionIds = setOf("1"),
+        )
+        assertEquals(expectedUIStateBeforeDeleteAction, store.state)
+
+        store.dispatch(DownloadUIAction.AddPendingDeletionSet(deleteItemSet))
+        assertEquals(expectedUIStateAfterDeleteAction, store.state)
+
+        store.dispatch(DownloadUIAction.UndoPendingDeletion)
+        assertEquals(expectedUIStateBeforeDeleteAction, store.state)
 
         dispatcher.scheduler.advanceTimeBy(UNDO_DELAY_PASSED.milliseconds)
-        assertEquals(store.state.pendingDeletionIds, emptySet<String>())
-
-        browserStoreMiddleware.assertNotDispatched(DownloadAction.RemoveDownloadAction::class)
+        assertEquals(expectedUIStateBeforeDeleteAction, store.state)
     }
 
     @Test
@@ -341,28 +340,70 @@ class DownloadUIStoreTest {
             BrowserState(downloads = mapOf("1" to downloadState1)),
         )
 
-        val deleteItemSet = setOf(fileItem1.id)
-        store.dispatch(DownloadUIAction.AddPendingDeletionSet(deleteItemSet))
-        val expectedUIState = DownloadUIState(
+        val expectedUIStateBeforeDeleteAction = DownloadUIState(
             items = listOf(fileItem1),
             mode = DownloadUIState.Mode.Normal,
-            pendingDeletionIds = deleteItemSet,
+            pendingDeletionIds = emptySet(),
         )
-        assertEquals(expectedUIState, store.state)
+        val expectedUIStateAfterDeleteAction = DownloadUIState(
+            items = listOf(fileItem1),
+            mode = DownloadUIState.Mode.Normal,
+            pendingDeletionIds = setOf("1"),
+        )
+
+        assertEquals(expectedUIStateBeforeDeleteAction, store.state)
+
+        store.dispatch(DownloadUIAction.AddPendingDeletionSet(setOf("1")))
+        assertEquals(expectedUIStateAfterDeleteAction, store.state)
 
         dispatcher.scheduler.advanceTimeBy(UNDO_DELAY_PASSED.milliseconds)
-        store.dispatch(DownloadUIAction.UndoPendingDeletionSet(deleteItemSet))
+        store.dispatch(DownloadUIAction.UndoPendingDeletion)
+        dispatcher.scheduler.advanceUntilIdle()
 
-        browserStoreMiddleware.assertLastAction(DownloadAction.RemoveDownloadAction::class) { action ->
-            assertEquals(fileItem1.id, action.downloadId)
-        }
+        assertEquals(expectedUIStateAfterDeleteAction, store.state)
     }
 
-    private fun provideDownloadUIStore(initialState: BrowserState = BrowserState()): DownloadUIStore {
-        val browserStore = BrowserStore(
-            initialState = initialState,
-            middleware = listOf(browserStoreMiddleware),
+    @Test
+    fun deleteTwoElementsAndCancelTwice() {
+        val store = provideDownloadUIStore(
+            BrowserState(downloads = mapOf("1" to downloadState1, "2" to downloadState2)),
         )
+
+        val expectedUIStateBeforeDeleteAction = DownloadUIState(
+            items = listOf(fileItem1, fileItem2),
+            mode = DownloadUIState.Mode.Normal,
+            pendingDeletionIds = emptySet(),
+        )
+        val expectedUIStateAfterFirstDeleteAction = DownloadUIState(
+            items = listOf(fileItem1, fileItem2),
+            mode = DownloadUIState.Mode.Normal,
+            pendingDeletionIds = setOf("2"),
+        )
+        val expectedUIStateAfterSecondDeleteAction = DownloadUIState(
+            items = listOf(fileItem1, fileItem2),
+            mode = DownloadUIState.Mode.Normal,
+            pendingDeletionIds = setOf("1", "2"),
+        )
+
+        assertEquals(expectedUIStateBeforeDeleteAction, store.state)
+
+        store.dispatch(DownloadUIAction.AddPendingDeletionSet(setOf("2")))
+        assertEquals(expectedUIStateAfterFirstDeleteAction, store.state)
+
+        store.dispatch(DownloadUIAction.AddPendingDeletionSet(setOf("1")))
+        assertEquals(expectedUIStateAfterSecondDeleteAction, store.state)
+
+        store.dispatch(DownloadUIAction.UndoPendingDeletion)
+        assertEquals(expectedUIStateAfterFirstDeleteAction, store.state)
+
+        store.dispatch(DownloadUIAction.UndoPendingDeletion)
+        assertEquals(expectedUIStateAfterFirstDeleteAction, store.state)
+    }
+
+    private fun provideDownloadUIStore(
+        initialState: BrowserState = BrowserState(),
+    ): DownloadUIStore {
+        val browserStore = BrowserStore(initialState = initialState)
 
         val deleteMiddleware = DownloadDeleteMiddleware(
             FakeDelayProvider(UNDO_DELAY),
@@ -530,6 +571,26 @@ class DownloadUIStoreTest {
         )
 
         assertEquals(expectedList, downloadsStore.state.itemsState)
+    }
+
+    @Test
+    fun `WHEN UpdateFileItems action is triggered THEN state is updated and keep the items even if they are listed in pendingDeletionIds`() {
+        val downloadUIStore = DownloadUIStore(
+            initialState = DownloadUIState(
+                items = listOf(fileItem1),
+                mode = DownloadUIState.Mode.Normal,
+                pendingDeletionIds = setOf(fileItem1.id),
+            ),
+        )
+
+        val expectedState = DownloadUIState(
+            items = listOf(fileItem1, fileItem2),
+            mode = DownloadUIState.Mode.Normal,
+            pendingDeletionIds = setOf(fileItem1.id),
+        )
+
+        downloadUIStore.dispatch(DownloadUIAction.UpdateFileItems(listOf(fileItem1, fileItem2)))
+        assertEquals(expectedState, downloadUIStore.state)
     }
 
     private fun LocalDate.toEpochMilli(zoneId: ZoneId): Long {

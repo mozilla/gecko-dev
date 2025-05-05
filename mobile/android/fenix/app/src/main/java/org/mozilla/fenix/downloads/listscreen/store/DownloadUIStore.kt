@@ -58,18 +58,12 @@ private fun downloadStateReducer(
 
         is DownloadUIAction.ExitEditMode -> state.copy(mode = Mode.Normal)
         is DownloadUIAction.AddPendingDeletionSet ->
-            state.copy(
-                pendingDeletionIds = state.pendingDeletionIds + action.itemIds,
-            )
+            state.copy(pendingDeletionIds = state.pendingDeletionIds + action.itemIds)
 
         is DownloadUIAction.UndoPendingDeletionSet ->
-            state.copy(
-                pendingDeletionIds = state.pendingDeletionIds - action.itemIds,
-            )
+            state.copy(pendingDeletionIds = state.pendingDeletionIds - action.itemIds)
 
-        is DownloadUIAction.UpdateFileItems -> state.copy(
-            items = action.items.filter { it.id !in state.pendingDeletionIds },
-        )
+        is DownloadUIAction.UpdateFileItems -> state.copy(items = action.items)
 
         is DownloadUIAction.ContentTypeSelected -> state.copy(userSelectedContentTypeFilter = action.contentTypeFilter)
 
@@ -81,6 +75,7 @@ private fun downloadStateReducer(
         DownloadUIAction.Init -> state
         is DownloadUIAction.ShareUrlClicked -> state
         is DownloadUIAction.ShareFileClicked -> state
+        is DownloadUIAction.UndoPendingDeletion -> state
 
         is DownloadUIAction.SearchBarDismissRequest -> state.copy(
             isSearchFieldRequested = false,

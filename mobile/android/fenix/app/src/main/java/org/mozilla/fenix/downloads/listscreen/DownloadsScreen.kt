@@ -90,7 +90,7 @@ import org.mozilla.fenix.theme.FirefoxTheme
  *
  * @param downloadsStore The [DownloadUIStore] used to manage and access the state of download items.
  * @param undoDelayProvider Provider for the undo delay duration when deleting items.
- *   This determines how long the undo action will be available in the snackbar.
+ *   This determines how long the undo snackbar will be visible.
  * @param onItemClick Callback invoked when a download item is clicked.
  * @param onNavigationIconClick Callback for the back button click in the toolbar.
  */
@@ -247,7 +247,7 @@ fun DownloadsScreen(
                     context = context,
                     undoAction = {
                         downloadsStore.dispatch(
-                            DownloadUIAction.UndoPendingDeletionSet(it),
+                            DownloadUIAction.UndoPendingDeletion,
                         )
                     },
                 )

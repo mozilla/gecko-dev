@@ -15,11 +15,9 @@ import org.mozilla.fenix.downloads.listscreen.store.DownloadUIState.Mode
  * @property mode Current [Mode] of the Download screen.
  * @property pendingDeletionIds Set of [FileItem] IDs that are waiting to be deleted.
  * @property isDeleteDialogVisible Flag indicating whether the delete confirmation dialog is currently visible.
- * the "can't open file" snackbar is currently visible.
  * @property searchQuery The search query entered by the user. This is used to filter the list of items.
  * @param isSearchFieldRequested Indicates whether the search field is requested to be shown.
  * @param isSearchEnabled Feature flag for search functionality.
- *
  * @param userSelectedContentTypeFilter The user selected [FileItem.ContentTypeFilter].
  */
 data class DownloadUIState(
@@ -78,8 +76,8 @@ data class DownloadUIState(
     private val itemsToDisplay: List<DownloadListItem> = itemsMatchingFilters
         .groupBy { it.createdTime }
         .toSortedMap()
-        .flatMap { (key, value) ->
-            listOf(HeaderItem(key)) + value
+        .flatMap { (createdTime, fileItems) ->
+            listOf(HeaderItem(createdTime)) + fileItems
         }
 
     /**
