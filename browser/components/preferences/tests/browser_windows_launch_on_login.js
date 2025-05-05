@@ -14,7 +14,7 @@ const { ExperimentAPI } = ChromeUtils.importESModule(
   "resource://nimbus/ExperimentAPI.sys.mjs"
 );
 
-const { ExperimentFakes } = ChromeUtils.importESModule(
+const { NimbusTestUtils } = ChromeUtils.importESModule(
   "resource://testing-common/NimbusTestUtils.sys.mjs"
 );
 
@@ -48,7 +48,7 @@ add_setup(() => {
 
 add_task(async function test_check_uncheck_checkbox() {
   await ExperimentAPI.ready();
-  let doCleanup = await ExperimentFakes.enrollWithFeatureConfig({
+  let doCleanup = await NimbusTestUtils.enrollWithFeatureConfig({
     featureId: "windowsLaunchOnLogin",
     value: { enabled: true },
   });
@@ -88,7 +88,7 @@ add_task(async function create_external_regkey() {
     return;
   }
   await ExperimentAPI.ready();
-  let doCleanup = await ExperimentFakes.enrollWithFeatureConfig({
+  let doCleanup = await NimbusTestUtils.enrollWithFeatureConfig({
     featureId: "windowsLaunchOnLogin",
     value: { enabled: true },
   });
@@ -148,7 +148,7 @@ add_task(async function delete_external_regkey() {
     return;
   }
   await ExperimentAPI.ready();
-  let doCleanup = await ExperimentFakes.enrollWithFeatureConfig({
+  let doCleanup = await NimbusTestUtils.enrollWithFeatureConfig({
     featureId: "windowsLaunchOnLogin",
     value: { enabled: true },
   });
