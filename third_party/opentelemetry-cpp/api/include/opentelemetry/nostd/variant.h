@@ -54,6 +54,19 @@ OPENTELEMETRY_END_NAMESPACE
 #  ifdef HAVE_ABSEIL
 #    include "absl/types/variant.h"
 #  else
+#    include "opentelemetry/nostd/internal/absl/base/options.h"
+
+namespace absl
+{
+namespace OTABSL_OPTION_NAMESPACE_NAME
+{
+template <class T>
+struct variant_size;
+template <typename... Ts>
+class variant;
+}  // namespace OTABSL_OPTION_NAMESPACE_NAME
+}  // namespace absl
+
 #    include "opentelemetry/nostd/internal/absl/types/variant.h"
 #  endif
 

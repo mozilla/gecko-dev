@@ -75,7 +75,7 @@ private:
   ResourceAttributes attributes_;
   std::string schema_url_;
 
-  friend class OTELResourceDetector;
+  friend class ResourceDetector;
 };
 
 }  // namespace resource

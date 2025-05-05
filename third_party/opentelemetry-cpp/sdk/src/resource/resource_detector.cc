@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 #include "opentelemetry/sdk/resource/resource_detector.h"
+#include "opentelemetry/nostd/variant.h"
 #include "opentelemetry/sdk/common/env_variables.h"
 #include "opentelemetry/sdk/resource/resource.h"
 #include "opentelemetry/semconv/service_attributes.h"
@@ -21,6 +22,12 @@ namespace resource
 const char *OTEL_RESOURCE_ATTRIBUTES = "OTEL_RESOURCE_ATTRIBUTES";
 const char *OTEL_SERVICE_NAME        = "OTEL_SERVICE_NAME";
 
+Resource ResourceDetector::Create(const ResourceAttributes &attributes,
+                                  const std::string &schema_url)
+{
+  return Resource(attributes, schema_url);
+}
+
 Resource OTELResourceDetector::Detect() noexcept
 {
   std::string attributes_str, service_name;
@@ -32,7 +39,7 @@ Resource OTELResourceDetector::Detect() noexcept
 
   if (!attributes_exists && !service_name_exists)
   {
-    return Resource();
+    return ResourceDetector::Create({});
   }
 
   ResourceAttributes attributes;
@@ -58,7 +65,7 @@ Resource OTELResourceDetector::Detect() noexcept
     attributes[semconv::service::kServiceName] = service_name;
   }
 
-  return Resource(attributes);
+  return ResourceDetector::Create(attributes);
 }
 
 }  // namespace resource
