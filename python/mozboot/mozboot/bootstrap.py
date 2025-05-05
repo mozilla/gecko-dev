@@ -957,8 +957,16 @@ def ensure_watchman(topsrcdir: Path, git_str: str):
 
     print("Ensuring watchman is properly configured...")
 
-    watchman_config = topsrcdir / ".git/hooks/query-watchman"
-    watchman_sample = topsrcdir / ".git/hooks/fsmonitor-watchman.sample"
+    hooks = Path(
+        subprocess.check_output(
+            [git_str, "rev-parse", "--git-path", "hooks"],
+            cwd=str(topsrcdir),
+            universal_newlines=True,
+        ).strip()
+    )
+
+    watchman_config = hooks / "query-watchman"
+    watchman_sample = hooks / "fsmonitor-watchman.sample"
 
     if not watchman_sample.exists():
         print(
@@ -971,15 +979,13 @@ def ensure_watchman(topsrcdir: Path, git_str: str):
     if not watchman_config.exists():
         copy_cmd = [
             "cp",
-            ".git/hooks/fsmonitor-watchman.sample",
-            ".git/hooks/query-watchman",
+            watchman_sample,
+            watchman_config,
         ]
         print(f"Copying {watchman_sample} to {watchman_config}")
         subprocess.check_call(copy_cmd, cwd=str(topsrcdir))
 
-    set_git_config(
-        git_str, topsrcdir, key="core.fsmonitor", value=".git/hooks/query-watchman"
-    )
+    set_git_config(git_str, topsrcdir, key="core.fsmonitor", value=watchman_config)
 
 
 def configure_git(
