@@ -4,7 +4,6 @@
 
 include protocol PBackground;
 include PBackgroundSharedTypes;
-include NeckoChannelParams;
 
 using mozilla::OriginAttributes from "mozilla/ipc/BackgroundUtils.h";
 using struct mozilla::void_t from "ipc/IPCMessageUtils.h";
@@ -14,9 +13,15 @@ using struct nsID from "nsID.h";
 namespace mozilla {
 namespace dom {
 
-union MaybeCookieStruct
+struct CookieData
 {
-  CookieStruct;
+  nsString name;
+  nsString value;
+};
+
+union MaybeCookieData
+{
+  CookieData;
   void_t;
 };
 
@@ -43,7 +48,7 @@ parent:
                    bool matchName,
                    nsString name,
                    nsCString path,
-                   bool onlyFirstMatch) returns (CookieStruct[] data);
+                   bool onlyFirstMatch) returns (CookieData[] data);
 
   async SetRequest(nullable nsIURI cookieURI,
                    OriginAttributes attrs,

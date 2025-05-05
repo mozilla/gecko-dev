@@ -13,12 +13,9 @@
 
 class nsIGlobalObject;
 
-namespace mozilla::net {
-class CookieStruct;
-}
-
 namespace mozilla::dom {
 
+class CookieData;
 class CookieStoreChild;
 class CookieStoreNotificationWatcherWrapper;
 class CookieStoreNotifier;
@@ -59,9 +56,6 @@ class CookieStore final : public DOMEventTargetHelper {
                                    ErrorResult& aRv);
 
   IMPL_EVENT_HANDLER(change);
-
-  static void CookieStructToItem(const net::CookieStruct& aData,
-                                 CookieListItem* aItem);
 
  private:
   explicit CookieStore(nsIGlobalObject* aGlobal);

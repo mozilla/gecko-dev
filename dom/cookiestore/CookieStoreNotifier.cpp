@@ -7,7 +7,6 @@
 #include "CookieStoreNotifier.h"
 #include "CookieStore.h"
 #include "CookieChangeEvent.h"
-#include "mozilla/net/Cookie.h"
 #include "mozilla/net/CookieCommons.h"
 #include "mozilla/dom/Document.h"
 #include "mozilla/dom/WorkerPrivate.h"
@@ -141,10 +140,23 @@ CookieStoreNotifier::Observe(nsISupports* aSubject, const char* aTopic,
   }
 
   CookieListItem item;
-  CookieStore::CookieStructToItem(Cookie::Cast(cookie)->ToIPC(), &item);
 
-  if (action == nsICookieNotification::COOKIE_DELETED) {
-    item.mValue.Reset();
+  nsAutoCString name;
+  rv = cookie->GetName(name);
+  if (NS_WARN_IF(NS_FAILED(rv))) {
+    return rv;
+  }
+
+  item.mName.Construct(NS_ConvertUTF8toUTF16(name));
+
+  if (action != nsICookieNotification::COOKIE_DELETED) {
+    nsAutoCString value;
+    rv = cookie->GetValue(value);
+    if (NS_WARN_IF(NS_FAILED(rv))) {
+      return rv;
+    }
+
+    item.mValue.Construct(NS_ConvertUTF8toUTF16(value));
   }
 
   bool deletedEvent = action == nsICookieNotification::COOKIE_DELETED;

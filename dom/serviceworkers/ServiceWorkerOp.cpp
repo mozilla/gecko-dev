@@ -12,7 +12,6 @@
 #include "js/Exception.h"  // JS::ExceptionStack, JS::StealPendingExceptionStack
 #include "jsapi.h"
 
-#include "mozilla/dom/CookieStore.h"
 #include "mozilla/dom/PushSubscriptionChangeEvent.h"
 #include "mozilla/dom/PushSubscriptionChangeEventBinding.h"
 #include "nsCOMPtr.h"
@@ -716,7 +715,8 @@ class CookieChangeEventOp final : public ExtendableEventOp {
         mArgs.get_ServiceWorkerCookieChangeEventOpArgs();
 
     CookieListItem item;
-    CookieStore::CookieStructToItem(args.cookie(), &item);
+    item.mName.Construct();
+    item.mName.Value() = args.name();
 
     GlobalObject globalObj(aCx, aWorkerPrivate->GlobalScope()->GetWrapper());
     nsCOMPtr<EventTarget> eventTarget =
@@ -725,12 +725,14 @@ class CookieChangeEventOp final : public ExtendableEventOp {
 
     RefPtr<ExtendableCookieChangeEvent> event;
 
-    if (args.deleted()) {
-      item.mValue.Reset();
-      event = ExtendableCookieChangeEvent::CreateForDeletedCookie(eventTarget,
+    if (!args.deleted()) {
+      item.mValue.Construct();
+      item.mValue.Value() = args.value();
+
+      event = ExtendableCookieChangeEvent::CreateForChangedCookie(eventTarget,
                                                                   item);
     } else {
-      event = ExtendableCookieChangeEvent::CreateForChangedCookie(eventTarget,
+      event = ExtendableCookieChangeEvent::CreateForDeletedCookie(eventTarget,
                                                                   item);
     }
 

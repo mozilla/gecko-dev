@@ -40,10 +40,6 @@ class Maybe;
 
 class JSObjectHolder;
 
-namespace net {
-class CookieStruct;
-}
-
 namespace dom {
 
 class PostMessageSource;
@@ -110,8 +106,8 @@ class ServiceWorkerPrivate final : public RemoteWorkerObserver {
       const RefPtr<LifeCycleEventCallback>& aCallback);
 
   nsresult SendCookieChangeEvent(
-      const net::CookieStruct& aCookie, bool aCookieDeleted,
-      RefPtr<ServiceWorkerRegistrationInfo> aRegistration);
+      const nsAString& aCookieName, const nsAString& aCookieValue,
+      bool aCookieDeleted, RefPtr<ServiceWorkerRegistrationInfo> aRegistration);
 
   nsresult SendPushEvent(const nsAString& aMessageId,
                          const Maybe<nsTArray<uint8_t>>& aData,

@@ -16,7 +16,6 @@
 #include "mozilla/ipc/BackgroundChild.h"
 #include "mozilla/ipc/PBackgroundChild.h"
 #include "mozilla/net/CookieCommons.h"
-#include "mozilla/net/NeckoChannelParams.h"
 #include "mozilla/StorageAccess.h"
 #include "nsICookie.h"
 #include "nsIGlobalObject.h"
@@ -217,11 +216,16 @@ bool ValidateCookieNamePrefix(const nsAString& aName, const nsAString& aValue,
   return true;
 }
 
-void CookieStructToList(const nsTArray<CookieStruct>& aData,
-                        nsTArray<CookieListItem>& aResult) {
-  for (const CookieStruct& data : aData) {
+void CookieDataToItem(const CookieData& aData, CookieListItem* aItem) {
+  aItem->mName.Construct(aData.name());
+  aItem->mValue.Construct(aData.value());
+}
+
+void CookieDataToList(const nsTArray<CookieData>& aData,
+                      nsTArray<CookieListItem>& aResult) {
+  for (const CookieData& data : aData) {
     CookieListItem* item = aResult.AppendElement();
-    CookieStore::CookieStructToItem(data, item);
+    CookieDataToItem(data, item);
   }
 }
 
@@ -779,7 +783,7 @@ already_AddRefed<Promise> CookieStore::GetInternal(
               }
 
               nsTArray<CookieListItem> list;
-              CookieStructToList(aResult.ResolveValue(), list);
+              CookieDataToList(aResult.ResolveValue(), list);
 
               if (!aOnlyTheFirstMatch) {
                 promise->MaybeResolve(list);
@@ -814,46 +818,6 @@ Document* CookieStore::MaybeGetDocument() const {
   }
 
   return nullptr;
-}
-
-// static
-void CookieStore::CookieStructToItem(const CookieStruct& aData,
-                                     CookieListItem* aItem) {
-  aItem->mName.Construct(aData.name());
-  aItem->mValue.Construct(aData.value());
-  aItem->mPath.Construct(aData.path());
-
-  if (aData.host().IsEmpty() || aData.host()[0] != '.') {
-    aItem->mDomain.Construct(VoidCString());
-  } else {
-    aItem->mDomain.Construct(nsDependentCSubstring(aData.host(), 1));
-  }
-
-  if (!aData.isSession()) {
-    aItem->mExpires.Construct(aData.expiry() * PR_MSEC_PER_SEC);
-  } else {
-    aItem->mExpires.Construct(nullptr);
-  }
-
-  aItem->mSecure.Construct(aData.isSecure());
-
-  CookieSameSite sameSite = CookieSameSite::None;
-  switch (aData.sameSite()) {
-    case nsICookie::SAMESITE_STRICT:
-      sameSite = CookieSameSite::Strict;
-      break;
-
-    case nsICookie::SAMESITE_LAX:
-      sameSite = CookieSameSite::Lax;
-      break;
-
-    default:
-      // FIXME: lax by default?
-      break;
-  }
-
-  aItem->mSameSite.Construct(sameSite);
-  aItem->mPartitioned.Construct(aData.isPartitioned());
 }
 
 }  // namespace mozilla::dom
