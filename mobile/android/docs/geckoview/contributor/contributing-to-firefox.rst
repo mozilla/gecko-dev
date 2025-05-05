@@ -1,8 +1,8 @@
 .. -*- Mode: rst; fill-column: 80; -*-
 
-=================================
-Mozilla Central Contributor Guide
-=================================
+=========================
+Firefox Contributor Guide
+=========================
 
 Table of contents
 =================
@@ -14,8 +14,8 @@ Submitting a patch to Firefox using Git.
 .. _contribute_with_git:
 
 This guide will take you through submitting and updating a patch to
-``mozilla-central`` as a git user. You need to already be `set up to use
-git to contribute to mozilla-central </setup/index.html>`_.
+``firefox`` as a git user. You need to already be `set up to use
+git to contribute to Firefox </setup/index.html>`_.
 
 Performing a bug fix
 --------------------
@@ -37,11 +37,11 @@ list to find something you want to work on.
 
    git remote update
 
--  Create a new feature branch tracking either Central or Inbound.
+-  Create a new feature branch tracking either main or autoland.
 
 .. code:: bash
 
-   git checkout -b bugxxxxxxx [inbound|central]/default
+   git checkout -b bugxxxxxxx [main|autoland]/default
 
 -  Work on your bug, checking into git according to your preferred
    workflow. *Try to ensure that each individual commit compiles and

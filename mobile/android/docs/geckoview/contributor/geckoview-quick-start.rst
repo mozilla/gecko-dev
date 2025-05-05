@@ -46,7 +46,7 @@ and :ref:`Bootstrap <bootstrap-setup>` and build the project.
 
 Once you have got GeckoView building and running, you will want to start
 contributing. There is a general guide to `Performing a Bug Fix for Git
-Developers <contributing-to-mc.html>`_ for you to follow. To contribute to
+Developers <contributing-to-firefox.html>`_ for you to follow. To contribute to
 GeckoView specifically, you will need the following additional
 information.
 

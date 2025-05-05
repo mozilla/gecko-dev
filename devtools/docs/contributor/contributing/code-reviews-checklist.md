@@ -7,7 +7,7 @@ It can also be useful for patch authors: if the changes comply with these guidel
 ## Bug status and patch file
 
 * Bug status is assigned, and assignee is correctly set.
-* Commit title and message follow [the conventions](https://firefox-source-docs.mozilla.org/mobile/android/geckoview/contributor/contributing-to-mc.html).
+* Commit title and message follow [the conventions](https://firefox-source-docs.mozilla.org/mobile/android/geckoview/contributor/contributing-to-firefox.html).
 * Commit message says [what is being changed and why](http://mozilla-version-control-tools.readthedocs.org/en/latest/mozreview/commits.html#write-detailed-commit-messages).
 * Patch applies locally to current sources with no merge required.
 * Check that every new file introduced by the patch has the proper Mozilla license header: https://www.mozilla.org/en-US/MPL/headers/
