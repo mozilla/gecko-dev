@@ -108,6 +108,10 @@ data class DownloadUIState(
     val isSearchFieldVisible: Boolean
         get() = isSearchEnabled && isSearchFieldRequested && mode is Mode.Normal
 
+    val isSearchIconVisible: Boolean
+        get() = isSearchEnabled && itemsNotPendingDeletion.isNotEmpty() && !isSearchFieldVisible &&
+            mode is Mode.Normal
+
     /**
      * @see [DownloadUIState].
      */
