@@ -98,15 +98,21 @@ class RcInterfaceTest : public ::libaom_test::EncoderTest,
         // Go down to 2 temporal layers.
         SetConfigSvc(3, 2);
         encoder->Control(AV1E_SET_SVC_PARAMS, &svc_params_);
+        frame_flags_ = AOM_EFLAG_FORCE_KF;
+        frame_params_.frame_type = aom::kKeyFrame;
         ASSERT_TRUE(rc_api_->UpdateRateControl(rc_cfg_));
       } else if (superframe_cnt_ == 200 && layer_id_.spatial_layer_id == 0) {
         // Go down to 1 temporal layer.
         SetConfigSvc(3, 1);
         encoder->Control(AV1E_SET_SVC_PARAMS, &svc_params_);
+        frame_flags_ = AOM_EFLAG_FORCE_KF;
+        frame_params_.frame_type = aom::kKeyFrame;
         ASSERT_TRUE(rc_api_->UpdateRateControl(rc_cfg_));
       } else if (superframe_cnt_ == 300 && layer_id_.spatial_layer_id == 0) {
         // Go back up to 3 temporal layers.
         SetConfigSvc(3, 3);
+        frame_flags_ = AOM_EFLAG_FORCE_KF;
+        frame_params_.frame_type = aom::kKeyFrame;
         encoder->Control(AV1E_SET_SVC_PARAMS, &svc_params_);
         ASSERT_TRUE(rc_api_->UpdateRateControl(rc_cfg_));
       }
@@ -117,11 +123,15 @@ class RcInterfaceTest : public ::libaom_test::EncoderTest,
         // Change to 2 spatial layers (240p, 480p).
         SetConfigSvc(2, 3);
         encoder->Control(AV1E_SET_SVC_PARAMS, &svc_params_);
+        frame_flags_ = AOM_EFLAG_FORCE_KF;
+        frame_params_.frame_type = aom::kKeyFrame;
         ASSERT_TRUE(rc_api_->UpdateRateControl(rc_cfg_));
       } else if (superframe_cnt_ == 200 && layer_id_.spatial_layer_id == 0) {
         // Change to 1 spatial layer (480p).
         SetConfigSvc(1, 3);
         encoder->Control(AV1E_SET_SVC_PARAMS, &svc_params_);
+        frame_flags_ = AOM_EFLAG_FORCE_KF;
+        frame_params_.frame_type = aom::kKeyFrame;
         ASSERT_TRUE(rc_api_->UpdateRateControl(rc_cfg_));
       } else if (superframe_cnt_ == 300 && layer_id_.spatial_layer_id == 0) {
         // Go back to 3 spatial layers (120p, 240p, 480p).
@@ -148,6 +158,10 @@ class RcInterfaceTest : public ::libaom_test::EncoderTest,
     if (encoder_exit_) {
       return;
     }
+    int num_operating_points;
+    encoder->Control(AV1E_GET_NUM_OPERATING_POINTS, &num_operating_points);
+    ASSERT_EQ(num_operating_points,
+              rc_cfg_.ss_number_layers * rc_cfg_.ts_number_layers);
     layer_frame_cnt_++;
     frame_cnt_++;
     if (layer_id_.spatial_layer_id == rc_cfg_.ss_number_layers - 1)

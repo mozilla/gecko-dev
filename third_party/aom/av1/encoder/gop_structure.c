@@ -642,7 +642,7 @@ static int construct_multi_layer_gf_structure(
                                         : gf_group->is_sframe_due ? S_FRAME
                                                                   : INTER_FRAME;
     gf_group->is_sframe_due =
-        sframe_enabled && !(gf_group->frame_type[frame_index] == S_FRAME);
+        sframe_enabled && gf_group->frame_type[frame_index] != S_FRAME;
     gf_group->refbuf_state[frame_index] = REFBUF_UPDATE;
     gf_group->max_layer_depth = 1;
     gf_group->arf_index = frame_index;

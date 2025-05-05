@@ -182,6 +182,8 @@ set_aom_config_var(CONFIG_CWG_E050 0
 set_aom_config_var(CONFIG_LIBVMAF_PSNR_PEAK 1
                    "Use libvmaf PSNR peak for 10- and 12-bit")
 
+set_aom_config_var(CONFIG_HIGHWAY 0 "Use Highway for SIMD.")
+
 #
 # Variables in this section control optional features of the build system.
 #

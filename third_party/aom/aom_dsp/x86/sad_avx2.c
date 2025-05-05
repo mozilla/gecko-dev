@@ -101,11 +101,17 @@ static inline unsigned int sad32xh_avx2(const uint8_t *src_ptr, int src_stride,
                             h / 2);                                           \
   }
 
+#if CONFIG_HIGHWAY
+#define FSAD64  \
+  FSADS64_H(64) \
+  FSADS64_H(32)
+#else
 #define FSAD64  \
   FSAD64_H(64)  \
   FSAD64_H(32)  \
   FSADS64_H(64) \
   FSADS64_H(32)
+#endif
 
 #define FSAD32  \
   FSAD32_H(64)  \
