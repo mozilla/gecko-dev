@@ -688,6 +688,7 @@ class GCRuntime {
   [[nodiscard]] bool appendTestMarkQueue(const JS::Value& value);
   void clearTestMarkQueue();
   size_t testMarkQueuePos() const;
+  size_t testMarkQueueRemaining() const;
 #endif
 
  private:

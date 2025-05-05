@@ -582,10 +582,14 @@ void js::gc::MarkingValidator::nonIncrementalMark(AutoGCSession& session) {
     zone->gcEphemeronEdges().clearAndCompact();
   }
 
-  /* Save and restore test mark queue state. */
 #  ifdef DEBUG
-  size_t savedQueuePos = gc->queuePos;
-  mozilla::Maybe<MarkColor> savedQueueColor = gc->queueMarkColor;
+  // The test mark queue can cause spurious differences if the non-incremental
+  // marking for validation happens before the full queue has been processed,
+  // since the later part of the queue may mark things during sweeping. Disable
+  // validation if there is anything left in the queue at this point.
+  if (gc->testMarkQueueRemaining() > 0) {
+    return;
+  }
 #  endif
 
   /*
@@ -684,8 +688,8 @@ void js::gc::MarkingValidator::nonIncrementalMark(AutoGCSession& session) {
   }
 
 #  ifdef DEBUG
-  gc->queuePos = savedQueuePos;
-  gc->queueMarkColor = savedQueueColor;
+  MOZ_ASSERT(gc->testMarkQueueRemaining() == 0);
+  MOZ_ASSERT(gc->queueMarkColor.isNothing());
 #  endif
 
   gc->incrementalState = state;
