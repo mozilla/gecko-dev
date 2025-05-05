@@ -6,7 +6,6 @@ support-files = [
   "data/**/*.*"
 ]
 
-
 ["browser_ml_cache.js"]
 
 ["browser_ml_cluster_algos.js"]
@@ -20,6 +19,8 @@ support-files = [
 ["browser_ml_nlp_utils.js"]
 
 ["browser_ml_opfs.js"]
+
+["browser_ml_pipeline.js"]
 
 ["browser_ml_telemetry.js"]
 
