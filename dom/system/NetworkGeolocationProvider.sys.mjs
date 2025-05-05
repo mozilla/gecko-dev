@@ -8,8 +8,6 @@ const lazy = {};
 
 ChromeUtils.defineESModuleGetters(lazy, {
   LocationHelper: "resource://gre/modules/LocationHelper.sys.mjs",
-  clearTimeout: "resource://gre/modules/Timer.sys.mjs",
-  setTimeout: "resource://gre/modules/Timer.sys.mjs",
 });
 
 // GeolocationPositionError has no interface object, so we can't use that here.
@@ -476,25 +474,28 @@ NetworkGeolocationProvider.prototype = {
   async makeRequest(url, wifiData) {
     this.onStatus(false, "xhr-start");
 
-    let fetchController = new AbortController();
+    let signal = AbortSignal.timeout(
+      Services.prefs.getIntPref("geo.provider.network.timeout")
+    );
     let fetchOpts = {
       method: "POST",
       headers: { "Content-Type": "application/json; charset=UTF-8" },
       credentials: "omit",
-      signal: fetchController.signal,
+      signal,
     };
 
     if (wifiData) {
       fetchOpts.body = JSON.stringify({ wifiAccessPoints: wifiData });
     }
 
-    let timeoutId = lazy.setTimeout(
-      () => fetchController.abort(),
-      Services.prefs.getIntPref("geo.provider.network.timeout")
-    );
-
     let req = await fetch(url, fetchOpts);
-    lazy.clearTimeout(timeoutId);
+    if (!req.ok) {
+      throw new Error(
+        `The geolocation provider returned a non-ok status ${req.status}`,
+        { cause: await req.text() }
+      );
+    }
+
     let result = req.json();
     return result;
   },
