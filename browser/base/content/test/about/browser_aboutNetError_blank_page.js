@@ -151,4 +151,5 @@ add_task(async function test_emptyPage_viewSource() {
   });
 
   BrowserTestUtils.removeTab(tab);
+  await SpecialPowers.popPrefEnv();
 });
