@@ -1889,6 +1889,19 @@ class GeckoEngineSessionTest {
     }
 
     @Test
+    fun `onPipModeChanged sets same enabled value`() {
+        whenever(geckoSession.compositorController).thenReturn(mock())
+        val engineSession = GeckoEngineSession(
+            mock(),
+            geckoSessionProvider = geckoSessionProvider,
+        )
+        engineSession.onPipModeChanged(true)
+        verify(geckoSession.compositorController).onPipModeChanged(true)
+        engineSession.onPipModeChanged(false)
+        verify(geckoSession.compositorController).onPipModeChanged(false)
+    }
+
+    @Test
     fun unsupportedSettings() {
         val settings = GeckoEngineSession(
             runtime,

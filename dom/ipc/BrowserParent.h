@@ -78,12 +78,8 @@ namespace ipc {
 class StructuredCloneData;
 }  // namespace ipc
 
-#define DOM_BROWSERPARENT_IID                        \
-  {                                                  \
-    0x58b47b52, 0x77dc, 0x44cf, {                    \
-      0x8b, 0xe5, 0x8e, 0x78, 0x24, 0xd9, 0xae, 0xc5 \
-    }                                                \
-  }
+#define DOM_BROWSERPARENT_IID \
+  {0x58b47b52, 0x77dc, 0x44cf, {0x8b, 0xe5, 0x8e, 0x78, 0x24, 0xd9, 0xae, 0xc5}}
 
 /**
  * BrowserParent implements the parent actor part of the PBrowser protocol. See
@@ -486,10 +482,11 @@ class BrowserParent final : public PBrowserParent,
   void HandleAccessKey(const WidgetKeyboardEvent& aEvent,
                        nsTArray<uint32_t>& aCharCodes);
 
-#if defined(MOZ_WIDGET_ANDROID)
+#ifdef MOZ_WIDGET_ANDROID
   void DynamicToolbarMaxHeightChanged(ScreenIntCoord aHeight);
   void DynamicToolbarOffsetChanged(ScreenIntCoord aOffset);
   void KeyboardHeightChanged(ScreenIntCoord aHeight);
+  void AndroidPipModeChanged(bool);
 #endif
 
   void Activate(uint64_t aActionId);

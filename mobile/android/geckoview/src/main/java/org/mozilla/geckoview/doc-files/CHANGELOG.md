@@ -34,6 +34,7 @@ exclude: true
 [138.7]: {{javadoc_uri}}/GeckoSession.html#sendMoreWebCompatInfo()
 
 ## v137
+- Added [`CompositorController.onPipModeChanged`][139.1] to [`CompositorController`][65.1] to inform GeckoSession of changes to and from picture-in-picture mode.
 - ⚠️ [`GeckoSession.requestAnalysis`][118.4], [`GeckoSession.requestCreateAnalysis`][122.2], [`GeckoSession.requestAnalysisStatus`][137.1], [`GeckoSession.sendPlacementAttributionEvent`][123.3], [`GeckoSession.pollForAnalysisCompleted`][137.2], [`GeckoSession.sendClickAttributionEvent`][121.4], [`GeckoSession.sendImpressionAttributionEvent`][121.5], [`GeckoSession.sendPlacementAttributionEvent`][123.3], [`GeckoSession.requestRecommendations`][118.5], [`GeckoSession.reportBackInStock`][122.1], `AnalysisStatusResponse`, [`ReviewAnalysis`][120.2] and [`Recommendation`][120.3] are deprecated, and it will be deleted in version 139 see https://bugzilla.mozilla.org/show_bug.cgi?id=1941470.
 - Added support for controlling `network.trr.default_provider_uri` via [`GeckoRuntimeSettings.setDefaultRecursiveResolverUri`][137.3] and [`GeckoRuntimeSettings.getDefaultRecursiveResolverUri`][137.4]
 - [`GeckoRuntimeSettings.getFingerprintingProtection`][137.6] and [`GeckoRuntimeSettings.getFingerprintingProtectionPrivateBrowsing`][137.7] are now `@Nullable` to indicates that their values are controlled by the engine.
@@ -46,6 +47,7 @@ exclude: true
 [137.6]: {{javadoc_uri}}/GeckoRuntimeSettings.html#getFingerprintingProtection
 [137.7]: {{javadoc_uri}}/GeckoRuntimeSettings.html#getFingerprintingProtectionPrivateBrowsing
 [137.8]: {{javadoc_uri}}/GeckoRuntimeSettings.html#setPostQuantumKeyExchangeEnabled
+[139.1]: {{javadoc_uri}}/CompositorController.html#onPipModeChanged
 
 ## v136
 - Added support for controlling `security.pki.certificate_transparency.mode` via [`GeckoRuntimeSettings.setCertificateTransparencyMode`][136.1]
@@ -1697,4 +1699,4 @@ to allow adding gecko profiler markers.
 [65.24]: {{javadoc_uri}}/CrashReporter.html#sendCrashReport(android.content.Context,android.os.Bundle,java.lang.String)
 [65.25]: {{javadoc_uri}}/GeckoResult.html
 
-[api-version]: 35805fbcb0870f92ab28afa956e4216cad6a8af9
+[api-version]: 2dafcd6d6aaee3f140e8f493336a9b99754fd2f7

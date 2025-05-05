@@ -85,12 +85,8 @@ class SessionStoreChild;
 class RequestData;
 class WebProgressData;
 
-#define DOM_BROWSERCHILD_IID                         \
-  {                                                  \
-    0x58a5775d, 0xba05, 0x45bf, {                    \
-      0xbd, 0xb8, 0xd7, 0x61, 0xf9, 0x01, 0x01, 0x31 \
-    }                                                \
-  }
+#define DOM_BROWSERCHILD_IID \
+  {0x58a5775d, 0xba05, 0x45bf, {0xbd, 0xb8, 0xd7, 0x61, 0xf9, 0x01, 0x01, 0x31}}
 
 class BrowserChildMessageManager : public ContentFrameMessageManager,
                                    public nsIMessageSender,
@@ -286,6 +282,8 @@ class BrowserChild final : public nsMessageManagerScriptExecutor,
 
   mozilla::ipc::IPCResult RecvKeyboardHeightChanged(
       const mozilla::ScreenIntCoord& aHeight);
+
+  mozilla::ipc::IPCResult RecvAndroidPipModeChanged(bool aPipMode);
 
   mozilla::ipc::IPCResult RecvActivate(uint64_t aActionId);
 
@@ -562,6 +560,8 @@ class BrowserChild final : public nsMessageManagerScriptExecutor,
     return mDynamicToolbarMaxHeight;
   };
   mozilla::ScreenIntCoord GetKeyboardHeight() const { return mKeyboardHeight; }
+
+  bool InAndroidPipMode() const { return mInAndroidPipMode; }
 
   bool IPCOpen() const { return mIPCOpen; }
 
@@ -848,6 +848,8 @@ class BrowserChild final : public nsMessageManagerScriptExecutor,
   bool mTriedBrowserInit : 1;
   bool mHasValidInnerSize : 1;
   bool mDestroyed : 1;
+  // Whether we're in Android's PiP mode.
+  bool mInAndroidPipMode : 1;
 
   // Whether or not this browser is the child part of the top level PBrowser
   // actor in a remote browser.

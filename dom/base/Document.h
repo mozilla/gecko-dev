@@ -2192,6 +2192,10 @@ class Document : public nsINode,
    * Returns true if this document was created from a nsXULPrototypeDocument.
    */
   bool LoadedFromPrototype() const { return mPrototypeDocument; }
+
+  /* Returns true if we're currently in Android's PiP mode. */
+  bool InAndroidPipMode() const;
+
   /**
    * Returns the prototype the document was created from, or null if it was not
    * created from a prototype.
@@ -2258,11 +2262,12 @@ class Document : public nsINode,
   static bool CallerIsTrustedAboutCertError(JSContext* aCx, JSObject* aObject);
 
   /**
-   * This function checks if the privilege storage access api is available for
-   * the caller. We only allow privilege SSA to be called by system principal
-   * and webcompat extension.
+   * This function checks if the caller has access to privileged chrome APIs
+   * such as the storage access API and inAndroidPipMode. We only allow such
+   * APIs to be called by system principal and the built-in webcompat addon.
    */
-  static bool CallerCanAccessPrivilegeSSA(JSContext* aCx, JSObject* aObject);
+  static bool CallerIsSystemPrincipalOrWebCompatAddon(JSContext* aCx,
+                                                      JSObject* aObject);
 
   /**
    * Get the security info (i.e. certificate validity, errorCode, etc) for a

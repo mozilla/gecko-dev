@@ -117,12 +117,12 @@ class FirefoxWebDriver(WebDriver):
         # also delete those files afterward.
         prefs[DELETE_DOWNLOADS_PREF] = True
 
-        fx_options = {"prefs": prefs}
+        fx_options = {"args": ["--remote-allow-system-access"], "prefs": prefs}
 
         if self.browser_binary:
             fx_options["binary"] = self.browser_binary
             if self.headless:
-                fx_options["args"] = ["--headless"]
+                fx_options["args"].append("--headless")
 
         if self.device_serial:
             fx_options["androidDeviceSerial"] = self.device_serial
@@ -328,7 +328,10 @@ async def session(driver, test_config):
     yield session
 
     await session.bidi_session.end()
-    session.end()
+    try:
+        session.end()
+    except webdriver.error.UnknownErrorException:
+        pass
 
 
 @pytest.fixture(autouse=True)
@@ -398,10 +401,11 @@ def only_firefox_versions(bug_number, firefox_version, request):
 
 @pytest.fixture(autouse=True)
 def only_platforms(bug_number, platform, request, session):
+    is_fenix = "org.mozilla.fenix" in session.capabilities.get("moz:profile", "")
     if request.node.get_closest_marker("only_platforms"):
         plats = request.node.get_closest_marker("only_platforms").args
         for only in plats:
-            if only == platform:
+            if only == platform or (only == "fenix" and is_fenix):
                 return
         pytest.skip(
             f"Bug #{bug_number} skipped on platform ({platform}, test only for {' or '.join(plats)})"
@@ -410,10 +414,11 @@ def only_platforms(bug_number, platform, request, session):
 
 @pytest.fixture(autouse=True)
 def skip_platforms(bug_number, platform, request, session):
+    is_fenix = "org.mozilla.fenix" in session.capabilities.get("moz:profile", "")
     if request.node.get_closest_marker("skip_platforms"):
         plats = request.node.get_closest_marker("skip_platforms").args
         for skipped in plats:
-            if skipped == platform:
+            if skipped == platform or (skipped == "fenix" and is_fenix):
                 pytest.skip(
                     f"Bug #{bug_number} skipped on platform ({platform}, test skipped for {' and '.join(plats)})"
                 )

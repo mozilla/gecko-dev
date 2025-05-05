@@ -750,7 +750,11 @@ public class GeckoAppShell {
 
   @WrapForJNI(calledFrom = "gecko")
   private static void moveTaskToBack() {
-    // This is a vestige, to be removed as full-screen support for GeckoView is implemented.
+    final Context applicationContext = getApplicationContext();
+    final Intent intent = new Intent(Intent.ACTION_MAIN);
+    intent.addCategory(Intent.CATEGORY_HOME);
+    intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+    applicationContext.startActivity(intent);
   }
 
   @WrapForJNI(calledFrom = "gecko")

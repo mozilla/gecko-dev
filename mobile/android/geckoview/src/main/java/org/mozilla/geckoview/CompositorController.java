@@ -82,6 +82,15 @@ public final class CompositorController {
   }
 
   /**
+   * Should be called when the system informs you of changes to and from picture-in-picture mode.
+   *
+   * @param enabled True if the activity is in picture-in-picture mode.
+   */
+  public void onPipModeChanged(final boolean enabled) {
+    mCompositor.onPipModeChanged(enabled);
+  }
+
+  /**
    * Get the current clear color when drawing.
    *
    * @return Curent clear color.

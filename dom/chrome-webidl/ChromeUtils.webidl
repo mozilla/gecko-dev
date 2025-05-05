@@ -784,6 +784,10 @@ partial namespace ChromeUtils {
   boolean shouldResistFingerprinting(JSRFPTarget target,
                                      nsIRFPTargetSetIDL? overriddenFingerprintingSettings,
                                      optional boolean isPBM);
+
+  // Equivalent to pressing the home button. Exclusively for testing.
+  [ChromeOnly]
+  undefined androidMoveTaskToBack();
 };
 
 /*

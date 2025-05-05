@@ -1189,7 +1189,7 @@ void BrowserParent::SizeModeChanged(const nsSizeMode& aSizeMode) {
   }
 }
 
-#if defined(MOZ_WIDGET_ANDROID)
+#ifdef MOZ_WIDGET_ANDROID
 void BrowserParent::DynamicToolbarMaxHeightChanged(ScreenIntCoord aHeight) {
   if (!mIsDestroyed) {
     Unused << SendDynamicToolbarMaxHeightChanged(aHeight);
@@ -1205,6 +1205,12 @@ void BrowserParent::DynamicToolbarOffsetChanged(ScreenIntCoord aOffset) {
 void BrowserParent::KeyboardHeightChanged(ScreenIntCoord aHeight) {
   if (!mIsDestroyed) {
     Unused << SendKeyboardHeightChanged(aHeight);
+  }
+}
+
+void BrowserParent::AndroidPipModeChanged(bool aPipMode) {
+  if (!mIsDestroyed) {
+    Unused << SendAndroidPipModeChanged(aPipMode);
   }
 }
 #endif

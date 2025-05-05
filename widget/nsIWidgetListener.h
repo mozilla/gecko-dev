@@ -81,12 +81,13 @@ class nsIWidgetListener {
    */
   virtual void SizeModeChanged(nsSizeMode aSizeMode) {}
 
-#if defined(MOZ_WIDGET_ANDROID)
+#ifdef MOZ_WIDGET_ANDROID
   virtual void DynamicToolbarMaxHeightChanged(mozilla::ScreenIntCoord aHeight) {
   }
   virtual void DynamicToolbarOffsetChanged(mozilla::ScreenIntCoord aOffset) {}
   /** Called when the software keyboard appears/disappears. */
   virtual void KeyboardHeightChanged(mozilla::ScreenIntCoord aHeight) {}
+  virtual void AndroidPipModeChanged(bool) {}
 #endif
 
   /** Called when the macOS titlebar is shown while in fullscreen. */
