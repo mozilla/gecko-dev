@@ -2,6 +2,7 @@ package org.mozilla.fenix.ui
 
 import androidx.compose.ui.test.junit4.AndroidComposeTestRule
 import org.junit.Before
+import org.junit.Ignore
 import org.junit.Rule
 import org.junit.Test
 import org.mozilla.fenix.helpers.AppAndSystemHelper.isNetworkConnected
@@ -63,6 +64,7 @@ class PocketTest : TestSetup() {
     }
 
     // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2252509
+    @Ignore("Failing, see: https://bugzilla.mozilla.org/show_bug.cgi?id=1963725")
     @Test
     fun verifyPocketSectionTest() {
         runWithCondition(isNetworkConnected()) {
@@ -73,7 +75,7 @@ class PocketTest : TestSetup() {
                 // Sponsored Pocket stories are only advertised for a limited time.
                 // See also known issue https://bugzilla.mozilla.org/show_bug.cgi?id=1828629
                 // verifyPocketSponsoredStoriesItems(2, 8)
-                verifyDiscoverMoreStoriesButton()
+                verifyDiscoverMoreStoriesButton(activityTestRule)
                 verifyStoriesByTopic(true)
                 verifyPoweredByPocket()
             }.openThreeDotMenu {
@@ -104,7 +106,7 @@ class PocketTest : TestSetup() {
     fun pocketDiscoverMoreButtonTest() {
         runWithCondition(isNetworkConnected()) {
             homeScreen {
-                verifyDiscoverMoreStoriesButton()
+                verifyDiscoverMoreStoriesButton(activityTestRule)
             }.clickPocketDiscoverMoreButton(activityTestRule) {
                 verifyUrl("getpocket.com/explore")
             }

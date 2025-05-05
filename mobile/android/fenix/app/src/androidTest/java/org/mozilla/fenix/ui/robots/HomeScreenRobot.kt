@@ -537,12 +537,12 @@ class HomeScreenRobot {
 //        }
 //    }
 
-    fun verifyDiscoverMoreStoriesButton() {
-        Log.i(TAG, "verifyDiscoverMoreStoriesButton: Trying to scroll into view the \"Powered By Pocket\" home screen section")
-        homeScreenList().scrollIntoView(mDevice.findObject(UiSelector().resourceId("pocket.header")))
-        Log.i(TAG, "verifyDiscoverMoreStoriesButton: Scrolled into view the \"Powered By Pocket\" home screen section")
+    fun verifyDiscoverMoreStoriesButton(composeTestRule: ComposeTestRule) {
+        Log.i(TAG, "verifyDiscoverMoreStoriesButton: Trying to scroll into view the \"Thought-provoking stories\" pocket section")
+        composeTestRule.onNodeWithTag("homepage.view").performScrollToNode(hasTestTag("pocket.stories"))
+        Log.i(TAG, "verifyDiscoverMoreStoriesButton: Scrolled into view the \"Thought-provoking stories\" pocket section")
         Log.i(TAG, "verifyDiscoverMoreStoriesButton: Trying to scroll into view the Pocket \"Discover more\" button")
-        pocketStoriesList().scrollIntoView(UiSelector().text("Discover more"))
+        composeTestRule.onNodeWithTag("pocket.stories").performScrollToNode(hasText("Discover more"))
         Log.i(TAG, "verifyDiscoverMoreStoriesButton: Scrolled into view the Pocket \"Discover more\" button")
         assertUIObjectExists(itemWithText("Discover more"))
     }
