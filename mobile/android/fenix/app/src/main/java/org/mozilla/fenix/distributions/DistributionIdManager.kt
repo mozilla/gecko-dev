@@ -63,6 +63,7 @@ class DistributionIdManager(
         val distributionId = when {
             isProviderDigitalTurbine(provider) && isDtTelefonicaInstalled() -> Distribution.DT_001.id
             isProviderDigitalTurbine(provider) && isDtUsaInstalled() -> Distribution.DT_002.id
+            isProviderDigitalTurbine(provider) -> Distribution.DT_003.id
             isProviderAura(provider) -> Distribution.AURA_001.id
             isDeviceVivo() && appPreinstalledOnVivoDevice() -> Distribution.VIVO_001.id
             else -> Distribution.DEFAULT.id
@@ -86,6 +87,7 @@ class DistributionIdManager(
             Distribution.VIVO_001 -> true
             Distribution.DT_001 -> true
             Distribution.DT_002 -> true
+            Distribution.DT_003 -> true
             Distribution.AURA_001 -> true
         }
     }
@@ -107,6 +109,7 @@ class DistributionIdManager(
         VIVO_001(id = "vivo-001"),
         DT_001(id = "dt-001"),
         DT_002(id = "dt-002"),
+        DT_003(id = "dt-003"),
         AURA_001(id = "aura-001"),
         ;
 

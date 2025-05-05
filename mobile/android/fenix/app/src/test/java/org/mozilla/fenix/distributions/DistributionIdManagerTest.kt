@@ -285,4 +285,18 @@ class DistributionIdManagerTest {
 
         assertEquals("Mozilla", distributionId)
     }
+
+    @Test
+    fun `WHEN the provider is DT and telefonica and USA packages are not installed THEN the proper distribution ID is returned`() {
+        val subject = DistributionIdManager(
+            testContext,
+            testBrowserStoreProvider,
+            testDistributionProviderChecker,
+        )
+
+        providerValue = "digital_turbine"
+        val distributionId = subject.getDistributionId()
+
+        assertEquals("dt-003", distributionId)
+    }
 }
