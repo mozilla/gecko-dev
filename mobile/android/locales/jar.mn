@@ -50,6 +50,10 @@ relativesrcdir toolkit/locales:
   toolkit/about                                    (%toolkit/about/*Webrtc.ftl)
 #about:logging
   toolkit/about                                    (%toolkit/about/*Logging.ftl)
+# additional files referenced by others
+  toolkit/branding                                 (%toolkit/branding/*brandings.ftl)
+  toolkit/global                                   (%toolkit/global/*processTypes.ftl)
+  toolkit/global                                   (%toolkit/global/*resetProfile.ftl)
 #endif
 # Do not add files below the endif. Reviewers, expand more context above
 # for comments.

@@ -21,6 +21,9 @@ def test(mod, path, entity=None):
             "chrome/global/commonDialogs.properties",
             "chrome/global/intl.properties",
             "chrome/global/intl.css",
+            "toolkit/branding/brandings.ftl",
+            "toolkit/global/processTypes.ftl",
+            "toolkit/global/resetProfile.ftl",
         ):
             return "error"
         if re.match(r"toolkit/about/[^/]*About.ftl", path):
