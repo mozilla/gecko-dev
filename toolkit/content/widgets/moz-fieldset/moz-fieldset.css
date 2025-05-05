@@ -36,6 +36,10 @@ legend {
   flex-direction: column;
   gap: var(--space-large);
   margin-top: var(--space-small);
+
+  fieldset[aria-orientation="horizontal"] & {
+    flex-direction: row;
+  }
 }
 
 a[is="moz-support-link"],

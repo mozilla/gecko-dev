@@ -4,9 +4,10 @@
 
 import { html } from "chrome://global/content/vendor/lit.all.mjs";
 import {
-  MozRadioGroup,
-  MozRadio,
-} from "chrome://global/content/elements/moz-radio-group.mjs";
+  SelectControlItemMixin,
+  SelectControlBaseElement,
+} from "../lit-select-control.mjs";
+import { MozLitElement } from "../lit-utils.mjs";
 
 /**
  * An element that groups related items and allows a user to navigate between
@@ -24,8 +25,9 @@ import {
  *  state of moz-visual-picker-item children and vice versa.
  * @slot default - The picker's content, intended for moz-visual-picker-items.
  */
-export class MozVisualPicker extends MozRadioGroup {
+export class MozVisualPicker extends SelectControlBaseElement {
   static childElementName = "moz-visual-picker-item";
+  static orientation = "horizontal";
 }
 customElements.define("moz-visual-picker", MozVisualPicker);
 
@@ -36,20 +38,28 @@ customElements.define("moz-visual-picker", MozVisualPicker);
  * @tagname moz-visual-picker-item
  * @property {boolean} checked - Whether or not the item is selected.
  * @property {boolean} disabled - Whether or not the item is disabled.
- * @property {number} inputTabIndex
+ * @property {number} itemTabIndex
  *  Tabindex of the input element. Only one item is focusable at a time.
  * @property {string} name
  *  Name of the item, set by the associated moz-visual-picker parent element.
  * @property {string} value - Value of the item.
  * @slot default - The item's content, used for what gets displayed.
  */
-export class MozVisualPickerItem extends MozRadio {
+export class MozVisualPickerItem extends SelectControlItemMixin(MozLitElement) {
   static queries = {
     itemEl: ".picker-item",
   };
 
-  get inputEl() {
-    return this.itemEl;
+  click() {
+    this.itemEl.click();
+  }
+
+  focus() {
+    this.itemEl.focus();
+  }
+
+  blur() {
+    this.itemEl.blur();
   }
 
   handleKeydown(event) {
@@ -96,7 +106,7 @@ export class MozVisualPickerItem extends MozRadio {
         role="radio"
         value=${this.value}
         aria-checked=${this.checked}
-        tabindex=${this.inputTabIndex}
+        tabindex=${this.itemTabIndex}
         ?checked=${this.checked}
         ?disabled=${this.isDisabled}
         @click=${this.handleClick}

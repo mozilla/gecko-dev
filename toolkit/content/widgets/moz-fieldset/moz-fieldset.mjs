@@ -18,6 +18,7 @@ export default class MozFieldset extends MozLitElement {
     label: { type: String, fluent: true },
     description: { type: String, fluent: true },
     supportPage: { type: String, attribute: "support-page" },
+    ariaOrientation: { type: String, mapped: true },
   };
 
   descriptionTemplate() {
@@ -29,6 +30,7 @@ export default class MozFieldset extends MozLitElement {
     }
     return "";
   }
+
   supportPageTemplate() {
     if (this.supportPage) {
       return html`<a
@@ -47,7 +49,10 @@ export default class MozFieldset extends MozLitElement {
         href="chrome://global/content/elements/moz-fieldset.css"
       />
       <fieldset
-        aria-describedby=${ifDefined(this.description ? "description" : null)}
+        aria-describedby=${ifDefined(
+          this.description ? "description" : undefined
+        )}
+        aria-orientation=${ifDefined(this.ariaOrientation)}
       >
         <legend part="label">${this.label}</legend>
         ${!this.description ? this.supportPageTemplate() : ""}
