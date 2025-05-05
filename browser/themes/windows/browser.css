@@ -36,7 +36,7 @@
   }
 
   /* stylelint-disable-next-line media-query-no-invalid */
-  @media -moz-pref("browser.theme.windows.accent-color-in-tabs.enabled") {
+  @media (-moz-windows-accent-color-in-titlebar) and ((-moz-windows-mica) or -moz-pref("browser.theme.windows.accent-color-in-tabs.enabled")) {
     .browser-toolbox-background {
       /* These colors match the Linux/HCM default button colors. We need to
        * override these on the toolbox-like elements because the accent color
