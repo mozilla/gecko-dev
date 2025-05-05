@@ -8,10 +8,6 @@ const { ASRouter } = ChromeUtils.importESModule(
   "resource:///modules/asrouter/ASRouter.sys.mjs"
 );
 
-const { ExperimentFakes } = ChromeUtils.importESModule(
-  "resource://testing-common/NimbusTestUtils.sys.mjs"
-);
-
 let sendTriggerMessageSpy;
 
 add_setup(function () {

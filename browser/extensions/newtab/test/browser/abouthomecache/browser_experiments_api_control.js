@@ -3,7 +3,7 @@
 
 "use strict";
 
-const { ExperimentFakes } = ChromeUtils.importESModule(
+const { NimbusTestUtils } = ChromeUtils.importESModule(
   "resource://testing-common/NimbusTestUtils.sys.mjs"
 );
 
@@ -22,7 +22,7 @@ registerCleanupFunction(async () => {
 add_task(async function test_experiments_api_control() {
   // First, the disabled case.
   await withFullyLoadedAboutHome(async browser => {
-    let doEnrollmentCleanup = await ExperimentFakes.enrollWithFeatureConfig({
+    let doEnrollmentCleanup = await NimbusTestUtils.enrollWithFeatureConfig({
       featureId: "abouthomecache",
       value: { enabled: false },
     });
@@ -47,7 +47,7 @@ add_task(async function test_experiments_api_control() {
 
   // Now the enabled case.
   await withFullyLoadedAboutHome(async browser => {
-    let doEnrollmentCleanup = await ExperimentFakes.enrollWithFeatureConfig({
+    let doEnrollmentCleanup = await NimbusTestUtils.enrollWithFeatureConfig({
       featureId: "abouthomecache",
       value: { enabled: true },
     });
