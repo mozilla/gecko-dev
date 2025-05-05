@@ -171,26 +171,21 @@ add_task(async function test_expand_on_hover_pinned_tabs() {
   await SidebarController.toggleExpandOnHover(true);
   await SidebarController.waitUntilStable();
 
-  let newTabButton = document.getElementById("tabs-newtab-button");
-  info("Open 2 new tabs using the new tab button.");
-  newTabButton.click();
-  newTabButton.click();
+  info("Open 2 new tabs.");
+  for (let i = 0; i < 2; i++) {
+    await BrowserTestUtils.openNewForegroundTab(
+      gBrowser,
+      `data:text/html,<title>${i + 1}</title>`
+    );
+    gBrowser.pinTab(gBrowser.selectedTab);
+  }
   is(gBrowser.tabs.length, 3, "Tabstrip now has three tabs");
   gBrowser.selectedTab.toggleMuteAudio();
-  gBrowser.pinTab(gBrowser.selectedTab);
-  let unpinnedTabs = gBrowser.visibleTabs.filter(tab => !tab.pinned);
-  gBrowser.pinTab(unpinnedTabs[0]);
   let pinnedTabs = gBrowser.visibleTabs.filter(tab => tab.pinned);
-  let verticalPinnedTabsContainer = document.getElementById(
-    "vertical-pinned-tabs-container"
-  );
-  let verticalTabsComputedStyle = window.getComputedStyle(
-    verticalPinnedTabsContainer
-  );
   let inlineMuteButton =
     gBrowser.selectedTab.querySelector(".tab-audio-button");
   let muteButtonComputedStyle = window.getComputedStyle(inlineMuteButton);
-  let pinnedTabComputedStyle = window.getComputedStyle(pinnedTabs[0]);
+  let pinnedTabOriginalWidth = pinnedTabs[0].clientWidth;
   await mouseOverSidebarToExpand();
   await SidebarController.waitUntilStable();
   await BrowserTestUtils.waitForMutationCondition(
@@ -201,10 +196,13 @@ add_task(async function test_expand_on_hover_pinned_tabs() {
       SidebarController.sidebarMain.hasAttribute("expanded"),
     "The launcher is expanded"
   );
-  Assert.less(
-    Math.round(parseInt(verticalTabsComputedStyle.width)) %
-      Math.round(parseInt(pinnedTabComputedStyle.width)),
-    10,
+  let verticalPinnedTabsContainer = document.getElementById(
+    "vertical-pinned-tabs-container"
+  );
+  let verticalTabsWidth = verticalPinnedTabsContainer.clientWidth;
+  Assert.greater(
+    Math.round(parseInt(verticalTabsWidth)),
+    Math.round(parseInt(pinnedTabOriginalWidth)),
     "The pinned tabs are full width when expanded"
   );
 
