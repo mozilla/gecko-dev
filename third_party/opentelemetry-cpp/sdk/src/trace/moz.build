@@ -11,8 +11,6 @@ LOCAL_INCLUDES += [
 ]
 
 UNIFIED_SOURCES += [
-  "batch_span_processor.cc",
-  "batch_span_processor_factory.cc",
   "exporter.cc",
   "provider.cc",
   "random_id_generator.cc",

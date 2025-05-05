@@ -22,6 +22,9 @@ vendoring:
 
   exclude:
    - "**"
+   - "sdk/include/opentelemetry/sdk/common/thread_instrumentation.h"
+   - "sdk/include/opentelemetry/sdk/trace/batch_span_processor*.h"
+   - "sdk/src/trace/batch_span_processor*.cc"
 
   include:
    - CHANGELOG.md
