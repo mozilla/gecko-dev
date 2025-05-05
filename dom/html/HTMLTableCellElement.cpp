@@ -101,12 +101,12 @@ void HTMLTableCellElement::GetAlign(DOMString& aValue) {
   }
 }
 
-static constexpr nsAttrValue::EnumTableEntry kCellScopeTable[] = {
+static const nsAttrValue::EnumTable kCellScopeTable[] = {
     {"row", StyleCellScope::Row},
     {"col", StyleCellScope::Col},
     {"rowgroup", StyleCellScope::Rowgroup},
     {"colgroup", StyleCellScope::Colgroup},
-};
+    {nullptr, 0}};
 
 void HTMLTableCellElement::GetScope(DOMString& aScope) {
   GetEnumAttr(nsGkAtoms::scope, nullptr, aScope);

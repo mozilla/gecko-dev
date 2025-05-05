@@ -107,12 +107,16 @@ static const uint8_t NS_INPUTMODE_NUMERIC = 6;
 static const uint8_t NS_INPUTMODE_DECIMAL = 7;
 static const uint8_t NS_INPUTMODE_SEARCH = 8;
 
-static constexpr nsAttrValue::EnumTableEntry kInputmodeTable[] = {
-    {"none", NS_INPUTMODE_NONE},       {"text", NS_INPUTMODE_TEXT},
-    {"tel", NS_INPUTMODE_TEL},         {"url", NS_INPUTMODE_URL},
-    {"email", NS_INPUTMODE_EMAIL},     {"numeric", NS_INPUTMODE_NUMERIC},
-    {"decimal", NS_INPUTMODE_DECIMAL}, {"search", NS_INPUTMODE_SEARCH},
-};
+static constexpr nsAttrValue::EnumTable kInputmodeTable[] = {
+    {"none", NS_INPUTMODE_NONE},
+    {"text", NS_INPUTMODE_TEXT},
+    {"tel", NS_INPUTMODE_TEL},
+    {"url", NS_INPUTMODE_URL},
+    {"email", NS_INPUTMODE_EMAIL},
+    {"numeric", NS_INPUTMODE_NUMERIC},
+    {"decimal", NS_INPUTMODE_DECIMAL},
+    {"search", NS_INPUTMODE_SEARCH},
+    {nullptr, 0}};
 
 static const uint8_t NS_ENTERKEYHINT_ENTER = 1;
 static const uint8_t NS_ENTERKEYHINT_DONE = 2;
@@ -122,7 +126,7 @@ static const uint8_t NS_ENTERKEYHINT_PREVIOUS = 5;
 static const uint8_t NS_ENTERKEYHINT_SEARCH = 6;
 static const uint8_t NS_ENTERKEYHINT_SEND = 7;
 
-static constexpr nsAttrValue::EnumTableEntry kEnterKeyHintTable[] = {
+static constexpr nsAttrValue::EnumTable kEnterKeyHintTable[] = {
     {"enter", NS_ENTERKEYHINT_ENTER},
     {"done", NS_ENTERKEYHINT_DONE},
     {"go", NS_ENTERKEYHINT_GO},
@@ -130,14 +134,14 @@ static constexpr nsAttrValue::EnumTableEntry kEnterKeyHintTable[] = {
     {"previous", NS_ENTERKEYHINT_PREVIOUS},
     {"search", NS_ENTERKEYHINT_SEARCH},
     {"send", NS_ENTERKEYHINT_SEND},
-};
+    {nullptr, 0}};
 
 static const uint8_t NS_AUTOCAPITALIZE_NONE = 1;
 static const uint8_t NS_AUTOCAPITALIZE_SENTENCES = 2;
 static const uint8_t NS_AUTOCAPITALIZE_WORDS = 3;
 static const uint8_t NS_AUTOCAPITALIZE_CHARACTERS = 4;
 
-static constexpr nsAttrValue::EnumTableEntry kAutocapitalizeTable[] = {
+static constexpr nsAttrValue::EnumTable kAutocapitalizeTable[] = {
     {"none", NS_AUTOCAPITALIZE_NONE},
     {"sentences", NS_AUTOCAPITALIZE_SENTENCES},
     {"words", NS_AUTOCAPITALIZE_WORDS},
@@ -145,9 +149,9 @@ static constexpr nsAttrValue::EnumTableEntry kAutocapitalizeTable[] = {
     {"off", NS_AUTOCAPITALIZE_NONE},
     {"on", NS_AUTOCAPITALIZE_SENTENCES},
     {"", 0},
-};
+    {nullptr, 0}};
 
-static constexpr const nsAttrValue::EnumTableEntry* kDefaultAutocapitalize =
+static const nsAttrValue::EnumTable* kDefaultAutocapitalize =
     &kAutocapitalizeTable[1];
 
 nsresult nsGenericHTMLElement::CopyInnerTo(Element* aDst) {
@@ -167,10 +171,11 @@ nsresult nsGenericHTMLElement::CopyInnerTo(Element* aDst) {
   return NS_OK;
 }
 
-static constexpr nsAttrValue::EnumTableEntry kDirTable[] = {
+static constexpr nsAttrValue::EnumTable kDirTable[] = {
     {"ltr", Directionality::Ltr},
     {"rtl", Directionality::Rtl},
     {"auto", Directionality::Auto},
+    {nullptr, 0},
 };
 
 namespace {
@@ -181,14 +186,14 @@ static constexpr const char kPopoverAttributeValueAuto[] = "auto";
 static constexpr const char kPopoverAttributeValueEmptyString[] = "";
 static constexpr const char kPopoverAttributeValueManual[] = "manual";
 
-static constexpr nsAttrValue::EnumTableEntry kPopoverTable[] = {
+static constexpr nsAttrValue::EnumTable kPopoverTable[] = {
     {kPopoverAttributeValueAuto, PopoverAttributeKeyword::Auto},
     {kPopoverAttributeValueEmptyString, PopoverAttributeKeyword::EmptyString},
     {kPopoverAttributeValueManual, PopoverAttributeKeyword::Manual},
-};
+    {nullptr, 0}};
 
 // See <https://html.spec.whatwg.org/#the-popover-attribute>.
-static const nsAttrValue::EnumTableEntry* kPopoverTableInvalidValueDefault =
+static const nsAttrValue::EnumTable* kPopoverTableInvalidValueDefault =
     &kPopoverTable[2];
 }  // namespace
 
@@ -1248,23 +1253,23 @@ nsMapRuleToAttributesFunc nsGenericHTMLElement::GetAttributeMappingFunction()
   return &MapCommonAttributesInto;
 }
 
-static constexpr nsAttrValue::EnumTableEntry kDivAlignTable[] = {
+static constexpr nsAttrValue::EnumTable kDivAlignTable[] = {
     {"left", StyleTextAlign::MozLeft},
     {"right", StyleTextAlign::MozRight},
     {"center", StyleTextAlign::MozCenter},
     {"middle", StyleTextAlign::MozCenter},
     {"justify", StyleTextAlign::Justify},
-};
+    {nullptr, 0}};
 
-static constexpr nsAttrValue::EnumTableEntry kFrameborderTable[] = {
+static constexpr nsAttrValue::EnumTable kFrameborderTable[] = {
     {"yes", FrameBorderProperty::Yes},
     {"no", FrameBorderProperty::No},
     {"1", FrameBorderProperty::One},
     {"0", FrameBorderProperty::Zero},
-};
+    {nullptr, 0}};
 
 // TODO(emilio): Nobody uses the parsed attribute here.
-static constexpr nsAttrValue::EnumTableEntry kScrollingTable[] = {
+static constexpr nsAttrValue::EnumTable kScrollingTable[] = {
     {"yes", ScrollingAttribute::Yes},
     {"no", ScrollingAttribute::No},
     {"on", ScrollingAttribute::On},
@@ -1272,36 +1277,36 @@ static constexpr nsAttrValue::EnumTableEntry kScrollingTable[] = {
     {"scroll", ScrollingAttribute::Scroll},
     {"noscroll", ScrollingAttribute::Noscroll},
     {"auto", ScrollingAttribute::Auto},
-};
+    {nullptr, 0}};
 
-static constexpr nsAttrValue::EnumTableEntry kTableVAlignTable[] = {
+static constexpr nsAttrValue::EnumTable kTableVAlignTable[] = {
     {"top", StyleVerticalAlignKeyword::Top},
     {"middle", StyleVerticalAlignKeyword::Middle},
     {"bottom", StyleVerticalAlignKeyword::Bottom},
     {"baseline", StyleVerticalAlignKeyword::Baseline},
-};
-
-static constexpr nsAttrValue::EnumTableEntry kAlignTable[] = {
-    {"left", StyleTextAlign::Left},
-    {"right", StyleTextAlign::Right},
-
-    {"top", StyleVerticalAlignKeyword::Top},
-    {"middle", StyleVerticalAlignKeyword::MozMiddleWithBaseline},
-
-    // Intentionally not bottom.
-    {"bottom", StyleVerticalAlignKeyword::Baseline},
-
-    {"center", StyleVerticalAlignKeyword::MozMiddleWithBaseline},
-    {"baseline", StyleVerticalAlignKeyword::Baseline},
-
-    {"texttop", StyleVerticalAlignKeyword::TextTop},
-    {"absmiddle", StyleVerticalAlignKeyword::Middle},
-    {"abscenter", StyleVerticalAlignKeyword::Middle},
-    {"absbottom", StyleVerticalAlignKeyword::Bottom},
-};
+    {nullptr, 0}};
 
 bool nsGenericHTMLElement::ParseAlignValue(const nsAString& aString,
                                            nsAttrValue& aResult) {
+  static constexpr nsAttrValue::EnumTable kAlignTable[] = {
+      {"left", StyleTextAlign::Left},
+      {"right", StyleTextAlign::Right},
+
+      {"top", StyleVerticalAlignKeyword::Top},
+      {"middle", StyleVerticalAlignKeyword::MozMiddleWithBaseline},
+
+      // Intentionally not bottom.
+      {"bottom", StyleVerticalAlignKeyword::Baseline},
+
+      {"center", StyleVerticalAlignKeyword::MozMiddleWithBaseline},
+      {"baseline", StyleVerticalAlignKeyword::Baseline},
+
+      {"texttop", StyleVerticalAlignKeyword::TextTop},
+      {"absmiddle", StyleVerticalAlignKeyword::Middle},
+      {"abscenter", StyleVerticalAlignKeyword::Middle},
+      {"absbottom", StyleVerticalAlignKeyword::Bottom},
+      {nullptr, 0}};
+
   static_assert(uint8_t(StyleTextAlign::Left) !=
                     uint8_t(StyleVerticalAlignKeyword::Top) &&
                 uint8_t(StyleTextAlign::Left) !=
@@ -1333,12 +1338,12 @@ bool nsGenericHTMLElement::ParseAlignValue(const nsAString& aString,
 
 //----------------------------------------
 
-static constexpr nsAttrValue::EnumTableEntry kTableHAlignTable[] = {
+static constexpr nsAttrValue::EnumTable kTableHAlignTable[] = {
     {"left", StyleTextAlign::Left},
     {"right", StyleTextAlign::Right},
     {"center", StyleTextAlign::Center},
     {"justify", StyleTextAlign::Justify},
-};
+    {nullptr, 0}};
 
 bool nsGenericHTMLElement::ParseTableHAlignValue(const nsAString& aString,
                                                  nsAttrValue& aResult) {
@@ -1348,14 +1353,14 @@ bool nsGenericHTMLElement::ParseTableHAlignValue(const nsAString& aString,
 //----------------------------------------
 
 // This table is used for td, th, tr, col, thead, tbody and tfoot.
-static constexpr nsAttrValue::EnumTableEntry kTableCellHAlignTable[] = {
+static constexpr nsAttrValue::EnumTable kTableCellHAlignTable[] = {
     {"left", StyleTextAlign::MozLeft},
     {"right", StyleTextAlign::MozRight},
     {"center", StyleTextAlign::MozCenter},
     {"justify", StyleTextAlign::Justify},
     {"middle", StyleTextAlign::MozCenter},
     {"absmiddle", StyleTextAlign::Center},
-};
+    {nullptr, 0}};
 
 bool nsGenericHTMLElement::ParseTableCellHAlignValue(const nsAString& aString,
                                                      nsAttrValue& aResult) {
@@ -1387,28 +1392,27 @@ bool nsGenericHTMLElement::ParseImageAttribute(nsAtom* aAttribute,
   return false;
 }
 
-static constexpr nsAttrValue::EnumTableEntry kReferrerPolicyTable[] = {
-    {GetEnumString(ReferrerPolicy::No_referrer).get(),
-     static_cast<int16_t>(ReferrerPolicy::No_referrer)},
-    {GetEnumString(ReferrerPolicy::Origin).get(),
-     static_cast<int16_t>(ReferrerPolicy::Origin)},
-    {GetEnumString(ReferrerPolicy::Origin_when_cross_origin).get(),
-     static_cast<int16_t>(ReferrerPolicy::Origin_when_cross_origin)},
-    {GetEnumString(ReferrerPolicy::No_referrer_when_downgrade).get(),
-     static_cast<int16_t>(ReferrerPolicy::No_referrer_when_downgrade)},
-    {GetEnumString(ReferrerPolicy::Unsafe_url).get(),
-     static_cast<int16_t>(ReferrerPolicy::Unsafe_url)},
-    {GetEnumString(ReferrerPolicy::Strict_origin).get(),
-     static_cast<int16_t>(ReferrerPolicy::Strict_origin)},
-    {GetEnumString(ReferrerPolicy::Same_origin).get(),
-     static_cast<int16_t>(ReferrerPolicy::Same_origin)},
-    {GetEnumString(ReferrerPolicy::Strict_origin_when_cross_origin).get(),
-     static_cast<int16_t>(ReferrerPolicy::Strict_origin_when_cross_origin)},
-};
-
 bool nsGenericHTMLElement::ParseReferrerAttribute(const nsAString& aString,
                                                   nsAttrValue& aResult) {
   using mozilla::dom::ReferrerInfo;
+  static constexpr nsAttrValue::EnumTable kReferrerPolicyTable[] = {
+      {GetEnumString(ReferrerPolicy::No_referrer).get(),
+       static_cast<int16_t>(ReferrerPolicy::No_referrer)},
+      {GetEnumString(ReferrerPolicy::Origin).get(),
+       static_cast<int16_t>(ReferrerPolicy::Origin)},
+      {GetEnumString(ReferrerPolicy::Origin_when_cross_origin).get(),
+       static_cast<int16_t>(ReferrerPolicy::Origin_when_cross_origin)},
+      {GetEnumString(ReferrerPolicy::No_referrer_when_downgrade).get(),
+       static_cast<int16_t>(ReferrerPolicy::No_referrer_when_downgrade)},
+      {GetEnumString(ReferrerPolicy::Unsafe_url).get(),
+       static_cast<int16_t>(ReferrerPolicy::Unsafe_url)},
+      {GetEnumString(ReferrerPolicy::Strict_origin).get(),
+       static_cast<int16_t>(ReferrerPolicy::Strict_origin)},
+      {GetEnumString(ReferrerPolicy::Same_origin).get(),
+       static_cast<int16_t>(ReferrerPolicy::Same_origin)},
+      {GetEnumString(ReferrerPolicy::Strict_origin_when_cross_origin).get(),
+       static_cast<int16_t>(ReferrerPolicy::Strict_origin_when_cross_origin)},
+      {nullptr, ReferrerPolicy::_empty}};
   return aResult.ParseEnumValue(aString, kReferrerPolicyTable, false);
 }
 
@@ -2936,14 +2940,14 @@ void nsGenericHTMLFormControlElement::SetFormAutofillState(
 
 //----------------------------------------------------------------------
 
-static constexpr nsAttrValue::EnumTableEntry kPopoverTargetActionTable[] = {
+static constexpr nsAttrValue::EnumTable kPopoverTargetActionTable[] = {
     {"toggle", PopoverTargetAction::Toggle},
     {"show", PopoverTargetAction::Show},
     {"hide", PopoverTargetAction::Hide},
-};
+    {nullptr, 0}};
 
-static constexpr const nsAttrValue::EnumTableEntry*
-    kPopoverTargetActionDefault = &kPopoverTargetActionTable[0];
+static const nsAttrValue::EnumTable* kPopoverTargetActionDefault =
+    &kPopoverTargetActionTable[0];
 
 nsGenericHTMLFormControlElementWithState::
     nsGenericHTMLFormControlElementWithState(

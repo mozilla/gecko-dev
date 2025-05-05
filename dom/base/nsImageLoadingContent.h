@@ -263,13 +263,8 @@ class nsImageLoadingContent : public nsIImageLoadingContent {
     Sync,
   };
 
-  static constexpr nsAttrValue::EnumTableEntry kDecodingTable[] = {
-      {"auto", nsImageLoadingContent::ImageDecodingType::Auto},
-      {"async", nsImageLoadingContent::ImageDecodingType::Async},
-      {"sync", nsImageLoadingContent::ImageDecodingType::Sync},
-  };
-  static constexpr const nsAttrValue::EnumTableEntry* kDecodingTableDefault =
-      &nsImageLoadingContent::kDecodingTable[0];
+  static const nsAttrValue::EnumTable kDecodingTable[];
+  static const nsAttrValue::EnumTable* kDecodingTableDefault;
 
  private:
   /**

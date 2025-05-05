@@ -24,10 +24,10 @@ JSObject* HTMLTableCaptionElement::WrapNode(JSContext* aCx,
 
 NS_IMPL_ELEMENT_CLONE(HTMLTableCaptionElement)
 
-static constexpr nsAttrValue::EnumTableEntry kCaptionAlignTable[] = {
+static const nsAttrValue::EnumTable kCaptionAlignTable[] = {
     {"top", StyleCaptionSide::Top},
     {"bottom", StyleCaptionSide::Bottom},
-};
+    {nullptr, 0}};
 
 bool HTMLTableCaptionElement::ParseAttribute(
     int32_t aNamespaceID, nsAtom* aAttribute, const nsAString& aValue,

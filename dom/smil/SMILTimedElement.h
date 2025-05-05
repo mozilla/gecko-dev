@@ -567,10 +567,7 @@ class SMILTimedElement {
 
   enum SMILFillMode : uint8_t { FILL_REMOVE, FILL_FREEZE };
   SMILFillMode mFillMode;
-  static constexpr nsAttrValue::EnumTableEntry sFillModeTable[] = {
-      {"remove", FILL_REMOVE},
-      {"freeze", FILL_FREEZE},
-  };
+  static const nsAttrValue::EnumTable sFillModeTable[];
 
   enum SMILRestartMode : uint8_t {
     RESTART_ALWAYS,
@@ -578,11 +575,7 @@ class SMILTimedElement {
     RESTART_NEVER
   };
   SMILRestartMode mRestartMode;
-  static constexpr nsAttrValue::EnumTableEntry sRestartModeTable[] = {
-      {"always", RESTART_ALWAYS},
-      {"whenNotActive", RESTART_WHENNOTACTIVE},
-      {"never", RESTART_NEVER},
-  };
+  static const nsAttrValue::EnumTable sRestartModeTable[];
 
   InstanceTimeList mBeginInstances;
   InstanceTimeList mEndInstances;

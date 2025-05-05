@@ -22,21 +22,17 @@ HTMLMarqueeElement::~HTMLMarqueeElement() = default;
 
 NS_IMPL_ELEMENT_CLONE(HTMLMarqueeElement)
 
-static constexpr nsAttrValue::EnumTableEntry kBehaviorTable[] = {
-    {"scroll", 1}, {"slide", 2}, {"alternate", 3}
-
-};
+static const nsAttrValue::EnumTable kBehaviorTable[] = {
+    {"scroll", 1}, {"slide", 2}, {"alternate", 3}, {nullptr, 0}};
 
 // Default behavior value is "scroll".
-static constexpr const nsAttrValue::EnumTableEntry* kDefaultBehavior =
-    &kBehaviorTable[0];
+static const nsAttrValue::EnumTable* kDefaultBehavior = &kBehaviorTable[0];
 
-static constexpr nsAttrValue::EnumTableEntry kDirectionTable[] = {
-    {"left", 1}, {"right", 2}, {"up", 3}, {"down", 4}};
+static const nsAttrValue::EnumTable kDirectionTable[] = {
+    {"left", 1}, {"right", 2}, {"up", 3}, {"down", 4}, {nullptr, 0}};
 
 // Default direction value is "left".
-static constexpr const nsAttrValue::EnumTableEntry* kDefaultDirection =
-    &kDirectionTable[0];
+static const nsAttrValue::EnumTable* kDefaultDirection = &kDirectionTable[0];
 
 JSObject* HTMLMarqueeElement::WrapNode(JSContext* aCx,
                                        JS::Handle<JSObject*> aGivenProto) {

@@ -1125,10 +1125,10 @@ const DOMTokenListSupportedToken Element::sAnchorAndFormRelValues[] = {
     "noreferrer", "noopener", "opener", nullptr};
 
 // https://html.spec.whatwg.org/multipage/urls-and-fetching.html#lazy-loading-attribute
-static constexpr nsAttrValue::EnumTableEntry kLoadingTable[] = {
+static constexpr nsAttrValue::EnumTable kLoadingTable[] = {
     {"eager", Element::Loading::Eager},
     {"lazy", Element::Loading::Lazy},
-};
+    {nullptr, 0}};
 
 void Element::GetLoading(nsAString& aValue) const {
   GetEnumAttr(nsGkAtoms::loading, kLoadingTable[0].tag, aValue);
@@ -1137,8 +1137,7 @@ void Element::GetLoading(nsAString& aValue) const {
 bool Element::ParseLoadingAttribute(const nsAString& aValue,
                                     nsAttrValue& aResult) {
   return aResult.ParseEnumValue(aValue, kLoadingTable,
-                                /* aCaseSensitive = */ false,
-                                &kLoadingTable[0]);
+                                /* aCaseSensitive = */ false, kLoadingTable);
 }
 
 Element::Loading Element::LoadingState() const {
@@ -1151,13 +1150,14 @@ Element::Loading Element::LoadingState() const {
 
 namespace {
 // <https://html.spec.whatwg.org/multipage/urls-and-fetching.html#fetch-priority-attributes>.
-static constexpr nsAttrValue::EnumTableEntry kFetchPriorityEnumTable[] = {
+static constexpr nsAttrValue::EnumTable kFetchPriorityEnumTable[] = {
     {kFetchPriorityAttributeValueHigh, FetchPriority::High},
     {kFetchPriorityAttributeValueLow, FetchPriority::Low},
-    {kFetchPriorityAttributeValueAuto, FetchPriority::Auto}};
+    {kFetchPriorityAttributeValueAuto, FetchPriority::Auto},
+    {nullptr, 0}};
 
 // <https://html.spec.whatwg.org/multipage/urls-and-fetching.html#fetch-priority-attributes>.
-static constexpr const nsAttrValue::EnumTableEntry*
+static const nsAttrValue::EnumTable*
     kFetchPriorityEnumTableInvalidValueDefault = &kFetchPriorityEnumTable[2];
 }  // namespace
 
@@ -3874,11 +3874,12 @@ bool Element::Matches(const nsACString& aSelector, ErrorResult& aResult) {
   return Servo_SelectorList_Matches(this, list);
 }
 
-static constexpr nsAttrValue::EnumTableEntry kCORSAttributeTable[] = {
+static const nsAttrValue::EnumTable kCORSAttributeTable[] = {
     // Order matters here
     // See ParseCORSValue
     {"anonymous", CORS_ANONYMOUS},
-    {"use-credentials", CORS_USE_CREDENTIALS}};
+    {"use-credentials", CORS_USE_CREDENTIALS},
+    {nullptr, 0}};
 
 /* static */
 void Element::ParseCORSValue(const nsAString& aValue, nsAttrValue& aResult) {

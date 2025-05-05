@@ -20,19 +20,18 @@ HTMLLIElement::~HTMLLIElement() = default;
 NS_IMPL_ELEMENT_CLONE(HTMLLIElement)
 
 // https://html.spec.whatwg.org/#lists
-const nsAttrValue::EnumTableEntry HTMLLIElement::kULTypeTable[] = {
+const nsAttrValue::EnumTable HTMLLIElement::kULTypeTable[] = {
     {"none", ListStyle::None},
     {"disc", ListStyle::Disc},
     {"circle", ListStyle::Circle},
     {"square", ListStyle::Square},
-};
+    {nullptr, 0}};
 
 // https://html.spec.whatwg.org/#lists
-const nsAttrValue::EnumTableEntry HTMLLIElement::kOLTypeTable[] = {
+const nsAttrValue::EnumTable HTMLLIElement::kOLTypeTable[] = {
     {"A", ListStyle::UpperAlpha}, {"a", ListStyle::LowerAlpha},
     {"I", ListStyle::UpperRoman}, {"i", ListStyle::LowerRoman},
-    {"1", ListStyle::Decimal},
-};
+    {"1", ListStyle::Decimal},    {nullptr, 0}};
 
 bool HTMLLIElement::ParseAttribute(int32_t aNamespaceID, nsAtom* aAttribute,
                                    const nsAString& aValue,

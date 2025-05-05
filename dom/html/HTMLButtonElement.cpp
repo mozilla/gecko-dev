@@ -38,15 +38,14 @@ NS_IMPL_NS_NEW_HTML_ELEMENT_CHECK_PARSER(Button)
 
 namespace mozilla::dom {
 
-static constexpr nsAttrValue::EnumTableEntry kButtonTypeTable[] = {
+static const nsAttrValue::EnumTable kButtonTypeTable[] = {
     {"button", FormControlType::ButtonButton},
     {"reset", FormControlType::ButtonReset},
     {"submit", FormControlType::ButtonSubmit},
-};
+    {nullptr, 0}};
 
 // Default type is 'submit'.
-static constexpr const nsAttrValue::EnumTableEntry* kButtonDefaultType =
-    &kButtonTypeTable[2];
+static const nsAttrValue::EnumTable* kButtonDefaultType = &kButtonTypeTable[2];
 
 // Construction, destruction
 HTMLButtonElement::HTMLButtonElement(

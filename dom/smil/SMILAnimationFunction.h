@@ -399,22 +399,9 @@ class SMILAnimationFunction {
   // Members
   // -------
 
-  static constexpr nsAttrValue::EnumTableEntry sAdditiveTable[] = {
-      {"replace", false},
-      {"sum", true},
-  };
-
-  static constexpr nsAttrValue::EnumTableEntry sAccumulateTable[] = {
-      {"none", false},
-      {"sum", true},
-  };
-
-  static constexpr nsAttrValue::EnumTableEntry sCalcModeTable[] = {
-      {"linear", CALC_LINEAR},
-      {"discrete", CALC_DISCRETE},
-      {"paced", CALC_PACED},
-      {"spline", CALC_SPLINE},
-  };
+  static nsAttrValue::EnumTable sAdditiveTable[];
+  static nsAttrValue::EnumTable sCalcModeTable[];
+  static nsAttrValue::EnumTable sAccumulateTable[];
 
   FallibleTArray<double> mKeyTimes;
   FallibleTArray<SMILKeySpline> mKeySplines;

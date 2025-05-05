@@ -19,10 +19,12 @@ NS_IMPL_NS_NEW_HTML_ELEMENT(Template)
 
 namespace mozilla::dom {
 
-static constexpr nsAttrValue::EnumTableEntry kShadowRootModeTable[] = {
+static constexpr nsAttrValue::EnumTable kShadowRootModeTable[] = {
     {"open", ShadowRootMode::Open},
     {"closed", ShadowRootMode::Closed},
-};
+    {nullptr, {}}};
+
+const nsAttrValue::EnumTable* kShadowRootModeDefault = &kShadowRootModeTable[2];
 
 HTMLTemplateElement::HTMLTemplateElement(
     already_AddRefed<mozilla::dom::NodeInfo>&& aNodeInfo)
