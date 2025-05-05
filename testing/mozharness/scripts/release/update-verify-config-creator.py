@@ -429,7 +429,15 @@ class UpdateVerifyConfigCreator(BaseScript):
                     self.config["app_name"],
                 ),
             )
-            ret = self._retry_download(shipped_locales_url, "WARNING")
+            ret = self._retry_download(
+                shipped_locales_url,
+                "WARNING",
+                retry_config={"sleeptime": 5, "max_sleeptime": 5},
+            )
+            if not ret:
+                git_url = f"https://raw.githubusercontent.com/mozilla-firefox/firefox/refs/tags/{tag}/{self.config['app_name']}/locales/shipped-locales"
+                ret = self._retry_download(git_url, "WARNING")
+
             shipped_locales = ret.read().strip().decode("utf-8")
 
             app_version_url = urljoin(
@@ -440,12 +448,16 @@ class UpdateVerifyConfigCreator(BaseScript):
                     self.config["app_name"],
                 ),
             )
-            app_version = (
-                self._retry_download(app_version_url, "WARNING")
-                .read()
-                .strip()
-                .decode("utf-8")
+            ret = self._retry_download(
+                app_version_url,
+                "WARNING",
+                retry_config={"sleeptime": 5, "max_sleeptime": 5},
             )
+            if not ret:
+                git_url = f"https://raw.githubusercontent.com/mozilla-firefox/firefox/refs/tags/{tag}/{self.config['app_name']}/config/version.txt"
+                ret = self._retry_download(git_url, "WARNING")
+
+            app_version = ret.read().strip().decode("utf-8")
 
             self.log("Adding {} to update paths".format(version), level=INFO)
             self.update_paths[version] = {
