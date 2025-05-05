@@ -236,6 +236,7 @@ describe("MultiStageAboutWelcome module", () => {
           totalNumberOfScreens: 1,
           setScreenMultiSelects: sandbox.stub(),
           setActiveMultiSelect: sandbox.stub(),
+          setActiveSingleSelectSelection: sandbox.stub(),
         };
       });
 
@@ -472,7 +473,7 @@ describe("MultiStageAboutWelcome module", () => {
             },
           },
           navigate: sandbox.stub(),
-          setActiveSingleSelect: sandbox.stub(),
+          setActiveSingleSelectSelection: sandbox.stub(),
           setActiveMultiSelect: sandbox.stub(),
           setScreenMultiSelects: sandbox.stub(),
         };
@@ -489,7 +490,9 @@ describe("MultiStageAboutWelcome module", () => {
         );
       });
       it("should preselect the active value if present", async () => {
-        SINGLE_SELECT_SCREEN_PROPS.activeSingleSelect = "test2";
+        SINGLE_SELECT_SCREEN_PROPS.activeSingleSelectSelections = {
+          "tile-0": ["test2"],
+        };
         const wrapper = mount(
           <WelcomeScreen {...SINGLE_SELECT_SCREEN_PROPS} />
         );
@@ -642,10 +645,14 @@ describe("MultiStageAboutWelcome module", () => {
         };
         const finishStub = sandbox.stub(global, "AWFinish");
         const wrapper = mount(<WelcomeScreen {...SCREEN_PROPS} />);
-
+        let telemetrySpy = sandbox.spy(
+          AboutWelcomeUtils,
+          "sendDismissTelemetry"
+        );
         wrapper.find(".dismiss-button").simulate("click");
 
         assert.calledOnce(finishStub);
+        assert.calledOnce(telemetrySpy);
       });
       it("should handle SHOW_FIREFOX_ACCOUNTS", () => {
         TEST_ACTION.type = "SHOW_FIREFOX_ACCOUNTS";
@@ -1167,6 +1174,35 @@ describe("MultiStageAboutWelcome module", () => {
         // If campaign handling fails, we should not send telemetry
         assert.notCalled(telemetrySpy);
         globals.restore();
+      });
+      it("should handle action from matched tile in tiles array", () => {
+        const TILE_ID = "test-tile-id";
+        SCREEN_PROPS.content.tiles = [
+          {
+            data: [
+              {
+                id: TILE_ID,
+                action: {
+                  type: "OPEN_URL",
+                  data: { args: "https://example.com" },
+                },
+              },
+            ],
+          },
+        ];
+        const wrapper = mount(<WelcomeScreen {...SCREEN_PROPS} />);
+
+        wrapper.instance().handleAction({
+          currentTarget: { value: TILE_ID },
+          source: "test-source",
+          name: "test-click",
+        });
+
+        const [calledArg] = AboutWelcomeUtils.handleUserAction.firstCall.args;
+        const url = new URL(calledArg.data.args);
+
+        assert.equal(calledArg.type, "OPEN_URL");
+        assert.equal(url.hostname, "example.com");
       });
     });
 
