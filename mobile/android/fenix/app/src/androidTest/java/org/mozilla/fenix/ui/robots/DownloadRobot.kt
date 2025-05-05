@@ -142,6 +142,16 @@ class DownloadRobot {
         Log.i(TAG, "clickMultiSelectRemoveButton: Clicked multi-select remove button")
     }
 
+    fun clickMultiSelectDeleteDialogButton(composeTestRule: ComposeTestRule) {
+        Log.i(TAG, "clickMultiSelectDeleteDialogButton: Trying to click the \"Delete\" dialog button")
+        composeTestRule
+            .onNodeWithText(
+                getStringResource(R.string.download_delete_multi_select_dialog_confirm),
+                ignoreCase = true,
+            ).performClick()
+        Log.i(TAG, "clickMultiSelectDeleteDialogButton: Clicked the \"Delete\" dialog button")
+    }
+
     fun openPageAndDownloadFile(url: Uri, downloadFile: String) {
         navigationToolbar {
         }.enterURLAndEnterToBrowser(url) {
