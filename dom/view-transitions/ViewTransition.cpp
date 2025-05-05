@@ -329,10 +329,6 @@ const wr::ImageKey* ViewTransition::GetImageKeyForCapturedFrame(
   MOZ_ASSERT(aFrame);
   MOZ_ASSERT(aFrame->HasAnyStateBits(NS_FRAME_CAPTURED_IN_VIEW_TRANSITION));
 
-  if (!StaticPrefs::dom_viewTransitions_live_capture()) {
-    return nullptr;
-  }
-
   nsAtom* name = aFrame->StyleUIReset()->mViewTransitionName._0.AsAtom();
   if (NS_WARN_IF(name->IsEmpty())) {
     return nullptr;
