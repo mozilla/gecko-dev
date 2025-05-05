@@ -16,7 +16,7 @@ buildscript {
 
     dependencies {
         classpath "${ApplicationServicesConfig.groupId}:tooling-nimbus-gradle:${ApplicationServicesConfig.version}"
-        classpath "org.mozilla.telemetry:glean-gradle-plugin:${libs.versions.mozilla.glean.get()}"
+        classpath libs.glean.gradle.plugin
     }
 }
 

@@ -20,7 +20,7 @@ buildscript {
     dependencies {
         classpath libs.tools.androidgradle
         classpath libs.osslicenses.plugin
-        classpath "org.mozilla.telemetry:glean-gradle-plugin:${libs.versions.mozilla.glean.get()}"
+        classpath libs.glean.gradle.plugin
         classpath "${ApplicationServicesConfig.groupId}:tooling-nimbus-gradle:${ApplicationServicesConfig.version}"
 
         // NOTE: Do not place your application dependencies here; they belong
