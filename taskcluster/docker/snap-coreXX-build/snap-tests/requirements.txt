@@ -8,7 +8,8 @@ mozfile==3.0.0
 mozlog==8.0.0
 mozterm==1.0.0
 outcome==1.2.0
-Pillow==10.1.0
+pillow==11.2.1
+pixelmatch==0.3.0
 PySocks==1.7.1
 PyYAML==6.0.1
 selenium==4.12.0

@@ -124,6 +124,14 @@ elif [ "${USE_SNAP_FROM_STORE_OR_MC}" = "store" ]; then
     CHANNEL=edge
   fi;
 
+  if [ "${CHANNEL}" = "stable-core24" ]; then
+    CHANNEL="latest/candidate"
+  fi
+
+  if [ "${CHANNEL}" = "beta-core24" ]; then
+    CHANNEL="latest/beta/core24"
+  fi
+
   snap download --channel="${CHANNEL}" firefox
   SNAP_DEBUG_NAME=$(find . -maxdepth 1 -type f -name "firefox*.snap" | sed -e 's/\.snap$/.debug/g')
   touch "${SNAP_DEBUG_NAME}"
@@ -149,6 +157,8 @@ else
   
     if [ "${DEBUG}" = "--debug" ]; then
       INDEX_NAME="${INDEX_NAME}-debug"
+    else
+      INDEX_NAME="${INDEX_NAME}-opt"
     fi;
   
     URL_TASK="${TASKCLUSTER_API_ROOT}/index/v1/task/gecko.v2.mozilla-central.${USE_SNAP_FROM_STORE_OR_MC}.firefox.snap-${ARCH}-${INDEX_NAME}"

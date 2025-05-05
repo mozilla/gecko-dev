@@ -22,7 +22,7 @@ class QATests(SnapTestsBase):
     def __init__(self):
         self._dir = "qa_tests"
 
-        super(QATests, self).__init__(
+        super().__init__(
             exp=os.path.join(
                 self._dir, f"qa_expectations_{self._distro_release()}.json"
             )

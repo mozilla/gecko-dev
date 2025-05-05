@@ -16,8 +16,9 @@ import traceback
 
 from mozlog import formatters, handlers, structuredlog
 from PIL import Image, ImageChops, ImageDraw
+from pixelmatch.contrib.PIL import pixelmatch
 from selenium import webdriver
-from selenium.common.exceptions import TimeoutException
+from selenium.common.exceptions import TimeoutException, WebDriverException
 from selenium.webdriver.common.by import By
 from selenium.webdriver.firefox.options import Options
 from selenium.webdriver.firefox.service import Service
@@ -135,6 +136,8 @@ class SnapTestsBase:
         self._logger.info(f"Channel & Core: {channel_and_core}")
 
         for m in object_methods:
+            tabs_before = set()
+            tabs_after = set()
             self._logger.test_start(m)
             expectations = (
                 self._expectations[m]
@@ -214,7 +217,10 @@ class SnapTestsBase:
     def save_screenshot(self, name):
         final_name = self.get_screenshot_destination(name)
         self._logger.info(f"Saving screenshot '{name}' to '{final_name}'")
-        self._driver.save_screenshot(final_name)
+        try:
+            self._driver.save_screenshot(final_name)
+        except WebDriverException as ex:
+            self._logger.info(f"Saving screenshot FAILED due to {ex}")
 
     def get_timeout(self):
         if "TEST_TIMEOUT" in os.environ.keys():
@@ -268,6 +274,12 @@ class SnapTestsBase:
             self._driver.set_context("content")
         return self._snap_core_base
 
+    def version(self):
+        self._driver.set_context("chrome")
+        version = self._driver.execute_script("return AppConstants.MOZ_APP_VERSION;")
+        self._driver.set_context("content")
+        return version
+
     def version_major(self):
         if self._version_major is None:
             self._driver.set_context("chrome")
@@ -312,15 +324,52 @@ class SnapTestsBase:
 
         svg_ref = Image.open(os.path.join(self._dir, exp["reference"])).convert("RGB")
         diff = ImageChops.difference(svg_ref, svg_png_cropped)
+
         bbox = diff.getbbox()
 
-        if bbox is not None:
-            (diff_r, diff_g, diff_b) = diff.getextrema()
-
-            min_is_black = (diff_r[0] == 0) and (diff_g[0] == 0) and (diff_b[0] == 0)
-            max_is_low_enough = (
-                (diff_r[1] <= 15) and (diff_g[1] <= 15) and (diff_b[1] <= 15)
+        mismatch = 0
+        try:
+            mismatch = pixelmatch(
+                svg_png_cropped, svg_ref, diff, includeAA=False, threshold=0.15
             )
+            if mismatch == 0:
+                return
+            self._logger.info(f"Non empty differences from pixelmatch: {mismatch}")
+        except ValueError as ex:
+            self._logger.info(f"Problem at pixelmatch: {ex}")
+            current_rendering_png = "pixelmatch_current_rendering_{}".format(
+                exp["reference"]
+            )
+            with open(
+                self.get_screenshot_destination(current_rendering_png), "wb"
+            ) as current_screenshot:
+                svg_png_cropped.save(current_screenshot)
+
+            reference_rendering_png = "pixelmatch_reference_rendering_{}".format(
+                exp["reference"]
+            )
+            with open(
+                self.get_screenshot_destination(reference_rendering_png), "wb"
+            ) as current_screenshot:
+                svg_ref.save(current_screenshot)
+
+        if bbox is not None:
+            (left, upper, right, lower) = bbox
+            assert mismatch > 0, "Really mismatching"
+
+            bbox_w = right - left
+            bbox_h = lower - upper
+
+            diff_px_on_bbox = round((mismatch * 1.0 / (bbox_w * bbox_h)) * 100, 3)
+            allowance = exp["allowance"] if "allowance" in exp else 0.15
+            self._logger.info(
+                f"Bbox: {bbox_w}x{bbox_h} => {diff_px_on_bbox}% ({allowance}% allowed)"
+            )
+
+            if diff_px_on_bbox <= allowance:
+                return
+
+            (diff_r, diff_g, diff_b) = diff.getextrema()
 
             draw_ref = ImageDraw.Draw(svg_ref)
             draw_ref.rectangle(bbox, outline="red")
@@ -370,20 +419,15 @@ class SnapTestsBase:
                 self._logger.info("Difference is a <= 2 pixels band, ignoring")
                 return
 
-            # Assume a difference is mismatching if the minimum pixel value in
-            # image difference is NOT black or if the maximum pixel value is
-            # not low enough
             assert (
-                min_is_black and max_is_low_enough
-            ), "Mismatching screenshots for {} with extremas: {}".format(
-                exp["reference"], (diff_r, diff_g, diff_b)
-            )
+                diff_px_on_bbox <= allowance
+            ), "Mismatching screenshots for {}".format(exp["reference"])
 
 
 class SnapTests(SnapTestsBase):
     def __init__(self, exp):
         self._dir = "basic_tests"
-        super(SnapTests, self).__init__(exp)
+        super(__class__, self).__init__(exp)
 
     def test_snap_core_base(self, exp):
         assert self.snap_core_base() in ["22", "24"], "Core base should be 22 or 24"
