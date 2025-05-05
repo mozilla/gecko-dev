@@ -1130,7 +1130,7 @@ tab-group {
     line-height: var(--tab-group-label-height);
     max-width: -moz-available;
     margin-inline-end: var(--space-medium);
-    padding-block: var(--tab-group-label-padding);
+    padding-block: calc((24px - var(--tab-group-label-height)) / 2);
   }
 
   #tabbrowser-tabs[tablist-has-focus] &.tablist-keyboard-focus {
