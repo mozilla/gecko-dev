@@ -3,7 +3,6 @@ package org.mozilla.fenix.downloads.dialog
 import android.app.Activity
 import android.content.Context
 import android.view.Gravity
-import android.view.LayoutInflater
 import android.view.View
 import android.widget.FrameLayout
 import androidx.coordinatorlayout.widget.CoordinatorLayout
@@ -20,7 +19,6 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.mozilla.fenix.R
-import org.mozilla.fenix.databinding.StartDownloadDialogLayoutBinding
 import org.mozilla.fenix.ext.components
 import org.mozilla.fenix.ext.settings
 import org.mozilla.fenix.helpers.FenixRobolectricTestRunner
@@ -95,11 +93,6 @@ class StartDownloadDialogTest {
             every { any<Context>().settings() } returns mockk(relaxed = true)
             every { any<Context>().components } returns mockk(relaxed = true)
             dialog.show(dialogContainer)
-            dialog.binding = StartDownloadDialogLayoutBinding.inflate(
-                LayoutInflater.from(activity),
-                dialogContainer,
-                true,
-            )
 
             dialog.dismiss()
 
@@ -213,11 +206,6 @@ class StartDownloadDialogTest {
             every { any<Context>().components } returns mockk(relaxed = true)
             val dialog = TestDownloadDialog(activity)
             dialog.show(dialogContainer)
-            dialog.binding = StartDownloadDialogLayoutBinding.inflate(
-                LayoutInflater.from(activity),
-                dialogContainer,
-                true,
-            )
 
             dialog.dismiss()
 

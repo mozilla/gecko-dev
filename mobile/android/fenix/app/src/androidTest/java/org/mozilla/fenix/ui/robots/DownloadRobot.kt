@@ -20,12 +20,8 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTouchInput
-import androidx.test.espresso.Espresso.onView
-import androidx.test.espresso.assertion.ViewAssertions.matches
 import androidx.test.espresso.intent.Intents
 import androidx.test.espresso.intent.matcher.IntentMatchers
-import androidx.test.espresso.matcher.ViewMatchers.isDisplayed
-import androidx.test.espresso.matcher.ViewMatchers.withId
 import androidx.test.uiautomator.By
 import androidx.test.uiautomator.UiSelector
 import androidx.test.uiautomator.Until
@@ -63,7 +59,7 @@ class DownloadRobot {
             Log.i(TAG, "verifyDownloadPrompt: Started try #$currentTries")
             try {
                 assertUIObjectExists(
-                    itemWithResId("$packageName:id/download_button"),
+                    downloadButton(),
                     itemContainingText(fileName),
                 )
 
@@ -302,8 +298,7 @@ fun downloadRobot(interact: DownloadRobot.() -> Unit): DownloadRobot.Transition 
 }
 
 private fun downloadButton() =
-    onView(withId(R.id.download_button))
-        .check(matches(isDisplayed()))
+    itemWithResIdContainingText("android:id/button1", getStringResource(R.string.mozac_feature_downloads_dialog_download))
 
 private fun openDownloadButton() =
     mDevice.findObject(UiSelector().resourceId("$packageName:id/download_dialog_action_button"))
