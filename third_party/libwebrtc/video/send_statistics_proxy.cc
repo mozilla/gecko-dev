@@ -1348,18 +1348,19 @@ void SendStatisticsProxy::OnReportBlockDataUpdated(
   stats->report_block_data = std::move(report_block);
 }
 
+StreamDataCounters SendStatisticsProxy::GetDataCounters(uint32_t ssrc) const {
+  MutexLock lock(&mutex_);
+  auto it = stats_.substreams.find(ssrc);
+  return it != stats_.substreams.end() ? it->second.rtp_stats
+                                       : StreamDataCounters();
+}
+
 void SendStatisticsProxy::DataCountersUpdated(
     const StreamDataCounters& counters,
     uint32_t ssrc) {
   MutexLock lock(&mutex_);
   VideoSendStream::StreamStats* stats = GetStatsEntry(ssrc);
   RTC_DCHECK(stats) << "DataCountersUpdated reported for unknown ssrc " << ssrc;
-
-  if (stats->type == VideoSendStream::StreamStats::StreamType::kFlexfec) {
-    // The same counters are reported for both the media ssrc and flexfec ssrc.
-    // Bitrate stats are summed for all SSRCs. Use fec stats from media update.
-    return;
-  }
 
   stats->rtp_stats = counters;
   if (uma_container_->first_rtp_stats_time_ms_ == -1) {

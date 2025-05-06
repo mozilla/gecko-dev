@@ -2601,6 +2601,7 @@ TEST_F(SendStatisticsProxyTest, SendBitratesAreReportedWithFlexFecEnabled) {
       static_cast<StreamDataCountersCallback*>(statistics_proxy_.get());
   StreamDataCounters counters;
   StreamDataCounters rtx_counters;
+  StreamDataCounters flexfec_counters;
 
   const int kMinRequiredPeriodSamples = 8;
   const int kPeriodIntervalMs = 2000;
@@ -2610,10 +2611,10 @@ TEST_F(SendStatisticsProxyTest, SendBitratesAreReportedWithFlexFecEnabled) {
     counters.transmitted.padding_bytes += 1000;
     counters.transmitted.payload_bytes += 2000;
     counters.retransmitted.packets += 2;
-    counters.retransmitted.header_bytes += 25;
-    counters.retransmitted.padding_bytes += 100;
+    counters.retransmitted.header_bytes += 50;
+    counters.retransmitted.padding_bytes += 200;
     counters.retransmitted.payload_bytes += 250;
-    counters.fec = counters.retransmitted;
+    flexfec_counters.fec = counters.retransmitted;
     rtx_counters.transmitted = counters.transmitted;
     // Advance one interval and update counters.
     fake_clock_.AdvanceTimeMilliseconds(kPeriodIntervalMs);
@@ -2621,7 +2622,7 @@ TEST_F(SendStatisticsProxyTest, SendBitratesAreReportedWithFlexFecEnabled) {
     proxy->DataCountersUpdated(counters, kSecondSsrc);
     proxy->DataCountersUpdated(rtx_counters, kFirstRtxSsrc);
     proxy->DataCountersUpdated(rtx_counters, kSecondRtxSsrc);
-    proxy->DataCountersUpdated(counters, kFlexFecSsrc);
+    proxy->DataCountersUpdated(flexfec_counters, kFlexFecSsrc);
   }
 
   statistics_proxy_.reset();
@@ -2632,25 +2633,25 @@ TEST_F(SendStatisticsProxyTest, SendBitratesAreReportedWithFlexFecEnabled) {
   EXPECT_METRIC_EQ(1, metrics::NumSamples("WebRTC.Video.RtxBitrateSentInKbps"));
   EXPECT_METRIC_EQ(1,
                    metrics::NumEvents("WebRTC.Video.RtxBitrateSentInKbps", 28));
-  // Interval: (2000 - 2 * 250) bytes / 2 sec = 1500 bytes / sec  = 12 kbps
+  // Interval: (2000 - 250) bytes / 2 sec = 1750 bytes / sec  = 14 kbps
   EXPECT_METRIC_EQ(1,
                    metrics::NumSamples("WebRTC.Video.MediaBitrateSentInKbps"));
   EXPECT_METRIC_EQ(
-      1, metrics::NumEvents("WebRTC.Video.MediaBitrateSentInKbps", 12));
+      1, metrics::NumEvents("WebRTC.Video.MediaBitrateSentInKbps", 14));
   // Interval: 1000 bytes * 4 / 2 sec = 2000 bytes / sec = 16 kbps
   EXPECT_METRIC_EQ(
       1, metrics::NumSamples("WebRTC.Video.PaddingBitrateSentInKbps"));
   EXPECT_METRIC_EQ(
       1, metrics::NumEvents("WebRTC.Video.PaddingBitrateSentInKbps", 16));
-  // Interval: 375 bytes * 2 / 2 sec = 375 bytes / sec = 3 kbps
+  // Interval: 500 bytes / 2 sec = 200 bytes / sec = 2 kbps
   EXPECT_METRIC_EQ(1, metrics::NumSamples("WebRTC.Video.FecBitrateSentInKbps"));
   EXPECT_METRIC_EQ(1,
-                   metrics::NumEvents("WebRTC.Video.FecBitrateSentInKbps", 3));
-  // Interval: 375 bytes * 2 / 2 sec = 375 bytes / sec = 3 kbps
+                   metrics::NumEvents("WebRTC.Video.FecBitrateSentInKbps", 2));
+  // Interval: 500 bytes * 2 / 2 sec = 375 bytes / sec = 4 kbps
   EXPECT_METRIC_EQ(
       1, metrics::NumSamples("WebRTC.Video.RetransmittedBitrateSentInKbps"));
   EXPECT_METRIC_EQ(
-      1, metrics::NumEvents("WebRTC.Video.RetransmittedBitrateSentInKbps", 3));
+      1, metrics::NumEvents("WebRTC.Video.RetransmittedBitrateSentInKbps", 4));
 }
 
 TEST_F(SendStatisticsProxyTest, ResetsRtpCountersOnContentChange) {

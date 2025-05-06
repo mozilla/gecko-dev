@@ -116,6 +116,7 @@ class SendStatisticsProxy : public VideoStreamEncoderObserver,
       uint32_t ssrc,
       const RtcpPacketTypeCounter& packet_counter) override;
   // From StreamDataCountersCallback.
+  StreamDataCounters GetDataCounters(uint32_t ssrc) const override;
   void DataCountersUpdated(const StreamDataCounters& counters,
                            uint32_t ssrc) override;
 

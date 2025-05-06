@@ -388,6 +388,10 @@ class StreamDataCountersCallback {
  public:
   virtual ~StreamDataCountersCallback() {}
 
+  // TODO: webrtc:40644448 - Make this pure virtual.
+  virtual StreamDataCounters GetDataCounters(uint32_t ssrc) const {
+    RTC_CHECK_NOTREACHED();
+  }
   virtual void DataCountersUpdated(const StreamDataCounters& counters,
                                    uint32_t ssrc) = 0;
 };

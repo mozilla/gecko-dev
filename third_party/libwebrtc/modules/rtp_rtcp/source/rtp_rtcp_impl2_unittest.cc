@@ -159,7 +159,8 @@ class SendTransport : public Transport,
 };
 
 class RtpRtcpModule : public RtcpPacketTypeCounterObserver,
-                      public SendPacketObserver {
+                      public SendPacketObserver,
+                      public StreamDataCountersCallback {
  public:
   struct SentPacket {
     SentPacket(uint16_t packet_id, Timestamp capture_time, uint32_t ssrc)
@@ -200,6 +201,15 @@ class RtpRtcpModule : public RtcpPacketTypeCounterObserver,
     if (packet_id.has_value()) {
       last_sent_packet_.emplace(*packet_id, capture_time, ssrc);
     }
+  }
+
+  StreamDataCounters GetDataCounters(uint32_t ssrc) const override {
+    auto it = counters_by_ssrc.find(ssrc);
+    return it != counters_by_ssrc.end() ? it->second : StreamDataCounters();
+  }
+  void DataCountersUpdated(const StreamDataCounters& counters,
+                           uint32_t ssrc) override {
+    counters_by_ssrc[ssrc] = counters;
   }
 
   std::optional<SentPacket> last_sent_packet() const {
@@ -249,6 +259,7 @@ class RtpRtcpModule : public RtcpPacketTypeCounterObserver,
     config.need_rtp_packet_infos = true;
     config.non_sender_rtt_measurement = true;
     config.send_packet_observer = this;
+    config.rtp_stats_callback = this;
     config.fec_generator = fec_generator_;
     impl_ = std::make_unique<ModuleRtpRtcpImpl2>(env_, config);
     impl_->SetRemoteSSRC(is_sender_ ? kReceiverSsrc : kSenderSsrc);
@@ -257,6 +268,7 @@ class RtpRtcpModule : public RtcpPacketTypeCounterObserver,
 
  private:
   std::map<uint32_t, RtcpPacketTypeCounter> counter_map_;
+  std::map<uint32_t, StreamDataCounters> counters_by_ssrc;
   std::optional<SentPacket> last_sent_packet_;
   VideoFecGenerator* fec_generator_ = nullptr;
   TimeDelta rtcp_report_interval_ = kDefaultReportInterval;
