@@ -192,15 +192,6 @@ void SMILTimedElement::RemoveInstanceTimes(InstanceTimeList& aArray,
 //----------------------------------------------------------------------
 // Static members
 
-const nsAttrValue::EnumTable SMILTimedElement::sFillModeTable[] = {
-    {"remove", FILL_REMOVE}, {"freeze", FILL_FREEZE}, {nullptr, 0}};
-
-const nsAttrValue::EnumTable SMILTimedElement::sRestartModeTable[] = {
-    {"always", RESTART_ALWAYS},
-    {"whenNotActive", RESTART_WHENNOTACTIVE},
-    {"never", RESTART_NEVER},
-    {nullptr, 0}};
-
 // The thresholds at which point we start filtering intervals and instance times
 // indiscriminately.
 // See FilterIntervals and FilterInstanceTimes.

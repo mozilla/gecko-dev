@@ -4947,12 +4947,12 @@ bool HTMLMediaElement::ParseAttribute(int32_t aNamespaceID, nsAtom* aAttribute,
                                       nsIPrincipal* aMaybeScriptedPrincipal,
                                       nsAttrValue& aResult) {
   // Mappings from 'preload' attribute strings to an enumeration.
-  static const nsAttrValue::EnumTable kPreloadTable[] = {
+  static const nsAttrValue::EnumTableEntry kPreloadTable[] = {
       {"", HTMLMediaElement::PRELOAD_ATTR_EMPTY},
       {"none", HTMLMediaElement::PRELOAD_ATTR_NONE},
       {"metadata", HTMLMediaElement::PRELOAD_ATTR_METADATA},
       {"auto", HTMLMediaElement::PRELOAD_ATTR_AUTO},
-      {nullptr, 0}};
+  };
 
   if (aNamespaceID == kNameSpaceID_None) {
     if (aAttribute == nsGkAtoms::crossorigin) {

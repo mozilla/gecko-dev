@@ -22,12 +22,12 @@ HTMLBRElement::~HTMLBRElement() = default;
 
 NS_IMPL_ELEMENT_CLONE(HTMLBRElement)
 
-static const nsAttrValue::EnumTable kClearTable[] = {
+static constexpr nsAttrValue::EnumTableEntry kClearTable[] = {
     {"left", StyleClear::Left},
     {"right", StyleClear::Right},
     {"all", StyleClear::Both},
     {"both", StyleClear::Both},
-    {nullptr, 0}};
+};
 
 bool HTMLBRElement::ParseAttribute(int32_t aNamespaceID, nsAtom* aAttribute,
                                    const nsAString& aValue,

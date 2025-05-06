@@ -48,18 +48,18 @@ nsGenericHTMLElement* NS_NewHTMLTrackElement(
 namespace mozilla::dom {
 
 // Map html attribute string values to TextTrackKind enums.
-static constexpr nsAttrValue::EnumTable kKindTable[] = {
+static constexpr nsAttrValue::EnumTableEntry kKindTable[] = {
     {"subtitles", static_cast<int16_t>(TextTrackKind::Subtitles)},
     {"captions", static_cast<int16_t>(TextTrackKind::Captions)},
     {"descriptions", static_cast<int16_t>(TextTrackKind::Descriptions)},
     {"chapters", static_cast<int16_t>(TextTrackKind::Chapters)},
     {"metadata", static_cast<int16_t>(TextTrackKind::Metadata)},
-    {nullptr, 0}};
+};
 
 // Invalid values are treated as "metadata" in ParseAttribute, but if no value
 // at all is specified, it's treated as "subtitles" in GetKind
-static constexpr const nsAttrValue::EnumTable* kKindTableInvalidValueDefault =
-    &kKindTable[4];
+static constexpr const nsAttrValue::EnumTableEntry*
+    kKindTableInvalidValueDefault = &kKindTable[4];
 
 class WindowDestroyObserver final : public nsIObserver {
   NS_DECL_ISUPPORTS

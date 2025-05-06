@@ -314,22 +314,21 @@ class nsAttrValue {
    * Structure for a mapping from int (enum) values to strings.  When you use
    * it you generally create an array of them.
    * Instantiate like this:
-   * EnumTable myTable[] = {
+   * EnumTableEntry myTable[] = {
    *   { "string1", 1 },
-   *   { "string2", 2 },
-   *   { nullptr, 0 }
+   *   { "string2", 2 }
    * }
    */
-  struct EnumTable {
+  struct EnumTableEntry {
     // EnumTable can be initialized either with an int16_t value
     // or a value of an enumeration type that can fit within an int16_t.
 
-    constexpr EnumTable(const char* aTag, int16_t aValue)
+    constexpr EnumTableEntry(const char* aTag, int16_t aValue)
         : tag(aTag), value(aValue) {}
 
     template <typename T,
               typename = typename std::enable_if<std::is_enum<T>::value>::type>
-    constexpr EnumTable(const char* aTag, T aValue)
+    constexpr EnumTableEntry(const char* aTag, T aValue)
         : tag(aTag), value(static_cast<int16_t>(aValue)) {
       static_assert(mozilla::EnumTypeFitsWithin<T, int16_t>::value,
                     "aValue must be an enum that fits within int16_t");
@@ -343,6 +342,7 @@ class nsAttrValue {
     int16_t value;
   };
 
+  using EnumTableSpan = mozilla::Span<const EnumTableEntry>;
   /**
    * Parse into an enum value.
    *
@@ -354,9 +354,9 @@ class nsAttrValue {
    *        cause aDefaultValue->value to be stored as the enumeration value.
    * @return whether the enum value was found or not
    */
-  bool ParseEnumValue(const nsAString& aValue, const EnumTable* aTable,
+  bool ParseEnumValue(const nsAString& aValue, EnumTableSpan aTable,
                       bool aCaseSensitive,
-                      const EnumTable* aDefaultValue = nullptr);
+                      const EnumTableEntry* aDefaultValue = nullptr);
 
   /**
    * Parse a string into a dimension value.  This is similar to
@@ -512,7 +512,7 @@ class nsAttrValue {
    * @param aTable   the EnumTable to get the index of.
    * @return         the index of the EnumTable.
    */
-  int16_t GetEnumTableIndex(const EnumTable* aTable);
+  int16_t GetEnumTableIndex(EnumTableSpan aTable);
 
   inline void SetPtrValueAndType(void* aValue, ValueBaseType aType);
   void SetIntValueAndType(int32_t aValue, ValueType aType,
@@ -541,8 +541,8 @@ class nsAttrValue {
       const nsAString& aValue) const;
   // Given an enum table and a particular entry in that table, return
   // the actual integer value we should store.
-  int32_t EnumTableEntryToValue(const EnumTable* aEnumTable,
-                                const EnumTable* aTableEntry);
+  int32_t EnumTableEntryToValue(EnumTableSpan aEnumTable,
+                                const EnumTableEntry& aTableEntry);
 
   template <typename F>
   bool SubstringCheck(const nsAString& aValue,
@@ -551,7 +551,7 @@ class nsAttrValue {
   static MiscContainer* AllocMiscContainer();
   static void DeallocMiscContainer(MiscContainer* aCont);
 
-  static nsTArray<const EnumTable*>* sEnumTableArray;
+  static nsTArray<EnumTableSpan>* sEnumTableArray;
 
   /**
    * Helper for ParseHTMLDimension and ParseNonzeroHTMLDimension.

@@ -27,11 +27,11 @@ bool HTMLHRElement::ParseAttribute(int32_t aNamespaceID, nsAtom* aAttribute,
                                    const nsAString& aValue,
                                    nsIPrincipal* aMaybeScriptedPrincipal,
                                    nsAttrValue& aResult) {
-  static const nsAttrValue::EnumTable kAlignTable[] = {
+  static const nsAttrValue::EnumTableEntry kAlignTable[] = {
       {"left", StyleTextAlign::Left},
       {"right", StyleTextAlign::Right},
       {"center", StyleTextAlign::Center},
-      {nullptr, 0}};
+  };
 
   if (aNamespaceID == kNameSpaceID_None) {
     if (aAttribute == nsGkAtoms::width) {

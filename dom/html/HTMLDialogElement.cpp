@@ -19,17 +19,19 @@ NS_IMPL_NS_NEW_HTML_ELEMENT(Dialog)
 
 namespace mozilla::dom {
 
-static constexpr nsAttrValue::EnumTable kClosedbyTable[] = {
+static constexpr nsAttrValue::EnumTableEntry kClosedbyTable[] = {
     {"", HTMLDialogElement::ClosedBy::Auto},
     {"none", HTMLDialogElement::ClosedBy::None},
     {"any", HTMLDialogElement::ClosedBy::Any},
     {"closerequest", HTMLDialogElement::ClosedBy::CloseRequest},
-    {nullptr, 0},
 };
 
-static const nsAttrValue::EnumTable* kClosedbyAuto = &kClosedbyTable[0];
-static const nsAttrValue::EnumTable* kClosedbyDefault = &kClosedbyTable[1];
-static const nsAttrValue::EnumTable* kClosedbyModalDefault = &kClosedbyTable[3];
+static constexpr const nsAttrValue::EnumTableEntry* kClosedbyAuto =
+    &kClosedbyTable[0];
+static constexpr const nsAttrValue::EnumTableEntry* kClosedbyDefault =
+    &kClosedbyTable[1];
+static constexpr const nsAttrValue::EnumTableEntry* kClosedbyModalDefault =
+    &kClosedbyTable[3];
 
 HTMLDialogElement::~HTMLDialogElement() = default;
 
