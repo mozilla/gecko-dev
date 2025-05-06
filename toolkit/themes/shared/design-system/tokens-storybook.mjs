@@ -443,7 +443,7 @@ export const storybookTables = {
     },
     { value: "var(--size-item-small)", name: "--checkbox-size" },
     { value: "16px", name: "--size-item-small" },
-    { value: "24px", name: "--size-item-medium" },
+    { value: "28px", name: "--size-item-medium" },
     { value: "32px", name: "--size-item-large" },
   ],
   "text-color": [
@@ -1516,7 +1516,7 @@ export const variableLookupTable = {
   },
   "page-main-content-width": { brand: { default: "664px" } },
   "size-item-small": "16px",
-  "size-item-medium": "24px",
+  "size-item-medium": "28px",
   "size-item-large": "32px",
   "space-xxsmall": "calc(0.5 * var(--space-xsmall))",
   "space-xsmall": "0.267rem",
