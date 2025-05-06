@@ -166,6 +166,7 @@ tasks:
                 stage_platform: ios
                 mozconfig_platform: ios
                 disable_package_metrics: true
+                upload_env: {"UPLOAD_PATH": "/builds/worker/artifacts"}
             mozconfig-variant: debug-searchfox
         fetches:
             toolchain:
