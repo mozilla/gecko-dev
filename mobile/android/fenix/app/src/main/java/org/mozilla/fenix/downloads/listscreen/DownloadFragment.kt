@@ -4,15 +4,11 @@
 
 package org.mozilla.fenix.downloads.listscreen
 
-import androidx.appcompat.widget.Toolbar
 import androidx.compose.runtime.Composable
 import androidx.navigation.fragment.findNavController
 import mozilla.components.browser.state.state.content.DownloadState
 import mozilla.components.feature.downloads.AbstractFetchDownloadService
-import mozilla.components.support.base.feature.UserInteractionHandler
-import mozilla.components.support.ktx.android.content.getColorFromAttr
 import org.mozilla.fenix.HomeActivity
-import org.mozilla.fenix.R
 import org.mozilla.fenix.browser.browsingmode.BrowsingMode
 import org.mozilla.fenix.components.lazyStore
 import org.mozilla.fenix.compose.ComposeFragment
@@ -25,14 +21,13 @@ import org.mozilla.fenix.downloads.listscreen.store.DownloadUIAction
 import org.mozilla.fenix.downloads.listscreen.store.DownloadUIState
 import org.mozilla.fenix.downloads.listscreen.store.DownloadUIStore
 import org.mozilla.fenix.downloads.listscreen.store.FileItem
-import org.mozilla.fenix.ext.setToolbarColors
 import org.mozilla.fenix.ext.settings
 import org.mozilla.fenix.theme.FirefoxTheme
 
 /**
  * Fragment for displaying and managing the downloads list.
  */
-class DownloadFragment : ComposeFragment(), UserInteractionHandler {
+class DownloadFragment : ComposeFragment() {
 
     private val downloadStore by lazyStore { viewModelScope ->
         DownloadUIStore(
@@ -59,15 +54,6 @@ class DownloadFragment : ComposeFragment(), UserInteractionHandler {
                     }
                 },
             )
-        }
-    }
-
-    override fun onBackPressed(): Boolean {
-        return if (downloadStore.state.mode is DownloadUIState.Mode.Editing) {
-            downloadStore.dispatch(DownloadUIAction.ExitEditMode)
-            true
-        } else {
-            false
         }
     }
 
@@ -101,17 +87,6 @@ class DownloadFragment : ComposeFragment(), UserInteractionHandler {
                     ),
                 ).show()
             }
-        }
-    }
-
-    override fun onDetach() {
-        super.onDetach()
-        context?.let {
-            activity?.title = getString(R.string.app_name)
-            activity?.findViewById<Toolbar>(R.id.navigationToolbar)?.setToolbarColors(
-                it.getColorFromAttr(R.attr.textPrimary),
-                it.getColorFromAttr(R.attr.layer1),
-            )
         }
     }
 }

@@ -108,8 +108,12 @@ fun DownloadsScreen(
     val context = LocalContext.current
     val toolbarConfig = getToolbarConfig(mode = uiState.mode)
 
-    BackHandler(uiState.isSearchFieldVisible) {
-        downloadsStore.dispatch(DownloadUIAction.SearchBarDismissRequest)
+    BackHandler(uiState.isBackHandlerEnabled) {
+        if (uiState.mode is Mode.Editing) {
+            downloadsStore.dispatch(DownloadUIAction.ExitEditMode)
+        } else if (uiState.isSearchFieldVisible) {
+            downloadsStore.dispatch(DownloadUIAction.SearchBarDismissRequest)
+        }
     }
 
     if (uiState.isDeleteDialogVisible) {

@@ -721,4 +721,51 @@ class DownloadUIStateTest {
 
         assertEquals(false, downloadUIState.isSearchFieldVisible)
     }
+
+    @Test
+    fun `WHEN state is in edit mode THEN back handler is enabled`() {
+        val downloadUIState = DownloadUIState(
+            items = emptyList(),
+            mode = DownloadUIState.Mode.Editing(
+                selectedItems = emptySet(),
+            ),
+            pendingDeletionIds = emptySet(),
+            isSearchEnabled = true,
+            isSearchFieldRequested = false,
+            searchQuery = "",
+        )
+
+        assertEquals(true, downloadUIState.isBackHandlerEnabled)
+    }
+
+    @Test
+    fun `WHEN search is visible THEN back handler is enabled`() {
+        val downloadUIState = DownloadUIState(
+            items = emptyList(),
+            mode = DownloadUIState.Mode.Normal,
+            pendingDeletionIds = emptySet(),
+            isSearchEnabled = true,
+            isSearchFieldRequested = true,
+            searchQuery = "",
+        )
+        // Making sure the test condition are met
+        assertEquals(true, downloadUIState.isSearchFieldVisible)
+
+        // Asserting the expected state
+        assertEquals(true, downloadUIState.isBackHandlerEnabled)
+    }
+
+    @Test
+    fun `WHEN state is in normal mode and search bar is not visible THEN back handler is not enabled`() {
+        val downloadUIState = DownloadUIState(
+            items = emptyList(),
+            mode = DownloadUIState.Mode.Normal,
+            pendingDeletionIds = emptySet(),
+            isSearchEnabled = true,
+            isSearchFieldRequested = false,
+            searchQuery = "",
+        )
+
+        assertEquals(false, downloadUIState.isBackHandlerEnabled)
+    }
 }

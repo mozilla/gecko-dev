@@ -112,6 +112,9 @@ data class DownloadUIState(
         get() = isSearchEnabled && itemsNotPendingDeletion.isNotEmpty() && !isSearchFieldVisible &&
             mode is Mode.Normal
 
+    val isBackHandlerEnabled: Boolean
+        get() = isSearchFieldRequested || mode is Mode.Editing
+
     /**
      * @see [DownloadUIState].
      */
