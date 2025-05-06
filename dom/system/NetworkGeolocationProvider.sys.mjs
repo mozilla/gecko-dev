@@ -495,6 +495,14 @@ NetworkGeolocationProvider.prototype = {
 
     let req = await fetch(url, fetchOpts);
     lazy.clearTimeout(timeoutId);
+
+    if (!req.ok) {
+      throw new Error(
+        `The geolocation provider returned a non-ok status ${req.status}`,
+        { cause: await req.text() }
+      );
+    }
+
     let result = req.json();
     return result;
   },
