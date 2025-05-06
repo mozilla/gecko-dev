@@ -143,6 +143,12 @@ SdpMungingType DetermineAudioSdpMungingType(
     return SdpMungingType::kAudioCodecsAddedL16;
   }
 
+  if (last_created_media_description->codecs().size() <
+      media_description_to_set->codecs().size()) {
+    RTC_LOG(LS_WARNING) << "SDP munging: audio codecs added.";
+    return SdpMungingType::kAudioCodecsAdded;
+  }
+
   // Audio NACK is not offered by default.
   bool created_nack =
       absl::c_find_if(last_created_media_description->codecs(),
@@ -161,10 +167,22 @@ SdpMungingType DetermineAudioSdpMungingType(
     return SdpMungingType::kAudioCodecsRtcpFbAudioNack;
   }
 
-  if (last_created_media_description->codecs().size() <
-      media_description_to_set->codecs().size()) {
-    RTC_LOG(LS_WARNING) << "SDP munging: audio codecs added.";
-    return SdpMungingType::kAudioCodecsAdded;
+  // RRTR is not offered by default.
+  bool created_rrtr =
+      absl::c_find_if(last_created_media_description->codecs(),
+                      [](const cricket::Codec codec) {
+                        return codec.HasFeedbackParam(
+                            cricket::FeedbackParam(cricket::kRtcpFbParamRrtr));
+                      }) != last_created_media_description->codecs().end();
+  bool set_rrtr =
+      absl::c_find_if(media_description_to_set->codecs(),
+                      [](const cricket::Codec codec) {
+                        return codec.HasFeedbackParam(
+                            cricket::FeedbackParam(cricket::kRtcpFbParamRrtr));
+                      }) != media_description_to_set->codecs().end();
+  if (!created_rrtr && set_rrtr) {
+    RTC_LOG(LS_WARNING) << "SDP munging: audio rrtr enabled.";
+    return SdpMungingType::kAudioCodecsRtcpFbRrtr;
   }
 
   // Opus FEC is on by default. Should not be munged, can be controlled by

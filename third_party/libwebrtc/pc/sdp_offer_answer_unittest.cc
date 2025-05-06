@@ -2498,6 +2498,27 @@ TEST_F(SdpOfferAnswerMungingTest, AudioCodecsRtcpFbNack) {
       ElementsAre(Pair(SdpMungingType::kAudioCodecsRtcpFbAudioNack, 1)));
 }
 
+TEST_F(SdpOfferAnswerMungingTest, AudioCodecsRtcpFbRrtr) {
+  auto pc = CreatePeerConnection();
+  pc->AddAudioTrack("audio_track", {});
+
+  auto offer = pc->CreateOffer();
+  auto& contents = offer->description()->contents();
+  ASSERT_EQ(contents.size(), 1u);
+  auto* media_description = contents[0].media_description();
+  ASSERT_TRUE(media_description);
+  auto codecs = media_description->codecs();
+  ASSERT_GT(codecs.size(), 0u);
+  codecs[0].feedback_params.Add(cricket::FeedbackParam("rrtr"));
+  media_description->set_codecs(codecs);
+
+  RTCError error;
+  EXPECT_TRUE(pc->SetLocalDescription(std::move(offer), &error));
+  EXPECT_THAT(
+      metrics::Samples("WebRTC.PeerConnection.SdpMunging.Offer.Initial"),
+      ElementsAre(Pair(SdpMungingType::kAudioCodecsRtcpFbRrtr, 1)));
+}
+
 TEST_F(SdpOfferAnswerMungingTest, VideoCodecsRtcpFb) {
   auto pc = CreatePeerConnection();
   pc->AddVideoTrack("video_track", {});
