@@ -2387,3 +2387,11 @@ ChromeUtils.defineLazyGetter(ExtensionParent, "PlatformInfo", () => {
     })(),
   });
 });
+
+// Register WPTMessages actor when running under WPT.
+if (ExtensionCommon.isInWPT && AppConstants.NIGHTLY_BUILD) {
+  const { WPTMessagesParent } = ChromeUtils.importESModule(
+    "resource://gre/modules/WPTMessagesParent.sys.mjs"
+  );
+  WPTMessagesParent.init(apiManager);
+}
