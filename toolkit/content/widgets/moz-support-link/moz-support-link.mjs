@@ -73,6 +73,14 @@ export default class MozSupportLink extends HTMLAnchorElement {
     this.removeEventListener("click", this);
   }
 
+  get supportPage() {
+    return this.getAttribute("support-page");
+  }
+
+  set supportPage(val) {
+    this.setAttribute("support-page", val);
+  }
+
   handleEvent(e) {
     if (e.type == "click") {
       if (window.openTrustedLinkIn) {
