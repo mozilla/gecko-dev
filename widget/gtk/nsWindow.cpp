@@ -9855,9 +9855,13 @@ void nsWindow::OnUnmap() {
     mSurfaceProvider.CleanupResources();
   }
 
-  // Until Bug 1654938 is fixed we delete layer manager for hidden popups,
-  // otherwise it can easily hold 1GB+ memory for long time.
-  if (mWindowType == WindowType::Popup) {
+  // Until bug 1654938 is fixed we delete layer manager for hidden popups,
+  // otherwise it can easily hold 1GB+ memory for a long time.
+  //
+  // Don't do this for temporarily hidden popups tho, as remote content is not
+  // set up to survive the layer manager destruction of the containing window,
+  // see bug 1958695.
+  if (mWindowType == WindowType::Popup && !mPopupTemporaryHidden) {
     DestroyLayerManager();
   } else {
     // Widget is backed by OpenGL EGLSurface created over wl_surface/XWindow.
