@@ -21,9 +21,9 @@
 #include "test/gmock.h"
 #include "test/gtest.h"
 
-using cricket::FakeVideoRenderer;
 using rtc::VideoBroadcaster;
 using rtc::VideoSinkWants;
+using ::webrtc::FakeVideoRenderer;
 using FrameSize = rtc::VideoSinkWants::FrameSize;
 
 using ::testing::AllOf;

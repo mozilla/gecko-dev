@@ -323,7 +323,7 @@ class StunPortTestWithRealClock : public StunPortTestBase {};
 
 class FakeClockBase {
  public:
-  rtc::ScopedFakeClock fake_clock;
+  webrtc::ScopedFakeClock fake_clock;
 };
 
 class StunPortTest : public FakeClockBase, public StunPortTestBase {};

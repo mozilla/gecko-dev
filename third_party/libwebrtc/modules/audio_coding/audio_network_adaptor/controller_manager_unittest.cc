@@ -140,7 +140,7 @@ TEST(ControllerManagerTest, ControllersWithCharPointDependOnNetworkMetrics) {
 }
 
 TEST(ControllerManagerTest, DoNotReorderBeforeMinReordingTime) {
-  rtc::ScopedFakeClock fake_clock;
+  ScopedFakeClock fake_clock;
   auto states = CreateControllerManager();
   CheckControllersOrder(&states, kChracteristicBandwithBps[0],
                         kChracteristicPacketLossFraction[0],
@@ -155,7 +155,7 @@ TEST(ControllerManagerTest, DoNotReorderBeforeMinReordingTime) {
 }
 
 TEST(ControllerManagerTest, ReorderBeyondMinReordingTimeAndMinDistance) {
-  rtc::ScopedFakeClock fake_clock;
+  ScopedFakeClock fake_clock;
   auto states = CreateControllerManager();
   constexpr int kBandwidthBps =
       (kChracteristicBandwithBps[0] + kChracteristicBandwithBps[1]) / 2;
@@ -174,7 +174,7 @@ TEST(ControllerManagerTest, ReorderBeyondMinReordingTimeAndMinDistance) {
 }
 
 TEST(ControllerManagerTest, DoNotReorderIfNetworkMetricsChangeTooSmall) {
-  rtc::ScopedFakeClock fake_clock;
+  ScopedFakeClock fake_clock;
   auto states = CreateControllerManager();
   constexpr int kBandwidthBps =
       (kChracteristicBandwithBps[0] + kChracteristicBandwithBps[1]) / 2;
@@ -354,7 +354,7 @@ TEST(ControllerManagerTest, DebugDumpLoggedWhenCreateFromConfigString) {
   const std::vector<int> encoder_frame_lengths_ms = {20, 60};
 
   constexpr int64_t kClockInitialTimeMs = 12345678;
-  rtc::ScopedFakeClock fake_clock;
+  ScopedFakeClock fake_clock;
   fake_clock.AdvanceTime(TimeDelta::Millis(kClockInitialTimeMs));
   auto debug_dump_writer =
       std::unique_ptr<MockDebugDumpWriter>(new NiceMock<MockDebugDumpWriter>());
@@ -417,7 +417,7 @@ TEST(ControllerManagerTest, CreateCharPointFreeConfigAndCheckDefaultOrder) {
 }
 
 TEST(ControllerManagerTest, CreateFromConfigStringAndCheckReordering) {
-  rtc::ScopedFakeClock fake_clock;
+  ScopedFakeClock fake_clock;
   audio_network_adaptor::config::ControllerManager config;
   config.set_min_reordering_time_ms(kMinReorderingTimeMs);
   config.set_min_reordering_squared_distance(kMinReorderingSquareDistance);

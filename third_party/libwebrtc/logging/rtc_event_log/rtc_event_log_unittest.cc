@@ -234,7 +234,7 @@ class RtcEventLogSession
   const RtcEventLog::EncodingType encoding_type_;
   test::EventGenerator gen_;
   test::EventVerifier verifier_;
-  rtc::ScopedFakeClock clock_;
+  ScopedFakeClock clock_;
   std::string temp_filename_;
   MemoryLogStorage log_storage_;
   std::unique_ptr<LogWriterFactoryInterface> log_output_factory_;
@@ -952,8 +952,8 @@ TEST_P(RtcEventLogCircularBufferTest, KeepsMostRecentEvents) {
   std::replace(test_name.begin(), test_name.end(), '/', '_');
   const std::string temp_filename = test::OutputPath() + test_name;
 
-  std::unique_ptr<rtc::ScopedFakeClock> fake_clock =
-      std::make_unique<rtc::ScopedFakeClock>();
+  std::unique_ptr<ScopedFakeClock> fake_clock =
+      std::make_unique<ScopedFakeClock>();
   fake_clock->SetTime(Timestamp::Seconds(kStartTimeSeconds));
 
   // Create a scope for the TQ and event log factories.
@@ -1017,7 +1017,7 @@ TEST_P(RtcEventLogCircularBufferTest, KeepsMostRecentEvents) {
   // recreate the clock. However we must ensure that the old fake_clock is
   // destroyed before the new one is created, so we have to reset() first.
   fake_clock.reset();
-  fake_clock = std::make_unique<rtc::ScopedFakeClock>();
+  fake_clock = std::make_unique<ScopedFakeClock>();
   fake_clock->SetTime(Timestamp::Millis(first_timestamp_ms));
   for (size_t i = 1; i < probe_success_events.size(); i++) {
     fake_clock->AdvanceTime(TimeDelta::Millis(10));

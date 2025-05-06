@@ -972,7 +972,7 @@ TEST_P(RtcEventLogEncoderTest, RtcEventRtcpReceiverReport) {
     return;
   }
 
-  rtc::ScopedFakeClock fake_clock;
+  ScopedFakeClock fake_clock;
   fake_clock.SetTime(Timestamp::Millis(prng_.Rand<uint32_t>()));
 
   std::unique_ptr<RtcEventLogEncoder> encoder = CreateEncoder();
@@ -1012,7 +1012,7 @@ TEST_P(RtcEventLogEncoderTest, RtcEventRtcpSenderReport) {
     return;
   }
 
-  rtc::ScopedFakeClock fake_clock;
+  ScopedFakeClock fake_clock;
   fake_clock.SetTime(Timestamp::Millis(prng_.Rand<uint32_t>()));
 
   std::unique_ptr<RtcEventLogEncoder> encoder = CreateEncoder();
@@ -1052,7 +1052,7 @@ TEST_P(RtcEventLogEncoderTest, RtcEventRtcpExtendedReports) {
     return;
   }
 
-  rtc::ScopedFakeClock fake_clock;
+  ScopedFakeClock fake_clock;
   fake_clock.SetTime(Timestamp::Millis(prng_.Rand<uint32_t>()));
 
   std::unique_ptr<RtcEventLogEncoder> encoder = CreateEncoder();
@@ -1092,7 +1092,7 @@ TEST_P(RtcEventLogEncoderTest, RtcEventRtcpFir) {
     return;
   }
 
-  rtc::ScopedFakeClock fake_clock;
+  ScopedFakeClock fake_clock;
   fake_clock.SetTime(Timestamp::Millis(prng_.Rand<uint32_t>()));
 
   std::unique_ptr<RtcEventLogEncoder> encoder = CreateEncoder();
@@ -1131,7 +1131,7 @@ TEST_P(RtcEventLogEncoderTest, RtcEventRtcpPli) {
     return;
   }
 
-  rtc::ScopedFakeClock fake_clock;
+  ScopedFakeClock fake_clock;
   fake_clock.SetTime(Timestamp::Millis(prng_.Rand<uint32_t>()));
 
   std::unique_ptr<RtcEventLogEncoder> encoder = CreateEncoder();
@@ -1170,7 +1170,7 @@ TEST_P(RtcEventLogEncoderTest, RtcEventRtcpBye) {
     return;
   }
 
-  rtc::ScopedFakeClock fake_clock;
+  ScopedFakeClock fake_clock;
   fake_clock.SetTime(Timestamp::Millis(prng_.Rand<uint32_t>()));
 
   std::unique_ptr<RtcEventLogEncoder> encoder = CreateEncoder();
@@ -1209,7 +1209,7 @@ TEST_P(RtcEventLogEncoderTest, RtcEventRtcpNack) {
     return;
   }
 
-  rtc::ScopedFakeClock fake_clock;
+  ScopedFakeClock fake_clock;
   fake_clock.SetTime(Timestamp::Millis(prng_.Rand<uint32_t>()));
 
   std::unique_ptr<RtcEventLogEncoder> encoder = CreateEncoder();
@@ -1248,7 +1248,7 @@ TEST_P(RtcEventLogEncoderTest, RtcEventRtcpRemb) {
     return;
   }
 
-  rtc::ScopedFakeClock fake_clock;
+  ScopedFakeClock fake_clock;
   fake_clock.SetTime(Timestamp::Millis(prng_.Rand<uint32_t>()));
 
   std::unique_ptr<RtcEventLogEncoder> encoder = CreateEncoder();
@@ -1287,7 +1287,7 @@ TEST_P(RtcEventLogEncoderTest, RtcEventRtcpTransportFeedback) {
     return;
   }
 
-  rtc::ScopedFakeClock fake_clock;
+  ScopedFakeClock fake_clock;
   fake_clock.SetTime(Timestamp::Millis(prng_.Rand<uint32_t>()));
 
   std::unique_ptr<RtcEventLogEncoder> encoder = CreateEncoder();
@@ -1329,7 +1329,7 @@ TEST_P(RtcEventLogEncoderTest, RtcEventRtcpLossNotification) {
     return;
   }
 
-  rtc::ScopedFakeClock fake_clock;
+  ScopedFakeClock fake_clock;
   fake_clock.SetTime(Timestamp::Millis(prng_.Rand<uint32_t>()));
 
   std::unique_ptr<RtcEventLogEncoder> encoder = CreateEncoder();

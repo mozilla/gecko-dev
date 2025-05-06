@@ -46,7 +46,7 @@ using ::testing::Sequence;
 
 using ::rtc::AutoThread;
 using ::rtc::Event;
-using ::rtc::ScopedFakeClock;
+using ::webrtc::ScopedFakeClock;
 using ::webrtc::TimeDelta;
 
 using NiceMockIceController = NiceMock<MockIceController>;

@@ -160,7 +160,7 @@ TEST_F(TmToSeconds, TestTmToSeconds) {
 // Test that all the time functions exposed by TimeUtils get time from the
 // fake clock when it's set.
 TEST(FakeClock, TimeFunctionsUseFakeClock) {
-  FakeClock clock;
+  webrtc::FakeClock clock;
   SetClockForTesting(&clock);
 
   clock.SetTime(webrtc::Timestamp::Micros(987654));
@@ -176,12 +176,12 @@ TEST(FakeClock, TimeFunctionsUseFakeClock) {
 }
 
 TEST(FakeClock, InitialTime) {
-  FakeClock clock;
+  webrtc::FakeClock clock;
   EXPECT_EQ(0, clock.TimeNanos());
 }
 
 TEST(FakeClock, SetTime) {
-  FakeClock clock;
+  webrtc::FakeClock clock;
   clock.SetTime(webrtc::Timestamp::Micros(123));
   EXPECT_EQ(123000, clock.TimeNanos());
   clock.SetTime(webrtc::Timestamp::Micros(456));
@@ -189,7 +189,7 @@ TEST(FakeClock, SetTime) {
 }
 
 TEST(FakeClock, AdvanceTime) {
-  FakeClock clock;
+  webrtc::FakeClock clock;
   clock.AdvanceTime(webrtc::TimeDelta::Micros(1u));
   EXPECT_EQ(1000, clock.TimeNanos());
   clock.AdvanceTime(webrtc::TimeDelta::Micros(2222u));
@@ -207,7 +207,7 @@ TEST(FakeClock, AdvanceTime) {
 TEST(FakeClock, SettingTimeWakesThreads) {
   int64_t real_start_time_ms = TimeMillis();
 
-  ThreadProcessingFakeClock clock;
+  webrtc::ThreadProcessingFakeClock clock;
   SetClockForTesting(&clock);
 
   std::unique_ptr<Thread> worker(Thread::CreateWithSocketServer());

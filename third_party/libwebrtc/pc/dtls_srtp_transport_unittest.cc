@@ -37,9 +37,9 @@
 #include "test/gtest.h"
 #include "test/scoped_key_value_config.h"
 
-using cricket::FakeDtlsTransport;
 using cricket::FakeIceTransport;
 using webrtc::DtlsSrtpTransport;
+using ::webrtc::FakeDtlsTransport;
 using webrtc::RtpTransport;
 using webrtc::SrtpTransport;
 

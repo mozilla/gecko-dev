@@ -539,7 +539,7 @@ class DtlsTransportTestBase {
 
  protected:
   rtc::AutoThread main_thread_;
-  rtc::ScopedFakeClock fake_clock_;
+  webrtc::ScopedFakeClock fake_clock_;
   DtlsTestClient client1_;
   DtlsTestClient client2_;
   bool use_dtls_;

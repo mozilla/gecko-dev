@@ -512,7 +512,7 @@ class BasicPortAllocatorTestBase : public ::testing::Test,
   std::unique_ptr<rtc::BasicPacketSocketFactory> nat_socket_factory_;
   webrtc::TestStunServer::StunServerPtr stun_server_;
   webrtc::TestTurnServer turn_server_;
-  rtc::FakeNetworkManager network_manager_;
+  webrtc::FakeNetworkManager network_manager_;
   std::unique_ptr<BasicPortAllocator> allocator_;
   std::unique_ptr<PortAllocatorSession> session_;
   std::vector<webrtc::PortInterface*> ports_;
@@ -526,7 +526,7 @@ class BasicPortAllocatorTestWithRealClock : public BasicPortAllocatorTestBase {
 
 class FakeClockBase {
  public:
-  rtc::ScopedFakeClock fake_clock;
+  webrtc::ScopedFakeClock fake_clock;
 };
 
 class BasicPortAllocatorTest : public FakeClockBase,

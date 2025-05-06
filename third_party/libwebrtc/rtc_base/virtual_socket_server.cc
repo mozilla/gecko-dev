@@ -659,7 +659,8 @@ size_t VirtualSocket::PurgeNetworkPackets(int64_t cur_time) {
 
 VirtualSocketServer::VirtualSocketServer() : VirtualSocketServer(nullptr) {}
 
-VirtualSocketServer::VirtualSocketServer(ThreadProcessingFakeClock* fake_clock)
+VirtualSocketServer::VirtualSocketServer(
+    webrtc::ThreadProcessingFakeClock* fake_clock)
     : fake_clock_(fake_clock),
       msg_queue_(nullptr),
       stop_on_idle_(false),

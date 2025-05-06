@@ -315,8 +315,8 @@ class DtlsIceIntegrationTest : public ::testing::TestWithParam<std::tuple<
     ep.dtls->SetLocalCertificate(certificate);
   }
 
-  rtc::ScopedFakeClock fake_clock_;
-  rtc::FakeNetworkManager network_manager_;
+  webrtc::ScopedFakeClock fake_clock_;
+  webrtc::FakeNetworkManager network_manager_;
   std::unique_ptr<rtc::VirtualSocketServer> ss_;
   std::unique_ptr<rtc::BasicPacketSocketFactory> socket_factory_;
   std::unique_ptr<webrtc::NetworkEmulationManager> network_emulation_manager_;

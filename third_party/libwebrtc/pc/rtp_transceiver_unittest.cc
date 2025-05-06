@@ -99,7 +99,7 @@ TEST_F(RtpTransceiverTest, CannotSetChannelOnStoppedTransceiver) {
   const std::string content_name("my_mid");
   auto transceiver = rtc::make_ref_counted<RtpTransceiver>(
       cricket::MediaType::MEDIA_TYPE_AUDIO, context());
-  auto channel1 = std::make_unique<NiceMock<cricket::MockChannelInterface>>();
+  auto channel1 = std::make_unique<NiceMock<MockChannelInterface>>();
   EXPECT_CALL(*channel1, media_type())
       .WillRepeatedly(Return(cricket::MediaType::MEDIA_TYPE_AUDIO));
   EXPECT_CALL(*channel1, mid()).WillRepeatedly(ReturnRef(content_name));
@@ -116,7 +116,7 @@ TEST_F(RtpTransceiverTest, CannotSetChannelOnStoppedTransceiver) {
   transceiver->StopInternal();
   EXPECT_EQ(channel1_ptr, transceiver->channel());
 
-  auto channel2 = std::make_unique<NiceMock<cricket::MockChannelInterface>>();
+  auto channel2 = std::make_unique<NiceMock<MockChannelInterface>>();
   EXPECT_CALL(*channel2, media_type())
       .WillRepeatedly(Return(cricket::MediaType::MEDIA_TYPE_AUDIO));
 
@@ -135,7 +135,7 @@ TEST_F(RtpTransceiverTest, CanUnsetChannelOnStoppedTransceiver) {
   const std::string content_name("my_mid");
   auto transceiver = rtc::make_ref_counted<RtpTransceiver>(
       cricket::MediaType::MEDIA_TYPE_VIDEO, context());
-  auto channel = std::make_unique<NiceMock<cricket::MockChannelInterface>>();
+  auto channel = std::make_unique<NiceMock<MockChannelInterface>>();
   EXPECT_CALL(*channel, media_type())
       .WillRepeatedly(Return(cricket::MediaType::MEDIA_TYPE_VIDEO));
   EXPECT_CALL(*channel, mid()).WillRepeatedly(ReturnRef(content_name));
@@ -731,8 +731,7 @@ TEST_F(RtpTransceiverTestForHeaderExtensions,
   EXPECT_CALL(*sender_.get(), SetMediaChannel(_));
   EXPECT_CALL(*sender_.get(), SetTransceiverAsStopped());
   EXPECT_CALL(*sender_.get(), Stop());
-  auto mock_channel =
-      std::make_unique<NiceMock<cricket::MockChannelInterface>>();
+  auto mock_channel = std::make_unique<NiceMock<MockChannelInterface>>();
   auto mock_channel_ptr = mock_channel.get();
   EXPECT_CALL(*mock_channel, SetFirstPacketReceivedCallback(_));
   EXPECT_CALL(*mock_channel, media_type())
@@ -765,8 +764,7 @@ TEST_F(RtpTransceiverTestForHeaderExtensions, ReturnsNegotiatedHdrExts) {
   EXPECT_CALL(*sender_.get(), SetTransceiverAsStopped());
   EXPECT_CALL(*sender_.get(), Stop());
 
-  auto mock_channel =
-      std::make_unique<NiceMock<cricket::MockChannelInterface>>();
+  auto mock_channel = std::make_unique<NiceMock<MockChannelInterface>>();
   auto mock_channel_ptr = mock_channel.get();
   EXPECT_CALL(*mock_channel, SetFirstPacketReceivedCallback(_));
   EXPECT_CALL(*mock_channel, media_type())

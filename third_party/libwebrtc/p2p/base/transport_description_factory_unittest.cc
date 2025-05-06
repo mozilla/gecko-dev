@@ -42,9 +42,9 @@ class TransportDescriptionFactoryTest : public ::testing::Test {
         f1_(field_trials_),
         f2_(field_trials_),
         cert1_(webrtc::RTCCertificate::Create(std::unique_ptr<rtc::SSLIdentity>(
-            new rtc::FakeSSLIdentity("User1")))),
+            new webrtc::FakeSSLIdentity("User1")))),
         cert2_(webrtc::RTCCertificate::Create(std::unique_ptr<rtc::SSLIdentity>(
-            new rtc::FakeSSLIdentity("User2")))) {
+            new webrtc::FakeSSLIdentity("User2")))) {
     // By default, certificates are supplied.
     f1_.set_certificate(cert1_);
     f2_.set_certificate(cert2_);

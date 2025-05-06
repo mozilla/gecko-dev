@@ -268,7 +268,7 @@ static void SendPingAndReceiveResponse(Connection* lconn,
                                        TestPort* lport,
                                        Connection* rconn,
                                        TestPort* rport,
-                                       rtc::ScopedFakeClock* clock,
+                                       webrtc::ScopedFakeClock* clock,
                                        int64_t ms) {
   lconn->Ping(rtc::TimeMillis());
   ASSERT_THAT(webrtc::WaitUntil(
@@ -970,7 +970,7 @@ void PortTest::TestConnectivity(absl::string_view name1,
                                 bool same_addr1,
                                 bool same_addr2,
                                 bool possible) {
-  rtc::ScopedFakeClock clock;
+  webrtc::ScopedFakeClock clock;
   RTC_LOG(LS_INFO) << "Test: " << name1 << " to " << name2 << ": ";
   port1->set_component(cricket::ICE_CANDIDATE_COMPONENT_DEFAULT);
   port2->set_component(cricket::ICE_CANDIDATE_COMPONENT_DEFAULT);
@@ -1739,7 +1739,7 @@ TEST_F(PortTest, TestIceRoleConflict) {
 }
 
 TEST_F(PortTest, TestTcpNoDelay) {
-  rtc::ScopedFakeClock clock;
+  webrtc::ScopedFakeClock clock;
   auto port1 = CreateTcpPort(kLocalAddr1);
   port1->SetIceRole(cricket::ICEROLE_CONTROLLING);
   int option_value = -1;
@@ -2253,7 +2253,7 @@ TEST_F(PortTest, TestNomination) {
 }
 
 TEST_F(PortTest, TestRoundTripTime) {
-  rtc::ScopedFakeClock clock;
+  webrtc::ScopedFakeClock clock;
 
   auto lport = CreateTestPort(kLocalAddr1, "lfrag", "lpass");
   auto rport = CreateTestPort(kLocalAddr2, "rfrag", "rpass");
@@ -3145,7 +3145,7 @@ TEST_F(PortTest, TestConnectionPriorityWithPriorityAdjustment) {
 // the default setup where the RTT is deterministically one, which generates an
 // estimate given by `MINIMUM_RTT` = 100.
 TEST_F(PortTest, TestWritableState) {
-  rtc::ScopedFakeClock clock;
+  webrtc::ScopedFakeClock clock;
   auto port1 = CreateUdpPort(kLocalAddr1);
   port1->SetIceRole(cricket::ICEROLE_CONTROLLING);
   auto port2 = CreateUdpPort(kLocalAddr2);
@@ -3242,7 +3242,7 @@ TEST_F(PortTest, TestWritableState) {
 // the default value given by `CONNECTION_WRITE_CONNECT_TIMEOUT` and
 // `CONNECTION_WRITE_CONNECT_FAILURES`.
 TEST_F(PortTest, TestWritableStateWithConfiguredThreshold) {
-  rtc::ScopedFakeClock clock;
+  webrtc::ScopedFakeClock clock;
   auto port1 = CreateUdpPort(kLocalAddr1);
   port1->SetIceRole(cricket::ICEROLE_CONTROLLING);
   auto port2 = CreateUdpPort(kLocalAddr2);
@@ -3952,7 +3952,7 @@ TEST_F(PortTest, TestErrorResponseMakesGoogPingFallBackToStunBinding) {
 // port will time out after connectivity is lost, if they are not marked as
 // "keep alive until pruned."
 TEST_F(PortTest, TestPortTimeoutIfNotKeptAlive) {
-  rtc::ScopedFakeClock clock;
+  webrtc::ScopedFakeClock clock;
   int timeout_delay = 100;
   auto port1 = CreateUdpPort(kLocalAddr1);
   ConnectToSignalDestroyed(port1.get());
@@ -3983,7 +3983,7 @@ TEST_F(PortTest, TestPortTimeoutIfNotKeptAlive) {
 // and destroyed again, ports won't be destroyed until a timeout period passes
 // after the last set of connections are all destroyed.
 TEST_F(PortTest, TestPortTimeoutAfterNewConnectionCreatedAndDestroyed) {
-  rtc::ScopedFakeClock clock;
+  webrtc::ScopedFakeClock clock;
   int timeout_delay = 100;
   auto port1 = CreateUdpPort(kLocalAddr1);
   ConnectToSignalDestroyed(port1.get());
@@ -4026,7 +4026,7 @@ TEST_F(PortTest, TestPortTimeoutAfterNewConnectionCreatedAndDestroyed) {
 // port will time out after connectivity is lost if they are marked as "keep
 // alive until pruned". They will time out after they are pruned.
 TEST_F(PortTest, TestPortNotTimeoutUntilPruned) {
-  rtc::ScopedFakeClock clock;
+  webrtc::ScopedFakeClock clock;
   int timeout_delay = 100;
   auto port1 = CreateUdpPort(kLocalAddr1);
   ConnectToSignalDestroyed(port1.get());
@@ -4148,7 +4148,7 @@ class ConnectionTest : public PortTest {
     rport_->PrepareAddress();
   }
 
-  rtc::ScopedFakeClock clock_;
+  webrtc::ScopedFakeClock clock_;
   int num_state_changes_ = 0;
 
   Connection* CreateConnection(IceRole role) {

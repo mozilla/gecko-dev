@@ -229,10 +229,10 @@ class ChannelTest : public ::testing::Test, public sigslot::has_slots<> {
         }
       } else {
         // Confirmed to work with KT_RSA and KT_ECDSA.
-        fake_rtp_dtls_transport1_.reset(new cricket::FakeDtlsTransport(
+        fake_rtp_dtls_transport1_.reset(new webrtc::FakeDtlsTransport(
             "channel1", cricket::ICE_CANDIDATE_COMPONENT_RTP, network_thread_));
         if (!(flags1 & RTCP_MUX)) {
-          fake_rtcp_dtls_transport1_.reset(new cricket::FakeDtlsTransport(
+          fake_rtcp_dtls_transport1_.reset(new webrtc::FakeDtlsTransport(
               "channel1", cricket::ICE_CANDIDATE_COMPONENT_RTCP,
               network_thread_));
         }
@@ -255,10 +255,10 @@ class ChannelTest : public ::testing::Test, public sigslot::has_slots<> {
         }
       } else {
         // Confirmed to work with KT_RSA and KT_ECDSA.
-        fake_rtp_dtls_transport2_.reset(new cricket::FakeDtlsTransport(
+        fake_rtp_dtls_transport2_.reset(new webrtc::FakeDtlsTransport(
             "channel2", cricket::ICE_CANDIDATE_COMPONENT_RTP, network_thread_));
         if (!(flags2 & RTCP_MUX)) {
-          fake_rtcp_dtls_transport2_.reset(new cricket::FakeDtlsTransport(
+          fake_rtcp_dtls_transport2_.reset(new webrtc::FakeDtlsTransport(
               "channel2", cricket::ICE_CANDIDATE_COMPONENT_RTCP,
               network_thread_));
         }
@@ -1567,10 +1567,10 @@ class ChannelTest : public ::testing::Test, public sigslot::has_slots<> {
       webrtc::PendingTaskSafetyFlag::CreateDetached();
   std::unique_ptr<rtc::Thread> network_thread_keeper_;
   rtc::Thread* network_thread_;
-  std::unique_ptr<cricket::FakeDtlsTransport> fake_rtp_dtls_transport1_;
-  std::unique_ptr<cricket::FakeDtlsTransport> fake_rtcp_dtls_transport1_;
-  std::unique_ptr<cricket::FakeDtlsTransport> fake_rtp_dtls_transport2_;
-  std::unique_ptr<cricket::FakeDtlsTransport> fake_rtcp_dtls_transport2_;
+  std::unique_ptr<webrtc::FakeDtlsTransport> fake_rtp_dtls_transport1_;
+  std::unique_ptr<webrtc::FakeDtlsTransport> fake_rtcp_dtls_transport1_;
+  std::unique_ptr<webrtc::FakeDtlsTransport> fake_rtp_dtls_transport2_;
+  std::unique_ptr<webrtc::FakeDtlsTransport> fake_rtcp_dtls_transport2_;
   std::unique_ptr<webrtc::FakePacketTransport> fake_rtp_packet_transport1_;
   std::unique_ptr<webrtc::FakePacketTransport> fake_rtcp_packet_transport1_;
   std::unique_ptr<webrtc::FakePacketTransport> fake_rtp_packet_transport2_;

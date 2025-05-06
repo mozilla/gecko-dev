@@ -1500,7 +1500,7 @@ void ApmTest::ProcessDebugDump(absl::string_view in_filename,
 }
 
 void ApmTest::VerifyDebugDumpTest(Format format) {
-  rtc::ScopedFakeClock fake_clock;
+  ScopedFakeClock fake_clock;
   const std::string in_filename = test::ResourcePath("ref03", "aecdump");
   std::string format_string;
   switch (format) {

@@ -29,8 +29,8 @@ namespace webrtc {
 
 using ClockVariant = absl::variant<absl::monostate,
                                    SimulatedClock*,
-                                   rtc::FakeClock*,
-                                   rtc::ThreadProcessingFakeClock*,
+                                   FakeClock*,
+                                   ThreadProcessingFakeClock*,
                                    TimeController*>;
 
 namespace wait_until_internal {

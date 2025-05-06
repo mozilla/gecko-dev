@@ -147,9 +147,8 @@ std::unique_ptr<CertificateInfo> CreateFakeCertificateAndInfoFromDers(
         "CERTIFICATE", reinterpret_cast<const unsigned char*>(der.c_str()),
         der.length()));
   }
-  info->certificate =
-      RTCCertificate::Create(std::unique_ptr<rtc::FakeSSLIdentity>(
-          new rtc::FakeSSLIdentity(info->pems)));
+  info->certificate = RTCCertificate::Create(
+      std::unique_ptr<FakeSSLIdentity>(new FakeSSLIdentity(info->pems)));
   // Strip header/footer and newline characters of PEM strings.
   for (size_t i = 0; i < info->pems.size(); ++i) {
     absl::StrReplaceAll({{"-----BEGIN CERTIFICATE-----", ""},
@@ -879,7 +878,7 @@ class RTCStatsCollectorTest : public ::testing::Test {
   }
 
  protected:
-  rtc::ScopedFakeClock fake_clock_;
+  ScopedFakeClock fake_clock_;
   rtc::AutoThread main_thread_;
   rtc::scoped_refptr<FakePeerConnectionForStats> pc_;
   std::unique_ptr<RTCStatsCollectorWrapper> stats_;
@@ -1431,7 +1430,7 @@ TEST_F(RTCStatsCollectorTest, CollectRTCCertificateStatsChain) {
 
 TEST_F(RTCStatsCollectorTest, CertificateStatsCache) {
   const char kTransportName[] = "transport";
-  rtc::ScopedFakeClock fake_clock;
+  ScopedFakeClock fake_clock;
 
   pc_->AddVoiceChannel("audio", kTransportName);
 

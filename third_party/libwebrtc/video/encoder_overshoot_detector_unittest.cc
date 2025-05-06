@@ -100,7 +100,7 @@ class EncoderOvershootDetectorTest : public TestWithParam<TestParams> {
 
   static constexpr int64_t kWindowSizeMs = 3000;
   EncoderOvershootDetector detector_;
-  rtc::ScopedFakeClock clock_;
+  ScopedFakeClock clock_;
   DataRate target_bitrate_;
   double target_framerate_fps_;
 };

@@ -38,7 +38,7 @@ TestClient::TestClient(std::unique_ptr<rtc::AsyncPacketSocket> socket)
     : TestClient(std::move(socket), nullptr) {}
 
 TestClient::TestClient(std::unique_ptr<rtc::AsyncPacketSocket> socket,
-                       rtc::ThreadProcessingFakeClock* fake_clock)
+                       ThreadProcessingFakeClock* fake_clock)
     : fake_clock_(fake_clock), socket_(std::move(socket)) {
   socket_->RegisterReceivedPacketCallback(
       [&](rtc::AsyncPacketSocket* socket, const rtc::ReceivedPacket& packet) {

@@ -543,9 +543,9 @@ class MediaSessionDescriptionFactoryTest : public testing::Test {
     codec_lookup_helper_2_.CodecVendor("")->set_video_codecs(
         MAKE_VECTOR(kVideoCodecs2), MAKE_VECTOR(kVideoCodecs2));
     tdf1_.set_certificate(webrtc::RTCCertificate::Create(
-        std::unique_ptr<rtc::SSLIdentity>(new rtc::FakeSSLIdentity("id1"))));
+        std::unique_ptr<rtc::SSLIdentity>(new webrtc::FakeSSLIdentity("id1"))));
     tdf2_.set_certificate(webrtc::RTCCertificate::Create(
-        std::unique_ptr<rtc::SSLIdentity>(new rtc::FakeSSLIdentity("id2"))));
+        std::unique_ptr<rtc::SSLIdentity>(new webrtc::FakeSSLIdentity("id2"))));
   }
 
   // Create a video StreamParamsVec object with:
@@ -4680,9 +4680,9 @@ class MediaProtocolTest : public testing::TestWithParam<const char*> {
     codec_lookup_helper_2_.CodecVendor("")->set_video_codecs(
         MAKE_VECTOR(kVideoCodecs2), MAKE_VECTOR(kVideoCodecs2));
     tdf1_.set_certificate(webrtc::RTCCertificate::Create(
-        std::unique_ptr<rtc::SSLIdentity>(new rtc::FakeSSLIdentity("id1"))));
+        std::unique_ptr<rtc::SSLIdentity>(new webrtc::FakeSSLIdentity("id1"))));
     tdf2_.set_certificate(webrtc::RTCCertificate::Create(
-        std::unique_ptr<rtc::SSLIdentity>(new rtc::FakeSSLIdentity("id2"))));
+        std::unique_ptr<rtc::SSLIdentity>(new webrtc::FakeSSLIdentity("id2"))));
   }
 
  protected:
@@ -4747,7 +4747,7 @@ void TestAudioCodecsOffer(RtpTransceiverDirection direction) {
   webrtc::test::ScopedKeyValueConfig field_trials;
   TransportDescriptionFactory tdf(field_trials);
   tdf.set_certificate(webrtc::RTCCertificate::Create(
-      std::unique_ptr<rtc::SSLIdentity>(new rtc::FakeSSLIdentity("id"))));
+      std::unique_ptr<rtc::SSLIdentity>(new webrtc::FakeSSLIdentity("id"))));
 
   rtc::UniqueRandomIdGenerator ssrc_generator;
   CodecLookupHelperForTesting codec_lookup_helper(field_trials);
@@ -4852,11 +4852,12 @@ void TestAudioCodecsAnswer(RtpTransceiverDirection offer_direction,
   webrtc::test::ScopedKeyValueConfig field_trials;
   TransportDescriptionFactory offer_tdf(field_trials);
   TransportDescriptionFactory answer_tdf(field_trials);
-  offer_tdf.set_certificate(webrtc::RTCCertificate::Create(
-      std::unique_ptr<rtc::SSLIdentity>(new rtc::FakeSSLIdentity("offer_id"))));
+  offer_tdf.set_certificate(
+      webrtc::RTCCertificate::Create(std::unique_ptr<rtc::SSLIdentity>(
+          new webrtc::FakeSSLIdentity("offer_id"))));
   answer_tdf.set_certificate(
       webrtc::RTCCertificate::Create(std::unique_ptr<rtc::SSLIdentity>(
-          new rtc::FakeSSLIdentity("answer_id"))));
+          new webrtc::FakeSSLIdentity("answer_id"))));
   rtc::UniqueRandomIdGenerator ssrc_generator1, ssrc_generator2;
   CodecLookupHelperForTesting offer_codec_lookup_helper(field_trials);
   MediaSessionDescriptionFactory offer_factory(
@@ -5022,10 +5023,10 @@ class VideoCodecsOfferH265LevelIdTest : public testing::Test {
         codec_lookup_helper_answerer_(field_trials_) {
     tdf_offerer_.set_certificate(
         webrtc::RTCCertificate::Create(std::unique_ptr<rtc::SSLIdentity>(
-            new rtc::FakeSSLIdentity("offer_id"))));
+            new webrtc::FakeSSLIdentity("offer_id"))));
     tdf_answerer_.set_certificate(
         webrtc::RTCCertificate::Create(std::unique_ptr<rtc::SSLIdentity>(
-            new rtc::FakeSSLIdentity("answer_id"))));
+            new webrtc::FakeSSLIdentity("answer_id"))));
   }
 
   void CheckH265Level(const std::vector<Codec>& codecs,

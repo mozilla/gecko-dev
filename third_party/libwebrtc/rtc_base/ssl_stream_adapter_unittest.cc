@@ -878,7 +878,7 @@ class SSLStreamAdapterTestBase : public ::testing::Test,
   }
 
   rtc::AutoThread main_thread_;
-  rtc::ScopedFakeClock clock_;
+  webrtc::ScopedFakeClock clock_;
   std::string client_cert_pem_;
   std::string client_private_key_pem_;
   rtc::KeyParams client_key_type_;

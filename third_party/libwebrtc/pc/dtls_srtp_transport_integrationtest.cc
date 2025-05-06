@@ -218,7 +218,7 @@ class DtlsSrtpTransportIntegrationTest : public ::testing::Test {
 
  private:
   rtc::AutoThread main_thread_;
-  rtc::ScopedFakeClock fake_clock_;
+  webrtc::ScopedFakeClock fake_clock_;
   webrtc::test::ScopedKeyValueConfig field_trials_;
 
   std::unique_ptr<cricket::FakeIceTransport> client_ice_transport_;

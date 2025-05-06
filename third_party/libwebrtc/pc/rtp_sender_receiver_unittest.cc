@@ -108,7 +108,7 @@ class RtpSenderReceiverTest
         media_engine_(std::make_unique<cricket::FakeMediaEngine>()),
         fake_call_(env_, worker_thread_, network_thread_),
         local_stream_(MediaStream::Create(kStreamId1)) {
-    rtp_dtls_transport_ = std::make_unique<cricket::FakeDtlsTransport>(
+    rtp_dtls_transport_ = std::make_unique<FakeDtlsTransport>(
         "fake_dtls_transport", cricket::ICE_CANDIDATE_COMPONENT_RTP);
     rtp_transport_ = CreateDtlsSrtpTransport();
 
@@ -223,7 +223,7 @@ class RtpSenderReceiverTest
     for (int i = 0; i < num_layers; ++i) {
       ssrcs.push_back(kVideoSsrcSimulcast + i);
     }
-    return cricket::CreateSimStreamParams("cname", ssrcs);
+    return CreateSimStreamParams("cname", ssrcs);
   }
 
   uint32_t CreateVideoRtpSender(const cricket::StreamParams& stream_params) {
@@ -309,8 +309,7 @@ class RtpSenderReceiverTest
     ssrcs.reserve(num_layers);
     for (int i = 0; i < num_layers; ++i)
       ssrcs.push_back(kVideoSsrcSimulcast + i);
-    cricket::StreamParams stream_params =
-        cricket::CreateSimStreamParams("cname", ssrcs);
+    cricket::StreamParams stream_params = CreateSimStreamParams("cname", ssrcs);
     video_media_receive_channel_->AddRecvStream(stream_params);
     uint32_t primary_ssrc = stream_params.first_ssrc();
 
@@ -523,7 +522,7 @@ class RtpSenderReceiverTest
       video_bitrate_allocator_factory_;
   std::unique_ptr<cricket::FakeMediaEngine> media_engine_;
   UniqueRandomIdGenerator ssrc_generator_;
-  cricket::FakeCall fake_call_;
+  FakeCall fake_call_;
   std::unique_ptr<cricket::VoiceMediaSendChannelInterface>
       voice_media_send_channel_;
   std::unique_ptr<cricket::VideoMediaSendChannelInterface>
@@ -958,8 +957,7 @@ TEST_F(RtpSenderReceiverTest, AudioSenderInitParametersMovedAfterNegotiation) {
 
   // Simulate the setLocalDescription call
   std::vector<uint32_t> ssrcs(1, 1);
-  cricket::StreamParams stream_params =
-      cricket::CreateSimStreamParams("cname", ssrcs);
+  cricket::StreamParams stream_params = CreateSimStreamParams("cname", ssrcs);
   voice_media_send_channel()->AddSendStream(stream_params);
   audio_rtp_sender_->SetMediaChannel(
       voice_media_send_channel()->AsVoiceSendChannel());
@@ -1212,8 +1210,7 @@ TEST_F(RtpSenderReceiverTest, VideoSenderInitParametersMovedAfterNegotiation) {
   ssrcs.reserve(2);
   for (int i = 0; i < 2; ++i)
     ssrcs.push_back(kVideoSsrcSimulcast + i);
-  cricket::StreamParams stream_params =
-      cricket::CreateSimStreamParams("cname", ssrcs);
+  cricket::StreamParams stream_params = CreateSimStreamParams("cname", ssrcs);
   video_media_send_channel()->AddSendStream(stream_params);
   video_rtp_sender_->SetMediaChannel(
       video_media_send_channel()->AsVideoSendChannel());
@@ -1254,8 +1251,7 @@ TEST_F(RtpSenderReceiverTest,
   ssrcs.reserve(2);
   for (int i = 0; i < 2; ++i)
     ssrcs.push_back(kVideoSsrcSimulcast + i);
-  cricket::StreamParams stream_params =
-      cricket::CreateSimStreamParams("cname", ssrcs);
+  cricket::StreamParams stream_params = CreateSimStreamParams("cname", ssrcs);
   video_media_send_channel()->AddSendStream(stream_params);
   video_rtp_sender_->SetMediaChannel(
       video_media_send_channel()->AsVideoSendChannel());

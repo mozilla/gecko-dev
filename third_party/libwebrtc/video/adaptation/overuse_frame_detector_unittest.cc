@@ -231,7 +231,7 @@ class OveruseFrameDetectorTest : public ::testing::Test,
   }
 
   CpuOveruseOptions options_;
-  rtc::ScopedFakeClock clock_;
+  ScopedFakeClock clock_;
   MockCpuOveruseObserver mock_observer_;
   OveruseFrameDetectorObserverInterface* observer_;
   std::unique_ptr<OveruseFrameDetectorUnderTest> overuse_detector_;

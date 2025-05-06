@@ -49,7 +49,7 @@ struct AudioEncoderOpusStates {
   MockAudioNetworkAdaptor* mock_audio_network_adaptor;
   MockSmoothingFilter* mock_bitrate_smoother;
   std::unique_ptr<AudioEncoderOpusImpl> encoder;
-  std::unique_ptr<rtc::ScopedFakeClock> fake_clock;
+  std::unique_ptr<ScopedFakeClock> fake_clock;
   AudioEncoderOpusConfig config;
 };
 
@@ -60,7 +60,7 @@ std::unique_ptr<AudioEncoderOpusStates> CreateCodec(
   std::unique_ptr<AudioEncoderOpusStates> states =
       std::make_unique<AudioEncoderOpusStates>();
   states->mock_audio_network_adaptor = nullptr;
-  states->fake_clock.reset(new rtc::ScopedFakeClock());
+  states->fake_clock.reset(new ScopedFakeClock());
   states->fake_clock->SetTime(Timestamp::Micros(kInitialTimeUs));
 
   MockAudioNetworkAdaptor** mock_ptr = &states->mock_audio_network_adaptor;

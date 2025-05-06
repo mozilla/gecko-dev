@@ -17,7 +17,7 @@
 #include "rtc_base/checks.h"
 #include "rtc_base/ssl_stream_adapter.h"
 
-namespace rtc {
+namespace webrtc {
 
 static const rtc::ZeroOnFreeBuffer<uint8_t> kTestKey1{
     "ABCDEFGHIJKLMNOPQRSTUVWXYZ1234", 30};
@@ -51,6 +51,15 @@ static int rtcp_auth_tag_len(int crypto_suite) {
   }
 }
 
+}  //  namespace webrtc
+
+// Re-export symbols from the webrtc namespace for backwards compatibility.
+// TODO(bugs.webrtc.org/4222596): Remove once all references are updated.
+namespace rtc {
+using ::webrtc::kTestKey1;
+using ::webrtc::kTestKey2;
+using ::webrtc::rtcp_auth_tag_len;
+using ::webrtc::rtp_auth_tag_len;
 }  // namespace rtc
 
 #endif  // PC_TEST_SRTP_TEST_UTIL_H_

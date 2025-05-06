@@ -77,7 +77,7 @@ class VideoAdapterTest : public ::testing::Test,
   explicit VideoAdapterTest(const std::string& field_trials,
                             int source_resolution_alignment)
       : override_field_trials_(field_trials),
-        frame_source_(std::make_unique<FakeFrameSource>(
+        frame_source_(std::make_unique<webrtc::FakeFrameSource>(
             kWidth,
             kHeight,
             VideoFormat::FpsToInterval(kDefaultFps) /
@@ -176,7 +176,7 @@ class VideoAdapterTest : public ::testing::Test,
   }
 
   webrtc::test::ScopedFieldTrials override_field_trials_;
-  const std::unique_ptr<FakeFrameSource> frame_source_;
+  const std::unique_ptr<webrtc::FakeFrameSource> frame_source_;
   VideoAdapter adapter_;
   int64_t timestamp_ns_ = 0;
   int cropped_width_;

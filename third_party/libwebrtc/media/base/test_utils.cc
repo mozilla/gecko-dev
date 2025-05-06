@@ -15,7 +15,7 @@
 #include "api/video/video_frame.h"
 #include "api/video/video_source_interface.h"
 
-namespace cricket {
+namespace webrtc {
 
 cricket::StreamParams CreateSimStreamParams(
     const std::string& cname,
@@ -52,4 +52,4 @@ cricket::StreamParams CreatePrimaryWithFecFrStreamParams(
   return sp;
 }
 
-}  // namespace cricket
+}  // namespace webrtc

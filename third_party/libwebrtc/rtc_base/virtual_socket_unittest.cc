@@ -839,7 +839,7 @@ class VirtualSocketServerTest : public ::testing::Test {
   }
 
  protected:
-  rtc::ScopedFakeClock fake_clock_;
+  webrtc::ScopedFakeClock fake_clock_;
   VirtualSocketServer ss_;
   AutoSocketServerThread thread_;
   const webrtc::SocketAddress kIPv4AnyAddress;

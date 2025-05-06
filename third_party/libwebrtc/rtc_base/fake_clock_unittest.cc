@@ -12,7 +12,7 @@
 
 #include "test/gtest.h"
 
-namespace rtc {
+namespace webrtc {
 TEST(ScopedFakeClockTest, OverridesGlobalClock) {
   const int64_t kFixedTimeUs = 100000;
   int64_t real_time_us = rtc::TimeMicros();
@@ -21,17 +21,17 @@ TEST(ScopedFakeClockTest, OverridesGlobalClock) {
     ScopedFakeClock scoped;
     EXPECT_EQ(rtc::TimeMicros(), 0);
 
-    scoped.AdvanceTime(webrtc::TimeDelta::Millis(1));
+    scoped.AdvanceTime(TimeDelta::Millis(1));
     EXPECT_EQ(rtc::TimeMicros(), 1000);
 
-    scoped.SetTime(webrtc::Timestamp::Micros(kFixedTimeUs));
+    scoped.SetTime(Timestamp::Micros(kFixedTimeUs));
     EXPECT_EQ(rtc::TimeMicros(), kFixedTimeUs);
 
-    scoped.AdvanceTime(webrtc::TimeDelta::Millis(1));
+    scoped.AdvanceTime(TimeDelta::Millis(1));
     EXPECT_EQ(rtc::TimeMicros(), kFixedTimeUs + 1000);
   }
 
   EXPECT_NE(rtc::TimeMicros(), kFixedTimeUs + 1000);
   EXPECT_GE(rtc::TimeMicros(), real_time_us);
 }
-}  // namespace rtc
+}  // namespace webrtc

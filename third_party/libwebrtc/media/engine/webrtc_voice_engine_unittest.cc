@@ -357,13 +357,13 @@ class WebRtcVoiceEngineTestFake : public ::testing::TestWithParam<bool> {
     rtc::Thread::Current()->ProcessMessages(0);
   }
 
-  const cricket::FakeAudioSendStream& GetSendStream(uint32_t ssrc) {
+  const webrtc::FakeAudioSendStream& GetSendStream(uint32_t ssrc) {
     const auto* send_stream = call_.GetAudioSendStream(ssrc);
     EXPECT_TRUE(send_stream);
     return *send_stream;
   }
 
-  const cricket::FakeAudioReceiveStream& GetRecvStream(uint32_t ssrc) {
+  const webrtc::FakeAudioReceiveStream& GetRecvStream(uint32_t ssrc) {
     const auto* recv_stream = call_.GetAudioReceiveStream(ssrc);
     EXPECT_TRUE(recv_stream);
     return *recv_stream;
@@ -448,7 +448,7 @@ class WebRtcVoiceEngineTestFake : public ::testing::TestWithParam<bool> {
     EXPECT_FALSE(send_channel_->InsertDtmf(-1, 1, 111));
 
     // Test send.
-    cricket::FakeAudioSendStream::TelephoneEvent telephone_event =
+    webrtc::FakeAudioSendStream::TelephoneEvent telephone_event =
         GetSendStream(kSsrcX).GetLatestTelephoneEvent();
     EXPECT_EQ(-1, telephone_event.payload_type);
     EXPECT_TRUE(send_channel_->InsertDtmf(ssrc, 2, 123));
@@ -918,7 +918,7 @@ class WebRtcVoiceEngineTestFake : public ::testing::TestWithParam<bool> {
   const Environment env_;
   rtc::scoped_refptr<webrtc::test::MockAudioDeviceModule> adm_;
   rtc::scoped_refptr<StrictMock<webrtc::test::MockAudioProcessing>> apm_;
-  cricket::FakeCall call_;
+  webrtc::FakeCall call_;
   FakeAudioSource fake_source_;
   std::unique_ptr<cricket::WebRtcVoiceEngine> engine_;
   std::unique_ptr<cricket::VoiceMediaSendChannelInterface> send_channel_;
@@ -2820,9 +2820,9 @@ TEST_P(WebRtcVoiceEngineTestFake, RecvWithMultipleStreams) {
     webrtc::SetBE32(packets[i] + 8, static_cast<uint32_t>(i));
   }
 
-  const cricket::FakeAudioReceiveStream& s1 = GetRecvStream(ssrc1);
-  const cricket::FakeAudioReceiveStream& s2 = GetRecvStream(ssrc2);
-  const cricket::FakeAudioReceiveStream& s3 = GetRecvStream(ssrc3);
+  const webrtc::FakeAudioReceiveStream& s1 = GetRecvStream(ssrc1);
+  const webrtc::FakeAudioReceiveStream& s2 = GetRecvStream(ssrc2);
+  const webrtc::FakeAudioReceiveStream& s3 = GetRecvStream(ssrc3);
 
   EXPECT_EQ(s1.received_packets(), 0);
   EXPECT_EQ(s2.received_packets(), 0);
@@ -3394,7 +3394,7 @@ TEST_P(WebRtcVoiceEngineTestFake, SetOptionOverridesViaChannels) {
 // This test verifies DSCP settings are properly applied on voice media channel.
 TEST_P(WebRtcVoiceEngineTestFake, TestSetDscpOptions) {
   EXPECT_TRUE(SetupSendStream());
-  cricket::FakeNetworkInterface network_interface;
+  webrtc::FakeNetworkInterface network_interface;
   cricket::MediaConfig config;
   std::unique_ptr<cricket::VoiceMediaSendChannelInterface> channel;
   webrtc::RtpParameters parameters;
@@ -3650,7 +3650,7 @@ TEST_P(WebRtcVoiceEngineTestFake, DeliverAudioPacket_Call) {
       cricket::StreamParams::CreateLegacy(kAudioSsrc)));
 
   EXPECT_EQ(1u, call_.GetAudioReceiveStreams().size());
-  const cricket::FakeAudioReceiveStream* s =
+  const webrtc::FakeAudioReceiveStream* s =
       call_.GetAudioReceiveStream(kAudioSsrc);
   EXPECT_EQ(0, s->received_packets());
   webrtc::RtpPacketReceived parsed_packet;

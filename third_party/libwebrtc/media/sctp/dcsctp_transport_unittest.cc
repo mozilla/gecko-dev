@@ -89,7 +89,7 @@ class Peer {
     sctp_transport_->SetOnConnectedCallback([this]() { sink_.OnConnected(); });
   }
 
-  cricket::FakeDtlsTransport fake_dtls_transport_;
+  FakeDtlsTransport fake_dtls_transport_;
   webrtc::SimulatedClock simulated_clock_;
   Environment env_;
   dcsctp::MockDcSctpSocket* socket_;

@@ -99,7 +99,7 @@ class DataChannelIntegrationTest
 // where order of construction is finely controlled.
 // This also ensures peerconnection is closed before switching back to non-fake
 // clock, avoiding other races and DCHECK failures such as in rtp_sender.cc.
-class FakeClockForTest : public rtc::ScopedFakeClock {
+class FakeClockForTest : public ScopedFakeClock {
  protected:
   FakeClockForTest() {
     // Some things use a time of "0" as a special value, so we need to start out

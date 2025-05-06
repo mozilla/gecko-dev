@@ -192,7 +192,7 @@ class ScreenshareLayerTest : public ::testing::Test {
   int min_qp_;
   uint32_t max_qp_;
   int frame_size_;
-  rtc::ScopedFakeClock clock_;
+  ScopedFakeClock clock_;
   std::unique_ptr<ScreenshareLayers> layers_;
 
   uint32_t timestamp_;

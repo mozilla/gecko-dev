@@ -492,7 +492,7 @@ TEST(ThreadTest, ThreeThreadsBlockingCall) {
 }
 
 static void DelayedPostsWithIdenticalTimesAreProcessedInFifoOrder(
-    FakeClock& clock,
+    webrtc::FakeClock& clock,
     Thread& q) {
   std::vector<int> run_order;
 
@@ -515,7 +515,7 @@ static void DelayedPostsWithIdenticalTimesAreProcessedInFifoOrder(
 }
 
 TEST(ThreadTest, DelayedPostsWithIdenticalTimesAreProcessedInFifoOrder) {
-  ScopedBaseFakeClock clock;
+  webrtc::ScopedBaseFakeClock clock;
   Thread q(CreateDefaultSocketServer(), true);
   q.Start();
   DelayedPostsWithIdenticalTimesAreProcessedInFifoOrder(clock, q);
@@ -804,7 +804,7 @@ TEST(ThreadPostDelayedTaskTest, InvokesAsynchronously) {
 }
 
 TEST(ThreadPostDelayedTaskTest, InvokesInDelayOrder) {
-  ScopedFakeClock clock;
+  webrtc::ScopedFakeClock clock;
   std::unique_ptr<rtc::Thread> background_thread(rtc::Thread::Create());
   background_thread->Start();
 

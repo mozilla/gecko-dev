@@ -131,12 +131,12 @@ class PeerConnectionWrapperForIceTest : public PeerConnectionWrapper {
     return candidates;
   }
 
-  rtc::FakeNetworkManager* network() { return network_; }
+  FakeNetworkManager* network() { return network_; }
 
-  void set_network(rtc::FakeNetworkManager* network) { network_ = network; }
+  void set_network(FakeNetworkManager* network) { network_ = network; }
 
  private:
-  rtc::FakeNetworkManager* network_;
+  FakeNetworkManager* network_;
 };
 
 class PeerConnectionIceBaseTest : public ::testing::Test {
@@ -160,7 +160,7 @@ class PeerConnectionIceBaseTest : public ::testing::Test {
     pcf_deps.worker_thread = rtc::Thread::Current();
     pcf_deps.signaling_thread = rtc::Thread::Current();
     pcf_deps.socket_factory = &vss_;
-    auto network_manager = std::make_unique<rtc::FakeNetworkManager>();
+    auto network_manager = std::make_unique<FakeNetworkManager>();
     auto* fake_network = network_manager.get();
     pcf_deps.network_manager = std::move(network_manager);
     pcf_deps.adm = FakeAudioCaptureModule::Create();

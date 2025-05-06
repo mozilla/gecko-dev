@@ -654,9 +654,9 @@ class LegacyStatsCollectorTest : public ::testing::Test {
     }
   }
 
-  void TestCertificateReports(const rtc::FakeSSLIdentity& local_identity,
+  void TestCertificateReports(const FakeSSLIdentity& local_identity,
                               const std::vector<std::string>& local_ders,
-                              const rtc::FakeSSLIdentity& remote_identity,
+                              const FakeSSLIdentity& remote_identity,
                               const std::vector<std::string>& remote_ders) {
     const std::string kTransportName = "transport";
 
@@ -1431,7 +1431,7 @@ TEST_F(LegacyStatsCollectorTest, ChainedCertificateReportsCreated) {
   local_ders[2] = "some";
   local_ders[3] = "der";
   local_ders[4] = "values";
-  rtc::FakeSSLIdentity local_identity(DersToPems(local_ders));
+  FakeSSLIdentity local_identity(DersToPems(local_ders));
 
   // Build remote certificate chain
   std::vector<std::string> remote_ders(4);
@@ -1439,7 +1439,7 @@ TEST_F(LegacyStatsCollectorTest, ChainedCertificateReportsCreated) {
   remote_ders[1] = "non-";
   remote_ders[2] = "intersecting";
   remote_ders[3] = "set";
-  rtc::FakeSSLIdentity remote_identity(DersToPems(remote_ders));
+  FakeSSLIdentity remote_identity(DersToPems(remote_ders));
 
   TestCertificateReports(local_identity, local_ders, remote_identity,
                          remote_ders);
@@ -1450,11 +1450,11 @@ TEST_F(LegacyStatsCollectorTest, ChainedCertificateReportsCreated) {
 TEST_F(LegacyStatsCollectorTest, ChainlessCertificateReportsCreated) {
   // Build local certificate.
   std::string local_der = "This is the local der.";
-  rtc::FakeSSLIdentity local_identity(DerToPem(local_der));
+  FakeSSLIdentity local_identity(DerToPem(local_der));
 
   // Build remote certificate.
   std::string remote_der = "This is somebody else's der.";
-  rtc::FakeSSLIdentity remote_identity(DerToPem(remote_der));
+  FakeSSLIdentity remote_identity(DerToPem(remote_der));
 
   TestCertificateReports(local_identity, std::vector<std::string>(1, local_der),
                          remote_identity,
@@ -1503,13 +1503,13 @@ TEST_F(LegacyStatsCollectorTest, NoTransport) {
 TEST_F(LegacyStatsCollectorTest, UnsupportedDigestIgnored) {
   // Build a local certificate.
   std::string local_der = "This is the local der.";
-  rtc::FakeSSLIdentity local_identity(DerToPem(local_der));
+  FakeSSLIdentity local_identity(DerToPem(local_der));
 
   // Build a remote certificate with an unsupported digest algorithm.
   std::string remote_der = "This is somebody else's der.";
-  rtc::FakeSSLCertificate remote_cert(DerToPem(remote_der));
+  FakeSSLCertificate remote_cert(DerToPem(remote_der));
   remote_cert.set_digest_algorithm("foobar");
-  rtc::FakeSSLIdentity remote_identity(remote_cert);
+  FakeSSLIdentity remote_identity(remote_cert);
 
   TestCertificateReports(local_identity, std::vector<std::string>(1, local_der),
                          remote_identity, std::vector<std::string>());

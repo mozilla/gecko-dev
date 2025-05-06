@@ -86,7 +86,7 @@ using ::testing::Values;
 // will use: https://www.w3.org/TR/webrtc/#dom-rtcrtpsender-transport
 // Should also be able to remove GetTransceiversForTesting at that point.
 
-class FakeNetworkManagerWithNoAnyNetwork : public rtc::FakeNetworkManager {
+class FakeNetworkManagerWithNoAnyNetwork : public FakeNetworkManager {
  public:
   std::vector<const rtc::Network*> GetAnyAddressNetworks() override {
     // This function allocates networks that are owned by the
@@ -180,12 +180,12 @@ class PeerConnectionWrapperForBundleTest : public PeerConnectionWrapper {
     return false;
   }
 
-  rtc::FakeNetworkManager* network() { return network_; }
+  FakeNetworkManager* network() { return network_; }
 
-  void set_network(rtc::FakeNetworkManager* network) { network_ = network; }
+  void set_network(FakeNetworkManager* network) { network_ = network; }
 
  private:
-  rtc::FakeNetworkManager* network_;
+  FakeNetworkManager* network_;
 };
 
 class PeerConnectionBundleBaseTest : public ::testing::Test {

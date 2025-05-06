@@ -229,7 +229,7 @@ bool PeerConnectionIntegrationWrapper::Init(
   RTC_DCHECK(!peer_connection_);
   RTC_DCHECK(!peer_connection_factory_);
 
-  auto network_manager = std::make_unique<rtc::FakeNetworkManager>();
+  auto network_manager = std::make_unique<FakeNetworkManager>();
   fake_network_manager_ = network_manager.get();
   fake_network_manager_->AddInterface(kDefaultLocalAddress);
 

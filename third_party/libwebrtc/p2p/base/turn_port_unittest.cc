@@ -945,7 +945,7 @@ class TurnPortTest : public ::testing::Test,
   }
 
   webrtc::test::ScopedKeyValueConfig field_trials_;
-  rtc::ScopedFakeClock fake_clock_;
+  webrtc::ScopedFakeClock fake_clock_;
   // When a "create port" helper method is called with an IP, we create a
   // Network with that IP and add it to this list. Using a list instead of a
   // vector so that when it grows, pointers aren't invalidated.

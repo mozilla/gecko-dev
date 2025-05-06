@@ -154,7 +154,7 @@ class GlobalSimulatedTimeController : public TimeController {
   void Unregister(sim_time_impl::SimulatedSequenceRunner* runner);
 
  private:
-  rtc::ScopedBaseFakeClock global_clock_;
+  ScopedBaseFakeClock global_clock_;
   // Provides simulated CurrentNtpInMilliseconds()
   SimulatedClock sim_clock_;
   sim_time_impl::SimulatedTimeControllerImpl impl_;

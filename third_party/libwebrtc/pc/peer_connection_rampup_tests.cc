@@ -181,7 +181,7 @@ class PeerConnectionRampUpTest : public ::testing::Test {
     pcf_deps.worker_thread = worker_thread_.get();
     pcf_deps.signaling_thread = rtc::Thread::Current();
     pcf_deps.socket_factory = &firewall_socket_server_;
-    auto network_manager = std::make_unique<rtc::FakeNetworkManager>();
+    auto network_manager = std::make_unique<FakeNetworkManager>();
     network_manager->AddInterface(kDefaultLocalAddress);
     pcf_deps.network_manager = std::move(network_manager);
     pcf_deps.adm = FakeAudioCaptureModule::Create();

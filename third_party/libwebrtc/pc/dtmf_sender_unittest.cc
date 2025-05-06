@@ -218,7 +218,7 @@ class DtmfSenderTest : public ::testing::Test {
   std::unique_ptr<FakeDtmfObserver> observer_;
   std::unique_ptr<FakeDtmfProvider> provider_;
   rtc::scoped_refptr<DtmfSender> dtmf_;
-  rtc::ScopedFakeClock fake_clock_;
+  webrtc::ScopedFakeClock fake_clock_;
 };
 
 TEST_F(DtmfSenderTest, CanInsertDtmf) {

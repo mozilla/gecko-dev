@@ -228,7 +228,7 @@ class PeerConnectionUsageHistogramTest : public ::testing::Test {
     deps.async_dns_resolver_factory =
         std::make_unique<NiceMock<MockAsyncDnsResolverFactory>>();
 
-    auto fake_network = std::make_unique<rtc::FakeNetworkManager>();
+    auto fake_network = std::make_unique<FakeNetworkManager>();
     fake_network->set_mdns_responder(
         std::make_unique<FakeMdnsResponder>(rtc::Thread::Current()));
     fake_network->AddInterface(NextLocalAddress());
@@ -246,7 +246,7 @@ class PeerConnectionUsageHistogramTest : public ::testing::Test {
   }
 
   WrapperPtr CreatePeerConnectionWithPrivateLocalAddresses() {
-    auto fake_network = std::make_unique<rtc::FakeNetworkManager>();
+    auto fake_network = std::make_unique<FakeNetworkManager>();
     fake_network->AddInterface(NextLocalAddress());
     fake_network->AddInterface(kPrivateLocalAddress);
 
@@ -258,7 +258,7 @@ class PeerConnectionUsageHistogramTest : public ::testing::Test {
   }
 
   WrapperPtr CreatePeerConnectionWithPrivateIpv6LocalAddresses() {
-    auto fake_network = std::make_unique<rtc::FakeNetworkManager>();
+    auto fake_network = std::make_unique<FakeNetworkManager>();
     fake_network->AddInterface(NextLocalAddress());
     fake_network->AddInterface(kPrivateIpv6LocalAddress);
 
@@ -284,7 +284,7 @@ class PeerConnectionUsageHistogramTest : public ::testing::Test {
     } else {
       // If no network manager is provided, one will be created that uses the
       // host network. This doesn't work on all trybots.
-      auto fake_network = std::make_unique<rtc::FakeNetworkManager>();
+      auto fake_network = std::make_unique<FakeNetworkManager>();
       fake_network->AddInterface(NextLocalAddress());
       pcf_deps.network_manager = std::move(fake_network);
     }

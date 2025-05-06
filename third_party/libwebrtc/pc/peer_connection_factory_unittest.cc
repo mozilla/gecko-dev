@@ -653,8 +653,7 @@ TEST_F(PeerConnectionFactoryTest, LocalRendering) {
   rtc::scoped_refptr<FakeVideoTrackSource> source =
       FakeVideoTrackSource::Create(/*is_screencast=*/false);
 
-  cricket::FakeFrameSource frame_source(1280, 720,
-                                        rtc::kNumMicrosecsPerSec / 30);
+  FakeFrameSource frame_source(1280, 720, rtc::kNumMicrosecsPerSec / 30);
 
   ASSERT_TRUE(source.get() != NULL);
   rtc::scoped_refptr<VideoTrackInterface> track(
@@ -706,7 +705,7 @@ TEST(PeerConnectionFactoryDependenciesTest, UsesNetworkManager) {
 TEST(PeerConnectionFactoryDependenciesTest, UsesPacketSocketFactory) {
   constexpr TimeDelta kWaitTimeout = TimeDelta::Seconds(10);
   auto mock_socket_factory =
-      std::make_unique<NiceMock<rtc::MockPacketSocketFactory>>();
+      std::make_unique<NiceMock<MockPacketSocketFactory>>();
 
   rtc::Event called;
   EXPECT_CALL(*mock_socket_factory, CreateUdpSocket(_, _, _))

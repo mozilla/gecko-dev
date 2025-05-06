@@ -41,7 +41,6 @@ namespace webrtc {
 
 constexpr int kTestMaxSctpStreams = 1234;
 
-using cricket::FakeDtlsTransport;
 using ::testing::ElementsAre;
 
 namespace {
@@ -221,7 +220,7 @@ TEST_F(SctpTransportTest, CloseWhenTransportCloses) {
   ASSERT_THAT(WaitUntil([&] { return observer_.State(); },
                         ::testing::Eq(SctpTransportState::kConnected)),
               IsRtcOk());
-  static_cast<cricket::FakeDtlsTransport*>(dtls_transport_->internal())
+  static_cast<FakeDtlsTransport*>(dtls_transport_->internal())
       ->SetDtlsState(DtlsTransportState::kClosed);
   ASSERT_THAT(WaitUntil([&] { return observer_.State(); },
                         ::testing::Eq(SctpTransportState::kClosed)),

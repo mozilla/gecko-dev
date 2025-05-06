@@ -47,7 +47,7 @@ class TestClient : public sigslot::has_slots<> {
   // for a packet to be received, and thus it needs to advance the fake clock
   // if the test is using one, rather than just sleeping.
   TestClient(std::unique_ptr<rtc::AsyncPacketSocket> socket,
-             rtc::ThreadProcessingFakeClock* fake_clock);
+             ThreadProcessingFakeClock* fake_clock);
   ~TestClient() override;
 
   TestClient(const TestClient&) = delete;
@@ -101,7 +101,7 @@ class TestClient : public sigslot::has_slots<> {
   bool CheckTimestamp(std::optional<Timestamp> packet_timestamp);
   void AdvanceTime(int ms);
 
-  rtc::ThreadProcessingFakeClock* fake_clock_ = nullptr;
+  ThreadProcessingFakeClock* fake_clock_ = nullptr;
   Mutex mutex_;
   std::unique_ptr<rtc::AsyncPacketSocket> socket_;
   std::vector<std::unique_ptr<Packet>> packets_;

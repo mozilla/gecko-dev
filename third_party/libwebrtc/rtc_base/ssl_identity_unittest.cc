@@ -177,7 +177,7 @@ IdentityAndInfo CreateFakeIdentityAndInfoFromDers(
         "CERTIFICATE", reinterpret_cast<const unsigned char*>(der.c_str()),
         der.length()));
   }
-  info.identity.reset(new rtc::FakeSSLIdentity(info.pems));
+  info.identity.reset(new webrtc::FakeSSLIdentity(info.pems));
   // Strip header/footer and newline characters of PEM strings.
   for (size_t i = 0; i < info.pems.size(); ++i) {
     absl::StrReplaceAll({{"-----BEGIN CERTIFICATE-----", ""},

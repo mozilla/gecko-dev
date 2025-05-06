@@ -643,9 +643,7 @@ class PeerConnectionIntegrationWrapper : public PeerConnectionObserver,
     }
   }
 
-  rtc::FakeNetworkManager* network_manager() const {
-    return fake_network_manager_;
-  }
+  FakeNetworkManager* network_manager() const { return fake_network_manager_; }
 
   FakeRtcEventLogFactory* event_log_factory() const {
     return event_log_factory_;
@@ -1145,7 +1143,7 @@ class PeerConnectionIntegrationWrapper : public PeerConnectionObserver,
   std::string debug_name_;
 
   // Network manager is owned by the `peer_connection_factory_`.
-  rtc::FakeNetworkManager* fake_network_manager_ = nullptr;
+  FakeNetworkManager* fake_network_manager_ = nullptr;
   rtc::Thread* network_thread_;
 
   // Reference to the mDNS responder owned by `fake_network_manager_` after set.

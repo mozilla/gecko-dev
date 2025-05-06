@@ -65,7 +65,7 @@
 
 using cricket::Candidate;
 using cricket::Candidates;
-using cricket::FakeDtlsTransport;
+using ::webrtc::FakeDtlsTransport;
 
 static const int kTimeout = 100;
 static const char kIceUfrag1[] = "u0001";
@@ -634,7 +634,7 @@ TEST_F(JsepTransportControllerTest, GetRemoteSSLCertChain) {
       transport_controller_
           ->SetLocalDescription(SdpType::kOffer, description.get(), nullptr)
           .ok());
-  rtc::FakeSSLCertificate fake_certificate("fake_data");
+  FakeSSLCertificate fake_certificate("fake_data");
 
   auto fake_audio_dtls = static_cast<FakeDtlsTransport*>(
       transport_controller_->GetDtlsTransport(kAudioMid1));

@@ -3078,9 +3078,8 @@ class PeerConnectionEncodingsFakeCodecsIntegrationTest
 #ifdef RTC_ENABLE_H265
   scoped_refptr<PeerConnectionTestWrapper> CreatePcWithFakeH265(
       std::unique_ptr<FieldTrialsView> field_trials = nullptr) {
-    std::unique_ptr<cricket::FakeWebRtcVideoEncoderFactory>
-        video_encoder_factory =
-            std::make_unique<cricket::FakeWebRtcVideoEncoderFactory>();
+    std::unique_ptr<FakeWebRtcVideoEncoderFactory> video_encoder_factory =
+        std::make_unique<FakeWebRtcVideoEncoderFactory>();
     video_encoder_factory->AddSupportedVideoCodec(
         SdpVideoFormat("H265",
                        {{"profile-id", "1"},
@@ -3088,9 +3087,8 @@ class PeerConnectionEncodingsFakeCodecsIntegrationTest
                         {"level-id", "156"},
                         {"tx-mode", "SRST"}},
                        {ScalabilityMode::kL1T1}));
-    std::unique_ptr<cricket::FakeWebRtcVideoDecoderFactory>
-        video_decoder_factory =
-            std::make_unique<cricket::FakeWebRtcVideoDecoderFactory>();
+    std::unique_ptr<FakeWebRtcVideoDecoderFactory> video_decoder_factory =
+        std::make_unique<FakeWebRtcVideoDecoderFactory>();
     video_decoder_factory->AddSupportedVideoCodecType("H265");
     auto pc_wrapper = make_ref_counted<PeerConnectionTestWrapper>(
         "pc", &pss_, background_thread_.get(), background_thread_.get());
@@ -3106,9 +3104,8 @@ class PeerConnectionEncodingsFakeCodecsIntegrationTest
   // sendrecv "profile-level-id". The sendrecv one is constrained baseline.
   scoped_refptr<PeerConnectionTestWrapper> CreatePcWithUnidirectionalH264(
       std::unique_ptr<FieldTrialsView> field_trials = nullptr) {
-    std::unique_ptr<cricket::FakeWebRtcVideoEncoderFactory>
-        video_encoder_factory =
-            std::make_unique<cricket::FakeWebRtcVideoEncoderFactory>();
+    std::unique_ptr<FakeWebRtcVideoEncoderFactory> video_encoder_factory =
+        std::make_unique<FakeWebRtcVideoEncoderFactory>();
     SdpVideoFormat h264_constrained_baseline =
         SdpVideoFormat("H264",
                        {{"level-asymmetry-allowed", "1"},
@@ -3122,9 +3119,8 @@ class PeerConnectionEncodingsFakeCodecsIntegrationTest
                         {"packetization-mode", "1"},
                         {"profile-level-id", "640034"}},  // sendonly
                        {ScalabilityMode::kL1T1}));
-    std::unique_ptr<cricket::FakeWebRtcVideoDecoderFactory>
-        video_decoder_factory =
-            std::make_unique<cricket::FakeWebRtcVideoDecoderFactory>();
+    std::unique_ptr<FakeWebRtcVideoDecoderFactory> video_decoder_factory =
+        std::make_unique<FakeWebRtcVideoDecoderFactory>();
     video_decoder_factory->AddSupportedVideoCodec(h264_constrained_baseline);
     video_decoder_factory->AddSupportedVideoCodec(
         SdpVideoFormat("H264",

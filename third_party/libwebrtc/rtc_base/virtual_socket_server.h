@@ -226,7 +226,7 @@ class VirtualSocketServer : public SocketServer {
   // This constructor needs to be used if the test uses a fake clock and
   // ProcessMessagesUntilIdle, since ProcessMessagesUntilIdle needs a way of
   // advancing time.
-  explicit VirtualSocketServer(ThreadProcessingFakeClock* fake_clock);
+  explicit VirtualSocketServer(webrtc::ThreadProcessingFakeClock* fake_clock);
   ~VirtualSocketServer() override;
 
   VirtualSocketServer(const VirtualSocketServer&) = delete;
@@ -443,7 +443,7 @@ class VirtualSocketServer : public SocketServer {
 
   // May be null if the test doesn't use a fake clock, or it does but doesn't
   // use ProcessMessagesUntilIdle.
-  ThreadProcessingFakeClock* fake_clock_ = nullptr;
+  webrtc::ThreadProcessingFakeClock* fake_clock_ = nullptr;
 
   // Used to implement Wait/WakeUp.
   Event wakeup_;

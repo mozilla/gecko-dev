@@ -128,16 +128,16 @@ class JsepTransport2Test : public ::testing::Test, public sigslot::has_slots<> {
     auto ice_internal = std::make_unique<FakeIceTransport>(
         kTransportName, ICE_CANDIDATE_COMPONENT_RTP);
     auto rtp_dtls_transport =
-        std::make_unique<FakeDtlsTransport>(ice_internal.get());
+        std::make_unique<webrtc::FakeDtlsTransport>(ice_internal.get());
     auto ice = CreateIceTransport(std::move(ice_internal));
 
     std::unique_ptr<FakeIceTransport> rtcp_ice_internal;
-    std::unique_ptr<FakeDtlsTransport> rtcp_dtls_transport;
+    std::unique_ptr<webrtc::FakeDtlsTransport> rtcp_dtls_transport;
     if (!rtcp_mux_enabled) {
       rtcp_ice_internal = std::make_unique<FakeIceTransport>(
           kTransportName, ICE_CANDIDATE_COMPONENT_RTCP);
       rtcp_dtls_transport =
-          std::make_unique<FakeDtlsTransport>(rtcp_ice_internal.get());
+          std::make_unique<webrtc::FakeDtlsTransport>(rtcp_ice_internal.get());
     }
     auto rtcp_ice = CreateIceTransport(std::move(rtcp_ice_internal));
 
@@ -289,14 +289,14 @@ TEST_P(JsepTransport2WithRtcpMux, SetDtlsParameters) {
   ASSERT_TRUE(role);
   EXPECT_EQ(webrtc::SSL_SERVER,
             role);  // Because remote description was "active".
-  auto fake_dtls =
-      static_cast<FakeDtlsTransport*>(jsep_transport_->rtp_dtls_transport());
+  auto fake_dtls = static_cast<webrtc::FakeDtlsTransport*>(
+      jsep_transport_->rtp_dtls_transport());
   EXPECT_EQ(remote_description.transport_desc.identity_fingerprint->ToString(),
             fake_dtls->dtls_fingerprint().ToString());
 
   if (!rtcp_mux_enabled) {
-    auto fake_rtcp_dtls =
-        static_cast<FakeDtlsTransport*>(jsep_transport_->rtcp_dtls_transport());
+    auto fake_rtcp_dtls = static_cast<webrtc::FakeDtlsTransport*>(
+        jsep_transport_->rtcp_dtls_transport());
     EXPECT_EQ(
         remote_description.transport_desc.identity_fingerprint->ToString(),
         fake_rtcp_dtls->dtls_fingerprint().ToString());
@@ -341,14 +341,14 @@ TEST_P(JsepTransport2WithRtcpMux, SetDtlsParametersWithPassiveAnswer) {
   ASSERT_TRUE(role);
   EXPECT_EQ(webrtc::SSL_CLIENT,
             role);  // Because remote description was "passive".
-  auto fake_dtls =
-      static_cast<FakeDtlsTransport*>(jsep_transport_->rtp_dtls_transport());
+  auto fake_dtls = static_cast<webrtc::FakeDtlsTransport*>(
+      jsep_transport_->rtp_dtls_transport());
   EXPECT_EQ(remote_description.transport_desc.identity_fingerprint->ToString(),
             fake_dtls->dtls_fingerprint().ToString());
 
   if (!rtcp_mux_enabled) {
-    auto fake_rtcp_dtls =
-        static_cast<FakeDtlsTransport*>(jsep_transport_->rtcp_dtls_transport());
+    auto fake_rtcp_dtls = static_cast<webrtc::FakeDtlsTransport*>(
+        jsep_transport_->rtcp_dtls_transport());
     EXPECT_EQ(
         remote_description.transport_desc.identity_fingerprint->ToString(),
         fake_rtcp_dtls->dtls_fingerprint().ToString());
@@ -1056,10 +1056,10 @@ class JsepTransport2HeaderExtensionTest
     jsep_transport1_ = CreateJsepTransport2(/*rtcp_mux_enabled=*/true);
     jsep_transport2_ = CreateJsepTransport2(/*rtcp_mux_enabled=*/true);
 
-    auto fake_dtls1 =
-        static_cast<FakeDtlsTransport*>(jsep_transport1_->rtp_dtls_transport());
-    auto fake_dtls2 =
-        static_cast<FakeDtlsTransport*>(jsep_transport2_->rtp_dtls_transport());
+    auto fake_dtls1 = static_cast<webrtc::FakeDtlsTransport*>(
+        jsep_transport1_->rtp_dtls_transport());
+    auto fake_dtls2 = static_cast<webrtc::FakeDtlsTransport*>(
+        jsep_transport2_->rtp_dtls_transport());
 
     fake_dtls1->fake_ice_transport()->RegisterReceivedPacketCallback(
         this, [&](rtc::PacketTransportInternal* transport,
@@ -1103,10 +1103,10 @@ class JsepTransport2HeaderExtensionTest
   }
 
   void ConnectTransport() {
-    auto rtp_dtls_transport1 =
-        static_cast<FakeDtlsTransport*>(jsep_transport1_->rtp_dtls_transport());
-    auto rtp_dtls_transport2 =
-        static_cast<FakeDtlsTransport*>(jsep_transport2_->rtp_dtls_transport());
+    auto rtp_dtls_transport1 = static_cast<webrtc::FakeDtlsTransport*>(
+        jsep_transport1_->rtp_dtls_transport());
+    auto rtp_dtls_transport2 = static_cast<webrtc::FakeDtlsTransport*>(
+        jsep_transport2_->rtp_dtls_transport());
     rtp_dtls_transport1->SetDestination(rtp_dtls_transport2);
   }
 
@@ -1165,10 +1165,10 @@ TEST_P(JsepTransport2HeaderExtensionTest, EncryptedHeaderExtensionNegotiation) {
   recv_encrypted_headers2_.push_back(kHeaderExtensionIDs[1]);
 
   if (use_gcm) {
-    auto fake_dtls1 =
-        static_cast<FakeDtlsTransport*>(jsep_transport1_->rtp_dtls_transport());
-    auto fake_dtls2 =
-        static_cast<FakeDtlsTransport*>(jsep_transport2_->rtp_dtls_transport());
+    auto fake_dtls1 = static_cast<webrtc::FakeDtlsTransport*>(
+        jsep_transport1_->rtp_dtls_transport());
+    auto fake_dtls2 = static_cast<webrtc::FakeDtlsTransport*>(
+        jsep_transport2_->rtp_dtls_transport());
 
     fake_dtls1->SetSrtpCryptoSuite(webrtc::kSrtpAeadAes256Gcm);
     fake_dtls2->SetSrtpCryptoSuite(webrtc::kSrtpAeadAes256Gcm);
