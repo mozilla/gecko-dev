@@ -346,7 +346,7 @@ static Maybe<VADRMPRIMESurfaceDescriptor> FFmpegDescToVA(
   unsigned int offset = aDesc.layers[0].planes[0].offset;
 
   if (aDesc.layers[0].format == DRM_FORMAT_YUV420) {
-    vaDesc.fourcc = VA_FOURCC_YV12;
+    vaDesc.fourcc = VA_FOURCC_I420;
 
     // V4L2 expresses YUV420 as a single contiguous buffer containing
     // all three planes.  DMABufSurfaceYUV expects the three planes
