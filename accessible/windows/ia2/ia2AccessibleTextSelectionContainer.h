@@ -35,7 +35,7 @@ class ia2AccessibleTextSelectionContainer
   HyperTextAccessibleBase* TextAcc();
   static RefPtr<IAccessibleText> GetIATextFrom(Accessible* aAcc);
   static TextLeafPoint GetTextLeafPointFrom(IAccessibleText* aText,
-                                            long aOffset, bool aDescendToEnd);
+                                            long aOffset);
 };
 
 }  // namespace mozilla::a11y

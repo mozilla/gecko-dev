@@ -50,6 +50,14 @@ addAccessibleTask(
     await selected;
     checkSelection(docAcc, [[p, 1, link, 1]]);
 
+    info("Selecting ab, end before link");
+    selected = waitForEvent(EVENT_TEXT_SELECTION_CHANGED, p);
+    await runPython(`
+      docSel.setSelections(1, byref(IA2TextSelection(p, 0, p, 2, False)))
+    `);
+    await selected;
+    checkSelection(docAcc, [[p, 0, link, 0]]);
+
     info("Selecting de");
     selected = waitForEvent(EVENT_TEXT_SELECTION_CHANGED, p);
     await runPython(`
