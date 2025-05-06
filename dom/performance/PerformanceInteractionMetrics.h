@@ -21,7 +21,8 @@ class PerformanceInteractionMetrics final {
   PerformanceInteractionMetrics& operator=(
       const PerformanceInteractionMetrics& aCopy) = delete;
 
-  uint64_t ComputeInteractionId(const WidgetEvent* aEvent);
+  Maybe<uint64_t> ComputeInteractionId(PerformanceEventTiming* aEventTiming,
+                                       const WidgetEvent* aEvent);
 
   nsTHashMap<uint32_t, RefPtr<PerformanceEventTiming>>& PendingKeyDowns() {
     return mPendingKeyDowns;

@@ -34,7 +34,6 @@ PerformanceEventTiming::PerformanceEventTiming(Performance* aPerformance,
                                                const nsAString& aName,
                                                const TimeStamp& aStartTime,
                                                bool aIsCacelable,
-                                               Maybe<uint64_t> aInteractionId,
                                                EventMessage aMessage)
     : PerformanceEntry(aPerformance->GetParentObject(), aName, u"event"_ns),
       mPerformance(aPerformance),
@@ -44,7 +43,6 @@ PerformanceEventTiming::PerformanceEventTiming(Performance* aPerformance,
           aPerformance->GetDOMTiming()->TimeStampToDOMHighRes(aStartTime)),
       mDuration(0),
       mCancelable(aIsCacelable),
-      mInteractionId(aInteractionId),
       mMessage(aMessage) {}
 
 PerformanceEventTiming::PerformanceEventTiming(
@@ -132,12 +130,12 @@ PerformanceEventTiming::TryGenerateEventTiming(const EventTarget* aTarget,
     const char16_t* eventName = Event::GetEventName(aEvent->mMessage);
     MOZ_ASSERT(eventName,
                "User defined events shouldn't be considered as event timing");
-    return RefPtr<PerformanceEventTiming>(
-               new PerformanceEventTiming(
-                   performance, nsDependentString(eventName),
-                   aEvent->mTimeStamp, aEvent->mFlags.mCancelable,
-                   performance->ComputeInteractionId(aEvent), aEvent->mMessage))
-        .forget();
+    auto eventTiming =
+        RefPtr<PerformanceEventTiming>(new PerformanceEventTiming(
+            performance, nsDependentString(eventName), aEvent->mTimeStamp,
+            aEvent->mFlags.mCancelable, aEvent->mMessage));
+    performance->SetInteractionId(eventTiming, aEvent);
+    return eventTiming.forget();
   }
   return nullptr;
 }
@@ -210,61 +208,6 @@ void PerformanceEventTiming::FinalizeEventTiming(const WidgetEvent* aEvent) {
   }
 
   mTarget = do_GetWeakReference(element);
-
-  if (!StaticPrefs::dom_performance_event_timing_enable_interactionid()) {
-    mPerformance->InsertEventTimingEntry(this);
-    return;
-  }
-
-  if (aEvent->mMessage == ePointerDown) {
-    auto& interactionMetrics = mPerformance->GetPerformanceInteractionMetrics();
-    // Step 8.1. Let pendingPointerDowns be relevantGlobal’s pending pointer
-    // downs.
-    auto& pendingPointerDowns = interactionMetrics.PendingPointerDowns();
-
-    // Step 8.2. Let pointerId be event’s pointerId.
-    uint32_t pointerId = aEvent->AsPointerEvent()->pointerId;
-
-    // Step 8.4. Set pendingPointerDowns[pointerId] to timingEntry.
-    pendingPointerDowns.InsertOrUpdate(pointerId, this);
-  } else if (aEvent->mMessage == eKeyDown) {
-    const WidgetKeyboardEvent* keyEvent = aEvent->AsKeyboardEvent();
-
-    // Step 9.1. If event’s isComposing attribute value is true:
-    if (keyEvent->mIsComposing) {
-      // Step 9.1.1. Append timingEntry to relevantGlobal’s entries to be
-      // queued.
-      mPerformance->InsertEventTimingEntry(this);
-      // Step 9.1.2. Return.
-      return;
-    }
-
-    auto& interactionMetrics = mPerformance->GetPerformanceInteractionMetrics();
-
-    // Step 9.2. Let pendingKeyDowns be relevantGlobal’s pending key downs.
-    auto& pendingKeyDowns = interactionMetrics.PendingKeyDowns();
-    // Step 9.3. Let code be event’s keyCode attribute value.
-    auto code = keyEvent->mKeyCode;
-
-    // Step 9.4.1 Let entry be pendingKeyDowns[code].
-    auto entry = pendingKeyDowns.MaybeGet(code);
-    // Step 9.4. If pendingKeyDowns[code] exists:
-    if (entry) {
-      // Step 9.4.2. If code is not 229:
-      if (code != 229) {
-        // Step 9.4.2.1. Increase window’s user interaction value value by a
-        // small number chosen by the user agent.
-        uint64_t interactionId =
-            interactionMetrics.IncreaseInteractionValueAndCount();
-        // Step 9.4.2.2. Set entry’s interactionId to window’s user interaction
-        // value.
-        SetInteractionId(interactionId);
-      }
-    }
-
-    // Step 9.5. Set pendingKeyDowns[code] to timingEntry.
-    pendingKeyDowns.InsertOrUpdate(code, this);
-  }
 
   mPerformance->InsertEventTimingEntry(this);
 }

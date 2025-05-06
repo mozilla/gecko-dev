@@ -5,6 +5,8 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "PerformanceInteractionMetrics.h"
+#include "mozilla/EventForwards.h"
+#include "mozilla/Maybe.h"
 #include "mozilla/MouseEvents.h"
 #include "mozilla/RandomNum.h"
 #include "mozilla/TextEvents.h"
@@ -41,11 +43,11 @@ uint64_t PerformanceInteractionMetrics::IncreaseInteractionValueAndCount() {
 }
 
 // https://w3c.github.io/event-timing/#sec-computing-interactionid
-uint64_t PerformanceInteractionMetrics::ComputeInteractionId(
-    const WidgetEvent* aEvent) {
+Maybe<uint64_t> PerformanceInteractionMetrics::ComputeInteractionId(
+    PerformanceEventTiming* aEventTiming, const WidgetEvent* aEvent) {
   // Step 1. If event’s isTrusted attribute value is false, return 0.
   if (!aEvent->IsTrusted()) {
-    return 0;
+    return Some(0);
   }
 
   // Step 2. Let type be event’s type attribute value.
@@ -55,25 +57,57 @@ uint64_t PerformanceInteractionMetrics::ComputeInteractionId(
   // pointercancel, pointerup, or click, return 0.
   // Note: keydown and pointerdown are handled in finalize event timing.
   switch (eventType) {
+    case eKeyDown:
     case eKeyUp:
     case eCompositionStart:
     case eEditorInput:
     case ePointerCancel:
+    case ePointerDown:
     case ePointerUp:
     case ePointerClick:
       break;
     default:
-      return 0;
+      return Some(0);
   }
 
   // Step 4-8. Happens in the class constructor.
+
+  if (eventType == ePointerDown) {
+    uint32_t pointerId = aEvent->AsPointerEvent()->pointerId;
+
+    mPendingPointerDowns.InsertOrUpdate(pointerId, aEventTiming);
+    // InteractionId for this will be assigned by pointerup or pointercancel
+    // later.
+    return Nothing();
+  }
+
+  if (eventType == eKeyDown) {
+    const WidgetKeyboardEvent* keyEvent = aEvent->AsKeyboardEvent();
+
+    if (keyEvent->mIsComposing) {
+      return Some(0);
+    }
+
+    auto code = keyEvent->mKeyCode;
+
+    auto entry = mPendingKeyDowns.MaybeGet(code);
+    if (entry) {
+      if (code != 229) {
+        uint64_t interactionId = IncreaseInteractionValueAndCount();
+        (*entry)->SetInteractionId(interactionId);
+      }
+    }
+
+    mPendingKeyDowns.InsertOrUpdate(code, aEventTiming);
+    return Nothing();
+  }
 
   // Step 8. If type is keyup:
   if (eventType == eKeyUp) {
     // Step 8.1. If event’s isComposing attribute value is true, return 0.
     const WidgetKeyboardEvent* keyEvent = aEvent->AsKeyboardEvent();
     if (keyEvent->mIsComposing) {
-      return 0;
+      return Some(0);
     }
 
     // Step 8.2. Let code be event’s keyCode attribute value.
@@ -83,7 +117,7 @@ uint64_t PerformanceInteractionMetrics::ComputeInteractionId(
     auto entry = mPendingKeyDowns.MaybeGet(code);
     // Step 8.3. If pendingKeyDowns[code] does not exist, return 0.
     if (!entry) {
-      return 0;
+      return Some(0);
     }
 
     // Step 8.5. Increase interaction count on window.
@@ -98,7 +132,7 @@ uint64_t PerformanceInteractionMetrics::ComputeInteractionId(
     mLastKeydownInteractionValue = Some(interactionId);
 
     // Step 8.10. Return interactionId.
-    return interactionId;
+    return Some(interactionId);
   }
 
   // Step 9. If type is compositionstart:
@@ -113,7 +147,7 @@ uint64_t PerformanceInteractionMetrics::ComputeInteractionId(
     // Step 9.2. Clear pendingKeyDowns.
     mPendingKeyDowns.Clear();
     // Step 9.3. Return 0
-    return 0;
+    return Some(0);
   }
 
   // Step 10. If type is input:
@@ -121,16 +155,16 @@ uint64_t PerformanceInteractionMetrics::ComputeInteractionId(
     // Step 10.1. If event is not an instance of InputEvent, return 0.
     const auto* inputEvent = aEvent->AsEditorInputEvent();
     if (!inputEvent) {
-      return 0;
+      return Some(0);
     }
 
     // Step 10.2. If event’s isComposing attribute value is false, return 0.
     if (!inputEvent->mIsComposing) {
-      return 0;
+      return Some(0);
     }
 
     mLastKeydownInteractionValue = Nothing();
-    return IncreaseInteractionValueAndCount();
+    return Some(IncreaseInteractionValueAndCount());
   }
 
   // Step 11. Otherwise (type is pointercancel, pointerup, or click):
@@ -148,20 +182,20 @@ uint64_t PerformanceInteractionMetrics::ComputeInteractionId(
       // -1 pointerId is a reserved value to indicate events that were generated
       // by something other than a pointer device, like keydown.
       // Return the interaction value of the keydown event instead.
-      return mLastKeydownInteractionValue.valueOr(0);
+      return Some(mLastKeydownInteractionValue.valueOr(0));
     }
 
     // Step 11.2.2. Let value be pointerMap[pointerId].
     auto value = mPointerInteractionValueMap.MaybeGet(pointerId);
     // Step 11.2.1. If pointerMap[pointerId] does not exist, return 0.
     if (!value) {
-      return 0;
+      return Some(0);
     }
 
     // Step 11.2.3. Remove pointerMap[pointerId].
     mPointerInteractionValueMap.Remove(pointerId);
     // Step 11.2.4. Return value.
-    return *value;
+    return Some(*value);
   }
 
   // Step 11.3. Assert that type is pointerup or pointercancel.
@@ -171,7 +205,7 @@ uint64_t PerformanceInteractionMetrics::ComputeInteractionId(
   auto entry = mPendingPointerDowns.MaybeGet(pointerId);
   // Step 11.4. If pendingPointerDowns[pointerId] does not exist, return 0.
   if (!entry) {
-    return 0;
+    return Some(0);
   }
 
   // Step 11.7. If type is pointerup:
@@ -195,10 +229,10 @@ uint64_t PerformanceInteractionMetrics::ComputeInteractionId(
 
   // Step 11.10. If type is pointercancel, return 0.
   if (eventType == ePointerCancel) {
-    return 0;
+    return Some(0);
   }
 
-  return mPointerInteractionValueMap.Get(pointerId);
+  return Some(mPointerInteractionValueMap.Get(pointerId));
 }
 
 }  // namespace mozilla::dom

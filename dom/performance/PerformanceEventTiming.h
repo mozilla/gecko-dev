@@ -62,6 +62,10 @@ class PerformanceEventTiming final
   uint64_t InteractionId() const { return mInteractionId.valueOr(0); }
   bool HasKnownInteractionId() const { return mInteractionId.isSome(); }
 
+  void SetInteractionId(Maybe<uint64_t> aInteractionId) {
+    mInteractionId = aInteractionId;
+  }
+
   void SetInteractionId(uint64_t aInteractionId) {
     mInteractionId = Some(aInteractionId);
   }
@@ -111,7 +115,7 @@ class PerformanceEventTiming final
  private:
   PerformanceEventTiming(Performance* aPerformance, const nsAString& aName,
                          const TimeStamp& aStartTime, bool aIsCacelable,
-                         Maybe<uint64_t> aInteractionId, EventMessage aMessage);
+                         EventMessage aMessage);
 
   PerformanceEventTiming(const PerformanceEventTiming& aEventTimingEntry);
 

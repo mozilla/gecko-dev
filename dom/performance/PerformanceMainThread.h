@@ -58,7 +58,8 @@ class PerformanceMainThread final : public Performance,
 
   PerformanceInteractionMetrics& GetPerformanceInteractionMetrics() override;
 
-  Maybe<uint64_t> ComputeInteractionId(const WidgetEvent* aEvent) override;
+  void SetInteractionId(PerformanceEventTiming* aEventTiming,
+                        const WidgetEvent* aEvent) override;
 
   void BufferLargestContentfulPaintEntryIfNeeded(LargestContentfulPaint*);
 

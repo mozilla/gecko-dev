@@ -369,19 +369,17 @@ PerformanceMainThread::GetPerformanceInteractionMetrics() {
   return mInteractionMetrics;
 }
 
-Maybe<uint64_t> PerformanceMainThread::ComputeInteractionId(
-    const WidgetEvent* aEvent) {
+void PerformanceMainThread::SetInteractionId(
+    PerformanceEventTiming* aEventTiming, const WidgetEvent* aEvent) {
   MOZ_ASSERT(NS_IsMainThread());
   if (!StaticPrefs::dom_performance_event_timing_enable_interactionid() ||
       aEvent->mFlags.mOnlyChromeDispatch || !aEvent->IsTrusted()) {
-    return Some(0);
+    aEventTiming->SetInteractionId(0);
+    return;
   }
 
-  if (aEvent->mMessage == ePointerDown || aEvent->mMessage == eKeyDown) {
-    return Nothing();
-  }
-
-  return Some(mInteractionMetrics.ComputeInteractionId(aEvent));
+  aEventTiming->SetInteractionId(
+      mInteractionMetrics.ComputeInteractionId(aEventTiming, aEvent));
 }
 
 DOMHighResTimeStamp PerformanceMainThread::GetPerformanceTimingFromString(
