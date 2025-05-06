@@ -43,7 +43,9 @@ add_task(async function () {
   );
 
   let inRange = (val, min, max) => min <= val && val <= max;
-  let tabBoundingRect = undefined;
+  let tabRect = win.gBrowser.tabContainer
+    .querySelector("tab[selected=true] .tab-background")
+    .getBoundingClientRect();
   await withPerfObserver(
     async function () {
       let promiseOrigBrowserFocused = TestUtils.waitForCondition(() => {
@@ -66,12 +68,8 @@ add_task(async function () {
           {
             name: "Shadow around active tab should not flicker on macOS (bug 1960967)",
             condition(r) {
-              const tabRect = tabBoundingRect
-                ? tabBoundingRect
-                : (tabBoundingRect = win.gBrowser.tabContainer
-                    .querySelector("tab[selected=true] .tab-background")
-                    .getBoundingClientRect());
               return (
+                AppConstants.platform == "macosx" &&
                 inRange(r.x1, tabRect.x - 2, tabRect.x + 2) &&
                 inRange(r.y1, tabRect.y - 2, tabRect.y + 2) &&
                 inRange(r.w, tabRect.width - 4, tabRect.width + 4) &&
