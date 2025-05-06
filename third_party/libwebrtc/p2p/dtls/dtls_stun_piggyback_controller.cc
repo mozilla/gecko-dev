@@ -28,23 +28,15 @@
 namespace cricket {
 
 DtlsStunPiggybackController::DtlsStunPiggybackController(
-    absl::AnyInvocable<void(rtc::ArrayView<const uint8_t>)> dtls_data_callback,
-    absl::AnyInvocable<void()> disable_piggybacking_callback)
-    : dtls_data_callback_(std::move(dtls_data_callback)),
-      disable_piggybacking_callback_(std::move(disable_piggybacking_callback)) {
-}
+    absl::AnyInvocable<void(rtc::ArrayView<const uint8_t>)> dtls_data_callback)
+    : dtls_data_callback_(std::move(dtls_data_callback)) {}
 
 DtlsStunPiggybackController::~DtlsStunPiggybackController() {}
 
 void DtlsStunPiggybackController::SetDtlsHandshakeComplete(bool is_dtls_client,
                                                            bool is_dtls13) {
   RTC_DCHECK_RUN_ON(&sequence_checker_);
-  // Peer does not support this so fallback to a normal DTLS handshake
-  // happened.
-  if (state_ == State::OFF) {
-    return;
-  }
-  state_ = State::PENDING;
+
   // As DTLS 1.2 server we need to keep the last flight around until
   // we receive the post-handshake acknowledgment.
   // As DTLS 1.2 client we have nothing more to send at this point
@@ -54,21 +46,25 @@ void DtlsStunPiggybackController::SetDtlsHandshakeComplete(bool is_dtls_client,
   if ((is_dtls_client && !is_dtls13) || (!is_dtls_client && is_dtls13)) {
     pending_packet_.Clear();
   }
+
+  // Peer does not support this so fallback to a normal DTLS handshake
+  // happened.
+  if (state_ == State::OFF) {
+    return;
+  }
+  state_ = State::PENDING;
 }
 
-bool DtlsStunPiggybackController::MaybeConsumePacket(
+void DtlsStunPiggybackController::CapturePacket(
     rtc::ArrayView<const uint8_t> data) {
   RTC_DCHECK_RUN_ON(&sequence_checker_);
-  bool should_consume =
-      (state_ == State::TENTATIVE || state_ == State::CONFIRMED) &&
-      IsDtlsPacket(data);
-  if (should_consume) {
-    // Note: this overwrites the existing packets which is an issue
-    // if this gets called with fragmented DTLS flights.
-    pending_packet_.SetData(data);
-    return true;
+  if (!IsDtlsPacket(data)) {
+    return;
   }
-  return false;
+
+  // Note: this overwrites the existing packets which is an issue
+  // if this gets called with fragmented DTLS flights.
+  pending_packet_.SetData(data);
 }
 
 void DtlsStunPiggybackController::ClearCachedPacketForTesting() {
@@ -81,10 +77,21 @@ DtlsStunPiggybackController::GetDataToPiggyback(
     StunMessageType stun_message_type) {
   RTC_DCHECK_RUN_ON(&sequence_checker_);
   RTC_DCHECK(stun_message_type == STUN_BINDING_REQUEST ||
-             stun_message_type == STUN_BINDING_RESPONSE);
-  if (state_ == State::OFF || state_ == State::COMPLETE) {
+             stun_message_type == STUN_BINDING_RESPONSE ||
+             stun_message_type == STUN_BINDING_INDICATION);
+
+  if (state_ == State::COMPLETE) {
     return std::nullopt;
   }
+
+  if (stun_message_type == STUN_BINDING_INDICATION) {
+    // TODO(jonaso, webrtc:367395350): Remove this branch that returns the
+    // pending packet even if state is OFF when we remove
+    // P2PTransportChannel::PeriodicRetransmitDtlsPacketUntilDtlsConnected.
+  } else if (state_ == State::OFF) {
+    return std::nullopt;
+  }
+
   if (pending_packet_.size() == 0) {
     return std::nullopt;
   }
@@ -115,10 +122,8 @@ void DtlsStunPiggybackController::ReportDataPiggybacked(
   // we received a stun request with neither attribute set
   // => peer does not support.
   if (state_ == State::TENTATIVE && data == nullptr && ack == nullptr) {
-    state_ = State::OFF;
-    pending_packet_.Clear();
     RTC_LOG(LS_INFO) << "DTLS-STUN piggybacking not supported by peer.";
-    disable_piggybacking_callback_();
+    state_ = State::OFF;
     return;
   }
 
@@ -177,19 +182,6 @@ void DtlsStunPiggybackController::ReportDataPiggybacked(
   }
 
   dtls_data_callback_(data->array_view());
-}
-
-void DtlsStunPiggybackController::SetEnabled(bool enabled) {
-  RTC_DCHECK_RUN_ON(&sequence_checker_);
-  enabled_ = enabled;
-  if (!enabled) {
-    state_ = State::OFF;
-  }
-}
-
-bool DtlsStunPiggybackController::enabled() const {
-  RTC_DCHECK_RUN_ON(&sequence_checker_);
-  return enabled_;
 }
 
 }  // namespace cricket

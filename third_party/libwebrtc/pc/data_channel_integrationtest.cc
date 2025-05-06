@@ -1619,13 +1619,26 @@ class DataChannelIntegrationTestUnifiedPlanFieldTrials
                           Eq(data)),
                 IsRtcOk());
   }
+
+  const char* CheckSupported() {
+    const bool callee_active = std::get<0>(GetParam());
+    const bool callee_has_dtls_in_stun = absl::StrContains(
+        std::get<2>(GetParam()), "WebRTC-IceHandshakeDtls/Enabled/");
+    const bool callee2_has_dtls_in_stun = absl::StrContains(
+        std::get<3>(GetParam()), "WebRTC-IceHandshakeDtls/Enabled/");
+    if (callee_active &&
+        (callee_has_dtls_in_stun || callee2_has_dtls_in_stun)) {
+      return "dtls-in-stun when callee(s) are dtls clients";
+    }
+    return nullptr;
+  }
 };
 
-// TODO(webrtc:367395350/jonaso): Add "WebRTC-IceHandshakeDtls/Enabled/"...
-// when it works for this testcase...
 static const char* kTrialsVariants[] = {
     "",
     "WebRTC-ForceDtls13/Enabled/",
+    "WebRTC-IceHandshakeDtls/Enabled/",
+    "WebRTC-ForceDtls13/Enabled/WebRTC-IceHandshakeDtls/Enabled/",
 };
 
 INSTANTIATE_TEST_SUITE_P(DataChannelIntegrationTestUnifiedPlanFieldTrials,
@@ -1637,8 +1650,11 @@ INSTANTIATE_TEST_SUITE_P(DataChannelIntegrationTestUnifiedPlanFieldTrials,
 
 TEST_P(DataChannelIntegrationTestUnifiedPlanFieldTrials,
        DtlsRestartOneCalleAtATime) {
-  auto callee2 = SetupCallee2AndDc(/* addTurn= */ false);
+  if (auto msg = CheckSupported()) {
+    GTEST_SKIP() << "Testcase not supported for this scenario: " << msg;
+  }
 
+  auto callee2 = SetupCallee2AndDc(/* addTurn= */ false);
   const bool callee_active = std::get<0>(GetParam());
   std::unique_ptr<SessionDescriptionInterface> offer;
   callee()->SetReceivedSdpMunger(
@@ -1698,8 +1714,11 @@ TEST_P(DataChannelIntegrationTestUnifiedPlanFieldTrials,
 
 TEST_P(DataChannelIntegrationTestUnifiedPlanFieldTrials,
        DtlsRestartTwoActiveCallees) {
-  auto callee2 = SetupCallee2AndDc(/* addTurn= */ true);
+  if (auto msg = CheckSupported()) {
+    GTEST_SKIP() << "Testcase not supported for this scenario: " << msg;
+  }
 
+  auto callee2 = SetupCallee2AndDc(/* addTurn= */ true);
   const bool callee_active = std::get<0>(GetParam());
   std::unique_ptr<SessionDescriptionInterface> offer;
   callee()->SetReceivedSdpMunger(
@@ -1747,7 +1766,6 @@ TEST_P(DataChannelIntegrationTestUnifiedPlanFieldTrials,
   auto candidate = caller()->last_gathered_ice_candidate();
   std::string ice_sdp;
   EXPECT_TRUE(candidate->ToString(&ice_sdp));
-  RTC_LOG(LS_INFO) << "KESO: " << ice_sdp;
   callee2->ReceiveIceMessage(candidate->sdp_mid(), candidate->sdp_mline_index(),
                              ice_sdp);
 

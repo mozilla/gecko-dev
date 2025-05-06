@@ -244,12 +244,11 @@ class DtlsTransport : public DtlsTransportInternal {
   void OnReceivingState(rtc::PacketTransportInternal* transport);
   void OnDtlsEvent(int sig, int err);
   void OnNetworkRouteChanged(std::optional<rtc::NetworkRoute> network_route);
-  bool SetupDtls(bool disable_piggybacking = false);
+  bool SetupDtls();
   void MaybeStartDtls();
   bool HandleDtlsPacket(rtc::ArrayView<const uint8_t> payload);
   void OnDtlsHandshakeError(webrtc::SSLHandshakeError error);
   void ConfigureHandshakeTimeout();
-  void DisablePiggybackingAndRestart();
 
   void set_receiving(bool receiving);
   void set_writable(bool writable);
@@ -287,6 +286,7 @@ class DtlsTransport : public DtlsTransportInternal {
   webrtc::RtcEventLog* const event_log_;
 
   // A controller for piggybacking DTLS in STUN.
+  bool dtls_in_stun_ = false;  // Initialize in ConnectToIceTransport().
   DtlsStunPiggybackController dtls_stun_piggyback_controller_;
 
   bool IsDtlsPiggybackHandshaking();

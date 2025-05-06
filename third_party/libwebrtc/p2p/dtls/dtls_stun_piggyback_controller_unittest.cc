@@ -62,15 +62,13 @@ using State = DtlsStunPiggybackController::State;
 class DtlsStunPiggybackControllerTest : public ::testing::Test {
  protected:
   DtlsStunPiggybackControllerTest()
-      : client_([](rtc::ArrayView<const uint8_t> data) {},
-                client_disable_piggybacking_.AsStdFunction()),
-        server_([](rtc::ArrayView<const uint8_t> data) {},
-                server_disable_piggybacking_.AsStdFunction()) {}
+      : client_([](rtc::ArrayView<const uint8_t> data) {}),
+        server_([](rtc::ArrayView<const uint8_t> data) {}) {}
 
   void SendClientToServer(const std::vector<uint8_t> data,
                           StunMessageType type) {
     if (!data.empty()) {
-      EXPECT_TRUE(client_.MaybeConsumePacket(data));
+      client_.CapturePacket(data);
     } else {
       client_.ClearCachedPacketForTesting();
     }
@@ -89,7 +87,7 @@ class DtlsStunPiggybackControllerTest : public ::testing::Test {
   void SendServerToClient(const std::vector<uint8_t> data,
                           StunMessageType type) {
     if (!data.empty()) {
-      EXPECT_TRUE(server_.MaybeConsumePacket(data));
+      server_.CapturePacket(data);
     } else {
       server_.ClearCachedPacketForTesting();
     }
@@ -119,9 +117,7 @@ class DtlsStunPiggybackControllerTest : public ::testing::Test {
     ASSERT_EQ(client_or_server.state(), State::OFF);
   }
 
-  MockFunction<void()> client_disable_piggybacking_;
   DtlsStunPiggybackController client_;
-  MockFunction<void()> server_disable_piggybacking_;
   DtlsStunPiggybackController server_;
 };
 
@@ -171,31 +167,25 @@ TEST_F(DtlsStunPiggybackControllerTest, FirstClientPacketLost) {
 }
 
 TEST_F(DtlsStunPiggybackControllerTest, NotSupportedByServer) {
-  EXPECT_CALL(server_disable_piggybacking_, Call);
   DisableSupport(server_);
 
   // Flight 1
   SendClientToServer(dtls_flight1, STUN_BINDING_REQUEST);
-  EXPECT_CALL(client_disable_piggybacking_, Call);
   SendServerToClient(empty, STUN_BINDING_RESPONSE);
   EXPECT_EQ(client_.state(), State::OFF);
 }
 
 TEST_F(DtlsStunPiggybackControllerTest, NotSupportedByServerClientReceives) {
-  EXPECT_CALL(server_disable_piggybacking_, Call);
   DisableSupport(server_);
 
   // Client to server got lost (or arrives late)
-  EXPECT_CALL(client_disable_piggybacking_, Call);
   SendServerToClient(empty, STUN_BINDING_REQUEST);
   EXPECT_EQ(client_.state(), State::OFF);
 }
 
 TEST_F(DtlsStunPiggybackControllerTest, NotSupportedByClient) {
-  EXPECT_CALL(client_disable_piggybacking_, Call);
   DisableSupport(client_);
 
-  EXPECT_CALL(server_disable_piggybacking_, Call);
   SendServerToClient(empty, STUN_BINDING_REQUEST);
   SendClientToServer(empty, STUN_BINDING_RESPONSE);
   EXPECT_EQ(server_.state(), State::OFF);
@@ -250,9 +240,7 @@ TEST_F(DtlsStunPiggybackControllerTest, LossOnPostHandshakeAck) {
 
 TEST_F(DtlsStunPiggybackControllerTest,
        UnsupportedStateAfterFallbackHandshakeRemainsOff) {
-  EXPECT_CALL(client_disable_piggybacking_, Call);
   DisableSupport(client_);
-  EXPECT_CALL(server_disable_piggybacking_, Call);
   DisableSupport(server_);
 
   // Set DTLS complete after normal handshake.

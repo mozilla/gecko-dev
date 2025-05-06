@@ -496,7 +496,7 @@ class RTC_EXPORT P2PTransportChannel : public IceTransportInternal,
   std::unique_ptr<StunAttribute> GoogDeltaReceived(
       const StunByteStringAttribute*);
   void GoogDeltaAckReceived(webrtc::RTCErrorOr<const StunUInt64Attribute*>);
-  void SendPeriodicPingUntilDtlsConnected();
+  void PeriodicRetransmitDtlsPacketUntilDtlsConnected();
 
   // Bytes/packets sent/received on this channel.
   uint64_t bytes_sent_ = 0;
@@ -523,7 +523,7 @@ class RTC_EXPORT P2PTransportChannel : public IceTransportInternal,
   StunDictionaryView stun_dict_view_;
 
   // DTLS-STUN piggybacking callbacks.
-  bool pending_ping_until_dtls_connected_ = false;
+  bool pending_periodic_retransmit_dtls_packet_ = false;
   webrtc::ScopedTaskSafetyDetached safety_flag_;
   DtlsStunPiggybackCallbacks dtls_stun_piggyback_callbacks_;
 };

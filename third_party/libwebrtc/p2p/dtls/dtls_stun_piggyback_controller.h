@@ -35,14 +35,8 @@ class DtlsStunPiggybackController {
   // piggybacked.
   DtlsStunPiggybackController(
       absl::AnyInvocable<void(rtc::ArrayView<const uint8_t>)>
-          dtls_data_callback,
-      absl::AnyInvocable<void()> disable_piggybacking_callback);
+          dtls_data_callback);
   ~DtlsStunPiggybackController();
-
-  // Initially set from IceConfig.dtls_handshake_in_stun
-  // but is also set to FALSE before restarting handshake.
-  void SetEnabled(bool enabled);
-  bool enabled() const;
 
   enum class State {
     // We don't know if peer support DTLS piggybacked in STUN.
@@ -70,7 +64,7 @@ class DtlsStunPiggybackController {
 
   // Intercepts DTLS packets which should go into the STUN packets during the
   // handshake.
-  bool MaybeConsumePacket(rtc::ArrayView<const uint8_t> data);
+  void CapturePacket(rtc::ArrayView<const uint8_t> data);
   void ClearCachedPacketForTesting();
 
   // Called by Connection, when sending a STUN BINDING { REQUEST / RESPONSE }
@@ -85,7 +79,6 @@ class DtlsStunPiggybackController {
                              const StunByteStringAttribute* ack);
 
  private:
-  bool enabled_ RTC_GUARDED_BY(sequence_checker_) = false;
   State state_ RTC_GUARDED_BY(sequence_checker_) = State::TENTATIVE;
   rtc::Buffer pending_packet_ RTC_GUARDED_BY(sequence_checker_);
   absl::AnyInvocable<void(rtc::ArrayView<const uint8_t>)> dtls_data_callback_;
