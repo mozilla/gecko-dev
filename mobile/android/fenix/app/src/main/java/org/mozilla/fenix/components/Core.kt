@@ -340,6 +340,10 @@ class Core(
                 // we start this process. For details, see:
                 // https://bugzilla.mozilla.org/show_bug.cgi?id=1958042
                 TranslationsMiddleware(engine, MainScope(), false),
+                StartupMiddleware(
+                    applicationContext = context,
+                    repository = DefaultHomepageAsANewTabPreferenceRepository(context.settings()),
+                ),
             )
 
         BrowserStore(
