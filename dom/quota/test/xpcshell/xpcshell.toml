@@ -156,6 +156,11 @@ skip-if = ["inc_origin_init"]
 ["test_tempMetadataCleanup.js"]
 
 ["test_temporaryStorageEviction.js"]
+# This test requires precise control over storage size, which isn't compatible
+# with conditioned profiles that use a much larger default size. While the test
+# could clear storage at the start, doing so would defeat the purpose of using
+# a conditioned profile in the first place.
+run-if = ["!condprof"]
 
 ["test_unaccessedOrigins.js"]
 
