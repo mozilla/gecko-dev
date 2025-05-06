@@ -872,6 +872,7 @@ void RtpVideoStreamReceiver2::OnInsertedPacket(
   int max_nack_count;
   int64_t min_recv_time;
   int64_t max_recv_time;
+  std::optional<int64_t> absolute_capture_time_ms;
   std::vector<rtc::ArrayView<const uint8_t>> payloads;
   RtpPacketInfos::vector_type packet_infos;
 
@@ -901,6 +902,15 @@ void RtpVideoStreamReceiver2::OnInsertedPacket(
       max_nack_count = packet->times_nacked;
       min_recv_time = packet_info.receive_time().ms();
       max_recv_time = packet_info.receive_time().ms();
+      if (env_.field_trials().IsEnabled("WebRTC-UseAbsCapTimeForG2gMetric") &&
+          packet_info.absolute_capture_time().has_value() &&
+          packet_info.local_capture_clock_offset().has_value()) {
+        absolute_capture_time_ms =
+            NtpTime(
+                packet_info.absolute_capture_time()->absolute_capture_timestamp)
+                .ToMs() +
+            packet_info.local_capture_clock_offset()->ms();
+      }
     } else {
       max_nack_count = std::max(max_nack_count, packet->times_nacked);
       min_recv_time = std::min(min_recv_time, packet_info.receive_time().ms());
@@ -927,23 +937,25 @@ void RtpVideoStreamReceiver2::OnInsertedPacket(
 
       const video_coding::PacketBuffer::Packet& last_packet = *packet;
       OnAssembledFrame(std::make_unique<RtpFrameObject>(
-          first_packet->seq_num(),                              //
-          last_packet.seq_num(),                                //
-          last_packet.marker_bit,                               //
-          max_nack_count,                                       //
-          min_recv_time,                                        //
-          max_recv_time,                                        //
-          first_packet->timestamp,                              //
-          ntp_estimator_.Estimate(first_packet->timestamp),     //
-          last_packet.video_header.video_timing,                //
-          first_packet->payload_type,                           //
-          first_packet->codec(),                                //
-          last_packet.video_header.rotation,                    //
-          last_packet.video_header.content_type,                //
-          first_packet->video_header,                           //
-          last_packet.video_header.color_space,                 //
-          last_packet.video_header.frame_instrumentation_data,  //
-          RtpPacketInfos(std::move(packet_infos)),              //
+          first_packet->seq_num(),  //
+          last_packet.seq_num(),    //
+          last_packet.marker_bit,   //
+          max_nack_count,           //
+          min_recv_time,            //
+          max_recv_time,            //
+          first_packet->timestamp,  //
+          absolute_capture_time_ms.has_value()
+              ? *absolute_capture_time_ms
+              : ntp_estimator_.Estimate(first_packet->timestamp),  //
+          last_packet.video_header.video_timing,                   //
+          first_packet->payload_type,                              //
+          first_packet->codec(),                                   //
+          last_packet.video_header.rotation,                       //
+          last_packet.video_header.content_type,                   //
+          first_packet->video_header,                              //
+          last_packet.video_header.color_space,                    //
+          last_packet.video_header.frame_instrumentation_data,     //
+          RtpPacketInfos(std::move(packet_infos)),                 //
           std::move(bitstream)));
       payloads.clear();
       packet_infos.clear();
