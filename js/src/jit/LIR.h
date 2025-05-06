@@ -1932,9 +1932,6 @@ class LSafepoint : public TempObject {
       }
       return true;
     }
-    if (hasValueSlot(alloc.isStackSlot(), alloc.memorySlot())) {
-      return true;
-    }
     return addValueSlot(alloc.isStackSlot(), alloc.memorySlot());
   }
 
