@@ -344,6 +344,12 @@ TEST_P(SpatialQualityTest, SpatialQuality) {
       {{"video_name", video_info.name},
        {"codec_type", codec_type},
        {"codec_impl", codec_impl}});
+
+  if (absl::GetFlag(FLAGS_write_csv)) {
+    stats->LogMetrics((StringBuilder() << TestOutputPath() << ".csv").str(),
+                      stats->Slice(Filter{}, /*merge=*/false), /*metadata=*/
+                      {{"test_name", TestName()}});
+  }
 }
 
 INSTANTIATE_TEST_SUITE_P(
@@ -442,6 +448,12 @@ TEST_P(BitrateAdaptationTest, BitrateAdaptation) {
        {"video_name", video_info.name},
        {"rate_profile", std::to_string(bitrate_kbps.first) + "," +
                             std::to_string(bitrate_kbps.second)}});
+
+  if (absl::GetFlag(FLAGS_write_csv)) {
+    stats->LogMetrics((StringBuilder() << TestOutputPath() << ".csv").str(),
+                      stats->Slice(Filter{}, /*merge=*/false), /*metadata=*/
+                      {{"test_name", TestName()}});
+  }
 }
 
 INSTANTIATE_TEST_SUITE_P(All,
@@ -531,6 +543,12 @@ TEST_P(FramerateAdaptationTest, FramerateAdaptation) {
        {"video_name", video_info.name},
        {"rate_profile", std::to_string(framerate_fps.first) + "," +
                             std::to_string(framerate_fps.second)}});
+
+  if (absl::GetFlag(FLAGS_write_csv)) {
+    stats->LogMetrics((StringBuilder() << TestOutputPath() << ".csv").str(),
+                      stats->Slice(Filter{}, /*merge=*/false), /*metadata=*/
+                      {{"test_name", TestName()}});
+  }
 }
 
 INSTANTIATE_TEST_SUITE_P(All,
