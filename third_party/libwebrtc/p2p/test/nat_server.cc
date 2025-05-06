@@ -22,19 +22,19 @@
 #include "rtc_base/socket_adapters.h"
 #include "rtc_base/socket_address.h"
 
-namespace rtc {
+namespace webrtc {
 
 RouteCmp::RouteCmp(NAT* nat) : symmetric(nat->IsSymmetric()) {}
 
-size_t RouteCmp::operator()(const webrtc::SocketAddressPair& r) const {
+size_t RouteCmp::operator()(const SocketAddressPair& r) const {
   size_t h = r.source().Hash();
   if (symmetric)
     h ^= r.destination().Hash();
   return h;
 }
 
-bool RouteCmp::operator()(const webrtc::SocketAddressPair& r1,
-                          const webrtc::SocketAddressPair& r2) const {
+bool RouteCmp::operator()(const SocketAddressPair& r1,
+                          const SocketAddressPair& r2) const {
   if (r1.source() < r2.source())
     return true;
   if (r2.source() < r1.source())
@@ -49,7 +49,7 @@ bool RouteCmp::operator()(const webrtc::SocketAddressPair& r1,
 AddrCmp::AddrCmp(NAT* nat)
     : use_ip(nat->FiltersIP()), use_port(nat->FiltersPort()) {}
 
-size_t AddrCmp::operator()(const webrtc::SocketAddress& a) const {
+size_t AddrCmp::operator()(const SocketAddress& a) const {
   size_t h = 0;
   if (use_ip)
     h ^= webrtc::HashIP(a.ipaddr());
@@ -58,8 +58,8 @@ size_t AddrCmp::operator()(const webrtc::SocketAddress& a) const {
   return h;
 }
 
-bool AddrCmp::operator()(const webrtc::SocketAddress& a1,
-                         const webrtc::SocketAddress& a2) const {
+bool AddrCmp::operator()(const SocketAddress& a1,
+                         const SocketAddress& a2) const {
   if (use_ip && (a1.ipaddr() < a2.ipaddr()))
     return true;
   if (use_ip && (a2.ipaddr() < a1.ipaddr()))
@@ -73,16 +73,17 @@ bool AddrCmp::operator()(const webrtc::SocketAddress& a1,
 
 // Proxy socket that will capture the external destination address intended for
 // a TCP connection to the NAT server.
-class NATProxyServerSocket : public AsyncProxyServerSocket {
+class NATProxyServerSocket : public rtc::AsyncProxyServerSocket {
  public:
-  explicit NATProxyServerSocket(Socket* socket)
-      : AsyncProxyServerSocket(socket, kNATEncodedIPv6AddressSize) {
+  explicit NATProxyServerSocket(rtc::Socket* socket)
+      : rtc::AsyncProxyServerSocket(socket,
+                                    webrtc::kNATEncodedIPv6AddressSize) {
     BufferInput(true);
   }
 
-  void SendConnectResult(int err, const webrtc::SocketAddress& addr) override {
+  void SendConnectResult(int err, const SocketAddress& addr) override {
     char code = err ? 1 : 0;
-    BufferedReadAdapter::DirectSend(&code, sizeof(char));
+    rtc::BufferedReadAdapter::DirectSend(&code, sizeof(char));
   }
 
  protected:
@@ -93,13 +94,13 @@ class NATProxyServerSocket : public AsyncProxyServerSocket {
 
     int family = data[1];
     RTC_DCHECK(family == AF_INET || family == AF_INET6);
-    if ((family == AF_INET && *len < kNATEncodedIPv4AddressSize) ||
-        (family == AF_INET6 && *len < kNATEncodedIPv6AddressSize)) {
+    if ((family == AF_INET && *len < webrtc::kNATEncodedIPv4AddressSize) ||
+        (family == AF_INET6 && *len < webrtc::kNATEncodedIPv6AddressSize)) {
       return;
     }
 
-    webrtc::SocketAddress dest_addr;
-    size_t address_length = UnpackAddressFromNAT(
+    SocketAddress dest_addr;
+    size_t address_length = webrtc::UnpackAddressFromNAT(
         MakeArrayView(reinterpret_cast<const uint8_t*>(data), *len),
         &dest_addr);
     *len -= address_length;
@@ -116,28 +117,28 @@ class NATProxyServerSocket : public AsyncProxyServerSocket {
   }
 };
 
-class NATProxyServer : public ProxyServer {
+class NATProxyServer : public rtc::ProxyServer {
  public:
-  NATProxyServer(SocketFactory* int_factory,
-                 const webrtc::SocketAddress& int_addr,
-                 SocketFactory* ext_factory,
-                 const webrtc::SocketAddress& ext_ip)
-      : ProxyServer(int_factory, int_addr, ext_factory, ext_ip) {}
+  NATProxyServer(rtc::SocketFactory* int_factory,
+                 const SocketAddress& int_addr,
+                 rtc::SocketFactory* ext_factory,
+                 const SocketAddress& ext_ip)
+      : rtc::ProxyServer(int_factory, int_addr, ext_factory, ext_ip) {}
 
  protected:
-  AsyncProxyServerSocket* WrapSocket(Socket* socket) override {
+  rtc::AsyncProxyServerSocket* WrapSocket(rtc::Socket* socket) override {
     return new NATProxyServerSocket(socket);
   }
 };
 
 NATServer::NATServer(NATType type,
                      rtc::Thread& internal_socket_thread,
-                     SocketFactory* internal,
-                     const webrtc::SocketAddress& internal_udp_addr,
-                     const webrtc::SocketAddress& internal_tcp_addr,
+                     rtc::SocketFactory* internal,
+                     const SocketAddress& internal_udp_addr,
+                     const SocketAddress& internal_tcp_addr,
                      rtc::Thread& external_socket_thread,
-                     SocketFactory* external,
-                     const webrtc::SocketAddress& external_ip)
+                     rtc::SocketFactory* external,
+                     const SocketAddress& external_ip)
     : internal_socket_thread_(internal_socket_thread),
       external_socket_thread_(external_socket_thread),
       external_(external),
@@ -145,7 +146,8 @@ NATServer::NATServer(NATType type,
   nat_ = NAT::Create(type);
 
   internal_socket_thread_.BlockingCall([&] {
-    udp_server_socket_ = AsyncUDPSocket::Create(internal, internal_udp_addr);
+    udp_server_socket_ =
+        rtc::AsyncUDPSocket::Create(internal, internal_udp_addr);
     udp_server_socket_->RegisterReceivedPacketCallback(
         [&](rtc::AsyncPacketSocket* socket, const rtc::ReceivedPacket& packet) {
           OnInternalUDPPacket(socket, packet);
@@ -171,15 +173,15 @@ NATServer::~NATServer() {
   delete ext_map_;
 }
 
-void NATServer::OnInternalUDPPacket(AsyncPacketSocket* socket,
+void NATServer::OnInternalUDPPacket(rtc::AsyncPacketSocket* socket,
                                     const rtc::ReceivedPacket& packet) {
   RTC_DCHECK(internal_socket_thread_.IsCurrent());
   // Read the intended destination from the wire.
-  webrtc::SocketAddress dest_addr;
-  size_t length = UnpackAddressFromNAT(packet.payload(), &dest_addr);
+  SocketAddress dest_addr;
+  size_t length = webrtc::UnpackAddressFromNAT(packet.payload(), &dest_addr);
 
   // Find the translation for these addresses (allocating one if necessary).
-  webrtc::SocketAddressPair route(packet.source_address(), dest_addr);
+  SocketAddressPair route(packet.source_address(), dest_addr);
   InternalMap::iterator iter = int_map_->find(route);
   if (iter == int_map_->end()) {
     Translate(route);
@@ -197,10 +199,10 @@ void NATServer::OnInternalUDPPacket(AsyncPacketSocket* socket,
   iter->second->socket->SendTo(buf + length, size - length, dest_addr, options);
 }
 
-void NATServer::OnExternalUDPPacket(AsyncPacketSocket* socket,
+void NATServer::OnExternalUDPPacket(rtc::AsyncPacketSocket* socket,
                                     const rtc::ReceivedPacket& packet) {
   RTC_DCHECK(external_socket_thread_.IsCurrent());
-  webrtc::SocketAddress local_addr = socket->GetLocalAddress();
+  SocketAddress local_addr = socket->GetLocalAddress();
 
   // Find the translation for this addresses.
   ExternalMap::iterator iter = ext_map_->find(local_addr);
@@ -217,9 +219,10 @@ void NATServer::OnExternalUDPPacket(AsyncPacketSocket* socket,
   // Forward this packet to the internal address.
   // First prepend the address in a quasi-STUN format.
   std::unique_ptr<char[]> real_buf(
-      new char[packet.payload().size() + kNATEncodedIPv6AddressSize]);
-  size_t addrlength = PackAddressForNAT(
-      real_buf.get(), packet.payload().size() + kNATEncodedIPv6AddressSize,
+      new char[packet.payload().size() + webrtc::kNATEncodedIPv6AddressSize]);
+  size_t addrlength = webrtc::PackAddressForNAT(
+      real_buf.get(),
+      packet.payload().size() + webrtc::kNATEncodedIPv6AddressSize,
       packet.source_address());
   // Copy the data part after the address.
   rtc::PacketOptions options;
@@ -230,9 +233,10 @@ void NATServer::OnExternalUDPPacket(AsyncPacketSocket* socket,
                              iter->second->route.source(), options);
 }
 
-void NATServer::Translate(const webrtc::SocketAddressPair& route) {
+void NATServer::Translate(const SocketAddressPair& route) {
   external_socket_thread_.BlockingCall([&] {
-    AsyncUDPSocket* socket = AsyncUDPSocket::Create(external_, external_ip_);
+    rtc::AsyncUDPSocket* socket =
+        rtc::AsyncUDPSocket::Create(external_, external_ip_);
 
     if (!socket) {
       RTC_LOG(LS_ERROR) << "Couldn't find a free port!";
@@ -250,12 +254,12 @@ void NATServer::Translate(const webrtc::SocketAddressPair& route) {
 }
 
 bool NATServer::ShouldFilterOut(TransEntry* entry,
-                                const webrtc::SocketAddress& ext_addr) {
+                                const SocketAddress& ext_addr) {
   return entry->AllowlistContains(ext_addr);
 }
 
-NATServer::TransEntry::TransEntry(const webrtc::SocketAddressPair& r,
-                                  AsyncUDPSocket* s,
+NATServer::TransEntry::TransEntry(const SocketAddressPair& r,
+                                  rtc::AsyncUDPSocket* s,
                                   NAT* nat)
     : route(r), socket(s) {
   allowlist = new AddressSet(AddrCmp(nat));
@@ -266,15 +270,14 @@ NATServer::TransEntry::~TransEntry() {
   delete socket;
 }
 
-void NATServer::TransEntry::AllowlistInsert(const webrtc::SocketAddress& addr) {
-  webrtc::MutexLock lock(&mutex_);
+void NATServer::TransEntry::AllowlistInsert(const SocketAddress& addr) {
+  MutexLock lock(&mutex_);
   allowlist->insert(addr);
 }
 
-bool NATServer::TransEntry::AllowlistContains(
-    const webrtc::SocketAddress& ext_addr) {
-  webrtc::MutexLock lock(&mutex_);
+bool NATServer::TransEntry::AllowlistContains(const SocketAddress& ext_addr) {
+  MutexLock lock(&mutex_);
   return allowlist->find(ext_addr) == allowlist->end();
 }
 
-}  // namespace rtc
+}  // namespace webrtc

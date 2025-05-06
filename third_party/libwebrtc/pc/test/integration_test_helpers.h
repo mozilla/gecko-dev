@@ -1635,16 +1635,16 @@ class PeerConnectionIntegrationBaseTest : public ::testing::Test {
     return caller_ && callee_;
   }
 
-  cricket::TestTurnServer* CreateTurnServer(
+  TestTurnServer* CreateTurnServer(
       SocketAddress internal_address,
       SocketAddress external_address,
       ProtocolType type = ProtocolType::PROTO_UDP,
       const std::string& common_name = "test turn server") {
     rtc::Thread* thread = network_thread();
     rtc::SocketFactory* socket_factory = fss_.get();
-    std::unique_ptr<cricket::TestTurnServer> turn_server;
+    std::unique_ptr<TestTurnServer> turn_server;
     SendTask(network_thread(), [&] {
-      turn_server = std::make_unique<cricket::TestTurnServer>(
+      turn_server = std::make_unique<TestTurnServer>(
           thread, socket_factory, internal_address, external_address, type,
           /*ignore_bad_certs=*/true, common_name);
     });
@@ -1653,11 +1653,10 @@ class PeerConnectionIntegrationBaseTest : public ::testing::Test {
     return turn_servers_.back().get();
   }
 
-  cricket::TestTurnCustomizer* CreateTurnCustomizer() {
-    std::unique_ptr<cricket::TestTurnCustomizer> turn_customizer;
-    SendTask(network_thread(), [&] {
-      turn_customizer = std::make_unique<cricket::TestTurnCustomizer>();
-    });
+  TestTurnCustomizer* CreateTurnCustomizer() {
+    std::unique_ptr<TestTurnCustomizer> turn_customizer;
+    SendTask(network_thread(),
+             [&] { turn_customizer = std::make_unique<TestTurnCustomizer>(); });
     turn_customizers_.push_back(std::move(turn_customizer));
     // Interactions with the turn customizer should be done on the network
     // thread.
@@ -1667,7 +1666,7 @@ class PeerConnectionIntegrationBaseTest : public ::testing::Test {
   // Checks that the function counters for a TestTurnCustomizer are greater than
   // 0.
   void ExpectTurnCustomizerCountersIncremented(
-      cricket::TestTurnCustomizer* turn_customizer) {
+      TestTurnCustomizer* turn_customizer) {
     SendTask(network_thread(), [turn_customizer] {
       EXPECT_GT(turn_customizer->allow_channel_data_cnt_, 0u);
       EXPECT_GT(turn_customizer->modify_cnt_, 0u);
@@ -1922,8 +1921,8 @@ class PeerConnectionIntegrationBaseTest : public ::testing::Test {
   // The turn servers and turn customizers should be accessed & deleted on the
   // network thread to avoid a race with the socket read/write that occurs
   // on the network thread.
-  std::vector<std::unique_ptr<cricket::TestTurnServer>> turn_servers_;
-  std::vector<std::unique_ptr<cricket::TestTurnCustomizer>> turn_customizers_;
+  std::vector<std::unique_ptr<TestTurnServer>> turn_servers_;
+  std::vector<std::unique_ptr<TestTurnCustomizer>> turn_customizers_;
   std::unique_ptr<PeerConnectionIntegrationWrapper> caller_;
   std::unique_ptr<PeerConnectionIntegrationWrapper> callee_;
   std::string field_trials_;

@@ -12,7 +12,7 @@
 
 #include "rtc_base/checks.h"
 
-namespace rtc {
+namespace webrtc {
 
 class SymmetricNAT : public NAT {
  public:
@@ -58,4 +58,4 @@ NAT* NAT::Create(NATType type) {
   }
 }
 
-}  // namespace rtc
+}  // namespace webrtc

@@ -26,20 +26,18 @@
 #include "rtc_base/ssl_identity.h"
 #include "rtc_base/thread.h"
 
-namespace cricket {
+namespace webrtc {
 
 static const char kTestRealm[] = "example.org";
 static const char kTestSoftware[] = "TestTurnServer";
 
 class TestTurnRedirector : public TurnRedirectInterface {
  public:
-  explicit TestTurnRedirector(
-      const std::vector<webrtc::SocketAddress>& addresses)
+  explicit TestTurnRedirector(const std::vector<SocketAddress>& addresses)
       : alternate_server_addresses_(addresses),
         iter_(alternate_server_addresses_.begin()) {}
 
-  virtual bool ShouldRedirect(const webrtc::SocketAddress&,
-                              webrtc::SocketAddress* out) {
+  virtual bool ShouldRedirect(const SocketAddress&, SocketAddress* out) {
     if (!out || iter_ == alternate_server_addresses_.end()) {
       return false;
     }
@@ -48,17 +46,17 @@ class TestTurnRedirector : public TurnRedirectInterface {
   }
 
  private:
-  const std::vector<webrtc::SocketAddress>& alternate_server_addresses_;
-  std::vector<webrtc::SocketAddress>::const_iterator iter_;
+  const std::vector<SocketAddress>& alternate_server_addresses_;
+  std::vector<SocketAddress>::const_iterator iter_;
 };
 
 class TestTurnServer : public TurnAuthInterface {
  public:
   TestTurnServer(rtc::Thread* thread,
                  rtc::SocketFactory* socket_factory,
-                 const webrtc::SocketAddress& int_addr,
-                 const webrtc::SocketAddress& udp_ext_addr,
-                 webrtc::ProtocolType int_protocol = webrtc::PROTO_UDP,
+                 const SocketAddress& int_addr,
+                 const SocketAddress& udp_ext_addr,
+                 ProtocolType int_protocol = webrtc::PROTO_UDP,
                  bool ignore_bad_cert = true,
                  absl::string_view common_name = "test turn server")
       : server_(thread), socket_factory_(socket_factory) {
@@ -92,8 +90,8 @@ class TestTurnServer : public TurnAuthInterface {
     server_.set_enable_permission_checks(enable);
   }
 
-  void AddInternalSocket(const webrtc::SocketAddress& int_addr,
-                         webrtc::ProtocolType proto,
+  void AddInternalSocket(const SocketAddress& int_addr,
+                         ProtocolType proto,
                          bool ignore_bad_cert = true,
                          absl::string_view common_name = "test turn server") {
     RTC_DCHECK(thread_checker_.IsCurrent());
@@ -129,7 +127,7 @@ class TestTurnServer : public TurnAuthInterface {
 
   // Finds the first allocation in the server allocation map with a source
   // ip and port matching the socket address provided.
-  TurnServerAllocation* FindAllocation(const webrtc::SocketAddress& src) {
+  TurnServerAllocation* FindAllocation(const SocketAddress& src) {
     RTC_DCHECK(thread_checker_.IsCurrent());
     const TurnServer::AllocationMap& map = server_.allocations();
     for (TurnServer::AllocationMap::const_iterator it = map.begin();
@@ -148,15 +146,24 @@ class TestTurnServer : public TurnAuthInterface {
                       absl::string_view realm,
                       std::string* key) {
     RTC_DCHECK(thread_checker_.IsCurrent());
-    return ComputeStunCredentialHash(std::string(username), std::string(realm),
-                                     std::string(username), key);
+    return cricket::ComputeStunCredentialHash(
+        std::string(username), std::string(realm), std::string(username), key);
   }
 
   TurnServer server_;
   rtc::SocketFactory* socket_factory_;
-  webrtc::SequenceChecker thread_checker_;
+  SequenceChecker thread_checker_;
 };
 
+}  //  namespace webrtc
+
+// Re-export symbols from the webrtc namespace for backwards compatibility.
+// TODO(bugs.webrtc.org/4222596): Remove once all references are updated.
+namespace cricket {
+using ::webrtc::kTestRealm;
+using ::webrtc::kTestSoftware;
+using ::webrtc::TestTurnRedirector;
+using ::webrtc::TestTurnServer;
 }  // namespace cricket
 
 #endif  // P2P_TEST_TEST_TURN_SERVER_H_

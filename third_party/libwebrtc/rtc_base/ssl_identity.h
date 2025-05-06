@@ -55,7 +55,7 @@ enum ECCurve { EC_NIST_P256, /* EC_FANCY, */ EC_LAST };
 class RTC_EXPORT KeyParams {
  public:
   // Generate a KeyParams object from a simple KeyType, using default params.
-  explicit KeyParams(KeyType key_type = KT_DEFAULT);
+  explicit KeyParams(KeyType key_type = rtc::KT_DEFAULT);
 
   // Generate a a KeyParams for RSA with explicit parameters.
   static KeyParams RSA(int mod_size = rtc::kRsaDefaultModSize,

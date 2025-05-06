@@ -21,7 +21,7 @@
 #include "rtc_base/async_udp_socket.h"
 #include "rtc_base/socket_address.h"
 
-namespace cricket {
+namespace webrtc {
 
 const int STUN_SERVER_PORT = 3478;
 
@@ -38,32 +38,39 @@ class StunServer {
                 const rtc::ReceivedPacket& packet);
 
   // Handlers for the different types of STUN/TURN requests:
-  virtual void OnBindingRequest(StunMessage* msg,
-                                const webrtc::SocketAddress& addr);
-  void OnAllocateRequest(StunMessage* msg, const webrtc::SocketAddress& addr);
-  void OnSharedSecretRequest(StunMessage* msg,
-                             const webrtc::SocketAddress& addr);
-  void OnSendRequest(StunMessage* msg, const webrtc::SocketAddress& addr);
+  virtual void OnBindingRequest(cricket::StunMessage* msg,
+                                const SocketAddress& addr);
+  void OnAllocateRequest(cricket::StunMessage* msg, const SocketAddress& addr);
+  void OnSharedSecretRequest(cricket::StunMessage* msg,
+                             const SocketAddress& addr);
+  void OnSendRequest(cricket::StunMessage* msg, const SocketAddress& addr);
 
   // Sends an error response to the given message back to the user.
-  void SendErrorResponse(const StunMessage& msg,
-                         const webrtc::SocketAddress& addr,
+  void SendErrorResponse(const cricket::StunMessage& msg,
+                         const SocketAddress& addr,
                          int error_code,
                          absl::string_view error_desc);
 
   // Sends the given message to the appropriate destination.
-  void SendResponse(const StunMessage& msg, const webrtc::SocketAddress& addr);
+  void SendResponse(const cricket::StunMessage& msg, const SocketAddress& addr);
 
   // A helper method to compose a STUN binding response.
-  void GetStunBindResponse(StunMessage* message,
-                           const webrtc::SocketAddress& remote_addr,
-                           StunMessage* response) const;
+  void GetStunBindResponse(cricket::StunMessage* message,
+                           const SocketAddress& remote_addr,
+                           cricket::StunMessage* response) const;
 
  private:
-  webrtc::SequenceChecker sequence_checker_;
+  SequenceChecker sequence_checker_;
   std::unique_ptr<rtc::AsyncUDPSocket> socket_;
 };
 
+}  //  namespace webrtc
+
+// Re-export symbols from the webrtc namespace for backwards compatibility.
+// TODO(bugs.webrtc.org/4222596): Remove once all references are updated.
+namespace cricket {
+using ::webrtc::STUN_SERVER_PORT;
+using ::webrtc::StunServer;
 }  // namespace cricket
 
 #endif  // P2P_TEST_STUN_SERVER_H_

@@ -18,15 +18,15 @@
 #include "rtc_base/logging.h"
 #include "rtc_base/virtual_socket_server.h"
 
-namespace rtc {
+namespace webrtc {
 
 // Packs the given socketaddress into the buffer in buf, in the quasi-STUN
 // format that the natserver uses.
 // Returns 0 if an invalid address is passed.
 size_t PackAddressForNAT(char* buf,
                          size_t buf_size,
-                         const webrtc::SocketAddress& remote_addr) {
-  const webrtc::IPAddress& ip = remote_addr.ipaddr();
+                         const SocketAddress& remote_addr) {
+  const IPAddress& ip = remote_addr.ipaddr();
   int family = ip.family();
   buf[0] = 0;
   buf[1] = family;
@@ -51,7 +51,7 @@ size_t PackAddressForNAT(char* buf,
 // quasi-STUN format. Returns the length of the address (i.e., the offset into
 // data where the original packet starts).
 size_t UnpackAddressFromNAT(rtc::ArrayView<const uint8_t> buf,
-                            webrtc::SocketAddress* remote_addr) {
+                            SocketAddress* remote_addr) {
   RTC_CHECK(buf.size() >= 8);
   RTC_DCHECK(buf.data()[0] == 0);
   int family = buf[1];
@@ -59,19 +59,19 @@ size_t UnpackAddressFromNAT(rtc::ArrayView<const uint8_t> buf,
       *(reinterpret_cast<const uint16_t*>(&buf.data()[2])));
   if (family == AF_INET) {
     const in_addr* v4addr = reinterpret_cast<const in_addr*>(&buf.data()[4]);
-    *remote_addr = webrtc::SocketAddress(webrtc::IPAddress(*v4addr), port);
+    *remote_addr = SocketAddress(IPAddress(*v4addr), port);
     return kNATEncodedIPv4AddressSize;
   } else if (family == AF_INET6) {
     RTC_DCHECK(buf.size() >= 20);
     const in6_addr* v6addr = reinterpret_cast<const in6_addr*>(&buf.data()[4]);
-    *remote_addr = webrtc::SocketAddress(webrtc::IPAddress(*v6addr), port);
+    *remote_addr = SocketAddress(IPAddress(*v6addr), port);
     return kNATEncodedIPv6AddressSize;
   }
   return 0U;
 }
 
 // NATSocket
-class NATSocket : public Socket, public sigslot::has_slots<> {
+class NATSocket : public rtc::Socket, public sigslot::has_slots<> {
  public:
   explicit NATSocket(NATInternalSocketFactory* sf, int family, int type)
       : sf_(sf),
@@ -82,15 +82,15 @@ class NATSocket : public Socket, public sigslot::has_slots<> {
 
   ~NATSocket() override { delete socket_; }
 
-  webrtc::SocketAddress GetLocalAddress() const override {
-    return (socket_) ? socket_->GetLocalAddress() : webrtc::SocketAddress();
+  SocketAddress GetLocalAddress() const override {
+    return (socket_) ? socket_->GetLocalAddress() : SocketAddress();
   }
 
-  webrtc::SocketAddress GetRemoteAddress() const override {
+  SocketAddress GetRemoteAddress() const override {
     return remote_addr_;  // will be NIL if not connected
   }
 
-  int Bind(const webrtc::SocketAddress& addr) override {
+  int Bind(const SocketAddress& addr) override {
     if (socket_) {  // already bound, bubble up error
       return -1;
     }
@@ -98,13 +98,12 @@ class NATSocket : public Socket, public sigslot::has_slots<> {
     return BindInternal(addr);
   }
 
-  int Connect(const webrtc::SocketAddress& addr) override {
+  int Connect(const SocketAddress& addr) override {
     int result = 0;
     // If we're not already bound (meaning `socket_` is null), bind to ANY
     // address.
     if (!socket_) {
-      result =
-          BindInternal(webrtc::SocketAddress(webrtc::GetAnyIP(family_), 0));
+      result = BindInternal(SocketAddress(webrtc::GetAnyIP(family_), 0));
       if (result < 0) {
         return result;
       }
@@ -130,7 +129,7 @@ class NATSocket : public Socket, public sigslot::has_slots<> {
 
   int SendTo(const void* data,
              size_t size,
-             const webrtc::SocketAddress& addr) override {
+             const SocketAddress& addr) override {
     RTC_DCHECK(!connected_ || addr == remote_addr_);
     if (server_addr_.IsNil() || type_ == SOCK_STREAM) {
       return socket_->SendTo(data, size, addr);
@@ -150,13 +149,13 @@ class NATSocket : public Socket, public sigslot::has_slots<> {
   }
 
   int Recv(void* data, size_t size, int64_t* timestamp) override {
-    webrtc::SocketAddress addr;
+    SocketAddress addr;
     return RecvFrom(data, size, &addr, timestamp);
   }
 
   int RecvFrom(void* data,
                size_t size,
-               webrtc::SocketAddress* out_addr,
+               SocketAddress* out_addr,
                int64_t* timestamp) override {
     if (server_addr_.IsNil() || type_ == SOCK_STREAM) {
       return socket_->RecvFrom(data, size, out_addr, timestamp);
@@ -166,16 +165,15 @@ class NATSocket : public Socket, public sigslot::has_slots<> {
     buf_.EnsureCapacity(size + kNATEncodedIPv6AddressSize);
 
     // Read the packet from the socket.
-    Socket::ReceiveBuffer receive_buffer(buf_);
+    rtc::Socket::ReceiveBuffer receive_buffer(buf_);
     int result = socket_->RecvFrom(receive_buffer);
     if (result >= 0) {
       RTC_DCHECK(receive_buffer.source_address == server_addr_);
       *timestamp =
-          receive_buffer.arrival_time.value_or(webrtc::Timestamp::Micros(0))
-              .us();
+          receive_buffer.arrival_time.value_or(Timestamp::Micros(0)).us();
 
       // Decode the wire packet into the actual results.
-      webrtc::SocketAddress real_remote_addr;
+      SocketAddress real_remote_addr;
       size_t addrlength = UnpackAddressFromNAT(buf_, &real_remote_addr);
       memcpy(data, buf_.data() + addrlength, result - addrlength);
 
@@ -200,7 +198,7 @@ class NATSocket : public Socket, public sigslot::has_slots<> {
       result = socket_->Close();
       if (result >= 0) {
         connected_ = false;
-        remote_addr_ = webrtc::SocketAddress();
+        remote_addr_ = SocketAddress();
         delete socket_;
         socket_ = nullptr;
       }
@@ -209,7 +207,7 @@ class NATSocket : public Socket, public sigslot::has_slots<> {
   }
 
   int Listen(int backlog) override { return socket_->Listen(backlog); }
-  Socket* Accept(webrtc::SocketAddress* paddr) override {
+  rtc::Socket* Accept(SocketAddress* paddr) override {
     return socket_->Accept(paddr);
   }
   int GetError() const override {
@@ -232,7 +230,7 @@ class NATSocket : public Socket, public sigslot::has_slots<> {
     return socket_ ? socket_->SetOption(opt, value) : -1;
   }
 
-  void OnConnectEvent(Socket* socket) {
+  void OnConnectEvent(rtc::Socket* socket) {
     // If we're NATed, we need to send a message with the real addr to use.
     RTC_DCHECK(socket == socket_);
     if (server_addr_.IsNil()) {
@@ -242,7 +240,7 @@ class NATSocket : public Socket, public sigslot::has_slots<> {
       SendConnectRequest();
     }
   }
-  void OnReadEvent(Socket* socket) {
+  void OnReadEvent(rtc::Socket* socket) {
     // If we're NATed, we need to process the connect reply.
     RTC_DCHECK(socket == socket_);
     if (type_ == SOCK_STREAM && !server_addr_.IsNil() && !connected_) {
@@ -251,17 +249,17 @@ class NATSocket : public Socket, public sigslot::has_slots<> {
       SignalReadEvent(this);
     }
   }
-  void OnWriteEvent(Socket* socket) {
+  void OnWriteEvent(rtc::Socket* socket) {
     RTC_DCHECK(socket == socket_);
     SignalWriteEvent(this);
   }
-  void OnCloseEvent(Socket* socket, int error) {
+  void OnCloseEvent(rtc::Socket* socket, int error) {
     RTC_DCHECK(socket == socket_);
     SignalCloseEvent(this, error);
   }
 
  private:
-  int BindInternal(const webrtc::SocketAddress& addr) {
+  int BindInternal(const SocketAddress& addr) {
     RTC_DCHECK(!socket_);
 
     int result;
@@ -305,31 +303,31 @@ class NATSocket : public Socket, public sigslot::has_slots<> {
   int family_;
   int type_;
   bool connected_;
-  webrtc::SocketAddress remote_addr_;
-  webrtc::SocketAddress server_addr_;  // address of the NAT server
-  Socket* socket_;
+  SocketAddress remote_addr_;
+  SocketAddress server_addr_;  // address of the NAT server
+  rtc::Socket* socket_;
   // Need to hold error in case it occurs before the socket is created.
   int error_ = 0;
   Buffer buf_;
 };
 
 // NATSocketFactory
-NATSocketFactory::NATSocketFactory(SocketFactory* factory,
-                                   const webrtc::SocketAddress& nat_udp_addr,
-                                   const webrtc::SocketAddress& nat_tcp_addr)
+NATSocketFactory::NATSocketFactory(rtc::SocketFactory* factory,
+                                   const SocketAddress& nat_udp_addr,
+                                   const SocketAddress& nat_tcp_addr)
     : factory_(factory),
       nat_udp_addr_(nat_udp_addr),
       nat_tcp_addr_(nat_tcp_addr) {}
 
-Socket* NATSocketFactory::CreateSocket(int family, int type) {
+rtc::Socket* NATSocketFactory::CreateSocket(int family, int type) {
   return new NATSocket(this, family, type);
 }
 
-Socket* NATSocketFactory::CreateInternalSocket(
+rtc::Socket* NATSocketFactory::CreateInternalSocket(
     int family,
     int type,
-    const webrtc::SocketAddress& local_addr,
-    webrtc::SocketAddress* nat_addr) {
+    const SocketAddress& local_addr,
+    SocketAddress* nat_addr) {
   if (type == SOCK_STREAM) {
     *nat_addr = nat_tcp_addr_;
   } else {
@@ -339,17 +337,17 @@ Socket* NATSocketFactory::CreateInternalSocket(
 }
 
 // NATSocketServer
-NATSocketServer::NATSocketServer(SocketServer* server)
+NATSocketServer::NATSocketServer(rtc::SocketServer* server)
     : server_(server), msg_queue_(nullptr) {}
 
 NATSocketServer::Translator* NATSocketServer::GetTranslator(
-    const webrtc::SocketAddress& ext_ip) {
+    const SocketAddress& ext_ip) {
   return nats_.Get(ext_ip);
 }
 
 NATSocketServer::Translator* NATSocketServer::AddTranslator(
-    const webrtc::SocketAddress& ext_ip,
-    const webrtc::SocketAddress& int_ip,
+    const SocketAddress& ext_ip,
+    const SocketAddress& int_ip,
     NATType type) {
   // Fail if a translator already exists with this extternal address.
   if (nats_.Get(ext_ip))
@@ -359,21 +357,20 @@ NATSocketServer::Translator* NATSocketServer::AddTranslator(
       ext_ip, new Translator(this, type, int_ip, *msg_queue_, server_, ext_ip));
 }
 
-void NATSocketServer::RemoveTranslator(const webrtc::SocketAddress& ext_ip) {
+void NATSocketServer::RemoveTranslator(const SocketAddress& ext_ip) {
   nats_.Remove(ext_ip);
 }
 
-Socket* NATSocketServer::CreateSocket(int family, int type) {
+rtc::Socket* NATSocketServer::CreateSocket(int family, int type) {
   return new NATSocket(this, family, type);
 }
 
-void NATSocketServer::SetMessageQueue(Thread* queue) {
+void NATSocketServer::SetMessageQueue(rtc::Thread* queue) {
   msg_queue_ = queue;
   server_->SetMessageQueue(queue);
 }
 
-bool NATSocketServer::Wait(webrtc::TimeDelta max_wait_duration,
-                           bool process_io) {
+bool NATSocketServer::Wait(TimeDelta max_wait_duration, bool process_io) {
   return server_->Wait(max_wait_duration, process_io);
 }
 
@@ -381,12 +378,12 @@ void NATSocketServer::WakeUp() {
   server_->WakeUp();
 }
 
-Socket* NATSocketServer::CreateInternalSocket(
+rtc::Socket* NATSocketServer::CreateInternalSocket(
     int family,
     int type,
-    const webrtc::SocketAddress& local_addr,
-    webrtc::SocketAddress* nat_addr) {
-  Socket* socket = nullptr;
+    const SocketAddress& local_addr,
+    SocketAddress* nat_addr) {
+  rtc::Socket* socket = nullptr;
   Translator* nat = nats_.FindClient(local_addr);
   if (nat) {
     socket = nat->internal_factory()->CreateSocket(family, type);
@@ -401,15 +398,15 @@ Socket* NATSocketServer::CreateInternalSocket(
 // NATSocketServer::Translator
 NATSocketServer::Translator::Translator(NATSocketServer* server,
                                         NATType type,
-                                        const webrtc::SocketAddress& int_ip,
-                                        Thread& external_socket_thread,
-                                        SocketFactory* ext_factory,
-                                        const webrtc::SocketAddress& ext_ip)
+                                        const SocketAddress& int_ip,
+                                        rtc::Thread& external_socket_thread,
+                                        rtc::SocketFactory* ext_factory,
+                                        const SocketAddress& ext_ip)
     : server_(server) {
   // Create a new private network, and a NATServer running on the private
   // network that bridges to the external network. Also tell the private
   // network to use the same message queue as us.
-  internal_server_ = std::make_unique<VirtualSocketServer>();
+  internal_server_ = std::make_unique<rtc::VirtualSocketServer>();
   internal_server_->SetMessageQueue(server_->queue());
   nat_server_ = std::make_unique<NATServer>(
       type, *server->queue(), internal_server_.get(), int_ip, int_ip,
@@ -421,13 +418,13 @@ NATSocketServer::Translator::~Translator() {
 }
 
 NATSocketServer::Translator* NATSocketServer::Translator::GetTranslator(
-    const webrtc::SocketAddress& ext_ip) {
+    const SocketAddress& ext_ip) {
   return nats_.Get(ext_ip);
 }
 
 NATSocketServer::Translator* NATSocketServer::Translator::AddTranslator(
-    const webrtc::SocketAddress& ext_ip,
-    const webrtc::SocketAddress& int_ip,
+    const SocketAddress& ext_ip,
+    const SocketAddress& int_ip,
     NATType type) {
   // Fail if a translator already exists with this extternal address.
   if (nats_.Get(ext_ip))
@@ -438,13 +435,12 @@ NATSocketServer::Translator* NATSocketServer::Translator::AddTranslator(
                                           *server_->queue(), server_, ext_ip));
 }
 void NATSocketServer::Translator::RemoveTranslator(
-    const webrtc::SocketAddress& ext_ip) {
+    const SocketAddress& ext_ip) {
   nats_.Remove(ext_ip);
   RemoveClient(ext_ip);
 }
 
-bool NATSocketServer::Translator::AddClient(
-    const webrtc::SocketAddress& int_ip) {
+bool NATSocketServer::Translator::AddClient(const SocketAddress& int_ip) {
   // Fail if a client already exists with this internal address.
   if (clients_.find(int_ip) != clients_.end())
     return false;
@@ -453,16 +449,15 @@ bool NATSocketServer::Translator::AddClient(
   return true;
 }
 
-void NATSocketServer::Translator::RemoveClient(
-    const webrtc::SocketAddress& int_ip) {
-  std::set<webrtc::SocketAddress>::iterator it = clients_.find(int_ip);
+void NATSocketServer::Translator::RemoveClient(const SocketAddress& int_ip) {
+  std::set<SocketAddress>::iterator it = clients_.find(int_ip);
   if (it != clients_.end()) {
     clients_.erase(it);
   }
 }
 
 NATSocketServer::Translator* NATSocketServer::Translator::FindClient(
-    const webrtc::SocketAddress& int_ip) {
+    const SocketAddress& int_ip) {
   // See if we have the requested IP, or any of our children do.
   return (clients_.find(int_ip) != clients_.end()) ? this
                                                    : nats_.FindClient(int_ip);
@@ -476,20 +471,19 @@ NATSocketServer::TranslatorMap::~TranslatorMap() {
 }
 
 NATSocketServer::Translator* NATSocketServer::TranslatorMap::Get(
-    const webrtc::SocketAddress& ext_ip) {
+    const SocketAddress& ext_ip) {
   TranslatorMap::iterator it = find(ext_ip);
   return (it != end()) ? it->second : nullptr;
 }
 
 NATSocketServer::Translator* NATSocketServer::TranslatorMap::Add(
-    const webrtc::SocketAddress& ext_ip,
+    const SocketAddress& ext_ip,
     Translator* nat) {
   (*this)[ext_ip] = nat;
   return nat;
 }
 
-void NATSocketServer::TranslatorMap::Remove(
-    const webrtc::SocketAddress& ext_ip) {
+void NATSocketServer::TranslatorMap::Remove(const SocketAddress& ext_ip) {
   TranslatorMap::iterator it = find(ext_ip);
   if (it != end()) {
     delete it->second;
@@ -498,7 +492,7 @@ void NATSocketServer::TranslatorMap::Remove(
 }
 
 NATSocketServer::Translator* NATSocketServer::TranslatorMap::FindClient(
-    const webrtc::SocketAddress& int_ip) {
+    const SocketAddress& int_ip) {
   Translator* nat = nullptr;
   for (TranslatorMap::iterator it = begin(); it != end() && !nat; ++it) {
     nat = it->second->FindClient(int_ip);
@@ -506,4 +500,4 @@ NATSocketServer::Translator* NATSocketServer::TranslatorMap::FindClient(
   return nat;
 }
 
-}  // namespace rtc
+}  // namespace webrtc

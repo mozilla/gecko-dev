@@ -18,7 +18,7 @@
 #include "p2p/base/ice_controller_interface.h"
 #include "test/gmock.h"
 
-namespace cricket {
+namespace webrtc {
 
 class MockIceController : public cricket::IceControllerInterface {
  public:
@@ -90,6 +90,13 @@ class MockIceControllerFactory : public cricket::IceControllerFactoryInterface {
   MOCK_METHOD(void, RecordIceControllerCreated, ());
 };
 
+}  //  namespace webrtc
+
+// Re-export symbols from the webrtc namespace for backwards compatibility.
+// TODO(bugs.webrtc.org/4222596): Remove once all references are updated.
+namespace cricket {
+using ::webrtc::MockIceController;
+using ::webrtc::MockIceControllerFactory;
 }  // namespace cricket
 
 #endif  // P2P_TEST_MOCK_ICE_CONTROLLER_H_

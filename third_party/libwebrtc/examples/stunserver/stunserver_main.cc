@@ -15,7 +15,7 @@
 #include "rtc_base/socket_server.h"
 #include "rtc_base/thread.h"
 
-using cricket::StunServer;
+using ::webrtc::StunServer;
 
 int main(int argc, char* argv[]) {
   if (argc != 2) {

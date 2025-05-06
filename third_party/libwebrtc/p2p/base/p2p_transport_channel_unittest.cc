@@ -158,12 +158,12 @@ static const SocketAddress kCascadedNatAddrs[2] = {
 static const SocketAddress kCascadedPrivateAddrs[2] = {
     SocketAddress("192.168.10.11", 0), SocketAddress("192.168.20.22", 0)};
 // The address of the public STUN server.
-static const SocketAddress kStunAddr("99.99.99.1", cricket::STUN_SERVER_PORT);
+static const SocketAddress kStunAddr("99.99.99.1", webrtc::STUN_SERVER_PORT);
 // The addresses for the public turn server.
 static const SocketAddress kTurnUdpIntAddr("99.99.99.3",
-                                           cricket::STUN_SERVER_PORT);
+                                           webrtc::STUN_SERVER_PORT);
 static const SocketAddress kTurnTcpIntAddr("99.99.99.4",
-                                           cricket::STUN_SERVER_PORT + 1);
+                                           webrtc::STUN_SERVER_PORT + 1);
 static const SocketAddress kTurnUdpExtAddr("99.99.99.5", 0);
 static const cricket::RelayCredentials kRelayCredentials("test", "test");
 
@@ -316,11 +316,12 @@ class P2PTransportChannelTestBase : public ::testing::Test,
  public:
   P2PTransportChannelTestBase()
       : vss_(new rtc::VirtualSocketServer()),
-        nss_(new rtc::NATSocketServer(vss_.get())),
+        nss_(new webrtc::NATSocketServer(vss_.get())),
         ss_(new rtc::FirewallSocketServer(nss_.get())),
         socket_factory_(new rtc::BasicPacketSocketFactory(ss_.get())),
         main_(ss_.get()),
-        stun_server_(TestStunServer::Create(ss_.get(), kStunAddr, main_)),
+        stun_server_(
+            webrtc::TestStunServer::Create(ss_.get(), kStunAddr, main_)),
         turn_server_(&main_, ss_.get(), kTurnUdpIntAddr, kTurnUdpExtAddr),
         force_relay_(false) {
     ep1_.role_ = ICEROLE_CONTROLLING;
@@ -545,7 +546,7 @@ class P2PTransportChannelTestBase : public ::testing::Test,
   P2PTransportChannel* ep2_ch1() { return ep2_.cd1_.ch_.get(); }
   P2PTransportChannel* ep2_ch2() { return ep2_.cd2_.ch_.get(); }
 
-  TestTurnServer* test_turn_server() { return &turn_server_; }
+  webrtc::TestTurnServer* test_turn_server() { return &turn_server_; }
   rtc::VirtualSocketServer* virtual_socket_server() { return vss_.get(); }
 
   // Common results.
@@ -564,7 +565,7 @@ class P2PTransportChannelTestBase : public ::testing::Test,
   static const Result kLocalTcpToPrflxTcp;
   static const Result kPrflxTcpToLocalTcp;
 
-  rtc::NATSocketServer* nat() { return nss_.get(); }
+  webrtc::NATSocketServer* nat() { return nss_.get(); }
   rtc::FirewallSocketServer* fw() { return ss_.get(); }
 
   Endpoint* GetEndpoint(int endpoint) {
@@ -1044,15 +1045,15 @@ class P2PTransportChannelTestBase : public ::testing::Test,
 
  private:
   std::unique_ptr<rtc::VirtualSocketServer> vss_;
-  std::unique_ptr<rtc::NATSocketServer> nss_;
+  std::unique_ptr<webrtc::NATSocketServer> nss_;
   std::unique_ptr<rtc::FirewallSocketServer> ss_;
   std::unique_ptr<rtc::BasicPacketSocketFactory> socket_factory_;
 
   rtc::AutoSocketServerThread main_;
   rtc::scoped_refptr<PendingTaskSafetyFlag> safety_ =
       PendingTaskSafetyFlag::Create();
-  TestStunServer::StunServerPtr stun_server_;
-  TestTurnServer turn_server_;
+  webrtc::TestStunServer::StunServerPtr stun_server_;
+  webrtc::TestTurnServer turn_server_;
   Endpoint ep1_;
   Endpoint ep2_;
   RemoteIceParameterSource remote_ice_parameter_source_ = FROM_CANDIDATE;
@@ -1179,8 +1180,9 @@ class P2PTransportChannelTest : public P2PTransportChannelTestBase {
         AddAddress(endpoint, kPrivateAddrs[endpoint]);
         // Add a single NAT of the desired type
         nat()
-            ->AddTranslator(kPublicAddrs[endpoint], kNatAddrs[endpoint],
-                            static_cast<rtc::NATType>(config - NAT_FULL_CONE))
+            ->AddTranslator(
+                kPublicAddrs[endpoint], kNatAddrs[endpoint],
+                static_cast<webrtc::NATType>(config - NAT_FULL_CONE))
             ->AddClient(kPrivateAddrs[endpoint]);
         break;
       case NAT_DOUBLE_CONE:
@@ -1189,10 +1191,10 @@ class P2PTransportChannelTest : public P2PTransportChannelTestBase {
         // Add a two cascaded NATs of the desired types
         nat()
             ->AddTranslator(kPublicAddrs[endpoint], kNatAddrs[endpoint],
-                            (config == NAT_DOUBLE_CONE) ? rtc::NAT_OPEN_CONE
-                                                        : rtc::NAT_SYMMETRIC)
+                            (config == NAT_DOUBLE_CONE) ? webrtc::NAT_OPEN_CONE
+                                                        : webrtc::NAT_SYMMETRIC)
             ->AddTranslator(kPrivateAddrs[endpoint],
-                            kCascadedNatAddrs[endpoint], rtc::NAT_OPEN_CONE)
+                            kCascadedNatAddrs[endpoint], webrtc::NAT_OPEN_CONE)
             ->AddClient(kCascadedPrivateAddrs[endpoint]);
         break;
       case BLOCK_UDP:
@@ -2639,14 +2641,14 @@ class P2PTransportChannelSameNatTest : public P2PTransportChannelTestBase {
     RTC_CHECK_GE(nat_type, NAT_FULL_CONE);
     RTC_CHECK_LE(nat_type, NAT_SYMMETRIC);
     CreatePortAllocators(env);
-    rtc::NATSocketServer::Translator* outer_nat = nat()->AddTranslator(
+    webrtc::NATSocketServer::Translator* outer_nat = nat()->AddTranslator(
         kPublicAddrs[0], kNatAddrs[0],
-        static_cast<rtc::NATType>(nat_type - NAT_FULL_CONE));
+        static_cast<webrtc::NATType>(nat_type - NAT_FULL_CONE));
     ConfigureEndpoint(outer_nat, 0, config1);
     ConfigureEndpoint(outer_nat, 1, config2);
     set_remote_ice_parameter_source(FROM_SETICEPARAMETERS);
   }
-  void ConfigureEndpoint(rtc::NATSocketServer::Translator* nat,
+  void ConfigureEndpoint(webrtc::NATSocketServer::Translator* nat,
                          int endpoint,
                          Config config) {
     RTC_CHECK(config <= NAT_SYMMETRIC);
@@ -2656,7 +2658,7 @@ class P2PTransportChannelSameNatTest : public P2PTransportChannelTestBase {
     } else {
       AddAddress(endpoint, kCascadedPrivateAddrs[endpoint]);
       nat->AddTranslator(kPrivateAddrs[endpoint], kCascadedNatAddrs[endpoint],
-                         static_cast<rtc::NATType>(config - NAT_FULL_CONE))
+                         static_cast<webrtc::NATType>(config - NAT_FULL_CONE))
           ->AddClient(kCascadedPrivateAddrs[endpoint]);
     }
   }
@@ -5755,7 +5757,7 @@ class P2PTransportChannelMostLikelyToWorkFirstTest
     return *channel_;
   }
 
-  TestTurnServer* turn_server() { return &turn_server_; }
+  webrtc::TestTurnServer* turn_server() { return &turn_server_; }
 
   // This verifies the next pingable connection has the expected candidates'
   // types and, for relay local candidate, the expected relay protocol and ping
@@ -5776,7 +5778,7 @@ class P2PTransportChannelMostLikelyToWorkFirstTest
  private:
   std::unique_ptr<BasicPortAllocator> port_allocator_;
   rtc::FakeNetworkManager network_manager_;
-  TestTurnServer turn_server_;
+  webrtc::TestTurnServer turn_server_;
   std::unique_ptr<P2PTransportChannel> channel_;
 };
 
@@ -7172,7 +7174,7 @@ TEST(P2PTransportChannelIceControllerTest, InjectIceController) {
       rtc::CreateDefaultSocketServer();
   rtc::AutoSocketServerThread main_thread(socket_server.get());
   rtc::BasicPacketSocketFactory packet_socket_factory(socket_server.get());
-  MockIceControllerFactory factory;
+  webrtc::MockIceControllerFactory factory;
   FakePortAllocator pa(rtc::Thread::Current(), &packet_socket_factory,
                        &env.field_trials());
   EXPECT_CALL(factory, RecordIceControllerCreated()).Times(1);
@@ -7191,7 +7193,7 @@ TEST(P2PTransportChannel, InjectActiveIceController) {
       rtc::CreateDefaultSocketServer();
   rtc::AutoSocketServerThread main_thread(socket_server.get());
   rtc::BasicPacketSocketFactory packet_socket_factory(socket_server.get());
-  MockActiveIceControllerFactory factory;
+  webrtc::MockActiveIceControllerFactory factory;
   FakePortAllocator pa(rtc::Thread::Current(), &packet_socket_factory,
                        &env.field_trials());
   EXPECT_CALL(factory, RecordActiveIceControllerCreated()).Times(1);

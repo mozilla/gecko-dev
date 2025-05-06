@@ -33,10 +33,10 @@ const int kOnlyLocalPorts = cricket::PORTALLOCATOR_DISABLE_STUN |
                             cricket::PORTALLOCATOR_DISABLE_RELAY |
                             cricket::PORTALLOCATOR_DISABLE_TCP;
 // The address of the public STUN server.
-const webrtc::SocketAddress kStunAddr("99.99.99.1", cricket::STUN_SERVER_PORT);
+const webrtc::SocketAddress kStunAddr("99.99.99.1", webrtc::STUN_SERVER_PORT);
 // The addresses for the public TURN server.
 const webrtc::SocketAddress kTurnUdpIntAddr("99.99.99.3",
-                                            cricket::STUN_SERVER_PORT);
+                                            webrtc::STUN_SERVER_PORT);
 const cricket::RelayCredentials kRelayCredentials("test", "test");
 const char kIceUfrag[] = "UF00";
 const char kIcePwd[] = "TESTICEPWD00000000000000";
@@ -51,7 +51,7 @@ class RegatheringControllerTest : public ::testing::Test,
   RegatheringControllerTest()
       : vss_(std::make_unique<rtc::VirtualSocketServer>()),
         thread_(vss_.get()),
-        ice_transport_(std::make_unique<cricket::MockIceTransport>()),
+        ice_transport_(std::make_unique<MockIceTransport>()),
         packet_socket_factory_(
             std::make_unique<rtc::BasicPacketSocketFactory>(vss_.get())),
         allocator_(std::make_unique<cricket::FakePortAllocator>(

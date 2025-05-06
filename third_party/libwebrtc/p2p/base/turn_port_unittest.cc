@@ -88,12 +88,12 @@ static const SocketAddress kLocalIPv6Addr("2401:fa00:4:1000:be30:5bff:fee5:c3",
 static const SocketAddress kLocalIPv6Addr2("2401:fa00:4:2000:be30:5bff:fee5:d4",
                                            0);
 static const SocketAddress kTurnUdpIntAddr("99.99.99.3",
-                                           cricket::TURN_SERVER_PORT);
+                                           webrtc::TURN_SERVER_PORT);
 static const SocketAddress kTurnTcpIntAddr("99.99.99.4",
-                                           cricket::TURN_SERVER_PORT);
+                                           webrtc::TURN_SERVER_PORT);
 static const SocketAddress kTurnUdpExtAddr("99.99.99.5", 0);
 static const SocketAddress kTurnAlternateIntAddr("99.99.99.6",
-                                                 cricket::TURN_SERVER_PORT);
+                                                 webrtc::TURN_SERVER_PORT);
 // Port for redirecting to a TCP Web server. Should not work.
 static const SocketAddress kTurnDangerousAddr("99.99.99.7", 81);
 // Port 53 (the DNS port); should work.
@@ -103,14 +103,13 @@ static const SocketAddress kTurnPort80Addr("99.99.99.7", 80);
 // Port 443 (the HTTPS port); should work.
 static const SocketAddress kTurnPort443Addr("99.99.99.7", 443);
 // The default TURN server port.
-static const SocketAddress kTurnIntAddr("99.99.99.7",
-                                        cricket::TURN_SERVER_PORT);
+static const SocketAddress kTurnIntAddr("99.99.99.7", webrtc::TURN_SERVER_PORT);
 static const SocketAddress kTurnIPv6IntAddr(
     "2400:4030:2:2c00:be30:abcd:efab:cdef",
-    cricket::TURN_SERVER_PORT);
+    webrtc::TURN_SERVER_PORT);
 static const SocketAddress kTurnUdpIPv6IntAddr(
     "2400:4030:1:2c00:be30:abcd:efab:cdef",
-    cricket::TURN_SERVER_PORT);
+    webrtc::TURN_SERVER_PORT);
 static const SocketAddress kTurnInvalidAddr("www.google.invalid.", 3478);
 static const SocketAddress kTurnValidAddr("www.google.valid.", 3478);
 
@@ -512,7 +511,7 @@ class TurnPortTest : public ::testing::Test,
     std::vector<webrtc::SocketAddress> redirect_addresses;
     redirect_addresses.push_back(kTurnAlternateIntAddr);
 
-    TestTurnRedirector redirector(redirect_addresses);
+    webrtc::TestTurnRedirector redirector(redirect_addresses);
 
     turn_server_.AddInternalSocket(kTurnIntAddr, protocol_type);
     turn_server_.AddInternalSocket(kTurnAlternateIntAddr, protocol_type);
@@ -544,7 +543,7 @@ class TurnPortTest : public ::testing::Test,
     std::vector<webrtc::SocketAddress> redirect_addresses;
     redirect_addresses.push_back(kTurnIPv6IntAddr);
 
-    TestTurnRedirector redirector(redirect_addresses);
+    webrtc::TestTurnRedirector redirector(redirect_addresses);
     turn_server_.AddInternalSocket(kTurnIntAddr, protocol_type);
     turn_server_.set_redirect_hook(&redirector);
     CreateTurnPort(kTurnUsername, kTurnPassword,
@@ -565,7 +564,7 @@ class TurnPortTest : public ::testing::Test,
     redirect_addresses.push_back(kTurnAlternateIntAddr);
     redirect_addresses.push_back(kTurnIntAddr);
 
-    TestTurnRedirector redirector(redirect_addresses);
+    webrtc::TestTurnRedirector redirector(redirect_addresses);
 
     turn_server_.AddInternalSocket(kTurnIntAddr, protocol_type);
     turn_server_.AddInternalSocket(kTurnAlternateIntAddr, protocol_type);
@@ -593,7 +592,7 @@ class TurnPortTest : public ::testing::Test,
     redirect_addresses.push_back(kTurnAlternateIntAddr);
     redirect_addresses.push_back(kTurnAlternateIntAddr);
 
-    TestTurnRedirector redirector(redirect_addresses);
+    webrtc::TestTurnRedirector redirector(redirect_addresses);
 
     turn_server_.AddInternalSocket(kTurnIntAddr, protocol_type);
     turn_server_.AddInternalSocket(kTurnAlternateIntAddr, protocol_type);
@@ -625,7 +624,7 @@ class TurnPortTest : public ::testing::Test,
     // Pick an unusual address in the 127.0.0.0/8 range to make sure more than
     // 127.0.0.1 is covered.
     SocketAddress loopback_address(ipv6 ? "::1" : "127.1.2.3",
-                                   TURN_SERVER_PORT);
+                                   webrtc::TURN_SERVER_PORT);
     redirect_addresses.push_back(loopback_address);
 
     // Make a socket and bind it to the local port, to make extra sure no
@@ -639,7 +638,7 @@ class TurnPortTest : public ::testing::Test,
       ASSERT_EQ(0, loopback_socket->Listen(1));
     }
 
-    TestTurnRedirector redirector(redirect_addresses);
+    webrtc::TestTurnRedirector redirector(redirect_addresses);
 
     turn_server_.AddInternalSocket(server_address, protocol_type);
     turn_server_.set_redirect_hook(&redirector);
@@ -954,7 +953,7 @@ class TurnPortTest : public ::testing::Test,
   std::unique_ptr<TurnPortTestVirtualSocketServer> ss_;
   rtc::AutoSocketServerThread main_;
   std::unique_ptr<rtc::AsyncPacketSocket> socket_;
-  TestTurnServer turn_server_;
+  webrtc::TestTurnServer turn_server_;
   std::unique_ptr<TurnPort> turn_port_;
   std::unique_ptr<UDPPort> udp_port_;
   bool turn_ready_ = false;
@@ -1036,7 +1035,7 @@ TEST_F(TurnPortTest, TestTurnAllocate) {
   TestTurnAllocateSucceeds(kSimulatedRtt * 2);
 }
 
-class TurnLoggingIdValidator : public StunMessageObserver {
+class TurnLoggingIdValidator : public webrtc::StunMessageObserver {
  public:
   explicit TurnLoggingIdValidator(const char* expect_val)
       : expect_val_(expect_val) {}
@@ -1999,7 +1998,7 @@ TEST_F(TurnPortTest, TestResolverShutdown) {
 }
 #endif
 
-class MessageObserver : public StunMessageObserver {
+class MessageObserver : public webrtc::StunMessageObserver {
  public:
   MessageObserver(unsigned int* message_counter,
                   unsigned int* channel_data_counter,
@@ -2014,7 +2013,7 @@ class MessageObserver : public StunMessageObserver {
     }
     // Implementation defined attributes are returned as ByteString
     const StunByteStringAttribute* attr =
-        msg->GetByteString(TestTurnCustomizer::STUN_ATTR_COUNTER);
+        msg->GetByteString(webrtc::TestTurnCustomizer::STUN_ATTR_COUNTER);
     if (attr != nullptr && attr_counter_ != nullptr) {
       rtc::ByteBufferReader buf(attr->array_view());
       unsigned int val = ~0u;
@@ -2045,7 +2044,7 @@ TEST_F(TurnPortTest, TestTurnCustomizerCount) {
   unsigned int observer_message_counter = 0;
   unsigned int observer_channel_data_counter = 0;
   unsigned int observer_attr_counter = 0;
-  TestTurnCustomizer* customizer = new TestTurnCustomizer();
+  webrtc::TestTurnCustomizer* customizer = new webrtc::TestTurnCustomizer();
   std::unique_ptr<MessageObserver> validator(new MessageObserver(
       &observer_message_counter, &observer_channel_data_counter,
       &observer_attr_counter));
@@ -2075,7 +2074,7 @@ TEST_F(TurnPortTest, TestTurnCustomizerDisallowChannelData) {
   unsigned int observer_message_counter = 0;
   unsigned int observer_channel_data_counter = 0;
   unsigned int observer_attr_counter = 0;
-  TestTurnCustomizer* customizer = new TestTurnCustomizer();
+  webrtc::TestTurnCustomizer* customizer = new webrtc::TestTurnCustomizer();
   std::unique_ptr<MessageObserver> validator(new MessageObserver(
       &observer_message_counter, &observer_channel_data_counter,
       &observer_attr_counter));
@@ -2104,7 +2103,7 @@ TEST_F(TurnPortTest, TestTurnCustomizerAddAttribute) {
   unsigned int observer_message_counter = 0;
   unsigned int observer_channel_data_counter = 0;
   unsigned int observer_attr_counter = 0;
-  TestTurnCustomizer* customizer = new TestTurnCustomizer();
+  webrtc::TestTurnCustomizer* customizer = new webrtc::TestTurnCustomizer();
   std::unique_ptr<MessageObserver> validator(new MessageObserver(
       &observer_message_counter, &observer_channel_data_counter,
       &observer_attr_counter));
@@ -2170,7 +2169,7 @@ TEST_F(TurnPortTest, TestTurnDangerousAlternateServer) {
   std::vector<webrtc::SocketAddress> redirect_addresses;
   redirect_addresses.push_back(kTurnDangerousAddr);
 
-  TestTurnRedirector redirector(redirect_addresses);
+  webrtc::TestTurnRedirector redirector(redirect_addresses);
 
   turn_server_.AddInternalSocket(kTurnIntAddr, protocol_type);
   turn_server_.AddInternalSocket(kTurnDangerousAddr, protocol_type);
@@ -2205,12 +2204,12 @@ class TurnPortWithMockDnsResolverTest : public TurnPortTest {
   }
 
   void SetDnsResolverExpectations(
-      rtc::MockDnsResolvingPacketSocketFactory::Expectations expectations) {
+      webrtc::MockDnsResolvingPacketSocketFactory::Expectations expectations) {
     socket_factory_.SetExpectations(expectations);
   }
 
  private:
-  rtc::MockDnsResolvingPacketSocketFactory socket_factory_;
+  webrtc::MockDnsResolvingPacketSocketFactory socket_factory_;
 };
 
 // Test an allocation from a TURN server specified by a hostname.

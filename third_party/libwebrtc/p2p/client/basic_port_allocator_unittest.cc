@@ -93,10 +93,12 @@ static const SocketAddress kClientIPv6Addr4(
 static const SocketAddress kClientIPv6Addr5(
     "2401:fa00:4:5000:be30:5bff:fee5:c3",
     0);
-static const SocketAddress kNatUdpAddr("77.77.77.77", rtc::NAT_SERVER_UDP_PORT);
-static const SocketAddress kNatTcpAddr("77.77.77.77", rtc::NAT_SERVER_TCP_PORT);
+static const SocketAddress kNatUdpAddr("77.77.77.77",
+                                       webrtc::NAT_SERVER_UDP_PORT);
+static const SocketAddress kNatTcpAddr("77.77.77.77",
+                                       webrtc::NAT_SERVER_TCP_PORT);
 static const SocketAddress kRemoteClientAddr("22.22.22.22", 0);
-static const SocketAddress kStunAddr("99.99.99.1", cricket::STUN_SERVER_PORT);
+static const SocketAddress kStunAddr("99.99.99.1", webrtc::STUN_SERVER_PORT);
 static const SocketAddress kTurnUdpIntAddr("99.99.99.4", 3478);
 static const SocketAddress kTurnUdpIntIPv6Addr(
     "2402:fb00:4:1000:be30:5bff:fee5:c3",
@@ -159,7 +161,8 @@ class BasicPortAllocatorTestBase : public ::testing::Test,
         // must be called.
         nat_factory_(vss_.get(), kNatUdpAddr, kNatTcpAddr),
         nat_socket_factory_(new rtc::BasicPacketSocketFactory(&nat_factory_)),
-        stun_server_(TestStunServer::Create(fss_.get(), kStunAddr, thread_)),
+        stun_server_(
+            webrtc::TestStunServer::Create(fss_.get(), kStunAddr, thread_)),
         turn_server_(rtc::Thread::Current(),
                      fss_.get(),
                      kTurnUdpIntAddr,
@@ -477,7 +480,7 @@ class BasicPortAllocatorTestBase : public ::testing::Test,
   void ResetWithStunServer(const webrtc::SocketAddress& stun_server,
                            bool with_nat) {
     if (with_nat) {
-      nat_server_.reset(new rtc::NATServer(
+      nat_server_.reset(new webrtc::NATServer(
           rtc::NAT_OPEN_CONE, thread_, vss_.get(), kNatUdpAddr, kNatTcpAddr,
           thread_, vss_.get(), webrtc::SocketAddress(kNatUdpAddr.ipaddr(), 0)));
     } else {
@@ -504,11 +507,11 @@ class BasicPortAllocatorTestBase : public ::testing::Test,
   std::unique_ptr<rtc::FirewallSocketServer> fss_;
   rtc::BasicPacketSocketFactory socket_factory_;
   rtc::AutoSocketServerThread thread_;
-  std::unique_ptr<rtc::NATServer> nat_server_;
-  rtc::NATSocketFactory nat_factory_;
+  std::unique_ptr<webrtc::NATServer> nat_server_;
+  webrtc::NATSocketFactory nat_factory_;
   std::unique_ptr<rtc::BasicPacketSocketFactory> nat_socket_factory_;
-  TestStunServer::StunServerPtr stun_server_;
-  TestTurnServer turn_server_;
+  webrtc::TestStunServer::StunServerPtr stun_server_;
+  webrtc::TestTurnServer turn_server_;
   rtc::FakeNetworkManager network_manager_;
   std::unique_ptr<BasicPortAllocator> allocator_;
   std::unique_ptr<PortAllocatorSession> session_;

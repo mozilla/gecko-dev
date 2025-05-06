@@ -55,9 +55,9 @@ class SrtpTransportTest : public ::testing::Test, public sigslot::has_slots<> {
     bool rtcp_mux_enabled = true;
 
     rtp_packet_transport1_ =
-        std::make_unique<rtc::FakePacketTransport>("fake_packet_transport1");
+        std::make_unique<FakePacketTransport>("fake_packet_transport1");
     rtp_packet_transport2_ =
-        std::make_unique<rtc::FakePacketTransport>("fake_packet_transport2");
+        std::make_unique<FakePacketTransport>("fake_packet_transport2");
 
     bool asymmetric = false;
     rtp_packet_transport1_->SetDestination(rtp_packet_transport2_.get(),
@@ -158,7 +158,7 @@ class SrtpTransportTest : public ::testing::Test, public sigslot::has_slots<> {
                           original_rtp_data, rtp_len));
       // Get the encrypted packet from underneath packet transport and verify
       // the data is actually encrypted.
-      auto fake_rtp_packet_transport = static_cast<rtc::FakePacketTransport*>(
+      auto fake_rtp_packet_transport = static_cast<FakePacketTransport*>(
           srtp_transport1_->rtp_packet_transport());
       EXPECT_NE(0, memcmp(fake_rtp_packet_transport->last_sent_packet()->data(),
                           original_rtp_data, rtp_len));
@@ -173,7 +173,7 @@ class SrtpTransportTest : public ::testing::Test, public sigslot::has_slots<> {
       ASSERT_TRUE(rtp_sink1_.last_recv_rtp_packet().data());
       EXPECT_EQ(0, memcmp(rtp_sink1_.last_recv_rtp_packet().data(),
                           original_rtp_data, rtp_len));
-      auto fake_rtp_packet_transport = static_cast<rtc::FakePacketTransport*>(
+      auto fake_rtp_packet_transport = static_cast<FakePacketTransport*>(
           srtp_transport2_->rtp_packet_transport());
       EXPECT_NE(0, memcmp(fake_rtp_packet_transport->last_sent_packet()->data(),
                           original_rtp_data, rtp_len));
@@ -202,7 +202,7 @@ class SrtpTransportTest : public ::testing::Test, public sigslot::has_slots<> {
                         rtcp_packet_data, rtcp_len));
     // Get the encrypted packet from underneath packet transport and verify the
     // data is actually encrypted.
-    auto fake_rtp_packet_transport = static_cast<rtc::FakePacketTransport*>(
+    auto fake_rtp_packet_transport = static_cast<FakePacketTransport*>(
         srtp_transport1_->rtp_packet_transport());
     EXPECT_NE(0, memcmp(fake_rtp_packet_transport->last_sent_packet()->data(),
                         rtcp_packet_data, rtcp_len));
@@ -213,7 +213,7 @@ class SrtpTransportTest : public ::testing::Test, public sigslot::has_slots<> {
     ASSERT_TRUE(rtp_sink1_.last_recv_rtcp_packet().data());
     EXPECT_EQ(0, memcmp(rtp_sink1_.last_recv_rtcp_packet().data(),
                         rtcp_packet_data, rtcp_len));
-    fake_rtp_packet_transport = static_cast<rtc::FakePacketTransport*>(
+    fake_rtp_packet_transport = static_cast<FakePacketTransport*>(
         srtp_transport2_->rtp_packet_transport());
     EXPECT_NE(0, memcmp(fake_rtp_packet_transport->last_sent_packet()->data(),
                         rtcp_packet_data, rtcp_len));
@@ -280,7 +280,7 @@ class SrtpTransportTest : public ::testing::Test, public sigslot::has_slots<> {
                         original_rtp_data, rtp_len));
     // Get the encrypted packet from underneath packet transport and verify the
     // data and header extension are actually encrypted.
-    auto fake_rtp_packet_transport = static_cast<rtc::FakePacketTransport*>(
+    auto fake_rtp_packet_transport = static_cast<FakePacketTransport*>(
         srtp_transport1_->rtp_packet_transport());
     EXPECT_NE(0, memcmp(fake_rtp_packet_transport->last_sent_packet()->data(),
                         original_rtp_data, rtp_len));
@@ -296,7 +296,7 @@ class SrtpTransportTest : public ::testing::Test, public sigslot::has_slots<> {
     ASSERT_TRUE(rtp_sink1_.last_recv_rtp_packet().data());
     EXPECT_EQ(0, memcmp(rtp_sink1_.last_recv_rtp_packet().data(),
                         original_rtp_data, rtp_len));
-    fake_rtp_packet_transport = static_cast<rtc::FakePacketTransport*>(
+    fake_rtp_packet_transport = static_cast<FakePacketTransport*>(
         srtp_transport2_->rtp_packet_transport());
     EXPECT_NE(0, memcmp(fake_rtp_packet_transport->last_sent_packet()->data(),
                         original_rtp_data, rtp_len));
@@ -333,8 +333,8 @@ class SrtpTransportTest : public ::testing::Test, public sigslot::has_slots<> {
   std::unique_ptr<SrtpTransport> srtp_transport1_;
   std::unique_ptr<SrtpTransport> srtp_transport2_;
 
-  std::unique_ptr<rtc::FakePacketTransport> rtp_packet_transport1_;
-  std::unique_ptr<rtc::FakePacketTransport> rtp_packet_transport2_;
+  std::unique_ptr<FakePacketTransport> rtp_packet_transport1_;
+  std::unique_ptr<FakePacketTransport> rtp_packet_transport2_;
 
   TransportObserver rtp_sink1_;
   TransportObserver rtp_sink2_;
@@ -426,8 +426,8 @@ TEST_F(SrtpTransportTest, RemoveSrtpReceiveStream) {
       "WebRTC-SrtpRemoveReceiveStream/Enabled/");
   auto srtp_transport =
       std::make_unique<SrtpTransport>(/*rtcp_mux_enabled=*/true, field_trials);
-  auto rtp_packet_transport = std::make_unique<rtc::FakePacketTransport>(
-      "fake_packet_transport_loopback");
+  auto rtp_packet_transport =
+      std::make_unique<FakePacketTransport>("fake_packet_transport_loopback");
 
   bool asymmetric = false;
   rtp_packet_transport->SetDestination(rtp_packet_transport.get(), asymmetric);

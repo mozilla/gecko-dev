@@ -18,10 +18,10 @@
 #include "rtc_base/copy_on_write_buffer.h"
 #include "rtc_base/time_utils.h"
 
-namespace rtc {
+namespace webrtc {
 
 // Used to simulate a packet-based transport.
-class FakePacketTransport : public PacketTransportInternal {
+class FakePacketTransport : public rtc::PacketTransportInternal {
  public:
   explicit FakePacketTransport(const std::string& transport_name)
       : transport_name_(transport_name) {}
@@ -59,7 +59,7 @@ class FakePacketTransport : public PacketTransportInternal {
   bool receiving() const override { return receiving_; }
   int SendPacket(const char* data,
                  size_t len,
-                 const PacketOptions& options,
+                 const rtc::PacketOptions& options,
                  int /* flags */) override {
     if (!dest_ || error_ != 0) {
       return -1;
@@ -67,17 +67,17 @@ class FakePacketTransport : public PacketTransportInternal {
     CopyOnWriteBuffer packet(data, len);
     SendPacketInternal(packet, options);
 
-    SentPacket sent_packet(options.packet_id, TimeMillis());
+    rtc::SentPacket sent_packet(options.packet_id, rtc::TimeMillis());
     SignalSentPacket(this, sent_packet);
     return static_cast<int>(len);
   }
 
-  int SetOption(Socket::Option opt, int value) override {
+  int SetOption(rtc::Socket::Option opt, int value) override {
     options_[opt] = value;
     return 0;
   }
 
-  bool GetOption(Socket::Option opt, int* value) override {
+  bool GetOption(rtc::Socket::Option opt, int* value) override {
     auto it = options_.find(opt);
     if (it == options_.end()) {
       return false;
@@ -91,16 +91,16 @@ class FakePacketTransport : public PacketTransportInternal {
 
   const CopyOnWriteBuffer* last_sent_packet() { return &last_sent_packet_; }
 
-  std::optional<NetworkRoute> network_route() const override {
+  std::optional<rtc::NetworkRoute> network_route() const override {
     return network_route_;
   }
-  void SetNetworkRoute(std::optional<NetworkRoute> network_route) {
+  void SetNetworkRoute(std::optional<rtc::NetworkRoute> network_route) {
     network_route_ = network_route;
     SignalNetworkRouteChanged(network_route);
   }
 
-  using PacketTransportInternal::NotifyOnClose;
-  using PacketTransportInternal::NotifyPacketReceived;
+  using rtc::PacketTransportInternal::NotifyOnClose;
+  using rtc::PacketTransportInternal::NotifyPacketReceived;
 
  private:
   void set_writable(bool writable) {
@@ -127,8 +127,7 @@ class FakePacketTransport : public PacketTransportInternal {
     last_sent_packet_ = packet;
     if (dest_) {
       dest_->NotifyPacketReceived(rtc::ReceivedPacket(
-          packet, webrtc::SocketAddress(),
-          webrtc::Timestamp::Micros(rtc::TimeMicros()),
+          packet, SocketAddress(), Timestamp::Micros(rtc::TimeMicros()),
           options.ecn_1 ? EcnMarking::kEct1 : EcnMarking::kNotEct));
     }
   }
@@ -139,12 +138,18 @@ class FakePacketTransport : public PacketTransportInternal {
   bool writable_ = false;
   bool receiving_ = false;
 
-  std::map<Socket::Option, int> options_;
+  std::map<rtc::Socket::Option, int> options_;
   int error_ = 0;
 
-  std::optional<NetworkRoute> network_route_;
+  std::optional<rtc::NetworkRoute> network_route_;
 };
 
+}  //  namespace webrtc
+
+// Re-export symbols from the webrtc namespace for backwards compatibility.
+// TODO(bugs.webrtc.org/4222596): Remove once all references are updated.
+namespace rtc {
+using ::webrtc::FakePacketTransport;
 }  // namespace rtc
 
 #endif  // P2P_TEST_FAKE_PACKET_TRANSPORT_H_

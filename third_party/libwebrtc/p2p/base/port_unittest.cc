@@ -81,11 +81,6 @@ using rtc::AsyncListenSocket;
 using rtc::AsyncPacketSocket;
 using rtc::ByteBufferReader;
 using rtc::ByteBufferWriter;
-using rtc::NAT_ADDR_RESTRICTED;
-using rtc::NAT_OPEN_CONE;
-using rtc::NAT_PORT_RESTRICTED;
-using rtc::NAT_SYMMETRIC;
-using rtc::NATType;
 using rtc::PacketSocketFactory;
 using rtc::Socket;
 using ::testing::Eq;
@@ -93,6 +88,11 @@ using ::testing::IsNull;
 using ::testing::IsTrue;
 using ::testing::NotNull;
 using webrtc::IceCandidateType;
+using ::webrtc::NAT_ADDR_RESTRICTED;
+using ::webrtc::NAT_OPEN_CONE;
+using ::webrtc::NAT_PORT_RESTRICTED;
+using ::webrtc::NAT_SYMMETRIC;
+using ::webrtc::NATType;
 using ::webrtc::SocketAddress;
 
 namespace cricket {
@@ -104,10 +104,10 @@ constexpr int kMaxExpectedSimulatedRtt = 200;
 const SocketAddress kLocalAddr1("192.168.1.2", 0);
 const SocketAddress kLocalAddr2("192.168.1.3", 0);
 const SocketAddress kLinkLocalIPv6Addr("fe80::aabb:ccff:fedd:eeff", 0);
-const SocketAddress kNatAddr1("77.77.77.77", rtc::NAT_SERVER_UDP_PORT);
-const SocketAddress kNatAddr2("88.88.88.88", rtc::NAT_SERVER_UDP_PORT);
-const SocketAddress kStunAddr("99.99.99.1", STUN_SERVER_PORT);
-const SocketAddress kTurnUdpIntAddr("99.99.99.4", STUN_SERVER_PORT);
+const SocketAddress kNatAddr1("77.77.77.77", webrtc::NAT_SERVER_UDP_PORT);
+const SocketAddress kNatAddr2("88.88.88.88", webrtc::NAT_SERVER_UDP_PORT);
+const SocketAddress kStunAddr("99.99.99.1", webrtc::STUN_SERVER_PORT);
+const SocketAddress kTurnUdpIntAddr("99.99.99.4", webrtc::STUN_SERVER_PORT);
 const SocketAddress kTurnTcpIntAddr("99.99.99.4", 5010);
 const SocketAddress kTurnUdpExtAddr("99.99.99.5", 0);
 const RelayCredentials kRelayCredentials("test", "test");
@@ -434,7 +434,8 @@ class PortTest : public ::testing::Test, public sigslot::has_slots<> {
         nat_factory2_(ss_.get(), kNatAddr2, SocketAddress()),
         nat_socket_factory1_(&nat_factory1_),
         nat_socket_factory2_(&nat_factory2_),
-        stun_server_(TestStunServer::Create(ss_.get(), kStunAddr, main_)),
+        stun_server_(
+            webrtc::TestStunServer::Create(ss_.get(), kStunAddr, main_)),
         turn_server_(&main_, ss_.get(), kTurnUdpIntAddr, kTurnUdpExtAddr),
         username_(rtc::CreateRandomString(ICE_UFRAG_LENGTH)),
         password_(rtc::CreateRandomString(ICE_PWD_LENGTH)),
@@ -466,8 +467,8 @@ class PortTest : public ::testing::Test, public sigslot::has_slots<> {
     auto port2 = CreateStunPort(kLocalAddr2, &nat_socket_factory2_);
     port2->SetIceRole(cricket::ICEROLE_CONTROLLED);
     TestConnectivity("udp", std::move(port1), StunName(ntype), std::move(port2),
-                     ntype == NAT_OPEN_CONE, true, ntype != NAT_SYMMETRIC,
-                     true);
+                     ntype == webrtc::NAT_OPEN_CONE, true,
+                     ntype != webrtc::NAT_SYMMETRIC, true);
   }
   void TestLocalToRelay(webrtc::ProtocolType proto) {
     auto port1 = CreateUdpPort(kLocalAddr1);
@@ -484,7 +485,7 @@ class PortTest : public ::testing::Test, public sigslot::has_slots<> {
     auto port2 = CreateUdpPort(kLocalAddr2);
     port2->SetIceRole(cricket::ICEROLE_CONTROLLED);
     TestConnectivity(StunName(ntype), std::move(port1), "udp", std::move(port2),
-                     true, ntype != NAT_SYMMETRIC, true, true);
+                     true, ntype != webrtc::NAT_SYMMETRIC, true, true);
   }
   void TestStunToStun(NATType ntype1, NATType ntype2) {
     nat_server1_ = CreateNatServer(kNatAddr1, ntype1);
@@ -494,9 +495,11 @@ class PortTest : public ::testing::Test, public sigslot::has_slots<> {
     auto port2 = CreateStunPort(kLocalAddr2, &nat_socket_factory2_);
     port2->SetIceRole(cricket::ICEROLE_CONTROLLED);
     TestConnectivity(StunName(ntype1), std::move(port1), StunName(ntype2),
-                     std::move(port2), ntype2 == NAT_OPEN_CONE,
-                     ntype1 != NAT_SYMMETRIC, ntype2 != NAT_SYMMETRIC,
-                     ntype1 + ntype2 < (NAT_PORT_RESTRICTED + NAT_SYMMETRIC));
+                     std::move(port2), ntype2 == webrtc::NAT_OPEN_CONE,
+                     ntype1 != webrtc::NAT_SYMMETRIC,
+                     ntype2 != webrtc::NAT_SYMMETRIC,
+                     ntype1 + ntype2 <
+                         (webrtc::NAT_PORT_RESTRICTED + webrtc::NAT_SYMMETRIC));
   }
   void TestStunToRelay(NATType ntype, webrtc::ProtocolType proto) {
     nat_server1_ = CreateNatServer(kNatAddr1, ntype);
@@ -505,8 +508,8 @@ class PortTest : public ::testing::Test, public sigslot::has_slots<> {
     auto port2 = CreateRelayPort(kLocalAddr2, proto, webrtc::PROTO_UDP);
     port2->SetIceRole(cricket::ICEROLE_CONTROLLED);
     TestConnectivity(StunName(ntype), std::move(port1), RelayName(proto),
-                     std::move(port2), false, ntype != NAT_SYMMETRIC, true,
-                     true);
+                     std::move(port2), false, ntype != webrtc::NAT_SYMMETRIC,
+                     true, true);
   }
   void TestTcpToTcp() {
     auto port1 = CreateTcpPort(kLocalAddr1);
@@ -649,20 +652,20 @@ class PortTest : public ::testing::Test, public sigslot::has_slots<> {
     return port;
   }
 
-  std::unique_ptr<rtc::NATServer> CreateNatServer(const SocketAddress& addr,
-                                                  rtc::NATType type) {
-    return std::make_unique<rtc::NATServer>(type, main_, ss_.get(), addr, addr,
-                                            main_, ss_.get(), addr);
+  std::unique_ptr<webrtc::NATServer> CreateNatServer(const SocketAddress& addr,
+                                                     webrtc::NATType type) {
+    return std::make_unique<webrtc::NATServer>(type, main_, ss_.get(), addr,
+                                               addr, main_, ss_.get(), addr);
   }
   static const char* StunName(NATType type) {
     switch (type) {
-      case NAT_OPEN_CONE:
+      case webrtc::NAT_OPEN_CONE:
         return "stun(open cone)";
-      case NAT_ADDR_RESTRICTED:
+      case webrtc::NAT_ADDR_RESTRICTED:
         return "stun(addr restricted)";
-      case NAT_PORT_RESTRICTED:
+      case webrtc::NAT_PORT_RESTRICTED:
         return "stun(port restricted)";
-      case NAT_SYMMETRIC:
+      case webrtc::NAT_SYMMETRIC:
         return "stun(symmetric)";
       default:
         return "stun(?)";
@@ -944,14 +947,14 @@ class PortTest : public ::testing::Test, public sigslot::has_slots<> {
   std::unique_ptr<rtc::VirtualSocketServer> ss_;
   rtc::AutoSocketServerThread main_;
   rtc::BasicPacketSocketFactory socket_factory_;
-  std::unique_ptr<rtc::NATServer> nat_server1_;
-  std::unique_ptr<rtc::NATServer> nat_server2_;
-  rtc::NATSocketFactory nat_factory1_;
-  rtc::NATSocketFactory nat_factory2_;
+  std::unique_ptr<webrtc::NATServer> nat_server1_;
+  std::unique_ptr<webrtc::NATServer> nat_server2_;
+  webrtc::NATSocketFactory nat_factory1_;
+  webrtc::NATSocketFactory nat_factory2_;
   rtc::BasicPacketSocketFactory nat_socket_factory1_;
   rtc::BasicPacketSocketFactory nat_socket_factory2_;
-  TestStunServer::StunServerPtr stun_server_;
-  TestTurnServer turn_server_;
+  webrtc::TestStunServer::StunServerPtr stun_server_;
+  webrtc::TestTurnServer turn_server_;
   std::string username_;
   std::string password_;
   bool role_conflict_;
@@ -1263,19 +1266,19 @@ TEST_F(PortTest, TestLocalToLocal) {
 }
 
 TEST_F(PortTest, TestLocalToConeNat) {
-  TestLocalToStun(NAT_OPEN_CONE);
+  TestLocalToStun(webrtc::NAT_OPEN_CONE);
 }
 
 TEST_F(PortTest, TestLocalToARNat) {
-  TestLocalToStun(NAT_ADDR_RESTRICTED);
+  TestLocalToStun(webrtc::NAT_ADDR_RESTRICTED);
 }
 
 TEST_F(PortTest, TestLocalToPRNat) {
-  TestLocalToStun(NAT_PORT_RESTRICTED);
+  TestLocalToStun(webrtc::NAT_PORT_RESTRICTED);
 }
 
 TEST_F(PortTest, TestLocalToSymNat) {
-  TestLocalToStun(NAT_SYMMETRIC);
+  TestLocalToStun(webrtc::NAT_SYMMETRIC);
 }
 
 // Flaky: https://code.google.com/p/webrtc/issues/detail?id=3316.
@@ -1285,105 +1288,105 @@ TEST_F(PortTest, DISABLED_TestLocalToTurn) {
 
 // Cone NAT -> XXXX
 TEST_F(PortTest, TestConeNatToLocal) {
-  TestStunToLocal(NAT_OPEN_CONE);
+  TestStunToLocal(webrtc::NAT_OPEN_CONE);
 }
 
 TEST_F(PortTest, TestConeNatToConeNat) {
-  TestStunToStun(NAT_OPEN_CONE, NAT_OPEN_CONE);
+  TestStunToStun(webrtc::NAT_OPEN_CONE, webrtc::NAT_OPEN_CONE);
 }
 
 TEST_F(PortTest, TestConeNatToARNat) {
-  TestStunToStun(NAT_OPEN_CONE, NAT_ADDR_RESTRICTED);
+  TestStunToStun(webrtc::NAT_OPEN_CONE, webrtc::NAT_ADDR_RESTRICTED);
 }
 
 TEST_F(PortTest, TestConeNatToPRNat) {
-  TestStunToStun(NAT_OPEN_CONE, NAT_PORT_RESTRICTED);
+  TestStunToStun(webrtc::NAT_OPEN_CONE, webrtc::NAT_PORT_RESTRICTED);
 }
 
 TEST_F(PortTest, TestConeNatToSymNat) {
-  TestStunToStun(NAT_OPEN_CONE, NAT_SYMMETRIC);
+  TestStunToStun(webrtc::NAT_OPEN_CONE, webrtc::NAT_SYMMETRIC);
 }
 
 TEST_F(PortTest, TestConeNatToTurn) {
-  TestStunToRelay(NAT_OPEN_CONE, webrtc::PROTO_UDP);
+  TestStunToRelay(webrtc::NAT_OPEN_CONE, webrtc::PROTO_UDP);
 }
 
 // Address-restricted NAT -> XXXX
 TEST_F(PortTest, TestARNatToLocal) {
-  TestStunToLocal(NAT_ADDR_RESTRICTED);
+  TestStunToLocal(webrtc::NAT_ADDR_RESTRICTED);
 }
 
 TEST_F(PortTest, TestARNatToConeNat) {
-  TestStunToStun(NAT_ADDR_RESTRICTED, NAT_OPEN_CONE);
+  TestStunToStun(webrtc::NAT_ADDR_RESTRICTED, webrtc::NAT_OPEN_CONE);
 }
 
 TEST_F(PortTest, TestARNatToARNat) {
-  TestStunToStun(NAT_ADDR_RESTRICTED, NAT_ADDR_RESTRICTED);
+  TestStunToStun(webrtc::NAT_ADDR_RESTRICTED, webrtc::NAT_ADDR_RESTRICTED);
 }
 
 TEST_F(PortTest, TestARNatToPRNat) {
-  TestStunToStun(NAT_ADDR_RESTRICTED, NAT_PORT_RESTRICTED);
+  TestStunToStun(webrtc::NAT_ADDR_RESTRICTED, webrtc::NAT_PORT_RESTRICTED);
 }
 
 TEST_F(PortTest, TestARNatToSymNat) {
-  TestStunToStun(NAT_ADDR_RESTRICTED, NAT_SYMMETRIC);
+  TestStunToStun(webrtc::NAT_ADDR_RESTRICTED, webrtc::NAT_SYMMETRIC);
 }
 
 TEST_F(PortTest, TestARNatToTurn) {
-  TestStunToRelay(NAT_ADDR_RESTRICTED, webrtc::PROTO_UDP);
+  TestStunToRelay(webrtc::NAT_ADDR_RESTRICTED, webrtc::PROTO_UDP);
 }
 
 // Port-restricted NAT -> XXXX
 TEST_F(PortTest, TestPRNatToLocal) {
-  TestStunToLocal(NAT_PORT_RESTRICTED);
+  TestStunToLocal(webrtc::NAT_PORT_RESTRICTED);
 }
 
 TEST_F(PortTest, TestPRNatToConeNat) {
-  TestStunToStun(NAT_PORT_RESTRICTED, NAT_OPEN_CONE);
+  TestStunToStun(webrtc::NAT_PORT_RESTRICTED, webrtc::NAT_OPEN_CONE);
 }
 
 TEST_F(PortTest, TestPRNatToARNat) {
-  TestStunToStun(NAT_PORT_RESTRICTED, NAT_ADDR_RESTRICTED);
+  TestStunToStun(webrtc::NAT_PORT_RESTRICTED, webrtc::NAT_ADDR_RESTRICTED);
 }
 
 TEST_F(PortTest, TestPRNatToPRNat) {
-  TestStunToStun(NAT_PORT_RESTRICTED, NAT_PORT_RESTRICTED);
+  TestStunToStun(webrtc::NAT_PORT_RESTRICTED, webrtc::NAT_PORT_RESTRICTED);
 }
 
 TEST_F(PortTest, TestPRNatToSymNat) {
   // Will "fail"
-  TestStunToStun(NAT_PORT_RESTRICTED, NAT_SYMMETRIC);
+  TestStunToStun(webrtc::NAT_PORT_RESTRICTED, webrtc::NAT_SYMMETRIC);
 }
 
 TEST_F(PortTest, TestPRNatToTurn) {
-  TestStunToRelay(NAT_PORT_RESTRICTED, webrtc::PROTO_UDP);
+  TestStunToRelay(webrtc::NAT_PORT_RESTRICTED, webrtc::PROTO_UDP);
 }
 
 // Symmetric NAT -> XXXX
 TEST_F(PortTest, TestSymNatToLocal) {
-  TestStunToLocal(NAT_SYMMETRIC);
+  TestStunToLocal(webrtc::NAT_SYMMETRIC);
 }
 
 TEST_F(PortTest, TestSymNatToConeNat) {
-  TestStunToStun(NAT_SYMMETRIC, NAT_OPEN_CONE);
+  TestStunToStun(webrtc::NAT_SYMMETRIC, webrtc::NAT_OPEN_CONE);
 }
 
 TEST_F(PortTest, TestSymNatToARNat) {
-  TestStunToStun(NAT_SYMMETRIC, NAT_ADDR_RESTRICTED);
+  TestStunToStun(webrtc::NAT_SYMMETRIC, webrtc::NAT_ADDR_RESTRICTED);
 }
 
 TEST_F(PortTest, TestSymNatToPRNat) {
   // Will "fail"
-  TestStunToStun(NAT_SYMMETRIC, NAT_PORT_RESTRICTED);
+  TestStunToStun(webrtc::NAT_SYMMETRIC, webrtc::NAT_PORT_RESTRICTED);
 }
 
 TEST_F(PortTest, TestSymNatToSymNat) {
   // Will "fail"
-  TestStunToStun(NAT_SYMMETRIC, NAT_SYMMETRIC);
+  TestStunToStun(webrtc::NAT_SYMMETRIC, webrtc::NAT_SYMMETRIC);
 }
 
 TEST_F(PortTest, TestSymNatToTurn) {
-  TestStunToRelay(NAT_SYMMETRIC, webrtc::PROTO_UDP);
+  TestStunToRelay(webrtc::NAT_SYMMETRIC, webrtc::PROTO_UDP);
 }
 
 // Outbound TCP -> XXXX
@@ -2920,8 +2923,8 @@ TEST_F(PortTest, TestFoundation) {
 
 // This test verifies the foundation of different types of ICE candidates.
 TEST_F(PortTest, TestCandidateFoundation) {
-  std::unique_ptr<rtc::NATServer> nat_server(
-      CreateNatServer(kNatAddr1, NAT_OPEN_CONE));
+  std::unique_ptr<webrtc::NATServer> nat_server(
+      CreateNatServer(kNatAddr1, webrtc::NAT_OPEN_CONE));
   auto udpport1 = CreateUdpPort(kLocalAddr1);
   udpport1->PrepareAddress();
   auto udpport2 = CreateUdpPort(kLocalAddr1);
@@ -2973,10 +2976,10 @@ TEST_F(PortTest, TestCandidateFoundation) {
             turnport2->Candidates()[0].foundation());
 
   // Running a second turn server, to get different base IP address.
-  SocketAddress kTurnUdpIntAddr2("99.99.98.4", STUN_SERVER_PORT);
+  SocketAddress kTurnUdpIntAddr2("99.99.98.4", webrtc::STUN_SERVER_PORT);
   SocketAddress kTurnUdpExtAddr2("99.99.98.5", 0);
-  TestTurnServer turn_server2(rtc::Thread::Current(), vss(), kTurnUdpIntAddr2,
-                              kTurnUdpExtAddr2);
+  webrtc::TestTurnServer turn_server2(rtc::Thread::Current(), vss(),
+                                      kTurnUdpIntAddr2, kTurnUdpExtAddr2);
   auto turnport3 =
       CreateTurnPort(kLocalAddr1, nat_socket_factory1(), webrtc::PROTO_UDP,
                      webrtc::PROTO_UDP, kTurnUdpIntAddr2);
@@ -2990,8 +2993,9 @@ TEST_F(PortTest, TestCandidateFoundation) {
 
   // Start a TCP turn server, and check that two turn candidates have
   // different foundations if their relay protocols are different.
-  TestTurnServer turn_server3(rtc::Thread::Current(), vss(), kTurnTcpIntAddr,
-                              kTurnUdpExtAddr, webrtc::PROTO_TCP);
+  webrtc::TestTurnServer turn_server3(rtc::Thread::Current(), vss(),
+                                      kTurnTcpIntAddr, kTurnUdpExtAddr,
+                                      webrtc::PROTO_TCP);
   auto turnport4 = CreateTurnPort(kLocalAddr1, nat_socket_factory1(),
                                   webrtc::PROTO_TCP, webrtc::PROTO_UDP);
   turnport4->PrepareAddress();
@@ -3006,7 +3010,7 @@ TEST_F(PortTest, TestCandidateFoundation) {
 // This test verifies the related addresses of different types of
 // ICE candidates.
 TEST_F(PortTest, TestCandidateRelatedAddress) {
-  auto nat_server = CreateNatServer(kNatAddr1, NAT_OPEN_CONE);
+  auto nat_server = CreateNatServer(kNatAddr1, webrtc::NAT_OPEN_CONE);
   auto udpport = CreateUdpPort(kLocalAddr1);
   udpport->PrepareAddress();
   // For UDPPort, related address will be empty.

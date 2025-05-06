@@ -222,10 +222,10 @@ class ChannelTest : public ::testing::Test, public sigslot::has_slots<> {
 
       if (flags1 & RAW_PACKET_TRANSPORT) {
         fake_rtp_packet_transport1_.reset(
-            new rtc::FakePacketTransport("channel1_rtp"));
+            new webrtc::FakePacketTransport("channel1_rtp"));
         if (!(flags1 & RTCP_MUX)) {
           fake_rtcp_packet_transport1_.reset(
-              new rtc::FakePacketTransport("channel1_rtcp"));
+              new webrtc::FakePacketTransport("channel1_rtcp"));
         }
       } else {
         // Confirmed to work with KT_RSA and KT_ECDSA.
@@ -248,10 +248,10 @@ class ChannelTest : public ::testing::Test, public sigslot::has_slots<> {
       // Based on flags, create fake DTLS or raw packet transports.
       if (flags2 & RAW_PACKET_TRANSPORT) {
         fake_rtp_packet_transport2_.reset(
-            new rtc::FakePacketTransport("channel2_rtp"));
+            new webrtc::FakePacketTransport("channel2_rtp"));
         if (!(flags2 & RTCP_MUX)) {
           fake_rtcp_packet_transport2_.reset(
-              new rtc::FakePacketTransport("channel2_rtcp"));
+              new webrtc::FakePacketTransport("channel2_rtcp"));
         }
       } else {
         // Confirmed to work with KT_RSA and KT_ECDSA.
@@ -1571,10 +1571,10 @@ class ChannelTest : public ::testing::Test, public sigslot::has_slots<> {
   std::unique_ptr<cricket::FakeDtlsTransport> fake_rtcp_dtls_transport1_;
   std::unique_ptr<cricket::FakeDtlsTransport> fake_rtp_dtls_transport2_;
   std::unique_ptr<cricket::FakeDtlsTransport> fake_rtcp_dtls_transport2_;
-  std::unique_ptr<rtc::FakePacketTransport> fake_rtp_packet_transport1_;
-  std::unique_ptr<rtc::FakePacketTransport> fake_rtcp_packet_transport1_;
-  std::unique_ptr<rtc::FakePacketTransport> fake_rtp_packet_transport2_;
-  std::unique_ptr<rtc::FakePacketTransport> fake_rtcp_packet_transport2_;
+  std::unique_ptr<webrtc::FakePacketTransport> fake_rtp_packet_transport1_;
+  std::unique_ptr<webrtc::FakePacketTransport> fake_rtcp_packet_transport1_;
+  std::unique_ptr<webrtc::FakePacketTransport> fake_rtp_packet_transport2_;
+  std::unique_ptr<webrtc::FakePacketTransport> fake_rtcp_packet_transport2_;
   std::unique_ptr<webrtc::RtpTransportInternal> rtp_transport1_;
   std::unique_ptr<webrtc::RtpTransportInternal> rtp_transport2_;
   std::unique_ptr<webrtc::RtpTransportInternal> new_rtp_transport_;

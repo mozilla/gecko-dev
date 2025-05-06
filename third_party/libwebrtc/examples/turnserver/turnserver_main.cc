@@ -28,7 +28,7 @@
 namespace {
 const char kSoftware[] = "libjingle TurnServer";
 
-class TurnFileAuth : public cricket::TurnAuthInterface {
+class TurnFileAuth : public webrtc::TurnAuthInterface {
  public:
   explicit TurnFileAuth(std::map<std::string, std::string> name_to_key)
       : name_to_key_(std::move(name_to_key)) {}
@@ -80,7 +80,7 @@ int main(int argc, char* argv[]) {
     return 1;
   }
 
-  cricket::TurnServer server(&main);
+  webrtc::TurnServer server(&main);
   std::fstream auth_file(argv[4], std::fstream::in);
 
   TurnFileAuth auth(auth_file.is_open()

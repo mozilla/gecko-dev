@@ -280,8 +280,8 @@ class PeerConnectionIntegrationIceStatesTest
   }
 
   void StartStunServer(const SocketAddress& server_address) {
-    stun_server_ = cricket::TestStunServer::Create(firewall(), server_address,
-                                                   *network_thread());
+    stun_server_ =
+        TestStunServer::Create(firewall(), server_address, *network_thread());
   }
 
   bool TestIPv6() {
@@ -324,7 +324,7 @@ class PeerConnectionIntegrationIceStatesTest
 
  private:
   uint32_t port_allocator_flags_;
-  cricket::TestStunServer::StunServerPtr stun_server_;
+  TestStunServer::StunServerPtr stun_server_;
 };
 
 // Ensure FakeClockForTest is constructed first (see class for rationale).
@@ -341,7 +341,7 @@ class PeerConnectionIntegrationIceStatesTestWithFakeClock
 // to time out.
 TEST_P(PeerConnectionIntegrationIceStatesTestWithFakeClock, VerifyIceStates) {
   const SocketAddress kStunServerAddress =
-      SocketAddress("99.99.99.1", cricket::STUN_SERVER_PORT);
+      SocketAddress("99.99.99.1", STUN_SERVER_PORT);
   StartStunServer(kStunServerAddress);
 
   PeerConnectionInterface::RTCConfiguration config;

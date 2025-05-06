@@ -141,7 +141,7 @@ EmulatedTURNServer::EmulatedTURNServer(const EmulatedTURNServerConfig& config,
   SendTask(thread_.get(), [this, enable_permission_checks =
                                      config.enable_permission_checks]() {
     RTC_DCHECK_RUN_ON(thread_.get());
-    turn_server_ = std::make_unique<cricket::TurnServer>(thread_.get());
+    turn_server_ = std::make_unique<TurnServer>(thread_.get());
     turn_server_->set_realm(kTestRealm);
     turn_server_->set_realm(kTestSoftware);
     turn_server_->set_auth_hook(this);

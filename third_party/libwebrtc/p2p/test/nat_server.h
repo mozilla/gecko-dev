@@ -22,16 +22,16 @@
 #include "rtc_base/synchronization/mutex.h"
 #include "rtc_base/thread.h"
 
-namespace rtc {
+namespace webrtc {
 
 // Change how routes (socketaddress pairs) are compared based on the type of
 // NAT.  The NAT server maintains a hashtable of the routes that it knows
 // about.  So these affect which routes are treated the same.
 struct RouteCmp {
   explicit RouteCmp(NAT* nat);
-  size_t operator()(const webrtc::SocketAddressPair& r) const;
-  bool operator()(const webrtc::SocketAddressPair& r1,
-                  const webrtc::SocketAddressPair& r2) const;
+  size_t operator()(const SocketAddressPair& r) const;
+  bool operator()(const SocketAddressPair& r1,
+                  const SocketAddressPair& r2) const;
 
   bool symmetric;
 };
@@ -39,9 +39,8 @@ struct RouteCmp {
 // Changes how addresses are compared based on the filtering rules of the NAT.
 struct AddrCmp {
   explicit AddrCmp(NAT* nat);
-  size_t operator()(const webrtc::SocketAddress& r) const;
-  bool operator()(const webrtc::SocketAddress& r1,
-                  const webrtc::SocketAddress& r2) const;
+  size_t operator()(const SocketAddress& r) const;
+  bool operator()(const SocketAddress& r1, const SocketAddress& r2) const;
 
   bool use_ip;
   bool use_port;
@@ -63,70 +62,78 @@ class NATServer {
  public:
   NATServer(NATType type,
             rtc::Thread& internal_socket_thread,
-            SocketFactory* internal,
-            const webrtc::SocketAddress& internal_udp_addr,
-            const webrtc::SocketAddress& internal_tcp_addr,
+            rtc::SocketFactory* internal,
+            const SocketAddress& internal_udp_addr,
+            const SocketAddress& internal_tcp_addr,
             rtc::Thread& external_socket_thread,
-            SocketFactory* external,
-            const webrtc::SocketAddress& external_ip);
+            rtc::SocketFactory* external,
+            const SocketAddress& external_ip);
   ~NATServer();
 
   NATServer(const NATServer&) = delete;
   NATServer& operator=(const NATServer&) = delete;
 
-  webrtc::SocketAddress internal_udp_address() const {
+  SocketAddress internal_udp_address() const {
     return udp_server_socket_->GetLocalAddress();
   }
 
-  webrtc::SocketAddress internal_tcp_address() const {
+  SocketAddress internal_tcp_address() const {
     return tcp_proxy_server_->GetServerAddress();
   }
 
   // Packets received on one of the networks.
-  void OnInternalUDPPacket(AsyncPacketSocket* socket,
+  void OnInternalUDPPacket(rtc::AsyncPacketSocket* socket,
                            const rtc::ReceivedPacket& packet);
-  void OnExternalUDPPacket(AsyncPacketSocket* socket,
+  void OnExternalUDPPacket(rtc::AsyncPacketSocket* socket,
                            const rtc::ReceivedPacket& packet);
 
  private:
-  typedef std::set<webrtc::SocketAddress, AddrCmp> AddressSet;
+  typedef std::set<SocketAddress, AddrCmp> AddressSet;
 
   /* Records a translation and the associated external socket. */
   struct TransEntry {
-    TransEntry(const webrtc::SocketAddressPair& r, AsyncUDPSocket* s, NAT* nat);
+    TransEntry(const SocketAddressPair& r, rtc::AsyncUDPSocket* s, NAT* nat);
     ~TransEntry();
 
-    void AllowlistInsert(const webrtc::SocketAddress& addr);
-    bool AllowlistContains(const webrtc::SocketAddress& ext_addr);
+    void AllowlistInsert(const SocketAddress& addr);
+    bool AllowlistContains(const SocketAddress& ext_addr);
 
-    webrtc::SocketAddressPair route;
-    AsyncUDPSocket* socket;
+    SocketAddressPair route;
+    rtc::AsyncUDPSocket* socket;
     AddressSet* allowlist;
-    webrtc::Mutex mutex_;
+    Mutex mutex_;
   };
 
-  typedef std::map<webrtc::SocketAddressPair, TransEntry*, RouteCmp>
-      InternalMap;
-  typedef std::map<webrtc::SocketAddress, TransEntry*> ExternalMap;
+  typedef std::map<SocketAddressPair, TransEntry*, RouteCmp> InternalMap;
+  typedef std::map<SocketAddress, TransEntry*> ExternalMap;
 
   /* Creates a new entry that translates the given route. */
-  void Translate(const webrtc::SocketAddressPair& route);
+  void Translate(const SocketAddressPair& route);
 
   /* Determines whether the NAT would filter out a packet from this address. */
-  bool ShouldFilterOut(TransEntry* entry,
-                       const webrtc::SocketAddress& ext_addr);
+  bool ShouldFilterOut(TransEntry* entry, const SocketAddress& ext_addr);
 
   NAT* nat_;
   rtc::Thread& internal_socket_thread_;
   rtc::Thread& external_socket_thread_;
-  SocketFactory* external_;
-  webrtc::SocketAddress external_ip_;
-  AsyncUDPSocket* udp_server_socket_;
-  ProxyServer* tcp_proxy_server_;
+  rtc::SocketFactory* external_;
+  SocketAddress external_ip_;
+  rtc::AsyncUDPSocket* udp_server_socket_;
+  rtc::ProxyServer* tcp_proxy_server_;
   InternalMap* int_map_;
   ExternalMap* ext_map_;
 };
 
+}  //  namespace webrtc
+
+// Re-export symbols from the webrtc namespace for backwards compatibility.
+// TODO(bugs.webrtc.org/4222596): Remove once all references are updated.
+namespace rtc {
+using ::webrtc::AddrCmp;
+using ::webrtc::NAT_SERVER_TCP_PORT;
+using ::webrtc::NAT_SERVER_UDP_PORT;
+using ::webrtc::NATServer;
+using ::webrtc::RouteCmp;
 }  // namespace rtc
 
 #endif  // P2P_TEST_NAT_SERVER_H_

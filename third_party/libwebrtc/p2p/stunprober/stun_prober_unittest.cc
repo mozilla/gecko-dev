@@ -51,9 +51,9 @@ class StunProberTest : public ::testing::Test {
         main_(ss_.get()),
         result_(StunProber::SUCCESS),
         stun_server_1_(
-            cricket::TestStunServer::Create(ss_.get(), kStunAddr1, main_)),
+            webrtc::TestStunServer::Create(ss_.get(), kStunAddr1, main_)),
         stun_server_2_(
-            cricket::TestStunServer::Create(ss_.get(), kStunAddr2, main_)) {
+            webrtc::TestStunServer::Create(ss_.get(), kStunAddr2, main_)) {
     stun_server_1_->set_fake_stun_addr(kStunMappedAddr);
     stun_server_2_->set_fake_stun_addr(kStunMappedAddr);
     rtc::InitializeSSL();
@@ -145,8 +145,8 @@ class StunProberTest : public ::testing::Test {
   std::unique_ptr<StunProber> prober_;
   int result_ = 0;
   bool stopped_ = false;
-  cricket::TestStunServer::StunServerPtr stun_server_1_;
-  cricket::TestStunServer::StunServerPtr stun_server_2_;
+  webrtc::TestStunServer::StunServerPtr stun_server_1_;
+  webrtc::TestStunServer::StunServerPtr stun_server_2_;
   StunProber::Stats stats_;
 };
 

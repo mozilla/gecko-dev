@@ -24,11 +24,11 @@
 #include "rtc_base/virtual_socket_server.h"
 #include "test/gtest.h"
 
-namespace cricket {
+namespace webrtc {
 
 namespace {
-const webrtc::SocketAddress server_addr("99.99.99.1", 3478);
-const webrtc::SocketAddress client_addr("1.2.3.4", 1234);
+const SocketAddress server_addr("99.99.99.1", 3478);
+const SocketAddress client_addr("1.2.3.4", 1234);
 }  // namespace
 
 class StunServerTest : public ::testing::Test {
@@ -37,11 +37,11 @@ class StunServerTest : public ::testing::Test {
     ss_->SetMessageQueue(&main_thread);
     server_.reset(
         new StunServer(rtc::AsyncUDPSocket::Create(ss_.get(), server_addr)));
-    client_.reset(new rtc::TestClient(
+    client_.reset(new TestClient(
         absl::WrapUnique(rtc::AsyncUDPSocket::Create(ss_.get(), client_addr))));
   }
 
-  void Send(const StunMessage& msg) {
+  void Send(const cricket::StunMessage& msg) {
     rtc::ByteBufferWriter buf;
     msg.Write(&buf);
     Send(reinterpret_cast<const char*>(buf.Data()),
@@ -51,13 +51,13 @@ class StunServerTest : public ::testing::Test {
     client_->SendTo(buf, len, server_addr);
   }
   bool ReceiveFails() { return (client_->CheckNoPacket()); }
-  StunMessage* Receive() {
-    StunMessage* msg = NULL;
-    std::unique_ptr<rtc::TestClient::Packet> packet =
-        client_->NextPacket(rtc::TestClient::kTimeoutMs);
+  cricket::StunMessage* Receive() {
+    cricket::StunMessage* msg = NULL;
+    std::unique_ptr<TestClient::Packet> packet =
+        client_->NextPacket(TestClient::kTimeoutMs);
     if (packet) {
       rtc::ByteBufferReader buf(packet->buf);
-      msg = new StunMessage();
+      msg = new cricket::StunMessage();
       msg->Read(&buf);
     }
     return msg;
@@ -67,22 +67,22 @@ class StunServerTest : public ::testing::Test {
   rtc::AutoThread main_thread;
   std::unique_ptr<rtc::VirtualSocketServer> ss_;
   std::unique_ptr<StunServer> server_;
-  std::unique_ptr<rtc::TestClient> client_;
+  std::unique_ptr<TestClient> client_;
 };
 
 TEST_F(StunServerTest, TestGood) {
   // kStunLegacyTransactionIdLength = 16 for legacy RFC 3489 request
   std::string transaction_id = "0123456789abcdef";
-  StunMessage req(STUN_BINDING_REQUEST, transaction_id);
+  cricket::StunMessage req(cricket::STUN_BINDING_REQUEST, transaction_id);
   Send(req);
 
-  StunMessage* msg = Receive();
+  cricket::StunMessage* msg = Receive();
   ASSERT_TRUE(msg != NULL);
-  EXPECT_EQ(STUN_BINDING_RESPONSE, msg->type());
+  EXPECT_EQ(cricket::STUN_BINDING_RESPONSE, msg->type());
   EXPECT_EQ(req.transaction_id(), msg->transaction_id());
 
-  const StunAddressAttribute* mapped_addr =
-      msg->GetAddress(STUN_ATTR_MAPPED_ADDRESS);
+  const cricket::StunAddressAttribute* mapped_addr =
+      msg->GetAddress(cricket::STUN_ATTR_MAPPED_ADDRESS);
   EXPECT_TRUE(mapped_addr != NULL);
   EXPECT_EQ(1, mapped_addr->family());
   EXPECT_EQ(client_addr.port(), mapped_addr->port());
@@ -94,16 +94,16 @@ TEST_F(StunServerTest, TestGoodXorMappedAddr) {
   // kStunTransactionIdLength = 12 for RFC 5389 request
   // StunMessage::Write will automatically insert magic cookie (0x2112A442)
   std::string transaction_id = "0123456789ab";
-  StunMessage req(STUN_BINDING_REQUEST, transaction_id);
+  cricket::StunMessage req(cricket::STUN_BINDING_REQUEST, transaction_id);
   Send(req);
 
-  StunMessage* msg = Receive();
+  cricket::StunMessage* msg = Receive();
   ASSERT_TRUE(msg != NULL);
-  EXPECT_EQ(STUN_BINDING_RESPONSE, msg->type());
+  EXPECT_EQ(cricket::STUN_BINDING_RESPONSE, msg->type());
   EXPECT_EQ(req.transaction_id(), msg->transaction_id());
 
-  const StunAddressAttribute* mapped_addr =
-      msg->GetAddress(STUN_ATTR_XOR_MAPPED_ADDRESS);
+  const cricket::StunAddressAttribute* mapped_addr =
+      msg->GetAddress(cricket::STUN_ATTR_XOR_MAPPED_ADDRESS);
   EXPECT_TRUE(mapped_addr != NULL);
   EXPECT_EQ(1, mapped_addr->family());
   EXPECT_EQ(client_addr.port(), mapped_addr->port());
@@ -115,16 +115,16 @@ TEST_F(StunServerTest, TestGoodXorMappedAddr) {
 TEST_F(StunServerTest, TestNoXorMappedAddr) {
   // kStunLegacyTransactionIdLength = 16 for legacy RFC 3489 request
   std::string transaction_id = "0123456789abcdef";
-  StunMessage req(STUN_BINDING_REQUEST, transaction_id);
+  cricket::StunMessage req(cricket::STUN_BINDING_REQUEST, transaction_id);
   Send(req);
 
-  StunMessage* msg = Receive();
+  cricket::StunMessage* msg = Receive();
   ASSERT_TRUE(msg != NULL);
-  EXPECT_EQ(STUN_BINDING_RESPONSE, msg->type());
+  EXPECT_EQ(cricket::STUN_BINDING_RESPONSE, msg->type());
   EXPECT_EQ(req.transaction_id(), msg->transaction_id());
 
-  const StunAddressAttribute* mapped_addr =
-      msg->GetAddress(STUN_ATTR_XOR_MAPPED_ADDRESS);
+  const cricket::StunAddressAttribute* mapped_addr =
+      msg->GetAddress(cricket::STUN_ATTR_XOR_MAPPED_ADDRESS);
   EXPECT_TRUE(mapped_addr == NULL);
 
   delete msg;
@@ -140,4 +140,4 @@ TEST_F(StunServerTest, TestBad) {
   ASSERT_TRUE(ReceiveFails());
 }
 
-}  // namespace cricket
+}  // namespace webrtc

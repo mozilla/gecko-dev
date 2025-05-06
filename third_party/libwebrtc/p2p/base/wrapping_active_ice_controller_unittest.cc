@@ -30,11 +30,11 @@ using ::cricket::IceControllerInterface;
 using ::cricket::IceMode;
 using ::cricket::IceRecheckEvent;
 using ::cricket::IceSwitchReason;
-using ::cricket::MockIceAgent;
-using ::cricket::MockIceController;
-using ::cricket::MockIceControllerFactory;
 using ::cricket::NominationMode;
 using ::cricket::WrappingActiveIceController;
+using ::webrtc::MockIceAgent;
+using ::webrtc::MockIceController;
+using ::webrtc::MockIceControllerFactory;
 
 using ::testing::_;
 using ::testing::ElementsAreArray;

@@ -22,7 +22,7 @@ using ::testing::MockFunction;
 
 TEST(PacketTransportInternal,
      NotifyPacketReceivedPassthrougPacketToRegisteredListener) {
-  rtc::FakePacketTransport packet_transport("test");
+  webrtc::FakePacketTransport packet_transport("test");
   MockFunction<void(rtc::PacketTransportInternal*, const rtc::ReceivedPacket&)>
       receiver;
 
@@ -42,7 +42,7 @@ TEST(PacketTransportInternal,
 }
 
 TEST(PacketTransportInternal, NotifiesOnceOnClose) {
-  rtc::FakePacketTransport packet_transport("test");
+  webrtc::FakePacketTransport packet_transport("test");
   int call_count = 0;
   packet_transport.SetOnCloseCallback([&]() { ++call_count; });
   ASSERT_EQ(call_count, 0);

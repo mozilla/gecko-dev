@@ -71,14 +71,14 @@ static const SocketAddress kPrivateIP("192.168.1.12", 0);
 static const SocketAddress kMsdnAddress("unittest-mdns-host-name.local", 0);
 static const SocketAddress kPublicIP("212.116.91.133", 0);
 static const SocketAddress kNatAddr(kPublicIP.ipaddr(),
-                                    rtc::NAT_SERVER_UDP_PORT);
+                                    webrtc::NAT_SERVER_UDP_PORT);
 static const SocketAddress kStunServerAddr1("34.38.54.120", 5000);
 static const SocketAddress kStunServerAddr2("34.38.54.120", 4000);
 
 static const SocketAddress kPrivateIPv6("2001:4860:4860::8844", 0);
 static const SocketAddress kPublicIPv6("2002:4860:4860::8844", 5000);
 static const SocketAddress kNatAddrIPv6(kPublicIPv6.ipaddr(),
-                                        rtc::NAT_SERVER_UDP_PORT);
+                                        webrtc::NAT_SERVER_UDP_PORT);
 static const SocketAddress kStunServerAddrIPv6Addr("2003:4860:4860::8844",
                                                    5000);
 
@@ -140,7 +140,7 @@ class StunPortTestBase : public ::testing::Test, public sigslot::has_slots<> {
         nat_factory_(ss_.get(), nat_server_address, nat_server_address),
         nat_socket_factory_(&nat_factory_),
         mdns_responder_provider_(new FakeMdnsResponderProvider()),
-        nat_server_(CreateNatServer(nat_server_address, rtc::NAT_OPEN_CONE)),
+        nat_server_(CreateNatServer(nat_server_address, webrtc::NAT_OPEN_CONE)),
         done_(false),
         error_(false),
         stun_keepalive_delay_(1),
@@ -150,14 +150,14 @@ class StunPortTestBase : public ::testing::Test, public sigslot::has_slots<> {
     for (const auto& addr : stun_server_addresses) {
       RTC_CHECK(addr.family() == address.family());
       stun_servers_.push_back(
-          cricket::TestStunServer::Create(ss_.get(), addr, thread_));
+          webrtc::TestStunServer::Create(ss_.get(), addr, thread_));
     }
   }
 
-  std::unique_ptr<rtc::NATServer> CreateNatServer(const SocketAddress& addr,
-                                                  rtc::NATType type) {
-    return std::make_unique<rtc::NATServer>(type, thread_, ss_.get(), addr,
-                                            addr, thread_, ss_.get(), addr);
+  std::unique_ptr<webrtc::NATServer> CreateNatServer(const SocketAddress& addr,
+                                                     webrtc::NATType type) {
+    return std::make_unique<webrtc::NATServer>(type, thread_, ss_.get(), addr,
+                                               addr, thread_, ss_.get(), addr);
   }
 
   virtual rtc::PacketSocketFactory* socket_factory() {
@@ -291,8 +291,8 @@ class StunPortTestBase : public ::testing::Test, public sigslot::has_slots<> {
     return &networks_.back();
   }
 
-  cricket::TestStunServer* stun_server_1() { return stun_servers_[0].get(); }
-  cricket::TestStunServer* stun_server_2() { return stun_servers_[1].get(); }
+  webrtc::TestStunServer* stun_server_1() { return stun_servers_[0].get(); }
+  webrtc::TestStunServer* stun_server_2() { return stun_servers_[1].get(); }
 
   rtc::AutoSocketServerThread& thread() { return thread_; }
   rtc::SocketFactory* nat_factory() { return &nat_factory_; }
@@ -303,13 +303,13 @@ class StunPortTestBase : public ::testing::Test, public sigslot::has_slots<> {
 
   std::unique_ptr<rtc::VirtualSocketServer> ss_;
   rtc::AutoSocketServerThread thread_;
-  rtc::NATSocketFactory nat_factory_;
+  webrtc::NATSocketFactory nat_factory_;
   rtc::BasicPacketSocketFactory nat_socket_factory_;
   std::unique_ptr<cricket::UDPPort> stun_port_;
-  std::vector<cricket::TestStunServer::StunServerPtr> stun_servers_;
+  std::vector<webrtc::TestStunServer::StunServerPtr> stun_servers_;
   std::unique_ptr<rtc::AsyncPacketSocket> socket_;
   std::unique_ptr<rtc::MdnsResponderProvider> mdns_responder_provider_;
-  std::unique_ptr<rtc::NATServer> nat_server_;
+  std::unique_ptr<webrtc::NATServer> nat_server_;
   bool done_;
   bool error_;
   int stun_keepalive_delay_;
@@ -406,12 +406,12 @@ class StunPortWithMockDnsResolverTest : public StunPortTest {
   }
 
   void SetDnsResolverExpectations(
-      rtc::MockDnsResolvingPacketSocketFactory::Expectations expectations) {
+      webrtc::MockDnsResolvingPacketSocketFactory::Expectations expectations) {
     socket_factory_.SetExpectations(expectations);
   }
 
  private:
-  rtc::MockDnsResolvingPacketSocketFactory socket_factory_;
+  webrtc::MockDnsResolvingPacketSocketFactory socket_factory_;
 };
 
 // Test that we can get an address from a STUN server specified by a hostname.
@@ -861,12 +861,12 @@ class StunIPv6PortTestWithMockDnsResolver : public StunIPv6PortTest {
   }
 
   void SetDnsResolverExpectations(
-      rtc::MockDnsResolvingPacketSocketFactory::Expectations expectations) {
+      webrtc::MockDnsResolvingPacketSocketFactory::Expectations expectations) {
     socket_factory_.SetExpectations(expectations);
   }
 
  private:
-  rtc::MockDnsResolvingPacketSocketFactory socket_factory_;
+  webrtc::MockDnsResolvingPacketSocketFactory socket_factory_;
 };
 
 // Test that we can get an address from a STUN server specified by a hostname.

@@ -1513,7 +1513,7 @@ class DataChannelIntegrationTestUnifiedPlanFieldTrials
           "192.0.2.1", 3478};
       static const rtc::SocketAddress turn_server_1_external_address{
           "192.0.3.1", 0};
-      cricket::TestTurnServer* turn_server_1 = CreateTurnServer(
+      TestTurnServer* turn_server_1 = CreateTurnServer(
           turn_server_1_internal_address, turn_server_1_external_address);
 
       // Bypass permission check on received packets so media can be sent before

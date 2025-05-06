@@ -70,7 +70,7 @@ void TestSend(SocketServer* internal,
               const webrtc::SocketAddress& internal_addr,
               SocketServer* external,
               const webrtc::SocketAddress external_addrs[4],
-              NATType nat_type,
+              webrtc::NATType nat_type,
               bool exp_same) {
   Thread th_int(internal);
   Thread th_ext(external);
@@ -80,10 +80,10 @@ void TestSend(SocketServer* internal,
 
   webrtc::SocketAddress server_addr = internal_addr;
   server_addr.SetPort(0);  // Auto-select a port
-  NATServer* nat =
-      new NATServer(nat_type, th_int, internal, server_addr, server_addr,
-                    th_ext, external, external_addrs[0]);
-  NATSocketFactory* natsf = new NATSocketFactory(
+  webrtc::NATServer* nat =
+      new webrtc::NATServer(nat_type, th_int, internal, server_addr,
+                            server_addr, th_ext, external, external_addrs[0]);
+  webrtc::NATSocketFactory* natsf = new webrtc::NATSocketFactory(
       internal, nat->internal_udp_address(), nat->internal_tcp_address());
 
   webrtc::TestClient* in;
@@ -131,7 +131,7 @@ void TestRecv(SocketServer* internal,
               const webrtc::SocketAddress& internal_addr,
               SocketServer* external,
               const webrtc::SocketAddress external_addrs[4],
-              NATType nat_type,
+              webrtc::NATType nat_type,
               bool filter_ip,
               bool filter_port) {
   Thread th_int(internal);
@@ -141,10 +141,10 @@ void TestRecv(SocketServer* internal,
   server_addr.SetPort(0);  // Auto-select a port
   th_int.Start();
   th_ext.Start();
-  NATServer* nat =
-      new NATServer(nat_type, th_int, internal, server_addr, server_addr,
-                    th_ext, external, external_addrs[0]);
-  NATSocketFactory* natsf = new NATSocketFactory(
+  webrtc::NATServer* nat =
+      new webrtc::NATServer(nat_type, th_int, internal, server_addr,
+                            server_addr, th_ext, external, external_addrs[0]);
+  webrtc::NATSocketFactory* natsf = new webrtc::NATSocketFactory(
       internal, nat->internal_udp_address(), nat->internal_tcp_address());
 
   webrtc::TestClient* in = nullptr;
@@ -193,14 +193,14 @@ void TestBindings(SocketServer* internal,
                   const webrtc::SocketAddress& internal_addr,
                   SocketServer* external,
                   const webrtc::SocketAddress external_addrs[4]) {
-  TestSend(internal, internal_addr, external, external_addrs, NAT_OPEN_CONE,
-           true);
   TestSend(internal, internal_addr, external, external_addrs,
-           NAT_ADDR_RESTRICTED, true);
+           webrtc::NAT_OPEN_CONE, true);
   TestSend(internal, internal_addr, external, external_addrs,
-           NAT_PORT_RESTRICTED, true);
-  TestSend(internal, internal_addr, external, external_addrs, NAT_SYMMETRIC,
-           false);
+           webrtc::NAT_ADDR_RESTRICTED, true);
+  TestSend(internal, internal_addr, external, external_addrs,
+           webrtc::NAT_PORT_RESTRICTED, true);
+  TestSend(internal, internal_addr, external, external_addrs,
+           webrtc::NAT_SYMMETRIC, false);
 }
 
 // Tests that NATServer filters packets properly.
@@ -208,14 +208,14 @@ void TestFilters(SocketServer* internal,
                  const webrtc::SocketAddress& internal_addr,
                  SocketServer* external,
                  const webrtc::SocketAddress external_addrs[4]) {
-  TestRecv(internal, internal_addr, external, external_addrs, NAT_OPEN_CONE,
-           false, false);
   TestRecv(internal, internal_addr, external, external_addrs,
-           NAT_ADDR_RESTRICTED, true, false);
+           webrtc::NAT_OPEN_CONE, false, false);
   TestRecv(internal, internal_addr, external, external_addrs,
-           NAT_PORT_RESTRICTED, true, true);
-  TestRecv(internal, internal_addr, external, external_addrs, NAT_SYMMETRIC,
-           true, true);
+           webrtc::NAT_ADDR_RESTRICTED, true, false);
+  TestRecv(internal, internal_addr, external, external_addrs,
+           webrtc::NAT_PORT_RESTRICTED, true, true);
+  TestRecv(internal, internal_addr, external, external_addrs,
+           webrtc::NAT_SYMMETRIC, true, true);
 }
 
 bool TestConnectivity(const webrtc::SocketAddress& src,
@@ -357,17 +357,17 @@ class NatTcpTest : public ::testing::Test, public sigslot::has_slots<> {
         ext_vss_(new TestVirtualSocketServer()),
         int_thread_(new Thread(int_vss_.get())),
         ext_thread_(new Thread(ext_vss_.get())),
-        nat_(new NATServer(NAT_OPEN_CONE,
-                           *int_thread_,
-                           int_vss_.get(),
-                           int_addr_,
-                           int_addr_,
-                           *ext_thread_,
-                           ext_vss_.get(),
-                           ext_addr_)),
-        natsf_(new NATSocketFactory(int_vss_.get(),
-                                    nat_->internal_udp_address(),
-                                    nat_->internal_tcp_address())) {
+        nat_(new webrtc::NATServer(webrtc::NAT_OPEN_CONE,
+                                   *int_thread_,
+                                   int_vss_.get(),
+                                   int_addr_,
+                                   int_addr_,
+                                   *ext_thread_,
+                                   ext_vss_.get(),
+                                   ext_addr_)),
+        natsf_(new webrtc::NATSocketFactory(int_vss_.get(),
+                                            nat_->internal_udp_address(),
+                                            nat_->internal_tcp_address())) {
     int_thread_->Start();
     ext_thread_->Start();
   }
@@ -392,8 +392,8 @@ class NatTcpTest : public ::testing::Test, public sigslot::has_slots<> {
   std::unique_ptr<TestVirtualSocketServer> ext_vss_;
   std::unique_ptr<Thread> int_thread_;
   std::unique_ptr<Thread> ext_thread_;
-  std::unique_ptr<NATServer> nat_;
-  std::unique_ptr<NATSocketFactory> natsf_;
+  std::unique_ptr<webrtc::NATServer> nat_;
+  std::unique_ptr<webrtc::NATSocketFactory> natsf_;
   std::unique_ptr<Socket> client_;
   std::unique_ptr<Socket> server_;
   std::unique_ptr<Socket> accepted_;

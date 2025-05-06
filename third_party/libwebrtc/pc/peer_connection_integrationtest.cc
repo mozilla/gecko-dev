@@ -1971,8 +1971,8 @@ class PeerConnectionIntegrationIceStatesTest
   }
 
   void StartStunServer(const SocketAddress& server_address) {
-    stun_server_ = cricket::TestStunServer::Create(firewall(), server_address,
-                                                   *network_thread());
+    stun_server_ =
+        TestStunServer::Create(firewall(), server_address, *network_thread());
   }
 
   bool TestIPv6() {
@@ -2015,7 +2015,7 @@ class PeerConnectionIntegrationIceStatesTest
 
  private:
   uint32_t port_allocator_flags_;
-  cricket::TestStunServer::StunServerPtr stun_server_;
+  TestStunServer::StunServerPtr stun_server_;
 };
 
 // Ensure FakeClockForTest is constructed first (see class for rationale).
@@ -2535,10 +2535,10 @@ TEST_P(PeerConnectionIntegrationTestWithFakeClock,
   static const SocketAddress turn_server_1_external_address{"88.88.88.1", 0};
   static const SocketAddress turn_server_2_internal_address{"99.99.99.0", 3478};
   static const SocketAddress turn_server_2_external_address{"99.99.99.1", 0};
-  cricket::TestTurnServer* turn_server_1 = CreateTurnServer(
+  TestTurnServer* turn_server_1 = CreateTurnServer(
       turn_server_1_internal_address, turn_server_1_external_address);
 
-  cricket::TestTurnServer* turn_server_2 = CreateTurnServer(
+  TestTurnServer* turn_server_2 = CreateTurnServer(
       turn_server_2_internal_address, turn_server_2_external_address);
   // Bypass permission check on received packets so media can be sent before
   // the candidate is signaled.
