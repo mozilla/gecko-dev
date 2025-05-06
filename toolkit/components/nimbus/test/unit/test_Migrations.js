@@ -299,10 +299,13 @@ add_task(async function test_migration_firefoxLabsEnrollments() {
 
     for (const [feature, slug] of Object.entries(LABS_MIGRATION_FEATURE_MAP)) {
       const enrollmentExpected = features.includes(feature);
-      const metadata = ExperimentAPI.getRolloutMetaData({ slug });
+      const enrollment = manager.store.get(slug);
 
       if (enrollmentExpected) {
-        Assert.ok(!!metadata, `There should be an enrollment for slug ${slug}`);
+        Assert.ok(
+          !!enrollment,
+          `There should be an enrollment for slug ${slug}`
+        );
 
         const pref = getEnabledPrefForFeature(feature);
         Assert.equal(
@@ -323,7 +326,7 @@ add_task(async function test_migration_firefoxLabsEnrollments() {
         );
       } else {
         Assert.ok(
-          !metadata,
+          !enrollment,
           `There should not be an enrollment for slug ${slug}`
         );
       }

@@ -40,19 +40,13 @@ add_task(async function test_experimentEnrollment() {
 
   await RemoteSettingsExperimentLoader.updateRecipes("mochitest");
 
-  let experiment = ExperimentAPI.getExperimentMetaData({
-    slug: recipe.slug,
-  });
-
-  Assert.ok(experiment.active, "Should be enrolled in the experiment");
+  let meta = NimbusFeatures.testFeature.getEnrollmentMetadata();
+  Assert.equal(meta.slug, recipe.slug, "Enrollment active");
 
   ExperimentManager.unenroll(recipe.slug);
 
-  experiment = ExperimentAPI.getExperimentMetaData({
-    slug: recipe.slug,
-  });
-
-  Assert.ok(!experiment.active, "Experiment is no longer active");
+  meta = NimbusFeatures.testFeature.getEnrollmentMetadata();
+  Assert.ok(!meta, "Experiment is no longer active");
 
   assertEmptyStore(ExperimentManager.store);
 });
