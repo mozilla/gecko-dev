@@ -1165,7 +1165,7 @@ async function performRequests(monitor, tab, count) {
  */
 function getCodeMirrorValue(monitor) {
   const { document } = monitor.panelWin;
-  return document.querySelector(".CodeMirror").CodeMirror.getValue();
+  return document.querySelector(".CodeMirror")?.CodeMirror.getValue();
 }
 
 /**

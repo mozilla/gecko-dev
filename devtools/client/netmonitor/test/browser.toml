@@ -174,6 +174,8 @@ skip-if = [
 
 ["browser_net_charts-07.js"]
 
+["browser_net_chunked-response.js"]
+
 ["browser_net_clear.js"]
 
 ["browser_net_column-resize-fit.js"]
@@ -232,6 +234,8 @@ https_first_disabled = true # Bug 1898241
 ["browser_net_decode-params.js"]
 
 ["browser_net_decode-url.js"]
+
+["browser_net_delayed-response.js"]
 
 ["browser_net_details_copy.js"]
 fail-if = ["a11y_checks"] # Bug 1849028 clicked element may not be focusable and/or labeled
