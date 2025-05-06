@@ -555,8 +555,8 @@ void VideoSendStreamImpl::ReconfigureVideoEncoder(
     SetParametersCallback callback) {
   RTC_DCHECK_RUN_ON(&thread_checker_);
   RTC_DCHECK_EQ(content_type_, config.content_type);
-  RTC_LOG(LS_VERBOSE) << "Encoder config: " << config.ToString()
-                      << " VideoSendStream config: " << config_.ToString();
+  RTC_LOG(LS_INFO) << "Encoder config: " << config.ToString()
+                   << " VideoSendStream config: " << config_.ToString();
 
   has_active_encodings_ = HasActiveEncodings(config);
   if (has_active_encodings_ && rtp_video_sender_->IsActive() && !IsRunning()) {

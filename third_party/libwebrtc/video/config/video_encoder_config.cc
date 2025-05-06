@@ -44,7 +44,7 @@ std::string VideoStream::ToString() const {
   ss << ", bitrate_priority: " << bitrate_priority.value_or(0);
   ss << ", active: " << active;
   ss << ", scale_down_by: " << scale_resolution_down_by;
-
+  ss << '}';
   return ss.str();
 }
 
@@ -82,8 +82,14 @@ std::string VideoEncoderConfig::ToString() const {
   ss << ", frame_drop_enabled: " << frame_drop_enabled;
   ss << ", encoder_specific_settings: ";
   ss << (encoder_specific_settings != nullptr ? "(ptr)" : "NULL");
-
   ss << ", min_transmit_bitrate_bps: " << min_transmit_bitrate_bps;
+  ss << ", number_of_streams: " << number_of_streams;
+  ss << ", legacy_conference_mode: " << legacy_conference_mode;
+  ss << ", is_quality_scaling_allowed: " << is_quality_scaling_allowed;
+  ss << ", max_qp: " << max_qp;
+  for (size_t n = 0; n < simulcast_layers.size(); ++n) {
+    ss << ", simulcast_layers[" << n << "]: " << simulcast_layers[n].ToString();
+  }
   ss << '}';
   return ss.str();
 }
