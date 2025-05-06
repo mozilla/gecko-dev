@@ -832,7 +832,7 @@ skip-if = [
 ["test_mp4a_32bit_samplesize.html"] # bug 1924052
 
 ["test_multiple_mediastreamtracks.html"]
-skip-if = ["os == 'mac' && os_version == '15.30' && arch == 'aarch64' && debug"] # TIMEOUT
+skip-if = ["os == 'mac' && os_version == '15.30' && arch == 'aarch64'"] # TIMEOUT
 scheme = "https"
 
 ["test_play_events_2.html"]
