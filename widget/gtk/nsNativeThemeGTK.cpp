@@ -909,8 +909,6 @@ bool nsNativeThemeGTK::ThemeDrawsFocusForWidget(nsIFrame* aFrame,
   return false;
 }
 
-bool nsNativeThemeGTK::ThemeNeedsComboboxDropmarker() { return false; }
-
 nsITheme::Transparency nsNativeThemeGTK::GetWidgetTransparency(
     nsIFrame* aFrame, StyleAppearance aAppearance) {
   if (IsWidgetNonNative(aFrame, aAppearance) != NonNative::No) {

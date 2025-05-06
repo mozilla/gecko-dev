@@ -1312,9 +1312,6 @@ bool nsNativeThemeWin::ThemeDrawsFocusForWidget(nsIFrame* aFrame,
       return false;
   }
 }
-
-bool nsNativeThemeWin::ThemeNeedsComboboxDropmarker() { return true; }
-
 nsITheme::Transparency nsNativeThemeWin::GetWidgetTransparency(
     nsIFrame* aFrame, StyleAppearance aAppearance) {
   if (IsWidgetNonNative(aFrame, aAppearance) != NonNative::No) {
