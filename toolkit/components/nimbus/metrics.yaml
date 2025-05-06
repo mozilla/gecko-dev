@@ -27,11 +27,13 @@ nimbus_targeting_environment:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1937207
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1898394
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1949813
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1963160
     data_reviews: &targeting_context_data_reviews
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1928107
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1937207
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1898394
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1949813
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1963160
     notification_emails: &targeting_context_notification_emails
       - beth@mozilla.com
       - project-nimbus@mozilla.com
@@ -100,6 +102,7 @@ nimbus_targeting_environment:
     labels:
       - "activeExperiments"
       - "activeRollouts"
+      - "addonsInfo"
       - "addressesSaved"
       - "archBits"
       - "attributionData"
@@ -243,6 +246,28 @@ nimbus_targeting_context:
       type: array
       items:
         type: string
+
+  addons_info:
+    bugs: *targeting_context_bugs
+    data_reviews: *targeting_context_data_reviews
+    expires: *targeting_context_expiry
+    notification_emails: *targeting_context_notification_emails
+    send_in_pings: *targeting_context_pings
+    description: Information about installed addons.
+    data_sensitivity:
+      - interaction
+    type: object
+    structure:
+      type: object
+      properties:
+        # The IDs of installed addons.
+        addons:
+          type: array
+          items:
+            type: string
+        # Has the user installed addons beyond the built in and system addons?
+        hasInstalledAddons:
+          type: boolean
 
   addresses_saved:
     bugs: *targeting_context_bugs

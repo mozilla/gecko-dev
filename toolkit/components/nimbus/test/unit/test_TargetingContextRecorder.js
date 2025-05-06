@@ -16,6 +16,16 @@ const {
   "resource://nimbus/lib/TargetingContextRecorder.sys.mjs"
 );
 
+const { AddonTestUtils } = ChromeUtils.importESModule(
+  "resource://testing-common/AddonTestUtils.sys.mjs"
+);
+const { ExtensionTestUtils } = ChromeUtils.importESModule(
+  "resource://testing-common/ExtensionXPCShellUtils.sys.mjs"
+);
+
+AddonTestUtils.init(this);
+ExtensionTestUtils.init(this);
+
 const TARGETING_CONTEXT_METRICS = Object.keys(ATTRIBUTE_TRANSFORMS).map(
   normalizeAttributeName
 );
@@ -134,13 +144,19 @@ function assertRecordingFailures({
  *        The callback to register with Glean.
  */
 async function recordAndTestPingSubmission(testFn) {
-  GleanPings.nimbusTargetingContext.testBeforeNextSubmit(testFn);
+  let submitted = false;
+  GleanPings.nimbusTargetingContext.testBeforeNextSubmit(() => {
+    submitted = true;
+    testFn();
+  });
   await recordTargetingContext();
+  Assert.ok(submitted, "Submitted ping");
   Services.fog.testResetFOG();
 }
 
 add_setup(async function test_setup() {
   Services.fog.initializeFOG();
+  await ExtensionTestUtils.startAddonManager();
 });
 
 add_task(async function testAttributeTransforms() {
@@ -162,7 +178,7 @@ add_task(async function testNimbusTargetingContextAllKeysPresent() {
 
   const { cleanup, manager, sandbox } = await setupTest();
 
-  // Glean doesn't serializer empty arrays, so lets put some entries into activeExperiments and
+  // Glean doesn't serialize empty arrays, so lets put some entries into activeExperiments and
   // activeRollouts so that they appear in the context.
   manager.store.set(
     "experiment",
@@ -188,7 +204,7 @@ add_task(async function testNimbusTargetingContextAllKeysPresent() {
     for (const metric of TARGETING_CONTEXT_METRICS) {
       Assert.ok(
         Object.hasOwn(values, metric),
-        `nimbusTargetingContext.${metric} was recorded`
+        `nimbusTargetingContext.${metric} was recorded ${JSON.stringify(values[metric])}`
       );
     }
   });
@@ -554,6 +570,107 @@ add_task(async function testRecordingErrors() {
         },
       ],
       "activeExperiments should have the invalid value in the targetingContextValue metric"
+    );
+  });
+
+  cleanup();
+});
+
+add_task(async function testAddonsInfo() {
+  const { cleanup } = await setupTest();
+
+  await recordAndTestPingSubmission(() => {
+    const values = getRecordedTargetingContextMetrics();
+
+    Assert.ok(
+      Object.hasOwn(values, "addonsInfo"),
+      "addonsInfo in targeting Context"
+    );
+    Assert.equal(
+      values.addonsInfo.hasInstalledAddons,
+      false,
+      "hasInstalledAddons is false"
+    );
+    Assert.deepEqual(
+      values.addonsInfo.addons ?? [],
+      [],
+      "No recorded addon info"
+    );
+  });
+
+  const ext1 = ExtensionTestUtils.loadExtension({
+    useAddonManager: "temporary",
+    manifest: {
+      manifest_version: 2,
+      name: "test-addon",
+      version: "1.0",
+    },
+  });
+
+  await ext1.startup();
+  await recordAndTestPingSubmission(() => {
+    const values = getRecordedTargetingContextMetrics();
+
+    Assert.ok(
+      Object.hasOwn(values, "addonsInfo"),
+      "addonsInfo in targeting Context"
+    );
+    Assert.equal(
+      values.addonsInfo.hasInstalledAddons,
+      true,
+      "hasInstalledAddons is true"
+    );
+    Assert.deepEqual(values.addonsInfo.addons, [ext1.id], "Has one addon");
+  });
+
+  const ext2 = ExtensionTestUtils.loadExtension({
+    useAddonManager: "temporary",
+    manifest: {
+      manifest_version: 2,
+      name: "test-addon-2",
+      version: "2.0",
+    },
+  });
+  await ext2.startup();
+
+  await recordAndTestPingSubmission(() => {
+    const values = getRecordedTargetingContextMetrics();
+
+    Assert.ok(
+      Object.hasOwn(values, "addonsInfo"),
+      "addonsInfo in targeting Context"
+    );
+    Assert.equal(
+      values.addonsInfo.hasInstalledAddons,
+      true,
+      "hasInstalledAddons is true"
+    );
+    Assert.deepEqual(
+      values.addonsInfo.addons,
+      [ext1.id, ext2.id].sort(),
+      "Has two addons"
+    );
+  });
+
+  await ext1.unload();
+  await ext2.unload();
+
+  await recordAndTestPingSubmission(() => {
+    const values = getRecordedTargetingContextMetrics();
+
+    Assert.ok(
+      Object.hasOwn(values, "addonsInfo"),
+      "addonsInfo in targeting Context"
+    );
+    Assert.equal(
+      values.addonsInfo.hasInstalledAddons,
+      false,
+      "hasInstalledAddons is false"
+    );
+    Assert.deepEqual(
+      values.addonsInfo.addons ?? [],
+      [],
+      "No recorded addon info"
     );
   });
 
