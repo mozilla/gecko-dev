@@ -4,4 +4,10 @@
   <string name="mozac_browser_menu_button">မီနူး</string>
   <!-- Content description (not visible, for screen readers etc.): Indicates the overflow menu has a highlight -->
   <string name="mozac_browser_menu_highlighted">အသားပေးအရာ</string>
+  <!-- Label for extensions submenu section -->
+  <string name="mozac_browser_menu_extensions">ဖန်ရှင် တိုးချဲ့သည့် ဆော့ဖ်ဝဲများ</string>
+  <!-- Label for extensions sub menu item for extensions manager -->
+  <string name="mozac_browser_menu_extensions_manager">ဖန်ရှင် တိုးချဲ့သည့် ဆော့ဖ်ဝဲများ ခံ့ခွဲရာ</string>
+  <!-- Content description for the action bar "up" button of the extensions sub menu item -->
+  <string name="mozac_browser_menu_extensions_content_description">ဖန်ရှင် တိုးချဲ့သည့် ဆော့ဖ်ဝဲများ၊ အပေါ်တက်မည်</string>
 </resources>

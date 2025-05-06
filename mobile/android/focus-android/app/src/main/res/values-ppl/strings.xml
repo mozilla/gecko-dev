@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<resources xmlns:moz="http://mozac.org/tools" xmlns:tools="http://schemas.android.com/tools">
+<resources xmlns:tools="http://schemas.android.com/tools">
   <!--
     #######################################################################################
 
@@ -55,7 +55,6 @@
   <string name="menu_settings">Kan titajshitia</string>
   <string name="menu_about">Taipanpa</string>
   <string name="menu_help">Shinechpalewi</string>
-  <string name="menu_rights" moz:removedIn="137">Ne tay mupal</string>
   <!--
     Menu item: This is the label for a menu entry that shows how many trackers have been blocked
     for the currently loaded website. The number of blocked trackers is shown below this label.
@@ -446,8 +445,6 @@
   <string name="onboarding_first_screen_title">Yek shiajsi %1$s</string>
   <!-- New Onboarding flow first screen subtitle the one that appears under title -->
   <string name="onboarding_first_screen_subtitle">Talul.Ichtaka.Te timupulua.</string>
-  <!-- New Onboarding flow first screen button label -->
-  <string name="onboarding_first_screen_button_text" moz:removedIn="137" tools:ignore="UnusedResources">Shipewa</string>
   <!--
     Onboarding second screen: Title
 
@@ -523,36 +520,6 @@
     item in the list of browsers. Clicking it will open the app store installed on the device (usually that's Google Play).
   -->
   <string name="download_firefox" tools:ignore="BrandUsage">Shiktemulti Firefox</string>
-  <!--
-    Text shown in the "Your rights" screen.
-    %1$s will be replaced with the name of the app (e.g. Firefox Focus)
-  -->
-  <string name="your_rights_content1" moz:removedIn="137">%1$s te metztajtanilia tumin wan yaja se software ipal walajkewalis tapujtuk. Mozilla wan sejseuk kichijtiwit mupal.</string>
-  <!--
-    Text shown in the "Your rights" screen.
-    %1$s will be replaced with the name of the app (e.g. Firefox Focus)
-    %2$s will be replaced with a URL linking to the MPL (e.g. https://www.mozilla.org/en-US/MPL/)
-  -->
-  <string name="your_rights_content2" moz:removedIn="137" tools:ignore="IncorrectStraightDoubleQuote">Tiweli tikwi %1$s kwak titakamati tay kituktia &lt;a href="%2$s"&gt;Mozilla Public License&lt;/a&gt; wan sejseuk licenciaj iwan walajkewalis tapujtuk.</string>
-  <!--
-    Text shown in the "Your rights" screen.
-    %1$s will be replaced with the name of the app (e.g. Firefox Focus)
-    %2$s will be replaced with a URL linking to the trademark policy (e.g. https://www.mozilla.org/foundation/trademarks/policy/)
-  -->
-  <string name="your_rights_content3" moz:removedIn="137" tools:ignore="BrandUsage,IncorrectStraightDoubleQuote">Tesu timetzajkawat tikwi ne tay tupal wan ne lijlicenciaj ipal imajmarcaj wawasujtuk ne Fundación Mozilla ush uksé, nian ne itukay ush ichimal Mozilla, FireFox ush %1$s. Su tikneki tikmatiuk ipanpa, shu &lt;a href="%2$s"&gt;nikan&lt;/a&gt;.</string>
-  <!--
-    Text shown in the "Your rights" screen.
-    %1$s will be replaced with the name of the app (e.g. Firefox Focus)
-    %2$s will be replaced with a URL linking to the list of licenses used by the dependencies.
-  -->
-  <string name="your_rights_content4" moz:removedIn="137" tools:ignore="IncorrectStraightDoubleQuote">Ukse icodigoj walajkewalis ipal %1$s weli muajsi tik sejseuk walajkewalis te mutashtawia wan tapujtuk &lt;a href="%2$s"&gt;licenciaj&lt;/a&gt;.</string>
-  <!--
-    Text shown in the "Your rights" screen.
-    %1$s will be replaced with the name of the app (e.g. Firefox Focus)
-    %2$s will be replaced with a URL linking to the GPL
-    %3$s will be replaced with a URL linking to the tracking protection wiki page (e.g. https://wiki.mozilla.org/Security/Tracking_protection#Lists)
-  -->
-  <string name="your_rights_content5" moz:removedIn="137" tools:ignore="IncorrectStraightDoubleQuote">%1$s nusan kikwi ne ilistaj Disconnect, Inc. pal tatentzakwa ken itekiw tepal wan isel tik ne &lt;a href="%2$s"&gt;GNU Licenciaj General Public v3&lt;/a&gt;, wan weli muita &lt;a href="%3$s"&gt;nikan&lt;/a&gt;.</string>
   <!-- Text shown in prompts for GeckoView -->
   <string name="gv_prompt_username_hint">Mutukay usuarioj</string>
   <string name="gv_prompt_password_hint">Ichtaka taketzalis</string>
@@ -687,8 +654,6 @@
   <string name="preference_studies_summary" tools:ignore="BrandUsage">Firefox weliskia kitalia wan kipewaltia tapepetalis kemanian.</string>
   <!-- Learn more link for studies, links to an article for more information about studies. -->
   <string name="studies_learn_more">Shikmatiuk</string>
-  <!-- Dialog message shown when some changes are made on studies -->
-  <string name="studies_restart_app" moz:removedIn="137">Ne aplicación mutzakwas pal mupata yek.</string>
   <!-- Title of the remove studies button -->
   <string name="studies_remove">Shikishti</string>
   <!-- Title of the active section on the studies list -->

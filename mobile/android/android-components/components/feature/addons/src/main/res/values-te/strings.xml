@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<resources xmlns:tools="http://schemas.android.com/tools" xmlns:moz="http://schemas.android.com/apk/res-auto">
+<resources xmlns:tools="http://schemas.android.com/tools">
   <!-- Description for privacy add-on permission. -->
   <string name="mozac_feature_addons_permissions_privacy_description">అంతరంగికత అమరికలను చూడటం, మార్చడం</string>
   <!-- Description for all_urls add-on permission. -->
@@ -32,8 +32,6 @@
   <string name="mozac_feature_addons_permissions_extra_domains_description_plural" tools:ignore="PluralsCandidate">%1$d ఇతర డొమైన్లలో మీ డేటాను చూడగలదు</string>
   <!-- Description for tabs add-on permission. -->
   <string name="mozac_feature_addons_permissions_tabs_description">విహారిణి ట్యాబులను చూడటం</string>
-  <!-- Description for unlimited_storage permission. -->
-  <string name="mozac_feature_addons_permissions_unlimited_storage_description" moz:removedIn="137" tools:ignore="UnusedResources">క్లయింటు వైపు అపరిమిత డేటాను నిల్వచేయడం</string>
   <!-- Description for navigation permission. -->
   <string name="mozac_feature_addons_permissions_web_navigation_description">నావిగేషన్ సమయంలో విహారిణి కార్యకలాపాన్ని చూడటం</string>
   <!-- Description for bookmarks permission. -->

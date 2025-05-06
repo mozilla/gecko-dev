@@ -2830,8 +2830,6 @@
     Search suggestions title for Firefox Suggest.
   -->
   <string name="firefox_suggest_header" tools:ignore="BrandUsage">Firefox 建議</string>
-  <!-- Search suggestions title for trending searches. -->
-  <string name="trending_searches_header" moz:removedIn="137" tools:ignore="UnusedResources">熱門搜尋</string>
   <!--
     Search suggestions title for trending search suggestions.
     %s is a placeholder for the name of the search engine providing the trending search suggestions.
@@ -3572,9 +3570,9 @@
   <!-- Title text instructing the user to unlock private tabs -->
   <string name="pbm_authentication_unlock_private_tabs">解鎖隱私分頁</string>
   <!-- Title text for the contextual feature recommendation (CFR) suggesting the user enable a screen lock to protect private tabs -->
-  <string name="private_tab_cfr_title" tools:ignore="UnusedResources">要鎖定螢幕來隱藏隱私分頁嗎？</string>
+  <string name="private_tab_cfr_title">要鎖定螢幕來隱藏隱私分頁嗎？</string>
   <!-- Negative button text for the contextual feature recommendation (CFR) dismissing the screen lock suggestion -->
-  <string name="private_tab_cfr_negative" tools:ignore="UnusedResources">不用了，謝謝</string>
+  <string name="private_tab_cfr_negative">不用了，謝謝</string>
   <!-- Positive button text for the contextual feature recommendation (CFR) enabling screen lock for private tabs -->
-  <string name="private_tab_cfr_positive" tools:ignore="UnusedResources">鎖定分頁</string>
+  <string name="private_tab_cfr_positive">鎖定分頁</string>
 </resources>

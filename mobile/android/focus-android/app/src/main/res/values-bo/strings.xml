@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<resources xmlns:moz="http://mozac.org/tools" xmlns:tools="http://schemas.android.com/tools">
+<resources xmlns:tools="http://schemas.android.com/tools">
   <!--
     #######################################################################################
 
@@ -50,7 +50,6 @@
   <string name="menu_settings">སྒྲིག་འགོད།</string>
   <string name="menu_about">ངོ་སྤྲོད།</string>
   <string name="menu_help">རོགས་རམ།</string>
-  <string name="menu_rights" moz:removedIn="137">ཁྱེད་ཀྱི་བདག་དབང་།</string>
   <!--
     Menu item: This is the label for a menu entry that shows how many trackers have been blocked
     for the currently loaded website. The number of blocked trackers is shown below this label.

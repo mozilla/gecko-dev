@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<resources xmlns:tools="http://schemas.android.com/tools" xmlns:moz="http://schemas.android.com/apk/res-auto">
+<resources xmlns:tools="http://schemas.android.com/tools">
   <!-- Description for privacy add-on permission. -->
   <string name="mozac_feature_addons_permissions_privacy_description">पढ्नुहोस् र गोपनीयता सेटिंग्स परिमार्जन गर्नुहोस्</string>
   <!-- Description for all_urls add-on permission. -->
@@ -32,8 +32,6 @@
   <string name="mozac_feature_addons_permissions_extra_domains_description_plural" tools:ignore="PluralsCandidate"> %1$d अन्य डोमेनहरुमा तपाइँको डाटा पहुँच गर्नुहोस्</string>
   <!-- Description for tabs add-on permission. -->
   <string name="mozac_feature_addons_permissions_tabs_description">ब्राउजर ट्याबहरू पहुँच गर्नुहोस्</string>
-  <!-- Description for unlimited_storage permission. -->
-  <string name="mozac_feature_addons_permissions_unlimited_storage_description" moz:removedIn="137" tools:ignore="UnusedResources">ग्राहक-साइड डाटाको असीमित रकम भण्डार गर्नुहोस्</string>
   <!-- Description for navigation permission. -->
   <string name="mozac_feature_addons_permissions_web_navigation_description">नेभिगेसनको बखत ब्राउजर गतिविधि पहुँच गर्नुहोस्</string>
   <!-- Description for bookmarks permission. -->

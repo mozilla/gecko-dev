@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<resources xmlns:moz="http://mozac.org/tools" xmlns:tools="http://schemas.android.com/tools">
+<resources xmlns:tools="http://schemas.android.com/tools">
   <!--
     #######################################################################################
 
@@ -55,7 +55,6 @@
   <string name="menu_settings">Iγewwaṛen</string>
   <string name="menu_about">Γef</string>
   <string name="menu_help">Tallalt</string>
-  <string name="menu_rights" moz:removedIn="137">Izerfan-inek</string>
   <string name="menu_terms_of_use">Tiwtilin n useqdec</string>
   <!--
     Menu item: This is the label for a menu entry that shows how many trackers have been blocked
@@ -467,8 +466,6 @@
   <!-- Text for the link used in onboarding_first_screen_privacy_notice_text -->
   <string name="onboarding_first_screen_privacy_notice_link">Tasertit n tbaḍnit.</string>
   <!-- New Onboarding flow first screen button label -->
-  <string name="onboarding_first_screen_button_text" moz:removedIn="137" tools:ignore="UnusedResources">Bdu</string>
-  <!-- New Onboarding flow first screen button label -->
   <string name="onboarding_first_screen_button_agree_and_continue">Qbel syen kemmel</string>
   <!-- In the first screen of new onboarding flow, additional accessibility description for content that contain urls. -->
   <string name="a11y_link_available">Aseɣwen yellan</string>
@@ -549,36 +546,6 @@
     item in the list of browsers. Clicking it will open the app store installed on the device (usually that's Google Play).
   -->
   <string name="download_firefox" tools:ignore="BrandUsage">Sader Firefox</string>
-  <!--
-    Text shown in the "Your rights" screen.
-    %1$s will be replaced with the name of the app (e.g. Firefox Focus)
-  -->
-  <string name="your_rights_content1" moz:removedIn="137">"%1$s baṭṭel s waɣbalu yeldin ixeddem-it Mozilla d imettekiyen nniḍen. "</string>
-  <!--
-    Text shown in the "Your rights" screen.
-    %1$s will be replaced with the name of the app (e.g. Firefox Focus)
-    %2$s will be replaced with a URL linking to the MPL (e.g. https://www.mozilla.org/en-US/MPL/)
-  -->
-  <string name="your_rights_content2" moz:removedIn="137" tools:ignore="IncorrectStraightDoubleQuote">%1$s yella ddaw tewtilin n &lt;a href="%2$s"&gt;Turagt tazayazt n Mozilla&lt;/a&gt;akked turagin-nniḍen n uɣbalu yeldin.</string>
-  <!--
-    Text shown in the "Your rights" screen.
-    %1$s will be replaced with the name of the app (e.g. Firefox Focus)
-    %2$s will be replaced with a URL linking to the trademark policy (e.g. https://www.mozilla.org/foundation/trademarks/policy/)
-  -->
-  <string name="your_rights_content3" moz:removedIn="137" tools:ignore="BrandUsage,IncorrectStraightDoubleQuote">Ur ak·am-yettmuddu ula d yiwen uzref neɣ  turagt ɣef tecṛaḍ n yisebtar n tkebbanit n Mozilla neɣ n wis kraḍ, rnu ɣer-s ula d ismawen neɣ iluguten n Mozilla, Firefox neɣ ismawen %1$s. ugar n talɣut ad tettwaf deg &lt;a href="%2$s"&gt;dagi&lt;/a&gt;.</string>
-  <!--
-    Text shown in the "Your rights" screen.
-    %1$s will be replaced with the name of the app (e.g. Firefox Focus)
-    %2$s will be replaced with a URL linking to the list of licenses used by the dependencies.
-  -->
-  <string name="your_rights_content4" moz:removedIn="137" tools:ignore="IncorrectStraightDoubleQuote">Tangalt taɣbalut-nniḍen i %1$s tella deg waṭas n &lt;a href="%2$s"&gt;turagin&lt;/a&gt; tiyaḍ yemgaraden d tilelliyin yerna n uɣbalu yeldin.</string>
-  <!--
-    Text shown in the "Your rights" screen.
-    %1$s will be replaced with the name of the app (e.g. Firefox Focus)
-    %2$s will be replaced with a URL linking to the GPL
-    %3$s will be replaced with a URL linking to the tracking protection wiki page (e.g. https://wiki.mozilla.org/Security/Tracking_protection#Lists)
-  -->
-  <string name="your_rights_content5" moz:removedIn="137" tools:ignore="IncorrectStraightDoubleQuote">%1$s isseqdac daɣen tibdarin n usewḥel i d-yettwamudden sɣur Disconnect, Inc. am leqdic illeli ddaw &lt;a href="%2$s"&gt;Turagt tazayazt tamatut GNU v3&lt;/a&gt;, yernza tella &lt;a href="%3$s"&gt;dagi&lt;/a&gt;.</string>
   <!-- Text shown in prompts for GeckoView -->
   <string name="gv_prompt_username_hint">Isem n useqdac</string>
   <string name="gv_prompt_password_hint">Awal uffir</string>
@@ -725,8 +692,6 @@
   <string name="preference_studies_summary" tools:ignore="BrandUsage">Firefox yezmer ad isebded yerna ad iseddu leqraya seg wakud ɣer wayeḍ.</string>
   <!-- Learn more link for studies, links to an article for more information about studies. -->
   <string name="studies_learn_more">Issin ugar</string>
-  <!-- Dialog message shown when some changes are made on studies -->
-  <string name="studies_restart_app" moz:removedIn="137">Asnas ad yemdel i wakken ad ttusnasen ibiddilen</string>
   <!-- Title of the remove studies button -->
   <string name="studies_remove">Kkes</string>
   <!-- Title of the active section on the studies list -->

@@ -40,8 +40,20 @@
   <string name="mozac_browser_errorpages_security_bad_cert_accept_temporary">Tanggapin ang Panganib at Magpatuloy</string>
   <!-- The document title and heading of the error page shown when a website uses HSTS. -->
   <string name="mozac_browser_errorpages_security_bad_hsts_cert_title">Ang Website na ito ay na ngangailangan ng sekyur na koneksyon</string>
+  <!-- The error message shown when a website uses HSTS. -->
+  <string name="mozac_browser_errorpages_security_bad_hsts_cert_message">
+      &lt;ul&gt;
+         &lt;li&gt;Ang pahinang sinusubukan mong tingnan ay hindi maipakita dahil nangangailangan ang website na ito ng isang ligtas na koneksyon.&lt;/li&gt;
+         &lt;li&gt;Malamang sa malamang, ang issue ay konektado sa website mismo, at wala kang magagawa para maayos ito.&lt;/li&gt;
+         &lt;li&gt;Maaari mong abisuhan ang administrator ng website tungkol sa problemang ito.&lt;/li&gt;
+      &lt;/ul&gt;
+    </string>
   <!-- The text shown inside the advanced button used to expand the advanced options. It's only shown when a website uses HSTS. -->
   <string name="mozac_browser_errorpages_security_bad_hsts_cert_advanced">Pumaroon…</string>
+  <!-- The advanced certificate information shown when a website uses HSTS. The %1$s will be replaced by the website URL and %2$s will be replaced by the app name. It's only shown when a website uses HSTS. -->
+  <string name="mozac_browser_errorpages_security_bad_hsts_cert_techInfo2">
+        &lt;label&gt; May security policy ang &lt;b&gt;%1$s&lt;/b&gt; na tinatawag na HTTP Strict Transport Security (HSTS), ibig sabihin, makakakonekta lang ang &lt;b&gt;%2$s&lt;/b&gt; kung ligtas ang koneksyon. Hindi ka makakapagdagdag ng exception para mabisita ito. &lt;/label&gt;
+    </string>
   <!-- The text shown inside the advanced options button used to go back. It's only shown if the user has expanded the advanced options. -->
   <string name="mozac_browser_errorpages_security_bad_hsts_cert_back">Bumalik</string>
   <!-- The document title and heading of the error page shown when the user's network connection is interrupted while connecting to a website. -->
@@ -83,6 +95,14 @@
     </string>
   <!-- The document title and heading of the error page shown when the browser gets stuck in an infinite loop when loading a website. -->
   <string name="mozac_browser_errorpages_redirect_loop_title">Ang pahina ay hindi nagdidirekta nang maayos</string>
+  <!-- The error message shown when the browser gets stuck in an infinite loop when loading a website. -->
+  <string name="mozac_browser_errorpages_redirect_loop_message">
+      &lt;p&gt;Tumigil na ang browser na subukang kunin ang hinihinging bagay. Nireredirect ng site ang request sa paraang hindi na ito matatapos.&lt;/p&gt;
+      &lt;ul&gt;
+        &lt;li&gt;Nag-disable ka ba o nagharang ng mga cookie na kinakailangan ng site na ito?&lt;/li&gt;
+        &lt;li&gt;Kung hindi makaresolba ang pagtanggap ng mga cookie, malamang ay problema na ito sa server configuration at hindi dahil sa device mo.&lt;/li&gt;
+      &lt;/ul&gt;
+    </string>
   <!-- The document title and heading of the error page shown when a website cannot be loaded because the browser is in offline mode. -->
   <string name="mozac_browser_errorpages_offline_title">Offline Mode</string>
   <!-- The error message shown when a website cannot be loaded because the browser is in offline mode. -->
@@ -95,6 +115,10 @@
     </string>
   <!-- The document title and heading of the error page shown when the browser prevents loading a website on a restricted port. -->
   <string name="mozac_browser_errorpages_port_blocked_title">Hinarang ang Port dahil sa mga kadahilanang pangseguridad</string>
+  <!-- The error message shown when the browser prevents loading a website on a restricted port. -->
+  <string name="mozac_browser_errorpages_port_blocked_message">
+      &lt;p&gt;Ang hininging address ay nagbanggit ng port (hal. &lt;q&gt;mozilla.org:80&lt;/q&gt; para sa port 80 sa mozilla.org) na karaniwang ginagamit para sa mga bagay na &lt;em&gt;bukod pa&lt;/em&gt; sa pag-browse ng Web. Kinansela ng browser ang request para sa iyong proteksyon at seguridad.&lt;/p&gt;
+    </string>
   <!-- The document title and heading of the error page shown when the Internet connection is disrupted while loading a website. -->
   <string name="mozac_browser_errorpages_net_reset_title">Ang koneksyon ay na-reset</string>
   <!-- The error message shown when the Internet connection is disrupted while loading a website. -->
@@ -241,6 +265,10 @@
   <string name="mozac_browser_errorpages_safe_phishing_uri_message">
       &lt;p&gt;This web page at %1$s has been reported as a deceptive site and has been blocked based on your security preferences.&lt;/p&gt;
     </string>
+  <!-- The title of the error page for websites that do not support HTTPS when HTTPS-Only is turned on -->
+  <string name="mozac_browser_errorpages_httpsonly_title">Walang Pwedeng Gamiting Ligtas na Site</string>
+  <!-- The text of the error page for websites that do not support HTTPS when HTTPS-Only is turned on. %1$s will be replaced with the URL of the website. -->
+  <string name="mozac_browser_errorpages_httpsonly_message">Pinagana mo ang HTTPS-Only Mode para sa pinag-ibayong seguridad, at walang pwedeng gamiting HTTPS na bersyon ng &lt;em&gt;%1$s&lt;/em&gt;.</string>
   <!-- Button on error page for websites that do not support HTTPS when HTTPS-Only is turned on. Clicking the button allows the user to nevertheless load the website using HTTP. -->
   <string name="mozac_browser_errorpages_httpsonly_button">Tumuloy sa HTTP Site</string>
 </resources>
