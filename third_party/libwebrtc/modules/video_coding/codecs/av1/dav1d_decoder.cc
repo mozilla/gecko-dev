@@ -155,21 +155,36 @@ int32_t Dav1dDecoder::Decode(const EncodedImage& encoded_image,
     return WEBRTC_VIDEO_CODEC_ERROR;
   }
 
+  int width = dav1d_picture.p.w;
+  int height = dav1d_picture.p.h;
+  if (dav1d_picture.frame_hdr) {
+    // Remove padding.
+    if (dav1d_picture.frame_hdr->render_width > 0 &&
+        dav1d_picture.frame_hdr->render_height > 0) {
+      width = std::min(width, dav1d_picture.frame_hdr->render_width);
+      height = std::min(height, dav1d_picture.frame_hdr->render_height);
+    } else {
+      RTC_LOG(LS_WARNING) << "Dav1dDecoder::Decode invalid render resolution "
+                          << dav1d_picture.frame_hdr->render_width << "x"
+                          << dav1d_picture.frame_hdr->render_height;
+    }
+  }
+
   rtc::scoped_refptr<VideoFrameBuffer> wrapped_buffer;
   if (dav1d_picture.p.layout == DAV1D_PIXEL_LAYOUT_I420) {
     wrapped_buffer = WrapI420Buffer(
-        dav1d_picture.p.w, dav1d_picture.p.h,
-        static_cast<uint8_t*>(dav1d_picture.data[0]), dav1d_picture.stride[0],
-        static_cast<uint8_t*>(dav1d_picture.data[1]), dav1d_picture.stride[1],
-        static_cast<uint8_t*>(dav1d_picture.data[2]), dav1d_picture.stride[1],
+        width, height, static_cast<uint8_t*>(dav1d_picture.data[0]),
+        dav1d_picture.stride[0], static_cast<uint8_t*>(dav1d_picture.data[1]),
+        dav1d_picture.stride[1], static_cast<uint8_t*>(dav1d_picture.data[2]),
+        dav1d_picture.stride[1],
         // To keep |scoped_dav1d_picture.Picture()| alive
         [scoped_dav1d_picture] {});
   } else if (dav1d_picture.p.layout == DAV1D_PIXEL_LAYOUT_I444) {
     wrapped_buffer = WrapI444Buffer(
-        dav1d_picture.p.w, dav1d_picture.p.h,
-        static_cast<uint8_t*>(dav1d_picture.data[0]), dav1d_picture.stride[0],
-        static_cast<uint8_t*>(dav1d_picture.data[1]), dav1d_picture.stride[1],
-        static_cast<uint8_t*>(dav1d_picture.data[2]), dav1d_picture.stride[1],
+        width, height, static_cast<uint8_t*>(dav1d_picture.data[0]),
+        dav1d_picture.stride[0], static_cast<uint8_t*>(dav1d_picture.data[1]),
+        dav1d_picture.stride[1], static_cast<uint8_t*>(dav1d_picture.data[2]),
+        dav1d_picture.stride[1],
         // To keep |scoped_dav1d_picture.Picture()| alive
         [scoped_dav1d_picture] {});
   } else {
