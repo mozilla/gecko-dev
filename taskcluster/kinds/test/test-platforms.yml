@@ -304,17 +304,12 @@ windows11-64-24h2-nightlyasrelease/opt:
 ##
 # MacOS X platforms (matching /macosx.*/)
 
-macosx1500-64/debug:
-    build-platform: macosx64/debug
-    build-signing-label: repackage-macosx64/debug
-    test-sets:
-        - macosx1500-64-jittests
-
 macosx1500-aarch64/debug:
     build-platform: macosx64-aarch64/debug
     build-signing-label: repackage-macosx64-aarch64/debug
     test-sets:
         - macosx1500-aarch64-tests
+        - macosx1500-64-jittests
 
 macosx1500-aarch64-shippable/opt:
     build-platform: macosx64-shippable/opt
