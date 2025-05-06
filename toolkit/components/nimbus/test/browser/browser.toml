@@ -15,8 +15,6 @@ skip-if = [
 ["browser_nimbus_telemetry.js"]
 tags = "remote-settings"
 
-["browser_prefs.js"]
-
 ["browser_remotesettings_experiment_enroll.js"]
 
 ["browser_remotesettingsexperimentloader_force_enrollment.js"]

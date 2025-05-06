@@ -29,6 +29,8 @@ ChromeUtils.defineLazyGetter(lazy, "log", () => {
   return new Logger("ExperimentManager");
 });
 
+/** @typedef {import("./PrefFlipsFeature.sys.mjs").PrefBranch} PrefBranch */
+
 const TELEMETRY_DEFAULT_EXPERIMENT_TYPE = "nimbus";
 
 const UPLOAD_ENABLED_PREF = "datareporting.healthreport.uploadEnabled";
@@ -590,28 +592,13 @@ export class _ExperimentManager {
     source
   ) {
     const { prefs, prefsToSet } = this._getPrefsForBranch(branch, isRollout);
-    const prefNames = new Set(prefs.map(entry => entry.name));
 
-    // Unenroll in any conflicting prefFlips enrollments. Even though the
-    // rollout does not have an effect, if it also *would* control any of the
-    // same prefs, it would cause a conflict when it became active.
-    const prefFlipEnrollments = [
-      this.store.getRolloutForFeature(PrefFlipsFeature.FEATURE_ID),
-      this.store.getExperimentForFeature(PrefFlipsFeature.FEATURE_ID),
-    ].filter(enrollment => enrollment);
-
-    for (const enrollment of prefFlipEnrollments) {
-      const featureValue = _ExperimentManager.getFeatureConfigFromBranch(
-        enrollment.branch,
-        PrefFlipsFeature.FEATURE_ID
-      ).value;
-
-      for (const prefName of Object.keys(featureValue.prefs)) {
-        if (prefNames.has(prefName)) {
-          this._unenroll(enrollment, UnenrollmentCause.PrefFlipsConflict(slug));
-          break;
-        }
-      }
+    // Unenroll in any conflicting prefFlips enrollments.
+    if (prefsToSet.length) {
+      this._prefFlips._handleSetPrefConflict(
+        slug,
+        prefs.map(p => p.name)
+      );
     }
 
     /** @type {Enrollment} */
@@ -1088,9 +1075,12 @@ export class _ExperimentManager {
           } else {
             // If there is an active prefFlips experiment for this pref on this
             // branch, we must use its originalValue.
-            const prefFlip = this._prefFlips._prefs.get(prefName);
-            if (prefFlip?.branch === prefBranch) {
-              originalValue = prefFlip.originalValue;
+            const prefFlipValue = this._prefFlips._getOriginalValue(
+              prefName,
+              prefBranch
+            );
+            if (typeof prefFlipValue !== "undefined") {
+              originalValue = prefFlipValue;
             } else {
               originalValue = lazy.PrefUtils.getPref(prefName, {
                 branch: prefBranch,
@@ -1551,6 +1541,60 @@ export class _ExperimentManager {
     for (const enrollment of enrollments) {
       this._unenroll(enrollment, UnenrollmentCause.ChangedPref(changedPref));
     }
+  }
+
+  /**
+   * Handle a potential conflict between a setPref experiment and a prefFlips
+   * rollout.
+   *
+   * This should only be called by this manager's `PrefFlipsFeature` instance.
+   *
+   * @param {string} conflictingSlug
+   *        The enrolling prefFlips slug.
+   *
+   * @param {[string, PrefBranch][]>} prefs
+   *        The prefs that will be set by the pref flip experiment, along with
+   *        the branch each pref will be set on.
+   *
+   * @returns {Record<string, PrefValue>}
+   *          The original values of any prefs that were being set by setPref
+   *          enrollments.
+   */
+  _handlePrefFlipsConflict(conflictingSlug, prefs) {
+    const originalValues = {};
+
+    for (const [pref, branch] of prefs) {
+      const entry = this._prefs.get(pref);
+
+      if (!entry) {
+        continue;
+      }
+
+      // We are going to unenroll even if the setPref experiment was using the
+      // same pref on a different branch.
+      for (const slug of entry.slugs) {
+        const enrollment = this.store.get(slug);
+
+        // The branch and originalValue are not stored in the entry, but are
+        // instead stored on the enrollment.
+        if (!Object.hasOwn(originalValues, pref)) {
+          const prefInfo = enrollment.prefs.find(
+            p => p.name === pref && p.branch === branch
+          );
+
+          if (prefInfo) {
+            originalValues[pref] = prefInfo.originalValue;
+          }
+        }
+
+        this._unenroll(
+          enrollment,
+          UnenrollmentCause.PrefFlipsConflict(conflictingSlug)
+        );
+      }
+    }
+
+    return originalValues;
   }
 
   /**

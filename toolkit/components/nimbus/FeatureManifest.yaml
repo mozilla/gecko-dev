@@ -70,6 +70,7 @@ prefFlips:
   description: Flip arbitrary prefs. Controlled by release management.
   owner: beth@mozilla.com
   hasExposure: false
+  allowCoenrollment: true
   variables:
     prefs:
       type: json

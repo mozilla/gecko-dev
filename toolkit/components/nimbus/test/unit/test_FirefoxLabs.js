@@ -9,6 +9,10 @@ function setupTest({ ...ctx }) {
   return NimbusTestUtils.setupTest({ ...ctx, clearTelemetry: true });
 }
 
+add_setup(function () {
+  Services.fog.initializeFOG();
+});
+
 add_task(async function test_all() {
   const { sandbox, manager, initExperimentAPI, cleanup } = await setupTest({
     experiments: [

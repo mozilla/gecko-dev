@@ -46,9 +46,9 @@ function assertNoObservers(manager) {
     "There should be no active pref observers"
   );
   Assert.equal(
-    manager._prefFlips._prefs.size,
+    manager._prefFlips._registeredPrefCount,
     0,
-    "There should be no prefFlips feature observers"
+    "There should be no prefFlips pref observers"
   );
 }
 
