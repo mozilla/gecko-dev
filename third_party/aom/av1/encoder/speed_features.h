@@ -482,11 +482,6 @@ typedef struct HIGH_LEVEL_SPEED_FEATURES {
    * 1: Conditionally allow motion estimation based on 4x4 sub-blocks variance.
    */
   int allow_sub_blk_me_in_tf;
-
-  /*!
-   * Enable/disable temporal mv prediction.
-   */
-  int disable_ref_frame_mvs;
 } HIGH_LEVEL_SPEED_FEATURES;
 
 /*!
@@ -597,10 +592,6 @@ typedef struct GLOBAL_MOTION_SPEED_FEATURES {
 
   // Number of refinement steps to apply after initial model generation
   int num_refinement_steps;
-
-  // Error advantage threshold level used to determine whether global motion
-  // compensation should be enabled
-  int gm_erroradv_tr_level;
 } GLOBAL_MOTION_SPEED_FEATURES;
 
 typedef struct PARTITION_SPEED_FEATURES {
