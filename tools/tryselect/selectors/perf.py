@@ -60,8 +60,8 @@ PERFCOMPARE_BASE_URL = (
     "baseRev=%s&newRev=%s&baseRepo=try&newRepo=try&framework=%s"
 )
 PERFCOMPARE_BASE_URL_GIT = (
-    "https://perf.compare/compare-results?"
-    "baseHash=%s&newHash=%s&baseRepo=try&newRepo=try&framework=%s"
+    "https://perf.compare/compare-hash-results?"
+    "baseHash=%s&newHash=%s&baseHashDate=%s&newHashDate=%s&baseRepo=try&newRepo=try&framework=%s"
 )
 TREEHERDER_TRY_BASE_URL = "https://treeherder.mozilla.org/jobs?repo=try&revision=%s"
 TREEHERDER_ALERT_TASKS_URL = (
@@ -1075,14 +1075,14 @@ class PerfParser(CompareParser):
 
         :param selected_tasks list: The list of tasks selected by the user
         :param base_commit str: The base commit to search
-        :return: The base_revision_treeherder if found, else None
+        :return: a tuple (base_revision_treeherder, date) if found, else (None, None))
         """
         today = datetime.now()
         expired_date = (today - timedelta(weeks=2)).strftime("%Y-%m-%d")
         today = today.strftime("%Y-%m-%d")
 
         if not cache_file.is_file():
-            return
+            return None, None
 
         with cache_file.open("r") as f:
             cache_data = json.load(f)
@@ -1112,7 +1112,8 @@ class PerfParser(CompareParser):
         if cached_base_commit:
             for push in cached_base_commit:
                 if set(selected_tasks) <= set(push["tasks"]):
-                    return push["base_revision_treeherder"]
+                    return push["base_revision_treeherder"], push["date"]
+        return None, None
 
     def save_revision_treeherder(selected_tasks, base_commit):
         """
@@ -1286,12 +1287,15 @@ class PerfParser(CompareParser):
                 # Don't cache the base revision when a custom comparison is being performed
                 # since the base revision is now unique and not general to all pushes
                 if ON_GIT and HG_TO_GIT_MIGRATION_COMPLETE:
-                    PerfParser.push_info.base_hash = PerfParser.check_cached_revision(
+                    (
+                        PerfParser.push_info.base_hash,
+                        PerfParser.push_info.base_hash_date,
+                    ) = PerfParser.check_cached_revision(
                         selected_tasks, base_commit_hash
                     )
                     base_run_flag = PerfParser.push_info.base_hash
                 else:
-                    PerfParser.push_info.base_revision = (
+                    PerfParser.push_info.base_revision, _ = (
                         PerfParser.check_cached_revision(selected_tasks, compare_commit)
                     )
                     base_run_flag = PerfParser.push_info.base_revision
@@ -1325,6 +1329,9 @@ class PerfParser(CompareParser):
 
                 PerfParser.push_info.base_revision = log_processor.revision
                 PerfParser.push_info.base_hash = base_commit_hash
+                PerfParser.push_info.base_hash_date = datetime.today().strftime(
+                    "%Y-%m-%d"
+                )
                 if base_comparator:
                     if ON_GIT and HG_TO_GIT_MIGRATION_COMPLETE:
                         PerfParser.save_revision_treeherder(
@@ -1362,6 +1369,7 @@ class PerfParser(CompareParser):
 
             PerfParser.push_info.new_revision = log_processor.revision
             PerfParser.push_info.new_hash = new_commit_hash
+            PerfParser.push_info.new_hash_date = datetime.today().strftime("%Y-%m-%d")
             comparator_obj.teardown_new_revision()
 
         finally:
@@ -1646,15 +1654,13 @@ def run(**kwargs):
         compareview_url = (
             PERFHERDER_BASE_URL % PerfParser.push_info.get_perfcompare_settings()
         )
+        compareview_url_print = f" The old comparison tool is still available at this URL:\n {compareview_url}\n"
         if HG_TO_GIT_MIGRATION_COMPLETE:
             perfcompare_url = (
                 PERFCOMPARE_BASE_URL_GIT
                 % PerfParser.push_info.get_perfcompare_settings_git()
             )
-            compareview_url = (
-                PERFHERDER_BASE_URL_GIT
-                % PerfParser.push_info.get_perfcompare_settings_git()
-            )
+            compareview_url_print = ""
         original_try_url = TREEHERDER_TRY_BASE_URL % PerfParser.push_info.base_revision
         # Bug 1958944 - Make gathering of base/new revisions optional
         local_change_try_url = (
@@ -1664,8 +1670,7 @@ def run(**kwargs):
         print(
             "\n!!!NOTE!!!\n You'll be able to find a performance comparison here "
             "once the tests are complete (ensure you select the right "
-            f"framework):\n {perfcompare_url}\n\n"
-            f" The old comparison tool is still available at this URL:\n {compareview_url}\n"
+            f"framework):\n {perfcompare_url}\n\n{compareview_url_print}"
         )
         print("\n*******************************************************")
         print("*          2 commits/try-runs are created...          *")

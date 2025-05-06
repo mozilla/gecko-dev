@@ -16,8 +16,10 @@ class PerfPushInfo:
     ):
         self.base_revision = base_revision
         self.base_hash = base_hash
+        self.base_hash_date = base_hash
         self.new_revision = new_revision
         self.new_hash = new_hash
+        self.new_hash_date = new_hash
         self.framework = framework
         self.finished_run = False
 
@@ -55,6 +57,23 @@ class PerfPushInfo:
         self._new_hash = new_hash
         self.finished_run = True
 
+    @property
+    def new_hash_date(self):
+        return self._new_hash_date
+
+    @new_hash_date.setter
+    def new_hash_date(self, new_hash_date):
+        self._new_hash_date = new_hash_date
+        self.finished_run = True
+
+    @property
+    def base_hash_date(self):
+        return self._base_hash_date
+
+    @base_hash_date.setter
+    def base_hash_date(self, base_hash_date):
+        self._base_hash_date = base_hash_date
+
     def get_perfcompare_settings(self):
         """Returns all the settings required to setup a perfcompare URL."""
         return (
@@ -68,5 +87,7 @@ class PerfPushInfo:
         return (
             self.base_hash,
             self.new_hash,
+            self.base_hash_date,
+            self.new_hash_date,
             self.framework,
         )

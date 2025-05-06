@@ -7,6 +7,7 @@ import os
 import pathlib
 import shutil
 import tempfile
+from datetime import datetime
 from unittest import mock
 
 import mozunit
@@ -950,7 +951,7 @@ def test_category_expansion_with_non_pgo_flag(category_options, call_counts):
             ),
         ),
         (
-            {"cached_revision": "cached_base_revision"},
+            {"cached_revision": ["cached_base_revision", "2024-04-04"]},
             [10, 1, 1, 10, 2, 0],
             2,
             (
@@ -1153,7 +1154,7 @@ def test_full_run(options, call_counts, log_ind, expected_log_message):
         assert len(fzf_side_effects) >= call_counts[0]
 
         fzf.side_effect = fzf_side_effects
-        ccr.return_value = options.get("cached_revision", "")
+        ccr.return_value = options.get("cached_revision", (None, None))
 
         with category_reset():
             run(**options)
@@ -1177,11 +1178,9 @@ def test_full_run(options, call_counts, log_ind, expected_log_message):
             (
                 "\n!!!NOTE!!!\n You'll be able to find a performance comparison "
                 "here once the tests are complete (ensure you select the right framework):\n"
-                " https://perf.compare/compare-results?"
-                f"baseHash={hash('mockedmocked')}&newHash={hash('mocked100')}&baseRepo=try&newRepo=try&framework=1\n\n"
-                " The old comparison tool is still available at this URL:\n"
-                " https://treeherder.mozilla.org/perfherder/compare?originalProject=try&original"
-                f"Hash={hash('mockedmocked')}&newProject=try&newHash={hash('mocked100')}&framework=1\n"
+                " https://perf.compare/compare-hash-results?"
+                f"baseHash={hash('mockedmocked')}&newHash={hash('mocked100')}&baseHashDate=2025-01-01&newHashDate=2025-01-01"
+                f"&baseRepo=try&newRepo=try&framework=1\n\n"
             ),
         ),
     ],
@@ -1207,6 +1206,8 @@ def test_full_run_git_migration(options, call_counts, log_ind, expected_log_mess
     ) as tests_mock, mock.patch(
         "tryselect.selectors.perf.requests"
     ) as requests_mock, mock.patch(
+        "tryselect.selectors.perf.datetime"
+    ) as mock_datetime, mock.patch(
         "tryselect.selectors.perf.HG_TO_GIT_MIGRATION_COMPLETE", return_value=True
     ), mock.patch(
         "tryselect.selectors.perf.ON_GIT", return_value=True
@@ -1279,7 +1280,8 @@ def test_full_run_git_migration(options, call_counts, log_ind, expected_log_mess
         assert len(fzf_side_effects) >= call_counts[0]
 
         fzf.side_effect = fzf_side_effects
-        ccr.return_value = options.get("cached_revision", "")
+        ccr.return_value = options.get("cached_revision", (None, None))
+        mock_datetime.today.return_value = datetime(2025, 1, 1)
 
         with category_reset():
             run(**options)
@@ -1453,7 +1455,7 @@ def test_apk_upload(apk_name, apk_content, should_fail, failure_message):
                     },
                 ],
             },
-            "2b04563b5",
+            ("2b04563b5", "2023-03-31"),
             [1, 0],
             True,
         ),
@@ -1471,7 +1473,7 @@ def test_apk_upload(apk_name, apk_content, should_fail, failure_message):
                     },
                 ],
             },
-            "2b04563b5",
+            ("2b04563b5", "2023-03-31"),
             [1, 0],
             True,
         ),
@@ -1486,7 +1488,7 @@ def test_apk_upload(apk_name, apk_content, should_fail, failure_message):
                     },
                 ],
             },
-            None,
+            (None, None),
             [1, 0],
             True,
         ),
@@ -1504,21 +1506,21 @@ def test_apk_upload(apk_name, apk_content, should_fail, failure_message):
                     },
                 ],
             },
-            None,
+            (None, None),
             [1, 0],
             True,
         ),
         (
             ([], None),
             {},
-            None,
+            (None, None),
             [1, 1],
             True,
         ),
         (
             ([], None),
             {},
-            None,
+            (None, None),
             [0, 0],
             False,
         ),
