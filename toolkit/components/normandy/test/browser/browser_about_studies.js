@@ -647,7 +647,10 @@ decorate_task(
 
 add_task(async function test_nimbus_about_studies_experiment() {
   const recipe = NimbusTestUtils.factories.recipe("about-studies-foo");
-  const { slug: activeBranchSlug } = await ExperimentManager.enroll(recipe);
+  await ExperimentManager.enroll(recipe);
+  const activeBranchSlug = ExperimentAPI.getActiveBranch({
+    slug: recipe.slug,
+  })?.slug;
   await BrowserTestUtils.withNewTab(
     { gBrowser, url: "about:studies", activeBranchSlug },
     async browser => {

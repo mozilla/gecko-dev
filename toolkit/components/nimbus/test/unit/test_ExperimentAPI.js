@@ -232,6 +232,101 @@ add_task(async function test_updateExperiment_eventEmit_off() {
   cleanup();
 });
 
+add_task(async function test_getActiveBranch() {
+  const { manager, cleanup } = await NimbusTestUtils.setupTest();
+  const store = manager.store;
+
+  const experiment = NimbusTestUtils.factories.experiment("foo", {
+    branch: {
+      slug: "variant",
+      ratio: 1,
+      features: [{ featureId: "green", value: {} }],
+    },
+  });
+
+  store.addEnrollment(experiment);
+
+  Assert.deepEqual(
+    ExperimentAPI.getActiveBranch({ featureId: "green" }),
+    experiment.branch,
+    "Should return feature of active experiment"
+  );
+
+  manager.unenroll(experiment.slug);
+  cleanup();
+});
+
+add_task(async function test_getActiveBranch_safe() {
+  const { sandbox, manager, cleanup } = await NimbusTestUtils.setupTest();
+
+  sandbox.stub(manager.store, "getAllActiveExperiments").throws();
+
+  try {
+    Assert.equal(
+      ExperimentAPI.getActiveBranch({ featureId: "green" }),
+      null,
+      "Should not throw"
+    );
+  } catch (e) {
+    Assert.ok(false, "Should catch error in ExperimentAPI");
+  }
+
+  cleanup();
+});
+
+add_task(async function test_getActiveBranch_storeFailure() {
+  const { sandbox, manager, cleanup } = await NimbusTestUtils.setupTest();
+  const store = manager.store;
+
+  const experiment = NimbusTestUtils.factories.experiment("foo", {
+    branch: {
+      slug: "variant",
+      ratio: 1,
+      features: [{ featureId: "green", value: {} }],
+    },
+  });
+
+  store.addEnrollment(experiment);
+  // Adding stub later because `addEnrollment` emits update events
+  const stub = sandbox.stub(store, "emit");
+  // Call getActiveBranch to trigger an activation event
+  sandbox.stub(store, "getAllActiveExperiments").throws();
+  try {
+    ExperimentAPI.getActiveBranch({ featureId: "green" });
+  } catch (e) {
+    /* This is expected */
+  }
+
+  Assert.equal(stub.callCount, 0, "Not called if store somehow fails");
+
+  manager.unenroll(experiment.slug);
+  cleanup();
+});
+
+add_task(async function test_getActiveBranch_noActivationEvent() {
+  const { sandbox, manager, cleanup } = await NimbusTestUtils.setupTest();
+  const store = manager.store;
+
+  const experiment = NimbusTestUtils.factories.experiment("foo", {
+    branch: {
+      slug: "variant",
+      ratio: 1,
+      features: [{ featureId: "green", value: {} }],
+    },
+  });
+
+  store.addEnrollment(experiment);
+  // Adding stub later because `addEnrollment` emits update events
+  const stub = sandbox.stub(store, "emit");
+  // Call getActiveBranch to trigger an activation event
+  ExperimentAPI.getActiveBranch({ featureId: "green" });
+
+  Assert.equal(stub.callCount, 0, "Not called: sendExposureEvent is false");
+
+  manager.unenroll(experiment.slug);
+  cleanup();
+});
+
 add_task(async function testGetEnrollments() {
   const { manager, cleanup } = await NimbusTestUtils.setupTest();
 

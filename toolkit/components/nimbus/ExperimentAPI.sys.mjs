@@ -194,6 +194,32 @@ export const ExperimentAPI = {
   },
 
   /**
+   * Return FeatureConfig from first active experiment where it can be found
+   * @param {{slug: string, featureId: string }}
+   * @returns {Branch | null}
+   */
+  getActiveBranch({ slug, featureId }) {
+    let experiment = null;
+    try {
+      if (slug) {
+        experiment = this._manager.store.get(slug);
+      } else if (featureId) {
+        experiment = this._manager.store.getExperimentForFeature(featureId);
+      }
+    } catch (e) {
+      console.error(e);
+    }
+
+    if (!experiment) {
+      return null;
+    }
+
+    // Default to null for feature-less experiments where we're only
+    // interested in exposure.
+    return experiment?.branch || null;
+  },
+
+  /**
    * Returns the recipe for a given experiment slug
    *
    * This should noly be called from the main process.
