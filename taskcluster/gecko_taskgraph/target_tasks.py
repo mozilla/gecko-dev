@@ -823,6 +823,9 @@ def target_tasks_general_perf_testing(full_task_graph, parameters, graph_config)
                 # Disabled chrome responsiveness tests temporarily in bug 1898351
                 # due to frequent failures
                 return False
+            # Bug 1961145 - Disable bing-search for test-windows11-64-24h2-shippable
+            if "windows11" in platform and "bing-search" in try_name:
+                return False
             if "browsertime" in try_name:
                 if "chrome" in try_name:
                     if "tp6" in try_name and "essential" not in try_name:
