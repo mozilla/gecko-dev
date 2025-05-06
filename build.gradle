@@ -496,7 +496,19 @@ subprojects { project ->
                     include '**/*.kt'
                     exclude '**/thirdparty/**'
                 }
-                ktlint("${libs.versions.ktlint.get()}")
+                ktlint("${libs.versions.ktlint.get()}").editorConfigOverride([
+                        // Disable some of the new ktlint rules for GV code.
+                        'ktlint_standard_annotation'                 : 'disabled',
+                        'ktlint_standard_argument-list-wrapping'     : 'disabled',
+                        'ktlint_standard_class-signature'            : 'disabled',
+                        'ktlint_standard_enum-wrapping'              : 'disabled',
+                        'ktlint_standard_function-expression-body'   : 'disabled',
+                        'ktlint_standard_function-signature'         : 'disabled',
+                        'ktlint_standard_max-line-length'            : 'disabled',
+                        'ktlint_standard_property-naming'            : 'disabled',
+                        'ktlint_standard_statement-wrapping'         : 'disabled',
+                        'ktlint_standard_type-parameter-list-spacing': 'disabled',
+                ])
             }
         }
     }

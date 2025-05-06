@@ -4608,7 +4608,8 @@ class GeckoEngineSessionTest {
             }
 
             override fun onPrintException(isPrint: Boolean, throwable: Throwable) {
-                assert(false) { "We should not notify of an exception." } }
+                assert(false) { "We should not notify of an exception." }
+            }
         })
         engineSession.requestPrintContent()
         shadowOf(getMainLooper()).idle()

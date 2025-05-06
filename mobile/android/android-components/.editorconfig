@@ -13,3 +13,37 @@ indent_style = space
 ij_kotlin_allow_trailing_comma_on_call_site=true
 ij_kotlin_allow_trailing_comma=true
 
+# disabled rules after 1.5.0 upgrade
+ktlint_standard_annotation = disabled
+ktlint_standard_argument-list-wrapping = disabled
+ktlint_standard_blank-line-before-declaration = disabled
+ktlint_standard_chain-method-continuation = disabled
+ktlint_standard_class-signature = disabled
+ktlint_standard_condition-wrapping = disabled
+ktlint_standard_enum-wrapping = disabled
+ktlint_standard_function-expression-body = disabled
+ktlint_standard_function-literal = disabled
+ktlint_standard_function-naming = disabled
+ktlint_standard_function-signature = disabled
+ktlint_standard_indent = disabled
+ktlint_standard_multiline-expression-wrapping = disabled
+ktlint_standard_no-blank-line-in-list = disabled
+ktlint_standard_no-empty-first-line-in-class-body = disabled
+ktlint_standard_parameter-list-wrapping = disabled
+ktlint_standard_property-naming = disabled
+ktlint_standard_statement-wrapping = disabled
+ktlint_standard_string-template-indent = disabled
+ktlint_standard_try-catch-finally-spacing = disabled
+
+ktlint_standard_function-naming = disabled
+ktlint_standard_if-else-wrapping = disabled
+ktlint_standard_no-single-line-block-comment = disabled
+ktlint_standard_unnecessary-parentheses-before-trailing-lambda = disabled
+ktlint_standard_no-wildcard-imports = disabled
+ktlint_standard_parameter-list-spacing = disabled
+ktlint_standard_multiline-if-else = disabled
+
+# rules that enforce style we don't want
+ktlint_standard_backing-property-naming = disabled # it would force making backed properties public.
+ktlint_standard_max-line-length = disabled # already enabled in detekt
+ktlint_standard_no-consecutive-comments = disabled # it would limit one line comments to one per line
