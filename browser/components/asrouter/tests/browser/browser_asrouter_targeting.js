@@ -2031,3 +2031,22 @@ add_task(async function check_profileGroupIdTargeting() {
     "should select correct item by profile group id"
   );
 });
+
+add_task(async function test_buildId() {
+  is(
+    typeof ASRouterTargeting.Environment.buildId,
+    "number",
+    "Should return a number"
+  );
+
+  const message = {
+    id: "foo",
+    // Later than January 2025
+    targeting: `buildId >= 20251010000`,
+  };
+  is(
+    await ASRouterTargeting.findMatchingMessage({ messages: [message] }),
+    message,
+    "should select correct item when filtering by build ID"
+  );
+});

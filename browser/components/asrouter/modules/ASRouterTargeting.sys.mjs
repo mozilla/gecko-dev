@@ -1199,6 +1199,10 @@ const TargetingGetters = {
   get profileGroupId() {
     return QueryCache.getters.profileGroupId.get();
   },
+
+  get buildId() {
+    return parseInt(AppConstants.MOZ_BUILDID, 10);
+  },
 };
 
 export const ASRouterTargeting = {

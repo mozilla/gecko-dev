@@ -99,6 +99,8 @@ function assertType(expectedType, attribute) {
  * type.
  */
 const typeAssertions = {
+  integer: attribute =>
+    assertType("number", attribute) && Number.isSafeInteger(attribute),
   string: attribute => assertType("string", attribute),
   boolean: attribute => assertType("boolean", attribute),
   quantity: attribute => Math.floor(assertType("number", attribute)),
@@ -133,6 +135,7 @@ export const ATTRIBUTE_TRANSFORMS = Object.freeze({
   browserSettings: pickWith({
     update: pick("channel"),
   }),
+  buildId: typeAssertions.integer,
   currentDate: typeAssertions.date,
   defaultPDFHandler: pick("knownBrowser", "registered"),
   distributionId: typeAssertions.string,

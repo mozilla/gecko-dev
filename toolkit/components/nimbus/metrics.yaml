@@ -28,12 +28,14 @@ nimbus_targeting_environment:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1898394
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1949813
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1963160
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1963183
     data_reviews: &targeting_context_data_reviews
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1928107
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1937207
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1898394
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1949813
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1963160
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1963183
     notification_emails: &targeting_context_notification_emails
       - beth@mozilla.com
       - project-nimbus@mozilla.com
@@ -107,6 +109,7 @@ nimbus_targeting_environment:
       - "archBits"
       - "attributionData"
       - "browserSettings"
+      - "buildId"
       - "currentDate"
       - "defaultPDFHandler"
       - "distributionId"
@@ -334,6 +337,18 @@ nimbus_targeting_context:
           properties:
             channel:
               type: string
+
+  build_id:
+    bugs: *targeting_context_bugs
+    data_reviews: *targeting_context_data_reviews
+    expires: *targeting_context_expiry
+    notification_emails: *targeting_context_notification_emails
+    send_in_pings: *targeting_context_pings
+    description: The Build ID.
+    data_sensitivity:
+      - technical
+    type: quantity
+    unit: build ID
 
   current_date:
     bugs: *targeting_context_bugs

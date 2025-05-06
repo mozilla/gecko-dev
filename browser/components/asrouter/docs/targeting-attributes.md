@@ -19,6 +19,7 @@ Please note that some targeting attributes require stricter controls on the tele
 * [blockedCountByType](#blockedcountbytype)
 * [browserIsSelected](#browserisselected)
 * [browserSettings](#browsersettings)
+* [buildId](#buildId)
 * [canCreateSelectableProfiles](#cancreateselectableprofiles)
 * [creditCardsSaved](#creditcardssaved)
 * [currentDate](#currentdate)
@@ -203,6 +204,24 @@ declare const browserSettings: {
     enabled: boolean;
   }
 }
+```
+
+### `buildId`
+
+The build ID (`MOZ_BUILDID`) parsed as a number to allow for comparisons.
+
+#### Examples
+
+* Is the build from at least Jan 01 2025
+
+```java
+buildId >= 202501010000
+```
+
+#### Definition
+
+```ts
+declare const buildId: number;
 ```
 
 ### `currentDate`
