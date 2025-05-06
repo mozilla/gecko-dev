@@ -2942,10 +2942,9 @@ PeerConnectionObserver* PeerConnection::Observer() const {
   return observer_;
 }
 
-void PeerConnection::StartSctpTransport(const SctpOptions& options) {
+RTCError PeerConnection::StartSctpTransport(const SctpOptions& options) {
   RTC_DCHECK_RUN_ON(signaling_thread());
-  if (!sctp_mid_s_)
-    return;
+  RTC_DCHECK(sctp_mid_s_);
 
   network_thread()->PostTask(
       SafeTask(network_thread_safety_, [this, mid = *sctp_mid_s_, options] {
@@ -2954,6 +2953,7 @@ void PeerConnection::StartSctpTransport(const SctpOptions& options) {
         if (sctp_transport)
           sctp_transport->Start(options);
       }));
+  return RTCError::OK();
 }
 
 CryptoOptions PeerConnection::GetCryptoOptions() {

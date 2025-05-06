@@ -125,14 +125,14 @@ class PeerConnectionSdpMethods {
                  bool fire_callback = true) = 0;
   // Asynchronously calls SctpTransport::Start() on the network thread for
   // `sctp_mid()` if set. Called as part of setting the local description.
-  virtual void StartSctpTransport(const SctpOptions& options) = 0;
+  virtual RTCError StartSctpTransport(const SctpOptions& options) = 0;
   [[deprecated("Call with SctpOptions")]]
   virtual void StartSctpTransport(int local_port,
                                   int remote_port,
                                   int max_message_size) {
-    return StartSctpTransport({.local_port = local_port,
-                               .remote_port = remote_port,
-                               .max_message_size = max_message_size});
+    StartSctpTransport({.local_port = local_port,
+                        .remote_port = remote_port,
+                        .max_message_size = max_message_size});
   }
 
   // Asynchronously adds a remote candidate on the network thread.
