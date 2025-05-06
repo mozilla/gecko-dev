@@ -70,7 +70,7 @@ add_task(async function default_USER_SCRIPT_world_behavior() {
           id: "world global checker",
           matches: ["*://example.com/dummy"],
           js: [{ file: "world_checker.js" }],
-          runAt: "document_end",
+          runAt: "document_start",
           world: "USER_SCRIPT",
         },
       ]);
@@ -105,6 +105,13 @@ add_task(async function multiple_scripts_share_same_default_world() {
     },
     async background() {
       await browser.userScripts.register([
+        // The document_start script always runs first, which initializes the
+        // middle string that the document_end scripts will prepend/append to,
+        // as a sign of execution.
+        // The expected value of wrappedJSObject.r below is independent of the
+        // execution order of the two blocks of document_end scripts. Test
+        // coverage on actual execution order of separate scripts is provided
+        // further below by test_default_and_many_non_default_worldIds.
         {
           id: "first scripts",
           matches: ["*://example.com/dummy"],
@@ -151,7 +158,14 @@ add_task(async function multiple_scripts_share_same_default_world() {
   await extension.startup();
   await extension.awaitMessage("registered");
 
-  const result = await spawnPage(() => {
+  const result = await spawnPage(async () => {
+    // We might observe page load while the document_end scripts are still
+    // compiling. To avoid intermittent failures, wait for it to complete.
+    await ContentTaskUtils.waitForCondition(
+      // 10 is "12345_6789".length (expected value of r).
+      () => this.content.wrappedJSObject.r?.length === 10,
+      "Waiting for all user scripts to have completed running"
+    );
     let { x, r } = this.content.wrappedJSObject;
     return { x, r };
   });
@@ -343,6 +357,16 @@ add_task(async function test_default_and_many_non_default_worldIds() {
           worldId: `worldId ${i}`,
         });
       }
+      // If the page loads very fast, it is possible for document_end scripts
+      // to still be compiling and not having been executed yet. To ensure that
+      // we only check the results after all scripts have run, schedule a
+      // document_idle script that runs after everything else.
+      scripts.push({
+        id: "document_idle, runs after everything else",
+        matches: ["*://example.com/dummy"],
+        js: [{ code: `window.wrappedJSObject.allTestScriptsRan = true;` }],
+        runAt: "document_idle",
+      });
       await browser.userScripts.register(scripts);
       browser.test.sendMessage("registered_and_expected", expectedResults);
     },
@@ -351,13 +375,18 @@ add_task(async function test_default_and_many_non_default_worldIds() {
   await extension.startup();
   let expectedRes = await extension.awaitMessage("registered_and_expected");
 
-  const actualRes = await spawnPage(() => this.content.wrappedJSObject.res);
-  // Script execution order is not guaranteed yet between different scripts,
-  // so print informative message:
-  info(`Actual result (unsorted): ${actualRes}`);
+  const actualRes = await spawnPage(async () => {
+    await ContentTaskUtils.waitForCondition(
+      () => this.content.wrappedJSObject.allTestScriptsRan,
+      "Waiting for all user scripts to have completed running"
+    );
+    return this.content.wrappedJSObject.res;
+  });
+  // Script execution order is guaranteed to be some defined order. It is
+  // currently the order of registration, but may change, see bug 1963072.
 
   Assert.deepEqual(
-    actualRes.toSorted((a, b) => a - b),
+    actualRes,
     expectedRes,
     "Every script should execute in the world specified by worldId"
   );
