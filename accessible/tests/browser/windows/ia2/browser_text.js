@@ -9,11 +9,11 @@
  */
 addAccessibleTask(`<p id="cluster">a🤦‍♂️c`, async function testChar() {
   await runPython(`
-      doc = getDocIa2()
-      global cluster
-      cluster = findIa2ByDomId(doc, "cluster")
-      cluster = cluster.QueryInterface(IAccessibleText)
-    `);
+    doc = getDocIa2()
+    global cluster
+    cluster = findIa2ByDomId(doc, "cluster")
+    cluster = cluster.QueryInterface(IAccessibleText)
+  `);
   SimpleTest.isDeeply(
     await runPython(`cluster.textAtOffset(0, IA2_TEXT_BOUNDARY_CHAR)`),
     [0, 1, "a"],
