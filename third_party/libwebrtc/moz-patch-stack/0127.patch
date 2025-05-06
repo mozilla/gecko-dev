@@ -13,7 +13,7 @@ Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/7017edc7cfc880bb1
  4 files changed, 7 insertions(+), 7 deletions(-)
 
 diff --git a/.gn b/.gn
-index e379d18527..c810498584 100644
+index 72c42e9202..fe7020cb97 100644
 --- a/.gn
 +++ b/.gn
 @@ -18,7 +18,7 @@ script_executable = "python3"

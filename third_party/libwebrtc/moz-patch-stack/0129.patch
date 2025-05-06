@@ -62,7 +62,7 @@ Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/a342f5eca8622c8b9
  46 files changed, 121 insertions(+), 121 deletions(-)
 
 diff --git a/.gn b/.gn
-index c810498584..6cec17ccb0 100644
+index fe7020cb97..4c9b95c31b 100644
 --- a/.gn
 +++ b/.gn
 @@ -6,10 +6,10 @@

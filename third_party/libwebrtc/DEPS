@@ -2006,12 +2006,6 @@ hooks = [
                '--package=clangd'],
   },
   {
-    'name': 'rust',
-    'pattern': '.',
-    'condition': 'checkout_fuzzer',
-    'action': ['python3', 'src/tools/rust/update_rust.py'],
-  },
-  {
     # Update LASTCHANGE.
     'name': 'lastchange',
     'pattern': '.',
