@@ -18,7 +18,7 @@ import {
   kDepthTextureFormats,
   kPossibleStorageTextureFormats,
   sampleTypeForFormatAndAspect,
-  textureDimensionAndFormatCompatible } from
+  textureFormatAndDimensionPossiblyCompatible } from
 '../../../../../format_info.js';
 import { AllFeaturesMaxLimitsGPUTest } from '../../../../../gpu_test.js';
 import { align } from '../../../../../util/math.js';
@@ -126,7 +126,10 @@ function viewDimensions(params)
   }
 
   return kAllViewDimensions.filter((dim) =>
-  textureDimensionAndFormatCompatible(textureDimensionsForViewDimensions(dim), params.format)
+  textureFormatAndDimensionPossiblyCompatible(
+    textureDimensionsForViewDimensions(dim),
+    params.format
+  )
   );
 }
 
@@ -305,6 +308,10 @@ expand('textureDimensionsLevel', textureDimensionsLevel)
 fn((t) => {
   t.skipIfTextureFormatNotSupported(t.params.format);
   t.skipIfTextureViewDimensionNotSupported(t.params.dimensions);
+  t.skipIfTextureFormatAndDimensionNotCompatible(
+    t.params.format,
+    textureDimensionsForViewDimensions(t.params.dimensions)
+  );
   if (t.params.samples > 1) {
     t.skipIfTextureFormatNotMultisampled(t.params.format);
   }

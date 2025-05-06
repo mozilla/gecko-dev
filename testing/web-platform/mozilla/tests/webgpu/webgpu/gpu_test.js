@@ -37,7 +37,9 @@ import {
   isTextureFormatResolvable,
   isTextureFormatUsableAsReadWriteStorageTexture,
   isDepthTextureFormat,
-  isStencilTextureFormat } from
+  isStencilTextureFormat,
+  textureViewDimensionAndFormatCompatibleForDevice,
+  textureDimensionAndFormatCompatibleForDevice } from
 './format_info.js';
 import { checkElementsEqual, checkElementsBetween } from './util/check_contents.js';
 import { CommandBufferMaker } from './util/command_buffer_maker.js';
@@ -499,6 +501,26 @@ export class GPUTestBase extends Fixture {
         `texture format '${format}' requires feature: '${feature}`
       );
     }
+  }
+
+  skipIfTextureFormatAndViewDimensionNotCompatible(
+  format,
+  viewDimension)
+  {
+    this.skipIf(
+      !textureViewDimensionAndFormatCompatibleForDevice(this.device, viewDimension, format),
+      `format: ${format} does not support viewDimension: ${viewDimension}`
+    );
+  }
+
+  skipIfTextureFormatAndDimensionNotCompatible(
+  format,
+  dimension)
+  {
+    this.skipIf(
+      !textureDimensionAndFormatCompatibleForDevice(this.device, dimension, format),
+      `format: ${format} does not support dimension: ${dimension}`
+    );
   }
 
   skipIfTextureFormatNotResolvable(...formats) {

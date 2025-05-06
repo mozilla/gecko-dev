@@ -31,8 +31,7 @@ import {
   kShortAddressModeToAddressMode,
   kShortShaderStages,
 
-  skipIfTextureFormatNotSupportedOrNeedsFilteringAndIsUnfilterable,
-  skipIfTextureViewAndFormatNotCompatibleForDevice } from
+  skipIfTextureFormatNotSupportedOrNeedsFilteringAndIsUnfilterable } from
 
 
 
@@ -405,7 +404,7 @@ fn(async (t) => {
     offset
   } = t.params;
   skipIfTextureFormatNotSupportedOrNeedsFilteringAndIsUnfilterable(t, minFilter, format);
-  skipIfTextureViewAndFormatNotCompatibleForDevice(t, format, viewDimension);
+  t.skipIfTextureFormatAndViewDimensionNotCompatible(format, viewDimension);
 
   const [width, height] = chooseTextureSize({ minSize: 32, minBlocks: 2, format, viewDimension });
   const depthOrArrayLayers = getDepthOrArrayLayersForViewDimension(viewDimension);
@@ -521,7 +520,7 @@ fn(async (t) => {
     lodMinClamp
   } = t.params;
   skipIfTextureFormatNotSupportedOrNeedsFilteringAndIsUnfilterable(t, minFilter, format);
-  skipIfTextureViewAndFormatNotCompatibleForDevice(t, format, viewDimension);
+  t.skipIfTextureFormatAndViewDimensionNotCompatible(format, viewDimension);
 
   const [width, height] = chooseTextureSize({ minSize: 32, minBlocks: 2, format, viewDimension });
   const depthOrArrayLayers = getDepthOrArrayLayersForViewDimension(viewDimension);

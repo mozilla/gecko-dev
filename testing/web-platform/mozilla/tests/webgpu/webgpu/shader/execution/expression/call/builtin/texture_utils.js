@@ -16,8 +16,7 @@ import {
   isEncodableTextureFormat,
   isSintOrUintFormat,
   isStencilTextureFormat,
-  kEncodableTextureFormats,
-  textureViewDimensionAndFormatCompatibleForDevice } from
+  kEncodableTextureFormats } from
 '../../../../../format_info.js';
 
 import {
@@ -79,17 +78,6 @@ export const kSampleTypeInfo = {
     format: 'rgba8uint'
   }
 };
-
-export function skipIfTextureViewAndFormatNotCompatibleForDevice(
-t,
-format,
-viewDimension)
-{
-  t.skipIf(
-    !textureViewDimensionAndFormatCompatibleForDevice(t.device, viewDimension, format),
-    `format: ${format} does not support viewDimension: ${viewDimension}`
-  );
-}
 
 /**
  * Return the texture type for a given view dimension

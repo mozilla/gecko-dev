@@ -12,7 +12,7 @@ import {
   kRegularTextureFormats,
   kFeaturesForFormats,
   filterFormatsByFeature,
-  textureDimensionAndFormatCompatible,
+  textureFormatAndDimensionPossiblyCompatible,
   getBlockInfoForTextureFormat,
   isTextureFormatMultisampled,
   isTextureFormatColorRenderable,
@@ -53,11 +53,15 @@ g.test('zero_size_and_usage')
         'usage',
       ] as const)
       // Filter out incompatible dimension type and format combinations.
-      .filter(({ dimension, format }) => textureDimensionAndFormatCompatible(dimension, format))
+      .filter(({ dimension, format }) =>
+        textureFormatAndDimensionPossiblyCompatible(dimension, format)
+      )
   )
   .fn(t => {
     const { dimension, zeroArgument, format } = t.params;
     t.skipIfTextureFormatNotSupported(format);
+    t.skipIfTextureFormatAndDimensionNotCompatible(format, dimension);
+
     const info = getBlockInfoForTextureFormat(format);
 
     const size = [info.blockWidth, info.blockHeight, 1];
@@ -141,13 +145,16 @@ g.test('mipLevelCount,format')
       .beginSubcases()
       .combine('mipLevelCount', [1, 2, 3, 6, 7])
       // Filter out incompatible dimension type and format combinations.
-      .filter(({ dimension, format }) => textureDimensionAndFormatCompatible(dimension, format))
+      .filter(({ dimension, format }) =>
+        textureFormatAndDimensionPossiblyCompatible(dimension, format)
+      )
       .combine('largestDimension', [0, 1, 2])
       .unless(({ dimension, largestDimension }) => dimension === '1d' && largestDimension > 0)
   )
   .fn(t => {
     const { dimension, format, mipLevelCount, largestDimension } = t.params;
     t.skipIfTextureFormatNotSupported(format);
+    t.skipIfTextureFormatAndDimensionNotCompatible(format, dimension);
     const info = getBlockInfoForTextureFormat(format);
 
     // Compute dimensions such that the dimensions are in range [17, 32] and aligned with the
@@ -325,7 +332,9 @@ g.test('sampleCount,valid_sampleCount_with_other_parameter_varies')
         return usageSet;
       })
       // Filter out incompatible dimension type and format combinations.
-      .filter(({ dimension, format }) => textureDimensionAndFormatCompatible(dimension, format))
+      .filter(({ dimension, format }) =>
+        textureFormatAndDimensionPossiblyCompatible(dimension, format)
+      )
       .unless(({ usage, format, mipLevelCount, dimension }) => {
         return (
           ((usage & GPUConst.TextureUsage.RENDER_ATTACHMENT) !== 0 &&
@@ -340,6 +349,7 @@ g.test('sampleCount,valid_sampleCount_with_other_parameter_varies')
   .fn(t => {
     const { dimension, sampleCount, format, mipLevelCount, arrayLayerCount, usage } = t.params;
     t.skipIfTextureFormatNotSupported(format);
+    t.skipIfTextureFormatAndDimensionNotCompatible(format, dimension);
     if ((usage & GPUConst.TextureUsage.RENDER_ATTACHMENT) !== 0) {
       t.skipIfTextureFormatNotUsableAsRenderAttachment(format);
     }
@@ -416,11 +426,14 @@ g.test('texture_size,default_value_and_smallest_size,uncompressed_format')
       .beginSubcases()
       .combine('size', [[1], [1, 1], [1, 1, 1]])
       // Filter out incompatible dimension type and format combinations.
-      .filter(({ dimension, format }) => textureDimensionAndFormatCompatible(dimension, format))
+      .filter(({ dimension, format }) =>
+        textureFormatAndDimensionPossiblyCompatible(dimension, format)
+      )
   )
   .fn(t => {
     const { dimension, format, size } = t.params;
     t.skipIfTextureFormatNotSupported(format);
+    t.skipIfTextureFormatAndDimensionNotCompatible(format, dimension);
 
     const descriptor: GPUTextureDescriptor = {
       size,
@@ -439,9 +452,12 @@ g.test('texture_size,default_value_and_smallest_size,compressed_format')
   )
   .params(u =>
     u
-      // Compressed formats are invalid for 1D and 3D.
-      .combine('dimension', [undefined, '2d'] as const)
+      // Compressed formats are invalid for 1D.
+      .combine('dimension', [undefined, '2d', '3d'] as const)
       .combine('format', kCompressedTextureFormats)
+      .filter(({ dimension, format }) =>
+        textureFormatAndDimensionPossiblyCompatible(dimension, format)
+      )
       .beginSubcases()
       .expandWithParams(p => {
         const { blockWidth, blockHeight } = getBlockInfoForTextureFormat(p.format);
@@ -458,6 +474,7 @@ g.test('texture_size,default_value_and_smallest_size,compressed_format')
   .fn(t => {
     const { dimension, format, size, _success } = t.params;
     t.skipIfTextureFormatNotSupported(format);
+    t.skipIfTextureFormatAndDimensionNotCompatible(format, dimension);
 
     const descriptor: GPUTextureDescriptor = {
       size,
@@ -770,6 +787,7 @@ g.test('texture_size,3d_texture,uncompressed_format')
   .fn(t => {
     const { format, sizeVariant } = t.params;
     t.skipIfTextureFormatNotSupported(format);
+    t.skipIfTextureFormatAndDimensionNotCompatible(format, '3d');
     const maxTextureDimension3D = t.device.limits.maxTextureDimension3D;
     const size = sizeVariant.map(variant => t.makeLimitVariant('maxTextureDimension3D', variant));
 
@@ -945,13 +963,10 @@ g.test('texture_size,3d_texture,compressed_format')
         ];
       })
   )
-  .beforeAllSubcases(t => {
-    // Compressed formats are not supported in 3D in WebGPU v1 because they are complicated but not very useful for now.
-    t.skip('Compressed 3D texture is not supported');
-  })
   .fn(t => {
     const { format, sizeVariant } = t.params;
     t.skipIfTextureFormatNotSupported(format);
+    t.skipIfTextureFormatAndDimensionNotCompatible(format, '3d');
     const info = getBlockInfoForTextureFormat(format);
 
     const maxTextureDimension3D = t.device.limits.maxTextureDimension3D;
@@ -974,7 +989,8 @@ g.test('texture_size,3d_texture,compressed_format')
       size[1] % info.blockHeight === 0 &&
       size[0] <= maxTextureDimension3D &&
       size[1] <= maxTextureDimension3D &&
-      size[2] <= maxTextureDimension3D;
+      size[2] <= maxTextureDimension3D &&
+      textureDimensionAndFormatCompatibleForDevice(t.device, '3d', format);
 
     t.expectValidationError(() => {
       t.createTextureTracked(descriptor);
@@ -994,11 +1010,14 @@ g.test('texture_usage')
       .combine('usage0', kTextureUsages)
       .combine('usage1', kTextureUsages)
       // Filter out incompatible dimension type and format combinations.
-      .filter(({ dimension, format }) => textureDimensionAndFormatCompatible(dimension, format))
+      .filter(({ dimension, format }) =>
+        textureFormatAndDimensionPossiblyCompatible(dimension, format)
+      )
   )
   .fn(t => {
     const { dimension, format, usage0, usage1 } = t.params;
     t.skipIfTextureFormatNotSupported(format);
+    t.skipIfTextureFormatAndDimensionNotCompatible(format, dimension);
     const info = getBlockInfoForTextureFormat(format);
 
     const size = [info.blockWidth, info.blockHeight, 1];

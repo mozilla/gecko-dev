@@ -25,7 +25,6 @@ import {
   makeRandomDepthComparisonTexelGenerator,
   queryMipLevelMixWeightsForDevice,
   readTextureToTexelViews,
-  skipIfTextureViewAndFormatNotCompatibleForDevice,
   texelsApproximatelyEqual,
 } from './texture_utils.js';
 
@@ -52,7 +51,7 @@ g.test('createTextureWithRandomDataAndGetTexels_with_generator')
     const { format, viewDimension } = t.params;
     t.skipIfTextureFormatNotSupported(format);
     t.skipIfTextureViewDimensionNotSupported(viewDimension);
-    skipIfTextureViewAndFormatNotCompatibleForDevice(t, format, viewDimension);
+    t.skipIfTextureFormatAndViewDimensionNotCompatible(format, viewDimension);
     // choose an odd size (9) so we're more likely to test alignment issue.
     const size = chooseTextureSize({ minSize: 9, minBlocks: 4, format, viewDimension });
     t.debug(`size: ${size.map(v => v.toString()).join(', ')}`);
@@ -96,7 +95,7 @@ g.test('readTextureToTexelViews')
   .fn(async t => {
     const { srcFormat, texelViewFormat, viewDimension, sampleCount } = t.params;
     t.skipIfTextureViewDimensionNotSupported(viewDimension);
-    skipIfTextureViewAndFormatNotCompatibleForDevice(t, srcFormat, viewDimension);
+    t.skipIfTextureFormatAndViewDimensionNotCompatible(srcFormat, viewDimension);
     if (sampleCount > 1) {
       t.skipIfTextureFormatNotMultisampled(srcFormat);
     }

@@ -32,7 +32,6 @@ import {
   kShortShaderStages,
   SamplePointMethods,
   skipIfTextureFormatNotSupportedOrNeedsFilteringAndIsUnfilterable,
-  skipIfTextureViewAndFormatNotCompatibleForDevice,
   TextureCall,
   vec2,
   vec3,
@@ -405,7 +404,7 @@ Parameters:
       offset,
     } = t.params;
     skipIfTextureFormatNotSupportedOrNeedsFilteringAndIsUnfilterable(t, minFilter, format);
-    skipIfTextureViewAndFormatNotCompatibleForDevice(t, format, viewDimension);
+    t.skipIfTextureFormatAndViewDimensionNotCompatible(format, viewDimension);
 
     const [width, height] = chooseTextureSize({ minSize: 32, minBlocks: 2, format, viewDimension });
     const depthOrArrayLayers = getDepthOrArrayLayersForViewDimension(viewDimension);
@@ -521,7 +520,7 @@ baseMipLevel, lodMinClamp, and lodMaxClamp, with an dwithout filtering.
       lodMinClamp,
     } = t.params;
     skipIfTextureFormatNotSupportedOrNeedsFilteringAndIsUnfilterable(t, minFilter, format);
-    skipIfTextureViewAndFormatNotCompatibleForDevice(t, format, viewDimension);
+    t.skipIfTextureFormatAndViewDimensionNotCompatible(format, viewDimension);
 
     const [width, height] = chooseTextureSize({ minSize: 32, minBlocks: 2, format, viewDimension });
     const depthOrArrayLayers = getDepthOrArrayLayersForViewDimension(viewDimension);

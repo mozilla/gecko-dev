@@ -126,7 +126,7 @@ class F extends TextureUploadingUtils {
     const canvas = createCanvas(this, canvasType, width, height);
 
     let canvasContext = null;
-    canvasContext = canvas.getContext('2d');
+    canvasContext = canvas.getContext('2d') as CanvasRenderingContext2D;
 
     if (canvasContext === null) {
       this.skip(canvasType + ' canvas 2d context not available');

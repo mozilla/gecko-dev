@@ -8,7 +8,7 @@ import {
   kAllTextureFormats,
   kCompressedTextureFormats,
   kDepthStencilFormats,
-  textureDimensionAndFormatCompatible,
+  textureFormatAndDimensionPossiblyCompatible,
   getBlockInfoForTextureFormat,
   getBaseFormatForTextureFormat,
   canCopyFromAllAspectsOfTextureFormat,
@@ -757,7 +757,9 @@ TODO: Express the offsets in "block size" so as to be able to test non-4x4 compr
     u
       .combine('format', kCompressedTextureFormats)
       .combine('dimension', kTextureDimensions)
-      .filter(({ dimension, format }) => textureDimensionAndFormatCompatible(dimension, format))
+      .filter(({ dimension, format }) =>
+        textureFormatAndDimensionPossiblyCompatible(dimension, format)
+      )
       .beginSubcases()
       .combine('copyBoxOffsets', [
         { x: 0, y: 0, z: 0, width: 0, height: 0, depthOrArrayLayers: -2 },
@@ -779,6 +781,7 @@ TODO: Express the offsets in "block size" so as to be able to test non-4x4 compr
     const { format, dimension, copyBoxOffsets, srcCopyLevel, dstCopyLevel } = t.params;
 
     t.skipIfTextureFormatNotSupported(format);
+    t.skipIfTextureFormatAndDimensionNotCompatible(format, dimension);
     t.skipIfCopyTextureToTextureNotSupportedForFormat(format);
 
     const { blockWidth, blockHeight } = getBlockInfoForTextureFormat(format);
@@ -828,8 +831,12 @@ TODO: Express the offsets in "block size" so as to be able to test non-4x4 compr
       Math.min(srcSizeAtLevel.height, dstSizeAtLevel.height) + copyBoxOffsets.height - copyOrigin.y,
       0
     );
-    const copyDepth =
-      kTextureSize.depthOrArrayLayers + copyBoxOffsets.depthOrArrayLayers - copyOrigin.z;
+    const copyDepth = Math.max(
+      Math.min(srcSizeAtLevel.depthOrArrayLayers, dstSizeAtLevel.depthOrArrayLayers) +
+        copyBoxOffsets.depthOrArrayLayers -
+        copyOrigin.z,
+      0
+    );
 
     const isSuccessForCompressedFormats =
       copyOrigin.x % blockWidth === 0 &&

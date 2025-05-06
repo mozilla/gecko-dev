@@ -28,7 +28,7 @@ import {
 import { createTextureFromTexelViews } from './util/texture.js';
 import { reifyOrigin3D } from './util/unions.js';
 
-type PipelineType = '2d' | '2d-array';
+type PipelineType = '2d' | '2d-array' | '3d';
 
 type ImageCopyTestResources = {
   pipelineByPipelineType: Map<PipelineType, GPURenderPipeline>;
@@ -38,11 +38,7 @@ const s_deviceToResourcesMap = new WeakMap<GPUDevice, ImageCopyTestResources>();
 /**
  * Gets a (cached) pipeline to render a texture to an rgba8unorm texture
  */
-function getPipelineToRenderTextureToRGB8UnormTexture(
-  device: GPUDevice,
-  texture: GPUTexture,
-  isCompatibility: boolean
-) {
+function getPipelineToRenderTextureToRGB8UnormTexture(device: GPUDevice, texture: GPUTexture) {
   if (!s_deviceToResourcesMap.has(device)) {
     s_deviceToResourcesMap.set(device, {
       pipelineByPipelineType: new Map<PipelineType, GPURenderPipeline>(),
@@ -51,50 +47,58 @@ function getPipelineToRenderTextureToRGB8UnormTexture(
 
   const { pipelineByPipelineType } = s_deviceToResourcesMap.get(device)!;
   const pipelineType: PipelineType =
-    isCompatibility && texture.depthOrArrayLayers > 1 ? '2d-array' : '2d';
+    texture.dimension === '3d' ? '3d' : texture.depthOrArrayLayers > 1 ? '2d-array' : '2d';
   if (!pipelineByPipelineType.get(pipelineType)) {
-    const [textureType, layerCode] =
-      pipelineType === '2d' ? ['texture_2d', ''] : ['texture_2d_array', ', uni.baseArrayLayer'];
-    const module = device.createShaderModule({
-      code: `
-        struct VSOutput {
-          @builtin(position) position: vec4f,
-          @location(0) texcoord: vec2f,
-        };
+    const [textureType, coordCode] =
+      pipelineType === '3d'
+        ? [
+            'texture_3d',
+            'vec3f(fsInput.texcoord, (f32(uni.baseArrayLayer) + 0.5) / f32(textureDimensions(ourTexture, 0).z))',
+          ]
+        : pipelineType === '2d'
+        ? ['texture_2d', 'fsInput.texcoord']
+        : ['texture_2d_array', 'fsInput.texcoord, uni.baseArrayLayer'];
+    const code = `
+      struct VSOutput {
+        @builtin(position) position: vec4f,
+        @location(0) texcoord: vec2f,
+      };
 
-        struct Uniforms {
-          baseArrayLayer: u32,
-        };
+      struct Uniforms {
+        baseArrayLayer: u32,
+      };
 
-        @vertex fn vs(
-          @builtin(vertex_index) vertexIndex : u32
-        ) -> VSOutput {
-            let pos = array(
-               vec2f(-1, -1),
-               vec2f(-1,  3),
-               vec2f( 3, -1),
-            );
+      @vertex fn vs(
+        @builtin(vertex_index) vertexIndex : u32
+      ) -> VSOutput {
+          let pos = array(
+             vec2f(-1, -1),
+             vec2f(-1,  3),
+             vec2f( 3, -1),
+          );
 
-            var vsOutput: VSOutput;
+          var vsOutput: VSOutput;
 
-            let xy = pos[vertexIndex];
+          let xy = pos[vertexIndex];
 
-            vsOutput.position = vec4f(xy, 0.0, 1.0);
-            vsOutput.texcoord = xy * vec2f(0.5, -0.5) + vec2f(0.5);
+          vsOutput.position = vec4f(xy, 0.0, 1.0);
+          vsOutput.texcoord = xy * vec2f(0.5, -0.5) + vec2f(0.5);
 
-            return vsOutput;
-         }
+          return vsOutput;
+       }
 
-         @group(0) @binding(0) var ourSampler: sampler;
-         @group(0) @binding(1) var ourTexture: ${textureType}<f32>;
-         @group(0) @binding(2) var<uniform> uni: Uniforms;
+       @group(0) @binding(0) var ourSampler: sampler;
+       @group(0) @binding(1) var ourTexture: ${textureType}<f32>;
+       @group(0) @binding(2) var<uniform> uni: Uniforms;
 
-         @fragment fn fs(fsInput: VSOutput) -> @location(0) vec4f {
-            return textureSample(ourTexture, ourSampler, fsInput.texcoord${layerCode});
-         }
-      `,
-    });
+       @fragment fn fs(fsInput: VSOutput) -> @location(0) vec4f {
+          _ = uni;
+          return textureSample(ourTexture, ourSampler, ${coordCode});
+       }
+    `;
+    const module = device.createShaderModule({ code });
     const pipeline = device.createRenderPipeline({
+      label: `layer rendered for ${pipelineType}`,
       layout: 'auto',
       vertex: {
         module,
@@ -256,12 +260,15 @@ export function expectTexturesToMatchByRendering(
   // result to a buffer and expect the results from both textures to match.
   const { pipelineType, pipeline } = getPipelineToRenderTextureToRGB8UnormTexture(
     t.device,
-    actualTexture,
-    t.isCompatibility
+    actualTexture
   );
   const readbackPromisesPerTexturePerLayer = [actualTexture, expectedTexture].map(
     (texture, ndx) => {
-      const attachmentSize = virtualMipSize('2d', [texture.width, texture.height, 1], mipLevel);
+      const attachmentSize = virtualMipSize(
+        actualTexture.dimension,
+        [texture.width, texture.height, 1],
+        mipLevel
+      );
       const attachment = t.createTextureTracked({
         label: `readback${ndx}`,
         size: attachmentSize,
@@ -275,7 +282,7 @@ export function expectTexturesToMatchByRendering(
       const readbackPromisesPerLayer = [];
 
       const uniformBuffer = t.createBufferTracked({
-        label: 'expectTexturesToMatchByRendering:uniforBuffer',
+        label: 'expectTexturesToMatchByRendering:uniformBuffer',
         size: 4,
         usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
       });
@@ -284,10 +291,6 @@ export function expectTexturesToMatchByRendering(
         const viewDescriptor: GPUTextureViewDescriptor = {
           baseMipLevel: mipLevel,
           mipLevelCount: 1,
-          ...(!t.isCompatibility && {
-            baseArrayLayer: layer,
-            arrayLayerCount: 1,
-          }),
           dimension: pipelineType,
         };
 
@@ -299,14 +302,10 @@ export function expectTexturesToMatchByRendering(
               binding: 1,
               resource: texture.createView(viewDescriptor),
             },
-            ...(pipelineType === '2d-array'
-              ? [
-                  {
-                    binding: 2,
-                    resource: { buffer: uniformBuffer },
-                  },
-                ]
-              : []),
+            {
+              binding: 2,
+              resource: { buffer: uniformBuffer },
+            },
           ],
         });
 

@@ -47,7 +47,7 @@ import {
   kDepthStencilFormats,
   kColorTextureFormats,
   depthStencilBufferTextureCopySupported,
-  textureDimensionAndFormatCompatible,
+  textureFormatAndDimensionPossiblyCompatible,
   depthStencilFormatAspectSize,
   DepthStencilFormat,
   ColorTextureFormat,
@@ -1218,7 +1218,9 @@ bytes in copy works for every format.
       .combine('format', kColorTextureFormats)
       .filter(formatCanBeTested)
       .combine('dimension', kTextureDimensions)
-      .filter(({ dimension, format }) => textureDimensionAndFormatCompatible(dimension, format))
+      .filter(({ dimension, format }) =>
+        textureFormatAndDimensionPossiblyCompatible(dimension, format)
+      )
       .beginSubcases()
       .combineWithParams(kRowsPerImageAndBytesPerRowParams.paddings)
       .expandWithParams(p => {
@@ -1240,7 +1242,8 @@ bytes in copy works for every format.
       initMethod,
       checkMethod,
     } = t.params;
-    t.skipIfTextureFormatNotSupported(t.params.format);
+    t.skipIfTextureFormatNotSupported(format);
+    t.skipIfTextureFormatAndDimensionNotCompatible(format, dimension);
     const info = getBlockInfoForTextureFormat(format);
     // For CopyB2T and CopyT2B we need to have bytesPerRow 256-aligned,
     // to make this happen we align the bytesInACompleteRow value and multiply
@@ -1321,7 +1324,9 @@ works for every format with 2d and 2d-array textures.
       .combine('format', kColorTextureFormats)
       .filter(formatCanBeTested)
       .combine('dimension', kTextureDimensions)
-      .filter(({ dimension, format }) => textureDimensionAndFormatCompatible(dimension, format))
+      .filter(({ dimension, format }) =>
+        textureFormatAndDimensionPossiblyCompatible(dimension, format)
+      )
       .beginSubcases()
       .combineWithParams(kOffsetsAndSizesParams.offsetsAndPaddings)
       .combine('copyDepth', kOffsetsAndSizesParams.copyDepth) // 2d and 2d-array textures
@@ -1352,6 +1357,7 @@ works for every format with 2d and 2d-array textures.
       rowsPerImageEqualsCopyHeight,
     } = t.params;
     t.skipIfTextureFormatNotSupported(format);
+    t.skipIfTextureFormatAndDimensionNotCompatible(format, dimension);
 
     // Skip test cases designed for special cases coverage on compatibility mode to save run time.
     if (!(t.isCompatibility && (format === 'r8snorm' || format === 'rg8snorm'))) {
@@ -1420,7 +1426,9 @@ for all formats. We pass origin and copyExtent as [number, number, number].`
       .combine('format', kColorTextureFormats)
       .filter(formatCanBeTested)
       .combine('dimension', kTextureDimensions)
-      .filter(({ dimension, format }) => textureDimensionAndFormatCompatible(dimension, format))
+      .filter(({ dimension, format }) =>
+        textureFormatAndDimensionPossiblyCompatible(dimension, format)
+      )
       .beginSubcases()
       .combine('originValueInBlocks', [0, 7, 8])
       .combine('copySizeValueInBlocks', [0, 7, 8])
@@ -1444,6 +1452,7 @@ for all formats. We pass origin and copyExtent as [number, number, number].`
       checkMethod,
     } = t.params;
     t.skipIfTextureFormatNotSupported(format);
+    t.skipIfTextureFormatAndDimensionNotCompatible(format, dimension);
     const info = getBlockInfoForColorTextureFormat(format);
 
     let originBlocks = [1, 1, 1];
@@ -1581,7 +1590,9 @@ TODO: Make a variant for depth-stencil formats.
       .combine('format', kColorTextureFormats)
       .filter(formatCanBeTested)
       .combine('dimension', ['2d', '3d'] as const)
-      .filter(({ dimension, format }) => textureDimensionAndFormatCompatible(dimension, format))
+      .filter(({ dimension, format }) =>
+        textureFormatAndDimensionPossiblyCompatible(dimension, format)
+      )
       .beginSubcases()
       .combineWithParams([
         // origin + copySize = texturePhysicalSizeAtMipLevel for all coordinates, 2d texture */
@@ -1641,6 +1652,8 @@ TODO: Make a variant for depth-stencil formats.
       checkMethod,
     } = t.params;
     t.skipIfTextureFormatNotSupported(format);
+    t.skipIfTextureFormatAndDimensionNotCompatible(format, dimension);
+
     const info = getBlockInfoForColorTextureFormat(format);
 
     const origin = {

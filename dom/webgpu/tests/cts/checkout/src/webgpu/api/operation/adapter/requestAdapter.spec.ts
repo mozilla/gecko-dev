@@ -15,6 +15,7 @@ values and then checks the result to test the adapter for basic functionality.
 `;
 
 import { Fixture } from '../../../../common/framework/fixture.js';
+import { globalTestConfig } from '../../../../common/framework/test_config.js';
 import { makeTestGroup } from '../../../../common/framework/test_group.js';
 import { getGPU } from '../../../../common/util/navigator_gpu.js';
 import { assert, objectEquals, iterRange } from '../../../../common/util/util.js';
@@ -132,6 +133,11 @@ g.test('requestAdapter_invalid_featureLevel')
   .params(u => u.combine('featureLevel', [...validFeatureLevels, ...invalidFeatureLevels]))
   .fn(async t => {
     const { featureLevel } = t.params;
+    t.skipIf(
+      globalTestConfig.compatibility && (featureLevel === undefined || featureLevel === 'core'),
+      'core adapters are not available in compat-only'
+    );
+
     const adapter = await getGPU(t.rec).requestAdapter({ featureLevel });
 
     if (!validFeatureLevels.includes(featureLevel)) {

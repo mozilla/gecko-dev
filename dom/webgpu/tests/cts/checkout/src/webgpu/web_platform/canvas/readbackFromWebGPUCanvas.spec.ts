@@ -513,7 +513,7 @@ g.test('transferToImageBitmap_unconfigured_nonzero_size')
     const readbackCanvas = createCanvas(t, t.params.readbackCanvasType, kWidth, kHeight);
     const readbackContext = readbackCanvas.getContext('2d', {
       alpha: true,
-    });
+    }) as CanvasRenderingContext2D;
     if (readbackContext === null) {
       t.skip('Cannot get a 2D canvas context');
       return;

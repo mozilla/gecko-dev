@@ -1866,10 +1866,13 @@ aspect)
  * Returns true iff a texture can be created with the provided GPUTextureDimension
  * (defaulting to 2d) and GPUTextureFormat, by spec.
  */
-export function textureDimensionAndFormatCompatible(
+export function textureFormatAndDimensionPossiblyCompatible(
 dimension,
 format)
 {
+  if (dimension === '3d' && (isBCTextureFormat(format) || isASTCTextureFormat(format))) {
+    return true;
+  }
   const info = kAllTextureFormatInfo[format];
   return !(
   (dimension === '1d' || dimension === '3d') && (
@@ -1893,7 +1896,11 @@ format)
   {
     return true;
   }
-  return textureDimensionAndFormatCompatible(dimension, format);
+  const info = kAllTextureFormatInfo[format];
+  return !(
+  (dimension === '1d' || dimension === '3d') && (
+  info.blockWidth > 1 || info.depth || info.stencil));
+
 }
 
 /**

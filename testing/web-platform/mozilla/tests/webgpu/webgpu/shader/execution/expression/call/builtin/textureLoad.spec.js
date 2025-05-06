@@ -22,7 +22,7 @@ import {
   isCompressedFloatTextureFormat,
   isDepthTextureFormat,
   kAllTextureFormats,
-  textureDimensionAndFormatCompatible,
+  textureFormatAndDimensionPossiblyCompatible,
   isCompressedTextureFormat,
   kPossibleMultisampledTextureFormats,
   kDepthTextureFormats,
@@ -98,7 +98,7 @@ params((u) =>
 u.
 combine('stage', kShortShaderStages).
 combine('format', kAllTextureFormats).
-filter((t) => textureDimensionAndFormatCompatible('1d', t.format))
+filter((t) => textureFormatAndDimensionPossiblyCompatible('1d', t.format))
 // 1d textures can't have a height !== 1
 .filter((t) => !isCompressedTextureFormat(t.format)).
 beginSubcases().
@@ -109,6 +109,7 @@ combine('L', ['i32', 'u32'])
 fn(async (t) => {
   const { format, stage, C, L, samplePoints } = t.params;
   t.skipIfTextureFormatNotSupported(format);
+  t.skipIfTextureFormatAndDimensionNotCompatible(format, '1d');
 
   // We want at least 4 blocks or something wide enough for 3 mip levels.
   const [width] = chooseTextureSize({ minSize: 8, minBlocks: 4, format });
@@ -260,7 +261,8 @@ params((u) =>
 u.
 combine('stage', kShortShaderStages).
 combine('format', kAllTextureFormats).
-filter((t) => textureDimensionAndFormatCompatible('3d', t.format)).
+filter((t) => textureFormatAndDimensionPossiblyCompatible('3d', t.format)).
+filter((t) => !isCompressedFloatTextureFormat(t.format)).
 beginSubcases().
 combine('samplePoints', kSamplePointMethods).
 combine('C', ['i32', 'u32']).
@@ -269,6 +271,7 @@ combine('L', ['i32', 'u32'])
 fn(async (t) => {
   const { format, stage, samplePoints, C, L } = t.params;
   t.skipIfTextureFormatNotSupported(format);
+  t.skipIfTextureFormatAndDimensionNotCompatible(format, '3d');
 
   // We want at least 4 blocks or something wide enough for 3 mip levels.
   const size = chooseTextureSize({ minSize: 8, minBlocks: 4, format, viewDimension: '3d' });

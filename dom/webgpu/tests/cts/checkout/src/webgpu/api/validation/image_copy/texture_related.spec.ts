@@ -11,7 +11,7 @@ import {
   isDepthOrStencilTextureFormat,
   kColorTextureFormats,
   kSizedTextureFormats,
-  textureDimensionAndFormatCompatible,
+  textureFormatAndDimensionPossiblyCompatible,
 } from '../../../format_info.js';
 import { kResourceStates } from '../../../gpu_test.js';
 import { align } from '../../../util/math.js';
@@ -254,7 +254,9 @@ Test the copy must be a full subresource if the texture's format is depth/stenci
         { depthOrArrayLayers: 32, dimension: '3d' },
       ] as const)
       .combine('format', kSizedTextureFormats)
-      .filter(({ dimension, format }) => textureDimensionAndFormatCompatible(dimension, format))
+      .filter(({ dimension, format }) =>
+        textureFormatAndDimensionPossiblyCompatible(dimension, format)
+      )
       .filter(formatCopyableWithMethod)
       .beginSubcases()
       .combine('mipLevel', [0, 2])
@@ -280,6 +282,7 @@ Test the copy must be a full subresource if the texture's format is depth/stenci
       copyDepthModifier,
     } = t.params;
     t.skipIfTextureFormatNotSupported(format);
+    t.skipIfTextureFormatAndDimensionNotCompatible(format, dimension);
     const info = getBlockInfoForSizedTextureFormat(format);
 
     const size = { width: 32 * info.blockWidth, height: 32 * info.blockHeight, depthOrArrayLayers };
@@ -345,7 +348,9 @@ Test that the texture copy origin must be aligned to the format's block size.
         { depthOrArrayLayers: 3, dimension: '2d' },
         { depthOrArrayLayers: 3, dimension: '3d' },
       ] as const)
-      .filter(({ dimension, format }) => textureDimensionAndFormatCompatible(dimension, format))
+      .filter(({ dimension, format }) =>
+        textureFormatAndDimensionPossiblyCompatible(dimension, format)
+      )
       .beginSubcases()
       .combine('coordinateToTest', ['x', 'y', 'z'] as const)
       .unless(p => p.dimension === '1d' && p.coordinateToTest !== 'x')
@@ -355,6 +360,7 @@ Test that the texture copy origin must be aligned to the format's block size.
     const { valueToCoordinate, coordinateToTest, format, method, depthOrArrayLayers, dimension } =
       t.params;
     t.skipIfTextureFormatNotSupported(format);
+    t.skipIfTextureFormatAndDimensionNotCompatible(format, dimension);
     const info = getBlockInfoForTextureFormat(format);
     const size = { width: 0, height: 0, depthOrArrayLayers };
     const origin = { x: 0, y: 0, z: 0 };
@@ -399,7 +405,9 @@ Test that the copy size must be aligned to the texture's format's block size.
       .combine('format', kColorTextureFormats)
       .filter(formatCopyableWithMethod)
       .combine('dimension', kTextureDimensions)
-      .filter(({ dimension, format }) => textureDimensionAndFormatCompatible(dimension, format))
+      .filter(({ dimension, format }) =>
+        textureFormatAndDimensionPossiblyCompatible(dimension, format)
+      )
       .beginSubcases()
       .combine('coordinateToTest', ['width', 'height', 'depthOrArrayLayers'] as const)
       .unless(p => p.dimension === '1d' && p.coordinateToTest !== 'width')
@@ -408,6 +416,7 @@ Test that the copy size must be aligned to the texture's format's block size.
   .fn(t => {
     const { valueToCoordinate, coordinateToTest, dimension, format, method } = t.params;
     t.skipIfTextureFormatNotSupported(format);
+    t.skipIfTextureFormatAndDimensionNotCompatible(format, dimension);
     const info = getBlockInfoForColorTextureFormat(format);
     const size = { width: 0, height: 0, depthOrArrayLayers: 0 };
     const origin = { x: 0, y: 0, z: 0 };
