@@ -152,6 +152,7 @@ MACOSX_WORKER_TYPES = {
     "macosx1470-64": "t-osx-1400-r8",
     "macosx1100-64": "t-osx-1100-m1",
     "macosx1400-64": "t-osx-1400-m2",
+    "macosx1500-64": "t-osx-1500-m4",
     "macosx1100-aarch64": "t-osx-1100-m1",
     "macosx1500-aarch64": "t-osx-1500-m4",
 }
@@ -174,16 +175,14 @@ def set_worker_type(config, tasks):
             task["worker-type"] = MACOSX_WORKER_TYPES["macosx1015-64"]
         elif test_platform.startswith("macosx1470-64"):
             task["worker-type"] = MACOSX_WORKER_TYPES["macosx1470-64"]
-        elif test_platform.startswith("macosx1100-64"):
-            task["worker-type"] = MACOSX_WORKER_TYPES["macosx1100-64"]
-        elif test_platform.startswith("macosx1100-aarch64"):
-            task["worker-type"] = MACOSX_WORKER_TYPES["macosx1100-aarch64"]
         elif test_platform.startswith("macosx1400-64"):
             task["worker-type"] = MACOSX_WORKER_TYPES["macosx1400-64"]
         elif test_platform.startswith("macosx1400-aarch64"):
             task["worker-type"] = MACOSX_WORKER_TYPES["macosx1400-aarch64"]
         elif test_platform.startswith("macosx1500-aarch64"):
             task["worker-type"] = MACOSX_WORKER_TYPES["macosx1500-aarch64"]
+        elif test_platform.startswith("macosx1500-64"):
+            task["worker-type"] = MACOSX_WORKER_TYPES["macosx1500-64"]
         elif test_platform.startswith("win"):
             # figure out what platform the job needs to run on
             if task["virtualization"] == "hardware":

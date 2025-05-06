@@ -374,10 +374,10 @@ talos-xperf:
     - talos-xperf
 
 # macOS
-macosx1100-64-jittests:
+macosx1500-64-jittests:
     - jittest
 
-macosx1100-64-qr-tests:
+macosx1500-64-tests:
     - crashtest
     - jsreftest
     - mochitest-browser-a11y
@@ -395,7 +395,7 @@ macosx1100-64-qr-tests:
     - web-platform-tests-webcodecs
     - web-platform-tests-eme
 
-macosx1100-aarch64-qr-tests:
+macosx1500-aarch64-tests:
     - cppunittest
     - mochitest-media
 
@@ -472,7 +472,7 @@ macosx64-talos:
     - talos-pdfpaint
     # - talos-h1 # too long to unpack profile- Bug 1442893
 
-macosx1400-64-qr-tests:
+macosx1500-64-perftests:
     - browsertime-benchmark
 
 # Android
