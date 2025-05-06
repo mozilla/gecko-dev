@@ -19,8 +19,12 @@ export class WPTMessagesChild extends JSWindowActorChild {
           removeListener: arg => this.#removeListener(arg),
         },
       };
-      let value = Cu.cloneInto({ test }, win, { cloneFunctions: true });
-      Object.defineProperty(win, "browser", { value, writable: true });
+      Object.defineProperty(win, "browser", {
+        configurable: true,
+        enumerable: true,
+        value: Cu.cloneInto({ test }, win, { cloneFunctions: true }),
+        writable: true,
+      });
     }
   }
 
