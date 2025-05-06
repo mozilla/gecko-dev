@@ -4,7 +4,7 @@ tags = "media-engine-compatible"
 skip-if = ["!wmfme"]
 
 support-files = [
-  "tearsofsteel_1frame_enc.mp4",
+  "tearsofsteel_1frame_encrypted.mp4",
 ]
 
 ["test_eme_mfcdm_generate_request.html"]
