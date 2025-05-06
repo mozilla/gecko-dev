@@ -66,7 +66,6 @@
 #include <utility>
 
 #include "absl/base/attributes.h"
-#include "absl/meta/type_traits.h"
 #include "absl/strings/has_absl_stringify.h"
 #include "absl/strings/str_cat.h"
 #include "absl/strings/string_view.h"
@@ -325,12 +324,12 @@ inline Val<LogArgType::kLogMetadataErr, LogMetadataErr> MakeVal(
 
 // The enum class types are not implicitly convertible to arithmetic types.
 template <typename T,
-          absl::enable_if_t<std::is_enum<T>::value &&
-                            !absl::HasAbslStringify<T>::value &&
-                            !std::is_arithmetic<T>::value>* = nullptr>
-inline decltype(MakeVal(std::declval<absl::underlying_type_t<T>>())) MakeVal(
+          std::enable_if_t<std::is_enum<T>::value &&
+                           !absl::HasAbslStringify<T>::value &&
+                           !std::is_arithmetic<T>::value>* = nullptr>
+inline decltype(MakeVal(std::declval<std::underlying_type_t<T>>())) MakeVal(
     T x) {
-  return {static_cast<absl::underlying_type_t<T>>(x)};
+  return {static_cast<std::underlying_type_t<T>>(x)};
 }
 
 #ifdef WEBRTC_ANDROID
@@ -350,7 +349,7 @@ ToStringVal MakeVal(const T& x) {
 // TODO(bugs.webrtc.org/9278): Get rid of this overload when callers don't need
 // it anymore. No in-tree caller does, but some external callers still do.
 template <typename T,
-          typename T1 = absl::decay_t<T>,
+          typename T1 = std::decay_t<T>,
           std::enable_if_t<std::is_class<T1>::value &&               //
                            !std::is_same<T1, std::string>::value &&  //
                            !std::is_same<T1, LogMetadata>::value &&  //

@@ -14,7 +14,7 @@
 #include <stddef.h>  // For size_t.
 
 #ifdef __cplusplus
-#include "absl/meta/type_traits.h"
+#include <type_traits>
 #endif
 
 #if defined(__has_feature)
@@ -118,10 +118,10 @@ namespace sanitizer_impl {
 
 template <typename T>
 constexpr bool IsTriviallyCopyable() {
-  return static_cast<bool>(absl::is_trivially_copy_constructible<T>::value &&
-                           (absl::is_trivially_copy_assignable<T>::value ||
+  return static_cast<bool>(std::is_trivially_copy_constructible<T>::value &&
+                           (std::is_trivially_copy_assignable<T>::value ||
                             !std::is_copy_assignable<T>::value) &&
-                           absl::is_trivially_destructible<T>::value);
+                           std::is_trivially_destructible<T>::value);
 }
 
 }  // namespace sanitizer_impl

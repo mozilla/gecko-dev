@@ -439,7 +439,6 @@ rtc_library("logging") {
     "../api/units:timestamp",
     "synchronization:mutex",
     "//third_party/abseil-cpp/absl/base:core_headers",
-    "//third_party/abseil-cpp/absl/meta:type_traits",
     "//third_party/abseil-cpp/absl/strings",
     "//third_party/abseil-cpp/absl/strings:string_view",
   ]
@@ -495,7 +494,6 @@ rtc_library("checks") {
     "../api:scoped_refptr",
     "system:inline",
     "system:rtc_export",
-    "//third_party/abseil-cpp/absl/meta:type_traits",
     "//third_party/abseil-cpp/absl/strings",
     "//third_party/abseil-cpp/absl/strings:string_view",
   ]
@@ -523,7 +521,7 @@ rtc_library("rate_limiter") {
 
 rtc_source_set("sanitizer") {
   sources = [ "sanitizer.h" ]
-  deps = [ "//third_party/abseil-cpp/absl/meta:type_traits" ]
+  deps = []
 }
 
 rtc_source_set("bounded_inline_vector") {

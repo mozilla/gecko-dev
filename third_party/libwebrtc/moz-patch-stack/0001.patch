@@ -35,7 +35,7 @@ Cr-Commit-Position: refs/heads/main@{#44163}
  1 file changed, 3 insertions(+), 4 deletions(-)
 
 diff --git a/DEPS b/DEPS
-index 029622b810..473af3fb7f 100644
+index f571093c94..df6d79bd56 100644
 --- a/DEPS
 +++ b/DEPS
 @@ -62,10 +62,9 @@ vars = {
