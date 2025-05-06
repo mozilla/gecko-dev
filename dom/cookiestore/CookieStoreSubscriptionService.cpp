@@ -344,8 +344,8 @@ CookieStoreSubscriptionService::Observe(nsISupports* aSubject,
       }
 
       rv = swm->SendCookieChangeEvent(principalInfo.attrs(),
-                                      data.mRegistration.scope(), name, value,
-                                      deleteEvent);
+                                      data.mRegistration.scope(),
+                                      cookie->AsCookie().ToIPC(), deleteEvent);
       if (NS_WARN_IF(NS_FAILED(rv))) {
         return rv;
       }

@@ -5,6 +5,7 @@
 include ClientIPCTypes;
 include DOMTypes;
 include FetchTypes;
+include NeckoChannelParams;
 
 include "mozilla/dom/ServiceWorkerIPCUtils.h";
 
@@ -32,8 +33,7 @@ struct ServiceWorkerLifeCycleEventOpArgs {
 };
 
 struct ServiceWorkerCookieChangeEventOpArgs {
-  nsString name;
-  nsString value;
+  CookieStruct cookie;
   bool deleted;
 };
 

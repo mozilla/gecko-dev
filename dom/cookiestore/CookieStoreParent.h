@@ -20,7 +20,7 @@ class CookieStoreParent final : public PCookieStoreParent {
 
  public:
   using GetRequestPromise =
-      MozPromise<CopyableTArray<CookieData>, nsresult, true>;
+      MozPromise<CopyableTArray<CookieStruct>, nsresult, true>;
   using SetDeleteRequestPromise = MozPromise<bool, nsresult, true>;
   using GetSubscriptionsRequestPromise =
       MozPromise<CopyableTArray<CookieSubscription>, nsresult, true>;
@@ -75,7 +75,7 @@ class CookieStoreParent final : public PCookieStoreParent {
       bool aThirdPartyContext, bool aPartitionForeign, bool aUsingStorageAccess,
       bool aIsOn3PCBExceptionList, bool aMatchName, const nsAString& aName,
       const nsACString& aPath, bool aOnlyFirstMatch,
-      nsTArray<CookieData>& aResults);
+      nsTArray<CookieStruct>& aResults);
 
   // Returns true if a cookie notification has been generated while completing
   // the operation.

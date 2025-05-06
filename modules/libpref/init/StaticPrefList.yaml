@@ -2576,6 +2576,12 @@
   value: true
   mirror: always
 
+# Disable extra cookie-store properties
+- name: dom.cookieStore.extra.enabled
+  type: RelaxedAtomicBool
+  value: @IS_NIGHTLY_BUILD@
+  mirror: always
+
 # Is support for CSSPseudoElement enabled?
 - name: dom.css_pseudo_element.enabled
   type: bool
