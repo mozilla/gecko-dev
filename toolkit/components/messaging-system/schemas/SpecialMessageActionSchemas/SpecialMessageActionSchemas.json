@@ -710,6 +710,43 @@
           "required": ["type"],
           "additionalProperties": false,
           "description": "Submit an `onboarding-opt-out` Glean ping.  Should only be used during preonboarding."
+        },
+        {
+          "type": "object",
+          "properties": {
+            "data": {
+              "type": "object",
+              "properties": {
+                "engineName": {
+                  "type": "string",
+                  "description": "The name of the search engine to restrict to. Can be left empty to use source restriction instead."
+                },
+                "source": {
+                  "type": "integer",
+                  "description": "A result source to restrict to. One of the values in UrlbarUtils.RESULT_SOURCE.",
+                  "default": 3
+                },
+                "entry": {
+                  "type": "string",
+                  "description": "How search mode was entered. This is recorded in event telemetry. One of the values in UrlbarUtils.SEARCH_MODE_ENTRY.",
+                  "default": "other"
+                },
+                "isPreview": {
+                  "type": "boolean",
+                  "description": "If true, we will preview search mode. Search mode preview does not record telemetry and has slightly different UI behavior. The preview is exited in favor of full search mode when a query is executed. False should be passed if the caller needs to enter search mode but expects it will not be interacted with right away.",
+                  "default": true
+                }
+              },
+              "additionalProperties": true
+            },
+            "type": {
+              "type": "string",
+              "enum": ["SET_SEARCH_MODE"]
+            }
+          },
+          "required": ["type"],
+          "additionalProperties": true,
+          "description": "Sets search mode for a specific browser instance and focuses the urlbar."
         }
       ]
     }

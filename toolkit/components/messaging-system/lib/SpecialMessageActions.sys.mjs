@@ -763,6 +763,10 @@ export const SpecialMessageActions = {
       case "SUBMIT_ONBOARDING_OPT_OUT_PING":
         this.submitOnboardingOptOutPing();
         break;
+      case "SET_SEARCH_MODE":
+        window.gURLBar.searchMode = action.data;
+        window.gURLBar.focus();
+        break;
     }
     return undefined;
   },

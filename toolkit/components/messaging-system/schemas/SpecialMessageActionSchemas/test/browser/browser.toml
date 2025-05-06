@@ -61,6 +61,8 @@ run-if = ["os == 'win' && msix"]
 
 ["browser_sma_set_prefs.js"]
 
+["browser_sma_set_search_mode.js"]
+
 ["browser_sma_show_firefox_accounts.js"]
 
 ["browser_sma_show_migration_wizard.js"]

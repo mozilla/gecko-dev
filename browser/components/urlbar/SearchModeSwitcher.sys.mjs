@@ -158,8 +158,16 @@ export class SearchModeSwitcher {
     if (!this.#input.window || this.#input.window.closed) {
       return;
     }
+
     if (lazy.UrlbarPrefs.get("scotchBonnet.enableOverride")) {
       this.updateSearchIcon();
+
+      if (
+        this.#input.searchMode?.engineName == "Perplexity" &&
+        !lazy.UrlbarPrefs.get("perplexity.hasBeenInSearchMode")
+      ) {
+        lazy.UrlbarPrefs.set("perplexity.hasBeenInSearchMode", true);
+      }
     }
   }
 
