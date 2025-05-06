@@ -4,12 +4,6 @@
 
 import { GeckoViewModule } from "resource://gre/modules/GeckoViewModule.sys.mjs";
 
-const lazy = {};
-ChromeUtils.defineESModuleGetters(lazy, {
-  isProductURL: "chrome://global/content/shopping/ShoppingProduct.mjs",
-  ShoppingProduct: "chrome://global/content/shopping/ShoppingProduct.mjs",
-});
-
 export class GeckoViewContent extends GeckoViewModule {
   onInit() {
     this.registerListener([
@@ -20,16 +14,6 @@ export class GeckoViewContent extends GeckoViewModule {
       "GeckoView:HasCookieBannerRuleForBrowsingContextTree",
       "GeckoView:RestoreState",
       "GeckoView:ContainsFormData",
-      "GeckoView:RequestCreateAnalysis",
-      "GeckoView:RequestAnalysisStatus",
-      "GeckoView:RequestAnalysisCreationStatus",
-      "GeckoView:PollForAnalysisCompleted",
-      "GeckoView:SendClickAttributionEvent",
-      "GeckoView:SendImpressionAttributionEvent",
-      "GeckoView:SendPlacementAttributionEvent",
-      "GeckoView:RequestAnalysis",
-      "GeckoView:RequestRecommendations",
-      "GeckoView:ReportBackInStock",
       "GeckoView:ScrollBy",
       "GeckoView:ScrollTo",
       "GeckoView:SetActive",
@@ -300,36 +284,6 @@ export class GeckoViewContent extends GeckoViewModule {
       case "GeckoView:SendMoreWebCompatInfo":
         this._sendMoreWebCompatInfo(aData, aCallback);
         break;
-      case "GeckoView:RequestAnalysis":
-        this._requestAnalysis(aData, aCallback);
-        break;
-      case "GeckoView:RequestCreateAnalysis":
-        this._requestCreateAnalysis(aData, aCallback);
-        break;
-      case "GeckoView:RequestAnalysisStatus":
-        this._requestAnalysisStatus(aData, aCallback);
-        break;
-      case "GeckoView:RequestAnalysisCreationStatus":
-        this._requestAnalysisCreationStatus(aData, aCallback);
-        break;
-      case "GeckoView:PollForAnalysisCompleted":
-        this._pollForAnalysisCompleted(aData, aCallback);
-        break;
-      case "GeckoView:SendClickAttributionEvent":
-        this._sendAttributionEvent("click", aData, aCallback);
-        break;
-      case "GeckoView:SendImpressionAttributionEvent":
-        this._sendAttributionEvent("impression", aData, aCallback);
-        break;
-      case "GeckoView:SendPlacementAttributionEvent":
-        this._sendAttributionEvent("placement", aData, aCallback);
-        break;
-      case "GeckoView:RequestRecommendations":
-        this._requestRecommendations(aData, aCallback);
-        break;
-      case "GeckoView:ReportBackInStock":
-        this._reportBackInStock(aData, aCallback);
-        break;
       case "GeckoView:IsPdfJs":
         aCallback.onSuccess(this.isPdfJs);
         break;
@@ -507,206 +461,6 @@ export class GeckoViewContent extends GeckoViewModule {
 
   async _containsFormData(aCallback) {
     aCallback.onSuccess(await this.actor.containsFormData());
-  }
-
-  async _requestAnalysis(aData, aCallback) {
-    if (
-      Services.prefs.getBoolPref("geckoview.shopping.mock_test_response", false)
-    ) {
-      const analysis = {
-        analysis_url: "https://www.example.com/mock_analysis_url",
-        product_id: "ABCDEFG123",
-        grade: "B",
-        adjusted_rating: 4.5,
-        needs_analysis: true,
-        page_not_supported: true,
-        not_enough_reviews: true,
-        highlights: null,
-        last_analysis_time: 12345,
-        deleted_product_reported: true,
-        deleted_product: true,
-      };
-      aCallback.onSuccess({ analysis });
-      return;
-    }
-    const url = Services.io.newURI(aData.url);
-    if (!lazy.isProductURL(url)) {
-      aCallback.onError(`Cannot requestAnalysis on a non-product url.`);
-    } else {
-      const product = new lazy.ShoppingProduct(url);
-      const analysis = await product.requestAnalysis();
-      if (!analysis) {
-        aCallback.onError(`Product analysis returned null.`);
-        return;
-      }
-      aCallback.onSuccess({ analysis });
-    }
-  }
-
-  async _requestCreateAnalysis(aData, aCallback) {
-    if (
-      Services.prefs.getBoolPref("geckoview.shopping.mock_test_response", false)
-    ) {
-      const status = "pending";
-      aCallback.onSuccess(status);
-      return;
-    }
-    const url = Services.io.newURI(aData.url);
-    if (!lazy.isProductURL(url)) {
-      aCallback.onError(`Cannot requestCreateAnalysis on a non-product url.`);
-    } else {
-      const product = new lazy.ShoppingProduct(url);
-      const status = await product.requestCreateAnalysis();
-      if (!status) {
-        aCallback.onError(`Creation of product analysis returned null.`);
-        return;
-      }
-      aCallback.onSuccess(status.status);
-    }
-  }
-
-  async _requestAnalysisCreationStatus(aData, aCallback) {
-    if (
-      Services.prefs.getBoolPref("geckoview.shopping.mock_test_response", false)
-    ) {
-      const status = "in_progress";
-      aCallback.onSuccess(status);
-      return;
-    }
-    const url = Services.io.newURI(aData.url);
-    if (!lazy.isProductURL(url)) {
-      aCallback.onError(
-        `Cannot requestAnalysisCreationStatus on a non-product url.`
-      );
-    } else {
-      const product = new lazy.ShoppingProduct(url);
-      const status = await product.requestAnalysisCreationStatus();
-      if (!status) {
-        aCallback.onError(
-          `Status of creation of product analysis returned null.`
-        );
-        return;
-      }
-      aCallback.onSuccess(status.status);
-    }
-  }
-
-  async _requestAnalysisStatus(aData, aCallback) {
-    if (
-      Services.prefs.getBoolPref("geckoview.shopping.mock_test_response", false)
-    ) {
-      const status = { status: "in_progress", progress: 90.9 };
-      aCallback.onSuccess({ status });
-      return;
-    }
-    const url = Services.io.newURI(aData.url);
-    if (!lazy.isProductURL(url)) {
-      aCallback.onError(`Cannot requestAnalysisStatus on a non-product url.`);
-    } else {
-      const product = new lazy.ShoppingProduct(url);
-      const status = await product.requestAnalysisCreationStatus();
-      if (!status) {
-        aCallback.onError(`Status of product analysis returned null.`);
-        return;
-      }
-      aCallback.onSuccess({ status });
-    }
-  }
-
-  async _pollForAnalysisCompleted(aData, aCallback) {
-    const url = Services.io.newURI(aData.url);
-    if (!lazy.isProductURL(url)) {
-      aCallback.onError(
-        `Cannot pollForAnalysisCompleted on a non-product url.`
-      );
-    } else {
-      const product = new lazy.ShoppingProduct(url);
-      const status = await product.pollForAnalysisCompleted();
-      if (!status) {
-        aCallback.onError(
-          `Polling the status of creation of product analysis returned null.`
-        );
-        return;
-      }
-      aCallback.onSuccess(status.status);
-    }
-  }
-
-  async _sendAttributionEvent(aEvent, aData, aCallback) {
-    let result;
-    if (
-      Services.prefs.getBoolPref("geckoview.shopping.mock_test_response", false)
-    ) {
-      result = { TEST_AID: "TEST_AID_RESPONSE" };
-    } else {
-      result = await lazy.ShoppingProduct.sendAttributionEvent(
-        aEvent,
-        aData.aid,
-        "geckoview_android"
-      );
-    }
-    if (!result || !(aData.aid in result) || !result[aData.aid]) {
-      aCallback.onSuccess(false);
-      return;
-    }
-    aCallback.onSuccess(true);
-  }
-
-  async _requestRecommendations(aData, aCallback) {
-    if (
-      Services.prefs.getBoolPref("geckoview.shopping.mock_test_response", false)
-    ) {
-      const recommendations = [
-        {
-          name: "Mock Product",
-          url: "https://example.com/mock_url",
-          image_url: "https://example.com/mock_image_url",
-          price: "450",
-          currency: "USD",
-          grade: "C",
-          adjusted_rating: 3.5,
-          analysis_url: "https://example.com/mock_analysis_url",
-          sponsored: true,
-          aid: "mock_aid",
-        },
-      ];
-      aCallback.onSuccess({ recommendations });
-      return;
-    }
-    const url = Services.io.newURI(aData.url);
-    if (!lazy.isProductURL(url)) {
-      aCallback.onError(`Cannot requestRecommendations on a non-product url.`);
-    } else {
-      const product = new lazy.ShoppingProduct(url);
-      const recommendations = await product.requestRecommendations();
-      if (!recommendations) {
-        aCallback.onError(`Product recommendations returned null.`);
-        return;
-      }
-      aCallback.onSuccess({ recommendations });
-    }
-  }
-
-  async _reportBackInStock(aData, aCallback) {
-    if (
-      Services.prefs.getBoolPref("geckoview.shopping.mock_test_response", false)
-    ) {
-      const message = "report created";
-      aCallback.onSuccess(message);
-      return;
-    }
-    const url = Services.io.newURI(aData.url);
-    if (!lazy.isProductURL(url)) {
-      aCallback.onError(`Cannot reportBackInStock on a non-product url.`);
-    } else {
-      const product = new lazy.ShoppingProduct(url);
-      const message = await product.sendReport();
-      if (!message) {
-        aCallback.onError(`Reporting back in stock returned null.`);
-        return;
-      }
-      aCallback.onSuccess(message.message);
-    }
   }
 
   async _hasCookieBannerRuleForBrowsingContextTree(aCallback) {
