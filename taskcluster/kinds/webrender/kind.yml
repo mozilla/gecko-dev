@@ -631,7 +631,7 @@ tasks:
         description: Run debug wrench reftests on Android Samsung Galaxy A55
         attributes:
             build_platform: android
-        worker-type: t-bitbar-gw-perf-a55
+        worker-type: t-lambda-perf-a55
         worker:
             max-run-time: 5400
             artifacts:
@@ -679,7 +679,7 @@ tasks:
         description: Run opt wrench reftests on Android Samsung Galaxy A55
         attributes:
             build_platform: android
-        worker-type: t-bitbar-gw-perf-a55
+        worker-type: t-lambda-perf-a55
         worker:
             max-run-time: 5400
             artifacts:
