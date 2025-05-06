@@ -3232,36 +3232,38 @@ RTCError SdpOfferAnswerHandler::Rollback(SdpType desc_type) {
 
   for (auto&& transceivers_stable_state_pair : transceivers()->StableStates()) {
     auto transceiver = transceivers_stable_state_pair.first;
-    auto state = transceivers_stable_state_pair.second;
+    auto stable_state = transceivers_stable_state_pair.second;
 
-    if (state.did_set_fired_direction()) {
+    if (stable_state.did_set_fired_direction()) {
       // If this rollback triggers going from not receiving to receving again,
       // we need to fire "ontrack".
       bool previously_fired_direction_is_recv =
           transceiver->fired_direction().has_value() &&
           RtpTransceiverDirectionHasRecv(*transceiver->fired_direction());
       bool currently_fired_direction_is_recv =
-          state.fired_direction().has_value() &&
-          RtpTransceiverDirectionHasRecv(state.fired_direction().value());
+          stable_state.fired_direction().has_value() &&
+          RtpTransceiverDirectionHasRecv(
+              stable_state.fired_direction().value());
       if (!previously_fired_direction_is_recv &&
           currently_fired_direction_is_recv) {
         now_receiving_transceivers.push_back(transceiver);
       }
-      transceiver->internal()->set_fired_direction(state.fired_direction());
+      transceiver->internal()->set_fired_direction(
+          stable_state.fired_direction());
     }
 
-    if (state.remote_stream_ids()) {
+    if (stable_state.remote_stream_ids()) {
       std::vector<rtc::scoped_refptr<MediaStreamInterface>> added_streams;
       std::vector<rtc::scoped_refptr<MediaStreamInterface>> removed_streams;
       SetAssociatedRemoteStreams(transceiver->internal()->receiver_internal(),
-                                 state.remote_stream_ids().value(),
+                                 stable_state.remote_stream_ids().value(),
                                  &added_streams, &removed_streams);
       all_added_streams.insert(all_added_streams.end(), added_streams.begin(),
                                added_streams.end());
       all_removed_streams.insert(all_removed_streams.end(),
                                  removed_streams.begin(),
                                  removed_streams.end());
-      if (!state.has_m_section() && !state.newly_created()) {
+      if (!stable_state.has_m_section() && !stable_state.newly_created()) {
         continue;
       }
     }
@@ -3277,7 +3279,7 @@ RTCError SdpOfferAnswerHandler::Rollback(SdpType desc_type) {
         transceiver->receiver()) {
       removed_receivers.push_back(transceiver->receiver());
     }
-    if (state.newly_created()) {
+    if (stable_state.newly_created()) {
       if (transceiver->internal()->reused_for_addtrack()) {
         transceiver->internal()->set_created_by_addtrack(true);
       } else {
@@ -3285,15 +3287,15 @@ RTCError SdpOfferAnswerHandler::Rollback(SdpType desc_type) {
         transceivers()->Remove(transceiver);
       }
     }
-    if (state.init_send_encodings()) {
+    if (stable_state.init_send_encodings()) {
       transceiver->internal()->sender_internal()->set_init_send_encodings(
-          state.init_send_encodings().value());
+          stable_state.init_send_encodings().value());
     }
     transceiver->internal()->sender_internal()->set_transport(nullptr);
     transceiver->internal()->receiver_internal()->set_transport(nullptr);
-    if (state.has_m_section()) {
-      transceiver->internal()->set_mid(state.mid());
-      transceiver->internal()->set_mline_index(state.mline_index());
+    if (stable_state.has_m_section()) {
+      transceiver->internal()->set_mid(stable_state.mid());
+      transceiver->internal()->set_mline_index(stable_state.mline_index());
     }
   }
   RTCError e = transport_controller_s()->RollbackTransports();
@@ -3694,7 +3696,6 @@ RTCError SdpOfferAnswerHandler::ValidateSessionDescription(
   }
 
   // Verify crypto settings.
-  std::string crypto_error;
   if (pc_->dtls_enabled()) {
     RTCError crypto_error = VerifyCrypto(
         sdesc->description(), pc_->dtls_enabled(), bundle_groups_by_mid);

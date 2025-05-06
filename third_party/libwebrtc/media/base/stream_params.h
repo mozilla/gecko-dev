@@ -164,7 +164,7 @@ struct StreamParams {
 
   // Convenience to get all the SIM SSRCs if there are SIM ssrcs, or
   // the first SSRC otherwise.
-  void GetPrimarySsrcs(std::vector<uint32_t>* ssrcs) const;
+  void GetPrimarySsrcs(std::vector<uint32_t>* primary_ssrcs) const;
 
   // Convenience to get all the secondary SSRCs for the given primary ssrcs
   // of a particular semantic.

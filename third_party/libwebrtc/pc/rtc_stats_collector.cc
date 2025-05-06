@@ -953,15 +953,17 @@ void ProduceCertificateStatsFromSSLCertificateStats(
       RTC_DCHECK_EQ(s, &certificate_stats);
       break;
     }
-    RTCCertificateStats* certificate_stats =
+    RTCCertificateStats* current_certificate_stats =
         new RTCCertificateStats(certificate_stats_id, timestamp);
-    certificate_stats->fingerprint = s->fingerprint;
-    certificate_stats->fingerprint_algorithm = s->fingerprint_algorithm;
-    certificate_stats->base64_certificate = s->base64_certificate;
+    current_certificate_stats->fingerprint = s->fingerprint;
+    current_certificate_stats->fingerprint_algorithm = s->fingerprint_algorithm;
+    current_certificate_stats->base64_certificate = s->base64_certificate;
     if (prev_certificate_stats)
-      prev_certificate_stats->issuer_certificate_id = certificate_stats->id();
-    report->AddStats(std::unique_ptr<RTCCertificateStats>(certificate_stats));
-    prev_certificate_stats = certificate_stats;
+      prev_certificate_stats->issuer_certificate_id =
+          current_certificate_stats->id();
+    report->AddStats(
+        std::unique_ptr<RTCCertificateStats>(current_certificate_stats));
+    prev_certificate_stats = current_certificate_stats;
   }
 }
 
@@ -1960,64 +1962,67 @@ void RTCStatsCollector::ProduceTransportStats_n(
     // There is one transport stats for each channel.
     for (const cricket::TransportChannelStats& channel_stats :
          transport_stats.channel_stats) {
-      auto transport_stats = std::make_unique<RTCTransportStats>(
+      auto channel_transport_stats = std::make_unique<RTCTransportStats>(
           RTCTransportStatsIDFromTransportChannel(transport_name,
                                                   channel_stats.component),
           timestamp);
-      transport_stats->packets_sent =
+      channel_transport_stats->packets_sent =
           channel_stats.ice_transport_stats.packets_sent;
-      transport_stats->packets_received =
+      channel_transport_stats->packets_received =
           channel_stats.ice_transport_stats.packets_received;
-      transport_stats->bytes_sent =
+      channel_transport_stats->bytes_sent =
           channel_stats.ice_transport_stats.bytes_sent;
-      transport_stats->bytes_received =
+      channel_transport_stats->bytes_received =
           channel_stats.ice_transport_stats.bytes_received;
-      transport_stats->dtls_state =
+      channel_transport_stats->dtls_state =
           DtlsTransportStateToRTCDtlsTransportState(channel_stats.dtls_state);
-      transport_stats->selected_candidate_pair_changes =
+      channel_transport_stats->selected_candidate_pair_changes =
           channel_stats.ice_transport_stats.selected_candidate_pair_changes;
-      transport_stats->ice_role =
+      channel_transport_stats->ice_role =
           IceRoleToRTCIceRole(channel_stats.ice_transport_stats.ice_role);
-      transport_stats->ice_local_username_fragment =
+      channel_transport_stats->ice_local_username_fragment =
           channel_stats.ice_transport_stats.ice_local_username_fragment;
-      transport_stats->ice_state = IceTransportStateToRTCIceTransportState(
-          channel_stats.ice_transport_stats.ice_state);
+      channel_transport_stats->ice_state =
+          IceTransportStateToRTCIceTransportState(
+              channel_stats.ice_transport_stats.ice_state);
       for (const cricket::ConnectionInfo& info :
            channel_stats.ice_transport_stats.connection_infos) {
         if (info.best_connection) {
-          transport_stats->selected_candidate_pair_id =
+          channel_transport_stats->selected_candidate_pair_id =
               RTCIceCandidatePairStatsIDFromConnectionInfo(info);
         }
       }
       if (channel_stats.component != cricket::ICE_CANDIDATE_COMPONENT_RTCP &&
           !rtcp_transport_stats_id.empty()) {
-        transport_stats->rtcp_transport_stats_id = rtcp_transport_stats_id;
+        channel_transport_stats->rtcp_transport_stats_id =
+            rtcp_transport_stats_id;
       }
       if (!local_certificate_id.empty())
-        transport_stats->local_certificate_id = local_certificate_id;
+        channel_transport_stats->local_certificate_id = local_certificate_id;
       if (!remote_certificate_id.empty())
-        transport_stats->remote_certificate_id = remote_certificate_id;
+        channel_transport_stats->remote_certificate_id = remote_certificate_id;
       // Crypto information
       if (channel_stats.ssl_version_bytes) {
         char bytes[5];
         snprintf(bytes, sizeof(bytes), "%04X", channel_stats.ssl_version_bytes);
-        transport_stats->tls_version = bytes;
+        channel_transport_stats->tls_version = bytes;
       }
 
       if (channel_stats.dtls_role) {
-        transport_stats->dtls_role =
+        channel_transport_stats->dtls_role =
             *channel_stats.dtls_role == SSL_CLIENT ? "client" : "server";
       } else {
-        transport_stats->dtls_role = "unknown";
+        channel_transport_stats->dtls_role = "unknown";
       }
 
-      transport_stats->dtls_cipher = channel_stats.tls_cipher_suite_name;
+      channel_transport_stats->dtls_cipher =
+          channel_stats.tls_cipher_suite_name;
       if (channel_stats.srtp_crypto_suite != kSrtpInvalidCryptoSuite &&
           SrtpCryptoSuiteToName(channel_stats.srtp_crypto_suite).length()) {
-        transport_stats->srtp_cipher =
+        channel_transport_stats->srtp_cipher =
             SrtpCryptoSuiteToName(channel_stats.srtp_crypto_suite);
       }
-      report->AddStats(std::move(transport_stats));
+      report->AddStats(std::move(channel_transport_stats));
     }
   }
 }

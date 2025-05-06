@@ -415,8 +415,8 @@ void PacingController::ProcessPackets() {
         keepalive_data_sent +=
             DataSize::Bytes(packet->payload_size() + packet->padding_size());
         packet_sender_->SendPacket(std::move(packet), PacedPacketInfo());
-        for (auto& packet : packet_sender_->FetchFec()) {
-          EnqueuePacket(std::move(packet));
+        for (auto& fec_packet : packet_sender_->FetchFec()) {
+          EnqueuePacket(std::move(fec_packet));
         }
       }
     }

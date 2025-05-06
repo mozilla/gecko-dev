@@ -420,7 +420,7 @@ RTCError JsepTransportController::RemoveRemoteCandidates(
 
   for (const auto& kv : candidates_by_transport_name) {
     const std::string& transport_name = kv.first;
-    const cricket::Candidates& candidates = kv.second;
+    const cricket::Candidates& transport_candidates = kv.second;
     cricket::JsepTransport* jsep_transport =
         GetJsepTransportByName(transport_name);
     if (!jsep_transport) {
@@ -428,7 +428,7 @@ RTCError JsepTransportController::RemoveRemoteCandidates(
           << "Not removing candidate because the JsepTransport doesn't exist.";
       continue;
     }
-    for (const cricket::Candidate& candidate : candidates) {
+    for (const cricket::Candidate& candidate : transport_candidates) {
       cricket::DtlsTransportInternal* dtls =
           candidate.component() == cricket::ICE_CANDIDATE_COMPONENT_RTP
               ? jsep_transport->rtp_dtls_transport()

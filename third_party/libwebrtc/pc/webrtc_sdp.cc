@@ -1143,15 +1143,15 @@ bool ParseCandidate(absl::string_view message,
   }
   if (fields.size() >= (current_position + 2) &&
       fields[current_position] == kAttributeCandidateRport) {
-    int port = 0;
-    if (!GetValueFromString(first_line, fields[++current_position], &port,
-                            error)) {
+    int related_port = 0;
+    if (!GetValueFromString(first_line, fields[++current_position],
+                            &related_port, error)) {
       return false;
     }
-    if (!IsValidPort(port)) {
+    if (!IsValidPort(related_port)) {
       return ParseFailed(first_line, "Invalid port number.", error);
     }
-    related_address.SetPort(port);
+    related_address.SetPort(related_port);
     ++current_position;
   }
 
@@ -1327,7 +1327,6 @@ static void BuildSctpContentAttributes(
   if (data_desc->use_sctpmap()) {
     // draft-ietf-mmusic-sctp-sdp-04
     // a=sctpmap:sctpmap-number  protocol  [streams]
-    StringBuilder os;
     InitAttrLine(kAttributeSctpmap, &os);
     os << kSdpDelimiterColon << data_desc->port() << kSdpDelimiterSpace
        << kDefaultSctpmapProtocol << kSdpDelimiterSpace
@@ -1949,7 +1948,6 @@ void BuildRtpmap(const MediaContentDescription* media_desc,
   }
   if (media_desc->rtcp_fb_ack_ccfb()) {
     // RFC 8888 section 6
-    StringBuilder os;
     InitAttrLine(kAttributeRtcpFb, &os);
     os << kSdpDelimiterColon;
     os << "* ack ccfb";

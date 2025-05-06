@@ -374,8 +374,8 @@ int SimulcastEncoderAdapter::InitEncode(
   // Singlecast or simulcast with simulcast-capable underlaying encoder.
   if (total_streams_count_ == 1 || !separate_encoders_needed) {
     RTC_LOG(LS_INFO) << "[SEA] InitEncode: Single-encoder mode";
-    int ret = encoder_context->encoder().InitEncode(&codec_, settings);
-    if (ret >= 0) {
+    int result = encoder_context->encoder().InitEncode(&codec_, settings);
+    if (result >= 0) {
       stream_contexts_.emplace_back(
           /*parent=*/nullptr, std::move(encoder_context),
           /*framerate_controller=*/nullptr, /*stream_idx=*/0, codec_.width,
@@ -427,13 +427,13 @@ int SimulcastEncoderAdapter::InitEncode(
                      << stream_idx << ", active: "
                      << (codec_.simulcastStream[stream_idx].active ? "true"
                                                                    : "false");
-    int ret = encoder_context->encoder().InitEncode(&stream_codec, settings);
-    if (ret < 0) {
+    int result = encoder_context->encoder().InitEncode(&stream_codec, settings);
+    if (result < 0) {
       encoder_context.reset();
       Release();
       RTC_LOG(LS_ERROR) << "[SEA] InitEncode: failed with error code: "
                         << WebRtcVideoCodecErrorToString(ret);
-      return ret;
+      return result;
     }
 
     // Intercept frame encode complete callback only for upper streams, where

@@ -127,7 +127,7 @@ index ebff602498..75eaf298b0 100644
      TimeDelta total_decode_time = TimeDelta::Zero();
      // https://w3c.github.io/webrtc-stats/#dom-rtcinboundrtpstreamstats-totalprocessingdelay
 diff --git a/modules/video_coding/packet_buffer.cc b/modules/video_coding/packet_buffer.cc
-index 718c4a86b9..f08f3b24ad 100644
+index 6555aa5b07..9aa3960cc6 100644
 --- a/modules/video_coding/packet_buffer.cc
 +++ b/modules/video_coding/packet_buffer.cc
 @@ -128,24 +128,26 @@ PacketBuffer::InsertResult PacketBuffer::InsertPacket(
@@ -186,7 +186,7 @@ index 495f64bdb3..10a9caacdd 100644
  
    void ForceSpsPpsIdrIsH264Keyframe();
 diff --git a/video/receive_statistics_proxy.cc b/video/receive_statistics_proxy.cc
-index 47f53d4ef2..67770da4f0 100644
+index 1f0ae1e936..8b461f08a3 100644
 --- a/video/receive_statistics_proxy.cc
 +++ b/video/receive_statistics_proxy.cc
 @@ -798,6 +798,11 @@ void ReceiveStatisticsProxy::OnDroppedFrames(uint32_t frames_dropped) {
@@ -272,7 +272,7 @@ index 3deedb4fcf..1b49f2166b 100644
        RTC_GUARDED_BY(packet_sequence_checker_);
    // h26x_packet_buffer_ is applicable to H.264 and H.265. For H.265 it is
 diff --git a/video/video_receive_stream2.cc b/video/video_receive_stream2.cc
-index a631cf3c7e..4555472ccb 100644
+index 875a80a877..e229389154 100644
 --- a/video/video_receive_stream2.cc
 +++ b/video/video_receive_stream2.cc
 @@ -213,6 +213,7 @@ VideoReceiveStream2::VideoReceiveStream2(

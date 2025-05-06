@@ -173,13 +173,13 @@ void StreamParams::GenerateSsrcs(int num_layers,
   }
 }
 
-void StreamParams::GetPrimarySsrcs(std::vector<uint32_t>* ssrcs) const {
+void StreamParams::GetPrimarySsrcs(std::vector<uint32_t>* primary_ssrcs) const {
   const SsrcGroup* sim_group = get_ssrc_group(kSimSsrcGroupSemantics);
   if (sim_group == NULL) {
-    ssrcs->push_back(first_ssrc());
+    primary_ssrcs->push_back(first_ssrc());
   } else {
-    ssrcs->insert(ssrcs->end(), sim_group->ssrcs.begin(),
-                  sim_group->ssrcs.end());
+    primary_ssrcs->insert(primary_ssrcs->end(), sim_group->ssrcs.begin(),
+                          sim_group->ssrcs.end());
   }
 }
 

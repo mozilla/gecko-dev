@@ -190,7 +190,7 @@ index 5ad9771f7c..3deedb4fcf 100644
   private:
    // Implements RtpVideoFrameReceiver.
 diff --git a/video/video_receive_stream2.cc b/video/video_receive_stream2.cc
-index b9d0983af0..a631cf3c7e 100644
+index d49c759df5..875a80a877 100644
 --- a/video/video_receive_stream2.cc
 +++ b/video/video_receive_stream2.cc
 @@ -587,7 +587,8 @@ VideoReceiveStreamInterface::Stats VideoReceiveStream2::GetStats() const {

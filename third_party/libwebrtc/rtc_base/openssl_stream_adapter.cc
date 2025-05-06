@@ -758,8 +758,8 @@ void OpenSSLStreamAdapter::OnEvent(int events, int err) {
       events_to_signal |= webrtc::SE_OPEN;
     } else {
       state_ = SSL_CONNECTING;
-      if (int err = BeginSSL()) {
-        Error("BeginSSL", err, 0, true);
+      if (int error = BeginSSL()) {
+        Error("BeginSSL", error, 0, true);
         return;
       }
     }
@@ -772,8 +772,8 @@ void OpenSSLStreamAdapter::OnEvent(int events, int err) {
     if (state_ == SSL_NONE) {
       events_to_signal |= events & (webrtc::SE_READ | webrtc::SE_WRITE);
     } else if (state_ == SSL_CONNECTING) {
-      if (int err = ContinueSSL()) {
-        Error("ContinueSSL", err, 0, true);
+      if (int error = ContinueSSL()) {
+        Error("ContinueSSL", error, 0, true);
         return;
       }
     } else if (state_ == SSL_CONNECTED) {

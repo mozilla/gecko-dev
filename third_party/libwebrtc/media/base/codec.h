@@ -138,12 +138,12 @@ struct RTC_EXPORT Codec {
   // generated, done e.g. by setCodecPreferences or setParameters.
   bool MatchesRtpCodec(const webrtc::RtpCodec& capability) const;
 
-  // Find the parameter for `name` and write the value to `out`.
-  bool GetParam(const std::string& name, std::string* out) const;
-  bool GetParam(const std::string& name, int* out) const;
+  // Find the parameter for `key` and write the value to `out`.
+  bool GetParam(const std::string& key, std::string* out) const;
+  bool GetParam(const std::string& key, int* out) const;
 
-  void SetParam(const std::string& name, const std::string& value);
-  void SetParam(const std::string& name, int value);
+  void SetParam(const std::string& key, const std::string& value);
+  void SetParam(const std::string& key, int value);
 
   // It is safe to input a non-existent parameter.
   // Returns true if the parameter existed, false if it did not exist.

@@ -395,13 +395,13 @@ std::vector<std::unique_ptr<PacketBuffer::Packet>> PacketBuffer::FindFrames(
         // Use uint16_t type to handle sequence number wrap around case.
         uint16_t num_packets = end_seq_num - start_seq_num;
         found_frames.reserve(found_frames.size() + num_packets);
-        for (uint16_t i = start_seq_num; i != end_seq_num; ++i) {
-          std::unique_ptr<Packet>& packet = buffer_[i % buffer_.size()];
+        for (uint16_t j = start_seq_num; j != end_seq_num; ++j) {
+          std::unique_ptr<Packet>& packet = buffer_[j % buffer_.size()];
           RTC_DCHECK(packet);
-          RTC_DCHECK_EQ(i, packet->seq_num());
+          RTC_DCHECK_EQ(j, packet->seq_num());
           // Ensure frame boundary flags are properly set.
-          packet->video_header.is_first_packet_in_frame = (i == start_seq_num);
-          packet->video_header.is_last_packet_in_frame = (i == seq_num);
+          packet->video_header.is_first_packet_in_frame = (j == start_seq_num);
+          packet->video_header.is_last_packet_in_frame = (j == seq_num);
           found_frames.push_back(std::move(packet));
         }
 

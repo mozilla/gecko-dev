@@ -154,31 +154,31 @@ bool Codec::MatchesRtpCodec(const webrtc::RtpCodec& codec_capability) const {
           codec_parameters.parameters == codec_capability.parameters);
 }
 
-bool Codec::GetParam(const std::string& name, std::string* out) const {
-  webrtc::CodecParameterMap::const_iterator iter = params.find(name);
+bool Codec::GetParam(const std::string& key, std::string* out) const {
+  webrtc::CodecParameterMap::const_iterator iter = params.find(key);
   if (iter == params.end())
     return false;
   *out = iter->second;
   return true;
 }
 
-bool Codec::GetParam(const std::string& name, int* out) const {
-  webrtc::CodecParameterMap::const_iterator iter = params.find(name);
+bool Codec::GetParam(const std::string& key, int* out) const {
+  webrtc::CodecParameterMap::const_iterator iter = params.find(key);
   if (iter == params.end())
     return false;
   return rtc::FromString(iter->second, out);
 }
 
-void Codec::SetParam(const std::string& name, const std::string& value) {
-  params[name] = value;
+void Codec::SetParam(const std::string& key, const std::string& value) {
+  params[key] = value;
 }
 
-void Codec::SetParam(const std::string& name, int value) {
-  params[name] = rtc::ToString(value);
+void Codec::SetParam(const std::string& key, int value) {
+  params[key] = rtc::ToString(value);
 }
 
-bool Codec::RemoveParam(const std::string& name) {
-  return params.erase(name) == 1;
+bool Codec::RemoveParam(const std::string& key) {
+  return params.erase(key) == 1;
 }
 
 void Codec::AddFeedbackParam(const FeedbackParam& param) {

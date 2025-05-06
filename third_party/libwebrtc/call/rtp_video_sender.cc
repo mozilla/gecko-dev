@@ -801,8 +801,8 @@ std::map<uint32_t, RtpState> RtpVideoSender::GetRtpStates() const {
       std::optional<RtpState> fec_state =
           rtp_streams_[i].fec_generator->GetRtpState();
       if (fec_state) {
-        uint32_t ssrc = rtp_config_.flexfec.ssrc;
-        rtp_states[ssrc] = *fec_state;
+        uint32_t fec_ssrc = rtp_config_.flexfec.ssrc;
+        rtp_states[fec_ssrc] = *fec_state;
       }
     }
   }

@@ -762,7 +762,6 @@ MediaSessionDescriptionFactory::CreateOfferOrError(
       current_content = &current_description->contents()[msection_index];
       // Media type must match unless this media section is being recycled.
     }
-    RTCError error;
     switch (media_description_options.type) {
       case MEDIA_TYPE_AUDIO:
       case MEDIA_TYPE_VIDEO:
@@ -958,7 +957,6 @@ MediaSessionDescriptionFactory::CreateAnswerOrError(
     }
     RtpHeaderExtensions header_extensions = RtpHeaderExtensionsFromCapabilities(
         UnstoppedRtpHeaderExtensionCapabilities(header_extensions_in));
-    RTCError error;
     switch (media_description_options.type) {
       case MEDIA_TYPE_AUDIO:
       case MEDIA_TYPE_VIDEO:

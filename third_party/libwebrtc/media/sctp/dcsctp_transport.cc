@@ -375,11 +375,11 @@ RTCError DcSctpTransport::SendData(int sid,
       ready_to_send_data_ = false;
       return RTCError(RTCErrorType::RESOURCE_EXHAUSTED);
     default:
-      absl::string_view message = dcsctp::ToString(error);
+      absl::string_view error_message = dcsctp::ToString(error);
       RTC_LOG(LS_ERROR) << debug_name_
                         << "->SendData(...): send() failed with error "
-                        << message << ".";
-      return RTCError(RTCErrorType::NETWORK_ERROR, message);
+                        << error_message << ".";
+      return RTCError(RTCErrorType::NETWORK_ERROR, error_message);
   }
 }
 

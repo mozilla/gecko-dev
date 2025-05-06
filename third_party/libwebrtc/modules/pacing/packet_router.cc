@@ -222,8 +222,8 @@ void PacketRouter::SendPacket(std::unique_ptr<RtpPacketToSend> packet,
     last_send_module_ = rtp_module;
   }
 
-  for (auto& packet : rtp_module->FetchFecPackets()) {
-    pending_fec_packets_.push_back(std::move(packet));
+  for (auto& fec_packet : rtp_module->FetchFecPackets()) {
+    pending_fec_packets_.push_back(std::move(fec_packet));
   }
 }
 

@@ -2491,16 +2491,16 @@ bool WebRtcVoiceReceiveChannel::SetBaseMinimumPlayoutDelayMs(uint32_t ssrc,
     default_recv_base_minimum_delay_ms_ = delay_ms;
     ssrcs = unsignaled_recv_ssrcs_;
   }
-  for (uint32_t ssrc : ssrcs) {
-    const auto it = recv_streams_.find(ssrc);
+  for (uint32_t recv_ssrc : ssrcs) {
+    const auto it = recv_streams_.find(recv_ssrc);
     if (it == recv_streams_.end()) {
       RTC_LOG(LS_WARNING) << "SetBaseMinimumPlayoutDelayMs: no recv stream "
-                          << ssrc;
+                          << recv_ssrc;
       return false;
     }
     it->second->SetBaseMinimumPlayoutDelayMs(delay_ms);
     RTC_LOG(LS_INFO) << "SetBaseMinimumPlayoutDelayMs() to " << delay_ms
-                     << " for recv stream with ssrc " << ssrc;
+                     << " for recv stream with ssrc " << recv_ssrc;
   }
   return true;
 }

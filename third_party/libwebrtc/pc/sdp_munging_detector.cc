@@ -350,17 +350,20 @@ SdpMungingType DetermineSdpMungingType(
                            "last created description.";
     return SdpMungingType::kNumberOfContents;
   }
-  for (size_t i = 0; i < last_created_contents.size(); i++) {
+  for (size_t content_index = 0; content_index < last_created_contents.size();
+       content_index++) {
     // TODO: crbug.com/40567530 - more checks are needed here.
-    if (last_created_contents[i].mid() != contents_to_set[i].mid()) {
+    if (last_created_contents[content_index].mid() !=
+        contents_to_set[content_index].mid()) {
       RTC_LOG(LS_WARNING) << "SDP munging: mid does not match "
                              "last created description.";
       return SdpMungingType::kMid;
     }
 
     auto* last_created_media_description =
-        last_created_contents[i].media_description();
-    auto* media_description_to_set = contents_to_set[i].media_description();
+        last_created_contents[content_index].media_description();
+    auto* media_description_to_set =
+        contents_to_set[content_index].media_description();
     if (!(last_created_media_description && media_description_to_set)) {
       continue;
     }

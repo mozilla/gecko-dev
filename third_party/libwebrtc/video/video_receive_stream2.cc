@@ -972,16 +972,16 @@ int VideoReceiveStream2::DecodeAndMaybeDispatchEncodedFrame(
     }
     if (!pending_resolution.has_value() || !pending_resolution->empty()) {
       // Flush the buffered frames.
-      for (const auto& frame : buffered_encoded_frames_) {
+      for (const auto& buffered_frame : buffered_encoded_frames_) {
         RecordableEncodedFrame::EncodedResolution resolution{
-            frame->EncodedImage()._encodedWidth,
-            frame->EncodedImage()._encodedHeight};
-        if (IsKeyFrameAndUnspecifiedResolution(*frame)) {
+            buffered_frame->EncodedImage()._encodedWidth,
+            buffered_frame->EncodedImage()._encodedHeight};
+        if (IsKeyFrameAndUnspecifiedResolution(*buffered_frame)) {
           RTC_DCHECK(!pending_resolution->empty());
           resolution = *pending_resolution;
         }
         encoded_frame_buffer_function_(
-            WebRtcRecordableEncodedFrame(*frame, resolution));
+            WebRtcRecordableEncodedFrame(*buffered_frame, resolution));
       }
       buffered_encoded_frames_.clear();
     }

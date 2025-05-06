@@ -198,10 +198,10 @@ void ReceiveStatisticsProxy::UpdateHistograms(
                << key_frames_permille << '\n';
   }
 
-  std::optional<int> qp = qp_counters_.vp8.Avg(kMinRequiredSamples);
-  if (qp) {
-    RTC_HISTOGRAM_COUNTS_200("WebRTC.Video.Decoded.Vp8.Qp", *qp);
-    log_stream << "WebRTC.Video.Decoded.Vp8.Qp " << *qp << '\n';
+  std::optional<int> vp8_qp = qp_counters_.vp8.Avg(kMinRequiredSamples);
+  if (vp8_qp) {
+    RTC_HISTOGRAM_COUNTS_200("WebRTC.Video.Decoded.Vp8.Qp", *vp8_qp);
+    log_stream << "WebRTC.Video.Decoded.Vp8.Qp " << *vp8_qp << '\n';
   }
 
   std::optional<int> decode_ms = decode_time_counter_.Avg(kMinRequiredSamples);
