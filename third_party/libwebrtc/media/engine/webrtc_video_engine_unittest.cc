@@ -21,6 +21,7 @@
 #include <set>
 #include <string>
 #include <tuple>
+#include <unordered_set>
 #include <utility>
 #include <vector>
 
@@ -429,6 +430,8 @@ class WebRtcVideoEngineTest : public ::testing::Test {
   void AddSupportedVideoCodecType(
       const std::string& name,
       const std::vector<webrtc::ScalabilityMode>& scalability_modes = {});
+  void AddSupportedVideoCodec(webrtc::SdpVideoFormat format);
+
   std::unique_ptr<VideoMediaSendChannelInterface>
   SetSendParamsWithAllSupportedCodecs();
 
@@ -497,6 +500,32 @@ TEST_F(WebRtcVideoEngineTest,
                                &associated_payload_type));
     EXPECT_EQ(codec.id, associated_payload_type + 1);
   }
+}
+
+MATCHER(HasUniquePtValues, "") {
+  std::unordered_set<int> seen_ids;
+  for (const auto& codec : arg) {
+    if (seen_ids.count(codec.id) > 0) {
+      *result_listener << "Duplicate id for " << absl::StrCat(codec);
+      return false;
+    }
+    seen_ids.insert(codec.id);
+  }
+  return true;
+}
+
+TEST_F(WebRtcVideoEngineTest, SupportingTwoKindsOfVp9IsOk) {
+  AddSupportedVideoCodecType("VP8");
+  AddSupportedVideoCodec(webrtc::SdpVideoFormat("VP9", {{"profile-id", "0"}}));
+  AddSupportedVideoCodec(webrtc::SdpVideoFormat("VP9", {{"profile-id", "1"}}));
+  AddSupportedVideoCodec(webrtc::SdpVideoFormat("VP9", {{"profile-id", "3"}}));
+  AddSupportedVideoCodec(webrtc::SdpVideoFormat(
+      "AV1", {{"level-idx", "5"}, {"profile", "1"}, {"tier", "0"}}));
+  AddSupportedVideoCodec(webrtc::SdpVideoFormat(
+      "AV1", {{"level-idx", "5"}, {"profile", "0"}, {"tier", "0"}}));
+  AddSupportedVideoCodec(webrtc::SdpVideoFormat("VP9"));  // No parameters
+  ASSERT_THAT(engine_.LegacySendCodecs(), HasUniquePtValues());
+  ASSERT_THAT(engine_.LegacyRecvCodecs(), HasUniquePtValues());
 }
 
 TEST_F(WebRtcVideoEngineTest, SupportsTimestampOffsetHeaderExtension) {
@@ -937,6 +966,12 @@ void WebRtcVideoEngineTest::AddSupportedVideoCodecType(
     const std::vector<webrtc::ScalabilityMode>& scalability_modes) {
   encoder_factory_->AddSupportedVideoCodecType(name, scalability_modes);
   decoder_factory_->AddSupportedVideoCodecType(name);
+}
+
+void WebRtcVideoEngineTest::AddSupportedVideoCodec(
+    webrtc::SdpVideoFormat format) {
+  encoder_factory_->AddSupportedVideoCodec(format);
+  decoder_factory_->AddSupportedVideoCodec(format);
 }
 
 std::unique_ptr<VideoMediaSendChannelInterface>

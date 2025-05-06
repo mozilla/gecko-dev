@@ -23,6 +23,7 @@
 #include <utility>
 #include <vector>
 
+#include "absl/strings/str_replace.h"
 #include "api/audio/audio_device.h"
 #include "api/audio_codecs/builtin_audio_decoder_factory.h"
 #include "api/audio_codecs/builtin_audio_encoder_factory.h"
@@ -1370,6 +1371,24 @@ TEST_F(PeerConnectionSignalingUnifiedPlanTest, RtxReofferApt) {
   // The apt should match the id from the remote offer.
   EXPECT_EQ(apt_it->second, rtc::ToString(codecs[0].id));
   EXPECT_EQ(apt_it->second, "102");
+}
+
+TEST_F(PeerConnectionSignalingUnifiedPlanTest, LoopbackSdpIsPossible) {
+  // This is not a recommended way of doing things.
+  // The test is added because an Android test tries to do it this way,
+  // and triggered surprising behavior.
+  auto caller = CreatePeerConnection();
+  auto transceiver =
+      caller->AddTransceiver(cricket::MEDIA_TYPE_AUDIO, RtpTransceiverInit());
+
+  auto offer = caller->CreateOffer(RTCOfferAnswerOptions());
+  std::string offer_sdp;
+  ASSERT_TRUE(offer->ToString(&offer_sdp));
+  std::string answer_sdp =
+      absl::StrReplaceAll(offer_sdp, {{"a=setup:actpass", "a=setup:active"}});
+  EXPECT_TRUE(caller->SetLocalDescription(std::move(offer)));
+  auto answer = CreateSessionDescription(SdpType::kAnswer, answer_sdp);
+  EXPECT_TRUE(caller->SetRemoteDescription(std::move(answer)));
 }
 
 }  // namespace webrtc

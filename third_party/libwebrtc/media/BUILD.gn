@@ -911,6 +911,7 @@ if (rtc_include_tests) {
       "../rtc_base:copy_on_write_buffer",
       "../rtc_base:dscp",
       "../rtc_base:gunit_helpers",
+      "../rtc_base:logging",
       "../rtc_base:macromagic",
       "../rtc_base:network_route",
       "../rtc_base:rtc_event",

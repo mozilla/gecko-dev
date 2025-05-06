@@ -19,6 +19,7 @@
 #include "media/base/media_constants.h"
 #include "media/engine/simulcast_encoder_adapter.h"
 #include "modules/video_coding/include/video_error_codes.h"
+#include "rtc_base/logging.h"
 #include "rtc_base/time_utils.h"
 
 namespace cricket {
@@ -89,9 +90,13 @@ FakeWebRtcVideoDecoderFactory::GetSupportedFormats() const {
   std::vector<webrtc::SdpVideoFormat> formats;
 
   for (const webrtc::SdpVideoFormat& format : supported_codec_formats_) {
-    // Don't add same codec twice.
-    if (!format.IsCodecInList(formats))
-      formats.push_back(format);
+    // We need to test erroneous scenarios, so just warn if there's
+    // a duplicate.
+    if (format.IsCodecInList(formats)) {
+      RTC_LOG(LS_WARNING) << "GetSupportedFormats found a duplicate format: "
+                          << format << ", check that this is expected.";
+    }
+    formats.push_back(format);
   }
 
   return formats;
