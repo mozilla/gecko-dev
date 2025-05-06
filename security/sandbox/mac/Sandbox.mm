@@ -324,6 +324,8 @@ bool StartMacSandbox(MacSandboxInfo const& aInfo, std::string& aErrorMessage) {
     params.push_back(aInfo.shouldLog ? "TRUE" : "FALSE");
     params.push_back("APP_PATH");
     params.push_back(aInfo.appPath.c_str());
+    params.push_back("APP_BINARY_PATH");
+    params.push_back(aInfo.appBinaryPath.c_str());
     if (!aInfo.crashServerPort.empty()) {
       params.push_back("CRASH_PORT");
       params.push_back(aInfo.crashServerPort.c_str());
@@ -637,12 +639,27 @@ bool GetContentSandboxParamsFromArgs(int aArgc, char** aArgv,
   return true;
 }
 
+bool GetAppPathForExecutable(const char* aAppName, const char* aExecutablePath,
+                             std::string& aAppPath) {
+  std::string execPath(aExecutablePath);
+  std::string appName(aAppName);
+  size_t pos = execPath.rfind(appName + '/');
+  if (pos == std::string::npos) {
+    return false;
+  }
+  aAppPath = execPath.substr(0, pos + appName.size());
+  return true;
+}
+
 bool GetUtilitySandboxParamsFromArgs(int aArgc, char** aArgv,
                                      MacSandboxInfo& aInfo,
                                      bool aSandboxingKindRequired = true) {
   // Ensure we find these paramaters in the command
   // line arguments. Return false if any are missing.
   bool foundAppPath = false;
+
+  GetAppPathForExecutable(MOZ_CHILD_PROCESS_BUNDLENAME, aArgv[0],
+                          aInfo.appBinaryPath);
 
   // Collect sandbox params from CLI arguments
   for (int i = 0; i < aArgc; i++) {

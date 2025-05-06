@@ -4,6 +4,9 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
+for var in ("MOZ_CHILD_PROCESS_BUNDLENAME",):
+    DEFINES[var] = '"%s"' % CONFIG[var]
+
 EXPORTS.mozilla += [
     "Sandbox.h",
     "SandboxPolicyContent.h",
