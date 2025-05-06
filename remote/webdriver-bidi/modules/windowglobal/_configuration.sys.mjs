@@ -65,16 +65,7 @@ class _ConfigurationModule extends WindowGlobalBiDiModule {
       const blockerPromise = new Promise(resolve => {
         this.#resolveBlockerPromise = resolve;
       });
-      window.document.blockParsing(blockerPromise);
-
-      // Usually rendering is blocked until layout is started implicitly (by
-      // end of parsing) or explicitly. Since we block the implicit
-      // initialization and some code we call may block on it (like waiting for
-      // requestAnimationFrame or viewport dimensions), we initialize it
-      // explicitly here by forcing a layout flush. Note that this will cause
-      // flashes of unstyled content, but that was already the case before
-      // bug 1958942.
-      window.document.documentElement.getBoundingClientRect();
+      this.messageHandler.window.document.blockParsing(blockerPromise);
 
       if (this.#geolocationConfiguration !== null) {
         await this.messageHandler.handleCommand({
