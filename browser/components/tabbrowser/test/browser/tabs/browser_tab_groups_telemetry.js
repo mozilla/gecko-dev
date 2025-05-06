@@ -41,11 +41,16 @@ add_task(async function test_tabGroupTelemetry() {
   let group1tab = BrowserTestUtils.addTab(win.gBrowser, "https://example.com");
   await BrowserTestUtils.browserLoaded(group1tab.linkedBrowser);
 
+  let tabGroupCreateByUser = BrowserTestUtils.waitForEvent(
+    win.gBrowser.tabContainer,
+    "TabGroupCreateByUser"
+  );
   let group1 = win.gBrowser.addTabGroup([group1tab], {
     isUserTriggered: true,
     telemetryUserCreateSource: "test-source",
   });
   win.gBrowser.tabGroupMenu.close();
+  await tabGroupCreateByUser;
 
   await BrowserTestUtils.waitForCondition(() => {
     tabGroupCreateTelemetry = Glean.tabgroup.createGroup.testGetValue();

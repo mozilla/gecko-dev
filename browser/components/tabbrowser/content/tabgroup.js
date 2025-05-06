@@ -31,6 +31,9 @@
     /** @type {MutationObserver} */
     #tabChangeObserver;
 
+    /** @type {boolean} */
+    #wasCreatedByAdoption = false;
+
     constructor() {
       super();
     }
@@ -76,6 +79,20 @@
       this.#updateCollapsedAriaAttributes();
 
       this.addEventListener("TabSelect", this);
+
+      let tabGroupCreateDetail = this.#wasCreatedByAdoption
+        ? { isAdoptingGroup: true }
+        : {};
+      this.dispatchEvent(
+        new CustomEvent("TabGroupCreate", {
+          bubbles: true,
+          detail: tabGroupCreateDetail,
+        })
+      );
+      // Reset `wasCreatedByAdoption` to default of false so that we only
+      // claim that a tab group was created by adoption the first time it
+      // mounts after getting created by `Tabbrowser.adoptTabGroup`.
+      this.#wasCreatedByAdoption = false;
     }
 
     disconnectedCallback() {
@@ -266,6 +283,13 @@
      */
     get labelElement() {
       return this.#labelElement;
+    }
+
+    /**
+     * @param {boolean} value
+     */
+    set wasCreatedByAdoption(value) {
+      this.#wasCreatedByAdoption = value;
     }
 
     /**
