@@ -139,6 +139,7 @@ export const FormAutofillHeuristics = {
       "address-line1",
       "address-line2",
       "address-line3",
+      "postal-code",
     ];
 
     if (typeof fieldNames == "string") {

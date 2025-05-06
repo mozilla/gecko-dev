@@ -74,4 +74,78 @@ add_autofill_heuristic_tests([
       },
     ],
   },
+  {
+    description:
+      "Form containing a postal code lookup field with no other postal code fields present",
+    fixtureData: `<form>
+                  <label>First Name: <input id="firstname"></label>
+                  <label>Last Name: <input id="lastname"></label>
+                  <label>Address Lookup: <input id="pc-l" placeholder="Enter address or postal code"></label>
+                  <label>Street: <input id="street"></label>
+                  <label>Apartment: <input id="apt"></label>
+                 </form>`,
+    profile: TEST_ADDRESS_1,
+    expectedResult: [
+      {
+        default: {
+          reason: "regex-heuristic",
+        },
+        fields: [
+          { fieldName: "given-name", autofill: TEST_ADDRESS_1["given-name"] },
+          { fieldName: "family-name", autofill: TEST_ADDRESS_1["family-name"] },
+          {
+            fieldName: "postal-code",
+            autofill: TEST_ADDRESS_1["postal-code"],
+          },
+          {
+            fieldName: "address-line1",
+            autofill: TEST_ADDRESS_1["street-address"].split("\n")[0],
+            reason: "update-heuristic",
+          },
+          {
+            fieldName: "address-line2",
+            autofill: TEST_ADDRESS_1["street-address"].split("\n")[1],
+          },
+        ],
+      },
+    ],
+  },
+  {
+    description:
+      "Form containing a postal code lookup field with other address fields present",
+    fixtureData: `<form>
+                  <label>First Name: <input id="firstname"></label>
+                  <label>Last Name: <input id="lastname"></label>
+                  <label>Address Lookup: <input id="pc-l" placeholder="Enter address or postal code"></label>
+                  <label>Street: <input id="street"></label>
+                  <label>Apartment: <input id="apt"></label>
+                  <label>Postal Code: <input id="postalcode"></label>
+                 </form>`,
+    profile: TEST_ADDRESS_1,
+    expectedResult: [
+      {
+        default: {
+          reason: "regex-heuristic",
+        },
+        fields: [
+          { fieldName: "given-name", autofill: TEST_ADDRESS_1["given-name"] },
+          { fieldName: "family-name", autofill: TEST_ADDRESS_1["family-name"] },
+          {
+            fieldName: "postal-code",
+            autofill: "",
+          },
+          {
+            fieldName: "address-line1",
+            autofill: TEST_ADDRESS_1["street-address"].split("\n")[0],
+            reason: "update-heuristic",
+          },
+          {
+            fieldName: "address-line2",
+            autofill: TEST_ADDRESS_1["street-address"].split("\n")[1],
+          },
+          { fieldName: "postal-code", autofill: TEST_ADDRESS_1["postal-code"] },
+        ],
+      },
+    ],
+  },
 ]);
