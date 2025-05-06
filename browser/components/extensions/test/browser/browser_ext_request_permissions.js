@@ -4,6 +4,25 @@ ChromeUtils.defineESModuleGetters(this, {
   PERMISSION_L10N: "resource://gre/modules/ExtensionPermissionMessages.sys.mjs",
 });
 
+const assertSectionHeaders = (popupContentEl, expectedHeaders = []) => {
+  for (const { id, isVisible, fluentId } of expectedHeaders) {
+    const titleEl = popupContentEl.querySelector(`#${id}`);
+    ok(titleEl, `Expected element for ${id}`);
+    Assert.equal(
+      BrowserTestUtils.isVisible(titleEl),
+      isVisible,
+      `Expected ${id} to${isVisible ? "" : " not"} be visible`
+    );
+    if (isVisible) {
+      Assert.equal(
+        titleEl.textContent,
+        PERMISSION_L10N.formatValueSync(fluentId),
+        `Expected formatted string for ${id}`
+      );
+    }
+  }
+};
+
 // This test case verifies that `permissions.request()` resolves in the
 // expected order.
 add_task(async function test_permissions_prompt() {
@@ -233,6 +252,21 @@ add_task(async function testOptionalPermissionsDialogShowsFullDomainsList() {
       domainsListLength: 0,
       verifyDialog(popupContentEl) {
         assertNoDomainsList(popupContentEl);
+        assertSectionHeaders(popupContentEl, [
+          {
+            id: "addon-webext-perm-title-required",
+            isVisible: true,
+            fluentId: "webext-perms-header-optional-required-perms",
+          },
+          {
+            id: "addon-webext-perm-title-data-collection",
+            isVisible: false,
+          },
+          {
+            id: "addon-webext-perm-title-optional",
+            isVisible: false,
+          },
+        ]);
       },
     },
     {
@@ -378,19 +412,38 @@ add_task(async function testOptionalPermissionsDialogWithDataCollection() {
           popupContentEl.querySelector(".popup-notification-description")
             .textContent,
           PERMISSION_L10N.formatValueSync(
-            "webext-perms-optional-data-collection-only-text",
+            "webext-perms-optional-text-with-data-collection-only",
             { extension: extensionId }
           ),
-          "Expected header string without perms"
+          "Expected header string"
         );
-
+        assertSectionHeaders(popupContentEl, [
+          {
+            id: "addon-webext-perm-title-required",
+            isVisible: false,
+          },
+          {
+            id: "addon-webext-perm-title-data-collection",
+            isVisible: true,
+            fluentId: "webext-perms-header-optional-data-collection-perms",
+          },
+          {
+            id: "addon-webext-perm-title-optional",
+            isVisible: false,
+          },
+        ]);
         Assert.equal(
           popupContentEl.permsListEl.childElementCount,
-          1,
-          "Expected a single entry in the list"
+          0,
+          "Expected no permission"
         );
         Assert.equal(
-          popupContentEl.permsListEl.textContent,
+          popupContentEl.permsListDataCollectionEl.childElementCount,
+          1,
+          "Expected a data collection permission"
+        );
+        Assert.equal(
+          popupContentEl.permsListDataCollectionEl.textContent,
           PERMISSION_L10N.formatValueSync(
             "webext-perms-description-data-some-optional",
             {
@@ -415,19 +468,23 @@ add_task(async function testOptionalPermissionsDialogWithDataCollection() {
           popupContentEl.querySelector(".popup-notification-description")
             .textContent,
           PERMISSION_L10N.formatValueSync(
-            "webext-perms-optional-data-collection-only-text",
+            "webext-perms-optional-text-with-data-collection-only",
             { extension: extensionId }
           ),
-          "Expected header string without perms"
+          "Expected header string"
         );
-
         Assert.equal(
           popupContentEl.permsListEl.childElementCount,
-          1,
-          "Expected a single entry in the list"
+          0,
+          "Expected no permission"
         );
         Assert.equal(
-          popupContentEl.permsListEl.textContent,
+          popupContentEl.permsListDataCollectionEl.childElementCount,
+          1,
+          "Expected a data collection permission"
+        );
+        Assert.equal(
+          popupContentEl.permsListDataCollectionEl.textContent,
           PERMISSION_L10N.formatValueSync(
             "webext-perms-description-data-some-optional",
             {
@@ -452,19 +509,23 @@ add_task(async function testOptionalPermissionsDialogWithDataCollection() {
           popupContentEl.querySelector(".popup-notification-description")
             .textContent,
           PERMISSION_L10N.formatValueSync(
-            "webext-perms-optional-data-collection-only-text",
+            "webext-perms-optional-text-with-data-collection-only",
             { extension: extensionId }
           ),
-          "Expected header string without perms"
+          "Expected header string"
         );
-
         Assert.equal(
           popupContentEl.permsListEl.childElementCount,
-          1,
-          "Expected a single entry in the list"
+          0,
+          "Expected no permission"
         );
         Assert.equal(
-          popupContentEl.permsListEl.textContent,
+          popupContentEl.permsListDataCollectionEl.childElementCount,
+          1,
+          "Expected a data collection permission"
+        );
+        Assert.equal(
+          popupContentEl.permsListDataCollectionEl.textContent,
           PERMISSION_L10N.formatValueSync(
             "webext-perms-description-data-some-optional",
             {
@@ -490,24 +551,44 @@ add_task(async function testOptionalPermissionsDialogWithDataCollection() {
           popupContentEl.querySelector(".popup-notification-description")
             .textContent,
           PERMISSION_L10N.formatValueSync(
-            "webext-perms-optional-data-collection-text",
+            "webext-perms-optional-text-with-data-collection",
             { extension: extensionId }
           ),
-          "Expected header string with perms"
+          "Expected header string"
         );
-
+        assertSectionHeaders(popupContentEl, [
+          {
+            id: "addon-webext-perm-title-required",
+            isVisible: true,
+            fluentId: "webext-perms-header-optional-required-perms",
+          },
+          {
+            id: "addon-webext-perm-title-data-collection",
+            isVisible: true,
+            fluentId: "webext-perms-header-optional-data-collection-perms",
+          },
+          {
+            id: "addon-webext-perm-title-optional",
+            isVisible: false,
+          },
+        ]);
         Assert.equal(
           popupContentEl.permsListEl.childElementCount,
-          2,
-          "Expected two entries in the list"
+          1,
+          "Expected a permission"
         );
         Assert.equal(
-          popupContentEl.permsListEl.firstChild.textContent,
+          popupContentEl.permsListDataCollectionEl.childElementCount,
+          1,
+          "Expected a data collection permission"
+        );
+        Assert.equal(
+          popupContentEl.permsListEl.textContent,
           PERMISSION_L10N.formatValueSync("webext-perms-description-bookmarks"),
           "Expected formatted data collection permission string"
         );
         Assert.equal(
-          popupContentEl.permsListEl.lastChild.textContent,
+          popupContentEl.permsListDataCollectionEl.lastChild.textContent,
           PERMISSION_L10N.formatValueSync(
             "webext-perms-description-data-some-optional",
             {
@@ -533,20 +614,39 @@ add_task(async function testOptionalPermissionsDialogWithDataCollection() {
           popupContentEl.querySelector(".popup-notification-description")
             .textContent,
           PERMISSION_L10N.formatValueSync(
-            "webext-perms-optional-data-collection-only-text",
+            "webext-perms-optional-text-with-data-collection-only",
             { extension: extensionId }
           ),
-          "Expected header string without perms"
+          "Expected header string"
         );
-
-        // We expect a single entry because `webRequest` is non-promptable.
+        assertSectionHeaders(popupContentEl, [
+          {
+            id: "addon-webext-perm-title-required",
+            isVisible: false,
+          },
+          {
+            id: "addon-webext-perm-title-data-collection",
+            isVisible: true,
+            fluentId: "webext-perms-header-optional-data-collection-perms",
+          },
+          {
+            id: "addon-webext-perm-title-optional",
+            isVisible: false,
+          },
+        ]);
+        // We expect no entry because `webRequest` is non-promptable.
         Assert.equal(
           popupContentEl.permsListEl.childElementCount,
-          1,
-          "Expected a single entry in the list"
+          0,
+          "Expected no permission"
         );
         Assert.equal(
-          popupContentEl.permsListEl.textContent,
+          popupContentEl.permsListDataCollectionEl.childElementCount,
+          1,
+          "Expected a data collection permission"
+        );
+        Assert.equal(
+          popupContentEl.permsListDataCollectionEl.textContent,
           PERMISSION_L10N.formatValueSync(
             "webext-perms-description-data-some-optional",
             {

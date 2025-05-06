@@ -140,7 +140,22 @@ customElements.define(
 
       this.textEl = this.querySelector("#addon-webext-perm-text");
       this.introEl = this.querySelector("#addon-webext-perm-intro");
-      this.permsListEl = this.querySelector("#addon-webext-perm-list");
+      this.permsTitleEl = this.querySelector(
+        "#addon-webext-perm-title-required"
+      );
+      this.permsListEl = this.querySelector("#addon-webext-perm-list-required");
+      this.permsTitleDataCollectionEl = this.querySelector(
+        "#addon-webext-perm-title-data-collection"
+      );
+      this.permsListDataCollectionEl = this.querySelector(
+        "#addon-webext-perm-list-data-collection"
+      );
+      this.permsTitleOptionalEl = this.querySelector(
+        "#addon-webext-perm-title-optional"
+      );
+      this.permsListOptionalEl = this.querySelector(
+        "#addon-webext-perm-list-optional"
+      );
 
       this.render();
     }
@@ -200,7 +215,16 @@ customElements.define(
         isUserScriptsRequest,
       } = this.notification.options.customElementOptions;
 
-      const { textEl, introEl, permsListEl } = this;
+      const {
+        textEl,
+        introEl,
+        permsTitleEl,
+        permsListEl,
+        permsTitleDataCollectionEl,
+        permsListDataCollectionEl,
+        permsTitleOptionalEl,
+        permsListOptionalEl,
+      } = this;
 
       const HTML_NS = "http://www.w3.org/1999/xhtml";
       const doc = this.ownerDocument;
@@ -224,6 +248,15 @@ customElements.define(
       if (strings.listIntro) {
         introEl.textContent = strings.listIntro;
         introEl.hidden = false;
+      }
+
+      // "sitepermission" add-ons don't have section headers.
+      if (strings.sectionHeaders) {
+        const { required, dataCollection, optional } = strings.sectionHeaders;
+
+        permsTitleEl.textContent = required;
+        permsTitleDataCollectionEl.textContent = dataCollection;
+        permsTitleOptionalEl.textContent = optional;
       }
 
       // Return earlier if there are no permissions to list.
@@ -250,19 +283,27 @@ customElements.define(
         item.append(checkboxEl, warningEl);
         item.classList.add("webext-perm-optional");
         permsListEl.append(item);
+
+        permsTitleEl.hidden = false;
+        permsListEl.hidden = false;
       } else {
-        for (let [idx, msg] of strings.msgs.entries()) {
-          let item = doc.createElementNS(HTML_NS, "li");
-          item.classList.add("webext-perm-granted");
-          if (
-            this.hasFullDomainsList &&
-            this.#isFullDomainsListEntryIndex(idx)
-          ) {
-            item.append(this.#createFullDomainsListFragment(msg));
-          } else {
-            item.textContent = msg;
+        if (strings.msgs.length) {
+          for (let [idx, msg] of strings.msgs.entries()) {
+            let item = doc.createElementNS(HTML_NS, "li");
+            item.classList.add("webext-perm-granted");
+            if (
+              this.hasFullDomainsList &&
+              this.#isFullDomainsListEntryIndex(idx)
+            ) {
+              item.append(this.#createFullDomainsListFragment(msg));
+            } else {
+              item.textContent = msg;
+            }
+            permsListEl.appendChild(item);
           }
-          permsListEl.appendChild(item);
+
+          permsTitleEl.hidden = false;
+          permsListEl.hidden = false;
         }
 
         if (this.#dataCollectionPermissions?.msg) {
@@ -272,7 +313,9 @@ customElements.define(
             "webext-data-collection-perm-granted"
           );
           item.textContent = this.#dataCollectionPermissions.msg;
-          permsListEl.appendChild(item);
+          permsListDataCollectionEl.appendChild(item);
+          permsTitleDataCollectionEl.hidden = false;
+          permsListDataCollectionEl.hidden = false;
         }
 
         // Add a checkbox for the "technicalAndInteraction" optional data
@@ -284,7 +327,9 @@ customElements.define(
             "webext-data-collection-perm-optional"
           );
           item.appendChild(this.#createTechnicalAndInteractionDataCheckbox());
-          permsListEl.appendChild(item);
+          permsListOptionalEl.appendChild(item);
+          permsTitleOptionalEl.hidden = false;
+          permsListOptionalEl.hidden = false;
         }
 
         if (showIncognitoCheckbox) {
@@ -294,11 +339,11 @@ customElements.define(
             "webext-perm-privatebrowsing"
           );
           item.appendChild(this.#createPrivateBrowsingCheckbox());
-          permsListEl.appendChild(item);
+          permsListOptionalEl.appendChild(item);
+          permsTitleOptionalEl.hidden = false;
+          permsListOptionalEl.hidden = false;
         }
       }
-
-      permsListEl.hidden = false;
     }
 
     #createFullDomainsListFragment(msg) {
@@ -328,7 +373,16 @@ customElements.define(
     }
 
     #clearChildElements() {
-      const { textEl, introEl, permsListEl } = this;
+      const {
+        textEl,
+        introEl,
+        permsTitleEl,
+        permsListEl,
+        permsTitleDataCollectionEl,
+        permsListDataCollectionEl,
+        permsTitleOptionalEl,
+        permsListOptionalEl,
+      } = this;
 
       // Clear all changes to the child elements that may have been changed
       // by a previous call of the render method.
@@ -339,8 +393,22 @@ customElements.define(
       introEl.textContent = "";
       introEl.hidden = true;
 
-      permsListEl.textContent = "";
-      permsListEl.hidden = true;
+      for (const title of [
+        permsTitleEl,
+        permsTitleOptionalEl,
+        permsTitleDataCollectionEl,
+      ]) {
+        title.hidden = true;
+      }
+
+      for (const list of [
+        permsListEl,
+        permsListDataCollectionEl,
+        permsListOptionalEl,
+      ]) {
+        list.textContent = "";
+        list.hidden = true;
+      }
     }
 
     #createUserScriptsPermissionItems(userScriptsPermissionMessage) {

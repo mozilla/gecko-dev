@@ -2690,13 +2690,14 @@ export class ExtensionData {
    * property name "msgIdIndex"). This property is expected to be set only if
    * "options.fullDomainsList" is passed as true and the extension doesn't
    * include allUrls origin permissions
+   * @property {string=} header the notification header text, which has the
+   * string "<>" as a placeholder for the addon name.
+   * @property {{ required: string, dataCollection: string, optional: string }=} sectionHeaders
+   * the localized strings for each section in the notificaation.
    *
    * @returns {PermissionStrings} An object with properties containing
    *                             localized strings for various elements of a
-   *                             permission dialog. The "header" property on
-   *                             this object is the notification header text
-   *                             and it has the string "<>" as a placeholder
-   *                             for the addon name.
+   *                             permission dialog.
    */
   static formatPermissionStrings(
     {
@@ -2990,16 +2991,16 @@ export class ExtensionData {
         break;
       case "update": {
         acceptId = "webext-perms-update-accept";
+        if (lazy.dataCollectionPermissionsEnabled) {
+          result.listIntro = l10n.formatValueSync(
+            "webext-perms-update-listIntro-with-data-collection"
+          );
+        }
         break;
       }
       case "optional": {
         acceptId = "webext-perms-optional-perms-allow";
         cancelId = "webext-perms-optional-perms-deny";
-        if (!hasDataCollectionOnly) {
-          result.listIntro = l10n.formatValueSync(
-            "webext-perms-optional-perms-list-intro"
-          );
-        }
         break;
       }
       default:
@@ -3009,65 +3010,92 @@ export class ExtensionData {
       this._getHeaderFluentId({
         type,
         hasDataCollectionOnly,
-        hasPermissions: msgIds.length,
         unsigned,
       }),
       headerArgs
     );
+    const { hasNone } = result.dataCollectionPermissions;
+    result.sectionHeaders = this._getSectionHeaders({
+      type,
+      dataCollectionIsNone: !!hasNone,
+    });
     result.msgs = l10n.formatValuesSync(msgIds);
     setAcceptCancel(acceptId, cancelId);
     return result;
   }
 
   /**
-   * Helper function to return the right header fluent ID for a permission
-   * prompt, depending on the type, whether it has permissions and/or data
-   * collection only, and also whether the add-on is signed or not.
+   * Helper function that returns localized strings for each section in the
+   * permissions prompt, depending on the type and/or whether the extension has
+   * explicit no data collection.
    */
-  static _getHeaderFluentId({
-    type,
-    hasDataCollectionOnly,
-    hasPermissions,
-    unsigned,
-  }) {
+  static _getSectionHeaders({ type, dataCollectionIsNone }) {
+    let requiredId;
+    let dataCollectionId;
+    switch (type) {
+      case "update":
+        requiredId = `webext-perms-header-update-required-perms`;
+        dataCollectionId = `webext-perms-header-update-data-collection-perms`;
+        break;
+      case "optional":
+        requiredId = `webext-perms-header-optional-required-perms`;
+        dataCollectionId = `webext-perms-header-optional-data-collection-perms`;
+        break;
+      default:
+        requiredId = `webext-perms-header-required-perms`;
+        dataCollectionId = dataCollectionIsNone
+          ? "webext-perms-header-data-collection-is-none"
+          : `webext-perms-header-data-collection-perms`;
+    }
+
+    let [required, dataCollection, optional] =
+      lazy.PERMISSION_L10N.formatValuesSync([
+        requiredId,
+        dataCollectionId,
+        // This one never changes, and in fact, it won't be displayed when type
+        // is set.
+        `webext-perms-header-optional-settings`,
+      ]);
+
+    return { required, dataCollection, optional };
+  }
+
+  /**
+   * Helper function to return the right header fluent ID for a permission
+   * prompt, depending on the type, whether it has  data collection only, and
+   * also whether the add-on is signed or not.
+   */
+  static _getHeaderFluentId({ type, hasDataCollectionOnly, unsigned }) {
     switch (type) {
       case "sideload":
         return "webext-perms-sideload-header";
 
       case "update":
         if (!lazy.dataCollectionPermissionsEnabled) {
-          return "webext-perms-update-text";
+          return "webext-perms-update-text2";
         }
-        return hasDataCollectionOnly
-          ? "webext-perms-update-data-collection-only-text"
-          : "webext-perms-update-data-collection-text";
+        return "webext-perms-update-text-with-data-collection";
 
       case "optional":
         if (!lazy.dataCollectionPermissionsEnabled) {
-          return "webext-perms-optional-perms-header";
+          return "webext-perms-optional-perms-header2";
         }
         return hasDataCollectionOnly
-          ? "webext-perms-optional-data-collection-only-text"
-          : "webext-perms-optional-data-collection-text";
+          ? "webext-perms-optional-text-with-data-collection-only"
+          : "webext-perms-optional-text-with-data-collection";
     }
 
-    if (hasPermissions && !hasDataCollectionOnly) {
-      return unsigned
-        ? "webext-perms-header-unsigned-with-perms"
-        : "webext-perms-header-with-perms";
-    }
-
-    return unsigned ? "webext-perms-header-unsigned" : "webext-perms-header";
+    return unsigned ? "webext-perms-header-unsigned" : "webext-perms-header2";
   }
 
   /**
    * @param {Array<string>} dataPermissions An array of data collection permissions.
    *
-   * @returns {{msg: string, collectsTechnicalAndInteractionData: boolean}} An
+   * @returns {{msg: string, collectsTechnicalAndInteractionData: boolean, hasNone: boolean}} An
    * object with information about data collection permissions for the UI.
    */
   static _formatDataCollectionPermissions(dataPermissions, type) {
-    const dataCollectionPermissions = {};
+    const dataCollectionPermissions = { hasNone: false };
     const permissions = new Set(dataPermissions);
 
     // This data permission is opt-in by default, but users can opt-out, making
@@ -3081,6 +3109,7 @@ export class ExtensionData {
         "webext-perms-description-data-none",
       ]);
       dataCollectionPermissions.msg = localizedMsg;
+      dataCollectionPermissions.hasNone = true;
     } else if (permissions.size) {
       // When we have data collection permissions and it isn't the "no data
       // collected" one, we build a list of localized permission strings that

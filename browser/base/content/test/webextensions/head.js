@@ -226,7 +226,8 @@ function isDefaultIcon(icon) {
 function checkNotification(panel, checkIcon, permissions, sideloaded) {
   let icon = panel.getAttribute("icon");
   let learnMoreLink = panel.querySelector(".popup-notification-learnmore-link");
-  let ul = document.getElementById("addon-webext-perm-list");
+  let listRequired = document.getElementById("addon-webext-perm-list-required");
+  let listOptional = document.getElementById("addon-webext-perm-list-optional");
 
   if (checkIcon instanceof RegExp) {
     ok(
@@ -242,10 +243,7 @@ function checkNotification(panel, checkIcon, permissions, sideloaded) {
   let description = panel.querySelector(
     ".popup-notification-description"
   ).textContent;
-  let descL10nId = "webext-perms-header";
-  if (permissions.length) {
-    descL10nId = "webext-perms-header-with-perms";
-  }
+  let descL10nId = "webext-perms-header2";
   if (sideloaded) {
     descL10nId = "webext-perms-sideload-header";
   }
@@ -253,7 +251,7 @@ function checkNotification(panel, checkIcon, permissions, sideloaded) {
   ok(description.startsWith(exp.at(0)), "Description is the expected one");
   ok(description.endsWith(exp.at(-1)), "Description is the expected one");
 
-  const hasPBCheckbox = !!ul.querySelector(
+  const hasPBCheckbox = !!listOptional.querySelector(
     "li.webext-perm-privatebrowsing > moz-checkbox"
   );
 
@@ -264,30 +262,46 @@ function checkNotification(panel, checkIcon, permissions, sideloaded) {
   );
 
   if (!permissions.length && !hasPBCheckbox) {
-    ok(ul.hidden, "Permissions list is hidden");
+    ok(listRequired.hidden, "Required permissions list is hidden");
+    ok(listOptional.hidden, "Optional permissions list is hidden");
   } else if (!permissions.length) {
-    ok(!ul.hidden, "Permissions list is visible");
+    ok(listRequired.hidden, "Required permissions list is hidden");
+    ok(!listOptional.hidden, "Optional permissions list is visible");
     ok(hasPBCheckbox, "Expect a checkbox inside the list of permissions");
-    is(ul.childElementCount, 1, "Permission list should have an entry");
-  } else if (permissions.length === 1 && hasPBCheckbox) {
-    ok(!ul.hidden, "Permissions list is visible");
-    is(ul.childElementCount, 2, "Expect 2 entries in the permissions list");
     is(
-      ul.children[0].textContent,
+      listOptional.childElementCount,
+      1,
+      "Optional permissions list should have an entry"
+    );
+  } else if (permissions.length === 1 && hasPBCheckbox) {
+    ok(!listRequired.hidden, "Required permissions list is visible");
+    is(
+      listRequired.childElementCount,
+      1,
+      "Required permissions list should have an entry"
+    );
+    ok(!listOptional.hidden, "Optional permissions list is visible");
+    is(
+      listOptional.childElementCount,
+      1,
+      "Optional permissions list should have an entry"
+    );
+    is(
+      listRequired.children[0].textContent,
       formatExtValue(permissions[0]),
       "First Permission entry is correct"
     );
-    const lastEntry = ul.children[permissions.length];
+    const entry = listOptional.firstChild;
     ok(
-      lastEntry.classList.contains("webext-perm-privatebrowsing"),
+      entry.classList.contains("webext-perm-privatebrowsing"),
       "Expect last permissions list entry to be the private browsing checkbox"
     );
     ok(
-      lastEntry.querySelector("moz-checkbox"),
+      entry.querySelector("moz-checkbox"),
       "Expect a checkbox inside the last permissions list entry"
     );
   } else {
-    ok(!ul.hidden, "Permissions list is visible");
+    ok(!listRequired.hidden, "Required permissions list is visible");
     for (let i in permissions) {
       let [key, param] = permissions[i];
       const expected = formatExtValue(key, param);
@@ -296,18 +310,21 @@ function checkNotification(panel, checkIcon, permissions, sideloaded) {
       // value (in particular this is the case when the permission dialog
       // is going to show multiple host permissions as a single permission
       // entry and a nested ul listing all those domains).
-      const permDescriptionEl = ul.children[i].querySelector("label")
-        ? ul.children[i].firstElementChild.value
-        : ul.children[i].textContent;
+      const permDescriptionEl = listRequired.children[i].querySelector("label")
+        ? listRequired.children[i].firstElementChild.value
+        : listRequired.children[i].textContent;
       is(permDescriptionEl, expected, `Permission number ${i + 1} is correct`);
     }
 
     if (hasPBCheckbox) {
-      const lastEntry = ul.children[permissions.length];
+      ok(!listOptional.hidden, "Optional permissions list is visible");
+      const entry = listOptional.firstChild;
       ok(
-        lastEntry.classList.contains("webext-perm-privatebrowsing"),
+        entry.classList.contains("webext-perm-privatebrowsing"),
         "Expect last permissions list entry to be the private browsing checkbox"
       );
+    } else {
+      ok(listOptional.hidden, "Optional permissions list is hidden");
     }
   }
 }

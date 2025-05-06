@@ -12,31 +12,29 @@ webext-perms-description-data-none = The developer says this extension doesn’t
 
 # Variables:
 #    $permissions (String): a list of data collection permissions formatted with `Intl.ListFormat` using the "narrow" style.
-webext-perms-description-data-some = The developer says this extension collects: { $permissions }.
+webext-perms-description-data-some = The developer says this extension collects: { $permissions }
 
 # Variables:
 #    $permissions (String): a list of data collection permissions formatted with `Intl.ListFormat` using the "narrow" style.
-webext-perms-description-data-some-update = The developer says the extension will collect: { $permissions }.
+webext-perms-description-data-some-update = The developer says the extension will collect: { $permissions }
 
 # Variables:
 #    $permissions (String): a list of data collection permissions formatted with `Intl.ListFormat` using the "narrow" style.
-webext-perms-description-data-some-optional = The developer says the extension wants to collect: { $permissions }.
+webext-perms-description-data-some-optional = The developer says the extension wants to collect: { $permissions }
 
 # Variables:
 #   $extension (String): replaced with the localized name of the extension.
-webext-perms-update-data-collection-text = { $extension } has been updated. You must approve new settings before the updated version will install. Choosing “Cancel” will maintain your current extension version. This extension will have permission to:
+webext-perms-update-text-with-data-collection = { $extension } requires new settings to update
+
+webext-perms-update-listIntro-with-data-collection = Cancel to keep your current version and settings, or update to get the new version and approve the changes.
 
 # Variables:
 #   $extension (String): replaced with the localized name of the extension.
-webext-perms-update-data-collection-only-text = { $extension } has been updated. You must approve new settings before the updated version will install. Choosing “Cancel” will maintain your current extension version.
+webext-perms-optional-text-with-data-collection = { $extension } requests additional settings
 
 # Variables:
 #   $extension (String): replaced with the localized name of the extension.
-webext-perms-optional-data-collection-text = { $extension } requests additional settings
-
-# Variables:
-#   $extension (String): replaced with the localized name of the extension.
-webext-perms-optional-data-collection-only-text = { $extension } requests additional data collection
+webext-perms-optional-text-with-data-collection-only = { $extension } requests additional data collection
 
 ## Short form to be used in lists or in a string (`webext-perms-description-data-some`)
 ## that formats some of these permissions below using `Intl.ListFormat`.
@@ -85,3 +83,16 @@ popup-notification-addon-technicalAndInteraction-checkbox =
 
 # This string is used in the confirmation popup displayed after an extension has been installed.
 appmenu-addon-post-install-message-with-data-collection = Update permissions and data preferences any time in the <a data-l10n-name="settings-link">extension settings</a>.
+
+## Headers used in the webextension permissions dialog, inside the content.
+
+webext-perms-header-data-collection-perms = Required data collection:
+webext-perms-header-data-collection-is-none = Data collection:
+
+# This is a header used in the add-ons "update" prompt, shown when the new
+# version requires new data collection permissions.
+webext-perms-header-update-data-collection-perms = New required data collection:
+
+# This is a header used in the add-ons "optional" prompt, shown when the
+# extension requests new data collection permissions programatically.
+webext-perms-header-optional-data-collection-perms = New data collection:
