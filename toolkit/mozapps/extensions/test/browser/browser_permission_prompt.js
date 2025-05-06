@@ -655,11 +655,11 @@ add_task(async function testInstallDialogShowsDataCollectionPermissions() {
       popupContentEl.querySelector(".popup-notification-description")
         .textContent,
       PERMISSION_L10N.formatValueSync(
-        "webext-perms-header-unsigned",
+        "webext-perms-header2",
         // We set the extension name to the extension id in `createTestExtensionXPI`.
         { extension: extensionId }
       ),
-      "Expected header string with perms"
+      "Expected header string"
     );
   };
 
@@ -669,6 +669,11 @@ add_task(async function testInstallDialogShowsDataCollectionPermissions() {
       incognito: "not_allowed",
       verifyDialog(popupContentEl, { extensionId }) {
         assertHeader(popupContentEl, extensionId);
+        Assert.equal(
+          popupContentEl.introEl.textContent,
+          PERMISSION_L10N.formatValueSync("webext-perms-list-intro-unsigned"),
+          "Expected list intro string"
+        );
         assertSectionHeaders(popupContentEl, [
           { id: "addon-webext-perm-title-required", isVisible: false },
           { id: "addon-webext-perm-title-data-collection", isVisible: false },

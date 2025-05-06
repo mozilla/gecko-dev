@@ -3004,14 +3004,15 @@ export class ExtensionData {
         break;
       }
       default:
+        if (unsigned) {
+          result.listIntro = l10n.formatValueSync(
+            "webext-perms-list-intro-unsigned"
+          );
+        }
     }
 
     result.header = l10n.formatValueSync(
-      this._getHeaderFluentId({
-        type,
-        hasDataCollectionOnly,
-        unsigned,
-      }),
+      this._getHeaderFluentId({ type, hasDataCollectionOnly }),
       headerArgs
     );
     const { hasNone } = result.dataCollectionPermissions;
@@ -3062,10 +3063,9 @@ export class ExtensionData {
 
   /**
    * Helper function to return the right header fluent ID for a permission
-   * prompt, depending on the type, whether it has  data collection only, and
-   * also whether the add-on is signed or not.
+   * prompt, depending on the type and whether it has data collection only.
    */
-  static _getHeaderFluentId({ type, hasDataCollectionOnly, unsigned }) {
+  static _getHeaderFluentId({ type, hasDataCollectionOnly }) {
     switch (type) {
       case "sideload":
         return "webext-perms-sideload-header";
@@ -3085,7 +3085,7 @@ export class ExtensionData {
           : "webext-perms-optional-text-with-data-collection";
     }
 
-    return unsigned ? "webext-perms-header-unsigned" : "webext-perms-header2";
+    return "webext-perms-header2";
   }
 
   /**

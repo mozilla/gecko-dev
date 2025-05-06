@@ -41,7 +41,7 @@ add_task(async function test_unsigned() {
   let description = panel.querySelector(
     ".popup-notification-description"
   ).textContent;
-  const expected = formatExtValue("webext-perms-header-unsigned", {
+  const expected = formatExtValue("webext-perms-header2", {
     extension: "<>",
   });
   for (let part of expected.split("<>")) {

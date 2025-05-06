@@ -10,7 +10,7 @@
 ##   $extension (String): replaced with the localized name of the extension.
 
 webext-perms-header2 = Add { $extension }
-webext-perms-header-unsigned = Add { $extension }? This extension is unverified. Malicious extensions can steal your private information or compromise your computer. Only add it if you trust the source.
+webext-perms-list-intro-unsigned = This unverified extension might put your privacy at risk or compromise your device. Only add it if you trust the source.
 webext-perms-sideload-header = { $extension } added
 webext-perms-optional-perms-header2 = { $extension } requests additional permissions
 
