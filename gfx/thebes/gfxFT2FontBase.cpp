@@ -353,6 +353,8 @@ void gfxFT2FontBase::InitMetrics() {
     // mFUnitsConvFactor (x scale).
     const TT_Header* head =
         static_cast<TT_Header*>(FT_Get_Sfnt_Table(face, ft_sfnt_head));
+    gfxFloat emUnit = head->Units_Per_EM;
+    mFUnitsConvFactor = ftMetrics.x_ppem / emUnit;
     if (head) {
       // Bug 1267909 - Even if the font is not explicitly scalable,
       // if the face has color bitmaps, it should be treated as scalable
@@ -366,9 +368,8 @@ void gfxFT2FontBase::InitMetrics() {
         mMetrics.maxDescent *= adjustScale;
         mMetrics.maxAdvance *= adjustScale;
         lineHeight *= adjustScale;
+        mFUnitsConvFactor *= adjustScale;
       }
-      gfxFloat emUnit = head->Units_Per_EM;
-      mFUnitsConvFactor = ftMetrics.x_ppem / emUnit;
       yScale = emHeight / emUnit;
     }
   }
