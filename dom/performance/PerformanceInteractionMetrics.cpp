@@ -90,16 +90,12 @@ Maybe<uint64_t> PerformanceInteractionMetrics::ComputeInteractionId(
 
     auto code = keyEvent->mKeyCode;
 
-    auto entry = mPendingKeyDowns.MaybeGet(code);
-    if (entry) {
-      if (code != 229) {
-        uint64_t interactionId = IncreaseInteractionValueAndCount();
-        (*entry)->SetInteractionId(interactionId);
-      }
-    }
-
+    // This is not part of the spec yet, but it's being discussed and will be
+    // added to the spec soon.
+    // See: https://github.com/w3c/event-timing/issues/153
     mPendingKeyDowns.InsertOrUpdate(code, aEventTiming);
-    return Nothing();
+    uint64_t interactionId = IncreaseInteractionValueAndCount();
+    return Some(interactionId);
   }
 
   // Step 8. If type is keyup:
@@ -120,12 +116,7 @@ Maybe<uint64_t> PerformanceInteractionMetrics::ComputeInteractionId(
       return Some(0);
     }
 
-    // Step 8.5. Increase interaction count on window.
-    // Step 8.6. Let interactionId be window’s user interaction value value.
-    uint64_t interactionId = IncreaseInteractionValueAndCount();
-
-    // Step 8.7. Set entry’s interactionId to interactionId.
-    (*entry)->SetInteractionId(interactionId);
+    uint64_t interactionId = (*entry)->InteractionId();
 
     // Step 8.9. Remove pendingKeyDowns[code].
     mPendingKeyDowns.Remove(code);
