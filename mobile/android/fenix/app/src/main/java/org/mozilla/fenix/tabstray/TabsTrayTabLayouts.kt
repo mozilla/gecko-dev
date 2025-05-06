@@ -33,7 +33,9 @@ import androidx.compose.runtime.toMutableStateList
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.res.dimensionResource
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import mozilla.components.browser.state.state.ContentState
 import mozilla.components.browser.state.state.TabSessionState
@@ -207,6 +209,8 @@ private fun TabGrid(
         ) { index, tab ->
             val decayAnimationSpec: DecayAnimationSpec<Float> = rememberSplineBasedDecay()
             val density = LocalDensity.current
+            val isRtl = LocalLayoutDirection.current == LayoutDirection.Rtl
+
             val swipeState = remember(isInMultiSelectMode, !state.isScrollInProgress) {
                 SwipeToDismissState(
                     density = density,
@@ -219,6 +223,7 @@ private fun TabGrid(
                     density = density,
                     enabled = !isInMultiSelectMode && !state.isScrollInProgress,
                     decayAnimationSpec = decayAnimationSpec,
+                    isRtl = isRtl,
                 )
             }
             val swipingActive by remember(swipeState.swipingActive, swipeState2.swipingActive) {

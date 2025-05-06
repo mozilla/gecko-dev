@@ -97,12 +97,14 @@ enum class SwipeToDismissDirections {
  *
  * @param density [Density] used to derive the underlying [AnchoredDraggableState.velocityThreshold].
  * @param decayAnimationSpec [DecayAnimationSpec] used to specify the animation parameters.
+ * @property isRtl Whether the device language is a RTL language.
  * @property enabled Whether the swipe gesture is enabled.
  */
 @OptIn(ExperimentalFoundationApi::class)
 class SwipeToDismissState2(
     density: Density,
     decayAnimationSpec: DecayAnimationSpec<Float>,
+    val isRtl: Boolean,
     val enabled: Boolean = true,
 ) {
 
@@ -177,7 +179,13 @@ private fun Modifier.anchoredHorizontalDraggable(
             if (drag != null && validDrag) {
                 state.anchoredDraggableState.dispatchRawDelta(overSlop)
                 horizontalDrag(drag.id) {
-                    state.anchoredDraggableState.dispatchRawDelta(it.positionChange().x)
+                    state.anchoredDraggableState.dispatchRawDelta(
+                        if (state.isRtl) {
+                            -it.positionChange().x
+                        } else {
+                            it.positionChange().x
+                        },
+                    )
                     it.consume()
                 }
                 scope.launch {
@@ -335,12 +343,14 @@ private fun SwipeableItem(
     onSwipeToEnd: () -> Unit = {},
 ) {
     val density = LocalDensity.current
+    val isRtl = LocalLayoutDirection.current == LayoutDirection.Rtl
     val decayAnimationSpec: DecayAnimationSpec<Float> = rememberSplineBasedDecay()
 
     val swipeState = remember {
         SwipeToDismissState2(
             density = density,
             decayAnimationSpec = decayAnimationSpec,
+            isRtl = isRtl,
         )
     }
 
