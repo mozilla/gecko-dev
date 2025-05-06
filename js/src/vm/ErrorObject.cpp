@@ -887,6 +887,14 @@ void js::ErrorObject::setFromWasmTrap() {
 }
 
 JSString* js::ErrorToSource(JSContext* cx, HandleObject obj) {
+  AutoCycleDetector detector(cx, obj);
+  if (!detector.init()) {
+    return nullptr;
+  }
+  if (detector.foundCycle()) {
+    return NewStringCopyZ<CanGC>(cx, "{}");
+  }
+
   RootedValue nameVal(cx);
   RootedString name(cx);
   if (!GetProperty(cx, obj, obj, cx->names().name, &nameVal) ||
@@ -908,6 +916,17 @@ JSString* js::ErrorToSource(JSContext* cx, HandleObject obj) {
     return nullptr;
   }
 
+  RootedValue errorsVal(cx);
+  RootedString errors(cx);
+  bool isAggregateError = obj->is<ErrorObject>() &&
+                          obj->as<ErrorObject>().type() == JSEXN_AGGREGATEERR;
+  if (isAggregateError) {
+    if (!GetProperty(cx, obj, obj, cx->names().errors, &errorsVal) ||
+        !(errors = ValueToSource(cx, errorsVal))) {
+      return nullptr;
+    }
+  }
+
   RootedValue linenoVal(cx);
   uint32_t lineno;
   if (!GetProperty(cx, obj, obj, cx->names().lineNumber, &linenoVal) ||
@@ -918,6 +937,12 @@ JSString* js::ErrorToSource(JSContext* cx, HandleObject obj) {
   JSStringBuilder sb(cx);
   if (!sb.append("(new ") || !sb.append(name) || !sb.append("(")) {
     return nullptr;
+  }
+
+  if (isAggregateError) {
+    if (!sb.append(errors) || !sb.append(", ")) {
+      return nullptr;
+    }
   }
 
   if (!sb.append(message)) {
