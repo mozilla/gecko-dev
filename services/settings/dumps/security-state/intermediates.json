@@ -1,6 +1,162 @@
 {
   "data": [
     {
+      "schema": 1746237472458,
+      "derHash": "8HfhrxHP4eihKHH5CAtp77i0HotKS5WrUTzfZQx2ssI=",
+      "attachment": {
+        "hash": "f56ce52ec4d1cfea4ff749f36c2c6b25b0224b4ffd017c50813bab74e1772931",
+        "size": 2198,
+        "filename": "H8xF5Jp2PLrrgjDzFtAfmtPYa1nmOBpEqs5pr_ISaDY=.pem",
+        "location": "security-state-staging/intermediates/695c90a5-483a-4481-8ead-44210c07408a.pem",
+        "mimetype": "application/x-pem-file"
+      },
+      "id": "3f0cdc42-3f9f-496f-9b73-f81e7f766781",
+      "last_modified": 1746241022425
+    },
+    {
+      "schema": 1746237470216,
+      "derHash": "zDebP8ZVV1TBFpY2SSb4KKH6/tcUya2SAyJxdOdgO7o=",
+      "attachment": {
+        "hash": "d2607dbf363abc1d8f472f01ed068cfc8f9e94be44cf1331119eb621b8ee297e",
+        "size": 2207,
+        "filename": "e6N3eWexEHdDnWu0vN2Vgk0dM-WuHlVq676pjgJZd9k=.pem",
+        "location": "security-state-staging/intermediates/05ebc46d-c5f9-469b-a458-6da4bf8f9b12.pem",
+        "mimetype": "application/x-pem-file"
+      },
+      "id": "7a2a47d3-0c7a-4935-ac44-c09acf7ecc44",
+      "last_modified": 1746241022422
+    },
+    {
+      "schema": 1746237466462,
+      "derHash": "R07heLzL3WUhFXB83JJR/fSEQckAIinCrg3g4zdQ++o=",
+      "attachment": {
+        "hash": "4c9f9d80e6baa6919f583a9e4390818b88812d4ea29b69cbfc96a3f217b4eca8",
+        "size": 2211,
+        "filename": "Ak_sGatB_kVAkCDxjAz17YbGWkU15YEpcHBJ646LUV8=.pem",
+        "location": "security-state-staging/intermediates/044d0006-5140-4723-a33a-df1478a826fd.pem",
+        "mimetype": "application/x-pem-file"
+      },
+      "id": "b289b601-f259-4955-9437-bfb39d2e964b",
+      "last_modified": 1746241022419
+    },
+    {
+      "schema": 1746237473279,
+      "derHash": "FfT11ajW3tTN1Uzk4bNnIDt/LN9BYQS6XWQFr1WsgEU=",
+      "attachment": {
+        "hash": "1f561ff6b7be47152ec5972b7219c553455adab0c1f7ff81b39174a4b1a1335f",
+        "size": 2174,
+        "filename": "_TZlweMrnlWlbe9bWC3bxYQFepegJ8WfsZkfyAe3zTo=.pem",
+        "location": "security-state-staging/intermediates/6cb54050-5c62-4ec6-98c5-ec3f29794a1c.pem",
+        "mimetype": "application/x-pem-file"
+      },
+      "id": "0407a720-fd3a-42e1-8bc5-3d0b76b9fb77",
+      "last_modified": 1746241022416
+    },
+    {
+      "schema": 1746237471711,
+      "derHash": "5MJd4bKFs8RTWO8SWDoap42xSNDSlPh5gzlFH8GRBUI=",
+      "attachment": {
+        "hash": "af2ac1842bb829ca9f75e5079396b52aa006be0b38f1e1d43148c637bea74185",
+        "size": 2231,
+        "filename": "I-sFpWHh9UxHLORoVozF1a_U4fohTGmX9grDc85ZVXo=.pem",
+        "location": "security-state-staging/intermediates/35690fa6-ed77-4100-9e44-b9036bbf5093.pem",
+        "mimetype": "application/x-pem-file"
+      },
+      "id": "8adcefe4-c9de-475d-8ac5-9d120964ad59",
+      "last_modified": 1746241022413
+    },
+    {
+      "schema": 1746237467974,
+      "derHash": "0K62bvNkmnP6H4oDF9tUxhJXp/ShTRESvnQrXrY/ZiI=",
+      "attachment": {
+        "hash": "f4f1ac1ac47fef2ccd97c56c6c4e8b3ce02d7e7467cf28117ac4d39e1c0197d2",
+        "size": 2207,
+        "filename": "z3VWmLDOJ66ismfTeom4kG1sRsuevxLdUCkiBnq19CU=.pem",
+        "location": "security-state-staging/intermediates/f1548429-f149-48b1-be2e-5bc863cae7dc.pem",
+        "mimetype": "application/x-pem-file"
+      },
+      "id": "41fb17c6-1cfc-4c8e-bd9f-7318e020d440",
+      "last_modified": 1746241022410
+    },
+    {
+      "schema": 1746237469455,
+      "derHash": "jtb6R7FNx5yF7VxM4sZ7Ly+W0rkFRpDyi/Lf6aV3DfA=",
+      "attachment": {
+        "hash": "72f08da06f749d5374d51d1fd088168e36dcaf2c60d8627befc64746d0e3d330",
+        "size": 1650,
+        "filename": "FIJQeSulVkzcOTq--FPehpPD7ZpzwJIUo-9DuJKQ7jE=.pem",
+        "location": "security-state-staging/intermediates/e1ee3fad-ec55-4f2b-91f9-076b3d7898ed.pem",
+        "mimetype": "application/x-pem-file"
+      },
+      "id": "6ffcd987-f874-454e-b0ee-2f83ea4381bc",
+      "last_modified": 1746241022407
+    },
+    {
+      "schema": 1746237468678,
+      "derHash": "fNE7i55RvW6uARbX+J4/Ieqjq6KiCZeyYGo9zFeOcpU=",
+      "attachment": {
+        "hash": "eddded4b0bee0a5078b9518f11ba2a02e43042e4def38b92493f9f06ef05d350",
+        "size": 2158,
+        "filename": "YbZ4785VWC8RQyTC8aU3U8BHRtK0if463IT7rxTZJEw=.pem",
+        "location": "security-state-staging/intermediates/9bdbfbea-c2d6-4f05-8ce9-4dfbd430a450.pem",
+        "mimetype": "application/x-pem-file"
+      },
+      "id": "60ff2651-f066-414b-a4fc-c1dfb2a11c65",
+      "last_modified": 1746241022404
+    },
+    {
+      "schema": 1746237467245,
+      "derHash": "BOa56vXsAaNwrT39Un6LtiLjwowUhOrNs9LQbdj1JE4=",
+      "attachment": {
+        "hash": "5d4505cdf440fc412da23ec473b2d45255a4c9c23ba649c444214847fb166c64",
+        "size": 2203,
+        "filename": "_htZeYso9yhE6e0ETgoHv_Jes-TMsYC-2gLOU5ZJlrg=.pem",
+        "location": "security-state-staging/intermediates/9bd99888-328e-447d-aaad-259ca2abb338.pem",
+        "mimetype": "application/x-pem-file"
+      },
+      "id": "e9dd6aa9-a4b6-4400-9c4b-963ce7a585da",
+      "last_modified": 1746241022402
+    },
+    {
+      "schema": 1746237465744,
+      "derHash": "47+cp7xW0D7muuUuP7pHyv5BmPKgJsgngIfYK5UeQow=",
+      "attachment": {
+        "hash": "0a02614dae46754d9dc794bba11c1c30b33e36732ab501f656714af842976b6e",
+        "size": 1768,
+        "filename": "R5TbytXkxhgZsZ-O4jnwihSYGEb-lJcxmnJJzubrFjo=.pem",
+        "location": "security-state-staging/intermediates/b9974ce0-6a50-4fd7-8030-523c17c8f813.pem",
+        "mimetype": "application/x-pem-file"
+      },
+      "id": "bad66582-0535-4341-849a-fb6f5214f150",
+      "last_modified": 1746241022399
+    },
+    {
+      "schema": 1746237470976,
+      "derHash": "57HGsEtsmjopYNOIj4CBiArCFKu9Ab+eA2KoNUz8pyA=",
+      "attachment": {
+        "hash": "7f497a490b11364604e571904785ca26ee06ba2ea7905672b2fd345e6d2a6d86",
+        "size": 2158,
+        "filename": "WI6nGsclPUABSKW3JyWkcmgz7zhO6-Y87hF_ON9GKbE=.pem",
+        "location": "security-state-staging/intermediates/04852c2c-4a07-4c39-b27a-a582478e7c0e.pem",
+        "mimetype": "application/x-pem-file"
+      },
+      "id": "44420e45-ce90-479f-a582-24c405b9313a",
+      "last_modified": 1746241022396
+    },
+    {
+      "schema": 1746237474032,
+      "derHash": "BiiE+uogTAnRDpD7AGnnvE5Nk9AxbZ9+/k4q/jQiYSM=",
+      "attachment": {
+        "hash": "1092306b1450fdd0305ab0c1dbb59bdcf134e12a36d42d0190a914e5803bca79",
+        "size": 2211,
+        "filename": "BkUNH1_ZLdvwnL1ERK2pVu-GTmySlyzMidc7uXDLLyI=.pem",
+        "location": "security-state-staging/intermediates/6b74bac0-dd98-4751-86dc-d10f73789fab.pem",
+        "mimetype": "application/x-pem-file"
+      },
+      "id": "964c0262-c108-48f4-81c5-352c102e4a00",
+      "last_modified": 1746241022392
+    },
+    {
       "schema": 1745996264956,
       "derHash": "AVc9er4f5p1z3xHiRpoISf51708z2V3QUSqx3CxwwPY=",
       "attachment": {
@@ -4853,24 +5009,6 @@
       "last_modified": 1712311023716
     },
     {
-      "schema": 1711724029637,
-      "derHash": "TkLi2IxOTbWRnHkATRycDpwtb7tFPaHWQtPTD3jAVy4=",
-      "subject": "CN=Certigna Server Authentication ACME FR CA G2,O=Certigna,C=FR",
-      "subjectDN": "MHYxCzAJBgNVBAYTAkZSMREwDwYDVQQKDAhDZXJ0aWduYTEdMBsGA1UEYQwUTlRSRlItNDgxNDYzMDgxMDAwMzYxNTAzBgNVBAMMLENlcnRpZ25hIFNlcnZlciBBdXRoZW50aWNhdGlvbiBBQ01FIEZSIENBIEcy",
-      "whitelist": false,
-      "attachment": {
-        "hash": "47f464e31a2f05a550e83d8045d8570fcf9f57caeb7722436101c8940e879ca3",
-        "size": 2467,
-        "filename": "ULy4kAY07boZvLRDouxffHNVcsGHGQFCnEuCkq-cMCQ=.pem",
-        "location": "security-state-staging/intermediates/c4de029c-0d39-43ba-881d-1f1bdac8eff3.pem",
-        "mimetype": "application/x-pem-file"
-      },
-      "pubKeyHash": "ULy4kAY07boZvLRDouxffHNVcsGHGQFCnEuCkq+cMCQ=",
-      "crlite_enrolled": false,
-      "id": "7d46e740-ae39-4f00-87ee-9a6e358e481d",
-      "last_modified": 1711724223131
-    },
-    {
       "schema": 1711724029289,
       "derHash": "yh/1TgMRhvkAa7FI+M5qU/BXQqS2zo/+ed/SrkceuqU=",
       "subject": "CN=Certigna Server Authentication ACME FR CA G1,O=Certigna,C=FR",
@@ -4905,24 +5043,6 @@
       "crlite_enrolled": false,
       "id": "8046050c-57cc-44c2-8341-e1801f5dde99",
       "last_modified": 1711724223126
-    },
-    {
-      "schema": 1711724028612,
-      "derHash": "YP0d8Xerjt6HRy6OcoMH9W7EGmDMrXlMT9ttHLfUDVY=",
-      "subject": "CN=Certigna Server Authentication ACME CA G2,O=Certigna,C=FR",
-      "subjectDN": "MHMxCzAJBgNVBAYTAkZSMREwDwYDVQQKDAhDZXJ0aWduYTEdMBsGA1UEYQwUTlRSRlItNDgxNDYzMDgxMDAwMzYxMjAwBgNVBAMMKUNlcnRpZ25hIFNlcnZlciBBdXRoZW50aWNhdGlvbiBBQ01FIENBIEcy",
-      "whitelist": false,
-      "attachment": {
-        "hash": "eac6be7c8bce492dda5b1ff24dea8088d2aacfea367f4d96fd3900d742aebb65",
-        "size": 2463,
-        "filename": "RKrRuFywubwqUKSLQ4_OujB1TYcPLRKs1GDCg351ako=.pem",
-        "location": "security-state-staging/intermediates/05a73290-0d3d-49c1-840a-22d2de8c1fb6.pem",
-        "mimetype": "application/x-pem-file"
-      },
-      "pubKeyHash": "RKrRuFywubwqUKSLQ4/OujB1TYcPLRKs1GDCg351ako=",
-      "crlite_enrolled": false,
-      "id": "2269c12e-3b8e-4700-a4d5-42525a948a50",
-      "last_modified": 1711724223123
     },
     {
       "schema": 1711079327797,
@@ -28343,24 +28463,6 @@
       "last_modified": 1562025299610
     },
     {
-      "schema": 1562025292866,
-      "derHash": "dK/O7OBzFYe0XDzae8IQ/JF1AqMjQB6TLoZbw9eX56s=",
-      "subject": "CN=Atos TrustedRoot Issuing CA for WWE 2015,O=Atos,C=DE",
-      "subjectDN": "ME8xMTAvBgNVBAMMKEF0b3MgVHJ1c3RlZFJvb3QgSXNzdWluZyBDQSBmb3IgV1dFIDIwMTUxDTALBgNVBAoMBEF0b3MxCzAJBgNVBAYTAkRF",
-      "whitelist": false,
-      "attachment": {
-        "hash": "0c5d1ea52b767af0853d6af41c73f1d188589a66e9c919e2858bc429241f4ffc",
-        "size": 1573,
-        "filename": "IA32tKC4ljNAfmi44SQR9xeWWNipPKjmUmjtzoT6pkY=.pem",
-        "location": "security-state-staging/intermediates/345d4a3f-ed22-4e47-af57-c4da221aa0cd.pem",
-        "mimetype": "application/x-pem-file"
-      },
-      "pubKeyHash": "IA32tKC4ljNAfmi44SQR9xeWWNipPKjmUmjtzoT6pkY=",
-      "crlite_enrolled": false,
-      "id": "69330f6b-0bbf-4528-a402-c89b6262cce4",
-      "last_modified": 1562025293606
-    },
-    {
       "schema": 1562025276325,
       "derHash": "2eRFsixvyzeylvzRMxSGVpZRqNuYBxdT/vxz0sl79zI=",
       "subject": "CN=Qualified KET e-Szigno CA 2018,O=Microsec Ltd.,L=Budapest,C=HU",
@@ -28865,24 +28967,6 @@
       "last_modified": 1562023857605
     },
     {
-      "schema": 1562023830806,
-      "derHash": "V0NCratO1573gY6CmQWOHAcawOQx/kIcq7Yt9NTp5MU=",
-      "subject": "CN=Atos TrustedRoot Issuing CA for Primetals 2015,O=Atos,C=DE",
-      "subjectDN": "MFUxNzA1BgNVBAMMLkF0b3MgVHJ1c3RlZFJvb3QgSXNzdWluZyBDQSBmb3IgUHJpbWV0YWxzIDIwMTUxDTALBgNVBAoMBEF0b3MxCzAJBgNVBAYTAkRF",
-      "whitelist": false,
-      "attachment": {
-        "hash": "5ade36d683c37e2eead15d6a475ad0cea29346f577f4600faa9a32397f52bb2c",
-        "size": 1581,
-        "filename": "Ed79H7X5vQv3PR5-yCPH4ihzJhZFJlA-HsWA-xT7qAI=.pem",
-        "location": "security-state-staging/intermediates/8efad479-fc51-47cc-b880-7913a377291d.pem",
-        "mimetype": "application/x-pem-file"
-      },
-      "pubKeyHash": "Ed79H7X5vQv3PR5+yCPH4ihzJhZFJlA+HsWA+xT7qAI=",
-      "crlite_enrolled": false,
-      "id": "05eaf66f-1805-4619-9d87-bf6d7bfd6e36",
-      "last_modified": 1562023831534
-    },
-    {
       "schema": 1562023819546,
       "derHash": "u2YddQxTFmGBgHpomP1GQGXOWSmJhq1m2db//LvUc4o=",
       "subject": "CN=NetLock Expressz Eat. (Class C Legal) Tanúsítványkiadó,OU=Tanúsítványkiadók (Certification Services),O=NetLock Kft.,L=Budapest,C=HU",
@@ -29045,5 +29129,5 @@
       "last_modified": 1559865884636
     }
   ],
-  "timestamp": 1745999822403
+  "timestamp": 1746370623111
 }
