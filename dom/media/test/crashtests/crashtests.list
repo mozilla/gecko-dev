@@ -73,7 +73,7 @@ load 995289.html
 load 1012609.html
 load 1015662.html
 skip-if(Android) test-pref(media.navigator.permission.disabled,true) load 1028458.html # bug 1048863
-load 1041466.html
+skip-if(cocoaWidget&&/^15\.30$/.test(os_version)) load 1041466.html
 load 1045650.html
 load 1080986.html
 load 1180881.html # bug 1409365
