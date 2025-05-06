@@ -143,12 +143,12 @@ describe("<DSLinkMenu>", () => {
       const linkMenuProps = wrapper.find(LinkMenu).props();
       assert.deepEqual(linkMenuProps.options, [
         "CheckBookmark",
-        "ReportContent",
         "Separator",
         "OpenInNewWindow",
         "OpenInPrivateWindow",
         "Separator",
         "BlockUrl",
+        "ReportContent",
       ]);
     });
 
