@@ -45,6 +45,7 @@
 #include "rtc_base/thread.h"
 #include "rtc_base/thread_annotations.h"
 #include "rtc_base/time_utils.h"
+#include "test/explicit_key_value_config.h"
 
 namespace cricket {
 using ::webrtc::SafeTask;
@@ -61,7 +62,8 @@ class FakeIceTransport : public IceTransportInternal {
       : name_(name),
         component_(component),
         network_thread_(network_thread ? network_thread
-                                       : rtc::Thread::Current()) {
+                                       : rtc::Thread::Current()),
+        field_trials_("") {
     RTC_DCHECK(network_thread_);
   }
 
@@ -482,6 +484,8 @@ class FakeIceTransport : public IceTransportInternal {
     return received_stun_messages_per_type[type];
   }
 
+  const webrtc::FieldTrialsView* field_trials() const { return &field_trials_; }
+
  private:
   void set_writable(bool writable)
       RTC_EXCLUSIVE_LOCKS_REQUIRED(network_thread_) {
@@ -622,6 +626,7 @@ class FakeIceTransport : public IceTransportInternal {
       packet_recv_filter_func_ RTC_GUARDED_BY(network_thread_) = nullptr;
   DtlsStunPiggybackCallbacks dtls_stun_piggyback_callbacks_;
   std::map<int, int> received_stun_messages_per_type;
+  webrtc::test::ExplicitKeyValueConfig field_trials_;
 };
 
 class FakeIceTransportWrapper : public webrtc::IceTransportInterface {

@@ -934,6 +934,7 @@ if (rtc_include_tests) {
       "../rtc_base:timeutils",
       "../rtc_base/network:received_packet",
       "../rtc_base/network:sent_packet",
+      "../test:explicit_key_value_config",
       "//third_party/abseil-cpp/absl/algorithm:container",
       "//third_party/abseil-cpp/absl/strings:string_view",
     ]
@@ -1174,6 +1175,7 @@ if (rtc_include_tests) {
       "../rtc_base/network:sent_packet",
       "../rtc_base/third_party/sigslot",
       "../system_wrappers:metrics",
+      "../test:explicit_key_value_config",
       "../test:scoped_key_value_config",
       "../test:test_support",
       "../test:wait_until",

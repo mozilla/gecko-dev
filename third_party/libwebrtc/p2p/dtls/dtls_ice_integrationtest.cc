@@ -40,25 +40,13 @@
 #include "rtc_base/third_party/sigslot/sigslot.h"
 #include "rtc_base/thread.h"
 #include "rtc_base/virtual_socket_server.h"
+#include "test/explicit_key_value_config.h"
 #include "test/gmock.h"
 #include "test/gtest.h"
 #include "test/wait_until.h"
 
 namespace {
 constexpr int kDefaultTimeout = 30000;
-
-void SetRemoteFingerprintFromCert(
-    cricket::DtlsTransport& transport,
-    const rtc::scoped_refptr<webrtc::RTCCertificate>& cert) {
-  std::unique_ptr<rtc::SSLFingerprint> fingerprint =
-      rtc::SSLFingerprint::CreateFromCertificate(*cert);
-
-  transport.SetRemoteParameters(
-      fingerprint->algorithm,
-      reinterpret_cast<const uint8_t*>(fingerprint->digest.data()),
-      fingerprint->digest.size(), std::nullopt);
-}
-
 }  // namespace
 
 namespace cricket {
@@ -89,13 +77,23 @@ class DtlsIceIntegrationTest : public ::testing::TestWithParam<std::tuple<
 
  private:
   struct Endpoint {
+    explicit Endpoint(bool dtls_in_stun)
+        : field_trials(dtls_in_stun ? "WebRTC-IceHandshakeDtls/Enabled/" : ""),
+          dtls_stun_piggyback(dtls_in_stun) {}
     webrtc::EmulatedNetworkManagerInterface* emulated_network_manager = nullptr;
     std::unique_ptr<rtc::NetworkManager> network_manager;
     std::unique_ptr<rtc::BasicPacketSocketFactory> packet_socket_factory;
     std::unique_ptr<PortAllocator> allocator;
     std::unique_ptr<IceTransportInternal> ice;
     std::unique_ptr<DtlsTransport> dtls;
-    std::unique_ptr<DtlsTransport> server_dtls_;
+
+    // SetRemoteFingerprintFromCert does not actually set the fingerprint,
+    // but only store it for setting later.
+    bool store_but_dont_set_remote_fingerprint = false;
+    std::unique_ptr<rtc::SSLFingerprint> remote_fingerprint;
+
+    webrtc::test::ExplicitKeyValueConfig field_trials;
+    bool dtls_stun_piggyback;
   };
 
  protected:
@@ -103,14 +101,14 @@ class DtlsIceIntegrationTest : public ::testing::TestWithParam<std::tuple<
       : ss_(std::make_unique<rtc::VirtualSocketServer>()),
         socket_factory_(
             std::make_unique<rtc::BasicPacketSocketFactory>(ss_.get())),
+        client_(std::get<0>(GetParam())),
+        server_(std::get<1>(GetParam())),
         client_ice_parameters_("c_ufrag",
                                "c_icepwd_something_something",
                                false),
         server_ice_parameters_("s_ufrag",
                                "s_icepwd_something_something",
-                               false),
-        client_dtls_stun_piggyback_(std::get<0>(GetParam())),
-        server_dtls_stun_piggyback_(std::get<1>(GetParam())) {}
+                               false) {}
 
   void ConfigureEmulatedNetwork() {
     network_emulation_manager_ = webrtc::CreateNetworkEmulationManager(
@@ -154,7 +152,7 @@ class DtlsIceIntegrationTest : public ::testing::TestWithParam<std::tuple<
                               cricket::PORTALLOCATOR_DISABLE_TCP);
       ep.ice = std::make_unique<P2PTransportChannel>(
           client ? "client_transport" : "server_transport", 0,
-          ep.allocator.get());
+          ep.allocator.get(), &ep.field_trials);
       ep.dtls = std::make_unique<DtlsTransport>(
           ep.ice.get(), webrtc::CryptoOptions(),
           /*event_log=*/nullptr, std::get<2>(GetParam()));
@@ -163,8 +161,7 @@ class DtlsIceIntegrationTest : public ::testing::TestWithParam<std::tuple<
       // DTLS is negotiated.
       cricket::IceConfig config;
       config.continual_gathering_policy = GATHER_CONTINUALLY;
-      config.dtls_handshake_in_stun =
-          client ? client_dtls_stun_piggyback_ : server_dtls_stun_piggyback_;
+      config.dtls_handshake_in_stun = ep.dtls_stun_piggyback;
       ep.ice->SetIceConfig(config);
 
       // Setup ICE.
@@ -188,11 +185,10 @@ class DtlsIceIntegrationTest : public ::testing::TestWithParam<std::tuple<
       }
 
       // Setup DTLS.
-      ep.dtls->SetLocalCertificate(client ? client_certificate
-                                          : server_certificate);
       ep.dtls->SetDtlsRole(client ? webrtc::SSL_SERVER : webrtc::SSL_CLIENT);
+      SetLocalCertificate(ep, client ? client_certificate : server_certificate);
       SetRemoteFingerprintFromCert(
-          *ep.dtls.get(), client ? server_certificate : client_certificate);
+          ep, client ? server_certificate : client_certificate);
     });
   }
 
@@ -241,16 +237,27 @@ class DtlsIceIntegrationTest : public ::testing::TestWithParam<std::tuple<
 
   ~DtlsIceIntegrationTest() = default;
 
-  static int CountWritableConnections(IceTransportInternal* ice) {
+  static int CountConnectionsWithFilter(
+      IceTransportInternal* ice,
+      std::function<bool(const ConnectionInfo&)> filter) {
     IceTransportStats stats;
     ice->GetStats(&stats);
     int count = 0;
     for (const auto& con : stats.connection_infos) {
-      if (con.writable) {
+      if (filter(con)) {
         count++;
       }
     }
     return count;
+  }
+
+  static int CountConnections(IceTransportInternal* ice) {
+    return CountConnectionsWithFilter(ice, [](auto con) { return true; });
+  }
+
+  static int CountWritableConnections(IceTransportInternal* ice) {
+    return CountConnectionsWithFilter(ice,
+                                      [](auto con) { return con.writable; });
   }
 
   webrtc::WaitUntilSettings wait_until_settings() {
@@ -279,6 +286,35 @@ class DtlsIceIntegrationTest : public ::testing::TestWithParam<std::tuple<
 
   rtc::Thread* server_thread() { return thread(server_); }
 
+  void SetRemoteFingerprintFromCert(
+      Endpoint& ep,
+      const rtc::scoped_refptr<rtc::RTCCertificate>& cert) {
+    ep.remote_fingerprint = rtc::SSLFingerprint::CreateFromCertificate(*cert);
+    if (ep.store_but_dont_set_remote_fingerprint) {
+      return;
+    }
+    SetRemoteFingerprint(ep);
+  }
+
+  void SetRemoteFingerprint(Endpoint& ep) {
+    RTC_CHECK(ep.remote_fingerprint);
+    RTC_LOG(LS_INFO) << ((&ep == &client_) ? "client" : "server")
+                     << "::SetRemoteFingerprint";
+    ep.dtls->SetRemoteParameters(
+        ep.remote_fingerprint->algorithm,
+        reinterpret_cast<const uint8_t*>(ep.remote_fingerprint->digest.data()),
+        ep.remote_fingerprint->digest.size(), std::nullopt);
+  }
+
+  void SetLocalCertificate(
+      Endpoint& ep,
+      const rtc::scoped_refptr<rtc::RTCCertificate> certificate) {
+    RTC_CHECK(certificate);
+    RTC_LOG(LS_INFO) << ((&ep == &client_) ? "client" : "server")
+                     << "::SetLocalCertificate: ";
+    ep.dtls->SetLocalCertificate(certificate);
+  }
+
   rtc::ScopedFakeClock fake_clock_;
   rtc::FakeNetworkManager network_manager_;
   std::unique_ptr<rtc::VirtualSocketServer> ss_;
@@ -291,9 +327,6 @@ class DtlsIceIntegrationTest : public ::testing::TestWithParam<std::tuple<
 
   IceParameters client_ice_parameters_;
   IceParameters server_ice_parameters_;
-
-  bool client_dtls_stun_piggyback_;
-  bool server_dtls_stun_piggyback_;
 };
 
 TEST_P(DtlsIceIntegrationTest, SmokeTest) {
@@ -308,9 +341,13 @@ TEST_P(DtlsIceIntegrationTest, SmokeTest) {
           IsTrue(), wait_until_settings()),
       webrtc::IsRtcOk());
   EXPECT_EQ(client_.dtls->IsDtlsPiggybackSupportedByPeer(),
-            client_dtls_stun_piggyback_ && server_dtls_stun_piggyback_);
+            client_.dtls_stun_piggyback && server_.dtls_stun_piggyback);
   EXPECT_EQ(server_.dtls->IsDtlsPiggybackSupportedByPeer(),
-            client_dtls_stun_piggyback_ && server_dtls_stun_piggyback_);
+            client_.dtls_stun_piggyback && server_.dtls_stun_piggyback);
+  EXPECT_EQ(client_.dtls->WasDtlsCompletedByPiggybacking(),
+            client_.dtls_stun_piggyback && server_.dtls_stun_piggyback);
+  EXPECT_EQ(server_.dtls->WasDtlsCompletedByPiggybacking(),
+            client_.dtls_stun_piggyback && server_.dtls_stun_piggyback);
 
   // Validate that we can add new Connections (that become writable).
   network_manager_.AddInterface(webrtc::SocketAddress("192.168.2.1", 0));
@@ -321,6 +358,37 @@ TEST_P(DtlsIceIntegrationTest, SmokeTest) {
                   },
                   IsTrue(), wait_until_settings()),
               webrtc::IsRtcOk());
+}
+
+// Check that DtlsInStun still works even if SetRemoteFingerprint is called
+// "late". This is what happens if the answer sdp comes strictly after ICE has
+// connected. Before this patch, this would disable stun-piggy-backing.
+TEST_P(DtlsIceIntegrationTest, ClientLateCertificate) {
+  client_.store_but_dont_set_remote_fingerprint = true;
+  Prepare();
+  client_.ice->MaybeStartGathering();
+  server_.ice->MaybeStartGathering();
+
+  ASSERT_THAT(
+      webrtc::WaitUntil(
+          [&] { return CountWritableConnections(client_.ice.get()) > 0; },
+          IsTrue(), wait_until_settings()),
+      webrtc::IsRtcOk());
+  SetRemoteFingerprint(client_);
+
+  ASSERT_THAT(
+      webrtc::WaitUntil(
+          [&] { return client_.dtls->writable() && server_.dtls->writable(); },
+          IsTrue(), wait_until_settings()),
+      webrtc::IsRtcOk());
+
+  EXPECT_EQ(client_.dtls->IsDtlsPiggybackSupportedByPeer(),
+            client_.dtls_stun_piggyback && server_.dtls_stun_piggyback);
+
+  EXPECT_EQ(client_.dtls->WasDtlsCompletedByPiggybacking(),
+            client_.dtls_stun_piggyback && server_.dtls_stun_piggyback);
+  EXPECT_EQ(server_.dtls->WasDtlsCompletedByPiggybacking(),
+            client_.dtls_stun_piggyback && server_.dtls_stun_piggyback);
 }
 
 TEST_P(DtlsIceIntegrationTest, TestWithPacketLoss) {
@@ -345,11 +413,11 @@ TEST_P(DtlsIceIntegrationTest, TestWithPacketLoss) {
   EXPECT_EQ(client_thread()->BlockingCall([&]() {
     return client_.dtls->IsDtlsPiggybackSupportedByPeer();
   }),
-            client_dtls_stun_piggyback_ && server_dtls_stun_piggyback_);
+            client_.dtls_stun_piggyback && server_.dtls_stun_piggyback);
   EXPECT_EQ(server_thread()->BlockingCall([&]() {
     return server_.dtls->IsDtlsPiggybackSupportedByPeer();
   }),
-            client_dtls_stun_piggyback_ && server_dtls_stun_piggyback_);
+            client_.dtls_stun_piggyback && server_.dtls_stun_piggyback);
 }
 
 // Test cases are parametrized by

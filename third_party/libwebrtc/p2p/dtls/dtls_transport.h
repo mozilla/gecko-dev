@@ -229,7 +229,9 @@ class DtlsTransport : public DtlsTransportInternal {
     return sb.Release();
   }
 
+  // Two methods for testing.
   bool IsDtlsPiggybackSupportedByPeer();
+  bool WasDtlsCompletedByPiggybacking();
 
  private:
   void ConnectToIceTransport();
@@ -285,11 +287,13 @@ class DtlsTransport : public DtlsTransportInternal {
 
   webrtc::RtcEventLog* const event_log_;
 
-  // A controller for piggybacking DTLS in STUN.
-  bool dtls_in_stun_ = false;  // Initialize in ConnectToIceTransport().
-  DtlsStunPiggybackController dtls_stun_piggyback_controller_;
+  // Initialized in constructor based on WebRTC-IceHandshakeDtls,
+  // (so that we return PIGGYBACK_ACK to client if we get STUN_BINDING_REQUEST
+  // directly). Maybe disabled in SetupDtls has been called.
+  bool dtls_in_stun_ = false;
 
-  bool IsDtlsPiggybackHandshaking();
+  // A controller for piggybacking DTLS in STUN.
+  DtlsStunPiggybackController dtls_stun_piggyback_controller_;
 
   absl::AnyInvocable<void(rtc::PacketTransportInternal*,
                           const rtc::ReceivedPacket&)>

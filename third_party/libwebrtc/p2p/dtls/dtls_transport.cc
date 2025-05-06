@@ -165,6 +165,13 @@ DtlsTransport::DtlsTransport(IceTransportInternal* ice_transport,
           }) {
   RTC_DCHECK(ice_transport_);
   ConnectToIceTransport();
+  if (auto field_trials = ice_transport_->field_trials()) {
+    dtls_in_stun_ = field_trials->IsEnabled("WebRTC-IceHandshakeDtls");
+  } else {
+    // TODO (BUG=webrtc:367395350): Fix upstream testcase(s).
+    RTC_DLOG(LS_ERROR) << "ice_transport_>field_trials() is NULL";
+    dtls_in_stun_ = false;
+  }
 }
 
 DtlsTransport::~DtlsTransport() {
@@ -970,13 +977,13 @@ bool DtlsTransport::IsDtlsPiggybackSupportedByPeer() {
                            DtlsStunPiggybackController::State::OFF);
 }
 
-bool DtlsTransport::IsDtlsPiggybackHandshaking() {
+bool DtlsTransport::WasDtlsCompletedByPiggybacking() {
   RTC_DCHECK_RUN_ON(&thread_checker_);
   RTC_DCHECK(ice_transport_);
   return dtls_in_stun_ && (dtls_stun_piggyback_controller_.state() ==
-                               DtlsStunPiggybackController::State::TENTATIVE ||
+                               DtlsStunPiggybackController::State::COMPLETE ||
                            dtls_stun_piggyback_controller_.state() ==
-                               DtlsStunPiggybackController::State::CONFIRMED);
+                               DtlsStunPiggybackController::State::PENDING);
 }
 
 }  // namespace cricket
