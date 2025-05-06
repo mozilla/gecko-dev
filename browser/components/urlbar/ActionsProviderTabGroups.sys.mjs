@@ -44,12 +44,11 @@ class ProviderTabGroups extends ActionsProvider {
       }
       return null;
     }
-    let input = queryContext.trimmedLowerCaseSearchString;
     let results = [];
     let i = 0;
 
     for (let group of window.gBrowser.getAllTabGroups()) {
-      if (this.#matches(group.label, input)) {
+      if (this.#matches(group.label, queryContext)) {
         results.push(
           this.#makeResult({
             key: `tabgroup-${i++}`,
@@ -65,7 +64,7 @@ class ProviderTabGroups extends ActionsProvider {
     }
 
     for (let savedGroup of lazy.SessionStore.getSavedTabGroups()) {
-      if (this.#matches(savedGroup.name, input)) {
+      if (this.#matches(savedGroup.name, queryContext)) {
         results.push(
           this.#makeResult({
             key: `tabgroup-${i++}`,
@@ -90,12 +89,14 @@ class ProviderTabGroups extends ActionsProvider {
     return results;
   }
 
-  #matches(groupName, trimmedLowerCaseSearchString) {
+  #matches(groupName, queryContext) {
     groupName = groupName.toLowerCase();
-    if (trimmedLowerCaseSearchString.length == 1) {
-      return groupName.startsWith(trimmedLowerCaseSearchString);
+    if (queryContext.trimmedLowerCaseSearchString.length == 1) {
+      return groupName.startsWith(queryContext.trimmedLowerCaseSearchString);
     }
-    return groupName.includes(trimmedLowerCaseSearchString);
+    return queryContext.tokens.every(token =>
+      groupName.includes(token.lowerCaseValue)
+    );
   }
 
   #makeResult({ key, l10nId, l10nArgs, onPick, color }) {
