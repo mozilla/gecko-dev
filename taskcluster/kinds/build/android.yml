@@ -45,6 +45,7 @@ task-defaults:
     run:
         using: mozharness
         script: "mozharness/scripts/fx_desktop_build.py"
+        config: ["builds/releng_base_android_64_builds.py"]
         secrets: true
         mozconfig-variant: null
         tooltool-downloads: internal
@@ -78,7 +79,6 @@ android-arm/debug:
             MOZ_AUTOMATION_PACKAGE_TESTS: "1"
     run:
         actions: [get-secrets, build]
-        config: ["builds/releng_base_android_64_builds.py"]
         custom-build-variant-cfg: arm-debug
     use-sccache: true
     fetches:
@@ -104,7 +104,6 @@ android-x86/opt:
             MOZ_AUTOMATION_PACKAGE_TESTS: "1"
     run:
         actions: [get-secrets, build]
-        config: ["builds/releng_base_android_64_builds.py"]
         custom-build-variant-cfg: x86
     use-sccache: true
     fetches:
@@ -130,7 +129,6 @@ android-x86-lite/opt:
             PERFHERDER_EXTRA_OPTIONS: lite
     run:
         actions: [get-secrets, build]
-        config: ["builds/releng_base_android_64_builds.py"]
         custom-build-variant-cfg: x86-lite
     use-sccache: true
     fetches:
@@ -161,9 +159,7 @@ android-x86-shippable/opt:
             MOZ_AUTOMATION_PACKAGE_TESTS: "1"
     run:
         actions: [get-secrets, build, multi-l10n]
-        config:
-            - builds/releng_base_android_64_builds.py
-            - taskcluster_nightly.py
+        config: [taskcluster_nightly.py]
         custom-build-variant-cfg: x86
     fetches:
         toolchain:
@@ -193,9 +189,7 @@ android-x86-shippable-lite/opt:
             PERFHERDER_EXTRA_OPTIONS: lite
     run:
         actions: [get-secrets, build, multi-l10n]
-        config:
-            - builds/releng_base_android_64_builds.py
-            - taskcluster_nightly.py
+        config: [taskcluster_nightly.py]
         custom-build-variant-cfg: x86-lite
     fetches:
         toolchain:
@@ -219,7 +213,6 @@ android-arm/opt:
             MOZ_AUTOMATION_PACKAGE_TESTS: "1"
     run:
         actions: [get-secrets, build]
-        config: ["builds/releng_base_android_64_builds.py"]
         custom-build-variant-cfg: arm
     use-sccache: true
     fetches:
@@ -245,7 +238,6 @@ android-arm-lite/opt:
             PERFHERDER_EXTRA_OPTIONS: lite
     run:
         actions: [get-secrets, build]
-        config: ["builds/releng_base_android_64_builds.py"]
         custom-build-variant-cfg: arm-lite
     use-sccache: true
     fetches:
@@ -276,9 +268,7 @@ android-arm-shippable/opt:
             MOZ_AUTOMATION_PACKAGE_TESTS: "1"
     run:
         actions: [get-secrets, build, multi-l10n]
-        config:
-            - builds/releng_base_android_64_builds.py
-            - taskcluster_nightly.py
+        config: [taskcluster_nightly.py]
         custom-build-variant-cfg: arm
     fetches:
         toolchain:
@@ -308,9 +298,7 @@ android-arm-shippable-lite/opt:
             PERFHERDER_EXTRA_OPTIONS: lite
     run:
         actions: [get-secrets, build, multi-l10n]
-        config:
-            - builds/releng_base_android_64_builds.py
-            - taskcluster_nightly.py
+        config: [taskcluster_nightly.py]
         custom-build-variant-cfg: arm-lite
     fetches:
         toolchain:
@@ -334,7 +322,6 @@ android-aarch64/opt:
             MOZ_AUTOMATION_PACKAGE_TESTS: "1"
     run:
         actions: [get-secrets, build]
-        config: ["builds/releng_base_android_64_builds.py"]
         custom-build-variant-cfg: aarch64
     use-sccache: true
     fetches:
@@ -360,7 +347,6 @@ android-aarch64-lite/opt:
             PERFHERDER_EXTRA_OPTIONS: lite
     run:
         actions: [get-secrets, build]
-        config: ["builds/releng_base_android_64_builds.py"]
         custom-build-variant-cfg: aarch64-lite
     use-sccache: true
     fetches:
@@ -385,7 +371,6 @@ android-aarch64/debug:
             MOZ_AUTOMATION_PACKAGE_TESTS: "1"
     run:
         actions: [get-secrets, build]
-        config: ["builds/releng_base_android_64_builds.py"]
         custom-build-variant-cfg: aarch64-debug
     use-sccache: true
     fetches:
@@ -416,9 +401,7 @@ android-aarch64-shippable/opt:
             MOZ_AUTOMATION_PACKAGE_TESTS: "1"
     run:
         actions: [get-secrets, build, multi-l10n]
-        config:
-            - builds/releng_base_android_64_builds.py
-            - taskcluster_nightly.py
+        config: [taskcluster_nightly.py]
         custom-build-variant-cfg: aarch64
     fetches:
         toolchain:
@@ -448,9 +431,7 @@ android-aarch64-shippable-lite/opt:
             PERFHERDER_EXTRA_OPTIONS: lite
     run:
         actions: [get-secrets, build, multi-l10n]
-        config:
-            - builds/releng_base_android_64_builds.py
-            - taskcluster_nightly.py
+        config: [taskcluster_nightly.py]
         custom-build-variant-cfg: aarch64-lite
     fetches:
         toolchain:
@@ -474,7 +455,6 @@ android-x86_64/opt:
             MOZ_AUTOMATION_PACKAGE_TESTS: "1"
     run:
         actions: [get-secrets, build]
-        config: ["builds/releng_base_android_64_builds.py"]
         custom-build-variant-cfg: x86_64
     use-sccache: true
     fetches:
@@ -501,7 +481,6 @@ android-x86_64-lite/opt:
             PERFHERDER_EXTRA_OPTIONS: lite
     run:
         actions: [get-secrets, build]
-        config: ["builds/releng_base_android_64_builds.py"]
         custom-build-variant-cfg: x86_64-lite
     use-sccache: true
     fetches:
@@ -524,7 +503,6 @@ android-x86_64-fuzzing/debug:
             PERFHERDER_EXTRA_OPTIONS: fuzzing
     run:
         actions: [get-secrets, build]
-        config: ["builds/releng_base_android_64_builds.py"]
         custom-build-variant-cfg: fuzzing-debug
     use-sccache: true
     fetches:
@@ -557,9 +535,7 @@ android-x86_64-shippable/opt:
             MOZ_AUTOMATION_PACKAGE_TESTS: "1"
     run:
         actions: [get-secrets, build, multi-l10n]
-        config:
-            - builds/releng_base_android_64_builds.py
-            - taskcluster_nightly.py
+        config: [taskcluster_nightly.py]
         custom-build-variant-cfg: x86_64
     fetches:
         toolchain:
@@ -589,9 +565,7 @@ android-x86_64-shippable-lite/opt:
             PERFHERDER_EXTRA_OPTIONS: lite
     run:
         actions: [get-secrets, build, multi-l10n]
-        config:
-            - builds/releng_base_android_64_builds.py
-            - taskcluster_nightly.py
+        config: [taskcluster_nightly.py]
         custom-build-variant-cfg: x86_64-lite
     fetches:
         toolchain:
@@ -614,7 +588,6 @@ android-x86_64/debug:
             MOZ_AUTOMATION_PACKAGE_TESTS: "1"
     run:
         actions: [get-secrets, build]
-        config: ["builds/releng_base_android_64_builds.py"]
         custom-build-variant-cfg: x86_64-debug
     use-sccache: true
     fetches:
@@ -640,7 +613,6 @@ android-x86_64/debug-isolated-process:
             PERFHERDER_EXTRA_OPTIONS: isolated-process
     run:
         actions: [get-secrets, build]
-        config: ["builds/releng_base_android_64_builds.py"]
         custom-build-variant-cfg: x86_64-debug-isolated-process
     use-sccache: true
     fetches:
