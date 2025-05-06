@@ -9,7 +9,11 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.filters.MediumTest
 import androidx.test.platform.app.InstrumentationRegistry
 import junit.framework.TestCase.assertTrue
-import org.hamcrest.Matchers.* // ktlint-disable no-wildcard-imports
+import org.hamcrest.Matchers.closeTo
+import org.hamcrest.Matchers.equalTo
+import org.hamcrest.Matchers.greaterThan
+import org.hamcrest.Matchers.`is`
+import org.hamcrest.Matchers.lessThan
 import org.junit.Assume.assumeThat
 import org.junit.Ignore
 import org.junit.Test

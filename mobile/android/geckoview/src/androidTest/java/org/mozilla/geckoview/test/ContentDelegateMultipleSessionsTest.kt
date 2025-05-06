@@ -7,11 +7,11 @@ package org.mozilla.geckoview.test
 import androidx.annotation.AnyThread
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.filters.MediumTest
-import org.hamcrest.Matchers.* // ktlint-disable no-wildcard-imports
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
-import org.mozilla.geckoview.* // ktlint-disable no-wildcard-imports
+import org.mozilla.geckoview.GeckoResult
+import org.mozilla.geckoview.GeckoSession
 import org.mozilla.geckoview.GeckoSession.ContentDelegate
 import org.mozilla.geckoview.test.rule.GeckoSessionTestRule.AssertCalled
 import org.mozilla.geckoview.test.rule.GeckoSessionTestRule.IgnoreCrash

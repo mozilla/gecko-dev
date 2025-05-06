@@ -9,7 +9,12 @@ import androidx.core.net.toUri
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.filters.MediumTest
 import androidx.test.platform.app.InstrumentationRegistry
-import org.hamcrest.Matchers.* // ktlint-disable no-wildcard-imports
+import org.hamcrest.Matchers.containsString
+import org.hamcrest.Matchers.endsWith
+import org.hamcrest.Matchers.equalTo
+import org.hamcrest.Matchers.isEmptyOrNullString
+import org.hamcrest.Matchers.notNullValue
+import org.hamcrest.Matchers.nullValue
 import org.junit.Assert
 import org.junit.Test
 import org.junit.runner.RunWith

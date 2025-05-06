@@ -9,13 +9,15 @@ import android.content.res.Configuration
 import androidx.test.ext.junit.rules.ActivityScenarioRule
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.filters.MediumTest
-import org.hamcrest.Matchers.* // ktlint-disable no-wildcard-imports
+import org.hamcrest.Matchers.equalTo
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.RuleChain
 import org.junit.runner.RunWith
-import org.mozilla.geckoview.* // ktlint-disable no-wildcard-imports
+import org.mozilla.geckoview.AllowOrDeny
+import org.mozilla.geckoview.GeckoResult
+import org.mozilla.geckoview.GeckoSession
 import org.mozilla.geckoview.GeckoSession.ContentDelegate
 import org.mozilla.geckoview.OrientationController
 import org.mozilla.geckoview.test.rule.GeckoSessionTestRule

@@ -14,7 +14,8 @@ import org.json.JSONObject
 import java.io.FileNotFoundException
 import java.math.BigInteger
 import java.security.MessageDigest
-import java.util.* // ktlint-disable no-wildcard-imports
+import java.util.Random
+import java.util.Vector
 
 class TestServer @JvmOverloads constructor(
     context: Context,

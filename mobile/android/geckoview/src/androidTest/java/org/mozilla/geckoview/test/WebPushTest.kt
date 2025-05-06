@@ -9,14 +9,22 @@ import android.util.Base64
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.filters.MediumTest
 import org.hamcrest.MatcherAssert.assertThat
-import org.hamcrest.Matchers.* // ktlint-disable no-wildcard-imports
+import org.hamcrest.Matchers.endsWith
+import org.hamcrest.Matchers.equalTo
+import org.hamcrest.Matchers.notNullValue
+import org.hamcrest.Matchers.nullValue
 import org.json.JSONObject
 import org.junit.After
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
-import org.mozilla.geckoview.* // ktlint-disable no-wildcard-imports
+import org.mozilla.geckoview.GeckoResult
+import org.mozilla.geckoview.GeckoSession
 import org.mozilla.geckoview.GeckoSession.PermissionDelegate
+import org.mozilla.geckoview.WebNotification
+import org.mozilla.geckoview.WebNotificationDelegate
+import org.mozilla.geckoview.WebPushDelegate
+import org.mozilla.geckoview.WebPushSubscription
 import org.mozilla.geckoview.test.rule.GeckoSessionTestRule
 import org.mozilla.geckoview.test.rule.GeckoSessionTestRule.RejectedPromiseException
 import java.security.KeyPair

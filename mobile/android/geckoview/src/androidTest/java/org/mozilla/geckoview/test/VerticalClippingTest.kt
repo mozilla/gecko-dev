@@ -4,8 +4,10 @@
 
 package org.mozilla.geckoview.test
 
-import android.graphics.* // ktlint-disable no-wildcard-imports
 import android.graphics.Bitmap
+import android.graphics.Canvas
+import android.graphics.Color
+import android.graphics.Paint
 import androidx.core.graphics.createBitmap
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.filters.MediumTest

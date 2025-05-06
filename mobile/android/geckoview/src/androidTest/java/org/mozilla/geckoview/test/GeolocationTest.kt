@@ -8,7 +8,6 @@ import android.location.LocationManager
 import android.os.Handler
 import android.os.Looper
 import android.util.Log
-import androidx.lifecycle.* // ktlint-disable no-wildcard-imports
 import androidx.lifecycle.DefaultLifecycleObserver
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.ProcessLifecycleOwner
@@ -17,7 +16,6 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.filters.LargeTest
 import androidx.test.platform.app.InstrumentationRegistry
 import org.hamcrest.CoreMatchers.equalTo
-import org.hamcrest.core.IsNot.not
 import org.json.JSONObject
 import org.junit.After
 import org.junit.Before

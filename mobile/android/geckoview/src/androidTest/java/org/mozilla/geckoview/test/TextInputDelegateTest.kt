@@ -20,7 +20,9 @@ import androidx.core.net.toUri
 import androidx.test.filters.MediumTest
 import androidx.test.filters.SdkSuppress
 import androidx.test.platform.app.InstrumentationRegistry
-import org.hamcrest.Matchers.* // ktlint-disable no-wildcard-imports
+import org.hamcrest.Matchers.equalTo
+import org.hamcrest.Matchers.not
+import org.hamcrest.Matchers.notNullValue
 import org.junit.Assume.assumeThat
 import org.junit.Ignore
 import org.junit.Test

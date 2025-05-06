@@ -11,18 +11,46 @@ import org.hamcrest.Matchers.greaterThan
 import org.hamcrest.core.IsEqual.equalTo
 import org.hamcrest.core.StringEndsWith.endsWith
 import org.json.JSONObject
-import org.junit.Assert.* // ktlint-disable no-wildcard-imports
+import org.junit.Assert.assertArrayEquals
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotEquals
+import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
+import org.junit.Assert.fail
 import org.junit.Assume.assumeThat
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
-import org.mozilla.geckoview.* // ktlint-disable no-wildcard-imports
+import org.mozilla.geckoview.AllowOrDeny
+import org.mozilla.geckoview.GeckoResult
+import org.mozilla.geckoview.GeckoRuntimeSettings
+import org.mozilla.geckoview.GeckoSession
 import org.mozilla.geckoview.GeckoSession.NavigationDelegate
 import org.mozilla.geckoview.GeckoSession.PermissionDelegate
 import org.mozilla.geckoview.GeckoSession.ProgressDelegate
-import org.mozilla.geckoview.WebExtension.* // ktlint-disable no-wildcard-imports
-import org.mozilla.geckoview.WebExtension.BrowsingDataDelegate.Type.* // ktlint-disable no-wildcard-imports
+import org.mozilla.geckoview.GeckoSessionSettings
+import org.mozilla.geckoview.GeckoWebExecutor
+import org.mozilla.geckoview.WebExtension
+import org.mozilla.geckoview.WebExtension.BrowsingDataDelegate.Type.CACHE
+import org.mozilla.geckoview.WebExtension.BrowsingDataDelegate.Type.COOKIES
+import org.mozilla.geckoview.WebExtension.BrowsingDataDelegate.Type.DOWNLOADS
+import org.mozilla.geckoview.WebExtension.BrowsingDataDelegate.Type.HISTORY
+import org.mozilla.geckoview.WebExtension.BrowsingDataDelegate.Type.LOCAL_STORAGE
+import org.mozilla.geckoview.WebExtension.DisabledFlags
+import org.mozilla.geckoview.WebExtension.Download
+import org.mozilla.geckoview.WebExtension.DownloadDelegate
+import org.mozilla.geckoview.WebExtension.DownloadInitData
+import org.mozilla.geckoview.WebExtension.DownloadRequest
+import org.mozilla.geckoview.WebExtension.InstallException
+import org.mozilla.geckoview.WebExtension.MessageDelegate
+import org.mozilla.geckoview.WebExtension.MessageSender
+import org.mozilla.geckoview.WebExtension.PermissionPromptResponse
+import org.mozilla.geckoview.WebExtensionController
 import org.mozilla.geckoview.WebExtensionController.EnableSource
+import org.mozilla.geckoview.WebNotification
+import org.mozilla.geckoview.WebNotificationDelegate
 import org.mozilla.geckoview.test.rule.GeckoSessionTestRule
 import org.mozilla.geckoview.test.rule.GeckoSessionTestRule.AssertCalled
 import org.mozilla.geckoview.test.rule.GeckoSessionTestRule.RejectedPromiseException
@@ -31,7 +59,8 @@ import org.mozilla.geckoview.test.rule.GeckoSessionTestRule.WithDisplay
 import org.mozilla.geckoview.test.util.RuntimeCreator
 import org.mozilla.geckoview.test.util.UiThreadUtils
 import java.nio.charset.Charset
-import java.util.* // ktlint-disable no-wildcard-imports
+import java.util.Date
+import java.util.UUID
 import java.util.concurrent.CancellationException
 import kotlin.collections.HashMap
 

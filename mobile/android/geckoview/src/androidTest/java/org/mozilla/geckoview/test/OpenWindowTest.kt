@@ -11,12 +11,16 @@ import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.mozilla.gecko.util.ThreadUtils
-import org.mozilla.geckoview.* // ktlint-disable no-wildcard-imports
+import org.mozilla.geckoview.AllowOrDeny
+import org.mozilla.geckoview.GeckoResult
 import org.mozilla.geckoview.GeckoRuntime.ServiceWorkerDelegate
+import org.mozilla.geckoview.GeckoSession
 import org.mozilla.geckoview.GeckoSession.ContentDelegate
 import org.mozilla.geckoview.GeckoSession.NavigationDelegate
 import org.mozilla.geckoview.GeckoSession.NavigationDelegate.LoadRequest
 import org.mozilla.geckoview.GeckoSession.PermissionDelegate
+import org.mozilla.geckoview.WebNotification
+import org.mozilla.geckoview.WebNotificationDelegate
 import org.mozilla.geckoview.test.rule.GeckoSessionTestRule
 import org.mozilla.geckoview.test.rule.GeckoSessionTestRule.AssertCalled
 import org.mozilla.geckoview.test.rule.GeckoSessionTestRule.NullDelegate

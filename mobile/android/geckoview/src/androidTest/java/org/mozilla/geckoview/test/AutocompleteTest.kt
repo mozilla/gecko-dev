@@ -9,7 +9,10 @@ import android.os.Looper
 import android.view.KeyEvent
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.filters.MediumTest
-import org.hamcrest.Matchers.* // ktlint-disable no-wildcard-imports
+import org.hamcrest.Matchers.equalTo
+import org.hamcrest.Matchers.isEmptyOrNullString
+import org.hamcrest.Matchers.not
+import org.hamcrest.Matchers.notNullValue
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.mozilla.geckoview.Autocomplete.Address

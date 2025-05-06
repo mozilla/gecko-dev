@@ -5,7 +5,12 @@ import android.view.InputDevice
 import android.view.MotionEvent
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.filters.MediumTest
-import org.hamcrest.Matchers.* // ktlint-disable no-wildcard-imports
+import org.hamcrest.Matchers.closeTo
+import org.hamcrest.Matchers.equalTo
+import org.hamcrest.Matchers.greaterThan
+import org.hamcrest.Matchers.greaterThanOrEqualTo
+import org.hamcrest.Matchers.lessThan
+import org.hamcrest.Matchers.lessThanOrEqualTo
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.mozilla.geckoview.GeckoResult
@@ -15,7 +20,6 @@ import org.mozilla.geckoview.GeckoSession.ScrollPositionUpdate
 import org.mozilla.geckoview.PanZoomController
 import org.mozilla.geckoview.ScreenLength
 import org.mozilla.geckoview.test.rule.GeckoSessionTestRule.WithDisplay
-import java.lang.Math
 import kotlin.math.roundToInt
 
 @RunWith(AndroidJUnit4::class)

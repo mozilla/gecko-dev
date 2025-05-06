@@ -9,7 +9,11 @@ import android.util.SparseArray
 import android.view.KeyEvent
 import android.view.View
 import androidx.test.filters.MediumTest
-import org.hamcrest.Matchers.* // ktlint-disable no-wildcard-imports
+import org.hamcrest.Matchers.equalTo
+import org.hamcrest.Matchers.greaterThanOrEqualTo
+import org.hamcrest.Matchers.isEmptyOrNullString
+import org.hamcrest.Matchers.not
+import org.hamcrest.Matchers.notNullValue
 import org.junit.Assume.assumeThat
 import org.junit.Before
 import org.junit.Ignore
@@ -19,7 +23,9 @@ import org.junit.runners.Parameterized
 import org.mozilla.geckoview.Autofill
 import org.mozilla.geckoview.GeckoSession
 import org.mozilla.geckoview.GeckoSession.TextInputDelegate
-import org.mozilla.geckoview.test.rule.GeckoSessionTestRule.* // ktlint-disable no-wildcard-imports
+import org.mozilla.geckoview.test.rule.GeckoSessionTestRule.AssertCalled
+import org.mozilla.geckoview.test.rule.GeckoSessionTestRule.ShouldContinue
+import org.mozilla.geckoview.test.rule.GeckoSessionTestRule.WithDisplay
 
 @RunWith(Parameterized::class)
 @MediumTest

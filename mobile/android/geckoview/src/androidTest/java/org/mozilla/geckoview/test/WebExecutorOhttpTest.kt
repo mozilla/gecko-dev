@@ -8,7 +8,9 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.filters.MediumTest
 import org.junit.Test
 import org.junit.runner.RunWith
-import org.mozilla.geckoview.* // ktlint-disable no-wildcard-imports
+import org.mozilla.geckoview.GeckoWebExecutor
+import org.mozilla.geckoview.WebRequest
+import org.mozilla.geckoview.WebRequestError
 import org.mozilla.geckoview.test.util.RuntimeCreator
 
 @RunWith(AndroidJUnit4::class)

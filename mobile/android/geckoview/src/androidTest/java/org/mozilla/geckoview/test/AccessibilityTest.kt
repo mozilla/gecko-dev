@@ -23,7 +23,14 @@ import androidx.test.ext.junit.rules.ActivityScenarioRule
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.filters.MediumTest
 import androidx.test.platform.app.InstrumentationRegistry
-import org.hamcrest.Matchers.* // ktlint-disable no-wildcard-imports
+import org.hamcrest.Matchers.closeTo
+import org.hamcrest.Matchers.equalTo
+import org.hamcrest.Matchers.greaterThan
+import org.hamcrest.Matchers.hasItem
+import org.hamcrest.Matchers.lessThan
+import org.hamcrest.Matchers.not
+import org.hamcrest.Matchers.notNullValue
+import org.hamcrest.Matchers.startsWith
 import org.junit.After
 import org.junit.Assume.assumeThat
 import org.junit.Before
