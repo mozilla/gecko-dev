@@ -6149,9 +6149,6 @@
       "resource://gre/modules/Messaging.sys.mjs": [
         "mobile/shared/modules/geckoview/Messaging.sys.mjs"
       ],
-      "resource://gre/modules/ModulesPing.sys.mjs": [
-        "toolkit/components/telemetry/pings/ModulesPing.sys.mjs"
-      ],
       "resource://gre/modules/NLP.sys.mjs": [
         "toolkit/modules/NLP.sys.mjs"
       ],

@@ -126,7 +126,6 @@ EXTRA_JS_MODULES += [
     "pings/CoveragePing.sys.mjs",
     "pings/EventPing.sys.mjs",
     "pings/HealthPing.sys.mjs",
-    "pings/ModulesPing.sys.mjs",
     "pings/TelemetrySession.sys.mjs",
     "pings/UntrustedModulesPing.sys.mjs",
     "pings/UpdatePing.sys.mjs",

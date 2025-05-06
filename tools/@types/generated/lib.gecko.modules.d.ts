@@ -635,7 +635,6 @@ export interface LazyModules {
   "resource://gre/modules/MediaUtils.sys.mjs": typeof import("resource://gre/modules/MediaUtils.sys.mjs"),
   "resource://gre/modules/MessageManagerProxy.sys.mjs": typeof import("resource://gre/modules/MessageManagerProxy.sys.mjs"),
   "resource://gre/modules/Messaging.sys.mjs": typeof import("resource://gre/modules/Messaging.sys.mjs"),
-  "resource://gre/modules/ModulesPing.sys.mjs": typeof import("resource://gre/modules/ModulesPing.sys.mjs"),
   "resource://gre/modules/NLP.sys.mjs": typeof import("resource://gre/modules/NLP.sys.mjs"),
   "resource://gre/modules/NativeManifests.sys.mjs": typeof import("resource://gre/modules/NativeManifests.sys.mjs"),
   "resource://gre/modules/NativeMessaging.sys.mjs": typeof import("resource://gre/modules/NativeMessaging.sys.mjs"),

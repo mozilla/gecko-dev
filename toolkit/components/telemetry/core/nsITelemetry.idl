@@ -247,29 +247,6 @@ interface nsITelemetry : nsISupports
   readonly attribute boolean areUntrustedModuleLoadEventsReady;
 
   /*
-   * Asynchronously get an array of the modules loaded in the process.
-   *
-   * The data has the following structure:
-   *
-   * [
-   *   {
-   *     "name": <string>, // Name of the module file (e.g. xul.dll)
-   *     "version": <string>, // Version of the module
-   *     "debugName": <string>, // ID of the debug information file
-   *     "debugID": <string>, // Name of the debug information file
-   *     "certSubject": <string>, // Name of the organization that signed the binary (Optional, only defined when present)
-   *   },
-   *   ...
-   * ]
-   *
-   * @return A promise that resolves to an array of modules or rejects with
-             NS_ERROR_FAILURE on failure.
-   * @throws NS_ERROR_NOT_IMPLEMENTED if the Gecko profiler is not enabled.
-   */
-  [implicit_jscontext]
-  Promise getLoadedModules();
-
-  /*
    * An object with two fields: memoryMap and stacks.
    * * memoryMap is a list of loaded libraries.
    * * stacks is a list of stacks. Each stack is a list of pairs of the form
