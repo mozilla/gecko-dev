@@ -12,7 +12,6 @@ const { XPCOMUtils } = ChromeUtils.importESModule(
 
 const l10nMap = new Map([
   ["viewGenaiChatSidebar", "sidebar-menu-genai-chat-label"],
-  ["viewReviewCheckerSidebar", "sidebar-menu-review-checker-label"],
   ["viewHistorySidebar", "sidebar-menu-history-label"],
   ["viewTabsSidebar", "sidebar-menu-synced-tabs-label"],
   ["viewBookmarksSidebar", "sidebar-menu-bookmarks-label"],
@@ -145,11 +144,6 @@ export class SidebarCustomize extends SidebarPage {
         break;
       case "viewBookmarksSidebar":
         Glean.sidebarCustomize.bookmarksEnabled.record({
-          checked: e.target.checked,
-        });
-        break;
-      case "viewReviewCheckerSidebar":
-        Glean.sidebarCustomize.shoppingReviewCheckerEnabled.record({
           checked: e.target.checked,
         });
         break;
