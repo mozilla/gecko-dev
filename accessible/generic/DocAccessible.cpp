@@ -1114,7 +1114,9 @@ void DocAccessible::CharacterDataWillChange(nsIContent* aContent,
                                             const CharacterDataChangeInfo&) {}
 
 void DocAccessible::CharacterDataChanged(nsIContent* aContent,
-                                         const CharacterDataChangeInfo&) {}
+                                         const CharacterDataChangeInfo&) {
+  MaybeHandleChangeToHiddenNameOrDescription(aContent);
+}
 
 void DocAccessible::ContentInserted(nsIContent* aChild) {
   MaybeHandleChangeToHiddenNameOrDescription(aChild);

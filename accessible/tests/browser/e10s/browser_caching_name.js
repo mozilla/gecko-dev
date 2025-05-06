@@ -515,7 +515,7 @@ addAccessibleTask(
  */
 addAccessibleTask(
   `
-<button id="button" aria-labelledby="label">
+<button id="button" aria-labelledby="label"></button>
 <div id="label" hidden>a</div>
   `,
   async function (browser, docAcc) {
@@ -528,6 +528,13 @@ addAccessibleTask(
     });
     await nameChanged;
     testName(button, "c");
+    info("Change label text node's data");
+    nameChanged = waitForEvent(EVENT_NAME_CHANGE, button);
+    await invokeContentTask(browser, [], () => {
+      content.document.getElementById("label").firstChild.data = "d";
+    });
+    await nameChanged;
+    testName(button, "d");
     info("Prepending text node to label");
     nameChanged = waitForEvent(EVENT_NAME_CHANGE, button);
     await invokeContentTask(browser, [], () => {
@@ -536,7 +543,7 @@ addAccessibleTask(
         .prepend(content.document.createTextNode("b"));
     });
     await nameChanged;
-    testName(button, "bc");
+    testName(button, "bd");
   },
   { chrome: true, topLevel: true, iframe: true, remoteIframe: true }
 );
