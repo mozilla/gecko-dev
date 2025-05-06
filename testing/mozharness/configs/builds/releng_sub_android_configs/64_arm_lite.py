@@ -4,5 +4,6 @@
 
 config = {
     "stage_platform": "android-arm-lite",
-    "src_mozconfig": "mobile/android/config/mozconfigs/android-arm/nightly-lite",
+    "mozconfig_platform": "android-arm",
+    "mozconfig_variant": "nightly-lite",
 }

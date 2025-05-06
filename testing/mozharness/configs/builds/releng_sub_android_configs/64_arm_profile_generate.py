@@ -4,5 +4,6 @@
 
 config = {
     "stage_platform": "android-arm",
-    "src_mozconfig": "mobile/android/config/mozconfigs/android-arm/profile-generate",
+    "mozconfig_platform": "android-arm",
+    "mozconfig_variant": "profile-generate",
 }

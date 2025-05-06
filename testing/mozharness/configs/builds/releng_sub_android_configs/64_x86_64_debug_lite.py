@@ -4,6 +4,7 @@
 
 config = {
     "stage_platform": "android-x86_64-lite-debug",
-    "src_mozconfig": "mobile/android/config/mozconfigs/android-x86_64/debug-lite",
+    "mozconfig_platform": "android-x86_64",
+    "mozconfig_variant": "debug-lite",
     "debug_build": True,
 }

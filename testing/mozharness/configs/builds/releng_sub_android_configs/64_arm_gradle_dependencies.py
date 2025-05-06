@@ -4,7 +4,8 @@
 
 config = {
     "stage_platform": "android-arm-gradle-dependencies",
-    "src_mozconfig": "mobile/android/config/mozconfigs/android-arm-gradle-dependencies/nightly",
+    "mozconfig_platform": "android-arm-gradle-dependencies",
+    "mozconfig_variant": "nightly",
     # gradle-dependencies doesn't produce a package. So don't collect package metrics.
     "postflight_build_mach_commands": [
         [
