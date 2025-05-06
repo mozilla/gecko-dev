@@ -5,5 +5,5 @@
 config = {
     "stage_platform": "android-x86_64-lite",
     "mozconfig_platform": "android-x86_64",
-    "mozconfig_variant": "nightly-lite",
+    "extra_mozconfig_content": ["ac_add_options --enable-geckoview-lite"],
 }

@@ -5,5 +5,5 @@
 config = {
     "stage_platform": "android-arm-lite",
     "mozconfig_platform": "android-arm",
-    "mozconfig_variant": "nightly-lite",
+    "extra_mozconfig_content": ["ac_add_options --enable-geckoview-lite"],
 }

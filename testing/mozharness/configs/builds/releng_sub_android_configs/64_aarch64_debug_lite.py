@@ -5,6 +5,6 @@
 config = {
     "stage_platform": "android-aarch64-lite-debug",
     "mozconfig_platform": "android-aarch64",
-    "mozconfig_variant": "debug-lite",
+    "extra_mozconfig_content": ["ac_add_options --enable-geckoview-lite"],
     "debug_build": True,
 }

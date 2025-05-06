@@ -47,7 +47,6 @@ task-defaults:
         script: "mozharness/scripts/fx_desktop_build.py"
         config: ["builds/releng_base_android_64_builds.py"]
         secrets: true
-        mozconfig-variant: null
         tooltool-downloads: internal
     fetches:
         toolchain:
@@ -80,6 +79,7 @@ android-arm/debug:
     run:
         actions: [get-secrets, build]
         custom-build-variant-cfg: arm-debug
+        mozconfig-variant: debug
     use-sccache: true
     fetches:
         toolchain:
@@ -372,6 +372,7 @@ android-aarch64/debug:
     run:
         actions: [get-secrets, build]
         custom-build-variant-cfg: aarch64-debug
+        mozconfig-variant: debug
     use-sccache: true
     fetches:
         toolchain:
@@ -504,6 +505,7 @@ android-x86_64-fuzzing/debug:
     run:
         actions: [get-secrets, build]
         custom-build-variant-cfg: fuzzing-debug
+        mozconfig-variant: debug-fuzzing
     use-sccache: true
     fetches:
         toolchain:
@@ -589,6 +591,7 @@ android-x86_64/debug:
     run:
         actions: [get-secrets, build]
         custom-build-variant-cfg: x86_64-debug
+        mozconfig-variant: debug
     use-sccache: true
     fetches:
         toolchain:
@@ -614,6 +617,7 @@ android-x86_64/debug-isolated-process:
     run:
         actions: [get-secrets, build]
         custom-build-variant-cfg: x86_64-debug-isolated-process
+        mozconfig-variant: debug-isolated-process
     use-sccache: true
     fetches:
         toolchain:

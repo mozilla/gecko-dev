@@ -69,7 +69,12 @@ task-defaults:
         using: mozharness
         script: "mozharness/scripts/fx_desktop_build.py"
         secrets: true
-        mozconfig-variant: null
+        mozconfig-variant:
+            by-release-type:
+                beta: beta
+                release.*: release
+                esr.*: release
+                default: nightly
         tooltool-downloads: internal
         # Note: These settings are only honored by nightly (i.e. shipping) builds
         update-channel:
