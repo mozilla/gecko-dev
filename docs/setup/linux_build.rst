@@ -36,8 +36,7 @@ You should be able to install Python and git using your system package manager:
 -  For Debian-based Linux (such as Ubuntu): ``sudo apt update && sudo apt install curl python3 python3-pip git``
 -  For Fedora Linux: ``sudo dnf install python3 python3-pip git``
 
-If you need a version of Python that your package manager doesn't have (e.g.:
-the provided Python 3 is too old, or you want Python 2 but it's not available),
+If you need a version of Python that your package manager doesn't have,
 then you can use `pyenv <https://github.com/pyenv/pyenv>`_, assuming that your
 system is supported.
 
