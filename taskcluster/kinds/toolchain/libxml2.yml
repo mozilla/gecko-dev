@@ -1,0 +1,54 @@
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
+---
+task-defaults:
+    worker-type: b-linux-gcp
+    worker:
+        max-run-time: 1800
+    description: "libxml2 toolchain build"
+    run:
+        script: build-libxml2.sh
+        toolchain-artifact: public/build/libxml2.tar.zst
+    fetches:
+        fetch:
+            - libxml2
+        toolchain:
+            - linux64-clang-toolchain
+
+linux64-libxml2:
+    treeherder:
+        symbol: TL(libxml2)
+    run:
+        arguments: ['x86_64-unknown-linux-gnu']
+    fetches:
+        toolchain:
+            - linux64-toolchain-sysroot
+
+linux64-aarch64-libxml2:
+    treeherder:
+        symbol: TLA64(libxml2)
+    run:
+        arguments: ['aarch64-unknown-linux-gnu']
+    fetches:
+        toolchain:
+            - linux64-aarch64-toolchain-sysroot
+
+win64-libxml2:
+    treeherder:
+        symbol: TW64(libxml2)
+    run:
+        arguments: ['x86_64-pc-windows-msvc']
+    fetches:
+        toolchain:
+            - vs-toolchain
+
+win64-aarch64-libxml2:
+    description: "libxml2 toolchain build"
+    treeherder:
+        symbol: TWA64(libxml2)
+    run:
+        arguments: ['aarch64-pc-windows-msvc']
+    fetches:
+        toolchain:
+            - vs-toolchain
