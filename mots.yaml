@@ -8,7 +8,7 @@
 # documentation and how to modify this file.
 repo: mozilla-central
 created_at: '2021-10-14T12:50:40.073465'
-updated_at: '2025-04-07T08:24:03.558859+00:00'
+updated_at: '2025-05-06T02:14:50.090677+00:00'
 export:
   path: ./docs/mots/index.rst
   format: rst
@@ -898,6 +898,10 @@ people:
     bmo_id: 5630
     name: ''
     nick: rbs
+  - &relud
+    bmo_id: 444787
+    name: Daniel Thorn
+    nick: relud
   - &rhunt
     bmo_id: 573202
     name: Ryan Hunt
@@ -3560,6 +3564,7 @@ modules:
           components:
             - Firefox::Normandy
             - Firefox::Nimbus Desktop Client
+          review_group: nimbus-reviewers
           url: https://experimenter.info/
         owners:
           - *beth
@@ -3567,6 +3572,7 @@ modules:
           - *Gijs
           - *emcminn
           - *charlie
+          - *relud
         machine_name: normandy
 
       - machine_name: firefox_view
@@ -4547,5 +4553,5 @@ modules:
         - Ryan Tilder
       group: dev-platform
 hashes:
-  config: 191cbfa5573d7c94c637045ac3ed62e662fb1b03
-  export: 7fb1baa3c6c64954bdaca31c752859f93cf2b78b
+  config: e47658f976ab64e86c55a6106dfb5aa97c167d73
+  export: 7599a109b3728375ca8048f3566676287acc35b9
