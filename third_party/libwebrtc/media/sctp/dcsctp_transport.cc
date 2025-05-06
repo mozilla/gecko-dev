@@ -201,19 +201,19 @@ bool DcSctpTransport::Start(const SctpOptions& options) {
                     << ", max_message_size=" << options.max_message_size << ")";
 
   if (!socket_) {
-    dcsctp::DcSctpOptions options;
-    options.local_port = options.local_port;
-    options.remote_port = options.remote_port;
-    options.max_message_size = options.max_message_size;
-    options.max_timer_backoff_duration = kMaxTimerBackoffDuration;
+    dcsctp::DcSctpOptions dcsctp_options;
+    dcsctp_options.local_port = options.local_port;
+    dcsctp_options.remote_port = options.remote_port;
+    dcsctp_options.max_message_size = options.max_message_size;
+    dcsctp_options.max_timer_backoff_duration = kMaxTimerBackoffDuration;
     // Don't close the connection automatically on too many retransmissions.
-    options.max_retransmissions = std::nullopt;
-    options.max_init_retransmits = std::nullopt;
-    options.per_stream_send_queue_limit =
+    dcsctp_options.max_retransmissions = std::nullopt;
+    dcsctp_options.max_init_retransmits = std::nullopt;
+    dcsctp_options.per_stream_send_queue_limit =
         DataChannelInterface::MaxSendQueueSize();
     // This is just set to avoid denial-of-service. Practically unlimited.
-    options.max_send_buffer_size = std::numeric_limits<size_t>::max();
-    options.enable_message_interleaving =
+    dcsctp_options.max_send_buffer_size = std::numeric_limits<size_t>::max();
+    dcsctp_options.enable_message_interleaving =
         env_.field_trials().IsEnabled("WebRTC-DataChannelMessageInterleaving");
 
     std::unique_ptr<dcsctp::PacketObserver> packet_observer;
@@ -222,8 +222,8 @@ bool DcSctpTransport::Start(const SctpOptions& options) {
           std::make_unique<dcsctp::TextPcapPacketObserver>(debug_name_);
     }
 
-    socket_ = socket_factory_->Create(debug_name_, *this,
-                                      std::move(packet_observer), options);
+    socket_ = socket_factory_->Create(
+        debug_name_, *this, std::move(packet_observer), dcsctp_options);
   } else {
     if (options.local_port != socket_->options().local_port ||
         options.remote_port != socket_->options().remote_port) {
