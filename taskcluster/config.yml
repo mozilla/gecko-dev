@@ -946,42 +946,17 @@ workers:
                 by-level:
                     '3': 'gecko-3-b-osx-arm64'
                     default: 'gecko-1-b-osx-arm64'
-        t-win10-64(|-gpu-s|-source):
-            provisioner: '{trust-domain}-t'
-            implementation: generic-worker
-            os: windows
-            worker-type: '{alias}'
-        t-win10-64(-hw|-1803-hw):
-            provisioner: releng-hardware
-            implementation: generic-worker
-            os: windows
-            worker-type: 'gecko-{alias}'
-        win11-64-2009(-hw-ref):
-            provisioner: releng-hardware
-            implementation: generic-worker
-            os: windows
-            worker-type: '{alias}'
         win10-64-2009-hw:
             provisioner: releng-hardware
             implementation: generic-worker
             os: windows
             worker-type: '{alias}'
-        win11-64-2009-hw:
-            provisioner: releng-hardware
-            implementation: generic-worker
-            os: windows
-            worker-type: '{alias}'
-        win10-64-2009(|-gpu|-ssd|-source|-ssd-gpu):
+        win10-64-2009:
             provisioner: 'gecko-t'
             implementation: generic-worker
             os: windows
             worker-type: '{alias}'
-        t-win11-64(|-gpu-s|-source):
-            provisioner: '{trust-domain}-t'
-            implementation: generic-worker
-            os: windows
-            worker-type: '{alias}'
-        win11-64-2009(|-gpu|-ssd|-source|-ssd-gpu):
+        win10-64-2009(-gpu):
             provisioner: 'gecko-t'
             implementation: generic-worker
             os: windows
@@ -1011,11 +986,6 @@ workers:
             implementation: generic-worker
             os: windows
             worker-type: 'gecko-{alias}-hw'
-        t-win64-aarch64-laptop:
-            provisioner: bitbar
-            implementation: generic-worker
-            os: windows
-            worker-type: 'gecko-{alias}'
         succeed:
             provisioner: built-in
             implementation: succeed

@@ -150,7 +150,7 @@ tasks:
 
     grizzly-windows-debug:
         platform: windows2012-32/debug
-        worker-type: win11-64-2009-source
+        worker-type: win11-64-24h2-source
         worker:
             env:
                 GECKO_BINARY_PATH: "$MOZ_FETCHES_DIR/firefox/firefox.exe"
@@ -165,7 +165,7 @@ tasks:
 
     grizzly-windows64-opt:
         platform: windows2012-64/asan
-        worker-type: win11-64-2009-source
+        worker-type: win11-64-24h2-source
         worker:
             env:
                 GECKO_BINARY_PATH: "$MOZ_FETCHES_DIR/firefox/firefox.exe"
@@ -180,7 +180,7 @@ tasks:
 
     grizzly-windows64-debug:
         platform: windows2012-64/debug
-        worker-type: win11-64-2009-source
+        worker-type: win11-64-24h2-source
         worker:
             env:
                 GECKO_BINARY_PATH: "$MOZ_FETCHES_DIR/firefox/firefox.exe"
@@ -195,7 +195,7 @@ tasks:
 
     grizzly-windows64-ccov:
         platform: windows2012-64/ccov
-        worker-type: win11-64-2009-source
+        worker-type: win11-64-24h2-source
         worker:
             env:
                 GECKO_BINARY_PATH: "$MOZ_FETCHES_DIR/firefox/firefox.exe"

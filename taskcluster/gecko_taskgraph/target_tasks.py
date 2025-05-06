@@ -48,7 +48,6 @@ UNCOMMON_TRY_TASK_LABELS = [
     r"android-geckoview-docs",
     r"android-hw",
     # Windows tasks
-    r"windows11-64-2009-hw-ref",
     r"windows11-64-24h2-hw-ref",
     r"windows10-aarch64-qr",
     # Linux tasks
