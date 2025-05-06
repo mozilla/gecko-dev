@@ -54,5 +54,3 @@ tags = "remote-settings"
 ["test_streamupdater.js"]
 
 ["test_threat_type_conversion.js"]
-
-["test_urlClassifierExceptionList.js"]
