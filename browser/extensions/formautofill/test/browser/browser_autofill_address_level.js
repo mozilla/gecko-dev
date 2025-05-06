@@ -275,4 +275,93 @@ add_autofill_heuristic_tests([
       },
     ],
   },
+  {
+    description:
+      "Suburb matches address-level2 when address-level2 is not present",
+    fixtureData: `<form>
+      <label>Name <input id="field1"/></label>
+      <label>Address Line 1 <input id="field2"/></label>
+      <label>Address Line 2<input id="field3"/></label>
+      <label>City / Suburb<input id="field4"></label>
+      <label>Postcode<input id="field5"></label>
+    </form>`,
+    profile: TEST_PROFILE_BR,
+    expectedResult: [
+      {
+        default: {
+          reason: "regex-heuristic",
+        },
+        fields: [
+          {
+            fieldName: "name",
+            autofill:
+              TEST_PROFILE_BR["given-name"] +
+              " " +
+              TEST_PROFILE_BR["family-name"],
+          },
+          { fieldName: "address-line1", autofill: "160 Rua Acores" },
+          {
+            fieldName: "address-line2",
+            autofill: "Apartment 300",
+            reason: "update-heuristic",
+          },
+          {
+            fieldName: "address-level2",
+            autofill: TEST_PROFILE_BR["address-level2"],
+            reason: "update-heuristic",
+          },
+          {
+            fieldName: "postal-code",
+            autofill: TEST_PROFILE_BR["postal-code"],
+          },
+        ],
+      },
+    ],
+  },
+  {
+    description: "Suburb matches address-level3 when address-level2 is present",
+    fixtureData: `<form>
+      <label>Name <input id="field1"/></label>
+      <label>Address Line 1 <input id="field2"/></label>
+      <label>Address Line 2<input id="field3"/></label>
+      <label>City<input id="field4"></label>
+      <label>Postcode<input id="field5"></label>
+      <label>Suburb<input id="field6"></label>
+    </form>`,
+    profile: TEST_PROFILE_BR,
+    expectedResult: [
+      {
+        default: {
+          reason: "regex-heuristic",
+        },
+        fields: [
+          {
+            fieldName: "name",
+            autofill:
+              TEST_PROFILE_BR["given-name"] +
+              " " +
+              TEST_PROFILE_BR["family-name"],
+          },
+          { fieldName: "address-line1", autofill: "160 Rua Acores" },
+          {
+            fieldName: "address-line2",
+            autofill: "Apartment 300",
+            reason: "update-heuristic",
+          },
+          {
+            fieldName: "address-level2",
+            autofill: TEST_PROFILE_BR["address-level2"],
+          },
+          {
+            fieldName: "postal-code",
+            autofill: TEST_PROFILE_BR["postal-code"],
+          },
+          {
+            fieldName: "address-level3",
+            autofill: TEST_PROFILE_BR["address-level3"],
+          },
+        ],
+      },
+    ],
+  },
 ]);

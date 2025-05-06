@@ -259,6 +259,24 @@ export class FieldScanner {
   }
 
   /**
+   * Return the index of the first field found with the given name.
+   *
+   * @param {string} fieldName
+   *        The field name to find.
+   * @returns {number}
+   *          The index of the element or -1 if not found.
+   */
+  getFieldIndexByName(fieldName) {
+    for (let idx = 0; this.elementExisting(idx); idx++) {
+      if (this.#fieldDetails[idx].fieldName == fieldName) {
+        return idx;
+      }
+    }
+
+    return -1;
+  }
+
+  /**
    * When a field detail should be changed its fieldName after parsing, use
    * this function to update the fieldName which is at a specific index.
    *

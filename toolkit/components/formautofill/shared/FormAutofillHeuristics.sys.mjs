@@ -525,45 +525,45 @@ export const FormAutofillHeuristics = {
   },
 
   _parseAddressFields(scanner, fieldDetail) {
-    const INTERESTED_FIELDS = ["address-level1", "address-level2"];
+    let fieldFound = false;
 
-    if (!INTERESTED_FIELDS.includes(fieldDetail.fieldName)) {
-      return false;
-    }
-
-    const fields = [];
-    for (let idx = scanner.parsingIndex; !scanner.parsingFinished; idx++) {
-      const detail = scanner.getFieldDetailByIndex(idx);
-      if (!INTERESTED_FIELDS.includes(detail?.fieldName)) {
-        break;
-      }
-      fields.push(detail);
-    }
-
-    if (!fields.length) {
-      return false;
+    // If there is an address-level3 field but no address-level2 field,
+    // modify to be address-level2.
+    if (
+      fieldDetail.fieldName == "address-level3" &&
+      scanner.getFieldIndexByName("address-level2") == -1
+    ) {
+      scanner.updateFieldName(scanner.parsingIndex, "address-level2");
+      fieldFound = true;
     }
 
     // State & City(address-level2)
-    if (fields.length == 1) {
-      if (fields[0].fieldName == "address-level2") {
-        const prev = scanner.getFieldDetailByIndex(scanner.parsingIndex - 1);
-        if (prev && !prev.fieldName && prev.localName == "select") {
-          scanner.updateFieldName(scanner.parsingIndex - 1, "address-level1");
-          scanner.parsingIndex += 1;
-          return true;
-        }
-        const next = scanner.getFieldDetailByIndex(scanner.parsingIndex + 1);
-        if (next && !next.fieldName && next.localName == "select") {
-          scanner.updateFieldName(scanner.parsingIndex + 1, "address-level1");
-          scanner.parsingIndex += 2;
-          return true;
-        }
+    if (
+      fieldDetail.fieldName == "address-level2" &&
+      scanner.getFieldIndexByName("address-level1") == -1
+    ) {
+      const prev = scanner.getFieldDetailByIndex(scanner.parsingIndex - 1);
+      if (prev && !prev.fieldName && prev.localName == "select") {
+        scanner.updateFieldName(scanner.parsingIndex - 1, "address-level1");
+        scanner.parsingIndex += 1;
+        return true;
       }
+      const next = scanner.getFieldDetailByIndex(scanner.parsingIndex + 1);
+      if (next && !next.fieldName && next.localName == "select") {
+        scanner.updateFieldName(scanner.parsingIndex + 1, "address-level1");
+        scanner.parsingIndex += 2;
+        return true;
+      }
+
+      fieldFound = true;
     }
 
-    scanner.parsingIndex += fields.length;
-    return true;
+    if (fieldFound) {
+      scanner.parsingIndex++;
+      return true;
+    }
+
+    return false;
   },
 
   /**
