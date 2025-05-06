@@ -63,7 +63,7 @@ class SctpTransport : public SctpTransportInterface,
   void Clear();
   // Initialize the cricket::SctpTransport. This can be called from
   // the signaling thread.
-  void Start(int local_port, int remote_port, int max_message_size);
+  void Start(const SctpOptions& options);
 
   // TODO(https://bugs.webrtc.org/10629): Move functions that need
   // internal() to be functions on the SctpTransport interface,

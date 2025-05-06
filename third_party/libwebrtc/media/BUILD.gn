@@ -747,6 +747,7 @@ rtc_source_set("rtc_data_sctp_transport_internal") {
   sources = [ "sctp/sctp_transport_internal.h" ]
   deps = [
     ":media_channel",
+    "../api:libjingle_peerconnection_api",
     "../api:priority",
     "../api:rtc_error",
     "../api/transport:datagram_transport_interface",
@@ -1092,6 +1093,7 @@ if (rtc_include_tests) {
         "../rtc_base/synchronization:mutex",
         "../rtc_base/system:file_wrapper",
         "../rtc_base/third_party/sigslot",
+        "../system_wrappers",
         "../system_wrappers:field_trial",
         "../test:audio_codec_mocks",
         "../test:fake_video_codecs",

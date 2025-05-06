@@ -27,13 +27,13 @@
 #include "api/rtc_error.h"
 #include "api/rtp_parameters.h"
 #include "api/rtp_transceiver_direction.h"
+#include "api/sctp_transport_interface.h"
 #include "media/base/codec.h"
 #include "media/base/codec_list.h"
 #include "media/base/media_constants.h"
 #include "media/base/media_engine.h"
 #include "media/base/rid_description.h"
 #include "media/base/stream_params.h"
-#include "media/sctp/sctp_transport_internal.h"
 #include "p2p/base/ice_credentials_iterator.h"
 #include "p2p/base/p2p_constants.h"
 #include "p2p/base/transport_description.h"
@@ -1267,7 +1267,7 @@ RTCError MediaSessionDescriptionFactory::AddDataContentForOffer(
   data->set_protocol(secure_transport ? kMediaProtocolUdpDtlsSctp
                                       : kMediaProtocolSctp);
   data->set_use_sctpmap(session_options.use_obsolete_sctp_sdp);
-  data->set_max_message_size(kSctpSendBufferSize);
+  data->set_max_message_size(webrtc::kSctpSendBufferSize);
 
   auto error = CreateContentOffer(media_description_options, session_options,
                                   RtpHeaderExtensions(), ssrc_generator(),
@@ -1474,10 +1474,11 @@ RTCError MediaSessionDescriptionFactory::AddDataContentForAnswer(
     // we do not implement infinite size messages, reply with
     // kSctpSendBufferSize.
     if (offer_data_description->max_message_size() <= 0) {
-      data_answer->as_sctp()->set_max_message_size(kSctpSendBufferSize);
+      data_answer->as_sctp()->set_max_message_size(webrtc::kSctpSendBufferSize);
     } else {
-      data_answer->as_sctp()->set_max_message_size(std::min(
-          offer_data_description->max_message_size(), kSctpSendBufferSize));
+      data_answer->as_sctp()->set_max_message_size(
+          std::min(offer_data_description->max_message_size(),
+                   webrtc::kSctpSendBufferSize));
     }
     if (!CreateMediaContentAnswer(
             offer_data_description, media_description_options, session_options,

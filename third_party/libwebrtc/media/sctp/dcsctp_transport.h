@@ -11,19 +11,27 @@
 #ifndef MEDIA_SCTP_DCSCTP_TRANSPORT_H_
 #define MEDIA_SCTP_DCSCTP_TRANSPORT_H_
 
+#include <cstddef>
+#include <cstdint>
+#include <functional>
 #include <memory>
 #include <optional>
 #include <string>
 
 #include "absl/strings/string_view.h"
 #include "api/array_view.h"
+#include "api/dtls_transport_interface.h"
 #include "api/environment/environment.h"
 #include "api/priority.h"
+#include "api/rtc_error.h"
+#include "api/sctp_transport_interface.h"
 #include "api/task_queue/task_queue_base.h"
+#include "api/transport/data_channel_transport_interface.h"
 #include "media/sctp/sctp_transport_internal.h"
-#include "net/dcsctp/public/dcsctp_options.h"
+#include "net/dcsctp/public/dcsctp_message.h"
 #include "net/dcsctp/public/dcsctp_socket.h"
 #include "net/dcsctp/public/dcsctp_socket_factory.h"
+#include "net/dcsctp/public/timeout.h"
 #include "net/dcsctp/public/types.h"
 #include "net/dcsctp/timer/task_queue_timeout.h"
 #include "p2p/base/packet_transport_internal.h"
@@ -35,7 +43,6 @@
 #include "rtc_base/third_party/sigslot/sigslot.h"
 #include "rtc_base/thread.h"
 #include "rtc_base/thread_annotations.h"
-#include "system_wrappers/include/clock.h"
 
 namespace webrtc {
 
@@ -56,9 +63,7 @@ class DcSctpTransport : public cricket::SctpTransportInternal,
   void SetOnConnectedCallback(std::function<void()> callback) override;
   void SetDataChannelSink(DataChannelSink* sink) override;
   void SetDtlsTransport(cricket::DtlsTransportInternal* transport) override;
-  bool Start(int local_sctp_port,
-             int remote_sctp_port,
-             int max_message_size) override;
+  bool Start(const SctpOptions& options) override;
   bool OpenStream(int sid, PriorityValue priority) override;
   bool ResetStream(int sid) override;
   RTCError SendData(int sid,

@@ -31,6 +31,7 @@
 #include "api/rtc_error.h"
 #include "api/rtp_transceiver_interface.h"
 #include "api/scoped_refptr.h"
+#include "api/sctp_transport_interface.h"
 #include "call/call.h"
 #include "call/payload_type_picker.h"
 #include "p2p/base/port.h"
@@ -124,9 +125,15 @@ class PeerConnectionSdpMethods {
                  bool fire_callback = true) = 0;
   // Asynchronously calls SctpTransport::Start() on the network thread for
   // `sctp_mid()` if set. Called as part of setting the local description.
+  virtual void StartSctpTransport(const SctpOptions& options) = 0;
+  [[deprecated("Call with SctpOptions")]]
   virtual void StartSctpTransport(int local_port,
                                   int remote_port,
-                                  int max_message_size) = 0;
+                                  int max_message_size) {
+    return StartSctpTransport({.local_port = local_port,
+                               .remote_port = remote_port,
+                               .max_message_size = max_message_size});
+  }
 
   // Asynchronously adds a remote candidate on the network thread.
   virtual void AddRemoteCandidate(absl::string_view mid,

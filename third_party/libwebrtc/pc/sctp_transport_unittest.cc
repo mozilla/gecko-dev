@@ -53,9 +53,7 @@ class FakeCricketSctpTransport : public cricket::SctpTransportInternal {
   }
   void SetDataChannelSink(DataChannelSink* sink) override {}
   void SetDtlsTransport(cricket::DtlsTransportInternal* transport) override {}
-  bool Start(int local_port, int remote_port, int max_message_size) override {
-    return true;
-  }
+  bool Start(const SctpOptions& options) override { return true; }
   bool OpenStream(int sid, PriorityValue priority) override { return true; }
   bool ResetStream(int sid) override { return true; }
   RTCError SendData(int sid,

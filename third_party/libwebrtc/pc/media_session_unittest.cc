@@ -30,6 +30,7 @@
 #include "api/media_types.h"
 #include "api/rtp_parameters.h"
 #include "api/rtp_transceiver_direction.h"
+#include "api/sctp_transport_interface.h"
 #include "api/video_codecs/sdp_video_format.h"
 #include "call/fake_payload_type_suggester.h"
 #include "call/payload_type.h"
@@ -39,7 +40,6 @@
 #include "media/base/rid_description.h"
 #include "media/base/stream_params.h"
 #include "media/base/test_utils.h"
-#include "media/sctp/sctp_transport_internal.h"
 #include "p2p/base/p2p_constants.h"
 #include "p2p/base/transport_description.h"
 #include "p2p/base/transport_description_factory.h"
@@ -1656,7 +1656,7 @@ TEST_F(MediaSessionDescriptionFactoryTest,
   const SctpDataContentDescription* dcd_answer =
       dc_answer->media_description()->as_sctp();
   EXPECT_FALSE(dc_answer->rejected);
-  EXPECT_EQ(kSctpSendBufferSize, dcd_answer->max_message_size());
+  EXPECT_EQ(webrtc::kSctpSendBufferSize, dcd_answer->max_message_size());
 }
 
 // Verifies that the order of the media contents in the offer is preserved in

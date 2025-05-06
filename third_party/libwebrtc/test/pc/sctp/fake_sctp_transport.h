@@ -11,12 +11,20 @@
 #ifndef TEST_PC_SCTP_FAKE_SCTP_TRANSPORT_H_
 #define TEST_PC_SCTP_FAKE_SCTP_TRANSPORT_H_
 
+#include <cstddef>
+#include <functional>
 #include <memory>
+#include <optional>
 
 #include "api/environment/environment.h"
 #include "api/priority.h"
+#include "api/rtc_error.h"
+#include "api/sctp_transport_interface.h"
+#include "api/transport/data_channel_transport_interface.h"
 #include "api/transport/sctp_transport_factory_interface.h"
 #include "media/sctp/sctp_transport_internal.h"
+#include "rtc_base/checks.h"
+#include "rtc_base/copy_on_write_buffer.h"
 
 // Used for tests in this file to verify that PeerConnection responds to signals
 // from the SctpTransport correctly, and calls Start with the correct
@@ -26,10 +34,10 @@ class FakeSctpTransport : public cricket::SctpTransportInternal {
   void SetOnConnectedCallback(std::function<void()> callback) override {}
   void SetDataChannelSink(webrtc::DataChannelSink* sink) override {}
   void SetDtlsTransport(cricket::DtlsTransportInternal* transport) override {}
-  bool Start(int local_port, int remote_port, int max_message_size) override {
-    local_port_.emplace(local_port);
-    remote_port_.emplace(remote_port);
-    max_message_size_ = max_message_size;
+  bool Start(const webrtc::SctpOptions& options) override {
+    local_port_.emplace(options.local_port);
+    remote_port_.emplace(options.remote_port);
+    max_message_size_ = options.max_message_size;
     return true;
   }
   bool OpenStream(int sid, webrtc::PriorityValue priority) override {

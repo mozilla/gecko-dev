@@ -2942,20 +2942,17 @@ PeerConnectionObserver* PeerConnection::Observer() const {
   return observer_;
 }
 
-void PeerConnection::StartSctpTransport(int local_port,
-                                        int remote_port,
-                                        int max_message_size) {
+void PeerConnection::StartSctpTransport(const SctpOptions& options) {
   RTC_DCHECK_RUN_ON(signaling_thread());
   if (!sctp_mid_s_)
     return;
 
-  network_thread()->PostTask(SafeTask(
-      network_thread_safety_,
-      [this, mid = *sctp_mid_s_, local_port, remote_port, max_message_size] {
+  network_thread()->PostTask(
+      SafeTask(network_thread_safety_, [this, mid = *sctp_mid_s_, options] {
         rtc::scoped_refptr<SctpTransport> sctp_transport =
             transport_controller_n()->GetSctpTransport(mid);
         if (sctp_transport)
-          sctp_transport->Start(local_port, remote_port, max_message_size);
+          sctp_transport->Start(options);
       }));
 }
 

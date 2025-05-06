@@ -5056,9 +5056,9 @@ RTCError SdpOfferAnswerHandler::PushdownMediaDescription(
             std::min(local_sctp_description->max_message_size(),
                      remote_sctp_description->max_message_size());
       }
-      pc_->StartSctpTransport(local_sctp_description->port(),
-                              remote_sctp_description->port(),
-                              max_message_size);
+      pc_->StartSctpTransport({.local_port = local_sctp_description->port(),
+                               .remote_port = remote_sctp_description->port(),
+                               .max_message_size = max_message_size});
     }
   }
 

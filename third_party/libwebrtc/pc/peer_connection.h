@@ -412,9 +412,7 @@ class PeerConnection : public PeerConnectionInternal,
 
   // Asynchronously calls SctpTransport::Start() on the network thread for
   // `sctp_mid()` if set. Called as part of setting the local description.
-  void StartSctpTransport(int local_port,
-                          int remote_port,
-                          int max_message_size) override;
+  void StartSctpTransport(const SctpOptions& options) override;
 
   // Returns the CryptoOptions for this PeerConnection. This will always
   // return the RTCConfiguration.crypto_options if set and will only default

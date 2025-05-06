@@ -389,9 +389,7 @@ class FakePeerConnectionBase : public PeerConnectionInternal {
       bool fire_callback = true) override {
     return RTCError(RTCErrorType::INTERNAL_ERROR, "");
   }
-  void StartSctpTransport(int local_port,
-                          int remote_port,
-                          int max_message_size) override {}
+  void StartSctpTransport(const SctpOptions& options) override {}
 
   void AddRemoteCandidate(absl::string_view mid,
                           const cricket::Candidate& candidate) override {}

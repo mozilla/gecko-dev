@@ -28,6 +28,7 @@
 #include "api/environment/environment.h"
 #include "api/priority.h"
 #include "api/rtc_error.h"
+#include "api/sctp_transport_interface.h"
 #include "api/sequence_checker.h"
 #include "api/task_queue/task_queue_base.h"
 #include "api/transport/data_channel_transport_interface.h"
@@ -192,20 +193,18 @@ void DcSctpTransport::SetDtlsTransport(
   MaybeConnectSocket();
 }
 
-bool DcSctpTransport::Start(int local_sctp_port,
-                            int remote_sctp_port,
-                            int max_message_size) {
+bool DcSctpTransport::Start(const SctpOptions& options) {
   RTC_DCHECK_RUN_ON(network_thread_);
-  RTC_DCHECK(max_message_size > 0);
-  RTC_DLOG(LS_INFO) << debug_name_ << "->Start(local=" << local_sctp_port
-                    << ", remote=" << remote_sctp_port
-                    << ", max_message_size=" << max_message_size << ")";
+  RTC_DCHECK(options.max_message_size > 0);
+  RTC_DLOG(LS_INFO) << debug_name_ << "->Start(local=" << options.local_port
+                    << ", remote=" << options.remote_port
+                    << ", max_message_size=" << options.max_message_size << ")";
 
   if (!socket_) {
     dcsctp::DcSctpOptions options;
-    options.local_port = local_sctp_port;
-    options.remote_port = remote_sctp_port;
-    options.max_message_size = max_message_size;
+    options.local_port = options.local_port;
+    options.remote_port = options.remote_port;
+    options.max_message_size = options.max_message_size;
     options.max_timer_backoff_duration = kMaxTimerBackoffDuration;
     // Don't close the connection automatically on too many retransmissions.
     options.max_retransmissions = std::nullopt;
@@ -226,15 +225,15 @@ bool DcSctpTransport::Start(int local_sctp_port,
     socket_ = socket_factory_->Create(debug_name_, *this,
                                       std::move(packet_observer), options);
   } else {
-    if (local_sctp_port != socket_->options().local_port ||
-        remote_sctp_port != socket_->options().remote_port) {
+    if (options.local_port != socket_->options().local_port ||
+        options.remote_port != socket_->options().remote_port) {
       RTC_LOG(LS_ERROR)
-          << debug_name_ << "->Start(local=" << local_sctp_port
-          << ", remote=" << remote_sctp_port
+          << debug_name_ << "->Start(local=" << options.local_port
+          << ", remote=" << options.remote_port
           << "): Can't change ports on already started transport.";
       return false;
     }
-    socket_->SetMaxMessageSize(max_message_size);
+    socket_->SetMaxMessageSize(options.max_message_size);
   }
 
   MaybeConnectSocket();
@@ -722,7 +721,10 @@ void DcSctpTransport::OnDtlsTransportState(
     RTC_DLOG(LS_INFO) << debug_name_ << " DTLS restart";
     dcsctp::DcSctpOptions options = socket_->options();
     socket_.reset();
-    Start(options.local_port, options.remote_port, options.max_message_size);
+    RTC_DCHECK_LE(options.max_message_size, kSctpSendBufferSize);
+    Start({.local_port = options.local_port,
+           .remote_port = options.remote_port,
+           .max_message_size = static_cast<int>(options.max_message_size)});
   }
 }
 

@@ -561,7 +561,7 @@ index 0000000000..f6ff7f218f
 +  #endif
 +#endif
 diff --git a/media/BUILD.gn b/media/BUILD.gn
-index ab9316cac4..e09cd299d6 100644
+index fcca48ca6a..e5269fe2aa 100644
 --- a/media/BUILD.gn
 +++ b/media/BUILD.gn
 @@ -76,7 +76,7 @@ rtc_library("rtc_media_base") {
