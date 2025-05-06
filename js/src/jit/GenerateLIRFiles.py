@@ -394,6 +394,10 @@ class {class_name} : public {parent_class}<{num_defs}, {num_operands}, {num_temp
 def mir_type_to_lir_type(mir_type):
     if mir_type == "Value":
         return "BoxedValue"
+
+    if mir_type == "Int64":
+        return "Int64"
+
     return "WordSized"
 
 

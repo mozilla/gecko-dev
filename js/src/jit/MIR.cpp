@@ -6358,7 +6358,7 @@ MDefinition* MArrayJoin::foldsTo(TempAllocator& alloc) {
   // be executed on the bailout path.
   MDefinition* string = arr->toStringSplit()->string();
   MDefinition* pattern = arr->toStringSplit()->separator();
-  MDefinition* replacement = sep();
+  MDefinition* replacement = separator();
 
   MStringReplace* substr =
       MStringReplace::New(alloc, string, pattern, replacement);

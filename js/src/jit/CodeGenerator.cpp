@@ -4378,7 +4378,7 @@ void CodeGenerator::visitNewVarEnvironmentObject(
 }
 
 void CodeGenerator::visitGuardShape(LGuardShape* guard) {
-  Register obj = ToRegister(guard->input());
+  Register obj = ToRegister(guard->object());
   Register temp = ToTempRegisterOrInvalid(guard->temp0());
   Label bail;
   masm.branchTestObjShape(Assembler::NotEqual, obj, guard->mir()->shape(), temp,
@@ -4499,7 +4499,7 @@ void CodeGenerator::visitProxyGet(LProxyGet* lir) {
 
 void CodeGenerator::visitProxyGetByValue(LProxyGetByValue* lir) {
   Register proxy = ToRegister(lir->proxy());
-  ValueOperand idVal = ToValue(lir->id());
+  ValueOperand idVal = ToValue(lir->idVal());
 
   pushArg(idVal);
   pushArg(proxy);
@@ -4540,7 +4540,7 @@ void CodeGenerator::visitProxySet(LProxySet* lir) {
 
 void CodeGenerator::visitProxySetByValue(LProxySetByValue* lir) {
   Register proxy = ToRegister(lir->proxy());
-  ValueOperand idVal = ToValue(lir->id());
+  ValueOperand idVal = ToValue(lir->idVal());
   ValueOperand rhs = ToValue(lir->rhs());
 
   pushArg(Imm32(lir->mir()->strict()));
@@ -4644,7 +4644,7 @@ void CodeGenerator::visitMegamorphicLoadSlotPermissive(
 void CodeGenerator::visitMegamorphicLoadSlotByValue(
     LMegamorphicLoadSlotByValue* lir) {
   Register obj = ToRegister(lir->object());
-  ValueOperand idVal = ToValue(lir->id());
+  ValueOperand idVal = ToValue(lir->idVal());
   Register temp0 = ToRegister(lir->temp0());
   Register temp1 = ToRegister(lir->temp1());
   Register temp2 = ToRegister(lir->temp2());
@@ -4693,7 +4693,7 @@ void CodeGenerator::visitMegamorphicLoadSlotByValue(
 void CodeGenerator::visitMegamorphicLoadSlotByValuePermissive(
     LMegamorphicLoadSlotByValuePermissive* lir) {
   Register obj = ToRegister(lir->object());
-  ValueOperand idVal = ToValue(lir->id());
+  ValueOperand idVal = ToValue(lir->idVal());
   Register temp0 = ToRegister(lir->temp0());
   Register temp1 = ToRegister(lir->temp1());
   Register temp2 = ToRegister(lir->temp2());
@@ -4795,7 +4795,7 @@ void CodeGenerator::visitMegamorphicStoreSlot(LMegamorphicStoreSlot* lir) {
 
 void CodeGenerator::visitMegamorphicHasProp(LMegamorphicHasProp* lir) {
   Register obj = ToRegister(lir->object());
-  ValueOperand idVal = ToValue(lir->id());
+  ValueOperand idVal = ToValue(lir->idVal());
   Register temp0 = ToRegister(lir->temp0());
   Register temp1 = ToRegister(lir->temp1());
   Register temp2 = ToRegister(lir->temp2());
@@ -4847,7 +4847,7 @@ void CodeGenerator::visitMegamorphicHasProp(LMegamorphicHasProp* lir) {
 
 void CodeGenerator::visitSmallObjectVariableKeyHasProp(
     LSmallObjectVariableKeyHasProp* lir) {
-  Register id = ToRegister(lir->id());
+  Register id = ToRegister(lir->idStr());
   Register output = ToRegister(lir->output());
 
 #ifdef DEBUG
@@ -12914,8 +12914,8 @@ void CodeGenerator::visitSameValueDouble(LSameValueDouble* lir) {
 }
 
 void CodeGenerator::visitSameValue(LSameValue* lir) {
-  ValueOperand lhs = ToValue(lir->lhs());
-  ValueOperand rhs = ToValue(lir->rhs());
+  ValueOperand lhs = ToValue(lir->left());
+  ValueOperand rhs = ToValue(lir->right());
   Register output = ToRegister(lir->output());
 
   using Fn = bool (*)(JSContext*, HandleValue, HandleValue, bool*);
@@ -13705,7 +13705,7 @@ void JitRuntime::generateDoubleToInt32ValueStub(MacroAssembler& masm) {
 }
 
 void CodeGenerator::visitLinearizeString(LLinearizeString* lir) {
-  Register str = ToRegister(lir->str());
+  Register str = ToRegister(lir->string());
   Register output = ToRegister(lir->output());
 
   using Fn = JSLinearString* (*)(JSContext*, JSString*);
@@ -13719,7 +13719,7 @@ void CodeGenerator::visitLinearizeString(LLinearizeString* lir) {
 }
 
 void CodeGenerator::visitLinearizeForCharAccess(LLinearizeForCharAccess* lir) {
-  Register str = ToRegister(lir->str());
+  Register str = ToRegister(lir->string());
   Register index = ToRegister(lir->index());
   Register output = ToRegister(lir->output());
 
@@ -13735,7 +13735,7 @@ void CodeGenerator::visitLinearizeForCharAccess(LLinearizeForCharAccess* lir) {
 
 void CodeGenerator::visitLinearizeForCodePointAccess(
     LLinearizeForCodePointAccess* lir) {
-  Register str = ToRegister(lir->str());
+  Register str = ToRegister(lir->string());
   Register index = ToRegister(lir->index());
   Register output = ToRegister(lir->output());
   Register temp = ToRegister(lir->temp0());
@@ -13762,7 +13762,7 @@ void CodeGenerator::visitToRelativeStringIndex(LToRelativeStringIndex* lir) {
 }
 
 void CodeGenerator::visitCharCodeAt(LCharCodeAt* lir) {
-  Register str = ToRegister(lir->str());
+  Register str = ToRegister(lir->string());
   Register output = ToRegister(lir->output());
   Register temp0 = ToRegister(lir->temp0());
   Register temp1 = ToRegister(lir->temp1());
@@ -13785,7 +13785,7 @@ void CodeGenerator::visitCharCodeAt(LCharCodeAt* lir) {
 }
 
 void CodeGenerator::visitCharCodeAtOrNegative(LCharCodeAtOrNegative* lir) {
-  Register str = ToRegister(lir->str());
+  Register str = ToRegister(lir->string());
   Register output = ToRegister(lir->output());
   Register temp0 = ToRegister(lir->temp0());
   Register temp1 = ToRegister(lir->temp1());
@@ -13817,7 +13817,7 @@ void CodeGenerator::visitCharCodeAtOrNegative(LCharCodeAtOrNegative* lir) {
 }
 
 void CodeGenerator::visitCodePointAt(LCodePointAt* lir) {
-  Register str = ToRegister(lir->str());
+  Register str = ToRegister(lir->string());
   Register index = ToRegister(lir->index());
   Register output = ToRegister(lir->output());
   Register temp0 = ToRegister(lir->temp0());
@@ -13832,7 +13832,7 @@ void CodeGenerator::visitCodePointAt(LCodePointAt* lir) {
 }
 
 void CodeGenerator::visitCodePointAtOrNegative(LCodePointAtOrNegative* lir) {
-  Register str = ToRegister(lir->str());
+  Register str = ToRegister(lir->string());
   Register index = ToRegister(lir->index());
   Register output = ToRegister(lir->output());
   Register temp0 = ToRegister(lir->temp0());
@@ -15858,7 +15858,7 @@ void CodeGenerator::visitIsNoIterAndBranch(LIsNoIterAndBranch* lir) {
 }
 
 void CodeGenerator::visitIteratorEnd(LIteratorEnd* lir) {
-  const Register obj = ToRegister(lir->object());
+  const Register obj = ToRegister(lir->iterator());
   const Register temp0 = ToRegister(lir->temp0());
   const Register temp1 = ToRegister(lir->temp1());
   const Register temp2 = ToRegister(lir->temp2());
@@ -17008,7 +17008,7 @@ void CodeGenerator::visitCheckScriptedProxyGetResult(
 #endif
 
 void CodeGenerator::visitIdToStringOrSymbol(LIdToStringOrSymbol* ins) {
-  ValueOperand id = ToValue(ins->id());
+  ValueOperand id = ToValue(ins->idVal());
   ValueOperand output = ToOutValue(ins);
   Register scratch = ToRegister(ins->temp0());
 
@@ -19077,8 +19077,8 @@ void CodeGenerator::emitInstanceOf(LInstruction* ins, Register protoReg) {
 void CodeGenerator::visitInstanceOfCache(LInstanceOfCache* ins) {
   // The Lowering ensures that RHS is an object, and that LHS is a value.
   LiveRegisterSet liveRegs = ins->safepoint()->liveRegs();
-  TypedOrValueRegister lhs = TypedOrValueRegister(ToValue(ins->lhs()));
-  Register rhs = ToRegister(ins->rhs());
+  TypedOrValueRegister lhs = TypedOrValueRegister(ToValue(ins->obj()));
+  Register rhs = ToRegister(ins->proto());
   Register output = ToRegister(ins->output());
 
   IonInstanceOfIC ic(liveRegs, lhs, rhs, output);
@@ -19539,7 +19539,7 @@ void CodeGenerator::visitIsObjectAndBranch(LIsObjectAndBranch* ins) {
 
 void CodeGenerator::visitIsNullOrUndefined(LIsNullOrUndefined* ins) {
   Register output = ToRegister(ins->output());
-  ValueOperand value = ToValue(ins->input());
+  ValueOperand value = ToValue(ins->value());
 
   Label isNotNull, done;
   masm.branchTestNull(Assembler::NotEqual, value, &isNotNull);
@@ -19643,7 +19643,7 @@ void CodeGenerator::visitGuardToFunction(LGuardToFunction* ins) {
 }
 
 void CodeGenerator::visitObjectClassToString(LObjectClassToString* lir) {
-  Register obj = ToRegister(lir->lhs());
+  Register obj = ToRegister(lir->object());
   Register temp = ToRegister(lir->temp0());
 
   using Fn = JSString* (*)(JSContext*, JSObject*);
@@ -21344,7 +21344,7 @@ void CodeGenerator::visitHashValue(LHashValue* ins) {
 
 void CodeGenerator::visitSetObjectHasNonBigInt(LSetObjectHasNonBigInt* ins) {
   Register setObj = ToRegister(ins->setObject());
-  ValueOperand input = ToValue(ins->input());
+  ValueOperand input = ToValue(ins->value());
   Register hash = ToRegister(ins->hash());
   Register temp0 = ToRegister(ins->temp0());
   Register temp1 = ToRegister(ins->temp1());
@@ -21355,7 +21355,7 @@ void CodeGenerator::visitSetObjectHasNonBigInt(LSetObjectHasNonBigInt* ins) {
 
 void CodeGenerator::visitSetObjectHasBigInt(LSetObjectHasBigInt* ins) {
   Register setObj = ToRegister(ins->setObject());
-  ValueOperand input = ToValue(ins->input());
+  ValueOperand input = ToValue(ins->value());
   Register hash = ToRegister(ins->hash());
   Register temp0 = ToRegister(ins->temp0());
   Register temp1 = ToRegister(ins->temp1());
@@ -21369,7 +21369,7 @@ void CodeGenerator::visitSetObjectHasBigInt(LSetObjectHasBigInt* ins) {
 
 void CodeGenerator::visitSetObjectHasValue(LSetObjectHasValue* ins) {
   Register setObj = ToRegister(ins->setObject());
-  ValueOperand input = ToValue(ins->input());
+  ValueOperand input = ToValue(ins->value());
   Register hash = ToRegister(ins->hash());
   Register temp0 = ToRegister(ins->temp0());
   Register temp1 = ToRegister(ins->temp1());
@@ -21383,7 +21383,7 @@ void CodeGenerator::visitSetObjectHasValue(LSetObjectHasValue* ins) {
 
 void CodeGenerator::visitSetObjectHasValueVMCall(
     LSetObjectHasValueVMCall* ins) {
-  pushArg(ToValue(ins->input()));
+  pushArg(ToValue(ins->value()));
   pushArg(ToRegister(ins->setObject()));
 
   using Fn = bool (*)(JSContext*, Handle<SetObject*>, HandleValue, bool*);
@@ -21413,7 +21413,7 @@ void CodeGenerator::visitSetObjectSize(LSetObjectSize* ins) {
 
 void CodeGenerator::visitMapObjectHasNonBigInt(LMapObjectHasNonBigInt* ins) {
   Register mapObj = ToRegister(ins->mapObject());
-  ValueOperand input = ToValue(ins->input());
+  ValueOperand input = ToValue(ins->value());
   Register hash = ToRegister(ins->hash());
   Register temp0 = ToRegister(ins->temp0());
   Register temp1 = ToRegister(ins->temp1());
@@ -21424,7 +21424,7 @@ void CodeGenerator::visitMapObjectHasNonBigInt(LMapObjectHasNonBigInt* ins) {
 
 void CodeGenerator::visitMapObjectHasBigInt(LMapObjectHasBigInt* ins) {
   Register mapObj = ToRegister(ins->mapObject());
-  ValueOperand input = ToValue(ins->input());
+  ValueOperand input = ToValue(ins->value());
   Register hash = ToRegister(ins->hash());
   Register temp0 = ToRegister(ins->temp0());
   Register temp1 = ToRegister(ins->temp1());
@@ -21438,7 +21438,7 @@ void CodeGenerator::visitMapObjectHasBigInt(LMapObjectHasBigInt* ins) {
 
 void CodeGenerator::visitMapObjectHasValue(LMapObjectHasValue* ins) {
   Register mapObj = ToRegister(ins->mapObject());
-  ValueOperand input = ToValue(ins->input());
+  ValueOperand input = ToValue(ins->value());
   Register hash = ToRegister(ins->hash());
   Register temp0 = ToRegister(ins->temp0());
   Register temp1 = ToRegister(ins->temp1());
@@ -21452,7 +21452,7 @@ void CodeGenerator::visitMapObjectHasValue(LMapObjectHasValue* ins) {
 
 void CodeGenerator::visitMapObjectHasValueVMCall(
     LMapObjectHasValueVMCall* ins) {
-  pushArg(ToValue(ins->input()));
+  pushArg(ToValue(ins->value()));
   pushArg(ToRegister(ins->mapObject()));
 
   using Fn = bool (*)(JSContext*, Handle<MapObject*>, HandleValue, bool*);
@@ -21461,7 +21461,7 @@ void CodeGenerator::visitMapObjectHasValueVMCall(
 
 void CodeGenerator::visitMapObjectGetNonBigInt(LMapObjectGetNonBigInt* ins) {
   Register mapObj = ToRegister(ins->mapObject());
-  ValueOperand input = ToValue(ins->input());
+  ValueOperand input = ToValue(ins->value());
   Register hash = ToRegister(ins->hash());
   Register temp0 = ToRegister(ins->temp0());
   Register temp1 = ToRegister(ins->temp1());
@@ -21473,7 +21473,7 @@ void CodeGenerator::visitMapObjectGetNonBigInt(LMapObjectGetNonBigInt* ins) {
 
 void CodeGenerator::visitMapObjectGetBigInt(LMapObjectGetBigInt* ins) {
   Register mapObj = ToRegister(ins->mapObject());
-  ValueOperand input = ToValue(ins->input());
+  ValueOperand input = ToValue(ins->value());
   Register hash = ToRegister(ins->hash());
   Register temp0 = ToRegister(ins->temp0());
   Register temp1 = ToRegister(ins->temp1());
@@ -21486,7 +21486,7 @@ void CodeGenerator::visitMapObjectGetBigInt(LMapObjectGetBigInt* ins) {
 }
 
 void CodeGenerator::visitMapObjectGetValue(LMapObjectGetValue* ins) {
-  Register mapObj = ToRegister(ins->map());
+  Register mapObj = ToRegister(ins->mapObject());
   ValueOperand input = ToValue(ins->value());
   Register hash = ToRegister(ins->hash());
   Register temp0 = ToRegister(ins->temp0());
@@ -21501,7 +21501,7 @@ void CodeGenerator::visitMapObjectGetValue(LMapObjectGetValue* ins) {
 
 void CodeGenerator::visitMapObjectGetValueVMCall(
     LMapObjectGetValueVMCall* ins) {
-  pushArg(ToValue(ins->input()));
+  pushArg(ToValue(ins->value()));
   pushArg(ToRegister(ins->mapObject()));
 
   using Fn =
@@ -21725,7 +21725,7 @@ void CodeGenerator::visitWasmFence(LWasmFence* lir) {
 }
 
 void CodeGenerator::visitWasmAnyRefFromJSValue(LWasmAnyRefFromJSValue* lir) {
-  ValueOperand input = ToValue(lir->input());
+  ValueOperand input = ToValue(lir->def());
   Register output = ToRegister(lir->output());
   FloatRegister tempFloat = ToFloatRegister(lir->temp0());
 
@@ -21737,13 +21737,13 @@ void CodeGenerator::visitWasmAnyRefFromJSValue(LWasmAnyRefFromJSValue* lir) {
 }
 
 void CodeGenerator::visitWasmAnyRefFromJSObject(LWasmAnyRefFromJSObject* lir) {
-  Register input = ToRegister(lir->input());
+  Register input = ToRegister(lir->def());
   Register output = ToRegister(lir->output());
   masm.convertObjectToWasmAnyRef(input, output);
 }
 
 void CodeGenerator::visitWasmAnyRefFromJSString(LWasmAnyRefFromJSString* lir) {
-  Register input = ToRegister(lir->input());
+  Register input = ToRegister(lir->def());
   Register output = ToRegister(lir->output());
   masm.convertStringToWasmAnyRef(input, output);
 }
@@ -21803,7 +21803,7 @@ void CodeGenerator::visitWasmNewI31Ref(LWasmNewI31Ref* lir) {
 }
 
 void CodeGenerator::visitWasmI31RefGet(LWasmI31RefGet* lir) {
-  Register value = ToRegister(lir->value());
+  Register value = ToRegister(lir->input());
   Register output = ToRegister(lir->output());
   if (lir->mir()->wideningOp() == wasm::FieldWideningOp::Signed) {
     masm.convertWasmI31RefTo32Signed(value, output);
