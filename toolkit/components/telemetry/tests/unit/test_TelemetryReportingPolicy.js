@@ -144,10 +144,13 @@ add_task(skipIfNotBrowser(), async function test_firstRun() {
   const OTHER_RUNS_TIMEOUT_MSEC = 10 * 1000; // 10s
 
   Services.prefs.clearUserPref(TelemetryUtils.Preferences.FirstRun);
-  // The new user TOS modal is now enabled by default, so the infobar will only
-  // show if preonboarding is explicitly turned off via nimbus variable or its
-  // fallback pref.
-  Services.prefs.setBoolPref("browser.preonboarding.enabled", false);
+  // The new user TOS modal is now enabled by default on all platforms except
+  // Linux, so the infobar will only show if preonboarding is explicitly turned
+  // off via nimbus variable or its fallback pref.
+  if (AppConstants.platform !== "linux") {
+    // This pref is set to false on Linux by default
+    Services.prefs.setBoolPref("browser.preonboarding.enabled", false);
+  }
 
   let promiseTimeout = () =>
     new Promise(resolve => {
@@ -693,6 +696,12 @@ add_task(
 add_task(
   skipIfNotBrowser(),
   async function test_default_modal_shows_when_not_enrolled_in_experiment() {
+    if (AppConstants.platform === "linux") {
+      info(
+        "Skipping test for Linux where preonboarding is disabled by default"
+      );
+      return;
+    }
     let modalStub = sinon.stub(Policy, "showModal").returns(true);
 
     fakeResetAcceptedPolicy();
