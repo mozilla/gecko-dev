@@ -5665,16 +5665,22 @@ void PresShell::UpdateCanvasBackground() {
 static SingleCanvasBackground ComputeSingleCanvasBackground(nsIFrame* aCanvas) {
   MOZ_ASSERT(aCanvas->IsCanvasFrame());
   const nsIFrame* bgFrame = nsCSSRendering::FindBackgroundFrame(aCanvas);
-  nscolor color = NS_RGBA(0, 0, 0, 0);
+  static constexpr nscolor kTransparent = NS_RGBA(0, 0, 0, 0);
+  if (bgFrame->IsThemed()) {
+    // Ignore the CSS background-color if `appearance` is used on the root.
+    return {kTransparent, false};
+  }
   bool drawBackgroundImage = false;
   bool drawBackgroundColor = false;
-  if (!bgFrame->IsThemed()) {
-    // Ignore the CSS background-color if -moz-appearance is used.
-    color = nsCSSRendering::DetermineBackgroundColor(
-        aCanvas->PresContext(), bgFrame->Style(), aCanvas, drawBackgroundImage,
-        drawBackgroundColor);
+  nscolor color = nsCSSRendering::DetermineBackgroundColor(
+      aCanvas->PresContext(), bgFrame->Style(), aCanvas, drawBackgroundImage,
+      drawBackgroundColor);
+  if (!drawBackgroundColor) {
+    // No need to draw the CSS-specified background (or no CSS-specified
+    // background at all).
+    return {kTransparent, false};
   }
-  return {color, drawBackgroundColor};
+  return {color, true};
 }
 
 PresShell::CanvasBackground PresShell::ComputeCanvasBackground() const {
