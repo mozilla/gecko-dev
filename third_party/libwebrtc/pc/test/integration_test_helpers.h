@@ -1532,17 +1532,18 @@ class PeerConnectionIntegrationBaseTest : public ::testing::Test {
 
   bool CreatePeerConnectionWrappersWithConfig(
       const PeerConnectionInterface::RTCConfiguration& caller_config,
-      const PeerConnectionInterface::RTCConfiguration& callee_config) {
-    caller_ = CreatePeerConnectionWrapper(kCallerName, nullptr, &caller_config,
-                                          PeerConnectionDependencies(nullptr),
-                                          nullptr,
-                                          /*reset_encoder_factory=*/false,
-                                          /*reset_decoder_factory=*/false);
-    callee_ = CreatePeerConnectionWrapper(kCalleeName, nullptr, &callee_config,
-                                          PeerConnectionDependencies(nullptr),
-                                          nullptr,
-                                          /*reset_encoder_factory=*/false,
-                                          /*reset_decoder_factory=*/false);
+      const PeerConnectionInterface::RTCConfiguration& callee_config,
+      bool create_media_engine = true) {
+    caller_ = CreatePeerConnectionWrapper(
+        kCallerName, nullptr, &caller_config,
+        PeerConnectionDependencies(nullptr), nullptr,
+        /*reset_encoder_factory=*/false,
+        /*reset_decoder_factory=*/false, create_media_engine);
+    callee_ = CreatePeerConnectionWrapper(
+        kCalleeName, nullptr, &callee_config,
+        PeerConnectionDependencies(nullptr), nullptr,
+        /*reset_encoder_factory=*/false,
+        /*reset_decoder_factory=*/false, create_media_engine);
     return caller_ && callee_;
   }
 

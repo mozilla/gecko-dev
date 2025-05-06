@@ -1415,7 +1415,7 @@ TEST_F(DataChannelIntegrationTestUnifiedPlan,
 
 TEST_F(DataChannelIntegrationTestUnifiedPlan,
        EndToEndCallWithDataChannelOnlyConnects) {
-  ASSERT_TRUE(CreatePeerConnectionWrappers());
+  ASSERT_TRUE(CreatePeerConnectionWrappersWithoutMediaEngine());
   ConnectFakeSignaling();
   caller()->CreateDataChannel();
   caller()->CreateAndSetAndSignalOffer();
@@ -1430,7 +1430,7 @@ TEST_F(DataChannelIntegrationTestUnifiedPlan,
 }
 
 TEST_F(DataChannelIntegrationTestUnifiedPlan, DataChannelClosesWhenClosed) {
-  ASSERT_TRUE(CreatePeerConnectionWrappers());
+  ASSERT_TRUE(CreatePeerConnectionWrappersWithoutMediaEngine());
   ConnectFakeSignaling();
   caller()->CreateDataChannel();
   caller()->CreateAndSetAndSignalOffer();
@@ -1449,7 +1449,7 @@ TEST_F(DataChannelIntegrationTestUnifiedPlan, DataChannelClosesWhenClosed) {
 
 TEST_F(DataChannelIntegrationTestUnifiedPlan,
        DataChannelClosesWhenClosedReverse) {
-  ASSERT_TRUE(CreatePeerConnectionWrappers());
+  ASSERT_TRUE(CreatePeerConnectionWrappersWithoutMediaEngine());
   ConnectFakeSignaling();
   caller()->CreateDataChannel();
   caller()->CreateAndSetAndSignalOffer();
@@ -1468,7 +1468,7 @@ TEST_F(DataChannelIntegrationTestUnifiedPlan,
 
 TEST_F(DataChannelIntegrationTestUnifiedPlan,
        DataChannelClosesWhenPeerConnectionClosed) {
-  ASSERT_TRUE(CreatePeerConnectionWrappers());
+  ASSERT_TRUE(CreatePeerConnectionWrappersWithoutMediaEngine());
   ConnectFakeSignaling();
   caller()->CreateDataChannel();
   caller()->CreateAndSetAndSignalOffer();
@@ -1530,7 +1530,8 @@ class DataChannelIntegrationTestUnifiedPlanFieldTrials
       config.type = PeerConnectionInterface::kRelay;
       config.presume_writable_when_fully_relayed = true;
     }
-    CreatePeerConnectionWrappersWithConfig(config, config);
+    CreatePeerConnectionWrappersWithConfig(config, config,
+                                           /* create_media_engine= */ false);
     PeerConnectionDependencies dependencies(nullptr);
     std::unique_ptr<FakeRTCCertificateGenerator> cert_generator(
         new FakeRTCCertificateGenerator());
@@ -1539,7 +1540,8 @@ class DataChannelIntegrationTestUnifiedPlanFieldTrials
     auto callee2 = CreatePeerConnectionWrapper("Callee2", nullptr, &config,
                                                std::move(dependencies), nullptr,
                                                /*reset_encoder_factory=*/false,
-                                               /*reset_decoder_factory=*/false);
+                                               /*reset_decoder_factory=*/false,
+                                               /*create_media_engine=*/false);
     ConnectFakeSignaling();
     DataChannelInit dc_init;
     dc_init.negotiated = true;
