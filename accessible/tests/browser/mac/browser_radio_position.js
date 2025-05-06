@@ -18,9 +18,16 @@ function getChildRoles(parent) {
 }
 
 function getLinkedTitles(element) {
-  return element
-    .getAttributeValue("AXLinkedUIElements")
-    .map(c => c.getAttributeValue("AXTitle"));
+  return element.getAttributeValue("AXLinkedUIElements").map(linkedElem => {
+    let labelElem = linkedElem.getAttributeValue("AXTitleUIElement");
+    let labelText = labelElem
+      ? labelElem
+          .getAttributeValue("AXChildren")
+          .map(c => c.getAttributeValue("AXValue"))
+          .join("")
+      : null;
+    return labelText ? labelText : linkedElem.getAttributeValue("AXTitle");
+  });
 }
 
 /**
@@ -152,12 +159,6 @@ addAccessibleTask(
     let catdog = getNativeInterface(accDoc, "catdog");
     let titleList = ["Cat", "Dog", "CatDog"];
 
-    Assert.deepEqual(
-      titleList,
-      [cat, dog, catdog].map(x => x.getAttributeValue("AXTitle")),
-      "Title list matches"
-    );
-
     let linkedElems = cat.getAttributeValue("AXLinkedUIElements");
     is(linkedElems.length, 3, "Cat has three linked UI elems");
     Assert.deepEqual(
@@ -235,12 +236,6 @@ addAccessibleTask(
     let dog = getNativeInterface(accDoc, "dog");
     let catdog = getNativeInterface(accDoc, "catdog");
     let titleList = ["Cat", "Dog", "CatDog"];
-
-    Assert.deepEqual(
-      titleList,
-      [cat, dog, catdog].map(x => x.getAttributeValue("AXTitle")),
-      "Title list matches"
-    );
 
     let linkedElems = cat.getAttributeValue("AXLinkedUIElements");
     is(linkedElems.length, 3, "Cat has three linked UI elems");

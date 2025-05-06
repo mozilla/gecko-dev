@@ -496,8 +496,9 @@ struct RoleDescrComparator {
   }
 
   if (![self providesLabelNotTitle]) {
-    NSArray* relations = [self getRelationsByType:RelationType::LABELLED_BY];
-    if ([relations count] == 1) {
+    Relation rel = mGeckoAccessible->RelationByType(RelationType::LABELLED_BY);
+    if (rel.Next() && !rel.Next()) {
+      // A single label relation.
       return nil;
     }
   }
@@ -510,6 +511,12 @@ struct RoleDescrComparator {
 
   // In some special cases we provide the name in the label (AXDescription).
   if ([self providesLabelNotTitle]) {
+    return nil;
+  }
+
+  Relation rel = mGeckoAccessible->RelationByType(RelationType::LABELLED_BY);
+  if (rel.Next() && !rel.Next()) {
+    // A single label relation. Use AXUITitleElement instead of AXTitle
     return nil;
   }
 
