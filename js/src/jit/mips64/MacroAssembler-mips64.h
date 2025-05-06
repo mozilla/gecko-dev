@@ -108,7 +108,11 @@ class MacroAssemblerMIPS64 : public MacroAssemblerMIPSShared {
   FaultingCodeOffset ma_store(Register data, Address address,
                               LoadStoreSize size = SizeWord,
                               LoadStoreExtension extension = SignExtend);
-
+  void ma_store(ImmWord imm, const BaseIndex& dest,
+                LoadStoreSize size = SizeWord,
+                LoadStoreExtension extension = SignExtend);
+  void ma_store(ImmWord imm, Address address, LoadStoreSize size = SizeWord,
+                LoadStoreExtension extension = SignExtend);
   // arithmetic based ops
   // add
   void ma_daddu(Register rd, Register rs, Imm32 imm);

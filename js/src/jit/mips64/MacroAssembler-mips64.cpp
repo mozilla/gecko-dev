@@ -672,6 +672,31 @@ FaultingCodeOffset MacroAssemblerMIPS64::ma_load(Register dest, Address address,
   return fco;
 }
 
+void MacroAssemblerMIPS64::ma_store(ImmWord imm, const BaseIndex& dest,
+                                    LoadStoreSize size,
+                                    LoadStoreExtension extension) {
+  SecondScratchRegisterScope scratch2(asMasm());
+
+  // Make sure that SecondScratchReg contains absolute address so that
+  // offset is 0.
+  asMasm().computeEffectiveAddress(dest, scratch2);
+  // Scrach register is free now, use it for loading imm value
+  ScratchRegisterScope scratch(asMasm());
+  ma_li(scratch, ImmWord(imm.value));
+
+  // with offset=0 ScratchRegister will not be used in ma_store()
+  // so we can use it as a parameter here
+  ma_store(scratch, Address(scratch2, 0), size, extension);
+}
+
+void MacroAssemblerMIPS64::ma_store(ImmWord imm, Address address,
+                                    LoadStoreSize size,
+                                    LoadStoreExtension extension) {
+  SecondScratchRegisterScope scratch2(asMasm());
+  ma_li(scratch2, imm);
+  ma_store(scratch2, address, size, extension);
+}
+
 FaultingCodeOffset MacroAssemblerMIPS64::ma_store(
     Register data, Address address, LoadStoreSize size,
     LoadStoreExtension extension) {
@@ -680,22 +705,23 @@ FaultingCodeOffset MacroAssemblerMIPS64::ma_store(
   FaultingCodeOffset fco;
 
   if (isLoongson() && !Imm16::IsInSignedRange(address.offset)) {
-    ma_li(ScratchRegister, Imm32(address.offset));
+    ScratchRegisterScope scratch(asMasm());
+    ma_li(scratch, Imm32(address.offset));
     base = address.base;
 
     fco = FaultingCodeOffset(currentOffset());
     switch (size) {
       case SizeByte:
-        as_gssbx(data, base, ScratchRegister, 0);
+        as_gssbx(data, base, scratch, 0);
         break;
       case SizeHalfWord:
-        as_gsshx(data, base, ScratchRegister, 0);
+        as_gsshx(data, base, scratch, 0);
         break;
       case SizeWord:
-        as_gsswx(data, base, ScratchRegister, 0);
+        as_gsswx(data, base, scratch, 0);
         break;
       case SizeDouble:
-        as_gssdx(data, base, ScratchRegister, 0);
+        as_gssdx(data, base, scratch, 0);
         break;
       default:
         MOZ_CRASH("Invalid argument for ma_store");
@@ -704,6 +730,8 @@ FaultingCodeOffset MacroAssemblerMIPS64::ma_store(
   }
 
   if (!Imm16::IsInSignedRange(address.offset)) {
+    // assert on scratch ownership
+    ScratchRegisterScope scratch(asMasm());
     ma_li(ScratchRegister, Imm32(address.offset));
     as_daddu(ScratchRegister, address.base, ScratchRegister);
     base = ScratchRegister;
@@ -736,9 +764,10 @@ FaultingCodeOffset MacroAssemblerMIPS64::ma_store(
 void MacroAssemblerMIPS64Compat::computeScaledAddress(const BaseIndex& address,
                                                       Register dest) {
   int32_t shift = Imm32::ShiftOf(address.scale).value;
+  ScratchRegisterScope scratch(asMasm());
   if (shift) {
-    ma_dsll(ScratchRegister, address.index, Imm32(shift));
-    as_daddu(dest, address.base, ScratchRegister);
+    ma_dsll(scratch, address.index, Imm32(shift));
+    as_daddu(dest, address.base, scratch);
   } else {
     as_daddu(dest, address.base, address.index);
   }
@@ -1322,8 +1351,7 @@ FaultingCodeOffset MacroAssemblerMIPS64Compat::store32(Register src,
 
 template <typename T>
 void MacroAssemblerMIPS64Compat::storePtr(ImmWord imm, T address) {
-  ma_li(SecondScratchReg, imm);
-  ma_store(SecondScratchReg, address, SizeDouble);
+  ma_store(imm, address, SizeDouble);
 }
 
 template void MacroAssemblerMIPS64Compat::storePtr<Address>(ImmWord imm,
