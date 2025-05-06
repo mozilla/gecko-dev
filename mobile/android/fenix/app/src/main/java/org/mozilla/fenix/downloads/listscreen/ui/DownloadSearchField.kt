@@ -105,7 +105,7 @@ private fun SearchTextFieldContent(
             IconButton(onClick = onSearchDismissRequest) {
                 Icon(
                     painter = painterResource(R.drawable.mozac_ic_back_24),
-                    contentDescription = null,
+                    contentDescription = stringResource(R.string.download_close_search_description),
                     tint = FirefoxTheme.colors.iconPrimary,
                     modifier = Modifier.size(20.dp),
                 )
@@ -125,7 +125,7 @@ private fun SearchTextFieldContent(
                 IconButton(onClick = onClearSearchQuery) {
                     Icon(
                         painter = painterResource(R.drawable.mozac_ic_cross_circle_fill_20),
-                        contentDescription = null,
+                        contentDescription = stringResource(R.string.download_clear_search_description),
                         tint = FirefoxTheme.colors.iconPrimary,
                     )
                 }
