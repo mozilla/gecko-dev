@@ -1029,7 +1029,7 @@ var Impl = {
       let p = (async () => {
         await lazy.ClientID.resetIdentifiers();
         // For the time being this is tied to the telemetry upload preference.
-        await lazy.ClientID.resetUsageProfileIdentifier();
+        await lazy.ClientID.resetUsageProfileIdentifiers();
         this._clientID = await lazy.ClientID.getClientID();
         this._profileGroupID = await lazy.ClientID.getProfileGroupID();
         Glean.telemetry.dataUploadOptin.set(true);

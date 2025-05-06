@@ -785,6 +785,28 @@ usage:
       - usage-reporting
       - usage-deletion-request
       - onboarding-opt-out
+  profile_group_id:
+    type: uuid
+    lifetime: user
+    description: |
+      A UUID uniquely identifying the profile group,
+      not shared with other telemetry data.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1944648
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1944648
+    data_sensitivity:
+      - technical
+      - highly_sensitive
+    notification_emails:
+      - glean-team@mozilla.com
+      - loines@mozilla.com
+      - jhirsch@mozilla.com
+    expires: never
+    send_in_pings:
+      - usage-reporting
+      - usage-deletion-request
+      - onboarding-opt-out
   os:
     type: string
     lifetime: application

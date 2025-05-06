@@ -12,6 +12,7 @@ BASELINE = FOGDocTypePingFilter("baseline")
 FOG_USAGE_REPORTING = FOGDocTypePingFilter("usage-reporting")
 FOG_USAGE_DELETION_REQUEST_PING = FOGDocTypePingFilter("usage-deletion-request")
 CANARY_USAGE_PROFILE_ID = "beefbeef-beef-beef-beef-beeefbeefbee"
+CANARY_USAGE_PROFILE_GROUP_ID = "b0bacafe-b0ba-cafe-b0ba-cafeb0bacafe"
 
 
 class TestUsageReporting(FOGTestCase):
@@ -56,6 +57,11 @@ class TestUsageReporting(FOGTestCase):
         self.assertIsValidUUID(usage_id1)
         self.assertNotEqual(CANARY_USAGE_PROFILE_ID, usage_id1)
 
+        self.assertIn("usage.profile_group_id", metrics["uuid"])
+        usage_group_id1 = metrics["uuid"]["usage.profile_group_id"]
+        self.assertIsValidUUID(usage_group_id1)
+        self.assertNotEqual(CANARY_USAGE_PROFILE_GROUP_ID, usage_group_id1)
+
         # Regular `deletion-request` ping won't have the `usage.profile_id`.
         # We just wait for it to know it happened.
         _ping2 = self.wait_for_ping(
@@ -77,6 +83,13 @@ class TestUsageReporting(FOGTestCase):
 
         self.assertNotEqual(usage_id1, usage_id2)
         self.assertNotEqual(CANARY_USAGE_PROFILE_ID, usage_id2)
+
+        self.assertIn("usage.profile_group_id", ping3["payload"]["metrics"]["uuid"])
+        usage_group_id2 = ping3["payload"]["metrics"]["uuid"]["usage.profile_group_id"]
+        self.assertIsValidUUID(usage_group_id2)
+
+        self.assertNotEqual(usage_group_id1, usage_group_id2)
+        self.assertNotEqual(CANARY_USAGE_PROFILE_GROUP_ID, usage_group_id2)
 
     def test_usage_deletion_request(self):
         """
@@ -103,6 +116,11 @@ class TestUsageReporting(FOGTestCase):
         self.assertIsValidUUID(usage_id1)
         self.assertNotEqual(CANARY_USAGE_PROFILE_ID, usage_id1)
 
+        self.assertIn("usage.profile_group_id", metrics["uuid"])
+        usage_group_id1 = metrics["uuid"]["usage.profile_group_id"]
+        self.assertIsValidUUID(usage_group_id1)
+        self.assertNotEqual(CANARY_USAGE_PROFILE_GROUP_ID, usage_group_id1)
+
         # `usage-deletion-request` ping will have the `usage.profile_id`.
         #
         # N.b.: the `usage-deletion-request` ping has `include_info_sections:
@@ -118,6 +136,10 @@ class TestUsageReporting(FOGTestCase):
         usage_id2 = metrics["uuid"]["usage.profile_id"]
         self.assertEqual(usage_id1, usage_id2)
 
+        self.assertIn("usage.profile_group_id", metrics["uuid"])
+        usage_group_id2 = metrics["uuid"]["usage.profile_group_id"]
+        self.assertEqual(usage_group_id1, usage_group_id2)
+
         self.enable_usage_reporting()
         ping3 = self.wait_for_ping(
             self.restart_browser,
@@ -132,9 +154,16 @@ class TestUsageReporting(FOGTestCase):
         self.assertNotEqual(usage_id1, usage_id3)
         self.assertNotEqual(CANARY_USAGE_PROFILE_ID, usage_id3)
 
+        self.assertIn("usage.profile_group_id", ping3["payload"]["metrics"]["uuid"])
+        usage_group_id3 = ping3["payload"]["metrics"]["uuid"]["usage.profile_group_id"]
+        self.assertIsValidUUID(usage_group_id3)
+
+        self.assertNotEqual(usage_group_id1, usage_group_id3)
+        self.assertNotEqual(CANARY_USAGE_PROFILE_GROUP_ID, usage_group_id3)
+
     def test_enabled_state_after_restart(self):
         """
-        Test that the "usage-reporting" ping remains enabled and the usage ID remains fixed when restarting the browser.
+        Test that the "usage-reporting" ping remains enabled and the usage ID and usage group ID remain fixed when restarting the browser.
         """
 
         self.disable_usage_reporting()
@@ -154,6 +183,11 @@ class TestUsageReporting(FOGTestCase):
         self.assertIsValidUUID(usage_id1)
         self.assertNotEqual(CANARY_USAGE_PROFILE_ID, usage_id1)
 
+        self.assertIn("usage.profile_group_id", metrics["uuid"])
+        usage_group_id1 = metrics["uuid"]["usage.profile_group_id"]
+        self.assertIsValidUUID(usage_group_id1)
+        self.assertNotEqual(CANARY_USAGE_PROFILE_GROUP_ID, usage_group_id1)
+
         # Restarting again should maintain enabled state.
         ping2 = self.wait_for_ping(
             self.restart_browser,
@@ -166,6 +200,11 @@ class TestUsageReporting(FOGTestCase):
         usage_id2 = metrics["uuid"]["usage.profile_id"]
 
         self.assertEqual(usage_id1, usage_id2)
+
+        self.assertIn("usage.profile_group_id", metrics["uuid"])
+        usage_group_id2 = metrics["uuid"]["usage.profile_group_id"]
+
+        self.assertEqual(usage_group_id1, usage_group_id2)
 
     def test_disabled_state_after_restart(self):
         """
@@ -185,6 +224,11 @@ class TestUsageReporting(FOGTestCase):
         usage_id1 = metrics["uuid"]["usage.profile_id"]
         self.assertIsValidUUID(usage_id1)
         self.assertNotEqual(CANARY_USAGE_PROFILE_ID, usage_id1)
+
+        self.assertIn("usage.profile_group_id", metrics["uuid"])
+        usage_group_id1 = metrics["uuid"]["usage.profile_group_id"]
+        self.assertIsValidUUID(usage_group_id1)
+        self.assertNotEqual(CANARY_USAGE_PROFILE_GROUP_ID, usage_group_id1)
 
         current_num_pings = len(self.fog_ping_server.pings)
 
