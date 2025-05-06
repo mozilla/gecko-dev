@@ -20,10 +20,12 @@ import androidx.core.view.updateLayoutParams
 import androidx.navigation.fragment.findNavController
 import mozilla.components.browser.state.state.BrowserState
 import mozilla.components.support.ktx.android.content.res.resolveAttribute
+import mozilla.components.support.utils.ext.isLandscape
 import org.mozilla.fenix.HomeActivity
 import org.mozilla.fenix.R
 import org.mozilla.fenix.browser.tabstrip.isTabStripEnabled
 import org.mozilla.fenix.components.toolbar.ToolbarPosition
+import org.mozilla.fenix.components.toolbar.navbar.shouldAddNavigationBar
 import org.mozilla.fenix.databinding.FragmentHomeBinding
 import org.mozilla.fenix.databinding.FragmentHomeToolbarViewLayoutBinding
 import org.mozilla.fenix.ext.increaseTapAreaVertically
@@ -63,10 +65,12 @@ internal class HomeToolbarView(
 
     init {
         initLayoutParameters()
+        updateMargins()
     }
 
     override fun build(browserState: BrowserState) {
         initLayoutParameters()
+        updateMargins()
 
         toolbarBinding.toolbarText.compoundDrawablePadding =
             context.resources.getDimensionPixelSize(R.dimen.search_bar_search_engine_icon_padding)
@@ -90,12 +94,12 @@ internal class HomeToolbarView(
             TOOLBAR_WRAPPER_INCREASE_HEIGHT_DPS,
         )
 
-        updateButtonVisibility(browserState)
+        updateButtonVisibility(browserState, context.shouldAddNavigationBar())
     }
 
-    override fun updateButtonVisibility(browserState: BrowserState) {
-        val showMenu = true
-        val showTabCounter = !context.isTabStripEnabled()
+    override fun updateButtonVisibility(browserState: BrowserState, shouldAddNavigationBar: Boolean) {
+        val showMenu = !shouldAddNavigationBar
+        val showTabCounter = !(shouldAddNavigationBar || context.isTabStripEnabled())
         toolbarBinding.menuButton.isVisible = showMenu
         toolbarBinding.tabButton.isVisible = showTabCounter
 
@@ -168,7 +172,7 @@ internal class HomeToolbarView(
         browsingModeManager = homeActivity.browsingModeManager,
         navController = homeFragment.findNavController(),
         tabCounter = toolbarBinding.tabButton,
-        showLongPressMenu = !context.isLargeWindow(),
+        showLongPressMenu = !(context.settings().navigationToolbarEnabled && context.isLargeWindow()),
     )
 
     private fun initLayoutParameters() {
@@ -234,6 +238,22 @@ internal class HomeToolbarView(
             }
 
             ToolbarPosition.BOTTOM -> {}
+        }
+    }
+
+    private fun updateMargins() {
+        if (context.settings().navigationToolbarEnabled) {
+            val marginStart = context.resources.getDimensionPixelSize(R.dimen.toolbar_horizontal_margin)
+            val marginEnd = if (context.isLandscape() || context.isLargeWindow()) {
+                context.resources.getDimensionPixelSize(R.dimen.home_item_horizontal_short_margin)
+            } else {
+                context.resources.getDimensionPixelSize(R.dimen.home_item_horizontal_margin)
+            }
+
+            (toolbarBinding.toolbarWrapper.layoutParams as ConstraintLayout.LayoutParams).apply {
+                this.marginStart = marginStart
+                this.marginEnd = marginEnd
+            }
         }
     }
 

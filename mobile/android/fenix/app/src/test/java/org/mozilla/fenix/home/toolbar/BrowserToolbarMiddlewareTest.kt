@@ -14,6 +14,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.mockkStatic
+import io.mockk.unmockkStatic
 import io.mockk.verify
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.test.StandardTestDispatcher
@@ -34,8 +35,10 @@ import mozilla.components.support.test.ext.joinBlocking
 import mozilla.components.support.test.robolectric.testContext
 import mozilla.components.support.test.rule.MainCoroutineRule
 import mozilla.components.support.test.rule.runTestOnMain
+import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
+import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -52,6 +55,7 @@ import org.mozilla.fenix.components.appstate.OrientationMode.Landscape
 import org.mozilla.fenix.components.appstate.OrientationMode.Portrait
 import org.mozilla.fenix.components.menu.MenuAccessPoint
 import org.mozilla.fenix.components.toolbar.ToolbarPosition
+import org.mozilla.fenix.components.toolbar.navbar.shouldAddNavigationBar
 import org.mozilla.fenix.ext.nav
 import org.mozilla.fenix.ext.settings
 import org.mozilla.fenix.home.toolbar.BrowserToolbarMiddleware.LifecycleDependencies
@@ -72,8 +76,21 @@ class BrowserToolbarMiddlewareTest {
     private val lifecycleOwner = FakeLifecycleOwner(Lifecycle.State.RESUMED)
     private val browsingModeManager = SimpleBrowsingModeManager(Normal)
 
+    @Before
+    fun setup() {
+        mockkStatic(Context::shouldAddNavigationBar)
+    }
+
+    @After
+    fun teardown() {
+        unmockkStatic(Context::shouldAddNavigationBar)
+    }
+
+    // Testing initial configuration
+
     @Test
-    fun `WHEN initializing the toolbar THEN add browser end actions`() = runTestOnMain {
+    fun `GIVEN navbar should not be shown WHEN initializing the toolbar THEN add browser end actions`() = runTestOnMain {
+        every { testContext.shouldAddNavigationBar() } returns false
         val middleware = BrowserToolbarMiddleware(appStore, browserStore).apply {
             updateLifecycleDependencies(LifecycleDependencies(testContext, lifecycleOwner, mockk(), browsingModeManager))
         }
@@ -91,7 +108,23 @@ class BrowserToolbarMiddlewareTest {
     }
 
     @Test
+    fun `GIVEN navbar should be shown WHEN initializing the toolbar THEN don't add browser end actions`() = runTestOnMain {
+        every { testContext.shouldAddNavigationBar() } returns true
+        val middleware = BrowserToolbarMiddleware(appStore, browserStore).apply {
+            updateLifecycleDependencies(LifecycleDependencies(testContext, lifecycleOwner, mockk(), browsingModeManager))
+        }
+
+        val toolbarStore = BrowserToolbarStore(
+            middleware = listOf(middleware),
+        )
+
+        val toolbarBrowserActions = toolbarStore.state.displayState.browserActionsEnd
+        assertEquals(0, toolbarBrowserActions.size)
+    }
+
+    @Test
     fun `GIVEN normal browsing mode WHEN initializing the toolbar THEN show the number of normal tabs in the tabs counter button`() = runTestOnMain {
+        every { testContext.shouldAddNavigationBar() } returns false
         val browsingModeManager = SimpleBrowsingModeManager(Normal)
         val browserStore = BrowserStore(
             initialState = BrowserState(
@@ -113,6 +146,7 @@ class BrowserToolbarMiddlewareTest {
 
     @Test
     fun `GIVEN private browsing mode WHEN initializing the toolbar THEN show the number of private tabs in the tabs counter button`() = runTestOnMain {
+        every { testContext.shouldAddNavigationBar() } returns false
         val browsingModeManager = SimpleBrowsingModeManager(Private)
         val browserStore = BrowserStore(
             initialState = BrowserState(
@@ -140,6 +174,8 @@ class BrowserToolbarMiddlewareTest {
     @Test
     fun `GIVEN in portrait WHEN changing to landscape THEN show browser end actions`() = runTestOnMain {
         Dispatchers.setMain(StandardTestDispatcher())
+        // In portrait the navigation bar is displayed
+        every { testContext.shouldAddNavigationBar() } returns true
         val appStore = AppStore(
             initialState = AppState(
                 orientation = Portrait,
@@ -153,8 +189,10 @@ class BrowserToolbarMiddlewareTest {
         )
         testScheduler.advanceUntilIdle()
         var toolbarBrowserActions = toolbarStore.state.displayState.browserActionsEnd
-        assertEquals(2, toolbarBrowserActions.size)
+        assertEquals(0, toolbarBrowserActions.size)
 
+        // In landscape the navigation bar is not displayed
+        every { testContext.shouldAddNavigationBar() } returns false
         appStore.dispatch(AppAction.OrientationChange(Landscape)).joinBlocking()
         testScheduler.advanceUntilIdle()
 
@@ -167,8 +205,10 @@ class BrowserToolbarMiddlewareTest {
     }
 
     @Test
-    fun `GIVEN in landscape WHEN changing to portrait THEN show all browser end actions`() = runTestOnMain {
+    fun `GIVEN in landscape WHEN changing to portrait THEN remove all browser end actions`() = runTestOnMain {
         Dispatchers.setMain(StandardTestDispatcher())
+        // In landscape the navigation bar is not displayed
+        every { testContext.shouldAddNavigationBar() } returns false
         val appStore = AppStore(
             initialState = AppState(
                 orientation = Landscape,
@@ -189,16 +229,19 @@ class BrowserToolbarMiddlewareTest {
         assertEqualsToolbarButton(expectedToolbarButton(), tabCounterButton)
         assertEquals(expectedMenuButton, menuButton)
 
+        // In portrait the navigation bar is displayed
+        every { testContext.shouldAddNavigationBar() } returns true
         appStore.dispatch(AppAction.OrientationChange(Portrait)).joinBlocking()
         testScheduler.advanceUntilIdle()
 
         toolbarBrowserActions = toolbarStore.state.displayState.browserActionsEnd
-        assertEquals(2, toolbarBrowserActions.size)
+        assertEquals(0, toolbarBrowserActions.size)
     }
 
     @Test
     fun `GIVEN in normal browsing WHEN the number of normal opened tabs is modified THEN update the tab counter`() = runTestOnMain {
         Dispatchers.setMain(StandardTestDispatcher())
+        every { testContext.shouldAddNavigationBar() } returns false
         val browsingModeManager = SimpleBrowsingModeManager(Normal)
         val browserStore = BrowserStore()
         val middleware = BrowserToolbarMiddleware(appStore, browserStore).apply {
@@ -228,6 +271,7 @@ class BrowserToolbarMiddlewareTest {
     @Test
     fun `GIVEN in private browsing WHEN the number of private opened tabs is modified THEN update the tab counter`() = runTestOnMain {
         Dispatchers.setMain(StandardTestDispatcher())
+        every { testContext.shouldAddNavigationBar() } returns false
         val browsingModeManager = SimpleBrowsingModeManager(Private)
         val initialNormalTab = createTab("test.com", private = false)
         val initialPrivateTab = createTab("test.com", private = true)
@@ -261,6 +305,7 @@ class BrowserToolbarMiddlewareTest {
 
     @Test
     fun `WHEN clicking the menu button THEN open the menu`() {
+        every { testContext.shouldAddNavigationBar() } returns false
         val navController: NavController = mockk(relaxed = true)
         val middleware = BrowserToolbarMiddleware(appStore, browserStore).apply {
             updateLifecycleDependencies(
@@ -286,6 +331,7 @@ class BrowserToolbarMiddlewareTest {
 
     @Test
     fun `GIVEN browsing in normal mode WHEN clicking the tab counter button THEN open the tabs tray in normal mode`() {
+        every { testContext.shouldAddNavigationBar() } returns false
         val browsingModeManager = SimpleBrowsingModeManager(Normal)
         val navController: NavController = mockk(relaxed = true)
         val middleware = BrowserToolbarMiddleware(appStore, browserStore).apply {
@@ -310,6 +356,7 @@ class BrowserToolbarMiddlewareTest {
 
     @Test
     fun `GIVEN browsing in private mode WHEN clicking the tab counter button THEN open the tabs tray in private mode`() {
+        every { testContext.shouldAddNavigationBar() } returns false
         val browsingModeManager = SimpleBrowsingModeManager(Private)
         val navController: NavController = mockk(relaxed = true)
         val middleware = BrowserToolbarMiddleware(appStore, browserStore).apply {
@@ -334,6 +381,7 @@ class BrowserToolbarMiddlewareTest {
 
     @Test
     fun `GIVEN browsing in normal mode WHEN clicking on the long click menu option THEN open a new private tab`() {
+        every { testContext.shouldAddNavigationBar() } returns false
         val browsingModeManager = SimpleBrowsingModeManager(Normal)
         val navController: NavController = mockk(relaxed = true)
         val middleware = BrowserToolbarMiddleware(appStore, browserStore).apply {
@@ -371,6 +419,7 @@ class BrowserToolbarMiddlewareTest {
 
     @Test
     fun `GIVEN browsing in private mode WHEN clicking on the long click menu option THEN open a new normal tab`() {
+        every { testContext.shouldAddNavigationBar() } returns false
         val browsingModeManager = SimpleBrowsingModeManager(Private)
         val navController: NavController = mockk(relaxed = true)
         val middleware = BrowserToolbarMiddleware(appStore, browserStore).apply {

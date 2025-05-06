@@ -104,8 +104,11 @@ class BrowserToolbarView(
         }
 
         with(context) {
-            layout.elevation =
+            layout.elevation = if (shouldShowDropShadow()) {
                 resources.getDimension(R.dimen.browser_fragment_toolbar_elevation)
+            } else {
+                0.0f
+            }
 
             toolbar.apply {
                 setToolbarBehavior()

@@ -36,6 +36,7 @@ class WebControlsTest : TestSetup() {
 
     @get:Rule
     val activityTestRule = HomeActivityTestRule(
+        isNavigationBarCFREnabled = false,
         shouldUseBottomToolbar = true,
         isOpenInAppBannerEnabled = false,
     )

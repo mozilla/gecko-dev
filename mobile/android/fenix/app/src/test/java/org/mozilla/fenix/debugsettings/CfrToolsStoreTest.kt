@@ -54,6 +54,32 @@ class CfrToolsStoreTest {
     }
 
     @Test
+    fun `GIVEN the homepage nav toolbar CFR has been shown WHEN the homepage nav toolbar CFR is toggled THEN its preference is set to false`() {
+        val store = CfrToolsStore(
+            initialState = CfrToolsState(
+                homepageNavToolbarShown = true,
+            ),
+        )
+
+        assertTrue(store.state.homepageNavToolbarShown)
+        store.dispatch(CfrToolsAction.HomepageNavToolbarShownToggled)
+        assertFalse(store.state.homepageNavToolbarShown)
+    }
+
+    @Test
+    fun `GIVEN the homepage nav toolbar CFR has not been shown WHEN the homepage nav toolbar CFR is toggled THEN its preference is set to true`() {
+        val store = CfrToolsStore(
+            initialState = CfrToolsState(
+                homepageNavToolbarShown = false,
+            ),
+        )
+
+        assertFalse(store.state.homepageNavToolbarShown)
+        store.dispatch(CfrToolsAction.HomepageNavToolbarShownToggled)
+        assertTrue(store.state.homepageNavToolbarShown)
+    }
+
+    @Test
     fun `GIVEN the homepage searchbar CFR has been shown WHEN the homepage searchbar CFR is toggled THEN its preference is set to false`() {
         val store = CfrToolsStore(
             initialState = CfrToolsState(
@@ -77,6 +103,32 @@ class CfrToolsStoreTest {
         assertFalse(store.state.homepageSearchBarShown)
         store.dispatch(CfrToolsAction.HomepageSearchBarShownToggled)
         assertTrue(store.state.homepageSearchBarShown)
+    }
+
+    @Test
+    fun `GIVEN the nav buttons CFR has been shown WHEN the nav buttons CFR is toggled THEN its preference is set to false`() {
+        val store = CfrToolsStore(
+            initialState = CfrToolsState(
+                navButtonsShown = true,
+            ),
+        )
+
+        assertTrue(store.state.navButtonsShown)
+        store.dispatch(CfrToolsAction.NavButtonsShownToggled)
+        assertFalse(store.state.navButtonsShown)
+    }
+
+    @Test
+    fun `GIVEN the nav buttons CFR has not been shown WHEN the nav buttons CFR is toggled THEN its preference is set to true`() {
+        val store = CfrToolsStore(
+            initialState = CfrToolsState(
+                navButtonsShown = false,
+            ),
+        )
+
+        assertFalse(store.state.navButtonsShown)
+        store.dispatch(CfrToolsAction.NavButtonsShownToggled)
+        assertTrue(store.state.navButtonsShown)
     }
 
     @Test
@@ -219,6 +271,32 @@ class CfrToolsStoreTest {
     }
 
     @Test
+    fun `GIVEN the homepage nav toolbar CFR has not been shown WHEN the corresponding CfrPreferenceUpdate is dispatched THEN update its state to true`() {
+        val store = CfrToolsStore(
+            initialState = CfrToolsState(
+                homepageNavToolbarShown = false,
+            ),
+        )
+
+        assertFalse(store.state.homepageNavToolbarShown)
+        store.dispatch(CfrToolsAction.HomepageNavToolbarCfrUpdated(true))
+        assertTrue(store.state.homepageNavToolbarShown)
+    }
+
+    @Test
+    fun `GIVEN the homepage nav toolbar CFR has been shown WHEN the corresponding CfrPreferenceUpdate is dispatched THEN update its state to false`() {
+        val store = CfrToolsStore(
+            initialState = CfrToolsState(
+                homepageNavToolbarShown = true,
+            ),
+        )
+
+        assertTrue(store.state.homepageNavToolbarShown)
+        store.dispatch(CfrToolsAction.HomepageNavToolbarCfrUpdated(false))
+        assertFalse(store.state.homepageNavToolbarShown)
+    }
+
+    @Test
     fun `GIVEN the homepage searchbar CFR has not been shown WHEN the corresponding CfrPreferenceUpdate is dispatched THEN update its state to true`() {
         val store = CfrToolsStore(
             initialState = CfrToolsState(
@@ -242,6 +320,32 @@ class CfrToolsStoreTest {
         assertTrue(store.state.homepageSearchBarShown)
         store.dispatch(CfrToolsAction.HomepageSearchbarCfrUpdated(false))
         assertFalse(store.state.homepageSearchBarShown)
+    }
+
+    @Test
+    fun `GIVEN the nav buttons CFR has not been shown WHEN the corresponding CfrPreferenceUpdate is dispatched THEN update its state to true`() {
+        val store = CfrToolsStore(
+            initialState = CfrToolsState(
+                navButtonsShown = false,
+            ),
+        )
+
+        assertFalse(store.state.navButtonsShown)
+        store.dispatch(CfrToolsAction.NavButtonsCfrUpdated(true))
+        assertTrue(store.state.navButtonsShown)
+    }
+
+    @Test
+    fun `GIVEN the nav buttons CFR has been shown WHEN the corresponding CfrPreferenceUpdate is dispatched THEN update its state to false`() {
+        val store = CfrToolsStore(
+            initialState = CfrToolsState(
+                navButtonsShown = true,
+            ),
+        )
+
+        assertTrue(store.state.navButtonsShown)
+        store.dispatch(CfrToolsAction.NavButtonsCfrUpdated(false))
+        assertFalse(store.state.navButtonsShown)
     }
 
     @Test
