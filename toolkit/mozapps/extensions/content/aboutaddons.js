@@ -1826,7 +1826,7 @@ class InlineOptionsBrowser extends HTMLElement {
       } else {
         // browser custom element does opt-in the delayConnectedCallback
         // behavior (see connectedCallback in the custom element definition
-        // from browser-custom-element.js) and so calling browser.loadURI
+        // from browser-custom-element.mjs) and so calling browser.loadURI
         // would fail if the about:addons document is not yet fully loaded.
         Promise.race([
           promiseEvent("DOMContentLoaded", document),

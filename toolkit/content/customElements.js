@@ -773,9 +773,9 @@
   window.MozHTMLElement = MozHTMLElement;
 
   customElements.setElementCreationCallback("browser", () => {
-    Services.scriptloader.loadSubScript(
-      "chrome://global/content/elements/browser-custom-element.js",
-      window
+    ChromeUtils.importESModule(
+      "chrome://global/content/elements/browser-custom-element.mjs",
+      { global: "current" }
     );
   });
 
