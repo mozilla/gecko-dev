@@ -20,6 +20,7 @@
   <string name="teaser">အလိုအလျောက် တစ်ကိုယ်ရေသုံး၊ \nသုံးပြီးဖျက်</string>
   <!-- "Snackbar" shown after the user has pressed the 'erase' button at the end of a browsing session -->
   <string name="feedback_erase">သင့် ဘယောက်ဆာသုံး မှတ်တမ်းဖျက်ပြီး</string>
+  <string name="feedback_erase2">ရှာဖွေမှုမှတ်တမ်းကို ရှင်းလင်းထားသည်။</string>
   <!-- "Snackbar" shown after the user has pressed the 'erase' button at the end of a custom tab browsing session -->
   <string name="feedback_erase_custom_tab">ကြည့်ရှုမှတ်တမ်းကို ရှင်းလင်းထားသည်။</string>
   <!--
@@ -46,10 +47,15 @@
   <string name="menu_open_with_a_browser2">…တွင် ဖွင့်ရန်</string>
   <!-- Menu item: Add the current page as a shortcut to the device's home screen (launcher). -->
   <string name="menu_add_to_home_screen">ပင်မစာမျက်နှာသို့ ထည့်ပါ</string>
+  <!-- Menu item: Add the current site as a shortcut on the Home screen -->
+  <string name="menu_add_to_shortcuts">ဖြတ်လမ်းများထဲသို့ ထည့်ပါ။</string>
+  <!-- Menu item: Remove the current site as a shortcut from the Home screen -->
+  <string name="menu_remove_from_shortcuts">ဖြတ်လမ်းလင့်ခ်များမှ ဖယ်ရှားပါ။</string>
   <!-- Menu item: Shows information about features and changes that are new to this version -->
   <string name="menu_settings">အပြင်အဆင်များ</string>
   <string name="menu_about">အကြောင်း</string>
   <string name="menu_help">အကူအညီ</string>
+  <string name="menu_terms_of_use">သတ်မှတ်ချက်များ</string>
   <!--
     Menu item: This is the label for a menu entry that shows how many trackers have been blocked
     for the currently loaded website. The number of blocked trackers is shown below this label.
@@ -78,6 +84,12 @@
     sharing an URL.
   -->
   <string name="share_dialog_title">မျှဝေရန်</string>
+  <string name="notification_erase_title_android_14">ကြည့်ရှုမှုမှတ်တမ်းကို ရှင်းလင်းရန်</string>
+  <!--
+    Text shown in the notification description that pops up to remind the user that a browsing session is active
+    for Android 14+.
+  -->
+  <string name="notification_erase_text_android_14_1">သင်၏ရှာဖွေမှုမှတ်တမ်းကို လုံခြုံစွာဖျက်ရန် ဤသတိပေးချက်ကို တို့ပါ သို့မဟုတ် ပွတ်ဆွဲပါ။</string>
   <string name="notification_erase_text">ကြည့်ရှုမှုမှတ်တမ်းကို ရှင်းလင်းရန်</string>
   <!-- Notification action to open Focus and resume the current browsing session. -->
   <string name="notification_action_open">ဖွင့်ပါ</string>
@@ -109,6 +121,44 @@
     %1$s will be replaced by the app name (e.g. Firefox Focus)
   -->
   <string name="shortcut_erase_and_open_long_label">%1$s ကို ဖျက်ပြီး ဖွင့်ပါ</string>
+  <!--
+    This is the label of an action we offer when the user selects text in other third-party apps.
+    Focus is hard coded since we can't use variables in this context.
+    Do not translate or transliterate Focus.
+  -->
+  <string name="text_selection_search_action_focus" tools:ignore="BrandUsage">Focus တွင်ရှာဖွေပါ။</string>
+  <!--
+    This is the label of an action we offer when the user selects text in other third-party apps.
+    Klar is hard coded since we can't use variables in this context.
+    Do not translate or transliterate Klar.
+  -->
+  <string name="text_selection_search_action_klar" tools:ignore="BrandUsage">Klar တွင်ရှာပါ။</string>
+  <!--
+    This is the label of an action we offer when the user selects text in other third-party apps.
+    Focus Beta is hard coded since we can't use variables in this context.
+    Do not translate or transliterate Focus Beta.
+  -->
+  <string name="text_selection_search_action_focus_beta" tools:ignore="BrandUsage">Focus Beta တွင် ရှာဖွေပါ။</string>
+  <!--
+    This is the label of an action we offer when the user selects text in other third-party apps.
+    Focus Nightly is hard coded since we can't use variables in this context.
+    Do not translate or transliterate Focus Nightly.
+  -->
+  <string name="text_selection_search_action_focus_nightly" tools:ignore="BrandUsage">Focus Nightly တွင် ရှာဖွေပါ။</string>
+  <!--
+    Content of about focus. %1$s is the name of the app (for example "Firefox Focus" or "Firefox Klar").
+    %2$s is the url for the learn-more link.
+  -->
+  <string name="about_content" tools:ignore="IncorrectStraightDoubleQuote">&lt;p&gt;%1$s သည် သင့်ကို ထိန်းချုပ်မှု ပေးထားပါသည်။&lt;/p&gt;
+&lt;p&gt;သီးသန့်တစ်ကိုယ်ရေသုံး ဘရောင်ဇာအနေနှင့် အသုံးပြုပါ
+  &lt;ul&gt;
+    &lt;li&gt;ရှာဖွေကြည့်ရှုပါ&lt;/li&gt;
+    &lt;li&gt;နောက်ယောင်ခံများကို တားဆီးပါ (သို့မဟုတ် နောက်ယောင်ခံများကို ခွင့်ပြုရန် သတ်မှတ်ပြင်ဆင်ပါ)&lt;/li&gt;
+    &lt;li&gt;ကွတ်ကီးများ၊ ရှာဖွေကြည့်ရှုမှုမှတ်တမ်းများကို ရှင်းလင်းပါ&lt;/li&gt;
+  &lt;/ul&gt;
+&lt;/p&gt;
+&lt;p&gt;%1$s ကို Mozilla မှ ထုတ်လုပ်ပါသည်။ ကျွန်ုပ်တို့၏ ရည်မှန်းချက်သည် ကောင်းမွန်ပွင့်လင်းသော အင်တာနက်ကို တည်ဆောက်ရန် ဖြစ်သည်။&lt;br/&gt;
+&lt;a href="%2$s"&gt;Learn more&lt;/a&gt;&lt;/p&gt;</string>
   <!-- Header for the Privacy and Security settings menu -->
   <string name="preference_privacy_and_security_header">ကိုယ်ရေးကာကွယ်မှုနှင့် လုံခြုံရေး</string>
   <!-- Preference summary for settings related to privacy and security -->
@@ -126,12 +176,16 @@
     %1$s will be replaced by the app name (e.g. Firefox Focus)
   -->
   <string name="preference_mozilla_summary">%1$s အကြာင်း၊ ကူညီမှု</string>
+  <!-- Preference category for ad blocking and enhanced tracking protection settings -->
+  <string name="preference_category_tracking_protection3">အဆင့်မြှင့် ခြေရာခံကာကွယ်မှု</string>
   <!-- Preference category for settings related to controlling web content -->
   <string name="preference_category_web_content">ဝတ်ဘ်စာကိုယ်</string>
   <!-- Preference category: stealth settings for while switching apps -->
   <string name="preference_category_switching_apps">အက်ပ်များ ဖွင့်ခြင်း</string>
   <!-- Preference category for General Settings -->
   <string name="preference_category_general">အထွေထွေ</string>
+  <!-- Preference summary for General Settings category; the two things users can find in this category -->
+  <string name="preference_general_summary2">မူသေဘရောက်ဆာ၊ ဘာသာစကား</string>
   <!-- Preference category for settings about sending usage data -->
   <string name="preference_category_data_collection_use">ဒေတာစုစည်းမှုနှင့်အသုံးပြုမှု</string>
   <string name="preference_category_search">ရှာဖွေရန်</string>
@@ -154,14 +208,28 @@
   <string name="preference_subitem_autocomplete">URL အလိုအလျောက်ဖြည့်စွက်</string>
   <!-- Title of "switch" preference that enables/disables autocomplete for the default list -->
   <string name="preference_switch_autocomplete_topsites">ထိပ်တန်းဆိုက်များအတွက်</string>
+  <!--
+    Summary for the toggle to enable autocomplete for the topsites list
+    %s is the name of the app (for example "Firefox Focus" or "Firefox Klar").
+  -->
+  <string name="preference_autocomplete_topsite_summary2">လိပ်စာဘားတန်းတွင် လူသုံးများ URLs 450 ကျော် %1$s အလိုအလျောက်စာဖြည့်စနစ်ရရှိရန် ဖွင့်ပါ။</string>
   <!-- Title of "switch" preference that enables/disables autocomplete for the user-defined list -->
   <string name="preference_switch_autocomplete_user_list">သင်ရွေးချယ်ထားသော ဝဘ်ဆိုက်များအတွက်</string>
+  <!--
+    Summary for the toggle to enable autocomplete for the user-defined list
+    %s is the name of the app (for example "Firefox Focus" or "Firefox Klar").
+  -->
+  <string name="preference_autocomplete_user_list_summary2">သင့်စိတ်ကြိုက် URL များ %s ကို အလိုအလျောက်ဖြည့်ပေးနိုင်ရန် ဖွင့်ပါ</string>
   <!-- Preference category: Manage (user-defined) sites -->
   <string name="preference_category_autocomplete_manage_sites">ဝဘ်ဆိုက်များကို စီမံရန်</string>
   <!-- Item in autocomplete settings that will open a new preference screen for adding and removing URLs to the user-defined list -->
   <string name="preference_autocomplete_subitem_manage_sites">ဝဘ်ဆိုက်များကို စီမံရန်</string>
   <!-- Action at the bottom of the list of custom autocomplete URLs that will open a new screen to add a new URL to the list. -->
   <string name="preference_autocomplete_action_add">+ စိတ်ကြိုက် URLs တိုးရန်</string>
+  <!-- Explanation text above the list of custom autocomplete URLs. -->
+  <string name="preference_autocomplete_explanation_text">သင်၏ အလိုအလျောက် ဖြည့်စွက်မှုစာရင်း-</string>
+  <!-- Action at the bottom of the list of custom autocomplete URLs that will open a new screen to add a new URL to the list. -->
+  <string name="preference_autocomplete_action_add2">URL ထည့်ပါ။</string>
   <!-- Title of the screen for adding custom autocomplete URLs. -->
   <string name="preference_autocomplete_title_add">စိတ်ကြိုက် URLs တိုးရန်</string>
   <!-- Label for the button to quick add custom autocomplete URLs. -->
@@ -210,10 +278,24 @@
   <string name="preference_privacy_block_content">အခြားသော အကြောင်းအရာနောက်ယောက်ခံကိရိယာများကို ပိတ်ပင်ပါ</string>
   <string name="preference_privacy_block_content_summary2">လုပ်ဆောင်ချက်ကို ဖွင့်လိုက်ခြင်းသည် အချို့သော ဝဘ်စာမျက်နှာများ၏ လုပ်ဆောင်ချက်များကို ထိခိုက်စေနိုင်သည်။</string>
   <string name="preference_privacy_category_cookies">ကွတ်ကီးများကို ဖျောက်ထားပါ</string>
+  <!--
+    Three options for Cookie blocking. Yes (All cookies Blocked), Block 3rd-party cookies
+    only (Only 3rd-party Cookies Blocked), No (No cookies blocked)
+  -->
+  <string name="preference_privacy_should_block_cookies_no_option2">နေပါစေ</string>
   <string name="preference_privacy_should_block_cookies_third_party_tracker_cookies_option">အခြားသူများ၏ နောက်ယောင်ခံ ကိရိယာများကိုသာ တားဆီးပါ</string>
   <string name="preference_privacy_should_block_cookies_third_party_only_option">ပြင်ပကွက်ကီးများကို မသိမ်းပါနှင့်</string>
+  <string name="preference_privacy_should_block_cookies_cross_site_option">ဆိုက်စုံကွတ်ကီးများကို ပိတ်ပါ</string>
+  <string name="preference_privacy_should_block_cookies_yes_option2">ကောင်းပြီ ကြည့်မယ်!</string>
   <!-- Preference Title: Biometrics can be used to unlock Focus if the previous session's data was not erased by the user. -->
   <string name="preference_security_biometric">အက်ပ်ကို ဖွင့်ရန် လက်ဗွေကို အသုံးပြုပါ</string>
+  <!--
+    Preference Summary: Biometrics (iris scan, fingerprint, or facial scan) can be used to unlock Focus if the app had a URL
+    open when the app was last run to ensure that only the phone's owner can view a previous session.
+    %s is the name of the app (for example "Firefox Focus" or "Firefox Klar")
+    Shortcuts is a feature that allows the user to pin his favorite websites to Focus home screen so he can quickly access them.
+  -->
+  <string name="preference_security_biometric_summary2">ဖြတ်လမ်းလင့်ခ်များ ထည့်ထားလျှင် သို့မဟုတ် ဝဘ်ဆိုက်တစ်ခုကို %s တွင် ဖွင့်ထားပြီးသည့်အခါ လက်ဗွေဖြင့် လော့ခ်ဖွင့်ပါ။</string>
   <!--
     Preference Title: Secure Mode is a setting that prevents the app's content to show up in the "recent apps" screen
     and prevents the user from taking screenshots or casting the app to other displays.
@@ -247,6 +329,9 @@
   <string name="preference_mozilla_telemetry_summary">ပိုမိုလေ့လာရန်</string>
   <!-- %1$s will be replaced with the name of the app (e.g. Firefox Focus) -->
   <string name="preference_mozilla_telemetry_summary2">Mozilla သည် လူတိုင်းအတွက် %1$s ကို ပေးစွမ်းရန်နှင့် တိုးတက်ကောင်းမွန်စေရန်အတွက်သာ ကောက်ခံမှုပြုခြင်း ဖြစ်ပါသည်။</string>
+  <!-- Preference switch for daily usage ping data collection -->
+  <string name="preference_daily_usage_ping_title">နေ့စဉ်အသုံးပြုမှု ping</string>
+  <string name="preference_daily_usage_ping_description">၎င်းသည် Mozilla အား သုံးဆွဲသူပမာဏကို ခန့်မှန်းရန် ကူညီပေးသည်။</string>
   <!-- In-app link (in settings) to Focus privacy notice. -->
   <string name="preference_privacy_notice">ကိုယ်ရေးကာကွယ်မှု သတိပေးချက်</string>
   <!-- Item in Preferences that shows the about page. %1$s is the name of the app (for example "Firefox Focus" or "Firefox Klar"). -->
