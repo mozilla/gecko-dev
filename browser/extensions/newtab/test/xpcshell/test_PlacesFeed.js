@@ -7,7 +7,6 @@ ChromeUtils.defineESModuleGetters(this, {
   actionCreators: "resource://newtab/common/Actions.mjs",
   actionTypes: "resource://newtab/common/Actions.mjs",
   AboutNewTab: "resource:///modules/AboutNewTab.sys.mjs",
-  ExperimentAPI: "resource://nimbus/ExperimentAPI.sys.mjs",
   NewTabUtils: "resource://gre/modules/NewTabUtils.sys.mjs",
   NimbusFeatures: "resource://nimbus/ExperimentAPI.sys.mjs",
   PartnerLinkAttribution: "resource:///modules/PartnerLinkAttribution.sys.mjs",
@@ -667,10 +666,10 @@ add_task(async function test_onAction_SAVE_TO_POCKET_not_logged_in() {
   let sandbox = sinon.createSandbox();
   sandbox.stub(pktApi, "isUserLoggedIn").returns(false);
   sandbox.stub(NimbusFeatures.pocketNewtab, "getVariable").returns(true);
-  sandbox.stub(ExperimentAPI, "getExperimentMetaData").returns({
+  sandbox.stub(NimbusFeatures.pocketNewtab, "getEnrollmentMetadata").returns({
     slug: "slug",
-    active: true,
-    branch: { slug: "branch-slug" },
+    branch: "branch-slug",
+    isRollout: false,
   });
   Services.prefs.setStringPref(POCKET_SITE_PREF, "getpocket.com");
 
