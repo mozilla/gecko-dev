@@ -1169,6 +1169,9 @@ def target_tasks_build_linux64_clang_trunk_perf(
 
     # Only keep tasks generated from platform `linux1804-64-clang-trunk-qr/opt`
     def filter(task_label):
+        # Bug 1961141 - Disable unity webgl for linux1804-64-clang-trunk-qr
+        if "linux1804-64-clang-trunk-qr/opt" in task_label and "unity" in task_label:
+            return False
         if "linux1804-64-clang-trunk-qr/opt" in task_label and "live" not in task_label:
             return True
         return False
