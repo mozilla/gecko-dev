@@ -2278,6 +2278,24 @@ TEST_F(WebRtcVideoChannelBaseTest, GetStatsMultipleSendStreams) {
   send_channel_->SetVideoSend(5678, nullptr, nullptr);
 }
 
+TEST_F(WebRtcVideoChannelBaseTest, GetStatsDoesNotResetAfterCodecChange) {
+  const int kDurationSec = 3;
+  const int kFps = 10;
+  SendReceiveManyAndGetStats(GetEngineCodec("VP9"), kDurationSec, kFps);
+
+  const cricket::Codec& new_codec = GetEngineCodec("VP8");
+  EXPECT_TRUE(SetOneCodec(new_codec));
+  EXPECT_TRUE(SetSend(true));
+  cricket::VideoMediaSendInfo send_info;
+  EXPECT_TRUE(send_channel_->GetStats(&send_info));
+  ASSERT_EQ(1U, send_info.senders.size());
+  EXPECT_EQ(send_info.senders[0].payload_bytes_sent,
+            NumRtpBytes() - kRtpHeaderSize * NumRtpPackets());
+  EXPECT_EQ(NumRtpPackets(), send_info.senders[0].packets_sent);
+  ASSERT_TRUE(send_info.senders[0].codec_payload_type);
+  EXPECT_EQ(new_codec.id, *send_info.senders[0].codec_payload_type);
+}
+
 // Test that we can set the bandwidth.
 TEST_F(WebRtcVideoChannelBaseTest, SetSendBandwidth) {
   cricket::VideoSenderParameters parameters;

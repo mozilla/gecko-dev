@@ -2662,9 +2662,6 @@ void WebRtcVideoSendChannel::WebRtcVideoSendStream::
 
 void WebRtcVideoSendChannel::WebRtcVideoSendStream::RecreateWebRtcStream() {
   RTC_DCHECK_RUN_ON(&thread_checker_);
-  if (stream_ != NULL) {
-    call_->DestroyVideoSendStream(stream_);
-  }
 
   RTC_CHECK(parameters_.codec_settings);
   RTC_DCHECK_EQ((parameters_.encoder_config.content_type ==
@@ -2696,8 +2693,18 @@ void WebRtcVideoSendChannel::WebRtcVideoSendStream::RecreateWebRtcStream() {
     config.encoder_settings.enable_frame_instrumentation_generator = true;
   }
 
-  stream_ = call_->CreateVideoSendStream(std::move(config),
-                                         parameters_.encoder_config.Copy());
+  if (stream_ != NULL) {
+    // TODO: webrtc:40644448 - Make sure the stats are not updated between
+    // GetStats and DestroyVideoSendStream.
+    webrtc::VideoSendStream::Stats stats = stream_->GetStats();
+    call_->DestroyVideoSendStream(stream_);
+    stream_ = call_->CreateVideoSendStream(std::move(config),
+                                           parameters_.encoder_config.Copy());
+    stream_->SetStats(stats);
+  } else {
+    stream_ = call_->CreateVideoSendStream(std::move(config),
+                                           parameters_.encoder_config.Copy());
+  }
 
   parameters_.encoder_config.encoder_specific_settings = NULL;
 

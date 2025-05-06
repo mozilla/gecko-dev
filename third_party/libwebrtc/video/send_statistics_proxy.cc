@@ -769,6 +769,11 @@ VideoSendStream::Stats SendStatisticsProxy::GetStats() {
   return stats_;
 }
 
+void SendStatisticsProxy::SetStats(const VideoSendStream::Stats& stats) {
+  MutexLock lock(&mutex_);
+  stats_ = stats;
+}
+
 void SendStatisticsProxy::PurgeOldStats() {
   Timestamp now = clock_->CurrentTime();
   for (auto& [ssrc, substream] : stats_.substreams) {

@@ -9,10 +9,10 @@ Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/ca2211dbb0dd88647
  1 file changed, 1 insertion(+), 1 deletion(-)
 
 diff --git a/video/video_send_stream_impl.cc b/video/video_send_stream_impl.cc
-index e9ddbad02b..7e6e06cc0b 100644
+index 34470eb80c..c9450df76f 100644
 --- a/video/video_send_stream_impl.cc
 +++ b/video/video_send_stream_impl.cc
-@@ -782,7 +782,7 @@ MediaStreamAllocationConfig VideoSendStreamImpl::GetAllocationConfig() const {
+@@ -787,7 +787,7 @@ MediaStreamAllocationConfig VideoSendStreamImpl::GetAllocationConfig() const {
        !config_.suspend_below_min_bitrate,
        encoder_bitrate_priority_,
        (content_type_ == VideoEncoderConfig::ContentType::kRealtimeVideo)

@@ -575,6 +575,11 @@ VideoSendStream::Stats VideoSendStreamImpl::GetStats() {
   return stats_proxy_.GetStats();
 }
 
+void VideoSendStreamImpl::SetStats(const Stats& stats) {
+  RTC_DCHECK_RUN_ON(&thread_checker_);
+  stats_proxy_.SetStats(stats);
+}
+
 std::optional<float> VideoSendStreamImpl::GetPacingFactorOverride() const {
   return configured_pacing_factor_;
 }

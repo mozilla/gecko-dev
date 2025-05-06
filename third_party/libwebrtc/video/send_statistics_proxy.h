@@ -57,6 +57,7 @@ class SendStatisticsProxy : public VideoStreamEncoderObserver,
   ~SendStatisticsProxy() override;
 
   virtual VideoSendStream::Stats GetStats();
+  void SetStats(const VideoSendStream::Stats& stats);
 
   void OnSendEncodedImage(const EncodedImage& encoded_image,
                           const CodecSpecificInfo* codec_info) override;

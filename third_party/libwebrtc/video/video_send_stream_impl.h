@@ -107,6 +107,7 @@ class VideoSendStreamImpl : public webrtc::VideoSendStream,
   void ReconfigureVideoEncoder(VideoEncoderConfig config,
                                SetParametersCallback callback) override;
   Stats GetStats() override;
+  void SetStats(const Stats& stats) override;
 
   void StopPermanentlyAndGetRtpStates(RtpStateMap* rtp_state_map,
                                       RtpPayloadStateMap* payload_state_map);

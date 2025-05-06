@@ -113,14 +113,6 @@ void VideoQualityMetricsReporter::OnStatsReports(
     return;
   }
 
-  // TODO: b/40644448 - Remove the code once the counters are not reset.
-  if (prev_sample.bytes_sent > sample.bytes_sent ||
-      prev_sample.header_bytes_sent > sample.header_bytes_sent ||
-      prev_sample.retransmitted_bytes_sent > sample.retransmitted_bytes_sent) {
-    prev_sample.bytes_sent = DataSize::Zero();
-    prev_sample.header_bytes_sent = DataSize::Zero();
-    prev_sample.retransmitted_bytes_sent = DataSize::Zero();
-  }
   DataRate retransmission_bitrate =
       (sample.retransmitted_bytes_sent - prev_sample.retransmitted_bytes_sent) /
       time_between_samples;
