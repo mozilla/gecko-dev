@@ -73,6 +73,7 @@ class HomeCFRPresenter(
                         Onboarding.syncCfrExplicitDismissal.record(NoExtras())
                         // Turn off the synced tab CFR after the CFR is shown.
                         context.settings().showSyncCFR = false
+                        context.settings().lastCfrShownTimeInMillis = System.currentTimeMillis()
                     }
                     false -> Onboarding.syncCfrImplicitDismissal.record(NoExtras())
                 }
