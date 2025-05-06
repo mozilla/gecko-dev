@@ -188,6 +188,7 @@ class AddonsManagerAdapter(
         }
     }
 
+    @SuppressLint("RecyclerView")
     override fun onBindViewHolder(holder: CustomViewHolder, position: Int) {
         val item = getItem(position)
 

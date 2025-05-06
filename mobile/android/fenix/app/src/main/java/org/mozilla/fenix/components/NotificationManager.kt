@@ -4,6 +4,7 @@
 
 package org.mozilla.fenix.components
 
+import android.annotation.SuppressLint
 import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
@@ -64,6 +65,7 @@ class NotificationManager(private val context: Context) {
      * @param context The Android application context.
      * @param count The number of tabs that were closed.
      */
+    @SuppressLint("MissingPermission", "NotifyUsage")
     fun showSyncedTabsClosed(context: Context, count: Int) {
         if (count <= 0) {
             return
@@ -125,6 +127,14 @@ class NotificationManager(private val context: Context) {
         notificationManagerCompat.notify(TABS_CLOSED_TAG, notificationId, notification)
     }
 
+    /**
+     * Displays a notification for each valid tab received from a device.
+     *
+     * @param context The Android application context.
+     * @param device The device from which the tabs were received, or `null` if unavailable.
+     * @param tabs A list of tabs to be displayed.
+     */
+    @SuppressLint("MissingPermission", "NotifyUsage")
     fun showReceivedTabs(context: Context, device: Device?, tabs: List<TabData>) {
         // In the future, experiment with displaying multiple tabs from the same device as as Notification Groups.
         // For now, a single notification per tab received will suffice.

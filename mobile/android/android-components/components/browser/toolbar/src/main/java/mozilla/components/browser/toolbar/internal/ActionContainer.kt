@@ -14,6 +14,7 @@ import android.view.Gravity
 import android.view.View
 import android.widget.LinearLayout
 import androidx.annotation.VisibleForTesting
+import androidx.core.content.withStyledAttributes
 import androidx.core.view.isVisible
 import mozilla.components.browser.toolbar.R
 import mozilla.components.concept.toolbar.Toolbar
@@ -36,17 +37,15 @@ internal class ActionContainer @JvmOverloads constructor(
         orientation = HORIZONTAL
         visibility = View.GONE
 
-        context.obtainStyledAttributes(
+        context.withStyledAttributes(
             attrs,
             R.styleable.ActionContainer,
             defStyleAttr,
             0,
-        ).run {
+        ) {
             actionSize = attrs?.let {
                 getDimensionPixelSize(R.styleable.ActionContainer_actionContainerItemSize, 0)
             }
-
-            recycle()
         }
     }
 
