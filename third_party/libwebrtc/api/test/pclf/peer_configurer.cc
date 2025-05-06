@@ -109,7 +109,7 @@ PeerConfigurer* PeerConfigurer::SetAsyncDnsResolverFactory(
   return this;
 }
 PeerConfigurer* PeerConfigurer::SetRTCCertificateGenerator(
-    std::unique_ptr<rtc::RTCCertificateGeneratorInterface> cert_generator) {
+    std::unique_ptr<RTCCertificateGeneratorInterface> cert_generator) {
   components_->pc_dependencies->cert_generator = std::move(cert_generator);
   return this;
 }

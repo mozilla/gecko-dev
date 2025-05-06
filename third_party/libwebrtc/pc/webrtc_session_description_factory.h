@@ -51,9 +51,9 @@ class WebRtcSessionDescriptionFactory {
       const SdpStateProvider* sdp_info,
       const std::string& session_id,
       bool dtls_enabled,
-      std::unique_ptr<rtc::RTCCertificateGeneratorInterface> cert_generator,
-      rtc::scoped_refptr<rtc::RTCCertificate> certificate,
-      std::function<void(const rtc::scoped_refptr<rtc::RTCCertificate>&)>
+      std::unique_ptr<RTCCertificateGeneratorInterface> cert_generator,
+      rtc::scoped_refptr<RTCCertificate> certificate,
+      std::function<void(const rtc::scoped_refptr<webrtc::RTCCertificate>&)>
           on_certificate_ready,
       cricket::CodecLookupHelper* codec_lookup_helper,
       const FieldTrialsView& field_trials);
@@ -131,7 +131,7 @@ class WebRtcSessionDescriptionFactory {
   void Post(absl::AnyInvocable<void() &&> callback);
 
   void OnCertificateRequestFailed();
-  void SetCertificate(rtc::scoped_refptr<rtc::RTCCertificate> certificate);
+  void SetCertificate(rtc::scoped_refptr<RTCCertificate> certificate);
 
   std::queue<CreateSessionDescriptionRequest>
       create_session_description_requests_;
@@ -139,13 +139,13 @@ class WebRtcSessionDescriptionFactory {
   cricket::TransportDescriptionFactory transport_desc_factory_;
   cricket::MediaSessionDescriptionFactory session_desc_factory_;
   uint64_t session_version_;
-  const std::unique_ptr<rtc::RTCCertificateGeneratorInterface> cert_generator_;
+  const std::unique_ptr<RTCCertificateGeneratorInterface> cert_generator_;
   const SdpStateProvider* sdp_info_;
   const std::string session_id_;
   CertificateRequestState certificate_request_state_;
   std::queue<absl::AnyInvocable<void() &&>> callbacks_;
 
-  std::function<void(const rtc::scoped_refptr<rtc::RTCCertificate>&)>
+  std::function<void(const rtc::scoped_refptr<webrtc::RTCCertificate>&)>
       on_certificate_ready_;
 
   WeakPtrFactory<WebRtcSessionDescriptionFactory> weak_factory_{this};

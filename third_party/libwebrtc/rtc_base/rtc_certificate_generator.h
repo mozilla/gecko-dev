@@ -22,7 +22,7 @@
 #include "rtc_base/system/rtc_export.h"
 #include "rtc_base/thread.h"
 
-namespace rtc {
+namespace webrtc {
 
 // Generates `RTCCertificate`s.
 // See `RTCCertificateGenerator` for the WebRTC repo's implementation.
@@ -30,7 +30,8 @@ class RTCCertificateGeneratorInterface {
  public:
   // Functor that will be called when certificate is generated asynchroniosly.
   // Called with nullptr as the parameter on failure.
-  using Callback = absl::AnyInvocable<void(scoped_refptr<RTCCertificate>) &&>;
+  using Callback =
+      absl::AnyInvocable<void(scoped_refptr<webrtc::RTCCertificate>) &&>;
 
   virtual ~RTCCertificateGeneratorInterface() = default;
 
@@ -40,7 +41,7 @@ class RTCCertificateGeneratorInterface {
   // long we want the certificate to be valid, but the implementation may choose
   // its own restrictions on the expiration time.
   virtual void GenerateCertificateAsync(
-      const KeyParams& key_params,
+      const rtc::KeyParams& key_params,
       const std::optional<uint64_t>& expires_ms,
       Callback callback) = 0;
 };
@@ -58,10 +59,11 @@ class RTC_EXPORT RTCCertificateGenerator
   // larger value than that is clamped down to a year. If `expires_ms` is not
   // specified, a default expiration time is used.
   static scoped_refptr<RTCCertificate> GenerateCertificate(
-      const KeyParams& key_params,
+      const rtc::KeyParams& key_params,
       const std::optional<uint64_t>& expires_ms);
 
-  RTCCertificateGenerator(Thread* signaling_thread, Thread* worker_thread);
+  RTCCertificateGenerator(rtc::Thread* signaling_thread,
+                          rtc::Thread* worker_thread);
   ~RTCCertificateGenerator() override {}
 
   // `RTCCertificateGeneratorInterface` overrides.
@@ -69,15 +71,22 @@ class RTC_EXPORT RTCCertificateGenerator
   // that many milliseconds from now. `expires_ms` is limited to a year, a
   // larger value than that is clamped down to a year. If `expires_ms` is not
   // specified, a default expiration time is used.
-  void GenerateCertificateAsync(const KeyParams& key_params,
+  void GenerateCertificateAsync(const rtc::KeyParams& key_params,
                                 const std::optional<uint64_t>& expires_ms,
                                 Callback callback) override;
 
  private:
-  Thread* const signaling_thread_;
-  Thread* const worker_thread_;
+  rtc::Thread* const signaling_thread_;
+  rtc::Thread* const worker_thread_;
 };
 
+}  //  namespace webrtc
+
+// Re-export symbols from the webrtc namespace for backwards compatibility.
+// TODO(bugs.webrtc.org/4222596): Remove once all references are updated.
+namespace rtc {
+using ::webrtc::RTCCertificateGenerator;
+using ::webrtc::RTCCertificateGeneratorInterface;
 }  // namespace rtc
 
 #endif  // RTC_BASE_RTC_CERTIFICATE_GENERATOR_H_

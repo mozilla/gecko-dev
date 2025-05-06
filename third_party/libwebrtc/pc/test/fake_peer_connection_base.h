@@ -322,7 +322,7 @@ class FakePeerConnectionBase : public PeerConnectionInternal {
 
   bool GetLocalCertificate(
       const std::string& transport_name,
-      rtc::scoped_refptr<rtc::RTCCertificate>* certificate) override {
+      rtc::scoped_refptr<RTCCertificate>* certificate) override {
     return false;
   }
 

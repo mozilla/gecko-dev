@@ -1425,7 +1425,7 @@ SdpOfferAnswerHandler::~SdpOfferAnswerHandler() {}
 std::unique_ptr<SdpOfferAnswerHandler> SdpOfferAnswerHandler::Create(
     PeerConnectionSdpMethods* pc,
     const PeerConnectionInterface::RTCConfiguration& configuration,
-    std::unique_ptr<rtc::RTCCertificateGeneratorInterface> cert_generator,
+    std::unique_ptr<RTCCertificateGeneratorInterface> cert_generator,
     std::unique_ptr<webrtc::VideoBitrateAllocatorFactory>
         video_bitrate_allocator_factory,
     ConnectionContext* context,
@@ -1439,7 +1439,7 @@ std::unique_ptr<SdpOfferAnswerHandler> SdpOfferAnswerHandler::Create(
 
 void SdpOfferAnswerHandler::Initialize(
     const PeerConnectionInterface::RTCConfiguration& configuration,
-    std::unique_ptr<rtc::RTCCertificateGeneratorInterface> cert_generator,
+    std::unique_ptr<RTCCertificateGeneratorInterface> cert_generator,
     std::unique_ptr<webrtc::VideoBitrateAllocatorFactory>
         video_bitrate_allocator_factory,
     ConnectionContext* context,
@@ -1460,7 +1460,7 @@ void SdpOfferAnswerHandler::Initialize(
       configuration.audio_jitter_buffer_min_delay_ms;
 
   // Obtain a certificate from RTCConfiguration if any were provided (optional).
-  rtc::scoped_refptr<rtc::RTCCertificate> certificate;
+  rtc::scoped_refptr<RTCCertificate> certificate;
   if (!configuration.certificates.empty()) {
     // TODO(hbos,torbjorng): Decide on certificate-selection strategy instead of
     // just picking the first one. The decision should be made based on the DTLS

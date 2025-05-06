@@ -939,7 +939,7 @@ LegacyStatsCollector::SessionStats LegacyStatsCollector::ExtractSessionInfo_n(
     // same local and remote certificates.
     //
     StatsReport::Id local_cert_report_id, remote_cert_report_id;
-    rtc::scoped_refptr<rtc::RTCCertificate> certificate;
+    rtc::scoped_refptr<RTCCertificate> certificate;
     if (pc_->GetLocalCertificate(transport.name, &certificate)) {
       transport.local_cert_stats =
           certificate->GetSSLCertificateChain().GetStats();

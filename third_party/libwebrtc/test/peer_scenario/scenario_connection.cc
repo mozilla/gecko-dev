@@ -92,7 +92,7 @@ class ScenarioIceConnectionImpl : public ScenarioIceConnection,
   EmulatedNetworkManagerInterface* const manager_;
   rtc::Thread* const signaling_thread_;
   rtc::Thread* const network_thread_;
-  rtc::scoped_refptr<rtc::RTCCertificate> const certificate_
+  rtc::scoped_refptr<RTCCertificate> const certificate_
       RTC_GUARDED_BY(network_thread_);
   cricket::TransportDescription const transport_description_
       RTC_GUARDED_BY(signaling_thread_);
@@ -126,7 +126,7 @@ ScenarioIceConnectionImpl::ScenarioIceConnectionImpl(
       manager_(net->CreateEmulatedNetworkManagerInterface({endpoint_})),
       signaling_thread_(rtc::Thread::Current()),
       network_thread_(manager_->network_thread()),
-      certificate_(rtc::RTCCertificate::Create(
+      certificate_(RTCCertificate::Create(
           rtc::SSLIdentity::Create("", ::rtc::KT_DEFAULT))),
       transport_description_(
           /*transport_options*/ {},

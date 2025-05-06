@@ -78,7 +78,7 @@ static bool IsRtpLeadByte(uint8_t b) {
 // validation.
 void SetRemoteFingerprintFromCert(
     DtlsTransport* transport,
-    const rtc::scoped_refptr<rtc::RTCCertificate>& cert,
+    const rtc::scoped_refptr<webrtc::RTCCertificate>& cert,
     bool modify_digest = false) {
   std::unique_ptr<rtc::SSLFingerprint> fingerprint =
       rtc::SSLFingerprint::CreateFromCertificate(*cert);
@@ -100,10 +100,10 @@ class DtlsTestClient : public sigslot::has_slots<> {
  public:
   explicit DtlsTestClient(absl::string_view name) : name_(name) {}
   void CreateCertificate(rtc::KeyType key_type) {
-    certificate_ =
-        rtc::RTCCertificate::Create(rtc::SSLIdentity::Create(name_, key_type));
+    certificate_ = webrtc::RTCCertificate::Create(
+        rtc::SSLIdentity::Create(name_, key_type));
   }
-  const rtc::scoped_refptr<rtc::RTCCertificate>& certificate() {
+  const rtc::scoped_refptr<webrtc::RTCCertificate>& certificate() {
     return certificate_;
   }
   void SetupMaxProtocolVersion(webrtc::SSLProtocolVersion version) {
@@ -360,7 +360,7 @@ class DtlsTestClient : public sigslot::has_slots<> {
 
  private:
   std::string name_;
-  rtc::scoped_refptr<rtc::RTCCertificate> certificate_;
+  rtc::scoped_refptr<webrtc::RTCCertificate> certificate_;
   std::unique_ptr<FakeIceTransport> fake_ice_transport_;
   std::unique_ptr<DtlsTransport> dtls_transport_;
   size_t packet_size_ = 0u;

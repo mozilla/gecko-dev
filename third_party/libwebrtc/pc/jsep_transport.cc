@@ -68,7 +68,7 @@ JsepTransportDescription& JsepTransportDescription::operator=(
 
 JsepTransport::JsepTransport(
     const std::string& mid,
-    const rtc::scoped_refptr<rtc::RTCCertificate>& local_certificate,
+    const rtc::scoped_refptr<webrtc::RTCCertificate>& local_certificate,
     rtc::scoped_refptr<webrtc::IceTransportInterface> ice_transport,
     rtc::scoped_refptr<webrtc::IceTransportInterface> rtcp_ice_transport,
     std::unique_ptr<webrtc::RtpTransport> unencrypted_rtp_transport,
@@ -335,7 +335,7 @@ bool JsepTransport::GetStats(TransportStats* stats) const {
 }
 
 webrtc::RTCError JsepTransport::VerifyCertificateFingerprint(
-    const rtc::RTCCertificate* certificate,
+    const webrtc::RTCCertificate* certificate,
     const rtc::SSLFingerprint* fingerprint) const {
   TRACE_EVENT0("webrtc", "JsepTransport::VerifyCertificateFingerprint");
   RTC_DCHECK_RUN_ON(network_thread_);

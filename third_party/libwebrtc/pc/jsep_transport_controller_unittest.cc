@@ -206,7 +206,7 @@ class JsepTransportControllerTest : public JsepTransportController::Observer,
                        const std::string& pwd,
                        cricket::IceMode ice_mode,
                        cricket::ConnectionRole conn_role,
-                       rtc::scoped_refptr<rtc::RTCCertificate> cert) {
+                       rtc::scoped_refptr<RTCCertificate> cert) {
     std::unique_ptr<cricket::AudioContentDescription> audio(
         new cricket::AudioContentDescription());
     // Set RTCP-mux to be true because the default policy is "mux required".
@@ -222,7 +222,7 @@ class JsepTransportControllerTest : public JsepTransportController::Observer,
                        const std::string& pwd,
                        cricket::IceMode ice_mode,
                        cricket::ConnectionRole conn_role,
-                       rtc::scoped_refptr<rtc::RTCCertificate> cert) {
+                       rtc::scoped_refptr<RTCCertificate> cert) {
     std::unique_ptr<cricket::VideoContentDescription> video(
         new cricket::VideoContentDescription());
     // Set RTCP-mux to be true because the default policy is "mux required".
@@ -239,7 +239,7 @@ class JsepTransportControllerTest : public JsepTransportController::Observer,
                       const std::string& pwd,
                       cricket::IceMode ice_mode,
                       cricket::ConnectionRole conn_role,
-                      rtc::scoped_refptr<rtc::RTCCertificate> cert) {
+                      rtc::scoped_refptr<RTCCertificate> cert) {
     RTC_CHECK(protocol_type == cricket::MediaProtocolType::kSctp);
     std::unique_ptr<cricket::SctpDataContentDescription> data(
         new cricket::SctpDataContentDescription());
@@ -255,7 +255,7 @@ class JsepTransportControllerTest : public JsepTransportController::Observer,
                         const std::string& pwd,
                         cricket::IceMode ice_mode,
                         cricket::ConnectionRole conn_role,
-                        rtc::scoped_refptr<rtc::RTCCertificate> cert) {
+                        rtc::scoped_refptr<RTCCertificate> cert) {
     std::unique_ptr<rtc::SSLFingerprint> fingerprint;
     if (cert) {
       fingerprint = rtc::SSLFingerprint::CreateFromCertificate(*cert);
@@ -597,10 +597,9 @@ TEST_F(JsepTransportControllerTest, AddRemoveRemoteCandidates) {
 TEST_F(JsepTransportControllerTest, SetAndGetLocalCertificate) {
   CreateJsepTransportController(JsepTransportController::Config());
 
-  rtc::scoped_refptr<rtc::RTCCertificate> certificate1 =
-      rtc::RTCCertificate::Create(
-          rtc::SSLIdentity::Create("session1", rtc::KT_DEFAULT));
-  rtc::scoped_refptr<rtc::RTCCertificate> returned_certificate;
+  rtc::scoped_refptr<RTCCertificate> certificate1 = RTCCertificate::Create(
+      rtc::SSLIdentity::Create("session1", rtc::KT_DEFAULT));
+  rtc::scoped_refptr<RTCCertificate> returned_certificate;
 
   auto description = std::make_unique<cricket::SessionDescription>();
   AddAudioSection(description.get(), kAudioMid1, kIceUfrag1, kIcePwd1,
@@ -623,9 +622,8 @@ TEST_F(JsepTransportControllerTest, SetAndGetLocalCertificate) {
   EXPECT_EQ(nullptr, transport_controller_->GetLocalCertificate(kVideoMid1));
 
   // Shouldn't be able to change the identity once set.
-  rtc::scoped_refptr<rtc::RTCCertificate> certificate2 =
-      rtc::RTCCertificate::Create(
-          rtc::SSLIdentity::Create("session2", rtc::KT_DEFAULT));
+  rtc::scoped_refptr<RTCCertificate> certificate2 = RTCCertificate::Create(
+      rtc::SSLIdentity::Create("session2", rtc::KT_DEFAULT));
   EXPECT_FALSE(transport_controller_->SetLocalCertificate(certificate2));
 }
 
@@ -654,9 +652,9 @@ TEST_F(JsepTransportControllerTest, GetRemoteSSLCertChain) {
 
 TEST_F(JsepTransportControllerTest, GetDtlsRole) {
   CreateJsepTransportController(JsepTransportController::Config());
-  auto offer_certificate = rtc::RTCCertificate::Create(
+  auto offer_certificate = RTCCertificate::Create(
       rtc::SSLIdentity::Create("offer", rtc::KT_DEFAULT));
-  auto answer_certificate = rtc::RTCCertificate::Create(
+  auto answer_certificate = RTCCertificate::Create(
       rtc::SSLIdentity::Create("answer", rtc::KT_DEFAULT));
   transport_controller_->SetLocalCertificate(offer_certificate);
 

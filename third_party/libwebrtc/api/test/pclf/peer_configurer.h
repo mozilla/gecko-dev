@@ -93,7 +93,7 @@ class PeerConfigurer {
       std::unique_ptr<webrtc::AsyncDnsResolverFactoryInterface>
           async_dns_resolver_factory);
   PeerConfigurer* SetRTCCertificateGenerator(
-      std::unique_ptr<rtc::RTCCertificateGeneratorInterface> cert_generator);
+      std::unique_ptr<RTCCertificateGeneratorInterface> cert_generator);
   PeerConfigurer* SetSSLCertificateVerifier(
       std::unique_ptr<rtc::SSLCertificateVerifier> tls_cert_verifier);
   PeerConfigurer* SetIceTransportFactory(

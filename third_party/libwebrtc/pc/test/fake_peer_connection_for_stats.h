@@ -423,9 +423,8 @@ class FakePeerConnectionForStats : public FakePeerConnectionBase {
     audio_device_stats_ = audio_device_stats;
   }
 
-  void SetLocalCertificate(
-      const std::string& transport_name,
-      rtc::scoped_refptr<rtc::RTCCertificate> certificate) {
+  void SetLocalCertificate(const std::string& transport_name,
+                           rtc::scoped_refptr<RTCCertificate> certificate) {
     local_certificates_by_transport_[transport_name] = certificate;
   }
 
@@ -511,7 +510,7 @@ class FakePeerConnectionForStats : public FakePeerConnectionBase {
 
   bool GetLocalCertificate(
       const std::string& transport_name,
-      rtc::scoped_refptr<rtc::RTCCertificate>* certificate) override {
+      rtc::scoped_refptr<RTCCertificate>* certificate) override {
     auto it = local_certificates_by_transport_.find(transport_name);
     if (it != local_certificates_by_transport_.end()) {
       *certificate = it->second;
@@ -592,7 +591,7 @@ class FakePeerConnectionForStats : public FakePeerConnectionBase {
 
   std::optional<AudioDeviceModule::Stats> audio_device_stats_;
 
-  std::map<std::string, rtc::scoped_refptr<rtc::RTCCertificate>>
+  std::map<std::string, rtc::scoped_refptr<RTCCertificate>>
       local_certificates_by_transport_;
   std::map<std::string, std::unique_ptr<rtc::SSLCertChain>>
       remote_cert_chains_by_transport_;

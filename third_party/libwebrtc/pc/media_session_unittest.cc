@@ -542,9 +542,9 @@ class MediaSessionDescriptionFactoryTest : public testing::Test {
         MAKE_VECTOR(kAudioCodecs2), MAKE_VECTOR(kAudioCodecs2));
     codec_lookup_helper_2_.CodecVendor("")->set_video_codecs(
         MAKE_VECTOR(kVideoCodecs2), MAKE_VECTOR(kVideoCodecs2));
-    tdf1_.set_certificate(rtc::RTCCertificate::Create(
+    tdf1_.set_certificate(webrtc::RTCCertificate::Create(
         std::unique_ptr<rtc::SSLIdentity>(new rtc::FakeSSLIdentity("id1"))));
-    tdf2_.set_certificate(rtc::RTCCertificate::Create(
+    tdf2_.set_certificate(webrtc::RTCCertificate::Create(
         std::unique_ptr<rtc::SSLIdentity>(new rtc::FakeSSLIdentity("id2"))));
   }
 
@@ -4679,9 +4679,9 @@ class MediaProtocolTest : public testing::TestWithParam<const char*> {
         MAKE_VECTOR(kAudioCodecs2), MAKE_VECTOR(kAudioCodecs2));
     codec_lookup_helper_2_.CodecVendor("")->set_video_codecs(
         MAKE_VECTOR(kVideoCodecs2), MAKE_VECTOR(kVideoCodecs2));
-    tdf1_.set_certificate(rtc::RTCCertificate::Create(
+    tdf1_.set_certificate(webrtc::RTCCertificate::Create(
         std::unique_ptr<rtc::SSLIdentity>(new rtc::FakeSSLIdentity("id1"))));
-    tdf2_.set_certificate(rtc::RTCCertificate::Create(
+    tdf2_.set_certificate(webrtc::RTCCertificate::Create(
         std::unique_ptr<rtc::SSLIdentity>(new rtc::FakeSSLIdentity("id2"))));
   }
 
@@ -4746,7 +4746,7 @@ bool CodecsMatch(const std::vector<Codec>& codecs1,
 void TestAudioCodecsOffer(RtpTransceiverDirection direction) {
   webrtc::test::ScopedKeyValueConfig field_trials;
   TransportDescriptionFactory tdf(field_trials);
-  tdf.set_certificate(rtc::RTCCertificate::Create(
+  tdf.set_certificate(webrtc::RTCCertificate::Create(
       std::unique_ptr<rtc::SSLIdentity>(new rtc::FakeSSLIdentity("id"))));
 
   rtc::UniqueRandomIdGenerator ssrc_generator;
@@ -4852,10 +4852,10 @@ void TestAudioCodecsAnswer(RtpTransceiverDirection offer_direction,
   webrtc::test::ScopedKeyValueConfig field_trials;
   TransportDescriptionFactory offer_tdf(field_trials);
   TransportDescriptionFactory answer_tdf(field_trials);
-  offer_tdf.set_certificate(rtc::RTCCertificate::Create(
+  offer_tdf.set_certificate(webrtc::RTCCertificate::Create(
       std::unique_ptr<rtc::SSLIdentity>(new rtc::FakeSSLIdentity("offer_id"))));
   answer_tdf.set_certificate(
-      rtc::RTCCertificate::Create(std::unique_ptr<rtc::SSLIdentity>(
+      webrtc::RTCCertificate::Create(std::unique_ptr<rtc::SSLIdentity>(
           new rtc::FakeSSLIdentity("answer_id"))));
   rtc::UniqueRandomIdGenerator ssrc_generator1, ssrc_generator2;
   CodecLookupHelperForTesting offer_codec_lookup_helper(field_trials);
@@ -5021,10 +5021,10 @@ class VideoCodecsOfferH265LevelIdTest : public testing::Test {
         codec_lookup_helper_offerer_(field_trials_),
         codec_lookup_helper_answerer_(field_trials_) {
     tdf_offerer_.set_certificate(
-        rtc::RTCCertificate::Create(std::unique_ptr<rtc::SSLIdentity>(
+        webrtc::RTCCertificate::Create(std::unique_ptr<rtc::SSLIdentity>(
             new rtc::FakeSSLIdentity("offer_id"))));
     tdf_answerer_.set_certificate(
-        rtc::RTCCertificate::Create(std::unique_ptr<rtc::SSLIdentity>(
+        webrtc::RTCCertificate::Create(std::unique_ptr<rtc::SSLIdentity>(
             new rtc::FakeSSLIdentity("answer_id"))));
   }
 

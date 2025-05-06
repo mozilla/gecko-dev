@@ -106,7 +106,7 @@ class PeerConnectionCryptoBaseTest : public ::testing::Test {
 
   WrapperPtr CreatePeerConnection(
       const RTCConfiguration& config,
-      std::unique_ptr<rtc::RTCCertificateGeneratorInterface> cert_gen) {
+      std::unique_ptr<RTCCertificateGeneratorInterface> cert_gen) {
     auto fake_port_allocator = std::make_unique<cricket::FakePortAllocator>(
         rtc::Thread::Current(),
         std::make_unique<rtc::BasicPacketSocketFactory>(vss_.get()),
@@ -487,8 +487,8 @@ TEST_P(PeerConnectionCryptoTest, CreateAnswerWithDifferentSslRoles) {
 // error.
 // This is a regression test for crbug.com/800775
 TEST_P(PeerConnectionCryptoTest, SessionErrorIfFingerprintInvalid) {
-  auto callee_certificate = rtc::RTCCertificate::FromPEM(kRsaPems[0]);
-  auto other_certificate = rtc::RTCCertificate::FromPEM(kRsaPems[1]);
+  auto callee_certificate = RTCCertificate::FromPEM(kRsaPems[0]);
+  auto other_certificate = RTCCertificate::FromPEM(kRsaPems[1]);
 
   auto caller = CreatePeerConnectionWithAudioVideo();
   RTCConfiguration callee_config;

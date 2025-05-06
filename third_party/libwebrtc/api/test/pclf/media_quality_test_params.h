@@ -85,7 +85,7 @@ struct PeerConnectionFactoryComponents {
 struct PeerConnectionComponents {
   std::unique_ptr<webrtc::AsyncDnsResolverFactoryInterface>
       async_dns_resolver_factory;
-  std::unique_ptr<rtc::RTCCertificateGeneratorInterface> cert_generator;
+  std::unique_ptr<RTCCertificateGeneratorInterface> cert_generator;
   std::unique_ptr<rtc::SSLCertificateVerifier> tls_cert_verifier;
   std::unique_ptr<IceTransportFactory> ice_transport_factory;
 };

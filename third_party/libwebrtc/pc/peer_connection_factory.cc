@@ -278,9 +278,8 @@ PeerConnectionFactory::CreatePeerConnectionOrError(
 
   // Set internal defaults if optional dependencies are not set.
   if (!dependencies.cert_generator) {
-    dependencies.cert_generator =
-        std::make_unique<rtc::RTCCertificateGenerator>(signaling_thread(),
-                                                       network_thread());
+    dependencies.cert_generator = std::make_unique<RTCCertificateGenerator>(
+        signaling_thread(), network_thread());
   }
 
   if (!dependencies.async_dns_resolver_factory) {

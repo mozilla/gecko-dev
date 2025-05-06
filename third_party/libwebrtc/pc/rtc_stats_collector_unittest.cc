@@ -115,7 +115,7 @@ constexpr uint64_t kRemoteOutboundStatsBytesSent = 8u;
 constexpr uint64_t kRemoteOutboundStatsReportsCount = 9u;
 
 struct CertificateInfo {
-  rtc::scoped_refptr<rtc::RTCCertificate> certificate;
+  rtc::scoped_refptr<RTCCertificate> certificate;
   std::vector<std::string> ders;
   std::vector<std::string> pems;
   std::vector<std::string> fingerprints;
@@ -148,7 +148,7 @@ std::unique_ptr<CertificateInfo> CreateFakeCertificateAndInfoFromDers(
         der.length()));
   }
   info->certificate =
-      rtc::RTCCertificate::Create(std::unique_ptr<rtc::FakeSSLIdentity>(
+      RTCCertificate::Create(std::unique_ptr<rtc::FakeSSLIdentity>(
           new rtc::FakeSSLIdentity(info->pems)));
   // Strip header/footer and newline characters of PEM strings.
   for (size_t i = 0; i < info->pems.size(); ++i) {

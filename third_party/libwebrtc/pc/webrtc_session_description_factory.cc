@@ -115,9 +115,9 @@ WebRtcSessionDescriptionFactory::WebRtcSessionDescriptionFactory(
     const SdpStateProvider* sdp_info,
     const std::string& session_id,
     bool dtls_enabled,
-    std::unique_ptr<rtc::RTCCertificateGeneratorInterface> cert_generator,
-    rtc::scoped_refptr<rtc::RTCCertificate> certificate,
-    std::function<void(const rtc::scoped_refptr<rtc::RTCCertificate>&)>
+    std::unique_ptr<RTCCertificateGeneratorInterface> cert_generator,
+    rtc::scoped_refptr<RTCCertificate> certificate,
+    std::function<void(const rtc::scoped_refptr<webrtc::RTCCertificate>&)>
         on_certificate_ready,
     cricket::CodecLookupHelper* codec_lookup_helper,
     const FieldTrialsView& field_trials)
@@ -443,7 +443,7 @@ void WebRtcSessionDescriptionFactory::OnCertificateRequestFailed() {
 }
 
 void WebRtcSessionDescriptionFactory::SetCertificate(
-    rtc::scoped_refptr<rtc::RTCCertificate> certificate) {
+    rtc::scoped_refptr<RTCCertificate> certificate) {
   RTC_DCHECK(certificate);
   RTC_LOG(LS_VERBOSE) << "Setting new certificate.";
 

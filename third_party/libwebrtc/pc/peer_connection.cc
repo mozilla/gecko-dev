@@ -401,7 +401,7 @@ bool PeerConnectionInterface::RTCConfiguration::operator==(
     IceTransportsType type;
     BundlePolicy bundle_policy;
     RtcpMuxPolicy rtcp_mux_policy;
-    std::vector<rtc::scoped_refptr<rtc::RTCCertificate>> certificates;
+    std::vector<rtc::scoped_refptr<RTCCertificate>> certificates;
     int ice_candidate_pool_size;
     bool disable_ipv6_on_wifi;
     int max_ipv6_networks;
@@ -2342,7 +2342,7 @@ PeerConnection::GetTransportStatsByNames(
 
 bool PeerConnection::GetLocalCertificate(
     const std::string& transport_name,
-    rtc::scoped_refptr<rtc::RTCCertificate>* certificate) {
+    rtc::scoped_refptr<RTCCertificate>* certificate) {
   RTC_DCHECK_RUN_ON(network_thread());
   if (!network_thread_safety_->alive() || !certificate) {
     return false;

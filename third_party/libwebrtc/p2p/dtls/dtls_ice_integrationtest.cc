@@ -49,7 +49,7 @@ constexpr int kDefaultTimeout = 30000;
 
 void SetRemoteFingerprintFromCert(
     cricket::DtlsTransport& transport,
-    const rtc::scoped_refptr<rtc::RTCCertificate>& cert) {
+    const rtc::scoped_refptr<webrtc::RTCCertificate>& cert) {
   std::unique_ptr<rtc::SSLFingerprint> fingerprint =
       rtc::SSLFingerprint::CreateFromCertificate(*cert);
 
@@ -135,8 +135,8 @@ class DtlsIceIntegrationTest : public ::testing::TestWithParam<std::tuple<
   void SetupEndpoint(
       Endpoint& ep,
       bool client,
-      const rtc::scoped_refptr<rtc::RTCCertificate> client_certificate,
-      const rtc::scoped_refptr<rtc::RTCCertificate> server_certificate) {
+      const rtc::scoped_refptr<webrtc::RTCCertificate> client_certificate,
+      const rtc::scoped_refptr<webrtc::RTCCertificate> server_certificate) {
     thread(ep)->BlockingCall([&]() {
       if (network_emulation_manager_ == nullptr) {
         ep.allocator = std::make_unique<BasicPortAllocator>(
@@ -197,9 +197,9 @@ class DtlsIceIntegrationTest : public ::testing::TestWithParam<std::tuple<
   }
 
   void Prepare() {
-    auto client_certificate = rtc::RTCCertificate::Create(
+    auto client_certificate = webrtc::RTCCertificate::Create(
         rtc::SSLIdentity::Create("test", rtc::KT_DEFAULT));
-    auto server_certificate = rtc::RTCCertificate::Create(
+    auto server_certificate = webrtc::RTCCertificate::Create(
         rtc::SSLIdentity::Create("test", rtc::KT_DEFAULT));
 
     if (network_emulation_manager_ == nullptr) {

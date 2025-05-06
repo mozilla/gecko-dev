@@ -41,9 +41,9 @@ class TransportDescriptionFactoryTest : public ::testing::Test {
       : ice_credentials_({}),
         f1_(field_trials_),
         f2_(field_trials_),
-        cert1_(rtc::RTCCertificate::Create(std::unique_ptr<rtc::SSLIdentity>(
+        cert1_(webrtc::RTCCertificate::Create(std::unique_ptr<rtc::SSLIdentity>(
             new rtc::FakeSSLIdentity("User1")))),
-        cert2_(rtc::RTCCertificate::Create(std::unique_ptr<rtc::SSLIdentity>(
+        cert2_(webrtc::RTCCertificate::Create(std::unique_ptr<rtc::SSLIdentity>(
             new rtc::FakeSSLIdentity("User2")))) {
     // By default, certificates are supplied.
     f1_.set_certificate(cert1_);
@@ -179,8 +179,8 @@ class TransportDescriptionFactoryTest : public ::testing::Test {
   TransportDescriptionFactory f1_;
   TransportDescriptionFactory f2_;
 
-  rtc::scoped_refptr<rtc::RTCCertificate> cert1_;
-  rtc::scoped_refptr<rtc::RTCCertificate> cert2_;
+  rtc::scoped_refptr<webrtc::RTCCertificate> cert1_;
+  rtc::scoped_refptr<webrtc::RTCCertificate> cert2_;
 };
 
 TEST_F(TransportDescriptionFactoryTest, TestOfferDtls) {

@@ -237,7 +237,7 @@ class ChannelTest : public ::testing::Test, public sigslot::has_slots<> {
               network_thread_));
         }
         if (flags1 & DTLS) {
-          auto cert1 = rtc::RTCCertificate::Create(
+          auto cert1 = webrtc::RTCCertificate::Create(
               rtc::SSLIdentity::Create("session1", rtc::KT_DEFAULT));
           fake_rtp_dtls_transport1_->SetLocalCertificate(cert1);
           if (fake_rtcp_dtls_transport1_) {
@@ -263,7 +263,7 @@ class ChannelTest : public ::testing::Test, public sigslot::has_slots<> {
               network_thread_));
         }
         if (flags2 & DTLS) {
-          auto cert2 = rtc::RTCCertificate::Create(
+          auto cert2 = webrtc::RTCCertificate::Create(
               rtc::SSLIdentity::Create("session2", rtc::KT_DEFAULT));
           fake_rtp_dtls_transport2_->SetLocalCertificate(cert2);
           if (fake_rtcp_dtls_transport2_) {

@@ -309,7 +309,7 @@ RTCError JsepTransportController::AddLocalMapping(const std::string& mid,
 }
 
 bool JsepTransportController::SetLocalCertificate(
-    const rtc::scoped_refptr<rtc::RTCCertificate>& certificate) {
+    const rtc::scoped_refptr<RTCCertificate>& certificate) {
   if (!network_thread_->IsCurrent()) {
     return network_thread_->BlockingCall(
         [&] { return SetLocalCertificate(certificate); });
@@ -336,8 +336,7 @@ bool JsepTransportController::SetLocalCertificate(
   return true;
 }
 
-rtc::scoped_refptr<rtc::RTCCertificate>
-JsepTransportController::GetLocalCertificate(
+rtc::scoped_refptr<RTCCertificate> JsepTransportController::GetLocalCertificate(
     const std::string& transport_name) const {
   RTC_DCHECK_RUN_ON(network_thread_);
 

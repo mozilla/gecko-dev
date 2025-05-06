@@ -83,7 +83,7 @@ class JsepTransport {
   // description may be set before a local certificate is generated.
   JsepTransport(
       const std::string& mid,
-      const rtc::scoped_refptr<rtc::RTCCertificate>& local_certificate,
+      const rtc::scoped_refptr<webrtc::RTCCertificate>& local_certificate,
       rtc::scoped_refptr<webrtc::IceTransportInterface> ice_transport,
       rtc::scoped_refptr<webrtc::IceTransportInterface> rtcp_ice_transport,
       std::unique_ptr<webrtc::RtpTransport> unencrypted_rtp_transport,
@@ -106,13 +106,13 @@ class JsepTransport {
   // Must be called before applying local session description.
   // Needed in order to verify the local fingerprint.
   void SetLocalCertificate(
-      const rtc::scoped_refptr<rtc::RTCCertificate>& local_certificate) {
+      const rtc::scoped_refptr<webrtc::RTCCertificate>& local_certificate) {
     RTC_DCHECK_RUN_ON(network_thread_);
     local_certificate_ = local_certificate;
   }
 
   // Return the local certificate provided by SetLocalCertificate.
-  rtc::scoped_refptr<rtc::RTCCertificate> GetLocalCertificate() const {
+  rtc::scoped_refptr<webrtc::RTCCertificate> GetLocalCertificate() const {
     RTC_DCHECK_RUN_ON(network_thread_);
     return local_certificate_;
   }
@@ -224,7 +224,7 @@ class JsepTransport {
   // Returns an error if the certificate's identity does not match the
   // fingerprint, or either is NULL.
   webrtc::RTCError VerifyCertificateFingerprint(
-      const rtc::RTCCertificate* certificate,
+      const webrtc::RTCCertificate* certificate,
       const rtc::SSLFingerprint* fingerprint) const;
 
   void SetActiveResetSrtpParams(bool active_reset_srtp_params);
@@ -291,7 +291,7 @@ class JsepTransport {
   const std::string mid_;
   // needs-ice-restart bit as described in JSEP.
   bool needs_ice_restart_ RTC_GUARDED_BY(network_thread_) = false;
-  rtc::scoped_refptr<rtc::RTCCertificate> local_certificate_
+  rtc::scoped_refptr<webrtc::RTCCertificate> local_certificate_
       RTC_GUARDED_BY(network_thread_);
   std::unique_ptr<JsepTransportDescription> local_description_
       RTC_GUARDED_BY(network_thread_);

@@ -721,7 +721,7 @@ class PeerConnectionInterfaceBaseTest : public ::testing::Test {
 
     // Create certificate generator unless DTLS constraint is explicitly set to
     // false.
-    std::unique_ptr<rtc::RTCCertificateGeneratorInterface> cert_generator;
+    std::unique_ptr<RTCCertificateGeneratorInterface> cert_generator;
 
     // These won't be used if encryption is turned off, but that's harmless.
     fake_certificate_generator_ = new FakeRTCCertificateGenerator();

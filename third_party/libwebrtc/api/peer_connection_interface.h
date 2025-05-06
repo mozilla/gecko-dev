@@ -433,7 +433,7 @@ class RTC_EXPORT PeerConnectionInterface : public webrtc::RefCountInterface {
     IceTransportsType type = kAll;
     BundlePolicy bundle_policy = kBundlePolicyBalanced;
     RtcpMuxPolicy rtcp_mux_policy = kRtcpMuxPolicyRequire;
-    std::vector<rtc::scoped_refptr<rtc::RTCCertificate>> certificates;
+    std::vector<rtc::scoped_refptr<RTCCertificate>> certificates;
     int ice_candidate_pool_size = 0;
 
     //////////////////////////////////////////////////////////////////////////
@@ -1402,7 +1402,7 @@ struct RTC_EXPORT PeerConnectionDependencies final {
   std::unique_ptr<webrtc::AsyncDnsResolverFactoryInterface>
       async_dns_resolver_factory;
   std::unique_ptr<webrtc::IceTransportFactory> ice_transport_factory;
-  std::unique_ptr<rtc::RTCCertificateGeneratorInterface> cert_generator;
+  std::unique_ptr<RTCCertificateGeneratorInterface> cert_generator;
   std::unique_ptr<rtc::SSLCertificateVerifier> tls_cert_verifier;
   std::unique_ptr<webrtc::VideoBitrateAllocatorFactory>
       video_bitrate_allocator_factory;

@@ -44,12 +44,12 @@ class TransportDescriptionFactory {
   ~TransportDescriptionFactory();
 
   // The certificate to use when setting up DTLS.
-  const rtc::scoped_refptr<rtc::RTCCertificate>& certificate() const {
+  const rtc::scoped_refptr<webrtc::RTCCertificate>& certificate() const {
     return certificate_;
   }
 
   // Specifies the certificate to use
-  void set_certificate(rtc::scoped_refptr<rtc::RTCCertificate> certificate) {
+  void set_certificate(rtc::scoped_refptr<webrtc::RTCCertificate> certificate) {
     certificate_ = std::move(certificate);
   }
 
@@ -85,7 +85,7 @@ class TransportDescriptionFactory {
   bool SetSecurityInfo(TransportDescription* description,
                        ConnectionRole role) const;
   bool insecure_ = false;
-  rtc::scoped_refptr<rtc::RTCCertificate> certificate_;
+  rtc::scoped_refptr<webrtc::RTCCertificate> certificate_;
   const webrtc::FieldTrialsView& field_trials_;
 };
 

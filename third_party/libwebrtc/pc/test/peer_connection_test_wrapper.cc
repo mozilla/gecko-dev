@@ -200,7 +200,7 @@ bool PeerConnectionTestWrapper::CreatePc(
     return false;
   }
 
-  std::unique_ptr<rtc::RTCCertificateGeneratorInterface> cert_generator(
+  std::unique_ptr<webrtc::RTCCertificateGeneratorInterface> cert_generator(
       new FakeRTCCertificateGenerator());
   webrtc::PeerConnectionDependencies deps(this);
   deps.allocator = std::move(port_allocator);

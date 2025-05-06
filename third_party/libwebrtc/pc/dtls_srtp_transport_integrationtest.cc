@@ -78,8 +78,8 @@ class DtlsSrtpTransportIntegrationTest : public ::testing::Test {
     srtp_transport_.UnregisterRtpDemuxerSink(&srtp_transport_observer_);
   }
 
-  rtc::scoped_refptr<rtc::RTCCertificate> MakeCertificate() {
-    return rtc::RTCCertificate::Create(
+  rtc::scoped_refptr<webrtc::RTCCertificate> MakeCertificate() {
+    return webrtc::RTCCertificate::Create(
         rtc::SSLIdentity::Create("test", rtc::KT_DEFAULT));
   }
   std::unique_ptr<cricket::FakeIceTransport> MakeIceTransport(
@@ -100,7 +100,7 @@ class DtlsSrtpTransportIntegrationTest : public ::testing::Test {
   }
   void SetRemoteFingerprintFromCert(
       cricket::DtlsTransport* transport,
-      const rtc::scoped_refptr<rtc::RTCCertificate>& cert) {
+      const rtc::scoped_refptr<webrtc::RTCCertificate>& cert) {
     std::unique_ptr<rtc::SSLFingerprint> fingerprint =
         rtc::SSLFingerprint::CreateFromCertificate(*cert);
 
@@ -227,8 +227,8 @@ class DtlsSrtpTransportIntegrationTest : public ::testing::Test {
   std::unique_ptr<cricket::DtlsTransport> client_dtls_transport_;
   std::unique_ptr<cricket::DtlsTransport> server_dtls_transport_;
 
-  rtc::scoped_refptr<rtc::RTCCertificate> client_certificate_;
-  rtc::scoped_refptr<rtc::RTCCertificate> server_certificate_;
+  rtc::scoped_refptr<webrtc::RTCCertificate> client_certificate_;
+  rtc::scoped_refptr<webrtc::RTCCertificate> server_certificate_;
 
   webrtc::DtlsSrtpTransport dtls_srtp_transport_;
   webrtc::SrtpTransport srtp_transport_;

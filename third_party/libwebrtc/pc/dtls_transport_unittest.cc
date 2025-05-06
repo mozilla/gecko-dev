@@ -80,10 +80,10 @@ class DtlsTransportTest : public ::testing::Test {
     auto fake_dtls1 = static_cast<FakeDtlsTransport*>(transport_->internal());
     auto fake_dtls2 = std::make_unique<FakeDtlsTransport>(
         "audio", cricket::ICE_CANDIDATE_COMPONENT_RTP);
-    auto cert1 = rtc::RTCCertificate::Create(
+    auto cert1 = RTCCertificate::Create(
         rtc::SSLIdentity::Create("session1", rtc::KT_DEFAULT));
     fake_dtls1->SetLocalCertificate(cert1);
-    auto cert2 = rtc::RTCCertificate::Create(
+    auto cert2 = RTCCertificate::Create(
         rtc::SSLIdentity::Create("session1", rtc::KT_DEFAULT));
     fake_dtls2->SetLocalCertificate(cert2);
     fake_dtls1->SetDestination(fake_dtls2.get());

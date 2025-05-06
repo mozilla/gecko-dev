@@ -189,7 +189,7 @@ class PeerConnectionInternal : public PeerConnectionInterface,
 
   virtual bool GetLocalCertificate(
       const std::string& transport_name,
-      rtc::scoped_refptr<rtc::RTCCertificate>* certificate) = 0;
+      rtc::scoped_refptr<RTCCertificate>* certificate) = 0;
   virtual std::unique_ptr<rtc::SSLCertChain> GetRemoteSSLCertChain(
       const std::string& transport_name) = 0;
 

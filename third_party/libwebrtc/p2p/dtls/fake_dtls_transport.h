@@ -193,7 +193,7 @@ class FakeDtlsTransport : public DtlsTransportInternal {
     return true;
   }
   bool SetLocalCertificate(
-      const rtc::scoped_refptr<rtc::RTCCertificate>& certificate) override {
+      const rtc::scoped_refptr<webrtc::RTCCertificate>& certificate) override {
     do_dtls_ = true;
     local_cert_ = certificate;
     return true;
@@ -233,7 +233,8 @@ class FakeDtlsTransport : public DtlsTransportInternal {
     return "FakeTlsCipherSuite";
   }
   uint16_t GetSslPeerSignatureAlgorithm() const override { return 0; }
-  rtc::scoped_refptr<rtc::RTCCertificate> GetLocalCertificate() const override {
+  rtc::scoped_refptr<webrtc::RTCCertificate> GetLocalCertificate()
+      const override {
     return local_cert_;
   }
   std::unique_ptr<rtc::SSLCertChain> GetRemoteSSLCertChain() const override {
@@ -318,7 +319,7 @@ class FakeDtlsTransport : public DtlsTransportInternal {
   std::string transport_name_;
   int component_;
   FakeDtlsTransport* dest_ = nullptr;
-  rtc::scoped_refptr<rtc::RTCCertificate> local_cert_;
+  rtc::scoped_refptr<webrtc::RTCCertificate> local_cert_;
   rtc::FakeSSLCertificate* remote_cert_ = nullptr;
   bool do_dtls_ = false;
   webrtc::SSLProtocolVersion ssl_max_version_ = webrtc::SSL_PROTOCOL_DTLS_12;

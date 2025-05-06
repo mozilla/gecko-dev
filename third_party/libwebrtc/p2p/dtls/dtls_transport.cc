@@ -202,7 +202,7 @@ bool DtlsTransport::IsDtlsActive() const {
 }
 
 bool DtlsTransport::SetLocalCertificate(
-    const rtc::scoped_refptr<rtc::RTCCertificate>& certificate) {
+    const rtc::scoped_refptr<webrtc::RTCCertificate>& certificate) {
   if (dtls_active_) {
     if (certificate == local_certificate_) {
       // This may happen during renegotiation.
@@ -226,7 +226,7 @@ bool DtlsTransport::SetLocalCertificate(
   return true;
 }
 
-rtc::scoped_refptr<rtc::RTCCertificate> DtlsTransport::GetLocalCertificate()
+rtc::scoped_refptr<webrtc::RTCCertificate> DtlsTransport::GetLocalCertificate()
     const {
   return local_certificate_;
 }

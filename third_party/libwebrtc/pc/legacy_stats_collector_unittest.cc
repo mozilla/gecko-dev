@@ -673,8 +673,8 @@ class LegacyStatsCollectorTest : public ::testing::Test {
     pc->SetTransportStats(kTransportName, channel_stats);
 
     // Fake certificate to report.
-    rtc::scoped_refptr<rtc::RTCCertificate> local_certificate(
-        rtc::RTCCertificate::Create(local_identity.Clone()));
+    rtc::scoped_refptr<RTCCertificate> local_certificate(
+        RTCCertificate::Create(local_identity.Clone()));
     pc->SetLocalCertificate(kTransportName, local_certificate);
     pc->SetRemoteCertChain(kTransportName,
                            remote_identity.cert_chain().Clone());
