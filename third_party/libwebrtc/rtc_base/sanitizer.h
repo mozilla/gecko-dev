@@ -113,7 +113,7 @@ static inline void rtc_MsanCheckInitialized(const volatile void* ptr,
 
 #ifdef __cplusplus
 
-namespace rtc {
+namespace webrtc {
 namespace sanitizer_impl {
 
 template <typename T>
@@ -157,6 +157,16 @@ inline void MsanCheckInitialized(const T& mem) {
   rtc_MsanCheckInitialized(mem.data(), sizeof(mem.data()[0]), mem.size());
 }
 
+}  //  namespace webrtc
+
+// Re-export symbols from the webrtc namespace for backwards compatibility.
+// TODO(bugs.webrtc.org/4222596): Remove once all references are updated.
+namespace rtc {
+using ::webrtc::AsanPoison;
+using ::webrtc::AsanUnpoison;
+using ::webrtc::MsanCheckInitialized;
+using ::webrtc::MsanMarkUninitialized;
+using ::webrtc::MsanUninitialized;
 }  // namespace rtc
 
 #endif  // __cplusplus

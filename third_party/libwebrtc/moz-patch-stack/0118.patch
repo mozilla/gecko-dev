@@ -9,7 +9,7 @@ Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/1055b3892393f1613
  1 file changed, 1 insertion(+), 1 deletion(-)
 
 diff --git a/modules/audio_coding/neteq/neteq_impl.cc b/modules/audio_coding/neteq/neteq_impl.cc
-index b327c9b788..3998335d8a 100644
+index feea38b312..5f840d4f6b 100644
 --- a/modules/audio_coding/neteq/neteq_impl.cc
 +++ b/modules/audio_coding/neteq/neteq_impl.cc
 @@ -119,7 +119,7 @@ NetEqImpl::Dependencies::Dependencies(
