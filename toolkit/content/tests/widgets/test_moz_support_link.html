@@ -56,6 +56,12 @@
         is="moz-support-link"
         support-page="support-test"
       ></a>
+
+      <a
+        id="testElement6"
+        is="moz-support-link"
+        support-page="support-test"
+      ></a>
     </div>
     <pre id="test"></pre>
     <script>
@@ -94,6 +100,11 @@
             supportPage,
             "Check support-page is correct"
           );
+          is(
+            link.supportPage,
+            supportPage,
+            "supportPage property matches attribute"
+          );
           is(link.target, "_blank", "support link should open a new window");
           let expectedHref = `${supportUrl}${supportPage}?utm_source=firefox-browser&utm_medium=firefox-browser&utm_content=${utmContent}`;
           is(
@@ -106,6 +117,11 @@
             link.getAttribute("support-page"),
             supportPage,
             "Check support-page is correct"
+          );
+          is(
+            link.supportPage,
+            supportPage,
+            "supportPage property matches attribute"
           );
           is(link.target, "_blank", "support link should open a new window");
           is(
@@ -160,6 +176,18 @@
         assertBasicProperties(defaultLink, {
           l10nId: "moz-support-link-text",
           supportPage,
+          supportUrl,
+        });
+
+        let supportPagePropertyLink = document.getElementById("testElement6");
+        assertBasicProperties(supportPagePropertyLink, {
+          supportPage,
+          supportUrl,
+        });
+        let newSupportPage = "support-page-property";
+        supportPagePropertyLink.supportPage = newSupportPage;
+        assertBasicProperties(supportPagePropertyLink, {
+          supportPage: newSupportPage,
           supportUrl,
         });
       });
