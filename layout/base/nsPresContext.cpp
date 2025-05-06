@@ -1275,7 +1275,7 @@ bool nsPresContext::UserInputEventsAllowed() {
   }
 
   // Special document
-  if (Document()->IsEverInitialDocument()) {
+  if (Document()->IsEverInitialDocument() || Document()->IsStaticDocument()) {
     return true;
   }
 
@@ -1317,7 +1317,8 @@ bool nsPresContext::UserInputEventsAllowed() {
 void nsPresContext::MaybeIncreaseMeasuredTicksSinceLoading() {
   MOZ_ASSERT(IsRoot());
   if (mMeasuredTicksSinceLoading >=
-      StaticPrefs::dom_input_events_security_minNumTicks()) {
+          StaticPrefs::dom_input_events_security_minNumTicks() ||
+      Document()->IsStaticDocument()) {
     return;
   }
 
