@@ -285,14 +285,6 @@ export const NimbusTelemetry = {
     reason,
     { branch, feature, locale, l10nIds: l10n_ids, featureIds: feature_ids } = {}
   ) {
-    // Do not record invalid feature telemetry. In practice this only happens
-    // due to long-lived recipes referencing features that were removed in a
-    // prior version. This results in an inordinate volume of telemetry to be
-    // submitted.
-    if (reason === ValidationFailureReason.INVALID_FEATURE) {
-      return;
-    }
-
     const extra = Object.assign(
       { reason },
       reason === ValidationFailureReason.INVALID_BRANCH ? { branch } : {},
