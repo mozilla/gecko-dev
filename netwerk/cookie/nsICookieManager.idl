@@ -88,7 +88,8 @@ interface nsICookieManager : nsISupports
                         in ACString      aName,
                         in AUTF8String   aPath,
                         in OriginAttributesPtr aOriginAttributes,
-                        in nsIDPtr     aOperationID);
+                        in boolean       aFromHttp,
+                        in nsIDPtr       aOperationID);
 
   /**
    * Add a cookie. nsICookieService is the normal way to do this. This
@@ -158,6 +159,7 @@ interface nsICookieManager : nsISupports
                      in int32_t aSameSite,
                      in nsICookie_schemeType aSchemeMap,
                      in boolean     aIsPartitioned,
+                     in boolean     aFromHttp,
                      in nsIDPtr     aOperationID,
                      in CheckStructFunctionRef aCheckValid);
 

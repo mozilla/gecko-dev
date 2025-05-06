@@ -110,7 +110,8 @@ class CookieStorage : public nsIObserver, public nsSupportsWeakReference {
   void RemoveCookie(const nsACString& aBaseDomain,
                     const OriginAttributes& aOriginAttributes,
                     const nsACString& aHost, const nsACString& aName,
-                    const nsACString& aPath, const nsID* aOperationID);
+                    const nsACString& aPath, bool aFromHttp,
+                    const nsID* aOperationID);
 
   virtual void RemoveCookiesWithOriginAttributes(
       const OriginAttributesPattern& aPattern, const nsACString& aBaseDomain);

@@ -771,6 +771,7 @@ TEST(TestCookie, TestCookieMain)
                             &attrs,               // originAttributes
                             nsICookie::SAMESITE_NONE, nsICookie::SCHEME_HTTPS,
                             false,    // is partitioned
+                            true,     // from http
                             nullptr,  // operation ID
                             [](CookieStruct&) -> bool { return true; })));
   EXPECT_TRUE(NS_SUCCEEDED(
@@ -786,6 +787,7 @@ TEST(TestCookie, TestCookieMain)
                             &attrs,                          // originAttributes
                             nsICookie::SAMESITE_NONE, nsICookie::SCHEME_HTTPS,
                             false,    // is partitioned
+                            true,     // from http
                             nullptr,  // operation ID
                             [](CookieStruct&) -> bool { return true; })));
   EXPECT_TRUE(NS_SUCCEEDED(
@@ -801,6 +803,7 @@ TEST(TestCookie, TestCookieMain)
                             &attrs,           // originAttributes
                             nsICookie::SAMESITE_NONE, nsICookie::SCHEME_HTTPS,
                             false,    // is partitioned
+                            true,     // from http
                             nullptr,  // operation ID
                             [](CookieStruct&) -> bool { return true; })));
   // confirm using enumerator

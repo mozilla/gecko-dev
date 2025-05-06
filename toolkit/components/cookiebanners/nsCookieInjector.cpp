@@ -327,7 +327,7 @@ nsresult nsCookieInjector::InjectCookiesFromRules(
         nullptr, c.Host(), c.Path(), c.Name(), c.Value(), c.IsSecure(),
         c.IsHttpOnly(), c.IsSession(), c.Expiry(), &aOriginAttributes,
         c.SameSite(), static_cast<nsICookie::schemeType>(c.SchemeMap()),
-        /* is partitioned: */ false, nullptr,
+        /* is partitioned: */ false, /* is from http: */ true, nullptr,
         [](mozilla::net::CookieStruct&) { return true; });
     NS_ENSURE_SUCCESS(rv, rv);
 
