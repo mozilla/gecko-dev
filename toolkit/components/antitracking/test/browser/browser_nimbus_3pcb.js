@@ -7,7 +7,7 @@ const { ExperimentAPI } = ChromeUtils.importESModule(
   "resource://nimbus/ExperimentAPI.sys.mjs"
 );
 
-const { ExperimentFakes } = ChromeUtils.importESModule(
+const { NimbusTestUtils } = ChromeUtils.importESModule(
   "resource://testing-common/NimbusTestUtils.sys.mjs"
 );
 
@@ -22,7 +22,7 @@ add_task(async function test_3pcb_nimbus_feature() {
   );
 
   info("Enroll with the third party cookie blocking feature.");
-  let doExperimentCleanup = await ExperimentFakes.enrollWithFeatureConfig({
+  let doExperimentCleanup = await NimbusTestUtils.enrollWithFeatureConfig({
     featureId: "thirdPartyCookieBlocking",
     value: {
       enabled: true,
@@ -81,7 +81,7 @@ add_task(async function test_3pcb_nimbus_feature() {
   info(
     "Enroll with the third party cookie blocking feature with different settings."
   );
-  doExperimentCleanup = await ExperimentFakes.enrollWithFeatureConfig({
+  doExperimentCleanup = await NimbusTestUtils.enrollWithFeatureConfig({
     featureId: "thirdPartyCookieBlocking",
     value: {
       enabled: false,

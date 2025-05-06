@@ -10,7 +10,7 @@
  * integration works correctly in both normal and private browsing.
  */
 
-const { ExperimentFakes } = ChromeUtils.importESModule(
+const { NimbusTestUtils } = ChromeUtils.importESModule(
   "resource://testing-common/NimbusTestUtils.sys.mjs"
 );
 
@@ -92,7 +92,7 @@ add_task(async function test() {
 
   for (let enableStripPBM of [false, true]) {
     for (let enableStrip of [false, true]) {
-      let doExperimentCleanup = await ExperimentFakes.enrollWithFeatureConfig({
+      let doExperimentCleanup = await NimbusTestUtils.enrollWithFeatureConfig({
         featureId: "queryStripping",
         value: {
           enabledNormalBrowsing: enableStrip,

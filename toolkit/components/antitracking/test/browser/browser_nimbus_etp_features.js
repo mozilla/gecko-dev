@@ -7,7 +7,7 @@ const { ExperimentAPI } = ChromeUtils.importESModule(
   "resource://nimbus/ExperimentAPI.sys.mjs"
 );
 
-const { ExperimentFakes } = ChromeUtils.importESModule(
+const { NimbusTestUtils } = ChromeUtils.importESModule(
   "resource://testing-common/NimbusTestUtils.sys.mjs"
 );
 
@@ -22,7 +22,7 @@ add_task(async function test_etp_features() {
   // Enroll with the strict ETP features, and disable some features in the
   // enrollment.
   info("Enroll with the strict ETP features.");
-  let doExperimentCleanup = await ExperimentFakes.enrollWithFeatureConfig({
+  let doExperimentCleanup = await NimbusTestUtils.enrollWithFeatureConfig({
     featureId: "etpStrictFeatures",
     value: {
       features:
