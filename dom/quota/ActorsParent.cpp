@@ -3480,11 +3480,15 @@ nsresult QuotaManager::CreateDirectoryMetadata2(
   // Reserved data 2
   QM_TRY(MOZ_TO_RESULT(stream->Write32(0)));
 
-  // Currently unused (used to be suffix).
-  QM_TRY(MOZ_TO_RESULT(stream->WriteStringZ("")));
+  // Legacy field, previously used for suffix. The value is no longer used, but
+  // we continue writing the correct suffix value to preserve compatibility
+  // with older builds that may still expect it.
+  QM_TRY(MOZ_TO_RESULT(stream->WriteStringZ(aOriginMetadata.mSuffix.get())));
 
-  // Currently unused (used to be group).
-  QM_TRY(MOZ_TO_RESULT(stream->WriteStringZ("")));
+  // Legacy field, previously used for group. The value is no longer used, but
+  // we continue writing the correct group value to preserve compatibility with
+  // older builds that may still expect it.
+  QM_TRY(MOZ_TO_RESULT(stream->WriteStringZ(aOriginMetadata.mGroup.get())));
 
   QM_TRY(MOZ_TO_RESULT(
       stream->WriteStringZ(aOriginMetadata.mStorageOrigin.get())));
@@ -3548,13 +3552,21 @@ Result<FullOriginMetadata, nsresult> QuotaManager::LoadFullOriginMetadata(
 
   fullOriginMetadata.mPersistenceType = aPersistenceType;
 
-  QM_TRY_INSPECT(const auto& suffix, MOZ_TO_RESULT_INVOKE_MEMBER_TYPED(
-                                         nsCString, binaryStream, ReadCString));
-  Unused << suffix;
+  // Legacy field, previously used for suffix. This value is no longer used,
+  // but still read and discarded to preserve compatibility with older builds
+  // that may still expect it.
+  QM_TRY_INSPECT(
+      const auto& unusedData1,
+      MOZ_TO_RESULT_INVOKE_MEMBER_TYPED(nsCString, binaryStream, ReadCString));
+  Unused << unusedData1;
 
-  QM_TRY_INSPECT(const auto& group, MOZ_TO_RESULT_INVOKE_MEMBER_TYPED(
-                                        nsCString, binaryStream, ReadCString));
-  Unused << group;
+  // Legacy field, previously used for group. This value is no longer used, but
+  // still read and discarded to preserve compatibility with older builds that
+  // may still expect it.
+  QM_TRY_INSPECT(
+      const auto& unusedData2,
+      MOZ_TO_RESULT_INVOKE_MEMBER_TYPED(nsCString, binaryStream, ReadCString));
+  Unused << unusedData2;
 
   QM_TRY_UNWRAP(
       fullOriginMetadata.mStorageOrigin,
