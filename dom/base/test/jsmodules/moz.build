@@ -8,3 +8,5 @@ with Files("**"):
     BUG_COMPONENT = ("Core", "JavaScript Engine")
 
 MOCHITEST_CHROME_MANIFESTS += ["chrome.toml"]
+
+MOCHITEST_MANIFESTS += ["mochitest.toml"]
