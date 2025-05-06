@@ -130,6 +130,7 @@ import mozilla.components.feature.session.ScreenOrientationFeature
 import mozilla.components.feature.session.SessionFeature
 import mozilla.components.feature.session.SwipeRefreshFeature
 import mozilla.components.feature.sitepermissions.SitePermissionsFeature
+import mozilla.components.feature.tabs.LastTabFeature
 import mozilla.components.feature.webauthn.WebAuthnFeature
 import mozilla.components.lib.state.ext.consumeFlow
 import mozilla.components.lib.state.ext.consumeFrom
@@ -327,6 +328,7 @@ abstract class BaseBrowserFragment :
     internal val messagingFeatureMicrosurvey = ViewBoundFeatureWrapper<MessagingFeature>()
 
     private val sessionFeature = ViewBoundFeatureWrapper<SessionFeature>()
+    private val lastTabFeature = ViewBoundFeatureWrapper<LastTabFeature>()
     private val contextMenuFeature = ViewBoundFeatureWrapper<ContextMenuFeature>()
     private val downloadsFeature = ViewBoundFeatureWrapper<DownloadsFeature>()
     private val shareResourceFeature = ViewBoundFeatureWrapper<ShareResourceFeature>()
@@ -1077,6 +1079,17 @@ abstract class BaseBrowserFragment :
                 requireComponents.useCases.sessionUseCases.goForward,
                 binding.engineView,
                 customTabSessionId,
+            ),
+            owner = this,
+            view = view,
+        )
+
+        lastTabFeature.set(
+            feature = LastTabFeature(
+                requireComponents.core.store,
+                customTabSessionId,
+                requireComponents.useCases.tabsUseCases.removeTab,
+                requireActivity(),
             ),
             owner = this,
             view = view,
@@ -2228,7 +2241,7 @@ abstract class BaseBrowserFragment :
                 true
             } ?: false ||
             sessionFeature.onBackPressed() ||
-            removeSessionIfNeeded()
+            lastTabFeature.onBackPressed()
     }
 
     @CallSuper
@@ -2305,29 +2318,6 @@ abstract class BaseBrowserFragment :
             else -> null
         }
         feature?.onPermissionsResult(permissions, grantResults)
-    }
-
-    /**
-     * Removes the session if it was opened by an ACTION_VIEW intent
-     * or if it has a parent session and no more history
-     */
-    protected open fun removeSessionIfNeeded(): Boolean {
-        getCurrentTab()?.let { session ->
-            return if (session.source is SessionState.Source.External && !session.restored) {
-                activity?.finish()
-                requireComponents.useCases.tabsUseCases.removeTab(session.id)
-                true
-            } else {
-                val hasParentSession = session is TabSessionState && session.parentId != null
-                if (hasParentSession) {
-                    requireComponents.useCases.tabsUseCases.removeTab(session.id, selectParentIfExists = true)
-                }
-                // We want to return to home if this session didn't have a parent session to select.
-                val goToOverview = !hasParentSession
-                !goToOverview
-            }
-        }
-        return false
     }
 
     protected abstract fun navToQuickSettingsSheet(

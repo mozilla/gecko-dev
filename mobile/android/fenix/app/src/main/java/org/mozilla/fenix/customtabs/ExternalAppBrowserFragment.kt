@@ -196,8 +196,8 @@ class ExternalAppBrowserFragment : BaseBrowserFragment() {
         }
     }
 
-    override fun removeSessionIfNeeded(): Boolean {
-        return customTabsIntegration.onBackPressed() || super.removeSessionIfNeeded()
+    override fun onBackPressed(): Boolean {
+        return customTabsIntegration.onBackPressed() || super.onBackPressed()
     }
 
     override fun navToQuickSettingsSheet(tab: SessionState, sitePermissions: SitePermissions?) {
