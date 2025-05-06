@@ -799,7 +799,8 @@
       let dragImageOffset = -16;
       let browser = isTab(tab) && tab.linkedBrowser;
       if (isTabGroupLabel(tab)) {
-        toDrag = document.getElementById("tab-drag-empty-feedback");
+        toDrag = tab;
+        dragImageOffset = -32;
       } else if (gMultiProcessBrowser) {
         var context = canvas.getContext("2d");
         context.fillStyle = "white";

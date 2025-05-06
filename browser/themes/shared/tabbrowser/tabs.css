@@ -1139,14 +1139,6 @@ tab-group {
   }
 }
 
-#tab-drag-empty-feedback {
-  background: rgba(0,0,0,0.01);
-  width: 1px;
-  height: 1px;
-  position: absolute;
-  pointer-events: none;
-}
-
 .tab-group-editor-panel {
   --panel-width: 22em;
   --panel-padding: var(--space-large);
