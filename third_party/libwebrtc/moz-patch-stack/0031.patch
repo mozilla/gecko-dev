@@ -206,7 +206,7 @@ index 5e7d863ac2..e6753a8722 100644
      } else {
        deps += [
 diff --git a/api/BUILD.gn b/api/BUILD.gn
-index f67fcc3089..31cf7c287f 100644
+index 1af8603b10..4a863d80d0 100644
 --- a/api/BUILD.gn
 +++ b/api/BUILD.gn
 @@ -44,6 +44,9 @@ rtc_source_set("enable_media") {
@@ -330,7 +330,7 @@ index f67fcc3089..31cf7c287f 100644
  
  rtc_source_set("libjingle_logging_api") {
    visibility = [ "*" ]
-@@ -966,6 +999,7 @@ rtc_source_set("refcountedbase") {
+@@ -965,6 +998,7 @@ rtc_source_set("refcountedbase") {
    ]
  }
  
@@ -338,7 +338,7 @@ index f67fcc3089..31cf7c287f 100644
  rtc_library("ice_transport_factory") {
    visibility = [ "*" ]
    sources = [
-@@ -990,6 +1024,7 @@ rtc_library("ice_transport_factory") {
+@@ -989,6 +1023,7 @@ rtc_library("ice_transport_factory") {
      "rtc_event_log:rtc_event_log",
    ]
  }
@@ -476,7 +476,7 @@ index 7769526e07..f56ce3ce54 100644
  if (rtc_include_tests) {
    rtc_source_set("test_feedback_generator_interface") {
 diff --git a/call/BUILD.gn b/call/BUILD.gn
-index 1e136c143f..8a47e3dd55 100644
+index 7e7d8e720b..d8194b9d9e 100644
 --- a/call/BUILD.gn
 +++ b/call/BUILD.gn
 @@ -48,7 +48,7 @@ rtc_library("call_interfaces") {
@@ -1216,7 +1216,7 @@ index b18114f107..3ca6994c81 100644
      deps += [
        "..:logging",
 diff --git a/test/BUILD.gn b/test/BUILD.gn
-index 88ff8fb43b..09f974e347 100644
+index 9dad90646e..1d2d6684d2 100644
 --- a/test/BUILD.gn
 +++ b/test/BUILD.gn
 @@ -232,6 +232,7 @@ rtc_library("audio_test_common") {
@@ -1275,7 +1275,7 @@ index 88ff8fb43b..09f974e347 100644
  rtc_library("call_config_utils") {
    testonly = true
 diff --git a/video/BUILD.gn b/video/BUILD.gn
-index 7ec61498d3..7b559f4cab 100644
+index e7391e761d..7696fac536 100644
 --- a/video/BUILD.gn
 +++ b/video/BUILD.gn
 @@ -17,7 +17,7 @@ rtc_library("video_stream_encoder_interface") {
@@ -1287,7 +1287,7 @@ index 7ec61498d3..7b559f4cab 100644
      "../api:scoped_refptr",
      "../api/adaptation:resource_adaptation_api",
      "../api/units:data_rate",
-@@ -413,7 +413,7 @@ rtc_library("video_stream_encoder_impl") {
+@@ -412,7 +412,7 @@ rtc_library("video_stream_encoder_impl") {
      ":video_stream_encoder_interface",
      "../api:field_trials_view",
      "../api:rtp_parameters",

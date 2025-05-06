@@ -202,7 +202,7 @@ class RtpVideoStreamReceiver2Test : public ::testing::Test,
     info.sps_id = sps_id;
     info.pps_id = -1;
     data->AppendData<uint8_t, 2>({H264::NaluType::kSps, sps_id});
-    auto& h264 = absl::get<RTPVideoHeaderH264>(video_header->video_type_header);
+    auto& h264 = std::get<RTPVideoHeaderH264>(video_header->video_type_header);
     h264.nalus.push_back(info);
   }
 
@@ -215,7 +215,7 @@ class RtpVideoStreamReceiver2Test : public ::testing::Test,
     info.sps_id = sps_id;
     info.pps_id = pps_id;
     data->AppendData<uint8_t, 2>({H264::NaluType::kPps, pps_id});
-    auto& h264 = absl::get<RTPVideoHeaderH264>(video_header->video_type_header);
+    auto& h264 = std::get<RTPVideoHeaderH264>(video_header->video_type_header);
     h264.nalus.push_back(info);
   }
 
@@ -224,7 +224,7 @@ class RtpVideoStreamReceiver2Test : public ::testing::Test,
     info.type = H264::NaluType::kIdr;
     info.sps_id = -1;
     info.pps_id = pps_id;
-    auto& h264 = absl::get<RTPVideoHeaderH264>(video_header->video_type_header);
+    auto& h264 = std::get<RTPVideoHeaderH264>(video_header->video_type_header);
     h264.nalus.push_back(info);
   }
 
@@ -488,14 +488,14 @@ TEST_F(RtpVideoStreamReceiver2Test,
   rtp_video_stream_receiver_->OnRtpPacket(key_frame_packet);
   ASSERT_TRUE(key_encoded_frame != nullptr);
   std::optional<
-      absl::variant<FrameInstrumentationSyncData, FrameInstrumentationData>>
+      std::variant<FrameInstrumentationSyncData, FrameInstrumentationData>>
       data_key_frame =
           key_encoded_frame->CodecSpecific()->frame_instrumentation_data;
   ASSERT_TRUE(data_key_frame.has_value());
   ASSERT_TRUE(
-      absl::holds_alternative<FrameInstrumentationData>(*data_key_frame));
+      std::holds_alternative<FrameInstrumentationData>(*data_key_frame));
   FrameInstrumentationData frame_inst_data_key_frame =
-      absl::get<FrameInstrumentationData>(*data_key_frame);
+      std::get<FrameInstrumentationData>(*data_key_frame);
   EXPECT_EQ(frame_inst_data_key_frame.sequence_index, 0);
   EXPECT_TRUE(frame_inst_data_key_frame.communicate_upper_bits);
   EXPECT_THAT(frame_inst_data_key_frame.std_dev, DoubleNear(kStd, 0.1));
@@ -584,12 +584,12 @@ TEST_F(RtpVideoStreamReceiver2Test,
     rtp_video_stream_receiver_->OnRtpPacket(delta_frame_packet);
     ASSERT_TRUE(delta_encoded_frame != nullptr);
     std::optional<
-        absl::variant<FrameInstrumentationSyncData, FrameInstrumentationData>>
+        std::variant<FrameInstrumentationSyncData, FrameInstrumentationData>>
         data = delta_encoded_frame->CodecSpecific()->frame_instrumentation_data;
     ASSERT_TRUE(data.has_value());
-    ASSERT_TRUE(absl::holds_alternative<FrameInstrumentationData>(*data));
+    ASSERT_TRUE(std::holds_alternative<FrameInstrumentationData>(*data));
     FrameInstrumentationData frame_inst_data =
-        absl::get<FrameInstrumentationData>(*data);
+        std::get<FrameInstrumentationData>(*data);
     if (frame_inst_data.sequence_index < (kMaxSequenceIdx + 1)) {
       EXPECT_EQ(frame_inst_data.sequence_index, sequence_idx);
     } else {

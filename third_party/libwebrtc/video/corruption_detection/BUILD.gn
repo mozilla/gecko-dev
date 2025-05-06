@@ -58,7 +58,6 @@ rtc_library("frame_instrumentation_generator") {
     "../../rtc_base:checks",
     "../../rtc_base:logging",
     "//third_party/abseil-cpp/absl/algorithm:container",
-    "//third_party/abseil-cpp/absl/types:variant",
   ]
 }
 
@@ -162,7 +161,6 @@ if (rtc_include_tests) {
       "../../api/video:video_frame_type",
       "../../common_video:frame_instrumentation_data",
       "../../test:test_support",
-      "//third_party/abseil-cpp/absl/types:variant",
     ]
   }
 

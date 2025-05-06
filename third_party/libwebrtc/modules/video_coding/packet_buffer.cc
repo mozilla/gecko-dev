@@ -16,9 +16,9 @@
 #include <cstdint>
 #include <limits>
 #include <utility>
+#include <variant>
 #include <vector>
 
-#include "absl/types/variant.h"
 #include "api/array_view.h"
 #include "api/rtp_packet_info.h"
 #include "api/video/video_frame_type.h"
@@ -302,7 +302,7 @@ std::vector<std::unique_ptr<PacketBuffer::Packet>> PacketBuffer::FindFrames(
         }
 
         if (is_h264_descriptor) {
-          const auto* h264_header = absl::get_if<RTPVideoHeaderH264>(
+          const auto* h264_header = std::get_if<RTPVideoHeaderH264>(
               &buffer_[start_index]->video_header.video_type_header);
           if (!h264_header)
             return found_frames;

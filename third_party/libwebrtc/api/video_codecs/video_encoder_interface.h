@@ -14,9 +14,9 @@
 #include <cstdint>
 #include <memory>
 #include <optional>
+#include <variant>
 #include <vector>
 
-#include "absl/types/variant.h"
 #include "api/array_view.h"
 #include "api/scoped_refptr.h"
 #include "api/units/data_rate.h"
@@ -39,7 +39,7 @@ class VideoEncoderInterface {
     FrameType frame_type;
     int encoded_qp;
   };
-  using EncodeResult = absl::variant<EncodingError, EncodedData>;
+  using EncodeResult = std::variant<EncodingError, EncodedData>;
 
   struct FrameOutput {
     virtual ~FrameOutput() = default;
@@ -62,7 +62,7 @@ class VideoEncoderInterface {
       int target_qp;
     };
 
-    absl::variant<Cqp, Cbr> rate_options;
+    std::variant<Cqp, Cbr> rate_options;
 
     FrameType frame_type = FrameType::kDeltaFrame;
     int temporal_id = 0;

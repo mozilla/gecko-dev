@@ -110,17 +110,16 @@ CorruptionDetectionFilterSettings CorruptionDetectionSettingsGenerator::OnFrame(
 }
 
 double CorruptionDetectionSettingsGenerator::CalculateStdDev(int qp) const {
-  if (absl::holds_alternative<RationalFunctionParameters>(function_params_)) {
-    const auto& params =
-        absl::get<RationalFunctionParameters>(function_params_);
+  if (std::holds_alternative<RationalFunctionParameters>(function_params_)) {
+    const auto& params = std::get<RationalFunctionParameters>(function_params_);
     return (qp * params.numerator_factor) / (qp + params.denumerator_term) +
            params.offset;
   }
   RTC_DCHECK(
-      absl::holds_alternative<ExponentialFunctionParameters>(function_params_));
+      std::holds_alternative<ExponentialFunctionParameters>(function_params_));
 
   const auto& params =
-      absl::get<ExponentialFunctionParameters>(function_params_);
+      std::get<ExponentialFunctionParameters>(function_params_);
   return params.scale *
          std::exp(params.exponent_factor * qp - params.exponent_offset);
 }

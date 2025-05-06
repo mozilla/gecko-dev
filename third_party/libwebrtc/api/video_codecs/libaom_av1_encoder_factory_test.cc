@@ -17,9 +17,9 @@
 #include <ostream>
 #include <string>
 #include <utility>
+#include <variant>
 #include <vector>
 
-#include "absl/types/variant.h"
 #include "api/array_view.h"
 #include "api/scoped_refptr.h"
 #include "api/units/data_rate.h"
@@ -156,7 +156,7 @@ class FrameEncoderSettingsBuilder {
   }
 
   FrameEncoderSettingsBuilder& Rate(
-      const absl::variant<Cqp, Cbr>& rate_options) {
+      const std::variant<Cqp, Cbr>& rate_options) {
     frame_encode_settings_.rate_options = rate_options;
     return *this;
   }
@@ -246,15 +246,14 @@ MATCHER_P2(ResolutionIs, width, height, "") {
 }
 
 MATCHER_P(QpIs, qp, "") {
-  if (auto ed = absl::get_if<EncodedData>(&arg.res)) {
+  if (auto ed = std::get_if<EncodedData>(&arg.res)) {
     return ed->encoded_qp == qp;
   }
   return false;
 }
 
 MATCHER(HasBitstreamAndMetaData, "") {
-  return !arg.bitstream.empty() &&
-         absl::holds_alternative<EncodedData>(arg.res);
+  return !arg.bitstream.empty() && std::holds_alternative<EncodedData>(arg.res);
 }
 
 double Psnr(const rtc::scoped_refptr<I420BufferInterface>& ref_buffer,

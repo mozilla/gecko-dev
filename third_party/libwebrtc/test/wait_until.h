@@ -12,8 +12,8 @@
 #define TEST_WAIT_UNTIL_H_
 
 #include <string>
+#include <variant>
 
-#include "absl/types/variant.h"
 #include "api/rtc_error.h"
 #include "api/test/time_controller.h"
 #include "api/units/time_delta.h"
@@ -27,11 +27,11 @@
 
 namespace webrtc {
 
-using ClockVariant = absl::variant<absl::monostate,
-                                   SimulatedClock*,
-                                   FakeClock*,
-                                   ThreadProcessingFakeClock*,
-                                   TimeController*>;
+using ClockVariant = std::variant<std::monostate,
+                                  SimulatedClock*,
+                                  FakeClock*,
+                                  ThreadProcessingFakeClock*,
+                                  TimeController*>;
 
 namespace wait_until_internal {
 Timestamp GetTimeFromClockVariant(const ClockVariant& clock);
@@ -44,7 +44,7 @@ struct WaitUntilSettings {
   // The interval between polling the condition.
   TimeDelta polling_interval = TimeDelta::Millis(1);
   // The clock to use for timing.
-  ClockVariant clock = absl::monostate();
+  ClockVariant clock = std::monostate();
   // Name of the result to be used in the error message.
   std::string result_name = "result";
 };
@@ -66,7 +66,7 @@ template <typename Fn, typename Matcher>
                              Matcher matcher,
                              WaitUntilSettings settings = {})
     -> RTCErrorOr<decltype(fn())> {
-  if (absl::holds_alternative<absl::monostate>(settings.clock)) {
+  if (std::holds_alternative<std::monostate>(settings.clock)) {
     RTC_CHECK(rtc::Thread::Current()) << "A current thread is required. An "
                                          "rtc::AutoThread can work for tests.";
   }

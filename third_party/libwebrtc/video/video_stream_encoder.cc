@@ -17,10 +17,10 @@
 #include <numeric>
 #include <optional>
 #include <utility>
+#include <variant>
 
 #include "absl/algorithm/container.h"
 #include "absl/cleanup/cleanup.h"
-#include "absl/types/variant.h"
 #include "api/field_trials_view.h"
 #include "api/sequence_checker.h"
 #include "api/task_queue/task_queue_base.h"
@@ -2234,7 +2234,7 @@ EncodedImageCallback::Result VideoStreamEncoder::OnEncodedImage(
   std::unique_ptr<CodecSpecificInfo> codec_specific_info_copy;
   if (codec_specific_info && frame_instrumentation_generator_) {
     std::optional<
-        absl::variant<FrameInstrumentationSyncData, FrameInstrumentationData>>
+        std::variant<FrameInstrumentationSyncData, FrameInstrumentationData>>
         frame_instrumentation_data =
             frame_instrumentation_generator_->OnEncodedImage(image_copy);
     RTC_CHECK(!codec_specific_info->frame_instrumentation_data.has_value())

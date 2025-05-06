@@ -86,7 +86,7 @@ index 627e59cfed..185af67fa6 100644
  
      if (!build_with_mozilla) {
 diff --git a/test/BUILD.gn b/test/BUILD.gn
-index 09f974e347..9dacb66ed7 100644
+index 1d2d6684d2..de26d6abff 100644
 --- a/test/BUILD.gn
 +++ b/test/BUILD.gn
 @@ -486,6 +486,12 @@ rtc_source_set("test_support") {

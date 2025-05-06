@@ -15,9 +15,9 @@
 #include <memory>
 #include <optional>
 #include <string>
+#include <variant>
 #include <vector>
 
-#include "absl/types/variant.h"
 #include "api/crypto/frame_decryptor_interface.h"
 #include "api/environment/environment.h"
 #include "api/sequence_checker.h"
@@ -326,8 +326,8 @@ class RtpVideoStreamReceiver2 : public LossNotificationSender,
                                      bool is_keyframe)
       RTC_RUN_ON(packet_sequence_checker_);
   void SetLastCorruptionDetectionIndex(
-      const absl::variant<FrameInstrumentationSyncData,
-                          FrameInstrumentationData>& frame_instrumentation_data,
+      const std::variant<FrameInstrumentationSyncData,
+                         FrameInstrumentationData>& frame_instrumentation_data,
       int spatial_idx);
 
   std::optional<VideoCodecType> GetCodecFromPayloadType(

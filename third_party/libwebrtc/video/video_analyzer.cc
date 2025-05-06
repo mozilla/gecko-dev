@@ -441,7 +441,7 @@ bool VideoAnalyzer::IsInSelectedSpatialAndTemporalLayer(
   if (rtp_packet.PayloadType() == test::VideoTestConstants::kPayloadTypeVP8) {
     auto parsed_payload = vp8_depacketizer_->Parse(rtp_packet.PayloadBuffer());
     RTC_DCHECK(parsed_payload);
-    const auto& vp8_header = absl::get<RTPVideoHeaderVP8>(
+    const auto& vp8_header = std::get<RTPVideoHeaderVP8>(
         parsed_payload->video_header.video_type_header);
     int temporal_idx = vp8_header.temporalIdx;
     return selected_tl_ < 0 || temporal_idx == kNoTemporalIdx ||
@@ -451,7 +451,7 @@ bool VideoAnalyzer::IsInSelectedSpatialAndTemporalLayer(
   if (rtp_packet.PayloadType() == test::VideoTestConstants::kPayloadTypeVP9) {
     auto parsed_payload = vp9_depacketizer_->Parse(rtp_packet.PayloadBuffer());
     RTC_DCHECK(parsed_payload);
-    const auto& vp9_header = absl::get<RTPVideoHeaderVP9>(
+    const auto& vp9_header = std::get<RTPVideoHeaderVP9>(
         parsed_payload->video_header.video_type_header);
     int temporal_idx = vp9_header.temporal_idx;
     int spatial_idx = vp9_header.spatial_idx;

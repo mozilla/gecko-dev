@@ -15,8 +15,8 @@
 #include <map>
 #include <optional>
 #include <queue>
+#include <variant>
 
-#include "absl/types/variant.h"
 #include "api/video/encoded_image.h"
 #include "api/video/video_codec_type.h"
 #include "api/video/video_frame.h"
@@ -38,7 +38,7 @@ class FrameInstrumentationGenerator {
 
   void OnCapturedFrame(VideoFrame frame);
   std::optional<
-      absl::variant<FrameInstrumentationSyncData, FrameInstrumentationData>>
+      std::variant<FrameInstrumentationSyncData, FrameInstrumentationData>>
   OnEncodedImage(const EncodedImage& encoded_image);
 
   // Returns `std::nullopt` if there is no context for the given layer.

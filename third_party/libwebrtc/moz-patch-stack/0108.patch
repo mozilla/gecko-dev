@@ -30,7 +30,7 @@ index 05229c9e75..bc4148a4da 100644
  if (rtc_use_perfetto) {
    rtc_library("webrtc_libperfetto") {
 diff --git a/modules/video_coding/generic_decoder.cc b/modules/video_coding/generic_decoder.cc
-index 4b2b7de2ee..fe1abc2b7c 100644
+index 79bedfc5a2..3f5d40e01a 100644
 --- a/modules/video_coding/generic_decoder.cc
 +++ b/modules/video_coding/generic_decoder.cc
 @@ -109,9 +109,9 @@ void VCMDecodedFrameCallback::Decoded(VideoFrame& decodedImage,
@@ -48,7 +48,7 @@ index 4b2b7de2ee..fe1abc2b7c 100644
    std::optional<FrameInfo> frame_info;
 @@ -319,8 +319,8 @@ int32_t VCMGenericDecoder::Decode(
      const std::optional<
-         absl::variant<FrameInstrumentationSyncData, FrameInstrumentationData>>&
+         std::variant<FrameInstrumentationSyncData, FrameInstrumentationData>>&
          frame_instrumentation_data) {
 -  TRACE_EVENT("webrtc", "VCMGenericDecoder::Decode",
 -              perfetto::Flow::ProcessScoped(frame.RtpTimestamp()));

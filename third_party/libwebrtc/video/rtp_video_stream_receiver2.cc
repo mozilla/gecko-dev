@@ -19,10 +19,10 @@
 #include <optional>
 #include <string>
 #include <utility>
+#include <variant>
 #include <vector>
 
 #include "absl/algorithm/container.h"
-#include "absl/types/variant.h"
 #include "api/array_view.h"
 #include "api/crypto/frame_decryptor_interface.h"
 #include "api/environment/environment.h"
@@ -553,14 +553,14 @@ RtpVideoStreamReceiver2::ParseGenericDependenciesExtension(
 }
 
 void RtpVideoStreamReceiver2::SetLastCorruptionDetectionIndex(
-    const absl::variant<FrameInstrumentationSyncData, FrameInstrumentationData>&
+    const std::variant<FrameInstrumentationSyncData, FrameInstrumentationData>&
         frame_instrumentation_data,
     int spatial_idx) {
-  if (const auto* sync_data = absl::get_if<FrameInstrumentationSyncData>(
+  if (const auto* sync_data = std::get_if<FrameInstrumentationSyncData>(
           &frame_instrumentation_data)) {
     last_corruption_detection_state_by_layer_[spatial_idx].sequence_index =
         sync_data->sequence_index;
-  } else if (const auto* data = absl::get_if<FrameInstrumentationData>(
+  } else if (const auto* data = std::get_if<FrameInstrumentationData>(
                  &frame_instrumentation_data)) {
     last_corruption_detection_state_by_layer_[spatial_idx].sequence_index =
         data->sequence_index + data->sample_values.size();

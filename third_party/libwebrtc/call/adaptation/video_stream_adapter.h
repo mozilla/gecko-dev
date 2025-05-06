@@ -13,9 +13,9 @@
 
 #include <cstdint>
 #include <optional>
+#include <variant>
 #include <vector>
 
-#include "absl/types/variant.h"
 #include "api/adaptation/resource.h"
 #include "api/field_trials_view.h"
 #include "api/rtp_parameters.h"
@@ -177,7 +177,7 @@ class VideoStreamAdapter {
       const RTC_RUN_ON(&sequence_checker_);
 
   using RestrictionsOrState =
-      absl::variant<RestrictionsWithCounters, Adaptation::Status>;
+      std::variant<RestrictionsWithCounters, Adaptation::Status>;
   RestrictionsOrState GetAdaptationUpStep(
       const VideoStreamInputState& input_state) const
       RTC_RUN_ON(&sequence_checker_);

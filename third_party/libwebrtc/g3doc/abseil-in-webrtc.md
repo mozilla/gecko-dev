@@ -35,7 +35,6 @@ on a monolithic Abseil build target that will generate a shared library.
 * The functions in `absl/strings/ascii.h`, `absl/strings/match.h`,
   and `absl/strings/str_replace.h`.
 * The functions in `absl/strings/escaping.h`.
-* `absl::variant` and related stuff from `absl/types/variant.h`.
 * The functions in `absl/algorithm/algorithm.h` and
   `absl/algorithm/container.h`.
 * The macros in `absl/base/attributes.h`, `absl/base/config.h` and
@@ -57,9 +56,9 @@ on a monolithic Abseil build target that will generate a shared library.
 
 *Use `webrtc::Mutex` instead.*
 
-### `absl::optional`
+### `absl::optional` and `absl::variant`
 
-*Use `std::optional` instead.*
+*Use `std::optional` and `std::variant` directly.*
 
 ### `absl::Span`
 

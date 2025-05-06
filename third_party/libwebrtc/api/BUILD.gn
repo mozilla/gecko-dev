@@ -861,7 +861,6 @@ rtc_source_set("rtc_stats_api") {
     "../rtc_base:refcount",
     "../rtc_base/system:rtc_export",
     "units:timestamp",
-    "//third_party/abseil-cpp/absl/types:variant",
   ]
 }
 

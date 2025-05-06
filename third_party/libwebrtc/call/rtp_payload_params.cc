@@ -18,7 +18,6 @@
 
 #include "absl/container/inlined_vector.h"
 #include "absl/strings/match.h"
-#include "absl/types/variant.h"
 #include "api/field_trials_view.h"
 #include "api/transport/rtp/dependency_descriptor.h"
 #include "api/video/encoded_image.h"
@@ -267,7 +266,7 @@ void RtpPayloadParams::SetCodecSpecific(RTPVideoHeader* rtp_video_header,
   }
   if (rtp_video_header->codec == kVideoCodecVP8) {
     auto& vp8_header =
-        absl::get<RTPVideoHeaderVP8>(rtp_video_header->video_type_header);
+        std::get<RTPVideoHeaderVP8>(rtp_video_header->video_type_header);
     vp8_header.pictureId = state_.picture_id;
 
     if (vp8_header.temporalIdx != kNoTemporalIdx) {
@@ -279,7 +278,7 @@ void RtpPayloadParams::SetCodecSpecific(RTPVideoHeader* rtp_video_header,
   }
   if (rtp_video_header->codec == kVideoCodecVP9) {
     auto& vp9_header =
-        absl::get<RTPVideoHeaderVP9>(rtp_video_header->video_type_header);
+        std::get<RTPVideoHeaderVP9>(rtp_video_header->video_type_header);
     vp9_header.picture_id = state_.picture_id;
 
     // Note that in the case that we have no temporal layers but we do have
@@ -526,7 +525,7 @@ void RtpPayloadParams::Vp8ToGeneric(const CodecSpecificInfoVP8& vp8_info,
                                     bool is_keyframe,
                                     RTPVideoHeader* rtp_video_header) {
   const auto& vp8_header =
-      absl::get<RTPVideoHeaderVP8>(rtp_video_header->video_type_header);
+      std::get<RTPVideoHeaderVP8>(rtp_video_header->video_type_header);
   const int spatial_index = 0;
   const int temporal_index =
       vp8_header.temporalIdx != kNoTemporalIdx ? vp8_header.temporalIdx : 0;
@@ -577,7 +576,7 @@ void RtpPayloadParams::Vp9ToGeneric(const CodecSpecificInfoVP9& /* vp9_info */,
                                     int64_t frame_id,
                                     RTPVideoHeader& rtp_video_header) {
   const auto& vp9_header =
-      absl::get<RTPVideoHeaderVP9>(rtp_video_header.video_type_header);
+      std::get<RTPVideoHeaderVP9>(rtp_video_header.video_type_header);
   const int num_spatial_layers = kMaxSimulatedSpatialLayers;
   const int first_active_spatial_id = vp9_header.first_active_layer;
   const int last_active_spatial_id = vp9_header.num_spatial_layers - 1;

@@ -18,12 +18,12 @@
 #include <optional>
 #include <string>
 #include <utility>
+#include <variant>
 #include <vector>
 
 #include "absl/algorithm/container.h"
 #include "absl/container/inlined_vector.h"
 #include "absl/functional/any_invocable.h"
-#include "absl/types/variant.h"
 #include "api/adaptation/resource.h"
 #include "api/array_view.h"
 #include "api/environment/environment.h"
@@ -1568,7 +1568,7 @@ class VideoStreamEncoderTest : public ::testing::Test {
     }
 
     std::optional<
-        absl::variant<FrameInstrumentationSyncData, FrameInstrumentationData>>
+        std::variant<FrameInstrumentationSyncData, FrameInstrumentationData>>
     GetLastFrameInstrumentationData() const {
       MutexLock lock(&mutex_);
       return last_frame_instrumentation_data_;
@@ -1669,7 +1669,7 @@ class VideoStreamEncoderTest : public ::testing::Test {
     VideoLayersAllocation last_layers_allocation_ RTC_GUARDED_BY(&mutex_);
     int number_of_layers_allocations_ RTC_GUARDED_BY(&mutex_) = 0;
     std::optional<
-        absl::variant<FrameInstrumentationSyncData, FrameInstrumentationData>>
+        std::variant<FrameInstrumentationSyncData, FrameInstrumentationData>>
         last_frame_instrumentation_data_ RTC_GUARDED_BY(&mutex_);
   };
 

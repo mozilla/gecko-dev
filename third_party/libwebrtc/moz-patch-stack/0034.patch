@@ -25,7 +25,7 @@ index 24833be098..84a5818dd6 100644
  
        // See LntfConfig for description.
 diff --git a/video/rtp_video_stream_receiver2.cc b/video/rtp_video_stream_receiver2.cc
-index 251bf219c1..30819731d2 100644
+index 255dbbc9de..60367593c9 100644
 --- a/video/rtp_video_stream_receiver2.cc
 +++ b/video/rtp_video_stream_receiver2.cc
 @@ -1412,7 +1412,7 @@ void RtpVideoStreamReceiver2::StartReceive() {

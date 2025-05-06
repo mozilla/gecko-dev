@@ -15,6 +15,7 @@
 #include <stdint.h>
 
 #include <optional>
+#include <variant>
 
 #include "api/units/timestamp.h"
 #include "api/video/encoded_image.h"
@@ -76,7 +77,7 @@ class EncodedFrame : public EncodedImage {
   }
   void SetFrameInstrumentationData(
       const std::optional<
-          absl::variant<FrameInstrumentationSyncData, FrameInstrumentationData>>
+          std::variant<FrameInstrumentationSyncData, FrameInstrumentationData>>
           frame_instrumentation) {
     _codecSpecificInfo.frame_instrumentation_data = frame_instrumentation;
   }

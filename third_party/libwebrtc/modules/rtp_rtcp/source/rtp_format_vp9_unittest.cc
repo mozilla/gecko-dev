@@ -77,7 +77,7 @@ void ParseAndCheckPacket(const uint8_t* packet,
             expected_hdr_length);
   EXPECT_EQ(kVideoCodecVP9, video_header.codec);
   auto& vp9_header =
-      absl::get<RTPVideoHeaderVP9>(video_header.video_type_header);
+      std::get<RTPVideoHeaderVP9>(video_header.video_type_header);
   VerifyHeader(expected, vp9_header);
 }
 
@@ -179,7 +179,7 @@ class RtpPacketizerVp9Test : public ::testing::Test {
       VideoRtpDepacketizerVp9::ParseRtpPayload(packet_.payload(),
                                                &video_header);
       const auto& vp9_header =
-          absl::get<RTPVideoHeaderVP9>(video_header.video_type_header);
+          std::get<RTPVideoHeaderVP9>(video_header.video_type_header);
       EXPECT_EQ(vp9_header.spatial_idx, expected_layer);
       EXPECT_EQ(vp9_header.num_spatial_layers, num_spatial_layers);
     }

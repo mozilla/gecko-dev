@@ -15,10 +15,10 @@
 #include <memory>
 #include <optional>
 #include <utility>
+#include <variant>
 #include <vector>
 
 #include "absl/base/macros.h"
-#include "absl/types/variant.h"
 #include "api/video/video_codec_type.h"
 #include "common_video/h264/h264_common.h"
 #include "common_video/h265/h265_bitstream_parser.h"

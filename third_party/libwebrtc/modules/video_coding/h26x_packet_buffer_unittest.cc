@@ -87,10 +87,10 @@ class H264Packet {
   rtc::CopyOnWriteBuffer BuildStapAPayload() const;
 
   RTPVideoHeaderH264& H264Header() {
-    return absl::get<RTPVideoHeaderH264>(video_header_.video_type_header);
+    return std::get<RTPVideoHeaderH264>(video_header_.video_type_header);
   }
   const RTPVideoHeaderH264& H264Header() const {
-    return absl::get<RTPVideoHeaderH264>(video_header_.video_type_header);
+    return std::get<RTPVideoHeaderH264>(video_header_.video_type_header);
   }
 
   H264PacketizationTypes type_;

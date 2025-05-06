@@ -12,9 +12,9 @@
 
 #include <string.h>
 
+#include <variant>
 #include <vector>
 
-#include "absl/types/variant.h"
 #include "common_video/h264/h264_common.h"
 #include "modules/rtp_rtcp/source/rtp_video_header.h"
 #include "modules/video_coding/codecs/h264/include/h264_globals.h"
@@ -69,7 +69,7 @@ class H264VideoHeader : public RTPVideoHeader {
   }
 
   RTPVideoHeaderH264& h264() {
-    return absl::get<RTPVideoHeaderH264>(video_type_header);
+    return std::get<RTPVideoHeaderH264>(video_type_header);
   }
 };
 

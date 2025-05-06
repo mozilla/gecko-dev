@@ -19,10 +19,10 @@
 #include <string>
 #include <tuple>
 #include <utility>
+#include <variant>
 #include <vector>
 
 #include "absl/strings/match.h"
-#include "absl/types/variant.h"
 #include "api/array_view.h"
 #include "api/environment/environment.h"
 #include "api/environment/environment_factory.h"
@@ -3096,7 +3096,7 @@ class Vp9HeaderObserver : public test::SendTest {
       EXPECT_EQ(VideoCodecType::kVideoCodecVP9, video_header.codec);
       // Verify common fields for all configurations.
       const auto& vp9_header =
-          absl::get<RTPVideoHeaderVP9>(video_header.video_type_header);
+          std::get<RTPVideoHeaderVP9>(video_header.video_type_header);
       VerifyCommonHeader(vp9_header);
       CompareConsecutiveFrames(rtp_packet, video_header);
       // Verify configuration specific settings.
@@ -3335,7 +3335,7 @@ class Vp9HeaderObserver : public test::SendTest {
   void CompareConsecutiveFrames(const RtpPacket& rtp_packet,
                                 const RTPVideoHeader& video) const {
     const auto& vp9_header =
-        absl::get<RTPVideoHeaderVP9>(video.video_type_header);
+        std::get<RTPVideoHeaderVP9>(video.video_type_header);
 
     const bool new_temporal_unit =
         !last_packet_timestamp_.has_value() ||
@@ -4174,10 +4174,10 @@ void VideoSendStreamTest::TestTemporalLayers(
           depacketizer_->Parse(rtp_packet.PayloadBuffer());
       EXPECT_TRUE(parsed_payload);
 
-      if (const auto* vp8_header = absl::get_if<RTPVideoHeaderVP8>(
+      if (const auto* vp8_header = std::get_if<RTPVideoHeaderVP8>(
               &parsed_payload->video_header.video_type_header)) {
         parsed.temporal_idx = vp8_header->temporalIdx;
-      } else if (const auto* vp9_header = absl::get_if<RTPVideoHeaderVP9>(
+      } else if (const auto* vp9_header = std::get_if<RTPVideoHeaderVP9>(
                      &parsed_payload->video_header.video_type_header)) {
         parsed.temporal_idx = vp9_header->temporal_idx;
       } else {

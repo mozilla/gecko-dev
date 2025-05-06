@@ -282,7 +282,7 @@ TEST(RTPVideoHeaderTest, RTPVideoHeaderCodecSpecifics_GetAsMetadata) {
     video_header.video_type_header = vp8_specifics;
     VideoFrameMetadata metadata = video_header.GetAsMetadata();
     EXPECT_EQ(
-        absl::get<RTPVideoHeaderVP8>(metadata.GetRTPVideoHeaderCodecSpecifics())
+        std::get<RTPVideoHeaderVP8>(metadata.GetRTPVideoHeaderCodecSpecifics())
             .pictureId,
         vp8_specifics.pictureId);
   }
@@ -294,7 +294,7 @@ TEST(RTPVideoHeaderTest, RTPVideoHeaderCodecSpecifics_GetAsMetadata) {
     video_header.video_type_header = vp9_specifics;
     VideoFrameMetadata metadata = video_header.GetAsMetadata();
     EXPECT_EQ(
-        absl::get<RTPVideoHeaderVP9>(metadata.GetRTPVideoHeaderCodecSpecifics())
+        std::get<RTPVideoHeaderVP9>(metadata.GetRTPVideoHeaderCodecSpecifics())
             .max_picture_id,
         vp9_specifics.max_picture_id);
   }
@@ -304,10 +304,10 @@ TEST(RTPVideoHeaderTest, RTPVideoHeaderCodecSpecifics_GetAsMetadata) {
     h264_specifics.nalu_type = 42;
     video_header.video_type_header = h264_specifics;
     VideoFrameMetadata metadata = video_header.GetAsMetadata();
-    EXPECT_EQ(absl::get<RTPVideoHeaderH264>(
-                  metadata.GetRTPVideoHeaderCodecSpecifics())
-                  .nalu_type,
-              h264_specifics.nalu_type);
+    EXPECT_EQ(
+        std::get<RTPVideoHeaderH264>(metadata.GetRTPVideoHeaderCodecSpecifics())
+            .nalu_type,
+        h264_specifics.nalu_type);
   }
 }
 
@@ -321,7 +321,7 @@ TEST(RTPVideoHeaderTest, RTPVideoHeaderCodecSpecifics_FromMetadata) {
     metadata.SetRTPVideoHeaderCodecSpecifics(vp8_specifics);
     RTPVideoHeader video_header = RTPVideoHeader::FromMetadata(metadata);
     EXPECT_EQ(
-        absl::get<RTPVideoHeaderVP8>(video_header.video_type_header).pictureId,
+        std::get<RTPVideoHeaderVP8>(video_header.video_type_header).pictureId,
         42);
   }
   {
@@ -331,7 +331,7 @@ TEST(RTPVideoHeaderTest, RTPVideoHeaderCodecSpecifics_FromMetadata) {
     vp9_specifics.max_picture_id = 42;
     metadata.SetRTPVideoHeaderCodecSpecifics(vp9_specifics);
     RTPVideoHeader video_header = RTPVideoHeader::FromMetadata(metadata);
-    EXPECT_EQ(absl::get<RTPVideoHeaderVP9>(video_header.video_type_header)
+    EXPECT_EQ(std::get<RTPVideoHeaderVP9>(video_header.video_type_header)
                   .max_picture_id,
               42);
   }
@@ -342,7 +342,7 @@ TEST(RTPVideoHeaderTest, RTPVideoHeaderCodecSpecifics_FromMetadata) {
     metadata.SetRTPVideoHeaderCodecSpecifics(h264_specifics);
     RTPVideoHeader video_header = RTPVideoHeader::FromMetadata(metadata);
     EXPECT_EQ(
-        absl::get<RTPVideoHeaderH264>(video_header.video_type_header).nalu_type,
+        std::get<RTPVideoHeaderH264>(video_header.video_type_header).nalu_type,
         42);
   }
 }

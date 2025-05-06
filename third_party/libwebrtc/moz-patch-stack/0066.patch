@@ -127,7 +127,7 @@ index ebff602498..75eaf298b0 100644
      TimeDelta total_decode_time = TimeDelta::Zero();
      // https://w3c.github.io/webrtc-stats/#dom-rtcinboundrtpstreamstats-totalprocessingdelay
 diff --git a/modules/video_coding/packet_buffer.cc b/modules/video_coding/packet_buffer.cc
-index 6555aa5b07..9aa3960cc6 100644
+index 0ac4c539e5..2be5e75372 100644
 --- a/modules/video_coding/packet_buffer.cc
 +++ b/modules/video_coding/packet_buffer.cc
 @@ -128,24 +128,26 @@ PacketBuffer::InsertResult PacketBuffer::InsertPacket(
@@ -214,7 +214,7 @@ index 0800e84103..7c4ae845fa 100644
                                     int current_delay_ms,
                                     int target_delay_ms,
 diff --git a/video/rtp_video_stream_receiver2.cc b/video/rtp_video_stream_receiver2.cc
-index 693c38638e..803e2b9f04 100644
+index 57b2d48824..9e935288e6 100644
 --- a/video/rtp_video_stream_receiver2.cc
 +++ b/video/rtp_video_stream_receiver2.cc
 @@ -286,6 +286,7 @@ RtpVideoStreamReceiver2::RtpVideoStreamReceiver2(
@@ -244,7 +244,7 @@ index 693c38638e..803e2b9f04 100644
    }
  }
 diff --git a/video/rtp_video_stream_receiver2.h b/video/rtp_video_stream_receiver2.h
-index 3deedb4fcf..1b49f2166b 100644
+index 927c78acbd..a27a7a8a82 100644
 --- a/video/rtp_video_stream_receiver2.h
 +++ b/video/rtp_video_stream_receiver2.h
 @@ -53,6 +53,7 @@

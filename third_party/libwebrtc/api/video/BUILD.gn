@@ -188,7 +188,6 @@ rtc_library("encoded_frame") {
     "../../modules/video_coding:codec_globals_headers",
     "../../modules/video_coding:video_codec_interface",
     "../units:timestamp",
-    "//third_party/abseil-cpp/absl/types:variant",
   ]
 }
 
@@ -365,7 +364,6 @@ rtc_source_set("video_frame_metadata") {
     "../../rtc_base/system:rtc_export",
     "../transport/rtp:dependency_descriptor",
     "//third_party/abseil-cpp/absl/container:inlined_vector",
-    "//third_party/abseil-cpp/absl/types:variant",
   ]
 }
 

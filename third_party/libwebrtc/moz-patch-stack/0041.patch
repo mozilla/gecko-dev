@@ -168,7 +168,7 @@ index 84a5818dd6..40a142e2fb 100644
  
      // Transport for outgoing packets (RTCP).
 diff --git a/modules/rtp_rtcp/include/rtp_rtcp_defines.h b/modules/rtp_rtcp/include/rtp_rtcp_defines.h
-index ba04483f75..e08bc9b174 100644
+index 23b902c1fb..daa63f0e8e 100644
 --- a/modules/rtp_rtcp/include/rtp_rtcp_defines.h
 +++ b/modules/rtp_rtcp/include/rtp_rtcp_defines.h
 @@ -186,6 +186,14 @@ class NetworkLinkRtcpObserver {
@@ -267,7 +267,7 @@ index 68e8fb70bd..e14072c0fc 100644
  
      // DEPRECATED, transport_feedback_callback is no longer invoked by the RTP
 diff --git a/video/rtp_video_stream_receiver2.cc b/video/rtp_video_stream_receiver2.cc
-index 30819731d2..ac6fe9f40a 100644
+index 60367593c9..da15c5958f 100644
 --- a/video/rtp_video_stream_receiver2.cc
 +++ b/video/rtp_video_stream_receiver2.cc
 @@ -129,7 +129,8 @@ std::unique_ptr<ModuleRtpRtcpImpl2> CreateRtpRtcpModule(

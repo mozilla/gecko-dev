@@ -13,8 +13,8 @@
 #include <memory>
 #include <string>
 #include <utility>
+#include <variant>
 
-#include "absl/types/variant.h"
 #include "common_video/h264/h264_common.h"
 #include "common_video/h264/pps_parser.h"
 #include "common_video/h264/sps_parser.h"
@@ -38,7 +38,7 @@ H264SpsPpsTracker::FixedBitstream H264SpsPpsTracker::CopyAndFixBitstream(
   RTC_DCHECK_GT(bitstream.size(), 0);
 
   auto& h264_header =
-      absl::get<RTPVideoHeaderH264>(video_header->video_type_header);
+      std::get<RTPVideoHeaderH264>(video_header->video_type_header);
 
   bool append_sps_pps = false;
   auto sps = sps_data_.end();

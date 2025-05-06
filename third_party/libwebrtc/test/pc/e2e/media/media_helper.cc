@@ -11,8 +11,8 @@
 
 #include <string>
 #include <utility>
+#include <variant>
 
-#include "absl/types/variant.h"
 #include "api/media_stream_interface.h"
 #include "api/test/create_frame_generator.h"
 #include "api/test/pclf/media_configuration.h"
@@ -108,7 +108,7 @@ std::unique_ptr<test::TestVideoCapturer> MediaHelper::CreateVideoCapturer(
     std::unique_ptr<test::TestVideoCapturer::FramePreprocessor>
         frame_preprocessor) {
   CapturingDeviceIndex* capturing_device_index =
-      absl::get_if<CapturingDeviceIndex>(&source);
+      std::get_if<CapturingDeviceIndex>(&source);
   if (capturing_device_index != nullptr) {
     std::unique_ptr<test::TestVideoCapturer> capturer =
         test::CreateVideoCapturer(video_config.width, video_config.height,
@@ -123,7 +123,7 @@ std::unique_ptr<test::TestVideoCapturer> MediaHelper::CreateVideoCapturer(
 
   auto capturer = std::make_unique<test::FrameGeneratorCapturer>(
       clock_,
-      absl::get<std::unique_ptr<test::FrameGeneratorInterface>>(
+      std::get<std::unique_ptr<test::FrameGeneratorInterface>>(
           std::move(source)),
       video_config.fps, *task_queue_factory_, IsScreencast(video_config));
   capturer->SetFramePreprocessor(std::move(frame_preprocessor));

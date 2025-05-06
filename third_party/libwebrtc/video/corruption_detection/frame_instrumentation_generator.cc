@@ -14,10 +14,10 @@
 #include <cstdint>
 #include <iterator>
 #include <optional>
+#include <variant>
 #include <vector>
 
 #include "absl/algorithm/container.h"
-#include "absl/types/variant.h"
 #include "api/scoped_refptr.h"
 #include "api/video/corruption_detection_filter_settings.h"
 #include "api/video/encoded_image.h"
@@ -84,7 +84,7 @@ void FrameInstrumentationGenerator::OnCapturedFrame(VideoFrame frame) {
 }
 
 std::optional<
-    absl::variant<FrameInstrumentationSyncData, FrameInstrumentationData>>
+    std::variant<FrameInstrumentationSyncData, FrameInstrumentationData>>
 FrameInstrumentationGenerator::OnEncodedImage(
     const EncodedImage& encoded_image) {
   uint32_t rtp_timestamp_encoded_image = encoded_image.RtpTimestamp();
