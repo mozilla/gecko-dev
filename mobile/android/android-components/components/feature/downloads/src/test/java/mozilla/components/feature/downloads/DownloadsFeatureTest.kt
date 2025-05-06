@@ -164,11 +164,13 @@ class DownloadsFeatureTest {
             arrayOf(INTERNET, WRITE_EXTERNAL_STORAGE),
         ).`when`(downloadManager).permissions
 
-        val feature = DownloadsFeature(
-            testContext,
-            store,
-            useCases = DownloadsUseCases(store),
-            downloadManager = downloadManager,
+        val feature = spy(
+            DownloadsFeature(
+                testContext,
+                store,
+                useCases = DownloadsUseCases(store),
+                downloadManager = downloadManager,
+            ),
         )
 
         feature.start()
@@ -177,6 +179,7 @@ class DownloadsFeatureTest {
 
         val download = DownloadState(url = "https://www.mozilla.org", sessionId = "test-tab")
         doReturn("id").`when`(downloadManager).download(download)
+        doReturn(true).`when`(feature).isStorageAvailableForDownload(download)
 
         store.dispatch(ContentAction.UpdateDownloadAction("test-tab", download))
             .joinBlocking()
@@ -197,12 +200,14 @@ class DownloadsFeatureTest {
             arrayOf(INTERNET, WRITE_EXTERNAL_STORAGE),
         ).`when`(downloadManager).permissions
 
-        val feature = DownloadsFeature(
-            testContext,
-            store,
-            useCases = DownloadsUseCases(store),
-            fragmentManager = fragmentManager,
-            downloadManager = downloadManager,
+        val feature = spy(
+            DownloadsFeature(
+                testContext,
+                store,
+                useCases = DownloadsUseCases(store),
+                fragmentManager = fragmentManager,
+                downloadManager = downloadManager,
+            ),
         )
 
         feature.start()
@@ -216,6 +221,7 @@ class DownloadsFeatureTest {
         )
 
         doReturn("id").`when`(downloadManager).download(eq(download), anyString())
+        doReturn(true).`when`(feature).isStorageAvailableForDownload(download)
 
         store.dispatch(ContentAction.UpdateDownloadAction("test-tab", download))
             .joinBlocking()
@@ -462,6 +468,9 @@ class DownloadsFeatureTest {
         verify(feature, never()).showDownloadNotSupportedError()
 
         val download = DownloadState(url = "https://www.mozilla.org", sessionId = "test-tab")
+
+        doReturn(true).`when`(feature).isStorageAvailableForDownload(download)
+
         store.dispatch(ContentAction.UpdateDownloadAction("test-tab", download))
             .joinBlocking()
 
@@ -682,6 +691,8 @@ class DownloadsFeatureTest {
                 },
             ),
         )
+
+        doReturn(true).`when`(feature).isStorageAvailableForDownload(download)
 
         feature.processDownload(tab, download)
 
@@ -1345,6 +1356,40 @@ class DownloadsFeatureTest {
         verify(feature, never()).startDownload(any())
         verify(spy(testContext), never()).startActivity(any())
         verify(consumeDownloadUseCase, never()).invoke(anyString(), anyString())
+    }
+
+    @Test
+    fun `GIVEN phone storage is full WHEN our app is selected for download THEN show not enough storage dialog`() {
+        val downloadsUseCases: DownloadsUseCases = mock()
+        val cancelDownloadRequestUseCase = mock<CancelDownloadRequestUseCase>()
+        val consumeDownloadUseCase: ConsumeDownloadUseCase = mock()
+        val fileHasNotEnoughStorageDialog: ((Filename) -> Unit) = mock()
+
+        doReturn(consumeDownloadUseCase).`when`(downloadsUseCases).consumeDownload
+
+        val tab = createTab("https://www.mozilla.org", id = "test-tab")
+        val download = DownloadState(url = "https://www.mozilla.org/file.txt", sessionId = "test-tab", id = "test", fileName = "file.txt")
+        val ourApp = DownloaderApp(name = "app", packageName = testContext.packageName, resolver = mock(), activityName = "", url = "", contentType = null)
+        val feature = spy(
+            DownloadsFeature(
+                applicationContext = testContext,
+                store = mock(),
+                useCases = downloadsUseCases,
+                fileHasNotEnoughStorageDialog = fileHasNotEnoughStorageDialog,
+            ),
+        )
+
+        doReturn(cancelDownloadRequestUseCase).`when`(downloadsUseCases).cancelDownloadRequest
+
+        doReturn(false).`when`(feature).isStorageAvailableForDownload(download)
+
+        grantPermissions()
+
+        feature.onDownloaderAppSelected(ourApp, tab, download)
+
+        verify(fileHasNotEnoughStorageDialog).invoke(Filename("file.txt"))
+        verify(downloadsUseCases).cancelDownloadRequest
+        assertFalse(feature.startDownload(download))
     }
 }
 

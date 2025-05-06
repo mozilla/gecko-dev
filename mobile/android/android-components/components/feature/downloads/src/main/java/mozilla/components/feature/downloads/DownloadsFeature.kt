@@ -9,6 +9,7 @@ import android.content.Context
 import android.content.Intent
 import android.content.pm.ActivityInfo
 import android.content.pm.ResolveInfo
+import android.os.StatFs
 import android.widget.Toast
 import androidx.annotation.ColorRes
 import androidx.annotation.VisibleForTesting
@@ -103,6 +104,7 @@ value class NegativeActionCallback(val value: () -> Unit)
  * that will be processed by the current application.
  * @property customThirdPartyDownloadDialog An optional delegate for showing a dialog for a download
  * that can be processed by multiple installed applications including the current one.
+ * @property fileHasNotEnoughStorageDialog A callback invoked when there is not enough storage space.
  */
 @Suppress("LargeClass")
 class DownloadsFeature(
@@ -121,6 +123,7 @@ class DownloadsFeature(
     ((Filename, ContentSize, PositiveActionCallback, NegativeActionCallback) -> Unit)? = null,
     private val customThirdPartyDownloadDialog:
     ((ThirdPartyDownloaderApps, ThirdPartyDownloaderAppChosenCallback, NegativeActionCallback) -> Unit)? = null,
+    private val fileHasNotEnoughStorageDialog: ((Filename) -> Unit) = {},
 ) : LifecycleAwareFeature, PermissionsFeature {
 
     var onDownloadStopped: onDownloadStopped
@@ -258,6 +261,14 @@ class DownloadsFeature(
 
     @VisibleForTesting
     internal fun startDownload(download: DownloadState): Boolean {
+        if (!isStorageAvailableForDownload(download)) {
+            fileHasNotEnoughStorageDialog.invoke(
+                Filename(download.realFilenameOrGuessed),
+            )
+            download.sessionId?.let { useCases.cancelDownloadRequest.invoke(it, download.id) }
+            return false
+        }
+
         val id = downloadManager.download(download)
         return if (id != null) {
             true
@@ -306,7 +317,6 @@ class DownloadsFeature(
         ).show()
     }
 
-    @VisibleForTesting(otherwise = PRIVATE)
     internal fun showDownloadDialog(
         tab: SessionState,
         download: DownloadState,
@@ -334,6 +344,12 @@ class DownloadsFeature(
             promptsStyling = promptsStyling,
         )
     }
+
+    @VisibleForTesting
+    internal fun isStorageAvailableForDownload(download: DownloadState): Boolean =
+        download.contentLength?.let {
+            it < StatFs(download.directoryPath).availableBytes
+        } ?: true
 
     @VisibleForTesting
     internal fun showAppDownloaderDialog(

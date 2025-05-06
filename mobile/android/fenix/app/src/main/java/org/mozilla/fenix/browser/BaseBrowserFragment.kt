@@ -11,6 +11,7 @@ import android.content.Intent
 import android.content.res.Configuration
 import android.os.Build
 import android.os.Bundle
+import android.os.storage.StorageManager
 import android.provider.Settings
 import android.util.Log
 import android.view.Gravity
@@ -40,6 +41,7 @@ import androidx.compose.ui.viewinterop.AndroidView
 import androidx.coordinatorlayout.widget.CoordinatorLayout
 import androidx.core.content.ContextCompat.getColor
 import androidx.core.content.getSystemService
+import androidx.core.text.HtmlCompat
 import androidx.core.view.OnApplyWindowInsetsListener
 import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
@@ -800,6 +802,30 @@ abstract class BaseBrowserFragment :
                         }
                     }
                 }
+            },
+            fileHasNotEnoughStorageDialog = { filename ->
+                AlertDialog.Builder(requireContext())
+                    .setTitle(R.string.download_file_has_not_enough_storage_dialog_title)
+                    .setMessage(
+                        HtmlCompat.fromHtml(
+                            getString(
+                                R.string.download_file_has_not_enough_storage_dialog_message,
+                                filename.value,
+                            ),
+                            HtmlCompat.FROM_HTML_MODE_COMPACT,
+                        ),
+                    )
+                    .setPositiveButton(
+                        R.string.download_file_has_not_enough_storage_dialog_confirm_button_text,
+                    ) { dialog, _ ->
+                        openManageStorageSettings()
+                        dialog.dismiss()
+                    }
+                    .setNegativeButton(
+                        R.string.download_file_has_not_enough_storage_dialog_cancel_button_text,
+                    ) { dialog, _ ->
+                        dialog.dismiss()
+                    }.show()
             },
         )
 
@@ -2944,5 +2970,17 @@ abstract class BaseBrowserFragment :
             } as T
 
         else -> throw IllegalArgumentException("Unknown type: ${T::class.java}")
+    }
+
+    private fun openManageStorageSettings() {
+        val intent = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            Intent(StorageManager.ACTION_MANAGE_STORAGE)
+        } else {
+            Intent("android.intent.action.INTERNAL_STORAGE_SETTINGS")
+        }
+
+        if (intent.resolveActivity(requireContext().packageManager) != null) {
+            requireContext().startActivity(intent)
+        }
     }
 }
