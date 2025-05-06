@@ -536,7 +536,7 @@ static dom::Selection* GetDOMSelection(const nsIContent* aStartContent,
   return startFrameSel ? &startFrameSel->NormalSelection() : nullptr;
 }
 
-std::pair<nsIContent*, int32_t> TextLeafPoint::ToDOMPoint(
+std::pair<nsIContent*, uint32_t> TextLeafPoint::ToDOMPoint(
     bool aIncludeGenerated) const {
   if (!(*this) || !mAcc->IsLocal()) {
     MOZ_ASSERT_UNREACHABLE("Invalid point");
@@ -573,26 +573,37 @@ std::pair<nsIContent*, int32_t> TextLeafPoint::ToDOMPoint(
     }
   }
 
-  if (!mAcc->IsTextLeaf() && !mAcc->IsHTMLBr() && !mAcc->HasChildren()) {
-    // If this is not a text leaf it can be an empty editable container,
-    // whitespace, or an empty doc. In any case, the offset inside should be 0.
-    MOZ_ASSERT(mOffset == 0);
-
-    if (RefPtr<TextControlElement> textControlElement =
-            TextControlElement::FromNodeOrNull(content)) {
-      // This is an empty input, use the shadow root's element.
-      if (RefPtr<TextEditor> textEditor = textControlElement->GetTextEditor()) {
-        if (textEditor->IsEmpty()) {
-          MOZ_ASSERT(mOffset == 0);
-          return {textEditor->GetRoot(), 0};
-        }
-      }
-    }
-
-    return {content, 0};
+  if (mAcc->IsTextLeaf()) {
+    // For text nodes, DOM uses a character offset within the node.
+    return {content, RenderedToContentOffset(mAcc->AsLocal(), mOffset)};
   }
 
-  return {content, RenderedToContentOffset(mAcc->AsLocal(), mOffset)};
+  if (!mAcc->IsHyperText()) {
+    // For non-text nodes (e.g. images), DOM points use the child index within
+    // the parent.
+    nsIContent* parent = content->GetParent();
+    MOZ_ASSERT(parent);
+    auto childIndex = parent->ComputeIndexOf(content);
+    MOZ_ASSERT(childIndex);
+    return {parent, *childIndex};
+  }
+
+  // This could be an empty editable container, whitespace or an empty doc. In
+  // any case, the offset inside should be 0.
+  MOZ_ASSERT(mOffset == 0);
+
+  if (RefPtr<TextControlElement> textControlElement =
+          TextControlElement::FromNodeOrNull(content)) {
+    // This is an empty input, use the shadow root's element.
+    if (RefPtr<TextEditor> textEditor = textControlElement->GetTextEditor()) {
+      if (textEditor->IsEmpty()) {
+        MOZ_ASSERT(mOffset == 0);
+        return {textEditor->GetRoot(), 0};
+      }
+    }
+  }
+
+  return {content, 0};
 }
 
 static bool IsLineBreakContinuation(nsTextFrame* aContinuation) {

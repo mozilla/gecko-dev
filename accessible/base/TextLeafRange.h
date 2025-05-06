@@ -188,7 +188,7 @@ class TextLeafPoint final {
   /**
    * Translate given TextLeafPoint into a DOM point.
    */
-  MOZ_CAN_RUN_SCRIPT std::pair<nsIContent*, int32_t> ToDOMPoint(
+  MOZ_CAN_RUN_SCRIPT std::pair<nsIContent*, uint32_t> ToDOMPoint(
       bool aIncludeGenerated = true) const;
 
  private:

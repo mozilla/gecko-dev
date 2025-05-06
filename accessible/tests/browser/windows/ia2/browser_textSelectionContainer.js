@@ -21,7 +21,7 @@ function checkSelection(root, ranges) {
  * Test IAccessibleTextSelectionContainer::setSelections.
  */
 addAccessibleTask(
-  `<p id="p">ab<a id="link" href="/">cd</a>ef</p>`,
+  `<p id="p">ab<a id="link" href="/">cd</a>ef<img id="img" src="https://example.com/a11y/accessible/tests/mochitest/moz.png" alt="g"></p>`,
   async function testSetSelections(browser, docAcc) {
     docAcc.QueryInterface(nsIAccessibleText);
     await runPython(`
@@ -65,6 +65,21 @@ addAccessibleTask(
     `);
     await selected;
     checkSelection(docAcc, [[link, 1, p, 4]]);
+
+    info("Selecting f");
+    selected = waitForEvent(EVENT_TEXT_SELECTION_CHANGED, p);
+    await runPython(`
+      docSel.setSelections(1, byref(IA2TextSelection(p, 4, p, 5, False)))
+    `);
+    await selected;
+    checkSelection(docAcc, [[p, 4, p, 5]]);
+    // DOM treats an end point of (img, 0) as including the image. Ensure we
+    // used a DOM child index.
+    await invokeContentTask(browser, [], () => {
+      const sel = content.getSelection();
+      is(sel.focusNode.id, "p", "DOM selection focus node correct");
+      is(sel.focusOffset, 3, "DOM selection focus offset correct");
+    });
 
     info("Selecting a, c");
     selected = waitForEvent(EVENT_TEXT_SELECTION_CHANGED, link);
