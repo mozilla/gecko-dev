@@ -81,6 +81,7 @@ rtc_library("peer_configurer") {
     "../..:ice_transport_interface",
     "../..:libjingle_peerconnection_api",
     "../..:network_emulation_manager_api",
+    "../..:peer_network_dependencies",
     "../..:scoped_refptr",
     "../../../p2p:port_allocator",
     "../../../rtc_base:checks",

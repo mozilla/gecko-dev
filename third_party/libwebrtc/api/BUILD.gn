@@ -622,9 +622,10 @@ rtc_source_set("peer_network_dependencies") {
   visibility = [ "*" ]
   sources = [ "test/peer_network_dependencies.h" ]
   deps = [
-    ":packet_socket_factory",
     "../rtc_base:network",
+    "../rtc_base:socket_factory",
     "../rtc_base:threading",
+    "//third_party/abseil-cpp/absl/base:nullability",
   ]
 }
 
@@ -644,7 +645,6 @@ if (!build_with_mozilla) {
     ":media_stream_interface",
     ":network_state_predictor_api",
     ":packet_socket_factory",
-    ":peer_network_dependencies",
     ":rtp_parameters",
     ":simulated_network_api",
     ":stats_observer_interface",
@@ -928,18 +928,14 @@ rtc_source_set("network_emulation_manager_api") {
     ":peer_network_dependencies",
     ":simulated_network_api",
     ":time_controller",
-    "..//test/network:simulated_network",
     "../rtc_base:checks",
     "../rtc_base:ip_address",
     "../rtc_base:network",
     "../rtc_base:network_constants",
     "../rtc_base:socket_address",
-    "../rtc_base:socket_factory",
-    "../rtc_base:threading",
+    "../test/network:simulated_network",
     "test/network_emulation",
     "units:data_rate",
-    "units:data_size",
-    "units:timestamp",
     "//third_party/abseil-cpp/absl/base:nullability",
     "//third_party/abseil-cpp/absl/strings:string_view",
   ]

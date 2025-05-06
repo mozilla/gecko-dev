@@ -30,9 +30,9 @@
 #include "api/rtc_event_log/rtc_event_log_factory_interface.h"
 #include "api/scoped_refptr.h"
 #include "api/test/frame_generator_interface.h"
-#include "api/test/network_emulation_manager.h"
 #include "api/test/pclf/media_configuration.h"
 #include "api/test/pclf/media_quality_test_params.h"
+#include "api/test/peer_network_dependencies.h"
 #include "api/transport/bitrate_settings.h"
 #include "api/transport/network_control.h"
 #include "api/video_codecs/video_decoder_factory.h"
@@ -50,7 +50,7 @@ class PeerConfigurer {
       absl::variant<std::unique_ptr<test::FrameGeneratorInterface>,
                     CapturingDeviceIndex>;
 
-  explicit PeerConfigurer(EmulatedNetworkManagerInterface& network);
+  explicit PeerConfigurer(PeerNetworkDependencies& network);
 
   // Sets peer name that will be used to report metrics related to this peer.
   // If not set, some default name will be assigned. All names have to be

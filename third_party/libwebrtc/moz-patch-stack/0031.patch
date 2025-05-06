@@ -206,7 +206,7 @@ index 689de89c06..913cdf4478 100644
      } else {
        deps += [
 diff --git a/api/BUILD.gn b/api/BUILD.gn
-index 6000e13c13..8a03774ea5 100644
+index f67fcc3089..31cf7c287f 100644
 --- a/api/BUILD.gn
 +++ b/api/BUILD.gn
 @@ -44,6 +44,9 @@ rtc_source_set("enable_media") {
@@ -298,7 +298,7 @@ index 6000e13c13..8a03774ea5 100644
  
  rtc_source_set("frame_transformer_interface") {
    visibility = [ "*" ]
-@@ -600,6 +629,7 @@ rtc_source_set("peer_network_dependencies") {
+@@ -601,6 +630,7 @@ rtc_source_set("peer_network_dependencies") {
  }
  
  rtc_source_set("peer_connection_quality_test_fixture_api") {
@@ -330,7 +330,7 @@ index 6000e13c13..8a03774ea5 100644
  
  rtc_source_set("libjingle_logging_api") {
    visibility = [ "*" ]
-@@ -970,6 +1003,7 @@ rtc_source_set("refcountedbase") {
+@@ -966,6 +999,7 @@ rtc_source_set("refcountedbase") {
    ]
  }
  
@@ -338,7 +338,7 @@ index 6000e13c13..8a03774ea5 100644
  rtc_library("ice_transport_factory") {
    visibility = [ "*" ]
    sources = [
-@@ -994,6 +1028,7 @@ rtc_library("ice_transport_factory") {
+@@ -990,6 +1024,7 @@ rtc_library("ice_transport_factory") {
      "rtc_event_log:rtc_event_log",
    ]
  }

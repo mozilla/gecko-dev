@@ -15,14 +15,12 @@ specific_include_rules = {
     "+system_wrappers/include/clock.h",
   ],
   "network_emulation_manager\.h": [
-    "+rtc_base/thread.h",
-    "+rtc_base/network.h",
     "+rtc_base/network_constants.h",
     "+rtc_base/ip_address.h",
     "+rtc_base/socket_address.h",
-    "+rtc_base/socket_factory.h",
   ],
   "peer_network_dependencies\.h": [
+    "+rtc_base/socket_factory.h",
     "+rtc_base/network.h",
     "+rtc_base/thread.h",
   ],
