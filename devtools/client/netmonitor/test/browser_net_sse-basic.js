@@ -7,12 +7,80 @@
  * Test basic SSE connection.
  */
 
-add_task(async function () {
+function setupTestServer() {
+  const httpServer = createTestHTTPServer();
+  httpServer.registerContentType("html", "text/html");
+  httpServer.registerPathHandler("/index.html", function (request, response) {
+    response.setStatusLine(request.httpVersion, 200, "OK");
+    response.write(
+      `<!DOCTYPE html>
+      <html>
+        <head>
+          <title>SSE Inspection Test Page</title>
+        </head>
+        <body>
+            <h1>SSE Inspection Test Page</h1>
+            <script type="text/javascript">
+            /* exported openConnection, closeConnection */
+            "use strict";
+
+            let es;
+            function openConnection(endpoint) {
+              return new Promise(resolve => {
+                es = new EventSource("http://localhost:${httpServer.identity.primaryPort}/" + endpoint);
+                es.onmessage = function () {
+                  resolve();
+                };
+              });
+            }
+
+            function closeConnection() {
+              es.close();
+            }
+            </script>
+        </body>
+      </html>
+    `
+    );
+  });
+
+  let sseResponse;
+  httpServer.registerPathHandler("/sse", function (request, response) {
+    response.processAsync();
+    response.setHeader("Content-Type", "text/event-stream");
+    response.write("data: Why so serious?\n\n");
+    response.write("data: Why so serious?\n\n");
+    response.write("data: Why so serious?\n\n");
+    response.finish();
+  });
+
+  httpServer.registerPathHandler("/sse-delay", function (request, response) {
+    response.processAsync();
+    response.setHeader("Content-Type", "text/event-stream");
+    response.write("data: Why so serious?\n\n");
+    sseResponse = response;
+  });
+
+  const sendResponseMessages = () => {
+    sseResponse.write("data: Another why so serious?\n\n");
+    sseResponse.write("data: Another why so serious?\n\n");
+    sseResponse.write("data: Another why so serious?\n\n");
+  };
+
+  const completeResponse = () => {
+    sseResponse.finish();
+  };
+
+  return { httpServer, sendResponseMessages, completeResponse };
+}
+
+add_task(async function testBasicServerSentEvents() {
+  const { httpServer } = setupTestServer();
+  const port = httpServer.identity.primaryPort;
+
   const { tab, monitor } = await initNetMonitor(
-    "http://mochi.test:8888/browser/devtools/client/netmonitor/test/html_sse-test-page.html",
-    {
-      requestCount: 1,
-    }
+    `http://localhost:${port}/index.html`,
+    { requestCount: 1 }
   );
   info("Starting test... ");
 
@@ -23,7 +91,7 @@ add_task(async function () {
 
   const onNetworkEvents = waitForNetworkEvents(monitor, 1);
   await SpecialPowers.spawn(tab.linkedBrowser, [], async () => {
-    await content.wrappedJSObject.openConnection();
+    await content.wrappedJSObject.openConnection("sse");
   });
   await onNetworkEvents;
 
@@ -39,10 +107,10 @@ add_task(async function () {
   EventUtils.sendMouseEvent({ type: "mousedown" }, requests[0]);
 
   // Wait for messages to be displayed in DevTools
-  const wait = waitForDOM(
+  const waitForMessages = waitForDOM(
     document,
     "#messages-view .message-list-table .message-list-item",
-    1
+    3
   );
 
   // Test that 'Save Response As' is not in the context menu
@@ -66,7 +134,7 @@ add_task(async function () {
 
   // Click on the "Response" panel
   clickOnSidebarTab(document, "response");
-  await wait;
+  await waitForMessages;
 
   // Get all messages present in the "Response" panel
   const frames = document.querySelectorAll(
@@ -74,7 +142,7 @@ add_task(async function () {
   );
 
   // Check expected results
-  is(frames.length, 1, "There should be one message");
+  is(frames.length, 3, "There should be three messages");
 
   is(
     frames[0].querySelector(".message-list-payload").textContent,
@@ -83,16 +151,11 @@ add_task(async function () {
     "Data column shows correct payload"
   );
 
-  // Closed message may already be here
-  if (
-    !document.querySelector("#messages-view .msg-connection-closed-message")
-  ) {
-    await waitForDOM(
-      document,
-      "#messages-view .msg-connection-closed-message",
-      1
-    );
-  }
+  await waitForDOMIfNeeded(
+    document,
+    "#messages-view .msg-connection-closed-message",
+    1
+  );
 
   is(
     !!document.querySelector("#messages-view .msg-connection-closed-message"),
@@ -102,13 +165,13 @@ add_task(async function () {
 
   is(
     document.querySelector(".message-network-summary-count").textContent,
-    "1 message",
+    "3 messages",
     "Correct message count is displayed"
   );
 
   is(
     document.querySelector(".message-network-summary-total-size").textContent,
-    "15 B total",
+    "45 B total",
     "Correct total size should be displayed"
   );
 
@@ -139,5 +202,117 @@ add_task(async function () {
       `Context menu item "${column}" is displayed`
     );
   }
+
+  return teardown(monitor);
+});
+
+/**
+ * Test various scenarios around SSE requests,
+ * 1) Assert that the SSE requests messages are displayed before the connection is closed.
+ * 2) Assert that subsequent messages after the response panel is open are visible.
+ * 3) Assert that the close connection message is displayed when the connection is closed.
+ */
+add_task(async function testServerSentEventsDetails() {
+  // TODO: Should enable this test when Bug 1557795 gets fixed.
+  // eslint-disable-next-line no-constant-condition
+  if (true) {
+    return null;
+  }
+  const { httpServer, sendResponseMessages, completeResponse } =
+    setupTestServer();
+  const port = httpServer.identity.primaryPort;
+
+  const { tab, monitor } = await initNetMonitor(
+    `http://localhost:${port}/index.html`,
+    {
+      requestCount: 1,
+    }
+  );
+  info("Starting test... ");
+
+  const { document, store, windowRequire } = monitor.panelWin;
+  const Actions = windowRequire("devtools/client/netmonitor/src/actions/index");
+
+  store.dispatch(Actions.batchEnable(false));
+
+  // We are expecting an SSE request whose response will remain pending on the server,
+  const waitForRequest = waitUntil(() =>
+    document.querySelector(".request-list-item")
+  );
+  await SpecialPowers.spawn(tab.linkedBrowser, [], async () => {
+    await content.wrappedJSObject.openConnection("sse-delay");
+  });
+  await waitForRequest;
+
+  const requests = document.querySelectorAll(".request-list-item");
+  is(requests.length, 1, "There should be one request");
+
+  // Wait for messages to be displayed in DevTools
+  const waitForMessages = waitForDOM(
+    document,
+    "#messages-view .message-list-table .message-list-item",
+    1
+  );
+
+  // Select the request to open the side panel.
+  EventUtils.sendMouseEvent({ type: "mousedown" }, requests[0]);
+
+  // Click on the "Response" panel
+  clickOnSidebarTab(document, "response");
+  await waitForMessages;
+
+  // Get all messages present in the "Response" panel
+  const frames = document.querySelectorAll(
+    "#messages-view .message-list-table .message-list-item"
+  );
+
+  // Check expected results
+  is(frames.length, 1, "There should be one message");
+
+  is(
+    frames[0].querySelector(".message-list-payload").textContent,
+    // Initial whitespace comes from ColumnData.
+    " Why so serious?",
+    "Data column shows correct payload"
+  );
+
+  const waitForMoreMessages = waitForDOM(
+    document,
+    "#messages-view .message-list-table .message-list-item",
+    3
+  );
+  info("Send a couple of more messages");
+  sendResponseMessages();
+  await waitForMoreMessages;
+
+  ok(
+    !document.querySelector("#messages-view .msg-connection-closed-message"),
+    "Connection closed message not be should not be displayed"
+  );
+
+  // Lets finish the request
+  completeResponse();
+
+  const waitForClose = waitForDOM(
+    document,
+    "#messages-view .msg-connection-closed-message",
+    1
+  );
+
+  await SpecialPowers.spawn(tab.linkedBrowser, [], async () => {
+    await content.wrappedJSObject.closeConnection();
+  });
+
+  await waitForClose;
+
+  is(
+    !!document.querySelector("#messages-view .msg-connection-closed-message"),
+    true,
+    "Connection closed message should be displayed"
+  );
+
+  // Wait for the connection closed event to complete
+  await waitForTime(1000);
+
   return teardown(monitor);
 });
