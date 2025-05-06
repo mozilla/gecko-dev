@@ -8,8 +8,11 @@ use std::{
     ptr::null,
 };
 use windows_sys::Win32::{
-    Foundation::{GetLastError, FALSE, HANDLE},
-    System::Threading::{CreateEventA, ResetEvent, SetEvent},
+    Foundation::{GetLastError, ERROR_NOT_FOUND, FALSE, HANDLE, TRUE},
+    System::{
+        Threading::{CreateEventA, ResetEvent, SetEvent},
+        IO::{CancelIoEx, GetOverlappedResult, OVERLAPPED},
+    },
 };
 
 pub(crate) fn server_name(pid: Pid) -> String {
@@ -53,5 +56,37 @@ pub(crate) fn set_event(handle: BorrowedHandle) -> Result<(), IPCError> {
     match res {
         FALSE => Err(IPCError::System(unsafe { GetLastError() })),
         _ => Ok(()),
+    }
+}
+
+pub(crate) fn cancel_overlapped_io(handle: BorrowedHandle, mut overlapped: Box<OVERLAPPED>) {
+    let res = unsafe { CancelIoEx(handle.as_raw_handle() as HANDLE, overlapped.as_mut()) };
+    if res == 0 {
+        if unsafe { GetLastError() } != ERROR_NOT_FOUND {
+            // If we get here an asynchronous I/O operation was pending
+            // and we failed to cancel it. Leak the corresponding
+            // OVERLAPPED structure instead since it could still
+            // complete sometimes in the future.
+            let _ = Box::leak(overlapped);
+        }
+
+        return;
+    }
+
+    // Just wait for the operation to finish, we don't care about the result
+    let mut number_of_bytes_transferred: u32 = 0;
+    let res = unsafe {
+        GetOverlappedResult(
+            handle.as_raw_handle() as HANDLE,
+            overlapped.as_mut(),
+            &mut number_of_bytes_transferred,
+            /* bWait */ TRUE,
+        )
+    };
+
+    if res == FALSE {
+        // We can't wait for the cancelling indefinitely, so leak the
+        // OVERLAPPED structure instead.
+        let _ = Box::leak(overlapped);
     }
 }
