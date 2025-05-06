@@ -215,6 +215,7 @@
     </popupnotification>
 
     <popupnotification id="appMenu-addon-installed-notification"
+                       is="addon-installed-notification"
                        popupid="addon-installed"
                        closebuttonhidden="true"
                        secondarybuttonhidden="true"
@@ -223,7 +224,9 @@
                        buttonhighlight="true"
                        hidden="true">
       <popupnotificationcontent class="addon-installed-notification-content" orient="vertical">
-        <description id="addon-install-description" data-lazy-l10n-id="appmenu-addon-post-install-message3"/>
+        <description id="addon-install-description">
+          <html:a id="addon-install-settings-link" data-l10n-name="settings-link"></html:a>
+        </description>
       </popupnotificationcontent>
     </popupnotification>
 

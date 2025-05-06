@@ -437,7 +437,8 @@ customElements.define(
 
       return checkboxEl;
     }
-  }
+  },
+  { extends: "popupnotification" }
 );
 
 customElements.define(
@@ -599,7 +600,8 @@ customElements.define(
     onDownloadEnded() {
       this.updateProgress();
     }
-  }
+  },
+  { extends: "popupnotification" }
 );
 
 // This custom element wraps the messagebar shown in the extensions panel
@@ -669,6 +671,80 @@ customElements.define(
       messagebar.requestUpdate();
     }
   }
+);
+
+customElements.define(
+  "addon-installed-notification",
+  class MozAddonInstalledNotification extends customElements.get(
+    "popupnotification"
+  ) {
+    connectedCallback() {
+      this.descriptionEl = this.querySelector("#addon-install-description");
+      this.settingsLinkEl = this.querySelector("#addon-install-settings-link");
+
+      this.addEventListener("click", this);
+    }
+
+    disconnectedCallback() {
+      this.removeEventListener("click", this);
+    }
+
+    handleEvent(event) {
+      const { target } = event;
+
+      switch (event.type) {
+        case "click": {
+          if (target.id === this.settingsLinkEl.id) {
+            const { addonId } = this.notification.options.customElementOptions;
+
+            BrowserAddonUI.openAddonsMgr(
+              "addons://detail/" + encodeURIComponent(addonId)
+            );
+          }
+          break;
+        }
+      }
+    }
+
+    show() {
+      super.show();
+
+      if (!this.notification) {
+        return;
+      }
+
+      if (!this.notification.options?.customElementOptions) {
+        throw new Error(
+          "Mandatory customElementOptions property missing from notification options"
+        );
+      }
+
+      this.render();
+    }
+
+    render() {
+      this.settingsLinkEl.hidden = true;
+
+      let fluentId = "appmenu-addon-post-install-message3";
+      if (this.#dataCollectionPermissionsEnabled) {
+        MozXULElement.insertFTLIfNeeded(
+          "locales-preview/dataCollectionPermissions.ftl"
+        );
+        this.settingsLinkEl.hidden = false;
+        fluentId = "appmenu-addon-post-install-message-with-data-collection";
+      }
+
+      this.ownerDocument.l10n.setAttributes(this.descriptionEl, fluentId);
+    }
+
+    get #dataCollectionPermissionsEnabled() {
+      return Services.prefs.getBoolPref(
+        "extensions.dataCollectionPermissions.enabled",
+        false
+      );
+    }
+  },
+  { extends: "popupnotification" }
 );
 
 // Removes a doorhanger notification if all of the installs it was notifying

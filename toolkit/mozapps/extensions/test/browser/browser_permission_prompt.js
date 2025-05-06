@@ -1201,3 +1201,75 @@ add_task(async function testTechnicalAndInteractionData() {
 
   await SpecialPowers.popPrefEnv();
 });
+
+add_task(async function testVerifyPostInstallPopupWithDataCollection() {
+  await SpecialPowers.pushPrefEnv({
+    set: [["extensions.dataCollectionPermissions.enabled", true]],
+  });
+
+  const extensionId = "@test-id";
+  const extension = AddonTestUtils.createTempWebExtensionFile({
+    manifest: {
+      browser_specific_settings: {
+        gecko: { id: extensionId },
+      },
+    },
+  });
+  await BrowserTestUtils.withNewTab(
+    { gBrowser, url: "about:robots" },
+    async () => {
+      const dialogPromise = promisePopupNotificationShown(
+        "addon-webext-permissions"
+      );
+      gURLBar.value = extension.path;
+      gURLBar.focus();
+      EventUtils.synthesizeKey("KEY_Enter");
+      const popupContentEl = await dialogPromise;
+
+      // Install the add-on.
+      let notificationPromise = waitAppMenuNotificationShown(
+        "addon-installed",
+        extensionId
+      );
+      popupContentEl.button.click();
+      let notification = await notificationPromise;
+
+      // Verify the post-install popup.
+      Assert.ok(
+        notification
+          .querySelector("#addon-install-description")
+          .textContent.startsWith(
+            "Update permissions and data preferences any time"
+          ),
+        "Expected notification content with data collection"
+      );
+      let settingsLink = notification.querySelector(
+        "#addon-install-description > a"
+      );
+      Assert.ok(settingsLink, "Expected a link in the post-install popup");
+      const tabPromise = BrowserTestUtils.waitForNewTab(
+        gBrowser,
+        "about:addons",
+        true
+      );
+      settingsLink.click();
+      const tab = await tabPromise;
+      Assert.ok(tab, "Expected tab");
+      is(
+        gBrowser.selectedBrowser.contentWindow.gViewController.currentViewId,
+        `addons://detail/${encodeURIComponent(extensionId)}`,
+        "Expected about:addons to show the detail view of the extension"
+      );
+      BrowserTestUtils.removeTab(tab);
+
+      // Dismiss the popup by clicking "OK".
+      notification.button.click();
+
+      const addon = await AddonManager.getAddonByID(extensionId);
+      Assert.ok(addon, "Expected add-on");
+      await addon.uninstall();
+    }
+  );
+
+  await SpecialPowers.popPrefEnv();
+});

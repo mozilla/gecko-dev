@@ -82,3 +82,6 @@ permissions-data-addon-button = Permissions and data
 popup-notification-addon-technicalAndInteraction-checkbox =
     .label = Share technical and interaction data with extension developer
     .accesskey = S
+
+# This string is used in the confirmation popup displayed after an extension has been installed.
+appmenu-addon-post-install-message-with-data-collection = Update permissions and data preferences any time in the <a data-l10n-name="settings-link">extension settings</a>.

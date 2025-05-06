@@ -704,6 +704,9 @@ export var ExtensionsUI = {
             lazy.AppMenuNotifications.removeNotification("addon-installed");
             resolve();
           },
+          customElementOptions: {
+            addonId: addon.id,
+          },
         };
         lazy.AppMenuNotifications.showNotification(
           "addon-installed",
