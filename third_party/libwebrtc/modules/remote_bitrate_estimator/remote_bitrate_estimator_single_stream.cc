@@ -103,7 +103,7 @@ void RemoteBitrateEstimatorSingleStream::IncomingPacket(
                               estimator.estimator.num_of_deltas(), now_ms);
   }
   if (estimator.detector.State() == BandwidthUsage::kBwOverusing) {
-    std::optional<DataRate> incoming_bitrate = incoming_bitrate_.Rate(now);
+    incoming_bitrate = incoming_bitrate_.Rate(now);
     if (incoming_bitrate.has_value() &&
         (prior_state != BandwidthUsage::kBwOverusing ||
          remote_rate_.TimeToReduceFurther(now, *incoming_bitrate))) {

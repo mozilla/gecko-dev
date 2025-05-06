@@ -325,7 +325,7 @@ void ReceiveStatisticsProxy::UpdateHistograms(
                    << media_bitrate_kbps << '\n';
       }
 
-      int num_total_frames =
+      num_total_frames =
           stats.frame_counts.key_frames + stats.frame_counts.delta_frames;
       if (num_total_frames >= kMinRequiredSamples) {
         int num_key_frames = stats.frame_counts.key_frames;

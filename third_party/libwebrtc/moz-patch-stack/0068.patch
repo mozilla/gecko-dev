@@ -116,7 +116,7 @@ index 4981acf0ca..f0c48f3702 100644
    num_discarded_packets_ += num_discarded_packets;
  }
 diff --git a/video/receive_statistics_proxy.cc b/video/receive_statistics_proxy.cc
-index 7569ff10d6..548a6db16a 100644
+index 6f46194369..abfdfac1f5 100644
 --- a/video/receive_statistics_proxy.cc
 +++ b/video/receive_statistics_proxy.cc
 @@ -20,6 +20,7 @@

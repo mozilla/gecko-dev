@@ -1431,11 +1431,12 @@ bool P2PTransportChannel::CreateConnection(webrtc::PortInterface* port,
     if (origin == webrtc::PortInterface::ORIGIN_MESSAGE && incoming_only_) {
       return false;
     }
-    Connection* connection = port->CreateConnection(remote_candidate, origin);
-    if (!connection) {
+    Connection* new_connection =
+        port->CreateConnection(remote_candidate, origin);
+    if (!new_connection) {
       return false;
     }
-    AddConnection(connection);
+    AddConnection(new_connection);
     RTC_LOG(LS_INFO) << ToString()
                      << ": Created connection with origin: " << origin
                      << ", total: " << connections_.size();
