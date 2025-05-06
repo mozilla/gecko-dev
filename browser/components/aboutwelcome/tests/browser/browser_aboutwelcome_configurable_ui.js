@@ -1,6 +1,6 @@
 "use strict";
 
-const { ExperimentFakes } = ChromeUtils.importESModule(
+const { NimbusTestUtils } = ChromeUtils.importESModule(
   "resource://testing-common/NimbusTestUtils.sys.mjs"
 );
 
@@ -33,7 +33,7 @@ async function testAboutWelcomeLogoFor(logo = {}) {
 
   let screens = [makeTestContent("TEST_LOGO_SELECTION_STEP", { logo })];
 
-  let doExperimentCleanup = await ExperimentFakes.enrollWithFeatureConfig({
+  let doExperimentCleanup = await NimbusTestUtils.enrollWithFeatureConfig({
     featureId: "aboutwelcome",
     value: { enabled: true, screens },
   });
@@ -367,7 +367,7 @@ add_task(async function test_aboutwelcome_with_url_backdrop() {
   const TEST_BACKDROP_VALUE = `#212121 ${TEST_BACKDROP_URL} center/cover no-repeat fixed`;
   const TEST_URL_BACKDROP_CONTENT = makeTestContent("TEST_URL_BACKDROP_STEP");
 
-  let doExperimentCleanup = await ExperimentFakes.enrollWithFeatureConfig({
+  let doExperimentCleanup = await NimbusTestUtils.enrollWithFeatureConfig({
     featureId: "aboutwelcome",
     value: {
       enabled: true,
@@ -396,7 +396,7 @@ add_task(async function test_aboutwelcome_with_color_backdrop() {
     "TEST_COLOR_NAME_BACKDROP_STEP"
   );
 
-  let doExperimentCleanup = await ExperimentFakes.enrollWithFeatureConfig({
+  let doExperimentCleanup = await NimbusTestUtils.enrollWithFeatureConfig({
     featureId: "aboutwelcome",
     value: {
       enabled: true,
@@ -438,7 +438,7 @@ add_task(async function test_aboutwelcome_with_text_color_override() {
     );
   }
 
-  let doExperimentCleanup = await ExperimentFakes.enrollWithFeatureConfig({
+  let doExperimentCleanup = await NimbusTestUtils.enrollWithFeatureConfig({
     featureId: "aboutwelcome",
     value: {
       enabled: true,
@@ -508,7 +508,7 @@ add_task(async function test_aboutwelcome_with_progress_bar() {
     );
   }
 
-  let doExperimentCleanup = await ExperimentFakes.enrollWithFeatureConfig({
+  let doExperimentCleanup = await NimbusTestUtils.enrollWithFeatureConfig({
     featureId: "aboutwelcome",
     value: {
       enabled: true,
@@ -566,7 +566,7 @@ add_task(async function test_aboutwelcome_history_updates_disabled() {
   for (let i = 1; i < 3; i++) {
     screens.push(makeTestContent(`TEST_PUSH_STATE_STEP_${i}`));
   }
-  let doExperimentCleanup = await ExperimentFakes.enrollWithFeatureConfig({
+  let doExperimentCleanup = await NimbusTestUtils.enrollWithFeatureConfig({
     featureId: "aboutwelcome",
     value: {
       enabled: true,
@@ -644,7 +644,7 @@ add_task(async function test_aboutwelcome_start_screen_configured() {
   for (let i = 1; i < 3; i++) {
     screens.push(makeTestContent(`TEST_START_STEP_${i}`));
   }
-  let doExperimentCleanup = await ExperimentFakes.enrollWithFeatureConfig({
+  let doExperimentCleanup = await NimbusTestUtils.enrollWithFeatureConfig({
     featureId: "aboutwelcome",
     value: {
       enabled: true,
@@ -713,7 +713,7 @@ add_task(async function test_aboutwelcome_start_screen_configured() {
 add_task(async function test_aboutwelcome_rdm_property() {
   let screens = [makeTestContent(`TEST_NO_RDM`, { no_rdm: true })];
 
-  let doExperimentCleanup = await ExperimentFakes.enrollWithFeatureConfig({
+  let doExperimentCleanup = await NimbusTestUtils.enrollWithFeatureConfig({
     featureId: "aboutwelcome",
     value: { enabled: true, screens },
   });
@@ -743,7 +743,7 @@ add_task(async function test_aboutwelcome_reverse_dismiss() {
     }),
   ];
 
-  let doExperimentCleanup = await ExperimentFakes.enrollWithFeatureConfig({
+  let doExperimentCleanup = await NimbusTestUtils.enrollWithFeatureConfig({
     featureId: "aboutwelcome",
     value: { enabled: true, screens },
   });
@@ -781,7 +781,7 @@ add_task(async function test_aboutwelcome_reverse_dismiss() {
 add_task(async function test_aboutwelcome_fullscreen_property() {
   let screens = [makeTestContent(`TEST_FULLSCREEN`, { fullscreen: true })];
 
-  let doExperimentCleanup = await ExperimentFakes.enrollWithFeatureConfig({
+  let doExperimentCleanup = await NimbusTestUtils.enrollWithFeatureConfig({
     featureId: "aboutwelcome",
     value: { enabled: true, screens },
   });
@@ -819,7 +819,7 @@ add_task(async function test_aboutwelcome_narrow_property() {
     }),
   ];
 
-  let doExperimentCleanup = await ExperimentFakes.enrollWithFeatureConfig({
+  let doExperimentCleanup = await NimbusTestUtils.enrollWithFeatureConfig({
     featureId: "aboutwelcome",
     value: { enabled: true, screens },
   });
@@ -929,7 +929,7 @@ add_task(async function test_aboutwelcome_single_select_icon_styles() {
     }),
   ];
 
-  let doExperimentCleanup = await ExperimentFakes.enrollWithFeatureConfig({
+  let doExperimentCleanup = await NimbusTestUtils.enrollWithFeatureConfig({
     featureId: "aboutwelcome",
     value: { enabled: true, screens },
   });

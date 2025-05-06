@@ -10,7 +10,7 @@ const { SpecialMessageActions } = ChromeUtils.importESModule(
   "resource://messaging-system/lib/SpecialMessageActions.sys.mjs"
 );
 
-const { ExperimentFakes } = ChromeUtils.importESModule(
+const { NimbusTestUtils } = ChromeUtils.importESModule(
   "resource://testing-common/NimbusTestUtils.sys.mjs"
 );
 
@@ -218,7 +218,7 @@ add_task(async function test_bookmarks_bar_button_experiment_update() {
   const message = getTestMessage();
 
   // enroll in an experiment with the bookmarks bar button feature
-  const cleanup = await ExperimentFakes.enrollWithFeatureConfig({
+  const cleanup = await NimbusTestUtils.enrollWithFeatureConfig({
     featureId,
     value: message,
   });

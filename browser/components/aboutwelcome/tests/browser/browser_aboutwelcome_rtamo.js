@@ -6,9 +6,6 @@ const { ASRouter } = ChromeUtils.importESModule(
 const { AddonRepository } = ChromeUtils.importESModule(
   "resource://gre/modules/addons/AddonRepository.sys.mjs"
 );
-const { ExperimentFakes } = ChromeUtils.importESModule(
-  "resource://testing-common/NimbusTestUtils.sys.mjs"
-);
 
 const TEST_ADDON_INFO = [
   {

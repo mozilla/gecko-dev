@@ -3,7 +3,7 @@
 const { ExperimentAPI } = ChromeUtils.importESModule(
   "resource://nimbus/ExperimentAPI.sys.mjs"
 );
-const { ExperimentFakes } = ChromeUtils.importESModule(
+const { NimbusTestUtils } = ChromeUtils.importESModule(
   "resource://testing-common/NimbusTestUtils.sys.mjs"
 );
 const { TelemetryTestUtils } = ChromeUtils.importESModule(
@@ -16,7 +16,7 @@ const { TelemetryTestUtils } = ChromeUtils.importESModule(
 add_task(async function test_multistage_zeroOnboarding_experimentAPI() {
   await setAboutWelcomePref(true);
   await ExperimentAPI.ready();
-  let doExperimentCleanup = await ExperimentFakes.enrollWithFeatureConfig({
+  let doExperimentCleanup = await NimbusTestUtils.enrollWithFeatureConfig({
     featureId: "aboutwelcome",
     value: { enabled: false },
   });
@@ -135,7 +135,7 @@ add_task(async function test_multistage_aboutwelcome_experimentAPI() {
   await setAboutWelcomePref(true);
   await ExperimentAPI.ready();
 
-  let doExperimentCleanup = await ExperimentFakes.enrollWithFeatureConfig({
+  let doExperimentCleanup = await NimbusTestUtils.enrollWithFeatureConfig({
     featureId: "aboutwelcome",
     enabled: true,
     value: {
@@ -264,7 +264,7 @@ add_task(async function test_multistage_aboutwelcome_backdrop() {
   await ExperimentAPI.ready();
   await pushPrefs(["browser.aboutwelcome.backdrop", TEST_BACKDROP]);
 
-  const doExperimentCleanup = await ExperimentFakes.enrollWithFeatureConfig({
+  const doExperimentCleanup = await NimbusTestUtils.enrollWithFeatureConfig({
     featureId: "aboutwelcome",
     value: {
       id: "my-mochitest-experiment",
@@ -321,7 +321,7 @@ add_task(async function test_multistage_aboutwelcome_utm_term() {
   await setAboutWelcomePref(true);
   await ExperimentAPI.ready();
 
-  const doExperimentCleanup = await ExperimentFakes.enrollWithFeatureConfig({
+  const doExperimentCleanup = await NimbusTestUtils.enrollWithFeatureConfig({
     featureId: "aboutwelcome",
     value: {
       id: "my-mochitest-experiment",
