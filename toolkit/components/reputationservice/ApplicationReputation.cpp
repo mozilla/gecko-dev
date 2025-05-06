@@ -850,6 +850,9 @@ nsresult PendingDBLookup::LookupSpecInternal(const nsACString& aSpec) {
     }
     tables.Append(blocklist);
   }
+  if (principal->IsSystemPrincipal()) {
+    return mPendingLookup->LookupNext();
+  }
   return dbService->Lookup(principal, tables, this);
 }
 

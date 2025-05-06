@@ -497,6 +497,8 @@ export var ScreenshotsUtils = {
     this.resetMethodsUsed();
     this.attemptToRestoreFocus(browser);
 
+    this.revokeBlobURL(browser);
+
     browser.removeEventListener("SwapDocShells", this);
     const gBrowser = browser.getTabBrowser();
     gBrowser.tabContainer.removeEventListener("TabSelect", this);
@@ -952,6 +954,32 @@ export var ScreenshotsUtils = {
   },
 
   /**
+   * Revoke the object url of the current browsers screenshot.
+   *
+   * @param {browser} browser The current browser
+   */
+  revokeBlobURL(browser) {
+    let browserState = this.browserToScreenshotsState.get(browser);
+    if (browserState?.blobURL) {
+      URL.revokeObjectURL(browserState.blobURL);
+    }
+  },
+
+  /**
+   * Set the blob url on the browser state so we can revoke on exit.
+   *
+   * @param {browser} browser The current browser
+   * @param {string} blobURL The object url for the screenshot
+   */
+  setBlobURL(browser, blobURL) {
+    // We shouldn't already have a blob URL on the browser
+    // but let's revoke just in case.
+    this.revokeBlobURL(browser);
+
+    this.setPerBrowserState(browser, { blobURL });
+  },
+
+  /**
    * The max dimension of any side of a canvas is 32767 and the max canvas area is
    * 124925329. If the width or height is greater or equal to 32766 we will crop the
    * screenshot to the max width. If the area is still too large for the canvas
@@ -1019,7 +1047,7 @@ export var ScreenshotsUtils = {
     }
 
     let canvas = await this.createCanvas(rect, browser);
-    let url = canvas.toDataURL();
+    let blob = await canvas.convertToBlob();
 
     let dialog = await this.openPreviewDialog(browser);
     await dialog._dialogReady;
@@ -1027,7 +1055,10 @@ export var ScreenshotsUtils = {
       "screenshots-preview"
     );
 
-    screenshotsPreviewEl.previewImg.src = url;
+    let blobURL = URL.createObjectURL(blob);
+    this.setBlobURL(browser, blobURL);
+    screenshotsPreviewEl.previewImg.src = blobURL;
+
     screenshotsPreviewEl.focusButton(lazy.SCREENSHOTS_LAST_SAVED_METHOD);
 
     Services.prefs.setStringPref(
@@ -1062,14 +1093,11 @@ export var ScreenshotsUtils = {
 
     let browsingContext = BrowsingContext.get(browser.browsingContext.id);
 
-    let canvas = browser.ownerDocument.createElementNS(
-      "http://www.w3.org/1999/xhtml",
-      "html:canvas"
+    let canvas = new OffscreenCanvas(
+      region.width * devicePixelRatio,
+      region.height * devicePixelRatio
     );
     let context = canvas.getContext("2d");
-
-    canvas.width = region.width * devicePixelRatio;
-    canvas.height = region.height * devicePixelRatio;
 
     const snapshotSize = Math.floor(MAX_SNAPSHOT_DIMENSION * devicePixelRatio);
 
@@ -1129,21 +1157,26 @@ export var ScreenshotsUtils = {
    */
   async copyScreenshotFromRegion(region, browser) {
     let canvas = await this.createCanvas(region, browser);
-    let url = canvas.toDataURL();
+    let blob = await canvas.convertToBlob();
 
-    await this.copyScreenshot(url, browser, "OverlayCopy");
+    await this.copyScreenshot(blob, browser, "OverlayCopy");
+  },
+
+  async copyScreenshotFromBlobURL(blobURL, browser, eventName) {
+    let blob = await fetch(blobURL).then(r => r.blob());
+    await this.copyScreenshot(blob, browser, eventName);
   },
 
   /**
    * Copy the image to the clipboard
    * This is called from the preview dialog
-   * @param dataUrl The image data
+   * @param blob The image data
    * @param browser The current browser
    * @param eventName For telemetry
    */
-  async copyScreenshot(dataUrl, browser, eventName) {
+  async copyScreenshot(blob, browser, eventName) {
     // Guard against missing image data.
-    if (!dataUrl) {
+    if (!blob) {
       return;
     }
 
@@ -1151,12 +1184,9 @@ export var ScreenshotsUtils = {
       Ci.imgITools
     );
 
-    const base64Data = dataUrl.replace("data:image/png;base64,", "");
-
-    const image = atob(base64Data);
-    const imgDecoded = imageTools.decodeImageFromBuffer(
-      image,
-      image.length,
+    let buffer = await blob.arrayBuffer();
+    const imgDecoded = imageTools.decodeImageFromArrayBuffer(
+      buffer,
       "image/png"
     );
 
@@ -1210,28 +1240,29 @@ export var ScreenshotsUtils = {
    */
   async downloadScreenshotFromRegion(title, region, browser) {
     let canvas = await this.createCanvas(region, browser);
-    let dataUrl = canvas.toDataURL();
+    let blob = await canvas.convertToBlob();
+    let blobURL = URL.createObjectURL(blob);
+    this.setBlobURL(browser, blobURL);
 
-    await this.downloadScreenshot(title, dataUrl, browser, "OverlayDownload");
+    await this.downloadScreenshot(title, blobURL, browser, "OverlayDownload");
   },
 
   /**
    * Download the screenshot
    * This is called from the preview dialog
    * @param title The title of the current page or null and getFilename will get the title
-   * @param dataUrl The image data
+   * @param blobURL The image data
    * @param browser The current browser
    * @param eventName For telemetry
    * @returns true if the download succeeds, otherwise false
    */
-  async downloadScreenshot(title, dataUrl, browser, eventName) {
+  async downloadScreenshot(title, blobURL, browser, eventName) {
     // Guard against missing image data.
-    if (!dataUrl) {
+    if (!blobURL) {
       return false;
     }
 
     let { filename, accepted } = await getFilename(title, browser);
-
     if (!accepted) {
       return false;
     }
@@ -1241,7 +1272,7 @@ export var ScreenshotsUtils = {
     // Create download and track its progress.
     try {
       const download = await lazy.Downloads.createDownload({
-        source: dataUrl,
+        source: blobURL,
         target: targetFile,
       });
 
