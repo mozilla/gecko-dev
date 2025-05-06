@@ -212,6 +212,9 @@ class gfxHarfBuzzShaper : public gfxFontShaper {
   // does not actually have vertical-layout metrics.
   mutable gfxFloat mDefaultVOrg;
 
+  // Number of glyphs in the font (set from 'maxp' during initialization).
+  uint32_t mNumGlyphs = 0;
+
   // Whether the font implements GetGlyph, or we should read tables
   // directly
   bool mUseFontGetGlyph;

@@ -377,6 +377,11 @@ hb_position_t gfxHarfBuzzShaper::GetGlyphHAdvanceUncached(
                "font is lacking metrics, we shouldn't be here");
 
   if (glyph >= uint32_t(mNumLongHMetrics)) {
+    if (glyph >= mNumGlyphs) {
+      // Return 0 for out-of-range glyph ID. In particular, AAT shaping uses
+      // GID 0xFFFF to represent a deleted glyph.
+      return 0;
+    }
     glyph = mNumLongHMetrics - 1;
   }
 
@@ -1274,6 +1279,13 @@ bool gfxHarfBuzzShaper::Initialize() {
     }
   }
 
+  gfxFontEntry::AutoTable maxpTable(entry, TRUETYPE_TAG('m', 'a', 'x', 'p'));
+  if (maxpTable && hb_blob_get_length(maxpTable) >= sizeof(MaxpTableHeader)) {
+    const MaxpTableHeader* maxp = reinterpret_cast<const MaxpTableHeader*>(
+        hb_blob_get_data(maxpTable, nullptr));
+    mNumGlyphs = uint16_t(maxp->numGlyphs);
+  }
+
   // We don't need to take the cache lock here, as we're just initializing the
   // shaper and no other thread can yet be using it.
   MOZ_PUSH_IGNORE_THREAD_SAFETY
@@ -1397,22 +1409,13 @@ void gfxHarfBuzzShaper::InitializeVertical() {
         hb_blob_get_data(vheaTable, &len));
     if (len >= sizeof(MetricsHeader)) {
       mNumLongVMetrics = vhea->numOfLongMetrics;
-      gfxFontEntry::AutoTable maxpTable(entry,
-                                        TRUETYPE_TAG('m', 'a', 'x', 'p'));
-      int numGlyphs = -1;  // invalid if we fail to read 'maxp'
-      if (maxpTable &&
-          hb_blob_get_length(maxpTable) >= sizeof(MaxpTableHeader)) {
-        const MaxpTableHeader* maxp = reinterpret_cast<const MaxpTableHeader*>(
-            hb_blob_get_data(maxpTable, nullptr));
-        numGlyphs = uint16_t(maxp->numGlyphs);
-      }
-      if (mNumLongVMetrics > 0 && mNumLongVMetrics <= numGlyphs &&
+      if (mNumLongVMetrics > 0 && mNumLongVMetrics <= int32_t(mNumGlyphs) &&
           int16_t(vhea->metricDataFormat) == 0) {
         mVmtxTable = entry->GetFontTable(TRUETYPE_TAG('v', 'm', 't', 'x'));
         if (mVmtxTable &&
             hb_blob_get_length(mVmtxTable) <
                 mNumLongVMetrics * sizeof(LongMetric) +
-                    (numGlyphs - mNumLongVMetrics) * sizeof(int16_t)) {
+                    (mNumGlyphs - mNumLongVMetrics) * sizeof(int16_t)) {
           // metrics table is not large enough for the claimed
           // number of entries: invalid, do not use.
           hb_blob_destroy(mVmtxTable);

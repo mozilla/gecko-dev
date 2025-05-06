@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<style>
+div {
+  background: black;
+  width: fit-content;
+  padding: 2px;
+  margin: 2px;
+}
+</style>
+
+<!-- The first line in each pair includes a sequence of virama (U+0A4D)+char
+     that should contribute no width, so the overall widths should match. -->
+<p>Each pair of boxes should be the same width:
+<div>&#x0A05;&#x0A70;&#x0A2E;&#x0A4D;&#x0A30;&#x0A3F;&#x0A24;</div>
+<div>&#x0A05;&#x0A70;&#x0A2E;&#x0A3F;&#x0A24;</div>
+<br><br>
+<div>&#x0A1A;&#x0A5C;&#x0A4D;&#x0A39;&#x0A26;&#x0A40;</div>
+<div>&#x0A1A;&#x0A5C;&#x0A26;&#x0A40;</div>
