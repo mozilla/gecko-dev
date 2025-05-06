@@ -110,9 +110,8 @@ add_task(async function () {
   pressKey(dbg, "Enter");
 
   info("Wait for the matched trace to be focused");
-  await waitFor(
-    () =>
-      tracerTree.querySelector(".tree-node.focused .trace-line") != focusedTrace
+  await waitFor(() =>
+    tracerTree.querySelector(".tree-node.focused .trace-line")
   );
 
   focusedTrace = tracerTree.querySelector(".tree-node.focused .trace-line");

@@ -1961,7 +1961,6 @@ const selectors = {
     ? ".cm-content > .highlight-line"
     : ".CodeMirror-code > .highlight-line",
   pausedLine: ".paused-line",
-  tracedLine: ".traced-line",
   debugErrorLine: ".new-debug-line-error",
   codeMirror: isCm6Enabled ? ".cm-editor" : ".CodeMirror",
   resume: ".resume.active",

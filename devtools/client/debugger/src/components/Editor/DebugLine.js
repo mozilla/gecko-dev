@@ -22,7 +22,6 @@ import {
   getSourceTextContent,
   getCurrentThread,
   getViewport,
-  getSelectedTraceLocation,
 } from "../../selectors/index";
 import { features } from "../../utils/prefs";
 
@@ -181,7 +180,7 @@ export class DebugLine extends PureComponent {
     // and only highlight the line via paused-line.
     return {
       markTextClass: features.codemirrorNext ? null : "debug-expression",
-      lineClass: why == "tracer" ? "traced-line" : "paused-line",
+      lineClass: "paused-line",
     };
   }
 
@@ -201,28 +200,13 @@ function isDocumentReady(location, sourceTextContent) {
 }
 
 const mapStateToProps = state => {
-  // If we aren't paused, fallback on showing the JS tracer
-  // currently selected trace location.
-  // If any trace is selected in the JS Tracer, this takes the lead over
-  // any paused location. (the same choice is made when showing inline previews)
-  let why;
-  let location = getSelectedTraceLocation(state);
-  if (location) {
-    why = "tracer";
-  } else {
-    // Avoid unecessary intermediate updates when there is no location
-    // or the source text content isn't yet fully loaded
-    const frame = getVisibleSelectedFrame(state);
-    location = frame?.location;
-
-    // We are not tracing, nor pausing
-    if (!location) {
-      return {};
-    }
-
-    why = getPauseReason(state, getCurrentThread(state));
+  // Avoid unecessary intermediate updates when there is no location
+  // or the source text content isn't yet fully loaded
+  const frame = getVisibleSelectedFrame(state);
+  const location = frame?.location;
+  if (!location) {
+    return {};
   }
-
   // For CM6, also check if we have a valid viewport.
   // This is a way to know if the actual source is displayed
   // and we are no longer on the "loading..." message
@@ -232,15 +216,13 @@ const mapStateToProps = state => {
       return {};
     }
   }
-
   const sourceTextContent = getSourceTextContent(state, location);
   if (!isDocumentReady(location, sourceTextContent)) {
     return {};
   }
-
   return {
     location,
-    why,
+    why: getPauseReason(state, getCurrentThread(state)),
     sourceTextContent,
   };
 };

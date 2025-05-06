@@ -64,14 +64,6 @@
   outline: var(--paused-line-border) solid 1px;
 }
 
-/* For CM5 */
-.traced-line > pre.CodeMirror-line,
-/* For CM6 */
-.cm-editor .cm-line.traced-line {
-  background-color: var(--theme-inline-preview-label-trace-background);
-  outline: var(--theme-inline-preview-label-trace-color) solid 1px;
-}
-
 /* Don't display the highlight color since the debug line
    is already highlighted */
 .paused-line .CodeMirror-activeline-background {

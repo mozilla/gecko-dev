@@ -84,27 +84,12 @@ add_task(async function () {
   is(traces[0].textContent, "λ main simple1.js:1:16");
   is(traces[1].textContent, "λ foo simple2.js:1:12");
   is(traces[2].textContent, "λ bar simple2.js:3:4");
-  ok(
-    !findElement(dbg, "tracedLine"),
-    "Before selecting any trace, no line is highlighted in CodeMirror"
-  );
 
   info("Select the trace for the call to `foo`");
   EventUtils.synthesizeMouseAtCenter(traces[1], {}, dbg.win);
 
-  let focusedTrace = await waitFor(
-    () => tracerTree.querySelector(".tree-node.focused .trace-line"),
-    "Wait for the line to be focused in the tracer panel"
-  );
+  let focusedTrace = tracerTree.querySelector(".tree-node.focused .trace-line");
   is(focusedTrace, traces[1], "The clicked trace is now focused");
-  await waitFor(
-    () => findElement(dbg, "tracedLine"),
-    "Wait for the traced line to be highlighted in CodeMirror"
-  );
-  ok(
-    findElement(dbg, "tracedLine"),
-    "When a trace is selected, the line is highlighted in CodeMirror"
-  );
 
   // Naive sanity checks for inlines previews
   const inlinePreviews = [
@@ -203,22 +188,9 @@ add_task(async function () {
     !!highlightedPausedFrame,
     "But it is still highlighted as inactive with a grey background"
   );
-  ok(
-    findElement(dbg, "tracedLine"),
-    "When a trace is selected, while being paused, the line is highlighted as traced in CodeMirror"
-  );
-  ok(
-    !findElement(dbg, "pausedLine"),
-    "The traced line is not highlighted as paused"
-  );
 
   await resume(dbg);
   await onResumed;
-
-  ok(
-    findElement(dbg, "tracedLine"),
-    "After resuming, the traced line is still highlighted in CodeMirror"
-  );
 
   // Trigger a click in the content page to verify we do trace DOM events
   BrowserTestUtils.synthesizeMouseAtCenter(
