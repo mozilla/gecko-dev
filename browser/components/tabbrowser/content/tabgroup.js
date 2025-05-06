@@ -103,12 +103,17 @@
       if (!this.#tabChangeObserver) {
         this.#tabChangeObserver = new window.MutationObserver(mutationList => {
           for (let mutation of mutationList) {
+            // TabGrouped and TabUngrouped events are triggered on the tab
+            // group, not the tab itself. This is a bit unorthodox, but fixes
+            // bug1964152 where tab group events are not fired correctly when
+            // tabs change windows (because the tab is detached from the DOM at
+            // time of the event).
             mutation.addedNodes.forEach(node => {
               if (node.tagName === "tab") {
-                node.dispatchEvent(
+                this.dispatchEvent(
                   new CustomEvent("TabGrouped", {
                     bubbles: true,
-                    detail: this,
+                    detail: node,
                   })
                 );
                 node.setAttribute("aria-level", 2);
@@ -116,10 +121,10 @@
             });
             mutation.removedNodes.forEach(node => {
               if (node.tagName === "tab") {
-                node.dispatchEvent(
+                this.dispatchEvent(
                   new CustomEvent("TabUngrouped", {
                     bubbles: true,
-                    detail: this,
+                    detail: node,
                   })
                 );
                 // Tab could have moved to be ungrouped (level 1)
