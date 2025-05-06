@@ -46,7 +46,7 @@ add_task(async function test_unregister_invalid_json() {
   let unregisterPromise = new Promise(
     resolve => (unregisterDone = after(2, resolve))
   );
-  PushService.init({
+  await PushService.init({
     serverURI: "wss://push.example.org/",
     db,
     makeWebSocket(uri) {
