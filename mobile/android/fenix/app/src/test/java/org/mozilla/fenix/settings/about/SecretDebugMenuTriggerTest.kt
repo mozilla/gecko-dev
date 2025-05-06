@@ -4,118 +4,100 @@
 
 package org.mozilla.fenix.settings.about
 
-import android.content.Context
-import android.view.View
-import android.widget.Toast
-import io.mockk.CapturingSlot
-import io.mockk.MockKAnnotations
-import io.mockk.Runs
-import io.mockk.every
-import io.mockk.impl.annotations.MockK
-import io.mockk.just
-import io.mockk.mockk
-import io.mockk.mockkStatic
-import io.mockk.slot
-import io.mockk.unmockkStatic
-import io.mockk.verify
-import org.junit.After
+import mozilla.components.support.test.any
 import org.junit.Before
 import org.junit.Test
-import org.mozilla.fenix.R
-import org.mozilla.fenix.utils.Settings
+import org.mockito.Mockito.inOrder
+import org.mockito.Mockito.mock
+import org.mockito.Mockito.never
+import org.mockito.Mockito.times
+import org.mockito.Mockito.verify
+import org.mockito.Mockito.verifyNoMoreInteractions
 
 class SecretDebugMenuTriggerTest {
 
-    @MockK private lateinit var logoView: View
-
-    @MockK private lateinit var context: Context
-
-    @MockK private lateinit var settings: Settings
-
-    @MockK(relaxUnitFun = true)
-    private lateinit var toast: Toast
-    private lateinit var clickListener: CapturingSlot<View.OnClickListener>
+    private lateinit var onLogoClicked: (Int) -> Unit
+    private lateinit var onDebugMenuActivated: () -> Unit
+    private lateinit var trigger: SecretDebugMenuTrigger
 
     @Before
     fun setup() {
-        MockKAnnotations.init(this)
-        mockkStatic(Toast::class)
-        clickListener = slot()
-
-        every { logoView.setOnClickListener(capture(clickListener)) } just Runs
-        every { logoView.context } returns context
-        every {
-            context.getString(R.string.about_debug_menu_toast_progress, any())
-        } returns "Debug menu: x click(s) left to enable"
-        every { settings.showSecretDebugMenuThisSession } returns false
-        every { settings.showSecretDebugMenuThisSession = any() } just Runs
-        every { Toast.makeText(context, any<Int>(), any()) } returns toast
-        every { Toast.makeText(context, any<String>(), any()) } returns toast
-    }
-
-    @After
-    fun teardown() {
-        unmockkStatic(Toast::class)
+        onLogoClicked = mock()
+        onDebugMenuActivated = mock()
+        trigger = SecretDebugMenuTrigger(onLogoClicked, onDebugMenuActivated)
     }
 
     @Test
-    fun `toast is not displayed on first click`() {
-        SecretDebugMenuTrigger(logoView, settings)
-        clickListener.captured.onClick(logoView)
+    fun `first click does not do anything`() {
+        trigger.onClick() // 1 click
 
-        verify(inverse = true) { Toast.makeText(context, any<String>(), any()) }
-        verify(inverse = true) { toast.show() }
+        verify(onLogoClicked, never()).invoke(any())
+        verify(onDebugMenuActivated, never()).invoke()
     }
 
     @Test
-    fun `toast is displayed on second click`() {
-        SecretDebugMenuTrigger(logoView, settings)
-        clickListener.captured.onClick(logoView)
-        clickListener.captured.onClick(logoView)
+    fun `clicking less than 5 times should call onLogoClicked with remaining clicks`() {
+        trigger.onClick() // 1 click
+        trigger.onClick() // 2 clicks
+        trigger.onClick() // 3 clicks
+        trigger.onClick() // 4 clicks
 
-        verify { context.getString(R.string.about_debug_menu_toast_progress, 3) }
-        verify { Toast.makeText(context, any<String>(), Toast.LENGTH_SHORT) }
-        verify { toast.show() }
+        verify(onLogoClicked).invoke(3)
+        verify(onLogoClicked).invoke(2)
+        verify(onLogoClicked).invoke(1)
+
+        verify(onDebugMenuActivated, never()).invoke()
     }
 
     @Test
-    fun `clearClickCounter resets counter`() {
-        val trigger = SecretDebugMenuTrigger(logoView, settings)
+    fun `clicking 5 times should call onDebugMenuActivated`() {
+        trigger.onClick() // 1 click
+        trigger.onClick() // 2 clicks
+        trigger.onClick() // 3 clicks
+        trigger.onClick() // 4 clicks
+        trigger.onClick() // 5 clicks
 
-        clickListener.captured.onClick(logoView)
-        trigger.onResume(mockk())
+        val orderVerifier = inOrder(onLogoClicked, onDebugMenuActivated)
 
-        clickListener.captured.onClick(logoView)
-
-        verify(inverse = true) { Toast.makeText(context, any<String>(), any()) }
-        verify(inverse = true) { toast.show() }
+        orderVerifier.verify(onLogoClicked).invoke(3)
+        orderVerifier.verify(onLogoClicked).invoke(2)
+        orderVerifier.verify(onLogoClicked).invoke(1)
+        orderVerifier.verify(onDebugMenuActivated).invoke()
     }
 
     @Test
-    fun `toast is displayed on fifth click`() {
-        SecretDebugMenuTrigger(logoView, settings)
-        clickListener.captured.onClick(logoView)
-        clickListener.captured.onClick(logoView)
-        clickListener.captured.onClick(logoView)
-        clickListener.captured.onClick(logoView)
-        clickListener.captured.onClick(logoView)
+    fun `clicking more than 5 times should call onDebugMenuActivated`() {
+        trigger.onClick() // 1 click
+        trigger.onClick() // 2 clicks
+        trigger.onClick() // 3 clicks
+        trigger.onClick() // 4 clicks
+        trigger.onClick() // 5 clicks
+        trigger.onClick() // 6 clicks
+        trigger.onClick() // 7 clicks
 
-        verify {
-            Toast.makeText(
-                context,
-                R.string.about_debug_menu_toast_done,
-                Toast.LENGTH_LONG,
-            )
-        }
-        verify { toast.show() }
-        verify { settings.showSecretDebugMenuThisSession = true }
+        val orderVerifier = inOrder(onLogoClicked, onDebugMenuActivated)
+
+        orderVerifier.verify(onLogoClicked).invoke(3)
+        orderVerifier.verify(onLogoClicked).invoke(2)
+        orderVerifier.verify(onLogoClicked).invoke(1)
+        orderVerifier.verify(onDebugMenuActivated, times(1)).invoke()
     }
 
     @Test
-    fun `don't register click listener if menu is already shown`() {
-        every { settings.showSecretDebugMenuThisSession } returns true
-        SecretDebugMenuTrigger(logoView, settings)
+    fun `onResume should reset the counter`() {
+        trigger.onClick() // 1 click
+        trigger.onClick() // 2 clicks
+        trigger.onClick() // 3 clicks
 
-        verify(inverse = true) { logoView.setOnClickListener(any()) }
+        val orderVerifier = inOrder(onLogoClicked, onDebugMenuActivated)
+
+        orderVerifier.verify(onLogoClicked).invoke(3)
+        orderVerifier.verify(onLogoClicked).invoke(2)
+
+        trigger.onResume(mock()) // Reset the counter
+
+        trigger.onClick() // 1 click after reset
+
+        verifyNoMoreInteractions(onLogoClicked)
     }
 }
