@@ -47,8 +47,8 @@ inline bool IsStunMessage(uint16_t msg_type) {
 // connect() fail (`socket` is destroyed in that case).
 AsyncStunTCPSocket* AsyncStunTCPSocket::Create(
     rtc::Socket* socket,
-    const rtc::SocketAddress& bind_address,
-    const rtc::SocketAddress& remote_address) {
+    const webrtc::SocketAddress& bind_address,
+    const webrtc::SocketAddress& remote_address) {
   return new AsyncStunTCPSocket(
       AsyncTCPSocketBase::ConnectSocket(socket, bind_address, remote_address));
 }
@@ -96,7 +96,7 @@ int AsyncStunTCPSocket::Send(const void* pv,
 }
 
 size_t AsyncStunTCPSocket::ProcessInput(rtc::ArrayView<const uint8_t> data) {
-  rtc::SocketAddress remote_addr(GetRemoteAddress());
+  webrtc::SocketAddress remote_addr(GetRemoteAddress());
   // STUN packet - First 4 bytes. Total header size is 20 bytes.
   // +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
   // |0 0|     STUN Message Type     |         Message Length        |

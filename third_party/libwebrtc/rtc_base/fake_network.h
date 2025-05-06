@@ -34,33 +34,34 @@ class FakeNetworkManager : public NetworkManagerBase {
   FakeNetworkManager() {}
 
   struct Iface {
-    SocketAddress socket_address;
+    webrtc::SocketAddress socket_address;
     AdapterType adapter_type;
     std::optional<AdapterType> underlying_vpn_adapter_type;
   };
   typedef std::vector<Iface> IfaceList;
 
-  void AddInterface(const SocketAddress& iface) {
+  void AddInterface(const webrtc::SocketAddress& iface) {
     // Ensure a unique name for the interface if its name is not given.
     AddInterface(iface, "test" + rtc::ToString(next_index_++));
   }
 
-  void AddInterface(const SocketAddress& iface, absl::string_view if_name) {
+  void AddInterface(const webrtc::SocketAddress& iface,
+                    absl::string_view if_name) {
     AddInterface(iface, if_name, ADAPTER_TYPE_UNKNOWN);
   }
 
   void AddInterface(
-      const SocketAddress& iface,
+      const webrtc::SocketAddress& iface,
       absl::string_view if_name,
       AdapterType type,
       std::optional<AdapterType> underlying_vpn_adapter_type = std::nullopt) {
-    SocketAddress address(if_name, 0);
+    webrtc::SocketAddress address(if_name, 0);
     address.SetResolvedIP(iface.ipaddr());
     ifaces_.push_back({address, type, underlying_vpn_adapter_type});
     DoUpdateNetworks();
   }
 
-  void RemoveInterface(const SocketAddress& iface) {
+  void RemoveInterface(const webrtc::SocketAddress& iface) {
     for (IfaceList::iterator it = ifaces_.begin(); it != ifaces_.end(); ++it) {
       if (it->socket_address.EqualIPs(iface)) {
         ifaces_.erase(it);

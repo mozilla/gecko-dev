@@ -491,7 +491,7 @@ void Connection::OnReadPacket(const rtc::ReceivedPacket& packet) {
   RTC_DCHECK_RUN_ON(network_thread_);
   std::unique_ptr<IceMessage> msg;
   std::string remote_ufrag;
-  const rtc::SocketAddress& addr(remote_candidate_.address());
+  const webrtc::SocketAddress& addr(remote_candidate_.address());
   if (!port_->GetStunMessage(
           reinterpret_cast<const char*>(packet.payload().data()),
           packet.payload().size(), addr, &msg, &remote_ufrag)) {
@@ -660,7 +660,7 @@ void Connection::HandleStunBindingOrGoogPingRequest(IceMessage* msg) {
     }
   }
 
-  const rtc::SocketAddress& remote_addr = remote_candidate_.address();
+  const webrtc::SocketAddress& remote_addr = remote_candidate_.address();
   if (msg->type() == STUN_BINDING_REQUEST) {
     // Check for role conflicts.
     const std::string& remote_ufrag = remote_candidate_.username();
@@ -830,7 +830,7 @@ void Connection::SendGoogPingResponse(const StunMessage* message) {
 void Connection::SendResponseMessage(const StunMessage& response) {
   RTC_DCHECK_RUN_ON(network_thread_);
   // Where I send the response.
-  const rtc::SocketAddress& addr = remote_candidate_.address();
+  const webrtc::SocketAddress& addr = remote_candidate_.address();
 
   // Send the response.
   rtc::ByteBufferWriter buf;

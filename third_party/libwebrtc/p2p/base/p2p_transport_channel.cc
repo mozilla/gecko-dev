@@ -981,7 +981,7 @@ void P2PTransportChannel::OnCandidatesAllocationDone(
 
 // Handle stun packets
 void P2PTransportChannel::OnUnknownAddress(webrtc::PortInterface* port,
-                                           const rtc::SocketAddress& address,
+                                           const webrtc::SocketAddress& address,
                                            webrtc::ProtocolType proto,
                                            IceMessage* stun_msg,
                                            const std::string& remote_username,
@@ -1293,7 +1293,7 @@ void P2PTransportChannel::AddRemoteCandidateWithResult(
     return;
   }
 
-  rtc::SocketAddress resolved_address;
+  webrtc::SocketAddress resolved_address;
   // Prefer IPv6 to IPv4 if we have it (see RFC 5245 Section 15.1).
   // TODO(zstein): This won't work if we only have IPv4 locally but receive an
   // AAAA DNS record.

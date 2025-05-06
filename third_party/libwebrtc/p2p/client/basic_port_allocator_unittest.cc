@@ -60,12 +60,12 @@
 #include "test/wait_until.h"
 
 using rtc::IPAddress;
-using rtc::SocketAddress;
 using testing::Contains;
 using ::testing::Eq;
 using ::testing::IsTrue;
 using testing::Not;
 using webrtc::IceCandidateType;
+using ::webrtc::SocketAddress;
 
 #define MAYBE_SKIP_IPV4                        \
   if (!rtc::HasIPv4Enabled()) {                \
@@ -212,22 +212,22 @@ class BasicPortAllocatorTestBase : public ::testing::Test,
     allocator_->set_step_delay(kMinimumStepDelay);
   }
   // Endpoint is behind a NAT, with STUN specified.
-  void ResetWithStunServerAndNat(const rtc::SocketAddress& stun_server) {
+  void ResetWithStunServerAndNat(const webrtc::SocketAddress& stun_server) {
     ResetWithStunServer(stun_server, true);
   }
   // Endpoint is on the public network, with STUN specified.
-  void ResetWithStunServerNoNat(const rtc::SocketAddress& stun_server) {
+  void ResetWithStunServerNoNat(const webrtc::SocketAddress& stun_server) {
     ResetWithStunServer(stun_server, false);
   }
   // Endpoint is on the public network, with TURN specified.
-  void ResetWithTurnServersNoNat(const rtc::SocketAddress& udp_turn,
-                                 const rtc::SocketAddress& tcp_turn) {
+  void ResetWithTurnServersNoNat(const webrtc::SocketAddress& udp_turn,
+                                 const webrtc::SocketAddress& tcp_turn) {
     ResetWithNoServersOrNat();
     AddTurnServers(udp_turn, tcp_turn);
   }
 
-  RelayServerConfig CreateTurnServers(const rtc::SocketAddress& udp_turn,
-                                      const rtc::SocketAddress& tcp_turn) {
+  RelayServerConfig CreateTurnServers(const webrtc::SocketAddress& udp_turn,
+                                      const webrtc::SocketAddress& tcp_turn) {
     RelayServerConfig turn_server;
     RelayCredentials credentials(kTurnUsername, kTurnPassword);
     turn_server.credentials = credentials;
@@ -241,8 +241,8 @@ class BasicPortAllocatorTestBase : public ::testing::Test,
     return turn_server;
   }
 
-  void AddTurnServers(const rtc::SocketAddress& udp_turn,
-                      const rtc::SocketAddress& tcp_turn) {
+  void AddTurnServers(const webrtc::SocketAddress& udp_turn,
+                      const webrtc::SocketAddress& tcp_turn) {
     RelayServerConfig turn_server = CreateTurnServers(udp_turn, tcp_turn);
     allocator_->AddTurnServerForTesting(turn_server);
   }
@@ -361,7 +361,7 @@ class BasicPortAllocatorTestBase : public ::testing::Test,
         });
   }
 
-  static bool CheckPort(const rtc::SocketAddress& addr,
+  static bool CheckPort(const webrtc::SocketAddress& addr,
                         int min_port,
                         int max_port) {
     return (addr.port() >= min_port && addr.port() <= max_port);
@@ -474,12 +474,12 @@ class BasicPortAllocatorTestBase : public ::testing::Test,
     return false;
   }
 
-  void ResetWithStunServer(const rtc::SocketAddress& stun_server,
+  void ResetWithStunServer(const webrtc::SocketAddress& stun_server,
                            bool with_nat) {
     if (with_nat) {
       nat_server_.reset(new rtc::NATServer(
           rtc::NAT_OPEN_CONE, thread_, vss_.get(), kNatUdpAddr, kNatTcpAddr,
-          thread_, vss_.get(), rtc::SocketAddress(kNatUdpAddr.ipaddr(), 0)));
+          thread_, vss_.get(), webrtc::SocketAddress(kNatUdpAddr.ipaddr(), 0)));
     } else {
       nat_socket_factory_ =
           std::make_unique<rtc::BasicPacketSocketFactory>(fss_.get());
@@ -559,32 +559,33 @@ class BasicPortAllocatorTest : public FakeClockBase,
 
     uint32_t total_candidates = 0;
     if (!host_candidate_addr.IsNil()) {
-      EXPECT_TRUE(HasCandidate(candidates_, IceCandidateType::kHost, "udp",
-                               rtc::SocketAddress(kPrivateAddr.ipaddr(), 0)));
+      EXPECT_TRUE(
+          HasCandidate(candidates_, IceCandidateType::kHost, "udp",
+                       webrtc::SocketAddress(kPrivateAddr.ipaddr(), 0)));
       ++total_candidates;
     }
     if (!stun_candidate_addr.IsNil()) {
-      rtc::SocketAddress related_address(host_candidate_addr, 0);
+      webrtc::SocketAddress related_address(host_candidate_addr, 0);
       if (host_candidate_addr.IsNil()) {
         related_address.SetIP(webrtc::GetAnyIP(stun_candidate_addr.family()));
       }
       EXPECT_TRUE(HasCandidateWithRelatedAddr(
           candidates_, IceCandidateType::kSrflx, "udp",
-          rtc::SocketAddress(stun_candidate_addr, 0), related_address));
+          webrtc::SocketAddress(stun_candidate_addr, 0), related_address));
       ++total_candidates;
     }
     if (!relay_candidate_udp_transport_addr.IsNil()) {
       EXPECT_TRUE(HasCandidateWithRelatedAddr(
           candidates_, IceCandidateType::kRelay, "udp",
-          rtc::SocketAddress(relay_candidate_udp_transport_addr, 0),
-          rtc::SocketAddress(stun_candidate_addr, 0)));
+          webrtc::SocketAddress(relay_candidate_udp_transport_addr, 0),
+          webrtc::SocketAddress(stun_candidate_addr, 0)));
       ++total_candidates;
     }
     if (!relay_candidate_tcp_transport_addr.IsNil()) {
       EXPECT_TRUE(HasCandidateWithRelatedAddr(
           candidates_, IceCandidateType::kRelay, "udp",
-          rtc::SocketAddress(relay_candidate_tcp_transport_addr, 0),
-          rtc::SocketAddress(stun_candidate_addr, 0)));
+          webrtc::SocketAddress(relay_candidate_tcp_transport_addr, 0),
+          webrtc::SocketAddress(stun_candidate_addr, 0)));
       ++total_candidates;
     }
 
@@ -603,8 +604,8 @@ class BasicPortAllocatorTest : public FakeClockBase,
     allocator_->SetConfiguration(allocator_->stun_servers(),
                                  allocator_->turn_servers(), 0,
                                  webrtc::PRUNE_BASED_ON_PRIORITY);
-    AddTurnServers(kTurnUdpIntIPv6Addr, rtc::SocketAddress());
-    AddTurnServers(kTurnUdpIntAddr, rtc::SocketAddress());
+    AddTurnServers(kTurnUdpIntIPv6Addr, webrtc::SocketAddress());
+    AddTurnServers(kTurnUdpIntAddr, webrtc::SocketAddress());
 
     allocator_->set_step_delay(kMinimumStepDelay);
     allocator_->set_flags(
@@ -639,8 +640,9 @@ class BasicPortAllocatorTest : public FakeClockBase,
     EXPECT_EQ(3U, ready_candidates.size());
     EXPECT_TRUE(HasCandidate(ready_candidates, IceCandidateType::kHost, "udp",
                              kClientAddr));
-    EXPECT_TRUE(HasCandidate(ready_candidates, IceCandidateType::kRelay, "udp",
-                             rtc::SocketAddress(kTurnUdpExtAddr.ipaddr(), 0)));
+    EXPECT_TRUE(
+        HasCandidate(ready_candidates, IceCandidateType::kRelay, "udp",
+                     webrtc::SocketAddress(kTurnUdpExtAddr.ipaddr(), 0)));
   }
 
   void TestTurnPortPrunesWithUdpAndTcpPorts(
@@ -694,8 +696,9 @@ class BasicPortAllocatorTest : public FakeClockBase,
                              kClientAddr));
 
     // The external candidate is always udp.
-    EXPECT_TRUE(HasCandidate(ready_candidates, IceCandidateType::kRelay, "udp",
-                             rtc::SocketAddress(kTurnUdpExtAddr.ipaddr(), 0)));
+    EXPECT_TRUE(
+        HasCandidate(ready_candidates, IceCandidateType::kRelay, "udp",
+                     webrtc::SocketAddress(kTurnUdpExtAddr.ipaddr(), 0)));
   }
 
   void TestEachInterfaceHasItsOwnTurnPorts() {
@@ -776,8 +779,9 @@ class BasicPortAllocatorTest : public FakeClockBase,
                              kClientIPv6Addr));
     EXPECT_TRUE(HasCandidate(ready_candidates, IceCandidateType::kHost, "tcp",
                              kClientIPv6Addr2));
-    EXPECT_TRUE(HasCandidate(ready_candidates, IceCandidateType::kRelay, "udp",
-                             rtc::SocketAddress(kTurnUdpExtAddr.ipaddr(), 0)));
+    EXPECT_TRUE(
+        HasCandidate(ready_candidates, IceCandidateType::kRelay, "udp",
+                     webrtc::SocketAddress(kTurnUdpExtAddr.ipaddr(), 0)));
   }
 };
 
@@ -1412,10 +1416,10 @@ TEST_F(BasicPortAllocatorTest, TestGetAllPortsNoAdapters) {
   // STUN/TURN candidates.
   EXPECT_EQ(3U, candidates_.size());
   EXPECT_TRUE(HasCandidate(candidates_, IceCandidateType::kSrflx, "udp",
-                           rtc::SocketAddress(kNatUdpAddr.ipaddr(), 0)));
+                           webrtc::SocketAddress(kNatUdpAddr.ipaddr(), 0)));
   // Again, two TURN candidates, using UDP/TCP for the first hop to the TURN
   // server.
-  rtc::SocketAddress addr(kTurnUdpExtAddr.ipaddr(), 0);
+  webrtc::SocketAddress addr(kTurnUdpExtAddr.ipaddr(), 0);
   EXPECT_EQ(2, absl::c_count_if(candidates_, [&](const Candidate& c) {
               return c.is_relay() && c.protocol() == "udp" &&
                      AddressMatch(c.address(), addr);
@@ -1441,7 +1445,7 @@ TEST_F(BasicPortAllocatorTest,
   AddInterface(kPrivateAddr);
   AddInterface(kPrivateAddr2);
   ResetWithStunServerAndNat(kStunAddr);
-  AddTurnServers(kTurnUdpIntAddr, rtc::SocketAddress());
+  AddTurnServers(kTurnUdpIntAddr, webrtc::SocketAddress());
 
   // Enable IPv6 here. Since the network_manager doesn't have IPv6 default
   // address set and we have no IPv6 STUN server, there should be no IPv6
@@ -1721,7 +1725,7 @@ TEST_F(BasicPortAllocatorTest, TestSessionUsesOwnCandidateFilter) {
 TEST_F(BasicPortAllocatorTest, TestCandidateFilterWithRelayOnly) {
   AddInterface(kClientAddr);
   // GTURN is not configured here.
-  ResetWithTurnServersNoNat(kTurnUdpIntAddr, rtc::SocketAddress());
+  ResetWithTurnServersNoNat(kTurnUdpIntAddr, webrtc::SocketAddress());
   allocator().SetCandidateFilter(CF_RELAY);
   ASSERT_TRUE(CreateSession(ICE_CANDIDATE_COMPONENT_RTP));
   session_->StartGettingPorts();
@@ -1732,14 +1736,14 @@ TEST_F(BasicPortAllocatorTest, TestCandidateFilterWithRelayOnly) {
            .clock = &fake_clock}),
       webrtc::IsRtcOk());
   EXPECT_TRUE(HasCandidate(candidates_, IceCandidateType::kRelay, "udp",
-                           rtc::SocketAddress(kTurnUdpExtAddr.ipaddr(), 0)));
+                           webrtc::SocketAddress(kTurnUdpExtAddr.ipaddr(), 0)));
 
   EXPECT_EQ(1U, candidates_.size());
   EXPECT_EQ(1U, ports_.size());  // Only Relay port will be in ready state.
   EXPECT_TRUE(candidates_[0].is_relay());
   EXPECT_EQ(
       candidates_[0].related_address(),
-      rtc::EmptySocketAddressWithFamily(candidates_[0].address().family()));
+      webrtc::EmptySocketAddressWithFamily(candidates_[0].address().family()));
 }
 
 TEST_F(BasicPortAllocatorTest, TestCandidateFilterWithHostOnly) {
@@ -1783,7 +1787,7 @@ TEST_F(BasicPortAllocatorTest, TestCandidateFilterWithReflexiveOnly) {
   EXPECT_TRUE(candidates_[0].is_stun());
   EXPECT_EQ(
       candidates_[0].related_address(),
-      rtc::EmptySocketAddressWithFamily(candidates_[0].address().family()));
+      webrtc::EmptySocketAddressWithFamily(candidates_[0].address().family()));
 }
 
 // Host is not behind the NAT.
@@ -1880,7 +1884,7 @@ TEST_F(BasicPortAllocatorTest, TestSharedSocketWithNat) {
   EXPECT_TRUE(
       HasCandidate(candidates_, IceCandidateType::kHost, "udp", kClientAddr));
   EXPECT_TRUE(HasCandidate(candidates_, IceCandidateType::kSrflx, "udp",
-                           rtc::SocketAddress(kNatUdpAddr.ipaddr(), 0)));
+                           webrtc::SocketAddress(kNatUdpAddr.ipaddr(), 0)));
   EXPECT_THAT(
       webrtc::WaitUntil(
           [&] { return candidate_allocation_done_; }, IsTrue(),
@@ -1918,9 +1922,9 @@ TEST_F(BasicPortAllocatorTest, TestSharedSocketWithoutNatUsingTurn) {
   EXPECT_TRUE(
       HasCandidate(candidates_, IceCandidateType::kHost, "udp", kClientAddr));
   EXPECT_TRUE(HasCandidate(candidates_, IceCandidateType::kRelay, "udp",
-                           rtc::SocketAddress(kTurnUdpExtAddr.ipaddr(), 0)));
+                           webrtc::SocketAddress(kTurnUdpExtAddr.ipaddr(), 0)));
   EXPECT_TRUE(HasCandidate(candidates_, IceCandidateType::kRelay, "udp",
-                           rtc::SocketAddress(kTurnUdpExtAddr.ipaddr(), 0)));
+                           webrtc::SocketAddress(kTurnUdpExtAddr.ipaddr(), 0)));
 }
 
 // Test that if the turn port prune policy is PRUNE_BASED_ON_PRIORITY, TCP TURN
@@ -2031,7 +2035,7 @@ TEST_F(BasicPortAllocatorTestWithRealClock,
   // This test relies on a real query for "localhost", so it won't work on an
   // IPv6-only machine.
   MAYBE_SKIP_IPV4;
-  turn_server_.AddInternalSocket(rtc::SocketAddress("127.0.0.1", 3478),
+  turn_server_.AddInternalSocket(webrtc::SocketAddress("127.0.0.1", 3478),
                                  webrtc::PROTO_UDP);
   AddInterface(kClientAddr);
   allocator_.reset(new BasicPortAllocator(&network_manager_, &socket_factory_));
@@ -2040,7 +2044,7 @@ TEST_F(BasicPortAllocatorTestWithRealClock,
   RelayCredentials credentials(kTurnUsername, kTurnPassword);
   turn_server.credentials = credentials;
   turn_server.ports.push_back(ProtocolAddress(
-      rtc::SocketAddress("localhost", 3478), webrtc::PROTO_UDP));
+      webrtc::SocketAddress("localhost", 3478), webrtc::PROTO_UDP));
   allocator_->AddTurnServerForTesting(turn_server);
 
   allocator_->set_step_delay(kMinimumStepDelay);
@@ -2065,7 +2069,7 @@ TEST_F(BasicPortAllocatorTest, TestSharedSocketWithNatUsingTurn) {
   AddInterface(kClientAddr);
   ResetWithStunServerAndNat(kStunAddr);
 
-  AddTurnServers(kTurnUdpIntAddr, rtc::SocketAddress());
+  AddTurnServers(kTurnUdpIntAddr, webrtc::SocketAddress());
 
   allocator_->set_flags(allocator().flags() |
                         PORTALLOCATOR_ENABLE_SHARED_SOCKET |
@@ -2085,9 +2089,9 @@ TEST_F(BasicPortAllocatorTest, TestSharedSocketWithNatUsingTurn) {
   EXPECT_TRUE(
       HasCandidate(candidates_, IceCandidateType::kHost, "udp", kClientAddr));
   EXPECT_TRUE(HasCandidate(candidates_, IceCandidateType::kSrflx, "udp",
-                           rtc::SocketAddress(kNatUdpAddr.ipaddr(), 0)));
+                           webrtc::SocketAddress(kNatUdpAddr.ipaddr(), 0)));
   EXPECT_TRUE(HasCandidate(candidates_, IceCandidateType::kRelay, "udp",
-                           rtc::SocketAddress(kTurnUdpExtAddr.ipaddr(), 0)));
+                           webrtc::SocketAddress(kTurnUdpExtAddr.ipaddr(), 0)));
   EXPECT_THAT(
       webrtc::WaitUntil(
           [&] { return candidate_allocation_done_; }, IsTrue(),
@@ -2108,7 +2112,7 @@ TEST_F(BasicPortAllocatorTest, TestSharedSocketWithNatUsingTurnAsStun) {
   AddInterface(kClientAddr);
   // Use an empty SocketAddress to add a NAT without STUN server.
   ResetWithStunServerAndNat(SocketAddress());
-  AddTurnServers(kTurnUdpIntAddr, rtc::SocketAddress());
+  AddTurnServers(kTurnUdpIntAddr, webrtc::SocketAddress());
 
   // Must set the step delay to 0 to make sure the relay allocation phase is
   // started before the STUN candidates are obtained, so that the STUN binding
@@ -2133,11 +2137,11 @@ TEST_F(BasicPortAllocatorTest, TestSharedSocketWithNatUsingTurnAsStun) {
       HasCandidate(candidates_, IceCandidateType::kHost, "udp", kClientAddr));
   Candidate stun_candidate;
   EXPECT_TRUE(FindCandidate(candidates_, IceCandidateType::kSrflx, "udp",
-                            rtc::SocketAddress(kNatUdpAddr.ipaddr(), 0),
+                            webrtc::SocketAddress(kNatUdpAddr.ipaddr(), 0),
                             &stun_candidate));
   EXPECT_TRUE(HasCandidateWithRelatedAddr(
       candidates_, IceCandidateType::kRelay, "udp",
-      rtc::SocketAddress(kTurnUdpExtAddr.ipaddr(), 0),
+      webrtc::SocketAddress(kTurnUdpExtAddr.ipaddr(), 0),
       stun_candidate.address()));
 
   // Local port will be created first and then TURN port.
@@ -2153,8 +2157,8 @@ TEST_F(BasicPortAllocatorTest, TestSharedSocketWithNatUsingTurnAsStun) {
 TEST_F(BasicPortAllocatorTest, TestSharedSocketWithNatUsingTurnTcpOnly) {
   turn_server_.AddInternalSocket(kTurnTcpIntAddr, webrtc::PROTO_TCP);
   AddInterface(kClientAddr);
-  ResetWithStunServerAndNat(rtc::SocketAddress());
-  AddTurnServers(rtc::SocketAddress(), kTurnTcpIntAddr);
+  ResetWithStunServerAndNat(webrtc::SocketAddress());
+  AddTurnServers(webrtc::SocketAddress(), kTurnTcpIntAddr);
 
   allocator_->set_flags(allocator().flags() |
                         PORTALLOCATOR_ENABLE_SHARED_SOCKET |
@@ -2174,7 +2178,7 @@ TEST_F(BasicPortAllocatorTest, TestSharedSocketWithNatUsingTurnTcpOnly) {
   EXPECT_TRUE(
       HasCandidate(candidates_, IceCandidateType::kHost, "udp", kClientAddr));
   EXPECT_TRUE(HasCandidate(candidates_, IceCandidateType::kRelay, "udp",
-                           rtc::SocketAddress(kTurnUdpExtAddr.ipaddr(), 0)));
+                           webrtc::SocketAddress(kTurnUdpExtAddr.ipaddr(), 0)));
   EXPECT_EQ(1U, ports_[0]->Candidates().size());
   EXPECT_EQ(1U, ports_[1]->Candidates().size());
 }
@@ -2188,7 +2192,7 @@ TEST_F(BasicPortAllocatorTest, TestNonSharedSocketWithNatUsingTurnAsStun) {
   AddInterface(kClientAddr);
   // Use an empty SocketAddress to add a NAT without STUN server.
   ResetWithStunServerAndNat(SocketAddress());
-  AddTurnServers(kTurnUdpIntAddr, rtc::SocketAddress());
+  AddTurnServers(kTurnUdpIntAddr, webrtc::SocketAddress());
 
   allocator_->set_flags(allocator().flags() | PORTALLOCATOR_DISABLE_TCP);
 
@@ -2207,11 +2211,11 @@ TEST_F(BasicPortAllocatorTest, TestNonSharedSocketWithNatUsingTurnAsStun) {
       HasCandidate(candidates_, IceCandidateType::kHost, "udp", kClientAddr));
   Candidate stun_candidate;
   EXPECT_TRUE(FindCandidate(candidates_, IceCandidateType::kSrflx, "udp",
-                            rtc::SocketAddress(kNatUdpAddr.ipaddr(), 0),
+                            webrtc::SocketAddress(kNatUdpAddr.ipaddr(), 0),
                             &stun_candidate));
   Candidate turn_candidate;
   EXPECT_TRUE(FindCandidate(candidates_, IceCandidateType::kRelay, "udp",
-                            rtc::SocketAddress(kTurnUdpExtAddr.ipaddr(), 0),
+                            webrtc::SocketAddress(kTurnUdpExtAddr.ipaddr(), 0),
                             &turn_candidate));
   // Not using shared socket, so the STUN request's server reflexive address
   // should be different than the TURN request's server reflexive address.
@@ -2230,7 +2234,7 @@ TEST_F(BasicPortAllocatorTest, TestSharedSocketWithNatUsingTurnAndStun) {
   // the TURN server actually being used as a STUN server.
   ResetWithStunServerAndNat(kStunAddr);
   stun_server_.reset();
-  AddTurnServers(kTurnUdpIntAddr, rtc::SocketAddress());
+  AddTurnServers(kTurnUdpIntAddr, webrtc::SocketAddress());
 
   allocator_->set_flags(allocator().flags() |
                         PORTALLOCATOR_ENABLE_SHARED_SOCKET |
@@ -2249,11 +2253,11 @@ TEST_F(BasicPortAllocatorTest, TestSharedSocketWithNatUsingTurnAndStun) {
       HasCandidate(candidates_, IceCandidateType::kHost, "udp", kClientAddr));
   Candidate stun_candidate;
   EXPECT_TRUE(FindCandidate(candidates_, IceCandidateType::kSrflx, "udp",
-                            rtc::SocketAddress(kNatUdpAddr.ipaddr(), 0),
+                            webrtc::SocketAddress(kNatUdpAddr.ipaddr(), 0),
                             &stun_candidate));
   EXPECT_TRUE(HasCandidateWithRelatedAddr(
       candidates_, IceCandidateType::kRelay, "udp",
-      rtc::SocketAddress(kTurnUdpExtAddr.ipaddr(), 0),
+      webrtc::SocketAddress(kTurnUdpExtAddr.ipaddr(), 0),
       stun_candidate.address()));
 
   // Don't bother waiting for STUN timeout, since we already verified
@@ -2482,8 +2486,8 @@ TEST_F(BasicPortAllocatorTest, TestSetCandidateFilterAfterCandidatesGathered) {
     // Expect only relay candidates now that the filter is applied.
     EXPECT_TRUE(candidate.is_relay());
     // Expect that the raddr is emptied due to the CF_RELAY filter.
-    EXPECT_EQ(candidate.related_address(),
-              rtc::EmptySocketAddressWithFamily(candidate.address().family()));
+    EXPECT_EQ(candidate.related_address(), webrtc::EmptySocketAddressWithFamily(
+                                               candidate.address().family()));
   }
 }
 
@@ -2498,7 +2502,7 @@ TEST_F(BasicPortAllocatorTest,
   AddInterface(kPrivateAddr);
   ResetWithStunServerAndNat(kStunAddr);
 
-  AddTurnServers(kTurnUdpIntAddr, rtc::SocketAddress());
+  AddTurnServers(kTurnUdpIntAddr, webrtc::SocketAddress());
 
   allocator_->set_flags(allocator().flags() |
                         PORTALLOCATOR_ENABLE_SHARED_SOCKET |
@@ -2564,7 +2568,7 @@ TEST_F(
   AddInterface(kPrivateAddr);
   ResetWithStunServerAndNat(kStunAddr);
 
-  AddTurnServers(kTurnUdpIntAddr, rtc::SocketAddress());
+  AddTurnServers(kTurnUdpIntAddr, webrtc::SocketAddress());
 
   allocator_->set_flags(allocator().flags() |
                         PORTALLOCATOR_ENABLE_SHARED_SOCKET |
@@ -2625,7 +2629,7 @@ TEST_F(BasicPortAllocatorTest,
   AddInterface(kPrivateAddr);
   ResetWithStunServerAndNat(kStunAddr);
 
-  AddTurnServers(kTurnUdpIntAddr, rtc::SocketAddress());
+  AddTurnServers(kTurnUdpIntAddr, webrtc::SocketAddress());
 
   allocator_->set_flags(allocator().flags() |
                         PORTALLOCATOR_ENABLE_SHARED_SOCKET |

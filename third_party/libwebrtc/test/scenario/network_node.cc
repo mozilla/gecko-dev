@@ -118,7 +118,7 @@ void NetworkNodeTransport::UpdateAdapterId(int adapter_id) {
 }
 
 void NetworkNodeTransport::Connect(EmulatedEndpoint* endpoint,
-                                   const rtc::SocketAddress& receiver_address,
+                                   const SocketAddress& receiver_address,
                                    DataSize packet_overhead) {
   RTC_DCHECK_RUN_ON(&sequence_checker_);
   rtc::NetworkRoute route;
@@ -140,7 +140,7 @@ void NetworkNodeTransport::Connect(EmulatedEndpoint* endpoint,
     RTC_CHECK_EQ(receiver_address.family(), AF_INET);
     MutexLock lock(&mutex_);
     endpoint_ = endpoint;
-    local_address_ = rtc::SocketAddress(endpoint_->GetPeerLocalAddress(), 0);
+    local_address_ = SocketAddress(endpoint_->GetPeerLocalAddress(), 0);
     remote_address_ = receiver_address;
     packet_overhead_ = packet_overhead;
     current_network_route_ = route;

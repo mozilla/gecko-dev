@@ -279,7 +279,7 @@ class JsepTransportControllerTest : public JsepTransportController::Observer,
   Candidate CreateCandidate(const std::string& transport_name, int component) {
     Candidate c;
     c.set_transport_name(transport_name);
-    c.set_address(rtc::SocketAddress("192.168.1.1", 8000));
+    c.set_address(SocketAddress("192.168.1.1", 8000));
     c.set_component(component);
     c.set_protocol(cricket::UDP_PROTOCOL_NAME);
     c.set_priority(1);

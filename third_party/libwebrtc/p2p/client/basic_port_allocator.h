@@ -302,7 +302,7 @@ class RTC_EXPORT BasicPortAllocatorSession : public PortAllocatorSession {
 // TODO(deadbeef): Rename "relay" to "turn_server" in this struct.
 struct RTC_EXPORT PortConfiguration {
   // TODO(jiayl): remove `stun_address` when Chrome is updated.
-  rtc::SocketAddress stun_address;
+  webrtc::SocketAddress stun_address;
   ServerAddresses stun_servers;
   std::string username;
   std::string password;

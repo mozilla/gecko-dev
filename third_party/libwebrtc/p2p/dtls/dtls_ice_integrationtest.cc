@@ -218,7 +218,7 @@ class DtlsIceIntegrationTest : public ::testing::TestWithParam<std::tuple<
 
     // Setup the network.
     if (network_emulation_manager_ == nullptr) {
-      network_manager_.AddInterface(rtc::SocketAddress("192.168.1.1", 0));
+      network_manager_.AddInterface(webrtc::SocketAddress("192.168.1.1", 0));
     }
 
     client_thread()->BlockingCall([&]() { client_.allocator->Initialize(); });
@@ -313,7 +313,7 @@ TEST_P(DtlsIceIntegrationTest, SmokeTest) {
             client_dtls_stun_piggyback_ && server_dtls_stun_piggyback_);
 
   // Validate that we can add new Connections (that become writable).
-  network_manager_.AddInterface(rtc::SocketAddress("192.168.2.1", 0));
+  network_manager_.AddInterface(webrtc::SocketAddress("192.168.2.1", 0));
   EXPECT_THAT(webrtc::WaitUntil(
                   [&] {
                     return CountWritableConnections(client_.ice.get()) > 1 &&

@@ -49,7 +49,7 @@ bool RouteCmp::operator()(const webrtc::SocketAddressPair& r1,
 AddrCmp::AddrCmp(NAT* nat)
     : use_ip(nat->FiltersIP()), use_port(nat->FiltersPort()) {}
 
-size_t AddrCmp::operator()(const SocketAddress& a) const {
+size_t AddrCmp::operator()(const webrtc::SocketAddress& a) const {
   size_t h = 0;
   if (use_ip)
     h ^= webrtc::HashIP(a.ipaddr());
@@ -58,8 +58,8 @@ size_t AddrCmp::operator()(const SocketAddress& a) const {
   return h;
 }
 
-bool AddrCmp::operator()(const SocketAddress& a1,
-                         const SocketAddress& a2) const {
+bool AddrCmp::operator()(const webrtc::SocketAddress& a1,
+                         const webrtc::SocketAddress& a2) const {
   if (use_ip && (a1.ipaddr() < a2.ipaddr()))
     return true;
   if (use_ip && (a2.ipaddr() < a1.ipaddr()))
@@ -80,7 +80,7 @@ class NATProxyServerSocket : public AsyncProxyServerSocket {
     BufferInput(true);
   }
 
-  void SendConnectResult(int err, const SocketAddress& addr) override {
+  void SendConnectResult(int err, const webrtc::SocketAddress& addr) override {
     char code = err ? 1 : 0;
     BufferedReadAdapter::DirectSend(&code, sizeof(char));
   }
@@ -98,7 +98,7 @@ class NATProxyServerSocket : public AsyncProxyServerSocket {
       return;
     }
 
-    SocketAddress dest_addr;
+    webrtc::SocketAddress dest_addr;
     size_t address_length = UnpackAddressFromNAT(
         MakeArrayView(reinterpret_cast<const uint8_t*>(data), *len),
         &dest_addr);
@@ -119,9 +119,9 @@ class NATProxyServerSocket : public AsyncProxyServerSocket {
 class NATProxyServer : public ProxyServer {
  public:
   NATProxyServer(SocketFactory* int_factory,
-                 const SocketAddress& int_addr,
+                 const webrtc::SocketAddress& int_addr,
                  SocketFactory* ext_factory,
-                 const SocketAddress& ext_ip)
+                 const webrtc::SocketAddress& ext_ip)
       : ProxyServer(int_factory, int_addr, ext_factory, ext_ip) {}
 
  protected:
@@ -133,11 +133,11 @@ class NATProxyServer : public ProxyServer {
 NATServer::NATServer(NATType type,
                      rtc::Thread& internal_socket_thread,
                      SocketFactory* internal,
-                     const SocketAddress& internal_udp_addr,
-                     const SocketAddress& internal_tcp_addr,
+                     const webrtc::SocketAddress& internal_udp_addr,
+                     const webrtc::SocketAddress& internal_tcp_addr,
                      rtc::Thread& external_socket_thread,
                      SocketFactory* external,
-                     const SocketAddress& external_ip)
+                     const webrtc::SocketAddress& external_ip)
     : internal_socket_thread_(internal_socket_thread),
       external_socket_thread_(external_socket_thread),
       external_(external),
@@ -175,7 +175,7 @@ void NATServer::OnInternalUDPPacket(AsyncPacketSocket* socket,
                                     const rtc::ReceivedPacket& packet) {
   RTC_DCHECK(internal_socket_thread_.IsCurrent());
   // Read the intended destination from the wire.
-  SocketAddress dest_addr;
+  webrtc::SocketAddress dest_addr;
   size_t length = UnpackAddressFromNAT(packet.payload(), &dest_addr);
 
   // Find the translation for these addresses (allocating one if necessary).
@@ -200,7 +200,7 @@ void NATServer::OnInternalUDPPacket(AsyncPacketSocket* socket,
 void NATServer::OnExternalUDPPacket(AsyncPacketSocket* socket,
                                     const rtc::ReceivedPacket& packet) {
   RTC_DCHECK(external_socket_thread_.IsCurrent());
-  SocketAddress local_addr = socket->GetLocalAddress();
+  webrtc::SocketAddress local_addr = socket->GetLocalAddress();
 
   // Find the translation for this addresses.
   ExternalMap::iterator iter = ext_map_->find(local_addr);
@@ -250,7 +250,7 @@ void NATServer::Translate(const webrtc::SocketAddressPair& route) {
 }
 
 bool NATServer::ShouldFilterOut(TransEntry* entry,
-                                const SocketAddress& ext_addr) {
+                                const webrtc::SocketAddress& ext_addr) {
   return entry->AllowlistContains(ext_addr);
 }
 
@@ -266,12 +266,13 @@ NATServer::TransEntry::~TransEntry() {
   delete socket;
 }
 
-void NATServer::TransEntry::AllowlistInsert(const SocketAddress& addr) {
+void NATServer::TransEntry::AllowlistInsert(const webrtc::SocketAddress& addr) {
   webrtc::MutexLock lock(&mutex_);
   allowlist->insert(addr);
 }
 
-bool NATServer::TransEntry::AllowlistContains(const SocketAddress& ext_addr) {
+bool NATServer::TransEntry::AllowlistContains(
+    const webrtc::SocketAddress& ext_addr) {
   webrtc::MutexLock lock(&mutex_);
   return allowlist->find(ext_addr) == allowlist->end();
 }

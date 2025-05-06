@@ -39,7 +39,7 @@
 namespace webrtc {
 namespace {
 
-void TestUdpInternal(const rtc::SocketAddress& loopback) {
+void TestUdpInternal(const SocketAddress& loopback) {
   rtc::PhysicalSocketServer socket_server;
   rtc::AutoSocketServerThread main_thread(&socket_server);
   rtc::Socket* socket =
@@ -47,14 +47,14 @@ void TestUdpInternal(const rtc::SocketAddress& loopback) {
   socket->Bind(loopback);
 
   TestClient client(std::make_unique<rtc::AsyncUDPSocket>(socket));
-  rtc::SocketAddress addr = client.address(), from;
+  SocketAddress addr = client.address(), from;
   EXPECT_EQ(3, client.SendTo("foo", 3, addr));
   EXPECT_TRUE(client.CheckNextPacket("foo", 3, &from));
   EXPECT_EQ(from, addr);
   EXPECT_TRUE(client.CheckNoPacket());
 }
 
-void TestTcpInternal(const rtc::SocketAddress& loopback) {
+void TestTcpInternal(const SocketAddress& loopback) {
   rtc::PhysicalSocketServer socket_server;
   rtc::AutoSocketServerThread main_thread(&socket_server);
   webrtc::TestEchoServer server(&main_thread, loopback);
@@ -66,7 +66,7 @@ void TestTcpInternal(const rtc::SocketAddress& loopback) {
   ASSERT_TRUE(tcp_socket != nullptr);
 
   TestClient client(std::move(tcp_socket));
-  rtc::SocketAddress addr = client.address(), from;
+  SocketAddress addr = client.address(), from;
   EXPECT_TRUE(client.CheckConnected());
   EXPECT_EQ(3, client.Send("foo", 3));
   EXPECT_TRUE(client.CheckNextPacket("foo", 3, &from));
@@ -77,7 +77,7 @@ void TestTcpInternal(const rtc::SocketAddress& loopback) {
 // Tests whether the TestClient can send UDP to itself.
 TEST(TestClientTest, TestUdpIPv4) {
   MAYBE_SKIP_IPV4;
-  TestUdpInternal(rtc::SocketAddress("127.0.0.1", 0));
+  TestUdpInternal(SocketAddress("127.0.0.1", 0));
 }
 
 #if defined(WEBRTC_LINUX)
@@ -87,13 +87,13 @@ TEST(TestClientTest, TestUdpIPv4) {
 #endif
 TEST(TestClientTest, MAYBE_TestUdpIPv6) {
   MAYBE_SKIP_IPV6;
-  TestUdpInternal(rtc::SocketAddress("::1", 0));
+  TestUdpInternal(SocketAddress("::1", 0));
 }
 
 // Tests whether the TestClient can connect to a server and exchange data.
 TEST(TestClientTest, TestTcpIPv4) {
   MAYBE_SKIP_IPV4;
-  TestTcpInternal(rtc::SocketAddress("127.0.0.1", 0));
+  TestTcpInternal(SocketAddress("127.0.0.1", 0));
 }
 
 #if defined(WEBRTC_LINUX)
@@ -103,7 +103,7 @@ TEST(TestClientTest, TestTcpIPv4) {
 #endif
 TEST(TestClientTest, MAYBE_TestTcpIPv6) {
   MAYBE_SKIP_IPV6;
-  TestTcpInternal(rtc::SocketAddress("::1", 0));
+  TestTcpInternal(SocketAddress("::1", 0));
 }
 
 }  // namespace

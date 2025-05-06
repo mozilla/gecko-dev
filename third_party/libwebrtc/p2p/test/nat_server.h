@@ -39,8 +39,9 @@ struct RouteCmp {
 // Changes how addresses are compared based on the filtering rules of the NAT.
 struct AddrCmp {
   explicit AddrCmp(NAT* nat);
-  size_t operator()(const SocketAddress& r) const;
-  bool operator()(const SocketAddress& r1, const SocketAddress& r2) const;
+  size_t operator()(const webrtc::SocketAddress& r) const;
+  bool operator()(const webrtc::SocketAddress& r1,
+                  const webrtc::SocketAddress& r2) const;
 
   bool use_ip;
   bool use_port;
@@ -63,21 +64,21 @@ class NATServer {
   NATServer(NATType type,
             rtc::Thread& internal_socket_thread,
             SocketFactory* internal,
-            const SocketAddress& internal_udp_addr,
-            const SocketAddress& internal_tcp_addr,
+            const webrtc::SocketAddress& internal_udp_addr,
+            const webrtc::SocketAddress& internal_tcp_addr,
             rtc::Thread& external_socket_thread,
             SocketFactory* external,
-            const SocketAddress& external_ip);
+            const webrtc::SocketAddress& external_ip);
   ~NATServer();
 
   NATServer(const NATServer&) = delete;
   NATServer& operator=(const NATServer&) = delete;
 
-  SocketAddress internal_udp_address() const {
+  webrtc::SocketAddress internal_udp_address() const {
     return udp_server_socket_->GetLocalAddress();
   }
 
-  SocketAddress internal_tcp_address() const {
+  webrtc::SocketAddress internal_tcp_address() const {
     return tcp_proxy_server_->GetServerAddress();
   }
 
@@ -88,15 +89,15 @@ class NATServer {
                            const rtc::ReceivedPacket& packet);
 
  private:
-  typedef std::set<SocketAddress, AddrCmp> AddressSet;
+  typedef std::set<webrtc::SocketAddress, AddrCmp> AddressSet;
 
   /* Records a translation and the associated external socket. */
   struct TransEntry {
     TransEntry(const webrtc::SocketAddressPair& r, AsyncUDPSocket* s, NAT* nat);
     ~TransEntry();
 
-    void AllowlistInsert(const SocketAddress& addr);
-    bool AllowlistContains(const SocketAddress& ext_addr);
+    void AllowlistInsert(const webrtc::SocketAddress& addr);
+    bool AllowlistContains(const webrtc::SocketAddress& ext_addr);
 
     webrtc::SocketAddressPair route;
     AsyncUDPSocket* socket;
@@ -106,19 +107,20 @@ class NATServer {
 
   typedef std::map<webrtc::SocketAddressPair, TransEntry*, RouteCmp>
       InternalMap;
-  typedef std::map<SocketAddress, TransEntry*> ExternalMap;
+  typedef std::map<webrtc::SocketAddress, TransEntry*> ExternalMap;
 
   /* Creates a new entry that translates the given route. */
   void Translate(const webrtc::SocketAddressPair& route);
 
   /* Determines whether the NAT would filter out a packet from this address. */
-  bool ShouldFilterOut(TransEntry* entry, const SocketAddress& ext_addr);
+  bool ShouldFilterOut(TransEntry* entry,
+                       const webrtc::SocketAddress& ext_addr);
 
   NAT* nat_;
   rtc::Thread& internal_socket_thread_;
   rtc::Thread& external_socket_thread_;
   SocketFactory* external_;
-  SocketAddress external_ip_;
+  webrtc::SocketAddress external_ip_;
   AsyncUDPSocket* udp_server_socket_;
   ProxyServer* tcp_proxy_server_;
   InternalMap* int_map_;

@@ -580,7 +580,7 @@ int OpenSSLAdapter::Send(const void* pv, size_t cb) {
 
 int OpenSSLAdapter::SendTo(const void* pv,
                            size_t cb,
-                           const SocketAddress& addr) {
+                           const webrtc::SocketAddress& addr) {
   if (GetSocket()->GetState() == Socket::CS_CONNECTED &&
       addr == GetSocket()->GetRemoteAddress()) {
     return Send(pv, cb);
@@ -641,7 +641,7 @@ int OpenSSLAdapter::Recv(void* pv, size_t cb, int64_t* timestamp) {
 
 int OpenSSLAdapter::RecvFrom(void* pv,
                              size_t cb,
-                             SocketAddress* paddr,
+                             webrtc::SocketAddress* paddr,
                              int64_t* timestamp) {
   if (GetSocket()->GetState() == Socket::CS_CONNECTED) {
     int ret = Recv(pv, cb, timestamp);

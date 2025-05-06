@@ -33,7 +33,7 @@ namespace cricket {
 
 RelayServerConfig::RelayServerConfig() {}
 
-RelayServerConfig::RelayServerConfig(const rtc::SocketAddress& address,
+RelayServerConfig::RelayServerConfig(const webrtc::SocketAddress& address,
                                      absl::string_view username,
                                      absl::string_view password,
                                      webrtc::ProtocolType proto)
@@ -46,7 +46,7 @@ RelayServerConfig::RelayServerConfig(absl::string_view address,
                                      absl::string_view username,
                                      absl::string_view password,
                                      webrtc::ProtocolType proto)
-    : RelayServerConfig(rtc::SocketAddress(address, port),
+    : RelayServerConfig(webrtc::SocketAddress(address, port),
                         username,
                         password,
                         proto) {}

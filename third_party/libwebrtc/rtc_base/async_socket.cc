@@ -25,19 +25,19 @@ AsyncSocketAdapter::AsyncSocketAdapter(Socket* socket)
   socket_->SignalCloseEvent.connect(this, &AsyncSocketAdapter::OnCloseEvent);
 }
 
-SocketAddress AsyncSocketAdapter::GetLocalAddress() const {
+webrtc::SocketAddress AsyncSocketAdapter::GetLocalAddress() const {
   return socket_->GetLocalAddress();
 }
 
-SocketAddress AsyncSocketAdapter::GetRemoteAddress() const {
+webrtc::SocketAddress AsyncSocketAdapter::GetRemoteAddress() const {
   return socket_->GetRemoteAddress();
 }
 
-int AsyncSocketAdapter::Bind(const SocketAddress& addr) {
+int AsyncSocketAdapter::Bind(const webrtc::SocketAddress& addr) {
   return socket_->Bind(addr);
 }
 
-int AsyncSocketAdapter::Connect(const SocketAddress& addr) {
+int AsyncSocketAdapter::Connect(const webrtc::SocketAddress& addr) {
   return socket_->Connect(addr);
 }
 
@@ -47,7 +47,7 @@ int AsyncSocketAdapter::Send(const void* pv, size_t cb) {
 
 int AsyncSocketAdapter::SendTo(const void* pv,
                                size_t cb,
-                               const SocketAddress& addr) {
+                               const webrtc::SocketAddress& addr) {
   return socket_->SendTo(pv, cb, addr);
 }
 
@@ -57,7 +57,7 @@ int AsyncSocketAdapter::Recv(void* pv, size_t cb, int64_t* timestamp) {
 
 int AsyncSocketAdapter::RecvFrom(void* pv,
                                  size_t cb,
-                                 SocketAddress* paddr,
+                                 webrtc::SocketAddress* paddr,
                                  int64_t* timestamp) {
   return socket_->RecvFrom(pv, cb, paddr, timestamp);
 }
@@ -66,7 +66,7 @@ int AsyncSocketAdapter::Listen(int backlog) {
   return socket_->Listen(backlog);
 }
 
-Socket* AsyncSocketAdapter::Accept(SocketAddress* paddr) {
+Socket* AsyncSocketAdapter::Accept(webrtc::SocketAddress* paddr) {
   return socket_->Accept(paddr);
 }
 

@@ -166,7 +166,7 @@ TEST_F(IceServerParsingTest, ParseHostnameAndPort) {
                PeerConnectionInterface::TlsCertPolicy::kTlsCertPolicySecure,
                "hostname"));
   EXPECT_EQ(1U, turn_servers_.size());
-  rtc::SocketAddress address = turn_servers_[0].ports[0].address;
+  SocketAddress address = turn_servers_[0].ports[0].address;
   EXPECT_EQ("hostname", address.hostname());
   EXPECT_EQ(1234, address.port());
   EXPECT_FALSE(address.IsUnresolvedIP());

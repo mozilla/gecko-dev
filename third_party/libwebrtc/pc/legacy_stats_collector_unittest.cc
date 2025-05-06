@@ -1322,11 +1322,11 @@ TEST_F(LegacyStatsCollectorTest, IceCandidateReport) {
 
   constexpr int kLocalPort = 2000;
   const std::string kLocalIp = "192.168.0.1";
-  const rtc::SocketAddress kLocalAddress(kLocalIp, kLocalPort);
+  const SocketAddress kLocalAddress(kLocalIp, kLocalPort);
 
   constexpr int kRemotePort = 2001;
   const std::string kRemoteIp = "192.168.0.2";
-  const rtc::SocketAddress kRemoteAddress(kRemoteIp, kRemotePort);
+  const SocketAddress kRemoteAddress(kRemoteIp, kRemotePort);
 
   auto pc = CreatePeerConnection();
   auto stats = CreateStatsCollector(pc.get());

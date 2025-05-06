@@ -275,9 +275,9 @@ static const char kRfc5769SampleMsgClientSoftware[] = "STUN test client";
 static const char kRfc5769SampleMsgServerSoftware[] = "test vector";
 static const char kRfc5769SampleMsgUsername[] = "evtj:h6vY";
 static const char kRfc5769SampleMsgPassword[] = "VOkJxbRl1RmTxUk/WvJxBt";
-static const rtc::SocketAddress kRfc5769SampleMsgMappedAddress(
+static const webrtc::SocketAddress kRfc5769SampleMsgMappedAddress(
     "192.0.2.1", 32853);
-static const rtc::SocketAddress kRfc5769SampleMsgIPv6MappedAddress(
+static const webrtc::SocketAddress kRfc5769SampleMsgIPv6MappedAddress(
     "2001:db8:1234:5678:11:2233:4455:6677", 32853);
 
 static const uint8_t kRfc5769SampleMsgWithAuthTransactionId[] = {
@@ -856,7 +856,7 @@ TEST_F(StunTest, CreateIPv6AddressAttribute) {
   webrtc::IPAddress test_ip(kIPv6TestAddress2);
 
   auto addr = StunAttribute::CreateAddress(STUN_ATTR_MAPPED_ADDRESS);
-  rtc::SocketAddress test_addr(test_ip, kTestMessagePort2);
+  webrtc::SocketAddress test_addr(test_ip, kTestMessagePort2);
   addr->SetAddress(test_addr);
 
   CheckStunAddressAttribute(addr.get(), STUN_ADDRESS_IPV6, kTestMessagePort2,
@@ -869,7 +869,7 @@ TEST_F(StunTest, CreateIPv4AddressAttribute) {
   webrtc::IPAddress test_ip(test_in_addr);
 
   auto addr = StunAttribute::CreateAddress(STUN_ATTR_MAPPED_ADDRESS);
-  rtc::SocketAddress test_addr(test_ip, kTestMessagePort2);
+  webrtc::SocketAddress test_addr(test_ip, kTestMessagePort2);
   addr->SetAddress(test_addr);
 
   CheckStunAddressAttribute(addr.get(), STUN_ADDRESS_IPV4, kTestMessagePort2,
@@ -905,7 +905,7 @@ TEST_F(StunTest, WriteMessageWithIPv6AddressAttribute) {
   CheckStunTransactionID(msg, kTestTransactionId1, kStunTransactionIdLength);
 
   auto addr = StunAttribute::CreateAddress(STUN_ATTR_MAPPED_ADDRESS);
-  rtc::SocketAddress test_addr(test_ip, kTestMessagePort2);
+  webrtc::SocketAddress test_addr(test_ip, kTestMessagePort2);
   addr->SetAddress(test_addr);
   msg.AddAttribute(std::move(addr));
 
@@ -933,7 +933,7 @@ TEST_F(StunTest, WriteMessageWithIPv4AddressAttribute) {
   CheckStunTransactionID(msg, kTestTransactionId1, kStunTransactionIdLength);
 
   auto addr = StunAttribute::CreateAddress(STUN_ATTR_MAPPED_ADDRESS);
-  rtc::SocketAddress test_addr(test_ip, kTestMessagePort4);
+  webrtc::SocketAddress test_addr(test_ip, kTestMessagePort4);
   addr->SetAddress(test_addr);
   msg.AddAttribute(std::move(addr));
 
@@ -961,7 +961,7 @@ TEST_F(StunTest, WriteMessageWithIPv6XorAddressAttribute) {
   CheckStunTransactionID(msg, kTestTransactionId2, kStunTransactionIdLength);
 
   auto addr = StunAttribute::CreateXorAddress(STUN_ATTR_XOR_MAPPED_ADDRESS);
-  rtc::SocketAddress test_addr(test_ip, kTestMessagePort1);
+  webrtc::SocketAddress test_addr(test_ip, kTestMessagePort1);
   addr->SetAddress(test_addr);
   msg.AddAttribute(std::move(addr));
 
@@ -990,7 +990,7 @@ TEST_F(StunTest, WriteMessageWithIPv4XoreAddressAttribute) {
   CheckStunTransactionID(msg, kTestTransactionId1, kStunTransactionIdLength);
 
   auto addr = StunAttribute::CreateXorAddress(STUN_ATTR_XOR_MAPPED_ADDRESS);
-  rtc::SocketAddress test_addr(test_ip, kTestMessagePort3);
+  webrtc::SocketAddress test_addr(test_ip, kTestMessagePort3);
   addr->SetAddress(test_addr);
   msg.AddAttribute(std::move(addr));
 
@@ -1518,7 +1518,7 @@ TEST_F(StunTest, CopyAttribute) {
     {  // Test StunAddressAttribute.
       webrtc::IPAddress test_ip(kIPv6TestAddress2);
       auto addr = StunAttribute::CreateAddress(STUN_ATTR_MAPPED_ADDRESS);
-      rtc::SocketAddress test_addr(test_ip, kTestMessagePort2);
+      webrtc::SocketAddress test_addr(test_ip, kTestMessagePort2);
       addr->SetAddress(test_addr);
       CheckStunAddressAttribute(addr.get(), STUN_ADDRESS_IPV6,
                                 kTestMessagePort2, test_ip);
@@ -1532,7 +1532,7 @@ TEST_F(StunTest, CopyAttribute) {
     {  // Test StunAddressAttribute.
       webrtc::IPAddress test_ip(kIPv6TestAddress2);
       auto addr = StunAttribute::CreateAddress(STUN_ATTR_XOR_MAPPED_ADDRESS);
-      rtc::SocketAddress test_addr(test_ip, kTestMessagePort2);
+      webrtc::SocketAddress test_addr(test_ip, kTestMessagePort2);
       addr->SetAddress(test_addr);
       CheckStunAddressAttribute(addr.get(), STUN_ADDRESS_IPV6,
                                 kTestMessagePort2, test_ip);

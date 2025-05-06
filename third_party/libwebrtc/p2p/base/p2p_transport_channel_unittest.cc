@@ -98,7 +98,6 @@
 
 namespace {
 
-using rtc::SocketAddress;
 using ::testing::_;
 using ::testing::Assign;
 using ::testing::Contains;
@@ -121,6 +120,7 @@ using ::webrtc::FieldTrials;
 using ::webrtc::IceCandidateType;
 using ::webrtc::PendingTaskSafetyFlag;
 using ::webrtc::SafeTask;
+using ::webrtc::SocketAddress;
 
 // Default timeout for tests in this file.
 // Should be large enough for slow buildbots to run the tests reliably.
@@ -196,7 +196,7 @@ cricket::Candidate CreateUdpCandidate(IceCandidateType type,
                                       int priority,
                                       absl::string_view ufrag = "") {
   cricket::Candidate c;
-  c.set_address(rtc::SocketAddress(ip, port));
+  c.set_address(webrtc::SocketAddress(ip, port));
   c.set_component(cricket::ICE_CANDIDATE_COMPONENT_DEFAULT);
   c.set_protocol(cricket::UDP_PROTOCOL_NAME);
   c.set_priority(priority);
@@ -210,8 +210,8 @@ std::unique_ptr<cricket::BasicPortAllocator> CreateBasicPortAllocator(
     rtc::NetworkManager* network_manager,
     rtc::PacketSocketFactory* socket_factory,
     const cricket::ServerAddresses& stun_servers,
-    const rtc::SocketAddress& turn_server_udp,
-    const rtc::SocketAddress& turn_server_tcp) {
+    const webrtc::SocketAddress& turn_server_udp,
+    const webrtc::SocketAddress& turn_server_tcp) {
   cricket::RelayServerConfig turn_server;
   turn_server.credentials = kRelayCredentials;
   if (!turn_server_udp.IsNil()) {
@@ -239,7 +239,7 @@ class ResolverFactoryFixture : public webrtc::MockAsyncDnsResolverFactory {
     mock_async_dns_resolver_ = std::make_unique<webrtc::MockAsyncDnsResolver>();
     EXPECT_CALL(*mock_async_dns_resolver_, Start(_, _))
         .WillRepeatedly(
-            [](const rtc::SocketAddress& /* addr */,
+            [](const webrtc::SocketAddress& /* addr */,
                absl::AnyInvocable<void()> callback) { callback(); });
     EXPECT_CALL(*mock_async_dns_resolver_, result())
         .WillOnce(ReturnRef(mock_async_dns_resolver_result_));
@@ -256,7 +256,7 @@ class ResolverFactoryFixture : public webrtc::MockAsyncDnsResolverFactory {
     });
   }
 
-  void SetAddressToReturn(rtc::SocketAddress address_to_return) {
+  void SetAddressToReturn(webrtc::SocketAddress address_to_return) {
     EXPECT_CALL(mock_async_dns_resolver_result_, GetResolvedAddress(_, _))
         .WillOnce(DoAll(SetArgPointee<1>(address_to_return), Return(true)));
   }
@@ -333,10 +333,10 @@ class P2PTransportChannelTestBase : public ::testing::Test,
     ServerAddresses stun_servers = {kStunAddr};
     ep1_.allocator_ = CreateBasicPortAllocator(
         env, &ep1_.network_manager_, socket_factory_.get(), stun_servers,
-        kTurnUdpIntAddr, rtc::SocketAddress());
+        kTurnUdpIntAddr, webrtc::SocketAddress());
     ep2_.allocator_ = CreateBasicPortAllocator(
         env, &ep2_.network_manager_, socket_factory_.get(), stun_servers,
-        kTurnUdpIntAddr, rtc::SocketAddress());
+        kTurnUdpIntAddr, webrtc::SocketAddress());
   }
 
  protected:
@@ -3972,7 +3972,7 @@ class P2PTransportChannelPingTest : public ::testing::Test,
     if (!port) {
       return nullptr;
     }
-    return port->GetConnection(rtc::SocketAddress(ip, port_num));
+    return port->GetConnection(webrtc::SocketAddress(ip, port_num));
   }
 
   Connection* FindNextPingableConnectionAndPingIt(P2PTransportChannel* ch) {
@@ -4321,7 +4321,7 @@ TEST_F(P2PTransportChannelPingTest, PingingStartedAsSoonAsPossible) {
                                                              prflx_priority));
   Port* port = GetPort(&ch);
   ASSERT_NE(nullptr, port);
-  port->SignalUnknownAddress(port, rtc::SocketAddress("1.1.1.1", 1),
+  port->SignalUnknownAddress(port, webrtc::SocketAddress("1.1.1.1", 1),
                              webrtc::PROTO_UDP, &request, kIceUfrag[1], false);
   Connection* conn = GetConnectionTo(&ch, "1.1.1.1", 1);
   ASSERT_NE(nullptr, conn);
@@ -4523,14 +4523,14 @@ TEST_F(P2PTransportChannelPingTest, ConnectionResurrection) {
 
   Port* port = GetPort(&ch);
   // conn1 should be resurrected with original priority.
-  port->SignalUnknownAddress(port, rtc::SocketAddress("1.1.1.1", 1),
+  port->SignalUnknownAddress(port, webrtc::SocketAddress("1.1.1.1", 1),
                              webrtc::PROTO_UDP, &request, kIceUfrag[1], false);
   conn1 = WaitForConnectionTo(&ch, "1.1.1.1", 1);
   ASSERT_TRUE(conn1 != nullptr);
   EXPECT_EQ(conn1->remote_candidate().priority(), remote_priority);
 
   // conn3, a real prflx connection, should have prflx priority.
-  port->SignalUnknownAddress(port, rtc::SocketAddress("3.3.3.3", 1),
+  port->SignalUnknownAddress(port, webrtc::SocketAddress("3.3.3.3", 1),
                              webrtc::PROTO_UDP, &request, kIceUfrag[1], false);
   Connection* conn3 = WaitForConnectionTo(&ch, "3.3.3.3", 1);
   ASSERT_TRUE(conn3 != nullptr);
@@ -4828,7 +4828,7 @@ TEST_F(P2PTransportChannelPingTest, TestSelectConnectionFromUnknownAddress) {
   request.AddAttribute(std::make_unique<StunUInt32Attribute>(STUN_ATTR_PRIORITY,
                                                              prflx_priority));
   TestUDPPort* port = static_cast<TestUDPPort*>(GetPort(&ch));
-  port->SignalUnknownAddress(port, rtc::SocketAddress("1.1.1.1", 1),
+  port->SignalUnknownAddress(port, webrtc::SocketAddress("1.1.1.1", 1),
                              webrtc::PROTO_UDP, &request, kIceUfrag[1], false);
   Connection* conn1 = WaitForConnectionTo(&ch, "1.1.1.1", 1);
   ASSERT_TRUE(conn1 != nullptr);
@@ -4856,7 +4856,7 @@ TEST_F(P2PTransportChannelPingTest, TestSelectConnectionFromUnknownAddress) {
   // Another request with unknown address, it will not be set as the selected
   // connection because the selected connection was nominated by the controlling
   // side.
-  port->SignalUnknownAddress(port, rtc::SocketAddress("3.3.3.3", 3),
+  port->SignalUnknownAddress(port, webrtc::SocketAddress("3.3.3.3", 3),
                              webrtc::PROTO_UDP, &request, kIceUfrag[1], false);
   Connection* conn3 = WaitForConnectionTo(&ch, "3.3.3.3", 3);
   ASSERT_TRUE(conn3 != nullptr);
@@ -4868,7 +4868,7 @@ TEST_F(P2PTransportChannelPingTest, TestSelectConnectionFromUnknownAddress) {
   // selected as the selected connection.
   request.AddAttribute(
       std::make_unique<StunByteStringAttribute>(STUN_ATTR_USE_CANDIDATE));
-  port->SignalUnknownAddress(port, rtc::SocketAddress("4.4.4.4", 4),
+  port->SignalUnknownAddress(port, webrtc::SocketAddress("4.4.4.4", 4),
                              webrtc::PROTO_UDP, &request, kIceUfrag[1], false);
   Connection* conn4 = WaitForConnectionTo(&ch, "4.4.4.4", 4);
   ASSERT_TRUE(conn4 != nullptr);
@@ -4886,7 +4886,7 @@ TEST_F(P2PTransportChannelPingTest, TestSelectConnectionFromUnknownAddress) {
   // port->set_sent_binding_response(false);
   ch.SetRemoteIceParameters(kIceParams[2]);
   ch.SetRemoteIceParameters(kIceParams[3]);
-  port->SignalUnknownAddress(port, rtc::SocketAddress("5.5.5.5", 5),
+  port->SignalUnknownAddress(port, webrtc::SocketAddress("5.5.5.5", 5),
                              webrtc::PROTO_UDP, &request, kIceUfrag[2], false);
   Connection* conn5 = WaitForConnectionTo(&ch, "5.5.5.5", 5);
   ASSERT_TRUE(conn5 != nullptr);
@@ -4940,7 +4940,7 @@ TEST_F(P2PTransportChannelPingTest, TestSelectConnectionBasedOnMediaReceived) {
   request.AddAttribute(
       std::make_unique<StunByteStringAttribute>(STUN_ATTR_USE_CANDIDATE));
   Port* port = GetPort(&ch);
-  port->SignalUnknownAddress(port, rtc::SocketAddress("3.3.3.3", 3),
+  port->SignalUnknownAddress(port, webrtc::SocketAddress("3.3.3.3", 3),
                              webrtc::PROTO_UDP, &request, kIceUfrag[1], false);
   Connection* conn3 = WaitForConnectionTo(&ch, "3.3.3.3", 3);
   ASSERT_TRUE(conn3 != nullptr);
@@ -5730,7 +5730,7 @@ class P2PTransportChannelMostLikelyToWorkFirstTest
   BasicPortAllocator& CreatePortAllocator(const Environment& env) {
     port_allocator_ = CreateBasicPortAllocator(
         env, &network_manager_, packet_socket_factory(), ServerAddresses(),
-        kTurnUdpIntAddr, rtc::SocketAddress());
+        kTurnUdpIntAddr, webrtc::SocketAddress());
     port_allocator_->set_flags(port_allocator_->flags() |
                                PORTALLOCATOR_DISABLE_STUN |
                                PORTALLOCATOR_DISABLE_TCP);
@@ -6086,7 +6086,7 @@ TEST_F(P2PTransportChannelTest,
   // The IP address of ep1's host candidate should be obfuscated.
   EXPECT_TRUE(local_candidate.address().IsUnresolvedIP());
   // This is the underlying private IP address of the same candidate at ep1.
-  const auto local_address = rtc::SocketAddress(
+  const auto local_address = webrtc::SocketAddress(
       kPublicAddrs[0].ipaddr(), local_candidate.address().port());
 
   // Let ep2 signal its candidate to ep1. ep1 should form a candidate
@@ -6163,7 +6163,7 @@ TEST_F(P2PTransportChannelTest,
   // The IP address of ep1's host candidate should be obfuscated.
   ASSERT_TRUE(local_candidate.address().IsUnresolvedIP());
   // This is the underlying private IP address of the same candidate at ep1.
-  const auto local_address = rtc::SocketAddress(
+  const auto local_address = webrtc::SocketAddress(
       kPublicAddrs[0].ipaddr(), local_candidate.address().port());
   // Let ep1 signal its hostname candidate to ep2.
   ResumeCandidates(0);
@@ -6239,7 +6239,7 @@ TEST_F(P2PTransportChannelTest, CanConnectWithHostCandidateWithMdnsName) {
   EXPECT_TRUE(local_candidate_ep1.address().IsUnresolvedIP());
   // This is the underlying private IP address of the same candidate at ep1,
   // and let the mock resolver of ep2 receive the correct resolution.
-  rtc::SocketAddress resolved_address_ep1(local_candidate_ep1.address());
+  webrtc::SocketAddress resolved_address_ep1(local_candidate_ep1.address());
   resolved_address_ep1.SetResolvedIP(kPublicAddrs[0].ipaddr());
 
   resolver_fixture.SetAddressToReturn(resolved_address_ep1);
@@ -6302,7 +6302,7 @@ TEST_F(P2PTransportChannelTest,
     if (local_candidate_ep1.is_local()) {
       // This is the underlying private IP address of the same candidate at ep1,
       // and let the mock resolver of ep2 receive the correct resolution.
-      rtc::SocketAddress resolved_address_ep1(local_candidate_ep1.address());
+      webrtc::SocketAddress resolved_address_ep1(local_candidate_ep1.address());
       resolved_address_ep1.SetResolvedIP(kPublicAddrs[0].ipaddr());
       resolver_fixture.SetAddressToReturn(resolved_address_ep1);
       break;
@@ -6509,7 +6509,7 @@ TEST_F(P2PTransportChannelTest,
   ASSERT_TRUE(local_candidate_ep1.is_local());
   // This is the underlying private IP address of the same candidate at ep1,
   // and let the mock resolver of ep2 receive the correct resolution.
-  rtc::SocketAddress resolved_address_ep1(local_candidate_ep1.address());
+  webrtc::SocketAddress resolved_address_ep1(local_candidate_ep1.address());
   resolved_address_ep1.SetResolvedIP(kPublicAddrs[0].ipaddr());
   resolver_fixture.SetAddressToReturn(resolved_address_ep1);
 
@@ -6581,7 +6581,7 @@ TEST_F(P2PTransportChannelTest,
   // address directly to simulate the process of adding remote candidates with
   // the name resolution.
   for (auto& mdns_candidate : mdns_candidates) {
-    rtc::SocketAddress resolved_address(mdns_candidate.address());
+    webrtc::SocketAddress resolved_address(mdns_candidate.address());
     resolved_address.SetResolvedIP(0x1111);  // 1.1.1.1
     mdns_candidate.set_address(resolved_address);
     EXPECT_FALSE(mdns_candidate.address().IsUnresolvedIP());

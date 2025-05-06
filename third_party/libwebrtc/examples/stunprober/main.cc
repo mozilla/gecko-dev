@@ -117,11 +117,11 @@ int main(int argc, char* argv[]) {
 #endif  // WEBRTC_WIN
   absl::ParseCommandLine(argc, argv);
 
-  std::vector<rtc::SocketAddress> server_addresses;
+  std::vector<webrtc::SocketAddress> server_addresses;
   std::istringstream servers(absl::GetFlag(FLAGS_servers));
   std::string server;
   while (getline(servers, server, ',')) {
-    rtc::SocketAddress addr;
+    webrtc::SocketAddress addr;
     if (!addr.FromString(server)) {
       RTC_LOG(LS_ERROR) << "Parsing " << server << " failed.";
       return -1;

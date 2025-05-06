@@ -166,7 +166,7 @@ DtlsTransport::DtlsTransport(IceTransportInternal* ice_transport,
             }
             piggybacked_dtls_callback_(
                 this, rtc::ReceivedPacket(piggybacked_dtls_packet,
-                                          rtc::SocketAddress()));
+                                          webrtc::SocketAddress()));
           },
           [this]() {
             if (!dtls_) {
@@ -820,7 +820,7 @@ void DtlsTransport::OnDtlsEvent(int sig, int err) {
         // from the original packet here to populate socket address and
         // timestamp.
         NotifyPacketReceived(rtc::ReceivedPacket(
-            rtc::MakeArrayView(buf, read), rtc::SocketAddress(),
+            rtc::MakeArrayView(buf, read), webrtc::SocketAddress(),
             webrtc::Timestamp::Micros(rtc::TimeMicros()),
             rtc::EcnMarking::kNotEct, rtc::ReceivedPacket::kDtlsDecrypted));
       } else if (ret == webrtc::SR_EOS) {

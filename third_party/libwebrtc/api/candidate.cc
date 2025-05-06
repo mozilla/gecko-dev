@@ -56,7 +56,7 @@ Candidate::Candidate()
 
 Candidate::Candidate(int component,
                      absl::string_view protocol,
-                     const rtc::SocketAddress& address,
+                     const webrtc::SocketAddress& address,
                      uint32_t priority,
                      absl::string_view username,
                      absl::string_view password,
@@ -203,22 +203,23 @@ Candidate Candidate::ToSanitizedCopy(bool use_hostname_address,
     webrtc::IPAddress ip;
     if (address().hostname().empty()) {
       // IP needs to be redacted, but no hostname available.
-      rtc::SocketAddress redacted_addr("redacted-ip.invalid", address().port());
+      webrtc::SocketAddress redacted_addr("redacted-ip.invalid",
+                                          address().port());
       copy.set_address(redacted_addr);
     } else if (webrtc::IPFromString(address().hostname(), &ip)) {
       // The hostname is an IP literal, and needs to be redacted too.
-      rtc::SocketAddress redacted_addr("redacted-literal.invalid",
-                                       address().port());
+      webrtc::SocketAddress redacted_addr("redacted-literal.invalid",
+                                          address().port());
       copy.set_address(redacted_addr);
     } else {
-      rtc::SocketAddress hostname_only_addr(address().hostname(),
-                                            address().port());
+      webrtc::SocketAddress hostname_only_addr(address().hostname(),
+                                               address().port());
       copy.set_address(hostname_only_addr);
     }
   }
   if (filter_related_address) {
     copy.set_related_address(
-        rtc::EmptySocketAddressWithFamily(copy.address().family()));
+        webrtc::EmptySocketAddressWithFamily(copy.address().family()));
   }
   if (filter_ufrag) {
     copy.set_username("");
@@ -227,7 +228,7 @@ Candidate Candidate::ToSanitizedCopy(bool use_hostname_address,
   return copy;
 }
 
-void Candidate::ComputeFoundation(const rtc::SocketAddress& base_address,
+void Candidate::ComputeFoundation(const webrtc::SocketAddress& base_address,
                                   uint64_t tie_breaker) {
   // https://www.rfc-editor.org/rfc/rfc5245#section-4.1.1.3
   // The foundation is an identifier, scoped within a session.  Two candidates

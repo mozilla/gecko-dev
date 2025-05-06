@@ -115,7 +115,7 @@ class EmulatedTURNServerInterface {
 
   // Returns socket address, which client should use to connect to TURN server
   // and do TURN allocation.
-  virtual rtc::SocketAddress GetClientEndpointAddress() const = 0;
+  virtual SocketAddress GetClientEndpointAddress() const = 0;
 
   // Get non-null peer endpoint, that is "connected to the internet".
   // This shall typically be connected to another TURN server.

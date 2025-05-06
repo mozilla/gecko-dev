@@ -36,11 +36,11 @@ namespace stunprober {
 
 namespace {
 
-const rtc::SocketAddress kLocalAddr("192.168.0.1", 0);
-const rtc::SocketAddress kStunAddr1("1.1.1.1", 3478);
-const rtc::SocketAddress kStunAddr2("1.1.1.2", 3478);
-const rtc::SocketAddress kFailedStunAddr("1.1.1.3", 3478);
-const rtc::SocketAddress kStunMappedAddr("77.77.77.77", 0);
+const webrtc::SocketAddress kLocalAddr("192.168.0.1", 0);
+const webrtc::SocketAddress kStunAddr1("1.1.1.1", 3478);
+const webrtc::SocketAddress kStunAddr2("1.1.1.2", 3478);
+const webrtc::SocketAddress kFailedStunAddr("1.1.1.3", 3478);
+const webrtc::SocketAddress kStunMappedAddr("77.77.77.77", 0);
 
 }  // namespace
 
@@ -70,7 +70,7 @@ class StunProberTest : public ::testing::Test {
   }
 
   void StartProbing(rtc::PacketSocketFactory* socket_factory,
-                    const std::vector<rtc::SocketAddress>& addrs,
+                    const std::vector<webrtc::SocketAddress>& addrs,
                     std::vector<const rtc::Network*> networks,
                     bool shared_socket,
                     uint16_t interval,
@@ -84,7 +84,7 @@ class StunProberTest : public ::testing::Test {
   }
 
   void RunProber(bool shared_mode) {
-    std::vector<rtc::SocketAddress> addrs;
+    std::vector<webrtc::SocketAddress> addrs;
     addrs.push_back(kStunAddr1);
     addrs.push_back(kStunAddr2);
     // Add a non-existing server. This shouldn't pollute the result.
@@ -93,7 +93,7 @@ class StunProberTest : public ::testing::Test {
   }
 
   void RunProber(bool shared_mode,
-                 const std::vector<rtc::SocketAddress>& addrs,
+                 const std::vector<webrtc::SocketAddress>& addrs,
                  bool check_results) {
     rtc::Network ipv4_network1("test_eth0", "Test Network Adapter 1",
                                webrtc::IPAddress(0x12345600U), 24);
@@ -159,20 +159,20 @@ TEST_F(StunProberTest, SharedMode) {
 }
 
 TEST_F(StunProberTest, ResolveNonexistentHostname) {
-  std::vector<rtc::SocketAddress> addrs;
+  std::vector<webrtc::SocketAddress> addrs;
   addrs.push_back(kStunAddr1);
   // Add a non-existing server by name. This should cause a failed lookup.
-  addrs.push_back(rtc::SocketAddress("nonexistent.test", 3478));
+  addrs.push_back(webrtc::SocketAddress("nonexistent.test", 3478));
   RunProber(false, addrs, false);
   // One server is pinged
   EXPECT_EQ(stats().raw_num_request_sent, pings_per_ip);
 }
 
 TEST_F(StunProberTest, ResolveExistingHostname) {
-  std::vector<rtc::SocketAddress> addrs;
+  std::vector<webrtc::SocketAddress> addrs;
   addrs.push_back(kStunAddr1);
   // Add a non-existing server by name. This should cause a failed lookup.
-  addrs.push_back(rtc::SocketAddress("localhost", 3478));
+  addrs.push_back(webrtc::SocketAddress("localhost", 3478));
   RunProber(false, addrs, false);
   // Two servers are pinged, only one responds.
   // TODO(bugs.webrtc.org/15559): Figure out why this doesn't always work

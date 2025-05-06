@@ -58,7 +58,7 @@ int main(int argc, char* argv[]) {
     return 1;
   }
 
-  rtc::SocketAddress int_addr;
+  webrtc::SocketAddress int_addr;
   if (!int_addr.FromString(argv[1])) {
     std::cerr << "Unable to parse IP address: " << argv[1] << std::endl;
     return 1;
@@ -92,7 +92,7 @@ int main(int argc, char* argv[]) {
   server.AddInternalSocket(int_socket, cricket::PROTO_UDP);
   server.SetExternalSocketFactory(
       new rtc::BasicPacketSocketFactory(&socket_server),
-      rtc::SocketAddress(ext_addr, 0));
+      webrtc::SocketAddress(ext_addr, 0));
 
   std::cout << "Listening internally at " << int_addr.ToString() << std::endl;
 

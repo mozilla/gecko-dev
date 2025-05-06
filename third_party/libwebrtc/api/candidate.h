@@ -50,7 +50,7 @@ class RTC_EXPORT Candidate {
   Candidate();
   Candidate(int component,
             absl::string_view protocol,
-            const rtc::SocketAddress& address,
+            const webrtc::SocketAddress& address,
             uint32_t priority,
             absl::string_view username,
             absl::string_view password,
@@ -87,8 +87,8 @@ class RTC_EXPORT Candidate {
     Assign(relay_protocol_, protocol);
   }
 
-  const rtc::SocketAddress& address() const { return address_; }
-  void set_address(const rtc::SocketAddress& address) { address_ = address; }
+  const webrtc::SocketAddress& address() const { return address_; }
+  void set_address(const webrtc::SocketAddress& address) { address_ = address; }
 
   uint32_t priority() const { return priority_; }
   void set_priority(const uint32_t priority) { priority_ = priority; }
@@ -185,8 +185,10 @@ class RTC_EXPORT Candidate {
     Assign(foundation_, foundation);
   }
 
-  const rtc::SocketAddress& related_address() const { return related_address_; }
-  void set_related_address(const rtc::SocketAddress& related_address) {
+  const webrtc::SocketAddress& related_address() const {
+    return related_address_;
+  }
+  void set_related_address(const webrtc::SocketAddress& related_address) {
     related_address_ = related_address;
   }
   const std::string& tcptype() const { return tcptype_; }
@@ -249,7 +251,7 @@ class RTC_EXPORT Candidate {
   //   characteristics. Foundations are used in the frozen algorithm.
   // A session wide (peerconnection) tie-breaker is applied to the foundation,
   // adds additional randomness and must be the same for all candidates.
-  void ComputeFoundation(const rtc::SocketAddress& base_address,
+  void ComputeFoundation(const webrtc::SocketAddress& base_address,
                          uint64_t tie_breaker);
 
   // https://www.rfc-editor.org/rfc/rfc5245#section-7.2.1.3
@@ -270,7 +272,7 @@ class RTC_EXPORT Candidate {
   int component_;
   std::string protocol_;
   std::string relay_protocol_;
-  rtc::SocketAddress address_;
+  webrtc::SocketAddress address_;
   uint32_t priority_;
   std::string username_;
   std::string password_;
@@ -280,7 +282,7 @@ class RTC_EXPORT Candidate {
   rtc::AdapterType underlying_type_for_vpn_;
   uint32_t generation_;
   std::string foundation_;
-  rtc::SocketAddress related_address_;
+  webrtc::SocketAddress related_address_;
   std::string tcptype_;
   std::string transport_name_;
   uint16_t network_id_;

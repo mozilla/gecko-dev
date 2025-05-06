@@ -110,7 +110,7 @@ class RTC_EXPORT UDPPort : public Port {
 
   ~UDPPort() override;
 
-  rtc::SocketAddress GetLocalAddress() const {
+  webrtc::SocketAddress GetLocalAddress() const {
     return socket_->GetLocalAddress();
   }
 
@@ -160,7 +160,7 @@ class RTC_EXPORT UDPPort : public Port {
 
   int SendTo(const void* data,
              size_t size,
-             const rtc::SocketAddress& addr,
+             const webrtc::SocketAddress& addr,
              const rtc::PacketOptions& options,
              bool payload) override;
 
@@ -169,7 +169,7 @@ class RTC_EXPORT UDPPort : public Port {
   rtc::DiffServCodePoint StunDscpValue() const override;
 
   void OnLocalAddressReady(rtc::AsyncPacketSocket* socket,
-                           const rtc::SocketAddress& address);
+                           const webrtc::SocketAddress& address);
 
   void PostAddAddress(bool is_final) override;
 
@@ -190,7 +190,7 @@ class RTC_EXPORT UDPPort : public Port {
   // `addr` is the "any" address and `emit_local_for_anyaddress_` is true. When
   // returning false, it indicates that the operation has failed and the
   // address shouldn't be used by any candidate.
-  bool MaybeSetDefaultLocalAddress(rtc::SocketAddress* addr) const;
+  bool MaybeSetDefaultLocalAddress(webrtc::SocketAddress* addr) const;
 
  private:
   // A helper class which can be called repeatedly to resolve multiple
@@ -200,17 +200,17 @@ class RTC_EXPORT UDPPort : public Port {
    public:
     explicit AddressResolver(
         rtc::PacketSocketFactory* factory,
-        std::function<void(const rtc::SocketAddress&, int)> done_callback);
+        std::function<void(const webrtc::SocketAddress&, int)> done_callback);
 
-    void Resolve(const rtc::SocketAddress& address,
+    void Resolve(const webrtc::SocketAddress& address,
                  int family,
                  const webrtc::FieldTrialsView& field_trials);
-    bool GetResolvedAddress(const rtc::SocketAddress& input,
+    bool GetResolvedAddress(const webrtc::SocketAddress& input,
                             int family,
-                            rtc::SocketAddress* output) const;
+                            webrtc::SocketAddress* output) const;
 
    private:
-    typedef std::map<rtc::SocketAddress,
+    typedef std::map<webrtc::SocketAddress,
                      std::unique_ptr<webrtc::AsyncDnsResolverInterface>>
         ResolverMap;
 
@@ -218,28 +218,28 @@ class RTC_EXPORT UDPPort : public Port {
     // The function is called when resolving the specified address is finished.
     // The first argument is the input address, the second argument is the error
     // or 0 if it succeeded.
-    std::function<void(const rtc::SocketAddress&, int)> done_;
+    std::function<void(const webrtc::SocketAddress&, int)> done_;
     // Resolver may fire callbacks that refer to done_, so ensure
     // that all resolvers are destroyed first.
     ResolverMap resolvers_;
   };
 
   // DNS resolution of the STUN server.
-  void ResolveStunAddress(const rtc::SocketAddress& stun_addr);
-  void OnResolveResult(const rtc::SocketAddress& input, int error);
+  void ResolveStunAddress(const webrtc::SocketAddress& stun_addr);
+  void OnResolveResult(const webrtc::SocketAddress& input, int error);
 
   // Send a STUN binding request to the given address. Calling this method may
   // cause the set of known server addresses to be modified, eg. by replacing an
   // unresolved server address with a resolved address.
-  void SendStunBindingRequest(const rtc::SocketAddress& stun_addr);
+  void SendStunBindingRequest(const webrtc::SocketAddress& stun_addr);
 
   // Below methods handles binding request responses.
   void OnStunBindingRequestSucceeded(
       int rtt_ms,
-      const rtc::SocketAddress& stun_server_addr,
-      const rtc::SocketAddress& stun_reflected_addr);
+      const webrtc::SocketAddress& stun_server_addr,
+      const webrtc::SocketAddress& stun_reflected_addr);
   void OnStunBindingOrResolveRequestFailed(
-      const rtc::SocketAddress& stun_server_addr,
+      const webrtc::SocketAddress& stun_server_addr,
       int error_code,
       absl::string_view reason);
 
@@ -250,7 +250,7 @@ class RTC_EXPORT UDPPort : public Port {
   // changed to SignalPortReady.
   void MaybeSetPortCompleteOrError();
 
-  bool HasStunCandidateWithAddress(const rtc::SocketAddress& addr) const;
+  bool HasStunCandidateWithAddress(const webrtc::SocketAddress& addr) const;
 
   // If this is a low-cost network, it will keep on sending STUN binding
   // requests indefinitely to keep the NAT binding alive. Otherwise, stop

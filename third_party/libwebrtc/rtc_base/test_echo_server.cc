@@ -14,8 +14,7 @@
 
 namespace webrtc {
 
-TestEchoServer::TestEchoServer(rtc::Thread* thread,
-                               const rtc::SocketAddress& addr)
+TestEchoServer::TestEchoServer(rtc::Thread* thread, const SocketAddress& addr)
     : server_socket_(
           thread->socketserver()->CreateSocket(addr.family(), SOCK_STREAM)) {
   server_socket_->Bind(addr);

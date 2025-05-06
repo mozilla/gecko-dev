@@ -39,7 +39,7 @@ using ::testing::Return;
 static const webrtc::TimeDelta kTimeout = webrtc::TimeDelta::Millis(5000);
 
 static rtc::Socket* CreateSocket() {
-  rtc::SocketAddress address(webrtc::IPAddress(INADDR_ANY), 0);
+  webrtc::SocketAddress address(webrtc::IPAddress(INADDR_ANY), 0);
 
   rtc::Socket* socket = rtc::Thread::Current()->socketserver()->CreateSocket(
       address.family(), SOCK_STREAM);
@@ -93,7 +93,7 @@ class SSLAdapterTestDummy : public sigslot::has_slots<> {
     ssl_adapter_->SetEllipticCurves(curves);
   }
 
-  rtc::SocketAddress GetAddress() const {
+  webrtc::SocketAddress GetAddress() const {
     return ssl_adapter_->GetLocalAddress();
   }
 
@@ -146,7 +146,8 @@ class SSLAdapterTestDummyClient : public SSLAdapterTestDummy {
     CreateSSLAdapter(socket_.release(), webrtc::SSL_CLIENT);
   }
 
-  int Connect(absl::string_view hostname, const rtc::SocketAddress& address) {
+  int Connect(absl::string_view hostname,
+              const webrtc::SocketAddress& address) {
     RTC_LOG(LS_INFO) << "Initiating connection with " << address.ToString();
     int rv = ssl_adapter_->Connect(address);
 
@@ -175,7 +176,9 @@ class SSLAdapterTestDummyServer : public SSLAdapterTestDummy {
                      << socket_->GetLocalAddress().ToString();
   }
 
-  rtc::SocketAddress GetAddress() const { return socket_->GetLocalAddress(); }
+  webrtc::SocketAddress GetAddress() const {
+    return socket_->GetLocalAddress();
+  }
 
   std::string GetHostname() const {
     // Since we don't have a real certificate anyway, the value here doesn't

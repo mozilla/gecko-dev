@@ -21,8 +21,8 @@
 
 namespace webrtc {
 
-EmulatedIpPacket::EmulatedIpPacket(const rtc::SocketAddress& from,
-                                   const rtc::SocketAddress& to,
+EmulatedIpPacket::EmulatedIpPacket(const SocketAddress& from,
+                                   const SocketAddress& to,
                                    rtc::CopyOnWriteBuffer data,
                                    Timestamp arrival_time,
                                    uint16_t application_overhead,

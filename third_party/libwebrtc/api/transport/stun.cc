@@ -877,7 +877,7 @@ StunAttribute::CreateUnknownAttributes() {
 }
 
 StunAddressAttribute::StunAddressAttribute(uint16_t type,
-                                           const rtc::SocketAddress& addr)
+                                           const webrtc::SocketAddress& addr)
     : StunAttribute(type, 0) {
   SetAddress(addr);
 }
@@ -911,7 +911,7 @@ bool StunAddressAttribute::Read(ByteBufferReader* buf) {
       return false;
     }
     webrtc::IPAddress ipaddr(v4addr);
-    SetAddress(rtc::SocketAddress(ipaddr, port));
+    SetAddress(webrtc::SocketAddress(ipaddr, port));
   } else if (stun_family == STUN_ADDRESS_IPV6) {
     in6_addr v6addr;
     if (length() != SIZE_IP6) {
@@ -922,7 +922,7 @@ bool StunAddressAttribute::Read(ByteBufferReader* buf) {
       return false;
     }
     webrtc::IPAddress ipaddr(v6addr);
-    SetAddress(rtc::SocketAddress(ipaddr, port));
+    SetAddress(webrtc::SocketAddress(ipaddr, port));
   } else {
     return false;
   }
@@ -955,8 +955,9 @@ bool StunAddressAttribute::Write(ByteBufferWriter* buf) const {
   return true;
 }
 
-StunXorAddressAttribute::StunXorAddressAttribute(uint16_t type,
-                                                 const rtc::SocketAddress& addr)
+StunXorAddressAttribute::StunXorAddressAttribute(
+    uint16_t type,
+    const webrtc::SocketAddress& addr)
     : StunAddressAttribute(type, addr), owner_(NULL) {}
 
 StunXorAddressAttribute::StunXorAddressAttribute(uint16_t type,
@@ -1013,7 +1014,7 @@ bool StunXorAddressAttribute::Read(ByteBufferReader* buf) {
     return false;
   uint16_t xoredport = port() ^ (kStunMagicCookie >> 16);
   webrtc::IPAddress xored_ip = GetXoredIP();
-  SetAddress(rtc::SocketAddress(xored_ip, xoredport));
+  SetAddress(webrtc::SocketAddress(xored_ip, xoredport));
   return true;
 }
 

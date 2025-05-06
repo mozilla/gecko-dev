@@ -20,9 +20,10 @@ class AsyncProxyServerSocket : public BufferedReadAdapter {
  public:
   AsyncProxyServerSocket(Socket* socket, size_t buffer_size);
   ~AsyncProxyServerSocket() override;
-  sigslot::signal2<AsyncProxyServerSocket*, const SocketAddress&>
+  sigslot::signal2<AsyncProxyServerSocket*, const webrtc::SocketAddress&>
       SignalConnectRequest;
-  virtual void SendConnectResult(int err, const SocketAddress& addr) = 0;
+  virtual void SendConnectResult(int err,
+                                 const webrtc::SocketAddress& addr) = 0;
 };
 
 // Implements a socket adapter that performs the server side of a

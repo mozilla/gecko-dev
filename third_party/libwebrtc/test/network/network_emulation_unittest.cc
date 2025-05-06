@@ -154,28 +154,24 @@ class NetworkEmulationManagerThreeNodesRoutingTest : public ::testing::Test {
     // Next code is using API of EmulatedEndpoint, that is visible only for
     // internals of network emulation layer. Don't use this API in other tests.
     // Send packet from e1 to e2.
-    e1_->SendPacket(
-        rtc::SocketAddress(e1_->GetPeerLocalAddress(), common_send_port),
-        rtc::SocketAddress(e2_->GetPeerLocalAddress(), r_e1_e2_port),
-        rtc::CopyOnWriteBuffer(10));
+    e1_->SendPacket(SocketAddress(e1_->GetPeerLocalAddress(), common_send_port),
+                    SocketAddress(e2_->GetPeerLocalAddress(), r_e1_e2_port),
+                    rtc::CopyOnWriteBuffer(10));
 
     // Send packet from e2 to e1.
-    e2_->SendPacket(
-        rtc::SocketAddress(e2_->GetPeerLocalAddress(), common_send_port),
-        rtc::SocketAddress(e1_->GetPeerLocalAddress(), r_e2_e1_port),
-        rtc::CopyOnWriteBuffer(10));
+    e2_->SendPacket(SocketAddress(e2_->GetPeerLocalAddress(), common_send_port),
+                    SocketAddress(e1_->GetPeerLocalAddress(), r_e2_e1_port),
+                    rtc::CopyOnWriteBuffer(10));
 
     // Send packet from e1 to e3.
-    e1_->SendPacket(
-        rtc::SocketAddress(e1_->GetPeerLocalAddress(), common_send_port),
-        rtc::SocketAddress(e3_->GetPeerLocalAddress(), r_e1_e3_port),
-        rtc::CopyOnWriteBuffer(10));
+    e1_->SendPacket(SocketAddress(e1_->GetPeerLocalAddress(), common_send_port),
+                    SocketAddress(e3_->GetPeerLocalAddress(), r_e1_e3_port),
+                    rtc::CopyOnWriteBuffer(10));
 
     // Send packet from e3 to e1.
-    e3_->SendPacket(
-        rtc::SocketAddress(e3_->GetPeerLocalAddress(), common_send_port),
-        rtc::SocketAddress(e1_->GetPeerLocalAddress(), r_e3_e1_port),
-        rtc::CopyOnWriteBuffer(10));
+    e3_->SendPacket(SocketAddress(e3_->GetPeerLocalAddress(), common_send_port),
+                    SocketAddress(e1_->GetPeerLocalAddress(), r_e3_e1_port),
+                    rtc::CopyOnWriteBuffer(10));
 
     // Sleep at the end to wait for async packets delivery.
     emulation_.time_controller()->AdvanceTime(kNetworkPacketWaitTimeout);
@@ -269,8 +265,8 @@ TEST(NetworkEmulationManagerTest, Run) {
     SocketReader r1(s1, t1);
     SocketReader r2(s2, t2);
 
-    rtc::SocketAddress a1(alice_endpoint->GetPeerLocalAddress(), 0);
-    rtc::SocketAddress a2(bob_endpoint->GetPeerLocalAddress(), 0);
+    SocketAddress a1(alice_endpoint->GetPeerLocalAddress(), 0);
+    SocketAddress a2(bob_endpoint->GetPeerLocalAddress(), 0);
 
     SendTask(t1, [&] {
       s1->Bind(a1);
@@ -420,8 +416,8 @@ TEST(NetworkEmulationManagerTest, EcnMarkingIsPropagated) {
   SocketReader r1(s1, t1);
   SocketReader r2(s2, t2);
 
-  rtc::SocketAddress a1(alice_endpoint->GetPeerLocalAddress(), 0);
-  rtc::SocketAddress a2(bob_endpoint->GetPeerLocalAddress(), 0);
+  SocketAddress a1(alice_endpoint->GetPeerLocalAddress(), 0);
+  SocketAddress a2(bob_endpoint->GetPeerLocalAddress(), 0);
 
   SendTask(t1, [&] {
     s1->Bind(a1);
@@ -510,8 +506,8 @@ TEST(NetworkEmulationManagerTest, DebugStatsCollectedInDebugMode) {
     SocketReader r1(s1, t1);
     SocketReader r2(s2, t2);
 
-    rtc::SocketAddress a1(alice_endpoint->GetPeerLocalAddress(), 0);
-    rtc::SocketAddress a2(bob_endpoint->GetPeerLocalAddress(), 0);
+    SocketAddress a1(alice_endpoint->GetPeerLocalAddress(), 0);
+    SocketAddress a2(bob_endpoint->GetPeerLocalAddress(), 0);
 
     SendTask(t1, [&] {
       s1->Bind(a1);
@@ -611,8 +607,8 @@ TEST(NetworkEmulationManagerTest, ThroughputStats) {
   SocketReader r1(s1, t1);
   SocketReader r2(s2, t2);
 
-  rtc::SocketAddress a1(alice_endpoint->GetPeerLocalAddress(), 0);
-  rtc::SocketAddress a2(bob_endpoint->GetPeerLocalAddress(), 0);
+  SocketAddress a1(alice_endpoint->GetPeerLocalAddress(), 0);
+  SocketAddress a2(bob_endpoint->GetPeerLocalAddress(), 0);
 
   SendTask(t1, [&] {
     s1->Bind(a1);
@@ -715,8 +711,8 @@ TEST(NetworkEmulationManagerTest, EndpointLoopback) {
   EXPECT_CALL(receiver, OnPacketReceived(::testing::_)).Times(1);
   ASSERT_EQ(endpoint->BindReceiver(80, &receiver), 80);
 
-  endpoint->SendPacket(rtc::SocketAddress(endpoint->GetPeerLocalAddress(), 80),
-                       rtc::SocketAddress(endpoint->GetPeerLocalAddress(), 80),
+  endpoint->SendPacket(SocketAddress(endpoint->GetPeerLocalAddress(), 80),
+                       SocketAddress(endpoint->GetPeerLocalAddress(), 80),
                        "Hello");
   network_manager.time_controller()->AdvanceTime(TimeDelta::Seconds(1));
 }
@@ -735,8 +731,8 @@ TEST(NetworkEmulationManagerTest, EndpointCanSendWithDifferentSourceIp) {
   EXPECT_CALL(receiver, OnPacketReceived(::testing::_)).Times(1);
   ASSERT_EQ(endpoint->BindReceiver(80, &receiver), 80);
 
-  endpoint->SendPacket(rtc::SocketAddress(kSourceIp, 80),
-                       rtc::SocketAddress(endpoint->GetPeerLocalAddress(), 80),
+  endpoint->SendPacket(SocketAddress(kSourceIp, 80),
+                       SocketAddress(endpoint->GetPeerLocalAddress(), 80),
                        "Hello");
   network_manager.time_controller()->AdvanceTime(TimeDelta::Seconds(1));
 }
@@ -763,8 +759,8 @@ TEST(NetworkEmulationManagerTest,
       receiver_endpoint);
 
   sender_endpoint->SendPacket(
-      rtc::SocketAddress(sender_endpoint->GetPeerLocalAddress(), 80),
-      rtc::SocketAddress(kDestIp, 80), "Hello");
+      SocketAddress(sender_endpoint->GetPeerLocalAddress(), 80),
+      SocketAddress(kDestIp, 80), "Hello");
   network_manager.time_controller()->AdvanceTime(TimeDelta::Seconds(1));
 }
 
@@ -800,7 +796,7 @@ TEST(NetworkEmulationManagerTURNTest, ClientTraffic) {
   // We expect to get a ping reply.
   EXPECT_CALL(recv, OnPacketReceived(::testing::_)).Times(1);
 
-  ep->SendPacket(rtc::SocketAddress(ep->GetPeerLocalAddress(), port),
+  ep->SendPacket(SocketAddress(ep->GetPeerLocalAddress(), port),
                  turn->GetClientEndpointAddress(), packet);
   emulation.time_controller()->AdvanceTime(TimeDelta::Seconds(1));
 }
@@ -830,7 +826,7 @@ TEST(LinkEmulationTest, HandlesDeliveryTimeChangedCallback) {
           network_manager.time_controller()->GetClock()->TimeInMicroseconds() +
           10));
   link->OnPacketReceived(EmulatedIpPacket(
-      rtc::SocketAddress(kEndpointIp, 50), rtc::SocketAddress(kEndpointIp, 79),
+      SocketAddress(kEndpointIp, 50), SocketAddress(kEndpointIp, 79),
       rtc::CopyOnWriteBuffer(10), Timestamp::Millis(1)));
   network_manager.time_controller()->AdvanceTime(TimeDelta::Zero());
 

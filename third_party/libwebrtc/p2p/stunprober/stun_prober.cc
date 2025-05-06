@@ -65,7 +65,7 @@ class StunProber::Requester : public sigslot::has_slots<> {
     int64_t received_time_ms = 0;
 
     // Server reflexive address from STUN response for this given request.
-    rtc::SocketAddress srflx_addr;
+    webrtc::SocketAddress srflx_addr;
 
     webrtc::IPAddress server_addr;
 
@@ -78,7 +78,7 @@ class StunProber::Requester : public sigslot::has_slots<> {
   // it'll just be a single address.
   Requester(StunProber* prober,
             rtc::AsyncPacketSocket* socket,
-            const std::vector<rtc::SocketAddress>& server_ips);
+            const std::vector<webrtc::SocketAddress>& server_ips);
   ~Requester() override;
 
   Requester(const Requester&) = delete;
@@ -108,11 +108,11 @@ class StunProber::Requester : public sigslot::has_slots<> {
   std::unique_ptr<rtc::AsyncPacketSocket> socket_;
 
   // Temporary SocketAddress and buffer for RecvFrom.
-  rtc::SocketAddress addr_;
+  webrtc::SocketAddress addr_;
   std::unique_ptr<rtc::ByteBufferWriter> response_packet_;
 
   std::vector<Request*> requests_;
-  std::vector<rtc::SocketAddress> server_ips_;
+  std::vector<webrtc::SocketAddress> server_ips_;
   int16_t num_request_sent_ = 0;
   int16_t num_response_received_ = 0;
 
@@ -122,7 +122,7 @@ class StunProber::Requester : public sigslot::has_slots<> {
 StunProber::Requester::Requester(
     StunProber* prober,
     rtc::AsyncPacketSocket* socket,
-    const std::vector<rtc::SocketAddress>& server_ips)
+    const std::vector<webrtc::SocketAddress>& server_ips)
     : prober_(prober),
       socket_(socket),
       response_packet_(new rtc::ByteBufferWriter(nullptr, kMaxUdpBufferSize)),
@@ -280,7 +280,7 @@ StunProber::~StunProber() {
   }
 }
 
-bool StunProber::Start(const std::vector<rtc::SocketAddress>& servers,
+bool StunProber::Start(const std::vector<webrtc::SocketAddress>& servers,
                        bool shared_socket_mode,
                        int interval_ms,
                        int num_request_per_ip,
@@ -291,7 +291,7 @@ bool StunProber::Start(const std::vector<rtc::SocketAddress>& servers,
                  timeout_ms, &observer_adapter_);
 }
 
-bool StunProber::Prepare(const std::vector<rtc::SocketAddress>& servers,
+bool StunProber::Prepare(const std::vector<webrtc::SocketAddress>& servers,
                          bool shared_socket_mode,
                          int interval_ms,
                          int num_request_per_ip,
@@ -334,7 +334,7 @@ bool StunProber::Start(StunProber::Observer* observer) {
   return true;
 }
 
-bool StunProber::ResolveServerName(const rtc::SocketAddress& addr) {
+bool StunProber::ResolveServerName(const webrtc::SocketAddress& addr) {
   RTC_DCHECK(!resolver_);
   resolver_ = socket_factory_->CreateAsyncDnsResolver();
   if (!resolver_) {
@@ -345,7 +345,7 @@ bool StunProber::ResolveServerName(const rtc::SocketAddress& addr) {
 }
 
 void StunProber::OnSocketReady(rtc::AsyncPacketSocket* socket,
-                               const rtc::SocketAddress& addr) {
+                               const webrtc::SocketAddress& addr) {
   total_ready_sockets_++;
   if (total_ready_sockets_ == total_socket_required()) {
     ReportOnPrepared(SUCCESS);
@@ -355,10 +355,11 @@ void StunProber::OnSocketReady(rtc::AsyncPacketSocket* socket,
 void StunProber::OnServerResolved(
     const webrtc::AsyncDnsResolverResult& result) {
   RTC_DCHECK(thread_checker_.IsCurrent());
-  rtc::SocketAddress received_address;
+  webrtc::SocketAddress received_address;
   if (result.GetResolvedAddress(AF_INET, &received_address)) {
     // Construct an address without the name in it.
-    rtc::SocketAddress addr(received_address.ipaddr(), received_address.port());
+    webrtc::SocketAddress addr(received_address.ipaddr(),
+                               received_address.port());
     all_servers_addrs_.push_back(addr);
   }
   resolver_.reset();
@@ -380,15 +381,15 @@ void StunProber::OnServerResolved(
 
 void StunProber::CreateSockets() {
   // Dedupe.
-  std::set<rtc::SocketAddress> addrs(all_servers_addrs_.begin(),
-                                     all_servers_addrs_.end());
+  std::set<webrtc::SocketAddress> addrs(all_servers_addrs_.begin(),
+                                        all_servers_addrs_.end());
   all_servers_addrs_.assign(addrs.begin(), addrs.end());
 
   // Prepare all the sockets beforehand. All of them will bind to "any" address.
   while (sockets_.size() < total_socket_required()) {
     std::unique_ptr<rtc::AsyncPacketSocket> socket(
-        socket_factory_->CreateUdpSocket(rtc::SocketAddress(INADDR_ANY, 0), 0,
-                                         0));
+        socket_factory_->CreateUdpSocket(webrtc::SocketAddress(INADDR_ANY, 0),
+                                         0, 0));
     if (!socket) {
       ReportOnPrepared(GENERIC_FAILURE);
       return;
@@ -398,7 +399,7 @@ void StunProber::CreateSockets() {
     if (socket->GetState() == rtc::AsyncPacketSocket::STATE_BINDING) {
       socket->SignalAddressReady.connect(this, &StunProber::OnSocketReady);
     } else {
-      OnSocketReady(socket.get(), rtc::SocketAddress(INADDR_ANY, 0));
+      OnSocketReady(socket.get(), webrtc::SocketAddress(INADDR_ANY, 0));
     }
     sockets_.push_back(socket.release());
   }
@@ -413,7 +414,7 @@ StunProber::Requester* StunProber::CreateRequester() {
   if (shared_socket_mode_) {
     requester = new Requester(this, sockets_.back(), all_servers_addrs_);
   } else {
-    std::vector<rtc::SocketAddress> server_ip;
+    std::vector<webrtc::SocketAddress> server_ip;
     server_ip.push_back(
         all_servers_addrs_[(num_request_sent_ % all_servers_addrs_.size())]);
     requester = new Requester(this, sockets_.back(), server_ip);
@@ -496,7 +497,7 @@ bool StunProber::GetStats(StunProber::Stats* prob_stats) const {
   std::map<webrtc::IPAddress, int> num_request_per_server;
 
   for (auto* requester : requesters_) {
-    std::map<rtc::SocketAddress, int> num_response_per_srflx_addr;
+    std::map<webrtc::SocketAddress, int> num_response_per_srflx_addr;
     for (auto* request : requester->requests()) {
       if (request->sent_time_ms <= 0) {
         continue;
@@ -556,7 +557,7 @@ bool StunProber::GetStats(StunProber::Stats* prob_stats) const {
   }
 
   // If we could find a local IP matching srflx, we're not behind a NAT.
-  rtc::SocketAddress srflx_addr;
+  webrtc::SocketAddress srflx_addr;
   if (stats.srflx_addrs.size() &&
       !srflx_addr.FromString(*(stats.srflx_addrs.begin()))) {
     return false;

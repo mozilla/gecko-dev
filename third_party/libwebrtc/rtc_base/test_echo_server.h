@@ -33,15 +33,13 @@ namespace webrtc {
 // Useful for unit tests.
 class TestEchoServer : public sigslot::has_slots<> {
  public:
-  TestEchoServer(rtc::Thread* thread, const rtc::SocketAddress& addr);
+  TestEchoServer(rtc::Thread* thread, const SocketAddress& addr);
   ~TestEchoServer() override;
 
   TestEchoServer(const TestEchoServer&) = delete;
   TestEchoServer& operator=(const TestEchoServer&) = delete;
 
-  rtc::SocketAddress address() const {
-    return server_socket_->GetLocalAddress();
-  }
+  SocketAddress address() const { return server_socket_->GetLocalAddress(); }
 
  private:
   void OnAccept(rtc::Socket* socket) {

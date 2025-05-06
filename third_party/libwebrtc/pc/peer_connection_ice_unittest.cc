@@ -86,7 +86,7 @@ namespace webrtc {
 
 using RTCConfiguration = PeerConnectionInterface::RTCConfiguration;
 using RTCOfferAnswerOptions = PeerConnectionInterface::RTCOfferAnswerOptions;
-using rtc::SocketAddress;
+
 using ::testing::Combine;
 using ::testing::ElementsAre;
 using ::testing::Pair;
@@ -209,8 +209,7 @@ class PeerConnectionIceBaseTest : public ::testing::Test {
     return wrapper;
   }
 
-  cricket::Candidate CreateLocalUdpCandidate(
-      const rtc::SocketAddress& address) {
+  cricket::Candidate CreateLocalUdpCandidate(const SocketAddress& address) {
     cricket::Candidate candidate;
     RTC_DCHECK_EQ(candidate.type(), IceCandidateType::kHost);
     candidate.set_component(cricket::ICE_CANDIDATE_COMPONENT_DEFAULT);

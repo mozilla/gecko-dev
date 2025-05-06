@@ -38,9 +38,9 @@ TEST(AsyncDnsResolver, ConstructorWorks) {
 TEST(AsyncDnsResolver, ResolvingLocalhostWorks) {
   test::RunLoop loop;  // Ensure that posting back to main thread works
   AsyncDnsResolver resolver;
-  rtc::SocketAddress address("localhost",
-                             kPortNumber);  // Port number does not matter
-  rtc::SocketAddress resolved_address;
+  SocketAddress address("localhost",
+                        kPortNumber);  // Port number does not matter
+  SocketAddress resolved_address;
   bool done = false;
   resolver.Start(address, [&done] { done = true; });
   ASSERT_THAT(
@@ -48,7 +48,7 @@ TEST(AsyncDnsResolver, ResolvingLocalhostWorks) {
       IsRtcOk());
   EXPECT_EQ(resolver.result().GetError(), 0);
   if (resolver.result().GetResolvedAddress(AF_INET, &resolved_address)) {
-    EXPECT_EQ(resolved_address, rtc::SocketAddress("127.0.0.1", kPortNumber));
+    EXPECT_EQ(resolved_address, SocketAddress("127.0.0.1", kPortNumber));
   } else {
     RTC_LOG(LS_INFO) << "Resolution gave no address, skipping test";
   }
@@ -58,9 +58,9 @@ TEST(AsyncDnsResolver, ResolveAfterDeleteDoesNotReturn) {
   test::RunLoop loop;
   std::unique_ptr<AsyncDnsResolver> resolver =
       std::make_unique<AsyncDnsResolver>();
-  rtc::SocketAddress address("localhost",
-                             kPortNumber);  // Port number does not matter
-  rtc::SocketAddress resolved_address;
+  SocketAddress address("localhost",
+                        kPortNumber);  // Port number does not matter
+  SocketAddress resolved_address;
   bool done = false;
   resolver->Start(address, [&done] { done = true; });
   resolver.reset();                    // Deletes resolver.

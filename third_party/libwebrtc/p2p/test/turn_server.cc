@@ -121,7 +121,7 @@ void TurnServer::AddInternalServerSocket(
 
 void TurnServer::SetExternalSocketFactory(
     rtc::PacketSocketFactory* factory,
-    const rtc::SocketAddress& external_addr) {
+    const webrtc::SocketAddress& external_addr) {
   RTC_DCHECK_RUN_ON(thread_);
   external_socket_factory_.reset(factory);
   external_addr_ = external_addr;
@@ -138,7 +138,7 @@ void TurnServer::AcceptConnection(rtc::Socket* server_socket) {
   RTC_DCHECK_RUN_ON(thread_);
 
   // Check if someone is trying to connect to us.
-  rtc::SocketAddress accept_addr;
+  webrtc::SocketAddress accept_addr;
   rtc::Socket* accepted_socket = server_socket->Accept(&accept_addr);
   if (accepted_socket != NULL) {
     const ServerSocketInfo& info = server_listen_sockets_[server_socket];
@@ -213,7 +213,7 @@ void TurnServer::HandleStunMessage(TurnServerConnection* conn,
   }
 
   if (redirect_hook_ != NULL && msg.type() == STUN_ALLOCATE_REQUEST) {
-    rtc::SocketAddress address;
+    webrtc::SocketAddress address;
     if (redirect_hook_->ShouldRedirect(conn->src(), &address)) {
       SendErrorResponseWithAlternateServer(conn, &msg, address);
       return;
@@ -467,7 +467,7 @@ void TurnServer::SendErrorResponseWithRealmAndNonce(TurnServerConnection* conn,
 void TurnServer::SendErrorResponseWithAlternateServer(
     TurnServerConnection* conn,
     const StunMessage* msg,
-    const rtc::SocketAddress& addr) {
+    const webrtc::SocketAddress& addr) {
   TurnMessage resp(GetStunErrorResponseTypeOrZero(*msg), msg->transaction_id());
   InitErrorResponse(STUN_ERROR_TRY_ALTERNATE,
                     STUN_ERROR_REASON_TRY_ALTERNATE_SERVER, &resp);
@@ -526,7 +526,7 @@ void TurnServer::DestroyInternalSocket(rtc::AsyncPacketSocket* socket) {
   }
 }
 
-TurnServerConnection::TurnServerConnection(const rtc::SocketAddress& src,
+TurnServerConnection::TurnServerConnection(const webrtc::SocketAddress& src,
                                            webrtc::ProtocolType proto,
                                            rtc::AsyncPacketSocket* socket)
     : src_(src),
@@ -850,7 +850,7 @@ TurnServerAllocation::ChannelList::iterator TurnServerAllocation::FindChannel(
 }
 
 TurnServerAllocation::ChannelList::iterator TurnServerAllocation::FindChannel(
-    const rtc::SocketAddress& addr) {
+    const webrtc::SocketAddress& addr) {
   return absl::c_find_if(channels_,
                          [&](const Channel& c) { return c.peer == addr; });
 }
@@ -873,7 +873,7 @@ void TurnServerAllocation::SendErrorResponse(const TurnMessage* req,
 
 void TurnServerAllocation::SendExternal(const void* data,
                                         size_t size,
-                                        const rtc::SocketAddress& peer) {
+                                        const webrtc::SocketAddress& peer) {
   rtc::PacketOptions options;
   external_socket_->SendTo(data, size, peer, options);
 }

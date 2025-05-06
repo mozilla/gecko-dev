@@ -31,7 +31,7 @@
 #include "rtc_base/numerics/safe_conversions.h"
 #include "rtc_base/strings/string_builder.h"
 
-namespace rtc {
+namespace webrtc {
 
 SocketAddress::SocketAddress() {
   Clear();
@@ -43,11 +43,11 @@ SocketAddress::SocketAddress(absl::string_view hostname, int port) {
 }
 
 SocketAddress::SocketAddress(uint32_t ip_as_host_order_integer, int port) {
-  SetIP(webrtc::IPAddress(ip_as_host_order_integer));
+  SetIP(IPAddress(ip_as_host_order_integer));
   SetPort(port);
 }
 
-SocketAddress::SocketAddress(const webrtc::IPAddress& ip, int port) {
+SocketAddress::SocketAddress(const IPAddress& ip, int port) {
   SetIP(ip);
   SetPort(port);
 }
@@ -59,7 +59,7 @@ SocketAddress::SocketAddress(const SocketAddress& addr) {
 void SocketAddress::Clear() {
   hostname_.clear();
   literal_ = false;
-  ip_ = webrtc::IPAddress();
+  ip_ = IPAddress();
   port_ = 0;
   scope_id_ = 0;
 }
@@ -84,11 +84,11 @@ SocketAddress& SocketAddress::operator=(const SocketAddress& addr) {
 void SocketAddress::SetIP(uint32_t ip_as_host_order_integer) {
   hostname_.clear();
   literal_ = false;
-  ip_ = webrtc::IPAddress(ip_as_host_order_integer);
+  ip_ = IPAddress(ip_as_host_order_integer);
   scope_id_ = 0;
 }
 
-void SocketAddress::SetIP(const webrtc::IPAddress& ip) {
+void SocketAddress::SetIP(const IPAddress& ip) {
   hostname_.clear();
   literal_ = false;
   ip_ = ip;
@@ -99,17 +99,17 @@ void SocketAddress::SetIP(absl::string_view hostname) {
   hostname_ = std::string(hostname);
   literal_ = webrtc::IPFromString(hostname, &ip_);
   if (!literal_) {
-    ip_ = webrtc::IPAddress();
+    ip_ = IPAddress();
   }
   scope_id_ = 0;
 }
 
 void SocketAddress::SetResolvedIP(uint32_t ip_as_host_order_integer) {
-  ip_ = webrtc::IPAddress(ip_as_host_order_integer);
+  ip_ = IPAddress(ip_as_host_order_integer);
   scope_id_ = 0;
 }
 
-void SocketAddress::SetResolvedIP(const webrtc::IPAddress& ip) {
+void SocketAddress::SetResolvedIP(const IPAddress& ip) {
   ip_ = ip;
   scope_id_ = 0;
 }
@@ -122,7 +122,7 @@ uint32_t SocketAddress::ip() const {
   return ip_.v4AddressAsHostOrderInteger();
 }
 
-const webrtc::IPAddress& SocketAddress::ipaddr() const {
+const IPAddress& SocketAddress::ipaddr() const {
   return ip_;
 }
 
@@ -160,14 +160,14 @@ std::string SocketAddress::PortAsString() const {
 
 std::string SocketAddress::ToString() const {
   char buf[1024];
-  webrtc::SimpleStringBuilder sb(buf);
+  SimpleStringBuilder sb(buf);
   sb << HostAsURIString() << ":" << port();
   return sb.str();
 }
 
 std::string SocketAddress::ToSensitiveString() const {
   char buf[1024];
-  webrtc::SimpleStringBuilder sb(buf);
+  SimpleStringBuilder sb(buf);
   sb << HostAsSensitiveURIString() << ":" << port();
   return sb.str();
 }
@@ -177,7 +177,7 @@ std::string SocketAddress::ToSensitiveNameAndAddressString() const {
     return ToSensitiveString();
   }
   char buf[1024];
-  webrtc::SimpleStringBuilder sb(buf);
+  SimpleStringBuilder sb(buf);
   sb << HostAsSensitiveURIString() << ":" << port();
   sb << " (";
   if (ip_.family() == AF_INET6) {
@@ -289,7 +289,7 @@ bool SocketAddress::FromSockAddr(const sockaddr_in& saddr) {
 }
 
 static size_t ToSockAddrStorageHelper(sockaddr_storage* addr,
-                                      const webrtc::IPAddress& ip,
+                                      const IPAddress& ip,
                                       uint16_t port,
                                       int scope_id) {
   memset(addr, 0, sizeof(sockaddr_storage));
@@ -324,12 +324,12 @@ bool SocketAddressFromSockAddrStorage(const sockaddr_storage& addr,
   }
   if (addr.ss_family == AF_INET) {
     const sockaddr_in* saddr = reinterpret_cast<const sockaddr_in*>(&addr);
-    *out = SocketAddress(webrtc::IPAddress(saddr->sin_addr),
+    *out = SocketAddress(IPAddress(saddr->sin_addr),
                          webrtc::NetworkToHost16(saddr->sin_port));
     return true;
   } else if (addr.ss_family == AF_INET6) {
     const sockaddr_in6* saddr = reinterpret_cast<const sockaddr_in6*>(&addr);
-    *out = SocketAddress(webrtc::IPAddress(saddr->sin6_addr),
+    *out = SocketAddress(IPAddress(saddr->sin6_addr),
                          webrtc::NetworkToHost16(saddr->sin6_port));
     out->SetScopeID(saddr->sin6_scope_id);
     return true;
@@ -339,11 +339,11 @@ bool SocketAddressFromSockAddrStorage(const sockaddr_storage& addr,
 
 SocketAddress EmptySocketAddressWithFamily(int family) {
   if (family == AF_INET) {
-    return SocketAddress(webrtc::IPAddress(INADDR_ANY), 0);
+    return SocketAddress(IPAddress(INADDR_ANY), 0);
   } else if (family == AF_INET6) {
-    return SocketAddress(webrtc::IPAddress(in6addr_any), 0);
+    return SocketAddress(IPAddress(in6addr_any), 0);
   }
   return SocketAddress();
 }
 
-}  // namespace rtc
+}  // namespace webrtc

@@ -39,21 +39,23 @@ class VirtualSocket : public Socket, public sigslot::has_slots<> {
   VirtualSocket(VirtualSocketServer* server, int family, int type);
   ~VirtualSocket() override;
 
-  SocketAddress GetLocalAddress() const override;
-  SocketAddress GetRemoteAddress() const override;
+  webrtc::SocketAddress GetLocalAddress() const override;
+  webrtc::SocketAddress GetRemoteAddress() const override;
 
-  int Bind(const SocketAddress& addr) override;
-  int Connect(const SocketAddress& addr) override;
+  int Bind(const webrtc::SocketAddress& addr) override;
+  int Connect(const webrtc::SocketAddress& addr) override;
   int Close() override;
   int Send(const void* pv, size_t cb) override;
-  int SendTo(const void* pv, size_t cb, const SocketAddress& addr) override;
+  int SendTo(const void* pv,
+             size_t cb,
+             const webrtc::SocketAddress& addr) override;
   int Recv(void* pv, size_t cb, int64_t* timestamp) override;
   int RecvFrom(void* pv,
                size_t cb,
-               SocketAddress* paddr,
+               webrtc::SocketAddress* paddr,
                int64_t* timestamp) override;
   int Listen(int backlog) override;
-  VirtualSocket* Accept(SocketAddress* paddr) override;
+  VirtualSocket* Accept(webrtc::SocketAddress* paddr) override;
 
   int GetError() const override;
   void SetError(int error) override;
@@ -66,7 +68,7 @@ class VirtualSocket : public Socket, public sigslot::has_slots<> {
   const char* send_buffer_data() const { return send_buffer_.data(); }
 
   // Used by server sockets to set the local address without binding.
-  void SetLocalAddress(const SocketAddress& addr);
+  void SetLocalAddress(const webrtc::SocketAddress& addr);
 
   bool was_any() { return was_any_; }
   void set_was_any(bool was_any) { was_any_ = was_any; }
@@ -88,7 +90,8 @@ class VirtualSocket : public Socket, public sigslot::has_slots<> {
 
   void PostPacket(webrtc::TimeDelta delay,
                   std::unique_ptr<VirtualSocketPacket> packet);
-  void PostConnect(webrtc::TimeDelta delay, const SocketAddress& remote_addr);
+  void PostConnect(webrtc::TimeDelta delay,
+                   const webrtc::SocketAddress& remote_addr);
   void PostDisconnect(webrtc::TimeDelta delay);
 
  private:
@@ -108,25 +111,26 @@ class VirtualSocket : public Socket, public sigslot::has_slots<> {
     // Copies up to `size` bytes into buffer from the next received packet
     // and fills `addr` with remote address of that received packet.
     // Returns number of bytes copied or negative value on failure.
-    int RecvFrom(void* buffer, size_t size, SocketAddress& addr);
+    int RecvFrom(void* buffer, size_t size, webrtc::SocketAddress& addr);
 
     void Listen();
 
     struct AcceptResult {
       int error = 0;
       std::unique_ptr<VirtualSocket> socket;
-      SocketAddress remote_addr;
+      webrtc::SocketAddress remote_addr;
     };
     AcceptResult Accept();
 
     bool AddPacket(std::unique_ptr<VirtualSocketPacket> packet);
-    void PostConnect(webrtc::TimeDelta delay, const SocketAddress& remote_addr);
+    void PostConnect(webrtc::TimeDelta delay,
+                     const webrtc::SocketAddress& remote_addr);
 
    private:
     enum class Signal { kNone, kReadEvent, kConnectEvent };
     // `PostConnect` rely on the fact that std::list iterators are not
     // invalidated on any changes to other elements in the container.
-    using PostedConnects = std::list<SocketAddress>;
+    using PostedConnects = std::list<webrtc::SocketAddress>;
 
     void PostSignalReadEvent() RTC_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
     void MaybeSignalReadEvent();
@@ -153,7 +157,7 @@ class VirtualSocket : public Socket, public sigslot::has_slots<> {
         RTC_GUARDED_BY(mutex_);
 
     // Pending sockets which can be Accepted
-    std::optional<std::deque<SocketAddress>> listen_queue_
+    std::optional<std::deque<webrtc::SocketAddress>> listen_queue_
         RTC_GUARDED_BY(mutex_);
   };
 
@@ -166,9 +170,9 @@ class VirtualSocket : public Socket, public sigslot::has_slots<> {
   typedef std::vector<char> SendBuffer;
   typedef std::map<Option, int> OptionsMap;
 
-  int InitiateConnect(const SocketAddress& addr, bool use_delay);
-  void CompleteConnect(const SocketAddress& addr);
-  int SendUdp(const void* pv, size_t cb, const SocketAddress& addr);
+  int InitiateConnect(const webrtc::SocketAddress& addr, bool use_delay);
+  void CompleteConnect(const webrtc::SocketAddress& addr);
+  int SendUdp(const void* pv, size_t cb, const webrtc::SocketAddress& addr);
   int SendTcp(const void* pv, size_t cb);
 
   void OnSocketServerReadyToSend();
@@ -177,8 +181,8 @@ class VirtualSocket : public Socket, public sigslot::has_slots<> {
   const int type_;
   ConnState state_;
   int error_;
-  SocketAddress local_addr_;
-  SocketAddress remote_addr_;
+  webrtc::SocketAddress local_addr_;
+  webrtc::SocketAddress remote_addr_;
 
   const scoped_refptr<SafetyBlock> safety_ =
       make_ref_counted<SafetyBlock>(this);
@@ -289,7 +293,7 @@ class VirtualSocketServer : public SocketServer {
   bool Wait(webrtc::TimeDelta max_wait_duration, bool process_io) override;
   void WakeUp() override;
 
-  void SetDelayOnAddress(const rtc::SocketAddress& address, int delay_ms) {
+  void SetDelayOnAddress(const webrtc::SocketAddress& address, int delay_ms) {
     delay_by_ip_[address.ipaddr()] = delay_ms;
   }
 
@@ -320,8 +324,8 @@ class VirtualSocketServer : public SocketServer {
 
   // Close a pair of Tcp connections by addresses. Both connections will have
   // its own OnClose invoked.
-  bool CloseTcpConnections(const SocketAddress& addr_local,
-                           const SocketAddress& addr_remote);
+  bool CloseTcpConnections(const webrtc::SocketAddress& addr_local,
+                           const webrtc::SocketAddress& addr_remote);
 
   // Number of packets that clients have attempted to send through this virtual
   // socket server. Intended to be used for test assertions.
@@ -329,44 +333,45 @@ class VirtualSocketServer : public SocketServer {
 
   // Assign IP and Port if application's address is unspecified. Also apply
   // `alternative_address_mapping_`.
-  SocketAddress AssignBindAddress(const SocketAddress& app_addr);
+  webrtc::SocketAddress AssignBindAddress(
+      const webrtc::SocketAddress& app_addr);
 
   // Binds the given socket to the given (fully-defined) address.
-  int Bind(VirtualSocket* socket, const SocketAddress& addr);
+  int Bind(VirtualSocket* socket, const webrtc::SocketAddress& addr);
 
-  int Unbind(const SocketAddress& addr, VirtualSocket* socket);
+  int Unbind(const webrtc::SocketAddress& addr, VirtualSocket* socket);
 
   // Adds a mapping between this socket pair and the socket.
-  void AddConnection(const SocketAddress& client,
-                     const SocketAddress& server,
+  void AddConnection(const webrtc::SocketAddress& client,
+                     const webrtc::SocketAddress& server,
                      VirtualSocket* socket);
 
   // Connects the given socket to the socket at the given address
   int Connect(VirtualSocket* socket,
-              const SocketAddress& remote_addr,
+              const webrtc::SocketAddress& remote_addr,
               bool use_delay);
 
   // Sends a disconnect message to the socket at the given address
   bool Disconnect(VirtualSocket* socket);
 
   // Lookup address, and disconnect corresponding socket.
-  bool Disconnect(const SocketAddress& addr);
+  bool Disconnect(const webrtc::SocketAddress& addr);
 
   // Lookup connection, close corresponding socket.
-  bool Disconnect(const SocketAddress& local_addr,
-                  const SocketAddress& remote_addr);
+  bool Disconnect(const webrtc::SocketAddress& local_addr,
+                  const webrtc::SocketAddress& remote_addr);
 
   // Sends the given packet to the socket at the given address (if one exists).
   int SendUdp(VirtualSocket* socket,
               const char* data,
               size_t data_size,
-              const SocketAddress& remote_addr);
+              const webrtc::SocketAddress& remote_addr);
 
   // Moves as much data as possible from the sender's buffer to the network
   void SendTcp(VirtualSocket* socket) RTC_LOCKS_EXCLUDED(mutex_);
 
   // Like above, but lookup sender by address.
-  void SendTcp(const SocketAddress& addr) RTC_LOCKS_EXCLUDED(mutex_);
+  void SendTcp(const webrtc::SocketAddress& addr) RTC_LOCKS_EXCLUDED(mutex_);
 
   // Computes the number of milliseconds required to send a packet of this size.
   uint32_t SendDelay(uint32_t size) RTC_LOCKS_EXCLUDED(mutex_);
@@ -379,18 +384,18 @@ class VirtualSocketServer : public SocketServer {
   webrtc::IPAddress GetNextIP(int family);
 
   // Find the socket bound to the given address
-  VirtualSocket* LookupBinding(const SocketAddress& addr);
+  VirtualSocket* LookupBinding(const webrtc::SocketAddress& addr);
 
  private:
   friend VirtualSocket;
   uint16_t GetNextPort();
 
   // Find the socket pair corresponding to this server address.
-  VirtualSocket* LookupConnection(const SocketAddress& client,
-                                  const SocketAddress& server);
+  VirtualSocket* LookupConnection(const webrtc::SocketAddress& client,
+                                  const webrtc::SocketAddress& server);
 
-  void RemoveConnection(const SocketAddress& client,
-                        const SocketAddress& server);
+  void RemoveConnection(const webrtc::SocketAddress& client,
+                        const webrtc::SocketAddress& server);
 
   // Places a packet on the network.
   void AddPacketToNetwork(VirtualSocket* socket,
@@ -433,7 +438,7 @@ class VirtualSocketServer : public SocketServer {
   // NB: This scheme doesn't permit non-dualstack IPv6 sockets.
   static bool CanInteractWith(VirtualSocket* local, VirtualSocket* remote);
 
-  typedef std::map<SocketAddress, VirtualSocket*> AddressMap;
+  typedef std::map<webrtc::SocketAddress, VirtualSocket*> AddressMap;
   typedef std::map<webrtc::SocketAddressPair, VirtualSocket*> ConnectionMap;
 
   // May be null if the test doesn't use a fake clock, or it does but doesn't

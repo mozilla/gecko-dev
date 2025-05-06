@@ -119,7 +119,7 @@ class TurnPort : public Port {
 
   const ProtocolAddress& server_address() const { return server_address_; }
   // Returns an empty address if the local address has not been assigned.
-  rtc::SocketAddress GetLocalAddress() const;
+  webrtc::SocketAddress GetLocalAddress() const;
 
   bool ready() const { return state_ == STATE_READY; }
   bool connected() const {
@@ -147,7 +147,7 @@ class TurnPort : public Port {
       webrtc::PortInterface::CandidateOrigin origin) override;
   int SendTo(const void* data,
              size_t size,
-             const rtc::SocketAddress& addr,
+             const webrtc::SocketAddress& addr,
              const rtc::PacketOptions& options,
              bool payload) override;
   int SetOption(rtc::Socket::Option opt, int value) override;
@@ -157,12 +157,12 @@ class TurnPort : public Port {
   bool HandleIncomingPacket(rtc::AsyncPacketSocket* socket,
                             const rtc::ReceivedPacket& packet) override;
   bool CanHandleIncomingPacketsFrom(
-      const rtc::SocketAddress& addr) const override;
+      const webrtc::SocketAddress& addr) const override;
 
   // Checks if a connection exists for `addr` before forwarding the call to
   // the base class.
   void SendBindingErrorResponse(StunMessage* message,
-                                const rtc::SocketAddress& addr,
+                                const webrtc::SocketAddress& addr,
                                 int error_code,
                                 absl::string_view reason) override;
 
@@ -272,7 +272,7 @@ class TurnPort : public Port {
 
  private:
   typedef std::map<rtc::Socket::Option, int> SocketOptionsMap;
-  typedef std::set<rtc::SocketAddress> AttemptedServerSet;
+  typedef std::set<webrtc::SocketAddress> AttemptedServerSet;
 
   static bool AllowedTurnPort(int port,
                               const webrtc::FieldTrialsView* field_trials);
@@ -285,17 +285,17 @@ class TurnPort : public Port {
 
   void OnRefreshError();
   void HandleRefreshError();
-  bool SetAlternateServer(const rtc::SocketAddress& address);
-  void ResolveTurnAddress(const rtc::SocketAddress& address);
+  bool SetAlternateServer(const webrtc::SocketAddress& address);
+  void ResolveTurnAddress(const webrtc::SocketAddress& address);
   void OnResolveResult(const webrtc::AsyncDnsResolverResult& result);
 
   void AddRequestAuthInfo(StunMessage* msg);
   void OnSendStunPacket(const void* data, size_t size, StunRequest* request);
   // Stun address from allocate success response.
   // Currently used only for testing.
-  void OnStunAddress(const rtc::SocketAddress& address);
-  void OnAllocateSuccess(const rtc::SocketAddress& address,
-                         const rtc::SocketAddress& stun_address);
+  void OnStunAddress(const webrtc::SocketAddress& address);
+  void OnAllocateSuccess(const webrtc::SocketAddress& address,
+                         const webrtc::SocketAddress& stun_address);
   void OnAllocateError(int error_code, absl::string_view reason);
   void OnAllocateRequestTimeout();
 
@@ -308,7 +308,7 @@ class TurnPort : public Port {
                          int64_t packet_time_us);
   void DispatchPacket(const char* data,
                       size_t size,
-                      const rtc::SocketAddress& remote_addr,
+                      const webrtc::SocketAddress& remote_addr,
                       webrtc::ProtocolType proto,
                       int64_t packet_time_us);
 
@@ -320,12 +320,12 @@ class TurnPort : public Port {
   void ResetNonce();
 
   bool HasPermission(const webrtc::IPAddress& ipaddr) const;
-  TurnEntry* FindEntry(const rtc::SocketAddress& address) const;
+  TurnEntry* FindEntry(const webrtc::SocketAddress& address) const;
   TurnEntry* FindEntry(uint16_t channel_id) const;
 
   // Marks the connection with remote address `address` failed and
   // pruned (a.k.a. write-timed-out). Returns true if a connection is found.
-  bool FailAndPruneConnection(const rtc::SocketAddress& address);
+  bool FailAndPruneConnection(const webrtc::SocketAddress& address);
 
   void MaybeAddTurnLoggingId(StunMessage* message);
 

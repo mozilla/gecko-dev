@@ -88,12 +88,12 @@ using rtc::NAT_SYMMETRIC;
 using rtc::NATType;
 using rtc::PacketSocketFactory;
 using rtc::Socket;
-using rtc::SocketAddress;
 using ::testing::Eq;
 using ::testing::IsNull;
 using ::testing::IsTrue;
 using ::testing::NotNull;
 using webrtc::IceCandidateType;
+using ::webrtc::SocketAddress;
 
 namespace cricket {
 namespace {
@@ -180,8 +180,8 @@ class TestPort : public Port {
   virtual void PrepareAddress() {
     // Act as if the socket was bound to the best IP on the network, to the
     // first port in the allowed range.
-    rtc::SocketAddress addr(Network()->GetBestIP(), min_port());
-    AddAddress(addr, addr, rtc::SocketAddress(), "udp", "", "", type(),
+    webrtc::SocketAddress addr(Network()->GetBestIP(), min_port());
+    AddAddress(addr, addr, webrtc::SocketAddress(), "udp", "", "", type(),
                ICE_TYPE_PREFERENCE_HOST, 0, "", true);
   }
 
@@ -192,16 +192,16 @@ class TestPort : public Port {
   virtual webrtc::ProtocolType GetProtocol() const { return webrtc::PROTO_UDP; }
 
   // Exposed for testing candidate building.
-  void AddCandidateAddress(const rtc::SocketAddress& addr) {
-    AddAddress(addr, addr, rtc::SocketAddress(), "udp", "", "", type(),
+  void AddCandidateAddress(const webrtc::SocketAddress& addr) {
+    AddAddress(addr, addr, webrtc::SocketAddress(), "udp", "", "", type(),
                type_preference_, 0, "", false);
   }
-  void AddCandidateAddress(const rtc::SocketAddress& addr,
-                           const rtc::SocketAddress& base_address,
+  void AddCandidateAddress(const webrtc::SocketAddress& addr,
+                           const webrtc::SocketAddress& base_address,
                            IceCandidateType type,
                            int type_preference,
                            bool final) {
-    AddAddress(addr, base_address, rtc::SocketAddress(), "udp", "", "", type,
+    AddAddress(addr, base_address, webrtc::SocketAddress(), "udp", "", "", type,
                type_preference, 0, "", final);
   }
 
@@ -216,7 +216,7 @@ class TestPort : public Port {
   }
   virtual int SendTo(const void* data,
                      size_t size,
-                     const rtc::SocketAddress& /* addr */,
+                     const webrtc::SocketAddress& /* addr */,
                      const rtc::PacketOptions& /* options */,
                      bool payload) {
     if (!payload) {
@@ -257,7 +257,7 @@ class TestPort : public Port {
 
 bool GetStunMessageFromBufferWriter(TestPort* port,
                                     ByteBufferWriter* buf,
-                                    const rtc::SocketAddress& addr,
+                                    const webrtc::SocketAddress& addr,
                                     std::unique_ptr<IceMessage>* out_msg,
                                     std::string* out_username) {
   return port->GetStunMessage(reinterpret_cast<const char*>(buf->Data()),
@@ -276,8 +276,8 @@ static void SendPingAndReceiveResponse(Connection* lconn,
                   {.timeout = webrtc::TimeDelta::Millis(kDefaultTimeout)}),
               webrtc::IsRtcOk());
   ASSERT_GT(lport->last_stun_buf().size(), 0u);
-  rconn->OnReadPacket(rtc::ReceivedPacket(lport->last_stun_buf(),
-                                          rtc::SocketAddress(), std::nullopt));
+  rconn->OnReadPacket(rtc::ReceivedPacket(
+      lport->last_stun_buf(), webrtc::SocketAddress(), std::nullopt));
 
   clock->AdvanceTime(webrtc::TimeDelta::Millis(ms));
   ASSERT_THAT(webrtc::WaitUntil(
@@ -285,8 +285,8 @@ static void SendPingAndReceiveResponse(Connection* lconn,
                   {.timeout = webrtc::TimeDelta::Millis(kDefaultTimeout)}),
               webrtc::IsRtcOk());
   ASSERT_GT(rport->last_stun_buf().size(), 0u);
-  lconn->OnReadPacket(rtc::ReceivedPacket(rport->last_stun_buf(),
-                                          rtc::SocketAddress(), std::nullopt));
+  lconn->OnReadPacket(rtc::ReceivedPacket(
+      rport->last_stun_buf(), webrtc::SocketAddress(), std::nullopt));
 }
 
 class TestChannel : public sigslot::has_slots<> {
@@ -630,7 +630,7 @@ class PortTest : public ::testing::Test, public sigslot::has_slots<> {
       PacketSocketFactory* socket_factory,
       webrtc::ProtocolType int_proto,
       webrtc::ProtocolType ext_proto,
-      const rtc::SocketAddress& server_addr) {
+      const webrtc::SocketAddress& server_addr) {
     RelayServerConfig config;
     config.credentials = kRelayCredentials;
     ProtocolAddress server_address(server_addr, int_proto);
@@ -880,7 +880,7 @@ class PortTest : public ::testing::Test, public sigslot::has_slots<> {
     return msg;
   }
   std::unique_ptr<TestPort> CreateTestPort(
-      const rtc::SocketAddress& addr,
+      const webrtc::SocketAddress& addr,
       absl::string_view username,
       absl::string_view password,
       const webrtc::FieldTrialsView* field_trials = nullptr) {
@@ -894,7 +894,7 @@ class PortTest : public ::testing::Test, public sigslot::has_slots<> {
     port->SignalRoleConflict.connect(this, &PortTest::OnRoleConflict);
     return port;
   }
-  std::unique_ptr<TestPort> CreateTestPort(const rtc::SocketAddress& addr,
+  std::unique_ptr<TestPort> CreateTestPort(const webrtc::SocketAddress& addr,
                                            absl::string_view username,
                                            absl::string_view password,
                                            cricket::IceRole role,
@@ -1643,8 +1643,8 @@ TEST_F(PortTest, TestLoopbackCall) {
               webrtc::IsRtcOk());
   IceMessage* msg = lport->last_stun_msg();
   EXPECT_EQ(STUN_BINDING_REQUEST, msg->type());
-  conn->OnReadPacket(rtc::ReceivedPacket(lport->last_stun_buf(),
-                                         rtc::SocketAddress(), std::nullopt));
+  conn->OnReadPacket(rtc::ReceivedPacket(
+      lport->last_stun_buf(), webrtc::SocketAddress(), std::nullopt));
   ASSERT_THAT(webrtc::WaitUntil(
                   [&] { return lport->last_stun_msg(); }, NotNull(),
                   {.timeout = webrtc::TimeDelta::Millis(kDefaultTimeout)}),
@@ -1724,8 +1724,8 @@ TEST_F(PortTest, TestIceRoleConflict) {
   IceMessage* msg = rport->last_stun_msg();
   EXPECT_EQ(STUN_BINDING_REQUEST, msg->type());
   // Send rport binding request to lport.
-  lconn->OnReadPacket(rtc::ReceivedPacket(rport->last_stun_buf(),
-                                          rtc::SocketAddress(), std::nullopt));
+  lconn->OnReadPacket(rtc::ReceivedPacket(
+      rport->last_stun_buf(), webrtc::SocketAddress(), std::nullopt));
 
   ASSERT_THAT(webrtc::WaitUntil(
                   [&] { return lport->last_stun_msg(); }, NotNull(),
@@ -2074,14 +2074,14 @@ TEST_F(PortTest, TestSendStunMessage) {
   std::unique_ptr<IceMessage> request = CopyStunMessage(*msg);
 
   // Receive the BINDING-REQUEST and respond with BINDING-RESPONSE.
-  rconn->OnReadPacket(rtc::ReceivedPacket(lport->last_stun_buf(),
-                                          rtc::SocketAddress(), std::nullopt));
+  rconn->OnReadPacket(rtc::ReceivedPacket(
+      lport->last_stun_buf(), webrtc::SocketAddress(), std::nullopt));
   msg = rport->last_stun_msg();
   ASSERT_TRUE(msg != NULL);
   EXPECT_EQ(STUN_BINDING_RESPONSE, msg->type());
   // Received a BINDING-RESPONSE.
-  lconn->OnReadPacket(rtc::ReceivedPacket(rport->last_stun_buf(),
-                                          rtc::SocketAddress(), std::nullopt));
+  lconn->OnReadPacket(rtc::ReceivedPacket(
+      rport->last_stun_buf(), webrtc::SocketAddress(), std::nullopt));
 
   // Verify the STUN Stats.
   EXPECT_EQ(1U, lconn->stats().sent_ping_requests_total);
@@ -2164,12 +2164,12 @@ TEST_F(PortTest, TestSendStunMessage) {
 
   // Respond with a BINDING-RESPONSE.
   request = CopyStunMessage(*msg);
-  lconn->OnReadPacket(rtc::ReceivedPacket(rport->last_stun_buf(),
-                                          rtc::SocketAddress(), std::nullopt));
+  lconn->OnReadPacket(rtc::ReceivedPacket(
+      rport->last_stun_buf(), webrtc::SocketAddress(), std::nullopt));
   msg = lport->last_stun_msg();
   // Receive the BINDING-RESPONSE.
-  rconn->OnReadPacket(rtc::ReceivedPacket(lport->last_stun_buf(),
-                                          rtc::SocketAddress(), std::nullopt));
+  rconn->OnReadPacket(rtc::ReceivedPacket(
+      lport->last_stun_buf(), webrtc::SocketAddress(), std::nullopt));
 
   // Verify the Stun ping stats.
   EXPECT_EQ(3U, rconn->stats().sent_ping_requests_total);
@@ -2223,8 +2223,8 @@ TEST_F(PortTest, TestNomination) {
                   {.timeout = webrtc::TimeDelta::Millis(kDefaultTimeout)}),
               webrtc::IsRtcOk());
   ASSERT_GT(lport->last_stun_buf().size(), 0u);
-  rconn->OnReadPacket(rtc::ReceivedPacket(lport->last_stun_buf(),
-                                          rtc::SocketAddress(), std::nullopt));
+  rconn->OnReadPacket(rtc::ReceivedPacket(
+      lport->last_stun_buf(), webrtc::SocketAddress(), std::nullopt));
 
   EXPECT_EQ(nomination, rconn->remote_nomination());
   EXPECT_FALSE(lconn->nominated());
@@ -2239,8 +2239,8 @@ TEST_F(PortTest, TestNomination) {
                   {.timeout = webrtc::TimeDelta::Millis(kDefaultTimeout)}),
               webrtc::IsRtcOk());
   ASSERT_GT(rport->last_stun_buf().size(), 0u);
-  lconn->OnReadPacket(rtc::ReceivedPacket(rport->last_stun_buf(),
-                                          rtc::SocketAddress(), std::nullopt));
+  lconn->OnReadPacket(rtc::ReceivedPacket(
+      rport->last_stun_buf(), webrtc::SocketAddress(), std::nullopt));
 
   EXPECT_EQ(nomination, lconn->acked_nomination());
   EXPECT_TRUE(lconn->nominated());
@@ -2373,8 +2373,8 @@ TEST_F(PortTest, TestNetworkCostChange) {
   IceMessage* msg = lport->last_stun_msg();
   EXPECT_EQ(STUN_BINDING_REQUEST, msg->type());
   // Pass the binding request to rport.
-  rconn->OnReadPacket(rtc::ReceivedPacket(lport->last_stun_buf(),
-                                          rtc::SocketAddress(), std::nullopt));
+  rconn->OnReadPacket(rtc::ReceivedPacket(
+      lport->last_stun_buf(), webrtc::SocketAddress(), std::nullopt));
 
   // Wait until rport sends the response and then check the remote network cost.
   ASSERT_THAT(webrtc::WaitUntil(
@@ -2441,7 +2441,7 @@ TEST_F(PortTest, TestHandleStunMessage) {
 
   std::unique_ptr<IceMessage> in_msg, out_msg;
   auto buf = std::make_unique<ByteBufferWriter>();
-  rtc::SocketAddress addr(kLocalAddr1);
+  webrtc::SocketAddress addr(kLocalAddr1);
   std::string username;
 
   // BINDING-REQUEST from local to remote with valid ICE username,
@@ -2490,7 +2490,7 @@ TEST_F(PortTest, TestHandleStunMessageBadUsername) {
 
   std::unique_ptr<IceMessage> in_msg, out_msg;
   auto buf = std::make_unique<ByteBufferWriter>();
-  rtc::SocketAddress addr(kLocalAddr1);
+  webrtc::SocketAddress addr(kLocalAddr1);
   std::string username;
 
   // BINDING-REQUEST with no username.
@@ -2556,7 +2556,7 @@ TEST_F(PortTest, TestHandleStunMessageBadMessageIntegrity) {
 
   std::unique_ptr<IceMessage> in_msg, out_msg;
   auto buf = std::make_unique<ByteBufferWriter>();
-  rtc::SocketAddress addr(kLocalAddr1);
+  webrtc::SocketAddress addr(kLocalAddr1);
   std::string username;
 
   // BINDING-REQUEST from local to remote with valid ICE username and
@@ -2594,7 +2594,7 @@ TEST_F(PortTest, TestHandleStunMessageBadFingerprint) {
 
   std::unique_ptr<IceMessage> in_msg, out_msg;
   auto buf = std::make_unique<ByteBufferWriter>();
-  rtc::SocketAddress addr(kLocalAddr1);
+  webrtc::SocketAddress addr(kLocalAddr1);
   std::string username;
 
   // BINDING-REQUEST from local to remote with valid ICE username and
@@ -2662,7 +2662,7 @@ TEST_F(PortTest,
 
   std::unique_ptr<IceMessage> in_msg, out_msg;
   auto buf = std::make_unique<ByteBufferWriter>();
-  rtc::SocketAddress addr(kLocalAddr1);
+  webrtc::SocketAddress addr(kLocalAddr1);
   std::string username;
 
   // Build ordinary message with valid ufrag/pass.
@@ -2716,8 +2716,8 @@ TEST_F(PortTest,
                   [&] { return lport->last_stun_msg(); }, NotNull(),
                   {.timeout = webrtc::TimeDelta::Millis(kDefaultTimeout)}),
               webrtc::IsRtcOk());
-  rconn->OnReadPacket(rtc::ReceivedPacket(lport->last_stun_buf(),
-                                          rtc::SocketAddress(), std::nullopt));
+  rconn->OnReadPacket(rtc::ReceivedPacket(
+      lport->last_stun_buf(), webrtc::SocketAddress(), std::nullopt));
 
   // Intercept request and add comprehension required attribute.
   ASSERT_THAT(webrtc::WaitUntil(
@@ -2774,7 +2774,7 @@ TEST_F(PortTest, TestHandleStunBindingIndication) {
   // Verifying encoding and decoding STUN indication message.
   std::unique_ptr<IceMessage> in_msg, out_msg;
   std::unique_ptr<ByteBufferWriter> buf(new ByteBufferWriter());
-  rtc::SocketAddress addr(kLocalAddr1);
+  webrtc::SocketAddress addr(kLocalAddr1);
   std::string username;
 
   in_msg = CreateStunMessage(STUN_BINDING_INDICATION);
@@ -2810,8 +2810,8 @@ TEST_F(PortTest, TestHandleStunBindingIndication) {
   IceMessage* msg = rport->last_stun_msg();
   EXPECT_EQ(STUN_BINDING_REQUEST, msg->type());
   // Send rport binding request to lport.
-  lconn->OnReadPacket(rtc::ReceivedPacket(rport->last_stun_buf(),
-                                          rtc::SocketAddress(), std::nullopt));
+  lconn->OnReadPacket(rtc::ReceivedPacket(
+      rport->last_stun_buf(), webrtc::SocketAddress(), std::nullopt));
 
   ASSERT_THAT(webrtc::WaitUntil(
                   [&] { return lport->last_stun_msg(); }, NotNull(),
@@ -3384,7 +3384,7 @@ TEST_F(PortTest, TestIceLiteConnectivity) {
 
   // Feeding the respone message from litemode to the full mode connection.
   ch1.conn()->OnReadPacket(rtc::ReceivedPacket(
-      ice_lite_port->last_stun_buf(), rtc::SocketAddress(), std::nullopt));
+      ice_lite_port->last_stun_buf(), webrtc::SocketAddress(), std::nullopt));
 
   // Verifying full mode connection becomes writable from the response.
   EXPECT_THAT(webrtc::WaitUntil(
@@ -3517,7 +3517,7 @@ TEST_P(GoogPingTest, TestGoogPingAnnounceEnable) {
 
   // Feeding the respone message back.
   ch1.conn()->OnReadPacket(rtc::ReceivedPacket(
-      port2->last_stun_buf(), rtc::SocketAddress(), std::nullopt));
+      port2->last_stun_buf(), webrtc::SocketAddress(), std::nullopt));
 
   port1->Reset();
   port2->Reset();
@@ -3798,7 +3798,7 @@ TEST_F(PortTest, TestChangeInAttributeMakesGoogPingFallsbackToStunBinding) {
 
   // Feeding the respone message back.
   ch1.conn()->OnReadPacket(rtc::ReceivedPacket(
-      port2->last_stun_buf(), rtc::SocketAddress(), std::nullopt));
+      port2->last_stun_buf(), webrtc::SocketAddress(), std::nullopt));
 
   port1->Reset();
   port2->Reset();
@@ -3895,7 +3895,7 @@ TEST_F(PortTest, TestErrorResponseMakesGoogPingFallBackToStunBinding) {
 
   // Feeding the respone message back.
   ch1.conn()->OnReadPacket(rtc::ReceivedPacket(
-      port2->last_stun_buf(), rtc::SocketAddress(), std::nullopt));
+      port2->last_stun_buf(), webrtc::SocketAddress(), std::nullopt));
 
   port1->Reset();
   port2->Reset();
@@ -4103,7 +4103,7 @@ TEST_F(PortTest, TestAddConnectionWithSameAddress) {
   port->SetIceTiebreaker(kTiebreakerDefault);
   port->PrepareAddress();
   EXPECT_EQ(1u, port->Candidates().size());
-  rtc::SocketAddress address("1.1.1.1", 5000);
+  webrtc::SocketAddress address("1.1.1.1", 5000);
   cricket::Candidate candidate(1, "udp", address, 0, "", "",
                                IceCandidateType::kRelay, 0, "");
   cricket::Connection* conn1 =
@@ -4176,7 +4176,7 @@ class ConnectionTest : public PortTest {
                 webrtc::IsRtcOk());
     ASSERT_GT(lport->last_stun_buf().size(), 0u);
     rconn->OnReadPacket(rtc::ReceivedPacket(
-        lport->last_stun_buf(), rtc::SocketAddress(), std::nullopt));
+        lport->last_stun_buf(), webrtc::SocketAddress(), std::nullopt));
 
     clock_.AdvanceTime(webrtc::TimeDelta::Millis(ms));
     ASSERT_THAT(webrtc::WaitUntil(
@@ -4194,7 +4194,7 @@ class ConnectionTest : public PortTest {
     SendPingAndCaptureReply(lconn, rconn, ms, &reply);
 
     lconn->OnReadPacket(
-        rtc::ReceivedPacket(reply, rtc::SocketAddress(), std::nullopt));
+        rtc::ReceivedPacket(reply, webrtc::SocketAddress(), std::nullopt));
   }
 
   void OnConnectionStateChange(Connection* connection) { num_state_changes_++; }
@@ -4256,7 +4256,7 @@ TEST_F(ConnectionTest, ConnectionForgetLearnedStateDiscardsPendingPings) {
   EXPECT_FALSE(lconn->receiving());
 
   lconn->OnReadPacket(
-      rtc::ReceivedPacket(reply, rtc::SocketAddress(), std::nullopt));
+      rtc::ReceivedPacket(reply, webrtc::SocketAddress(), std::nullopt));
 
   // That reply was discarded due to the ForgetLearnedState() while it was
   // outstanding.
@@ -4331,8 +4331,8 @@ TEST_F(ConnectionTest, SendReceiveGoogDelta) {
                   {.timeout = webrtc::TimeDelta::Millis(kDefaultTimeout)}),
               webrtc::IsRtcOk());
   ASSERT_GT(lport_->last_stun_buf().size(), 0u);
-  rconn->OnReadPacket(rtc::ReceivedPacket(lport_->last_stun_buf(),
-                                          rtc::SocketAddress(), std::nullopt));
+  rconn->OnReadPacket(rtc::ReceivedPacket(
+      lport_->last_stun_buf(), webrtc::SocketAddress(), std::nullopt));
   EXPECT_TRUE(received_goog_delta);
 
   clock_.AdvanceTime(webrtc::TimeDelta::Millis(ms));
@@ -4341,8 +4341,8 @@ TEST_F(ConnectionTest, SendReceiveGoogDelta) {
                   {.timeout = webrtc::TimeDelta::Millis(kDefaultTimeout)}),
               webrtc::IsRtcOk());
   ASSERT_GT(rport_->last_stun_buf().size(), 0u);
-  lconn->OnReadPacket(rtc::ReceivedPacket(rport_->last_stun_buf(),
-                                          rtc::SocketAddress(), std::nullopt));
+  lconn->OnReadPacket(rtc::ReceivedPacket(
+      rport_->last_stun_buf(), webrtc::SocketAddress(), std::nullopt));
 
   EXPECT_TRUE(received_goog_delta_ack);
 }
@@ -4375,8 +4375,8 @@ TEST_F(ConnectionTest, SendGoogDeltaNoReply) {
                   {.timeout = webrtc::TimeDelta::Millis(kDefaultTimeout)}),
               webrtc::IsRtcOk());
   ASSERT_GT(lport_->last_stun_buf().size(), 0u);
-  rconn->OnReadPacket(rtc::ReceivedPacket(lport_->last_stun_buf(),
-                                          rtc::SocketAddress(), std::nullopt));
+  rconn->OnReadPacket(rtc::ReceivedPacket(
+      lport_->last_stun_buf(), webrtc::SocketAddress(), std::nullopt));
 
   clock_.AdvanceTime(webrtc::TimeDelta::Millis(ms));
   ASSERT_THAT(webrtc::WaitUntil(
@@ -4384,8 +4384,8 @@ TEST_F(ConnectionTest, SendGoogDeltaNoReply) {
                   {.timeout = webrtc::TimeDelta::Millis(kDefaultTimeout)}),
               webrtc::IsRtcOk());
   ASSERT_GT(rport_->last_stun_buf().size(), 0u);
-  lconn->OnReadPacket(rtc::ReceivedPacket(rport_->last_stun_buf(),
-                                          rtc::SocketAddress(), std::nullopt));
+  lconn->OnReadPacket(rtc::ReceivedPacket(
+      rport_->last_stun_buf(), webrtc::SocketAddress(), std::nullopt));
   EXPECT_TRUE(received_goog_delta_ack_error);
 }
 

@@ -172,9 +172,8 @@ class DummyDtmfObserver : public DtmfSenderObserverInterface {
 
 TEST_P(PeerConnectionIntegrationTest,
        SSLCertificateVerifierFailureUsedForTurnConnectionsFailsConnection) {
-  static const rtc::SocketAddress turn_server_internal_address{"88.88.88.0",
-                                                               3478};
-  static const rtc::SocketAddress turn_server_external_address{"88.88.88.1", 0};
+  static const SocketAddress turn_server_internal_address{"88.88.88.0", 3478};
+  static const SocketAddress turn_server_external_address{"88.88.88.1", 0};
 
   // Enable TCP-TLS for the fake turn server. We need to pass in 88.88.88.0 so
   // that host name verification passes on the fake certificate.

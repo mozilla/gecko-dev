@@ -197,7 +197,7 @@ const std::vector<Candidate>& Port::Candidates() const {
   return candidates_;
 }
 
-Connection* Port::GetConnection(const rtc::SocketAddress& remote_addr) {
+Connection* Port::GetConnection(const webrtc::SocketAddress& remote_addr) {
   AddressMap::const_iterator iter = connections_.find(remote_addr);
   if (iter != connections_.end())
     return iter->second;
@@ -205,9 +205,9 @@ Connection* Port::GetConnection(const rtc::SocketAddress& remote_addr) {
     return NULL;
 }
 
-void Port::AddAddress(const rtc::SocketAddress& address,
-                      const rtc::SocketAddress& base_address,
-                      const rtc::SocketAddress& related_address,
+void Port::AddAddress(const webrtc::SocketAddress& address,
+                      const webrtc::SocketAddress& base_address,
+                      const webrtc::SocketAddress& related_address,
                       absl::string_view protocol,
                       absl::string_view relay_protocol,
                       absl::string_view tcptype,
@@ -266,14 +266,14 @@ bool Port::MaybeObfuscateAddress(const Candidate& c, bool is_final) {
   auto callback = [weak_ptr, copy, is_final](const rtc::IPAddress& addr,
                                              absl::string_view name) mutable {
     RTC_DCHECK(copy.address().ipaddr() == addr);
-    rtc::SocketAddress hostname_address(name, copy.address().port());
+    webrtc::SocketAddress hostname_address(name, copy.address().port());
     // In Port and Connection, we need the IP address information to
     // correctly handle the update of candidate type to prflx. The removal
     // of IP address when signaling this candidate will take place in
     // BasicPortAllocatorSession::OnCandidateReady, via SanitizeCandidate.
     hostname_address.SetResolvedIP(addr);
     copy.set_address(hostname_address);
-    copy.set_related_address(rtc::SocketAddress());
+    copy.set_related_address(webrtc::SocketAddress());
     if (weak_ptr != nullptr) {
       RTC_DCHECK_RUN_ON(weak_ptr->thread_);
       weak_ptr->set_mdns_name_registration_status(
@@ -322,7 +322,7 @@ void Port::OnReadPacket(const rtc::ReceivedPacket& packet,
                         webrtc::ProtocolType proto) {
   const char* data = reinterpret_cast<const char*>(packet.payload().data());
   size_t size = packet.payload().size();
-  const rtc::SocketAddress& addr = packet.source_address();
+  const webrtc::SocketAddress& addr = packet.source_address();
   // If the user has enabled port packets, just hand this over.
   if (enable_port_packets_) {
     SignalReadPacket(this, data, size, addr);
@@ -388,7 +388,7 @@ void Port::AddPrflxCandidate(const Candidate& local) {
 
 bool Port::GetStunMessage(const char* data,
                           size_t size,
-                          const rtc::SocketAddress& addr,
+                          const webrtc::SocketAddress& addr,
                           std::unique_ptr<IceMessage>* out_msg,
                           std::string* out_username) {
   RTC_DCHECK_RUN_ON(thread_);
@@ -554,7 +554,7 @@ bool Port::GetStunMessage(const char* data,
   return true;
 }
 
-bool Port::IsCompatibleAddress(const rtc::SocketAddress& addr) {
+bool Port::IsCompatibleAddress(const webrtc::SocketAddress& addr) {
   // Get a representative IP for the Network this port is configured to use.
   webrtc::IPAddress ip = network_->GetBestIP();
   // We use single-stack sockets, so families must match.
@@ -618,7 +618,7 @@ bool Port::ParseStunUsername(const StunMessage* stun_msg,
   return true;
 }
 
-bool Port::MaybeIceRoleConflict(const rtc::SocketAddress& addr,
+bool Port::MaybeIceRoleConflict(const webrtc::SocketAddress& addr,
                                 IceMessage* stun_msg,
                                 absl::string_view remote_ufrag) {
   RTC_DCHECK_RUN_ON(thread_);
@@ -691,12 +691,12 @@ bool Port::HandleIncomingPacket(rtc::AsyncPacketSocket* /* socket */,
   return false;
 }
 
-bool Port::CanHandleIncomingPacketsFrom(const rtc::SocketAddress&) const {
+bool Port::CanHandleIncomingPacketsFrom(const webrtc::SocketAddress&) const {
   return false;
 }
 
 void Port::SendBindingErrorResponse(StunMessage* message,
-                                    const rtc::SocketAddress& addr,
+                                    const webrtc::SocketAddress& addr,
                                     int error_code,
                                     absl::string_view reason) {
   RTC_DCHECK_RUN_ON(thread_);
@@ -747,7 +747,7 @@ void Port::SendBindingErrorResponse(StunMessage* message,
 
 void Port::SendUnknownAttributesErrorResponse(
     StunMessage* message,
-    const rtc::SocketAddress& addr,
+    const webrtc::SocketAddress& addr,
     const std::vector<uint16_t>& unknown_types) {
   RTC_DCHECK_RUN_ON(thread_);
   RTC_DCHECK(message->type() == STUN_BINDING_REQUEST);

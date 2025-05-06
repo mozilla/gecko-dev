@@ -120,7 +120,7 @@ class RTC_EXPORT StunProber : public sigslot::has_slots<> {
   // non-shared mode, (the number of sockets) equals to requests_per_ip * (the
   // number of resolved IP addresses). TODO(guoweis): Remove this once
   // everything moved to Prepare() and Run().
-  bool Start(const std::vector<rtc::SocketAddress>& servers,
+  bool Start(const std::vector<webrtc::SocketAddress>& servers,
              bool shared_socket_mode,
              int stun_ta_interval_ms,
              int requests_per_ip,
@@ -129,7 +129,7 @@ class RTC_EXPORT StunProber : public sigslot::has_slots<> {
 
   // TODO(guoweis): The combination of Prepare() and Run() are equivalent to the
   // Start() above. Remove Start() once everything is migrated.
-  bool Prepare(const std::vector<rtc::SocketAddress>& servers,
+  bool Prepare(const std::vector<webrtc::SocketAddress>& servers,
                bool shared_socket_mode,
                int stun_ta_interval_ms,
                int requests_per_ip,
@@ -169,11 +169,11 @@ class RTC_EXPORT StunProber : public sigslot::has_slots<> {
     AsyncCallback callback_;
   };
 
-  bool ResolveServerName(const rtc::SocketAddress& addr);
+  bool ResolveServerName(const webrtc::SocketAddress& addr);
   void OnServerResolved(const webrtc::AsyncDnsResolverResult& resolver);
 
   void OnSocketReady(rtc::AsyncPacketSocket* socket,
-                     const rtc::SocketAddress& addr);
+                     const webrtc::SocketAddress& addr);
 
   void CreateSockets();
 
@@ -220,14 +220,14 @@ class RTC_EXPORT StunProber : public sigslot::has_slots<> {
   int timeout_ms_;
 
   // STUN server name to be resolved.
-  std::vector<rtc::SocketAddress> servers_;
+  std::vector<webrtc::SocketAddress> servers_;
 
   // Weak references.
   rtc::PacketSocketFactory* socket_factory_;
   rtc::Thread* thread_;
 
   // Accumulate all resolved addresses.
-  std::vector<rtc::SocketAddress> all_servers_addrs_;
+  std::vector<webrtc::SocketAddress> all_servers_addrs_;
 
   // The set of STUN probe sockets and their state.
   std::vector<Requester*> requesters_;

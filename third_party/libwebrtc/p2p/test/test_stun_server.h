@@ -28,11 +28,11 @@ class TestStunServer : StunServer {
   using StunServerPtr =
       std::unique_ptr<TestStunServer, std::function<void(TestStunServer*)>>;
   static StunServerPtr Create(rtc::SocketServer* ss,
-                              const rtc::SocketAddress& addr,
+                              const webrtc::SocketAddress& addr,
                               rtc::Thread& network_thread);
 
   // Set a fake STUN address to return to the client.
-  void set_fake_stun_addr(const rtc::SocketAddress& addr) {
+  void set_fake_stun_addr(const webrtc::SocketAddress& addr) {
     fake_stun_addr_ = addr;
   }
 
@@ -43,10 +43,10 @@ class TestStunServer : StunServer {
       : StunServer(socket), network_thread_(network_thread) {}
 
   void OnBindingRequest(StunMessage* msg,
-                        const rtc::SocketAddress& remote_addr) override;
+                        const webrtc::SocketAddress& remote_addr) override;
 
  private:
-  rtc::SocketAddress fake_stun_addr_;
+  webrtc::SocketAddress fake_stun_addr_;
   rtc::Thread& network_thread_;
 };
 

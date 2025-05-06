@@ -29,8 +29,9 @@
 
 namespace rtc {
 
-AsyncUDPSocket* AsyncUDPSocket::Create(Socket* socket,
-                                       const SocketAddress& bind_address) {
+AsyncUDPSocket* AsyncUDPSocket::Create(
+    Socket* socket,
+    const webrtc::SocketAddress& bind_address) {
   std::unique_ptr<Socket> owned_socket(socket);
   if (socket->Bind(bind_address) < 0) {
     RTC_LOG(LS_ERROR) << "Bind() failed with error " << socket->GetError();
@@ -39,8 +40,9 @@ AsyncUDPSocket* AsyncUDPSocket::Create(Socket* socket,
   return new AsyncUDPSocket(owned_socket.release());
 }
 
-AsyncUDPSocket* AsyncUDPSocket::Create(SocketFactory* factory,
-                                       const SocketAddress& bind_address) {
+AsyncUDPSocket* AsyncUDPSocket::Create(
+    SocketFactory* factory,
+    const webrtc::SocketAddress& bind_address) {
   Socket* socket = factory->CreateSocket(bind_address.family(), SOCK_DGRAM);
   if (!socket)
     return nullptr;
@@ -54,11 +56,11 @@ AsyncUDPSocket::AsyncUDPSocket(Socket* socket) : socket_(socket) {
   socket_->SignalWriteEvent.connect(this, &AsyncUDPSocket::OnWriteEvent);
 }
 
-SocketAddress AsyncUDPSocket::GetLocalAddress() const {
+webrtc::SocketAddress AsyncUDPSocket::GetLocalAddress() const {
   return socket_->GetLocalAddress();
 }
 
-SocketAddress AsyncUDPSocket::GetRemoteAddress() const {
+webrtc::SocketAddress AsyncUDPSocket::GetRemoteAddress() const {
   return socket_->GetRemoteAddress();
 }
 
@@ -75,7 +77,7 @@ int AsyncUDPSocket::Send(const void* pv,
 
 int AsyncUDPSocket::SendTo(const void* pv,
                            size_t cb,
-                           const SocketAddress& addr,
+                           const webrtc::SocketAddress& addr,
                            const rtc::PacketOptions& options) {
   rtc::SentPacket sent_packet(options.packet_id, rtc::TimeMillis(),
                               options.info_signaled_after_sent);
@@ -129,7 +131,7 @@ void AsyncUDPSocket::OnReadEvent(Socket* socket) {
     // send datagram, indicating the remote address was unreachable.
     // When doing ICE, this kind of thing will often happen.
     // TODO: Do something better like forwarding the error to the user.
-    SocketAddress local_addr = socket_->GetLocalAddress();
+    webrtc::SocketAddress local_addr = socket_->GetLocalAddress();
     RTC_LOG(LS_INFO) << "AsyncUDPSocket[" << local_addr.ToSensitiveString()
                      << "] receive failed with error " << socket_->GetError();
     return;

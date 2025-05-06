@@ -101,7 +101,7 @@ namespace webrtc {
 
 using ::cricket::ContentInfo;
 using ::cricket::StreamParams;
-using ::rtc::SocketAddress;
+
 using ::testing::_;
 using ::testing::Combine;
 using ::testing::Contains;
@@ -1093,7 +1093,7 @@ class PeerConnectionIntegrationWrapper : public PeerConnectionObserver,
         remote_async_dns_resolved_addr_ = local_candidate.address();
         remote_async_dns_resolved_addr_.SetResolvedIP(resolved_ip);
         EXPECT_CALL(*remote_async_dns_resolver_, Start(_, _))
-            .WillOnce([](const rtc::SocketAddress& addr,
+            .WillOnce([](const SocketAddress& addr,
                          absl::AnyInvocable<void()> callback) { callback(); });
         EXPECT_CALL(*remote_async_dns_resolver_, result())
             .WillOnce(ReturnRef(remote_async_dns_resolver_result_));
@@ -1186,7 +1186,7 @@ class PeerConnectionIntegrationWrapper : public PeerConnectionObserver,
   MockAsyncDnsResolver* remote_async_dns_resolver_ = nullptr;
   // Result variables for the mock DNS resolver
   NiceMock<MockAsyncDnsResolverResult> remote_async_dns_resolver_result_;
-  rtc::SocketAddress remote_async_dns_resolved_addr_;
+  SocketAddress remote_async_dns_resolved_addr_;
 
   // All data channels either created or observed on this peerconnection
   std::vector<rtc::scoped_refptr<DataChannelInterface>> data_channels_;
@@ -1636,8 +1636,8 @@ class PeerConnectionIntegrationBaseTest : public ::testing::Test {
   }
 
   cricket::TestTurnServer* CreateTurnServer(
-      rtc::SocketAddress internal_address,
-      rtc::SocketAddress external_address,
+      SocketAddress internal_address,
+      SocketAddress external_address,
       ProtocolType type = ProtocolType::PROTO_UDP,
       const std::string& common_name = "test turn server") {
     rtc::Thread* thread = network_thread();

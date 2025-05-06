@@ -135,13 +135,13 @@ AsyncDnsResolver::~AsyncDnsResolver() {
   state_->Kill();
 }
 
-void AsyncDnsResolver::Start(const rtc::SocketAddress& addr,
+void AsyncDnsResolver::Start(const SocketAddress& addr,
                              absl::AnyInvocable<void()> callback) {
   Start(addr, addr.family(), std::move(callback));
 }
 
 // Start address resolution of the hostname in `addr` matching `family`.
-void AsyncDnsResolver::Start(const rtc::SocketAddress& addr,
+void AsyncDnsResolver::Start(const SocketAddress& addr,
                              int family,
                              absl::AnyInvocable<void()> callback) {
   RTC_DCHECK_RUN_ON(&result_.sequence_checker_);
@@ -178,9 +178,8 @@ const AsyncDnsResolverResult& AsyncDnsResolver::result() const {
   return result_;
 }
 
-bool AsyncDnsResolverResultImpl::GetResolvedAddress(
-    int family,
-    rtc::SocketAddress* addr) const {
+bool AsyncDnsResolverResultImpl::GetResolvedAddress(int family,
+                                                    SocketAddress* addr) const {
   RTC_DCHECK_RUN_ON(&sequence_checker_);
   RTC_DCHECK(addr);
   if (error_ != 0 || addresses_.empty())

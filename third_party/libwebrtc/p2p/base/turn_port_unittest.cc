@@ -69,7 +69,7 @@
 #include "test/scoped_key_value_config.h"
 
 namespace {
-using rtc::SocketAddress;
+using ::webrtc::SocketAddress;
 
 using ::testing::_;
 using ::testing::DoAll;
@@ -284,7 +284,7 @@ class TurnPortTest : public ::testing::Test,
     return CreateTurnPortWithAllParams(MakeNetwork(kLocalAddr1), username,
                                        password, server_address);
   }
-  bool CreateTurnPort(const rtc::SocketAddress& local_address,
+  bool CreateTurnPort(const webrtc::SocketAddress& local_address,
                       absl::string_view username,
                       absl::string_view password,
                       const ProtocolAddress& server_address) {
@@ -346,7 +346,7 @@ class TurnPortTest : public ::testing::Test,
 
     if (!socket_) {
       socket_.reset(socket_factory()->CreateUdpSocket(
-          rtc::SocketAddress(kLocalAddr1.ipaddr(), 0), 0, 0));
+          webrtc::SocketAddress(kLocalAddr1.ipaddr(), 0), 0, 0));
       ASSERT_TRUE(socket_ != NULL);
       socket_->RegisterReceivedPacketCallback(
           [&](rtc::AsyncPacketSocket* socket,
@@ -509,7 +509,7 @@ class TurnPortTest : public ::testing::Test,
   }
 
   void TestTurnAlternateServer(webrtc::ProtocolType protocol_type) {
-    std::vector<rtc::SocketAddress> redirect_addresses;
+    std::vector<webrtc::SocketAddress> redirect_addresses;
     redirect_addresses.push_back(kTurnAlternateIntAddr);
 
     TestTurnRedirector redirector(redirect_addresses);
@@ -541,7 +541,7 @@ class TurnPortTest : public ::testing::Test,
   }
 
   void TestTurnAlternateServerV4toV6(webrtc::ProtocolType protocol_type) {
-    std::vector<rtc::SocketAddress> redirect_addresses;
+    std::vector<webrtc::SocketAddress> redirect_addresses;
     redirect_addresses.push_back(kTurnIPv6IntAddr);
 
     TestTurnRedirector redirector(redirect_addresses);
@@ -561,7 +561,7 @@ class TurnPortTest : public ::testing::Test,
   }
 
   void TestTurnAlternateServerPingPong(webrtc::ProtocolType protocol_type) {
-    std::vector<rtc::SocketAddress> redirect_addresses;
+    std::vector<webrtc::SocketAddress> redirect_addresses;
     redirect_addresses.push_back(kTurnAlternateIntAddr);
     redirect_addresses.push_back(kTurnIntAddr);
 
@@ -581,7 +581,7 @@ class TurnPortTest : public ::testing::Test,
                            .clock = &fake_clock_}),
         webrtc::IsRtcOk());
     ASSERT_EQ(0U, turn_port_->Candidates().size());
-    rtc::SocketAddress address;
+    webrtc::SocketAddress address;
     // Verify that we have exhausted all alternate servers instead of
     // failure caused by other errors.
     EXPECT_FALSE(redirector.ShouldRedirect(address, &address));
@@ -589,7 +589,7 @@ class TurnPortTest : public ::testing::Test,
 
   void TestTurnAlternateServerDetectRepetition(
       webrtc::ProtocolType protocol_type) {
-    std::vector<rtc::SocketAddress> redirect_addresses;
+    std::vector<webrtc::SocketAddress> redirect_addresses;
     redirect_addresses.push_back(kTurnAlternateIntAddr);
     redirect_addresses.push_back(kTurnAlternateIntAddr);
 
@@ -621,7 +621,7 @@ class TurnPortTest : public ::testing::Test,
     const SocketAddress& server_address =
         ipv6 ? kTurnIPv6IntAddr : kTurnIntAddr;
 
-    std::vector<rtc::SocketAddress> redirect_addresses;
+    std::vector<webrtc::SocketAddress> redirect_addresses;
     // Pick an unusual address in the 127.0.0.0/8 range to make sure more than
     // 127.0.0.1 is covered.
     SocketAddress loopback_address(ipv6 ? "::1" : "127.1.2.3",
@@ -1328,7 +1328,7 @@ TEST_F(TurnPortTest, TestTurnAllocateNonceResetAfterAllocateMismatch) {
                   {.timeout = webrtc::TimeDelta::Millis(kSimulatedRtt * 2),
                    .clock = &fake_clock_}),
               webrtc::IsRtcOk());
-  rtc::SocketAddress first_addr(turn_port_->socket()->GetLocalAddress());
+  webrtc::SocketAddress first_addr(turn_port_->socket()->GetLocalAddress());
   // Destroy the turnport while keeping the drop probability to 1 to
   // suppress the release of the allocation at the server.
   ss_->set_drop_probability(1.0);
@@ -1372,7 +1372,7 @@ TEST_F(TurnPortTest, TestTurnAllocateMismatch) {
                   {.timeout = webrtc::TimeDelta::Millis(kSimulatedRtt * 2),
                    .clock = &fake_clock_}),
               webrtc::IsRtcOk());
-  rtc::SocketAddress first_addr(turn_port_->socket()->GetLocalAddress());
+  webrtc::SocketAddress first_addr(turn_port_->socket()->GetLocalAddress());
 
   // Clear connected_ flag on turnport to suppress the release of
   // the allocation.
@@ -1406,7 +1406,7 @@ TEST_F(TurnPortTest, TestTurnAllocateMismatch) {
       socket_.get(),
       rtc::ReceivedPacket::CreateFromLegacy(
           test_packet.data(), test_packet.size(), rtc::TimeMicros(),
-          rtc::SocketAddress(kTurnUdpExtAddr.ipaddr(), 0))));
+          webrtc::SocketAddress(kTurnUdpExtAddr.ipaddr(), 0))));
 }
 
 // Tests that a shared-socket-TurnPort creates its own socket after
@@ -1420,7 +1420,7 @@ TEST_F(TurnPortTest, TestSharedSocketAllocateMismatch) {
                   {.timeout = webrtc::TimeDelta::Millis(kSimulatedRtt * 2),
                    .clock = &fake_clock_}),
               webrtc::IsRtcOk());
-  rtc::SocketAddress first_addr(turn_port_->socket()->GetLocalAddress());
+  webrtc::SocketAddress first_addr(turn_port_->socket()->GetLocalAddress());
 
   // Clear connected_ flag on turnport to suppress the release of
   // the allocation.
@@ -1457,7 +1457,7 @@ TEST_F(TurnPortTest, TestTurnTcpAllocateMismatch) {
                   {.timeout = webrtc::TimeDelta::Millis(kSimulatedRtt * 3),
                    .clock = &fake_clock_}),
               webrtc::IsRtcOk());
-  rtc::SocketAddress first_addr(turn_port_->socket()->GetLocalAddress());
+  webrtc::SocketAddress first_addr(turn_port_->socket()->GetLocalAddress());
 
   // Clear connected_ flag on turnport to suppress the release of
   // the allocation.
@@ -2167,7 +2167,7 @@ TEST_F(TurnPortTest, TestTurnDangerousServerPermits443) {
 
 TEST_F(TurnPortTest, TestTurnDangerousAlternateServer) {
   const webrtc::ProtocolType protocol_type = webrtc::PROTO_TCP;
-  std::vector<rtc::SocketAddress> redirect_addresses;
+  std::vector<webrtc::SocketAddress> redirect_addresses;
   redirect_addresses.push_back(kTurnDangerousAddr);
 
   TestTurnRedirector redirector(redirect_addresses);
@@ -2220,7 +2220,7 @@ TEST_F(TurnPortWithMockDnsResolverTest, TestHostnameResolved) {
       [](webrtc::MockAsyncDnsResolver* resolver,
          webrtc::MockAsyncDnsResolverResult* resolver_result) {
         EXPECT_CALL(*resolver, Start(kTurnValidAddr, /*family=*/AF_INET, _))
-            .WillOnce([](const rtc::SocketAddress& addr, int family,
+            .WillOnce([](const webrtc::SocketAddress& addr, int family,
                          absl::AnyInvocable<void()> callback) { callback(); });
         EXPECT_CALL(*resolver, result)
             .WillRepeatedly(ReturnPointee(resolver_result));
@@ -2241,7 +2241,7 @@ TEST_F(TurnPortWithMockDnsResolverTest, TestHostnameResolvedIPv6Network) {
       [](webrtc::MockAsyncDnsResolver* resolver,
          webrtc::MockAsyncDnsResolverResult* resolver_result) {
         EXPECT_CALL(*resolver, Start(kTurnValidAddr, /*family=*/AF_INET6, _))
-            .WillOnce([](const rtc::SocketAddress& addr, int family,
+            .WillOnce([](const webrtc::SocketAddress& addr, int family,
                          absl::AnyInvocable<void()> callback) { callback(); });
         EXPECT_CALL(*resolver, result)
             .WillRepeatedly(ReturnPointee(resolver_result));

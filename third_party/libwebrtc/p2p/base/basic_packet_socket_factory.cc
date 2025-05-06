@@ -35,7 +35,7 @@ BasicPacketSocketFactory::BasicPacketSocketFactory(
 BasicPacketSocketFactory::~BasicPacketSocketFactory() {}
 
 AsyncPacketSocket* BasicPacketSocketFactory::CreateUdpSocket(
-    const SocketAddress& address,
+    const webrtc::SocketAddress& address,
     uint16_t min_port,
     uint16_t max_port) {
   // UDP sockets are simple.
@@ -52,7 +52,7 @@ AsyncPacketSocket* BasicPacketSocketFactory::CreateUdpSocket(
 }
 
 AsyncListenSocket* BasicPacketSocketFactory::CreateServerTcpSocket(
-    const SocketAddress& local_address,
+    const webrtc::SocketAddress& local_address,
     uint16_t min_port,
     uint16_t max_port,
     int opts) {
@@ -84,8 +84,8 @@ AsyncListenSocket* BasicPacketSocketFactory::CreateServerTcpSocket(
 }
 
 AsyncPacketSocket* BasicPacketSocketFactory::CreateClientTcpSocket(
-    const SocketAddress& local_address,
-    const SocketAddress& remote_address,
+    const webrtc::SocketAddress& local_address,
+    const webrtc::SocketAddress& remote_address,
     const PacketSocketTcpOptions& tcp_options) {
   Socket* socket =
       socket_factory_->CreateSocket(local_address.family(), SOCK_STREAM);
@@ -173,10 +173,11 @@ BasicPacketSocketFactory::CreateAsyncDnsResolver() {
   return std::make_unique<webrtc::AsyncDnsResolver>();
 }
 
-int BasicPacketSocketFactory::BindSocket(Socket* socket,
-                                         const SocketAddress& local_address,
-                                         uint16_t min_port,
-                                         uint16_t max_port) {
+int BasicPacketSocketFactory::BindSocket(
+    Socket* socket,
+    const webrtc::SocketAddress& local_address,
+    uint16_t min_port,
+    uint16_t max_port) {
   int ret = -1;
   if (min_port == 0 && max_port == 0) {
     // If there's no port range, let the OS pick a port for us.
@@ -184,7 +185,7 @@ int BasicPacketSocketFactory::BindSocket(Socket* socket,
   } else {
     // Otherwise, try to find a port in the provided range.
     for (int port = min_port; ret < 0 && port <= max_port; ++port) {
-      ret = socket->Bind(SocketAddress(local_address.ipaddr(), port));
+      ret = socket->Bind(webrtc::SocketAddress(local_address.ipaddr(), port));
     }
   }
   return ret;

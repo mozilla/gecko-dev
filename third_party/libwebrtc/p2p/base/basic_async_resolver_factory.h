@@ -26,11 +26,11 @@ class BasicAsyncDnsResolverFactory final
   BasicAsyncDnsResolverFactory() = default;
 
   std::unique_ptr<webrtc::AsyncDnsResolverInterface> CreateAndResolve(
-      const rtc::SocketAddress& addr,
+      const SocketAddress& addr,
       absl::AnyInvocable<void()> callback) override;
 
   std::unique_ptr<webrtc::AsyncDnsResolverInterface> CreateAndResolve(
-      const rtc::SocketAddress& addr,
+      const SocketAddress& addr,
       int family,
       absl::AnyInvocable<void()> callback) override;
 

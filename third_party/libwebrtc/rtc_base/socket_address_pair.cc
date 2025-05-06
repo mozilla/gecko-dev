@@ -12,8 +12,8 @@
 
 namespace webrtc {
 
-SocketAddressPair::SocketAddressPair(const rtc::SocketAddress& src,
-                                     const rtc::SocketAddress& dest)
+SocketAddressPair::SocketAddressPair(const SocketAddress& src,
+                                     const SocketAddress& dest)
     : src_(src), dest_(dest) {}
 
 bool SocketAddressPair::operator==(const SocketAddressPair& p) const {

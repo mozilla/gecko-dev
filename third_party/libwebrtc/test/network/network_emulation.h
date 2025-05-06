@@ -293,8 +293,8 @@ class EmulatedEndpointImpl : public EmulatedEndpoint {
 
   NetworkRouterNode* router() { return &router_; }
 
-  void SendPacket(const rtc::SocketAddress& from,
-                  const rtc::SocketAddress& to,
+  void SendPacket(const SocketAddress& from,
+                  const SocketAddress& to,
                   rtc::CopyOnWriteBuffer packet_data,
                   uint16_t application_overhead = 0,
                   EcnMarking ecn = EcnMarking::kNotEct) override;
@@ -426,8 +426,8 @@ class FakePacketRoute : public EmulatedNetworkReceiverInterface {
  private:
   EmulatedRoute* const route_;
   const std::function<void(FakePacketType, Timestamp)> action_;
-  const rtc::SocketAddress send_addr_;
-  const rtc::SocketAddress recv_addr_;
+  const SocketAddress send_addr_;
+  const SocketAddress recv_addr_;
   int next_packet_id_ = 0;
   std::map<int, FakePacketType> sent_;
 };

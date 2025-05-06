@@ -55,16 +55,16 @@ class FirewallSocketServer : public SocketServer {
   void AddRule(bool allow,
                FirewallProtocol p = FP_ANY,
                FirewallDirection d = FD_ANY,
-               const SocketAddress& addr = SocketAddress());
+               const webrtc::SocketAddress& addr = webrtc::SocketAddress());
   void AddRule(bool allow,
                FirewallProtocol p,
-               const SocketAddress& src,
-               const SocketAddress& dst);
+               const webrtc::SocketAddress& src,
+               const webrtc::SocketAddress& dst);
   void ClearRules();
 
   bool Check(FirewallProtocol p,
-             const SocketAddress& src,
-             const SocketAddress& dst);
+             const webrtc::SocketAddress& src,
+             const webrtc::SocketAddress& dst);
 
   // Set the IP addresses for which Bind will fail. By default this list is
   // empty. This can be used to simulate a real OS that refuses to bind to
@@ -92,8 +92,8 @@ class FirewallSocketServer : public SocketServer {
     bool allow;
     FirewallProtocol p;
     FirewallDirection d;
-    SocketAddress src;
-    SocketAddress dst;
+    webrtc::SocketAddress src;
+    webrtc::SocketAddress dst;
   };
   std::vector<Rule> rules_;
   std::vector<webrtc::IPAddress> unbindable_ips_;
@@ -116,7 +116,7 @@ class FirewallManager {
   void AddRule(bool allow,
                FirewallProtocol p = FP_ANY,
                FirewallDirection d = FD_ANY,
-               const SocketAddress& addr = SocketAddress());
+               const webrtc::SocketAddress& addr = webrtc::SocketAddress());
   void ClearRules();
 
  private:

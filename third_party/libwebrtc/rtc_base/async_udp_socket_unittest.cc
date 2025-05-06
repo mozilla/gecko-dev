@@ -22,7 +22,7 @@
 
 namespace rtc {
 
-static const SocketAddress kAddr("22.22.22.22", 0);
+static const webrtc::SocketAddress kAddr("22.22.22.22", 0);
 
 TEST(AsyncUDPSocketTest, SetSocketOptionIfEctChange) {
   VirtualSocketServer socket_server;

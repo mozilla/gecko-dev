@@ -127,7 +127,8 @@ class FakePacketTransport : public PacketTransportInternal {
     last_sent_packet_ = packet;
     if (dest_) {
       dest_->NotifyPacketReceived(rtc::ReceivedPacket(
-          packet, SocketAddress(), webrtc::Timestamp::Micros(rtc::TimeMicros()),
+          packet, webrtc::SocketAddress(),
+          webrtc::Timestamp::Micros(rtc::TimeMicros()),
           options.ecn_1 ? EcnMarking::kEct1 : EcnMarking::kNotEct));
     }
   }

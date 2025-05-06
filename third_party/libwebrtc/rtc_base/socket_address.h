@@ -22,7 +22,7 @@
 struct sockaddr_in;
 struct sockaddr_storage;
 
-namespace rtc {
+namespace webrtc {
 
 // Records an IP address and port.
 class RTC_EXPORT SocketAddress {
@@ -42,7 +42,7 @@ class RTC_EXPORT SocketAddress {
 
   // Creates the address with the given IP and port.
   // DCHECKs that port is in valid range (0 to 2^16-1).
-  SocketAddress(const webrtc::IPAddress& ip, int port);
+  SocketAddress(const IPAddress& ip, int port);
 
   // Creates a copy of the given address.
   SocketAddress(const SocketAddress& addr);
@@ -64,7 +64,7 @@ class RTC_EXPORT SocketAddress {
   void SetIP(uint32_t ip_as_host_order_integer);
 
   // Changes the IP of this address to the given one, and clears the hostname.
-  void SetIP(const webrtc::IPAddress& ip);
+  void SetIP(const IPAddress& ip);
 
   // Changes the hostname of this address to the given one.
   // Does not resolve the address; use Resolve to do so.
@@ -77,7 +77,7 @@ class RTC_EXPORT SocketAddress {
 
   // Sets the IP address while retaining the hostname.  Useful for bypassing
   // DNS for a pre-resolved IP.
-  void SetResolvedIP(const webrtc::IPAddress& ip);
+  void SetResolvedIP(const IPAddress& ip);
 
   // Changes the port of this address to the given one.
   // DCHECKs that port is in valid range (0 to 2^16-1).
@@ -90,7 +90,7 @@ class RTC_EXPORT SocketAddress {
   // Returns 0 for non-v4 addresses.
   uint32_t ip() const;
 
-  const webrtc::IPAddress& ipaddr() const;
+  const IPAddress& ipaddr() const;
 
   int family() const { return ip_.family(); }
 
@@ -184,7 +184,7 @@ class RTC_EXPORT SocketAddress {
 
  private:
   std::string hostname_;
-  webrtc::IPAddress ip_;
+  IPAddress ip_;
   uint16_t port_;
   int scope_id_;
   bool literal_;  // Indicates that 'hostname_' contains a literal IP string.
@@ -194,6 +194,14 @@ RTC_EXPORT bool SocketAddressFromSockAddrStorage(const sockaddr_storage& saddr,
                                                  SocketAddress* out);
 SocketAddress EmptySocketAddressWithFamily(int family);
 
+}  //  namespace webrtc
+
+// Re-export symbols from the webrtc namespace for backwards compatibility.
+// TODO(bugs.webrtc.org/4222596): Remove once all references are updated.
+namespace rtc {
+using ::webrtc::EmptySocketAddressWithFamily;
+using ::webrtc::SocketAddress;
+using ::webrtc::SocketAddressFromSockAddrStorage;
 }  // namespace rtc
 
 #endif  // RTC_BASE_SOCKET_ADDRESS_H_

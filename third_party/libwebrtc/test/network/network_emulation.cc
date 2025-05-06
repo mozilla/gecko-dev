@@ -628,8 +628,8 @@ uint64_t EmulatedEndpointImpl::GetId() const {
   return options_.id;
 }
 
-void EmulatedEndpointImpl::SendPacket(const rtc::SocketAddress& from,
-                                      const rtc::SocketAddress& to,
+void EmulatedEndpointImpl::SendPacket(const SocketAddress& from,
+                                      const SocketAddress& to,
                                       rtc::CopyOnWriteBuffer packet_data,
                                       uint16_t application_overhead,
                                       EcnMarking ecn) {

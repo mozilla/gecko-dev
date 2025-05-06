@@ -259,7 +259,7 @@ RTCError ParseIceServerUrl(
   switch (service_type) {
     case ServiceType::STUN:
     case ServiceType::STUNS:
-      stun_servers->insert(rtc::SocketAddress(address, port));
+      stun_servers->insert(SocketAddress(address, port));
       break;
     case ServiceType::TURN:
     case ServiceType::TURNS: {
@@ -276,7 +276,7 @@ RTCError ParseIceServerUrl(
       // handshake (SNI and Certificate verification).
       absl::string_view hostname =
           server.hostname.empty() ? address : server.hostname;
-      rtc::SocketAddress socket_address(hostname, port);
+      SocketAddress socket_address(hostname, port);
       if (!server.hostname.empty()) {
         IPAddress ip;
         if (!IPFromString(address, &ip)) {

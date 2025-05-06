@@ -26,16 +26,16 @@ class MockPacketSocketFactory : public PacketSocketFactory {
  public:
   MOCK_METHOD(AsyncPacketSocket*,
               CreateUdpSocket,
-              (const SocketAddress&, uint16_t, uint16_t),
+              (const webrtc::SocketAddress&, uint16_t, uint16_t),
               (override));
   MOCK_METHOD(AsyncListenSocket*,
               CreateServerTcpSocket,
-              (const SocketAddress&, uint16_t, uint16_t, int opts),
+              (const webrtc::SocketAddress&, uint16_t, uint16_t, int opts),
               (override));
   MOCK_METHOD(AsyncPacketSocket*,
               CreateClientTcpSocket,
-              (const SocketAddress& local_address,
-               const SocketAddress&,
+              (const webrtc::SocketAddress& local_address,
+               const webrtc::SocketAddress&,
                const PacketSocketTcpOptions&),
               (override));
   MOCK_METHOD(std::unique_ptr<webrtc::AsyncDnsResolverInterface>,

@@ -95,7 +95,7 @@ using cricket::TransportDescription;
 using cricket::TransportInfo;
 using cricket::UnsupportedContentDescription;
 using cricket::VideoContentDescription;
-using rtc::SocketAddress;
+using ::webrtc::SocketAddress;
 
 // TODO(deadbeef): Switch to using anonymous namespace rather than declaring
 // everything "static".
@@ -300,7 +300,7 @@ static bool ParseSessionDescription(absl::string_view message,
                                     std::string* session_version,
                                     TransportDescription* session_td,
                                     RtpHeaderExtensions* session_extmaps,
-                                    rtc::SocketAddress* connection_addr,
+                                    SocketAddress* connection_addr,
                                     cricket::SessionDescription* desc,
                                     SdpParseError* error);
 static bool ParseMediaDescription(
@@ -308,7 +308,7 @@ static bool ParseMediaDescription(
     const TransportDescription& session_td,
     const RtpHeaderExtensions& session_extmaps,
     size_t* pos,
-    const rtc::SocketAddress& session_connection_addr,
+    const SocketAddress& session_connection_addr,
     cricket::SessionDescription* desc,
     std::vector<std::unique_ptr<JsepIceCandidate>>* candidates,
     SdpParseError* error);
@@ -968,7 +968,7 @@ bool SdpDeserialize(absl::string_view message,
   std::string session_version;
   TransportDescription session_td("", "");
   RtpHeaderExtensions session_extmaps;
-  rtc::SocketAddress session_connection_addr;
+  SocketAddress session_connection_addr;
   auto desc = std::make_unique<cricket::SessionDescription>();
   size_t current_pos = 0;
 
@@ -2043,7 +2043,7 @@ void BuildIceOptions(const std::vector<std::string>& transport_options,
 }
 
 bool ParseConnectionData(absl::string_view line,
-                         rtc::SocketAddress* addr,
+                         SocketAddress* addr,
                          SdpParseError* error) {
   // Parse the line from left to right.
   std::string token;
@@ -2099,7 +2099,7 @@ bool ParseSessionDescription(absl::string_view message,
                              std::string* session_version,
                              TransportDescription* session_td,
                              RtpHeaderExtensions* session_extmaps,
-                             rtc::SocketAddress* connection_addr,
+                             SocketAddress* connection_addr,
                              cricket::SessionDescription* desc,
                              SdpParseError* error) {
   std::optional<absl::string_view> line;
@@ -2659,7 +2659,7 @@ bool ParseMediaDescription(
     const TransportDescription& session_td,
     const RtpHeaderExtensions& session_extmaps,
     size_t* pos,
-    const rtc::SocketAddress& session_connection_addr,
+    const SocketAddress& session_connection_addr,
     cricket::SessionDescription* desc,
     std::vector<std::unique_ptr<JsepIceCandidate>>* candidates,
     SdpParseError* error) {
@@ -2822,7 +2822,7 @@ bool ParseMediaDescription(
 
     // Use the session level connection address if the media level addresses are
     // not specified.
-    rtc::SocketAddress address;
+    SocketAddress address;
     address = content->connection_address().IsNil()
                   ? session_connection_addr
                   : content->connection_address();
@@ -3093,7 +3093,7 @@ bool ParseContent(absl::string_view message,
 
     // Parse the media level connection data.
     if (IsLineType(*line, kLineTypeConnection)) {
-      rtc::SocketAddress addr;
+      SocketAddress addr;
       if (!ParseConnectionData(*line, &addr, error)) {
         return false;
       }

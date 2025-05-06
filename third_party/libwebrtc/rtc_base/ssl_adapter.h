@@ -107,7 +107,7 @@ class SSLAdapter : public AsyncSocketAdapter {
  private:
   // Not supported.
   int Listen(int backlog) override { RTC_CHECK(false); }
-  Socket* Accept(SocketAddress* paddr) override { RTC_CHECK(false); }
+  Socket* Accept(webrtc::SocketAddress* paddr) override { RTC_CHECK(false); }
 };
 
 ///////////////////////////////////////////////////////////////////////////////

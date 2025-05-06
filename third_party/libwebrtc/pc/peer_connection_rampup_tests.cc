@@ -71,7 +71,7 @@ using ::webrtc::test::Unit;
 static const int kDefaultTestTimeMs = 15000;
 static const int kRampUpTimeMs = 5000;
 static const int kPollIntervalTimeMs = 50;
-static const rtc::SocketAddress kDefaultLocalAddress("1.1.1.1", 0);
+static const SocketAddress kDefaultLocalAddress("1.1.1.1", 0);
 static const char kTurnInternalAddress[] = "88.88.88.0";
 static const char kTurnExternalAddress[] = "88.88.88.1";
 static const int kTurnInternalPort = 3478;
@@ -254,9 +254,9 @@ class PeerConnectionRampUpTest : public ::testing::Test {
     rtc::SocketFactory* factory = &firewall_socket_server_;
     std::unique_ptr<cricket::TestTurnServer> turn_server;
     SendTask(network_thread(), [&] {
-      static const rtc::SocketAddress turn_server_internal_address{
+      static const SocketAddress turn_server_internal_address{
           kTurnInternalAddress, kTurnInternalPort};
-      static const rtc::SocketAddress turn_server_external_address{
+      static const SocketAddress turn_server_external_address{
           kTurnExternalAddress, kTurnExternalPort};
       turn_server = std::make_unique<cricket::TestTurnServer>(
           thread, factory, turn_server_internal_address,

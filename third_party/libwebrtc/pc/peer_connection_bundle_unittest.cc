@@ -75,7 +75,7 @@ using BundlePolicy = PeerConnectionInterface::BundlePolicy;
 using RTCConfiguration = PeerConnectionInterface::RTCConfiguration;
 using RTCOfferAnswerOptions = PeerConnectionInterface::RTCOfferAnswerOptions;
 using RtcpMuxPolicy = PeerConnectionInterface::RtcpMuxPolicy;
-using rtc::SocketAddress;
+
 using ::testing::Combine;
 using ::testing::UnorderedElementsAre;
 using ::testing::Values;
@@ -261,8 +261,7 @@ class PeerConnectionBundleBaseTest : public ::testing::Test {
     return wrapper;
   }
 
-  cricket::Candidate CreateLocalUdpCandidate(
-      const rtc::SocketAddress& address) {
+  cricket::Candidate CreateLocalUdpCandidate(const SocketAddress& address) {
     cricket::Candidate candidate;
     candidate.set_component(cricket::ICE_CANDIDATE_COMPONENT_DEFAULT);
     candidate.set_protocol(cricket::UDP_PROTOCOL_NAME);

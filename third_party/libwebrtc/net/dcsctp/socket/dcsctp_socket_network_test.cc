@@ -107,7 +107,7 @@ class BoundSocket : public webrtc::EmulatedNetworkReceiverInterface {
     endpoint_ = endpoint;
     uint16_t port = endpoint->BindReceiver(0, this).value();
     source_address_ =
-        rtc::SocketAddress(endpoint_->GetPeerLocalAddress(), port);
+        webrtc::SocketAddress(endpoint_->GetPeerLocalAddress(), port);
   }
 
   void SetDestination(const BoundSocket& socket) {
@@ -131,8 +131,8 @@ class BoundSocket : public webrtc::EmulatedNetworkReceiverInterface {
 
   std::function<void(rtc::CopyOnWriteBuffer)> receiver_;
   webrtc::EmulatedEndpoint* endpoint_ = nullptr;
-  rtc::SocketAddress source_address_;
-  rtc::SocketAddress dest_address_;
+  webrtc::SocketAddress source_address_;
+  webrtc::SocketAddress dest_address_;
 };
 
 // Sends at a constant rate but with random packet sizes.

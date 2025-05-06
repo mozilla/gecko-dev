@@ -323,7 +323,7 @@ class RTC_EXPORT P2PTransportChannel : public IceTransportInternal,
                            const std::vector<Candidate>& candidates);
   void OnCandidatesAllocationDone(PortAllocatorSession* session);
   void OnUnknownAddress(webrtc::PortInterface* port,
-                        const rtc::SocketAddress& addr,
+                        const webrtc::SocketAddress& addr,
                         webrtc::ProtocolType proto,
                         IceMessage* stun_msg,
                         const std::string& remote_username,

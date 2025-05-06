@@ -279,7 +279,7 @@ TEST(StunDictionary, DataTypes) {
   StunDictionaryWriter writer;
   StunDictionaryView dictionary;
 
-  rtc::SocketAddress addr("127.0.0.1", 8080);
+  webrtc::SocketAddress addr("127.0.0.1", 8080);
 
   writer.SetUInt32(kKey1)->SetValue(27);
   writer.SetUInt64(kKey1 + 1)->SetValue(28);
@@ -299,7 +299,7 @@ TEST(StunDictionary, ParseError) {
   StunDictionaryWriter writer;
   StunDictionaryView dictionary;
 
-  rtc::SocketAddress addr("127.0.0.1", 8080);
+  webrtc::SocketAddress addr("127.0.0.1", 8080);
 
   writer.SetUInt32(kKey1)->SetValue(27);
   writer.SetUInt64(kKey1 + 1)->SetValue(28);

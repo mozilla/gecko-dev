@@ -42,11 +42,11 @@ class AsyncTCPSocketBase : public AsyncPacketSocket {
   // Must return the number of bytes processed.
   virtual size_t ProcessInput(rtc::ArrayView<const uint8_t> data) = 0;
 
-  SocketAddress GetLocalAddress() const override;
-  SocketAddress GetRemoteAddress() const override;
+  webrtc::SocketAddress GetLocalAddress() const override;
+  webrtc::SocketAddress GetRemoteAddress() const override;
   int SendTo(const void* pv,
              size_t cb,
-             const SocketAddress& addr,
+             const webrtc::SocketAddress& addr,
              const rtc::PacketOptions& options) override;
   int Close() override;
 
@@ -61,8 +61,8 @@ class AsyncTCPSocketBase : public AsyncPacketSocket {
   // it. Takes ownership of `socket`. Returns null if bind() or
   // connect() fail (`socket` is destroyed in that case).
   static Socket* ConnectSocket(Socket* socket,
-                               const SocketAddress& bind_address,
-                               const SocketAddress& remote_address);
+                               const webrtc::SocketAddress& bind_address,
+                               const webrtc::SocketAddress& remote_address);
   int FlushOutBuffer();
   // Add data to `outbuf_`.
   void AppendToOutBuffer(const void* pv, size_t cb);
@@ -91,8 +91,8 @@ class AsyncTCPSocket : public AsyncTCPSocketBase {
   // it. Takes ownership of `socket`. Returns null if bind() or
   // connect() fail (`socket` is destroyed in that case).
   static AsyncTCPSocket* Create(Socket* socket,
-                                const SocketAddress& bind_address,
-                                const SocketAddress& remote_address);
+                                const webrtc::SocketAddress& bind_address,
+                                const webrtc::SocketAddress& remote_address);
   explicit AsyncTCPSocket(Socket* socket);
   ~AsyncTCPSocket() override {}
 
@@ -110,7 +110,7 @@ class AsyncTcpListenSocket : public AsyncListenSocket {
   explicit AsyncTcpListenSocket(std::unique_ptr<Socket> socket);
 
   State GetState() const override;
-  SocketAddress GetLocalAddress() const override;
+  webrtc::SocketAddress GetLocalAddress() const override;
 
   virtual void HandleIncomingConnection(rtc::Socket* socket);
 

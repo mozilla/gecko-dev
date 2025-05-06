@@ -48,22 +48,22 @@ class PacketSocketFactoryWrapper : public rtc::PacketSocketFactory {
 
   // This method is called from TurnServer when making a TURN ALLOCATION.
   // It will create a socket on the `peer_` endpoint.
-  rtc::AsyncPacketSocket* CreateUdpSocket(const rtc::SocketAddress& address,
+  rtc::AsyncPacketSocket* CreateUdpSocket(const webrtc::SocketAddress& address,
                                           uint16_t min_port,
                                           uint16_t max_port) override {
     return turn_server_->CreatePeerSocket();
   }
 
   rtc::AsyncListenSocket* CreateServerTcpSocket(
-      const rtc::SocketAddress& local_address,
+      const webrtc::SocketAddress& local_address,
       uint16_t min_port,
       uint16_t max_port,
       int opts) override {
     return nullptr;
   }
   rtc::AsyncPacketSocket* CreateClientTcpSocket(
-      const rtc::SocketAddress& local_address,
-      const rtc::SocketAddress& remote_address,
+      const webrtc::SocketAddress& local_address,
+      const webrtc::SocketAddress& remote_address,
       const rtc::PacketSocketTcpOptions& tcp_options) override {
     return nullptr;
   }
@@ -92,14 +92,11 @@ class EmulatedTURNServer::AsyncPacketSocketWrapper
                            uint16_t port)
       : turn_server_(turn_server),
         endpoint_(endpoint),
-        local_address_(
-            rtc::SocketAddress(endpoint_->GetPeerLocalAddress(), port)) {}
+        local_address_(SocketAddress(endpoint_->GetPeerLocalAddress(), port)) {}
   ~AsyncPacketSocketWrapper() { turn_server_->Unbind(local_address_); }
 
-  rtc::SocketAddress GetLocalAddress() const override { return local_address_; }
-  rtc::SocketAddress GetRemoteAddress() const override {
-    return rtc::SocketAddress();
-  }
+  SocketAddress GetLocalAddress() const override { return local_address_; }
+  SocketAddress GetRemoteAddress() const override { return SocketAddress(); }
   int Send(const void* pv,
            size_t cb,
            const rtc::PacketOptions& options) override {
@@ -108,7 +105,7 @@ class EmulatedTURNServer::AsyncPacketSocketWrapper
   }
   int SendTo(const void* pv,
              size_t cb,
-             const rtc::SocketAddress& addr,
+             const SocketAddress& addr,
              const rtc::PacketOptions& options) override {
     // Copy from rtc::AsyncPacketSocket to EmulatedEndpoint.
     rtc::CopyOnWriteBuffer buf(reinterpret_cast<const char*>(pv), cb);
@@ -131,7 +128,7 @@ class EmulatedTURNServer::AsyncPacketSocketWrapper
  private:
   webrtc::test::EmulatedTURNServer* const turn_server_;
   webrtc::EmulatedEndpoint* const endpoint_;
-  const rtc::SocketAddress local_address_;
+  const SocketAddress local_address_;
 };
 
 EmulatedTURNServer::EmulatedTURNServer(const EmulatedTURNServerConfig& config,
@@ -153,7 +150,7 @@ EmulatedTURNServer::EmulatedTURNServer(const EmulatedTURNServerConfig& config,
     auto client_socket = Wrap(client_);
     turn_server_->AddInternalSocket(client_socket, cricket::PROTO_UDP);
     turn_server_->SetExternalSocketFactory(new PacketSocketFactoryWrapper(this),
-                                           rtc::SocketAddress());
+                                           SocketAddress());
     client_address_ = client_socket->GetLocalAddress();
     char buf[256];
     rtc::SimpleStringBuilder str(buf);
@@ -181,7 +178,7 @@ rtc::AsyncPacketSocket* EmulatedTURNServer::Wrap(EmulatedEndpoint* endpoint) {
   RTC_DCHECK_RUN_ON(thread_.get());
   auto port = endpoint->BindReceiver(0, this).value();
   auto socket = new AsyncPacketSocketWrapper(this, endpoint, port);
-  sockets_[rtc::SocketAddress(endpoint->GetPeerLocalAddress(), port)] = socket;
+  sockets_[SocketAddress(endpoint->GetPeerLocalAddress(), port)] = socket;
   return socket;
 }
 
@@ -197,7 +194,7 @@ void EmulatedTURNServer::OnPacketReceived(webrtc::EmulatedIpPacket packet) {
   });
 }
 
-void EmulatedTURNServer::Unbind(rtc::SocketAddress address) {
+void EmulatedTURNServer::Unbind(SocketAddress address) {
   RTC_DCHECK_RUN_ON(thread_.get());
   if (GetClientEndpoint()->GetPeerLocalAddress() == address.ipaddr()) {
     GetClientEndpoint()->UnbindReceiver(address.port());

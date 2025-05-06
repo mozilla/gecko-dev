@@ -27,8 +27,8 @@
 namespace cricket {
 
 namespace {
-const rtc::SocketAddress server_addr("99.99.99.1", 3478);
-const rtc::SocketAddress client_addr("1.2.3.4", 1234);
+const webrtc::SocketAddress server_addr("99.99.99.1", 3478);
+const webrtc::SocketAddress client_addr("1.2.3.4", 1234);
 }  // namespace
 
 class StunServerTest : public ::testing::Test {

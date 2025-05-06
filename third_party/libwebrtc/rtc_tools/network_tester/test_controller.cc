@@ -44,7 +44,7 @@ TestController::TestController(int min_port,
     RTC_DCHECK_RUN_ON(packet_sender_thread_.get());
     udp_socket_ =
         std::unique_ptr<rtc::AsyncPacketSocket>(socket_factory_.CreateUdpSocket(
-            rtc::SocketAddress(GetAnyIP(AF_INET), 0), min_port, max_port));
+            SocketAddress(GetAnyIP(AF_INET), 0), min_port, max_port));
     RTC_CHECK(udp_socket_ != nullptr);
     udp_socket_->RegisterReceivedPacketCallback(
         [&](rtc::AsyncPacketSocket* socket, const rtc::ReceivedPacket& packet) {
@@ -61,7 +61,7 @@ TestController::~TestController() {
 
 void TestController::SendConnectTo(const std::string& hostname, int port) {
   RTC_DCHECK_RUN_ON(&test_controller_thread_checker_);
-  remote_address_ = rtc::SocketAddress(hostname, port);
+  remote_address_ = SocketAddress(hostname, port);
   NetworkTesterPacket packet;
   packet.set_type(NetworkTesterPacket::HAND_SHAKING);
   SendData(packet, std::nullopt);

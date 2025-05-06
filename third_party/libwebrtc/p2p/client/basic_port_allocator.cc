@@ -1292,7 +1292,7 @@ AllocationSequence::AllocationSequence(
 void AllocationSequence::Init() {
   if (IsFlagSet(PORTALLOCATOR_ENABLE_SHARED_SOCKET)) {
     udp_socket_.reset(session_->socket_factory()->CreateUdpSocket(
-        rtc::SocketAddress(network_->GetBestIP(), 0),
+        webrtc::SocketAddress(network_->GetBestIP(), 0),
         session_->allocator()->min_port(), session_->allocator()->max_port()));
     if (udp_socket_) {
       udp_socket_->RegisterReceivedPacketCallback(

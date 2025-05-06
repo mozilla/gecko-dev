@@ -28,19 +28,21 @@ class AsyncSocketAdapter : public Socket, public sigslot::has_slots<> {
   // TODO(bugs.webrtc.org/6424): Change to unique_ptr here and in callers.
   explicit AsyncSocketAdapter(Socket* socket);
 
-  SocketAddress GetLocalAddress() const override;
-  SocketAddress GetRemoteAddress() const override;
-  int Bind(const SocketAddress& addr) override;
-  int Connect(const SocketAddress& addr) override;
+  webrtc::SocketAddress GetLocalAddress() const override;
+  webrtc::SocketAddress GetRemoteAddress() const override;
+  int Bind(const webrtc::SocketAddress& addr) override;
+  int Connect(const webrtc::SocketAddress& addr) override;
   int Send(const void* pv, size_t cb) override;
-  int SendTo(const void* pv, size_t cb, const SocketAddress& addr) override;
+  int SendTo(const void* pv,
+             size_t cb,
+             const webrtc::SocketAddress& addr) override;
   int Recv(void* pv, size_t cb, int64_t* timestamp) override;
   int RecvFrom(void* pv,
                size_t cb,
-               SocketAddress* paddr,
+               webrtc::SocketAddress* paddr,
                int64_t* timestamp) override;
   int Listen(int backlog) override;
-  Socket* Accept(SocketAddress* paddr) override;
+  Socket* Accept(webrtc::SocketAddress* paddr) override;
   int Close() override;
   int GetError() const override;
   void SetError(int error) override;

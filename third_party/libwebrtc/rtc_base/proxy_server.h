@@ -43,7 +43,7 @@ class ProxyBinding : public sigslot::has_slots<> {
 
  private:
   void OnConnectRequest(AsyncProxyServerSocket* socket,
-                        const SocketAddress& addr);
+                        const webrtc::SocketAddress& addr);
   void OnInternalRead(Socket* socket);
   void OnInternalWrite(Socket* socket);
   void OnInternalClose(Socket* socket, int err);
@@ -67,16 +67,16 @@ class ProxyBinding : public sigslot::has_slots<> {
 class ProxyServer : public sigslot::has_slots<> {
  public:
   ProxyServer(SocketFactory* int_factory,
-              const SocketAddress& int_addr,
+              const webrtc::SocketAddress& int_addr,
               SocketFactory* ext_factory,
-              const SocketAddress& ext_ip);
+              const webrtc::SocketAddress& ext_ip);
   ~ProxyServer() override;
 
   ProxyServer(const ProxyServer&) = delete;
   ProxyServer& operator=(const ProxyServer&) = delete;
 
   // Returns the address to which the proxy server is bound
-  SocketAddress GetServerAddress();
+  webrtc::SocketAddress GetServerAddress();
 
  protected:
   void OnAcceptEvent(Socket* socket);
@@ -84,7 +84,7 @@ class ProxyServer : public sigslot::has_slots<> {
 
  private:
   SocketFactory* ext_factory_;
-  SocketAddress ext_ip_;
+  webrtc::SocketAddress ext_ip_;
   std::unique_ptr<Socket> server_socket_;
   std::vector<std::unique_ptr<ProxyBinding>> bindings_;
 };

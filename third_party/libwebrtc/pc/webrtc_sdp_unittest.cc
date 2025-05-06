@@ -973,7 +973,7 @@ class WebRtcSdpTest : public ::testing::Test {
     audio_stream.set_stream_ids({kStreamId1});
     audio_stream.ssrcs.push_back(kAudioTrack1Ssrc);
     audio_desc_->AddStream(audio_stream);
-    rtc::SocketAddress audio_addr("74.125.127.126", 2345);
+    webrtc::SocketAddress audio_addr("74.125.127.126", 2345);
     audio_desc_->set_connection_address(audio_addr);
     desc_.AddContent(kAudioContentName, MediaProtocolType::kRtp,
                      absl::WrapUnique(audio_desc_));
@@ -989,7 +989,7 @@ class WebRtcSdpTest : public ::testing::Test {
     cricket::SsrcGroup ssrc_group(kFecSsrcGroupSemantics, video_stream.ssrcs);
     video_stream.ssrc_groups.push_back(ssrc_group);
     video_desc_->AddStream(video_stream);
-    rtc::SocketAddress video_addr("74.125.224.39", 3457);
+    webrtc::SocketAddress video_addr("74.125.224.39", 3457);
     video_desc_->set_connection_address(video_addr);
     desc_.AddContent(kVideoContentName, MediaProtocolType::kRtp,
                      absl::WrapUnique(video_desc_));
@@ -1003,7 +1003,7 @@ class WebRtcSdpTest : public ::testing::Test {
 
     // v4 host
     int port = 1234;
-    rtc::SocketAddress address("192.168.1.5", port++);
+    webrtc::SocketAddress address("192.168.1.5", port++);
     Candidate candidate1(ICE_CANDIDATE_COMPONENT_RTP, "udp", address,
                          kCandidatePriority, "", "", IceCandidateType::kHost,
                          kCandidateGeneration, kCandidateFoundation1);
@@ -1021,7 +1021,7 @@ class WebRtcSdpTest : public ::testing::Test {
                          kCandidateGeneration, kCandidateFoundation1);
 
     // v6 host
-    rtc::SocketAddress v6_address("::1", port++);
+    webrtc::SocketAddress v6_address("::1", port++);
     cricket::Candidate candidate5(cricket::ICE_CANDIDATE_COMPONENT_RTP, "udp",
                                   v6_address, kCandidatePriority, "", "",
                                   IceCandidateType::kHost, kCandidateGeneration,
@@ -1044,8 +1044,8 @@ class WebRtcSdpTest : public ::testing::Test {
 
     // stun
     int port_stun = 2345;
-    rtc::SocketAddress address_stun("74.125.127.126", port_stun++);
-    rtc::SocketAddress rel_address_stun("192.168.1.5", port_stun++);
+    webrtc::SocketAddress address_stun("74.125.127.126", port_stun++);
+    webrtc::SocketAddress rel_address_stun("192.168.1.5", port_stun++);
     cricket::Candidate candidate9(cricket::ICE_CANDIDATE_COMPONENT_RTP, "udp",
                                   address_stun, kCandidatePriority, "", "",
                                   IceCandidateType::kSrflx,
@@ -1062,7 +1062,7 @@ class WebRtcSdpTest : public ::testing::Test {
 
     // relay
     int port_relay = 3456;
-    rtc::SocketAddress address_relay("74.125.224.39", port_relay++);
+    webrtc::SocketAddress address_relay("74.125.224.39", port_relay++);
     cricket::Candidate candidate11(cricket::ICE_CANDIDATE_COMPONENT_RTCP, "udp",
                                    address_relay, kCandidatePriority, "", "",
                                    IceCandidateType::kRelay,
@@ -1972,8 +1972,8 @@ class WebRtcSdpTest : public ::testing::Test {
   // 'connection address' field, previously set from the candidates, must also
   // be reset.
   void MakeDescriptionWithoutCandidates(JsepSessionDescription* jdesc) {
-    rtc::SocketAddress audio_addr("0.0.0.0", 9);
-    rtc::SocketAddress video_addr("0.0.0.0", 9);
+    webrtc::SocketAddress audio_addr("0.0.0.0", 9);
+    webrtc::SocketAddress video_addr("0.0.0.0", 9);
     audio_desc_->set_connection_address(audio_addr);
     video_desc_->set_connection_address(video_addr);
     ASSERT_TRUE(jdesc->Initialize(desc_.Clone(), kSessionId, kSessionVersion));
@@ -2233,7 +2233,7 @@ TEST_F(WebRtcSdpTest, SerializeCandidates) {
 }
 
 TEST_F(WebRtcSdpTest, SerializeHostnameCandidate) {
-  rtc::SocketAddress address("a.test", 1234);
+  webrtc::SocketAddress address("a.test", 1234);
   cricket::Candidate candidate(cricket::ICE_CANDIDATE_COMPONENT_RTP, "udp",
                                address, kCandidatePriority, "", "",
                                IceCandidateType::kHost, kCandidateGeneration,
@@ -2245,9 +2245,9 @@ TEST_F(WebRtcSdpTest, SerializeHostnameCandidate) {
 
 TEST_F(WebRtcSdpTest, SerializeTcpCandidates) {
   Candidate candidate(ICE_CANDIDATE_COMPONENT_RTP, "tcp",
-                      rtc::SocketAddress("192.168.1.5", 9), kCandidatePriority,
-                      "", "", IceCandidateType::kHost, kCandidateGeneration,
-                      kCandidateFoundation1);
+                      webrtc::SocketAddress("192.168.1.5", 9),
+                      kCandidatePriority, "", "", IceCandidateType::kHost,
+                      kCandidateGeneration, kCandidateFoundation1);
   candidate.set_tcptype(cricket::TCPTYPE_ACTIVE_STR);
   std::unique_ptr<IceCandidateInterface> jcandidate(
       new JsepIceCandidate(std::string("audio_content_name"), 0, candidate));
@@ -2651,9 +2651,9 @@ TEST_F(WebRtcSdpTest, DeserializeCandidate) {
   EXPECT_TRUE(SdpDeserializeCandidate(sdp, &jcandidate));
   // Make a cricket::Candidate equivalent to kSdpTcpCandidate string.
   Candidate candidate(ICE_CANDIDATE_COMPONENT_RTP, "tcp",
-                      rtc::SocketAddress("192.168.1.5", 9), kCandidatePriority,
-                      "", "", IceCandidateType::kHost, kCandidateGeneration,
-                      kCandidateFoundation1);
+                      webrtc::SocketAddress("192.168.1.5", 9),
+                      kCandidatePriority, "", "", IceCandidateType::kHost,
+                      kCandidateGeneration, kCandidateFoundation1);
   std::unique_ptr<IceCandidateInterface> jcandidate_template(
       new JsepIceCandidate(std::string("audio_content_name"), 0, candidate));
   EXPECT_TRUE(

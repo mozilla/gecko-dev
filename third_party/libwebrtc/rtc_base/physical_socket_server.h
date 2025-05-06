@@ -165,11 +165,11 @@ class PhysicalSocket : public Socket, public sigslot::has_slots<> {
   // Creates the underlying OS socket (same as the "socket" function).
   virtual bool Create(int family, int type);
 
-  SocketAddress GetLocalAddress() const override;
-  SocketAddress GetRemoteAddress() const override;
+  webrtc::SocketAddress GetLocalAddress() const override;
+  webrtc::SocketAddress GetRemoteAddress() const override;
 
-  int Bind(const SocketAddress& bind_addr) override;
-  int Connect(const SocketAddress& addr) override;
+  int Bind(const webrtc::SocketAddress& bind_addr) override;
+  int Connect(const webrtc::SocketAddress& addr) override;
 
   int GetError() const override;
   void SetError(int error) override;
@@ -182,18 +182,18 @@ class PhysicalSocket : public Socket, public sigslot::has_slots<> {
   int Send(const void* pv, size_t cb) override;
   int SendTo(const void* buffer,
              size_t length,
-             const SocketAddress& addr) override;
+             const webrtc::SocketAddress& addr) override;
 
   int Recv(void* buffer, size_t length, int64_t* timestamp) override;
   // TODO(webrtc:15368): Deprecate and remove.
   int RecvFrom(void* buffer,
                size_t length,
-               SocketAddress* out_addr,
+               webrtc::SocketAddress* out_addr,
                int64_t* timestamp) override;
   int RecvFrom(ReceiveBuffer& buffer) override;
 
   int Listen(int backlog) override;
-  Socket* Accept(SocketAddress* out_addr) override;
+  Socket* Accept(webrtc::SocketAddress* out_addr) override;
 
   int Close() override;
 
@@ -202,7 +202,7 @@ class PhysicalSocket : public Socket, public sigslot::has_slots<> {
   SOCKET GetSocketFD() const { return s_; }
 
  protected:
-  int DoConnect(const SocketAddress& connect_addr);
+  int DoConnect(const webrtc::SocketAddress& connect_addr);
 
   // Make virtual so ::accept can be overwritten in tests.
   virtual SOCKET DoAccept(SOCKET socket, sockaddr* addr, socklen_t* addrlen);
@@ -220,7 +220,7 @@ class PhysicalSocket : public Socket, public sigslot::has_slots<> {
 
   int DoReadFromSocket(void* buffer,
                        size_t length,
-                       SocketAddress* out_addr,
+                       webrtc::SocketAddress* out_addr,
                        int64_t* timestamp,
                        EcnMarking* ecn);
 

@@ -473,7 +473,7 @@ TEST_F(PeerConnectionFactoryTest, CreatePCUsingIceServers) {
       factory_->CreatePeerConnectionOrError(config, std::move(pc_dependencies));
   ASSERT_TRUE(result.ok());
   cricket::ServerAddresses stun_servers;
-  rtc::SocketAddress stun1("stun.l.google.com", 19302);
+  SocketAddress stun1("stun.l.google.com", 19302);
   stun_servers.insert(stun1);
   VerifyStunServers(stun_servers);
   std::vector<cricket::RelayServerConfig> turn_servers;
@@ -506,7 +506,7 @@ TEST_F(PeerConnectionFactoryTest, CreatePCUsingIceServersUrls) {
       factory_->CreatePeerConnectionOrError(config, std::move(pc_dependencies));
   ASSERT_TRUE(result.ok());
   cricket::ServerAddresses stun_servers;
-  rtc::SocketAddress stun1("stun.l.google.com", 19302);
+  SocketAddress stun1("stun.l.google.com", 19302);
   stun_servers.insert(stun1);
   VerifyStunServers(stun_servers);
   std::vector<cricket::RelayServerConfig> turn_servers;
@@ -630,13 +630,13 @@ TEST_F(PeerConnectionFactoryTest, CreatePCUsingIPLiteralAddress) {
       factory_->CreatePeerConnectionOrError(config, std::move(pc_dependencies));
   ASSERT_TRUE(result.ok());
   cricket::ServerAddresses stun_servers;
-  rtc::SocketAddress stun1("1.2.3.4", 1234);
+  SocketAddress stun1("1.2.3.4", 1234);
   stun_servers.insert(stun1);
-  rtc::SocketAddress stun2("1.2.3.4", 3478);
+  SocketAddress stun2("1.2.3.4", 3478);
   stun_servers.insert(stun2);  // Default port
-  rtc::SocketAddress stun3("2401:fa00:4::", 1234);
+  SocketAddress stun3("2401:fa00:4::", 1234);
   stun_servers.insert(stun3);
-  rtc::SocketAddress stun4("2401:fa00:4::", 3478);
+  SocketAddress stun4("2401:fa00:4::", 3478);
   stun_servers.insert(stun4);  // Default port
   VerifyStunServers(stun_servers);
 

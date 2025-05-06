@@ -69,7 +69,7 @@ class AsyncSSLSocket : public BufferedReadAdapter {
   AsyncSSLSocket(const AsyncSSLSocket&) = delete;
   AsyncSSLSocket& operator=(const AsyncSSLSocket&) = delete;
 
-  int Connect(const SocketAddress& addr) override;
+  int Connect(const webrtc::SocketAddress& addr) override;
 
  protected:
   void OnConnectEvent(Socket* socket) override;

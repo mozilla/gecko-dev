@@ -190,14 +190,14 @@ bool PhysicalSocket::Create(int family, int type) {
   return s_ != INVALID_SOCKET;
 }
 
-SocketAddress PhysicalSocket::GetLocalAddress() const {
+webrtc::SocketAddress PhysicalSocket::GetLocalAddress() const {
   sockaddr_storage addr_storage = {};
   socklen_t addrlen = sizeof(addr_storage);
   sockaddr* addr = reinterpret_cast<sockaddr*>(&addr_storage);
   int result = ::getsockname(s_, addr, &addrlen);
-  SocketAddress address;
+  webrtc::SocketAddress address;
   if (result >= 0) {
-    SocketAddressFromSockAddrStorage(addr_storage, &address);
+    webrtc::SocketAddressFromSockAddrStorage(addr_storage, &address);
   } else {
     RTC_LOG(LS_WARNING) << "GetLocalAddress: unable to get local addr, socket="
                         << s_;
@@ -205,14 +205,14 @@ SocketAddress PhysicalSocket::GetLocalAddress() const {
   return address;
 }
 
-SocketAddress PhysicalSocket::GetRemoteAddress() const {
+webrtc::SocketAddress PhysicalSocket::GetRemoteAddress() const {
   sockaddr_storage addr_storage = {};
   socklen_t addrlen = sizeof(addr_storage);
   sockaddr* addr = reinterpret_cast<sockaddr*>(&addr_storage);
   int result = ::getpeername(s_, addr, &addrlen);
-  SocketAddress address;
+  webrtc::SocketAddress address;
   if (result >= 0) {
-    SocketAddressFromSockAddrStorage(addr_storage, &address);
+    webrtc::SocketAddressFromSockAddrStorage(addr_storage, &address);
   } else {
     RTC_LOG(LS_WARNING)
         << "GetRemoteAddress: unable to get remote addr, socket=" << s_;
@@ -220,8 +220,8 @@ SocketAddress PhysicalSocket::GetRemoteAddress() const {
   return address;
 }
 
-int PhysicalSocket::Bind(const SocketAddress& bind_addr) {
-  SocketAddress copied_bind_addr = bind_addr;
+int PhysicalSocket::Bind(const webrtc::SocketAddress& bind_addr) {
+  webrtc::SocketAddress copied_bind_addr = bind_addr;
   // If a network binder is available, use it to bind a socket to an interface
   // instead of bind(), since this is more reliable on an OS with a weak host
   // model.
@@ -268,7 +268,7 @@ int PhysicalSocket::Bind(const SocketAddress& bind_addr) {
   return err;
 }
 
-int PhysicalSocket::Connect(const SocketAddress& addr) {
+int PhysicalSocket::Connect(const webrtc::SocketAddress& addr) {
   // TODO(pthatcher): Implicit creation is required to reconnect...
   // ...but should we make it more explicit?
   if (state_ != CS_CLOSED) {
@@ -286,7 +286,7 @@ int PhysicalSocket::Connect(const SocketAddress& addr) {
   return DoConnect(addr);
 }
 
-int PhysicalSocket::DoConnect(const SocketAddress& connect_addr) {
+int PhysicalSocket::DoConnect(const webrtc::SocketAddress& connect_addr) {
   if ((s_ == INVALID_SOCKET) && !Create(connect_addr.family(), SOCK_STREAM)) {
     return SOCKET_ERROR;
   }
@@ -418,7 +418,7 @@ int PhysicalSocket::Send(const void* pv, size_t cb) {
 
 int PhysicalSocket::SendTo(const void* buffer,
                            size_t length,
-                           const SocketAddress& addr) {
+                           const webrtc::SocketAddress& addr) {
   sockaddr_storage saddr;
   size_t len = addr.ToSockAddrStorage(&saddr);
   int sent =
@@ -470,7 +470,7 @@ int PhysicalSocket::Recv(void* buffer, size_t length, int64_t* timestamp) {
 
 int PhysicalSocket::RecvFrom(void* buffer,
                              size_t length,
-                             SocketAddress* out_addr,
+                             webrtc::SocketAddress* out_addr,
                              int64_t* timestamp) {
   int received = DoReadFromSocket(buffer, length, out_addr, timestamp, nullptr);
 
@@ -512,7 +512,7 @@ int PhysicalSocket::RecvFrom(ReceiveBuffer& buffer) {
 
 int PhysicalSocket::DoReadFromSocket(void* buffer,
                                      size_t length,
-                                     SocketAddress* out_addr,
+                                     webrtc::SocketAddress* out_addr,
                                      int64_t* timestamp,
                                      EcnMarking* ecn) {
   sockaddr_storage addr_storage;
@@ -563,7 +563,7 @@ int PhysicalSocket::DoReadFromSocket(void* buffer,
     }
   }
   if (out_addr) {
-    SocketAddressFromSockAddrStorage(addr_storage, out_addr);
+    webrtc::SocketAddressFromSockAddrStorage(addr_storage, out_addr);
   }
   return received;
 
@@ -598,7 +598,7 @@ int PhysicalSocket::Listen(int backlog) {
   return err;
 }
 
-Socket* PhysicalSocket::Accept(SocketAddress* out_addr) {
+Socket* PhysicalSocket::Accept(webrtc::SocketAddress* out_addr) {
   // Always re-subscribe DE_ACCEPT to make sure new incoming connections will
   // trigger an event even if DoAccept returns an error here.
   EnableEvents(DE_ACCEPT);
@@ -610,7 +610,7 @@ Socket* PhysicalSocket::Accept(SocketAddress* out_addr) {
   if (s == INVALID_SOCKET)
     return nullptr;
   if (out_addr != nullptr)
-    SocketAddressFromSockAddrStorage(addr_storage, out_addr);
+    webrtc::SocketAddressFromSockAddrStorage(addr_storage, out_addr);
   return ss_->WrapSocket(s);
 }
 
@@ -651,7 +651,7 @@ void PhysicalSocket::OnResolveResult(
     const webrtc::AsyncDnsResolverResult& result) {
   int error = result.GetError();
   if (error == 0) {
-    SocketAddress address;
+    webrtc::SocketAddress address;
     if (result.GetResolvedAddress(AF_INET, &address)) {
       error = DoConnect(address);
     } else {

@@ -262,7 +262,7 @@ bool IsUnspecOrEmptyIP(const webrtc::IPAddress& address) {
 
 void SocketTest::ConnectInternal(const webrtc::IPAddress& loopback) {
   StreamSink sink;
-  SocketAddress accept_addr;
+  webrtc::SocketAddress accept_addr;
 
   // Create client.
   std::unique_ptr<Socket> client(
@@ -275,7 +275,7 @@ void SocketTest::ConnectInternal(const webrtc::IPAddress& loopback) {
   std::unique_ptr<Socket> server(
       socket_factory_->CreateSocket(loopback.family(), SOCK_STREAM));
   sink.Monitor(server.get());
-  EXPECT_EQ(0, server->Bind(SocketAddress(loopback, 0)));
+  EXPECT_EQ(0, server->Bind(webrtc::SocketAddress(loopback, 0)));
   EXPECT_EQ(0, server->Listen(5));
   EXPECT_EQ(Socket::CS_CONNECTING, server->GetState());
 
@@ -322,7 +322,7 @@ void SocketTest::ConnectInternal(const webrtc::IPAddress& loopback) {
 void SocketTest::ConnectWithDnsLookupInternal(const webrtc::IPAddress& loopback,
                                               absl::string_view host) {
   StreamSink sink;
-  SocketAddress accept_addr;
+  webrtc::SocketAddress accept_addr;
 
   // Create client.
   std::unique_ptr<Socket> client(
@@ -333,11 +333,11 @@ void SocketTest::ConnectWithDnsLookupInternal(const webrtc::IPAddress& loopback,
   std::unique_ptr<Socket> server(
       socket_factory_->CreateSocket(loopback.family(), SOCK_STREAM));
   sink.Monitor(server.get());
-  EXPECT_EQ(0, server->Bind(SocketAddress(loopback, 0)));
+  EXPECT_EQ(0, server->Bind(webrtc::SocketAddress(loopback, 0)));
   EXPECT_EQ(0, server->Listen(5));
 
   // Attempt connect to listening socket.
-  SocketAddress dns_addr(server->GetLocalAddress());
+  webrtc::SocketAddress dns_addr(server->GetLocalAddress());
   dns_addr.SetIP(host);
   EXPECT_EQ(0, client->Connect(dns_addr));
   // TODO: Bind when doing DNS lookup.
@@ -375,7 +375,7 @@ void SocketTest::ConnectWithDnsLookupInternal(const webrtc::IPAddress& loopback,
 
 void SocketTest::ConnectFailInternal(const webrtc::IPAddress& loopback) {
   StreamSink sink;
-  SocketAddress accept_addr;
+  webrtc::SocketAddress accept_addr;
 
   // Create client.
   std::unique_ptr<Socket> client(
@@ -386,12 +386,12 @@ void SocketTest::ConnectFailInternal(const webrtc::IPAddress& loopback) {
   std::unique_ptr<Socket> server(
       socket_factory_->CreateSocket(loopback.family(), SOCK_STREAM));
   sink.Monitor(server.get());
-  EXPECT_EQ(0, server->Bind(SocketAddress(loopback, 0)));
+  EXPECT_EQ(0, server->Bind(webrtc::SocketAddress(loopback, 0)));
 
   // Attempt connect to a non-existent socket.
   // We don't connect to the server socket created above, since on
   // MacOS it takes about 75 seconds to get back an error!
-  SocketAddress bogus_addr(loopback, 65535);
+  webrtc::SocketAddress bogus_addr(loopback, 65535);
   EXPECT_EQ(0, client->Connect(bogus_addr));
 
   // Wait for connection to fail (ECONNREFUSED).
@@ -411,7 +411,7 @@ void SocketTest::ConnectFailInternal(const webrtc::IPAddress& loopback) {
 void SocketTest::ConnectWithDnsLookupFailInternal(
     const webrtc::IPAddress& loopback) {
   StreamSink sink;
-  SocketAddress accept_addr;
+  webrtc::SocketAddress accept_addr;
 
   // Create client.
   std::unique_ptr<Socket> client(
@@ -422,12 +422,12 @@ void SocketTest::ConnectWithDnsLookupFailInternal(
   std::unique_ptr<Socket> server(
       socket_factory_->CreateSocket(loopback.family(), SOCK_STREAM));
   sink.Monitor(server.get());
-  EXPECT_EQ(0, server->Bind(SocketAddress(loopback, 0)));
+  EXPECT_EQ(0, server->Bind(webrtc::SocketAddress(loopback, 0)));
 
   // Attempt connect to a non-existent host.
   // We don't connect to the server socket created above, since on
   // MacOS it takes about 75 seconds to get back an error!
-  SocketAddress bogus_dns_addr("not-a-real-hostname", 65535);
+  webrtc::SocketAddress bogus_dns_addr("not-a-real-hostname", 65535);
   EXPECT_EQ(0, client->Connect(bogus_dns_addr));
 
   // Wait for connection to fail (EHOSTNOTFOUND).
@@ -456,7 +456,7 @@ void SocketTest::ConnectWithClosedSocketInternal(
   // Create server and listen.
   std::unique_ptr<Socket> server(
       socket_factory_->CreateSocket(loopback.family(), SOCK_STREAM));
-  EXPECT_EQ(0, server->Bind(SocketAddress(loopback, 0)));
+  EXPECT_EQ(0, server->Bind(webrtc::SocketAddress(loopback, 0)));
   EXPECT_EQ(0, server->Listen(5));
 
   // Create a client and put in to CS_CLOSED state.
@@ -466,7 +466,8 @@ void SocketTest::ConnectWithClosedSocketInternal(
   EXPECT_EQ(Socket::CS_CLOSED, client->GetState());
 
   // Connect() should reinitialize the socket, and put it in to CS_CONNECTING.
-  EXPECT_EQ(0, client->Connect(SocketAddress(server->GetLocalAddress())));
+  EXPECT_EQ(0,
+            client->Connect(webrtc::SocketAddress(server->GetLocalAddress())));
   EXPECT_EQ(Socket::CS_CONNECTING, client->GetState());
 }
 
@@ -477,19 +478,20 @@ void SocketTest::ConnectWhileNotClosedInternal(
   std::unique_ptr<Socket> server(
       socket_factory_->CreateSocket(loopback.family(), SOCK_STREAM));
   sink.Monitor(server.get());
-  EXPECT_EQ(0, server->Bind(SocketAddress(loopback, 0)));
+  EXPECT_EQ(0, server->Bind(webrtc::SocketAddress(loopback, 0)));
   EXPECT_EQ(0, server->Listen(5));
   // Create client, connect.
   std::unique_ptr<Socket> client(
       socket_factory_->CreateSocket(loopback.family(), SOCK_STREAM));
-  EXPECT_EQ(0, client->Connect(SocketAddress(server->GetLocalAddress())));
+  EXPECT_EQ(0,
+            client->Connect(webrtc::SocketAddress(server->GetLocalAddress())));
   EXPECT_EQ(Socket::CS_CONNECTING, client->GetState());
   // Try to connect again. Should fail, but not interfere with original attempt.
   EXPECT_EQ(SOCKET_ERROR,
-            client->Connect(SocketAddress(server->GetLocalAddress())));
+            client->Connect(webrtc::SocketAddress(server->GetLocalAddress())));
 
   // Accept the original connection.
-  SocketAddress accept_addr;
+  webrtc::SocketAddress accept_addr;
   EXPECT_THAT(
       webrtc::WaitUntil([&] { return (sink.Check(server.get(), SSE_READ)); },
                         ::testing::IsTrue()),
@@ -510,7 +512,7 @@ void SocketTest::ConnectWhileNotClosedInternal(
 
   // Try to connect again, to an unresolved hostname.
   // Shouldn't break anything.
-  EXPECT_EQ(SOCKET_ERROR, client->Connect(SocketAddress(
+  EXPECT_EQ(SOCKET_ERROR, client->Connect(webrtc::SocketAddress(
                               "localhost", server->GetLocalAddress().port())));
   EXPECT_EQ(Socket::CS_CONNECTED, accepted->GetState());
   EXPECT_EQ(Socket::CS_CONNECTED, client->GetState());
@@ -531,7 +533,7 @@ void SocketTest::ServerCloseDuringConnectInternal(
   std::unique_ptr<Socket> server(
       socket_factory_->CreateSocket(loopback.family(), SOCK_STREAM));
   sink.Monitor(server.get());
-  EXPECT_EQ(0, server->Bind(SocketAddress(loopback, 0)));
+  EXPECT_EQ(0, server->Bind(webrtc::SocketAddress(loopback, 0)));
   EXPECT_EQ(0, server->Listen(5));
 
   // Attempt connect to listening socket.
@@ -555,7 +557,7 @@ void SocketTest::ServerCloseDuringConnectInternal(
 void SocketTest::ClientCloseDuringConnectInternal(
     const webrtc::IPAddress& loopback) {
   StreamSink sink;
-  SocketAddress accept_addr;
+  webrtc::SocketAddress accept_addr;
 
   // Create client.
   std::unique_ptr<Socket> client(
@@ -566,7 +568,7 @@ void SocketTest::ClientCloseDuringConnectInternal(
   std::unique_ptr<Socket> server(
       socket_factory_->CreateSocket(loopback.family(), SOCK_STREAM));
   sink.Monitor(server.get());
-  EXPECT_EQ(0, server->Bind(SocketAddress(loopback, 0)));
+  EXPECT_EQ(0, server->Bind(webrtc::SocketAddress(loopback, 0)));
   EXPECT_EQ(0, server->Listen(5));
 
   // Attempt connect to listening socket.
@@ -598,7 +600,7 @@ void SocketTest::ClientCloseDuringConnectInternal(
 
 void SocketTest::ServerCloseInternal(const webrtc::IPAddress& loopback) {
   StreamSink sink;
-  SocketAddress accept_addr;
+  webrtc::SocketAddress accept_addr;
 
   // Create client.
   std::unique_ptr<Socket> client(
@@ -609,7 +611,7 @@ void SocketTest::ServerCloseInternal(const webrtc::IPAddress& loopback) {
   std::unique_ptr<Socket> server(
       socket_factory_->CreateSocket(loopback.family(), SOCK_STREAM));
   sink.Monitor(server.get());
-  EXPECT_EQ(0, server->Bind(SocketAddress(loopback, 0)));
+  EXPECT_EQ(0, server->Bind(webrtc::SocketAddress(loopback, 0)));
   EXPECT_EQ(0, server->Listen(5));
 
   // Attempt connection.
@@ -683,7 +685,7 @@ void SocketTest::CloseInClosedCallbackInternal(
     const webrtc::IPAddress& loopback) {
   StreamSink sink;
   SocketCloser closer;
-  SocketAddress accept_addr;
+  webrtc::SocketAddress accept_addr;
 
   // Create client.
   std::unique_ptr<Socket> client(
@@ -695,7 +697,7 @@ void SocketTest::CloseInClosedCallbackInternal(
   std::unique_ptr<Socket> server(
       socket_factory_->CreateSocket(loopback.family(), SOCK_STREAM));
   sink.Monitor(server.get());
-  EXPECT_EQ(0, server->Bind(SocketAddress(loopback, 0)));
+  EXPECT_EQ(0, server->Bind(webrtc::SocketAddress(loopback, 0)));
   EXPECT_EQ(0, server->Listen(5));
 
   // Attempt connection.
@@ -757,8 +759,8 @@ void SocketTest::DeleteInReadCallbackInternal(
       socket_factory_->CreateSocket(loopback.family(), SOCK_DGRAM));
   std::unique_ptr<Socket> socket2(
       socket_factory_->CreateSocket(loopback.family(), SOCK_DGRAM));
-  EXPECT_EQ(0, socket1->Bind(SocketAddress(loopback, 0)));
-  EXPECT_EQ(0, socket2->Bind(SocketAddress(loopback, 0)));
+  EXPECT_EQ(0, socket1->Bind(webrtc::SocketAddress(loopback, 0)));
+  EXPECT_EQ(0, socket2->Bind(webrtc::SocketAddress(loopback, 0)));
   EXPECT_EQ(3, socket1->SendTo("foo", 3, socket1->GetLocalAddress()));
   EXPECT_EQ(3, socket2->SendTo("bar", 3, socket1->GetLocalAddress()));
   // Sleep a while to ensure sends are both completed at the same time.
@@ -775,7 +777,7 @@ void SocketTest::DeleteInReadCallbackInternal(
 
 void SocketTest::SocketServerWaitInternal(const webrtc::IPAddress& loopback) {
   StreamSink sink;
-  SocketAddress accept_addr;
+  webrtc::SocketAddress accept_addr;
 
   // Create & connect server and client sockets.
   std::unique_ptr<Socket> client(
@@ -784,7 +786,7 @@ void SocketTest::SocketServerWaitInternal(const webrtc::IPAddress& loopback) {
       socket_factory_->CreateSocket(loopback.family(), SOCK_STREAM));
   sink.Monitor(client.get());
   sink.Monitor(server.get());
-  EXPECT_EQ(0, server->Bind(SocketAddress(loopback, 0)));
+  EXPECT_EQ(0, server->Bind(webrtc::SocketAddress(loopback, 0)));
   EXPECT_EQ(0, server->Listen(5));
 
   EXPECT_EQ(0, client->Connect(server->GetLocalAddress()));
@@ -833,7 +835,7 @@ void SocketTest::TcpInternal(const webrtc::IPAddress& loopback,
                              size_t data_size,
                              ptrdiff_t max_send_size) {
   StreamSink sink;
-  SocketAddress accept_addr;
+  webrtc::SocketAddress accept_addr;
 
   // Create receiving client.
   std::unique_ptr<Socket> receiver(
@@ -844,7 +846,7 @@ void SocketTest::TcpInternal(const webrtc::IPAddress& loopback,
   std::unique_ptr<Socket> server(
       socket_factory_->CreateSocket(loopback.family(), SOCK_STREAM));
   sink.Monitor(server.get());
-  EXPECT_EQ(0, server->Bind(SocketAddress(loopback, 0)));
+  EXPECT_EQ(0, server->Bind(webrtc::SocketAddress(loopback, 0)));
   EXPECT_EQ(0, server->Listen(5));
 
   // Attempt connection.
@@ -973,7 +975,7 @@ void SocketTest::TcpInternal(const webrtc::IPAddress& loopback,
 void SocketTest::SingleFlowControlCallbackInternal(
     const webrtc::IPAddress& loopback) {
   StreamSink sink;
-  SocketAddress accept_addr;
+  webrtc::SocketAddress accept_addr;
 
   // Create client.
   std::unique_ptr<Socket> client(
@@ -984,7 +986,7 @@ void SocketTest::SingleFlowControlCallbackInternal(
   std::unique_ptr<Socket> server(
       socket_factory_->CreateSocket(loopback.family(), SOCK_STREAM));
   sink.Monitor(server.get());
-  EXPECT_EQ(0, server->Bind(SocketAddress(loopback, 0)));
+  EXPECT_EQ(0, server->Bind(webrtc::SocketAddress(loopback, 0)));
   EXPECT_EQ(0, server->Listen(5));
 
   // Attempt connection.
@@ -1055,12 +1057,13 @@ void SocketTest::SingleFlowControlCallbackInternal(
 }
 
 void SocketTest::UdpInternal(const webrtc::IPAddress& loopback) {
-  SocketAddress empty = EmptySocketAddressWithFamily(loopback.family());
+  webrtc::SocketAddress empty =
+      webrtc::EmptySocketAddressWithFamily(loopback.family());
   // Test basic bind and connect behavior.
   Socket* socket = socket_factory_->CreateSocket(loopback.family(), SOCK_DGRAM);
   EXPECT_EQ(Socket::CS_CLOSED, socket->GetState());
-  EXPECT_EQ(0, socket->Bind(SocketAddress(loopback, 0)));
-  SocketAddress addr1 = socket->GetLocalAddress();
+  EXPECT_EQ(0, socket->Bind(webrtc::SocketAddress(loopback, 0)));
+  webrtc::SocketAddress addr1 = socket->GetLocalAddress();
   EXPECT_EQ(0, socket->Connect(addr1));
   EXPECT_EQ(Socket::CS_CONNECTED, socket->GetState());
   socket->Close();
@@ -1073,11 +1076,11 @@ void SocketTest::UdpInternal(const webrtc::IPAddress& loopback) {
   auto client2 = std::make_unique<webrtc::TestClient>(
       absl::WrapUnique(AsyncUDPSocket::Create(socket_factory_, empty)));
 
-  SocketAddress addr2;
+  webrtc::SocketAddress addr2;
   EXPECT_EQ(3, client2->SendTo("foo", 3, addr1));
   EXPECT_TRUE(client1->CheckNextPacket("foo", 3, &addr2));
 
-  SocketAddress addr3;
+  webrtc::SocketAddress addr3;
   EXPECT_EQ(6, client1->SendTo("bizbaz", 6, addr2));
   EXPECT_TRUE(client2->CheckNextPacket("bizbaz", 6, &addr3));
   EXPECT_EQ(addr3, addr1);
@@ -1086,12 +1089,12 @@ void SocketTest::UdpInternal(const webrtc::IPAddress& loopback) {
     client2 = std::make_unique<webrtc::TestClient>(
         absl::WrapUnique(AsyncUDPSocket::Create(socket_factory_, empty)));
 
-    SocketAddress addr4;
+    webrtc::SocketAddress addr4;
     EXPECT_EQ(3, client2->SendTo("foo", 3, addr1));
     EXPECT_TRUE(client1->CheckNextPacket("foo", 3, &addr4));
     EXPECT_EQ(addr4.ipaddr(), addr2.ipaddr());
 
-    SocketAddress addr5;
+    webrtc::SocketAddress addr5;
     EXPECT_EQ(6, client1->SendTo("bizbaz", 6, addr4));
     EXPECT_TRUE(client2->CheckNextPacket("bizbaz", 6, &addr5));
     EXPECT_EQ(addr5, addr1);
@@ -1101,13 +1104,14 @@ void SocketTest::UdpInternal(const webrtc::IPAddress& loopback) {
 }
 
 void SocketTest::UdpReadyToSend(const webrtc::IPAddress& loopback) {
-  SocketAddress empty = EmptySocketAddressWithFamily(loopback.family());
+  webrtc::SocketAddress empty =
+      webrtc::EmptySocketAddressWithFamily(loopback.family());
   // RFC 5737 - The blocks 192.0.2.0/24 (TEST-NET-1) ... are provided for use in
   // documentation.
   // RFC 3849 - 2001:DB8::/32 as a documentation-only prefix.
   std::string dest =
       (loopback.family() == AF_INET6) ? "2001:db8::1" : "192.0.2.0";
-  SocketAddress test_addr(dest, 2345);
+  webrtc::SocketAddress test_addr(dest, 2345);
 
   // Test send
   auto client = std::make_unique<webrtc::TestClient>(
@@ -1151,7 +1155,7 @@ void SocketTest::UdpReadyToSend(const webrtc::IPAddress& loopback) {
 void SocketTest::GetSetOptionsInternal(const webrtc::IPAddress& loopback) {
   std::unique_ptr<Socket> socket(
       socket_factory_->CreateSocket(loopback.family(), SOCK_DGRAM));
-  socket->Bind(SocketAddress(loopback, 0));
+  socket->Bind(webrtc::SocketAddress(loopback, 0));
 
   // Check SNDBUF/RCVBUF.
   const int desired_size = 12345;
@@ -1204,7 +1208,7 @@ void SocketTest::GetSetOptionsInternal(const webrtc::IPAddress& loopback) {
 
   // Prepare on TCP specific options.
   socket.reset(socket_factory_->CreateSocket(loopback.family(), SOCK_STREAM));
-  socket->Bind(SocketAddress(loopback, 0));
+  socket->Bind(webrtc::SocketAddress(loopback, 0));
 
   // Check that we can set NODELAY on a TCP socket.
   ASSERT_NE(-1, socket->SetOption(Socket::OPT_NODELAY, desired_nd));
@@ -1245,8 +1249,8 @@ void SocketTest::SocketRecvTimestamp(const webrtc::IPAddress& loopback) {
   StreamSink sink;
   std::unique_ptr<Socket> socket(
       socket_factory_->CreateSocket(loopback.family(), SOCK_DGRAM));
-  EXPECT_EQ(0, socket->Bind(SocketAddress(loopback, 0)));
-  SocketAddress address = socket->GetLocalAddress();
+  EXPECT_EQ(0, socket->Bind(webrtc::SocketAddress(loopback, 0)));
+  webrtc::SocketAddress address = socket->GetLocalAddress();
   sink.Monitor(socket.get());
 
   int64_t send_time_1 = TimeMicros();
@@ -1284,11 +1288,12 @@ void SocketTest::SocketRecvTimestamp(const webrtc::IPAddress& loopback) {
 
 void SocketTest::UdpSocketRecvTimestampUseRtcEpoch(
     const webrtc::IPAddress& loopback) {
-  SocketAddress empty = EmptySocketAddressWithFamily(loopback.family());
+  webrtc::SocketAddress empty =
+      webrtc::EmptySocketAddressWithFamily(loopback.family());
   std::unique_ptr<Socket> socket(
       socket_factory_->CreateSocket(loopback.family(), SOCK_DGRAM));
-  ASSERT_EQ(socket->Bind(SocketAddress(loopback, 0)), 0);
-  SocketAddress address = socket->GetLocalAddress();
+  ASSERT_EQ(socket->Bind(webrtc::SocketAddress(loopback, 0)), 0);
+  webrtc::SocketAddress address = socket->GetLocalAddress();
   socket = nullptr;
 
   auto client1 = std::make_unique<webrtc::TestClient>(
@@ -1296,7 +1301,7 @@ void SocketTest::UdpSocketRecvTimestampUseRtcEpoch(
   auto client2 = std::make_unique<webrtc::TestClient>(
       absl::WrapUnique(AsyncUDPSocket::Create(socket_factory_, empty)));
 
-  SocketAddress addr2;
+  webrtc::SocketAddress addr2;
   client2->SendTo("foo", 3, address);
   std::unique_ptr<webrtc::TestClient::Packet> packet_1 =
       client1->NextPacket(10000);
@@ -1316,8 +1321,8 @@ void SocketTest::SocketSendRecvWithEcn(const webrtc::IPAddress& loopback) {
   StreamSink sink;
   std::unique_ptr<Socket> socket(
       socket_factory_->CreateSocket(loopback.family(), SOCK_DGRAM));
-  EXPECT_EQ(0, socket->Bind(SocketAddress(loopback, 0)));
-  SocketAddress address = socket->GetLocalAddress();
+  EXPECT_EQ(0, socket->Bind(webrtc::SocketAddress(loopback, 0)));
+  webrtc::SocketAddress address = socket->GetLocalAddress();
   sink.Monitor(socket.get());
   rtc::Buffer buffer;
   Socket::ReceiveBuffer receive_buffer(buffer);

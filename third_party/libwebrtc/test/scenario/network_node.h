@@ -65,7 +65,7 @@ class NetworkNodeTransport : public Transport {
   bool SendRtcp(rtc::ArrayView<const uint8_t> packet) override;
 
   void Connect(EmulatedEndpoint* endpoint,
-               const rtc::SocketAddress& receiver_address,
+               const SocketAddress& receiver_address,
                DataSize packet_overhead);
   void Disconnect();
 
@@ -82,8 +82,8 @@ class NetworkNodeTransport : public Transport {
   Clock* const sender_clock_;
   Call* const sender_call_;
   EmulatedEndpoint* endpoint_ RTC_GUARDED_BY(mutex_) = nullptr;
-  rtc::SocketAddress local_address_ RTC_GUARDED_BY(mutex_);
-  rtc::SocketAddress remote_address_ RTC_GUARDED_BY(mutex_);
+  SocketAddress local_address_ RTC_GUARDED_BY(mutex_);
+  SocketAddress remote_address_ RTC_GUARDED_BY(mutex_);
   DataSize packet_overhead_ RTC_GUARDED_BY(mutex_) = DataSize::Zero();
   rtc::NetworkRoute current_network_route_ RTC_GUARDED_BY(mutex_);
 };

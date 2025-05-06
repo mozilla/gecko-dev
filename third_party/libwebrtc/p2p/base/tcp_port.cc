@@ -167,7 +167,7 @@ void TCPPort::PrepareAddress() {
                         << static_cast<int>(listen_socket_->GetState());
     AddAddress(
         listen_socket_->GetLocalAddress(), listen_socket_->GetLocalAddress(),
-        rtc::SocketAddress(), TCP_PROTOCOL_NAME, "", TCPTYPE_PASSIVE_STR,
+        webrtc::SocketAddress(), TCP_PROTOCOL_NAME, "", TCPTYPE_PASSIVE_STR,
         IceCandidateType::kHost, ICE_TYPE_PREFERENCE_HOST_TCP, 0, "", true);
   } else {
     RTC_LOG(LS_INFO) << ToString()
@@ -180,17 +180,17 @@ void TCPPort::PrepareAddress() {
     // can do.
     // TODO(deadbeef): We could do something like create a dummy socket just to
     // see what IP we get. But that may be overkill.
-    AddAddress(rtc::SocketAddress(Network()->GetBestIP(), DISCARD_PORT),
-               rtc::SocketAddress(Network()->GetBestIP(), 0),
-               rtc::SocketAddress(), TCP_PROTOCOL_NAME, "", TCPTYPE_ACTIVE_STR,
-               IceCandidateType::kHost, ICE_TYPE_PREFERENCE_HOST_TCP, 0, "",
-               true);
+    AddAddress(webrtc::SocketAddress(Network()->GetBestIP(), DISCARD_PORT),
+               webrtc::SocketAddress(Network()->GetBestIP(), 0),
+               webrtc::SocketAddress(), TCP_PROTOCOL_NAME, "",
+               TCPTYPE_ACTIVE_STR, IceCandidateType::kHost,
+               ICE_TYPE_PREFERENCE_HOST_TCP, 0, "", true);
   }
 }
 
 int TCPPort::SendTo(const void* data,
                     size_t size,
-                    const rtc::SocketAddress& addr,
+                    const webrtc::SocketAddress& addr,
                     const rtc::PacketOptions& options,
                     bool payload) {
   rtc::AsyncPacketSocket* socket = NULL;
@@ -288,7 +288,7 @@ void TCPPort::OnNewConnection(rtc::AsyncListenSocket* socket,
 
 void TCPPort::TryCreateServerSocket() {
   listen_socket_ = absl::WrapUnique(socket_factory()->CreateServerTcpSocket(
-      rtc::SocketAddress(Network()->GetBestIP(), 0), min_port(), max_port(),
+      webrtc::SocketAddress(Network()->GetBestIP(), 0), min_port(), max_port(),
       false /* ssl */));
   if (!listen_socket_) {
     RTC_LOG(LS_WARNING)
@@ -299,7 +299,7 @@ void TCPPort::TryCreateServerSocket() {
   listen_socket_->SignalNewConnection.connect(this, &TCPPort::OnNewConnection);
 }
 
-rtc::AsyncPacketSocket* TCPPort::GetIncoming(const rtc::SocketAddress& addr,
+rtc::AsyncPacketSocket* TCPPort::GetIncoming(const webrtc::SocketAddress& addr,
                                              bool remove) {
   rtc::AsyncPacketSocket* socket = NULL;
   for (std::list<Incoming>::iterator it = incoming_.begin();
@@ -457,7 +457,7 @@ void TCPConnection::OnConnect(rtc::AsyncPacketSocket* socket) {
   //
   // Note that, aside from minor differences in log statements, this logic is
   // identical to that in TurnPort.
-  const rtc::SocketAddress& socket_address = socket->GetLocalAddress();
+  const webrtc::SocketAddress& socket_address = socket->GetLocalAddress();
   if (absl::c_any_of(port_->Network()->GetIPs(),
                      [socket_address](const rtc::InterfaceAddress& addr) {
                        return socket_address.ipaddr() == addr;
@@ -587,7 +587,7 @@ void TCPConnection::CreateOutgoingTcpSocket() {
   rtc::PacketSocketTcpOptions tcp_opts;
   tcp_opts.opts = opts;
   socket_.reset(port()->socket_factory()->CreateClientTcpSocket(
-      rtc::SocketAddress(port()->Network()->GetBestIP(), 0),
+      webrtc::SocketAddress(port()->Network()->GetBestIP(), 0),
       remote_candidate().address(), tcp_opts));
   if (socket_) {
     RTC_LOG(LS_VERBOSE) << ToString() << ": Connecting from "

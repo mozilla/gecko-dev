@@ -46,9 +46,9 @@ using cricket::ICE_PWD_LENGTH;
 using cricket::ICE_UFRAG_LENGTH;
 using cricket::Port;
 using cricket::TCPPort;
-using rtc::SocketAddress;
 using ::testing::Eq;
 using ::testing::IsTrue;
+using ::webrtc::SocketAddress;
 
 static int kTimeout = 1000;
 static const SocketAddress kLocalAddr("11.11.11.11", 0);

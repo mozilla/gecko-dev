@@ -91,7 +91,7 @@ class MessageClient : public TestGenerator {
 class SocketClient : public TestGenerator, public sigslot::has_slots<> {
  public:
   SocketClient(Socket* socket,
-               const SocketAddress& addr,
+               const webrtc::SocketAddress& addr,
                Thread* post_thread,
                MessageClient* phandler)
       : socket_(AsyncUDPSocket::Create(socket, addr)),
@@ -105,7 +105,7 @@ class SocketClient : public TestGenerator, public sigslot::has_slots<> {
 
   ~SocketClient() override { delete socket_; }
 
-  SocketAddress address() const { return socket_->GetLocalAddress(); }
+  webrtc::SocketAddress address() const { return socket_->GetLocalAddress(); }
 
   void OnPacket(AsyncPacketSocket* socket, const rtc::ReceivedPacket& packet) {
     EXPECT_EQ(packet.payload().size(), sizeof(uint32_t));
@@ -159,7 +159,7 @@ class SignalWhenDestroyedThread : public Thread {
 // See: https://code.google.com/p/webrtc/issues/detail?id=2409
 TEST(ThreadTest, DISABLED_Main) {
   rtc::AutoThread main_thread;
-  const SocketAddress addr("127.0.0.1", 0);
+  const webrtc::SocketAddress addr("127.0.0.1", 0);
 
   // Create the messaging client on its own thread.
   auto th1 = Thread::CreateWithSocketServer();

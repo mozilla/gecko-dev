@@ -53,11 +53,10 @@ using ::testing::NiceMock;
 static const char kUsagePatternMetric[] = "WebRTC.PeerConnection.UsagePattern";
 static constexpr webrtc::TimeDelta kDefaultTimeout =
     webrtc::TimeDelta::Millis(10000);
-static const rtc::SocketAddress kLocalAddrs[2] = {
-    rtc::SocketAddress("1.1.1.1", 0), rtc::SocketAddress("2.2.2.2", 0)};
-static const rtc::SocketAddress kPrivateLocalAddress("10.1.1.1", 0);
-static const rtc::SocketAddress kPrivateIpv6LocalAddress("fd12:3456:789a:1::1",
-                                                         0);
+static const SocketAddress kLocalAddrs[2] = {SocketAddress("1.1.1.1", 0),
+                                             SocketAddress("2.2.2.2", 0)};
+static const SocketAddress kPrivateLocalAddress("10.1.1.1", 0);
+static const SocketAddress kPrivateIpv6LocalAddress("fd12:3456:789a:1::1", 0);
 
 int MakeUsageFingerprint(std::set<UsageEvent> events) {
   int signature = 0;
@@ -316,7 +315,7 @@ class PeerConnectionUsageHistogramTest : public ::testing::Test {
     return metrics::MinSample(kUsagePatternMetric);
   }
 
-  rtc::SocketAddress NextLocalAddress() {
+  SocketAddress NextLocalAddress() {
     RTC_DCHECK(next_local_address_ < (int)arraysize(kLocalAddrs));
     return kLocalAddrs[next_local_address_++];
   }

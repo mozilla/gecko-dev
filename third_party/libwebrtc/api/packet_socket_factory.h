@@ -56,18 +56,19 @@ class RTC_EXPORT PacketSocketFactory {
   PacketSocketFactory() = default;
   virtual ~PacketSocketFactory() = default;
 
-  virtual AsyncPacketSocket* CreateUdpSocket(const SocketAddress& address,
-                                             uint16_t min_port,
-                                             uint16_t max_port) = 0;
+  virtual AsyncPacketSocket* CreateUdpSocket(
+      const webrtc::SocketAddress& address,
+      uint16_t min_port,
+      uint16_t max_port) = 0;
   virtual AsyncListenSocket* CreateServerTcpSocket(
-      const SocketAddress& local_address,
+      const webrtc::SocketAddress& local_address,
       uint16_t min_port,
       uint16_t max_port,
       int opts) = 0;
 
   virtual AsyncPacketSocket* CreateClientTcpSocket(
-      const SocketAddress& local_address,
-      const SocketAddress& remote_address,
+      const webrtc::SocketAddress& local_address,
+      const webrtc::SocketAddress& remote_address,
       const PacketSocketTcpOptions& tcp_options) = 0;
 
   virtual std::unique_ptr<webrtc::AsyncDnsResolverInterface>

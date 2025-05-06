@@ -405,7 +405,7 @@ TEST_F(NetworkTest, DISABLED_TestCreateNetworks) {
     sockaddr_storage storage;
     memset(&storage, 0, sizeof(storage));
     webrtc::IPAddress ip = (*it)->GetBestIP();
-    SocketAddress bindaddress(ip, 0);
+    webrtc::SocketAddress bindaddress(ip, 0);
     bindaddress.SetScopeID((*it)->scope_id());
     // TODO(thaloun): Use rtc::Socket once it supports IPv6.
     int fd = static_cast<int>(socket(ip.family(), SOCK_STREAM, IPPROTO_TCP));

@@ -19,7 +19,7 @@ namespace cricket {
 
 std::unique_ptr<TestStunServer, std::function<void(TestStunServer*)>>
 TestStunServer::Create(rtc::SocketServer* ss,
-                       const rtc::SocketAddress& addr,
+                       const webrtc::SocketAddress& addr,
                        rtc::Thread& network_thread) {
   rtc::Socket* socket = ss->CreateSocket(addr.family(), SOCK_DGRAM);
   RTC_CHECK(socket != nullptr) << "Failed to create socket";
@@ -35,8 +35,9 @@ TestStunServer::Create(rtc::SocketServer* ss,
   return result;
 }
 
-void TestStunServer::OnBindingRequest(StunMessage* msg,
-                                      const rtc::SocketAddress& remote_addr) {
+void TestStunServer::OnBindingRequest(
+    StunMessage* msg,
+    const webrtc::SocketAddress& remote_addr) {
   RTC_DCHECK_RUN_ON(&network_thread_);
   if (fake_stun_addr_.IsNil()) {
     StunServer::OnBindingRequest(msg, remote_addr);

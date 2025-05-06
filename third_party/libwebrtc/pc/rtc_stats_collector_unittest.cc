@@ -181,7 +181,7 @@ std::unique_ptr<cricket::Candidate> CreateFakeCandidate(
         rtc::ADAPTER_TYPE_UNKNOWN) {
   std::unique_ptr<cricket::Candidate> candidate(new cricket::Candidate(
       cricket::ICE_CANDIDATE_COMPONENT_RTP, protocol,
-      rtc::SocketAddress(hostname, port), priority, "iceusernamefragment",
+      SocketAddress(hostname, port), priority, "iceusernamefragment",
       "" /* pwd */, candidate_type, 0 /* generation */, "foundationIsAString"));
 
   candidate->set_network_type(adapter_type);
@@ -1914,7 +1914,7 @@ TEST_F(RTCStatsCollectorTest, CollectRTCIceCandidatePairStats) {
   std::unique_ptr<cricket::Candidate> remote_candidate = CreateFakeCandidate(
       "42.42.42.42", 42, "protocol", rtc::ADAPTER_TYPE_UNKNOWN,
       IceCandidateType::kSrflx, 42);
-  remote_candidate->set_related_address(rtc::SocketAddress("192.168.2.1", 43));
+  remote_candidate->set_related_address(SocketAddress("192.168.2.1", 43));
   remote_candidate->set_username("remote_iceusernamefragment");
 
   cricket::ConnectionInfo connection_info;

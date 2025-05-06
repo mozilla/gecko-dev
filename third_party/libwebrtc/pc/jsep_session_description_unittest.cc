@@ -88,7 +88,7 @@ class JsepSessionDescriptionTest : public ::testing::Test {
  protected:
   virtual void SetUp() {
     int port = 1234;
-    rtc::SocketAddress address("127.0.0.1", port++);
+    webrtc::SocketAddress address("127.0.0.1", port++);
     cricket::Candidate candidate(cricket::ICE_CANDIDATE_COMPONENT_RTP, "udp",
                                  address, 1, "", "", IceCandidateType::kHost, 0,
                                  "1");
@@ -139,11 +139,11 @@ TEST_F(JsepSessionDescriptionTest, CloneRollback) {
 TEST_F(JsepSessionDescriptionTest, CloneWithCandidates) {
   cricket::Candidate candidate_v4(
       cricket::ICE_CANDIDATE_COMPONENT_RTP, "udp",
-      rtc::SocketAddress("192.168.1.5", 1234), kCandidatePriority, "", "",
+      webrtc::SocketAddress("192.168.1.5", 1234), kCandidatePriority, "", "",
       IceCandidateType::kSrflx, kCandidateGeneration, kCandidateFoundation);
   cricket::Candidate candidate_v6(
       cricket::ICE_CANDIDATE_COMPONENT_RTP, "udp",
-      rtc::SocketAddress("::1", 1234), kCandidatePriority, "", "",
+      webrtc::SocketAddress("::1", 1234), kCandidatePriority, "", "",
       IceCandidateType::kHost, kCandidateGeneration, kCandidateFoundation);
 
   JsepIceCandidate jice_v4("audio", 0, candidate_v4);
@@ -266,7 +266,7 @@ TEST_F(JsepSessionDescriptionTest, AddHostnameCandidate) {
   cricket::Candidate c;
   c.set_component(cricket::ICE_CANDIDATE_COMPONENT_RTP);
   c.set_protocol(cricket::UDP_PROTOCOL_NAME);
-  c.set_address(rtc::SocketAddress("example.local", 1234));
+  c.set_address(webrtc::SocketAddress("example.local", 1234));
   c.set_type(IceCandidateType::kHost);
   const size_t audio_index = 0;
   JsepIceCandidate hostname_candidate("audio", audio_index, c);
@@ -297,7 +297,7 @@ TEST_F(JsepSessionDescriptionTest, SerializeDeserializeWithHostnameCandidate) {
   cricket::Candidate c;
   c.set_component(cricket::ICE_CANDIDATE_COMPONENT_RTP);
   c.set_protocol(cricket::UDP_PROTOCOL_NAME);
-  c.set_address(rtc::SocketAddress("example.local", 1234));
+  c.set_address(webrtc::SocketAddress("example.local", 1234));
   c.set_type(IceCandidateType::kHost);
   const size_t audio_index = 0;
   const size_t video_index = 1;
@@ -349,11 +349,11 @@ TEST_F(JsepSessionDescriptionTest, SerializeSessionDescriptionWithIPv6Only) {
   // Stun has a high preference than local host.
   cricket::Candidate candidate1(
       cricket::ICE_CANDIDATE_COMPONENT_RTP, "udp",
-      rtc::SocketAddress("::1", 1234), kCandidatePriority, "", "",
+      webrtc::SocketAddress("::1", 1234), kCandidatePriority, "", "",
       IceCandidateType::kSrflx, kCandidateGeneration, kCandidateFoundation);
   cricket::Candidate candidate2(
       cricket::ICE_CANDIDATE_COMPONENT_RTP, "udp",
-      rtc::SocketAddress("::2", 1235), kCandidatePriority, "", "",
+      webrtc::SocketAddress("::2", 1235), kCandidatePriority, "", "",
       IceCandidateType::kHost, kCandidateGeneration, kCandidateFoundation);
 
   JsepIceCandidate jice1("audio", 0, candidate1);
@@ -379,11 +379,11 @@ TEST_F(JsepSessionDescriptionTest,
        SerializeSessionDescriptionWithBothIPFamilies) {
   cricket::Candidate candidate_v4(
       cricket::ICE_CANDIDATE_COMPONENT_RTP, "udp",
-      rtc::SocketAddress("192.168.1.5", 1234), kCandidatePriority, "", "",
+      webrtc::SocketAddress("192.168.1.5", 1234), kCandidatePriority, "", "",
       IceCandidateType::kSrflx, kCandidateGeneration, kCandidateFoundation);
   cricket::Candidate candidate_v6(
       cricket::ICE_CANDIDATE_COMPONENT_RTP, "udp",
-      rtc::SocketAddress("::1", 1234), kCandidatePriority, "", "",
+      webrtc::SocketAddress("::1", 1234), kCandidatePriority, "", "",
       IceCandidateType::kHost, kCandidateGeneration, kCandidateFoundation);
 
   JsepIceCandidate jice_v4("audio", 0, candidate_v4);
@@ -410,12 +410,12 @@ TEST_F(JsepSessionDescriptionTest,
   // Stun has a high preference than local host.
   cricket::Candidate candidate1(
       cricket::ICE_CANDIDATE_COMPONENT_RTP, "tcp",
-      rtc::SocketAddress("::1", 1234), kCandidatePriority, "", "",
+      webrtc::SocketAddress("::1", 1234), kCandidatePriority, "", "",
       IceCandidateType::kSrflx, kCandidateGeneration, kCandidateFoundation);
   cricket::Candidate candidate2(
       cricket::ICE_CANDIDATE_COMPONENT_RTP, "udp",
-      rtc::SocketAddress("fe80::1234:5678:abcd:ef12", 1235), kCandidatePriority,
-      "", "", IceCandidateType::kHost, kCandidateGeneration,
+      webrtc::SocketAddress("fe80::1234:5678:abcd:ef12", 1235),
+      kCandidatePriority, "", "", IceCandidateType::kHost, kCandidateGeneration,
       kCandidateFoundation);
 
   JsepIceCandidate jice1("audio", 0, candidate1);
@@ -441,11 +441,11 @@ TEST_F(JsepSessionDescriptionTest, SerializeSessionDescriptionWithTCPOnly) {
   // Stun has a high preference than local host.
   cricket::Candidate candidate1(
       cricket::ICE_CANDIDATE_COMPONENT_RTP, "tcp",
-      rtc::SocketAddress("::1", 1234), kCandidatePriority, "", "",
+      webrtc::SocketAddress("::1", 1234), kCandidatePriority, "", "",
       IceCandidateType::kSrflx, kCandidateGeneration, kCandidateFoundation);
   cricket::Candidate candidate2(
       cricket::ICE_CANDIDATE_COMPONENT_RTP, "tcp",
-      rtc::SocketAddress("::2", 1235), kCandidatePriority, "", "",
+      webrtc::SocketAddress("::2", 1235), kCandidatePriority, "", "",
       IceCandidateType::kHost, kCandidateGeneration, kCandidateFoundation);
 
   JsepIceCandidate jice1("audio", 0, candidate1);
@@ -468,19 +468,19 @@ TEST_F(JsepSessionDescriptionTest, SerializeSessionDescriptionWithTCPOnly) {
 TEST_F(JsepSessionDescriptionTest, RemoveCandidateAndSetConnectionAddress) {
   cricket::Candidate candidate1(
       cricket::ICE_CANDIDATE_COMPONENT_RTP, "udp",
-      rtc::SocketAddress("::1", 1234), kCandidatePriority, "", "",
+      webrtc::SocketAddress("::1", 1234), kCandidatePriority, "", "",
       IceCandidateType::kHost, kCandidateGeneration, kCandidateFoundation);
   candidate1.set_transport_name("audio");
 
   cricket::Candidate candidate2(
       cricket::ICE_CANDIDATE_COMPONENT_RTP, "tcp",
-      rtc::SocketAddress("::2", 1235), kCandidatePriority, "", "",
+      webrtc::SocketAddress("::2", 1235), kCandidatePriority, "", "",
       IceCandidateType::kHost, kCandidateGeneration, kCandidateFoundation);
   candidate2.set_transport_name("audio");
 
   cricket::Candidate candidate3(
       cricket::ICE_CANDIDATE_COMPONENT_RTP, "udp",
-      rtc::SocketAddress("192.168.1.1", 1236), kCandidatePriority, "", "",
+      webrtc::SocketAddress("192.168.1.1", 1236), kCandidatePriority, "", "",
       IceCandidateType::kHost, kCandidateGeneration, kCandidateFoundation);
   candidate3.set_transport_name("audio");
 

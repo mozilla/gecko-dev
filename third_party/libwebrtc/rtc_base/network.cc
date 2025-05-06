@@ -1038,7 +1038,7 @@ webrtc::IPAddress BasicNetworkManager::QueryDefaultLocalAddress(
     return webrtc::IPAddress();
   }
 
-  if (socket->Connect(SocketAddress(
+  if (socket->Connect(webrtc::SocketAddress(
           family == AF_INET ? kPublicIPv4Host : kPublicIPv6Host, kPublicPort)) <
       0) {
     if (socket->GetError() != ENETUNREACH &&

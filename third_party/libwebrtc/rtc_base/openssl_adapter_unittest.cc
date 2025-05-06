@@ -30,20 +30,20 @@ namespace {
 class MockAsyncSocket : public Socket {
  public:
   virtual ~MockAsyncSocket() = default;
-  MOCK_METHOD(Socket*, Accept, (SocketAddress*), (override));
-  MOCK_METHOD(SocketAddress, GetLocalAddress, (), (const, override));
-  MOCK_METHOD(SocketAddress, GetRemoteAddress, (), (const, override));
-  MOCK_METHOD(int, Bind, (const SocketAddress&), (override));
-  MOCK_METHOD(int, Connect, (const SocketAddress&), (override));
+  MOCK_METHOD(Socket*, Accept, (webrtc::SocketAddress*), (override));
+  MOCK_METHOD(webrtc::SocketAddress, GetLocalAddress, (), (const, override));
+  MOCK_METHOD(webrtc::SocketAddress, GetRemoteAddress, (), (const, override));
+  MOCK_METHOD(int, Bind, (const webrtc::SocketAddress&), (override));
+  MOCK_METHOD(int, Connect, (const webrtc::SocketAddress&), (override));
   MOCK_METHOD(int, Send, (const void*, size_t), (override));
   MOCK_METHOD(int,
               SendTo,
-              (const void*, size_t, const SocketAddress&),
+              (const void*, size_t, const webrtc::SocketAddress&),
               (override));
   MOCK_METHOD(int, Recv, (void*, size_t, int64_t*), (override));
   MOCK_METHOD(int,
               RecvFrom,
-              (void*, size_t, SocketAddress*, int64_t*),
+              (void*, size_t, webrtc::SocketAddress*, int64_t*),
               (override));
   MOCK_METHOD(int, Listen, (int), (override));
   MOCK_METHOD(int, Close, (), (override));

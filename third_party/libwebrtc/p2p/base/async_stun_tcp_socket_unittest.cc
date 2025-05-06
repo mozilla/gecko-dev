@@ -62,8 +62,8 @@ static unsigned char kTurnChannelDataMessageWithOddLength[] = {
     0x40, 0x00, 0x00, 0x05, 0x21, 0x12, 0xA4, 0x42, '0',
 };
 
-static const rtc::SocketAddress kClientAddr("11.11.11.11", 0);
-static const rtc::SocketAddress kServerAddr("22.22.22.22", 0);
+static const webrtc::SocketAddress kClientAddr("11.11.11.11", 0);
+static const webrtc::SocketAddress kServerAddr("22.22.22.22", 0);
 
 class AsyncStunServerTCPSocket : public rtc::AsyncTcpListenSocket {
  public:

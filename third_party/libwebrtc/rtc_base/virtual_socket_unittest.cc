@@ -153,8 +153,8 @@ class VirtualSocketServerTest : public ::testing::Test {
         kIPv4AnyAddress(webrtc::IPAddress(INADDR_ANY), 0),
         kIPv6AnyAddress(webrtc::IPAddress(in6addr_any), 0) {}
 
-  void CheckPortIncrementalization(const SocketAddress& post,
-                                   const SocketAddress& pre) {
+  void CheckPortIncrementalization(const webrtc::SocketAddress& post,
+                                   const webrtc::SocketAddress& pre) {
     EXPECT_EQ(post.port(), pre.port() + 1);
     webrtc::IPAddress post_ip = post.ipaddr();
     webrtc::IPAddress pre_ip = pre.ipaddr();
@@ -180,37 +180,38 @@ class VirtualSocketServerTest : public ::testing::Test {
 
     // Create client1 bound to the any address.
     Socket* socket = ss_.CreateSocket(default_address.family(), SOCK_DGRAM);
-    socket->Bind(EmptySocketAddressWithFamily(default_address.family()));
-    SocketAddress client1_any_addr = socket->GetLocalAddress();
+    socket->Bind(
+        webrtc::EmptySocketAddressWithFamily(default_address.family()));
+    webrtc::SocketAddress client1_any_addr = socket->GetLocalAddress();
     EXPECT_TRUE(client1_any_addr.IsAnyIP());
     auto client1 = std::make_unique<webrtc::TestClient>(
         std::make_unique<AsyncUDPSocket>(socket), &fake_clock_);
 
     // Create client2 bound to the address route.
     Socket* socket2 = ss_.CreateSocket(default_address.family(), SOCK_DGRAM);
-    socket2->Bind(SocketAddress(default_address, 0));
-    SocketAddress client2_addr = socket2->GetLocalAddress();
+    socket2->Bind(webrtc::SocketAddress(default_address, 0));
+    webrtc::SocketAddress client2_addr = socket2->GetLocalAddress();
     EXPECT_FALSE(client2_addr.IsAnyIP());
     auto client2 = std::make_unique<webrtc::TestClient>(
         std::make_unique<AsyncUDPSocket>(socket2), &fake_clock_);
 
     // Client1 sends to client2, client2 should see the default address as
     // client1's address.
-    SocketAddress client1_addr;
+    webrtc::SocketAddress client1_addr;
     EXPECT_EQ(6, client1->SendTo("bizbaz", 6, client2_addr));
     EXPECT_TRUE(client2->CheckNextPacket("bizbaz", 6, &client1_addr));
     EXPECT_EQ(client1_addr,
-              SocketAddress(default_address, client1_any_addr.port()));
+              webrtc::SocketAddress(default_address, client1_any_addr.port()));
 
     // Client2 can send back to client1's default address.
     EXPECT_EQ(3, client2->SendTo("foo", 3, client1_addr));
     EXPECT_TRUE(client1->CheckNextPacket("foo", 3, &client2_addr));
   }
 
-  void BasicTest(const SocketAddress& initial_addr) {
+  void BasicTest(const webrtc::SocketAddress& initial_addr) {
     Socket* socket = ss_.CreateSocket(initial_addr.family(), SOCK_DGRAM);
     socket->Bind(initial_addr);
-    SocketAddress server_addr = socket->GetLocalAddress();
+    webrtc::SocketAddress server_addr = socket->GetLocalAddress();
     // Make sure VSS didn't switch families on us.
     EXPECT_EQ(server_addr.family(), initial_addr.family());
 
@@ -220,27 +221,28 @@ class VirtualSocketServerTest : public ::testing::Test {
     auto client2 = std::make_unique<webrtc::TestClient>(
         std::make_unique<AsyncUDPSocket>(socket2), &fake_clock_);
 
-    SocketAddress client2_addr;
+    webrtc::SocketAddress client2_addr;
     EXPECT_EQ(3, client2->SendTo("foo", 3, server_addr));
     EXPECT_TRUE(client1->CheckNextPacket("foo", 3, &client2_addr));
 
-    SocketAddress client1_addr;
+    webrtc::SocketAddress client1_addr;
     EXPECT_EQ(6, client1->SendTo("bizbaz", 6, client2_addr));
     EXPECT_TRUE(client2->CheckNextPacket("bizbaz", 6, &client1_addr));
     EXPECT_EQ(client1_addr, server_addr);
 
-    SocketAddress empty = EmptySocketAddressWithFamily(initial_addr.family());
+    webrtc::SocketAddress empty =
+        webrtc::EmptySocketAddressWithFamily(initial_addr.family());
     for (int i = 0; i < 10; i++) {
       client2 = std::make_unique<webrtc::TestClient>(
           absl::WrapUnique(AsyncUDPSocket::Create(&ss_, empty)), &fake_clock_);
 
-      SocketAddress next_client2_addr;
+      webrtc::SocketAddress next_client2_addr;
       EXPECT_EQ(3, client2->SendTo("foo", 3, server_addr));
       EXPECT_TRUE(client1->CheckNextPacket("foo", 3, &next_client2_addr));
       CheckPortIncrementalization(next_client2_addr, client2_addr);
       // EXPECT_EQ(next_client2_addr.port(), client2_addr.port() + 1);
 
-      SocketAddress server_addr2;
+      webrtc::SocketAddress server_addr2;
       EXPECT_EQ(6, client1->SendTo("bizbaz", 6, next_client2_addr));
       EXPECT_TRUE(client2->CheckNextPacket("bizbaz", 6, &server_addr2));
       EXPECT_EQ(server_addr2, server_addr);
@@ -250,11 +252,11 @@ class VirtualSocketServerTest : public ::testing::Test {
   }
 
   // initial_addr should be made from either INADDR_ANY or in6addr_any.
-  void ConnectTest(const SocketAddress& initial_addr) {
+  void ConnectTest(const webrtc::SocketAddress& initial_addr) {
     StreamSink sink;
-    SocketAddress accept_addr;
-    const SocketAddress kEmptyAddr =
-        EmptySocketAddressWithFamily(initial_addr.family());
+    webrtc::SocketAddress accept_addr;
+    const webrtc::SocketAddress kEmptyAddr =
+        webrtc::EmptySocketAddressWithFamily(initial_addr.family());
 
     // Create client
     std::unique_ptr<Socket> client =
@@ -318,12 +320,12 @@ class VirtualSocketServerTest : public ::testing::Test {
     EXPECT_EQ(client->GetRemoteAddress(), accepted->GetLocalAddress());
   }
 
-  void ConnectToNonListenerTest(const SocketAddress& initial_addr) {
+  void ConnectToNonListenerTest(const webrtc::SocketAddress& initial_addr) {
     StreamSink sink;
-    SocketAddress accept_addr;
-    const SocketAddress nil_addr;
-    const SocketAddress empty_addr =
-        EmptySocketAddressWithFamily(initial_addr.family());
+    webrtc::SocketAddress accept_addr;
+    const webrtc::SocketAddress nil_addr;
+    const webrtc::SocketAddress empty_addr =
+        webrtc::EmptySocketAddressWithFamily(initial_addr.family());
 
     // Create client
     std::unique_ptr<Socket> client =
@@ -353,11 +355,11 @@ class VirtualSocketServerTest : public ::testing::Test {
     EXPECT_EQ(client->GetRemoteAddress(), nil_addr);
   }
 
-  void CloseDuringConnectTest(const SocketAddress& initial_addr) {
+  void CloseDuringConnectTest(const webrtc::SocketAddress& initial_addr) {
     StreamSink sink;
-    SocketAddress accept_addr;
-    const SocketAddress empty_addr =
-        EmptySocketAddressWithFamily(initial_addr.family());
+    webrtc::SocketAddress accept_addr;
+    const webrtc::SocketAddress empty_addr =
+        webrtc::EmptySocketAddressWithFamily(initial_addr.family());
 
     // Create client and server
     std::unique_ptr<Socket> client(
@@ -440,9 +442,9 @@ class VirtualSocketServerTest : public ::testing::Test {
     EXPECT_FALSE(sink.Check(client.get(), SSE_CLOSE));
   }
 
-  void CloseTest(const SocketAddress& initial_addr) {
+  void CloseTest(const webrtc::SocketAddress& initial_addr) {
     StreamSink sink;
-    const SocketAddress kEmptyAddr;
+    const webrtc::SocketAddress kEmptyAddr;
 
     // Create clients
     std::unique_ptr<Socket> a =
@@ -490,9 +492,9 @@ class VirtualSocketServerTest : public ::testing::Test {
     EXPECT_EQ(b->GetRemoteAddress(), kEmptyAddr);
   }
 
-  void TcpSendTest(const SocketAddress& initial_addr) {
+  void TcpSendTest(const webrtc::SocketAddress& initial_addr) {
     StreamSink sink;
-    const SocketAddress kEmptyAddr;
+    const webrtc::SocketAddress kEmptyAddr;
 
     // Connect two sockets
     std::unique_ptr<Socket> a =
@@ -613,8 +615,8 @@ class VirtualSocketServerTest : public ::testing::Test {
     EXPECT_EQ(0, memcmp(recv_buffer, send_buffer, kDataSize));
   }
 
-  void TcpSendsPacketsInOrderTest(const SocketAddress& initial_addr) {
-    const SocketAddress kEmptyAddr;
+  void TcpSendsPacketsInOrderTest(const webrtc::SocketAddress& initial_addr) {
+    const webrtc::SocketAddress kEmptyAddr;
 
     // Connect two sockets
     std::unique_ptr<Socket> a =
@@ -670,7 +672,7 @@ class VirtualSocketServerTest : public ::testing::Test {
   // It is important that initial_addr's port has to be 0 such that the
   // incremental port behavior could ensure the 2 Binds result in different
   // address.
-  void BandwidthTest(const SocketAddress& initial_addr) {
+  void BandwidthTest(const webrtc::SocketAddress& initial_addr) {
     Socket* send_socket = ss_.CreateSocket(initial_addr.family(), SOCK_DGRAM);
     Socket* recv_socket = ss_.CreateSocket(initial_addr.family(), SOCK_DGRAM);
     ASSERT_EQ(0, send_socket->Bind(initial_addr));
@@ -702,7 +704,7 @@ class VirtualSocketServerTest : public ::testing::Test {
   // It is important that initial_addr's port has to be 0 such that the
   // incremental port behavior could ensure the 2 Binds result in different
   // address.
-  void DelayTest(const SocketAddress& initial_addr) {
+  void DelayTest(const webrtc::SocketAddress& initial_addr) {
     time_t seed = ::time(nullptr);
     RTC_LOG(LS_VERBOSE) << "seed = " << seed;
     srand(static_cast<unsigned int>(seed));
@@ -757,12 +759,12 @@ class VirtualSocketServerTest : public ::testing::Test {
   // Test cross-family communication between a client bound to client_addr and a
   // server bound to server_addr. shouldSucceed indicates if communication is
   // expected to work or not.
-  void CrossFamilyConnectionTest(const SocketAddress& client_addr,
-                                 const SocketAddress& server_addr,
+  void CrossFamilyConnectionTest(const webrtc::SocketAddress& client_addr,
+                                 const webrtc::SocketAddress& server_addr,
                                  bool shouldSucceed) {
     StreamSink sink;
-    SocketAddress accept_address;
-    const SocketAddress kEmptyAddr;
+    webrtc::SocketAddress accept_address;
+    const webrtc::SocketAddress kEmptyAddr;
 
     // Client gets a IPv4 address
     std::unique_ptr<Socket> client =
@@ -808,12 +810,12 @@ class VirtualSocketServerTest : public ::testing::Test {
   // Test cross-family datagram sending between a client bound to client_addr
   // and a server bound to server_addr. shouldSucceed indicates if sending is
   // expected to succeed or not.
-  void CrossFamilyDatagramTest(const SocketAddress& client_addr,
-                               const SocketAddress& server_addr,
+  void CrossFamilyDatagramTest(const webrtc::SocketAddress& client_addr,
+                               const webrtc::SocketAddress& server_addr,
                                bool shouldSucceed) {
     Socket* socket = ss_.CreateSocket(AF_INET, SOCK_DGRAM);
     socket->Bind(server_addr);
-    SocketAddress bound_server_addr = socket->GetLocalAddress();
+    webrtc::SocketAddress bound_server_addr = socket->GetLocalAddress();
     auto client1 = std::make_unique<webrtc::TestClient>(
         std::make_unique<AsyncUDPSocket>(socket), &fake_clock_);
 
@@ -821,12 +823,12 @@ class VirtualSocketServerTest : public ::testing::Test {
     socket2->Bind(client_addr);
     auto client2 = std::make_unique<webrtc::TestClient>(
         std::make_unique<AsyncUDPSocket>(socket2), &fake_clock_);
-    SocketAddress client2_addr;
+    webrtc::SocketAddress client2_addr;
 
     if (shouldSucceed) {
       EXPECT_EQ(3, client2->SendTo("foo", 3, bound_server_addr));
       EXPECT_TRUE(client1->CheckNextPacket("foo", 3, &client2_addr));
-      SocketAddress client1_addr;
+      webrtc::SocketAddress client1_addr;
       EXPECT_EQ(6, client1->SendTo("bizbaz", 6, client2_addr));
       EXPECT_TRUE(client2->CheckNextPacket("bizbaz", 6, &client1_addr));
       EXPECT_EQ(client1_addr, bound_server_addr);
@@ -840,17 +842,17 @@ class VirtualSocketServerTest : public ::testing::Test {
   rtc::ScopedFakeClock fake_clock_;
   VirtualSocketServer ss_;
   AutoSocketServerThread thread_;
-  const SocketAddress kIPv4AnyAddress;
-  const SocketAddress kIPv6AnyAddress;
+  const webrtc::SocketAddress kIPv4AnyAddress;
+  const webrtc::SocketAddress kIPv6AnyAddress;
 };
 
 TEST_F(VirtualSocketServerTest, basic_v4) {
-  SocketAddress ipv4_test_addr(webrtc::IPAddress(INADDR_ANY), 5000);
+  webrtc::SocketAddress ipv4_test_addr(webrtc::IPAddress(INADDR_ANY), 5000);
   BasicTest(ipv4_test_addr);
 }
 
 TEST_F(VirtualSocketServerTest, basic_v6) {
-  SocketAddress ipv6_test_addr(webrtc::IPAddress(in6addr_any), 5000);
+  webrtc::SocketAddress ipv6_test_addr(webrtc::IPAddress(in6addr_any), 5000);
   BasicTest(ipv6_test_addr);
 }
 
@@ -932,90 +934,94 @@ TEST_F(VirtualSocketServerTest, delay_v6) {
 
 // Works, receiving socket sees 127.0.0.2.
 TEST_F(VirtualSocketServerTest, CanConnectFromMappedIPv6ToIPv4Any) {
-  CrossFamilyConnectionTest(SocketAddress("::ffff:127.0.0.2", 0),
-                            SocketAddress("0.0.0.0", 5000), true);
+  CrossFamilyConnectionTest(webrtc::SocketAddress("::ffff:127.0.0.2", 0),
+                            webrtc::SocketAddress("0.0.0.0", 5000), true);
 }
 
 // Fails.
 TEST_F(VirtualSocketServerTest, CantConnectFromUnMappedIPv6ToIPv4Any) {
-  CrossFamilyConnectionTest(SocketAddress("::2", 0),
-                            SocketAddress("0.0.0.0", 5000), false);
+  CrossFamilyConnectionTest(webrtc::SocketAddress("::2", 0),
+                            webrtc::SocketAddress("0.0.0.0", 5000), false);
 }
 
 // Fails.
 TEST_F(VirtualSocketServerTest, CantConnectFromUnMappedIPv6ToMappedIPv6) {
-  CrossFamilyConnectionTest(SocketAddress("::2", 0),
-                            SocketAddress("::ffff:127.0.0.1", 5000), false);
+  CrossFamilyConnectionTest(webrtc::SocketAddress("::2", 0),
+                            webrtc::SocketAddress("::ffff:127.0.0.1", 5000),
+                            false);
 }
 
 // Works. receiving socket sees ::ffff:127.0.0.2.
 TEST_F(VirtualSocketServerTest, CanConnectFromIPv4ToIPv6Any) {
-  CrossFamilyConnectionTest(SocketAddress("127.0.0.2", 0),
-                            SocketAddress("::", 5000), true);
+  CrossFamilyConnectionTest(webrtc::SocketAddress("127.0.0.2", 0),
+                            webrtc::SocketAddress("::", 5000), true);
 }
 
 // Fails.
 TEST_F(VirtualSocketServerTest, CantConnectFromIPv4ToUnMappedIPv6) {
-  CrossFamilyConnectionTest(SocketAddress("127.0.0.2", 0),
-                            SocketAddress("::1", 5000), false);
+  CrossFamilyConnectionTest(webrtc::SocketAddress("127.0.0.2", 0),
+                            webrtc::SocketAddress("::1", 5000), false);
 }
 
 // Works. Receiving socket sees ::ffff:127.0.0.1.
 TEST_F(VirtualSocketServerTest, CanConnectFromIPv4ToMappedIPv6) {
-  CrossFamilyConnectionTest(SocketAddress("127.0.0.1", 0),
-                            SocketAddress("::ffff:127.0.0.2", 5000), true);
+  CrossFamilyConnectionTest(webrtc::SocketAddress("127.0.0.1", 0),
+                            webrtc::SocketAddress("::ffff:127.0.0.2", 5000),
+                            true);
 }
 
 // Works, receiving socket sees a result from GetNextIP.
 TEST_F(VirtualSocketServerTest, CanConnectFromUnboundIPv6ToIPv4Any) {
-  CrossFamilyConnectionTest(SocketAddress("::", 0),
-                            SocketAddress("0.0.0.0", 5000), true);
+  CrossFamilyConnectionTest(webrtc::SocketAddress("::", 0),
+                            webrtc::SocketAddress("0.0.0.0", 5000), true);
 }
 
 // Works, receiving socket sees whatever GetNextIP gave the client.
 TEST_F(VirtualSocketServerTest, CanConnectFromUnboundIPv4ToIPv6Any) {
-  CrossFamilyConnectionTest(SocketAddress("0.0.0.0", 0),
-                            SocketAddress("::", 5000), true);
+  CrossFamilyConnectionTest(webrtc::SocketAddress("0.0.0.0", 0),
+                            webrtc::SocketAddress("::", 5000), true);
 }
 
 TEST_F(VirtualSocketServerTest, CanSendDatagramFromUnboundIPv4ToIPv6Any) {
-  CrossFamilyDatagramTest(SocketAddress("0.0.0.0", 0),
-                          SocketAddress("::", 5000), true);
+  CrossFamilyDatagramTest(webrtc::SocketAddress("0.0.0.0", 0),
+                          webrtc::SocketAddress("::", 5000), true);
 }
 
 TEST_F(VirtualSocketServerTest, CanSendDatagramFromMappedIPv6ToIPv4Any) {
-  CrossFamilyDatagramTest(SocketAddress("::ffff:127.0.0.1", 0),
-                          SocketAddress("0.0.0.0", 5000), true);
+  CrossFamilyDatagramTest(webrtc::SocketAddress("::ffff:127.0.0.1", 0),
+                          webrtc::SocketAddress("0.0.0.0", 5000), true);
 }
 
 TEST_F(VirtualSocketServerTest, CantSendDatagramFromUnMappedIPv6ToIPv4Any) {
-  CrossFamilyDatagramTest(SocketAddress("::2", 0),
-                          SocketAddress("0.0.0.0", 5000), false);
+  CrossFamilyDatagramTest(webrtc::SocketAddress("::2", 0),
+                          webrtc::SocketAddress("0.0.0.0", 5000), false);
 }
 
 TEST_F(VirtualSocketServerTest, CantSendDatagramFromUnMappedIPv6ToMappedIPv6) {
-  CrossFamilyDatagramTest(SocketAddress("::2", 0),
-                          SocketAddress("::ffff:127.0.0.1", 5000), false);
+  CrossFamilyDatagramTest(webrtc::SocketAddress("::2", 0),
+                          webrtc::SocketAddress("::ffff:127.0.0.1", 5000),
+                          false);
 }
 
 TEST_F(VirtualSocketServerTest, CanSendDatagramFromIPv4ToIPv6Any) {
-  CrossFamilyDatagramTest(SocketAddress("127.0.0.2", 0),
-                          SocketAddress("::", 5000), true);
+  CrossFamilyDatagramTest(webrtc::SocketAddress("127.0.0.2", 0),
+                          webrtc::SocketAddress("::", 5000), true);
 }
 
 TEST_F(VirtualSocketServerTest, CantSendDatagramFromIPv4ToUnMappedIPv6) {
-  CrossFamilyDatagramTest(SocketAddress("127.0.0.2", 0),
-                          SocketAddress("::1", 5000), false);
+  CrossFamilyDatagramTest(webrtc::SocketAddress("127.0.0.2", 0),
+                          webrtc::SocketAddress("::1", 5000), false);
 }
 
 TEST_F(VirtualSocketServerTest, CanSendDatagramFromIPv4ToMappedIPv6) {
-  CrossFamilyDatagramTest(SocketAddress("127.0.0.1", 0),
-                          SocketAddress("::ffff:127.0.0.2", 5000), true);
+  CrossFamilyDatagramTest(webrtc::SocketAddress("127.0.0.1", 0),
+                          webrtc::SocketAddress("::ffff:127.0.0.2", 5000),
+                          true);
 }
 
 TEST_F(VirtualSocketServerTest, CanSendDatagramFromUnboundIPv6ToIPv4Any) {
-  CrossFamilyDatagramTest(SocketAddress("::", 0),
-                          SocketAddress("0.0.0.0", 5000), true);
+  CrossFamilyDatagramTest(webrtc::SocketAddress("::", 0),
+                          webrtc::SocketAddress("0.0.0.0", 5000), true);
 }
 
 TEST_F(VirtualSocketServerTest, SetSendingBlockedWithUdpSocket) {

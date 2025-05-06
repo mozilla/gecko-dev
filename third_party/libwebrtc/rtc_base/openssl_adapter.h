@@ -62,11 +62,13 @@ class OpenSSLAdapter final : public SSLAdapter {
   void SetRole(webrtc::SSLRole role) override;
   int StartSSL(absl::string_view hostname) override;
   int Send(const void* pv, size_t cb) override;
-  int SendTo(const void* pv, size_t cb, const SocketAddress& addr) override;
+  int SendTo(const void* pv,
+             size_t cb,
+             const webrtc::SocketAddress& addr) override;
   int Recv(void* pv, size_t cb, int64_t* timestamp) override;
   int RecvFrom(void* pv,
                size_t cb,
-               SocketAddress* paddr,
+               webrtc::SocketAddress* paddr,
                int64_t* timestamp) override;
   int Close() override;
   // Note that the socket returns ST_CONNECTING while SSL is being negotiated.

@@ -157,7 +157,7 @@ typedef std::vector<ProtocolAddress> PortList;
 // TODO(deadbeef): Rename to TurnServerConfig.
 struct RTC_EXPORT RelayServerConfig {
   RelayServerConfig();
-  RelayServerConfig(const rtc::SocketAddress& address,
+  RelayServerConfig(const webrtc::SocketAddress& address,
                     absl::string_view username,
                     absl::string_view password,
                     webrtc::ProtocolType proto);

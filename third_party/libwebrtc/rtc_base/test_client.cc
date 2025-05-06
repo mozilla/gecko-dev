@@ -65,7 +65,7 @@ int TestClient::Send(const char* buf, size_t size) {
 
 int TestClient::SendTo(const char* buf,
                        size_t size,
-                       const rtc::SocketAddress& dest) {
+                       const SocketAddress& dest) {
   rtc::PacketOptions options;
   return socket_->SendTo(buf, size, dest, options);
 }
@@ -106,7 +106,7 @@ std::unique_ptr<TestClient::Packet> TestClient::NextPacket(int timeout_ms) {
 
 bool TestClient::CheckNextPacket(const char* buf,
                                  size_t size,
-                                 rtc::SocketAddress* addr) {
+                                 SocketAddress* addr) {
   bool res = false;
   std::unique_ptr<Packet> packet = NextPacket(kTimeoutMs);
   if (packet) {

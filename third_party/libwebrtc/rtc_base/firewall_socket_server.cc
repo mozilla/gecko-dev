@@ -28,7 +28,7 @@ class FirewallSocket : public AsyncSocketAdapter {
   FirewallSocket(FirewallSocketServer* server, Socket* socket, int type)
       : AsyncSocketAdapter(socket), server_(server), type_(type) {}
 
-  int Bind(const SocketAddress& addr) override {
+  int Bind(const webrtc::SocketAddress& addr) override {
     if (!server_->IsBindableIp(addr.ipaddr())) {
       SetError(EINVAL);
       return SOCKET_ERROR;
@@ -36,7 +36,7 @@ class FirewallSocket : public AsyncSocketAdapter {
     return AsyncSocketAdapter::Bind(addr);
   }
 
-  int Connect(const SocketAddress& addr) override {
+  int Connect(const webrtc::SocketAddress& addr) override {
     if (type_ == SOCK_STREAM) {
       if (!server_->Check(FP_TCP, GetLocalAddress(), addr)) {
         RTC_LOG(LS_VERBOSE) << "FirewallSocket outbound TCP connection from "
@@ -52,7 +52,9 @@ class FirewallSocket : public AsyncSocketAdapter {
   int Send(const void* pv, size_t cb) override {
     return SendTo(pv, cb, GetRemoteAddress());
   }
-  int SendTo(const void* pv, size_t cb, const SocketAddress& addr) override {
+  int SendTo(const void* pv,
+             size_t cb,
+             const webrtc::SocketAddress& addr) override {
     RTC_DCHECK(type_ == SOCK_DGRAM || type_ == SOCK_STREAM);
     FirewallProtocol protocol = (type_ == SOCK_DGRAM) ? FP_UDP : FP_TCP;
     if (!server_->Check(protocol, GetLocalAddress(), addr)) {
@@ -65,12 +67,12 @@ class FirewallSocket : public AsyncSocketAdapter {
     return AsyncSocketAdapter::SendTo(pv, cb, addr);
   }
   int Recv(void* pv, size_t cb, int64_t* timestamp) override {
-    SocketAddress addr;
+    webrtc::SocketAddress addr;
     return RecvFrom(pv, cb, &addr, timestamp);
   }
   int RecvFrom(void* pv,
                size_t cb,
-               SocketAddress* paddr,
+               webrtc::SocketAddress* paddr,
                int64_t* timestamp) override {
     if (type_ == SOCK_DGRAM) {
       while (true) {
@@ -96,8 +98,8 @@ class FirewallSocket : public AsyncSocketAdapter {
 
     return AsyncSocketAdapter::Listen(backlog);
   }
-  Socket* Accept(SocketAddress* paddr) override {
-    SocketAddress addr;
+  Socket* Accept(webrtc::SocketAddress* paddr) override {
+    webrtc::SocketAddress addr;
     while (Socket* sock = AsyncSocketAdapter::Accept(&addr)) {
       if (server_->Check(FP_TCP, addr, GetLocalAddress())) {
         if (paddr)
@@ -144,8 +146,8 @@ FirewallSocketServer::~FirewallSocketServer() {
 void FirewallSocketServer::AddRule(bool allow,
                                    FirewallProtocol p,
                                    FirewallDirection d,
-                                   const SocketAddress& addr) {
-  SocketAddress any;
+                                   const webrtc::SocketAddress& addr) {
+  webrtc::SocketAddress any;
   if (d == FD_IN || d == FD_ANY) {
     AddRule(allow, p, any, addr);
   }
@@ -156,8 +158,8 @@ void FirewallSocketServer::AddRule(bool allow,
 
 void FirewallSocketServer::AddRule(bool allow,
                                    FirewallProtocol p,
-                                   const SocketAddress& src,
-                                   const SocketAddress& dst) {
+                                   const webrtc::SocketAddress& src,
+                                   const webrtc::SocketAddress& dst) {
   Rule r;
   r.allow = allow;
   r.p = p;
@@ -173,8 +175,8 @@ void FirewallSocketServer::ClearRules() {
 }
 
 bool FirewallSocketServer::Check(FirewallProtocol p,
-                                 const SocketAddress& src,
-                                 const SocketAddress& dst) {
+                                 const webrtc::SocketAddress& src,
+                                 const webrtc::SocketAddress& dst) {
   webrtc::MutexLock scope(&mutex_);
   for (size_t i = 0; i < rules_.size(); ++i) {
     const Rule& r = rules_[i];
@@ -249,7 +251,7 @@ void FirewallManager::RemoveServer(FirewallSocketServer* server) {
 void FirewallManager::AddRule(bool allow,
                               FirewallProtocol p,
                               FirewallDirection d,
-                              const SocketAddress& addr) {
+                              const webrtc::SocketAddress& addr) {
   webrtc::MutexLock scope(&mutex_);
   for (std::vector<FirewallSocketServer*>::const_iterator it = servers_.begin();
        it != servers_.end(); ++it) {

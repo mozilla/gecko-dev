@@ -39,23 +39,24 @@ class StunServer {
 
   // Handlers for the different types of STUN/TURN requests:
   virtual void OnBindingRequest(StunMessage* msg,
-                                const rtc::SocketAddress& addr);
-  void OnAllocateRequest(StunMessage* msg, const rtc::SocketAddress& addr);
-  void OnSharedSecretRequest(StunMessage* msg, const rtc::SocketAddress& addr);
-  void OnSendRequest(StunMessage* msg, const rtc::SocketAddress& addr);
+                                const webrtc::SocketAddress& addr);
+  void OnAllocateRequest(StunMessage* msg, const webrtc::SocketAddress& addr);
+  void OnSharedSecretRequest(StunMessage* msg,
+                             const webrtc::SocketAddress& addr);
+  void OnSendRequest(StunMessage* msg, const webrtc::SocketAddress& addr);
 
   // Sends an error response to the given message back to the user.
   void SendErrorResponse(const StunMessage& msg,
-                         const rtc::SocketAddress& addr,
+                         const webrtc::SocketAddress& addr,
                          int error_code,
                          absl::string_view error_desc);
 
   // Sends the given message to the appropriate destination.
-  void SendResponse(const StunMessage& msg, const rtc::SocketAddress& addr);
+  void SendResponse(const StunMessage& msg, const webrtc::SocketAddress& addr);
 
   // A helper method to compose a STUN binding response.
   void GetStunBindResponse(StunMessage* message,
-                           const rtc::SocketAddress& remote_addr,
+                           const webrtc::SocketAddress& remote_addr,
                            StunMessage* response) const;
 
  private:

@@ -36,22 +36,22 @@ class AsyncUDPSocket : public AsyncPacketSocket {
   // of `socket`. Returns null if bind() fails (`socket` is destroyed
   // in that case).
   static AsyncUDPSocket* Create(Socket* socket,
-                                const SocketAddress& bind_address);
+                                const webrtc::SocketAddress& bind_address);
   // Creates a new socket for sending asynchronous UDP packets using an
   // asynchronous socket from the given factory.
   static AsyncUDPSocket* Create(SocketFactory* factory,
-                                const SocketAddress& bind_address);
+                                const webrtc::SocketAddress& bind_address);
   explicit AsyncUDPSocket(Socket* socket);
   ~AsyncUDPSocket() = default;
 
-  SocketAddress GetLocalAddress() const override;
-  SocketAddress GetRemoteAddress() const override;
+  webrtc::SocketAddress GetLocalAddress() const override;
+  webrtc::SocketAddress GetRemoteAddress() const override;
   int Send(const void* pv,
            size_t cb,
            const rtc::PacketOptions& options) override;
   int SendTo(const void* pv,
              size_t cb,
-             const SocketAddress& addr,
+             const webrtc::SocketAddress& addr,
              const rtc::PacketOptions& options) override;
   int Close() override;
 

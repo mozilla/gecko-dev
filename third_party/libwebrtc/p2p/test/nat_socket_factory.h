@@ -39,8 +39,8 @@ class NATInternalSocketFactory {
   virtual ~NATInternalSocketFactory() {}
   virtual Socket* CreateInternalSocket(int family,
                                        int type,
-                                       const SocketAddress& local_addr,
-                                       SocketAddress* nat_addr) = 0;
+                                       const webrtc::SocketAddress& local_addr,
+                                       webrtc::SocketAddress* nat_addr) = 0;
 };
 
 // Creates sockets that will send all traffic through a NAT, using an existing
@@ -49,8 +49,8 @@ class NATInternalSocketFactory {
 class NATSocketFactory : public SocketFactory, public NATInternalSocketFactory {
  public:
   NATSocketFactory(SocketFactory* factory,
-                   const SocketAddress& nat_udp_addr,
-                   const SocketAddress& nat_tcp_addr);
+                   const webrtc::SocketAddress& nat_udp_addr,
+                   const webrtc::SocketAddress& nat_tcp_addr);
 
   NATSocketFactory(const NATSocketFactory&) = delete;
   NATSocketFactory& operator=(const NATSocketFactory&) = delete;
@@ -61,13 +61,13 @@ class NATSocketFactory : public SocketFactory, public NATInternalSocketFactory {
   // NATInternalSocketFactory implementation
   Socket* CreateInternalSocket(int family,
                                int type,
-                               const SocketAddress& local_addr,
-                               SocketAddress* nat_addr) override;
+                               const webrtc::SocketAddress& local_addr,
+                               webrtc::SocketAddress* nat_addr) override;
 
  private:
   SocketFactory* factory_;
-  SocketAddress nat_udp_addr_;
-  SocketAddress nat_tcp_addr_;
+  webrtc::SocketAddress nat_udp_addr_;
+  webrtc::SocketAddress nat_tcp_addr_;
 };
 
 // Creates sockets that will send traffic through a NAT depending on what
@@ -90,13 +90,13 @@ class NATSocketServer : public SocketServer, public NATInternalSocketFactory {
   class Translator;
 
   // holds a list of NATs
-  class TranslatorMap : private std::map<SocketAddress, Translator*> {
+  class TranslatorMap : private std::map<webrtc::SocketAddress, Translator*> {
    public:
     ~TranslatorMap();
-    Translator* Get(const SocketAddress& ext_ip);
-    Translator* Add(const SocketAddress& ext_ip, Translator*);
-    void Remove(const SocketAddress& ext_ip);
-    Translator* FindClient(const SocketAddress& int_ip);
+    Translator* Get(const webrtc::SocketAddress& ext_ip);
+    Translator* Add(const webrtc::SocketAddress& ext_ip, Translator*);
+    void Remove(const webrtc::SocketAddress& ext_ip);
+    Translator* FindClient(const webrtc::SocketAddress& int_ip);
   };
 
   // a specific NAT
@@ -104,38 +104,38 @@ class NATSocketServer : public SocketServer, public NATInternalSocketFactory {
    public:
     Translator(NATSocketServer* server,
                NATType type,
-               const SocketAddress& int_addr,
+               const webrtc::SocketAddress& int_addr,
                Thread& external_socket_thread,
                SocketFactory* ext_factory,
-               const SocketAddress& ext_addr);
+               const webrtc::SocketAddress& ext_addr);
     ~Translator();
 
     SocketFactory* internal_factory() { return internal_server_.get(); }
-    SocketAddress internal_udp_address() const {
+    webrtc::SocketAddress internal_udp_address() const {
       return nat_server_->internal_udp_address();
     }
-    SocketAddress internal_tcp_address() const {
-      return SocketAddress();  // nat_server_->internal_tcp_address();
+    webrtc::SocketAddress internal_tcp_address() const {
+      return webrtc::SocketAddress();  // nat_server_->internal_tcp_address();
     }
 
-    Translator* GetTranslator(const SocketAddress& ext_ip);
-    Translator* AddTranslator(const SocketAddress& ext_ip,
-                              const SocketAddress& int_ip,
+    Translator* GetTranslator(const webrtc::SocketAddress& ext_ip);
+    Translator* AddTranslator(const webrtc::SocketAddress& ext_ip,
+                              const webrtc::SocketAddress& int_ip,
                               NATType type);
-    void RemoveTranslator(const SocketAddress& ext_ip);
+    void RemoveTranslator(const webrtc::SocketAddress& ext_ip);
 
-    bool AddClient(const SocketAddress& int_ip);
-    void RemoveClient(const SocketAddress& int_ip);
+    bool AddClient(const webrtc::SocketAddress& int_ip);
+    void RemoveClient(const webrtc::SocketAddress& int_ip);
 
     // Looks for the specified client in this or a child NAT.
-    Translator* FindClient(const SocketAddress& int_ip);
+    Translator* FindClient(const webrtc::SocketAddress& int_ip);
 
    private:
     NATSocketServer* server_;
     std::unique_ptr<SocketServer> internal_server_;
     std::unique_ptr<NATServer> nat_server_;
     TranslatorMap nats_;
-    std::set<SocketAddress> clients_;
+    std::set<webrtc::SocketAddress> clients_;
   };
 
   explicit NATSocketServer(SocketServer* ss);
@@ -146,11 +146,11 @@ class NATSocketServer : public SocketServer, public NATInternalSocketFactory {
   SocketServer* socketserver() { return server_; }
   Thread* queue() { return msg_queue_; }
 
-  Translator* GetTranslator(const SocketAddress& ext_ip);
-  Translator* AddTranslator(const SocketAddress& ext_ip,
-                            const SocketAddress& int_ip,
+  Translator* GetTranslator(const webrtc::SocketAddress& ext_ip);
+  Translator* AddTranslator(const webrtc::SocketAddress& ext_ip,
+                            const webrtc::SocketAddress& int_ip,
                             NATType type);
-  void RemoveTranslator(const SocketAddress& ext_ip);
+  void RemoveTranslator(const webrtc::SocketAddress& ext_ip);
 
   // SocketServer implementation
   Socket* CreateSocket(int family, int type) override;
@@ -162,8 +162,8 @@ class NATSocketServer : public SocketServer, public NATInternalSocketFactory {
   // NATInternalSocketFactory implementation
   Socket* CreateInternalSocket(int family,
                                int type,
-                               const SocketAddress& local_addr,
-                               SocketAddress* nat_addr) override;
+                               const webrtc::SocketAddress& local_addr,
+                               webrtc::SocketAddress* nat_addr) override;
 
  private:
   SocketServer* server_;
@@ -174,9 +174,9 @@ class NATSocketServer : public SocketServer, public NATInternalSocketFactory {
 // Free-standing NAT helper functions.
 size_t PackAddressForNAT(char* buf,
                          size_t buf_size,
-                         const SocketAddress& remote_addr);
+                         const webrtc::SocketAddress& remote_addr);
 size_t UnpackAddressFromNAT(rtc::ArrayView<const uint8_t> buf,
-                            SocketAddress* remote_addr);
+                            webrtc::SocketAddress* remote_addr);
 }  // namespace rtc
 
 #endif  // P2P_TEST_NAT_SOCKET_FACTORY_H_

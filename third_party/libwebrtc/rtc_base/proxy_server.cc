@@ -22,9 +22,9 @@ namespace rtc {
 
 // ProxyServer
 ProxyServer::ProxyServer(SocketFactory* int_factory,
-                         const SocketAddress& int_addr,
+                         const webrtc::SocketAddress& int_addr,
                          SocketFactory* ext_factory,
-                         const SocketAddress& ext_ip)
+                         const webrtc::SocketAddress& ext_ip)
     : ext_factory_(ext_factory),
       ext_ip_(ext_ip.ipaddr(), 0),  // strip off port
       server_socket_(
@@ -38,7 +38,7 @@ ProxyServer::ProxyServer(SocketFactory* int_factory,
 
 ProxyServer::~ProxyServer() = default;
 
-SocketAddress ProxyServer::GetServerAddress() {
+webrtc::SocketAddress ProxyServer::GetServerAddress() {
   return server_socket_->GetLocalAddress();
 }
 
@@ -82,7 +82,7 @@ ProxyBinding::ProxyBinding(AsyncProxyServerSocket* int_socket,
 ProxyBinding::~ProxyBinding() = default;
 
 void ProxyBinding::OnConnectRequest(AsyncProxyServerSocket* socket,
-                                    const SocketAddress& addr) {
+                                    const webrtc::SocketAddress& addr) {
   RTC_DCHECK(!connected_);
   RTC_DCHECK(ext_socket_);
   ext_socket_->Connect(addr);
@@ -119,7 +119,7 @@ void ProxyBinding::OnExternalWrite(Socket* socket) {
 
 void ProxyBinding::OnExternalClose(Socket* socket, int err) {
   if (!connected_) {
-    int_socket_->SendConnectResult(err, SocketAddress());
+    int_socket_->SendConnectResult(err, webrtc::SocketAddress());
   }
   Destroy();
 }

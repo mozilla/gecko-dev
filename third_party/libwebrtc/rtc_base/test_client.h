@@ -32,7 +32,7 @@ class TestClient : public sigslot::has_slots<> {
     Packet(const rtc::ReceivedPacket& received_packet);
     Packet(const Packet& p);
 
-    rtc::SocketAddress addr;
+    SocketAddress addr;
     Buffer buf;
     std::optional<Timestamp> packet_time;
   };
@@ -53,10 +53,8 @@ class TestClient : public sigslot::has_slots<> {
   TestClient(const TestClient&) = delete;
   TestClient& operator=(const TestClient&) = delete;
 
-  rtc::SocketAddress address() const { return socket_->GetLocalAddress(); }
-  rtc::SocketAddress remote_address() const {
-    return socket_->GetRemoteAddress();
-  }
+  SocketAddress address() const { return socket_->GetLocalAddress(); }
+  SocketAddress remote_address() const { return socket_->GetRemoteAddress(); }
 
   // Checks that the socket moves to the specified connect state.
   bool CheckConnState(rtc::AsyncPacketSocket::State state);
@@ -70,7 +68,7 @@ class TestClient : public sigslot::has_slots<> {
   int Send(const char* buf, size_t size);
 
   // Sends using the clients socket to the given destination.
-  int SendTo(const char* buf, size_t size, const rtc::SocketAddress& dest);
+  int SendTo(const char* buf, size_t size, const SocketAddress& dest);
 
   // Returns the next packet received by the client or null if none is received
   // within the specified timeout.
@@ -78,7 +76,7 @@ class TestClient : public sigslot::has_slots<> {
 
   // Checks that the next packet has the given contents. Returns the remote
   // address that the packet was sent from.
-  bool CheckNextPacket(const char* buf, size_t len, rtc::SocketAddress* addr);
+  bool CheckNextPacket(const char* buf, size_t len, SocketAddress* addr);
 
   // Checks that no packets have arrived or will arrive in the next second.
   bool CheckNoPacket();

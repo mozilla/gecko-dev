@@ -23,7 +23,7 @@ int main(int argc, char* argv[]) {
     return 1;
   }
 
-  rtc::SocketAddress server_addr;
+  webrtc::SocketAddress server_addr;
   if (!server_addr.FromString(argv[1])) {
     std::cerr << "Unable to parse IP address: " << argv[1];
     return 1;

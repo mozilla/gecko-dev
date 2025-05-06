@@ -61,14 +61,14 @@ void StunServer::OnPacket(rtc::AsyncPacketSocket* socket,
 }
 
 void StunServer::OnBindingRequest(StunMessage* msg,
-                                  const rtc::SocketAddress& remote_addr) {
+                                  const webrtc::SocketAddress& remote_addr) {
   StunMessage response(STUN_BINDING_RESPONSE, msg->transaction_id());
   GetStunBindResponse(msg, remote_addr, &response);
   SendResponse(response, remote_addr);
 }
 
 void StunServer::SendErrorResponse(const StunMessage& msg,
-                                   const rtc::SocketAddress& addr,
+                                   const webrtc::SocketAddress& addr,
                                    int error_code,
                                    absl::string_view error_desc) {
   StunMessage err_msg(GetStunErrorResponseType(msg.type()),
@@ -83,7 +83,7 @@ void StunServer::SendErrorResponse(const StunMessage& msg,
 }
 
 void StunServer::SendResponse(const StunMessage& msg,
-                              const rtc::SocketAddress& addr) {
+                              const webrtc::SocketAddress& addr) {
   rtc::ByteBufferWriter buf;
   msg.Write(&buf);
   rtc::PacketOptions options;
@@ -92,7 +92,7 @@ void StunServer::SendResponse(const StunMessage& msg,
 }
 
 void StunServer::GetStunBindResponse(StunMessage* message,
-                                     const rtc::SocketAddress& remote_addr,
+                                     const webrtc::SocketAddress& remote_addr,
                                      StunMessage* response) const {
   RTC_DCHECK_EQ(response->type(), STUN_BINDING_RESPONSE);
   RTC_DCHECK_EQ(response->transaction_id(), message->transaction_id());

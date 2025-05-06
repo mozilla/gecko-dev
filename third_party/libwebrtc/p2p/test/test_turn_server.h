@@ -33,12 +33,13 @@ static const char kTestSoftware[] = "TestTurnServer";
 
 class TestTurnRedirector : public TurnRedirectInterface {
  public:
-  explicit TestTurnRedirector(const std::vector<rtc::SocketAddress>& addresses)
+  explicit TestTurnRedirector(
+      const std::vector<webrtc::SocketAddress>& addresses)
       : alternate_server_addresses_(addresses),
         iter_(alternate_server_addresses_.begin()) {}
 
-  virtual bool ShouldRedirect(const rtc::SocketAddress&,
-                              rtc::SocketAddress* out) {
+  virtual bool ShouldRedirect(const webrtc::SocketAddress&,
+                              webrtc::SocketAddress* out) {
     if (!out || iter_ == alternate_server_addresses_.end()) {
       return false;
     }
@@ -47,16 +48,16 @@ class TestTurnRedirector : public TurnRedirectInterface {
   }
 
  private:
-  const std::vector<rtc::SocketAddress>& alternate_server_addresses_;
-  std::vector<rtc::SocketAddress>::const_iterator iter_;
+  const std::vector<webrtc::SocketAddress>& alternate_server_addresses_;
+  std::vector<webrtc::SocketAddress>::const_iterator iter_;
 };
 
 class TestTurnServer : public TurnAuthInterface {
  public:
   TestTurnServer(rtc::Thread* thread,
                  rtc::SocketFactory* socket_factory,
-                 const rtc::SocketAddress& int_addr,
-                 const rtc::SocketAddress& udp_ext_addr,
+                 const webrtc::SocketAddress& int_addr,
+                 const webrtc::SocketAddress& udp_ext_addr,
                  webrtc::ProtocolType int_protocol = webrtc::PROTO_UDP,
                  bool ignore_bad_cert = true,
                  absl::string_view common_name = "test turn server")
@@ -91,7 +92,7 @@ class TestTurnServer : public TurnAuthInterface {
     server_.set_enable_permission_checks(enable);
   }
 
-  void AddInternalSocket(const rtc::SocketAddress& int_addr,
+  void AddInternalSocket(const webrtc::SocketAddress& int_addr,
                          webrtc::ProtocolType proto,
                          bool ignore_bad_cert = true,
                          absl::string_view common_name = "test turn server") {
@@ -128,7 +129,7 @@ class TestTurnServer : public TurnAuthInterface {
 
   // Finds the first allocation in the server allocation map with a source
   // ip and port matching the socket address provided.
-  TurnServerAllocation* FindAllocation(const rtc::SocketAddress& src) {
+  TurnServerAllocation* FindAllocation(const webrtc::SocketAddress& src) {
     RTC_DCHECK(thread_checker_.IsCurrent());
     const TurnServer::AllocationMap& map = server_.allocations();
     for (TurnServer::AllocationMap::const_iterator it = map.begin();

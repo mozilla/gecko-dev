@@ -52,18 +52,18 @@ const int TURN_SERVER_PORT = 3478;
 class TurnServerConnection {
  public:
   TurnServerConnection() : proto_(webrtc::PROTO_UDP), socket_(NULL) {}
-  TurnServerConnection(const rtc::SocketAddress& src,
+  TurnServerConnection(const webrtc::SocketAddress& src,
                        webrtc::ProtocolType proto,
                        rtc::AsyncPacketSocket* socket);
-  const rtc::SocketAddress& src() const { return src_; }
+  const webrtc::SocketAddress& src() const { return src_; }
   rtc::AsyncPacketSocket* socket() { return socket_; }
   bool operator==(const TurnServerConnection& t) const;
   bool operator<(const TurnServerConnection& t) const;
   std::string ToString() const;
 
  private:
-  rtc::SocketAddress src_;
-  rtc::SocketAddress dst_;
+  webrtc::SocketAddress src_;
+  webrtc::SocketAddress dst_;
   webrtc::ProtocolType proto_;
   rtc::AsyncPacketSocket* socket_;
 };
@@ -100,7 +100,7 @@ class TurnServerAllocation final {
   struct Channel {
     webrtc::ScopedTaskSafety pending_delete;
     const uint16_t id;
-    const rtc::SocketAddress peer;
+    const webrtc::SocketAddress peer;
   };
   struct Permission {
     webrtc::ScopedTaskSafety pending_delete;
@@ -125,7 +125,7 @@ class TurnServerAllocation final {
   void AddPermission(const webrtc::IPAddress& addr);
   PermissionList::iterator FindPermission(const webrtc::IPAddress& addr);
   ChannelList::iterator FindChannel(int channel_id);
-  ChannelList::iterator FindChannel(const rtc::SocketAddress& addr);
+  ChannelList::iterator FindChannel(const webrtc::SocketAddress& addr);
 
   void SendResponse(TurnMessage* msg);
   void SendBadRequestResponse(const TurnMessage* req);
@@ -134,7 +134,7 @@ class TurnServerAllocation final {
                          absl::string_view reason);
   void SendExternal(const void* data,
                     size_t size,
-                    const rtc::SocketAddress& peer);
+                    const webrtc::SocketAddress& peer);
 
   TurnServer* const server_;
   webrtc::TaskQueueBase* const thread_;
@@ -164,8 +164,8 @@ class TurnAuthInterface {
 // An interface enables Turn Server to control redirection behavior.
 class TurnRedirectInterface {
  public:
-  virtual bool ShouldRedirect(const rtc::SocketAddress& address,
-                              rtc::SocketAddress* out) = 0;
+  virtual bool ShouldRedirect(const webrtc::SocketAddress& address,
+                              webrtc::SocketAddress* out) = 0;
   virtual ~TurnRedirectInterface() {}
 };
 
@@ -257,7 +257,7 @@ class TurnServer : public sigslot::has_slots<> {
       std::unique_ptr<rtc::SSLAdapterFactory> ssl_adapter_factory = nullptr);
   // Specifies the factory to use for creating external sockets.
   void SetExternalSocketFactory(rtc::PacketSocketFactory* factory,
-                                const rtc::SocketAddress& address);
+                                const webrtc::SocketAddress& address);
   // For testing only.
   std::string SetTimestampForNextNonce(int64_t timestamp) {
     RTC_DCHECK_RUN_ON(thread_);
@@ -320,7 +320,7 @@ class TurnServer : public sigslot::has_slots<> {
 
   void SendErrorResponseWithAlternateServer(TurnServerConnection* conn,
                                             const StunMessage* req,
-                                            const rtc::SocketAddress& addr)
+                                            const webrtc::SocketAddress& addr)
       RTC_RUN_ON(thread_);
 
   void SendStun(TurnServerConnection* conn, StunMessage* msg);
@@ -357,7 +357,7 @@ class TurnServer : public sigslot::has_slots<> {
   ServerSocketMap server_listen_sockets_ RTC_GUARDED_BY(thread_);
   std::unique_ptr<rtc::PacketSocketFactory> external_socket_factory_
       RTC_GUARDED_BY(thread_);
-  rtc::SocketAddress external_addr_ RTC_GUARDED_BY(thread_);
+  webrtc::SocketAddress external_addr_ RTC_GUARDED_BY(thread_);
 
   AllocationMap allocations_ RTC_GUARDED_BY(thread_);
 

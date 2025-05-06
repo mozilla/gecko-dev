@@ -96,16 +96,16 @@ class RTC_EXPORT AsyncPacketSocket : public sigslot::has_slots<> {
 
   // Returns current local address. Address may be set to null if the
   // socket is not bound yet (GetState() returns STATE_BINDING).
-  virtual SocketAddress GetLocalAddress() const = 0;
+  virtual webrtc::SocketAddress GetLocalAddress() const = 0;
 
   // Returns remote address. Returns zeroes if this is not a client TCP socket.
-  virtual SocketAddress GetRemoteAddress() const = 0;
+  virtual webrtc::SocketAddress GetRemoteAddress() const = 0;
 
   // Send a packet.
   virtual int Send(const void* pv, size_t cb, const PacketOptions& options) = 0;
   virtual int SendTo(const void* pv,
                      size_t cb,
-                     const SocketAddress& addr,
+                     const webrtc::SocketAddress& addr,
                      const PacketOptions& options) = 0;
 
   // Close the socket.
@@ -143,7 +143,8 @@ class RTC_EXPORT AsyncPacketSocket : public sigslot::has_slots<> {
   // Emitted after address for the socket is allocated, i.e. binding
   // is finished. State of the socket is changed from BINDING to BOUND
   // (for UDP sockets).
-  sigslot::signal2<AsyncPacketSocket*, const SocketAddress&> SignalAddressReady;
+  sigslot::signal2<AsyncPacketSocket*, const webrtc::SocketAddress&>
+      SignalAddressReady;
 
   // Emitted for client TCP sockets when state is changed from
   // CONNECTING to CONNECTED.
@@ -188,7 +189,7 @@ class RTC_EXPORT AsyncListenSocket : public sigslot::has_slots<> {
 
   // Returns current local address. Address may be set to null if the
   // socket is not bound yet (GetState() returns kBinding).
-  virtual SocketAddress GetLocalAddress() const = 0;
+  virtual webrtc::SocketAddress GetLocalAddress() const = 0;
 
   sigslot::signal2<AsyncListenSocket*, AsyncPacketSocket*> SignalNewConnection;
 };

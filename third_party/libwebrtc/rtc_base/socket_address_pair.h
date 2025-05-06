@@ -23,11 +23,10 @@ namespace webrtc {
 class SocketAddressPair {
  public:
   SocketAddressPair() {}
-  SocketAddressPair(const rtc::SocketAddress& srs,
-                    const rtc::SocketAddress& dest);
+  SocketAddressPair(const SocketAddress& srs, const SocketAddress& dest);
 
-  const rtc::SocketAddress& source() const { return src_; }
-  const rtc::SocketAddress& destination() const { return dest_; }
+  const SocketAddress& source() const { return src_; }
+  const SocketAddress& destination() const { return dest_; }
 
   bool operator==(const SocketAddressPair& r) const;
   bool operator<(const SocketAddressPair& r) const;
@@ -35,8 +34,8 @@ class SocketAddressPair {
   size_t Hash() const;
 
  private:
-  rtc::SocketAddress src_;
-  rtc::SocketAddress dest_;
+  SocketAddress src_;
+  SocketAddress dest_;
 };
 
 }  //  namespace webrtc

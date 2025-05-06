@@ -203,7 +203,7 @@ TEST_F(PhysicalSocketTest, TestConnectFailIPv4) {
 void PhysicalSocketTest::ConnectInternalAcceptError(
     const webrtc::IPAddress& loopback) {
   webrtc::testing::StreamSink sink;
-  SocketAddress accept_addr;
+  webrtc::SocketAddress accept_addr;
 
   // Create two clients.
   std::unique_ptr<Socket> client1(
@@ -222,7 +222,7 @@ void PhysicalSocketTest::ConnectInternalAcceptError(
   std::unique_ptr<Socket> server(
       server_.CreateSocket(loopback.family(), SOCK_STREAM));
   sink.Monitor(server.get());
-  EXPECT_EQ(0, server->Bind(SocketAddress(loopback, 0)));
+  EXPECT_EQ(0, server->Bind(webrtc::SocketAddress(loopback, 0)));
   EXPECT_EQ(0, server->Listen(5));
   EXPECT_EQ(Socket::CS_CONNECTING, server->GetState());
 
@@ -504,7 +504,7 @@ TEST_F(PhysicalSocketTest,
   server_.set_network_binder(&fake_network_binder);
   std::unique_ptr<Socket> socket(server_.CreateSocket(AF_INET, SOCK_DGRAM));
   fake_network_binder.set_result(NetworkBindingResult::FAILURE);
-  EXPECT_EQ(-1, socket->Bind(SocketAddress("192.168.0.1", 0)));
+  EXPECT_EQ(-1, socket->Bind(webrtc::SocketAddress("192.168.0.1", 0)));
   server_.set_network_binder(nullptr);
 }
 
@@ -514,7 +514,7 @@ TEST_F(PhysicalSocketTest, NetworkBinderIsNotUsedForAnyIp) {
   FakeNetworkBinder fake_network_binder;
   server_.set_network_binder(&fake_network_binder);
   std::unique_ptr<Socket> socket(server_.CreateSocket(AF_INET, SOCK_DGRAM));
-  EXPECT_EQ(0, socket->Bind(SocketAddress("0.0.0.0", 0)));
+  EXPECT_EQ(0, socket->Bind(webrtc::SocketAddress("0.0.0.0", 0)));
   EXPECT_EQ(0, fake_network_binder.num_binds());
   server_.set_network_binder(nullptr);
 }
@@ -528,7 +528,7 @@ TEST_F(PhysicalSocketTest,
   server_.set_network_binder(&fake_network_binder);
   std::unique_ptr<Socket> socket(server_.CreateSocket(AF_INET, SOCK_DGRAM));
   fake_network_binder.set_result(NetworkBindingResult::FAILURE);
-  EXPECT_EQ(0, socket->Bind(SocketAddress(kIPv4Loopback, 0)));
+  EXPECT_EQ(0, socket->Bind(webrtc::SocketAddress(kIPv4Loopback, 0)));
   server_.set_network_binder(nullptr);
 }
 
