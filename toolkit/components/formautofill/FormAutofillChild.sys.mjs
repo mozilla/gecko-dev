@@ -1076,8 +1076,12 @@ export class FormAutofillChild extends JSWindowActorChild {
       return false;
     }
 
-    // No profile can fill the currently-focused input.
-    if (!lazy.FormAutofillContent.savedFieldNames.has(fieldName)) {
+    // No profile can fill the currently-focused input
+    // temporarily excluding "address-housenumber" until it is added to the savedFieldNames set properly
+    if (
+      !lazy.FormAutofillContent.savedFieldNames.has(fieldName) &&
+      fieldName != "address-housenumber"
+    ) {
       return false;
     }
 

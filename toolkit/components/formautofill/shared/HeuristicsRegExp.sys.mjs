@@ -60,7 +60,8 @@ export const HeuristicsRegExp = {
         "|miasto|miejscowosc|miejscowość", //pl-PL
       "address-housenumber":
         "(house|building)\\s*number|hausnummer|haus|house[a-z\-]*n(r|o)" +
-        "|n[úu]mero",
+        "|n[úu]mero" +
+        "|domu", // pl-PL
       "address-level3":
         "(^address-?level-?3$)" +
         "|neighbou*rhood|barrio|bairro|colonia|suburb", // en/es/pt/mx/au/nz
