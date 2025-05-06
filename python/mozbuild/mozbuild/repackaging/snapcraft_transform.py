@@ -62,6 +62,7 @@ class SnapcraftTransform:
     def repack(self):
         removed = self.keep_non_build_parts()
         self.add_firefox_repack(removed)
+        self.fix_distribution()
         self.change_version(self._version, self._buildno)
         self.change_name(self._appname)
         return yaml.safe_dump(self.snap, sort_keys=False)
@@ -94,6 +95,11 @@ class SnapcraftTransform:
                 ]
 
         return removed
+
+    def fix_distribution(self):
+        self.snap["parts"]["distribution"].setdefault("build-packages", []).append(
+            "git"
+        )
 
     def add_firefox_repack(self, removed):
         repack_yaml = """
