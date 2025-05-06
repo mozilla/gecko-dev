@@ -50,7 +50,8 @@ class FrameGeneratorCapturer : public TestVideoCapturer {
       Clock* clock,
       std::unique_ptr<FrameGeneratorInterface> frame_generator,
       int target_fps,
-      TaskQueueFactory& task_queue_factory);
+      TaskQueueFactory& task_queue_factory,
+      bool allow_zero_hertz = false);
   virtual ~FrameGeneratorCapturer();
 
   void Start() override;
@@ -102,6 +103,8 @@ class FrameGeneratorCapturer : public TestVideoCapturer {
   int target_capture_fps_ RTC_GUARDED_BY(&lock_);
   VideoRotation fake_rotation_ = kVideoRotation_0;
   std::optional<ColorSpace> fake_color_space_ RTC_GUARDED_BY(&lock_);
+  bool allow_zero_hertz_ = false;
+  int number_of_frames_skipped_ = 0;
 
   std::unique_ptr<TaskQueueBase, TaskQueueDeleter> task_queue_;
 };

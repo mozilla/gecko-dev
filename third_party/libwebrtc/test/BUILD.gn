@@ -154,6 +154,7 @@ rtc_library("frame_generator_capturer") {
     "frame_generator_capturer.h",
   ]
   deps = [
+    ":frame_utils",
     ":test_video_capturer",
     "../api:frame_generator_api",
     "../api:scoped_refptr",

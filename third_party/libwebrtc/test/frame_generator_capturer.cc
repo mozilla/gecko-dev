@@ -31,6 +31,7 @@
 #include "rtc_base/synchronization/mutex.h"
 #include "rtc_base/task_utils/repeating_task.h"
 #include "system_wrappers/include/clock.h"
+#include "test/frame_utils.h"
 #include "test/test_video_capturer.h"
 
 namespace webrtc {
@@ -40,13 +41,15 @@ FrameGeneratorCapturer::FrameGeneratorCapturer(
     Clock* clock,
     std::unique_ptr<FrameGeneratorInterface> frame_generator,
     int target_fps,
-    TaskQueueFactory& task_queue_factory)
+    TaskQueueFactory& task_queue_factory,
+    bool allow_zero_hertz)
     : clock_(clock),
       sending_(true),
       sink_wants_observer_(nullptr),
       frame_generator_(std::move(frame_generator)),
       source_fps_(target_fps),
       target_capture_fps_(target_fps),
+      allow_zero_hertz_(allow_zero_hertz),
       task_queue_(task_queue_factory.CreateTaskQueue(
           "FrameGenCapQ",
           TaskQueueFactory::Priority::HIGH)) {
@@ -100,6 +103,17 @@ void FrameGeneratorCapturer::InsertFrame() {
 
     FrameGeneratorInterface::VideoFrameData frame_data =
         frame_generator_->NextFrame();
+    if (allow_zero_hertz_) {
+      // Skip frames that are identical to the previous one but still send at
+      // least one frame every second.
+      if (number_of_frames_skipped_ < target_capture_fps_ - 1 &&
+          webrtc::test::FrameBufsEqual(last_frame_captured_,
+                                       frame_data.buffer)) {
+        ++number_of_frames_skipped_;
+        return;
+      }
+      number_of_frames_skipped_ = 0;
+    }
     last_frame_captured_ = frame_data.buffer;
     TestVideoCapturer::OnFrame(
         VideoFrame::Builder()
