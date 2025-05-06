@@ -171,10 +171,15 @@ class TabsTrayFragmentTest {
             mockk(),
         )
         every { fragment.requireContext().settings().privateBrowsingLockedEnabled } returns true
+        every { fragment.tabsTrayStore.state.selectedPage } returns Page.NormalTabs
 
         val biometricAuthenticationNeededInfo = BiometricAuthenticationNeededInfo()
         val result =
-            fragment.shouldShowPrompt(biometricAuthenticationNeededInfo, isPrivateTabPage = true)
+            fragment.shouldShowPrompt(
+                biometricAuthenticationNeededInfo,
+                isPrivateTabPage = true,
+                isInPrivateMode = false,
+            )
 
         assertTrue(result)
     }
@@ -186,10 +191,15 @@ class TabsTrayFragmentTest {
             mockk(),
         )
         every { fragment.requireContext().settings().privateBrowsingLockedEnabled } returns true
+        every { fragment.tabsTrayStore.state.selectedPage } returns Page.NormalTabs
 
         val biometricAuthenticationNeededInfo = BiometricAuthenticationNeededInfo()
         val result =
-            fragment.shouldShowPrompt(biometricAuthenticationNeededInfo, isPrivateTabPage = false)
+            fragment.shouldShowPrompt(
+                biometricAuthenticationNeededInfo,
+                isPrivateTabPage = false,
+                isInPrivateMode = false,
+            )
 
         assertFalse(result)
     }
@@ -198,10 +208,15 @@ class TabsTrayFragmentTest {
     fun `WHEN hasPrivateTabs is false THEN shouldShowPrompt returns false`() {
         every { fragment.requireComponents.core.store.state.privateTabs } returns emptyList()
         every { fragment.requireContext().settings().privateBrowsingLockedEnabled } returns true
+        every { fragment.tabsTrayStore.state.selectedPage } returns Page.NormalTabs
 
         val biometricAuthenticationNeededInfo = BiometricAuthenticationNeededInfo()
         val result =
-            fragment.shouldShowPrompt(biometricAuthenticationNeededInfo, isPrivateTabPage = true)
+            fragment.shouldShowPrompt(
+                biometricAuthenticationNeededInfo,
+                isPrivateTabPage = true,
+                isInPrivateMode = false,
+            )
 
         assertFalse(result)
     }
@@ -213,10 +228,15 @@ class TabsTrayFragmentTest {
             mockk(),
         )
         every { fragment.requireContext().settings().privateBrowsingLockedEnabled } returns false
+        every { fragment.tabsTrayStore.state.selectedPage } returns Page.NormalTabs
 
         val biometricAuthenticationNeededInfo = BiometricAuthenticationNeededInfo()
         val result =
-            fragment.shouldShowPrompt(biometricAuthenticationNeededInfo, isPrivateTabPage = true)
+            fragment.shouldShowPrompt(
+                biometricAuthenticationNeededInfo,
+                isPrivateTabPage = true,
+                isInPrivateMode = false,
+            )
 
         assertFalse(result)
     }
@@ -228,11 +248,36 @@ class TabsTrayFragmentTest {
             mockk(),
         )
         every { fragment.requireContext().settings().privateBrowsingLockedEnabled } returns true
+        every { fragment.tabsTrayStore.state.selectedPage } returns Page.NormalTabs
 
         val biometricAuthenticationNeededInfo =
             BiometricAuthenticationNeededInfo(shouldShowAuthenticationPrompt = false)
         val result =
-            fragment.shouldShowPrompt(biometricAuthenticationNeededInfo, isPrivateTabPage = true)
+            fragment.shouldShowPrompt(
+                biometricAuthenticationNeededInfo,
+                isPrivateTabPage = true,
+                isInPrivateMode = false,
+            )
+
+        assertFalse(result)
+    }
+
+    @Test
+    fun `WHEN already on private page tabs THEN shouldShowPrompt returns false`() {
+        every { fragment.requireComponents.core.store.state.privateTabs } returns listOf(
+            mockk(),
+            mockk(),
+        )
+        every { fragment.requireContext().settings().privateBrowsingLockedEnabled } returns true
+        every { fragment.tabsTrayStore.state.selectedPage } returns Page.PrivateTabs
+
+        val biometricAuthenticationNeededInfo = BiometricAuthenticationNeededInfo()
+        val result =
+            fragment.shouldShowPrompt(
+                biometricAuthenticationNeededInfo,
+                isPrivateTabPage = true,
+                isInPrivateMode = false,
+            )
 
         assertFalse(result)
     }
@@ -246,6 +291,7 @@ class TabsTrayFragmentTest {
             mockk(),
         )
         every { fragment.requireContext().settings().privateBrowsingLockedEnabled } returns true
+        every { fragment.tabsTrayStore.state.selectedPage } returns Page.NormalTabs
 
         val biometricAuthenticationNeededInfo = BiometricAuthenticationNeededInfo()
         val biometricUtils = mockk<BiometricUtils>(relaxed = true)
@@ -256,6 +302,7 @@ class TabsTrayFragmentTest {
             biometricUtils = biometricUtils,
             tabsTrayInteractor = tabsTrayInteractor,
             page = page,
+            isInPrivateMode = false,
         )
 
         assertEquals(
@@ -281,6 +328,7 @@ class TabsTrayFragmentTest {
             mockk(),
         )
         every { fragment.requireContext().settings().privateBrowsingLockedEnabled } returns false
+        every { fragment.tabsTrayStore.state.selectedPage } returns Page.PrivateTabs
 
         val biometricAuthenticationNeededInfo =
             BiometricAuthenticationNeededInfo(authenticationStatus = AuthenticationStatus.AUTHENTICATED)
@@ -292,6 +340,7 @@ class TabsTrayFragmentTest {
             biometricUtils = biometricUtils,
             tabsTrayInteractor = tabsTrayInteractor,
             page = page,
+            isInPrivateMode = true,
         )
 
         assertEquals(
@@ -318,6 +367,7 @@ class TabsTrayFragmentTest {
             mockk(),
         )
         every { fragment.requireContext().settings().privateBrowsingLockedEnabled } returns false
+        every { fragment.tabsTrayStore.state.selectedPage } returns Page.NormalTabs
 
         val biometricAuthenticationNeededInfo =
             BiometricAuthenticationNeededInfo(authenticationStatus = AuthenticationStatus.AUTHENTICATED)
@@ -329,6 +379,7 @@ class TabsTrayFragmentTest {
             biometricUtils = biometricUtils,
             tabsTrayInteractor = tabsTrayInteractor,
             page = page,
+            isInPrivateMode = true,
         )
 
         assertEquals(
