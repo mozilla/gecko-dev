@@ -29,6 +29,7 @@ class LintIssueRegistry : IssueRegistry() {
         StringLintXmlDetector.ISSUE_STRAIGHT_DOUBLE_QUOTE_USAGE,
         StringLintXmlDetector.ISSUE_BRAND_USAGE,
         StringLintXmlDetector.ISSUE_PLACEHOLDER_COMMENT,
+        VisibleForTestingDetector.ISSUE_VISIBLE_FOR_TESTING_ANNOTATION,
     ) + ConstraintLayoutPerfDetector.ISSUES + ContextCompatDetector.ISSUES
     override val vendor: Vendor = Vendor(
         vendorName = "Mozilla",
