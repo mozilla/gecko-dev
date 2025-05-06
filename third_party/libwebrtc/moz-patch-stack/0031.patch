@@ -118,7 +118,7 @@ index b61ab6455b..277c526aa9 100644
    # TODO(https://bugs.webrtc.org/14437):  Remove this section if general
    # Chromium fix resolves the problem.
 diff --git a/BUILD.gn b/BUILD.gn
-index 689de89c06..913cdf4478 100644
+index 5e7d863ac2..e6753a8722 100644
 --- a/BUILD.gn
 +++ b/BUILD.gn
 @@ -33,7 +33,7 @@ if (is_android) {

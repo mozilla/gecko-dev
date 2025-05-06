@@ -42,10 +42,6 @@ group("examples") {
     }
   }
 
-  if (!build_with_chromium) {
-    deps += [ ":stun_prober" ]
-  }
-
   if (is_ios || (is_mac && target_cpu != "x86")) {
     deps += [ ":AppRTCMobile" ]
   }
@@ -865,31 +861,5 @@ if (is_android) {
           "../sdk/android/tests/resources/robolectric.properties",
           "robolectric.properties",
         ] ]
-  }
-}
-
-if (!build_with_chromium) {
-  # Doesn't build within Chrome on Win.
-  rtc_executable("stun_prober") {
-    testonly = true
-    sources = [ "stunprober/main.cc" ]
-    deps = [
-      "../p2p:basic_packet_socket_factory",
-      "../p2p:libstunprober",
-      "../rtc_base:checks",
-      "../rtc_base:crypto_random",
-      "../rtc_base:logging",
-      "../rtc_base:network",
-      "../rtc_base:socket_address",
-      "../rtc_base:ssl_adapter",
-      "../rtc_base:threading",
-      "../rtc_base:timeutils",
-      "../test:scoped_key_value_config",
-      "//third_party/abseil-cpp/absl/flags:flag",
-      "//third_party/abseil-cpp/absl/flags:parse",
-    ]
-    if (is_win) {
-      deps += [ "../rtc_base:win32_socket_init" ]
-    }
   }
 }

@@ -79,7 +79,7 @@ index fe7020cb97..4c9b95c31b 100644
  # The python interpreter to use by default. On Windows, this will look
  # for vpython3.exe and vpython3.bat.
 diff --git a/BUILD.gn b/BUILD.gn
-index 1d7bcfee98..64b77e47fd 100644
+index bc4148a4da..f1983d6344 100644
 --- a/BUILD.gn
 +++ b/BUILD.gn
 @@ -21,15 +21,15 @@
@@ -111,7 +111,7 @@ index 1d7bcfee98..64b77e47fd 100644
      defines = []
  
      deps = [
-@@ -851,7 +851,7 @@ rtc_static_library("dcsctp") {
+@@ -850,7 +850,7 @@ rtc_static_library("dcsctp") {
    visibility = [ "//:default" ]
    sources = []
    complete_static_lib = true
@@ -369,7 +369,7 @@ index a0ddf777db..cf15513e18 100644
      }
    }
 diff --git a/examples/BUILD.gn b/examples/BUILD.gn
-index 3c95783dfc..344bf3da95 100644
+index b4c2bd766b..5673934238 100644
 --- a/examples/BUILD.gn
 +++ b/examples/BUILD.gn
 @@ -9,15 +9,15 @@
@@ -393,7 +393,7 @@ index 3c95783dfc..344bf3da95 100644
  }
  
  group("examples") {
-@@ -638,7 +638,7 @@ if (is_ios || (is_mac && target_cpu != "x86")) {
+@@ -634,7 +634,7 @@ if (is_ios || (is_mac && target_cpu != "x86")) {
            "../sdk:mediaconstraints_objc",
            "../sdk:peerconnectionfactory_base_objc",
            "../sdk:videocapture_objc",
@@ -402,7 +402,7 @@ index 3c95783dfc..344bf3da95 100644
            "//third_party/ocmock",
          ]
        }
-@@ -741,7 +741,7 @@ if (is_linux || is_chromeos || is_win) {
+@@ -737,7 +737,7 @@ if (is_linux || is_chromeos || is_win) {
          "peerconnection/client/main_wnd.cc",
          "peerconnection/client/main_wnd.h",
        ]

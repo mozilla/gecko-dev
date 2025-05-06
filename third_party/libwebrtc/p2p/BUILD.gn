@@ -9,7 +9,6 @@
 import("../webrtc.gni")
 
 group("p2p") {
-  deps = [ ":libstunprober" ]
 }
 
 rtc_source_set("active_ice_controller_factory_interface") {
@@ -1227,59 +1226,4 @@ rtc_library("p2p_server_utils") {
     "//third_party/abseil-cpp/absl/memory",
     "//third_party/abseil-cpp/absl/strings:string_view",
   ]
-}
-
-rtc_library("libstunprober") {
-  visibility = [ "*" ]
-  sources = [
-    "stunprober/stun_prober.cc",
-    "stunprober/stun_prober.h",
-  ]
-
-  deps = [
-    "../api:array_view",
-    "../api:async_dns_resolver",
-    "../api:packet_socket_factory",
-    "../api:sequence_checker",
-    "../api/task_queue:pending_task_safety_flag",
-    "../api/transport:stun_types",
-    "../api/units:time_delta",
-    "../rtc_base:async_packet_socket",
-    "../rtc_base:byte_buffer",
-    "../rtc_base:checks",
-    "../rtc_base:ip_address",
-    "../rtc_base:logging",
-    "../rtc_base:net_helpers",
-    "../rtc_base:network",
-    "../rtc_base:socket_address",
-    "../rtc_base:ssl",
-    "../rtc_base:threading",
-    "../rtc_base:timeutils",
-    "../rtc_base/network:received_packet",
-    "../rtc_base/system:rtc_export",
-    "../rtc_base/third_party/sigslot",
-  ]
-}
-
-if (rtc_include_tests) {
-  rtc_library("libstunprober_unittests") {
-    testonly = true
-
-    sources = [ "stunprober/stun_prober_unittest.cc" ]
-    deps = [
-      ":basic_packet_socket_factory",
-      ":libstunprober",
-      ":p2p_test_utils",
-      "../rtc_base:checks",
-      "../rtc_base:gunit_helpers",
-      "../rtc_base:ip_address",
-      "../rtc_base:network",
-      "../rtc_base:rtc_base_tests_utils",
-      "../rtc_base:socket_address",
-      "../rtc_base:ssl_adapter",
-      "../rtc_base:threading",
-      "../test:test_support",
-      "//testing/gtest",
-    ]
-  }
 }
