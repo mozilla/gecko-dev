@@ -112,15 +112,20 @@ class DtlsTestClient : public sigslot::has_slots<> {
   void set_async_delay(int async_delay_ms) { async_delay_ms_ = async_delay_ms; }
 
   // Set up fake ICE transport and real DTLS transport under test.
-  void SetupTransports(IceRole role) {
+  void SetupTransports(IceRole role, bool rtt_estimate = true) {
     dtls_transport_ = nullptr;
     fake_ice_transport_ = nullptr;
 
     fake_ice_transport_.reset(
         new FakeIceTransport(absl::StrCat("fake-", name_), 0));
-    fake_ice_transport_->set_rtt_estimate(
-        async_delay_ms_ ? std::optional<int>(async_delay_ms_) : std::nullopt,
-        /* async= */ true);
+    if (rtt_estimate) {
+      fake_ice_transport_->set_rtt_estimate(
+          async_delay_ms_ ? std::optional<int>(async_delay_ms_) : std::nullopt,
+          /* async= */ true);
+    } else if (async_delay_ms_) {
+      fake_ice_transport_->SetAsync(async_delay_ms_);
+      fake_ice_transport_->SetAsyncDelay(async_delay_ms_);
+    }
     fake_ice_transport_->SetIceRole(role);
     // Hook the raw packets so that we can verify they are encrypted.
     fake_ice_transport_->RegisterReceivedPacketCallback(
@@ -696,15 +701,20 @@ class DtlsTransportVersionTest
       public ::testing::TestWithParam<
           std::tuple<EndpointConfig, EndpointConfig>> {
  public:
-  void Prepare() {
+  void Prepare(bool rtt_estimate = true) {
     PrepareDtls(rtc::KT_DEFAULT);
     const auto& config1 = std::get<0>(GetParam());
     const auto& config2 = std::get<1>(GetParam());
     SetMaxProtocolVersions(config1.max_protocol_version,
                            config2.max_protocol_version);
 
-    client1_.SetupTransports(config1.ice_role.value_or(ICEROLE_CONTROLLING));
-    client2_.SetupTransports(config2.ice_role.value_or(ICEROLE_CONTROLLED));
+    client1_.set_async_delay(50);
+    client2_.set_async_delay(50);
+
+    client1_.SetupTransports(config1.ice_role.value_or(ICEROLE_CONTROLLING),
+                             rtt_estimate);
+    client2_.SetupTransports(config2.ice_role.value_or(ICEROLE_CONTROLLED),
+                             rtt_estimate);
     client1_.dtls_transport()->SetDtlsRole(
         config1.ssl_role.value_or(webrtc::SSL_CLIENT));
     client2_.dtls_transport()->SetDtlsRole(
@@ -725,9 +735,6 @@ class DtlsTransportVersionTest
                                  client2_.certificate());
     SetRemoteFingerprintFromCert(client2_.dtls_transport(),
                                  client1_.certificate());
-
-    client1_.fake_ice_transport()->set_rtt_estimate(50, true);
-    client2_.fake_ice_transport()->set_rtt_estimate(50, true);
   }
 
   // Run DTLS handshake.
@@ -870,8 +877,9 @@ TEST_P(DtlsTransportVersionTest, CipherSuiteNegotiation) {
 }
 
 TEST_P(DtlsTransportVersionTest, HandshakeFlights) {
-  if (std::get<0>(GetParam()).dtls_in_stun &&
-      std::get<1>(GetParam()).dtls_in_stun) {
+  if (std::get<0>(GetParam()).dtls_in_stun ||
+      (std::get<0>(GetParam()).dtls_in_stun &&
+       std::get<1>(GetParam()).dtls_in_stun)) {
     GTEST_SKIP() << "This test does not support dtls in stun";
   }
   Prepare();
@@ -885,8 +893,9 @@ TEST_P(DtlsTransportVersionTest, HandshakeFlights) {
 
 TEST_P(DtlsTransportVersionTest, HandshakeLoseFirstClientPacket) {
   MAYBE_SKIP_TEST(IsBoringSsl);
-  if (std::get<0>(GetParam()).dtls_in_stun &&
-      std::get<1>(GetParam()).dtls_in_stun) {
+  if (std::get<0>(GetParam()).dtls_in_stun ||
+      (std::get<0>(GetParam()).dtls_in_stun &&
+       std::get<1>(GetParam()).dtls_in_stun)) {
     GTEST_SKIP() << "This test does not support dtls in stun";
   }
 
@@ -904,8 +913,9 @@ TEST_P(DtlsTransportVersionTest, HandshakeLoseFirstClientPacket) {
 
 TEST_P(DtlsTransportVersionTest, HandshakeLoseSecondClientPacket) {
   MAYBE_SKIP_TEST(IsBoringSsl);
-  if (std::get<0>(GetParam()).dtls_in_stun &&
-      std::get<1>(GetParam()).dtls_in_stun) {
+  if (std::get<0>(GetParam()).dtls_in_stun ||
+      (std::get<0>(GetParam()).dtls_in_stun &&
+       std::get<1>(GetParam()).dtls_in_stun)) {
     GTEST_SKIP() << "This test does not support dtls in stun";
   }
 
@@ -1299,7 +1309,7 @@ std::vector<std::tuple<EndpointConfig, EndpointConfig>> AllEndpointVariants() {
 }
 
 TEST_P(DtlsTransportDtlsInStunTest, Handshake1) {
-  Prepare();
+  Prepare(/* rtt_estimate= */ false);
   AddPacketLogging();
 
   RTC_LOG(LS_INFO) << "client1: " << std::get<0>(GetParam());
@@ -1346,7 +1356,7 @@ TEST_P(DtlsTransportDtlsInStunTest, Handshake1) {
 }
 
 TEST_P(DtlsTransportDtlsInStunTest, Handshake2) {
-  Prepare();
+  Prepare(/* rtt_estimate= */ false);
   AddPacketLogging();
 
   RTC_LOG(LS_INFO) << "client1: " << std::get<0>(GetParam());
@@ -1381,6 +1391,60 @@ TEST_P(DtlsTransportDtlsInStunTest, Handshake2) {
       break;
     }
   }
+
+  EXPECT_TRUE(WaitUntil([&] {
+    return client1_.dtls_transport()->writable() &&
+           client2_.dtls_transport()->writable();
+  }));
+
+  EXPECT_TRUE(client1_.dtls_transport()->writable());
+  EXPECT_TRUE(client2_.dtls_transport()->writable());
+
+  ClearPacketFilters();
+}
+
+// Test scenario where DTLS is partially transferred with
+// STUN and the "rest" of the handshake is transported
+// by DtlsTransport.
+TEST_P(DtlsTransportDtlsInStunTest, PartiallyPiggybacked) {
+  Prepare(/* rtt_estimate= */ false);
+  AddPacketLogging();
+
+  RTC_LOG(LS_INFO) << "client1: " << std::get<0>(GetParam());
+  RTC_LOG(LS_INFO) << "client2: " << std::get<1>(GetParam());
+
+  ASSERT_TRUE(client1_.ConnectIceTransport(&client2_));
+
+  for (int i = 1; i < 2; i++) {
+    client1_.SendIcePing();
+    client2_.SendIcePing();
+    ASSERT_TRUE(WaitUntil([&] {
+      return client1_.fake_ice_transport()->GetCountOfReceivedStunMessages(
+                 STUN_BINDING_REQUEST) == i;
+    }));
+    ASSERT_TRUE(WaitUntil([&] {
+      return client2_.fake_ice_transport()->GetCountOfReceivedStunMessages(
+                 STUN_BINDING_REQUEST) == i;
+    }));
+    client1_.SendIcePingConf();
+    client2_.SendIcePingConf();
+
+    ASSERT_TRUE(WaitUntil([&] {
+      return client1_.fake_ice_transport()->GetCountOfReceivedStunMessages(
+                 STUN_BINDING_RESPONSE) == i;
+    }));
+    ASSERT_TRUE(WaitUntil([&] {
+      return client2_.fake_ice_transport()->GetCountOfReceivedStunMessages(
+                 STUN_BINDING_RESPONSE) == i;
+    }));
+    if (client1_.dtls_transport()->writable() &&
+        client2_.dtls_transport()->writable()) {
+      break;
+    }
+  }
+
+  EXPECT_FALSE(client1_.dtls_transport()->writable() &&
+               client2_.dtls_transport()->writable());
 
   EXPECT_TRUE(WaitUntil([&] {
     return client1_.dtls_transport()->writable() &&

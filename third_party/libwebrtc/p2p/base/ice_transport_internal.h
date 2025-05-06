@@ -44,12 +44,6 @@
 
 namespace cricket {
 
-// Minimum and maximum values for the initial DTLS handshake timeout. We'll pick
-// an initial timeout based on ICE RTT estimates, but clamp it to this range.
-// TODO(webrtc:367395350): Move back into dtls_transport.cc.
-constexpr int kMinDtlsHandshakeTimeoutMs = 50;
-constexpr int kMaxDtlsHandshakeTimeoutMs = 3000;
-
 struct IceTransportStats {
   CandidateStatsList candidate_stats_list;
   ConnectionInfos connection_infos;

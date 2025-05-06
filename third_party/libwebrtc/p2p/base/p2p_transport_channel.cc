@@ -2248,63 +2248,6 @@ void P2PTransportChannel::SetWritable(bool writable) {
     SignalReadyToSend(this);
   }
   SignalWritableState(this);
-
-  if (config_.dtls_handshake_in_stun) {
-    // TODO (jonaso, webrtc:367395350): Switch to upcoming
-    // DTLSv1_set_timeout_duration. Remove once we can get DTLS to handle
-    // retransmission also when handshake is not complete but we become writable
-    // (e.g. by setting a good timeout).
-    PeriodicRetransmitDtlsPacketUntilDtlsConnected();
-  }
-}
-
-// TODO (jonaso, webrtc:367395350): Switch to upcoming
-// DTLSv1_set_timeout_duration. Remove once we can get DTLS to handle
-// retransmission also when handshake is not complete but we become writable
-// (e.g. by setting a good timeout).
-void P2PTransportChannel::PeriodicRetransmitDtlsPacketUntilDtlsConnected() {
-  RTC_DCHECK_RUN_ON(network_thread_);
-  if (pending_periodic_retransmit_dtls_packet_ == true) {
-    // PeriodicRetransmitDtlsPacketUntilDtlsConnected is called in two places
-    // a) Either by PostTask, in which case pending_ping_until_dtls_connected_
-    // is FALSE b) When Ice get connected, in which it is unknown if
-    // pending_periodic_retransmit_dtls_packet_.
-    return;
-  }
-  if (writable_ && config_.dtls_handshake_in_stun &&
-      !dtls_stun_piggyback_callbacks_.empty()) {
-    auto data_to_send =
-        dtls_stun_piggyback_callbacks_.send_data(STUN_BINDING_INDICATION);
-    if (!data_to_send.first) {
-      // No data to send, we're done.
-      return;
-    }
-    // writable_ is TRUE => we must have a selected_connection_ ?
-    RTC_DCHECK(selected_connection_ != nullptr);
-    rtc::PacketOptions packet_options;
-    SendPacket(data_to_send.first->data(), data_to_send.first->size(),
-               packet_options, /* flags= */ 0);
-  }
-
-  const auto rtt_ms = GetRttEstimate().value_or(100);
-  const int delay_ms =
-      std::max(kMinDtlsHandshakeTimeoutMs,
-               std::min(kMaxDtlsHandshakeTimeoutMs, 2 * rtt_ms));
-
-  // Set pending before we post task.
-  pending_periodic_retransmit_dtls_packet_ = true;
-  network_thread_->PostDelayedHighPrecisionTask(
-      webrtc::SafeTask(safety_flag_.flag(),
-                       [this] {
-                         RTC_DCHECK_RUN_ON(network_thread_);
-                         // Clear pending then the PostTask runs.
-                         pending_periodic_retransmit_dtls_packet_ = false;
-                         PeriodicRetransmitDtlsPacketUntilDtlsConnected();
-                       }),
-      TimeDelta::Millis(delay_ms));
-  RTC_LOG(LS_INFO) << ToString()
-                   << ": Scheduled retransmit of DTLS packet, delay_ms: "
-                   << delay_ms;
 }
 
 void P2PTransportChannel::SetReceiving(bool receiving) {

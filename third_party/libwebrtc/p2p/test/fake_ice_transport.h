@@ -431,6 +431,7 @@ class FakeIceTransport : public IceTransportInternal {
   bool SendIcePing() {
     RTC_DCHECK_RUN_ON(network_thread_);
     RTC_DLOG(LS_INFO) << name_ << ": SendIcePing()";
+    last_sent_ping_timestamp_ = rtc::TimeMicros();
     auto msg = std::make_unique<IceMessage>(STUN_BINDING_REQUEST);
     MaybeAddDtlsPiggybackingAttributes(msg.get());
     msg->AddFingerprint();
@@ -557,6 +558,9 @@ class FakeIceTransport : public IceTransportInternal {
       }
 
       if (msg->type() == STUN_BINDING_RESPONSE) {
+        if (!rtt_estimate_ && last_sent_ping_timestamp_) {
+          rtt_estimate_ = (now - *last_sent_ping_timestamp_) / 1000;
+        }
         set_writable(true);
       }
 
@@ -618,6 +622,7 @@ class FakeIceTransport : public IceTransportInternal {
   rtc::Thread* const network_thread_;
   webrtc::ScopedTaskSafetyDetached task_safety_;
   std::optional<int> rtt_estimate_;
+  std::optional<int64_t> last_sent_ping_timestamp_;
 
   // If filter func return TRUE means that packet will be dropped.
   absl::AnyInvocable<bool(const char*, size_t, const rtc::PacketOptions&, int)>

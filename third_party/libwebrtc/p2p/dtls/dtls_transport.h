@@ -259,6 +259,7 @@ class DtlsTransport : public DtlsTransportInternal {
   void SetPiggybackDtlsDataCallback(
       absl::AnyInvocable<void(rtc::PacketTransportInternal* transport,
                               const rtc::ReceivedPacket& packet)> callback);
+  void PeriodicRetransmitDtlsPacketUntilDtlsConnected();
 
   RTC_NO_UNIQUE_ADDRESS webrtc::SequenceChecker thread_checker_;
 
@@ -298,6 +299,13 @@ class DtlsTransport : public DtlsTransportInternal {
   absl::AnyInvocable<void(rtc::PacketTransportInternal*,
                           const rtc::ReceivedPacket&)>
       piggybacked_dtls_callback_;
+
+  // When ICE get writable during dtls piggybacked handshake
+  // there is currently no safe way of updating the timeout
+  // in boringssl (that is work in progress). Therefore
+  // DtlsTransport has a "hack" to periodically retransmit.
+  bool pending_periodic_retransmit_dtls_packet_ = false;
+  webrtc::ScopedTaskSafetyDetached safety_flag_;
 };
 
 }  // namespace cricket

@@ -52,17 +52,21 @@
 namespace cricket {
 
 // We don't pull the RTP constants from rtputils.h, to avoid a layer violation.
-static const size_t kMinRtpPacketLen = 12;
+constexpr size_t kMinRtpPacketLen = 12;
 
 // Maximum number of pending packets in the queue. Packets are read immediately
 // after they have been written, so a capacity of "1" is sufficient.
 //
 // However, this bug seems to indicate that's not the case: crbug.com/1063834
 // So, temporarily increasing it to 2 to see if that makes a difference.
-static const size_t kMaxPendingPackets = 2;
+constexpr size_t kMaxPendingPackets = 2;
 
+// Minimum and maximum values for the initial DTLS handshake timeout. We'll pick
+// an initial timeout based on ICE RTT estimates, but clamp it to this range.
+constexpr int kMinDtlsHandshakeTimeoutMs = 50;
+constexpr int kMaxDtlsHandshakeTimeoutMs = 3000;
 // This effectively disables the handshake timeout.
-static const int kDisabledHandshakeTimeoutMs = 3600 * 1000 * 24;
+constexpr int kDisabledHandshakeTimeoutMs = 3600 * 1000 * 24;
 
 static bool IsRtpPacket(rtc::ArrayView<const uint8_t> payload) {
   const uint8_t* u = payload.data();
@@ -637,6 +641,7 @@ void DtlsTransport::OnWritableState(rtc::PacketTransportInternal* transport) {
         // on the DTLS object (which is then different from the
         // inital kDisabledHandshakeTimeoutMs)
         ConfigureHandshakeTimeout();
+        PeriodicRetransmitDtlsPacketUntilDtlsConnected();
       }
       break;
     case webrtc::DtlsTransportState::kFailed:
@@ -936,18 +941,20 @@ void DtlsTransport::OnDtlsHandshakeError(webrtc::SSLHandshakeError error) {
   SendDtlsHandshakeError(error);
 }
 
+int ComputeRetransmissionTimeout(int rtt_ms) {
+  return std::max(kMinDtlsHandshakeTimeoutMs,
+                  std::min(kMaxDtlsHandshakeTimeoutMs, 2 * (rtt_ms)));
+}
+
 void DtlsTransport::ConfigureHandshakeTimeout() {
   RTC_DCHECK(dtls_);
   std::optional<int> rtt_ms = ice_transport_->GetRttEstimate();
   if (rtt_ms) {
     // Limit the timeout to a reasonable range in case the ICE RTT takes
     // extreme values.
-    int initial_timeout_ms =
-        std::max(kMinDtlsHandshakeTimeoutMs,
-                 std::min(kMaxDtlsHandshakeTimeoutMs, 2 * (*rtt_ms)));
+    int initial_timeout_ms = ComputeRetransmissionTimeout(*rtt_ms);
     RTC_LOG(LS_INFO) << ToString() << ": configuring DTLS handshake timeout "
                      << initial_timeout_ms << "ms based on ICE RTT " << *rtt_ms;
-
     dtls_->SetInitialRetransmissionTimeout(initial_timeout_ms);
   } else if (dtls_in_stun_) {
     // Configure a very high timeout to effectively disable the DTLS timeout
@@ -984,6 +991,50 @@ bool DtlsTransport::WasDtlsCompletedByPiggybacking() {
                                DtlsStunPiggybackController::State::COMPLETE ||
                            dtls_stun_piggyback_controller_.state() ==
                                DtlsStunPiggybackController::State::PENDING);
+}
+
+// TODO (jonaso, webrtc:367395350): Switch to upcoming
+// DTLSv1_set_timeout_duration. Remove once we can get DTLS to handle
+// retransmission also when handshake is not complete but we become writable
+// (e.g. by setting a good timeout).
+void DtlsTransport::PeriodicRetransmitDtlsPacketUntilDtlsConnected() {
+  RTC_DCHECK_RUN_ON(&thread_checker_);
+  if (pending_periodic_retransmit_dtls_packet_ == true) {
+    // PeriodicRetransmitDtlsPacketUntilDtlsConnected is called in two places
+    // a) Either by PostTask, where pending_ping_until_dtls_connected_ is FALSE
+    // b) When Ice get connected, in which it is unknown if
+    // pending_periodic_retransmit_dtls_packet_.
+    return;
+  }
+  if (ice_transport_->writable() && dtls_in_stun_) {
+    auto data_to_send = dtls_stun_piggyback_controller_.GetDataToPiggyback(
+        STUN_BINDING_INDICATION);
+    if (!data_to_send) {
+      // No data to send, we're done.
+      return;
+    }
+    rtc::PacketOptions packet_options;
+    ice_transport_->SendPacket(data_to_send->data(), data_to_send->size(),
+                               packet_options, /* flags= */ 0);
+  }
+
+  const auto rtt_ms = ice_transport_->GetRttEstimate().value_or(100);
+  const int delay_ms = ComputeRetransmissionTimeout(rtt_ms);
+
+  // Set pending before we post task.
+  pending_periodic_retransmit_dtls_packet_ = true;
+  rtc::Thread::Current()->PostDelayedHighPrecisionTask(
+      webrtc::SafeTask(safety_flag_.flag(),
+                       [this] {
+                         RTC_DCHECK_RUN_ON(&thread_checker_);
+                         // Clear pending then the PostTask runs.
+                         pending_periodic_retransmit_dtls_packet_ = false;
+                         PeriodicRetransmitDtlsPacketUntilDtlsConnected();
+                       }),
+      webrtc::TimeDelta::Millis(delay_ms));
+  RTC_LOG(LS_INFO) << ToString()
+                   << ": Scheduled retransmit of DTLS packet, delay_ms: "
+                   << delay_ms;
 }
 
 }  // namespace cricket
