@@ -7,6 +7,7 @@
 preonboarding-title = Welcome to { -brand-product-name }
 preonboarding-subtitle = By continuing, you agree to the { -brand-product-name } Terms of Use and our Privacy Notice. To help improve the browser, { -brand-product-name } sends diagnostic and interaction data to { -vendor-short-name }.
 preonboarding-primary-cta = Confirm and continue
+preonboarding-primary-cta-v2 = Continue
 
 # Labels for header style button that toggles showing the terms of use, privacy notice, and data preferences checklist
 preonboarding-manage-and-read-header = Manage data collection settings and read our Terms of Use and Privacy Notice
