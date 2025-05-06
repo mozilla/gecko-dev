@@ -4,7 +4,7 @@
 
 package mozilla.components.concept.engine.translate
 
-import org.jetbrains.annotations.VisibleForTesting
+import androidx.annotation.VisibleForTesting
 
 /**
  * The language model container for representing language model state to the user.

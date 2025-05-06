@@ -30,7 +30,6 @@ import mozilla.components.feature.downloads.manager.FetchDownloadManager
 import mozilla.components.feature.prompts.PromptFeature
 import mozilla.components.support.base.feature.UserInteractionHandler
 import mozilla.components.support.base.feature.ViewBoundFeatureWrapper
-import org.jetbrains.annotations.VisibleForTesting
 import org.mozilla.fenix.R
 import org.mozilla.fenix.compose.snackbar.Snackbar
 import org.mozilla.fenix.compose.snackbar.SnackbarState
@@ -208,8 +207,7 @@ abstract class AddonPopupBaseFragment : Fragment(), EngineSession.Observer, User
         }
     }
 
-    @VisibleForTesting
-    internal fun provideBrowserStore() = requireComponents.core.store
+    private fun provideBrowserStore() = requireComponents.core.store
 
     /**
      * Provides a container for download-related views.

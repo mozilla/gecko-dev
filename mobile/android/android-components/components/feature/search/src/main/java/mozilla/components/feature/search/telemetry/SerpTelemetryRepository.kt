@@ -4,13 +4,13 @@
 
 package mozilla.components.feature.search.telemetry
 
+import androidx.annotation.VisibleForTesting
 import mozilla.appservices.remotesettings.RemoteSettingsResponse
 import mozilla.components.support.base.log.logger.Logger
 import mozilla.components.support.ktx.android.org.json.asSequence
 import mozilla.components.support.ktx.android.org.json.toList
 import mozilla.components.support.remotesettings.RemoteSettingsClient
 import mozilla.components.support.remotesettings.RemoteSettingsResult
-import org.jetbrains.annotations.VisibleForTesting
 import org.json.JSONArray
 import org.json.JSONException
 import org.json.JSONObject
