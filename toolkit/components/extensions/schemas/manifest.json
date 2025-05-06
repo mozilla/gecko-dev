@@ -515,12 +515,13 @@
             "enum": [
               "authenticationInfo",
               "bookmarksInfo",
-              "browsingHistory",
+              "browsingActivity",
               "financialAndPaymentInfo",
               "healthInfo",
               "locationInfo",
               "personalCommunications",
               "personallyIdentifyingInfo",
+              "searchTerms",
               "websiteActivity",
               "websiteContent"
             ]
