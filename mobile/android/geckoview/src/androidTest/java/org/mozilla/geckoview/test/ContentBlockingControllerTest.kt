@@ -492,6 +492,63 @@ class ContentBlockingControllerTest : BaseSessionTest() {
     }
 
     @Test
+    fun etpCategorySettings() {
+        // Check default value
+        val contentBlocking = sessionRule.runtime.settings.contentBlocking
+
+        assertThat(
+            "Expect correct default value which ETP standard",
+            contentBlocking.getEnhancedTrackingProtectionCategory(),
+            equalTo(ContentBlocking.EtpCategory.STANDARD),
+        )
+
+        // Checks that the pref value is also consistent with the runtime settings
+        val defaultPrefs = sessionRule.getPrefs(
+            "browser.contentblocking.category",
+        )
+
+        assertThat(
+            "Initial value is correct",
+            defaultPrefs[0] as String,
+            equalTo("standard"),
+        )
+
+        contentBlocking.setEnhancedTrackingProtectionCategory(ContentBlocking.EtpCategory.STRICT)
+        assertThat(
+            "The getter returns the updated value for strict",
+            contentBlocking.getEnhancedTrackingProtectionCategory(),
+            equalTo(ContentBlocking.EtpCategory.STRICT),
+        )
+
+        val updatedPrefsStrict = sessionRule.getPrefs(
+            "browser.contentblocking.category",
+        )
+
+        assertThat(
+            "The pref value is updated",
+            updatedPrefsStrict[0] as String,
+            equalTo("strict"),
+        )
+
+        contentBlocking.setEnhancedTrackingProtectionCategory(ContentBlocking.EtpCategory.CUSTOM)
+        assertThat(
+            "The getter returns the updated value for custom",
+            contentBlocking.getEnhancedTrackingProtectionCategory(),
+            equalTo(ContentBlocking.EtpCategory.CUSTOM),
+        )
+
+        val updatedPrefsCustom = sessionRule.getPrefs(
+            "browser.contentblocking.category",
+        )
+
+        assertThat(
+            "The pref value is updated",
+            updatedPrefsCustom[0] as String,
+            equalTo("custom"),
+        )
+    }
+
+    @Test
     fun toggleEmailTrackingForPrivateBrowsingMode() {
         // check default value
         val contentBlocking = sessionRule.runtime.settings.contentBlocking

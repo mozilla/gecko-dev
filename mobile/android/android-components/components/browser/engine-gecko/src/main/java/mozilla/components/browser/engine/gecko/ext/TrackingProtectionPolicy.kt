@@ -29,6 +29,7 @@ fun TrackingProtectionPolicy.toContentBlockingSetting(
     queryParameterStrippingStripList: String = "",
 ) = ContentBlocking.Settings.Builder().apply {
     enhancedTrackingProtectionLevel(getEtpLevel())
+    enhancedTrackingProtectionCategory(getEtpCategory())
     antiTracking(getAntiTrackingPolicy())
     cookieBehavior(cookiePolicy.id)
     cookieBehaviorPrivateMode(cookiePolicyPrivateMode.id)
@@ -60,6 +61,20 @@ internal fun TrackingProtectionPolicy.getEtpLevel(): Int {
     return when {
         trackingCategories.contains(TrackingCategory.NONE) -> ContentBlocking.EtpLevel.NONE
         else -> ContentBlocking.EtpLevel.STRICT
+    }
+}
+
+/**
+ * Returns the [TrackingProtectionPolicy] categories as an Enhanced Tracking
+ * Protection category preset for GeckoView.
+ * If no preset matches the configured categories CUSTOM is returned.
+ */
+internal fun TrackingProtectionPolicy.getEtpCategory(): Int {
+    val categorySum = trackingCategories.sumOf { it.id }
+    return when (categorySum) {
+        TrackingCategory.STRICT.id -> ContentBlocking.EtpCategory.STRICT
+        TrackingCategory.RECOMMENDED.id -> ContentBlocking.EtpCategory.STANDARD
+        else -> ContentBlocking.EtpCategory.CUSTOM
     }
 }
 
