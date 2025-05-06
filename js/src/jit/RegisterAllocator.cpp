@@ -343,14 +343,11 @@ void AllocationIntegrityState::checkSafepointAllocation(LInstruction* ins,
       MOZ_ASSERT(safepoint->hasWasmAnyRef(alloc));
       break;
 #  ifdef JS_NUNBOX32
-    // Do not assert that safepoint information for nunbox types is complete,
-    // as if a vreg for a value's components are copied in multiple places
-    // then the safepoint information may not reflect all copies. All copies
-    // of payloads must be reflected, however, for generational GC.
     case LDefinition::TYPE:
+      MOZ_ASSERT(safepoint->hasNunboxPart(/* isType = */ true, alloc));
       break;
     case LDefinition::PAYLOAD:
-      MOZ_ASSERT(safepoint->hasNunboxPayload(alloc));
+      MOZ_ASSERT(safepoint->hasNunboxPart(/* isType = */ false, alloc));
       break;
 #  else
     case LDefinition::BOX:

@@ -187,6 +187,8 @@ class LAllocation {
 
   HashNumber hash() const { return bits_; }
 
+  uintptr_t asRawBits() const { return bits_; }
+
   bool aliases(const LAllocation& other) const;
 
 #ifdef JS_JITSPEW
@@ -1547,14 +1549,23 @@ struct SafepointSlotEntry {
       : stack(a->isStackSlot()), slot(a->memorySlot()) {}
 };
 
-struct SafepointNunboxEntry {
-  uint32_t typeVreg;
-  LAllocation type;
-  LAllocation payload;
+// Used for the type or payload half of a JS Value on 32-bit platforms.
+class SafepointNunboxEntry {
+  static constexpr size_t VregBits = 31;
+  uint32_t isType_ : 1;
+  uint32_t vreg_ : VregBits;
+  LAllocation alloc_;
 
-  SafepointNunboxEntry() : typeVreg(0) {}
-  SafepointNunboxEntry(uint32_t typeVreg, LAllocation type, LAllocation payload)
-      : typeVreg(typeVreg), type(type), payload(payload) {}
+  static_assert(MAX_VIRTUAL_REGISTERS <= (uint32_t(1) << VregBits) - 1);
+
+ public:
+  SafepointNunboxEntry(bool isType, uint32_t vreg, LAllocation alloc)
+      : isType_(isType), vreg_(vreg), alloc_(alloc) {
+    MOZ_ASSERT(alloc.isGeneralReg() || alloc.isMemory());
+  }
+  bool isType() const { return isType_; }
+  uint32_t vreg() const { return vreg_; }
+  LAllocation alloc() const { return alloc_; }
 };
 
 enum class WasmSafepointKind : uint8_t {
@@ -1806,76 +1817,19 @@ class LSafepoint : public TempObject {
   }
 
 #ifdef JS_NUNBOX32
-  [[nodiscard]] bool addNunboxParts(uint32_t typeVreg, LAllocation type,
-                                    LAllocation payload) {
-    bool result = nunboxParts_.append(NunboxEntry(typeVreg, type, payload));
+  [[nodiscard]] bool addNunboxPart(bool isType, uint32_t vreg,
+                                   LAllocation alloc) {
+    bool result = nunboxParts_.emplaceBack(isType, vreg, alloc);
     if (result) {
       assertInvariants();
     }
     return result;
-  }
-
-  [[nodiscard]] bool addNunboxType(uint32_t typeVreg, LAllocation type) {
-    for (size_t i = 0; i < nunboxParts_.length(); i++) {
-      if (nunboxParts_[i].type == type) {
-        return true;
-      }
-      if (nunboxParts_[i].type == LUse(typeVreg, LUse::ANY)) {
-        nunboxParts_[i].type = type;
-        return true;
-      }
-    }
-
-    // vregs for nunbox pairs are adjacent, with the type coming first.
-    uint32_t payloadVreg = typeVreg + 1;
-    bool result = nunboxParts_.append(
-        NunboxEntry(typeVreg, type, LUse(payloadVreg, LUse::ANY)));
-    if (result) {
-      assertInvariants();
-    }
-    return result;
-  }
-
-  [[nodiscard]] bool addNunboxPayload(uint32_t payloadVreg,
-                                      LAllocation payload) {
-    for (size_t i = 0; i < nunboxParts_.length(); i++) {
-      if (nunboxParts_[i].payload == payload) {
-        return true;
-      }
-      if (nunboxParts_[i].payload == LUse(payloadVreg, LUse::ANY)) {
-        nunboxParts_[i].payload = payload;
-        return true;
-      }
-    }
-
-    // vregs for nunbox pairs are adjacent, with the type coming first.
-    uint32_t typeVreg = payloadVreg - 1;
-    bool result = nunboxParts_.append(
-        NunboxEntry(typeVreg, LUse(typeVreg, LUse::ANY), payload));
-    if (result) {
-      assertInvariants();
-    }
-    return result;
-  }
-
-  LAllocation findTypeAllocation(uint32_t typeVreg) {
-    // Look for some allocation for the specified type vreg, to go with a
-    // partial nunbox entry for the payload. Note that we don't need to
-    // look at the value slots in the safepoint, as these aren't used by
-    // register allocators which add partial nunbox entries.
-    for (size_t i = 0; i < nunboxParts_.length(); i++) {
-      if (nunboxParts_[i].typeVreg == typeVreg &&
-          !nunboxParts_[i].type.isUse()) {
-        return nunboxParts_[i].type;
-      }
-    }
-    return LUse(typeVreg, LUse::ANY);
   }
 
 #  ifdef DEBUG
-  bool hasNunboxPayload(LAllocation payload) const {
-    for (size_t i = 0; i < nunboxParts_.length(); i++) {
-      if (nunboxParts_[i].payload == payload) {
+  bool hasNunboxPart(bool isType, LAllocation alloc) const {
+    for (auto entry : nunboxParts_) {
+      if (entry.alloc() == alloc && entry.isType() == isType) {
         return true;
       }
     }
