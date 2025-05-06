@@ -208,7 +208,7 @@ void ContentBlockingLog::ReportLog() {
 }
 
 void ContentBlockingLog::ReportCanvasFingerprintingLog(
-    nsIPrincipal* aFirstPartyPrincipal) {
+    nsIPrincipal* aFirstPartyPrincipal, bool aShouldReport) {
   MOZ_ASSERT(XRE_IsParentProcess());
   MOZ_ASSERT(NS_IsMainThread());
   MOZ_ASSERT(aFirstPartyPrincipal);
@@ -246,11 +246,24 @@ void ContentBlockingLog::ReportCanvasFingerprintingLog(
     }
   }
 
+  auto label =
+      glean::contentblocking::CanvasFingerprintingPerTabLabel::eUnknown;
+  auto labelMatched =
+      glean::contentblocking::CanvasFingerprintingPerTabLabel::eUnknownMatched;
+  if (hasCanvasFingerprinter && canvasFingerprinterKnownText) {
+    label = glean::contentblocking::CanvasFingerprintingPerTabLabel::eKnownText;
+    labelMatched = glean::contentblocking::CanvasFingerprintingPerTabLabel::
+        eKnownTextMatched;
+  }
+
   if (!hasCanvasFingerprinter) {
-    glean::contentblocking::canvas_fingerprinting_per_tab
-        .EnumGet(
-            glean::contentblocking::CanvasFingerprintingPerTabLabel::eUnknown)
+    glean::contentblocking::canvas_fingerprinting_per_tab.EnumGet(label)
         .AccumulateSingleSample(0);
+    if (aShouldReport) {
+      glean::contentblocking::canvas_fingerprinting_per_tab
+          .EnumGet(labelMatched)
+          .AccumulateSingleSample(0);
+    }
   } else {
     int32_t fingerprinter =
         canvasFingerprinter.isSome() ? (*canvasFingerprinter + 1) : 0;
@@ -261,6 +274,11 @@ void ContentBlockingLog::ReportCanvasFingerprintingLog(
             : glean::contentblocking::CanvasFingerprintingPerTabLabel::eUnknown;
     glean::contentblocking::canvas_fingerprinting_per_tab.EnumGet(label)
         .AccumulateSingleSample(fingerprinter);
+    if (aShouldReport) {
+      glean::contentblocking::canvas_fingerprinting_per_tab
+          .EnumGet(labelMatched)
+          .AccumulateSingleSample(fingerprinter);
+    }
   }
 }
 

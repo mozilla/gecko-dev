@@ -1565,9 +1565,11 @@ void WindowGlobalParent::ActorDestroy(ActorDestroyReason aWhy) {
         .Add();
   }
 
+  bool finishedPageUseCounters = false;
   if (mPageUseCountersWindow) {
     mPageUseCountersWindow->FinishAccumulatingPageUseCounters();
     mPageUseCountersWindow = nullptr;
+    finishedPageUseCounters = true;
   }
 
   if (GetBrowsingContext()->IsTopContent() &&
@@ -1644,7 +1646,7 @@ void WindowGlobalParent::ActorDestroy(ActorDestroyReason aWhy) {
 
         if (mDocumentURI && net::SchemeIsHttpOrHttps(mDocumentURI)) {
           GetContentBlockingLog()->ReportCanvasFingerprintingLog(
-              DocumentPrincipal());
+              DocumentPrincipal(), finishedPageUseCounters);
           GetContentBlockingLog()->ReportFontFingerprintingLog(
               DocumentPrincipal());
           GetContentBlockingLog()->ReportEmailTrackingLog(DocumentPrincipal());

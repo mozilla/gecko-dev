@@ -1974,7 +1974,7 @@
     "alert_emails": ["seceng-telemetry@mozilla.com"],
     "expires_in_version": "150",
     "keyed": true,
-    "keys": ["known_text", "unknown"],
+    "keys": ["known_text", "unknown", "unknown_matched", "known_text_matched"],
     "kind": "enumerated",
     "n_values": 8,
     "releaseChannelCollection": "opt-out",

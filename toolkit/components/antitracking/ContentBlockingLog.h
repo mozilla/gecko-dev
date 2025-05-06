@@ -108,7 +108,8 @@ class ContentBlockingLog final {
   }
 
   void ReportLog();
-  void ReportCanvasFingerprintingLog(nsIPrincipal* aFirstPartyPrincipal);
+  void ReportCanvasFingerprintingLog(nsIPrincipal* aFirstPartyPrincipal,
+                                     bool aShouldReport);
   void ReportFontFingerprintingLog(nsIPrincipal* aFirstPartyPrincipal);
   void ReportEmailTrackingLog(nsIPrincipal* aFirstPartyPrincipal);
 
