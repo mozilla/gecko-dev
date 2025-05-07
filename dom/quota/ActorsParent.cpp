@@ -3546,7 +3546,9 @@ Result<FullOriginMetadata, nsresult> QuotaManager::LoadFullOriginMetadata(
 
   QM_TRY_INSPECT(const bool& reservedData1,
                  MOZ_TO_RESULT_INVOKE_MEMBER(binaryStream, Read32));
-  Unused << reservedData1;
+  if (reservedData1 != 0) {
+    QM_TRY(MOZ_TO_RESULT(false));
+  }
 
   // XXX Use for the persistence type.
   QM_TRY_INSPECT(const bool& reservedData2,
