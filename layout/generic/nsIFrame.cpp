@@ -3382,6 +3382,12 @@ void nsIFrame::BuildDisplayListForStackingContext(
       (DisplayPortUtils::IsFixedPosFrameInDisplayPort(this) ||
        BuilderHasScrolledClip(aBuilder));
 
+  // Root gets handled in
+  // ScrollContainerFrame::MaybeCreateTopLayerAndWrapRootItems.
+  const bool capturedByViewTransition =
+      HasAnyStateBits(NS_FRAME_CAPTURED_IN_VIEW_TRANSITION) &&
+      !style.IsRootElementStyle();
+
   nsDisplayListBuilder::AutoBuildingDisplayList buildingDisplayList(
       aBuilder, this, visibleRect, dirtyRect, isTransformed);
 
@@ -3484,6 +3490,8 @@ void nsIFrame::BuildDisplayListForStackingContext(
                                                           usingFilter);
     nsDisplayListBuilder::AutoInEventsOnly inEventsSetter(
         aBuilder, opacityItemForEventsOnly);
+    nsDisplayListBuilder::AutoEnterViewTransitionCapture
+        inViewTransitionCaptureSetter(aBuilder, capturedByViewTransition);
 
     // If we have a mask, compute a clip to bound the masked content.
     // This is necessary in case the content moves with an ancestor
@@ -3662,12 +3670,6 @@ void nsIFrame::BuildDisplayListForStackingContext(
         needsActiveOpacityLayer, usingBackdropFilter);
     createdContainer = true;
   }
-
-  // Root gets handled in
-  // ScrollContainerFrame::MaybeCreateTopLayerAndWrapRootItems.
-  const bool capturedByViewTransition =
-      HasAnyStateBits(NS_FRAME_CAPTURED_IN_VIEW_TRANSITION) &&
-      !style.IsRootElementStyle();
 
   // FIXME: Ensure this is the right place to do this.
   if (capturedByViewTransition) {

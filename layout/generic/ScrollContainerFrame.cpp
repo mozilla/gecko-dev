@@ -3803,6 +3803,15 @@ void ScrollContainerFrame::BuildDisplayList(nsDisplayListBuilder* aBuilder,
   const bool isRootContent =
       mIsRoot && PresContext()->IsRootContentDocumentCrossProcess();
 
+  const bool capturedByViewTransition = [&] {
+    if (!mIsRoot) {
+      return false;
+    }
+    auto* styleFrame = GetFrameForStyle();
+    return styleFrame &&
+           styleFrame->HasAnyStateBits(NS_FRAME_CAPTURED_IN_VIEW_TRANSITION);
+  }();
+
   // Expand the scroll port to the size including the area covered by dynamic
   // toolbar in the case where the dynamic toolbar is being used since
   // position:fixed elements attached to this root scroller might be taller
@@ -4141,6 +4150,8 @@ void ScrollContainerFrame::BuildDisplayList(nsDisplayListBuilder* aBuilder,
 
       nsDisplayListBuilder::AutoBuildingDisplayList building(
           aBuilder, this, visibleRectForChildren, dirtyRectForChildren);
+      nsDisplayListBuilder::AutoEnterViewTransitionCapture
+          inViewTransitionCaptureSetter(aBuilder, capturedByViewTransition);
 
       BuildDisplayListForChild(aBuilder, mScrolledFrame, set);
 

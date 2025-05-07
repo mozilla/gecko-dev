@@ -718,6 +718,8 @@ class nsDisplayListBuilder {
    */
   bool IsInFilter() const { return mInFilter; }
 
+  bool IsInViewTransitionCapture() const { return mInViewTransitionCapture; }
+
   /**
    * Return true if we're currently building a display list for a
    * nested presshell.
@@ -1098,6 +1100,25 @@ class nsDisplayListBuilder {
     nsDisplayListBuilder* mBuilder;
     const ActiveScrolledRoot* mOldValue;
     bool mOldInFilter;
+  };
+
+  class AutoEnterViewTransitionCapture {
+   public:
+    AutoEnterViewTransitionCapture(nsDisplayListBuilder* aBuilder,
+                                   bool aInViewTransitionCapture)
+        : mBuilder(aBuilder),
+          mOldInViewTransitionCapture(mBuilder->mInViewTransitionCapture) {
+      if (aInViewTransitionCapture) {
+        mBuilder->mInViewTransitionCapture = true;
+      }
+    }
+    ~AutoEnterViewTransitionCapture() {
+      mBuilder->mInViewTransitionCapture = mOldInViewTransitionCapture;
+    }
+
+   private:
+    nsDisplayListBuilder* mBuilder;
+    bool mOldInViewTransitionCapture;
   };
 
   /**
@@ -1866,6 +1887,7 @@ class nsDisplayListBuilder {
   bool mInTransform;
   bool mInEventsOnly;
   bool mInFilter;
+  bool mInViewTransitionCapture;
   bool mInPageSequence;
   bool mIsInChromePresContext;
   bool mSyncDecodeImages;
