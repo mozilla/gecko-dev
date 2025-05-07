@@ -8770,7 +8770,17 @@ nsresult nsDocShell::HandleSameDocumentNavigation(
   // Reset mLoadType to its original value once we exit this block, because this
   // same document navigation might have started after a normal, network load,
   // and we don't want to clobber its load type. See bug 737307.
-  AutoRestore<uint32_t> loadTypeResetter(mLoadType);
+  Maybe<AutoRestore<uint32_t>> loadTypeResetter;
+  if (StaticPrefs::
+          docshell_shistory_sameDocumentNavigationOverridesLoadType() &&
+      !doc->NodePrincipal()->IsURIInPrefList(
+          "docshell.shistory.sameDocumentNavigationOverridesLoadType."
+          "forceDisable")) {
+    loadTypeResetter.emplace(mLoadType);
+  }
+  if (JustStartedNetworkLoad() && !loadTypeResetter.isSome()) {
+    loadTypeResetter.emplace(mLoadType);
+  }
 
   // If a non-same-document-navigation (i.e., a network load) is pending, make
   // this a replacement load, so that we don't add a SHEntry here and the
@@ -11282,18 +11292,28 @@ nsDocShell::AddState(JS::Handle<JS::Value> aData, const nsAString& aTitle,
 
   nsresult rv;
 
+  RefPtr<Document> document = GetDocument();
+  NS_ENSURE_TRUE(document, NS_ERROR_FAILURE);
+
   // Don't clobber the load type of an existing network load.
-  AutoRestore<uint32_t> loadTypeResetter(mLoadType);
+  Maybe<AutoRestore<uint32_t>> loadTypeResetter;
+  if (StaticPrefs::
+          docshell_shistory_sameDocumentNavigationOverridesLoadType() &&
+      !document->NodePrincipal()->IsURIInPrefList(
+          "docshell.shistory.sameDocumentNavigationOverridesLoadType."
+          "forceDisable")) {
+    loadTypeResetter.emplace(mLoadType);
+  }
 
   // pushState effectively becomes replaceState when we've started a network
   // load but haven't adopted its document yet.  This mirrors what we do with
   // changes to the hash at this stage of the game.
   if (JustStartedNetworkLoad()) {
+    if (!loadTypeResetter.isSome()) {
+      loadTypeResetter.emplace(mLoadType);
+    }
     aReplace = true;
   }
-
-  RefPtr<Document> document = GetDocument();
-  NS_ENSURE_TRUE(document, NS_ERROR_FAILURE);
 
   // Step A: Serialize aData using structured clone.
   // https://html.spec.whatwg.org/multipage/history.html#dom-history-pushstate
