@@ -1,5 +1,7 @@
 import pytest
 
+# Note that this site issue is intermittent, so the without_interventions case will fail intermittently as well.
+
 URL = "https://www.pexels.com/photo/stylish-woman-relaxing-outdoors-in-autumn-fashion-29946756/"
 
 FREE_DOWNLOAD_BUTTON_CSS = (
