@@ -119,8 +119,7 @@ class PostMessageRunnable final : public CancelableRunnable {
     }
 
     // Create the event
-    RefPtr<MessageEvent> event =
-        new MessageEvent(mPort->GetOwnerWindow(), nullptr, nullptr);
+    RefPtr<MessageEvent> event = new MessageEvent(mPort, nullptr, nullptr);
 
     Sequence<OwningNonNull<MessagePort>> ports;
     if (!mData->TakeTransferredPortsAsSequence(ports)) {

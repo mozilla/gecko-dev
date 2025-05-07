@@ -462,14 +462,16 @@ void Event::PreventDefault(JSContext* aCx, CallerType aCallerType) {
 void Event::PreventDefaultInternal(bool aCalledByDefaultHandler,
                                    nsIPrincipal* aPrincipal) {
   if (mEvent->mFlags.mInPassiveListener) {
-    if (nsPIDOMWindowInner* win = mOwner->GetAsInnerWindow()) {
-      if (Document* doc = win->GetExtantDoc()) {
-        if (!doc->HasWarnedAbout(
-                Document::ePreventDefaultFromPassiveListener)) {
-          AutoTArray<nsString, 1> params;
-          GetType(*params.AppendElement());
-          doc->WarnOnceAbout(Document::ePreventDefaultFromPassiveListener,
-                             false, params);
+    if (mOwner) {
+      if (nsPIDOMWindowInner* win = mOwner->GetAsInnerWindow()) {
+        if (Document* doc = win->GetExtantDoc()) {
+          if (!doc->HasWarnedAbout(
+                  Document::ePreventDefaultFromPassiveListener)) {
+            AutoTArray<nsString, 1> params;
+            GetType(*params.AppendElement());
+            doc->WarnOnceAbout(Document::ePreventDefaultFromPassiveListener,
+                               false, params);
+          }
         }
       }
     }
