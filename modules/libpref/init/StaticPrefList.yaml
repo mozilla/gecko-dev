@@ -10173,7 +10173,7 @@
 # UA styles for h1 in article/aside/nav/section. See bug 1883896.
 - name: layout.css.h1-in-section-ua-styles.enabled
   type: RelaxedAtomicBool
-  value: @IS_NOT_NIGHTLY_BUILD@
+  value: false
   mirror: always
 
 # CSS for android picture-in-picture. See bug 1940052.
