@@ -192,6 +192,7 @@ class MessageBroadcaster;
 class NodeInfo;
 class OwningFileOrUSVStringOrFormData;
 class Selection;
+struct SetHTMLUnsafeOptions;
 enum class ShadowRootMode : uint8_t;
 class ShadowRoot;
 struct StructuredSerializeOptions;
@@ -1894,6 +1895,7 @@ class nsContentUtils {
   static void SetHTMLUnsafe(mozilla::dom::FragmentOrElement* aTarget,
                             Element* aContext,
                             const mozilla::dom::TrustedHTMLOrString& aSource,
+                            const mozilla::dom::SetHTMLUnsafeOptions& aOptions,
                             bool aIsShadowRoot, nsIPrincipal* aSubjectPrincipal,
                             mozilla::ErrorResult& aError);
   /**

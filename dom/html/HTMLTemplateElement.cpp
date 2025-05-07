@@ -101,11 +101,13 @@ bool HTMLTemplateElement::ParseAttribute(int32_t aNamespaceID,
 }
 
 void HTMLTemplateElement::SetHTMLUnsafe(const TrustedHTMLOrString& aHTML,
+                                        const SetHTMLUnsafeOptions& aOptions,
                                         nsIPrincipal* aSubjectPrincipal,
                                         ErrorResult& aError) {
   RefPtr<DocumentFragment> content = mContent;
-  nsContentUtils::SetHTMLUnsafe(content, this, aHTML, false /*aIsShadowRoot*/,
-                                aSubjectPrincipal, aError);
+  nsContentUtils::SetHTMLUnsafe(content, this, aHTML, aOptions,
+                                false /*aIsShadowRoot*/, aSubjectPrincipal,
+                                aError);
 }
 
 }  // namespace mozilla::dom

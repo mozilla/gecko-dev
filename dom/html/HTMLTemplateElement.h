@@ -74,6 +74,7 @@ class HTMLTemplateElement final : public nsGenericHTMLElement {
 
   MOZ_CAN_RUN_SCRIPT
   void SetHTMLUnsafe(const TrustedHTMLOrString& aHTML,
+                     const SetHTMLUnsafeOptions& aOptions,
                      nsIPrincipal* aSubjectPrincipal,
                      ErrorResult& aError) final;
 

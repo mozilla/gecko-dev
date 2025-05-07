@@ -119,6 +119,7 @@ struct URLValue;
 namespace dom {
 struct CheckVisibilityOptions;
 struct CustomElementData;
+struct SetHTMLUnsafeOptions;
 struct SetHTMLOptions;
 struct GetHTMLOptions;
 struct GetAnimationsOptions;
@@ -2270,6 +2271,7 @@ class Element : public FragmentOrElement {
 
   MOZ_CAN_RUN_SCRIPT
   virtual void SetHTMLUnsafe(const TrustedHTMLOrString& aHTML,
+                             const SetHTMLUnsafeOptions& aOptions,
                              nsIPrincipal* aSubjectPrincipal,
                              ErrorResult& aError);
 
