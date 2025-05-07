@@ -1843,22 +1843,22 @@ with only_when("--enable-compile-environment"):
     use_relrhack = depends(which_elf_hack)(lambda x: x == "relr")
     set_config("RELRHACK", True, when=use_relrhack)
 
-    @depends(c_compiler, linker_ldflags, when=use_relrhack)
-    def relrhack_real_linker(c_compiler, linker_ldflags):
+    @depends(linker_ldflags, when=use_relrhack)
+    def relrhack_linker(linker_ldflags):
         ld = "ld"
         for flag in linker_ldflags:
             if flag.startswith("-fuse-ld="):
                 ld = "ld." + flag[len("-fuse-ld=") :]
+        return ld
+
+    set_config("RELRHACK_LINKER", relrhack_linker)
+
+    @depends(c_compiler, relrhack_linker, when=use_relrhack)
+    def relrhack_real_linker(c_compiler, ld):
         ld = check_cmd_output(
             c_compiler.compiler, f"--print-prog-name={ld}", *c_compiler.flags
         )
         return ld.rstrip()
-
-    @depends(relrhack_real_linker, when=use_relrhack)
-    def relrhack_linker(ld):
-        return os.path.basename(ld)
-
-    set_config("RELRHACK_LINKER", relrhack_linker)
 
     std_filesystem = host_cxx_compiler.try_run(
         header="#include <filesystem>",
