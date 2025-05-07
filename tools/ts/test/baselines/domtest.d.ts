@@ -108,8 +108,9 @@ interface TestFunctions {
     testNotAllowShared(buffer: string): void;
     testThrowNsresult(): void;
     testThrowNsresultFromNative(): void;
-    testUnionOfAllowSharedBuffferSource(foo: ArrayBuffer | ArrayBufferView): void;
-    testUnionOfBuffferSource(foo: ArrayBuffer | ArrayBufferView | string): void;
+    testUnionOfAllowSharedBufferSource(foo: AllowSharedBufferSource): void;
+    testUnionOfBufferSource(foo: ArrayBuffer | ArrayBufferView | string): void;
+    testUnionWithAllowShared(foo: Int8Array | Int16Array): void;
     toJSON(): any;
 }
 
@@ -419,6 +420,7 @@ interface MathMLElementTagNameMap {
 /** @deprecated Directly use HTMLElementTagNameMap or SVGElementTagNameMap as appropriate, instead. */
 type ElementTagNameMap = HTMLElementTagNameMap & Pick<SVGElementTagNameMap, Exclude<keyof SVGElementTagNameMap, keyof HTMLElementTagNameMap>>;
 
+type AllowSharedBufferSource = ArrayBuffer | ArrayBufferView;
 type StringType = "inline" | "literal" | "other" | "stringbuffer";
 
 /////////////////////////////

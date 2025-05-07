@@ -10,6 +10,7 @@ const { emitDom } = require("../build_dom.js");
 
 const domdir = path.join(__dirname, "../../../dom/webidl");
 const files = [
+  "BufferSource.webidl",
   "TestFunctions.webidl",
   "TestInterfaceJSDictionaries.webidl",
   "TestInterfaceObservableArray.webidl",
