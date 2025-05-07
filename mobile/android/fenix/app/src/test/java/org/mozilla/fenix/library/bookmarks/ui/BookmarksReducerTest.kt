@@ -124,11 +124,14 @@ class BookmarksReducerTest {
 
     @Test
     fun `GIVEN a bookmark list WHEN the sort menu items are clicked THEN resort the bookmark list`() {
-        val firefox = generateBookmark(1, title = "Firefox", dateAdded = 1)
-        val mozilla = generateBookmark(2, title = "Mozilla", dateAdded = 3)
-        val lockwise = generateFolder(3, title = "Lockwise", dateAdded = 2)
+        val firefox = generateBookmark(1, title = "Firefox", dateAdded = 1, position = 5u)
+        val mozilla = generateBookmark(2, title = "Mozilla", dateAdded = 3, position = 3u)
+        val lockwise = generateFolder(3, title = "Lockwise", dateAdded = 2, position = 1u)
         val items = listOf(firefox, lockwise, mozilla)
         val state = BookmarksState.default.copy(bookmarkItems = items)
+
+        val positional = bookmarksReducer(state, BookmarksListMenuAction.SortMenu.CustomSortClicked)
+        assertEquals(listOf(lockwise, mozilla, firefox), positional.bookmarkItems)
 
         val zToA = bookmarksReducer(state, BookmarksListMenuAction.SortMenu.ZtoAClicked)
         assertEquals(listOf(mozilla, lockwise, firefox), zToA.bookmarkItems)

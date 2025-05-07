@@ -242,6 +242,7 @@ private fun BookmarksState.handleSortMenuAction(action: BookmarksListMenuAction.
         BookmarksListMenuAction.SortMenu.SortMenuDismissed -> copy(
             sortMenuShown = false,
         )
+        BookmarksListMenuAction.SortMenu.CustomSortClicked -> copy(sortOrder = BookmarksListSortOrder.Positional)
         BookmarksListMenuAction.SortMenu.NewestClicked -> copy(
             sortOrder = BookmarksListSortOrder.Created(true),
         )

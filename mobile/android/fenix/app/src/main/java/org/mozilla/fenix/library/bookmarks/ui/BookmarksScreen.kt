@@ -837,6 +837,11 @@ private fun BookmarkSortOverflowMenu(
 
     val menuItems = listOf(
         MenuItem(
+            title = stringResource(R.string.bookmark_sort_menu_custom),
+            isChecked = sortOrder is BookmarksListSortOrder.Positional,
+            onClick = { store.dispatch(BookmarksListMenuAction.SortMenu.CustomSortClicked) },
+        ),
+        MenuItem(
             title = stringResource(R.string.bookmark_sort_menu_newest),
             isChecked = sortOrder == BookmarksListSortOrder.Created(ascending = true),
             onClick = { store.dispatch(BookmarksListMenuAction.SortMenu.NewestClicked) },

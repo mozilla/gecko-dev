@@ -64,6 +64,7 @@ internal sealed class BookmarksListMenuAction : BookmarksAction {
     internal sealed class SortMenu : BookmarksListMenuAction() {
         data object SortMenuButtonClicked : SortMenu()
         data object SortMenuDismissed : SortMenu()
+        data object CustomSortClicked : SortMenu()
         data object NewestClicked : SortMenu()
         data object OldestClicked : SortMenu()
         data object AtoZClicked : SortMenu()
