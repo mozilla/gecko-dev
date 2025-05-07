@@ -266,8 +266,6 @@ class BuildOptionParser:
         "code-coverage-opt": path_base + "%s_code_coverage_opt.py",
         "source": path_base + "%s_source.py",
         "noopt-debug": path_base + "%s_noopt_debug.py",
-        "arm-gradle-dependencies": path_base
-        + "%s_arm_gradle_dependencies.py",  # NOQA: E501
         "arm": path_base + "%s_arm.py",
         "arm-lite": path_base + "%s_arm_lite.py",
         "arm-debug": path_base + "%s_arm_debug.py",
