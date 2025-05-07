@@ -19,17 +19,17 @@ ChromeUtils.defineESModuleGetters(lazy, {
  * @typedef FormInfo
  *
  * Information about a search engine. This is similar to the WebExtension
- * style object used by `SearchEngine._initWithDetails` but it contains a
- * FormData object so it can easily be generated from an HTML form.
+ * style object used by `SearchEngine._initWithDetails` but with a
+ * URLSearchParams object so it can easily be generated from an HTML form.
  *
- * Either `url` or `formData` must contain {searchTerms}.
+ * Either `url` or `params` must contain {searchTerms}.
  *
- * @property {string} url
- *   The url template for searches.
  * @property {string} name
  *   The name of the engine.
- * @property {FormData} [formData]
- *   The search parameters. May only contain string values.
+ * @property {string} url
+ *   The url template for searches.
+ * @property {URLSearchParams} [params]
+ *   The parameters for searches.
  * @property {string} [charset]
  *   The encoding for the requests. Defaults to `SearchUtils.DEFAULT_QUERY_CHARSET`.
  * @property {string} [method]
@@ -85,10 +85,7 @@ export class UserSearchEngine extends SearchEngine {
       formInfo.method ?? "GET",
       formInfo.url
     );
-    for (let [key, value] of formInfo.formData ?? []) {
-      if (typeof value != "string") {
-        throw new Error("Non-string values are not supported.");
-      }
+    for (let [key, value] of formInfo.params ?? []) {
       url.addParam(
         Services.textToSubURI.ConvertAndEscape(charset, key),
         Services.textToSubURI

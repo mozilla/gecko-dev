@@ -15,9 +15,9 @@
 >
   <dialog
     id="add-engine-dialog"
-    buttons="accept,cancel"
+    buttons="accept,cancel,extra1"
     buttondisabledaccept="true"
-    data-l10n-attrs="buttonlabelaccept, buttonaccesskeyaccept"
+    data-l10n-attrs="buttonlabelaccept, buttonaccesskeyaccept, buttonlabelextra1"
   >
     <linkset>
       <html:link rel="stylesheet" href="chrome://global/skin/global.css" />
@@ -54,16 +54,6 @@
         <html:div class="error-label">valid</html:div>
       </html:div>
 
-      <html:div class="dialogRow" id="enginePostDataRow">
-        <html:label
-          id="enginePostDataLabel"
-          for="enginePostData"
-          data-l10n-id="add-engine-post-data"
-        />
-        <html:input id="enginePostData" type="text" />
-        <html:div class="error-label">valid</html:div>
-      </html:div>
-
       <html:div class="dialogRow">
         <html:label
           id="engineAliasLabel"
@@ -74,14 +64,26 @@
         <html:div class="error-label">valid</html:div>
       </html:div>
 
-      <html:div class="dialogRow" id="suggestUrlRow">
-        <html:label
-          id="suggestUrlLabel"
-          for="suggestUrl"
-          data-l10n-id="add-engine-suggest-url"
-        />
-        <html:input id="suggestUrl" type="url" />
-        <html:div class="error-label">valid</html:div>
+      <html:div id="advanced-section" hidden="hidden">
+        <html:div class="dialogRow" id="enginePostDataRow">
+          <html:label
+            id="enginePostDataLabel"
+            for="enginePostData"
+            data-l10n-id="add-engine-post-data"
+          />
+          <html:input id="enginePostData" type="text" />
+          <html:div class="error-label">valid</html:div>
+        </html:div>
+
+        <html:div class="dialogRow" id="suggestUrlRow">
+          <html:label
+            id="suggestUrlLabel"
+            for="suggestUrl"
+            data-l10n-id="add-engine-suggest-url"
+          />
+          <html:input id="suggestUrl" type="url" />
+          <html:div class="error-label">valid</html:div>
+        </html:div>
       </html:div>
     </html:form>
   </dialog>

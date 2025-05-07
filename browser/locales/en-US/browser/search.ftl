@@ -62,7 +62,3 @@ add-engine-window =
 add-engine-button = Add Custom Engine
 
 add-engine-name = Search engine name
-
-add-engine-dialog =
-    .buttonlabelaccept = Add Engine
-    .buttonaccesskeyaccept = A

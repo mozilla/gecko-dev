@@ -319,7 +319,8 @@ add-engine-url2 = URL with %s in place of search term
 
 add-engine-keyword2 = Keyword (optional)
 
-add-engine-post-data = Post data with %s in place of search term
+# POST and GET refer to the HTTP methods.
+add-engine-post-data = POST data with %s in place of search term (leave empty for GET)
 
 add-engine-suggest-url = Suggestions URL with %s in place of search term (optional)
 
@@ -327,9 +328,19 @@ add-engine-suggest-url = Suggestions URL with %s in place of search term (option
 #   $name (string) - Name of a search engine.
 edit-engine-name-warning-duplicate = There already is a search engine with the name “{ $name }”. Please choose another name.
 
+# buttonlabelextra1 is the label of a button to open the advanced section
+# of the dialog.
+add-engine-dialog2 =
+    .buttonlabelaccept = Add Engine
+    .buttonaccesskeyaccept = A
+    .buttonlabelextra1 = Advanced
+
+# buttonlabelextra1 is the label of a button to open the advanced section
+# of the dialog.
 edit-engine-dialog =
     .buttonlabelaccept = Save Engine
     .buttonaccesskeyaccept = S
+    .buttonlabelextra1 = Advanced
 
 edit-engine-window =
     .title = Edit Search Engine
@@ -354,3 +365,5 @@ add-engine-no-name = Please add a name.
 add-engine-no-url = Please enter a URL.
 add-engine-invalid-url = That URL doesn’t look right. Please check it and try again.
 add-engine-invalid-protocol = That URL doesn’t look right. Use a URL that starts with http or https.
+add-engine-missing-terms-url = Try including %s in place of the search term.
+add-engine-missing-terms-post-data = Try including %s in place of the search term.
