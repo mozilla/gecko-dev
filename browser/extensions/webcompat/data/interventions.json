@@ -3023,6 +3023,21 @@
       }
     ]
   },
+  "1946443": {
+    "label": "aliexpress.com bundle deals pages",
+    "bugs": {
+      "1946443": {
+        "issue": "broken-layout",
+        "matches": ["*://www.aliexpress.com/*"]
+      }
+    },
+    "interventions": [
+      {
+        "platforms": ["android"],
+        "ua_string": ["add_Chrome"]
+      }
+    ]
+  },
   "1947105": {
     "label": "pexels.com",
     "bugs": {
