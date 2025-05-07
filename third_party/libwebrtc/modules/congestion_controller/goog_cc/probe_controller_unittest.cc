@@ -37,6 +37,7 @@ namespace {
 constexpr DataRate kMinBitrate = DataRate::BitsPerSec(100);
 constexpr DataRate kStartBitrate = DataRate::BitsPerSec(300);
 constexpr DataRate kMaxBitrate = DataRate::BitsPerSec(10000);
+constexpr DataRate kMbpsMultiplier = DataRate::KilobitsPerSec(1000);
 
 constexpr TimeDelta kExponentialProbingTimeout = TimeDelta::Seconds(5);
 
@@ -699,7 +700,6 @@ TEST(ProbeControllerTest, TestExponentialProbingOverflow) {
   ASSERT_THAT(
       probe_controller->OnNetworkAvailability({.network_available = true}),
       IsEmpty());
-  const DataRate kMbpsMultiplier = DataRate::KilobitsPerSec(1000);
   auto probes = probe_controller->SetBitrates(kMinBitrate, 10 * kMbpsMultiplier,
                                               100 * kMbpsMultiplier,
                                               fixture.CurrentTime());
@@ -723,17 +723,16 @@ TEST(ProbeControllerTest, TestAllocatedBitrateCap) {
   ASSERT_THAT(
       probe_controller->OnNetworkAvailability({.network_available = true}),
       IsEmpty());
-  const DataRate kMbpsMultiplier = DataRate::KilobitsPerSec(1000);
-  const DataRate kMaxBitrate = 100 * kMbpsMultiplier;
-  auto probes = probe_controller->SetBitrates(
-      kMinBitrate, 10 * kMbpsMultiplier, kMaxBitrate, fixture.CurrentTime());
+  auto probes = probe_controller->SetBitrates(kMinBitrate, 10 * kMbpsMultiplier,
+                                              100 * kMbpsMultiplier,
+                                              fixture.CurrentTime());
 
   // Configure ALR for periodic probing.
   probe_controller->EnablePeriodicAlrProbing(true);
   Timestamp alr_start_time = fixture.CurrentTime();
   probe_controller->SetAlrStartTimeMs(alr_start_time.ms());
 
-  DataRate estimated_bitrate = kMaxBitrate / 10;
+  DataRate estimated_bitrate = 10 * kMbpsMultiplier;
   probes = probe_controller->SetEstimatedBitrate(
       estimated_bitrate, BandwidthLimitedCause::kDelayBasedLimited,
       fixture.CurrentTime());

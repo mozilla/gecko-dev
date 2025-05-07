@@ -519,12 +519,12 @@ void TurnServer::DestroyAllocation(TurnServerAllocation* allocation) {
 void TurnServer::DestroyInternalSocket(AsyncPacketSocket* socket) {
   InternalSocketMap::iterator iter = server_sockets_.find(socket);
   if (iter != server_sockets_.end()) {
-    AsyncPacketSocket* socket = iter->first;
-    socket->UnsubscribeCloseEvent(this);
-    socket->DeregisterReceivedPacketCallback();
+    AsyncPacketSocket* server_socket = iter->first;
+    server_socket->UnsubscribeCloseEvent(this);
+    server_socket->DeregisterReceivedPacketCallback();
     server_sockets_.erase(iter);
     std::unique_ptr<AsyncPacketSocket> socket_to_delete =
-        absl::WrapUnique(socket);
+        absl::WrapUnique(server_socket);
     // We must destroy the socket async to avoid invalidating the sigslot
     // callback list iterator inside a sigslot callback. (In other words,
     // deleting an object from within a callback from that object).

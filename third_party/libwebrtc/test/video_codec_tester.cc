@@ -1655,17 +1655,18 @@ VideoCodecTester::RunEncodeDecodeTest(
   VideoSource video_source(source_settings);
   std::unique_ptr<VideoCodecAnalyzer> analyzer =
       std::make_unique<VideoCodecAnalyzer>();
-  const EncodingSettings& frame_settings = encoding_settings.begin()->second;
+  const EncodingSettings& first_frame_settings =
+      encoding_settings.begin()->second;
   Encoder encoder(env, encoder_factory, encoder_settings, analyzer.get());
-  encoder.Initialize(frame_settings);
+  encoder.Initialize(first_frame_settings);
 
   int num_spatial_layers =
-      ScalabilityModeToNumSpatialLayers(frame_settings.scalability_mode);
+      ScalabilityModeToNumSpatialLayers(first_frame_settings.scalability_mode);
   std::vector<std::unique_ptr<Decoder>> decoders;
   for (int sidx = 0; sidx < num_spatial_layers; ++sidx) {
     auto decoder = std::make_unique<Decoder>(env, decoder_factory,
                                              decoder_settings, analyzer.get());
-    decoder->Initialize(frame_settings.sdp_video_format);
+    decoder->Initialize(first_frame_settings.sdp_video_format);
     decoders.push_back(std::move(decoder));
   }
 

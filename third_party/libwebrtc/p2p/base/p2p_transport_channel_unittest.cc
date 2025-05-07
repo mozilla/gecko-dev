@@ -4483,13 +4483,13 @@ TEST_F(P2PTransportChannelPingTest, TestAddRemoteCandidateWithVariousUfrags) {
   EXPECT_EQ(1U, new_candidate.generation());
 
   // Check that the pwd of all remote candidates are properly assigned.
-  for (const RemoteCandidate& candidate : ch.remote_candidates()) {
-    EXPECT_TRUE(candidate.username() == kIceUfrag[1] ||
-                candidate.username() == kIceUfrag[2]);
-    if (candidate.username() == kIceUfrag[1]) {
-      EXPECT_EQ(kIcePwd[1], candidate.password());
-    } else if (candidate.username() == kIceUfrag[2]) {
-      EXPECT_EQ(kIcePwd[2], candidate.password());
+  for (const RemoteCandidate& remote_candidate : ch.remote_candidates()) {
+    EXPECT_TRUE(remote_candidate.username() == kIceUfrag[1] ||
+                remote_candidate.username() == kIceUfrag[2]);
+    if (remote_candidate.username() == kIceUfrag[1]) {
+      EXPECT_EQ(kIcePwd[1], remote_candidate.password());
+    } else if (remote_candidate.username() == kIceUfrag[2]) {
+      EXPECT_EQ(kIcePwd[2], remote_candidate.password());
     }
   }
 }

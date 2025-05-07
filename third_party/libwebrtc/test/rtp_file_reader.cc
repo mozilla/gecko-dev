@@ -662,11 +662,11 @@ class PcapReader : public RtpFileReaderImpl {
       return kResultSkip;
     } else if (protocol == kProtocolUdp) {
       uint16_t payload_length;
-      uint16_t checksum;
+      uint16_t payload_checksum;
       TRY_PCAP(Read(&marker->source_port, true));
       TRY_PCAP(Read(&marker->dest_port, true));
       TRY_PCAP(Read(&payload_length, true));
-      TRY_PCAP(Read(&checksum, true));
+      TRY_PCAP(Read(&payload_checksum, true));
       marker->payload_length = payload_length - kUdpHeaderLength;
     } else {
       RTC_LOG(LS_INFO) << "Unknown transport (expected UDP or TCP)";
