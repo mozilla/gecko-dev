@@ -1,0 +1,17 @@
+<!doctype html>
+<div>
+  <div>
+    <span id="start">Start</span>
+    <span>Another</span>
+    <span>End</span>
+  </div>
+  <span>Second</span>
+  <span id="end">Third</span>
+</div>
+<script>
+  window.getSelection().setBaseAndExtent(
+    start.firstChild,
+    2,
+    end.firstChild,
+    4);
+</script>

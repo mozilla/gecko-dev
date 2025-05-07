@@ -1,0 +1,10 @@
+<!doctype html>
+<div>
+    <span id="first">First</span>
+    <span id="inner">Inner</span>
+    <span id="second">Second</span>
+</div>
+<script>
+  window.getSelection()
+      .setBaseAndExtent(second.firstChild, 3, first.firstChild, 2);
+</script>

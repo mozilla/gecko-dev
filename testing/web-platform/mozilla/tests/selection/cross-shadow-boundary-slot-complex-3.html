@@ -1,0 +1,28 @@
+<!doctype html>
+<head>
+<link rel="match" href="cross-shadow-boundary-slot-complex-3-ref.html"/>
+</head>
+<div>
+  <template shadowrootmode="open">
+    <slot></slot>
+  </template>
+  <div id="nested">
+    <template shadowrootmode="open">
+      <span id="start">Start</span>
+      <slot></slot>
+      <span>End</span>
+    </template>
+    <span>Another</span>
+  </div>
+  <span>Second</span>
+  <span id="end">Third</span>
+</div>
+<script>
+  // art Another End
+  // Second Thir
+  window.getSelection().setBaseAndExtent(
+    nested.shadowRoot.getElementById("start").firstChild,
+    2,
+    end.firstChild,
+    4);
+</script>
