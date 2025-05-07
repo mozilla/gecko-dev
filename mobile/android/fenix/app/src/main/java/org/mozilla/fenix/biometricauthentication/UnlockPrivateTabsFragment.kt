@@ -105,11 +105,5 @@ class UnlockPrivateTabsFragment : Fragment() {
 
     private fun onAuthFailure() {
         PrivateBrowsingLocked.authFailure.record()
-
-        requireComponents.appStore.dispatch(
-            PrivateBrowsingLockAction.UpdatePrivateBrowsingLock(
-                isLocked = true,
-            ),
-        )
     }
 }

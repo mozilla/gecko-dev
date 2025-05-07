@@ -41,6 +41,7 @@ import mozilla.components.support.ktx.android.arch.lifecycle.addObservers
 import mozilla.telemetry.glean.private.NoExtras
 import org.mozilla.fenix.Config
 import org.mozilla.fenix.FeatureFlags
+import org.mozilla.fenix.GleanMetrics.PrivateBrowsingLocked
 import org.mozilla.fenix.GleanMetrics.TabsTray
 import org.mozilla.fenix.HomeActivity
 import org.mozilla.fenix.NavGraphDirections
@@ -762,9 +763,7 @@ class TabsTrayFragment : AppCompatDialogFragment() {
                 view = requireView(),
                 onShowPinVerification = { intent -> startForResult.launch(intent) },
                 onAuthSuccess = {
-                    biometricAuthenticationNeededInfo.apply {
-                        authenticationStatus = AuthenticationStatus.AUTHENTICATED
-                    }
+                    PrivateBrowsingLocked.authSuccess.record()
 
                     tabsTrayInteractor.onTrayPositionSelected(page.ordinal, false)
 
@@ -773,9 +772,7 @@ class TabsTrayFragment : AppCompatDialogFragment() {
                     )
                 },
                 onAuthFailure = {
-                    requireComponents.appStore.dispatch(
-                        PrivateBrowsingLockAction.UpdatePrivateBrowsingLock(isLocked = true),
-                    )
+                    PrivateBrowsingLocked.authFailure.record()
                 },
                 titleRes = R.string.pbm_authentication_unlock_private_tabs,
             )
