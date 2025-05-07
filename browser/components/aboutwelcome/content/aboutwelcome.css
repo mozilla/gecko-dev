@@ -2179,7 +2179,7 @@ html {
 }
 .onboardingContainer .screen[pos=split][fullscreen] .addons-picker-container .addon-container {
   display: flex;
-  flex-flow: row wrap;
+  flex-direction: row;
   border: 1px solid var(--in-content-border-color);
   box-shadow: 0 1px 2px 0 var(--in-content-border-color);
   border-radius: 4px;
@@ -2187,6 +2187,11 @@ html {
   text-align: start;
   padding: 16px;
   max-width: 800px;
+}
+@media (800px <= width <= 990px) {
+  .onboardingContainer .screen[pos=split][fullscreen] .addons-picker-container .addon-container {
+    flex-flow: row wrap;
+  }
 }
 .onboardingContainer .screen[pos=split][fullscreen] .addons-picker-container .addon-container .rtamo-icon img {
   margin-inline: 0 16px;
