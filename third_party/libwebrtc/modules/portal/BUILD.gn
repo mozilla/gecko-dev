@@ -29,11 +29,12 @@ if (!build_with_mozilla) {
   pkg_config("gbm") {
     packages = [ "gbm" ]
   }
+  pkg_config("gl") {
+    packages = [ "gl" ]
+    ignore_libs = true
+  }
   pkg_config("egl") {
     packages = [ "egl" ]
-  }
-  pkg_config("epoxy") {
-    packages = [ "epoxy" ]
     ignore_libs = true
   }
   pkg_config("libdrm") {
@@ -73,8 +74,8 @@ if (!build_with_mozilla) {
     configs = [
       ":pipewire_base",
       ":gbm",
+      ":gl",
       ":egl",
-      ":epoxy",
       ":libdrm",
     ]
   }

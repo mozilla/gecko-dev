@@ -941,7 +941,7 @@ index 634ef53920..059a4dadc1 100644
    if (use_desktop_capture_differ_sse2) {
      deps += [ ":desktop_capture_differ_sse2" ]
 diff --git a/modules/portal/BUILD.gn b/modules/portal/BUILD.gn
-index e2b2717c89..aff8609b54 100644
+index 1ee0ec8dd7..53b294c6f3 100644
 --- a/modules/portal/BUILD.gn
 +++ b/modules/portal/BUILD.gn
 @@ -11,6 +11,7 @@ import("//tools/generate_stubs/rules.gni")
@@ -952,7 +952,7 @@ index e2b2717c89..aff8609b54 100644
    pkg_config("gio") {
      packages = [
        "gio-2.0",
-@@ -88,6 +89,12 @@ if ((is_linux || is_chromeos) && rtc_use_pipewire) {
+@@ -89,6 +90,12 @@ if ((is_linux || is_chromeos) && rtc_use_pipewire) {
        defines += [ "WEBRTC_USE_GIO" ]
      }
    }
@@ -965,7 +965,7 @@ index e2b2717c89..aff8609b54 100644
  
    rtc_library("portal") {
      sources = [
-@@ -120,5 +127,22 @@ if ((is_linux || is_chromeos) && rtc_use_pipewire) {
+@@ -121,5 +128,22 @@ if ((is_linux || is_chromeos) && rtc_use_pipewire) {
  
        deps += [ ":pipewire_stubs" ]
      }

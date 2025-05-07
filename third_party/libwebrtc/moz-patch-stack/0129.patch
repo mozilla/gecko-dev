@@ -618,7 +618,7 @@ index c639ca6220..2245146890 100644
  
  use_desktop_capture_differ_sse2 = target_cpu == "x86" || target_cpu == "x64"
 diff --git a/modules/portal/BUILD.gn b/modules/portal/BUILD.gn
-index 901597ecde..6828388b31 100644
+index 4db7816bc4..7993e482f4 100644
 --- a/modules/portal/BUILD.gn
 +++ b/modules/portal/BUILD.gn
 @@ -6,7 +6,7 @@
