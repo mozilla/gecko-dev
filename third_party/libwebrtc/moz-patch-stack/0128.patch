@@ -121,7 +121,7 @@ index ca973787ee..6f68d7ecad 100644
    deps = [
      "net/dcsctp/public:factory",
 diff --git a/api/BUILD.gn b/api/BUILD.gn
-index 4a863d80d0..b17a3f104d 100644
+index 4b9d4f9e21..f5f97dc3a8 100644
 --- a/api/BUILD.gn
 +++ b/api/BUILD.gn
 @@ -8,8 +8,8 @@
@@ -455,7 +455,7 @@ index 05bccd7f77..4292004919 100644
      deps = [
        ":generated_jni",
 diff --git a/logging/BUILD.gn b/logging/BUILD.gn
-index d91a446629..3c18ef1841 100644
+index c87d3b2f9a..a4a5889301 100644
 --- a/logging/BUILD.gn
 +++ b/logging/BUILD.gn
 @@ -11,8 +11,8 @@ if (rtc_enable_protobuf) {
@@ -644,7 +644,7 @@ index 096e1b87ad..695b7dd145 100644
  import("../../webrtc.gni")
  
 diff --git a/pc/BUILD.gn b/pc/BUILD.gn
-index b96a895c7a..04991ee3ff 100644
+index dd4ec75117..2f925f96bc 100644
 --- a/pc/BUILD.gn
 +++ b/pc/BUILD.gn
 @@ -30,8 +30,8 @@

@@ -394,7 +394,7 @@ if (!build_with_mozilla) {
     "crypto:options",
     "metronome",
     "neteq:neteq_api",
-    "rtc_event_log",
+    "rtc_event_log:rtc_event_log_factory_interface",
     "task_queue",
     "transport:bandwidth_estimation_settings",
     "transport:bitrate_settings",

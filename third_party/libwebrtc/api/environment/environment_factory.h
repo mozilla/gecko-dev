@@ -16,20 +16,15 @@
 
 #include "absl/base/nullability.h"
 #include "api/environment/environment.h"
+#include "api/field_trials_view.h"
 #include "api/ref_counted_base.h"
+#include "api/rtc_event_log/rtc_event_log.h"
 #include "api/scoped_refptr.h"
+#include "api/task_queue/task_queue_factory.h"
 #include "rtc_base/system/rtc_export.h"
+#include "system_wrappers/include/clock.h"
 
 namespace webrtc {
-
-// These classes are forward declared to reduce amount of headers exposed
-// through api header.
-// IWYU pragma: begin_keep
-class Clock;
-class TaskQueueFactory;
-class FieldTrialsView;
-class RtcEventLog;
-// IWYU pragma: end_keep
 // Constructs `Environment`.
 // Individual utilities are provided using one of the `Set` functions.
 // `Set` functions do nothing when nullptr value is passed.

@@ -1561,7 +1561,7 @@ rtc_source_set("peer_connection_factory") {
     "../api/environment:environment_factory",
     "../api/metronome",
     "../api/neteq:neteq_api",
-    "../api/rtc_event_log:rtc_event_log",
+    "../api/rtc_event_log:rtc_event_log_factory_interface",
     "../api/transport:bitrate_settings",
     "../api/transport:network_control",
     "../api/transport:sctp_transport_factory_interface",
