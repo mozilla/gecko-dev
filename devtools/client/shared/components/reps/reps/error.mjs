@@ -14,7 +14,6 @@ import { wrapRender } from "resource://devtools/client/shared/components/reps/re
 import { cleanFunctionName } from "resource://devtools/client/shared/components/reps/reps/function.mjs";
 import { isLongString } from "resource://devtools/client/shared/components/reps/reps/string.mjs";
 import { MODE } from "resource://devtools/client/shared/components/reps/reps/constants.mjs";
-import { Rep } from "resource://devtools/client/shared/components/reps/reps/rep.mjs";
 
 const IGNORED_SOURCE_URLS = ["debugger eval code"];
 
@@ -63,7 +62,7 @@ function ErrorRep(props) {
 
   if (mode !== MODE.TINY && mode !== MODE.HEADER) {
     content.push(
-      Rep({
+      props.Rep({
         ...props,
         key: "message",
         object: preview.message,
@@ -210,7 +209,7 @@ function getCauseElement(props, preview) {
       className: "error-rep-cause",
     },
     "Caused by: ",
-    Rep({
+    props.Rep({
       ...props,
       key: "cause",
       object: preview.cause,

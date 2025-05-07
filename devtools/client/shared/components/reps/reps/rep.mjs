@@ -91,6 +91,7 @@ const noGripReps = [
  * property.
  */
 const Rep = function (props) {
+  props.Rep = Rep;
   const { object, defaultRep } = props;
   const rep = getRep(
     object,

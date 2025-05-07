@@ -15,7 +15,6 @@ import {
   ellipsisElement,
 } from "resource://devtools/client/shared/components/reps/reps/rep-utils.mjs";
 import { MODE } from "resource://devtools/client/shared/components/reps/reps/constants.mjs";
-import { Rep } from "resource://devtools/client/shared/components/reps/reps/rep.mjs";
 
 const DEFAULT_TITLE = "Array";
 
@@ -201,7 +200,7 @@ function arrayIterator(props, grip, max) {
 
     if (res.length < max) {
       res.push(
-        Rep({
+        props.Rep({
           ...props,
           object,
           mode: MODE.TINY,

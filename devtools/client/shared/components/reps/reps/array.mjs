@@ -7,7 +7,6 @@ import PropTypes from "resource://devtools/client/shared/vendor/react-prop-types
 
 import { wrapRender } from "resource://devtools/client/shared/components/reps/reps/rep-utils.mjs";
 import { MODE } from "resource://devtools/client/shared/components/reps/reps/constants.mjs";
-import { Rep } from "resource://devtools/client/shared/components/reps/reps/rep.mjs";
 import { lengthBubble } from "resource://devtools/client/shared/components/reps/shared/grip-length-bubble.mjs";
 
 const ModePropType = PropTypes.oneOf(Object.values(MODE));
@@ -133,7 +132,7 @@ function ItemRep(props) {
   const { object, delim, mode } = props;
   return span(
     {},
-    Rep({
+    props.Rep({
       ...props,
       object,
       mode,

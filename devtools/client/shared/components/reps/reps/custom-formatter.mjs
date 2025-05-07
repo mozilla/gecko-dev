@@ -12,7 +12,7 @@ import {
 } from "resource://devtools/client/shared/vendor/react.mjs";
 
 import { cleanupStyle } from "resource://devtools/client/shared/components/reps/reps/rep-utils.mjs";
-import { MODE } from "resource://devtools/client/shared/components/reps/index.mjs";
+import { MODE } from "resource://devtools/client/shared/components/reps/reps/constants.mjs";
 
 const ALLOWED_TAGS = new Set([
   "span",

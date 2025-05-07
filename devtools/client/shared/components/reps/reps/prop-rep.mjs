@@ -13,8 +13,6 @@ import {
   wrapRender,
 } from "resource://devtools/client/shared/components/reps/reps/rep-utils.mjs";
 import { MODE } from "resource://devtools/client/shared/components/reps/reps/constants.mjs";
-import * as Grip from "resource://devtools/client/shared/components/reps/reps/grip.mjs";
-import { Rep } from "resource://devtools/client/shared/components/reps/reps/rep.mjs";
 
 /**
  * Property for Obj (local JS objects), Grip (remote JS objects)
@@ -68,12 +66,12 @@ function PropRep(props) {
       name
     );
   } else {
-    key = Rep({
+    key = props.Rep({
       ...props,
       className,
       object: name,
       mode: mode || MODE.TINY,
-      defaultRep: Grip,
+      defaultRep: undefined,
     });
   }
 
@@ -85,7 +83,7 @@ function PropRep(props) {
       },
       equal
     ),
-    Rep({ ...props }),
+    props.Rep({ ...props }),
   ];
 }
 

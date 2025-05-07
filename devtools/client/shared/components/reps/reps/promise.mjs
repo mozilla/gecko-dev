@@ -11,7 +11,6 @@ import {
 } from "resource://devtools/client/shared/components/reps/reps/rep-utils.mjs";
 import * as Grip from "resource://devtools/client/shared/components/reps/reps/grip.mjs";
 import { MODE } from "resource://devtools/client/shared/components/reps/reps/constants.mjs";
-import { Rep } from "resource://devtools/client/shared/components/reps/reps/rep.mjs";
 
 /**
  * Renders a DOM Promise object.
@@ -70,7 +69,7 @@ function PromiseRep(props) {
     config,
     getTitle(object),
     span({ className: "objectLeftBrace" }, " { "),
-    Rep({ object: object.preview.ownProperties["<state>"].value }),
+    props.Rep({ object: object.preview.ownProperties["<state>"].value }),
     span({ className: "objectRightBrace" }, " }")
   );
 }

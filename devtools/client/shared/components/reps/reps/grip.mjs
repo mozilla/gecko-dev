@@ -13,7 +13,6 @@ import {
 } from "resource://devtools/client/shared/components/reps/reps/rep-utils.mjs";
 import PropRep from "resource://devtools/client/shared/components/reps/reps/prop-rep.mjs";
 import { MODE } from "resource://devtools/client/shared/components/reps/reps/constants.mjs";
-import { Rep } from "resource://devtools/client/shared/components/reps/reps/rep.mjs";
 
 /**
  * Renders generic grip. Grip is client representation
@@ -155,7 +154,7 @@ function safePropIterator(props, object, max) {
 function propIterator(props, object, max) {
   if (object.preview && Object.keys(object.preview).includes("wrappedValue")) {
     return [
-      Rep({
+      props.Rep({
         object: object.preview.wrappedValue,
         mode: props.mode || MODE.TINY,
         defaultRep: Grip,

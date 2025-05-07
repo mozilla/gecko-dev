@@ -10,7 +10,6 @@ import PropTypes from "resource://devtools/client/shared/vendor/react-prop-types
 
 import { wrapRender } from "resource://devtools/client/shared/components/reps/reps/rep-utils.mjs";
 import { MODE } from "resource://devtools/client/shared/components/reps/reps/constants.mjs";
-import { Rep } from "resource://devtools/client/shared/components/reps/reps/rep.mjs";
 import * as Grip from "resource://devtools/client/shared/components/reps/reps/grip.mjs";
 
 /**
@@ -33,7 +32,7 @@ function Accessor(props) {
       {
         className: "objectBox objectBox-accessor objectTitle",
       },
-      Rep({
+      props.Rep({
         ...props,
         object: evaluation.getterValue,
         mode: props.mode || MODE.TINY,
