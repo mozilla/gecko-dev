@@ -8,41 +8,13 @@ import pytest
 from mozperftest.environment import SYSTEM
 from mozperftest.system.android import DeviceError
 from mozperftest.system.android_perf_tuner import PerformanceTuner
-from mozperftest.tests.support import get_running_env, requests_content, temp_file
+from mozperftest.tests.support import (
+    FakeDevice,
+    get_running_env,
+    requests_content,
+    temp_file,
+)
 from mozperftest.utils import silence
-
-
-class FakeDevice:
-    def __init__(self, **args):
-        self.apps = []
-        self._logger = mock.MagicMock()
-        self._have_su = True
-        self._have_android_su = True
-        self._have_root_shell = True
-        self.is_rooted = True
-
-    def clear_logcat(self, *args, **kwargs):
-        return True
-
-    def shell_output(self, *args, **kwargs):
-        return "A Fake Device"
-
-    def shell_bool(self, *args, **kwargs):
-        return True
-
-    def uninstall_app(self, apk_name):
-        return True
-
-    def install_app(self, apk, replace=True):
-        if apk not in self.apps:
-            self.apps.append(apk)
-
-    def install_app_baseline_profile(self, apk, replace=True):
-        if apk not in self.apps:
-            self.apps.append(apk)
-
-    def is_app_installed(self, app_name):
-        return True
 
 
 def get_android_device_layer(layers):

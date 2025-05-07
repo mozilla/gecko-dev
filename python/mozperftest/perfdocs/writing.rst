@@ -108,6 +108,15 @@ If everything is setup correctly, running a performance test locally will be as 
 
     ./mach perftest <path/to/my/mochitest-test.html>
 
+Mochitest Android Tests
+^^^^^^^^^^^^^^^^^^^^^^^
+
+Running Android tests through Mochitest is the same as desktop, except the ``--android`` option, and the ``--app`` option to specify the app need to provided.
+
+Either a local android build is expected, or a preinstalled application on the device being used. To ensure that the logs for performance metrics get through, **you need to run** ``SimpleTest.requestCompleteLog()`` at the start of your test. Otherwise, the performance metrics may be buffered and destroyed before the test completes.
+
+Only the GeckoView Test Runner, and GeckoView Example are currently supported in Mochitest (see `bug 1902535 <https://bugzilla.mozilla.org/show_bug.cgi?id=1902535>`_ for progress on using Fenix).
+
 Mochitest Tests in CI
 ^^^^^^^^^^^^^^^^^^^^^
 

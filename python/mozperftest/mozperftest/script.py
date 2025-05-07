@@ -224,6 +224,7 @@ class ScriptInfo(defaultdict):
 
         # Mochitest gets detected as xpcshell during parsing
         # since they use similar methods to run tests
+        self["test"] = "mochitest"
         self.script_type = ScriptType.mochitest
 
     def _parse_shell_script(self):

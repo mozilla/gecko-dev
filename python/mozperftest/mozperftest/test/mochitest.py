@@ -173,11 +173,41 @@ class Mochitest(Layer):
             parsed_extra_args.append(f"--{arg}")
         return parsed_extra_args
 
-    def _get_mochitest_args(self):
+    def _setup_mochitest_android_args(self, metadata):
+        """Sets up all the arguments needed to run mochitest android tests."""
+        app = metadata.binary
+        activity = self.get_arg("android-activity")
+        if (app + ".") in activity:
+            # Mochitest prefixes the activity with the app-name so we need to
+            # remove it here if it exists.
+            activity = activity.replace(app + ".", "")
+
+        mochitest_android_args = [
+            "--android",
+            f"--app={app}",
+            f"--activity={activity}",
+        ]
+
+        if not ON_TRY:
+            os.environ["MOZ_HOST_BIN"] = self.mach_cmd.bindir
+            mochitest_android_args.extend(
+                [
+                    f"--setenv=MOZ_HOST_BIN={os.environ['MOZ_HOST_BIN']}",
+                ]
+            )
+
+        return mochitest_android_args
+
+    def _get_mochitest_args(self, metadata):
         """Handles setup for all mochitest-specific arguments."""
         mochitest_args = []
+
         mochitest_args.extend(self._enable_gecko_profiling())
         mochitest_args.extend(self._parse_extra_args())
+
+        if self.get_arg("android"):
+            mochitest_args.extend(self._setup_mochitest_android_args(metadata))
+
         return mochitest_args
 
     def remote_run(self, test, metadata):
@@ -206,7 +236,7 @@ class Mochitest(Layer):
         # Use the mochitest argument parser to parse the extra argument
         # options, and produce an `args` object that has all the defaults
         parser = MochitestArgumentParser()
-        args = parser.parse_args(self._get_mochitest_args())
+        args = parser.parse_args(self._get_mochitest_args(metadata))
 
         # Bug 1858155 - Attempting to only use one test_path triggers a failure
         # during test execution
@@ -253,7 +283,7 @@ class Mochitest(Layer):
                     status, log_processor = FunctionalTestRunner.test(
                         self.mach_cmd,
                         [str(test)],
-                        self._get_mochitest_args() + ["--keep-open=False"],
+                        self._get_mochitest_args(metadata) + ["--keep-open=False"],
                     )
             finally:
                 metadata.run_hook(

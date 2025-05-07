@@ -8,6 +8,7 @@ from mozperftest.environment import SYSTEM, TEST
 from mozperftest.test.mochitest import MissingMochitestInformation
 from mozperftest.tests.support import (
     EXAMPLE_MOCHITEST_TEST,
+    FakeDevice,
     get_running_env,
 )
 from mozperftest.utils import NoPerfMetricsError
@@ -17,11 +18,68 @@ def running_env(**kw):
     return get_running_env(flavor="mochitest", **kw)
 
 
+def fake_version_producer(self, metadata):
+    return metadata
+
+
 @mock.patch("mozperftest.test.mochitest.ON_TRY", new=False)
 @mock.patch("mozperftest.utils.ON_TRY", new=False)
 def test_mochitest_metrics(*mocked):
     mach_cmd, metadata, env = running_env(
         tests=[str(EXAMPLE_MOCHITEST_TEST)],
+        mochitest_extra_args=[],
+    )
+
+    sys = env.layers[SYSTEM]
+    mochitest = env.layers[TEST]
+
+    with mock.patch("moztest.resolve.TestResolver") as test_resolver_mock, mock.patch(
+        "mozperftest.test.functionaltestrunner.load_class_from_path"
+    ) as load_class_path_mock, mock.patch(
+        "mozperftest.test.functionaltestrunner.mozlog.formatters.MachFormatter.__new__"
+    ) as formatter_mock, mock.patch(
+        "mozperftest.test.mochitest.install_requirements_file"
+    ):
+        formatter_mock.return_value = lambda x: x
+
+        def test_print(*args, **kwargs):
+            log_processor = kwargs.get("custom_handler")
+            log_processor.__call__('perfMetrics | { "fake": 0 }')
+            return 0
+
+        test_mock = mock.MagicMock()
+        test_mock.test = test_print
+        load_class_path_mock.return_value = test_mock
+
+        test_resolver_mock.resolve_metadata.return_value = (1, 1)
+        mach_cmd._spawn.return_value = test_resolver_mock
+        try:
+            with sys as s, mochitest as m:
+                m(s(metadata))
+        finally:
+            shutil.rmtree(mach_cmd._mach_context.state_dir)
+
+    res = metadata.get_results()
+    assert len(res) == 1
+    assert res[0]["name"] == "test_mochitest.html"
+    results = res[0]["results"]
+
+    assert results[0]["name"] == "fake"
+    assert results[0]["values"] == [0]
+
+
+@mock.patch("mozperftest.system.VersionProducer.run", new=fake_version_producer)
+@mock.patch("mozperftest.system.android.ADBLoggedDevice", new=FakeDevice)
+@mock.patch("mozperftest.test.mochitest.ON_TRY", new=False)
+@mock.patch("mozperftest.utils.ON_TRY", new=False)
+def test_mochitest_android_metrics(*mocked):
+    mach_cmd, metadata, env = running_env(
+        tests=[str(EXAMPLE_MOCHITEST_TEST)],
+        android=True,
+        app="geckoview",
+        android_install_apk=["this.apk"],
+        android_capture_adb="stdout",
+        android_activity="GeckoViewActivity",
         mochitest_extra_args=[],
     )
 
