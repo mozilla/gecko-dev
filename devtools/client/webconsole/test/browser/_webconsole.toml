@@ -527,6 +527,9 @@ fail-if = ["a11y_checks"] # Bug 1849028 clicked element may not be focusable and
 
 ["browser_webconsole_object_inspector_entries.js"]
 fail-if = ["a11y_checks"] # Bug 1849028 clicked element may not be focusable and/or labeled
+support-files = ["browser_webconsole_object_inspector_entries.snapshot.mjs"]
+https_first_disabled = true # JS HttpServer doesn't support https
+skip-if = ["http3"] # JS HttpServer doesn't support http3
 
 ["browser_webconsole_object_inspector_getters.js"]
 fail-if = ["a11y_checks"] # Bug 1849028 clicked element may not be focusable and/or labeled
