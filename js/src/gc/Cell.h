@@ -907,10 +907,10 @@ class alignas(gc::CellAlignBytes) SmallBuffer : public TenuredCell {
 };
 template <size_t bytes>
 struct SmallBufferN : public SmallBuffer {
-  uint8_t data[bytes - sizeof(SmallBuffer)];
+  uint8_t data[bytes];
 };
-static_assert(sizeof(SmallBufferN<16>) == 16);
-static_assert(sizeof(SmallBufferN<128>) == 128);
+static_assert(sizeof(SmallBufferN<16>) == 16 + sizeof(SmallBuffer));
+static_assert(sizeof(SmallBufferN<128>) == 128 + sizeof(SmallBuffer));
 
 } /* namespace gc */
 } /* namespace js */

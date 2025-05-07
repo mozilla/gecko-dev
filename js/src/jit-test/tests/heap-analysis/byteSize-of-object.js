@@ -36,23 +36,23 @@ assertEq(tByteSize({ w: 1, x: 2, y: 3, z:4 }),          s(48,  56));
 assertEq(tByteSize({ w: 1, x: 2, y: 3, z:4, a: 5 }),    s(80,  88));
 
 // Try objects with only indexed properties.
-assertEq(tByteSize({ 0:0 }),                            s(72,  80));
-assertEq(tByteSize({ 0:0, 1:1 }),                       s(72,  80));
-assertEq(tByteSize({ 0:0, 1:1, 2:2 }),                  s(72,  80));
-assertEq(tByteSize({ 0:0, 1:1, 2:2, 3:3 }),             s(72,  80));
-assertEq(tByteSize({ 0:0, 1:1, 2:2, 3:3, 4:4 }),        s(72,  80));
+assertEq(tByteSize({ 0:0 }),                            s(80,  88));
+assertEq(tByteSize({ 0:0, 1:1 }),                       s(80,  88));
+assertEq(tByteSize({ 0:0, 1:1, 2:2 }),                  s(80,  88));
+assertEq(tByteSize({ 0:0, 1:1, 2:2, 3:3 }),             s(80,  88));
+assertEq(tByteSize({ 0:0, 1:1, 2:2, 3:3, 4:4 }),        s(80,  88));
 
 // Mix indexed and named properties, exploring each combination of the size
 // classes above.
-assertEq(tByteSize({ w:1,                     0:0                     }),  s(88,  96));
-assertEq(tByteSize({ w:1,                     0:0, 1:1, 2:2           }),  s(88,  96));
-assertEq(tByteSize({ w:1,                     0:0, 1:1, 2:2, 3:3, 4:4 }),  s(88,  96));
-assertEq(tByteSize({ w:1, x:2, y:3,           0:0                     }),  s(104, 112));
-assertEq(tByteSize({ w:1, x:2, y:3,           0:0, 1:1, 2:2           }),  s(104, 112));
-assertEq(tByteSize({ w:1, x:2, y:3,           0:0, 1:1, 2:2, 3:3, 4:4 }),  s(104, 112));
-assertEq(tByteSize({ w:1, x:2, y:3, z:4, a:6, 0:0                     }),  s(136, 144));
-assertEq(tByteSize({ w:1, x:2, y:3, z:4, a:6, 0:0, 1:1, 2:2           }),  s(136, 144));
-assertEq(tByteSize({ w:1, x:2, y:3, z:4, a:6, 0:0, 1:1, 2:2, 3:3, 4:4 }),  s(136, 144));
+assertEq(tByteSize({ w:1,                     0:0                     }),  s(96,  104));
+assertEq(tByteSize({ w:1,                     0:0, 1:1, 2:2           }),  s(96,  104));
+assertEq(tByteSize({ w:1,                     0:0, 1:1, 2:2, 3:3, 4:4 }),  s(96,  104));
+assertEq(tByteSize({ w:1, x:2, y:3,           0:0                     }),  s(112, 120));
+assertEq(tByteSize({ w:1, x:2, y:3,           0:0, 1:1, 2:2           }),  s(112, 120));
+assertEq(tByteSize({ w:1, x:2, y:3,           0:0, 1:1, 2:2, 3:3, 4:4 }),  s(112, 120));
+assertEq(tByteSize({ w:1, x:2, y:3, z:4, a:6, 0:0                     }),  s(144, 152));
+assertEq(tByteSize({ w:1, x:2, y:3, z:4, a:6, 0:0, 1:1, 2:2           }),  s(144, 152));
+assertEq(tByteSize({ w:1, x:2, y:3, z:4, a:6, 0:0, 1:1, 2:2, 3:3, 4:4 }),  s(144, 152));
 
 // Check various lengths of array.
 assertEq(tByteSize([]),                                 s(80,  88));

@@ -32,7 +32,7 @@ static constexpr size_t MaxMediumAllocSize =
 
 /* static */
 inline bool BufferAllocator::IsSmallAllocSize(size_t bytes) {
-  return bytes + sizeof(SmallBuffer) <= MaxSmallAllocSize;
+  return bytes <= MaxSmallAllocSize;
 }
 
 /* static */
@@ -48,25 +48,15 @@ inline size_t BufferAllocator::GetGoodAllocSize(size_t requiredBytes) {
     return RoundUp(requiredBytes, ChunkSize);
   }
 
-  size_t headerSize = 0;
-  if (IsSmallAllocSize(requiredBytes)) {
-    headerSize = sizeof(SmallBuffer);
-  }
-
   // TODO: Support more sizes than powers of 2
-  return mozilla::RoundUpPow2(requiredBytes + headerSize) - headerSize;
+  return mozilla::RoundUpPow2(requiredBytes);
 }
 
 /* static */
 size_t BufferAllocator::GetGoodPower2AllocSize(size_t requiredBytes) {
   requiredBytes = std::max(requiredBytes, MinAllocSize);
 
-  size_t headerSize = 0;
-  if (IsSmallAllocSize(requiredBytes)) {
-    headerSize = sizeof(SmallBuffer);
-  }
-
-  return mozilla::RoundUpPow2(requiredBytes + headerSize) - headerSize;
+  return mozilla::RoundUpPow2(requiredBytes);
 }
 
 /* static */

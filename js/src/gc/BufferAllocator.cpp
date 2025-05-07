@@ -1605,7 +1605,7 @@ void* BufferAllocator::allocSmall(size_t bytes, bool nurseryOwned) {
 
   MOZ_ASSERT(IsSmallAlloc(alloc));
   MOZ_ASSERT(getAllocSize(alloc) >= bytes);
-  MOZ_ASSERT(getAllocSize(alloc) < 2 * (bytes + sizeof(SmallBuffer)));
+  MOZ_ASSERT(getAllocSize(alloc) < 2 * bytes);
 
   return alloc;
 }
@@ -1623,8 +1623,9 @@ void* BufferAllocator::allocSmallInGC(size_t bytes, bool nurseryOwned) {
   cell->setNurseryOwned(nurseryOwned);
   void* alloc = cell->data();
 
+  MOZ_ASSERT(IsSmallAlloc(alloc));
   MOZ_ASSERT(getAllocSize(alloc) >= bytes);
-  MOZ_ASSERT(getAllocSize(alloc) < 2 * (bytes + sizeof(SmallBuffer)));
+  MOZ_ASSERT(getAllocSize(alloc) < 2 * bytes);
 
   return alloc;
 }
@@ -1632,20 +1633,16 @@ void* BufferAllocator::allocSmallInGC(size_t bytes, bool nurseryOwned) {
 /* static */
 AllocKind BufferAllocator::AllocKindForSmallAlloc(size_t bytes) {
   bytes = std::max(bytes, MinAllocSize);
+  MOZ_ASSERT(bytes <= MaxSmallAllocSize);
 
-  size_t totalBytes = bytes + sizeof(SmallBuffer);
-  MOZ_ASSERT(totalBytes <= MaxSmallAllocSize);
-  MOZ_ASSERT(totalBytes >= bytes);
-
-  size_t logBytes = mozilla::CeilingLog2(totalBytes);
-  MOZ_ASSERT(totalBytes <= (size_t(1) << logBytes));
+  size_t logBytes = mozilla::CeilingLog2(bytes);
+  MOZ_ASSERT(bytes <= (size_t(1) << logBytes));
 
   MOZ_ASSERT(logBytes >= mozilla::CeilingLog2(MinAllocSize));
   size_t kindIndex = logBytes - mozilla::CeilingLog2(MinAllocSize);
 
   AllocKind kind = AllocKind(size_t(AllocKind::BUFFER_FIRST) + kindIndex);
-  MOZ_ASSERT(IsValidAllocKind(kind));
-  MOZ_ASSERT(kind <= AllocKind::BUFFER_LAST);
+  MOZ_ASSERT(IsBufferAllocKind(kind));
 
   return kind;
 }
@@ -2811,7 +2808,7 @@ void BufferAllocator::getStats(size_t& usedBytes, size_t& freeBytes,
 
 JS::ubi::Node::Size JS::ubi::Concrete<SmallBuffer>::size(
     mozilla::MallocSizeOf mallocSizeOf) const {
-  return get().arena()->getThingSize();
+  return get().allocBytes();
 }
 
 const char16_t JS::ubi::Concrete<SmallBuffer>::concreteTypeName[] =
