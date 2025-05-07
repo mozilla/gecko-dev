@@ -62,3 +62,14 @@ add-engine-window =
 add-engine-button = Add Custom Engine
 
 add-engine-name = Search engine name
+
+add-engine-keyword = Keyword
+
+add-engine-url = Engine URL, use %s in place of the search term
+
+add-engine-dialog =
+    .buttonlabelaccept = Add Engine
+    .buttonaccesskeyaccept = A
+
+engine-name-exists = An engine with that name already exists
+engine-keyword-exists = An engine with that keyword already exists

@@ -10,52 +10,21 @@ hbox {
   width: 100%;
 }
 
-#titleContainer {
-  padding-bottom: var(--space-xlarge);
-  --icon-url: url("chrome://browser/skin/preferences/category-search.svg")
+.dialogRow > label {
+  /* Align the labels with the inputs */
+  margin-inline-start: 4px;
 }
 
-.dialogRow {
-  & > label,
-  & > .error-label {
-    /* Align the labels with the inputs */
-    margin-inline-start: 4px;
-  }
-}
-
-input[type="url"] {
+#engineUrl,
+#suggestUrl {
   /* Full URLs should always be displayed as LTR */
   direction: ltr;
   text-align: match-parent;
 }
 
 .dialogRow:not([hidden]) {
+  --grid-padding: 16px;
+  margin-block: 0 var(--grid-padding);
   display: flex;
   flex-direction: column;
-}
-
-
-
-.error-label {
-  display: flex;
-  font-size: var(--font-size-small);
-  margin-top: var(--space-xxsmall);
-  margin-bottom: var(--space-medium);
-  align-items: center;
-  gap: var(--space-xsmall);
-  color: var(--text-color-error);
-
-  visibility: hidden;
-  input:user-invalid + & {
-    visibility: visible;
-  }
-
-  &::before {
-    content: url("chrome://global/skin/icons/error.svg");
-    fill: var(--icon-color-critical);
-    -moz-context-properties: fill;
-    height: var(--icon-size-default);
-    width: var(--icon-size-default);
-    display: flex;
-  }
 }

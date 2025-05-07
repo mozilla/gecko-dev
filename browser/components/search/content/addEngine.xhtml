@@ -15,9 +15,9 @@
 >
   <dialog
     id="add-engine-dialog"
-    buttons="accept,cancel,extra1"
+    buttons="accept,cancel"
     buttondisabledaccept="true"
-    data-l10n-attrs="buttonlabelaccept, buttonaccesskeyaccept, buttonlabelextra1"
+    data-l10n-attrs="buttonlabelaccept, buttonaccesskeyaccept"
   >
     <linkset>
       <html:link rel="stylesheet" href="chrome://global/skin/global.css" />
@@ -33,57 +33,77 @@
     <script src="chrome://global/content/adjustableTitle.js" />
     <script src="chrome://browser/content/search/addEngine.js" />
 
+    <separator class="thin" />
+
     <html:form id="addEngineForm">
       <html:div class="dialogRow">
+        <html:span
+          id="engineNameExists"
+          hidden="hidden"
+          data-l10n-id="engine-name-exists"
+        />
         <html:label
           id="engineNameLabel"
           for="engineName"
           data-l10n-id="add-engine-name"
         />
-        <html:input id="engineName" type="text" required="required" />
-        <html:div class="error-label">valid</html:div>
+        <hbox>
+          <html:input id="engineName" type="text" required="required" />
+        </hbox>
       </html:div>
 
       <html:div class="dialogRow" id="engineUrlRow">
         <html:label
           id="engineUrlLabel"
           for="engineUrl"
-          data-l10n-id="add-engine-url2"
+          data-l10n-id="add-engine-url"
         />
-        <html:input id="engineUrl" type="url" required="required" />
-        <html:div class="error-label">valid</html:div>
+        <hbox>
+          <html:input
+            id="engineUrl"
+            type="url"
+            required="required"
+            pattern="https?:.*"
+          />
+        </hbox>
+      </html:div>
+
+      <html:div class="dialogRow" id="suggestUrlRow">
+        <html:label
+          id="suggestUrlLabel"
+          for="suggestUrl"
+          data-l10n-id="add-engine-suggest-url"
+        />
+        <hbox>
+          <html:input id="suggestUrl" type="url" pattern="https?:.*" />
+        </hbox>
+      </html:div>
+
+      <html:div class="dialogRow" id="enginePostDataRow" hidden="hidden">
+        <html:label
+          id="enginePostDataLabel"
+          for="enginePostData"
+          data-l10n-id="add-engine-post-data"
+        />
+        <hbox>
+          <html:input id="enginePostData" type="text" />
+        </hbox>
       </html:div>
 
       <html:div class="dialogRow">
+        <html:span
+          id="engineAliasExists"
+          hidden="hidden"
+          data-l10n-id="engine-keyword-exists"
+        />
         <html:label
           id="engineAliasLabel"
           for="engineAlias"
-          data-l10n-id="add-engine-keyword2"
+          data-l10n-id="add-engine-keyword"
         />
-        <html:input id="engineAlias" type="text" />
-        <html:div class="error-label">valid</html:div>
-      </html:div>
-
-      <html:div id="advanced-section" hidden="hidden">
-        <html:div class="dialogRow" id="enginePostDataRow">
-          <html:label
-            id="enginePostDataLabel"
-            for="enginePostData"
-            data-l10n-id="add-engine-post-data"
-          />
-          <html:input id="enginePostData" type="text" />
-          <html:div class="error-label">valid</html:div>
-        </html:div>
-
-        <html:div class="dialogRow" id="suggestUrlRow">
-          <html:label
-            id="suggestUrlLabel"
-            for="suggestUrl"
-            data-l10n-id="add-engine-suggest-url"
-          />
-          <html:input id="suggestUrl" type="url" />
-          <html:div class="error-label">valid</html:div>
-        </html:div>
+        <hbox>
+          <html:input id="engineAlias" type="text" />
+        </hbox>
       </html:div>
     </html:form>
   </dialog>

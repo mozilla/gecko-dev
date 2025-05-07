@@ -99,12 +99,12 @@ add_task(async function test_encoding_of_spaces() {
   await Services.search.removeEngine(engine);
 
   info("Testing spaces in post data.");
-  let params = new URLSearchParams();
-  params.append("q", "{searchTerms}");
+  let formData = new FormData();
+  formData.append("q", "{searchTerms}");
   engine = await Services.search.addUserEngine({
     name: "user",
     url: "https://example.com/user",
-    params,
+    formData,
     method: "POST",
   });
   let submission = engine.getSubmission("f o o");

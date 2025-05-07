@@ -315,55 +315,18 @@ urlbar-search-mode-actions-en = Actions
 ## Add search engine dialog
 ## These strings will be moved to search.ftl once the dialog is finished.
 
-add-engine-url2 = URL with %s in place of search term
-
-add-engine-keyword2 = Keyword (optional)
-
-# POST and GET refer to the HTTP methods.
-add-engine-post-data = POST data with %s in place of search term (leave empty for GET)
-
-add-engine-suggest-url = Suggestions URL with %s in place of search term (optional)
+add-engine-suggest-url = Search suggestion URL, use %s in place of the search term
 
 # Variables:
 #   $name (string) - Name of a search engine.
 edit-engine-name-warning-duplicate = There already is a search engine with the name “{ $name }”. Please choose another name.
 
-# buttonlabelextra1 is the label of a button to open the advanced section
-# of the dialog.
-add-engine-dialog2 =
-    .buttonlabelaccept = Add Engine
-    .buttonaccesskeyaccept = A
-    .buttonlabelextra1 = Advanced
-
-# buttonlabelextra1 is the label of a button to open the advanced section
-# of the dialog.
 edit-engine-dialog =
     .buttonlabelaccept = Save Engine
     .buttonaccesskeyaccept = S
-    .buttonlabelextra1 = Advanced
 
 edit-engine-window =
     .title = Edit Search Engine
     .style = min-width: 32em;
 
-## The following placeholders are shown when adding a new engine.
-
-add-engine-name-placeholder =
-    .placeholder = e.g., Mozilla Developer Network
-
-add-engine-url-placeholder =
-    .placeholder = e.g., https://developer.mozilla.com/search?q=%s
-
-add-engine-keyword-placeholder =
-    .placeholder = e.g., @mdn
-
-## The following strings are used as error labels.
-
-add-engine-keyword-exists = That keyword is already being used. Try a different one.
-add-engine-name-exists = That name is already being used. Please choose a different one.
-add-engine-no-name = Please add a name.
-add-engine-no-url = Please enter a URL.
-add-engine-invalid-url = That URL doesn’t look right. Please check it and try again.
-add-engine-invalid-protocol = That URL doesn’t look right. Use a URL that starts with http or https.
-add-engine-missing-terms-url = Try including %s in place of the search term.
-add-engine-missing-terms-post-data = Try including %s in place of the search term.
+add-engine-post-data = Post data

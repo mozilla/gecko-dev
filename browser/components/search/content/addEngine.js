@@ -9,7 +9,7 @@
 // an HTML form. Depending on the scenario where it is used, different arguments
 // must be supplied in an object in `window.arguments[0]`:
 // - `mode`  [required] - The type of dialog: NEW, EDIT or FORM.
-// - `title` [optional] - Whether to display a title in the window element.
+// - `title` [optional] - To display a title in the window element.
 // - all arguments required by the constructor of the dialog class
 
 const lazy = {};
@@ -19,33 +19,15 @@ ChromeUtils.defineESModuleGetters(lazy, {
 });
 
 // Set the appropriate l10n id before the dialog's connectedCallback.
-if (window.arguments[0].mode == "EDIT") {
-  document.l10n.setAttributes(
-    document.querySelector("dialog"),
-    "edit-engine-dialog"
-  );
-  document.l10n.setAttributes(
-    document.querySelector("window"),
-    "edit-engine-window"
-  );
-} else {
-  document.l10n.setAttributes(
-    document.querySelector("dialog"),
-    "add-engine-dialog2"
-  );
-  document.l10n.setAttributes(
-    document.querySelector("window"),
-    "add-engine-window"
-  );
-}
-
-let loadedResolvers = Promise.withResolvers();
-document.mozSubdialogReady = loadedResolvers.promise;
-
-/** @type {?EngineDialog} */
-let gAddEngineDialog = null;
-/** @type {?Map<string, string>} */
-let l10nCache = null;
+let mode = window.arguments[0].mode == "EDIT" ? "edit" : "add";
+document.l10n.setAttributes(
+  document.querySelector("dialog"),
+  mode + "-engine-dialog"
+);
+document.l10n.setAttributes(
+  document.querySelector("window"),
+  mode + "-engine-window"
+);
 
 /**
  * The abstract base class for all types of user search engine dialogs.
@@ -54,209 +36,62 @@ let l10nCache = null;
 class EngineDialog {
   constructor() {
     this._dialog = document.querySelector("dialog");
-
     this._form = document.getElementById("addEngineForm");
     this._name = document.getElementById("engineName");
     this._alias = document.getElementById("engineAlias");
     this._url = document.getElementById("engineUrl");
-    this._postData = document.getElementById("enginePostData");
     this._suggestUrl = document.getElementById("suggestUrl");
 
-    this._form.addEventListener("input", e => this.validateInput(e.target));
-    document.addEventListener("dialogaccept", this.onAccept.bind(this));
-    document.addEventListener("dialogextra1", () => this.showAdvanced());
+    this._name.addEventListener("input", this.onNameInput.bind(this));
+    this._alias.addEventListener("input", this.onAliasInput.bind(this));
+    this._url.addEventListener("input", this.onFormInput.bind(this));
+    document.addEventListener("dialogaccept", this.onAddEngine.bind(this));
   }
 
-  /**
-   * Shows the advanced section and hides the advanced button.
-   *
-   * @param {boolean} [resize]
-   *   Whether the resizeDialog should be called. Before `mozSubdialogReady`
-   *   is resolved, this should be false to avoid flickering.
-   */
-  showAdvanced(resize = true) {
-    this._dialog.getButton("extra1").hidden = true;
-    document.getElementById("advanced-section").hidden = false;
-    if (resize) {
-      window.resizeDialog();
-    }
-  }
-
-  onAccept() {
+  onAddEngine() {
     throw new Error("abstract");
   }
 
-  validateName() {
-    let name = this._name.value.trim();
+  isNameValid(name) {
     if (!name) {
-      this.setValidity(this._name, "add-engine-no-name");
-      return;
+      return false;
     }
-
-    let existingEngine = Services.search.getEngineByName(name);
-    if (existingEngine && !this.allowedNames.includes(name)) {
-      this.setValidity(this._name, "add-engine-name-exists");
-      return;
-    }
-
-    this.setValidity(this._name, null);
+    return !Services.search.getEngineByName(name);
   }
 
-  async validateAlias() {
-    let alias = this._alias.value.trim();
+  onNameInput() {
+    let name = this._name.value.trim();
+    let validity = this.isNameValid(name)
+      ? ""
+      : document.getElementById("engineNameExists").textContent;
+    this._name.setCustomValidity(validity);
+    this.onFormInput();
+  }
+
+  async isAliasValid(alias) {
     if (!alias) {
-      this.setValidity(this._alias, null);
-      return;
+      return true;
     }
-
-    let existingEngine = await Services.search.getEngineByAlias(alias);
-    if (existingEngine && !this.allowedAliases.includes(alias)) {
-      this.setValidity(this._alias, "add-engine-keyword-exists");
-      return;
-    }
-
-    this.setValidity(this._alias, null);
+    return !(await Services.search.getEngineByAlias(alias));
   }
 
-  validateUrlInput() {
-    let urlString = this._url.value.trim();
-    if (!urlString) {
-      this.setValidity(this._url, "add-engine-no-url");
-      return;
-    }
-
-    let url = URL.parse(urlString);
-    if (!url) {
-      this.setValidity(this._url, "add-engine-invalid-url");
-      return;
-    }
-
-    if (url.protocol != "http:" && url.protocol != "https:") {
-      this.setValidity(this._url, "add-engine-invalid-protocol");
-      return;
-    }
-
-    let postData = this._postData?.value.trim();
-    if (!urlString.includes("%s") && !postData) {
-      this.setValidity(this._url, "add-engine-missing-terms-url");
-      return;
-    }
-    this.setValidity(this._url, null);
+  async onAliasInput() {
+    let alias = this._alias.value.trim();
+    let validity = (await this.isAliasValid(alias))
+      ? ""
+      : document.getElementById("engineAliasExists").textContent;
+    this._alias.setCustomValidity(validity);
+    this.onFormInput();
   }
 
-  validatePostDataInput() {
-    let postData = this._postData.value.trim();
-    if (postData && !postData.includes("%s")) {
-      this.setValidity(this._postData, "add-engine-missing-terms-post-data");
-      return;
-    }
-    this.setValidity(this._postData, null);
-  }
-
-  validateSuggestUrlInput() {
-    let urlString = this._suggestUrl.value.trim();
-    if (!urlString) {
-      this.setValidity(this._suggestUrl, null);
-      return;
-    }
-
-    let url = URL.parse(urlString);
-    if (!url) {
-      this.setValidity(this._suggestUrl, "add-engine-invalid-url");
-      return;
-    }
-
-    if (url.protocol != "http:" && url.protocol != "https:") {
-      this.setValidity(this._suggestUrl, "add-engine-invalid-protocol");
-      return;
-    }
-
-    if (!urlString.includes("%s")) {
-      this.setValidity(this._suggestUrl, "add-engine-missing-terms-url");
-      return;
-    }
-
-    this.setValidity(this._suggestUrl, null);
-  }
-
-  /**
-   * Validates the passed input element and updates error messages.
-   *
-   * @param {HTMLInputElement} input
-   *   The input element to validate.
-   */
-  async validateInput(input) {
-    switch (input.id) {
-      case this._name.id:
-        this.validateName();
-        break;
-      case this._alias.id:
-        await this.validateAlias();
-        break;
-      case this._postData.id:
-      case this._url.id:
-        // Since either the url or the post data input could
-        // contain %s, we need to update both inputs here.
-        this.validateUrlInput();
-        this.validatePostDataInput();
-        break;
-      case this._suggestUrl.id:
-        this.validateSuggestUrlInput();
-        break;
-    }
-  }
-
-  async validateAll() {
-    for (let input of this._form.elements) {
-      await this.validateInput(input);
-    }
-  }
-
-  /**
-   * Sets the validity of the passed input element to the string belonging
-   * to the passed l10n id. Also updates the input's error label and
-   * the accept button.
-   *
-   * @param {HTMLInputElement} inputElement
-   * @param {string} l10nId
-   *   The l10n id of the string to use as validity.
-   *   Must be a key of `l10nCache`.
-   */
-  setValidity(inputElement, l10nId) {
-    if (l10nId) {
-      inputElement.setCustomValidity(l10nCache.get(l10nId));
-    } else {
-      inputElement.setCustomValidity("");
-    }
-
-    let errorLabel = inputElement.parentElement.querySelector(".error-label");
-    let validationMessage = inputElement.validationMessage;
-
-    // If valid, set the error label to "valid" to ensure the layout doesn't shift.
-    // The CSS already hides the error label based on the validity of `inputElement`.
-    errorLabel.textContent = validationMessage || "valid";
-
-    this._dialog.getButton("accept").disabled = !this._form.checkValidity();
-  }
-
-  /**
-   * Engine names that always are allowed, even if they are already in use.
-   * This is needed for the edit engine dialog.
-   *
-   * @type {string[]}
-   */
-  get allowedNames() {
-    return [];
-  }
-
-  /**
-   * Engine aliases that always are allowed, even if they are already in use.
-   * This is needed for the edit engine dialog.
-   *
-   * @type {string[]}
-   */
-  get allowedAliases() {
-    return [];
+  // This function is not set as a listener but called directly because it
+  // depends on the output of `isAliasValid`, but `isAliasValid` contains an
+  // await, so it would finish after this function.
+  onFormInput() {
+    this._dialog.setAttribute(
+      "buttondisabledaccept",
+      !this._form.checkValidity()
+    );
   }
 }
 
@@ -264,25 +99,10 @@ class EngineDialog {
  * This dialog is opened when adding a new search engine in preferences.
  */
 class NewEngineDialog extends EngineDialog {
-  constructor() {
-    super();
-    document.l10n.setAttributes(this._name, "add-engine-name-placeholder");
-    document.l10n.setAttributes(this._url, "add-engine-url-placeholder");
-    document.l10n.setAttributes(this._alias, "add-engine-keyword-placeholder");
-
-    this.validateAll();
-  }
-
-  onAccept() {
-    let params = new URLSearchParams(
-      this._postData.value.trim().replace(/%s/, "{searchTerms}")
-    );
-
+  onAddEngine() {
     Services.search.addUserEngine({
       name: this._name.value.trim(),
       url: this._url.value.trim().replace(/%s/, "{searchTerms}"),
-      method: params.size ? "POST" : "GET",
-      params,
       suggestUrl: this._suggestUrl.value.trim().replace(/%s/, "{searchTerms}"),
       alias: this._alias.value.trim(),
     });
@@ -304,6 +124,8 @@ class EditEngineDialog extends EngineDialog {
    */
   constructor({ engine }) {
     super();
+    this._postData = document.getElementById("enginePostData");
+
     this.#engine = engine;
     this._name.value = engine.name;
     this._alias.value = engine.alias ?? "";
@@ -312,38 +134,36 @@ class EditEngineDialog extends EngineDialog {
       lazy.SearchUtils.URL_TYPE.SEARCH
     );
     this._url.value = url;
-    this._postData.value = postData;
+    if (postData) {
+      document.getElementById("enginePostDataRow").hidden = false;
+      this._postData.value = postData;
+    }
 
     let [suggestUrl] = this.getSubmissionTemplate(
       lazy.SearchUtils.URL_TYPE.SUGGEST_JSON
     );
-    if (suggestUrl) {
-      this._suggestUrl.value = suggestUrl;
-    }
+    this._suggestUrl.value = suggestUrl ?? "";
 
-    if (postData || suggestUrl) {
-      this.showAdvanced(false);
-    }
-
-    this.validateAll();
+    this.onNameInput();
+    this.onAliasInput();
   }
 
-  onAccept() {
+  onAddEngine() {
     this.#engine.wrappedJSObject.rename(this._name.value.trim());
     this.#engine.alias = this._alias.value.trim();
 
     let newURL = this._url.value.trim();
-    let newPostData = this._postData.value.trim() || null;
+    let newPostData = this._postData.value.trim();
 
     // UserSearchEngine.changeUrl() does not check whether the URL has actually changed.
     let [prevURL, prevPostData] = this.getSubmissionTemplate(
       lazy.SearchUtils.URL_TYPE.SEARCH
     );
-    if (newURL != prevURL || prevPostData != newPostData) {
+    if (newURL != prevURL || (prevPostData && prevPostData != newPostData)) {
       this.#engine.wrappedJSObject.changeUrl(
         lazy.SearchUtils.URL_TYPE.SEARCH,
         newURL.replace(/%s/, "{searchTerms}"),
-        newPostData?.replace(/%s/, "{searchTerms}")
+        prevPostData ? newPostData.replace(/%s/, "{searchTerms}") : null
       );
     }
 
@@ -360,12 +180,20 @@ class EditEngineDialog extends EngineDialog {
     }
   }
 
-  get allowedAliases() {
-    return [this.#engine.alias];
+  isNameValid(name) {
+    if (!name) {
+      return false;
+    }
+    let engine = Services.search.getEngineByName(this._name.value);
+    return !engine || engine.id == this.#engine.id;
   }
 
-  get allowedNames() {
-    return [this.#engine.name];
+  async isAliasValid(alias) {
+    if (!alias) {
+      return true;
+    }
+    let engine = await Services.search.getEngineByAlias(this._alias.value);
+    return !engine || engine.id == this.#engine.id;
   }
 
   /**
@@ -421,20 +249,24 @@ class NewEngineFromFormDialog extends EngineDialog {
    */
   constructor({ nameTemplate }) {
     super();
+    this._name.value = nameTemplate;
+    this.onNameInput();
+    this.onAliasInput();
+
     document.getElementById("engineUrlRow").remove();
     this._url = null;
     document.getElementById("suggestUrlRow").remove();
     this._suggestUrl = null;
-    document.getElementById("enginePostDataRow").remove();
-    this._postData = null;
-    this._dialog.getButton("extra1").hidden = true;
 
-    this._name.value = nameTemplate;
-    this.validateAll();
+    let title = { raw: document.title };
+    document.documentElement.setAttribute("headertitle", JSON.stringify(title));
+    document.documentElement.style.setProperty(
+      "--icon-url",
+      'url("chrome://browser/skin/preferences/category-search.svg")'
+    );
   }
 
-  onAccept() {
-    // Return the input to the caller.
+  onAddEngine() {
     window.arguments[0].engineInfo = {
       name: this._name.value.trim(),
       // Empty string means no alias.
@@ -443,39 +275,16 @@ class NewEngineFromFormDialog extends EngineDialog {
   }
 }
 
-async function initL10nCache() {
-  const errorIds = [
-    "add-engine-name-exists",
-    "add-engine-keyword-exists",
-    "add-engine-no-name",
-    "add-engine-no-url",
-    "add-engine-invalid-protocol",
-    "add-engine-invalid-url",
-    "add-engine-missing-terms-url",
-    "add-engine-missing-terms-post-data",
-  ];
+let loadedResolvers = Promise.withResolvers();
+document.mozSubdialogReady = loadedResolvers.promise;
 
-  let msgs = await document.l10n.formatValues(errorIds.map(id => ({ id })));
-  l10nCache = new Map();
-
-  for (let i = 0; i < errorIds.length; i++) {
-    l10nCache.set(errorIds[i], msgs[i]);
+let gAddEngineDialog = null;
+window.addEventListener("DOMContentLoaded", () => {
+  if (!window.arguments[0].title) {
+    AdjustableTitle.hide();
   }
-}
 
-window.addEventListener("DOMContentLoaded", async () => {
   try {
-    if (window.arguments[0].title) {
-      document.documentElement.setAttribute(
-        "headertitle",
-        JSON.stringify({ raw: document.title })
-      );
-    } else {
-      AdjustableTitle.hide();
-    }
-
-    await initL10nCache();
-
     switch (window.arguments[0].mode) {
       case "NEW":
         gAddEngineDialog = new NewEngineDialog();

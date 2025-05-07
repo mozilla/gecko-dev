@@ -664,7 +664,7 @@ export class SearchService {
    *
    * @param {FormInfo} formInfo
    *   General information about the search engine.
-   * @returns {Promise<nsISearchEngine>}
+   * @returns {nsISearchEngine}
    *   The generated search engine object.
    */
   async addUserEngine(formInfo) {

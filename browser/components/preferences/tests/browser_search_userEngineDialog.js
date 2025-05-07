@@ -16,7 +16,7 @@ add_setup(async function () {
   });
 });
 
-add_task(async function test_addEngineGet() {
+add_task(async function test_addEngine() {
   await openPreferencesViaOpenPreferencesAPI("search", {
     leaveOpen: true,
   });
@@ -37,19 +37,6 @@ add_task(async function test_addEngineGet() {
     dialogWin
   );
   await setAlias("bz", dialogWin);
-
-  let advanced = dialogWin.document.querySelector("dialog").getButton("extra1");
-  Assert.ok(!advanced.hidden, "Button is visible");
-  Assert.ok(
-    dialogWin.document.getElementById("advanced-section").hidden,
-    "Advanced section is hidden"
-  );
-  advanced.click();
-  Assert.ok(advanced.hidden, "Button was hidden");
-  Assert.ok(
-    !dialogWin.document.getElementById("advanced-section").hidden,
-    "Advanced section was made visible"
-  );
 
   let promiseAdded = SearchTestUtils.promiseSearchNotification(
     SearchUtils.MODIFIED_TYPE.ADDED,
@@ -74,57 +61,6 @@ add_task(async function test_addEngineGet() {
   await Services.search.removeEngine(engine);
 });
 
-add_task(async function test_addEnginePost() {
-  await openPreferencesViaOpenPreferencesAPI("search", {
-    leaveOpen: true,
-  });
-
-  // Add new engine via add engine dialog.
-  let doc = gBrowser.contentDocument;
-  let addButton = doc.querySelector("#addEngineButton");
-  let dialogWin = await openDialogWith(doc, () => addButton.click());
-  dialogWin.document.querySelector("dialog").getButton("extra1").click();
-
-  setName("Bugzilla Post", dialogWin);
-  setUrl("https://bugzilla.mozilla.org/buglist.cgi", dialogWin);
-  await setAlias("bz", dialogWin);
-  setPostData("quicksearch=%s&list_id=17442621", dialogWin);
-  setSuggestUrl("https://bugzilla.mozilla.org/suggest?q=%s", dialogWin);
-
-  let promiseAdded = SearchTestUtils.promiseSearchNotification(
-    SearchUtils.MODIFIED_TYPE.ADDED,
-    SearchUtils.TOPIC_ENGINE_MODIFIED
-  );
-  EventUtils.synthesizeKey("VK_RETURN", {}, dialogWin);
-  await promiseAdded;
-  Assert.ok(true, "Got added notification.");
-
-  // Check new engine.
-  let engine = Services.search.getEngineByName("Bugzilla Post");
-  Assert.equal(engine.name, "Bugzilla Post", "Name is correct.");
-  let submission = engine.getSubmission("föö");
-  Assert.equal(
-    submission.uri.spec,
-    "https://bugzilla.mozilla.org/buglist.cgi",
-    "URL is correct."
-  );
-  Assert.equal(
-    decodePostData(submission.postData),
-    "quicksearch=f%C3%B6%C3%B6&list_id=17442621",
-    "Post Data is correct and encodes search terms using utf-8."
-  );
-  Assert.equal(
-    engine.getSubmission("föö", SearchUtils.URL_TYPE.SUGGEST_JSON).uri.spec,
-    "https://bugzilla.mozilla.org/suggest?q=f%C3%B6%C3%B6",
-    "Suggest URL is correct and encodes search terms using utf-8."
-  );
-  Assert.equal(engine.alias, "bz", "Alias is correct.");
-
-  // Clean up.
-  BrowserTestUtils.removeTab(gBrowser.selectedTab);
-  await Services.search.removeEngine(engine);
-});
-
 add_task(async function test_validation() {
   await openPreferencesViaOpenPreferencesAPI("search", {
     leaveOpen: true,
@@ -139,120 +75,54 @@ add_task(async function test_validation() {
   let addButton = doc.querySelector("#addEngineButton");
   let dialogWin = await openDialogWith(doc, () => addButton.click());
 
-  let accept = dialogWin.document.querySelector("dialog").getButton("accept");
-  let advanced = dialogWin.document.querySelector("dialog").getButton("extra1");
+  let button = dialogWin.document
+    .querySelector("dialog")
+    .shadowRoot.querySelector('button[dlgtype="accept"]');
   let name = dialogWin.document.getElementById("engineName");
   let url = dialogWin.document.getElementById("engineUrl");
   let alias = dialogWin.document.getElementById("engineAlias");
-  let suggestUrl = dialogWin.document.getElementById("suggestUrl");
-  let postData = dialogWin.document.getElementById("enginePostData");
 
   Assert.ok(
     name.value == "" && url.value == "" && alias.value == "",
     "Everything is empty initially."
   );
-  Assert.ok(accept.disabled, "Button is disabled initially.");
-  await assertError(name, "add-engine-no-name");
-  await assertError(url, "add-engine-no-url");
-  await assertError(alias, null);
-  await assertError(suggestUrl, null);
+  Assert.ok(button.disabled, "Button is disabled initially.");
 
   setName("Example", dialogWin);
   setUrl("https://example.com/search?q=%s", dialogWin);
   await setAlias("abc", dialogWin);
-  setSuggestUrl("https://example.com/search?q=%s", dialogWin);
-  Assert.ok(!accept.disabled, "Button is enabled when everything is there.");
+  Assert.ok(!button.disabled, "Button is enabled when everything is there.");
 
-  info("Checking name.");
-  setName("", dialogWin);
-  await assertError(name, "add-engine-no-name");
-  Assert.ok(accept.disabled, "Name is required.");
-
-  setName(existingEngine.name, dialogWin);
-  await assertError(name, "add-engine-name-exists");
-  Assert.ok(accept.disabled, "Existing name is not allowed.");
-
-  setName("Example", dialogWin);
-  await assertError(name, null);
-  Assert.ok(!accept.disabled, "Good name enables the button.");
-
-  info("Checking search URL.");
+  // Check URL
   setUrl("", dialogWin);
-  Assert.ok(accept.disabled, "URL is required.");
-  await assertError(url, "add-engine-no-url");
-
+  Assert.ok(button.disabled, "URL is required.");
   setUrl("javascript://%s", dialogWin);
-  await assertError(url, "add-engine-invalid-protocol");
-  Assert.ok(accept.disabled, "Javascript URLs are not allowed.");
-
-  setUrl("not a url", dialogWin);
-  await assertError(url, "add-engine-invalid-url");
-  Assert.ok(accept.disabled, "Invalid URLs are not allowed.");
-
-  setUrl("https://example.com/search?q=kitten", dialogWin);
-  await assertError(url, "add-engine-missing-terms-url");
-  Assert.ok(accept.disabled, "URLs without %s are not allowed.");
-
+  Assert.ok(button.disabled, "Javascript URLs are not allowed.");
   setUrl("https://example.com/search?q=%s", dialogWin);
-  await assertError(url, null);
-  Assert.ok(!accept.disabled, "Good URL enables the button.");
+  Assert.ok(!button.disabled, "Good URL enables the button.");
 
-  info("Checking alias.");
+  // Check name
+  setName("", dialogWin);
+  Assert.ok(button.disabled, "Name is required.");
+  setName(existingEngine.name, dialogWin);
+  Assert.ok(button.disabled, "Existing name is not allowed.");
+  setName("Example", dialogWin);
+  Assert.ok(!button.disabled, "Good name enables the button.");
+
+  // Check alias
   await setAlias("", dialogWin);
-  await assertError(alias, null);
-  Assert.ok(!accept.disabled, "Alias is not required.");
-
+  Assert.ok(!button.disabled, "Alias is not required.");
   await setAlias(existingEngine.alias, dialogWin);
-  await assertError(alias, "add-engine-keyword-exists");
-  Assert.ok(accept.disabled, "Existing alias is not allowed.");
-
-  await setAlias(existingEngine.alias.toUpperCase(), dialogWin);
-  await assertError(alias, "add-engine-keyword-exists");
-  Assert.ok(button.disabled, "Alias duplicate test is case insensitive.");
-
+  Assert.ok(button.disabled, "Existing alias is not allowed.");
   await setAlias("abc", dialogWin);
-  await assertError(alias, null);
-  Assert.ok(!accept.disabled, "Good alias enables the button.");
-
-  advanced.click();
-  info("Checking suggest URL.");
-  setSuggestUrl("javascript://%s", dialogWin);
-  await assertError(suggestUrl, "add-engine-invalid-protocol");
-  Assert.ok(accept.disabled, "Javascript URLs are not allowed.");
-
-  setSuggestUrl("not a url", dialogWin);
-  await assertError(suggestUrl, "add-engine-invalid-url");
-  Assert.ok(accept.disabled, "Invalid URLs are not allowed.");
-
-  setSuggestUrl("https://example.com/search?q=kitten", dialogWin);
-  await assertError(suggestUrl, "add-engine-missing-terms-url");
-  Assert.ok(accept.disabled, "URLs without %s are not allowed.");
-
-  setSuggestUrl("https://example.com/search?q=%s", dialogWin);
-  await assertError(suggestUrl, null);
-  Assert.ok(!accept.disabled, "Good URL enables the button.");
-
-  info("Checking post data.");
-  setUrl("https://example.com/search", dialogWin);
-  await assertError(url, "add-engine-missing-terms-url");
-
-  setPostData("test", dialogWin);
-  await assertError(postData, "add-engine-missing-terms-post-data");
-  await assertError(url, null);
-  Assert.ok(accept.disabled, "Post data without %s is not allowed.");
-
-  setUrl("https://example.com/search", dialogWin);
-  setPostData("q=%s", dialogWin);
-  await assertError(postData, null);
-  await assertError(url, null);
-  Assert.ok(!accept.disabled, "Post data containing %s enables the button.");
+  Assert.ok(!button.disabled, "Good alias enables the button.");
 
   // Clean up.
   BrowserTestUtils.removeTab(gBrowser.selectedTab);
   await Services.search.removeEngine(existingEngine);
 });
 
-add_task(async function test_editGetEngine() {
+add_task(async function test_editEngine() {
   await openPreferencesViaOpenPreferencesAPI("search", {
     leaveOpen: true,
   });
@@ -288,12 +158,8 @@ add_task(async function test_editGetEngine() {
   Assert.ok(!!userEngineIndex, "User engine is in the table.");
   view.selection.select(userEngineIndex);
 
-  // Open the dialog and check values.
+  // Open the dialog.
   let dialogWin = await openDialogWith(doc, () => editButton.click());
-  let acceptButton = dialogWin.document
-    .querySelector("dialog")
-    .shadowRoot.querySelector('button[dlgtype="accept"]');
-
   Assert.equal(
     dialogWin.document.getElementById("titleContainer").style.display,
     "none",
@@ -310,13 +176,8 @@ add_task(async function test_editGetEngine() {
     "URL in dialog is correct."
   );
   Assert.ok(
-    dialogWin.document.getElementById("advanced-section").hidden,
-    "Advanced section is hidden."
-  );
-  Assert.equal(
-    dialogWin.document.getElementById("enginePostData").value,
-    "",
-    "Post data input is empty."
+    dialogWin.document.getElementById("enginePostDataRow").hidden,
+    "Post data input is hidden."
   );
   Assert.equal(
     dialogWin.document.getElementById("suggestUrl").value,
@@ -331,11 +192,8 @@ add_task(async function test_editGetEngine() {
 
   // Set new values.
   setName("Searchfox", dialogWin);
-  setUrl("https://searchfox.org/mozilla-central/search", dialogWin);
+  setUrl("https://searchfox.org/mozilla-central/search?q=%s", dialogWin);
   await setAlias("sf", dialogWin);
-
-  dialogWin.document.querySelector("dialog").getButton("extra1").click();
-  setPostData("q=%s&path=&case=false&regexp=false", dialogWin);
 
   // Save changes to engine.
   let promiseChanged = SearchTestUtils.promiseSearchNotification(
@@ -343,7 +201,7 @@ add_task(async function test_editGetEngine() {
     SearchUtils.TOPIC_ENGINE_MODIFIED,
     3
   );
-  acceptButton.click();
+  EventUtils.synthesizeKey("VK_RETURN", {}, dialogWin);
   await promiseChanged;
   Assert.ok(true, "Got 3 change notifications.");
 
@@ -352,30 +210,17 @@ add_task(async function test_editGetEngine() {
   Assert.equal(
     dialogWin.document.getElementById("engineName").value,
     "Searchfox",
-    "Name in dialog reflects change"
+    "Name in dialog reflects change."
   );
   Assert.equal(
     dialogWin.document.getElementById("engineUrl").value,
-    "https://searchfox.org/mozilla-central/search",
-    "URL in dialog reflects change"
+    "https://searchfox.org/mozilla-central/search?q=%s",
+    "URL in dialog reflects change."
   );
   Assert.equal(
     dialogWin.document.getElementById("engineAlias").value,
     "sf",
-    "Alias in dialog reflects change"
-  );
-
-  // Check search engine object.
-  let submission = engine.getSubmission("foo");
-  Assert.equal(
-    submission.uri.spec,
-    "https://searchfox.org/mozilla-central/search",
-    "Submission URL reflects changes"
-  );
-  Assert.equal(
-    decodePostData(submission.postData),
-    "q=foo&path=&case=false&regexp=false",
-    "Engine was converted into a POST engine."
+    "Alias in dialog reflects change."
   );
 
   // Clean up.
@@ -392,12 +237,12 @@ add_task(async function test_editPostEngine() {
   let tree = doc.querySelector("#engineList");
   let view = tree.view.wrappedJSObject;
 
-  let params = new URLSearchParams();
-  params.append("q", "{searchTerms}");
+  let formData = new FormData();
+  formData.append("q", "{searchTerms}");
   let engine = await Services.search.addUserEngine({
     name: "user post",
     url: "https://example.com/user",
-    params,
+    formData,
     method: "POST",
     alias: "u",
   });
@@ -426,8 +271,8 @@ add_task(async function test_editPostEngine() {
     "URL in dialog is correct."
   );
   Assert.ok(
-    !dialogWin.document.getElementById("advanced-section").hidden,
-    "Advanced section is visible."
+    !dialogWin.document.getElementById("enginePostDataRow").hidden,
+    "Post data input is visible."
   );
   Assert.equal(
     dialogWin.document.getElementById("enginePostData").value,
@@ -456,11 +301,11 @@ add_task(async function test_editPostEngine() {
   let promiseChanged = SearchTestUtils.promiseSearchNotification(
     SearchUtils.MODIFIED_TYPE.CHANGED,
     SearchUtils.TOPIC_ENGINE_MODIFIED,
-    4
+    3
   );
   EventUtils.synthesizeKey("VK_RETURN", {}, dialogWin);
   await promiseChanged;
-  Assert.ok(true, "Got 4 change notifications.");
+  Assert.ok(true, "Got 3 change notifications.");
 
   // Open dialog again and check values.
   dialogWin = await openDialogWith(doc, () => editButton.click());
@@ -525,25 +370,6 @@ add_task(async function test_editPostEngine() {
   await Services.search.removeEngine(engine);
 });
 
-/**
- * Checks the error label of an input of the add engine dialog.
- *
- * @param {HTMLInputElement} elt
- *   The element whose error should be checked
- * @param {?string} error
- *   The l10n id of the expected error message or null if no error is expected.
- */
-async function assertError(elt, error = null) {
-  let errorLabel = elt.parentElement.querySelector(".error-label");
-
-  if (error) {
-    let msg = await document.l10n.formatValue(error);
-    Assert.equal(errorLabel.textContent, msg);
-  } else {
-    Assert.equal(errorLabel.textContent, "valid");
-  }
-}
-
 async function openDialogWith(doc, fn) {
   let dialogLoaded = TestUtils.topicObserved("subdialog-loaded");
   await fn();
@@ -561,12 +387,12 @@ function setUrl(value, win) {
   fillTextField("engineUrl", value, win);
 }
 
-function setSuggestUrl(value, win) {
-  fillTextField("suggestUrl", value, win);
-}
-
 function setPostData(value, win) {
   fillTextField("enginePostData", value, win);
+}
+
+function setSuggestUrl(value, win) {
+  fillTextField("suggestUrl", value, win);
 }
 
 async function setAlias(value, win) {

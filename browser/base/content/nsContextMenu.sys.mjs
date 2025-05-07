@@ -2350,12 +2350,6 @@ export class nsContextMenu {
     let { url, formData, charset, method } =
       await this.actor.getSearchFieldEngineData(this.targetIdentifier);
 
-    for (let value of formData.values()) {
-      if (typeof value != "string") {
-        throw new Error("Non-string values are not supported.");
-      }
-    }
-
     let { engineInfo } = await this.window.gDialogBox.open(
       "chrome://browser/content/search/addEngine.xhtml",
       {
@@ -2372,7 +2366,7 @@ export class nsContextMenu {
         name: engineInfo.name,
         alias: engineInfo.alias,
         url,
-        params: new URLSearchParams(formData),
+        formData,
         charset,
         method,
         icon: this.browser.mIconURL,
