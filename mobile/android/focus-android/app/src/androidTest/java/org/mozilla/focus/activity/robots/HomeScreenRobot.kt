@@ -27,8 +27,6 @@ class HomeScreenRobot {
         assertTrue(editURLBar.text.equals(getStringResource(R.string.urlbar_hint)))
     }
 
-    fun skipFirstRun() = onView(withId(R.id.skip)).perform(click())
-
     fun verifyOnboardingFirstSlide() = assertTrue(firstSlideTitle.waitForExists(waitingTime))
 
     fun verifyOnboardingSecondSlide() = assertTrue(secondSlideTitle.waitForExists(waitingTime))

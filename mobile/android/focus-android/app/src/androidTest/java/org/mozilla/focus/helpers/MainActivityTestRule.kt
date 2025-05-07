@@ -17,7 +17,6 @@ import mozilla.components.support.utils.ThreadUtils
 import org.mozilla.focus.activity.MainActivity
 import org.mozilla.focus.ext.components
 import org.mozilla.focus.ext.settings
-import org.mozilla.focus.helpers.TestHelper.getTargetContext
 import org.mozilla.focus.state.AppAction
 import org.mozilla.focus.state.AppStore
 import org.mozilla.focus.state.Screen
@@ -38,7 +37,6 @@ open class MainActivityFirstrunTestRule(
         updateFirstRun(showFirstRun)
         featureSettingsHelper.setShowStartBrowsingCfrEnabled(showStartBrowsingCfrVisibility)
         featureSettingsHelper.setCookieBannerReductionEnabled(false)
-        setNewOnboarding(showNewOnboarding)
         setLongTapTimeout(3000)
     }
 
@@ -123,10 +121,6 @@ private fun hideFirstRun(appStore: AppStore) {
         AppAction.FinishFirstRun(tabId = null),
     )
     runBlocking { job.join() }
-}
-
-private fun setNewOnboarding(enabled: Boolean) {
-    getTargetContext.settings.isNewOnboardingEnable = enabled
 }
 
 // changing the device preference for Touch and Hold delay, to avoid long-clicks instead of a single-click

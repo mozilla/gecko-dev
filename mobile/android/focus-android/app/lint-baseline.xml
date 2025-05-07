@@ -455,17 +455,6 @@
     <issue
         id="ButtonStyleXmlDetector"
         message="All buttons must have a style, try using NeutralButton or similar."
-        errorLine1="            &lt;Button"
-        errorLine2="             ~~~~~~">
-        <location
-            file="src/main/res/layout/firstrun_page.xml"
-            line="84"
-            column="14"/>
-    </issue>
-
-    <issue
-        id="ButtonStyleXmlDetector"
-        message="All buttons must have a style, try using NeutralButton or similar."
         errorLine1="    &lt;Button"
         errorLine2="     ~~~~~~">
         <location
@@ -482,17 +471,6 @@
         <location
             file="src/main/res/layout/fragment_exceptions_domains.xml"
             line="30"
-            column="6"/>
-    </issue>
-
-    <issue
-        id="ButtonStyleXmlDetector"
-        message="All buttons must have a style, try using NeutralButton or similar."
-        errorLine1="    &lt;Button"
-        errorLine2="     ~~~~~~">
-        <location
-            file="src/main/res/layout/fragment_firstrun.xml"
-            line="13"
             column="6"/>
     </issue>
 
@@ -1796,17 +1774,6 @@
 
     <issue
         id="UnusedResources"
-        message="The resource `R.dimen.firstrun_container_width` appears to be unused"
-        errorLine1="    &lt;dimen name=&quot;firstrun_container_width&quot;>@dimen/match_parent&lt;/dimen>"
-        errorLine2="           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/res/values/dimens.xml"
-            line="16"
-            column="12"/>
-    </issue>
-
-    <issue
-        id="UnusedResources"
         message="The resource `R.dimen.customtabs_toolbar_icon_size` appears to be unused"
         errorLine1="    &lt;dimen name=&quot;customtabs_toolbar_icon_size&quot;>24dp&lt;/dimen>"
         errorLine2="           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
@@ -2121,17 +2088,6 @@
         <location
             file="src/main/res/drawable/find_in_page_background.xml"
             line="4"
-            column="1"/>
-    </issue>
-
-    <issue
-        id="UnusedResources"
-        message="The resource `R.drawable.firstrun_button_background` appears to be unused"
-        errorLine1="&lt;shape xmlns:android=&quot;http://schemas.android.com/apk/res/android&quot;"
-        errorLine2="^">
-        <location
-            file="src/main/res/drawable/firstrun_button_background.xml"
-            line="6"
             column="1"/>
     </issue>
 
@@ -3572,17 +3528,6 @@
             file="src/main/java/org/mozilla/focus/exceptions/ExceptionsListFragment.kt"
             line="303"
             column="43"/>
-    </issue>
-
-    <issue
-        id="ContentDescription"
-        message="Missing `contentDescription` attribute on image"
-        errorLine1="                    &lt;ImageView"
-        errorLine2="                     ~~~~~~~~~">
-        <location
-            file="src/main/res/layout/firstrun_page.xml"
-            line="41"
-            column="22"/>
     </issue>
 
     <issue

@@ -19,7 +19,6 @@ import org.mozilla.focus.exceptions.ExceptionsRemoveFragment
 import org.mozilla.focus.ext.components
 import org.mozilla.focus.ext.settings
 import org.mozilla.focus.fragment.BrowserFragment
-import org.mozilla.focus.fragment.FirstrunFragment
 import org.mozilla.focus.fragment.UrlInputFragment
 import org.mozilla.focus.fragment.about.AboutFragment
 import org.mozilla.focus.fragment.onboarding.OnboardingFirstFragment
@@ -195,22 +194,19 @@ class MainActivityNavigation(
     }
 
     /**
-     * Show first run onBoarding.
+     * Show onBoarding.
      */
     fun firstRun() {
-        val onboardingFragment = if (activity.settings.isNewOnboardingEnable) {
-            FocusNimbus.features.onboarding.recordExposure()
-            val onBoardingStorage = OnboardingStorage(activity)
-            when (onBoardingStorage.getCurrentOnboardingStep()) {
-                OnboardingStep.ON_BOARDING_FIRST_SCREEN -> {
-                    OnboardingFirstFragment()
-                }
-                OnboardingStep.ON_BOARDING_SECOND_SCREEN -> {
-                    OnboardingSecondFragment()
-                }
+        FocusNimbus.features.onboarding.recordExposure()
+        val onBoardingStorage = OnboardingStorage(activity)
+        val onboardingFragment = when (onBoardingStorage.getCurrentOnboardingStep()) {
+            OnboardingStep.ON_BOARDING_FIRST_SCREEN -> {
+                OnboardingFirstFragment()
             }
-        } else {
-            FirstrunFragment.create()
+
+            OnboardingStep.ON_BOARDING_SECOND_SCREEN -> {
+                OnboardingSecondFragment()
+            }
         }
 
         activity.supportFragmentManager

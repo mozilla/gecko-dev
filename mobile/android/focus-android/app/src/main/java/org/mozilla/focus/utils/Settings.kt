@@ -80,21 +80,6 @@ class Settings(
             }
         }
 
-    /**
-     * This is needed for GUI Testing. If the value is not set in the sharePref
-     * the default value will be the one from Nimbus.
-     */
-    var isNewOnboardingEnable: Boolean
-        get() = preferences.getBoolean(
-            getPreferenceKey(R.string.new_onboarding_enabled),
-            FocusNimbus.features.onboarding.value().isEnabled,
-        )
-        set(value) {
-            preferences.edit {
-                putBoolean(getPreferenceKey(R.string.new_onboarding_enabled), value)
-            }
-        }
-
     var shouldShowPrivacySecuritySettingsToolTip: Boolean
         get() = preferences.getBoolean(getPreferenceKey(R.string.pref_tool_tip_privacy_security_settings), true)
         set(value) {
