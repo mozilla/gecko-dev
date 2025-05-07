@@ -266,47 +266,52 @@ nsresult RangeUtils::CompareNodeToRangeBoundaries(
 
 // static
 nsINode* ShadowDOMSelectionHelpers::GetStartContainer(
-    const AbstractRange* aRange, bool aAllowCrossShadowBoundary) {
+    const AbstractRange* aRange,
+    AllowRangeCrossShadowBoundary aAllowCrossShadowBoundary) {
   MOZ_ASSERT(aRange);
   return (StaticPrefs::dom_shadowdom_selection_across_boundary_enabled() &&
-          aAllowCrossShadowBoundary)
+          aAllowCrossShadowBoundary == AllowRangeCrossShadowBoundary::Yes)
              ? aRange->GetMayCrossShadowBoundaryStartContainer()
              : aRange->GetStartContainer();
 }
 
 // static
 uint32_t ShadowDOMSelectionHelpers::StartOffset(
-    const AbstractRange* aRange, bool aAllowCrossShadowBoundary) {
+    const AbstractRange* aRange,
+    AllowRangeCrossShadowBoundary aAllowCrossShadowBoundary) {
   MOZ_ASSERT(aRange);
   return (StaticPrefs::dom_shadowdom_selection_across_boundary_enabled() &&
-          aAllowCrossShadowBoundary)
+          aAllowCrossShadowBoundary == AllowRangeCrossShadowBoundary::Yes)
              ? aRange->MayCrossShadowBoundaryStartOffset()
              : aRange->StartOffset();
 }
 
 // static
 nsINode* ShadowDOMSelectionHelpers::GetEndContainer(
-    const AbstractRange* aRange, bool aAllowCrossShadowBoundary) {
+    const AbstractRange* aRange,
+    AllowRangeCrossShadowBoundary aAllowCrossShadowBoundary) {
   MOZ_ASSERT(aRange);
   return (StaticPrefs::dom_shadowdom_selection_across_boundary_enabled() &&
-          aAllowCrossShadowBoundary)
+          aAllowCrossShadowBoundary == AllowRangeCrossShadowBoundary::Yes)
              ? aRange->GetMayCrossShadowBoundaryEndContainer()
              : aRange->GetEndContainer();
 }
 
 // static
-uint32_t ShadowDOMSelectionHelpers::EndOffset(const AbstractRange* aRange,
-                                              bool aAllowCrossShadowBoundary) {
+uint32_t ShadowDOMSelectionHelpers::EndOffset(
+    const AbstractRange* aRange,
+    AllowRangeCrossShadowBoundary aAllowCrossShadowBoundary) {
   MOZ_ASSERT(aRange);
   return (StaticPrefs::dom_shadowdom_selection_across_boundary_enabled() &&
-          aAllowCrossShadowBoundary)
+          aAllowCrossShadowBoundary == AllowRangeCrossShadowBoundary::Yes)
              ? aRange->MayCrossShadowBoundaryEndOffset()
              : aRange->EndOffset();
 }
 
 // static
 nsINode* ShadowDOMSelectionHelpers::GetParentNodeInSameSelection(
-    nsINode& aNode, bool aAllowCrossShadowBoundary) {
+    const nsINode& aNode,
+    AllowRangeCrossShadowBoundary aAllowCrossShadowBoundary) {
   if (!ParentNodeIsInSameSelection(aNode)) {
     return nullptr;
   }
@@ -318,10 +323,11 @@ nsINode* ShadowDOMSelectionHelpers::GetParentNodeInSameSelection(
 
 // static
 ShadowRoot* ShadowDOMSelectionHelpers::GetShadowRoot(
-    const nsINode* aNode, bool aAllowCrossShadowBoundary) {
+    const nsINode* aNode,
+    AllowRangeCrossShadowBoundary aAllowCrossShadowBoundary) {
   MOZ_ASSERT(aNode);
   return (StaticPrefs::dom_shadowdom_selection_across_boundary_enabled() &&
-          aAllowCrossShadowBoundary)
+          aAllowCrossShadowBoundary == AllowRangeCrossShadowBoundary::Yes)
              ? aNode->GetShadowRootForSelection()
              : nullptr;
 }  // namespace dom
