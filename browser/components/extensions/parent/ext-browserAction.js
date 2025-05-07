@@ -726,11 +726,16 @@ this.browserAction = class extends ExtensionAPIPersistent {
     const action =
       this.extension.manifestVersion < 3 ? "onBrowserAction" : "onAction";
 
-    global.actionContextMenu({
-      extension: this.extension,
-      [action]: true,
-      menu,
-    });
+    if (
+      this.extension.hasPermission("contextMenus") ||
+      this.extension.hasPermission("menus")
+    ) {
+      global.actionContextMenu({
+        extension: this.extension,
+        [action]: true,
+        menu,
+      });
+    }
   }
 
   /**
