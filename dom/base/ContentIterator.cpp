@@ -8,6 +8,7 @@
 
 #include "mozilla/Assertions.h"
 #include "mozilla/dom/ShadowRoot.h"
+#include "mozilla/dom/HTMLSlotElement.h"
 #include "mozilla/DebugOnly.h"
 #include "mozilla/RangeBoundary.h"
 #include "mozilla/RangeUtils.h"
@@ -616,9 +617,20 @@ nsIContent* ContentIteratorBase<NodeType>::GetDeepLastChild(
 
   nsIContent* node = aRoot;
 
+  while (HTMLSlotElement* slot = HTMLSlotElement::FromNode(node)) {
+    // The deep last child of a slot should be the last slotted element of it
+    if (!slot->AssignedNodes().IsEmpty()) {
+      if (nsIContent* content =
+              nsIContent::FromNode(slot->AssignedNodes().LastElement())) {
+        node = content;
+        continue;
+      }
+    }
+    break;
+  }
+
   ShadowRoot* shadowRoot =
       ShadowDOMSelectionHelpers::GetShadowRoot(node, aAllowCrossShadowBoundary);
-  // FIXME(sefeng): This doesn't work with slots / flattened tree.
   while (node->HasChildren() || (shadowRoot && shadowRoot->HasChildren())) {
     if (node->HasChildren()) {
       node = node->GetLastChild();
@@ -645,6 +657,24 @@ nsIContent* ContentIteratorBase<NodeType>::GetNextSibling(
     nsINode* aNode, AllowRangeCrossShadowBoundary aAllowCrossShadowBoundary,
   if (NS_WARN_IF(!aNode)) {
     return nullptr;
+  }
+
+  if (aNode->IsContent() &&
+      aAllowCrossShadowBoundary == AllowRangeCrossShadowBoundary::Yes) {
+    // Could have nested slots
+    while (HTMLSlotElement* slot = aNode->AsContent()->GetAssignedSlot()) {
+      // Next sibling of a slotted node should be the next slotted node
+      auto currentIndex = slot->AssignedNodes().IndexOf(aNode);
+      if (currentIndex < slot->AssignedNodes().Length() - 1) {
+        nsINode* nextSlottedNode =
+            slot->AssignedNodes().ElementAt(currentIndex + 1);
+        if (nextSlottedNode->IsContent()) {
+          return nextSlottedNode->AsContent();
+        }
+      }
+      // Move on to assigned slot's next sibling
+      aNode = slot;
+    }
   }
 
   if (nsIContent* next = aNode->GetNextSibling()) {
@@ -679,6 +709,23 @@ nsIContent* ContentIteratorBase<NodeType>::GetPrevSibling(
     nsINode* aNode, AllowRangeCrossShadowBoundary aAllowCrossShadowBoundary) {
   if (NS_WARN_IF(!aNode)) {
     return nullptr;
+  }
+
+  if (aNode->IsContent() &&
+      aAllowCrossShadowBoundary == AllowRangeCrossShadowBoundary::Yes) {
+    // Could have nested slots.
+    while (HTMLSlotElement* slot = aNode->AsContent()->GetAssignedSlot()) {
+      // prev sibling of a slotted node should be the prev slotted node
+      auto currentIndex = slot->AssignedNodes().IndexOf(aNode);
+      if (currentIndex > 0) {
+        nsINode* prevSlottedNode =
+            slot->AssignedNodes().ElementAt(currentIndex - 1);
+        if (prevSlottedNode->IsContent()) {
+          return prevSlottedNode->AsContent();
+        }
+      }
+      aNode = slot;
+    }
   }
 
   if (nsIContent* prev = aNode->GetPreviousSibling()) {
@@ -922,8 +969,10 @@ nsresult ContentSubtreeIterator::Init(const RawRangeBoundary& aStartBoundary,
     return NS_ERROR_INVALID_ARG;
   }
 
-  if (NS_WARN_IF(range->StartRef() != aStartBoundary) ||
-      NS_WARN_IF(range->EndRef() != aEndBoundary)) {
+  if (NS_WARN_IF(range->MayCrossShadowBoundaryStartRef() != aStartBoundary) ||
+      NS_WARN_IF(range->MayCrossShadowBoundaryEndRef() != aEndBoundary)) {
+    // Could happen if the above nsRange::Create decides to collapse
+    // the range, like aStartBoundary is "after" aEndBoundary.
     return NS_ERROR_UNEXPECTED;
   }
 
@@ -1025,7 +1074,11 @@ nsIContent* ContentSubtreeIterator::DetermineFirstContent() const {
   // confirm that this first possible contained node is indeed contained.  Else
   // we have a range that does not fully contain any node.
   const Maybe<bool> isNodeContainedInRange =
-      RangeUtils::IsNodeContainedInRange(*firstCandidate, mRange);
+      IterAllowCrossShadowBoundary()
+          ? RangeUtils::IsNodeContainedInRange<TreeKind::Flat>(*firstCandidate,
+                                                               mRange)
+          : RangeUtils::IsNodeContainedInRange<TreeKind::ShadowIncludingDOM>(
+                *firstCandidate, mRange);
   MOZ_ALWAYS_TRUE(isNodeContainedInRange);
   if (!isNodeContainedInRange.value()) {
     return nullptr;
@@ -1139,7 +1192,11 @@ nsIContent* ContentSubtreeIterator::DetermineLastContent() const {
   // we have a range that does not fully contain any node.
 
   const Maybe<bool> isNodeContainedInRange =
-      RangeUtils::IsNodeContainedInRange(*lastCandidate, mRange);
+      IterAllowCrossShadowBoundary()
+          ? RangeUtils::IsNodeContainedInRange<TreeKind::Flat>(*lastCandidate,
+                                                               mRange)
+          : RangeUtils::IsNodeContainedInRange<TreeKind::ShadowIncludingDOM>(
+                *lastCandidate, mRange);
   MOZ_ALWAYS_TRUE(isNodeContainedInRange);
   if (!isNodeContainedInRange.value()) {
     return nullptr;
@@ -1186,6 +1243,13 @@ void ContentSubtreeIterator::Next() {
         nextNode, mAllowCrossShadowBoundary);
     if (mInclusiveAncestorsOfEndContainer[i].mIsDescendantInShadowTree) {
       nextNode = root->GetFirstChild();
+    } else if (auto* slot = HTMLSlotElement::FromNode(nextNode);
+               slot && IterAllowCrossShadowBoundary()) {
+      // Ancestor is a slot, we start from the first assigned node within this
+      // slot
+      if (!NS_WARN_IF(slot->AssignedNodes().IsEmpty())) {
+        nextNode = slot->AssignedNodes()[0];
+      }
     } else {
       MOZ_ASSERT(
           !mInclusiveAncestorsOfEndContainer[i].mIsDescendantInShadowTree);
@@ -1248,7 +1312,11 @@ nsIContent* ContentSubtreeIterator::GetTopAncestorInRange(
 
   // sanity check: aNode is itself in the range
   Maybe<bool> isNodeContainedInRange =
-      RangeUtils::IsNodeContainedInRange(*aNode, mRange);
+      IterAllowCrossShadowBoundary()
+          ? RangeUtils::IsNodeContainedInRange<TreeKind::Flat>(*aNode, mRange)
+          : RangeUtils::IsNodeContainedInRange<TreeKind::ShadowIncludingDOM>(
+                *aNode, mRange);
+
   NS_ASSERTION(isNodeContainedInRange && isNodeContainedInRange.value(),
                "aNode isn't in mRange, or something else weird happened");
   if (!isNodeContainedInRange || !isNodeContainedInRange.value()) {
@@ -1276,7 +1344,12 @@ nsIContent* ContentSubtreeIterator::GetTopAncestorInRange(
     }
 
     isNodeContainedInRange =
-        RangeUtils::IsNodeContainedInRange(*parent, mRange);
+        IterAllowCrossShadowBoundary()
+            ? RangeUtils::IsNodeContainedInRange<TreeKind::Flat>(*parent,
+                                                                 mRange)
+            : RangeUtils::IsNodeContainedInRange<TreeKind::ShadowIncludingDOM>(
+                  *parent, mRange);
+
     MOZ_ALWAYS_TRUE(isNodeContainedInRange);
     if (!isNodeContainedInRange.value()) {
       if (IterAllowCrossShadowBoundary() && content->IsShadowRoot()) {
