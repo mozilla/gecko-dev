@@ -288,7 +288,6 @@ class BuildOptionParser:
         "arm-partner-sample1": path_base + "%s_arm_partner_sample1.py",
         "aarch64": path_base + "%s_aarch64.py",
         "aarch64-lite": path_base + "%s_aarch64_lite.py",
-        "aarch64-pgo": path_base + "%s_aarch64_pgo.py",
         "aarch64-debug": path_base + "%s_aarch64_debug.py",
         "aarch64-fenix-debug": path_base + "%s_aarch64_fenix_debug.py",
         "aarch64-debug-searchfox": path_base + "%s_aarch64_debug_searchfox.py",
