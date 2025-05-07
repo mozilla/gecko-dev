@@ -203,6 +203,9 @@
       "chrome://global/content/certviewer/certviewer.mjs": [
         "toolkit/components/certviewer/content/certviewer.mjs"
       ],
+      "chrome://global/content/elements/browser-custom-element.mjs": [
+        "toolkit/content/widgets/browser-custom-element.mjs"
+      ],
       "chrome://global/content/elements/moz-box-button.mjs": [
         "toolkit/content/widgets/moz-box-button/moz-box-button.mjs"
       ],
@@ -301,6 +304,9 @@
       ],
       "chrome://global/content/ml/ModelHub.sys.mjs": [
         "toolkit/components/ml/content/ModelHub.sys.mjs"
+      ],
+      "chrome://global/content/ml/OPFS.sys.mjs": [
+        "toolkit/components/ml/content/OPFS.sys.mjs"
       ],
       "chrome://global/content/ml/StopWords.sys.mjs": [
         "toolkit/components/ml/content/nlp/StopWords.sys.mjs"
@@ -743,8 +749,8 @@
       "chrome://remote/content/shared/WindowManager.sys.mjs": [
         "remote/shared/WindowManager.sys.mjs"
       ],
-      "chrome://remote/content/shared/js-window-actors/NavigationListenerActor.sys.mjs": [
-        "remote/shared/js-window-actors/NavigationListenerActor.sys.mjs"
+      "chrome://remote/content/shared/js-window-actors/WebProgressListenerActor.sys.mjs": [
+        "remote/shared/js-window-actors/WebProgressListenerActor.sys.mjs"
       ],
       "chrome://remote/content/shared/listeners/BeforeStopRequestListener.sys.mjs": [
         "remote/shared/listeners/BeforeStopRequestListener.sys.mjs"
@@ -764,6 +770,9 @@
       "chrome://remote/content/shared/listeners/ContextualIdentityListener.sys.mjs": [
         "remote/shared/listeners/ContextualIdentityListener.sys.mjs"
       ],
+      "chrome://remote/content/shared/listeners/DataChannelListener.sys.mjs": [
+        "remote/shared/listeners/DataChannelListener.sys.mjs"
+      ],
       "chrome://remote/content/shared/listeners/LoadListener.sys.mjs": [
         "remote/shared/listeners/LoadListener.sys.mjs"
       ],
@@ -775,6 +784,9 @@
       ],
       "chrome://remote/content/shared/listeners/NetworkListener.sys.mjs": [
         "remote/shared/listeners/NetworkListener.sys.mjs"
+      ],
+      "chrome://remote/content/shared/listeners/ParentWebProgressListener.sys.mjs": [
+        "remote/shared/listeners/ParentWebProgressListener.sys.mjs"
       ],
       "chrome://remote/content/shared/listeners/PromptListener.sys.mjs": [
         "remote/shared/listeners/PromptListener.sys.mjs"
@@ -982,9 +994,6 @@
       ],
       "resource:///actors/PluginParent.sys.mjs": [
         "browser/actors/PluginParent.sys.mjs"
-      ],
-      "resource:///actors/ReviewCheckerParent.sys.mjs": [
-        "browser/components/shopping/ReviewCheckerParent.sys.mjs"
       ],
       "resource:///actors/ScreenshotsComponentChild.sys.mjs": [
         "browser/actors/ScreenshotsComponentChild.sys.mjs"
@@ -1345,6 +1354,9 @@
       ],
       "resource:///modules/UrlbarProviderSearchTips.sys.mjs": [
         "browser/components/urlbar/UrlbarProviderSearchTips.sys.mjs"
+      ],
+      "resource:///modules/UrlbarProviderSemanticHistorySearch.sys.mjs": [
+        "browser/components/urlbar/UrlbarProviderSemanticHistorySearch.sys.mjs"
       ],
       "resource:///modules/UrlbarProviderTabToSearch.sys.mjs": [
         "browser/components/urlbar/UrlbarProviderTabToSearch.sys.mjs"
@@ -5150,6 +5162,9 @@
       "resource://devtools/shared/network-observer/NetworkThrottleManager.sys.mjs": [
         "devtools/shared/network-observer/NetworkThrottleManager.sys.mjs"
       ],
+      "resource://devtools/shared/network-observer/NetworkTimings.sys.mjs": [
+        "devtools/shared/network-observer/NetworkTimings.sys.mjs"
+      ],
       "resource://devtools/shared/network-observer/NetworkUtils.sys.mjs": [
         "devtools/shared/network-observer/NetworkUtils.sys.mjs"
       ],
@@ -6527,6 +6542,9 @@
       "resource://gre/modules/ValueExtractor.sys.mjs": [
         "dom/manifest/ValueExtractor.sys.mjs"
       ],
+      "resource://gre/modules/WPTMessagesParent.sys.mjs": [
+        "toolkit/components/extensions/WPTMessagesParent.sys.mjs"
+      ],
       "resource://gre/modules/WebAuthnFeature.sys.mjs": [
         "toolkit/components/satchel/integrations/WebAuthnFeature.sys.mjs"
       ],
@@ -6565,6 +6583,9 @@
       ],
       "resource://gre/modules/addons/GMPProvider.sys.mjs": [
         "toolkit/mozapps/extensions/internal/GMPProvider.sys.mjs"
+      ],
+      "resource://gre/modules/addons/ModelHubProvider.sys.mjs": [
+        "toolkit/mozapps/extensions/internal/ModelHubProvider.sys.mjs"
       ],
       "resource://gre/modules/addons/ProductAddonChecker.sys.mjs": [
         "toolkit/mozapps/extensions/internal/ProductAddonChecker.sys.mjs"
@@ -7559,11 +7580,17 @@
       "resource://testing-common/SpecialPowersParent.sys.mjs": [
         "testing/specialpowers/content/SpecialPowersParent.sys.mjs"
       ],
+      "resource://testing-common/SpecialPowersProcessActor.sys.mjs": [
+        "testing/specialpowers/content/SpecialPowersProcessActor.sys.mjs"
+      ],
       "resource://testing-common/SpecialPowersSandbox.sys.mjs": [
         "testing/specialpowers/content/SpecialPowersSandbox.sys.mjs"
       ],
       "resource://testing-common/StructuredLog.sys.mjs": [
         "testing/modules/StructuredLog.sys.mjs"
+      ],
+      "resource://testing-common/TabGroupTestUtils.sys.mjs": [
+        "browser/components/tabbrowser/test/TabGroupTestUtils.sys.mjs"
       ],
       "resource://testing-common/TelemetryArchiveTesting.sys.mjs": [
         "toolkit/components/telemetry/tests/unit/TelemetryArchiveTesting.sys.mjs"

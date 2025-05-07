@@ -123,7 +123,7 @@ interface AudioDataCopyToOptions {
 }
 
 interface AudioDataInit {
-    data: ArrayBufferView | ArrayBuffer;
+    data: AllowSharedBufferSource;
     format: AudioSampleFormat;
     numberOfChannels: number;
     numberOfFrames: number;
@@ -134,7 +134,7 @@ interface AudioDataInit {
 
 interface AudioDecoderConfig {
     codec: string;
-    description?: ArrayBufferView | ArrayBuffer;
+    description?: AllowSharedBufferSource;
     numberOfChannels: number;
     sampleRate: number;
 }
@@ -213,7 +213,10 @@ interface AudioWorkletNodeOptions extends AudioNodeOptions {
 interface AuthenticationExtensionsClientInputs {
     appid?: string;
     credProps?: boolean;
+    credentialProtectionPolicy?: CredentialProtectionPolicy;
+    enforceCredentialProtectionPolicy?: boolean;
     hmacCreateSecret?: boolean;
+    largeBlob?: AuthenticationExtensionsLargeBlobInputs;
     minPinLength?: boolean;
     prf?: AuthenticationExtensionsPRFInputs;
 }
@@ -221,7 +224,10 @@ interface AuthenticationExtensionsClientInputs {
 interface AuthenticationExtensionsClientInputsJSON {
     appid?: string;
     credProps?: boolean;
+    credentialProtectionPolicy?: CredentialProtectionPolicy;
+    enforceCredentialProtectionPolicy?: boolean;
     hmacCreateSecret?: boolean;
+    largeBlob?: AuthenticationExtensionsLargeBlobInputsJSON;
     minPinLength?: boolean;
     prf?: AuthenticationExtensionsPRFInputsJSON;
 }
@@ -230,7 +236,26 @@ interface AuthenticationExtensionsClientOutputs {
     appid?: boolean;
     credProps?: CredentialPropertiesOutput;
     hmacCreateSecret?: boolean;
+    largeBlob?: AuthenticationExtensionsLargeBlobOutputs;
     prf?: AuthenticationExtensionsPRFOutputs;
+}
+
+interface AuthenticationExtensionsLargeBlobInputs {
+    read?: boolean;
+    support?: string;
+    write?: BufferSource;
+}
+
+interface AuthenticationExtensionsLargeBlobInputsJSON {
+    read?: boolean;
+    support?: string;
+    write?: Base64URLString;
+}
+
+interface AuthenticationExtensionsLargeBlobOutputs {
+    blob?: ArrayBuffer;
+    supported?: boolean;
+    written?: boolean;
 }
 
 interface AuthenticationExtensionsPRFInputs {
@@ -544,7 +569,13 @@ interface CookieInit {
 }
 
 interface CookieListItem {
+    domain?: string | null;
+    expires?: DOMHighResTimeStamp | null;
     name?: string;
+    partitioned?: boolean;
+    path?: string;
+    sameSite?: CookieSameSite;
+    secure?: boolean;
     value?: string;
 }
 
@@ -776,7 +807,7 @@ interface ElementDefinitionOptions {
 }
 
 interface EncodedAudioChunkInit {
-    data: ArrayBufferView | ArrayBuffer;
+    data: AllowSharedBufferSource;
     duration?: number;
     timestamp: number;
     transfer?: ArrayBuffer[];
@@ -788,7 +819,7 @@ interface EncodedAudioChunkMetadata {
 }
 
 interface EncodedVideoChunkInit {
-    data: ArrayBufferView | ArrayBuffer;
+    data: AllowSharedBufferSource;
     duration?: number;
     timestamp: number;
     type: EncodedVideoChunkType;
@@ -1127,6 +1158,10 @@ interface GPUPipelineDescriptorBase extends GPUObjectDescriptorBase {
     layout: GPUPipelineLayout | GPUAutoLayoutMode;
 }
 
+interface GPUPipelineErrorInit {
+    reason: GPUPipelineErrorReason;
+}
+
 interface GPUPipelineLayoutDescriptor extends GPUObjectDescriptorBase {
     bindGroupLayouts: GPUBindGroupLayout[];
 }
@@ -1163,6 +1198,7 @@ interface GPURenderBundleEncoderDescriptor extends GPURenderPassLayout {
 
 interface GPURenderPassColorAttachment {
     clearValue?: GPUColor;
+    depthSlice?: GPUIntegerCoordinate;
     loadOp: GPULoadOp;
     resolveTarget?: GPUTextureView;
     storeOp: GPUStoreOp;
@@ -1209,8 +1245,10 @@ interface GPURenderPipelineDescriptor extends GPUPipelineDescriptorBase {
 }
 
 interface GPURequestAdapterOptions {
+    featureLevel?: string;
     forceFallbackAdapter?: boolean;
     powerPreference?: GPUPowerPreference;
+    xrCompatible?: boolean;
 }
 
 interface GPUSamplerBindingLayout {
@@ -1452,7 +1490,7 @@ interface IdentityCredentialInit {
 }
 
 interface IdentityCredentialRequestOptions {
-    providers?: IdentityProviderConfig[];
+    providers: IdentityProviderRequestOptions[];
 }
 
 interface IdentityCredentialUserData {
@@ -1468,8 +1506,13 @@ interface IdentityProviderConfig {
     effectiveType?: string;
     loginTarget?: IdentityLoginTargetType;
     loginURL?: string;
-    nonce?: string;
     origin?: string;
+}
+
+interface IdentityProviderRequestOptions extends IdentityProviderConfig {
+    domainHint?: string;
+    loginHint?: string;
+    nonce?: string;
 }
 
 interface IdleRequestOptions {
@@ -3510,6 +3553,11 @@ interface SVGPathDataSettings {
     normalize?: boolean;
 }
 
+interface SVGPathSegmentInit {
+    type: string;
+    values: number[] | Float32Array;
+}
+
 interface SanitizerAttributeNamespace {
     name: string;
     namespace?: string | null;
@@ -3553,10 +3601,6 @@ interface ScrollOptions {
 interface ScrollToOptions extends ScrollOptions {
     left?: number;
     top?: number;
-}
-
-interface ScrollViewChangeEventInit extends EventInit {
-    state?: ScrollState;
 }
 
 interface SecurityPolicyViolationEventInit extends EventInit {
@@ -3924,7 +3968,7 @@ interface VideoDecoderConfig {
     codedHeight?: number;
     codedWidth?: number;
     colorSpace?: VideoColorSpaceInit;
-    description?: ArrayBufferView | ArrayBuffer;
+    description?: AllowSharedBufferSource;
     displayAspectHeight?: number;
     displayAspectWidth?: number;
     hardwareAcceleration?: HardwareAcceleration;
@@ -4779,7 +4823,7 @@ interface AudioData {
     allocationSize(options: AudioDataCopyToOptions): number;
     clone(): AudioData;
     close(): void;
-    copyTo(destination: ArrayBufferView | ArrayBuffer, options: AudioDataCopyToOptions): void;
+    copyTo(destination: AllowSharedBufferSource, options: AudioDataCopyToOptions): void;
 }
 
 declare var AudioData: {
@@ -5287,6 +5331,7 @@ interface BrowsingContext extends LoadContextMixin {
     readonly window: WindowProxy | null;
     getAllBrowsingContextsInSubtree(): BrowsingContext[];
     resetNavigationRateLimit(): void;
+    setGeolocationServiceOverride(position?: nsIDOMGeoPosition): void;
     setRDMPaneMaxTouchPoints(maxTouchPoints: number): void;
     setRDMPaneOrientation(type: OrientationType, rotationAngle: number): void;
 }
@@ -6521,6 +6566,19 @@ declare var CookieStore: {
     isInstance: IsInstance<CookieStore>;
 };
 
+/** Available only in secure contexts. */
+interface CookieStoreManager {
+    getSubscriptions(): Promise<CookieStoreGetOptions[]>;
+    subscribe(subscriptions: CookieStoreGetOptions[]): Promise<void>;
+    unsubscribe(subscriptions: CookieStoreGetOptions[]): Promise<void>;
+}
+
+declare var CookieStoreManager: {
+    prototype: CookieStoreManager;
+    new(): CookieStoreManager;
+    isInstance: IsInstance<CookieStoreManager>;
+};
+
 interface CountQueuingStrategy {
     readonly highWaterMark: number;
     readonly size: Function;
@@ -7230,6 +7288,7 @@ interface Document extends Node, DocumentOrShadowRoot, FontFaceSource, GeometryU
     readonly hidden: boolean;
     readonly images: HTMLCollection;
     readonly implementation: DOMImplementation;
+    readonly inAndroidPipMode: boolean;
     readonly inputEncoding: string;
     readonly isInitialDocument: boolean;
     readonly isSrcdocDocument: boolean;
@@ -7365,7 +7424,6 @@ interface Document extends Node, DocumentOrShadowRoot, FontFaceSource, GeometryU
     createEvent(eventInterface: "RTCPeerConnectionIceEvent"): RTCPeerConnectionIceEvent;
     createEvent(eventInterface: "RTCTrackEvent"): RTCTrackEvent;
     createEvent(eventInterface: "ScrollAreaEvent"): ScrollAreaEvent;
-    createEvent(eventInterface: "ScrollViewChangeEvent"): ScrollViewChangeEvent;
     createEvent(eventInterface: "SecurityPolicyViolationEvent"): SecurityPolicyViolationEvent;
     createEvent(eventInterface: "SimpleGestureEvent"): SimpleGestureEvent;
     createEvent(eventInterface: "SpeechRecognitionEvent"): SpeechRecognitionEvent;
@@ -7474,6 +7532,7 @@ declare var Document: {
     readonly KEYPRESS_EVENT_MODEL_SPLIT: 1;
     readonly KEYPRESS_EVENT_MODEL_CONFLATED: 2;
     isInstance: IsInstance<Document>;
+    parseHTML(html: string, options?: SetHTMLOptions): Document;
     parseHTMLUnsafe(html: TrustedHTML | string): Document;
 };
 
@@ -7800,7 +7859,7 @@ interface EncodedAudioChunk {
     readonly duration: number | null;
     readonly timestamp: number;
     readonly type: EncodedAudioChunkType;
-    copyTo(destination: ArrayBufferView | ArrayBuffer): void;
+    copyTo(destination: AllowSharedBufferSource): void;
 }
 
 declare var EncodedAudioChunk: {
@@ -7814,7 +7873,7 @@ interface EncodedVideoChunk {
     readonly duration: number | null;
     readonly timestamp: number;
     readonly type: EncodedVideoChunkType;
-    copyTo(destination: ArrayBufferView | ArrayBuffer): void;
+    copyTo(destination: AllowSharedBufferSource): void;
 }
 
 declare var EncodedVideoChunk: {
@@ -8513,6 +8572,8 @@ interface GPUAdapterInfo {
     readonly description: string;
     readonly device: string;
     readonly isFallbackAdapter: boolean;
+    readonly subgroupMaxSize: number;
+    readonly subgroupMinSize: number;
     readonly vendor: string;
     readonly wgpuBackend: string;
     readonly wgpuDevice: number;
@@ -8551,6 +8612,7 @@ declare var GPUBindGroupLayout: {
 
 interface GPUBindingCommandsMixin {
     setBindGroup(index: GPUIndex32, bindGroup: GPUBindGroup | null, dynamicOffsets?: GPUBufferDynamicOffset[]): void;
+    setBindGroup(index: GPUIndex32, bindGroup: GPUBindGroup | null, dynamicOffsetsData: Uint32Array, dynamicOffsetsDataStart: GPUSize64, dynamicOffsetsDataLength: GPUSize32): void;
 }
 
 /** Available only in secure contexts. */
@@ -8772,6 +8834,17 @@ interface GPUPipelineBase {
 }
 
 /** Available only in secure contexts. */
+interface GPUPipelineError extends DOMException {
+    readonly reason: GPUPipelineErrorReason;
+}
+
+declare var GPUPipelineError: {
+    prototype: GPUPipelineError;
+    new(message?: string, options: GPUPipelineErrorInit): GPUPipelineError;
+    isInstance: IsInstance<GPUPipelineError>;
+};
+
+/** Available only in secure contexts. */
 interface GPUPipelineLayout extends GPUObjectBase {
 }
 
@@ -8799,8 +8872,8 @@ interface GPUQueue extends GPUObjectBase {
     copyExternalImageToTexture(source: GPUCopyExternalImageSourceInfo, destination: GPUCopyExternalImageDestInfo, copySize: GPUExtent3D): void;
     onSubmittedWorkDone(): Promise<void>;
     submit(buffers: GPUCommandBuffer[]): void;
-    writeBuffer(buffer: GPUBuffer, bufferOffset: GPUSize64, data: BufferSource, dataOffset?: GPUSize64, size?: GPUSize64): void;
-    writeTexture(destination: GPUTexelCopyTextureInfo, data: BufferSource, dataLayout: GPUTexelCopyBufferLayout, size: GPUExtent3D): void;
+    writeBuffer(buffer: GPUBuffer, bufferOffset: GPUSize64, data: AllowSharedBufferSource, dataOffset?: GPUSize64, size?: GPUSize64): void;
+    writeTexture(destination: GPUTexelCopyTextureInfo, data: AllowSharedBufferSource, dataLayout: GPUTexelCopyBufferLayout, size: GPUExtent3D): void;
 }
 
 declare var GPUQueue: {
@@ -9494,6 +9567,7 @@ interface GlobalEventHandlersEventMap {
     "animationstart": Event;
     "auxclick": Event;
     "beforeinput": Event;
+    "beforematch": Event;
     "beforetoggle": Event;
     "blur": Event;
     "cancel": Event;
@@ -9594,6 +9668,7 @@ interface GlobalEventHandlers {
     onanimationstart: ((this: GlobalEventHandlers, ev: Event) => any) | null;
     onauxclick: ((this: GlobalEventHandlers, ev: Event) => any) | null;
     onbeforeinput: ((this: GlobalEventHandlers, ev: Event) => any) | null;
+    onbeforematch: ((this: GlobalEventHandlers, ev: Event) => any) | null;
     onbeforetoggle: ((this: GlobalEventHandlers, ev: Event) => any) | null;
     onblur: ((this: GlobalEventHandlers, ev: Event) => any) | null;
     oncancel: ((this: GlobalEventHandlers, ev: Event) => any) | null;
@@ -10044,9 +10119,11 @@ declare var HTMLDetailsElement: {
 };
 
 interface HTMLDialogElement extends HTMLElement {
+    closedBy: string;
     open: boolean;
     returnValue: string;
     close(returnValue?: string): void;
+    requestClose(returnValue?: string): void;
     show(): void;
     showModal(): void;
     addEventListener<K extends keyof HTMLElementEventMap>(type: K, listener: (this: HTMLDialogElement, ev: HTMLElementEventMap[K]) => any, options?: boolean | AddEventListenerOptions): void;
@@ -10115,7 +10192,7 @@ interface HTMLElement extends Element, ElementCSSInlineStyle, GlobalEventHandler
     dir: string;
     draggable: boolean;
     enterKeyHint: string;
-    hidden: boolean;
+    hidden: boolean | number | string | null;
     inert: boolean;
     innerText: string;
     inputMode: string;
@@ -11381,6 +11458,7 @@ declare var HTMLTemplateElement: {
 
 interface HTMLTextAreaElement extends HTMLElement, MozEditableElement {
     autocomplete: string;
+    autofillState: string;
     cols: number;
     readonly controllers: XULControllers;
     defaultValue: string;
@@ -11407,6 +11485,7 @@ interface HTMLTextAreaElement extends HTMLElement, MozEditableElement {
     readonly willValidate: boolean;
     wrap: string;
     checkValidity(): boolean;
+    getAutocompleteInfo(): AutocompleteInfo;
     reportValidity(): boolean;
     select(): void;
     setCustomValidity(error: string): void;
@@ -12907,7 +12986,7 @@ declare var L10nRegistry: {
     getInstance(): L10nRegistry;
 };
 
-interface LargestContentfulPaint extends PerformanceEntry {
+interface LargestContentfulPaint extends PerformanceEntry, PaintTimingMixin {
     readonly element: Element | null;
     readonly id: string;
     readonly loadTime: DOMHighResTimeStamp;
@@ -13144,6 +13223,7 @@ interface MLS {
     generateCredential(credentialContent: MLSBytesOrUint8ArrayOrUTF8String): Promise<MLSCredential>;
     generateIdentity(): Promise<MLSClientId>;
     generateKeyPackage(clientId: MLSBytesOrUint8Array, credential: MLSBytesOrUint8Array): Promise<MLSKeyPackage>;
+    getGroupEpochFromMessage(message: MLSBytesOrUint8Array): Promise<MLSGroupEpoch>;
     getGroupIdFromMessage(message: MLSBytesOrUint8Array): Promise<MLSGroupId>;
     groupCreate(clientId: MLSBytesOrUint8Array, credential: MLSBytesOrUint8Array): Promise<MLSGroupView>;
     groupGet(groupId: MLSBytesOrUint8Array, clientId: MLSBytesOrUint8Array): Promise<MLSGroupView | null>;
@@ -13162,10 +13242,14 @@ interface MLSGroupView {
     readonly groupId: Uint8Array;
     add(keyPackage: MLSBytesOrUint8Array): Promise<MLSCommitOutput>;
     applyPendingCommit(): Promise<MLSReceived>;
+    clearPendingCommit(): Promise<MLSReceived>;
+    clearPendingProposals(): Promise<MLSReceived>;
     close(): Promise<MLSCommitOutput>;
     deleteState(): Promise<void>;
     details(): Promise<MLSGroupDetails>;
     exportSecret(label: MLSBytesOrUint8ArrayOrUTF8String, context: MLSBytesOrUint8Array, length: number): Promise<MLSExporterOutput>;
+    hasPendingCommit(): Promise<MLSReceived>;
+    hasPendingProposals(): Promise<MLSReceived>;
     proposeAdd(keyPackage: MLSBytesOrUint8Array): Promise<MLSProposal>;
     proposeRemove(remClientId: MLSBytesOrUint8Array): Promise<MLSProposal>;
     receive(message: MLSBytesOrUint8Array): Promise<MLSReceived>;
@@ -14353,6 +14437,7 @@ interface Navigator extends GlobalPrivacyControl, NavigatorAutomationInformation
     readonly doNotTrack: string;
     readonly isWebVRContentDetected: boolean;
     readonly isWebVRContentPresenting: boolean;
+    readonly login: NavigatorLogin;
     readonly maxTouchPoints: number;
     readonly mediaCapabilities: MediaCapabilities;
     readonly mediaDevices: MediaDevices;
@@ -14447,6 +14532,17 @@ interface NavigatorLanguage {
 interface NavigatorLocks {
     readonly locks: LockManager;
 }
+
+/** Available only in secure contexts. */
+interface NavigatorLogin {
+    setStatus(status: LoginStatus): Promise<void>;
+}
+
+declare var NavigatorLogin: {
+    prototype: NavigatorLogin;
+    new(): NavigatorLogin;
+    isInstance: IsInstance<NavigatorLogin>;
+};
 
 interface NavigatorOnLine {
     readonly onLine: boolean;
@@ -14841,6 +14937,11 @@ declare var PaintRequestList: {
     new(): PaintRequestList;
     isInstance: IsInstance<PaintRequestList>;
 };
+
+interface PaintTimingMixin {
+    readonly paintTime: DOMHighResTimeStamp;
+    readonly presentationTime: DOMHighResTimeStamp | null;
+}
 
 interface PannerNode extends AudioNode, AudioNodePassThrough {
     coneInnerAngle: number;
@@ -15257,7 +15358,7 @@ declare var PerformanceObserverEntryList: {
     isInstance: IsInstance<PerformanceObserverEntryList>;
 };
 
-interface PerformancePaintTiming extends PerformanceEntry {
+interface PerformancePaintTiming extends PerformanceEntry, PaintTimingMixin {
 }
 
 declare var PerformancePaintTiming: {
@@ -16927,19 +17028,6 @@ declare var SVGDescElement: {
     isInstance: IsInstance<SVGDescElement>;
 };
 
-interface SVGDiscardElement extends SVGAnimationElement {
-    addEventListener<K extends keyof SVGAnimationElementEventMap>(type: K, listener: (this: SVGDiscardElement, ev: SVGAnimationElementEventMap[K]) => any, options?: boolean | AddEventListenerOptions): void;
-    addEventListener(type: string, listener: EventListenerOrEventListenerObject, options?: boolean | AddEventListenerOptions): void;
-    removeEventListener<K extends keyof SVGAnimationElementEventMap>(type: K, listener: (this: SVGDiscardElement, ev: SVGAnimationElementEventMap[K]) => any, options?: boolean | EventListenerOptions): void;
-    removeEventListener(type: string, listener: EventListenerOrEventListenerObject, options?: boolean | EventListenerOptions): void;
-}
-
-declare var SVGDiscardElement: {
-    prototype: SVGDiscardElement;
-    new(): SVGDiscardElement;
-    isInstance: IsInstance<SVGDiscardElement>;
-};
-
 interface SVGElementEventMap extends ElementEventMap, GlobalEventHandlersEventMap, OnErrorEventHandlerForNodesEventMap, TouchEventHandlersEventMap {
 }
 
@@ -17302,6 +17390,7 @@ declare var SVGFEGaussianBlurElement: {
 
 interface SVGFEImageElement extends SVGElement, SVGFilterPrimitiveStandardAttributes, SVGURIReference {
     crossOrigin: string | null;
+    fetchPriority: string;
     readonly preserveAspectRatio: SVGAnimatedPreserveAspectRatio;
     addEventListener<K extends keyof SVGElementEventMap>(type: K, listener: (this: SVGFEImageElement, ev: SVGElementEventMap[K]) => any, options?: boolean | AddEventListenerOptions): void;
     addEventListener(type: string, listener: EventListenerOrEventListenerObject, options?: boolean | AddEventListenerOptions): void;
@@ -17608,6 +17697,7 @@ declare var SVGGraphicsElement: {
 interface SVGImageElement extends SVGGraphicsElement, MozImageLoadingContent, SVGURIReference {
     crossOrigin: string | null;
     decoding: string;
+    fetchPriority: string;
     readonly height: SVGAnimatedLength;
     readonly preserveAspectRatio: SVGAnimatedPreserveAspectRatio;
     readonly width: SVGAnimatedLength;
@@ -17861,7 +17951,7 @@ declare var SVGNumberList: {
 
 interface SVGPathData {
     getPathData(settings?: SVGPathDataSettings): SVGPathSegment[];
-    setPathData(pathData: SVGPathSegment[]): void;
+    setPathData(pathData: SVGPathSegmentInit[]): void;
 }
 
 interface SVGPathElement extends SVGGeometryElement, SVGPathData {
@@ -18095,6 +18185,7 @@ interface SVGScriptElement extends SVGElement, SVGURIReference {
     async: boolean;
     crossOrigin: string | null;
     defer: boolean;
+    fetchPriority: string;
     type: string;
     addEventListener<K extends keyof SVGElementEventMap>(type: K, listener: (this: SVGScriptElement, ev: SVGElementEventMap[K]) => any, options?: boolean | AddEventListenerOptions): void;
     addEventListener(type: string, listener: EventListenerOrEventListenerObject, options?: boolean | AddEventListenerOptions): void;
@@ -18449,6 +18540,7 @@ declare var Sanitizer: {
 
 interface Scheduler {
     postTask(callback: SchedulerPostTaskCallback, options?: SchedulerPostTaskOptions): Promise<any>;
+    yield(): Promise<void>;
 }
 
 declare var Scheduler: {
@@ -18559,16 +18651,6 @@ declare var ScrollAreaEvent: {
     prototype: ScrollAreaEvent;
     new(): ScrollAreaEvent;
     isInstance: IsInstance<ScrollAreaEvent>;
-};
-
-interface ScrollViewChangeEvent extends Event {
-    readonly state: ScrollState;
-}
-
-declare var ScrollViewChangeEvent: {
-    prototype: ScrollViewChangeEvent;
-    new(type: string, eventInit?: ScrollViewChangeEventInit): ScrollViewChangeEvent;
-    isInstance: IsInstance<ScrollViewChangeEvent>;
 };
 
 interface SecurityPolicyViolationEvent extends Event {
@@ -18693,6 +18775,7 @@ interface ServiceWorkerRegistrationEventMap {
 
 interface ServiceWorkerRegistration extends EventTarget {
     readonly active: ServiceWorker | null;
+    readonly cookies: CookieStoreManager;
     readonly installing: ServiceWorker | null;
     readonly navigationPreload: NavigationPreloadManager;
     onupdatefound: ((this: ServiceWorkerRegistration, ev: Event) => any) | null;
@@ -19516,8 +19599,9 @@ interface TestFunctions {
     testNotAllowShared(buffer: string): void;
     testThrowNsresult(): void;
     testThrowNsresultFromNative(): void;
-    testUnionOfAllowSharedBuffferSource(foo: ArrayBuffer | ArrayBufferView): void;
-    testUnionOfBuffferSource(foo: ArrayBuffer | ArrayBufferView | string): void;
+    testUnionOfAllowSharedBufferSource(foo: AllowSharedBufferSource): void;
+    testUnionOfBufferSource(foo: ArrayBuffer | ArrayBufferView | string): void;
+    testUnionWithAllowShared(foo: Int8Array | Int16Array): void;
     toJSON(): any;
 }
 
@@ -20820,7 +20904,7 @@ interface VideoFrame {
     allocationSize(options?: VideoFrameCopyToOptions): number;
     clone(): VideoFrame;
     close(): void;
-    copyTo(destination: ArrayBufferView | ArrayBuffer, options?: VideoFrameCopyToOptions): Promise<PlaneLayout[]>;
+    copyTo(destination: AllowSharedBufferSource, options?: VideoFrameCopyToOptions): Promise<PlaneLayout[]>;
 }
 
 declare var VideoFrame: {
@@ -23500,6 +23584,7 @@ interface WindowEventHandlers {
 interface WindowGlobalChild {
     readonly browsingContext: BrowsingContext;
     readonly contentParentId: number;
+    readonly contentWindow: WindowProxy | null;
     readonly innerWindowId: number;
     readonly isClosed: boolean;
     readonly isCurrentGlobal: boolean;
@@ -24384,8 +24469,10 @@ declare namespace ChromeUtils {
     var recentJSDevError: any;
     function CreateOriginAttributesFromOriginSuffix(suffix: string): OriginAttributesDictionary;
     function addProfilerMarker(name: string, options?: ProfilerMarkerOptions | DOMHighResTimeStamp, text?: string): void;
+    function androidMoveTaskToBack(): void;
     function base64URLDecode(string: string, options: Base64URLDecodeOptions): ArrayBuffer;
     function base64URLEncode(source: BufferSource, options: Base64URLEncodeOptions): string;
+    function callFunctionAndLogException(targetGlobal: any, func: any): any;
     function clearMessagingLayerSecurityState(): void;
     function clearMessagingLayerSecurityStateByPrincipal(principal: Principal): void;
     function clearMessagingLayerSecurityStateBySite(schemelessSite: string, pattern?: OriginAttributesPatternDictionary): void;
@@ -24395,6 +24482,7 @@ declare namespace ChromeUtils {
     function collectScrollingData(): Promise<InteractionData>;
     function compileScript(url: string, options?: CompileScriptOptionsDictionary): Promise<PrecompiledScript>;
     function consumeInteractionData(): Record<string, InteractionData>;
+    function createCSPFromHeader(header: string, selfURI: URI, loadingPrincipal: Principal): ContentSecurityPolicy;
     function createError(message: string, stack?: any): any;
     function createOriginAttributesFromOrigin(origin: string): OriginAttributesDictionary;
     function dateNow(): number;
@@ -24426,6 +24514,7 @@ declare namespace ChromeUtils {
     function isDarkBackground(element: Element): boolean;
     function isDevToolsOpened(): boolean;
     function isISOStyleDate(str: string): boolean;
+    function isJSIdentifier(str: string): boolean;
     function isOriginAttributesEqual(aA?: OriginAttributesDictionary, aB?: OriginAttributesDictionary): boolean;
     function lastExternalProtocolIframeAllowed(): number;
     function nondeterministicGetWeakMapKeys(map: any): any;
@@ -25162,8 +25251,6 @@ declare var intlUtils: IntlUtils;
 declare var isChromeWindow: boolean;
 declare var isFullyOccluded: boolean;
 declare var isInFullScreenTransition: boolean;
-// @ts-ignore
-declare var isInstance: IsInstance<Window>;
 declare var length: number;
 declare var location: Location;
 declare var locationbar: BarProp;
@@ -25280,8 +25367,6 @@ declare function sizeToContent(constraints?: SizeToContentConstraints): void;
 declare function stop(): void;
 declare function updateCommands(action: string): void;
 declare function toString(): string;
-// @ts-ignore
-declare var isInstance: IsInstance<EventTarget>;
 declare var ownerGlobal: WindowProxy | null;
 declare function dispatchEvent(event: Event): boolean;
 declare function getEventHandler(type: string): EventHandler;
@@ -25296,6 +25381,7 @@ declare var onanimationiteration: ((this: Window, ev: Event) => any) | null;
 declare var onanimationstart: ((this: Window, ev: Event) => any) | null;
 declare var onauxclick: ((this: Window, ev: Event) => any) | null;
 declare var onbeforeinput: ((this: Window, ev: Event) => any) | null;
+declare var onbeforematch: ((this: Window, ev: Event) => any) | null;
 declare var onbeforetoggle: ((this: Window, ev: Event) => any) | null;
 declare var onblur: ((this: Window, ev: Event) => any) | null;
 declare var oncancel: ((this: Window, ev: Event) => any) | null;
@@ -25436,10 +25522,12 @@ declare function addEventListener(type: string, listener: EventListenerOrEventLi
 declare function removeEventListener<K extends keyof WindowEventMap>(type: K, listener: (this: Window, ev: WindowEventMap[K]) => any, options?: boolean | EventListenerOptions): void;
 declare function removeEventListener(type: string, listener: EventListenerOrEventListenerObject, options?: boolean | EventListenerOptions): void;
 type AlgorithmIdentifier = any;
+type AllowSharedBufferSource = ArrayBuffer | ArrayBufferView;
 type Base64URLString = string;
 type BinaryData = ArrayBuffer | ArrayBufferView;
 type BlobPart = BufferSource | Blob | string;
 type BodyInit = XMLHttpRequestBodyInit;
+type BufferSource = ArrayBufferView | ArrayBuffer;
 type COSEAlgorithmIdentifier = number;
 type CanvasImageSource = HTMLOrSVGImageElement | HTMLCanvasElement | HTMLVideoElement | OffscreenCanvas | ImageBitmap | VideoFrame;
 type CanvasSource = HTMLCanvasElement | OffscreenCanvas;
@@ -25501,10 +25589,8 @@ type GPUTextureUsageFlags = number;
 type GeometryNode = Text | Element | Document;
 type HTMLOrSVGImageElement = HTMLImageElement | SVGImageElement;
 type HeadersInit = string[][] | Record<string, string>;
-type HistogramID = string;
-type HistogramKey = string;
 type ImageBitmapSource = CanvasImageSource | Blob | CanvasRenderingContext2D | ImageData;
-type ImageBufferSource = ArrayBufferView | ArrayBuffer | ReadableStream;
+type ImageBufferSource = AllowSharedBufferSource | ReadableStream;
 type InputStream = nsIInputStream;
 type Int32List = Int32Array | GLint[];
 type KeyFormat = string;
@@ -25519,6 +25605,7 @@ type MLSBytesOrUint8Array = MLSBytes | Uint8Array;
 type MLSBytesOrUint8ArrayOrUTF8String = MLSBytes | Uint8Array | string;
 type MLSClientId = MLSBytes;
 type MLSCredential = MLSBytes;
+type MLSGroupEpoch = MLSBytes;
 type MLSGroupId = MLSBytes;
 type MLSKeyPackage = MLSBytes;
 type MLSProposal = MLSBytes;
@@ -25610,6 +25697,7 @@ type ContentScriptExecutionWorld = "ISOLATED" | "MAIN" | "USER_SCRIPT";
 type ContentScriptRunAt = "document_end" | "document_idle" | "document_start";
 type CookieSameSite = "lax" | "none" | "strict";
 type CredentialMediationRequirement = "conditional" | "optional" | "required" | "silent";
+type CredentialProtectionPolicy = "userVerificationOptional" | "userVerificationOptionalWithCredentialIDList" | "userVerificationRequired";
 type DebuggerNotificationType = "cancelAnimationFrame" | "clearInterval" | "clearTimeout" | "domEvent" | "requestAnimationFrame" | "requestAnimationFrameCallback" | "setInterval" | "setIntervalCallback" | "setTimeout" | "setTimeoutCallback";
 type DecoderDoctorReportType = "mediacannotinitializepulseaudio" | "mediacannotplaynodecoders" | "mediadecodeerror" | "mediadecodewarning" | "medianodecoders" | "mediaplatformdecodernotfound" | "mediaunsupportedlibavcodec" | "mediawidevinenowmf" | "mediawmfneeded";
 type DirectionSetting = "" | "lr" | "rl";
@@ -25640,12 +25728,13 @@ type GPUCompareFunction = "always" | "equal" | "greater" | "greater-equal" | "le
 type GPUCompilationMessageType = "error" | "info" | "warning";
 type GPUCullMode = "back" | "front" | "none";
 type GPUErrorFilter = "internal" | "out-of-memory" | "validation";
-type GPUFeatureName = "bgra8unorm-storage" | "clip-distances" | "depth-clip-control" | "depth32float-stencil8" | "dual-source-blending" | "float32-blendable" | "float32-filterable" | "indirect-first-instance" | "rg11b10ufloat-renderable" | "shader-f16" | "texture-compression-astc" | "texture-compression-bc" | "texture-compression-etc2" | "timestamp-query";
+type GPUFeatureName = "bgra8unorm-storage" | "clip-distances" | "core-features-and-limits" | "depth-clip-control" | "depth32float-stencil8" | "dual-source-blending" | "float32-blendable" | "float32-filterable" | "indirect-first-instance" | "rg11b10ufloat-renderable" | "shader-f16" | "subgroups" | "texture-compression-astc" | "texture-compression-astc-sliced-3d" | "texture-compression-bc" | "texture-compression-bc-sliced-3d" | "texture-compression-etc2" | "timestamp-query";
 type GPUFilterMode = "linear" | "nearest";
 type GPUFrontFace = "ccw" | "cw";
 type GPUIndexFormat = "uint16" | "uint32";
 type GPULoadOp = "clear" | "load";
 type GPUMipmapFilterMode = "linear" | "nearest";
+type GPUPipelineErrorReason = "internal" | "validation";
 type GPUPowerPreference = "high-performance" | "low-power";
 type GPUPrimitiveTopology = "line-list" | "line-strip" | "point-list" | "triangle-list" | "triangle-strip";
 type GPUQueryType = "occlusion" | "timestamp";
@@ -25682,11 +25771,12 @@ type ImageOrientation = "flipY" | "from-image" | "none";
 type ImportESModuleTargetGlobal = "contextual" | "current" | "devtools" | "shared";
 type InspectorPropertyType = "color" | "gradient" | "timing-function";
 type IterationCompositeOperation = "accumulate" | "replace";
-type JSRFPTarget = "CSSPrefersColorScheme" | "RoundWindowSize" | "SiteSpecificZoom";
+type JSRFPTarget = "CSSPrefersColorScheme" | "HttpUserAgent" | "JSLocalePrompt" | "RoundWindowSize" | "SiteSpecificZoom";
 type L10nFileSourceHasFileStatus = "missing" | "present" | "unknown";
 type LatencyMode = "quality" | "realtime";
 type LineAlignSetting = "center" | "end" | "start";
 type LockMode = "exclusive" | "shared";
+type LoginStatus = "logged-in" | "logged-out";
 type MIDIPortConnectionState = "closed" | "open" | "pending";
 type MIDIPortDeviceState = "connected" | "disconnected";
 type MIDIPortType = "input" | "output";
@@ -25705,7 +25795,7 @@ type MediaSourceEndOfStreamError = "decode" | "network";
 type MediaSourceReadyState = "closed" | "ended" | "open";
 type MediaStreamTrackState = "ended" | "live";
 type MozContentPolicyType = "beacon" | "csp_report" | "font" | "image" | "imageset" | "json" | "main_frame" | "media" | "object" | "object_subrequest" | "other" | "ping" | "script" | "speculative" | "stylesheet" | "sub_frame" | "web_manifest" | "websocket" | "xml_dtd" | "xmlhttprequest" | "xslt";
-type MozUrlClassificationFlags = "any_basic_tracking" | "any_social_tracking" | "any_strict_tracking" | "cryptomining" | "cryptomining_content" | "emailtracking" | "emailtracking_content" | "fingerprinting" | "fingerprinting_content" | "socialtracking" | "socialtracking_facebook" | "socialtracking_linkedin" | "socialtracking_twitter" | "tracking" | "tracking_ad" | "tracking_analytics" | "tracking_content" | "tracking_social";
+type MozUrlClassificationFlags = "any_basic_tracking" | "any_social_tracking" | "any_strict_tracking" | "consentmanager" | "cryptomining" | "cryptomining_content" | "emailtracking" | "emailtracking_content" | "fingerprinting" | "fingerprinting_content" | "socialtracking" | "socialtracking_facebook" | "socialtracking_linkedin" | "socialtracking_twitter" | "tracking" | "tracking_ad" | "tracking_analytics" | "tracking_content" | "tracking_social";
 type NavigationFocusReset = "after-transition" | "manual";
 type NavigationHistoryBehavior = "auto" | "push" | "replace";
 type NavigationScrollBehavior = "after-transition" | "manual";
@@ -25785,7 +25875,6 @@ type ScrollBehavior = "auto" | "instant" | "smooth";
 type ScrollLogicalPosition = "center" | "end" | "nearest" | "start";
 type ScrollRestoration = "auto" | "manual";
 type ScrollSetting = "" | "up";
-type ScrollState = "started" | "stopped";
 type SecurityPolicyViolationEventDisposition = "enforce" | "report";
 type SelectionMode = "end" | "preserve" | "select" | "start";
 type SelectorWarningKind = "UnconstrainedHas";
@@ -25880,6 +25969,11 @@ interface CanvasPathMethods {
     roundRect(x: number, y: number, w: number, h: number, radii?: number | DOMPointInit | Iterable<number | DOMPointInit>): void;
 }
 
+interface CookieStoreManager {
+    subscribe(subscriptions: Iterable<CookieStoreGetOptions>): Promise<void>;
+    unsubscribe(subscriptions: Iterable<CookieStoreGetOptions>): Promise<void>;
+}
+
 interface CustomStateSet extends Set<string> {
 }
 
@@ -25941,7 +26035,7 @@ interface GPUCommandEncoder {
 interface GPUQueue {
     copyExternalImageToTexture(source: GPUCopyExternalImageSourceInfo, destination: GPUCopyExternalImageDestInfo, copySize: Iterable<GPUIntegerCoordinate>): void;
     submit(buffers: Iterable<GPUCommandBuffer>): void;
-    writeTexture(destination: GPUTexelCopyTextureInfo, data: BufferSource, dataLayout: GPUTexelCopyBufferLayout, size: Iterable<GPUIntegerCoordinate>): void;
+    writeTexture(destination: GPUTexelCopyTextureInfo, data: AllowSharedBufferSource, dataLayout: GPUTexelCopyBufferLayout, size: Iterable<GPUIntegerCoordinate>): void;
 }
 
 interface GPURenderPassEncoder {
@@ -26037,10 +26131,10 @@ interface L10nRegistry {
 
 interface Localization {
     addResourceIds(aResourceIds: Iterable<L10nResourceId>): void;
-    formatMessages(aKeys: Iterable<L10nKey>): Promise<Iterable<L10nMessage | null>>;
-    formatMessagesSync(aKeys: Iterable<L10nKey>): Iterable<L10nMessage | null>;
-    formatValues(aKeys: Iterable<L10nKey>): Promise<Iterable<string | null>>;
-    formatValuesSync(aKeys: Iterable<L10nKey>): Iterable<string | null>;
+    formatMessages(aKeys: Iterable<L10nKey>): Promise<(L10nMessage | null)[]>;
+    formatMessagesSync(aKeys: Iterable<L10nKey>): (L10nMessage | null)[];
+    formatValues(aKeys: Iterable<L10nKey>): Promise<(string | null)[]>;
+    formatValuesSync(aKeys: Iterable<L10nKey>): (string | null)[];
     removeResourceIds(aResourceIds: Iterable<L10nResourceId>): number;
 }
 
@@ -26147,7 +26241,7 @@ interface SVGNumberList {
 }
 
 interface SVGPathData {
-    setPathData(pathData: Iterable<SVGPathSegment>): void;
+    setPathData(pathData: Iterable<SVGPathSegmentInit>): void;
 }
 
 interface SVGPointList {
@@ -26288,7 +26382,7 @@ interface WebGL2RenderingContextBase {
     clearBufferuiv(buffer: GLenum, drawbuffer: GLint, values: Iterable<GLuint>, srcOffset?: GLuint): void;
     drawBuffers(buffers: Iterable<GLenum>): void;
     getActiveUniforms(program: WebGLProgram, uniformIndices: Iterable<GLuint>, pname: GLenum): any;
-    getUniformIndices(program: WebGLProgram, uniformNames: Iterable<string>): Iterable<GLuint> | null;
+    getUniformIndices(program: WebGLProgram, uniformNames: Iterable<string>): GLuint[] | null;
     invalidateFramebuffer(target: GLenum, attachments: Iterable<GLenum>): void;
     invalidateSubFramebuffer(target: GLenum, attachments: Iterable<GLenum>, x: GLint, y: GLint, width: GLsizei, height: GLsizei): void;
     transformFeedbackVaryings(program: WebGLProgram, varyings: Iterable<string>, bufferMode: GLenum): void;

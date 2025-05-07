@@ -65,10 +65,12 @@ export namespace Targets {
     let WebGPULimits: number;
     let WebGPUIsFallbackAdapter: number;
     let WebGPUSubgroupSizes: number;
+    let JSLocalePrompt: number;
     let IsAlwaysEnabledForPrecompute: number;
     let AllTargets: number;
 }
-export namespace DefaultTargets {
+export const DefaultTargetsBaseline: {};
+export namespace DefaultTargetsFPP {
     let DESKTOP_DEFAULT: string[];
     let ANDROID_DEFAULT: string[];
 }
