@@ -1,0 +1,15 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+/**
+ * www.nintendo.com - Movie guidebook is blank
+ * Bug #1953077 - https://bugzilla.mozilla.org/show_bug.cgi?id=1953077
+ * WebCompat issue #149642 - https://webcompat.com/issues/149642
+ *
+ * The movie guidebook appears blank due to bug 1953879. We can work
+ * around that by removing the flex-shrinking of the images.
+ */
+.movie-guidebook .slider .slider__container img {
+  flex-shrink: 0;
+}
