@@ -233,7 +233,13 @@ def process_artifacts(artifact_type):
     )
 
     if not device_names:
-        exit_with_error("Could not find any device in matrix file.")
+        if artifact_type == ArtifactType.CRASH_LOG:
+            logging.info(
+                "No devices with failure outcomes found - skipping crash log collection."
+            )
+            return
+        else:
+            exit_with_error("Could not find any device in matrix file.")
 
     root_gcs_path = get_gcs_path(matrix_ids_artifact)
     if not root_gcs_path:
