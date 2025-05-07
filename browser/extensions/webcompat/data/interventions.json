@@ -2618,6 +2618,23 @@
       }
     ]
   },
+  "1919263": {
+    "label": "www.nbcsports.com",
+    "bugs": {
+      "1919263": {
+        "issue": "broken-layout",
+        "matches": ["*://www.nbcsports.com/*"]
+      }
+    },
+    "interventions": [
+      {
+        "platforms": ["all"],
+        "content_scripts": {
+          "js": ["bug1919263-nbcsports.com-getCurrentUser-script-error-fix.js"]
+        }
+      }
+    ]
+  },
   "1919698": {
     "label": "anecdotes.ai",
     "bugs": {
