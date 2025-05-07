@@ -4,7 +4,6 @@
 
 :host {
   --page-nav-margin-top: 72px;
-  --page-nav-margin-bottom: 36px;
   --page-nav-gap: var(--space-large);
   --page-nav-button-gap: var(--space-xsmall);
   --page-nav-border-color: var(--border-color);
@@ -16,7 +15,10 @@
   position: sticky;
   top: 0;
   height: 100vh;
-  display: block;
+  display: flex;
+  flex-shrink: 0;
+  flex-direction: column;
+  gap: var(--page-nav-gap);
 
   @media (prefers-reduced-motion) {
     /* (See Bug 1610081) Setting border-inline-end to add clear differentiation between side navigation and main content area */
@@ -29,17 +31,19 @@
 }
 
 nav {
-  display: grid;
-  grid-template-rows: repeat(3, min-content);
+  display: flex;
+  flex-direction: column;
   gap: var(--page-nav-gap);
-  margin-block: var(--page-nav-margin-top) var(--page-nav-margin-bottom);
-  height: calc(100% - var(--page-nav-margin-top) - var(--page-nav-margin-bottom));
+  overflow-y: auto;
+  scrollbar-gutter: stable;
+  scrollbar-width: thin;
 }
 
 .page-nav-heading-wrapper {
   display: flex;
   align-items: center;
   gap: var(--space-small);
+  margin-block-start: var(--page-nav-margin-top);
 
   > .logo {
     display: inline-block;
@@ -52,9 +56,7 @@ nav {
     margin-inline-start: calc(var(--space-medium) - ((var(--page-nav-heading-logo-size) - var(--icon-size-default)) / 2));
 
     @media (max-width: 52rem) {
-      .has-nav-icons & {
-        margin-inline: auto;
-      }
+      margin-inline-start: 4px;
     }
   }
 
@@ -79,6 +81,10 @@ nav {
   @media (max-width: 52rem) {
     justify-content: center;
   }
+
+  &:not(:has(slot:has-slotted)) {
+    display: none;
+  }
 }
 
 hr {
@@ -87,6 +93,7 @@ hr {
   height: 1px;
   border: 0;
   background-color: var(--page-nav-hr-color);
+  flex-shrink: 0;
 }
 
 @media (prefers-contrast) {

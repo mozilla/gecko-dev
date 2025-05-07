@@ -4,7 +4,7 @@
 intended to change the selected view, provide a heading, and have links to external resources.
 
 ```html story
-<moz-page-nav heading="This is a nav" style={{ '--page-nav-margin-top': 0, '--page-nav-margin-bottom': 0, height: '275px' }}>
+<moz-page-nav heading="This is a nav" style={{ '--page-nav-margin-top': 0, maxWidth: '20ch', maxHeight: '275px' }}>
   <moz-page-nav-button
     view="view-one"
     iconSrc="chrome://browser/skin/preferences/category-general.svg"
@@ -125,7 +125,7 @@ The `iconSrc` property of `moz-page-nav-button` is optional. This is intended to
 And will render like this:
 
 ```html story
-<moz-page-nav heading="This is a nav" style={{ '--page-nav-margin-top': 0, '--page-nav-margin-bottom': 0, height: '150px' }}>
+<moz-page-nav heading="This is a nav" style={{maxWidth: '20ch', maxHeight: '275px'}}>
   <moz-page-nav-button view="A name for the first view">
     <p style={{ margin: 0 }}>First iconless button</p>
   </moz-page-nav-button>
