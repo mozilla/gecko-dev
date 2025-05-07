@@ -34,6 +34,7 @@ import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
 import androidx.fragment.app.setFragmentResultListener
 import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.Lifecycle.State.RESUMED
 import androidx.lifecycle.Observer
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
@@ -73,6 +74,7 @@ import mozilla.components.feature.top.sites.TopSite
 import mozilla.components.feature.top.sites.TopSitesFeature
 import mozilla.components.lib.state.ext.consumeFlow
 import mozilla.components.lib.state.ext.consumeFrom
+import mozilla.components.lib.state.ext.flow
 import mozilla.components.lib.state.ext.observeAsState
 import mozilla.components.support.base.feature.ViewBoundFeatureWrapper
 import mozilla.components.ui.tabcounter.TabCounterMenu
@@ -1136,6 +1138,7 @@ class HomeFragment : Fragment() {
 
         observeSearchEngineNameChanges()
         observeWallpaperUpdates()
+        observePrivateModeLock()
 
         homeScreenPopupManager.set(
             feature = HomeScreenPopupManager(
@@ -1471,8 +1474,6 @@ class HomeFragment : Fragment() {
             true
         BiometricAuthenticationManager.biometricAuthenticationNeededInfo.authenticationStatus =
             AuthenticationStatus.NOT_AUTHENTICATED
-
-        requireComponents.privateBrowsingLockFeature.maybeLockScreen(findNavController())
     }
 
     private fun evaluateMessagesForMicrosurvey(components: Components) =
@@ -1610,6 +1611,23 @@ class HomeFragment : Fragment() {
                         )
                     }
                 }
+        }
+    }
+
+    private fun observePrivateModeLock() {
+        with(viewLifecycleOwner) {
+            lifecycleScope.launch {
+                lifecycle.repeatOnLifecycle(RESUMED) {
+                    requireComponents.appStore.flow()
+                        .filter { state ->
+                            state.isPrivateScreenLocked && state.mode == BrowsingMode.Private
+                        }
+                        .distinctUntilChanged()
+                        .collect {
+                            findNavController().navigate(R.id.unlockPrivateTabsFragment)
+                        }
+                }
+            }
         }
     }
 

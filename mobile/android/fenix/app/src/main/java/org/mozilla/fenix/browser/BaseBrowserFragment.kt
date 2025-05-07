@@ -46,8 +46,10 @@ import androidx.core.view.OnApplyWindowInsetsListener
 import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
+import androidx.lifecycle.Lifecycle.State
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.repeatOnLifecycle
 import androidx.navigation.NavController
 import androidx.navigation.fragment.findNavController
 import androidx.preference.PreferenceManager
@@ -58,6 +60,7 @@ import kotlinx.coroutines.Dispatchers.Main
 import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.distinctUntilChangedBy
+import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.launch
@@ -134,6 +137,7 @@ import mozilla.components.feature.tabs.LastTabFeature
 import mozilla.components.feature.webauthn.WebAuthnFeature
 import mozilla.components.lib.state.ext.consumeFlow
 import mozilla.components.lib.state.ext.consumeFrom
+import mozilla.components.lib.state.ext.flow
 import mozilla.components.lib.state.ext.flowScoped
 import mozilla.components.service.sync.autofill.DefaultCreditCardValidationDelegate
 import mozilla.components.service.sync.logins.DefaultLoginValidationDelegate
@@ -467,6 +471,8 @@ abstract class BaseBrowserFragment :
             requireComponents.core.store,
             isCustomTabSession = customTabSessionId != null,
         )
+
+        observePrivateModeLock()
 
         if (!requireComponents.fenixOnboarding.userHasBeenOnboarded()) {
             observeTabSource(requireComponents.core.store)
@@ -2135,6 +2141,23 @@ abstract class BaseBrowserFragment :
         firstPartyDownloadDialog?.dismiss()
     }
 
+    private fun observePrivateModeLock() {
+        with(viewLifecycleOwner) {
+            lifecycleScope.launch {
+                lifecycle.repeatOnLifecycle(State.RESUMED) {
+                    requireComponents.appStore.flow()
+                        .filter { state ->
+                            state.isPrivateScreenLocked && state.mode == BrowsingMode.Private
+                        }
+                        .distinctUntilChanged()
+                        .collect {
+                            findNavController().navigate(R.id.unlockPrivateTabsFragment)
+                        }
+                }
+            }
+        }
+    }
+
     @VisibleForTesting
     @Suppress("ComplexCondition")
     internal fun observeTabSource(store: BrowserStore) {
@@ -2197,8 +2220,6 @@ abstract class BaseBrowserFragment :
             }
 
         evaluateMessagesForMicrosurvey(components)
-
-        requireComponents.privateBrowsingLockFeature.maybeLockScreen(findNavController())
 
         BiometricAuthenticationManager.biometricAuthenticationNeededInfo.shouldShowAuthenticationPrompt =
             true
