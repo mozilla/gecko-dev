@@ -49,6 +49,17 @@ close-tabs-to-the-end-vertical =
 close-other-tabs =
     .label = Close Other Tabs
     .accesskey = o
+
+## Variables:
+##  $tabCount (Number): the number of tabs that are affected by the action.
+
+tab-context-unload-n-tabs =
+    .label =
+        { $tabCount ->
+            [1] Unload Tab
+           *[other] Unload { $tabCount } Tabs
+        }
+    .accesskey = U
 reload-tabs =
     .label = Reload Tabs
     .accesskey = R
