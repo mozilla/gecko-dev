@@ -13347,6 +13347,14 @@
   value: false
   mirror: always
 
+# If set to true, Firefox will use the file extension of a URL
+# to sniff its content type. When false, nsUnknownDecoder will
+# use the file extension only for file URLs
+- name: network.sniff.use_extension
+  type: RelaxedAtomicBool
+  value: false
+  mirror: always
+
 # Enables the predictive service.
 - name: network.predictor.enabled
   type: bool
