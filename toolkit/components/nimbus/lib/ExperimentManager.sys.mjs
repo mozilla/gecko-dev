@@ -38,6 +38,9 @@ const STUDIES_OPT_OUT_PREF = "app.shield.optoutstudies.enabled";
 
 const STUDIES_ENABLED_CHANGED = "nimbus:studies-enabled-changed";
 
+const IS_MAIN_PROCESS =
+  Services.appinfo.processType === Services.appinfo.PROCESS_TYPE_DEFAULT;
+
 export const UnenrollmentCause = {
   fromCheckRecipeResult(result) {
     const { UnenrollReason } = lazy.NimbusTelemetry;
@@ -222,6 +225,12 @@ export class _ExperimentManager {
    * ambient environment.
    */
   async onStartup(extraContext = {}) {
+    if (!IS_MAIN_PROCESS) {
+      throw new Error(
+        "ExperimentManager.onStartup() can only be called from the main process"
+      );
+    }
+
     this._prefs = new Map();
     this._prefsBySlug = new Map();
     this._prefFlips = new PrefFlipsFeature({ manager: this });
