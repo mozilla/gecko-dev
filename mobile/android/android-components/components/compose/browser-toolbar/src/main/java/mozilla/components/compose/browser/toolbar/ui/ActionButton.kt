@@ -16,12 +16,13 @@ import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.viewinterop.AndroidView
 import mozilla.components.browser.menu2.BrowserMenuController
-import mozilla.components.compose.base.annotation.LightDarkPreview
 import mozilla.components.compose.base.button.IconButton
 import mozilla.components.compose.base.button.LongPressIconButton
 import mozilla.components.compose.base.theme.AcornTheme
@@ -44,6 +45,7 @@ import mozilla.components.ui.icons.R
  * @param contentDescription Text used by accessibility services to describe what this button does.
  * @property onClick [BrowserToolbarInteraction] describing how to handle this button being clicked.
  * @param onLongClick Optional [BrowserToolbarInteraction] describing how to handle this button being long clicked.
+ * @param highlighted Whether or not to highlight this button.
  * @param onInteraction Callback for handling [BrowserToolbarEvent]s on user interactions.
  */
 @Composable
@@ -54,6 +56,7 @@ fun ActionButton(
     @StringRes contentDescription: Int,
     onClick: BrowserToolbarInteraction,
     onLongClick: BrowserToolbarInteraction? = null,
+    highlighted: Boolean = false,
     onInteraction: (BrowserToolbarEvent) -> Unit,
 ) {
     val onClickMenu = key(onClick) { onClick.buildMenu(onInteraction) }
@@ -90,6 +93,7 @@ fun ActionButton(
         ActionButtonView(
             icon = icon,
             tint = tint,
+            highlighted = highlighted,
             menuData = when (currentMenuState) {
                 MenuState.None -> null
                 MenuState.CLick -> {
@@ -148,25 +152,34 @@ private enum class MenuState {
 private fun ActionButtonView(
     @DrawableRes icon: Int,
     @ColorInt tint: Int,
+    highlighted: Boolean = false,
     menuData: MenuData? = null,
 ) {
-    AndroidView(
-        factory = { context ->
-            ImageView(context)
-        },
-        update = { imageView ->
-            imageView.setImageResource(icon)
-            imageView.setColorFilter(tint)
+    Box {
+        AndroidView(
+            factory = { context ->
+                ImageView(context)
+            },
+            update = { imageView ->
+                imageView.setImageResource(icon)
+                imageView.setColorFilter(tint)
 
-            if (menuData?.menuState == MenuState.CLick || menuData?.menuState == MenuState.LongClick) {
-                menuData.menuController?.show(anchor = imageView)
-                menuData.onMenuShown()
-            }
-        },
-    )
+                if (menuData?.menuState == MenuState.CLick || menuData?.menuState == MenuState.LongClick) {
+                    menuData.menuController?.show(anchor = imageView)
+                    menuData.onMenuShown()
+                }
+            },
+        )
+
+        if (highlighted) {
+            DotHighlight(
+                modifier = Modifier.align(Alignment.BottomEnd),
+            )
+        }
+    }
 }
 
-@LightDarkPreview
+@PreviewLightDark
 @Composable
 private fun ActionButtonPreview() {
     AcornTheme {
@@ -176,6 +189,23 @@ private fun ActionButtonPreview() {
                 contentDescription = R.string.mozac_error_confused,
                 tint = AcornTheme.colors.iconPrimary.toArgb(),
                 onClick = object : BrowserToolbarEvent {},
+                onInteraction = {},
+            )
+        }
+    }
+}
+
+@PreviewLightDark
+@Composable
+private fun HighlightedActionButtonPreview() {
+    AcornTheme {
+        Box(modifier = Modifier.background(AcornTheme.colors.layer1)) {
+            ActionButton(
+                icon = R.drawable.mozac_ic_web_extension_default_icon,
+                contentDescription = R.string.mozac_error_confused,
+                tint = AcornTheme.colors.iconPrimary.toArgb(),
+                onClick = object : BrowserToolbarEvent {},
+                highlighted = true,
                 onInteraction = {},
             )
         }
