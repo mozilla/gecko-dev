@@ -2749,23 +2749,6 @@
       }
     ]
   },
-  "1928216": {
-    "label": "voice.google.com",
-    "bugs": {
-      "1928216": {
-        "issue": "broken-meetings",
-        "matches": ["*://voice.google.com/*"]
-      }
-    },
-    "interventions": [
-      {
-        "platforms": ["desktop"],
-        "content_scripts": {
-          "js": ["bug1928216-voice.google.com-permissions.query.js"]
-        }
-      }
-    ]
-  },
   "1928941": {
     "label": "oasis.decart.ai",
     "bugs": {
