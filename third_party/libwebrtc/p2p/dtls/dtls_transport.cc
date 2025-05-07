@@ -619,6 +619,8 @@ void DtlsTransport::OnWritableState(rtc::PacketTransportInternal* transport) {
                       << ": ice_transport writable state changed to "
                       << ice_transport_->writable();
 
+  ice_has_been_writable_ = true;
+
   if (!dtls_active_) {
     // Not doing DTLS.
     // Note: SignalWritableState fired by set_writable.
@@ -910,6 +912,16 @@ void DtlsTransport::set_writable(bool writable) {
   if (writable_ == writable) {
     return;
   }
+  if (writable && !ice_has_been_writable_) {
+    // Wait with reporting writable until ICE has become writable once,
+    // so as to not confuse other part of stack (such as sctp).
+    RTC_DCHECK(dtls_in_stun_);
+    RTC_LOG(LS_INFO)
+        << ToString()
+        << ": defer set_writable(true) until ICE has become writable once";
+    return;
+  }
+
   if (event_log_) {
     event_log_->Log(
         std::make_unique<webrtc::RtcEventDtlsWritableState>(writable));

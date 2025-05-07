@@ -286,6 +286,12 @@ class DtlsTransport : public DtlsTransportInternal {
   bool receiving_ = false;
   bool writable_ = false;
 
+  // Keep track if ICE has ever been writable.
+  // This is used to prevent "spurious" Dtls::Writable with DTLS-in-STUN,
+  // where DTLS can become writable before ICE. This can confuse other parts
+  // of the stack.
+  bool ice_has_been_writable_ = false;
+
   webrtc::RtcEventLog* const event_log_;
 
   // Initialized in constructor based on WebRTC-IceHandshakeDtls,

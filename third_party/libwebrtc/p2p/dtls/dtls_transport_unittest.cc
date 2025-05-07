@@ -1457,6 +1457,67 @@ TEST_P(DtlsTransportDtlsInStunTest, PartiallyPiggybacked) {
   ClearPacketFilters();
 }
 
+TEST_P(DtlsTransportDtlsInStunTest,
+       DtlsDoesNotSignalWritableUnlessIceWritableOnce) {
+  Prepare(/* rtt_estimate= */ false);
+  AddPacketLogging();
+
+  RTC_LOG(LS_INFO) << "client1: " << std::get<0>(GetParam());
+  RTC_LOG(LS_INFO) << "client2: " << std::get<1>(GetParam());
+
+  ASSERT_TRUE(client1_.ConnectIceTransport(&client2_));
+
+  client1_.SendIcePing();
+  ASSERT_TRUE(WaitUntil([&] {
+    return client2_.fake_ice_transport()->GetCountOfReceivedStunMessages(
+               STUN_BINDING_REQUEST) == 1;
+  }));
+  client2_.SendIcePingConf();
+  ASSERT_TRUE(WaitUntil([&] {
+    return client1_.fake_ice_transport()->GetCountOfReceivedStunMessages(
+               STUN_BINDING_RESPONSE) == 1;
+  }));
+  client1_.SendIcePing();
+  ASSERT_TRUE(WaitUntil([&] {
+    return client2_.fake_ice_transport()->GetCountOfReceivedStunMessages(
+               STUN_BINDING_REQUEST) == 2;
+  }));
+  client2_.SendIcePingConf();
+  ASSERT_TRUE(WaitUntil([&] {
+    return client1_.fake_ice_transport()->GetCountOfReceivedStunMessages(
+               STUN_BINDING_RESPONSE) == 2;
+  }));
+
+  bool dtls_in_stun = std::get<0>(GetParam()).dtls_in_stun &&
+                      std::get<1>(GetParam()).dtls_in_stun;
+  if (dtls_in_stun) {
+    ASSERT_TRUE(client1_.dtls_transport()->writable());
+  }
+  // Ice has never been writable on client2.
+  ASSERT_FALSE(client2_.dtls_transport()->writable());
+
+  client2_.SendIcePing();
+  ASSERT_TRUE(WaitUntil([&] {
+    return client1_.fake_ice_transport()->GetCountOfReceivedStunMessages(
+               STUN_BINDING_REQUEST) == 1;
+  }));
+  client1_.SendIcePingConf();
+  ASSERT_TRUE(WaitUntil([&] {
+    return client2_.fake_ice_transport()->GetCountOfReceivedStunMessages(
+               STUN_BINDING_RESPONSE) == 1;
+  }));
+
+  EXPECT_TRUE(WaitUntil([&] {
+    return client1_.dtls_transport()->writable() &&
+           client2_.dtls_transport()->writable();
+  }));
+
+  EXPECT_TRUE(client1_.dtls_transport()->writable());
+  EXPECT_TRUE(client2_.dtls_transport()->writable());
+
+  ClearPacketFilters();
+}
+
 INSTANTIATE_TEST_SUITE_P(DtlsTransportDtlsInStunTest,
                          DtlsTransportDtlsInStunTest,
                          testing::ValuesIn(AllEndpointVariants()));
