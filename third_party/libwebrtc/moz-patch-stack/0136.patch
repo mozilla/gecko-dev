@@ -1,25 +1,204 @@
-From: Michael Froman <mfroman@mozilla.com>
-Date: Tue, 19 Nov 2024 16:05:00 -0600
-Subject: Bug 1928110 - (fix-b9c4c242d4) handle upstream last_arrival_timestamp
- to last_arrival_ntp_timestamp
+From: Nico Grunbaum <na-g@nostrum.com>
+Date: Wed, 27 Nov 2024 03:41:00 +0000
+Subject: Bug 1921154 - libwebrtc build related changes for
+ AV1;r=mjf,webrtc-reviewers
 
-Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/6918cf2d9126fa3e3676386349f6e383c298d8ab
+These are most of the changes needed to get a build with AV1.
+The crypto/openssl changes are later altered in the stack adding an NSPR based implementation of the functionality that was missing.
+
+Differential Revision: https://phabricator.services.mozilla.com/D228540
+Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/4527c41ef71d7683c60d9c435991a0d93bc5ce4d
 ---
- modules/rtp_rtcp/source/rtcp_receiver.cc | 4 ++--
- 1 file changed, 2 insertions(+), 2 deletions(-)
+ BUILD.gn          |  4 ++++
+ media/BUILD.gn    | 24 ++++++++++++++----------
+ rtc_base/BUILD.gn | 44 ++++++++++++++++++++++++--------------------
+ webrtc.gni        |  4 ++--
+ 4 files changed, 44 insertions(+), 32 deletions(-)
 
-diff --git a/modules/rtp_rtcp/source/rtcp_receiver.cc b/modules/rtp_rtcp/source/rtcp_receiver.cc
-index e740d786fb..62743cfe95 100644
---- a/modules/rtp_rtcp/source/rtcp_receiver.cc
-+++ b/modules/rtp_rtcp/source/rtcp_receiver.cc
-@@ -393,8 +393,8 @@ void RTCPReceiver::RemoteRTCPSenderInfo(uint32_t* packet_count,
-   MutexLock lock(&rtcp_receiver_lock_);
-   *packet_count = remote_sender_.packets_sent;
-   *octet_count = remote_sender_.bytes_sent;
--  *ntp_timestamp_ms = remote_sender_.last_arrival_timestamp.ToMs();
--  *remote_ntp_timestamp_ms = remote_sender_.last_remote_timestamp.ToMs();
-+  *ntp_timestamp_ms = remote_sender_.last_arrival_ntp_timestamp.ToMs();
-+  *remote_ntp_timestamp_ms = remote_sender_.last_remote_ntp_timestamp.ToMs();
+diff --git a/BUILD.gn b/BUILD.gn
+index b76be4dde7..ca6e5b3122 100644
+--- a/BUILD.gn
++++ b/BUILD.gn
+@@ -521,6 +521,9 @@ if (!rtc_build_ssl) {
+       "crypto",
+       "ssl",
+     ]
++    if (build_with_mozilla) {
++      libs = []
++    }
+   }
  }
  
- std::vector<ReportBlockData> RTCPReceiver::GetLatestReportBlockData() const {
+@@ -615,6 +618,7 @@ if (!build_with_chromium) {
+         "api/environment:environment_factory",
+         "api/video:video_frame",
+         "api/video:video_rtp_headers",
++        "api/video_codecs:builtin_video_decoder_factory",
+         "test:rtp_test_utils",
+       ]
+       # Added when we removed deps in other places to avoid building
+diff --git a/media/BUILD.gn b/media/BUILD.gn
+index 0b21c81320..645874d9b8 100644
+--- a/media/BUILD.gn
++++ b/media/BUILD.gn
+@@ -12,12 +12,10 @@ import("../webrtc.gni")
+ 
+ group("media") {
+   deps = []
+-  if (!build_with_mozilla) {
+-    deps += [
+-      ":rtc_media",
+-      ":rtc_media_base",
+-    ]
+-  }
++  deps += [
++    ":rtc_media",
++    ":rtc_media_base",
++  ]
+ }
+ 
+ config("rtc_media_defines_config") {
+@@ -273,6 +271,9 @@ rtc_library("media_engine") {
+       "base/media_engine.cc",
+       "base/media_engine.h",
+     ]
++    deps -= [
++      ":media_channel_impl",
++    ]
+   }
+ }
+ 
+@@ -419,6 +420,7 @@ rtc_library("codec_list") {
+   ]
+ }
+ 
++# MOZILLA Bug 1931241 - how much of this do we need?
+ rtc_library("rtp_utils") {
+ if (!build_with_mozilla) {
+   sources = [
+@@ -464,7 +466,6 @@ rtc_library("media_constants") {
+ }
+ 
+ rtc_library("turn_utils") {
+-if (!build_with_mozilla) {
+   sources = [
+     "base/turn_utils.cc",
+     "base/turn_utils.h",
+@@ -475,17 +476,14 @@ if (!build_with_mozilla) {
+     "../rtc_base/system:rtc_export",
+   ]
+ }
+-}
+ 
+ rtc_library("rid_description") {
+-if (!build_with_mozilla) {
+   sources = [
+     "base/rid_description.cc",
+     "base/rid_description.h",
+   ]
+   deps = [ ":codec" ]
+ }
+-}
+ 
+ rtc_library("rtc_simulcast_encoder_adapter") {
+   visibility = [ "*" ]
+@@ -734,6 +732,12 @@ rtc_library("rtc_audio_video") {
+     "engine/webrtc_voice_engine.cc",
+     "engine/webrtc_voice_engine.h",
+   ]
++  if (build_with_mozilla) {
++    sources -= [
++      "engine/webrtc_video_engine.cc",
++      "engine/webrtc_voice_engine.cc",
++    ]
++  }
+ 
+   public_configs = []
+   if (!build_with_chromium) {
+diff --git a/rtc_base/BUILD.gn b/rtc_base/BUILD.gn
+index b1f5fd1143..b966fbe4f5 100644
+--- a/rtc_base/BUILD.gn
++++ b/rtc_base/BUILD.gn
+@@ -1499,29 +1499,32 @@ rtc_source_set("ssl_header") {
+ }
+ 
+ rtc_source_set("digest") {
+-  visibility = [ "*" ]
+-  sources = [
+-    "message_digest.cc",
+-    "message_digest.h",
+-    "openssl_digest.cc",
+-    "openssl_digest.h",
+-  ]
+-  deps = [
+-    ":checks",
+-    ":ssl_header",
+-    ":stringutils",
+-    "//third_party/abseil-cpp/absl/strings:string_view",
+-  ]
+-
+-  # If we are building the SSL library ourselves, we know it's BoringSSL.
+-  if (rtc_build_ssl) {
+-    deps += [ "//third_party/boringssl" ]
+-  } else {
+-    configs += [ "..:external_ssl_library" ]
+-  }
++if (!build_with_mozilla) {
++   visibility = [ "*" ]
++   sources = [
++     "message_digest.cc",
++     "message_digest.h",
++     "openssl_digest.cc",
++     "openssl_digest.h",
++   ]
++   deps = [
++     ":checks",
++     ":ssl_header",
++     ":stringutils",
++     "//third_party/abseil-cpp/absl/strings:string_view",
++   ]
++
++   # If we are building the SSL library ourselves, we know it's BoringSSL.
++   if (rtc_build_ssl) {
++     deps += [ "//third_party/boringssl" ]
++   } else {
++     configs += [ "..:external_ssl_library" ]
++   }
++}
+ }
+ 
+ rtc_library("crypto_random") {
++if (!build_with_mozilla) {
+   visibility = [ "*" ]
+   sources = [
+     "crypto_random.cc",
+@@ -1542,6 +1545,7 @@ rtc_library("crypto_random") {
+     configs += [ "..:external_ssl_library" ]
+   }
+ }
++}
+ 
+ rtc_library("ssl") {
+ if (!build_with_mozilla) {
+diff --git a/webrtc.gni b/webrtc.gni
+index fe68d3317d..17306b77b7 100644
+--- a/webrtc.gni
++++ b/webrtc.gni
+@@ -125,7 +125,7 @@ declare_args() {
+ 
+   # Used to specify an external OpenSSL include path when not compiling the
+   # library that comes with WebRTC (i.e. rtc_build_ssl == 0).
+-  rtc_ssl_root = "unused"
++  rtc_ssl_root = ""
+ 
+   # Enable when an external authentication mechanism is used for performing
+   # packet authentication for RTP packets instead of libsrtp.
+@@ -347,7 +347,7 @@ declare_args() {
+ }
+ 
+ # Enable liboam only on non-mozilla builds.
+-enable_libaom = !build_with_mozilla
++enable_libaom = true
+ 
+ # Make it possible to provide custom locations for some libraries (move these
+ # up into declare_args should we need to actually use them for the GN build).
