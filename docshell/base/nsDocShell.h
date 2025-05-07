@@ -388,6 +388,8 @@ class nsDocShell final : public nsDocLoader,
     return mozilla::dom::WindowProxyHolder(mBrowsingContext);
   }
 
+  nsPIDOMWindowInner* GetActiveWindow();
+
   /**
    * Loads the given URI. See comments on nsDocShellLoadState members for more
    * information on information used.
@@ -1140,6 +1142,9 @@ class nsDocShell final : public nsDocLoader,
                       mozilla::dom::UserNavigationInvolvement::None);
 
  private:
+  MOZ_CAN_RUN_SCRIPT
+  void InformNavigationAPIAboutAbortingNavigation(JSContext* aCx);
+
   void SetCurrentURIInternal(nsIURI* aURI);
 
   // data members

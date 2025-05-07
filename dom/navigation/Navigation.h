@@ -128,6 +128,11 @@ class Navigation final : public DOMEventTargetHelper {
   void SetFocusedChangedDuringOngoingNavigation(
       bool aFocusChangedDuringOngoingNavigation);
 
+  bool HasOngoingNavigateEvent() const;
+
+  void AbortOngoingNavigation(
+      JSContext* aCx, JS::Handle<JS::Value> aError = JS::UndefinedHandleValue);
+
  private:
   using UpcomingTraverseAPIMethodTrackers =
       nsTHashMap<nsIDHashKey, RefPtr<NavigationAPIMethodTracker>>;
@@ -182,9 +187,6 @@ class Navigation final : public DOMEventTargetHelper {
       JSContext* aCx, const JS::Value& aState, NavigationResult& aResult) const;
 
   static void CleanUp(NavigationAPIMethodTracker* aNavigationAPIMethodTracker);
-
-  void AbortOngoingNavigation(
-      JSContext* aCx, JS::Handle<JS::Value> aError = JS::UndefinedHandleValue);
 
   Document* GetAssociatedDocument() const;
 

@@ -13964,3 +13964,36 @@ bool nsDocShell::IsSameDocumentAsActiveEntry(
     const mozilla::dom::SessionHistoryInfo& aSHInfo) {
   return mActiveEntry ? mActiveEntry->SharesDocumentWith(aSHInfo) : false;
 }
+
+// https://html.spec.whatwg.org/#nav-window
+nsPIDOMWindowInner* nsDocShell::GetActiveWindow() {
+  nsPIDOMWindowOuter* outer = GetWindow();
+  return outer ? outer->GetCurrentInnerWindow() : nullptr;
+}
+
+// https://html.spec.whatwg.org/#inform-the-navigation-api-about-aborting-navigation
+void nsDocShell::InformNavigationAPIAboutAbortingNavigation(JSContext* aCx) {
+  // Step 1
+  // This becomes an assert since we have a common event loop.
+  MOZ_DIAGNOSTIC_ASSERT(NS_IsMainThread());
+
+  // No ongoing navigations if we don't have a window.
+  RefPtr<nsPIDOMWindowInner> window = GetActiveWindow();
+  if (!window) {
+    return;
+  }
+
+  // Step 2
+  RefPtr<Navigation> navigation = window->Navigation();
+  if (!navigation) {
+    return;
+  }
+
+  // Step 3
+  if (!navigation->HasOngoingNavigateEvent()) {
+    return;
+  }
+
+  // Step 4
+  navigation->AbortOngoingNavigation(aCx);
+}
