@@ -40,7 +40,6 @@
   --urlbarView-favicon-margin-end: var(--urlbarView-icon-margin-end);
 
   --urlbarView-rich-suggestion-default-icon-size: 28px;
-  --urlbarView-top-pick-large-icon-box-size: 52px;
 
   --urlbarView-result-button-size: 24px;
   --urlbarView-result-button-background-opacity: 60%;
@@ -856,12 +855,6 @@
     flex-basis: 24px;
   }
 
-  &[icon-size="32"] {
-    width: 32px;
-    height: 32px;
-    flex-basis: 32px;
-  }
-
   &[icon-size="38"] {
     width: 38px;
     height: 38px;
@@ -942,17 +935,13 @@
 }
 
 .urlbarView-row:is([type$=_amo], [type$=_pocket])[icon-size="24"] > .urlbarView-row-inner > .urlbarView-favicon {
-  padding: calc((var(--urlbarView-top-pick-large-icon-box-size) - 24px) / 2);
+  padding: calc((52px - 24px) / 2);
   background-color: var(--urlbar-box-focus-bgcolor);
   border-radius: 2px;
 }
 
 .urlbarView-row:is([type$=_amo], [type$=_pocket])[icon-size="24"]:is([selected], :hover) > .urlbarView-row-inner > .urlbarView-favicon {
   background-color: var(--urlbarView-result-button-selected-background-color);
-}
-
-.urlbarView-row[type$=_vpn][icon-size="32"] > .urlbarView-row-inner > .urlbarView-favicon {
-  padding: calc((var(--urlbarView-top-pick-large-icon-box-size) - 32px) / 2);
 }
 
 .urlbarView-row[dynamicType=weather],
