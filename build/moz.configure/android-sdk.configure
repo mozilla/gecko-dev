@@ -282,6 +282,22 @@ def android_avd(toolchains_base_dir, android_os_info, want_bootstrap, avd_manife
 
 
 @template
+def check_file(filename, search_dirs):
+    @depends(search_dirs)
+    @checking("for %s" % filename)
+    @imports(_from="os.path", _import="exists")
+    @imports(_from="os.path", _import="join")
+    def require_file(dirs):
+        for d in dirs:
+            path = join(d, filename)
+            if exists(path):
+                return path
+        die("The file %s was not found.  Try |mach bootstrap|" % filename)
+
+    return require_file
+
+
+@template
 def check_android_tools(tool, tool_dir):
     check = check_prog(
         tool.upper(), (tool, tool + ".exe"), paths=tool_dir, allow_missing=True
@@ -301,6 +317,7 @@ set_config("ANDROID_SDK_ROOT", android_sdk_root)
 check_android_tools("zipalign", android_build_tools)
 check_android_tools("adb", android_platform_tools)
 check_android_tools("emulator", android_emulator)
+check_file("android.jar", android_platforms)
 
 set_config("ANDROID_BUILD_TOOLS_VERSION", android_sdk_version.build_tools_version)
 set_config("ANDROID_TARGET_SDK", android_sdk_version.target_sdk_version)
