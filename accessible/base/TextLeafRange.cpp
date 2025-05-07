@@ -580,12 +580,15 @@ std::pair<nsIContent*, uint32_t> TextLeafPoint::ToDOMPoint(
 
   if (!mAcc->IsHyperText()) {
     // For non-text nodes (e.g. images), DOM points use the child index within
-    // the parent.
+    // the parent. mOffset could be 0 (for the start of the node) or 1 (for the
+    // end of the node). mOffset could be 1 if this is the last Accessible in a
+    // container and the point is at the end of the container.
+    MOZ_ASSERT(mOffset == 0 || mOffset == 1);
     nsIContent* parent = content->GetParent();
     MOZ_ASSERT(parent);
     auto childIndex = parent->ComputeIndexOf(content);
     MOZ_ASSERT(childIndex);
-    return {parent, *childIndex};
+    return {parent, mOffset == 0 ? *childIndex : *childIndex + 1};
   }
 
   // This could be an empty editable container, whitespace or an empty doc. In
