@@ -358,7 +358,7 @@ h2 {
 
 .inner-border {
   border: 1px solid var(--newtab-border-color);
-  border-radius: 3px;
+  border-radius: var(--border-radius-small);
   height: 100%;
   left: 0;
   pointer-events: none;
@@ -399,7 +399,7 @@ h2 {
 .actions button {
   background-color: var(--newtab-button-secondary-color);
   border: 1px solid var(--newtab-border-color);
-  border-radius: 4px;
+  border-radius: var(--border-radius-small);
   color: inherit;
   cursor: pointer;
   margin-bottom: 15px;
@@ -429,7 +429,7 @@ h2 {
 }
 
 input[type=text], input[type=search] {
-  border-radius: 3px;
+  border-radius: var(--border-radius-small);
 }
 
 .clamp {
@@ -640,7 +640,7 @@ main section {
 .prefs-button button {
   background-color: transparent;
   border: 0;
-  border-radius: 2px;
+  border-radius: var(--button-border-radius);
   cursor: pointer;
   inset-inline-end: 15px;
   padding: 15px;
@@ -694,7 +694,7 @@ main section {
 
 .as-error-fallback {
   align-items: center;
-  border-radius: 3px;
+  border-radius: var(--border-radius-medium);
   box-shadow: inset 0 0 0 1px var(--newtab-inner-box-shadow-color);
   color: var(--newtab-text-secondary-color);
   display: flex;
@@ -893,7 +893,7 @@ main section {
 
 .top-site-outer {
   width: 120px;
-  border-radius: 8px;
+  border-radius: var(--border-radius-medium);
   display: inline-block;
   margin-block-end: 16px;
 }
@@ -935,7 +935,7 @@ main section {
   background-image: url("chrome://global/skin/icons/more.svg");
   background-color: var(--newtab-button-background);
   border: 0;
-  border-radius: 4px;
+  border-radius: var(--border-radius-small);
   cursor: pointer;
   fill: var(--newtab-button-text);
   -moz-context-properties: fill;
@@ -964,7 +964,7 @@ main section {
   opacity: 1;
 }
 .top-site-outer .tile {
-  border-radius: 8px;
+  border-radius: var(--border-radius-medium);
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
   background-color: var(--newtab-background-color-secondary);
   justify-content: center;
@@ -980,7 +980,7 @@ main section {
   text-transform: uppercase;
 }
 .top-site-outer .tile .icon-wrapper {
-  border-radius: 4px;
+  border-radius: var(--border-radius-small);
   width: 48px;
   height: 48px;
   overflow: hidden;
@@ -1006,7 +1006,7 @@ main section {
   background-color: var(--newtab-background-color-secondary);
   background-position: center center;
   background-repeat: no-repeat;
-  border-radius: 4px;
+  border-radius: var(--border-radius-small);
   position: absolute;
 }
 .top-site-outer .rich-icon {
@@ -1034,7 +1034,7 @@ main section {
   background-image: url("chrome://global/skin/icons/search-glass.svg");
   background-size: 16px;
   background-color: var(--newtab-primary-action-background);
-  border-radius: 32px;
+  border-radius: var(--border-radius-circle);
   -moz-context-properties: fill;
   fill: var(--newtab-primary-element-text-color);
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
@@ -1337,7 +1337,7 @@ main section {
 .topsite-form .form-wrapper .error-tooltip {
   animation: fade-up-tt 450ms;
   background: var(--newtab-status-error);
-  border-radius: 2px;
+  border-radius: var(--border-radius-small);
   color: #FFF;
   inset-inline-start: 3px;
   padding: 5px 12px;
@@ -1392,7 +1392,7 @@ main section {
 .topsite-form [type=checkbox]:checked + label::before {
   background: var(--newtab-background-color);
   border: 1px solid var(--newtab-border-color);
-  border-radius: 3px;
+  border-radius: var(--border-radius-small);
   content: "";
   height: 21px;
   left: -8px;
@@ -1522,7 +1522,7 @@ main section {
 }
 .sections-list .section-empty-state {
   border: 1px solid var(--newtab-border-color);
-  border-radius: 3px;
+  border-radius: var(--border-radius-small);
   display: flex;
   height: 266px;
   width: 100%;
@@ -1656,7 +1656,7 @@ main section {
   width: 100%;
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
   border: 1px solid transparent;
-  border-radius: 8px;
+  border-radius: var(--border-radius-medium);
   color: var(--newtab-text-primary-color);
   -moz-context-properties: fill;
   fill: var(--newtab-text-secondary-color);
@@ -1675,7 +1675,7 @@ main section {
   background: url("chrome://browser/skin/forward.svg") no-repeat center center;
   background-size: 16px 16px;
   border: 0;
-  border-radius: 0 3px 3px 0;
+  border-radius: 0 var(--border-radius-medium) var(--border-radius-medium) 0;
   -moz-context-properties: fill;
   fill: var(--newtab-text-secondary-color);
   height: 100%;
@@ -1691,7 +1691,7 @@ main section {
   outline: 0;
   box-shadow: 0 0 0 2px var(--newtab-primary-action-background-dimmed);
   border: 1px solid var(--newtab-primary-action-background);
-  border-radius: 0 8px 8px 0;
+  border-radius: 0 var(--border-radius-medium) var(--border-radius-medium) 0;
 }
 .search-wrapper .search-button:active {
   background-color: var(--newtab-element-hover-color);
@@ -1841,7 +1841,7 @@ main section {
   background: var(--newtab-background-color-secondary) var(--newtab-search-icon) 16px center no-repeat;
   background-size: 24px;
   border: solid 1px transparent;
-  border-radius: 3px;
+  border-radius: var(--border-radius-small);
   box-shadow: 0 1px 4px 0 rgba(12, 12, 13, 0.2), 0 0 0 1px rgba(0, 0, 0, 0.15);
   cursor: text;
   font-size: inherit;
@@ -2006,7 +2006,7 @@ main section {
 /* stylelint-disable max-nesting-depth */
 .context-menu {
   background: var(--newtab-background-color-secondary);
-  border-radius: 5px;
+  border-radius: var(--border-radius-small);
   box-shadow: 0 5px 10px rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(0, 0, 0, 0.2);
   display: block;
   font-size: inherit;
@@ -2110,7 +2110,7 @@ main section {
 .modal {
   background: var(--newtab-background-color-secondary);
   border: 1px solid var(--newtab-border-color);
-  border-radius: 5px;
+  border-radius: var(--border-radius-small);
   z-index: 11002;
 }
 
@@ -2147,7 +2147,7 @@ main section {
 
 .personalize-button {
   border: 0;
-  border-radius: 4px;
+  border-radius: var(--border-radius-small);
   background-color: transparent;
   padding: 15px;
   position: relative;
@@ -2226,7 +2226,7 @@ main section {
   background-color: var(--newtab-element-secondary-color);
   padding: 8px 10px;
   border: 1px solid rgba(0, 0, 0, 0.15);
-  border-radius: 4px;
+  border-radius: var(--border-radius-small);
   color: var(--newtab-text-primary-color);
   font-size: var(--font-size-small);
   font-weight: var(--font-weight-bold);
@@ -2275,7 +2275,7 @@ main section {
   vertical-align: middle;
   border: 1px solid rgba(0, 0, 0, 0.15);
   box-sizing: border-box;
-  border-radius: 4px;
+  border-radius: var(--border-radius-small);
   appearance: none;
   background-color: var(--newtab-element-secondary-color);
   flex-shrink: 0;
@@ -2308,7 +2308,7 @@ main section {
   width: 118px;
   display: block;
   border: 1px solid var(--newtab-border-color);
-  border-radius: 4px;
+  border-radius: var(--border-radius-small);
   appearance: none;
   padding-block: 7px;
   padding-inline: 10px 13px;
@@ -2371,7 +2371,7 @@ main section {
   background: url("chrome://global/skin/icons/settings.svg") left no-repeat;
   background-size: 16px;
   border: 1px solid transparent;
-  border-radius: 4px;
+  border-radius: var(--border-radius-small);
   color: var(--link-color);
   cursor: pointer;
   fill: var(--newtab-text-primary-color);
@@ -3651,7 +3651,7 @@ main section {
 /* stylelint-disable max-nesting-depth */
 .card-outer {
   background: var(--newtab-background-color-secondary);
-  border-radius: 8px;
+  border-radius: var(--border-radius-medium);
   display: inline-block;
   height: 266px;
   margin-inline-end: 32px;
@@ -3666,7 +3666,7 @@ main section {
   border: 0;
   outline: 1px solid var(--newtab-border-color);
   outline-width: 0;
-  border-radius: 100%;
+  border-radius: var(--border-radius-circle);
   cursor: pointer;
   color: var(--button-text-color);
   fill: var(--newtab-button-text);
@@ -3712,7 +3712,7 @@ main section {
   display: none;
 }
 .card-outer .card {
-  border-radius: 8px;
+  border-radius: var(--border-radius-medium);
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
   height: 100%;
 }
@@ -3754,7 +3754,7 @@ main section {
 }
 .card-outer .card-preview-image-outer {
   background-color: var(--newtab-element-secondary-color);
-  border-radius: 8px 8px 0 0;
+  border-radius: var(--border-radius-medium) var(--border-radius-medium) 0 0;
   height: 122px;
   overflow: hidden;
   position: relative;
@@ -3905,7 +3905,7 @@ main section {
 }
 .compact-cards .card-outer .card-context {
   background-color: var(--newtab-background-color-secondary);
-  border-radius: 16px;
+  border-radius: var(--border-radius-medium);
   clip-path: inset(-1px -1px 4px);
   height: 32px;
   width: 32px;
@@ -3917,7 +3917,7 @@ main section {
 .compact-cards .card-outer .card-context::after {
   border: 1px solid var(--newtab-card-hairline-color);
   border-bottom: 0;
-  border-radius: 17px 17px 0 0;
+  border-radius: var(--border-radius-medium);
   content: "";
   position: absolute;
   height: 17px;
@@ -4014,7 +4014,7 @@ main section {
 }
 .collapsible-section.active {
   background: var(--newtab-element-hover-color);
-  border-radius: 4px;
+  border-radius: var(--border-radius-small);
 }
 .collapsible-section .learn-more-link {
   font-size: var(--font-size-small);
@@ -4073,7 +4073,7 @@ main section {
   border: 0;
   background: none;
   z-index: 4;
-  border-radius: 2px;
+  border-radius: var(--border-radius-small);
 }
 .discoverystream-admin-toggle .icon-devtools {
   background-image: url("chrome://global/skin/icons/developer.svg");
@@ -4140,7 +4140,7 @@ main section {
   height: 500px;
   overflow: auto;
   resize: none;
-  border-radius: 4px;
+  border-radius: var(--border-radius-small);
   display: flex;
 }
 .discoverystream-admin .wnp-textarea {
@@ -4149,7 +4149,7 @@ main section {
   height: 500px;
   overflow: auto;
   resize: none;
-  border-radius: 4px;
+  border-radius: var(--border-radius-small);
   display: flex;
 }
 .discoverystream-admin .json-button {
@@ -4207,7 +4207,7 @@ main section {
 .discoverystream-admin .sourceLabel {
   background: var(--newtab-background-color-secondary);
   padding: 2px 5px;
-  border-radius: 3px;
+  border-radius: var(--border-radius-small);
 }
 .discoverystream-admin .sourceLabel.isDisabled {
   background: rgba(215, 0, 34, 0.3);
@@ -4267,7 +4267,7 @@ main section {
   padding: 10px;
   display: flex;
   background: rgba(0, 0, 0, 0.1);
-  border-radius: 3px;
+  border-radius: var(--border-radius-small);
   align-items: center;
 }
 .discoverystream-admin .helpLink a {
@@ -4286,7 +4286,7 @@ main section {
 .discoverystream-admin .clearButton {
   border: 0;
   padding: 4px;
-  border-radius: 4px;
+  border-radius: var(--border-radius-small);
   display: flex;
 }
 .discoverystream-admin .clearButton:hover {
@@ -4316,7 +4316,7 @@ main section {
   flex-flow: column nowrap;
   padding: 8px;
   border: 1px solid var(--newtab-border-color);
-  border-radius: 5px;
+  border-radius: var(--border-radius-small);
 }
 .discoverystream-admin .impressions-section .impressions-item .impressions-inner-box {
   display: flex;
@@ -4365,7 +4365,7 @@ main section {
   background: var(--newtab-primary-action-background);
   letter-spacing: -0.34px;
   color: #FFF;
-  border-radius: 4px;
+  border-radius: var(--border-radius-small);
   cursor: pointer;
   max-width: 130px;
   margin-top: -1px;
@@ -4537,7 +4537,7 @@ main section {
   margin: auto;
   background: var(--newtab-background-color-secondary);
   box-shadow: 0 2px 14px 0 rgba(0, 0, 0, 0.2);
-  border-radius: 4px;
+  border-radius: var(--border-radius-small);
   display: none;
   z-index: 1100;
 }
@@ -4571,7 +4571,7 @@ main section {
 }
 .modalOverlayInner .footer {
   border-top: 1px solid var(--newtab-border-color);
-  border-radius: 4px;
+  border-radius: var(--border-radius-small);
   height: 70px;
   width: 100%;
   position: absolute;
@@ -4626,18 +4626,18 @@ main section {
 .ds-onboarding-container,
 .ds-card-grid .ds-card {
   background: var(--newtab-background-color-secondary);
-  border-radius: 4px;
+  border-radius: var(--border-radius-small);
 }
 .ds-onboarding-container:not(.placeholder),
 .ds-card-grid .ds-card:not(.placeholder) {
-  border-radius: 8px;
+  border-radius: var(--border-radius-medium);
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
 }
 .ds-onboarding-container:not(.placeholder) .img-wrapper .img img,
 .ds-onboarding-container:not(.placeholder) .img-wrapper .img .placeholder-image,
 .ds-card-grid .ds-card:not(.placeholder) .img-wrapper .img img,
 .ds-card-grid .ds-card:not(.placeholder) .img-wrapper .img .placeholder-image {
-  border-radius: 8px 8px 0 0;
+  border-radius: var(--border-radius-medium) var(--border-radius-medium) 0 0;
 }
 
 .ds-onboarding-container {
@@ -4718,7 +4718,7 @@ main section {
 }
 .ds-onboarding-container .ds-onboarding-graphic {
   background-image: image-set(url("chrome://newtab/content/data/content/assets/pocket-onboarding.avif"), url("chrome://newtab/content/data/content/assets/pocket-onboarding@2x.avif") 2x);
-  border-radius: 8px;
+  border-radius: var(--border-radius-medium);
   background-size: contain;
   background-repeat: no-repeat;
   background-position: center;
@@ -4757,7 +4757,7 @@ main section {
   border: 0;
   outline: var(--focus-outline);
   transition: none;
-  border-radius: 8px;
+  border-radius: var(--border-radius-medium);
 }
 .ds-column-5 .ds-card-grid, .ds-column-6 .ds-card-grid, .ds-column-7 .ds-card-grid, .ds-column-8 .ds-card-grid {
   grid-template-columns: repeat(2, 1fr);
@@ -4960,7 +4960,7 @@ main section {
 }
 .outer-wrapper .ds-card-grid.ds-card-grid-hide-background .ds-card:not(.placeholder) .img-wrapper .img img,
 .outer-wrapper.newtab-experience .ds-card-grid.ds-card-grid-hide-background .ds-card:not(.placeholder) .img-wrapper .img img {
-  border-radius: 8px;
+  border-radius: var(--border-radius-medium);
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
 }
 .outer-wrapper .ds-card-grid.ds-card-grid-hide-background .ds-card:not(.placeholder) .meta,
@@ -6146,7 +6146,7 @@ main section {
 .outer-wrapper .ds-top-sites .top-sites .top-site-outer .top-site-inner > a:is(:hover) .top-site-inner {
   box-shadow: 0 0 0 5px var(--newtab-background-color-secondary);
   transition: box-shadow 150ms;
-  border-radius: 4px;
+  border-radius: var(--border-radius-small);
   outline: none;
 }
 .outer-wrapper .ds-top-sites .top-sites .top-sites-list {
@@ -6230,7 +6230,7 @@ main section {
   border: 0;
   outline: 1px solid var(--newtab-border-color);
   outline-width: 0;
-  border-radius: 100%;
+  border-radius: var(--border-radius-circle);
   cursor: pointer;
   color: var(--button-text-color);
   fill: var(--newtab-button-text);
@@ -6372,7 +6372,7 @@ main section {
   padding-block-start: 50%;
   pointer-events: none;
   background: rgba(0, 0, 0, 0.4);
-  border-radius: 8px 8px 0 0;
+  border-radius: var(--border-radius-medium) var(--border-radius-medium) 0 0;
 }
 .ds-card .card-stp-button-hover-background .card-stp-button-position-wrapper {
   position: absolute;
@@ -6401,7 +6401,7 @@ main section {
 .ds-card .context-menu-button {
   position: static;
   transition: none;
-  border-radius: 3px;
+  border-radius: var(--border-radius-small);
   background-color: var(--newtab-button-static-background);
 }
 .ds-card .context-menu-button:hover {
@@ -6437,7 +6437,7 @@ main section {
   aspect-ratio: 2/1;
 }
 .ds-card .img img {
-  border-radius: 4px;
+  border-radius: var(--border-radius-small);
   box-shadow: inset 0 0 0 0.5px rgba(0, 0, 0, 0.15);
 }
 .ds-card .ds-card-link {
@@ -6834,7 +6834,7 @@ main section {
 
 .ds-dismiss {
   position: relative;
-  border-radius: 8px;
+  border-radius: var(--border-radius-medium);
   transition-duration: 250ms;
   transition-property: background;
 }
@@ -6842,7 +6842,6 @@ main section {
   opacity: 1;
 }
 .ds-dismiss .ds-dismiss-button {
-  border: 0;
   cursor: pointer;
   height: 32px;
   width: 32px;
@@ -6853,7 +6852,8 @@ main section {
   position: absolute;
   inset-inline-end: 0;
   top: 0;
-  border-radius: 50%;
+  border: 1px solid red;
+  border-radius: var(--border-radius-circle);
   background-color: transparent;
 }
 .ds-dismiss .ds-dismiss-button .icon {
@@ -6915,7 +6915,7 @@ main section {
 
 .section-empty-state {
   border: 1px solid var(--newtab-border-color);
-  border-radius: 4px;
+  border-radius: var(--border-radius-small);
   display: flex;
   height: 160px;
   width: 100%;
@@ -6935,7 +6935,7 @@ main section {
 .section-empty-state .try-again-button {
   margin-top: 12px;
   padding: 6px 32px;
-  border-radius: 2px;
+  border-radius: var(--border-radius-small);
   border: 0;
   background: var(--newtab-button-secondary-color);
   color: var(--newtab-text-primary-color);
@@ -6946,19 +6946,19 @@ main section {
 .section-empty-state .try-again-button:not(.waiting):focus {
   box-shadow: 0 0 0 5px rgba(10, 132, 255, 0.3);
   transition: box-shadow 150ms;
-  border-radius: 4px;
+  border-radius: var(--border-radius-small);
   outline: none;
 }
 [lwt-newtab-brighttext] .section-empty-state .try-again-button:not(.waiting):focus {
   box-shadow: 0 0 0 5px rgba(69, 161, 255, 0.4);
   transition: box-shadow 150ms;
-  border-radius: 4px;
+  border-radius: var(--border-radius-small);
   outline: none;
 }
 .section-empty-state .try-again-button:not(.waiting):hover {
   box-shadow: 0 0 0 5px var(--newtab-element-secondary-color);
   transition: box-shadow 150ms;
-  border-radius: 4px;
+  border-radius: var(--border-radius-small);
   outline: none;
 }
 .section-empty-state .try-again-button::after {
@@ -7036,7 +7036,7 @@ main section {
   }
 }
 .ds-text-promo .ds-image img {
-  border-radius: 4px;
+  border-radius: var(--border-radius-small);
 }
 .ds-text-promo h3 {
   color: var(--newtab-text-primary-color);
@@ -7066,7 +7066,7 @@ main section {
 }
 .ds-chevron-link:focus {
   box-shadow: 0 1px 4px 0 rgba(12, 12, 13, 0.2);
-  border-radius: 2px;
+  border-radius: var(--border-radius-small);
 }
 .ds-chevron-link::after {
   background-color: var(--newtab-primary-action-background);
@@ -7207,7 +7207,7 @@ main section {
 }
 .ds-signup:hover {
   background: var(--newtab-element-hover-color);
-  border-radius: 4px;
+  border-radius: var(--border-radius-small);
 }
 .ds-signup .icon-mail {
   height: 40px;
@@ -7327,7 +7327,7 @@ main section {
   background: var(--newtab-background-color-secondary);
   border: 1px solid color-mix(in srgb, var(--newtab-border-color) 52%, transparent);
   color: var(--newtab-text-primary-color);
-  border-radius: 8px;
+  border-radius: var(--border-radius-medium);
 }
 .ds-topics-widget .ds-topics-widget-list-container ul li a:hover {
   background: var(--newtab-element-hover-color);
@@ -7355,7 +7355,7 @@ main section {
   font-size: inherit;
   text-align: center;
   padding: 8px;
-  border-radius: 4px;
+  border-radius: var(--border-radius-small);
   background-color: var(--newtab-primary-action-background-pocket);
   border: 0;
 }
@@ -7711,7 +7711,7 @@ main section {
 }
 .topic-list .topic-item {
   align-items: center;
-  border-radius: 40px;
+  border-radius: var(--border-radius-circle);
   border: var(--border-width) solid var(--border-color-interactive);
   display: flex;
   justify-self: center;
@@ -7743,7 +7743,7 @@ main section {
   align-items: center;
   width: 42px;
   height: 42px;
-  border-radius: 100%;
+  border-radius: var(--border-radius-circle);
   background-color: var(--newtab-button-static-background);
   margin-inline-end: var(--space-large);
 }
@@ -7904,7 +7904,7 @@ main section {
   border: 0;
   outline: 1px solid var(--newtab-border-color);
   outline-width: 0;
-  border-radius: 100%;
+  border-radius: var(--border-radius-circle);
   cursor: pointer;
   color: var(--button-text-color);
   fill: var(--newtab-button-text);
@@ -8314,7 +8314,7 @@ main section {
 .inline-selection-wrapper.ds-section .topic-list li > label {
   background-color: var(--background-color-canvas);
   border: var(--border-width) solid var(--border-color-interactive);
-  border-radius: 40px;
+  border-radius: var(--border-radius-circle);
   color: var(--newtab-contextual-text-primary-color);
   padding: var(--space-small) calc(1.25 * var(--space-small)) var(--space-small) var(--space-xsmall);
 }

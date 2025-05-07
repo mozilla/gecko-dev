@@ -3,8 +3,8 @@
 /* stylelint-disable max-nesting-depth */
 
 $top-sites-size: $grid-unit-small;
-$top-sites-border-radius: 8px;
-$top-sites-icon-border-radius: 4px;
+$top-sites-border-radius: var(--border-radius-medium);
+$top-sites-icon-border-radius: var(--border-radius-small);
 $rich-icon-size: 96px;
 $default-icon-wrapper-size: 32px;
 $default-icon-size: 32px;
@@ -151,7 +151,7 @@ $calculated-max-width-twice-widest: $break-point-widest + 2 * $card-width;
 // container for drop zone
 .top-site-outer {
   width: 120px;
-  border-radius: 8px;
+  border-radius: var(--border-radius-medium);
   display: inline-block;
   margin-block-end: 16px;
 
@@ -208,7 +208,7 @@ $calculated-max-width-twice-widest: $break-point-widest + 2 * $card-width;
     background-image: url('chrome://global/skin/icons/more.svg');
     background-color: var(--newtab-button-background);
     border: 0;
-    border-radius: 4px;
+    border-radius: var(--border-radius-small);
     cursor: pointer;
     fill: var(--newtab-button-text);
     -moz-context-properties: fill;
@@ -238,7 +238,7 @@ $calculated-max-width-twice-widest: $break-point-widest + 2 * $card-width;
   }
 
   .tile {
-    border-radius: $top-sites-border-radius;
+    border-radius: var(--border-radius-medium);
     box-shadow: $shadow-card;
     background-color: var(--newtab-background-color-secondary);
     justify-content: center;
@@ -256,7 +256,7 @@ $calculated-max-width-twice-widest: $break-point-widest + 2 * $card-width;
     text-transform: uppercase;
 
     .icon-wrapper {
-      border-radius: 4px;
+      border-radius: var(--border-radius-small);
       width: 48px;
       height: 48px;
       overflow: hidden;
@@ -286,7 +286,7 @@ $calculated-max-width-twice-widest: $break-point-widest + 2 * $card-width;
     background-color: var(--newtab-background-color-secondary);
     background-position: center center;
     background-repeat: no-repeat;
-    border-radius: $top-sites-icon-border-radius;
+    border-radius: var(--border-radius-small);
     position: absolute;
   }
 
@@ -319,7 +319,7 @@ $calculated-max-width-twice-widest: $break-point-widest + 2 * $card-width;
     background-image: url('chrome://global/skin/icons/search-glass.svg');
     background-size: 16px;
     background-color: var(--newtab-primary-action-background);
-    border-radius: $default-icon-wrapper-size;
+    border-radius: var(--border-radius-circle);
     -moz-context-properties: fill;
     fill: var(--newtab-primary-element-text-color);
     box-shadow: $shadow-card;
@@ -715,7 +715,7 @@ $calculated-max-width-twice-widest: $break-point-widest + 2 * $card-width;
     .error-tooltip {
       animation: fade-up-tt 450ms;
       background: var(--newtab-status-error);
-      border-radius: 2px;
+      border-radius: var(--border-radius-small);
       color: $white;
       inset-inline-start: 3px;
       padding: 5px 12px;
@@ -785,7 +785,7 @@ $calculated-max-width-twice-widest: $break-point-widest + 2 * $card-width;
   [type='checkbox']:checked + label::before {
     background: var(--newtab-background-color);
     border: $input-border;
-    border-radius: $border-radius;
+    border-radius: var(--border-radius-small);
     content: '';
     height: 21px;
     left: $checkbox-offset;

@@ -1,6 +1,6 @@
 .section-empty-state {
   border: $border-secondary;
-  border-radius: 4px;
+  border-radius: var(--border-radius-small);
   display: flex;
   height: $card-height-compact;
   width: 100%;
@@ -20,7 +20,7 @@
   .try-again-button {
     margin-top: 12px;
     padding: 6px 32px;
-    border-radius: 2px;
+    border-radius: var(--border-radius-small);
     border: 0;
     background: var(--newtab-button-secondary-color);
     color: var(--newtab-text-primary-color);

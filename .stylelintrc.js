@@ -359,10 +359,14 @@ module.exports = {
               "/^[0-9.]+$/",
               "/^(small|medium|large|x-large|xx-large)$/",
             ],
+            "border-radius": [
+              "/^[0-9.]+(px|em|rem|%)$/",
+              "/^(small|medium|large|x-large|xx-large)$/",
+            ],
           },
           {
             message:
-              "Avoid literal font-size values. Use variables (e.g. var(--font-size-small)) or inherit/unset/etc.",
+              "Avoid literal values. Use variables (e.g. var(--font-size-small)) or inherit/unset/etc.",
           },
         ],
       },

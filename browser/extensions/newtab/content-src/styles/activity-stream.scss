@@ -52,7 +52,7 @@ h2 {
 
 .inner-border {
   border: $border-secondary;
-  border-radius: $border-radius;
+  border-radius: var(--border-radius-small);
   height: 100%;
   left: 0;
   pointer-events: none;
@@ -97,7 +97,7 @@ h2 {
 .actions button {
   background-color: var(--newtab-button-secondary-color);
   border: $border-primary;
-  border-radius: 4px;
+  border-radius: var(--border-radius-small);
   color: inherit;
   cursor: pointer;
   margin-bottom: 15px;
@@ -130,7 +130,7 @@ h2 {
 input {
   &[type='text'],
   &[type='search'] {
-    border-radius: $border-radius;
+    border-radius: var(--border-radius-small);
   }
 }
 

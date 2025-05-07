@@ -32,7 +32,7 @@
 
   .section-empty-state {
     border: $border-secondary;
-    border-radius: $border-radius;
+    border-radius: var(--border-radius-small);
     display: flex;
     height: $card-height;
     width: 100%;

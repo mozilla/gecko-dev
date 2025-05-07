@@ -44,7 +44,7 @@
     li>label {
       background-color: var(--background-color-canvas);
       border: var(--border-width) solid var(--border-color-interactive);
-      border-radius: 40px;
+      border-radius: var(--border-radius-circle);
       color: var(--newtab-contextual-text-primary-color);
       padding: var(--space-small) calc(1.25 * var(--space-small)) var(--space-small) var(--space-xsmall);
 

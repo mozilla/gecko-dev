@@ -6,7 +6,7 @@
   background-position: center;
   background-repeat: no-repeat;
   background-size: cover;
-  border-radius: 4px;
+  border-radius: var(--border-radius-small);
   box-shadow: $shadow-image-inset;
 }
 
@@ -47,7 +47,7 @@
 @mixin ds-fade-in($halo-color: $blue-50-30) {
   box-shadow: 0 0 0 5px $halo-color;
   transition: box-shadow 150ms;
-  border-radius: 4px;
+  border-radius: var(--border-radius-small);
   outline: none;
 }
 

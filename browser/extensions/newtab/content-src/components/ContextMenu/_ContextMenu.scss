@@ -4,7 +4,7 @@
 
 .context-menu {
   background: var(--newtab-background-color-secondary);
-  border-radius: $context-menu-border-radius;
+  border-radius: var(--border-radius-small);
   box-shadow: $context-menu-shadow;
   display: block;
   font-size: $context-menu-font-size;

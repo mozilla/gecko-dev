@@ -62,6 +62,6 @@
 .modal {
   background: var(--newtab-background-color-secondary);
   border: $border-secondary;
-  border-radius: 5px;
+  border-radius: var(--border-radius-small);
   z-index: 11002;
 }

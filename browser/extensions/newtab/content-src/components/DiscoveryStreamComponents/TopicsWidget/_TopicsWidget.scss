@@ -37,7 +37,7 @@
           background: var(--newtab-background-color-secondary);
           border: 1px solid color-mix(in srgb, var(--newtab-border-color) 52%, transparent);
           color: var(--newtab-text-primary-color);
-          border-radius: 8px;
+          border-radius: var(--border-radius-medium);
 
           &:hover {
             background: var(--newtab-element-hover-color);
@@ -70,7 +70,7 @@
     font-size: inherit;
     text-align: center;
     padding: 8px;
-    border-radius: 4px;
+    border-radius: var(--border-radius-small);
     background-color: var(--newtab-primary-action-background-pocket);
     border: 0;
 

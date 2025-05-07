@@ -6,7 +6,7 @@
   @include context-menu-button;
 
   background: var(--newtab-background-color-secondary);
-  border-radius: $border-radius-new;
+  border-radius: var(--border-radius-medium);
   display: inline-block;
   height: $card-height;
   margin-inline-end: $base-gutter;
@@ -34,7 +34,7 @@
   }
 
   .card {
-    border-radius: $border-radius-new;
+    border-radius: var(--border-radius-medium);
     box-shadow: $shadow-card;
     height: 100%;
   }
@@ -84,7 +84,7 @@
 
   .card-preview-image-outer {
     background-color: var(--newtab-element-secondary-color);
-    border-radius: $border-radius-new $border-radius-new 0 0;
+    border-radius: var(--border-radius-medium) var(--border-radius-medium) 0 0;
     height: $card-preview-image-height;
     overflow: hidden;
     position: relative;
@@ -280,7 +280,7 @@
       $container-size: 32px;
 
       background-color: var(--newtab-background-color-secondary);
-      border-radius: math.div($container-size, 2);
+      border-radius: var(--border-radius-medium);
       clip-path: inset(-1px -1px $container-size - ($card-height-compact - $card-preview-image-height-compact - 2 * $card-detail-vertical-spacing));
       height: $container-size;
       width: $container-size;
@@ -293,7 +293,7 @@
       &::after {
         border: 1px solid var(--newtab-card-hairline-color);
         border-bottom: 0;
-        border-radius: math.div($container-size, 2) + 1 math.div($container-size, 2) + 1 0 0;
+        border-radius: var(--border-radius-medium);
         content: '';
         position: absolute;
         height: math.div($container-size + 2, 2);

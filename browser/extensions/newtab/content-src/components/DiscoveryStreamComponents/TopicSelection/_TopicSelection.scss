@@ -98,7 +98,7 @@
 
   .topic-item {
     align-items: center;
-    border-radius: 40px;
+    border-radius: var(--border-radius-circle);
     border: var(--border-width) solid var(--border-color-interactive);
     display: flex;
     justify-self: center;
@@ -135,7 +135,7 @@
       align-items: center;
       width: 42px;
       height: 42px;
-      border-radius: 100%;
+      border-radius: var(--border-radius-circle);
       background-color: var(--newtab-button-static-background);
       margin-inline-end: var(--space-large);
 

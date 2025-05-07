@@ -78,7 +78,7 @@ $glyph-forward: url('chrome://browser/skin/forward.svg');
     width: 100%;
     box-shadow: $shadow-card;
     border: 1px solid transparent;
-    border-radius: 8px;
+    border-radius: var(--border-radius-medium);
     color: var(--newtab-text-primary-color);
     -moz-context-properties: fill;
     fill: var(--newtab-text-secondary-color);
@@ -99,7 +99,7 @@ $glyph-forward: url('chrome://browser/skin/forward.svg');
     background: $glyph-forward no-repeat center center;
     background-size: 16px 16px;
     border: 0;
-    border-radius: 0 $border-radius $border-radius 0;
+    border-radius: 0 var(--border-radius-medium) var(--border-radius-medium) 0;
     -moz-context-properties: fill;
     fill: var(--newtab-text-secondary-color);
     height: 100%;
@@ -117,7 +117,7 @@ $glyph-forward: url('chrome://browser/skin/forward.svg');
       outline: 0;
       box-shadow: $shadow-focus;
       border: 1px solid var(--newtab-primary-action-background);
-      border-radius: 0 $border-radius-new $border-radius-new 0;
+      border-radius: 0 var(--border-radius-medium) var(--border-radius-medium) 0;
     }
 
     &:active {
@@ -292,7 +292,7 @@ $glyph-forward: url('chrome://browser/skin/forward.svg');
   background: var(--newtab-background-color-secondary) var(--newtab-search-icon) $search-icon-padding center no-repeat;
   background-size: $search-icon-size;
   border: solid 1px transparent;
-  border-radius: 3px;
+  border-radius: var(--border-radius-small);
   box-shadow: $shadow-secondary, 0 0 0 1px $black-15;
   cursor: text;
   font-size: inherit;

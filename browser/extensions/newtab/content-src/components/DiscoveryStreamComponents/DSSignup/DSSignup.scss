@@ -9,7 +9,7 @@
 
   &:hover {
     background: var(--newtab-element-hover-color);
-    border-radius: 4px;
+    border-radius: var(--border-radius-small);
   }
 
   .icon-mail {

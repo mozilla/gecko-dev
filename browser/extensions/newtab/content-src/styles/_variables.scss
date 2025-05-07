@@ -66,9 +66,6 @@ $newtab-background-card-dark: rgb(66, 65, 77, 80%);
 // Photon transitions from http://design.firefox.com/photon/motion/duration-and-easing.html
 $photon-easing: cubic-bezier(0.07, 0.95, 0, 1);
 
-$border-radius: 3px;
-$border-radius-new: 8px;
-
 // Grid related styles
 $base-gutter: 32px;
 $section-horizontal-padding: 25px;
@@ -159,7 +156,8 @@ $context-menu-button-size: 27px;
 $context-menu-button-boxshadow: 0 2px $grey-90-10;
 $context-menu-shadow: 0 5px 10px $black-30, 0 0 0 1px $black-20;
 $context-menu-font-size: inherit;
-$context-menu-border-radius: 5px;
+
+// $context-menu-border-radius: 5px;
 $context-menu-outer-padding: 5px;
 $context-menu-item-padding: 3px 12px;
 
@@ -197,7 +195,7 @@ $customize-menu-border-tint: 1px solid rgba(0, 0, 0, 15%);
     border: 0;
     outline: $border-primary;
     outline-width: 0;
-    border-radius: 100%;
+    border-radius: var(--border-radius-circle);
     cursor: pointer;
     color: var(--button-text-color);
     fill: var(--newtab-button-text);

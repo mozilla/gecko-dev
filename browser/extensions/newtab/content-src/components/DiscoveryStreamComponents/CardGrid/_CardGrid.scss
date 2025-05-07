@@ -1,16 +1,16 @@
 .ds-onboarding-container,
 .ds-card-grid .ds-card {
   background: var(--newtab-background-color-secondary);
-  border-radius: 4px;
+  border-radius: var(--border-radius-small);
 
   &:not(.placeholder) {
-    border-radius: $border-radius-new;
+    border-radius: var(--border-radius-medium);
     box-shadow: $shadow-card;
 
     .img-wrapper .img {
       img,
       .placeholder-image {
-        border-radius: $border-radius-new $border-radius-new 0 0;
+        border-radius: var(--border-radius-medium) var(--border-radius-medium) 0 0;
       }
     }
   }
@@ -99,7 +99,7 @@
 
   .ds-onboarding-graphic {
     background-image: image-set(url('chrome://newtab/content/data/content/assets/pocket-onboarding.avif'), url('chrome://newtab/content/data/content/assets/pocket-onboarding@2x.avif') 2x);
-    border-radius: 8px;
+    border-radius: var(--border-radius-medium);
     background-size: contain;
     background-repeat: no-repeat;
     background-position: center;
@@ -147,7 +147,7 @@
     @include ds-focus;
 
     transition: none;
-    border-radius: $border-radius-new;
+    border-radius: var(--border-radius-medium);
   }
 
   // "2/3 width layout"
@@ -305,7 +305,7 @@
     }
 
     .img-wrapper .img img {
-      border-radius: 8px;
+      border-radius: var(--border-radius-medium);
       box-shadow: $shadow-card;
     }
 

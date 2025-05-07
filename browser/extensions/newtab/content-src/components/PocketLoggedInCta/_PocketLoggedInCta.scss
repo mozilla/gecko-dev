@@ -14,7 +14,7 @@
     background: var(--newtab-primary-action-background);
     letter-spacing: -0.34px;
     color: $white;
-    border-radius: 4px;
+    border-radius: var(--border-radius-small);
     cursor: pointer;
     max-width: $max-button-width;
     // The button height is 2px taller than the rest of the cta text.

@@ -31,7 +31,7 @@ $modal-scrollbar-z-index: 1100;
   margin: auto;
   background: var(--newtab-background-color-secondary);
   box-shadow: $shadow-large;
-  border-radius: 4px;
+  border-radius: var(--border-radius-small);
   display: none;
   z-index: $modal-scrollbar-z-index;
 
@@ -65,7 +65,7 @@ $modal-scrollbar-z-index: 1100;
 
   .footer {
     border-top: $border-secondary;
-    border-radius: 4px;
+    border-radius: var(--border-radius-small);
     height: 70px;
     width: 100%;
     position: absolute;

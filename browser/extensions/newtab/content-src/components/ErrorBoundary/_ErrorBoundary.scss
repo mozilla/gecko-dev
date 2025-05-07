@@ -1,6 +1,6 @@
 .as-error-fallback {
   align-items: center;
-  border-radius: $border-radius;
+  border-radius: var(--border-radius-medium);
   box-shadow: inset $inner-box-shadow;
   color: var(--newtab-text-secondary-color);
   display: flex;
