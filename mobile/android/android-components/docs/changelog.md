@@ -11,6 +11,7 @@ permalink: /changelog/
   * Added `DownloadEstimator` to estimate download time remaining. [Bug 1956577](https://bugzilla.mozilla.org/show_bug.cgi?id=1956577).
   * ⚠️ **Breaking change**: Added `downloadEstimator` property to `DownloadJobState`. [Bug 1956577](https://bugzilla.mozilla.org/show_bug.cgi?id=1956577).
   * ⚠️ **Breaking change**: Added new 'dateTimeProvider' abstract val to `AbstractFetchDownloadService`. [Bug 1956577](https://bugzilla.mozilla.org/show_bug.cgi?id=1956577).
+  * ⚠️ **Breaking change**: Removed Deprecated `Long.toMegabyteOrKilobyteString` in v140. [Bug 1955689](https://bugzilla.mozilla.org/show_bug.cgi?id=1955689).
 
 # 139.0
 * **feature-downloads**

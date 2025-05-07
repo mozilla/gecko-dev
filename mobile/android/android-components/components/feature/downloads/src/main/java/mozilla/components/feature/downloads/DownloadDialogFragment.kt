@@ -7,7 +7,6 @@ package mozilla.components.feature.downloads
 import android.os.Bundle
 import androidx.appcompat.app.AppCompatDialogFragment
 import mozilla.components.browser.state.state.content.DownloadState
-import mozilla.components.feature.downloads.DownloadDialogFragment.Companion.BYTES_TO_MB_LIMIT
 import mozilla.components.feature.downloads.DownloadDialogFragment.Companion.KILOBYTE
 import mozilla.components.feature.downloads.DownloadDialogFragment.Companion.MEGABYTE
 import mozilla.components.feature.downloads.ext.realFilenameOrGuessed
@@ -80,25 +79,4 @@ fun Long.toMegabyteString(): String {
 @Suppress("DefaultLocale")
 fun Long.toKilobyteString(): String {
     return String.format("%.2f KB", this / KILOBYTE)
-}
-
-/**
- * Converts the bytes to megabytes or kilobytes( if size smaller than 0.01 MB)
- * with two decimal places and returns a formatted string
- */
-@Deprecated(
-    message = "This does not provide localization support and it can only convert to MB or kB. " +
-        "Use FileSizeFormatter instead",
-    replaceWith = ReplaceWith(
-        expression = "DefaultFileSizeFormatter(context = context).formatSizeInBytes(sizeInBytes = sizeInBytes)",
-        imports = ["mozilla.components.feature.downloads.FileSizeFormatter"],
-    ),
-    level = DeprecationLevel.WARNING,
-)
-fun Long.toMegabyteOrKilobyteString(): String {
-    return if (this / MEGABYTE < BYTES_TO_MB_LIMIT) {
-        this.toKilobyteString()
-    } else {
-        this.toMegabyteString()
-    }
 }
