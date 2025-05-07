@@ -63,18 +63,22 @@ const TASKS = [
   "depth-estimation",
   "feature-extraction",
   "image-feature-extraction",
+  "wllama-text-generation",
 ];
 
 const DTYPE = ["fp32", "fp16", "q8", "int8", "uint8", "q4", "bnb4", "q4f16"];
 
 function getNumThreadsArray() {
   return Array.from(
-    { length: lazy.getOptimalCPUConcurrency() },
-    (_, i) => i + 1
+    { length: lazy.getOptimalCPUConcurrency() + 1 }, // Allows 0 for optimal number
+    (_, i) => i
   );
 }
 
 let engineParent = null;
+
+const TINY_ARTICLE =
+  "The tower is 324 metres (1,063 ft) tall, about the same height as an 81-storey building, and the tallest structure in Paris. Its base is square, measuring 125 metres (410 ft) on each side. During its construction, the Eiffel Tower surpassed the Washington Monument to become the tallest man-made structure in the world, a title it held for 41 years until the Chrysler Building in New York City was finished in 1930. It was the first structure to reach a height of 300 metres. Due to the addition of a broadcasting aerial at the top of the tower in 1957, it is now taller than the Chrysler Building by 5.2 metres (17 ft). Excluding transmitters, the Eiffel Tower is the second tallest free-standing structure in France after the Millau Viaduct.";
 
 /**
  * Presets for the pad
@@ -103,9 +107,7 @@ const INFERENCE_PAD_PRESETS = {
     device: "wasm",
   },
   summary: {
-    inputArgs: [
-      "The tower is 324 metres (1,063 ft) tall, about the same height as an 81-storey building, and the tallest structure in Paris. Its base is square, measuring 125 metres (410 ft) on each side. During its construction, the Eiffel Tower surpassed the Washington Monument to become the tallest man-made structure in the world, a title it held for 41 years until the Chrysler Building in New York City was finished in 1930. It was the first structure to reach a height of 300 metres. Due to the addition of a broadcasting aerial at the top of the tower in 1957, it is now taller than the Chrysler Building by 5.2 metres (17 ft). Excluding transmitters, the Eiffel Tower is the second tallest free-standing structure in France after the Millau Viaduct.",
-    ],
+    inputArgs: [TINY_ARTICLE],
     runOptions: {
       max_new_tokens: 100,
     },
@@ -136,6 +138,22 @@ const INFERENCE_PAD_PRESETS = {
     modelId: "Xenova/all-MiniLM-L6-v2",
     modelRevision: "main",
     modelHub: "huggingface",
+    dtype: "q8",
+    device: "wasm",
+  },
+
+  "link-preview": {
+    inputArgs: `Summarize this: ${TINY_ARTICLE}`,
+    runOptions: {
+      nPredict: 100,
+    },
+    task: "wllama-text-generation",
+    modelId:
+      "HuggingFaceTB/SmolLM2-360M-Instruct-GGUF/smollm2-360m-instruct-q8_0.gguf",
+    modelRevision: "main",
+    modelHub: "mozilla",
+    modelHubRootUrl: "https://model-hub.mozilla.org",
+    numThreads: 0,
     dtype: "q8",
     device: "wasm",
   },
@@ -634,7 +652,7 @@ async function runInference() {
 
   document.getElementById("console").value = "";
   const inferencePadValue = document.getElementById("inferencePad").value;
-  const modelId = document.getElementById("modelId").value;
+  let modelId = document.getElementById("modelId").value;
   const modelRevision = document.getElementById("modelRevision").value;
   const taskName = document.getElementById("taskName").value;
   const dtype = document.getElementById("dtype").value;
@@ -642,6 +660,7 @@ async function runInference() {
   const numThreads = parseInt(document.getElementById("numThreads").value);
   const numRuns = parseInt(document.getElementById("numRuns").value);
   const modelHub = document.getElementById("modelHub").value;
+  let additionalEngineOptions = {};
 
   let inputData;
   try {
@@ -649,6 +668,30 @@ async function runInference() {
   } catch (error) {
     alert("Invalid JSON input");
     return;
+  }
+
+  const isWllama = taskName.includes("wllama");
+
+  if (isWllama) {
+    const lastSlashIndex = modelId.lastIndexOf("/");
+
+    const modelFile = modelId.substring(lastSlashIndex + 1);
+    modelId = modelId.substring(0, lastSlashIndex);
+
+    const numContext = JSON.stringify(inputData.inputArgs).length;
+    const numBatch = Math.min(numContext, 1024);
+    additionalEngineOptions = {
+      modelFile,
+      modelId,
+      backend: "wllama",
+      numContext,
+      numBatch,
+      numUbatch: numBatch,
+      timeoutMS: -1,
+      useMlock: false,
+      useMmap: true,
+      kvCacheDtype: "q8_0",
+    };
   }
 
   const initData = {
@@ -666,19 +709,24 @@ async function runInference() {
     numThreads,
     timeoutMS: THIRTY_SECONDS,
     executionPriority: ExecutionPriority.LOW,
+    ...additionalEngineOptions,
   };
 
   resultsConsole.addLine("Creating engine if needed");
   let engine;
+  let startTime;
+  const e2eRunTimeKey = "e2e run time (ms)";
+  let e2eMetrics = { [e2eRunTimeKey]: [] };
   try {
     const pipelineOptions = new PipelineOptions(initData);
+    startTime = performance.now();
     const engineParent = await getEngineParent();
-
     engine = await engineParent.getEngine(pipelineOptions, progressData => {
       engineNotification(progressData).catch(err => {
         console.error("Error in engineNotification:", err);
       });
     });
+    e2eMetrics["e2e init time (ms)"] = performance.now() - startTime;
   } catch (e) {
     resultsConsole.addLine(e);
     throw e;
@@ -686,12 +734,18 @@ async function runInference() {
 
   resultsConsole.addLine("Running inference request");
 
-  const request = { args: inputData.inputArgs, options: inputData.runOptions };
+  let request = { args: inputData.inputArgs, options: inputData.runOptions };
+
+  if (isWllama) {
+    request = { prompt: inputData.inputArgs, ...inputData.runOptions };
+  }
 
   let res;
   for (let i = 0; i < numRuns; i++) {
     try {
+      startTime = performance.now();
       res = await engine.run(request);
+      e2eMetrics[e2eRunTimeKey].push(performance.now() - startTime);
     } catch (e) {
       resultsConsole.addLine(e);
       if (
@@ -726,6 +780,10 @@ async function runInference() {
   );
   resultsConsole.addLine(
     `Timers: ${JSON.stringify(findTotalTime(res.metrics), null, 2)}`
+  );
+
+  resultsConsole.addLine(
+    `End to End Metrics: ${JSON.stringify(e2eMetrics, null, 2)}`
   );
   await refreshPage();
 }
@@ -1035,6 +1093,28 @@ async function runBenchmark() {
         device: "wasm",
       },
     },
+    {
+      name: "link-preview",
+      compatibleBackends: ["wllama"],
+      inputArgs: `Summarize this: ${TINY_ARTICLE}`,
+      runOptions: {
+        nPredict: 100,
+      },
+      pipelineOptions: {
+        taskName: "wllama-text-generation",
+        modelId: "HuggingFaceTB/SmolLM2-360M-Instruct-GGUF",
+        modelFile: "smollm2-360m-instruct-q8_0.gguf",
+        modelRevision: "main",
+        modelHub: "mozilla",
+        modelHubRootUrl: "https://model-hub.mozilla.org",
+        numContext: 1024,
+        numBatch: 1024,
+        numUbatch: 1024,
+        useMlock: false,
+        useMmap: true,
+        kvCacheDtype: "q8_0",
+      },
+    },
   ];
 
   let results = [];
@@ -1042,7 +1122,7 @@ async function runBenchmark() {
   for (const currentBackend of backend) {
     for (const workload of workloads) {
       if (!workload.compatibleBackends.includes(currentBackend)) {
-        break;
+        continue;
       }
 
       workload.pipelineOptions.engineId = "about-inference-benchmark";
@@ -1069,10 +1149,14 @@ async function runBenchmark() {
         });
 
         benchmarkConsole.addText("\nRunning 25 iterations ");
-        const request = {
+        let request = {
           args: workload.inputArgs,
           options: workload.runOptions,
         };
+
+        if (currentBackend == "wllama") {
+          request = { prompt: workload.inputArgs, ...workload.runOptions };
+        }
 
         for (let i = 0; i < 25; i++) {
           benchmarkConsole.addText(".");
