@@ -578,10 +578,6 @@ class HomeFragment : Fragment() {
             updateSessionControlView()
         }
 
-        if (!activity.browsingModeManager.mode.isPrivate && requireContext().settings().openPrivateTabsCount > 0) {
-            requireContext().settings().isPrivateScreenLocked = true
-        }
-
         disableAppBarDragging()
 
         FxNimbus.features.homescreen.recordExposure()

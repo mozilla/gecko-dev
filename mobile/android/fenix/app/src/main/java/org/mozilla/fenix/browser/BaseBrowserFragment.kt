@@ -432,10 +432,6 @@ abstract class BaseBrowserFragment :
         val originalContext = ActivityContextWrapper.getOriginalContext(activity)
         binding.engineView.setActivityContext(originalContext)
 
-        if (!activity.browsingModeManager.mode.isPrivate && requireContext().settings().openPrivateTabsCount > 0) {
-            requireContext().settings().isPrivateScreenLocked = true
-        }
-
         startForResult = registerForActivityResult { result ->
             listOf(
                 promptsFeature,

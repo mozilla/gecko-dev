@@ -134,6 +134,7 @@ import org.mozilla.fenix.home.intent.ReEngagementIntentProcessor
 import org.mozilla.fenix.home.intent.SpeechProcessingIntentProcessor
 import org.mozilla.fenix.home.intent.StartSearchIntentProcessor
 import org.mozilla.fenix.library.bookmarks.DesktopFolders
+import org.mozilla.fenix.lifecycle.PrivateBrowsingLockFeature
 import org.mozilla.fenix.messaging.FenixMessageSurfaceId
 import org.mozilla.fenix.messaging.MessageNotificationWorker
 import org.mozilla.fenix.nimbus.FxNimbus
@@ -146,6 +147,7 @@ import org.mozilla.fenix.perf.ProfilerMarkers
 import org.mozilla.fenix.perf.StartupPathProvider
 import org.mozilla.fenix.perf.StartupTimeline
 import org.mozilla.fenix.perf.StartupTypeTelemetry
+import org.mozilla.fenix.perf.lazyMonitored
 import org.mozilla.fenix.session.PrivateNotificationService
 import org.mozilla.fenix.settings.SupportUtils
 import org.mozilla.fenix.shortcut.NewTabShortcutIntentProcessor.Companion.ACTION_OPEN_PRIVATE_TAB
@@ -212,6 +214,10 @@ open class HomeActivity : LocaleAwareAppCompatActivity(), NavHostActivity {
                 }
             },
         )
+    }
+
+    private val privateBrowsingLockFeature by lazyMonitored {
+        PrivateBrowsingLockFeature(components)
     }
 
     private val crashReporterBinding by lazy {
@@ -503,6 +509,7 @@ open class HomeActivity : LocaleAwareAppCompatActivity(), NavHostActivity {
                     components.core.contileTopSitesProvider
                 },
             ),
+            privateBrowsingLockFeature,
         )
 
         if (!isCustomTabIntent(intent)) {
@@ -700,14 +707,6 @@ open class HomeActivity : LocaleAwareAppCompatActivity(), NavHostActivity {
         val isPrivateScreenLocked = settings().isPrivateScreenLocked
 
         return isPrivateMode && hasPrivateTabs && biometricLockEnabled && isPrivateScreenLocked
-    }
-
-    override fun onRestart() {
-        super.onRestart()
-
-        if (browsingModeManager.mode.isPrivate && components.core.store.state.privateTabs.isNotEmpty()) {
-            settings().isPrivateScreenLocked = true
-        }
     }
 
     final override fun onStart() {
