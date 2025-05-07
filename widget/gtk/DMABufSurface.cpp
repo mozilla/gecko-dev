@@ -1540,8 +1540,8 @@ bool DMABufSurfaceYUV::CreateYUVPlaneGBM(int aPlane, DRMFormat* aFormat) {
 
   MOZ_DIAGNOSTIC_ASSERT(mGbmBufferObject[aPlane] == nullptr);
 
-  if (aFormat->UseModifiers()) {
-    LOGDMABUF("    Creating with modifiers\n");
+  if (aFormat && aFormat->UseModifiers()) {
+    LOGDMABUF("    Creating with modifiers from DRMFormat");
     uint32_t modifiersNum = 0;
     const uint64_t* modifiers = aFormat->GetModifiers(modifiersNum);
     mGbmBufferObject[aPlane] = GbmLib::CreateWithModifiers2(
@@ -1550,6 +1550,12 @@ bool DMABufSurfaceYUV::CreateYUVPlaneGBM(int aPlane, DRMFormat* aFormat) {
     if (mGbmBufferObject[aPlane]) {
       mBufferModifiers[aPlane] = GbmLib::GetModifier(mGbmBufferObject[aPlane]);
     }
+  } else if (mBufferModifiers[aPlane] != DRM_FORMAT_MOD_INVALID) {
+    LOGDMABUF(
+        "    Creating with modifiers from DMABufSurface mBufferModifiers");
+    mGbmBufferObject[aPlane] = GbmLib::CreateWithModifiers2(
+        GetDMABufDevice()->GetGbmDevice(), mWidth[aPlane], mHeight[aPlane],
+        mDrmFormats[aPlane], mBufferModifiers + aPlane, 1, mGbmBufferFlags);
   }
   if (!mGbmBufferObject[aPlane]) {
     LOGDMABUF("    Creating without modifiers");
