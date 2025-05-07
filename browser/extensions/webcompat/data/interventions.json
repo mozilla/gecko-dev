@@ -2763,6 +2763,23 @@
       }
     ]
   },
+  "1928954": {
+    "label": "publix.com",
+    "bugs": {
+      "1928954": {
+        "issue": "broken-interactive-elements",
+        "matches": ["*://*.publix.com/*"]
+      }
+    },
+    "interventions": [
+      {
+        "platforms": ["all"],
+        "content_scripts": {
+          "js": ["bug1928954-publix.com-prevent-nav-on-javascript-url-click.js"]
+        }
+      }
+    ]
+  },
   "1930440": {
     "label": "online.singaporepools.com",
     "bugs": {
