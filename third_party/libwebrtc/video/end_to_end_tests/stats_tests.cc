@@ -642,9 +642,10 @@ TEST_F(StatsEndToEndTest, VerifyNackStats) {
             stream_stats.rtcp_packet_type_counts.nack_packets;
       }
       for (const auto& receive_stream : receive_streams_) {
-        VideoReceiveStreamInterface::Stats stats = receive_stream->GetStats();
+        VideoReceiveStreamInterface::Stats receive_stats =
+            receive_stream->GetStats();
         receive_stream_nack_packets +=
-            stats.rtcp_packet_type_counts.nack_packets;
+            receive_stats.rtcp_packet_type_counts.nack_packets;
       }
       if (send_stream_nack_packets >= 1 && receive_stream_nack_packets >= 1) {
         // NACK packet sent on receive stream and received on sent stream.

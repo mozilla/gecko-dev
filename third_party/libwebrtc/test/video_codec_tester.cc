@@ -1148,7 +1148,7 @@ class Encoder : public EncodedImageCallback {
             LayerId{.spatial_idx = sidx, .temporal_idx = 0});
         auto tlx_settings = es.layers_settings.find(LayerId{
             .spatial_idx = sidx, .temporal_idx = num_temporal_layers - 1});
-        DataRate total_bitrate = std::accumulate(
+        DataRate total_layer_bitrate = std::accumulate(
             tl0_settings, tlx_settings, DataRate::Zero(),
             [](DataRate acc,
                const std::pair<const LayerId, LayerSettings> layer) {
@@ -1158,8 +1158,8 @@ class Encoder : public EncodedImageCallback {
         ss.width = tl0_settings->second.resolution.width;
         ss.height = tl0_settings->second.resolution.height;
         ss.numberOfTemporalLayers = num_temporal_layers;
-        ss.maxBitrate = total_bitrate.kbps();
-        ss.targetBitrate = total_bitrate.kbps();
+        ss.maxBitrate = total_layer_bitrate.kbps();
+        ss.targetBitrate = total_layer_bitrate.kbps();
         ss.minBitrate = 0;
         ss.maxFramerate = vc.maxFramerate;
         ss.qpMax = vc.qpMax;

@@ -10014,22 +10014,24 @@ class WebRtcVideoChannelSimulcastTest : public ::testing::Test {
       expected_streams = factory->CreateEncoderStreams(
           field_trials_, capture_width, capture_height, encoder_config);
       if (screenshare && conference_mode) {
-        for (const webrtc::VideoStream& stream : expected_streams) {
+        for (const webrtc::VideoStream& expected_stream : expected_streams) {
           // Never scale screen content.
-          EXPECT_EQ(stream.width, rtc::checked_cast<size_t>(capture_width));
-          EXPECT_EQ(stream.height, rtc::checked_cast<size_t>(capture_height));
+          EXPECT_EQ(expected_stream.width,
+                    rtc::checked_cast<size_t>(capture_width));
+          EXPECT_EQ(expected_stream.height,
+                    rtc::checked_cast<size_t>(capture_height));
         }
       }
     } else {
-      webrtc::VideoStream stream;
-      stream.width = capture_width;
-      stream.height = capture_height;
-      stream.max_framerate = kDefaultVideoMaxFramerate;
-      stream.min_bitrate_bps = webrtc::kDefaultMinVideoBitrateBps;
-      stream.target_bitrate_bps = stream.max_bitrate_bps =
+      webrtc::VideoStream expected_stream;
+      expected_stream.width = capture_width;
+      expected_stream.height = capture_height;
+      expected_stream.max_framerate = kDefaultVideoMaxFramerate;
+      expected_stream.min_bitrate_bps = webrtc::kDefaultMinVideoBitrateBps;
+      expected_stream.target_bitrate_bps = expected_stream.max_bitrate_bps =
           GetMaxDefaultBitrateBps(capture_width, capture_height);
-      stream.max_qp = kDefaultVideoMaxQpVpx;
-      expected_streams.push_back(stream);
+      expected_stream.max_qp = kDefaultVideoMaxQpVpx;
+      expected_streams.push_back(expected_stream);
     }
 
     ASSERT_EQ(expected_streams.size(), video_streams.size());

@@ -27,9 +27,9 @@
 
 namespace cricket {
 namespace {
-const int kWidth = 1280;
-const int kHeight = 720;
-const int kDefaultFps = 30;
+constexpr int kWidth = 1280;
+constexpr int kHeight = 720;
+constexpr int kDefaultFps = 30;
 
 using ::testing::_;
 using ::testing::Eq;
@@ -1092,8 +1092,6 @@ TEST(VideoAdapterTestMultipleOrientation, TestForcePortrait) {
 }
 
 TEST_P(VideoAdapterTest, AdaptResolutionInStepsFirst3_4) {
-  const int kWidth = 1280;
-  const int kHeight = 720;
   OnOutputFormatRequest(kWidth, kHeight, std::nullopt);  // 16:9 aspect.
 
   // Scale factors: 3/4, 2/3, 3/4, 2/3, ...

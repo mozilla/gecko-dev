@@ -20,9 +20,6 @@
 namespace webrtc {
 namespace {
 
-const int kNumChannels[] = {1, 2};
-const size_t kNumChannelsSize = sizeof(kNumChannels) / sizeof(*kNumChannels);
-
 // Rates we must support.
 const int kMaxRate = 96000;
 const int kRates[] = {8000, 16000, 32000, 44000, 48000, kMaxRate};
@@ -84,6 +81,9 @@ void ResamplerTest::ResetIfNeededAndPush(int in_rate,
 }
 
 TEST_F(ResamplerTest, Reset) {
+  const int kNumChannels[] = {1, 2};
+  const size_t kNumChannelsSize = std::size(kNumChannels);
+
   // The only failure mode for the constructor is if Reset() fails. For the
   // time being then (until an Init function is added), we rely on Reset()
   // to test the constructor.

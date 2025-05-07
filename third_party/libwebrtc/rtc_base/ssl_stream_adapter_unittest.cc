@@ -682,6 +682,7 @@ class SSLStreamAdapterTestBase : public ::testing::Test,
     EXPECT_EQ(webrtc::SS_OPENING, server_ssl_->GetState());
     uint8_t packet[1] = {0};
     size_t sent;
+    size_t read;
     int error;
     EXPECT_EQ(webrtc::SR_BLOCK, client_ssl_->Write(packet, sent, error));
     EXPECT_EQ(webrtc::SR_BLOCK, server_ssl_->Write(packet, sent, error));
@@ -729,9 +730,7 @@ class SSLStreamAdapterTestBase : public ::testing::Test,
       EXPECT_EQ(webrtc::SS_OPEN, client_ssl_->GetState());
       // If the client sends a packet while the server still hasn't verified the
       // client identity, the server should continue to return SR_BLOCK.
-      int error;
       EXPECT_EQ(webrtc::SR_SUCCESS, client_ssl_->Write(packet, sent, error));
-      size_t read;
       EXPECT_EQ(webrtc::SR_BLOCK, server_ssl_->Read(packet, read, error));
     } else {
       EXPECT_EQ(webrtc::SS_CLOSED, client_ssl_->GetState());

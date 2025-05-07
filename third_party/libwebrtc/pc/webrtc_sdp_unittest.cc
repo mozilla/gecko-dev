@@ -3610,17 +3610,17 @@ TEST_F(WebRtcSdpTest, MediaContentOrderMaintainedRoundTrip) {
     media_content_in_sdp[2] = (media_content_in_sdp[0] + (i + 1) % 2 + 1) % 3;
 
     std::string sdp_string = kSdpSessionString;
-    for (size_t i = 0; i < 3; ++i)
-      sdp_string += media_content_sdps[media_content_in_sdp[i]];
+    for (size_t j = 0; j < 3; ++j)
+      sdp_string += media_content_sdps[media_content_in_sdp[j]];
 
     EXPECT_TRUE(SdpDeserialize(sdp_string, &jdesc));
     cricket::SessionDescription* desc = jdesc.description();
     EXPECT_EQ(3u, desc->contents().size());
 
-    for (size_t i = 0; i < 3; ++i) {
+    for (size_t j = 0; j < 3; ++j) {
       const cricket::MediaContentDescription* mdesc =
-          desc->contents()[i].media_description();
-      EXPECT_EQ(media_types[media_content_in_sdp[i]], mdesc->type());
+          desc->contents()[j].media_description();
+      EXPECT_EQ(media_types[media_content_in_sdp[j]], mdesc->type());
     }
 
     std::string serialized_sdp = webrtc::SdpSerialize(jdesc);

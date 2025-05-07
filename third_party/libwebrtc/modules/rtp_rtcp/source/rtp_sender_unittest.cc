@@ -540,7 +540,6 @@ TEST_F(RtpSenderTest, KeepsTimestampsOnPayloadPadding) {
   const Timestamp start_time = env_.clock().CurrentTime();
   const uint32_t start_timestamp = ToRtpTimestamp(start_time);
   const size_t kPayloadSize = 200;
-  const size_t kRtxHeaderSize = 2;
 
   // Start by sending one media packet and putting in the packet history.
   EXPECT_CALL(
@@ -1146,12 +1145,12 @@ TEST_F(RtpSenderTest, GeneratePaddingResendsOldPacketsWithRtx) {
   size_t padding_bytes_generated = 0;
   generated_packets = GeneratePadding(kPaddingBytesRequested);
   EXPECT_EQ(generated_packets.size(), 1u);
-  for (auto& packet : generated_packets) {
-    EXPECT_EQ(packet->packet_type(), RtpPacketMediaType::kPadding);
-    EXPECT_EQ(packet->Ssrc(), kRtxSsrc);
-    EXPECT_EQ(packet->payload_size(), 0u);
-    EXPECT_GT(packet->padding_size(), 0u);
-    padding_bytes_generated += packet->padding_size();
+  for (auto& generated_packet : generated_packets) {
+    EXPECT_EQ(generated_packet->packet_type(), RtpPacketMediaType::kPadding);
+    EXPECT_EQ(generated_packet->Ssrc(), kRtxSsrc);
+    EXPECT_EQ(generated_packet->payload_size(), 0u);
+    EXPECT_GT(generated_packet->padding_size(), 0u);
+    padding_bytes_generated += generated_packet->padding_size();
   }
 
   EXPECT_EQ(padding_bytes_generated, kMaxPaddingLength);
@@ -1231,15 +1230,15 @@ TEST_F(RtpSenderTest, GeneratePaddingCreatesPurePaddingWithoutRtx) {
   std::vector<std::unique_ptr<RtpPacketToSend>> padding_packets =
       GeneratePadding(kPaddingBytesRequested);
   EXPECT_EQ(padding_packets.size(), kExpectedNumPaddingPackets);
-  for (auto& packet : padding_packets) {
-    EXPECT_EQ(packet->packet_type(), RtpPacketMediaType::kPadding);
-    EXPECT_EQ(packet->Ssrc(), kSsrc);
-    EXPECT_EQ(packet->payload_size(), 0u);
-    EXPECT_GT(packet->padding_size(), 0u);
-    padding_bytes_generated += packet->padding_size();
-    EXPECT_TRUE(packet->HasExtension<TransportSequenceNumber>());
-    EXPECT_TRUE(packet->HasExtension<AbsoluteSendTime>());
-    EXPECT_TRUE(packet->HasExtension<TransmissionOffset>());
+  for (auto& generated_packet : padding_packets) {
+    EXPECT_EQ(generated_packet->packet_type(), RtpPacketMediaType::kPadding);
+    EXPECT_EQ(generated_packet->Ssrc(), kSsrc);
+    EXPECT_EQ(generated_packet->payload_size(), 0u);
+    EXPECT_GT(generated_packet->padding_size(), 0u);
+    padding_bytes_generated += generated_packet->padding_size();
+    EXPECT_TRUE(generated_packet->HasExtension<TransportSequenceNumber>());
+    EXPECT_TRUE(generated_packet->HasExtension<AbsoluteSendTime>());
+    EXPECT_TRUE(generated_packet->HasExtension<TransmissionOffset>());
   }
 
   EXPECT_EQ(padding_bytes_generated,

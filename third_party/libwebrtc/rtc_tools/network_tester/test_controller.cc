@@ -120,10 +120,10 @@ void TestController::OnReadPacket(AsyncPacketSocket* socket,
   RTC_CHECK(packet.has_type());
   switch (packet.type()) {
     case NetworkTesterPacket::HAND_SHAKING: {
-      NetworkTesterPacket packet;
-      packet.set_type(NetworkTesterPacket::TEST_START);
+      NetworkTesterPacket start_packet;
+      start_packet.set_type(NetworkTesterPacket::TEST_START);
       remote_address_ = received_packet.source_address();
-      SendData(packet, std::nullopt);
+      SendData(start_packet, std::nullopt);
       packet_sender_.reset(new PacketSender(this, packet_sender_thread_.get(),
                                             task_safety_flag_,
                                             config_file_path_));

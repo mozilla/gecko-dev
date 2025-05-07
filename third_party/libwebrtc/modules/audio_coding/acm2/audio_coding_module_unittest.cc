@@ -66,15 +66,6 @@ using ::testing::Invoke;
 
 namespace webrtc {
 
-namespace {
-const int kSampleRateHz = 16000;
-const int kNumSamples10ms = kSampleRateHz / 100;
-const int kFrameSizeMs = 10;  // Multiple of 10.
-const int kFrameSizeSamples = kFrameSizeMs / 10 * kNumSamples10ms;
-const int kPayloadSizeBytes = kFrameSizeSamples * sizeof(int16_t);
-const uint8_t kPayloadType = 111;
-}  // namespace
-
 class RtpData {
  public:
   RtpData(int samples_per_packet, uint8_t payload_type)
@@ -165,6 +156,13 @@ class PacketizationCallbackStubOldApi : public AudioPacketizationCallback {
 
 class AudioCodingModuleTestOldApi : public ::testing::Test {
  protected:
+  static constexpr int kSampleRateHz = 16000;
+  static constexpr int kNumSamples10ms = kSampleRateHz / 100;
+  static constexpr int kFrameSizeMs = 10;  // Multiple of 10.
+  static constexpr int kFrameSizeSamples = kFrameSizeMs / 10 * kNumSamples10ms;
+  static constexpr int kPayloadSizeBytes = kFrameSizeSamples * sizeof(int16_t);
+  static constexpr uint8_t kPayloadType = 111;
+
   AudioCodingModuleTestOldApi()
       : env_(CreateEnvironment()),
         rtp_utility_(new RtpData(kFrameSizeSamples, kPayloadType)) {}

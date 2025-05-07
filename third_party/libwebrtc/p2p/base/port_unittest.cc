@@ -122,7 +122,7 @@ constexpr int kTiebreaker1 = 11111;
 constexpr int kTiebreaker2 = 22222;
 constexpr int kTiebreakerDefault = 44444;
 
-const char* data = "ABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890";
+const char* kTestData = "ABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890";
 
 Candidate GetCandidate(Port* port) {
   RTC_DCHECK_GE(port->Candidates().size(), 1);
@@ -820,7 +820,8 @@ class PortTest : public ::testing::Test, public sigslot::has_slots<> {
       if (send_after_disconnected) {
         // First SendData after disconnect should fail but will trigger
         // reconnect.
-        EXPECT_EQ(-1, ch1.SendData(data, static_cast<int>(strlen(data))));
+        EXPECT_EQ(-1,
+                  ch1.SendData(kTestData, static_cast<int>(strlen(kTestData))));
       }
 
       if (ping_after_disconnected) {

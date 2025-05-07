@@ -99,7 +99,7 @@ std::vector<float> RunSubtractorTest(
         std::make_unique<CascadedBiQuadFilter>(kHighPassFilterCoefficients, 1);
   }
 
-  for (int k = 0; k < num_blocks_to_process; ++k) {
+  for (int block_num = 0; block_num < num_blocks_to_process; ++block_num) {
     for (size_t render_ch = 0; render_ch < num_render_channels; ++render_ch) {
       RandomizeSampleVector(&random_generator, x.View(/*band=*/0, render_ch));
     }
@@ -132,7 +132,7 @@ std::vector<float> RunSubtractorTest(
     }
 
     render_delay_buffer->Insert(x);
-    if (k == 0) {
+    if (block_num == 0) {
       render_delay_buffer->Reset();
     }
     render_delay_buffer->PrepareCaptureProcessing();
@@ -142,7 +142,7 @@ std::vector<float> RunSubtractorTest(
     // Handle echo path changes.
     if (std::find(blocks_with_echo_path_changes.begin(),
                   blocks_with_echo_path_changes.end(),
-                  k) != blocks_with_echo_path_changes.end()) {
+                  block_num) != blocks_with_echo_path_changes.end()) {
       subtractor.HandleEchoPathChange(EchoPathVariability(
           true, EchoPathVariability::DelayAdjustment::kNewDetectedDelay,
           false));

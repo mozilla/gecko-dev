@@ -343,9 +343,9 @@ void RtcEventLogSession::WriteVideoSendConfigs(size_t video_send_streams,
   clock_.AdvanceTime(TimeDelta::Millis(prng_.Rand(20)));
   uint32_t ssrc = prng_.Rand<uint32_t>();
   outgoing_extensions_.emplace_back(ssrc, all_extensions);
-  auto event = gen_.NewVideoSendStreamConfig(ssrc, all_extensions);
-  event_log->Log(event->Copy());
-  video_send_config_list_.push_back(std::move(event));
+  auto first_event = gen_.NewVideoSendStreamConfig(ssrc, all_extensions);
+  event_log->Log(first_event->Copy());
+  video_send_config_list_.push_back(std::move(first_event));
   for (size_t i = 1; i < video_send_streams; i++) {
     clock_.AdvanceTime(TimeDelta::Millis(prng_.Rand(20)));
     do {

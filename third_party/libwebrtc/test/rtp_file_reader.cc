@@ -661,13 +661,13 @@ class PcapReader : public RtpFileReaderImpl {
       RTC_LOG(LS_INFO) << "TCP packets are not handled";
       return kResultSkip;
     } else if (protocol == kProtocolUdp) {
-      uint16_t length;
+      uint16_t payload_length;
       uint16_t checksum;
       TRY_PCAP(Read(&marker->source_port, true));
       TRY_PCAP(Read(&marker->dest_port, true));
-      TRY_PCAP(Read(&length, true));
+      TRY_PCAP(Read(&payload_length, true));
       TRY_PCAP(Read(&checksum, true));
-      marker->payload_length = length - kUdpHeaderLength;
+      marker->payload_length = payload_length - kUdpHeaderLength;
     } else {
       RTC_LOG(LS_INFO) << "Unknown transport (expected UDP or TCP)";
       return kResultSkip;

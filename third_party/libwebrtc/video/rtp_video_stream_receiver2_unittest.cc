@@ -719,7 +719,6 @@ TEST_F(RtpVideoStreamReceiver2Test,
 
 TEST_F(RtpVideoStreamReceiver2Test,
        DropsPacketWithRedPayloadTypeAndEmptyPayload) {
-  const uint8_t kRedPayloadType = 125;
   config_.rtp.red_payload_type = kRedPayloadType;
   SetUp();  // re-create rtp_video_stream_receiver with red payload type.
   // clang-format off

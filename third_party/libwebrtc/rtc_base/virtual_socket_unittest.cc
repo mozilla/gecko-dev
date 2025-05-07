@@ -100,8 +100,8 @@ struct Receiver : public sigslot::has_slots<> {
         sum_sq(0),
         samples(0) {
     socket->RegisterReceivedPacketCallback(
-        [&](rtc::AsyncPacketSocket* socket, const rtc::ReceivedPacket& packet) {
-          OnReadPacket(socket, packet);
+        [&](rtc::AsyncPacketSocket* s, const rtc::ReceivedPacket& packet) {
+          OnReadPacket(s, packet);
         });
     periodic = RepeatingTaskHandle::DelayedStart(
         thread, TimeDelta::Seconds(1), [this] {

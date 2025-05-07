@@ -223,7 +223,6 @@ TEST_P(AudioStateTest, RecordedAudioArrivesAtSingleStream) {
     EXPECT_CALL(*ap, ProcessStream(_, _, _, Matcher<int16_t*>(_)));
   }
 
-  constexpr int kSampleRate = 16000;
   constexpr size_t kNumChannels = 2;
   auto audio_data = Create10msTestData(kSampleRate, kNumChannels);
   uint32_t new_mic_level = 667;
@@ -282,7 +281,6 @@ TEST_P(AudioStateTest, RecordedAudioArrivesAtMultipleStreams) {
     EXPECT_CALL(*ap, ProcessStream(_, _, _, Matcher<int16_t*>(_)));
   }
 
-  constexpr int kSampleRate = 16000;
   constexpr size_t kNumChannels = 1;
   auto audio_data = Create10msTestData(kSampleRate, kNumChannels);
   uint32_t new_mic_level = 667;
@@ -296,7 +294,6 @@ TEST_P(AudioStateTest, RecordedAudioArrivesAtMultipleStreams) {
 }
 
 TEST_P(AudioStateTest, EnableChannelSwap) {
-  constexpr int kSampleRate = 16000;
   constexpr size_t kNumChannels = 2;
 
   ConfigHelper helper(GetParam());
