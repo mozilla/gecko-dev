@@ -1427,10 +1427,6 @@ class HomeFragment : Fragment() {
         lifecycleScope.launch(IO) {
             requireComponents.reviewPromptController.promptReview(requireActivity())
         }
-
-        if ((requireActivity() as HomeActivity).shouldShowUnlockScreen()) {
-            findNavController().navigate(R.id.unlockPrivateTabsFragment)
-        }
     }
 
     @VisibleForTesting
@@ -1475,6 +1471,8 @@ class HomeFragment : Fragment() {
             true
         BiometricAuthenticationManager.biometricAuthenticationNeededInfo.authenticationStatus =
             AuthenticationStatus.NOT_AUTHENTICATED
+
+        (requireActivity() as HomeActivity).privateBrowsingLockFeature.maybeLockScreen(findNavController())
     }
 
     private fun evaluateMessagesForMicrosurvey(components: Components) =

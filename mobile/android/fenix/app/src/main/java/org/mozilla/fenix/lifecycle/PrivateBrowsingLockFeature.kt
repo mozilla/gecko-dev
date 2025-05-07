@@ -7,11 +7,13 @@ package org.mozilla.fenix.lifecycle
 import android.app.Activity
 import androidx.lifecycle.DefaultLifecycleObserver
 import androidx.lifecycle.LifecycleOwner
+import androidx.navigation.NavController
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.map
 import mozilla.components.browser.state.selector.privateTabs
 import mozilla.components.lib.state.ext.flowScoped
+import org.mozilla.fenix.R
 import org.mozilla.fenix.browser.browsingmode.BrowsingMode
 import org.mozilla.fenix.components.Components
 
@@ -73,5 +75,37 @@ class PrivateBrowsingLockFeature(
         if (isPrivateModeLockEnabled && isPrivateMode && hasPrivateTabs) {
             components.settings.isPrivateScreenLocked = true
         }
+    }
+
+    /**
+     * Navigates to the unlock screen for private tabs if the current app state requires it.
+     *
+     * This should be called when entering or returning to a private browsing context
+     * to ensure the user is authenticated before accessing private tabs.
+     *
+     * The screen is shown if:
+     * - The app is in private browsing mode
+     * - There are private tabs open
+     * - The lock feature is enabled
+     * - The private screen is currently locked
+     *
+     * @param navController The [NavController] used to navigate to the unlock screen.
+     */
+    fun maybeLockScreen(navController: NavController) {
+        if (shouldShowUnlockScreen()) {
+            navController.navigate(R.id.unlockPrivateTabsFragment)
+        }
+    }
+
+    /**
+     * We verify if all conditions are met to display the unlock private mode screen
+     */
+    private fun shouldShowUnlockScreen(): Boolean {
+        val hasPrivateTabs = components.core.store.state.privateTabs.isNotEmpty()
+        val biometricLockEnabled = components.settings.privateBrowsingLockedEnabled
+        val isPrivateMode = components.appStore.state.mode == BrowsingMode.Private
+        val isPrivateScreenLocked = components.settings.isPrivateScreenLocked
+
+        return isPrivateMode && hasPrivateTabs && biometricLockEnabled && isPrivateScreenLocked
     }
 }

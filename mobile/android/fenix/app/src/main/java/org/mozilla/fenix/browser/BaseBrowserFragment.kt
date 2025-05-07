@@ -2174,14 +2174,6 @@ abstract class BaseBrowserFragment :
         }
     }
 
-    override fun onStart() {
-        super.onStart()
-
-        if ((requireActivity() as HomeActivity).shouldShowUnlockScreen()) {
-            findNavController().navigate(R.id.unlockPrivateTabsFragment)
-        }
-    }
-
     @CallSuper
     override fun onResume() {
         super.onResume()
@@ -2205,6 +2197,8 @@ abstract class BaseBrowserFragment :
             }
 
         evaluateMessagesForMicrosurvey(components)
+
+        (requireActivity() as HomeActivity).privateBrowsingLockFeature.maybeLockScreen(findNavController())
 
         BiometricAuthenticationManager.biometricAuthenticationNeededInfo.shouldShowAuthenticationPrompt =
             true
