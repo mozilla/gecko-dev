@@ -408,6 +408,12 @@ impl Paths {
         }
     }
 
+    pub fn acked_ecn(&self) {
+        if let Some(path) = self.primary() {
+            path.borrow_mut().acked_ecn();
+        }
+    }
+
     pub fn lost_ecn(&self, pt: PacketType, stats: &mut Stats) {
         if let Some(path) = self.primary() {
             path.borrow_mut().lost_ecn(pt, stats);
@@ -824,6 +830,10 @@ impl Path {
 
     pub fn lost_ack_frequency(&mut self, lost: &AckRate) {
         self.rtt.frame_lost(lost);
+    }
+
+    pub fn acked_ecn(&mut self) {
+        self.ecn_info.acked_ecn();
     }
 
     pub fn lost_ecn(&mut self, pt: PacketType, stats: &mut Stats) {
