@@ -257,6 +257,119 @@ add_task(function test_recursive_testBeforeNextSubmit() {
   GleanPings.onePingOnly.testBeforeNextSubmit(() => {});
 });
 
+add_task(function test_testBeforeNextSubmit_error() {
+  Assert.ok("onePingOnly" in GleanPings);
+
+  let submitted = false;
+  GleanPings.onePingOnly.testBeforeNextSubmit(() => {
+    submitted = true;
+    throw new Error("oh no");
+  });
+
+  Assert.throws(
+    () => GleanPings.onePingOnly.submit(),
+    /oh no/,
+    "testBeforeNextSubmit error thrown from submit"
+  );
+
+  Assert.ok(submitted, "Did submit ping");
+});
+
+add_task(async function test_testSubmission() {
+  Assert.ok("onePingOnly" in GleanPings);
+
+  let submitReason = null;
+  await GleanPings.onePingOnly.testSubmission(
+    reason => (submitReason = reason),
+    () => GleanPings.onePingOnly.submit("raison d'être")
+  );
+
+  Assert.equal(
+    submitReason,
+    "raison d'être",
+    "ping callback called with correct reason"
+  );
+});
+
+add_task(async function test_testSubmission_async() {
+  Assert.ok("onePingOnly" in GleanPings);
+
+  const orderOfOperations = [];
+
+  // We are going to intentionally block submission so that we can delay it
+  // until after testSubmission returns a promise.
+  const blocker = Promise.withResolvers();
+
+  const testPromise = GleanPings.onePingOnly.testSubmission(
+    () => orderOfOperations.push("test-callback"),
+    async () => {
+      orderOfOperations.push("await-blocker");
+      await blocker.promise;
+      orderOfOperations.push("submit");
+      GleanPings.onePingOnly.submit();
+    }
+  );
+  orderOfOperations.push("test-submission-queued");
+
+  blocker.resolve();
+  await testPromise;
+
+  Assert.deepEqual(orderOfOperations, [
+    "await-blocker",
+    "test-submission-queued",
+    "submit",
+    "test-callback",
+  ]);
+});
+
+add_task(async function test_testSubmission_error() {
+  Assert.ok("onePingOnly" in GleanPings);
+
+  await Assert.rejects(
+    GleanPings.onePingOnly.testSubmission(
+      () => {
+        throw new Error("uh oh");
+      },
+      () => GleanPings.onePingOnly.submit()
+    ),
+    /NS_ERROR_XPC_JAVASCRIPT_ERROR_WITH_DETAILS/,
+    "testSubmission callback threw"
+  );
+});
+
+add_task(async function test_testSubmission_unsubmitted() {
+  Assert.ok("onePingOnly" in GleanPings);
+
+  let submitted = false;
+  await Assert.rejects(
+    GleanPings.onePingOnly.testSubmission(
+      () => (submitted = true),
+      () => {}
+    ),
+    /Ping did not submit immediately/,
+    "Threw immediately because the ping did not submit"
+  );
+
+  Assert.ok(!submitted, "callback not called");
+});
+
+add_task(async function test_testSubmission_timeout() {
+  Assert.ok("onePingOnly" in GleanPings);
+
+  let submitted = false;
+  await Assert.rejects(
+    GleanPings.onePingOnly.testSubmission(
+      () => (submitted = true),
+      () => {},
+      1
+    ),
+    /Ping was not submitted after timeout/,
+    "Threw after a timeout"
+  );
+
+  Assert.ok(!submitted, "callback not called");
+});
+
 add_task(async function test_fog_timing_distribution_works() {
   let t1 = Glean.testOnly.whatTimeIsIt.start();
   let t2 = Glean.testOnly.whatTimeIsIt.start();
