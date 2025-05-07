@@ -3,13 +3,25 @@ name = "vendor-webgpu-cts"
 version = "0.1.0"
 edition = "2021"
 
+[features]
+default = ["human_friendly"]
+human_friendly = [
+  "clap/color",
+  "clap/help",
+  "clap/suggestions",
+  "clap/usage",
+  "env_logger/auto-color",
+  "env_logger/humantime",
+]
+
 [dependencies]
-clap = { version = "4.1.6", features = ["derive"] }
-dunce = "1.0.3"
-env_logger = { version = "0.11.0", default-features = false, features = [
-  "auto-color",
-  "humantime",
+clap = { version = "4.1.6", default-features = false, features = [
+  "derive",
+  "error-context",
+  "std",
 ] }
+dunce = "1.0.3"
+env_logger = { version = "0.11.0", default-features = false }
 ezcmd = "0.3.0"
 itertools = "0.11.0"
 joinery = "3.1.0"

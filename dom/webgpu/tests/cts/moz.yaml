@@ -45,6 +45,7 @@ vendoring:
       command: cargo
       args:
         - run
+        - --no-default-features
         - --
         - '../checkout/'
 
