@@ -7,7 +7,9 @@ from contextlib import redirect_stdout
 from pathlib import Path
 
 from mozperftest.layers import Layer
-from mozperftest.test.functionaltestrunner import FunctionalTestRunner
+from mozperftest.test.functionaltestrunner import (
+    FunctionalTestRunner,
+)
 from mozperftest.utils import (
     METRICS_MATCHER,
     ON_TRY,
@@ -195,6 +197,18 @@ class Mochitest(Layer):
                     f"--setenv=MOZ_HOST_BIN={os.environ['MOZ_HOST_BIN']}",
                 ]
             )
+        else:
+            os.environ["MOZ_HOST_BIN"] = str(
+                Path(os.getenv("MOZ_FETCHES_DIR"), "hostutils")
+            )
+            mochitest_android_args.extend(
+                [
+                    f"--setenv=MOZ_HOST_BIN={os.environ['MOZ_HOST_BIN']}",
+                    f"--remote-webserver={os.environ['HOST_IP']}",
+                    "--http-port=8854",
+                    "--ssl-port=4454",
+                ]
+            )
 
         return mochitest_android_args
 
@@ -213,6 +227,7 @@ class Mochitest(Layer):
     def remote_run(self, test, metadata):
         """Run tests in CI."""
         import runtests
+        import runtestsremote
         from manifestparser import TestManifest
         from mochitest_options import MochitestArgumentParser
 
@@ -247,18 +262,29 @@ class Mochitest(Layer):
         args.topobjdir = self.topobjdir
         args.topsrcdir = self.topsrcdir
         args.flavor = manifest_flavor
-        args.app = self.get_arg("mochitest_binary")
 
         fetch_dir = os.getenv("MOZ_FETCHES_DIR")
-        args.utilityPath = str(Path(fetch_dir, "bin"))
-        args.extraProfileFiles.append(str(Path(fetch_dir, "bin", "plugins")))
-        args.testingModulesDir = str(Path(fetch_dir, "modules"))
-        args.symbolsPath = str(Path(fetch_dir, "crashreporter-symbols"))
-        args.certPath = str(Path(fetch_dir, "certs"))
+        if self.get_arg("android"):
+            args.utilityPath = str(Path(fetch_dir, "hostutils"))
+            args.xrePath = str(Path(fetch_dir, "hostutils"))
+            args.extraProfileFiles.append(str(Path(fetch_dir, "bin", "plugins")))
+            args.testingModulesDir = str(Path(fetch_dir, "modules"))
+            args.symbolsPath = str(Path(fetch_dir, "crashreporter-symbols"))
+            args.certPath = str(Path(fetch_dir, "certs"))
+        else:
+            args.app = self.get_arg("mochitest_binary")
+            args.utilityPath = str(Path(fetch_dir, "bin"))
+            args.extraProfileFiles.append(str(Path(fetch_dir, "bin", "plugins")))
+            args.testingModulesDir = str(Path(fetch_dir, "modules"))
+            args.symbolsPath = str(Path(fetch_dir, "crashreporter-symbols"))
+            args.certPath = str(Path(fetch_dir, "certs"))
 
         log_processor = LogProcessor(METRICS_MATCHER)
         with redirect_stdout(log_processor):
-            result = runtests.run_test_harness(parser, args)
+            if self.get_arg("android"):
+                result = runtestsremote.run_test_harness(parser, args)
+            else:
+                result = runtests.run_test_harness(parser, args)
 
         return result, log_processor
 
