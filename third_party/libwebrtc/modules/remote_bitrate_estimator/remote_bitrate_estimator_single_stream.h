@@ -28,6 +28,7 @@
 #include "modules/remote_bitrate_estimator/inter_arrival.h"
 #include "modules/remote_bitrate_estimator/overuse_detector.h"
 #include "modules/remote_bitrate_estimator/overuse_estimator.h"
+#include "modules/rtp_rtcp/source/rtp_packet_received.h"
 #include "rtc_base/bitrate_tracker.h"
 
 namespace webrtc {

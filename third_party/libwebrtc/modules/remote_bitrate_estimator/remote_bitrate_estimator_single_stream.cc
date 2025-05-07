@@ -10,14 +10,20 @@
 
 #include "modules/remote_bitrate_estimator/remote_bitrate_estimator_single_stream.h"
 
+#include <cstddef>
 #include <cstdint>
 #include <optional>
-#include <utility>
+#include <vector>
 
 #include "absl/base/nullability.h"
 #include "api/environment/environment.h"
+#include "api/transport/bandwidth_usage.h"
+#include "api/units/data_rate.h"
+#include "api/units/time_delta.h"
+#include "api/units/timestamp.h"
 #include "modules/remote_bitrate_estimator/aimd_rate_control.h"
 #include "modules/remote_bitrate_estimator/include/bwe_defines.h"
+#include "modules/remote_bitrate_estimator/include/remote_bitrate_estimator.h"
 #include "modules/remote_bitrate_estimator/inter_arrival.h"
 #include "modules/remote_bitrate_estimator/overuse_detector.h"
 #include "modules/remote_bitrate_estimator/overuse_estimator.h"
