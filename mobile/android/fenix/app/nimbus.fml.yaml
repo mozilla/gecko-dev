@@ -336,7 +336,7 @@ features:
           download-link: "[Download Link]"
           show-snackbar: true
 
-  SetupChecklist:
+  setup-checklist:
     description: A feature on the home page that allows the user to track onboarding setup progress.
     variables:
       enabled:
