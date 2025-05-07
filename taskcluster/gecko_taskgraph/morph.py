@@ -125,6 +125,7 @@ def derive_misc_task(
 # in each Gecko `assume:repo:hg.mozilla.org/...` role.
 SCOPE_SUMMARY_REGEXPS = [
     re.compile(r"(index:insert-task:docker\.images\.v1\.[^.]*\.).*"),
+    re.compile(r"(index:insert-task:gecko\.v2\.trunk\.revision\.).*"),
     re.compile(r"(index:insert-task:gecko\.v2\.[^.]*\.).*"),
     re.compile(r"(index:insert-task:comm\.v2\.[^.]*\.).*"),
 ]
