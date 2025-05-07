@@ -3729,7 +3729,6 @@ void ScrollContainerFrame::MaybeCreateTopLayerAndWrapRootItems(
 
     if (usingBackdropFilter) {
       SerializeList();
-      DisplayListClipState::AutoSaveRestore clipState(aBuilder);
       nsRect backdropRect =
           GetRectRelativeToSelf() + aBuilder->ToReferenceFrame(this);
       rootResultList.AppendNewToTop<nsDisplayBackdropFilters>(
