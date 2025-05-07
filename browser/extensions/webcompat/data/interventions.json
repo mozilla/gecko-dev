@@ -3242,6 +3242,21 @@
       }
     ]
   },
+  "1960316": {
+    "label": "wms.sso.biglobe.ne.jp",
+    "bugs": {
+      "1960316": {
+        "issue": "firefox-blocked-completely",
+        "matches": ["*://wms.sso.biglobe.ne.jp/*"]
+      }
+    },
+    "interventions": [
+      {
+        "platforms": ["desktop"],
+        "ua_string": ["add_Chrome"]
+      }
+    ]
+  },
   "1961710": {
     "label": "Office 365 email attachment download filename fix",
     "bugs": {
